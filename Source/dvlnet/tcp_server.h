@@ -30,6 +30,7 @@ public:
 	tcp_server(asio::io_context &ioc, const std::string &bindaddr,
 	    unsigned short port, packet_factory &pktfty);
 	std::string LocalhostSelf();
+	void DisconnectNet(plr_t plr);
 	void Close();
 	virtual ~tcp_server();
 

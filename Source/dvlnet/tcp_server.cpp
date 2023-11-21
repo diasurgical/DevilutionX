@@ -212,16 +212,27 @@ void tcp_server::HandleTimeout(const scc &con, const asio::error_code &ec)
 
 void tcp_server::DropConnection(const scc &con)
 {
-	if (con->plr != PLR_BROADCAST) {
-		auto pkt = pktfty.make_packet<PT_DISCONNECT>(PLR_MASTER, PLR_BROADCAST,
-		    con->plr, static_cast<leaveinfo_t>(LEAVE_DROP));
-		connections[con->plr] = nullptr;
-		SendPacket(*pkt);
-		// TODO: investigate if it is really ok for the server to
-		//       drop a client directly.
-	}
+	plr_t plr = con->plr;
 	con->timer.cancel();
 	con->socket.close();
+	if (plr == PLR_BROADCAST) {
+		return;
+	}
+	connections[plr] = nullptr;
+
+	auto pkt = pktfty.make_packet<PT_DISCONNECT>(PLR_MASTER, PLR_BROADCAST,
+	    con->plr, static_cast<leaveinfo_t>(LEAVE_DROP));
+	SendPacket(*pkt);
+}
+
+void tcp_server::DisconnectNet(plr_t plr)
+{
+	scc &con = connections[plr];
+	if (con == nullptr)
+		return;
+	con->timer.cancel();
+	con->socket.close();
+	con = nullptr;
 }
 
 void tcp_server::Close()

@@ -23,6 +23,7 @@ public:
 
 	void poll() override;
 	void send(packet &pkt) override;
+	void DisconnectNet(plr_t plr) override;
 
 	bool SNetLeaveGame(int type) override;
 

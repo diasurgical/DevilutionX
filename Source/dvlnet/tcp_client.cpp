@@ -123,6 +123,12 @@ void tcp_client::send(packet &pkt)
 	});
 }
 
+void tcp_client::DisconnectNet(plr_t plr)
+{
+	if (local_server != nullptr)
+		local_server->DisconnectNet(plr);
+}
+
 bool tcp_client::SNetLeaveGame(int type)
 {
 	auto ret = base::SNetLeaveGame(type);
