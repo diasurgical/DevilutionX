@@ -1038,6 +1038,7 @@ void OptionEntryLanguageCode::CheckLanguagesAreInitialized() const
 	languages.emplace_back("bg", "Български");
 	languages.emplace_back("ru", "Русский");
 	languages.emplace_back("uk", "Українська");
+	languages.emplace_back("he", "עברית");
 
 	if (haveExtraFonts) {
 		languages.emplace_back("ja", "日本語");
