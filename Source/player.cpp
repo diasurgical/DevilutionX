@@ -783,15 +783,6 @@ bool DoAttack(Player &player)
 			}
 		}
 
-		if (!gbIsHellfire || !HasAllOf(player._pIFlags, ItemSpecialEffect::FireDamage | ItemSpecialEffect::LightningDamage)) {
-			if (HasAnyOf(player._pIFlags, ItemSpecialEffect::FireDamage)) {
-				AddMissile(position, { 1, 0 }, Direction::South, MissileID::WeaponExplosion, TARGET_MONSTERS, player, 0, 0);
-			}
-			if (HasAnyOf(player._pIFlags, ItemSpecialEffect::LightningDamage)) {
-				AddMissile(position, { 2, 0 }, Direction::South, MissileID::WeaponExplosion, TARGET_MONSTERS, player, 0, 0);
-			}
-		}
-
 		if (monster != nullptr) {
 			didhit = PlrHitMonst(player, *monster);
 		} else if (PlayerAtPosition(position) != nullptr && !player.friendlyMode) {
@@ -802,6 +793,18 @@ bool DoAttack(Player &player)
 				didhit = PlrHitObj(player, *object);
 			}
 		}
+
+		if (!gbIsHellfire || !HasAllOf(player._pIFlags, ItemSpecialEffect::FireDamage | ItemSpecialEffect::LightningDamage)) {
+			if (HasAnyOf(player._pIFlags, ItemSpecialEffect::FireDamage)) {
+				int elementalDamage = didhit ? RandomIntBetween(player._pIFMinDam, player._pIFMaxDam) : 0;
+				AddMissile(position, { 1, 0 }, Direction::South, MissileID::WeaponExplosion, TARGET_MONSTERS, player, elementalDamage, 0);
+			}
+			if (HasAnyOf(player._pIFlags, ItemSpecialEffect::LightningDamage)) {
+				int elementalDamage = didhit ? RandomIntBetween(player._pILMinDam, player._pILMaxDam) : 0;
+				AddMissile(position, { 2, 0 }, Direction::South, MissileID::WeaponExplosion, TARGET_MONSTERS, player, elementalDamage, 0);
+			}
+		}
+
 		if (player.CanCleave()) {
 			// playing as a class/weapon with cleave
 			position = player.position.tile + Right(player._pdir);
