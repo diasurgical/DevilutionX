@@ -4672,23 +4672,23 @@ bool CanTalkToMonst(const Monster &monster)
 	return IsAnyOf(monster.goal, MonsterGoal::Inquiring, MonsterGoal::Talking);
 }
 
-int encode_enemy(Monster &monster)
+uint8_t encode_enemy(Monster &monster)
 {
 	if ((monster.flags & MFLAG_TARGETS_MONSTER) != 0)
-		return monster.enemy + MAX_PLRS;
+		return monster.enemy;
 
-	return monster.enemy;
+	return monster.enemy + MaxMonsters;
 }
 
-void decode_enemy(Monster &monster, int enemyId)
+void decode_enemy(Monster &monster, uint8_t enemyId)
 {
-	if (enemyId < MAX_PLRS) {
+	if (enemyId >= MaxMonsters) {
+		enemyId -= MaxMonsters;
 		monster.flags &= ~MFLAG_TARGETS_MONSTER;
 		monster.enemy = enemyId;
 		monster.enemyPosition = Players[enemyId].position.future;
 	} else {
 		monster.flags |= MFLAG_TARGETS_MONSTER;
-		enemyId -= MAX_PLRS;
 		monster.enemy = enemyId;
 		monster.enemyPosition = Monsters[enemyId].position.future;
 	}

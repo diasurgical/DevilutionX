@@ -570,7 +570,7 @@ Monster *PreSpawnSkeleton();
 void TalktoMonster(Player &player, Monster &monster);
 void SpawnGolem(Player &player, Monster &golem, Point position, Missile &missile);
 bool CanTalkToMonst(const Monster &monster);
-int encode_enemy(Monster &monster);
-void decode_enemy(Monster &monster, int enemyId);
+uint8_t encode_enemy(Monster &monster);
+void decode_enemy(Monster &monster, uint8_t enemyId);
 
 } // namespace devilution

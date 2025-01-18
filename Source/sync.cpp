@@ -160,7 +160,7 @@ void SyncMonster(bool isOwner, const TSyncMonster &monsterSync)
 	}
 
 	const Point position { monsterSync._mx, monsterSync._my };
-	const int enemyId = monsterSync._menemy;
+	const uint8_t enemyId = monsterSync._menemy;
 
 	if (monster.activeForTicks != 0) {
 		uint32_t delta = MyPlayer->position.tile.ManhattanDistance(monster.position.tile);
@@ -205,19 +205,13 @@ void SyncMonster(bool isOwner, const TSyncMonster &monsterSync)
 	monster.whoHit |= monsterSync.mWhoHit;
 }
 
-bool IsEnemyIdValid(const Monster &monster, int enemyId)
+bool IsEnemyIdValid(const Monster &monster, uint8_t enemyId)
 {
-	if (enemyId < 0) {
-		return false;
-	}
-
-	if (enemyId < MAX_PLRS) {
+	if (enemyId > MaxMonsters) {
+		enemyId -= MaxMonsters;
+		if (enemyId >= Players.size())
+			return false;
 		return Players[enemyId].plractive;
-	}
-
-	enemyId -= MAX_PLRS;
-	if (static_cast<size_t>(enemyId) >= MaxMonsters) {
-		return false;
 	}
 
 	const Monster &enemy = Monsters[enemyId];
