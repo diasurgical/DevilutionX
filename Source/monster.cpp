@@ -1068,7 +1068,7 @@ void MonsterAttackMonster(Monster &attacker, Monster &target, int hper, int mind
 	ApplyMonsterDamage(DamageType::Physical, target, dam);
 
 	if (attacker.isPlayerMinion()) {
-		size_t playerId = attacker.getId();
+		size_t playerId = static_cast<size_t>(attacker.goalVar3);
 		const Player &player = Players[playerId];
 		target.tag(player);
 	}
@@ -3833,9 +3833,8 @@ void StartMonsterDeath(Monster &monster, const Player &player, bool sendmsg)
 	MonsterDeath(monster, md, sendmsg);
 }
 
-void KillMyGolem()
+void KillGolem(Monster &golem)
 {
-	Monster &golem = Monsters[MyPlayerId];
 	delta_kill_monster(golem, golem.position.tile, *MyPlayer);
 	NetSendCmdLocParam1(false, CMD_MONSTDEATH, golem.position.tile, static_cast<uint16_t>(golem.getId()));
 	M_StartKill(golem, *MyPlayer);
@@ -4001,7 +4000,7 @@ void GolumAi(Monster &golem)
 	if (golem.pathCount > 8)
 		golem.pathCount = 5;
 
-	if (RandomWalk(golem, Players[golem.getId()]._pdir))
+	if (RandomWalk(golem, Players[golem.goalVar3]._pdir))
 		return;
 
 	Direction md = Left(golem.direction);
@@ -4516,6 +4515,24 @@ Monster *FindUniqueMonster(UniqueMonsterType monsterType)
 	return nullptr;
 }
 
+Monster *FindGolemForPlayer(const Player &player)
+{
+	for (size_t i = 0; i < ActiveMonsterCount; i++) {
+		int monsterId = ActiveMonsters[i];
+		Monster &monster = Monsters[monsterId];
+		if (monster.type().type != MT_GOLEM)
+			continue;
+		if (monster.position.tile == GolemHoldingCell)
+			continue;
+		if (monster.goalVar3 != player.getId())
+			continue;
+		if (monster.hitPoints == 0)
+			continue;
+		return &monster;
+	}
+	return nullptr;
+}
+
 bool IsTileAvailable(const Monster &monster, Point position)
 {
 	if (!IsTileAvailable(position))
@@ -4654,6 +4671,7 @@ void SpawnGolem(Player &player, Monster &golem, Point position, Missile &missile
 	golem.minDamage = 2 * (missile._mispllvl + 4);
 	golem.maxDamage = 2 * (missile._mispllvl + 8);
 	golem.flags |= MFLAG_GOLEM;
+	golem.goalVar3 = player.getId();
 	StartSpecialStand(golem, Direction::South);
 	UpdateEnemy(golem);
 	if (&player == MyPlayer) {

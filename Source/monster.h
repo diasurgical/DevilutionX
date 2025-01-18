@@ -237,7 +237,7 @@ struct Monster { // note: missing field _mAFNum
 
 	/**
 	 * @brief Controls monster's behaviour regarding special actions.
-	 * Used only by @p ScavengerAi and @p MegaAi.
+	 * Used only by @p ScavengerAi, @p MegaAi and @p GolemAi.
 	 */
 	int8_t goalVar3;
 
@@ -529,7 +529,7 @@ void M_StartHit(Monster &monster, int dam);
 void M_StartHit(Monster &monster, const Player &player, int dam);
 void StartMonsterDeath(Monster &monster, const Player &player, bool sendmsg);
 void MonsterDeath(Monster &monster, Direction md, bool sendmsg);
-void KillMyGolem();
+void KillGolem(Monster &golem);
 void M_StartKill(Monster &monster, const Player &player);
 void M_SyncStartKill(Monster &monster, Point position, const Player &player);
 void M_UpdateRelations(const Monster &monster);
@@ -553,6 +553,7 @@ void MissToMonst(Missile &missile, Point position);
 
 Monster *FindMonsterAtPosition(Point position, bool ignoreMovingMonsters = false);
 Monster *FindUniqueMonster(UniqueMonsterType monsterType);
+Monster *FindGolemForPlayer(const Player &player);
 
 /**
  * @brief Check that the given tile is available to the monster
