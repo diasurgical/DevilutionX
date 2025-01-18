@@ -168,7 +168,6 @@ std::string_view CmdIdString(_cmd_id cmd)
 	case CMD_SPELLXYD: return "CMD_SPELLXYD";
 	case CMD_ITEMEXTRA: return "CMD_ITEMEXTRA";
 	case CMD_SYNCPUTITEM: return "CMD_SYNCPUTITEM";
-	case CMD_KILLGOLEM: return "CMD_KILLGOLEM";
 	case CMD_SYNCQUEST: return "CMD_SYNCQUEST";
 	case CMD_AWAKEGOLEM: return "CMD_AWAKEGOLEM";
 	case CMD_SETSHIELD: return "CMD_SETSHIELD";
@@ -1769,25 +1768,6 @@ size_t OnMonstDeath(const TCmd *pCmd, Player &player)
 	return sizeof(message);
 }
 
-size_t OnKillGolem(const TCmd *pCmd, Player &player)
-{
-	const auto &message = *reinterpret_cast<const TCmdLoc *>(pCmd);
-	const Point position { message.x, message.y };
-
-	if (gbBufferMsgs != 1) {
-		if (&player != MyPlayer && InDungeonBounds(position)) {
-			Monster &monster = Monsters[player.getId()];
-			if (player.isOnActiveLevel())
-				M_SyncStartKill(monster, position, player);
-			delta_kill_monster(monster, position, player); // BUGFIX: should be p->wParam1, plrlevel will be incorrect if golem is killed because player changed levels
-		}
-	} else {
-		SendPacket(player, &message, sizeof(message));
-	}
-
-	return sizeof(message);
-}
-
 size_t OnAwakeGolem(const TCmd *pCmd, Player &player)
 {
 	const auto &message = *reinterpret_cast<const TCmdGolem *>(pCmd);
@@ -3263,8 +3243,6 @@ size_t ParseCmd(uint8_t pnum, const TCmd *pCmd)
 		return OnWarp(pCmd, player);
 	case CMD_MONSTDEATH:
 		return OnMonstDeath(pCmd, player);
-	case CMD_KILLGOLEM:
-		return OnKillGolem(pCmd, player);
 	case CMD_AWAKEGOLEM:
 		return OnAwakeGolem(pCmd, player);
 	case CMD_MONSTDAMAGE:

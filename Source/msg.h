@@ -389,13 +389,6 @@ enum _cmd_id : uint8_t {
 	//
 	// body (TCmdPItem)
 	CMD_SYNCPUTITEM,
-	// Golem death at location.
-	//
-	// body (TCmdLocParam1):
-	//    int8_t x
-	//    int8_t y
-	//    int16_t dlvl
-	CMD_KILLGOLEM,
 	// Synchronize quest state.
 	//
 	// body (TCmdQuest)
