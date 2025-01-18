@@ -2346,8 +2346,7 @@ void AddGolem(Missile &missile, AddMissileParameter &parameter)
 
 	// Is Golem alive?
 	if (golem != nullptr) {
-		if (&player == MyPlayer)
-			KillGolem(*golem);
+		KillGolem(*golem);
 		return;
 	}
 
@@ -2360,7 +2359,18 @@ void AddGolem(Missile &missile, AddMissileParameter &parameter)
 	if (!spawnPosition)
 		return;
 
-	SpawnGolem(player, *golem, *spawnPosition, missile);
+	if (&player != MyPlayer)
+		return;
+
+	uint8_t spellLevel = static_cast<uint8_t>(missile._mispllvl);
+
+	// The command is only executed for the level owner, to prevent desyncs in multiplayer.
+	if (!MyPlayer->isLevelOwnedByLocalClient()) {
+		// If we are not the level owner, request the level owner to spawn the golem for us
+		NetSendCmdLocParam1(true, CMD_REQUESTSPAWNGOLEM, *spawnPosition, spellLevel);
+		return;
+	}
+	SpawnGolem(player, *spawnPosition, spellLevel);
 }
 
 void AddApocalypseBoom(Missile &missile, AddMissileParameter &parameter)

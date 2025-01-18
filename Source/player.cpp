@@ -2811,16 +2811,10 @@ void SyncPlrKill(Player &player, DeathReason deathReason)
 
 void RemovePlrMissiles(const Player &player)
 {
-	if (leveltype != DTYPE_TOWN && &player == MyPlayer) {
-		Monster *golem = FindGolemForPlayer(player);
-		if (golem != nullptr) {
+	if (leveltype != DTYPE_TOWN) {
+		Monster *golem;
+		while ((golem = FindGolemForPlayer(player)) != nullptr) {
 			KillGolem(*golem);
-			AddCorpse(golem->position.tile, golem->type().corpseId, golem->direction);
-			int mx = golem->position.tile.x;
-			int my = golem->position.tile.y;
-			dMonster[mx][my] = 0;
-			golem->isInvalid = true;
-			DeleteMonsterList();
 		}
 	}
 

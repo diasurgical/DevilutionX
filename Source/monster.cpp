@@ -177,6 +177,7 @@ void InitMonster(Monster &monster, Direction rd, size_t typeIndex, Point positio
 	monster.goalVar2 = 0;
 	monster.goalVar3 = 0;
 	monster.pathCount = 0;
+	monster.enemy = 0;
 	monster.isInvalid = false;
 	monster.uniqueType = UniqueMonsterType::None;
 	monster.activeForTicks = 0;
@@ -3133,6 +3134,20 @@ void EnsureMonsterIndexIsActive(size_t monsterId)
 	}
 }
 
+void InitGolem(devilution::Monster &monster, uint8_t golemOwnerPlayerId, int16_t golemSpellLevel)
+{
+	monster.flags |= MFLAG_GOLEM;
+	monster.goalVar3 = static_cast<int8_t>(golemOwnerPlayerId);
+	const Player &player = Players[golemOwnerPlayerId];
+	monster.maxHitPoints = 2 * (320 * golemSpellLevel + player._pMaxMana / 3);
+	monster.hitPoints = monster.maxHitPoints;
+	monster.armorClass = 25;
+	monster.golemToHit = 5 * (golemSpellLevel + 8) + 2 * player.getCharacterLevel();
+	monster.minDamage = 2 * (golemSpellLevel + 4);
+	monster.maxDamage = 2 * (golemSpellLevel + 8);
+	UpdateEnemy(monster);
+}
+
 } // namespace
 
 tl::expected<size_t, std::string> AddMonsterType(_monster_id type, placeflag placeflag)
@@ -3641,11 +3656,11 @@ void SpawnMonster(Point position, Direction dir, size_t typeIndex, bool startSpe
 	ActiveMonsterCount += 1;
 	uint32_t seed = GetLCGEngineState();
 	// Update local state immediately to increase ActiveMonsterCount instantly (this allows multiple monsters to be spawned in one game tick)
-	InitializeSpawnedMonster(position, dir, typeIndex, monsterIndex, seed);
-	NetSendCmdSpawnMonster(position, dir, static_cast<uint16_t>(typeIndex), static_cast<uint16_t>(monsterIndex), seed);
+	InitializeSpawnedMonster(position, dir, typeIndex, monsterIndex, seed, 0, 0);
+	NetSendCmdSpawnMonster(position, dir, static_cast<uint16_t>(typeIndex), static_cast<uint16_t>(monsterIndex), seed, 0, 0);
 }
 
-void LoadDeltaSpawnedMonster(size_t typeIndex, size_t monsterId, uint32_t seed)
+void LoadDeltaSpawnedMonster(size_t typeIndex, size_t monsterId, uint32_t seed, uint8_t golemOwnerPlayerId, int16_t golemSpellLevel)
 {
 	SetRndSeed(seed);
 	EnsureMonsterIndexIsActive(monsterId);
@@ -3653,9 +3668,12 @@ void LoadDeltaSpawnedMonster(size_t typeIndex, size_t monsterId, uint32_t seed)
 	Monster &monster = Monsters[monsterId];
 	M_ClearSquares(monster);
 	InitMonster(monster, Direction::South, typeIndex, position);
+	if (monster.type().type == MT_GOLEM) {
+		InitGolem(monster, golemOwnerPlayerId, golemSpellLevel);
+	}
 }
 
-void InitializeSpawnedMonster(Point position, Direction dir, size_t typeIndex, size_t monsterId, uint32_t seed)
+void InitializeSpawnedMonster(Point position, Direction dir, size_t typeIndex, size_t monsterId, uint32_t seed, uint8_t golemOwnerPlayerId, int16_t golemSpellLevel)
 {
 	SetRndSeed(seed);
 	EnsureMonsterIndexIsActive(monsterId);
@@ -3678,10 +3696,14 @@ void InitializeSpawnedMonster(Point position, Direction dir, size_t typeIndex, s
 	monster.occupyTile(position, false);
 	InitMonster(monster, dir, typeIndex, position);
 
-	if (IsSkel(monster.type().type))
+	if (monster.type().type == MT_GOLEM) {
+		InitGolem(monster, golemOwnerPlayerId, golemSpellLevel);
 		StartSpecialStand(monster, dir);
-	else
+	} else if (IsSkel(monster.type().type)) {
+		StartSpecialStand(monster, dir);
+	} else {
 		M_StartStand(monster, dir);
+	}
 }
 
 void AddDoppelganger(Monster &monster)
@@ -4657,32 +4679,44 @@ void TalktoMonster(Player &player, Monster &monster)
 	}
 }
 
-void SpawnGolem(Player &player, Monster &golem, Point position, Missile &missile)
+void SpawnGolem(const Player &player, Point position, uint8_t spellLevel)
 {
-	golem.occupyTile(position, false);
-	golem.position.tile = position;
-	golem.position.future = position;
-	golem.position.old = position;
-	golem.pathCount = 0;
-	golem.maxHitPoints = 2 * (320 * missile._mispllvl + player._pMaxMana / 3);
-	golem.hitPoints = golem.maxHitPoints;
-	golem.armorClass = 25;
-	golem.golemToHit = 5 * (missile._mispllvl + 8) + 2 * player.getCharacterLevel();
-	golem.minDamage = 2 * (missile._mispllvl + 4);
-	golem.maxDamage = 2 * (missile._mispllvl + 8);
-	golem.flags |= MFLAG_GOLEM;
-	golem.goalVar3 = player.getId();
-	StartSpecialStand(golem, Direction::South);
-	UpdateEnemy(golem);
-	if (&player == MyPlayer) {
-		NetSendCmdGolem(
-		    golem.position.tile.x,
-		    golem.position.tile.y,
-		    golem.direction,
-		    golem.enemy,
-		    golem.hitPoints,
-		    GetLevelForMultiplayer(player));
+	// Search monster index to use for the new golem
+	Monster *golem = nullptr;
+	// 1. Prefer MonsterIndex = PlayerIndex for vanilla compatibility
+	if (player.getId() < ReservedMonsterSlotsForGolems) {
+		Monster &reservedGolem = Monsters[player.getId()];
+		if (reservedGolem.position.tile == GolemHoldingCell || reservedGolem.hitPoints == 0)
+			golem = &reservedGolem;
 	}
+	// 2. Use reserved slots, so additional Monsters can spawn
+	if (golem == nullptr) {
+		for (int i = 0; i < ReservedMonsterSlotsForGolems; i++) {
+			Monster &reservedGolem = Monsters[i];
+			if (reservedGolem.position.tile == GolemHoldingCell || reservedGolem.hitPoints == 0) {
+				golem = &reservedGolem;
+				break;
+			}
+		}
+	}
+	// 3. Use normal monster slot
+	if (golem == nullptr) {
+		if (ActiveMonsterCount >= MaxMonsters)
+			return;
+		size_t monsterIndex = ActiveMonsters[ActiveMonsterCount];
+		ActiveMonsterCount += 1;
+		golem = &Monsters[monsterIndex];
+	}
+
+	if (golem == nullptr)
+		return;
+
+	size_t monsterIndex = golem->getId();
+	uint32_t seed = GetLCGEngineState();
+
+	// Update local state immediately to increase ActiveMonsterCount instantly (this allows multiple monsters to be spawned in one game tick)
+	InitializeSpawnedMonster(position, Direction::South, 0, monsterIndex, seed, player.getId(), spellLevel);
+	NetSendCmdSpawnMonster(position, Direction::South, 0, static_cast<uint16_t>(monsterIndex), seed, player.getId(), spellLevel);
 }
 
 bool CanTalkToMonst(const Monster &monster)

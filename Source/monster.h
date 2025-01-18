@@ -514,11 +514,11 @@ void SpawnMonster(Point position, Direction dir, size_t typeIndex, bool startSpe
 /**
  * @brief Loads data for a dynamically spawned monster when entering a level in multiplayer.
  */
-void LoadDeltaSpawnedMonster(size_t typeIndex, size_t monsterId, uint32_t seed);
+void LoadDeltaSpawnedMonster(size_t typeIndex, size_t monsterId, uint32_t seed, uint8_t golemOwnerPlayerId, int16_t golemSpellLevel);
 /**
  * @brief Initialize a spanwed monster (from a network message or from SpawnMonster-function).
  */
-void InitializeSpawnedMonster(Point position, Direction dir, size_t typeIndex, size_t monsterId, uint32_t seed);
+void InitializeSpawnedMonster(Point position, Direction dir, size_t typeIndex, size_t monsterId, uint32_t seed, uint8_t golemOwnerPlayerId, int16_t golemSpellLevel);
 void AddDoppelganger(Monster &monster);
 void ApplyMonsterDamage(DamageType damageType, Monster &monster, int damage);
 bool M_Talker(const Monster &monster);
@@ -569,7 +569,7 @@ bool IsGoat(_monster_id mt);
 void ActivateSkeleton(Monster &monster, Point position);
 Monster *PreSpawnSkeleton();
 void TalktoMonster(Player &player, Monster &monster);
-void SpawnGolem(Player &player, Monster &golem, Point position, Missile &missile);
+void SpawnGolem(const Player &player, Point position, uint8_t spellLevel);
 bool CanTalkToMonst(const Monster &monster);
 uint8_t encode_enemy(Monster &monster);
 void decode_enemy(Monster &monster, uint8_t enemyId);

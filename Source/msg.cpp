@@ -169,7 +169,7 @@ std::string_view CmdIdString(_cmd_id cmd)
 	case CMD_ITEMEXTRA: return "CMD_ITEMEXTRA";
 	case CMD_SYNCPUTITEM: return "CMD_SYNCPUTITEM";
 	case CMD_SYNCQUEST: return "CMD_SYNCQUEST";
-	case CMD_AWAKEGOLEM: return "CMD_AWAKEGOLEM";
+	case CMD_REQUESTSPAWNGOLEM: return "CMD_REQUESTSPAWNGOLEM";
 	case CMD_SETSHIELD: return "CMD_SETSHIELD";
 	case CMD_REMSHIELD: return "CMD_REMSHIELD";
 	case CMD_SETREFLECT: return "CMD_SETREFLECT";
@@ -213,6 +213,8 @@ struct DObjectStr {
 struct DSpawnedMonster {
 	size_t typeIndex;
 	uint32_t seed;
+	uint8_t golemOwnerPlayerId;
+	int16_t golemSpellLevel;
 };
 
 struct DLevel {
@@ -729,19 +731,6 @@ size_t OnLevelData(uint8_t pnum, const TCmd *pCmd)
 	memcpy(&sgRecvBuf[wOffset], &message + 1, wBytes);
 	sgdwRecvOffset += wBytes;
 	return wBytes + sizeof(message);
-}
-
-void DeltaSyncGolem(const TCmdGolem &message, const Player &player, uint8_t level)
-{
-	if (!gbIsMultiplayer)
-		return;
-
-	DMonsterStr &monster = GetDeltaLevel(level).monster[player.getId()];
-	monster.position.x = message._mx;
-	monster.position.y = message._my;
-	monster._mactive = UINT8_MAX;
-	monster._menemy = message._menemy;
-	monster.hitPoints = SDL_SwapLE32(message._mhitpoints);
 }
 
 void DeltaLeaveSync(uint8_t bLevel)
@@ -1768,27 +1757,16 @@ size_t OnMonstDeath(const TCmd *pCmd, Player &player)
 	return sizeof(message);
 }
 
-size_t OnAwakeGolem(const TCmd *pCmd, Player &player)
+size_t OnRequestSpawnGolem(const TCmd *pCmd, const Player &player)
 {
-	const auto &message = *reinterpret_cast<const TCmdGolem *>(pCmd);
-	const Point position { message._mx, message._my };
+	const auto &message = *reinterpret_cast<const TCmdLocParam1 *>(pCmd);
+	if (gbBufferMsgs == 1)
+		return sizeof(message);
 
-	if (gbBufferMsgs == 1) {
-		SendPacket(player, &message, sizeof(message));
-	} else if (InDungeonBounds(position)) {
-		if (!player.isOnActiveLevel()) {
-			DeltaSyncGolem(message, player, message._currlevel);
-		} else if (&player != MyPlayer) {
-			// Check if this player already has an active golem
-			for (auto &missile : Missiles) {
-				if (missile._mitype == MissileID::Golem && &Players[missile._misource] == &player) {
-					return sizeof(message);
-				}
-			}
+	const WorldTilePosition position { message.x, message.y };
 
-			AddMissile(player.position.tile, position, message._mdir, MissileID::Golem, TARGET_MONSTERS, player, 0, 1);
-		}
-	}
+	if (player.isLevelOwnedByLocalClient() && InDungeonBounds(position))
+		SpawnGolem(player, position, static_cast<uint8_t>(message.wParam1));
 
 	return sizeof(message);
 }
@@ -2368,10 +2346,15 @@ size_t OnSpawnMonster(const TCmd *pCmd, const Player &player)
 
 	size_t typeIndex = static_cast<size_t>(SDL_SwapLE16(message.typeIndex));
 	size_t monsterId = static_cast<size_t>(SDL_SwapLE16(message.monsterId));
+	uint8_t golemOwnerPlayerId = message.golemOwnerPlayerId;
+	if (golemOwnerPlayerId >= Players.size()) {
+		return sizeof(message);
+	}
+	uint8_t golemSpellLevel = std::min(message.golemSpellLevel, static_cast<uint8_t>(MaxSpellLevel + Players[golemOwnerPlayerId]._pISplLvlAdd));
 
 	DLevel &deltaLevel = GetDeltaLevel(player);
 
-	deltaLevel.spawnedMonsters[monsterId] = { typeIndex, message.seed };
+	deltaLevel.spawnedMonsters[monsterId] = { typeIndex, message.seed, golemOwnerPlayerId, golemSpellLevel };
 	// Override old monster delta information
 	auto &deltaMonster = deltaLevel.monster[monsterId];
 	deltaMonster.position = position;
@@ -2380,7 +2363,7 @@ size_t OnSpawnMonster(const TCmd *pCmd, const Player &player)
 	deltaMonster._mactive = 0;
 
 	if (player.isOnActiveLevel() && &player != MyPlayer)
-		InitializeSpawnedMonster(position, message.dir, typeIndex, monsterId, message.seed);
+		InitializeSpawnedMonster(position, message.dir, typeIndex, monsterId, message.seed, golemOwnerPlayerId, golemSpellLevel);
 	return sizeof(message);
 }
 
@@ -2675,7 +2658,8 @@ void DeltaLoadLevel()
 	DLevel &deltaLevel = GetDeltaLevel(localLevel);
 	if (leveltype != DTYPE_TOWN) {
 		for (auto &deltaSpawnedMonster : deltaLevel.spawnedMonsters) {
-			LoadDeltaSpawnedMonster(deltaSpawnedMonster.second.typeIndex, deltaSpawnedMonster.first, deltaSpawnedMonster.second.seed);
+			auto &monsterData = deltaSpawnedMonster.second;
+			LoadDeltaSpawnedMonster(deltaSpawnedMonster.second.typeIndex, deltaSpawnedMonster.first, monsterData.seed, monsterData.golemOwnerPlayerId, monsterData.golemSpellLevel);
 			assert(deltaLevel.monster[deltaSpawnedMonster.first].position.x != 0xFF);
 		}
 		for (size_t i = 0; i < MaxMonsters; i++) {
@@ -2804,21 +2788,7 @@ void NetSendCmd(bool bHiPri, _cmd_id bCmd)
 		NetSendLoPri(MyPlayerId, (std::byte *)&cmd, sizeof(cmd));
 }
 
-void NetSendCmdGolem(uint8_t mx, uint8_t my, Direction dir, uint8_t menemy, int hp, uint8_t cl)
-{
-	TCmdGolem cmd;
-
-	cmd.bCmd = CMD_AWAKEGOLEM;
-	cmd._mx = mx;
-	cmd._my = my;
-	cmd._mdir = dir;
-	cmd._menemy = menemy;
-	cmd._mhitpoints = hp;
-	cmd._currlevel = cl;
-	NetSendLoPri(MyPlayerId, (std::byte *)&cmd, sizeof(cmd));
-}
-
-void NetSendCmdSpawnMonster(Point position, Direction dir, uint16_t typeIndex, uint16_t monsterId, uint32_t seed)
+void NetSendCmdSpawnMonster(Point position, Direction dir, uint16_t typeIndex, uint16_t monsterId, uint32_t seed, uint8_t golemOwnerPlayerId, uint8_t golemSpellLevel)
 {
 	TCmdSpawnMonster cmd;
 
@@ -2829,6 +2799,8 @@ void NetSendCmdSpawnMonster(Point position, Direction dir, uint16_t typeIndex, u
 	cmd.typeIndex = SDL_SwapLE16(typeIndex);
 	cmd.monsterId = SDL_SwapLE16(monsterId);
 	cmd.seed = SDL_SwapLE32(seed);
+	cmd.golemOwnerPlayerId = golemOwnerPlayerId;
+	cmd.golemSpellLevel = golemSpellLevel;
 	NetSendHiPri(MyPlayerId, (std::byte *)&cmd, sizeof(cmd));
 }
 
@@ -3243,8 +3215,8 @@ size_t ParseCmd(uint8_t pnum, const TCmd *pCmd)
 		return OnWarp(pCmd, player);
 	case CMD_MONSTDEATH:
 		return OnMonstDeath(pCmd, player);
-	case CMD_AWAKEGOLEM:
-		return OnAwakeGolem(pCmd, player);
+	case CMD_REQUESTSPAWNGOLEM:
+		return OnRequestSpawnGolem(pCmd, player);
 	case CMD_MONSTDAMAGE:
 		return OnMonstDamage(pCmd, player);
 	case CMD_PLRDEAD:
