@@ -715,11 +715,15 @@ uint32_t DrawString(const Surface &out, std::string_view text, const Rectangle &
 	const text_color color = GetColorFromFlags(opts.flags);
 
 	int charactersInLine = 0;
-	int lineWidth = 0;
-	if (HasAnyOf(opts.flags, (UiFlags::AlignCenter | UiFlags::AlignRight | UiFlags::KerningFitSpacing)))
-		lineWidth = GetLineWidth(text, size, opts.spacing, &charactersInLine);
+	int unadjustedWidth = GetLineWidth(text, size, opts.spacing, &charactersInLine);
+	int adjustedSpacing = HasAnyOf(opts.flags, UiFlags::KerningFitSpacing)
+	    ? AdjustSpacingToFitHorizontally(unadjustedWidth, opts.spacing, charactersInLine, rect.size.width)
+	    : opts.spacing;
+	int adjustedLineWidth = GetLineWidth(text, size, adjustedSpacing, &charactersInLine);
+	Point characterPosition { GetLineStartX(opts.flags, rect, adjustedLineWidth), rect.position.y };
 
-	Point characterPosition { GetLineStartX(opts.flags, rect, lineWidth), rect.position.y };
+	opts.spacing = adjustedSpacing;
+
 	const int initialX = characterPosition.x;
 
 	const int rightMargin = rect.position.x + rect.size.width;
@@ -745,7 +749,7 @@ uint32_t DrawString(const Surface &out, std::string_view text, const Rectangle &
 	}
 
 	const uint32_t bytesDrawn = DoDrawString(clippedOut, text, rect, characterPosition,
-	    lineWidth, charactersInLine, rightMargin, bottomMargin, size, color, outlined, opts);
+	    unadjustedWidth, charactersInLine, rightMargin, bottomMargin, size, color, outlined, opts);
 
 	if (HasAnyOf(opts.flags, UiFlags::PentaCursor)) {
 		const ClxSprite sprite = (*pSPentSpn2Cels)[PentSpn2Spin()];
