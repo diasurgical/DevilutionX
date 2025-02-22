@@ -549,6 +549,7 @@ if(PS2)
   target_link_dependencies(libdevilutionx_sound PUBLIC
     DevilutionX::SDL
     audsrv
+    ps2snd
     fmt::fmt
     tl
     unordered_dense::unordered_dense
