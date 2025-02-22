@@ -531,12 +531,32 @@ if(NOSOUND)
     engine/sound_stubs.cpp
   )
 else()
+if(PS2)
+  add_devilutionx_object_library(libdevilutionx_sound
+    effects.cpp
+    engine/sound.cpp
+    utils/soundsample.cpp
+  )
+else()
   add_devilutionx_object_library(libdevilutionx_sound
     effects.cpp
     engine/sound.cpp
     utils/push_aulib_decoder.cpp
     utils/soundsample.cpp
   )
+endif()
+if(PS2)
+  target_link_dependencies(libdevilutionx_sound PUBLIC
+    DevilutionX::SDL
+    audsrv
+    fmt::fmt
+    tl
+    unordered_dense::unordered_dense
+    libdevilutionx_options
+    libdevilutionx_random
+    libdevilutionx_sdl2_to_1_2_backports
+  )
+else()
   target_link_dependencies(libdevilutionx_sound PUBLIC
     DevilutionX::SDL
     SDL_audiolib::SDL_audiolib
@@ -547,6 +567,7 @@ else()
     libdevilutionx_random
     libdevilutionx_sdl2_to_1_2_backports
   )
+endif()
 endif()
 
 add_devilutionx_object_library(libdevilutionx_stores

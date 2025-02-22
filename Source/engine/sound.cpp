@@ -13,7 +13,10 @@
 #include <optional>
 #include <string>
 
+#ifndef PS2
 #include <Aulib/Stream.h>
+#endif
+
 #include <SDL.h>
 #include <expected.hpp>
 
@@ -41,6 +44,15 @@ namespace {
 
 SoundSample music;
 
+#ifdef PS2
+std::string GetAdpPath(const char *path)
+{
+	std::string adpPath = path;
+	const std::string::size_type dot = adpPath.find_last_of('.');
+	adpPath.replace(dot + 1, adpPath.size() - (dot + 1), "adp");
+	return adpPath;
+}
+#else
 std::string GetMp3Path(const char *path)
 {
 	std::string mp3Path = path;
@@ -48,11 +60,16 @@ std::string GetMp3Path(const char *path)
 	mp3Path.replace(dot + 1, mp3Path.size() - (dot + 1), "mp3");
 	return mp3Path;
 }
+#endif
 
 tl::expected<void, std::string> LoadAudioFile(const char *path, bool stream, SoundSample &result)
 {
 	bool isMp3 = true;
+#ifdef PS2
+	std::string foundPath = GetAdpPath(path);
+#else
 	std::string foundPath = GetMp3Path(path);
+#endif
 	AssetRef ref = FindAsset(foundPath.c_str());
 	if (!ref.ok()) {
 		ref = FindAsset(path);
@@ -115,10 +132,12 @@ SoundSample *DuplicateSound(const SoundSample &sound)
 		it = duplicateSounds.end();
 		--it;
 	}
+#ifndef PS2
 	result->SetFinishCallback([it]([[maybe_unused]] Aulib::Stream &stream) {
 		const std::lock_guard<SdlMutex> lock(*duplicateSoundsMutex);
 		duplicateSounds.erase(it);
 	});
+#endif
 	return result;
 }
 
@@ -233,6 +252,9 @@ void snd_init()
 	GetOptions().Audio.musicVolume.SetValue(CapVolume(*GetOptions().Audio.musicVolume));
 	gbMusicOn = *GetOptions().Audio.musicVolume > VOLUME_MIN;
 
+#ifdef PS2
+	audsrv_set_volume(MAX_VOLUME);
+#else
 	// Initialize the SDL_audiolib library. Set the output sample rate to
 	// 22kHz, the audio format to 16-bit signed, use 2 output channels
 	// (stereo), and a 2KiB output buffer.
@@ -244,14 +266,17 @@ void snd_init()
 	    Aulib::sampleRate(), Aulib::channelCount(), Aulib::frameSize(), Aulib::sampleFormat());
 
 	duplicateSoundsMutex.emplace();
+#endif
 	gbSndInited = true;
 }
 
 void snd_deinit()
 {
 	if (gbSndInited) {
+#ifndef PS2
 		Aulib::quit();
 		duplicateSoundsMutex = std::nullopt;
+#endif
 	}
 
 	gbSndInited = false;

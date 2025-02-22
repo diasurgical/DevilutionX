@@ -1,3 +1,7 @@
+#ifdef PS2
+#define NOSOUND 1
+#endif
+
 #include "storm/storm_svid.h"
 
 #include <cstddef>
@@ -15,7 +19,9 @@
 #include "engine/dx.h"
 #include "engine/palette.h"
 #include "options.h"
+#ifndef PS2
 #include "utils/aulib.hpp"
+#endif
 #include "utils/display.h"
 #include "utils/log.hpp"
 #include "utils/sdl_compat.h"

@@ -60,12 +60,14 @@ float PanLogToLinear(int logPan)
 	return copysign(1.F - factor, static_cast<float>(logPan));
 }
 
+#ifndef PS2
 std::unique_ptr<Aulib::Decoder> CreateDecoder(bool isMp3)
 {
 	if (isMp3)
 		return std::make_unique<Aulib::DecoderDrmp3>();
 	return std::make_unique<Aulib::DecoderDrwav>();
 }
+#endif
 
 std::unique_ptr<Aulib::Stream> CreateStream(SDL_RWops *handle, bool isMp3)
 {
@@ -92,32 +94,55 @@ float VolumeLogToLinear(int logVolume, int logMin, int logMax)
 } // namespace
 
 ///// SoundSample /////
-
+#ifndef PS2
 void SoundSample::SetFinishCallback(Aulib::Stream::Callback &&callback)
 {
 	stream_->setFinishCallback(std::forward<Aulib::Stream::Callback>(callback));
 }
+#endif
 
 void SoundSample::Stop()
 {
+#ifdef PS2
+	/** Hack: Implement way to stop sounds in PS2SDK */
+	if (channel_ != -1)
+		audsrv_adpcm_set_volume_and_pan(channel_, 0, pan_);
+#else
 	stream_->stop();
+#endif
 }
 
 void SoundSample::Mute()
 {
+#ifdef PS2
+	if (channel_ != -1)
+		audsrv_adpcm_set_volume_and_pan(channel_, 0, pan_);
+#else
 	stream_->mute();
+#endif
 }
 
 void SoundSample::Unmute()
 {
+#ifdef PS2
+	if (channel_ != -1)
+		audsrv_adpcm_set_volume_and_pan(channel_, volume_, pan_);
+#else
 	stream_->unmute();
+#endif
 }
 
 void SoundSample::Release()
 {
-	stream_ = nullptr;
+#ifdef PS2
+	if (stream_ != nullptr) // We are the owner
+		audsrv_free_adpcm(sampleId_);
+	sampleId_ = nullptr;
+#else
 	file_data_ = nullptr;
 	file_data_size_ = 0;
+#endif
+	stream_ = nullptr;
 }
 
 /**
@@ -125,15 +150,37 @@ void SoundSample::Release()
  */
 bool SoundSample::IsPlaying()
 {
+#ifdef PS2
+	if (channel_ == -1)
+		return false;
+	return audsrv_is_adpcm_playing(channel_, sampleId_) != 0;
+#else
 	return stream_ && stream_->isPlaying();
+#endif
 }
 
 bool SoundSample::Play(int numIterations)
 {
+#ifdef PS2
+	if (IsStreaming()) {
+		return true;
+	}
+
+	int channel = audsrv_ch_play_adpcm(-1, sampleId_);
+	printf("channel %d\n", channel);
+	if (channel < 0) {
+		LogError(LogCategory::Audio, "audsrv_ch_play_adpcm (from SoundSample::Play): {}", channel);
+		return false;
+	}
+	channel_ = channel;
+
+	audsrv_adpcm_set_volume_and_pan(channel_, volume_, pan_);
+#else
 	if (!stream_->play(numIterations)) {
 		LogError(LogCategory::Audio, "Aulib::Stream::play (from SoundSample::Play): {}", SDL_GetError());
 		return false;
 	}
+#endif
 	return true;
 }
 
@@ -146,6 +193,7 @@ int SoundSample::SetChunkStream(std::string filePath, bool isMp3, bool logErrors
 		return -1;
 	}
 	file_path_ = std::move(filePath);
+#ifndef PS2
 	isMp3_ = isMp3;
 	stream_ = CreateStream(handle, isMp3);
 	if (!stream_->open()) {
@@ -154,11 +202,21 @@ int SoundSample::SetChunkStream(std::string filePath, bool isMp3, bool logErrors
 			LogError(LogCategory::Audio, "Aulib::Stream::open (from SoundSample::SetChunkStream) for {}: {}", file_path_, SDL_GetError());
 		return -1;
 	}
+#endif
 	return 0;
 }
 
 int SoundSample::SetChunk(ArraySharedPtr<std::uint8_t> fileData, std::size_t dwBytes, bool isMp3)
 {
+#ifdef PS2
+	stream_ = std::make_unique<audsrv_adpcm_t>();
+	int success = audsrv_load_adpcm(stream_.get(), fileData.get(), dwBytes);
+	if (success != 0) {
+		LogError(LogCategory::Audio, "audsrv_load_adpcm (from SoundSample::SetChunk): {}", success);
+		return -1;
+	}
+	sampleId_ = stream_.get();
+#else
 	isMp3_ = isMp3;
 	file_data_ = std::move(fileData);
 	file_data_size_ = dwBytes;
@@ -174,25 +232,68 @@ int SoundSample::SetChunk(ArraySharedPtr<std::uint8_t> fileData, std::size_t dwB
 		LogError(LogCategory::Audio, "Aulib::Stream::open (from SoundSample::SetChunk): {}", SDL_GetError());
 		return -1;
 	}
-
+#endif
 	return 0;
 }
 
 void SoundSample::SetVolume(int logVolume, int logMin, int logMax)
 {
+#ifdef PS2
+	volume_ = VolumeLogToLinear(logVolume, logMin, logMax) * MAX_VOLUME;
+	if (channel_ == -1)
+		return;
+
+	audsrv_adpcm_set_volume_and_pan(channel_, volume_, pan_);
+#else
 	stream_->setVolume(VolumeLogToLinear(logVolume, logMin, logMax));
+#endif
 }
 
 void SoundSample::SetStereoPosition(int logPan)
 {
+#ifdef PS2
+	pan_ = PanLogToLinear(logPan) * 100;
+	if (channel_ == -1)
+		return;
+
+	audsrv_adpcm_set_volume_and_pan(channel_, volume_, pan_);
+#else
 	stream_->setStereoPosition(PanLogToLinear(logPan));
+#endif
 }
 
 int SoundSample::GetLength() const
 {
+#ifdef PS2
+	size_t size = 0;
+	int pitch = 0;
+
+	if (stream_ != nullptr) {
+		size = stream_->size;
+		pitch = stream_->pitch;
+	} else if (!file_path_.empty()) {
+		AssetHandle handle = OpenAsset(file_path_.c_str(), size);
+		if (handle.ok()) {
+			size -= 16;
+			uint32_t buffer[3];
+			if (handle.read(buffer, sizeof(buffer))) {
+				pitch = buffer[2];
+			}
+		}
+	}
+
+	if (pitch == 0)
+		return 0;
+
+	uint64_t microSamples = size;
+	microSamples *= 56 * 1000;
+
+	return microSamples / (pitch * 375);
+#else
 	if (!stream_)
 		return 0;
 	return static_cast<int>(std::chrono::duration_cast<std::chrono::milliseconds>(stream_->duration()).count());
+#endif
 }
 
 } // namespace devilution
