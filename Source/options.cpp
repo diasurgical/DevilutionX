@@ -637,7 +637,7 @@ GraphicsOptions::GraphicsOptions()
 #endif
 #ifndef USE_SDL1
     , upscale("Upscale", OptionEntryFlags::Invisible | OptionEntryFlags::CantChangeInGame | OptionEntryFlags::RecreateUI, N_("Upscale"), N_("Enables image scaling from the game resolution to your monitor resolution. Prevents changing the monitor resolution and allows window resizing."),
-#ifdef NXDK
+#if defined(NXDK) || defined(PS2)
           false
 #else
           true
