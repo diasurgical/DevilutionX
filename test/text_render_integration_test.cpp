@@ -67,6 +67,22 @@ const TestFixture Fixtures[] {
 	    },
 	},
 	TestFixture {
+	    .name = "horizontal_overflow",
+	    .width = 50,
+	    .height = 28,
+	    .fmt = "Horizontal",
+	},
+	TestFixture {
+	    .name = "horizontal_overflow-colors",
+	    .width = 50,
+	    .height = 28,
+	    .fmt = "{}{}",
+	    .args = {
+	        { "Hori", UiFlags::ColorUiGold },
+	        { "zontal", UiFlags::ColorUiSilverDark },
+	    },
+	},
+	TestFixture {
 	    .name = "kerning_fit_spacing",
 	    .width = 120,
 	    .height = 15,
@@ -171,6 +187,22 @@ const TestFixture Fixtures[] {
 	        .flags = UiFlags::KerningFitSpacing | UiFlags::AlignRight,
 	    },
 	},
+	TestFixture {
+	    .name = "vertical_overflow",
+	    .width = 36,
+	    .height = 20,
+	    .fmt = "One\nTwo",
+	},
+	TestFixture {
+	    .name = "vertical_overflow-colors",
+	    .width = 36,
+	    .height = 20,
+	    .fmt = "{}\n{}",
+	    .args = {
+	        { "One", UiFlags::ColorUiGold },
+	        { "Two", UiFlags::ColorUiSilverDark },
+	    },
+	},
 };
 
 SDLPaletteUniquePtr LoadPalette()
@@ -180,7 +212,7 @@ SDLPaletteUniquePtr LoadPalette()
 	};
 	std::array<Color, 256> palData;
 	LoadFileInMem("ui_art\\diablo.pal", palData);
-	SDLPaletteUniquePtr palette = SDLWrap::AllocPalette(palData.size());
+	SDLPaletteUniquePtr palette = SDLWrap::AllocPalette(static_cast<int>(palData.size()));
 	for (unsigned i = 0; i < palData.size(); i++) {
 		palette->colors[i] = SDL_Color {
 			palData[i].r, palData[i].g, palData[i].b, SDL_ALPHA_OPAQUE
