@@ -80,6 +80,9 @@ constexpr int HellToHitBonus = 120;
 constexpr int NightmareAcBonus = 50;
 constexpr int HellAcBonus = 80;
 
+/** @brief Reserved some entries in @Monster for golems. For vanilla compatibility, this must remain 4. */
+constexpr int ReservedMonsterSlotsForGolems = 4;
+
 /** Tracks which missile files are already loaded */
 size_t totalmonsters;
 int monstimgtot;
@@ -174,6 +177,7 @@ void InitMonster(Monster &monster, Direction rd, size_t typeIndex, Point positio
 	monster.goalVar2 = 0;
 	monster.goalVar3 = 0;
 	monster.pathCount = 0;
+	monster.enemy = 0;
 	monster.isInvalid = false;
 	monster.uniqueType = UniqueMonsterType::None;
 	monster.activeForTicks = 0;
@@ -1065,7 +1069,7 @@ void MonsterAttackMonster(Monster &attacker, Monster &target, int hper, int mind
 	ApplyMonsterDamage(DamageType::Physical, target, dam);
 
 	if (attacker.isPlayerMinion()) {
-		size_t playerId = attacker.getId();
+		size_t playerId = static_cast<size_t>(attacker.goalVar3);
 		const Player &player = Players[playerId];
 		target.tag(player);
 	}
@@ -3130,6 +3134,20 @@ void EnsureMonsterIndexIsActive(size_t monsterId)
 	}
 }
 
+void InitGolem(devilution::Monster &monster, uint8_t golemOwnerPlayerId, int16_t golemSpellLevel)
+{
+	monster.flags |= MFLAG_GOLEM;
+	monster.goalVar3 = static_cast<int8_t>(golemOwnerPlayerId);
+	const Player &player = Players[golemOwnerPlayerId];
+	monster.maxHitPoints = 2 * (320 * golemSpellLevel + player._pMaxMana / 3);
+	monster.hitPoints = monster.maxHitPoints;
+	monster.armorClass = 25;
+	monster.golemToHit = 5 * (golemSpellLevel + 8) + 2 * player.getCharacterLevel();
+	monster.minDamage = 2 * (golemSpellLevel + 4);
+	monster.maxDamage = 2 * (golemSpellLevel + 8);
+	UpdateEnemy(monster);
+}
+
 } // namespace
 
 tl::expected<size_t, std::string> AddMonsterType(_monster_id type, placeflag placeflag)
@@ -3518,7 +3536,7 @@ void WeakenNaKrul()
 void InitGolems()
 {
 	if (!setlevel) {
-		for (int i = 0; i < MAX_PLRS; i++)
+		for (int i = 0; i < ReservedMonsterSlotsForGolems; i++)
 			AddMonster(GolemHoldingCell, Direction::South, 0, false);
 	}
 }
@@ -3588,7 +3606,7 @@ tl::expected<void, std::string> SetMapMonsters(const uint16_t *dunData, Point st
 {
 	RETURN_IF_ERROR(AddMonsterType(MT_GOLEM, PLACE_SPECIAL));
 	if (setlevel)
-		for (int i = 0; i < MAX_PLRS; i++)
+		for (int i = 0; i < ReservedMonsterSlotsForGolems; i++)
 			AddMonster(GolemHoldingCell, Direction::South, 0, false);
 
 	WorldTileSize size = GetDunSize(dunData);
@@ -3638,11 +3656,11 @@ void SpawnMonster(Point position, Direction dir, size_t typeIndex, bool startSpe
 	ActiveMonsterCount += 1;
 	uint32_t seed = GetLCGEngineState();
 	// Update local state immediately to increase ActiveMonsterCount instantly (this allows multiple monsters to be spawned in one game tick)
-	InitializeSpawnedMonster(position, dir, typeIndex, monsterIndex, seed);
-	NetSendCmdSpawnMonster(position, dir, static_cast<uint16_t>(typeIndex), static_cast<uint16_t>(monsterIndex), seed);
+	InitializeSpawnedMonster(position, dir, typeIndex, monsterIndex, seed, 0, 0);
+	NetSendCmdSpawnMonster(position, dir, static_cast<uint16_t>(typeIndex), static_cast<uint16_t>(monsterIndex), seed, 0, 0);
 }
 
-void LoadDeltaSpawnedMonster(size_t typeIndex, size_t monsterId, uint32_t seed)
+void LoadDeltaSpawnedMonster(size_t typeIndex, size_t monsterId, uint32_t seed, uint8_t golemOwnerPlayerId, int16_t golemSpellLevel)
 {
 	SetRndSeed(seed);
 	EnsureMonsterIndexIsActive(monsterId);
@@ -3650,9 +3668,12 @@ void LoadDeltaSpawnedMonster(size_t typeIndex, size_t monsterId, uint32_t seed)
 	Monster &monster = Monsters[monsterId];
 	M_ClearSquares(monster);
 	InitMonster(monster, Direction::South, typeIndex, position);
+	if (monster.type().type == MT_GOLEM) {
+		InitGolem(monster, golemOwnerPlayerId, golemSpellLevel);
+	}
 }
 
-void InitializeSpawnedMonster(Point position, Direction dir, size_t typeIndex, size_t monsterId, uint32_t seed)
+void InitializeSpawnedMonster(Point position, Direction dir, size_t typeIndex, size_t monsterId, uint32_t seed, uint8_t golemOwnerPlayerId, int16_t golemSpellLevel)
 {
 	SetRndSeed(seed);
 	EnsureMonsterIndexIsActive(monsterId);
@@ -3675,10 +3696,14 @@ void InitializeSpawnedMonster(Point position, Direction dir, size_t typeIndex, s
 	monster.occupyTile(position, false);
 	InitMonster(monster, dir, typeIndex, position);
 
-	if (IsSkel(monster.type().type))
+	if (monster.type().type == MT_GOLEM) {
+		InitGolem(monster, golemOwnerPlayerId, golemSpellLevel);
 		StartSpecialStand(monster, dir);
-	else
+	} else if (IsSkel(monster.type().type)) {
+		StartSpecialStand(monster, dir);
+	} else {
 		M_StartStand(monster, dir);
+	}
 }
 
 void AddDoppelganger(Monster &monster)
@@ -3830,11 +3855,10 @@ void StartMonsterDeath(Monster &monster, const Player &player, bool sendmsg)
 	MonsterDeath(monster, md, sendmsg);
 }
 
-void KillMyGolem()
+void KillGolem(Monster &golem)
 {
-	Monster &golem = Monsters[MyPlayerId];
 	delta_kill_monster(golem, golem.position.tile, *MyPlayer);
-	NetSendCmdLoc(MyPlayerId, false, CMD_KILLGOLEM, golem.position.tile);
+	NetSendCmdLocParam1(false, CMD_MONSTDEATH, golem.position.tile, static_cast<uint16_t>(golem.getId()));
 	M_StartKill(golem, *MyPlayer);
 }
 
@@ -3998,7 +4022,7 @@ void GolumAi(Monster &golem)
 	if (golem.pathCount > 8)
 		golem.pathCount = 5;
 
-	if (RandomWalk(golem, Players[golem.getId()]._pdir))
+	if (RandomWalk(golem, Players[golem.goalVar3]._pdir))
 		return;
 
 	Direction md = Left(golem.direction);
@@ -4012,7 +4036,7 @@ void GolumAi(Monster &golem)
 
 void DeleteMonsterList()
 {
-	for (int i = 0; i < MAX_PLRS; i++) {
+	for (int i = 0; i < ReservedMonsterSlotsForGolems; i++) {
 		Monster &golem = Monsters[i];
 		if (!golem.isInvalid)
 			continue;
@@ -4023,7 +4047,7 @@ void DeleteMonsterList()
 		golem.isInvalid = false;
 	}
 
-	for (size_t i = MAX_PLRS; i < ActiveMonsterCount;) {
+	for (size_t i = ReservedMonsterSlotsForGolems; i < ActiveMonsterCount;) {
 		if (Monsters[ActiveMonsters[i]].isInvalid) {
 			if (pcursmonst == static_cast<int>(ActiveMonsters[i])) // Unselect monster if player highlighted it
 				pcursmonst = -1;
@@ -4513,6 +4537,24 @@ Monster *FindUniqueMonster(UniqueMonsterType monsterType)
 	return nullptr;
 }
 
+Monster *FindGolemForPlayer(const Player &player)
+{
+	for (size_t i = 0; i < ActiveMonsterCount; i++) {
+		int monsterId = ActiveMonsters[i];
+		Monster &monster = Monsters[monsterId];
+		if (monster.type().type != MT_GOLEM)
+			continue;
+		if (monster.position.tile == GolemHoldingCell)
+			continue;
+		if (monster.goalVar3 != player.getId())
+			continue;
+		if (monster.hitPoints == 0)
+			continue;
+		return &monster;
+	}
+	return nullptr;
+}
+
 bool IsTileAvailable(const Monster &monster, Point position)
 {
 	if (!IsTileAvailable(position))
@@ -4637,31 +4679,48 @@ void TalktoMonster(Player &player, Monster &monster)
 	}
 }
 
-void SpawnGolem(Player &player, Monster &golem, Point position, Missile &missile)
+void SpawnGolem(Player &player, Point position, Missile &missile)
 {
-	golem.occupyTile(position, false);
-	golem.position.tile = position;
-	golem.position.future = position;
-	golem.position.old = position;
-	golem.pathCount = 0;
-	golem.maxHitPoints = 2 * (320 * missile._mispllvl + player._pMaxMana / 3);
-	golem.hitPoints = golem.maxHitPoints;
-	golem.armorClass = 25;
-	golem.golemToHit = 5 * (missile._mispllvl + 8) + 2 * player.getCharacterLevel();
-	golem.minDamage = 2 * (missile._mispllvl + 4);
-	golem.maxDamage = 2 * (missile._mispllvl + 8);
-	golem.flags |= MFLAG_GOLEM;
-	StartSpecialStand(golem, Direction::South);
-	UpdateEnemy(golem);
-	if (&player == MyPlayer) {
-		NetSendCmdGolem(
-		    golem.position.tile.x,
-		    golem.position.tile.y,
-		    golem.direction,
-		    golem.enemy,
-		    golem.hitPoints,
-		    GetLevelForMultiplayer(player));
+	// The command is only executed for the level owner, to prevent desyncs in multiplayer.
+	if (!MyPlayer->isLevelOwnedByLocalClient())
+		return;
+
+	// Search monster index to use for the new golem
+	Monster *golem = nullptr;
+	// 1. Prefer MonsterIndex = PlayerIndex for vanilla compatibility
+	if (player.getId() < ReservedMonsterSlotsForGolems) {
+		Monster &reservedGolem = Monsters[player.getId()];
+		if (reservedGolem.position.tile == GolemHoldingCell || reservedGolem.hitPoints == 0)
+			golem = &reservedGolem;
 	}
+	// 2. Use reserved slots, so additional Monsters can spawn
+	if (golem == nullptr) {
+		for (int i = 0; i < ReservedMonsterSlotsForGolems; i++) {
+			Monster &reservedGolem = Monsters[player.getId()];
+			if (reservedGolem.position.tile == GolemHoldingCell || reservedGolem.hitPoints == 0) {
+				golem = &reservedGolem;
+				break;
+			}
+		}
+	}
+	// 3. Use normal monster slot
+	if (golem == nullptr) {
+		if (ActiveMonsterCount >= MaxMonsters)
+			return;
+		size_t monsterIndex = ActiveMonsters[ActiveMonsterCount];
+		ActiveMonsterCount += 1;
+		golem = &Monsters[monsterIndex];
+	}
+
+	if (golem == nullptr)
+		return;
+
+	size_t monsterIndex = golem->getId();
+	uint32_t seed = GetLCGEngineState();
+
+	// Update local state immediately to increase ActiveMonsterCount instantly (this allows multiple monsters to be spawned in one game tick)
+	InitializeSpawnedMonster(position, Direction::South, 0, monsterIndex, seed, player.getId(), missile._mispllvl);
+	NetSendCmdSpawnMonster(position, Direction::South, 0, static_cast<uint16_t>(monsterIndex), seed, player.getId(), static_cast<uint8_t>(missile._mispllvl));
 }
 
 bool CanTalkToMonst(const Monster &monster)
@@ -4669,23 +4728,23 @@ bool CanTalkToMonst(const Monster &monster)
 	return IsAnyOf(monster.goal, MonsterGoal::Inquiring, MonsterGoal::Talking);
 }
 
-int encode_enemy(Monster &monster)
+uint8_t encode_enemy(Monster &monster)
 {
 	if ((monster.flags & MFLAG_TARGETS_MONSTER) != 0)
-		return monster.enemy + MAX_PLRS;
+		return monster.enemy;
 
-	return monster.enemy;
+	return monster.enemy + MaxMonsters;
 }
 
-void decode_enemy(Monster &monster, int enemyId)
+void decode_enemy(Monster &monster, uint8_t enemyId)
 {
-	if (enemyId < MAX_PLRS) {
+	if (enemyId >= MaxMonsters) {
+		enemyId -= MaxMonsters;
 		monster.flags &= ~MFLAG_TARGETS_MONSTER;
 		monster.enemy = enemyId;
 		monster.enemyPosition = Players[enemyId].position.future;
 	} else {
 		monster.flags |= MFLAG_TARGETS_MONSTER;
-		enemyId -= MAX_PLRS;
 		monster.enemy = enemyId;
 		monster.enemyPosition = Monsters[enemyId].position.future;
 	}

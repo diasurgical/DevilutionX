@@ -237,7 +237,7 @@ struct Monster { // note: missing field _mAFNum
 
 	/**
 	 * @brief Controls monster's behaviour regarding special actions.
-	 * Used only by @p ScavengerAi and @p MegaAi.
+	 * Used only by @p ScavengerAi, @p MegaAi and @p GolemAi.
 	 */
 	int8_t goalVar3;
 
@@ -514,11 +514,11 @@ void SpawnMonster(Point position, Direction dir, size_t typeIndex, bool startSpe
 /**
  * @brief Loads data for a dynamically spawned monster when entering a level in multiplayer.
  */
-void LoadDeltaSpawnedMonster(size_t typeIndex, size_t monsterId, uint32_t seed);
+void LoadDeltaSpawnedMonster(size_t typeIndex, size_t monsterId, uint32_t seed, uint8_t golemOwnerPlayerId, int16_t golemSpellLevel);
 /**
  * @brief Initialize a spanwed monster (from a network message or from SpawnMonster-function).
  */
-void InitializeSpawnedMonster(Point position, Direction dir, size_t typeIndex, size_t monsterId, uint32_t seed);
+void InitializeSpawnedMonster(Point position, Direction dir, size_t typeIndex, size_t monsterId, uint32_t seed, uint8_t golemOwnerPlayerId, int16_t golemSpellLevel);
 void AddDoppelganger(Monster &monster);
 void ApplyMonsterDamage(DamageType damageType, Monster &monster, int damage);
 bool M_Talker(const Monster &monster);
@@ -529,7 +529,7 @@ void M_StartHit(Monster &monster, int dam);
 void M_StartHit(Monster &monster, const Player &player, int dam);
 void StartMonsterDeath(Monster &monster, const Player &player, bool sendmsg);
 void MonsterDeath(Monster &monster, Direction md, bool sendmsg);
-void KillMyGolem();
+void KillGolem(Monster &golem);
 void M_StartKill(Monster &monster, const Player &player);
 void M_SyncStartKill(Monster &monster, Point position, const Player &player);
 void M_UpdateRelations(const Monster &monster);
@@ -553,6 +553,7 @@ void MissToMonst(Missile &missile, Point position);
 
 Monster *FindMonsterAtPosition(Point position, bool ignoreMovingMonsters = false);
 Monster *FindUniqueMonster(UniqueMonsterType monsterType);
+Monster *FindGolemForPlayer(const Player &player);
 
 /**
  * @brief Check that the given tile is available to the monster
@@ -568,9 +569,9 @@ bool IsGoat(_monster_id mt);
 void ActivateSkeleton(Monster &monster, Point position);
 Monster *PreSpawnSkeleton();
 void TalktoMonster(Player &player, Monster &monster);
-void SpawnGolem(Player &player, Monster &golem, Point position, Missile &missile);
+void SpawnGolem(Player &player, Point position, Missile &missile);
 bool CanTalkToMonst(const Monster &monster);
-int encode_enemy(Monster &monster);
-void decode_enemy(Monster &monster, int enemyId);
+uint8_t encode_enemy(Monster &monster);
+void decode_enemy(Monster &monster, uint8_t enemyId);
 
 } // namespace devilution
