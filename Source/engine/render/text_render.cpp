@@ -341,32 +341,20 @@ int GetLineHeight(std::string_view fmt, DrawStringFormatArg *args, std::size_t a
 {
 	constexpr std::array<int, 6> LineHeights = { 12, 26, 38, 42, 50, 22 };
 	if (fontIndex == GameFont12 && IsSmallFontTall()) {
-		char32_t prev = U'\0';
-		char32_t next;
 		FmtArgParser fmtArgParser { fmt, args, argsLen };
 		std::string_view rest = fmt;
 		while (!rest.empty()) {
-			if ((prev == U'{' || prev == U'}') && static_cast<char>(prev) == rest[0]) {
-				rest.remove_prefix(1);
-				continue;
-			}
 			const std::optional<std::size_t> fmtArgPos = fmtArgParser(rest);
 			if (fmtArgPos) {
-				if (ContainsSmallFontTallCodepoints(args[*fmtArgPos].GetFormatted()))
+				if (ContainsSmallFontTallCodepoints(args[*fmtArgPos].GetFormatted())) {
 					return SmallFontTallLineHeight;
-				prev = U'\0';
+				}
 				continue;
 			}
-
-			next = ConsumeFirstUtf8CodePoint(&rest);
-			if (next == Utf8DecodeError)
-				break;
-			if (next == ZWSP) {
-				prev = next;
-				continue;
-			}
-			if (IsSmallFontTallRow(GetUnicodeRow(next)))
-				return SmallFontTallLineHeight;
+			const char32_t cp = ConsumeFirstUtf8CodePoint(&rest);
+			if (cp == Utf8DecodeError) break;
+			if (cp == ZWSP) continue;
+			if (IsSmallFontTallRow(GetUnicodeRow(cp))) return SmallFontTallLineHeight;
 		}
 	}
 	return LineHeights[fontIndex];
