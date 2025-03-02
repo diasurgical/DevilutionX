@@ -465,7 +465,6 @@ msgid "Delete Single Player Hero"
 msgstr "Usuń Postać - Gra Jednoosobowa"
 
 #: Source/DiabloUI/hero/selhero.cpp:594
-#, c++-format
 msgid "Are you sure you want to delete the character \"{:s}\"?"
 msgstr "Czy na pewno chcesz usunąć postać \"{:s}\"?"
 
@@ -544,7 +543,6 @@ msgid "Play by yourself with no network exposure."
 msgstr "Graj samemu bez łączenia się z internetem."
 
 #: Source/DiabloUI/multi/selconn.cpp:123
-#, c++-format
 msgid "Players Supported: {:d}"
 msgstr "Liczba graczy: {:d}"
 
@@ -571,13 +569,11 @@ msgid "The host is running a different game than you."
 msgstr "Host używa innej gry niż ty."
 
 #: Source/DiabloUI/multi/selgame.cpp:100
-#, c++-format
 msgid "The host is running a different game mode ({:s}) than you."
 msgstr "Host używa innej gry ({:s}) niż ty."
 
 #. TRANSLATORS: Error message when somebody tries to join a game running another version.
 #: Source/DiabloUI/multi/selgame.cpp:102
-#, c++-format
 msgid "Your version {:s} does not match the host {:d}.{:d}.{:d}."
 msgstr "Twoja wersja {:s} nie pasuje do wersji hosta {:d}.{:d}.{:d}."
 
@@ -667,7 +663,6 @@ msgstr "Piekło"
 
 #. TRANSLATORS: {:s} means: Game Difficulty.
 #: Source/DiabloUI/multi/selgame.cpp:244 Source/automap.cpp:1466
-#, c++-format
 msgid "Difficulty: {:s}"
 msgstr "Poziom Trudności: {:s}"
 
@@ -696,7 +691,6 @@ msgid "Select Difficulty"
 msgstr "Poziom Trudności"
 
 #: Source/DiabloUI/multi/selgame.cpp:345
-#, c++-format
 msgid "Join {:s} Games"
 msgstr "Dołącz do gry przez {:s}"
 
@@ -917,7 +911,6 @@ msgstr "Błąd"
 
 #. TRANSLATORS: Error message that displays relevant information for bug report
 #: Source/appfat.cpp:72
-#, c++-format
 msgid ""
 "{:s}\n"
 "\n"
@@ -932,7 +925,6 @@ msgid "Data File Error"
 msgstr "Błąd Pliku z Danymi"
 
 #: Source/appfat.cpp:79
-#, c++-format
 msgid ""
 "Unable to open main data archive ({:s}).\n"
 "\n"
@@ -948,7 +940,6 @@ msgstr "Błąd Folderu Tylko do Odczytu"
 
 #. TRANSLATORS: Error when Program is not allowed to write data
 #: Source/appfat.cpp:89
-#, c++-format
 msgid ""
 "Unable to write to location:\n"
 "{:s}"
@@ -974,12 +965,10 @@ msgid "Public Game"
 msgstr "Publiczna Gra"
 
 #: Source/automap.cpp:1438
-#, c++-format
 msgid "Level: Nest {:d}"
 msgstr "Gniazdo - Poziom {:d}"
 
 #: Source/automap.cpp:1441
-#, c++-format
 msgid "Level: Crypt {:d}"
 msgstr "Krypta - Poziom {:d}"
 
@@ -988,7 +977,6 @@ msgid "Town"
 msgstr "Miasto"
 
 #: Source/automap.cpp:1447
-#, c++-format
 msgid "Level: {:d}"
 msgstr "Poziom: {:d}"
 
@@ -1141,7 +1129,6 @@ msgid "Player attack"
 msgstr "Wrogość"
 
 #: Source/control.cpp:1089
-#, c++-format
 msgid "Hotkey: {:s}"
 msgstr "Klawisz: {:s}"
 
@@ -1154,12 +1141,10 @@ msgid "Hotkey: 's'"
 msgstr "Klawisz: 's'"
 
 #: Source/control.cpp:1110 Source/panels/spell_list.cpp:152
-#, c++-format
 msgid "{:s} Skill"
 msgstr "Umiejętność: {:s}"
 
 #: Source/control.cpp:1113 Source/panels/spell_list.cpp:159
-#, c++-format
 msgid "{:s} Spell"
 msgstr "Czar: {:s}"
 
@@ -1168,17 +1153,14 @@ msgid "Spell Level 0 - Unusable"
 msgstr "Poziom Czaru: 0 - Bezużyteczny"
 
 #: Source/control.cpp:1115 Source/panels/spell_list.cpp:166
-#, c++-format
 msgid "Spell Level {:d}"
 msgstr "Poziom Czaru: {:d}"
 
 #: Source/control.cpp:1118 Source/panels/spell_list.cpp:173
-#, c++-format
 msgid "Scroll of {:s}"
 msgstr "Zwój: {:s}"
 
 #: Source/control.cpp:1122 Source/panels/spell_list.cpp:177
-#, c++-format
 msgid "{:d} Scroll"
 msgid_plural "{:d} Scrolls"
 msgstr[0] "Zwój: {:d}"
@@ -1186,12 +1168,10 @@ msgstr[1] "Zwoje: {:d}"
 msgstr[2] "Zwoje: {:d}"
 
 #: Source/control.cpp:1125 Source/panels/spell_list.cpp:184
-#, c++-format
 msgid "Staff of {:s}"
 msgstr "Kostur: {:s}"
 
 #: Source/control.cpp:1126 Source/panels/spell_list.cpp:186
-#, c++-format
 msgid "{:d} Charge"
 msgid_plural "{:d} Charges"
 msgstr[0] "Ładunek: {:d}"
@@ -1199,7 +1179,6 @@ msgstr[1] "Ładunki: {:d}"
 msgstr[2] "Ładunki: {:d}"
 
 #: Source/control.cpp:1246 Source/inv.cpp:1973 Source/items.cpp:3807
-#, c++-format
 msgid "{:s} gold piece"
 msgid_plural "{:s} gold pieces"
 msgstr[0] "{:s} złota"
@@ -1211,12 +1190,10 @@ msgid "Requirements not met"
 msgstr "Nie spełniono wymagań"
 
 #: Source/control.cpp:1277
-#, c++-format
 msgid "{:s}, Level: {:d}"
 msgstr "{:s}, Poziom: {:d}"
 
 #: Source/control.cpp:1278
-#, c++-format
 msgid "Hit Points {:d} of {:d}"
 msgstr "Punkty Życia {:d} / {:d}"
 
@@ -1226,7 +1203,6 @@ msgstr "Nowy Poziom"
 
 #. TRANSLATORS: {:s} is a number with separators. Dialog is shown when splitting a stash of Gold.
 #: Source/control.cpp:1428
-#, c++-format
 msgid "You have {:s} gold piece. How many do you want to remove?"
 msgid_plural "You have {:s} gold pieces. How many do you want to remove?"
 msgstr[0] "Masz {:s} złota. Ile monet chcesz oddzielić?"
@@ -1238,7 +1214,6 @@ msgid "Town Portal"
 msgstr "Miejski Portal"
 
 #: Source/cursor.cpp:610
-#, c++-format
 msgid "from {:s}"
 msgstr "od: {:s}"
 
@@ -1256,19 +1231,16 @@ msgstr "poziom 15"
 
 #. TRANSLATORS: Error message when a data file is missing or corrupt. Arguments are {file name}
 #: Source/data/file.cpp:45
-#, c++-format
 msgid "Unable to load data from file {0}"
 msgstr "Nie można wczytać danych z pliku {0}"
 
 #. TRANSLATORS: Error message when a data file is empty or only contains the header row. Arguments are {file name}
 #: Source/data/file.cpp:50
-#, c++-format
 msgid "{0} is incomplete, please check the file contents."
 msgstr "{0} jest niekompletny, proszę sprawdzić zawartość pliku."
 
 #. TRANSLATORS: Error message when a data file doesn't contain the expected columns. Arguments are {file name}
 #: Source/data/file.cpp:55
-#, c++-format
 msgid ""
 "Your {0} file doesn't have the expected columns, please make sure it matches "
 "the documented format."
@@ -1278,19 +1250,16 @@ msgstr ""
 
 #. TRANSLATORS: Error message when parsing a data file and a text value is encountered when a number is expected. Arguments are {found value}, {column heading}, {file name}, {row/record number}, {column/field number}
 #: Source/data/file.cpp:70
-#, c++-format
 msgid "Non-numeric value {0} for {1} in {2} at row {3} and column {4}"
 msgstr ""
 
 #. TRANSLATORS: Error message when parsing a data file and we find a number larger than expected. Arguments are {found value}, {column heading}, {file name}, {row/record number}, {column/field number}
 #: Source/data/file.cpp:76
-#, c++-format
 msgid "Out of range value {0} for {1} in {2} at row {3} and column {4}"
 msgstr ""
 
 #. TRANSLATORS: Error message when we find an unrecognised value in a key column. Arguments are {found value}, {column heading}, {file name}, {row/record number}, {column/field number}
 #: Source/data/file.cpp:82
-#, c++-format
 msgid "Invalid value {0} for {1} in {2} at row {3} and column {4}"
 msgstr ""
 
@@ -1459,7 +1428,6 @@ msgid "while in stores"
 msgstr "podczas przebywania w sklepie"
 
 #: Source/diablo.cpp:1687 Source/diablo.cpp:1998
-#, c++-format
 msgid "Belt item {}"
 msgstr "Przedmiot pasa {}"
 
@@ -1468,7 +1436,6 @@ msgid "Use Belt item."
 msgstr "Użycie przedmiotu z pasa."
 
 #: Source/diablo.cpp:1703 Source/diablo.cpp:2014
-#, c++-format
 msgid "Quick spell {}"
 msgstr "Szybki czar {}"
 
@@ -1609,7 +1576,6 @@ msgid "Open Spellbook."
 msgstr "Wyświetla księgę zaklęć."
 
 #: Source/diablo.cpp:1858
-#, c++-format
 msgid "Quick Message {}"
 msgstr "Szybka wiadomość {}"
 
@@ -1687,7 +1653,6 @@ msgstr "Wyświetla informacje o grze."
 
 #. TRANSLATORS: {:s} means: Character Name, Game Version, Game Difficulty.
 #: Source/diablo.cpp:1951 Source/diablo.cpp:2436
-#, c++-format
 msgid "{:s} {:s}"
 msgstr "{:s} {:s}"
 
@@ -2143,19 +2108,16 @@ msgstr "Krypta"
 
 #. TRANSLATORS: dungeon type and floor number i.e. "Cathedral 3"
 #: Source/discord/discord.cpp:89
-#, c++-format
 msgid "{} {}"
 msgstr "{} {}"
 
 #. TRANSLATORS: Discord character, i.e. "Lv 6 Warrior"
 #: Source/discord/discord.cpp:96
-#, c++-format
 msgid "Lv {} {}"
 msgstr "Poz. {} {}"
 
 #. TRANSLATORS: Discord state i.e. "Nightmare difficulty"
 #: Source/discord/discord.cpp:108
-#, c++-format
 msgid "{} difficulty"
 msgstr "{} Poziom Trudności"
 
@@ -2177,7 +2139,6 @@ msgid "error: read 0 bytes from server"
 msgstr "błąd: wczytano 0 bajtów z serwera"
 
 #: Source/engine/assets.cpp:238
-#, c++-format
 msgid ""
 "Failed to open file:\n"
 "{:s}\n"
@@ -2621,33 +2582,28 @@ msgstr "Olej Nieprzenikalności"
 
 #. TRANSLATORS: Constructs item names. Format: {Item} of {Spell}. Example: War Staff of Firewall
 #: Source/items.cpp:1088
-#, c++-format
 msgctxt "spell"
 msgid "{0} of {1}"
 msgstr "{0} {1}"
 
 #. TRANSLATORS: Constructs item names. Format: {Prefix} {Item} of {Spell}. Example: King's War Staff of Firewall
 #: Source/items.cpp:1100
-#, c++-format
 msgctxt "spell"
 msgid "{0} {1} of {2}"
 msgstr "{0} {1} {2}"
 
 #. TRANSLATORS: Constructs item names. Format: {Prefix} {Item} of {Suffix}. Example: King's Long Sword of the Whale
 #: Source/items.cpp:1138
-#, c++-format
 msgid "{0} {1} of {2}"
 msgstr "{0} {1} {2}"
 
 #. TRANSLATORS: Constructs item names. Format: {Prefix} {Item}. Example: King's Long Sword
 #: Source/items.cpp:1141
-#, c++-format
 msgid "{0} {1}"
 msgstr "{0} {1}"
 
 #. TRANSLATORS: Constructs item names. Format: {Item} of {Suffix}. Example: Long Sword of the Whale
 #: Source/items.cpp:1144
-#, c++-format
 msgid "{0} of {1}"
 msgstr "{0} {1}"
 
@@ -2825,17 +2781,14 @@ msgid "Activate to read"
 msgstr "Aktywuj, aby przeczytać"
 
 #: Source/items.cpp:1796
-#, c++-format
 msgid "{} to view"
 msgstr "{} aby wyświetlić"
 
 #: Source/items.cpp:1802
-#, c++-format
 msgid "{} to use"
 msgstr "{} aby użyć"
 
 #: Source/items.cpp:1805
-#, c++-format
 msgid ""
 "Select from spell book,\n"
 "then {} to read"
@@ -2844,12 +2797,10 @@ msgstr ""
 "a następnie {} aby przeczytać"
 
 #: Source/items.cpp:1807
-#, c++-format
 msgid "{} to read"
 msgstr "{} aby przeczytać"
 
 #: Source/items.cpp:1814
-#, c++-format
 msgctxt "player"
 msgid "Level: {:d}"
 msgstr "Poziom: {:d}"
@@ -2863,99 +2814,82 @@ msgid "Required:"
 msgstr "Wymagania:"
 
 #: Source/items.cpp:1852 Source/stores.cpp:327
-#, c++-format
 msgid " {:d} Str"
 msgstr " {:d} Siły"
 
 #: Source/items.cpp:1854 Source/stores.cpp:329
-#, c++-format
 msgid " {:d} Mag"
 msgstr " {:d} Magii"
 
 #: Source/items.cpp:1856 Source/stores.cpp:331
-#, c++-format
 msgid " {:d} Dex"
 msgstr " {:d} Zręcz."
 
 #. TRANSLATORS: {:s} will be a spell name
 #: Source/items.cpp:2215
-#, c++-format
 msgid "Book of {:s}"
 msgstr "Księga czaru: {:s}"
 
 #. TRANSLATORS: {:s} will be a Character Name
 #: Source/items.cpp:2217
-#, c++-format
 msgid "Ear of {:s}"
 msgstr "Ucho ({:s})"
 
 #: Source/items.cpp:3873
-#, c++-format
 msgid "chance to hit: {:+d}%"
 msgstr "celność: {:+d}%"
 
 #: Source/items.cpp:3876
-#, no-c-format, c++-format
+#, no-c-format
 msgid "{:+d}% damage"
 msgstr "{:+d}% do obrażeń"
 
 #: Source/items.cpp:3879 Source/items.cpp:4061
-#, c++-format
 msgid "to hit: {:+d}%, {:+d}% damage"
 msgstr "celność: {:+d}%, obrażenia: {:+d}%"
 
 #: Source/items.cpp:3882
-#, no-c-format, c++-format
+#, no-c-format
 msgid "{:+d}% armor"
 msgstr "{:+d}% do obrony"
 
 #: Source/items.cpp:3885
-#, c++-format
 msgid "armor class: {:d}"
 msgstr "klasa pancerza: {:d}"
 
 #: Source/items.cpp:3889
-#, c++-format
 msgid "Resist Fire: {:+d}%"
 msgstr "Odporność na Ogień {:+d}%"
 
 #: Source/items.cpp:3891
-#, c++-format
 msgid "Resist Fire: {:+d}% MAX"
 msgstr "Odporność na Ogień {:+d}% MAX"
 
 #: Source/items.cpp:3895
-#, c++-format
 msgid "Resist Lightning: {:+d}%"
 msgstr "Odp. na Błyskawice {:+d}%"
 
 #: Source/items.cpp:3897
-#, c++-format
 msgid "Resist Lightning: {:+d}% MAX"
 msgstr "Odp. na Błyskawice {:+d}% MAX"
 
 #: Source/items.cpp:3901
-#, c++-format
 msgid "Resist Magic: {:+d}%"
 msgstr "Odporność na Magię {:+d}%"
 
 #: Source/items.cpp:3903
-#, c++-format
 msgid "Resist Magic: {:+d}% MAX"
 msgstr "Odporność na Magię {:+d}% MAX"
 
 #: Source/items.cpp:3906
-#, c++-format
 msgid "Resist All: {:+d}%"
 msgstr "Odporność na wszystko: {:+d}%"
 
 #: Source/items.cpp:3908
-#, c++-format
 msgid "Resist All: {:+d}% MAX"
 msgstr "Odporność na wszystko {:+d}% MAX"
 
 #: Source/items.cpp:3911
-#, c++-format
 msgid "spells are increased {:d} level"
 msgid_plural "spells are increased {:d} levels"
 msgstr[0] "poziom czarów: {:d}"
@@ -2963,7 +2897,6 @@ msgstr[1] "poziom czarów: {:d}"
 msgstr[2] "poziom czarów: {:d}"
 
 #: Source/items.cpp:3913
-#, c++-format
 msgid "spells are decreased {:d} level"
 msgid_plural "spells are decreased {:d} levels"
 msgstr[0] "poziom czarów: {:d}"
@@ -2979,7 +2912,6 @@ msgid "Extra charges"
 msgstr "Dodatkowe ładunki"
 
 #: Source/items.cpp:3919
-#, c++-format
 msgid "{:d} {:s} charge"
 msgid_plural "{:d} {:s} charges"
 msgstr[0] "Ładunki: {:d} {:s}"
@@ -2987,62 +2919,50 @@ msgstr[1] "Ładunki: {:d} {:s}"
 msgstr[2] "Ładunki: {:d} {:s}"
 
 #: Source/items.cpp:3922
-#, c++-format
 msgid "Fire hit damage: {:d}"
 msgstr "Obr. od ognia: {:d}"
 
 #: Source/items.cpp:3924
-#, c++-format
 msgid "Fire hit damage: {:d}-{:d}"
 msgstr "Obr. od ognia: {:d}-{:d}"
 
 #: Source/items.cpp:3927
-#, c++-format
 msgid "Lightning hit damage: {:d}"
 msgstr "Obr. od błyskawic: {:d}"
 
 #: Source/items.cpp:3929
-#, c++-format
 msgid "Lightning hit damage: {:d}-{:d}"
 msgstr "Obr. od błyskawic: {:d}-{:d}"
 
 #: Source/items.cpp:3932
-#, c++-format
 msgid "{:+d} to strength"
 msgstr "{:+d} do siły"
 
 #: Source/items.cpp:3935
-#, c++-format
 msgid "{:+d} to magic"
 msgstr "{:+d} do magii"
 
 #: Source/items.cpp:3938
-#, c++-format
 msgid "{:+d} to dexterity"
 msgstr "{:+d} do zręczności"
 
 #: Source/items.cpp:3941
-#, c++-format
 msgid "{:+d} to vitality"
 msgstr "{:+d} do żywotności"
 
 #: Source/items.cpp:3944
-#, c++-format
 msgid "{:+d} to all attributes"
 msgstr "{:+d} do wszystkich atrybutów"
 
 #: Source/items.cpp:3947
-#, c++-format
 msgid "{:+d} damage from enemies"
 msgstr "{:+d} obrażeń od wrogów"
 
 #: Source/items.cpp:3950
-#, c++-format
 msgid "Hit Points: {:+d}"
 msgstr "Punkty życia: {:+d}"
 
 #: Source/items.cpp:3953
-#, c++-format
 msgid "Mana: {:+d}"
 msgstr "Mana: {:+d}"
 
@@ -3059,12 +2979,12 @@ msgid "indestructible"
 msgstr "niezniszczalność"
 
 #: Source/items.cpp:3961
-#, no-c-format, c++-format
+#, no-c-format
 msgid "+{:d}% light radius"
 msgstr "+{:d}% do promienia światła"
 
 #: Source/items.cpp:3963
-#, no-c-format, c++-format
+#, no-c-format
 msgid "-{:d}% light radius"
 msgstr "-{:d}% do promienia światła"
 
@@ -3073,32 +2993,26 @@ msgid "multiple arrows per shot"
 msgstr "wielostrzał"
 
 #: Source/items.cpp:3968
-#, c++-format
 msgid "fire arrows damage: {:d}"
 msgstr "obr. płonących strzał {:d}"
 
 #: Source/items.cpp:3970
-#, c++-format
 msgid "fire arrows damage: {:d}-{:d}"
 msgstr "obr. płonących strzał: {:d}-{:d}"
 
 #: Source/items.cpp:3973
-#, c++-format
 msgid "lightning arrows damage {:d}"
 msgstr "obr. strzał błyskawic {:d}"
 
 #: Source/items.cpp:3975
-#, c++-format
 msgid "lightning arrows damage {:d}-{:d}"
 msgstr "obr. strzał błyskawic {:d}-{:d}"
 
 #: Source/items.cpp:3978
-#, c++-format
 msgid "fireball damage: {:d}"
 msgstr "obr. ognistej kuli {:d}"
 
 #: Source/items.cpp:3980
-#, c++-format
 msgid "fireball damage: {:d}-{:d}"
 msgstr "obr. ognistej kuli {:d}-{:d}"
 
@@ -3188,7 +3102,6 @@ msgid "fast block"
 msgstr "szybki blok"
 
 #: Source/items.cpp:4028
-#, c++-format
 msgid "adds {:d} point to damage"
 msgid_plural "adds {:d} points to damage"
 msgstr[0] "+{:d} pkt. obrażeń"
@@ -3224,12 +3137,10 @@ msgid "no strength requirement"
 msgstr "brak wymogu siły"
 
 #: Source/items.cpp:4045
-#, c++-format
 msgid "lightning damage: {:d}"
 msgstr "obrażenia błyskawic: {:d}"
 
 #: Source/items.cpp:4047
-#, c++-format
 msgid "lightning damage: {:d}-{:d}"
 msgstr "obrażenia błyskawic: {:d}-{:d}"
 
@@ -3242,7 +3153,7 @@ msgid "occasional triple damage"
 msgstr "okazyjnie potraja obrażenia"
 
 #: Source/items.cpp:4053
-#, no-c-format, c++-format
+#, no-c-format
 msgid "decaying {:+d}% damage"
 msgstr "rozkład {:+d}% obrażeń"
 
@@ -3256,7 +3167,7 @@ msgid "Random 0 - 600% damage"
 msgstr "Losowo 0 - 600% obrażeń"
 
 #: Source/items.cpp:4059
-#, no-c-format, c++-format
+#, no-c-format
 msgid "low dur, {:+d}% damage"
 msgstr "mała wyt, {:+d}% obrażeń"
 
@@ -3277,41 +3188,34 @@ msgid "40% Health moved to Mana"
 msgstr "40% Życia przechodzi do Many"
 
 #: Source/items.cpp:4105 Source/items.cpp:4146
-#, c++-format
 msgid "damage: {:d}  Indestructible"
 msgstr "obr: {:d}  Niezniszczalność"
 
 #. TRANSLATORS: Dur: is durability
 #: Source/items.cpp:4107 Source/items.cpp:4148
-#, c++-format
 msgid "damage: {:d}  Dur: {:d}/{:d}"
 msgstr "obr: {:d}  Wyt: {:d}/{:d}"
 
 #: Source/items.cpp:4110 Source/items.cpp:4151
-#, c++-format
 msgid "damage: {:d}-{:d}  Indestructible"
 msgstr "obr: {:d}-{:d}  Niezniszczalność"
 
 #. TRANSLATORS: Dur: is durability
 #: Source/items.cpp:4112 Source/items.cpp:4153
-#, c++-format
 msgid "damage: {:d}-{:d}  Dur: {:d}/{:d}"
 msgstr "obr: {:d}-{:d}  Wyt: {:d}/{:d}"
 
 #: Source/items.cpp:4117 Source/items.cpp:4163
-#, c++-format
 msgid "armor: {:d}  Indestructible"
 msgstr "pancerz: {:d}  Niezniszczalność"
 
 #. TRANSLATORS: Dur: is durability
 #: Source/items.cpp:4119 Source/items.cpp:4165
-#, c++-format
 msgid "armor: {:d}  Dur: {:d}/{:d}"
 msgstr "pancerz: {:d}  Wyt: {:d}/{:d}"
 
 #: Source/items.cpp:4122 Source/items.cpp:4156 Source/items.cpp:4169
 #: Source/stores.cpp:299
-#, c++-format
 msgid "Charges: {:d}/{:d}"
 msgstr "Ładunki: {:d}/{:d}"
 
@@ -3382,7 +3286,6 @@ msgstr "Zejdź do Krypty"
 
 #: Source/levels/trigs.cpp:416 Source/levels/trigs.cpp:451
 #: Source/levels/trigs.cpp:497 Source/levels/trigs.cpp:549
-#, c++-format
 msgid "Up to level {:d}"
 msgstr "Wejdź na poziom {:d}"
 
@@ -3396,7 +3299,6 @@ msgstr "Wejdź do miasta"
 #: Source/levels/trigs.cpp:429 Source/levels/trigs.cpp:462
 #: Source/levels/trigs.cpp:514 Source/levels/trigs.cpp:561
 #: Source/levels/trigs.cpp:623
-#, c++-format
 msgid "Down to level {:d}"
 msgstr "Zejdź na poziom {:d}"
 
@@ -3405,12 +3307,10 @@ msgid "Down to Diablo"
 msgstr "Staw czoła Diablo"
 
 #: Source/levels/trigs.cpp:610
-#, c++-format
 msgid "Up to Nest level {:d}"
 msgstr "Do Gniazda - poziom {:d}"
 
 #: Source/levels/trigs.cpp:658
-#, c++-format
 msgid "Up to Crypt level {:d}"
 msgstr "Do Krypty - poziom {:d}"
 
@@ -3419,13 +3319,11 @@ msgid "Cornerstone of the World"
 msgstr "Fundament Świata"
 
 #: Source/levels/trigs.cpp:673
-#, c++-format
 msgid "Down to Crypt level {:d}"
 msgstr "Do Krypty - poziom {:d}"
 
 #: Source/levels/trigs.cpp:721 Source/levels/trigs.cpp:735
 #: Source/levels/trigs.cpp:749
-#, c++-format
 msgid "Back to Level {:d}"
 msgstr "Wróć na poziom {:d}"
 
@@ -3462,17 +3360,14 @@ msgid "Undead"
 msgstr "Nieumarły"
 
 #: Source/monster.cpp:4328
-#, c++-format
 msgid "Type: {:s}  Kills: {:d}"
 msgstr "Rodzaj: {:s}  Zabitych: {:d}"
 
 #: Source/monster.cpp:4330
-#, c++-format
 msgid "Total kills: {:d}"
 msgstr "Suma zabitych: {:d}"
 
 #: Source/monster.cpp:4362
-#, c++-format
 msgid "Hit Points: {:d}-{:d}"
 msgstr "Punkty życia: {:d}-{:d}"
 
@@ -3501,7 +3396,6 @@ msgid "Immune:"
 msgstr "Niewrażliwość na:"
 
 #: Source/monster.cpp:4397
-#, c++-format
 msgid "Type: {:s}"
 msgstr "Rodzaj: {:s}"
 
@@ -3530,17 +3424,14 @@ msgid "Trying to drop a floor item?"
 msgstr "Próbujesz upuścić przedmiot leżący na ziemi?"
 
 #: Source/msg.cpp:1458
-#, c++-format
 msgid "{:s} has cast an invalid spell."
 msgstr "{:s} rzucił niewłaściwe zaklęcie."
 
 #: Source/msg.cpp:1462
-#, c++-format
 msgid "{:s} has cast an illegal spell."
 msgstr "{:s} rzucił nielegalne zaklęcie."
 
 #: Source/msg.cpp:2093 Source/multi.cpp:803 Source/multi.cpp:853
-#, c++-format
 msgid "Player '{:s}' (level {:d}) just joined the game"
 msgstr "Gracz '{:s}' (poziom {:d}) dołączył do gry"
 
@@ -3553,22 +3444,18 @@ msgid "Unable to get level data"
 msgstr "Nie można wczytać danych poziomu"
 
 #: Source/multi.cpp:265
-#, c++-format
 msgid "Player '{:s}' just left the game"
 msgstr "Gracz '{:s}' opuścił grę"
 
 #: Source/multi.cpp:268
-#, c++-format
 msgid "Player '{:s}' killed Diablo and left the game!"
 msgstr "Gracz '{:s}' pokonał Diablo i opuścił grę!"
 
 #: Source/multi.cpp:272
-#, c++-format
 msgid "Player '{:s}' dropped due to timeout"
 msgstr "Gracz '{:s}' opuścił grę z powodu limitu czasu"
 
 #: Source/multi.cpp:855
-#, c++-format
 msgid "Player '{:s}' (level {:d}) is already in the game"
 msgstr "Gracz '{:s}' (poziom {:d}) jest już w grze"
 
@@ -3856,7 +3743,6 @@ msgstr "Urna"
 
 #. TRANSLATORS: {:s} will be a name from the Shrine block above
 #: Source/objects.cpp:4841
-#, c++-format
 msgid "{:s} Shrine"
 msgstr "{:s} Kapliczka"
 
@@ -3936,13 +3822,11 @@ msgstr "Zabity Bohater"
 
 #. TRANSLATORS: {:s} will either be a chest or a door
 #: Source/objects.cpp:4895
-#, c++-format
 msgid "Trapped {:s}"
 msgstr "{:s} (pułapka)"
 
 #. TRANSLATORS: If user enabled diablo.ini setting "Disable Crippling Shrines" is set to 1; also used for Na-Kruls lever
 #: Source/objects.cpp:4900
-#, c++-format
 msgid "{:s} (disabled)"
 msgstr "{:s} (wył.)"
 
@@ -4704,13 +4588,11 @@ msgstr "Obr: 1/3 PŻ celu"
 
 #. TRANSLATORS: UI constraints, keep short please.
 #: Source/panels/spell_book.cpp:129
-#, c++-format
 msgid "Heals: {:d} - {:d}"
 msgstr "Uzdrawia: {:d} - {:d}"
 
 #. TRANSLATORS: UI constraints, keep short please.
 #: Source/panels/spell_book.cpp:131
-#, c++-format
 msgid "Damage: {:d} - {:d}"
 msgstr "Obrażenia: {:d} - {:d}"
 
@@ -4719,7 +4601,6 @@ msgid "Skill"
 msgstr "Umiejętność"
 
 #: Source/panels/spell_book.cpp:190
-#, c++-format
 msgid "Staff ({:d} charge)"
 msgid_plural "Staff ({:d} charges)"
 msgstr[0] "Kostur ({:d} ładunek)"
@@ -4728,14 +4609,12 @@ msgstr[2] "Kostur ({:d} ładunków)"
 
 #. TRANSLATORS: UI constraints, keep short please.
 #: Source/panels/spell_book.cpp:195
-#, c++-format
 msgctxt "spellbook"
 msgid "Level {:d}"
 msgstr "Poziom {:d}"
 
 #. TRANSLATORS: UI constraints, keep short please.
 #: Source/panels/spell_book.cpp:199
-#, c++-format
 msgctxt "spellbook"
 msgid "Mana: {:d}"
 msgstr "Mana: {:d}"
@@ -4759,7 +4638,6 @@ msgid "Staff"
 msgstr "Kostur"
 
 #: Source/panels/spell_list.cpp:193
-#, c++-format
 msgid "Spell Hotkey {:s}"
 msgstr "Klawisz Czaru: {:s}"
 
@@ -4772,17 +4650,14 @@ msgid "Unable to load character"
 msgstr "Nie udało się wczytać postaci"
 
 #: Source/plrmsg.cpp:77 Source/qol/chatlog.cpp:129
-#, c++-format
 msgid "{:s} (lvl {:d}): "
 msgstr "{:s} (lvl {:d}): "
 
 #: Source/qol/chatlog.cpp:169
-#, c++-format
 msgid "Chat History (Messages: {:d})"
 msgstr "Historia czatu (Wiadomości: {:d})"
 
 #: Source/qol/itemlabels.cpp:112
-#, c++-format
 msgid "{:s} gold"
 msgstr "{:s} złota"
 
@@ -4791,12 +4666,10 @@ msgid "How many gold pieces do you want to withdraw?"
 msgstr "Ile sztuk złota chcesz wypłacić?"
 
 #: Source/qol/xpbar.cpp:125
-#, c++-format
 msgid "Level {:d}"
 msgstr "Poziom {:d}"
 
 #: Source/qol/xpbar.cpp:131 Source/qol/xpbar.cpp:139
-#, c++-format
 msgid "Experience: {:s}"
 msgstr "Doświadczenie: {:s}"
 
@@ -4805,12 +4678,10 @@ msgid "Maximum Level"
 msgstr "Maksymalny Poziom"
 
 #: Source/qol/xpbar.cpp:141
-#, c++-format
 msgid "Next Level: {:s}"
 msgstr "Następny poziom: {:s}"
 
 #: Source/qol/xpbar.cpp:142
-#, c++-format
 msgid "{:s} to Level {:d}"
 msgstr "{:s} do Poziomu {:d}"
 
@@ -4918,7 +4789,6 @@ msgstr "Przeklęty Ołtarz"
 
 #. TRANSLATORS: Used for Quest Portals. {:s} is a Map Name
 #: Source/quests.cpp:378
-#, c++-format
 msgid "To {:s}"
 msgstr "{:s}"
 
@@ -4963,17 +4833,14 @@ msgid ",  "
 msgstr ",  "
 
 #: Source/stores.cpp:309
-#, c++-format
 msgid "Damage: {:d}-{:d}  "
 msgstr "Obrażenia: {:d}-{:d}  "
 
 #: Source/stores.cpp:311
-#, c++-format
 msgid "Armor: {:d}  "
 msgstr "Pancerz: {:d}  "
 
 #: Source/stores.cpp:313
-#, c++-format
 msgid "Dur: {:d}/{:d}"
 msgstr "Wyt: {:d}/{:d}"
 
@@ -5181,12 +5048,10 @@ msgid "Done"
 msgstr "Akceptuj"
 
 #: Source/stores.cpp:1211
-#, c++-format
 msgid "Talk to {:s}"
 msgstr "Rozmawiaj z {:s}"
 
 #: Source/stores.cpp:1214
-#, c++-format
 msgid "Talking to {:s}"
 msgstr "Rozmowa z {:s}"
 
@@ -5239,7 +5104,6 @@ msgid "Say Goodbye"
 msgstr "Wyjdź"
 
 #: Source/stores.cpp:2411
-#, c++-format
 msgid "Your gold: {:s}"
 msgstr "Twoje złoto: {:s}"
 
