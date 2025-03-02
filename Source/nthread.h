@@ -13,9 +13,9 @@
 namespace devilution {
 
 extern uint8_t sgbNetUpdateRate;
-extern size_t gdwMsgLenTbl[MAX_PLRS];
+extern size_t gdwMsgLenTbl[MaxPlayers];
 extern uint32_t gdwTurnsInTransit;
-extern uintptr_t glpMsgTbl[MAX_PLRS];
+extern uintptr_t glpMsgTbl[MaxPlayers];
 extern uint32_t gdwLargestMsgSize;
 extern uint32_t gdwNormalMsgSize;
 /** @brief the progress as a fraction (see AnimationInfo::baseValueFraction) in time to the next game tick */

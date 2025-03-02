@@ -28,6 +28,7 @@
 #include "multi.h"
 #include "pfile.h"
 #include "plrmsg.h"
+#include "portal.h"
 #include "utils/log.hpp"
 #include "utils/sdl_geometry.h"
 #include "utils/sdl_thread.h"
