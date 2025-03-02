@@ -332,7 +332,9 @@ void UnPackItem(const ItemPack &packedItem, const Player &player, Item &item, bo
 		RecreateEar(item, ic, iseed, ivalue & 0xFF, heroName);
 	} else {
 		item = {};
-		item.dwBuff = SDL_SwapLE32(packedItem.dwBuff);
+		// Item generation logic will assign CF_HELLFIRE based on isHellfire
+		// so if we carry it over from packedItem, it may be incorrect
+		item.dwBuff = SDL_SwapLE32(packedItem.dwBuff) & ~CF_HELLFIRE;
 		RecreateItem(player, item, idx, SDL_SwapLE16(packedItem.iCreateInfo), SDL_SwapLE32(packedItem.iSeed), SDL_SwapLE16(packedItem.wValue), isHellfire);
 		item._iIdentified = (packedItem.bId & 1) != 0;
 		item._iMaxDur = packedItem.bMDur;
