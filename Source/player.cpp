@@ -1037,9 +1037,6 @@ bool DoDeath(Player &player)
 			dFlags[player.position.tile.x][player.position.tile.y] |= DungeonFlag::DeadPlayer;
 		} else if (&player == MyPlayer && player.AnimInfo.tickCounterOfCurrentFrame == 30) {
 			MyPlayerIsDead = true;
-			if (!gbIsMultiplayer) {
-				gamemenu_on();
-			}
 		}
 	}
 
@@ -2619,6 +2616,7 @@ StartPlayerKill(Player &player, DeathReason deathReason)
 
 	if (&player == MyPlayer) {
 		NetSendCmdParam1(true, CMD_PLRDEAD, static_cast<uint16_t>(deathReason));
+		gamemenu_off();
 	}
 
 	const bool dropGold = !gbIsMultiplayer || !(player.isOnLevel(16) || player.isOnArenaLevel());

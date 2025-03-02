@@ -490,6 +490,17 @@ void PressKey(SDL_Keycode vkey, uint16_t modState)
 	}
 
 	if (MyPlayerIsDead) {
+		if (vkey == SDLK_ESCAPE) {
+			if (!gbIsMultiplayer) {
+				if (gbValidSaveFile)
+					gamemenu_load_game(false);
+				else
+					gamemenu_exit_game(false);
+			} else {
+				NetSendCmd(true, CMD_RETOWN);
+			}
+			return;
+		}
 		if (sgnTimeoutCurs != CURSOR_NONE) {
 			return;
 		}
@@ -506,7 +517,8 @@ void PressKey(SDL_Keycode vkey, uint16_t modState)
 			return;
 		}
 	}
-	if (vkey == SDLK_ESCAPE) {
+	// Disallow player from accessing escape menu during the frames before the death message appears
+	if (vkey == SDLK_ESCAPE && MyPlayer->_pHitPoints > 0) {
 		if (!PressEscKey()) {
 			LastMouseButtonAction = MouseActionType::None;
 			gamemenu_on();
