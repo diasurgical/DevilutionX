@@ -25,6 +25,7 @@
 #include "engine/point.hpp"
 #include "engine/render/clx_render.hpp"
 #include "engine/render/dun_render.hpp"
+#include "engine/render/light_render.hpp"
 #include "engine/render/text_render.hpp"
 #include "engine/trn.hpp"
 #include "engine/world_tile.hpp"
@@ -827,6 +828,7 @@ void DrawDungeon(const Surface &out, Point tilePosition, Point targetBufferPosit
 	}
 
 	if (leveltype != DTYPE_TOWN) {
+		bool perPixelLighting = *GetOptions().Graphics.perPixelLighting;
 		int8_t bArch = dSpecial[tilePosition.x][tilePosition.y] - 1;
 		if (bArch >= 0) {
 			bool transparency = TransList[bMap];
@@ -834,7 +836,11 @@ void DrawDungeon(const Surface &out, Point tilePosition, Point targetBufferPosit
 			// Turn transparency off here for debugging
 			transparency = transparency && (SDL_GetModState() & KMOD_ALT) == 0;
 #endif
-			if (transparency) {
+			if (perPixelLighting && transparency) {
+				ClxDrawBlendedWithLightmap(out, targetBufferPosition, (*pSpecialCels)[bArch]);
+			} else if (perPixelLighting) {
+				ClxDrawWithLightmap(out, targetBufferPosition, (*pSpecialCels)[bArch]);
+			} else if (transparency) {
 				ClxDrawLightBlended(out, targetBufferPosition, (*pSpecialCels)[bArch], lightTableIndex);
 			} else {
 				ClxDrawLight(out, targetBufferPosition, (*pSpecialCels)[bArch], lightTableIndex);
@@ -1111,6 +1117,8 @@ void DrawGame(const Surface &fullOut, Point position, Displacement offset)
 	DunRenderStats.clear();
 #endif
 
+	if (*GetOptions().Graphics.perPixelLighting)
+		BuildLightmap(position, Point {} + offset, rows, columns);
 	DrawFloor(out, position, Point {} + offset, rows, columns);
 	DrawTileContent(out, position, Point {} + offset, rows, columns);
 

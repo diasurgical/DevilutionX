@@ -105,6 +105,8 @@ inline void ClxDrawLight(const Surface &out, Point position, ClxSprite clx, int 
 	}
 }
 
+void ClxDrawWithLightmap(const Surface &out, Point position, ClxSprite clx);
+
 /**
  * @brief Blit CL2 sprite, and apply lighting and transparency blending, to the given buffer at the given coordinates
  * @param out Output buffer
@@ -119,6 +121,8 @@ inline void ClxDrawLightBlended(const Surface &out, Point position, ClxSprite cl
 		ClxDrawBlended(out, position, clx);
 	}
 }
+
+void ClxDrawBlendedWithLightmap(const Surface &out, Point position, ClxSprite clx);
 
 /**
  * Returns if cursor is within the CLX sprite (ignores shadow)

@@ -114,6 +114,7 @@ enum class LightType : uint8_t {
 	FullyDark,
 	PartiallyLit,
 	FullyLit,
+	PerPixel,
 };
 
 template <LightType Light>
@@ -145,6 +146,16 @@ DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLineOpaque<LightType::PartiallyLi
 #endif
 }
 
+template <>
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLineOpaque<LightType::PerPixel>(uint8_t *DVL_RESTRICT dst, const uint8_t *DVL_RESTRICT src, uint_fast8_t n, const uint8_t *DVL_RESTRICT tbl)
+{
+#ifndef DEBUG_RENDER_COLOR
+	BlitPixelsWithLightmap(dst, src, n);
+#else
+	BlitFillDirect(dst, n, tbl[DBGCOLOR]);
+#endif
+}
+
 #ifndef DEBUG_RENDER_COLOR
 template <LightType Light>
 DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLineTransparent(uint8_t *DVL_RESTRICT dst, const uint8_t *DVL_RESTRICT src, uint_fast8_t n, const uint8_t *DVL_RESTRICT tbl);
@@ -165,6 +176,12 @@ template <>
 DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLineTransparent<LightType::PartiallyLit>(uint8_t *DVL_RESTRICT dst, const uint8_t *DVL_RESTRICT src, uint_fast8_t n, const uint8_t *DVL_RESTRICT tbl)
 {
 	BlitPixelsBlendedWithMap(dst, src, n, tbl);
+}
+
+template <>
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLineTransparent<LightType::PerPixel>(uint8_t *DVL_RESTRICT dst, const uint8_t *DVL_RESTRICT src, uint_fast8_t n, const uint8_t *DVL_RESTRICT tbl)
+{
+	BlitPixelsBlendedWithLightmap(dst, src, n);
 }
 #else // DEBUG_RENDER_COLOR
 template <LightType Light>
@@ -965,7 +982,9 @@ DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderRightTrapezoidOrTransparentSquare
 template <MaskType Mask>
 DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLeftTrapezoidOrTransparentSquareDispatch(TileType tile, uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, Clip clip)
 {
-	if (IsFullyDark(tbl)) {
+	if (*GetOptions().Graphics.perPixelLighting) {
+		RenderLeftTrapezoidOrTransparentSquare<LightType::PerPixel, Mask>(tile, dst, dstPitch, src, tbl, clip);
+	} else if (IsFullyDark(tbl)) {
 		RenderLeftTrapezoidOrTransparentSquare<LightType::FullyDark, Mask>(tile, dst, dstPitch, src, tbl, clip);
 	} else if (IsFullyLit(tbl)) {
 		RenderLeftTrapezoidOrTransparentSquare<LightType::FullyLit, Mask>(tile, dst, dstPitch, src, tbl, clip);
@@ -977,7 +996,9 @@ DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLeftTrapezoidOrTransparentSquareD
 template <MaskType Mask>
 DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderRightTrapezoidOrTransparentSquareDispatch(TileType tile, uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, Clip clip)
 {
-	if (IsFullyDark(tbl)) {
+	if (*GetOptions().Graphics.perPixelLighting) {
+		RenderRightTrapezoidOrTransparentSquare<LightType::PerPixel, Mask>(tile, dst, dstPitch, src, tbl, clip);
+	} else if (IsFullyDark(tbl)) {
 		RenderRightTrapezoidOrTransparentSquare<LightType::FullyDark, Mask>(tile, dst, dstPitch, src, tbl, clip);
 	} else if (IsFullyLit(tbl)) {
 		RenderRightTrapezoidOrTransparentSquare<LightType::FullyLit, Mask>(tile, dst, dstPitch, src, tbl, clip);
@@ -989,7 +1010,9 @@ DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderRightTrapezoidOrTransparentSquare
 template <bool Transparent>
 DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderTileDispatch(TileType tile, uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, Clip clip)
 {
-	if (IsFullyDark(tbl)) {
+	if (*GetOptions().Graphics.perPixelLighting) {
+		RenderTileType<LightType::PerPixel, Transparent>(tile, dst, dstPitch, src, tbl, clip);
+	} else if (IsFullyDark(tbl)) {
 		RenderTileType<LightType::FullyDark, Transparent>(tile, dst, dstPitch, src, tbl, clip);
 	} else if (IsFullyLit(tbl)) {
 		RenderTileType<LightType::FullyLit, Transparent>(tile, dst, dstPitch, src, tbl, clip);

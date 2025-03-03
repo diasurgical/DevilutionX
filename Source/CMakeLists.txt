@@ -90,6 +90,7 @@ set(libdevilutionx_SRCS
 
   engine/render/automap_render.cpp
   engine/render/dun_render.cpp
+  engine/render/light_render.cpp
   engine/render/primitive_render.cpp
   engine/render/scrollrt.cpp
   engine/render/text_render.cpp
