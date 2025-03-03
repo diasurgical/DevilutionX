@@ -53,4 +53,4 @@ jobs:
     - name: Upload results
       uses: codecov/codecov-action@v5
       with:
-        gcov: true
+        token: ${{ secrets.CODECOV_TOKEN }}
