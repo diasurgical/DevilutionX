@@ -468,15 +468,16 @@ void DrawObject(const Surface &out, const Object &objectToDraw, Point tilePositi
 	}
 }
 
-static void DrawDungeon(const Surface & /*out*/, Point /*tilePosition*/, Point /*targetBufferPosition*/);
+static void DrawDungeon(const Surface & /*out*/, const Lightmap & /*lightmap*/, Point /*tilePosition*/, Point /*targetBufferPosition*/);
 
 /**
  * @brief Render a cell
  * @param out Target buffer
+ * @param lightmap Per-pixel light buffer
  * @param tilePosition dPiece coordinates
  * @param targetBufferPosition Target buffer coordinates
  */
-void DrawCell(const Surface &out, Point tilePosition, Point targetBufferPosition, int lightTableIndex)
+void DrawCell(const Surface &out, const Lightmap lightmap, Point tilePosition, Point targetBufferPosition, int lightTableIndex)
 {
 	const uint16_t levelPieceId = dPiece[tilePosition.x][tilePosition.y];
 	const MICROS *pMap = &DPieceMicros[levelPieceId];
@@ -542,9 +543,9 @@ void DrawCell(const Surface &out, Point tilePosition, Point targetBufferPosition
 		const TileType tileType = levelCelBlock.type();
 		if (!isFloor || tileType == TileType::TransparentSquare) {
 			if (isFloor && tileType == TileType::TransparentSquare) {
-				RenderTileFoliage(out, targetBufferPosition, levelCelBlock, foliageTbl);
+				RenderTileFoliage(out, lightmap, targetBufferPosition, levelCelBlock, foliageTbl);
 			} else {
-				RenderTile(out, targetBufferPosition, levelCelBlock, getFirstTileMaskLeft(tileType), tbl);
+				RenderTile(out, lightmap, targetBufferPosition, levelCelBlock, getFirstTileMaskLeft(tileType), tbl);
 			}
 		}
 	}
@@ -552,9 +553,9 @@ void DrawCell(const Surface &out, Point tilePosition, Point targetBufferPosition
 		const TileType tileType = levelCelBlock.type();
 		if (!isFloor || tileType == TileType::TransparentSquare) {
 			if (isFloor && tileType == TileType::TransparentSquare) {
-				RenderTileFoliage(out, targetBufferPosition + RightFrameDisplacement, levelCelBlock, foliageTbl);
+				RenderTileFoliage(out, lightmap, targetBufferPosition + RightFrameDisplacement, levelCelBlock, foliageTbl);
 			} else {
-				RenderTile(out, targetBufferPosition + RightFrameDisplacement,
+				RenderTile(out, lightmap, targetBufferPosition + RightFrameDisplacement,
 				    levelCelBlock, getFirstTileMaskRight(tileType), tbl);
 			}
 		}
@@ -565,7 +566,7 @@ void DrawCell(const Surface &out, Point tilePosition, Point targetBufferPosition
 		{
 			const LevelCelBlock levelCelBlock { pMap->mt[i] };
 			if (levelCelBlock.hasValue()) {
-				RenderTile(out, targetBufferPosition,
+				RenderTile(out, lightmap, targetBufferPosition,
 				    levelCelBlock,
 				    transparency ? MaskType::Transparent : MaskType::Solid, foliageTbl);
 			}
@@ -573,7 +574,7 @@ void DrawCell(const Surface &out, Point tilePosition, Point targetBufferPosition
 		{
 			const LevelCelBlock levelCelBlock { pMap->mt[i + 1] };
 			if (levelCelBlock.hasValue()) {
-				RenderTile(out, targetBufferPosition + RightFrameDisplacement,
+				RenderTile(out, lightmap, targetBufferPosition + RightFrameDisplacement,
 				    levelCelBlock,
 				    transparency ? MaskType::Transparent : MaskType::Solid, foliageTbl);
 			}
@@ -595,10 +596,11 @@ void DrawCell(const Surface &out, Point tilePosition, Point targetBufferPosition
 /**
  * @brief Render a floor tile.
  * @param out Target buffer
+ * @param lightmap Per-pixel light buffer
  * @param tilePosition dPiece coordinates
  * @param targetBufferPosition Target buffer coordinate
  */
-void DrawFloorTile(const Surface &out, Point tilePosition, Point targetBufferPosition)
+void DrawFloorTile(const Surface &out, const Lightmap &lightmap, Point tilePosition, Point targetBufferPosition)
 {
 	const int lightTableIndex = dLight[tilePosition.x][tilePosition.y];
 
@@ -612,14 +614,14 @@ void DrawFloorTile(const Surface &out, Point tilePosition, Point targetBufferPos
 	{
 		const LevelCelBlock levelCelBlock { DPieceMicros[levelPieceId].mt[0] };
 		if (levelCelBlock.hasValue()) {
-			RenderTileFrame(out, targetBufferPosition, TileType::LeftTriangle,
+			RenderTileFrame(out, lightmap, targetBufferPosition, TileType::LeftTriangle,
 			    GetDunFrame(levelCelBlock.frame()), DunFrameTriangleHeight, MaskType::Solid, tbl);
 		}
 	}
 	{
 		const LevelCelBlock levelCelBlock { DPieceMicros[levelPieceId].mt[1] };
 		if (levelCelBlock.hasValue()) {
-			RenderTileFrame(out, targetBufferPosition + RightFrameDisplacement, TileType::RightTriangle,
+			RenderTileFrame(out, lightmap, targetBufferPosition + RightFrameDisplacement, TileType::RightTriangle,
 			    GetDunFrame(levelCelBlock.frame()), DunFrameTriangleHeight, MaskType::Solid, tbl);
 		}
 	}
@@ -695,15 +697,16 @@ void DrawMonsterHelper(const Surface &out, Point tilePosition, Point targetBuffe
 /**
  * @brief Render object sprites
  * @param out Target buffer
+ * @param lightmap Per-pixel light buffer
  * @param tilePosition dPiece coordinates
  * @param targetBufferPosition Target buffer coordinates
  */
-void DrawDungeon(const Surface &out, Point tilePosition, Point targetBufferPosition)
+void DrawDungeon(const Surface &out, const Lightmap &lightmap, Point tilePosition, Point targetBufferPosition)
 {
 	assert(InDungeonBounds(tilePosition));
 	const int lightTableIndex = dLight[tilePosition.x][tilePosition.y];
 
-	DrawCell(out, tilePosition, targetBufferPosition, lightTableIndex);
+	DrawCell(out, lightmap, tilePosition, targetBufferPosition, lightTableIndex);
 
 	const int8_t bDead = dCorpse[tilePosition.x][tilePosition.y];
 	const int8_t bMap = dTransVal[tilePosition.x][tilePosition.y];
@@ -837,9 +840,9 @@ void DrawDungeon(const Surface &out, Point tilePosition, Point targetBufferPosit
 			transparency = transparency && (SDL_GetModState() & KMOD_ALT) == 0;
 #endif
 			if (perPixelLighting && transparency) {
-				ClxDrawBlendedWithLightmap(out, targetBufferPosition, (*pSpecialCels)[bArch]);
+				ClxDrawBlendedWithLightmap(out, targetBufferPosition, (*pSpecialCels)[bArch], lightmap);
 			} else if (perPixelLighting) {
-				ClxDrawWithLightmap(out, targetBufferPosition, (*pSpecialCels)[bArch]);
+				ClxDrawWithLightmap(out, targetBufferPosition, (*pSpecialCels)[bArch], lightmap);
 			} else if (transparency) {
 				ClxDrawLightBlended(out, targetBufferPosition, (*pSpecialCels)[bArch], lightTableIndex);
 			} else {
@@ -861,12 +864,13 @@ void DrawDungeon(const Surface &out, Point tilePosition, Point targetBufferPosit
 /**
  * @brief Render a row of tiles
  * @param out Buffer to render to
+ * @param lightmap Per-pixel light buffer
  * @param tilePosition dPiece coordinates
  * @param targetBufferPosition Target buffer coordinates
  * @param rows Number of rows
  * @param columns Tile in a row
  */
-void DrawFloor(const Surface &out, Point tilePosition, Point targetBufferPosition, int rows, int columns)
+void DrawFloor(const Surface &out, const Lightmap &lightmap, Point tilePosition, Point targetBufferPosition, int rows, int columns)
 {
 	for (int i = 0; i < rows; i++) {
 		for (int j = 0; j < columns; j++, tilePosition += Direction::East, targetBufferPosition.x += TILE_WIDTH) {
@@ -875,7 +879,7 @@ void DrawFloor(const Surface &out, Point tilePosition, Point targetBufferPositio
 				continue;
 			}
 			if (IsFloor(tilePosition)) {
-				DrawFloorTile(out, tilePosition, targetBufferPosition);
+				DrawFloorTile(out, lightmap, tilePosition, targetBufferPosition);
 			}
 		}
 		// Return to start of row
@@ -899,12 +903,13 @@ void DrawFloor(const Surface &out, Point tilePosition, Point targetBufferPositio
 /**
  * @brief Renders the floor tiles
  * @param out Output buffer
+ * @param lightmap Per-pixel light buffer
  * @param tilePosition dPiece coordinates
  * @param targetBufferPosition Buffer coordinates
  * @param rows Number of rows
  * @param columns Tile in a row
  */
-void DrawTileContent(const Surface &out, Point tilePosition, Point targetBufferPosition, int rows, int columns)
+void DrawTileContent(const Surface &out, const Lightmap &lightmap, Point tilePosition, Point targetBufferPosition, int rows, int columns)
 {
 	// Keep evaluating until MicroTiles can't affect screen
 	rows += MicroTileLen;
@@ -928,13 +933,13 @@ void DrawTileContent(const Surface &out, Point tilePosition, Point targetBufferP
 					// sprite screen position rather than tile position.
 					if (IsWall(tilePosition) && (IsWall(tilePosition + Displacement { 1, 0 }) || (tilePosition.x > 0 && IsWall(tilePosition + Displacement { -1, 0 })))) { // Part of a wall aligned on the x-axis
 						if (IsTileNotSolid(tilePosition + Displacement { 1, -1 }) && IsTileNotSolid(tilePosition + Displacement { 0, -1 })) {                              // Has walkable area behind it
-							DrawDungeon(out, tilePosition + Direction::East, { targetBufferPosition.x + TILE_WIDTH, targetBufferPosition.y });
+							DrawDungeon(out, lightmap, tilePosition + Direction::East, { targetBufferPosition.x + TILE_WIDTH, targetBufferPosition.y });
 							skipNext = true;
 						}
 					}
 				}
 				if (!skip) {
-					DrawDungeon(out, tilePosition, targetBufferPosition);
+					DrawDungeon(out, lightmap, tilePosition, targetBufferPosition);
 				}
 				skip = skipNext;
 			}
@@ -1117,10 +1122,11 @@ void DrawGame(const Surface &fullOut, Point position, Displacement offset)
 	DunRenderStats.clear();
 #endif
 
-	if (*GetOptions().Graphics.perPixelLighting)
-		BuildLightmap(position, Point {} + offset, rows, columns);
-	DrawFloor(out, position, Point {} + offset, rows, columns);
-	DrawTileContent(out, position, Point {} + offset, rows, columns);
+	BuildLightmap(position, Point {} + offset, rows, columns);
+
+	Lightmap lightmap(out.at(0, 0));
+	DrawFloor(out, lightmap, position, Point {} + offset, rows, columns);
+	DrawTileContent(out, lightmap, position, Point {} + offset, rows, columns);
 
 	if (*GetOptions().Graphics.zoom) {
 		Zoom(fullOut.subregionY(0, gnViewportHeight));
