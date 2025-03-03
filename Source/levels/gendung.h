@@ -166,7 +166,7 @@ extern DVL_API_FOR_TEST uint8_t currlevel;
 extern bool setlevel;
 /** Specifies the active quest level of the current game. */
 extern _setlevels setlvlnum;
-/** Specifies the player viewpoint X-coordinate of the map. */
+/** Specifies the dungeon type of the active quest level of the current game. */
 extern dungeon_type setlvltype;
 /** Specifies the player viewpoint X,Y-coordinates of the map. */
 extern DVL_API_FOR_TEST Point ViewPosition;
