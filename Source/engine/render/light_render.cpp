@@ -9,13 +9,14 @@
 #include "engine/rectangle.hpp"
 #include "levels/dun_tile.hpp"
 #include "lighting.h"
+#include "options.h"
 #include "utils/ui_fwd.h"
 
 namespace devilution {
 
 namespace {
 
-std::vector<uint8_t> Lightmap;
+std::vector<uint8_t> LightmapBuffer;
 
 // Half-space method for drawing triangles
 // Points must be provided using counter-clockwise rotation
@@ -365,11 +366,22 @@ void RenderCell(uint8_t quad[4], Point position, uint8_t lightLevel, uint8_t *li
 
 } // namespace
 
+Lightmap::Lightmap(uint8_t *outBuffer)
+    : outBuffer(outBuffer)
+    , lightmapBuffer(LightmapBuffer.data())
+    , lightTables(LightTables[0].data())
+    , lightTableSize(LightTables[0].size())
+{
+}
+
 void BuildLightmap(Point tilePosition, Point targetBufferPosition, int rows, int columns)
 {
+	if (!*GetOptions().Graphics.perPixelLighting)
+		return;
+
 	const int screenWidth = gnScreenWidth;
 	const size_t totalPixels = static_cast<size_t>(screenWidth) * gnViewportHeight;
-	Lightmap.resize(totalPixels);
+	LightmapBuffer.resize(totalPixels);
 
 	// Since rendering occurs in cells between quads,
 	// expand the rendering space to include tiles outside the viewport
@@ -378,7 +390,7 @@ void BuildLightmap(Point tilePosition, Point targetBufferPosition, int rows, int
 	rows += 3;
 	columns++;
 
-	uint8_t *lightmap = Lightmap.data();
+	uint8_t *lightmap = LightmapBuffer.data();
 	memset(lightmap, LightsMax, totalPixels);
 	for (int i = 0; i < rows; i++) {
 		for (int j = 0; j < columns; j++, tilePosition += Direction::East, targetBufferPosition.x += TILE_WIDTH) {
@@ -425,20 +437,6 @@ void BuildLightmap(Point tilePosition, Point targetBufferPosition, int rows, int
 			targetBufferPosition.x -= TILE_WIDTH / 2;
 		}
 	}
-}
-
-uint8_t AdjustColor(uint8_t color, uint8_t lightLevel)
-{
-	return LightTables[lightLevel][color];
-}
-
-const uint8_t *GetLightmapAt(const uint8_t *gbbLoc)
-{
-	// Because the global back buffer is what we use for rendering,
-	// it can be used like this at time of rendering to look up values in the lightmap
-	const Surface &gbb = GlobalBackBuffer();
-	const uint8_t *gbbStart = gbb.at(0, 0);
-	return Lightmap.data() + (gbbLoc - gbbStart);
 }
 
 } // namespace devilution

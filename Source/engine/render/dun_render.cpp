@@ -118,16 +118,16 @@ enum class LightType : uint8_t {
 };
 
 template <LightType Light>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLineOpaque(uint8_t *DVL_RESTRICT dst, const uint8_t *DVL_RESTRICT src, uint_fast8_t n, const uint8_t *DVL_RESTRICT tbl);
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLineOpaque(uint8_t *DVL_RESTRICT dst, const uint8_t *DVL_RESTRICT src, uint_fast8_t n, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap);
 
 template <>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLineOpaque<LightType::FullyDark>(uint8_t *DVL_RESTRICT dst, [[maybe_unused]] const uint8_t *DVL_RESTRICT src, uint_fast8_t n, [[maybe_unused]] const uint8_t *DVL_RESTRICT tbl)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLineOpaque<LightType::FullyDark>(uint8_t *DVL_RESTRICT dst, [[maybe_unused]] const uint8_t *DVL_RESTRICT src, uint_fast8_t n, [[maybe_unused]] const uint8_t *DVL_RESTRICT tbl, [[maybe_unused]] const Lightmap *lightmap)
 {
 	BlitFillDirect(dst, n, 0);
 }
 
 template <>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLineOpaque<LightType::FullyLit>(uint8_t *DVL_RESTRICT dst, const uint8_t *DVL_RESTRICT src, uint_fast8_t n, [[maybe_unused]] const uint8_t *DVL_RESTRICT tbl)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLineOpaque<LightType::FullyLit>(uint8_t *DVL_RESTRICT dst, const uint8_t *DVL_RESTRICT src, uint_fast8_t n, [[maybe_unused]] const uint8_t *DVL_RESTRICT tbl, [[maybe_unused]] const Lightmap *lightmap)
 {
 #ifndef DEBUG_RENDER_COLOR
 	BlitPixelsDirect(dst, src, n);
@@ -137,7 +137,7 @@ DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLineOpaque<LightType::FullyLit>(u
 }
 
 template <>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLineOpaque<LightType::PartiallyLit>(uint8_t *DVL_RESTRICT dst, const uint8_t *DVL_RESTRICT src, uint_fast8_t n, const uint8_t *DVL_RESTRICT tbl)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLineOpaque<LightType::PartiallyLit>(uint8_t *DVL_RESTRICT dst, const uint8_t *DVL_RESTRICT src, uint_fast8_t n, const uint8_t *DVL_RESTRICT tbl, [[maybe_unused]] const Lightmap *lightmap)
 {
 #ifndef DEBUG_RENDER_COLOR
 	BlitPixelsWithMap(dst, src, n, tbl);
@@ -147,45 +147,45 @@ DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLineOpaque<LightType::PartiallyLi
 }
 
 template <>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLineOpaque<LightType::PerPixel>(uint8_t *DVL_RESTRICT dst, const uint8_t *DVL_RESTRICT src, uint_fast8_t n, const uint8_t *DVL_RESTRICT tbl)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLineOpaque<LightType::PerPixel>(uint8_t *DVL_RESTRICT dst, const uint8_t *DVL_RESTRICT src, uint_fast8_t n, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap)
 {
 #ifndef DEBUG_RENDER_COLOR
-	BlitPixelsWithLightmap(dst, src, n);
+	BlitPixelsWithLightmap(dst, src, n, lightmap);
 #else
-	BlitFillDirect(dst, n, tbl[DBGCOLOR]);
+	BlitFillWithLightmap(dst, n, DBGCOLOR, lightmap);
 #endif
 }
 
 #ifndef DEBUG_RENDER_COLOR
 template <LightType Light>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLineTransparent(uint8_t *DVL_RESTRICT dst, const uint8_t *DVL_RESTRICT src, uint_fast8_t n, const uint8_t *DVL_RESTRICT tbl);
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLineTransparent(uint8_t *DVL_RESTRICT dst, const uint8_t *DVL_RESTRICT src, uint_fast8_t n, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap);
 
 template <>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLineTransparent<LightType::FullyDark>(uint8_t *DVL_RESTRICT dst, [[maybe_unused]] const uint8_t *DVL_RESTRICT src, uint_fast8_t n, [[maybe_unused]] const uint8_t *DVL_RESTRICT tbl)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLineTransparent<LightType::FullyDark>(uint8_t *DVL_RESTRICT dst, [[maybe_unused]] const uint8_t *DVL_RESTRICT src, uint_fast8_t n, [[maybe_unused]] const uint8_t *DVL_RESTRICT tbl, [[maybe_unused]] const Lightmap *lightmap)
 {
 	BlitFillBlended(dst, n, 0);
 }
 
 template <>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLineTransparent<LightType::FullyLit>(uint8_t *DVL_RESTRICT dst, const uint8_t *DVL_RESTRICT src, uint_fast8_t n, [[maybe_unused]] const uint8_t *DVL_RESTRICT tbl)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLineTransparent<LightType::FullyLit>(uint8_t *DVL_RESTRICT dst, const uint8_t *DVL_RESTRICT src, uint_fast8_t n, [[maybe_unused]] const uint8_t *DVL_RESTRICT tbl, [[maybe_unused]] const Lightmap *lightmap)
 {
 	BlitPixelsBlended(dst, src, n);
 }
 
 template <>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLineTransparent<LightType::PartiallyLit>(uint8_t *DVL_RESTRICT dst, const uint8_t *DVL_RESTRICT src, uint_fast8_t n, const uint8_t *DVL_RESTRICT tbl)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLineTransparent<LightType::PartiallyLit>(uint8_t *DVL_RESTRICT dst, const uint8_t *DVL_RESTRICT src, uint_fast8_t n, const uint8_t *DVL_RESTRICT tbl, [[maybe_unused]] const Lightmap *lightmap)
 {
 	BlitPixelsBlendedWithMap(dst, src, n, tbl);
 }
 
 template <>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLineTransparent<LightType::PerPixel>(uint8_t *DVL_RESTRICT dst, const uint8_t *DVL_RESTRICT src, uint_fast8_t n, const uint8_t *DVL_RESTRICT tbl)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLineTransparent<LightType::PerPixel>(uint8_t *DVL_RESTRICT dst, const uint8_t *DVL_RESTRICT src, uint_fast8_t n, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap)
 {
-	BlitPixelsBlendedWithLightmap(dst, src, n);
+	BlitPixelsBlendedWithLightmap(dst, src, n, lightmap);
 }
 #else // DEBUG_RENDER_COLOR
 template <LightType Light>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLineTransparent(uint8_t *DVL_RESTRICT dst, const uint8_t *DVL_RESTRICT src, uint_fast8_t n, const uint8_t *DVL_RESTRICT tbl)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLineTransparent(uint8_t *DVL_RESTRICT dst, const uint8_t *DVL_RESTRICT src, uint_fast8_t n, const uint8_t *DVL_RESTRICT tbl, [[maybe_unused]] const Lightmap *lightmap)
 {
 	for (size_t i = 0; i < n; i++) {
 		dst[i] = paletteTransparencyLookup[dst[i]][tbl[DBGCOLOR + 4]];
@@ -194,47 +194,47 @@ DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLineTransparent(uint8_t *DVL_REST
 #endif
 
 template <LightType Light, bool Transparent>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLineTransparentOrOpaque(uint8_t *DVL_RESTRICT dst, const uint8_t *DVL_RESTRICT src, uint_fast8_t width, const uint8_t *DVL_RESTRICT tbl)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLineTransparentOrOpaque(uint8_t *DVL_RESTRICT dst, const uint8_t *DVL_RESTRICT src, uint_fast8_t width, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap)
 {
 	if constexpr (Transparent) {
-		RenderLineTransparent<Light>(dst, src, width, tbl);
+		RenderLineTransparent<Light>(dst, src, width, tbl, lightmap);
 	} else {
-		RenderLineOpaque<Light>(dst, src, width, tbl);
+		RenderLineOpaque<Light>(dst, src, width, tbl, lightmap);
 	}
 }
 
 template <LightType Light, bool OpaqueFirst>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLineTransparentAndOpaque(uint8_t *DVL_RESTRICT dst, const uint8_t *DVL_RESTRICT src, uint_fast8_t prefixWidth, uint_fast8_t width, const uint8_t *DVL_RESTRICT tbl)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLineTransparentAndOpaque(uint8_t *DVL_RESTRICT dst, const uint8_t *DVL_RESTRICT src, uint_fast8_t prefixWidth, uint_fast8_t width, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap)
 {
 	if constexpr (OpaqueFirst) {
-		RenderLineOpaque<Light>(dst, src, prefixWidth, tbl);
-		RenderLineTransparent<Light>(dst + prefixWidth, src + prefixWidth, width - prefixWidth, tbl);
+		RenderLineOpaque<Light>(dst, src, prefixWidth, tbl, lightmap);
+		RenderLineTransparent<Light>(dst + prefixWidth, src + prefixWidth, width - prefixWidth, tbl, lightmap);
 	} else {
-		RenderLineTransparent<Light>(dst, src, prefixWidth, tbl);
-		RenderLineOpaque<Light>(dst + prefixWidth, src + prefixWidth, width - prefixWidth, tbl);
+		RenderLineTransparent<Light>(dst, src, prefixWidth, tbl, lightmap);
+		RenderLineOpaque<Light>(dst + prefixWidth, src + prefixWidth, width - prefixWidth, tbl, lightmap);
 	}
 }
 
 template <LightType Light, MaskType Mask>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLine(uint8_t *DVL_RESTRICT dst, const uint8_t *DVL_RESTRICT src, uint_fast8_t n, const uint8_t *DVL_RESTRICT tbl, int8_t prefix)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLine(uint8_t *DVL_RESTRICT dst, const uint8_t *DVL_RESTRICT src, uint_fast8_t n, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap, int8_t prefix)
 {
 	if constexpr (Mask == MaskType::Solid || Mask == MaskType::Transparent) {
-		RenderLineTransparentOrOpaque<Light, /*Transparent=*/Mask == MaskType::Transparent>(dst, src, n, tbl);
+		RenderLineTransparentOrOpaque<Light, /*Transparent=*/Mask == MaskType::Transparent>(dst, src, n, tbl, lightmap);
 	} else if (prefix >= static_cast<int8_t>(n)) {
 		// We std::clamp the prefix to (0, n] and avoid calling `RenderLineTransparent/Opaque` with width=0.
 		if constexpr (Mask == MaskType::Right) {
-			RenderLineOpaque<Light>(dst, src, n, tbl);
+			RenderLineOpaque<Light>(dst, src, n, tbl, lightmap);
 		} else {
-			RenderLineTransparent<Light>(dst, src, n, tbl);
+			RenderLineTransparent<Light>(dst, src, n, tbl, lightmap);
 		}
 	} else if (prefix <= 0) {
 		if constexpr (Mask == MaskType::Left) {
-			RenderLineOpaque<Light>(dst, src, n, tbl);
+			RenderLineOpaque<Light>(dst, src, n, tbl, lightmap);
 		} else {
-			RenderLineTransparent<Light>(dst, src, n, tbl);
+			RenderLineTransparent<Light>(dst, src, n, tbl, lightmap);
 		}
 	} else {
-		RenderLineTransparentAndOpaque<Light, /*OpaqueFirst=*/Mask == MaskType::Right>(dst, src, prefix, n, tbl);
+		RenderLineTransparentAndOpaque<Light, /*OpaqueFirst=*/Mask == MaskType::Right>(dst, src, prefix, n, tbl, lightmap);
 	}
 }
 
@@ -270,36 +270,36 @@ DVL_ALWAYS_INLINE bool IsFullyLit(const uint8_t *DVL_RESTRICT tbl)
 }
 
 template <LightType Light, bool Transparent>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderSquareFull(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderSquareFull(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap)
 {
 	for (auto i = 0; i < Height; ++i, dst -= dstPitch) {
-		RenderLineTransparentOrOpaque<Light, Transparent>(dst, src, Width, tbl);
+		RenderLineTransparentOrOpaque<Light, Transparent>(dst, src, Width, tbl, lightmap);
 		src += Width;
 	}
 }
 
 template <LightType Light, bool Transparent>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderSquareClipped(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, Clip clip)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderSquareClipped(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap, Clip clip)
 {
 	src += clip.bottom * Height + clip.left;
 	for (auto i = 0; i < clip.height; ++i, dst -= dstPitch) {
-		RenderLineTransparentOrOpaque<Light, Transparent>(dst, src, clip.width, tbl);
+		RenderLineTransparentOrOpaque<Light, Transparent>(dst, src, clip.width, tbl, lightmap);
 		src += Width;
 	}
 }
 
 template <LightType Light, bool Transparent>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderSquare(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, Clip clip)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderSquare(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap, Clip clip)
 {
 	if (clip.width == Width && clip.height == Height) {
-		RenderSquareFull<Light, Transparent>(dst, dstPitch, src, tbl);
+		RenderSquareFull<Light, Transparent>(dst, dstPitch, src, tbl, lightmap);
 	} else {
-		RenderSquareClipped<Light, Transparent>(dst, dstPitch, src, tbl, clip);
+		RenderSquareClipped<Light, Transparent>(dst, dstPitch, src, tbl, lightmap, clip);
 	}
 }
 
 template <LightType Light, MaskType Mask>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderTransparentSquareFull(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, unsigned height)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderTransparentSquareFull(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap, unsigned height)
 {
 	int8_t prefix = InitialPrefix<Mask>;
 	DVL_ASSUME(height >= 16);
@@ -309,7 +309,7 @@ DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderTransparentSquareFull(uint8_t *DV
 		while (drawWidth > 0) {
 			auto v = static_cast<int8_t>(*src++);
 			if (v > 0) {
-				RenderLine<Light, Mask>(dst, src, v, tbl, prefix - (Width - drawWidth));
+				RenderLine<Light, Mask>(dst, src, v, tbl, lightmap, prefix - (Width - drawWidth));
 				src += v;
 			} else {
 				v = -v;
@@ -323,7 +323,7 @@ DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderTransparentSquareFull(uint8_t *DV
 
 template <LightType Light, MaskType Mask>
 // NOLINTNEXTLINE(readability-function-cognitive-complexity): Actually complex and has to be fast.
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderTransparentSquareClipped(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, Clip clip)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderTransparentSquareClipped(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap, Clip clip)
 {
 	const auto skipRestOfTheLine = [&src](int_fast16_t remainingWidth) {
 		while (remainingWidth > 0) {
@@ -355,7 +355,7 @@ DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderTransparentSquareClipped(uint8_t 
 			if (v > 0) {
 				if (v > remainingLeftClip) {
 					const auto overshoot = v - remainingLeftClip;
-					RenderLine<Light, Mask>(dst, src + remainingLeftClip, overshoot, tbl, prefix - (Width - remainingLeftClip));
+					RenderLine<Light, Mask>(dst, src + remainingLeftClip, overshoot, tbl, lightmap, prefix - (Width - remainingLeftClip));
 					dst += overshoot;
 					drawWidth -= overshoot;
 				}
@@ -376,13 +376,13 @@ DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderTransparentSquareClipped(uint8_t 
 			auto v = static_cast<int8_t>(*src++);
 			if (v > 0) {
 				if (v > drawWidth) {
-					RenderLine<Light, Mask>(dst, src, drawWidth, tbl, prefix - (Width - drawWidth));
+					RenderLine<Light, Mask>(dst, src, drawWidth, tbl, lightmap, prefix - (Width - drawWidth));
 					src += v;
 					dst += drawWidth;
 					drawWidth -= v;
 					break;
 				}
-				RenderLine<Light, Mask>(dst, src, v, tbl, prefix - (Width - drawWidth));
+				RenderLine<Light, Mask>(dst, src, v, tbl, lightmap, prefix - (Width - drawWidth));
 				src += v;
 			} else {
 				v = -v;
@@ -404,12 +404,12 @@ DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderTransparentSquareClipped(uint8_t 
 }
 
 template <LightType Light, MaskType Mask>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderTransparentSquare(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, Clip clip)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderTransparentSquare(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap, Clip clip)
 {
 	if (clip.width == Width && clip.bottom == 0 && clip.top == 0) {
-		RenderTransparentSquareFull<Light, Mask>(dst, dstPitch, src, tbl, clip.height);
+		RenderTransparentSquareFull<Light, Mask>(dst, dstPitch, src, tbl, lightmap, clip.height);
 	} else {
-		RenderTransparentSquareClipped<Light, Mask>(dst, dstPitch, src, tbl, clip);
+		RenderTransparentSquareClipped<Light, Mask>(dst, dstPitch, src, tbl, lightmap, clip);
 	}
 }
 
@@ -452,30 +452,30 @@ DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT std::size_t CalculateTriangleSourceSkipUpper
 }
 
 template <LightType Light, bool Transparent>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderTriangleLower(uint8_t *DVL_RESTRICT &dst, ptrdiff_t dstLineOffset, const uint8_t *DVL_RESTRICT &src, const uint8_t *DVL_RESTRICT tbl)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderTriangleLower(uint8_t *DVL_RESTRICT &dst, ptrdiff_t dstLineOffset, const uint8_t *DVL_RESTRICT &src, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap)
 {
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 0 * dstLineOffset, src + 0, 2, tbl);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 1 * dstLineOffset, src + 2, 4, tbl);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 2 * dstLineOffset, src + 6, 6, tbl);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 3 * dstLineOffset, src + 12, 8, tbl);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 4 * dstLineOffset, src + 20, 10, tbl);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 5 * dstLineOffset, src + 30, 12, tbl);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 6 * dstLineOffset, src + 42, 14, tbl);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 7 * dstLineOffset, src + 56, 16, tbl);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 8 * dstLineOffset, src + 72, 18, tbl);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 9 * dstLineOffset, src + 90, 20, tbl);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 10 * dstLineOffset, src + 110, 22, tbl);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 11 * dstLineOffset, src + 132, 24, tbl);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 12 * dstLineOffset, src + 156, 26, tbl);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 13 * dstLineOffset, src + 182, 28, tbl);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 14 * dstLineOffset, src + 210, 30, tbl);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 15 * dstLineOffset, src + 240, 32, tbl);
+	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 0 * dstLineOffset, src + 0, 2, tbl, lightmap);
+	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 1 * dstLineOffset, src + 2, 4, tbl, lightmap);
+	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 2 * dstLineOffset, src + 6, 6, tbl, lightmap);
+	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 3 * dstLineOffset, src + 12, 8, tbl, lightmap);
+	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 4 * dstLineOffset, src + 20, 10, tbl, lightmap);
+	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 5 * dstLineOffset, src + 30, 12, tbl, lightmap);
+	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 6 * dstLineOffset, src + 42, 14, tbl, lightmap);
+	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 7 * dstLineOffset, src + 56, 16, tbl, lightmap);
+	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 8 * dstLineOffset, src + 72, 18, tbl, lightmap);
+	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 9 * dstLineOffset, src + 90, 20, tbl, lightmap);
+	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 10 * dstLineOffset, src + 110, 22, tbl, lightmap);
+	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 11 * dstLineOffset, src + 132, 24, tbl, lightmap);
+	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 12 * dstLineOffset, src + 156, 26, tbl, lightmap);
+	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 13 * dstLineOffset, src + 182, 28, tbl, lightmap);
+	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 14 * dstLineOffset, src + 210, 30, tbl, lightmap);
+	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 15 * dstLineOffset, src + 240, 32, tbl, lightmap);
 	src += 272;
 	dst -= 16 * dstLineOffset;
 }
 
 template <>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderTriangleLower<LightType::FullyDark, /*Transparent=*/false>(uint8_t *DVL_RESTRICT &dst, ptrdiff_t dstLineOffset, const uint8_t *DVL_RESTRICT &src, [[maybe_unused]] const uint8_t *DVL_RESTRICT tbl)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderTriangleLower<LightType::FullyDark, /*Transparent=*/false>(uint8_t *DVL_RESTRICT &dst, ptrdiff_t dstLineOffset, const uint8_t *DVL_RESTRICT &src, [[maybe_unused]] const uint8_t *DVL_RESTRICT tbl, [[maybe_unused]] const Lightmap *lightmap)
 {
 	unsigned width = XStep;
 	for (unsigned i = 0; i < LowerHeight; ++i) {
@@ -487,27 +487,27 @@ DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderTriangleLower<LightType::FullyDar
 }
 
 template <LightType Light, bool Transparent>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderTriangleUpper(uint8_t *DVL_RESTRICT dst, ptrdiff_t dstLineOffset, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderTriangleUpper(uint8_t *DVL_RESTRICT dst, ptrdiff_t dstLineOffset, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap)
 {
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 0 * dstLineOffset, src + 0, 30, tbl);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 1 * dstLineOffset, src + 30, 28, tbl);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 2 * dstLineOffset, src + 58, 26, tbl);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 3 * dstLineOffset, src + 84, 24, tbl);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 4 * dstLineOffset, src + 108, 22, tbl);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 5 * dstLineOffset, src + 130, 20, tbl);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 6 * dstLineOffset, src + 150, 18, tbl);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 7 * dstLineOffset, src + 168, 16, tbl);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 8 * dstLineOffset, src + 184, 14, tbl);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 9 * dstLineOffset, src + 198, 12, tbl);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 10 * dstLineOffset, src + 210, 10, tbl);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 11 * dstLineOffset, src + 220, 8, tbl);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 12 * dstLineOffset, src + 228, 6, tbl);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 13 * dstLineOffset, src + 234, 4, tbl);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 14 * dstLineOffset, src + 238, 2, tbl);
+	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 0 * dstLineOffset, src + 0, 30, tbl, lightmap);
+	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 1 * dstLineOffset, src + 30, 28, tbl, lightmap);
+	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 2 * dstLineOffset, src + 58, 26, tbl, lightmap);
+	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 3 * dstLineOffset, src + 84, 24, tbl, lightmap);
+	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 4 * dstLineOffset, src + 108, 22, tbl, lightmap);
+	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 5 * dstLineOffset, src + 130, 20, tbl, lightmap);
+	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 6 * dstLineOffset, src + 150, 18, tbl, lightmap);
+	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 7 * dstLineOffset, src + 168, 16, tbl, lightmap);
+	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 8 * dstLineOffset, src + 184, 14, tbl, lightmap);
+	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 9 * dstLineOffset, src + 198, 12, tbl, lightmap);
+	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 10 * dstLineOffset, src + 210, 10, tbl, lightmap);
+	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 11 * dstLineOffset, src + 220, 8, tbl, lightmap);
+	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 12 * dstLineOffset, src + 228, 6, tbl, lightmap);
+	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 13 * dstLineOffset, src + 234, 4, tbl, lightmap);
+	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 14 * dstLineOffset, src + 238, 2, tbl, lightmap);
 }
 
 template <>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderTriangleUpper<LightType::FullyDark, /*Transparent=*/false>(uint8_t *DVL_RESTRICT dst, ptrdiff_t dstLineOffset, [[maybe_unused]] const uint8_t *DVL_RESTRICT src, [[maybe_unused]] const uint8_t *DVL_RESTRICT tbl)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderTriangleUpper<LightType::FullyDark, /*Transparent=*/false>(uint8_t *DVL_RESTRICT dst, ptrdiff_t dstLineOffset, [[maybe_unused]] const uint8_t *DVL_RESTRICT src, [[maybe_unused]] const uint8_t *DVL_RESTRICT tbl, [[maybe_unused]] const Lightmap *lightmap)
 {
 	unsigned width = Width - XStep;
 	for (unsigned i = 0; i < TriangleUpperHeight; ++i) {
@@ -518,27 +518,27 @@ DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderTriangleUpper<LightType::FullyDar
 }
 
 template <LightType Light, bool Transparent>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLeftTriangleLower(uint8_t *DVL_RESTRICT &dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT &src, const uint8_t *DVL_RESTRICT tbl)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLeftTriangleLower(uint8_t *DVL_RESTRICT &dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT &src, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap)
 {
 	dst += XStep * (LowerHeight - 1);
-	RenderTriangleLower<Light, Transparent>(dst, dstPitch + XStep, src, tbl);
+	RenderTriangleLower<Light, Transparent>(dst, dstPitch + XStep, src, tbl, lightmap);
 }
 
 template <LightType Light, bool Transparent>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLeftTriangleLowerClipVertical(const DiamondClipY &clipY, uint8_t *DVL_RESTRICT &dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT &src, const uint8_t *DVL_RESTRICT tbl)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLeftTriangleLowerClipVertical(const DiamondClipY &clipY, uint8_t *DVL_RESTRICT &dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT &src, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap)
 {
 	src += CalculateTriangleSourceSkipLowerBottom(clipY.lowerBottom);
 	dst += XStep * (LowerHeight - clipY.lowerBottom - 1);
 	const auto lowerMax = LowerHeight - clipY.lowerTop;
 	for (auto i = 1 + clipY.lowerBottom; i <= lowerMax; ++i, dst -= dstPitch + XStep) {
 		const auto width = XStep * i;
-		RenderLineTransparentOrOpaque<Light, Transparent>(dst, src, width, tbl);
+		RenderLineTransparentOrOpaque<Light, Transparent>(dst, src, width, tbl, lightmap);
 		src += width;
 	}
 }
 
 template <LightType Light, bool Transparent>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLeftTriangleLowerClipLeftAndVertical(int_fast16_t clipLeft, const DiamondClipY &clipY, uint8_t *DVL_RESTRICT &dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT &src, const uint8_t *DVL_RESTRICT tbl)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLeftTriangleLowerClipLeftAndVertical(int_fast16_t clipLeft, const DiamondClipY &clipY, uint8_t *DVL_RESTRICT &dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT &src, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap)
 {
 	src += CalculateTriangleSourceSkipLowerBottom(clipY.lowerBottom);
 	dst += XStep * (LowerHeight - clipY.lowerBottom - 1) - clipLeft;
@@ -548,13 +548,13 @@ DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLeftTriangleLowerClipLeftAndVerti
 		const auto startX = Width - XStep * i;
 		const auto skip = startX < clipLeft ? clipLeft - startX : 0;
 		if (width > skip)
-			RenderLineTransparentOrOpaque<Light, Transparent>(dst + skip, src + skip, width - skip, tbl);
+			RenderLineTransparentOrOpaque<Light, Transparent>(dst + skip, src + skip, width - skip, tbl, lightmap);
 		src += width;
 	}
 }
 
 template <LightType Light, bool Transparent>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLeftTriangleLowerClipRightAndVertical(int_fast16_t clipRight, const DiamondClipY &clipY, uint8_t *DVL_RESTRICT &dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT &src, const uint8_t *DVL_RESTRICT tbl)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLeftTriangleLowerClipRightAndVertical(int_fast16_t clipRight, const DiamondClipY &clipY, uint8_t *DVL_RESTRICT &dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT &src, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap)
 {
 	src += CalculateTriangleSourceSkipLowerBottom(clipY.lowerBottom);
 	dst += XStep * (LowerHeight - clipY.lowerBottom - 1);
@@ -562,40 +562,40 @@ DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLeftTriangleLowerClipRightAndVert
 	for (auto i = 1 + clipY.lowerBottom; i <= lowerMax; ++i, dst -= dstPitch + XStep) {
 		const auto width = XStep * i;
 		if (width > clipRight)
-			RenderLineTransparentOrOpaque<Light, Transparent>(dst, src, width - clipRight, tbl);
+			RenderLineTransparentOrOpaque<Light, Transparent>(dst, src, width - clipRight, tbl, lightmap);
 		src += width;
 	}
 }
 
 template <LightType Light, bool Transparent>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLeftTriangleFull(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLeftTriangleFull(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap)
 {
-	RenderLeftTriangleLower<Light, Transparent>(dst, dstPitch, src, tbl);
+	RenderLeftTriangleLower<Light, Transparent>(dst, dstPitch, src, tbl, lightmap);
 	dst += 2 * XStep;
-	RenderTriangleUpper<Light, Transparent>(dst, dstPitch - XStep, src, tbl);
+	RenderTriangleUpper<Light, Transparent>(dst, dstPitch - XStep, src, tbl, lightmap);
 }
 
 template <LightType Light, bool Transparent>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLeftTriangleClipVertical(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, Clip clip)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLeftTriangleClipVertical(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap, Clip clip)
 {
 	const DiamondClipY clipY = CalculateDiamondClipY(clip);
-	RenderLeftTriangleLowerClipVertical<Light, Transparent>(clipY, dst, dstPitch, src, tbl);
+	RenderLeftTriangleLowerClipVertical<Light, Transparent>(clipY, dst, dstPitch, src, tbl, lightmap);
 	src += CalculateTriangleSourceSkipUpperBottom(clipY.upperBottom);
 	dst += 2 * XStep + XStep * clipY.upperBottom;
 	const auto upperMax = TriangleUpperHeight - clipY.upperTop;
 	for (auto i = 1 + clipY.upperBottom; i <= upperMax; ++i, dst -= dstPitch - XStep) {
 		const auto width = Width - XStep * i;
-		RenderLineTransparentOrOpaque<Light, Transparent>(dst, src, width, tbl);
+		RenderLineTransparentOrOpaque<Light, Transparent>(dst, src, width, tbl, lightmap);
 		src += width;
 	}
 }
 
 template <LightType Light, bool Transparent>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLeftTriangleClipLeftAndVertical(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, Clip clip)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLeftTriangleClipLeftAndVertical(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap, Clip clip)
 {
 	const DiamondClipY clipY = CalculateDiamondClipY(clip);
 	const int_fast16_t clipLeft = clip.left;
-	RenderLeftTriangleLowerClipLeftAndVertical<Light, Transparent>(clipLeft, clipY, dst, dstPitch, src, tbl);
+	RenderLeftTriangleLowerClipLeftAndVertical<Light, Transparent>(clipLeft, clipY, dst, dstPitch, src, tbl, lightmap);
 	src += CalculateTriangleSourceSkipUpperBottom(clipY.upperBottom);
 	dst += 2 * XStep + XStep * clipY.upperBottom;
 	const auto upperMax = TriangleUpperHeight - clipY.upperTop;
@@ -603,17 +603,17 @@ DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLeftTriangleClipLeftAndVertical(u
 		const auto width = Width - XStep * i;
 		const auto startX = XStep * i;
 		const auto skip = startX < clipLeft ? clipLeft - startX : 0;
-		RenderLineTransparentOrOpaque<Light, Transparent>(dst + skip, src + skip, width > skip ? width - skip : 0, tbl);
+		RenderLineTransparentOrOpaque<Light, Transparent>(dst + skip, src + skip, width > skip ? width - skip : 0, tbl, lightmap);
 		src += width;
 	}
 }
 
 template <LightType Light, bool Transparent>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLeftTriangleClipRightAndVertical(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, Clip clip)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLeftTriangleClipRightAndVertical(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap, Clip clip)
 {
 	const DiamondClipY clipY = CalculateDiamondClipY(clip);
 	const int_fast16_t clipRight = clip.right;
-	RenderLeftTriangleLowerClipRightAndVertical<Light, Transparent>(clipRight, clipY, dst, dstPitch, src, tbl);
+	RenderLeftTriangleLowerClipRightAndVertical<Light, Transparent>(clipRight, clipY, dst, dstPitch, src, tbl, lightmap);
 	src += CalculateTriangleSourceSkipUpperBottom(clipY.upperBottom);
 	dst += 2 * XStep + XStep * clipY.upperBottom;
 	const auto upperMax = TriangleUpperHeight - clipY.upperTop;
@@ -621,60 +621,60 @@ DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLeftTriangleClipRightAndVertical(
 		const auto width = Width - XStep * i;
 		if (width <= clipRight)
 			break;
-		RenderLineTransparentOrOpaque<Light, Transparent>(dst, src, width - clipRight, tbl);
+		RenderLineTransparentOrOpaque<Light, Transparent>(dst, src, width - clipRight, tbl, lightmap);
 		src += width;
 	}
 }
 
 template <LightType Light, bool Transparent>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLeftTriangle(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, Clip clip)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLeftTriangle(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap, Clip clip)
 {
 	if (clip.width == Width) {
 		if (clip.height == TriangleHeight) {
-			RenderLeftTriangleFull<Light, Transparent>(dst, dstPitch, src, tbl);
+			RenderLeftTriangleFull<Light, Transparent>(dst, dstPitch, src, tbl, lightmap);
 		} else {
-			RenderLeftTriangleClipVertical<Light, Transparent>(dst, dstPitch, src, tbl, clip);
+			RenderLeftTriangleClipVertical<Light, Transparent>(dst, dstPitch, src, tbl, lightmap, clip);
 		}
 	} else if (clip.right == 0) {
-		RenderLeftTriangleClipLeftAndVertical<Light, Transparent>(dst, dstPitch, src, tbl, clip);
+		RenderLeftTriangleClipLeftAndVertical<Light, Transparent>(dst, dstPitch, src, tbl, lightmap, clip);
 	} else {
-		RenderLeftTriangleClipRightAndVertical<Light, Transparent>(dst, dstPitch, src, tbl, clip);
+		RenderLeftTriangleClipRightAndVertical<Light, Transparent>(dst, dstPitch, src, tbl, lightmap, clip);
 	}
 }
 
 template <LightType Light, bool Transparent>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderRightTriangleLower(uint8_t *DVL_RESTRICT &dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT &src, const uint8_t *DVL_RESTRICT tbl)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderRightTriangleLower(uint8_t *DVL_RESTRICT &dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT &src, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap)
 {
-	RenderTriangleLower<Light, Transparent>(dst, dstPitch, src, tbl);
+	RenderTriangleLower<Light, Transparent>(dst, dstPitch, src, tbl, lightmap);
 }
 
 template <LightType Light, bool Transparent>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderRightTriangleLowerClipVertical(const DiamondClipY &clipY, uint8_t *DVL_RESTRICT &dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT &src, const uint8_t *DVL_RESTRICT tbl)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderRightTriangleLowerClipVertical(const DiamondClipY &clipY, uint8_t *DVL_RESTRICT &dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT &src, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap)
 {
 	src += CalculateTriangleSourceSkipLowerBottom(clipY.lowerBottom);
 	const auto lowerMax = LowerHeight - clipY.lowerTop;
 	for (auto i = 1 + clipY.lowerBottom; i <= lowerMax; ++i, dst -= dstPitch) {
 		const auto width = XStep * i;
-		RenderLineTransparentOrOpaque<Light, Transparent>(dst, src, width, tbl);
+		RenderLineTransparentOrOpaque<Light, Transparent>(dst, src, width, tbl, lightmap);
 		src += width;
 	}
 }
 
 template <LightType Light, bool Transparent>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderRightTriangleLowerClipLeftAndVertical(int_fast16_t clipLeft, const DiamondClipY &clipY, uint8_t *DVL_RESTRICT &dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT &src, const uint8_t *DVL_RESTRICT tbl)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderRightTriangleLowerClipLeftAndVertical(int_fast16_t clipLeft, const DiamondClipY &clipY, uint8_t *DVL_RESTRICT &dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT &src, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap)
 {
 	src += CalculateTriangleSourceSkipLowerBottom(clipY.lowerBottom);
 	const auto lowerMax = LowerHeight - clipY.lowerTop;
 	for (auto i = 1 + clipY.lowerBottom; i <= lowerMax; ++i, dst -= dstPitch) {
 		const auto width = XStep * i;
 		if (width > clipLeft)
-			RenderLineTransparentOrOpaque<Light, Transparent>(dst, src + clipLeft, width - clipLeft, tbl);
+			RenderLineTransparentOrOpaque<Light, Transparent>(dst, src + clipLeft, width - clipLeft, tbl, lightmap);
 		src += width;
 	}
 }
 
 template <LightType Light, bool Transparent>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderRightTriangleLowerClipRightAndVertical(int_fast16_t clipRight, const DiamondClipY &clipY, uint8_t *DVL_RESTRICT &dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT &src, const uint8_t *DVL_RESTRICT tbl)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderRightTriangleLowerClipRightAndVertical(int_fast16_t clipRight, const DiamondClipY &clipY, uint8_t *DVL_RESTRICT &dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT &src, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap)
 {
 	src += CalculateTriangleSourceSkipLowerBottom(clipY.lowerBottom);
 	const auto lowerMax = LowerHeight - clipY.lowerTop;
@@ -682,94 +682,94 @@ DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderRightTriangleLowerClipRightAndVer
 		const auto width = XStep * i;
 		const auto skip = Width - width < clipRight ? clipRight - (Width - width) : 0;
 		if (width > skip)
-			RenderLineTransparentOrOpaque<Light, Transparent>(dst, src, width - skip, tbl);
+			RenderLineTransparentOrOpaque<Light, Transparent>(dst, src, width - skip, tbl, lightmap);
 		src += width;
 	}
 }
 
 template <LightType Light, bool Transparent>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderRightTriangleFull(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderRightTriangleFull(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap)
 {
-	RenderRightTriangleLower<Light, Transparent>(dst, dstPitch, src, tbl);
-	RenderTriangleUpper<Light, Transparent>(dst, dstPitch, src, tbl);
+	RenderRightTriangleLower<Light, Transparent>(dst, dstPitch, src, tbl, lightmap);
+	RenderTriangleUpper<Light, Transparent>(dst, dstPitch, src, tbl, lightmap);
 }
 
 template <LightType Light, bool Transparent>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderRightTriangleClipVertical(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, Clip clip)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderRightTriangleClipVertical(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap, Clip clip)
 {
 	const DiamondClipY clipY = CalculateDiamondClipY(clip);
-	RenderRightTriangleLowerClipVertical<Light, Transparent>(clipY, dst, dstPitch, src, tbl);
+	RenderRightTriangleLowerClipVertical<Light, Transparent>(clipY, dst, dstPitch, src, tbl, lightmap);
 	src += CalculateTriangleSourceSkipUpperBottom(clipY.upperBottom);
 	const auto upperMax = TriangleUpperHeight - clipY.upperTop;
 	for (auto i = 1 + clipY.upperBottom; i <= upperMax; ++i, dst -= dstPitch) {
 		const auto width = Width - XStep * i;
-		RenderLineTransparentOrOpaque<Light, Transparent>(dst, src, width, tbl);
+		RenderLineTransparentOrOpaque<Light, Transparent>(dst, src, width, tbl, lightmap);
 		src += width;
 	}
 }
 
 template <LightType Light, bool Transparent>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderRightTriangleClipLeftAndVertical(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, Clip clip)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderRightTriangleClipLeftAndVertical(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap, Clip clip)
 {
 	const DiamondClipY clipY = CalculateDiamondClipY(clip);
 	const int_fast16_t clipLeft = clip.left;
-	RenderRightTriangleLowerClipLeftAndVertical<Light, Transparent>(clipLeft, clipY, dst, dstPitch, src, tbl);
+	RenderRightTriangleLowerClipLeftAndVertical<Light, Transparent>(clipLeft, clipY, dst, dstPitch, src, tbl, lightmap);
 	src += CalculateTriangleSourceSkipUpperBottom(clipY.upperBottom);
 	const auto upperMax = TriangleUpperHeight - clipY.upperTop;
 	for (auto i = 1 + clipY.upperBottom; i <= upperMax; ++i, dst -= dstPitch) {
 		const auto width = Width - XStep * i;
 		if (width <= clipLeft)
 			break;
-		RenderLineTransparentOrOpaque<Light, Transparent>(dst, src + clipLeft, width - clipLeft, tbl);
+		RenderLineTransparentOrOpaque<Light, Transparent>(dst, src + clipLeft, width - clipLeft, tbl, lightmap);
 		src += width;
 	}
 }
 
 template <LightType Light, bool Transparent>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderRightTriangleClipRightAndVertical(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, Clip clip)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderRightTriangleClipRightAndVertical(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap, Clip clip)
 {
 	const DiamondClipY clipY = CalculateDiamondClipY(clip);
 	const int_fast16_t clipRight = clip.right;
-	RenderRightTriangleLowerClipRightAndVertical<Light, Transparent>(clipRight, clipY, dst, dstPitch, src, tbl);
+	RenderRightTriangleLowerClipRightAndVertical<Light, Transparent>(clipRight, clipY, dst, dstPitch, src, tbl, lightmap);
 	src += CalculateTriangleSourceSkipUpperBottom(clipY.upperBottom);
 	const auto upperMax = TriangleUpperHeight - clipY.upperTop;
 	for (auto i = 1 + clipY.upperBottom; i <= upperMax; ++i, dst -= dstPitch) {
 		const auto width = Width - XStep * i;
 		const auto skip = Width - width < clipRight ? clipRight - (Width - width) : 0;
-		RenderLineTransparentOrOpaque<Light, Transparent>(dst, src, width > skip ? width - skip : 0, tbl);
+		RenderLineTransparentOrOpaque<Light, Transparent>(dst, src, width > skip ? width - skip : 0, tbl, lightmap);
 		src += width;
 	}
 }
 
 template <LightType Light, bool Transparent>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderRightTriangle(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, Clip clip)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderRightTriangle(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap, Clip clip)
 {
 	if (clip.width == Width) {
 		if (clip.height == TriangleHeight) {
-			RenderRightTriangleFull<Light, Transparent>(dst, dstPitch, src, tbl);
+			RenderRightTriangleFull<Light, Transparent>(dst, dstPitch, src, tbl, lightmap);
 		} else {
-			RenderRightTriangleClipVertical<Light, Transparent>(dst, dstPitch, src, tbl, clip);
+			RenderRightTriangleClipVertical<Light, Transparent>(dst, dstPitch, src, tbl, lightmap, clip);
 		}
 	} else if (clip.right == 0) {
-		RenderRightTriangleClipLeftAndVertical<Light, Transparent>(dst, dstPitch, src, tbl, clip);
+		RenderRightTriangleClipLeftAndVertical<Light, Transparent>(dst, dstPitch, src, tbl, lightmap, clip);
 	} else {
-		RenderRightTriangleClipRightAndVertical<Light, Transparent>(dst, dstPitch, src, tbl, clip);
+		RenderRightTriangleClipRightAndVertical<Light, Transparent>(dst, dstPitch, src, tbl, lightmap, clip);
 	}
 }
 
 template <LightType Light, MaskType Mask>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderTrapezoidUpperHalf(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderTrapezoidUpperHalf(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap)
 {
 	if constexpr (Mask == MaskType::Left || Mask == MaskType::Right) {
 		// The first line is always fully opaque.
 		// We handle it specially to avoid calling the blitter with width=0.
 		const uint8_t *srcEnd = src + Width * TrapezoidUpperHeight;
-		RenderLineOpaque<Light>(dst, src, Width, tbl);
+		RenderLineOpaque<Light>(dst, src, Width, tbl, lightmap);
 		src += Width;
 		dst -= dstPitch;
 		uint8_t prefixWidth = (PrefixIncrement<Mask> < 0 ? 32 : 0) + PrefixIncrement<Mask>;
 		do {
-			RenderLineTransparentAndOpaque<Light, /*OpaqueFirst=*/Mask == MaskType::Right>(dst, src, prefixWidth, Width, tbl);
+			RenderLineTransparentAndOpaque<Light, /*OpaqueFirst=*/Mask == MaskType::Right>(dst, src, prefixWidth, Width, tbl, lightmap);
 			prefixWidth += PrefixIncrement<Mask>;
 			src += Width;
 			dst -= dstPitch;
@@ -777,7 +777,7 @@ DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderTrapezoidUpperHalf(uint8_t *DVL_R
 	} else { // Mask == MaskType::Solid || Mask == MaskType::Transparent
 		const uint8_t *srcEnd = src + Width * TrapezoidUpperHeight;
 		do {
-			RenderLineTransparentOrOpaque<Light, /*Transparent=*/Mask == MaskType::Transparent>(dst, src, Width, tbl);
+			RenderLineTransparentOrOpaque<Light, /*Transparent=*/Mask == MaskType::Transparent>(dst, src, Width, tbl, lightmap);
 			src += Width;
 			dst -= dstPitch;
 		} while (src != srcEnd);
@@ -785,179 +785,179 @@ DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderTrapezoidUpperHalf(uint8_t *DVL_R
 }
 
 template <LightType Light, MaskType Mask>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderTrapezoidUpperHalfClipVertical(const Clip &clip, const DiamondClipY &clipY, uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderTrapezoidUpperHalfClipVertical(const Clip &clip, const DiamondClipY &clipY, uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap)
 {
 	const auto upperMax = TrapezoidUpperHeight - clipY.upperTop;
 	int8_t prefix = InitPrefix<Mask>(clip.bottom);
 	for (auto i = 1 + clipY.upperBottom; i <= upperMax; ++i, dst -= dstPitch) {
-		RenderLine<Light, Mask>(dst, src, Width, tbl, prefix);
+		RenderLine<Light, Mask>(dst, src, Width, tbl, lightmap, prefix);
 		src += Width;
 		prefix += PrefixIncrement<Mask>;
 	}
 }
 
 template <LightType Light, MaskType Mask>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderTrapezoidUpperHalfClipLeftAndVertical(const Clip &clip, const DiamondClipY &clipY, uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderTrapezoidUpperHalfClipLeftAndVertical(const Clip &clip, const DiamondClipY &clipY, uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap)
 {
 	const auto upperMax = TrapezoidUpperHeight - clipY.upperTop;
 	int8_t prefix = InitPrefix<Mask>(clip.bottom);
 	for (auto i = 1 + clipY.upperBottom; i <= upperMax; ++i, dst -= dstPitch) {
-		RenderLine<Light, Mask>(dst, src, clip.width, tbl, prefix - clip.left);
+		RenderLine<Light, Mask>(dst, src, clip.width, tbl, lightmap, prefix - clip.left);
 		src += Width;
 		prefix += PrefixIncrement<Mask>;
 	}
 }
 
 template <LightType Light, MaskType Mask>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderTrapezoidUpperHalfClipRightAndVertical(const Clip &clip, const DiamondClipY &clipY, uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderTrapezoidUpperHalfClipRightAndVertical(const Clip &clip, const DiamondClipY &clipY, uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap)
 {
 	const auto upperMax = TrapezoidUpperHeight - clipY.upperTop;
 	int8_t prefix = InitPrefix<Mask>(clip.bottom);
 	for (auto i = 1 + clipY.upperBottom; i <= upperMax; ++i, dst -= dstPitch) {
-		RenderLine<Light, Mask>(dst, src, clip.width, tbl, prefix);
+		RenderLine<Light, Mask>(dst, src, clip.width, tbl, lightmap, prefix);
 		src += Width;
 		prefix += PrefixIncrement<Mask>;
 	}
 }
 
 template <LightType Light, MaskType Mask>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLeftTrapezoidFull(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLeftTrapezoidFull(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap)
 {
-	RenderLeftTriangleLower<Light, /*Transparent=*/Mask == MaskType::Transparent>(dst, dstPitch, src, tbl);
+	RenderLeftTriangleLower<Light, /*Transparent=*/Mask == MaskType::Transparent>(dst, dstPitch, src, tbl, lightmap);
 	dst += XStep;
-	RenderTrapezoidUpperHalf<Light, Mask>(dst, dstPitch, src, tbl);
+	RenderTrapezoidUpperHalf<Light, Mask>(dst, dstPitch, src, tbl, lightmap);
 }
 
 template <LightType Light, MaskType Mask>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLeftTrapezoidClipVertical(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, Clip clip)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLeftTrapezoidClipVertical(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap, Clip clip)
 {
 	const DiamondClipY clipY = CalculateDiamondClipY<TrapezoidUpperHeight>(clip);
-	RenderLeftTriangleLowerClipVertical<Light, /*Transparent=*/Mask == MaskType::Transparent>(clipY, dst, dstPitch, src, tbl);
+	RenderLeftTriangleLowerClipVertical<Light, /*Transparent=*/Mask == MaskType::Transparent>(clipY, dst, dstPitch, src, tbl, lightmap);
 	src += clipY.upperBottom * Width;
 	dst += XStep;
-	RenderTrapezoidUpperHalfClipVertical<Light, Mask>(clip, clipY, dst, dstPitch, src, tbl);
+	RenderTrapezoidUpperHalfClipVertical<Light, Mask>(clip, clipY, dst, dstPitch, src, tbl, lightmap);
 }
 
 template <LightType Light, MaskType Mask>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLeftTrapezoidClipLeftAndVertical(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, Clip clip)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLeftTrapezoidClipLeftAndVertical(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap, Clip clip)
 {
 	const DiamondClipY clipY = CalculateDiamondClipY<TrapezoidUpperHeight>(clip);
-	RenderLeftTriangleLowerClipLeftAndVertical<Light, /*Transparent=*/Mask == MaskType::Transparent>(clip.left, clipY, dst, dstPitch, src, tbl);
+	RenderLeftTriangleLowerClipLeftAndVertical<Light, /*Transparent=*/Mask == MaskType::Transparent>(clip.left, clipY, dst, dstPitch, src, tbl, lightmap);
 	src += clipY.upperBottom * Width + clip.left;
 	dst += XStep + clip.left;
-	RenderTrapezoidUpperHalfClipLeftAndVertical<Light, Mask>(clip, clipY, dst, dstPitch, src, tbl);
+	RenderTrapezoidUpperHalfClipLeftAndVertical<Light, Mask>(clip, clipY, dst, dstPitch, src, tbl, lightmap);
 }
 
 template <LightType Light, MaskType Mask>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLeftTrapezoidClipRightAndVertical(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, Clip clip)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLeftTrapezoidClipRightAndVertical(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap, Clip clip)
 {
 	const DiamondClipY clipY = CalculateDiamondClipY<TrapezoidUpperHeight>(clip);
-	RenderLeftTriangleLowerClipRightAndVertical<Light, /*Transparent=*/Mask == MaskType::Transparent>(clip.right, clipY, dst, dstPitch, src, tbl);
+	RenderLeftTriangleLowerClipRightAndVertical<Light, /*Transparent=*/Mask == MaskType::Transparent>(clip.right, clipY, dst, dstPitch, src, tbl, lightmap);
 	src += clipY.upperBottom * Width;
 	dst += XStep;
-	RenderTrapezoidUpperHalfClipRightAndVertical<Light, Mask>(clip, clipY, dst, dstPitch, src, tbl);
+	RenderTrapezoidUpperHalfClipRightAndVertical<Light, Mask>(clip, clipY, dst, dstPitch, src, tbl, lightmap);
 }
 
 template <LightType Light, MaskType Mask>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLeftTrapezoid(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, Clip clip)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLeftTrapezoid(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap, Clip clip)
 {
 	if (clip.width == Width) {
 		if (clip.height == Height) {
-			RenderLeftTrapezoidFull<Light, Mask>(dst, dstPitch, src, tbl);
+			RenderLeftTrapezoidFull<Light, Mask>(dst, dstPitch, src, tbl, lightmap);
 		} else {
-			RenderLeftTrapezoidClipVertical<Light, Mask>(dst, dstPitch, src, tbl, clip);
+			RenderLeftTrapezoidClipVertical<Light, Mask>(dst, dstPitch, src, tbl, lightmap, clip);
 		}
 	} else if (clip.right == 0) {
-		RenderLeftTrapezoidClipLeftAndVertical<Light, Mask>(dst, dstPitch, src, tbl, clip);
+		RenderLeftTrapezoidClipLeftAndVertical<Light, Mask>(dst, dstPitch, src, tbl, lightmap, clip);
 	} else {
-		RenderLeftTrapezoidClipRightAndVertical<Light, Mask>(dst, dstPitch, src, tbl, clip);
+		RenderLeftTrapezoidClipRightAndVertical<Light, Mask>(dst, dstPitch, src, tbl, lightmap, clip);
 	}
 }
 
 template <LightType Light, MaskType Mask>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderRightTrapezoidFull(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderRightTrapezoidFull(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap)
 {
-	RenderRightTriangleLower<Light, /*Transparent=*/Mask == MaskType::Transparent>(dst, dstPitch, src, tbl);
-	RenderTrapezoidUpperHalf<Light, Mask>(dst, dstPitch, src, tbl);
+	RenderRightTriangleLower<Light, /*Transparent=*/Mask == MaskType::Transparent>(dst, dstPitch, src, tbl, lightmap);
+	RenderTrapezoidUpperHalf<Light, Mask>(dst, dstPitch, src, tbl, lightmap);
 }
 
 template <LightType Light, MaskType Mask>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderRightTrapezoidClipVertical(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, Clip clip)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderRightTrapezoidClipVertical(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap, Clip clip)
 {
 	const DiamondClipY clipY = CalculateDiamondClipY<TrapezoidUpperHeight>(clip);
-	RenderRightTriangleLowerClipVertical<Light, /*Transparent=*/Mask == MaskType::Transparent>(clipY, dst, dstPitch, src, tbl);
+	RenderRightTriangleLowerClipVertical<Light, /*Transparent=*/Mask == MaskType::Transparent>(clipY, dst, dstPitch, src, tbl, lightmap);
 	src += clipY.upperBottom * Width;
-	RenderTrapezoidUpperHalfClipVertical<Light, Mask>(clip, clipY, dst, dstPitch, src, tbl);
+	RenderTrapezoidUpperHalfClipVertical<Light, Mask>(clip, clipY, dst, dstPitch, src, tbl, lightmap);
 }
 
 template <LightType Light, MaskType Mask>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderRightTrapezoidClipLeftAndVertical(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, Clip clip)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderRightTrapezoidClipLeftAndVertical(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap, Clip clip)
 {
 	const DiamondClipY clipY = CalculateDiamondClipY<TrapezoidUpperHeight>(clip);
-	RenderRightTriangleLowerClipLeftAndVertical<Light, /*Transparent=*/Mask == MaskType::Transparent>(clip.left, clipY, dst, dstPitch, src, tbl);
+	RenderRightTriangleLowerClipLeftAndVertical<Light, /*Transparent=*/Mask == MaskType::Transparent>(clip.left, clipY, dst, dstPitch, src, tbl, lightmap);
 	src += clipY.upperBottom * Width + clip.left;
-	RenderTrapezoidUpperHalfClipLeftAndVertical<Light, Mask>(clip, clipY, dst, dstPitch, src, tbl);
+	RenderTrapezoidUpperHalfClipLeftAndVertical<Light, Mask>(clip, clipY, dst, dstPitch, src, tbl, lightmap);
 }
 
 template <LightType Light, MaskType Mask>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderRightTrapezoidClipRightAndVertical(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, Clip clip)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderRightTrapezoidClipRightAndVertical(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap, Clip clip)
 {
 	const DiamondClipY clipY = CalculateDiamondClipY<TrapezoidUpperHeight>(clip);
-	RenderRightTriangleLowerClipRightAndVertical<Light, /*Transparent=*/Mask == MaskType::Transparent>(clip.right, clipY, dst, dstPitch, src, tbl);
+	RenderRightTriangleLowerClipRightAndVertical<Light, /*Transparent=*/Mask == MaskType::Transparent>(clip.right, clipY, dst, dstPitch, src, tbl, lightmap);
 	src += clipY.upperBottom * Width;
-	RenderTrapezoidUpperHalfClipRightAndVertical<Light, Mask>(clip, clipY, dst, dstPitch, src, tbl);
+	RenderTrapezoidUpperHalfClipRightAndVertical<Light, Mask>(clip, clipY, dst, dstPitch, src, tbl, lightmap);
 }
 
 template <LightType Light, MaskType Mask>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderRightTrapezoid(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, Clip clip)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderRightTrapezoid(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap, Clip clip)
 {
 	if (clip.width == Width) {
 		if (clip.height == Height) {
-			RenderRightTrapezoidFull<Light, Mask>(dst, dstPitch, src, tbl);
+			RenderRightTrapezoidFull<Light, Mask>(dst, dstPitch, src, tbl, lightmap);
 		} else {
-			RenderRightTrapezoidClipVertical<Light, Mask>(dst, dstPitch, src, tbl, clip);
+			RenderRightTrapezoidClipVertical<Light, Mask>(dst, dstPitch, src, tbl, lightmap, clip);
 		}
 	} else if (clip.right == 0) {
-		RenderRightTrapezoidClipLeftAndVertical<Light, Mask>(dst, dstPitch, src, tbl, clip);
+		RenderRightTrapezoidClipLeftAndVertical<Light, Mask>(dst, dstPitch, src, tbl, lightmap, clip);
 	} else {
-		RenderRightTrapezoidClipRightAndVertical<Light, Mask>(dst, dstPitch, src, tbl, clip);
+		RenderRightTrapezoidClipRightAndVertical<Light, Mask>(dst, dstPitch, src, tbl, lightmap, clip);
 	}
 }
 
 template <LightType Light, bool Transparent>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderTileType(TileType tile, uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, Clip clip)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderTileType(TileType tile, uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap, Clip clip)
 {
 	switch (tile) {
 	case TileType::Square:
-		RenderSquare<Light, Transparent>(dst, dstPitch, src, tbl, clip);
+		RenderSquare<Light, Transparent>(dst, dstPitch, src, tbl, lightmap, clip);
 		break;
 	case TileType::TransparentSquare:
-		RenderTransparentSquare<Light, Transparent ? MaskType::Transparent : MaskType::Solid>(dst, dstPitch, src, tbl, clip);
+		RenderTransparentSquare<Light, Transparent ? MaskType::Transparent : MaskType::Solid>(dst, dstPitch, src, tbl, lightmap, clip);
 		break;
 	case TileType::LeftTriangle:
-		RenderLeftTriangle<Light, Transparent>(dst, dstPitch, src, tbl, clip);
+		RenderLeftTriangle<Light, Transparent>(dst, dstPitch, src, tbl, lightmap, clip);
 		break;
 	case TileType::RightTriangle:
-		RenderRightTriangle<Light, Transparent>(dst, dstPitch, src, tbl, clip);
+		RenderRightTriangle<Light, Transparent>(dst, dstPitch, src, tbl, lightmap, clip);
 		break;
 	case TileType::LeftTrapezoid:
-		RenderLeftTrapezoid<Light, Transparent ? MaskType::Transparent : MaskType::Solid>(dst, dstPitch, src, tbl, clip);
+		RenderLeftTrapezoid<Light, Transparent ? MaskType::Transparent : MaskType::Solid>(dst, dstPitch, src, tbl, lightmap, clip);
 		break;
 	case TileType::RightTrapezoid:
-		RenderRightTrapezoid<Light, Transparent ? MaskType::Transparent : MaskType::Solid>(dst, dstPitch, src, tbl, clip);
+		RenderRightTrapezoid<Light, Transparent ? MaskType::Transparent : MaskType::Solid>(dst, dstPitch, src, tbl, lightmap, clip);
 		break;
 	}
 }
 
 template <LightType Light, MaskType Mask>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLeftTrapezoidOrTransparentSquare(TileType tile, uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, Clip clip)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLeftTrapezoidOrTransparentSquare(TileType tile, uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap, Clip clip)
 {
 	switch (tile) {
 	case TileType::TransparentSquare:
-		RenderTransparentSquare<Light, Mask>(dst, dstPitch, src, tbl, clip);
+		RenderTransparentSquare<Light, Mask>(dst, dstPitch, src, tbl, lightmap, clip);
 		break;
 	case TileType::LeftTrapezoid:
-		RenderLeftTrapezoid<Light, Mask>(dst, dstPitch, src, tbl, clip);
+		RenderLeftTrapezoid<Light, Mask>(dst, dstPitch, src, tbl, lightmap, clip);
 		break;
 	default:
 		app_fatal("Given mask can only be applied to TransparentSquare or LeftTrapezoid tiles");
@@ -965,14 +965,14 @@ DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLeftTrapezoidOrTransparentSquare(
 }
 
 template <LightType Light, MaskType Mask>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderRightTrapezoidOrTransparentSquare(TileType tile, uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, Clip clip)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderRightTrapezoidOrTransparentSquare(TileType tile, uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap, Clip clip)
 {
 	switch (tile) {
 	case TileType::TransparentSquare:
-		RenderTransparentSquare<Light, Mask>(dst, dstPitch, src, tbl, clip);
+		RenderTransparentSquare<Light, Mask>(dst, dstPitch, src, tbl, lightmap, clip);
 		break;
 	case TileType::RightTrapezoid:
-		RenderRightTrapezoid<Light, Mask>(dst, dstPitch, src, tbl, clip);
+		RenderRightTrapezoid<Light, Mask>(dst, dstPitch, src, tbl, lightmap, clip);
 		break;
 	default:
 		app_fatal("Given mask can only be applied to TransparentSquare or LeftTrapezoid tiles");
@@ -980,44 +980,44 @@ DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderRightTrapezoidOrTransparentSquare
 }
 
 template <MaskType Mask>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLeftTrapezoidOrTransparentSquareDispatch(TileType tile, uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, Clip clip)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLeftTrapezoidOrTransparentSquareDispatch(TileType tile, uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap, Clip clip)
 {
 	if (*GetOptions().Graphics.perPixelLighting) {
-		RenderLeftTrapezoidOrTransparentSquare<LightType::PerPixel, Mask>(tile, dst, dstPitch, src, tbl, clip);
+		RenderLeftTrapezoidOrTransparentSquare<LightType::PerPixel, Mask>(tile, dst, dstPitch, src, tbl, lightmap, clip);
 	} else if (IsFullyDark(tbl)) {
-		RenderLeftTrapezoidOrTransparentSquare<LightType::FullyDark, Mask>(tile, dst, dstPitch, src, tbl, clip);
+		RenderLeftTrapezoidOrTransparentSquare<LightType::FullyDark, Mask>(tile, dst, dstPitch, src, tbl, lightmap, clip);
 	} else if (IsFullyLit(tbl)) {
-		RenderLeftTrapezoidOrTransparentSquare<LightType::FullyLit, Mask>(tile, dst, dstPitch, src, tbl, clip);
+		RenderLeftTrapezoidOrTransparentSquare<LightType::FullyLit, Mask>(tile, dst, dstPitch, src, tbl, lightmap, clip);
 	} else {
-		RenderLeftTrapezoidOrTransparentSquare<LightType::PartiallyLit, Mask>(tile, dst, dstPitch, src, tbl, clip);
+		RenderLeftTrapezoidOrTransparentSquare<LightType::PartiallyLit, Mask>(tile, dst, dstPitch, src, tbl, lightmap, clip);
 	}
 }
 
 template <MaskType Mask>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderRightTrapezoidOrTransparentSquareDispatch(TileType tile, uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, Clip clip)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderRightTrapezoidOrTransparentSquareDispatch(TileType tile, uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap, Clip clip)
 {
 	if (*GetOptions().Graphics.perPixelLighting) {
-		RenderRightTrapezoidOrTransparentSquare<LightType::PerPixel, Mask>(tile, dst, dstPitch, src, tbl, clip);
+		RenderRightTrapezoidOrTransparentSquare<LightType::PerPixel, Mask>(tile, dst, dstPitch, src, tbl, lightmap, clip);
 	} else if (IsFullyDark(tbl)) {
-		RenderRightTrapezoidOrTransparentSquare<LightType::FullyDark, Mask>(tile, dst, dstPitch, src, tbl, clip);
+		RenderRightTrapezoidOrTransparentSquare<LightType::FullyDark, Mask>(tile, dst, dstPitch, src, tbl, lightmap, clip);
 	} else if (IsFullyLit(tbl)) {
-		RenderRightTrapezoidOrTransparentSquare<LightType::FullyLit, Mask>(tile, dst, dstPitch, src, tbl, clip);
+		RenderRightTrapezoidOrTransparentSquare<LightType::FullyLit, Mask>(tile, dst, dstPitch, src, tbl, lightmap, clip);
 	} else {
-		RenderRightTrapezoidOrTransparentSquare<LightType::PartiallyLit, Mask>(tile, dst, dstPitch, src, tbl, clip);
+		RenderRightTrapezoidOrTransparentSquare<LightType::PartiallyLit, Mask>(tile, dst, dstPitch, src, tbl, lightmap, clip);
 	}
 }
 
 template <bool Transparent>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderTileDispatch(TileType tile, uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, Clip clip)
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderTileDispatch(TileType tile, uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap, Clip clip)
 {
 	if (*GetOptions().Graphics.perPixelLighting) {
-		RenderTileType<LightType::PerPixel, Transparent>(tile, dst, dstPitch, src, tbl, clip);
+		RenderTileType<LightType::PerPixel, Transparent>(tile, dst, dstPitch, src, tbl, lightmap, clip);
 	} else if (IsFullyDark(tbl)) {
-		RenderTileType<LightType::FullyDark, Transparent>(tile, dst, dstPitch, src, tbl, clip);
+		RenderTileType<LightType::FullyDark, Transparent>(tile, dst, dstPitch, src, tbl, lightmap, clip);
 	} else if (IsFullyLit(tbl)) {
-		RenderTileType<LightType::FullyLit, Transparent>(tile, dst, dstPitch, src, tbl, clip);
+		RenderTileType<LightType::FullyLit, Transparent>(tile, dst, dstPitch, src, tbl, lightmap, clip);
 	} else {
-		RenderTileType<LightType::PartiallyLit, Transparent>(tile, dst, dstPitch, src, tbl, clip);
+		RenderTileType<LightType::PartiallyLit, Transparent>(tile, dst, dstPitch, src, tbl, lightmap, clip);
 	}
 }
 
@@ -1057,7 +1057,7 @@ std::string_view MaskTypeToString(MaskType maskType)
 }
 #endif
 
-DVL_ATTRIBUTE_HOT void RenderTileFrame(const Surface &out, const Point &position, TileType tile, const uint8_t *src, int_fast16_t height,
+DVL_ATTRIBUTE_HOT void RenderTileFrame(const Surface &out, const Lightmap &lightmap, const Point &position, TileType tile, const uint8_t *src, int_fast16_t height,
     MaskType maskType, const uint8_t *tbl)
 {
 #ifdef DEBUG_RENDER_OFFSET_X
@@ -1078,16 +1078,16 @@ DVL_ATTRIBUTE_HOT void RenderTileFrame(const Surface &out, const Point &position
 
 	switch (maskType) {
 	case MaskType::Solid:
-		RenderTileDispatch</*Transparent=*/false>(tile, dst, dstPitch, src, tbl, clip);
+		RenderTileDispatch</*Transparent=*/false>(tile, dst, dstPitch, src, tbl, &lightmap, clip);
 		break;
 	case MaskType::Transparent:
-		RenderTileDispatch</*Transparent=*/true>(tile, dst, dstPitch, src, tbl, clip);
+		RenderTileDispatch</*Transparent=*/true>(tile, dst, dstPitch, src, tbl, &lightmap, clip);
 		break;
 	case MaskType::Left:
-		RenderLeftTrapezoidOrTransparentSquareDispatch<MaskType::Left>(tile, dst, dstPitch, src, tbl, clip);
+		RenderLeftTrapezoidOrTransparentSquareDispatch<MaskType::Left>(tile, dst, dstPitch, src, tbl, &lightmap, clip);
 		break;
 	case MaskType::Right:
-		RenderRightTrapezoidOrTransparentSquareDispatch<MaskType::Right>(tile, dst, dstPitch, src, tbl, clip);
+		RenderRightTrapezoidOrTransparentSquareDispatch<MaskType::Right>(tile, dst, dstPitch, src, tbl, &lightmap, clip);
 		break;
 	}
 
@@ -1118,11 +1118,11 @@ void world_draw_black_tile(const Surface &out, int sx, int sy)
 	const uint16_t dstPitch = out.pitch();
 	if (clipLeft.width > 0) {
 		uint8_t *dst = out.at(static_cast<int>(sx + clipLeft.left), static_cast<int>(sy - clipLeft.bottom));
-		RenderLeftTriangle<LightType::FullyDark, /*Transparent=*/false>(dst, dstPitch, nullptr, nullptr, clipLeft);
+		RenderLeftTriangle<LightType::FullyDark, /*Transparent=*/false>(dst, dstPitch, nullptr, nullptr, nullptr, clipLeft);
 	}
 	if (clipRight.width > 0) {
 		uint8_t *dst = out.at(static_cast<int>(sx + Width + clipRight.left), static_cast<int>(sy - clipRight.bottom));
-		RenderRightTriangle<LightType::FullyDark, /*Transparent=*/false>(dst, dstPitch, nullptr, nullptr, clipRight);
+		RenderRightTriangle<LightType::FullyDark, /*Transparent=*/false>(dst, dstPitch, nullptr, nullptr, nullptr, clipRight);
 	}
 }
 
