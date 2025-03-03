@@ -31,7 +31,7 @@ static bool UpdateExpected;
 namespace devilution {
 namespace {
 
-constexpr char FixturesPath[] = "../test/fixtures/text_render_integration_test/";
+constexpr char FixturesPath[] = "test/fixtures/text_render_integration_test/";
 
 struct TestFixture {
 	std::string name;

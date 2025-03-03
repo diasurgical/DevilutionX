@@ -81,6 +81,21 @@ set(devilutionx_fixtures
   memory_map/player.txt
   memory_map/portal.txt
   memory_map/quest.txt
+  text_render_integration_test/basic-colors.png
+  text_render_integration_test/basic.png
+  text_render_integration_test/horizontal_overflow.png
+  text_render_integration_test/horizontal_overflow-colors.png
+  text_render_integration_test/kerning_fit_spacing-colors.png
+  text_render_integration_test/kerning_fit_spacing.png
+  text_render_integration_test/kerning_fit_spacing__align_center-colors.png
+  text_render_integration_test/kerning_fit_spacing__align_center.png
+  text_render_integration_test/kerning_fit_spacing__align_center__newlines.png
+  text_render_integration_test/kerning_fit_spacing__align_center__newlines_in_fmt-colors.png
+  text_render_integration_test/kerning_fit_spacing__align_center__newlines_in_value-colors.png
+  text_render_integration_test/kerning_fit_spacing__align_right-colors.png
+  text_render_integration_test/kerning_fit_spacing__align_right.png
+  text_render_integration_test/vertical_overflow.png
+  text_render_integration_test/vertical_overflow-colors.png
   timedemo/WarriorLevel1to2/demo_0.dmo
   timedemo/WarriorLevel1to2/demo_0_reference_spawn_0.sv
   timedemo/WarriorLevel1to2/spawn_0.sv

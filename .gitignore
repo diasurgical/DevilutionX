@@ -465,6 +465,3 @@ uwp-project/Assets/gendata
 uwp-project/Assets/ui_art
 !uwp-project/devilutionX_TemporaryKey.pfx
 /.s390x-ccache/
-
-# Test fixtures
-/test/fixtures/text_render_integration_test/*-Actual.png
