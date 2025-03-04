@@ -3885,205 +3885,164 @@ bool DoOil(Player &player, int cii)
 	switch (plidx) {
 	case IPL_TOHIT:
 	case IPL_TOHIT_CURSE:
-		return fmt::format(fmt::runtime(_("chance to hit: {:+d}%")), item._iPLToHit);
+		return fmt::format(fmt::runtime(_("{:+d}% Chance To Hit")), item._iPLToHit);
 	case IPL_DAMP:
 	case IPL_DAMP_CURSE:
-		return fmt::format(fmt::runtime(_(/*xgettext:no-c-format*/ "{:+d}% damage")), item._iPLDam);
+	case IPL_DECAY:
+		return fmt::format(fmt::runtime(_(/*xgettext:no-c-format*/ "{:+d}% Damage")), item._iPLDam);
 	case IPL_TOHIT_DAMP:
 	case IPL_TOHIT_DAMP_CURSE:
-		return fmt::format(fmt::runtime(_("to hit: {:+d}%, {:+d}% damage")), item._iPLToHit, item._iPLDam);
+	case IPL_DOPPELGANGER:
+		return fmt::format(fmt::runtime(_("{:+d}% Chance To Hit; {:+d}% Damage")), item._iPLToHit, item._iPLDam);
 	case IPL_ACP:
 	case IPL_ACP_CURSE:
-		return fmt::format(fmt::runtime(_(/*xgettext:no-c-format*/ "{:+d}% armor")), item._iPLAC);
+		return fmt::format(fmt::runtime(_(/*xgettext:no-c-format*/ "{:+d}% Armor Class")), item._iPLAC);
 	case IPL_SETAC:
 	case IPL_AC_CURSE:
-		return fmt::format(fmt::runtime(_("armor class: {:d}")), item._iAC);
+		return fmt::format(fmt::runtime(_("Armor Class: {:d}")), item._iAC);
 	case IPL_FIRERES:
 	case IPL_FIRERES_CURSE:
-		if (item._iPLFR < MaxResistance)
-			return fmt::format(fmt::runtime(_("Resist Fire: {:+d}%")), item._iPLFR);
-		else
-			return fmt::format(fmt::runtime(_("Resist Fire: {:+d}% MAX")), MaxResistance);
+		return fmt::format(fmt::runtime(_("Fire Resist {:+d}%")), item._iPLFR);
 	case IPL_LIGHTRES:
 	case IPL_LIGHTRES_CURSE:
-		if (item._iPLLR < MaxResistance)
-			return fmt::format(fmt::runtime(_("Resist Lightning: {:+d}%")), item._iPLLR);
-		else
-			return fmt::format(fmt::runtime(_("Resist Lightning: {:+d}% MAX")), MaxResistance);
+		return fmt::format(fmt::runtime(_("Lightning Resist {:+d}%")), item._iPLLR);
 	case IPL_MAGICRES:
 	case IPL_MAGICRES_CURSE:
-		if (item._iPLMR < MaxResistance)
-			return fmt::format(fmt::runtime(_("Resist Magic: {:+d}%")), item._iPLMR);
-		else
-			return fmt::format(fmt::runtime(_("Resist Magic: {:+d}% MAX")), MaxResistance);
+		return fmt::format(fmt::runtime(_("Magic Resist {:+d}%")), item._iPLMR);
 	case IPL_ALLRES:
-		if (item._iPLFR < MaxResistance)
-			return fmt::format(fmt::runtime(_("Resist All: {:+d}%")), item._iPLFR);
-		else
-			return fmt::format(fmt::runtime(_("Resist All: {:+d}% MAX")), MaxResistance);
+		return fmt::format(fmt::runtime(_("All Resistances {:+d}%")), item._iPLFR);
 	case IPL_SPLLVLADD:
-		if (item._iSplLvlAdd > 0)
-			return fmt::format(fmt::runtime(ngettext("spells are increased {:d} level", "spells are increased {:d} levels", item._iSplLvlAdd)), item._iSplLvlAdd);
-		else if (item._iSplLvlAdd < 0)
-			return fmt::format(fmt::runtime(ngettext("spells are decreased {:d} level", "spells are decreased {:d} levels", -item._iSplLvlAdd)), -item._iSplLvlAdd);
-		else
-			return _("spell levels unchanged (?)");
+		return fmt::format(fmt::runtime(_("{:+d} to Spell Levels")), item._iSplLvlAdd);
 	case IPL_CHARGES:
-		return _("Extra charges");
+		return _("Increased Charges");
 	case IPL_SPELL:
-		return fmt::format(fmt::runtime(ngettext("{:d} {:s} charge", "{:d} {:s} charges", item._iMaxCharges)), item._iMaxCharges, pgettext("spell", GetSpellData(item._iSpell).sNameText));
+		return fmt::format(fmt::runtime(_("Level {:d} {:s} ({:d}/{:d} Charges)")), MyPlayer->GetSpellLevel(item._iSpell), pgettext("spell", GetSpellData(item._iSpell).sNameText), item._iCharges, item._iMaxCharges);
 	case IPL_FIREDAM:
-		if (item._iFMinDam == item._iFMaxDam)
-			return fmt::format(fmt::runtime(_("Fire hit damage: {:d}")), item._iFMinDam);
-		else
-			return fmt::format(fmt::runtime(_("Fire hit damage: {:d}-{:d}")), item._iFMinDam, item._iFMaxDam);
-	case IPL_LIGHTDAM:
-		if (item._iLMinDam == item._iLMaxDam)
-			return fmt::format(fmt::runtime(_("Lightning hit damage: {:d}")), item._iLMinDam);
-		else
-			return fmt::format(fmt::runtime(_("Lightning hit damage: {:d}-{:d}")), item._iLMinDam, item._iLMaxDam);
-	case IPL_STR:
-	case IPL_STR_CURSE:
-		return fmt::format(fmt::runtime(_("{:+d} to strength")), item._iPLStr);
-	case IPL_MAG:
-	case IPL_MAG_CURSE:
-		return fmt::format(fmt::runtime(_("{:+d} to magic")), item._iPLMag);
-	case IPL_DEX:
-	case IPL_DEX_CURSE:
-		return fmt::format(fmt::runtime(_("{:+d} to dexterity")), item._iPLDex);
-	case IPL_VIT:
-	case IPL_VIT_CURSE:
-		return fmt::format(fmt::runtime(_("{:+d} to vitality")), item._iPLVit);
-	case IPL_ATTRIBS:
-	case IPL_ATTRIBS_CURSE:
-		return fmt::format(fmt::runtime(_("{:+d} to all attributes")), item._iPLStr);
-	case IPL_GETHIT_CURSE:
-	case IPL_GETHIT:
-		return fmt::format(fmt::runtime(_("{:+d} damage from enemies")), item._iPLGetHit);
-	case IPL_LIFE:
-	case IPL_LIFE_CURSE:
-		return fmt::format(fmt::runtime(_("Hit Points: {:+d}")), item._iPLHP >> 6);
-	case IPL_MANA:
-	case IPL_MANA_CURSE:
-		return fmt::format(fmt::runtime(_("Mana: {:+d}")), item._iPLMana >> 6);
-	case IPL_DUR:
-		return _("high durability");
-	case IPL_DUR_CURSE:
-		return _("decreased durability");
-	case IPL_INDESTRUCTIBLE:
-		return _("indestructible");
-	case IPL_LIGHT:
-		return fmt::format(fmt::runtime(_(/*xgettext:no-c-format*/ "+{:d}% light radius")), 10 * item._iPLLight);
-	case IPL_LIGHT_CURSE:
-		return fmt::format(fmt::runtime(_(/*xgettext:no-c-format*/ "-{:d}% light radius")), -10 * item._iPLLight);
-	case IPL_MULT_ARROWS:
-		return _("multiple arrows per shot");
 	case IPL_FIRE_ARROWS:
 		if (item._iFMinDam == item._iFMaxDam)
-			return fmt::format(fmt::runtime(_("fire arrows damage: {:d}")), item._iFMinDam);
+			return fmt::format(fmt::runtime(_("Adds {:d} Fire Damage")), item._iFMinDam);
 		else
-			return fmt::format(fmt::runtime(_("fire arrows damage: {:d}-{:d}")), item._iFMinDam, item._iFMaxDam);
+			return fmt::format(fmt::runtime(_("Adds {:d}-{:d} Fire Damage")), item._iFMinDam, item._iFMaxDam);
+	case IPL_FIREBALL:
+		return _("Casts Fireball on Attack (15-20 Damage)");
+	case IPL_LIGHTDAM:
 	case IPL_LIGHT_ARROWS:
 		if (item._iLMinDam == item._iLMaxDam)
-			return fmt::format(fmt::runtime(_("lightning arrows damage {:d}")), item._iLMinDam);
+			return fmt::format(fmt::runtime(_("Adds {:d} Lightning Damage")), item._iLMinDam);
 		else
-			return fmt::format(fmt::runtime(_("lightning arrows damage {:d}-{:d}")), item._iLMinDam, item._iLMaxDam);
-	case IPL_FIREBALL:
-		if (item._iFMinDam == item._iFMaxDam)
-			return fmt::format(fmt::runtime(_("fireball damage: {:d}")), item._iFMinDam);
-		else
-			return fmt::format(fmt::runtime(_("fireball damage: {:d}-{:d}")), item._iFMinDam, item._iFMaxDam);
+			return fmt::format(fmt::runtime(_("Adds {:d}-{:d} Lightning Damage")), item._iLMinDam, item._iLMaxDam);
+	case IPL_ADDACLIFE:
+		return _("Casts Lightning on Attack (10-15 Damage)");
+	case IPL_ADDMANAAC:
+		return _("Casts Charged Bolt on Attack (3-6 Damage)");
+	case IPL_STR:
+	case IPL_STR_CURSE:
+		return fmt::format(fmt::runtime(_("{:+d} to Strength")), item._iPLStr);
+	case IPL_MAG:
+	case IPL_MAG_CURSE:
+		return fmt::format(fmt::runtime(_("{:+d} to Magic")), item._iPLMag);
+	case IPL_DEX:
+	case IPL_DEX_CURSE:
+		return fmt::format(fmt::runtime(_("{:+d} to Dexterity")), item._iPLDex);
+	case IPL_VIT:
+	case IPL_VIT_CURSE:
+		return fmt::format(fmt::runtime(_("{:+d} to Vitality")), item._iPLVit);
+	case IPL_ATTRIBS:
+	case IPL_ATTRIBS_CURSE:
+		return fmt::format(fmt::runtime(_("{:+d} to All Attributes")), item._iPLStr);
+	case IPL_GETHIT_CURSE:
+		return fmt::format(fmt::runtime(_("Damage Taken Increased by {:d}")), item._iPLGetHit);
+	case IPL_GETHIT:
+		return fmt::format(fmt::runtime(_("Damage Taken Reduced by {:d}")), -item._iPLGetHit);
+	case IPL_LIFE:
+	case IPL_LIFE_CURSE:
+		return fmt::format(fmt::runtime(_("{:+d} to Life")), item._iPLHP >> 6);
+	case IPL_MANA:
+	case IPL_MANA_CURSE:
+		return fmt::format(fmt::runtime(_("{:+d} to Mana")), item._iPLMana >> 6);
+	case IPL_DUR:
+		return _("Increased Durability");
+	case IPL_DUR_CURSE:
+		return _("Decreased Durability");
+	case IPL_INDESTRUCTIBLE:
+		return _("Indestructible");
+	case IPL_LIGHT:
+	case IPL_LIGHT_CURSE:
+		return fmt::format(fmt::runtime(_(/*xgettext:no-c-format*/ "{:+d} to Light Radius")), item._iPLLight);
+	case IPL_MULT_ARROWS:
+		return _("Multishot");
 	case IPL_THORNS:
-		return _("attacker takes 1-3 damage");
+		return _("Attacker Takes Damage of 1-3");
 	case IPL_NOMANA:
-		return _("user loses all mana");
+		return _("Mana set to 0");
 	case IPL_ABSHALFTRAP:
-		return _("absorbs half of trap damage");
+		return _("Damage From Traps -50%");
 	case IPL_KNOCKBACK:
-		return _("knocks target back");
+		return _("Knockback");
 	case IPL_3XDAMVDEM:
-		return _(/*xgettext:no-c-format*/ "+200% damage vs. demons");
+		return _(/*xgettext:no-c-format*/ "Triple Damage vs. Demons");
 	case IPL_ALLRESZERO:
-		return _("All Resistance equals 0");
+		return _("All Resistances set to 0");
 	case IPL_STEALMANA:
 		if (HasAnyOf(item._iFlags, ItemSpecialEffect::StealMana3))
-			return _(/*xgettext:no-c-format*/ "hit steals 3% mana");
-		if (HasAnyOf(item._iFlags, ItemSpecialEffect::StealMana5))
-			return _(/*xgettext:no-c-format*/ "hit steals 5% mana");
-		return {};
+			return _(/*xgettext:no-c-format*/ "3% Mana Stolen per Hit");
+		return _(/*xgettext:no-c-format*/ "5% Mana Stolen per Hit");
 	case IPL_STEALLIFE:
 		if (HasAnyOf(item._iFlags, ItemSpecialEffect::StealLife3))
-			return _(/*xgettext:no-c-format*/ "hit steals 3% life");
-		if (HasAnyOf(item._iFlags, ItemSpecialEffect::StealLife5))
-			return _(/*xgettext:no-c-format*/ "hit steals 5% life");
-		return {};
+			return _(/*xgettext:no-c-format*/ "3% Life Stolen Per Hit");
+		return _(/*xgettext:no-c-format*/ "5% Life Stolen Per Hit");
 	case IPL_TARGAC:
-		return _("penetrates target's armor");
+		return _("Increased Chance To Hit");
 	case IPL_FASTATTACK:
 		if (HasAnyOf(item._iFlags, ItemSpecialEffect::QuickAttack))
-			return _("quick attack");
+			return _("Quick Attack Speed");
 		if (HasAnyOf(item._iFlags, ItemSpecialEffect::FastAttack))
-			return _("fast attack");
+			return _("Fast Attack Speed");
 		if (HasAnyOf(item._iFlags, ItemSpecialEffect::FasterAttack))
-			return _("faster attack");
-		if (HasAnyOf(item._iFlags, ItemSpecialEffect::FastestAttack))
-			return _("fastest attack");
-		return _("Another ability (NW)");
+			return _("Faster Attack Speed");
+		return _("Fastest Attack Speed");
 	case IPL_FASTRECOVER:
 		if (HasAnyOf(item._iFlags, ItemSpecialEffect::FastHitRecovery))
-			return _("fast hit recovery");
+			return _("Fast Hit Recovery");
 		if (HasAnyOf(item._iFlags, ItemSpecialEffect::FasterHitRecovery))
-			return _("faster hit recovery");
-		if (HasAnyOf(item._iFlags, ItemSpecialEffect::FastestHitRecovery))
-			return _("fastest hit recovery");
-		return _("Another ability (NW)");
+			return _("Faster Hit Recovery");
+		return _("Fastest Hit Recovery");
 	case IPL_FASTBLOCK:
-		return _("fast block");
+		return _("Fastest Block Rate");
 	case IPL_DAMMOD:
-		return fmt::format(fmt::runtime(ngettext("adds {:d} point to damage", "adds {:d} points to damage", item._iPLDamMod)), item._iPLDamMod);
+		return fmt::format(fmt::runtime(_("{:+d} to Damage")), item._iPLDamMod);
 	case IPL_RNDARROWVEL:
-		return _("fires random speed arrows");
+		return _("Random Speed Arrows");
 	case IPL_SETDAM:
-		return _("unusual item damage");
+		return _("Altered Damage");
 	case IPL_SETDUR:
-		return _("altered durability");
+		return _("Altered Durability");
 	case IPL_ONEHAND:
-		return _("one handed sword");
+		return _("One-Handed");
 	case IPL_DRAINLIFE:
-		return _("constantly lose hit points");
+		return _("Life Drain");
 	case IPL_RNDSTEALLIFE:
-		return _("life stealing");
+		return _("0-12.5% Life Stolen Per Hit");
 	case IPL_NOMINSTR:
-		return _("no strength requirement");
-	case IPL_ADDACLIFE:
-		if (item._iFMinDam == item._iFMaxDam)
-			return fmt::format(fmt::runtime(_("lightning damage: {:d}")), item._iFMinDam);
-		else
-			return fmt::format(fmt::runtime(_("lightning damage: {:d}-{:d}")), item._iFMinDam, item._iFMaxDam);
-	case IPL_ADDMANAAC:
-		return _("charged bolts on hits");
+		return _("No Strength Requirement");
 	case IPL_DEVASTATION:
-		return _("occasional triple damage");
-	case IPL_DECAY:
-		return fmt::format(fmt::runtime(_(/*xgettext:no-c-format*/ "decaying {:+d}% damage")), item._iPLDam);
+		return _("5% Chance for Triple Damage");
 	case IPL_PERIL:
-		return _("2x dmg to monst, 1x to you");
+		return fmt::format(fmt::runtime(_("Double Damage; Damages User {:d}-{:d}")), item._iMinDam, item._iMaxDam);
 	case IPL_JESTERS:
-		return std::string(_(/*xgettext:no-c-format*/ "Random 0 - 600% damage"));
+		return std::string(_(/*xgettext:no-c-format*/ "-100% to +500% Damage"));
 	case IPL_CRYSTALLINE:
-		return fmt::format(fmt::runtime(_(/*xgettext:no-c-format*/ "low dur, {:+d}% damage")), item._iPLDam);
-	case IPL_DOPPELGANGER:
-		return fmt::format(fmt::runtime(_("to hit: {:+d}%, {:+d}% damage")), item._iPLToHit, item._iPLDam);
+		return fmt::format(fmt::runtime(_(/*xgettext:no-c-format*/ "Decreased Durability; {:+d}% Damage")), item._iPLDam);
 	case IPL_ACDEMON:
-		return _("extra AC vs demons");
+		return _("+120 to Armor Class vs. Demons");
 	case IPL_ACUNDEAD:
-		return _("extra AC vs undead");
+		return _("+60 to Armor Class vs. Undead");
 	case IPL_MANATOLIFE:
-		return _("50% Mana moved to Health");
+		return _("50% Mana moved to Life");
 	case IPL_LIFETOMANA:
-		return _("40% Health moved to Mana");
+		return _("40% Life moved to Mana");
 	default:
-		return _("Another ability (NW)");
+		return _("");
 	}
 }
 
@@ -4122,26 +4081,29 @@ void PrintItemDetails(const Item &item)
 		return;
 
 	if (item._iClass == ICLASS_WEAPON) {
-		if (item._iMinDam == item._iMaxDam) {
+		if (item._iMinDam == 0 && item._iMaxDam == 0) {
+			if (item._iMaxDur != DUR_INDESTRUCTIBLE)
+				AddInfoBoxString(fmt::format(fmt::runtime(_(/* TRANSLATORS: Dur: is durability */ "Dur: {:d}/{:d}")), item._iMinDam, item._iDurability, item._iMaxDur));
+		} else if (item._iMinDam == item._iMaxDam) {
 			if (item._iMaxDur == DUR_INDESTRUCTIBLE)
-				AddInfoBoxString(fmt::format(fmt::runtime(_("damage: {:d}  Indestructible")), item._iMinDam));
+				AddInfoBoxString(fmt::format(fmt::runtime(_("Damage: {:d}")), item._iMinDam));
 			else
-				AddInfoBoxString(fmt::format(fmt::runtime(_(/* TRANSLATORS: Dur: is durability */ "damage: {:d}  Dur: {:d}/{:d}")), item._iMinDam, item._iDurability, item._iMaxDur));
+				AddInfoBoxString(fmt::format(fmt::runtime(_(/* TRANSLATORS: Dur: is durability */ "Damage: {:d}  Dur: {:d}/{:d}")), item._iMinDam, item._iDurability, item._iMaxDur));
 		} else {
 			if (item._iMaxDur == DUR_INDESTRUCTIBLE)
-				AddInfoBoxString(fmt::format(fmt::runtime(_("damage: {:d}-{:d}  Indestructible")), item._iMinDam, item._iMaxDam));
+				AddInfoBoxString(fmt::format(fmt::runtime(_("Damage: {:d}-{:d}")), item._iMinDam, item._iMaxDam));
 			else
-				AddInfoBoxString(fmt::format(fmt::runtime(_(/* TRANSLATORS: Dur: is durability */ "damage: {:d}-{:d}  Dur: {:d}/{:d}")), item._iMinDam, item._iMaxDam, item._iDurability, item._iMaxDur));
+				AddInfoBoxString(fmt::format(fmt::runtime(_(/* TRANSLATORS: Dur: is durability */ "Damage: {:d}-{:d}  Dur: {:d}/{:d}")), item._iMinDam, item._iMaxDam, item._iDurability, item._iMaxDur));
 		}
 	}
 	if (item._iClass == ICLASS_ARMOR) {
 		if (item._iMaxDur == DUR_INDESTRUCTIBLE)
-			AddInfoBoxString(fmt::format(fmt::runtime(_("armor: {:d}  Indestructible")), item._iAC));
+			AddInfoBoxString(fmt::format(fmt::runtime(_("Armor Class: {:d}")), item._iAC));
 		else
-			AddInfoBoxString(fmt::format(fmt::runtime(_(/* TRANSLATORS: Dur: is durability */ "armor: {:d}  Dur: {:d}/{:d}")), item._iAC, item._iDurability, item._iMaxDur));
+			AddInfoBoxString(fmt::format(fmt::runtime(_(/* TRANSLATORS: Dur: is durability */ "Armor Class: {:d}  Dur: {:d}/{:d}")), item._iAC, item._iDurability, item._iMaxDur));
 	}
 	if (item._iMiscId == IMISC_STAFF && item._iMaxCharges != 0) {
-		AddInfoBoxString(fmt::format(fmt::runtime(_("Charges: {:d}/{:d}")), item._iCharges, item._iMaxCharges));
+		AddInfoBoxString(fmt::format(fmt::runtime(_("Lvl {:d} {:s} ({:d}/{:d} Charges)")), MyPlayer->GetSpellLevel(item._iSpell), pgettext("spell", GetSpellData(item._iSpell).sNameText), item._iCharges, item._iMaxCharges));
 	}
 	if (item._iPrePower != -1) {
 		AddInfoBoxString(PrintItemPower(item._iPrePower, item));
@@ -4150,7 +4112,7 @@ void PrintItemDetails(const Item &item)
 		AddInfoBoxString(PrintItemPower(item._iSufPower, item));
 	}
 	if (item._iMagical == ITEM_QUALITY_UNIQUE) {
-		AddInfoBoxString(_("unique item"));
+		AddInfoBoxString(_("Unique Item"));
 		ShowUniqueItemInfoBox = true;
 		curruitem = item;
 	}
@@ -4165,30 +4127,30 @@ void PrintItemDur(const Item &item)
 	if (item._iClass == ICLASS_WEAPON) {
 		if (item._iMinDam == item._iMaxDam) {
 			if (item._iMaxDur == DUR_INDESTRUCTIBLE)
-				AddInfoBoxString(fmt::format(fmt::runtime(_("damage: {:d}  Indestructible")), item._iMinDam));
+				AddInfoBoxString(fmt::format(fmt::runtime(_("Damage: {:d}")), item._iMinDam));
 			else
-				AddInfoBoxString(fmt::format(fmt::runtime(_("damage: {:d}  Dur: {:d}/{:d}")), item._iMinDam, item._iDurability, item._iMaxDur));
+				AddInfoBoxString(fmt::format(fmt::runtime(_("Damage: {:d}  Dur: {:d}/{:d}")), item._iMinDam, item._iDurability, item._iMaxDur));
 		} else {
 			if (item._iMaxDur == DUR_INDESTRUCTIBLE)
-				AddInfoBoxString(fmt::format(fmt::runtime(_("damage: {:d}-{:d}  Indestructible")), item._iMinDam, item._iMaxDam));
+				AddInfoBoxString(fmt::format(fmt::runtime(_("Damage: {:d}-{:d}")), item._iMinDam, item._iMaxDam));
 			else
-				AddInfoBoxString(fmt::format(fmt::runtime(_("damage: {:d}-{:d}  Dur: {:d}/{:d}")), item._iMinDam, item._iMaxDam, item._iDurability, item._iMaxDur));
+				AddInfoBoxString(fmt::format(fmt::runtime(_("Damage: {:d}-{:d}  Dur: {:d}/{:d}")), item._iMinDam, item._iMaxDam, item._iDurability, item._iMaxDur));
 		}
 		if (item._iMiscId == IMISC_STAFF && item._iMaxCharges > 0) {
-			AddInfoBoxString(fmt::format(fmt::runtime(_("Charges: {:d}/{:d}")), item._iCharges, item._iMaxCharges));
+			AddInfoBoxString(fmt::format(fmt::runtime(_("Lvl {:d} {:s} ({:d}/{:d} Charges)")), MyPlayer->GetSpellLevel(item._iSpell), pgettext("spell", GetSpellData(item._iSpell).sNameText), item._iCharges, item._iMaxCharges));
 		}
 		if (item._iMagical != ITEM_QUALITY_NORMAL)
 			AddInfoBoxString(_("Not Identified"));
 	}
 	if (item._iClass == ICLASS_ARMOR) {
 		if (item._iMaxDur == DUR_INDESTRUCTIBLE)
-			AddInfoBoxString(fmt::format(fmt::runtime(_("armor: {:d}  Indestructible")), item._iAC));
+			AddInfoBoxString(fmt::format(fmt::runtime(_("Armor Class: {:d}")), item._iAC));
 		else
-			AddInfoBoxString(fmt::format(fmt::runtime(_("armor: {:d}  Dur: {:d}/{:d}")), item._iAC, item._iDurability, item._iMaxDur));
+			AddInfoBoxString(fmt::format(fmt::runtime(_("Armor Class: {:d}  Dur: {:d}/{:d}")), item._iAC, item._iDurability, item._iMaxDur));
 		if (item._iMagical != ITEM_QUALITY_NORMAL)
 			AddInfoBoxString(_("Not Identified"));
 		if (item._iMiscId == IMISC_STAFF && item._iMaxCharges > 0) {
-			AddInfoBoxString(fmt::format(fmt::runtime(_("Charges: {:d}/{:d}")), item._iCharges, item._iMaxCharges));
+			AddInfoBoxString(fmt::format(fmt::runtime(_("Lvl {:d} {:s} ({:d}/{:d} Charges)")), MyPlayer->GetSpellLevel(item._iSpell), pgettext("spell", GetSpellData(item._iSpell).sNameText), item._iCharges, item._iMaxCharges));
 		}
 	}
 	if (IsAnyOf(item._itype, ItemType::Ring, ItemType::Amulet))
