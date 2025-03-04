@@ -4789,8 +4789,13 @@ void PutItemRecord(uint32_t nSeed, uint16_t wCI, int nIndex)
 
 bool Item::isUsable() const
 {
-	if (IDidx == IDI_SPECELIX && Quests[Q_MUSHROOM]._qactive != QUEST_DONE)
+	// If the item is a Spectral Elixir
+	if (IDidx == IDI_SPECELIX) {
+		if ((_iCreateInfo & CF_ONLYGOOD) != 0 || Quests[Q_MUSHROOM]._qactive == QUEST_DONE)
+			return true;
 		return false;
+	}
+
 	return AllItemsList[IDidx].iUsable;
 }
 

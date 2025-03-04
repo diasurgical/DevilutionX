@@ -438,6 +438,7 @@ void TalkToWitch(Player &player, Towner & /*witch*/)
 					return;
 				}
 				if (HasInventoryOrBeltItemWithId(player, IDI_SPECELIX)) {
+					SetSpectralUsable(player);
 					Quests[Q_MUSHROOM]._qactive = QUEST_DONE;
 					NetSendCmdQuest(true, Quests[Q_MUSHROOM]);
 					InitQTextMsg(TEXT_MUSH12);
