@@ -974,7 +974,7 @@ msgstr "Krypta - Poziom {:d}"
 
 #: Source/automap.cpp:1444 Source/discord/discord.cpp:73 Source/objects.cpp:156
 msgid "Town"
-msgstr "Miasto"
+msgstr "Miasteczko"
 
 #: Source/automap.cpp:1447
 msgid "Level: {:d}"
@@ -1252,16 +1252,22 @@ msgstr ""
 #: Source/data/file.cpp:70
 msgid "Non-numeric value {0} for {1} in {2} at row {3} and column {4}"
 msgstr ""
+"Nienumeryczna wartość dla {0} w kolumnie {1} w pliku {2}, rząd {3} kolumna "
+"{4}"
 
 #. TRANSLATORS: Error message when parsing a data file and we find a number larger than expected. Arguments are {found value}, {column heading}, {file name}, {row/record number}, {column/field number}
 #: Source/data/file.cpp:76
 msgid "Out of range value {0} for {1} in {2} at row {3} and column {4}"
 msgstr ""
+"Wartość spoza zakresu dla {0} w kolumnie {1} w pliku {2}, rząd {3} kolumna "
+"{4}"
 
 #. TRANSLATORS: Error message when we find an unrecognised value in a key column. Arguments are {found value}, {column heading}, {file name}, {row/record number}, {column/field number}
 #: Source/data/file.cpp:82
 msgid "Invalid value {0} for {1} in {2} at row {3} and column {4}"
 msgstr ""
+"Nieprawidłowa wartość dla {0} w kolumnie {1} w pliku {2}, rząd {3} kolumna "
+"{4}"
 
 #: Source/diablo.cpp:137
 msgid "I need help! Come here!"
@@ -1748,51 +1754,51 @@ msgstr "Porusza postacią gracza w prawo."
 
 #: Source/diablo.cpp:2128
 msgid "Stand ground"
-msgstr ""
+msgstr "Utrzymaj pozycję"
 
 #: Source/diablo.cpp:2129
 msgid "Hold to prevent the player from moving."
-msgstr ""
+msgstr "Przytrzymaj by powstrzymać postać przed poruszaniem się."
 
 #: Source/diablo.cpp:2134
 msgid "Toggle stand ground"
-msgstr ""
+msgstr "Przełącznik utrzymania pozycji"
 
 #: Source/diablo.cpp:2135
 msgid "Toggle whether the player moves."
-msgstr ""
+msgstr "Przełącza między staniem w miejscu a swobodnym ruchem gracza."
 
 #: Source/diablo.cpp:2212
 msgid "Move mouse up"
-msgstr ""
+msgstr "Ruch myszy w górę"
 
 #: Source/diablo.cpp:2213
 msgid "Simulates upward mouse movement."
-msgstr ""
+msgstr "Symuluje ruch myszą w górę."
 
 #: Source/diablo.cpp:2218
 msgid "Move mouse down"
-msgstr ""
+msgstr "Ruch myszy w dół"
 
 #: Source/diablo.cpp:2219
 msgid "Simulates downward mouse movement."
-msgstr ""
+msgstr "Symuluje ruch myszą w dół."
 
 #: Source/diablo.cpp:2224
 msgid "Move mouse left"
-msgstr ""
+msgstr "Ruch myszy w lewo"
 
 #: Source/diablo.cpp:2225
 msgid "Simulates leftward mouse movement."
-msgstr ""
+msgstr "Symuluje ruch myszą w lewo.Ruch myszy w prawo"
 
 #: Source/diablo.cpp:2230
 msgid "Move mouse right"
-msgstr ""
+msgstr "Ruch myszy w prawo"
 
 #: Source/diablo.cpp:2231
 msgid "Simulates rightward mouse movement."
-msgstr ""
+msgstr "Symuluje ruch myszą w prawo."
 
 #: Source/diablo.cpp:2249 Source/diablo.cpp:2256
 msgid "Left mouse click"
@@ -1812,19 +1818,19 @@ msgstr "Symuluje kliknięcie prawym przyciskiem myszy."
 
 #: Source/diablo.cpp:2288
 msgid "Gamepad hotspell menu"
-msgstr ""
+msgstr "Menu szybkiego wyboru zaklęć na kontrolerze"
 
 #: Source/diablo.cpp:2289
 msgid "Hold to set or use spell hotkeys."
-msgstr ""
+msgstr "Przytrzymaj by przypisać bądź użyć skrót klawiszowy zaklęcia."
 
 #: Source/diablo.cpp:2295
 msgid "Gamepad menu navigator"
-msgstr ""
+msgstr "Nawigacja menu na kontrolerze"
 
 #: Source/diablo.cpp:2296
 msgid "Hold to access gamepad menu navigation."
-msgstr ""
+msgstr "Przytrzymaj by otworzyć nawigację menu na kontrolerze."
 
 #: Source/diablo.cpp:2311 Source/diablo.cpp:2320
 msgid "Toggle game menu"
@@ -2147,6 +2153,12 @@ msgid ""
 "\n"
 "The MPQ file(s) might be damaged. Please check the file integrity."
 msgstr ""
+"Nie udało się otworzyć pliku:\n"
+"{:s}\n"
+"\n"
+"{:s}\n"
+"\n"
+"Plik MPQ może być uszkodzony. Proszę sprawdzić spójność pliku."
 
 #: Source/engine/demomode.cpp:179 Source/options.cpp:564
 msgid "Resolution"
@@ -2350,22 +2362,23 @@ msgstr "F5, F6, F7, F8:     Ustawianie skrótu klawiszowego umiejętności"
 
 #: Source/help.cpp:44
 msgid "Shift + Left Mouse Button: Attack without moving"
-msgstr "Shift + LPM: Atak w miejscu"
+msgstr "Shift + Lewoklik: Atak w miejscu"
 
 #: Source/help.cpp:45
 msgid "Shift + Left Mouse Button (on character screen): Assign all stat points"
-msgstr "Shift + LPM (na panelu postaci): Przydziel wszystkie punkty"
+msgstr "Shift + Lewoklik (na panelu postaci): Przydziel wszystkie punkty"
 
 #: Source/help.cpp:46
 msgid ""
 "Shift + Left Mouse Button (on inventory): Move item to belt or equip/unequip "
 "item"
 msgstr ""
-"Shift + LPM (w ekwipunku): Przenieś na pas lub przygotuj/schowaj przedmiot"
+"Shift + Lewoklik (w ekwipunku): Przenieś na pas lub przygotuj/schowaj "
+"przedmiot"
 
 #: Source/help.cpp:47
 msgid "Shift + Left Mouse Button (on belt): Move item to inventory"
-msgstr "Shift + LPM (na pasie): Przenieś przedmiot do ekwipunku"
+msgstr "Shift + Lewoklik (na pasie): Przenieś przedmiot do ekwipunku"
 
 #: Source/help.cpp:49
 msgid "$Movement:"
@@ -2429,7 +2442,7 @@ msgstr "$Złoto:"
 msgid ""
 "You can select a specific amount of gold to drop by right-clicking on a pile "
 "of gold in your inventory."
-msgstr "Kliknięcie PPM na złoto w ekwipunku umożliwia jego rozdzielenie."
+msgstr "Prawoklik na złocie w ekwipunku umożliwia jego rozdzielenie."
 
 #: Source/help.cpp:74
 msgid "$Skills & Spells:"
@@ -2444,8 +2457,8 @@ msgid ""
 "in the play area."
 msgstr ""
 "Możesz zobaczyć listę dostępnych czarów i umiejętności klikając w przycisk "
-"'Czary' na panelu postaci. Po nacisnięciu LPM na dane zaklęcie, staje się "
-"ono aktywne i gotowe do użycia. Wtedy, kliknięcie PPM na danym terenie, "
+"'Czary' na panelu postaci. Po wykonaniu lewokliku na danym zaklęciu, staje "
+"się ono aktywne i gotowe do użycia. Następnie prawoklik na danym terenie, "
 "umożliwia rzucenie go."
 
 #: Source/help.cpp:81
@@ -2458,8 +2471,8 @@ msgid ""
 "allows you to select a skill or spell for immediate use. To use a readied "
 "skill or spell, simply right-click in the main play area."
 msgstr ""
-"Wciśnięcie LPM na 'przygotowany czar' otworzy 'podręczną księgę' pozwalającą "
-"wybrać umiejętność. By ją użyć wciśnij PPM na główne okno rozgrywki."
+"Lewoklik na 'przygotowany czar' otworzy 'podręczną księgę' pozwalającą "
+"wybrać umiejętność. By ją użyć wykonaj prawoklik w głównym oknie rozgrywki."
 
 #: Source/help.cpp:86
 msgid ""
@@ -2738,23 +2751,23 @@ msgstr "(działa tylko na arenach)"
 
 #: Source/items.cpp:1757
 msgid "Right-click to view"
-msgstr "PPM by wyświetlić"
+msgstr "Prawoklik by wyświetlić"
 
 #: Source/items.cpp:1760
 msgid "Right-click to use"
-msgstr "PPM by użyć"
+msgstr "Prawoklik by użyć"
 
 #: Source/items.cpp:1762
 msgid ""
 "Right-click to read, then\n"
 "left-click to target"
 msgstr ""
-"PPM by odczytać, następnie\n"
-"LPM na cel"
+"Prawoklik by odczytać, potem\n"
+"lewoklik na cel"
 
 #: Source/items.cpp:1764
 msgid "Right-click to read"
-msgstr "PPM by odczytać"
+msgstr "Prawoklik by odczytać"
 
 #: Source/items.cpp:1771
 msgid "Activate to view"
@@ -2892,16 +2905,16 @@ msgstr "Odporność na wszystko {:+d}% MAX"
 #: Source/items.cpp:3911
 msgid "spells are increased {:d} level"
 msgid_plural "spells are increased {:d} levels"
-msgstr[0] "poziom czarów: {:d}"
-msgstr[1] "poziom czarów: {:d}"
-msgstr[2] "poziom czarów: {:d}"
+msgstr[0] "poziom czarów zwiększony o {:d}"
+msgstr[1] "poziom czarów zwiększony o {:d}"
+msgstr[2] "poziom czarów zwiększony o {:d}"
 
 #: Source/items.cpp:3913
 msgid "spells are decreased {:d} level"
 msgid_plural "spells are decreased {:d} levels"
-msgstr[0] "poziom czarów: {:d}"
-msgstr[1] "poziom czarów: {:d}"
-msgstr[2] "poziom czarów: {:d}"
+msgstr[0] "poziom czarów zmniejszony o {:d}"
+msgstr[1] "poziom czarów zmniejszony o {:d}"
+msgstr[2] "poziom czarów zmniejszony o {:d}"
 
 #: Source/items.cpp:3915
 msgid "spell levels unchanged (?)"
@@ -3466,7 +3479,7 @@ msgstr "Tajemnicza"
 
 #: Source/objects.cpp:127
 msgid "Hidden"
-msgstr "Ukryty"
+msgstr "Ukryta"
 
 #: Source/objects.cpp:128
 msgid "Gloomy"
@@ -3518,11 +3531,11 @@ msgstr "Boska"
 
 #: Source/objects.cpp:141 Source/translation_dummy.cpp:641
 msgid "Holy"
-msgstr "Święty"
+msgstr "Święta"
 
 #: Source/objects.cpp:142
 msgid "Sacred"
-msgstr "Święta"
+msgstr "Uświęcona"
 
 #: Source/objects.cpp:143
 msgid "Spiritual"
@@ -3963,7 +3976,7 @@ msgstr "Jakość powtórnego próbkowania"
 
 #: Source/options.cpp:533
 msgid "Quality of the resampler, from 0 (lowest) to 10 (highest)."
-msgstr "Jakość resamplera, od 0 (najniższa) do 10 (najwyższa)."
+msgstr "Jakość próbnika, od 0 (najniższa) do 10 (najwyższa)."
 
 #: Source/options.cpp:564
 msgid ""
@@ -3977,11 +3990,11 @@ msgstr ""
 
 #: Source/options.cpp:710
 msgid "Resampler"
-msgstr ""
+msgstr "Próbnik"
 
 #: Source/options.cpp:710
 msgid "Audio resampler"
-msgstr ""
+msgstr "Próbnik audio"
 
 #: Source/options.cpp:767
 msgid "Device"
@@ -4075,7 +4088,7 @@ msgstr ""
 
 #: Source/options.cpp:869
 msgid "Zoom on when enabled."
-msgstr ""
+msgstr "Włącza zbliżenie na okno rozgrywki."
 
 #: Source/options.cpp:870
 msgid "Color Cycling"
@@ -4167,11 +4180,12 @@ msgstr "Po włączeniu tej funkcji mysz jest zablokowana w oknie gry."
 
 #: Source/options.cpp:929
 msgid "Pause Game When Window Loses Focus"
-msgstr ""
+msgstr "Wstrzymanie Gry Gdy Okno Jest Nieaktywne"
 
 #: Source/options.cpp:929
 msgid "When enabled, the game will pause when focus is lost."
 msgstr ""
+"Po włączeniu tej funkcji wstrzymuje grę, jeśli okno gry jest nieaktywne."
 
 #: Source/options.cpp:930
 msgid "Enable Little Girl quest."
