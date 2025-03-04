@@ -6,7 +6,7 @@ namespace devilution {
 
 class Lightmap {
 public:
-	Lightmap(uint8_t *outBuffer);
+	explicit Lightmap(const uint8_t *outBuffer, const uint8_t *lightmapBuffer, const uint8_t *lightTables, size_t lightTableSize);
 
 	uint8_t adjustColor(uint8_t color, uint8_t lightLevel) const
 	{
@@ -19,13 +19,15 @@ public:
 		return lightmapBuffer + (outLoc - outBuffer);
 	}
 
-private:
-	uint8_t *outBuffer;
-	uint8_t *lightmapBuffer;
-	uint8_t *lightTables;
-	size_t lightTableSize;
-};
+	static Lightmap build(Point tilePosition, Point targetBufferPosition,
+	    int viewportWidth, int viewportHeight, int rows, int columns,
+	    const uint8_t *outBuffer, const uint8_t *lightTables, size_t lightTableSize);
 
-void BuildLightmap(Point tilePosition, Point targetBufferPosition, int rows, int columns);
+private:
+	const uint8_t *outBuffer;
+	const uint8_t *lightmapBuffer;
+	const uint8_t *lightTables;
+	const size_t lightTableSize;
+};
 
 } // namespace devilution

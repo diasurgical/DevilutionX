@@ -3,14 +3,10 @@
 #include <vector>
 
 #include "engine/displacement.hpp"
-#include "engine/dx.h"
 #include "engine/point.hpp"
-#include "engine/points_in_rectangle_range.hpp"
-#include "engine/rectangle.hpp"
 #include "levels/dun_tile.hpp"
 #include "lighting.h"
 #include "options.h"
-#include "utils/ui_fwd.h"
 
 namespace devilution {
 
@@ -21,7 +17,7 @@ std::vector<uint8_t> LightmapBuffer;
 // Half-space method for drawing triangles
 // Points must be provided using counter-clockwise rotation
 // https://web.archive.org/web/20050408192410/http://sw-shader.sourceforge.net/rasterizer.html
-void RenderTriangle(Point p1, Point p2, Point p3, uint8_t lightLevel, uint8_t *lightmap, uint16_t pitch)
+void RenderTriangle(Point p1, Point p2, Point p3, uint8_t lightLevel, uint8_t *lightmap, uint16_t pitch, uint16_t scanLines)
 {
 	// Deltas (points are already 28.4 fixed-point)
 	int dx12 = p1.x - p2.x;
@@ -47,9 +43,9 @@ void RenderTriangle(Point p1, Point p2, Point p3, uint8_t lightLevel, uint8_t *l
 	int miny = (std::min({ p1.y, p2.y, p3.y }) + 0xF) >> 4;
 	int maxy = (std::max({ p1.y, p2.y, p3.y }) + 0xF) >> 4;
 	minx = std::max<int>(minx, 0);
-	maxx = std::min<int>(maxx, gnScreenWidth);
+	maxx = std::min<int>(maxx, pitch);
 	miny = std::max<int>(miny, 0);
-	maxy = std::min<int>(maxy, gnViewportHeight);
+	maxy = std::min<int>(maxy, scanLines);
 
 	uint8_t *dst = lightmap + miny * pitch;
 
@@ -96,7 +92,7 @@ uint8_t Interpolate(uint8_t q1, uint8_t q2, uint8_t lightLevel)
 	return (numerator + 0x8) / (q2 - q1);
 }
 
-void RenderCell(uint8_t quad[4], Point position, uint8_t lightLevel, uint8_t *lightmap, uint16_t pitch)
+void RenderCell(uint8_t quad[4], Point position, uint8_t lightLevel, uint8_t *lightmap, uint16_t pitch, uint16_t scanLines)
 {
 	Point center0 = position;
 	Point center1 = position + Displacement { TILE_WIDTH / 2, TILE_HEIGHT / 2 };
@@ -129,7 +125,7 @@ void RenderCell(uint8_t quad[4], Point position, uint8_t lightLevel, uint8_t *li
 		Point p1 = fpCenter3 + (center2 - center3) * bottomFactor;
 		Point p2 = fpCenter3;
 		Point p3 = fpCenter3 + (center0 - center3) * leftFactor;
-		RenderTriangle(p1, p3, p2, lightLevel, lightmap, pitch);
+		RenderTriangle(p1, p3, p2, lightLevel, lightmap, pitch, scanLines);
 	} break;
 
 	// Fill in the bottom-right corner of the cell
@@ -140,7 +136,7 @@ void RenderCell(uint8_t quad[4], Point position, uint8_t lightLevel, uint8_t *li
 		Point p1 = fpCenter2 + (center1 - center2) * rightFactor;
 		Point p2 = fpCenter2;
 		Point p3 = fpCenter2 + (center3 - center2) * bottomFactor;
-		RenderTriangle(p1, p3, p2, lightLevel, lightmap, pitch);
+		RenderTriangle(p1, p3, p2, lightLevel, lightmap, pitch, scanLines);
 	} break;
 
 	// Fill in the bottom half of the cell
@@ -152,8 +148,8 @@ void RenderCell(uint8_t quad[4], Point position, uint8_t lightLevel, uint8_t *li
 		Point p2 = fpCenter2;
 		Point p3 = fpCenter3;
 		Point p4 = fpCenter3 + (center1 - center2) * leftFactor;
-		RenderTriangle(p1, p4, p2, lightLevel, lightmap, pitch);
-		RenderTriangle(p2, p4, p3, lightLevel, lightmap, pitch);
+		RenderTriangle(p1, p4, p2, lightLevel, lightmap, pitch, scanLines);
+		RenderTriangle(p2, p4, p3, lightLevel, lightmap, pitch, scanLines);
 	} break;
 
 	// Fill in the top-right corner of the cell
@@ -164,7 +160,7 @@ void RenderCell(uint8_t quad[4], Point position, uint8_t lightLevel, uint8_t *li
 		Point p1 = fpCenter1 + (center0 - center1) * topFactor;
 		Point p2 = fpCenter1;
 		Point p3 = fpCenter1 + (center2 - center1) * rightFactor;
-		RenderTriangle(p1, p3, p2, lightLevel, lightmap, pitch);
+		RenderTriangle(p1, p3, p2, lightLevel, lightmap, pitch, scanLines);
 	} break;
 
 	// Fill in the top-right and bottom-left corners of the cell
@@ -188,21 +184,21 @@ void RenderCell(uint8_t quad[4], Point position, uint8_t lightLevel, uint8_t *li
 			uint8_t midFactor2 = Interpolate(quad[2], cell, lightLevel);
 			Point p7 = fpCenter0 + (center2 - center0) / 2 * midFactor0;
 			Point p8 = fpCenter2 + (center0 - center2) / 2 * midFactor2;
-			RenderTriangle(p1, p7, p2, lightLevel, lightmap, pitch);
-			RenderTriangle(p2, p7, p8, lightLevel, lightmap, pitch);
-			RenderTriangle(p2, p8, p3, lightLevel, lightmap, pitch);
-			RenderTriangle(p4, p8, p5, lightLevel, lightmap, pitch);
-			RenderTriangle(p5, p8, p7, lightLevel, lightmap, pitch);
-			RenderTriangle(p5, p7, p6, lightLevel, lightmap, pitch);
+			RenderTriangle(p1, p7, p2, lightLevel, lightmap, pitch, scanLines);
+			RenderTriangle(p2, p7, p8, lightLevel, lightmap, pitch, scanLines);
+			RenderTriangle(p2, p8, p3, lightLevel, lightmap, pitch, scanLines);
+			RenderTriangle(p4, p8, p5, lightLevel, lightmap, pitch, scanLines);
+			RenderTriangle(p5, p8, p7, lightLevel, lightmap, pitch, scanLines);
+			RenderTriangle(p5, p7, p6, lightLevel, lightmap, pitch, scanLines);
 		} else {
 			uint8_t midFactor1 = Interpolate(quad[1], cell, lightLevel);
 			uint8_t midFactor3 = Interpolate(quad[3], cell, lightLevel);
 			Point p7 = fpCenter1 + (center3 - center1) / 2 * midFactor1;
 			Point p8 = fpCenter3 + (center1 - center3) / 2 * midFactor3;
-			RenderTriangle(p1, p7, p2, lightLevel, lightmap, pitch);
-			RenderTriangle(p2, p7, p3, lightLevel, lightmap, pitch);
-			RenderTriangle(p4, p8, p5, lightLevel, lightmap, pitch);
-			RenderTriangle(p5, p8, p6, lightLevel, lightmap, pitch);
+			RenderTriangle(p1, p7, p2, lightLevel, lightmap, pitch, scanLines);
+			RenderTriangle(p2, p7, p3, lightLevel, lightmap, pitch, scanLines);
+			RenderTriangle(p4, p8, p5, lightLevel, lightmap, pitch, scanLines);
+			RenderTriangle(p5, p8, p6, lightLevel, lightmap, pitch, scanLines);
 		}
 	} break;
 
@@ -215,8 +211,8 @@ void RenderCell(uint8_t quad[4], Point position, uint8_t lightLevel, uint8_t *li
 		Point p2 = fpCenter1;
 		Point p3 = fpCenter2;
 		Point p4 = fpCenter2 + (center3 - center2) * bottomFactor;
-		RenderTriangle(p1, p4, p2, lightLevel, lightmap, pitch);
-		RenderTriangle(p2, p4, p3, lightLevel, lightmap, pitch);
+		RenderTriangle(p1, p4, p2, lightLevel, lightmap, pitch, scanLines);
+		RenderTriangle(p2, p4, p3, lightLevel, lightmap, pitch, scanLines);
 	} break;
 
 	// Fill in everything except the top-left corner of the cell
@@ -229,9 +225,9 @@ void RenderCell(uint8_t quad[4], Point position, uint8_t lightLevel, uint8_t *li
 		Point p3 = fpCenter2;
 		Point p4 = fpCenter3;
 		Point p5 = fpCenter3 + (center0 - center3) * leftFactor;
-		RenderTriangle(p1, p3, p2, lightLevel, lightmap, pitch);
-		RenderTriangle(p1, p5, p3, lightLevel, lightmap, pitch);
-		RenderTriangle(p3, p5, p4, lightLevel, lightmap, pitch);
+		RenderTriangle(p1, p3, p2, lightLevel, lightmap, pitch, scanLines);
+		RenderTriangle(p1, p5, p3, lightLevel, lightmap, pitch, scanLines);
+		RenderTriangle(p3, p5, p4, lightLevel, lightmap, pitch, scanLines);
 	} break;
 
 	// Fill in the top-left corner of the cell
@@ -242,7 +238,7 @@ void RenderCell(uint8_t quad[4], Point position, uint8_t lightLevel, uint8_t *li
 		Point p1 = fpCenter0;
 		Point p2 = fpCenter0 + (center1 - center0) * topFactor;
 		Point p3 = fpCenter0 + (center3 - center0) * leftFactor;
-		RenderTriangle(p1, p3, p2, lightLevel, lightmap, pitch);
+		RenderTriangle(p1, p3, p2, lightLevel, lightmap, pitch, scanLines);
 	} break;
 
 	// Fill in the left half of the cell
@@ -254,8 +250,8 @@ void RenderCell(uint8_t quad[4], Point position, uint8_t lightLevel, uint8_t *li
 		Point p2 = fpCenter0 + (center1 - center0) * topFactor;
 		Point p3 = fpCenter3 + (center2 - center3) * bottomFactor;
 		Point p4 = fpCenter3;
-		RenderTriangle(p1, p3, p2, lightLevel, lightmap, pitch);
-		RenderTriangle(p1, p4, p3, lightLevel, lightmap, pitch);
+		RenderTriangle(p1, p3, p2, lightLevel, lightmap, pitch, scanLines);
+		RenderTriangle(p1, p4, p3, lightLevel, lightmap, pitch, scanLines);
 	} break;
 
 	// Fill in the top-left and bottom-right corners of the cell
@@ -279,21 +275,21 @@ void RenderCell(uint8_t quad[4], Point position, uint8_t lightLevel, uint8_t *li
 			uint8_t midFactor3 = Interpolate(quad[3], cell, lightLevel);
 			Point p7 = fpCenter1 + (center3 - center1) / 2 * midFactor1;
 			Point p8 = fpCenter3 + (center1 - center3) / 2 * midFactor3;
-			RenderTriangle(p1, p7, p2, lightLevel, lightmap, pitch);
-			RenderTriangle(p1, p6, p8, lightLevel, lightmap, pitch);
-			RenderTriangle(p1, p8, p7, lightLevel, lightmap, pitch);
-			RenderTriangle(p3, p7, p4, lightLevel, lightmap, pitch);
-			RenderTriangle(p4, p8, p5, lightLevel, lightmap, pitch);
-			RenderTriangle(p4, p7, p8, lightLevel, lightmap, pitch);
+			RenderTriangle(p1, p7, p2, lightLevel, lightmap, pitch, scanLines);
+			RenderTriangle(p1, p6, p8, lightLevel, lightmap, pitch, scanLines);
+			RenderTriangle(p1, p8, p7, lightLevel, lightmap, pitch, scanLines);
+			RenderTriangle(p3, p7, p4, lightLevel, lightmap, pitch, scanLines);
+			RenderTriangle(p4, p8, p5, lightLevel, lightmap, pitch, scanLines);
+			RenderTriangle(p4, p7, p8, lightLevel, lightmap, pitch, scanLines);
 		} else {
 			uint8_t midFactor0 = Interpolate(quad[0], cell, lightLevel);
 			uint8_t midFactor2 = Interpolate(quad[2], cell, lightLevel);
 			Point p7 = fpCenter0 + (center2 - center0) / 2 * midFactor0;
 			Point p8 = fpCenter2 + (center0 - center2) / 2 * midFactor2;
-			RenderTriangle(p1, p7, p2, lightLevel, lightmap, pitch);
-			RenderTriangle(p1, p6, p7, lightLevel, lightmap, pitch);
-			RenderTriangle(p3, p8, p4, lightLevel, lightmap, pitch);
-			RenderTriangle(p4, p8, p5, lightLevel, lightmap, pitch);
+			RenderTriangle(p1, p7, p2, lightLevel, lightmap, pitch, scanLines);
+			RenderTriangle(p1, p6, p7, lightLevel, lightmap, pitch, scanLines);
+			RenderTriangle(p3, p8, p4, lightLevel, lightmap, pitch, scanLines);
+			RenderTriangle(p4, p8, p5, lightLevel, lightmap, pitch, scanLines);
 		}
 	} break;
 
@@ -307,9 +303,9 @@ void RenderCell(uint8_t quad[4], Point position, uint8_t lightLevel, uint8_t *li
 		Point p3 = fpCenter2 + (center1 - center2) * rightFactor;
 		Point p4 = fpCenter2;
 		Point p5 = fpCenter3;
-		RenderTriangle(p1, p5, p2, lightLevel, lightmap, pitch);
-		RenderTriangle(p2, p5, p3, lightLevel, lightmap, pitch);
-		RenderTriangle(p3, p5, p4, lightLevel, lightmap, pitch);
+		RenderTriangle(p1, p5, p2, lightLevel, lightmap, pitch, scanLines);
+		RenderTriangle(p2, p5, p3, lightLevel, lightmap, pitch, scanLines);
+		RenderTriangle(p3, p5, p4, lightLevel, lightmap, pitch, scanLines);
 	} break;
 
 	// Fill in the top half of the cell
@@ -321,8 +317,8 @@ void RenderCell(uint8_t quad[4], Point position, uint8_t lightLevel, uint8_t *li
 		Point p2 = fpCenter1;
 		Point p3 = fpCenter1 + (center2 - center1) * rightFactor;
 		Point p4 = fpCenter0 + (center3 - center0) * leftFactor;
-		RenderTriangle(p1, p3, p2, lightLevel, lightmap, pitch);
-		RenderTriangle(p1, p4, p3, lightLevel, lightmap, pitch);
+		RenderTriangle(p1, p3, p2, lightLevel, lightmap, pitch, scanLines);
+		RenderTriangle(p1, p4, p3, lightLevel, lightmap, pitch, scanLines);
 	} break;
 
 	// Fill in everything except the bottom-right corner of the cell
@@ -335,9 +331,9 @@ void RenderCell(uint8_t quad[4], Point position, uint8_t lightLevel, uint8_t *li
 		Point p3 = fpCenter1 + (center2 - center1) * rightFactor;
 		Point p4 = fpCenter3 + (center2 - center3) * bottomFactor;
 		Point p5 = fpCenter3;
-		RenderTriangle(p1, p3, p2, lightLevel, lightmap, pitch);
-		RenderTriangle(p1, p4, p3, lightLevel, lightmap, pitch);
-		RenderTriangle(p2, p5, p4, lightLevel, lightmap, pitch);
+		RenderTriangle(p1, p3, p2, lightLevel, lightmap, pitch, scanLines);
+		RenderTriangle(p1, p4, p3, lightLevel, lightmap, pitch, scanLines);
+		RenderTriangle(p2, p5, p4, lightLevel, lightmap, pitch, scanLines);
 	} break;
 
 	// Fill in everything except the bottom-left corner of the cell
@@ -350,37 +346,26 @@ void RenderCell(uint8_t quad[4], Point position, uint8_t lightLevel, uint8_t *li
 		Point p3 = fpCenter2;
 		Point p4 = fpCenter2 + (center3 - center2) * bottomFactor;
 		Point p5 = fpCenter0 + (center3 - center0) * leftFactor;
-		RenderTriangle(p1, p5, p2, lightLevel, lightmap, pitch);
-		RenderTriangle(p2, p5, p4, lightLevel, lightmap, pitch);
-		RenderTriangle(p2, p4, p3, lightLevel, lightmap, pitch);
+		RenderTriangle(p1, p5, p2, lightLevel, lightmap, pitch, scanLines);
+		RenderTriangle(p2, p5, p4, lightLevel, lightmap, pitch, scanLines);
+		RenderTriangle(p2, p4, p3, lightLevel, lightmap, pitch, scanLines);
 	} break;
 
 	// Fill in the whole cell
 	// All four tiles in the quad are lit
 	case 15: {
-		RenderTriangle(fpCenter0, fpCenter2, fpCenter1, lightLevel, lightmap, pitch);
-		RenderTriangle(fpCenter0, fpCenter3, fpCenter2, lightLevel, lightmap, pitch);
+		RenderTriangle(fpCenter0, fpCenter2, fpCenter1, lightLevel, lightmap, pitch, scanLines);
+		RenderTriangle(fpCenter0, fpCenter3, fpCenter2, lightLevel, lightmap, pitch, scanLines);
 	} break;
 	}
 }
 
-} // namespace
-
-Lightmap::Lightmap(uint8_t *outBuffer)
-    : outBuffer(outBuffer)
-    , lightmapBuffer(LightmapBuffer.data())
-    , lightTables(LightTables[0].data())
-    , lightTableSize(LightTables[0].size())
-{
-}
-
-void BuildLightmap(Point tilePosition, Point targetBufferPosition, int rows, int columns)
+void BuildLightmap(Point tilePosition, Point targetBufferPosition, uint16_t viewportWidth, uint16_t viewportHeight, int rows, int columns)
 {
 	if (!*GetOptions().Graphics.perPixelLighting)
 		return;
 
-	const int screenWidth = gnScreenWidth;
-	const size_t totalPixels = static_cast<size_t>(screenWidth) * gnViewportHeight;
+	const size_t totalPixels = static_cast<size_t>(viewportWidth) * viewportHeight;
 	LightmapBuffer.resize(totalPixels);
 
 	// Since rendering occurs in cells between quads,
@@ -417,7 +402,7 @@ void BuildLightmap(Point tilePosition, Point targetBufferPosition, int rows, int
 					continue;
 				if (lightLevel < minLight)
 					break;
-				RenderCell(quad, center0, lightLevel, lightmap, screenWidth);
+				RenderCell(quad, center0, lightLevel, lightmap, viewportWidth, viewportHeight);
 			}
 		}
 
@@ -437,6 +422,24 @@ void BuildLightmap(Point tilePosition, Point targetBufferPosition, int rows, int
 			targetBufferPosition.x -= TILE_WIDTH / 2;
 		}
 	}
+}
+
+} // namespace
+
+Lightmap::Lightmap(const uint8_t *outBuffer, const uint8_t *lightmapBuffer, const uint8_t *lightTables, size_t lightTableSize)
+    : outBuffer(outBuffer)
+    , lightmapBuffer(lightmapBuffer)
+    , lightTables(lightTables)
+    , lightTableSize(lightTableSize)
+{
+}
+
+Lightmap Lightmap::build(Point tilePosition, Point targetBufferPosition,
+    int viewportWidth, int viewportHeight, int rows, int columns,
+    const uint8_t *outBuffer, const uint8_t *lightTables, size_t lightTableSize)
+{
+	BuildLightmap(tilePosition, targetBufferPosition, viewportWidth, viewportHeight, rows, columns);
+	return Lightmap(outBuffer, LightmapBuffer.data(), lightTables, lightTableSize);
 }
 
 } // namespace devilution

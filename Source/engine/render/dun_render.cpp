@@ -150,9 +150,9 @@ template <>
 DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLineOpaque<LightType::PerPixel>(uint8_t *DVL_RESTRICT dst, const uint8_t *DVL_RESTRICT src, uint_fast8_t n, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap)
 {
 #ifndef DEBUG_RENDER_COLOR
-	BlitPixelsWithLightmap(dst, src, n, lightmap);
+	BlitPixelsWithLightmap(dst, src, n, *lightmap);
 #else
-	BlitFillWithLightmap(dst, n, DBGCOLOR, lightmap);
+	BlitFillWithLightmap(dst, n, DBGCOLOR, *lightmap);
 #endif
 }
 
@@ -181,7 +181,7 @@ DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLineTransparent<LightType::Partia
 template <>
 DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLineTransparent<LightType::PerPixel>(uint8_t *DVL_RESTRICT dst, const uint8_t *DVL_RESTRICT src, uint_fast8_t n, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap)
 {
-	BlitPixelsBlendedWithLightmap(dst, src, n, lightmap);
+	BlitPixelsBlendedWithLightmap(dst, src, n, *lightmap);
 }
 #else // DEBUG_RENDER_COLOR
 template <LightType Light>
