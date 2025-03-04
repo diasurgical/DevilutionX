@@ -134,8 +134,7 @@ PanelEntry panelEntries[] = {
 	    []() { return StyledText { UiFlags::ColorWhite, StrCat(InspectPlayer->getCharacterLevel()) }; } },
 	{ N_("Experience"), { TopRightLabelX, 52 }, 99, 91,
 	    []() {
-	        int spacing = ((InspectPlayer->_pExperience >= 1000000000) ? 0 : 1);
-	        return StyledText { UiFlags::ColorWhite, FormatInteger(InspectPlayer->_pExperience), spacing };
+	        return StyledText { UiFlags::ColorWhite, FormatInteger(InspectPlayer->_pExperience) };
 	    } },
 	{ N_("Next level"), { TopRightLabelX, 80 }, 99, 198,
 	    []() {
@@ -143,8 +142,7 @@ PanelEntry panelEntries[] = {
 		        return StyledText { UiFlags::ColorWhitegold, std::string(_("None")) };
 	        }
 	        uint32_t nextExperienceThreshold = InspectPlayer->getNextExperienceThreshold();
-	        int spacing = ((nextExperienceThreshold >= 1000000000) ? 0 : 1);
-	        return StyledText { UiFlags::ColorWhite, FormatInteger(nextExperienceThreshold), spacing };
+	        return StyledText { UiFlags::ColorWhite, FormatInteger(nextExperienceThreshold) };
 	    } },
 
 	{ N_("Base"), { LeftColumnLabelX, /* set dynamically */ 0 }, 0, 44, {} },
@@ -180,8 +178,7 @@ PanelEntry panelEntries[] = {
 	{ N_("Damage"), { RightColumnLabelX, 219 }, 57, RightColumnLabelWidth,
 	    []() {
 	        const auto [dmgMin, dmgMax] = GetDamage();
-	        int spacing = ((dmgMin >= 100) ? -1 : 1);
-	        return StyledText { GetValueColor(InspectPlayer->_pIBonusDam), StrCat(dmgMin, "-", dmgMax), spacing };
+	        return StyledText { GetValueColor(InspectPlayer->_pIBonusDam), StrCat(dmgMin, "-", dmgMax) };
 	    } },
 
 	{ N_("Life"), { LeftColumnLabelX, 284 }, 45, LeftColumnLabelWidth,
@@ -206,6 +203,7 @@ OptionalOwnedClxSpriteList Panel;
 constexpr int PanelFieldHeight = 24;
 constexpr int PanelFieldPaddingTop = 3;
 constexpr int PanelFieldPaddingBottom = 3;
+constexpr int PanelFieldPaddingSide = 5;
 constexpr int PanelFieldInnerHeight = PanelFieldHeight - PanelFieldPaddingTop - PanelFieldPaddingBottom;
 
 void DrawPanelField(const Surface &out, Point pos, int len, ClxSprite left, ClxSprite middle, ClxSprite right)
@@ -318,8 +316,8 @@ void DrawChr(const Surface &out)
 			DrawString(
 			    out,
 			    tmp.text,
-			    { entry.position + Displacement { pos.x, pos.y + PanelFieldPaddingTop }, { entry.length, PanelFieldInnerHeight } },
-			    { .flags = UiFlags::AlignCenter | UiFlags::VerticalCenter | tmp.style, .spacing = tmp.spacing });
+			    { entry.position + Displacement { pos.x + PanelFieldPaddingSide, pos.y + PanelFieldPaddingTop }, { entry.length - (PanelFieldPaddingSide * 2), PanelFieldInnerHeight } },
+			    { .flags = UiFlags::KerningFitSpacing | UiFlags::AlignCenter | UiFlags::VerticalCenter | tmp.style });
 		}
 	}
 	DrawStatButtons(out);
