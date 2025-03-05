@@ -1252,8 +1252,7 @@ msgstr ""
 #: Source/data/file.cpp:70
 msgid "Non-numeric value {0} for {1} in {2} at row {3} and column {4}"
 msgstr ""
-"Nienumeryczna wartość dla {0} w kolumnie {1} w pliku {2}, rząd {3} kolumna "
-"{4}"
+"Nienumeryczna wartość {0} dla {1} w pliku {2}, rząd {3} kolumna {4}"
 
 #. TRANSLATORS: Error message when parsing a data file and we find a number larger than expected. Arguments are {found value}, {column heading}, {file name}, {row/record number}, {column/field number}
 #: Source/data/file.cpp:76
