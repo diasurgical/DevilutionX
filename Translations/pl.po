@@ -1790,7 +1790,7 @@ msgstr "Ruch myszy w lewo"
 
 #: Source/diablo.cpp:2225
 msgid "Simulates leftward mouse movement."
-msgstr "Symuluje ruch myszą w lewo.Ruch myszy w prawo"
+msgstr "Symuluje ruch myszą w lewo."
 
 #: Source/diablo.cpp:2230
 msgid "Move mouse right"
