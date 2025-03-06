@@ -536,6 +536,10 @@ void DrawCell(const Surface &out, const Lightmap lightmap, Point tilePosition, P
 		return MaskType::Solid;
 	};
 
+	// Create a special lightmap buffer to bleed light up walls
+	uint8_t lightmapBuffer[TILE_WIDTH * TILE_HEIGHT];
+	Lightmap bleedLightmap = Lightmap::bleedUp(lightmap, targetBufferPosition, lightmapBuffer);
+
 	// If the first micro tile is a floor tile, it may be followed
 	// by foliage which should be rendered now.
 	const bool isFloor = IsFloor(tilePosition);
@@ -543,9 +547,9 @@ void DrawCell(const Surface &out, const Lightmap lightmap, Point tilePosition, P
 		const TileType tileType = levelCelBlock.type();
 		if (!isFloor || tileType == TileType::TransparentSquare) {
 			if (isFloor && tileType == TileType::TransparentSquare) {
-				RenderTileFoliage(out, lightmap, targetBufferPosition, levelCelBlock, foliageTbl);
+				RenderTileFoliage(out, bleedLightmap, targetBufferPosition, levelCelBlock, foliageTbl);
 			} else {
-				RenderTile(out, lightmap, targetBufferPosition, levelCelBlock, getFirstTileMaskLeft(tileType), tbl);
+				RenderTile(out, bleedLightmap, targetBufferPosition, levelCelBlock, getFirstTileMaskLeft(tileType), tbl);
 			}
 		}
 	}
@@ -553,9 +557,9 @@ void DrawCell(const Surface &out, const Lightmap lightmap, Point tilePosition, P
 		const TileType tileType = levelCelBlock.type();
 		if (!isFloor || tileType == TileType::TransparentSquare) {
 			if (isFloor && tileType == TileType::TransparentSquare) {
-				RenderTileFoliage(out, lightmap, targetBufferPosition + RightFrameDisplacement, levelCelBlock, foliageTbl);
+				RenderTileFoliage(out, bleedLightmap, targetBufferPosition + RightFrameDisplacement, levelCelBlock, foliageTbl);
 			} else {
-				RenderTile(out, lightmap, targetBufferPosition + RightFrameDisplacement,
+				RenderTile(out, bleedLightmap, targetBufferPosition + RightFrameDisplacement,
 				    levelCelBlock, getFirstTileMaskRight(tileType), tbl);
 			}
 		}
@@ -566,7 +570,7 @@ void DrawCell(const Surface &out, const Lightmap lightmap, Point tilePosition, P
 		{
 			const LevelCelBlock levelCelBlock { pMap->mt[i] };
 			if (levelCelBlock.hasValue()) {
-				RenderTile(out, lightmap, targetBufferPosition,
+				RenderTile(out, bleedLightmap, targetBufferPosition,
 				    levelCelBlock,
 				    transparency ? MaskType::Transparent : MaskType::Solid, foliageTbl);
 			}
@@ -574,7 +578,7 @@ void DrawCell(const Surface &out, const Lightmap lightmap, Point tilePosition, P
 		{
 			const LevelCelBlock levelCelBlock { pMap->mt[i + 1] };
 			if (levelCelBlock.hasValue()) {
-				RenderTile(out, lightmap, targetBufferPosition + RightFrameDisplacement,
+				RenderTile(out, bleedLightmap, targetBufferPosition + RightFrameDisplacement,
 				    levelCelBlock,
 				    transparency ? MaskType::Transparent : MaskType::Solid, foliageTbl);
 			}
@@ -839,10 +843,15 @@ void DrawDungeon(const Surface &out, const Lightmap &lightmap, Point tilePositio
 			// Turn transparency off here for debugging
 			transparency = transparency && (SDL_GetModState() & KMOD_ALT) == 0;
 #endif
-			if (perPixelLighting && transparency) {
-				ClxDrawBlendedWithLightmap(out, targetBufferPosition, (*pSpecialCels)[bArch], lightmap);
-			} else if (perPixelLighting) {
-				ClxDrawWithLightmap(out, targetBufferPosition, (*pSpecialCels)[bArch], lightmap);
+			if (perPixelLighting) {
+				// Create a special lightmap buffer to bleed light up walls
+				uint8_t lightmapBuffer[TILE_WIDTH * TILE_HEIGHT];
+				Lightmap bleedLightmap = Lightmap::bleedUp(lightmap, targetBufferPosition, lightmapBuffer);
+
+				if (transparency)
+					ClxDrawBlendedWithLightmap(out, targetBufferPosition, (*pSpecialCels)[bArch], bleedLightmap);
+				else
+					ClxDrawWithLightmap(out, targetBufferPosition, (*pSpecialCels)[bArch], bleedLightmap);
 			} else if (transparency) {
 				ClxDrawLightBlended(out, targetBufferPosition, (*pSpecialCels)[bArch], lightTableIndex);
 			} else {

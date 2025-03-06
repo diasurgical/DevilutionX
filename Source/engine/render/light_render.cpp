@@ -1,10 +1,13 @@
 #include "engine/render/light_render.hpp"
 
+#include <cassert>
+#include <span>
 #include <vector>
 
 #include "engine/displacement.hpp"
 #include "engine/point.hpp"
 #include "levels/dun_tile.hpp"
+#include "levels/gendung.h"
 #include "lighting.h"
 #include "options.h"
 
@@ -365,7 +368,12 @@ void BuildLightmap(Point tilePosition, Point targetBufferPosition, uint16_t view
 	if (!*GetOptions().Graphics.perPixelLighting)
 		return;
 
-	const size_t totalPixels = static_cast<size_t>(viewportWidth) * viewportHeight;
+	// Since light may need to bleed up to the top of wall tiles,
+	// expand the buffer space to include the full base diamond of the tallest tile graphics
+	const uint16_t bufferHeight = viewportHeight + TILE_HEIGHT * (MicroTileLen / 2 + 1);
+	rows += MicroTileLen + 2;
+
+	const size_t totalPixels = static_cast<size_t>(viewportWidth) * bufferHeight;
 	LightmapBuffer.resize(totalPixels);
 
 	// Since rendering occurs in cells between quads,
@@ -402,7 +410,7 @@ void BuildLightmap(Point tilePosition, Point targetBufferPosition, uint16_t view
 					continue;
 				if (lightLevel < minLight)
 					break;
-				RenderCell(quad, center0, lightLevel, lightmap, viewportWidth, viewportHeight);
+				RenderCell(quad, center0, lightLevel, lightmap, viewportWidth, bufferHeight);
 			}
 		}
 
@@ -426,9 +434,13 @@ void BuildLightmap(Point tilePosition, Point targetBufferPosition, uint16_t view
 
 } // namespace
 
-Lightmap::Lightmap(const uint8_t *outBuffer, const uint8_t *lightmapBuffer, const uint8_t *lightTables, size_t lightTableSize)
+Lightmap::Lightmap(const uint8_t *outBuffer, uint16_t outPitch,
+    std::span<const uint8_t> lightmapBuffer, uint16_t lightmapPitch,
+    const uint8_t *lightTables, size_t lightTableSize)
     : outBuffer(outBuffer)
+    , outPitch(outPitch)
     , lightmapBuffer(lightmapBuffer)
+    , lightmapPitch(lightmapPitch)
     , lightTables(lightTables)
     , lightTableSize(lightTableSize)
 {
@@ -439,7 +451,63 @@ Lightmap Lightmap::build(Point tilePosition, Point targetBufferPosition,
     const uint8_t *outBuffer, const uint8_t *lightTables, size_t lightTableSize)
 {
 	BuildLightmap(tilePosition, targetBufferPosition, viewportWidth, viewportHeight, rows, columns);
-	return Lightmap(outBuffer, LightmapBuffer.data(), lightTables, lightTableSize);
+	return Lightmap(outBuffer, LightmapBuffer, gnScreenWidth, lightTables, lightTableSize);
+}
+
+Lightmap Lightmap::bleedUp(const Lightmap &source, Point targetBufferPosition, std::span<uint8_t> lightmapBuffer)
+{
+	assert(lightmapBuffer.size() >= TILE_WIDTH * TILE_HEIGHT);
+
+	if (!*GetOptions().Graphics.perPixelLighting)
+		return source;
+
+	const int sourceHeight = static_cast<int>(source.lightmapBuffer.size() / source.lightmapPitch);
+	const int clipLeft = std::max(0, -targetBufferPosition.x);
+	const int clipTop = std::max(0, -(targetBufferPosition.y - TILE_HEIGHT + 1));
+	const int clipRight = std::max(0, targetBufferPosition.x + TILE_WIDTH - source.outPitch);
+	const int clipBottom = std::max(0, targetBufferPosition.y - sourceHeight + 1);
+
+	// Nothing we can do if the tile is completely outside the bounds of the lightmap
+	if (clipLeft + clipRight >= TILE_WIDTH)
+		return source;
+	if (clipTop + clipBottom >= TILE_HEIGHT)
+		return source;
+
+	const uint16_t lightmapPitch = std::max(0, TILE_WIDTH - clipLeft - clipRight);
+	const uint16_t lightmapHeight = TILE_HEIGHT - clipTop - clipBottom;
+
+	// Find the left edge of the last row in the tile
+	const int outOffset = std::max(0, (targetBufferPosition.y - clipBottom) * source.outPitch + targetBufferPosition.x + clipLeft);
+	const uint8_t *outLoc = source.outBuffer + outOffset;
+	const uint8_t *outBuffer = outLoc - (lightmapHeight - 1) * source.outPitch;
+
+	// Start copying bytes from the bottom row of the tile
+	const uint8_t *src = source.getLightingAt(outLoc);
+	uint8_t *dst = lightmapBuffer.data() + (lightmapHeight - 1) * lightmapPitch;
+
+	int rowCount = clipBottom;
+	while (src >= source.lightmapBuffer.data() && dst >= lightmapBuffer.data()) {
+		const int bleed = std::max(0, (rowCount - TILE_HEIGHT / 2) * 2);
+		const int lightOffset = std::max(bleed, clipLeft) - clipLeft;
+		const int lightLength = std::max(0, TILE_WIDTH - clipLeft - std::max(bleed, clipRight) - lightOffset);
+
+		// Bleed pixels up by copying data from the row below this one
+		if (rowCount > clipBottom && lightLength < lightmapPitch)
+			memcpy(dst, dst + lightmapPitch, lightmapPitch);
+
+		// Copy data from the source lightmap between the top edge of the base diamond
+		assert(dst + lightOffset + lightLength <= lightmapBuffer.data() + TILE_WIDTH * TILE_HEIGHT);
+		assert(src + lightOffset + lightLength <= LightmapBuffer.data() + LightmapBuffer.size());
+		memcpy(dst + lightOffset, src + lightOffset, lightLength);
+
+		src -= source.lightmapPitch;
+		dst -= lightmapPitch;
+		rowCount++;
+	}
+
+	return Lightmap(outBuffer, source.outPitch,
+	    lightmapBuffer, lightmapPitch,
+	    source.lightTables, source.lightTableSize);
 }
 
 } // namespace devilution

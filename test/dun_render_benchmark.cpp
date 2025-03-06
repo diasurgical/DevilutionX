@@ -65,7 +65,7 @@ void InitOnce()
 void RunForTileMaskLight(benchmark::State &state, TileType tileType, MaskType maskType, const uint8_t *lightTable)
 {
 	Surface out = Surface(SdlSurface.get());
-	Lightmap lightmap(nullptr, nullptr, nullptr, 0);
+	Lightmap lightmap(nullptr, {}, 1, nullptr, 0);
 	size_t numItemsProcessed = 0;
 	const std::span<const LevelCelBlock> tiles = Tiles[tileType];
 	for (auto _ : state) {
