@@ -2455,9 +2455,9 @@ msgid ""
 "in the play area."
 msgstr ""
 "Możesz zobaczyć listę dostępnych czarów i umiejętności klikając w przycisk "
-"'Czary' na panelu postaci. Po wykonaniu lewokliku na danym zaklęciu, staje "
-"się ono aktywne i gotowe do użycia. Następnie prawoklik na danym terenie, "
-"umożliwia rzucenie go."
+"'Czary' na panelu postaci. Po kliknięciu lewym przyciskiem myszy na danym "
+"zaklęciu, staje się ono aktywne i gotowe do użycia. Kliknięcie prawym "
+"przyciskiem myszy na danym terenie, umożliwia rzucenie go."
 
 #: Source/help.cpp:81
 msgid "$Using the Speedbook for Spells:"
@@ -2750,25 +2750,23 @@ msgstr "(działa tylko na arenach)"
 
 #: Source/items.cpp:1757
 msgid "Right-click to view"
-msgstr ""
-"Prawy przycisk myszy\n"
-"by wyświetlić"
+msgstr "PPM by wyświetlić"
 
 #: Source/items.cpp:1760
 msgid "Right-click to use"
-msgstr "Prawy przycisk myszy by użyć"
+msgstr "PPM by użyć"
 
 #: Source/items.cpp:1762
 msgid ""
 "Right-click to read, then\n"
 "left-click to target"
 msgstr ""
-"Prawy przycisk myszy by czytać,\n"
-"potem lewy przycisk myszy na cel"
+"PPM by odczytać, następnie\n"
+"LPM na cel"
 
 #: Source/items.cpp:1764
 msgid "Right-click to read"
-msgstr "Prawy przycisk myszy by czytać"
+msgstr "PPM by odczytać"
 
 #: Source/items.cpp:1771
 msgid "Activate to view"
