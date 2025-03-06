@@ -1251,22 +1251,17 @@ msgstr ""
 #. TRANSLATORS: Error message when parsing a data file and a text value is encountered when a number is expected. Arguments are {found value}, {column heading}, {file name}, {row/record number}, {column/field number}
 #: Source/data/file.cpp:70
 msgid "Non-numeric value {0} for {1} in {2} at row {3} and column {4}"
-msgstr ""
-"Nienumeryczna wartość {0} dla {1} w pliku {2}, rząd {3} kolumna {4}"
+msgstr "Nienumeryczna wartość {0} dla {1} w pliku {2}, rząd {3} kolumna {4}"
 
 #. TRANSLATORS: Error message when parsing a data file and we find a number larger than expected. Arguments are {found value}, {column heading}, {file name}, {row/record number}, {column/field number}
 #: Source/data/file.cpp:76
 msgid "Out of range value {0} for {1} in {2} at row {3} and column {4}"
-msgstr ""
-"Wartość spoza zakresu dla {0} w kolumnie {1} w pliku {2}, rząd {3} kolumna "
-"{4}"
+msgstr "Wartość spoza zakresu {0} dla {1} w pliku {2}, rząd {3} kolumna {4}"
 
 #. TRANSLATORS: Error message when we find an unrecognised value in a key column. Arguments are {found value}, {column heading}, {file name}, {row/record number}, {column/field number}
 #: Source/data/file.cpp:82
 msgid "Invalid value {0} for {1} in {2} at row {3} and column {4}"
-msgstr ""
-"Nieprawidłowa wartość dla {0} w kolumnie {1} w pliku {2}, rząd {3} kolumna "
-"{4}"
+msgstr "Nieprawidłowa wartość {0} dla {1} w pliku {2}, rząd {3} kolumna {4}"
 
 #: Source/diablo.cpp:137
 msgid "I need help! Come here!"
@@ -2361,23 +2356,25 @@ msgstr "F5, F6, F7, F8:     Ustawianie skrótu klawiszowego umiejętności"
 
 #: Source/help.cpp:44
 msgid "Shift + Left Mouse Button: Attack without moving"
-msgstr "Shift + Lewoklik: Atak w miejscu"
+msgstr "Shift + Lewy Przycisk Myszy: Atak w miejscu"
 
 #: Source/help.cpp:45
 msgid "Shift + Left Mouse Button (on character screen): Assign all stat points"
-msgstr "Shift + Lewoklik (na panelu postaci): Przydziel wszystkie punkty"
+msgstr ""
+"Shift + Lewy Przycisk Myszy (na panelu postaci): Przydziel wszystkie punkty"
 
 #: Source/help.cpp:46
 msgid ""
 "Shift + Left Mouse Button (on inventory): Move item to belt or equip/unequip "
 "item"
 msgstr ""
-"Shift + Lewoklik (w ekwipunku): Przenieś na pas lub przygotuj/schowaj "
-"przedmiot"
+"Shift + Lewy Przycisk Myszy (w ekwipunku): Przenieś na pas lub przygotuj/"
+"schowaj przedmiot"
 
 #: Source/help.cpp:47
 msgid "Shift + Left Mouse Button (on belt): Move item to inventory"
-msgstr "Shift + Lewoklik (na pasie): Przenieś przedmiot do ekwipunku"
+msgstr ""
+"Shift + Lewy Przycisk Myszy (na pasie): Przenieś przedmiot do ekwipunku"
 
 #: Source/help.cpp:49
 msgid "$Movement:"
@@ -2441,7 +2438,9 @@ msgstr "$Złoto:"
 msgid ""
 "You can select a specific amount of gold to drop by right-clicking on a pile "
 "of gold in your inventory."
-msgstr "Prawoklik na złocie w ekwipunku umożliwia jego rozdzielenie."
+msgstr ""
+"Kliknięcie prawym przyciskiem myszy na złocie w ekwipunku umożliwia jego "
+"rozdzielenie."
 
 #: Source/help.cpp:74
 msgid "$Skills & Spells:"
@@ -2470,8 +2469,9 @@ msgid ""
 "allows you to select a skill or spell for immediate use. To use a readied "
 "skill or spell, simply right-click in the main play area."
 msgstr ""
-"Lewoklik na 'przygotowany czar' otworzy 'podręczną księgę' pozwalającą "
-"wybrać umiejętność. By ją użyć wykonaj prawoklik w głównym oknie rozgrywki."
+"Kliknięcie lewym przyciskiem myszy na 'przygotowany czar' otworzy 'podręczną "
+"księgę' pozwalającą wybrać umiejętność. By ją użyć kliknij prawym "
+"przyciskiem myszy w głównym oknie rozgrywki."
 
 #: Source/help.cpp:86
 msgid ""
@@ -2750,23 +2750,25 @@ msgstr "(działa tylko na arenach)"
 
 #: Source/items.cpp:1757
 msgid "Right-click to view"
-msgstr "Prawoklik by wyświetlić"
+msgstr ""
+"Prawy przycisk myszy\n"
+"by wyświetlić"
 
 #: Source/items.cpp:1760
 msgid "Right-click to use"
-msgstr "Prawoklik by użyć"
+msgstr "Prawy przycisk myszy by użyć"
 
 #: Source/items.cpp:1762
 msgid ""
 "Right-click to read, then\n"
 "left-click to target"
 msgstr ""
-"Prawoklik by odczytać, potem\n"
-"lewoklik na cel"
+"Prawy przycisk myszy by czytać,\n"
+"potem lewy przycisk myszy na cel"
 
 #: Source/items.cpp:1764
 msgid "Right-click to read"
-msgstr "Prawoklik by odczytać"
+msgstr "Prawy przycisk myszy by czytać"
 
 #: Source/items.cpp:1771
 msgid "Activate to view"
