@@ -85,11 +85,13 @@ void RenderTriangle(Point p1, Point p2, Point p3, uint8_t lightLevel, uint8_t *l
 	}
 }
 
-uint8_t Interpolate(uint8_t q1, uint8_t q2, uint8_t lightLevel)
+uint8_t Interpolate(int q1, int q2, int lightLevel)
 {
 	// Result will be 28.4 fixed-point
-	uint8_t numerator = (lightLevel - q1) << 4;
-	return (numerator + 0x8) / (q2 - q1);
+	int numerator = (lightLevel - q1) << 4;
+	int result = (numerator + 0x8) / (q2 - q1);
+	assert(result >= 0);
+	return static_cast<uint8_t>(result);
 }
 
 void RenderCell(uint8_t quad[4], Point position, uint8_t lightLevel, uint8_t *lightmap, uint16_t pitch, uint16_t scanLines)
