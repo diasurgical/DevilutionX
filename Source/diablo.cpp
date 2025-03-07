@@ -77,6 +77,7 @@
 #include "pfile.h"
 #include "playerdat.hpp"
 #include "plrmsg.h"
+#include "portal.h"
 #include "qol/chatlog.h"
 #include "qol/floatingnumbers.h"
 #include "qol/itemlabels.h"

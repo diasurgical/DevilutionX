@@ -188,7 +188,7 @@ uint8_t NextTalkSave;
 char TalkMessage[MAX_SEND_STR_LEN];
 bool TalkButtonsDown[3];
 int sgbPlrTalkTbl;
-bool WhisperList[MAX_PLRS];
+bool WhisperList[MaxPlayers];
 int PanelPaddingHeight = 16;
 
 TextInputCursorState ChatCursor;
