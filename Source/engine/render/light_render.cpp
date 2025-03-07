@@ -335,7 +335,7 @@ void RenderCell(uint8_t quad[4], Point position, uint8_t lightLevel, uint8_t *li
 		Point p5 = fpCenter3;
 		RenderTriangle(p1, p3, p2, lightLevel, lightmap, pitch, scanLines);
 		RenderTriangle(p1, p4, p3, lightLevel, lightmap, pitch, scanLines);
-		RenderTriangle(p2, p5, p4, lightLevel, lightmap, pitch, scanLines);
+		RenderTriangle(p1, p5, p4, lightLevel, lightmap, pitch, scanLines);
 	} break;
 
 	// Fill in everything except the bottom-left corner of the cell
