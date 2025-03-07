@@ -450,10 +450,11 @@ Lightmap::Lightmap(const uint8_t *outBuffer, uint16_t outPitch,
 
 Lightmap Lightmap::build(Point tilePosition, Point targetBufferPosition,
     int viewportWidth, int viewportHeight, int rows, int columns,
-    const uint8_t *outBuffer, const uint8_t *lightTables, size_t lightTableSize)
+    const uint8_t *outBuffer, uint16_t outPitch,
+    const uint8_t *lightTables, size_t lightTableSize)
 {
 	BuildLightmap(tilePosition, targetBufferPosition, viewportWidth, viewportHeight, rows, columns);
-	return Lightmap(outBuffer, LightmapBuffer, gnScreenWidth, lightTables, lightTableSize);
+	return Lightmap(outBuffer, outPitch, LightmapBuffer, gnScreenWidth, lightTables, lightTableSize);
 }
 
 Lightmap Lightmap::bleedUp(const Lightmap &source, Point targetBufferPosition, std::span<uint8_t> lightmapBuffer)
@@ -466,7 +467,7 @@ Lightmap Lightmap::bleedUp(const Lightmap &source, Point targetBufferPosition, s
 	const int sourceHeight = static_cast<int>(source.lightmapBuffer.size() / source.lightmapPitch);
 	const int clipLeft = std::max(0, -targetBufferPosition.x);
 	const int clipTop = std::max(0, -(targetBufferPosition.y - TILE_HEIGHT + 1));
-	const int clipRight = std::max(0, targetBufferPosition.x + TILE_WIDTH - source.outPitch);
+	const int clipRight = std::max(0, targetBufferPosition.x + TILE_WIDTH - source.lightmapPitch);
 	const int clipBottom = std::max(0, targetBufferPosition.y - sourceHeight + 1);
 
 	// Nothing we can do if the tile is completely outside the bounds of the lightmap
@@ -499,7 +500,7 @@ Lightmap Lightmap::bleedUp(const Lightmap &source, Point targetBufferPosition, s
 
 		// Copy data from the source lightmap between the top edge of the base diamond
 		assert(dst + lightOffset + lightLength <= lightmapBuffer.data() + TILE_WIDTH * TILE_HEIGHT);
-		assert(src + lightOffset + lightLength <= LightmapBuffer.data() + LightmapBuffer.size());
+		assert(src + lightOffset + lightLength <= source.lightmapBuffer.data() + source.lightmapBuffer.size());
 		memcpy(dst + lightOffset, src + lightOffset, lightLength);
 
 		src -= source.lightmapPitch;

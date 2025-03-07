@@ -1133,7 +1133,7 @@ void DrawGame(const Surface &fullOut, Point position, Displacement offset)
 
 	Lightmap lightmap = Lightmap::build(position, Point {} + offset,
 	    gnScreenWidth, gnViewportHeight, rows, columns,
-	    out.at(0, 0), LightTables[0].data(), LightTables[0].size());
+	    out.at(0, 0), out.pitch(), LightTables[0].data(), LightTables[0].size());
 
 	DrawFloor(out, lightmap, position, Point {} + offset, rows, columns);
 	DrawTileContent(out, lightmap, position, Point {} + offset, rows, columns);

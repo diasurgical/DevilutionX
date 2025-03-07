@@ -41,7 +41,8 @@ public:
 
 	static Lightmap build(Point tilePosition, Point targetBufferPosition,
 	    int viewportWidth, int viewportHeight, int rows, int columns,
-	    const uint8_t *outBuffer, const uint8_t *lightTables, size_t lightTableSize);
+	    const uint8_t *outBuffer, uint16_t outPitch,
+	    const uint8_t *lightTables, size_t lightTableSize);
 
 	static Lightmap bleedUp(const Lightmap &source, Point targetBufferPosition, std::span<uint8_t> lightmapBuffer);
 
