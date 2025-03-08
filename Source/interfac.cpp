@@ -40,7 +40,7 @@ namespace devilution {
 
 namespace {
 
-#if defined(__APPLE__) && defined(USE_SDL1)
+#if (defined(__APPLE__) || defined(__3DS__)) && defined(USE_SDL1)
 // On Tiger PPC, SDL_PushEvent from a background thread appears to do nothing.
 #define SDL_PUSH_EVENT_BG_THREAD_WORKS 0
 #else
