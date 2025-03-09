@@ -76,7 +76,21 @@ std::string DebugCmdVisitTowner(std::string_view name)
 
 std::string DebugCmdTalkToTowner(std::string_view name)
 {
-	if (!DebugTalkToTowner(name)) return StrCat("Towner not found!");
+	if (name.empty()) {
+		std::string ret;
+		ret = StrCat("Please provide the name of a Towner: ");
+		for (const auto &[name, _] : TownerShortNameToTownerId) {
+			ret += ' ';
+			ret.append(name);
+		}
+		return ret;
+	}
+
+	auto it = TownerShortNameToTownerId.find(name);
+	if (it == TownerShortNameToTownerId.end())
+		return StrCat(name, " is invalid!");
+
+	if (!DebugTalkToTowner(it->second)) return StrCat("Towner not found!");
 	return StrCat("Opened ", name, " talk window.");
 }
 
