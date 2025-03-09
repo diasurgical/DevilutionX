@@ -2044,7 +2044,7 @@ void InitPadmapActions()
 				    QuickCast(i);
 		    },
 		    nullptr,
-		    CanPlayerTakeAction,
+		    []() { return CanPlayerTakeAction() && !InGameMenu(); },
 		    i + 1);
 	}
 	options.Padmapper.AddAction(
@@ -2091,7 +2091,7 @@ void InitPadmapActions()
 		    ControllerActionHeld = GameActionType_NONE;
 		    LastMouseButtonAction = MouseActionType::None;
 	    },
-	    CanPlayerTakeAction);
+	    []() { return CanPlayerTakeAction() && !InGameMenu(); });
 	options.Padmapper.AddAction(
 	    "CancelAction",
 	    N_("Cancel action"),
@@ -2179,7 +2179,9 @@ void InitPadmapActions()
 	    ControllerButton_AXIS_TRIGGERLEFT,
 	    [] {
 		    ProcessGameAction(GameAction { GameActionType_TOGGLE_CHARACTER_INFO });
-	    });
+	    },
+	    nullptr,
+	    []() { return CanPlayerTakeAction() && !InGameMenu(); });
 	options.Padmapper.AddAction(
 	    "Inventory",
 	    N_("Inventory"),
@@ -2189,7 +2191,7 @@ void InitPadmapActions()
 		    ProcessGameAction(GameAction { GameActionType_TOGGLE_INVENTORY });
 	    },
 	    nullptr,
-	    CanPlayerTakeAction);
+	    []() { return CanPlayerTakeAction() && !InGameMenu(); });
 	options.Padmapper.AddAction(
 	    "QuestLog",
 	    N_("Quest log"),
@@ -2199,7 +2201,7 @@ void InitPadmapActions()
 		    ProcessGameAction(GameAction { GameActionType_TOGGLE_QUEST_LOG });
 	    },
 	    nullptr,
-	    CanPlayerTakeAction);
+	    []() { return CanPlayerTakeAction() && !InGameMenu(); });
 	options.Padmapper.AddAction(
 	    "SpellBook",
 	    N_("Spellbook"),
@@ -2209,7 +2211,7 @@ void InitPadmapActions()
 		    ProcessGameAction(GameAction { GameActionType_TOGGLE_SPELL_BOOK });
 	    },
 	    nullptr,
-	    CanPlayerTakeAction);
+	    []() { return CanPlayerTakeAction() && !InGameMenu(); });
 	options.Padmapper.AddAction(
 	    "DisplaySpells",
 	    N_("Speedbook"),
@@ -2219,7 +2221,7 @@ void InitPadmapActions()
 		    ProcessGameAction(GameAction { GameActionType_TOGGLE_QUICK_SPELL_MENU });
 	    },
 	    nullptr,
-	    CanPlayerTakeAction);
+	    []() { return CanPlayerTakeAction() && !InGameMenu(); });
 	options.Padmapper.AddAction(
 	    "Toggle Automap",
 	    N_("Toggle automap"),
