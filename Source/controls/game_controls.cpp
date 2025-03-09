@@ -86,28 +86,6 @@ SDL_Keycode TranslateControllerButtonToQuestLogKey(ControllerButton controllerBu
 	}
 }
 
-SDL_Keycode TranslateControllerButtonToSpellbookKey(ControllerButton controllerButton)
-{
-	switch (TranslateTo(GamepadType, controllerButton)) {
-	case ControllerButton_BUTTON_B:
-		return SDLK_SPACE;
-	case ControllerButton_BUTTON_Y:
-		return SDLK_RETURN;
-	case ControllerButton_BUTTON_LEFTSTICK:
-		return SDLK_TAB; // Map
-	case ControllerButton_BUTTON_DPAD_LEFT:
-		return SDLK_LEFT;
-	case ControllerButton_BUTTON_DPAD_RIGHT:
-		return SDLK_RIGHT;
-	case ControllerButton_BUTTON_DPAD_UP:
-		return SDLK_UP;
-	case ControllerButton_BUTTON_DPAD_DOWN:
-		return SDLK_DOWN;
-	default:
-		return SDLK_UNKNOWN;
-	}
-}
-
 bool GetGameAction(const SDL_Event &event, ControllerButtonEvent ctrlEvent, GameAction *action)
 {
 	const bool inGameMenu = InGameMenu();
@@ -205,8 +183,6 @@ bool GetGameAction(const SDL_Event &event, ControllerButtonEvent ctrlEvent, Game
 		translation = TranslateControllerButtonToMenuKey(ctrlEvent.button);
 	else if (QuestLogIsOpen)
 		translation = TranslateControllerButtonToQuestLogKey(ctrlEvent.button);
-	else if (SpellbookFlag)
-		translation = TranslateControllerButtonToSpellbookKey(ctrlEvent.button);
 
 	if (translation != SDLK_UNKNOWN) {
 		*action = GameActionSendKey { static_cast<uint32_t>(translation), ctrlEvent.up };
