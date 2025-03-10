@@ -580,6 +580,8 @@ struct GameplayOptions : OptionCategoryBase {
 	OptionEntryBoolean showHealthValues;
 	/** @brief Display current/max mana values on mana globe. */
 	OptionEntryBoolean showManaValues;
+	/** @brief Display current/max mana values on mana globe. */
+	OptionEntryBoolean showRemainingCharges;
 	/** @brief Show enemy health at the top of the screen. */
 	OptionEntryBoolean enemyHealthBar;
 	/** @brief Automatically pick up gold when walking over it. */
