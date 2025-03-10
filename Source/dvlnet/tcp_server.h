@@ -66,7 +66,7 @@ private:
 	asio::io_context &ioc;
 	packet_factory &pktfty;
 	std::unique_ptr<asio::ip::tcp::acceptor> acceptor;
-	std::array<scc, MAX_PLRS> connections;
+	std::array<scc, MaxPlayers> connections;
 	buffer_t game_init_info;
 
 	std::optional<PacketError> ioHandlerResult;

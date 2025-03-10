@@ -8,13 +8,11 @@
 #include "lighting.h"
 #include "misdat.h"
 #include "missiles.h"
-#include "multi.h"
-#include "player.h"
 
 namespace devilution {
 
 /** In-game state of portals. */
-Portal Portals[MAXPORTAL];
+Portal Portals[MaxPlayers];
 
 namespace {
 
@@ -22,11 +20,15 @@ namespace {
 size_t portalindex;
 
 /** Coordinate of each player's portal in town. */
-Point PortalTownPosition[MAXPORTAL] = {
+Point PortalTownPosition[MaxPlayers] = {
 	{ 57, 40 },
 	{ 59, 40 },
 	{ 61, 40 },
 	{ 63, 40 },
+	{ 65, 40 },
+	{ 67, 40 },
+	{ 69, 40 },
+	{ 55, 40 },
 };
 
 } // namespace
@@ -62,7 +64,7 @@ void AddPortalMissile(const Player &player, Point position, bool sync)
 
 void SyncPortals()
 {
-	for (int i = 0; i < MAXPORTAL; i++) {
+	for (int i = 0; i < MaxPlayers; i++) {
 		if (!Portals[i].open)
 			continue;
 		Player &player = Players[i];
