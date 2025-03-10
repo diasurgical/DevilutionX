@@ -480,12 +480,20 @@ std::vector<OptionEntryBase *> AudioOptions::GetEntries()
 }
 
 OptionEntryResolution::OptionEntryResolution()
-    : OptionEntryListBase("", OptionEntryFlags::CantChangeInGame | OptionEntryFlags::RecreateUI, N_("Resolution"), N_("Affect the game's internal resolution and determine your view area. Note: This can differ from screen resolution, when Upscaling, Integer Scaling or Fit to Screen is used."))
+    : OptionEntryListBase("Resolution", OptionEntryFlags::CantChangeInGame | OptionEntryFlags::RecreateUI,
+          N_("Resolution"),
+          N_("Affect the game's internal resolution and determine your view area. Note: This can differ from screen resolution when Upscaling, Integer Scaling or Fit to Screen is used."))
 {
 }
 void OptionEntryResolution::LoadFromIni(std::string_view category)
 {
-	size_ = { ini->getInt(category, "Width", DEFAULT_WIDTH), ini->getInt(category, "Height", DEFAULT_HEIGHT) };
+	int width = ini->getInt(category, "Width", DEFAULT_WIDTH);
+	int height = ini->getInt(category, "Height", DEFAULT_HEIGHT);
+	if (width > 1280 || height > 720) {
+		width = DEFAULT_WIDTH;
+		height = DEFAULT_HEIGHT;
+	}
+	size_ = { width, height };
 }
 void OptionEntryResolution::SaveToIni(std::string_view category) const
 {
@@ -503,15 +511,27 @@ std::string_view OptionEntryResolution::GetListDescription(size_t index) const
 }
 size_t OptionEntryResolution::GetActiveListIndex() const
 {
-	auto found = c_find_if(resolutions_, [this](const auto &x) { return x.first == size_; });
-	if (found == resolutions_.end())
+	auto it = std::find_if(resolutions_.begin(), resolutions_.end(), [this](const auto &res) {
+		return res.first == size_;
+	});
+	if (it == resolutions_.end()) {
 		return 0;
-	return std::distance(resolutions_.begin(), found);
+	}
+	return std::distance(resolutions_.begin(), it);
 }
 void OptionEntryResolution::SetActiveListIndex(size_t index)
 {
 	size_ = resolutions_[index].first;
 	NotifyValueChanged();
+}
+void OptionEntryResolution::setAvailableResolutions(std::vector<std::pair<Size, std::string>> &&allResolutions)
+{
+	resolutions_.clear();
+	for (auto &entry : allResolutions) {
+		if (entry.first.width <= 1280 && entry.first.height <= 720) {
+			resolutions_.push_back(std::move(entry));
+		}
+	}
 }
 
 OptionEntryResampler::OptionEntryResampler()
