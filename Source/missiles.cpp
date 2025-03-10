@@ -2341,22 +2341,24 @@ void AddGolem(Missile &missile, AddMissileParameter &parameter)
 
 	int playerId = missile._misource;
 	Player &player = Players[playerId];
-	Monster &golem = Monsters[playerId];
+	Monster *golem = FindGolemForPlayer(player);
 
-	if (golem.position.tile != GolemHoldingCell && &player == MyPlayer)
-		KillMyGolem();
-
-	if (golem.position.tile == GolemHoldingCell) {
-		std::optional<Point> spawnPosition = FindClosestValidPosition(
-		    [start = missile.position.start](Point target) {
-			    return !IsTileOccupied(target) && LineClearMissile(start, target);
-		    },
-		    parameter.dst, 0, 5);
-
-		if (spawnPosition) {
-			SpawnGolem(player, golem, *spawnPosition, missile);
-		}
+	// Is Golem alive?
+	if (golem != nullptr) {
+		KillGolem(*golem);
+		return;
 	}
+
+	std::optional<Point> spawnPosition = FindClosestValidPosition(
+	    [start = missile.position.start](Point target) {
+		    return !IsTileOccupied(target) && LineClearMissile(start, target);
+	    },
+	    parameter.dst, 0, 5);
+
+	if (!spawnPosition)
+		return;
+
+	SpawnGolem(player, *spawnPosition, missile);
 }
 
 void AddApocalypseBoom(Missile &missile, AddMissileParameter &parameter)
