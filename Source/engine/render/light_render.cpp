@@ -1,5 +1,6 @@
 #include "engine/render/light_render.hpp"
 
+#include <algorithm>
 #include <cassert>
 #include <span>
 #include <vector>
@@ -86,6 +87,13 @@ void RenderTriangle(Point p1, Point p2, Point p3, uint8_t lightLevel, uint8_t *l
 
 		dst += pitch;
 	}
+}
+
+uint8_t GetLightLevel(Point tile)
+{
+	int x = std::clamp(tile.x, 0, MAXDUNX - 1);
+	int y = std::clamp(tile.y, 0, MAXDUNY - 1);
+	return dLight[x][y];
 }
 
 uint8_t Interpolate(int q1, int q2, int lightLevel)
@@ -397,10 +405,10 @@ void BuildLightmap(Point tilePosition, Point targetBufferPosition, uint16_t view
 			Point tile3 = tilePosition + Displacement { 0, 1 };
 
 			uint8_t quad[] = {
-				InDungeonBounds(tile0) ? dLight[tile0.x][tile0.y] : static_cast<uint8_t>(LightsMax),
-				InDungeonBounds(tile1) ? dLight[tile1.x][tile1.y] : static_cast<uint8_t>(LightsMax),
-				InDungeonBounds(tile2) ? dLight[tile2.x][tile2.y] : static_cast<uint8_t>(LightsMax),
-				InDungeonBounds(tile3) ? dLight[tile3.x][tile3.y] : static_cast<uint8_t>(LightsMax)
+				GetLightLevel(tile0),
+				GetLightLevel(tile1),
+				GetLightLevel(tile2),
+				GetLightLevel(tile3)
 			};
 
 			uint8_t maxLight = std::max({ quad[0], quad[1], quad[2], quad[3] });
