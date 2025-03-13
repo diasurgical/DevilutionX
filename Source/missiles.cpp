@@ -2975,7 +2975,8 @@ void ProcessAcidPuddle(Missile &missile)
 
 void ProcessFireWall(Missile &missile)
 {
-	constexpr int ExpLight[14] = { 2, 3, 4, 5, 5, 6, 7, 8, 9, 10, 11, 12, 12 };
+	constexpr int ExpLightLen = 12;
+	constexpr int ExpLight[ExpLightLen] = { 2, 3, 4, 5, 5, 6, 7, 8, 9, 10, 11, 12 };
 
 	missile.duration--;
 	if (missile.duration == missile.var1) {
@@ -2992,10 +2993,12 @@ void ProcessFireWall(Missile &missile)
 		missile._miDelFlag = true;
 		AddUnLight(missile._mlid);
 	}
-	if (missile._mimfnum != 0 && missile.duration != 0 && missile._miAnimAdd != -1 && missile.var2 < 12) {
+	constexpr int MaxExpLightIndex = ExpLightLen - 1;
+	if (missile._mimfnum == 0 && missile.duration != 0 && missile.var2 <= MaxExpLightIndex * 2) {
 		if (missile.var2 == 0)
 			missile._mlid = AddLight(missile.position.tile, ExpLight[0]);
-		ChangeLight(missile._mlid, missile.position.tile, ExpLight[missile.var2]);
+		int expLightIndex = MaxExpLightIndex - std::abs(missile.var2 - MaxExpLightIndex);
+		ChangeLight(missile._mlid, missile.position.tile, ExpLight[expLightIndex]);
 		missile.var2++;
 	}
 	PutMissile(missile);
