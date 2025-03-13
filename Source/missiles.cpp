@@ -3384,7 +3384,8 @@ void ProcessFlashTop(Missile &missile)
 
 void ProcessFlameWave(Missile &missile)
 {
-	constexpr int ExpLight[14] = { 2, 3, 4, 5, 5, 6, 7, 8, 9, 10, 11, 12, 12 };
+	constexpr int ExpLightLen = 12;
+	constexpr int ExpLight[ExpLightLen] = { 2, 3, 4, 5, 5, 6, 7, 8, 9, 10, 11, 12 };
 
 	// Adjust missile's position for processing
 	missile.position.tile += Direction::North;
@@ -3402,18 +3403,12 @@ void ProcessFlameWave(Missile &missile)
 	if (missile.duration == 0) {
 		missile._miDelFlag = true;
 		AddUnLight(missile._mlid);
-	}
-	if (missile._mimfnum != 0 || missile.duration == 0) {
-		if (missile.position.tile != Point { missile.var3, missile.var4 }) {
-			missile.var3 = missile.position.tile.x;
-			missile.var4 = missile.position.tile.y;
-			ChangeLight(missile._mlid, missile.position.tile, 8);
-		}
 	} else {
 		if (missile.var2 == 0)
 			missile._mlid = AddLight(missile.position.tile, ExpLight[0]);
 		ChangeLight(missile._mlid, missile.position.tile, ExpLight[missile.var2]);
-		missile.var2++;
+		if (missile.var2 < ExpLightLen - 1)
+			missile.var2++;
 	}
 	// Adjust missile's position for rendering
 	missile.position.tile += Direction::South;
