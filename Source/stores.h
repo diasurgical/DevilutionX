@@ -23,7 +23,7 @@ namespace devilution {
 #define STORE_LINES 104
 
 enum class TalkID : uint8_t {
-	Exit,
+	None,
 	Smith,
 	SmithBuy,
 	SmithSell,
