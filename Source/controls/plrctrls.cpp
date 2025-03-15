@@ -59,7 +59,7 @@ quest_id pcursquest = Q_INVALID;
  */
 bool InGameMenu()
 {
-	return ActiveStore != TalkID::None
+	return IsPlayerInStore()
 	    || HelpFlag
 	    || ChatLogFlag
 	    || ChatFlag
@@ -1433,7 +1433,7 @@ HandleLeftStickOrDPadFn GetLeftStickOrDPadGameUIHandler()
 	if (QuestLogIsOpen) {
 		return &QuestLogMove;
 	}
-	if (ActiveStore != TalkID::None) {
+	if (IsPlayerInStore()) {
 		return &StoreMove;
 	}
 	return nullptr;

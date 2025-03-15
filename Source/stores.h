@@ -23,7 +23,7 @@ namespace devilution {
 #define STORE_LINES 104
 
 enum class TalkID : uint8_t {
-	None,
+	Exit,
 	Smith,
 	SmithBuy,
 	SmithSell,
@@ -104,5 +104,6 @@ void TakePlrsMoney(int cost);
 void StoreEnter();
 void CheckStoreBtn();
 void ReleaseStoreBtn();
+bool IsPlayerInStore();
 
 } // namespace devilution

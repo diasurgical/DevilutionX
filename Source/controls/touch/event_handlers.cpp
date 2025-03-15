@@ -70,7 +70,7 @@ bool HandleGameMenuInteraction(const SDL_Event &event)
 
 bool HandleStoreInteraction(const SDL_Event &event)
 {
-	if (ActiveStore == TalkID::None)
+	if (!IsPlayerInStore())
 		return false;
 	if (event.type == SDL_FINGERDOWN)
 		CheckStoreBtn();

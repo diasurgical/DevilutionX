@@ -1307,7 +1307,7 @@ void SmithEnter()
 		StartStore(TalkID::SmithRepair);
 		break;
 	case 20:
-		ActiveStore = TalkID::None;
+		ActiveStore = TalkID::Exit;
 		break;
 	}
 }
@@ -1555,7 +1555,7 @@ void WitchEnter()
 		StartStore(TalkID::WitchRecharge);
 		break;
 	case 20:
-		ActiveStore = TalkID::None;
+		ActiveStore = TalkID::Exit;
 		break;
 	}
 }
@@ -1700,7 +1700,7 @@ void BoyEnter()
 	}
 
 	if ((CurrentTextLine != 8 && !BoyItem.isEmpty()) || (CurrentTextLine != 12 && BoyItem.isEmpty())) {
-		ActiveStore = TalkID::None;
+		ActiveStore = TalkID::Exit;
 		return;
 	}
 
@@ -1761,7 +1761,7 @@ void HealerBuyItem(Item &item)
 void BoyBuyEnter()
 {
 	if (CurrentTextLine != 10) {
-		ActiveStore = TalkID::None;
+		ActiveStore = TalkID::Exit;
 		return;
 	}
 
@@ -1881,7 +1881,7 @@ void HealerEnter()
 		StartStore(TalkID::HealerBuy);
 		break;
 	case 18:
-		ActiveStore = TalkID::None;
+		ActiveStore = TalkID::Exit;
 		break;
 	}
 }
@@ -1927,7 +1927,7 @@ void StorytellerEnter()
 		StartStore(TalkID::StorytellerIdentify);
 		break;
 	case 18:
-		ActiveStore = TalkID::None;
+		ActiveStore = TalkID::Exit;
 		break;
 	}
 }
@@ -2003,7 +2003,7 @@ void TavernEnter()
 		StartStore(TalkID::Gossip);
 		break;
 	case 18:
-		ActiveStore = TalkID::None;
+		ActiveStore = TalkID::Exit;
 		break;
 	}
 }
@@ -2018,7 +2018,7 @@ void BarmaidEnter()
 		StartStore(TalkID::Gossip);
 		break;
 	case 14:
-		ActiveStore = TalkID::None;
+		ActiveStore = TalkID::Exit;
 		IsStashOpen = true;
 		Stash.RefreshItemStatFlags();
 		invflag = true;
@@ -2029,7 +2029,7 @@ void BarmaidEnter()
 		}
 		break;
 	case 18:
-		ActiveStore = TalkID::None;
+		ActiveStore = TalkID::Exit;
 		break;
 	}
 }
@@ -2044,7 +2044,7 @@ void DrunkEnter()
 		StartStore(TalkID::Gossip);
 		break;
 	case 18:
-		ActiveStore = TalkID::None;
+		ActiveStore = TalkID::Exit;
 		break;
 	}
 }
@@ -2115,7 +2115,7 @@ void AddStoreHoldRepair(Item *itm, int8_t i)
 void InitStores()
 {
 	ClearSText(0, STORE_LINES);
-	ActiveStore = TalkID::None;
+	ActiveStore = TalkID::Exit;
 	IsTextFullSize = false;
 	HasScrollbar = false;
 	PremiumItemCount = 0;
@@ -2154,7 +2154,7 @@ void FreeStoreMem()
 	if (*GetOptions().Gameplay.showItemGraphicsInStores) {
 		FreeHalfSizeItemSprites();
 	}
-	ActiveStore = TalkID::None;
+	ActiveStore = TalkID::Exit;
 	for (STextStruct &entry : TextLine) {
 		entry.text.clear();
 		entry.text.shrink_to_fit();
@@ -2352,7 +2352,7 @@ void StartStore(TalkID s)
 	case TalkID::Barmaid:
 		StartBarmaid();
 		break;
-	case TalkID::None:
+	case TalkID::Exit:
 		break;
 	}
 
@@ -2436,7 +2436,7 @@ void StoreESC()
 	case TalkID::Tavern:
 	case TalkID::Drunk:
 	case TalkID::Barmaid:
-		ActiveStore = TalkID::None;
+		ActiveStore = TalkID::Exit;
 		break;
 	case TalkID::Gossip:
 		StartStore(OldActiveStore);
@@ -2488,7 +2488,7 @@ void StoreESC()
 		CurrentTextLine = OldTextLine;
 		ScrollPos = OldScrollPos;
 		break;
-	case TalkID::None:
+	case TalkID::Exit:
 		break;
 	}
 }
@@ -2690,7 +2690,7 @@ void StoreEnter()
 	case TalkID::Barmaid:
 		BarmaidEnter();
 		break;
-	case TalkID::None:
+	case TalkID::Exit:
 		break;
 	}
 }
@@ -2703,12 +2703,12 @@ void CheckStoreBtn()
 
 	if (!IsTextFullSize) {
 		if (!windowRect.contains(MousePosition)) {
-			while (ActiveStore != TalkID::None)
+			while (IsPlayerInStore())
 				StoreESC();
 		}
 	} else {
 		if (!windowRectFull.contains(MousePosition)) {
-			while (ActiveStore != TalkID::None)
+			while (IsPlayerInStore())
 				StoreESC();
 		}
 	}
@@ -2773,6 +2773,11 @@ void ReleaseStoreBtn()
 {
 	CountdownScrollUp = -1;
 	CountdownScrollDown = -1;
+}
+
+bool IsPlayerInStore()
+{
+	return ActiveStore != TalkID::Exit;
 }
 
 } // namespace devilution

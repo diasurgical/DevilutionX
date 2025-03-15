@@ -2068,7 +2068,7 @@ bool UseInvItem(int cii)
 		return true;
 	if (pcurs != CURSOR_HAND)
 		return true;
-	if (ActiveStore != TalkID::None)
+	if (IsPlayerInStore())
 		return true;
 	if (cii < INVITEM_INV_FIRST)
 		return false;
