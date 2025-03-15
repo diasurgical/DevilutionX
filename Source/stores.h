@@ -17,10 +17,22 @@
 
 namespace devilution {
 
-#define WITCH_ITEMS 25
-#define SMITH_ITEMS 25
-#define SMITH_PREMIUM_ITEMS 15
-#define STORE_LINES 104
+constexpr int NumSmithBasicItems = 19;
+constexpr int NumSmithBasicItemsHf = 24;
+
+constexpr int NumSmithItems = 6;
+constexpr int NumSmithItemsHf = 15;
+
+constexpr int NumHealerItems = 17;
+constexpr int NumHealerItemsHf = 19;
+constexpr int NumHealerPinnedItems = 2;
+constexpr int NumHealerPinnedItemsMp = 3;
+
+constexpr int NumWitchItems = 17;
+constexpr int NumWitchItemsHf = 24;
+constexpr int NumWitchPinnedItems = 3;
+
+constexpr int NumStoreLines = 104;
 
 enum class TalkID : uint8_t {
 	None,
@@ -60,19 +72,19 @@ extern int8_t PlayerItemIndexes[48];
 extern DVL_API_FOR_TEST Item PlayerItems[48];
 
 /** Items sold by Griswold */
-extern Item SmithItems[SMITH_ITEMS];
+extern Item SmithItems[NumSmithBasicItemsHf];
 /** Number of premium items for sale by Griswold */
 extern int PremiumItemCount;
 /** Base level of current premium items sold by Griswold */
 extern int PremiumItemLevel;
 /** Premium items sold by Griswold */
-extern Item PremiumItems[SMITH_PREMIUM_ITEMS];
+extern Item PremiumItems[NumSmithItemsHf];
 
 /** Items sold by Pepin */
 extern Item HealerItems[20];
 
 /** Items sold by Adria */
-extern Item WitchItems[WITCH_ITEMS];
+extern Item WitchItems[NumWitchItemsHf];
 
 /** Current level of the item sold by Wirt */
 extern int BoyItemLevel;
