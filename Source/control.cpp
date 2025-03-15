@@ -1458,6 +1458,8 @@ void DrawDeathText(const Surface &out)
 	case ControlTypes::VirtualGamepad:
 		buttonText = _("Menu Button");
 		break;
+	default:
+		break;
 	}
 
 	if (!gbIsMultiplayer) {
