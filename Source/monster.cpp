@@ -4785,7 +4785,7 @@ bool Monster::isPossibleToHit() const
 	return !(hitPoints >> 6 <= 0
 	    || talkMsg != TEXT_NONE
 	    || (type().type == MT_ILLWEAV && goal == MonsterGoal::Retreat)
-	    || mode == MonsterMode::Charge
+	    || (IsAnyOf(mode, MonsterMode::Charge, MonsterMode::Death))
 	    || (IsAnyOf(type().type, MT_COUNSLR, MT_MAGISTR, MT_CABALIST, MT_ADVOCATE) && goal != MonsterGoal::Normal));
 }
 
