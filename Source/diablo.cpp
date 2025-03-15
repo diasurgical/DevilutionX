@@ -348,7 +348,7 @@ void LeftMouseDown(uint16_t modState)
 	}
 
 	if (IsPlayerInStore()) {
-		CheckStoreBtn();
+		CheckStoreButton();
 		return;
 	}
 
@@ -412,7 +412,7 @@ void LeftMouseUp(uint16_t modState)
 	if (LevelButtonDown)
 		CheckLevelButtonUp();
 	if (IsPlayerInStore())
-		ReleaseStoreBtn();
+		ReleaseStoreButton();
 }
 
 void RightMouseDown(bool isShiftHeld)
