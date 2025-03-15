@@ -40,14 +40,14 @@ int CurrentItemIndex;
 int8_t PlayerItemIndexes[48];
 Item PlayerItems[48];
 
-Item SmithItems[SMITH_ITEMS];
+Item SmithItems[NumSmithBasicItemsHf];
 int PremiumItemCount;
 int PremiumItemLevel;
-Item PremiumItems[SMITH_PREMIUM_ITEMS];
+Item PremiumItems[NumSmithItemsHf];
 
 Item HealerItems[20];
 
-Item WitchItems[WITCH_ITEMS];
+Item WitchItems[NumWitchItemsHf];
 
 int BoyItemLevel;
 Item BoyItem;
@@ -100,7 +100,7 @@ struct STextStruct {
 };
 
 /** Text lines */
-STextStruct TextLine[STORE_LINES];
+STextStruct TextLine[NumStoreLines];
 
 /** Whether to render the player's gold amount in the top left */
 bool RenderGold;
@@ -180,7 +180,7 @@ void CalculateLineHeights()
 {
 	TextLine[0].y = 0;
 	if (IsSmallFontTall()) {
-		for (int i = 1; i < STORE_LINES; ++i) {
+		for (int i = 1; i < NumStoreLines; ++i) {
 			// Space out consecutive text lines, unless they are both selectable (never the case currently).
 			if (TextLine[i].hasText() && TextLine[i - 1].hasText() && !(TextLine[i].isSelectable() && TextLine[i - 1].isSelectable())) {
 				TextLine[i].y = TextLine[i - 1].y + LargeTextHeight;
@@ -189,7 +189,7 @@ void CalculateLineHeights()
 			}
 		}
 	} else {
-		for (int i = 1; i < STORE_LINES; ++i) {
+		for (int i = 1; i < NumStoreLines; ++i) {
 			TextLine[i].y = i * SmallLineHeight;
 		}
 	}
@@ -1322,8 +1322,8 @@ void SmithBuyItem(Item &item)
 		item._iIdentified = false;
 	StoreAutoPlace(item, true);
 	int idx = OldScrollPos + ((OldTextLine - PreviousScrollPos) / 4);
-	if (idx == SMITH_ITEMS - 1) {
-		SmithItems[SMITH_ITEMS - 1].clear();
+	if (idx == NumSmithBasicItemsHf - 1) {
+		SmithItems[NumSmithBasicItemsHf - 1].clear();
 	} else {
 		for (; !SmithItems[idx + 1].isEmpty(); idx++) {
 			SmithItems[idx] = std::move(SmithItems[idx + 1]);
@@ -1574,8 +1574,8 @@ void WitchBuyItem(Item &item)
 	StoreAutoPlace(item, true);
 
 	if (idx >= 3) {
-		if (idx == WITCH_ITEMS - 1) {
-			WitchItems[WITCH_ITEMS - 1].clear();
+		if (idx == NumWitchItemsHf - 1) {
+			WitchItems[NumWitchItemsHf - 1].clear();
 		} else {
 			for (; !WitchItems[idx + 1].isEmpty(); idx++) {
 				WitchItems[idx] = std::move(WitchItems[idx + 1]);
@@ -2114,7 +2114,7 @@ void AddStoreHoldRepair(Item *itm, int8_t i)
 
 void InitStores()
 {
-	ClearSText(0, STORE_LINES);
+	ClearSText(0, NumStoreLines);
 	ActiveStore = TalkID::None;
 	IsTextFullSize = false;
 	HasScrollbar = false;
@@ -2264,7 +2264,7 @@ void StartStore(TalkID s)
 	RenderGold = false;
 	QuestLogIsOpen = false;
 	CloseGoldDrop();
-	ClearSText(0, STORE_LINES);
+	ClearSText(0, NumStoreLines);
 	ReleaseStoreBtn();
 	switch (s) {
 	case TalkID::Smith:
@@ -2357,7 +2357,7 @@ void StartStore(TalkID s)
 	}
 
 	CurrentTextLine = -1;
-	for (int i = 0; i < STORE_LINES; i++) {
+	for (int i = 0; i < NumStoreLines; i++) {
 		if (TextLine[i].isSelectable()) {
 			CurrentTextLine = i;
 			break;
@@ -2402,7 +2402,7 @@ void DrawSText(const Surface &out)
 
 	CalculateLineHeights();
 	const Point uiPosition = GetUIRectangle().position;
-	for (int i = 0; i < STORE_LINES; i++) {
+	for (int i = 0; i < NumStoreLines; i++) {
 		if (TextLine[i].isDivider())
 			DrawSLine(out, uiPosition.y + PaddingTop + TextLine[i].y + TextHeight() / 2);
 		else if (TextLine[i].hasText())
@@ -2510,7 +2510,7 @@ void StoreUp()
 		CurrentTextLine--;
 		while (!TextLine[CurrentTextLine].isSelectable()) {
 			if (CurrentTextLine == 0)
-				CurrentTextLine = STORE_LINES - 1;
+				CurrentTextLine = NumStoreLines - 1;
 			else
 				CurrentTextLine--;
 		}
@@ -2518,13 +2518,13 @@ void StoreUp()
 	}
 
 	if (CurrentTextLine == 0)
-		CurrentTextLine = STORE_LINES - 1;
+		CurrentTextLine = NumStoreLines - 1;
 	else
 		CurrentTextLine--;
 
 	while (!TextLine[CurrentTextLine].isSelectable()) {
 		if (CurrentTextLine == 0)
-			CurrentTextLine = STORE_LINES - 1;
+			CurrentTextLine = NumStoreLines - 1;
 		else
 			CurrentTextLine--;
 	}
@@ -2546,7 +2546,7 @@ void StoreDown()
 
 		CurrentTextLine++;
 		while (!TextLine[CurrentTextLine].isSelectable()) {
-			if (CurrentTextLine == STORE_LINES - 1)
+			if (CurrentTextLine == NumStoreLines - 1)
 				CurrentTextLine = 0;
 			else
 				CurrentTextLine++;
@@ -2554,13 +2554,13 @@ void StoreDown()
 		return;
 	}
 
-	if (CurrentTextLine == STORE_LINES - 1)
+	if (CurrentTextLine == NumStoreLines - 1)
 		CurrentTextLine = 0;
 	else
 		CurrentTextLine++;
 
 	while (!TextLine[CurrentTextLine].isSelectable()) {
-		if (CurrentTextLine == STORE_LINES - 1)
+		if (CurrentTextLine == NumStoreLines - 1)
 			CurrentTextLine = 0;
 		else
 			CurrentTextLine++;
@@ -2745,7 +2745,7 @@ void CheckStoreBtn()
 		int y = relativeY / LineHeight();
 
 		// Large small fonts draw beyond LineHeight. Check if the click was on the overflow text.
-		if (IsSmallFontTall() && y > 0 && y < STORE_LINES
+		if (IsSmallFontTall() && y > 0 && y < NumStoreLines
 		    && TextLine[y - 1].hasText() && !TextLine[y].hasText()
 		    && relativeY < TextLine[y - 1].y + LargeTextHeight) {
 			--y;

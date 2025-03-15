@@ -4391,10 +4391,10 @@ void SpawnSmith(int lvl)
 	constexpr int PinnedItemCount = 0;
 
 	int maxValue = MaxVendorValue;
-	int maxItems = 19;
+	int maxItems = NumSmithBasicItems;
 	if (gbIsHellfire) {
 		maxValue = MaxVendorValueHf;
-		maxItems = 24;
+		maxItems = NumSmithBasicItemsHf;
 	}
 
 	int iCnt = RandomIntBetween(10, maxItems);
@@ -4412,7 +4412,7 @@ void SpawnSmith(int lvl)
 		newItem._iCreateInfo = lvl | CF_SMITH;
 		newItem._iIdentified = true;
 	}
-	for (int i = iCnt; i < SMITH_ITEMS; i++)
+	for (int i = iCnt; i < NumSmithBasicItemsHf; i++)
 		SmithItems[i].clear();
 
 	SortVendor(SmithItems + PinnedItemCount);
@@ -4421,7 +4421,7 @@ void SpawnSmith(int lvl)
 void SpawnPremium(const Player &player)
 {
 	int lvl = player.getCharacterLevel();
-	int maxItems = gbIsHellfire ? SMITH_PREMIUM_ITEMS : 6;
+	int maxItems = gbIsHellfire ? NumSmithItemsHf : NumSmithItems;
 	if (PremiumItemCount < maxItems) {
 		for (int i = 0; i < maxItems; i++) {
 			if (PremiumItems[i].isEmpty()) {
@@ -4453,17 +4453,17 @@ void SpawnPremium(const Player &player)
 
 void SpawnWitch(int lvl)
 {
-	constexpr int PinnedItemCount = 3;
+	constexpr int PinnedItemCount = NumWitchPinnedItems;
 	constexpr std::array<_item_indexes, PinnedItemCount> PinnedItemTypes = { IDI_MANA, IDI_FULLMANA, IDI_PORTAL };
 	constexpr int MaxPinnedBookCount = 4;
 	constexpr std::array<_item_indexes, MaxPinnedBookCount> PinnedBookTypes = { IDI_BOOK1, IDI_BOOK2, IDI_BOOK3, IDI_BOOK4 };
 
 	int bookCount = 0;
 	const int pinnedBookCount = gbIsHellfire ? RandomIntLessThan(MaxPinnedBookCount) : 0;
-	const int itemCount = RandomIntBetween(10, gbIsHellfire ? 24 : 17);
+	const int itemCount = RandomIntBetween(10, gbIsHellfire ? NumWitchItemsHf : NumWitchItems);
 	const int maxValue = gbIsHellfire ? MaxVendorValueHf : MaxVendorValue;
 
-	for (int i = 0; i < WITCH_ITEMS; i++) {
+	for (int i = 0; i < NumWitchItemsHf; i++) {
 		Item &item = WitchItems[i];
 		item = {};
 
@@ -4634,15 +4634,15 @@ void SpawnBoy(int lvl)
 
 void SpawnHealer(int lvl)
 {
-	constexpr size_t PinnedItemCount = 2;
+	constexpr size_t PinnedItemCount = NumHealerPinnedItems;
 	constexpr std::array<_item_indexes, PinnedItemCount + 1> PinnedItemTypes = { IDI_HEAL, IDI_FULLHEAL, IDI_RESURRECT };
-	const auto itemCount = static_cast<size_t>(RandomIntBetween(10, gbIsHellfire ? 19 : 17));
+	const auto itemCount = static_cast<size_t>(RandomIntBetween(10, gbIsHellfire ? NumHealerItemsHf : NumHealerItems));
 
 	for (size_t i = 0; i < sizeof(HealerItems) / sizeof(HealerItems[0]); ++i) {
 		Item &item = HealerItems[i];
 		item = {};
 
-		if (i < PinnedItemCount || (gbIsMultiplayer && i == PinnedItemCount)) {
+		if (i < PinnedItemCount || (gbIsMultiplayer && i < NumHealerPinnedItemsMp)) {
 			item._iSeed = AdvanceRndSeed();
 			GetItemAttrs(item, PinnedItemTypes[i], 1);
 			item._iCreateInfo = lvl;
