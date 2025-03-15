@@ -822,6 +822,80 @@ Point FindClosestStashSlot(Point mousePos)
 	return bestSlot;
 }
 
+void LiftInventoryItem()
+{
+	int inventorySlot = (Slot >= 0) ? Slot : FindClosestInventorySlot(MousePosition, MyPlayer->HoldItem);
+
+	int jumpSlot = inventorySlot; // If the cursor is over an inventory slot we may need to adjust it due to pasting items of different sizes over each other
+	if (inventorySlot >= SLOTXY_INV_FIRST && inventorySlot <= SLOTXY_INV_LAST) {
+		const Size cursorSizeInCells = MyPlayer->HoldItem.isEmpty() ? Size { 1, 1 } : GetInventorySize(MyPlayer->HoldItem);
+
+		// Find any item occupying a slot that is currently under the cursor
+		int8_t itemUnderCursor = [](int inventorySlot, Size cursorSizeInCells) {
+			if (inventorySlot < SLOTXY_INV_FIRST || inventorySlot > SLOTXY_INV_LAST)
+				return 0;
+			for (int x = 0; x < cursorSizeInCells.width; x++) {
+				for (int y = 0; y < cursorSizeInCells.height; y++) {
+					int slotUnderCursor = inventorySlot + x + y * INV_ROW_SLOT_SIZE;
+					if (slotUnderCursor > SLOTXY_INV_LAST)
+						continue;
+					int itemId = GetItemIdOnSlot(slotUnderCursor);
+					if (itemId != 0)
+						return itemId;
+				}
+			}
+			return 0;
+		}(inventorySlot, cursorSizeInCells);
+
+		// Capture the first slot of the first item (if any) under the cursor
+		if (itemUnderCursor > 0)
+			jumpSlot = FindFirstSlotOnItem(itemUnderCursor);
+	}
+	CheckInvItem();
+
+	if (inventorySlot >= SLOTXY_INV_FIRST && inventorySlot <= SLOTXY_INV_LAST) {
+		Point mousePos = GetSlotCoord(jumpSlot);
+		Slot = jumpSlot;
+		const Size newCursorSizeInCells = MyPlayer->HoldItem.isEmpty() ? GetItemSizeOnSlot(jumpSlot) : GetInventorySize(MyPlayer->HoldItem);
+		mousePos.x += ((newCursorSizeInCells.width - 1) * InventorySlotSizeInPixels.width) / 2;
+		mousePos.y += ((newCursorSizeInCells.height - 1) * InventorySlotSizeInPixels.height) / 2;
+		SetCursorPos(mousePos);
+	}
+}
+
+void LiftStashItem()
+{
+	Point stashSlot = (ActiveStashSlot != InvalidStashPoint) ? ActiveStashSlot : FindClosestStashSlot(MousePosition);
+
+	Size cursorSizeInCells = MyPlayer->HoldItem.isEmpty() ? Size { 1, 1 } : GetInventorySize(MyPlayer->HoldItem);
+
+	// Find any item occupying a slot that is currently under the cursor
+	StashStruct::StashCell itemUnderCursor = [](Point stashSlot, Size cursorSizeInCells) -> StashStruct::StashCell {
+		if (stashSlot == InvalidStashPoint)
+			return StashStruct::EmptyCell;
+		for (Point slotUnderCursor : PointsInRectangle(Rectangle { stashSlot, cursorSizeInCells })) {
+			if (slotUnderCursor.x >= 10 || slotUnderCursor.y >= 10)
+				continue;
+			StashStruct::StashCell itemId = Stash.GetItemIdAtPosition(slotUnderCursor);
+			if (itemId != StashStruct::EmptyCell)
+				return itemId;
+		}
+		return StashStruct::EmptyCell;
+	}(stashSlot, cursorSizeInCells);
+
+	Point jumpSlot = itemUnderCursor == StashStruct::EmptyCell ? stashSlot : FindFirstStashSlotOnItem(itemUnderCursor);
+	CheckStashItem(MousePosition);
+
+	Point mousePos = GetStashSlotCoord(jumpSlot);
+	ActiveStashSlot = jumpSlot;
+	// Center the Cursor based on the item we just put down or we're holding.
+	cursorSizeInCells = MyPlayer->HoldItem.isEmpty() ? GetItemSizeOnSlot(jumpSlot) : GetInventorySize(MyPlayer->HoldItem);
+	mousePos.x += ((cursorSizeInCells.width) * InventorySlotSizeInPixels.width) / 2;
+	mousePos.y += ((cursorSizeInCells.height) * InventorySlotSizeInPixels.height) / 2;
+
+	SetCursorPos(mousePos);
+}
+
 /**
  * @brief Figures out where on the body to move when on the first row
  */
@@ -1415,6 +1489,9 @@ using HandleLeftStickOrDPadFn = void (*)(devilution::AxisDirection);
 
 HandleLeftStickOrDPadFn GetLeftStickOrDPadGameUIHandler()
 {
+	if (SpellSelectFlag) {
+		return &HotSpellMove;
+	}
 	if (IsStashOpen) {
 		return &StashMove;
 	}
@@ -1424,14 +1501,11 @@ HandleLeftStickOrDPadFn GetLeftStickOrDPadGameUIHandler()
 	if (CharFlag && MyPlayer->_pStatPts > 0) {
 		return &AttrIncBtnSnap;
 	}
-	if (SpellSelectFlag) {
-		return &HotSpellMove;
+	if (QuestLogIsOpen) {
+		return &QuestLogMove;
 	}
 	if (SpellbookFlag) {
 		return &SpellBookMove;
-	}
-	if (QuestLogIsOpen) {
-		return &QuestLogMove;
 	}
 	if (IsPlayerInStore()) {
 		return &StoreMove;
@@ -1685,7 +1759,8 @@ void ProcessGameAction(const GameAction &action)
 		PerformSecondaryAction();
 		break;
 	case GameActionType_CAST_SPELL:
-		PerformSpellAction();
+		if (!InGameMenu())
+			PerformSpellAction();
 		break;
 	case GameActionType_TOGGLE_QUICK_SPELL_MENU:
 		if (!invflag || BlurInventory()) {
@@ -1889,6 +1964,11 @@ void UseBeltItem(BeltItemType type)
 
 void PerformPrimaryAction()
 {
+	if (SpellSelectFlag) {
+		SetSpell();
+		return;
+	}
+
 	if (invflag) { // inventory is open
 		if (pcurs > CURSOR_HAND && pcurs < CURSOR_FIRSTITEM) {
 			if (pcurs == CURSOR_HOURGLASS)
@@ -1896,79 +1976,10 @@ void PerformPrimaryAction()
 			TryIconCurs();
 			NewCursor(CURSOR_HAND);
 		} else if (GetRightPanel().contains(MousePosition) || GetMainPanel().contains(MousePosition)) {
-			int inventorySlot = (Slot >= 0) ? Slot : FindClosestInventorySlot(MousePosition, MyPlayer->HoldItem);
-
-			int jumpSlot = inventorySlot; // If the cursor is over an inventory slot we may need to adjust it due to pasting items of different sizes over each other
-			if (inventorySlot >= SLOTXY_INV_FIRST && inventorySlot <= SLOTXY_INV_LAST) {
-				const Size cursorSizeInCells = MyPlayer->HoldItem.isEmpty() ? Size { 1, 1 } : GetInventorySize(MyPlayer->HoldItem);
-
-				// Find any item occupying a slot that is currently under the cursor
-				int8_t itemUnderCursor = [](int inventorySlot, Size cursorSizeInCells) {
-					if (inventorySlot < SLOTXY_INV_FIRST || inventorySlot > SLOTXY_INV_LAST)
-						return 0;
-					for (int x = 0; x < cursorSizeInCells.width; x++) {
-						for (int y = 0; y < cursorSizeInCells.height; y++) {
-							int slotUnderCursor = inventorySlot + x + y * INV_ROW_SLOT_SIZE;
-							if (slotUnderCursor > SLOTXY_INV_LAST)
-								continue;
-							int itemId = GetItemIdOnSlot(slotUnderCursor);
-							if (itemId != 0)
-								return itemId;
-						}
-					}
-					return 0;
-				}(inventorySlot, cursorSizeInCells);
-
-				// Capture the first slot of the first item (if any) under the cursor
-				if (itemUnderCursor > 0)
-					jumpSlot = FindFirstSlotOnItem(itemUnderCursor);
-			}
-			CheckInvItem();
-
-			if (inventorySlot >= SLOTXY_INV_FIRST && inventorySlot <= SLOTXY_INV_LAST) {
-				Point mousePos = GetSlotCoord(jumpSlot);
-				Slot = jumpSlot;
-				const Size newCursorSizeInCells = MyPlayer->HoldItem.isEmpty() ? GetItemSizeOnSlot(jumpSlot) : GetInventorySize(MyPlayer->HoldItem);
-				mousePos.x += ((newCursorSizeInCells.width - 1) * InventorySlotSizeInPixels.width) / 2;
-				mousePos.y += ((newCursorSizeInCells.height - 1) * InventorySlotSizeInPixels.height) / 2;
-				SetCursorPos(mousePos);
-			}
+			LiftInventoryItem();
 		} else if (IsStashOpen && GetLeftPanel().contains(MousePosition)) {
-			Point stashSlot = (ActiveStashSlot != InvalidStashPoint) ? ActiveStashSlot : FindClosestStashSlot(MousePosition);
-
-			Size cursorSizeInCells = MyPlayer->HoldItem.isEmpty() ? Size { 1, 1 } : GetInventorySize(MyPlayer->HoldItem);
-
-			// Find any item occupying a slot that is currently under the cursor
-			StashStruct::StashCell itemUnderCursor = [](Point stashSlot, Size cursorSizeInCells) -> StashStruct::StashCell {
-				if (stashSlot == InvalidStashPoint)
-					return StashStruct::EmptyCell;
-				for (Point slotUnderCursor : PointsInRectangle(Rectangle { stashSlot, cursorSizeInCells })) {
-					if (slotUnderCursor.x >= 10 || slotUnderCursor.y >= 10)
-						continue;
-					StashStruct::StashCell itemId = Stash.GetItemIdAtPosition(slotUnderCursor);
-					if (itemId != StashStruct::EmptyCell)
-						return itemId;
-				}
-				return StashStruct::EmptyCell;
-			}(stashSlot, cursorSizeInCells);
-
-			Point jumpSlot = itemUnderCursor == StashStruct::EmptyCell ? stashSlot : FindFirstStashSlotOnItem(itemUnderCursor);
-			CheckStashItem(MousePosition);
-
-			Point mousePos = GetStashSlotCoord(jumpSlot);
-			ActiveStashSlot = jumpSlot;
-			// Center the Cursor based on the item we just put down or we're holding.
-			cursorSizeInCells = MyPlayer->HoldItem.isEmpty() ? GetItemSizeOnSlot(jumpSlot) : GetInventorySize(MyPlayer->HoldItem);
-			mousePos.x += ((cursorSizeInCells.width) * InventorySlotSizeInPixels.width) / 2;
-			mousePos.y += ((cursorSizeInCells.height) * InventorySlotSizeInPixels.height) / 2;
-
-			SetCursorPos(mousePos);
+			LiftStashItem();
 		}
-		return;
-	}
-
-	if (SpellSelectFlag) {
-		SetSpell();
 		return;
 	}
 
@@ -2048,7 +2059,12 @@ bool TryDropItem()
 
 void PerformSpellAction()
 {
-	if (InGameMenu() || QuestLogIsOpen || SpellbookFlag)
+	if (SpellSelectFlag) {
+		SetSpell();
+		return;
+	}
+
+	if (QuestLogIsOpen)
 		return;
 
 	if (invflag) {
@@ -2072,11 +2088,6 @@ void PerformSpellAction()
 		return;
 	if (pcurs > CURSOR_HAND)
 		NewCursor(CURSOR_HAND);
-
-	if (SpellSelectFlag) {
-		SetSpell();
-		return;
-	}
 
 	const Player &myPlayer = *MyPlayer;
 	SpellID spl = myPlayer._pRSpell;
