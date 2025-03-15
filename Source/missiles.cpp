@@ -360,8 +360,10 @@ bool Plr2PlrMHit(const Player &player, Player &target, int mindam, int maxdam, i
 		dam = target._pHitPoints / 3;
 	} else {
 		dam = RandomIntBetween(mindam, maxdam);
-		if (missileData.isArrow() && damageType == DamageType::Physical)
-			dam += player._pIBonusDamMod + player._pDamageMod + dam * player._pIBonusDam / 100;
+		if (missileData.isArrow() && damageType == DamageType::Physical) {
+			int damMod = IsAnyOf(player._pClass, HeroClass::Rogue) ? player._pDamageMod : player._pDamageMod / 2;
+			dam += player._pIBonusDamMod + damMod + dam * player._pIBonusDam / 100;
+		}
 		if (!shift)
 			dam <<= 6;
 	}
