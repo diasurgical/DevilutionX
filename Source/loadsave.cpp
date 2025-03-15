@@ -887,9 +887,25 @@ void LoadItem(LoadHelper &file, Item &item)
 	GetItemFrm(item);
 }
 
-void LoadPremium(LoadHelper &file, int i)
+void LoadPremiumItems(LoadHelper &file)
 {
-	LoadAndValidateItemData(file, PremiumItems[i]);
+	// Number of expected items based on game mode
+	uint8_t numSmithItems = gbIsHellfireSaveGame ? NumSmithItemsHf : NumSmithItems;
+
+	// Whatever is smaller between expected number of items and actual number of items
+	int itemsToLoad = std::min(giNumberOfSmithPremiumItems, numSmithItems);
+
+	Blacksmith.items.resize(itemsToLoad);
+
+	for (int i = 0; i < itemsToLoad; ++i) {
+		LoadAndValidateItemData(file, Blacksmith.items[i]);
+	}
+
+	// Skip the rest of the items beyond the expected number of items based on game mode
+	int itemsToSkip = giNumberOfSmithPremiumItems - itemsToLoad;
+	if (itemsToSkip > 0) {
+		file.Skip(itemsToSkip * sizeof(Item));
+	}
 }
 
 void LoadQuest(LoadHelper *file, int i)
@@ -2532,11 +2548,11 @@ tl::expected<void, std::string> LoadGame(bool firstflag)
 		memset(dLight, 0, sizeof(dLight));
 	}
 
-	PremiumItemCount = file.NextBE<int32_t>();
-	PremiumItemLevel = file.NextBE<int32_t>();
+	file.Skip(4); // Blacksmith.itemCount
+	Blacksmith.itemLevel = file.NextBE<int32_t>();
 
-	for (int i = 0; i < giNumberOfSmithPremiumItems; i++)
-		LoadPremium(file, i);
+	LoadPremiumItems(file);
+
 	if (gbIsHellfire && !gbIsHellfireSaveGame)
 		SpawnPremium(myPlayer);
 
@@ -2795,11 +2811,21 @@ void SaveGameData(SaveWriter &saveWriter)
 		}
 	}
 
-	file.WriteBE<int32_t>(PremiumItemCount);
-	file.WriteBE<int32_t>(PremiumItemLevel);
+	file.WriteBE<int32_t>(Blacksmith.items.size());
+	file.WriteBE<int32_t>(Blacksmith.itemLevel);
 
-	for (int i = 0; i < giNumberOfSmithPremiumItems; i++)
-		SaveItem(file, PremiumItems[i]);
+	// Save Smith premium items with a fixed count
+	for (int i = 0; i < giNumberOfSmithPremiumItems; ++i) {
+		if (i < Blacksmith.items.size()) {
+			// Save the item from the vector
+			SaveItem(file, Blacksmith.items[i]);
+		} else {
+			// Save an empty item if the vector has fewer items
+			Item emptyItem;
+			emptyItem.clear(); // Make the item null
+			SaveItem(file, emptyItem);
+		}
+	}
 
 	file.WriteLE<uint8_t>(AutomapActive ? 1 : 0);
 	file.WriteBE<int32_t>(AutoMapScale);

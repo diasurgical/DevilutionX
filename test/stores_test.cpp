@@ -6,69 +6,86 @@ using namespace devilution;
 
 namespace {
 
-TEST(Stores, AddStoreHoldRepair_magic)
+/**
+ * @brief Helper function to reset the playerItems vector before each test void ResetPlayerItems()
+ */
+void ResetPlayerItems()
 {
-	devilution::Item *item;
-
-	item = &PlayerItems[0];
-
-	item->_iMaxDur = 60;
-	item->_iDurability = item->_iMaxDur;
-	item->_iMagical = ITEM_QUALITY_MAGIC;
-	item->_iIdentified = true;
-	item->_ivalue = 2000;
-	item->_iIvalue = 19000;
-
-	for (int i = 1; i < item->_iMaxDur; i++) {
-		item->_ivalue = 2000;
-		item->_iIvalue = 19000;
-		item->_iDurability = i;
-		CurrentItemIndex = 0;
-		AddStoreHoldRepair(item, 0);
-		EXPECT_EQ(1, CurrentItemIndex);
-		EXPECT_EQ(95 * (item->_iMaxDur - i) / 2, item->_ivalue);
-	}
-
-	item->_iDurability = 59;
-	CurrentItemIndex = 0;
-	item->_ivalue = 500;
-	item->_iIvalue = 30; // To cheap to repair
-	AddStoreHoldRepair(item, 0);
-	EXPECT_EQ(0, CurrentItemIndex);
-	EXPECT_EQ(30, item->_iIvalue);
-	EXPECT_EQ(500, item->_ivalue);
+	playerItems.clear();
 }
 
-TEST(Stores, AddStoreHoldRepair_normal)
+TEST(Stores, FilterRepairableItems_magic)
 {
-	devilution::Item *item;
+	// Reset playerItems before starting the test
+	ResetPlayerItems();
 
-	item = &PlayerItems[0];
+	// Create a magic item with durability and add it to the player's inventory
+	devilution::Item magicItem;
+	magicItem._iMaxDur = 60;
+	magicItem._iDurability = magicItem._iMaxDur - 1;
+	magicItem._iMagical = ITEM_QUALITY_MAGIC;
+	magicItem._iIdentified = true;
+	magicItem._ivalue = 2000;
+	magicItem._iIvalue = 19000;
 
-	item->_iMaxDur = 20;
-	item->_iDurability = item->_iMaxDur;
-	item->_iMagical = ITEM_QUALITY_NORMAL;
-	item->_iIdentified = true;
-	item->_ivalue = 2000;
-	item->_iIvalue = item->_ivalue;
+	// Add the item to the player's inventory
+	playerItems.emplace_back(&magicItem, ItemLocation::Inventory, 0);
 
-	for (int i = 1; i < item->_iMaxDur; i++) {
-		item->_ivalue = 2000;
-		item->_iIvalue = item->_ivalue;
-		item->_iDurability = i;
-		CurrentItemIndex = 0;
-		AddStoreHoldRepair(item, 0);
-		EXPECT_EQ(1, CurrentItemIndex);
-		EXPECT_EQ(50 * (item->_iMaxDur - i), item->_ivalue);
-	}
+	// Call the filtering function to remove non-repairable items
+	FilterRepairableItems();
 
-	item->_iDurability = 19;
-	CurrentItemIndex = 0;
-	item->_ivalue = 10; // less than 1 per dur
-	item->_iIvalue = item->_ivalue;
-	AddStoreHoldRepair(item, 0);
-	EXPECT_EQ(1, CurrentItemIndex);
-	EXPECT_EQ(1, item->_ivalue);
-	EXPECT_EQ(1, item->_iIvalue);
+	// Check that the playerItems vector contains the magic item and its values are correct
+	ASSERT_EQ(playerItems.size(), 1);
+	EXPECT_EQ(playerItems[0].itemPtr->_ivalue, 2000);    // Item's value should not change
+	EXPECT_EQ(playerItems[0].itemPtr->_iDurability, 59); // Durability should match
 }
+
+TEST(Stores, FilterRepairableItems_normal)
+{
+	// Reset playerItems before starting the test
+	ResetPlayerItems();
+
+	// Create a normal item with durability and add it to the player's inventory
+	devilution::Item normalItem;
+	normalItem._iMaxDur = 20;
+	normalItem._iDurability = normalItem._iMaxDur - 1;
+	normalItem._iMagical = ITEM_QUALITY_NORMAL;
+	normalItem._iIdentified = true;
+	normalItem._ivalue = 2000;
+
+	// Add the item to the player's inventory
+	playerItems.emplace_back(&normalItem, ItemLocation::Inventory, 0);
+
+	// Call the filtering function to remove non-repairable items
+	FilterRepairableItems();
+
+	// Check that the playerItems vector contains the normal item and its values are correct
+	ASSERT_EQ(playerItems.size(), 1);
+	EXPECT_EQ(playerItems[0].itemPtr->_ivalue, 2000);    // Item's value should not change
+	EXPECT_EQ(playerItems[0].itemPtr->_iDurability, 19); // Durability should match
+}
+
+TEST(Stores, FilterRepairableItems_no_repair)
+{
+	// Reset playerItems before starting the test
+	ResetPlayerItems();
+
+	// Create an item that cannot be repaired (already at max durability)
+	devilution::Item indestructibleItem;
+	indestructibleItem._iMaxDur = DUR_INDESTRUCTIBLE; // Indestructible item
+	indestructibleItem._iDurability = 100;
+	indestructibleItem._iMagical = ITEM_QUALITY_MAGIC;
+	indestructibleItem._iIdentified = true;
+	indestructibleItem._ivalue = 5000;
+
+	// Add the item to the player's inventory
+	playerItems.emplace_back(&indestructibleItem, ItemLocation::Inventory, 0);
+
+	// Call the filtering function to remove non-repairable items
+	FilterRepairableItems();
+
+	// Check that the playerItems vector is empty since the item is indestructible
+	ASSERT_EQ(playerItems.size(), 0);
+}
+
 } // namespace

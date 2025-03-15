@@ -47,8 +47,8 @@ M_DL 12544 8 dLight
 M_DL 12544 8 dPreLight
 M_DL 1600 8 AutomapView
 M_DL 12544 8 dMissile
-R 32 PremiumItemCount
-R 32 PremiumItemLevel
+R 32 numPremiumItems
+R 32 premiumItemLevel
 C_DA 6 item PremiumItems
 C_HF 15 item PremiumItems
 R 8 AutomapActive

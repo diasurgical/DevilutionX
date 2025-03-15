@@ -1907,17 +1907,33 @@ _item_indexes RndSmithItem(const Player &player, int lvl)
 	return RndVendorItem<SmithItemOk, true>(player, 0, lvl);
 }
 
-void SortVendor(Item *itemList)
+/**
+ * @brief Sort the vendor's inventory, keeping pinned items in place
+ */
+void SortVendor(std::vector<Item> &itemList, size_t startIndex = 0)
 {
-	int count = 1;
-	while (!itemList[count].isEmpty())
-		count++;
+	// Boundary check
+	if (startIndex >= itemList.size()) {
+		return; // No valid range to sort
+	}
 
+	// Find the first empty item slot
+	auto firstEmpty = std::find_if(itemList.begin() + startIndex, itemList.end(), [](const Item &item) {
+		return item.isEmpty();
+	});
+
+	// Return early if no items to sort
+	if (firstEmpty == itemList.begin() + startIndex) {
+		return; // No items to sort
+	}
+
+	// Comparison function based on IDidx
 	auto cmp = [](const Item &a, const Item &b) {
 		return a.IDidx < b.IDidx;
 	};
 
-	std::sort(itemList, itemList + count, cmp);
+	// Sort the non-empty items
+	std::sort(itemList.begin() + startIndex, firstEmpty, cmp);
 }
 
 bool PremiumItemOk(const Player &player, const ItemData &item)
@@ -4391,16 +4407,19 @@ void SpawnSmith(int lvl)
 	constexpr int PinnedItemCount = 0;
 
 	int maxValue = MaxVendorValue;
-	int maxItems = 19;
+	int maxItems = NumSmithBasicItems;
 	if (gbIsHellfire) {
 		maxValue = MaxVendorValueHf;
-		maxItems = 24;
+		maxItems = NumSmithBasicItemsHf;
 	}
 
 	int iCnt = RandomIntBetween(10, maxItems);
-	for (int i = 0; i < iCnt; i++) {
-		Item &newItem = SmithItems[i];
 
+	// Ensure we have enough items in the vector
+	while (Blacksmith.basicItems.size() < iCnt) {
+		Item newItem;
+
+		// Generate a new item with a value under maxValue
 		do {
 			newItem = {};
 			newItem._iSeed = AdvanceRndSeed();
@@ -4411,42 +4430,50 @@ void SpawnSmith(int lvl)
 
 		newItem._iCreateInfo = lvl | CF_SMITH;
 		newItem._iIdentified = true;
-	}
-	for (int i = iCnt; i < SMITH_ITEMS; i++)
-		SmithItems[i].clear();
 
-	SortVendor(SmithItems + PinnedItemCount);
+		// Add the newly generated item to the vector
+		Blacksmith.basicItems.push_back(newItem);
+	}
+
+	// If the vector has more items than needed, erase the excess
+	if (Blacksmith.basicItems.size() > iCnt) {
+		Blacksmith.basicItems.erase(Blacksmith.basicItems.begin() + iCnt, Blacksmith.basicItems.end());
+	}
+
+	SortVendor(Blacksmith.basicItems, PinnedItemCount);
 }
 
 void SpawnPremium(const Player &player)
 {
 	int lvl = player.getCharacterLevel();
-	int maxItems = gbIsHellfire ? SMITH_PREMIUM_ITEMS : 6;
-	if (PremiumItemCount < maxItems) {
-		for (int i = 0; i < maxItems; i++) {
-			if (PremiumItems[i].isEmpty()) {
-				int plvl = PremiumItemLevel + (gbIsHellfire ? itemLevelAddHf[i] : itemLevelAdd[i]);
-				SpawnOnePremium(PremiumItems[i], plvl, player);
-			}
-		}
-		PremiumItemCount = maxItems;
+	int maxItems = gbIsHellfire ? NumSmithItemsHf : NumSmithItems;
+
+	// Fill empty slots or add new premium items until we reach maxItems
+	while (Blacksmith.items.size() < maxItems) {
+		int plvl = Blacksmith.itemLevel + (gbIsHellfire ? itemLevelAddHf[Blacksmith.items.size()] : itemLevelAdd[Blacksmith.items.size()]);
+		Item newItem;
+		SpawnOnePremium(newItem, plvl, player);
+		Blacksmith.items.push_back(newItem); // Add new premium item
 	}
-	while (PremiumItemLevel < lvl) {
-		PremiumItemLevel++;
+
+	// Increase the item level as the player's level increases
+	while (Blacksmith.itemLevel < lvl) {
+		Blacksmith.itemLevel++;
+
 		if (gbIsHellfire) {
-			// Discard first 3 items and shift next 10
-			std::move(&PremiumItems[3], &PremiumItems[12] + 1, &PremiumItems[0]);
-			SpawnOnePremium(PremiumItems[10], PremiumItemLevel + itemLevelAddHf[10], player);
-			PremiumItems[11] = PremiumItems[13];
-			SpawnOnePremium(PremiumItems[12], PremiumItemLevel + itemLevelAddHf[12], player);
-			PremiumItems[13] = PremiumItems[14];
-			SpawnOnePremium(PremiumItems[14], PremiumItemLevel + itemLevelAddHf[14], player);
+			// Remove the first 3 items
+			Blacksmith.items.erase(Blacksmith.items.begin(), Blacksmith.items.begin() + 3);
 		} else {
-			// Discard first 2 items and shift next 3
-			std::move(&PremiumItems[2], &PremiumItems[4] + 1, &PremiumItems[0]);
-			SpawnOnePremium(PremiumItems[3], PremiumItemLevel + itemLevelAdd[3], player);
-			PremiumItems[4] = PremiumItems[5];
-			SpawnOnePremium(PremiumItems[5], PremiumItemLevel + itemLevelAdd[5], player);
+			// Remove the first 2 items
+			Blacksmith.items.erase(Blacksmith.items.begin(), Blacksmith.items.begin() + 2);
+		}
+
+		// Continue adding new items if needed after removing the old ones
+		while (Blacksmith.items.size() < maxItems) {
+			int plvl = Blacksmith.itemLevel + (gbIsHellfire ? itemLevelAddHf[Blacksmith.items.size()] : itemLevelAdd[Blacksmith.items.size()]);
+			Item newItem;
+			SpawnOnePremium(newItem, plvl, player);
+			Blacksmith.items.push_back(newItem); // Add new premium item
 		}
 	}
 }
@@ -4460,62 +4487,71 @@ void SpawnWitch(int lvl)
 
 	int bookCount = 0;
 	const int pinnedBookCount = gbIsHellfire ? RandomIntLessThan(MaxPinnedBookCount) : 0;
-	const int itemCount = RandomIntBetween(10, gbIsHellfire ? 24 : 17);
+	const int itemCount = RandomIntBetween(10, gbIsHellfire ? NumWitchItemsHf : NumWitchItems);
 	const int maxValue = gbIsHellfire ? MaxVendorValueHf : MaxVendorValue;
 
-	for (int i = 0; i < WITCH_ITEMS; i++) {
-		Item &item = WitchItems[i];
-		item = {};
+	// Ensure the vector has enough space for the new items
+	Witch.items.reserve(itemCount);
 
+	for (int i = 0; i < itemCount; ++i) {
+		Item newItem = {};
+
+		// Handle pinned items (Mana, Full Mana, Portal)
 		if (i < PinnedItemCount) {
-			item._iSeed = AdvanceRndSeed();
-			GetItemAttrs(item, PinnedItemTypes[i], 1);
-			item._iCreateInfo = lvl;
-			item._iStatFlag = true;
-			continue;
+			newItem._iSeed = AdvanceRndSeed();
+			GetItemAttrs(newItem, PinnedItemTypes[i], 1);
+			newItem._iCreateInfo = lvl;
+			newItem._iStatFlag = true;
 		}
-
-		if (gbIsHellfire) {
-			if (i < PinnedItemCount + MaxPinnedBookCount && bookCount < pinnedBookCount) {
-				_item_indexes bookType = PinnedBookTypes[i - PinnedItemCount];
-				if (lvl >= AllItemsList[bookType].iMinMLvl) {
-					item._iSeed = AdvanceRndSeed();
-					SetRndSeed(item._iSeed);
-					DiscardRandomValues(1);
-					GetItemAttrs(item, bookType, lvl);
-					item._iCreateInfo = lvl | CF_WITCH;
-					item._iIdentified = true;
-					bookCount++;
-					continue;
-				}
+		// Handle pinned books in Hellfire
+		else if (gbIsHellfire && i < PinnedItemCount + MaxPinnedBookCount && bookCount < pinnedBookCount) {
+			_item_indexes bookType = PinnedBookTypes[i - PinnedItemCount];
+			if (lvl >= AllItemsList[bookType].iMinMLvl) {
+				newItem._iSeed = AdvanceRndSeed();
+				SetRndSeed(newItem._iSeed);
+				DiscardRandomValues(1);
+				GetItemAttrs(newItem, bookType, lvl);
+				newItem._iCreateInfo = lvl | CF_WITCH;
+				newItem._iIdentified = true;
+				bookCount++;
+			} else {
+				continue; // Skip if the level is too low
 			}
 		}
+		// Handle regular items
+		else {
+			do {
+				newItem = {};
+				newItem._iSeed = AdvanceRndSeed();
+				SetRndSeed(newItem._iSeed);
+				_item_indexes itemData = RndWitchItem(*MyPlayer, lvl);
+				GetItemAttrs(newItem, itemData, lvl);
 
-		if (i >= itemCount) {
-			item.clear();
-			continue;
+				int maxlvl = -1;
+				if (GenerateRnd(100) <= 5)
+					maxlvl = 2 * lvl;
+				if (maxlvl == -1 && newItem._iMiscId == IMISC_STAFF)
+					maxlvl = 2 * lvl;
+				if (maxlvl != -1)
+					GetItemBonus(*MyPlayer, newItem, maxlvl / 2, maxlvl, true, true);
+
+			} while (newItem._iIvalue > maxValue);
+
+			newItem._iCreateInfo = lvl | CF_WITCH;
+			newItem._iIdentified = true;
 		}
 
-		do {
-			item = {};
-			item._iSeed = AdvanceRndSeed();
-			SetRndSeed(item._iSeed);
-			_item_indexes itemData = RndWitchItem(*MyPlayer, lvl);
-			GetItemAttrs(item, itemData, lvl);
-			int maxlvl = -1;
-			if (GenerateRnd(100) <= 5)
-				maxlvl = 2 * lvl;
-			if (maxlvl == -1 && item._iMiscId == IMISC_STAFF)
-				maxlvl = 2 * lvl;
-			if (maxlvl != -1)
-				GetItemBonus(*MyPlayer, item, maxlvl / 2, maxlvl, true, true);
-		} while (item._iIvalue > maxValue);
-
-		item._iCreateInfo = lvl | CF_WITCH;
-		item._iIdentified = true;
+		// Add the newly generated item to the vector
+		Witch.items.push_back(std::move(newItem));
 	}
 
-	SortVendor(WitchItems + PinnedItemCount);
+	// Remove any excess items beyond itemCount if the vector contains more
+	if (Witch.items.size() > itemCount) {
+		Witch.items.erase(Witch.items.begin() + itemCount, Witch.items.end());
+	}
+
+	// Sort the items in the vector
+	SortVendor(Witch.items, PinnedItemCount);
 }
 
 void SpawnBoy(int lvl)
@@ -4534,19 +4570,22 @@ void SpawnBoy(int lvl)
 	dexterity += dexterity / 5;
 	magic += magic / 5;
 
-	if (BoyItemLevel >= (lvl / 2) && !BoyItem.isEmpty())
+	if (Boy.itemLevel >= (lvl / 2) && !Boy.items.empty())
 		return;
+
+	Item newItem;
+
 	do {
 		keepgoing = false;
-		BoyItem = {};
-		BoyItem._iSeed = AdvanceRndSeed();
-		SetRndSeed(BoyItem._iSeed);
+		newItem = {};
+		newItem._iSeed = AdvanceRndSeed();
+		SetRndSeed(newItem._iSeed);
 		_item_indexes itype = RndBoyItem(*MyPlayer, lvl);
-		GetItemAttrs(BoyItem, itype, lvl);
-		GetItemBonus(*MyPlayer, BoyItem, lvl, 2 * lvl, true, true);
+		GetItemAttrs(newItem, itype, lvl);
+		GetItemBonus(*MyPlayer, newItem, lvl, 2 * lvl, true, true);
 
 		if (!gbIsHellfire) {
-			if (BoyItem._iIvalue > MaxBoyValue) {
+			if (newItem._iIvalue > MaxBoyValue) {
 				keepgoing = true; // prevent breaking the do/while loop too early by failing hellfire's condition in while
 				continue;
 			}
@@ -4555,7 +4594,7 @@ void SpawnBoy(int lvl)
 
 		ivalue = 0;
 
-		ItemType itemType = BoyItem._itype;
+		ItemType itemType = newItem._itype;
 
 		switch (itemType) {
 		case ItemType::LightArmor:
@@ -4621,49 +4660,56 @@ void SpawnBoy(int lvl)
 		}
 	} while (keepgoing
 	    || ((
-	            BoyItem._iIvalue > MaxBoyValueHf
-	            || BoyItem._iMinStr > strength
-	            || BoyItem._iMinMag > magic
-	            || BoyItem._iMinDex > dexterity
-	            || BoyItem._iIvalue < ivalue)
+	            newItem._iIvalue > MaxBoyValueHf
+	            || newItem._iMinStr > strength
+	            || newItem._iMinMag > magic
+	            || newItem._iMinDex > dexterity
+	            || newItem._iIvalue < ivalue)
 	        && count < 250));
-	BoyItem._iCreateInfo = lvl | CF_BOY;
-	BoyItem._iIdentified = true;
-	BoyItemLevel = lvl / 2;
+
+	newItem._iCreateInfo = lvl | CF_BOY;
+	newItem._iIdentified = true;
+	Boy.itemLevel = lvl / 2;
+
+	Boy.items.push_back(newItem);
 }
 
 void SpawnHealer(int lvl)
 {
 	constexpr size_t PinnedItemCount = 2;
 	constexpr std::array<_item_indexes, PinnedItemCount + 1> PinnedItemTypes = { IDI_HEAL, IDI_FULLHEAL, IDI_RESURRECT };
-	const auto itemCount = static_cast<size_t>(RandomIntBetween(10, gbIsHellfire ? 19 : 17));
+	const auto itemCount = static_cast<size_t>(RandomIntBetween(10, gbIsHellfire ? NumHealerItemsHf : NumHealerItems));
 
-	for (size_t i = 0; i < sizeof(HealerItems) / sizeof(HealerItems[0]); ++i) {
-		Item &item = HealerItems[i];
-		item = {};
+	// Reserve space if necessary to optimize performance
+	Healer.items.reserve(itemCount);
+
+	for (size_t i = 0; i < itemCount; ++i) {
+		Item newItem = {};
 
 		if (i < PinnedItemCount || (gbIsMultiplayer && i == PinnedItemCount)) {
-			item._iSeed = AdvanceRndSeed();
-			GetItemAttrs(item, PinnedItemTypes[i], 1);
-			item._iCreateInfo = lvl;
-			item._iStatFlag = true;
-			continue;
+			newItem._iSeed = AdvanceRndSeed();
+			GetItemAttrs(newItem, PinnedItemTypes[i], 1);
+			newItem._iCreateInfo = lvl;
+			newItem._iStatFlag = true;
+		} else {
+			newItem._iSeed = AdvanceRndSeed();
+			SetRndSeed(newItem._iSeed);
+			_item_indexes itype = RndHealerItem(*MyPlayer, lvl);
+			GetItemAttrs(newItem, itype, lvl);
+			newItem._iCreateInfo = lvl | CF_HEALER;
+			newItem._iIdentified = true;
 		}
 
-		if (i >= itemCount) {
-			item.clear();
-			continue;
-		}
-
-		item._iSeed = AdvanceRndSeed();
-		SetRndSeed(item._iSeed);
-		_item_indexes itype = RndHealerItem(*MyPlayer, lvl);
-		GetItemAttrs(item, itype, lvl);
-		item._iCreateInfo = lvl | CF_HEALER;
-		item._iIdentified = true;
+		Healer.items.push_back(std::move(newItem));
 	}
 
-	SortVendor(HealerItems + PinnedItemCount);
+	// Remove any excess items if vector contains more than itemCount
+	if (Healer.items.size() > itemCount) {
+		Healer.items.erase(Healer.items.begin() + itemCount, Healer.items.end());
+	}
+
+	// Sort the vendor's items
+	SortVendor(Healer.items, PinnedItemCount);
 }
 
 void MakeGoldStack(Item &goldItem, int value)

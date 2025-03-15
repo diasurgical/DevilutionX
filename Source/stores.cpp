@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <string_view>
+#include <unordered_map>
 
 #include <fmt/format.h>
 
@@ -26,7 +27,6 @@
 #include "options.h"
 #include "panels/info_box.hpp"
 #include "qol/stash.h"
-#include "towners.h"
 #include "utils/format_int.hpp"
 #include "utils/language.h"
 #include "utils/str_cat.hpp"
@@ -34,38 +34,52 @@
 
 namespace devilution {
 
-TalkID ActiveStore;
+TownerStore Blacksmith(TalkID::BasicBuy, TalkID::Buy, TalkID::Sell, TalkID::Repair, ResourceType::Invalid);
+TownerStore Healer(TalkID::Invalid, TalkID::Buy, TalkID::Invalid, TalkID::Invalid, ResourceType::Life);
+TownerStore Witch(TalkID::Invalid, TalkID::Buy, TalkID::Sell, TalkID::Recharge, ResourceType::Mana);
+TownerStore Boy(TalkID::Invalid, TalkID::Buy, TalkID::Invalid, TalkID::Invalid, ResourceType::Invalid);
+TownerStore Storyteller(TalkID::Invalid, TalkID::Invalid, TalkID::Invalid, TalkID::Identify, ResourceType::Invalid);
+TownerStore Barmaid(TalkID::Invalid, TalkID::Invalid, TalkID::Invalid, TalkID::Stash, ResourceType::Invalid);
+TownerStore Tavern(TalkID::Invalid, TalkID::Invalid, TalkID::Invalid, TalkID::Invalid, ResourceType::Invalid);
+TownerStore Drunk(TalkID::Invalid, TalkID::Invalid, TalkID::Invalid, TalkID::Invalid, ResourceType::Invalid);
+TownerStore CowFarmer(TalkID::Invalid, TalkID::Invalid, TalkID::Invalid, TalkID::Invalid, ResourceType::Invalid);
+TownerStore Farmer(TalkID::Invalid, TalkID::Invalid, TalkID::Invalid, TalkID::Invalid, ResourceType::Invalid);
 
-int CurrentItemIndex;
-int8_t PlayerItemIndexes[48];
-Item PlayerItems[48];
+TalkID ActiveStore;  // The current store screen
+_talker_id TownerId; // The current towner being interacted with
 
-Item SmithItems[SMITH_ITEMS];
-int PremiumItemCount;
-int PremiumItemLevel;
-Item PremiumItems[SMITH_PREMIUM_ITEMS];
+std::vector<IndexedItem> playerItems;
 
-Item HealerItems[20];
-
-Item WitchItems[WITCH_ITEMS];
-
-int BoyItemLevel;
-Item BoyItem;
+void FilterRepairableItems()
+{
+	// Filter playerItems in place to only include items that can be repaired
+	playerItems.erase(std::remove_if(playerItems.begin(), playerItems.end(),
+	                      [](const IndexedItem &indexedItem) {
+		                      const Item &itemPtr = *indexedItem.itemPtr;
+		                      return itemPtr._iDurability == itemPtr._iMaxDur || itemPtr._iMaxDur == DUR_INDESTRUCTIBLE;
+	                      }),
+	    playerItems.end());
+}
 
 namespace {
 
-/** The current towner being interacted with */
-_talker_id TownerId;
+constexpr int PaddingTop = 32;
 
-/** Is the current dialog full size */
-bool IsTextFullSize;
+const int SingleLineSpace = 1;
+const int DoubleLineSpace = 2;
+const int TripleLineSpace = 3;
 
-/** Number of text lines in the current dialog */
-int NumTextLines;
-/** Remember currently selected text line from TextLine while displaying a dialog */
-int OldTextLine;
-/** Currently selected text line from TextLine */
-int CurrentTextLine;
+constexpr int MainMenuDividerLine = 5;
+constexpr int BuySellMenuDividerLine = 3;
+constexpr int ItemLineSpace = 4;
+constexpr int ConfirmLine = 18;
+
+constexpr int WirtDialogueDrawLine = 12;
+
+bool IsTextFullSize; // Is the current dialog full size
+int NumTextLines;    // Number of text lines in the current dialog
+int OldTextLine;     // Remember currently selected text line from TextLine while displaying a dialog
+int CurrentTextLine; // Currently selected text line from TextLine
 
 struct STextStruct {
 	enum Type : uint8_t {
@@ -99,47 +113,38 @@ struct STextStruct {
 	}
 };
 
-/** Text lines */
-STextStruct TextLine[STORE_LINES];
+std::array<STextStruct, NumStoreLines> TextLine; // Text lines
 
-/** Whether to render the player's gold amount in the top left */
-bool RenderGold;
+bool RenderGold;            // Whether to render the player's gold amount in the top left
+int OldScrollPos;           // Remember last scroll position
+int ScrollPos;              // Scroll position
+int NextScrollPos;          // Next scroll position
+int PreviousScrollPos;      // Previous scroll position
+int8_t CountdownScrollUp;   // Countdown for the push state of the scroll up button
+int8_t CountdownScrollDown; // Countdown for the push state of the scroll down button
 
-/** Does the current panel have a scrollbar */
-bool HasScrollbar;
-/** Remember last scroll position */
-int OldScrollPos;
-/** Scroll position */
-int ScrollPos;
-/** Next scroll position */
-int NextScrollPos;
-/** Previous scroll position */
-int PreviousScrollPos;
-/** Countdown for the push state of the scroll up button */
-int8_t CountdownScrollUp;
-/** Countdown for the push state of the scroll down button */
-int8_t CountdownScrollDown;
+TalkID OldActiveStore; // Remember current store while displaying a dialog
 
-/** Remember current store while displaying a dialog */
-TalkID OldActiveStore;
+Item TempItem; // Temporary item used to hold the item being traded
 
-/** Temporary item used to hold the item being traded */
-Item TempItem;
+std::vector<std::pair<int, TalkID>> LineActionMappings;
+int CurrentMenuDrawLine;
 
-/** Maps from towner IDs to NPC names. */
-const char *const TownerNames[] = {
-	N_("Griswold"),
-	N_("Pepin"),
-	"",
-	N_("Ogden"),
-	N_("Cain"),
-	N_("Farnham"),
-	N_("Adria"),
-	N_("Gillian"),
-	N_("Wirt"),
+std::vector<StoreData> Stores = {
+	{ N_("Blacksmith"), N_("Welcome to the\n\nBlacksmith's shop"), { { TalkID::Gossip, N_("Talk to Griswold") }, { TalkID::BasicBuy, N_("Buy basic items") }, { TalkID::Buy, N_("Buy premium items") }, { TalkID::Sell, N_("Sell items") }, { TalkID::Repair, N_("Repair items") }, { TalkID::None, N_("Leave the shop") } } },
+	{ N_("Healer"), N_("Welcome to the\n\nHealer's home"), { { TalkID::Gossip, N_("Talk to Pepin") }, { TalkID::Buy, N_("Buy items") }, { TalkID::None, N_("Leave Healer's home") } } },
+	{},
+	{ N_("Tavern"), N_("Welcome to the\n\nRising Sun"), { { TalkID::Gossip, N_("Talk to the Ogden") }, { TalkID::None, N_("Leave the tavern") } } },
+	{ N_("Storyteller"), N_("The Town Elder"), { { TalkID::Gossip, N_("Talk to Cain") }, { TalkID::Identify, N_("Identify an item") }, { TalkID::None, N_("Say goodbye") } } },
+	{ N_("Drunk"), N_("Farnham the Drunk"), { { TalkID::Gossip, N_("Talk to Farnham") }, { TalkID::None, N_("Say goodbye") } } },
+	{ N_("Witch"), N_("Welcome to the\n\nWitch's shack"), { { TalkID::Gossip, N_("Talk to Adria") }, { TalkID::Buy, N_("Buy items") }, { TalkID::Sell, N_("Sell items") }, { TalkID::Recharge, N_("Recharge staves") }, { TalkID::None, N_("Leave the shack") } } },
+	{ N_("Barmaid"), N_("Gillian"), { { TalkID::Gossip, N_("Talk to Gillian") }, { TalkID::Stash, N_("Access Stash") }, { TalkID::None, N_("Say goodbye") } } },
+	{ N_("Boy"), N_("Wirt the Peg-legged boy"), { { TalkID::Gossip, N_("Talk to Wirt") }, { TalkID::Buy, N_("What have you got?") }, { TalkID::None, N_("Say goodbye") } } },
+	{},
+	{},
+	{},
+	{},
 };
-
-constexpr int PaddingTop = 32;
 
 // For most languages, line height is always 12.
 // This includes blank lines and divider line.
@@ -152,6 +157,55 @@ constexpr int SmallTextHeight = 12;
 constexpr int LargeLineHeight = SmallLineHeight + 1;
 constexpr int LargeTextHeight = 18;
 
+std::unordered_map<_talker_id, TownerStore *> townerStores;
+
+void InitializeTownerStores()
+{
+	townerStores[TOWN_SMITH] = &Blacksmith;
+	townerStores[TOWN_HEALER] = &Healer;
+	townerStores[TOWN_WITCH] = &Witch;
+	townerStores[TOWN_PEGBOY] = &Boy;
+	townerStores[TOWN_STORY] = &Storyteller;
+	townerStores[TOWN_BMAID] = &Barmaid;
+	townerStores[TOWN_TAVERN] = &Tavern;
+	townerStores[TOWN_DRUNK] = &Drunk;
+
+	if (gbIsHellfire) {
+		townerStores[TOWN_COWFARM] = &CowFarmer;
+		townerStores[TOWN_FARMER] = &Farmer;
+	}
+}
+
+void SetActiveStore(TalkID talkId)
+{
+	OldActiveStore = ActiveStore;
+	ActiveStore = talkId;
+}
+
+int GetItemCount(TalkID talkId)
+{
+	TownerStore *towner = townerStores[TownerId];
+
+	switch (talkId) {
+	case TalkID::BasicBuy:
+		return towner->basicItems.size();
+	case TalkID::Buy:
+		return towner->items.size();
+	default:
+		return playerItems.size();
+	}
+}
+
+bool HasScrollbar()
+{
+	if (!IsAnyOf(ActiveStore, TalkID::BasicBuy, TalkID::Buy, TalkID::Sell, TalkID::Repair, TalkID::Recharge, TalkID::Identify))
+		return false;
+
+	int itemCount = GetItemCount(ActiveStore);
+
+	return itemCount > ItemLineSpace;
+}
+
 /**
  * The line index with the Back / Leave button.
  * This is a special button that is always the last line.
@@ -161,7 +215,7 @@ constexpr int LargeTextHeight = 18;
 int BackButtonLine()
 {
 	if (IsSmallFontTall()) {
-		return HasScrollbar ? 21 : 20;
+		return HasScrollbar() ? 21 : 20;
 	}
 	return 22;
 }
@@ -180,7 +234,7 @@ void CalculateLineHeights()
 {
 	TextLine[0].y = 0;
 	if (IsSmallFontTall()) {
-		for (int i = 1; i < STORE_LINES; ++i) {
+		for (int i = 1; i < NumStoreLines; ++i) {
 			// Space out consecutive text lines, unless they are both selectable (never the case currently).
 			if (TextLine[i].hasText() && TextLine[i - 1].hasText() && !(TextLine[i].isSelectable() && TextLine[i - 1].isSelectable())) {
 				TextLine[i].y = TextLine[i - 1].y + LargeTextHeight;
@@ -189,21 +243,22 @@ void CalculateLineHeights()
 			}
 		}
 	} else {
-		for (int i = 1; i < STORE_LINES; ++i) {
+		for (int i = 1; i < NumStoreLines; ++i) {
 			TextLine[i].y = i * SmallLineHeight;
 		}
 	}
 }
 
-void DrawSTextBack(const Surface &out)
+void DrawTextUI(const Surface &out)
 {
 	const Point uiPosition = GetUIRectangle().position;
 	ClxDraw(out, { uiPosition.x + 320 + 24, 327 + uiPosition.y }, (*pSTextBoxCels)[0]);
 	DrawHalfTransparentRectTo(out, uiPosition.x + 347, uiPosition.y + 28, 265, 297);
 }
 
-void DrawSSlider(const Surface &out, int y1, int y2)
+void DrawScrollbar(const Surface &out, int y1, int y2)
 {
+	const int itemCount = GetItemCount(ActiveStore);
 	const Point uiPosition = GetUIRectangle().position;
 	int yd1 = y1 * 12 + 44 + uiPosition.y;
 	int yd2 = y2 * 12 + 44 + uiPosition.y;
@@ -224,14 +279,12 @@ void DrawSSlider(const Surface &out, int y1, int y2)
 		yd3 = OldTextLine;
 	else
 		yd3 = CurrentTextLine;
-	if (CurrentItemIndex > 1)
-		yd3 = 1000 * (ScrollPos + ((yd3 - PreviousScrollPos) / 4)) / (CurrentItemIndex - 1) * (y2 * 12 - y1 * 12 - 24) / 1000;
-	else
-		yd3 = 0;
+
+	yd3 = 1000 * (ScrollPos + ((yd3 - PreviousScrollPos) / 4)) / (itemCount - 1) * ((y2 * 12) - (y1 * 12) - 24) / 1000;
 	ClxDraw(out, { uiPosition.x + 601, (y1 + 1) * 12 + 44 + uiPosition.y + yd3 }, (*pSTextSlidCels)[12]);
 }
 
-void AddSLine(size_t y)
+void SetLineAsDivider(size_t y)
 {
 	TextLine[y]._sx = 0;
 	TextLine[y]._syoff = 0;
@@ -242,12 +295,12 @@ void AddSLine(size_t y)
 	TextLine[y].cursIndent = false;
 }
 
-void AddSTextVal(size_t y, int val)
+void SetLineValue(size_t y, int val)
 {
 	TextLine[y]._sval = val;
 }
 
-void AddSText(uint8_t x, size_t y, std::string_view text, UiFlags flags, bool sel, int cursId = -1, bool cursIndent = false)
+void SetLineText(uint8_t x, size_t y, std::string_view text, UiFlags flags, bool sel, int cursId = -1, bool cursIndent = false)
 {
 	TextLine[y]._sx = x;
 	TextLine[y]._syoff = 0;
@@ -259,22 +312,22 @@ void AddSText(uint8_t x, size_t y, std::string_view text, UiFlags flags, bool se
 	TextLine[y].cursIndent = cursIndent;
 }
 
-void AddOptionsBackButton()
+void SetLineAsOptionsBackButton()
 {
 	const int line = BackButtonLine();
-	AddSText(0, line, _("Back"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+	SetLineText(0, line, _("Back"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
 	TextLine[line]._syoff = IsSmallFontTall() ? 0 : 6;
 }
 
-void AddItemListBackButton(bool selectable = false)
+void AddItemListBackButton(TalkID talkId, bool selectable = false)
 {
 	const int line = BackButtonLine();
-	std::string_view text = _("Back");
+	std::string_view text = (TownerId == TOWN_PEGBOY && talkId == TalkID::Buy) ? _("Leave") : _("Back");
 	if (!selectable && IsSmallFontTall()) {
-		AddSText(0, line, text, UiFlags::ColorWhite | UiFlags::AlignRight, selectable);
+		SetLineText(0, line, text, UiFlags::ColorWhite | UiFlags::AlignRight, selectable);
 	} else {
-		AddSLine(line - 1);
-		AddSText(0, line, text, UiFlags::ColorWhite | UiFlags::AlignCenter, selectable);
+		SetLineAsDivider(line - 1);
+		SetLineText(0, line, text, UiFlags::ColorWhite | UiFlags::AlignCenter, selectable);
 		TextLine[line]._syoff = 6;
 	}
 }
@@ -301,7 +354,7 @@ void PrintStoreItem(const Item &item, int l, UiFlags flags, bool cursIndent = fa
 		productLine.append(fmt::format(fmt::runtime(_("Charges: {:d}/{:d}")), item._iCharges, item._iMaxCharges));
 	}
 	if (!productLine.empty()) {
-		AddSText(40, l, productLine, flags, false, -1, cursIndent);
+		SetLineText(40, l, productLine, flags, false, -1, cursIndent);
 		l++;
 		productLine.clear();
 	}
@@ -332,892 +385,237 @@ void PrintStoreItem(const Item &item, int l, UiFlags flags, bool cursIndent = fa
 		if (dex != 0)
 			productLine.append(fmt::format(fmt::runtime(_(" {:d} Dex")), dex));
 	}
-	AddSText(40, l++, productLine, flags, false, -1, cursIndent);
+	SetLineText(40, l++, productLine, flags, false, -1, cursIndent);
 }
 
-bool StoreAutoPlace(Item &item, bool persistItem)
+bool GiveItemToPlayer(Item &item, bool persistItem)
 {
-	Player &player = *MyPlayer;
 
-	if (AutoEquipEnabled(player, item) && AutoEquip(player, item, persistItem, true)) {
+	if (AutoEquipEnabled(*MyPlayer, item) && AutoEquip(*MyPlayer, item, persistItem, true)) {
 		return true;
 	}
 
-	if (AutoPlaceItemInBelt(player, item, persistItem, true)) {
+	if (AutoPlaceItemInBelt(*MyPlayer, item, persistItem, true)) {
 		return true;
 	}
 
 	if (persistItem) {
-		return AutoPlaceItemInInventory(player, item, true);
+		return AutoPlaceItemInInventory(*MyPlayer, item, true);
 	}
 
-	return CanFitItemInInventory(player, item);
+	return CanFitItemInInventory(*MyPlayer, item);
 }
 
-void ScrollVendorStore(Item *itemData, int storeLimit, int idx, int selling = true)
+void SetupScreenElements(TalkID talkId)
 {
-	ClearSText(5, 21);
-	PreviousScrollPos = 5;
+	IsTextFullSize = true;
+	RenderGold = true;
+	ScrollPos = 0;
 
-	for (int l = 5; l < 20 && idx < storeLimit; l += 4) {
-		const Item &item = itemData[idx];
-		if (!item.isEmpty()) {
-			UiFlags itemColor = item.getTextColorWithStatCheck();
-			AddSText(20, l, item.getName(), itemColor, true, item._iCurs, true);
-			AddSTextVal(l, item._iIdentified ? item._iIvalue : item._ivalue);
-			PrintStoreItem(item, l + 1, itemColor, true);
-			NextScrollPos = l;
+	SetLineAsDivider(BuySellMenuDividerLine);
+	AddItemListBackButton(talkId, /*selectable=*/true);
+
+	const UiFlags flags = UiFlags::ColorWhitegold;
+	const int itemCount = GetItemCount(talkId);
+
+	switch (talkId) {
+	case TalkID::BasicBuy:
+	case TalkID::Buy: {
+		if (itemCount == 0) {
+			SetLineText(20, 1, _("I have nothing for sale."), UiFlags::ColorWhitegold, false);
+			return;
+		}
+
+		ScrollPos = 0;
+		NumTextLines = std::max(itemCount - ItemLineSpace, 0);
+
+		if (itemCount == 1) {
+			SetLineText(20, 1, _("I have this item for sale:"), flags, false);
 		} else {
-			l -= 4;
+			SetLineText(20, 1, _("I have these items for sale:"), flags, false);
 		}
-		idx++;
+	} break;
+	case TalkID::Sell: {
+		if (itemCount == 0) {
+			SetLineText(20, 1, _("You have nothing I want."), UiFlags::ColorWhitegold, false);
+			return;
+		}
+
+		ScrollPos = 0;
+		NumTextLines = itemCount;
+
+		SetLineText(20, 1, _("Which item is for sale?"), UiFlags::ColorWhitegold, false);
+	} break;
+	case TalkID::Repair: {
+		if (itemCount == 0) {
+			SetLineText(20, 1, _("You have nothing to repair."), UiFlags::ColorWhitegold, false);
+			return;
+		}
+
+		ScrollPos = 0;
+		NumTextLines = itemCount;
+		SetLineText(20, 1, _("Repair which item?"), UiFlags::ColorWhitegold, false);
+	} break;
+	case TalkID::Recharge: {
+		if (itemCount == 0) {
+			SetLineText(20, 1, _("You have nothing to recharge."), UiFlags::ColorWhitegold, false);
+			return;
+		}
+
+		ScrollPos = 0;
+		NumTextLines = itemCount;
+		SetLineText(20, 1, _("Recharge which item?"), UiFlags::ColorWhitegold, false);
+	} break;
+	case TalkID::Identify: {
+		if (itemCount == 0) {
+			SetLineText(20, 1, _("You have nothing to identify."), UiFlags::ColorWhitegold, false);
+			return;
+		}
+
+		ScrollPos = 0;
+		NumTextLines = itemCount;
+
+		SetLineText(20, 1, _("Identify which item?"), UiFlags::ColorWhitegold, false);
+	} break;
 	}
-	if (selling) {
-		if (CurrentTextLine != -1 && !TextLine[CurrentTextLine].isSelectable() && CurrentTextLine != BackButtonLine())
-			CurrentTextLine = NextScrollPos;
+}
+
+void SetupErrorScreen(TalkID talkId)
+{
+	SetupScreenElements(OldActiveStore);
+	ClearTextLines(5, 23);
+
+	std::string_view text;
+
+	switch (talkId) {
+	case TalkID::NoMoney:
+		IsTextFullSize = true;
+		RenderGold = true;
+		text = _("You do not have enough gold");
+		break;
+	case TalkID::NoRoom:
+		text = _("You do not have enough room in inventory");
+		break;
+	}
+
+	SetLineText(0, 14, text, UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+}
+
+int GetItemBuyValue(const Item &item)
+{
+	int price = item._iIdentified ? item._iIvalue : item._ivalue;
+
+	if (TownerId == TOWN_PEGBOY) {
+		price = gbIsHellfire ? price - (price / 4) : price + (price / 2);
+	}
+
+	return price;
+}
+
+int GetItemSellValue(const Item &item)
+{
+	int price = item._iIdentified ? item._iIvalue : item._ivalue;
+
+	return price / 4;
+}
+
+int GetItemRepairCost(const Item &item)
+{
+	int dur = item._iMaxDur - item._iDurability;
+	int repairCost = 0;
+
+	if (item._iMagical != ITEM_QUALITY_NORMAL && item._iIdentified) {
+		repairCost = 30 * item._iIvalue * dur / (item._iMaxDur * 100 * 2);
 	} else {
-		NumTextLines = std::max(static_cast<int>(storeLimit) - 4, 0);
+		repairCost = std::max(item._ivalue * dur / (item._iMaxDur * 2), 1);
 	}
+
+	return repairCost;
 }
 
-void StartSmith()
+int GetItemRechargeCost(const Item &item)
 {
-	IsTextFullSize = false;
-	HasScrollbar = false;
-	AddSText(0, 1, _("Welcome to the"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-	AddSText(0, 3, _("Blacksmith's shop"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-	AddSText(0, 7, _("Would you like to:"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-	AddSText(0, 10, _("Talk to Griswold"), UiFlags::ColorBlue | UiFlags::AlignCenter, true);
-	AddSText(0, 12, _("Buy basic items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSText(0, 14, _("Buy premium items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSText(0, 16, _("Sell items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSText(0, 18, _("Repair items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSText(0, 20, _("Leave the shop"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSLine(5);
-	CurrentItemIndex = 20;
+	int rechargeCost = GetSpellData(item._iSpell).staffCost();
+	rechargeCost = (rechargeCost * (item._iMaxCharges - item._iCharges)) / (item._iMaxCharges * 2);
+	return rechargeCost;
 }
 
-void ScrollSmithBuy(int idx)
+int GetItemIdentifyCost()
 {
-	ScrollVendorStore(SmithItems, static_cast<int>(std::size(SmithItems)), idx);
+	return 100;
 }
 
-uint32_t TotalPlayerGold()
+void SetupConfirmScreen()
 {
-	return MyPlayer->_pGold + Stash.gold;
-}
+	SetupScreenElements(OldActiveStore);
+	ClearTextLines(5, 23);
 
-// TODO: Change `_iIvalue` to be unsigned instead of passing `int` here.
-bool PlayerCanAfford(int price)
-{
-	return TotalPlayerGold() >= static_cast<uint32_t>(price);
-}
-
-void StartSmithBuy()
-{
-	IsTextFullSize = true;
-	HasScrollbar = true;
-	ScrollPos = 0;
-
-	RenderGold = true;
-	AddSText(20, 1, _("I have these items for sale:"), UiFlags::ColorWhitegold, false);
-	AddSLine(3);
-	ScrollSmithBuy(ScrollPos);
-	AddItemListBackButton();
-
-	CurrentItemIndex = 0;
-	for (Item &item : SmithItems) {
-		if (item.isEmpty())
-			continue;
-
-		item._iStatFlag = MyPlayer->CanUseItem(item);
-		CurrentItemIndex++;
-	}
-
-	NumTextLines = std::max(CurrentItemIndex - 4, 0);
-}
-
-void ScrollSmithPremiumBuy(int boughtitems)
-{
-	int idx = 0;
-	for (; boughtitems != 0; idx++) {
-		if (!PremiumItems[idx].isEmpty())
-			boughtitems--;
-	}
-
-	ScrollVendorStore(PremiumItems, static_cast<int>(std::size(PremiumItems)), idx);
-}
-
-bool StartSmithPremiumBuy()
-{
-	CurrentItemIndex = 0;
-	for (Item &item : PremiumItems) {
-		if (item.isEmpty())
-			continue;
-
-		item._iStatFlag = MyPlayer->CanUseItem(item);
-		CurrentItemIndex++;
-	}
-	if (CurrentItemIndex == 0) {
-		StartStore(TalkID::Smith);
-		CurrentTextLine = 14;
-		return false;
-	}
-
-	IsTextFullSize = true;
-	HasScrollbar = true;
-	ScrollPos = 0;
-
-	RenderGold = true;
-	AddSText(20, 1, _("I have these premium items for sale:"), UiFlags::ColorWhitegold, false);
-	AddSLine(3);
-	AddItemListBackButton();
-
-	NumTextLines = std::max(CurrentItemIndex - 4, 0);
-
-	ScrollSmithPremiumBuy(ScrollPos);
-
-	return true;
-}
-
-bool SmithSellOk(int i)
-{
-	Item *pI;
-
-	if (i >= 0) {
-		pI = &MyPlayer->InvList[i];
-	} else {
-		pI = &MyPlayer->SpdList[-(i + 1)];
-	}
-
-	if (pI->isEmpty())
-		return false;
-
-	if (pI->_iMiscId > IMISC_OILFIRST && pI->_iMiscId < IMISC_OILLAST)
-		return true;
-
-	if (pI->_itype == ItemType::Misc)
-		return false;
-	if (pI->_itype == ItemType::Gold)
-		return false;
-	if (pI->_itype == ItemType::Staff && (!gbIsHellfire || IsValidSpell(pI->_iSpell)))
-		return false;
-	if (pI->_iClass == ICLASS_QUEST)
-		return false;
-	if (pI->IDidx == IDI_LAZSTAFF)
-		return false;
-
-	return true;
-}
-
-void ScrollSmithSell(int idx)
-{
-	ScrollVendorStore(PlayerItems, CurrentItemIndex, idx, false);
-}
-
-void StartSmithSell()
-{
-	IsTextFullSize = true;
-	bool sellOk = false;
-	CurrentItemIndex = 0;
-
-	for (auto &item : PlayerItems) {
-		item.clear();
-	}
-
-	const Player &myPlayer = *MyPlayer;
-
-	for (int8_t i = 0; i < myPlayer._pNumInv; i++) {
-		if (CurrentItemIndex >= 48)
-			break;
-		if (SmithSellOk(i)) {
-			sellOk = true;
-			PlayerItems[CurrentItemIndex] = myPlayer.InvList[i];
-
-			if (PlayerItems[CurrentItemIndex]._iMagical != ITEM_QUALITY_NORMAL && PlayerItems[CurrentItemIndex]._iIdentified)
-				PlayerItems[CurrentItemIndex]._ivalue = PlayerItems[CurrentItemIndex]._iIvalue;
-
-			PlayerItems[CurrentItemIndex]._ivalue = std::max(PlayerItems[CurrentItemIndex]._ivalue / 4, 1);
-			PlayerItems[CurrentItemIndex]._iIvalue = PlayerItems[CurrentItemIndex]._ivalue;
-			PlayerItemIndexes[CurrentItemIndex] = i;
-			CurrentItemIndex++;
-		}
-	}
-
-	for (int i = 0; i < MaxBeltItems; i++) {
-		if (CurrentItemIndex >= 48)
-			break;
-		if (SmithSellOk(-(i + 1))) {
-			sellOk = true;
-			PlayerItems[CurrentItemIndex] = myPlayer.SpdList[i];
-
-			if (PlayerItems[CurrentItemIndex]._iMagical != ITEM_QUALITY_NORMAL && PlayerItems[CurrentItemIndex]._iIdentified)
-				PlayerItems[CurrentItemIndex]._ivalue = PlayerItems[CurrentItemIndex]._iIvalue;
-
-			PlayerItems[CurrentItemIndex]._ivalue = std::max(PlayerItems[CurrentItemIndex]._ivalue / 4, 1);
-			PlayerItems[CurrentItemIndex]._iIvalue = PlayerItems[CurrentItemIndex]._ivalue;
-			PlayerItemIndexes[CurrentItemIndex] = -(i + 1);
-			CurrentItemIndex++;
-		}
-	}
-
-	if (!sellOk) {
-		HasScrollbar = false;
-
-		RenderGold = true;
-		AddSText(20, 1, _("You have nothing I want."), UiFlags::ColorWhitegold, false);
-		AddSLine(3);
-		AddItemListBackButton(/*selectable=*/true);
-		return;
-	}
-
-	HasScrollbar = true;
-	ScrollPos = 0;
-	NumTextLines = myPlayer._pNumInv;
-
-	RenderGold = true;
-	AddSText(20, 1, _("Which item is for sale?"), UiFlags::ColorWhitegold, false);
-	AddSLine(3);
-	ScrollSmithSell(ScrollPos);
-	AddItemListBackButton();
-}
-
-bool SmithRepairOk(int i)
-{
-	const Player &myPlayer = *MyPlayer;
-	const Item &item = myPlayer.InvList[i];
-
-	if (item.isEmpty())
-		return false;
-	if (item._itype == ItemType::Misc)
-		return false;
-	if (item._itype == ItemType::Gold)
-		return false;
-	if (item._iDurability == item._iMaxDur)
-		return false;
-	if (item._iMaxDur == DUR_INDESTRUCTIBLE)
-		return false;
-
-	return true;
-}
-
-void StartSmithRepair()
-{
-	IsTextFullSize = true;
-	CurrentItemIndex = 0;
-
-	for (auto &item : PlayerItems) {
-		item.clear();
-	}
-
-	Player &myPlayer = *MyPlayer;
-
-	auto &helmet = myPlayer.InvBody[INVLOC_HEAD];
-	if (!helmet.isEmpty() && helmet._iDurability != helmet._iMaxDur) {
-		AddStoreHoldRepair(&helmet, -1);
-	}
-
-	auto &armor = myPlayer.InvBody[INVLOC_CHEST];
-	if (!armor.isEmpty() && armor._iDurability != armor._iMaxDur) {
-		AddStoreHoldRepair(&armor, -2);
-	}
-
-	auto &leftHand = myPlayer.InvBody[INVLOC_HAND_LEFT];
-	if (!leftHand.isEmpty() && leftHand._iDurability != leftHand._iMaxDur) {
-		AddStoreHoldRepair(&leftHand, -3);
-	}
-
-	auto &rightHand = myPlayer.InvBody[INVLOC_HAND_RIGHT];
-	if (!rightHand.isEmpty() && rightHand._iDurability != rightHand._iMaxDur) {
-		AddStoreHoldRepair(&rightHand, -4);
-	}
-
-	for (int i = 0; i < myPlayer._pNumInv; i++) {
-		if (CurrentItemIndex >= 48)
-			break;
-		if (SmithRepairOk(i)) {
-			AddStoreHoldRepair(&myPlayer.InvList[i], i);
-		}
-	}
-
-	if (CurrentItemIndex == 0) {
-		HasScrollbar = false;
-
-		RenderGold = true;
-		AddSText(20, 1, _("You have nothing to repair."), UiFlags::ColorWhitegold, false);
-		AddSLine(3);
-		AddItemListBackButton(/*selectable=*/true);
-		return;
-	}
-
-	HasScrollbar = true;
-	ScrollPos = 0;
-	NumTextLines = myPlayer._pNumInv;
-
-	RenderGold = true;
-	AddSText(20, 1, _("Repair which item?"), UiFlags::ColorWhitegold, false);
-	AddSLine(3);
-
-	ScrollSmithSell(ScrollPos);
-	AddItemListBackButton();
-}
-
-void FillManaPlayer()
-{
-	if (!*GetOptions().Gameplay.adriaRefillsMana)
-		return;
-
-	Player &myPlayer = *MyPlayer;
-
-	if (myPlayer._pMana != myPlayer._pMaxMana) {
-		PlaySFX(SfxID::CastHealing);
-	}
-	myPlayer._pMana = myPlayer._pMaxMana;
-	myPlayer._pManaBase = myPlayer._pMaxManaBase;
-	RedrawComponent(PanelDrawComponent::Mana);
-}
-
-void StartWitch()
-{
-	FillManaPlayer();
-	IsTextFullSize = false;
-	HasScrollbar = false;
-	AddSText(0, 2, _("Witch's shack"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-	AddSText(0, 9, _("Would you like to:"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-	AddSText(0, 12, _("Talk to Adria"), UiFlags::ColorBlue | UiFlags::AlignCenter, true);
-	AddSText(0, 14, _("Buy items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSText(0, 16, _("Sell items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSText(0, 18, _("Recharge staves"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSText(0, 20, _("Leave the shack"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSLine(5);
-	CurrentItemIndex = 20;
-}
-
-void ScrollWitchBuy(int idx)
-{
-	ScrollVendorStore(WitchItems, static_cast<int>(std::size(WitchItems)), idx);
-}
-
-void WitchBookLevel(Item &bookItem)
-{
-	if (bookItem._iMiscId != IMISC_BOOK)
-		return;
-	bookItem._iMinMag = GetSpellData(bookItem._iSpell).minInt;
-	uint8_t spellLevel = MyPlayer->_pSplLvl[static_cast<int8_t>(bookItem._iSpell)];
-	while (spellLevel > 0) {
-		bookItem._iMinMag += 20 * bookItem._iMinMag / 100;
-		spellLevel--;
-		if (bookItem._iMinMag + 20 * bookItem._iMinMag / 100 > 255) {
-			bookItem._iMinMag = 255;
-			spellLevel = 0;
-		}
-	}
-}
-
-void StartWitchBuy()
-{
-	IsTextFullSize = true;
-	HasScrollbar = true;
-	ScrollPos = 0;
-	NumTextLines = 20;
-
-	RenderGold = true;
-	AddSText(20, 1, _("I have these items for sale:"), UiFlags::ColorWhitegold, false);
-	AddSLine(3);
-	ScrollWitchBuy(ScrollPos);
-	AddItemListBackButton();
-
-	CurrentItemIndex = 0;
-	for (Item &item : WitchItems) {
-		if (item.isEmpty())
-			continue;
-
-		WitchBookLevel(item);
-		item._iStatFlag = MyPlayer->CanUseItem(item);
-		CurrentItemIndex++;
-	}
-	NumTextLines = std::max(CurrentItemIndex - 4, 0);
-}
-
-bool WitchSellOk(int i)
-{
-	Item *pI;
-
-	bool rv = false;
-
-	if (i >= 0)
-		pI = &MyPlayer->InvList[i];
-	else
-		pI = &MyPlayer->SpdList[-(i + 1)];
-
-	if (pI->_itype == ItemType::Misc)
-		rv = true;
-	if (pI->_iMiscId > 29 && pI->_iMiscId < 41)
-		rv = false;
-	if (pI->_iClass == ICLASS_QUEST)
-		rv = false;
-	if (pI->_itype == ItemType::Staff && (!gbIsHellfire || IsValidSpell(pI->_iSpell)))
-		rv = true;
-	if (pI->IDidx >= IDI_FIRSTQUEST && pI->IDidx <= IDI_LASTQUEST)
-		rv = false;
-	if (pI->IDidx == IDI_LAZSTAFF)
-		rv = false;
-	return rv;
-}
-
-void StartWitchSell()
-{
-	IsTextFullSize = true;
-	bool sellok = false;
-	CurrentItemIndex = 0;
-
-	for (auto &item : PlayerItems) {
-		item.clear();
-	}
-
-	const Player &myPlayer = *MyPlayer;
-
-	for (int i = 0; i < myPlayer._pNumInv; i++) {
-		if (CurrentItemIndex >= 48)
-			break;
-		if (WitchSellOk(i)) {
-			sellok = true;
-			PlayerItems[CurrentItemIndex] = myPlayer.InvList[i];
-
-			if (PlayerItems[CurrentItemIndex]._iMagical != ITEM_QUALITY_NORMAL && PlayerItems[CurrentItemIndex]._iIdentified)
-				PlayerItems[CurrentItemIndex]._ivalue = PlayerItems[CurrentItemIndex]._iIvalue;
-
-			PlayerItems[CurrentItemIndex]._ivalue = std::max(PlayerItems[CurrentItemIndex]._ivalue / 4, 1);
-			PlayerItems[CurrentItemIndex]._iIvalue = PlayerItems[CurrentItemIndex]._ivalue;
-			PlayerItemIndexes[CurrentItemIndex] = i;
-			CurrentItemIndex++;
-		}
-	}
-
-	for (int i = 0; i < MaxBeltItems; i++) {
-		if (CurrentItemIndex >= 48)
-			break;
-		if (!myPlayer.SpdList[i].isEmpty() && WitchSellOk(-(i + 1))) {
-			sellok = true;
-			PlayerItems[CurrentItemIndex] = myPlayer.SpdList[i];
-
-			if (PlayerItems[CurrentItemIndex]._iMagical != ITEM_QUALITY_NORMAL && PlayerItems[CurrentItemIndex]._iIdentified)
-				PlayerItems[CurrentItemIndex]._ivalue = PlayerItems[CurrentItemIndex]._iIvalue;
-
-			PlayerItems[CurrentItemIndex]._ivalue = std::max(PlayerItems[CurrentItemIndex]._ivalue / 4, 1);
-			PlayerItems[CurrentItemIndex]._iIvalue = PlayerItems[CurrentItemIndex]._ivalue;
-			PlayerItemIndexes[CurrentItemIndex] = -(i + 1);
-			CurrentItemIndex++;
-		}
-	}
-
-	if (!sellok) {
-		HasScrollbar = false;
-
-		RenderGold = true;
-		AddSText(20, 1, _("You have nothing I want."), UiFlags::ColorWhitegold, false);
-
-		AddSLine(3);
-		AddItemListBackButton(/*selectable=*/true);
-		return;
-	}
-
-	HasScrollbar = true;
-	ScrollPos = 0;
-	NumTextLines = myPlayer._pNumInv;
-
-	RenderGold = true;
-	AddSText(20, 1, _("Which item is for sale?"), UiFlags::ColorWhitegold, false);
-	AddSLine(3);
-	ScrollSmithSell(ScrollPos);
-	AddItemListBackButton();
-}
-
-bool WitchRechargeOk(int i)
-{
-	const auto &item = MyPlayer->InvList[i];
-
-	if (item._itype == ItemType::Staff && item._iCharges != item._iMaxCharges) {
-		return true;
-	}
-
-	if ((item._iMiscId == IMISC_UNIQUE || item._iMiscId == IMISC_STAFF) && item._iCharges < item._iMaxCharges) {
-		return true;
-	}
-
-	return false;
-}
-
-void AddStoreHoldRecharge(Item itm, int8_t i)
-{
-	PlayerItems[CurrentItemIndex] = itm;
-	PlayerItems[CurrentItemIndex]._ivalue += GetSpellData(itm._iSpell).staffCost();
-	PlayerItems[CurrentItemIndex]._ivalue = PlayerItems[CurrentItemIndex]._ivalue * (PlayerItems[CurrentItemIndex]._iMaxCharges - PlayerItems[CurrentItemIndex]._iCharges) / (PlayerItems[CurrentItemIndex]._iMaxCharges * 2);
-	PlayerItems[CurrentItemIndex]._iIvalue = PlayerItems[CurrentItemIndex]._ivalue;
-	PlayerItemIndexes[CurrentItemIndex] = i;
-	CurrentItemIndex++;
-}
-
-void StartWitchRecharge()
-{
-	IsTextFullSize = true;
-	bool rechargeok = false;
-	CurrentItemIndex = 0;
-
-	for (auto &item : PlayerItems) {
-		item.clear();
-	}
-
-	const Player &myPlayer = *MyPlayer;
-	const auto &leftHand = myPlayer.InvBody[INVLOC_HAND_LEFT];
-
-	if ((leftHand._itype == ItemType::Staff || leftHand._iMiscId == IMISC_UNIQUE) && leftHand._iCharges != leftHand._iMaxCharges) {
-		rechargeok = true;
-		AddStoreHoldRecharge(leftHand, -1);
-	}
-
-	for (int i = 0; i < myPlayer._pNumInv; i++) {
-		if (CurrentItemIndex >= 48)
-			break;
-		if (WitchRechargeOk(i)) {
-			rechargeok = true;
-			AddStoreHoldRecharge(myPlayer.InvList[i], i);
-		}
-	}
-
-	if (!rechargeok) {
-		HasScrollbar = false;
-
-		RenderGold = true;
-		AddSText(20, 1, _("You have nothing to recharge."), UiFlags::ColorWhitegold, false);
-		AddSLine(3);
-		AddItemListBackButton(/*selectable=*/true);
-		return;
-	}
-
-	HasScrollbar = true;
-	ScrollPos = 0;
-	NumTextLines = myPlayer._pNumInv;
-
-	RenderGold = true;
-	AddSText(20, 1, _("Recharge which item?"), UiFlags::ColorWhitegold, false);
-	AddSLine(3);
-	ScrollSmithSell(ScrollPos);
-	AddItemListBackButton();
-}
-
-void StoreNoMoney()
-{
-	StartStore(OldActiveStore);
-	HasScrollbar = false;
-	IsTextFullSize = true;
-	RenderGold = true;
-	ClearSText(5, 23);
-	AddSText(0, 14, _("You do not have enough gold"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-}
-
-void StoreNoRoom()
-{
-	StartStore(OldActiveStore);
-	HasScrollbar = false;
-	ClearSText(5, 23);
-	AddSText(0, 14, _("You do not have enough room in inventory"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-}
-
-void StoreConfirm(Item &item)
-{
-	StartStore(OldActiveStore);
-	HasScrollbar = false;
-	ClearSText(5, 23);
-
-	UiFlags itemColor = item.getTextColorWithStatCheck();
-	AddSText(20, 8, item.getName(), itemColor, false);
-	AddSTextVal(8, item._iIvalue);
-	PrintStoreItem(item, 9, itemColor);
-
+	int goldAmountDisplay;
 	std::string_view prompt;
 
 	switch (OldActiveStore) {
-	case TalkID::BoyBuy:
-		prompt = _("Do we have a deal?");
-		break;
-	case TalkID::StorytellerIdentify:
-		prompt = _("Are you sure you want to identify this item?");
-		break;
-	case TalkID::HealerBuy:
-	case TalkID::SmithPremiumBuy:
-	case TalkID::WitchBuy:
-	case TalkID::SmithBuy:
-		prompt = _("Are you sure you want to buy this item?");
-		break;
-	case TalkID::WitchRecharge:
-		prompt = _("Are you sure you want to recharge this item?");
-		break;
-	case TalkID::SmithSell:
-	case TalkID::WitchSell:
+	case TalkID::BasicBuy:
+	case TalkID::Buy: {
+		goldAmountDisplay = GetItemBuyValue(TempItem);
+		if (TownerId == TOWN_PEGBOY)
+			prompt = _("Do we have a deal?");
+		else
+			prompt = _("Are you sure you want to buy this item?");
+	} break;
+	case TalkID::Sell:
+		goldAmountDisplay = GetItemSellValue(TempItem);
 		prompt = _("Are you sure you want to sell this item?");
 		break;
-	case TalkID::SmithRepair:
+	case TalkID::Repair:
+		goldAmountDisplay = GetItemRepairCost(TempItem);
 		prompt = _("Are you sure you want to repair this item?");
+		break;
+	case TalkID::Recharge:
+		goldAmountDisplay = GetItemRechargeCost(TempItem);
+		prompt = _("Are you sure you want to recharge this item?");
+		break;
+	case TalkID::Identify:
+		goldAmountDisplay = GetItemIdentifyCost();
+		prompt = _("Are you sure you want to identify this item?");
 		break;
 	default:
 		app_fatal(StrCat("Unknown store dialog ", static_cast<int>(OldActiveStore)));
 	}
-	AddSText(0, 15, prompt, UiFlags::ColorWhite | UiFlags::AlignCenter, false);
-	AddSText(0, 18, _("Yes"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSText(0, 20, _("No"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+
+	UiFlags itemColor = TempItem.getTextColorWithStatCheck();
+
+	SetLineText(20, 8, TempItem.getName(), itemColor, false);
+	SetLineValue(8, goldAmountDisplay);
+	PrintStoreItem(TempItem, 9, itemColor);
+	SetLineText(0, ConfirmLine - TripleLineSpace, prompt, UiFlags::ColorWhite | UiFlags::AlignCenter, false);
+	SetLineText(0, ConfirmLine, _("Yes"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+	SetLineText(0, ConfirmLine + DoubleLineSpace, _("No"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
 }
 
-void StartBoy()
-{
-	IsTextFullSize = false;
-	HasScrollbar = false;
-	AddSText(0, 2, _("Wirt the Peg-legged boy"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-	AddSLine(5);
-	if (!BoyItem.isEmpty()) {
-		AddSText(0, 8, _("Talk to Wirt"), UiFlags::ColorBlue | UiFlags::AlignCenter, true);
-		AddSText(0, 12, _("I have something for sale,"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-		AddSText(0, 14, _("but it will cost 50 gold"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-		AddSText(0, 16, _("just to take a look. "), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-		AddSText(0, 18, _("What have you got?"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-		AddSText(0, 20, _("Say goodbye"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	} else {
-		AddSText(0, 12, _("Talk to Wirt"), UiFlags::ColorBlue | UiFlags::AlignCenter, true);
-		AddSText(0, 18, _("Say goodbye"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	}
-}
-
-void SStartBoyBuy()
-{
-	IsTextFullSize = true;
-	HasScrollbar = false;
-
-	RenderGold = true;
-	AddSText(20, 1, _("I have this item for sale:"), UiFlags::ColorWhitegold, false);
-	AddSLine(3);
-
-	BoyItem._iStatFlag = MyPlayer->CanUseItem(BoyItem);
-	UiFlags itemColor = BoyItem.getTextColorWithStatCheck();
-	AddSText(20, 10, BoyItem.getName(), itemColor, true, BoyItem._iCurs, true);
-	if (gbIsHellfire)
-		AddSTextVal(10, BoyItem._iIvalue - (BoyItem._iIvalue / 4));
-	else
-		AddSTextVal(10, BoyItem._iIvalue + (BoyItem._iIvalue / 2));
-	PrintStoreItem(BoyItem, 11, itemColor, true);
-
-	{
-		// Add a Leave button. Unlike the other item list back buttons,
-		// this one has different text and different layout in LargerSmallFont locales.
-		const int line = BackButtonLine();
-		AddSLine(line - 1);
-		AddSText(0, line, _("Leave"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-		TextLine[line]._syoff = 6;
-	}
-}
-
-void HealPlayer()
-{
-	Player &myPlayer = *MyPlayer;
-
-	if (myPlayer._pHitPoints != myPlayer._pMaxHP) {
-		PlaySFX(SfxID::CastHealing);
-	}
-	myPlayer._pHitPoints = myPlayer._pMaxHP;
-	myPlayer._pHPBase = myPlayer._pMaxHPBase;
-	RedrawComponent(PanelDrawComponent::Health);
-}
-
-void StartHealer()
-{
-	HealPlayer();
-	IsTextFullSize = false;
-	HasScrollbar = false;
-	AddSText(0, 1, _("Welcome to the"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-	AddSText(0, 3, _("Healer's home"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-	AddSText(0, 9, _("Would you like to:"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-	AddSText(0, 12, _("Talk to Pepin"), UiFlags::ColorBlue | UiFlags::AlignCenter, true);
-	AddSText(0, 14, _("Buy items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSText(0, 18, _("Leave Healer's home"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSLine(5);
-	CurrentItemIndex = 20;
-}
-
-void ScrollHealerBuy(int idx)
-{
-	ScrollVendorStore(HealerItems, static_cast<int>(std::size(HealerItems)), idx);
-}
-
-void StartHealerBuy()
-{
-	IsTextFullSize = true;
-	HasScrollbar = true;
-	ScrollPos = 0;
-
-	RenderGold = true;
-	AddSText(20, 1, _("I have these items for sale:"), UiFlags::ColorWhitegold, false);
-	AddSLine(3);
-
-	ScrollHealerBuy(ScrollPos);
-	AddItemListBackButton();
-
-	CurrentItemIndex = 0;
-	for (Item &item : HealerItems) {
-		if (item.isEmpty())
-			continue;
-
-		item._iStatFlag = MyPlayer->CanUseItem(item);
-		CurrentItemIndex++;
-	}
-
-	NumTextLines = std::max(CurrentItemIndex - 4, 0);
-}
-
-void StartStoryteller()
-{
-	IsTextFullSize = false;
-	HasScrollbar = false;
-	AddSText(0, 2, _("The Town Elder"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-	AddSText(0, 9, _("Would you like to:"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-	AddSText(0, 12, _("Talk to Cain"), UiFlags::ColorBlue | UiFlags::AlignCenter, true);
-	AddSText(0, 14, _("Identify an item"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSText(0, 18, _("Say goodbye"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSLine(5);
-}
-
-bool IdItemOk(Item *i)
-{
-	if (i->isEmpty()) {
-		return false;
-	}
-	if (i->_iMagical == ITEM_QUALITY_NORMAL) {
-		return false;
-	}
-	return !i->_iIdentified;
-}
-
-void AddStoreHoldId(Item itm, int8_t i)
-{
-	PlayerItems[CurrentItemIndex] = itm;
-	PlayerItems[CurrentItemIndex]._ivalue = 100;
-	PlayerItems[CurrentItemIndex]._iIvalue = 100;
-	PlayerItemIndexes[CurrentItemIndex] = i;
-	CurrentItemIndex++;
-}
-
-void StartStorytellerIdentify()
-{
-	bool idok = false;
-	IsTextFullSize = true;
-	CurrentItemIndex = 0;
-
-	for (auto &item : PlayerItems) {
-		item.clear();
-	}
-
-	Player &myPlayer = *MyPlayer;
-
-	auto &helmet = myPlayer.InvBody[INVLOC_HEAD];
-	if (IdItemOk(&helmet)) {
-		idok = true;
-		AddStoreHoldId(helmet, -1);
-	}
-
-	auto &armor = myPlayer.InvBody[INVLOC_CHEST];
-	if (IdItemOk(&armor)) {
-		idok = true;
-		AddStoreHoldId(armor, -2);
-	}
-
-	auto &leftHand = myPlayer.InvBody[INVLOC_HAND_LEFT];
-	if (IdItemOk(&leftHand)) {
-		idok = true;
-		AddStoreHoldId(leftHand, -3);
-	}
-
-	auto &rightHand = myPlayer.InvBody[INVLOC_HAND_RIGHT];
-	if (IdItemOk(&rightHand)) {
-		idok = true;
-		AddStoreHoldId(rightHand, -4);
-	}
-
-	auto &leftRing = myPlayer.InvBody[INVLOC_RING_LEFT];
-	if (IdItemOk(&leftRing)) {
-		idok = true;
-		AddStoreHoldId(leftRing, -5);
-	}
-
-	auto &rightRing = myPlayer.InvBody[INVLOC_RING_RIGHT];
-	if (IdItemOk(&rightRing)) {
-		idok = true;
-		AddStoreHoldId(rightRing, -6);
-	}
-
-	auto &amulet = myPlayer.InvBody[INVLOC_AMULET];
-	if (IdItemOk(&amulet)) {
-		idok = true;
-		AddStoreHoldId(amulet, -7);
-	}
-
-	for (int i = 0; i < myPlayer._pNumInv; i++) {
-		if (CurrentItemIndex >= 48)
-			break;
-		auto &item = myPlayer.InvList[i];
-		if (IdItemOk(&item)) {
-			idok = true;
-			AddStoreHoldId(item, i);
-		}
-	}
-
-	if (!idok) {
-		HasScrollbar = false;
-
-		RenderGold = true;
-		AddSText(20, 1, _("You have nothing to identify."), UiFlags::ColorWhitegold, false);
-		AddSLine(3);
-		AddItemListBackButton(/*selectable=*/true);
-		return;
-	}
-
-	HasScrollbar = true;
-	ScrollPos = 0;
-	NumTextLines = myPlayer._pNumInv;
-
-	RenderGold = true;
-	AddSText(20, 1, _("Identify which item?"), UiFlags::ColorWhitegold, false);
-	AddSLine(3);
-
-	ScrollSmithSell(ScrollPos);
-	AddItemListBackButton();
-}
-
-void StartStorytellerIdentifyShow(Item &item)
-{
-	StartStore(OldActiveStore);
-	HasScrollbar = false;
-	ClearSText(5, 23);
-
-	UiFlags itemColor = item.getTextColorWithStatCheck();
-
-	AddSText(0, 7, _("This item is:"), UiFlags::ColorWhite | UiFlags::AlignCenter, false);
-	AddSText(20, 11, item.getName(), itemColor, false);
-	PrintStoreItem(item, 12, itemColor);
-	AddSText(0, 18, _("Done"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-}
-
-void StartTalk()
+void SetupGossipScreen()
 {
 	int la;
+	const StoreData &store = Stores[TownerId];
+
+	auto gossipOption = std::find_if(store.menuOptions.begin(), store.menuOptions.end(),
+	    [](const StoreMenuOption &option) { return option.action == TalkID::Gossip; });
+
+	const std::string &gossipText = gossipOption->text;
 
 	IsTextFullSize = false;
-	HasScrollbar = false;
-	AddSText(0, 2, fmt::format(fmt::runtime(_("Talk to {:s}")), _(TownerNames[TownerId])), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-	AddSLine(5);
+
+	SetLineText(0, 2, fmt::format(fmt::runtime(_("{}")), gossipText),
+	    UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
+
+	SetLineAsDivider(5);
+
 	if (gbIsSpawn) {
-		AddSText(0, 10, fmt::format(fmt::runtime(_("Talking to {:s}")), _(TownerNames[TownerId])), UiFlags::ColorWhite | UiFlags::AlignCenter, false);
-		AddSText(0, 12, _("is not available"), UiFlags::ColorWhite | UiFlags::AlignCenter, false);
-		AddSText(0, 14, _("in the shareware"), UiFlags::ColorWhite | UiFlags::AlignCenter, false);
-		AddSText(0, 16, _("version"), UiFlags::ColorWhite | UiFlags::AlignCenter, false);
-		AddOptionsBackButton();
+		SetLineText(0, 10, fmt::format(fmt::runtime(_("{}")), gossipText),
+		    UiFlags::ColorWhite | UiFlags::AlignCenter, false);
+		SetLineText(0, 12, _("is not available"), UiFlags::ColorWhite | UiFlags::AlignCenter, false);
+		SetLineText(0, 14, _("in the shareware"), UiFlags::ColorWhite | UiFlags::AlignCenter, false);
+		SetLineText(0, 16, _("version"), UiFlags::ColorWhite | UiFlags::AlignCenter, false);
+		SetLineAsOptionsBackButton();
 		return;
 	}
 
@@ -1239,184 +637,492 @@ void StartTalk()
 
 	for (auto &quest : Quests) {
 		if (quest._qactive == QUEST_ACTIVE && QuestDialogTable[TownerId][quest._qidx] != TEXT_NONE && quest._qlog) {
-			AddSText(0, sn, _(QuestsData[quest._qidx]._qlstr), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+			SetLineText(0, sn, _(QuestsData[quest._qidx]._qlstr), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
 			sn += la;
 		}
 	}
-	AddSText(0, sn2, _("Gossip"), UiFlags::ColorBlue | UiFlags::AlignCenter, true);
-	AddOptionsBackButton();
+
+	SetLineText(0, sn2, _("Gossip"), UiFlags::ColorBlue | UiFlags::AlignCenter, true);
+	SetLineAsOptionsBackButton();
 }
 
-void StartTavern()
+void SetMenuHeader(const StoreData &store)
 {
-	IsTextFullSize = false;
-	HasScrollbar = false;
-	AddSText(0, 1, _("Welcome to the"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-	AddSText(0, 3, _("Rising Sun"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-	AddSText(0, 9, _("Would you like to:"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-	AddSText(0, 12, _("Talk to Ogden"), UiFlags::ColorBlue | UiFlags::AlignCenter, true);
-	AddSText(0, 18, _("Leave the tavern"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSLine(5);
-	CurrentItemIndex = 20;
-}
+	// Translate and convert store.welcomeMessage properly
+	std::string translatedHeader = fmt::format(fmt::runtime(_("{:s}")), store.welcomeMessage);
 
-void StartBarmaid()
-{
-	IsTextFullSize = false;
-	HasScrollbar = false;
-	AddSText(0, 2, _("Gillian"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-	AddSText(0, 9, _("Would you like to:"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-	AddSText(0, 12, _("Talk to Gillian"), UiFlags::ColorBlue | UiFlags::AlignCenter, true);
-	AddSText(0, 14, _("Access Storage"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSText(0, 18, _("Say goodbye"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSLine(5);
-	CurrentItemIndex = 20;
-}
+	// Check if the translated header contains "\n\n", which indicates a two-line header
+	std::string::size_type pos = translatedHeader.find("\n\n");
 
-void StartDrunk()
-{
-	IsTextFullSize = false;
-	HasScrollbar = false;
-	AddSText(0, 2, _("Farnham the Drunk"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-	AddSText(0, 9, _("Would you like to:"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-	AddSText(0, 12, _("Talk to Farnham"), UiFlags::ColorBlue | UiFlags::AlignCenter, true);
-	AddSText(0, 18, _("Say Goodbye"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSLine(5);
-	CurrentItemIndex = 20;
-}
+	if (pos != std::string::npos) {
+		// Split the header into two parts for a two-line header
+		std::string header1 = translatedHeader.substr(0, pos);
+		std::string header2 = translatedHeader.substr(pos + 2);
 
-void SmithEnter()
-{
-	switch (CurrentTextLine) {
-	case 10:
-		TownerId = TOWN_SMITH;
-		OldTextLine = 10;
-		OldActiveStore = TalkID::Smith;
-		StartStore(TalkID::Gossip);
-		break;
-	case 12:
-		StartStore(TalkID::SmithBuy);
-		break;
-	case 14:
-		StartStore(TalkID::SmithPremiumBuy);
-		break;
-	case 16:
-		StartStore(TalkID::SmithSell);
-		break;
-	case 18:
-		StartStore(TalkID::SmithRepair);
-		break;
-	case 20:
-		ActiveStore = TalkID::None;
-		break;
-	}
-}
-
-/**
- * @brief Purchases an item from the smith.
- */
-void SmithBuyItem(Item &item)
-{
-	TakePlrsMoney(item._iIvalue);
-	if (item._iMagical == ITEM_QUALITY_NORMAL)
-		item._iIdentified = false;
-	StoreAutoPlace(item, true);
-	int idx = OldScrollPos + ((OldTextLine - PreviousScrollPos) / 4);
-	if (idx == SMITH_ITEMS - 1) {
-		SmithItems[SMITH_ITEMS - 1].clear();
+		// Set the headers on lines 1 and 3
+		SetLineText(0, 1, header1, UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
+		SetLineText(0, 3, header2, UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
 	} else {
-		for (; !SmithItems[idx + 1].isEmpty(); idx++) {
-			SmithItems[idx] = std::move(SmithItems[idx + 1]);
-		}
-		SmithItems[idx].clear();
+		// If there's no "\n\n", treat it as a single-line header
+		SetLineText(0, 2, translatedHeader, UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
 	}
-	CalcPlrInv(*MyPlayer, true);
 }
 
-void SmithBuyEnter()
+void SetMenuText(const StoreData &store)
 {
-	if (CurrentTextLine == BackButtonLine()) {
-		StartStore(TalkID::Smith);
-		CurrentTextLine = 12;
+	const UiFlags flags = UiFlags::ColorWhitegold | UiFlags::AlignCenter;
+	int startLine = MainMenuDividerLine + SingleLineSpace;
+
+	if (TownerId != TOWN_PEGBOY) {
+		CurrentMenuDrawLine = store.menuOptions.size() > 5 ? startLine + SingleLineSpace : startLine + TripleLineSpace;
+		SetLineText(0, CurrentMenuDrawLine, _("Would you like to:"), flags, false);
+		CurrentMenuDrawLine += TripleLineSpace;
+	} else if (!Boy.items.empty()) {
+		CurrentMenuDrawLine = WirtDialogueDrawLine;
+		SetLineText(0, CurrentMenuDrawLine, _("I have something for sale,"), flags, false);
+		CurrentMenuDrawLine += DoubleLineSpace;
+		SetLineText(0, CurrentMenuDrawLine, _("but it will cost 50 gold"), flags, false);
+		CurrentMenuDrawLine += DoubleLineSpace;
+		SetLineText(0, CurrentMenuDrawLine, _("just to take a look. "), flags, false);
+		CurrentMenuDrawLine = WirtDialogueDrawLine - (DoubleLineSpace * 2);
+	} else {
+		CurrentMenuDrawLine = startLine + (TripleLineSpace * 2);
+	}
+}
+
+void SetMenuOption(TalkID action, const std::string_view &text)
+{
+	UiFlags flags = (action == TalkID::Gossip) ? UiFlags::ColorBlue | UiFlags::AlignCenter : UiFlags::ColorWhite | UiFlags::AlignCenter;
+
+	// Set leave option as the last menu option, trying for line 18 if there's room, otherwise line 20.
+	if (action == TalkID::None) {
+		CurrentMenuDrawLine = CurrentMenuDrawLine < 18 ? 18 : 20;
+	}
+
+	SetLineText(0, CurrentMenuDrawLine, text, flags, true);
+
+	// Update the vector to map the current line to the action
+	LineActionMappings.push_back({ CurrentMenuDrawLine, action });
+
+	CurrentMenuDrawLine += DoubleLineSpace;
+
+	if (TownerId == TOWN_PEGBOY && !Boy.items.empty() && CurrentMenuDrawLine == (WirtDialogueDrawLine - DoubleLineSpace)) {
+		CurrentMenuDrawLine = WirtDialogueDrawLine + (TripleLineSpace * 2);
+	}
+}
+
+void RestoreResource()
+{
+	int *resource = nullptr;
+	int *maxResource = nullptr;
+	int *baseResource = nullptr;
+	int *baseMaxResource = nullptr;
+	PanelDrawComponent component;
+	TownerStore *towner = townerStores[TownerId];
+
+	switch (towner->resourceType) {
+	case ResourceType::Life:
+		resource = &MyPlayer->_pHitPoints;
+		maxResource = &MyPlayer->_pMaxHP;
+		baseResource = &MyPlayer->_pHPBase;
+		baseMaxResource = &MyPlayer->_pMaxHPBase;
+		component = PanelDrawComponent::Health;
+		break;
+	case ResourceType::Mana:
+		if (!*GetOptions().Gameplay.adriaRefillsMana)
+			return;
+		resource = &MyPlayer->_pMana;
+		maxResource = &MyPlayer->_pMaxMana;
+		baseResource = &MyPlayer->_pManaBase;
+		baseMaxResource = &MyPlayer->_pMaxManaBase;
+		component = PanelDrawComponent::Mana;
+		break;
+	default:
 		return;
 	}
+
+	if (*resource == *maxResource)
+		return;
+
+	PlaySFX(SfxID::CastHealing);
+	*resource = *maxResource;
+	*baseResource = *baseMaxResource;
+	RedrawComponent(component);
+}
+
+void SetupMainMenuScreen()
+{
+	RestoreResource();
+	IsTextFullSize = false;
+
+	const StoreData &store = Stores[TownerId]; // Fetch store data dynamically
+
+	SetMenuHeader(store); // Translate on display
+	SetLineAsDivider(MainMenuDividerLine);
+	SetMenuText(store);
+
+	LineActionMappings.clear();
+
+	for (const StoreMenuOption &option : store.menuOptions) {
+		// Special case for Wirt: If buying and Wirt has no items, skip option
+		if (TownerId == TOWN_PEGBOY && option.action == TalkID::Buy && Boy.items.empty())
+			continue;
+
+		SetMenuOption(option.action, _(option.text)); // Translate menu text dynamically
+	}
+}
+
+void BuildPlayerItemsVector()
+{
+	playerItems.clear();
+
+	// Add body items
+	for (int8_t i = 0; i < SLOTXY_EQUIPPED_LAST; i++) {
+		if (MyPlayer->InvBody[i].isEmpty())
+			continue;
+		playerItems.push_back({ &MyPlayer->InvBody[i], ItemLocation::Body, i });
+	}
+
+	// Add inventory items
+	for (int8_t i = 0; i < MyPlayer->_pNumInv; i++) {
+		if (MyPlayer->InvList[i].isEmpty())
+			continue;
+		playerItems.push_back({ &MyPlayer->InvList[i], ItemLocation::Inventory, i });
+	}
+
+	// Add belt items
+	for (int i = 0; i < MaxBeltItems; i++) {
+		if (MyPlayer->SpdList[i].isEmpty())
+			continue;
+		playerItems.push_back({ &MyPlayer->SpdList[i], ItemLocation::Belt, i });
+	}
+}
+
+void FilterSellableItems(TalkID talkId)
+{
+	playerItems.erase(std::remove_if(playerItems.begin(), playerItems.end(),
+	                      [talkId](const IndexedItem &indexedItem) {
+		                      Item *pI = indexedItem.itemPtr;
+
+		                      // Cannot sell equipped items
+		                      if (indexedItem.location == ItemLocation::Body)
+			                      return true; // Remove this item
+
+		                      // Common conditions for both Smith and Witch
+		                      if (pI->_itype == ItemType::Gold || pI->_iClass == ICLASS_QUEST || pI->IDidx == IDI_LAZSTAFF)
+			                      return true; // Remove this item
+
+		                      switch (TownerId) {
+		                      case TOWN_SMITH:
+			                      if (pI->_iMiscId > IMISC_OILFIRST && pI->_iMiscId < IMISC_OILLAST)
+				                      return false; // Keep this item
+			                      if (pI->_itype == ItemType::Misc || (pI->_itype == ItemType::Staff && (!gbIsHellfire || IsValidSpell(pI->_iSpell))))
+				                      return true; // Remove this item
+			                      return false;    // Keep this item
+
+		                      case TOWN_WITCH:
+			                      if (pI->_itype == ItemType::Misc && (pI->_iMiscId > 29 && pI->_iMiscId < 41))
+				                      return true; // Remove this item
+			                      if (pI->_itype == ItemType::Staff && (!gbIsHellfire || IsValidSpell(pI->_iSpell)))
+				                      return false;                    // Keep this item
+			                      return pI->_itype != ItemType::Misc; // Keep if it's not Misc
+
+		                      default:
+			                      return true; // Remove this item for unsupported TalkID
+		                      }
+	                      }),
+	    playerItems.end());
+}
+
+void FilterRechargeableItems()
+{
+	// Filter playerItems to include only items that can be recharged
+	playerItems.erase(std::remove_if(playerItems.begin(), playerItems.end(),
+	                      [](const IndexedItem &indexedItem) {
+		                      const Item &itemPtr = *indexedItem.itemPtr;
+		                      return itemPtr._iCharges == itemPtr._iMaxCharges || (itemPtr._itype != ItemType::Staff && itemPtr._iMiscId != IMISC_UNIQUE && itemPtr._iMiscId != IMISC_STAFF);
+	                      }),
+	    playerItems.end());
+}
+
+void FilterIdentifiableItems()
+{
+	// Filter playerItems to include only items that can be identified
+	playerItems.erase(std::remove_if(playerItems.begin(), playerItems.end(),
+	                      [](const IndexedItem &indexedItem) {
+		                      const Item &itemPtr = *indexedItem.itemPtr;
+		                      return itemPtr._iMagical == ITEM_QUALITY_NORMAL || itemPtr._iIdentified;
+	                      }),
+	    playerItems.end());
+}
+
+void FilterPlayerItemsForAction(TalkID talkId)
+{
+	BuildPlayerItemsVector();
+
+	switch (talkId) {
+	case TalkID::Sell:
+		// Filter items for selling
+		FilterSellableItems(talkId);
+		break;
+	case TalkID::Repair:
+		// Filter items for repairing
+		FilterRepairableItems();
+		break;
+	case TalkID::Recharge:
+		// Filter items for recharging
+		FilterRechargeableItems();
+		break;
+	case TalkID::Identify:
+		// Filter items for identifying
+		FilterIdentifiableItems();
+		break;
+	}
+}
+
+void SetupTownerItemList(TalkID talkId, std::vector<Item> &items, int idx, bool selling /*= true*/)
+{
+	ClearTextLines(5, 21);
+	PreviousScrollPos = 5;
+
+	int startLine = (TownerId == TOWN_PEGBOY) ? 10 : 5;
+	for (int l = startLine; l < 20 && idx < items.size(); l += 4) {
+		const Item &item = items[idx];
+		int price = GetItemBuyValue(item);
+		UiFlags itemColor = item.getTextColorWithStatCheck();
+
+		SetLineText(20, l, item.getName(), itemColor, true, item._iCurs, true);
+		SetLineValue(l, price);
+		PrintStoreItem(item, l + 1, itemColor, true);
+		NextScrollPos = l;
+		idx++;
+	}
+
+	if (selling) {
+		if (CurrentTextLine != -1 && !TextLine[CurrentTextLine].isSelectable() && CurrentTextLine != BackButtonLine())
+			CurrentTextLine = NextScrollPos;
+	} else {
+		NumTextLines = std::max(static_cast<int>(items.size()) - ItemLineSpace, 0);
+	}
+}
+
+void SetupPlayerItemList(TalkID talkId, std::vector<IndexedItem> &items, int idx, bool selling /*= true*/)
+{
+	ClearTextLines(5, 21);
+	PreviousScrollPos = 5;
+
+	int goldAmountDisplay;
+
+	for (int l = 5; l < 20 && idx < items.size(); l += 4) {
+		const Item &item = *items[idx].itemPtr;
+		UiFlags itemColor = item.getTextColorWithStatCheck();
+		SetLineText(20, l, item.getName(), itemColor, true, item._iCurs, true);
+		switch (talkId) {
+		case TalkID::Sell:
+			goldAmountDisplay = GetItemSellValue(item);
+			break;
+		case TalkID::Repair:
+			goldAmountDisplay = GetItemRepairCost(item);
+			break;
+		case TalkID::Recharge:
+			goldAmountDisplay = GetItemRechargeCost(item);
+			break;
+		case TalkID::Identify:
+			goldAmountDisplay = GetItemIdentifyCost();
+			break;
+		}
+		SetLineValue(l, goldAmountDisplay);
+		PrintStoreItem(item, l + 1, itemColor, true);
+		NextScrollPos = l;
+		idx++;
+	}
+
+	if (selling) {
+		if (CurrentTextLine != -1 && !TextLine[CurrentTextLine].isSelectable() && CurrentTextLine != BackButtonLine())
+			CurrentTextLine = NextScrollPos;
+	} else {
+		NumTextLines = std::max(static_cast<int>(items.size()) - ItemLineSpace, 0);
+	}
+}
+
+void SetupItemList(TalkID talkId)
+{
+	TownerStore *towner = townerStores[TownerId];
+
+	switch (talkId) {
+	case TalkID::BasicBuy:
+		SetupTownerItemList(talkId, towner->basicItems, ScrollPos, true);
+		break;
+	case TalkID::Buy:
+		SetupTownerItemList(talkId, towner->items, ScrollPos, true);
+		break;
+	case TalkID::Sell:
+	case TalkID::Repair:
+	case TalkID::Recharge:
+	case TalkID::Identify:
+		SetupPlayerItemList(talkId, playerItems, ScrollPos, false);
+		break;
+	}
+}
+
+void UpdateBookMinMagic(Item &bookItem)
+{
+	if (bookItem._iMiscId != IMISC_BOOK)
+		return;
+	bookItem._iMinMag = GetSpellData(bookItem._iSpell).minInt;
+	uint8_t spellLevel = MyPlayer->_pSplLvl[static_cast<int8_t>(bookItem._iSpell)];
+	while (spellLevel > 0) {
+		bookItem._iMinMag += 20 * bookItem._iMinMag / 100;
+		spellLevel--;
+		if (bookItem._iMinMag + 20 * bookItem._iMinMag / 100 > 255) {
+			bookItem._iMinMag = 255;
+			spellLevel = 0;
+		}
+	}
+}
+
+static void UpdateItemStatFlag(Item &item)
+{
+	item._iStatFlag = MyPlayer->CanUseItem(item);
+}
+
+void UpdateItemStatFlags(TalkID talkId)
+{
+	TownerStore *towner = townerStores[TownerId];
+
+	switch (talkId) {
+	case TalkID::BasicBuy:
+		for (Item &item : towner->basicItems)
+			UpdateItemStatFlag(item);
+		break;
+	case TalkID::Buy:
+		for (Item &item : towner->items)
+			UpdateItemStatFlag(item);
+		break;
+	}
+}
+
+uint32_t GetTotalPlayerGold()
+{
+	return MyPlayer->_pGold + Stash.gold;
+}
+
+bool CanPlayerAfford(uint32_t price)
+{
+	return GetTotalPlayerGold() >= price;
+}
+
+void SetupIdentifyResultScreen()
+{
+	SetupScreenElements(OldActiveStore);
+	ClearTextLines(5, 23);
+
+	UiFlags itemColor = TempItem.getTextColorWithStatCheck();
+
+	SetLineText(0, 7, _("This item is:"), UiFlags::ColorWhite | UiFlags::AlignCenter, false);
+	SetLineText(20, 11, TempItem.getName(), itemColor, false);
+	PrintStoreItem(TempItem, 12, itemColor);
+	SetLineText(0, 18, _("Done"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+}
+
+int GetLineForAction(TalkID action)
+{
+	auto it = std::find_if(LineActionMappings.begin(), LineActionMappings.end(),
+	    [action](const std::pair<int, TalkID> &pair) {
+		    return pair.second == action;
+	    });
+	return (it != LineActionMappings.end()) ? it->first : -1;
+}
+
+TalkID GetActionForLine(int line)
+{
+	auto it = std::find_if(LineActionMappings.begin(), LineActionMappings.end(),
+	    [line](const std::pair<int, TalkID> &pair) {
+		    return pair.first == line;
+	    });
+	return (it != LineActionMappings.end()) ? it->second : TalkID::Invalid;
+}
+
+void MainMenuEnter()
+{
+	TalkID selectedAction = GetActionForLine(CurrentTextLine);
+	TownerStore *towner = townerStores[TownerId];
+
+	switch (selectedAction) {
+	case TalkID::None:
+		ExitStore();
+		return;
+	case TalkID::Gossip:
+		OldTextLine = CurrentTextLine;
+		break;
+	case TalkID::Buy:
+		if (TownerId == TOWN_PEGBOY) {
+			if (!CanPlayerAfford(50)) {
+				// OldActiveStore is TalkID::Buy at this point, and we need to override and set "most recent" store to the main menu
+				OldActiveStore = TalkID::MainMenu;
+				selectedAction = TalkID::NoMoney;
+			} else {
+				TakePlrsMoney(50);
+			}
+		}
+		break;
+	case TalkID::Stash:
+		ExitStore();
+		IsStashOpen = true;
+		Stash.RefreshItemStatFlags();
+		invflag = true;
+		if (ControlMode != ControlTypes::KeyboardAndMouse) {
+			if (pcurs == CURSOR_DISARM)
+				NewCursor(CURSOR_HAND);
+			FocusOnInventory();
+		}
+		return;
+	}
+
+	StartStore(selectedAction);
+}
+
+int GetItemIndex()
+{
+	return OldScrollPos + ((OldTextLine - PreviousScrollPos) / ItemLineSpace);
+}
+
+bool ReturnToMainMenu()
+{
+	if (CurrentTextLine == BackButtonLine()) {
+		StartStore(TalkID::MainMenu);
+		return true;
+	}
+
+	return false;
+}
+
+void BuyEnter()
+{
+	if (ReturnToMainMenu())
+		return;
 
 	OldTextLine = CurrentTextLine;
 	OldScrollPos = ScrollPos;
-	OldActiveStore = TalkID::SmithBuy;
 
-	int idx = ScrollPos + ((CurrentTextLine - PreviousScrollPos) / 4);
-	if (!PlayerCanAfford(SmithItems[idx]._iIvalue)) {
+	int idx = GetItemIndex();
+
+	// Boy displays his item in the 2nd slot instead of the 1st, so we need to adjust the index
+	if (TownerId == TOWN_PEGBOY)
+		idx--;
+
+	TownerStore *towner = townerStores[TownerId];
+	Item &item = (ActiveStore == TalkID::BasicBuy) ? towner->basicItems[idx] : towner->items[idx];
+	int cost = GetItemBuyValue(item);
+
+	if (!CanPlayerAfford(cost)) {
 		StartStore(TalkID::NoMoney);
-		return;
-	}
-
-	if (!StoreAutoPlace(SmithItems[idx], false)) {
+	} else if (!GiveItemToPlayer(item, false)) {
 		StartStore(TalkID::NoRoom);
-		return;
+	} else {
+		TempItem = item;
+		StartStore(TalkID::Confirm);
 	}
-
-	TempItem = SmithItems[idx];
-	StartStore(TalkID::Confirm);
-}
-
-/**
- * @brief Purchases a premium item from the smith.
- */
-void SmithBuyPItem(Item &item)
-{
-	TakePlrsMoney(item._iIvalue);
-	if (item._iMagical == ITEM_QUALITY_NORMAL)
-		item._iIdentified = false;
-	StoreAutoPlace(item, true);
-
-	int idx = OldScrollPos + ((OldTextLine - PreviousScrollPos) / 4);
-	int xx = 0;
-	for (int i = 0; idx >= 0; i++) {
-		if (!PremiumItems[i].isEmpty()) {
-			idx--;
-			xx = i;
-		}
-	}
-
-	PremiumItems[xx].clear();
-	PremiumItemCount--;
-	SpawnPremium(*MyPlayer);
-}
-
-void SmithPremiumBuyEnter()
-{
-	if (CurrentTextLine == BackButtonLine()) {
-		StartStore(TalkID::Smith);
-		CurrentTextLine = 14;
-		return;
-	}
-
-	OldActiveStore = TalkID::SmithPremiumBuy;
-	OldTextLine = CurrentTextLine;
-	OldScrollPos = ScrollPos;
-
-	int xx = ScrollPos + ((CurrentTextLine - PreviousScrollPos) / 4);
-	int idx = 0;
-	for (int i = 0; xx >= 0; i++) {
-		if (!PremiumItems[i].isEmpty()) {
-			xx--;
-			idx = i;
-		}
-	}
-
-	if (!PlayerCanAfford(PremiumItems[idx]._iIvalue)) {
-		StartStore(TalkID::NoMoney);
-		return;
-	}
-
-	if (!StoreAutoPlace(PremiumItems[idx], false)) {
-		StartStore(TalkID::NoRoom);
-		return;
-	}
-
-	TempItem = PremiumItems[idx];
-	StartStore(TalkID::Confirm);
 }
 
 bool StoreGoldFit(Item &item)
@@ -1436,422 +1142,247 @@ bool StoreGoldFit(Item &item)
 /**
  * @brief Sells an item from the player's inventory or belt.
  */
-void StoreSellItem()
+void SellItem()
 {
-	Player &myPlayer = *MyPlayer;
+	int idx = GetItemIndex();
 
-	int idx = OldScrollPos + ((OldTextLine - PreviousScrollPos) / 4);
-	if (PlayerItemIndexes[idx] >= 0)
-		myPlayer.RemoveInvItem(PlayerItemIndexes[idx]);
-	else
-		myPlayer.RemoveSpdBarItem(-(PlayerItemIndexes[idx] + 1));
+	IndexedItem &itemToSell = playerItems[idx];
 
-	int cost = PlayerItems[idx]._iIvalue;
-	CurrentItemIndex--;
-	if (idx != CurrentItemIndex) {
-		while (idx < CurrentItemIndex) {
-			PlayerItems[idx] = PlayerItems[idx + 1];
-			PlayerItemIndexes[idx] = PlayerItemIndexes[idx + 1];
-			idx++;
-		}
+	// Remove the sold item from the player's inventory or belt
+	if (itemToSell.location == ItemLocation::Inventory) {
+		MyPlayer->RemoveInvItem(itemToSell.index);
+	} else if (itemToSell.location == ItemLocation::Belt) {
+		MyPlayer->RemoveSpdBarItem(itemToSell.index);
 	}
 
-	AddGoldToInventory(myPlayer, cost);
+	int price = GetItemSellValue(TempItem);
 
-	myPlayer._pGold += cost;
+	// Remove the sold item from the playerItems vector
+	playerItems.erase(playerItems.begin() + idx);
+
+	// Add the gold to the player's inventory
+	AddGoldToInventory(*MyPlayer, price);
+	MyPlayer->_pGold += price;
 }
 
-void SmithSellEnter()
+void SellEnter()
 {
-	if (CurrentTextLine == BackButtonLine()) {
-		StartStore(TalkID::Smith);
-		CurrentTextLine = 16;
+	if (ReturnToMainMenu())
 		return;
-	}
 
 	OldTextLine = CurrentTextLine;
-	OldActiveStore = TalkID::SmithSell;
 	OldScrollPos = ScrollPos;
 
-	int idx = ScrollPos + ((CurrentTextLine - PreviousScrollPos) / 4);
+	int idx = GetItemIndex();
 
-	if (!StoreGoldFit(PlayerItems[idx])) {
+	// Check if there's enough room for the gold that will be earned from selling the item
+	if (!StoreGoldFit(*playerItems[idx].itemPtr)) {
 		StartStore(TalkID::NoRoom);
 		return;
 	}
 
-	TempItem = PlayerItems[idx];
+	// Store the item to be sold temporarily
+	TempItem = *playerItems[idx].itemPtr;
+
+	// Proceed to the confirmation store screen
 	StartStore(TalkID::Confirm);
 }
 
 /**
  * @brief Repairs an item in the player's inventory or body in the smith.
  */
-void SmithRepairItem(int price)
+void RepairItem()
 {
-	int idx = OldScrollPos + ((OldTextLine - PreviousScrollPos) / 4);
-	PlayerItems[idx]._iDurability = PlayerItems[idx]._iMaxDur;
+	int idx = GetItemIndex();
 
-	int8_t i = PlayerItemIndexes[idx];
+	// Get a reference to the IndexedItem at the calculated index
+	IndexedItem &indexedItem = playerItems[idx];
 
-	Player &myPlayer = *MyPlayer;
+	// Repair the item by setting its durability to the maximum
+	indexedItem.itemPtr->_iDurability = indexedItem.itemPtr->_iMaxDur;
 
-	if (i < 0) {
-		if (i == -1)
-			myPlayer.InvBody[INVLOC_HEAD]._iDurability = myPlayer.InvBody[INVLOC_HEAD]._iMaxDur;
-		if (i == -2)
-			myPlayer.InvBody[INVLOC_CHEST]._iDurability = myPlayer.InvBody[INVLOC_CHEST]._iMaxDur;
-		if (i == -3)
-			myPlayer.InvBody[INVLOC_HAND_LEFT]._iDurability = myPlayer.InvBody[INVLOC_HAND_LEFT]._iMaxDur;
-		if (i == -4)
-			myPlayer.InvBody[INVLOC_HAND_RIGHT]._iDurability = myPlayer.InvBody[INVLOC_HAND_RIGHT]._iMaxDur;
-		TakePlrsMoney(price);
-		return;
-	}
+	// Deduct the repair cost from the player's money
+	TakePlrsMoney(GetItemRepairCost(*indexedItem.itemPtr));
 
-	myPlayer.InvList[i]._iDurability = myPlayer.InvList[i]._iMaxDur;
-	TakePlrsMoney(price);
+	// Update the player's inventory
+	CalcPlrInv(*MyPlayer, true);
 }
 
-void SmithRepairEnter()
+void RepairEnter()
 {
-	if (CurrentTextLine == BackButtonLine()) {
-		StartStore(TalkID::Smith);
-		CurrentTextLine = 18;
+	if (ReturnToMainMenu())
 		return;
-	}
 
-	OldActiveStore = TalkID::SmithRepair;
 	OldTextLine = CurrentTextLine;
 	OldScrollPos = ScrollPos;
 
-	int idx = ScrollPos + ((CurrentTextLine - PreviousScrollPos) / 4);
+	int idx = GetItemIndex();
 
-	if (!PlayerCanAfford(PlayerItems[idx]._iIvalue)) {
+	// Check if the player can afford the repair cost
+	if (!CanPlayerAfford(GetItemRepairCost(*playerItems[idx].itemPtr))) {
 		StartStore(TalkID::NoMoney);
 		return;
 	}
 
-	TempItem = PlayerItems[idx];
-	StartStore(TalkID::Confirm);
-}
+	// Temporarily store the item being repaired
+	TempItem = *playerItems[idx].itemPtr;
 
-void WitchEnter()
-{
-	switch (CurrentTextLine) {
-	case 12:
-		OldTextLine = 12;
-		TownerId = TOWN_WITCH;
-		OldActiveStore = TalkID::Witch;
-		StartStore(TalkID::Gossip);
-		break;
-	case 14:
-		StartStore(TalkID::WitchBuy);
-		break;
-	case 16:
-		StartStore(TalkID::WitchSell);
-		break;
-	case 18:
-		StartStore(TalkID::WitchRecharge);
-		break;
-	case 20:
-		ActiveStore = TalkID::None;
-		break;
-	}
+	// Proceed to the confirmation screen
+	StartStore(TalkID::Confirm);
 }
 
 /**
  * @brief Purchases an item from the witch.
  */
-void WitchBuyItem(Item &item)
+void BuyItem(Item &item)
 {
-	int idx = OldScrollPos + ((OldTextLine - PreviousScrollPos) / 4);
+	// Get the index of the purchased item
+	int idx = GetItemIndex();
 
-	if (idx < 3)
+	// Boy displays his item in the 2nd slot instead of the 1st, so we need to adjust the index
+	if (TownerId == TOWN_PEGBOY)
+		idx--;
+
+	int numPinnedItems = 0;
+
+	switch (TownerId) {
+	case TOWN_HEALER:
+		numPinnedItems = !gbIsMultiplayer ? NumHealerPinnedItems : NumHealerPinnedItemsMp;
+		break;
+	case TOWN_WITCH:
+		numPinnedItems = NumWitchPinnedItems;
+		break;
+	}
+
+	// If the item is one of the pinned items, generate a new seed for it
+	if (idx < numPinnedItems) {
 		item._iSeed = AdvanceRndSeed();
+	}
 
+	// Non-magical items are unidentified
+	if (item._iMagical == ITEM_QUALITY_NORMAL)
+		item._iIdentified = false;
+
+	// Deduct the player's gold and give the item to the player
 	TakePlrsMoney(item._iIvalue);
-	StoreAutoPlace(item, true);
+	GiveItemToPlayer(item, true);
 
-	if (idx >= 3) {
-		if (idx == WITCH_ITEMS - 1) {
-			WitchItems[WITCH_ITEMS - 1].clear();
+	TownerStore *towner = townerStores[TownerId];
+
+	// If the purchased item is not a pinned item, remove it from the store
+	if (idx >= numPinnedItems) {
+		if (OldActiveStore == TalkID::BasicBuy) {
+			towner->basicItems.erase(towner->basicItems.begin() + idx);
 		} else {
-			for (; !WitchItems[idx + 1].isEmpty(); idx++) {
-				WitchItems[idx] = std::move(WitchItems[idx + 1]);
-			}
-			WitchItems[idx].clear();
+			towner->items.erase(towner->items.begin() + idx);
 		}
 	}
 
+	// Blacksmith replaces the item with a new one
+	if (TownerId == TOWN_SMITH) {
+		SpawnPremium(*MyPlayer);
+	}
+
+	// Boy returns to main menu instead of item list
+	if (TownerId == TOWN_PEGBOY) {
+		OldActiveStore = TalkID::MainMenu;
+		OldTextLine = CurrentTextLine;
+	}
+
+	// Recalculate the player's inventory
 	CalcPlrInv(*MyPlayer, true);
-}
-
-void WitchBuyEnter()
-{
-	if (CurrentTextLine == BackButtonLine()) {
-		StartStore(TalkID::Witch);
-		CurrentTextLine = 14;
-		return;
-	}
-
-	OldTextLine = CurrentTextLine;
-	OldScrollPos = ScrollPos;
-	OldActiveStore = TalkID::WitchBuy;
-
-	int idx = ScrollPos + ((CurrentTextLine - PreviousScrollPos) / 4);
-
-	if (!PlayerCanAfford(WitchItems[idx]._iIvalue)) {
-		StartStore(TalkID::NoMoney);
-		return;
-	}
-
-	if (!StoreAutoPlace(WitchItems[idx], false)) {
-		StartStore(TalkID::NoRoom);
-		return;
-	}
-
-	TempItem = WitchItems[idx];
-	StartStore(TalkID::Confirm);
-}
-
-void WitchSellEnter()
-{
-	if (CurrentTextLine == BackButtonLine()) {
-		StartStore(TalkID::Witch);
-		CurrentTextLine = 16;
-		return;
-	}
-
-	OldTextLine = CurrentTextLine;
-	OldActiveStore = TalkID::WitchSell;
-	OldScrollPos = ScrollPos;
-
-	int idx = ScrollPos + ((CurrentTextLine - PreviousScrollPos) / 4);
-
-	if (!StoreGoldFit(PlayerItems[idx])) {
-		StartStore(TalkID::NoRoom);
-		return;
-	}
-
-	TempItem = PlayerItems[idx];
-	StartStore(TalkID::Confirm);
 }
 
 /**
  * @brief Recharges an item in the player's inventory or body in the witch.
  */
-void WitchRechargeItem(int price)
+void RechargeItem()
 {
-	int idx = OldScrollPos + ((OldTextLine - PreviousScrollPos) / 4);
-	PlayerItems[idx]._iCharges = PlayerItems[idx]._iMaxCharges;
+	int idx = GetItemIndex();
 
-	Player &myPlayer = *MyPlayer;
+	// Get a reference to the IndexedItem at the calculated index
+	IndexedItem &indexedItem = playerItems[idx];
 
-	int8_t i = PlayerItemIndexes[idx];
-	if (i < 0) {
-		myPlayer.InvBody[INVLOC_HAND_LEFT]._iCharges = myPlayer.InvBody[INVLOC_HAND_LEFT]._iMaxCharges;
-		NetSendCmdChItem(true, INVLOC_HAND_LEFT);
+	// Recharge the item by setting its charges to the maximum
+	indexedItem.itemPtr->_iCharges = indexedItem.itemPtr->_iMaxCharges;
+
+	// Send network commands for synchronization
+	if (indexedItem.location == ItemLocation::Body) {
+		NetSendCmdChItem(true, indexedItem.index);
 	} else {
-		myPlayer.InvList[i]._iCharges = myPlayer.InvList[i]._iMaxCharges;
-		NetSyncInvItem(myPlayer, i);
+		NetSyncInvItem(*MyPlayer, indexedItem.index);
 	}
 
-	TakePlrsMoney(price);
-	CalcPlrInv(myPlayer, true);
+	// Deduct the recharge cost from the player's money
+	TakePlrsMoney(GetItemRechargeCost(*indexedItem.itemPtr));
+
+	// Recalculate and update the player's inventory
+	CalcPlrInv(*MyPlayer, true);
 }
 
-void WitchRechargeEnter()
+void RechargeEnter()
 {
-	if (CurrentTextLine == BackButtonLine()) {
-		StartStore(TalkID::Witch);
-		CurrentTextLine = 18;
+	if (ReturnToMainMenu()) {
 		return;
 	}
 
-	OldActiveStore = TalkID::WitchRecharge;
 	OldTextLine = CurrentTextLine;
 	OldScrollPos = ScrollPos;
 
-	int idx = ScrollPos + ((CurrentTextLine - PreviousScrollPos) / 4);
+	int idx = GetItemIndex();
 
-	if (!PlayerCanAfford(PlayerItems[idx]._iIvalue)) {
+	// Check if the player can afford the recharge cost
+	if (!CanPlayerAfford(GetItemRechargeCost(*playerItems[idx].itemPtr))) {
 		StartStore(TalkID::NoMoney);
 		return;
 	}
 
-	TempItem = PlayerItems[idx];
+	// Store the item temporarily for the confirmation screen
+	TempItem = *playerItems[idx].itemPtr;
 	StartStore(TalkID::Confirm);
-}
-
-void BoyEnter()
-{
-	if (!BoyItem.isEmpty() && CurrentTextLine == 18) {
-		if (!PlayerCanAfford(50)) {
-			OldActiveStore = TalkID::Boy;
-			OldTextLine = 18;
-			OldScrollPos = ScrollPos;
-			StartStore(TalkID::NoMoney);
-		} else {
-			TakePlrsMoney(50);
-			StartStore(TalkID::BoyBuy);
-		}
-		return;
-	}
-
-	if ((CurrentTextLine != 8 && !BoyItem.isEmpty()) || (CurrentTextLine != 12 && BoyItem.isEmpty())) {
-		ActiveStore = TalkID::None;
-		return;
-	}
-
-	TownerId = TOWN_PEGBOY;
-	OldActiveStore = TalkID::Boy;
-	OldTextLine = CurrentTextLine;
-	StartStore(TalkID::Gossip);
-}
-
-void BoyBuyItem(Item &item, int itemPrice)
-{
-	TakePlrsMoney(itemPrice);
-	StoreAutoPlace(item, true);
-	item.clear();
-	OldActiveStore = TalkID::Boy;
-	CalcPlrInv(*MyPlayer, true);
-	OldTextLine = 12;
 }
 
 /**
- * @brief Purchases an item from the healer.
+ * @brief Identifies an item in the player's inventory or body.
  */
-void HealerBuyItem(Item &item)
+void IdentifyItem()
 {
-	int idx = OldScrollPos + ((OldTextLine - PreviousScrollPos) / 4);
-	if (!gbIsMultiplayer) {
-		if (idx < 2)
-			item._iSeed = AdvanceRndSeed();
-	} else {
-		if (idx < 3)
-			item._iSeed = AdvanceRndSeed();
-	}
+	int idx = GetItemIndex();
 
-	TakePlrsMoney(item._iIvalue);
-	if (item._iMagical == ITEM_QUALITY_NORMAL)
-		item._iIdentified = false;
-	StoreAutoPlace(item, true);
+	// Get a reference to the IndexedItem at the calculated index
+	IndexedItem &indexedItem = playerItems[idx];
 
-	if (!gbIsMultiplayer) {
-		if (idx < 2)
-			return;
-	} else {
-		if (idx < 3)
-			return;
-	}
-	idx = OldScrollPos + ((OldTextLine - PreviousScrollPos) / 4);
-	if (idx == 19) {
-		HealerItems[19].clear();
-	} else {
-		for (; !HealerItems[idx + 1].isEmpty(); idx++) {
-			HealerItems[idx] = std::move(HealerItems[idx + 1]);
-		}
-		HealerItems[idx].clear();
-	}
+	// Mark the item as identified
+	indexedItem.itemPtr->_iIdentified = true;
+
+	// Deduct the identification cost from the player's money
+	TakePlrsMoney(GetItemIdentifyCost());
+
+	// Update the player's inventory
 	CalcPlrInv(*MyPlayer, true);
-}
-
-void BoyBuyEnter()
-{
-	if (CurrentTextLine != 10) {
-		ActiveStore = TalkID::None;
-		return;
-	}
-
-	OldActiveStore = TalkID::BoyBuy;
-	OldScrollPos = ScrollPos;
-	OldTextLine = 10;
-	int price = BoyItem._iIvalue;
-	if (gbIsHellfire)
-		price -= BoyItem._iIvalue / 4;
-	else
-		price += BoyItem._iIvalue / 2;
-
-	if (!PlayerCanAfford(price)) {
-		StartStore(TalkID::NoMoney);
-		return;
-	}
-
-	if (!StoreAutoPlace(BoyItem, false)) {
-		StartStore(TalkID::NoRoom);
-		return;
-	}
-
-	TempItem = BoyItem;
-	TempItem._iIvalue = price;
-	StartStore(TalkID::Confirm);
-}
-
-void StorytellerIdentifyItem(Item &item)
-{
-	Player &myPlayer = *MyPlayer;
-
-	int8_t idx = PlayerItemIndexes[((OldTextLine - PreviousScrollPos) / 4) + OldScrollPos];
-	if (idx < 0) {
-		if (idx == -1)
-			myPlayer.InvBody[INVLOC_HEAD]._iIdentified = true;
-		if (idx == -2)
-			myPlayer.InvBody[INVLOC_CHEST]._iIdentified = true;
-		if (idx == -3)
-			myPlayer.InvBody[INVLOC_HAND_LEFT]._iIdentified = true;
-		if (idx == -4)
-			myPlayer.InvBody[INVLOC_HAND_RIGHT]._iIdentified = true;
-		if (idx == -5)
-			myPlayer.InvBody[INVLOC_RING_LEFT]._iIdentified = true;
-		if (idx == -6)
-			myPlayer.InvBody[INVLOC_RING_RIGHT]._iIdentified = true;
-		if (idx == -7)
-			myPlayer.InvBody[INVLOC_AMULET]._iIdentified = true;
-	} else {
-		myPlayer.InvList[idx]._iIdentified = true;
-	}
-	item._iIdentified = true;
-	TakePlrsMoney(item._iIvalue);
-	CalcPlrInv(myPlayer, true);
 }
 
 void ConfirmEnter(Item &item)
 {
-	if (CurrentTextLine == 18) {
+	if (CurrentTextLine == ConfirmLine) {
 		switch (OldActiveStore) {
-		case TalkID::SmithBuy:
-			SmithBuyItem(item);
+		case TalkID::BasicBuy:
+		case TalkID::Buy:
+			BuyItem(item);
 			break;
-		case TalkID::SmithSell:
-		case TalkID::WitchSell:
-			StoreSellItem();
+		case TalkID::Sell:
+			SellItem();
 			break;
-		case TalkID::SmithRepair:
-			SmithRepairItem(item._iIvalue);
+		case TalkID::Repair:
+			RepairItem();
 			break;
-		case TalkID::WitchBuy:
-			WitchBuyItem(item);
+		case TalkID::Recharge:
+			RechargeItem();
 			break;
-		case TalkID::WitchRecharge:
-			WitchRechargeItem(item._iIvalue);
-			break;
-		case TalkID::BoyBuy:
-			BoyBuyItem(BoyItem, item._iIvalue);
-			break;
-		case TalkID::HealerBuy:
-			HealerBuyItem(item);
-			break;
-		case TalkID::StorytellerIdentify:
-			StorytellerIdentifyItem(item);
-			StartStore(TalkID::StorytellerIdentifyShow);
+		case TalkID::Identify:
+			IdentifyItem();
+			StartStore(TalkID::IdentifyShow);
 			return;
-		case TalkID::SmithPremiumBuy:
-			SmithBuyPItem(item);
-			break;
-		default:
-			break;
 		}
 	}
 
@@ -1868,90 +1399,25 @@ void ConfirmEnter(Item &item)
 	}
 }
 
-void HealerEnter()
+void IdentifyEnter()
 {
-	switch (CurrentTextLine) {
-	case 12:
-		OldTextLine = 12;
-		TownerId = TOWN_HEALER;
-		OldActiveStore = TalkID::Healer;
-		StartStore(TalkID::Gossip);
-		break;
-	case 14:
-		StartStore(TalkID::HealerBuy);
-		break;
-	case 18:
-		ActiveStore = TalkID::None;
-		break;
-	}
-}
-
-void HealerBuyEnter()
-{
-	if (CurrentTextLine == BackButtonLine()) {
-		StartStore(TalkID::Healer);
-		CurrentTextLine = 14;
+	if (ReturnToMainMenu()) {
 		return;
 	}
 
 	OldTextLine = CurrentTextLine;
 	OldScrollPos = ScrollPos;
-	OldActiveStore = TalkID::HealerBuy;
 
-	int idx = ScrollPos + ((CurrentTextLine - PreviousScrollPos) / 4);
+	int idx = GetItemIndex();
 
-	if (!PlayerCanAfford(HealerItems[idx]._iIvalue)) {
+	// Check if the player can afford the identification cost
+	if (!CanPlayerAfford(GetItemIdentifyCost())) {
 		StartStore(TalkID::NoMoney);
 		return;
 	}
 
-	if (!StoreAutoPlace(HealerItems[idx], false)) {
-		StartStore(TalkID::NoRoom);
-		return;
-	}
-
-	TempItem = HealerItems[idx];
-	StartStore(TalkID::Confirm);
-}
-
-void StorytellerEnter()
-{
-	switch (CurrentTextLine) {
-	case 12:
-		OldTextLine = 12;
-		TownerId = TOWN_STORY;
-		OldActiveStore = TalkID::Storyteller;
-		StartStore(TalkID::Gossip);
-		break;
-	case 14:
-		StartStore(TalkID::StorytellerIdentify);
-		break;
-	case 18:
-		ActiveStore = TalkID::None;
-		break;
-	}
-}
-
-void StorytellerIdentifyEnter()
-{
-	if (CurrentTextLine == BackButtonLine()) {
-		StartStore(TalkID::Storyteller);
-		CurrentTextLine = 14;
-		return;
-	}
-
-	OldActiveStore = TalkID::StorytellerIdentify;
-	OldTextLine = CurrentTextLine;
-	OldScrollPos = ScrollPos;
-
-	int idx = ScrollPos + ((CurrentTextLine - PreviousScrollPos) / 4);
-
-	if (!PlayerCanAfford(PlayerItems[idx]._iIvalue)) {
-		StartStore(TalkID::NoMoney);
-		return;
-	}
-
-	TempItem = PlayerItems[idx];
+	// Store the item temporarily for the confirmation screen
+	TempItem = *playerItems[idx].itemPtr;
 	StartStore(TalkID::Confirm);
 }
 
@@ -1990,62 +1456,6 @@ void TalkEnter()
 			}
 			sn += la;
 		}
-	}
-}
-
-void TavernEnter()
-{
-	switch (CurrentTextLine) {
-	case 12:
-		OldTextLine = 12;
-		TownerId = TOWN_TAVERN;
-		OldActiveStore = TalkID::Tavern;
-		StartStore(TalkID::Gossip);
-		break;
-	case 18:
-		ActiveStore = TalkID::None;
-		break;
-	}
-}
-
-void BarmaidEnter()
-{
-	switch (CurrentTextLine) {
-	case 12:
-		OldTextLine = 12;
-		TownerId = TOWN_BMAID;
-		OldActiveStore = TalkID::Barmaid;
-		StartStore(TalkID::Gossip);
-		break;
-	case 14:
-		ActiveStore = TalkID::None;
-		IsStashOpen = true;
-		Stash.RefreshItemStatFlags();
-		invflag = true;
-		if (ControlMode != ControlTypes::KeyboardAndMouse) {
-			if (pcurs == CURSOR_DISARM)
-				NewCursor(CURSOR_HAND);
-			FocusOnInventory();
-		}
-		break;
-	case 18:
-		ActiveStore = TalkID::None;
-		break;
-	}
-}
-
-void DrunkEnter()
-{
-	switch (CurrentTextLine) {
-	case 12:
-		OldTextLine = 12;
-		TownerId = TOWN_DRUNK;
-		OldActiveStore = TalkID::Drunk;
-		StartStore(TalkID::Gossip);
-		break;
-	case 18:
-		ActiveStore = TalkID::None;
-		break;
 	}
 }
 
@@ -2089,54 +1499,25 @@ void DrawSelector(const Surface &out, const Rectangle &rect, std::string_view te
 
 } // namespace
 
-void AddStoreHoldRepair(Item *itm, int8_t i)
-{
-	Item *item;
-	int v;
-
-	item = &PlayerItems[CurrentItemIndex];
-	PlayerItems[CurrentItemIndex] = *itm;
-
-	int due = item->_iMaxDur - item->_iDurability;
-	if (item->_iMagical != ITEM_QUALITY_NORMAL && item->_iIdentified) {
-		v = 30 * item->_iIvalue * due / (item->_iMaxDur * 100 * 2);
-		if (v == 0)
-			return;
-	} else {
-		v = item->_ivalue * due / (item->_iMaxDur * 2);
-		v = std::max(v, 1);
-	}
-	item->_iIvalue = v;
-	item->_ivalue = v;
-	PlayerItemIndexes[CurrentItemIndex] = i;
-	CurrentItemIndex++;
-}
-
 void InitStores()
 {
-	ClearSText(0, STORE_LINES);
-	ActiveStore = TalkID::None;
+	int numSmithItems = gbIsHellfire ? NumSmithItemsHf : NumSmithItems;
+	ClearTextLines(0, NumStoreLines);
+	ExitStore();
 	IsTextFullSize = false;
-	HasScrollbar = false;
-	PremiumItemCount = 0;
-	PremiumItemLevel = 1;
+	Blacksmith.itemLevel = 1;
+	Boy.itemLevel = 0;
 
-	for (auto &premiumitem : PremiumItems)
-		premiumitem.clear();
-
-	BoyItem.clear();
-	BoyItemLevel = 0;
+	InitializeTownerStores();
 }
 
 void SetupTownStores()
 {
-	Player &myPlayer = *MyPlayer;
-
-	int l = myPlayer.getCharacterLevel() / 2;
+	int l = MyPlayer->getCharacterLevel() / 2;
 	if (!gbIsMultiplayer) {
 		l = 0;
 		for (int i = 0; i < NUMLEVELS; i++) {
-			if (myPlayer._pLvlVisited[i])
+			if (MyPlayer->_pLvlVisited[i])
 				l = i;
 		}
 	}
@@ -2145,8 +1526,8 @@ void SetupTownStores()
 	SpawnSmith(l);
 	SpawnWitch(l);
 	SpawnHealer(l);
-	SpawnBoy(myPlayer.getCharacterLevel());
-	SpawnPremium(myPlayer);
+	SpawnBoy(MyPlayer->getCharacterLevel());
+	SpawnPremium(*MyPlayer);
 }
 
 void FreeStoreMem()
@@ -2154,11 +1535,16 @@ void FreeStoreMem()
 	if (*GetOptions().Gameplay.showItemGraphicsInStores) {
 		FreeHalfSizeItemSprites();
 	}
-	ActiveStore = TalkID::None;
+	ExitStore();
 	for (STextStruct &entry : TextLine) {
 		entry.text.clear();
 		entry.text.shrink_to_fit();
 	}
+}
+
+void ExitStore()
+{
+	SetActiveStore(TalkID::None);
 }
 
 void PrintSString(const Surface &out, int margin, int line, std::string_view text, UiFlags flags, int price, int cursId, bool cursIndent)
@@ -2172,7 +1558,7 @@ void PrintSString(const Surface &out, int margin, int line, std::string_view tex
 	const int sy = uiPosition.y + PaddingTop + TextLine[line].y + TextLine[line]._syoff;
 
 	int width = IsTextFullSize ? 575 : 255;
-	if (HasScrollbar && line >= 4 && line <= 20) {
+	if (HasScrollbar() && line >= 4 && line <= 20) {
 		width -= 9; // Space for the selector
 	}
 	width -= margin * 2;
@@ -2240,9 +1626,9 @@ void DrawSTextHelp()
 	IsTextFullSize = true;
 }
 
-void ClearSText(int s, int e)
+void ClearTextLines(int start, int end)
 {
-	for (int i = s; i < e; i++) {
+	for (int i = start; i < end; i++) {
 		TextLine[i]._sx = 0;
 		TextLine[i]._syoff = 0;
 		TextLine[i].text.clear();
@@ -2251,10 +1637,13 @@ void ClearSText(int s, int e)
 		TextLine[i].type = STextStruct::Label;
 		TextLine[i]._sval = 0;
 	}
+
+	// std::fill(storeLineMapping.begin(), storeLineMapping.end(), TalkID::None);
 }
 
-void StartStore(TalkID s)
+void StartStore(TalkID store /*= TalkID::MainMenu*/)
 {
+	SetActiveStore(store);
 	if (*GetOptions().Gameplay.showItemGraphicsInStores) {
 		CreateHalfSizeItemSprites();
 	}
@@ -2264,145 +1653,72 @@ void StartStore(TalkID s)
 	RenderGold = false;
 	QuestLogIsOpen = false;
 	CloseGoldDrop();
-	ClearSText(0, STORE_LINES);
-	ReleaseStoreBtn();
-	switch (s) {
-	case TalkID::Smith:
-		StartSmith();
-		break;
-	case TalkID::SmithBuy: {
-		bool hasAnyItems = false;
-		for (int i = 0; !SmithItems[i].isEmpty(); i++) {
-			hasAnyItems = true;
-			break;
-		}
-		if (hasAnyItems)
-			StartSmithBuy();
-		else {
-			ActiveStore = TalkID::SmithBuy;
-			OldTextLine = 12;
-			StoreESC();
-			return;
-		}
-		break;
-	}
-	case TalkID::SmithSell:
-		StartSmithSell();
-		break;
-	case TalkID::SmithRepair:
-		StartSmithRepair();
-		break;
-	case TalkID::Witch:
-		StartWitch();
-		break;
-	case TalkID::WitchBuy:
-		if (CurrentItemIndex > 0)
-			StartWitchBuy();
-		break;
-	case TalkID::WitchSell:
-		StartWitchSell();
-		break;
-	case TalkID::WitchRecharge:
-		StartWitchRecharge();
-		break;
-	case TalkID::NoMoney:
-		StoreNoMoney();
-		break;
-	case TalkID::NoRoom:
-		StoreNoRoom();
-		break;
-	case TalkID::Confirm:
-		StoreConfirm(TempItem);
-		break;
-	case TalkID::Boy:
-		StartBoy();
-		break;
-	case TalkID::BoyBuy:
-		SStartBoyBuy();
-		break;
-	case TalkID::Healer:
-		StartHealer();
-		break;
-	case TalkID::Storyteller:
-		StartStoryteller();
-		break;
-	case TalkID::HealerBuy:
-		if (CurrentItemIndex > 0)
-			StartHealerBuy();
-		break;
-	case TalkID::StorytellerIdentify:
-		StartStorytellerIdentify();
-		break;
-	case TalkID::SmithPremiumBuy:
-		if (!StartSmithPremiumBuy())
-			return;
+	ClearTextLines(0, NumStoreLines);
+	ReleaseStoreButton();
+
+	switch (store) {
+	case TalkID::MainMenu:
+		SetupMainMenuScreen();
 		break;
 	case TalkID::Gossip:
-		StartTalk();
+		SetupGossipScreen();
 		break;
-	case TalkID::StorytellerIdentifyShow:
-		StartStorytellerIdentifyShow(TempItem);
+	case TalkID::BasicBuy:
+	case TalkID::Buy:
+		SetupScreenElements(store);
+		SetupItemList(store);
+		UpdateItemStatFlags(store);
 		break;
-	case TalkID::Tavern:
-		StartTavern();
+	case TalkID::Sell:
+	case TalkID::Repair:
+	case TalkID::Recharge:
+	case TalkID::Identify:
+		FilterPlayerItemsForAction(store);
+		SetupScreenElements(store);
+		SetupItemList(store);
 		break;
-	case TalkID::Drunk:
-		StartDrunk();
+	case TalkID::IdentifyShow:
+		SetupIdentifyResultScreen();
 		break;
-	case TalkID::Barmaid:
-		StartBarmaid();
+	case TalkID::NoMoney:
+	case TalkID::NoRoom:
+		SetupErrorScreen(store);
+		break;
+	case TalkID::Confirm:
+		SetupConfirmScreen();
 		break;
 	case TalkID::None:
 		break;
 	}
 
 	CurrentTextLine = -1;
-	for (int i = 0; i < STORE_LINES; i++) {
-		if (TextLine[i].isSelectable()) {
-			CurrentTextLine = i;
-			break;
+
+	if (store == TalkID::MainMenu && IsNoneOf(OldActiveStore, TalkID::None, TalkID::Invalid)) {
+		CurrentTextLine = GetLineForAction(OldActiveStore);
+	} else { // Set currently selected line to the first selectable line
+		for (int i = 0; i < NumStoreLines; i++) {
+			if (TextLine[i].isSelectable()) {
+				CurrentTextLine = i;
+				break;
+			}
 		}
 	}
-
-	ActiveStore = s;
 }
 
-void DrawSText(const Surface &out)
+void DrawStore(const Surface &out)
 {
 	if (!IsTextFullSize)
-		DrawSTextBack(out);
+		DrawTextUI(out);
 	else
 		DrawQTextBack(out);
 
-	if (HasScrollbar) {
-		switch (ActiveStore) {
-		case TalkID::SmithBuy:
-			ScrollSmithBuy(ScrollPos);
-			break;
-		case TalkID::SmithSell:
-		case TalkID::SmithRepair:
-		case TalkID::WitchSell:
-		case TalkID::WitchRecharge:
-		case TalkID::StorytellerIdentify:
-			ScrollSmithSell(ScrollPos);
-			break;
-		case TalkID::WitchBuy:
-			ScrollWitchBuy(ScrollPos);
-			break;
-		case TalkID::HealerBuy:
-			ScrollHealerBuy(ScrollPos);
-			break;
-		case TalkID::SmithPremiumBuy:
-			ScrollSmithPremiumBuy(ScrollPos);
-			break;
-		default:
-			break;
-		}
+	if (GetItemCount(ActiveStore) > 0) {
+		SetupItemList(ActiveStore);
 	}
 
 	CalculateLineHeights();
 	const Point uiPosition = GetUIRectangle().position;
-	for (int i = 0; i < STORE_LINES; i++) {
+	for (int i = 0; i < NumStoreLines; i++) {
 		if (TextLine[i].isDivider())
 			DrawSLine(out, uiPosition.y + PaddingTop + TextLine[i].y + TextHeight() / 2);
 		else if (TextLine[i].hasText())
@@ -2410,11 +1726,11 @@ void DrawSText(const Surface &out)
 	}
 
 	if (RenderGold) {
-		PrintSString(out, 28, 1, fmt::format(fmt::runtime(_("Your gold: {:s}")), FormatInteger(TotalPlayerGold())).c_str(), UiFlags::ColorWhitegold | UiFlags::AlignRight);
+		PrintSString(out, 28, 1, fmt::format(fmt::runtime(_("Your gold: {:s}")), FormatInteger(GetTotalPlayerGold())).c_str(), UiFlags::ColorWhitegold | UiFlags::AlignRight);
 	}
 
-	if (HasScrollbar)
-		DrawSSlider(out, 4, 20);
+	if (HasScrollbar())
+		DrawScrollbar(out, 4, 20);
 }
 
 void StoreESC()
@@ -2427,69 +1743,29 @@ void StoreESC()
 	}
 
 	switch (ActiveStore) {
-	case TalkID::Smith:
-	case TalkID::Witch:
-	case TalkID::Boy:
-	case TalkID::BoyBuy:
-	case TalkID::Healer:
-	case TalkID::Storyteller:
-	case TalkID::Tavern:
-	case TalkID::Drunk:
-	case TalkID::Barmaid:
-		ActiveStore = TalkID::None;
-		break;
+	case TalkID::MainMenu:
+		ExitStore();
+		return;
 	case TalkID::Gossip:
-		StartStore(OldActiveStore);
+	case TalkID::BasicBuy:
+	case TalkID::Buy:
+	case TalkID::Sell:
+	case TalkID::Repair:
+	case TalkID::Recharge:
+	case TalkID::Identify:
+		StartStore(TalkID::MainMenu);
 		CurrentTextLine = OldTextLine;
-		break;
-	case TalkID::SmithBuy:
-		StartStore(TalkID::Smith);
-		CurrentTextLine = 12;
-		break;
-	case TalkID::SmithPremiumBuy:
-		StartStore(TalkID::Smith);
-		CurrentTextLine = 14;
-		break;
-	case TalkID::SmithSell:
-		StartStore(TalkID::Smith);
-		CurrentTextLine = 16;
-		break;
-	case TalkID::SmithRepair:
-		StartStore(TalkID::Smith);
-		CurrentTextLine = 18;
-		break;
-	case TalkID::WitchBuy:
-		StartStore(TalkID::Witch);
-		CurrentTextLine = 14;
-		break;
-	case TalkID::WitchSell:
-		StartStore(TalkID::Witch);
-		CurrentTextLine = 16;
-		break;
-	case TalkID::WitchRecharge:
-		StartStore(TalkID::Witch);
-		CurrentTextLine = 18;
-		break;
-	case TalkID::HealerBuy:
-		StartStore(TalkID::Healer);
-		CurrentTextLine = 14;
-		break;
-	case TalkID::StorytellerIdentify:
-		StartStore(TalkID::Storyteller);
-		CurrentTextLine = 14;
-		break;
-	case TalkID::StorytellerIdentifyShow:
-		StartStore(TalkID::StorytellerIdentify);
-		break;
+		return;
+	case TalkID::IdentifyShow:
+		StartStore(TalkID::Identify);
+		return;
 	case TalkID::NoMoney:
 	case TalkID::NoRoom:
 	case TalkID::Confirm:
 		StartStore(OldActiveStore);
 		CurrentTextLine = OldTextLine;
 		ScrollPos = OldScrollPos;
-		break;
-	case TalkID::None:
-		break;
+		return;
 	}
 }
 
@@ -2500,7 +1776,7 @@ void StoreUp()
 		return;
 	}
 
-	if (HasScrollbar) {
+	if (HasScrollbar()) {
 		if (CurrentTextLine == PreviousScrollPos) {
 			if (ScrollPos != 0)
 				ScrollPos--;
@@ -2510,7 +1786,7 @@ void StoreUp()
 		CurrentTextLine--;
 		while (!TextLine[CurrentTextLine].isSelectable()) {
 			if (CurrentTextLine == 0)
-				CurrentTextLine = STORE_LINES - 1;
+				CurrentTextLine = NumStoreLines - 1;
 			else
 				CurrentTextLine--;
 		}
@@ -2518,13 +1794,13 @@ void StoreUp()
 	}
 
 	if (CurrentTextLine == 0)
-		CurrentTextLine = STORE_LINES - 1;
+		CurrentTextLine = NumStoreLines - 1;
 	else
 		CurrentTextLine--;
 
 	while (!TextLine[CurrentTextLine].isSelectable()) {
 		if (CurrentTextLine == 0)
-			CurrentTextLine = STORE_LINES - 1;
+			CurrentTextLine = NumStoreLines - 1;
 		else
 			CurrentTextLine--;
 	}
@@ -2537,7 +1813,7 @@ void StoreDown()
 		return;
 	}
 
-	if (HasScrollbar) {
+	if (HasScrollbar()) {
 		if (CurrentTextLine == NextScrollPos) {
 			if (ScrollPos < NumTextLines)
 				ScrollPos++;
@@ -2546,7 +1822,7 @@ void StoreDown()
 
 		CurrentTextLine++;
 		while (!TextLine[CurrentTextLine].isSelectable()) {
-			if (CurrentTextLine == STORE_LINES - 1)
+			if (CurrentTextLine == NumStoreLines - 1)
 				CurrentTextLine = 0;
 			else
 				CurrentTextLine++;
@@ -2554,13 +1830,13 @@ void StoreDown()
 		return;
 	}
 
-	if (CurrentTextLine == STORE_LINES - 1)
+	if (CurrentTextLine == NumStoreLines - 1)
 		CurrentTextLine = 0;
 	else
 		CurrentTextLine++;
 
 	while (!TextLine[CurrentTextLine].isSelectable()) {
-		if (CurrentTextLine == STORE_LINES - 1)
+		if (CurrentTextLine == NumStoreLines - 1)
 			CurrentTextLine = 0;
 		else
 			CurrentTextLine++;
@@ -2570,7 +1846,7 @@ void StoreDown()
 void StorePrior()
 {
 	PlaySFX(SfxID::MenuMove);
-	if (CurrentTextLine != -1 && HasScrollbar) {
+	if (CurrentTextLine != -1 && HasScrollbar()) {
 		if (CurrentTextLine == PreviousScrollPos) {
 			ScrollPos = std::max(ScrollPos - 4, 0);
 		} else {
@@ -2582,7 +1858,7 @@ void StorePrior()
 void StoreNext()
 {
 	PlaySFX(SfxID::MenuMove);
-	if (CurrentTextLine != -1 && HasScrollbar) {
+	if (CurrentTextLine != -1 && HasScrollbar()) {
 		if (CurrentTextLine == NextScrollPos) {
 			if (ScrollPos < NumTextLines)
 				ScrollPos += 4;
@@ -2596,13 +1872,11 @@ void StoreNext()
 
 void TakePlrsMoney(int cost)
 {
-	Player &myPlayer = *MyPlayer;
+	MyPlayer->_pGold -= std::min(cost, MyPlayer->_pGold);
 
-	myPlayer._pGold -= std::min(cost, myPlayer._pGold);
-
-	cost = TakeGold(myPlayer, cost, true);
+	cost = TakeGold(*MyPlayer, cost, true);
 	if (cost != 0) {
-		cost = TakeGold(myPlayer, cost, false);
+		cost = TakeGold(*MyPlayer, cost, false);
 	}
 
 	Stash.gold -= cost;
@@ -2620,33 +1894,23 @@ void StoreEnter()
 	}
 
 	PlaySFX(SfxID::MenuSelect);
+
 	switch (ActiveStore) {
-	case TalkID::Smith:
-		SmithEnter();
+	case TalkID::MainMenu:
+		MainMenuEnter();
 		break;
-	case TalkID::SmithPremiumBuy:
-		SmithPremiumBuyEnter();
+	case TalkID::BasicBuy:
+	case TalkID::Buy:
+		BuyEnter();
 		break;
-	case TalkID::SmithBuy:
-		SmithBuyEnter();
+	case TalkID::Sell:
+		SellEnter();
 		break;
-	case TalkID::SmithSell:
-		SmithSellEnter();
+	case TalkID::Repair:
+		RepairEnter();
 		break;
-	case TalkID::SmithRepair:
-		SmithRepairEnter();
-		break;
-	case TalkID::Witch:
-		WitchEnter();
-		break;
-	case TalkID::WitchBuy:
-		WitchBuyEnter();
-		break;
-	case TalkID::WitchSell:
-		WitchSellEnter();
-		break;
-	case TalkID::WitchRecharge:
-		WitchRechargeEnter();
+	case TalkID::Recharge:
+		RechargeEnter();
 		break;
 	case TalkID::NoMoney:
 	case TalkID::NoRoom:
@@ -2657,45 +1921,19 @@ void StoreEnter()
 	case TalkID::Confirm:
 		ConfirmEnter(TempItem);
 		break;
-	case TalkID::Boy:
-		BoyEnter();
-		break;
-	case TalkID::BoyBuy:
-		BoyBuyEnter();
-		break;
-	case TalkID::Healer:
-		HealerEnter();
-		break;
-	case TalkID::Storyteller:
-		StorytellerEnter();
-		break;
-	case TalkID::HealerBuy:
-		HealerBuyEnter();
-		break;
-	case TalkID::StorytellerIdentify:
-		StorytellerIdentifyEnter();
+	case TalkID::Identify:
+		IdentifyEnter();
 		break;
 	case TalkID::Gossip:
 		TalkEnter();
 		break;
-	case TalkID::StorytellerIdentifyShow:
-		StartStore(TalkID::StorytellerIdentify);
-		break;
-	case TalkID::Drunk:
-		DrunkEnter();
-		break;
-	case TalkID::Tavern:
-		TavernEnter();
-		break;
-	case TalkID::Barmaid:
-		BarmaidEnter();
-		break;
-	case TalkID::None:
+	case TalkID::IdentifyShow:
+		StartStore(TalkID::Identify);
 		break;
 	}
 }
 
-void CheckStoreBtn()
+void CheckStoreButton()
 {
 	const Point uiPosition = GetUIRectangle().position;
 	const Rectangle windowRect { { uiPosition.x + 344, uiPosition.y + PaddingTop - 7 }, { 271, 303 } };
@@ -2703,12 +1941,12 @@ void CheckStoreBtn()
 
 	if (!IsTextFullSize) {
 		if (!windowRect.contains(MousePosition)) {
-			while (IsPlayerInStore())
+			while (ActiveStore != TalkID::None)
 				StoreESC();
 		}
 	} else {
 		if (!windowRectFull.contains(MousePosition)) {
-			while (IsPlayerInStore())
+			while (ActiveStore != TalkID::None)
 				StoreESC();
 		}
 	}
@@ -2720,7 +1958,7 @@ void CheckStoreBtn()
 	} else if (CurrentTextLine != -1) {
 		const int relativeY = MousePosition.y - (uiPosition.y + PaddingTop);
 
-		if (HasScrollbar && MousePosition.x > 600 + uiPosition.x) {
+		if (HasScrollbar() && MousePosition.x > 600 + uiPosition.x) {
 			// Scroll bar is always measured in terms of the small line height.
 			int y = relativeY / SmallLineHeight;
 			if (y == 4) {
@@ -2745,7 +1983,7 @@ void CheckStoreBtn()
 		int y = relativeY / LineHeight();
 
 		// Large small fonts draw beyond LineHeight. Check if the click was on the overflow text.
-		if (IsSmallFontTall() && y > 0 && y < STORE_LINES
+		if (IsSmallFontTall() && y > 0 && y < NumStoreLines
 		    && TextLine[y - 1].hasText() && !TextLine[y].hasText()
 		    && relativeY < TextLine[y - 1].y + LargeTextHeight) {
 			--y;
@@ -2754,14 +1992,14 @@ void CheckStoreBtn()
 		if (y >= 5) {
 			if (y >= BackButtonLine() + 1)
 				y = BackButtonLine();
-			if (HasScrollbar && y <= 20 && !TextLine[y].isSelectable()) {
+			if (GetItemCount(ActiveStore) > 0 && y <= 20 && !TextLine[y].isSelectable()) {
 				if (TextLine[y - 2].isSelectable()) {
 					y -= 2;
 				} else if (TextLine[y - 1].isSelectable()) {
 					y--;
 				}
 			}
-			if (TextLine[y].isSelectable() || (HasScrollbar && y == BackButtonLine())) {
+			if (TextLine[y].isSelectable() || (GetItemCount(ActiveStore) > 0 && y == BackButtonLine())) {
 				CurrentTextLine = y;
 				StoreEnter();
 			}
@@ -2769,7 +2007,7 @@ void CheckStoreBtn()
 	}
 }
 
-void ReleaseStoreBtn()
+void ReleaseStoreButton()
 {
 	CountdownScrollUp = -1;
 	CountdownScrollDown = -1;

@@ -73,7 +73,7 @@ bool HandleStoreInteraction(const SDL_Event &event)
 	if (!IsPlayerInStore())
 		return false;
 	if (event.type == SDL_FINGERDOWN)
-		CheckStoreBtn();
+		CheckStoreButton();
 	return true;
 }
 
