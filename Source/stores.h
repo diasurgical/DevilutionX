@@ -94,7 +94,7 @@ void DrawSLine(const Surface &out, int sy);
 void DrawSTextHelp();
 void ClearSText(int s, int e);
 void StartStore(TalkID s);
-void DrawSText(const Surface &out);
+void DrawStore(const Surface &out);
 void StoreESC();
 void StoreUp();
 void StoreDown();
@@ -102,8 +102,8 @@ void StorePrior();
 void StoreNext();
 void TakePlrsMoney(int cost);
 void StoreEnter();
-void CheckStoreBtn();
-void ReleaseStoreBtn();
+void CheckStoreButton();
+void ReleaseStoreButton();
 bool IsPlayerInStore();
 
 } // namespace devilution
