@@ -18,6 +18,7 @@
 #include "multi.h"
 #include "options.h"
 #include "pfile.h"
+#include "player.h"
 #include "qol/floatingnumbers.h"
 #include "utils/language.h"
 
@@ -98,6 +99,8 @@ void GamemenuUpdateSingle()
 void GamemenuUpdateMulti()
 {
 	sgMultiMenu[2].setEnabled(MyPlayerIsDead);
+	sgMultiMenu[1].setEnabled(!MyPlayerIsDead);
+	sgMultiMenu[3].setEnabled(!MyPlayerIsDead);
 }
 
 void GamemenuPrevious(bool /*bActivate*/)
