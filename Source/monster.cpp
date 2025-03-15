@@ -4644,7 +4644,7 @@ void SpawnGolem(Player &player, Monster &golem, Point position, Missile &missile
 	golem.position.future = position;
 	golem.position.old = position;
 	golem.pathCount = 0;
-	golem.maxHitPoints = 2 * (320 * missile._mispllvl + player._pMaxMana / 3);
+	golem.maxHitPoints = std::max(64, 2 * (320 * missile._mispllvl + player._pMaxMana / 3));
 	golem.hitPoints = golem.maxHitPoints;
 	golem.armorClass = 25;
 	golem.golemToHit = 5 * (missile._mispllvl + 8) + 2 * player.getCharacterLevel();
