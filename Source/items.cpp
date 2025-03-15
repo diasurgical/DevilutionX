@@ -328,7 +328,7 @@ SfxID ItemDropSnds[] = {
 	SfxID::ItemLeatherFlip,
 };
 /** Maps from Griswold premium item number to a quality level delta as added to the base quality level. */
-int premiumlvladd[] = {
+int itemLevelAdd[] = {
 	// clang-format off
 	-1,
 	-1,
@@ -339,7 +339,7 @@ int premiumlvladd[] = {
 	// clang-format on
 };
 /** Maps from Griswold premium item number to a quality level delta as added to the base quality level. */
-int premiumLvlAddHellfire[] = {
+int itemLevelAddHf[] = {
 	// clang-format off
 	-1,
 	-1,
@@ -4425,7 +4425,7 @@ void SpawnPremium(const Player &player)
 	if (PremiumItemCount < maxItems) {
 		for (int i = 0; i < maxItems; i++) {
 			if (PremiumItems[i].isEmpty()) {
-				int plvl = PremiumItemLevel + (gbIsHellfire ? premiumLvlAddHellfire[i] : premiumlvladd[i]);
+				int plvl = PremiumItemLevel + (gbIsHellfire ? itemLevelAddHf[i] : itemLevelAdd[i]);
 				SpawnOnePremium(PremiumItems[i], plvl, player);
 			}
 		}
@@ -4436,17 +4436,17 @@ void SpawnPremium(const Player &player)
 		if (gbIsHellfire) {
 			// Discard first 3 items and shift next 10
 			std::move(&PremiumItems[3], &PremiumItems[12] + 1, &PremiumItems[0]);
-			SpawnOnePremium(PremiumItems[10], PremiumItemLevel + premiumLvlAddHellfire[10], player);
+			SpawnOnePremium(PremiumItems[10], PremiumItemLevel + itemLevelAddHf[10], player);
 			PremiumItems[11] = PremiumItems[13];
-			SpawnOnePremium(PremiumItems[12], PremiumItemLevel + premiumLvlAddHellfire[12], player);
+			SpawnOnePremium(PremiumItems[12], PremiumItemLevel + itemLevelAddHf[12], player);
 			PremiumItems[13] = PremiumItems[14];
-			SpawnOnePremium(PremiumItems[14], PremiumItemLevel + premiumLvlAddHellfire[14], player);
+			SpawnOnePremium(PremiumItems[14], PremiumItemLevel + itemLevelAddHf[14], player);
 		} else {
 			// Discard first 2 items and shift next 3
 			std::move(&PremiumItems[2], &PremiumItems[4] + 1, &PremiumItems[0]);
-			SpawnOnePremium(PremiumItems[3], PremiumItemLevel + premiumlvladd[3], player);
+			SpawnOnePremium(PremiumItems[3], PremiumItemLevel + itemLevelAdd[3], player);
 			PremiumItems[4] = PremiumItems[5];
-			SpawnOnePremium(PremiumItems[5], PremiumItemLevel + premiumlvladd[5], player);
+			SpawnOnePremium(PremiumItems[5], PremiumItemLevel + itemLevelAdd[5], player);
 		}
 	}
 }
