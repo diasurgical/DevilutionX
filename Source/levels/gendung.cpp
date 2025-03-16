@@ -524,11 +524,12 @@ void SetDungeonMicros()
 		uint16_t *pieces = &levelPieces[blocks * levelPieceId];
 		for (uint32_t block = 0; block < blocks; block++) {
 			const LevelCelBlock levelCelBlock { SDL_SwapLE16(pieces[blocks - 2 + (block & 1) - (block & 0xE)]) };
-			DPieceMicros[levelPieceId].mt[block] = levelCelBlock;
+			LevelCelBlock &mt = DPieceMicros[levelPieceId].mt[block];
+			mt = levelCelBlock;
 			if (levelCelBlock.hasValue()) {
 				if (const auto it = frameToTypeMap.find(levelCelBlock.frame()); it == frameToTypeMap.end()) {
 					frameToTypeMap.emplace_hint(it, levelCelBlock.frame(),
-					    DunFrameInfo { static_cast<uint8_t>(block), levelCelBlock.type(), SOLData[levelPieceId] });
+					    DunFrameInfo { static_cast<uint8_t>(block), levelCelBlock.type(), SOLData[levelPieceId], &mt.data });
 				}
 			}
 		}
@@ -538,6 +539,7 @@ void SetDungeonMicros()
 		return a.first < b.first;
 	});
 	ReencodeDungeonCels(pDungeonCels, frameToTypeList);
+	ReindexCelBlocks(frameToTypeList);
 }
 
 void DRLG_InitTrans()

@@ -252,9 +252,11 @@ void ReencodeDungeonCels(std::unique_ptr<std::byte[]> &dungeonCels, std::span<st
 	std::unique_ptr<std::byte[]> result { new std::byte[outSize] };
 	auto *const resultPtr = reinterpret_cast<uint8_t *>(result.get());
 	WriteLE32(resultPtr, static_cast<uint32_t>(frames.size()));
+	uint8_t *lookup = resultPtr + 4;
 	uint8_t *out = resultPtr + (2 + frames.size()) * 4; // number of frames, frame offsets, file size
 	for (const auto &[frame, info] : frames) {
-		WriteLE32(&resultPtr[static_cast<size_t>(frame * 4)], static_cast<uint32_t>(out - resultPtr));
+		WriteLE32(lookup, static_cast<uint32_t>(out - resultPtr));
+		lookup += 4;
 		const uint32_t srcFrameBegin = SDL_SwapLE32(srcOffsets[frame]);
 		const uint8_t *src = &srcData[srcFrameBegin];
 		switch (info.type) {
@@ -288,7 +290,7 @@ void ReencodeDungeonCels(std::unique_ptr<std::byte[]> &dungeonCels, std::span<st
 			break;
 		}
 	}
-	WriteLE32(&resultPtr[(1 + frames.size()) * 4], static_cast<uint32_t>(outSize));
+	WriteLE32(lookup, static_cast<uint32_t>(outSize));
 
 	const auto *dstOffsets = reinterpret_cast<const uint32_t *>(resultPtr);
 	LogVerbose(" Re-encoded dungeon CELs: {} frames, {} bytes. Extracted {} foliage tiles.",
@@ -297,6 +299,17 @@ void ReencodeDungeonCels(std::unique_ptr<std::byte[]> &dungeonCels, std::span<st
 	    FormatInteger(numFoliage));
 
 	dungeonCels = std::move(result);
+}
+
+void ReindexCelBlocks(std::span<std::pair<uint16_t, DunFrameInfo>> frames)
+{
+	uint16_t lastFrameIndex = 0;
+	uint16_t adjustment = 0;
+	for (auto &[frame, info] : frames) {
+		adjustment += frame - lastFrameIndex - 1;
+		lastFrameIndex = frame;
+		*info.celBlockData -= adjustment;
+	}
 }
 
 } // namespace devilution

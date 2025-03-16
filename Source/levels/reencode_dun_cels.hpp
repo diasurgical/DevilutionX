@@ -17,6 +17,8 @@ struct DunFrameInfo {
 	TileType type;
 	TileProperties properties;
 
+	uint16_t *celBlockData;
+
 	[[nodiscard]] bool isFloor() const
 	{
 		// The BlockMissile check is for stairs in L3 and L4, e.g. tile 46 sub-tile 141 frame 386 in L4.
@@ -35,5 +37,13 @@ struct DunFrameInfo {
  * This reduces memory usage and simplifies the rendering.
  */
 void ReencodeDungeonCels(std::unique_ptr<std::byte[]> &dungeonCels, std::span<std::pair<uint16_t, DunFrameInfo>> frames);
+
+/**
+ * @brief Adjusts frame indexes in cel block data.
+ *
+ * Re-encoding the dungeon cels removes frames that are not referenced.
+ * Indexes must also be adjusted to avoid errors when doing lookups.
+ */
+void ReindexCelBlocks(std::span<std::pair<uint16_t, DunFrameInfo>> frames);
 
 } // namespace devilution
