@@ -3563,15 +3563,17 @@ tl::expected<void, std::string> InitMonsters()
 				numscattypes++;
 			}
 		}
-		while (ActiveMonsterCount < totalmonsters) {
-			const size_t typeIndex = scattertypes[GenerateRnd(numscattypes)];
-			if (currlevel == 1 || FlipCoin())
-				na = 1;
-			else if (currlevel == 2 || leveltype == DTYPE_CRYPT)
-				na = GenerateRnd(2) + 2;
-			else
-				na = GenerateRnd(3) + 3;
-			PlaceGroup(typeIndex, na);
+		if (numscattypes > 0) {
+			while (ActiveMonsterCount < totalmonsters) {
+				const size_t typeIndex = scattertypes[GenerateRnd(numscattypes)];
+				if (currlevel == 1 || FlipCoin())
+					na = 1;
+				else if (currlevel == 2 || leveltype == DTYPE_CRYPT)
+					na = GenerateRnd(2) + 2;
+				else
+					na = GenerateRnd(3) + 3;
+				PlaceGroup(typeIndex, na);
+			}
 		}
 	}
 	for (int i = 0; i < nt; i++) {
