@@ -89,7 +89,7 @@ void PrintSBookStr(const Surface &out, Point position, std::string_view text, Ui
 SpellType GetSBookTrans(SpellID ii, bool townok)
 {
 	Player &player = *InspectPlayer;
-	if (ii == GetPlayerStartingLoadoutForClass(InspectPlayer->_pClass).skill)
+	if (ii == GetPlayerStartingLoadoutForClass(player._pClass).skill)
 		return SpellType::Skill;
 	SpellType st = SpellType::Spell;
 	if ((player._pISpells & GetSpellBitmask(ii)) != 0) {
