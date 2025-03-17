@@ -198,9 +198,9 @@ DVL_ALWAYS_INLINE void ReencodeFloorWithFoliage(uint8_t *&dst, const uint8_t *&s
 	ExtractFoliageTransparentSquare(dst, surfaceLastLine);
 }
 
-size_t GetReencodedSize(const uint8_t *dungeonCels, std::span<std::pair<uint16_t, DunFrameInfo>> frames)
+size_t GetReencodedSize(const uint8_t *dungeonCels, std::span<std::pair<uint16_t, DunFrameInfo>> frames, size_t frameOffsetCount)
 {
-	size_t result = (2 + frames.size()) * 4;
+	size_t result = (2 + frameOffsetCount) * 4;
 	const auto *srcOffsets = reinterpret_cast<const uint32_t *>(dungeonCels);
 	for (const auto &[frame, info] : frames) {
 		size_t frameSize;
@@ -248,11 +248,12 @@ void ReencodeDungeonCels(std::unique_ptr<std::byte[]> &dungeonCels, std::span<st
 	    FormatInteger(SDL_SwapLE32(srcOffsets[0])),
 	    FormatInteger(SDL_SwapLE32(srcOffsets[SDL_SwapLE32(srcOffsets[0]) + 1])));
 
-	const size_t outSize = GetReencodedSize(srcData, frames);
+	const size_t frameOffsetCount = frames[frames.size() - 1].first;
+	const size_t outSize = GetReencodedSize(srcData, frames, frameOffsetCount);
 	std::unique_ptr<std::byte[]> result { new std::byte[outSize] };
 	auto *const resultPtr = reinterpret_cast<uint8_t *>(result.get());
-	WriteLE32(resultPtr, static_cast<uint32_t>(frames.size()));
-	uint8_t *out = resultPtr + (2 + frames.size()) * 4; // number of frames, frame offsets, file size
+	WriteLE32(resultPtr, static_cast<uint32_t>(frameOffsetCount));
+	uint8_t *out = resultPtr + (2 + frameOffsetCount) * 4; // number of frames, frame offsets, file size
 	for (const auto &[frame, info] : frames) {
 		WriteLE32(&resultPtr[static_cast<size_t>(frame * 4)], static_cast<uint32_t>(out - resultPtr));
 		const uint32_t srcFrameBegin = SDL_SwapLE32(srcOffsets[frame]);
@@ -288,7 +289,7 @@ void ReencodeDungeonCels(std::unique_ptr<std::byte[]> &dungeonCels, std::span<st
 			break;
 		}
 	}
-	WriteLE32(&resultPtr[(1 + frames.size()) * 4], static_cast<uint32_t>(outSize));
+	WriteLE32(&resultPtr[(1 + frameOffsetCount) * 4], static_cast<uint32_t>(outSize));
 
 	const auto *dstOffsets = reinterpret_cast<const uint32_t *>(resultPtr);
 	LogVerbose(" Re-encoded dungeon CELs: {} frames, {} bytes. Extracted {} foliage tiles.",
