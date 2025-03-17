@@ -55,22 +55,8 @@ const SpellID SpellPages[SpellBookPages][SpellBookPageEntries] = {
 SpellID GetSpellFromSpellPage(size_t page, size_t entry)
 {
 	assert(page <= SpellBookPages && entry <= SpellBookPageEntries);
-	if (page == 0 && entry == 0) {
-		switch (InspectPlayer->_pClass) {
-		case HeroClass::Warrior:
-			return SpellID::ItemRepair;
-		case HeroClass::Rogue:
-			return SpellID::TrapDisarm;
-		case HeroClass::Sorcerer:
-			return SpellID::StaffRecharge;
-		case HeroClass::Monk:
-			return SpellID::Search;
-		case HeroClass::Bard:
-			return SpellID::Identify;
-		case HeroClass::Barbarian:
-			return SpellID::Rage;
-		}
-	}
+	if (page == 0 && entry == 0)
+		return GetPlayerStartingLoadoutForClass(InspectPlayer->_pClass).skill;
 	return SpellPages[page][entry];
 }
 
