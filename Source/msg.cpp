@@ -2432,7 +2432,7 @@ void RecreateItem(const Player &player, const TItem &messageItem, Item &item)
 	item.dwBuff = dwBuff;
 	RecreateItem(player, item,
 	    static_cast<_item_indexes>(SDL_SwapLE16(messageItem.wIndx)), SDL_SwapLE16(messageItem.wCI),
-	    SDL_SwapLE32(messageItem.dwSeed), SDL_SwapLE16(messageItem.wValue), (dwBuff & CF_HELLFIRE) != 0);
+	    SDL_SwapLE32(messageItem.dwSeed), SDL_SwapLE16(messageItem.wValue), dwBuff);
 	if (messageItem.bId != 0)
 		item._iIdentified = true;
 	item._iMaxDur = messageItem.bMDur;

@@ -334,8 +334,8 @@ void UnPackItem(const ItemPack &packedItem, const Player &player, Item &item, bo
 		item = {};
 		// Item generation logic will assign CF_HELLFIRE based on isHellfire
 		// so if we carry it over from packedItem, it may be incorrect
-		item.dwBuff = SDL_SwapLE32(packedItem.dwBuff) & ~CF_HELLFIRE;
-		RecreateItem(player, item, idx, SDL_SwapLE16(packedItem.iCreateInfo), SDL_SwapLE32(packedItem.iSeed), SDL_SwapLE16(packedItem.wValue), isHellfire);
+		item.dwBuff = (SDL_SwapLE32(packedItem.dwBuff) & ~CF_HELLFIRE) | isHellfire;
+		RecreateItem(player, item, idx, SDL_SwapLE16(packedItem.iCreateInfo), SDL_SwapLE32(packedItem.iSeed), SDL_SwapLE16(packedItem.wValue), item.dwBuff);
 		item._iIdentified = (packedItem.bId & 1) != 0;
 		item._iMaxDur = packedItem.bMDur;
 		item._iDurability = ClampDurability(item, packedItem.bDur);
