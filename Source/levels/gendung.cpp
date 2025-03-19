@@ -524,12 +524,11 @@ void SetDungeonMicros()
 		uint16_t *pieces = &levelPieces[blocks * levelPieceId];
 		for (uint32_t block = 0; block < blocks; block++) {
 			const LevelCelBlock levelCelBlock { SDL_SwapLE16(pieces[blocks - 2 + (block & 1) - (block & 0xE)]) };
-			LevelCelBlock &mt = DPieceMicros[levelPieceId].mt[block];
-			mt = levelCelBlock;
+			DPieceMicros[levelPieceId].mt[block] = levelCelBlock;
 			if (levelCelBlock.hasValue()) {
 				if (const auto it = frameToTypeMap.find(levelCelBlock.frame()); it == frameToTypeMap.end()) {
 					frameToTypeMap.emplace_hint(it, levelCelBlock.frame(),
-					    DunFrameInfo { static_cast<uint8_t>(block), levelCelBlock.type(), SOLData[levelPieceId], &mt.data });
+					    DunFrameInfo { static_cast<uint8_t>(block), levelCelBlock.type(), SOLData[levelPieceId] });
 				}
 			}
 		}
@@ -539,7 +538,21 @@ void SetDungeonMicros()
 		return a.first < b.first;
 	});
 	ReencodeDungeonCels(pDungeonCels, frameToTypeList);
-	ReindexCelBlocks(frameToTypeList);
+
+	std::vector<std::pair<uint16_t, uint16_t>> celBlockAdjustments = ComputeCelBlockAdjustments(frameToTypeList);
+	if (celBlockAdjustments.size() == 0) return;
+	for (size_t levelPieceId = 0; levelPieceId < tileCount / blocks; levelPieceId++) {
+		for (uint32_t block = 0; block < blocks; block++) {
+			LevelCelBlock &levelCelBlock = DPieceMicros[levelPieceId].mt[block];
+			const uint16_t frame = levelCelBlock.frame();
+			const auto pair = std::make_pair(frame, frame);
+			const auto it = std::upper_bound(celBlockAdjustments.begin(), celBlockAdjustments.end(), pair,
+			    [](std::pair<uint16_t, uint16_t> p1, std::pair<uint16_t, uint16_t> p2) { return p1.first < p2.first; });
+			if (it != celBlockAdjustments.end()) {
+				levelCelBlock.data -= it->second;
+			}
+		}
+	}
 }
 
 void DRLG_InitTrans()

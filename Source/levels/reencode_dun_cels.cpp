@@ -3,9 +3,11 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <limits>
 #include <memory>
 #include <span>
 #include <utility>
+#include <vector>
 
 #include <SDL_endian.h>
 
@@ -301,15 +303,21 @@ void ReencodeDungeonCels(std::unique_ptr<std::byte[]> &dungeonCels, std::span<st
 	dungeonCels = std::move(result);
 }
 
-void ReindexCelBlocks(std::span<std::pair<uint16_t, DunFrameInfo>> frames)
+std::vector<std::pair<uint16_t, uint16_t>> ComputeCelBlockAdjustments(std::span<std::pair<uint16_t, DunFrameInfo>> frames)
 {
+	std::vector<std::pair<uint16_t, uint16_t>> celBlockAdjustments;
 	uint16_t lastFrameIndex = 0;
 	uint16_t adjustment = 0;
 	for (auto &[frame, info] : frames) {
-		adjustment += frame - lastFrameIndex - 1;
+		uint16_t diff = frame - lastFrameIndex - 1;
+		if (diff > 0) celBlockAdjustments.emplace_back(frame, adjustment);
+		adjustment += diff;
 		lastFrameIndex = frame;
-		*info.celBlockData -= adjustment;
 	}
+	if (adjustment > 0) {
+		celBlockAdjustments.emplace_back(std::numeric_limits<uint16_t>::max(), adjustment);
+	}
+	return celBlockAdjustments;
 }
 
 } // namespace devilution

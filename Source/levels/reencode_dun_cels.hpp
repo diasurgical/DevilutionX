@@ -5,6 +5,7 @@
 #include <memory>
 #include <span>
 #include <utility>
+#include <vector>
 
 #include "levels/dun_tile.hpp"
 
@@ -16,8 +17,6 @@ struct DunFrameInfo {
 
 	TileType type;
 	TileProperties properties;
-
-	uint16_t *celBlockData;
 
 	[[nodiscard]] bool isFloor() const
 	{
@@ -39,11 +38,11 @@ struct DunFrameInfo {
 void ReencodeDungeonCels(std::unique_ptr<std::byte[]> &dungeonCels, std::span<std::pair<uint16_t, DunFrameInfo>> frames);
 
 /**
- * @brief Adjusts frame indexes in cel block data.
+ * @brief Computes adjustments to apply to frame indexes in cel block data.
  *
  * Re-encoding the dungeon cels removes frames that are not referenced.
  * Indexes must also be adjusted to avoid errors when doing lookups.
  */
-void ReindexCelBlocks(std::span<std::pair<uint16_t, DunFrameInfo>> frames);
+std::vector<std::pair<uint16_t, uint16_t>> ComputeCelBlockAdjustments(std::span<std::pair<uint16_t, DunFrameInfo>> frames);
 
 } // namespace devilution
