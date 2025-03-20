@@ -50,7 +50,7 @@ DevilutionX - це порт Diablo та Hellfire, який прагне поле
 
 Якщо ви бажаєте допомогти протестувати останню версію розробки (обов'язково створіть резервну копію своїх файлів, оскільки білди можуть містити помилки), ви можете отримати артефакт тестової збірки з одного із серверів збірки:
 
-* Примітка: для завантаження вкладень ви повинні бути авторизовані на GitHub!*
+*Примітка: для завантаження вкладень ви повинні бути авторизовані на GitHub!*
 
 [![Linux x86_64](https://github.com/diasurgical/devilutionX/actions/workflows/Linux_x86_64.yml/badge.svg)](https://github.com/diasurgical/devilutionX/actions/workflows/Linux_x86_64.yml?query=branch%3Amaster)
 [![Linux AArch64](https://github.com/diasurgical/devilutionX/actions/workflows/Linux_aarch64.yml/badge.svg)](https://github.com/diasurgical/devilutionX/actions/workflows/Linux_aarch64.yml?query=branch%3Amaster)
