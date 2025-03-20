@@ -18,6 +18,13 @@ inline std::string LuaDocstringKey(std::string_view key)
 	return StrCat("__doc_", key);
 }
 
+template <typename U, typename T>
+void SetDocumented(sol::usertype<U> &table, std::string_view key, std::string_view signature, std::string_view doc, T &&value)
+{
+	table[key] = std::forward<T>(value);
+	// TODO: figure out a way to set signature and docstring.
+}
+
 template <typename T>
 void SetDocumented(sol::table &table, std::string_view key, std::string_view signature, std::string_view doc, T &&value)
 {

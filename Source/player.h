@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <array>
+#include <string_view>
 
 #include "diablo.h"
 #include "engine/actor_position.hpp"
@@ -368,6 +369,11 @@ public:
 	uint8_t pDiabloKillLevel;
 	uint16_t wReflections;
 	ItemSpecialEffectHf pDamAcFlags;
+
+	[[nodiscard]] std::string_view name() const
+	{
+		return _pName;
+	}
 
 	/**
 	 * @brief Convenience function to get the base stats/bonuses for this player's class
