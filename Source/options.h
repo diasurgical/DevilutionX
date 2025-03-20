@@ -351,10 +351,7 @@ public:
 	[[nodiscard]] size_t GetActiveListIndex() const override;
 	void SetActiveListIndex(size_t index) override;
 
-	void setAvailableResolutions(std::vector<std::pair<Size, std::string>> &&resolutions)
-	{
-		resolutions_ = std::move(resolutions);
-	}
+	void setAvailableResolutions(std::vector<std::pair<Size, std::string>> &&resolutions);
 
 	Size operator*() const { return size_; }
 
