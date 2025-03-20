@@ -45,7 +45,7 @@ void InitItemUserType(sol::state_view &lua)
 	SetDocumented(itemType, "maxDam", "number", "Maximum damage", [](const Item &i) { return i._iMaxDam; }, [](Item &i, int val) { i._iMaxDam = val; });
 	SetDocumented(itemType, "AC", "number", "Armor class", [](const Item &i) { return i._iAC; }, [](Item &i, int val) { i._iAC = val; });
 	SetDocumented(itemType, "flags", "ItemSpecialEffect", "Special effect flags", [](const Item &i) { return static_cast<int>(i._iFlags); }, [](Item &i, int val) { i._iFlags = static_cast<ItemSpecialEffect>(val); });
-	SetDocumented(itemType, "miscId", "ItemMiscId", "Miscellaneous ID", [](const Item &i) { return i._iMiscId; }, [](Item &i, int val) { i._iMiscId = static_cast<item_misc_id>(val); });
+	SetDocumented(itemType, "miscId", "ItemMiscID", "Miscellaneous ID", [](const Item &i) { return i._iMiscId; }, [](Item &i, int val) { i._iMiscId = static_cast<item_misc_id>(val); });
 	SetDocumented(itemType, "spell", "SpellID", "Spell", [](const Item &i) { return i._iSpell; }, [](Item &i, int val) { i._iSpell = static_cast<SpellID>(val); });
 	SetDocumented(itemType, "IDidx", "ItemIndex", "Base item index", [](const Item &i) { return i.IDidx; }, [](Item &i, int val) { i.IDidx = static_cast<_item_indexes>(val); });
 	SetDocumented(itemType, "charges", "number", "Number of charges", [](const Item &i) { return i._iCharges; }, [](Item &i, int val) { i._iCharges = val; });
@@ -112,7 +112,7 @@ void InitItemUserType(sol::state_view &lua)
 	SetDocumented(itemType, "getName", "() -> string", "Gets the translated item name", &Item::getName);
 }
 
-void RegisterItemEnums(sol::state_view &lua)
+void RegisterItemTypeEnum(sol::state_view &lua)
 {
 	lua.new_enum("ItemType",
 	    "Misc", ItemType::Misc,
@@ -130,7 +130,9 @@ void RegisterItemEnums(sol::state_view &lua)
 	    "Ring", ItemType::Ring,
 	    "Amulet", ItemType::Amulet,
 	    "None", ItemType::None);
-
+}
+void RegisterItemEquipTypeEnum(sol::state_view &lua)
+{
 	lua.new_enum("ItemEquipType",
 	    "None", ILOC_NONE,
 	    "OneHand", ILOC_ONEHAND,
@@ -142,6 +144,10 @@ void RegisterItemEnums(sol::state_view &lua)
 	    "Unequipable", ILOC_UNEQUIPABLE,
 	    "Belt", ILOC_BELT,
 	    "Invalid", ILOC_INVALID);
+}
+
+void RegisterItemClassEnum(sol::state_view &lua)
+{
 
 	lua.new_enum("ItemClass",
 	    "None", ICLASS_NONE,
@@ -150,7 +156,9 @@ void RegisterItemEnums(sol::state_view &lua)
 	    "Misc", ICLASS_MISC,
 	    "Gold", ICLASS_GOLD,
 	    "Quest", ICLASS_QUEST);
-
+}
+void RegisterItemSpecialEffectEnum(sol::state_view &lua)
+{
 	lua.new_enum("ItemSpecialEffect",
 	    "None", ItemSpecialEffect::None,
 	    "RandomStealLife", ItemSpecialEffect::RandomStealLife,
@@ -179,8 +187,10 @@ void RegisterItemEnums(sol::state_view &lua)
 	    "HalfTrapDamage", ItemSpecialEffect::HalfTrapDamage,
 	    "TripleDemonDamage", ItemSpecialEffect::TripleDemonDamage,
 	    "ZeroResistance", ItemSpecialEffect::ZeroResistance);
-
-	lua.new_enum("ItemMiscId",
+}
+void RegisterItemMiscIDEnum(sol::state_view &lua)
+{
+	lua.new_enum("ItemMiscID",
 	    "None", IMISC_NONE,
 	    "FullHeal", IMISC_FULLHEAL,
 	    "Heal", IMISC_HEAL,
@@ -199,7 +209,9 @@ void RegisterItemEnums(sol::state_view &lua)
 	    "Ring", IMISC_RING,
 	    "Amulet", IMISC_AMULET,
 	    "Unique", IMISC_UNIQUE);
-
+}
+void RegisterSpellIDEnum(sol::state_view &lua)
+{
 	lua.new_enum("SpellID",
 	    "Null", SpellID::Null,
 	    "Firebolt", SpellID::Firebolt,
@@ -254,8 +266,10 @@ void RegisterItemEnums(sol::state_view &lua)
 	    "RuneOfImmolation", SpellID::RuneOfImmolation,
 	    "RuneOfStone", SpellID::RuneOfStone,
 	    "Invalid", SpellID::Invalid);
-
-	lua.new_enum("_item_indexes",
+}
+void RegisterItemIndexEnum(sol::state_view &lua)
+{
+	lua.new_enum("ItemIndex",
 	    "IDI_GOLD", IDI_GOLD,
 	    "IDI_WARRIOR", IDI_WARRIOR,
 	    "IDI_WARRSHLD", IDI_WARRSHLD,
@@ -317,7 +331,9 @@ void RegisterItemEnums(sol::state_view &lua)
 	    "IDI_ARENAPOT", IDI_ARENAPOT,
 	    "IDI_LAST", IDI_LAST,
 	    "IDI_NONE", IDI_NONE);
-
+}
+void RegisterItemEffectTypeEnum(sol::state_view &lua)
+{
 	lua.new_enum("ItemEffectType",
 	    "IPL_TOHIT", IPL_TOHIT,
 	    "IPL_TOHIT_CURSE", IPL_TOHIT_CURSE,
@@ -400,7 +416,9 @@ void RegisterItemEnums(sol::state_view &lua)
 	    "IPL_MANATOLIFE", IPL_MANATOLIFE,
 	    "IPL_LIFETOMANA", IPL_LIFETOMANA,
 	    "IPL_INVALID", IPL_INVALID);
-
+}
+void RegisterItemSpecialEffectHfEnum(sol::state_view &lua)
+{
 	lua.new_enum("ItemSpecialEffectHf",
 	    "None", ItemSpecialEffectHf::None,
 	    "Devastation", ItemSpecialEffectHf::Devastation,
@@ -417,7 +435,15 @@ void RegisterItemEnums(sol::state_view &lua)
 sol::table LuaItemModule(sol::state_view &lua)
 {
 	InitItemUserType(lua);
-	RegisterItemEnums(lua);
+	RegisterItemTypeEnum(lua);
+	RegisterItemEquipTypeEnum(lua);
+	RegisterItemClassEnum(lua);
+	RegisterItemSpecialEffectEnum(lua);
+	RegisterItemMiscIDEnum(lua);
+	RegisterSpellIDEnum(lua);
+	RegisterItemIndexEnum(lua);
+	RegisterItemEffectTypeEnum(lua);
+	RegisterItemSpecialEffectHfEnum(lua);
 
 	sol::table table = lua.create_table();
 
