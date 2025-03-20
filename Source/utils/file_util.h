@@ -5,6 +5,7 @@
 #include <memory>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace devilution {
 
@@ -45,5 +46,12 @@ FILE *OpenFile(const char *path, const char *mode);
 #if defined(_WIN32) && !defined(DEVILUTIONX_WINDOWS_NO_WCHAR)
 std::unique_ptr<wchar_t[]> ToWideChar(std::string_view path);
 #endif
+
+/**
+ * @brief Returns a vector of directory names located in the specified path.
+ *
+ * For NXDK, this uses the Windows–style API.
+ */
+std::vector<std::string> ListDirectories(const char *path);
 
 } // namespace devilution
