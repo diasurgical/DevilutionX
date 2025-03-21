@@ -3513,7 +3513,7 @@ void RecreateItem(const Player &player, Item &item, _item_indexes idx, uint16_t 
 {
 	bool tmpIsHellfire = gbIsHellfire;
 	item.dwBuff = dwBuff;
-	gbIsHellfire = item.dwBuff & CF_HELLFIRE;
+	gbIsHellfire = (item.dwBuff & CF_HELLFIRE) != 0;
 
 	if (idx == IDI_GOLD) {
 		InitializeItem(item, IDI_GOLD);
