@@ -573,6 +573,10 @@ void CheckInvPaste(Player &player, Point cursorPosition)
 			return;
 	}
 
+	if (&player == MyPlayer) {
+		PlaySFX(ItemInvSnds[ItemCAnimTbl[player.HoldItem._iCurs]]);
+	}
+
 	// Select the parameters that go into
 	// ChangeEquipment and add it to post switch
 	switch (location) {
@@ -601,7 +605,6 @@ void CheckInvPaste(Player &player, Point cursorPosition)
 
 	CalcPlrInv(player, true);
 	if (&player == MyPlayer) {
-		PlaySFX(ItemInvSnds[ItemCAnimTbl[player.HoldItem._iCurs]]);
 		NewCursor(player.HoldItem);
 	}
 }
