@@ -114,47 +114,353 @@ void InitItemUserType(sol::state_view &lua)
 
 void RegisterItemTypeEnum(sol::state_view &lua)
 {
-	lua.new_enum<ItemType>("ItemType", { { "Misc", ItemType::Misc }, { "Sword", ItemType::Sword }, { "Axe", ItemType::Axe }, { "Bow", ItemType::Bow }, { "Mace", ItemType::Mace }, { "Shield", ItemType::Shield }, { "LightArmor", ItemType::LightArmor }, { "Helm", ItemType::Helm }, { "MediumArmor", ItemType::MediumArmor }, { "HeavyArmor", ItemType::HeavyArmor }, { "Staff", ItemType::Staff }, { "Gold", ItemType::Gold }, { "Ring", ItemType::Ring }, { "Amulet", ItemType::Amulet }, { "None", ItemType::None } });
+	// clang-format off
+	lua.new_enum<ItemType>("ItemType", {
+		{ "Misc", ItemType::Misc },
+		{ "Sword", ItemType::Sword },
+		{ "Axe", ItemType::Axe },
+		{ "Bow", ItemType::Bow },
+		{ "Mace", ItemType::Mace },
+		{ "Shield", ItemType::Shield },
+		{ "LightArmor", ItemType::LightArmor },
+		{ "Helm", ItemType::Helm },
+		{ "MediumArmor", ItemType::MediumArmor },
+		{ "HeavyArmor", ItemType::HeavyArmor },
+		{ "Staff", ItemType::Staff },
+		{ "Gold", ItemType::Gold },
+		{ "Ring", ItemType::Ring },
+		{ "Amulet", ItemType::Amulet },
+		{ "None", ItemType::None }
+	});
+	// clang-format on
 }
 
 void RegisterItemEquipTypeEnum(sol::state_view &lua)
 {
-	lua.new_enum<item_equip_type>("ItemEquipType", { { "None", ILOC_NONE }, { "OneHand", ILOC_ONEHAND }, { "TwoHand", ILOC_TWOHAND }, { "Armor", ILOC_ARMOR }, { "Helm", ILOC_HELM }, { "Ring", ILOC_RING }, { "Amulet", ILOC_AMULET }, { "Unequipable", ILOC_UNEQUIPABLE }, { "Belt", ILOC_BELT }, { "Invalid", ILOC_INVALID } });
+	// clang-format off
+	lua.new_enum<item_equip_type>("ItemEquipType", {
+	    { "None", ILOC_NONE },
+	    { "OneHand", ILOC_ONEHAND },
+	    { "TwoHand", ILOC_TWOHAND },
+	    { "Armor", ILOC_ARMOR },
+	    { "Helm", ILOC_HELM },
+	    { "Ring", ILOC_RING },
+	    { "Amulet", ILOC_AMULET },
+	    { "Unequipable", ILOC_UNEQUIPABLE },
+	    { "Belt", ILOC_BELT },
+	    { "Invalid", ILOC_INVALID }
+	});
+	// clang-format on
 }
 
 void RegisterItemClassEnum(sol::state_view &lua)
 {
-	lua.new_enum<item_class>("ItemClass", { { "None", ICLASS_NONE }, { "Weapon", ICLASS_WEAPON }, { "Armor", ICLASS_ARMOR }, { "Misc", ICLASS_MISC }, { "Gold", ICLASS_GOLD }, { "Quest", ICLASS_QUEST } });
+	// clang-format off
+	lua.new_enum<item_class>("ItemClass", {
+	    { "None", ICLASS_NONE },
+	    { "Weapon", ICLASS_WEAPON },
+	    { "Armor", ICLASS_ARMOR },
+	    { "Misc", ICLASS_MISC },
+	    { "Gold", ICLASS_GOLD },
+	    { "Quest", ICLASS_QUEST }
+	});
+	// clang-format on
 }
 
 void RegisterItemSpecialEffectEnum(sol::state_view &lua)
 {
-	lua.new_enum<ItemSpecialEffect>("ItemSpecialEffect", { { "None", ItemSpecialEffect::None }, { "RandomStealLife", ItemSpecialEffect::RandomStealLife }, { "RandomArrowVelocity", ItemSpecialEffect::RandomArrowVelocity }, { "FireArrows", ItemSpecialEffect::FireArrows }, { "FireDamage", ItemSpecialEffect::FireDamage }, { "LightningDamage", ItemSpecialEffect::LightningDamage }, { "DrainLife", ItemSpecialEffect::DrainLife }, { "MultipleArrows", ItemSpecialEffect::MultipleArrows }, { "Knockback", ItemSpecialEffect::Knockback }, { "StealMana3", ItemSpecialEffect::StealMana3 }, { "StealMana5", ItemSpecialEffect::StealMana5 }, { "StealLife3", ItemSpecialEffect::StealLife3 }, { "StealLife5", ItemSpecialEffect::StealLife5 }, { "QuickAttack", ItemSpecialEffect::QuickAttack }, { "FastAttack", ItemSpecialEffect::FastAttack }, { "FasterAttack", ItemSpecialEffect::FasterAttack }, { "FastestAttack", ItemSpecialEffect::FastestAttack }, { "FastHitRecovery", ItemSpecialEffect::FastHitRecovery }, { "FasterHitRecovery", ItemSpecialEffect::FasterHitRecovery }, { "FastestHitRecovery", ItemSpecialEffect::FastestHitRecovery }, { "FastBlock", ItemSpecialEffect::FastBlock }, { "LightningArrows", ItemSpecialEffect::LightningArrows }, { "Thorns", ItemSpecialEffect::Thorns }, { "NoMana", ItemSpecialEffect::NoMana }, { "HalfTrapDamage", ItemSpecialEffect::HalfTrapDamage }, { "TripleDemonDamage", ItemSpecialEffect::TripleDemonDamage }, { "ZeroResistance", ItemSpecialEffect::ZeroResistance } });
+	// clang-format off
+	lua.new_enum<ItemSpecialEffect>("ItemSpecialEffect", {
+	    { "None", ItemSpecialEffect::None },
+	    { "RandomStealLife", ItemSpecialEffect::RandomStealLife },
+	    { "RandomArrowVelocity", ItemSpecialEffect::RandomArrowVelocity },
+	    { "FireArrows", ItemSpecialEffect::FireArrows },
+	    { "FireDamage", ItemSpecialEffect::FireDamage },
+	    { "LightningDamage", ItemSpecialEffect::LightningDamage },
+	    { "DrainLife", ItemSpecialEffect::DrainLife },
+	    { "MultipleArrows", ItemSpecialEffect::MultipleArrows },
+	    { "Knockback", ItemSpecialEffect::Knockback },
+	    { "StealMana3", ItemSpecialEffect::StealMana3 },
+	    { "StealMana5", ItemSpecialEffect::StealMana5 },
+	    { "StealLife3", ItemSpecialEffect::StealLife3 },
+	    { "StealLife5", ItemSpecialEffect::StealLife5 },
+	    { "QuickAttack", ItemSpecialEffect::QuickAttack },
+	    { "FastAttack", ItemSpecialEffect::FastAttack },
+	    { "FasterAttack", ItemSpecialEffect::FasterAttack },
+	    { "FastestAttack", ItemSpecialEffect::FastestAttack },
+	    { "FastHitRecovery", ItemSpecialEffect::FastHitRecovery },
+	    { "FasterHitRecovery", ItemSpecialEffect::FasterHitRecovery },
+	    { "FastestHitRecovery", ItemSpecialEffect::FastestHitRecovery },
+	    { "FastBlock", ItemSpecialEffect::FastBlock },
+	    { "LightningArrows", ItemSpecialEffect::LightningArrows },
+	    { "Thorns", ItemSpecialEffect::Thorns },
+	    { "NoMana", ItemSpecialEffect::NoMana },
+	    { "HalfTrapDamage", ItemSpecialEffect::HalfTrapDamage },
+	    { "TripleDemonDamage", ItemSpecialEffect::TripleDemonDamage },
+	    { "ZeroResistance", ItemSpecialEffect::ZeroResistance }
+	});
+	// clang-format on
 }
 
 void RegisterItemMiscIDEnum(sol::state_view &lua)
 {
-	lua.new_enum<item_misc_id>("ItemMiscID", { { "None", IMISC_NONE }, { "FullHeal", IMISC_FULLHEAL }, { "Heal", IMISC_HEAL }, { "Mana", IMISC_MANA }, { "FullMana", IMISC_FULLMANA }, { "ElixirStr", IMISC_ELIXSTR }, { "ElixirMag", IMISC_ELIXMAG }, { "ElixirDex", IMISC_ELIXDEX }, { "ElixirVit", IMISC_ELIXVIT }, { "Rejuv", IMISC_REJUV }, { "FullRejuv", IMISC_FULLREJUV }, { "Scroll", IMISC_SCROLL }, { "ScrollT", IMISC_SCROLLT }, { "Staff", IMISC_STAFF }, { "Book", IMISC_BOOK }, { "Ring", IMISC_RING }, { "Amulet", IMISC_AMULET }, { "Unique", IMISC_UNIQUE } });
+	// clang-format off
+	lua.new_enum<item_misc_id>("ItemMiscID", {
+	    { "None", IMISC_NONE },
+	    { "FullHeal", IMISC_FULLHEAL },
+	    { "Heal", IMISC_HEAL },
+	    { "Mana", IMISC_MANA },
+	    { "FullMana", IMISC_FULLMANA },
+	    { "ElixirStr", IMISC_ELIXSTR },
+	    { "ElixirMag", IMISC_ELIXMAG },
+	    { "ElixirDex", IMISC_ELIXDEX },
+	    { "ElixirVit", IMISC_ELIXVIT },
+	    { "Rejuv", IMISC_REJUV },
+	    { "FullRejuv", IMISC_FULLREJUV },
+	    { "Scroll", IMISC_SCROLL },
+	    { "ScrollT", IMISC_SCROLLT },
+	    { "Staff", IMISC_STAFF },
+	    { "Book", IMISC_BOOK },
+	    { "Ring", IMISC_RING },
+	    { "Amulet", IMISC_AMULET },
+	    { "Unique", IMISC_UNIQUE }
+	});
+	// clang-format on
 }
 
 void RegisterSpellIDEnum(sol::state_view &lua)
 {
-	lua.new_enum<SpellID>("SpellID", { { "Null", SpellID::Null }, { "Firebolt", SpellID::Firebolt }, { "Healing", SpellID::Healing }, { "Lightning", SpellID::Lightning }, { "Flash", SpellID::Flash }, { "Identify", SpellID::Identify }, { "FireWall", SpellID::FireWall }, { "TownPortal", SpellID::TownPortal }, { "StoneCurse", SpellID::StoneCurse }, { "Infravision", SpellID::Infravision }, { "Phasing", SpellID::Phasing }, { "ManaShield", SpellID::ManaShield }, { "Fireball", SpellID::Fireball }, { "Guardian", SpellID::Guardian }, { "ChainLightning", SpellID::ChainLightning }, { "FlameWave", SpellID::FlameWave }, { "DoomSerpents", SpellID::DoomSerpents }, { "BloodRitual", SpellID::BloodRitual }, { "Nova", SpellID::Nova }, { "Invisibility", SpellID::Invisibility }, { "Inferno", SpellID::Inferno }, { "Golem", SpellID::Golem }, { "Rage", SpellID::Rage }, { "Teleport", SpellID::Teleport }, { "Apocalypse", SpellID::Apocalypse }, { "Etherealize", SpellID::Etherealize }, { "ItemRepair", SpellID::ItemRepair }, { "StaffRecharge", SpellID::StaffRecharge }, { "TrapDisarm", SpellID::TrapDisarm }, { "Elemental", SpellID::Elemental }, { "ChargedBolt", SpellID::ChargedBolt }, { "HolyBolt", SpellID::HolyBolt }, { "Resurrect", SpellID::Resurrect }, { "Telekinesis", SpellID::Telekinesis }, { "HealOther", SpellID::HealOther }, { "BloodStar", SpellID::BloodStar }, { "BoneSpirit", SpellID::BoneSpirit }, { "Mana", SpellID::Mana }, { "Magi", SpellID::Magi }, { "Jester", SpellID::Jester }, { "LightningWall", SpellID::LightningWall }, { "Immolation", SpellID::Immolation }, { "Warp", SpellID::Warp }, { "Reflect", SpellID::Reflect }, { "Berserk", SpellID::Berserk }, { "RingOfFire", SpellID::RingOfFire }, { "Search", SpellID::Search }, { "RuneOfFire", SpellID::RuneOfFire }, { "RuneOfLight", SpellID::RuneOfLight }, { "RuneOfNova", SpellID::RuneOfNova }, { "RuneOfImmolation", SpellID::RuneOfImmolation }, { "RuneOfStone", SpellID::RuneOfStone }, { "Invalid", SpellID::Invalid } });
+	// clang-format off
+	lua.new_enum<SpellID>("SpellID", {
+	    { "Null", SpellID::Null },
+	    { "Firebolt", SpellID::Firebolt },
+	    { "Healing", SpellID::Healing },
+	    { "Lightning", SpellID::Lightning },
+	    { "Flash", SpellID::Flash },
+	    { "Identify", SpellID::Identify },
+	    { "FireWall", SpellID::FireWall },
+	    { "TownPortal", SpellID::TownPortal },
+	    { "StoneCurse", SpellID::StoneCurse },
+	    { "Infravision", SpellID::Infravision },
+	    { "Phasing", SpellID::Phasing },
+	    { "ManaShield", SpellID::ManaShield },
+	    { "Fireball", SpellID::Fireball },
+	    { "Guardian", SpellID::Guardian },
+	    { "ChainLightning", SpellID::ChainLightning },
+	    { "FlameWave", SpellID::FlameWave },
+	    { "DoomSerpents", SpellID::DoomSerpents },
+	    { "BloodRitual", SpellID::BloodRitual },
+	    { "Nova", SpellID::Nova },
+	    { "Invisibility", SpellID::Invisibility },
+	    { "Inferno", SpellID::Inferno },
+	    { "Golem", SpellID::Golem },
+	    { "Rage", SpellID::Rage },
+	    { "Teleport", SpellID::Teleport },
+	    { "Apocalypse", SpellID::Apocalypse },
+	    { "Etherealize", SpellID::Etherealize },
+	    { "ItemRepair", SpellID::ItemRepair },
+	    { "StaffRecharge", SpellID::StaffRecharge },
+	    { "TrapDisarm", SpellID::TrapDisarm },
+	    { "Elemental", SpellID::Elemental },
+	    { "ChargedBolt", SpellID::ChargedBolt },
+	    { "HolyBolt", SpellID::HolyBolt },
+	    { "Resurrect", SpellID::Resurrect },
+	    { "Telekinesis", SpellID::Telekinesis },
+	    { "HealOther", SpellID::HealOther },
+	    { "BloodStar", SpellID::BloodStar },
+	    { "BoneSpirit", SpellID::BoneSpirit },
+	    { "Mana", SpellID::Mana },
+	    { "Magi", SpellID::Magi },
+	    { "Jester", SpellID::Jester },
+	    { "LightningWall", SpellID::LightningWall },
+	    { "Immolation", SpellID::Immolation },
+	    { "Warp", SpellID::Warp },
+	    { "Reflect", SpellID::Reflect },
+	    { "Berserk", SpellID::Berserk },
+	    { "RingOfFire", SpellID::RingOfFire },
+	    { "Search", SpellID::Search },
+	    { "RuneOfFire", SpellID::RuneOfFire },
+	    { "RuneOfLight", SpellID::RuneOfLight },
+	    { "RuneOfNova", SpellID::RuneOfNova },
+	    { "RuneOfImmolation", SpellID::RuneOfImmolation },
+	    { "RuneOfStone", SpellID::RuneOfStone },
+	    { "Invalid", SpellID::Invalid }
+	});
+	// clang-format on
 }
 
 void RegisterItemIndexEnum(sol::state_view &lua)
 {
-	lua.new_enum<_item_indexes>("ItemIndex", { { "Gold", IDI_GOLD }, { "Warrior", IDI_WARRIOR }, { "WarriorShield", IDI_WARRSHLD }, { "WarriorClub", IDI_WARRCLUB }, { "Rogue", IDI_ROGUE }, { "Sorcerer", IDI_SORCERER }, { "Cleaver", IDI_CLEAVER }, { "FirstQuest", IDI_FIRSTQUEST }, { "SkeletonKingCrown", IDI_SKCROWN }, { "InfravisionRing", IDI_INFRARING }, { "Rock", IDI_ROCK }, { "OpticAmulet", IDI_OPTAMULET }, { "TruthRing", IDI_TRING }, { "Banner", IDI_BANNER }, { "HarlequinCrest", IDI_HARCREST }, { "SteelVeil", IDI_STEELVEIL }, { "GoldenElixir", IDI_GLDNELIX }, { "Anvil", IDI_ANVIL }, { "Mushroom", IDI_MUSHROOM }, { "Brain", IDI_BRAIN }, { "FungalTome", IDI_FUNGALTM }, { "SpectralElixir", IDI_SPECELIX }, { "BloodStone", IDI_BLDSTONE }, { "MapOfDoom", IDI_MAPOFDOOM }, { "LastQuest", IDI_LASTQUEST }, { "Ear", IDI_EAR }, { "Heal", IDI_HEAL }, { "Mana", IDI_MANA }, { "Identify", IDI_IDENTIFY }, { "Portal", IDI_PORTAL }, { "ArmorOfValor", IDI_ARMOFVAL }, { "FullHeal", IDI_FULLHEAL }, { "FullMana", IDI_FULLMANA }, { "Griswold", IDI_GRISWOLD }, { "Lightforge", IDI_LGTFORGE }, { "LazarusStaff", IDI_LAZSTAFF }, { "Resurrect", IDI_RESURRECT }, { "Oil", IDI_OIL }, { "ShortStaff", IDI_SHORTSTAFF }, { "BardSword", IDI_BARDSWORD }, { "BardDagger", IDI_BARDDAGGER }, { "RuneBomb", IDI_RUNEBOMB }, { "Theodore", IDI_THEODORE }, { "Auric", IDI_AURIC }, { "Note1", IDI_NOTE1 }, { "Note2", IDI_NOTE2 }, { "Note3", IDI_NOTE3 }, { "FullNote", IDI_FULLNOTE }, { "BrownSuit", IDI_BROWNSUIT }, { "GreySuit", IDI_GREYSUIT }, { "Book1", IDI_BOOK1 }, { "Book2", IDI_BOOK2 }, { "Book3", IDI_BOOK3 }, { "Book4", IDI_BOOK4 }, { "Barbarian", IDI_BARBARIAN }, { "ShortBattleBow", IDI_SHORT_BATTLE_BOW }, { "RuneOfStone", IDI_RUNEOFSTONE }, { "SorcererDiablo", IDI_SORCERER_DIABLO }, { "ArenaPotion", IDI_ARENAPOT }, { "Last", IDI_LAST }, { "None", IDI_NONE } });
+	// clang-format off
+	lua.new_enum<_item_indexes>("ItemIndex", {
+	    { "Gold", IDI_GOLD },
+	    { "Warrior", IDI_WARRIOR },
+	    { "WarriorShield", IDI_WARRSHLD },
+	    { "WarriorClub", IDI_WARRCLUB },
+	    { "Rogue", IDI_ROGUE },
+	    { "Sorcerer", IDI_SORCERER },
+	    { "Cleaver", IDI_CLEAVER },
+	    { "FirstQuest", IDI_FIRSTQUEST },
+	    { "SkeletonKingCrown", IDI_SKCROWN },
+	    { "InfravisionRing", IDI_INFRARING },
+	    { "Rock", IDI_ROCK },
+	    { "OpticAmulet", IDI_OPTAMULET },
+	    { "TruthRing", IDI_TRING },
+	    { "Banner", IDI_BANNER },
+	    { "HarlequinCrest", IDI_HARCREST },
+	    { "SteelVeil", IDI_STEELVEIL },
+	    { "GoldenElixir", IDI_GLDNELIX },
+	    { "Anvil", IDI_ANVIL },
+	    { "Mushroom", IDI_MUSHROOM },
+	    { "Brain", IDI_BRAIN },
+	    { "FungalTome", IDI_FUNGALTM },
+	    { "SpectralElixir", IDI_SPECELIX },
+	    { "BloodStone", IDI_BLDSTONE },
+	    { "MapOfDoom", IDI_MAPOFDOOM },
+	    { "LastQuest", IDI_LASTQUEST },
+	    { "Ear", IDI_EAR },
+	    { "Heal", IDI_HEAL },
+	    { "Mana", IDI_MANA },
+	    { "Identify", IDI_IDENTIFY },
+	    { "Portal", IDI_PORTAL },
+	    { "ArmorOfValor", IDI_ARMOFVAL },
+	    { "FullHeal", IDI_FULLHEAL },
+	    { "FullMana", IDI_FULLMANA },
+	    { "Griswold", IDI_GRISWOLD },
+	    { "Lightforge", IDI_LGTFORGE },
+	    { "LazarusStaff", IDI_LAZSTAFF },
+	    { "Resurrect", IDI_RESURRECT },
+	    { "Oil", IDI_OIL },
+	    { "ShortStaff", IDI_SHORTSTAFF },
+	    { "BardSword", IDI_BARDSWORD },
+	    { "BardDagger", IDI_BARDDAGGER },
+	    { "RuneBomb", IDI_RUNEBOMB },
+	    { "Theodore", IDI_THEODORE },
+	    { "Auric", IDI_AURIC },
+	    { "Note1", IDI_NOTE1 },
+	    { "Note2", IDI_NOTE2 },
+	    { "Note3", IDI_NOTE3 },
+	    { "FullNote", IDI_FULLNOTE },
+	    { "BrownSuit", IDI_BROWNSUIT },
+	    { "GreySuit", IDI_GREYSUIT },
+	    { "Book1", IDI_BOOK1 },
+	    { "Book2", IDI_BOOK2 },
+	    { "Book3", IDI_BOOK3 },
+	    { "Book4", IDI_BOOK4 },
+	    { "Barbarian", IDI_BARBARIAN },
+	    { "ShortBattleBow", IDI_SHORT_BATTLE_BOW },
+	    { "RuneOfStone", IDI_RUNEOFSTONE },
+	    { "SorcererDiablo", IDI_SORCERER_DIABLO },
+	    { "ArenaPotion", IDI_ARENAPOT },
+	    { "Last", IDI_LAST },
+	    { "None", IDI_NONE }
+	});
+	// clang-format on
 }
 
 void RegisterItemEffectTypeEnum(sol::state_view &lua)
 {
-	lua.new_enum<item_effect_type>("ItemEffectType", { { "ToHit", IPL_TOHIT }, { "ToHitCurse", IPL_TOHIT_CURSE }, { "DamagePercent", IPL_DAMP }, { "DamagePercentCurse", IPL_DAMP_CURSE }, { "ToHitDamagePercent", IPL_TOHIT_DAMP }, { "ToHitDamagePercentCurse", IPL_TOHIT_DAMP_CURSE }, { "ArmorClassPercent", IPL_ACP }, { "ArmorClassPercentCurse", IPL_ACP_CURSE }, { "FireResist", IPL_FIRERES }, { "LightningResist", IPL_LIGHTRES }, { "MagicResist", IPL_MAGICRES }, { "AllResist", IPL_ALLRES }, { "SpellLevelAdd", IPL_SPLLVLADD }, { "Charges", IPL_CHARGES }, { "FireDamage", IPL_FIREDAM }, { "LightningDamage", IPL_LIGHTDAM }, { "Strength", IPL_STR }, { "StrengthCurse", IPL_STR_CURSE }, { "Magic", IPL_MAG }, { "MagicCurse", IPL_MAG_CURSE }, { "Dexterity", IPL_DEX }, { "DexterityCurse", IPL_DEX_CURSE }, { "Vitality", IPL_VIT }, { "VitalityCurse", IPL_VIT_CURSE }, { "Attributes", IPL_ATTRIBS }, { "AttributesCurse", IPL_ATTRIBS_CURSE }, { "GetHitCurse", IPL_GETHIT_CURSE }, { "GetHit", IPL_GETHIT }, { "Life", IPL_LIFE }, { "LifeCurse", IPL_LIFE_CURSE }, { "Mana", IPL_MANA }, { "ManaCurse", IPL_MANA_CURSE }, { "Durability", IPL_DUR }, { "DurabilityCurse", IPL_DUR_CURSE }, { "Indestructible", IPL_INDESTRUCTIBLE }, { "Light", IPL_LIGHT }, { "LightCurse", IPL_LIGHT_CURSE }, { "MultipleArrows", IPL_MULT_ARROWS }, { "FireArrows", IPL_FIRE_ARROWS }, { "LightningArrows", IPL_LIGHT_ARROWS }, { "Thorns", IPL_THORNS }, { "NoMana", IPL_NOMANA }, { "Fireball", IPL_FIREBALL }, { "AbsorbHalfTrap", IPL_ABSHALFTRAP }, { "Knockback", IPL_KNOCKBACK }, { "StealMana", IPL_STEALMANA }, { "StealLife", IPL_STEALLIFE }, { "TargetArmorClass", IPL_TARGAC }, { "FastAttack", IPL_FASTATTACK }, { "FastRecover", IPL_FASTRECOVER }, { "FastBlock", IPL_FASTBLOCK }, { "DamageModifier", IPL_DAMMOD }, { "RandomArrowVelocity", IPL_RNDARROWVEL }, { "SetDamage", IPL_SETDAM }, { "SetDurability", IPL_SETDUR }, { "NoMinimumStrength", IPL_NOMINSTR }, { "Spell", IPL_SPELL }, { "OneHand", IPL_ONEHAND }, { "3xDamageVsDemons", IPL_3XDAMVDEM }, { "AllResistZero", IPL_ALLRESZERO }, { "DrainLife", IPL_DRAINLIFE }, { "RandomStealLife", IPL_RNDSTEALLIFE }, { "SetArmorClass", IPL_SETAC }, { "AddArmorClassLife", IPL_ADDACLIFE }, { "AddManaArmorClass", IPL_ADDMANAAC }, { "ArmorClassCurse", IPL_AC_CURSE }, { "LastDiablo", IPL_LASTDIABLO }, { "FireResistCurse", IPL_FIRERES_CURSE }, { "LightResistCurse", IPL_LIGHTRES_CURSE }, { "MagicResistCurse", IPL_MAGICRES_CURSE }, { "Devastation", IPL_DEVASTATION }, { "Decay", IPL_DECAY }, { "Peril", IPL_PERIL }, { "Jesters", IPL_JESTERS }, { "Crystalline", IPL_CRYSTALLINE }, { "Doppelganger", IPL_DOPPELGANGER }, { "ArmorClassDemon", IPL_ACDEMON }, { "ArmorClassUndead", IPL_ACUNDEAD }, { "ManaToLife", IPL_MANATOLIFE }, { "LifeToMana", IPL_LIFETOMANA }, { "Invalid", IPL_INVALID } });
+	// clang-format off
+	lua.new_enum<item_effect_type>("ItemEffectType", {
+	    { "ToHit", IPL_TOHIT },
+	    { "ToHitCurse", IPL_TOHIT_CURSE },
+	    { "DamagePercent", IPL_DAMP },
+	    { "DamagePercentCurse", IPL_DAMP_CURSE },
+	    { "ToHitDamagePercent", IPL_TOHIT_DAMP },
+	    { "ToHitDamagePercentCurse", IPL_TOHIT_DAMP_CURSE },
+	    { "ArmorClassPercent", IPL_ACP },
+	    { "ArmorClassPercentCurse", IPL_ACP_CURSE },
+	    { "FireResist", IPL_FIRERES },
+	    { "LightningResist", IPL_LIGHTRES },
+	    { "MagicResist", IPL_MAGICRES },
+	    { "AllResist", IPL_ALLRES },
+	    { "SpellLevelAdd", IPL_SPLLVLADD },
+	    { "Charges", IPL_CHARGES },
+	    { "FireDamage", IPL_FIREDAM },
+	    { "LightningDamage", IPL_LIGHTDAM },
+	    { "Strength", IPL_STR },
+	    { "StrengthCurse", IPL_STR_CURSE },
+	    { "Magic", IPL_MAG },
+	    { "MagicCurse", IPL_MAG_CURSE },
+	    { "Dexterity", IPL_DEX },
+	    { "DexterityCurse", IPL_DEX_CURSE },
+	    { "Vitality", IPL_VIT },
+	    { "VitalityCurse", IPL_VIT_CURSE },
+	    { "Attributes", IPL_ATTRIBS },
+	    { "AttributesCurse", IPL_ATTRIBS_CURSE },
+	    { "GetHitCurse", IPL_GETHIT_CURSE },
+	    { "GetHit", IPL_GETHIT },
+	    { "Life", IPL_LIFE },
+	    { "LifeCurse", IPL_LIFE_CURSE },
+	    { "Mana", IPL_MANA },
+	    { "ManaCurse", IPL_MANA_CURSE },
+	    { "Durability", IPL_DUR },
+	    { "DurabilityCurse", IPL_DUR_CURSE },
+	    { "Indestructible", IPL_INDESTRUCTIBLE },
+	    { "Light", IPL_LIGHT },
+	    { "LightCurse", IPL_LIGHT_CURSE },
+	    { "MultipleArrows", IPL_MULT_ARROWS },
+	    { "FireArrows", IPL_FIRE_ARROWS },
+	    { "LightningArrows", IPL_LIGHT_ARROWS },
+	    { "Thorns", IPL_THORNS },
+	    { "NoMana", IPL_NOMANA },
+	    { "Fireball", IPL_FIREBALL },
+	    { "AbsorbHalfTrap", IPL_ABSHALFTRAP },
+	    { "Knockback", IPL_KNOCKBACK },
+	    { "StealMana", IPL_STEALMANA },
+	    { "StealLife", IPL_STEALLIFE },
+	    { "TargetArmorClass", IPL_TARGAC },
+	    { "FastAttack", IPL_FASTATTACK },
+	    { "FastRecover", IPL_FASTRECOVER },
+	    { "FastBlock", IPL_FASTBLOCK },
+	    { "DamageModifier", IPL_DAMMOD },
+	    { "RandomArrowVelocity", IPL_RNDARROWVEL },
+	    { "SetDamage", IPL_SETDAM },
+	    { "SetDurability", IPL_SETDUR },
+	    { "NoMinimumStrength", IPL_NOMINSTR },
+	    { "Spell", IPL_SPELL },
+	    { "OneHand", IPL_ONEHAND },
+	    { "3xDamageVsDemons", IPL_3XDAMVDEM },
+	    { "AllResistZero", IPL_ALLRESZERO },
+	    { "DrainLife", IPL_DRAINLIFE },
+	    { "RandomStealLife", IPL_RNDSTEALLIFE },
+	    { "SetArmorClass", IPL_SETAC },
+	    { "AddArmorClassLife", IPL_ADDACLIFE },
+	    { "AddManaArmorClass", IPL_ADDMANAAC },
+	    { "ArmorClassCurse", IPL_AC_CURSE },
+	    { "LastDiablo", IPL_LASTDIABLO },
+	    { "FireResistCurse", IPL_FIRERES_CURSE },
+	    { "LightResistCurse", IPL_LIGHTRES_CURSE },
+	    { "MagicResistCurse", IPL_MAGICRES_CURSE },
+	    { "Devastation", IPL_DEVASTATION },
+	    { "Decay", IPL_DECAY },
+	    { "Peril", IPL_PERIL },
+	    { "Jesters", IPL_JESTERS },
+	    { "Crystalline", IPL_CRYSTALLINE },
+	    { "Doppelganger", IPL_DOPPELGANGER },
+	    { "ArmorClassDemon", IPL_ACDEMON },
+	    { "ArmorClassUndead", IPL_ACUNDEAD },
+	    { "ManaToLife", IPL_MANATOLIFE },
+	    { "LifeToMana", IPL_LIFETOMANA },
+	    { "Invalid", IPL_INVALID }
+	});
+	// clang-format on
 }
 
 void RegisterItemSpecialEffectHfEnum(sol::state_view &lua)
 {
-	lua.new_enum<ItemSpecialEffectHf>("ItemSpecialEffectHf", { { "None", ItemSpecialEffectHf::None }, { "Devastation", ItemSpecialEffectHf::Devastation }, { "Decay", ItemSpecialEffectHf::Decay }, { "Peril", ItemSpecialEffectHf::Peril }, { "Jesters", ItemSpecialEffectHf::Jesters }, { "Doppelganger", ItemSpecialEffectHf::Doppelganger }, { "ACAgainstDemons", ItemSpecialEffectHf::ACAgainstDemons }, { "ACAgainstUndead", ItemSpecialEffectHf::ACAgainstUndead } });
+	// clang-format off
+	lua.new_enum<ItemSpecialEffectHf>("ItemSpecialEffectHf", {
+	    { "None", ItemSpecialEffectHf::None },
+	    { "Devastation", ItemSpecialEffectHf::Devastation },
+	    { "Decay", ItemSpecialEffectHf::Decay },
+	    { "Peril", ItemSpecialEffectHf::Peril },
+	    { "Jesters", ItemSpecialEffectHf::Jesters },
+	    { "Doppelganger", ItemSpecialEffectHf::Doppelganger },
+	    { "ACAgainstDemons", ItemSpecialEffectHf::ACAgainstDemons },
+	    { "ACAgainstUndead", ItemSpecialEffectHf::ACAgainstUndead }
+	});
+	// clang-format on
 }
 
 } // namespace
