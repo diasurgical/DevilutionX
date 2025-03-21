@@ -335,7 +335,7 @@ void DrawMonster(const Surface &out, Point tilePosition, Point targetBufferPosit
 		return;
 	}
 	uint8_t *trn = nullptr;
-	if (monster.isUnique())
+	if (monster.isUnique() && !gbIsSpawn)
 		trn = monster.uniqueMonsterTRN.get();
 	if (monster.mode == MonsterMode::Petrified)
 		trn = GetStoneTRN();
@@ -729,7 +729,7 @@ void DrawDungeon(const Surface &out, const Lightmap &lightmap, Point tilePositio
 		const Corpse &corpse = Corpses[(bDead & 0x1F) - 1];
 		const Point position { targetBufferPosition.x - CalculateSpriteTileCenterX(corpse.width), targetBufferPosition.y };
 		const ClxSprite sprite = corpse.spritesForDirection(static_cast<Direction>((bDead >> 5) & 7))[corpse.frame];
-		if (corpse.translationPaletteIndex != 0) {
+		if (corpse.translationPaletteIndex != 0 && !gbIsSpawn) {
 			const uint8_t *trn = Monsters[corpse.translationPaletteIndex - 1].uniqueMonsterTRN.get();
 			ClxDrawTRN(out, position, sprite, trn);
 		} else {

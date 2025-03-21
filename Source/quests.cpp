@@ -256,8 +256,9 @@ void InitQuests()
 	}
 
 	if (gbIsSpawn) {
-		for (auto &quest : Quests) {
-			quest._qactive = QUEST_NOTAVAIL;
+		for (int i = 0; i < MAXQUESTS; i++) {
+			if (i <= Q_BETRAYER)
+				Quests[i]._qactive = QUEST_NOTAVAIL;
 		}
 	}
 
@@ -541,6 +542,24 @@ void UpdatePWaterPalette()
 
 void ResyncMPQuests()
 {
+	auto &cryptQuest = Quests[Q_GRAVE];
+	if (cryptQuest._qactive == QUEST_INIT && currlevel == cryptQuest._qlevel - 1) {
+		cryptQuest._qactive = QUEST_ACTIVE;
+		NetSendCmdQuest(true, cryptQuest);
+	}
+
+	auto &defilerQuest = Quests[Q_DEFILER];
+	if (defilerQuest._qactive == QUEST_INIT && currlevel == defilerQuest._qlevel - 1) {
+		defilerQuest._qactive = QUEST_ACTIVE;
+		NetSendCmdQuest(true, defilerQuest);
+	}
+
+	auto &nakrulQuest = Quests[Q_NAKRUL];
+	if (nakrulQuest._qactive == QUEST_INIT && currlevel == nakrulQuest._qlevel - 1) {
+		nakrulQuest._qactive = QUEST_ACTIVE;
+		NetSendCmdQuest(true, nakrulQuest);
+	}
+
 	if (gbIsSpawn)
 		return;
 
@@ -567,24 +586,6 @@ void ResyncMPQuests()
 	}
 	if (betrayerQuest.IsAvailable())
 		AddObject(OBJ_ALTBOY, SetPiece.position.megaToWorld() + Displacement { 4, 6 });
-
-	auto &cryptQuest = Quests[Q_GRAVE];
-	if (cryptQuest._qactive == QUEST_INIT && currlevel == cryptQuest._qlevel - 1) {
-		cryptQuest._qactive = QUEST_ACTIVE;
-		NetSendCmdQuest(true, cryptQuest);
-	}
-
-	auto &defilerQuest = Quests[Q_DEFILER];
-	if (defilerQuest._qactive == QUEST_INIT && currlevel == defilerQuest._qlevel - 1) {
-		defilerQuest._qactive = QUEST_ACTIVE;
-		NetSendCmdQuest(true, defilerQuest);
-	}
-
-	auto &nakrulQuest = Quests[Q_NAKRUL];
-	if (nakrulQuest._qactive == QUEST_INIT && currlevel == nakrulQuest._qlevel - 1) {
-		nakrulQuest._qactive = QUEST_ACTIVE;
-		NetSendCmdQuest(true, nakrulQuest);
-	}
 }
 
 void ResyncQuests()
@@ -895,9 +896,6 @@ void QuestlogESC()
 
 void SetMultiQuest(int q, quest_state s, bool log, int v1, int v2, int16_t qmsg)
 {
-	if (gbIsSpawn)
-		return;
-
 	auto &quest = Quests[q];
 	quest_state oldQuestState = quest._qactive;
 	if (quest._qactive != QUEST_DONE) {
@@ -915,9 +913,11 @@ void SetMultiQuest(int q, quest_state s, bool log, int v1, int v2, int16_t qmsg)
 		ResyncQuests();
 
 		bool questGotCompleted = oldQuestState != QUEST_DONE && quest._qactive == QUEST_DONE;
-		// Ensure that water also changes for remote players
-		if (quest._qidx == Q_PWATER && questGotCompleted && MyPlayer->isOnLevel(quest._qslvl))
-			StartPWaterPurify();
+		if (!gbIsSpawn) {
+			// Ensure that water also changes for remote players
+			if (quest._qidx == Q_PWATER && questGotCompleted && MyPlayer->isOnLevel(quest._qslvl))
+				StartPWaterPurify();
+		}
 		if (quest._qidx == Q_GIRL && questGotCompleted && MyPlayer->isOnLevel(0))
 			UpdateGirlAnimAfterQuestComplete();
 		if (quest._qidx == Q_JERSEY && questGotCompleted && MyPlayer->isOnLevel(0))

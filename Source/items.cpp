@@ -619,7 +619,7 @@ void GetBookSpell(Item &item, int lvl)
 
 	rv = GenerateRnd(maxSpells) + 1;
 
-	if (gbIsSpawn && lvl > 5)
+	if (gbIsSpawn && lvl > 5 && lvl != 20)
 		lvl = 5;
 
 	int s = static_cast<int8_t>(SpellID::Firebolt);
@@ -2725,7 +2725,7 @@ PlayerArmorGraphic GetPlrAnimArmorId(Player &player)
 				if (chestItem._iMagical == ITEM_QUALITY_UNIQUE)
 					player._pIAC += playerLevel / 2;
 			}
-			return PlayerArmorGraphic::Heavy;
+			return (gbIsSpawn && player._pClass != HeroClass::Monk) ? PlayerArmorGraphic::Light : PlayerArmorGraphic::Heavy;
 		case ItemType::MediumArmor:
 			if (player._pClass == HeroClass::Monk) {
 				if (chestItem._iMagical == ITEM_QUALITY_UNIQUE)
@@ -2733,7 +2733,7 @@ PlayerArmorGraphic GetPlrAnimArmorId(Player &player)
 				else
 					player._pIAC += playerLevel / 2;
 			}
-			return PlayerArmorGraphic::Medium;
+			return (gbIsSpawn && player._pClass != HeroClass::Monk) ? PlayerArmorGraphic::Light : PlayerArmorGraphic::Medium;
 		default:
 			if (player._pClass == HeroClass::Monk)
 				player._pIAC += playerLevel * 2;

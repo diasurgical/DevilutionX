@@ -76,28 +76,29 @@ void InitNoTriggers()
 
 bool IsWarpOpen(dungeon_type type)
 {
-	if (gbIsSpawn)
-		return false;
-
 	if (gbIsMultiplayer && type != DTYPE_NEST) // Opening the nest is part of in town quest
 		return true;
 
 	Player &myPlayer = *MyPlayer;
 
-	if (type == DTYPE_CATACOMBS && (myPlayer.pTownWarps & 1) != 0)
-		return true;
-	if (type == DTYPE_CAVES && (myPlayer.pTownWarps & 2) != 0)
-		return true;
-	if (type == DTYPE_HELL && (myPlayer.pTownWarps & 4) != 0)
-		return true;
+	if (!gbIsSpawn) {
+		if (type == DTYPE_CATACOMBS && (myPlayer.pTownWarps & 1) != 0)
+			return true;
+		if (type == DTYPE_CAVES && (myPlayer.pTownWarps & 2) != 0)
+			return true;
+		if (type == DTYPE_HELL && (myPlayer.pTownWarps & 4) != 0)
+			return true;
+	}
 
 	if (gbIsHellfire) {
-		if (type == DTYPE_CATACOMBS && myPlayer.getCharacterLevel() >= 10)
-			return true;
-		if (type == DTYPE_CAVES && myPlayer.getCharacterLevel() >= 15)
-			return true;
-		if (type == DTYPE_HELL && myPlayer.getCharacterLevel() >= 20)
-			return true;
+		if (!gbIsSpawn) {
+			if (type == DTYPE_CATACOMBS && myPlayer.getCharacterLevel() >= 10)
+				return true;
+			if (type == DTYPE_CAVES && myPlayer.getCharacterLevel() >= 15)
+				return true;
+			if (type == DTYPE_HELL && myPlayer.getCharacterLevel() >= 20)
+				return true;
+		}
 		if (type == DTYPE_NEST && IsAnyOf(Quests[Q_FARMER]._qactive, QUEST_DONE, QUEST_HIVE_DONE))
 			return true;
 		if (type == DTYPE_CRYPT && Quests[Q_GRAVE]._qactive == QUEST_DONE)
@@ -876,7 +877,7 @@ void CheckTriggers()
 
 		switch (trigs[i]._tmsg) {
 		case WM_DIABNEXTLVL:
-			if (gbIsSpawn && currlevel >= 2) {
+			if (gbIsSpawn && currlevel == 2) {
 				NetSendCmdLoc(MyPlayerId, true, CMD_WALKXY, { myPlayer.position.tile.x, myPlayer.position.tile.y + 1 });
 				myPlayer.Say(HeroSpeech::NotAChance);
 				InitDiabloMsg(EMSG_NOT_IN_SHAREWARE);

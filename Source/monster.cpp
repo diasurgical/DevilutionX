@@ -3226,8 +3226,10 @@ tl::expected<void, std::string> PrepareUniqueMonst(Monster &monster, UniqueMonst
 		monster.maxDamageSpecial = 4 * monster.maxDamageSpecial + 6;
 	}
 
-	RETURN_IF_ERROR(InitTRNForUniqueMonster(monster));
-	monster.uniqTrans = uniquetrans++;
+	if (!gbIsSpawn) {
+		RETURN_IF_ERROR(InitTRNForUniqueMonster(monster));
+		monster.uniqTrans = uniquetrans++;
+	}
 
 	if (uniqueMonsterData.customArmorClass != 0) {
 		monster.armorClass = uniqueMonsterData.customArmorClass;
@@ -3537,10 +3539,10 @@ tl::expected<void, std::string> InitMonsters()
 				DoVision(trigs[i].position + Displacement { s, t }, 15, MAP_EXP_NONE, false);
 		}
 	}
-	if (!gbIsSpawn)
+	if (!gbIsSpawn || currlevel >= 17)
 		RETURN_IF_ERROR(PlaceQuestMonsters());
 	if (!setlevel) {
-		if (!gbIsSpawn)
+		if (!gbIsSpawn || currlevel >= 17)
 			RETURN_IF_ERROR(PlaceUniqueMonsters());
 		size_t na = 0;
 		for (int s = 16; s < 96; s++) {
@@ -4247,7 +4249,7 @@ tl::expected<void, std::string> SyncMonsterAnim(Monster &monster)
 		monsterType.corpseId = 1;
 	}
 #endif
-	if (monster.isUnique()) {
+	if (monster.isUnique() && !gbIsSpawn) {
 		RETURN_IF_ERROR(InitTRNForUniqueMonster(monster));
 	}
 	MonsterGraphic graphic = MonsterGraphic::Stand;
