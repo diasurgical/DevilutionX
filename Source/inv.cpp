@@ -1886,7 +1886,6 @@ int SyncDropItem(Point position, _item_indexes idx, uint16_t icreateinfo, int is
 		item._iPLToHit = ClampToHit(item, toHit);
 		item._iMaxDam = ClampMaxDam(item, maxDam);
 	}
-	item.dwBuff = ibuff;
 
 	return PlaceItemInWorld(std::move(item), position);
 }
