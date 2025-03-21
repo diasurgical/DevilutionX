@@ -12,6 +12,7 @@
 #include "engine/assets.hpp"
 #include "lua/modules/audio.hpp"
 #include "lua/modules/i18n.hpp"
+#include "lua/modules/items.hpp"
 #include "lua/modules/log.hpp"
 #include "lua/modules/player.hpp"
 #include "lua/modules/render.hpp"
@@ -236,6 +237,7 @@ void LuaInitialize()
 #endif
 	    "devilutionx.version", PROJECT_VERSION,
 	    "devilutionx.i18n", LuaI18nModule(lua),
+	    "devilutionx.items", LuaItemModule(lua),
 	    "devilutionx.log", LuaLogModule(lua),
 	    "devilutionx.audio", LuaAudioModule(lua),
 	    "devilutionx.player", LuaPlayerModule(lua),
