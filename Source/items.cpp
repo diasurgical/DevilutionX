@@ -3509,10 +3509,10 @@ void CreateTypeItem(Point position, bool onlygood, ItemType itemType, int imisc,
 	SetupBaseItem(position, idx, onlygood, sendmsg, delta, spawn);
 }
 
-void RecreateItem(const Player &player, Item &item, _item_indexes idx, uint16_t icreateinfo, uint32_t iseed, int ivalue, uint32_t ibuff)
+void RecreateItem(const Player &player, Item &item, _item_indexes idx, uint16_t icreateinfo, uint32_t iseed, int ivalue, uint32_t dwBuff)
 {
 	bool tmpIsHellfire = gbIsHellfire;
-	gbIsHellfire = ibuff & CF_HELLFIRE;
+	gbIsHellfire = dwBuff & CF_HELLFIRE;
 
 	if (idx == IDI_GOLD) {
 		InitializeItem(item, IDI_GOLD);
@@ -3556,7 +3556,7 @@ void RecreateItem(const Player &player, Item &item, _item_indexes idx, uint16_t 
 	bool onlygood = (icreateinfo & CF_ONLYGOOD) != 0;
 	bool forceNotUnique = (icreateinfo & CF_UNIQUE) == 0;
 	bool pregen = (icreateinfo & CF_PREGEN) != 0;
-	auto uidOffset = static_cast<int>((ibuff & CF_UIDOFFSET) >> 1);
+	auto uidOffset = static_cast<int>((dwBuff & CF_UIDOFFSET) >> 1);
 
 	SetupAllItems(player, item, idx, iseed, level, uper, onlygood, pregen, uidOffset, forceNotUnique);
 	SetupItem(item);
