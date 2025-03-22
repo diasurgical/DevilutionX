@@ -1907,12 +1907,8 @@ _item_indexes RndSmithItem(const Player &player, int lvl)
 	return RndVendorItem<SmithItemOk, true>(player, 0, lvl);
 }
 
-void SortVendor(Item *itemList)
+void SortVendor(Item *itemList, size_t count)
 {
-	int count = 1;
-	while (!itemList[count].isEmpty())
-		count++;
-
 	auto cmp = [](const Item &a, const Item &b) {
 		return a.IDidx < b.IDidx;
 	};
@@ -4416,7 +4412,7 @@ void SpawnSmith(int lvl)
 	for (int i = iCnt; i < NumSmithBasicItemsHf; i++)
 		SmithItems[i].clear();
 
-	SortVendor(SmithItems + PinnedItemCount);
+	SortVendor(SmithItems + PinnedItemCount, iCnt - PinnedItemCount);
 }
 
 void SpawnPremium(const Player &player)
@@ -4516,7 +4512,7 @@ void SpawnWitch(int lvl)
 		item._iIdentified = true;
 	}
 
-	SortVendor(WitchItems + PinnedItemCount);
+	SortVendor(WitchItems + PinnedItemCount, itemCount - PinnedItemCount);
 }
 
 void SpawnBoy(int lvl)
@@ -4664,7 +4660,7 @@ void SpawnHealer(int lvl)
 		item._iIdentified = true;
 	}
 
-	SortVendor(HealerItems + PinnedItemCount);
+	SortVendor(HealerItems + PinnedItemCount, itemCount - PinnedItemCount);
 }
 
 void MakeGoldStack(Item &goldItem, int value)
