@@ -148,7 +148,7 @@ void AddItemToInvGrid(Player &player, int invGridIndex, int invListIndex, Size i
 			if (x == 0 && y == itemSize.height - 1)
 				player.InvGrid[rowGridIndex + x] = invListIndex;
 			else
-				player.InvGrid[rowGridIndex + x] = -invListIndex;
+				player.InvGrid[rowGridIndex + x] = -invListIndex; // use negative index to denote it's occupied but it's not the top-left cell.
 		}
 	}
 

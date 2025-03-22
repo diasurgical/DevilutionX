@@ -1558,16 +1558,18 @@ void Player::RemoveInvItem(int iv, bool calcScrolls)
 
 	_pNumInv--;
 
-	// If the item at the end of inventory array isn't the one we removed, we need to swap its position in the array with the removed item
+	// If the item at the end of inventory array isn't the one removed, shift all following items back one index to retain inventory order.
 	if (_pNumInv > 0 && _pNumInv != iv) {
-		InvList[iv] = InvList[_pNumInv].pop();
+		for (size_t newIndex = iv; newIndex < _pNumInv; newIndex++) {
+			InvList[newIndex] = InvList[newIndex + 1].pop();
+		}
 
 		for (int8_t &itemIndex : InvGrid) {
-			if (itemIndex == _pNumInv + 1) {
-				itemIndex = iv + 1;
+			if (itemIndex > iv + 1) { // if item was shifted, decrease the index so it's paired with the correct item.
+				itemIndex--;
 			}
-			if (itemIndex == -(_pNumInv + 1)) {
-				itemIndex = -(iv + 1);
+			if (itemIndex < -(iv + 1)) {
+				itemIndex++; // since occupied cells are negative, increment the index to keep it same as as top-left cell for item, only negative.
 			}
 		}
 	}
