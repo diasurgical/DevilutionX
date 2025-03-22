@@ -3865,8 +3865,10 @@ void ProcessRage(Missile &missile)
 
 	CalcPlrItemVals(player, true);
 
+	// Adjust current Life proportionally to match new max HP after recalculation
 	player._pHitPoints = std::max(1, (player._pMaxHP * player._pHPPer) / 80);
 
+	// Apply Life penalty to the player when RageCooldown finishes
 	if (missile._miDelFlag)
 		ApplyPlrDamage(DamageType::Physical, player, 0, 1, missile.var2);
 
