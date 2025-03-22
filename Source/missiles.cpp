@@ -3856,21 +3856,22 @@ void ProcessRage(Missile &missile)
 
 	Player &player = Players[missile._misource];
 
-	int hpdif = player._pMaxHP - player._pHitPoints;
-
 	if (HasAnyOf(player._pSpellFlags, SpellFlag::RageActive)) {
 		player._pSpellFlags &= ~SpellFlag::RageActive;
 		player._pSpellFlags |= SpellFlag::RageCooldown;
-		int lvl = player.getCharacterLevel() * 2;
-		missile.duration = lvl + 10 * missile._mispllvl + 245;
+		missile.duration = (player.getCharacterLevel() * 2) + 10 * missile._mispllvl + 245;
 	} else {
 		player._pSpellFlags &= ~SpellFlag::RageCooldown;
 		missile._miDelFlag = true;
-		hpdif += missile.var2;
 	}
 
 	CalcPlrItemVals(player, true);
-	ApplyPlrDamage(DamageType::Physical, player, 0, 1, hpdif);
+
+	player._pHitPoints = std::max(1, (player._pMaxHP * player._pHPPer) / 80);
+
+	if (missile._miDelFlag)
+		ApplyPlrDamage(DamageType::Physical, player, 0, 1, missile.var2);
+
 	RedrawEverything();
 	player.Say(HeroSpeech::HeavyBreathing);
 }
