@@ -4412,7 +4412,7 @@ void SpawnSmith(int lvl)
 	for (int i = iCnt; i < NumSmithBasicItemsHf; i++)
 		SmithItems[i].clear();
 
-	SortVendor(SmithItems + PinnedItemCount, iCnt);
+	SortVendor(SmithItems + PinnedItemCount, iCnt - PinnedItemCount);
 }
 
 void SpawnPremium(const Player &player)
