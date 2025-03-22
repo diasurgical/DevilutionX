@@ -16,6 +16,7 @@
 #include "lua/modules/player.hpp"
 #include "lua/modules/render.hpp"
 #include "lua/modules/towners.hpp"
+#include "lua/usertypes/items.hpp"
 #include "options.h"
 #include "plrmsg.h"
 #include "utils/console.h"
@@ -227,6 +228,8 @@ void LuaInitialize()
 	    sol::lib::table,
 	    sol::lib::utf8);
 
+	RegisterItemUsertype(CurrentLuaState->sol);
+
 	// Registering devilutionx object table
 	SafeCallResult(lua.safe_script(RequireGenSrc), /*optional=*/false);
 
@@ -277,6 +280,11 @@ void LuaEvent(std::string_view name)
 sol::state &GetLuaState()
 {
 	return CurrentLuaState->sol;
+}
+
+sol::table &GetLuaEvents()
+{
+	return CurrentLuaState->events;
 }
 
 sol::object SafeCallResult(sol::protected_function_result result, bool optional)
