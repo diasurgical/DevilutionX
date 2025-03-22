@@ -3859,7 +3859,7 @@ void ProcessRage(Missile &missile)
 	if (HasAnyOf(player._pSpellFlags, SpellFlag::RageActive)) {
 		player._pSpellFlags &= ~SpellFlag::RageActive;
 		player._pSpellFlags |= SpellFlag::RageCooldown;
-		missile.duration = (player.getCharacterLevel() * 2) + 10 * missile._mispllvl + 245;
+		missile.duration = (player.getCharacterLevel() * 2) + (10 * missile._mispllvl) + 245;
 	} else {
 		player._pSpellFlags &= ~SpellFlag::RageCooldown;
 		missile._miDelFlag = true;
