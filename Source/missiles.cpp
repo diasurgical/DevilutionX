@@ -2506,13 +2506,20 @@ void AddRage(Missile &missile, AddMissileParameter &parameter)
 		return;
 	}
 
-	int tmp = 3 * player.getCharacterLevel();
-	tmp <<= 7;
 	player._pSpellFlags |= SpellFlag::RageActive;
-	missile.var2 = tmp;
-	int lvl = player.getCharacterLevel() * 2;
-	missile.duration = lvl + 10 * missile._mispllvl + 245;
+	missile.duration = (player.getCharacterLevel() * 2) + (10 * missile._mispllvl) + 245;
+	missile.var1 = missile.duration;                      // Store the original duration to be used for RageCooldown
+	missile.var2 = (6 << 6) * player.getCharacterLevel(); // 6 points of damage per clvl
+
+	// Recalculate stats to get updated max Life
+	CalcPlrItemVals(player, false);
+
+	// Adjust current Life proportionally to match new max Life after recalculation
+	player._pHitPoints = std::max(1, (player._pMaxHP * player._pHPPer) / 80);
+
+	// Immediately finalize Life
 	CalcPlrItemVals(player, true);
+
 	RedrawEverything();
 	player.Say(HeroSpeech::Aaaaargh);
 }
@@ -3856,21 +3863,28 @@ void ProcessRage(Missile &missile)
 
 	Player &player = Players[missile._misource];
 
-	int hpdif = player._pMaxHP - player._pHitPoints;
-
 	if (HasAnyOf(player._pSpellFlags, SpellFlag::RageActive)) {
 		player._pSpellFlags &= ~SpellFlag::RageActive;
 		player._pSpellFlags |= SpellFlag::RageCooldown;
-		int lvl = player.getCharacterLevel() * 2;
-		missile.duration = lvl + 10 * missile._mispllvl + 245;
+		missile.duration = missile.var1; // Use the same duration for RageCooldown as was used for RageActive
 	} else {
 		player._pSpellFlags &= ~SpellFlag::RageCooldown;
 		missile._miDelFlag = true;
-		hpdif += missile.var2;
 	}
 
+	// Recalculate stats to get updated max Life
+	CalcPlrItemVals(player, false);
+
+	// Adjust current Life proportionally to match new max Life after recalculation
+	player._pHitPoints = std::max(1, (player._pMaxHP * player._pHPPer) / 80);
+
+	// Apply Life penalty to the player when RageCooldown finishes
+	if (missile._miDelFlag)
+		ApplyPlrDamage(DamageType::Physical, player, 0, 1, missile.var2);
+
+	// Immediately finalize Life
 	CalcPlrItemVals(player, true);
-	ApplyPlrDamage(DamageType::Physical, player, 0, 1, hpdif);
+
 	RedrawEverything();
 	player.Say(HeroSpeech::HeavyBreathing);
 }
