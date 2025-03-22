@@ -2506,12 +2506,10 @@ void AddRage(Missile &missile, AddMissileParameter &parameter)
 		return;
 	}
 
-	int tmp = 3 * player.getCharacterLevel();
-	tmp <<= 7;
 	player._pSpellFlags |= SpellFlag::RageActive;
-	missile.var2 = tmp;
-	int lvl = player.getCharacterLevel() * 2;
-	missile.duration = lvl + 10 * missile._mispllvl + 245;
+	missile.duration = (player.getCharacterLevel() * 2) + (10 * missile._mispllvl) + 245;
+	missile.var1 = missile.duration;                      // Store the original duration to be used for RageCooldown
+	missile.var2 = (6 << 6) * player.getCharacterLevel(); // 6 points of damage per clvl
 	CalcPlrItemVals(player, true);
 	RedrawEverything();
 	player.Say(HeroSpeech::Aaaaargh);
@@ -3859,7 +3857,7 @@ void ProcessRage(Missile &missile)
 	if (HasAnyOf(player._pSpellFlags, SpellFlag::RageActive)) {
 		player._pSpellFlags &= ~SpellFlag::RageActive;
 		player._pSpellFlags |= SpellFlag::RageCooldown;
-		missile.duration = (player.getCharacterLevel() * 2) + (10 * missile._mispllvl) + 245;
+		missile.duration = missile.var1; // Use the same duration for RageCooldown as was used for RageActive
 	} else {
 		player._pSpellFlags &= ~SpellFlag::RageCooldown;
 		missile._miDelFlag = true;
