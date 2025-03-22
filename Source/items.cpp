@@ -1907,13 +1907,13 @@ _item_indexes RndSmithItem(const Player &player, int lvl)
 	return RndVendorItem<SmithItemOk, true>(player, 0, lvl);
 }
 
-void SortVendor(Item *itemList, size_t nmemb)
+void SortVendor(Item *itemList, size_t count)
 {
 	auto cmp = [](const Item &a, const Item &b) {
 		return a.IDidx < b.IDidx;
 	};
 
-	std::sort(itemList, itemList + nmemb, cmp);
+	std::sort(itemList, itemList + count, cmp);
 }
 
 bool PremiumItemOk(const Player &player, const ItemData &item)
