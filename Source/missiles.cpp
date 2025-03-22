@@ -2512,7 +2512,7 @@ void AddRage(Missile &missile, AddMissileParameter &parameter)
 	missile.var2 = (6 << 6) * player.getCharacterLevel(); // 6 points of damage per clvl
 
 	// Recalculate stats to get updated max Life
-	CalcPlrItemVals(player, true);
+	CalcPlrItemVals(player, false);
 
 	// Adjust current Life proportionally to match new max Life after recalculation
 	player._pHitPoints = std::max(1, (player._pMaxHP * player._pHPPer) / 80);
@@ -3873,7 +3873,7 @@ void ProcessRage(Missile &missile)
 	}
 
 	// Recalculate stats to get updated max Life
-	CalcPlrItemVals(player, true);
+	CalcPlrItemVals(player, false);
 
 	// Adjust current Life proportionally to match new max Life after recalculation
 	player._pHitPoints = std::max(1, (player._pMaxHP * player._pHPPer) / 80);
