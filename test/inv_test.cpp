@@ -237,7 +237,7 @@ TEST_F(InvTest, RemoveInvItem_shiftsListFromMiddle)
 	EXPECT_EQ(MyPlayer->_pNumInv, 2);
 }
 
-// Test removing an item from middle of inventory list.
+// Test removing an item from front of inventory list.
 TEST_F(InvTest, RemoveInvItem_shiftsListFromFront)
 {
 	SNetInitializeProvider(SELCONN_LOOPBACK, nullptr);
