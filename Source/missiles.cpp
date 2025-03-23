@@ -3844,27 +3844,30 @@ void ProcessFlameWaveControl(Missile &missile)
 
 void ProcessRage(Missile &missile)
 {
-	if (--missile.duration == 0) {
-		Player &player = Players[missile._misource];
+	missile.duration--;
 
-		if (HasAnyOf(player._pSpellFlags, SpellFlag::RageActive)) {
-			ClearFlags(player._pSpellFlags, SpellFlag::RageActive);
-			SetFlags(player._pSpellFlags, SpellFlag::RageCooldown);
-			missile.duration = missile.var1; // Start timer over
-		} else if (HasAnyOf(player._pSpellFlags, SpellFlag::RageCooldown)) {
-			ClearFlags(player._pSpellFlags, SpellFlag::RageCooldown);
-			missile._miDelFlag = true;
-		}
+	if (missile.duration != 0)
+		return;
 
-		CalcPlrItemVals(player, true);
-		if ((player._pHitPoints >> 6) <= 0)
-			SetPlayerHitPoints(player, 1);
-		RedrawEverything();
-		player.Say(HeroSpeech::HeavyBreathing);
+	Player &player = Players[missile._misource];
 
-		if (missile._miDelFlag)
-			ApplyPlrDamage(DamageType::Physical, player, missile._midam, 1);
+	if (HasAnyOf(player._pSpellFlags, SpellFlag::RageActive)) {
+		ClearFlags(player._pSpellFlags, SpellFlag::RageActive);
+		SetFlags(player._pSpellFlags, SpellFlag::RageCooldown);
+		missile.duration = missile.var1; // Start timer over
+	} else if (HasAnyOf(player._pSpellFlags, SpellFlag::RageCooldown)) {
+		ClearFlags(player._pSpellFlags, SpellFlag::RageCooldown);
+		missile._miDelFlag = true;
 	}
+
+	CalcPlrItemVals(player, true);
+	if ((player._pHitPoints >> 6) <= 0)
+		SetPlayerHitPoints(player, 1);
+	RedrawEverything();
+	player.Say(HeroSpeech::HeavyBreathing);
+
+	if (missile._miDelFlag)
+		ApplyPlrDamage(DamageType::Physical, player, missile._midam, 1);
 }
 
 void ProcessInferno(Missile &missile)
