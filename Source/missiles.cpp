@@ -1144,8 +1144,8 @@ void InitMissiles()
 	}
 
 	if (HasAnyOf(myPlayer._pSpellFlags, SpellFlag::RageActive | SpellFlag::RageCooldown)) {
-		myPlayer._pSpellFlags &= ~SpellFlag::RageActive;
-		myPlayer._pSpellFlags &= ~SpellFlag::RageCooldown;
+		ClearFlags(myPlayer._pSpellFlags, SpellFlag::RageActive);
+		ClearFlags(myPlayer._pSpellFlags, SpellFlag::RageCooldown);
 		for (auto &missile : Missiles) {
 			if (missile._mitype == MissileID::Rage) {
 				if (missile.sourcePlayer() == MyPlayer) {
