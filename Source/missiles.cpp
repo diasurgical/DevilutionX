@@ -1149,9 +1149,8 @@ void InitMissiles()
 		for (auto &missile : Missiles) {
 			if (missile._mitype == MissileID::Rage) {
 				if (missile.sourcePlayer() == MyPlayer) {
-					int missingHP = myPlayer._pMaxHP - myPlayer._pHitPoints;
 					CalcPlrItemVals(myPlayer, true);
-					ApplyPlrDamage(DamageType::Physical, myPlayer, 0, 1, missingHP + missile.var2);
+					ApplyPlrDamage(DamageType::Physical, myPlayer, missile._midam, 1);
 				}
 			}
 		}
@@ -2506,21 +2505,12 @@ void AddRage(Missile &missile, AddMissileParameter &parameter)
 		return;
 	}
 
-	player._pSpellFlags |= SpellFlag::RageActive;
-	missile.duration = (player.getCharacterLevel() * 2) + (10 * missile._mispllvl) + 245;
-	missile.var1 = missile.duration;                      // Store the original duration to be used for RageCooldown
-	missile.var2 = (6 << 6) * player.getCharacterLevel(); // 6 points of damage per clvl
+	missile._midam = player.getCharacterLevel() * 6;
+	missile.duration = 245 + (player.getCharacterLevel() * 2);
+	missile.var1 = missile.duration;
 
-	// Recalculate stats to get updated max Life
-	CalcPlrItemVals(player, false);
-
-	// Adjust current Life proportionally to match new max Life after recalculation
-	player._pHitPoints = std::max(1, (player._pMaxHP * player._pHPPer) / 80);
-
-	// Immediately finalize Life
+	SetFlags(player._pSpellFlags, SpellFlag::RageActive);
 	CalcPlrItemVals(player, true);
-
-	RedrawEverything();
 	player.Say(HeroSpeech::Aaaaargh);
 }
 
@@ -3855,38 +3845,27 @@ void ProcessFlameWaveControl(Missile &missile)
 
 void ProcessRage(Missile &missile)
 {
-	missile.duration--;
+	if (--missile.duration == 0) {
+		Player &player = Players[missile._misource];
 
-	if (missile.duration != 0) {
-		return;
+		if (HasAnyOf(player._pSpellFlags, SpellFlag::RageActive)) {
+			ClearFlags(player._pSpellFlags, SpellFlag::RageActive);
+			SetFlags(player._pSpellFlags, SpellFlag::RageCooldown);
+			missile.duration = missile.var1; // Start timer over
+		} else if (HasAnyOf(player._pSpellFlags, SpellFlag::RageCooldown)) {
+			ClearFlags(player._pSpellFlags, SpellFlag::RageCooldown);
+			missile._miDelFlag = true;
+		}
+
+		CalcPlrItemVals(player, true);
+		if ((player._pHitPoints >> 6) <= 0)
+			SetPlayerHitPoints(player, 1);
+		RedrawEverything();
+		player.Say(HeroSpeech::HeavyBreathing);
+
+		if (missile._miDelFlag)
+			ApplyPlrDamage(DamageType::Physical, player, missile._midam, 1);
 	}
-
-	Player &player = Players[missile._misource];
-
-	if (HasAnyOf(player._pSpellFlags, SpellFlag::RageActive)) {
-		player._pSpellFlags &= ~SpellFlag::RageActive;
-		player._pSpellFlags |= SpellFlag::RageCooldown;
-		missile.duration = missile.var1; // Use the same duration for RageCooldown as was used for RageActive
-	} else {
-		player._pSpellFlags &= ~SpellFlag::RageCooldown;
-		missile._miDelFlag = true;
-	}
-
-	// Recalculate stats to get updated max Life
-	CalcPlrItemVals(player, false);
-
-	// Adjust current Life proportionally to match new max Life after recalculation
-	player._pHitPoints = std::max(1, (player._pMaxHP * player._pHPPer) / 80);
-
-	// Apply Life penalty to the player when RageCooldown finishes
-	if (missile._miDelFlag)
-		ApplyPlrDamage(DamageType::Physical, player, 0, 1, missile.var2);
-
-	// Immediately finalize Life
-	CalcPlrItemVals(player, true);
-
-	RedrawEverything();
-	player.Say(HeroSpeech::HeavyBreathing);
 }
 
 void ProcessInferno(Missile &missile)

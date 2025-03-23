@@ -120,4 +120,16 @@ template <typename EnumType, std::enable_if_t<std::is_enum<EnumType>::value && i
 	return !HasAnyOf(lhs, test);
 }
 
+template <typename EnumType, std::enable_if_t<std::is_enum_v<EnumType> && is_flags_enum<EnumType>::value, bool> = true>
+DVL_ALWAYS_INLINE constexpr void SetFlags(EnumType &lhs, EnumType flagsToSet)
+{
+	lhs |= flagsToSet;
+}
+
+template <typename EnumType, std::enable_if_t<std::is_enum_v<EnumType> && is_flags_enum<EnumType>::value, bool> = true>
+DVL_ALWAYS_INLINE constexpr void ClearFlags(EnumType &lhs, EnumType flagsToClear)
+{
+	lhs &= ~flagsToClear;
+}
+
 } // namespace devilution
