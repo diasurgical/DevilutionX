@@ -95,17 +95,11 @@ void RenderDifficultyIndicators()
 {
 	if (!selhero_isSavegame)
 		return;
-	const uint16_t width = (*DifficultyIndicator)[0].width();
-	const uint16_t height = (*DifficultyIndicator)[0].height();
-	SDL_Rect rect = MakeSdlRect(
-	    SELHERO_DIALOG_HERO_IMG->m_rect.x + 1,
-	    SELHERO_DIALOG_HERO_IMG->m_rect.y + SELHERO_DIALOG_HERO_IMG->m_rect.h - height - 1,
-	    width,
-	    height);
+	const uint16_t width = (*DifficultyIndicator[0])[0].width();
+	const uint16_t height = (*DifficultyIndicator[0])[0].height();
+	SDL_Rect rect = MakeSdlRect(SELHERO_DIALOG_HERO_IMG->m_rect.x, SELHERO_DIALOG_HERO_IMG->m_rect.y - height - 2, width, height);
 	for (int i = 0; i <= DIFF_LAST; i++) {
-		if (i >= selhero_heroInfo.herorank)
-			break;
-		UiRenderItem(UiImageClx((*DifficultyIndicator)[0], rect, UiFlags::None));
+		UiRenderItem(UiImageClx((*DifficultyIndicator[i < selhero_heroInfo.herorank ? 0 : 1])[0], rect, UiFlags::None));
 		rect.x += width;
 	}
 }
