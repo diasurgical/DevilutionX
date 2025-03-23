@@ -129,7 +129,7 @@ void DrawFlaskValues(const Surface &out, Point pos, int currValue, int maxValue)
 void UpdateLifeManaPercent();
 
 /**
- * Draws all currently connected players health and mana pools in the middle left of the screen.
+ * Draws all currently connected players health and mana pools in the top left of the screen.
  */
 
 void DrawPartyMemberInfo(const Surface &out);
