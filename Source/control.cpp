@@ -46,6 +46,7 @@
 #include "panels/spell_list.hpp"
 #include "pfile.h"
 #include "playerdat.hpp"
+#include "engine/render/primitive_render.hpp"
 #include "qol/stash.h"
 #include "qol/xpbar.h"
 #include "quick_messages.hpp"
@@ -157,6 +158,8 @@ Rectangle FlaskBottomRect { { 0, 16 }, { 84, 69 } };
 int MuteButtons = 3;
 int MuteButtonPadding = 2;
 Rectangle MuteButtonRect { { 172, 69 }, { 61, 16 } };
+
+Rectangle PartyPanelRect = { Point { 5, 5 }, Size { 160, 60 } };
 
 namespace {
 
@@ -878,6 +881,41 @@ void UpdateLifeManaPercent()
 {
 	MyPlayer->UpdateManaPercentage();
 	MyPlayer->UpdateHitPointPercentage();
+}
+
+void DrawPartyMemberInfo(const Surface &out)
+{
+	// Only continue if the player is in a multiplayer game
+	if (!gbIsMultiplayer)
+		return;
+
+	Rectangle partyPanelRect = PartyPanelRect;
+
+	for (Player &player : Players) {
+		if (!player.plractive || &player == MyPlayer)
+			continue;
+
+		// Panel background
+		FillRect(out.subregionY(0, gnViewportHeight), partyPanelRect.position.x, partyPanelRect.position.y, partyPanelRect.size.width, partyPanelRect.size.height, PAL16_BLUE + 14);
+		//// Panel frame
+		DrawHorizontalLine(out, { partyPanelRect.position.x - 1, partyPanelRect.position.y - 1 }, partyPanelRect.size.width + 1, PAL16_YELLOW);
+		DrawHorizontalLine(out, { partyPanelRect.position.x - 1, partyPanelRect.position.y + partyPanelRect.size.height + 1 }, partyPanelRect.size.width + 1, PAL16_YELLOW);
+		DrawVerticalLine(out, { partyPanelRect.position.x - 1, partyPanelRect.position.y - 1 }, partyPanelRect.size.height + 2, PAL16_YELLOW);
+		DrawVerticalLine(out, { partyPanelRect.position.x - 1 + partyPanelRect.size.width, partyPanelRect.position.y - 1 }, partyPanelRect.size.height + 2, PAL16_YELLOW);
+
+		// TRANSLATORS: This new UI element will display a connected party member's name in multiplayer games. {} will be the players name and {:d} the players level
+		std::string partyMemberNameText = fmt::format(fmt::runtime(_("{} (Level {:d})")), player._pName, player.getCharacterLevel());
+		// TRANSLATORS: This new UI element will display a connected party member's current HitPoints and max HitPoints in multiplayer games. The first{:d} will be the players current HitPoints and the second {:d} is the players max HitPoints
+		std::string partyMemberHealthText = fmt::format(fmt::runtime(_("HP: {:d} / {:d}")), player._pHitPoints >> 6, player._pMaxHP >> 6);
+		// TRANSLATORS: This new UI element will display a connected party member's current Mana and max Mana in multiplayer games. The first{:d} will be the players current Mana and the second {:d} is the players max Mana
+		std::string partyMemberManaText = fmt::format(fmt::runtime(_("Mana: {:d} / {:d}")), player._pMana >> 6, player._pMaxMana >> 6);
+
+		DrawString(out, partyMemberNameText, Point { partyPanelRect.position.x + 10, partyPanelRect.position.y + 8 }, { .flags = UiFlags::ColorGold });
+		DrawString(out, partyMemberHealthText, Point { partyPanelRect.position.x + 20, partyPanelRect.position.y + 23 }, { .flags = UiFlags::ColorRed });
+		DrawString(out, partyMemberManaText, Point { partyPanelRect.position.x + 20, partyPanelRect.position.y + 38 }, { .flags = UiFlags::ColorBlue });
+
+		partyPanelRect.position.y += partyPanelRect.size.height + 20;
+	}
 }
 
 tl::expected<void, std::string> InitMainPanel()

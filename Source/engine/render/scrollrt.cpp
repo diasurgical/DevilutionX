@@ -1752,6 +1752,9 @@ void DrawAndBlit()
 
 	DrawFPS(out);
 
+	if (*GetOptions().Gameplay.showMultiplayerPartyInfo)
+		DrawPartyMemberInfo(out);
+
 	LuaEvent("GameDrawComplete");
 
 	DrawMain(hgt, drawInfoBox, drawHealth, drawMana, drawBelt, drawControlButtons);
