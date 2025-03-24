@@ -71,12 +71,14 @@ public:
 	const T &operator[](std::size_t pos) const { return *data_[pos].ptr(); }
 	T &operator[](std::size_t pos) { return *data_[pos].ptr(); }
 
-	void erase(const T *begin, const T *end)
+	void erase(T *begin, T *end)
 	{
-		for (const T *it = begin; it < end; ++it) {
+		size_t count = end - begin;
+		std::move(end, this->end(), begin);
+		for (const T *it = this->end() - count; it < this->end(); ++it) {
 			std::destroy_at(it);
 		}
-		size_ -= end - begin;
+		size_ -= count;
 	}
 
 	void pop_back() // NOLINT(readability-identifier-naming)
