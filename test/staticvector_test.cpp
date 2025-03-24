@@ -14,7 +14,7 @@ StaticVector<int, MAX_SIZE> container;
 TEST(StaticVector, StaticVector_push_back)
 {
 	std::srand(clock());
-	size_t size = 10 + (std::rand() % (MAX_SIZE - 10) );
+	size_t size = 10 + (std::rand() % (MAX_SIZE - 10));
 	for (size_t i = 0; i < size; i++) {
 		container.push_back(i);
 	}
@@ -28,7 +28,7 @@ TEST(StaticVector, StaticVector_erase)
 {
 	std::srand(clock());
 
-	if(container.size() == 0) {
+	if (container.size() == 0) {
 		return;
 	}
 
