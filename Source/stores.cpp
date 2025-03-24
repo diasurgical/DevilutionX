@@ -40,14 +40,14 @@ int CurrentItemIndex;
 int8_t PlayerItemIndexes[48];
 Item PlayerItems[48];
 
-Item SmithItems[NumSmithBasicItemsHf];
+StaticVector<Item, NumSmithBasicItemsHf> SmithItems;
 int PremiumItemCount;
 int PremiumItemLevel;
-Item PremiumItems[NumSmithItemsHf];
+StaticVector<Item, NumSmithItemsHf> PremiumItems;
 
-Item HealerItems[20];
+StaticVector<Item, NumHealerItemsHf> HealerItems;
 
-Item WitchItems[NumWitchItemsHf];
+StaticVector<Item, NumWitchItemsHf> WitchItems;
 
 int BoyItemLevel;
 Item BoyItem;
@@ -1405,9 +1405,7 @@ void SmithBuyPItem(Item &item)
 		}
 	}
 
-	PremiumItems[xx].clear();
-	PremiumItemCount--;
-	SpawnPremium(*MyPlayer);
+	ReplacePremium(*MyPlayer, PremiumItems[xx]);
 }
 
 void SmithPremiumBuyEnter()
@@ -2172,6 +2170,8 @@ void SetupTownStores()
 	SpawnWitch(l);
 	SpawnHealer(l);
 	SpawnBoy(myPlayer.getCharacterLevel());
+	// Should not always clear store, since this is called from LoadGameLevel()
+	PremiumItems.clear();
 	SpawnPremium(myPlayer);
 }
 
