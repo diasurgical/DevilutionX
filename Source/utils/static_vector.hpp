@@ -89,6 +89,9 @@ public:
 
 	void clear()
 	{
+		if (empty()) {
+			return;
+		}
 		erase(begin(), end());
 	}
 
