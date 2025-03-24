@@ -54,7 +54,7 @@ TEST(StaticVector, StaticVector_erase)
 		expected.erase(expected.begin() + idx);
 	}
 
-	EXPECT_EQ(container.size(), expected.size() );
+	EXPECT_EQ(container.size(), expected.size());
 	for (size_t i = 0; i < expected.size(); i++) {
 		EXPECT_EQ(container[i], expected[i]);
 	}
@@ -69,7 +69,7 @@ TEST(StaticVector, StaticVector_clear)
 
 	EXPECT_EQ(container.size(), expected.size());
 
-	for(size_t i = 0; i < container.size(); i++) {
+	for (size_t i = 0; i < container.size(); i++) {
 		EXPECT_EQ(container[i], expected[i]);
 	}
 }
