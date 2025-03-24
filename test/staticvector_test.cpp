@@ -44,7 +44,10 @@ TEST(StaticVector, StaticVector_erase)
 	}
 
 	for (int idx : erase_idx) {
-		if (container.size() == 0 || expected.size() == 0) {
+		/* This is actually to guard against gcc's vector implementation causing
+		 * crashes, rather than StaticVector
+		 */
+		if (expected.size() == 0) {
 			break;
 		}
 		container.erase(container.begin() + idx, container.begin() + idx + 1);
