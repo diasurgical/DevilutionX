@@ -4,7 +4,7 @@
 
 #include "utils/static_vector.hpp"
 
-#define MAX_SIZE 256
+#define MAX_SIZE 32
 
 using namespace devilution;
 
@@ -46,6 +46,20 @@ TEST(StaticVector, StaticVector_erase)
 	}
 
 	for (size_t i = 0; i < expected.size(); i++) {
+		EXPECT_EQ(container[i], expected[i]);
+	}
+}
+
+TEST(StaticVector, StaticVector_clear)
+{
+	std::vector<int> expected;
+
+	container.clear();
+	expected.clear();
+
+	EXPECT_EQ(container.size(), expected.size());
+
+	for(size_t i = 0; i < container.size(); i++) {
 		EXPECT_EQ(container[i], expected[i]);
 	}
 }
