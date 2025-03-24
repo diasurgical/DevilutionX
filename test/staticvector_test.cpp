@@ -14,7 +14,7 @@ StaticVector<int, MAX_SIZE> container;
 TEST(StaticVector, StaticVector_push_back)
 {
 	std::srand(clock());
-	size_t size = std::rand() % MAX_SIZE;
+	size_t size = 1 + std::rand() % (MAX_SIZE - 1);
 	for (size_t i = 0; i < size; i++) {
 		container.push_back(i);
 	}
@@ -32,6 +32,9 @@ TEST(StaticVector, StaticVector_erase)
 	std::vector<int> erase_idx;
 	std::vector<int> expected;
 
+	erase_idx.push_back(0);
+	erase_idx.push_back(container.size() - 1);
+
 	for (int i = 0; i < erasures; i++) {
 		erase_idx.push_back(std::rand() % container.size());
 	}
@@ -41,10 +44,14 @@ TEST(StaticVector, StaticVector_erase)
 	}
 
 	for (int idx : erase_idx) {
+		if (container.size() == 0 || expected.size() == 0) {
+			break;
+		}
 		container.erase(container.begin() + idx, container.begin() + idx + 1);
 		expected.erase(expected.begin() + idx);
 	}
 
+	EXPECT_EQ(container.size(), expected.size() );
 	for (size_t i = 0; i < expected.size(); i++) {
 		EXPECT_EQ(container[i], expected[i]);
 	}
