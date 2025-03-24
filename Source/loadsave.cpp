@@ -765,7 +765,7 @@ void LoadMissile(LoadHelper *file)
 	missile.position.start.y = file->NextLE<int32_t>();
 	missile.position.traveled.deltaX = file->NextLE<int32_t>();
 	missile.position.traveled.deltaY = file->NextLE<int32_t>();
-	missile.setFrameGroup(file->NextLE<int32_t>());
+	missile.setFrameGroupRaw(file->NextLE<int32_t>());
 	missile._mispllvl = file->NextLE<int32_t>();
 	missile._miDelFlag = file->NextBool32();
 	missile._miAnimType = static_cast<MissileGraphicID>(file->NextLE<uint8_t>());
