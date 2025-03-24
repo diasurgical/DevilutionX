@@ -3862,13 +3862,16 @@ void ProcessRage(Missile &missile)
 	}
 
 	CalcPlrItemVals(player, true);
+
+	// Prevent the player from dying as a result of recalculating their current life
 	if ((player._pHitPoints >> 6) <= 0)
 		SetPlayerHitPoints(player, 1);
+
 	RedrawEverything();
 	player.Say(HeroSpeech::HeavyBreathing);
 
 	if (missile._miDelFlag)
-		ApplyPlrDamage(DamageType::Physical, player, missile._midam, 1);
+		ApplyPlrDamage(DamageType::Physical, player, missile._midam, 1); // Prevent penalty from killing the player
 }
 
 void ProcessInferno(Missile &missile)
