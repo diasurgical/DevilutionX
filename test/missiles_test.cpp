@@ -58,7 +58,7 @@ TEST(Missiles, RotateBlockedMissileArrow)
 
 	// All other missiles use the number of 0-indexed sprites defined in MissileSpriteData
 	missile = *AddMissile({ 0, 0 }, { 0, 0 }, Direction::South, MissileID::Firebolt, TARGET_MONSTERS, player, 0, 0);
-	EXPECT_EQ(missile.getFrameGroup(), 0);
+	EXPECT_EQ(missile.getFrameGroupRaw(), 0);
 	TestAnimatedMissileRotatesUniformly(missile, 5, 4, 6);
 	TestAnimatedMissileRotatesUniformly(missile, 0, 15, 1);
 	TestAnimatedMissileRotatesUniformly(missile, 15, 14, 0);
