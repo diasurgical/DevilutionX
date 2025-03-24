@@ -1910,6 +1910,15 @@ void SortVendor(Item *itemList, size_t count)
 	std::sort(itemList, itemList + count, cmp);
 }
 
+void SortVendor(std::span<Item> itemList, size_t PinnedItemCount)
+{
+	auto cmp = [](const Item &a, const Item &b) {
+		return a.IDidx < b.IDidx;
+	};
+
+	std::sort(itemList.begin() + PinnedItemCount, itemList.end(), cmp);
+}
+
 bool PremiumItemOk(const Player & /*player*/, const ItemData &item)
 {
 	if (item.itype == ItemType::Misc)

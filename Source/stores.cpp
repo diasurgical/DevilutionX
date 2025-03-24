@@ -380,6 +380,32 @@ void ScrollVendorStore(Item *itemData, int storeLimit, int idx, int selling = tr
 	}
 }
 
+void ScrollVendorStore(std::span<Item>itemData, int storeLimit, int idx, int selling = true)
+{
+	ClearSText(5, 21);
+	PreviousScrollPos = 5;
+
+	for (int l = 5; l < 20 && idx < storeLimit; l += 4) {
+		const Item &item = itemData[idx];
+		if (!item.isEmpty()) {
+			UiFlags itemColor = item.getTextColorWithStatCheck();
+			AddSText(20, l, item.getName(), itemColor, true, item._iCurs, true);
+			AddSTextVal(l, item._iIdentified ? item._iIvalue : item._ivalue);
+			PrintStoreItem(item, l + 1, itemColor, true);
+			NextScrollPos = l;
+		} else {
+			l -= 4;
+		}
+		idx++;
+	}
+	if (selling) {
+		if (CurrentTextLine != -1 && !TextLine[CurrentTextLine].isSelectable() && CurrentTextLine != BackButtonLine())
+			CurrentTextLine = NextScrollPos;
+	} else {
+		NumTextLines = std::max(static_cast<int>(storeLimit) - 4, 0);
+	}
+}
+
 void StartSmith()
 {
 	IsTextFullSize = false;
