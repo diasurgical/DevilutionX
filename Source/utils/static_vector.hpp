@@ -74,10 +74,15 @@ public:
 	void erase(T *begin, T *end)
 	{
 		size_t count = end - begin;
+		if (empty() || begin >= end || (size() - count) > size()) {
+			return;
+		}
+
 		std::move(end, this->end(), begin);
 		for (const T *it = this->end() - count; it < this->end(); ++it) {
 			std::destroy_at(it);
 		}
+
 		size_ -= count;
 	}
 
