@@ -1,0 +1,31 @@
+name: clang-tidy check
+
+on:
+  push:
+    branches:
+      - master
+    paths: ['**.c', '**.cpp', '**.h', '**.hpp', '**.cxx', '**.hxx', '**.cc', '**.hh', '**CMakeLists.txt', 'meson.build', '**.cmake']
+  pull_request:
+    types: [ opened, synchronize ]
+    paths: ['**.c', '**.cpp', '**.h', '**.hpp', '**.cxx', '**.hxx', '**.cc', '**.hh', '**CMakeLists.txt', 'meson.build', '**.cmake']
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tidy-check:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: clang-tidy Check
+      uses: cpp-linter/cpp-linter-action@v2
+      id: linter
+      with:
+        style: '' # using an empty string here disables clang-format checks. We leave the existing clang-format-check workflow to run clang-format instead
+        tidy-checks: '' # using an empty string here instructs the action to use only checks from the .clang-tidy file
+        ignore-tidy: '3rdParty'
