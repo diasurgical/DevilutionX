@@ -281,13 +281,13 @@ std::optional<std::string> FindUnpackedMpqData(const std::vector<std::string> &p
 	return std::nullopt;
 }
 #else
-std::optional<MpqArchive> LoadMPQ(const std::vector<std::string> &paths, std::string_view mpqName)
+std::optional<MpqArchive> TryLoadMPQVariant(const std::vector<std::string> &paths, std::string mpqName, std::int32_t &error)
 {
 	std::optional<MpqArchive> archive;
 	std::string mpqAbsPath;
-	std::int32_t error = 0;
+
 	for (const auto &path : paths) {
-		mpqAbsPath = path + mpqName.data();
+		mpqAbsPath = path + mpqName;
 		if ((archive = MpqArchive::Open(mpqAbsPath.c_str(), error))) {
 			LogVerbose("  Found: {} in {}", mpqName, path);
 			return archive;
@@ -296,6 +296,30 @@ std::optional<MpqArchive> LoadMPQ(const std::vector<std::string> &paths, std::st
 			LogError("Error {}: {}", MpqArchive::ErrorMessage(error), mpqAbsPath);
 		}
 	}
+	return std::nullopt;
+}
+
+std::optional<MpqArchive> LoadMPQ(const std::vector<std::string> &paths, std::string_view mpqName)
+{
+	std::int32_t error = 0;
+
+	// Try lowercase (original name)
+	if (auto archive = TryLoadMPQVariant(paths, std::string(mpqName), error))
+		return archive;
+
+	// Try UPPERCASE
+	std::string upper(mpqName);
+	std::transform(upper.begin(), upper.end(), upper.begin(), ::toupper);
+	if (auto archive = TryLoadMPQVariant(paths, upper, error))
+		return archive;
+
+	// Try Capitalized
+	std::string capitalized = std::string(mpqName);
+	capitalized[0] = static_cast<char>(::toupper(capitalized[0]));
+	std::transform(capitalized.begin() + 1, capitalized.end(), capitalized.begin() + 1, ::tolower);
+	if (auto archive = TryLoadMPQVariant(paths, capitalized, error))
+		return archive;
+
 	if (error == 0) {
 		LogVerbose("Missing: {}", mpqName);
 	}
@@ -430,11 +454,7 @@ void LoadGameArchives()
 		DisplayFatalErrorAndExit(_("Some Hellfire MPQs are missing"), _("Not all Hellfire MPQs were found.\nPlease copy all the hf*.mpq files."));
 	}
 #else // !UNPACKED_MPQS
-	diabdat_mpq = LoadMPQ(paths, "DIABDAT.MPQ");
-	if (!diabdat_mpq) {
-		// DIABDAT.MPQ is uppercase on the original CD and the GOG version.
-		diabdat_mpq = LoadMPQ(paths, "diabdat.mpq");
-	}
+	diabdat_mpq = LoadMPQ(paths, "diabdat.mpq");
 
 	if (!diabdat_mpq) {
 		spawn_mpq = LoadMPQ(paths, "spawn.mpq");
