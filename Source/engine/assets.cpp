@@ -320,6 +320,35 @@ std::optional<MpqArchive> LoadMPQ(const std::vector<std::string> &paths, std::st
 	if (auto archive = TryLoadMPQVariant(paths, capitalized, error))
 		return archive;
 
+	// Additional check: filename is all uppercase but extension is lowercase,
+	// and filename is all lowercase but extension is uppercase.
+	{
+		std::string original(mpqName);
+		std::size_t dot = original.find_last_of('.');
+		if (dot != std::string::npos) {
+			std::string base = original.substr(0, dot);
+			std::string ext = original.substr(dot); // includes the dot
+
+			// Variant: base uppercase, extension lowercase (e.g., HELLFIRE.mpq)
+			std::string variantA = base;
+			std::transform(variantA.begin(), variantA.end(), variantA.begin(), ::toupper);
+			std::string extA = ext;
+			std::transform(extA.begin(), extA.end(), extA.begin(), ::tolower);
+			variantA += extA;
+			if (auto archive = TryLoadMPQVariant(paths, variantA, error))
+				return archive;
+
+			// Variant: base lowercase, extension uppercase (e.g., hellfire.MPQ)
+			std::string variantB = base;
+			std::transform(variantB.begin(), variantB.end(), variantB.begin(), ::tolower);
+			std::string extB = ext;
+			std::transform(extB.begin(), extB.end(), extB.begin(), ::toupper);
+			variantB += extB;
+			if (auto archive = TryLoadMPQVariant(paths, variantB, error))
+				return archive;
+		}
+	}
+
 	if (error == 0) {
 		LogVerbose("Missing: {}", mpqName);
 	}
