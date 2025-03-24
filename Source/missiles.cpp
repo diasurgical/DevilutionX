@@ -1144,7 +1144,8 @@ void InitMissiles()
 	}
 
 	if (HasAnyOf(myPlayer._pSpellFlags, SpellFlag::RageActive | SpellFlag::RageCooldown)) {
-		ClearFlags(myPlayer._pSpellFlags, SpellFlag::RageActive, SpellFlag::RageCooldown);
+		myPlayer._pSpellFlags &= ~SpellFlag::RageActive;
+		myPlayer._pSpellFlags &= ~SpellFlag::RageCooldown;
 		for (auto &missile : Missiles) {
 			if (missile._mitype == MissileID::Rage) {
 				if (missile.sourcePlayer() == MyPlayer) {
@@ -2508,7 +2509,7 @@ void AddRage(Missile &missile, AddMissileParameter &parameter)
 	missile.duration = 245 + (player.getCharacterLevel() * 2);
 	missile.var1 = missile.duration;
 
-	SetFlags(player._pSpellFlags, SpellFlag::RageActive);
+	player._pSpellFlags |= SpellFlag::RageActive;
 	CalcPlrItemVals(player, true);
 	player.Say(HeroSpeech::Aaaaargh);
 }
@@ -3852,11 +3853,11 @@ void ProcessRage(Missile &missile)
 	Player &player = Players[missile._misource];
 
 	if (HasAnyOf(player._pSpellFlags, SpellFlag::RageActive)) {
-		ClearFlags(player._pSpellFlags, SpellFlag::RageActive);
-		SetFlags(player._pSpellFlags, SpellFlag::RageCooldown);
+		player._pSpellFlags &= ~SpellFlag::RageActive;
+		player._pSpellFlags |= SpellFlag::RageCooldown;
 		missile.duration = missile.var1; // Start timer over
 	} else if (HasAnyOf(player._pSpellFlags, SpellFlag::RageCooldown)) {
-		ClearFlags(player._pSpellFlags, SpellFlag::RageCooldown);
+		player._pSpellFlags &= ~SpellFlag::RageCooldown;
 		missile._miDelFlag = true;
 	}
 
