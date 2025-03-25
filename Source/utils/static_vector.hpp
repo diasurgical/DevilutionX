@@ -71,14 +71,17 @@ public:
 	const T &operator[](std::size_t pos) const { return *data_[pos].ptr(); }
 	T &operator[](std::size_t pos) { return *data_[pos].ptr(); }
 
-	void erase(T *begin, T *end)
+	void erase(const T *begin, const T *end)
 	{
 		size_t count = end - begin;
 		if (empty() || begin < this->begin() || begin >= end || (size() - count) > size()) {
 			return;
 		}
 
-		std::move(end, this->end(), begin);
+		T *beginPtr = data_[begin - this->begin()].ptr();
+		T *endPtr = data_[end - this->begin()].ptr();
+
+		std::move(endPtr, this->end(), beginPtr);
 		for (const T *it = this->end() - count; it < this->end(); ++it) {
 			std::destroy_at(it);
 		}
