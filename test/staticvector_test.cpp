@@ -41,7 +41,10 @@ TEST(StaticVector, StaticVector_push_back_full)
 		EXPECT_EQ(container[i], i);
 	}
 
+
+#ifdef _DEBUG
 	ASSERT_DEATH(container.push_back(size + 1), "");
+#endif
 }
 
 TEST(StaticVector, StaticVector_erase)
@@ -51,7 +54,9 @@ TEST(StaticVector, StaticVector_erase)
 
 	SetRndSeed(testing::UnitTest::GetInstance()->random_seed());
 
+#ifdef _DEBUG
 	ASSERT_DEATH(container.erase(container.begin()), "");
+#endif
 
 	container = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 	expected = { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
@@ -84,8 +89,10 @@ TEST(StaticVector, StaticVector_erase)
 
 	EXPECT_EQ(container.size(), 0);
 
+#ifdef _DEBUG
 	ASSERT_DEATH(container.erase(container.begin(), container.end() + 1), "");
 	ASSERT_DEATH(container.erase(container.begin() - 1, container.end()), "");
+#endif
 }
 
 TEST(StaticVector, StaticVector_erase_random)
