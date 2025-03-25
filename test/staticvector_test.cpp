@@ -41,7 +41,6 @@ TEST(StaticVector, StaticVector_push_back_full)
 		EXPECT_EQ(container[i], i);
 	}
 
-
 #ifdef _DEBUG
 	ASSERT_DEATH(container.push_back(size + 1), "");
 #endif
