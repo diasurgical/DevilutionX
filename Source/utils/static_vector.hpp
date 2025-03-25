@@ -74,7 +74,7 @@ public:
 	void erase(T *begin, T *end)
 	{
 		size_t count = end - begin;
-		if (empty() || begin >= end || (size() - count) > size()) {
+		if (empty() || begin < this->begin() || begin >= end || (size() - count) > size()) {
 			return;
 		}
 
