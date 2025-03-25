@@ -71,17 +71,15 @@ public:
 	const T &operator[](std::size_t pos) const { return *data_[pos].ptr(); }
 	T &operator[](std::size_t pos) { return *data_[pos].ptr(); }
 
-	void erase(const T *begin, const T *end)
+	void erase(const T *first, const T *last)
 	{
-		size_t count = end - begin;
-		if (empty() || begin < this->begin() || begin >= end || (size() - count) > size()) {
-			return;
-		}
+		assert(first >= begin() && last <= end() && first <= last);
+		size_t count = last - first;
 
-		T *beginPtr = data_[begin - this->begin()].ptr();
-		T *endPtr = data_[end - this->begin()].ptr();
+		T *firstPtr = data_[first - this->begin()].ptr();
+		T *lastPtr = data_[last - this->begin()].ptr();
 
-		std::move(endPtr, this->end(), beginPtr);
+		std::move(lastPtr, this->end(), firstPtr);
 		for (const T *it = this->end() - count; it < this->end(); ++it) {
 			std::destroy_at(it);
 		}
@@ -89,9 +87,10 @@ public:
 		size_ -= count;
 	}
 
-	void erase(const T *begin)
+	void erase(const T *element)
 	{
-		erase(begin, begin + 1);
+		assert(element >= begin() && (element + 1) <= end());
+		erase(element, element + 1);
 	}
 
 	void pop_back() // NOLINT(readability-identifier-naming)
