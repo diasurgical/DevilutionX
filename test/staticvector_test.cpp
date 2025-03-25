@@ -47,6 +47,8 @@ TEST(StaticVector, StaticVector_erase)
 	StaticVector<int, MAX_SIZE> container;
 	std::vector<int> expected;
 
+	SetRndSeed(testing::UnitTest::GetInstance()->random_seed());
+
 	container.erase(container.begin());
 	EXPECT_EQ(container.size(), 0);
 
@@ -70,6 +72,20 @@ TEST(StaticVector, StaticVector_erase)
 
 	container.erase(container.begin() - 1, container.end());
 	EXPECT_EQ(container.size(), expected.size());
+
+	int erasures = container.size();
+	for (int i = 0; i < erasures && container.size() > 0; i++) {
+		size_t idx = RandomIntBetween(0, container.size(), true);
+		container.erase(container.begin() + idx);
+		expected.erase(expected.begin() + idx);
+		EXPECT_EQ(container.size(), expected.size());
+		idx = idx == 0 ? 1 : idx;
+		EXPECT_EQ(container[idx - 1], expected[idx - 1]);
+		idx = (idx + 1) >= container.size() ? container.size() - 1 : idx;
+		EXPECT_EQ(container[idx + 1], expected[idx + 1]);
+	}
+
+	EXPECT_EQ(container.size(), 0);
 }
 
 TEST(StaticVector, StaticVector_erase_random)
