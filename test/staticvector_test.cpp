@@ -1,47 +1,50 @@
 #include <cstdlib>
-#include <ctime>
 #include <gtest/gtest.h>
 
+#include "engine/random.hpp"
 #include "utils/static_vector.hpp"
-
-#define MAX_SIZE 32
 
 using namespace devilution;
 
 namespace {
-StaticVector<int, MAX_SIZE> container;
+
+constexpr size_t MAX_SIZE = 32;
 
 TEST(StaticVector, StaticVector_push_back)
 {
-	std::srand(clock());
-	size_t size = 10 + (std::rand() % (MAX_SIZE - 10));
+	StaticVector<int, MAX_SIZE> container;
+
+	SetRndSeed(testing::UnitTest::GetInstance()->random_seed());
+	size_t size = RandomIntBetween(10, MAX_SIZE, true);
+
 	for (size_t i = 0; i < size; i++) {
 		container.push_back(i);
 	}
 
-	for (size_t i = 0; i < container.size(); i++) {
+	EXPECT_EQ(container.size(), size);
+	for (size_t i = 0; i < size; i++) {
 		EXPECT_EQ(container[i], i);
 	}
 }
 
-TEST(StaticVector, StaticVector_erase)
+TEST(StaticVector, StaticVector_erase_random)
 {
-	std::srand(clock());
-
-	if (container.size() == 0) {
-		return;
-	}
-
-	int erasures = std::rand() % container.size();
-
+	StaticVector<int, MAX_SIZE> container;
 	std::vector<int> erase_idx;
 	std::vector<int> expected;
 
-	erase_idx.push_back(0);
-	erase_idx.push_back(container.size() - 1);
+	SetRndSeed(testing::UnitTest::GetInstance()->random_seed());
+	size_t size = RandomIntBetween(10, MAX_SIZE, true);
+
+	for (size_t i = 0; i < size; i++) {
+		container.push_back(i);
+	}
+
+	int erasures = RandomIntBetween(1, size, true);
+
 
 	for (int i = 0; i < erasures; i++) {
-		erase_idx.push_back(std::rand() % container.size());
+		erase_idx.push_back(RandomIntBetween(0, size, true));
 	}
 
 	for (int i = 0; expected.size() < container.size(); i++) {
