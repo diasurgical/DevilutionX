@@ -86,7 +86,6 @@ TEST(StaticVector, StaticVector_erase)
 
 	ASSERT_DEATH(container.erase(container.begin(), container.end() + 1), "");
 	ASSERT_DEATH(container.erase(container.begin() - 1, container.end()), "");
-
 }
 
 TEST(StaticVector, StaticVector_erase_random)
