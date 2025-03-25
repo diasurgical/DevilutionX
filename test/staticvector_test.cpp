@@ -27,6 +27,51 @@ TEST(StaticVector, StaticVector_push_back)
 	}
 }
 
+TEST(StaticVector, StaticVector_push_back_full)
+{
+	StaticVector<int, MAX_SIZE> container;
+
+	size_t size = MAX_SIZE;
+	for (size_t i = 0; i < size; i++) {
+		container.push_back(i);
+	}
+
+	EXPECT_EQ(container.size(), MAX_SIZE);
+	for (size_t i = 0; i < size; i++) {
+		EXPECT_EQ(container[i], i);
+	}
+}
+
+TEST(StaticVector, StaticVector_erase)
+{
+	StaticVector<int, MAX_SIZE> container;
+	std::vector<int> expected;
+
+	container.erase(container.begin(), container.begin() + 1);
+	EXPECT_EQ(container.size(), 0);
+
+	container = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+	expected = { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+	container.erase(container.begin(), container.begin() + 1);
+	EXPECT_EQ(container.size(), expected.size());
+	for (size_t i = 0; i < container.size(); i++) {
+		EXPECT_EQ(container[i], expected[i]);
+	}
+
+	expected = { 1, 2, 3, 4, 5, 6, 7, 8 };
+	container.erase(container.end() - 1, container.end());
+	EXPECT_EQ(container.size(), expected.size());
+	for (size_t i = 0; i < container.size(); i++) {
+		EXPECT_EQ(container[i], expected[i]);
+	}
+
+	container.erase(container.begin(), container.end() + 1);
+	EXPECT_EQ(container.size(), expected.size());
+
+	container.erase(container.begin() - 1, container.end());
+	EXPECT_EQ(container.size(), expected.size());
+}
+
 TEST(StaticVector, StaticVector_erase_random)
 {
 	StaticVector<int, MAX_SIZE> container;
@@ -41,7 +86,6 @@ TEST(StaticVector, StaticVector_erase_random)
 	}
 
 	int erasures = RandomIntBetween(1, size, true);
-
 
 	for (int i = 0; i < erasures; i++) {
 		erase_idx.push_back(RandomIntBetween(0, size, true));
@@ -62,6 +106,43 @@ TEST(StaticVector, StaticVector_erase_random)
 
 	EXPECT_EQ(container.size(), expected.size());
 	for (size_t i = 0; i < expected.size(); i++) {
+		EXPECT_EQ(container[i], expected[i]);
+	}
+}
+
+TEST(StaticVector, StaticVector_erase_range)
+{
+	StaticVector<int, MAX_SIZE> container;
+	std::vector<int> erase_idx;
+	std::vector<int> expected;
+
+	SetRndSeed(testing::UnitTest::GetInstance()->random_seed());
+
+	container = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+	expected = { 3, 4, 5, 6, 7, 8, 9 };
+	container.erase(container.begin(), container.begin() + 3);
+
+	EXPECT_EQ(container.size(), expected.size());
+	for (size_t i = 0; i < container.size(); i++) {
+		EXPECT_EQ(container[i], expected[i]);
+	}
+
+	container.erase(container.begin() + 1, container.begin() + 1);
+	EXPECT_EQ(container.size(), expected.size());
+	for (size_t i = 0; i < container.size(); i++) {
+		EXPECT_EQ(container[i], expected[i]);
+	}
+
+	int from = RandomIntBetween(0, container.size() - 1, true);
+	int to = RandomIntBetween(from, container.size() - 1, true);
+
+	container.erase(container.begin() + from, container.begin() + to);
+	for (int i = to - from; i > 0; i--) {
+		expected.erase(expected.begin() + from);
+	}
+
+	EXPECT_EQ(container.size(), expected.size());
+	for (size_t i = 0; i < container.size(); i++) {
 		EXPECT_EQ(container[i], expected[i]);
 	}
 }
