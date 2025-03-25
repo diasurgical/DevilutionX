@@ -15,7 +15,7 @@ TEST(StaticVector, StaticVector_push_back)
 	StaticVector<size_t, MAX_SIZE> container;
 
 	SetRndSeed(testing::UnitTest::GetInstance()->random_seed());
-	size_t size = RandomIntBetween(10, MAX_SIZE, true);
+	size_t size = RandomIntBetween(10, MAX_SIZE);
 
 	for (size_t i = 0; i < size; i++) {
 		container.push_back(i);
@@ -98,7 +98,7 @@ TEST(StaticVector, StaticVector_erase_random)
 	std::vector<size_t> expected;
 
 	SetRndSeed(testing::UnitTest::GetInstance()->random_seed());
-	size_t size = RandomIntBetween(10, MAX_SIZE, true);
+	size_t size = RandomIntBetween(10, MAX_SIZE);
 	size_t erasures = RandomIntBetween(1, static_cast<int32_t>(size) - 1, true);
 
 	for (size_t i = 0; i < size; i++) {
@@ -140,8 +140,8 @@ TEST(StaticVector, StaticVector_erase_range)
 		EXPECT_EQ(container[i], expected[i]);
 	}
 
-	int32_t from = RandomIntLessThan(static_cast<int32_t>(container.size()));
-	int32_t to = RandomIntBetween(from, static_cast<int32_t>(container.size() - 1), true);
+	int32_t from = RandomIntBetween(0, static_cast<int32_t>(container.size()) - 1);
+	int32_t to = RandomIntBetween(from + 1, static_cast<int32_t>(container.size()));
 	container.erase(container.begin() + from, container.begin() + to);
 	for (int32_t i = to - from; i > 0; i--) {
 		expected.erase(expected.begin() + from);
