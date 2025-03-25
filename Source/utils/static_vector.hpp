@@ -89,7 +89,7 @@ public:
 
 	void erase(const T *element)
 	{
-		assert(element >= begin() && (element + 1) <= end());
+		assert(element >= begin() && element < end());
 		erase(element, element + 1);
 	}
 
