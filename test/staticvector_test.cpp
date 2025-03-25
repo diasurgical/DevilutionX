@@ -47,12 +47,12 @@ TEST(StaticVector, StaticVector_erase)
 	StaticVector<int, MAX_SIZE> container;
 	std::vector<int> expected;
 
-	container.erase(container.begin(), container.begin() + 1);
+	container.erase(container.begin());
 	EXPECT_EQ(container.size(), 0);
 
 	container = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 	expected = { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
-	container.erase(container.begin(), container.begin() + 1);
+	container.erase(container.begin());
 	EXPECT_EQ(container.size(), expected.size());
 	for (size_t i = 0; i < container.size(); i++) {
 		EXPECT_EQ(container[i], expected[i]);

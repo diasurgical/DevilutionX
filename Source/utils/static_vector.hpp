@@ -89,6 +89,11 @@ public:
 		size_ -= count;
 	}
 
+	void erase(const T *begin)
+	{
+		erase(begin, begin + 1);
+	}
+
 	void pop_back() // NOLINT(readability-identifier-naming)
 	{
 		std::destroy_at(&back());
