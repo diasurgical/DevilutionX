@@ -80,10 +80,10 @@ TEST(StaticVector, StaticVector_erase)
 		expected.erase(expected.begin() + idx);
 		if (container.size() > 0) {
 			EXPECT_EQ(container.size(), expected.size());
-			idx = idx == 0 ? 1 : idx;
-			EXPECT_EQ(container[idx - 1], expected[idx - 1]);
-			idx = (idx + 1) >= container.size() ? container.size() - 1 : idx;
-			EXPECT_EQ(container[idx + 1], expected[idx + 1]);
+			idx = idx <= 1 ? 0 : idx - 1;
+			EXPECT_EQ(container[idx], expected[idx]);
+			idx = (idx + 1) >= container.size() ? container.size() - 1 : idx + 1;
+			EXPECT_EQ(container[idx], expected[idx]);
 		}
 	}
 
