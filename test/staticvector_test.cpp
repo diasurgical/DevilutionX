@@ -75,14 +75,16 @@ TEST(StaticVector, StaticVector_erase)
 
 	int erasures = container.size();
 	for (int i = 0; i < erasures && container.size() > 0; i++) {
-		size_t idx = RandomIntBetween(0, container.size(), true);
+		size_t idx = RandomIntLessThan(container.size());
 		container.erase(container.begin() + idx);
 		expected.erase(expected.begin() + idx);
-		EXPECT_EQ(container.size(), expected.size());
-		idx = idx == 0 ? 1 : idx;
-		EXPECT_EQ(container[idx - 1], expected[idx - 1]);
-		idx = (idx + 1) >= container.size() ? container.size() - 1 : idx;
-		EXPECT_EQ(container[idx + 1], expected[idx + 1]);
+		if(container.size() > 0) {
+			EXPECT_EQ(container.size(), expected.size());
+			idx = idx == 0 ? 1 : idx;
+			EXPECT_EQ(container[idx - 1], expected[idx - 1]);
+			idx = (idx + 1) >= container.size() ? container.size() - 1 : idx;
+			EXPECT_EQ(container[idx + 1], expected[idx + 1]);
+		}
 	}
 
 	EXPECT_EQ(container.size(), 0);
@@ -111,7 +113,8 @@ TEST(StaticVector, StaticVector_erase_random)
 		expected.push_back(i);
 	}
 
-	for (int idx : erase_idx) {
+	while (erase_idx.size() > 0) {
+		int idx = erase_idx.front();
 		container.erase(container.begin() + idx, container.begin() + idx + 1);
 		expected.erase(expected.begin() + idx);
 		erase_idx.erase(erase_idx.begin());
