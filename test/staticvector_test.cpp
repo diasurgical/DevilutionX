@@ -107,10 +107,10 @@ TEST(StaticVector, StaticVector_erase_random)
 		container.push_back(i);
 	}
 
-	size_t erasures = RandomIntBetween(1, static_cast<int32_t>(size), true);
+	size_t erasures = RandomIntBetween(1, static_cast<int32_t>(size) - 1, true);
 
 	for (size_t i = 0; i < erasures; i++) {
-		erase_idx.push_back(RandomIntBetween(0, static_cast<int32_t>(size), true));
+		erase_idx.push_back(RandomIntLessThan(static_cast<int32_t>(size)));
 	}
 
 	for (int i = 0; expected.size() < container.size(); i++) {
@@ -156,7 +156,7 @@ TEST(StaticVector, StaticVector_erase_range)
 		EXPECT_EQ(container[i], expected[i]);
 	}
 
-	int32_t from = RandomIntBetween(0, static_cast<int32_t>(container.size() - 1), true);
+	int32_t from = RandomIntLessThan(static_cast<int32_t>(container.size()));
 	int32_t to = RandomIntBetween(from, static_cast<int32_t>(container.size() - 1), true);
 
 	container.erase(container.begin() + from, container.begin() + to);
