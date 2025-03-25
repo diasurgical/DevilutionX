@@ -52,14 +52,12 @@ TEST(StaticVector, StaticVector_erase_random)
 	}
 
 	for (int idx : erase_idx) {
-		/* This is actually to guard against gcc's vector implementation causing
-		 * crashes, rather than StaticVector
-		 */
-		if (expected.size() == 0) {
-			break;
-		}
 		container.erase(container.begin() + idx, container.begin() + idx + 1);
 		expected.erase(expected.begin() + idx);
+		erase_idx.erase(erase_idx.begin());
+		for (int i = erase_idx.size() - 1; i >= 0; i--) {
+			erase_idx[i] -= erase_idx[i] != 0 ? 1 : 0;
+		}
 	}
 
 	EXPECT_EQ(container.size(), expected.size());
@@ -70,16 +68,14 @@ TEST(StaticVector, StaticVector_erase_random)
 
 TEST(StaticVector, StaticVector_clear)
 {
-	std::vector<int> expected;
+	StaticVector<int, MAX_SIZE> container;
 
 	container.clear();
-	expected.clear();
+	EXPECT_EQ(container.size(), 0);
 
-	EXPECT_EQ(container.size(), expected.size());
-
-	for (size_t i = 0; i < container.size(); i++) {
-		EXPECT_EQ(container[i], expected[i]);
-	}
+	container = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+	container.clear();
+	EXPECT_EQ(container.size(), 0);
 }
 
 } // namespace
