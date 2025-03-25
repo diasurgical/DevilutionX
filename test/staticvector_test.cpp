@@ -78,7 +78,7 @@ TEST(StaticVector, StaticVector_erase)
 		size_t idx = RandomIntLessThan(container.size());
 		container.erase(container.begin() + idx);
 		expected.erase(expected.begin() + idx);
-		if(container.size() > 0) {
+		if (container.size() > 0) {
 			EXPECT_EQ(container.size(), expected.size());
 			idx = idx == 0 ? 1 : idx;
 			EXPECT_EQ(container[idx - 1], expected[idx - 1]);
