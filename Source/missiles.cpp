@@ -3865,7 +3865,7 @@ void ProcessRage(Missile &missile)
 
 	// Prevent the player from dying as a result of recalculating their current life
 	if ((player._pHitPoints >> 6) <= 0)
-		SetPlayerHitPoints(player, 1);
+		SetPlayerHitPoints(player, 64);
 
 	RedrawEverything();
 	player.Say(HeroSpeech::HeavyBreathing);
