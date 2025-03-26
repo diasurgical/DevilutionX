@@ -1901,15 +1901,6 @@ _item_indexes RndSmithItem(const Player &player, int lvl)
 	return RndVendorItem<SmithItemOk, true>(player, 0, lvl);
 }
 
-void SortVendor(Item *itemList, size_t count)
-{
-	auto cmp = [](const Item &a, const Item &b) {
-		return a.IDidx < b.IDidx;
-	};
-
-	std::sort(itemList, itemList + count, cmp);
-}
-
 void SortVendor(std::span<Item> itemList, size_t PinnedItemCount)
 {
 	auto cmp = [](const Item &a, const Item &b) {
@@ -4397,10 +4388,10 @@ void SpawnSmith(int lvl)
 		maxItems = NumSmithBasicItemsHf;
 	}
 
-	const int iCnt = RandomIntBetween(10, maxItems);
+	const size_t iCnt = RandomIntBetween(10, maxItems);
 	SmithItems.clear();
 
-	while(SmithItems.size() < iCnt) {
+	while (SmithItems.size() < iCnt) {
 		Item newItem;
 		do {
 			newItem = {};
@@ -4428,7 +4419,7 @@ void ReplacePremium(const Player &player, Item &item)
 void SpawnPremium(const Player &player)
 {
 	const int lvl = player.getCharacterLevel();
-	const int maxItems = gbIsHellfire ? NumSmithItemsHf : NumSmithItems;
+	const size_t maxItems = gbIsHellfire ? NumSmithItemsHf : NumSmithItems;
 
 	while (PremiumItems.size() < maxItems) {
 		int plvl = PremiumItemLevel + (gbIsHellfire ? itemLevelAddHf[PremiumItems.size()] : itemLevelAdd[PremiumItems.size()]);
@@ -4439,8 +4430,8 @@ void SpawnPremium(const Player &player)
 
 	while (PremiumItemLevel < lvl) {
 		PremiumItemLevel++;
-		Item *ptr = &*PremiumItems.begin();
-		if(gbIsHellfire) {
+		Item *ptr = PremiumItems.begin();
+		if (gbIsHellfire) {
 			std::move(ptr + 3, ptr + 13, ptr);
 			PremiumItems[11] = PremiumItems[13];
 			PremiumItems[13] = PremiumItems[14];
@@ -4469,7 +4460,7 @@ void SpawnWitch(int lvl)
 	const int maxValue = gbIsHellfire ? MaxVendorValueHf : MaxVendorValue;
 	WitchItems.clear();
 
-	for(int i = 0; i < itemCount; i++) {
+	for (int i = 0; i < itemCount; i++) {
 		Item item = {};
 
 		if (i < PinnedItemCount) {
@@ -4642,10 +4633,10 @@ void SpawnHealer(int lvl)
 {
 	constexpr size_t PinnedItemCount = NumHealerPinnedItems;
 	constexpr std::array<_item_indexes, PinnedItemCount + 1> PinnedItemTypes = { IDI_HEAL, IDI_FULLHEAL, IDI_RESURRECT };
-	const auto itemCount = static_cast<size_t>(RandomIntBetween(10, gbIsHellfire ? NumHealerItemsHf : NumHealerItems));
+	const size_t itemCount = static_cast<size_t>(RandomIntBetween(10, gbIsHellfire ? NumHealerItemsHf : NumHealerItems));
 	HealerItems.clear();
 
-	for(int i = 0; i < itemCount; i++) {
+	for (size_t i = 0; i < itemCount; i++) {
 		Item item = {};
 
 		if (i < PinnedItemCount || (gbIsMultiplayer && i < NumHealerPinnedItemsMp)) {
