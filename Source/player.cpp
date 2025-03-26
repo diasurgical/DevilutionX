@@ -2052,6 +2052,15 @@ ClxSprite GetPlayerPartyInfoSprite(Player &player)
 	else
 		szCel = "as";
 
+	player_graphic graphic = player_graphic::Stand;
+	int spriteIndex = 0;
+	if (player._pHitPoints <= 0) {
+		if (animWeaponId == PlayerWeaponGraphic::Unarmed) {
+			szCel = "dt";
+			graphic = player_graphic::Death;
+		}
+	}
+
 	char prefix[3] = { CharChar[static_cast<std::size_t>(cls)], ArmourChar[player._pgfxnum >> 4], WepChar[static_cast<std::size_t>(animWeaponId)] };
 	char pszName[256];
 	*fmt::format_to(pszName, R"(plrgfx\{0}\{1}\{1}{2})", path, std::string_view(prefix, 3), szCel) = 0;
@@ -2063,11 +2072,18 @@ ClxSprite GetPlayerPartyInfoSprite(Player &player)
 		player.PartyInfoSpriteLocations[inDungeon] = spritePath;
 
 		// And now load the new sprite and store it
-		const uint16_t animationWidth = GetPlayerSpriteWidth(cls, player_graphic::Stand, animWeaponId);
+		const uint16_t animationWidth = GetPlayerSpriteWidth(cls, graphic, animWeaponId);
 		player.PartyInfoSprites[inDungeon] = LoadCl2Sheet(pszName, animationWidth);
 	}
 
-	return (*player.PartyInfoSprites[inDungeon])[static_cast<size_t>(Direction::South)][0];
+	ClxSpriteList spriteList = (*player.PartyInfoSprites[inDungeon])[static_cast<size_t>(Direction::South)];
+	return spriteList[(graphic == player_graphic::Stand) ? 0 : spriteList.numSprites() - 1];
+}
+
+bool IsPlayerUnarmed(Player& player)
+{
+	const PlayerWeaponGraphic animWeaponId = GetPlayerWeaponGraphic(player_graphic::Stand, static_cast<PlayerWeaponGraphic>(player._pgfxnum & 0xF));
+	return animWeaponId == PlayerWeaponGraphic::Unarmed;
 }
 
 void LoadPlrGFX(Player &player, player_graphic graphic)

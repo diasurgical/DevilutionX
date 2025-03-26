@@ -927,6 +927,7 @@ extern bool MyPlayerIsDead;
 Player *PlayerAtPosition(Point position, bool ignoreMovingPlayers = false);
 
 ClxSprite GetPlayerPartyInfoSprite(Player &player);
+bool IsPlayerUnarmed(Player &player);
 
 void LoadPlrGFX(Player &player, player_graphic graphic);
 void InitPlayerGFX(Player &player);

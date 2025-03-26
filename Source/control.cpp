@@ -88,6 +88,7 @@ int SpellbookTab;
 bool ChatFlag;
 bool SpellbookFlag;
 bool CharFlag;
+bool PartySidePanelOpen;
 StringOrView InfoString;
 bool MainPanelFlag;
 bool MainPanelButtonDown;
@@ -162,6 +163,7 @@ Rectangle MuteButtonRect { { 172, 69 }, { 61, 16 } };
 struct PartySpriteOffset {
 	Point inTownOffset;
 	Point inDungeonOffset;
+	Point isDeadOffset;
 };
 
 Point PartyPanelPos = { 5, 5 };
@@ -889,13 +891,15 @@ void UpdateLifeManaPercent()
 	MyPlayer->UpdateHitPointPercentage();
 }
 
-void LoadPartyClassOffsets() {
-	ClassSpriteOffsets[static_cast<size_t>(HeroClass::Warrior)] = { { -4, -18 }, { 6, -21 } };
-	ClassSpriteOffsets[static_cast<size_t>(HeroClass::Rogue)] = { { -2, -18 }, { 1, -20 } };
-	ClassSpriteOffsets[static_cast<size_t>(HeroClass::Sorcerer)] = { { -2, -16 }, { 3, -20 } };
-	ClassSpriteOffsets[static_cast<size_t>(HeroClass::Monk)] = { { -2, -19 }, { 1, -19 } };
-	ClassSpriteOffsets[static_cast<size_t>(HeroClass::Bard)] = { { -2, -18 }, { 1, -20 } };
-	ClassSpriteOffsets[static_cast<size_t>(HeroClass::Barbarian)] = { { -4, -18 }, { 6, -21 } };
+void InitPartyPanel() {
+	PartySidePanelOpen = true;
+
+	ClassSpriteOffsets[static_cast<size_t>(HeroClass::Warrior)] = { { -4, -18 }, { 6, -21 }, { -6, -50 } };
+	ClassSpriteOffsets[static_cast<size_t>(HeroClass::Rogue)] = { { -2, -18 }, { 1, -20 }, { -8, -35 } };
+	ClassSpriteOffsets[static_cast<size_t>(HeroClass::Sorcerer)] = { { -2, -16 }, { 3, -20 }, { 0, -50 } };
+	ClassSpriteOffsets[static_cast<size_t>(HeroClass::Monk)] = { { -2, -19 }, { 1, -19 }, { 28, -60 } };
+	ClassSpriteOffsets[static_cast<size_t>(HeroClass::Bard)] = { { -2, -18 }, { 1, -20 }, { -8, -35 } };
+	ClassSpriteOffsets[static_cast<size_t>(HeroClass::Barbarian)] = { { -4, -18 }, { 6, -21 }, { -6, -50 } };
 }
 
 void DrawPartyMemberInfo(const Surface &out)
@@ -907,7 +911,7 @@ void DrawPartyMemberInfo(const Surface &out)
 	Point partyPanelPos = PartyPanelPos;
 
 	for (Player &player : Players) {
-		if (!player.plractive || &player == MyPlayer)
+		if (!player.plractive)// || &player == MyPlayer)
 			continue;
 
 		ClxSprite playerCharacterSprite = GetPlayerPartyInfoSprite(player);
@@ -967,12 +971,19 @@ void DrawPartyMemberInfo(const Surface &out)
 		PartySpriteOffset offsets = ClassSpriteOffsets[static_cast<size_t>(player._pClass)];
 		Point offset = (player.isOnLevel(0)) ? offsets.inTownOffset : offsets.inDungeonOffset;
 
+		if (player._pHitPoints <= 0 && IsPlayerUnarmed(player))
+			offset = offsets.isDeadOffset;
+
 		Point playerPos = { ((-(playerCharacterSprite.width() / 2)) + (frameSize / 2)) + offset.x, offset.y };
+		Surface frameSubregion = out.subregion(partyPanelPos.x + frameBorderSize, partyPanelPos.y + frameBorderSize, frameSize - (frameBorderSize * 2), frameSize - (frameBorderSize * 2));
 		RenderClxSprite(
-		    out.subregion(partyPanelPos.x + frameBorderSize, partyPanelPos.y + frameBorderSize, frameSize - (frameBorderSize * 2), frameSize - (frameBorderSize * 2)),
+		    frameSubregion,
 		    playerCharacterSprite,
 		    playerPos
 		);
+
+		if (player._pHitPoints <= 0)
+			DrawHalfTransparentRectTo(frameSubregion, 0, 0, frameSize, frameSize, PAL8_RED + 4);
 
 		partyPanelPos.y += frameSize + 4;
 
@@ -1028,7 +1039,7 @@ tl::expected<void, std::string> InitMainPanel()
 
 		static const uint16_t CharButtonsFrameWidths[9] { 95, 41, 41, 41, 41, 41, 41, 41, 41 };
 		ASSIGN_OR_RETURN(pChrButtons, LoadCelWithStatus("data\\charbut", CharButtonsFrameWidths));
-	}
+	}	
 	ResetMainPanelButtons();
 	if (!HeadlessMode)
 		pDurIcons = LoadCel("items\\duricons", 32);
@@ -1048,7 +1059,7 @@ tl::expected<void, std::string> InitMainPanel()
 		ASSIGN_OR_RETURN(pQLogCel, LoadCelWithStatus("data\\quest", static_cast<uint16_t>(SidePanelSize.width)));
 		ASSIGN_OR_RETURN(GoldBoxBuffer, LoadCelWithStatus("ctrlpan\\golddrop", 261));
 
-		LoadPartyClassOffsets();
+		InitPartyPanel();
 	}
 	CloseGoldDrop();
 	CalculatePanelAreas();
