@@ -2037,7 +2037,7 @@ Player *PlayerAtPosition(Point position, bool ignoreMovingPlayers /*= false*/)
 	return &Players[std::abs(playerIndex) - 1];
 }
 
-ClxSprite GetPlayerPartyInfoSprite(Player &player)
+ClxSprite GetPlayerPortraitSprite(Player &player)
 {
 	bool inDungeon = (player.plrlevel != 0);
 
@@ -2070,6 +2070,8 @@ ClxSprite GetPlayerPartyInfoSprite(Player &player)
 	if (player.PartyInfoSpriteLocations[inDungeon] != spritePath) {
 		// The sprite has changed so store the new location
 		player.PartyInfoSpriteLocations[inDungeon] = spritePath;
+
+		player.PartyInfoSprites[inDungeon] = std::nullopt;
 
 		// And now load the new sprite and store it
 		const uint16_t animationWidth = GetPlayerSpriteWidth(cls, graphic, animWeaponId);

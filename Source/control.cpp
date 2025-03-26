@@ -41,6 +41,7 @@
 #include "panels/charpanel.hpp"
 #include "panels/console.hpp"
 #include "panels/mainpanel.hpp"
+#include "panels/partypanel.hpp"
 #include "panels/spell_book.hpp"
 #include "panels/spell_icons.hpp"
 #include "panels/spell_list.hpp"
@@ -88,7 +89,6 @@ int SpellbookTab;
 bool ChatFlag;
 bool SpellbookFlag;
 bool CharFlag;
-bool PartySidePanelOpen;
 StringOrView InfoString;
 bool MainPanelFlag;
 bool MainPanelButtonDown;
@@ -159,15 +159,6 @@ Rectangle FlaskBottomRect { { 0, 16 }, { 84, 69 } };
 int MuteButtons = 3;
 int MuteButtonPadding = 2;
 Rectangle MuteButtonRect { { 172, 69 }, { 61, 16 } };
-
-struct PartySpriteOffset {
-	Point inTownOffset;
-	Point inDungeonOffset;
-	Point isDeadOffset;
-};
-
-Point PartyPanelPos = { 5, 5 };
-std::array<PartySpriteOffset, 6> ClassSpriteOffsets;
 
 namespace {
 
@@ -891,108 +882,6 @@ void UpdateLifeManaPercent()
 	MyPlayer->UpdateHitPointPercentage();
 }
 
-void InitPartyPanel() {
-	PartySidePanelOpen = true;
-
-	ClassSpriteOffsets[static_cast<size_t>(HeroClass::Warrior)] = { { -4, -18 }, { 6, -21 }, { -6, -50 } };
-	ClassSpriteOffsets[static_cast<size_t>(HeroClass::Rogue)] = { { -2, -18 }, { 1, -20 }, { -8, -35 } };
-	ClassSpriteOffsets[static_cast<size_t>(HeroClass::Sorcerer)] = { { -2, -16 }, { 3, -20 }, { 0, -50 } };
-	ClassSpriteOffsets[static_cast<size_t>(HeroClass::Monk)] = { { -2, -19 }, { 1, -19 }, { 28, -60 } };
-	ClassSpriteOffsets[static_cast<size_t>(HeroClass::Bard)] = { { -2, -18 }, { 1, -20 }, { -8, -35 } };
-	ClassSpriteOffsets[static_cast<size_t>(HeroClass::Barbarian)] = { { -4, -18 }, { 6, -21 }, { -6, -50 } };
-}
-
-void DrawPartyMemberInfo(const Surface &out)
-{
-	// Only continue if the player is in a multiplayer game
-	if (!gbIsMultiplayer)
-		return;
-
-	Point partyPanelPos = PartyPanelPos;
-
-	for (Player &player : Players) {
-		if (!player.plractive)// || &player == MyPlayer)
-			continue;
-
-		ClxSprite playerCharacterSprite = GetPlayerPartyInfoSprite(player);
-		
-		// Draw the health bar
-		uint8_t barHeight = 7;
-		// Store the frames width and height
-		int frameBorderSize = 3;
-		int frameSpriteSize = 12;
-		int numFrameSections = 4; // This can't be less than 2
-		int frameSize = frameSpriteSize * numFrameSections;
-		// Get the players remaining life
-		int lifeTicks = ((player._pHitPoints * frameSize) + (player._pMaxHP / 2)) / player._pMaxHP;
-
-		// Get the color of the life bar based on stages of the players health
-		uint8_t grayBarColor = PAL16_GRAY + 10;
-		uint8_t barColor = PAL8_RED + 4;
-		if (player._pHitPoints <= ((player._pMaxHP / 4) * 3) && player._pHitPoints > (player._pMaxHP / 2)) {
-			barColor = PAL8_RED + 2;
-		} else if (player._pHitPoints <= (player._pMaxHP / 2) && player._pHitPoints > (player._pMaxHP / 4)) {
-			barColor = PAL8_ORANGE + 3;
-		} else if (player._pHitPoints <= (player._pMaxHP / 4)) {
-			barColor = PAL8_YELLOW + 2;
-		}
-
-		for (int i = 0; i < frameSize; i++) {
-			// Draw the background of the bar that will always be the length of the character display
-			DrawVerticalLine(out, { partyPanelPos.x + i, partyPanelPos.y }, barHeight, grayBarColor);
-
-			// Draw the amount of life remaining
-			if (i < lifeTicks)
-				DrawVerticalLine(out, { partyPanelPos.x + i, partyPanelPos.y }, barHeight, barColor);
-		}
-
-		partyPanelPos.y += barHeight;
-
-		// Draw the frame background
-		FillRect(out.subregionY(0, out.h()), partyPanelPos.x, partyPanelPos.y, frameSize, frameSize, PAL16_BLUE + 14);
-		// Draw the Panel Frame
-		// Top Row
-		RenderClxSprite(out, (*pSTextSlidCels)[0], partyPanelPos);
-		RenderClxSprite(out, (*pSTextSlidCels)[4], { partyPanelPos.x + frameSpriteSize, partyPanelPos.y });
-		RenderClxSprite(out, (*pSTextSlidCels)[4], { partyPanelPos.x + (frameSpriteSize * 2), partyPanelPos.y });
-		RenderClxSprite(out, (*pSTextSlidCels)[3], { partyPanelPos.x + (frameSpriteSize * 3), partyPanelPos.y });
-		// Second Row
-		RenderClxSprite(out, (*pSTextSlidCels)[5], { partyPanelPos.x, partyPanelPos.y + frameSpriteSize });
-		RenderClxSprite(out, (*pSTextSlidCels)[7], { partyPanelPos.x + (frameSpriteSize * 3), partyPanelPos.y + frameSpriteSize });
-		// Third Row
-		RenderClxSprite(out, (*pSTextSlidCels)[5], { partyPanelPos.x, partyPanelPos.y + (frameSpriteSize * 2) });
-		RenderClxSprite(out, (*pSTextSlidCels)[7], { partyPanelPos.x + (frameSpriteSize * 3), partyPanelPos.y + (frameSpriteSize * 2) });
-		// Bottom Row
-		RenderClxSprite(out, (*pSTextSlidCels)[1], { partyPanelPos.x, partyPanelPos.y + (frameSpriteSize * 3) });
-		RenderClxSprite(out, (*pSTextSlidCels)[6], { partyPanelPos.x + frameSpriteSize, partyPanelPos.y + (frameSpriteSize * 3) });
-		RenderClxSprite(out, (*pSTextSlidCels)[6], { partyPanelPos.x + (frameSpriteSize * 2), partyPanelPos.y + (frameSpriteSize * 3) });
-		RenderClxSprite(out, (*pSTextSlidCels)[2], { partyPanelPos.x + (frameSpriteSize * 3), partyPanelPos.y + (frameSpriteSize * 3) });
-
-		PartySpriteOffset offsets = ClassSpriteOffsets[static_cast<size_t>(player._pClass)];
-		Point offset = (player.isOnLevel(0)) ? offsets.inTownOffset : offsets.inDungeonOffset;
-
-		if (player._pHitPoints <= 0 && IsPlayerUnarmed(player))
-			offset = offsets.isDeadOffset;
-
-		Point playerPos = { ((-(playerCharacterSprite.width() / 2)) + (frameSize / 2)) + offset.x, offset.y };
-		Surface frameSubregion = out.subregion(partyPanelPos.x + frameBorderSize, partyPanelPos.y + frameBorderSize, frameSize - (frameBorderSize * 2), frameSize - (frameBorderSize * 2));
-		RenderClxSprite(
-		    frameSubregion,
-		    playerCharacterSprite,
-		    playerPos
-		);
-
-		if (player._pHitPoints <= 0)
-			DrawHalfTransparentRectTo(frameSubregion, 0, 0, frameSize, frameSize, PAL8_RED + 4);
-
-		partyPanelPos.y += frameSize + 4;
-
-		DrawString(out, player._pName, partyPanelPos, { .flags = UiFlags::ColorGold | UiFlags::Outlined | UiFlags::FontSize12 });
-
-		partyPanelPos.y += 25;
-	}
-}
-
 tl::expected<void, std::string> InitMainPanel()
 {
 	if (!HeadlessMode) {
@@ -1000,6 +889,7 @@ tl::expected<void, std::string> InitMainPanel()
 		pManaBuff.emplace(88, 88);
 		pLifeBuff.emplace(88, 88);
 
+		RETURN_IF_ERROR(LoadPartyPanel());
 		RETURN_IF_ERROR(LoadCharPanel());
 		RETURN_IF_ERROR(LoadLargeSpellIcons());
 		{
@@ -1058,8 +948,6 @@ tl::expected<void, std::string> InitMainPanel()
 		InitSpellBook();
 		ASSIGN_OR_RETURN(pQLogCel, LoadCelWithStatus("data\\quest", static_cast<uint16_t>(SidePanelSize.width)));
 		ASSIGN_OR_RETURN(GoldBoxBuffer, LoadCelWithStatus("ctrlpan\\golddrop", 261));
-
-		InitPartyPanel();
 	}
 	CloseGoldDrop();
 	CalculatePanelAreas();
@@ -1357,6 +1245,7 @@ void FreeControlPan()
 	pQLogCel = std::nullopt;
 	GoldBoxBuffer = std::nullopt;
 	FreeMainPanel();
+	FreePartyPanel();
 	FreeCharPanel();
 	FreeModifierHints();
 }

@@ -46,6 +46,7 @@
 #include "options.h"
 #include "panels/charpanel.hpp"
 #include "panels/console.hpp"
+#include "panels/partypanel.hpp"
 #include "panels/spell_list.hpp"
 #include "plrmsg.h"
 #include "qol/chatlog.h"
@@ -1749,7 +1750,8 @@ void DrawAndBlit()
 		    HasAnyOf(InspectPlayer->_pIFlags, ItemSpecialEffect::NoMana) ? 0 : MyPlayer->_pMaxMana >> 6);
 
 	if (*GetOptions().Gameplay.showMultiplayerPartyInfo && PartySidePanelOpen)
-		DrawPartyMemberInfo(out);
+		DrawPartyMemberInfoPanel(out);
+		//DrawPartyMemberInfo(out);
 
 	DrawCursor(out);
 
