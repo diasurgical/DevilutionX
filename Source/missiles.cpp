@@ -470,7 +470,7 @@ void CheckMissileCol(Missile &missile, DamageType damageType, int minDamage, int
 	if (IsMissileBlockedByTile({ mx, my })) {
 		Object *object = FindObjectAtPosition({ mx, my });
 		if (object != nullptr && object->IsBreakable()) {
-			BreakObjectMissile(missile.sourcePlayer(), *object);
+			BreakObject(*missile.sourcePlayer(), *object);
 		}
 
 		if (!dontDeleteOnCollision)

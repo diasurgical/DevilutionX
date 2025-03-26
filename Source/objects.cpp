@@ -4674,11 +4674,6 @@ void SyncOpObject(Player &player, int cmd, Object &object)
 	}
 }
 
-void BreakObjectMissile(const Player *player, Object &object)
-{
-	if (object.IsCrux())
-		BreakCrux(object, true);
-}
 void BreakObject(const Player &player, Object &object)
 {
 	if (object.IsBarrel()) {

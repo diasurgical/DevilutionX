@@ -56,8 +56,8 @@ OBJ_TRAPL	traphole	1	24				MissilesPassThrough,Light	1	0	64
 OBJ_TRAPR	traphole	1	24				MissilesPassThrough,Light	2	0	64	
 OBJ_BOOKSHELF	bcase	0	0				Solid,Light	1	0	96	
 OBJ_WEAPRACK	weapstnd	0	0				Solid,Light	1	0	96	
-OBJ_BARREL	barrel	1	15				Solid,MissilesPassThrough,Light,Breakable	1	9	96	Bottom,Middle
-OBJ_BARRELEX	barrelex	1	15				Solid,MissilesPassThrough,Light,Breakable	1	10	96	Bottom,Middle
+OBJ_BARREL	barrel	1	15				Solid,Light,Breakable	1	9	96	Bottom,Middle
+OBJ_BARRELEX	barrelex	1	15				Solid,Light,Breakable	1	10	96	Bottom,Middle
 OBJ_SHRINEL	lshrineg	0	0		THEME_SHRINE		Light	1	11	128	Bottom,Middle
 OBJ_SHRINER	rshrineg	0	0		THEME_SHRINE		Light	1	11	128	Bottom,Middle
 OBJ_SKELBOOK	book2	0	0		THEME_SKELROOM		Solid,MissilesPassThrough,Light	4	0	96	Bottom,Middle
@@ -98,10 +98,10 @@ OBJ_LAZSTAND	lzstand	0	0			Q_BETRAYER	Solid,Light	1	0	128	Bottom,Middle
 OBJ_SLAINHERO	decap	9	9				Solid,MissilesPassThrough,Light	2	0	96	Bottom
 OBJ_SIGNCHEST	chest3	0	0				Solid,MissilesPassThrough,Light	1	0	96	Bottom
 OBJ_BOOKSHELFR	bcase	0	0				Solid,Light	2	0	96	
-OBJ_POD	l6pod1	17	20				Solid,MissilesPassThrough,Light,Breakable	1	9	96	Bottom,Middle
-OBJ_PODEX	l6pod2	17	20				Solid,MissilesPassThrough,Light,Breakable	1	10	96	Bottom,Middle
-OBJ_URN	urn	21	24				Solid,MissilesPassThrough,Light,Breakable	1	9	96	Bottom,Middle
-OBJ_URNEX	urnexpld	21	24				Solid,MissilesPassThrough,Light,Breakable	1	10	96	Bottom,Middle
+OBJ_POD	l6pod1	17	20				Solid,Light,Breakable	1	9	96	Bottom,Middle
+OBJ_PODEX	l6pod2	17	20				Solid,Light,Breakable	1	10	96	Bottom,Middle
+OBJ_URN	urn	21	24				Solid,Light,Breakable	1	9	96	Bottom,Middle
+OBJ_URNEX	urnexpld	21	24				Solid,Light,Breakable	1	10	96	Bottom,Middle
 OBJ_L5BOOKS	l5books	21	24				Solid,MissilesPassThrough,Light	1	0	96	Bottom,Middle
 OBJ_L5CANDLE	l5light	21	23				Animated,Solid,MissilesPassThrough,Light	2	4	96	
 OBJ_L5LDOOR	l5door	0	0	DTYPE_CRYPT			Light,Trap	1	0	64	Bottom,Middle
