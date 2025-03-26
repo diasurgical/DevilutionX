@@ -25,6 +25,13 @@ void SetDocumented(sol::usertype<U> &table, std::string_view key, std::string_vi
 	// TODO: figure out a way to set signature and docstring.
 }
 
+template <typename U, typename G, typename S>
+void SetDocumented(sol::usertype<U> &table, std::string_view key, std::string_view signature, std::string_view doc, G &&getter, S &&setter)
+{
+	table[key] = sol::property(std::forward<G>(getter), std::forward<S>(setter));
+	// TODO: figure out a way to set signature and docstring.
+}
+
 template <typename T>
 void SetDocumented(sol::table &table, std::string_view key, std::string_view signature, std::string_view doc, T &&value)
 {
