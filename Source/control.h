@@ -50,6 +50,7 @@ extern int SpellbookTab;
 extern bool ChatFlag;
 extern bool SpellbookFlag;
 extern bool CharFlag;
+extern bool PartySidePanelOpen;
 extern StringOrView InfoString;
 extern bool MainPanelFlag;
 extern bool MainPanelButtonDown;

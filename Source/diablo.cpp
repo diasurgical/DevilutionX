@@ -1581,6 +1581,11 @@ void CharacterSheetKeyPressed()
 	ToggleCharPanel();
 }
 
+void PartyPanelSideToggleKeyPressed()
+{
+	PartySidePanelOpen = !PartySidePanelOpen;
+}
+
 void QuestLogKeyPressed()
 {
 	if (IsPlayerInStore())
@@ -1852,6 +1857,14 @@ void InitKeymapActions()
 	    N_("Open Character screen."),
 	    'C',
 	    CharacterSheetKeyPressed,
+	    nullptr,
+	    CanPlayerTakeAction);
+	options.Keymapper.AddAction(
+	    "Party",
+	    N_("Party"),
+	    N_("Open side Party panel."),
+	    'Y',
+	    PartyPanelSideToggleKeyPressed,
 	    nullptr,
 	    CanPlayerTakeAction);
 	options.Keymapper.AddAction(
