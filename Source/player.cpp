@@ -2037,6 +2037,39 @@ Player *PlayerAtPosition(Point position, bool ignoreMovingPlayers /*= false*/)
 	return &Players[std::abs(playerIndex) - 1];
 }
 
+ClxSprite GetPlayerPartyInfoSprite(Player &player)
+{
+	bool inDungeon = (player.plrlevel != 0);
+
+	const HeroClass cls = GetPlayerSpriteClass(player._pClass);
+	const PlayerWeaponGraphic animWeaponId = GetPlayerWeaponGraphic(player_graphic::Stand, static_cast<PlayerWeaponGraphic>(player._pgfxnum & 0xF));
+
+	const char *path = PlayersSpriteData[static_cast<std::size_t>(cls)].classPath;
+
+	const char *szCel;
+	if (!inDungeon)
+		szCel = "st";
+	else
+		szCel = "as";
+
+	char prefix[3] = { CharChar[static_cast<std::size_t>(cls)], ArmourChar[player._pgfxnum >> 4], WepChar[static_cast<std::size_t>(animWeaponId)] };
+	char pszName[256];
+	*fmt::format_to(pszName, R"(plrgfx\{0}\{1}\{1}{2})", path, std::string_view(prefix, 3), szCel) = 0;
+
+	std::string spritePath { pszName };
+	// Check to see if the sprite has updated.
+	if (player.PartyInfoSpriteLocations[inDungeon] != spritePath) {
+		// The sprite has changed so store the new location
+		player.PartyInfoSpriteLocations[inDungeon] = spritePath;
+
+		// And now load the new sprite and store it
+		const uint16_t animationWidth = GetPlayerSpriteWidth(cls, player_graphic::Stand, animWeaponId);
+		player.PartyInfoSprites[inDungeon] = LoadCl2Sheet(pszName, animationWidth);
+	}
+
+	return (*player.PartyInfoSprites[inDungeon])[static_cast<size_t>(Direction::South)][0];
+}
+
 void LoadPlrGFX(Player &player, player_graphic graphic)
 {
 	if (HeadlessMode)
