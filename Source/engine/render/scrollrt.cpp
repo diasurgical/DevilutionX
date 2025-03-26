@@ -1748,12 +1748,12 @@ void DrawAndBlit()
 		    (HasAnyOf(InspectPlayer->_pIFlags, ItemSpecialEffect::NoMana) || (MyPlayer->_pMana >> 6) <= 0) ? 0 : MyPlayer->_pMana >> 6,
 		    HasAnyOf(InspectPlayer->_pIFlags, ItemSpecialEffect::NoMana) ? 0 : MyPlayer->_pMaxMana >> 6);
 
+	if (*GetOptions().Gameplay.showMultiplayerPartyInfo)
+		DrawPartyMemberInfo(out);
+
 	DrawCursor(out);
 
 	DrawFPS(out);
-
-	if (*GetOptions().Gameplay.showMultiplayerPartyInfo)
-		DrawPartyMemberInfo(out);
 
 	LuaEvent("GameDrawComplete");
 
