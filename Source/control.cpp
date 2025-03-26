@@ -159,7 +159,13 @@ int MuteButtons = 3;
 int MuteButtonPadding = 2;
 Rectangle MuteButtonRect { { 172, 69 }, { 61, 16 } };
 
-Rectangle PartyPanelRect = { Point { 5, 5 }, Size { 160, 60 } };
+struct PartySpriteOffset {
+	Point inTownOffset;
+	Point inDungeonOffset;
+};
+
+Point PartyPanelPos = { 5, 5 };
+std::array<PartySpriteOffset, 6> ClassSpriteOffsets;
 
 namespace {
 
@@ -883,38 +889,96 @@ void UpdateLifeManaPercent()
 	MyPlayer->UpdateHitPointPercentage();
 }
 
+void LoadPartyClassOffsets() {
+	ClassSpriteOffsets[static_cast<size_t>(HeroClass::Warrior)] = { { -4, -18 }, { 6, -21 } };
+	ClassSpriteOffsets[static_cast<size_t>(HeroClass::Rogue)] = { { -2, -18 }, { 1, -20 } };
+	ClassSpriteOffsets[static_cast<size_t>(HeroClass::Sorcerer)] = { { -2, -16 }, { 3, -20 } };
+	ClassSpriteOffsets[static_cast<size_t>(HeroClass::Monk)] = { { -2, -19 }, { 1, -19 } };
+	ClassSpriteOffsets[static_cast<size_t>(HeroClass::Bard)] = { { -2, -18 }, { 1, -20 } };
+	ClassSpriteOffsets[static_cast<size_t>(HeroClass::Barbarian)] = { { -4, -18 }, { 6, -21 } };
+}
+
 void DrawPartyMemberInfo(const Surface &out)
 {
 	// Only continue if the player is in a multiplayer game
 	if (!gbIsMultiplayer)
 		return;
 
-	Rectangle partyPanelRect = PartyPanelRect;
+	Point partyPanelPos = PartyPanelPos;
 
 	for (Player &player : Players) {
 		if (!player.plractive || &player == MyPlayer)
 			continue;
 
-		// Panel background
-		FillRect(out.subregionY(0, gnViewportHeight), partyPanelRect.position.x, partyPanelRect.position.y, partyPanelRect.size.width, partyPanelRect.size.height, PAL16_BLUE + 14);
-		//// Panel frame
-		DrawHorizontalLine(out, { partyPanelRect.position.x - 1, partyPanelRect.position.y - 1 }, partyPanelRect.size.width + 1, PAL16_YELLOW);
-		DrawHorizontalLine(out, { partyPanelRect.position.x - 1, partyPanelRect.position.y + partyPanelRect.size.height + 1 }, partyPanelRect.size.width + 1, PAL16_YELLOW);
-		DrawVerticalLine(out, { partyPanelRect.position.x - 1, partyPanelRect.position.y - 1 }, partyPanelRect.size.height + 2, PAL16_YELLOW);
-		DrawVerticalLine(out, { partyPanelRect.position.x - 1 + partyPanelRect.size.width, partyPanelRect.position.y - 1 }, partyPanelRect.size.height + 2, PAL16_YELLOW);
+		ClxSprite playerCharacterSprite = GetPlayerPartyInfoSprite(player);
+		
+		// Draw the health bar
+		uint8_t barHeight = 7;
+		// Store the frames width and height
+		int frameBorderSize = 3;
+		int frameSpriteSize = 12;
+		int numFrameSections = 4; // This can't be less than 2
+		int frameSize = frameSpriteSize * numFrameSections;
+		// Get the players remaining life
+		int lifeTicks = ((player._pHitPoints * frameSize) + (player._pMaxHP / 2)) / player._pMaxHP;
 
-		// TRANSLATORS: This new UI element will display a connected party member's name in multiplayer games. {} will be the players name and {:d} the players level
-		std::string partyMemberNameText = fmt::format(fmt::runtime(_("{} (Level {:d})")), player._pName, player.getCharacterLevel());
-		// TRANSLATORS: This new UI element will display a connected party member's current HitPoints and max HitPoints in multiplayer games. The first{:d} will be the players current HitPoints and the second {:d} is the players max HitPoints
-		std::string partyMemberHealthText = fmt::format(fmt::runtime(_("HP: {:d} / {:d}")), player._pHitPoints >> 6, player._pMaxHP >> 6);
-		// TRANSLATORS: This new UI element will display a connected party member's current Mana and max Mana in multiplayer games. The first{:d} will be the players current Mana and the second {:d} is the players max Mana
-		std::string partyMemberManaText = fmt::format(fmt::runtime(_("Mana: {:d} / {:d}")), player._pMana >> 6, player._pMaxMana >> 6);
+		// Get the color of the life bar based on stages of the players health
+		uint8_t grayBarColor = PAL16_GRAY + 10;
+		uint8_t barColor = PAL8_RED + 4;
+		if (player._pHitPoints <= ((player._pMaxHP / 4) * 3) && player._pHitPoints > (player._pMaxHP / 2)) {
+			barColor = PAL8_RED + 2;
+		} else if (player._pHitPoints <= (player._pMaxHP / 2) && player._pHitPoints > (player._pMaxHP / 4)) {
+			barColor = PAL8_ORANGE + 3;
+		} else if (player._pHitPoints <= (player._pMaxHP / 4)) {
+			barColor = PAL8_YELLOW + 2;
+		}
 
-		DrawString(out, partyMemberNameText, Point { partyPanelRect.position.x + 10, partyPanelRect.position.y + 8 }, { .flags = UiFlags::ColorGold });
-		DrawString(out, partyMemberHealthText, Point { partyPanelRect.position.x + 20, partyPanelRect.position.y + 23 }, { .flags = UiFlags::ColorRed });
-		DrawString(out, partyMemberManaText, Point { partyPanelRect.position.x + 20, partyPanelRect.position.y + 38 }, { .flags = UiFlags::ColorBlue });
+		for (int i = 0; i < frameSize; i++) {
+			// Draw the background of the bar that will always be the length of the character display
+			DrawVerticalLine(out, { partyPanelPos.x + i, partyPanelPos.y }, barHeight, grayBarColor);
 
-		partyPanelRect.position.y += partyPanelRect.size.height + 20;
+			// Draw the amount of life remaining
+			if (i < lifeTicks)
+				DrawVerticalLine(out, { partyPanelPos.x + i, partyPanelPos.y }, barHeight, barColor);
+		}
+
+		partyPanelPos.y += barHeight;
+
+		// Draw the frame background
+		FillRect(out.subregionY(0, out.h()), partyPanelPos.x, partyPanelPos.y, frameSize, frameSize, PAL16_BLUE + 14);
+		// Draw the Panel Frame
+		// Top Row
+		RenderClxSprite(out, (*pSTextSlidCels)[0], partyPanelPos);
+		RenderClxSprite(out, (*pSTextSlidCels)[4], { partyPanelPos.x + frameSpriteSize, partyPanelPos.y });
+		RenderClxSprite(out, (*pSTextSlidCels)[4], { partyPanelPos.x + (frameSpriteSize * 2), partyPanelPos.y });
+		RenderClxSprite(out, (*pSTextSlidCels)[3], { partyPanelPos.x + (frameSpriteSize * 3), partyPanelPos.y });
+		// Second Row
+		RenderClxSprite(out, (*pSTextSlidCels)[5], { partyPanelPos.x, partyPanelPos.y + frameSpriteSize });
+		RenderClxSprite(out, (*pSTextSlidCels)[7], { partyPanelPos.x + (frameSpriteSize * 3), partyPanelPos.y + frameSpriteSize });
+		// Third Row
+		RenderClxSprite(out, (*pSTextSlidCels)[5], { partyPanelPos.x, partyPanelPos.y + (frameSpriteSize * 2) });
+		RenderClxSprite(out, (*pSTextSlidCels)[7], { partyPanelPos.x + (frameSpriteSize * 3), partyPanelPos.y + (frameSpriteSize * 2) });
+		// Bottom Row
+		RenderClxSprite(out, (*pSTextSlidCels)[1], { partyPanelPos.x, partyPanelPos.y + (frameSpriteSize * 3) });
+		RenderClxSprite(out, (*pSTextSlidCels)[6], { partyPanelPos.x + frameSpriteSize, partyPanelPos.y + (frameSpriteSize * 3) });
+		RenderClxSprite(out, (*pSTextSlidCels)[6], { partyPanelPos.x + (frameSpriteSize * 2), partyPanelPos.y + (frameSpriteSize * 3) });
+		RenderClxSprite(out, (*pSTextSlidCels)[2], { partyPanelPos.x + (frameSpriteSize * 3), partyPanelPos.y + (frameSpriteSize * 3) });
+
+		PartySpriteOffset offsets = ClassSpriteOffsets[static_cast<size_t>(player._pClass)];
+		Point offset = (player.isOnLevel(0)) ? offsets.inTownOffset : offsets.inDungeonOffset;
+
+		Point playerPos = { ((-(playerCharacterSprite.width() / 2)) + (frameSize / 2)) + offset.x, offset.y };
+		RenderClxSprite(
+		    out.subregion(partyPanelPos.x + frameBorderSize, partyPanelPos.y + frameBorderSize, frameSize - (frameBorderSize * 2), frameSize - (frameBorderSize * 2)),
+		    playerCharacterSprite,
+		    playerPos
+		);
+
+		partyPanelPos.y += frameSize + 4;
+
+		DrawString(out, player._pName, partyPanelPos, { .flags = UiFlags::ColorGold | UiFlags::Outlined | UiFlags::FontSize12 });
+
+		partyPanelPos.y += 25;
 	}
 }
 
@@ -983,6 +1047,8 @@ tl::expected<void, std::string> InitMainPanel()
 		InitSpellBook();
 		ASSIGN_OR_RETURN(pQLogCel, LoadCelWithStatus("data\\quest", static_cast<uint16_t>(SidePanelSize.width)));
 		ASSIGN_OR_RETURN(GoldBoxBuffer, LoadCelWithStatus("ctrlpan\\golddrop", 261));
+
+		LoadPartyClassOffsets();
 	}
 	CloseGoldDrop();
 	CalculatePanelAreas();
