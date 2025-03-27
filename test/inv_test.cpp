@@ -209,7 +209,7 @@ TEST_F(InvTest, RemoveInvItem_shiftsListFromMiddle)
 
 	EXPECT_EQ(MyPlayer->InvList[0]._itype, ItemType::Misc);
 	EXPECT_EQ(MyPlayer->InvList[1]._itype, ItemType::Misc);
-	
+
 	EXPECT_EQ(MyPlayer->_pNumInv, 2);
 }
 
