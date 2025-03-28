@@ -79,10 +79,10 @@ public:
 		T *firstPtr = data_[first - this->begin()].ptr();
 		T *lastPtr = data_[last - this->begin()].ptr();
 
-		std::move(lastPtr, this->end(), firstPtr);
-		for (const T *it = this->end() - count; it < this->end(); ++it) {
+		for (const T *it = firstPtr; it < lastPtr; ++it) {
 			std::destroy_at(it);
 		}
+		std::move(lastPtr, this->end(), firstPtr);
 
 		size_ -= count;
 	}
