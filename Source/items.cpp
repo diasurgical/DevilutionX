@@ -34,6 +34,7 @@
 #include "levels/tile_properties.hpp"
 #include "levels/town.h"
 #include "lighting.h"
+#include "lua/events/items.hpp"
 #include "minitext.h"
 #include "missiles.h"
 #include "options.h"
@@ -1522,9 +1523,11 @@ void SetupBaseItem(Point position, _item_indexes idx, bool onlygood, bool sendms
 	GetSuperItemSpace(position, ii);
 	int curlv = ItemsGetCurrlevel();
 
-	SetupAllItems(*MyPlayer, item, idx, AdvanceRndSeed(), 2 * curlv, 1, onlygood, delta);
-	TryRandomUniqueItem(item, idx, 2 * curlv, 1, onlygood, delta);
-	SetupItem(item);
+	do {
+		SetupAllItems(*MyPlayer, item, idx, AdvanceRndSeed(), 2 * curlv, 1, onlygood, delta);
+		TryRandomUniqueItem(item, idx, 2 * curlv, 1, onlygood, delta);
+		SetupItem(item);
+	} while (CallLuaDungeonSpawnCondition(item));
 
 	if (sendmsg)
 		NetSendCmdPItem(false, CMD_DROPITEM, item.position, item);
@@ -1964,7 +1967,7 @@ void SpawnOnePremium(Item &premiumItem, int plvl, const Player &player)
 		GetItemBonus(player, premiumItem, plvl / 2, plvl, true, !gbIsHellfire);
 
 		if (!gbIsHellfire) {
-			if (premiumItem._iIvalue <= MaxVendorValue) {
+			if (!CallLuaVendorSkipItem(premiumItem, MaxVendorValue)) {
 				break;
 			}
 		} else {
@@ -2001,11 +2004,7 @@ void SpawnOnePremium(Item &premiumItem, int plvl, const Player &player)
 				break;
 			}
 			itemValue = itemValue * 4 / 5; // avoids forced int > float > int conversion
-			if (premiumItem._iIvalue <= MaxVendorValueHf
-			    && premiumItem._iMinStr <= strength
-			    && premiumItem._iMinMag <= magic
-			    && premiumItem._iMinDex <= dexterity
-			    && premiumItem._iIvalue >= itemValue) {
+			if (!CallLuaSmithPremiumHfSkipItem(premiumItem, MaxVendorValueHf, strength, magic, dexterity, itemValue)) {
 				break;
 			}
 		}
@@ -2187,7 +2186,7 @@ void CreateMagicItem(Point position, int lvl, ItemType itemType, int imid, int i
 		SetupAllItems(*MyPlayer, item, idx, AdvanceRndSeed(), 2 * lvl, 1, true, delta);
 		TryRandomUniqueItem(item, idx, 2 * lvl, 1, true, delta);
 		SetupItem(item);
-		if (item._iCurs == icurs)
+		if (!CallLuaRewardSkipItem(item, icurs))
 			break;
 
 		idx = RndTypeItems(itemType, imid, lvl);
@@ -3421,8 +3420,10 @@ void SpawnItem(Monster &monster, Point position, bool sendmsg, bool spawn /*= fa
 			NetSendCmdPItem(false, CMD_DROPITEM, uniqueItem->position, *uniqueItem);
 		return;
 	} else if (monster.isUnique() || dropsSpecialTreasure) {
-		// Unique monster is killed => use better item base (for example no gold)
-		idx = RndUItem(&monster);
+		do {
+			// Unique monster is killed => use better item base (for example no gold)
+			idx = RndUItem(&monster);
+		} while (CallLuaUniqueMonsterSkipIdx(idx));
 	} else if (dropBrain && !gbIsMultiplayer) {
 		// Normal monster is killed => need to drop brain to progress the quest
 		Quests[Q_MUSHROOM]._qvar1 = QS_BRAINSPAWNED;
@@ -3442,7 +3443,9 @@ void SpawnItem(Monster &monster, Point position, bool sendmsg, bool spawn /*= fa
 		if ((monster.data().treasure & T_NODROP) != 0)
 			return;
 		onlygood = false;
-		idx = RndItemForMonsterLevel(static_cast<int8_t>(monster.level(sgGameInitInfo.nDifficulty)));
+		do {
+			idx = RndItemForMonsterLevel(static_cast<int8_t>(monster.level(sgGameInitInfo.nDifficulty)));
+		} while (CallLuaMonsterSkipIdx(idx));
 	}
 
 	if (idx == IDI_NONE)
@@ -3460,9 +3463,11 @@ void SpawnItem(Monster &monster, Point position, bool sendmsg, bool spawn /*= fa
 	if (!gbIsHellfire && monster.type().type == MT_DIABLO)
 		mLevel -= 15;
 
-	SetupAllItems(*MyPlayer, item, idx, AdvanceRndSeed(), mLevel, uper, onlygood, false, false);
-	TryRandomUniqueItem(item, idx, mLevel, uper, onlygood, false);
-	SetupItem(item);
+	do {
+		SetupAllItems(*MyPlayer, item, idx, AdvanceRndSeed(), mLevel, uper, onlygood, false);
+		TryRandomUniqueItem(item, idx, mLevel, uper, onlygood, false);
+		SetupItem(item);
+	} while (CallLuaDungeonSpawnCondition(item));
 
 	if (sendmsg)
 		NetSendCmdPItem(false, CMD_DROPITEM, item.position, item);
@@ -3472,7 +3477,10 @@ void SpawnItem(Monster &monster, Point position, bool sendmsg, bool spawn /*= fa
 
 void CreateRndItem(Point position, bool onlygood, bool sendmsg, bool delta)
 {
-	_item_indexes idx = onlygood ? RndUItem(nullptr) : RndAllItems();
+	_item_indexes idx;
+	do {
+		idx = onlygood ? RndUItem(nullptr) : RndAllItems();
+	} while (CallLuaDungeonRndItemSkipIdx(idx));
 
 	SetupBaseItem(position, idx, onlygood, sendmsg, delta);
 }
@@ -3497,10 +3505,13 @@ void CreateTypeItem(Point position, bool onlygood, ItemType itemType, int imisc,
 	_item_indexes idx;
 
 	int curlv = ItemsGetCurrlevel();
-	if (itemType != ItemType::Gold)
-		idx = RndTypeItems(itemType, imisc, curlv);
-	else
+	if (itemType != ItemType::Gold) {
+		do {
+			idx = RndTypeItems(itemType, imisc, curlv);
+		} while (CallLuaDungeonTypeItemSkipIdx(idx));
+	} else {
 		idx = IDI_GOLD;
+	}
 
 	SetupBaseItem(position, idx, onlygood, sendmsg, delta, spawn);
 }
@@ -4506,7 +4517,7 @@ void SpawnWitch(int lvl)
 				maxlvl = 2 * lvl;
 			if (maxlvl != -1)
 				GetItemBonus(*MyPlayer, item, maxlvl / 2, maxlvl, true, true);
-		} while (item._iIvalue > maxValue);
+		} while (CallLuaVendorSkipItem(item, maxValue));
 
 		item._iCreateInfo = lvl | CF_WITCH;
 		item._iIdentified = true;
@@ -4543,7 +4554,7 @@ void SpawnBoy(int lvl)
 		GetItemBonus(*MyPlayer, BoyItem, lvl, 2 * lvl, true, true);
 
 		if (!gbIsHellfire) {
-			if (BoyItem._iIvalue > MaxBoyValue) {
+			if (CallLuaVendorSkipItem(BoyItem, MaxBoyValue)) {
 				keepgoing = true; // prevent breaking the do/while loop too early by failing hellfire's condition in while
 				continue;
 			}
@@ -4616,14 +4627,7 @@ void SpawnBoy(int lvl)
 				break;
 			}
 		}
-	} while (keepgoing
-	    || ((
-	            BoyItem._iIvalue > MaxBoyValueHf
-	            || BoyItem._iMinStr > strength
-	            || BoyItem._iMinMag > magic
-	            || BoyItem._iMinDex > dexterity
-	            || BoyItem._iIvalue < ivalue)
-	        && count < 250));
+	} while (keepgoing || CallLuaBoyHfSkipItem(BoyItem, MaxBoyValueHf, strength, magic, dexterity, ivalue, count, 250));
 	BoyItem._iCreateInfo = lvl | CF_BOY;
 	BoyItem._iIdentified = true;
 	BoyItemLevel = lvl / 2;
@@ -4693,7 +4697,12 @@ void CreateSpellBook(Point position, SpellID ispell, bool sendmsg, bool delta)
 		}
 	}
 
-	_item_indexes idx = RndTypeItems(ItemType::Misc, IMISC_BOOK, lvl);
+	_item_indexes idx;
+
+	do {
+		idx = RndTypeItems(ItemType::Misc, IMISC_BOOK, lvl);
+	} while (CallLuaDungeonSpellBookSkipIdx(idx));
+
 	if (ActiveItemCount >= MAXITEMS)
 		return;
 

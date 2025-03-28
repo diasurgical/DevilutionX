@@ -106,6 +106,7 @@ set(libdevilutionx_SRCS
 
   lua/autocomplete.cpp
   lua/lua.cpp
+  lua/events/items.cpp
   lua/modules/audio.cpp
   lua/modules/dev.cpp
   lua/modules/dev/display.cpp
@@ -127,6 +128,7 @@ set(libdevilutionx_SRCS
   lua/modules/player.cpp
   lua/modules/render.cpp
   lua/modules/towners.cpp
+  lua/usertypes/items.cpp
   lua/repl.cpp
 
   panels/charpanel.cpp
