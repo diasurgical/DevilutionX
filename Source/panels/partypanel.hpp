@@ -12,5 +12,6 @@ namespace devilution {
 tl::expected<void, std::string> LoadPartyPanel();
 void FreePartyPanel();
 void DrawPartyMemberInfoPanel(const Surface &out);
+bool DidRightClickPartyPortrait();
 
 } // namespace devilution

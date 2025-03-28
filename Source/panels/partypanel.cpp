@@ -3,6 +3,8 @@
 #include <expected.hpp>
 #include <optional>
 
+#include "control.h"
+#include "engine/backbuffer_state.hpp"
 #include "engine/clx_sprite.hpp"
 #include "engine/load_cel.hpp"
 #include "engine/palette.h"
@@ -10,8 +12,10 @@
 #include "engine/render/clx_render.hpp"
 #include "engine/render/primitive_render.hpp"
 #include "engine/size.hpp"
+#include "inv.h"
 #include "pfile.h"
 #include "playerdat.hpp"
+#include <SDL_rect.h>
 #include "utils/status_macros.hpp"
 #include "utils/surface_to_clx.hpp"
 
@@ -34,6 +38,8 @@ const PartySpriteOffset ClassSpriteOffsets[] = {
 
 OptionalOwnedClxSpriteList PartyMemberFrame;
 Point PartyPanelPos = { 5, 5 };
+Rectangle PortraitFrameRects[9];
+int RightClickedPortraitIndex = -1;
 constexpr int HealthBarHeight = 7;
 constexpr int FrameGap = 25;
 constexpr int FrameBorderSize = 3;
@@ -86,6 +92,19 @@ void DrawMemberFrame(const Surface &out, OwnedClxSpriteList &frame, Point pos)
 	}
 }
 
+void HandleRightClickPortait()
+{
+	Player &player = Players[RightClickedPortraitIndex];
+	if (player.plractive && &player != MyPlayer) {
+		InspectPlayer = &player;
+		OpenCharPanel();
+		if (!SpellbookFlag)
+			invflag = true;
+		RedrawEverything();
+		RightClickedPortraitIndex = -1;
+	}
+}
+
 PartySpriteOffset GetClassSpriteOffset(HeroClass hClass)
 {
 	switch (hClass) {
@@ -125,6 +144,10 @@ void FreePartyPanel()
 
 void DrawPartyMemberInfoPanel(const Surface &out)
 {
+	// Don't draw if certain panels are open
+	if (CharFlag)
+		return;
+
 	if (!gbIsMultiplayer)
 		return;
 
@@ -171,6 +194,11 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 		    PortraitFrameSize.height - (FrameBorderSize * 2)
 		);
 
+		PortraitFrameRects[player.getId()] = {
+			{ frameSubregion.region.x, frameSubregion.region.y },
+			{ frameSubregion.region.w, frameSubregion.region.h }
+		};
+
 		// Draw the portrait sprite
 		RenderClxSprite(
 			frameSubregion,
@@ -189,6 +217,8 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 			);
 		}
 
+		//HandleInputActions(player, { { frameSubregion.region.x, frameSubregion.region.y }, { frameSubregion.region.w, frameSubregion.region.h } });
+
 		// Add to the position before continuing to the next item
 		pos.y += PortraitFrameSize.height + 4;
 
@@ -203,6 +233,21 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 		// Add to the position before continuing onto the next player
 		pos.y += FrameGap;
 	}
+
+	if (RightClickedPortraitIndex != -1)
+		HandleRightClickPortait();
+}
+
+bool DidRightClickPartyPortrait()
+{
+	for (int i = 0; i < sizeof(PortraitFrameRects); i++) {
+		if (PortraitFrameRects[i].contains(MousePosition)) {
+			RightClickedPortraitIndex = i;
+			return true;
+		}
+	}
+
+	return false;
 }
 
 } // namespace devilution

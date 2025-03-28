@@ -1751,7 +1751,6 @@ void DrawAndBlit()
 
 	if (*GetOptions().Gameplay.showMultiplayerPartyInfo && PartySidePanelOpen)
 		DrawPartyMemberInfoPanel(out);
-		//DrawPartyMemberInfo(out);
 
 	DrawCursor(out);
 

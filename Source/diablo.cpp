@@ -72,6 +72,7 @@
 #include "options.h"
 #include "panels/console.hpp"
 #include "panels/info_box.hpp"
+#include "panels/partypanel.hpp"
 #include "panels/spell_book.hpp"
 #include "panels/spell_list.hpp"
 #include "pfile.h"
@@ -446,6 +447,8 @@ void RightMouseDown(bool isShiftHeld)
 	if (pcursinvitem != -1 && UseInvItem(pcursinvitem))
 		return;
 	if (pcursstashitem != StashStruct::EmptyCell && UseStashItem(pcursstashitem))
+		return;
+	if (DidRightClickPartyPortrait())
 		return;
 	if (pcurs == CURSOR_HAND) {
 		CheckPlrSpell(isShiftHeld);
