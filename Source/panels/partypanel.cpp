@@ -122,6 +122,7 @@ PartySpriteOffset GetClassSpriteOffset(HeroClass hClass)
 } // namespace
 
 bool PartySidePanelOpen = true;
+bool InspectingFromPartyPanel;
 
 tl::expected<void, std::string> LoadPartyPanel()
 {
@@ -243,6 +244,7 @@ bool DidRightClickPartyPortrait()
 	for (int i = 0; i < sizeof(PortraitFrameRects); i++) {
 		if (PortraitFrameRects[i].contains(MousePosition)) {
 			RightClickedPortraitIndex = i;
+			InspectingFromPartyPanel = true;
 			return true;
 		}
 	}

@@ -783,7 +783,11 @@ void CloseCharPanel()
 	if (IsInspectingPlayer()) {
 		InspectPlayer = MyPlayer;
 		RedrawEverything();
-		InitDiabloMsg(_("Stopped inspecting players."));
+
+		if (InspectingFromPartyPanel)
+			InspectingFromPartyPanel = false;
+		else
+			InitDiabloMsg(_("Stopped inspecting players."));
 	}
 }
 

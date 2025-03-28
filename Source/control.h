@@ -50,7 +50,6 @@ extern int SpellbookTab;
 extern bool ChatFlag;
 extern bool SpellbookFlag;
 extern bool CharFlag;
-extern bool PartySidePanelOpen;
 extern StringOrView InfoString;
 extern bool MainPanelFlag;
 extern bool MainPanelButtonDown;
@@ -128,12 +127,6 @@ void DrawFlaskValues(const Surface &out, Point pos, int currValue, int maxValue)
  * @see Player::UpdateHitPointPercentage() and Player::UpdateManaPercentage()
  */
 void UpdateLifeManaPercent();
-
-/**
- * Draws all currently connected players health and mana pools in the top left of the screen.
- */
-
-void DrawPartyMemberInfo(const Surface &out);
 
 tl::expected<void, std::string> InitMainPanel();
 void DrawMainPanel(const Surface &out);

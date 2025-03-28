@@ -9,6 +9,9 @@
 
 namespace devilution {
 
+extern bool PartySidePanelOpen;
+extern bool InspectingFromPartyPanel;
+
 tl::expected<void, std::string> LoadPartyPanel();
 void FreePartyPanel();
 void DrawPartyMemberInfoPanel(const Surface &out);
