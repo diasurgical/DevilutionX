@@ -40,6 +40,38 @@ namespace devilution {
 std::list<Missile> Missiles;
 bool MissilePreFlag;
 
+void Missile::setAnimation(MissileGraphicID animtype)
+{
+	const int dir = _mimfnum;
+
+	if (animtype >= MissileGraphicID::None) {
+		_miAnimType = MissileGraphicID::None;
+		_miAnimData = std::nullopt;
+		_miAnimWidth = 0;
+		_miAnimWidth2 = 0;
+		_miAnimFlags = MissileGraphicsFlags::None;
+		_miAnimDelay = 0;
+		_miAnimLen = 0;
+		_miAnimCnt = 0;
+		_miAnimFrame = 1;
+		return;
+	}
+
+	const MissileFileData &missileData = GetMissileSpriteData(animtype);
+
+	_miAnimType = animtype;
+	_miAnimFlags = missileData.flags;
+	if (!HeadlessMode) {
+		_miAnimData = missileData.spritesForDirection(static_cast<Direction16>(dir));
+	}
+	_miAnimDelay = missileData.animDelay(dir);
+	_miAnimLen = missileData.animLen(dir);
+	_miAnimWidth = missileData.animWidth;
+	_miAnimWidth2 = missileData.animWidth2;
+	_miAnimCnt = 0;
+	_miAnimFrame = 1;
+}
+
 namespace {
 
 int AddClassHealingBonus(int hp, HeroClass heroClass)
@@ -175,7 +207,7 @@ void MoveMissilePos(Missile &missile)
 {
 	Direction moveDirection;
 
-	switch (static_cast<Direction>(missile._mimfnum)) {
+	switch (missile.getDirection()) {
 	case Direction::East:
 		moveDirection = Direction::SouthEast;
 		break;
@@ -399,14 +431,14 @@ void RotateBlockedMissile(Missile &missile)
 		return;
 	}
 
-	int dir = missile._mimfnum + rotation;
+	int dir = missile.getFrameGroupRaw() + rotation;
 	int mAnimFAmt = GetMissileSpriteData(missile._miAnimType).animFAmt;
 	if (dir < 0)
 		dir = mAnimFAmt - 1;
 	else if (dir >= mAnimFAmt)
 		dir = 0;
 
-	SetMissDir(missile, dir);
+	missile.setFrameGroupRaw(dir);
 }
 
 void CheckMissileCol(Missile &missile, DamageType damageType, int minDamage, int maxDamage, bool isDamageShifted, Point position, bool dontDeleteOnCollision)
@@ -598,38 +630,6 @@ void MoveMissileAndCheckMissileCol(Missile &missile, DamageType damageType, int 
 	missile.lastCollisionTargetHash = tileTargetHash;
 }
 
-void SetMissAnim(Missile &missile, MissileGraphicID animtype)
-{
-	const int dir = missile._mimfnum;
-
-	if (animtype >= MissileGraphicID::None) {
-		missile._miAnimType = MissileGraphicID::None;
-		missile._miAnimData = std::nullopt;
-		missile._miAnimWidth = 0;
-		missile._miAnimWidth2 = 0;
-		missile._miAnimFlags = MissileGraphicsFlags::None;
-		missile._miAnimDelay = 0;
-		missile._miAnimLen = 0;
-		missile._miAnimCnt = 0;
-		missile._miAnimFrame = 1;
-		return;
-	}
-
-	const MissileFileData &missileData = GetMissileSpriteData(animtype);
-
-	missile._miAnimType = animtype;
-	missile._miAnimFlags = missileData.flags;
-	if (!HeadlessMode) {
-		missile._miAnimData = missileData.spritesForDirection(static_cast<size_t>(dir));
-	}
-	missile._miAnimDelay = missileData.animDelay(dir);
-	missile._miAnimLen = missileData.animLen(dir);
-	missile._miAnimWidth = missileData.animWidth;
-	missile._miAnimWidth2 = missileData.animWidth2;
-	missile._miAnimCnt = 0;
-	missile._miAnimFrame = 1;
-}
-
 void AddRune(Missile &missile, Point dst, MissileID missileID)
 {
 	if (LineClearMissile(missile.position.start, dst)) {
@@ -692,7 +692,7 @@ bool GuardianTryFireAt(Missile &missile, Point target)
 
 	Direction dir = GetDirection(position, target);
 	AddMissile(position, target, dir, MissileID::Firebolt, TARGET_MONSTERS, missile._misource, missile._midam, missile.sourcePlayer()->GetSpellLevel(SpellID::Guardian), &missile);
-	SetMissDir(missile, 2);
+	missile.setFrameGroup<GuardianFrame>(GuardianFrame::Attack);
 	missile.var2 = 3;
 
 	return true;
@@ -1122,12 +1122,6 @@ bool PlayerMHit(Player &player, Monster *monster, int dist, int mind, int maxd, 
 	return true;
 }
 
-void SetMissDir(Missile &missile, int dir)
-{
-	missile._mimfnum = dir;
-	SetMissAnim(missile, missile._miAnimType);
-}
-
 void InitMissiles()
 {
 	Player &myPlayer = *MyPlayer;
@@ -1541,7 +1535,7 @@ void AddBigExplosion(Missile &missile, AddMissileParameter & /*parameter*/)
 			CheckMissileCol(missile, damageType, dmg, dmg, false, position, true);
 	}
 	missile._mlid = AddLight(missile.position.start, 8);
-	SetMissDir(missile, 0);
+	missile.setDefaultFrameGroup();
 	missile.duration = missile._miAnimLen - 1;
 }
 
@@ -1556,7 +1550,7 @@ void AddImmolation(Missile &missile, AddMissileParameter &parameter)
 		sp += std::min(missile._mispllvl, 34);
 	}
 	UpdateMissileVelocity(missile, dst, sp);
-	SetMissDir(missile, GetDirection16(missile.position.start, dst));
+	missile.setDirection(GetDirection16(missile.position.start, dst));
 	missile.duration = 256;
 	missile._mlid = AddLight(missile.position.start, 8);
 }
@@ -1694,7 +1688,7 @@ void AddElementalArrow(Missile &missile, AddMissileParameter &parameter)
 	}
 	UpdateMissileVelocity(missile, dst, av);
 
-	SetMissDir(missile, GetDirection16(missile.position.start, dst));
+	missile.setDirection(GetDirection16(missile.position.start, dst));
 	missile.duration = 256;
 	missile.var1 = missile.position.start.x;
 	missile.var2 = missile.position.start.y;
@@ -1803,7 +1797,7 @@ void AddFirebolt(Missile &missile, AddMissileParameter &parameter)
 		}
 	}
 	UpdateMissileVelocity(missile, dst, sp);
-	SetMissDir(missile, GetDirection16(missile.position.start, dst));
+	missile.setDirection(GetDirection16(missile.position.start, dst));
 	missile.duration = 256;
 	missile.var1 = missile.position.start.x;
 	missile.var2 = missile.position.start.y;
@@ -1914,7 +1908,7 @@ void AddFireball(Missile &missile, AddMissileParameter &parameter)
 		missile._midam = ScaleSpellEffect(dmg, missile._mispllvl);
 	}
 	UpdateMissileVelocity(missile, dst, sp);
-	SetMissDir(missile, GetDirection16(missile.position.start, dst));
+	missile.setDirection(GetDirection16(missile.position.start, dst));
 	missile.duration = 256;
 	missile.var1 = missile.position.start.x;
 	missile.var2 = missile.position.start.y;
@@ -1954,16 +1948,16 @@ void AddMissileExplosion(Missile &missile, AddMissileParameter &parameter)
 	if (missile._micaster != TARGET_MONSTERS && missile._misource >= 0) {
 		switch (Monsters[missile._misource].type().type) {
 		case MT_SUCCUBUS:
-			SetMissAnim(missile, MissileGraphicID::BloodStarExplosion);
+			missile.setAnimation(MissileGraphicID::BloodStarExplosion);
 			break;
 		case MT_SNOWWICH:
-			SetMissAnim(missile, MissileGraphicID::BloodStarBlueExplosion);
+			missile.setAnimation(MissileGraphicID::BloodStarBlueExplosion);
 			break;
 		case MT_HLSPWN:
-			SetMissAnim(missile, MissileGraphicID::BloodStarRedExplosion);
+			missile.setAnimation(MissileGraphicID::BloodStarRedExplosion);
 			break;
 		case MT_SOLBRNR:
-			SetMissAnim(missile, MissileGraphicID::BloodStarYellowExplosion);
+			missile.setAnimation(MissileGraphicID::BloodStarYellowExplosion);
 			break;
 		default:
 			break;
@@ -1983,9 +1977,9 @@ void AddWeaponExplosion(Missile &missile, AddMissileParameter &parameter)
 {
 	missile.var2 = parameter.dst.x;
 	if (parameter.dst.x == 1)
-		SetMissAnim(missile, MissileGraphicID::MagmaBallExplosion);
+		missile.setAnimation(MissileGraphicID::MagmaBallExplosion);
 	else
-		SetMissAnim(missile, MissileGraphicID::ChargedBolt);
+		missile.setAnimation(MissileGraphicID::ChargedBolt);
 	missile.duration = missile._miAnimLen - 1;
 }
 
@@ -2165,7 +2159,7 @@ namespace {
 void InitMissileAnimationFromMonster(Missile &mis, Direction midir, const Monster &mon, MonsterGraphic graphic)
 {
 	const AnimStruct &anim = mon.type().getAnimData(graphic);
-	mis._mimfnum = static_cast<int32_t>(midir);
+	mis.setDirection(midir);
 	mis._miAnimFlags = MissileGraphicsFlags::None;
 	ClxSpriteList sprites = *anim.spritesForDirection(midir);
 	const uint16_t width = sprites[0].width();
@@ -2216,17 +2210,17 @@ void AddGenericMagicMissile(Missile &missile, AddMissileParameter &parameter)
 	if (missile._micaster != TARGET_MONSTERS && missile._misource > 0) {
 		Monster &monster = Monsters[missile._misource];
 		if (monster.type().type == MT_SUCCUBUS)
-			SetMissAnim(missile, MissileGraphicID::BloodStar);
+			missile.setAnimation(MissileGraphicID::BloodStar);
 		if (monster.type().type == MT_SNOWWICH)
-			SetMissAnim(missile, MissileGraphicID::BloodStarBlue);
+			missile.setAnimation(MissileGraphicID::BloodStarBlue);
 		if (monster.type().type == MT_HLSPWN)
-			SetMissAnim(missile, MissileGraphicID::BloodStarRed);
+			missile.setAnimation(MissileGraphicID::BloodStarRed);
 		if (monster.type().type == MT_SOLBRNR)
-			SetMissAnim(missile, MissileGraphicID::BloodStarYellow);
+			missile.setAnimation(MissileGraphicID::BloodStarYellow);
 	}
 
 	if (GetMissileSpriteData(missile._miAnimType).animFAmt == 16) {
-		SetMissDir(missile, GetDirection16(missile.position.start, dst));
+		missile.setDirection(GetDirection16(missile.position.start, dst));
 	}
 
 	if (missile._midam == 0) {
@@ -2249,7 +2243,7 @@ void AddGenericMagicMissile(Missile &missile, AddMissileParameter &parameter)
 void AddAcid(Missile &missile, AddMissileParameter &parameter)
 {
 	UpdateMissileVelocity(missile, parameter.dst, 16);
-	SetMissDir(missile, GetDirection16(missile.position.start, parameter.dst));
+	missile.setDirection(GetDirection16(missile.position.start, parameter.dst));
 	if (!gbIsHellfire || (missile.position.velocity.deltaX & 0xFFFF0000) != 0 || (missile.position.velocity.deltaY & 0xFFFF0000) != 0)
 		missile.duration = 5 * (Monsters[missile._misource].intelligence + 4);
 	else
@@ -2415,7 +2409,7 @@ void AddElemental(Missile &missile, AddMissileParameter &parameter)
 	missile._midam = ScaleSpellEffect(dmg, missile._mispllvl) / 2;
 
 	UpdateMissileVelocity(missile, dst, 16);
-	SetMissDir(missile, GetDirection(missile.position.start, dst));
+	missile.setDirection(GetDirection(missile.position.start, dst));
 	missile.duration = 256;
 	missile.var1 = missile.position.start.x;
 	missile.var2 = missile.position.start.y;
@@ -2644,7 +2638,7 @@ void AddHolyBolt(Missile &missile, AddMissileParameter &parameter)
 	Player &player = Players[missile._misource];
 
 	UpdateMissileVelocity(missile, dst, sp);
-	SetMissDir(missile, GetDirection16(missile.position.start, dst));
+	missile.setDirection(GetDirection16(missile.position.start, dst));
 	missile.duration = 256;
 	missile.var1 = missile.position.start.x;
 	missile.var2 = missile.position.start.y;
@@ -2687,7 +2681,7 @@ void AddBoneSpirit(Missile &missile, AddMissileParameter &parameter)
 		dst += parameter.midir;
 	}
 	UpdateMissileVelocity(missile, dst, 16);
-	SetMissDir(missile, GetDirection(missile.position.start, dst));
+	missile.setDirection(GetDirection(missile.position.start, dst));
 	missile.duration = 256;
 	missile.var1 = missile.position.start.x;
 	missile.var2 = missile.position.start.y;
@@ -2750,9 +2744,9 @@ Missile *AddMissile(WorldTilePosition src, WorldTilePosition dst, Direction midi
 	}
 
 	if (missile._miAnimType == MissileGraphicID::None || GetMissileSpriteData(missile._miAnimType).animFAmt < 8)
-		SetMissDir(missile, 0);
+		missile.setDefaultFrameGroup();
 	else
-		SetMissDir(missile, midir);
+		missile.setDirection(midir);
 
 	if (!lSFX) {
 		lSFX = missileData.castSound;
@@ -2799,7 +2793,7 @@ void ProcessElementalArrow(Missile &missile)
 		}
 		MoveMissileAndCheckMissileCol(missile, DamageType::Physical, mind, maxd, true, false);
 		if (missile.duration == 0) {
-			missile._mimfnum = 0;
+			missile.setDefaultFrameGroup();
 			missile.duration = missile._miAnimLen - 1;
 			missile.position.StopMissile();
 
@@ -2838,7 +2832,7 @@ void ProcessElementalArrow(Missile &missile)
 				app_fatal(StrCat("wrong missile ID ", static_cast<int>(missile._mitype)));
 				break;
 			}
-			SetMissAnim(missile, eAnim);
+			missile.setAnimation(eAnim);
 			CheckMissileCol(missile, damageType, eMind, eMaxd, false, missile.position.tile, true);
 		} else {
 			if (missile.position.tile != Point { missile.var1, missile.var2 }) {
@@ -2894,7 +2888,7 @@ void ProcessGenericProjectile(Missile &missile)
 	if (missile.duration == 0) {
 		missile._miDelFlag = true;
 		Point dst = { 0, 0 };
-		auto dir = static_cast<Direction>(missile._mimfnum);
+		Direction dir = missile.getDirection();
 		switch (missile._mitype) {
 		case MissileID::Firebolt:
 		case MissileID::MagmaBall:
@@ -2965,10 +2959,10 @@ void ProcessAcidPuddle(Missile &missile)
 	CheckMissileCol(missile, GetMissileData(missile._mitype).damageType(), missile._midam, missile._midam, true, missile.position.tile, false);
 	missile.duration = range;
 	if (range == 0) {
-		if (missile._mimfnum != 0) {
+		if (missile.getFrameGroup<AcidPuddleFrame>() != AcidPuddleFrame::Idle) {
 			missile._miDelFlag = true;
 		} else {
-			SetMissDir(missile, 1);
+			missile.setFrameGroup<AcidPuddleFrame>(AcidPuddleFrame::End);
 			missile.duration = missile._miAnimLen;
 		}
 	}
@@ -2982,11 +2976,11 @@ void ProcessFireWall(Missile &missile)
 
 	missile.duration--;
 	if (missile.duration == missile.var1) {
-		SetMissDir(missile, 1);
+		missile.setFrameGroup<FireWallFrame>(FireWallFrame::Idle);
 		missile._miAnimFrame = GenerateRnd(11) + 1;
 	}
 	if (missile.duration == missile._miAnimLen - 1) {
-		SetMissDir(missile, 0);
+		missile.setFrameGroup<FireWallFrame>(FireWallFrame::Start);
 		missile._miAnimFrame = 13;
 		missile._miAnimAdd = -1;
 	}
@@ -2996,7 +2990,7 @@ void ProcessFireWall(Missile &missile)
 		AddUnLight(missile._mlid);
 	}
 	constexpr int MaxExpLightIndex = ExpLightLen - 1;
-	if (missile._mimfnum == 0 && missile.duration != 0 && missile.var2 <= MaxExpLightIndex * 2) {
+	if (missile.getFrameGroup<FireWallFrame>() == FireWallFrame::Start && missile.duration != 0 && missile.var2 <= MaxExpLightIndex * 2) {
 		if (missile.var2 == 0)
 			missile._mlid = AddLight(missile.position.tile, ExpLight[0]);
 		int expLightIndex = MaxExpLightIndex - std::abs(missile.var2 - MaxExpLightIndex);
@@ -3061,8 +3055,8 @@ void ProcessFireball(Missile &missile)
 			        || (TransList[dTransVal[missilePosition.x][missilePosition.y - 1]] && TileHasAny(missilePosition + Direction::NorthEast, TileProperties::Solid)))) {
 				missile.position.offset.deltaX -= 32;
 			}
-			missile._mimfnum = 0;
-			SetMissAnim(missile, MissileGraphicID::BigExplosion);
+			missile.setDefaultFrameGroup();
+			missile.setAnimation(MissileGraphicID::BigExplosion);
 			missile.duration = missile._miAnimLen - 1;
 			missile.position.velocity = {};
 		} else if (missile.position.tile != Point { missile.var1, missile.var2 }) {
@@ -3304,8 +3298,8 @@ void ProcessTownPortal(Missile &missile)
 	if (missile.duration > 1)
 		missile.duration--;
 	if (missile.duration == missile.var1)
-		SetMissDir(missile, 1);
-	if (leveltype != DTYPE_TOWN && missile._mimfnum != 1 && missile.duration != 0) {
+		missile.setFrameGroup<PortalFrame>(PortalFrame::Idle);
+	if (leveltype != DTYPE_TOWN && missile.getFrameGroup<PortalFrame>() != PortalFrame::Idle && missile.duration != 0) {
 		if (missile.var2 == 0)
 			missile._mlid = AddLight(missile.position.tile, 1);
 		ChangeLight(missile._mlid, missile.position.tile, expLight[missile.var2]);
@@ -3395,7 +3389,7 @@ void ProcessFlameWave(Missile &missile)
 
 	missile.var1++;
 	if (missile.var1 == missile._miAnimLen) {
-		SetMissDir(missile, 1);
+		missile.setFrameGroup<FireWallFrame>(FireWallFrame::Idle);
 		missile._miAnimFrame = GenerateRnd(11) + 1;
 	}
 	int j = missile.duration;
@@ -3425,8 +3419,8 @@ void ProcessGuardian(Missile &missile)
 	if (missile.var2 > 0) {
 		missile.var2--;
 	}
-	if (missile.duration == missile.var1 || (missile._mimfnum == 2 && missile.var2 == 0)) {
-		SetMissDir(missile, 1);
+	if (missile.duration == missile.var1 || (missile.getFrameGroup<GuardianFrame>() == GuardianFrame::Attack && missile.var2 == 0)) {
+		missile.setFrameGroup<GuardianFrame>(GuardianFrame::Idle);
 	}
 
 	Point position = missile.position.tile;
@@ -3468,7 +3462,7 @@ void ProcessGuardian(Missile &missile)
 	}
 
 	if (missile.duration == 14) {
-		SetMissDir(missile, 0);
+		missile.setFrameGroup<GuardianFrame>(GuardianFrame::Start);
 		missile._miAnimFrame = 15;
 		missile._miAnimAdd = -1;
 	}
@@ -3623,9 +3617,9 @@ void ProcessStoneCurse(Missile &missile)
 	missile.duration--;
 	Monster &monster = Monsters[missile.var2];
 	if (monster.hitPoints == 0 && missile._miAnimType != MissileGraphicID::StoneCurseShatter) {
-		missile._mimfnum = 0;
+		missile.setDefaultFrameGroup();
 		missile._miDrawFlag = true;
-		SetMissAnim(missile, MissileGraphicID::StoneCurseShatter);
+		missile.setAnimation(MissileGraphicID::StoneCurseShatter);
 		missile.duration = 11;
 	}
 	if (monster.mode != MonsterMode::Petrified) {
@@ -3953,10 +3947,10 @@ void ProcessChargedBolt(Missile &missile)
 		MoveMissileAndCheckMissileCol(missile, GetMissileData(missile._mitype).damageType(), missile._midam, missile._midam, false, false);
 		if (missile._miHitFlag) {
 			missile.var1 = 8;
-			missile._mimfnum = 0;
+			missile.setDefaultFrameGroup();
 			missile.position.offset = { 0, 0 };
 			missile.position.velocity = {};
-			SetMissAnim(missile, MissileGraphicID::Lightning);
+			missile.setAnimation(MissileGraphicID::Lightning);
 			missile.duration = missile._miAnimLen;
 		}
 		ChangeLight(missile._mlid, missile.position.tile, missile.var1);
@@ -3975,8 +3969,8 @@ void ProcessHolyBolt(Missile &missile)
 		int dam = missile._midam;
 		MoveMissileAndCheckMissileCol(missile, GetMissileData(missile._mitype).damageType(), dam, dam, true, true);
 		if (missile.duration == 0) {
-			missile._mimfnum = 0;
-			SetMissAnim(missile, MissileGraphicID::HolyBoltExplosion);
+			missile.setDefaultFrameGroup();
+			missile.setAnimation(MissileGraphicID::HolyBoltExplosion);
 			missile.duration = missile._miAnimLen - 1;
 			missile.position.StopMissile();
 		} else {
@@ -4035,11 +4029,11 @@ void ProcessElemental(Missile &missile)
 			auto *nextMonster = FindClosest(missilePosition, 19);
 			if (nextMonster != nullptr) {
 				Direction sd = GetDirection(missilePosition, nextMonster->position.tile);
-				SetMissDir(missile, sd);
+				missile.setDirection(sd);
 				UpdateMissileVelocity(missile, nextMonster->position.tile, 16);
 			} else {
 				Direction sd = Players[missile._misource]._pdir;
-				SetMissDir(missile, sd);
+				missile.setDirection(sd);
 				UpdateMissileVelocity(missile, missilePosition + sd, 16);
 			}
 		}
@@ -4049,8 +4043,8 @@ void ProcessElemental(Missile &missile)
 			ChangeLight(missile._mlid, missilePosition, 8);
 		}
 		if (missile.duration == 0) {
-			missile._mimfnum = 0;
-			SetMissAnim(missile, MissileGraphicID::BigExplosion);
+			missile.setDefaultFrameGroup();
+			missile.setAnimation(MissileGraphicID::BigExplosion);
 			missile.duration = missile._miAnimLen - 1;
 			missile.position.StopMissile();
 		}
@@ -4062,7 +4056,7 @@ void ProcessBoneSpirit(Missile &missile)
 {
 	missile.duration--;
 	int dam = missile._midam;
-	if (missile._mimfnum == 8) {
+	if (missile.getDirection() == Direction::NoDirection) {
 		ChangeLight(missile._mlid, missile.position.tile, missile._miAnimFrame);
 		if (missile.duration == 0) {
 			missile._miDelFlag = true;
@@ -4080,11 +4074,11 @@ void ProcessBoneSpirit(Missile &missile)
 			auto *monster = FindClosest(c, 19);
 			if (monster != nullptr) {
 				missile._midam = monster->hitPoints >> 7;
-				SetMissDir(missile, GetDirection(c, monster->position.tile));
+				missile.setDirection(GetDirection(c, monster->position.tile));
 				UpdateMissileVelocity(missile, monster->position.tile, 16);
 			} else {
 				Direction sd = Players[missile._misource]._pdir;
-				SetMissDir(missile, sd);
+				missile.setDirection(sd);
 				UpdateMissileVelocity(missile, c + sd, 16);
 			}
 		}
@@ -4094,7 +4088,7 @@ void ProcessBoneSpirit(Missile &missile)
 			ChangeLight(missile._mlid, c, 8);
 		}
 		if (missile.duration == 0) {
-			SetMissDir(missile, 8);
+			missile.setDirection(Direction::NoDirection);
 			missile.position.velocity = {};
 			missile.duration = 7;
 		}
@@ -4117,9 +4111,9 @@ void ProcessRedPortal(Missile &missile)
 	if (missile.duration > 1)
 		missile.duration--;
 	if (missile.duration == missile.var1)
-		SetMissDir(missile, 1);
+		missile.setFrameGroup<RedPortalFrame>(RedPortalFrame::Idle);
 
-	if (leveltype != DTYPE_TOWN && missile._mimfnum != 1 && missile.duration != 0) {
+	if (leveltype != DTYPE_TOWN && missile.getFrameGroup<RedPortalFrame>() != RedPortalFrame::Idle && missile.duration != 0) {
 		if (missile.var2 == 0)
 			missile._mlid = AddLight(missile.position.tile, 1);
 		ChangeLight(missile._mlid, missile.position.tile, expLight[missile.var2]);
@@ -4191,7 +4185,7 @@ void SetUpMissileAnimationData()
 			continue;
 
 		if (missile._mitype != MissileID::Rhino) {
-			missile._miAnimData = GetMissileSpriteData(missile._miAnimType).spritesForDirection(missile._mimfnum);
+			missile._miAnimData = GetMissileSpriteData(missile._miAnimType).spritesForDirection(missile.getDirection16());
 			continue;
 		}
 
@@ -4205,7 +4199,7 @@ void SetUpMissileAnimationData()
 		} else {
 			graphic = MonsterGraphic::Walk;
 		}
-		missile._miAnimData = mon.getAnimData(graphic).spritesForDirection(static_cast<Direction>(missile._mimfnum));
+		missile._miAnimData = mon.getAnimData(graphic).spritesForDirection(missile.getDirection());
 	}
 }
 
