@@ -37,7 +37,14 @@ Point Automap;
 
 enum MapColors : uint8_t {
 	/** color used to draw the player's arrow */
-	MapColorsPlayer = (PAL8_ORANGE + 1),
+	MapColorsPlayer1 = (PAL8_ORANGE + 1),
+	MapColorsPlayer2 = (PAL8_YELLOW + 1),
+	MapColorsPlayer3 = (PAL8_RED + 1),
+	MapColorsPlayer4 = (PAL8_BLUE + 1),
+	MapColorsPlayer5 = (PAL16_ORANGE + 2),
+	MapColorsPlayer6 = (PAL16_BEIGE + 2),
+	MapColorsPlayer7 = (PAL16_RED + 2),
+	MapColorsPlayer8 = (PAL16_BLUE + 2),
 	/** color for bright map lines (doors, stairs etc.) */
 	MapColorsBright = PAL8_YELLOW,
 	/** color for dim map lines/dots */
@@ -152,6 +159,8 @@ struct AutomapTile {
 		    != 0;
 	}
 };
+
+uint8_t playerColors[] { MapColorsPlayer1, MapColorsPlayer2, MapColorsPlayer3, MapColorsPlayer4, MapColorsPlayer5, MapColorsPlayer6, MapColorsPlayer7, MapColorsPlayer8 };
 
 /**
  * Maps from tile_id to automap type.
@@ -1319,7 +1328,7 @@ void SearchAutomapItem(const Surface &out, const Displacement &myPlayerOffset, i
  */
 void DrawAutomapPlr(const Surface &out, const Displacement &myPlayerOffset, const Player &player)
 {
-	const uint8_t playerColor = MapColorsPlayer + (8 * player.getId()) % 128;
+	const uint8_t playerColor = playerColors[player.getId()];
 
 	Point tile = player.position.tile;
 

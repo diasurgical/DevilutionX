@@ -51,7 +51,7 @@ bool SNetReceiveTurns(int arraysize, char **arraydata, size_t *arraydatabytes, u
 #ifndef NONET
 	std::lock_guard<SdlMutex> lg(storm_net_mutex);
 #endif
-	if (arraysize != MAX_PLRS)
+	if (arraysize != MaxPlayers)
 		UNIMPLEMENTED();
 	return dvlnet_inst->SNetReceiveTurns(arraydata, arraydatabytes, arrayplayerstatus);
 }
