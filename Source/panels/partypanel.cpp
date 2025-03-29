@@ -176,9 +176,14 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 		// Draw the characters frame
 		RenderClxSprite(out, (*PartyMemberFrame)[0], pos);
 
+		// If the player is using mana shield change the value we use to mana
+		//	If not use their hitpoints like normal
+		int healthOrMana = (player.pManaShield) ? player._pMana : player._pHitPoints;
+		int maxHealthOrMana = (player.pManaShield) ? player._pMaxMana : player._pMaxHP;
+
 		// Get the players remaining life
-		int lifeTicks = ((player._pHitPoints * PortraitFrameSize.width) + (player._pMaxHP / 2)) / player._pMaxHP;
-		uint8_t hpBarColor = PAL8_RED + 4;
+		int lifeTicks = ((healthOrMana * PortraitFrameSize.width) + (maxHealthOrMana / 2)) / maxHealthOrMana;
+		uint8_t hpBarColor = (player.pManaShield) ? PAL8_BLUE + 3 : PAL8_RED + 4;
 		// Now draw the characters remaining life
 		DrawBar(out, { pos, { lifeTicks, HealthBarHeight } }, hpBarColor);
 
