@@ -63,7 +63,7 @@ namespace {
 
 void LoadUserMods()
 {
-	const std::string modsPath = paths::BasePath() + "assets/lua/mods/";
+	const std::string modsPath = StrCat(paths::PrefPath(), "lua", DIRECTORY_SEPARATOR_STR, "mods");
 
 	// Check if the mods directory exists.
 	if (!DirectoryExists(modsPath.c_str()))
