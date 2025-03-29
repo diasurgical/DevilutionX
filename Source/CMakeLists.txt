@@ -133,6 +133,7 @@ set(libdevilutionx_SRCS
   panels/console.cpp
   panels/info_box.cpp
   panels/mainpanel.cpp
+  panels/partypanel.cpp
   panels/spell_book.cpp
   panels/spell_icons.cpp
   panels/spell_list.cpp
