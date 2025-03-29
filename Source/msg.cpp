@@ -1862,7 +1862,7 @@ size_t OnPlayerDamage(const TCmd *pCmd, Player &player)
 	const uint32_t damage = SDL_SwapLE32(message.dwDam);
 
 	Player &target = Players[message.bPlr];
-	if (&target == MyPlayer && leveltype != DTYPE_TOWN && gbBufferMsgs != 1) {
+	if (&target == MyPlayer && leveltype != DTYPE_TOWN && gbBufferMsgs != 1 && sgGameInitInfo.bFriendlyFire) {
 		if (player.isOnActiveLevel() && damage <= 192000 && target._pHitPoints >> 6 > 0) {
 			ApplyPlrDamage(message.damageType, target, 0, 0, damage, DeathReason::Player);
 		}
