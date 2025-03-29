@@ -32,23 +32,11 @@ inline bool AreExtraFontsOutOfDate()
 #ifdef UNPACKED_MPQS
 	return font_data_path && AreExtraFontsOutOfDate(*font_data_path);
 #else
-	return font_mpq && AreExtraFontsOutOfDate(*font_mpq);
+	return font_mpq && AreExtraFontsOutOfDate(*MpqArchives[9200]);
 #endif
 }
 
-#ifndef UNPACKED_MPQS
-bool IsDevilutionXMpqOutOfDate(MpqArchive &archive);
-#endif
-
-inline bool IsDevilutionXMpqOutOfDate()
-{
-#ifdef UNPACKED_MPQS
-	return false;
-#else
-	return devilutionx_mpq.has_value() && IsDevilutionXMpqOutOfDate(*devilutionx_mpq);
-#endif
-}
-
+bool IsDevilutionXMpqOutOfDate();
 void init_cleanup();
 void init_create_window();
 void MainWndProc(const SDL_Event &event);

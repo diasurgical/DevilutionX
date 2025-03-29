@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <map>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -284,20 +285,13 @@ extern std::optional<std::string> hellfire_data_path;
 extern std::optional<std::string> font_data_path;
 extern std::optional<std::string> lang_data_path;
 #else
-/** A handle to the spawn.mpq archive. */
-extern DVL_API_FOR_TEST std::optional<MpqArchive> spawn_mpq;
-/** A handle to the diabdat.mpq archive. */
-extern DVL_API_FOR_TEST std::optional<MpqArchive> diabdat_mpq;
-/** A handle to an hellfire.mpq archive. */
-extern std::optional<MpqArchive> hellfire_mpq;
-extern std::optional<MpqArchive> hfmonk_mpq;
-extern std::optional<MpqArchive> hfbard_mpq;
-extern std::optional<MpqArchive> hfbarb_mpq;
-extern std::optional<MpqArchive> hfmusic_mpq;
-extern std::optional<MpqArchive> hfvoice_mpq;
-extern std::optional<MpqArchive> font_mpq;
-extern std::optional<MpqArchive> lang_mpq;
-extern std::optional<MpqArchive> devilutionx_mpq;
+extern DVL_API_FOR_TEST std::map<int, std::unique_ptr<MpqArchive>> MpqArchives;
+extern bool font_mpq;
+extern bool spawn_mpq;
+extern bool diabdat_mpq;
+extern bool hellfire_mpq;
+extern bool hfbard_mpq;
+extern bool hfbarb_mpq;
 #endif
 
 void LoadCoreArchives();
@@ -314,12 +308,12 @@ void LoadGameArchives();
 [[nodiscard]] inline bool HaveBardAssets() { return false; }
 [[nodiscard]] inline bool HaveBarbarianAssets() { return false; }
 #else
-[[nodiscard]] inline bool HaveSpawn() { return spawn_mpq.has_value(); }
-[[nodiscard]] inline bool HaveDiabdat() { return diabdat_mpq.has_value(); }
-[[nodiscard]] inline bool HaveHellfire() { return hellfire_mpq.has_value(); }
-[[nodiscard]] inline bool HaveExtraFonts() { return font_mpq.has_value(); }
-[[nodiscard]] inline bool HaveBardAssets() { return hfbard_mpq.has_value(); }
-[[nodiscard]] inline bool HaveBarbarianAssets() { return hfbarb_mpq.has_value(); }
+[[nodiscard]] inline bool HaveSpawn() { return spawn_mpq; }
+[[nodiscard]] inline bool HaveDiabdat() { return diabdat_mpq; }
+[[nodiscard]] inline bool HaveHellfire() { return hellfire_mpq; }
+[[nodiscard]] inline bool HaveExtraFonts() { return font_mpq; }
+[[nodiscard]] inline bool HaveBardAssets() { return hfbard_mpq; }
+[[nodiscard]] inline bool HaveBarbarianAssets() { return hfbarb_mpq; }
 #endif
 
 } // namespace devilution
