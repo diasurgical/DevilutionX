@@ -533,6 +533,8 @@ void KillMyGolem();
 void M_StartKill(Monster &monster, const Player &player);
 void M_SyncStartKill(Monster &monster, Point position, const Player &player);
 void M_UpdateRelations(const Monster &monster);
+void M_SeparateFromLeaderPack(Monster &monster);
+void M_JoinLeaderPack(Monster &monster);
 void DoEnding();
 void PrepDoEnding();
 bool Walk(Monster &monster, Direction md);
