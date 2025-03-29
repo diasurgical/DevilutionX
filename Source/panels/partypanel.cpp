@@ -3,6 +3,7 @@
 #include <expected.hpp>
 #include <optional>
 
+#include "automap.h"
 #include "control.h"
 #include "engine/backbuffer_state.hpp"
 #include "engine/clx_sprite.hpp"
@@ -15,9 +16,10 @@
 #include "engine/size.hpp"
 #include "inv.h"
 #include "qol/monhealthbar.h"
+#include "qol/stash.h"
 #include "pfile.h"
 #include "playerdat.hpp"
-#include <SDL_rect.h>
+#include "stores.h"
 #include "utils/status_macros.hpp"
 #include "utils/surface_to_clx.hpp"
 
@@ -152,10 +154,13 @@ void FreePartyPanel()
 void DrawPartyMemberInfoPanel(const Surface &out)
 {
 	// Don't draw based on these criteria
-	if (CharFlag || !gbIsMultiplayer || !MyPlayer->friendlyMode)
+	if (CharFlag || !gbIsMultiplayer || !MyPlayer->friendlyMode || IsPlayerInStore() || IsStashOpen)
 		return;
 
 	Point pos = PartyPanelPos;
+	if (AutomapActive)
+		pos.y += PortraitFrameSize.height + FrameGap;
+
 	int currentLongestNameWidth = PortraitFrameSize.width;
 
 	for (Player& player : Players) {
