@@ -71,21 +71,13 @@ bool CheckExtraFontsVersion(AssetRef &&ref)
 
 } // namespace
 
-#ifndef UNPACKED_MPQS
-bool IsDevilutionXMpqOutOfDate(MpqArchive &archive)
+bool IsDevilutionXMpqOutOfDate()
 {
-	const char filename[] = "ASSETS_VERSION";
-	const MpqFileHash fileHash = CalculateMpqFileHash(filename);
-	uint32_t fileNumber;
-	if (!archive.GetFileNumber(fileHash, fileNumber))
+	AssetRef ref = FindAsset("ASSETS_VERSION");
+	if (!ref.ok())
 		return true;
-	AssetRef ref;
-	ref.archive = &archive;
-	ref.fileNumber = fileNumber;
-	ref.filename = filename;
 	return CheckDevilutionXMpqVersion(std::move(ref));
 }
-#endif
 
 #ifdef UNPACKED_MPQS
 bool AreExtraFontsOutOfDate(const std::string &path)
@@ -127,17 +119,13 @@ void init_cleanup()
 	diabdat_data_path = std::nullopt;
 	spawn_data_path = std::nullopt;
 #else
-	spawn_mpq = std::nullopt;
-	diabdat_mpq = std::nullopt;
-	hellfire_mpq = std::nullopt;
-	hfmonk_mpq = std::nullopt;
-	hfbard_mpq = std::nullopt;
-	hfbarb_mpq = std::nullopt;
-	hfmusic_mpq = std::nullopt;
-	hfvoice_mpq = std::nullopt;
-	lang_mpq = std::nullopt;
-	font_mpq = std::nullopt;
-	devilutionx_mpq = std::nullopt;
+	MpqArchives.clear();
+	font_mpq = false;
+	spawn_mpq = false;
+	diabdat_mpq = false;
+	hellfire_mpq = false;
+	hfbard_mpq = false;
+	hfbarb_mpq = false;
 #endif
 
 	NetClose();

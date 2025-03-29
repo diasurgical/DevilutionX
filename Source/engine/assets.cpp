@@ -30,17 +30,13 @@ std::optional<std::string> hellfire_data_path;
 std::optional<std::string> font_data_path;
 std::optional<std::string> lang_data_path;
 #else
-std::optional<MpqArchive> spawn_mpq;
-std::optional<MpqArchive> diabdat_mpq;
-std::optional<MpqArchive> hellfire_mpq;
-std::optional<MpqArchive> hfmonk_mpq;
-std::optional<MpqArchive> hfbard_mpq;
-std::optional<MpqArchive> hfbarb_mpq;
-std::optional<MpqArchive> hfmusic_mpq;
-std::optional<MpqArchive> hfvoice_mpq;
-std::optional<MpqArchive> devilutionx_mpq;
-std::optional<MpqArchive> lang_mpq;
-std::optional<MpqArchive> font_mpq;
+std::map<int, std::unique_ptr<MpqArchive>> MpqArchives;
+bool font_mpq;
+bool spawn_mpq;
+bool diabdat_mpq;
+bool hellfire_mpq;
+bool hfbard_mpq;
+bool hfbarb_mpq;
 #endif
 
 namespace {
@@ -82,17 +78,21 @@ SDL_RWops *OpenOptionalRWops(const std::string &path)
 bool FindMpqFile(std::string_view filename, MpqArchive **archive, uint32_t *fileNumber)
 {
 	const MpqFileHash fileHash = CalculateMpqFileHash(filename);
-	const auto at = [=](std::optional<MpqArchive> &src) -> bool {
-		if (src && src->GetFileNumber(fileHash, *fileNumber)) {
-			*archive = &(*src);
+
+	// Iterate over archives in reverse order to prefer files from high priority archives
+	for (auto rit = MpqArchives.rbegin(); rit != MpqArchives.rend(); ++rit) {
+		int priority = rit->first;
+		if (!gbIsHellfire && priority >= 8000 && priority < 9000)
+			continue;
+		if (rit->second->GetFileNumber(fileHash, *fileNumber)) {
+			*archive = rit->second.get();
 			return true;
 		}
-		return false;
-	};
+	}
 
-	return at(font_mpq) || at(lang_mpq) || at(devilutionx_mpq)
-	    || (gbIsHellfire && (at(hfvoice_mpq) || at(hfmusic_mpq) || at(hfbarb_mpq) || at(hfbard_mpq) || at(hfmonk_mpq) || at(hellfire_mpq))) || at(spawn_mpq) || at(diabdat_mpq);
+	return false;
 }
+
 #endif
 
 } // namespace
@@ -281,7 +281,7 @@ std::optional<std::string> FindUnpackedMpqData(const std::vector<std::string> &p
 	return std::nullopt;
 }
 #else
-std::optional<MpqArchive> LoadMPQ(const std::vector<std::string> &paths, std::string_view mpqName)
+bool LoadMPQ(const std::vector<std::string> &paths, std::string_view mpqName, int priority)
 {
 	std::optional<MpqArchive> archive;
 	std::string mpqAbsPath;
@@ -290,7 +290,8 @@ std::optional<MpqArchive> LoadMPQ(const std::vector<std::string> &paths, std::st
 		mpqAbsPath = path + mpqName.data();
 		if ((archive = MpqArchive::Open(mpqAbsPath.c_str(), error))) {
 			LogVerbose("  Found: {} in {}", mpqName, path);
-			return archive;
+			MpqArchives[priority] = std::make_unique<MpqArchive>(std::move(*archive));
+			return true;
 		}
 		if (error != 0) {
 			LogError("Error {}: {}", MpqArchive::ErrorMessage(error), mpqAbsPath);
@@ -300,7 +301,7 @@ std::optional<MpqArchive> LoadMPQ(const std::vector<std::string> &paths, std::st
 		LogVerbose("Missing: {}", mpqName);
 	}
 
-	return std::nullopt;
+	return false;
 }
 #endif
 
@@ -371,9 +372,9 @@ void LoadCoreArchives()
 #else // !UNPACKED_MPQS
 #if !defined(__ANDROID__) && !defined(__APPLE__) && !defined(__3DS__) && !defined(__SWITCH__)
 	// Load devilutionx.mpq first to get the font file for error messages
-	devilutionx_mpq = LoadMPQ(paths, "devilutionx.mpq");
+	LoadMPQ(paths, "devilutionx.mpq", 9000);
 #endif
-	font_mpq = LoadMPQ(paths, "fonts.mpq"); // Extra fonts
+	font_mpq = LoadMPQ(paths, "fonts.mpq", 9200); // Extra fonts
 #endif
 }
 
@@ -381,8 +382,6 @@ void LoadLanguageArchive()
 {
 #ifdef UNPACKED_MPQS
 	lang_data_path = std::nullopt;
-#else
-	lang_mpq = std::nullopt;
 #endif
 
 	std::string_view code = GetLanguageCode();
@@ -392,7 +391,7 @@ void LoadLanguageArchive()
 		lang_data_path = FindUnpackedMpqData(GetMPQSearchPaths(), langMpqName);
 #else
 		langMpqName.append(".mpq");
-		lang_mpq = LoadMPQ(GetMPQSearchPaths(), langMpqName);
+		LoadMPQ(GetMPQSearchPaths(), langMpqName, 9100);
 #endif
 	}
 }
@@ -430,14 +429,14 @@ void LoadGameArchives()
 		DisplayFatalErrorAndExit(_("Some Hellfire MPQs are missing"), _("Not all Hellfire MPQs were found.\nPlease copy all the hf*.mpq files."));
 	}
 #else // !UNPACKED_MPQS
-	diabdat_mpq = LoadMPQ(paths, "DIABDAT.MPQ");
+	diabdat_mpq = LoadMPQ(paths, "DIABDAT.MPQ", 1000);
 	if (!diabdat_mpq) {
 		// DIABDAT.MPQ is uppercase on the original CD and the GOG version.
-		diabdat_mpq = LoadMPQ(paths, "diabdat.mpq");
+		diabdat_mpq = LoadMPQ(paths, "diabdat.mpq", 1000);
 	}
 
 	if (!diabdat_mpq) {
-		spawn_mpq = LoadMPQ(paths, "spawn.mpq");
+		spawn_mpq = LoadMPQ(paths, "spawn.mpq", 1000);
 		if (spawn_mpq)
 			gbIsSpawn = true;
 	}
@@ -449,19 +448,19 @@ void LoadGameArchives()
 		}
 	}
 
-	hellfire_mpq = LoadMPQ(paths, "hellfire.mpq");
+	hellfire_mpq = LoadMPQ(paths, "hellfire.mpq", 8000);
 	if (hellfire_mpq)
 		gbIsHellfire = true;
 	if (forceHellfire && !hellfire_mpq)
 		InsertCDDlg("hellfire.mpq");
 
-	hfmonk_mpq = LoadMPQ(paths, "hfmonk.mpq");
-	hfbard_mpq = LoadMPQ(paths, "hfbard.mpq");
-	hfbarb_mpq = LoadMPQ(paths, "hfbarb.mpq");
-	hfmusic_mpq = LoadMPQ(paths, "hfmusic.mpq");
-	hfvoice_mpq = LoadMPQ(paths, "hfvoice.mpq");
+	bool hasHfMonk = LoadMPQ(paths, "hfmonk.mpq", 8100);
+	hfbard_mpq = LoadMPQ(paths, "hfbard.mpq", 8110);
+	hfbarb_mpq = LoadMPQ(paths, "hfbarb.mpq", 8120);
+	bool hasHfMusic = LoadMPQ(paths, "hfmusic.mpq", 8200);
+	bool hasHfVoice = LoadMPQ(paths, "hfvoice.mpq", 8500);
 
-	if (gbIsHellfire && (!hfmonk_mpq || !hfmusic_mpq || !hfvoice_mpq)) {
+	if (gbIsHellfire && (!hasHfMonk || !hasHfMusic || !hasHfVoice)) {
 		DisplayFatalErrorAndExit(_("Some Hellfire MPQs are missing"), _("Not all Hellfire MPQs were found.\nPlease copy all the hf*.mpq files."));
 	}
 #endif
