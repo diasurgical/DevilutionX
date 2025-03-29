@@ -2189,9 +2189,8 @@ void ResetPlayerGFX(Player &player)
 {
 	player.AnimInfo.sprites = std::nullopt;
 
-	for (int i = 0; i < sizeof(player.PartyInfoSprites); i++) {
-		player.PartyInfoSprites[i] = std::nullopt;
-	}
+	player.PartyInfoSprites[0] = std::nullopt;
+	player.PartyInfoSprites[1] = std::nullopt;
 
 	for (PlayerAnimationData &animData : player.AnimationData) {
 		animData.sprites = std::nullopt;
