@@ -269,7 +269,7 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 
 bool DidRightClickPartyPortrait()
 {
-	for (int i = 0; i < sizeof(PortraitFrameRects); i++) {
+	for (int i = 0; i < sizeof(PortraitFrameRects) / sizeof(PortraitFrameRects[0]); i++) {
 		if (PortraitFrameRects[i].contains(MousePosition)) {
 			RightClickedPortraitIndex = i;
 			InspectingFromPartyPanel = true;
