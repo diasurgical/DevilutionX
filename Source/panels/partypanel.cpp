@@ -7,12 +7,14 @@
 #include "engine/backbuffer_state.hpp"
 #include "engine/clx_sprite.hpp"
 #include "engine/load_cel.hpp"
+#include "engine/load_clx.hpp"
 #include "engine/palette.h"
 #include "engine/rectangle.hpp"
 #include "engine/render/clx_render.hpp"
 #include "engine/render/primitive_render.hpp"
 #include "engine/size.hpp"
 #include "inv.h"
+#include "qol/monhealthbar.h"
 #include "pfile.h"
 #include "playerdat.hpp"
 #include <SDL_rect.h>
@@ -37,8 +39,10 @@ const PartySpriteOffset ClassSpriteOffsets[] = {
 };
 
 OptionalOwnedClxSpriteList PartyMemberFrame;
+OptionalOwnedClxSpriteList PlayerTags;
+
 Point PartyPanelPos = { 5, 5 };
-Rectangle PortraitFrameRects[9];
+Rectangle PortraitFrameRects[MAX_PLRS];
 int RightClickedPortraitIndex = -1;
 constexpr int HealthBarHeight = 7;
 constexpr int FrameGap = 25;
@@ -127,6 +131,7 @@ bool InspectingFromPartyPanel;
 tl::expected<void, std::string> LoadPartyPanel()
 {
 	ASSIGN_OR_RETURN(OwnedClxSpriteList frame, LoadCelWithStatus("data\\textslid", FrameSpriteSize));
+	ASSIGN_OR_RETURN(PlayerTags, LoadClxWithStatus("data\\monstertags.clx"));
 	OwnedSurface out(PortraitFrameSize.width, PortraitFrameSize.height + HealthBarHeight);
 
 	// Draw the health bar background
@@ -141,22 +146,21 @@ tl::expected<void, std::string> LoadPartyPanel()
 void FreePartyPanel()
 {
 	PartyMemberFrame = std::nullopt;
+	PlayerTags = std::nullopt;
 }
 
 void DrawPartyMemberInfoPanel(const Surface &out)
 {
-	// Don't draw if certain panels are open
-	if (CharFlag)
-		return;
-
-	if (!gbIsMultiplayer)
+	// Don't draw based on these criteria
+	if (CharFlag || !gbIsMultiplayer || !MyPlayer->friendlyMode)
 		return;
 
 	Point pos = PartyPanelPos;
+	int currentLongestNameWidth = PortraitFrameSize.width;
 
 	for (Player& player : Players) {
 
-		if (!player.plractive)
+		if (!player.plractive || !player.friendlyMode)
 			continue;
 
 #ifndef _DEBUG
@@ -207,6 +211,13 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 			portraitPos
 		);
 
+		// Draw the player tag
+		RenderClxSprite(
+			out,
+		    (*PlayerTags)[player.getId() + 1],
+		    { pos.x + (PortraitFrameSize.width / 2) - 6, pos.y + PortraitFrameSize.height - 8}
+		);
+
 		// Check to see if the player is dead and if so we draw a half transparent red rect over the portrait
 		if (player._pHitPoints <= 0) {
 			DrawHalfTransparentRectTo(
@@ -217,8 +228,6 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 			    PAL8_RED + 4
 			);
 		}
-
-		//HandleInputActions(player, { { frameSubregion.region.x, frameSubregion.region.y }, { frameSubregion.region.w, frameSubregion.region.h } });
 
 		// Add to the position before continuing to the next item
 		pos.y += PortraitFrameSize.height + 4;
@@ -233,6 +242,20 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 
 		// Add to the position before continuing onto the next player
 		pos.y += FrameGap;
+
+		// Get the current players name width
+		int width = GetLineWidth(player._pName);
+		// Now check to see if it's the current longest name
+		if (width >= currentLongestNameWidth)
+			currentLongestNameWidth = width;
+
+		// Check to see if the Y position is more then the main panel position
+		if (pos.y >= GetMainPanel().position.y - PortraitFrameSize.height - 10) {
+			// If so we need to draw the next set of portraits back at the top and to the right of the original position
+			pos.y = PartyPanelPos.y;
+			// Add the current longest name width to the X position
+			pos.x += currentLongestNameWidth + (FrameGap / 2);
+		}
 	}
 
 	if (RightClickedPortraitIndex != -1)
