@@ -48,5 +48,6 @@ std::unique_ptr<wchar_t[]> ToWideChar(std::string_view path);
 #endif
 
 std::vector<std::string> ListDirectories(const char *path);
+std::vector<std::string> ListFiles(const char *path);
 
 } // namespace devilution

@@ -44,12 +44,6 @@
 #endif
 #endif
 
-#ifdef NXDK
-#include <windows.h> // For WIN32_FIND_DATAA, FindFirstFileA, etc.
-#else
-#include <filesystem>
-#endif
-
 namespace devilution {
 
 #if defined(_WIN32) && !defined(DEVILUTIONX_WINDOWS_NO_WCHAR)
@@ -478,8 +472,15 @@ FILE *OpenFile(const char *path, const char *mode)
 std::vector<std::string> ListDirectories(const char *path)
 {
 	std::vector<std::string> dirs;
-#ifdef NXDK
-	// Use the NXDK Windows API.
+#ifdef DVL_HAS_FILESYSTEM
+	std::error_code ec;
+	for (const auto &entry : std::filesystem::directory_iterator(reinterpret_cast<const char8_t *>(path), ec)) {
+		if (!entry.is_directory())
+			continue;
+		std::u8string filename = entry.path().filename().u8string();
+		dirs.emplace_back(filename.begin(), filename.end());
+	}
+#elif defined(_WIN32)
 	WIN32_FIND_DATAA findData;
 	// Construct the search path by appending the directory separator and wildcard.
 	std::string searchPath = std::string(path) + DIRECTORY_SEPARATOR_STR + "*";
@@ -496,13 +497,42 @@ std::vector<std::string> ListDirectories(const char *path)
 	} while (FindNextFileA(hFind, &findData));
 	FindClose(hFind);
 #else
-	// For platforms that support std::filesystem.
-	for (const auto &entry : std::filesystem::directory_iterator(path)) {
-		if (entry.is_directory())
-			dirs.push_back(entry.path().filename().string());
-	}
+	static_assert(false, "ListDirectories not implemented for the current platform");
 #endif
 	return dirs;
+}
+
+std::vector<std::string> ListFiles(const char *path)
+{
+	std::vector<std::string> files;
+#ifdef DVL_HAS_FILESYSTEM
+	std::error_code ec;
+	for (const auto &entry : std::filesystem::directory_iterator(reinterpret_cast<const char8_t *>(path), ec)) {
+		if (!entry.is_regular_file())
+			continue;
+		std::u8string filename = entry.path().filename().u8string();
+		files.emplace_back(filename.begin(), filename.end());
+	}
+#elif defined(_WIN32)
+	WIN32_FIND_DATAA findData;
+	// Construct the search path by appending the directory separator and wildcard.
+	std::string searchPath = std::string(path) + DIRECTORY_SEPARATOR_STR + "*";
+	HANDLE hFind = FindFirstFileA(searchPath.c_str(), &findData);
+	if (hFind == INVALID_HANDLE_VALUE)
+		return files;
+	do {
+		std::string file = findData.cFileName;
+		// Skip the special entries "." and ".."
+		if (file == "." || file == "..")
+			continue;
+		if (!(findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+			files.push_back(file);
+	} while (FindNextFileA(hFind, &findData));
+	FindClose(hFind);
+#else
+	static_assert(false, "ListFiles not implemented for the current platform");
+#endif
+	return files;
 }
 
 } // namespace devilution

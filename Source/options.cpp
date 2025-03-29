@@ -61,41 +61,46 @@ namespace devilution {
 
 namespace {
 
-void LoadUserMods()
+void DiscoverMods()
 {
-	const std::string modsPath = StrCat(paths::PrefPath(), "lua", DIRECTORY_SEPARATOR_STR, "mods");
+	// Add mods available by default:
+	std::unordered_set<std::string> modNames = { "clock" };
 
 	// Check if the mods directory exists.
-	if (!DirectoryExists(modsPath.c_str()))
-		return;
+	const std::string modsPath = StrCat(paths::PrefPath(), "mods");
+	if (DirectoryExists(modsPath.c_str())) {
+		// Find unpacked mods
+		for (const std::string &modFolder : ListDirectories(modsPath.c_str())) {
+			// Only consider this folder if the init.lua file exists.
+			std::string modScriptPath = modsPath + modFolder + DIRECTORY_SEPARATOR_STR + "init.lua";
+			if (!FileExists(modScriptPath.c_str()))
+				continue;
 
-	// Use our helper function to get a list of directory names.
-	std::vector<std::string> modFolders = ListDirectories(modsPath.c_str());
-	std::unordered_set<std::string> modsInFolder;
+			modNames.insert(modFolder);
+		}
 
-	// Iterate through each found mod folder.
-	for (const std::string &modFolder : modFolders) {
-		// Build the full path to the expected init.lua file.
-		std::string modScriptPath = modsPath + modFolder + DIRECTORY_SEPARATOR_STR + "init.lua";
-		// Only consider this folder if the init.lua file exists.
-		if (!FileExists(modScriptPath.c_str()))
-			continue;
+		// Find packed mods
+		for (const std::string &modMpq : ListFiles(modsPath.c_str())) {
+			if (!modMpq.ends_with(".mpq"))
+				continue;
 
-		// Record that this mod folder is present.
-		modsInFolder.insert(modFolder);
-
-		// Get the list of mods currently stored in the INI.
-		auto existingMods = GetOptions().Mods.GetModList();
-		// If the mod isn’t already registered, add it.
-		if (std::find(existingMods.begin(), existingMods.end(), modFolder) == existingMods.end())
-			GetOptions().Mods.AddModEntry(modFolder);
+			modNames.insert(modMpq.substr(0, modMpq.size() - 4));
+		}
 	}
 
-	// Remove mods that are in the INI but no longer in the mods folder.
-	auto existingMods = GetOptions().Mods.GetModList();
-	for (const std::string_view &mod : existingMods) {
-		if (modsInFolder.find(std::string(mod)) == modsInFolder.end())
-			GetOptions().Mods.RemoveModEntry(std::string(mod));
+	// Get the list of mods currently stored in the INI.
+	std::vector<std::string_view> existingMods = GetOptions().Mods.GetModList();
+
+	// Add new mods.
+	for (const std::string &modName : modNames) {
+		if (std::find(existingMods.begin(), existingMods.end(), modName) == existingMods.end())
+			GetOptions().Mods.AddModEntry(modName);
+	}
+
+	// Remove mods that are no longer installed.
+	for (const std::string_view &modName : existingMods) {
+		if (modNames.find(std::string(modName)) == modNames.end())
+			GetOptions().Mods.RemoveModEntry(std::string(modName));
 	}
 }
 
@@ -199,7 +204,7 @@ bool HardwareCursorSupported()
 void LoadOptions()
 {
 	LoadIni();
-	LoadUserMods();
+	DiscoverMods();
 	Options &options = GetOptions();
 	for (OptionCategoryBase *pCategory : options.GetCategories()) {
 		for (OptionEntryBase *pEntry : pCategory->GetEntries()) {
