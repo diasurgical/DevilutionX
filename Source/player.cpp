@@ -1560,7 +1560,7 @@ void Player::RemoveInvItem(int iv, bool calcScrolls)
 
 	// If the item at the end of inventory array isn't the one removed, shift all following items back one index to retain inventory order.
 	if (_pNumInv > 0 && _pNumInv != iv) {
-		for (size_t newIndex = iv; newIndex < _pNumInv; newIndex++) {
+		for (int newIndex = iv; newIndex < _pNumInv; newIndex++) {
 			InvList[newIndex] = InvList[newIndex + 1].pop();
 		}
 
