@@ -17,7 +17,6 @@
 #include <string>
 #include <unordered_set>
 
-#include <SDL.h>
 #include <SDL_version.h>
 #include <expected.hpp>
 #include <fmt/format.h>
