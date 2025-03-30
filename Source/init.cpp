@@ -120,12 +120,7 @@ void init_cleanup()
 	spawn_data_path = std::nullopt;
 #else
 	MpqArchives.clear();
-	font_mpq = false;
-	spawn_mpq = false;
-	diabdat_mpq = false;
-	hellfire_mpq = false;
-	hfbard_mpq = false;
-	hfbarb_mpq = false;
+	HasHellfireMpq = false;
 #endif
 
 	NetClose();

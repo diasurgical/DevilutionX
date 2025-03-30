@@ -286,34 +286,33 @@ extern std::optional<std::string> font_data_path;
 extern std::optional<std::string> lang_data_path;
 #else
 extern DVL_API_FOR_TEST std::map<int, std::unique_ptr<MpqArchive>> MpqArchives;
-extern bool font_mpq;
-extern bool spawn_mpq;
-extern bool diabdat_mpq;
-extern bool hellfire_mpq;
-extern bool hfbard_mpq;
-extern bool hfbarb_mpq;
+constexpr int MainMpqPriority = 1000;
+constexpr int LangMpqPriority = 9100;
+constexpr int FontMpqPriority = 9200;
+extern bool HasHellfireMpq;
 #endif
 
 void LoadCoreArchives();
 void LoadLanguageArchive();
 void LoadGameArchives();
+void LoadHellfireArchives();
 
 #ifdef UNPACKED_MPQS
-[[nodiscard]] inline bool HaveSpawn() { return spawn_data_path.has_value(); }
-[[nodiscard]] inline bool HaveDiabdat() { return diabdat_data_path.has_value(); }
+#ifdef BUILD_TESTING
+[[nodiscard]] inline bool HaveMainData() { return diabdat_data_path.has_value() || spawn_data_path.has_value(); }
+#endif
 [[nodiscard]] inline bool HaveHellfire() { return hellfire_data_path.has_value(); }
 [[nodiscard]] inline bool HaveExtraFonts() { return font_data_path.has_value(); }
-
-// Bard and barbarian are not currently supported in unpacked mode.
-[[nodiscard]] inline bool HaveBardAssets() { return false; }
-[[nodiscard]] inline bool HaveBarbarianAssets() { return false; }
 #else
-[[nodiscard]] inline bool HaveSpawn() { return spawn_mpq; }
-[[nodiscard]] inline bool HaveDiabdat() { return diabdat_mpq; }
-[[nodiscard]] inline bool HaveHellfire() { return hellfire_mpq; }
-[[nodiscard]] inline bool HaveExtraFonts() { return font_mpq; }
-[[nodiscard]] inline bool HaveBardAssets() { return hfbard_mpq; }
-[[nodiscard]] inline bool HaveBarbarianAssets() { return hfbarb_mpq; }
+#ifdef BUILD_TESTING
+[[nodiscard]] inline bool HaveMainData() { return MpqArchives.find(MainMpqPriority) != MpqArchives.end(); }
 #endif
+[[nodiscard]] inline bool HaveHellfire() { return HasHellfireMpq; }
+[[nodiscard]] inline bool HaveExtraFonts() { return MpqArchives.find(FontMpqPriority) != MpqArchives.end(); }
+#endif
+[[nodiscard]] inline bool HaveIntro() { return FindAsset("gendata\\diablo1.smk").ok(); }
+[[nodiscard]] inline bool HaveFullMusic() { return FindAsset("music\\dintro.wav").ok() || FindAsset("music\\dintro.mp3").ok(); }
+[[nodiscard]] inline bool HaveBardAssets() { return FindAsset("plrgfx\\bard\\bha\\bhaas.clx").ok(); }
+[[nodiscard]] inline bool HaveBarbarianAssets() { return FindAsset("plrgfx\\barbarian\\cha\\chaas.clx").ok(); }
 
 } // namespace devilution

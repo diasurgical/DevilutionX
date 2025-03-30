@@ -32,7 +32,12 @@ inline bool AreExtraFontsOutOfDate()
 #ifdef UNPACKED_MPQS
 	return font_data_path && AreExtraFontsOutOfDate(*font_data_path);
 #else
-	return font_mpq && AreExtraFontsOutOfDate(*MpqArchives[9200]);
+	auto it = MpqArchives.find(FontMpqPriority);
+	if (it == MpqArchives.end()) {
+		return false;
+	}
+
+	return AreExtraFontsOutOfDate(*it->second);
 #endif
 }
 

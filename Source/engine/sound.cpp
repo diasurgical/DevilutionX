@@ -293,7 +293,7 @@ void music_start(_music_id nTrack)
 	music_stop();
 	if (!gbMusicOn)
 		return;
-	if (HaveDiabdat())
+	if (HaveFullMusic())
 		trackPath = MusicTracks[nTrack];
 	else
 		trackPath = SpawnMusicTracks[nTrack];
