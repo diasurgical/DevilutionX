@@ -5,6 +5,7 @@
 #include <memory>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace devilution {
 
@@ -45,5 +46,8 @@ FILE *OpenFile(const char *path, const char *mode);
 #if defined(_WIN32) && !defined(DEVILUTIONX_WINDOWS_NO_WCHAR)
 std::unique_ptr<wchar_t[]> ToWideChar(std::string_view path);
 #endif
+
+std::vector<std::string> ListDirectories(const char *path);
+std::vector<std::string> ListFiles(const char *path);
 
 } // namespace devilution

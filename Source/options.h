@@ -832,6 +832,8 @@ struct ModOptions : OptionCategoryBase {
 	std::vector<std::string_view> GetActiveModList();
 	std::vector<std::string_view> GetModList();
 	std::vector<OptionEntryBase *> GetEntries() override;
+	void AddModEntry(const std::string &modName);
+	void RemoveModEntry(const std::string &modName);
 
 private:
 	struct ModEntry {

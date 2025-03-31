@@ -14,6 +14,8 @@
 #include <iterator>
 #include <optional>
 #include <span>
+#include <string>
+#include <unordered_set>
 
 #include <SDL_version.h>
 #include <expected.hpp>
@@ -57,6 +59,49 @@ namespace devilution {
 #endif
 
 namespace {
+
+void DiscoverMods()
+{
+	// Add mods available by default:
+	std::unordered_set<std::string> modNames = { "clock" };
+
+	// Check if the mods directory exists.
+	const std::string modsPath = StrCat(paths::PrefPath(), "mods");
+	if (DirectoryExists(modsPath.c_str())) {
+		// Find unpacked mods
+		for (const std::string &modFolder : ListDirectories(modsPath.c_str())) {
+			// Only consider this folder if the init.lua file exists.
+			std::string modScriptPath = modsPath + modFolder + DIRECTORY_SEPARATOR_STR + "init.lua";
+			if (!FileExists(modScriptPath.c_str()))
+				continue;
+
+			modNames.insert(modFolder);
+		}
+
+		// Find packed mods
+		for (const std::string &modMpq : ListFiles(modsPath.c_str())) {
+			if (!modMpq.ends_with(".mpq"))
+				continue;
+
+			modNames.insert(modMpq.substr(0, modMpq.size() - 4));
+		}
+	}
+
+	// Get the list of mods currently stored in the INI.
+	std::vector<std::string_view> existingMods = GetOptions().Mods.GetModList();
+
+	// Add new mods.
+	for (const std::string &modName : modNames) {
+		if (std::find(existingMods.begin(), existingMods.end(), modName) == existingMods.end())
+			GetOptions().Mods.AddModEntry(modName);
+	}
+
+	// Remove mods that are no longer installed.
+	for (const std::string_view &modName : existingMods) {
+		if (modNames.find(std::string(modName)) == modNames.end())
+			GetOptions().Mods.RemoveModEntry(std::string(modName));
+	}
+}
 
 std::optional<Ini> ini;
 
@@ -158,6 +203,7 @@ bool HardwareCursorSupported()
 void LoadOptions()
 {
 	LoadIni();
+	DiscoverMods();
 	Options &options = GetOptions();
 	for (OptionCategoryBase *pCategory : options.GetCategories()) {
 		for (OptionEntryBase *pEntry : pCategory->GetEntries()) {
@@ -1480,19 +1526,30 @@ std::vector<OptionEntryBase *> ModOptions::GetEntries()
 	return optionEntries;
 }
 
+void ModOptions::AddModEntry(const std::string &modName)
+{
+	auto &entries = GetModEntries();
+	entries.emplace_front(modName);
+}
+
+void ModOptions::RemoveModEntry(const std::string &modName)
+{
+	if (!modEntries) {
+		return;
+	}
+
+	auto &entries = *modEntries;
+	entries.remove_if([&](const ModEntry &entry) {
+		return entry.name == modName;
+	});
+}
+
 std::forward_list<ModOptions::ModEntry> &ModOptions::GetModEntries()
 {
 	if (modEntries)
 		return *modEntries;
 
 	std::vector<std::string> modNames = ini->getKeys(key);
-
-	// Add mods available by default:
-	for (const std::string_view modName : { "clock" }) {
-		if (c_find(modNames, modName) != modNames.end()) continue;
-		ini->set(key, modName, false);
-		modNames.emplace_back(modName);
-	}
 
 	std::forward_list<ModOptions::ModEntry> &newModEntries = modEntries.emplace();
 	for (auto &modName : modNames) {
