@@ -73,17 +73,11 @@ public:
 
 	void erase(const T *first, const T *last)
 	{
+		if (last == first) return;
 		assert(first >= begin() && last <= end() && first <= last);
-		size_t count = last - first;
-
-		T *firstPtr = data_[first - this->begin()].ptr();
-		T *lastPtr = data_[last - this->begin()].ptr();
-
-		for (const T *it = firstPtr; it < lastPtr; ++it) {
-			std::destroy_at(it);
-		}
-		std::move(lastPtr, this->end(), firstPtr);
-
+		const auto count = last - first;
+		auto tail = std::move(const_cast<T *>(last), end(), const_cast<T *>(first));
+		std::destroy(tail, end());
 		size_ -= count;
 	}
 
