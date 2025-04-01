@@ -180,15 +180,15 @@ TEST_F(InvTest, RemoveInvItem)
 	EXPECT_EQ(MyPlayer->_pNumInv, 0);
 }
 
-// Test removing an item from inventory with other items in it.
-TEST_F(InvTest, RemoveInvItem_other_item)
+// Test removing an item from middle of inventory list.
+TEST_F(InvTest, RemoveInvItem_shiftsListFromMiddle)
 {
 	SNetInitializeProvider(SELCONN_LOOPBACK, nullptr);
 
 	clear_inventory();
-	// Put a two-slot misc item and a ring into the inventory:
-	// | (item) | (item) | (ring) | ...
-	MyPlayer->_pNumInv = 2;
+	// Put a two-slot misc item and a ring into the inventory, followed by another two-slot misc item:
+	// | (item) | (item) | (ring) | (item) | (item) | ...
+	MyPlayer->_pNumInv = 3;
 	MyPlayer->InvGrid[0] = 1;
 	MyPlayer->InvGrid[1] = -1;
 	MyPlayer->InvList[0]._itype = ItemType::Misc;
@@ -196,12 +196,54 @@ TEST_F(InvTest, RemoveInvItem_other_item)
 	MyPlayer->InvGrid[2] = 2;
 	MyPlayer->InvList[1]._itype = ItemType::Ring;
 
+	MyPlayer->InvGrid[3] = 3;
+	MyPlayer->InvGrid[4] = -3;
+	MyPlayer->InvList[2]._itype = ItemType::Misc;
+
+	MyPlayer->RemoveInvItem(1);
+	EXPECT_EQ(MyPlayer->InvGrid[0], 1);
+	EXPECT_EQ(MyPlayer->InvGrid[1], -1);
+	EXPECT_EQ(MyPlayer->InvGrid[2], 0);
+	EXPECT_EQ(MyPlayer->InvGrid[3], 2);
+	EXPECT_EQ(MyPlayer->InvGrid[4], -2);
+
+	EXPECT_EQ(MyPlayer->InvList[0]._itype, ItemType::Misc);
+	EXPECT_EQ(MyPlayer->InvList[1]._itype, ItemType::Misc);
+
+	EXPECT_EQ(MyPlayer->_pNumInv, 2);
+}
+
+// Test removing an item from front of inventory list.
+TEST_F(InvTest, RemoveInvItem_shiftsListFromFront)
+{
+	SNetInitializeProvider(SELCONN_LOOPBACK, nullptr);
+
+	clear_inventory();
+	// Put a two-slot misc item and a ring into the inventory, followed by another two-slot misc item:
+	// | (item) | (item) | (ring) | (item) | (item) | ...
+	MyPlayer->_pNumInv = 3;
+	MyPlayer->InvGrid[0] = 1;
+	MyPlayer->InvGrid[1] = -1;
+	MyPlayer->InvList[0]._itype = ItemType::Misc;
+
+	MyPlayer->InvGrid[2] = 2;
+	MyPlayer->InvList[1]._itype = ItemType::Ring;
+
+	MyPlayer->InvGrid[3] = 3;
+	MyPlayer->InvGrid[4] = -3;
+	MyPlayer->InvList[2]._itype = ItemType::Misc;
+
 	MyPlayer->RemoveInvItem(0);
 	EXPECT_EQ(MyPlayer->InvGrid[0], 0);
 	EXPECT_EQ(MyPlayer->InvGrid[1], 0);
 	EXPECT_EQ(MyPlayer->InvGrid[2], 1);
+	EXPECT_EQ(MyPlayer->InvGrid[3], 2);
+	EXPECT_EQ(MyPlayer->InvGrid[4], -2);
+
 	EXPECT_EQ(MyPlayer->InvList[0]._itype, ItemType::Ring);
-	EXPECT_EQ(MyPlayer->_pNumInv, 1);
+	EXPECT_EQ(MyPlayer->InvList[1]._itype, ItemType::Misc);
+
+	EXPECT_EQ(MyPlayer->_pNumInv, 2);
 }
 
 // Test removing an item from the belt
