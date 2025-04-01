@@ -172,7 +172,7 @@ tl::expected<void, PacketError> tcp_server::SendPacket(packet &pkt)
 		}
 		return {};
 	}
-	if (pkt.Destination() >= MAX_PLRS)
+	if (pkt.Destination() >= MaxPlayers)
 		return tl::make_unexpected(ServerError());
 	if (pkt.Destination() == pkt.Source() || !connections[pkt.Destination()])
 		return {};

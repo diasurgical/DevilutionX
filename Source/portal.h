@@ -7,13 +7,12 @@
 
 #include "engine/point.hpp"
 #include "levels/gendung.h"
+#include "multi.h"
 
 namespace devilution {
 
 // Defined in player.h, forward declared here to allow for functions which operate in the context of a player.
 struct Player;
-
-#define MAXPORTAL 4
 
 struct Portal {
 	bool open;
@@ -23,7 +22,7 @@ struct Portal {
 	bool setlvl;
 };
 
-extern Portal Portals[MAXPORTAL];
+extern Portal Portals[MaxPlayers];
 
 void InitPortals();
 void SetPortalStats(int i, bool o, Point position, int lvl, dungeon_type lvltype, bool isSetLevel);
