@@ -35,6 +35,7 @@ set(tests
   tile_properties_test
   timedemo_test
   writehero_test
+  premium_test
 )
 set(standalone_tests
   codec_test
