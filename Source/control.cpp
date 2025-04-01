@@ -1301,6 +1301,12 @@ void DrawInfoBox(const Surface &out)
 			AddInfoBoxString(fmt::format(fmt::runtime(_("{:s}, Level: {:d}")), target.getClassName(), target.getCharacterLevel()));
 			AddInfoBoxString(fmt::format(fmt::runtime(_("Hit Points {:d} of {:d}")), target._pHitPoints >> 6, target._pMaxHP >> 6));
 		}
+		if (PortraitIdUnderCursor != -1) {
+			InfoColor = UiFlags::ColorWhitegold;
+			auto &target = Players[PortraitIdUnderCursor];
+			InfoString = std::string_view(target._pName);
+			AddInfoBoxString(_("Right click to inspect"));
+		}
 	}
 	if (!InfoString.empty())
 		PrintInfo(out);

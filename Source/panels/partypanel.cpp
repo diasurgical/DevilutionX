@@ -129,6 +129,7 @@ PartySpriteOffset GetClassSpriteOffset(HeroClass hClass)
 
 bool PartySidePanelOpen = true;
 bool InspectingFromPartyPanel;
+int PortraitIdUnderCursor = -1;
 
 tl::expected<void, std::string> LoadPartyPanel()
 {
@@ -142,6 +143,7 @@ tl::expected<void, std::string> LoadPartyPanel()
 	DrawMemberFrame(out, frame, { 0, HealthBarHeight });
 
 	PartyMemberFrame = SurfaceToClx(out);
+
 	return {};
 }
 
@@ -154,14 +156,19 @@ void FreePartyPanel()
 void DrawPartyMemberInfoPanel(const Surface &out)
 {
 	// Don't draw based on these criteria
-	if (CharFlag || !gbIsMultiplayer || !MyPlayer->friendlyMode || IsPlayerInStore() || IsStashOpen)
+	if (CharFlag || !gbIsMultiplayer || !MyPlayer->friendlyMode || IsPlayerInStore() || IsStashOpen) {
+		if (PortraitIdUnderCursor != -1)
+			PortraitIdUnderCursor = -1;
+
 		return;
+	}
 
 	Point pos = PartyPanelPos;
 	if (AutomapActive)
 		pos.y += PortraitFrameSize.height + FrameGap;
 
 	int currentLongestNameWidth = PortraitFrameSize.width;
+	bool portraitUnderCursor = false;
 
 	for (Player& player : Players) {
 
@@ -172,9 +179,13 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 		if (&player == MyPlayer)
 			continue;
 #endif
+		// Get the rect of the portrait to use later
+		Rectangle currentPortraitRect = { pos, PortraitFrameSize };
+
+		Surface gameScreen = out.subregionY(0, gnViewportHeight);
 
 		// Draw the characters frame
-		RenderClxSprite(out, (*PartyMemberFrame)[0], pos);
+		RenderClxSprite(gameScreen, (*PartyMemberFrame)[0], pos);
 
 		// If the player is using mana shield change the value we use to mana
 		//	If not use their hitpoints like normal
@@ -185,7 +196,7 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 		int lifeTicks = ((healthOrMana * PortraitFrameSize.width) + (maxHealthOrMana / 2)) / maxHealthOrMana;
 		uint8_t hpBarColor = (player.pManaShield) ? PAL8_BLUE + 3 : PAL8_RED + 4;
 		// Now draw the characters remaining life
-		DrawBar(out, { pos, { lifeTicks, HealthBarHeight } }, hpBarColor);
+		DrawBar(gameScreen, { pos, { lifeTicks, HealthBarHeight } }, hpBarColor);
 
 		// Add to the position before continuing to the next item
 		pos.y += HealthBarHeight;
@@ -202,7 +213,7 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 		// Calculate the players portait position
 		Point portraitPos = { ((-(playerPortraitSprite.width() / 2)) + (PortraitFrameSize.width / 2)) + offset.x, offset.y };
 		// Get a subregion of the surface so the portrait doesn't get drawn over the frame
-		Surface frameSubregion = out.subregion(
+		Surface frameSubregion = gameScreen.subregion(
 			pos.x + FrameBorderSize,
 		    pos.y + FrameBorderSize,
 		    PortraitFrameSize.width - (FrameBorderSize * 2),
@@ -221,12 +232,14 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 			portraitPos
 		);
 
-		// Draw the player tag
-		RenderClxSprite(
-			out,
-		    (*PlayerTags)[player.getId() + 1],
-		    { pos.x + (PortraitFrameSize.width / 2) - 6, pos.y + PortraitFrameSize.height - 8}
-		);
+		if ((player.getId() + 1) < (*PlayerTags).numSprites()) {
+			// Draw the player tag
+			int tagWidth = (*PlayerTags)[player.getId() + 1].width();
+			RenderClxSprite(
+			    frameSubregion,
+			    (*PlayerTags)[player.getId() + 1],
+			    { PortraitFrameSize.width - (tagWidth + (tagWidth / 2)), 0 });
+		}
 
 		// Check to see if the player is dead and if so we draw a half transparent red rect over the portrait
 		if (player._pHitPoints <= 0) {
@@ -244,7 +257,7 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 
 		// Draw the players name under the frame
 		DrawString(
-			out,
+		    gameScreen,
 			player._pName,
 			pos,
 			{ .flags = UiFlags::ColorGold | UiFlags::Outlined | UiFlags::FontSize12 }
@@ -252,6 +265,12 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 
 		// Add to the position before continuing onto the next player
 		pos.y += FrameGap;
+
+		// Check to see if the player is hovering over this portrait and if so draw a string under the cursor saying they can right click to inspect
+		if (currentPortraitRect.contains(MousePosition)) {
+			PortraitIdUnderCursor = player.getId();
+			portraitUnderCursor = true;
+		}
 
 		// Get the current players name width
 		int width = GetLineWidth(player._pName);
@@ -270,6 +289,9 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 
 	if (RightClickedPortraitIndex != -1)
 		HandleRightClickPortait();
+
+	if (!portraitUnderCursor)
+		PortraitIdUnderCursor = -1;
 }
 
 bool DidRightClickPartyPortrait()

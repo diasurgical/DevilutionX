@@ -11,6 +11,7 @@ namespace devilution {
 
 extern bool PartySidePanelOpen;
 extern bool InspectingFromPartyPanel;
+extern int PortraitIdUnderCursor;
 
 tl::expected<void, std::string> LoadPartyPanel();
 void FreePartyPanel();
