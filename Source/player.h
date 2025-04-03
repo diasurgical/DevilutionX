@@ -293,6 +293,8 @@ struct Player {
 	 * @brief Contains Data (Sprites) for the different Animations
 	 */
 	std::array<PlayerAnimationData, enum_size<player_graphic>::value> AnimationData;
+	std::array<OptionalOwnedClxSpriteSheet, 2> PartyInfoSprites;
+	std::array<std::string, 2> PartyInfoSpriteLocations;
 	int8_t _pNFrames;
 	int8_t _pWFrames;
 	int8_t _pAFrames;
@@ -923,6 +925,13 @@ inline bool IsInspectingPlayer()
 extern bool MyPlayerIsDead;
 
 Player *PlayerAtPosition(Point position, bool ignoreMovingPlayers = false);
+
+/**
+ * @brief Get the players current portrait sprite which is used for the party panel.
+ * @param player
+ */
+ClxSprite GetPlayerPortraitSprite(Player &player);
+bool IsPlayerUnarmed(Player &player);
 
 void LoadPlrGFX(Player &player, player_graphic graphic);
 void InitPlayerGFX(Player &player);
