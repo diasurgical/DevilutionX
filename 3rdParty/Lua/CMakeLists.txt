@@ -1,5 +1,8 @@
 include(functions/FetchContent_ExcludeFromAll_backport)
 
+# Workaround for deprecation of older CMake versions
+set(CMAKE_POLICY_VERSION_MINIMUM 3.22)
+
 set(LUA_ENABLE_TESTING OFF)
 set(LUA_BUILD_COMPILER OFF)
 if(DEVILUTIONX_STATIC_LUA)
