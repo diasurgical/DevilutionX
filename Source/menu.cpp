@@ -167,7 +167,7 @@ void mainmenu_loop()
 				done = true;
 			break;
 		case MAINMENU_ATTRACT_MODE:
-			if (gbIsSpawn && !HaveDiabdat())
+			if (gbIsSpawn && !HaveIntro())
 				done = false;
 			else if (gbActive)
 				PlayIntro();

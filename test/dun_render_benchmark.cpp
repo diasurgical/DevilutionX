@@ -29,7 +29,7 @@ void InitOnce()
 	[[maybe_unused]] static const bool GlobalInitDone = []() {
 		LoadCoreArchives();
 		LoadGameArchives();
-		if (!HaveSpawn() && !HaveDiabdat()) {
+		if (!HaveMainData()) {
 			LogError("This benchmark needs spawn.mpq or diabdat.mpq");
 			exit(1);
 		}

@@ -24,7 +24,7 @@ public:
 
 		// The tests need spawn.mpq or diabdat.mpq
 		// Please provide them so that the tests can run successfully
-		ASSERT_TRUE(HaveSpawn() || HaveDiabdat());
+		ASSERT_TRUE(HaveMainData());
 
 		InitCursor();
 		LoadSpellData();

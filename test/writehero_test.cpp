@@ -368,7 +368,7 @@ TEST(Writehero, pfile_write_hero)
 
 	// The tests need spawn.mpq or diabdat.mpq
 	// Please provide them so that the tests can run successfully
-	ASSERT_TRUE(HaveSpawn() || HaveDiabdat());
+	ASSERT_TRUE(HaveMainData());
 
 	const std::string savePath = paths::BasePath() + "multi_0.sv";
 	paths::SetPrefPath(paths::BasePath());
