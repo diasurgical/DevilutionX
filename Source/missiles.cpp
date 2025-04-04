@@ -1149,9 +1149,8 @@ void InitMissiles()
 		for (auto &missile : Missiles) {
 			if (missile._mitype == MissileID::Rage) {
 				if (missile.sourcePlayer() == MyPlayer) {
-					int missingHP = myPlayer._pMaxHP - myPlayer._pHitPoints;
 					CalcPlrItemVals(myPlayer, true);
-					ApplyPlrDamage(DamageType::Physical, myPlayer, 0, 1, missingHP + missile.var2);
+					ApplyPlrDamage(DamageType::Physical, myPlayer, missile._midam, 1);
 				}
 			}
 		}
@@ -2506,14 +2505,12 @@ void AddRage(Missile &missile, AddMissileParameter &parameter)
 		return;
 	}
 
-	int tmp = 3 * player.getCharacterLevel();
-	tmp <<= 7;
+	missile._midam = player.getCharacterLevel() * 6;
+	missile.duration = 245 + (player.getCharacterLevel() * 2);
+	missile.var1 = missile.duration;
+
 	player._pSpellFlags |= SpellFlag::RageActive;
-	missile.var2 = tmp;
-	int lvl = player.getCharacterLevel() * 2;
-	missile.duration = lvl + 10 * missile._mispllvl + 245;
 	CalcPlrItemVals(player, true);
-	RedrawEverything();
 	player.Say(HeroSpeech::Aaaaargh);
 }
 
@@ -3850,29 +3847,31 @@ void ProcessRage(Missile &missile)
 {
 	missile.duration--;
 
-	if (missile.duration != 0) {
+	if (missile.duration != 0)
 		return;
-	}
 
 	Player &player = Players[missile._misource];
-
-	int hpdif = player._pMaxHP - player._pHitPoints;
 
 	if (HasAnyOf(player._pSpellFlags, SpellFlag::RageActive)) {
 		player._pSpellFlags &= ~SpellFlag::RageActive;
 		player._pSpellFlags |= SpellFlag::RageCooldown;
-		int lvl = player.getCharacterLevel() * 2;
-		missile.duration = lvl + 10 * missile._mispllvl + 245;
-	} else {
+		missile.duration = missile.var1; // Start timer over
+	} else if (HasAnyOf(player._pSpellFlags, SpellFlag::RageCooldown)) {
 		player._pSpellFlags &= ~SpellFlag::RageCooldown;
 		missile._miDelFlag = true;
-		hpdif += missile.var2;
 	}
 
 	CalcPlrItemVals(player, true);
-	ApplyPlrDamage(DamageType::Physical, player, 0, 1, hpdif);
+
+	// Prevent the player from dying as a result of recalculating their current life
+	if ((player._pHitPoints >> 6) <= 0)
+		SetPlayerHitPoints(player, 64);
+
 	RedrawEverything();
 	player.Say(HeroSpeech::HeavyBreathing);
+
+	if (missile._miDelFlag)
+		ApplyPlrDamage(DamageType::Physical, player, missile._midam, 1); // Prevent penalty from killing the player
 }
 
 void ProcessInferno(Missile &missile)
