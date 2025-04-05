@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <gmock/gmock.h>
 
 #include "init.h"
 #include "items.h"
@@ -6,14 +7,22 @@
 #include "player.h"
 #include "playerdat.hpp"
 
+#include "engine/random.hpp"
+
 namespace devilution {
 namespace {
 
-constexpr int QLVL_DELTAS[] = { -1, -1, 0, 0, 1, 2 };
-constexpr int QLVL_DELTAS_HF[] = { -1, -1, -1, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 3, 3 };
+using ::testing::Eq;
+using ::testing::Le;
+using ::testing::Ge;
+using ::testing::AnyOf;
+using ::testing::AllOf;
 
 void test_premium_qlvl(int *qlvls, int n_qlvls, int clvl, bool hf)
 {
+	constexpr int QLVL_DELTAS[] = { -1, -1, 0, 0, 1, 2 };
+	constexpr int QLVL_DELTAS_HF[] = { -1, -1, -1, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 3, 3 };
+
 	int lvl = 1;
 
 	for(int i = 0; i < n_qlvls; i++) {
@@ -164,6 +173,123 @@ TEST(PremiumTest, PremiumQlvlHf)
 	for(int i = 0; i < NumSmithItemsHf; i++) {
 		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, qlvls[i]);
 	}
+}
+
+TEST(PremiumTest, WitchGen)
+{
+	constexpr _item_indexes PINNED_ITEMS[] = { IDI_MANA, IDI_FULLMANA, IDI_PORTAL };
+
+	const int SEED = testing::UnitTest::GetInstance()->random_seed();
+
+	Players.resize(1);
+	MyPlayer = &Players[0];
+	CreatePlayer(*MyPlayer, HeroClass::Warrior);
+	MyPlayer->setCharacterLevel(25);
+
+	LoadCoreArchives();
+	LoadGameArchives();
+	ASSERT_TRUE(HaveSpawn() || HaveDiabdat());
+	LoadPlayerDataFiles();
+	LoadItemData();
+	LoadSpellData();
+
+	// Clear global state for test, and force Diablo game mode
+	for(int i = 0; i < NumWitchItemsHf; i++) {
+		WitchItems[i].clear();
+	}
+	gbIsHellfire = false;
+
+	SetRndSeed(SEED);
+	SpawnWitch(25);
+
+	SetRndSeed(SEED);
+	const int N_ITEMS = RandomIntBetween(10, NumWitchItems);
+
+	int n_items = NumWitchPinnedItems;
+
+	for(int i = 0; i < NumWitchPinnedItems; i++) {
+		EXPECT_EQ(WitchItems[i].IDidx, PINNED_ITEMS[i]);
+	}
+
+	for(int i = NumWitchPinnedItems; i < NumWitchItems; i++) {
+		if(WitchItems[i].isEmpty()) break;
+		EXPECT_THAT(WitchItems[i]._itype, AnyOf(
+					Eq(ItemType::Misc),
+					Eq(ItemType::Staff)));
+
+		if(WitchItems[i]._itype == ItemType::Misc) {
+			EXPECT_THAT(WitchItems[i]._iMiscId, AnyOf(
+						AllOf(Ge(IMISC_ELIXSTR), Le(IMISC_ELIXVIT)),
+						AllOf(Ge(IMISC_REJUV), Le(IMISC_FULLREJUV)),
+						AllOf(Ge(IMISC_SCROLL), Le(IMISC_SCROLLT)),
+						AllOf(Ge(IMISC_RUNEFIRST), Le(IMISC_RUNELAST)),
+						Eq(IMISC_BOOK)));
+		}
+		n_items++;
+	}
+
+	EXPECT_EQ(n_items, N_ITEMS);
+}
+
+TEST(PremiumTest, WitchGenHf)
+{
+	constexpr _item_indexes PINNED_ITEMS[] = { IDI_MANA, IDI_FULLMANA, IDI_PORTAL };
+	constexpr int MAX_PINNED_BOOKS = 4;
+
+	const int SEED = testing::UnitTest::GetInstance()->random_seed();
+
+	Players.resize(1);
+	MyPlayer = &Players[0];
+	CreatePlayer(*MyPlayer, HeroClass::Warrior);
+	MyPlayer->setCharacterLevel(25);
+
+	LoadCoreArchives();
+	LoadGameArchives();
+	ASSERT_TRUE(HaveHellfire() && (HaveSpawn() || HaveDiabdat()));
+	LoadPlayerDataFiles();
+	LoadItemData();
+	LoadSpellData();
+
+	// Clear global state for test, and force Hellfire game mode
+	for(int i = 0; i < NumWitchItemsHf; i++) {
+		WitchItems[i].clear();
+	}
+	gbIsHellfire = true;
+
+	SetRndSeed(SEED);
+	SpawnWitch(25);
+
+	SetRndSeed(SEED);
+	const int N_PINNED_BOOKS = RandomIntLessThan(MAX_PINNED_BOOKS);
+	const int N_ITEMS = RandomIntBetween(10, NumWitchItemsHf);
+
+	int n_books = 0;
+	int n_items = NumWitchPinnedItems;
+
+	for(int i = 0; i < NumWitchPinnedItems; i++) {
+		EXPECT_EQ(WitchItems[i].IDidx, PINNED_ITEMS[i]);
+	}
+
+	for(int i = NumWitchPinnedItems; i < NumWitchItemsHf; i++) {
+		if(WitchItems[i].isEmpty()) break;
+		EXPECT_THAT(WitchItems[i]._itype, AnyOf(
+					Eq(ItemType::Misc),
+					Eq(ItemType::Staff)));
+
+		if(WitchItems[i]._itype == ItemType::Misc) {
+			EXPECT_THAT(WitchItems[i]._iMiscId, AnyOf(
+						AllOf(Ge(IMISC_ELIXSTR), Le(IMISC_ELIXVIT)),
+						AllOf(Ge(IMISC_REJUV), Le(IMISC_FULLREJUV)),
+						AllOf(Ge(IMISC_SCROLL), Le(IMISC_SCROLLT)),
+						AllOf(Ge(IMISC_RUNEFIRST), Le(IMISC_RUNELAST)),
+						Eq(IMISC_BOOK)));
+		}
+		if(WitchItems[i]._iMiscId == IMISC_BOOK) n_books++;
+		n_items++;
+	}
+
+	EXPECT_GE(n_books, N_PINNED_BOOKS);
+	EXPECT_EQ(n_items, N_ITEMS);
 }
 
 } // namespace
