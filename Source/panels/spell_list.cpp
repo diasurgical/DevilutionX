@@ -80,6 +80,28 @@ std::optional<std::string_view> GetHotkeyName(SpellID spellId, SpellType spellTy
 	return {};
 }
 
+void PrintSBookRemainingCharges(const Surface &out, Point pos)
+{
+	const Player &myPlayer = *MyPlayer;
+
+	if (myPlayer._pRSplType != SpellType::Charges)
+		return;
+
+	const Item &staff = myPlayer.InvBody[INVLOC_HAND_LEFT];
+
+	UiFlags color = (staff._iCharges == staff._iMaxCharges ? UiFlags::ColorGold : UiFlags::ColorBlue);
+
+	auto drawStringWithShadow = [out, color](std::string_view text, Point pos) {
+		DrawString(out, text, pos + Displacement { -1, -1 },
+		    { .flags = UiFlags::ColorBlack | UiFlags::KerningFitSpacing, .spacing = 0 });
+		DrawString(out, text, pos,
+		    { .flags = color | UiFlags::KerningFitSpacing, .spacing = 0 });
+	};
+
+	std::string currText = StrCat(staff._iCharges);
+	drawStringWithShadow(currText, pos + Displacement { 2, -12 });
+}
+
 } // namespace
 
 void DrawSpell(const Surface &out)
@@ -111,6 +133,10 @@ void DrawSpell(const Surface &out)
 	std::optional<std::string_view> hotkeyName = GetHotkeyName(spl, myPlayer._pRSplType, true);
 	if (hotkeyName)
 		PrintSBookHotkey(out, position, *hotkeyName);
+
+	if (*GetOptions().Gameplay.showRemainingCharges) {
+		PrintSBookRemainingCharges(out, position);
+	}
 }
 
 void DrawSpellList(const Surface &out)
