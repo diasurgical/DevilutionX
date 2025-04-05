@@ -240,20 +240,45 @@ void DoVision(Point position, uint8_t radius, MapExplorationType doAutomap, bool
 				Point crawl = position + VisionCrawlTable[j][k] * factor;
 				if (!InDungeonBounds(crawl))
 					break;
-				bool blockerFlag = TileHasAny(crawl, TileProperties::BlockLight);
-				bool tileOK = !blockerFlag;
 
+				bool visible = true;
+
+				//
+				// We've cast an approximated ray on an integer 2D
+				// grid, so we need to check if a ray can pass through
+				// the diagonally adjacent tiles. For example, consider
+				// this case:
+				//
+				//        #?
+				//       ↗ #
+				//     x
+				//
+				// The ray is cast from the observer 'x', and reaches
+				// the '?', but diagonally adjacent tiles '#' do not
+				// pass the light, so the '?' should not be visible
+				// for the 2D observer.
+				//
+				// The trick is to perform two additional visibility
+				// checks for the diagonally adjacent tiles, but only
+				// for the rays that are not parallel to the X or Y
+				// coordinate lines. Parallel rays, which have a 0 in
+				// one of their coordinate components, do not require
+				// any additional adjacent visibility checks, and the
+				// tile, hit by the ray, is always considered visible.
+				//
 				if (VisionCrawlTable[j][k].deltaX > 0 && VisionCrawlTable[j][k].deltaY > 0) {
-					tileOK = tileOK || TileAllowsLight(crawl + Displacement { -factor.deltaX, 0 });
-					tileOK = tileOK || TileAllowsLight(crawl + Displacement { 0, -factor.deltaY });
+					Displacement adjacent1 = { -factor.deltaX, 0 };
+					Displacement adjacent2 = { 0, -factor.deltaY };
+
+					visible = (TileAllowsLight(crawl + adjacent1) || TileAllowsLight(crawl + adjacent2));
 				}
+				if (visible)
+					DoVisionFlags(crawl, doAutomap, visible);
 
-				if (!tileOK)
-					break;
-
-				DoVisionFlags(crawl, doAutomap, visible);
-
-				if (blockerFlag)
+				bool passesLight = TileAllowsLight(crawl);
+				if (!passesLight)
+					// Tile does not pass the light further, we are
+					// done with this ray
 					break;
 
 				int8_t trans = dTransVal[crawl.x][crawl.y];
