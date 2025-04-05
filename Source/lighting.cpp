@@ -41,10 +41,15 @@ bool UpdateLighting;
 namespace {
 
 /*
- * X- Y-coordinate offsets of lighting visions.
- * The last entry-pair is only for alignment.
+ * XY points of vision rays are cast to trace the visibility of the
+ * surrounding environment. The table represents N rays of M points in
+ * one quadrant (0°-90°) of a circle, so rays for other quadrants will
+ * be created by mirroring. Zero points at the end will be trimmed and
+ * ignored. A similar table can be recreated using Bresenham's line
+ * drawing algorithm, which is suitable for integer arithmetic:
+ * https://en.wikipedia.org/wiki/Bresenham's_line_algorithm
  */
-const DisplacementOf<int8_t> VisionCrawlTable[23][15] = {
+static const DisplacementOf<int8_t> VisionRays[23][15] = {
 	// clang-format off
 	{ { 1, 0 }, { 2, 0 }, { 3, 0 }, { 4, 0 }, { 5, 0 }, { 6, 0 }, { 7, 0 }, { 8, 0 }, { 9, 0 }, { 10,  0 }, { 11,  0 }, { 12,  0 }, { 13,  0 }, { 14,  0 }, { 15,  0 } },
 	{ { 1, 0 }, { 2, 0 }, { 3, 0 }, { 4, 0 }, { 5, 0 }, { 6, 0 }, { 7, 0 }, { 8, 1 }, { 9, 1 }, { 10,  1 }, { 11,  1 }, { 12,  1 }, { 13,  1 }, { 14,  1 }, { 15,  1 } },
@@ -79,9 +84,6 @@ uint8_t LightFalloffs[NumLightRadiuses][128];
 bool UpdateVision;
 /** interpolations of a 32x32 (16x16 mirrored) light circle moving between tiles in steps of 1/8 of a tile */
 uint8_t LightConeInterpolations[8][8][16][16];
-
-/** RadiusAdj maps from VisionCrawlTable index to lighting vision radius adjustment. */
-const uint8_t RadiusAdj[23] = { 0, 0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 4, 3, 2, 2, 2, 1, 1, 1, 0, 0, 0, 0 };
 
 void RotateRadius(DisplacementOf<int8_t> &offset, DisplacementOf<int8_t> &dist, DisplacementOf<int8_t> &light, DisplacementOf<int8_t> &block)
 {
@@ -232,13 +234,24 @@ void DoVision(Point position, uint8_t radius, MapExplorationType doAutomap, bool
 {
 	DoVisionFlags(position, doAutomap, visible);
 
-	static const Displacement factors[] = { { 1, 1 }, { -1, 1 }, { 1, -1 }, { -1, -1 } };
-	for (auto factor : factors) {
-		for (int j = 0; j < 23; j++) {
-			int lineLen = radius - RadiusAdj[j];
-			for (int k = 0; k < lineLen; k++) {
-				Point crawl = position + VisionCrawlTable[j][k] * factor;
-				if (!InDungeonBounds(crawl))
+	// Adjustment to a ray length to ensure all rays lie on an
+	// accurate circle
+	static const uint8_t rayLenAdj[23] = { 0, 0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 4, 3, 2, 2, 2, 1, 1, 1, 0, 0, 0, 0 };
+	static_assert(std::size(rayLenAdj) == std::size(VisionRays));
+
+	// Four quadrants on a circle
+	static const Displacement quadrants[] = { { 1, 1 }, { -1, 1 }, { 1, -1 }, { -1, -1 } };
+
+	// Loop over quadrants and mirror rays for each one
+	for (const auto &quadrant : quadrants) {
+		// Cast a ray for a quadrant
+		for (unsigned int j = 0; j < std::size(VisionRays); j++) {
+			int rayLen = radius - rayLenAdj[j];
+			for (int k = 0; k < rayLen; k++) {
+				const auto &relRayPoint = VisionRays[j][k];
+				// Calculate the next point on a ray in the quadrant
+				Point rayPoint = position + relRayPoint * quadrant;
+				if (!InDungeonBounds(rayPoint))
 					break;
 
 				bool visible = true;
@@ -266,22 +279,22 @@ void DoVision(Point position, uint8_t radius, MapExplorationType doAutomap, bool
 				// any additional adjacent visibility checks, and the
 				// tile, hit by the ray, is always considered visible.
 				//
-				if (VisionCrawlTable[j][k].deltaX > 0 && VisionCrawlTable[j][k].deltaY > 0) {
-					Displacement adjacent1 = { -factor.deltaX, 0 };
-					Displacement adjacent2 = { 0, -factor.deltaY };
+				if (relRayPoint.deltaX > 0 && relRayPoint.deltaY > 0) {
+					Displacement adjacent1 = { -quadrant.deltaX, 0 };
+					Displacement adjacent2 = { 0, -quadrant.deltaY };
 
-					visible = (TileAllowsLight(crawl + adjacent1) || TileAllowsLight(crawl + adjacent2));
+					visible = (TileAllowsLight(rayPoint + adjacent1) || TileAllowsLight(rayPoint + adjacent2));
 				}
 				if (visible)
-					DoVisionFlags(crawl, doAutomap, visible);
+					DoVisionFlags(rayPoint, doAutomap, visible);
 
-				bool passesLight = TileAllowsLight(crawl);
+				bool passesLight = TileAllowsLight(rayPoint);
 				if (!passesLight)
 					// Tile does not pass the light further, we are
 					// done with this ray
 					break;
 
-				int8_t trans = dTransVal[crawl.x][crawl.y];
+				int8_t trans = dTransVal[rayPoint.x][rayPoint.y];
 				if (trans != 0)
 					TransList[trans] = true;
 			}
