@@ -25,6 +25,11 @@ MATCHER(SmithTypeMatchHf, "Valid Hellfire item type from Griswold")
 	return arg >= ItemType::Sword && arg <= ItemType::Staff;
 }
 
+MATCHER(PremiumTypeMatch, "Valid premium items from Griswold")
+{
+	return arg >= ItemType::Ring || arg <= ItemType::Amulet;
+}
+
 MATCHER(WitchTypeMatch, "Valid item type from Adria")
 {
 	return arg == ItemType::Misc || arg == ItemType::Staff;
@@ -208,6 +213,7 @@ TEST_F(VendorTest, PremiumQlvl)
 	test_premium_qlvl(qlvls, NumSmithItems, MyPlayer->getCharacterLevel(), gbIsHellfire);
 	for (int i = 0; i < NumSmithItems; i++) {
 		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, qlvls[i]);
+		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatch(), PremiumTypeMatch()));
 	}
 }
 
@@ -252,6 +258,7 @@ TEST_F(VendorTest, PremiumQlvlHf)
 	test_premium_qlvl(qlvls, NumSmithItemsHf, MyPlayer->getCharacterLevel(), gbIsHellfire);
 	for (int i = 0; i < NumSmithItemsHf; i++) {
 		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, qlvls[i]);
+		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatchHf(), PremiumTypeMatch()));
 	}
 
 	// Test buying select items
