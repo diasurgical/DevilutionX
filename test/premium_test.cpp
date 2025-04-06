@@ -68,6 +68,65 @@ void test_premium_qlvl(int *qlvls, int n_qlvls, int clvl, bool hf)
 	}
 }
 
+TEST_F(PremiumTest, SmithGen)
+{
+	const int SEED = testing::UnitTest::GetInstance()->random_seed();
+
+	CreatePlayer(*MyPlayer, HeroClass::Warrior);
+	MyPlayer->setCharacterLevel(25);
+
+	// Clear global state for test, and force Diablo game mode
+	for(int i = 0; i < NumSmithBasicItemsHf; i++) {
+		SmithItems[i].clear();
+	}
+	gbIsHellfire = false;
+
+	SetRndSeed(SEED);
+	SpawnSmith(25);
+
+	SetRndSeed(SEED);
+	const int N_ITEMS = RandomIntBetween(10, NumSmithBasicItems);
+	int n_items = 0;
+
+	for(int i = 0; i < NumSmithBasicItems; i++) {
+		if(SmithItems[i].isEmpty()) break;
+		EXPECT_THAT(SmithItems[i]._itype, AnyOf(
+					AllOf(Ge(ItemType::Sword), Le(ItemType::HeavyArmor))));
+		n_items++;
+	}
+	EXPECT_EQ(n_items, N_ITEMS);
+}
+
+TEST_F(PremiumTest, SmithGenHf)
+{
+	ASSERT_TRUE(HaveHellfire());
+	const int SEED = testing::UnitTest::GetInstance()->random_seed();
+
+	CreatePlayer(*MyPlayer, HeroClass::Warrior);
+	MyPlayer->setCharacterLevel(25);
+
+	// Clear global state for test, and force Hellfire game mode
+	for(int i = 0; i < NumSmithBasicItemsHf; i++) {
+		SmithItems[i].clear();
+	}
+	gbIsHellfire = true;
+
+	SetRndSeed(SEED);
+	SpawnSmith(25);
+
+	SetRndSeed(SEED);
+	const int N_ITEMS = RandomIntBetween(10, NumSmithBasicItemsHf);
+	int n_items = 0;
+
+	for(int i = 0; i < NumSmithBasicItemsHf; i++) {
+		if(SmithItems[i].isEmpty()) break;
+		EXPECT_THAT(SmithItems[i]._itype, AnyOf(
+					AllOf(Ge(ItemType::Sword), Le(ItemType::Staff))));
+		n_items++;
+	}
+	EXPECT_EQ(n_items, N_ITEMS);
+}
+
 TEST_F(PremiumTest, PremiumQlvl)
 {
 	Player player;
@@ -228,7 +287,6 @@ TEST_F(PremiumTest, WitchGen)
 		}
 		n_items++;
 	}
-
 	EXPECT_EQ(n_items, N_ITEMS);
 }
 
@@ -280,7 +338,6 @@ TEST_F(PremiumTest, WitchGenHf)
 		if(WitchItems[i]._iMiscId == IMISC_BOOK) n_books++;
 		n_items++;
 	}
-
 	EXPECT_GE(n_books, N_PINNED_BOOKS);
 	EXPECT_EQ(n_items, N_ITEMS);
 }
