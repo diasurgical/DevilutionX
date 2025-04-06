@@ -18,6 +18,25 @@ using ::testing::Ge;
 using ::testing::AnyOf;
 using ::testing::AllOf;
 
+class PremiumTest : public ::testing::Test {
+public:
+	void SetUp() override
+	{
+		Players.resize(1);
+		MyPlayer = &Players[0];
+	}
+
+	static void SetUpTestSuite()
+	{
+		LoadCoreArchives();
+		LoadGameArchives();
+		ASSERT_TRUE(HaveSpawn() || HaveDiabdat());
+		LoadPlayerDataFiles();
+		LoadItemData();
+		LoadSpellData();
+	}
+};
+
 void test_premium_qlvl(int *qlvls, int n_qlvls, int clvl, bool hf)
 {
 	constexpr int QLVL_DELTAS[] = { -1, -1, 0, 0, 1, 2 };
@@ -49,17 +68,11 @@ void test_premium_qlvl(int *qlvls, int n_qlvls, int clvl, bool hf)
 	}
 }
 
-TEST(PremiumTest, PremiumQlvl)
+TEST_F(PremiumTest, PremiumQlvl)
 {
 	Player player;
 
 	int qlvls[NumSmithItems] = {};
-
-	LoadCoreArchives();
-	LoadGameArchives();
-	ASSERT_TRUE(HaveSpawn() || HaveDiabdat());
-	LoadPlayerDataFiles();
-	LoadItemData();
 
 	// Clear global state for test, and force Diablo game mode
 	for(int i = 0; i < NumSmithItems; i++) {
@@ -113,16 +126,13 @@ TEST(PremiumTest, PremiumQlvl)
 	}
 }
 
-TEST(PremiumTest, PremiumQlvlHf)
+TEST_F(PremiumTest, PremiumQlvlHf)
 {
+	ASSERT_TRUE(HaveHellfire());
+
 	Player player;
 	int qlvls[NumSmithItemsHf] = {};
 
-	LoadCoreArchives();
-	LoadGameArchives();
-	ASSERT_TRUE(HaveHellfire() && (HaveSpawn() || HaveDiabdat()));
-	LoadPlayerDataFiles();
-	LoadItemData();
 
 	// Clear global state for test, and force Hellfire game mode
 	for(int i = 0; i < NumSmithItemsHf; i++) {
@@ -175,23 +185,14 @@ TEST(PremiumTest, PremiumQlvlHf)
 	}
 }
 
-TEST(PremiumTest, WitchGen)
+TEST_F(PremiumTest, WitchGen)
 {
 	constexpr _item_indexes PINNED_ITEMS[] = { IDI_MANA, IDI_FULLMANA, IDI_PORTAL };
 
 	const int SEED = testing::UnitTest::GetInstance()->random_seed();
 
-	Players.resize(1);
-	MyPlayer = &Players[0];
 	CreatePlayer(*MyPlayer, HeroClass::Warrior);
 	MyPlayer->setCharacterLevel(25);
-
-	LoadCoreArchives();
-	LoadGameArchives();
-	ASSERT_TRUE(HaveSpawn() || HaveDiabdat());
-	LoadPlayerDataFiles();
-	LoadItemData();
-	LoadSpellData();
 
 	// Clear global state for test, and force Diablo game mode
 	for(int i = 0; i < NumWitchItemsHf; i++) {
@@ -231,24 +232,16 @@ TEST(PremiumTest, WitchGen)
 	EXPECT_EQ(n_items, N_ITEMS);
 }
 
-TEST(PremiumTest, WitchGenHf)
+TEST_F(PremiumTest, WitchGenHf)
 {
+	ASSERT_TRUE(HaveHellfire());
+
 	constexpr _item_indexes PINNED_ITEMS[] = { IDI_MANA, IDI_FULLMANA, IDI_PORTAL };
 	constexpr int MAX_PINNED_BOOKS = 4;
 
 	const int SEED = testing::UnitTest::GetInstance()->random_seed();
 
-	Players.resize(1);
-	MyPlayer = &Players[0];
 	CreatePlayer(*MyPlayer, HeroClass::Warrior);
-	MyPlayer->setCharacterLevel(25);
-
-	LoadCoreArchives();
-	LoadGameArchives();
-	ASSERT_TRUE(HaveHellfire() && (HaveSpawn() || HaveDiabdat()));
-	LoadPlayerDataFiles();
-	LoadItemData();
-	LoadSpellData();
 
 	// Clear global state for test, and force Hellfire game mode
 	for(int i = 0; i < NumWitchItemsHf; i++) {
