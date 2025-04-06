@@ -18,7 +18,7 @@ using ::testing::Ge;
 using ::testing::AnyOf;
 using ::testing::AllOf;
 
-class PremiumTest : public ::testing::Test {
+class VendorTest : public ::testing::Test {
 public:
 	void SetUp() override
 	{
@@ -68,7 +68,7 @@ void test_premium_qlvl(int *qlvls, int n_qlvls, int clvl, bool hf)
 	}
 }
 
-TEST_F(PremiumTest, SmithGen)
+TEST_F(VendorTest, SmithGen)
 {
 	const int SEED = testing::UnitTest::GetInstance()->random_seed();
 
@@ -97,7 +97,7 @@ TEST_F(PremiumTest, SmithGen)
 	EXPECT_EQ(n_items, N_ITEMS);
 }
 
-TEST_F(PremiumTest, SmithGenHf)
+TEST_F(VendorTest, SmithGenHf)
 {
 	ASSERT_TRUE(HaveHellfire());
 
@@ -128,7 +128,7 @@ TEST_F(PremiumTest, SmithGenHf)
 	EXPECT_EQ(n_items, N_ITEMS);
 }
 
-TEST_F(PremiumTest, PremiumQlvl)
+TEST_F(VendorTest, PremiumQlvl)
 {
 	int qlvls[NumSmithItems] = {};
 
@@ -184,7 +184,7 @@ TEST_F(PremiumTest, PremiumQlvl)
 	}
 }
 
-TEST_F(PremiumTest, PremiumQlvlHf)
+TEST_F(VendorTest, PremiumQlvlHf)
 {
 	ASSERT_TRUE(HaveHellfire());
 
@@ -242,7 +242,7 @@ TEST_F(PremiumTest, PremiumQlvlHf)
 	}
 }
 
-TEST_F(PremiumTest, WitchGen)
+TEST_F(VendorTest, WitchGen)
 {
 	constexpr _item_indexes PINNED_ITEMS[] = { IDI_MANA, IDI_FULLMANA, IDI_PORTAL };
 
@@ -288,7 +288,7 @@ TEST_F(PremiumTest, WitchGen)
 	EXPECT_EQ(n_items, N_ITEMS);
 }
 
-TEST_F(PremiumTest, WitchGenHf)
+TEST_F(VendorTest, WitchGenHf)
 {
 	ASSERT_TRUE(HaveHellfire());
 
@@ -340,7 +340,7 @@ TEST_F(PremiumTest, WitchGenHf)
 	EXPECT_EQ(n_items, N_ITEMS);
 }
 
-TEST_F(PremiumTest, HealerGen)
+TEST_F(VendorTest, HealerGen)
 {
 	constexpr _item_indexes PINNED_ITEMS[] = { IDI_HEAL, IDI_FULLHEAL, IDI_RESURRECT };
 
@@ -378,7 +378,7 @@ TEST_F(PremiumTest, HealerGen)
 	EXPECT_EQ(n_items, N_ITEMS);
 }
 
-TEST_F(PremiumTest, HealerGenHf)
+TEST_F(VendorTest, HealerGenHf)
 {
 	ASSERT_TRUE(HaveHellfire());
 
