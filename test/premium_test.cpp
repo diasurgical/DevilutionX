@@ -100,6 +100,7 @@ TEST_F(PremiumTest, SmithGen)
 TEST_F(PremiumTest, SmithGenHf)
 {
 	ASSERT_TRUE(HaveHellfire());
+
 	const int SEED = testing::UnitTest::GetInstance()->random_seed();
 
 	CreatePlayer(*MyPlayer, HeroClass::Warrior);
@@ -129,8 +130,6 @@ TEST_F(PremiumTest, SmithGenHf)
 
 TEST_F(PremiumTest, PremiumQlvl)
 {
-	Player player;
-
 	int qlvls[NumSmithItems] = {};
 
 	// Clear global state for test, and force Diablo game mode
@@ -141,17 +140,17 @@ TEST_F(PremiumTest, PremiumQlvl)
 	gbIsHellfire = false;
 
 	// Test level 1 character item qlvl
-	CreatePlayer(player, HeroClass::Warrior);
-	SpawnPremium(player);
-	test_premium_qlvl(qlvls, NumSmithItems, player.getCharacterLevel(), gbIsHellfire);
+	CreatePlayer(*MyPlayer, HeroClass::Warrior);
+	SpawnPremium(*MyPlayer);
+	test_premium_qlvl(qlvls, NumSmithItems, MyPlayer->getCharacterLevel(), gbIsHellfire);
 	for(int i = 0; i < NumSmithItems; i++) {
 		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, qlvls[i]);
 	}
 
 	// Test level ups
-	player.setCharacterLevel(5);
-	SpawnPremium(player);
-	test_premium_qlvl(qlvls, NumSmithItems, player.getCharacterLevel(), gbIsHellfire);
+	MyPlayer->setCharacterLevel(5);
+	SpawnPremium(*MyPlayer);
+	test_premium_qlvl(qlvls, NumSmithItems, MyPlayer->getCharacterLevel(), gbIsHellfire);
 	for(int i = 0; i < NumSmithItems; i++) {
 		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, qlvls[i]);
 	}
@@ -163,9 +162,9 @@ TEST_F(PremiumTest, PremiumQlvl)
 	PremiumItemLevel = 1;
 
 	// Test starting game as a level 25 character
-	player.setCharacterLevel(25);
-	SpawnPremium(player);
-	test_premium_qlvl(qlvls, NumSmithItems, player.getCharacterLevel(), gbIsHellfire);
+	MyPlayer->setCharacterLevel(25);
+	SpawnPremium(*MyPlayer);
+	test_premium_qlvl(qlvls, NumSmithItems, MyPlayer->getCharacterLevel(), gbIsHellfire);
 	for(int i = 0; i < NumSmithItems; i++) {
 		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, qlvls[i]);
 	}
@@ -178,8 +177,8 @@ TEST_F(PremiumTest, PremiumQlvl)
 	PremiumItems[0].clear();
 	PremiumItems[3].clear();
 	PremiumItems[5].clear();
-	SpawnPremium(player);
-	test_premium_qlvl(qlvls, NumSmithItems, player.getCharacterLevel(), gbIsHellfire);
+	SpawnPremium(*MyPlayer);
+	test_premium_qlvl(qlvls, NumSmithItems, MyPlayer->getCharacterLevel(), gbIsHellfire);
 	for(int i = 0; i < NumSmithItems; i++) {
 		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, qlvls[i]);
 	}
@@ -189,7 +188,6 @@ TEST_F(PremiumTest, PremiumQlvlHf)
 {
 	ASSERT_TRUE(HaveHellfire());
 
-	Player player;
 	int qlvls[NumSmithItemsHf] = {};
 
 
@@ -201,17 +199,17 @@ TEST_F(PremiumTest, PremiumQlvlHf)
 	gbIsHellfire = true;
 
 	// Test level 1 character item qlvl
-	CreatePlayer(player, HeroClass::Warrior);
-	SpawnPremium(player);
-	test_premium_qlvl(qlvls, NumSmithItemsHf, player.getCharacterLevel(), gbIsHellfire);
+	CreatePlayer(*MyPlayer, HeroClass::Warrior);
+	SpawnPremium(*MyPlayer);
+	test_premium_qlvl(qlvls, NumSmithItemsHf, MyPlayer->getCharacterLevel(), gbIsHellfire);
 	for(int i = 0; i < NumSmithItemsHf; i++) {
 		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, qlvls[i]);
 	}
 
 	// Test level ups
-	player.setCharacterLevel(5);
-	SpawnPremium(player);
-	test_premium_qlvl(qlvls, NumSmithItemsHf, player.getCharacterLevel(), gbIsHellfire);
+	MyPlayer->setCharacterLevel(5);
+	SpawnPremium(*MyPlayer);
+	test_premium_qlvl(qlvls, NumSmithItemsHf, MyPlayer->getCharacterLevel(), gbIsHellfire);
 	for(int i = 0; i < NumSmithItemsHf; i++) {
 		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, qlvls[i]);
 	}
@@ -223,9 +221,9 @@ TEST_F(PremiumTest, PremiumQlvlHf)
 	PremiumItemLevel = 1;
 
 	// Test starting game as a level 25 character
-	player.setCharacterLevel(25);
-	SpawnPremium(player);
-	test_premium_qlvl(qlvls, NumSmithItemsHf, player.getCharacterLevel(), gbIsHellfire);
+	MyPlayer->setCharacterLevel(25);
+	SpawnPremium(*MyPlayer);
+	test_premium_qlvl(qlvls, NumSmithItemsHf, MyPlayer->getCharacterLevel(), gbIsHellfire);
 	for(int i = 0; i < NumSmithItemsHf; i++) {
 		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, qlvls[i]);
 	}
@@ -237,8 +235,8 @@ TEST_F(PremiumTest, PremiumQlvlHf)
 	PremiumItems[0].clear();
 	PremiumItems[7].clear();
 	PremiumItems[14].clear();
-	SpawnPremium(player);
-	test_premium_qlvl(qlvls, NumSmithItemsHf, player.getCharacterLevel(), gbIsHellfire);
+	SpawnPremium(*MyPlayer);
+	test_premium_qlvl(qlvls, NumSmithItemsHf, MyPlayer->getCharacterLevel(), gbIsHellfire);
 	for(int i = 0; i < NumSmithItemsHf; i++) {
 		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, qlvls[i]);
 	}
@@ -382,6 +380,8 @@ TEST_F(PremiumTest, HealerGen)
 
 TEST_F(PremiumTest, HealerGenHf)
 {
+	ASSERT_TRUE(HaveHellfire());
+
 	constexpr _item_indexes PINNED_ITEMS[] = { IDI_HEAL, IDI_FULLHEAL, IDI_RESURRECT };
 
 	const int SEED = testing::UnitTest::GetInstance()->random_seed();
