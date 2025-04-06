@@ -27,7 +27,7 @@ MATCHER(SmithTypeMatchHf, "Valid Hellfire item type from Griswold")
 
 MATCHER(PremiumTypeMatch, "Valid premium items from Griswold")
 {
-	return arg >= ItemType::Ring || arg <= ItemType::Amulet;
+	return arg >= ItemType::Ring && arg <= ItemType::Amulet;
 }
 
 MATCHER(WitchTypeMatch, "Valid item type from Adria")
@@ -64,42 +64,43 @@ public:
 	{
 		LoadCoreArchives();
 		LoadGameArchives();
-		ASSERT_TRUE(HaveSpawn() || HaveDiabdat());
+		ASSERT_TRUE(HaveMainData());
 		LoadPlayerDataFiles();
 		LoadItemData();
 		LoadSpellData();
 	}
 };
 
-void test_premium_qlvl(int *qlvls, int n_qlvls, int clvl, bool hf)
+int test_premium_qlvl(int *qlvls, int n_qlvls, int clvl, int plvl, bool hf)
 {
 	constexpr int QLVL_DELTAS[] = { -1, -1, 0, 0, 1, 2 };
 	constexpr int QLVL_DELTAS_HF[] = { -1, -1, -1, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 3, 3 };
 
-	int lvl = 1;
-
 	for (int i = 0; i < n_qlvls; i++) {
 		if (qlvls[i] == 0) {
-			qlvls[i] = lvl + (hf ? QLVL_DELTAS_HF[i] : QLVL_DELTAS[i]);
+			qlvls[i] = clvl + (hf ? QLVL_DELTAS_HF[i] : QLVL_DELTAS[i]);
 			qlvls[i] = qlvls[i] < 1 ? 1 : qlvls[i];
 		}
 	}
 
-	while (lvl++ < clvl) {
+	while (plvl < clvl) {
+		plvl++;
 		if (hf) {
 			std::move(qlvls + 3, qlvls + 13, qlvls);
 			qlvls[11] = qlvls[13];
 			qlvls[13] = qlvls[14];
-			qlvls[10] = QLVL_DELTAS_HF[10] + lvl;
-			qlvls[12] = QLVL_DELTAS_HF[12] + lvl;
-			qlvls[14] = QLVL_DELTAS_HF[14] + lvl;
+			qlvls[10] = QLVL_DELTAS_HF[10] + plvl;
+			qlvls[12] = QLVL_DELTAS_HF[12] + plvl;
+			qlvls[14] = QLVL_DELTAS_HF[14] + plvl;
 		} else {
 			std::move(qlvls + 2, qlvls + 5, qlvls);
 			qlvls[4] = qlvls[5];
-			qlvls[3] = QLVL_DELTAS[3] + lvl;
-			qlvls[5] = QLVL_DELTAS[5] + lvl;
+			qlvls[3] = QLVL_DELTAS[3] + plvl;
+			qlvls[5] = QLVL_DELTAS[5] + plvl;
 		}
 	}
+
+	return plvl;
 }
 
 TEST_F(VendorTest, SmithGen)
@@ -132,7 +133,7 @@ TEST_F(VendorTest, SmithGen)
 
 TEST_F(VendorTest, SmithGenHf)
 {
-	ASSERT_TRUE(HaveHellfire());
+	if (!HaveHellfire()) return;
 
 	const int SEED = testing::UnitTest::GetInstance()->random_seed();
 
@@ -163,6 +164,7 @@ TEST_F(VendorTest, SmithGenHf)
 TEST_F(VendorTest, PremiumQlvl)
 {
 	int qlvls[NumSmithItems] = {};
+	int plvl = 1;
 
 	// Clear global state for test, and force Diablo game mode
 	for (int i = 0; i < NumSmithItems; i++) {
@@ -174,17 +176,19 @@ TEST_F(VendorTest, PremiumQlvl)
 	// Test level 1 character item qlvl
 	CreatePlayer(*MyPlayer, HeroClass::Warrior);
 	SpawnPremium(*MyPlayer);
-	test_premium_qlvl(qlvls, NumSmithItems, MyPlayer->getCharacterLevel(), gbIsHellfire);
+	plvl = test_premium_qlvl(qlvls, NumSmithItems, MyPlayer->getCharacterLevel(), 1, gbIsHellfire);
 	for (int i = 0; i < NumSmithItems; i++) {
 		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, qlvls[i]);
+		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatch(), PremiumTypeMatch()));
 	}
 
 	// Test level ups
 	MyPlayer->setCharacterLevel(5);
 	SpawnPremium(*MyPlayer);
-	test_premium_qlvl(qlvls, NumSmithItems, MyPlayer->getCharacterLevel(), gbIsHellfire);
+	plvl = test_premium_qlvl(qlvls, NumSmithItems, MyPlayer->getCharacterLevel(), plvl, gbIsHellfire);
 	for (int i = 0; i < NumSmithItems; i++) {
 		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, qlvls[i]);
+		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatch(), PremiumTypeMatch()));
 	}
 
 	// Clear global state
@@ -196,9 +200,10 @@ TEST_F(VendorTest, PremiumQlvl)
 	// Test starting game as a level 25 character
 	MyPlayer->setCharacterLevel(25);
 	SpawnPremium(*MyPlayer);
-	test_premium_qlvl(qlvls, NumSmithItems, MyPlayer->getCharacterLevel(), gbIsHellfire);
+	plvl = test_premium_qlvl(qlvls, NumSmithItems, MyPlayer->getCharacterLevel(), 1, gbIsHellfire);
 	for (int i = 0; i < NumSmithItems; i++) {
 		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, qlvls[i]);
+		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatch(), PremiumTypeMatch()));
 	}
 
 	// Test buying select items
@@ -209,8 +214,9 @@ TEST_F(VendorTest, PremiumQlvl)
 	PremiumItems[0].clear();
 	PremiumItems[3].clear();
 	PremiumItems[5].clear();
+	PremiumItemCount -= 3;
 	SpawnPremium(*MyPlayer);
-	test_premium_qlvl(qlvls, NumSmithItems, MyPlayer->getCharacterLevel(), gbIsHellfire);
+	plvl = test_premium_qlvl(qlvls, NumSmithItems, MyPlayer->getCharacterLevel(), plvl, gbIsHellfire);
 	for (int i = 0; i < NumSmithItems; i++) {
 		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, qlvls[i]);
 		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatch(), PremiumTypeMatch()));
@@ -219,9 +225,10 @@ TEST_F(VendorTest, PremiumQlvl)
 
 TEST_F(VendorTest, PremiumQlvlHf)
 {
-	ASSERT_TRUE(HaveHellfire());
+	if (!HaveHellfire()) return;
 
 	int qlvls[NumSmithItemsHf] = {};
+	int plvl = 1;
 
 	// Clear global state for test, and force Hellfire game mode
 	for (int i = 0; i < NumSmithItemsHf; i++) {
@@ -233,17 +240,19 @@ TEST_F(VendorTest, PremiumQlvlHf)
 	// Test level 1 character item qlvl
 	CreatePlayer(*MyPlayer, HeroClass::Warrior);
 	SpawnPremium(*MyPlayer);
-	test_premium_qlvl(qlvls, NumSmithItemsHf, MyPlayer->getCharacterLevel(), gbIsHellfire);
+	plvl = test_premium_qlvl(qlvls, NumSmithItemsHf, MyPlayer->getCharacterLevel(), 1, gbIsHellfire);
 	for (int i = 0; i < NumSmithItemsHf; i++) {
 		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, qlvls[i]);
+		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatchHf(), PremiumTypeMatch()));
 	}
 
 	// Test level ups
 	MyPlayer->setCharacterLevel(5);
 	SpawnPremium(*MyPlayer);
-	test_premium_qlvl(qlvls, NumSmithItemsHf, MyPlayer->getCharacterLevel(), gbIsHellfire);
+	plvl = test_premium_qlvl(qlvls, NumSmithItemsHf, MyPlayer->getCharacterLevel(), plvl, gbIsHellfire);
 	for (int i = 0; i < NumSmithItemsHf; i++) {
 		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, qlvls[i]);
+		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatchHf(), PremiumTypeMatch()));
 	}
 
 	// Clear global state
@@ -255,7 +264,7 @@ TEST_F(VendorTest, PremiumQlvlHf)
 	// Test starting game as a level 25 character
 	MyPlayer->setCharacterLevel(25);
 	SpawnPremium(*MyPlayer);
-	test_premium_qlvl(qlvls, NumSmithItemsHf, MyPlayer->getCharacterLevel(), gbIsHellfire);
+	plvl = test_premium_qlvl(qlvls, NumSmithItemsHf, MyPlayer->getCharacterLevel(), 1, gbIsHellfire);
 	for (int i = 0; i < NumSmithItemsHf; i++) {
 		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, qlvls[i]);
 		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatchHf(), PremiumTypeMatch()));
@@ -268,10 +277,12 @@ TEST_F(VendorTest, PremiumQlvlHf)
 	PremiumItems[0].clear();
 	PremiumItems[7].clear();
 	PremiumItems[14].clear();
+	PremiumItemCount -= 3;
 	SpawnPremium(*MyPlayer);
-	test_premium_qlvl(qlvls, NumSmithItemsHf, MyPlayer->getCharacterLevel(), gbIsHellfire);
+	plvl = test_premium_qlvl(qlvls, NumSmithItemsHf, MyPlayer->getCharacterLevel(), plvl, gbIsHellfire);
 	for (int i = 0; i < NumSmithItemsHf; i++) {
 		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, qlvls[i]);
+		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatchHf(), PremiumTypeMatch()));
 	}
 }
 
@@ -316,7 +327,7 @@ TEST_F(VendorTest, WitchGen)
 
 TEST_F(VendorTest, WitchGenHf)
 {
-	ASSERT_TRUE(HaveHellfire());
+	if (!HaveHellfire()) return;
 
 	constexpr _item_indexes PINNED_ITEMS[] = { IDI_MANA, IDI_FULLMANA, IDI_PORTAL };
 	constexpr int MAX_PINNED_BOOKS = 4;
@@ -396,7 +407,7 @@ TEST_F(VendorTest, HealerGen)
 
 TEST_F(VendorTest, HealerGenHf)
 {
-	ASSERT_TRUE(HaveHellfire());
+	if (!HaveHellfire()) return;
 
 	constexpr _item_indexes PINNED_ITEMS[] = { IDI_HEAL, IDI_FULLHEAL, IDI_RESURRECT };
 
