@@ -1348,7 +1348,7 @@ void SmithBuyPItem(Item &item)
 	StoreAutoPlace(item, true);
 
 	int idx = OldScrollPos + ((OldTextLine - PreviousScrollPos) / 4);
-	ReplacePremium(*MyPlayer, PremiumItems[idx]);
+	ReplacePremium(*MyPlayer, idx);
 }
 
 void SmithPremiumBuyEnter()

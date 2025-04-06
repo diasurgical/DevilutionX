@@ -4410,10 +4410,11 @@ void SpawnSmith(int lvl)
 	SortVendor(SmithItems, PinnedItemCount);
 }
 
-void ReplacePremium(const Player &player, Item &item)
+void ReplacePremium(const Player &player, int idx)
 {
-	int plvl = item._iCreateInfo & CF_LEVEL;
-	SpawnOnePremium(item, plvl, player);
+	int plvl = gbIsHellfire ? itemLevelAddHf[idx] : itemLevelAdd[idx];
+	plvl += player.getCharacterLevel();
+	SpawnOnePremium(PremiumItems[idx], plvl, player);
 }
 
 void SpawnPremium(const Player &player)
