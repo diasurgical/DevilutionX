@@ -342,5 +342,81 @@ TEST_F(PremiumTest, WitchGenHf)
 	EXPECT_EQ(n_items, N_ITEMS);
 }
 
+TEST_F(PremiumTest, HealerGen)
+{
+	constexpr _item_indexes PINNED_ITEMS[] = { IDI_HEAL, IDI_FULLHEAL, IDI_RESURRECT };
+
+	const int SEED = testing::UnitTest::GetInstance()->random_seed();
+
+	CreatePlayer(*MyPlayer, HeroClass::Warrior);
+	MyPlayer->setCharacterLevel(25);
+
+	// Clear global state for test, and force Diablo game mode
+	for(int i = 0; i < NumHealerItemsHf; i++) {
+		HealerItems[i].clear();
+	}
+	gbIsHellfire = false;
+
+	SetRndSeed(SEED);
+	SpawnHealer(25);
+
+	SetRndSeed(SEED);
+	const int N_ITEMS = RandomIntBetween(10, NumHealerItems);
+	int n_items = NumHealerPinnedItems;
+
+	for(int i = 0; i < NumHealerPinnedItems; i++) {
+		EXPECT_EQ(HealerItems[i].IDidx, PINNED_ITEMS[i]);
+	}
+
+	for(int i = NumHealerPinnedItems; i < NumHealerItems; i++) {
+		if(HealerItems[i].isEmpty()) break;
+		EXPECT_THAT(HealerItems[i]._itype, Eq(ItemType::Misc));
+		EXPECT_THAT(HealerItems[i]._iMiscId, AnyOf(
+					AllOf(Ge(IMISC_ELIXSTR), Le(IMISC_ELIXVIT)),
+					AllOf(Ge(IMISC_REJUV), Le(IMISC_FULLREJUV)),
+					AllOf(Ge(IMISC_SCROLL), Le(IMISC_SCROLLT))));
+		n_items++;
+	}
+	EXPECT_EQ(n_items, N_ITEMS);
+}
+
+TEST_F(PremiumTest, HealerGenHf)
+{
+	constexpr _item_indexes PINNED_ITEMS[] = { IDI_HEAL, IDI_FULLHEAL, IDI_RESURRECT };
+
+	const int SEED = testing::UnitTest::GetInstance()->random_seed();
+
+	CreatePlayer(*MyPlayer, HeroClass::Warrior);
+	MyPlayer->setCharacterLevel(25);
+
+	// Clear global state for test, and force Hellfire game mode
+	for(int i = 0; i < NumHealerItemsHf; i++) {
+		HealerItems[i].clear();
+	}
+	gbIsHellfire = true;
+
+	SetRndSeed(SEED);
+	SpawnHealer(25);
+
+	SetRndSeed(SEED);
+	const int N_ITEMS = RandomIntBetween(10, NumHealerItemsHf);
+	int n_items = NumHealerPinnedItems;
+
+	for(int i = 0; i < NumHealerPinnedItems; i++) {
+		EXPECT_EQ(HealerItems[i].IDidx, PINNED_ITEMS[i]);
+	}
+
+	for(int i = NumHealerPinnedItems; i < NumHealerItemsHf; i++) {
+		if(HealerItems[i].isEmpty()) break;
+		EXPECT_THAT(HealerItems[i]._itype, Eq(ItemType::Misc));
+		EXPECT_THAT(HealerItems[i]._iMiscId, AnyOf(
+					AllOf(Ge(IMISC_ELIXSTR), Le(IMISC_ELIXVIT)),
+					AllOf(Ge(IMISC_REJUV), Le(IMISC_FULLREJUV)),
+					AllOf(Ge(IMISC_SCROLL), Le(IMISC_SCROLLT))));
+		n_items++;
+	}
+	EXPECT_EQ(n_items, N_ITEMS);
+}
+
 } // namespace
 } // namespace devilution
