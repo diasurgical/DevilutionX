@@ -1,22 +1,22 @@
-#include <gtest/gtest.h>
 #include <gmock/gmock.h>
+#include <gtest/gtest.h>
 
 #include "init.h"
 #include "items.h"
-#include "stores.h"
 #include "player.h"
 #include "playerdat.hpp"
+#include "stores.h"
 
 #include "engine/random.hpp"
 
 namespace devilution {
 namespace {
 
-using ::testing::Eq;
-using ::testing::Le;
-using ::testing::Ge;
-using ::testing::AnyOf;
 using ::testing::AllOf;
+using ::testing::AnyOf;
+using ::testing::Eq;
+using ::testing::Ge;
+using ::testing::Le;
 
 class VendorTest : public ::testing::Test {
 public:
@@ -44,15 +44,15 @@ void test_premium_qlvl(int *qlvls, int n_qlvls, int clvl, bool hf)
 
 	int lvl = 1;
 
-	for(int i = 0; i < n_qlvls; i++) {
-		if(qlvls[i] == 0) {
+	for (int i = 0; i < n_qlvls; i++) {
+		if (qlvls[i] == 0) {
 			qlvls[i] = lvl + (hf ? QLVL_DELTAS_HF[i] : QLVL_DELTAS[i]);
 			qlvls[i] = qlvls[i] < 1 ? 1 : qlvls[i];
 		}
 	}
 
-	while(lvl++ < clvl) {
-		if(hf) {
+	while (lvl++ < clvl) {
+		if (hf) {
 			std::move(qlvls + 3, qlvls + 13, qlvls);
 			qlvls[11] = qlvls[13];
 			qlvls[13] = qlvls[14];
@@ -76,7 +76,7 @@ TEST_F(VendorTest, SmithGen)
 	MyPlayer->setCharacterLevel(25);
 
 	// Clear global state for test, and force Diablo game mode
-	for(int i = 0; i < NumSmithBasicItemsHf; i++) {
+	for (int i = 0; i < NumSmithBasicItemsHf; i++) {
 		SmithItems[i].clear();
 	}
 	gbIsHellfire = false;
@@ -88,10 +88,9 @@ TEST_F(VendorTest, SmithGen)
 	const int N_ITEMS = RandomIntBetween(10, NumSmithBasicItems);
 	int n_items = 0;
 
-	for(int i = 0; i < NumSmithBasicItems; i++) {
-		if(SmithItems[i].isEmpty()) break;
-		EXPECT_THAT(SmithItems[i]._itype, AnyOf(
-					AllOf(Ge(ItemType::Sword), Le(ItemType::HeavyArmor))));
+	for (int i = 0; i < NumSmithBasicItems; i++) {
+		if (SmithItems[i].isEmpty()) break;
+		EXPECT_THAT(SmithItems[i]._itype, AnyOf(AllOf(Ge(ItemType::Sword), Le(ItemType::HeavyArmor))));
 		n_items++;
 	}
 	EXPECT_EQ(n_items, N_ITEMS);
@@ -107,7 +106,7 @@ TEST_F(VendorTest, SmithGenHf)
 	MyPlayer->setCharacterLevel(25);
 
 	// Clear global state for test, and force Hellfire game mode
-	for(int i = 0; i < NumSmithBasicItemsHf; i++) {
+	for (int i = 0; i < NumSmithBasicItemsHf; i++) {
 		SmithItems[i].clear();
 	}
 	gbIsHellfire = true;
@@ -119,10 +118,9 @@ TEST_F(VendorTest, SmithGenHf)
 	const int N_ITEMS = RandomIntBetween(10, NumSmithBasicItemsHf);
 	int n_items = 0;
 
-	for(int i = 0; i < NumSmithBasicItemsHf; i++) {
-		if(SmithItems[i].isEmpty()) break;
-		EXPECT_THAT(SmithItems[i]._itype, AnyOf(
-					AllOf(Ge(ItemType::Sword), Le(ItemType::Staff))));
+	for (int i = 0; i < NumSmithBasicItemsHf; i++) {
+		if (SmithItems[i].isEmpty()) break;
+		EXPECT_THAT(SmithItems[i]._itype, AnyOf(AllOf(Ge(ItemType::Sword), Le(ItemType::Staff))));
 		n_items++;
 	}
 	EXPECT_EQ(n_items, N_ITEMS);
@@ -133,7 +131,7 @@ TEST_F(VendorTest, PremiumQlvl)
 	int qlvls[NumSmithItems] = {};
 
 	// Clear global state for test, and force Diablo game mode
-	for(int i = 0; i < NumSmithItems; i++) {
+	for (int i = 0; i < NumSmithItems; i++) {
 		PremiumItems[i].clear();
 	}
 	PremiumItemLevel = 1;
@@ -143,7 +141,7 @@ TEST_F(VendorTest, PremiumQlvl)
 	CreatePlayer(*MyPlayer, HeroClass::Warrior);
 	SpawnPremium(*MyPlayer);
 	test_premium_qlvl(qlvls, NumSmithItems, MyPlayer->getCharacterLevel(), gbIsHellfire);
-	for(int i = 0; i < NumSmithItems; i++) {
+	for (int i = 0; i < NumSmithItems; i++) {
 		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, qlvls[i]);
 	}
 
@@ -151,12 +149,12 @@ TEST_F(VendorTest, PremiumQlvl)
 	MyPlayer->setCharacterLevel(5);
 	SpawnPremium(*MyPlayer);
 	test_premium_qlvl(qlvls, NumSmithItems, MyPlayer->getCharacterLevel(), gbIsHellfire);
-	for(int i = 0; i < NumSmithItems; i++) {
+	for (int i = 0; i < NumSmithItems; i++) {
 		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, qlvls[i]);
 	}
 
 	// Clear global state
-	for(int i = 0; i < NumSmithItems; i++) {
+	for (int i = 0; i < NumSmithItems; i++) {
 		PremiumItems[i].clear();
 	}
 	PremiumItemLevel = 1;
@@ -165,7 +163,7 @@ TEST_F(VendorTest, PremiumQlvl)
 	MyPlayer->setCharacterLevel(25);
 	SpawnPremium(*MyPlayer);
 	test_premium_qlvl(qlvls, NumSmithItems, MyPlayer->getCharacterLevel(), gbIsHellfire);
-	for(int i = 0; i < NumSmithItems; i++) {
+	for (int i = 0; i < NumSmithItems; i++) {
 		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, qlvls[i]);
 	}
 
@@ -179,7 +177,7 @@ TEST_F(VendorTest, PremiumQlvl)
 	PremiumItems[5].clear();
 	SpawnPremium(*MyPlayer);
 	test_premium_qlvl(qlvls, NumSmithItems, MyPlayer->getCharacterLevel(), gbIsHellfire);
-	for(int i = 0; i < NumSmithItems; i++) {
+	for (int i = 0; i < NumSmithItems; i++) {
 		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, qlvls[i]);
 	}
 }
@@ -190,9 +188,8 @@ TEST_F(VendorTest, PremiumQlvlHf)
 
 	int qlvls[NumSmithItemsHf] = {};
 
-
 	// Clear global state for test, and force Hellfire game mode
-	for(int i = 0; i < NumSmithItemsHf; i++) {
+	for (int i = 0; i < NumSmithItemsHf; i++) {
 		PremiumItems[i].clear();
 	}
 	PremiumItemLevel = 1;
@@ -202,7 +199,7 @@ TEST_F(VendorTest, PremiumQlvlHf)
 	CreatePlayer(*MyPlayer, HeroClass::Warrior);
 	SpawnPremium(*MyPlayer);
 	test_premium_qlvl(qlvls, NumSmithItemsHf, MyPlayer->getCharacterLevel(), gbIsHellfire);
-	for(int i = 0; i < NumSmithItemsHf; i++) {
+	for (int i = 0; i < NumSmithItemsHf; i++) {
 		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, qlvls[i]);
 	}
 
@@ -210,12 +207,12 @@ TEST_F(VendorTest, PremiumQlvlHf)
 	MyPlayer->setCharacterLevel(5);
 	SpawnPremium(*MyPlayer);
 	test_premium_qlvl(qlvls, NumSmithItemsHf, MyPlayer->getCharacterLevel(), gbIsHellfire);
-	for(int i = 0; i < NumSmithItemsHf; i++) {
+	for (int i = 0; i < NumSmithItemsHf; i++) {
 		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, qlvls[i]);
 	}
 
 	// Clear global state
-	for(int i = 0; i < NumSmithItemsHf; i++) {
+	for (int i = 0; i < NumSmithItemsHf; i++) {
 		PremiumItems[i].clear();
 	}
 	PremiumItemLevel = 1;
@@ -224,7 +221,7 @@ TEST_F(VendorTest, PremiumQlvlHf)
 	MyPlayer->setCharacterLevel(25);
 	SpawnPremium(*MyPlayer);
 	test_premium_qlvl(qlvls, NumSmithItemsHf, MyPlayer->getCharacterLevel(), gbIsHellfire);
-	for(int i = 0; i < NumSmithItemsHf; i++) {
+	for (int i = 0; i < NumSmithItemsHf; i++) {
 		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, qlvls[i]);
 	}
 
@@ -237,7 +234,7 @@ TEST_F(VendorTest, PremiumQlvlHf)
 	PremiumItems[14].clear();
 	SpawnPremium(*MyPlayer);
 	test_premium_qlvl(qlvls, NumSmithItemsHf, MyPlayer->getCharacterLevel(), gbIsHellfire);
-	for(int i = 0; i < NumSmithItemsHf; i++) {
+	for (int i = 0; i < NumSmithItemsHf; i++) {
 		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, qlvls[i]);
 	}
 }
@@ -252,7 +249,7 @@ TEST_F(VendorTest, WitchGen)
 	MyPlayer->setCharacterLevel(25);
 
 	// Clear global state for test, and force Diablo game mode
-	for(int i = 0; i < NumWitchItemsHf; i++) {
+	for (int i = 0; i < NumWitchItemsHf; i++) {
 		WitchItems[i].clear();
 	}
 	gbIsHellfire = false;
@@ -265,23 +262,16 @@ TEST_F(VendorTest, WitchGen)
 
 	int n_items = NumWitchPinnedItems;
 
-	for(int i = 0; i < NumWitchPinnedItems; i++) {
+	for (int i = 0; i < NumWitchPinnedItems; i++) {
 		EXPECT_EQ(WitchItems[i].IDidx, PINNED_ITEMS[i]);
 	}
 
-	for(int i = NumWitchPinnedItems; i < NumWitchItems; i++) {
-		if(WitchItems[i].isEmpty()) break;
-		EXPECT_THAT(WitchItems[i]._itype, AnyOf(
-					Eq(ItemType::Misc),
-					Eq(ItemType::Staff)));
+	for (int i = NumWitchPinnedItems; i < NumWitchItems; i++) {
+		if (WitchItems[i].isEmpty()) break;
+		EXPECT_THAT(WitchItems[i]._itype, AnyOf(Eq(ItemType::Misc), Eq(ItemType::Staff)));
 
-		if(WitchItems[i]._itype == ItemType::Misc) {
-			EXPECT_THAT(WitchItems[i]._iMiscId, AnyOf(
-						AllOf(Ge(IMISC_ELIXSTR), Le(IMISC_ELIXVIT)),
-						AllOf(Ge(IMISC_REJUV), Le(IMISC_FULLREJUV)),
-						AllOf(Ge(IMISC_SCROLL), Le(IMISC_SCROLLT)),
-						AllOf(Ge(IMISC_RUNEFIRST), Le(IMISC_RUNELAST)),
-						Eq(IMISC_BOOK)));
+		if (WitchItems[i]._itype == ItemType::Misc) {
+			EXPECT_THAT(WitchItems[i]._iMiscId, AnyOf(AllOf(Ge(IMISC_ELIXSTR), Le(IMISC_ELIXVIT)), AllOf(Ge(IMISC_REJUV), Le(IMISC_FULLREJUV)), AllOf(Ge(IMISC_SCROLL), Le(IMISC_SCROLLT)), AllOf(Ge(IMISC_RUNEFIRST), Le(IMISC_RUNELAST)), Eq(IMISC_BOOK)));
 		}
 		n_items++;
 	}
@@ -300,7 +290,7 @@ TEST_F(VendorTest, WitchGenHf)
 	CreatePlayer(*MyPlayer, HeroClass::Warrior);
 
 	// Clear global state for test, and force Hellfire game mode
-	for(int i = 0; i < NumWitchItemsHf; i++) {
+	for (int i = 0; i < NumWitchItemsHf; i++) {
 		WitchItems[i].clear();
 	}
 	gbIsHellfire = true;
@@ -315,25 +305,18 @@ TEST_F(VendorTest, WitchGenHf)
 	int n_books = 0;
 	int n_items = NumWitchPinnedItems;
 
-	for(int i = 0; i < NumWitchPinnedItems; i++) {
+	for (int i = 0; i < NumWitchPinnedItems; i++) {
 		EXPECT_EQ(WitchItems[i].IDidx, PINNED_ITEMS[i]);
 	}
 
-	for(int i = NumWitchPinnedItems; i < NumWitchItemsHf; i++) {
-		if(WitchItems[i].isEmpty()) break;
-		EXPECT_THAT(WitchItems[i]._itype, AnyOf(
-					Eq(ItemType::Misc),
-					Eq(ItemType::Staff)));
+	for (int i = NumWitchPinnedItems; i < NumWitchItemsHf; i++) {
+		if (WitchItems[i].isEmpty()) break;
+		EXPECT_THAT(WitchItems[i]._itype, AnyOf(Eq(ItemType::Misc), Eq(ItemType::Staff)));
 
-		if(WitchItems[i]._itype == ItemType::Misc) {
-			EXPECT_THAT(WitchItems[i]._iMiscId, AnyOf(
-						AllOf(Ge(IMISC_ELIXSTR), Le(IMISC_ELIXVIT)),
-						AllOf(Ge(IMISC_REJUV), Le(IMISC_FULLREJUV)),
-						AllOf(Ge(IMISC_SCROLL), Le(IMISC_SCROLLT)),
-						AllOf(Ge(IMISC_RUNEFIRST), Le(IMISC_RUNELAST)),
-						Eq(IMISC_BOOK)));
+		if (WitchItems[i]._itype == ItemType::Misc) {
+			EXPECT_THAT(WitchItems[i]._iMiscId, AnyOf(AllOf(Ge(IMISC_ELIXSTR), Le(IMISC_ELIXVIT)), AllOf(Ge(IMISC_REJUV), Le(IMISC_FULLREJUV)), AllOf(Ge(IMISC_SCROLL), Le(IMISC_SCROLLT)), AllOf(Ge(IMISC_RUNEFIRST), Le(IMISC_RUNELAST)), Eq(IMISC_BOOK)));
 		}
-		if(WitchItems[i]._iMiscId == IMISC_BOOK) n_books++;
+		if (WitchItems[i]._iMiscId == IMISC_BOOK) n_books++;
 		n_items++;
 	}
 	EXPECT_GE(n_books, N_PINNED_BOOKS);
@@ -350,7 +333,7 @@ TEST_F(VendorTest, HealerGen)
 	MyPlayer->setCharacterLevel(25);
 
 	// Clear global state for test, and force Diablo game mode
-	for(int i = 0; i < NumHealerItemsHf; i++) {
+	for (int i = 0; i < NumHealerItemsHf; i++) {
 		HealerItems[i].clear();
 	}
 	gbIsHellfire = false;
@@ -362,17 +345,14 @@ TEST_F(VendorTest, HealerGen)
 	const int N_ITEMS = RandomIntBetween(10, NumHealerItems);
 	int n_items = NumHealerPinnedItems;
 
-	for(int i = 0; i < NumHealerPinnedItems; i++) {
+	for (int i = 0; i < NumHealerPinnedItems; i++) {
 		EXPECT_EQ(HealerItems[i].IDidx, PINNED_ITEMS[i]);
 	}
 
-	for(int i = NumHealerPinnedItems; i < NumHealerItems; i++) {
-		if(HealerItems[i].isEmpty()) break;
+	for (int i = NumHealerPinnedItems; i < NumHealerItems; i++) {
+		if (HealerItems[i].isEmpty()) break;
 		EXPECT_THAT(HealerItems[i]._itype, Eq(ItemType::Misc));
-		EXPECT_THAT(HealerItems[i]._iMiscId, AnyOf(
-					AllOf(Ge(IMISC_ELIXSTR), Le(IMISC_ELIXVIT)),
-					AllOf(Ge(IMISC_REJUV), Le(IMISC_FULLREJUV)),
-					AllOf(Ge(IMISC_SCROLL), Le(IMISC_SCROLLT))));
+		EXPECT_THAT(HealerItems[i]._iMiscId, AnyOf(AllOf(Ge(IMISC_ELIXSTR), Le(IMISC_ELIXVIT)), AllOf(Ge(IMISC_REJUV), Le(IMISC_FULLREJUV)), AllOf(Ge(IMISC_SCROLL), Le(IMISC_SCROLLT))));
 		n_items++;
 	}
 	EXPECT_EQ(n_items, N_ITEMS);
@@ -390,7 +370,7 @@ TEST_F(VendorTest, HealerGenHf)
 	MyPlayer->setCharacterLevel(25);
 
 	// Clear global state for test, and force Hellfire game mode
-	for(int i = 0; i < NumHealerItemsHf; i++) {
+	for (int i = 0; i < NumHealerItemsHf; i++) {
 		HealerItems[i].clear();
 	}
 	gbIsHellfire = true;
@@ -402,17 +382,14 @@ TEST_F(VendorTest, HealerGenHf)
 	const int N_ITEMS = RandomIntBetween(10, NumHealerItemsHf);
 	int n_items = NumHealerPinnedItems;
 
-	for(int i = 0; i < NumHealerPinnedItems; i++) {
+	for (int i = 0; i < NumHealerPinnedItems; i++) {
 		EXPECT_EQ(HealerItems[i].IDidx, PINNED_ITEMS[i]);
 	}
 
-	for(int i = NumHealerPinnedItems; i < NumHealerItemsHf; i++) {
-		if(HealerItems[i].isEmpty()) break;
+	for (int i = NumHealerPinnedItems; i < NumHealerItemsHf; i++) {
+		if (HealerItems[i].isEmpty()) break;
 		EXPECT_THAT(HealerItems[i]._itype, Eq(ItemType::Misc));
-		EXPECT_THAT(HealerItems[i]._iMiscId, AnyOf(
-					AllOf(Ge(IMISC_ELIXSTR), Le(IMISC_ELIXVIT)),
-					AllOf(Ge(IMISC_REJUV), Le(IMISC_FULLREJUV)),
-					AllOf(Ge(IMISC_SCROLL), Le(IMISC_SCROLLT))));
+		EXPECT_THAT(HealerItems[i]._iMiscId, AnyOf(AllOf(Ge(IMISC_ELIXSTR), Le(IMISC_ELIXVIT)), AllOf(Ge(IMISC_REJUV), Le(IMISC_FULLREJUV)), AllOf(Ge(IMISC_SCROLL), Le(IMISC_SCROLLT))));
 		n_items++;
 	}
 	EXPECT_EQ(n_items, N_ITEMS);
