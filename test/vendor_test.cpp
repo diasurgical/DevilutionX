@@ -12,11 +12,40 @@
 namespace devilution {
 namespace {
 
-using ::testing::AllOf;
 using ::testing::AnyOf;
 using ::testing::Eq;
-using ::testing::Ge;
-using ::testing::Le;
+
+MATCHER(SmithTypeMatch, "Valid Diablo item type from Griswold")
+{
+	return arg >= ItemType::Sword && arg <= ItemType::HeavyArmor;
+}
+
+MATCHER(SmithTypeMatchHf, "Valid Hellfire item type from Griswold")
+{
+	return arg >= ItemType::Sword && arg <= ItemType::Staff;
+}
+
+MATCHER(WitchTypeMatch, "Valid item type from Adria")
+{
+	return arg == ItemType::Misc || arg == ItemType::Staff;
+}
+
+MATCHER(WitchMiscMatch, "Valid misc. item type from Adria")
+{
+	if (arg >= IMISC_ELIXSTR && arg <= IMISC_ELIXVIT) return true;
+	if (arg >= IMISC_REJUV && arg <= IMISC_FULLREJUV) return true;
+	if (arg >= IMISC_SCROLL && arg <= IMISC_SCROLLT) return true;
+	if (arg >= IMISC_RUNEFIRST && arg <= IMISC_RUNELAST) return true;
+	return arg == IMISC_BOOK;
+}
+
+MATCHER(HealerMiscMatch, "Valid misc. item type from Pepin")
+{
+	if (arg >= IMISC_ELIXSTR && arg <= IMISC_ELIXVIT) return true;
+	if (arg >= IMISC_REJUV && arg <= IMISC_FULLREJUV) return true;
+	if (arg >= IMISC_SCROLL && arg <= IMISC_SCROLLT) return true;
+	return false;
+}
 
 class VendorTest : public ::testing::Test {
 public:
@@ -90,7 +119,7 @@ TEST_F(VendorTest, SmithGen)
 
 	for (int i = 0; i < NumSmithBasicItems; i++) {
 		if (SmithItems[i].isEmpty()) break;
-		EXPECT_THAT(SmithItems[i]._itype, AnyOf(AllOf(Ge(ItemType::Sword), Le(ItemType::HeavyArmor))));
+		EXPECT_THAT(SmithItems[i]._itype, SmithTypeMatch());
 		n_items++;
 	}
 	EXPECT_EQ(n_items, N_ITEMS);
@@ -120,7 +149,7 @@ TEST_F(VendorTest, SmithGenHf)
 
 	for (int i = 0; i < NumSmithBasicItemsHf; i++) {
 		if (SmithItems[i].isEmpty()) break;
-		EXPECT_THAT(SmithItems[i]._itype, AnyOf(AllOf(Ge(ItemType::Sword), Le(ItemType::Staff))));
+		EXPECT_THAT(SmithItems[i]._itype, SmithTypeMatchHf());
 		n_items++;
 	}
 	EXPECT_EQ(n_items, N_ITEMS);
@@ -268,10 +297,10 @@ TEST_F(VendorTest, WitchGen)
 
 	for (int i = NumWitchPinnedItems; i < NumWitchItems; i++) {
 		if (WitchItems[i].isEmpty()) break;
-		EXPECT_THAT(WitchItems[i]._itype, AnyOf(Eq(ItemType::Misc), Eq(ItemType::Staff)));
+		EXPECT_THAT(WitchItems[i]._itype, WitchTypeMatch());
 
 		if (WitchItems[i]._itype == ItemType::Misc) {
-			EXPECT_THAT(WitchItems[i]._iMiscId, AnyOf(AllOf(Ge(IMISC_ELIXSTR), Le(IMISC_ELIXVIT)), AllOf(Ge(IMISC_REJUV), Le(IMISC_FULLREJUV)), AllOf(Ge(IMISC_SCROLL), Le(IMISC_SCROLLT)), AllOf(Ge(IMISC_RUNEFIRST), Le(IMISC_RUNELAST)), Eq(IMISC_BOOK)));
+			EXPECT_THAT(WitchItems[i]._iMiscId, WitchMiscMatch());
 		}
 		n_items++;
 	}
@@ -311,10 +340,10 @@ TEST_F(VendorTest, WitchGenHf)
 
 	for (int i = NumWitchPinnedItems; i < NumWitchItemsHf; i++) {
 		if (WitchItems[i].isEmpty()) break;
-		EXPECT_THAT(WitchItems[i]._itype, AnyOf(Eq(ItemType::Misc), Eq(ItemType::Staff)));
+		EXPECT_THAT(WitchItems[i]._itype, WitchTypeMatch());
 
 		if (WitchItems[i]._itype == ItemType::Misc) {
-			EXPECT_THAT(WitchItems[i]._iMiscId, AnyOf(AllOf(Ge(IMISC_ELIXSTR), Le(IMISC_ELIXVIT)), AllOf(Ge(IMISC_REJUV), Le(IMISC_FULLREJUV)), AllOf(Ge(IMISC_SCROLL), Le(IMISC_SCROLLT)), AllOf(Ge(IMISC_RUNEFIRST), Le(IMISC_RUNELAST)), Eq(IMISC_BOOK)));
+			EXPECT_THAT(WitchItems[i]._iMiscId, WitchMiscMatch());
 		}
 		if (WitchItems[i]._iMiscId == IMISC_BOOK) n_books++;
 		n_items++;
@@ -352,7 +381,7 @@ TEST_F(VendorTest, HealerGen)
 	for (int i = NumHealerPinnedItems; i < NumHealerItems; i++) {
 		if (HealerItems[i].isEmpty()) break;
 		EXPECT_THAT(HealerItems[i]._itype, Eq(ItemType::Misc));
-		EXPECT_THAT(HealerItems[i]._iMiscId, AnyOf(AllOf(Ge(IMISC_ELIXSTR), Le(IMISC_ELIXVIT)), AllOf(Ge(IMISC_REJUV), Le(IMISC_FULLREJUV)), AllOf(Ge(IMISC_SCROLL), Le(IMISC_SCROLLT))));
+		EXPECT_THAT(HealerItems[i]._iMiscId, HealerMiscMatch());
 		n_items++;
 	}
 	EXPECT_EQ(n_items, N_ITEMS);
@@ -389,7 +418,7 @@ TEST_F(VendorTest, HealerGenHf)
 	for (int i = NumHealerPinnedItems; i < NumHealerItemsHf; i++) {
 		if (HealerItems[i].isEmpty()) break;
 		EXPECT_THAT(HealerItems[i]._itype, Eq(ItemType::Misc));
-		EXPECT_THAT(HealerItems[i]._iMiscId, AnyOf(AllOf(Ge(IMISC_ELIXSTR), Le(IMISC_ELIXVIT)), AllOf(Ge(IMISC_REJUV), Le(IMISC_FULLREJUV)), AllOf(Ge(IMISC_SCROLL), Le(IMISC_SCROLLT))));
+		EXPECT_THAT(HealerItems[i]._iMiscId, HealerMiscMatch());
 		n_items++;
 	}
 	EXPECT_EQ(n_items, N_ITEMS);
