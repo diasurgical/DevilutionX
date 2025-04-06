@@ -29,14 +29,11 @@ set(tests
   pack_test
   player_test
   quests_test
-  random_test
-  rectangle_test
   scrollrt_test
   stores_test
   tile_properties_test
   timedemo_test
   writehero_test
-  staticvector_test
 )
 set(standalone_tests
   codec_test
@@ -47,6 +44,9 @@ set(standalone_tests
   ini_test
   parse_int_test
   path_test
+  random_test
+  rectangle_test
+  static_vector_test
   str_cat_test
   utf8_test
 )
@@ -106,6 +106,8 @@ target_link_dependencies(ini_test PRIVATE libdevilutionx_ini app_fatal_for_testi
 target_link_dependencies(parse_int_test PRIVATE libdevilutionx_parse_int)
 target_link_dependencies(path_test PRIVATE libdevilutionx_pathfinding libdevilutionx_direction app_fatal_for_testing)
 target_link_dependencies(path_benchmark PRIVATE libdevilutionx_pathfinding app_fatal_for_testing)
+target_link_dependencies(random_test PRIVATE libdevilutionx_random)
+target_link_dependencies(static_vector_test PRIVATE libdevilutionx_random app_fatal_for_testing)
 target_link_dependencies(str_cat_test PRIVATE libdevilutionx_strings)
 target_link_dependencies(text_render_integration_test PRIVATE libdevilutionx_so GTest::gtest GTest::gmock)
 target_link_dependencies(utf8_test PRIVATE libdevilutionx_utf8)
