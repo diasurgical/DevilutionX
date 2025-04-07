@@ -1,5 +1,6 @@
 #include "utils/format_int.hpp"
 
+#include <cstdint>
 #include <string_view>
 
 #include "utils/language.h"
