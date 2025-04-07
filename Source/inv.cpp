@@ -1292,9 +1292,11 @@ void DrawInvBelt(const Surface &out)
 
 		DrawItem(myPlayer.SpdList[i], out, position, sprite);
 
+		auto beltKey = StrCat("BeltItem", i + 1);
+
 		if (myPlayer.SpdList[i].isUsable()
 		    && myPlayer.SpdList[i]._itype != ItemType::Gold) {
-			DrawString(out, StrCat(i + 1), { position - Displacement { 0, 12 }, InventorySlotSizeInPixels },
+			DrawString(out, ControlMode == ControlTypes::Gamepad ? GetOptions().Padmapper.InputNameForAction(beltKey, useShortName) : GetOptions().Keymapper.KeyNameForAction(beltKey), { position - Displacement { 0, 12 }, InventorySlotSizeInPixels },
 			    { .flags = UiFlags::ColorWhite | UiFlags::AlignRight });
 		}
 	}
