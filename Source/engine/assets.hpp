@@ -287,6 +287,7 @@ extern std::optional<std::string> lang_data_path;
 #else
 extern DVL_API_FOR_TEST std::map<int, std::unique_ptr<MpqArchive>> MpqArchives;
 constexpr int MainMpqPriority = 1000;
+constexpr int DevilutionXMpqPriority = 9000;
 constexpr int LangMpqPriority = 9100;
 constexpr int FontMpqPriority = 9200;
 extern bool HasHellfireMpq;
