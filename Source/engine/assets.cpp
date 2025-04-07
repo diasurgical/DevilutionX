@@ -380,7 +380,7 @@ void LoadCoreArchives()
 #else // !UNPACKED_MPQS
 #if !defined(__ANDROID__) && !defined(__APPLE__) && !defined(__3DS__) && !defined(__SWITCH__)
 	// Load devilutionx.mpq first to get the font file for error messages
-	LoadMPQ(paths, "devilutionx.mpq", LangMpqPriority);
+	LoadMPQ(paths, "devilutionx.mpq", DevilutionXMpqPriority);
 #endif
 	LoadMPQ(paths, "fonts.mpq", FontMpqPriority); // Extra fonts
 	HasHellfireMpq = FindMPQ(paths, "hellfire.mpq");
