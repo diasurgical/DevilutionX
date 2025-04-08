@@ -15,40 +15,60 @@ namespace {
 using ::testing::AnyOf;
 using ::testing::Eq;
 
-MATCHER(SmithTypeMatch, "Valid Diablo item type from Griswold")
+std::string itemtype_str(ItemType type);
+std::string misctype_str(item_misc_id type);
+
+MATCHER_P(SmithTypeMatch, i, "Valid Diablo item type from Griswold")
 {
-	return arg >= ItemType::Sword && arg <= ItemType::HeavyArmor;
+	if (arg >= ItemType::Sword && arg <= ItemType::HeavyArmor) return true;
+
+	*result_listener << "At index " << i << ": Invalid item type " << itemtype_str(arg);
+	return false;
 }
 
-MATCHER(SmithTypeMatchHf, "Valid Hellfire item type from Griswold")
+MATCHER_P(SmithTypeMatchHf, i, "Valid Hellfire item type from Griswold")
 {
-	return arg >= ItemType::Sword && arg <= ItemType::Staff;
+	if (arg >= ItemType::Sword && arg <= ItemType::Staff) return true;
+
+	*result_listener << "At index " << i << ": Invalid item type " << itemtype_str(arg);
+	return false;
 }
 
-MATCHER(PremiumTypeMatch, "Valid premium items from Griswold")
+MATCHER_P(PremiumTypeMatch, i, "Valid premium items from Griswold")
 {
-	return arg >= ItemType::Ring && arg <= ItemType::Amulet;
+	if (arg >= ItemType::Ring && arg <= ItemType::Amulet) return true;
+
+	*result_listener << "At index " << i << ": Invalid item type " << itemtype_str(arg);
+	return false;
 }
 
-MATCHER(WitchTypeMatch, "Valid item type from Adria")
+MATCHER_P(WitchTypeMatch, i, "Valid item type from Adria")
 {
-	return arg == ItemType::Misc || arg == ItemType::Staff;
+	if (arg == ItemType::Misc || arg == ItemType::Staff) return true;
+
+	*result_listener << "At index " << i << ": Invalid item type " << itemtype_str(arg);
+	return false;
 }
 
-MATCHER(WitchMiscMatch, "Valid misc. item type from Adria")
+MATCHER_P(WitchMiscMatch, i, "Valid misc. item type from Adria")
 {
 	if (arg >= IMISC_ELIXSTR && arg <= IMISC_ELIXVIT) return true;
 	if (arg >= IMISC_REJUV && arg <= IMISC_FULLREJUV) return true;
 	if (arg >= IMISC_SCROLL && arg <= IMISC_SCROLLT) return true;
 	if (arg >= IMISC_RUNEFIRST && arg <= IMISC_RUNELAST) return true;
-	return arg == IMISC_BOOK;
+	if (arg == IMISC_BOOK) return true;
+
+	*result_listener << "At index " << i << ": Invalid misc. item type " << misctype_str(arg);
+	return false;
 }
 
-MATCHER(HealerMiscMatch, "Valid misc. item type from Pepin")
+MATCHER_P(HealerMiscMatch, i, "Valid misc. item type from Pepin")
 {
 	if (arg >= IMISC_ELIXSTR && arg <= IMISC_ELIXVIT) return true;
 	if (arg >= IMISC_REJUV && arg <= IMISC_FULLREJUV) return true;
 	if (arg >= IMISC_SCROLL && arg <= IMISC_SCROLLT) return true;
+
+	*result_listener << "At index " << i << ": Invalid misc. item type " << misctype_str(arg);
 	return false;
 }
 
@@ -70,6 +90,56 @@ public:
 		LoadSpellData();
 	}
 };
+
+std::string itemtype_str(ItemType type)
+{
+	const std::string ITEM_TYPES[] = {
+		"ItemType::Misc",
+		"ItemType::Sword",
+		"ItemType::Axe",
+		"ItemType::Bow",
+		"ItemType::Mace",
+		"ItemType::Shield",
+		"ItemType::LightArmor",
+		"ItemType::Helm",
+		"ItemType::MediumArmor",
+		"ItemType::HeavyArmor",
+		"ItemType::Staff",
+		"ItemType::Gold",
+		"ItemType::Ring",
+		"ItemType::Amulet",
+	};
+
+	if (type == ItemType::None) return "ItemType::None";
+	if (type < ItemType::Misc || type > ItemType::Amulet) return "ItemType does not exist!";
+	return ITEM_TYPES[static_cast<int>(type)];
+}
+
+std::string misctype_str(item_misc_id type)
+{
+	const std::string MISC_TYPES[] = {
+		// clang-format off
+		"IMISC_NONE",		"IMISC_USEFIRST",	"IMISC_FULLHEAL",	"IMISC_HEAL",
+		"IMISC_0x4",		"IMISC_0x5",		"IMISC_MANA",		"IMISC_FULLMANA",
+		"IMISC_0x8",		"IMISC_0x9",		"IMISC_ELIXSTR",	"IMISC_ELIXMAG",
+		"IMISC_ELIXDEX",	"IMISC_ELIXVIT",	"IMISC_0xE",		"IMISC_0xF",
+		"IMISC_0x10",		"IMISC_0x11",		"IMISC_REJUV",		"IMISC_FULLREJUV",
+		"IMISC_USELAST",	"IMISC_SCROLL",		"IMISC_SCROLLT",	"IMISC_STAFF",
+		"IMISC_BOOK",		"IMISC_RING",		"IMISC_AMULET",		"IMISC_UNIQUE",
+		"IMISC_0x1C",		"IMISC_OILFIRST",	"IMISC_OILOF",		"IMISC_OILACC",
+		"IMISC_OILMAST",	"IMISC_OILSHARP",	"IMISC_OILDEATH",	"IMISC_OILSKILL",
+		"IMISC_OILBSMTH",	"IMISC_OILFORT",	"IMISC_OILPERM",	"IMISC_OILHARD",
+		"IMISC_OILIMP",		"IMISC_OILLAST",	"IMISC_MAPOFDOOM",	"IMISC_EAR",
+		"IMISC_SPECELIX",	"IMISC_0x2D",		"IMISC_RUNEFIRST",	"IMISC_RUNEF",
+		"IMISC_RUNEL",		"IMISC_GR_RUNEL",	"IMISC_GR_RUNEF",	"IMISC_RUNES",
+		"IMISC_RUNELAST",	"IMISC_AURIC",		"IMISC_NOTE",		"IMISC_ARENAPOT"
+		// clang-format on
+	};
+
+	if (type == IMISC_INVALID) return "IMISC_INVALID";
+	if (type < IMISC_NONE || type > IMISC_ARENAPOT) return "IMISC does not exist!";
+	return MISC_TYPES[static_cast<int>(type)];
+}
 
 int test_premium_qlvl(int *qlvls, int n_qlvls, int clvl, int plvl, bool hf)
 {
@@ -125,7 +195,7 @@ TEST_F(VendorTest, SmithGen)
 
 	for (int i = 0; i < NumSmithBasicItems; i++) {
 		if (SmithItems[i].isEmpty()) break;
-		EXPECT_THAT(SmithItems[i]._itype, SmithTypeMatch());
+		EXPECT_THAT(SmithItems[i]._itype, SmithTypeMatch(i));
 		n_items++;
 	}
 	EXPECT_EQ(n_items, N_ITEMS);
@@ -155,7 +225,7 @@ TEST_F(VendorTest, SmithGenHf)
 
 	for (int i = 0; i < NumSmithBasicItemsHf; i++) {
 		if (SmithItems[i].isEmpty()) break;
-		EXPECT_THAT(SmithItems[i]._itype, SmithTypeMatchHf());
+		EXPECT_THAT(SmithItems[i]._itype, SmithTypeMatchHf(i));
 		n_items++;
 	}
 	EXPECT_EQ(n_items, N_ITEMS);
@@ -178,8 +248,8 @@ TEST_F(VendorTest, PremiumQlvl)
 	SpawnPremium(*MyPlayer);
 	plvl = test_premium_qlvl(qlvls, NumSmithItems, MyPlayer->getCharacterLevel(), 1, gbIsHellfire);
 	for (int i = 0; i < NumSmithItems; i++) {
-		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, qlvls[i]);
-		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatch(), PremiumTypeMatch()));
+		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, qlvls[i]) << "Index: " << i;
+		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatch(i), PremiumTypeMatch(i)));
 	}
 
 	// Test level ups
@@ -187,8 +257,8 @@ TEST_F(VendorTest, PremiumQlvl)
 	SpawnPremium(*MyPlayer);
 	plvl = test_premium_qlvl(qlvls, NumSmithItems, MyPlayer->getCharacterLevel(), plvl, gbIsHellfire);
 	for (int i = 0; i < NumSmithItems; i++) {
-		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, qlvls[i]);
-		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatch(), PremiumTypeMatch()));
+		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, qlvls[i]) << "Index: " << i;
+		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatch(i), PremiumTypeMatch(i)));
 	}
 
 	// Clear global state
@@ -202,8 +272,8 @@ TEST_F(VendorTest, PremiumQlvl)
 	SpawnPremium(*MyPlayer);
 	plvl = test_premium_qlvl(qlvls, NumSmithItems, MyPlayer->getCharacterLevel(), 1, gbIsHellfire);
 	for (int i = 0; i < NumSmithItems; i++) {
-		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, qlvls[i]);
-		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatch(), PremiumTypeMatch()));
+		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, qlvls[i]) << "Index: " << i;
+		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatch(i), PremiumTypeMatch(i)));
 	}
 
 	// Test buying select items
@@ -218,8 +288,8 @@ TEST_F(VendorTest, PremiumQlvl)
 	SpawnPremium(*MyPlayer);
 	plvl = test_premium_qlvl(qlvls, NumSmithItems, MyPlayer->getCharacterLevel(), plvl, gbIsHellfire);
 	for (int i = 0; i < NumSmithItems; i++) {
-		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, qlvls[i]);
-		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatch(), PremiumTypeMatch()));
+		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, qlvls[i]) << "Index: " << i;
+		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatch(i), PremiumTypeMatch(i)));
 	}
 }
 
@@ -242,8 +312,8 @@ TEST_F(VendorTest, PremiumQlvlHf)
 	SpawnPremium(*MyPlayer);
 	plvl = test_premium_qlvl(qlvls, NumSmithItemsHf, MyPlayer->getCharacterLevel(), 1, gbIsHellfire);
 	for (int i = 0; i < NumSmithItemsHf; i++) {
-		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, qlvls[i]);
-		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatchHf(), PremiumTypeMatch()));
+		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, qlvls[i]) << "Index: " << i;
+		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatchHf(i), PremiumTypeMatch(i)));
 	}
 
 	// Test level ups
@@ -251,8 +321,8 @@ TEST_F(VendorTest, PremiumQlvlHf)
 	SpawnPremium(*MyPlayer);
 	plvl = test_premium_qlvl(qlvls, NumSmithItemsHf, MyPlayer->getCharacterLevel(), plvl, gbIsHellfire);
 	for (int i = 0; i < NumSmithItemsHf; i++) {
-		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, qlvls[i]);
-		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatchHf(), PremiumTypeMatch()));
+		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, qlvls[i]) << "Index: " << i;
+		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatchHf(i), PremiumTypeMatch(i)));
 	}
 
 	// Clear global state
@@ -266,8 +336,8 @@ TEST_F(VendorTest, PremiumQlvlHf)
 	SpawnPremium(*MyPlayer);
 	plvl = test_premium_qlvl(qlvls, NumSmithItemsHf, MyPlayer->getCharacterLevel(), 1, gbIsHellfire);
 	for (int i = 0; i < NumSmithItemsHf; i++) {
-		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, qlvls[i]);
-		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatchHf(), PremiumTypeMatch()));
+		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, qlvls[i]) << "Index: " << i;
+		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatchHf(i), PremiumTypeMatch(i)));
 	}
 
 	// Test buying select items
@@ -281,8 +351,8 @@ TEST_F(VendorTest, PremiumQlvlHf)
 	SpawnPremium(*MyPlayer);
 	plvl = test_premium_qlvl(qlvls, NumSmithItemsHf, MyPlayer->getCharacterLevel(), plvl, gbIsHellfire);
 	for (int i = 0; i < NumSmithItemsHf; i++) {
-		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, qlvls[i]);
-		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatchHf(), PremiumTypeMatch()));
+		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, qlvls[i]) << "Index: " << i;
+		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatchHf(i), PremiumTypeMatch(i)));
 	}
 }
 
@@ -310,15 +380,15 @@ TEST_F(VendorTest, WitchGen)
 	int n_items = NumWitchPinnedItems;
 
 	for (int i = 0; i < NumWitchPinnedItems; i++) {
-		EXPECT_EQ(WitchItems[i].IDidx, PINNED_ITEMS[i]);
+		EXPECT_EQ(WitchItems[i].IDidx, PINNED_ITEMS[i]) << "Index: " << i;
 	}
 
 	for (int i = NumWitchPinnedItems; i < NumWitchItems; i++) {
 		if (WitchItems[i].isEmpty()) break;
-		EXPECT_THAT(WitchItems[i]._itype, WitchTypeMatch());
+		EXPECT_THAT(WitchItems[i]._itype, WitchTypeMatch(i));
 
 		if (WitchItems[i]._itype == ItemType::Misc) {
-			EXPECT_THAT(WitchItems[i]._iMiscId, WitchMiscMatch());
+			EXPECT_THAT(WitchItems[i]._iMiscId, WitchMiscMatch(i));
 		}
 		n_items++;
 	}
@@ -353,15 +423,15 @@ TEST_F(VendorTest, WitchGenHf)
 	int n_items = NumWitchPinnedItems;
 
 	for (int i = 0; i < NumWitchPinnedItems; i++) {
-		EXPECT_EQ(WitchItems[i].IDidx, PINNED_ITEMS[i]);
+		EXPECT_EQ(WitchItems[i].IDidx, PINNED_ITEMS[i]) << "Index: " << i;
 	}
 
 	for (int i = NumWitchPinnedItems; i < NumWitchItemsHf; i++) {
 		if (WitchItems[i].isEmpty()) break;
-		EXPECT_THAT(WitchItems[i]._itype, WitchTypeMatch());
+		EXPECT_THAT(WitchItems[i]._itype, WitchTypeMatch(i));
 
 		if (WitchItems[i]._itype == ItemType::Misc) {
-			EXPECT_THAT(WitchItems[i]._iMiscId, WitchMiscMatch());
+			EXPECT_THAT(WitchItems[i]._iMiscId, WitchMiscMatch(i));
 		}
 		if (WitchItems[i]._iMiscId == IMISC_BOOK) n_books++;
 		n_items++;
@@ -393,13 +463,13 @@ TEST_F(VendorTest, HealerGen)
 	int n_items = NumHealerPinnedItems;
 
 	for (int i = 0; i < NumHealerPinnedItems; i++) {
-		EXPECT_EQ(HealerItems[i].IDidx, PINNED_ITEMS[i]);
+		EXPECT_EQ(HealerItems[i].IDidx, PINNED_ITEMS[i]) << "Index: " << i;
 	}
 
 	for (int i = NumHealerPinnedItems; i < NumHealerItems; i++) {
 		if (HealerItems[i].isEmpty()) break;
 		EXPECT_THAT(HealerItems[i]._itype, Eq(ItemType::Misc));
-		EXPECT_THAT(HealerItems[i]._iMiscId, HealerMiscMatch());
+		EXPECT_THAT(HealerItems[i]._iMiscId, HealerMiscMatch(i));
 		n_items++;
 	}
 	EXPECT_EQ(n_items, N_ITEMS);
@@ -430,13 +500,13 @@ TEST_F(VendorTest, HealerGenHf)
 	int n_items = NumHealerPinnedItems;
 
 	for (int i = 0; i < NumHealerPinnedItems; i++) {
-		EXPECT_EQ(HealerItems[i].IDidx, PINNED_ITEMS[i]);
+		EXPECT_EQ(HealerItems[i].IDidx, PINNED_ITEMS[i]) << "Index: " << i;
 	}
 
 	for (int i = NumHealerPinnedItems; i < NumHealerItemsHf; i++) {
 		if (HealerItems[i].isEmpty()) break;
 		EXPECT_THAT(HealerItems[i]._itype, Eq(ItemType::Misc));
-		EXPECT_THAT(HealerItems[i]._iMiscId, HealerMiscMatch());
+		EXPECT_THAT(HealerItems[i]._iMiscId, HealerMiscMatch(i));
 		n_items++;
 	}
 	EXPECT_EQ(n_items, N_ITEMS);
