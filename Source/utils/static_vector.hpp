@@ -55,6 +55,9 @@ public:
 	[[nodiscard]] const T &back() const { return (*this)[size_ - 1]; }
 	[[nodiscard]] T &back() { return (*this)[size_ - 1]; }
 
+	[[nodiscard]] const T *data() const { return data_[0].ptr(); }
+	[[nodiscard]] T *data() { return data_[0].ptr(); }
+
 	template <typename... Args>
 	void push_back(Args &&...args) // NOLINT(readability-identifier-naming)
 	{
