@@ -233,6 +233,8 @@ TEST_F(VendorTest, SmithGenHf)
 
 TEST_F(VendorTest, PremiumQlvl)
 {
+	const int SEED = testing::UnitTest::GetInstance()->random_seed();
+
 	int qlvls[NumSmithItems] = {};
 	int plvl = 1;
 
@@ -245,6 +247,7 @@ TEST_F(VendorTest, PremiumQlvl)
 
 	// Test level 1 character item qlvl
 	CreatePlayer(*MyPlayer, HeroClass::Warrior);
+	SetRndSeed(SEED);
 	SpawnPremium(*MyPlayer);
 	plvl = test_premium_qlvl(qlvls, NumSmithItems, MyPlayer->getCharacterLevel(), 1, gbIsHellfire);
 	for (int i = 0; i < NumSmithItems; i++) {
@@ -297,6 +300,8 @@ TEST_F(VendorTest, PremiumQlvlHf)
 {
 	if (!HaveHellfire()) return;
 
+	const int SEED = testing::UnitTest::GetInstance()->random_seed();
+
 	int qlvls[NumSmithItemsHf] = {};
 	int plvl = 1;
 
@@ -309,6 +314,7 @@ TEST_F(VendorTest, PremiumQlvlHf)
 
 	// Test level 1 character item qlvl
 	CreatePlayer(*MyPlayer, HeroClass::Warrior);
+	SetRndSeed(SEED);
 	SpawnPremium(*MyPlayer);
 	plvl = test_premium_qlvl(qlvls, NumSmithItemsHf, MyPlayer->getCharacterLevel(), 1, gbIsHellfire);
 	for (int i = 0; i < NumSmithItemsHf; i++) {
