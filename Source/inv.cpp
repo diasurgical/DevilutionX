@@ -1292,10 +1292,9 @@ void DrawInvBelt(const Surface &out)
 
 		DrawItem(myPlayer.SpdList[i], out, position, sprite);
 
-		auto beltKey = StrCat("BeltItem", i + 1);
-
 		if (myPlayer.SpdList[i].isUsable()
 		    && myPlayer.SpdList[i]._itype != ItemType::Gold) {
+			auto beltKey = StrCat("BeltItem", i + 1);
 			std::string_view keyName = ControlMode == ControlTypes::Gamepad
 			    ? GetOptions().Padmapper.InputNameForAction(beltKey, true)
 			    : GetOptions().Keymapper.KeyNameForAction(beltKey);
