@@ -187,7 +187,7 @@ TEST_F(VendorTest, SmithGen)
 	gbIsHellfire = false;
 
 	SetRndSeed(SEED);
-	SpawnSmith(25);
+	SpawnSmith(16);
 
 	SetRndSeed(SEED);
 	const int N_ITEMS = RandomIntBetween(10, NumSmithBasicItems);
@@ -217,7 +217,7 @@ TEST_F(VendorTest, SmithGenHf)
 	gbIsHellfire = true;
 
 	SetRndSeed(SEED);
-	SpawnSmith(25);
+	SpawnSmith(16);
 
 	SetRndSeed(SEED);
 	const int N_ITEMS = RandomIntBetween(10, NumSmithBasicItemsHf);
@@ -372,7 +372,7 @@ TEST_F(VendorTest, WitchGen)
 	gbIsHellfire = false;
 
 	SetRndSeed(SEED);
-	SpawnWitch(25);
+	SpawnWitch(16);
 
 	SetRndSeed(SEED);
 	const int N_ITEMS = RandomIntBetween(10, NumWitchItems);
@@ -413,7 +413,7 @@ TEST_F(VendorTest, WitchGenHf)
 	gbIsHellfire = true;
 
 	SetRndSeed(SEED);
-	SpawnWitch(25);
+	SpawnWitch(16);
 
 	SetRndSeed(SEED);
 	const int N_PINNED_BOOKS = RandomIntLessThan(MAX_PINNED_BOOKS);
@@ -456,7 +456,7 @@ TEST_F(VendorTest, HealerGen)
 	gbIsHellfire = false;
 
 	SetRndSeed(SEED);
-	SpawnHealer(25);
+	SpawnHealer(16);
 
 	SetRndSeed(SEED);
 	const int N_ITEMS = RandomIntBetween(10, NumHealerItems);
@@ -493,7 +493,7 @@ TEST_F(VendorTest, HealerGenHf)
 	gbIsHellfire = true;
 
 	SetRndSeed(SEED);
-	SpawnHealer(25);
+	SpawnHealer(16);
 
 	SetRndSeed(SEED);
 	const int N_ITEMS = RandomIntBetween(10, NumHealerItemsHf);
