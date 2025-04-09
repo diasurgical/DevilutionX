@@ -4436,7 +4436,7 @@ void MissToMonst(Missile &missile, Point position)
 
 	Point oldPosition = missile.position.tile;
 	monster.occupyTile(position, false);
-	monster.direction = static_cast<Direction>(missile._mimfnum);
+	monster.direction = missile.getDirection();
 	monster.position.tile = position;
 	M_StartStand(monster, monster.direction);
 	M_StartHit(monster, 0);

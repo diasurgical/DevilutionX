@@ -54,52 +54,47 @@ struct MissilePosition {
 	}
 };
 
-/**
- * Represent a more fine-grained direction than the 8 value Direction enum.
- *
- * This is used when rendering projectiles like arrows which have additional sprites for "half-winds" on a 16-point compass.
- * The sprite sheets are typically 0-indexed and use the following layout (relative to the screen projection)
- *
- *      W  WSW   SW  SSW  S
- *               ^
- *     WNW       |       SSE
- *               |
- *     NW -------+------> SE
- *               |
- *     NNW       |       ESE
- *               |
- *      N  NNE   NE  ENE  E
- */
-enum class Direction16 : uint8_t {
-	South,
-	South_SouthWest,
-	SouthWest,
-	West_SouthWest,
-	West,
-	West_NorthWest,
-	NorthWest,
-	North_NorthWest,
-	North,
-	North_NorthEast,
-	NorthEast,
-	East_NorthEast,
-	East,
-	East_SouthEast,
-	SouthEast,
-	South_SouthEast,
-};
-
 enum class MissileSource : uint8_t {
 	Player,
 	Monster,
 	Trap,
 };
 
+enum class GuardianFrame : uint8_t {
+	Start = 0,
+	Idle = 1,
+	Attack = 2,
+};
+
+enum class AcidPuddleFrame : uint8_t {
+	Idle = 0,
+	End = 1,
+};
+
+enum class FireWallFrame : uint8_t {
+	Start = 0,
+	Idle = 1,
+};
+
+enum class PortalFrame : uint8_t {
+	Start = 0,
+	Idle = 1,
+};
+
+enum class RedPortalFrame : uint8_t {
+	Start = 0,
+	Idle = 1,
+};
+
 struct Missile {
 	/** Type of projectile */
 	MissileID _mitype;
 	MissilePosition position;
+
+private:
 	int _mimfnum; // The direction of the missile (direction enum)
+
+public:
 	int _mispllvl;
 	bool _miDelFlag; // Indicate whether the missile should be deleted
 	MissileGraphicID _miAnimType;
@@ -175,6 +170,69 @@ struct Missile {
 			return MissileSource::Monster;
 		return MissileSource::Player;
 	}
+
+	void setAnimation(MissileGraphicID animtype);
+
+	/**
+	 * @brief Sets the missile sprite to the given sheet frame
+	 * @param dir Sprite frame
+	 */
+	void setFrameGroupRaw(int frameGroup)
+	{
+		_mimfnum = frameGroup;
+		setAnimation(_miAnimType);
+	}
+
+	void setDefaultFrameGroup()
+	{
+		setFrameGroupRaw(0);
+	}
+
+	template <typename FrameEnum>
+	void setFrameGroup(FrameEnum frameGroup)
+	{
+		setFrameGroupRaw(static_cast<int>(frameGroup));
+	}
+
+	/**
+	 * @brief Sets the sprite for this missile so it matches the given Direction
+	 * @param dir Desired facing
+	 */
+	void setDirection(Direction dir)
+	{
+		setFrameGroupRaw(static_cast<int>(dir));
+	}
+
+	/**
+	 * @brief Sets the sprite for this missile so it matches the given Direction16
+	 * @param dir Desired facing at a 22.8125 degree resolution
+	 */
+	void setDirection(Direction16 dir)
+	{
+		setFrameGroupRaw(static_cast<int>(dir));
+	}
+
+	int getFrameGroupRaw() const
+	{
+		return _mimfnum;
+	}
+
+	template <typename FrameEnum>
+	FrameEnum getFrameGroup() const
+	{
+		static_assert(std::is_enum_v<FrameEnum>, "Frame group must be an enum");
+		return static_cast<FrameEnum>(_mimfnum);
+	}
+
+	[[nodiscard]] Direction getDirection() const
+	{
+		return static_cast<Direction>(_mimfnum);
+	}
+
+	[[nodiscard]] Direction16 getDirection16() const
+	{
+		return static_cast<Direction16>(_mimfnum);
+	}
 };
 
 extern std::list<Missile> Missiles;
@@ -213,33 +271,6 @@ bool PlayerMHit(Player &player, Monster *monster, int dist, int mind, int maxd, 
  * @brief Could the missile collide with solid objects? (like walls or closed doors)
  */
 bool IsMissileBlockedByTile(Point position);
-
-/**
- * @brief Sets the missile sprite to the given sheet frame
- * @param missile this object
- * @param dir Sprite frame, typically representing a direction but there are some exceptions (arrows being 1 indexed, directionless spells)
- */
-void SetMissDir(Missile &missile, int dir);
-
-/**
- * @brief Sets the sprite for this missile so it matches the given Direction
- * @param missile this object
- * @param dir Desired facing
- */
-inline void SetMissDir(Missile &missile, Direction dir)
-{
-	SetMissDir(missile, static_cast<int>(dir));
-}
-
-/**
- * @brief Sets the sprite for this missile so it matches the given Direction16
- * @param missile this object
- * @param dir Desired facing at a 22.8125 degree resolution
- */
-inline void SetMissDir(Missile &missile, Direction16 dir)
-{
-	SetMissDir(missile, static_cast<int>(dir));
-}
 
 void InitMissiles();
 
