@@ -89,7 +89,7 @@ IDI_GREYSUIT	0	Quest	Unequippable	GREY_SUIT	Misc	NONE	Grey Suit		0	0	0	0	0	0	0	0
 	1	Misc	Unequippable	ELIXIR_OF_STRENGTH	Misc	NONE	Elixir of Strength		15	0	0	0	0	0	0	0	0		ELIXSTR	Null	true	5000
 	1	Misc	Unequippable	ELIXIR_OF_MAGIC	Misc	NONE	Elixir of Magic		15	0	0	0	0	0	0	0	0		ELIXMAG	Null	true	5000
 	1	Misc	Unequippable	ELIXIR_OF_DEXTERITY	Misc	NONE	Elixir of Dexterity		15	0	0	0	0	0	0	0	0		ELIXDEX	Null	true	5000
-	1	Misc	Unequippable	ELIXIR_OF_VITALITY	Misc	NONE	Elixir of Vitality		20	0	0	0	0	0	0	0	0		ELIXVIT	Null	true	5000
+IDI_ELIXVIT	1	Misc	Unequippable	ELIXIR_OF_VITALITY	Misc	NONE	Elixir of Vitality		20	0	0	0	0	0	0	0	0		ELIXVIT	Null	true	5000
 	1	Misc	Unequippable	SCROLL_OF	Misc	NONE	Scroll of Healing		1	0	0	0	0	0	0	0	0		SCROLL	Healing	true	50
 	1	Misc	Unequippable	SCROLL_OF	Misc	NONE	Scroll of Search		1	0	0	0	0	0	0	0	0		SCROLL	Search	true	50
 	1	Misc	Unequippable	SCROLL_OF	Misc	NONE	Scroll of Lightning		4	0	0	0	0	0	0	0	0		SCROLLT	Lightning	true	150

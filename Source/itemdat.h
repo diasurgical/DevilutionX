@@ -66,6 +66,7 @@ enum _item_indexes : int16_t { // TODO defines all indexes in AllItemsList
 	IDI_FULLNOTE,
 	IDI_BROWNSUIT,
 	IDI_GREYSUIT,
+	IDI_ELIXVIT = 90,
 	IDI_BOOK1 = 114,
 	IDI_BOOK2,
 	IDI_BOOK3,

@@ -96,6 +96,8 @@ void AddStoreHoldRepair(Item *itm, int8_t i);
 /** Clears premium items sold by Griswold and Wirt. */
 void InitStores();
 
+int GetStoreLevel(const Player &player);
+
 /** Spawns items sold by vendors, including premium items sold by Griswold and Wirt. */
 void SetupTownStores();
 
