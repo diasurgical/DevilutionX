@@ -2039,6 +2039,57 @@ Player *PlayerAtPosition(Point position, bool ignoreMovingPlayers /*= false*/)
 	return &Players[std::abs(playerIndex) - 1];
 }
 
+ClxSprite GetPlayerPortraitSprite(Player &player)
+{
+	bool inDungeon = (player.plrlevel != 0);
+
+	const HeroClass cls = GetPlayerSpriteClass(player._pClass);
+	const PlayerWeaponGraphic animWeaponId = GetPlayerWeaponGraphic(player_graphic::Stand, static_cast<PlayerWeaponGraphic>(player._pgfxnum & 0xF));
+
+	const char *path = PlayersSpriteData[static_cast<std::size_t>(cls)].classPath;
+
+	const char *szCel;
+	if (!inDungeon)
+		szCel = "st";
+	else
+		szCel = "as";
+
+	player_graphic graphic = player_graphic::Stand;
+	int spriteIndex = 0;
+	if (player._pHitPoints <= 0) {
+		if (animWeaponId == PlayerWeaponGraphic::Unarmed) {
+			szCel = "dt";
+			graphic = player_graphic::Death;
+		}
+	}
+
+	char prefix[3] = { CharChar[static_cast<std::size_t>(cls)], ArmourChar[player._pgfxnum >> 4], WepChar[static_cast<std::size_t>(animWeaponId)] };
+	char pszName[256];
+	*fmt::format_to(pszName, R"(plrgfx\{0}\{1}\{1}{2})", path, std::string_view(prefix, 3), szCel) = 0;
+
+	std::string spritePath { pszName };
+	// Check to see if the sprite has updated.
+	if (player.PartyInfoSpriteLocations[inDungeon] != spritePath) {
+		// The sprite has changed so store the new location
+		player.PartyInfoSpriteLocations[inDungeon] = spritePath;
+
+		player.PartyInfoSprites[inDungeon] = std::nullopt;
+
+		// And now load the new sprite and store it
+		const uint16_t animationWidth = GetPlayerSpriteWidth(cls, graphic, animWeaponId);
+		player.PartyInfoSprites[inDungeon] = LoadCl2Sheet(pszName, animationWidth);
+	}
+
+	ClxSpriteList spriteList = (*player.PartyInfoSprites[inDungeon])[static_cast<size_t>(Direction::South)];
+	return spriteList[(graphic == player_graphic::Stand) ? 0 : spriteList.numSprites() - 1];
+}
+
+bool IsPlayerUnarmed(Player& player)
+{
+	const PlayerWeaponGraphic animWeaponId = GetPlayerWeaponGraphic(player_graphic::Stand, static_cast<PlayerWeaponGraphic>(player._pgfxnum & 0xF));
+	return animWeaponId == PlayerWeaponGraphic::Unarmed;
+}
+
 void LoadPlrGFX(Player &player, player_graphic graphic)
 {
 	if (HeadlessMode)
@@ -2139,6 +2190,12 @@ void InitPlayerGFX(Player &player)
 void ResetPlayerGFX(Player &player)
 {
 	player.AnimInfo.sprites = std::nullopt;
+
+	if (!gbRunGame) {
+		player.PartyInfoSprites[0] = std::nullopt;
+		player.PartyInfoSprites[1] = std::nullopt;
+	}
+
 	for (PlayerAnimationData &animData : player.AnimationData) {
 		animData.sprites = std::nullopt;
 	}

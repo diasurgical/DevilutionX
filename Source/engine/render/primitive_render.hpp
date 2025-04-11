@@ -50,6 +50,8 @@ void UnsafeDrawVerticalLine(const Surface &out, Point from, int height, std::uin
  */
 void DrawHalfTransparentRectTo(const Surface &out, int sx, int sy, int width, int height);
 
+void DrawHalfTransparentRectTo(const Surface &out, int sx, int sy, int width, int height, uint8_t color);
+
 /**
  * Draws a half-transparent pixel
  *
