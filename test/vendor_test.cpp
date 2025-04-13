@@ -80,6 +80,7 @@ public:
 	{
 		Players.resize(1);
 		MyPlayer = &Players[0];
+		gbIsHellfire = false;
 	}
 
 	static void SetUpTestSuite()
@@ -232,6 +233,9 @@ TEST_F(VendorTest, PremiumQlvl)
 	int qlvls[NumSmithItems] = {};
 	int plvl = 1;
 
+	// Create level 1 character
+	CreatePlayer(*MyPlayer, HeroClass::Warrior);
+
 	// Clear global state for test, and force Diablo game mode
 	for (int i = 0; i < NumSmithItems; i++) {
 		PremiumItems[i].clear();
@@ -240,7 +244,6 @@ TEST_F(VendorTest, PremiumQlvl)
 	gbIsHellfire = false;
 
 	// Test level 1 character item qlvl
-	CreatePlayer(*MyPlayer, HeroClass::Warrior);
 	SetRndSeed(SEED);
 	SpawnPremium(*MyPlayer);
 	plvl = test_premium_qlvl(qlvls, NumSmithItems, MyPlayer->getCharacterLevel(), 1, gbIsHellfire);
@@ -292,10 +295,11 @@ TEST_F(VendorTest, PremiumQlvl)
 
 TEST_F(VendorTest, PremiumQlvlHf)
 {
-	if (!HaveHellfire()) GTEST_SKIP();
-
 	int qlvls[NumSmithItemsHf] = {};
 	int plvl = 1;
+
+	// Create level 1 character
+	CreatePlayer(*MyPlayer, HeroClass::Warrior);
 
 	// Clear global state for test, and force Hellfire game mode
 	for (int i = 0; i < NumSmithItemsHf; i++) {
@@ -305,7 +309,6 @@ TEST_F(VendorTest, PremiumQlvlHf)
 	gbIsHellfire = true;
 
 	// Test level 1 character item qlvl
-	CreatePlayer(*MyPlayer, HeroClass::Warrior);
 	SetRndSeed(SEED);
 	SpawnPremium(*MyPlayer);
 	plvl = test_premium_qlvl(qlvls, NumSmithItemsHf, MyPlayer->getCharacterLevel(), 1, gbIsHellfire);
@@ -393,8 +396,6 @@ TEST_F(VendorTest, WitchGen)
 
 TEST_F(VendorTest, WitchGenHf)
 {
-	if (!HaveHellfire()) GTEST_SKIP();
-
 	constexpr _item_indexes PINNED_ITEMS[] = { IDI_MANA, IDI_FULLMANA, IDI_PORTAL };
 	constexpr int MAX_PINNED_BOOKS = 4;
 
