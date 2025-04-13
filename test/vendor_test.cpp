@@ -15,6 +15,8 @@ namespace {
 using ::testing::AnyOf;
 using ::testing::Eq;
 
+constexpr int SEED = 75357;
+
 std::string itemtype_str(ItemType type);
 std::string misctype_str(item_misc_id type);
 
@@ -175,8 +177,6 @@ int test_premium_qlvl(int *qlvls, int n_qlvls, int clvl, int plvl, bool hf)
 
 TEST_F(VendorTest, SmithGen)
 {
-	const int SEED = testing::UnitTest::GetInstance()->random_seed();
-
 	CreatePlayer(*MyPlayer, HeroClass::Warrior);
 	MyPlayer->setCharacterLevel(25);
 
@@ -203,10 +203,6 @@ TEST_F(VendorTest, SmithGen)
 
 TEST_F(VendorTest, SmithGenHf)
 {
-	if (!HaveHellfire()) return;
-
-	const int SEED = testing::UnitTest::GetInstance()->random_seed();
-
 	CreatePlayer(*MyPlayer, HeroClass::Warrior);
 	MyPlayer->setCharacterLevel(25);
 
@@ -233,8 +229,6 @@ TEST_F(VendorTest, SmithGenHf)
 
 TEST_F(VendorTest, PremiumQlvl)
 {
-	const int SEED = testing::UnitTest::GetInstance()->random_seed();
-
 	int qlvls[NumSmithItems] = {};
 	int plvl = 1;
 
@@ -298,9 +292,7 @@ TEST_F(VendorTest, PremiumQlvl)
 
 TEST_F(VendorTest, PremiumQlvlHf)
 {
-	if (!HaveHellfire()) return;
-
-	const int SEED = testing::UnitTest::GetInstance()->random_seed();
+	if (!HaveHellfire()) GTEST_SKIP();
 
 	int qlvls[NumSmithItemsHf] = {};
 	int plvl = 1;
@@ -366,8 +358,6 @@ TEST_F(VendorTest, WitchGen)
 {
 	constexpr _item_indexes PINNED_ITEMS[] = { IDI_MANA, IDI_FULLMANA, IDI_PORTAL };
 
-	const int SEED = testing::UnitTest::GetInstance()->random_seed();
-
 	CreatePlayer(*MyPlayer, HeroClass::Warrior);
 	MyPlayer->setCharacterLevel(25);
 
@@ -403,12 +393,10 @@ TEST_F(VendorTest, WitchGen)
 
 TEST_F(VendorTest, WitchGenHf)
 {
-	if (!HaveHellfire()) return;
+	if (!HaveHellfire()) GTEST_SKIP();
 
 	constexpr _item_indexes PINNED_ITEMS[] = { IDI_MANA, IDI_FULLMANA, IDI_PORTAL };
 	constexpr int MAX_PINNED_BOOKS = 4;
-
-	const int SEED = testing::UnitTest::GetInstance()->random_seed();
 
 	CreatePlayer(*MyPlayer, HeroClass::Warrior);
 
@@ -450,8 +438,6 @@ TEST_F(VendorTest, HealerGen)
 {
 	constexpr _item_indexes PINNED_ITEMS[] = { IDI_HEAL, IDI_FULLHEAL, IDI_RESURRECT };
 
-	const int SEED = testing::UnitTest::GetInstance()->random_seed();
-
 	CreatePlayer(*MyPlayer, HeroClass::Warrior);
 	MyPlayer->setCharacterLevel(25);
 
@@ -483,11 +469,7 @@ TEST_F(VendorTest, HealerGen)
 
 TEST_F(VendorTest, HealerGenHf)
 {
-	if (!HaveHellfire()) return;
-
 	constexpr _item_indexes PINNED_ITEMS[] = { IDI_HEAL, IDI_FULLHEAL, IDI_RESURRECT };
-
-	const int SEED = testing::UnitTest::GetInstance()->random_seed();
 
 	CreatePlayer(*MyPlayer, HeroClass::Warrior);
 	MyPlayer->setCharacterLevel(25);
