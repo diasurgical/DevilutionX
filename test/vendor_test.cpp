@@ -292,6 +292,8 @@ TEST_F(VendorTest, PremiumQlvl)
 
 TEST_F(VendorTest, PremiumQlvlHf)
 {
+	if (!HaveHellfire()) GTEST_SKIP();
+
 	int qlvls[NumSmithItemsHf] = {};
 	int plvl = 1;
 
@@ -391,6 +393,8 @@ TEST_F(VendorTest, WitchGen)
 
 TEST_F(VendorTest, WitchGenHf)
 {
+	if (!HaveHellfire()) GTEST_SKIP();
+
 	constexpr _item_indexes PINNED_ITEMS[] = { IDI_MANA, IDI_FULLMANA, IDI_PORTAL };
 	constexpr int MAX_PINNED_BOOKS = 4;
 
