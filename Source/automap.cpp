@@ -17,6 +17,7 @@
 #include "engine/render/primitive_render.hpp"
 #include "levels/gendung.h"
 #include "levels/setmaps.h"
+#include "options.h"
 #include "player.h"
 #include "utils/attributes.h"
 #include "utils/enum_traits.h"
@@ -1850,7 +1851,7 @@ void DrawAutomap(const Surface &out)
 		}
 	}
 
-	if (AutoMapShowItems)
+	if (AutoMapShowItems || *GetOptions().Gameplay.disableSearch)
 		SearchAutomapItem(out, myPlayerOffset, 8, [](Point position) { return dItem[position.x][position.y] != 0; });
 #ifdef _DEBUG
 	if (IsDebugAutomapHighlightNeeded())

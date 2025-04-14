@@ -523,6 +523,7 @@ void InitGameInfo()
 	sgGameInitInfo.bCowQuest = *options.Gameplay.cowQuest ? 1 : 0;
 	sgGameInitInfo.bFriendlyFire = *options.Gameplay.friendlyFire ? 1 : 0;
 	sgGameInitInfo.fullQuests = (!gbIsMultiplayer || *options.Gameplay.multiplayerFullQuests) ? 1 : 0;
+	sgGameInitInfo.bDisableSearch = *options.Gameplay.disableSearch ? 1 : 0;
 }
 
 void NetSendLoPri(uint8_t playerId, const std::byte *data, size_t size)

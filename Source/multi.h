@@ -34,6 +34,7 @@ struct GameData {
 	uint8_t bCowQuest;
 	uint8_t bFriendlyFire;
 	uint8_t fullQuests;
+	uint8_t bDisableSearch;
 	/** Used to initialise the seed table for dungeon levels so players in multiplayer games generate the same layout */
 	uint32_t gameSeed[4];
 
