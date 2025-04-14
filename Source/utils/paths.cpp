@@ -14,6 +14,7 @@
 #ifdef __HAIKU__
 #include <FindDirectory.h>
 #include <fs_info.h>
+#include <dirent.h>
 #endif
 
 #ifdef __IPHONEOS__
@@ -124,10 +125,19 @@ const std::string &AssetsPath()
 {
 	if (!assetsPath) {
 #if defined(__HAIKU__)
+		// Look in system first (system-wide install)
 		char buffer[B_PATH_NAME_LENGTH + 10];
 		find_directory(B_SYSTEM_DATA_DIRECTORY, dev_for_path("/boot"), false, buffer, B_PATH_NAME_LENGTH);
 		strcat(buffer, "/devilutionx/");
-		assetsPath.emplace(strdup(buffer));
+		if (opendir(buffer)) {
+			assetsPath.emplace(strdup(buffer));
+		} else {
+			// Then look in user data (home-data install)
+			char homedata[B_PATH_NAME_LENGTH + 10];
+			find_directory(B_USER_DATA_DIRECTORY, dev_for_path("/boot"), false, homedata, B_PATH_NAME_LENGTH);
+			strcat(homedata, "/devilutionx/");
+			assetsPath.emplace(strdup(homedata));
+		}
 #elif __EMSCRIPTEN__
 		assetsPath.emplace("assets/");
 #elif defined(NXDK)
