@@ -1017,7 +1017,7 @@ msgstr "Інвентар"
 
 #: Source/control.cpp:207
 msgid "Spell book"
-msgstr "Книга Магії"
+msgstr "Книга Чар"
 
 #: Source/control.cpp:208
 msgid "Send Message"
@@ -1217,30 +1217,30 @@ msgstr "Новий Рівень"
 
 #: Source/control.cpp:1445
 msgid "You have died"
-msgstr ""
+msgstr "Ви померли"
 
 #: Source/control.cpp:1453
 msgid "ESC"
-msgstr ""
+msgstr "ESC"
 
 #: Source/control.cpp:1459
 msgid "Menu Button"
-msgstr ""
+msgstr "Кнопка Меню"
 
 #: Source/control.cpp:1467
 #, c++-format
 msgid "Press {} to load last save."
-msgstr ""
+msgstr "Натисніть {}, щоб завантажити останнє збереження."
 
 #: Source/control.cpp:1469
 #, c++-format
 msgid "Press {} to return to Main Menu."
-msgstr ""
+msgstr "Натисніть {}, щоб повернутися до Головного Меню."
 
 #: Source/control.cpp:1472
 #, c++-format
 msgid "Press {} to restart in town."
-msgstr ""
+msgstr "Натисніть {}, щоб перезапуститися в Місті."
 
 #. TRANSLATORS: {:s} is a number with separators. Dialog is shown when splitting a stash of Gold.
 #: Source/control.cpp:1490
@@ -1580,7 +1580,7 @@ msgstr "Відкрити Журнал квестів."
 
 #: Source/diablo.cpp:1867 Source/diablo.cpp:2207
 msgid "Spellbook"
-msgstr "Книга Магії"
+msgstr "Книга Чар"
 
 #: Source/diablo.cpp:1868 Source/diablo.cpp:2208
 msgid "Open Spellbook."
@@ -2292,10 +2292,8 @@ msgid "Save Game"
 msgstr "Зберегти Гру"
 
 #: Source/gamemenu.cpp:50 Source/gamemenu.cpp:60
-#, fuzzy
-#| msgid "Main Menu"
 msgid "Exit to Main Menu"
-msgstr "Головне Меню"
+msgstr "Вийти в Головне Меню"
 
 #: Source/gamemenu.cpp:51 Source/gamemenu.cpp:61
 msgid "Quit Game"
@@ -4074,10 +4072,8 @@ msgid "Resampling Quality"
 msgstr "Якість Семплування"
 
 #: Source/options.cpp:504
-#, fuzzy
-#| msgid "Quality of the resampler, from 0 (lowest) to 10 (highest)."
 msgid "Quality of the resampler, from 0 (lowest) to 5 (highest)."
-msgstr "Якість семлеру, від 0 (найнижча) до 10 (найвища)."
+msgstr "Якість семлеру, від 0 (найнижча) до 5 (найвища)."
 
 #: Source/options.cpp:529
 msgid ""
@@ -4198,14 +4194,12 @@ msgid "Zoom on when enabled."
 msgstr "Коли ввімкнено, наближує екран гри."
 
 #: Source/options.cpp:726
-#, fuzzy
-#| msgid " Lightning"
 msgid "Per-pixel Lighting"
-msgstr " Блискавка"
+msgstr "Попіксельне Освітлення"
 
 #: Source/options.cpp:726
 msgid "Subtile lighting for smoother light gradients."
-msgstr ""
+msgstr "Підсвічування суб-плиток для більш плавних градієнтів світла."
 
 #: Source/options.cpp:727
 msgid "Color Cycling"
@@ -4627,10 +4621,8 @@ msgid "Armor class"
 msgstr "Клас броні"
 
 #: Source/panels/charpanel.cpp:176
-#, fuzzy
-#| msgid "chance to hit"
 msgid "Chance To Hit"
-msgstr "шанс удару"
+msgstr "Шанс Влучити"
 
 #: Source/panels/charpanel.cpp:178
 msgid "Damage"
