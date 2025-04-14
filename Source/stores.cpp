@@ -195,14 +195,14 @@ void CalculateLineHeights()
 	}
 }
 
-void DrawSTextBack(const Surface &out)
+void DrawTextUI(const Surface &out)
 {
 	const Point uiPosition = GetUIRectangle().position;
 	ClxDraw(out, { uiPosition.x + 320 + 24, 327 + uiPosition.y }, (*pSTextBoxCels)[0]);
 	DrawHalfTransparentRectTo(out, uiPosition.x + 347, uiPosition.y + 28, 265, 297);
 }
 
-void DrawSSlider(const Surface &out, int y1, int y2)
+void DrawScrollbar(const Surface &out, int y1, int y2)
 {
 	const Point uiPosition = GetUIRectangle().position;
 	int yd1 = y1 * 12 + 44 + uiPosition.y;
@@ -231,7 +231,7 @@ void DrawSSlider(const Surface &out, int y1, int y2)
 	ClxDraw(out, { uiPosition.x + 601, (y1 + 1) * 12 + 44 + uiPosition.y + yd3 }, (*pSTextSlidCels)[12]);
 }
 
-void AddSLine(size_t y)
+void SetLineAsDivider(size_t y)
 {
 	TextLine[y]._sx = 0;
 	TextLine[y]._syoff = 0;
@@ -242,12 +242,12 @@ void AddSLine(size_t y)
 	TextLine[y].cursIndent = false;
 }
 
-void AddSTextVal(size_t y, int val)
+void SetLineValue(size_t y, int val)
 {
 	TextLine[y]._sval = val;
 }
 
-void AddSText(uint8_t x, size_t y, std::string_view text, UiFlags flags, bool sel, int cursId = -1, bool cursIndent = false)
+void SetLineText(uint8_t x, size_t y, std::string_view text, UiFlags flags, bool sel, int cursId = -1, bool cursIndent = false)
 {
 	TextLine[y]._sx = x;
 	TextLine[y]._syoff = 0;
@@ -259,10 +259,10 @@ void AddSText(uint8_t x, size_t y, std::string_view text, UiFlags flags, bool se
 	TextLine[y].cursIndent = cursIndent;
 }
 
-void AddOptionsBackButton()
+void SetLineAsOptionsBackButton()
 {
 	const int line = BackButtonLine();
-	AddSText(0, line, _("Back"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+	SetLineText(0, line, _("Back"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
 	TextLine[line]._syoff = IsSmallFontTall() ? 0 : 6;
 }
 
@@ -271,10 +271,10 @@ void AddItemListBackButton(bool selectable = false)
 	const int line = BackButtonLine();
 	std::string_view text = _("Back");
 	if (!selectable && IsSmallFontTall()) {
-		AddSText(0, line, text, UiFlags::ColorWhite | UiFlags::AlignRight, selectable);
+		SetLineText(0, line, text, UiFlags::ColorWhite | UiFlags::AlignRight, selectable);
 	} else {
-		AddSLine(line - 1);
-		AddSText(0, line, text, UiFlags::ColorWhite | UiFlags::AlignCenter, selectable);
+		SetLineAsDivider(line - 1);
+		SetLineText(0, line, text, UiFlags::ColorWhite | UiFlags::AlignCenter, selectable);
 		TextLine[line]._syoff = 6;
 	}
 }
@@ -301,7 +301,7 @@ void PrintStoreItem(const Item &item, int l, UiFlags flags, bool cursIndent = fa
 		productLine.append(fmt::format(fmt::runtime(_("Charges: {:d}/{:d}")), item._iCharges, item._iMaxCharges));
 	}
 	if (!productLine.empty()) {
-		AddSText(40, l, productLine, flags, false, -1, cursIndent);
+		SetLineText(40, l, productLine, flags, false, -1, cursIndent);
 		l++;
 		productLine.clear();
 	}
@@ -332,10 +332,10 @@ void PrintStoreItem(const Item &item, int l, UiFlags flags, bool cursIndent = fa
 		if (dex != 0)
 			productLine.append(fmt::format(fmt::runtime(_(" {:d} Dex")), dex));
 	}
-	AddSText(40, l++, productLine, flags, false, -1, cursIndent);
+	SetLineText(40, l++, productLine, flags, false, -1, cursIndent);
 }
 
-bool StoreAutoPlace(Item &item, bool persistItem)
+bool GiveItemToPlayer(Item &item, bool persistItem)
 {
 	Player &player = *MyPlayer;
 
@@ -363,8 +363,8 @@ void ScrollVendorStore(Item *itemData, int storeLimit, int idx, int selling = tr
 		const Item &item = itemData[idx];
 		if (!item.isEmpty()) {
 			UiFlags itemColor = item.getTextColorWithStatCheck();
-			AddSText(20, l, item.getName(), itemColor, true, item._iCurs, true);
-			AddSTextVal(l, item._iIdentified ? item._iIvalue : item._ivalue);
+			SetLineText(20, l, item.getName(), itemColor, true, item._iCurs, true);
+			SetLineValue(l, item._iIdentified ? item._iIvalue : item._ivalue);
 			PrintStoreItem(item, l + 1, itemColor, true);
 			NextScrollPos = l;
 		} else {
@@ -384,16 +384,16 @@ void StartSmith()
 {
 	IsTextFullSize = false;
 	HasScrollbar = false;
-	AddSText(0, 1, _("Welcome to the"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-	AddSText(0, 3, _("Blacksmith's shop"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-	AddSText(0, 7, _("Would you like to:"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-	AddSText(0, 10, _("Talk to Griswold"), UiFlags::ColorBlue | UiFlags::AlignCenter, true);
-	AddSText(0, 12, _("Buy basic items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSText(0, 14, _("Buy premium items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSText(0, 16, _("Sell items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSText(0, 18, _("Repair items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSText(0, 20, _("Leave the shop"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSLine(5);
+	SetLineText(0, 1, _("Welcome to the"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
+	SetLineText(0, 3, _("Blacksmith's shop"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
+	SetLineText(0, 7, _("Would you like to:"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
+	SetLineText(0, 10, _("Talk to Griswold"), UiFlags::ColorBlue | UiFlags::AlignCenter, true);
+	SetLineText(0, 12, _("Buy basic items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+	SetLineText(0, 14, _("Buy premium items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+	SetLineText(0, 16, _("Sell items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+	SetLineText(0, 18, _("Repair items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+	SetLineText(0, 20, _("Leave the shop"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+	SetLineAsDivider(5);
 	CurrentItemIndex = 20;
 }
 
@@ -420,8 +420,8 @@ void StartSmithBuy()
 	ScrollPos = 0;
 
 	RenderGold = true;
-	AddSText(20, 1, _("I have these items for sale:"), UiFlags::ColorWhitegold, false);
-	AddSLine(3);
+	SetLineText(20, 1, _("I have these items for sale:"), UiFlags::ColorWhitegold, false);
+	SetLineAsDivider(3);
 	ScrollSmithBuy(ScrollPos);
 	AddItemListBackButton();
 
@@ -469,8 +469,8 @@ bool StartSmithPremiumBuy()
 	ScrollPos = 0;
 
 	RenderGold = true;
-	AddSText(20, 1, _("I have these premium items for sale:"), UiFlags::ColorWhitegold, false);
-	AddSLine(3);
+	SetLineText(20, 1, _("I have these premium items for sale:"), UiFlags::ColorWhitegold, false);
+	SetLineAsDivider(3);
 	AddItemListBackButton();
 
 	NumTextLines = std::max(CurrentItemIndex - 4, 0);
@@ -565,8 +565,8 @@ void StartSmithSell()
 		HasScrollbar = false;
 
 		RenderGold = true;
-		AddSText(20, 1, _("You have nothing I want."), UiFlags::ColorWhitegold, false);
-		AddSLine(3);
+		SetLineText(20, 1, _("You have nothing I want."), UiFlags::ColorWhitegold, false);
+		SetLineAsDivider(3);
 		AddItemListBackButton(/*selectable=*/true);
 		return;
 	}
@@ -576,8 +576,8 @@ void StartSmithSell()
 	NumTextLines = myPlayer._pNumInv;
 
 	RenderGold = true;
-	AddSText(20, 1, _("Which item is for sale?"), UiFlags::ColorWhitegold, false);
-	AddSLine(3);
+	SetLineText(20, 1, _("Which item is for sale?"), UiFlags::ColorWhitegold, false);
+	SetLineAsDivider(3);
 	ScrollSmithSell(ScrollPos);
 	AddItemListBackButton();
 }
@@ -644,8 +644,8 @@ void StartSmithRepair()
 		HasScrollbar = false;
 
 		RenderGold = true;
-		AddSText(20, 1, _("You have nothing to repair."), UiFlags::ColorWhitegold, false);
-		AddSLine(3);
+		SetLineText(20, 1, _("You have nothing to repair."), UiFlags::ColorWhitegold, false);
+		SetLineAsDivider(3);
 		AddItemListBackButton(/*selectable=*/true);
 		return;
 	}
@@ -655,8 +655,8 @@ void StartSmithRepair()
 	NumTextLines = myPlayer._pNumInv;
 
 	RenderGold = true;
-	AddSText(20, 1, _("Repair which item?"), UiFlags::ColorWhitegold, false);
-	AddSLine(3);
+	SetLineText(20, 1, _("Repair which item?"), UiFlags::ColorWhitegold, false);
+	SetLineAsDivider(3);
 
 	ScrollSmithSell(ScrollPos);
 	AddItemListBackButton();
@@ -682,14 +682,14 @@ void StartWitch()
 	FillManaPlayer();
 	IsTextFullSize = false;
 	HasScrollbar = false;
-	AddSText(0, 2, _("Witch's shack"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-	AddSText(0, 9, _("Would you like to:"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-	AddSText(0, 12, _("Talk to Adria"), UiFlags::ColorBlue | UiFlags::AlignCenter, true);
-	AddSText(0, 14, _("Buy items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSText(0, 16, _("Sell items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSText(0, 18, _("Recharge staves"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSText(0, 20, _("Leave the shack"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSLine(5);
+	SetLineText(0, 2, _("Witch's shack"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
+	SetLineText(0, 9, _("Would you like to:"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
+	SetLineText(0, 12, _("Talk to Adria"), UiFlags::ColorBlue | UiFlags::AlignCenter, true);
+	SetLineText(0, 14, _("Buy items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+	SetLineText(0, 16, _("Sell items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+	SetLineText(0, 18, _("Recharge staves"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+	SetLineText(0, 20, _("Leave the shack"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+	SetLineAsDivider(5);
 	CurrentItemIndex = 20;
 }
 
@@ -722,8 +722,8 @@ void StartWitchBuy()
 	NumTextLines = 20;
 
 	RenderGold = true;
-	AddSText(20, 1, _("I have these items for sale:"), UiFlags::ColorWhitegold, false);
-	AddSLine(3);
+	SetLineText(20, 1, _("I have these items for sale:"), UiFlags::ColorWhitegold, false);
+	SetLineAsDivider(3);
 	ScrollWitchBuy(ScrollPos);
 	AddItemListBackButton();
 
@@ -815,9 +815,9 @@ void StartWitchSell()
 		HasScrollbar = false;
 
 		RenderGold = true;
-		AddSText(20, 1, _("You have nothing I want."), UiFlags::ColorWhitegold, false);
+		SetLineText(20, 1, _("You have nothing I want."), UiFlags::ColorWhitegold, false);
 
-		AddSLine(3);
+		SetLineAsDivider(3);
 		AddItemListBackButton(/*selectable=*/true);
 		return;
 	}
@@ -827,8 +827,8 @@ void StartWitchSell()
 	NumTextLines = myPlayer._pNumInv;
 
 	RenderGold = true;
-	AddSText(20, 1, _("Which item is for sale?"), UiFlags::ColorWhitegold, false);
-	AddSLine(3);
+	SetLineText(20, 1, _("Which item is for sale?"), UiFlags::ColorWhitegold, false);
+	SetLineAsDivider(3);
 	ScrollSmithSell(ScrollPos);
 	AddItemListBackButton();
 }
@@ -889,8 +889,8 @@ void StartWitchRecharge()
 		HasScrollbar = false;
 
 		RenderGold = true;
-		AddSText(20, 1, _("You have nothing to recharge."), UiFlags::ColorWhitegold, false);
-		AddSLine(3);
+		SetLineText(20, 1, _("You have nothing to recharge."), UiFlags::ColorWhitegold, false);
+		SetLineAsDivider(3);
 		AddItemListBackButton(/*selectable=*/true);
 		return;
 	}
@@ -900,8 +900,8 @@ void StartWitchRecharge()
 	NumTextLines = myPlayer._pNumInv;
 
 	RenderGold = true;
-	AddSText(20, 1, _("Recharge which item?"), UiFlags::ColorWhitegold, false);
-	AddSLine(3);
+	SetLineText(20, 1, _("Recharge which item?"), UiFlags::ColorWhitegold, false);
+	SetLineAsDivider(3);
 	ScrollSmithSell(ScrollPos);
 	AddItemListBackButton();
 }
@@ -913,7 +913,7 @@ void StoreNoMoney()
 	IsTextFullSize = true;
 	RenderGold = true;
 	ClearSText(5, 23);
-	AddSText(0, 14, _("You do not have enough gold"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+	SetLineText(0, 14, _("You do not have enough gold"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
 }
 
 void StoreNoRoom()
@@ -921,7 +921,7 @@ void StoreNoRoom()
 	StartStore(OldActiveStore);
 	HasScrollbar = false;
 	ClearSText(5, 23);
-	AddSText(0, 14, _("You do not have enough room in inventory"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+	SetLineText(0, 14, _("You do not have enough room in inventory"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
 }
 
 void StoreConfirm(Item &item)
@@ -931,8 +931,8 @@ void StoreConfirm(Item &item)
 	ClearSText(5, 23);
 
 	UiFlags itemColor = item.getTextColorWithStatCheck();
-	AddSText(20, 8, item.getName(), itemColor, false);
-	AddSTextVal(8, item._iIvalue);
+	SetLineText(20, 8, item.getName(), itemColor, false);
+	SetLineValue(8, item._iIvalue);
 	PrintStoreItem(item, 9, itemColor);
 
 	std::string_view prompt;
@@ -963,27 +963,27 @@ void StoreConfirm(Item &item)
 	default:
 		app_fatal(StrCat("Unknown store dialog ", static_cast<int>(OldActiveStore)));
 	}
-	AddSText(0, 15, prompt, UiFlags::ColorWhite | UiFlags::AlignCenter, false);
-	AddSText(0, 18, _("Yes"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSText(0, 20, _("No"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+	SetLineText(0, 15, prompt, UiFlags::ColorWhite | UiFlags::AlignCenter, false);
+	SetLineText(0, 18, _("Yes"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+	SetLineText(0, 20, _("No"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
 }
 
 void StartBoy()
 {
 	IsTextFullSize = false;
 	HasScrollbar = false;
-	AddSText(0, 2, _("Wirt the Peg-legged boy"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-	AddSLine(5);
+	SetLineText(0, 2, _("Wirt the Peg-legged boy"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
+	SetLineAsDivider(5);
 	if (!BoyItem.isEmpty()) {
-		AddSText(0, 8, _("Talk to Wirt"), UiFlags::ColorBlue | UiFlags::AlignCenter, true);
-		AddSText(0, 12, _("I have something for sale,"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-		AddSText(0, 14, _("but it will cost 50 gold"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-		AddSText(0, 16, _("just to take a look. "), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-		AddSText(0, 18, _("What have you got?"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-		AddSText(0, 20, _("Say goodbye"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+		SetLineText(0, 8, _("Talk to Wirt"), UiFlags::ColorBlue | UiFlags::AlignCenter, true);
+		SetLineText(0, 12, _("I have something for sale,"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
+		SetLineText(0, 14, _("but it will cost 50 gold"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
+		SetLineText(0, 16, _("just to take a look. "), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
+		SetLineText(0, 18, _("What have you got?"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+		SetLineText(0, 20, _("Say goodbye"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
 	} else {
-		AddSText(0, 12, _("Talk to Wirt"), UiFlags::ColorBlue | UiFlags::AlignCenter, true);
-		AddSText(0, 18, _("Say goodbye"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+		SetLineText(0, 12, _("Talk to Wirt"), UiFlags::ColorBlue | UiFlags::AlignCenter, true);
+		SetLineText(0, 18, _("Say goodbye"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
 	}
 }
 
@@ -993,24 +993,24 @@ void SStartBoyBuy()
 	HasScrollbar = false;
 
 	RenderGold = true;
-	AddSText(20, 1, _("I have this item for sale:"), UiFlags::ColorWhitegold, false);
-	AddSLine(3);
+	SetLineText(20, 1, _("I have this item for sale:"), UiFlags::ColorWhitegold, false);
+	SetLineAsDivider(3);
 
 	BoyItem._iStatFlag = MyPlayer->CanUseItem(BoyItem);
 	UiFlags itemColor = BoyItem.getTextColorWithStatCheck();
-	AddSText(20, 10, BoyItem.getName(), itemColor, true, BoyItem._iCurs, true);
+	SetLineText(20, 10, BoyItem.getName(), itemColor, true, BoyItem._iCurs, true);
 	if (gbIsHellfire)
-		AddSTextVal(10, BoyItem._iIvalue - (BoyItem._iIvalue / 4));
+		SetLineValue(10, BoyItem._iIvalue - (BoyItem._iIvalue / 4));
 	else
-		AddSTextVal(10, BoyItem._iIvalue + (BoyItem._iIvalue / 2));
+		SetLineValue(10, BoyItem._iIvalue + (BoyItem._iIvalue / 2));
 	PrintStoreItem(BoyItem, 11, itemColor, true);
 
 	{
 		// Add a Leave button. Unlike the other item list back buttons,
 		// this one has different text and different layout in LargerSmallFont locales.
 		const int line = BackButtonLine();
-		AddSLine(line - 1);
-		AddSText(0, line, _("Leave"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+		SetLineAsDivider(line - 1);
+		SetLineText(0, line, _("Leave"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
 		TextLine[line]._syoff = 6;
 	}
 }
@@ -1032,13 +1032,13 @@ void StartHealer()
 	HealPlayer();
 	IsTextFullSize = false;
 	HasScrollbar = false;
-	AddSText(0, 1, _("Welcome to the"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-	AddSText(0, 3, _("Healer's home"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-	AddSText(0, 9, _("Would you like to:"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-	AddSText(0, 12, _("Talk to Pepin"), UiFlags::ColorBlue | UiFlags::AlignCenter, true);
-	AddSText(0, 14, _("Buy items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSText(0, 18, _("Leave Healer's home"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSLine(5);
+	SetLineText(0, 1, _("Welcome to the"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
+	SetLineText(0, 3, _("Healer's home"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
+	SetLineText(0, 9, _("Would you like to:"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
+	SetLineText(0, 12, _("Talk to Pepin"), UiFlags::ColorBlue | UiFlags::AlignCenter, true);
+	SetLineText(0, 14, _("Buy items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+	SetLineText(0, 18, _("Leave Healer's home"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+	SetLineAsDivider(5);
 	CurrentItemIndex = 20;
 }
 
@@ -1054,8 +1054,8 @@ void StartHealerBuy()
 	ScrollPos = 0;
 
 	RenderGold = true;
-	AddSText(20, 1, _("I have these items for sale:"), UiFlags::ColorWhitegold, false);
-	AddSLine(3);
+	SetLineText(20, 1, _("I have these items for sale:"), UiFlags::ColorWhitegold, false);
+	SetLineAsDivider(3);
 
 	ScrollHealerBuy(ScrollPos);
 	AddItemListBackButton();
@@ -1076,12 +1076,12 @@ void StartStoryteller()
 {
 	IsTextFullSize = false;
 	HasScrollbar = false;
-	AddSText(0, 2, _("The Town Elder"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-	AddSText(0, 9, _("Would you like to:"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-	AddSText(0, 12, _("Talk to Cain"), UiFlags::ColorBlue | UiFlags::AlignCenter, true);
-	AddSText(0, 14, _("Identify an item"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSText(0, 18, _("Say goodbye"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSLine(5);
+	SetLineText(0, 2, _("The Town Elder"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
+	SetLineText(0, 9, _("Would you like to:"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
+	SetLineText(0, 12, _("Talk to Cain"), UiFlags::ColorBlue | UiFlags::AlignCenter, true);
+	SetLineText(0, 14, _("Identify an item"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+	SetLineText(0, 18, _("Say goodbye"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+	SetLineAsDivider(5);
 }
 
 bool IdItemOk(Item *i)
@@ -1172,8 +1172,8 @@ void StartStorytellerIdentify()
 		HasScrollbar = false;
 
 		RenderGold = true;
-		AddSText(20, 1, _("You have nothing to identify."), UiFlags::ColorWhitegold, false);
-		AddSLine(3);
+		SetLineText(20, 1, _("You have nothing to identify."), UiFlags::ColorWhitegold, false);
+		SetLineAsDivider(3);
 		AddItemListBackButton(/*selectable=*/true);
 		return;
 	}
@@ -1183,8 +1183,8 @@ void StartStorytellerIdentify()
 	NumTextLines = myPlayer._pNumInv;
 
 	RenderGold = true;
-	AddSText(20, 1, _("Identify which item?"), UiFlags::ColorWhitegold, false);
-	AddSLine(3);
+	SetLineText(20, 1, _("Identify which item?"), UiFlags::ColorWhitegold, false);
+	SetLineAsDivider(3);
 
 	ScrollSmithSell(ScrollPos);
 	AddItemListBackButton();
@@ -1198,10 +1198,10 @@ void StartStorytellerIdentifyShow(Item &item)
 
 	UiFlags itemColor = item.getTextColorWithStatCheck();
 
-	AddSText(0, 7, _("This item is:"), UiFlags::ColorWhite | UiFlags::AlignCenter, false);
-	AddSText(20, 11, item.getName(), itemColor, false);
+	SetLineText(0, 7, _("This item is:"), UiFlags::ColorWhite | UiFlags::AlignCenter, false);
+	SetLineText(20, 11, item.getName(), itemColor, false);
 	PrintStoreItem(item, 12, itemColor);
-	AddSText(0, 18, _("Done"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+	SetLineText(0, 18, _("Done"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
 }
 
 void StartTalk()
@@ -1210,14 +1210,14 @@ void StartTalk()
 
 	IsTextFullSize = false;
 	HasScrollbar = false;
-	AddSText(0, 2, fmt::format(fmt::runtime(_("Talk to {:s}")), _(TownerNames[TownerId])), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-	AddSLine(5);
+	SetLineText(0, 2, fmt::format(fmt::runtime(_("Talk to {:s}")), _(TownerNames[TownerId])), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
+	SetLineAsDivider(5);
 	if (gbIsSpawn) {
-		AddSText(0, 10, fmt::format(fmt::runtime(_("Talking to {:s}")), _(TownerNames[TownerId])), UiFlags::ColorWhite | UiFlags::AlignCenter, false);
-		AddSText(0, 12, _("is not available"), UiFlags::ColorWhite | UiFlags::AlignCenter, false);
-		AddSText(0, 14, _("in the shareware"), UiFlags::ColorWhite | UiFlags::AlignCenter, false);
-		AddSText(0, 16, _("version"), UiFlags::ColorWhite | UiFlags::AlignCenter, false);
-		AddOptionsBackButton();
+		SetLineText(0, 10, fmt::format(fmt::runtime(_("Talking to {:s}")), _(TownerNames[TownerId])), UiFlags::ColorWhite | UiFlags::AlignCenter, false);
+		SetLineText(0, 12, _("is not available"), UiFlags::ColorWhite | UiFlags::AlignCenter, false);
+		SetLineText(0, 14, _("in the shareware"), UiFlags::ColorWhite | UiFlags::AlignCenter, false);
+		SetLineText(0, 16, _("version"), UiFlags::ColorWhite | UiFlags::AlignCenter, false);
+		SetLineAsOptionsBackButton();
 		return;
 	}
 
@@ -1239,24 +1239,24 @@ void StartTalk()
 
 	for (auto &quest : Quests) {
 		if (quest._qactive == QUEST_ACTIVE && QuestDialogTable[TownerId][quest._qidx] != TEXT_NONE && quest._qlog) {
-			AddSText(0, sn, _(QuestsData[quest._qidx]._qlstr), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+			SetLineText(0, sn, _(QuestsData[quest._qidx]._qlstr), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
 			sn += la;
 		}
 	}
-	AddSText(0, sn2, _("Gossip"), UiFlags::ColorBlue | UiFlags::AlignCenter, true);
-	AddOptionsBackButton();
+	SetLineText(0, sn2, _("Gossip"), UiFlags::ColorBlue | UiFlags::AlignCenter, true);
+	SetLineAsOptionsBackButton();
 }
 
 void StartTavern()
 {
 	IsTextFullSize = false;
 	HasScrollbar = false;
-	AddSText(0, 1, _("Welcome to the"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-	AddSText(0, 3, _("Rising Sun"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-	AddSText(0, 9, _("Would you like to:"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-	AddSText(0, 12, _("Talk to Ogden"), UiFlags::ColorBlue | UiFlags::AlignCenter, true);
-	AddSText(0, 18, _("Leave the tavern"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSLine(5);
+	SetLineText(0, 1, _("Welcome to the"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
+	SetLineText(0, 3, _("Rising Sun"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
+	SetLineText(0, 9, _("Would you like to:"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
+	SetLineText(0, 12, _("Talk to Ogden"), UiFlags::ColorBlue | UiFlags::AlignCenter, true);
+	SetLineText(0, 18, _("Leave the tavern"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+	SetLineAsDivider(5);
 	CurrentItemIndex = 20;
 }
 
@@ -1264,12 +1264,12 @@ void StartBarmaid()
 {
 	IsTextFullSize = false;
 	HasScrollbar = false;
-	AddSText(0, 2, _("Gillian"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-	AddSText(0, 9, _("Would you like to:"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-	AddSText(0, 12, _("Talk to Gillian"), UiFlags::ColorBlue | UiFlags::AlignCenter, true);
-	AddSText(0, 14, _("Access Storage"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSText(0, 18, _("Say goodbye"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSLine(5);
+	SetLineText(0, 2, _("Gillian"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
+	SetLineText(0, 9, _("Would you like to:"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
+	SetLineText(0, 12, _("Talk to Gillian"), UiFlags::ColorBlue | UiFlags::AlignCenter, true);
+	SetLineText(0, 14, _("Access Storage"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+	SetLineText(0, 18, _("Say goodbye"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+	SetLineAsDivider(5);
 	CurrentItemIndex = 20;
 }
 
@@ -1277,11 +1277,11 @@ void StartDrunk()
 {
 	IsTextFullSize = false;
 	HasScrollbar = false;
-	AddSText(0, 2, _("Farnham the Drunk"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-	AddSText(0, 9, _("Would you like to:"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-	AddSText(0, 12, _("Talk to Farnham"), UiFlags::ColorBlue | UiFlags::AlignCenter, true);
-	AddSText(0, 18, _("Say Goodbye"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSLine(5);
+	SetLineText(0, 2, _("Farnham the Drunk"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
+	SetLineText(0, 9, _("Would you like to:"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
+	SetLineText(0, 12, _("Talk to Farnham"), UiFlags::ColorBlue | UiFlags::AlignCenter, true);
+	SetLineText(0, 18, _("Say Goodbye"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+	SetLineAsDivider(5);
 	CurrentItemIndex = 20;
 }
 
@@ -1320,7 +1320,7 @@ void SmithBuyItem(Item &item)
 	TakePlrsMoney(item._iIvalue);
 	if (item._iMagical == ITEM_QUALITY_NORMAL)
 		item._iIdentified = false;
-	StoreAutoPlace(item, true);
+	GiveItemToPlayer(item, true);
 	int idx = OldScrollPos + ((OldTextLine - PreviousScrollPos) / 4);
 	if (idx == NumSmithBasicItemsHf - 1) {
 		SmithItems[NumSmithBasicItemsHf - 1].clear();
@@ -1351,7 +1351,7 @@ void SmithBuyEnter()
 		return;
 	}
 
-	if (!StoreAutoPlace(SmithItems[idx], false)) {
+	if (!GiveItemToPlayer(SmithItems[idx], false)) {
 		StartStore(TalkID::NoRoom);
 		return;
 	}
@@ -1368,7 +1368,7 @@ void SmithBuyPItem(Item &item)
 	TakePlrsMoney(item._iIvalue);
 	if (item._iMagical == ITEM_QUALITY_NORMAL)
 		item._iIdentified = false;
-	StoreAutoPlace(item, true);
+	GiveItemToPlayer(item, true);
 
 	int idx = OldScrollPos + ((OldTextLine - PreviousScrollPos) / 4);
 	int xx = 0;
@@ -1410,7 +1410,7 @@ void SmithPremiumBuyEnter()
 		return;
 	}
 
-	if (!StoreAutoPlace(PremiumItems[idx], false)) {
+	if (!GiveItemToPlayer(PremiumItems[idx], false)) {
 		StartStore(TalkID::NoRoom);
 		return;
 	}
@@ -1571,7 +1571,7 @@ void WitchBuyItem(Item &item)
 		item._iSeed = AdvanceRndSeed();
 
 	TakePlrsMoney(item._iIvalue);
-	StoreAutoPlace(item, true);
+	GiveItemToPlayer(item, true);
 
 	if (idx >= 3) {
 		if (idx == NumWitchItemsHf - 1) {
@@ -1606,7 +1606,7 @@ void WitchBuyEnter()
 		return;
 	}
 
-	if (!StoreAutoPlace(WitchItems[idx], false)) {
+	if (!GiveItemToPlayer(WitchItems[idx], false)) {
 		StartStore(TalkID::NoRoom);
 		return;
 	}
@@ -1713,7 +1713,7 @@ void BoyEnter()
 void BoyBuyItem(Item &item, int itemPrice)
 {
 	TakePlrsMoney(itemPrice);
-	StoreAutoPlace(item, true);
+	GiveItemToPlayer(item, true);
 	item.clear();
 	OldActiveStore = TalkID::Boy;
 	CalcPlrInv(*MyPlayer, true);
@@ -1737,7 +1737,7 @@ void HealerBuyItem(Item &item)
 	TakePlrsMoney(item._iIvalue);
 	if (item._iMagical == ITEM_QUALITY_NORMAL)
 		item._iIdentified = false;
-	StoreAutoPlace(item, true);
+	GiveItemToPlayer(item, true);
 
 	if (!gbIsMultiplayer) {
 		if (idx < 2)
@@ -1779,7 +1779,7 @@ void BoyBuyEnter()
 		return;
 	}
 
-	if (!StoreAutoPlace(BoyItem, false)) {
+	if (!GiveItemToPlayer(BoyItem, false)) {
 		StartStore(TalkID::NoRoom);
 		return;
 	}
@@ -1905,7 +1905,7 @@ void HealerBuyEnter()
 		return;
 	}
 
-	if (!StoreAutoPlace(HealerItems[idx], false)) {
+	if (!GiveItemToPlayer(HealerItems[idx], false)) {
 		StartStore(TalkID::NoRoom);
 		return;
 	}
@@ -2265,7 +2265,7 @@ void StartStore(TalkID s)
 	QuestLogIsOpen = false;
 	CloseGoldDrop();
 	ClearSText(0, NumStoreLines);
-	ReleaseStoreBtn();
+	ReleaseStoreButton();
 	switch (s) {
 	case TalkID::Smith:
 		StartSmith();
@@ -2367,10 +2367,10 @@ void StartStore(TalkID s)
 	ActiveStore = s;
 }
 
-void DrawSText(const Surface &out)
+void DrawStore(const Surface &out)
 {
 	if (!IsTextFullSize)
-		DrawSTextBack(out);
+		DrawTextUI(out);
 	else
 		DrawQTextBack(out);
 
@@ -2414,7 +2414,7 @@ void DrawSText(const Surface &out)
 	}
 
 	if (HasScrollbar)
-		DrawSSlider(out, 4, 20);
+		DrawScrollbar(out, 4, 20);
 }
 
 void StoreESC()
@@ -2695,7 +2695,7 @@ void StoreEnter()
 	}
 }
 
-void CheckStoreBtn()
+void CheckStoreButton()
 {
 	const Point uiPosition = GetUIRectangle().position;
 	const Rectangle windowRect { { uiPosition.x + 344, uiPosition.y + PaddingTop - 7 }, { 271, 303 } };
@@ -2769,7 +2769,7 @@ void CheckStoreBtn()
 	}
 }
 
-void ReleaseStoreBtn()
+void ReleaseStoreButton()
 {
 	CountdownScrollUp = -1;
 	CountdownScrollDown = -1;
