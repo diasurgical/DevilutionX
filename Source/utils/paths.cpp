@@ -11,12 +11,6 @@
 #include "utils/log.hpp"
 #include "utils/sdl_ptrs.h"
 
-#ifdef __HAIKU__
-#include <FindDirectory.h>
-#include <dirent.h>
-#include <fs_info.h>
-#endif
-
 #ifdef __IPHONEOS__
 #include "platform/ios/ios_paths.h"
 #endif
@@ -124,26 +118,7 @@ const std::string &ConfigPath()
 const std::string &AssetsPath()
 {
 	if (!assetsPath) {
-#if defined(__HAIKU__)
-		// Look in system first (system-wide install)
-		char buffer[B_PATH_NAME_LENGTH + 10];
-		find_directory(B_SYSTEM_DATA_DIRECTORY, dev_for_path("/boot"), false, buffer, B_PATH_NAME_LENGTH);
-		strcat(buffer, "/devilutionx/");
-		if (opendir(buffer)) {
-			assetsPath.emplace(strdup(buffer));
-		} else {
-			// Then look in user data (home-data install)
-			char homedata[B_PATH_NAME_LENGTH + 10];
-			find_directory(B_USER_DATA_DIRECTORY, dev_for_path("/boot"), false, homedata, B_PATH_NAME_LENGTH);
-			strcat(homedata, "/devilutionx/");
-			if (opendir(homedata)) {
-				assetsPath.emplace(strdup(homedata));
-			} else {
-				// If that fails just fall back to the binary's dir (compiled raw & other misc. cases)
-				assetsPath.emplace(FromSDL(SDL_GetBasePath()) + ("assets" DIRECTORY_SEPARATOR_STR));
-			}
-		}
-#elif __EMSCRIPTEN__
+#if  __EMSCRIPTEN__
 		assetsPath.emplace("assets/");
 #elif defined(NXDK)
 		assetsPath.emplace("D:\\assets\\");
