@@ -136,7 +136,12 @@ const std::string &AssetsPath()
 			char homedata[B_PATH_NAME_LENGTH + 10];
 			find_directory(B_USER_DATA_DIRECTORY, dev_for_path("/boot"), false, homedata, B_PATH_NAME_LENGTH);
 			strcat(homedata, "/devilutionx/");
-			assetsPath.emplace(strdup(homedata));
+			if (opendir(homedata)) {
+				assetsPath.emplace(strdup(homedata));
+			} else {
+				// If that fails just fall back to the binary's dir (compiled raw & other misc. cases)
+				assetsPath.emplace(FromSDL(SDL_GetBasePath()) + ("assets" DIRECTORY_SEPARATOR_STR));
+			}
 		}
 #elif __EMSCRIPTEN__
 		assetsPath.emplace("assets/");
