@@ -13,8 +13,8 @@
 
 #ifdef __HAIKU__
 #include <FindDirectory.h>
-#include <fs_info.h>
 #include <dirent.h>
+#include <fs_info.h>
 #endif
 
 #ifdef __IPHONEOS__
@@ -94,7 +94,7 @@ const std::string &PrefPath()
 		prefPath = FromSDL(SDL_GetPrefPath("diasurgical", "devilution"));
 #if !defined(__amigaos__)
 		if (FileExistsAndIsWriteable("diablo.ini")) {
-			prefPath = std::string();
+			prefPath = std::string("." DIRECTORY_SEPARATOR_STR);
 		}
 #endif
 #endif
@@ -113,7 +113,7 @@ const std::string &ConfigPath()
 		configPath = FromSDL(SDL_GetPrefPath("diasurgical", "devilution"));
 #if !defined(__amigaos__)
 		if (FileExistsAndIsWriteable("diablo.ini")) {
-			configPath = std::string();
+			configPath = std::string("." DIRECTORY_SEPARATOR_STR);
 		}
 #endif
 #endif
@@ -136,12 +136,7 @@ const std::string &AssetsPath()
 			char homedata[B_PATH_NAME_LENGTH + 10];
 			find_directory(B_USER_DATA_DIRECTORY, dev_for_path("/boot"), false, homedata, B_PATH_NAME_LENGTH);
 			strcat(homedata, "/devilutionx/");
-			if (opendir(homedata)) {
-				assetsPath.emplace(strdup(homedata));
-			} else {
-				// If that fails just fall back to the binary's dir (compiled raw & other misc. cases)
-				assetsPath.emplace(FromSDL(SDL_GetBasePath()) + ("assets" DIRECTORY_SEPARATOR_STR));
-			}
+			assetsPath.emplace(strdup(homedata));
 		}
 #elif __EMSCRIPTEN__
 		assetsPath.emplace("assets/");
