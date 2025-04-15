@@ -118,7 +118,7 @@ const std::string &ConfigPath()
 const std::string &AssetsPath()
 {
 	if (!assetsPath) {
-#if  __EMSCRIPTEN__
+#if __EMSCRIPTEN__
 		assetsPath.emplace("assets/");
 #elif defined(NXDK)
 		assetsPath.emplace("D:\\assets\\");
