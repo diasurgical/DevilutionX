@@ -2128,20 +2128,30 @@ void InitStores()
 	BoyItemLevel = 0;
 }
 
+int GetStoreLevel(const Player &player)
+{
+	int baseLevel;
+
+	if (!gbIsMultiplayer) {
+		baseLevel = 0;
+		for (int i = NUMLEVELS - 1; i > 0; i--) {
+			if (player._pLvlVisited[i]) {
+				baseLevel = i;
+				break;
+			}
+		}
+	} else {
+		baseLevel = player.getCharacterLevel() / 2;
+	}
+
+	return std::clamp(baseLevel + 2, 6, 20);
+}
+
 void SetupTownStores()
 {
 	Player &myPlayer = *MyPlayer;
 
-	int l = myPlayer.getCharacterLevel() / 2;
-	if (!gbIsMultiplayer) {
-		l = 0;
-		for (int i = 0; i < NUMLEVELS; i++) {
-			if (myPlayer._pLvlVisited[i])
-				l = i;
-		}
-	}
-
-	l = std::clamp(l + 2, 6, 16);
+	int l = std::clamp(GetStoreLevel(myPlayer), 6, 16);
 	SpawnSmith(l);
 	SpawnWitch(l);
 	SpawnHealer(l);

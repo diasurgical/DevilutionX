@@ -4493,22 +4493,36 @@ void SpawnWitch(int lvl)
 			continue;
 		}
 
+		const Player &myPlayer = *MyPlayer;
+		int tempLvl;
+		const int expandedLvl = GetStoreLevel(myPlayer);
+
 		do {
 			item = {};
 			item._iSeed = AdvanceRndSeed();
 			SetRndSeed(item._iSeed);
-			_item_indexes itemData = RndWitchItem(*MyPlayer, lvl);
-			GetItemAttrs(item, itemData, lvl);
+
+			tempLvl = lvl;
+			_item_indexes itemData = RndWitchItem(myPlayer, tempLvl);
+			SetRndSeed(item._iSeed); // We need to restore the RNG state to preserve compatibility since RndWitchItem() burns one seed
+			const _item_indexes expandedItemData = RndWitchItem(myPlayer, expandedLvl);
+
+			if (expandedItemData == IDI_ELIXVIT) {
+				itemData = expandedItemData;
+				tempLvl = expandedLvl;
+			}
+
+			GetItemAttrs(item, itemData, tempLvl);
 			int maxlvl = -1;
 			if (GenerateRnd(100) <= 5)
-				maxlvl = 2 * lvl;
+				maxlvl = 2 * tempLvl;
 			if (maxlvl == -1 && item._iMiscId == IMISC_STAFF)
-				maxlvl = 2 * lvl;
+				maxlvl = 2 * tempLvl;
 			if (maxlvl != -1)
-				GetItemBonus(*MyPlayer, item, maxlvl / 2, maxlvl, true, true);
+				GetItemBonus(myPlayer, item, maxlvl / 2, maxlvl, true, true);
 		} while (item._iIvalue > maxValue);
 
-		item._iCreateInfo = lvl | CF_WITCH;
+		item._iCreateInfo = tempLvl | CF_WITCH;
 		item._iIdentified = true;
 	}
 
@@ -4654,9 +4668,23 @@ void SpawnHealer(int lvl)
 
 		item._iSeed = AdvanceRndSeed();
 		SetRndSeed(item._iSeed);
-		_item_indexes itype = RndHealerItem(*MyPlayer, lvl);
-		GetItemAttrs(item, itype, lvl);
-		item._iCreateInfo = lvl | CF_HEALER;
+
+		const Player &myPlayer = *MyPlayer;
+		int tempLvl = lvl;
+		_item_indexes itemData = RndHealerItem(myPlayer, tempLvl);
+
+		SetRndSeed(item._iSeed); // We need to restore the RNG state to preserve compatibility since RndHealerItem() burns one seed
+
+		const int expandedLvl = GetStoreLevel(myPlayer);
+		const _item_indexes expandedItemData = RndHealerItem(myPlayer, expandedLvl);
+
+		if (expandedItemData == IDI_ELIXVIT) {
+			itemData = expandedItemData;
+			tempLvl = expandedLvl;
+		}
+
+		GetItemAttrs(item, itemData, tempLvl);
+		item._iCreateInfo = tempLvl | CF_HEALER;
 		item._iIdentified = true;
 	}
 
