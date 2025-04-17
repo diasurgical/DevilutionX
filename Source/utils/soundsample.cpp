@@ -38,9 +38,9 @@ constexpr float VolumeScale = 3321.9281F;
 
 /**
  * Min and max volume range, in millibel.
- * -100 dB (muted) to 0 dB (max. loudness).
+ * -60 dB (muted) to 0 dB (max. loudness).
  */
-constexpr float MillibelMin = -10000.F;
+constexpr float MillibelMin = -6000.F;
 constexpr float MillibelMax = 0.F;
 
 /**
