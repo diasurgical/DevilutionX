@@ -14,12 +14,12 @@
 #include "engine/displacement.hpp"
 #include "engine/point.hpp"
 #include "engine/world_tile.hpp"
+#include "multi.h"
 #include "utils/attributes.h"
 
 namespace devilution {
 
 #define MAXLIGHTS 32
-#define MAXVISION 4
 /** @brief Number of supported light levels */
 constexpr size_t NumLightingLevels = 16;
 #define NO_LIGHT -1
@@ -40,8 +40,8 @@ struct Light {
 	bool hasChanged;
 };
 
-extern Light VisionList[MAXVISION];
-extern std::array<bool, MAXVISION> VisionActive;
+extern Light VisionList[MaxPlayers];
+extern std::array<bool, MaxPlayers> VisionActive;
 extern Light Lights[MAXLIGHTS];
 extern std::array<uint8_t, MAXLIGHTS> ActiveLights;
 extern int ActiveLightCount;

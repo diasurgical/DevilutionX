@@ -181,7 +181,7 @@ bool base::IsConnected(plr_t player) const
 
 tl::expected<void, PacketError> base::RecvLocal(packet &pkt)
 {
-	if (pkt.Source() < MAX_PLRS) {
+	if (pkt.Source() < MaxPlayers) {
 		if (tl::expected<void, PacketError> result = Connect(pkt.Source());
 		    !result.has_value()) {
 			return result;
@@ -225,7 +225,7 @@ bool base::SNetReceiveMessage(uint8_t *sender, void **data, size_t *size)
 
 bool base::SNetSendMessage(uint8_t playerId, void *data, size_t size)
 {
-	if (playerId != SNPLAYER_OTHERS && playerId >= MAX_PLRS)
+	if (playerId != SNPLAYER_OTHERS && playerId >= MaxPlayers)
 		abort();
 	auto *rawMessage = reinterpret_cast<unsigned char *>(data);
 	buffer_t message(rawMessage, rawMessage + size);
@@ -420,7 +420,7 @@ void base::SNetGetProviderCaps(struct _SNETCAPS *caps)
 	caps->flags = 0;                 // unused
 	caps->maxmessagesize = 512;      // capped to 512; underflow if < 24
 	caps->maxqueuesize = 0;          // unused
-	caps->maxplayers = MAX_PLRS;     // capped to 4
+	caps->maxplayers = MaxPlayers;   // capped to 8
 	caps->bytessec = 1000000;        // ?
 	caps->latencyms = 0;             // unused
 	caps->defaultturnssec = 10;      // ?

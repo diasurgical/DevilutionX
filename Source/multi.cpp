@@ -24,6 +24,7 @@
 #include "options.h"
 #include "pfile.h"
 #include "plrmsg.h"
+#include "portal.h"
 #include "qol/chatlog.h"
 #include "storm/storm_net.hpp"
 #include "sync.h"
@@ -36,17 +37,17 @@
 namespace devilution {
 
 bool gbSomebodyWonGameKludge;
-uint16_t sgwPackPlrOffsetTbl[MAX_PLRS];
-bool sgbPlayerTurnBitTbl[MAX_PLRS];
-bool sgbPlayerLeftGameTbl[MAX_PLRS];
+uint16_t sgwPackPlrOffsetTbl[MaxPlayers];
+bool sgbPlayerTurnBitTbl[MaxPlayers];
+bool sgbPlayerLeftGameTbl[MaxPlayers];
 bool shareNextHighPriorityMessage;
 uint8_t gbActivePlayers;
 bool gbGameDestroyed;
-bool sgbSendDeltaTbl[MAX_PLRS];
+bool sgbSendDeltaTbl[MaxPlayers];
 GameData sgGameInitInfo;
 bool gbSelectProvider;
 int sglTimeoutStart;
-uint32_t sgdwPlayerLeftReasonTbl[MAX_PLRS];
+uint32_t sgdwPlayerLeftReasonTbl[MaxPlayers];
 uint32_t sgdwGameLoops;
 /**
  * Specifies the maximum number of players in a game, where 1
@@ -59,8 +60,8 @@ std::string GamePassword;
 bool PublicGame;
 uint8_t gbDeltaSender;
 bool sgbNetInited;
-uint32_t player_state[MAX_PLRS];
-Uint32 playerInfoTimers[MAX_PLRS];
+uint32_t player_state[MaxPlayers];
+Uint32 playerInfoTimers[MaxPlayers];
 bool IsLoopback;
 
 /**
@@ -420,7 +421,7 @@ void HandleEvents(_SNETEVENT *pEvt)
 		sgbSendDeltaTbl[playerId] = false;
 
 		if (gbDeltaSender == playerId)
-			gbDeltaSender = MAX_PLRS;
+			gbDeltaSender = MaxPlayers;
 	} break;
 	case EVENT_TYPE_PLAYER_MESSAGE: {
 		std::string_view data(static_cast<const char *>(pEvt->data), pEvt->databytes);
@@ -475,7 +476,7 @@ bool InitSingle(GameData *gameData)
 
 bool InitMulti(GameData *gameData)
 {
-	Players.resize(MAX_PLRS);
+	Players.resize(MaxPlayers);
 
 	int playerId;
 
@@ -834,7 +835,7 @@ bool NetInit(bool bSinglePlayer)
 
 void recv_plrinfo(Player &player, const TCmdPlrInfoHdr &header, bool recv)
 {
-	static PlayerNetPack PackedPlayerBuffer[MAX_PLRS];
+	static PlayerNetPack PackedPlayerBuffer[MaxPlayers];
 
 	if (&player == MyPlayer) {
 		return;

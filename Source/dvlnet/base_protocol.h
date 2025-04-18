@@ -55,7 +55,7 @@ private:
 		endpoint_t peer;
 	};
 	ankerl::unordered_dense::map</*name*/ std::string, GameListValue> game_list;
-	std::array<Peer, MAX_PLRS> peers;
+	std::array<Peer, MaxPlayers> peers;
 	bool isGameHost_;
 
 	plr_t get_master();
@@ -252,7 +252,7 @@ tl::expected<void, PacketError> base_protocol<P>::send(packet &pkt)
 		}
 		return {};
 	}
-	if (destination >= MAX_PLRS)
+	if (destination >= MaxPlayers)
 		return tl::make_unexpected("Invalid player ID");
 	if (destination == MyPlayerId)
 		return {};
@@ -319,7 +319,7 @@ tl::expected<void, PacketError> base_protocol<P>::handle_join_request(packet &in
 			break;
 		}
 	}
-	if (i >= MAX_PLRS) {
+	if (i >= MaxPlayers) {
 		// already full
 		return {};
 	}
@@ -358,7 +358,7 @@ template <class P>
 tl::expected<void, PacketError> base_protocol<P>::recv_decrypted(packet &pkt, endpoint_t sender)
 {
 	if (pkt.Source() == PLR_BROADCAST && pkt.Destination() == PLR_MASTER && pkt.Type() == PT_INFO_REPLY) {
-		size_t neededSize = sizeof(GameData) + (PlayerNameLength * MAX_PLRS);
+		size_t neededSize = sizeof(GameData) + (PlayerNameLength * MaxPlayers);
 		const tl::expected<const buffer_t *, PacketError> pktInfo = pkt.Info();
 		if (!pktInfo.has_value())
 			return tl::make_unexpected(pktInfo.error());
@@ -405,7 +405,7 @@ tl::expected<void, PacketError> base_protocol<P>::recv_ingame(packet &pkt, endpo
 		} else if (pkt.Type() == PT_INFO_REQUEST) {
 			if ((plr_self != PLR_BROADCAST) && (get_master() == plr_self)) {
 				buffer_t buf;
-				buf.resize(game_init_info.size() + (PlayerNameLength * MAX_PLRS) + gamename.size());
+				buf.resize(game_init_info.size() + (PlayerNameLength * MaxPlayers) + gamename.size());
 				std::memcpy(buf.data(), &game_init_info[0], game_init_info.size());
 				for (size_t i = 0; i < Players.size(); i++) {
 					if (Players[i].plractive) {
@@ -414,7 +414,7 @@ tl::expected<void, PacketError> base_protocol<P>::recv_ingame(packet &pkt, endpo
 						std::memset(buf.data() + game_init_info.size() + (i * PlayerNameLength), '\0', PlayerNameLength);
 					}
 				}
-				std::memcpy(buf.data() + game_init_info.size() + (PlayerNameLength * MAX_PLRS), &gamename[0], gamename.size());
+				std::memcpy(buf.data() + game_init_info.size() + (PlayerNameLength * MaxPlayers), &gamename[0], gamename.size());
 				tl::expected<std::unique_ptr<packet>, PacketError> reply
 				    = pktfty->make_packet<PT_INFO_REPLY>(PLR_BROADCAST, PLR_MASTER, buf);
 				if (!reply.has_value()) {
@@ -453,9 +453,9 @@ tl::expected<void, PacketError> base_protocol<P>::recv_ingame(packet &pkt, endpo
 			return InitiateHandshake(*newPlayer);
 		return {};
 	}
-	if (pkt.Source() >= MAX_PLRS) {
+	if (pkt.Source() >= MaxPlayers) {
 		// normal packets
-		LogDebug("Invalid packet: packet source ({}) >= MAX_PLRS", pkt.Source());
+		LogDebug("Invalid packet: packet source ({}) >= MaxPlayers", pkt.Source());
 		return {};
 	}
 	if (sender == firstpeer && pkt.Type() == PT_JOIN_ACCEPT) {
@@ -523,7 +523,7 @@ bool base_protocol<P>::is_recognized(endpoint_t sender)
 	if (sender == firstpeer)
 		return true;
 
-	for (auto player = 0; player <= MAX_PLRS; player++) {
+	for (auto player = 0; player <= MaxPlayers; player++) {
 		if (sender == peers[player].endpoint)
 			return true;
 	}

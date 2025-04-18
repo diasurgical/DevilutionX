@@ -11,7 +11,6 @@
 #include "items.h"
 #include "monster.h"
 #include "objects.h"
-#include "portal.h"
 #include "quests.h"
 
 namespace devilution {

@@ -3518,7 +3518,9 @@ void WeakenNaKrul()
 void InitGolems()
 {
 	if (!setlevel) {
-		for (int i = 0; i < MAX_PLRS; i++)
+		uint8_t maxPlayers = gbIsMultiplayer ? MaxPlayers : MaxPlayersSp;
+
+		for (int i = 0; i < maxPlayers; i++)
 			AddMonster(GolemHoldingCell, Direction::South, 0, false);
 	}
 }
@@ -3587,9 +3589,12 @@ tl::expected<void, std::string> InitMonsters()
 tl::expected<void, std::string> SetMapMonsters(const uint16_t *dunData, Point startPosition)
 {
 	RETURN_IF_ERROR(AddMonsterType(MT_GOLEM, PLACE_SPECIAL));
-	if (setlevel)
-		for (int i = 0; i < MAX_PLRS; i++)
+	if (setlevel) {
+		uint8_t maxPlayers = gbIsMultiplayer ? MaxPlayers : MaxPlayersSp;
+
+		for (int i = 0; i < maxPlayers; i++)
 			AddMonster(GolemHoldingCell, Direction::South, 0, false);
+	}
 
 	WorldTileSize size = GetDunSize(dunData);
 
@@ -4012,7 +4017,9 @@ void GolumAi(Monster &golem)
 
 void DeleteMonsterList()
 {
-	for (int i = 0; i < MAX_PLRS; i++) {
+	uint8_t maxPlayers = gbIsMultiplayer ? MaxPlayers : MaxPlayersSp;
+
+	for (int i = 0; i < maxPlayers; i++) {
 		Monster &golem = Monsters[i];
 		if (!golem.isInvalid)
 			continue;
@@ -4023,7 +4030,7 @@ void DeleteMonsterList()
 		golem.isInvalid = false;
 	}
 
-	for (size_t i = MAX_PLRS; i < ActiveMonsterCount;) {
+	for (size_t i = maxPlayers; i < ActiveMonsterCount;) {
 		if (Monsters[ActiveMonsters[i]].isInvalid) {
 			if (pcursmonst == static_cast<int>(ActiveMonsters[i])) // Unselect monster if player highlighted it
 				pcursmonst = -1;
@@ -4080,7 +4087,9 @@ void ProcessMonsters()
 			monster.position.last = Monsters[monster.enemy].position.future;
 			monster.enemyPosition = monster.position.last;
 		} else {
-			assert(monster.enemy >= 0 && monster.enemy < MAX_PLRS);
+			uint8_t maxPlayers = gbIsMultiplayer ? MaxPlayers : MaxPlayersSp;
+
+			assert(monster.enemy >= 0 && monster.enemy < maxPlayers);
 			Player &player = Players[monster.enemy];
 			monster.enemyPosition = player.position.future;
 			if (IsTileVisible(monster.position.tile)) {
@@ -4671,21 +4680,25 @@ bool CanTalkToMonst(const Monster &monster)
 
 int encode_enemy(Monster &monster)
 {
+	uint8_t maxPlayers = gbIsMultiplayer ? MaxPlayers : MaxPlayersSp;
+
 	if ((monster.flags & MFLAG_TARGETS_MONSTER) != 0)
-		return monster.enemy + MAX_PLRS;
+		return monster.enemy + maxPlayers;
 
 	return monster.enemy;
 }
 
 void decode_enemy(Monster &monster, int enemyId)
 {
-	if (enemyId < MAX_PLRS) {
+	uint8_t maxPlayers = gbIsMultiplayer ? MaxPlayers : MaxPlayersSp;
+
+	if (enemyId < maxPlayers) {
 		monster.flags &= ~MFLAG_TARGETS_MONSTER;
 		monster.enemy = enemyId;
 		monster.enemyPosition = Players[enemyId].position.future;
 	} else {
 		monster.flags |= MFLAG_TARGETS_MONSTER;
-		enemyId -= MAX_PLRS;
+		enemyId -= maxPlayers;
 		monster.enemy = enemyId;
 		monster.enemyPosition = Monsters[enemyId].position.future;
 	}
