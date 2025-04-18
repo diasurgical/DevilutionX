@@ -6,8 +6,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: DevilutionX\n"
-"POT-Creation-Date: 2025-04-18 23:03+0200\n"
-"PO-Revision-Date: 2025-04-18 23:03+0200\n"
+"POT-Creation-Date: 2025-04-18 23:04+0200\n"
+"PO-Revision-Date: 2025-04-18 23:04+0200\n"
 "Last-Translator: Altieres Lima da Silva <altieres.lima@gmail.com>\n"
 "Language-Team: \n"
 "Language: pt_BR\n"
@@ -27,11 +27,11 @@ msgstr "Design do Jogo"
 
 #: Source/DiabloUI/credits_lines.cpp:10
 msgid "Senior Designers"
-msgstr "Projetistas Sêniores"
+msgstr "Designers Sêniores"
 
 #: Source/DiabloUI/credits_lines.cpp:13 Source/DiabloUI/credits_lines.cpp:232
 msgid "Additional Design"
-msgstr "Projeto Adicional"
+msgstr "Design Adicional"
 
 #: Source/DiabloUI/credits_lines.cpp:16 Source/DiabloUI/credits_lines.cpp:215
 msgid "Lead Programmer"
@@ -503,9 +503,8 @@ msgid "Client-Server (TCP)"
 msgstr "Cliente-Servidor (TCP)"
 
 #: Source/DiabloUI/multi/selconn.cpp:17
-#, fuzzy
 msgid "Offline"
-msgstr "Loopback"
+msgstr "Offline"
 
 #: Source/DiabloUI/multi/selconn.cpp:58 Source/DiabloUI/multi/selgame.cpp:648
 #: Source/DiabloUI/multi/selgame.cpp:674
@@ -953,9 +952,8 @@ msgid "Game: "
 msgstr "Jogo: "
 
 #: Source/automap.cpp:1424
-#, fuzzy
 msgid "Offline Game"
-msgstr "Loopback"
+msgstr "Partida Offline"
 
 #: Source/automap.cpp:1426
 msgid "Password: "
@@ -2965,7 +2963,7 @@ msgstr "{:+d} a todos os atributos"
 
 #: Source/items.cpp:3959
 msgid "{:+d} damage from enemies"
-msgstr "{:+d} de dano a inimigos"
+msgstr "{:+d} de dano dos inimigos"
 
 #: Source/items.cpp:3962
 msgid "Hit Points: {:+d}"
@@ -9119,8 +9117,6 @@ msgid "Carver"
 msgstr "Talhador"
 
 #: Source/translation_dummy.cpp:15 Source/translation_dummy.cpp:23
-#, fuzzy
-#| msgid "Devil Kin"
 msgctxt "monster"
 msgid "Devil Kin"
 msgstr "Cria do Diabo"
@@ -9161,22 +9157,16 @@ msgid "Plague Eater"
 msgstr "Devorador de Almas"
 
 #: Source/translation_dummy.cpp:27
-#, fuzzy
-#| msgid "Shadow Beast"
 msgctxt "monster"
 msgid "Shadow Beast"
 msgstr "Fera das Sombras"
 
 #: Source/translation_dummy.cpp:28
-#, fuzzy
-#| msgid "Bone Gasher"
 msgctxt "monster"
 msgid "Bone Gasher"
 msgstr "Cortaosso"
 
 #: Source/translation_dummy.cpp:30
-#, fuzzy
-#| msgid "Corpse Bow"
 msgctxt "monster"
 msgid "Corpse Bow"
 msgstr "Cadáver Arqueiro"
@@ -9187,32 +9177,24 @@ msgid "Skeleton Captain"
 msgstr "Esqueleto Capitão"
 
 #: Source/translation_dummy.cpp:34
-#, fuzzy
-#| msgid "Corpse Captain"
 msgctxt "monster"
 msgid "Corpse Captain"
 msgstr "Cadáver Capitão"
 
 #: Source/translation_dummy.cpp:35
-#, fuzzy
-#| msgid "Burning Dead Captain"
 msgctxt "monster"
 msgid "Burning Dead Captain"
 msgstr "Morto Calcinante Capitão "
 
 #: Source/translation_dummy.cpp:36
-#, fuzzy
-#| msgid "Horror Captain"
 msgctxt "monster"
 msgid "Horror Captain"
 msgstr "Horror Capitão"
 
 #: Source/translation_dummy.cpp:37
-#, fuzzy
-#| msgid "Invisible Lord"
 msgctxt "monster"
 msgid "Invisible Lord"
-msgstr "Senhor Invisível"
+msgstr "Lorde Invisível"
 
 #: Source/translation_dummy.cpp:38
 msgctxt "monster"
@@ -9220,120 +9202,86 @@ msgid "Hidden"
 msgstr "Escondido"
 
 #: Source/translation_dummy.cpp:39
-#, fuzzy
-#| msgid "Stalker"
 msgctxt "monster"
 msgid "Stalker"
 msgstr "Espreitador"
 
 #: Source/translation_dummy.cpp:40
-#, fuzzy
-#| msgid "Unseen"
 msgctxt "monster"
 msgid "Unseen"
 msgstr "Despercebido"
 
 #: Source/translation_dummy.cpp:41
-#, fuzzy
-#| msgid "Illusion Weaver"
 msgctxt "monster"
 msgid "Illusion Weaver"
 msgstr "Tecelão de Ilusões"
 
 #: Source/translation_dummy.cpp:42
-#, fuzzy
-#| msgid "Satyr Lord"
 msgctxt "monster"
 msgid "Satyr Lord"
-msgstr "Senhor Sátiro"
+msgstr "Lorde Sátiro"
 
 #: Source/translation_dummy.cpp:43 Source/translation_dummy.cpp:51
-#, fuzzy
-#| msgid "Flesh Clan"
 msgctxt "monster"
 msgid "Flesh Clan"
 msgstr "Clã Carne Fresca"
 
 #: Source/translation_dummy.cpp:44 Source/translation_dummy.cpp:52
-#, fuzzy
-#| msgid "Stone Clan"
 msgctxt "monster"
 msgid "Stone Clan"
 msgstr "Clã de Pedra"
 
 #: Source/translation_dummy.cpp:45 Source/translation_dummy.cpp:53
-#, fuzzy
-#| msgid "Fire Clan"
 msgctxt "monster"
 msgid "Fire Clan"
 msgstr "Clã de Fogo"
 
 #: Source/translation_dummy.cpp:46 Source/translation_dummy.cpp:54
-#, fuzzy
-#| msgid "Night Clan"
 msgctxt "monster"
 msgid "Night Clan"
 msgstr "Clã da Noite"
 
 #: Source/translation_dummy.cpp:47
-#, fuzzy
-#| msgid "Fiend"
 msgctxt "monster"
 msgid "Fiend"
 msgstr "Demônio"
 
 #: Source/translation_dummy.cpp:48
-#, fuzzy
-#| msgid "Blink"
 msgctxt "monster"
 msgid "Blink"
 msgstr "Cintilador"
 
 #: Source/translation_dummy.cpp:49
-#, fuzzy
-#| msgid "Gloom"
 msgctxt "monster"
 msgid "Gloom"
 msgstr "Melancolia"
 
 #: Source/translation_dummy.cpp:50
-#, fuzzy
-#| msgid "Familiar"
 msgctxt "monster"
 msgid "Familiar"
 msgstr "Familiar"
 
 #: Source/translation_dummy.cpp:55
-#, fuzzy
-#| msgid "Acid Beast"
 msgctxt "monster"
 msgid "Acid Beast"
 msgstr "Fera Ácida"
 
 #: Source/translation_dummy.cpp:56
-#, fuzzy
-#| msgid "Poison Spitter"
 msgctxt "monster"
 msgid "Poison Spitter"
 msgstr "Cospe-Veneno"
 
 #: Source/translation_dummy.cpp:57
-#, fuzzy
-#| msgid "Pit Beast"
 msgctxt "monster"
 msgid "Pit Beast"
 msgstr "Fera do Poço"
 
 #: Source/translation_dummy.cpp:58
-#, fuzzy
-#| msgid "Lava Maw"
 msgctxt "monster"
 msgid "Lava Maw"
 msgstr "Gorja de Lava"
 
 #: Source/translation_dummy.cpp:59 Source/translation_dummy.cpp:148
-#, fuzzy
-#| msgid "Skeleton King"
 msgctxt "monster"
 msgid "Skeleton King"
 msgstr "Rei Esqueleto"
@@ -9344,64 +9292,46 @@ msgid "The Butcher"
 msgstr "O Açougueiro"
 
 #: Source/translation_dummy.cpp:61
-#, fuzzy
-#| msgid "Overlord"
 msgctxt "monster"
 msgid "Overlord"
 msgstr "Suserano"
 
 #: Source/translation_dummy.cpp:62
-#, fuzzy
-#| msgid "Mud Man"
 msgctxt "monster"
 msgid "Mud Man"
 msgstr "Homem-Lama"
 
 #: Source/translation_dummy.cpp:63
-#, fuzzy
-#| msgid "Toad Demon"
 msgctxt "monster"
 msgid "Toad Demon"
 msgstr "Demônio Sapo"
 
 #: Source/translation_dummy.cpp:64
-#, fuzzy
-#| msgid "Flayed One"
 msgctxt "monster"
 msgid "Flayed One"
 msgstr "Esfolado"
 
 #: Source/translation_dummy.cpp:65
-#, fuzzy
-#| msgid "Wyrm"
 msgctxt "monster"
 msgid "Wyrm"
 msgstr "Wyrm"
 
 #: Source/translation_dummy.cpp:66
-#, fuzzy
-#| msgid "Cave Slug"
 msgctxt "monster"
 msgid "Cave Slug"
 msgstr "Lesma da Caverna"
 
 #: Source/translation_dummy.cpp:67
-#, fuzzy
-#| msgid "Devil Wyrm"
 msgctxt "monster"
 msgid "Devil Wyrm"
 msgstr "Wyrm Demoníaca"
 
 #: Source/translation_dummy.cpp:68
-#, fuzzy
-#| msgid "Devourer"
 msgctxt "monster"
 msgid "Devourer"
 msgstr "Devorador"
 
 #: Source/translation_dummy.cpp:69
-#, fuzzy
-#| msgid "Magma Demon"
 msgctxt "monster"
 msgid "Magma Demon"
 msgstr "Demônio de Magma"
@@ -9412,526 +9342,376 @@ msgid "Blood Stone"
 msgstr "Pedra Sanguínea"
 
 #: Source/translation_dummy.cpp:71
-#, fuzzy
-#| msgid "Hell Stone"
 msgctxt "monster"
 msgid "Hell Stone"
 msgstr "Pedra do Inferno"
 
 #: Source/translation_dummy.cpp:72
-#, fuzzy
-#| msgid "Lava Lord"
 msgctxt "monster"
 msgid "Lava Lord"
-msgstr "Senhor da Lava"
+msgstr "Lorde da Lava"
 
 #: Source/translation_dummy.cpp:73
-#, fuzzy
-#| msgid "Horned Demon"
 msgctxt "monster"
 msgid "Horned Demon"
 msgstr "Demônio com Chifres"
 
 #: Source/translation_dummy.cpp:74
-#, fuzzy
-#| msgid "Mud Runner"
 msgctxt "monster"
 msgid "Mud Runner"
 msgstr "Trilhador da Lama"
 
 #: Source/translation_dummy.cpp:75
-#, fuzzy
-#| msgid "Frost Charger"
 msgctxt "monster"
 msgid "Frost Charger"
 msgstr "Suicida Gélido"
 
 #: Source/translation_dummy.cpp:76
-#, fuzzy
-#| msgid "Obsidian Lord"
 msgctxt "monster"
 msgid "Obsidian Lord"
-msgstr "Senhor da Obsidiana"
+msgstr "Lorde da Obsidiana"
 
 #: Source/translation_dummy.cpp:77
-#, fuzzy
-#| msgid "oldboned"
 msgctxt "monster"
 msgid "oldboned"
 msgstr "Ossovelho"
 
 #: Source/translation_dummy.cpp:78
-#, fuzzy
-#| msgid "Red Death"
 msgctxt "monster"
 msgid "Red Death"
-msgstr "Morte Vermelha"
+msgstr "Morte Rubra"
 
 #: Source/translation_dummy.cpp:79
-#, fuzzy
-#| msgid "Litch Demon"
 msgctxt "monster"
 msgid "Litch Demon"
 msgstr "Demônio Litch"
 
 #: Source/translation_dummy.cpp:80
-#, fuzzy
-#| msgid "Undead Balrog"
 msgctxt "monster"
 msgid "Undead Balrog"
 msgstr "Balrog Morto-vivo"
 
 #: Source/translation_dummy.cpp:81
-#, fuzzy
-#| msgid "Incinerator"
 msgctxt "monster"
 msgid "Incinerator"
 msgstr "Incinerador"
 
 #: Source/translation_dummy.cpp:82
-#, fuzzy
-#| msgid "Flame Lord"
 msgctxt "monster"
 msgid "Flame Lord"
-msgstr "Senhor da Chama"
+msgstr "Lorde da Chama"
 
 #: Source/translation_dummy.cpp:83
-#, fuzzy
-#| msgid "Doom Fire"
 msgctxt "monster"
 msgid "Doom Fire"
 msgstr "Fogo da Perdição"
 
 #: Source/translation_dummy.cpp:84
-#, fuzzy
-#| msgid "Hell Burner"
 msgctxt "monster"
 msgid "Hell Burner"
 msgstr "Queimador do Inferno"
 
 #: Source/translation_dummy.cpp:85
-#, fuzzy
-#| msgid "Red Storm"
 msgctxt "monster"
 msgid "Red Storm"
-msgstr "Tempestade Vermelha"
+msgstr "Tempestade Rubra"
 
 #: Source/translation_dummy.cpp:86
-#, fuzzy
-#| msgid "Storm Rider"
 msgctxt "monster"
 msgid "Storm Rider"
 msgstr "Tempestuoso"
 
 #: Source/translation_dummy.cpp:87
-#, fuzzy
-#| msgid "Storm Lord"
 msgctxt "monster"
 msgid "Storm Lord"
-msgstr "Senhor da Tempestade"
+msgstr "Lorde da Tempestade"
 
 #: Source/translation_dummy.cpp:88
-#, fuzzy
-#| msgid "Maelstrom"
 msgctxt "monster"
 msgid "Maelstrom"
 msgstr "Redemoinho"
 
 #: Source/translation_dummy.cpp:89
-#, fuzzy
-#| msgid "Devil Kin Brute"
 msgctxt "monster"
 msgid "Devil Kin Brute"
 msgstr "Cria do Diabo Bruta"
 
 #: Source/translation_dummy.cpp:90
-#, fuzzy
-#| msgid "Winged-Demon"
 msgctxt "monster"
 msgid "Winged-Demon"
 msgstr "Demônio Alado"
 
 #: Source/translation_dummy.cpp:91
-#, fuzzy
-#| msgid "Gargoyle"
 msgctxt "monster"
 msgid "Gargoyle"
 msgstr "Gárgula"
 
 #: Source/translation_dummy.cpp:92
-#, fuzzy
-#| msgid "Blood Claw"
 msgctxt "monster"
 msgid "Blood Claw"
 msgstr "Garra Sangrenta"
 
 #: Source/translation_dummy.cpp:93
-#, fuzzy
-#| msgid "Death Wing"
 msgctxt "monster"
 msgid "Death Wing"
 msgstr "Asa da Morte"
 
 #: Source/translation_dummy.cpp:94
-#, fuzzy
-#| msgid "Slayer"
 msgctxt "monster"
 msgid "Slayer"
 msgstr "Homicida"
 
 #: Source/translation_dummy.cpp:95
-#, fuzzy
-#| msgid "Guardian"
 msgctxt "monster"
 msgid "Guardian"
 msgstr "Guardião"
 
 #: Source/translation_dummy.cpp:96
-#, fuzzy
-#| msgid "Vortex Lord"
 msgctxt "monster"
 msgid "Vortex Lord"
-msgstr "Senhor do Vórtice"
+msgstr "Lorde do Vórtice"
 
 #: Source/translation_dummy.cpp:97
-#, fuzzy
-#| msgid "Balrog"
 msgctxt "monster"
 msgid "Balrog"
 msgstr "Balrog"
 
 #: Source/translation_dummy.cpp:98
-#, fuzzy
-#| msgid "Cave Viper"
 msgctxt "monster"
 msgid "Cave Viper"
 msgstr "Víbora da Caverna"
 
 #: Source/translation_dummy.cpp:99
-#, fuzzy
-#| msgid "Fire Drake"
 msgctxt "monster"
 msgid "Fire Drake"
 msgstr "Víbora de Fogo"
 
 #: Source/translation_dummy.cpp:100
-#, fuzzy
-#| msgid "Gold Viper"
 msgctxt "monster"
 msgid "Gold Viper"
 msgstr "Víbora de Ouro"
 
 #: Source/translation_dummy.cpp:101
-#, fuzzy
-#| msgid "Azure Drake"
 msgctxt "monster"
 msgid "Azure Drake"
 msgstr "Víbora Azulada"
 
 #: Source/translation_dummy.cpp:102
-#, fuzzy
-#| msgid "Black Knight"
 msgctxt "monster"
 msgid "Black Knight"
 msgstr "Cavaleiro Negro"
 
 #: Source/translation_dummy.cpp:103
-#, fuzzy
-#| msgid "Doom Guard"
 msgctxt "monster"
 msgid "Doom Guard"
 msgstr "Guarda da Perdição"
 
 #: Source/translation_dummy.cpp:104
-#, fuzzy
-#| msgid "Steel Lord"
 msgctxt "monster"
 msgid "Steel Lord"
-msgstr "Senhor de Aço"
+msgstr "Lorde de Aço"
 
 #: Source/translation_dummy.cpp:105
-#, fuzzy
-#| msgid "Blood Knight"
 msgctxt "monster"
 msgid "Blood Knight"
 msgstr "Cavaleiro Sangrento"
 
 #: Source/translation_dummy.cpp:106
-#, fuzzy
-#| msgid "The Shredded"
 msgctxt "monster"
 msgid "The Shredded"
 msgstr "Desfiador"
 
 #: Source/translation_dummy.cpp:107
-#, fuzzy
-#| msgid "Hollow One"
 msgctxt "monster"
 msgid "Hollow One"
 msgstr "Oco"
 
 #: Source/translation_dummy.cpp:108
-#, fuzzy
-#| msgid "Pain Master"
 msgctxt "monster"
 msgid "Pain Master"
 msgstr "Mestre da Dor"
 
 #: Source/translation_dummy.cpp:109
-#, fuzzy
-#| msgid "Reality Weaver"
 msgctxt "monster"
 msgid "Reality Weaver"
 msgstr "Tecelão de Realidades"
 
 #: Source/translation_dummy.cpp:110
-#, fuzzy
-#| msgid "Succubus"
 msgctxt "monster"
 msgid "Succubus"
 msgstr "Súcubo"
 
 #: Source/translation_dummy.cpp:111
-#, fuzzy
-#| msgid "Snow Witch"
 msgctxt "monster"
 msgid "Snow Witch"
 msgstr "Bruxa da Neve"
 
 #: Source/translation_dummy.cpp:112
-#, fuzzy
-#| msgid "Hell Spawn"
 msgctxt "monster"
 msgid "Hell Spawn"
 msgstr "Cria do Inferno"
 
 #: Source/translation_dummy.cpp:113
-#, fuzzy
-#| msgid "Soul Burner"
 msgctxt "monster"
 msgid "Soul Burner"
 msgstr "Queimadora de Almas"
 
 #: Source/translation_dummy.cpp:114
-#, fuzzy
-#| msgid "Counselor"
 msgctxt "monster"
 msgid "Counselor"
 msgstr "Conselheiro"
 
 #: Source/translation_dummy.cpp:115
-#, fuzzy
-#| msgid "Magistrate"
 msgctxt "monster"
 msgid "Magistrate"
 msgstr "Magistrado"
 
 #: Source/translation_dummy.cpp:116
-#, fuzzy
-#| msgid "Cabalist"
 msgctxt "monster"
 msgid "Cabalist"
 msgstr "Cabalista"
 
 #: Source/translation_dummy.cpp:117
-#, fuzzy
-#| msgid "Advocate"
 msgctxt "monster"
 msgid "Advocate"
 msgstr "Defensor"
 
 #: Source/translation_dummy.cpp:118
-#, fuzzy
-#| msgid "Golem"
 msgctxt "monster"
 msgid "Golem"
 msgstr "Golem"
 
 #: Source/translation_dummy.cpp:119
-#, fuzzy
-#| msgid "The Dark Lord"
 msgctxt "monster"
 msgid "The Dark Lord"
 msgstr "O Lorde Sombrio"
 
 #: Source/translation_dummy.cpp:120
-#, fuzzy
-#| msgid "The Arch-Litch Malignus"
 msgctxt "monster"
 msgid "The Arch-Litch Malignus"
 msgstr "O Arce-Litch Malignus"
 
 #: Source/translation_dummy.cpp:121
-#, fuzzy
-#| msgid "Hellboar"
 msgctxt "monster"
 msgid "Hellboar"
 msgstr "Hellboar"
 
 #: Source/translation_dummy.cpp:122
-#, fuzzy
-#| msgid "Stinger"
 msgctxt "monster"
 msgid "Stinger"
-msgstr "Ferrão"
+msgstr "Ferroador"
 
 #: Source/translation_dummy.cpp:123
-#, fuzzy
-#| msgid "Psychorb"
 msgctxt "monster"
 msgid "Psychorb"
-msgstr "Psychorb"
+msgstr "Psicorbe"
 
 #: Source/translation_dummy.cpp:124
-#, fuzzy
-#| msgid "Arachnon"
 msgctxt "monster"
 msgid "Arachnon"
 msgstr "Arachnon"
 
 #: Source/translation_dummy.cpp:125
-#, fuzzy
-#| msgid "Felltwin"
 msgctxt "monster"
 msgid "Felltwin"
-msgstr "Felltwin"
+msgstr "Geminígio"
 
 #: Source/translation_dummy.cpp:126
-#, fuzzy
-#| msgid "Hork Spawn"
 msgctxt "monster"
 msgid "Hork Spawn"
 msgstr "Cria de Hork"
 
 #: Source/translation_dummy.cpp:127
-#, fuzzy
-#| msgid "Venomtail"
 msgctxt "monster"
 msgid "Venomtail"
 msgstr "Venomtail"
 
 #: Source/translation_dummy.cpp:128
-#, fuzzy
-#| msgid "Necromorb"
 msgctxt "monster"
 msgid "Necromorb"
 msgstr "Necromorb"
 
 #: Source/translation_dummy.cpp:129
-#, fuzzy
-#| msgid "Spider Lord"
 msgctxt "monster"
 msgid "Spider Lord"
-msgstr "Senhor das Aranhas"
+msgstr "Lorde das Aranhas"
 
 #: Source/translation_dummy.cpp:130
-#, fuzzy
-#| msgid "Lashworm"
 msgctxt "monster"
 msgid "Lashworm"
 msgstr "Verme-de-chicote"
 
 #: Source/translation_dummy.cpp:131
-#, fuzzy
-#| msgid "Torchant"
 msgctxt "monster"
 msgid "Torchant"
 msgstr "Torchant"
 
 #: Source/translation_dummy.cpp:132 Source/translation_dummy.cpp:157
-#, fuzzy
-#| msgid "Hork Demon"
 msgctxt "monster"
 msgid "Hork Demon"
 msgstr "Demônio Hork"
 
 #: Source/translation_dummy.cpp:133
-#, fuzzy
-#| msgid "Hell Bug"
 msgctxt "monster"
 msgid "Hell Bug"
 msgstr "Inseto do Inferno"
 
 #: Source/translation_dummy.cpp:134
-#, fuzzy
-#| msgid "Gravedigger"
 msgctxt "monster"
 msgid "Gravedigger"
 msgstr "Coveiro"
 
 #: Source/translation_dummy.cpp:135
-#, fuzzy
-#| msgid "Tomb Rat"
 msgctxt "monster"
 msgid "Tomb Rat"
 msgstr "Rato da Tumba"
 
 #: Source/translation_dummy.cpp:136
-#, fuzzy
-#| msgid "Firebat"
 msgctxt "monster"
 msgid "Firebat"
 msgstr "Morcego de Fogo"
 
 #: Source/translation_dummy.cpp:137
-#, fuzzy
-#| msgid "Skullwing"
 msgctxt "monster"
 msgid "Skullwing"
 msgstr "Asa Esquelética"
 
 #: Source/translation_dummy.cpp:138
-#, fuzzy
-#| msgid "Lich"
 msgctxt "monster"
 msgid "Lich"
 msgstr "Lich"
 
 #: Source/translation_dummy.cpp:139
-#, fuzzy
-#| msgid "Crypt Demon"
 msgctxt "monster"
 msgid "Crypt Demon"
 msgstr "Demônio da Cripta"
 
 #: Source/translation_dummy.cpp:140
-#, fuzzy
-#| msgid "Hellbat"
 msgctxt "monster"
 msgid "Hellbat"
 msgstr "Morcego Infernal"
 
 #: Source/translation_dummy.cpp:141
-#, fuzzy
-#| msgid "Bone Demon"
 msgctxt "monster"
 msgid "Bone Demon"
 msgstr "Demônio de Ossos"
 
 #: Source/translation_dummy.cpp:142
-#, fuzzy
-#| msgid "Arch Lich"
 msgctxt "monster"
 msgid "Arch Lich"
 msgstr "Arque Lich"
 
 #: Source/translation_dummy.cpp:143
-#, fuzzy
-#| msgid "Biclops"
 msgctxt "monster"
 msgid "Biclops"
 msgstr "Biclops"
 
 #: Source/translation_dummy.cpp:144
-#, fuzzy
-#| msgid "Flesh Thing"
 msgctxt "monster"
 msgid "Flesh Thing"
 msgstr "Coisa de Carne Fresca"
 
 #: Source/translation_dummy.cpp:145
-#, fuzzy
-#| msgid "Reaper"
 msgctxt "monster"
 msgid "Reaper"
 msgstr "Ceifador"
@@ -9942,8 +9722,6 @@ msgid "Na-Krul"
 msgstr "Na-Krul"
 
 #: Source/translation_dummy.cpp:147
-#, fuzzy
-#| msgid "Gharbad the Weak"
 msgctxt "monster"
 msgid "Gharbad the Weak"
 msgstr "Gharbad, o Fraco"
@@ -9954,29 +9732,21 @@ msgid "Zhar the Mad"
 msgstr "Zhar, o Louco"
 
 #: Source/translation_dummy.cpp:150
-#, fuzzy
-#| msgid "Snotspill"
 msgctxt "monster"
 msgid "Snotspill"
 msgstr "Kaikatarro"
 
 #: Source/translation_dummy.cpp:151
-#, fuzzy
-#| msgid "Arch-Bishop Lazarus"
 msgctxt "monster"
 msgid "Arch-Bishop Lazarus"
 msgstr "Arcebispo Lazarus"
 
 #: Source/translation_dummy.cpp:152
-#, fuzzy
-#| msgid "Red Vex"
 msgctxt "monster"
 msgid "Red Vex"
 msgstr "Apurrinhação Vermelha"
 
 #: Source/translation_dummy.cpp:153
-#, fuzzy
-#| msgid "Black Jade"
 msgctxt "monster"
 msgid "Black Jade"
 msgstr "Jade Negra"
@@ -9997,57 +9767,41 @@ msgid "The Defiler"
 msgstr "O Profanador"
 
 #: Source/translation_dummy.cpp:160
-#, fuzzy
-#| msgid "Bonehead Keenaxe"
 msgctxt "monster"
 msgid "Bonehead Keenaxe"
 msgstr "Osteocéfalo Machado"
 
 #: Source/translation_dummy.cpp:161
-#, fuzzy
-#| msgid "Bladeskin the Slasher"
 msgctxt "monster"
 msgid "Bladeskin the Slasher"
 msgstr "Laminiderme, o Esfaqueador"
 
 #: Source/translation_dummy.cpp:162
-#, fuzzy
-#| msgid "Soulpus"
 msgctxt "monster"
 msgid "Soulpus"
 msgstr "Pus de Alma"
 
 #: Source/translation_dummy.cpp:163
-#, fuzzy
-#| msgid "Pukerat the Unclean"
 msgctxt "monster"
 msgid "Pukerat the Unclean"
 msgstr "Vomirrato, o Impuro"
 
 #: Source/translation_dummy.cpp:164
-#, fuzzy
-#| msgid "Boneripper"
 msgctxt "monster"
 msgid "Boneripper"
 msgstr "Estripa-ossos"
 
 #: Source/translation_dummy.cpp:165
-#, fuzzy
-#| msgid "Rotfeast the Hungry"
 msgctxt "monster"
 msgid "Rotfeast the Hungry"
 msgstr "Putrefórico, o Faminto"
 
 #: Source/translation_dummy.cpp:166
-#, fuzzy
-#| msgid "Gutshank the Quick"
 msgctxt "monster"
 msgid "Gutshank the Quick"
 msgstr "Tripernil, o Veloz"
 
 #: Source/translation_dummy.cpp:167
-#, fuzzy
-#| msgid "Brokenhead Bangshield"
 msgctxt "monster"
 msgid "Brokenhead Bangshield"
 msgstr "Traumocéfalo Bate-Escudos"
@@ -10058,29 +9812,21 @@ msgid "Bongo"
 msgstr "Bongo"
 
 #: Source/translation_dummy.cpp:169
-#, fuzzy
-#| msgid "Rotcarnage"
 msgctxt "monster"
 msgid "Rotcarnage"
 msgstr "Putrificina"
 
 #: Source/translation_dummy.cpp:170
-#, fuzzy
-#| msgid "Shadowbite"
 msgctxt "monster"
 msgid "Shadowbite"
 msgstr "Mordesombra"
 
 #: Source/translation_dummy.cpp:171
-#, fuzzy
-#| msgid "Deadeye"
 msgctxt "monster"
 msgid "Deadeye"
 msgstr "Olho Morto"
 
 #: Source/translation_dummy.cpp:172
-#, fuzzy
-#| msgid "Madeye the Dead"
 msgctxt "monster"
 msgid "Madeye the Dead"
 msgstr "Olholouco, o Morto"
@@ -10091,50 +9837,36 @@ msgid "El Chupacabras"
 msgstr "El Chupacabras"
 
 #: Source/translation_dummy.cpp:174
-#, fuzzy
-#| msgid "Skullfire"
 msgctxt "monster"
 msgid "Skullfire"
 msgstr "Fogo Cranial"
 
 #: Source/translation_dummy.cpp:175
-#, fuzzy
-#| msgid "Warpskull"
 msgctxt "monster"
 msgid "Warpskull"
 msgstr "Crânio Torto"
 
 #: Source/translation_dummy.cpp:176
-#, fuzzy
-#| msgid "Goretongue"
 msgctxt "monster"
 msgid "Goretongue"
 msgstr "Sanguinolíngue"
 
 #: Source/translation_dummy.cpp:177
-#, fuzzy
-#| msgid "Pulsecrawler"
 msgctxt "monster"
 msgid "Pulsecrawler"
 msgstr "Pulsejador"
 
 #: Source/translation_dummy.cpp:178
-#, fuzzy
-#| msgid "Moonbender"
 msgctxt "monster"
 msgid "Moonbender"
 msgstr "Verga-Luas"
 
 #: Source/translation_dummy.cpp:179
-#, fuzzy
-#| msgid "Wrathraven"
 msgctxt "monster"
 msgid "Wrathraven"
 msgstr "Corvo da Cólera"
 
 #: Source/translation_dummy.cpp:180
-#, fuzzy
-#| msgid "Spineeater"
 msgctxt "monster"
 msgid "Spineeater"
 msgstr "Come-Espinhas"
@@ -10145,15 +9877,11 @@ msgid "Blackash the Burning"
 msgstr "Cinzascura, o Calcinante"
 
 #: Source/translation_dummy.cpp:182
-#, fuzzy
-#| msgid "Shadowcrow"
 msgctxt "monster"
 msgid "Shadowcrow"
 msgstr "Corvossombra"
 
 #: Source/translation_dummy.cpp:183
-#, fuzzy
-#| msgid "Blightstone the Weak"
 msgctxt "monster"
 msgid "Blightstone the Weak"
 msgstr "Pedrapraga, o Fraco"
@@ -10164,57 +9892,41 @@ msgid "Bilefroth the Pit Master"
 msgstr "Espumabile, o Mestre do Poço"
 
 #: Source/translation_dummy.cpp:185
-#, fuzzy
-#| msgid "Bloodskin Darkbow"
 msgctxt "monster"
 msgid "Bloodskin Darkbow"
 msgstr "Sanguiderme Arco Negro"
 
 #: Source/translation_dummy.cpp:186
-#, fuzzy
-#| msgid "Foulwing"
 msgctxt "monster"
 msgid "Foulwing"
 msgstr "Asa Pútrida"
 
 #: Source/translation_dummy.cpp:187
-#, fuzzy
-#| msgid "Shadowdrinker"
 msgctxt "monster"
 msgid "Shadowdrinker"
 msgstr "Bebedor das Sombras"
 
 #: Source/translation_dummy.cpp:188
-#, fuzzy
-#| msgid "Hazeshifter"
 msgctxt "monster"
 msgid "Hazeshifter"
 msgstr "Muda-Névoas"
 
 #: Source/translation_dummy.cpp:189
-#, fuzzy
-#| msgid "Deathspit"
 msgctxt "monster"
 msgid "Deathspit"
 msgstr "Cospe-Morte"
 
 #: Source/translation_dummy.cpp:190
-#, fuzzy
-#| msgid "Bloodgutter"
 msgctxt "monster"
 msgid "Bloodgutter"
 msgstr "Coagulário"
 
 #: Source/translation_dummy.cpp:191
-#, fuzzy
-#| msgid "Deathshade Fleshmaul"
 msgctxt "monster"
 msgid "Deathshade Fleshmaul"
 msgstr "Sombra da Morte Rasga-Carne"
 
 #: Source/translation_dummy.cpp:192
-#, fuzzy
-#| msgid "Warmaggot the Mad"
 msgctxt "monster"
 msgid "Warmaggot the Mad"
 msgstr "Larvaguerra, o Louco"
@@ -10225,78 +9937,56 @@ msgid "Glasskull the Jagged"
 msgstr "Crânio de Vidro, o Serrilhado"
 
 #: Source/translation_dummy.cpp:194
-#, fuzzy
-#| msgid "Blightfire"
 msgctxt "monster"
 msgid "Blightfire"
 msgstr "Flagelo de Fogo"
 
 #: Source/translation_dummy.cpp:195
-#, fuzzy
-#| msgid "Nightwing the Cold"
 msgctxt "monster"
 msgid "Nightwing the Cold"
 msgstr "Asa Noturna, o Gélido"
 
 #: Source/translation_dummy.cpp:196
-#, fuzzy
-#| msgid "Gorestone"
 msgctxt "monster"
 msgid "Gorestone"
 msgstr "Rochacínio"
 
 #: Source/translation_dummy.cpp:197
-#, fuzzy
-#| msgid "Bronzefist Firestone"
 msgctxt "monster"
 msgid "Bronzefist Firestone"
 msgstr "Pugibronze Pedra de Fogo"
 
 #: Source/translation_dummy.cpp:198
-#, fuzzy
-#| msgid "Wrathfire the Doomed"
 msgctxt "monster"
 msgid "Wrathfire the Doomed"
 msgstr "Irígnea, o Condenado"
 
 #: Source/translation_dummy.cpp:199
-#, fuzzy
-#| msgid "Firewound the Grim"
 msgctxt "monster"
 msgid "Firewound the Grim"
 msgstr "Chaga Ígnea, o Tenebroso"
 
 #: Source/translation_dummy.cpp:200
-#, fuzzy
-#| msgid "Baron Sludge"
 msgctxt "monster"
 msgid "Baron Sludge"
 msgstr "Barão Lodoso"
 
 #: Source/translation_dummy.cpp:201
-#, fuzzy
-#| msgid "Blighthorn Steelmace"
 msgctxt "monster"
 msgid "Blighthorn Steelmace"
 msgstr "Guampestífero Maça de Aço"
 
 #: Source/translation_dummy.cpp:202
-#, fuzzy
-#| msgid "Chaoshowler"
 msgctxt "monster"
 msgid "Chaoshowler"
 msgstr "Berrocaos"
 
 #: Source/translation_dummy.cpp:203
-#, fuzzy
-#| msgid "Doomgrin the Rotting"
 msgctxt "monster"
 msgid "Doomgrin the Rotting"
 msgstr "Sorrirruína, o Podre"
 
 #: Source/translation_dummy.cpp:204
-#, fuzzy
-#| msgid "Madburner"
 msgctxt "monster"
 msgid "Madburner"
 msgstr "Queimador Louco"
@@ -10307,36 +9997,26 @@ msgid "Bonesaw the Litch"
 msgstr "Serra Osso, o Litch"
 
 #: Source/translation_dummy.cpp:206
-#, fuzzy
-#| msgid "Breakspine"
 msgctxt "monster"
 msgid "Breakspine"
 msgstr "Quebra-Espinha"
 
 #: Source/translation_dummy.cpp:207
-#, fuzzy
-#| msgid "Devilskull Sharpbone"
 msgctxt "monster"
 msgid "Devilskull Sharpbone"
 msgstr "Demonicrânio Osso Afiado"
 
 #: Source/translation_dummy.cpp:208
-#, fuzzy
-#| msgid "Brokenstorm"
 msgctxt "monster"
 msgid "Brokenstorm"
 msgstr "Tempestrago"
 
 #: Source/translation_dummy.cpp:209
-#, fuzzy
-#| msgid "Stormbane"
 msgctxt "monster"
 msgid "Stormbane"
 msgstr "Praguestade"
 
 #: Source/translation_dummy.cpp:210
-#, fuzzy
-#| msgid "Oozedrool"
 msgctxt "monster"
 msgid "Oozedrool"
 msgstr "Babujador"
@@ -10347,50 +10027,36 @@ msgid "Goldblight of the Flame"
 msgstr "Pragáurea da Chama"
 
 #: Source/translation_dummy.cpp:212
-#, fuzzy
-#| msgid "Blackstorm"
 msgctxt "monster"
 msgid "Blackstorm"
 msgstr "Tempestade Negra"
 
 #: Source/translation_dummy.cpp:213
-#, fuzzy
-#| msgid "Plaguewrath"
 msgctxt "monster"
 msgid "Plaguewrath"
 msgstr "Pestilérico"
 
 #: Source/translation_dummy.cpp:214
-#, fuzzy
-#| msgid "The Flayer"
 msgctxt "monster"
 msgid "The Flayer"
 msgstr "O Esfolador"
 
 #: Source/translation_dummy.cpp:215
-#, fuzzy
-#| msgid "Bluehorn"
 msgctxt "monster"
 msgid "Bluehorn"
 msgstr "Chifre Azul"
 
 #: Source/translation_dummy.cpp:216
-#, fuzzy
-#| msgid "Warpfire Hellspawn"
 msgctxt "monster"
 msgid "Warpfire Hellspawn"
 msgstr "Deformígneo Cria do Inferno"
 
 #: Source/translation_dummy.cpp:217
-#, fuzzy
-#| msgid "Fangspeir"
 msgctxt "monster"
 msgid "Fangspeir"
 msgstr "Presatroz"
 
 #: Source/translation_dummy.cpp:218
-#, fuzzy
-#| msgid "Festerskull"
 msgctxt "monster"
 msgid "Festerskull"
 msgstr "Pesticrânio"
@@ -10401,29 +10067,21 @@ msgid "Lionskull the Bent"
 msgstr "CrânioLeão, o Curvado"
 
 #: Source/translation_dummy.cpp:220
-#, fuzzy
-#| msgid "Blacktongue"
 msgctxt "monster"
 msgid "Blacktongue"
 msgstr "Língua Negra"
 
 #: Source/translation_dummy.cpp:221
-#, fuzzy
-#| msgid "Viletouch"
 msgctxt "monster"
 msgid "Viletouch"
 msgstr "Toque Nóxio"
 
 #: Source/translation_dummy.cpp:222
-#, fuzzy
-#| msgid "Viperflame"
 msgctxt "monster"
 msgid "Viperflame"
 msgstr "Ignofídico"
 
 #: Source/translation_dummy.cpp:223
-#, fuzzy
-#| msgid "Fangskin"
 msgctxt "monster"
 msgid "Fangskin"
 msgstr "Presiderme"
@@ -10434,22 +10092,16 @@ msgid "Witchfire the Unholy"
 msgstr "Witchfire, o Pecaminoso"
 
 #: Source/translation_dummy.cpp:225
-#, fuzzy
-#| msgid "Blackskull"
 msgctxt "monster"
 msgid "Blackskull"
 msgstr "Caveira Negra"
 
 #: Source/translation_dummy.cpp:226
-#, fuzzy
-#| msgid "Soulslash"
 msgctxt "monster"
 msgid "Soulslash"
 msgstr "Corta-Almas"
 
 #: Source/translation_dummy.cpp:227
-#, fuzzy
-#| msgid "Windspawn"
 msgctxt "monster"
 msgid "Windspawn"
 msgstr "Ventoso"
@@ -10460,99 +10112,71 @@ msgid "Lord of the Pit"
 msgstr "Senhor do Poço"
 
 #: Source/translation_dummy.cpp:229
-#, fuzzy
-#| msgid "Rustweaver"
 msgctxt "monster"
 msgid "Rustweaver"
 msgstr "Ferrecelão"
 
 #: Source/translation_dummy.cpp:230
-#, fuzzy
-#| msgid "Howlingire the Shade"
 msgctxt "monster"
 msgid "Howlingire the Shade"
 msgstr "Iruivante, a Sombra"
 
 #: Source/translation_dummy.cpp:231
-#, fuzzy
-#| msgid "Doomcloud"
 msgctxt "monster"
 msgid "Doomcloud"
 msgstr "Nuvem da Desgraça"
 
 #: Source/translation_dummy.cpp:232
-#, fuzzy
-#| msgid "Bloodmoon Soulfire"
 msgctxt "monster"
 msgid "Bloodmoon Soulfire"
 msgstr "Luassangra Fogo de Alma"
 
 #: Source/translation_dummy.cpp:233
-#, fuzzy
-#| msgid "Witchmoon"
 msgctxt "monster"
 msgid "Witchmoon"
 msgstr "Bruxa Lunar"
 
 #: Source/translation_dummy.cpp:234
-#, fuzzy
-#| msgid "Gorefeast"
 msgctxt "monster"
 msgid "Gorefeast"
 msgstr "Banqueticínio"
 
 #: Source/translation_dummy.cpp:235
-#, fuzzy
-#| msgid "Graywar the Slayer"
 msgctxt "monster"
 msgid "Graywar the Slayer"
 msgstr "Belipardo, o Matador"
 
 #: Source/translation_dummy.cpp:236
-#, fuzzy
-#| msgid "Dreadjudge"
 msgctxt "monster"
 msgid "Dreadjudge"
 msgstr "Temível Juiz"
 
 #: Source/translation_dummy.cpp:237
-#, fuzzy
-#| msgid "Stareye the Witch"
 msgctxt "monster"
 msgid "Stareye the Witch"
 msgstr "Estrolha, a Bruxa"
 
 #: Source/translation_dummy.cpp:238
-#, fuzzy
-#| msgid "Steelskull the Hunter"
 msgctxt "monster"
 msgid "Steelskull the Hunter"
 msgstr "Craniaço, o Caçador"
 
 #: Source/translation_dummy.cpp:239
-#, fuzzy
-#| msgid "Sir Gorash"
 msgctxt "monster"
 msgid "Sir Gorash"
 msgstr "Sir Gorash"
 
 #: Source/translation_dummy.cpp:240
-#, fuzzy
-#| msgid "The Vizier"
 msgctxt "monster"
 msgid "The Vizier"
 msgstr "O Vizir"
 
 #: Source/translation_dummy.cpp:241
-#, fuzzy
-#| msgid "Sapphire"
 msgctxt "monster"
 msgid "Zamphir"
 msgstr "Zamfir"
 
 #: Source/translation_dummy.cpp:242
-#, fuzzy
-#| msgid "Bloodlust"
 msgctxt "monster"
 msgid "Bloodlust"
 msgstr "Sede de Sangue"
@@ -10563,22 +10187,16 @@ msgid "Webwidow"
 msgstr "Viúvaranha"
 
 #: Source/translation_dummy.cpp:244
-#, fuzzy
-#| msgid "Fleshdancer"
 msgctxt "monster"
 msgid "Fleshdancer"
 msgstr "Dançarina da Carne"
 
 #: Source/translation_dummy.cpp:245
-#, fuzzy
-#| msgid "Grimspike"
 msgctxt "monster"
 msgid "Grimspike"
 msgstr "Espinebroso"
 
 #: Source/translation_dummy.cpp:246
-#, fuzzy
-#| msgid "Doomlock"
 msgctxt "monster"
 msgid "Doomlock"
 msgstr "Perdentrave"
