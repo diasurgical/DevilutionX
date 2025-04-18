@@ -40,14 +40,14 @@ int CurrentItemIndex;
 int8_t PlayerItemIndexes[48];
 Item PlayerItems[48];
 
-Item SmithItems[NumSmithBasicItemsHf];
+StaticVector<Item, NumSmithBasicItemsHf> SmithItems;
 int PremiumItemCount;
 int PremiumItemLevel;
-Item PremiumItems[NumSmithItemsHf];
+StaticVector<Item, NumSmithItemsHf> PremiumItems;
 
-Item HealerItems[20];
+StaticVector<Item, NumHealerItemsHf> HealerItems;
 
-Item WitchItems[NumWitchItemsHf];
+StaticVector<Item, NumWitchItemsHf> WitchItems;
 
 int BoyItemLevel;
 Item BoyItem;
@@ -354,22 +354,18 @@ bool StoreAutoPlace(Item &item, bool persistItem)
 	return CanFitItemInInventory(player, item);
 }
 
-void ScrollVendorStore(Item *itemData, int storeLimit, int idx, int selling = true)
+void ScrollVendorStore(std::span<Item> itemData, int storeLimit, int idx, int selling = true)
 {
 	ClearSText(5, 21);
 	PreviousScrollPos = 5;
 
 	for (int l = 5; l < 20 && idx < storeLimit; l += 4) {
 		const Item &item = itemData[idx];
-		if (!item.isEmpty()) {
-			UiFlags itemColor = item.getTextColorWithStatCheck();
-			AddSText(20, l, item.getName(), itemColor, true, item._iCurs, true);
-			AddSTextVal(l, item._iIdentified ? item._iIvalue : item._ivalue);
-			PrintStoreItem(item, l + 1, itemColor, true);
-			NextScrollPos = l;
-		} else {
-			l -= 4;
-		}
+		UiFlags itemColor = item.getTextColorWithStatCheck();
+		AddSText(20, l, item.getName(), itemColor, true, item._iCurs, true);
+		AddSTextVal(l, item._iIdentified ? item._iIvalue : item._ivalue);
+		PrintStoreItem(item, l + 1, itemColor, true);
+		NextScrollPos = l;
 		idx++;
 	}
 	if (selling) {
@@ -399,7 +395,7 @@ void StartSmith()
 
 void ScrollSmithBuy(int idx)
 {
-	ScrollVendorStore(SmithItems, static_cast<int>(std::size(SmithItems)), idx);
+	ScrollVendorStore(SmithItems, static_cast<int>(SmithItems.size()), idx);
 }
 
 uint32_t TotalPlayerGold()
@@ -427,9 +423,6 @@ void StartSmithBuy()
 
 	CurrentItemIndex = 0;
 	for (Item &item : SmithItems) {
-		if (item.isEmpty())
-			continue;
-
 		item._iStatFlag = MyPlayer->CanUseItem(item);
 		CurrentItemIndex++;
 	}
@@ -445,16 +438,13 @@ void ScrollSmithPremiumBuy(int boughtitems)
 			boughtitems--;
 	}
 
-	ScrollVendorStore(PremiumItems, static_cast<int>(std::size(PremiumItems)), idx);
+	ScrollVendorStore(PremiumItems, static_cast<int>(PremiumItems.size()), idx);
 }
 
 bool StartSmithPremiumBuy()
 {
 	CurrentItemIndex = 0;
 	for (Item &item : PremiumItems) {
-		if (item.isEmpty())
-			continue;
-
 		item._iStatFlag = MyPlayer->CanUseItem(item);
 		CurrentItemIndex++;
 	}
@@ -695,7 +685,7 @@ void StartWitch()
 
 void ScrollWitchBuy(int idx)
 {
-	ScrollVendorStore(WitchItems, static_cast<int>(std::size(WitchItems)), idx);
+	ScrollVendorStore(WitchItems, static_cast<int>(WitchItems.size()), idx);
 }
 
 void WitchBookLevel(Item &bookItem)
@@ -729,9 +719,6 @@ void StartWitchBuy()
 
 	CurrentItemIndex = 0;
 	for (Item &item : WitchItems) {
-		if (item.isEmpty())
-			continue;
-
 		WitchBookLevel(item);
 		item._iStatFlag = MyPlayer->CanUseItem(item);
 		CurrentItemIndex++;
@@ -1044,7 +1031,7 @@ void StartHealer()
 
 void ScrollHealerBuy(int idx)
 {
-	ScrollVendorStore(HealerItems, static_cast<int>(std::size(HealerItems)), idx);
+	ScrollVendorStore(HealerItems, static_cast<int>(HealerItems.size()), idx);
 }
 
 void StartHealerBuy()
@@ -1062,9 +1049,6 @@ void StartHealerBuy()
 
 	CurrentItemIndex = 0;
 	for (Item &item : HealerItems) {
-		if (item.isEmpty())
-			continue;
-
 		item._iStatFlag = MyPlayer->CanUseItem(item);
 		CurrentItemIndex++;
 	}
@@ -1322,14 +1306,7 @@ void SmithBuyItem(Item &item)
 		item._iIdentified = false;
 	StoreAutoPlace(item, true);
 	int idx = OldScrollPos + ((OldTextLine - PreviousScrollPos) / 4);
-	if (idx == NumSmithBasicItemsHf - 1) {
-		SmithItems[NumSmithBasicItemsHf - 1].clear();
-	} else {
-		for (; !SmithItems[idx + 1].isEmpty(); idx++) {
-			SmithItems[idx] = std::move(SmithItems[idx + 1]);
-		}
-		SmithItems[idx].clear();
-	}
+	SmithItems.erase(SmithItems.begin() + idx);
 	CalcPlrInv(*MyPlayer, true);
 }
 
@@ -1371,17 +1348,7 @@ void SmithBuyPItem(Item &item)
 	StoreAutoPlace(item, true);
 
 	int idx = OldScrollPos + ((OldTextLine - PreviousScrollPos) / 4);
-	int xx = 0;
-	for (int i = 0; idx >= 0; i++) {
-		if (!PremiumItems[i].isEmpty()) {
-			idx--;
-			xx = i;
-		}
-	}
-
-	PremiumItems[xx].clear();
-	PremiumItemCount--;
-	SpawnPremium(*MyPlayer);
+	ReplacePremium(*MyPlayer, idx);
 }
 
 void SmithPremiumBuyEnter()
@@ -1396,14 +1363,7 @@ void SmithPremiumBuyEnter()
 	OldTextLine = CurrentTextLine;
 	OldScrollPos = ScrollPos;
 
-	int xx = ScrollPos + ((CurrentTextLine - PreviousScrollPos) / 4);
-	int idx = 0;
-	for (int i = 0; xx >= 0; i++) {
-		if (!PremiumItems[i].isEmpty()) {
-			xx--;
-			idx = i;
-		}
-	}
+	int idx = ScrollPos + ((CurrentTextLine - PreviousScrollPos) / 4);
 
 	if (!PlayerCanAfford(PremiumItems[idx]._iIvalue)) {
 		StartStore(TalkID::NoMoney);
@@ -1574,14 +1534,7 @@ void WitchBuyItem(Item &item)
 	StoreAutoPlace(item, true);
 
 	if (idx >= 3) {
-		if (idx == NumWitchItemsHf - 1) {
-			WitchItems[NumWitchItemsHf - 1].clear();
-		} else {
-			for (; !WitchItems[idx + 1].isEmpty(); idx++) {
-				WitchItems[idx] = std::move(WitchItems[idx + 1]);
-			}
-			WitchItems[idx].clear();
-		}
+		WitchItems.erase(WitchItems.begin() + idx);
 	}
 
 	CalcPlrInv(*MyPlayer, true);
@@ -1747,14 +1700,7 @@ void HealerBuyItem(Item &item)
 			return;
 	}
 	idx = OldScrollPos + ((OldTextLine - PreviousScrollPos) / 4);
-	if (idx == 19) {
-		HealerItems[19].clear();
-	} else {
-		for (; !HealerItems[idx + 1].isEmpty(); idx++) {
-			HealerItems[idx] = std::move(HealerItems[idx + 1]);
-		}
-		HealerItems[idx].clear();
-	}
+	HealerItems.erase(HealerItems.begin() + idx);
 	CalcPlrInv(*MyPlayer, true);
 }
 
@@ -2121,8 +2067,10 @@ void InitStores()
 	PremiumItemCount = 0;
 	PremiumItemLevel = 1;
 
-	for (auto &premiumitem : PremiumItems)
-		premiumitem.clear();
+	SmithItems.clear();
+	WitchItems.clear();
+	HealerItems.clear();
+	PremiumItems.clear();
 
 	BoyItem.clear();
 	BoyItemLevel = 0;
@@ -2271,12 +2219,7 @@ void StartStore(TalkID s)
 		StartSmith();
 		break;
 	case TalkID::SmithBuy: {
-		bool hasAnyItems = false;
-		for (int i = 0; !SmithItems[i].isEmpty(); i++) {
-			hasAnyItems = true;
-			break;
-		}
-		if (hasAnyItems)
+		if (!SmithItems.empty())
 			StartSmithBuy();
 		else {
 			ActiveStore = TalkID::SmithBuy;
