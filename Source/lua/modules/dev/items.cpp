@@ -179,7 +179,6 @@ std::string DebugSpawnUniqueItem(std::string itemName)
 		const std::string tmp = AsciiStrToLower(testItem._iIName);
 		if (tmp.find(itemName) != std::string::npos)
 			break;
-		return "Impossible to generate!";
 	}
 
 	int ii = AllocateItem();
