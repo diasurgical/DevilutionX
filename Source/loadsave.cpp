@@ -35,6 +35,7 @@
 #include "mpq/mpq_common.hpp"
 #include "pfile.h"
 #include "playerdat.hpp"
+#include "plrmsg.h"
 #include "qol/stash.h"
 #include "stores.h"
 #include "utils/algorithm/container.hpp"
@@ -126,6 +127,11 @@ public:
 	{
 		return m_buffer_ != nullptr
 		    && m_size_ >= (m_cur_ + size);
+	}
+
+	size_t Size()
+	{
+		return m_size_;
 	}
 
 	template <typename T>
@@ -2021,6 +2027,21 @@ tl::expected<void, std::string> LoadLevel(LevelConversionData *levelConversionDa
 const int DiabloItemSaveSize = 368;
 const int HellfireItemSaveSize = 372;
 
+bool IsStashSizeValid(size_t stashSize, uint32_t pages, uint32_t itemCount)
+{
+	const size_t itemSize = (gbIsHellfire ? HellfireItemSaveSize : DiabloItemSaveSize);
+
+	const size_t expectedSize = sizeof(uint8_t)
+	    + sizeof(uint32_t)
+	    + sizeof(uint32_t)
+	    + (sizeof(uint32_t) + 10 * 10 * sizeof(uint16_t)) * pages
+	    + sizeof(uint32_t)
+	    + itemSize * itemCount
+	    + sizeof(uint32_t);
+
+	return stashSize == expectedSize;
+}
+
 } // namespace
 
 tl::expected<void, std::string> ConvertLevels(SaveWriter &saveWriter)
@@ -2321,8 +2342,10 @@ void LoadStash()
 		return;
 
 	auto version = file.NextLE<uint8_t>();
-	if (version > StashVersion)
+	if (version > StashVersion) {
+		EventPlrMsg(_("Stash version invalid. If you attempt to access your stash, data will be overwritten!!"), UiFlags::ColorRed);
 		return;
+	}
 
 	Stash.gold = file.NextLE<uint32_t>();
 
@@ -2337,6 +2360,11 @@ void LoadStash()
 	}
 
 	auto itemCount = file.NextLE<uint32_t>();
+	if (!IsStashSizeValid(file.Size(), pages, itemCount)) {
+		Stash = {};
+		EventPlrMsg(_("Stash size invalid. If you attempt to access your stash, data will be overwritten!!"), UiFlags::ColorRed);
+		return;
+	}
 	Stash.stashList.resize(itemCount);
 	for (unsigned i = 0; i < itemCount; i++) {
 		LoadAndValidateItemData(file, Stash.stashList[i]);
