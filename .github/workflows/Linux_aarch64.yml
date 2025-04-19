@@ -31,9 +31,6 @@ jobs:
 
     - name: Create Build Environment
       run: |
-        # Work around the somewhat broken packages in the GitHub Actions Ubuntu 20.04 image.
-        # https://github.com/actions/runner-images/issues/4620#issuecomment-981333260
-        sudo apt-get -y install --allow-downgrades libpcre2-8-0=10.34-7
         Packaging/nix/debian-cross-aarch64-prep.sh
 
     - name: Cache CMake build folder
