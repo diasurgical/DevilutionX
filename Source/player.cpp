@@ -3136,21 +3136,21 @@ void CheckPlrSpell(bool isShiftHeld, SpellID spellID, SpellType spellType)
 				myPlayer.Say(HeroSpeech::ICantDoThat);
 				break;
 			}
-			LastMouseButtonAction = MouseActionType::None;
+			LastPlayerAction = PlayerActionType::None;
 		}
 		return;
 	}
 
 	const int spellFrom = 0;
 	if (IsWallSpell(spellID)) {
-		LastMouseButtonAction = MouseActionType::Spell;
+		LastPlayerAction = PlayerActionType::Spell;
 		Direction sd = GetDirection(myPlayer.position.tile, cursPosition);
 		NetSendCmdLocParam4(true, CMD_SPELLXYD, cursPosition, static_cast<int8_t>(spellID), static_cast<uint8_t>(spellType), static_cast<uint16_t>(sd), spellFrom);
 	} else if (pcursmonst != -1 && !isShiftHeld) {
-		LastMouseButtonAction = MouseActionType::SpellMonsterTarget;
+		LastPlayerAction = PlayerActionType::SpellMonsterTarget;
 		NetSendCmdParam4(true, CMD_SPELLID, pcursmonst, static_cast<int8_t>(spellID), static_cast<uint8_t>(spellType), spellFrom);
 	} else if (PlayerUnderCursor != nullptr && !isShiftHeld && !myPlayer.friendlyMode) {
-		LastMouseButtonAction = MouseActionType::SpellPlayerTarget;
+		LastPlayerAction = PlayerActionType::SpellPlayerTarget;
 		NetSendCmdParam4(true, CMD_SPELLPID, PlayerUnderCursor->getId(), static_cast<int8_t>(spellID), static_cast<uint8_t>(spellType), spellFrom);
 	} else {
 		Point targetedTile = cursPosition;
@@ -3163,7 +3163,7 @@ void CheckPlrSpell(bool isShiftHeld, SpellID spellID, SpellType spellType)
 				targetedTile = myPlayer.position.temp + relativeMove;
 			}
 		}
-		LastMouseButtonAction = MouseActionType::Spell;
+		LastPlayerAction = PlayerActionType::Spell;
 		NetSendCmdLocParam3(true, CMD_SPELLXY, targetedTile, static_cast<int8_t>(spellID), static_cast<uint8_t>(spellType), spellFrom);
 	}
 }
