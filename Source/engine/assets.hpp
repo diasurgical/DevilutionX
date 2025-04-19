@@ -290,7 +290,7 @@ constexpr int MainMpqPriority = 1000;
 constexpr int DevilutionXMpqPriority = 9000;
 constexpr int LangMpqPriority = 9100;
 constexpr int FontMpqPriority = 9200;
-extern bool HasHellfireMpq;
+extern DVL_API_FOR_TEST bool HasHellfireMpq;
 #endif
 
 void LoadCoreArchives();
