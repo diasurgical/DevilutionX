@@ -1437,12 +1437,12 @@ _item_indexes RndTypeItems(ItemType itemType, int imid, int lvl)
 std::vector<uint8_t> GetValidUniques(int lvl, unique_base_item baseItemId)
 {
 	std::vector<uint8_t> validUniques;
-	for (int j = 0; j < static_cast<int>(UniqueItems.size()); ++j) {
-		if (!IsUniqueAvailable(j))
-			break;
-		if (UniqueItems[j].UIItemId == baseItemId && lvl >= UniqueItems[j].UIMinLvl) {
-			validUniques.push_back(j);
+	int index = 0;
+	for (UniqueItem &itemData : UniqueItems) {
+		if (itemData.UIItemId == baseItemId && lvl >= itemData.UIMinLvl) {
+			validUniques.push_back(index);
 		}
+		index++;
 	}
 	return validUniques;
 }
@@ -2418,11 +2418,6 @@ uint8_t GetOutlineColor(const Item &item, bool checkReq)
 		return ICOL_YELLOW;
 
 	return ICOL_WHITE;
-}
-
-bool IsUniqueAvailable(int i)
-{
-	return gbIsHellfire || i <= 89;
 }
 
 void ClearUniqueItemFlags()
@@ -3457,9 +3452,6 @@ void SpawnItem(Monster &monster, Point position, bool sendmsg, bool spawn /*= fa
 	int uper = monster.isUnique() ? 15 : 1;
 
 	int8_t mLevel = monster.data().level;
-	if (!gbIsHellfire && monster.type().type == MT_DIABLO)
-		mLevel -= 15;
-
 	SetupAllItems(*MyPlayer, item, idx, AdvanceRndSeed(), mLevel, uper, onlygood, false, false);
 	TryRandomUniqueItem(item, idx, mLevel, uper, onlygood, false);
 	SetupItem(item);

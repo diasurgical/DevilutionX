@@ -227,6 +227,14 @@ void LuaReloadActiveMods()
 		handler();
 	}
 
+	// Reload game data (this can probably be done later in the process to avoid having to reload it)
+	LoadPlayerDataFiles();
+	LoadSpellData();
+	LoadMissileData();
+	LoadMonsterData();
+	LoadItemData();
+	LoadObjectData();
+
 	LuaEvent("LoadModsComplete");
 }
 

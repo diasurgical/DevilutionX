@@ -47,8 +47,7 @@ void MainmenuLoad(const char *name)
 #endif
 
 	if (!gbIsSpawn || gbIsHellfire) {
-		if (gbIsHellfire)
-			ArtBackgroundWidescreen = LoadOptionalClx("ui_art\\mainmenuw.clx");
+		ArtBackgroundWidescreen = LoadOptionalClx("ui_art\\mainmenuw.clx");
 		LoadBackgroundArt("ui_art\\mainmenu");
 	} else {
 		LoadBackgroundArt("ui_art\\swmmenu");

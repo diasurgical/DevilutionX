@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <cstring>
+#include <vector>
 
 #include "appfat.h"
 #include "game_mode.hpp"
@@ -21,6 +22,8 @@
 #endif
 
 namespace devilution {
+
+std::vector<std::string> OverridePaths;
 
 #ifdef UNPACKED_MPQS
 std::optional<std::string> spawn_data_path;
@@ -149,11 +152,13 @@ AssetRef FindAsset(std::string_view filename)
 
 	// Files in the `PrefPath()` directory can override MPQ contents.
 	{
-		const std::string path = paths::PrefPath() + relativePath;
-		result.directHandle = OpenOptionalRWops(path);
-		if (result.directHandle != nullptr) {
-			LogVerbose("Loaded MPQ file override: {}", path);
-			return result;
+		for (const auto &overridePath : OverridePaths) {
+			const std::string path = overridePath + relativePath;
+			result.directHandle = OpenOptionalRWops(path);
+			if (result.directHandle != nullptr) {
+				LogVerbose("Loaded MPQ file override: {}", path);
+				return result;
+			}
 		}
 	}
 
@@ -465,6 +470,8 @@ void LoadHellfireArchives()
 
 void UnloadModArchives()
 {
+	OverridePaths.clear();
+
 #ifndef UNPACKED_MPQS
 	for (auto it = MpqArchives.begin(); it != MpqArchives.end();) {
 		if ((it->first >= 8000 && it->first < 9000) || it->first >= 10000) {
@@ -478,11 +485,24 @@ void UnloadModArchives()
 
 void LoadModArchives(std::span<const std::string_view> modnames)
 {
+	std::string targetPath;
+	for (std::string_view modname : modnames) {
+		targetPath = StrCat(paths::PrefPath(), "mods/", modname) + DirectorySeparator;
+		if (FileExists(targetPath)) {
+			OverridePaths.emplace_back(targetPath);
+		}
+		targetPath = StrCat(SDL_GetBasePath(), "mods/", modname) + DirectorySeparator;
+		if (FileExists(targetPath)) {
+			OverridePaths.emplace_back(targetPath);
+		}
+	}
+	OverridePaths.emplace_back(paths::PrefPath());
+
 #ifndef UNPACKED_MPQS
 	int priority = 10000;
-	const std::string modsPath = StrCat(paths::PrefPath(), "mods/");
+	auto paths = GetMPQSearchPaths();
 	for (std::string_view modname : modnames) {
-		LoadMPQ({ modsPath }, StrCat(modname, ".mpq"), priority);
+		LoadMPQ(paths, StrCat("mods/", modname, ".mpq"), priority);
 		priority++;
 	}
 #endif

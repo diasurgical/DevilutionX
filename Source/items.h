@@ -494,7 +494,6 @@ extern DVL_API_FOR_TEST bool UniqueItemFlags[128];
 
 uint8_t GetOutlineColor(const Item &item, bool checkReq);
 bool IsItemAvailable(int i);
-bool IsUniqueAvailable(int i);
 void ClearUniqueItemFlags();
 void InitItemGFX();
 void InitItems();

@@ -82,12 +82,12 @@ bool IsUniqueMonsterItemValid(uint16_t iCreateInfo, uint32_t dwBuff)
 
 	// Check all unique monster levels to see if they match the item level
 	for (const UniqueMonsterData &uniqueMonsterData : UniqueMonstersData) {
-		const auto &uniqueMonsterLevel = static_cast<uint8_t>(MonstersData[uniqueMonsterData.mtype].level);
-
 		if (IsAnyOf(uniqueMonsterData.mtype, MT_DEFILER, MT_NAKRUL, MT_HORKDMN)) {
 			// These monsters don't use their mlvl for item generation
 			continue;
 		}
+
+		const auto &uniqueMonsterLevel = static_cast<uint8_t>(MonstersData[uniqueMonsterData.mtype].level);
 
 		if (level == uniqueMonsterLevel) {
 			// If the ilvl matches the mlvl, we confirm the item is legitimate
@@ -104,18 +104,19 @@ bool IsDungeonItemValid(uint16_t iCreateInfo, uint32_t dwBuff)
 	const bool isHellfireItem = (dwBuff & CF_HELLFIRE) != 0;
 
 	// Check all monster levels to see if they match the item level
-	for (int16_t i = 0; i < static_cast<int16_t>(NUM_MTYPES); i++) {
-		const auto &monsterData = MonstersData[i];
+	int type = -1;
+	for (const MonsterData &monsterData : MonstersData) {
+		type++;
 		auto monsterLevel = static_cast<uint8_t>(monsterData.level);
 
-		if (i != MT_DIABLO && monsterData.availability == MonsterAvailability::Never) {
+		if (type != MT_DIABLO && monsterData.availability == MonsterAvailability::Never) {
 			// Skip monsters that are unable to appear in the game
 			continue;
 		}
 
-		if (i == MT_DIABLO && !isHellfireItem) {
-			// Adjust The Dark Lord's mlvl if the item isn't a Hellfire item to match the Diablo mlvl
-			monsterLevel -= 15;
+		if (type == MT_DIABLO && isHellfireItem) {
+			// Adjust The Dark Lord's mlvl if the item is a Hellfire item to match the Diablo mlvl
+			monsterLevel += 15;
 		}
 
 		if (level == monsterLevel) {
