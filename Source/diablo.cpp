@@ -659,20 +659,22 @@ void HandleMouseButtonDown(Uint8 button, uint16_t modState)
 		return;
 	}
 
-	if (sgbMouseDown == CLICK_NONE) {
-		switch (button) {
-		case SDL_BUTTON_LEFT:
+	switch (button) {
+	case SDL_BUTTON_LEFT:
+		if (sgbMouseDown == CLICK_NONE) {
 			sgbMouseDown = CLICK_LEFT;
 			LeftMouseDown(modState);
-			break;
-		case SDL_BUTTON_RIGHT:
+		}
+		break;
+	case SDL_BUTTON_RIGHT:
+		if (sgbMouseDown == CLICK_NONE) {
 			sgbMouseDown = CLICK_RIGHT;
 			RightMouseDown((modState & KMOD_SHIFT) != 0);
-			break;
-		default:
-			KeymapperPress(static_cast<SDL_Keycode>(button | KeymapperMouseButtonMask));
-			break;
 		}
+		break;
+	default:
+		KeymapperPress(static_cast<SDL_Keycode>(button | KeymapperMouseButtonMask));
+		break;
 	}
 }
 
