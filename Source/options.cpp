@@ -65,6 +65,10 @@ void DiscoverMods()
 	// Add mods available by default:
 	std::unordered_set<std::string> modNames = { "clock" };
 
+	if (HaveHellfire()) {
+		modNames.insert("Hellfire");
+	}
+
 	// Check if the mods directory exists.
 	const std::string modsPath = StrCat(paths::PrefPath(), "mods");
 	if (DirectoryExists(modsPath.c_str())) {
@@ -414,7 +418,7 @@ std::string_view OptionCategoryBase::GetDescription() const
 
 GameModeOptions::GameModeOptions()
     : OptionCategoryBase("GameMode", N_("Game Mode"), N_("Game Mode Settings"))
-    , gameMode("Game", OptionEntryFlags::NeedHellfireMpq | OptionEntryFlags::RecreateUI, N_("Game Mode"), N_("Play Diablo or Hellfire."), StartUpGameMode::Ask,
+    , gameMode("Game", OptionEntryFlags::Invisible, N_("Game Mode"), N_("Play Diablo or Hellfire."), StartUpGameMode::Ask,
           {
               { StartUpGameMode::Diablo, N_("Diablo") },
               // Ask is missing, because we want to hide it from UI-Settings.
@@ -1542,6 +1546,16 @@ void ModOptions::RemoveModEntry(const std::string &modName)
 	});
 }
 
+void ModOptions::SetHellfireEnabled(bool enableHellfire)
+{
+	for (auto &modEntry : GetModEntries()) {
+		if (modEntry.name == "Hellfire") {
+			modEntry.enabled.SetValue(enableHellfire);
+			break;
+		}
+	}
+}
+
 std::forward_list<ModOptions::ModEntry> &ModOptions::GetModEntries()
 {
 	if (modEntries)
@@ -1559,7 +1573,7 @@ std::forward_list<ModOptions::ModEntry> &ModOptions::GetModEntries()
 
 ModOptions::ModEntry::ModEntry(std::string_view name)
     : name(name)
-    , enabled(this->name, OptionEntryFlags::None, this->name.c_str(), "", false)
+    , enabled(this->name, OptionEntryFlags::RecreateUI, this->name.c_str(), "", false)
 {
 }
 

@@ -107,6 +107,7 @@ set(libdevilutionx_SRCS
   lua/autocomplete.cpp
   lua/lua.cpp
   lua/modules/audio.cpp
+  lua/modules/hellfire.cpp
   lua/modules/dev.cpp
   lua/modules/dev/display.cpp
   lua/modules/dev/items.cpp

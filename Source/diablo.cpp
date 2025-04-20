@@ -1192,10 +1192,18 @@ void DiabloInit()
 {
 	if (forceSpawn || *GetOptions().GameMode.shareware)
 		gbIsSpawn = true;
-	if (forceDiablo || *GetOptions().GameMode.gameMode == StartUpGameMode::Diablo)
-		gbIsHellfire = false;
-	if (forceHellfire)
-		gbIsHellfire = true;
+
+	bool wasHellfireDiscovered = false;
+	if (!forceDiablo && !forceHellfire)
+		wasHellfireDiscovered = (HaveHellfire() && *GetOptions().GameMode.gameMode == StartUpGameMode::Ask);
+	bool enableHellfire = forceHellfire || wasHellfireDiscovered;
+	if (!forceDiablo && *GetOptions().GameMode.gameMode == StartUpGameMode::Hellfire) { // Migrate legacy options
+		GetOptions().GameMode.gameMode.SetValue(StartUpGameMode::Diablo);
+		enableHellfire = true;
+	}
+	if (forceDiablo || enableHellfire) {
+		GetOptions().Mods.SetHellfireEnabled(enableHellfire);
+	}
 
 	gbIsHellfireSaveGame = gbIsHellfire;
 
@@ -1213,7 +1221,7 @@ void DiabloInit()
 	UiInitialize();
 	was_ui_init = true;
 
-	if (gbIsHellfire && !forceHellfire && *GetOptions().GameMode.gameMode == StartUpGameMode::Ask) {
+	if (wasHellfireDiscovered) {
 		UiSelStartUpGameOption();
 		if (!gbIsHellfire) {
 			// Reinitialize the UI Elements because we changed the game

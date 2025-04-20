@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <cstdint>
 #include <cstring>
-#include <string_view>
 
 #include "appfat.h"
 #include "game_mode.hpp"
@@ -76,9 +75,6 @@ bool FindMpqFile(std::string_view filename, MpqArchive **archive, uint32_t *file
 
 	// Iterate over archives in reverse order to prefer files from high priority archives
 	for (auto rit = MpqArchives.rbegin(); rit != MpqArchives.rend(); ++rit) {
-		int priority = rit->first;
-		if (!gbIsHellfire && priority >= 8000 && priority < 9000)
-			continue;
 		if (rit->second->GetFileNumber(fileHash, *fileNumber)) {
 			*archive = rit->second.get();
 			return true;
@@ -423,8 +419,6 @@ void LoadGameArchives()
 		}
 	}
 	hellfire_data_path = FindUnpackedMpqData(paths, "hellfire");
-	if (hellfire_data_path)
-		gbIsHellfire = true;
 	if (forceHellfire && !hellfire_data_path)
 		InsertCDDlg("hellfire");
 #else // !UNPACKED_MPQS
@@ -442,15 +436,11 @@ void LoadGameArchives()
 		}
 	}
 
-	if (HasHellfireMpq)
-		gbIsHellfire = true;
 	if (forceHellfire && !HasHellfireMpq)
 		InsertCDDlg("hellfire.mpq");
 	LoadMPQ(paths, "hfbard.mpq", 8110);
 	LoadMPQ(paths, "hfbarb.mpq", 8120);
 #endif
-	if (gbIsHellfire)
-		LoadHellfireArchives();
 }
 
 void LoadHellfireArchives()
@@ -471,6 +461,31 @@ void LoadHellfireArchives()
 
 	if (!hasMonk || !hasMusic || !hasVoice)
 		DisplayFatalErrorAndExit(_("Some Hellfire MPQs are missing"), _("Not all Hellfire MPQs were found.\nPlease copy all the hf*.mpq files."));
+}
+
+void UnloadModArchives()
+{
+#ifndef UNPACKED_MPQS
+	for (auto it = MpqArchives.begin(); it != MpqArchives.end();) {
+		if ((it->first >= 8000 && it->first < 9000) || it->first >= 10000) {
+			it = MpqArchives.erase(it); // erase returns the next valid iterator
+		} else {
+			++it;
+		}
+	}
+#endif
+}
+
+void LoadModArchives(std::span<const std::string_view> modnames)
+{
+#ifndef UNPACKED_MPQS
+	int priority = 10000;
+	const std::string modsPath = StrCat(paths::PrefPath(), "mods/");
+	for (std::string_view modname : modnames) {
+		LoadMPQ({ modsPath }, StrCat(modname, ".mpq"), priority);
+		priority++;
+	}
+#endif
 }
 
 } // namespace devilution

@@ -151,6 +151,7 @@ set(devilutionx_assets
   lua/devilutionx/events.lua
   lua/inspect.lua
   lua/mods/clock/init.lua
+  lua/mods/Hellfire/init.lua
   lua/repl_prelude.lua
   nlevels/cutl5w.clx
   nlevels/cutl6w.clx

@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <map>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 
@@ -297,6 +298,8 @@ void LoadCoreArchives();
 void LoadLanguageArchive();
 void LoadGameArchives();
 void LoadHellfireArchives();
+void UnloadModArchives();
+void LoadModArchives(std::span<const std::string_view> modnames);
 
 #ifdef UNPACKED_MPQS
 #ifdef BUILD_TESTING
