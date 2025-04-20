@@ -246,13 +246,13 @@ void selgame_GameSelection_Focus(int value)
 			case 20:
 				AppendStrView(infoString, _("Speed: Normal"));
 				break;
-			case 30:
+			case 25:
 				AppendStrView(infoString, _("Speed: Fast"));
 				break;
-			case 40:
+			case 30:
 				AppendStrView(infoString, _("Speed: Faster"));
 				break;
-			case 50:
+			case 35:
 				AppendStrView(infoString, _("Speed: Fastest"));
 				break;
 			default:
