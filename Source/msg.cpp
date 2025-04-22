@@ -108,7 +108,6 @@ std::string_view CmdIdString(_cmd_id cmd)
 	case CMD_AGETITEM: return "CMD_AGETITEM";
 	case CMD_PUTITEM: return "CMD_PUTITEM";
 	case CMD_SPAWNITEM: return "CMD_SPAWNITEM";
-	case CMD_RESPAWNITEM: return "CMD_RESPAWNITEM";
 	case CMD_ATTACKXY: return "CMD_ATTACKXY";
 	case CMD_RATTACKXY: return "CMD_RATTACKXY";
 	case CMD_SPELLXY: return "CMD_SPELLXY";
@@ -127,7 +126,7 @@ std::string_view CmdIdString(_cmd_id cmd)
 	case CMD_NEWLVL: return "CMD_NEWLVL";
 	case CMD_WARP: return "CMD_WARP";
 	case CMD_CHEAT_EXPERIENCE: return "CMD_CHEAT_EXPERIENCE";
-	case CMD_CHEAT_SPELL_LEVEL: return "CMD_CHEAT_SPELL_LEVEL";
+	case CMD_CHANGE_SPELL_LEVEL: return "CMD_CHANGE_SPELL_LEVEL";
 	case CMD_DEBUG: return "CMD_DEBUG";
 	case CMD_SYNCDATA: return "CMD_SYNCDATA";
 	case CMD_MONSTDEATH: return "CMD_MONSTDEATH";
