@@ -230,9 +230,13 @@ void DoUnVision(Point position, uint8_t radius)
 	}
 }
 
-void DoVision(Point position, uint8_t radius, MapExplorationType doAutomap, bool visible)
+void DoVision(Point position, uint8_t radius,
+    tl::function_ref<void(Point)> markVisibleFn,
+    tl::function_ref<void(Point)> markTransparentFn,
+    tl::function_ref<bool(Point)> passesLightFn,
+    tl::function_ref<bool(Point)> inBoundsFn)
 {
-	DoVisionFlags(position, doAutomap, visible);
+	markVisibleFn(position);
 
 	// Adjustment to a ray length to ensure all rays lie on an
 	// accurate circle
@@ -251,7 +255,7 @@ void DoVision(Point position, uint8_t radius, MapExplorationType doAutomap, bool
 				const auto &relRayPoint = VisionRays[j][k];
 				// Calculate the next point on a ray in the quadrant
 				Point rayPoint = position + relRayPoint * quadrant;
-				if (!InDungeonBounds(rayPoint))
+				if (!inBoundsFn(rayPoint))
 					break;
 
 				// We've cast an approximated ray on an integer 2D
@@ -280,26 +284,44 @@ void DoVision(Point position, uint8_t radius, MapExplorationType doAutomap, bool
 					Displacement adjacent1 = { -quadrant.deltaX, 0 };
 					Displacement adjacent2 = { 0, -quadrant.deltaY };
 
-					bool passesLight = (TileAllowsLight(rayPoint + adjacent1) || TileAllowsLight(rayPoint + adjacent2));
+					bool passesLight = (passesLightFn(rayPoint + adjacent1) || passesLightFn(rayPoint + adjacent2));
 					if (!passesLight)
 						// Diagonally adjacent tiles do not pass the
 						// light further, we are done with this ray
 						break;
 				}
-				DoVisionFlags(rayPoint, doAutomap, visible);
+				markVisibleFn(rayPoint);
 
-				bool passesLight = TileAllowsLight(rayPoint);
+				bool passesLight = passesLightFn(rayPoint);
 				if (!passesLight)
 					// Tile does not pass the light further, we are
 					// done with this ray
 					break;
 
-				int8_t trans = dTransVal[rayPoint.x][rayPoint.y];
-				if (trans != 0)
-					TransList[trans] = true;
+				markTransparentFn(rayPoint);
 			}
 		}
 	}
+}
+
+void DoVision(Point position, uint8_t radius, MapExplorationType doAutomap, bool visible)
+{
+	auto markVisibleFn = [doAutomap, visible](Point rayPoint) {
+		DoVisionFlags(rayPoint, doAutomap, visible);
+	};
+	auto markTransparentFn = [](Point rayPoint) {
+		int8_t trans = dTransVal[rayPoint.x][rayPoint.y];
+		if (trans != 0)
+			TransList[trans] = true;
+	};
+	auto passesLightFn = [](Point rayPoint) {
+		return TileAllowsLight(rayPoint);
+	};
+	auto inBoundsFn = [](Point rayPoint) {
+		return InDungeonBounds(rayPoint);
+	};
+
+	DoVision(position, radius, markVisibleFn, markTransparentFn, passesLightFn, inBoundsFn);
 }
 
 tl::expected<void, std::string> LoadTrns()
