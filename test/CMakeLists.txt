@@ -44,6 +44,7 @@ set(standalone_tests
   ini_test
   parse_int_test
   path_test
+  vision_test
   random_test
   rectangle_test
   static_vector_test
@@ -105,6 +106,7 @@ target_link_dependencies(format_int_test PRIVATE libdevilutionx_format_int langu
 target_link_dependencies(ini_test PRIVATE libdevilutionx_ini app_fatal_for_testing)
 target_link_dependencies(parse_int_test PRIVATE libdevilutionx_parse_int)
 target_link_dependencies(path_test PRIVATE libdevilutionx_pathfinding libdevilutionx_direction app_fatal_for_testing)
+target_link_dependencies(vision_test PRIVATE DevilutionX::SDL tl libdevilutionx_so app_fatal_for_testing)
 target_link_dependencies(path_benchmark PRIVATE libdevilutionx_pathfinding app_fatal_for_testing)
 target_link_dependencies(random_test PRIVATE libdevilutionx_random)
 target_link_dependencies(static_vector_test PRIVATE libdevilutionx_random app_fatal_for_testing)
