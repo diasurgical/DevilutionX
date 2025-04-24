@@ -205,29 +205,18 @@ void SyncMonster(bool isOwner, const TSyncMonster &monsterSync)
 	monster.whoHit |= monsterSync.mWhoHit;
 }
 
-bool IsEnemyIdValid(const Monster &monster, uint8_t enemyId)
+bool IsEnemyIdValid(uint8_t enemyId)
 {
-	if (enemyId > MaxMonsters) {
-		enemyId -= MaxMonsters;
-		if (enemyId >= Players.size())
-			return false;
-		return Players[enemyId].plractive;
-	}
+	if (enemyId < MaxMonsters)
+		return true;
 
-	const Monster &enemy = Monsters[enemyId];
-
-	if (&enemy == &monster) {
+	enemyId -= MaxMonsters;
+	if (enemyId >= Players.size())
 		return false;
-	}
-
-	if (enemy.hitPoints <= 0) {
-		return false;
-	}
-
-	return true;
+	return Players[enemyId].plractive;
 }
 
-bool IsTSyncMonsterValidate(const TSyncMonster &monsterSync)
+bool IsTSyncMonsterValid(const TSyncMonster &monsterSync)
 {
 	const size_t monsterId = monsterSync._mndx;
 
@@ -237,10 +226,24 @@ bool IsTSyncMonsterValidate(const TSyncMonster &monsterSync)
 	if (!InDungeonBounds({ monsterSync._mx, monsterSync._my }))
 		return false;
 
-	if (!IsEnemyIdValid(Monsters[monsterId], monsterSync._menemy))
+	if (!IsEnemyIdValid(monsterSync._menemy))
 		return false;
 
 	return true;
+}
+
+bool IsTSyncEnemyValid(const TSyncMonster &monsterSync)
+{
+	const size_t enemyId = monsterSync._menemy;
+	if (enemyId >= MaxMonsters)
+		return true;
+
+	const size_t monsterId = monsterSync._mndx;
+	if (enemyId == monsterId)
+		return false;
+
+	const Monster &enemy = Monsters[enemyId];
+	return enemy.hitPoints > 0;
 }
 
 } // namespace
@@ -314,10 +317,12 @@ uint32_t OnSyncData(const TCmd *pCmd, const Player &player)
 		bool isOwner = player.getId() > MyPlayerId;
 
 		for (int i = 0; i < monsterCount; i++) {
-			if (!IsTSyncMonsterValidate(monsterSyncs[i]))
+			if (!IsTSyncMonsterValid(monsterSyncs[i]))
 				continue;
 
 			if (syncLocalLevel) {
+				if (!IsTSyncEnemyValid(monsterSyncs[i]))
+					continue;
 				SyncMonster(isOwner, monsterSyncs[i]);
 			}
 
