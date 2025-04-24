@@ -502,7 +502,7 @@ void LoadModArchives(std::span<const std::string_view> modnames)
 	int priority = 10000;
 	auto paths = GetMPQSearchPaths();
 	for (std::string_view modname : modnames) {
-		LoadMPQ(paths, StrCat("mods/", modname, ".mpq"), priority);
+		LoadMPQ(paths, StrCat("mods" DIRECTORY_SEPARATOR_STR, modname, ".mpq"), priority);
 		priority++;
 	}
 #endif
