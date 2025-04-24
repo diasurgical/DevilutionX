@@ -499,6 +499,8 @@ size_t DeltaImportItem(const std::byte *src, TCmdPItem *dst)
 			size++;
 		} else {
 			memcpy(dst, &src[size], sizeof(TCmdPItem));
+			if (!IsItemDeltaValid(*dst))
+				memset(dst, 0xFF, sizeof(TCmdPItem));
 			size += sizeof(TCmdPItem);
 		}
 	}

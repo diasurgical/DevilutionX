@@ -10,6 +10,7 @@
 
 #include "items.h"
 #include "monstdat.h"
+#include "msg.h"
 #include "player.h"
 #include "spells.h"
 #include "utils/is_of.hpp"
@@ -173,6 +174,24 @@ bool IsItemValid(const Player &player, const Item &item)
 		return IsHellfireSpellBookValid(item);
 
 	return IsDungeonItemValid(item._iCreateInfo, item.dwBuff);
+}
+
+bool IsItemDeltaValid(const TCmdPItem &itemDelta)
+{
+	if (itemDelta.bCmd == CMD_INVALID)
+		return true;
+	if (IsNoneOf(itemDelta.bCmd, TCmdPItem::FloorItem, TCmdPItem::PickedUpItem, TCmdPItem::DroppedItem))
+		return false;
+	if (!InDungeonBounds({ itemDelta.x, itemDelta.y }))
+		return false;
+	_item_indexes idx = static_cast<_item_indexes>(SDL_SwapLE16(itemDelta.def.wIndx));
+	if (idx == IDI_EAR)
+		return true;
+	if (!IsItemAvailable(idx))
+		return false;
+	Item item = {};
+	RecreateItem(*MyPlayer, itemDelta.item, item);
+	return IsItemValid(*MyPlayer, item);
 }
 
 } // namespace devilution
