@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "lighting.h"
+#include "vision.hpp"
 
 namespace devilution {
 

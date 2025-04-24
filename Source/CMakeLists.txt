@@ -320,6 +320,7 @@ target_link_dependencies(libdevilutionx_lighting PUBLIC
   DevilutionX::SDL
   fmt::fmt
   tl
+  libdevilutionx_vision
 )
 
 add_devilutionx_object_library(libdevilutionx_logged_fstream
@@ -574,6 +575,13 @@ target_link_dependencies(libdevilutionx_strings PRIVATE
 
 add_devilutionx_object_library(libdevilutionx_utils_console
   utils/console.cpp
+)
+
+add_devilutionx_object_library(libdevilutionx_vision
+  vision.cpp
+)
+target_link_dependencies(libdevilutionx_vision PUBLIC
+  tl
 )
 
 if(USE_SDL1)

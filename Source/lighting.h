@@ -9,7 +9,6 @@
 #include <cstdint>
 
 #include <expected.hpp>
-#include <function_ref.hpp>
 
 #include "automap.h"
 #include "engine/displacement.hpp"
@@ -63,11 +62,6 @@ extern bool UpdateLighting;
 void DoUnLight(Point position, uint8_t radius);
 void DoLighting(Point position, uint8_t radius, DisplacementOf<int8_t> offset);
 void DoUnVision(Point position, uint8_t radius);
-void DoVision(Point position, uint8_t radius,
-    tl::function_ref<void(Point)> markVisibleFn,
-    tl::function_ref<void(Point)> markTransparentFn,
-    tl::function_ref<bool(Point)> passesLightFn,
-    tl::function_ref<bool(Point)> inBoundsFn);
 void DoVision(Point position, uint8_t radius, MapExplorationType doAutomap, bool visible);
 tl::expected<void, std::string> LoadTrns();
 void MakeLightTable();
