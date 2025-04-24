@@ -557,22 +557,17 @@ void ReinitializeRenderer()
 	}
 	AdjustToScreenGeometry(Size(surface->w, surface->h));
 #else
-	if (texture)
-		texture.reset();
-
-	FreeRenderer();
 
 	if (*GetOptions().Graphics.upscale) {
-		Uint32 rendererFlags = 0;
-
-		if (*GetOptions().Graphics.frameRateControl == FrameRateControl::VerticalSync) {
-			rendererFlags |= SDL_RENDERER_PRESENTVSYNC;
-		}
-
-		renderer = SDL_CreateRenderer(ghMainWnd, -1, rendererFlags);
+		// We don't recreate the renderer, because this can result in a freezing (not refreshing) rendering
 		if (renderer == nullptr) {
-			ErrSdl();
+			renderer = SDL_CreateRenderer(ghMainWnd, -1, 0);
+			if (renderer == nullptr) {
+				ErrSdl();
+			}
 		}
+
+		SDL_RenderSetVSync(renderer, *GetOptions().Graphics.frameRateControl == FrameRateControl::VerticalSync ? 1 : 0);
 
 		ReinitializeTexture();
 
