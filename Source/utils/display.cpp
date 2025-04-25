@@ -567,7 +567,9 @@ void ReinitializeRenderer()
 			}
 		}
 
+#if SDL_VERSION_ATLEAST(2, 0, 18)
 		SDL_RenderSetVSync(renderer, *GetOptions().Graphics.frameRateControl == FrameRateControl::VerticalSync ? 1 : 0);
+#endif
 
 		ReinitializeTexture();
 
