@@ -32,6 +32,7 @@
 #include "levels/trigs.h"
 #include "lighting.h"
 #include "missiles.h"
+#include "monsters/validation.hpp"
 #include "nthread.h"
 #include "objects.h"
 #include "options.h"
@@ -2514,6 +2515,11 @@ void DeltaClearLevel(uint8_t level)
 	LocalLevels.erase(level);
 }
 
+bool DeltaMonsterIsValid(const DMonsterStr &monster)
+{
+	return InDungeonBounds(monster.position) && monster.hitPoints >= 0;
+}
+
 void delta_kill_monster(const Monster &monster, Point position, const Player &player)
 {
 	if (!gbIsMultiplayer)
@@ -2530,8 +2536,8 @@ void delta_monster_hp(const Monster &monster, const Player &player)
 		return;
 
 	DMonsterStr *pD = &GetDeltaLevel(player).monster[monster.getId()];
-	if (pD->hitPoints > monster.hitPoints)
-		pD->hitPoints = monster.hitPoints;
+	if (SDL_SwapLE32(pD->hitPoints) > monster.hitPoints)
+		pD->hitPoints = SDL_SwapLE32(monster.hitPoints);
 }
 
 void delta_sync_monster(const TSyncMonster &monsterSync, uint8_t level)
@@ -2549,7 +2555,7 @@ void delta_sync_monster(const TSyncMonster &monsterSync, uint8_t level)
 	monster.position.y = monsterSync._my;
 	monster._mactive = UINT8_MAX;
 	monster._menemy = monsterSync._menemy;
-	monster.hitPoints = SDL_SwapLE32(monsterSync._mhitpoints);
+	monster.hitPoints = monsterSync._mhitpoints;
 	monster.mWhoHit = monsterSync.mWhoHit;
 }
 
@@ -2665,25 +2671,26 @@ void DeltaLoadLevel()
 			LoadDeltaSpawnedMonster(deltaSpawnedMonster.second.typeIndex, deltaSpawnedMonster.first, monsterData.seed, monsterData.golemOwnerPlayerId, monsterData.golemSpellLevel);
 			assert(deltaLevel.monster[deltaSpawnedMonster.first].position.x != 0xFF);
 		}
+
 		for (size_t i = 0; i < MaxMonsters; i++) {
-			if (deltaLevel.monster[i].position.x == 0xFF)
+			DMonsterStr &deltaMonster = deltaLevel.monster[i];
+			if (!DeltaMonsterIsValid(deltaMonster))
 				continue;
 
 			Monster &monster = Monsters[i];
 			M_ClearSquares(monster);
 			{
-				const WorldTilePosition position = deltaLevel.monster[i].position;
+				const WorldTilePosition position = deltaMonster.position;
 				monster.position.tile = position;
 				monster.position.old = position;
 				monster.position.future = position;
 				if (monster.lightId != NO_LIGHT)
 					ChangeLightXY(monster.lightId, position);
 			}
-			if (deltaLevel.monster[i].hitPoints != -1) {
-				monster.hitPoints = deltaLevel.monster[i].hitPoints;
-				monster.whoHit = deltaLevel.monster[i].mWhoHit;
-			}
-			if (deltaLevel.monster[i].hitPoints == 0) {
+
+			monster.hitPoints = SDL_SwapLE32(deltaMonster.hitPoints);
+			monster.whoHit = deltaMonster.mWhoHit;
+			if (deltaMonster.hitPoints == 0) {
 				M_ClearSquares(monster);
 				if (monster.ai != MonsterAIID::Diablo) {
 					if (monster.isUnique()) {
@@ -2694,19 +2701,31 @@ void DeltaLoadLevel()
 				}
 				monster.isInvalid = true;
 				M_UpdateRelations(monster);
-			} else {
-				decode_enemy(monster, deltaLevel.monster[i]._menemy);
-				if (monster.position.tile != Point { 0, 0 } && monster.position.tile != GolemHoldingCell)
-					monster.occupyTile(monster.position.tile, false);
-				if (monster.type().type == MT_GOLEM) {
-					GolumAi(monster);
-					monster.flags |= (MFLAG_TARGETS_MONSTER | MFLAG_GOLEM);
-				} else {
-					M_StartStand(monster, monster.direction);
-				}
-				monster.activeForTicks = deltaLevel.monster[i]._mactive;
 			}
 		}
+
+		// Separate loop ensures that monster hitpoints are
+		// synced before attempting to validate enemy IDs
+		for (size_t i = 0; i < MaxMonsters; i++) {
+			DMonsterStr &deltaMonster = deltaLevel.monster[i];
+			if (!DeltaMonsterIsValid(deltaMonster))
+				continue;
+			if (deltaMonster.hitPoints == 0)
+				continue;
+			Monster &monster = Monsters[i];
+			if (IsEnemyValid(i, deltaMonster._menemy))
+				decode_enemy(monster, deltaMonster._menemy);
+			if (monster.position.tile != Point { 0, 0 } && monster.position.tile != GolemHoldingCell)
+				monster.occupyTile(monster.position.tile, false);
+			if (monster.type().type == MT_GOLEM) {
+				GolumAi(monster);
+				monster.flags |= (MFLAG_TARGETS_MONSTER | MFLAG_GOLEM);
+			} else {
+				M_StartStand(monster, monster.direction);
+			}
+			monster.activeForTicks = deltaMonster._mactive;
+		}
+
 		auto localLevelIt = LocalLevels.find(localLevel);
 		if (localLevelIt != LocalLevels.end())
 			memcpy(AutomapView, &localLevelIt->second, sizeof(AutomapView));

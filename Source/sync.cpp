@@ -10,6 +10,7 @@
 #include "levels/gendung.h"
 #include "lighting.h"
 #include "monster.h"
+#include "monsters/validation.hpp"
 #include "player.h"
 #include "utils/is_of.hpp"
 
@@ -205,17 +206,6 @@ void SyncMonster(bool isOwner, const TSyncMonster &monsterSync)
 	monster.whoHit |= monsterSync.mWhoHit;
 }
 
-bool IsEnemyIdValid(uint8_t enemyId)
-{
-	if (enemyId < MaxMonsters)
-		return true;
-
-	enemyId -= MaxMonsters;
-	if (enemyId >= Players.size())
-		return false;
-	return Players[enemyId].plractive;
-}
-
 bool IsTSyncMonsterValid(const TSyncMonster &monsterSync)
 {
 	const size_t monsterId = monsterSync._mndx;
@@ -234,16 +224,7 @@ bool IsTSyncMonsterValid(const TSyncMonster &monsterSync)
 
 bool IsTSyncEnemyValid(const TSyncMonster &monsterSync)
 {
-	const size_t enemyId = monsterSync._menemy;
-	if (enemyId >= MaxMonsters)
-		return true;
-
-	const size_t monsterId = monsterSync._mndx;
-	if (enemyId == monsterId)
-		return false;
-
-	const Monster &enemy = Monsters[enemyId];
-	return enemy.hitPoints > 0;
+	return IsEnemyValid(monsterSync._mndx, monsterSync._menemy);
 }
 
 } // namespace

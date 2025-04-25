@@ -130,6 +130,8 @@ set(libdevilutionx_SRCS
   lua/modules/towners.cpp
   lua/repl.cpp
 
+  monsters/validation.cpp
+
   panels/charpanel.cpp
   panels/console.cpp
   panels/info_box.cpp
