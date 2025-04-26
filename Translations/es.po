@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: DevilutionX\n"
 "POT-Creation-Date: 2025-04-26 07:50-0300\n"
-"PO-Revision-Date: 2025-04-26 07:51-0300\n"
+"PO-Revision-Date: 2025-04-26 08:05-0300\n"
 "Last-Translator: Emiliano Augusto Gonzalez <emigonza@gmail.com>\n"
 "Language-Team: Spanish\n"
 "Language: es\n"
@@ -1226,30 +1226,30 @@ msgstr "Subir Nivel"
 
 #: Source/control.cpp:1445
 msgid "You have died"
-msgstr ""
+msgstr "Has muerto"
 
 #: Source/control.cpp:1453
 msgid "ESC"
-msgstr ""
+msgstr "ESC"
 
 #: Source/control.cpp:1459
 msgid "Menu Button"
-msgstr ""
+msgstr "Botón de Menú"
 
 #: Source/control.cpp:1467
 #, c++-format
 msgid "Press {} to load last save."
-msgstr ""
+msgstr "Presiona {} para cargar la última grabación."
 
 #: Source/control.cpp:1469
 #, c++-format
 msgid "Press {} to return to Main Menu."
-msgstr ""
+msgstr "Presiona {} para volver al Menú Principal."
 
 #: Source/control.cpp:1472
 #, c++-format
 msgid "Press {} to restart in town."
-msgstr ""
+msgstr "Presiona {} para reiniciar en el pueblo."
 
 #. TRANSLATORS: {:s} is a number with separators. Dialog is shown when splitting a stash of Gold.
 #: Source/control.cpp:1490
@@ -1637,20 +1637,16 @@ msgid "Pause Game (Alternate)"
 msgstr "Pausar juego (alternativo)"
 
 #: Source/diablo.cpp:1943 Source/diablo.cpp:2431
-#, fuzzy
-#| msgid "Increase screen brightness."
 msgid "Decrease Brightness"
-msgstr "Aumentar el brillo de la pantalla."
+msgstr "Disminuir el brillo de la pantalla."
 
 #: Source/diablo.cpp:1944 Source/diablo.cpp:2432
 msgid "Reduce screen brightness."
 msgstr "Reducir el brillo de la pantalla."
 
 #: Source/diablo.cpp:1951 Source/diablo.cpp:2439
-#, fuzzy
-#| msgid "Increase screen brightness."
 msgid "Increase Brightness"
-msgstr "Aumentar el brillo de la pantalla."
+msgstr "Aumentar el Brillo"
 
 #: Source/diablo.cpp:1952 Source/diablo.cpp:2440
 msgid "Increase screen brightness."
@@ -2314,10 +2310,8 @@ msgid "Save Game"
 msgstr "Guardar"
 
 #: Source/gamemenu.cpp:50 Source/gamemenu.cpp:60
-#, fuzzy
-#| msgid "Main Menu"
 msgid "Exit to Main Menu"
-msgstr "Menú Principal"
+msgstr "Salir al Menú Principal"
 
 #: Source/gamemenu.cpp:51 Source/gamemenu.cpp:61
 msgid "Quit Game"
@@ -3458,12 +3452,16 @@ msgid ""
 "Stash version invalid. If you attempt to access your stash, data will be "
 "overwritten!!"
 msgstr ""
+"Versión del guardado no válida. Si intentas acceder a él se sobrescribirán "
+"los datos."
 
 #: Source/loadsave.cpp:2365
 msgid ""
 "Stash size invalid. If you attempt to access your stash, data will be "
 "overwritten!!"
 msgstr ""
+"El tamaño del guardado no es válido. Si intentas acceder a él, se "
+"sobrescribirán los datos."
 
 #: Source/loadsave.cpp:2396
 msgid "Invalid save file"
@@ -4116,10 +4114,8 @@ msgid "Resampling Quality"
 msgstr "Calidad de remuestreo"
 
 #: Source/options.cpp:508
-#, fuzzy
-#| msgid "Quality of the resampler, from 0 (lowest) to 10 (highest)."
 msgid "Quality of the resampler, from 0 (lowest) to 5 (highest)."
-msgstr "Calidad de remuestreo, desde 0 (el más bajo) a 10 (el más alto)."
+msgstr "Calidad de remuestreo, desde 0 (el más bajo) a 5 (el más alto)."
 
 #: Source/options.cpp:533
 msgid ""
@@ -4219,12 +4215,14 @@ msgstr "Escala la imagen usando una proporción de píxeles de números enteros.
 
 #: Source/options.cpp:713
 msgid "Frame Rate Control"
-msgstr ""
+msgstr "Control de Velocidad de Cuadros"
 
 #: Source/options.cpp:714
 msgid ""
 "Manages frame rate to balance performance, reduce tearing, or save power."
 msgstr ""
+"Administra la velocidad de cuadros para equilibrar el rendimiento, reducir "
+"el desgarro o ahorrar energía."
 
 #: Source/options.cpp:724
 msgid "Vertical Sync"
@@ -4232,21 +4230,19 @@ msgstr "Sincronismo vertical"
 
 #: Source/options.cpp:726
 msgid "Limit FPS"
-msgstr ""
+msgstr "Limitar FPS"
 
 #: Source/options.cpp:729
 msgid "Zoom on when enabled."
 msgstr "Acercar cuando está habilitado."
 
 #: Source/options.cpp:730
-#, fuzzy
-#| msgid " Lightning"
 msgid "Per-pixel Lighting"
-msgstr " Rayo"
+msgstr " Iluminación por píxel"
 
 #: Source/options.cpp:730
 msgid "Subtile lighting for smoother light gradients."
-msgstr ""
+msgstr "Iluminación de subtejas para gradientes de luz más suaves."
 
 #: Source/options.cpp:731
 msgid "Color Cycling"
@@ -4642,13 +4638,11 @@ msgstr "Configuración de mapeo del pad"
 
 #: Source/options.cpp:1499
 msgid "Mods"
-msgstr ""
+msgstr "Mods"
 
 #: Source/options.cpp:1499
-#, fuzzy
-#| msgid "Game Mode Settings"
 msgid "Mod Settings"
-msgstr "Configuraciones del modo de juego"
+msgstr "Configuraciones de Mods"
 
 #: Source/panels/charpanel.cpp:133
 msgid "Level"
@@ -4700,10 +4694,8 @@ msgid "Armor class"
 msgstr "Clase armadura"
 
 #: Source/panels/charpanel.cpp:176
-#, fuzzy
-#| msgid "chance to hit"
 msgid "Chance To Hit"
-msgstr "probabilidad de acertar"
+msgstr "Probabilidad de acertar"
 
 #: Source/panels/charpanel.cpp:178
 msgid "Damage"
