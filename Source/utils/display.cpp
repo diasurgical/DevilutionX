@@ -108,44 +108,6 @@ void CalculatePreferredWindowSize(int &width, int &height)
 	}
 }
 
-void FreeRenderer()
-{
-#if defined(_WIN32) && !defined(NXDK)
-	bool wasD3D9 = false;
-	if (renderer != nullptr) {
-		SDL_RendererInfo previousRendererInfo;
-		SDL_GetRendererInfo(renderer, &previousRendererInfo);
-		wasD3D9 = (std::string_view(previousRendererInfo.name) == "direct3d");
-	}
-#endif
-
-	if (renderer != nullptr) {
-		SDL_DestroyRenderer(renderer);
-		renderer = nullptr;
-	}
-
-#if defined(_WIN32) && !defined(NXDK) && !defined(USE_SDL1)
-	// On Windows 11 the directx9 VSYNC timer doesn't get recreated properly, see https://github.com/libsdl-org/SDL/issues/5099
-	if (wasD3D9 && *GetOptions().Graphics.upscale && *GetOptions().Graphics.frameRateControl != FrameRateControl::VerticalSync) {
-		std::string title = SDL_GetWindowTitle(ghMainWnd);
-		Uint32 flags = SDL_GetWindowFlags(ghMainWnd);
-		Rectangle dimensions;
-
-		SDL_GetWindowPosition(ghMainWnd, &dimensions.position.x, &dimensions.position.y);
-		SDL_GetWindowSize(ghMainWnd, &dimensions.size.width, &dimensions.size.height);
-		SDL_DestroyWindow(ghMainWnd);
-
-		ghMainWnd = SDL_CreateWindow(
-		    title.c_str(),
-		    dimensions.position.x,
-		    dimensions.position.y,
-		    dimensions.size.width,
-		    dimensions.size.height,
-		    flags);
-	}
-#endif
-}
-
 SDL_DisplayMode GetNearestDisplayMode(Size preferredSize)
 {
 	SDL_DisplayMode nearestDisplayMode;
