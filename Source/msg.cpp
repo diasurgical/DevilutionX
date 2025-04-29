@@ -265,10 +265,19 @@ uint32_t sgdwRecvOffset;
 int sgnCurrMegaPlayer;
 ankerl::unordered_dense::map<uint8_t, DLevel> DeltaLevels;
 uint8_t sbLastCmd;
+
 /**
  * @brief buffer used to receive level deltas, size is the worst expected case assuming every object on a level was touched
  */
-std::byte sgRecvBuf[1U + sizeof(DLevel::item) + sizeof(uint8_t) + (sizeof(WorldTilePosition) + sizeof(_cmd_id)) * MAXOBJECTS + sizeof(DLevel::monster)];
+std::byte sgRecvBuf[1U                                             /* marker byte, always 0 */
+    + sizeof(uint8_t)                                              /* level id */
+    + sizeof(DLevel::item)                                         /* items spawned during dungeon generation which have been picked up, and items dropped by a player during a game */
+    + sizeof(uint8_t)                                              /* count of object interactions which caused a state change since dungeon generation */
+    + (sizeof(WorldTilePosition) + sizeof(_cmd_id)) * MAXOBJECTS   /* location/action pairs for the object interactions */
+    + sizeof(DLevel::monster)                                      /* latest monster state */
+    + sizeof(uint16_t)                                             /* spawned monster count */
+    + (sizeof(uint16_t) + sizeof(DSpawnedMonster)) * MaxMonsters]; /* spawned monsters */
+
 _cmd_id sgbRecvCmd;
 ankerl::unordered_dense::map<uint8_t, LocalLevel> LocalLevels;
 DJunk sgJunk;
@@ -2471,14 +2480,14 @@ void run_delta_info()
 void DeltaExportData(uint8_t pnum)
 {
 	for (const auto &[levelNum, deltaLevel] : DeltaLevels) {
-		const size_t bufferSize = 1U                                                      /* marker byte, always 0 */
-		    + sizeof(uint8_t)                                                             /* level id */
-		    + sizeof(deltaLevel.item)                                                     /* items spawned during dungeon generation which have been picked up, and items dropped by a player during a game */
-		    + sizeof(uint8_t)                                                             /* count of object interactions which caused a state change since dungeon generation */
-		    + (sizeof(WorldTilePosition) + sizeof(DObjectStr)) * deltaLevel.object.size() /* location/action pairs for the object interactions */
-		    + sizeof(deltaLevel.monster)                                                  /* latest monster state */
-		    + sizeof(uint16_t)                                                            /* spanwned monster count */
-		    + (sizeof(uint16_t) + sizeof(DSpawnedMonster)) * MaxMonsters;                 /* spanwned monsters */
+		const size_t bufferSize = 1U                                                            /* marker byte, always 0 */
+		    + sizeof(uint8_t)                                                                   /* level id */
+		    + sizeof(deltaLevel.item)                                                           /* items spawned during dungeon generation which have been picked up, and items dropped by a player during a game */
+		    + sizeof(uint8_t)                                                                   /* count of object interactions which caused a state change since dungeon generation */
+		    + (sizeof(WorldTilePosition) + sizeof(DObjectStr)) * deltaLevel.object.size()       /* location/action pairs for the object interactions */
+		    + sizeof(deltaLevel.monster)                                                        /* latest monster state */
+		    + sizeof(uint16_t)                                                                  /* spawned monster count */
+		    + (sizeof(uint16_t) + sizeof(DSpawnedMonster)) * deltaLevel.spawnedMonsters.size(); /* spawned monsters */
 		std::unique_ptr<std::byte[]> dst { new std::byte[bufferSize] };
 
 		std::byte *dstEnd = &dst.get()[1];
