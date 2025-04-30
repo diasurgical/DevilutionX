@@ -19,6 +19,9 @@ namespace devilution {
 extern std::size_t SelectedItem;
 extern bool textInputActive;
 
+extern const string_view BannedNames[];
+extern const size_t BannedNamesCount;
+
 enum _artFocus : uint8_t {
 	FOCUS_SMALL,
 	FOCUS_MED,

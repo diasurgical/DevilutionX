@@ -7,6 +7,7 @@
 
 #include <cstdint>
 
+#include "DiabloUI/diabloui.h"
 #include "engine/random.hpp"
 #include "init.h"
 #include "items/validation.h"
@@ -442,6 +443,7 @@ bool UnPackNetItem(const Player &player, const ItemNetPack &packedItem, Item &it
 bool UnPackNetPlayer(const PlayerNetPack &packed, Player &player)
 {
 	CopyUtf8(player._pName, packed.pName, sizeof(player._pName));
+	ValidateField(packed.pName, UiValidPlayerName(player._pName));
 
 	ValidateField(packed.pClass, packed.pClass < enum_size<HeroClass>::value);
 	player._pClass = static_cast<HeroClass>(packed.pClass);
