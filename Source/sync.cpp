@@ -273,10 +273,12 @@ size_t sync_all_monsters(std::byte *pbBuf, size_t dwMaxLen)
 	return dwMaxLen;
 }
 
-uint32_t OnSyncData(const TCmd *pCmd, const Player &player)
+size_t OnSyncData(const TSyncHeader &header, size_t maxCmdSize, const Player &player)
 {
-	const auto &header = *reinterpret_cast<const TSyncHeader *>(pCmd);
 	const uint16_t wLen = SDL_SwapLE16(header.wLen);
+
+	if (!ValidateCmdSize(wLen + sizeof(header), maxCmdSize, player.getId()))
+		return maxCmdSize;
 
 	assert(gbBufferMsgs != 2);
 
@@ -294,7 +296,7 @@ uint32_t OnSyncData(const TCmd *pCmd, const Player &player)
 	bool syncLocalLevel = !MyPlayer->_pLvlChanging && GetLevelForMultiplayer(*MyPlayer) == level;
 
 	if (IsValidLevelForMultiplayer(level)) {
-		const auto *monsterSyncs = reinterpret_cast<const TSyncMonster *>(pCmd + sizeof(header));
+		const auto *monsterSyncs = reinterpret_cast<const TSyncMonster *>(&header + sizeof(header));
 		bool isOwner = player.getId() > MyPlayerId;
 
 		for (int i = 0; i < monsterCount; i++) {

@@ -342,7 +342,7 @@ void BeginTimeout()
 void HandleAllPackets(uint8_t pnum, const std::byte *data, size_t size)
 {
 	for (size_t offset = 0; offset < size;) {
-		size_t messageSize = ParseCmd(pnum, reinterpret_cast<const TCmd *>(&data[offset]));
+		size_t messageSize = ParseCmd(pnum, reinterpret_cast<const TCmd *>(&data[offset]), size - offset);
 		if (messageSize == 0) {
 			break;
 		}
