@@ -10,6 +10,7 @@
 
 #include <fmt/format.h>
 
+#include "bannedwords.hpp"
 #include "control.h"
 #include "engine/render/text_render.hpp"
 #include "inv.h"
@@ -85,7 +86,7 @@ void SendPlrMsg(Player &player, string_view text)
 
 	message.style = UiFlags::ColorWhite;
 	message.time = SDL_GetTicks();
-	message.text = from + std::string(text);
+	message.text = from + CensorMessage(std::string(text));
 	message.from = string_view(message.text.data(), from.size());
 	message.lineHeight = GetLineHeight(message.text, GameFont12) + 3;
 	AddMessageToChatLog(text, &player);

@@ -6,6 +6,7 @@ set(libdevilutionx_SRCS
   appfat.cpp
   automap.cpp
   capture.cpp
+  bannedwords.cpp
   codec.cpp
   control.cpp
   cursor.cpp
