@@ -506,14 +506,18 @@ std::byte *DeltaExportItem(std::byte *dst, const TCmdPItem *src)
 	return dst;
 }
 
-size_t DeltaImportItem(const std::byte *src, TCmdPItem *dst)
+const std::byte *DeltaImportItem(const std::byte *src, const std::byte *end, TCmdPItem *dst)
 {
 	size_t size = 0;
 	for (int i = 0; i < MAXITEMS; i++, dst++) {
+		if (&src[size] >= end)
+			return nullptr;
 		if (src[size] == std::byte { 0xFF }) {
 			memset(dst, 0xFF, sizeof(TCmdPItem));
 			size++;
 		} else {
+			if (&src[size] + sizeof(TCmdPItem) > end)
+				return nullptr;
 			memcpy(dst, &src[size], sizeof(TCmdPItem));
 			if (!IsItemDeltaValid(*dst))
 				memset(dst, 0xFF, sizeof(TCmdPItem));
@@ -521,7 +525,7 @@ size_t DeltaImportItem(const std::byte *src, TCmdPItem *dst)
 		}
 	}
 
-	return size;
+	return src + size;
 }
 
 std::byte *DeltaExportObject(std::byte *dst, const ankerl::unordered_dense::map<WorldTilePosition, DObjectStr> &src)
@@ -536,11 +540,21 @@ std::byte *DeltaExportObject(std::byte *dst, const ankerl::unordered_dense::map<
 	return dst;
 }
 
-const std::byte *DeltaImportObjects(const std::byte *src, ankerl::unordered_dense::map<WorldTilePosition, DObjectStr> &dst)
+const std::byte *DeltaImportObjects(const std::byte *src, const std::byte *end, ankerl::unordered_dense::map<WorldTilePosition, DObjectStr> &dst)
 {
 	dst.clear();
 
+	if (src == nullptr || src == end)
+		return nullptr;
+
 	uint8_t numDeltas = static_cast<uint8_t>(*src++);
+	if (numDeltas > MAXOBJECTS)
+		return nullptr;
+
+	size_t numBytes = (sizeof(WorldTilePosition) + sizeof(_cmd_id)) * numDeltas;
+	if (src + numBytes > end)
+		return nullptr;
+
 	dst.reserve(numDeltas);
 
 	for (unsigned i = 0; i < numDeltas; i++) {
@@ -566,20 +580,27 @@ std::byte *DeltaExportMonster(std::byte *dst, const DMonsterStr *src)
 	return dst;
 }
 
-size_t DeltaImportMonster(const std::byte *src, DMonsterStr *dst)
+const std::byte *DeltaImportMonster(const std::byte *src, const std::byte *end, DMonsterStr *dst)
 {
+	if (src == nullptr)
+		return nullptr;
+
 	size_t size = 0;
 	for (size_t i = 0; i < MaxMonsters; i++, dst++) {
+		if (&src[size] >= end)
+			return nullptr;
 		if (src[size] == std::byte { 0xFF }) {
 			memset(dst, 0xFF, sizeof(DMonsterStr));
 			size++;
 		} else {
+			if (&src[size] + sizeof(DMonsterStr) > end)
+				return nullptr;
 			memcpy(dst, &src[size], sizeof(DMonsterStr));
 			size += sizeof(DMonsterStr);
 		}
 	}
 
-	return size;
+	return src + size;
 }
 
 std::byte *DeltaExportSpawnedMonsters(std::byte *dst, const ankerl::unordered_dense::map<size_t, DSpawnedMonster> &spawnedMonsters)
@@ -600,9 +621,19 @@ std::byte *DeltaExportSpawnedMonsters(std::byte *dst, const ankerl::unordered_de
 	return dst;
 }
 
-const std::byte *DeltaImportSpawnedMonsters(const std::byte *src, ankerl::unordered_dense::map<size_t, DSpawnedMonster> &spawnedMonsters)
+const std::byte *DeltaImportSpawnedMonsters(const std::byte *src, const std::byte *end, ankerl::unordered_dense::map<size_t, DSpawnedMonster> &spawnedMonsters)
 {
+	if (src == nullptr || src + sizeof(uint16_t) > end)
+		return nullptr;
+
 	uint16_t size = *reinterpret_cast<const uint16_t *>(src);
+	if (size > MaxMonsters)
+		return nullptr;
+
+	size_t requiredBytes = (sizeof(uint16_t) + sizeof(DSpawnedMonster)) * size;
+	if (src + requiredBytes > end)
+		return nullptr;
+
 	src += sizeof(uint16_t);
 
 	for (size_t i = 0; i < size; i++) {
@@ -646,13 +677,17 @@ std::byte *DeltaExportJunk(std::byte *dst)
 	return dst;
 }
 
-void DeltaImportJunk(const std::byte *src)
+const std::byte *DeltaImportJunk(const std::byte *src, const std::byte *end)
 {
 	for (int i = 0; i < MAXPORTAL; i++) {
+		if (src >= end)
+			return nullptr;
 		if (*src == std::byte { 0xFF }) {
 			memset(&sgJunk.portal[i], 0xFF, sizeof(DPortal));
 			src++;
 		} else {
+			if (src + sizeof(DPortal) > end)
+				return nullptr;
 			memcpy(&sgJunk.portal[i], src, sizeof(DPortal));
 			src += sizeof(DPortal);
 		}
@@ -663,10 +698,15 @@ void DeltaImportJunk(const std::byte *src)
 		if (QuestsData[qidx].isSinglePlayerOnly && UseMultiplayerQuests()) {
 			continue;
 		}
+		if (src + sizeof(MultiQuests) > end) {
+			return nullptr;
+		}
 		memcpy(&sgJunk.quests[q], src, sizeof(MultiQuests));
 		src += sizeof(MultiQuests);
 		q++;
 	}
+
+	return src;
 }
 
 uint32_t CompressData(std::byte *buffer, std::byte *end)
@@ -684,26 +724,41 @@ uint32_t CompressData(std::byte *buffer, std::byte *end)
 #endif
 }
 
-void DeltaImportData(_cmd_id cmd, uint32_t recvOffset)
+void DeltaImportData(_cmd_id cmd, uint32_t recvOffset, int pnum)
 {
+	size_t deltaSize = recvOffset;
+
 #ifdef USE_PKWARE
-	if (sgRecvBuf[0] != std::byte { 0 })
-		PkwareDecompress(&sgRecvBuf[1], recvOffset, sizeof(sgRecvBuf) - 1);
+	if (sgRecvBuf[0] != std::byte { 0 }) {
+		deltaSize = PkwareDecompress(&sgRecvBuf[1], deltaSize, sizeof(sgRecvBuf) - 1);
+		if (deltaSize == 0) {
+			Log("PKWare decompression failure, dropping player {}", pnum);
+			SNetDropPlayer(pnum, LEAVE_DROP);
+			return;
+		}
+	}
 #endif
 
 	const std::byte *src = &sgRecvBuf[1];
+	const std::byte *end = src + deltaSize;
 	if (cmd == CMD_DLEVEL_JUNK) {
-		DeltaImportJunk(src);
+		src = DeltaImportJunk(src, end);
 	} else if (cmd == CMD_DLEVEL) {
 		uint8_t i = static_cast<uint8_t>(src[0]);
 		src += sizeof(uint8_t);
 		DLevel &deltaLevel = GetDeltaLevel(i);
-		src += DeltaImportItem(src, deltaLevel.item);
-		src = DeltaImportObjects(src, deltaLevel.object);
-		src += DeltaImportMonster(src, deltaLevel.monster);
-		src = DeltaImportSpawnedMonsters(src, deltaLevel.spawnedMonsters);
+		src = DeltaImportItem(src, end, deltaLevel.item);
+		src = DeltaImportObjects(src, end, deltaLevel.object);
+		src = DeltaImportMonster(src, end, deltaLevel.monster);
+		src = DeltaImportSpawnedMonsters(src, end, deltaLevel.spawnedMonsters);
 	} else {
 		app_fatal(StrCat("Unknown network message type: ", cmd));
+	}
+
+	if (src == nullptr) {
+		Log("Received invalid deltas, dropping player {}", pnum);
+		SNetDropPlayer(pnum, LEAVE_DROP);
+		return;
 	}
 
 	sgbDeltaChunks++;
@@ -738,7 +793,7 @@ size_t OnLevelData(const TCmdPlrInfoHdr &message, size_t maxCmdSize, const Playe
 		sgdwRecvOffset = 0;
 		sgbRecvCmd = message.bCmd;
 	} else if (sgbRecvCmd != message.bCmd || wOffset == 0) {
-		DeltaImportData(sgbRecvCmd, sgdwRecvOffset);
+		DeltaImportData(sgbRecvCmd, sgdwRecvOffset, player.getId());
 		if (message.bCmd == CMD_DLEVEL_END) {
 			sgbDeltaChunks = MAX_CHUNKS - 1;
 			sgbRecvCmd = CMD_DLEVEL_END;
@@ -748,8 +803,14 @@ size_t OnLevelData(const TCmdPlrInfoHdr &message, size_t maxCmdSize, const Playe
 		sgbRecvCmd = message.bCmd;
 	}
 
+	if (sgdwRecvOffset + wBytes > sizeof(sgRecvBuf)) {
+		Log("Received too many deltas, dropping player {}", player.getId());
+		SNetDropPlayer(player.getId(), LEAVE_DROP);
+		return wBytes + sizeof(message);
+	}
+
 	assert(wOffset == sgdwRecvOffset);
-	memcpy(&sgRecvBuf[wOffset], &message + 1, wBytes);
+	memcpy(&sgRecvBuf[sgdwRecvOffset], &message + 1, wBytes);
 	sgdwRecvOffset += wBytes;
 	return wBytes + sizeof(message);
 }
