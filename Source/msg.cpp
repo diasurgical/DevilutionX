@@ -752,7 +752,9 @@ void DeltaImportData(_cmd_id cmd, uint32_t recvOffset, int pnum)
 		src = DeltaImportMonster(src, end, deltaLevel.monster);
 		src = DeltaImportSpawnedMonsters(src, end, deltaLevel.spawnedMonsters);
 	} else {
-		app_fatal(StrCat("Unknown network message type: ", cmd));
+		Log("Received invalid deltas, dropping player {}", pnum);
+		SNetDropPlayer(pnum, LEAVE_DROP);
+		return;
 	}
 
 	if (src == nullptr) {
@@ -875,7 +877,9 @@ bool DeltaGetItem(const TCmdGItem &message, uint8_t bLevel)
 			return true;
 		}
 
+#ifdef _DEBUG
 		app_fatal("delta:1");
+#endif
 	}
 
 	if ((message.def.wCI & CF_PREGEN) == 0)
@@ -921,9 +925,11 @@ void DeltaPutItem(const TCmdPItem &message, Point position, const Player &player
 		    && item.def.wIndx == message.def.wIndx
 		    && item.def.wCI == message.def.wCI
 		    && item.def.dwSeed == message.def.dwSeed) {
-			if (item.bCmd == TCmdPItem::DroppedItem)
-				return;
-			app_fatal(_("Trying to drop a floor item?"));
+			if (item.bCmd != TCmdPItem::DroppedItem) {
+				Log("Suspicious floor item duplication, dropping player {}", player.getId());
+				SNetDropPlayer(player.getId(), LEAVE_DROP);
+			}
+			return;
 		}
 	}
 
