@@ -11817,7 +11817,7 @@ msgstr "крадіїв"
 
 #: Source/translation_dummy.cpp:761
 msgid "the bear"
-msgstr "ведмеда"
+msgstr "ведмедя"
 
 #: Source/translation_dummy.cpp:762
 msgid "the bat"
