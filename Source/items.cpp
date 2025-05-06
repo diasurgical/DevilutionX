@@ -157,8 +157,6 @@ Item curruitem;
 /** Holds item get records, tracking items being recently looted. This is in an effort to prevent items being picked up more than once. */
 ItemGetRecordStruct itemrecord[MAXITEMS];
 
-bool itemhold[3][3];
-
 /** Specifies the number of active item get records. */
 int gnNumGetRecords;
 
@@ -547,50 +545,23 @@ void CalcSelfItems(Player &player)
 
 bool GetItemSpace(Point position, int8_t inum)
 {
-	int xx = 0;
-	int yy = 0;
+	Point xy_candidates[9];
+	int candidate_count = 0;
 	for (int j = position.y - 1; j <= position.y + 1; j++) {
-		xx = 0;
 		for (int i = position.x - 1; i <= position.x + 1; i++) {
-			itemhold[xx][yy] = ItemSpaceOk({ i, j });
-			xx++;
-		}
-		yy++;
-	}
-
-	bool savail = false;
-	for (int j = 0; j < 3; j++) {
-		for (int i = 0; i < 3; i++) { // NOLINT(modernize-loop-convert)
-			if (itemhold[i][j])
-				savail = true;
+			if (ItemSpaceOk({ i, j }))
+				xy_candidates[candidate_count++] = { i, j };
 		}
 	}
 
-	int rs = GenerateRnd(15) + 1;
+	int rs = GenerateRnd(15);
 
-	if (!savail)
+	if (candidate_count == 0)
 		return false;
 
-	xx = 0;
-	yy = 0;
-	while (rs > 0) {
-		if (itemhold[xx][yy])
-			rs--;
-		if (rs <= 0)
-			continue;
-		xx++;
-		if (xx != 3)
-			continue;
-		xx = 0;
-		yy++;
-		if (yy == 3)
-			yy = 0;
-	}
-
-	xx += position.x - 1;
-	yy += position.y - 1;
-	Items[inum].position = { xx, yy };
-	dItem[xx][yy] = inum + 1;
+	Point &destination_xy = xy_candidates[rs % candidate_count];
+	Items[inum].position = destination_xy;
+	dItem[destination_xy.x][destination_xy.y] = inum + 1;
 
 	return true;
 }
