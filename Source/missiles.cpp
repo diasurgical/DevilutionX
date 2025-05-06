@@ -213,7 +213,8 @@ bool MonsterMHit(const Player &player, int monsterId, int mindam, int maxdam, in
 {
 	Monster &monster = Monsters[monsterId];
 
-	if (!monster.isPossibleToHit() || monster.isImmune(t, damageType))
+	if (!monster.isPossibleToHit() || monster.isImmune(t, damageType)
+	    || (monster.type().type == MT_GOLEM && sgGameInitInfo.bFriendlyFire == 0 && player.friendlyMode))
 		return false;
 
 	int hit = RandomIntLessThan(100);
