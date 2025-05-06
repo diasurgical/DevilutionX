@@ -217,7 +217,7 @@ const ShadowStruct ShadowPatterns[37] = {
 };
 
 /** Maps tile IDs to their corresponding base tile ID. */
-const uint8_t BaseTypes[207] = {
+const uint8_t ShadowBaseTiles[207] = {
 	0,
 	VWall, HWall, Corner, DWall, DArch, VWallEnd, HWallEnd, HArchEnd, VArchEnd,
 	HArchVWall, VArch, HArch, Floor, HWallVArch, Pillar, VCorner, HCorner,
@@ -245,7 +245,7 @@ const uint8_t BaseTypes[207] = {
 };
 
 /** Maps tile IDs to their corresponding undecorated tile ID. */
-const uint8_t TileDecorations[207] = {
+const uint8_t DecorationBaseTiles[207] = {
 	0,
 	VWall, HWall, Corner, DWall, DArch, VWallEnd, HWallEnd, HArchEnd, VArchEnd,
 	HArchVWall, VArch, HArch, Floor, HWallVArch, Pillar, VCorner, HCorner,
@@ -286,10 +286,10 @@ void ApplyShadowsPatterns()
 
 	for (int y = 1; y < DMAXY; y++) {
 		for (int x = 1; x < DMAXX; x++) {
-			slice[0][0] = BaseTypes[dungeon[x][y]];
-			slice[1][0] = BaseTypes[dungeon[x - 1][y]];
-			slice[0][1] = BaseTypes[dungeon[x][y - 1]];
-			slice[1][1] = BaseTypes[dungeon[x - 1][y - 1]];
+			slice[0][0] = ShadowBaseTiles[dungeon[x][y]];
+			slice[1][0] = ShadowBaseTiles[dungeon[x - 1][y]];
+			slice[0][1] = ShadowBaseTiles[dungeon[x][y - 1]];
+			slice[1][1] = ShadowBaseTiles[dungeon[x - 1][y - 1]];
 
 			for (const auto &shadow : ShadowPatterns) {
 				if (shadow.strig != slice[0][0])
@@ -952,38 +952,28 @@ void Substitution()
 {
 	for (int y = 0; y < DMAXY; y++) {
 		for (int x = 0; x < DMAXX; x++) {
-			if (FlipCoin(4)) {
-				uint8_t c = TileDecorations[dungeon[x][y]];
-				if (c != 0 && !Protected.test(x, y)) {
-					int rv = GenerateRnd(16);
-					int i = -1;
-					while (rv >= 0) {
-						i++;
-						if (i == sizeof(TileDecorations)) {
-							i = 0;
-						}
-						if (c == TileDecorations[i]) {
-							rv--;
-						}
-					}
+			if (!FlipCoin(4))
+				continue;
 
-					// BUGFIX: Add `&& y > 0` to the if statement. (fixed)
-					if (i == VWall4 && y > 0) {
-						if (TileDecorations[dungeon[x][y - 1]] != VWall2 || Protected.test(x, y - 1))
-							i = VWall2;
-						else
-							dungeon[x][y - 1] = VWall5;
-					}
-					// BUGFIX: Add `&& x + 1 < DMAXX` to the if statement. (fixed)
-					if (i == HWall4 && x + 1 < DMAXX) {
-						if (TileDecorations[dungeon[x + 1][y]] != HWall2 || Protected.test(x + 1, y))
-							i = HWall2;
-						else
-							dungeon[x + 1][y] = HWall5;
-					}
-					dungeon[x][y] = i;
-				}
+			if (Protected.test(x, y))
+				continue;
+
+			uint8_t base = DecorationBaseTiles[dungeon[x][y]];
+			if (base == 0)
+				continue;
+
+			int variant = GenerateRnd(16);
+
+			int decoration = -1;
+			while (variant >= 0) {
+				decoration++;
+				if (decoration == sizeof(DecorationBaseTiles))
+					decoration = 0;
+				if (base == DecorationBaseTiles[decoration])
+					variant--;
 			}
+
+			dungeon[x][y] = decoration;
 		}
 	}
 }
