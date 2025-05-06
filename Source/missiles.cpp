@@ -3650,6 +3650,7 @@ void ProcessStoneCurse(Missile &missile)
 			monster.animInfo.isPetrified = false;
 		} else {
 			AddCorpse(monster.position.tile, stonendx, monster.direction);
+			M_UpdateRelations(monster);
 		}
 	}
 	if (missile._miAnimType == MissileGraphicID::StoneCurseShatter)
