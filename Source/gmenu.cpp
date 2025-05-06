@@ -353,7 +353,13 @@ bool gmenu_left_mouse(bool isDown)
 		return true;
 	}
 	sgpCurrItem = pItem;
-	PlaySFX(SfxID::MenuMove);
+	
+	// Do not play a duplicate sound if we are clicking on the sound slider.
+	// CurrentMenuId == 5 is the options menu, i == 1 is the sound slider.
+	if ((sgCurrentMenuIdx != 5) || (i != 1)) {
+		PlaySFX(SfxID::MenuMove);
+	}
+	
 	if (pItem->isSlider()) {
 		isDraggingSlider = GmenuMouseIsOverSlider();
 		gmenu_on_mouse_move();
