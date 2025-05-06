@@ -57,7 +57,7 @@
 namespace devilution {
 
 OptionalOwnedClxSpriteList ArtLogo;
-OptionalOwnedClxSpriteList DifficultyIndicator;
+std::array<OptionalOwnedClxSpriteList, 2> DifficultyIndicator;
 
 std::array<OptionalOwnedClxSpriteList, 3> ArtFocus;
 
@@ -551,7 +551,8 @@ void LoadUiGFX()
 	} else {
 		ArtLogo = LoadPcxSpriteList("ui_art\\smlogo", /*numFrames=*/15, /*transparentColor=*/250);
 	}
-	DifficultyIndicator = LoadPcx("ui_art\\r1_gry", /*transparentColor=*/0);
+	DifficultyIndicator[0] = LoadPcx("ui_art\\radio1", /*transparentColor=*/0);
+	DifficultyIndicator[1] = LoadPcx("ui_art\\radio3", /*transparentColor=*/0);
 	ArtFocus[FOCUS_SMALL] = LoadPcxSpriteList("ui_art\\focus16", /*numFrames=*/8, /*transparentColor=*/250);
 	ArtFocus[FOCUS_MED] = LoadPcxSpriteList("ui_art\\focus", /*numFrames=*/8, /*transparentColor=*/250);
 	ArtFocus[FOCUS_BIG] = LoadPcxSpriteList("ui_art\\focus42", /*numFrames=*/8, /*transparentColor=*/250);
@@ -579,7 +580,8 @@ void UnloadUiGFX()
 	for (auto &art : ArtFocus)
 		art = std::nullopt;
 	ArtLogo = std::nullopt;
-	DifficultyIndicator = std::nullopt;
+	for (auto &diffInd : DifficultyIndicator)
+		diffInd = std::nullopt;
 }
 
 void UiInitialize()
