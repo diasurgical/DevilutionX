@@ -6,7 +6,7 @@
 #include <SFML/Network.hpp>
 
 #pragma warning(push, 0)
-#include "..\Messages\generated\message.pb.h"
+#include "message.pb.h"
 #pragma warning(pop)
 
 namespace DAPI {

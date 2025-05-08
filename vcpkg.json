@@ -5,7 +5,8 @@
 		"fmt",
 		"bzip2",
 		"lua",
-		"protobuf"
+		"protobuf",
+		"sfml"
 	],
 	"builtin-baseline": "533a5fda5c0646d1771345fb572e759283444d5f",
 	"features": {

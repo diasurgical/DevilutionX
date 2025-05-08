@@ -1,3 +1,5 @@
+#include <thread>
+
 #include "DAPIProtoClient.h"
 
 namespace DAPI {

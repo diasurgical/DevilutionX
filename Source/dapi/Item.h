@@ -1,5 +1,4 @@
 #pragma once
-#include <Windows.h>
 
 #include "../items.h"
 
@@ -18,7 +17,7 @@ struct ItemData {
 	int _ix;
 	int _iy;
 
-	BOOL _iIdentified;
+	uint32_t _iIdentified;
 	char _iMagical;
 	char _iName[64];
 	char _iIName[64];
@@ -66,7 +65,7 @@ struct ItemData {
 	char _iMinStr;
 	char _iMinMag;
 	char _iMinDex;
-	BOOL _iStatFlag;
+	uint32_t _iStatFlag;
 	int IDidx;
 };
 } // namespace DAPI

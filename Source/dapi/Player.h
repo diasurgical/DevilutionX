@@ -21,9 +21,9 @@ struct PlayerData {
 	char _pRSplType;
 
 	char _pSplLvl[64];
-	unsigned __int64 _pMemSpells;
-	unsigned __int64 _pAblSpells;
-	unsigned __int64 _pScrlSpells;
+	uint64_t _pMemSpells;
+	uint64_t _pAblSpells;
+	uint64_t _pScrlSpells;
 
 	char _pName[32];
 	char _pClass;

@@ -642,29 +642,16 @@ if(DISCORD_INTEGRATION)
   )
 endif()
 
-list(APPEND libdevilutionx_SRCS 
+list(APPEND libdevilutionx_SRCS
    dapi/Server.cpp
    dapi/Backend/DAPIBackendCore/DAPIProtoClient.cpp
-   dapi/Backend/DAPIBackendCore/SFML/Network/IpAddress.cpp
-   dapi/Backend/DAPIBackendCore/SFML/Network/Packet.cpp
-   dapi/Backend/DAPIBackendCore/SFML/Network/Socket.cpp
-   dapi/Backend/DAPIBackendCore/SFML/Network/SocketSelector.cpp
-   dapi/Backend/DAPIBackendCore/SFML/Network/TcpListener.cpp
-   dapi/Backend/DAPIBackendCore/SFML/Network/TcpSocket.cpp
-   dapi/Backend/DAPIBackendCore/SFML/Network/UdpSocket.cpp
-   dapi/Backend/DAPIBackendCore/SFML/Network/Win32/SocketImplWin32.cpp
-   dapi/Backend/Messages/generated/command.pb.cc
-   dapi/Backend/Messages/generated/data.pb.cc
-   dapi/Backend/Messages/generated/game.pb.cc
-   dapi/Backend/Messages/generated/init.pb.cc
-   dapi/Backend/Messages/generated/message.pb.cc
    dapi/Backend/Messages/command.proto
    dapi/Backend/Messages/data.proto
    dapi/Backend/Messages/game.proto
    dapi/Backend/Messages/init.proto
    dapi/Backend/Messages/message.proto)
 
- if(SCREEN_READER_INTEGRATION)
+if(SCREEN_READER_INTEGRATION)
   list(APPEND libdevilutionx_SRCS
     utils/screen_reader.cpp
   )
@@ -816,16 +803,25 @@ find_package(Protobuf REQUIRED)
 
 target_link_libraries(libdevilutionx PUBLIC protobuf::libprotobuf-lite)
 find_package(absl REQUIRED)
-set(PROTO_BINARY_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Source/dapi/Backend/Messages/generated")
+set(PROTO_BINARY_DIR "${CMAKE_BINARY_DIR}/generated")
+
+file(MAKE_DIRECTORY ${PROTO_BINARY_DIR})
+
+target_include_directories(libdevilutionx PRIVATE ${Protobuf_INCLUDE_DIRS})
+
+# Generate the protobuf files into the 'generated' directory within the build tree
+protobuf_generate(
+    TARGET libdevilutionx
+    IMPORT_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/dapi/Backend/Messages"
+    PROTOC_OUT_DIR "${PROTO_BINARY_DIR}"
+)
+
+# Make sure the generated protobuf files are correctly included in the build
 target_include_directories(libdevilutionx PUBLIC "$<BUILD_INTERFACE:${PROTO_BINARY_DIR}>")
-
-#this was generating the .pb.cc/.pb.hh files for protobuf messages earlier but breaks in this current setup
-#files are already generated at the moment so commenting this allows project to build.
-#protobuf_generate(
-#    TARGET libdevilutionx
-#    IMPORT_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/Source/dapi/Backend/Messages"
-#    PROTOC_OUT_DIR "${PROTO_BINARY_DIR}")
-
-#include_directories("${CMAKE_CURRENT_SOURCE_DIR}/Source/dapi/Backend/DAPIBackendCore")
+include_directories("${PROTO_BINARY_DIR}/dapi/Backend/Messages")
 
 target_include_directories(libdevilutionx PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/dapi/Backend/DAPIBackendCore")
+
+find_package(SFML 2.5 REQUIRED network system)
+
+target_link_libraries(libdevilutionx PUBLIC sfml-network sfml-system)

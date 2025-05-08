@@ -1,3 +1,5 @@
+#include <thread>
+
 #include "Server.h"
 
 
@@ -239,9 +241,9 @@ void Server::updateGameData()
 
 		data->itemList[itemID]._iIdentified = item->_iIdentified;
 		data->itemList[itemID]._iMagical = item->_iMagical;
-		strcpy_s(data->itemList[itemID]._iName, item->_iName);
+		strcpy(data->itemList[itemID]._iName, item->_iName);
 		if (data->itemList[itemID]._iIdentified) {
-			strcpy_s(data->itemList[itemID]._iIName, item->_iIName);
+			strcpy(data->itemList[itemID]._iIName, item->_iIName);
 
 			data->itemList[itemID]._iFlags = static_cast<int>(item->_iFlags);
 			data->itemList[itemID]._iPrePower = item->_iPrePower;
@@ -267,7 +269,7 @@ void Server::updateGameData()
 			data->itemList[itemID]._iLMinDam = item->_iLMinDam;
 			data->itemList[itemID]._iLMaxDam = item->_iLMaxDam;
 		} else {
-			strcpy_s(data->itemList[itemID]._iName, item->_iName);
+			strcpy(data->itemList[itemID]._iName, item->_iName);
 
 			data->itemList[itemID]._iFlags = -1;
 			data->itemList[itemID]._iPrePower = -1;
@@ -330,11 +332,11 @@ void Server::updateGameData()
 
 		data->itemList[itemID]._iIdentified = item->_iIdentified;
 		data->itemList[itemID]._iMagical = item->_iMagical;
-		strcpy_s(data->itemList[itemID]._iName, item->_iName);
+		strcpy(data->itemList[itemID]._iName, item->_iName);
 		if (data->itemList[itemID]._iIdentified)
-			strcpy_s(data->itemList[itemID]._iIName, item->_iIName);
+			strcpy(data->itemList[itemID]._iIName, item->_iIName);
 		else
-			strcpy_s(data->itemList[itemID]._iName, item->_iName);
+			strcpy(data->itemList[itemID]._iName, item->_iName);
 		data->itemList[itemID]._iFlags = -1;
 		data->itemList[itemID]._iPrePower = -1;
 		data->itemList[itemID]._iSufPower = -1;
@@ -901,8 +903,8 @@ void Server::updateGameData()
 
 		data->itemList[itemID]._iIdentified = -1;
 		data->itemList[itemID]._iMagical = -1;
-		strcpy_s(data->itemList[itemID]._iName, "");
-		strcpy_s(data->itemList[itemID]._iIName, "");
+		strcpy(data->itemList[itemID]._iName, "");
+		strcpy(data->itemList[itemID]._iIName, "");
 		data->itemList[itemID]._iFlags = -1;
 		data->itemList[itemID]._iPrePower = -1;
 		data->itemList[itemID]._iSufPower = -1;
@@ -1052,7 +1054,7 @@ void Server::updateGameData()
 
 	if (devilution::currlevel != 0) {
 		for (auto &townerData : data->townerList) {
-			strcpy_s(townerData._tName, "");
+			strcpy(townerData._tName, "");
 			townerData._tx = -1;
 			townerData._ty = -1;
 		}
@@ -1077,12 +1079,12 @@ void Server::updateGameData()
 					memcpy(data->townerList[townerID]._tName, devilution::Towners[i].name.data(), devilution::Towners[i].name.size());
 					data->townerList[townerID]._tName[devilution::Towners[i].name.size()] = '\0';
 				}
-				// strcpy_s(data->townerList[townerID]._tName, devilution::Towners[i].name); old code but with devilution subbed in for reference.
+				// strcpy(data->townerList[townerID]._tName, devilution::Towners[i].name); old code but with devilution subbed in for reference.
 			} else {
 				data->townerList[townerID]._ttype = static_cast<devilution::_talker_id>(devilution::Towners[i]._ttype);
 				data->townerList[townerID]._tx = -1;
 				data->townerList[townerID]._ty = -1;
-				strcpy_s(data->townerList[townerID]._tName, "");
+				strcpy(data->townerList[townerID]._tName, "");
 			}
 		}
 	}
@@ -1237,7 +1239,7 @@ void Server::updateGameData()
 			m->set_sy(-1);
 		}
 	};
-	
+
 	if (devilution::Players[devilution::MyPlayerId].plrlevel != 0) {
 		for (int i = 0; i < devilution::ActiveObjectCount; i++) {
 			if (isOnScreen(devilution::Objects[devilution::ActiveObjects[i]].position.x, devilution::Objects[devilution::ActiveObjects[i]].position.y) && devilution::dObject[devilution::Objects[devilution::ActiveObjects[i]].position.x][devilution::Objects[devilution::ActiveObjects[i]].position.y] == devilution::ActiveObjects[i] + 1) {
@@ -1458,7 +1460,7 @@ void Server::buyItem(int itemID)
 		devilution::OldTextLine = devilution::CurrentTextLine;
 		devilution::OldScrollPos = devilution::ScrollPos;
 		devilution::OldActiveStore = devilution::ActiveStore;
-		
+
 
 		if (!devilution::PlayerCanAfford(devilution::WitchItems[idx]._iIvalue)) {
 			devilution::StartStore(devilution::TalkID::NoMoney);
@@ -2308,7 +2310,7 @@ void Server::cancelQText()
 	if (!data->qtextflag)
 		return;
 
-	devilution::qtextflag = FALSE;
+	devilution::qtextflag = false;
 	data->qtextflag = false;
 	devilution::stream_stop();
 }
