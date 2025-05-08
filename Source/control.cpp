@@ -422,12 +422,6 @@ void AppendArenaOverview(std::string &ret)
 	}
 }
 
-const dungeon_type DungeonTypeForArena[] = {
-	dungeon_type::DTYPE_CATHEDRAL, // SL_ARENA_CHURCH
-	dungeon_type::DTYPE_HELL,      // SL_ARENA_HELL
-	dungeon_type::DTYPE_HELL,      // SL_ARENA_CIRCLE_OF_LIFE
-};
-
 std::string TextCmdArena(const std::string_view parameter)
 {
 	std::string ret;
@@ -455,7 +449,7 @@ std::string TextCmdArena(const std::string_view parameter)
 		return ret;
 	}
 
-	setlvltype = DungeonTypeForArena[arenaLevel - SL_FIRST_ARENA];
+	setlvltype = GetArenaLevelType(arenaLevel);
 	StartNewLvl(*MyPlayer, WM_DIABSETLVL, arenaLevel);
 	return ret;
 }

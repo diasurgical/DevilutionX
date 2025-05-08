@@ -39,6 +39,7 @@
 #include "pack.h"
 #include "pfile.h"
 #include "plrmsg.h"
+#include "portals/validation.hpp"
 #include "spells.h"
 #include "storm/storm_net.hpp"
 #include "sync.h"
@@ -288,6 +289,12 @@ Item ItemLimbo;
 
 /** @brief Last sent player command for the local player. */
 TCmdLocParam5 lastSentPlayerCmd;
+
+bool IsPortalDeltaValid(const DPortal &portal)
+{
+	const WorldTilePosition position { portal.x, portal.y };
+	return IsPortalDeltaValid(position, portal.level, portal.ltype, portal.setlvl);
+}
 
 uint8_t GetLevelForMultiplayer(uint8_t level, bool isSetLevel)
 {
@@ -689,6 +696,8 @@ const std::byte *DeltaImportJunk(const std::byte *src, const std::byte *end)
 			if (src + sizeof(DPortal) > end)
 				return nullptr;
 			memcpy(&sgJunk.portal[i], src, sizeof(DPortal));
+			if (!IsPortalDeltaValid(sgJunk.portal[i]))
+				memset(&sgJunk.portal[i], 0xFF, sizeof(DPortal));
 			src += sizeof(DPortal);
 		}
 	}

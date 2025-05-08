@@ -142,6 +142,8 @@ set(libdevilutionx_SRCS
 
   platform/locale.cpp
 
+  portals/validation.cpp
+
   qol/autopickup.cpp
   qol/chatlog.cpp
   qol/floatingnumbers.cpp
