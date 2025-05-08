@@ -26,6 +26,7 @@
 #include "controls/keymapper.hpp"
 #include "controls/plrctrls.h"
 #include "controls/remap_keyboard.h"
+#include "dapi/Server.h"
 #include "diablo.h"
 #include "diablo_msg.hpp"
 #include "discord/discord.h"
@@ -131,6 +132,8 @@ int PauseMode;
 clicktype sgbMouseDown;
 uint16_t gnTickDelay = 50;
 char gszProductName[64] = "DevilutionX vUnknown";
+
+DAPI::Server dapiServer;
 
 #ifdef _DEBUG
 bool DebugDisableNetworkTimeout = false;
@@ -1458,6 +1461,7 @@ void GameLogic()
 	if (!ProcessInput()) {
 		return;
 	}
+	dapiServer.update();
 	if (gbProcessPlayers) {
 		gGameLogicStep = GameLogicStep::ProcessPlayers;
 		ProcessPlayers();

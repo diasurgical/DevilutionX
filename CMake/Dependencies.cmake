@@ -56,6 +56,20 @@ if(SCREEN_READER_INTEGRATION)
   endif()
 endif()
 
+
+
+
+
+#find_package(Protobuf REQUIRED)
+#target_link_libraries(${NAME} PRIVATE protobuf::libprotobuf-lite)
+#find_package(Protobuf CONFIG REQUIRED)
+#protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS "Source/dapi/Backend/Messages/command.proto")
+#protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS Source/dapi/Backend/Messages/data.proto)
+#protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS Source/dapi/Backend/Messages/game.proto)
+#protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS Source/dapi/Backend/Messages/init.proto)
+#protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS Source/dapi/Backend/Messages/message.proto)
+#target_link_libraries(${NAME} PRIVATE protobuf)#::libprotobuf)
+
 if(EMSCRIPTEN)
   # We use `USE_PTHREADS=1` here to get a version of SDL2 that supports threads.
   emscripten_system_library("SDL2" SDL2::SDL2 USE_SDL=2 USE_PTHREADS=1)

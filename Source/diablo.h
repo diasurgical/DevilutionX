@@ -79,6 +79,7 @@ extern clicktype sgbMouseDown;
 extern uint16_t gnTickDelay;
 extern char gszProductName[64];
 
+
 extern MouseActionType LastMouseButtonAction;
 
 void InitKeymapActions();
