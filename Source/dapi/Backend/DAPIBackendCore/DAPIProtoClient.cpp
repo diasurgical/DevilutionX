@@ -44,7 +44,7 @@ void DAPIProtoClient::checkForConnection()
 	initResponse->set_port(static_cast<int>(connectionPort));
 
 	packet.clear();
-	size = reply->ByteSize();
+	size = reply->ByteSizeLong();
 	std::unique_ptr<char[]> buffer(new char[size]);
 
 	reply->SerializeToArray(&buffer[0], static_cast<int>(size));
@@ -64,11 +64,10 @@ void DAPIProtoClient::lookForServer()
 		return;
 
 	sf::Packet packet;
-	bool skip = false;
 	auto broadcastMessage = std::make_unique<dapi::message::Message>();
-	auto initResponse = broadcastMessage->mutable_initbroadcast();
+	broadcastMessage->mutable_initbroadcast();
 
-	auto size = broadcastMessage->ByteSize();
+	auto size = broadcastMessage->ByteSizeLong();
 	std::unique_ptr<char[]> buffer(new char[size]);
 
 	broadcastMessage->SerializeToArray(&buffer[0], size);
@@ -117,7 +116,7 @@ void DAPIProtoClient::transmitMessages()
 		packet.clear();
 		currentMessage = std::move(messageQueue.front());
 		messageQueue.pop_front();
-		auto size = currentMessage->ByteSize();
+		auto size = currentMessage->ByteSizeLong();
 		if (size > 0) {
 			std::unique_ptr<char[]> buffer(new char[size]);
 			currentMessage->SerializeToArray(&buffer[0], size);
@@ -134,7 +133,7 @@ void DAPIProtoClient::transmitMessages()
 	currentMessage = std::make_unique<dapi::message::Message>();
 	currentMessage->mutable_endofqueue();
 	packet.clear();
-	auto size = currentMessage->ByteSize();
+	auto size = currentMessage->ByteSizeLong();
 	std::unique_ptr<char[]> buffer(new char[size]);
 	currentMessage->SerializeToArray(&buffer[0], size);
 	packet.append(buffer.get(), size);

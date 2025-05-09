@@ -11,7 +11,7 @@ struct ItemData {
 
 	int ID;
 
-	int _iSeed;
+	uint32_t _iSeed;
 	int _iCreateInfo;
 	int _itype;
 	int _ix;

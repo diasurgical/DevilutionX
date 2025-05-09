@@ -5,9 +5,7 @@
 
 #include <SFML/Network.hpp>
 
-#pragma warning(push, 0)
 #include "message.pb.h"
-#pragma warning(pop)
 
 namespace DAPI {
 struct DAPIProtoClient {

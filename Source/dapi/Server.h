@@ -226,10 +226,10 @@ private:
 	void setSpell(int spellID, devilution::SpellType spellType);
 	void castSpell(int index);
 	void toggleInventory();
-	void putInCursor(int itemID);
+	void putInCursor(size_t itemID);
 	void putCursorItem(int location);
 	void dropCursorItem();
-	void useItem(int itemID);
+	void useItem(size_t itemID);
 	void identifyStoreItem(int itemID);
 	void castSpell(int x, int y);
 	void cancelQText();

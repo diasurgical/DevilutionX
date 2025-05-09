@@ -117,7 +117,7 @@ void Server::processMessages()
 			} else if (command.has_talk() && this->OKToAct()) {
 				auto talkMessage = command.talk();
 				this->talk(talkMessage.targetx(), talkMessage.targety());
-			} else if (command.has_option() && this->data->stextflag) {
+			} else if (command.has_option() && devilution::ActiveStore != devilution::TalkID::None) {
 				auto option = command.option();
 				this->selectStoreOption(static_cast<StoreOption>(command.option().option()));
 			} else if (command.has_buyitem()) {
@@ -411,19 +411,15 @@ void Server::updateGameData()
 	auto message = std::make_unique<dapi::message::Message>();
 	auto update = message->mutable_frameupdate();
 
-	data->player = devilution::MyPlayerId;
-	update->set_player(data->player);
+	update->set_player(devilution::MyPlayerId);
 
-	data->stextflag = static_cast<char>(devilution::ActiveStore);
-	update->set_stextflag(data->stextflag);
-	data->pauseMode = devilution::PauseMode;
-	update->set_pausemode(data->pauseMode);
+	update->set_stextflag(static_cast<char>(devilution::ActiveStore));
+	update->set_pausemode(devilution::PauseMode);
 	if (devilution::sgpCurrentMenu != nullptr)
 		data->menuOpen = true;
 	else
 		data->menuOpen = false;
-	update->set_menuopen(data->menuOpen);
-	data->pcurs = devilution::pcurs;
+	update->set_menuopen(static_cast<int>(data->menuOpen));
 	update->set_cursor(devilution::pcurs);
 	data->chrflag = devilution::CharFlag;
 	update->set_chrflag(devilution::CharFlag);
@@ -436,7 +432,6 @@ void Server::updateGameData()
 	else
 		data->currlevel = static_cast<int>(devilution::setlvlnum);
 	update->set_currlevel(data->currlevel);
-	data->setlevel = static_cast<bool>(devilution::setlevel);
 	update->set_setlevel(devilution::setlevel);
 	if (devilution::qtextflag) {
 		std::stringstream qtextss;
@@ -453,11 +448,6 @@ void Server::updateGameData()
 		update->set_gamemode(1);
 
 	update->set_gndifficulty(devilution::sgGameInitInfo.nDifficulty);
-
-	int range = 10;
-	if (devilution::MyPlayer->isWalking()) {
-		range = 11;
-	}
 
 	for (int x = 0; x < 112; x++) {
 		for (int y = 0; y < 112; y++) {
@@ -554,7 +544,7 @@ void Server::updateGameData()
 
 	data->groundItems.clear();
 
-	for (int i = 0; i < 4; i++) {
+	for (size_t i = 0; i < 4; i++) {
 		auto playerData = update->add_playerdata();
 
 		data->playerList[i].InvBody.clear();
@@ -562,13 +552,13 @@ void Server::updateGameData()
 		data->playerList[i].pnum = i;
 		playerData->set_pnum(i);
 
-		memcpy(data->playerList[i]._pName, devilution::Players[i]._pName, 32);
-		playerData->set__pname(data->playerList[i]._pName);
-
 		for (int j = 0; j < MAXINV; j++)
 			data->playerList[i].InvList[j] = -1;
 
-		if (devilution::MyPlayerId == i) {
+		if (devilution::MyPlayerId == i && devilution::Players.size() >= i + 1) {
+			memcpy(data->playerList[i]._pName, devilution::Players[i]._pName, 32);
+			playerData->set__pname(data->playerList[i]._pName);
+
 			data->playerList[i]._pmode = devilution::Players[i]._pmode;
 			data->playerList[i].plrlevel = devilution::Players[i].plrlevel;
 			data->playerList[i]._px = devilution::Players[i].position.tile.x;
@@ -621,8 +611,8 @@ void Server::updateGameData()
 					continue;
 				}
 
-				int itemID = static_cast<int>(data->itemList.size());
-				for (int k = 0; k < data->itemList.size(); k++) {
+				size_t itemID = data->itemList.size();
+				for (size_t k = 0; k < data->itemList.size(); k++) {
 					if (data->itemList[k].compare(devilution::Players[i].InvBody[j])) {
 						itemID = k;
 						break;
@@ -637,8 +627,8 @@ void Server::updateGameData()
 			for (int j = 0; j < MAXINV; j++) {
 				auto index = devilution::Players[i].InvGrid[j];
 				if (index != 0) {
-					int itemID = static_cast<int>(data->itemList.size());
-					for (int k = 0; k < data->itemList.size(); k++) {
+					size_t itemID = data->itemList.size();
+					for (size_t k = 0; k < data->itemList.size(); k++) {
 						if (data->itemList[k].compare(devilution::Players[i].InvList[abs(index) - 1])) {
 							itemID = k;
 							break;
@@ -661,8 +651,8 @@ void Server::updateGameData()
 					continue;
 				}
 
-				int itemID = static_cast<int>(data->itemList.size());
-				for (int k = 0; k < data->itemList.size(); k++) {
+				size_t itemID = data->itemList.size();
+				for (size_t k = 0; k < data->itemList.size(); k++) {
 					if (data->itemList[k].compare(devilution::Players[i].SpdList[j])) {
 						itemID = k;
 						break;
@@ -676,8 +666,8 @@ void Server::updateGameData()
 			if (devilution::pcurs < 12)
 				data->playerList[i].HoldItem = -1;
 			else {
-				int itemID = static_cast<int>(data->itemList.size());
-				for (int j = 0; j < data->itemList.size(); j++) {
+				size_t itemID = data->itemList.size();
+				for (size_t j = 0; j < data->itemList.size(); j++) {
 					if (data->itemList[j].compare(devilution::Players[i].HoldItem)) {
 						itemID = j;
 						break;
@@ -697,7 +687,10 @@ void Server::updateGameData()
 			data->playerList[i]._pIBonusAC = devilution::Players[i]._pIBonusAC;
 			data->playerList[i]._pIBonusDamMod = devilution::Players[i]._pIBonusDamMod;
 			data->playerList[i].pManaShield = devilution::Players[i].pManaShield;
-		} else if (devilution::IsTileLit(devilution::Point { devilution::Players[i].position.tile.x, devilution::Players[i].position.tile.y })) {
+		} else if (devilution::Players.size() >= i + 1 && devilution::IsTileLit(devilution::Point { devilution::Players[i].position.tile.x, devilution::Players[i].position.tile.y })) {
+			memcpy(data->playerList[i]._pName, devilution::Players[i]._pName, 32);
+			playerData->set__pname(data->playerList[i]._pName);
+
 			data->playerList[i]._pmode = devilution::Players[i]._pmode;
 			data->playerList[i].plrlevel = devilution::Players[i].plrlevel;
 			data->playerList[i]._px = devilution::Players[i].position.tile.x;
@@ -761,6 +754,9 @@ void Server::updateGameData()
 			data->playerList[i]._pIBonusDamMod = -1;
 			data->playerList[i].pManaShield = devilution::Players[i].pManaShield;
 		} else {
+			memset(data->playerList[i]._pName, 0, 32);
+			playerData->set__pname(data->playerList[i]._pName);
+
 			data->playerList[i]._pmode = 0;
 			data->playerList[i].plrlevel = -1;
 			data->playerList[i]._px = -1;
@@ -950,8 +946,8 @@ void Server::updateGameData()
 	};
 
 	for (int i = 0; i < devilution::ActiveItemCount; i++) {
-		int itemID = static_cast<int>(data->itemList.size());
-		for (int j = 0; j < data->itemList.size(); j++) {
+		size_t itemID = static_cast<int>(data->itemList.size());
+		for (size_t j = 0; j < data->itemList.size(); j++) {
 			if (data->itemList[j].compare(devilution::Items[devilution::ActiveItems[i]])) {
 				itemID = j;
 				break;
@@ -1023,6 +1019,8 @@ void Server::updateGameData()
 		currentItem = &devilution::BoyItem;
 		shiftValue = true;
 		break;
+	default:
+		break;
 	}
 	for (int i = 0; i < storeLoopMax; i++) {
 		if (currentItem->_itype != devilution::ItemType::None) {
@@ -1061,7 +1059,7 @@ void Server::updateGameData()
 	} else {
 		for (auto i = 0; i < NUM_TOWNERS; i++) {
 			auto townerID = data->townerList.size();
-			for (int j = 0; j < data->townerList.size(); j++) {
+			for (size_t j = 0; j < data->townerList.size(); j++) {
 				if (data->townerList[j]._ttype == devilution::Towners[i]._ttype) {
 					townerID = j;
 					break;
@@ -1158,7 +1156,7 @@ void Server::updateGameData()
 	for (auto &itemID : data->groundItems)
 		update->add_grounditemid(itemID);
 
-	for (int i = 0; i < devilution::ActiveMonsterCount; i++) {
+	for (size_t i = 0; i < devilution::ActiveMonsterCount; i++) {
 		if (isOnScreen(devilution::Monsters[devilution::ActiveMonsters[i]].position.tile.x, devilution::Monsters[devilution::ActiveMonsters[i]].position.tile.y) && devilution::HasAnyOf(devilution::dFlags[devilution::Monsters[devilution::ActiveMonsters[i]].position.tile.x][devilution::Monsters[devilution::ActiveMonsters[i]].position.tile.y], devilution::DungeonFlag::Lit) && !(devilution::Monsters[devilution::ActiveMonsters[i]].flags & 0x01)) {
 			auto m = update->add_monsterdata();
 			m->set_index(devilution::ActiveMonsters[i]);
@@ -1200,6 +1198,8 @@ void Server::updateGameData()
 		case devilution::_object_id::OBJ_L3RDOOR:
 			o->set_doorstate(ob._oVar4);
 			break;
+		default:
+			break;
 		}
 		if (devilution::Players[devilution::MyPlayerId]._pClass == devilution::HeroClass::Rogue)
 			o->set_trapped(ob._oTrapFlag);
@@ -1214,7 +1214,6 @@ void Server::updateGameData()
 		m->set_y(ms.position.tile.y);
 		m->set_xvel(ms.position.velocity.deltaX);
 		m->set_yvel(ms.position.velocity.deltaY);
-		bool addSource = false;
 		switch (ms.sourceType()) {
 		case devilution::MissileSource::Monster:
 			if (isOnScreen(ms.sourceMonster()->position.tile.x, ms.sourceMonster()->position.tile.y)) {
@@ -1273,8 +1272,8 @@ void Server::updateGameData()
 bool Server::isOnScreen(int x, int y)
 {
 	bool returnValue = false;
-	int dx = data->playerList[data->player]._px - x;
-	int dy = data->playerList[data->player]._py - y;
+	int dx = data->playerList[devilution::MyPlayerId]._px - x;
+	int dy = data->playerList[devilution::MyPlayerId]._py - y;
 	if (!devilution::CharFlag) {
 		if (dy > 0) {
 			if (dx < 1 && abs(dx) + abs(dy) < 11)
@@ -1295,7 +1294,7 @@ bool Server::isOnScreen(int x, int y)
 
 bool Server::OKToAct()
 {
-	return !data->stextflag && data->pcurs == 1 && !data->qtextflag;
+	return devilution::ActiveStore == devilution::TalkID::None && devilution::pcurs == 1 && !data->qtextflag;
 }
 
 void Server::move(int x, int y)
@@ -1318,15 +1317,14 @@ void Server::selectStoreOption(StoreOption option)
 {
 	switch (option) {
 	case StoreOption::TALK:
-		switch (devilution::ActiveStore) {
-		case devilution::TalkID::Witch:
+		if (devilution::ActiveStore == devilution::TalkID::Witch) {
 			devilution::PlaySFX(devilution::SfxID::MenuSelect);
 			devilution::OldTextLine = 12;
 			devilution::TownerId = devilution::_talker_id::TOWN_WITCH;
 			devilution::OldActiveStore = devilution::TalkID::Witch;
 			devilution::StartStore(devilution::TalkID::Gossip);
-			break;
 		}
+		break;
 	case StoreOption::IDENTIFYANITEM:
 		if (devilution::ActiveStore == devilution::TalkID::Storyteller) {
 			devilution::PlaySFX(devilution::SfxID::MenuSelect);
@@ -1346,6 +1344,8 @@ void Server::selectStoreOption(StoreOption option)
 		case devilution::TalkID::Witch:
 			devilution::PlaySFX(devilution::SfxID::MenuSelect);
 			devilution::ActiveStore = devilution::TalkID::None;
+		default:
+			break;
 		}
 		break;
 	case StoreOption::BUYITEMS:
@@ -1357,6 +1357,8 @@ void Server::selectStoreOption(StoreOption option)
 		case devilution::TalkID::Healer:
 			devilution::PlaySFX(devilution::SfxID::MenuSelect);
 			devilution::StartStore(devilution::TalkID::HealerBuy);
+			break;
+		default:
 			break;
 		}
 		break;
@@ -1381,6 +1383,8 @@ void Server::selectStoreOption(StoreOption option)
 		case devilution::TalkID::Witch:
 			devilution::PlaySFX(devilution::SfxID::MenuSelect);
 			devilution::StartStore(devilution::TalkID::WitchSell);
+			break;
+		default:
 			break;
 		}
 		break;
@@ -1433,7 +1437,12 @@ void Server::selectStoreOption(StoreOption option)
 			devilution::PlaySFX(devilution::SfxID::MenuSelect);
 			devilution::StartStore(devilution::TalkID::Storyteller);
 			break;
+		default:
+			break;
 		}
+		break;
+	default:
+		break;
 	}
 }
 
@@ -1912,6 +1921,8 @@ void Server::increaseStat(CommandType commandType)
 		case devilution::HeroClass::Sorcerer:
 			maxValue = 45;
 			break;
+		default:
+			break;
 		}
 		if (devilution::Players[devilution::MyPlayerId]._pBaseStr < maxValue) {
 			devilution::NetSendCmdParam1(true, devilution::_cmd_id::CMD_ADDSTR, 1);
@@ -1928,6 +1939,8 @@ void Server::increaseStat(CommandType commandType)
 			break;
 		case devilution::HeroClass::Sorcerer:
 			maxValue = 250;
+			break;
+		default:
 			break;
 		}
 		if (devilution::Players[devilution::MyPlayerId]._pBaseMag < maxValue) {
@@ -1946,6 +1959,8 @@ void Server::increaseStat(CommandType commandType)
 		case devilution::HeroClass::Sorcerer:
 			maxValue = 85;
 			break;
+		default:
+			break;
 		}
 		if (devilution::Players[devilution::MyPlayerId]._pBaseDex < maxValue) {
 			devilution::NetSendCmdParam1(true, devilution::_cmd_id::CMD_ADDDEX, 1);
@@ -1957,10 +1972,7 @@ void Server::increaseStat(CommandType commandType)
 		case devilution::HeroClass::Warrior:
 			maxValue = 100;
 			break;
-		case devilution::HeroClass::Rogue:
-			maxValue = 80;
-			break;
-		case devilution::HeroClass::Sorcerer:
+		default:
 			maxValue = 80;
 			break;
 		}
@@ -1968,6 +1980,9 @@ void Server::increaseStat(CommandType commandType)
 			devilution::NetSendCmdParam1(true, devilution::_cmd_id::CMD_ADDVIT, 1);
 			devilution::Players[devilution::MyPlayerId]._pStatPts -= 1;
 		}
+		break;
+	default:
+		break;
 	}
 }
 
@@ -1978,7 +1993,7 @@ void Server::getItem(int itemID)
 
 	bool found = false;
 
-	for (auto i = 0; i < data->groundItems.size(); i++) {
+	for (size_t i = 0; i < data->groundItems.size(); i++) {
 		if (data->groundItems[i] == itemID)
 			found = true;
 		if (found)
@@ -2064,7 +2079,7 @@ void Server::toggleInventory()
 	devilution::invflag = !devilution::invflag;
 }
 
-void Server::putInCursor(int itemID)
+void Server::putInCursor(size_t itemID)
 {
 	if (!OKToAct())
 		return;
@@ -2112,6 +2127,8 @@ void Server::putInCursor(int itemID)
 					mx = devilution::InvRect[19].position.x + 1;
 					my = devilution::InvRect[19].position.y - 1;
 					break;
+				default:
+					break;
 				}
 				break;
 			}
@@ -2132,7 +2149,6 @@ void Server::putInCursor(int itemID)
 			}
 		} else {
 			if (item.compare(devilution::Players[devilution::MyPlayerId].SpdList[i - 47]) && devilution::Players[devilution::MyPlayerId].SpdList[i - 47]._itype != devilution::ItemType::None) {
-				int index = 18 + i;
 				mx = 210 + (i - 47) * 30;
 				my = 370;
 				break;
@@ -2151,7 +2167,7 @@ void Server::putCursorItem(int location)
 	if (!data->invflag)
 		return;
 
-	if (12 <= data->pcurs && equipLocation <= EquipSlot::BELT8) {
+	if (12 <= devilution::pcurs && equipLocation <= EquipSlot::BELT8) {
 		mx = 0;
 		my = 0;
 		switch (equipLocation) {
@@ -2189,7 +2205,6 @@ void Server::putCursorItem(int location)
 				mx = devilution::InvRect[index].position.x + 2;
 				my = devilution::InvRect[index].position.y - 20;
 			} else {
-				int index = 18 + location;
 				mx = 210 + (location - 47) * 30;
 				my = 370;
 			}
@@ -2204,13 +2219,13 @@ void Server::dropCursorItem()
 	if (!isOnScreen(devilution::Players[devilution::MyPlayerId].position.tile.x, devilution::Players[devilution::MyPlayerId].position.tile.y))
 		return;
 
-	if (12 <= data->pcurs) {
+	if (12 <= devilution::pcurs) {
 		devilution::NetSendCmdPItem(true, devilution::_cmd_id::CMD_PUTITEM, devilution::Point { devilution::Players[devilution::MyPlayerId].position.tile.x, devilution::Players[devilution::MyPlayerId].position.tile.y }, devilution::MyPlayer->HoldItem);
 		devilution::NewCursor(devilution::cursor_id::CURSOR_HAND);
 	}
 }
 
-void Server::useItem(int itemID)
+void Server::useItem(size_t itemID)
 {
 	if (!OKToAct())
 		return;
@@ -2236,12 +2251,10 @@ void Server::useItem(int itemID)
 
 void Server::identifyStoreItem(int itemID)
 {
-	int id;
-
 	if (devilution::ActiveStore != devilution::TalkID::StorytellerIdentify)
 		return;
 
-	id = -1;
+	int id = -1;
 
 	for (int i = 0; i < 20; i++) {
 		if (data->itemList[itemID].compare(devilution::PlayerItems[i])) {
@@ -2265,7 +2278,7 @@ void Server::identifyStoreItem(int itemID)
 	} else {
 		devilution::Player &myPlayer = *devilution::MyPlayer;
 
-		int idx = devilution::PlayerItemIndexes[idx];
+		int idx = devilution::PlayerItemIndexes[id];
 		if (idx < 0) {
 			if (idx == -1)
 				myPlayer.InvBody[devilution::INVLOC_HEAD]._iIdentified = true;
@@ -2322,10 +2335,10 @@ void Server::setFPS(int newFPS)
 
 void Server::disarmTrap(int index)
 {
-	if (data->pcurs != devilution::cursor_id::CURSOR_DISARM)
+	if (devilution::pcurs != devilution::cursor_id::CURSOR_DISARM)
 		return;
 
-	if (static_cast<devilution::HeroClass>(data->playerList[data->player]._pClass) != devilution::HeroClass::Rogue)
+	if (static_cast<devilution::HeroClass>(data->playerList[devilution::MyPlayerId]._pClass) != devilution::HeroClass::Rogue)
 		return;
 
 	devilution::NetSendCmdLocParam1(true, devilution::_cmd_id::CMD_DISARMXY, devilution::Point { devilution::Objects[index].position.x, devilution::Objects[index].position.y }, index);
@@ -2333,10 +2346,10 @@ void Server::disarmTrap(int index)
 
 void Server::skillRepair(int itemID)
 {
-	if (data->pcurs != devilution::cursor_id::CURSOR_REPAIR)
+	if (devilution::pcurs != devilution::cursor_id::CURSOR_REPAIR)
 		return;
 
-	if (static_cast<devilution::HeroClass>(data->playerList[data->player]._pClass) != devilution::HeroClass::Warrior)
+	if (static_cast<devilution::HeroClass>(data->playerList[devilution::MyPlayerId]._pClass) != devilution::HeroClass::Warrior)
 		return;
 
 	if (!data->invflag)
@@ -2358,10 +2371,10 @@ void Server::skillRepair(int itemID)
 
 void Server::skillRecharge(int itemID)
 {
-	if (static_cast<devilution::cursor_id>(data->pcurs) != devilution::cursor_id::CURSOR_RECHARGE)
+	if (devilution::pcurs != devilution::cursor_id::CURSOR_RECHARGE)
 		return;
 
-	if (static_cast<devilution::HeroClass>(data->playerList[data->player]._pClass) != devilution::HeroClass::Sorcerer)
+	if (static_cast<devilution::HeroClass>(data->playerList[devilution::MyPlayerId]._pClass) != devilution::HeroClass::Sorcerer)
 		return;
 
 	for (int i = 0; i < 7; i++) {
@@ -2409,7 +2422,7 @@ void Server::quit()
 
 void Server::clearCursor()
 {
-	if (devilution::pcurs == static_cast<int>(devilution::cursor_id::CURSOR_REPAIR) || devilution::pcurs == static_cast<int>(devilution::cursor_id::CURSOR_DISARM) || devilution::pcurs == static_cast<int>(devilution::cursor_id::CURSOR_RECHARGE) || devilution::pcurs == static_cast<int>(devilution::cursor_id::CURSOR_IDENTIFY))
+	if (devilution::pcurs == devilution::cursor_id::CURSOR_REPAIR || devilution::pcurs == devilution::cursor_id::CURSOR_DISARM || devilution::pcurs == devilution::cursor_id::CURSOR_RECHARGE || devilution::pcurs == devilution::cursor_id::CURSOR_IDENTIFY)
 		devilution::NewCursor(devilution::cursor_id::CURSOR_HAND);
 
 	return;
@@ -2417,7 +2430,7 @@ void Server::clearCursor()
 
 void Server::identifyItem(int itemID)
 {
-	if (static_cast<devilution::cursor_id>(data->pcurs) != devilution::cursor_id::CURSOR_IDENTIFY)
+	if (devilution::pcurs != devilution::cursor_id::CURSOR_IDENTIFY)
 		return;
 
 	if (!data->invflag)

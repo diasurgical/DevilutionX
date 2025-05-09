@@ -25,16 +25,12 @@ enum struct StoreOption {
 };
 
 struct GameData {
-	int player;
-	char stextflag;
-	int pauseMode;
 	bool menuOpen;
 	int pcurs;
 	bool chrflag;
 	bool invflag;
 	bool qtextflag;
 	int currlevel;
-	bool setlevel;
 
 	std::map<int, PlayerData> playerList;
 	std::vector<ItemData> itemList;
