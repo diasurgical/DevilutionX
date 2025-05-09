@@ -2401,6 +2401,7 @@ void Server::saveGame()
 	if (devilution::gbIsMultiplayer || !devilution::gmenu_is_active())
 		return;
 
+	devilution::gmenu_presskeys(SDLK_DOWN);
 	devilution::gmenu_presskeys(SDLK_KP_ENTER);
 	return;
 }

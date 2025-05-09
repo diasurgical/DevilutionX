@@ -1459,6 +1459,7 @@ void UpdateMonsterLights()
 void GameLogic()
 {
 	if (!ProcessInput()) {
+		dapiServer.update(); // For game menu commands
 		return;
 	}
 	dapiServer.update();
