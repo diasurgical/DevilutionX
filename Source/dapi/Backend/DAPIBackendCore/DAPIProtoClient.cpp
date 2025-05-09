@@ -23,9 +23,9 @@ void DAPIProtoClient::checkForConnection()
 		udpbound = true;
 	}
 
-	auto sender = sf::IpAddress::Any;
+	std::optional<sf::IpAddress> sender = sf::IpAddress::Any;
 	auto port = udpSocket.getLocalPort();
-	if (udpSocket.receive(packet, sender, port) != sf::Socket::Done)
+	if (udpSocket.receive(packet, sender, port) != sf::Socket::Status::Done)
 		return;
 
 	auto size = packet.getDataSize();
@@ -47,10 +47,10 @@ void DAPIProtoClient::checkForConnection()
 	size = reply->ByteSize();
 	std::unique_ptr<char[]> buffer(new char[size]);
 
-	reply->SerializeToArray(&buffer[0], size);
+	reply->SerializeToArray(&buffer[0], static_cast<int>(size));
 	packet.append(buffer.get(), size);
 
-	udpSocket.send(packet, sender, port);
+	udpSocket.send(packet, sender.value(), port);
 	udpSocket.unbind();
 	udpbound = false;
 
@@ -74,10 +74,10 @@ void DAPIProtoClient::lookForServer()
 	broadcastMessage->SerializeToArray(&buffer[0], size);
 	packet.append(buffer.get(), size);
 
-	sf::IpAddress server = sf::IpAddress::Broadcast;
+	std::optional<sf::IpAddress> server = sf::IpAddress::Broadcast;
 	unsigned short port = 1024;
 
-	udpSocket.send(packet, server, port);
+	udpSocket.send(packet, server.value(), port);
 	server = sf::IpAddress::Any;
 	udpSocket.setBlocking(false);
 	// Sleep to give backend a chance to send the packet.
@@ -85,7 +85,7 @@ void DAPIProtoClient::lookForServer()
 		using namespace std::chrono_literals;
 		std::this_thread::sleep_for(2s);
 	}
-	if (udpSocket.receive(packet, server, port) == sf::Socket::Done) {
+	if (udpSocket.receive(packet, server, port) == sf::Socket::Status::Done) {
 		size = packet.getDataSize();
 		std::unique_ptr<char[]> replyBuffer(new char[size]);
 		memcpy(replyBuffer.get(), packet.getData(), size);
@@ -98,8 +98,8 @@ void DAPIProtoClient::lookForServer()
 
 		connectionPort = static_cast<unsigned short>(currentMessage->initresponse().port());
 
-		tcpSocket.connect(server, connectionPort);
-		if (tcpSocket.getRemoteAddress() == sf::IpAddress::None)
+		tcpSocket.connect(server.value(), connectionPort);
+		if (!tcpSocket.getRemoteAddress().has_value())
 			fprintf(stderr, "%s", "Connection failed.\n");
 	}
 }
@@ -123,7 +123,7 @@ void DAPIProtoClient::transmitMessages()
 			currentMessage->SerializeToArray(&buffer[0], size);
 			packet.append(buffer.get(), size);
 		}
-		if (tcpSocket.send(packet) != sf::Socket::Done) {
+		if (tcpSocket.send(packet) != sf::Socket::Status::Done) {
 			// Error sending message.
 			fprintf(stderr, "Failed to send a Message. Disconnecting.\n");
 			disconnect();
@@ -138,7 +138,7 @@ void DAPIProtoClient::transmitMessages()
 	std::unique_ptr<char[]> buffer(new char[size]);
 	currentMessage->SerializeToArray(&buffer[0], size);
 	packet.append(buffer.get(), size);
-	if (tcpSocket.send(packet) != sf::Socket::Done) {
+	if (tcpSocket.send(packet) != sf::Socket::Status::Done) {
 		// Error sending EndOfQueue
 		fprintf(stderr, "Failed to send end of queue message. Disconnecting.\n");
 		disconnect();
@@ -157,7 +157,7 @@ void DAPIProtoClient::receiveMessages()
 	while (true) {
 		packet.clear();
 		currentMessage = std::make_unique<dapi::message::Message>();
-		if (tcpSocket.receive(packet) != sf::Socket::Done) {
+		if (tcpSocket.receive(packet) != sf::Socket::Status::Done) {
 			fprintf(stderr, "Failed to receive message. Disconnecting.\n");
 			disconnect();
 			return;
@@ -182,7 +182,7 @@ void DAPIProtoClient::disconnect()
 void DAPIProtoClient::initListen()
 {
 	tcpListener.setBlocking(true);
-	while (tcpListener.listen(connectionPort) != sf::Socket::Done)
+	while (tcpListener.listen(connectionPort) != sf::Socket::Status::Done)
 		connectionPort = static_cast<unsigned short>(getRandomInteger(1025, 49151));
 }
 
@@ -205,7 +205,7 @@ std::unique_ptr<dapi::message::Message> DAPIProtoClient::getNextMessage()
 
 bool DAPIProtoClient::isConnected() const
 {
-	return tcpSocket.getRemoteAddress() != sf::IpAddress::None;
+	return tcpSocket.getRemoteAddress().has_value();
 }
 
 int DAPIProtoClient::messageQueueSize() const
