@@ -3021,7 +3021,7 @@ bool IsRelativeMoveOK(const Monster &monster, Point position, Direction mdir)
 	return true;
 }
 
-bool IsMonsterAvalible(const MonsterData &monsterData)
+bool IsMonsterAvailable(const MonsterData &monsterData)
 {
 	if (monsterData.availability == MonsterAvailability::Never)
 		return false;
@@ -3327,7 +3327,7 @@ tl::expected<void, std::string> GetLevelMTypes()
 			int skeletonTypeCount = 0;
 			_monster_id skeltypes[NUM_MTYPES];
 			for (_monster_id skeletonType : SkeletonTypes) {
-				if (!IsMonsterAvalible(MonstersData[skeletonType]))
+				if (!IsMonsterAvailable(MonstersData[skeletonType]))
 					continue;
 
 				skeltypes[skeletonTypeCount++] = skeletonType;
@@ -3339,7 +3339,7 @@ tl::expected<void, std::string> GetLevelMTypes()
 
 		int nt = 0;
 		for (size_t i = 0; i < MonstersData.size(); i++) {
-			if (!IsMonsterAvalible(MonstersData[i]))
+			if (!IsMonsterAvailable(MonstersData[i]))
 				continue;
 
 			typelist[nt++] = (_monster_id)i;
