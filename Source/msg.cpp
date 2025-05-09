@@ -685,7 +685,7 @@ std::byte *DeltaExportJunk(std::byte *dst)
 		sgJunk.quests[q].qstate = quest._qactive;
 		sgJunk.quests[q].qvar1 = quest._qvar1;
 		sgJunk.quests[q].qvar2 = quest._qvar2;
-		sgJunk.quests[q].qmsg = static_cast<int16_t>(quest._qmsg);
+		sgJunk.quests[q].qmsg = SDL_SwapLE16(static_cast<int16_t>(quest._qmsg));
 		memcpy(dst, &sgJunk.quests[q], sizeof(MultiQuests));
 		dst += sizeof(MultiQuests);
 		q++;
@@ -2285,7 +2285,7 @@ size_t OnSyncQuest(const TCmdQuest &message, Player &player)
 		SendPacket(player, &message, sizeof(message));
 	} else {
 		if (&player != MyPlayer && message.q < MAXQUESTS && message.qstate <= QUEST_HIVE_DONE)
-			SetMultiQuest(message.q, message.qstate, message.qlog != 0, message.qvar1, message.qvar2, message.qmsg);
+			SetMultiQuest(message.q, message.qstate, message.qlog != 0, message.qvar1, message.qvar2, SDL_SwapLE16(message.qmsg));
 	}
 
 	return sizeof(message);
@@ -2671,7 +2671,7 @@ void DeltaSyncJunk()
 			quest._qactive = sgJunk.quests[q].qstate;
 			quest._qvar1 = sgJunk.quests[q].qvar1;
 			quest._qvar2 = sgJunk.quests[q].qvar2;
-			quest._qmsg = static_cast<_speech_id>(sgJunk.quests[q].qmsg);
+			quest._qmsg = static_cast<_speech_id>(SDL_SwapLE16(sgJunk.quests[q].qmsg));
 		}
 		q++;
 	}
@@ -3071,7 +3071,7 @@ void NetSendCmdQuest(bool bHiPri, const Quest &quest)
 	cmd.qlog = quest._qlog ? 1 : 0;
 	cmd.qvar1 = quest._qvar1;
 	cmd.qvar2 = quest._qvar2;
-	cmd.qmsg = quest._qmsg;
+	cmd.qmsg = SDL_SwapLE16(quest._qmsg);
 
 	if (bHiPri)
 		NetSendHiPri(MyPlayerId, (std::byte *)&cmd, sizeof(cmd));
