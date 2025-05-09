@@ -1881,7 +1881,7 @@ void Server::operateObject(int index)
 	if (!found)
 		return;
 
-	devilution::NetSendCmdLocParam1(true, devilution::_cmd_id::CMD_OPOBJXY, devilution::Point { devilution::Objects[index].position.x, devilution::Objects[index].position.y }, index);
+	devilution::NetSendCmdLoc(devilution::MyPlayerId, true, devilution::_cmd_id::CMD_OPOBJXY, devilution::Point { devilution::Objects[index].position.x, devilution::Objects[index].position.y });
 }
 
 void Server::useBeltItem(int slot)
@@ -2338,7 +2338,7 @@ void Server::disarmTrap(int index)
 	if (static_cast<devilution::HeroClass>(data->playerList[devilution::MyPlayerId]._pClass) != devilution::HeroClass::Rogue)
 		return;
 
-	devilution::NetSendCmdLocParam1(true, devilution::_cmd_id::CMD_DISARMXY, devilution::Point { devilution::Objects[index].position.x, devilution::Objects[index].position.y }, index);
+	devilution::NetSendCmdLoc(devilution::MyPlayerId, true, devilution::_cmd_id::CMD_DISARMXY, devilution::Point { devilution::Objects[index].position.x, devilution::Objects[index].position.y });
 }
 
 void Server::skillRepair(int itemID)
