@@ -544,7 +544,7 @@ void Server::updateGameData()
 
 	data->groundItems.clear();
 
-	for (size_t i = 0; i < 4; i++) {
+	for (size_t i = 0; i < devilution::gbActivePlayers; i++) {
 		auto playerData = update->add_playerdata();
 
 		data->playerList[i].InvBody.clear();
@@ -1057,7 +1057,7 @@ void Server::updateGameData()
 			townerData._ty = -1;
 		}
 	} else {
-		for (auto i = 0; i < NUM_TOWNERS; i++) {
+		for (auto i = 0; devilution::gbIsHellfire ? i < NUM_TOWNERS : i < 10; i++) {
 			auto townerID = data->townerList.size();
 			for (size_t j = 0; j < data->townerList.size(); j++) {
 				if (data->townerList[j]._ttype == devilution::Towners[i]._ttype) {

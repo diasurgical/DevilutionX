@@ -3338,7 +3338,7 @@ tl::expected<void, std::string> GetLevelMTypes()
 		_monster_id typelist[MaxMonsters];
 
 		int nt = 0;
-		for (int i = MT_NZOMBIE; i < NUM_MTYPES; i++) {
+		for (int i = MT_NZOMBIE; i < MonstersData.size(); i++) {
 			if (!IsMonsterAvalible(MonstersData[i]))
 				continue;
 
