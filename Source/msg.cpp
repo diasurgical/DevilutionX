@@ -618,13 +618,13 @@ const std::byte *DeltaImportMonster(const std::byte *src, const std::byte *end, 
 
 std::byte *DeltaExportSpawnedMonsters(std::byte *dst, const ankerl::unordered_dense::map<size_t, DSpawnedMonster> &spawnedMonsters)
 {
-	auto &size = *reinterpret_cast<uint16_t *>(dst);
-	size = static_cast<uint16_t>(spawnedMonsters.size());
+	uint16_t size = SDL_SwapLE16(static_cast<uint16_t>(spawnedMonsters.size()));
+	memcpy(dst, &size, sizeof(uint16_t));
 	dst += sizeof(uint16_t);
 
 	for (const auto &deltaSpawnedMonster : spawnedMonsters) {
-		auto &monsterId = *reinterpret_cast<uint16_t *>(dst);
-		monsterId = static_cast<uint16_t>(deltaSpawnedMonster.first);
+		uint16_t monsterId = SDL_SwapLE16(static_cast<uint16_t>(deltaSpawnedMonster.first));
+		memcpy(dst, &monsterId, sizeof(uint16_t));
 		dst += sizeof(uint16_t);
 
 		memcpy(dst, &deltaSpawnedMonster.second, sizeof(DSpawnedMonster));
@@ -639,7 +639,10 @@ const std::byte *DeltaImportSpawnedMonsters(const std::byte *src, const std::byt
 	if (src == nullptr || src + sizeof(uint16_t) > end)
 		return nullptr;
 
-	uint16_t size = *reinterpret_cast<const uint16_t *>(src);
+	uint16_t size;
+	memcpy(&size, src, sizeof(uint16_t));
+	size = SDL_SwapLE16(size);
+	src += sizeof(uint16_t);
 	if (size > MaxMonsters)
 		return nullptr;
 
@@ -647,11 +650,12 @@ const std::byte *DeltaImportSpawnedMonsters(const std::byte *src, const std::byt
 	if (src + requiredBytes > end)
 		return nullptr;
 
-	src += sizeof(uint16_t);
-
 	for (size_t i = 0; i < size; i++) {
-		uint16_t monsterId = *reinterpret_cast<const uint16_t *>(src);
+		uint16_t monsterId;
+		memcpy(&monsterId, src, sizeof(uint16_t));
+		monsterId = SDL_SwapLE16(monsterId);
 		src += sizeof(uint16_t);
+
 		DSpawnedMonster spawnedMonster;
 		memcpy(&spawnedMonster, src, sizeof(DSpawnedMonster));
 		src += sizeof(DSpawnedMonster);
