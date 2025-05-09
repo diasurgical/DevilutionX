@@ -468,7 +468,9 @@ void Server::updateGameData()
 			trigger->set_lvl(devilution::trigs[i]._tlvl);
 			trigger->set_x(devilution::trigs[i].position.x);
 			trigger->set_y(devilution::trigs[i].position.y);
-			trigger->set_type(devilution::trigs[i]._tmsg);
+			// Adding 0x402 to the message stored in the trigger to translate to what the front end expects.
+			// The front end uses what Diablo 1.09 uses internally.
+			trigger->set_type(static_cast<int>(devilution::trigs[i]._tmsg) + 0x402);
 		}
 	}
 
