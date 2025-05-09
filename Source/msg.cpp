@@ -40,6 +40,7 @@
 #include "pfile.h"
 #include "plrmsg.h"
 #include "portals/validation.hpp"
+#include "quests/validation.hpp"
 #include "spells.h"
 #include "storm/storm_net.hpp"
 #include "sync.h"
@@ -294,6 +295,11 @@ bool IsPortalDeltaValid(const DPortal &portal)
 {
 	const WorldTilePosition position { portal.x, portal.y };
 	return IsPortalDeltaValid(position, portal.level, portal.ltype, portal.setlvl);
+}
+
+bool IsQuestDeltaValid(quest_id qidx, const MultiQuests &quest)
+{
+	return IsQuestDeltaValid(qidx, quest.qstate, quest.qlog, quest.qmsg);
 }
 
 uint8_t GetLevelForMultiplayer(uint8_t level, bool isSetLevel)
@@ -711,6 +717,9 @@ const std::byte *DeltaImportJunk(const std::byte *src, const std::byte *end)
 			return nullptr;
 		}
 		memcpy(&sgJunk.quests[q], src, sizeof(MultiQuests));
+		if (!IsQuestDeltaValid(static_cast<quest_id>(qidx), sgJunk.quests[q])) {
+			sgJunk.quests[q].qstate = QUEST_INVALID;
+		}
 		src += sizeof(MultiQuests);
 		q++;
 	}

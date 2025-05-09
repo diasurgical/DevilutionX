@@ -152,6 +152,8 @@ set(libdevilutionx_SRCS
   qol/stash.cpp
   qol/xpbar.cpp
 
+  quests/validation.cpp
+
   storm/storm_net.cpp
   storm/storm_svid.cpp
 
