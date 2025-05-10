@@ -1842,7 +1842,7 @@ size_t OnRequestSpawnGolem(const TCmdLocParam1 &message, const Player &player)
 
 	const WorldTilePosition position { message.x, message.y };
 
-	if (player.isLevelOwnedByLocalClient() && InDungeonBounds(position))
+	if (player.plrlevel > 0 && player.isLevelOwnedByLocalClient() && InDungeonBounds(position))
 		SpawnGolem(player, position, static_cast<uint8_t>(message.wParam1));
 
 	return sizeof(message);
@@ -2390,6 +2390,8 @@ size_t OnOpenGrave(const TCmd &cmd)
 size_t OnSpawnMonster(const TCmdSpawnMonster &message, const Player &player)
 {
 	if (gbBufferMsgs == 1)
+		return sizeof(message);
+	if (player.plrlevel == 0)
 		return sizeof(message);
 
 	const WorldTilePosition position { message.x, message.y };
