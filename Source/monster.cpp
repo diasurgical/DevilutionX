@@ -1679,6 +1679,17 @@ bool IsTileAvailable(Point position)
  */
 bool IsTileAccessible(const Monster &monster, Point position)
 {
+	for (const TriggerStruct &trig : trigs) {
+		if (position == trig.position && IsAnyOf(trig._tmsg, WM_DIABNEXTLVL, WM_DIABPREVLVL, WM_DIABTOWNWARP)) {
+			if (!std::any_of(Players.begin(), Players.end(), [&](const Player &player) {
+				    return position.WalkingDistance(player.position.tile) < 2;
+			    })) {
+				return false;
+			}
+			break;
+		}
+	}
+
 	if (dPlayer[position.x][position.y] != 0 || dMonster[position.x][position.y] != 0)
 		return false;
 
@@ -1695,7 +1706,9 @@ bool AiPlanWalk(Monster &monster)
 	/** Maps from walking path step to facing direction. */
 	const Direction plr2monst[9] = { Direction::South, Direction::NorthEast, Direction::NorthWest, Direction::SouthEast, Direction::SouthWest, Direction::North, Direction::East, Direction::South, Direction::West };
 
-	if (FindPath(CanStep, [&monster](Point position) { return IsTileAccessible(monster, position); }, monster.position.tile, monster.enemyPosition, path, MaxPathLengthMonsters) == 0) {
+	if (FindPath(
+	        CanStep, [&monster](Point position) { return IsTileAccessible(monster, position); }, monster.position.tile, monster.enemyPosition, path, MaxPathLengthMonsters)
+	    == 0) {
 		return false;
 	}
 
@@ -2384,17 +2397,19 @@ void GargoyleAi(Monster &monster)
 
 void ButcherAi(Monster &monster)
 {
-	if (monster.mode != MonsterMode::Stand || monster.activeForTicks == 0) {
+	if (monster.mode != MonsterMode::Stand || monster.activeForTicks == 0)
 		return;
-	}
 
-	Direction md = GetDirection(monster.position.tile, monster.position.last);
+	Direction md = GetMonsterDirection(monster);
 	monster.direction = md;
 
-	if (monster.distanceToEnemy() >= 2)
-		RandomWalk(monster, md);
-	else
+	if (monster.distanceToEnemy() >= 2) {
+		if (!AiPlanWalk(monster)) {
+			RandomWalk(monster, md);
+		}
+	} else {
 		StartAttack(monster);
+	}
 
 	monster.checkStandAnimationIsLoaded(md);
 }
