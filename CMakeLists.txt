@@ -262,6 +262,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang" AND NOT PS4)
     add_link_options("$<$<NOT:$<CONFIG:Debug>>:LINKER:-dead_strip>")
   else()
     add_link_options("$<$<NOT:$<CONFIG:Debug>>:LINKER:--gc-sections,--as-needed>")
+    add_link_options(-T "${CMAKE_CURRENT_SOURCE_DIR}/script.ld")
   endif()
 endif()
 
