@@ -642,6 +642,15 @@ if(DISCORD_INTEGRATION)
   )
 endif()
 
+list(APPEND libdevilutionx_SRCS
+   dapi/Server.cpp
+   dapi/Backend/DAPIBackendCore/DAPIProtoClient.cpp
+   dapi/Backend/Messages/command.proto
+   dapi/Backend/Messages/data.proto
+   dapi/Backend/Messages/game.proto
+   dapi/Backend/Messages/init.proto
+   dapi/Backend/Messages/message.proto)
+
 if(SCREEN_READER_INTEGRATION)
   list(APPEND libdevilutionx_SRCS
     utils/screen_reader.cpp
@@ -789,3 +798,30 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     target_link_libraries(libdevilutionx PUBLIC c++fs)
   endif()
 endif()
+
+find_package(Protobuf REQUIRED)
+
+target_link_libraries(libdevilutionx PUBLIC protobuf::libprotobuf-lite)
+find_package(absl REQUIRED)
+set(PROTO_BINARY_DIR "${CMAKE_BINARY_DIR}/generated")
+
+file(MAKE_DIRECTORY ${PROTO_BINARY_DIR})
+
+target_include_directories(libdevilutionx PRIVATE ${Protobuf_INCLUDE_DIRS})
+
+# Generate the protobuf files into the 'generated' directory within the build tree
+protobuf_generate(
+    TARGET libdevilutionx
+    IMPORT_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/dapi/Backend/Messages"
+    PROTOC_OUT_DIR "${PROTO_BINARY_DIR}"
+)
+
+# Make sure the generated protobuf files are correctly included in the build
+target_include_directories(libdevilutionx PUBLIC "$<BUILD_INTERFACE:${PROTO_BINARY_DIR}>")
+include_directories("${PROTO_BINARY_DIR}/dapi/Backend/Messages")
+
+target_include_directories(libdevilutionx PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/dapi/Backend/DAPIBackendCore")
+
+find_package(SFML COMPONENTS Network CONFIG REQUIRED)
+
+target_link_libraries(libdevilutionx PUBLIC SFML::Network)

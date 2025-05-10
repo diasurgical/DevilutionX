@@ -1,0 +1,178 @@
+syntax = "proto3";
+option optimize_for = LITE_RUNTIME;
+
+package dapi.data;
+
+message QuestData {
+	uint32 id = 1;
+	uint32 state = 2;
+}
+
+message PortalData {
+	uint32 x = 1;
+	uint32 y = 2;
+	uint32 player = 3;
+}
+
+message MissileData {
+	sint32 type = 1;
+	uint32 x = 2;
+	uint32 y = 3;
+	sint32 xvel = 4;
+	sint32 yvel = 5;
+	sint32 sx = 6;
+	sint32 sy = 7;
+}
+
+message ObjectData {
+	uint32 x = 1;
+	uint32 y = 2;
+	sint32 type = 3;
+	sint32 shrineType = 4;
+	bool solid = 5;
+	sint32 doorState = 6;
+	bool selectable = 7;
+	uint32 index = 8;
+	bool trapped = 9;
+}
+
+message MonsterData {
+	uint32 index = 1;
+	sint32 x = 2;
+	sint32 y = 3;
+	sint32 futx = 4;
+	sint32 futy = 5;
+	string name = 6;
+	sint32 type = 7;
+	sint32 kills = 8;
+	sint32 mode = 9;
+	bool unique = 10;
+}
+
+message TriggerData {
+	uint32 lvl = 1;
+	sint32 x = 2;
+	sint32 y = 3;
+	sint32 type = 4;
+}
+
+message TileData {
+	sint32 type = 1;
+	bool solid = 2;
+	sint32 x = 3;
+	sint32 y = 4;
+	bool stopMissile = 5;
+}
+
+message TownerData {
+	uint32 ID = 1;
+	uint32 _ttype = 2;
+	sint32 _tx = 3;
+	sint32 _ty = 4;
+	string _tName = 5;
+}
+
+message ItemData {
+	uint32 ID = 1;
+	sint32 _itype = 2;
+	sint32 _ix = 3;
+	sint32 _iy = 4;
+
+	bool _iIdentified = 5;
+	uint32 _iMagical = 6;
+	string _iName = 7;
+	string _iIName = 8;
+	uint32 _iClass = 9;
+	sint32 _iCurs = 10;
+	sint32 _iValue = 11;
+	sint32 _iMinDam = 12;
+	sint32 _iMaxDam = 13;
+	sint32 _iAC = 14;
+	sint32 _iFlags = 15;
+	sint32 _iMiscId = 16;
+	sint32 _iSpell = 17;
+	sint32 _iCharges = 18;
+	sint32 _iMaxCharges = 19;
+	sint32 _iDurability = 20;
+	sint32 _iMaxDur = 21;
+	sint32 _iPLDam = 22;
+    sint32 _iPLToHit = 23;
+    sint32 _iPLAC = 24;
+    sint32 _iPLStr = 25;
+    sint32 _iPLMag = 26;
+    sint32 _iPLDex = 27;
+    sint32 _iPLVit = 28;
+    sint32 _iPLFR = 29;
+    sint32 _iPLLR = 30;
+    sint32 _iPLMR = 31;
+    sint32 _iPLMana = 32;
+    sint32 _iPLHP = 33;
+    sint32 _iPLDamMod = 34;
+    sint32 _iPLGetHit = 35;
+    sint32 _iPLLight = 36;
+    sint32 _iSplLvlAdd = 37;
+	sint32 _iFMinDam = 38;
+    sint32 _iFMaxDam = 39;
+    sint32 _iLMinDam = 40;
+    sint32 _iLMaxDam = 41;
+	sint32 _iPrePower = 42;
+	sint32 _iSufPower = 43;
+	sint32 _iMinStr = 44;
+	sint32 _iMinMag = 45;
+	sint32 _iMinDex = 46;
+	bool _iStatFlag = 47;
+	sint32 IDidx = 48;
+}
+
+message PlayerData {
+	sint32 _pmode = 1;
+	sint32 pnum = 2;
+	sint32 plrlevel = 3;
+	sint32 _px = 4;
+	sint32 _py = 5;
+	sint32 _pfutx = 6;
+	sint32 _pfuty = 7;
+	sint32 _pdir = 8;
+	sint32 _pRSpell = 9;
+	uint32 _pRsplType = 10;
+	repeated uint32 _pSplLvl = 11;
+	uint64 _pMemSpells = 12;
+	uint64 _pAblSpells = 13;
+	uint64 _pScrlSpells = 14;
+	string _pName = 15;
+	uint32 _pClass = 16;
+	uint32 _pStrength = 17;
+	uint32 _pBaseStr = 18;
+	uint32 _pMagic = 19;
+	uint32 _pBaseMag = 20;
+	uint32 _pDexterity = 21;
+	uint32 _pBaseDex = 22;
+	uint32 _pVitality = 23;
+	uint32 _pBaseVit = 24;
+	uint32 _pStatPts = 25;
+	uint32 _pDamageMod = 26;
+	uint32 _pHitPoints = 27;
+	uint32 _pMaxHP = 28;
+	sint32 _pMana = 29;
+	uint32 _pMaxMana = 30;
+	uint32 _pLevel = 31;
+	uint32 _pExperience = 32;
+	uint32 _pArmorClass = 33;
+	uint32 _pMagResist = 34;
+	uint32 _pFireResist = 35;
+	uint32 _pLightResist = 36;
+	uint32 _pGold = 37;
+	repeated sint32 InvBody = 38;
+	repeated sint32 InvList = 39;
+	repeated sint32 InvGrid = 40;
+	repeated sint32 SpdList = 41;
+	sint32 HoldItem = 42;
+	uint32 _pIAC = 43;
+	uint32 _pIMinDam = 44;
+	uint32 _pIMaxDam = 45;
+	uint32 _pIBonusDam = 46;
+	uint32 _pIBonusToHit = 47;
+	uint32 _pIBonusAC = 48;
+	uint32 _pIBonusDamMod = 49;
+	bool pManaShield = 50;
+}
