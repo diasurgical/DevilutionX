@@ -1689,7 +1689,7 @@ void Server::sellItem(int itemID)
 	devilution::PlaySFX(devilution::SfxID::MenuSelect);
 
 	devilution::OldTextLine = devilution::CurrentTextLine;
-	devilution::OldActiveStore = devilution::TalkID::SmithSell;
+	devilution::OldActiveStore = devilution::ActiveStore;
 	devilution::OldScrollPos = devilution::ScrollPos;
 
 	if (!devilution::StoreGoldFit(devilution::PlayerItems[idx])) {
@@ -2152,8 +2152,8 @@ void Server::putInCursor(size_t itemID)
 			}
 		} else {
 			if (item.compare(devilution::Players[devilution::MyPlayerId].SpdList[i - 47]) && devilution::Players[devilution::MyPlayerId].SpdList[i - 47]._itype != devilution::ItemType::None) {
-				mx = devilution::InvRect[i].position.x + 1 + devilution::GetRightPanel().position.x;
-				my = devilution::InvRect[i].position.y + 1 + devilution::GetRightPanel().position.y;
+				mx = devilution::InvRect[i].position.x + 1 + devilution::GetMainPanel().position.x;
+				my = devilution::InvRect[i].position.y + 1 + devilution::GetMainPanel().position.y;
 				break;
 			}
 		}
@@ -2164,51 +2164,29 @@ void Server::putInCursor(size_t itemID)
 
 void Server::putCursorItem(int location)
 {
-	int mx, my;
 	EquipSlot equipLocation = static_cast<EquipSlot>(location);
 
 	if (!data->invflag)
 		return;
 
-	if (12 <= devilution::pcurs && equipLocation <= EquipSlot::BELT8) {
-		mx = 0;
-		my = 0;
-		switch (equipLocation) {
-		case EquipSlot::HEAD:
-			mx = devilution::InvRect[0].position.x + 1 + devilution::GetRightPanel().position.x;
-			my = devilution::InvRect[0].position.y + 1 + devilution::GetRightPanel().position.y;
-			break;
-		case EquipSlot::LEFTRING:
-			mx = devilution::InvRect[1].position.x + 1 + devilution::GetRightPanel().position.x;
-			my = devilution::InvRect[1].position.y + 1 + devilution::GetRightPanel().position.y;
-			break;
-		case EquipSlot::RIGHTRING:
-			mx = devilution::InvRect[2].position.x + 1 + devilution::GetRightPanel().position.x;
-			my = devilution::InvRect[2].position.y + 1 + devilution::GetRightPanel().position.y;
-			break;
-		case EquipSlot::AMULET:
-			mx = devilution::InvRect[3].position.x + 1 + devilution::GetRightPanel().position.x;
-			my = devilution::InvRect[3].position.y + 1 + devilution::GetRightPanel().position.y;
-			break;
-		case EquipSlot::LEFTHAND:
-			mx = devilution::InvRect[4].position.x + 1 + devilution::GetRightPanel().position.x;
-			my = devilution::InvRect[4].position.y + 1 + devilution::GetRightPanel().position.y;
-			break;
-		case EquipSlot::RIGHTHAND:
-			mx = devilution::InvRect[5].position.x + 1 + devilution::GetRightPanel().position.x;
-			my = devilution::InvRect[5].position.y + 1 + devilution::GetRightPanel().position.y;
-			break;
-		case EquipSlot::BODY:
-			mx = devilution::InvRect[6].position.x + 1 + devilution::GetRightPanel().position.x;
-			my = devilution::InvRect[6].position.y + 1 + devilution::GetRightPanel().position.y;
-			break;
-		default:
-			mx = devilution::InvRect[static_cast<int>(equipLocation)].position.x + 1 + devilution::GetRightPanel().position.x;
-			my = devilution::InvRect[static_cast<int>(equipLocation)].position.y + 1 + devilution::GetRightPanel().position.y;
-			break;
-		}
-		devilution::CheckInvPaste(*devilution::MyPlayer, devilution::Point { mx, my });
+	int invRectIndex = location;
+	devilution::Point cursorPosition;
+	devilution::Displacement panelAdjust;
+	if (equipLocation == EquipSlot::LEFTRING) {
+		invRectIndex = 1;
+	}	else if (equipLocation == EquipSlot::RIGHTRING) {
+		invRectIndex = 2;
 	}
+	cursorPosition = devilution::InvRect[invRectIndex].position + devilution::Displacement { 1, 1 };
+
+	if (equipLocation < EquipSlot::BELT1) {
+		panelAdjust = devilution::GetRightPanel().position - devilution::Point { 0, 0 };
+	} else {
+		panelAdjust = devilution::GetMainPanel().position - devilution::Point { 0, 0 };
+	}
+
+	cursorPosition += panelAdjust;
+	devilution::CheckInvPaste(*devilution::MyPlayer, cursorPosition);
 }
 
 void Server::dropCursorItem()
