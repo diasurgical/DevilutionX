@@ -1907,13 +1907,13 @@ _item_indexes RndSmithItem(const Player &player, int lvl)
 	return RndVendorItem<SmithItemOk, true>(player, 0, lvl);
 }
 
-void SortVendor(Item *itemList, size_t count)
+void SortVendor(std::span<Item> itemList, size_t PinnedItemCount)
 {
 	auto cmp = [](const Item &a, const Item &b) {
 		return a.IDidx < b.IDidx;
 	};
 
-	std::sort(itemList, itemList + count, cmp);
+	std::sort(itemList.begin() + PinnedItemCount, itemList.end(), cmp);
 }
 
 bool PremiumItemOk(const Player &player, const ItemData &item)
@@ -4386,10 +4386,11 @@ void SpawnSmith(int lvl)
 		maxItems = NumSmithBasicItemsHf;
 	}
 
-	int iCnt = RandomIntBetween(10, maxItems);
-	for (int i = 0; i < iCnt; i++) {
-		Item &newItem = SmithItems[i];
+	size_t iCnt = RandomIntBetween(10, maxItems);
+	SmithItems.clear();
 
+	while (SmithItems.size() < iCnt) {
+		Item newItem;
 		do {
 			newItem = {};
 			newItem._iSeed = AdvanceRndSeed();
@@ -4400,41 +4401,46 @@ void SpawnSmith(int lvl)
 
 		newItem._iCreateInfo = lvl | CF_SMITH;
 		newItem._iIdentified = true;
-	}
-	for (int i = iCnt; i < NumSmithBasicItemsHf; i++)
-		SmithItems[i].clear();
 
-	SortVendor(SmithItems + PinnedItemCount, iCnt - PinnedItemCount);
+		SmithItems.push_back(newItem);
+	}
+
+	SortVendor(SmithItems, PinnedItemCount);
+}
+
+void ReplacePremium(const Player &player, int idx)
+{
+	int plvl = gbIsHellfire ? itemLevelAddHf[idx] : itemLevelAdd[idx];
+	plvl += player.getCharacterLevel();
+	SpawnOnePremium(PremiumItems[idx], plvl, player);
 }
 
 void SpawnPremium(const Player &player)
 {
 	int lvl = player.getCharacterLevel();
-	int maxItems = gbIsHellfire ? NumSmithItemsHf : NumSmithItems;
-	if (PremiumItemCount < maxItems) {
-		for (int i = 0; i < maxItems; i++) {
-			if (PremiumItems[i].isEmpty()) {
-				int plvl = PremiumItemLevel + (gbIsHellfire ? itemLevelAddHf[i] : itemLevelAdd[i]);
-				SpawnOnePremium(PremiumItems[i], plvl, player);
-			}
-		}
-		PremiumItemCount = maxItems;
+	size_t maxItems = gbIsHellfire ? NumSmithItemsHf : NumSmithItems;
+
+	while (PremiumItems.size() < maxItems) {
+		int plvl = PremiumItemLevel + (gbIsHellfire ? itemLevelAddHf[PremiumItems.size()] : itemLevelAdd[PremiumItems.size()]);
+		Item item = {};
+		SpawnOnePremium(item, plvl, player);
+		PremiumItems.push_back(item);
 	}
+
 	while (PremiumItemLevel < lvl) {
 		PremiumItemLevel++;
+		Item *ptr = PremiumItems.begin();
 		if (gbIsHellfire) {
-			// Discard first 3 items and shift next 10
-			std::move(&PremiumItems[3], &PremiumItems[12] + 1, &PremiumItems[0]);
-			SpawnOnePremium(PremiumItems[10], PremiumItemLevel + itemLevelAddHf[10], player);
+			std::move(ptr + 3, ptr + 13, ptr);
 			PremiumItems[11] = PremiumItems[13];
-			SpawnOnePremium(PremiumItems[12], PremiumItemLevel + itemLevelAddHf[12], player);
 			PremiumItems[13] = PremiumItems[14];
+			SpawnOnePremium(PremiumItems[10], PremiumItemLevel + itemLevelAddHf[10], player);
+			SpawnOnePremium(PremiumItems[12], PremiumItemLevel + itemLevelAddHf[12], player);
 			SpawnOnePremium(PremiumItems[14], PremiumItemLevel + itemLevelAddHf[14], player);
 		} else {
-			// Discard first 2 items and shift next 3
-			std::move(&PremiumItems[2], &PremiumItems[4] + 1, &PremiumItems[0]);
-			SpawnOnePremium(PremiumItems[3], PremiumItemLevel + itemLevelAdd[3], player);
+			std::move(ptr + 2, ptr + 5, ptr);
 			PremiumItems[4] = PremiumItems[5];
+			SpawnOnePremium(PremiumItems[3], PremiumItemLevel + itemLevelAdd[3], player);
 			SpawnOnePremium(PremiumItems[5], PremiumItemLevel + itemLevelAdd[5], player);
 		}
 	}
@@ -4451,16 +4457,17 @@ void SpawnWitch(int lvl)
 	const int pinnedBookCount = gbIsHellfire ? RandomIntLessThan(MaxPinnedBookCount) : 0;
 	const int itemCount = RandomIntBetween(10, gbIsHellfire ? NumWitchItemsHf : NumWitchItems);
 	const int maxValue = gbIsHellfire ? MaxVendorValueHf : MaxVendorValue;
+	WitchItems.clear();
 
-	for (int i = 0; i < NumWitchItemsHf; i++) {
-		Item &item = WitchItems[i];
-		item = {};
+	for (int i = 0; i < itemCount; i++) {
+		Item item = {};
 
 		if (i < PinnedItemCount) {
 			item._iSeed = AdvanceRndSeed();
 			GetItemAttrs(item, PinnedItemTypes[i], 1);
 			item._iCreateInfo = lvl;
 			item._iStatFlag = true;
+			WitchItems.push_back(item);
 			continue;
 		}
 
@@ -4475,14 +4482,10 @@ void SpawnWitch(int lvl)
 					item._iCreateInfo = lvl | CF_WITCH;
 					item._iIdentified = true;
 					bookCount++;
+					WitchItems.push_back(item);
 					continue;
 				}
 			}
-		}
-
-		if (i >= itemCount) {
-			item.clear();
-			continue;
 		}
 
 		do {
@@ -4502,9 +4505,11 @@ void SpawnWitch(int lvl)
 
 		item._iCreateInfo = lvl | CF_WITCH;
 		item._iIdentified = true;
+
+		WitchItems.push_back(item);
 	}
 
-	SortVendor(WitchItems + PinnedItemCount, itemCount - PinnedItemCount);
+	SortVendor(WitchItems, PinnedItemCount);
 }
 
 void SpawnBoy(int lvl)
@@ -4625,34 +4630,30 @@ void SpawnHealer(int lvl)
 {
 	constexpr size_t PinnedItemCount = NumHealerPinnedItems;
 	constexpr std::array<_item_indexes, PinnedItemCount + 1> PinnedItemTypes = { IDI_HEAL, IDI_FULLHEAL, IDI_RESURRECT };
-	const auto itemCount = static_cast<size_t>(RandomIntBetween(10, gbIsHellfire ? NumHealerItemsHf : NumHealerItems));
+	const size_t itemCount = static_cast<size_t>(RandomIntBetween(10, gbIsHellfire ? NumHealerItemsHf : NumHealerItems));
+	HealerItems.clear();
 
-	for (size_t i = 0; i < sizeof(HealerItems) / sizeof(HealerItems[0]); ++i) {
-		Item &item = HealerItems[i];
-		item = {};
+	for (size_t i = 0; i < itemCount; i++) {
+		Item item = {};
 
 		if (i < PinnedItemCount || (gbIsMultiplayer && i < NumHealerPinnedItemsMp)) {
 			item._iSeed = AdvanceRndSeed();
 			GetItemAttrs(item, PinnedItemTypes[i], 1);
 			item._iCreateInfo = lvl;
 			item._iStatFlag = true;
-			continue;
+		} else {
+			item._iSeed = AdvanceRndSeed();
+			SetRndSeed(item._iSeed);
+			_item_indexes itype = RndHealerItem(*MyPlayer, lvl);
+			GetItemAttrs(item, itype, lvl);
+			item._iCreateInfo = lvl | CF_HEALER;
+			item._iIdentified = true;
 		}
 
-		if (i >= itemCount) {
-			item.clear();
-			continue;
-		}
-
-		item._iSeed = AdvanceRndSeed();
-		SetRndSeed(item._iSeed);
-		_item_indexes itype = RndHealerItem(*MyPlayer, lvl);
-		GetItemAttrs(item, itype, lvl);
-		item._iCreateInfo = lvl | CF_HEALER;
-		item._iIdentified = true;
+		HealerItems.push_back(item);
 	}
 
-	SortVendor(HealerItems + PinnedItemCount, itemCount - PinnedItemCount);
+	SortVendor(HealerItems, PinnedItemCount);
 }
 
 void MakeGoldStack(Item &goldItem, int value)

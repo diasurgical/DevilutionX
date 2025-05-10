@@ -557,6 +557,7 @@ void UseItem(Player &player, item_misc_id Mid, SpellID spellID, int spellFrom);
 bool UseItemOpensHive(const Item &item, Point position);
 bool UseItemOpensGrave(const Item &item, Point position);
 void SpawnSmith(int lvl);
+void ReplacePremium(const Player &player, int idx);
 void SpawnPremium(const Player &player);
 void SpawnWitch(int lvl);
 void SpawnBoy(int lvl);
