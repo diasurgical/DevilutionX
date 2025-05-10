@@ -411,6 +411,8 @@ void Server::updateGameData()
 	auto message = std::make_unique<dapi::message::Message>();
 	auto update = message->mutable_frameupdate();
 
+	update->set_connectedto(1);
+
 	update->set_player(devilution::MyPlayerId);
 
 	update->set_stextflag(static_cast<char>(devilution::ActiveStore));

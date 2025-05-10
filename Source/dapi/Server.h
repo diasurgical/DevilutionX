@@ -191,6 +191,11 @@ enum struct EquipSlot {
 	BELT8 = 54
 };
 
+enum struct Backend {
+	Vanilla109,
+	DevilutionX
+};
+
 struct Server {
 	Server();
 
