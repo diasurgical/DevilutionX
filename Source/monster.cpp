@@ -1733,6 +1733,16 @@ bool RoundWalk(Monster &monster, Direction direction, int8_t *dir)
 	return RandomWalk(monster, Opposite(turn90deg));
 }
 
+bool PathTileClear(const Monster &monster, Point pos)
+{
+	if (!IsTileWalkable(pos))
+		return false;
+
+	if (!IsTileSafe(monster, pos))
+		return false;
+	return true;
+}
+
 bool AiPlanPath(Monster &monster)
 {
 	if (monster.type().type != MT_GOLEM) {
@@ -1747,7 +1757,7 @@ bool AiPlanPath(Monster &monster)
 	}
 
 	bool clear = LineClear(
-	    [&monster](Point position) { return IsTileAvailable(monster, position); },
+	    [&monster](Point position) { return PathTileClear(monster, position); },
 	    monster.position.tile,
 	    monster.enemyPosition);
 	if (!clear || (monster.pathCount >= 5 && monster.pathCount < 8)) {
