@@ -2173,21 +2173,29 @@ void Server::putCursorItem(int location)
 
 	int invRectIndex = location;
 	devilution::Point cursorPosition;
-	devilution::Displacement panelAdjust;
+	devilution::Displacement panelOffset;
+	devilution::Displacement hotPixelCellOffset;
 	if (equipLocation == EquipSlot::LEFTRING) {
 		invRectIndex = 1;
 	}	else if (equipLocation == EquipSlot::RIGHTRING) {
 		invRectIndex = 2;
 	}
-	cursorPosition = devilution::InvRect[invRectIndex].position + devilution::Displacement { 1, 1 };
-
 	if (equipLocation < EquipSlot::BELT1) {
-		panelAdjust = devilution::GetRightPanel().position - devilution::Point { 0, 0 };
+		panelOffset = devilution::GetRightPanel().position - devilution::Point { 0, 0 };
 	} else {
-		panelAdjust = devilution::GetMainPanel().position - devilution::Point { 0, 0 };
+		panelOffset = devilution::GetMainPanel().position - devilution::Point { 0, 0 };
+	}
+	if (EquipSlot::INV1 <= equipLocation && equipLocation <= EquipSlot::INV40) {
+	const devilution::Size itemSize = devilution::GetInventorySize(devilution::MyPlayer->HoldItem);
+	if (itemSize.height <= 1 && itemSize.width <= 1) {
+		hotPixelCellOffset = devilution::Displacement { 1, 1 };
+	}
+	hotPixelCellOffset = { (itemSize.width - 1) / 2 + 19, (itemSize.height - 1) / 2 + 19};
+	} else {
+		hotPixelCellOffset = devilution::Displacement { 1, 1 };
 	}
 
-	cursorPosition += panelAdjust;
+	cursorPosition = devilution::InvRect[invRectIndex].position + panelOffset + hotPixelCellOffset;
 	devilution::CheckInvPaste(*devilution::MyPlayer, cursorPosition);
 }
 
