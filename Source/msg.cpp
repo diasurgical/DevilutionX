@@ -3,6 +3,8 @@
  *
  * Implementation of function for sending and receiving network messages.
  */
+#include "msg.h"
+
 #include <climits>
 #include <cmath>
 #include <cstdint>
@@ -38,6 +40,7 @@
 #include "options.h"
 #include "pack.h"
 #include "pfile.h"
+#include "player.h"
 #include "plrmsg.h"
 #include "portals/validation.hpp"
 #include "quests/validation.hpp"

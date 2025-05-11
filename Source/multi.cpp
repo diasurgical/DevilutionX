@@ -3,6 +3,7 @@
  *
  * Implementation of functions for keeping multiplaye games in sync.
  */
+#include "multi.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -20,9 +21,11 @@
 #include "engine/random.hpp"
 #include "engine/world_tile.hpp"
 #include "menu.h"
+#include "msg.h"
 #include "nthread.h"
 #include "options.h"
 #include "pfile.h"
+#include "player.h"
 #include "plrmsg.h"
 #include "qol/chatlog.h"
 #include "storm/storm_net.hpp"
