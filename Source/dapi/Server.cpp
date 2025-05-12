@@ -1057,43 +1057,36 @@ void Server::updateGameData()
 	}
 
 	if (devilution::currlevel != 0) {
-		for (auto &townerData : data->townerList) {
+		for (auto &[_, townerData] : data->townerList) {
 			strcpy(townerData._tName, "");
 			townerData._tx = -1;
 			townerData._ty = -1;
 		}
 	} else {
-		for (auto i = 0; devilution::gbIsHellfire ? i < NUM_TOWNERS : i < 10; i++) {
-			auto townerID = data->townerList.size();
-			for (size_t j = 0; j < data->townerList.size(); j++) {
-				if (data->townerList[j]._ttype == devilution::Towners[i]._ttype) {
-					townerID = j;
-					break;
-				}
-			}
-			if (townerID == data->townerList.size())
-				data->townerList.push_back(TownerData {});
-			data->townerList[townerID].ID = static_cast<int>(townerID);
+		for (auto i = 0; devilution::gbIsHellfire ? i < NUM_TOWNERS : i < 12; i++) {
+			auto townerID = i;
+			auto &towner = data->townerList[townerID];
+			towner.ID = static_cast<int>(townerID);
 			if (isOnScreen(devilution::Towners[i].position.x, devilution::Towners[i].position.y)) {
-				data->townerList[townerID]._ttype = devilution::Towners[i]._ttype;
-				data->townerList[townerID]._tx = devilution::Towners[i].position.x;
-				data->townerList[townerID]._ty = devilution::Towners[i].position.y;
+				towner._ttype = devilution::Towners[i]._ttype;
+				towner._tx = devilution::Towners[i].position.x;
+				towner._ty = devilution::Towners[i].position.y;
 				// might rework this and just change the type in data.
 				if (devilution::Towners[i].name.size() < 31) {
-					memcpy(data->townerList[townerID]._tName, devilution::Towners[i].name.data(), devilution::Towners[i].name.size());
-					data->townerList[townerID]._tName[devilution::Towners[i].name.size()] = '\0';
+					memcpy(towner._tName, devilution::Towners[i].name.data(), devilution::Towners[i].name.size());
+					towner._tName[devilution::Towners[i].name.size()] = '\0';
 				}
-				// strcpy(data->townerList[townerID]._tName, devilution::Towners[i].name); old code but with devilution subbed in for reference.
+				// strcpy(towner._tName, devilution::Towners[i].name); old code but with devilution subbed in for reference.
 			} else {
-				data->townerList[townerID]._ttype = static_cast<devilution::_talker_id>(devilution::Towners[i]._ttype);
-				data->townerList[townerID]._tx = -1;
-				data->townerList[townerID]._ty = -1;
-				strcpy(data->townerList[townerID]._tName, "");
+				towner._ttype = static_cast<devilution::_talker_id>(devilution::Towners[i]._ttype);
+				towner._tx = -1;
+				towner._ty = -1;
+				strcpy(towner._tName, "");
 			}
 		}
 	}
 
-	for (auto &townie : data->townerList) {
+	for (auto &[_, townie] : data->townerList) {
 		auto townerData = update->add_townerdata();
 		townerData->set_id(townie.ID);
 		if (townie._tx != -1)
