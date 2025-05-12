@@ -677,6 +677,7 @@ target_link_dependencies(libdevilutionx PUBLIC
   libsmackerdec
   ${LUA_LIBRARIES}
   sol2::sol2
+  SFML::Network
   tl
   unordered_dense::unordered_dense
   libdevilutionx_assets
@@ -821,7 +822,3 @@ target_include_directories(libdevilutionx PUBLIC "$<BUILD_INTERFACE:${PROTO_BINA
 include_directories("${PROTO_BINARY_DIR}/dapi/Backend/Messages")
 
 target_include_directories(libdevilutionx PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/dapi/Backend/DAPIBackendCore")
-
-find_package(SFML COMPONENTS Network CONFIG REQUIRED)
-
-target_link_libraries(libdevilutionx PUBLIC SFML::Network)

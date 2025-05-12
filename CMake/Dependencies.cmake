@@ -275,3 +275,8 @@ if(GPERF)
   find_package(Gperftools REQUIRED)
   message("INFO: ${GPERFTOOLS_LIBRARIES}")
 endif()
+
+find_package(SFML 3.0 COMPONENTS Network CONFIG QUIET)
+if(NOT SFML_FOUND)
+  add_subdirectory(3rdParty/sfml)
+endif()
