@@ -494,7 +494,9 @@ void Server::updateGameData()
 	}
 
 	data->storeList.clear();
-	if (devilution::ActiveStore != devilution::TalkID::None) {
+	// Check for qtextflag added for DevilutionX so that store options are not transmitted
+	// while qtext is up.
+	if (!devilution::qtextflag && devilution::ActiveStore != devilution::TalkID::None) {
 		for (int i = 0; i < 24; i++) {
 			if (devilution::TextLine[i].isSelectable()) {
 				if (!strcmp(devilution::TextLine[i].text.c_str(), "Talk to Cain") || !strcmp(devilution::TextLine[i].text.c_str(), "Talk to Farnham") || !strcmp(devilution::TextLine[i].text.c_str(), "Talk to Pepin") || !strcmp(devilution::TextLine[i].text.c_str(), "Talk to Gillian") || !strcmp(devilution::TextLine[i].text.c_str(), "Talk to Ogden") || !strcmp(devilution::TextLine[i].text.c_str(), "Talk to Griswold") || !strcmp(devilution::TextLine[i].text.c_str(), "Talk to Adria") || !strcmp(devilution::TextLine[i].text.c_str(), "Talk to Wirt"))
@@ -1319,6 +1321,11 @@ void Server::talk(int x, int y)
 
 void Server::selectStoreOption(StoreOption option)
 {
+	// Need to check for qtextflag in DevilutionX, for some reason we can access stores when
+	// the shop keeper is giving us quest text. Doesn't happen in 1.09.
+	if (devilution::qtextflag)
+		return;
+
 	switch (option) {
 	case StoreOption::TALK:
 		if (devilution::ActiveStore == devilution::TalkID::Witch) {
