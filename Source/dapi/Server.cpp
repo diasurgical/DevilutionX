@@ -1078,7 +1078,7 @@ void Server::updateGameData()
 				}
 				// strcpy(towner._tName, devilution::Towners[i].name); old code but with devilution subbed in for reference.
 			} else {
-				towner._ttype = static_cast<devilution::_talker_id>(devilution::Towners[i]._ttype);
+				towner._ttype = devilution::Towners[i]._ttype;
 				towner._tx = -1;
 				towner._ty = -1;
 				strcpy(towner._tName, "");
@@ -1164,9 +1164,10 @@ void Server::updateGameData()
 			m->set_futx(devilution::Monsters[devilution::ActiveMonsters[i]].position.future.x);
 			m->set_futy(devilution::Monsters[devilution::ActiveMonsters[i]].position.future.y);
 			m->set_type(devilution::Monsters[devilution::ActiveMonsters[i]].type().type);
-			m->set_name(devilution::Monsters[devilution::ActiveMonsters[i]].data().name.c_str());
+			std::string monsterName = std::string(devilution::Monsters[devilution::ActiveMonsters[i]].name());
+			m->set_name(monsterName.c_str());
 			m->set_mode(static_cast<int>(devilution::Monsters[devilution::ActiveMonsters[i]].mode));
-			m->set_unique(static_cast<bool>(devilution::Monsters[devilution::ActiveMonsters[i]].isUnique()));
+			m->set_unique(devilution::Monsters[devilution::ActiveMonsters[i]].isUnique());
 		}
 	}
 
@@ -1482,7 +1483,7 @@ void Server::buyItem(int itemID)
 			if (idx < 3)
 				devilution::WitchItems[idx]._iSeed = devilution::AdvanceRndSeed();
 
-			devilution::TakePlrsMoney(devilution::Players[devilution::MyPlayerId].HoldItem._iIvalue);
+			devilution::TakePlrsMoney(devilution::WitchItems[idx]._iIvalue);
 
 
 			if (idx >= 3) {
