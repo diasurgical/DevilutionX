@@ -2187,6 +2187,9 @@ void Server::putInCursor(size_t itemID)
 
 void Server::putCursorItem(int location)
 {
+	if (devilution::MyPlayer->HoldItem.isEmpty())
+		return;
+
 	EquipSlot equipLocation = static_cast<EquipSlot>(location);
 
 	if (!data->invflag)
