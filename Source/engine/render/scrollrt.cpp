@@ -1724,10 +1724,10 @@ void DrawAndBlit()
 		DrawMainPanel(out);
 	}
 	if (drawHealth) {
-		DrawLifeFlaskLower(out);
+		DrawLifeFlaskLower(out, !drawCtrlPan);
 	}
 	if (drawMana) {
-		DrawManaFlaskLower(out);
+		DrawManaFlaskLower(out, !drawCtrlPan);
 
 		DrawSpell(out);
 	}
