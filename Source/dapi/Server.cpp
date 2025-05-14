@@ -437,8 +437,11 @@ void Server::updateGameData()
 	update->set_setlevel(devilution::setlevel);
 	if (devilution::qtextflag) {
 		std::stringstream qtextss;
-		for (auto &line : devilution::TextLines)
+		for (auto &line : devilution::TextLines) {
+			if (qtextss.str().size())
+				qtextss << " ";
 			qtextss << line;
+		}
 		update->set_qtext(qtextss.str().c_str());
 	}
 	else
