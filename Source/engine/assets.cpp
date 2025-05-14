@@ -491,7 +491,7 @@ void LoadModArchives(std::span<const std::string_view> modnames)
 		if (FileExists(targetPath)) {
 			OverridePaths.emplace_back(targetPath);
 		}
-		targetPath = StrCat(SDL_GetBasePath(), "mods" DIRECTORY_SEPARATOR_STR, modname, DIRECTORY_SEPARATOR_STR);
+		targetPath = StrCat(paths::BasePath(), "mods" DIRECTORY_SEPARATOR_STR, modname, DIRECTORY_SEPARATOR_STR);
 		if (FileExists(targetPath)) {
 			OverridePaths.emplace_back(targetPath);
 		}

@@ -151,8 +151,8 @@ Rectangle BeltRect { { 205, 5 }, BeltSize };
 
 Rectangle SpellButtonRect { { 565, 64 }, { 56, 56 } };
 
-Rectangle FlaskTopRect { { 13, 3 }, { 60, 13 } };
-Rectangle FlaskBottomRect { { 0, 16 }, { 84, 69 } };
+Rectangle FlaskTopRect { { 11, 3 }, { 62, 13 } };
+Rectangle FlaskBottomRect { { 0, 16 }, { 88, 69 } };
 
 int MuteButtons = 3;
 int MuteButtonPadding = 2;
@@ -214,14 +214,12 @@ const char *const PanBtnStr[8] = {
  * It draws a rectangle of fixed width 59 and height 'h' from the source buffer
  * into the target buffer.
  * @param out The target buffer.
- * @param celBuf Buffer of the empty flask cel.
- * @param sourcePosition Source buffer start coordinate.
+ * @param celBuf Buffer of the flask cel.
  * @param targetPosition Target buffer coordinate.
- * @param h How many lines of the source buffer that will be copied.
  */
-void DrawFlaskAbovePanel(const Surface &out, const Surface &celBuf, Point sourcePosition, Point targetPosition, int h)
+void DrawFlaskAbovePanel(const Surface &out, const Surface &celBuf, Point targetPosition)
 {
-	out.BlitFromSkipColorIndexZero(celBuf, MakeSdlRect(sourcePosition.x, sourcePosition.y, FlaskTopRect.size.width, h), targetPosition);
+	out.BlitFromSkipColorIndexZero(celBuf, MakeSdlRect(0, 0, celBuf.w(), celBuf.h()), targetPosition);
 }
 
 /**
@@ -234,15 +232,20 @@ void DrawFlaskAbovePanel(const Surface &out, const Surface &celBuf, Point source
  */
 void DrawFlaskUpper(const Surface &out, const Surface &sourceBuffer, int offset, int fillPer)
 {
-	int emptyRows = std::clamp(81 - fillPer, 0, FlaskTopRect.size.height);
-	int filledRows = FlaskTopRect.size.height - emptyRows;
+	const Rectangle &rect = FlaskTopRect;
+	const int emptyRows = std::clamp(81 - fillPer, 0, rect.size.height);
+	const int filledRows = rect.size.height - emptyRows;
 
 	// Draw the empty part of the flask
-	DrawFlaskAbovePanel(out, sourceBuffer, FlaskTopRect.position, GetMainPanel().position + Displacement { offset, -FlaskTopRect.size.height }, FlaskTopRect.size.height);
+	DrawFlaskAbovePanel(out,
+	    sourceBuffer.subregion(rect.position.x, rect.position.y, rect.size.width, rect.size.height),
+	    GetMainPanel().position + Displacement { offset, -rect.size.height });
 
 	// Draw the filled part of the flask over the empty part
 	if (filledRows > 0) {
-		DrawFlaskAbovePanel(out, *BottomBuffer, { offset, FlaskTopRect.position.y + emptyRows }, GetMainPanel().position + Displacement { offset, -FlaskTopRect.size.height + emptyRows }, filledRows);
+		DrawFlaskAbovePanel(out,
+		    BottomBuffer->subregion(offset, rect.position.y + emptyRows, rect.size.width, filledRows),
+		    GetMainPanel().position + Displacement { offset, -rect.size.height + emptyRows });
 	}
 }
 
@@ -251,14 +254,12 @@ void DrawFlaskUpper(const Surface &out, const Surface &sourceBuffer, int offset,
  * of the flask getting empty. This function takes a cel and draws a
  * horizontal stripe of height (max-min) onto the given buffer.
  * @param out Target buffer.
- * @param position Buffer coordinate.
- * @param celBuf Buffer of the empty flask cel.
- * @param y0 Top of the flask cel section to draw.
- * @param y1 Bottom of the flask cel section to draw.
+ * @param celBuf Buffer of the flask cel.
+ * @param targetPosition Target buffer coordinate.
  */
-void DrawFlaskOnPanel(const Surface &out, Point position, const Surface &celBuf, int y0, int y1)
+void DrawFlaskOnPanel(const Surface &out, const Surface &celBuf, Point targetPosition)
 {
-	out.BlitFrom(celBuf, MakeSdlRect(0, static_cast<decltype(SDL_Rect {}.y)>(y0), celBuf.w(), y1 - y0), position);
+	out.BlitFrom(celBuf, MakeSdlRect(0, 0, celBuf.w(), celBuf.h()), targetPosition);
 }
 
 /**
@@ -268,13 +269,27 @@ void DrawFlaskOnPanel(const Surface &out, Point position, const Surface &celBuf,
  * @param sourceBuffer A sprite representing the appropriate background/empty flask style
  * @param offset X coordinate offset for where the flask should be drawn
  * @param fillPer How full the flask is (a value from 0 to 80)
+ * @param drawFilledPortion Indicates whether to draw the filled portion of the flask
  */
-void DrawFlaskLower(const Surface &out, const Surface &sourceBuffer, int offset, int fillPer)
+void DrawFlaskLower(const Surface &out, const Surface &sourceBuffer, int offset, int fillPer, bool drawFilledPortion)
 {
-	int filled = std::clamp(fillPer, 0, FlaskBottomRect.size.height);
+	const Rectangle &rect = FlaskBottomRect;
+	const int filledRows = std::clamp(fillPer, 0, rect.size.height);
+	const int emptyRows = rect.size.height - filledRows;
 
-	if (filled < FlaskBottomRect.size.height)
-		DrawFlaskOnPanel(out, GetMainPanel().position + Displacement { offset, 0 }, sourceBuffer, FlaskBottomRect.position.y, FlaskBottomRect.position.y + FlaskBottomRect.size.height - filled);
+	// Draw the empty part of the flask
+	if (emptyRows > 0) {
+		DrawFlaskOnPanel(out,
+		    sourceBuffer.subregion(rect.position.x, rect.position.y, rect.size.width, emptyRows),
+		    GetMainPanel().position + Displacement { offset, 0 });
+	}
+
+	// Draw the filled part of the flask
+	if (drawFilledPortion && filledRows > 0) {
+		DrawFlaskOnPanel(out,
+		    BottomBuffer->subregion(offset, rect.position.y + emptyRows, rect.size.width, filledRows),
+		    GetMainPanel().position + Displacement { offset, emptyRows });
+	}
 }
 
 void SetMainPanelButtonDown(int btnId)
@@ -422,12 +437,6 @@ void AppendArenaOverview(std::string &ret)
 	}
 }
 
-const dungeon_type DungeonTypeForArena[] = {
-	dungeon_type::DTYPE_CATHEDRAL, // SL_ARENA_CHURCH
-	dungeon_type::DTYPE_HELL,      // SL_ARENA_HELL
-	dungeon_type::DTYPE_HELL,      // SL_ARENA_CIRCLE_OF_LIFE
-};
-
 std::string TextCmdArena(const std::string_view parameter)
 {
 	std::string ret;
@@ -455,7 +464,7 @@ std::string TextCmdArena(const std::string_view parameter)
 		return ret;
 	}
 
-	setlvltype = DungeonTypeForArena[arenaLevel - SL_FIRST_ARENA];
+	setlvltype = GetArenaLevelType(arenaLevel);
 	StartNewLvl(*MyPlayer, WM_DIABSETLVL, arenaLevel);
 	return ret;
 }
@@ -835,7 +844,7 @@ void DrawPanelBox(const Surface &out, SDL_Rect srcRect, Point targetPosition)
 
 void DrawLifeFlaskUpper(const Surface &out)
 {
-	constexpr int LifeFlaskUpperOffset = 109;
+	constexpr int LifeFlaskUpperOffset = 107;
 	DrawFlaskUpper(out, *pLifeBuff, LifeFlaskUpperOffset, MyPlayer->_pHPPer);
 }
 
@@ -845,16 +854,16 @@ void DrawManaFlaskUpper(const Surface &out)
 	DrawFlaskUpper(out, *pManaBuff, ManaFlaskUpperOffset, MyPlayer->_pManaPer);
 }
 
-void DrawLifeFlaskLower(const Surface &out)
+void DrawLifeFlaskLower(const Surface &out, bool drawFilledPortion)
 {
 	constexpr int LifeFlaskLowerOffset = 96;
-	DrawFlaskLower(out, *pLifeBuff, LifeFlaskLowerOffset, MyPlayer->_pHPPer);
+	DrawFlaskLower(out, *pLifeBuff, LifeFlaskLowerOffset, MyPlayer->_pHPPer, drawFilledPortion);
 }
 
-void DrawManaFlaskLower(const Surface &out)
+void DrawManaFlaskLower(const Surface &out, bool drawFilledPortion)
 {
-	constexpr int ManaFlaskLowerOffeset = 464;
-	DrawFlaskLower(out, *pManaBuff, ManaFlaskLowerOffeset, MyPlayer->_pManaPer);
+	constexpr int ManaFlaskLowerOffset = 464;
+	DrawFlaskLower(out, *pManaBuff, ManaFlaskLowerOffset, MyPlayer->_pManaPer, drawFilledPortion);
 }
 
 void DrawFlaskValues(const Surface &out, Point pos, int currValue, int maxValue)

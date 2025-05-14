@@ -10,6 +10,7 @@
 #include "levels/gendung.h"
 #include "lighting.h"
 #include "monster.h"
+#include "monsters/validation.hpp"
 #include "player.h"
 #include "utils/is_of.hpp"
 
@@ -205,29 +206,7 @@ void SyncMonster(bool isOwner, const TSyncMonster &monsterSync)
 	monster.whoHit |= monsterSync.mWhoHit;
 }
 
-bool IsEnemyIdValid(const Monster &monster, uint8_t enemyId)
-{
-	if (enemyId > MaxMonsters) {
-		enemyId -= MaxMonsters;
-		if (enemyId >= Players.size())
-			return false;
-		return Players[enemyId].plractive;
-	}
-
-	const Monster &enemy = Monsters[enemyId];
-
-	if (&enemy == &monster) {
-		return false;
-	}
-
-	if (enemy.hitPoints <= 0) {
-		return false;
-	}
-
-	return true;
-}
-
-bool IsTSyncMonsterValidate(const TSyncMonster &monsterSync)
+bool IsTSyncMonsterValid(const TSyncMonster &monsterSync)
 {
 	const size_t monsterId = monsterSync._mndx;
 
@@ -237,10 +216,15 @@ bool IsTSyncMonsterValidate(const TSyncMonster &monsterSync)
 	if (!InDungeonBounds({ monsterSync._mx, monsterSync._my }))
 		return false;
 
-	if (!IsEnemyIdValid(Monsters[monsterId], monsterSync._menemy))
+	if (!IsEnemyIdValid(monsterSync._menemy))
 		return false;
 
 	return true;
+}
+
+bool IsTSyncEnemyValid(const TSyncMonster &monsterSync)
+{
+	return IsEnemyValid(monsterSync._mndx, monsterSync._menemy);
 }
 
 } // namespace
@@ -289,10 +273,12 @@ size_t sync_all_monsters(std::byte *pbBuf, size_t dwMaxLen)
 	return dwMaxLen;
 }
 
-uint32_t OnSyncData(const TCmd *pCmd, const Player &player)
+size_t OnSyncData(const TSyncHeader &header, size_t maxCmdSize, const Player &player)
 {
-	const auto &header = *reinterpret_cast<const TSyncHeader *>(pCmd);
 	const uint16_t wLen = SDL_SwapLE16(header.wLen);
+
+	if (!ValidateCmdSize(wLen + sizeof(header), maxCmdSize, player.getId()))
+		return maxCmdSize;
 
 	assert(gbBufferMsgs != 2);
 
@@ -310,14 +296,16 @@ uint32_t OnSyncData(const TCmd *pCmd, const Player &player)
 	bool syncLocalLevel = !MyPlayer->_pLvlChanging && GetLevelForMultiplayer(*MyPlayer) == level;
 
 	if (IsValidLevelForMultiplayer(level)) {
-		const auto *monsterSyncs = reinterpret_cast<const TSyncMonster *>(pCmd + sizeof(header));
+		const auto *monsterSyncs = reinterpret_cast<const TSyncMonster *>(&header + sizeof(header));
 		bool isOwner = player.getId() > MyPlayerId;
 
 		for (int i = 0; i < monsterCount; i++) {
-			if (!IsTSyncMonsterValidate(monsterSyncs[i]))
+			if (!IsTSyncMonsterValid(monsterSyncs[i]))
 				continue;
 
 			if (syncLocalLevel) {
+				if (!IsTSyncEnemyValid(monsterSyncs[i]))
+					continue;
 				SyncMonster(isOwner, monsterSyncs[i]);
 			}
 

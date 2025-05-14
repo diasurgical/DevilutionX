@@ -771,7 +771,7 @@ void LoadMissile(LoadHelper *file)
 	missile.position.start.y = file->NextLE<int32_t>();
 	missile.position.traveled.deltaX = file->NextLE<int32_t>();
 	missile.position.traveled.deltaY = file->NextLE<int32_t>();
-	missile._mimfnum = file->NextLE<int32_t>();
+	missile.setFrameGroupRaw(file->NextLE<int32_t>());
 	missile._mispllvl = file->NextLE<int32_t>();
 	missile._miDelFlag = file->NextBool32();
 	missile._miAnimType = static_cast<MissileGraphicID>(file->NextLE<uint8_t>());
@@ -1541,7 +1541,7 @@ void SaveMissile(SaveHelper *file, const Missile &missile)
 	file->WriteLE<int32_t>(missile.position.start.y);
 	file->WriteLE<int32_t>(missile.position.traveled.deltaX);
 	file->WriteLE<int32_t>(missile.position.traveled.deltaY);
-	file->WriteLE<int32_t>(missile._mimfnum);
+	file->WriteLE<int32_t>(missile.getFrameGroupRaw());
 	file->WriteLE<int32_t>(missile._mispllvl);
 	file->WriteLE<uint32_t>(missile._miDelFlag ? 1 : 0);
 	file->WriteLE<uint8_t>(static_cast<uint8_t>(missile._miAnimType));

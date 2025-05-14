@@ -1747,7 +1747,7 @@ bool AiPlanPath(Monster &monster)
 	}
 
 	bool clear = LineClear(
-	    [&monster](Point position) { return IsTileAvailable(monster, position); },
+	    [&monster](Point position) { return (IsTileWalkable(position) && IsTileSafe(monster, position)); },
 	    monster.position.tile,
 	    monster.enemyPosition);
 	if (!clear || (monster.pathCount >= 5 && monster.pathCount < 8)) {
@@ -3577,15 +3577,17 @@ tl::expected<void, std::string> InitMonsters()
 				numscattypes++;
 			}
 		}
-		while (ActiveMonsterCount < totalmonsters) {
-			const size_t typeIndex = scattertypes[GenerateRnd(numscattypes)];
-			if (currlevel == 1 || FlipCoin())
-				na = 1;
-			else if (currlevel == 2 || leveltype == DTYPE_CRYPT)
-				na = GenerateRnd(2) + 2;
-			else
-				na = GenerateRnd(3) + 3;
-			PlaceGroup(typeIndex, na);
+		if (numscattypes > 0) {
+			while (ActiveMonsterCount < totalmonsters) {
+				const size_t typeIndex = scattertypes[GenerateRnd(numscattypes)];
+				if (currlevel == 1 || FlipCoin())
+					na = 1;
+				else if (currlevel == 2 || leveltype == DTYPE_CRYPT)
+					na = GenerateRnd(2) + 2;
+				else
+					na = GenerateRnd(3) + 3;
+				PlaceGroup(typeIndex, na);
+			}
 		}
 	}
 	for (int i = 0; i < nt; i++) {
@@ -4452,7 +4454,7 @@ void MissToMonst(Missile &missile, Point position)
 
 	Point oldPosition = missile.position.tile;
 	monster.occupyTile(position, false);
-	monster.direction = static_cast<Direction>(missile._mimfnum);
+	monster.direction = missile.getDirection();
 	monster.position.tile = position;
 	M_StartStand(monster, monster.direction);
 	M_StartHit(monster, 0);

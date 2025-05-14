@@ -1700,7 +1700,7 @@ void DrawAndBlit()
 
 	const Rectangle &mainPanel = GetMainPanel();
 
-	if (gnScreenWidth > mainPanel.size.width || IsRedrawEverything()) {
+	if (gnScreenWidth > mainPanel.size.width || IsRedrawEverything() || *GetOptions().Gameplay.enableFloatingNumbers != FloatingNumbers::Off) {
 		drawHealth = true;
 		drawMana = true;
 		drawControlButtons = true;
@@ -1724,10 +1724,10 @@ void DrawAndBlit()
 		DrawMainPanel(out);
 	}
 	if (drawHealth) {
-		DrawLifeFlaskLower(out);
+		DrawLifeFlaskLower(out, !drawCtrlPan);
 	}
 	if (drawMana) {
-		DrawManaFlaskLower(out);
+		DrawManaFlaskLower(out, !drawCtrlPan);
 
 		DrawSpell(out);
 	}
