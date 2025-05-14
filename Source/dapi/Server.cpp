@@ -995,15 +995,21 @@ void Server::updateGameData()
 	devilution::Item *currentItem;
 	bool useiValue = false;
 	bool shiftValue = false;
+	bool checkRepairPrice = false;
 	switch (devilution::ActiveStore) {
 	case devilution::TalkID::StorytellerIdentify:
 	case devilution::TalkID::WitchSell:
 	case devilution::TalkID::WitchRecharge:
 	case devilution::TalkID::SmithSell:
+		storeLoopMax = 48;
+		currentItem = &devilution::PlayerItems[0];
+		useiValue = true;
+		break;
 	case devilution::TalkID::SmithRepair:
 		storeLoopMax = 48;
 		currentItem = &devilution::PlayerItems[0];
 		useiValue = true;
+		checkRepairPrice = true;
 		break;
 	case devilution::TalkID::WitchBuy:
 		storeLoopMax = devilution::NumWitchItemsHf;
@@ -1033,7 +1039,18 @@ void Server::updateGameData()
 	}
 	for (int i = 0; i < storeLoopMax; i++) {
 		if (currentItem->_itype != devilution::ItemType::None) {
+			if (checkRepairPrice) {
+				int v = 0;
+				int due = currentItem->_iMaxDur - currentItem->_iDurability;
+				if (currentItem->_iMagical != devilution::item_quality::ITEM_QUALITY_NORMAL && currentItem->_iIdentified) {
+					v = 30 * currentItem->_iIvalue * due / (currentItem->_iMaxDur * 100 * 2);
+					if (v == 0)
+						continue;
+				} 
+			}
+
 			int itemID = static_cast<int>(data->itemList.size());
+
 
 			for (auto &item : data->itemList) {
 				if (item.compare(*currentItem)) {
