@@ -296,7 +296,7 @@ size_t OnSyncData(const TSyncHeader &header, size_t maxCmdSize, const Player &pl
 	bool syncLocalLevel = !MyPlayer->_pLvlChanging && GetLevelForMultiplayer(*MyPlayer) == level;
 
 	if (IsValidLevelForMultiplayer(level)) {
-		const auto *monsterSyncs = reinterpret_cast<const TSyncMonster *>(&header + sizeof(header));
+		const auto *monsterSyncs = reinterpret_cast<const TSyncMonster *>(&header + 1);
 		bool isOwner = player.getId() > MyPlayerId;
 
 		for (int i = 0; i < monsterCount; i++) {
