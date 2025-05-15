@@ -1,6 +1,7 @@
 #include <thread>
 
 #include "Server.h"
+#include "qol\stash.h"
 
 
 
@@ -995,21 +996,15 @@ void Server::updateGameData()
 	devilution::Item *currentItem;
 	bool useiValue = false;
 	bool shiftValue = false;
-	bool checkRepairPrice = false;
 	switch (devilution::ActiveStore) {
 	case devilution::TalkID::StorytellerIdentify:
 	case devilution::TalkID::WitchSell:
 	case devilution::TalkID::WitchRecharge:
 	case devilution::TalkID::SmithSell:
-		storeLoopMax = 48;
-		currentItem = &devilution::PlayerItems[0];
-		useiValue = true;
-		break;
 	case devilution::TalkID::SmithRepair:
-		storeLoopMax = 48;
+		storeLoopMax = devilution::CurrentItemIndex;
 		currentItem = &devilution::PlayerItems[0];
 		useiValue = true;
-		checkRepairPrice = true;
 		break;
 	case devilution::TalkID::WitchBuy:
 		storeLoopMax = devilution::NumWitchItemsHf;
@@ -1039,16 +1034,6 @@ void Server::updateGameData()
 	}
 	for (int i = 0; i < storeLoopMax; i++) {
 		if (currentItem->_itype != devilution::ItemType::None) {
-			if (checkRepairPrice) {
-				int v = 0;
-				int due = currentItem->_iMaxDur - currentItem->_iDurability;
-				if (currentItem->_iMagical != devilution::item_quality::ITEM_QUALITY_NORMAL && currentItem->_iIdentified) {
-					v = 30 * currentItem->_iIvalue * due / (currentItem->_iMaxDur * 100 * 2);
-					if (v == 0)
-						continue;
-				} 
-			}
-
 			int itemID = static_cast<int>(data->itemList.size());
 
 
@@ -1842,6 +1827,7 @@ void Server::repairItem(int itemID)
 			myPlayer.InvBody[devilution::inv_body_loc::INVLOC_HAND_RIGHT]._iDurability = myPlayer.InvBody[devilution::inv_body_loc::INVLOC_HAND_RIGHT]._iMaxDur;
 		devilution::TakePlrsMoney(price);
 		devilution::StartStore(devilution::OldActiveStore);
+		return;
 	}
 
 	myPlayer.InvList[i]._iDurability = myPlayer.InvList[i]._iMaxDur;
@@ -2309,6 +2295,7 @@ void Server::identifyStoreItem(int itemID)
 		devilution::PlayerItems[id]._iIdentified = true;
 		devilution::TakePlrsMoney(devilution::PlayerItems[id]._iIvalue);
 		devilution::CalcPlrInv(myPlayer, true);
+		devilution::StartStore(devilution::OldActiveStore);
 	}
 }
 
