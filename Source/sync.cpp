@@ -70,7 +70,7 @@ bool SyncMonsterActive(TSyncMonster &monsterSync)
 		return false;
 	}
 
-	SyncMonsterPos(monsterSync, ndx);
+	SyncMonsterPos(monsterSync, static_cast<int>(ndx));
 	return true;
 }
 
@@ -95,7 +95,7 @@ bool SyncMonsterActive2(TSyncMonster &monsterSync)
 		return false;
 	}
 
-	SyncMonsterPos(monsterSync, ndx);
+	SyncMonsterPos(monsterSync, static_cast<int>(ndx));
 	return true;
 }
 
@@ -203,7 +203,7 @@ void SyncMonster(bool isOwner, const TSyncMonster &monsterSync)
 	}
 
 	decode_enemy(monster, enemyId);
-	monster.whoHit |= monsterSync.mWhoHit;
+	monster.whoHit = static_cast<int8_t>(monster.whoHit | monsterSync.mWhoHit);
 }
 
 bool IsTSyncMonsterValid(const TSyncMonster &monsterSync)
@@ -241,7 +241,7 @@ size_t sync_all_monsters(std::byte *pbBuf, size_t dwMaxLen)
 		return dwMaxLen;
 	}
 
-	auto *pHdr = (TSyncHeader *)pbBuf;
+	auto *pHdr = reinterpret_cast<TSyncHeader *>(pbBuf);
 	pbBuf += sizeof(TSyncHeader);
 	dwMaxLen -= sizeof(TSyncHeader);
 
@@ -290,7 +290,7 @@ size_t OnSyncData(const TSyncHeader &header, size_t maxCmdSize, const Player &pl
 	}
 
 	assert(header.wLen % sizeof(TSyncMonster) == 0);
-	int monsterCount = wLen / sizeof(TSyncMonster);
+	int monsterCount = static_cast<int>(wLen / sizeof(TSyncMonster));
 
 	uint8_t level = header.bLevel;
 	bool syncLocalLevel = !MyPlayer->_pLvlChanging && GetLevelForMultiplayer(*MyPlayer) == level;
@@ -318,7 +318,7 @@ size_t OnSyncData(const TSyncHeader &header, size_t maxCmdSize, const Player &pl
 
 void sync_init()
 {
-	sgnMonsters = 16 * MyPlayerId;
+	sgnMonsters = static_cast<size_t>(16 * MyPlayerId);
 	memset(sgwLRU, 255, sizeof(sgwLRU));
 }
 
