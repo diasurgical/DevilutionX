@@ -683,13 +683,13 @@ bool GetRunGameLoop(bool &drawGame, bool &processInput)
 	return isGameTick;
 }
 
-bool FetchMessage(SDL_Event *event, uint16_t *modState)
+bool FetchMessage(SDL_Event *event, uint16_t *modState, int (*poll)(SDL_Event *event))
 {
-	if (CurrentEventHandler == DisableInputEventHandler)
+	if (CurrentEventHandler.handle == DisableInputEventHandler)
 		return false;
 
 	SDL_Event e;
-	if (SDL_PollEvent(&e) != 0) {
+	if (poll(&e) != 0) {
 		if (e.type == SDL_QUIT) {
 			*event = e;
 			return true;
@@ -741,7 +741,7 @@ void RecordMessage(const SDL_Event &event, uint16_t modState)
 {
 	if (!gbRunGame || DemoRecording == nullptr)
 		return;
-	if (CurrentEventHandler == DisableInputEventHandler)
+	if (CurrentEventHandler.handle == DisableInputEventHandler)
 		return;
 	switch (event.type) {
 	case SDL_MOUSEMOTION:

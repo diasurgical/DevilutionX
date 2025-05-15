@@ -22,7 +22,7 @@ bool IsRunning();
 bool IsRecording();
 
 bool GetRunGameLoop(bool &drawGame, bool &processInput);
-bool FetchMessage(SDL_Event *event, uint16_t *modState);
+bool FetchMessage(SDL_Event *event, uint16_t *modState, int (*poll)(SDL_Event *event));
 void RecordGameLoopResult(bool runGameLoop);
 void RecordMessage(const SDL_Event &event, uint16_t modState);
 
@@ -46,7 +46,7 @@ inline bool GetRunGameLoop(bool &, bool &)
 {
 	return false;
 }
-inline bool FetchMessage(SDL_Event *, uint16_t *)
+inline bool FetchMessage(SDL_Event *, uint16_t *, int (*poll)(SDL_Event *event))
 {
 	return false;
 }

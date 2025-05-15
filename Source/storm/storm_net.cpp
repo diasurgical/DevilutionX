@@ -15,6 +15,7 @@
 #include "engine/demomode.h"
 #include "headless_mode.hpp"
 #include "menu.h"
+#include "pfile.h"
 #include "options.h"
 #include "utils/stubs.h"
 #include "utils/utf8.hpp"
@@ -128,7 +129,30 @@ bool SNetInitializeProvider(uint32_t provider, struct GameData *gameData)
 	std::lock_guard<SdlMutex> lg(storm_net_mutex);
 #endif
 	dvlnet_inst = net::abstract_net::MakeNet(provider);
-	return (HeadlessMode && !demo::IsRunning()) || mainmenu_select_hero_dialog(gameData);
+	if (HeadlessMode && !demo::IsRunning()) {
+		devilution::_uidefaultstats defaults;
+		devilution::_uiheroinfo heroInfo;
+		HeroClass heroClass = HeroClass::Warrior;
+
+		pfile_ui_set_class_stats(heroClass, &defaults);
+
+		heroInfo.level = 1;
+		heroInfo.heroclass = heroClass;
+		heroInfo.strength = defaults.strength;
+		heroInfo.magic = defaults.magic;
+		heroInfo.dexterity = defaults.dexterity;
+		heroInfo.vitality = defaults.vitality;
+		strcpy(heroInfo.name, "AI Agent");
+		heroInfo.saveNumber = 0;
+		pfile_ui_save_create(&heroInfo);
+
+		gSaveNumber = heroInfo.saveNumber;
+		gameData->nDifficulty = DIFF_NORMAL;
+
+		return true;
+	} else {
+		return mainmenu_select_hero_dialog(gameData);
+	}
 }
 
 /**

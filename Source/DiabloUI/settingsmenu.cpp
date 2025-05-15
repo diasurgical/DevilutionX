@@ -205,6 +205,7 @@ bool ChangeOptionValue(OptionEntryBase *pOption, size_t listIndex)
 		auto *pOptionList = static_cast<OptionEntryListBase *>(pOption);
 		pOptionList->SetActiveListIndex(listIndex);
 	} break;
+	case OptionEntryType::String:
 	case OptionEntryType::Key:
 	case OptionEntryType::PadButton:
 		break;
