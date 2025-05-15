@@ -12,7 +12,7 @@
       "variables": [
         {
           "name": "DISCORD_INTEGRATION",
-          "value": "True",
+          "value": "False",
           "type": "BOOL"
         }
       ]
