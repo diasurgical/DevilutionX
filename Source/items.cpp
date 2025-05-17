@@ -4267,9 +4267,6 @@ void DrawItemInfo(const Surface &out)
 	DrawItemInfoHalfTransparentRect(out, rect);
 	AddItemInfoLine(out, rect, item.getName());
 
-	// const Rectangle dividerLineRect { position + Displacement { 26, 25 }, { 267, 3 } };
-	// out.BlitFrom(out, MakeSdlRect(dividerLineRect), dividerLineRect.position + Displacement { 0, 5 * 12 + 13 });
-
 	PrintItemDetails(out, rect);
 
 	if (item._iMagical != ITEM_QUALITY_NORMAL && (IsAnyOf(item._iClass, ICLASS_WEAPON, ICLASS_ARMOR) || IsAnyOf(item._itype, ItemType::Ring, ItemType::Amulet)) && !item._iIdentified) {
@@ -4279,6 +4276,10 @@ void DrawItemInfo(const Surface &out)
 	}
 
 	PrintItemMisc(out, rect);
+
+	if (item._iMagical == ITEM_QUALITY_UNIQUE)
+		AddItemInfoLine(out, rect, _("unique item"));
+
 	PrintItemInfo(out, rect);
 
 	rect.position.y += 12;
@@ -4292,9 +4293,6 @@ void PrintItemDetails(const Item &item)
 
 	ShowItemInfoBox = true;
 	CurrentSelectedItem = item;
-
-	if (item._iMagical == ITEM_QUALITY_UNIQUE)
-		AddInfoBoxString(_("unique item"));
 }
 
 void UseItem(Player &player, item_misc_id mid, SpellID spellID, int spellFrom)
