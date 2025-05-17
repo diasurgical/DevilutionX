@@ -1436,7 +1436,6 @@ size_t OnPutItem(const TCmdPItem &message, Player &player)
 				if (isSelf)
 					pfile_update(true);
 			}
-			return sizeof(message);
 		} else {
 			PutItemRecord(dwSeed, wCI, wIndx);
 			DeltaPutItem(message, position, player);
@@ -1464,7 +1463,6 @@ size_t OnSyncPutItem(const TCmdPItem &message, Player &player)
 				if (&player == MyPlayer)
 					pfile_update(true);
 			}
-			return sizeof(message);
 		} else {
 			PutItemRecord(dwSeed, wCI, wIndx);
 			DeltaPutItem(message, { message.x, message.y }, player);
