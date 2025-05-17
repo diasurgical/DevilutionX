@@ -294,6 +294,13 @@ Item ItemLimbo;
 /** @brief Last sent player command for the local player. */
 TCmdLocParam5 lastSentPlayerCmd;
 
+void RecreateItem(const Player &player, const TCmdPItem &message, Item &item);
+
+bool IsMonsterDeltaValid(const DMonsterStr &monster)
+{
+	return InDungeonBounds(monster.position) && monster.hitPoints >= 0;
+}
+
 bool IsPortalDeltaValid(const DPortal &portal)
 {
 	const WorldTilePosition position { portal.x, portal.y };
@@ -796,6 +803,147 @@ void DeltaImportData(_cmd_id cmd, uint32_t recvOffset, int pnum)
 	}
 
 	sgbDeltaChunks++;
+}
+
+void DeltaLoadSpawnedMonsters(const DLevel &deltaLevel)
+{
+	for (const auto &deltaSpawnedMonster : deltaLevel.spawnedMonsters) {
+		const auto &monsterData = deltaSpawnedMonster.second;
+		LoadDeltaSpawnedMonster(deltaSpawnedMonster.second.typeIndex, deltaSpawnedMonster.first, monsterData.seed, monsterData.golemOwnerPlayerId, monsterData.golemSpellLevel);
+		assert(deltaLevel.monster[deltaSpawnedMonster.first].position.x != 0xFF);
+	}
+}
+
+void DeltaLoadEnemies(const DLevel &deltaLevel)
+{
+	for (size_t i = 0; i < MaxMonsters; i++) {
+		const DMonsterStr &deltaMonster = deltaLevel.monster[i];
+		if (!IsMonsterDeltaValid(deltaMonster))
+			continue;
+		if (deltaMonster.hitPoints == 0)
+			continue;
+		Monster &monster = Monsters[i];
+		if (IsEnemyValid(i, deltaMonster.menemy))
+			decode_enemy(monster, deltaMonster.menemy);
+		if (monster.position.tile != Point { 0, 0 } && monster.position.tile != GolemHoldingCell)
+			monster.occupyTile(monster.position.tile, false);
+		if (monster.type().type == MT_GOLEM) {
+			GolumAi(monster);
+			monster.flags |= (MFLAG_TARGETS_MONSTER | MFLAG_GOLEM);
+		} else {
+			M_StartStand(monster, monster.direction);
+		}
+		monster.activeForTicks = deltaMonster.mactive;
+	}
+}
+
+void DeltaLoadMonsters(const DLevel &deltaLevel)
+{
+	for (size_t i = 0; i < MaxMonsters; i++) {
+		const DMonsterStr &deltaMonster = deltaLevel.monster[i];
+		if (!IsMonsterDeltaValid(deltaMonster))
+			continue;
+
+		Monster &monster = Monsters[i];
+		M_ClearSquares(monster);
+		{
+			const WorldTilePosition position = deltaMonster.position;
+			monster.position.tile = position;
+			monster.position.old = position;
+			monster.position.future = position;
+			if (monster.lightId != NO_LIGHT)
+				ChangeLightXY(monster.lightId, position);
+		}
+
+		monster.hitPoints = SDL_SwapLE32(deltaMonster.hitPoints);
+		monster.whoHit = deltaMonster.mWhoHit;
+		if (deltaMonster.hitPoints != 0)
+			continue;
+
+		M_ClearSquares(monster);
+		if (monster.ai != MonsterAIID::Diablo) {
+			if (monster.isUnique()) {
+				AddCorpse(monster.position.tile, monster.corpseId, monster.direction);
+			} else {
+				AddCorpse(monster.position.tile, monster.type().corpseId, monster.direction);
+			}
+		}
+		monster.isInvalid = true;
+		M_UpdateRelations(monster);
+	}
+
+	// Calling this here ensures that monster hitpoints
+	// are synced before attempting to validate enemy IDs
+	DeltaLoadEnemies(deltaLevel);
+}
+
+void DeltaLoadObjects(DLevel &deltaLevel)
+{
+	for (auto it = deltaLevel.object.begin(); it != deltaLevel.object.end();) {
+		Object *object = FindObjectAtPosition(it->first);
+		if (object == nullptr) {
+			it = deltaLevel.object.erase(it);
+			continue;
+		}
+
+		switch (it->second.bCmd) {
+		case CMD_OPENDOOR:
+		case CMD_OPERATEOBJ:
+			DeltaSyncOpObject(*object);
+			it++;
+			break;
+		case CMD_CLOSEDOOR:
+			DeltaSyncCloseObj(*object);
+			it++;
+			break;
+		case CMD_BREAKOBJ:
+			DeltaSyncBreakObj(*object);
+			it++;
+			break;
+		default:
+			it = deltaLevel.object.erase(it); // discard invalid commands
+			break;
+		}
+	}
+
+	for (int i = 0; i < ActiveObjectCount; i++) {
+		Object &object = Objects[ActiveObjects[i]];
+		if (object.IsTrap()) {
+			UpdateTrapState(object);
+		}
+	}
+}
+
+void DeltaLoadItems(const DLevel &deltaLevel)
+{
+	for (const TCmdPItem &deltaItem : deltaLevel.item) {
+		if (deltaItem.bCmd == CMD_INVALID)
+			continue;
+
+		if (deltaItem.bCmd == TCmdPItem::PickedUpItem) {
+			int activeItemIndex = FindGetItem(
+			    SDL_SwapLE32(deltaItem.def.dwSeed),
+			    static_cast<_item_indexes>(SDL_SwapLE16(deltaItem.def.wIndx)),
+			    SDL_SwapLE16(deltaItem.def.wCI));
+			if (activeItemIndex != -1) {
+				const auto &position = Items[ActiveItems[activeItemIndex]].position;
+				if (dItem[position.x][position.y] == ActiveItems[activeItemIndex] + 1)
+					dItem[position.x][position.y] = 0;
+				DeleteItem(activeItemIndex);
+			}
+		}
+		if (deltaItem.bCmd == TCmdPItem::DroppedItem) {
+			int ii = AllocateItem();
+			auto &item = Items[ii];
+			RecreateItem(*MyPlayer, deltaItem, item);
+
+			int x = deltaItem.x;
+			int y = deltaItem.y;
+			item.position = GetItemPosition({ x, y });
+			dItem[item.position.x][item.position.y] = static_cast<int8_t>(ii + 1);
+			RespawnItem(Items[ii], false);
+		}
+	}
 }
 
 size_t OnLevelData(const TCmdPlrInfoHdr &message, size_t maxCmdSize, const Player &player)
@@ -2627,11 +2775,6 @@ void DeltaClearLevel(uint8_t level)
 	LocalLevels.erase(level);
 }
 
-bool DeltaMonsterIsValid(const DMonsterStr &monster)
-{
-	return InDungeonBounds(monster.position) && monster.hitPoints >= 0;
-}
-
 void delta_kill_monster(const Monster &monster, Point position, const Player &player)
 {
 	if (!gbIsMultiplayer)
@@ -2778,137 +2921,19 @@ void DeltaLoadLevel()
 	uint8_t localLevel = GetLevelForMultiplayer(*MyPlayer);
 	DLevel &deltaLevel = GetDeltaLevel(localLevel);
 	if (leveltype != DTYPE_TOWN) {
-		for (auto &deltaSpawnedMonster : deltaLevel.spawnedMonsters) {
-			auto &monsterData = deltaSpawnedMonster.second;
-			LoadDeltaSpawnedMonster(deltaSpawnedMonster.second.typeIndex, deltaSpawnedMonster.first, monsterData.seed, monsterData.golemOwnerPlayerId, monsterData.golemSpellLevel);
-			assert(deltaLevel.monster[deltaSpawnedMonster.first].position.x != 0xFF);
-		}
-
-		for (size_t i = 0; i < MaxMonsters; i++) {
-			DMonsterStr &deltaMonster = deltaLevel.monster[i];
-			if (!DeltaMonsterIsValid(deltaMonster))
-				continue;
-
-			Monster &monster = Monsters[i];
-			M_ClearSquares(monster);
-			{
-				const WorldTilePosition position = deltaMonster.position;
-				monster.position.tile = position;
-				monster.position.old = position;
-				monster.position.future = position;
-				if (monster.lightId != NO_LIGHT)
-					ChangeLightXY(monster.lightId, position);
-			}
-
-			monster.hitPoints = SDL_SwapLE32(deltaMonster.hitPoints);
-			monster.whoHit = deltaMonster.mWhoHit;
-			if (deltaMonster.hitPoints == 0) {
-				M_ClearSquares(monster);
-				if (monster.ai != MonsterAIID::Diablo) {
-					if (monster.isUnique()) {
-						AddCorpse(monster.position.tile, monster.corpseId, monster.direction);
-					} else {
-						AddCorpse(monster.position.tile, monster.type().corpseId, monster.direction);
-					}
-				}
-				monster.isInvalid = true;
-				M_UpdateRelations(monster);
-			}
-		}
-
-		// Separate loop ensures that monster hitpoints are
-		// synced before attempting to validate enemy IDs
-		for (size_t i = 0; i < MaxMonsters; i++) {
-			DMonsterStr &deltaMonster = deltaLevel.monster[i];
-			if (!DeltaMonsterIsValid(deltaMonster))
-				continue;
-			if (deltaMonster.hitPoints == 0)
-				continue;
-			Monster &monster = Monsters[i];
-			if (IsEnemyValid(i, deltaMonster.menemy))
-				decode_enemy(monster, deltaMonster.menemy);
-			if (monster.position.tile != Point { 0, 0 } && monster.position.tile != GolemHoldingCell)
-				monster.occupyTile(monster.position.tile, false);
-			if (monster.type().type == MT_GOLEM) {
-				GolumAi(monster);
-				monster.flags |= (MFLAG_TARGETS_MONSTER | MFLAG_GOLEM);
-			} else {
-				M_StartStand(monster, monster.direction);
-			}
-			monster.activeForTicks = deltaMonster.mactive;
-		}
+		DeltaLoadSpawnedMonsters(deltaLevel);
+		DeltaLoadMonsters(deltaLevel);
 
 		auto localLevelIt = LocalLevels.find(localLevel);
 		if (localLevelIt != LocalLevels.end())
 			memcpy(AutomapView, &localLevelIt->second, sizeof(AutomapView));
 		else
 			memset(AutomapView, 0, sizeof(AutomapView));
+
+		DeltaLoadObjects(deltaLevel);
 	}
 
-	if (leveltype != DTYPE_TOWN) {
-		for (auto it = deltaLevel.object.begin(); it != deltaLevel.object.end();) {
-			Object *object = FindObjectAtPosition(it->first);
-			if (object == nullptr) {
-				it = deltaLevel.object.erase(it);
-				continue;
-			}
-
-			switch (it->second.bCmd) {
-			case CMD_OPENDOOR:
-			case CMD_OPERATEOBJ:
-				DeltaSyncOpObject(*object);
-				it++;
-				break;
-			case CMD_CLOSEDOOR:
-				DeltaSyncCloseObj(*object);
-				it++;
-				break;
-			case CMD_BREAKOBJ:
-				DeltaSyncBreakObj(*object);
-				it++;
-				break;
-			default:
-				it = deltaLevel.object.erase(it); // discard invalid commands
-				break;
-			}
-		}
-
-		for (int i = 0; i < ActiveObjectCount; i++) {
-			Object &object = Objects[ActiveObjects[i]];
-			if (object.IsTrap()) {
-				UpdateTrapState(object);
-			}
-		}
-	}
-
-	for (const TCmdPItem &deltaItem : deltaLevel.item) {
-		if (deltaItem.bCmd == CMD_INVALID)
-			continue;
-
-		if (deltaItem.bCmd == TCmdPItem::PickedUpItem) {
-			int activeItemIndex = FindGetItem(
-			    SDL_SwapLE32(deltaItem.def.dwSeed),
-			    static_cast<_item_indexes>(SDL_SwapLE16(deltaItem.def.wIndx)),
-			    SDL_SwapLE16(deltaItem.def.wCI));
-			if (activeItemIndex != -1) {
-				const auto &position = Items[ActiveItems[activeItemIndex]].position;
-				if (dItem[position.x][position.y] == ActiveItems[activeItemIndex] + 1)
-					dItem[position.x][position.y] = 0;
-				DeleteItem(activeItemIndex);
-			}
-		}
-		if (deltaItem.bCmd == TCmdPItem::DroppedItem) {
-			int ii = AllocateItem();
-			auto &item = Items[ii];
-			RecreateItem(*MyPlayer, deltaItem, item);
-
-			int x = deltaItem.x;
-			int y = deltaItem.y;
-			item.position = GetItemPosition({ x, y });
-			dItem[item.position.x][item.position.y] = static_cast<int8_t>(ii + 1);
-			RespawnItem(Items[ii], false);
-		}
-	}
+	DeltaLoadItems(deltaLevel);
 }
 
 void NetSendCmd(bool bHiPri, _cmd_id bCmd)
