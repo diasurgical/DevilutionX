@@ -1961,6 +1961,25 @@ void PrintItemMisc(const Surface &out, Rectangle &rect)
 	}
 }
 
+void PrintItemInfo(const Surface &out, Rectangle &rect)
+{
+	const Item &item = CurrentSelectedItem;
+	uint8_t str = item._iMinStr;
+	uint8_t dex = item._iMinDex;
+	uint8_t mag = item._iMinMag;
+
+	if (str != 0 || mag != 0 || dex != 0) {
+		std::string text = std::string(_("Required:"));
+		if (str != 0)
+			text.append(fmt::format(fmt::runtime(_(" {:d} Str")), str));
+		if (mag != 0)
+			text.append(fmt::format(fmt::runtime(_(" {:d} Mag")), mag));
+		if (dex != 0)
+			text.append(fmt::format(fmt::runtime(_(" {:d} Dex")), dex));
+		AddItemInfoLine(out, rect, text);
+	}
+}
+
 bool SmithItemOk(const Player &player, const ItemData &item)
 {
 	if (item.itype == ItemType::Misc)
@@ -4239,25 +4258,6 @@ static void AddItemInfoPowers(const Surface &out, Rectangle &rect)
 	}
 }
 
-static void AddItemInfoRequirements(const Surface &out, Rectangle &rect)
-{
-	const Item &item = CurrentSelectedItem;
-	uint8_t str = item._iMinStr;
-	uint8_t dex = item._iMinDex;
-	uint8_t mag = item._iMinMag;
-
-	if (str != 0 || mag != 0 || dex != 0) {
-		std::string text = std::string(_("Required:"));
-		if (str != 0)
-			text.append(fmt::format(fmt::runtime(_(" {:d} Str")), str));
-		if (mag != 0)
-			text.append(fmt::format(fmt::runtime(_(" {:d} Mag")), mag));
-		if (dex != 0)
-			text.append(fmt::format(fmt::runtime(_(" {:d} Dex")), dex));
-		AddItemInfoLine(out, rect, text);
-	}
-}
-
 void DrawItemInfo(const Surface &out)
 {
 	const Point position = GetHoverItemInfoAnchor();
@@ -4279,7 +4279,7 @@ void DrawItemInfo(const Surface &out)
 	}
 
 	PrintItemMisc(out, rect);
-	AddItemInfoRequirements(out, rect);
+	PrintItemInfo(out, rect);
 
 	rect.position.y += 12;
 	DrawItemInfoHalfTransparentRect(out, rect);
