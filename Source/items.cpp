@@ -1648,7 +1648,7 @@ void ItemDoppel()
 		idoppely = 16;
 }
 
-static void PrintItemOil(const Surface &out, Rectangle &rect)
+void PrintItemOil(const Surface &out, Rectangle &rect)
 {
 	switch (CurrentSelectedItem._iMiscId) {
 	case IMISC_OILACC:
@@ -1861,7 +1861,7 @@ Point GetHoverItemInfoAnchor()
 	return { 0, 0 };
 }
 
-static void printItemMiscKBM(const Surface &out, Rectangle &rect, const bool isOil, const bool isCastOnTarget)
+void printItemMiscKBM(const Surface &out, Rectangle &rect, const bool isOil, const bool isCastOnTarget)
 {
 	const Item &item = CurrentSelectedItem;
 
@@ -1877,7 +1877,7 @@ static void printItemMiscKBM(const Surface &out, Rectangle &rect, const bool isO
 	}
 }
 
-static void printItemMiscGenericGamepad(const Surface &out, Rectangle &rect, const bool isOil, bool isCastOnTarget)
+void printItemMiscGenericGamepad(const Surface &out, Rectangle &rect, const bool isOil, bool isCastOnTarget)
 {
 	const Item &item = CurrentSelectedItem;
 
@@ -1897,7 +1897,7 @@ static void printItemMiscGenericGamepad(const Surface &out, Rectangle &rect, con
 	}
 }
 
-static void printItemMiscGamepad(const Surface &out, Rectangle &rect, bool isOil, bool isCastOnTarget)
+void printItemMiscGamepad(const Surface &out, Rectangle &rect, bool isOil, bool isCastOnTarget)
 {
 	const Item &item = CurrentSelectedItem;
 
@@ -1924,7 +1924,7 @@ static void printItemMiscGamepad(const Surface &out, Rectangle &rect, bool isOil
 	}
 }
 
-static void PrintItemMisc(const Surface &out, Rectangle &rect)
+void PrintItemMisc(const Surface &out, Rectangle &rect)
 {
 	const Item &item = CurrentSelectedItem;
 
