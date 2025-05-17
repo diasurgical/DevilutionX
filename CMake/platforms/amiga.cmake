@@ -4,8 +4,6 @@ set(UBSAN OFF)
 set(NONET ON)
 set(USE_SDL1 ON)
 set(SDL1_VIDEO_MODE_BPP 8)
-# Enable exception support as they are used in dvlnet code
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fexceptions")
 
 set(DEVILUTIONX_SYSTEM_BZIP2 OFF)
 set(DEVILUTIONX_SYSTEM_ZLIB OFF)
