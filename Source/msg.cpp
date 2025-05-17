@@ -1264,39 +1264,41 @@ int SyncDropItem(const TCmdPItem &message)
 
 size_t OnRequestGetItem(const TCmdGItem &message, Player &player)
 {
-	if (gbBufferMsgs != 1 && player.isLevelOwnedByLocalClient() && IsGItemValid(message)) {
-		const Point position { message.x, message.y };
-		const uint32_t dwSeed = SDL_SwapLE32(message.def.dwSeed);
-		const uint16_t wCI = SDL_SwapLE16(message.def.wCI);
-		const auto wIndx = static_cast<_item_indexes>(SDL_SwapLE16(message.def.wIndx));
-		if (GetItemRecord(dwSeed, wCI, wIndx)) {
-			int ii = -1;
-			if (InDungeonBounds(position)) {
-				ii = std::abs(dItem[position.x][position.y]) - 1;
-				if (ii >= 0 && !Items[ii].keyAttributesMatch(dwSeed, wIndx, wCI)) {
-					ii = -1;
-				}
-			}
+	if (gbBufferMsgs == 1 || !player.isLevelOwnedByLocalClient() || !IsGItemValid(message))
+		return sizeof(message);
 
-			if (ii == -1) {
-				// No item at the target position or the key attributes don't match, so try find a matching item.
-				int activeItemIndex = FindGetItem(dwSeed, wIndx, wCI);
-				if (activeItemIndex != -1) {
-					ii = ActiveItems[activeItemIndex];
-				}
-			}
+	const Point position { message.x, message.y };
+	const uint32_t dwSeed = SDL_SwapLE32(message.def.dwSeed);
+	const uint16_t wCI = SDL_SwapLE16(message.def.wCI);
+	const auto wIndx = static_cast<_item_indexes>(SDL_SwapLE16(message.def.wIndx));
+	if (!GetItemRecord(dwSeed, wCI, wIndx))
+		return sizeof(message);
 
-			if (ii != -1) {
-				NetSendCmdGItem2(false, CMD_GETITEM, MyPlayerId, message.bPnum, message);
-				if (message.bPnum != MyPlayerId)
-					SyncGetItem(position, dwSeed, wIndx, wCI);
-				else
-					InvGetItem(*MyPlayer, ii);
-				SetItemRecord(dwSeed, wCI, wIndx);
-			} else if (!NetSendCmdReq2(CMD_REQUESTGITEM, *MyPlayer, message.bPnum, message)) {
-				NetSendCmdExtra(message);
-			}
+	int ii = -1;
+	if (InDungeonBounds(position)) {
+		ii = std::abs(dItem[position.x][position.y]) - 1;
+		if (ii >= 0 && !Items[ii].keyAttributesMatch(dwSeed, wIndx, wCI)) {
+			ii = -1;
 		}
+	}
+
+	if (ii == -1) {
+		// No item at the target position or the key attributes don't match, so try find a matching item.
+		int activeItemIndex = FindGetItem(dwSeed, wIndx, wCI);
+		if (activeItemIndex != -1) {
+			ii = ActiveItems[activeItemIndex];
+		}
+	}
+
+	if (ii != -1) {
+		NetSendCmdGItem2(false, CMD_GETITEM, MyPlayerId, message.bPnum, message);
+		if (message.bPnum != MyPlayerId)
+			SyncGetItem(position, dwSeed, wIndx, wCI);
+		else
+			InvGetItem(*MyPlayer, ii);
+		SetItemRecord(dwSeed, wCI, wIndx);
+	} else if (!NetSendCmdReq2(CMD_REQUESTGITEM, *MyPlayer, message.bPnum, message)) {
+		NetSendCmdExtra(message);
 	}
 
 	return sizeof(message);
