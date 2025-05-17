@@ -207,8 +207,8 @@ struct TMegaPkt {
 #pragma pack(push, 1)
 struct DMonsterStr {
 	WorldTilePosition position;
-	uint8_t _menemy;
-	uint8_t _mactive;
+	uint8_t menemy;
+	uint8_t mactive;
 	int32_t hitPoints;
 	int8_t mWhoHit;
 };
@@ -263,8 +263,8 @@ struct DJunk {
 };
 #pragma pack(pop)
 
-constexpr size_t MAX_MULTIPLAYERLEVELS = NUMLEVELS + SL_LAST;
-constexpr size_t MAX_CHUNKS = MAX_MULTIPLAYERLEVELS + 4;
+constexpr size_t MaxMultiplayerLevels = NUMLEVELS + SL_LAST;
+constexpr size_t MaxChunks = MaxMultiplayerLevels + 4;
 
 uint32_t sgdwOwnerWait;
 uint32_t sgdwRecvOffset;
@@ -501,11 +501,11 @@ int WaitForTurns()
 		gbDeltaSender = MyPlayerId;
 		nthread_set_turn_upper_bit();
 	}
-	if (sgbDeltaChunks == MAX_CHUNKS - 1) {
-		sgbDeltaChunks = MAX_CHUNKS;
+	if (sgbDeltaChunks == MaxChunks - 1) {
+		sgbDeltaChunks = MaxChunks;
 		return 99;
 	}
-	return 100 * sgbDeltaChunks / MAX_CHUNKS;
+	return 100 * sgbDeltaChunks / MaxChunks;
 }
 
 std::byte *DeltaExportItem(std::byte *dst, const TCmdPItem *src)
@@ -810,7 +810,7 @@ size_t OnLevelData(const TCmdPlrInfoHdr &message, size_t maxCmdSize, const Playe
 
 	if (sgbRecvCmd == CMD_DLEVEL_END) {
 		if (message.bCmd == CMD_DLEVEL_END) {
-			sgbDeltaChunks = MAX_CHUNKS - 1;
+			sgbDeltaChunks = MaxChunks - 1;
 			return wBytes + sizeof(message);
 		}
 		if (message.bCmd != CMD_DLEVEL || wOffset != 0) {
@@ -822,7 +822,7 @@ size_t OnLevelData(const TCmdPlrInfoHdr &message, size_t maxCmdSize, const Playe
 	} else if (sgbRecvCmd != message.bCmd || wOffset == 0) {
 		DeltaImportData(sgbRecvCmd, sgdwRecvOffset, player.getId());
 		if (message.bCmd == CMD_DLEVEL_END) {
-			sgbDeltaChunks = MAX_CHUNKS - 1;
+			sgbDeltaChunks = MaxChunks - 1;
 			sgbRecvCmd = CMD_DLEVEL_END;
 			return wBytes + sizeof(message);
 		}
@@ -860,9 +860,9 @@ void DeltaLeaveSync(uint8_t bLevel)
 			continue;
 		DMonsterStr &delta = deltaLevel.monster[ma];
 		delta.position = monster.position.tile;
-		delta._menemy = encode_enemy(monster);
+		delta.menemy = encode_enemy(monster);
 		delta.hitPoints = monster.hitPoints;
-		delta._mactive = monster.activeForTicks;
+		delta.mactive = monster.activeForTicks;
 		delta.mWhoHit = monster.whoHit;
 	}
 	LocalLevels.insert_or_assign(bLevel, AutomapView);
@@ -2414,8 +2414,8 @@ size_t OnSpawnMonster(const TCmdSpawnMonster &message, const Player &player)
 	auto &deltaMonster = deltaLevel.monster[monsterId];
 	deltaMonster.position = position;
 	deltaMonster.hitPoints = -1;
-	deltaMonster._menemy = 0;
-	deltaMonster._mactive = 0;
+	deltaMonster.menemy = 0;
+	deltaMonster.mactive = 0;
 
 	if (player.isOnActiveLevel() && &player != MyPlayer)
 		InitializeSpawnedMonster(position, message.dir, typeIndex, monsterId, message.seed, golemOwnerPlayerId, golemSpellLevel);
@@ -2539,7 +2539,7 @@ bool msg_wait_resync()
 		return false;
 	}
 
-	if (sgbDeltaChunks != MAX_CHUNKS) {
+	if (sgbDeltaChunks != MaxChunks) {
 		UiErrorOkDialog(PROJECT_NAME, _("Unable to get level data"), /*error=*/false);
 		FreePackets();
 		return false;
@@ -2636,7 +2636,7 @@ void delta_sync_monster(const TSyncMonster &monsterSync, uint8_t level)
 	if (!gbIsMultiplayer)
 		return;
 
-	assert(level <= MAX_MULTIPLAYERLEVELS);
+	assert(level <= MaxMultiplayerLevels);
 
 	DMonsterStr &monster = GetDeltaLevel(level).monster[monsterSync._mndx];
 	if (monster.hitPoints == 0)
@@ -2644,8 +2644,8 @@ void delta_sync_monster(const TSyncMonster &monsterSync, uint8_t level)
 
 	monster.position.x = monsterSync._mx;
 	monster.position.y = monsterSync._my;
-	monster._mactive = UINT8_MAX;
-	monster._menemy = monsterSync._menemy;
+	monster.mactive = UINT8_MAX;
+	monster.menemy = monsterSync._menemy;
 	monster.hitPoints = monsterSync._mhitpoints;
 	monster.mWhoHit = monsterSync.mWhoHit;
 }
@@ -2739,7 +2739,7 @@ uint8_t GetLevelForMultiplayer(const Player &player)
 
 bool IsValidLevelForMultiplayer(uint8_t level)
 {
-	return level <= MAX_MULTIPLAYERLEVELS;
+	return level <= MaxMultiplayerLevels;
 }
 
 bool IsValidLevel(uint8_t level, bool isSetLevel)
@@ -2804,8 +2804,8 @@ void DeltaLoadLevel()
 			if (deltaMonster.hitPoints == 0)
 				continue;
 			Monster &monster = Monsters[i];
-			if (IsEnemyValid(i, deltaMonster._menemy))
-				decode_enemy(monster, deltaMonster._menemy);
+			if (IsEnemyValid(i, deltaMonster.menemy))
+				decode_enemy(monster, deltaMonster.menemy);
 			if (monster.position.tile != Point { 0, 0 } && monster.position.tile != GolemHoldingCell)
 				monster.occupyTile(monster.position.tile, false);
 			if (monster.type().type == MT_GOLEM) {
@@ -2814,7 +2814,7 @@ void DeltaLoadLevel()
 			} else {
 				M_StartStand(monster, monster.direction);
 			}
-			monster.activeForTicks = deltaMonster._mactive;
+			monster.activeForTicks = deltaMonster.mactive;
 		}
 
 		auto localLevelIt = LocalLevels.find(localLevel);
