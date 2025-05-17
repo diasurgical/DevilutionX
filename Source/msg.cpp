@@ -418,7 +418,7 @@ void PrePacket()
 			auto cmdId = static_cast<_cmd_id>(*data);
 
 			if (cmdId == FAKE_CMD_SETID) {
-				auto *cmd = (TFakeCmdPlr *)data;
+				auto *cmd = reinterpret_cast<TFakeCmdPlr *>(data);
 				data += sizeof(*cmd);
 				remainingBytes -= sizeof(*cmd);
 				playerId = cmd->bPlr;
@@ -426,7 +426,7 @@ void PrePacket()
 			}
 
 			if (cmdId == FAKE_CMD_DROPID) {
-				auto *cmd = (TFakeDropPlr *)data;
+				auto *cmd = reinterpret_cast<TFakeDropPlr *>(data);
 				data += sizeof(*cmd);
 				remainingBytes -= sizeof(*cmd);
 				multi_player_left(cmd->bPlr, SDL_SwapLE32(cmd->dwReason));
@@ -438,7 +438,7 @@ void PrePacket()
 				return;
 			}
 
-			size_t size = ParseCmd(playerId, (TCmd *)data, remainingBytes);
+			size_t size = ParseCmd(playerId, reinterpret_cast<TCmd *>(data), remainingBytes);
 			if (size == 0) {
 				Log("Discarding bad network message");
 				return;
@@ -989,7 +989,7 @@ void NetSendCmdGItem2(bool usonly, _cmd_id bCmd, uint8_t mast, uint8_t pnum, con
 
 	if (!usonly) {
 		cmd.dwTime = 0;
-		NetSendHiPri(MyPlayerId, (std::byte *)&cmd, sizeof(cmd));
+		NetSendHiPri(MyPlayerId, reinterpret_cast<std::byte *>(&cmd), sizeof(cmd));
 		return;
 	}
 
@@ -1000,7 +1000,7 @@ void NetSendCmdGItem2(bool usonly, _cmd_id bCmd, uint8_t mast, uint8_t pnum, con
 		return;
 	}
 
-	tmsg_add((std::byte *)&cmd, sizeof(cmd));
+	tmsg_add(reinterpret_cast<std::byte *>(&cmd), sizeof(cmd));
 }
 
 bool NetSendCmdReq2(_cmd_id bCmd, const Player &player, uint8_t pnum, const TCmdGItem &item)
@@ -1018,7 +1018,7 @@ bool NetSendCmdReq2(_cmd_id bCmd, const Player &player, uint8_t pnum, const TCmd
 	else if (ticks - SDL_SwapLE32(cmd.dwTime) > 5000)
 		return false;
 
-	tmsg_add((std::byte *)&cmd, sizeof(cmd));
+	tmsg_add(reinterpret_cast<std::byte *>(&cmd), sizeof(cmd));
 
 	return true;
 }
@@ -1030,7 +1030,7 @@ void NetSendCmdExtra(const TCmdGItem &item)
 	memcpy(&cmd, &item, sizeof(cmd));
 	cmd.dwTime = 0;
 	cmd.bCmd = CMD_ITEMEXTRA;
-	NetSendHiPri(MyPlayerId, (std::byte *)&cmd, sizeof(cmd));
+	NetSendHiPri(MyPlayerId, reinterpret_cast<std::byte *>(&cmd), sizeof(cmd));
 }
 
 size_t OnWalk(const TCmdLoc &message, Player &player)
@@ -2428,7 +2428,7 @@ size_t HandleCmd(size_t (*handler)(const TCmdImpl &, size_t, Player &), Player &
 	if (!ValidateCmdSize(sizeof(TCmdImpl), maxCmdSize, player.getId()))
 		return maxCmdSize;
 
-	const TCmdImpl *message = reinterpret_cast<const TCmdImpl *>(pCmd);
+	const auto *message = reinterpret_cast<const TCmdImpl *>(pCmd);
 	return handler(*message, maxCmdSize, player);
 }
 
@@ -2438,7 +2438,7 @@ size_t HandleCmd(size_t (*handler)(const TCmdImpl &, size_t, const Player &), co
 	if (!ValidateCmdSize(sizeof(TCmdImpl), maxCmdSize, player.getId()))
 		return maxCmdSize;
 
-	const TCmdImpl *message = reinterpret_cast<const TCmdImpl *>(pCmd);
+	const auto *message = reinterpret_cast<const TCmdImpl *>(pCmd);
 	return handler(*message, maxCmdSize, player);
 }
 
@@ -2448,7 +2448,7 @@ size_t HandleCmd(size_t (*handler)(const TCmdImpl &, Player &), Player &player, 
 	if (!ValidateCmdSize(sizeof(TCmdImpl), maxCmdSize, player.getId()))
 		return maxCmdSize;
 
-	const TCmdImpl *message = reinterpret_cast<const TCmdImpl *>(pCmd);
+	const auto *message = reinterpret_cast<const TCmdImpl *>(pCmd);
 	return handler(*message, player);
 }
 
@@ -2458,7 +2458,7 @@ size_t HandleCmd(size_t (*handler)(const TCmdImpl &, const Player &), const Play
 	if (!ValidateCmdSize(sizeof(TCmdImpl), maxCmdSize, player.getId()))
 		return maxCmdSize;
 
-	const TCmdImpl *message = reinterpret_cast<const TCmdImpl *>(pCmd);
+	const auto *message = reinterpret_cast<const TCmdImpl *>(pCmd);
 	return handler(*message, player);
 }
 
@@ -2896,9 +2896,9 @@ void NetSendCmd(bool bHiPri, _cmd_id bCmd)
 
 	cmd.bCmd = bCmd;
 	if (bHiPri)
-		NetSendHiPri(MyPlayerId, (std::byte *)&cmd, sizeof(cmd));
+		NetSendHiPri(MyPlayerId, reinterpret_cast<std::byte *>(&cmd), sizeof(cmd));
 	else
-		NetSendLoPri(MyPlayerId, (std::byte *)&cmd, sizeof(cmd));
+		NetSendLoPri(MyPlayerId, reinterpret_cast<std::byte *>(&cmd), sizeof(cmd));
 }
 
 void NetSendCmdSpawnMonster(Point position, Direction dir, uint16_t typeIndex, uint16_t monsterId, uint32_t seed, uint8_t golemOwnerPlayerId, uint8_t golemSpellLevel)
@@ -2914,7 +2914,7 @@ void NetSendCmdSpawnMonster(Point position, Direction dir, uint16_t typeIndex, u
 	cmd.seed = SDL_SwapLE32(seed);
 	cmd.golemOwnerPlayerId = golemOwnerPlayerId;
 	cmd.golemSpellLevel = golemSpellLevel;
-	NetSendHiPri(MyPlayerId, (std::byte *)&cmd, sizeof(cmd));
+	NetSendHiPri(MyPlayerId, reinterpret_cast<std::byte *>(&cmd), sizeof(cmd));
 }
 
 void NetSendCmdLoc(uint8_t playerId, bool bHiPri, _cmd_id bCmd, Point position)
@@ -2928,9 +2928,9 @@ void NetSendCmdLoc(uint8_t playerId, bool bHiPri, _cmd_id bCmd, Point position)
 	cmd.x = position.x;
 	cmd.y = position.y;
 	if (bHiPri)
-		NetSendHiPri(playerId, (std::byte *)&cmd, sizeof(cmd));
+		NetSendHiPri(playerId, reinterpret_cast<std::byte *>(&cmd), sizeof(cmd));
 	else
-		NetSendLoPri(playerId, (std::byte *)&cmd, sizeof(cmd));
+		NetSendLoPri(playerId, reinterpret_cast<std::byte *>(&cmd), sizeof(cmd));
 
 	MyPlayer->UpdatePreviewCelSprite(bCmd, position, 0, 0);
 }
@@ -2947,9 +2947,9 @@ void NetSendCmdLocParam1(bool bHiPri, _cmd_id bCmd, Point position, uint16_t wPa
 	cmd.y = position.y;
 	cmd.wParam1 = SDL_SwapLE16(wParam1);
 	if (bHiPri)
-		NetSendHiPri(MyPlayerId, (std::byte *)&cmd, sizeof(cmd));
+		NetSendHiPri(MyPlayerId, reinterpret_cast<std::byte *>(&cmd), sizeof(cmd));
 	else
-		NetSendLoPri(MyPlayerId, (std::byte *)&cmd, sizeof(cmd));
+		NetSendLoPri(MyPlayerId, reinterpret_cast<std::byte *>(&cmd), sizeof(cmd));
 
 	MyPlayer->UpdatePreviewCelSprite(bCmd, position, wParam1, 0);
 }
@@ -2967,9 +2967,9 @@ void NetSendCmdLocParam2(bool bHiPri, _cmd_id bCmd, Point position, uint16_t wPa
 	cmd.wParam1 = SDL_SwapLE16(wParam1);
 	cmd.wParam2 = SDL_SwapLE16(wParam2);
 	if (bHiPri)
-		NetSendHiPri(MyPlayerId, (std::byte *)&cmd, sizeof(cmd));
+		NetSendHiPri(MyPlayerId, reinterpret_cast<std::byte *>(&cmd), sizeof(cmd));
 	else
-		NetSendLoPri(MyPlayerId, (std::byte *)&cmd, sizeof(cmd));
+		NetSendLoPri(MyPlayerId, reinterpret_cast<std::byte *>(&cmd), sizeof(cmd));
 
 	MyPlayer->UpdatePreviewCelSprite(bCmd, position, wParam1, wParam2);
 }
@@ -2988,9 +2988,9 @@ void NetSendCmdLocParam3(bool bHiPri, _cmd_id bCmd, Point position, uint16_t wPa
 	cmd.wParam2 = SDL_SwapLE16(wParam2);
 	cmd.wParam3 = SDL_SwapLE16(wParam3);
 	if (bHiPri)
-		NetSendHiPri(MyPlayerId, (std::byte *)&cmd, sizeof(cmd));
+		NetSendHiPri(MyPlayerId, reinterpret_cast<std::byte *>(&cmd), sizeof(cmd));
 	else
-		NetSendLoPri(MyPlayerId, (std::byte *)&cmd, sizeof(cmd));
+		NetSendLoPri(MyPlayerId, reinterpret_cast<std::byte *>(&cmd), sizeof(cmd));
 
 	MyPlayer->UpdatePreviewCelSprite(bCmd, position, wParam1, wParam2);
 }
@@ -3010,9 +3010,9 @@ void NetSendCmdLocParam4(bool bHiPri, _cmd_id bCmd, Point position, uint16_t wPa
 	cmd.wParam3 = SDL_SwapLE16(wParam3);
 	cmd.wParam4 = SDL_SwapLE16(wParam4);
 	if (bHiPri)
-		NetSendHiPri(MyPlayerId, (std::byte *)&cmd, sizeof(cmd));
+		NetSendHiPri(MyPlayerId, reinterpret_cast<std::byte *>(&cmd), sizeof(cmd));
 	else
-		NetSendLoPri(MyPlayerId, (std::byte *)&cmd, sizeof(cmd));
+		NetSendLoPri(MyPlayerId, reinterpret_cast<std::byte *>(&cmd), sizeof(cmd));
 
 	MyPlayer->UpdatePreviewCelSprite(bCmd, position, wParam1, wParam3);
 }
@@ -3027,9 +3027,9 @@ void NetSendCmdParam1(bool bHiPri, _cmd_id bCmd, uint16_t wParam1)
 	cmd.bCmd = bCmd;
 	cmd.wParam1 = SDL_SwapLE16(wParam1);
 	if (bHiPri)
-		NetSendHiPri(MyPlayerId, (std::byte *)&cmd, sizeof(cmd));
+		NetSendHiPri(MyPlayerId, reinterpret_cast<std::byte *>(&cmd), sizeof(cmd));
 	else
-		NetSendLoPri(MyPlayerId, (std::byte *)&cmd, sizeof(cmd));
+		NetSendLoPri(MyPlayerId, reinterpret_cast<std::byte *>(&cmd), sizeof(cmd));
 
 	MyPlayer->UpdatePreviewCelSprite(bCmd, {}, wParam1, 0);
 }
@@ -3042,9 +3042,9 @@ void NetSendCmdParam2(bool bHiPri, _cmd_id bCmd, uint16_t wParam1, uint16_t wPar
 	cmd.wParam1 = SDL_SwapLE16(wParam1);
 	cmd.wParam2 = SDL_SwapLE16(wParam2);
 	if (bHiPri)
-		NetSendHiPri(MyPlayerId, (std::byte *)&cmd, sizeof(cmd));
+		NetSendHiPri(MyPlayerId, reinterpret_cast<std::byte *>(&cmd), sizeof(cmd));
 	else
-		NetSendLoPri(MyPlayerId, (std::byte *)&cmd, sizeof(cmd));
+		NetSendLoPri(MyPlayerId, reinterpret_cast<std::byte *>(&cmd), sizeof(cmd));
 }
 
 void NetSendCmdParam4(bool bHiPri, _cmd_id bCmd, uint16_t wParam1, uint16_t wParam2, uint16_t wParam3, uint16_t wParam4)
@@ -3060,9 +3060,9 @@ void NetSendCmdParam4(bool bHiPri, _cmd_id bCmd, uint16_t wParam1, uint16_t wPar
 	cmd.wParam3 = SDL_SwapLE16(wParam3);
 	cmd.wParam4 = SDL_SwapLE16(wParam4);
 	if (bHiPri)
-		NetSendHiPri(MyPlayerId, (std::byte *)&cmd, sizeof(cmd));
+		NetSendHiPri(MyPlayerId, reinterpret_cast<std::byte *>(&cmd), sizeof(cmd));
 	else
-		NetSendLoPri(MyPlayerId, (std::byte *)&cmd, sizeof(cmd));
+		NetSendLoPri(MyPlayerId, reinterpret_cast<std::byte *>(&cmd), sizeof(cmd));
 
 	MyPlayer->UpdatePreviewCelSprite(bCmd, {}, wParam1, wParam2);
 }
@@ -3079,9 +3079,9 @@ void NetSendCmdQuest(bool bHiPri, const Quest &quest)
 	cmd.qmsg = SDL_SwapLE16(quest._qmsg);
 
 	if (bHiPri)
-		NetSendHiPri(MyPlayerId, (std::byte *)&cmd, sizeof(cmd));
+		NetSendHiPri(MyPlayerId, reinterpret_cast<std::byte *>(&cmd), sizeof(cmd));
 	else
-		NetSendLoPri(MyPlayerId, (std::byte *)&cmd, sizeof(cmd));
+		NetSendLoPri(MyPlayerId, reinterpret_cast<std::byte *>(&cmd), sizeof(cmd));
 }
 
 void NetSendCmdGItem(bool bHiPri, _cmd_id bCmd, const Player &player, uint8_t ii)
@@ -3101,9 +3101,9 @@ void NetSendCmdGItem(bool bHiPri, _cmd_id bCmd, const Player &player, uint8_t ii
 	PrepareItemForNetwork(Items[ii], cmd);
 
 	if (bHiPri)
-		NetSendHiPri(MyPlayerId, (std::byte *)&cmd, sizeof(cmd));
+		NetSendHiPri(MyPlayerId, reinterpret_cast<std::byte *>(&cmd), sizeof(cmd));
 	else
-		NetSendLoPri(MyPlayerId, (std::byte *)&cmd, sizeof(cmd));
+		NetSendLoPri(MyPlayerId, reinterpret_cast<std::byte *>(&cmd), sizeof(cmd));
 }
 
 void NetSendCmdPItem(bool bHiPri, _cmd_id bCmd, Point position, const Item &item)
@@ -3118,9 +3118,9 @@ void NetSendCmdPItem(bool bHiPri, _cmd_id bCmd, Point position, const Item &item
 	ItemLimbo = item;
 
 	if (bHiPri)
-		NetSendHiPri(MyPlayerId, (std::byte *)&cmd, sizeof(cmd));
+		NetSendHiPri(MyPlayerId, reinterpret_cast<std::byte *>(&cmd), sizeof(cmd));
 	else
-		NetSendLoPri(MyPlayerId, (std::byte *)&cmd, sizeof(cmd));
+		NetSendLoPri(MyPlayerId, reinterpret_cast<std::byte *>(&cmd), sizeof(cmd));
 }
 
 void NetSendCmdChItem(bool bHiPri, uint8_t bLoc, bool forceSpellChange)
@@ -3135,9 +3135,9 @@ void NetSendCmdChItem(bool bHiPri, uint8_t bLoc, bool forceSpellChange)
 	PrepareItemForNetwork(item, cmd);
 
 	if (bHiPri)
-		NetSendHiPri(MyPlayerId, (std::byte *)&cmd, sizeof(cmd));
+		NetSendHiPri(MyPlayerId, reinterpret_cast<std::byte *>(&cmd), sizeof(cmd));
 	else
-		NetSendLoPri(MyPlayerId, (std::byte *)&cmd, sizeof(cmd));
+		NetSendLoPri(MyPlayerId, reinterpret_cast<std::byte *>(&cmd), sizeof(cmd));
 }
 
 void NetSendCmdDelItem(bool bHiPri, uint8_t bLoc)
@@ -3147,9 +3147,9 @@ void NetSendCmdDelItem(bool bHiPri, uint8_t bLoc)
 	cmd.bLoc = bLoc;
 	cmd.bCmd = CMD_DELPLRITEMS;
 	if (bHiPri)
-		NetSendHiPri(MyPlayerId, (std::byte *)&cmd, sizeof(cmd));
+		NetSendHiPri(MyPlayerId, reinterpret_cast<std::byte *>(&cmd), sizeof(cmd));
 	else
-		NetSendLoPri(MyPlayerId, (std::byte *)&cmd, sizeof(cmd));
+		NetSendLoPri(MyPlayerId, reinterpret_cast<std::byte *>(&cmd), sizeof(cmd));
 }
 
 void NetSyncInvItem(const Player &player, int invListIndex)
@@ -3177,9 +3177,9 @@ void NetSendCmdChInvItem(bool bHiPri, int invGridIndex)
 	PrepareItemForNetwork(item, cmd);
 
 	if (bHiPri)
-		NetSendHiPri(MyPlayerId, (std::byte *)&cmd, sizeof(cmd));
+		NetSendHiPri(MyPlayerId, reinterpret_cast<std::byte *>(&cmd), sizeof(cmd));
 	else
-		NetSendLoPri(MyPlayerId, (std::byte *)&cmd, sizeof(cmd));
+		NetSendLoPri(MyPlayerId, reinterpret_cast<std::byte *>(&cmd), sizeof(cmd));
 }
 
 void NetSendCmdChBeltItem(bool bHiPri, int beltIndex)
@@ -3193,9 +3193,9 @@ void NetSendCmdChBeltItem(bool bHiPri, int beltIndex)
 	PrepareItemForNetwork(item, cmd);
 
 	if (bHiPri)
-		NetSendHiPri(MyPlayerId, (std::byte *)&cmd, sizeof(cmd));
+		NetSendHiPri(MyPlayerId, reinterpret_cast<std::byte *>(&cmd), sizeof(cmd));
 	else
-		NetSendLoPri(MyPlayerId, (std::byte *)&cmd, sizeof(cmd));
+		NetSendLoPri(MyPlayerId, reinterpret_cast<std::byte *>(&cmd), sizeof(cmd));
 }
 
 void NetSendCmdDamage(bool bHiPri, const Player &player, uint32_t dwDam, DamageType damageType)
@@ -3207,9 +3207,9 @@ void NetSendCmdDamage(bool bHiPri, const Player &player, uint32_t dwDam, DamageT
 	cmd.dwDam = dwDam;
 	cmd.damageType = damageType;
 	if (bHiPri)
-		NetSendHiPri(MyPlayerId, (std::byte *)&cmd, sizeof(cmd));
+		NetSendHiPri(MyPlayerId, reinterpret_cast<std::byte *>(&cmd), sizeof(cmd));
 	else
-		NetSendLoPri(MyPlayerId, (std::byte *)&cmd, sizeof(cmd));
+		NetSendLoPri(MyPlayerId, reinterpret_cast<std::byte *>(&cmd), sizeof(cmd));
 }
 
 void NetSendCmdMonDmg(bool bHiPri, uint16_t wMon, uint32_t dwDam)
@@ -3220,9 +3220,9 @@ void NetSendCmdMonDmg(bool bHiPri, uint16_t wMon, uint32_t dwDam)
 	cmd.wMon = wMon;
 	cmd.dwDam = dwDam;
 	if (bHiPri)
-		NetSendHiPri(MyPlayerId, (std::byte *)&cmd, sizeof(cmd));
+		NetSendHiPri(MyPlayerId, reinterpret_cast<std::byte *>(&cmd), sizeof(cmd));
 	else
-		NetSendLoPri(MyPlayerId, (std::byte *)&cmd, sizeof(cmd));
+		NetSendLoPri(MyPlayerId, reinterpret_cast<std::byte *>(&cmd), sizeof(cmd));
 }
 
 void NetSendCmdString(uint32_t pmask, const char *pszStr)
@@ -3231,7 +3231,7 @@ void NetSendCmdString(uint32_t pmask, const char *pszStr)
 
 	cmd.bCmd = CMD_STRING;
 	CopyUtf8(cmd.str, pszStr, sizeof(cmd.str));
-	multi_send_msg_packet(pmask, (std::byte *)&cmd, strlen(cmd.str) + 2);
+	multi_send_msg_packet(pmask, reinterpret_cast<std::byte *>(&cmd), strlen(cmd.str) + 2);
 }
 
 void delta_close_portal(const Player &player)
