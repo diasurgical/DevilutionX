@@ -1480,7 +1480,7 @@ size_t OnAttackTile(const TCmdLoc &message, Player &player)
 {
 	const Point position { message.x, message.y };
 
-	if (gbBufferMsgs != 1 && player.isOnActiveLevel() && InDungeonBounds(position)) {
+	if (gbBufferMsgs != 1 && player.isOnActiveLevel() && leveltype != DTYPE_TOWN && InDungeonBounds(position)) {
 		MakePlrPath(player, position, false);
 		player.destAction = ACTION_ATTACK;
 		player.destParam1 = position.x;
@@ -1494,7 +1494,7 @@ size_t OnStandingAttackTile(const TCmdLoc &message, Player &player)
 {
 	const Point position { message.x, message.y };
 
-	if (gbBufferMsgs != 1 && player.isOnActiveLevel() && InDungeonBounds(position)) {
+	if (gbBufferMsgs != 1 && player.isOnActiveLevel() && leveltype != DTYPE_TOWN && InDungeonBounds(position)) {
 		ClrPlrPath(player);
 		player.destAction = ACTION_ATTACK;
 		player.destParam1 = position.x;
@@ -1508,7 +1508,7 @@ size_t OnRangedAttackTile(const TCmdLoc &message, Player &player)
 {
 	const Point position { message.x, message.y };
 
-	if (gbBufferMsgs != 1 && player.isOnActiveLevel() && InDungeonBounds(position)) {
+	if (gbBufferMsgs != 1 && player.isOnActiveLevel() && leveltype != DTYPE_TOWN && InDungeonBounds(position)) {
 		ClrPlrPath(player);
 		player.destAction = ACTION_RATTACK;
 		player.destParam1 = position.x;
@@ -1560,6 +1560,8 @@ size_t OnSpellWall(const TCmdLocParam4 &message, Player &player)
 		return sizeof(message);
 	if (!player.isOnActiveLevel())
 		return sizeof(message);
+	if (leveltype == DTYPE_TOWN)
+		return sizeof(message);
 	if (!InDungeonBounds(position))
 		return sizeof(message);
 	const int16_t wParamDirection = SDL_SwapLE16(message.wParam3);
@@ -1586,6 +1588,8 @@ size_t OnSpellTile(const TCmdLocParam3 &message, Player &player)
 	if (gbBufferMsgs == 1)
 		return sizeof(message);
 	if (!player.isOnActiveLevel())
+		return sizeof(message);
+	if (leveltype == DTYPE_TOWN)
 		return sizeof(message);
 	if (!InDungeonBounds(position))
 		return sizeof(message);
@@ -1636,7 +1640,7 @@ size_t OnAttackMonster(const TCmdParam1 &message, Player &player)
 {
 	const uint16_t monsterIdx = SDL_SwapLE16(message.wParam1);
 
-	if (gbBufferMsgs != 1 && player.isOnActiveLevel() && monsterIdx < MaxMonsters) {
+	if (gbBufferMsgs != 1 && player.isOnActiveLevel() && leveltype != DTYPE_TOWN && monsterIdx < MaxMonsters) {
 		Point position = Monsters[monsterIdx].position.future;
 		if (player.position.tile.WalkingDistance(position) > 1)
 			MakePlrPath(player, position, false);
@@ -1651,7 +1655,7 @@ size_t OnAttackPlayer(const TCmdParam1 &message, Player &player)
 {
 	const uint16_t playerIdx = SDL_SwapLE16(message.wParam1);
 
-	if (gbBufferMsgs != 1 && player.isOnActiveLevel() && playerIdx < Players.size()) {
+	if (gbBufferMsgs != 1 && player.isOnActiveLevel() && leveltype != DTYPE_TOWN && playerIdx < Players.size()) {
 		MakePlrPath(player, Players[playerIdx].position.future, false);
 		player.destAction = ACTION_ATTACKPLR;
 		player.destParam1 = playerIdx;
@@ -1664,7 +1668,7 @@ size_t OnRangedAttackMonster(const TCmdParam1 &message, Player &player)
 {
 	const uint16_t monsterIdx = SDL_SwapLE16(message.wParam1);
 
-	if (gbBufferMsgs != 1 && player.isOnActiveLevel() && monsterIdx < MaxMonsters) {
+	if (gbBufferMsgs != 1 && player.isOnActiveLevel() && leveltype != DTYPE_TOWN && monsterIdx < MaxMonsters) {
 		ClrPlrPath(player);
 		player.destAction = ACTION_RATTACKMON;
 		player.destParam1 = monsterIdx;
@@ -1677,7 +1681,7 @@ size_t OnRangedAttackPlayer(const TCmdParam1 &message, Player &player)
 {
 	const uint16_t playerIdx = SDL_SwapLE16(message.wParam1);
 
-	if (gbBufferMsgs != 1 && player.isOnActiveLevel() && playerIdx < Players.size()) {
+	if (gbBufferMsgs != 1 && player.isOnActiveLevel() && leveltype != DTYPE_TOWN && playerIdx < Players.size()) {
 		ClrPlrPath(player);
 		player.destAction = ACTION_RATTACKPLR;
 		player.destParam1 = playerIdx;
@@ -1691,6 +1695,8 @@ size_t OnSpellMonster(const TCmdParam4 &message, Player &player)
 	if (gbBufferMsgs == 1)
 		return sizeof(message);
 	if (!player.isOnActiveLevel())
+		return sizeof(message);
+	if (leveltype == DTYPE_TOWN)
 		return sizeof(message);
 	const uint16_t monsterIdx = SDL_SwapLE16(message.wParam1);
 	if (monsterIdx >= MaxMonsters)
@@ -1713,6 +1719,8 @@ size_t OnSpellPlayer(const TCmdParam4 &message, Player &player)
 		return sizeof(message);
 	if (!player.isOnActiveLevel())
 		return sizeof(message);
+	if (leveltype == DTYPE_TOWN)
+		return sizeof(message);
 	const uint16_t playerIdx = SDL_SwapLE16(message.wParam1);
 	if (playerIdx >= Players.size())
 		return sizeof(message);
@@ -1732,7 +1740,7 @@ size_t OnKnockback(const TCmdParam1 &message, Player &player)
 {
 	const uint16_t monsterIdx = SDL_SwapLE16(message.wParam1);
 
-	if (gbBufferMsgs != 1 && player.isOnActiveLevel() && monsterIdx < MaxMonsters) {
+	if (gbBufferMsgs != 1 && player.isOnActiveLevel() && leveltype != DTYPE_TOWN && monsterIdx < MaxMonsters) {
 		Monster &monster = Monsters[monsterIdx];
 		M_GetKnockback(monster, player.position.tile);
 		M_StartHit(monster, player, 0);
@@ -1825,7 +1833,7 @@ size_t OnMonstDeath(const TCmdLocParam1 &message, Player &player)
 	const uint16_t monsterIdx = SDL_SwapLE16(message.wParam1);
 
 	if (gbBufferMsgs != 1) {
-		if (&player != MyPlayer && InDungeonBounds(position) && monsterIdx < MaxMonsters) {
+		if (&player != MyPlayer && player.plrlevel > 0 && InDungeonBounds(position) && monsterIdx < MaxMonsters) {
 			Monster &monster = Monsters[monsterIdx];
 			if (player.isOnActiveLevel())
 				M_SyncStartKill(monster, position, player);
@@ -1857,7 +1865,7 @@ size_t OnMonstDamage(const TCmdMonDamage &message, Player &player)
 
 	if (gbBufferMsgs != 1) {
 		if (&player != MyPlayer) {
-			if (player.isOnActiveLevel() && monsterIdx < MaxMonsters) {
+			if (player.isOnActiveLevel() && leveltype != DTYPE_TOWN && monsterIdx < MaxMonsters) {
 				Monster &monster = Monsters[monsterIdx];
 				monster.tag(player);
 				if (monster.hitPoints > 0) {
@@ -1917,7 +1925,9 @@ size_t OnOperateObject(const TCmdLoc &message, Player &player)
 			if (object != nullptr)
 				SyncOpObject(player, message.bCmd, *object);
 		}
-		DeltaSyncObject(position, message.bCmd, player);
+		if (player.plrlevel > 0) {
+			DeltaSyncObject(position, message.bCmd, player);
+		}
 	}
 
 	return sizeof(message);
@@ -1935,7 +1945,9 @@ size_t OnBreakObject(const TCmdLoc &message, Player &player)
 			if (object != nullptr)
 				SyncBreakObj(player, *object);
 		}
-		DeltaSyncObject(position, CMD_BREAKOBJ, player);
+		if (player.plrlevel > 0) {
+			DeltaSyncObject(position, CMD_BREAKOBJ, player);
+		}
 	}
 
 	return sizeof(message);
