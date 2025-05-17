@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 
 #include "cursor.h"
+#include "engine/assets.hpp"
 #include "init.h"
 #include "playerdat.hpp"
 

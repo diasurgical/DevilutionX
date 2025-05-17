@@ -9,6 +9,7 @@
 #include <picosha2.h>
 
 #include "cursor.h"
+#include "engine/assets.hpp"
 #include "game_mode.hpp"
 #include "init.h"
 #include "loadsave.h"

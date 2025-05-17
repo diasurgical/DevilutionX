@@ -80,9 +80,9 @@ bool IsDevilutionXMpqOutOfDate()
 }
 
 #ifdef UNPACKED_MPQS
-bool AreExtraFontsOutOfDate(const std::string &path)
+bool AreExtraFontsOutOfDate(std::string_view path)
 {
-	const std::string versionPath = path + "fonts" DIRECTORY_SEPARATOR_STR "VERSION";
+	const std::string versionPath = StrCat(path, "fonts" DIRECTORY_SEPARATOR_STR "VERSION");
 	if (versionPath.size() + 1 > AssetRef::PathBufSize)
 		app_fatal("Path too long");
 	AssetRef ref;
@@ -105,6 +105,12 @@ bool AreExtraFontsOutOfDate(MpqArchive &archive)
 }
 #endif
 
+bool AreExtraFontsOutOfDate()
+{
+	const auto it = MpqArchives.find(FontMpqPriority);
+	return it != MpqArchives.end() && AreExtraFontsOutOfDate(it->second);
+}
+
 void init_cleanup()
 {
 	if (gbIsMultiplayer && gbRunGame) {
@@ -112,16 +118,8 @@ void init_cleanup()
 		sfile_write_stash();
 	}
 
-#ifdef UNPACKED_MPQS
-	lang_data_path = std::nullopt;
-	font_data_path = std::nullopt;
-	hellfire_data_path = std::nullopt;
-	diabdat_data_path = std::nullopt;
-	spawn_data_path = std::nullopt;
-#else
 	MpqArchives.clear();
 	HasHellfireMpq = false;
-#endif
 
 	NetClose();
 }

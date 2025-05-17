@@ -8,6 +8,7 @@
 
 #include "DiabloUI/diabloui.h"
 #include "DiabloUI/settingsmenu.h"
+#include "engine/assets.hpp"
 #include "engine/demomode.h"
 #include "game_mode.hpp"
 #include "init.h"
