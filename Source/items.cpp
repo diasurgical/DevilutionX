@@ -4205,7 +4205,7 @@ bool DoOil(Player &player, int cii)
 	}
 }
 
-static void AddItemInfoDetails(const Surface &out, Rectangle &rect)
+static void PrintItemDetails(const Surface &out, Rectangle &rect)
 {
 	const Item &item = CurrentSelectedItem;
 
@@ -4236,7 +4236,7 @@ static void AddItemInfoDetails(const Surface &out, Rectangle &rect)
 	}
 }
 
-static void AddItemInfoPowers(const Surface &out, Rectangle &rect)
+static void PrintItemPowers(const Surface &out, Rectangle &rect)
 {
 	const Item &item = CurrentSelectedItem;
 	const UniqueItem &uniqueData = UniqueItems[item._iUid];
@@ -4270,12 +4270,12 @@ void DrawItemInfo(const Surface &out)
 	// const Rectangle dividerLineRect { position + Displacement { 26, 25 }, { 267, 3 } };
 	// out.BlitFrom(out, MakeSdlRect(dividerLineRect), dividerLineRect.position + Displacement { 0, 5 * 12 + 13 });
 
-	AddItemInfoDetails(out, rect);
+	PrintItemDetails(out, rect);
 
 	if (item._iMagical != ITEM_QUALITY_NORMAL && (IsAnyOf(item._iClass, ICLASS_WEAPON, ICLASS_ARMOR) || IsAnyOf(item._itype, ItemType::Ring, ItemType::Amulet)) && !item._iIdentified) {
 		AddItemInfoLine(out, rect, _("Not Identified"));
 	} else {
-		AddItemInfoPowers(out, rect);
+		PrintItemPowers(out, rect);
 	}
 
 	PrintItemMisc(out, rect);
