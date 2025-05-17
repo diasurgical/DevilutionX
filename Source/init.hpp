@@ -1,5 +1,5 @@
 /**
- * @file init.h
+ * @file init.hpp
  *
  * Interface of routines for initializing the environment, disable screen saver, load MPQ.
  */

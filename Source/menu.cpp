@@ -11,7 +11,7 @@
 #include "engine/assets.hpp"
 #include "engine/demomode.h"
 #include "game_mode.hpp"
-#include "init.h"
+#include "init.hpp"
 #include "movie.h"
 #include "options.h"
 #include "pfile.h"

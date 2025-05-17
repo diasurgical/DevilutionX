@@ -3,7 +3,7 @@
  *
  * Implementation of routines for initializing the environment, disable screen saver, load MPQ.
  */
-#include "init.h"
+#include "init.hpp"
 
 #include <cstdint>
 #include <string>

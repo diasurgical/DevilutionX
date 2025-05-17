@@ -16,7 +16,7 @@
 #include "engine/palette.h"
 #include "headless_mode.hpp"
 #include "hwcursor.hpp"
-#include "init.h"
+#include "init.hpp"
 #include "utils/display.h"
 #include "utils/is_of.hpp"
 #include "utils/language.h"

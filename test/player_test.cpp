@@ -4,7 +4,7 @@
 
 #include "cursor.h"
 #include "engine/assets.hpp"
-#include "init.h"
+#include "init.hpp"
 #include "playerdat.hpp"
 
 using namespace devilution;
