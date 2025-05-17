@@ -488,7 +488,7 @@ extern uint8_t ActiveItems[MAXITEMS];
 extern uint8_t ActiveItemCount;
 /** Contains the location of dropped items. */
 extern int8_t dItem[MAXDUNX][MAXDUNY];
-extern bool ShowUniqueItemInfoBox;
+extern bool ShowItemInfoBox;
 extern CornerStoneStruct CornerStone;
 extern DVL_API_FOR_TEST bool UniqueItemFlags[128];
 
@@ -550,7 +550,7 @@ void DoRepair(Player &player, int cii);
 void DoRecharge(Player &player, int cii);
 bool DoOil(Player &player, int cii);
 [[nodiscard]] StringOrView PrintItemPower(char plidx, const Item &item);
-void DrawUniqueInfo(const Surface &out);
+void DrawItemInfo(const Surface &out);
 void PrintItemDetails(const Item &item);
 void PrintItemDur(const Item &item);
 void UseItem(Player &player, item_misc_id Mid, SpellID spellID, int spellFrom);

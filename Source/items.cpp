@@ -61,7 +61,7 @@ Item Items[MAXITEMS + 1];
 uint8_t ActiveItems[MAXITEMS];
 uint8_t ActiveItemCount;
 int8_t dItem[MAXDUNX][MAXDUNY];
-bool ShowUniqueItemInfoBox;
+bool ShowItemInfoBox;
 CornerStoneStruct CornerStone;
 bool UniqueItemFlags[128];
 int MaxGold = GOLD_MAX_LIMIT;
@@ -152,7 +152,8 @@ enum class PlayerArmorGraphic : uint8_t {
 	// clang-format on
 };
 
-Item curruitem;
+Item CurrentSelectedItem;
+constexpr int ItemInfoBoxWidth = 264;
 
 /** Holds item get records, tracking items being recently looted. This is in an effort to prevent items being picked up more than once. */
 ItemGetRecordStruct itemrecord[MAXITEMS];
@@ -1647,192 +1648,319 @@ void ItemDoppel()
 		idoppely = 16;
 }
 
-void PrintItemOil(char iDidx)
+void DrawItemInfoHalfTransparentRect(const Surface &out, Rectangle rect)
 {
-	switch (iDidx) {
+	for (int i = 0; i < 3; i++)
+		DrawHalfTransparentRectTo(out, rect.position.x, rect.position.y, ItemInfoBoxWidth, 12);
+}
+
+void AddItemInfoLine(const Surface &out, Rectangle &rect, std::string_view text)
+{
+	const Item &item = CurrentSelectedItem;
+	const TextRenderOptions opts { .flags = UiFlags::KerningFitSpacing | item.getTextColor() | UiFlags::AlignCenter };
+	const GameFontTables fontSize = GetFontSizeFromUiFlags(opts.flags);
+
+	rect.position.y += 12;
+	DrawItemInfoHalfTransparentRect(out, rect);
+	// Pre-wrap the string at spaces, otherwise DrawString would hard wrap in the middle of words.
+	const std::string wrapped = WordWrapString(text, rect.size.width);
+	DrawString(out, wrapped, rect, opts);
+	for (const std::string_view line : SplitByChar(wrapped, '\n')) {
+		if (line.data() + line.size() == wrapped.data() + wrapped.size()) break;
+		rect.position.y += GetLineHeight(line, fontSize);
+	}
+}
+
+void PrintItemOil(const Surface &out, Rectangle &rect)
+{
+	switch (CurrentSelectedItem._iMiscId) {
 	case IMISC_OILACC:
-		AddInfoBoxString(_("increases a weapon's"));
-		AddInfoBoxString(_("chance to hit"));
+		AddItemInfoLine(out, rect, _("increases a weapon's"));
+		AddItemInfoLine(out, rect, _("chance to hit"));
 		break;
 	case IMISC_OILMAST:
-		AddInfoBoxString(_("greatly increases a"));
-		AddInfoBoxString(_("weapon's chance to hit"));
+		AddItemInfoLine(out, rect, _("greatly increases a"));
+		AddItemInfoLine(out, rect, _("weapon's chance to hit"));
 		break;
 	case IMISC_OILSHARP:
-		AddInfoBoxString(_("increases a weapon's"));
-		AddInfoBoxString(_("damage potential"));
+		AddItemInfoLine(out, rect, _("increases a weapon's"));
+		AddItemInfoLine(out, rect, _("damage potential"));
 		break;
 	case IMISC_OILDEATH:
-		AddInfoBoxString(_("greatly increases a weapon's"));
-		AddInfoBoxString(_("damage potential - not bows"));
+		AddItemInfoLine(out, rect, _("greatly increases a weapon's"));
+		AddItemInfoLine(out, rect, _("damage potential - not bows"));
 		break;
 	case IMISC_OILSKILL:
-		AddInfoBoxString(_("reduces attributes needed"));
-		AddInfoBoxString(_("to use armor or weapons"));
+		AddItemInfoLine(out, rect, _("reduces attributes needed"));
+		AddItemInfoLine(out, rect, _("to use armor or weapons"));
 		break;
 	case IMISC_OILBSMTH:
-		AddInfoBoxString(/*xgettext:no-c-format*/ _("restores 20% of an"));
-		AddInfoBoxString(_("item's durability"));
+		AddItemInfoLine(out, rect, /*xgettext:no-c-format*/ _("restores 20% of an"));
+		AddItemInfoLine(out, rect, _("item's durability"));
 		break;
 	case IMISC_OILFORT:
-		AddInfoBoxString(_("increases an item's"));
-		AddInfoBoxString(_("current and max durability"));
+		AddItemInfoLine(out, rect, _("increases an item's"));
+		AddItemInfoLine(out, rect, _("current and max durability"));
 		break;
 	case IMISC_OILPERM:
-		AddInfoBoxString(_("makes an item indestructible"));
+		AddItemInfoLine(out, rect, _("makes an item indestructible"));
 		break;
 	case IMISC_OILHARD:
-		AddInfoBoxString(_("increases the armor class"));
-		AddInfoBoxString(_("of armor and shields"));
+		AddItemInfoLine(out, rect, _("increases the armor class"));
+		AddItemInfoLine(out, rect, _("of armor and shields"));
 		break;
 	case IMISC_OILIMP:
-		AddInfoBoxString(_("greatly increases the armor"));
-		AddInfoBoxString(_("class of armor and shields"));
+		AddItemInfoLine(out, rect, _("greatly increases the armor"));
+		AddItemInfoLine(out, rect, _("class of armor and shields"));
 		break;
 	case IMISC_RUNEF:
-		AddInfoBoxString(_("sets fire trap"));
+		AddItemInfoLine(out, rect, _("sets fire trap"));
 		break;
 	case IMISC_RUNEL:
 	case IMISC_GR_RUNEL:
-		AddInfoBoxString(_("sets lightning trap"));
+		AddItemInfoLine(out, rect, _("sets lightning trap"));
 		break;
 	case IMISC_GR_RUNEF:
-		AddInfoBoxString(_("sets fire trap"));
+		AddItemInfoLine(out, rect, _("sets fire trap"));
 		break;
 	case IMISC_RUNES:
-		AddInfoBoxString(_("sets petrification trap"));
+		AddItemInfoLine(out, rect, _("sets petrification trap"));
 		break;
 	case IMISC_FULLHEAL:
-		AddInfoBoxString(_("restore all life"));
+		AddItemInfoLine(out, rect, _("restore all life"));
 		break;
 	case IMISC_HEAL:
-		AddInfoBoxString(_("restore some life"));
+		AddItemInfoLine(out, rect, _("restore some life"));
 		break;
 	case IMISC_MANA:
-		AddInfoBoxString(_("restore some mana"));
+		AddItemInfoLine(out, rect, _("restore some mana"));
 		break;
 	case IMISC_FULLMANA:
-		AddInfoBoxString(_("restore all mana"));
+		AddItemInfoLine(out, rect, _("restore all mana"));
 		break;
 	case IMISC_ELIXSTR:
-		AddInfoBoxString(_("increase strength"));
+		AddItemInfoLine(out, rect, _("increase strength"));
 		break;
 	case IMISC_ELIXMAG:
-		AddInfoBoxString(_("increase magic"));
+		AddItemInfoLine(out, rect, _("increase magic"));
 		break;
 	case IMISC_ELIXDEX:
-		AddInfoBoxString(_("increase dexterity"));
+		AddItemInfoLine(out, rect, _("increase dexterity"));
 		break;
 	case IMISC_ELIXVIT:
-		AddInfoBoxString(_("increase vitality"));
+		AddItemInfoLine(out, rect, _("increase vitality"));
 		break;
 	case IMISC_REJUV:
-		AddInfoBoxString(_("restore some life and mana"));
+		AddItemInfoLine(out, rect, _("restore some life and mana"));
 		break;
 	case IMISC_FULLREJUV:
-		AddInfoBoxString(_("restore all life and mana"));
+		AddItemInfoLine(out, rect, _("restore all life and mana"));
 		break;
 	case IMISC_ARENAPOT:
-		AddInfoBoxString(_("restore all life and mana"));
-		AddInfoBoxString(_("(works only in arenas)"));
+		AddItemInfoLine(out, rect, _("restore all life and mana"));
+		AddItemInfoLine(out, rect, _("(works only in arenas)"));
 		break;
 	}
 }
 
-Point DrawUniqueInfoWindow(const Surface &out)
+Point ClampItemInfoToScreen(Point point)
 {
-	const bool isInStash = IsStashOpen && GetLeftPanel().contains(MousePosition);
-	int panelX, panelY;
-	if (isInStash) {
-		ClxDraw(out, GetPanelPosition(UiPanels::Stash, { 24 + SidePanelSize.width, 327 }), (*pSTextBoxCels)[0]);
-		panelX = GetLeftPanel().position.x + SidePanelSize.width + 27;
-		panelY = GetLeftPanel().position.y + 28;
-	} else {
-		ClxDraw(out, GetPanelPosition(UiPanels::Inventory, { 24 - SidePanelSize.width, 327 }), (*pSTextBoxCels)[0]);
-		panelX = GetRightPanel().position.x - SidePanelSize.width + 27;
-		panelY = GetRightPanel().position.y + 28;
-	}
+	int screenW = GetScreenWidth();
 
-	const Point rightInfoPos = GetRightPanel().position - Displacement { SidePanelSize.width, 0 };
-	const Point leftInfoPos = GetLeftPanel().position + Displacement { SidePanelSize.width, 0 };
+	point.x = std::clamp(point.x, 0, screenW - ItemInfoBoxWidth);
 
-	const bool isInfoOverlapping = IsLeftPanelOpen() && IsRightPanelOpen() && GetLeftPanel().contains(rightInfoPos);
-	int fadeLevel = isInfoOverlapping ? 3 : 1;
-
-	for (int i = 0; i < fadeLevel; ++i) {
-		DrawHalfTransparentRectTo(out, panelX, panelY, 265, 297);
-	}
-
-	return isInStash ? leftInfoPos : rightInfoPos;
+	return point;
 }
 
-void printItemMiscKBM(const Item &item, const bool isOil, const bool isCastOnTarget)
+Point GetHoverItemInfoAnchor()
 {
+	Player &player = *InspectPlayer;
+
+	// 1) Equipment
+	if (pcursinvitem >= INVITEM_HEAD && pcursinvitem < INVITEM_INV_FIRST) {
+		int slot = pcursinvitem - INVITEM_HEAD;
+		static constexpr Point equipLocal[] = {
+			{ 133, 59 },
+			{ 48, 205 },
+			{ 249, 205 },
+			{ 205, 60 },
+			{ 17, 160 },
+			{ 248, 160 },
+			{ 133, 160 },
+		};
+
+		Point itemPosition = equipLocal[slot];
+		auto &item = player.InvBody[slot];
+		Size frame = GetInvItemSize(item._iCurs + CURSOR_FIRSTITEM);
+
+		if (slot == INVLOC_HAND_LEFT) {
+			itemPosition.x += frame.width == InventorySlotSizeInPixels.width
+			    ? InventorySlotSizeInPixels.width
+			    : 0;
+			itemPosition.y += frame.height == 3 * InventorySlotSizeInPixels.height
+			    ? 0
+			    : -InventorySlotSizeInPixels.height;
+		} else if (slot == INVLOC_HAND_RIGHT) {
+			itemPosition.x += frame.width == InventorySlotSizeInPixels.width
+			    ? (InventorySlotSizeInPixels.width - 1)
+			    : 1;
+			itemPosition.y += frame.height == 3 * InventorySlotSizeInPixels.height
+			    ? 0
+			    : -InventorySlotSizeInPixels.height;
+		}
+
+		itemPosition.y++;                       // Align position to bottom left of the item graphic
+		itemPosition.x += frame.width / 2;      // Align position to center of the item graphic
+		itemPosition.x -= ItemInfoBoxWidth / 2; // Align position to the center of the floating item info box
+
+		Point screen = GetPanelPosition(UiPanels::Inventory, itemPosition);
+
+		return ClampItemInfoToScreen(screen);
+	}
+
+	// 2) Inventory grid
+	if (pcursinvitem >= INVITEM_INV_FIRST && pcursinvitem < INVITEM_INV_FIRST + InventoryGridCells) {
+		int itemIdx = pcursinvitem - INVITEM_INV_FIRST;
+
+		for (int j = 0; j < InventoryGridCells; ++j) {
+			if (player.InvGrid[j] > 0 && player.InvGrid[j] - 1 == itemIdx) {
+				Item &it = player.InvList[itemIdx];
+				Point itemPosition = InvRect[j + SLOTXY_INV_FIRST].position;
+
+				itemPosition.y += InventorySlotSizeInPixels.height + 1;                             // Align position to bottom left of the item graphic
+				itemPosition.x += GetInventorySize(it).width * InventorySlotSizeInPixels.width / 2; // Align position to center of the item graphic
+				itemPosition.x -= ItemInfoBoxWidth / 2;                                             // Align position to the center of the floating item info box
+
+				Point screen = GetPanelPosition(UiPanels::Inventory, itemPosition);
+
+				return ClampItemInfoToScreen(screen);
+			}
+		}
+	}
+
+	// 3) Belt
+	if (pcursinvitem >= INVITEM_BELT_FIRST && pcursinvitem < INVITEM_BELT_FIRST + MaxBeltItems) {
+		int itemIdx = pcursinvitem - INVITEM_BELT_FIRST;
+		for (int i = 0; i < MaxBeltItems; ++i) {
+			if (player.SpdList[i].isEmpty())
+				continue;
+			if (i != itemIdx)
+				continue;
+
+			Item &item = player.SpdList[i];
+			Point itemPosition = InvRect[i + SLOTXY_BELT_FIRST].position;
+
+			itemPosition.y += InventorySlotSizeInPixels.height + 1;                               // Align position to bottom left of the item graphic
+			itemPosition.x += GetInventorySize(item).width * InventorySlotSizeInPixels.width / 2; // Align position to center of the item graphic
+			itemPosition.x -= ItemInfoBoxWidth / 2;                                               // Align position to the center of the floating item info box
+
+			Point screen = GetMainPanel().position + Displacement { itemPosition.x, itemPosition.y };
+
+			return ClampItemInfoToScreen(screen);
+		}
+	}
+
+	// 4) Stash
+	if (pcursstashitem != StashStruct::EmptyCell) {
+		for (auto slot : StashGridRange) {
+			auto itemId = Stash.GetItemIdAtPosition(slot);
+			if (itemId == StashStruct::EmptyCell)
+				continue;
+			if (itemId != pcursstashitem)
+				continue;
+
+			Item &item = Stash.stashList[itemId];
+			Point itemPosition = GetStashSlotCoord(slot);
+			Size itemGridSize = GetInventorySize(item);
+
+			itemPosition.y += itemGridSize.height * (InventorySlotSizeInPixels.height + 1); // Align position to bottom left of the item graphic
+			itemPosition.x += itemGridSize.width * InventorySlotSizeInPixels.width / 2;     // Align position to center of the item graphic
+			itemPosition.x -= ItemInfoBoxWidth / 2;                                         // Align position to the center of the floating item info box
+
+			return ClampItemInfoToScreen(itemPosition);
+		}
+	}
+
+	return { 0, 0 };
+}
+
+void printItemMiscKBM(const Surface &out, Rectangle &rect, const bool isOil, const bool isCastOnTarget)
+{
+	const Item &item = CurrentSelectedItem;
+
 	if (item._iMiscId == IMISC_MAPOFDOOM) {
-		AddInfoBoxString(_("Right-click to view"));
+		AddItemInfoLine(out, rect, _("Right-click to view"));
 	} else if (isOil) {
-		PrintItemOil(item._iMiscId);
-		AddInfoBoxString(_("Right-click to use"));
+		PrintItemOil(out, rect);
+		AddItemInfoLine(out, rect, _("Right-click to use"));
 	} else if (isCastOnTarget) {
-		AddInfoBoxString(_("Right-click to read, then\nleft-click to target"));
+		AddItemInfoLine(out, rect, _("Right-click to read, then\nleft-click to target"));
 	} else if (IsAnyOf(item._iMiscId, IMISC_BOOK, IMISC_NOTE, IMISC_SCROLL, IMISC_SCROLLT)) {
-		AddInfoBoxString(_("Right-click to read"));
+		AddItemInfoLine(out, rect, _("Right-click to read"));
 	}
 }
 
-void printItemMiscGenericGamepad(const Item &item, const bool isOil, bool isCastOnTarget)
+void printItemMiscGenericGamepad(const Surface &out, Rectangle &rect, const bool isOil, bool isCastOnTarget)
 {
+	const Item &item = CurrentSelectedItem;
+
 	if (item._iMiscId == IMISC_MAPOFDOOM) {
-		AddInfoBoxString(_("Activate to view"));
+		AddItemInfoLine(out, rect, _("Activate to view"));
 	} else if (isOil) {
-		PrintItemOil(item._iMiscId);
+		PrintItemOil(out, rect);
 		if (!invflag) {
-			AddInfoBoxString(_("Open inventory to use"));
+			AddItemInfoLine(out, rect, _("Open inventory to use"));
 		} else {
-			AddInfoBoxString(_("Activate to use"));
+			AddItemInfoLine(out, rect, _("Activate to use"));
 		}
 	} else if (isCastOnTarget) {
-		AddInfoBoxString(_("Select from spell book, then\ncast spell to read"));
+		AddItemInfoLine(out, rect, _("Select from spell book, then\ncast spell to read"));
 	} else if (IsAnyOf(item._iMiscId, IMISC_BOOK, IMISC_NOTE, IMISC_SCROLL, IMISC_SCROLLT)) {
-		AddInfoBoxString(_("Activate to read"));
+		AddItemInfoLine(out, rect, _("Activate to read"));
 	}
 }
 
-void printItemMiscGamepad(const Item &item, bool isOil, bool isCastOnTarget)
+void printItemMiscGamepad(const Surface &out, Rectangle &rect, bool isOil, bool isCastOnTarget)
 {
+	const Item &item = CurrentSelectedItem;
+
 	if (GamepadType == GamepadLayout::Generic) {
-		printItemMiscGenericGamepad(item, isOil, isCastOnTarget);
+		printItemMiscGenericGamepad(out, rect, isOil, isCastOnTarget);
 		return;
 	}
 	const std::string_view activateButton = GetOptions().Padmapper.InputNameForAction("SecondaryAction");
 	const std::string_view castButton = GetOptions().Padmapper.InputNameForAction("SpellAction");
 
 	if (item._iMiscId == IMISC_MAPOFDOOM) {
-		AddInfoBoxString(fmt::format(fmt::runtime(_("{} to view")), activateButton));
+		AddItemInfoLine(out, rect, fmt::format(fmt::runtime(_("{} to view")), activateButton));
 	} else if (isOil) {
-		PrintItemOil(item._iMiscId);
+		PrintItemOil(out, rect);
 		if (!invflag) {
-			AddInfoBoxString(_("Open inventory to use"));
+			AddItemInfoLine(out, rect, _("Open inventory to use"));
 		} else {
-			AddInfoBoxString(fmt::format(fmt::runtime(_("{} to use")), activateButton));
+			AddItemInfoLine(out, rect, fmt::format(fmt::runtime(_("{} to use")), activateButton));
 		}
 	} else if (isCastOnTarget) {
-		AddInfoBoxString(fmt::format(fmt::runtime(_("Select from spell book,\nthen {} to read")), castButton));
+		AddItemInfoLine(out, rect, fmt::format(fmt::runtime(_("Select from spell book,\nthen {} to read")), castButton));
 	} else if (IsAnyOf(item._iMiscId, IMISC_BOOK, IMISC_NOTE, IMISC_SCROLL, IMISC_SCROLLT)) {
-		AddInfoBoxString(fmt::format(fmt::runtime(_("{} to read")), activateButton));
+		AddItemInfoLine(out, rect, fmt::format(fmt::runtime(_("{} to read")), activateButton));
 	}
 }
 
-void PrintItemMisc(const Item &item)
+void PrintItemMisc(const Surface &out, Rectangle &rect)
 {
+	const Item &item = CurrentSelectedItem;
+
 	if (item._iMiscId == IMISC_EAR) {
-		AddInfoBoxString(fmt::format(fmt::runtime(pgettext("player", "Level: {:d}")), item._ivalue));
+		AddItemInfoLine(out, rect, fmt::format(fmt::runtime(pgettext("player", "Level: {:d}")), item._ivalue));
 		return;
 	}
+
 	if (item._iMiscId == IMISC_AURIC) {
-		AddInfoBoxString(_("Doubles gold capacity"));
+		AddItemInfoLine(out, rect, _("Doubles gold capacity"));
 		return;
 	}
+
 	const bool isOil = (item._iMiscId >= IMISC_USEFIRST && item._iMiscId <= IMISC_USELAST)
 	    || (item._iMiscId > IMISC_OILFIRST && item._iMiscId < IMISC_OILLAST)
 	    || (item._iMiscId > IMISC_RUNEFIRST && item._iMiscId < IMISC_RUNELAST)
@@ -1845,23 +1973,24 @@ void PrintItemMisc(const Item &item)
 	case ControlTypes::None:
 		break;
 	case ControlTypes::KeyboardAndMouse:
-		printItemMiscKBM(item, isOil, mouseRequiresTarget);
+		printItemMiscKBM(out, rect, isOil, mouseRequiresTarget);
 		break;
 	case ControlTypes::VirtualGamepad:
-		printItemMiscGenericGamepad(item, isOil, gamepadRequiresTarget);
+		printItemMiscGenericGamepad(out, rect, isOil, gamepadRequiresTarget);
 		break;
 	case ControlTypes::Gamepad:
-		printItemMiscGamepad(item, isOil, gamepadRequiresTarget);
+		printItemMiscGamepad(out, rect, isOil, gamepadRequiresTarget);
 		break;
 	}
 }
 
-void PrintItemInfo(const Item &item)
+void PrintItemInfo(const Surface &out, Rectangle &rect)
 {
-	PrintItemMisc(item);
+	const Item &item = CurrentSelectedItem;
 	uint8_t str = item._iMinStr;
 	uint8_t dex = item._iMinDex;
 	uint8_t mag = item._iMinMag;
+
 	if (str != 0 || mag != 0 || dex != 0) {
 		std::string text = std::string(_("Required:"));
 		if (str != 0)
@@ -1870,7 +1999,7 @@ void PrintItemInfo(const Item &item)
 			text.append(fmt::format(fmt::runtime(_(" {:d} Mag")), mag));
 		if (dex != 0)
 			text.append(fmt::format(fmt::runtime(_(" {:d} Dex")), dex));
-		AddInfoBoxString(text);
+		AddItemInfoLine(out, rect, text);
 	}
 }
 
@@ -2477,7 +2606,7 @@ void InitItems()
 			SpawnNote();
 	}
 
-	ShowUniqueItemInfoBox = false;
+	ShowItemInfoBox = false;
 
 	initItemGetRecords();
 }
@@ -4076,33 +4205,85 @@ bool DoOil(Player &player, int cii)
 	}
 }
 
-void DrawUniqueInfo(const Surface &out)
+static void PrintItemDetails(const Surface &out, Rectangle &rect)
 {
-	const Point position = DrawUniqueInfoWindow(out);
+	const Item &item = CurrentSelectedItem;
 
-	Rectangle rect { position + Displacement { 32, 56 }, { 257, 0 } };
-	const UniqueItem &uitem = UniqueItems[curruitem._iUid];
-	DrawString(out, _(uitem.UIName), rect, { .flags = UiFlags::AlignCenter });
-
-	const Rectangle dividerLineRect { position + Displacement { 26, 25 }, { 267, 3 } };
-	out.BlitFrom(out, MakeSdlRect(dividerLineRect), dividerLineRect.position + Displacement { 0, 5 * 12 + 13 });
-
-	rect.position.y += (10 - uitem.UINumPL) * 12;
-	assert(uitem.UINumPL <= sizeof(uitem.powers) / sizeof(*uitem.powers));
-	const TextRenderOptions textRenderOptions { .flags = UiFlags::ColorWhite | UiFlags::AlignCenter };
-	const GameFontTables fontSize = GetFontSizeFromUiFlags(textRenderOptions.flags);
-	for (const auto &power : uitem.powers) {
-		if (power.type == IPL_INVALID)
-			break;
-		rect.position.y += 2 * 12;
-		// Pre-wrap the string at spaces, otherwise DrawString would hard wrap in the middle of words.
-		const std::string wrapped = WordWrapString(PrintItemPower(power.type, curruitem), rect.size.width);
-		DrawString(out, wrapped, rect, textRenderOptions);
-		for (const std::string_view line : SplitByChar(wrapped, '\n')) {
-			if (line.data() + line.size() == wrapped.data() + wrapped.size()) break;
-			rect.position.y += GetLineHeight(line, fontSize);
+	if (item._iClass == ICLASS_WEAPON) {
+		if (item._iMinDam == item._iMaxDam) {
+			if (item._iMaxDur == DUR_INDESTRUCTIBLE) {
+				AddItemInfoLine(out, rect, fmt::format(fmt::runtime(_("damage: {:d}  Indestructible")), item._iMinDam));
+			} else {
+				AddItemInfoLine(out, rect, fmt::format(fmt::runtime(_(/* TRANSLATORS: Dur: is durability */ "damage: {:d}  Dur: {:d}/{:d}")), item._iMinDam, item._iDurability, item._iMaxDur));
+			}
+		} else {
+			if (item._iMaxDur == DUR_INDESTRUCTIBLE) {
+				AddItemInfoLine(out, rect, fmt::format(fmt::runtime(_("damage: {:d}-{:d}  Indestructible")), item._iMinDam, item._iMaxDam));
+			} else {
+				AddItemInfoLine(out, rect, fmt::format(fmt::runtime(_(/* TRANSLATORS: Dur: is durability */ "damage: {:d}-{:d}  Dur: {:d}/{:d}")), item._iMinDam, item._iMaxDam, item._iDurability, item._iMaxDur));
+			}
 		}
 	}
+	if (item._iClass == ICLASS_ARMOR) {
+		if (item._iMaxDur == DUR_INDESTRUCTIBLE) {
+			AddItemInfoLine(out, rect, fmt::format(fmt::runtime(_("armor: {:d}  Indestructible")), item._iAC));
+		} else {
+			AddItemInfoLine(out, rect, fmt::format(fmt::runtime(_(/* TRANSLATORS: Dur: is durability */ "armor: {:d}  Dur: {:d}/{:d}")), item._iAC, item._iDurability, item._iMaxDur));
+		}
+	}
+	if (item._iMaxCharges != 0) {
+		AddItemInfoLine(out, rect, fmt::format(fmt::runtime(_("Charges: {:d}/{:d}")), item._iCharges, item._iMaxCharges));
+	}
+}
+
+static void PrintItemPowers(const Surface &out, Rectangle &rect)
+{
+	const Item &item = CurrentSelectedItem;
+	const UniqueItem &uniqueData = UniqueItems[item._iUid];
+
+	if (item._iMagical == ITEM_QUALITY_UNIQUE) {
+		assert(uniqueData.UINumPL <= sizeof(uniqueData.powers) / sizeof(*uniqueData.powers));
+		for (const auto &power : uniqueData.powers) {
+			if (power.type == IPL_INVALID)
+				break;
+			AddItemInfoLine(out, rect, PrintItemPower(power.type, item));
+		}
+	} else if (item._iMagical == ITEM_QUALITY_MAGIC) {
+		if (item._iPrePower != -1) {
+			AddItemInfoLine(out, rect, PrintItemPower(item._iPrePower, item));
+		}
+		if (item._iSufPower != -1) {
+			AddItemInfoLine(out, rect, PrintItemPower(item._iSufPower, item));
+		}
+	}
+}
+
+void DrawItemInfo(const Surface &out)
+{
+	const Point position = GetHoverItemInfoAnchor();
+	Rectangle rect { position, { ItemInfoBoxWidth - 7, 0 } };
+	const Item &item = CurrentSelectedItem;
+
+	DrawItemInfoHalfTransparentRect(out, rect);
+	AddItemInfoLine(out, rect, item.getName());
+
+	PrintItemDetails(out, rect);
+
+	if (item._iMagical != ITEM_QUALITY_NORMAL && (IsAnyOf(item._iClass, ICLASS_WEAPON, ICLASS_ARMOR) || IsAnyOf(item._itype, ItemType::Ring, ItemType::Amulet)) && !item._iIdentified) {
+		AddItemInfoLine(out, rect, _("Not Identified"));
+	} else {
+		PrintItemPowers(out, rect);
+	}
+
+	PrintItemMisc(out, rect);
+
+	if (item._iMagical == ITEM_QUALITY_UNIQUE)
+		AddItemInfoLine(out, rect, _("unique item"));
+
+	PrintItemInfo(out, rect);
+
+	rect.position.y += 12;
+	DrawItemInfoHalfTransparentRect(out, rect);
 }
 
 void PrintItemDetails(const Item &item)
@@ -4110,79 +4291,8 @@ void PrintItemDetails(const Item &item)
 	if (HeadlessMode)
 		return;
 
-	if (item._iClass == ICLASS_WEAPON) {
-		if (item._iMinDam == item._iMaxDam) {
-			if (item._iMaxDur == DUR_INDESTRUCTIBLE)
-				AddInfoBoxString(fmt::format(fmt::runtime(_("damage: {:d}  Indestructible")), item._iMinDam));
-			else
-				AddInfoBoxString(fmt::format(fmt::runtime(_(/* TRANSLATORS: Dur: is durability */ "damage: {:d}  Dur: {:d}/{:d}")), item._iMinDam, item._iDurability, item._iMaxDur));
-		} else {
-			if (item._iMaxDur == DUR_INDESTRUCTIBLE)
-				AddInfoBoxString(fmt::format(fmt::runtime(_("damage: {:d}-{:d}  Indestructible")), item._iMinDam, item._iMaxDam));
-			else
-				AddInfoBoxString(fmt::format(fmt::runtime(_(/* TRANSLATORS: Dur: is durability */ "damage: {:d}-{:d}  Dur: {:d}/{:d}")), item._iMinDam, item._iMaxDam, item._iDurability, item._iMaxDur));
-		}
-	}
-	if (item._iClass == ICLASS_ARMOR) {
-		if (item._iMaxDur == DUR_INDESTRUCTIBLE)
-			AddInfoBoxString(fmt::format(fmt::runtime(_("armor: {:d}  Indestructible")), item._iAC));
-		else
-			AddInfoBoxString(fmt::format(fmt::runtime(_(/* TRANSLATORS: Dur: is durability */ "armor: {:d}  Dur: {:d}/{:d}")), item._iAC, item._iDurability, item._iMaxDur));
-	}
-	if (item._iMiscId == IMISC_STAFF && item._iMaxCharges != 0) {
-		AddInfoBoxString(fmt::format(fmt::runtime(_("Charges: {:d}/{:d}")), item._iCharges, item._iMaxCharges));
-	}
-	if (item._iPrePower != -1) {
-		AddInfoBoxString(PrintItemPower(item._iPrePower, item));
-	}
-	if (item._iSufPower != -1) {
-		AddInfoBoxString(PrintItemPower(item._iSufPower, item));
-	}
-	if (item._iMagical == ITEM_QUALITY_UNIQUE) {
-		AddInfoBoxString(_("unique item"));
-		ShowUniqueItemInfoBox = true;
-		curruitem = item;
-	}
-	PrintItemInfo(item);
-}
-
-void PrintItemDur(const Item &item)
-{
-	if (HeadlessMode)
-		return;
-
-	if (item._iClass == ICLASS_WEAPON) {
-		if (item._iMinDam == item._iMaxDam) {
-			if (item._iMaxDur == DUR_INDESTRUCTIBLE)
-				AddInfoBoxString(fmt::format(fmt::runtime(_("damage: {:d}  Indestructible")), item._iMinDam));
-			else
-				AddInfoBoxString(fmt::format(fmt::runtime(_("damage: {:d}  Dur: {:d}/{:d}")), item._iMinDam, item._iDurability, item._iMaxDur));
-		} else {
-			if (item._iMaxDur == DUR_INDESTRUCTIBLE)
-				AddInfoBoxString(fmt::format(fmt::runtime(_("damage: {:d}-{:d}  Indestructible")), item._iMinDam, item._iMaxDam));
-			else
-				AddInfoBoxString(fmt::format(fmt::runtime(_("damage: {:d}-{:d}  Dur: {:d}/{:d}")), item._iMinDam, item._iMaxDam, item._iDurability, item._iMaxDur));
-		}
-		if (item._iMiscId == IMISC_STAFF && item._iMaxCharges > 0) {
-			AddInfoBoxString(fmt::format(fmt::runtime(_("Charges: {:d}/{:d}")), item._iCharges, item._iMaxCharges));
-		}
-		if (item._iMagical != ITEM_QUALITY_NORMAL)
-			AddInfoBoxString(_("Not Identified"));
-	}
-	if (item._iClass == ICLASS_ARMOR) {
-		if (item._iMaxDur == DUR_INDESTRUCTIBLE)
-			AddInfoBoxString(fmt::format(fmt::runtime(_("armor: {:d}  Indestructible")), item._iAC));
-		else
-			AddInfoBoxString(fmt::format(fmt::runtime(_("armor: {:d}  Dur: {:d}/{:d}")), item._iAC, item._iDurability, item._iMaxDur));
-		if (item._iMagical != ITEM_QUALITY_NORMAL)
-			AddInfoBoxString(_("Not Identified"));
-		if (item._iMiscId == IMISC_STAFF && item._iMaxCharges > 0) {
-			AddInfoBoxString(fmt::format(fmt::runtime(_("Charges: {:d}/{:d}")), item._iCharges, item._iMaxCharges));
-		}
-	}
-	if (IsAnyOf(item._itype, ItemType::Ring, ItemType::Amulet))
-		AddInfoBoxString(_("Not Identified"));
-	PrintItemInfo(item);
+	ShowItemInfoBox = true;
+	CurrentSelectedItem = item;
 }
 
 void UseItem(Player &player, item_misc_id mid, SpellID spellID, int spellFrom)
