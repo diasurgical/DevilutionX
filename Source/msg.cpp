@@ -1308,30 +1308,37 @@ size_t OnGetItem(const TCmdGItem &message, Player &player)
 {
 	if (gbBufferMsgs == 1) {
 		BufferMessage(player, &message, sizeof(message));
-	} else if (IsGItemValid(message)) {
-		const Point position { message.x, message.y };
-		const uint32_t dwSeed = SDL_SwapLE32(message.def.dwSeed);
-		const uint16_t wCI = SDL_SwapLE16(message.def.wCI);
-		const auto wIndx = static_cast<_item_indexes>(SDL_SwapLE16(message.def.wIndx));
-		if (DeltaGetItem(message, message.bLevel)) {
-			bool isOnActiveLevel = GetLevelForMultiplayer(*MyPlayer) == message.bLevel;
-			if ((isOnActiveLevel || message.bPnum == MyPlayerId) && message.bMaster != MyPlayerId) {
-				if (message.bPnum == MyPlayerId) {
-					if (!isOnActiveLevel) {
-						int ii = SyncDropItem(message);
-						if (ii != -1)
-							InvGetItem(*MyPlayer, ii);
-					} else {
-						int activeItemIndex = FindGetItem(dwSeed, wIndx, wCI);
-						InvGetItem(*MyPlayer, ActiveItems[activeItemIndex]);
-					}
-				} else {
-					SyncGetItem(position, dwSeed, wIndx, wCI);
-				}
-			}
-		} else {
-			NetSendCmdGItem2(true, CMD_GETITEM, message.bMaster, message.bPnum, message);
-		}
+		return sizeof(message);
+	}
+
+	if (!IsGItemValid(message))
+		return sizeof(message);
+
+	const Point position { message.x, message.y };
+	const uint32_t dwSeed = SDL_SwapLE32(message.def.dwSeed);
+	const uint16_t wCI = SDL_SwapLE16(message.def.wCI);
+	const auto wIndx = static_cast<_item_indexes>(SDL_SwapLE16(message.def.wIndx));
+	if (!DeltaGetItem(message, message.bLevel)) {
+		NetSendCmdGItem2(true, CMD_GETITEM, message.bMaster, message.bPnum, message);
+		return sizeof(message);
+	}
+
+	bool isOnActiveLevel = GetLevelForMultiplayer(*MyPlayer) == message.bLevel;
+	if ((!isOnActiveLevel && message.bPnum != MyPlayerId) || message.bMaster == MyPlayerId)
+		return sizeof(message);
+
+	if (message.bPnum != MyPlayerId) {
+		SyncGetItem(position, dwSeed, wIndx, wCI);
+		return sizeof(message);
+	}
+
+	if (!isOnActiveLevel) {
+		int ii = SyncDropItem(message);
+		if (ii != -1)
+			InvGetItem(*MyPlayer, ii);
+	} else {
+		int activeItemIndex = FindGetItem(dwSeed, wIndx, wCI);
+		InvGetItem(*MyPlayer, ActiveItems[activeItemIndex]);
 	}
 
 	return sizeof(message);
