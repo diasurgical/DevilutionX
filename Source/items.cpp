@@ -1648,6 +1648,29 @@ void ItemDoppel()
 		idoppely = 16;
 }
 
+void DrawItemInfoHalfTransparentRect(const Surface &out, Rectangle rect)
+{
+	for (int i = 0; i < 3; i++)
+		DrawHalfTransparentRectTo(out, rect.position.x, rect.position.y, ItemInfoBoxWidth, 12);
+}
+
+void AddItemInfoLine(const Surface &out, Rectangle &rect, std::string_view text)
+{
+	const Item &item = CurrentSelectedItem;
+	const TextRenderOptions opts { .flags = UiFlags::KerningFitSpacing | item.getTextColor() | UiFlags::AlignCenter };
+	const GameFontTables fontSize = GetFontSizeFromUiFlags(opts.flags);
+
+	rect.position.y += 12;
+	DrawItemInfoHalfTransparentRect(out, rect);
+	// Pre-wrap the string at spaces, otherwise DrawString would hard wrap in the middle of words.
+	const std::string wrapped = WordWrapString(text, rect.size.width);
+	DrawString(out, wrapped, rect, opts);
+	for (const std::string_view line : SplitByChar(wrapped, '\n')) {
+		if (line.data() + line.size() == wrapped.data() + wrapped.size()) break;
+		rect.position.y += GetLineHeight(line, fontSize);
+	}
+}
+
 void PrintItemOil(const Surface &out, Rectangle &rect)
 {
 	switch (CurrentSelectedItem._iMiscId) {
@@ -4179,29 +4202,6 @@ bool DoOil(Player &player, int cii)
 		return _("40% Health moved to Mana");
 	default:
 		return _("Another ability (NW)");
-	}
-}
-
-static void DrawItemInfoHalfTransparentRect(const Surface &out, Rectangle rect)
-{
-	for (int i = 0; i < 3; i++)
-		DrawHalfTransparentRectTo(out, rect.position.x, rect.position.y, ItemInfoBoxWidth, 12);
-}
-
-static void AddItemInfoLine(const Surface &out, Rectangle &rect, std::string_view text)
-{
-	const Item &item = CurrentSelectedItem;
-	const TextRenderOptions opts { .flags = UiFlags::KerningFitSpacing | item.getTextColor() | UiFlags::AlignCenter };
-	const GameFontTables fontSize = GetFontSizeFromUiFlags(opts.flags);
-
-	rect.position.y += 12;
-	DrawItemInfoHalfTransparentRect(out, rect);
-	// Pre-wrap the string at spaces, otherwise DrawString would hard wrap in the middle of words.
-	const std::string wrapped = WordWrapString(text, rect.size.width);
-	DrawString(out, wrapped, rect, opts);
-	for (const std::string_view line : SplitByChar(wrapped, '\n')) {
-		if (line.data() + line.size() == wrapped.data() + wrapped.size()) break;
-		rect.position.y += GetLineHeight(line, fontSize);
 	}
 }
 
