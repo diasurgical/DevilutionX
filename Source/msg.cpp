@@ -1386,26 +1386,33 @@ size_t OnAutoGetItem(const TCmdGItem &message, Player &player)
 {
 	if (gbBufferMsgs == 1) {
 		BufferMessage(player, &message, sizeof(message));
-	} else if (IsGItemValid(message)) {
-		const Point position { message.x, message.y };
-		if (DeltaGetItem(message, message.bLevel)) {
-			uint8_t localLevel = GetLevelForMultiplayer(*MyPlayer);
-			if ((localLevel == message.bLevel || message.bPnum == MyPlayerId) && message.bMaster != MyPlayerId) {
-				if (message.bPnum == MyPlayerId) {
-					if (localLevel != message.bLevel) {
-						int ii = SyncDropItem(message);
-						if (ii != -1)
-							AutoGetItem(*MyPlayer, &Items[ii], ii);
-					} else {
-						AutoGetItem(*MyPlayer, &Items[message.bCursitem], message.bCursitem);
-					}
-				} else {
-					SyncGetItem(position, SDL_SwapLE32(message.def.dwSeed), static_cast<_item_indexes>(SDL_SwapLE16(message.def.wIndx)), SDL_SwapLE16(message.def.wCI));
-				}
-			}
-		} else {
-			NetSendCmdGItem2(true, CMD_AGETITEM, message.bMaster, message.bPnum, message);
-		}
+		return sizeof(message);
+	}
+
+	if (!IsGItemValid(message))
+		return sizeof(message);
+
+	const Point position { message.x, message.y };
+	if (!DeltaGetItem(message, message.bLevel)) {
+		NetSendCmdGItem2(true, CMD_AGETITEM, message.bMaster, message.bPnum, message);
+		return sizeof(message);
+	}
+
+	bool isOnActiveLevel = GetLevelForMultiplayer(*MyPlayer) == message.bLevel;
+	if ((!isOnActiveLevel && message.bPnum != MyPlayerId) || message.bMaster == MyPlayerId)
+		return sizeof(message);
+
+	if (message.bPnum != MyPlayerId) {
+		SyncGetItem(position, SDL_SwapLE32(message.def.dwSeed), static_cast<_item_indexes>(SDL_SwapLE16(message.def.wIndx)), SDL_SwapLE16(message.def.wCI));
+		return sizeof(message);
+	}
+
+	if (!isOnActiveLevel) {
+		int ii = SyncDropItem(message);
+		if (ii != -1)
+			AutoGetItem(*MyPlayer, &Items[ii], ii);
+	} else {
+		AutoGetItem(*MyPlayer, &Items[message.bCursitem], message.bCursitem);
 	}
 
 	return sizeof(message);
