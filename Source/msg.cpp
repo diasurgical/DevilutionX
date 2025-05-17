@@ -699,18 +699,18 @@ std::byte *DeltaExportJunk(std::byte *dst)
 
 const std::byte *DeltaImportJunk(const std::byte *src, const std::byte *end)
 {
-	for (int i = 0; i < MAXPORTAL; i++) {
+	for (DPortal &portal : sgJunk.portal) {
 		if (src >= end)
 			return nullptr;
 		if (*src == std::byte { 0xFF }) {
-			memset(&sgJunk.portal[i], 0xFF, sizeof(DPortal));
+			memset(&portal, 0xFF, sizeof(DPortal));
 			src++;
 		} else {
 			if (src + sizeof(DPortal) > end)
 				return nullptr;
-			memcpy(&sgJunk.portal[i], src, sizeof(DPortal));
-			if (!IsPortalDeltaValid(sgJunk.portal[i]))
-				memset(&sgJunk.portal[i], 0xFF, sizeof(DPortal));
+			memcpy(&portal, src, sizeof(DPortal));
+			if (!IsPortalDeltaValid(portal))
+				memset(&portal, 0xFF, sizeof(DPortal));
 			src += sizeof(DPortal);
 		}
 	}
@@ -2858,15 +2858,15 @@ void DeltaLoadLevel()
 		}
 	}
 
-	for (int i = 0; i < MAXITEMS; i++) {
-		if (deltaLevel.item[i].bCmd == CMD_INVALID)
+	for (const TCmdPItem &deltaItem : deltaLevel.item) {
+		if (deltaItem.bCmd == CMD_INVALID)
 			continue;
 
-		if (deltaLevel.item[i].bCmd == TCmdPItem::PickedUpItem) {
+		if (deltaItem.bCmd == TCmdPItem::PickedUpItem) {
 			int activeItemIndex = FindGetItem(
-			    SDL_SwapLE32(deltaLevel.item[i].def.dwSeed),
-			    static_cast<_item_indexes>(SDL_SwapLE16(deltaLevel.item[i].def.wIndx)),
-			    SDL_SwapLE16(deltaLevel.item[i].def.wCI));
+			    SDL_SwapLE32(deltaItem.def.dwSeed),
+			    static_cast<_item_indexes>(SDL_SwapLE16(deltaItem.def.wIndx)),
+			    SDL_SwapLE16(deltaItem.def.wCI));
 			if (activeItemIndex != -1) {
 				const auto &position = Items[ActiveItems[activeItemIndex]].position;
 				if (dItem[position.x][position.y] == ActiveItems[activeItemIndex] + 1)
@@ -2874,13 +2874,13 @@ void DeltaLoadLevel()
 				DeleteItem(activeItemIndex);
 			}
 		}
-		if (deltaLevel.item[i].bCmd == TCmdPItem::DroppedItem) {
+		if (deltaItem.bCmd == TCmdPItem::DroppedItem) {
 			int ii = AllocateItem();
 			auto &item = Items[ii];
-			RecreateItem(*MyPlayer, deltaLevel.item[i], item);
+			RecreateItem(*MyPlayer, deltaItem, item);
 
-			int x = deltaLevel.item[i].x;
-			int y = deltaLevel.item[i].y;
+			int x = deltaItem.x;
+			int y = deltaItem.y;
 			item.position = GetItemPosition({ x, y });
 			dItem[item.position.x][item.position.y] = static_cast<int8_t>(ii + 1);
 			RespawnItem(Items[ii], false);
