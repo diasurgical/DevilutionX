@@ -1745,9 +1745,8 @@ void DrawAndBlit()
 		    (HasAnyOf(InspectPlayer->_pIFlags, ItemSpecialEffect::NoMana) || (MyPlayer->_pMana >> 6) <= 0) ? 0 : MyPlayer->_pMana >> 6,
 		    HasAnyOf(InspectPlayer->_pIFlags, ItemSpecialEffect::NoMana) ? 0 : MyPlayer->_pMaxMana >> 6);
 
-	if (ShowItemInfoBox) {
+	if (ShowItemInfoBox)
 		DrawItemInfo(out);
-	}
 
 	DrawCursor(out);
 
