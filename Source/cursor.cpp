@@ -786,7 +786,7 @@ void ResetCursorInfo()
 	pcursinvitem = -1;
 	pcursstashitem = StashStruct::EmptyCell;
 	PlayerUnderCursor = nullptr;
-	ShowUniqueItemInfoBox = false;
+	ShowItemInfoBox = false;
 	MainPanelFlag = false;
 	trigflag = false;
 }
