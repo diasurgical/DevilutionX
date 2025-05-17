@@ -297,7 +297,7 @@ TCmdLocParam5 lastSentPlayerCmd;
 bool IsPortalDeltaValid(const DPortal &portal)
 {
 	const WorldTilePosition position { portal.x, portal.y };
-	return IsPortalDeltaValid(position, portal.level, portal.ltype, portal.setlvl);
+	return IsPortalDeltaValid(position, portal.level, portal.ltype, portal.setlvl != 0);
 }
 
 bool IsQuestDeltaValid(quest_id qidx, const MultiQuests &quest)
@@ -505,7 +505,7 @@ int WaitForTurns()
 		sgbDeltaChunks = MaxChunks;
 		return 99;
 	}
-	return 100 * sgbDeltaChunks / MaxChunks;
+	return 100 * sgbDeltaChunks / static_cast<int>(MaxChunks);
 }
 
 std::byte *DeltaExportItem(std::byte *dst, const TCmdPItem *src)
@@ -993,7 +993,7 @@ void NetSendCmdGItem2(bool usonly, _cmd_id bCmd, uint8_t mast, uint8_t pnum, con
 		return;
 	}
 
-	int ticks = SDL_GetTicks();
+	int ticks = static_cast<int32_t>(SDL_GetTicks());
 	if (cmd.dwTime == 0) {
 		cmd.dwTime = SDL_SwapLE32(ticks);
 	} else if (ticks - SDL_SwapLE32(cmd.dwTime) > 5000) {
@@ -1012,7 +1012,7 @@ bool NetSendCmdReq2(_cmd_id bCmd, const Player &player, uint8_t pnum, const TCmd
 	cmd.bPnum = pnum;
 	cmd.bMaster = player.getId();
 
-	int ticks = SDL_GetTicks();
+	int ticks = static_cast<int32_t>(SDL_GetTicks());
 	if (cmd.dwTime == 0)
 		cmd.dwTime = SDL_SwapLE32(ticks);
 	else if (ticks - SDL_SwapLE32(cmd.dwTime) > 5000)
@@ -1612,7 +1612,7 @@ size_t OnObjectTileAction(const TCmdLoc &message, Player &player, action_id acti
 			MakePlrPath(player, position, !object->_oSolidFlag && !object->_oDoorFlag);
 
 		player.destAction = action;
-		player.destParam1 = object->GetId();
+		player.destParam1 = static_cast<int>(object->GetId());
 	}
 
 	return sizeof(message);
@@ -1898,7 +1898,7 @@ size_t OnPlayerDamage(const TCmdDamage &message, Player &player)
 	Player &target = Players[message.bPlr];
 	if (&target == MyPlayer && leveltype != DTYPE_TOWN && gbBufferMsgs != 1) {
 		if (player.isOnActiveLevel() && damage <= 192000 && target._pHitPoints >> 6 > 0) {
-			ApplyPlrDamage(message.damageType, target, 0, 0, damage, DeathReason::Player);
+			ApplyPlrDamage(message.damageType, target, 0, 0, static_cast<int>(damage), DeathReason::Player);
 		}
 	}
 
@@ -2126,7 +2126,7 @@ size_t OnPlayerJoinLevel(const TCmdLocParam2 &message, Player &player)
 				player._pgfxnum &= ~0xFU;
 				player._pmode = PM_DEATH;
 				NewPlrAnim(player, player_graphic::Death, Direction::South);
-				player.AnimInfo.currentFrame = player.AnimInfo.numberOfFrames - 2;
+				player.AnimInfo.currentFrame = static_cast<int8_t>(player.AnimInfo.numberOfFrames - 2);
 				dFlags[player.position.tile.x][player.position.tile.y] |= DungeonFlag::DeadPlayer;
 			}
 
@@ -2662,7 +2662,7 @@ void DeltaSyncJunk()
 			    { sgJunk.portal[i].x, sgJunk.portal[i].y },
 			    sgJunk.portal[i].level,
 			    (dungeon_type)sgJunk.portal[i].ltype,
-			    sgJunk.portal[i].setlvl);
+			    sgJunk.portal[i].setlvl != 0);
 		}
 	}
 
@@ -2884,7 +2884,7 @@ void DeltaLoadLevel()
 			int x = deltaLevel.item[i].x;
 			int y = deltaLevel.item[i].y;
 			item.position = GetItemPosition({ x, y });
-			dItem[item.position.x][item.position.y] = ii + 1;
+			dItem[item.position.x][item.position.y] = static_cast<int8_t>(ii + 1);
 			RespawnItem(Items[ii], false);
 		}
 	}
@@ -3169,7 +3169,7 @@ void NetSendCmdChInvItem(bool bHiPri, int invGridIndex)
 {
 	TCmdChItem cmd {};
 
-	int8_t invListIndex = std::abs(MyPlayer->InvGrid[invGridIndex]) - 1;
+	int invListIndex = std::abs(MyPlayer->InvGrid[invGridIndex]) - 1;
 	const Item &item = MyPlayer->InvList[invListIndex];
 
 	cmd.bCmd = CMD_CHANGEINVITEMS;
