@@ -6,7 +6,7 @@
 #include "engine/demomode.h"
 #include "game_mode.hpp"
 #include "headless_mode.hpp"
-#include "init.h"
+#include "init.hpp"
 #include "lua/lua.hpp"
 #include "monstdat.h"
 #include "options.h"

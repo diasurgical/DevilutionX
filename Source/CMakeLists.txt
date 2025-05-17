@@ -316,6 +316,7 @@ add_devilutionx_object_library(libdevilutionx_init
 target_link_dependencies(libdevilutionx_init PUBLIC
   libdevilutionx_assets
   libdevilutionx_config
+  libdevilutionx_mpq
   libdevilutionx_options
 )
 

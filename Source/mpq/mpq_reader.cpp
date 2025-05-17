@@ -1,5 +1,6 @@
 #include "mpq/mpq_reader.hpp"
 
+#include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <string_view>

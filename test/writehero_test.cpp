@@ -9,8 +9,9 @@
 #include <picosha2.h>
 
 #include "cursor.h"
+#include "engine/assets.hpp"
 #include "game_mode.hpp"
-#include "init.h"
+#include "init.hpp"
 #include "loadsave.h"
 #include "pack.h"
 #include "pfile.h"

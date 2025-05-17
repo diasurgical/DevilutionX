@@ -47,7 +47,7 @@
 #include "headless_mode.hpp"
 #include "help.h"
 #include "hwcursor.hpp"
-#include "init.h"
+#include "init.hpp"
 #include "inv.h"
 #include "levels/drlg_l1.h"
 #include "levels/drlg_l2.h"

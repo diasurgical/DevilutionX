@@ -7,7 +7,7 @@
 #include "engine/events.hpp"
 #include "engine/render/clx_render.hpp"
 #include "engine/render/primitive_render.hpp"
-#include "init.h"
+#include "init.hpp"
 #include "inv.h"
 #include "levels/gendung.h"
 #include "minitext.h"

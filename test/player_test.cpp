@@ -3,7 +3,8 @@
 #include <gtest/gtest.h>
 
 #include "cursor.h"
-#include "init.h"
+#include "engine/assets.hpp"
+#include "init.hpp"
 #include "playerdat.hpp"
 
 using namespace devilution;
