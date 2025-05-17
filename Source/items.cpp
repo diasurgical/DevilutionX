@@ -1648,6 +1648,98 @@ void ItemDoppel()
 		idoppely = 16;
 }
 
+static void PrintItemOil(const Surface &out, Rectangle &rect)
+{
+	switch (CurrentSelectedItem._iMiscId) {
+	case IMISC_OILACC:
+		AddItemInfoLine(out, rect, _("increases a weapon's"));
+		AddItemInfoLine(out, rect, _("chance to hit"));
+		break;
+	case IMISC_OILMAST:
+		AddItemInfoLine(out, rect, _("greatly increases a"));
+		AddItemInfoLine(out, rect, _("weapon's chance to hit"));
+		break;
+	case IMISC_OILSHARP:
+		AddItemInfoLine(out, rect, _("increases a weapon's"));
+		AddItemInfoLine(out, rect, _("damage potential"));
+		break;
+	case IMISC_OILDEATH:
+		AddItemInfoLine(out, rect, _("greatly increases a weapon's"));
+		AddItemInfoLine(out, rect, _("damage potential - not bows"));
+		break;
+	case IMISC_OILSKILL:
+		AddItemInfoLine(out, rect, _("reduces attributes needed"));
+		AddItemInfoLine(out, rect, _("to use armor or weapons"));
+		break;
+	case IMISC_OILBSMTH:
+		AddItemInfoLine(out, rect, /*xgettext:no-c-format*/ _("restores 20% of an"));
+		AddItemInfoLine(out, rect, _("item's durability"));
+		break;
+	case IMISC_OILFORT:
+		AddItemInfoLine(out, rect, _("increases an item's"));
+		AddItemInfoLine(out, rect, _("current and max durability"));
+		break;
+	case IMISC_OILPERM:
+		AddItemInfoLine(out, rect, _("makes an item indestructible"));
+		break;
+	case IMISC_OILHARD:
+		AddItemInfoLine(out, rect, _("increases the armor class"));
+		AddItemInfoLine(out, rect, _("of armor and shields"));
+		break;
+	case IMISC_OILIMP:
+		AddItemInfoLine(out, rect, _("greatly increases the armor"));
+		AddItemInfoLine(out, rect, _("class of armor and shields"));
+		break;
+	case IMISC_RUNEF:
+		AddItemInfoLine(out, rect, _("sets fire trap"));
+		break;
+	case IMISC_RUNEL:
+	case IMISC_GR_RUNEL:
+		AddItemInfoLine(out, rect, _("sets lightning trap"));
+		break;
+	case IMISC_GR_RUNEF:
+		AddItemInfoLine(out, rect, _("sets fire trap"));
+		break;
+	case IMISC_RUNES:
+		AddItemInfoLine(out, rect, _("sets petrification trap"));
+		break;
+	case IMISC_FULLHEAL:
+		AddItemInfoLine(out, rect, _("restore all life"));
+		break;
+	case IMISC_HEAL:
+		AddItemInfoLine(out, rect, _("restore some life"));
+		break;
+	case IMISC_MANA:
+		AddItemInfoLine(out, rect, _("restore some mana"));
+		break;
+	case IMISC_FULLMANA:
+		AddItemInfoLine(out, rect, _("restore all mana"));
+		break;
+	case IMISC_ELIXSTR:
+		AddItemInfoLine(out, rect, _("increase strength"));
+		break;
+	case IMISC_ELIXMAG:
+		AddItemInfoLine(out, rect, _("increase magic"));
+		break;
+	case IMISC_ELIXDEX:
+		AddItemInfoLine(out, rect, _("increase dexterity"));
+		break;
+	case IMISC_ELIXVIT:
+		AddItemInfoLine(out, rect, _("increase vitality"));
+		break;
+	case IMISC_REJUV:
+		AddItemInfoLine(out, rect, _("restore some life and mana"));
+		break;
+	case IMISC_FULLREJUV:
+		AddItemInfoLine(out, rect, _("restore all life and mana"));
+		break;
+	case IMISC_ARENAPOT:
+		AddItemInfoLine(out, rect, _("restore all life and mana"));
+		AddItemInfoLine(out, rect, _("(works only in arenas)"));
+		break;
+	}
+}
+
 Point ClampItemInfoToScreen(Point point)
 {
 	int screenW = GetScreenWidth();
@@ -1767,6 +1859,106 @@ Point GetHoverItemInfoAnchor()
 	}
 
 	return { 0, 0 };
+}
+
+static void printItemMiscKBM(const Surface &out, Rectangle &rect, const bool isOil, const bool isCastOnTarget)
+{
+	const Item &item = CurrentSelectedItem;
+
+	if (item._iMiscId == IMISC_MAPOFDOOM) {
+		AddItemInfoLine(out, rect, _("Right-click to view"));
+	} else if (isOil) {
+		PrintItemOil(out, rect);
+		AddItemInfoLine(out, rect, _("Right-click to use"));
+	} else if (isCastOnTarget) {
+		AddItemInfoLine(out, rect, _("Right-click to read, then\nleft-click to target"));
+	} else if (IsAnyOf(item._iMiscId, IMISC_BOOK, IMISC_NOTE, IMISC_SCROLL, IMISC_SCROLLT)) {
+		AddItemInfoLine(out, rect, _("Right-click to read"));
+	}
+}
+
+static void printItemMiscGenericGamepad(const Surface &out, Rectangle &rect, const bool isOil, bool isCastOnTarget)
+{
+	const Item &item = CurrentSelectedItem;
+
+	if (item._iMiscId == IMISC_MAPOFDOOM) {
+		AddItemInfoLine(out, rect, _("Activate to view"));
+	} else if (isOil) {
+		PrintItemOil(out, rect);
+		if (!invflag) {
+			AddItemInfoLine(out, rect, _("Open inventory to use"));
+		} else {
+			AddItemInfoLine(out, rect, _("Activate to use"));
+		}
+	} else if (isCastOnTarget) {
+		AddItemInfoLine(out, rect, _("Select from spell book, then\ncast spell to read"));
+	} else if (IsAnyOf(item._iMiscId, IMISC_BOOK, IMISC_NOTE, IMISC_SCROLL, IMISC_SCROLLT)) {
+		AddItemInfoLine(out, rect, _("Activate to read"));
+	}
+}
+
+static void printItemMiscGamepad(const Surface &out, Rectangle &rect, bool isOil, bool isCastOnTarget)
+{
+	const Item &item = CurrentSelectedItem;
+
+	if (GamepadType == GamepadLayout::Generic) {
+		printItemMiscGenericGamepad(out, rect, isOil, isCastOnTarget);
+		return;
+	}
+	const std::string_view activateButton = GetOptions().Padmapper.InputNameForAction("SecondaryAction");
+	const std::string_view castButton = GetOptions().Padmapper.InputNameForAction("SpellAction");
+
+	if (item._iMiscId == IMISC_MAPOFDOOM) {
+		AddItemInfoLine(out, rect, fmt::format(fmt::runtime(_("{} to view")), activateButton));
+	} else if (isOil) {
+		PrintItemOil(out, rect);
+		if (!invflag) {
+			AddItemInfoLine(out, rect, _("Open inventory to use"));
+		} else {
+			AddItemInfoLine(out, rect, fmt::format(fmt::runtime(_("{} to use")), activateButton));
+		}
+	} else if (isCastOnTarget) {
+		AddItemInfoLine(out, rect, fmt::format(fmt::runtime(_("Select from spell book,\nthen {} to read")), castButton));
+	} else if (IsAnyOf(item._iMiscId, IMISC_BOOK, IMISC_NOTE, IMISC_SCROLL, IMISC_SCROLLT)) {
+		AddItemInfoLine(out, rect, fmt::format(fmt::runtime(_("{} to read")), activateButton));
+	}
+}
+
+static void PrintItemMisc(const Surface &out, Rectangle &rect)
+{
+	const Item &item = CurrentSelectedItem;
+
+	if (item._iMiscId == IMISC_EAR) {
+		AddItemInfoLine(out, rect, fmt::format(fmt::runtime(pgettext("player", "Level: {:d}")), item._ivalue));
+		return;
+	}
+
+	if (item._iMiscId == IMISC_AURIC) {
+		AddItemInfoLine(out, rect, _("Doubles gold capacity"));
+		return;
+	}
+
+	const bool isOil = (item._iMiscId >= IMISC_USEFIRST && item._iMiscId <= IMISC_USELAST)
+	    || (item._iMiscId > IMISC_OILFIRST && item._iMiscId < IMISC_OILLAST)
+	    || (item._iMiscId > IMISC_RUNEFIRST && item._iMiscId < IMISC_RUNELAST)
+	    || item._iMiscId == IMISC_ARENAPOT;
+	const bool mouseRequiresTarget = (item._iMiscId == IMISC_SCROLLT && item._iSpell != SpellID::Flash)
+	    || (item._iMiscId == IMISC_SCROLL && IsAnyOf(item._iSpell, SpellID::TownPortal, SpellID::Identify));
+	const bool gamepadRequiresTarget = item.isScroll() && TargetsMonster(item._iSpell);
+
+	switch (ControlMode) {
+	case ControlTypes::None:
+		break;
+	case ControlTypes::KeyboardAndMouse:
+		printItemMiscKBM(out, rect, isOil, mouseRequiresTarget);
+		break;
+	case ControlTypes::VirtualGamepad:
+		printItemMiscGenericGamepad(out, rect, isOil, gamepadRequiresTarget);
+		break;
+	case ControlTypes::Gamepad:
+		printItemMiscGamepad(out, rect, isOil, gamepadRequiresTarget);
+		break;
+	}
 }
 
 bool SmithItemOk(const Player &player, const ItemData &item)
@@ -4047,198 +4239,6 @@ static void AddItemInfoPowers(const Surface &out, Rectangle &rect)
 	}
 }
 
-static void AddItemInfoMiscOil(const Surface &out, Rectangle &rect)
-{
-	switch (CurrentSelectedItem._iMiscId) {
-	case IMISC_OILACC:
-		AddItemInfoLine(out, rect, _("increases a weapon's"));
-		AddItemInfoLine(out, rect, _("chance to hit"));
-		break;
-	case IMISC_OILMAST:
-		AddItemInfoLine(out, rect, _("greatly increases a"));
-		AddItemInfoLine(out, rect, _("weapon's chance to hit"));
-		break;
-	case IMISC_OILSHARP:
-		AddItemInfoLine(out, rect, _("increases a weapon's"));
-		AddItemInfoLine(out, rect, _("damage potential"));
-		break;
-	case IMISC_OILDEATH:
-		AddItemInfoLine(out, rect, _("greatly increases a weapon's"));
-		AddItemInfoLine(out, rect, _("damage potential - not bows"));
-		break;
-	case IMISC_OILSKILL:
-		AddItemInfoLine(out, rect, _("reduces attributes needed"));
-		AddItemInfoLine(out, rect, _("to use armor or weapons"));
-		break;
-	case IMISC_OILBSMTH:
-		AddItemInfoLine(out, rect, /*xgettext:no-c-format*/ _("restores 20% of an"));
-		AddItemInfoLine(out, rect, _("item's durability"));
-		break;
-	case IMISC_OILFORT:
-		AddItemInfoLine(out, rect, _("increases an item's"));
-		AddItemInfoLine(out, rect, _("current and max durability"));
-		break;
-	case IMISC_OILPERM:
-		AddItemInfoLine(out, rect, _("makes an item indestructible"));
-		break;
-	case IMISC_OILHARD:
-		AddItemInfoLine(out, rect, _("increases the armor class"));
-		AddItemInfoLine(out, rect, _("of armor and shields"));
-		break;
-	case IMISC_OILIMP:
-		AddItemInfoLine(out, rect, _("greatly increases the armor"));
-		AddItemInfoLine(out, rect, _("class of armor and shields"));
-		break;
-	case IMISC_RUNEF:
-		AddItemInfoLine(out, rect, _("sets fire trap"));
-		break;
-	case IMISC_RUNEL:
-	case IMISC_GR_RUNEL:
-		AddItemInfoLine(out, rect, _("sets lightning trap"));
-		break;
-	case IMISC_GR_RUNEF:
-		AddItemInfoLine(out, rect, _("sets fire trap"));
-		break;
-	case IMISC_RUNES:
-		AddItemInfoLine(out, rect, _("sets petrification trap"));
-		break;
-	case IMISC_FULLHEAL:
-		AddItemInfoLine(out, rect, _("restore all life"));
-		break;
-	case IMISC_HEAL:
-		AddItemInfoLine(out, rect, _("restore some life"));
-		break;
-	case IMISC_MANA:
-		AddItemInfoLine(out, rect, _("restore some mana"));
-		break;
-	case IMISC_FULLMANA:
-		AddItemInfoLine(out, rect, _("restore all mana"));
-		break;
-	case IMISC_ELIXSTR:
-		AddItemInfoLine(out, rect, _("increase strength"));
-		break;
-	case IMISC_ELIXMAG:
-		AddItemInfoLine(out, rect, _("increase magic"));
-		break;
-	case IMISC_ELIXDEX:
-		AddItemInfoLine(out, rect, _("increase dexterity"));
-		break;
-	case IMISC_ELIXVIT:
-		AddItemInfoLine(out, rect, _("increase vitality"));
-		break;
-	case IMISC_REJUV:
-		AddItemInfoLine(out, rect, _("restore some life and mana"));
-		break;
-	case IMISC_FULLREJUV:
-		AddItemInfoLine(out, rect, _("restore all life and mana"));
-		break;
-	case IMISC_ARENAPOT:
-		AddItemInfoLine(out, rect, _("restore all life and mana"));
-		AddItemInfoLine(out, rect, _("(works only in arenas)"));
-		break;
-	}
-}
-
-static void AddItemInfoMiscKBM(const Surface &out, Rectangle &rect, const bool isOil, const bool isCastOnTarget)
-{
-	const Item &item = CurrentSelectedItem;
-
-	if (item._iMiscId == IMISC_MAPOFDOOM) {
-		AddItemInfoLine(out, rect, _("Right-click to view"));
-	} else if (isOil) {
-		AddItemInfoMiscOil(out, rect);
-		AddItemInfoLine(out, rect, _("Right-click to use"));
-	} else if (isCastOnTarget) {
-		AddItemInfoLine(out, rect, _("Right-click to read, then\nleft-click to target"));
-	} else if (IsAnyOf(item._iMiscId, IMISC_BOOK, IMISC_NOTE, IMISC_SCROLL, IMISC_SCROLLT)) {
-		AddItemInfoLine(out, rect, _("Right-click to read"));
-	}
-}
-
-static void AddItemInfoMiscGenericGamepad(const Surface &out, Rectangle &rect, const bool isOil, bool isCastOnTarget)
-{
-	const Item &item = CurrentSelectedItem;
-
-	if (item._iMiscId == IMISC_MAPOFDOOM) {
-		AddItemInfoLine(out, rect, _("Activate to view"));
-	} else if (isOil) {
-		AddItemInfoMiscOil(out, rect);
-		if (!invflag) {
-			AddItemInfoLine(out, rect, _("Open inventory to use"));
-		} else {
-			AddItemInfoLine(out, rect, _("Activate to use"));
-		}
-	} else if (isCastOnTarget) {
-		AddItemInfoLine(out, rect, _("Select from spell book, then\ncast spell to read"));
-	} else if (IsAnyOf(item._iMiscId, IMISC_BOOK, IMISC_NOTE, IMISC_SCROLL, IMISC_SCROLLT)) {
-		AddItemInfoLine(out, rect, _("Activate to read"));
-	}
-}
-
-static void AddItemInfoMiscGamepad(const Surface &out, Rectangle &rect, bool isOil, bool isCastOnTarget)
-{
-	const Item &item = CurrentSelectedItem;
-
-	if (GamepadType == GamepadLayout::Generic) {
-		AddItemInfoMiscGenericGamepad(out, rect, isOil, isCastOnTarget);
-		return;
-	}
-	const std::string_view activateButton = GetOptions().Padmapper.InputNameForAction("SecondaryAction");
-	const std::string_view castButton = GetOptions().Padmapper.InputNameForAction("SpellAction");
-
-	if (item._iMiscId == IMISC_MAPOFDOOM) {
-		AddItemInfoLine(out, rect, fmt::format(fmt::runtime(_("{} to view")), activateButton));
-	} else if (isOil) {
-		AddItemInfoMiscOil(out, rect);
-		if (!invflag) {
-			AddItemInfoLine(out, rect, _("Open inventory to use"));
-		} else {
-			AddItemInfoLine(out, rect, fmt::format(fmt::runtime(_("{} to use")), activateButton));
-		}
-	} else if (isCastOnTarget) {
-		AddItemInfoLine(out, rect, fmt::format(fmt::runtime(_("Select from spell book,\nthen {} to read")), castButton));
-	} else if (IsAnyOf(item._iMiscId, IMISC_BOOK, IMISC_NOTE, IMISC_SCROLL, IMISC_SCROLLT)) {
-		AddItemInfoLine(out, rect, fmt::format(fmt::runtime(_("{} to read")), activateButton));
-	}
-}
-
-static void AddItemInfoMisc(const Surface &out, Rectangle &rect)
-{
-	const Item &item = CurrentSelectedItem;
-
-	if (item._iMiscId == IMISC_EAR) {
-		AddItemInfoLine(out, rect, fmt::format(fmt::runtime(pgettext("player", "Level: {:d}")), item._ivalue));
-		return;
-	}
-
-	if (item._iMiscId == IMISC_AURIC) {
-		AddItemInfoLine(out, rect, _("Doubles gold capacity"));
-		return;
-	}
-
-	const bool isOil = (item._iMiscId >= IMISC_USEFIRST && item._iMiscId <= IMISC_USELAST)
-	    || (item._iMiscId > IMISC_OILFIRST && item._iMiscId < IMISC_OILLAST)
-	    || (item._iMiscId > IMISC_RUNEFIRST && item._iMiscId < IMISC_RUNELAST)
-	    || item._iMiscId == IMISC_ARENAPOT;
-	const bool mouseRequiresTarget = (item._iMiscId == IMISC_SCROLLT && item._iSpell != SpellID::Flash)
-	    || (item._iMiscId == IMISC_SCROLL && IsAnyOf(item._iSpell, SpellID::TownPortal, SpellID::Identify));
-	const bool gamepadRequiresTarget = item.isScroll() && TargetsMonster(item._iSpell);
-
-	switch (ControlMode) {
-	case ControlTypes::None:
-		break;
-	case ControlTypes::KeyboardAndMouse:
-		AddItemInfoMiscKBM(out, rect, isOil, mouseRequiresTarget);
-		break;
-	case ControlTypes::VirtualGamepad:
-		AddItemInfoMiscGenericGamepad(out, rect, isOil, gamepadRequiresTarget);
-		break;
-	case ControlTypes::Gamepad:
-		AddItemInfoMiscGamepad(out, rect, isOil, gamepadRequiresTarget);
-		break;
-	}
-}
-
 static void AddItemInfoRequirements(const Surface &out, Rectangle &rect)
 {
 	const Item &item = CurrentSelectedItem;
@@ -4278,7 +4278,7 @@ void DrawItemInfo(const Surface &out)
 		AddItemInfoPowers(out, rect);
 	}
 
-	AddItemInfoMisc(out, rect);
+	PrintItemMisc(out, rect);
 	AddItemInfoRequirements(out, rect);
 
 	rect.position.y += 12;
