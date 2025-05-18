@@ -5,6 +5,10 @@
  */
 #pragma once
 
+// Unused here but must be included before SDL.h, see:
+// https://github.com/bebbo/amiga-gcc/issues/413
+#include <cstdint>
+
 #include <SDL.h>
 
 #ifdef UNPACKED_MPQS
