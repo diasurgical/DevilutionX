@@ -26,6 +26,7 @@
 #include "engine/clx_sprite.hpp"
 #include "engine/load_cel.hpp"
 #include "engine/render/clx_render.hpp"
+#include "engine/render/primitive_render.hpp"
 #include "engine/render/text_render.hpp"
 #include "engine/trn.hpp"
 #include "gamemenu.h"
@@ -62,6 +63,7 @@
 #include "utils/status_macros.hpp"
 #include "utils/str_case.hpp"
 #include "utils/str_cat.hpp"
+#include "utils/str_split.hpp"
 #include "utils/string_or_view.hpp"
 #include "utils/utf8.hpp"
 
@@ -88,6 +90,7 @@ bool ChatFlag;
 bool SpellbookFlag;
 bool CharFlag;
 StringOrView InfoString;
+StringOrView FloatingInfoString;
 bool MainPanelFlag;
 bool MainPanelButtonDown;
 bool SpellSelectFlag;
@@ -336,6 +339,204 @@ void PrintInfo(const Surface &out)
 	    {
 	        .flags = InfoColor | UiFlags::AlignCenter | UiFlags::VerticalCenter | UiFlags::KerningFitSpacing,
 	        .spacing = 2,
+	        .lineHeight = lineHeight,
+	    });
+}
+
+Rectangle GetFloatingInfoRect(const int lineHeight, const int textSpacing)
+{
+	// Calculate the width and height of the floating info box
+	std::string txt = std::string(FloatingInfoString);
+
+	auto lines = SplitByChar(txt, '\n');
+	const GameFontTables font = GameFont12;
+	int maxW = 0;
+
+	for (const auto &line : lines) {
+		int w = GetLineWidth(line, font, textSpacing, nullptr);
+		maxW = std::max(maxW, w);
+	}
+
+	const auto lineCount = 1 + static_cast<int>(c_count(FloatingInfoString.str(), '\n'));
+	int totalH = lineCount * lineHeight;
+
+	Player &player = *InspectPlayer;
+
+	// 1) Equipment (Rect position)
+	if (pcursinvitem >= INVITEM_HEAD && pcursinvitem < INVITEM_INV_FIRST) {
+		int slot = pcursinvitem - INVITEM_HEAD;
+		static constexpr Point equipLocal[] = {
+			{ 133, 59 },
+			{ 48, 205 },
+			{ 249, 205 },
+			{ 205, 60 },
+			{ 17, 160 },
+			{ 248, 160 },
+			{ 133, 160 },
+		};
+
+		Point itemPosition = equipLocal[slot];
+		auto &item = player.InvBody[slot];
+		Size frame = GetInvItemSize(item._iCurs + CURSOR_FIRSTITEM);
+
+		if (slot == INVLOC_HAND_LEFT) {
+			itemPosition.x += frame.width == InventorySlotSizeInPixels.width
+			    ? InventorySlotSizeInPixels.width
+			    : 0;
+			itemPosition.y += frame.height == 3 * InventorySlotSizeInPixels.height
+			    ? 0
+			    : -InventorySlotSizeInPixels.height;
+		} else if (slot == INVLOC_HAND_RIGHT) {
+			itemPosition.x += frame.width == InventorySlotSizeInPixels.width
+			    ? (InventorySlotSizeInPixels.width - 1)
+			    : 1;
+			itemPosition.y += frame.height == 3 * InventorySlotSizeInPixels.height
+			    ? 0
+			    : -InventorySlotSizeInPixels.height;
+		}
+
+		itemPosition.y++;                  // Align position to bottom left of the item graphic
+		itemPosition.x += frame.width / 2; // Align position to center of the item graphic
+		itemPosition.x -= maxW / 2;        // Align position to the center of the floating item info box
+
+		Point screen = GetPanelPosition(UiPanels::Inventory, itemPosition);
+
+		return { { screen.x, screen.y }, { maxW, totalH } };
+	}
+
+	// 2) Inventory grid (Rect position)
+	if (pcursinvitem >= INVITEM_INV_FIRST && pcursinvitem < INVITEM_INV_FIRST + InventoryGridCells) {
+		int itemIdx = pcursinvitem - INVITEM_INV_FIRST;
+
+		for (int j = 0; j < InventoryGridCells; ++j) {
+			if (player.InvGrid[j] > 0 && player.InvGrid[j] - 1 == itemIdx) {
+				Item &it = player.InvList[itemIdx];
+				Point itemPosition = InvRect[j + SLOTXY_INV_FIRST].position;
+
+				itemPosition.x += GetInventorySize(it).width * InventorySlotSizeInPixels.width / 2; // Align position to center of the item graphic
+				itemPosition.x -= maxW / 2;                                                         // Align position to the center of the floating item info box
+
+				Point screen = GetPanelPosition(UiPanels::Inventory, itemPosition);
+
+				return { { screen.x, screen.y }, { maxW, totalH } };
+			}
+		}
+	}
+
+	// 3) Belt (Rect position)
+	if (pcursinvitem >= INVITEM_BELT_FIRST && pcursinvitem < INVITEM_BELT_FIRST + MaxBeltItems) {
+		int itemIdx = pcursinvitem - INVITEM_BELT_FIRST;
+		for (int i = 0; i < MaxBeltItems; ++i) {
+			if (player.SpdList[i].isEmpty())
+				continue;
+			if (i != itemIdx)
+				continue;
+
+			Item &item = player.SpdList[i];
+			Point itemPosition = InvRect[i + SLOTXY_BELT_FIRST].position;
+
+			itemPosition.x += GetInventorySize(item).width * InventorySlotSizeInPixels.width / 2; // Align position to center of the item graphic
+			itemPosition.x -= maxW / 2;                                                           // Align position to the center of the floating item info box
+
+			Point screen = GetMainPanel().position + Displacement { itemPosition.x, itemPosition.y };
+
+			return { { screen.x, screen.y }, { maxW, totalH } };
+		}
+	}
+
+	// 4) Stash (Rect position)
+	if (pcursstashitem != StashStruct::EmptyCell) {
+		for (auto slot : StashGridRange) {
+			auto itemId = Stash.GetItemIdAtPosition(slot);
+			if (itemId == StashStruct::EmptyCell)
+				continue;
+			if (itemId != pcursstashitem)
+				continue;
+
+			Item &item = Stash.stashList[itemId];
+			Point itemPosition = GetStashSlotCoord(slot);
+			Size itemGridSize = GetInventorySize(item);
+
+			itemPosition.y += itemGridSize.height * (InventorySlotSizeInPixels.height + 1) - 1; // Align position to bottom left of the item graphic
+			itemPosition.x += itemGridSize.width * InventorySlotSizeInPixels.width / 2;         // Align position to center of the item graphic
+			itemPosition.x -= maxW / 2;                                                         // Align position to the center of the floating item info box
+
+			return { { itemPosition.x, itemPosition.y }, { maxW, totalH } };
+		}
+	}
+
+	return { { 0, 0 }, { 0, 0 } };
+}
+
+int GetHoverSpriteHeight()
+{
+	if (pcursinvitem >= INVITEM_HEAD && pcursinvitem < INVITEM_INV_FIRST) {
+		auto &it = (*InspectPlayer).InvBody[pcursinvitem - INVITEM_HEAD];
+		return GetInvItemSize(it._iCurs + CURSOR_FIRSTITEM).height + 1;
+	}
+	if (pcursinvitem >= INVITEM_INV_FIRST
+	    && pcursinvitem < INVITEM_INV_FIRST + InventoryGridCells) {
+		int idx = pcursinvitem - INVITEM_INV_FIRST;
+		auto &it = (*InspectPlayer).InvList[idx];
+		return GetInventorySize(it).height * (InventorySlotSizeInPixels.height + 1)
+		    - InventorySlotSizeInPixels.height;
+	}
+	if (pcursinvitem >= INVITEM_BELT_FIRST
+	    && pcursinvitem < INVITEM_BELT_FIRST + MaxBeltItems) {
+		int idx = pcursinvitem - INVITEM_BELT_FIRST;
+		auto &it = (*InspectPlayer).SpdList[idx];
+		return GetInventorySize(it).height * (InventorySlotSizeInPixels.height + 1)
+		    - InventorySlotSizeInPixels.height - 1;
+	}
+	if (pcursstashitem != StashStruct::EmptyCell) {
+		auto &it = Stash.stashList[pcursstashitem];
+		return GetInventorySize(it).height * (InventorySlotSizeInPixels.height + 1);
+	}
+	return InventorySlotSizeInPixels.height;
+}
+
+int ClampAboveOrBelow(int anchorY, int spriteH, int boxH, int pad, int linePad)
+{
+	int yAbove = anchorY - spriteH - boxH - pad;
+	int yBelow = anchorY + linePad / 2 + pad;
+	return (yAbove >= 0) ? yAbove : yBelow;
+}
+
+void PrintFloatingInfo(const Surface &out)
+{
+	if (ChatFlag)
+		return;
+	if (FloatingInfoString.empty())
+		return;
+
+	const int verticalSpacing = 3;
+	const int lineHeight = 12 + verticalSpacing;
+	const int textSpacing = 2;
+	const int padding = 3;
+
+	Rectangle floatingInfoBox = GetFloatingInfoRect(lineHeight, textSpacing);
+
+	// Prevent the floating info box from going off-screen horizontally
+	floatingInfoBox.position.x = std::clamp(floatingInfoBox.position.x, padding, GetScreenWidth() - (floatingInfoBox.size.width + padding));
+
+	int spriteH = GetHoverSpriteHeight();
+	int anchorY = floatingInfoBox.position.y;
+	int boxH = floatingInfoBox.size.height;
+	int yAbove = anchorY - spriteH - boxH - padding;
+	int yBelow = anchorY + verticalSpacing / 2 + padding;
+
+	// Prevent the floating info box from going off-screen vertically
+	floatingInfoBox.position.y = ClampAboveOrBelow(anchorY, spriteH, floatingInfoBox.size.height, padding, verticalSpacing);
+
+	SpeakText(FloatingInfoString);
+
+	for (int i = 0; i < 3; i++)
+		DrawHalfTransparentRectTo(out, floatingInfoBox.position.x - padding, floatingInfoBox.position.y - padding, floatingInfoBox.size.width + padding * 2, floatingInfoBox.size.height + padding * 2);
+
+	DrawString(out, FloatingInfoString, floatingInfoBox,
+	    {
+	        .flags = InfoColor | UiFlags::AlignCenter | UiFlags::VerticalCenter,
+	        .spacing = textSpacing,
 	        .lineHeight = lineHeight,
 	    });
 }
@@ -802,20 +1003,24 @@ void ToggleCharPanel()
 		OpenCharPanel();
 }
 
-void AddInfoBoxString(std::string_view str)
+void AddInfoBoxString(std::string_view str, bool floatingBox /*= false*/)
 {
-	if (InfoString.empty())
-		InfoString = str;
+	StringOrView &infoString = floatingBox ? FloatingInfoString : InfoString;
+
+	if (infoString.empty())
+		infoString = str;
 	else
-		InfoString = StrCat(InfoString, "\n", str);
+		infoString = StrCat(infoString, "\n", str);
 }
 
-void AddInfoBoxString(std::string &&str)
+void AddInfoBoxString(std::string &&str, bool floatingBox /*= false*/)
 {
-	if (InfoString.empty())
-		InfoString = std::move(str);
+	StringOrView &infoString = floatingBox ? FloatingInfoString : InfoString;
+
+	if (infoString.empty())
+		infoString = std::move(str);
 	else
-		InfoString = StrCat(InfoString, "\n", str);
+		infoString = StrCat(infoString, "\n", str);
 }
 
 Point GetPanelPosition(UiPanels panel, Point offset)
@@ -943,6 +1148,7 @@ tl::expected<void, std::string> InitMainPanel()
 		buttonEnabled = false;
 	CharPanelButtonActive = false;
 	InfoString = StringOrView {};
+	FloatingInfoString = StringOrView {};
 	RedrawComponent(PanelDrawComponent::Health);
 	RedrawComponent(PanelDrawComponent::Mana);
 	CloseCharPanel();
@@ -1080,6 +1286,7 @@ void CheckPanelInfo()
 {
 	MainPanelFlag = false;
 	InfoString = StringOrView {};
+	FloatingInfoString = StringOrView {};
 
 	int totalButtons = IsChatAvailable() ? TotalMpMainPanelButtons : TotalSpMainPanelButtons;
 
@@ -1305,6 +1512,17 @@ void DrawInfoBox(const Surface &out)
 	}
 	if (!InfoString.empty())
 		PrintInfo(out);
+}
+
+void DrawFloatingInfoBox(const Surface &out)
+{
+	if (pcursinvitem == -1 && pcursstashitem == StashStruct::EmptyCell) {
+		FloatingInfoString = StringOrView {};
+		InfoColor = UiFlags::ColorWhite;
+	}
+
+	if (!FloatingInfoString.empty())
+		PrintFloatingInfo(out);
 }
 
 void CheckLevelButton()
