@@ -4,7 +4,6 @@ include(FetchContent)
 
 FetchContent_Declare(bzip2
     GIT_REPOSITORY https://sourceware.org/git/bzip2
-    GIT_REPOSITORY https://gitlab.com/bzip2/bzip2
     GIT_TAG bzip2-1.0.8
 )
 FetchContent_MakeAvailableExcludeFromAll(bzip2)
