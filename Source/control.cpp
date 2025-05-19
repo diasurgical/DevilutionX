@@ -512,26 +512,31 @@ void PrintFloatingInfo(const Surface &out)
 	const int verticalSpacing = 3;
 	const int lineHeight = 12 + verticalSpacing;
 	const int textSpacing = 2;
-	const int padding = 3;
+	const int hPadding = 5;
+	const int vPadding = 4;
 
 	Rectangle floatingInfoBox = GetFloatingInfoRect(lineHeight, textSpacing);
 
 	// Prevent the floating info box from going off-screen horizontally
-	floatingInfoBox.position.x = std::clamp(floatingInfoBox.position.x, padding, GetScreenWidth() - (floatingInfoBox.size.width + padding));
+	floatingInfoBox.position.x = std::clamp(floatingInfoBox.position.x, hPadding, GetScreenWidth() - (floatingInfoBox.size.width + hPadding));
 
 	int spriteH = GetHoverSpriteHeight();
 	int anchorY = floatingInfoBox.position.y;
 	int boxH = floatingInfoBox.size.height;
-	int yAbove = anchorY - spriteH - boxH - padding;
-	int yBelow = anchorY + verticalSpacing / 2 + padding;
+	int yAbove = anchorY - spriteH - boxH - vPadding;
+	int yBelow = anchorY + verticalSpacing / 2 + vPadding;
 
 	// Prevent the floating info box from going off-screen vertically
-	floatingInfoBox.position.y = ClampAboveOrBelow(anchorY, spriteH, floatingInfoBox.size.height, padding, verticalSpacing);
+	floatingInfoBox.position.y = ClampAboveOrBelow(anchorY, spriteH, floatingInfoBox.size.height, vPadding, verticalSpacing);
 
 	SpeakText(FloatingInfoString);
 
 	for (int i = 0; i < 3; i++)
-		DrawHalfTransparentRectTo(out, floatingInfoBox.position.x - padding, floatingInfoBox.position.y - padding, floatingInfoBox.size.width + padding * 2, floatingInfoBox.size.height + padding * 2);
+		DrawHalfTransparentRectTo(out, floatingInfoBox.position.x - hPadding, floatingInfoBox.position.y - vPadding, floatingInfoBox.size.width + hPadding * 2, floatingInfoBox.size.height + vPadding * 2);
+	DrawVerticalLine(out, { floatingInfoBox.position.x - hPadding - 1, floatingInfoBox.position.y - vPadding - 1 }, floatingInfoBox.size.height + (vPadding * 2) + 2, PAL16_GRAY + 10);
+	DrawVerticalLine(out, { floatingInfoBox.position.x + hPadding + floatingInfoBox.size.width, floatingInfoBox.position.y - vPadding - 1 }, floatingInfoBox.size.height + (vPadding * 2) + 2, PAL16_GRAY + 10);
+	DrawHorizontalLine(out, { floatingInfoBox.position.x - hPadding, floatingInfoBox.position.y - vPadding - 1 }, floatingInfoBox.size.width + (hPadding * 2), PAL16_GRAY + 10);
+	DrawHorizontalLine(out, { floatingInfoBox.position.x - hPadding, floatingInfoBox.position.y + vPadding + floatingInfoBox.size.height }, floatingInfoBox.size.width + (hPadding * 2), PAL16_GRAY + 10);
 
 	DrawString(out, FloatingInfoString, floatingInfoBox,
 	    {
