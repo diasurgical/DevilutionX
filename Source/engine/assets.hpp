@@ -3,8 +3,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <functional>
 #include <map>
-#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -285,7 +285,7 @@ using MpqArchiveT = std::string;
 using MpqArchiveT = MpqArchive;
 #endif
 
-extern DVL_API_FOR_TEST std::map<int, MpqArchiveT> MpqArchives;
+extern DVL_API_FOR_TEST std::map<int, MpqArchiveT, std::greater<>> MpqArchives;
 constexpr int MainMpqPriority = 1000;
 constexpr int DevilutionXMpqPriority = 9000;
 constexpr int LangMpqPriority = 9100;

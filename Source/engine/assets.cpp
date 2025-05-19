@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <cstring>
+#include <functional>
 #include <vector>
 
 #include "appfat.h"
@@ -24,7 +25,7 @@
 namespace devilution {
 
 std::vector<std::string> OverridePaths;
-std::map<int, MpqArchiveT> MpqArchives;
+std::map<int, MpqArchiveT, std::greater<>> MpqArchives;
 bool HasHellfireMpq;
 
 namespace {
@@ -32,10 +33,8 @@ namespace {
 #ifdef UNPACKED_MPQS
 char *FindUnpackedMpqFile(char *relativePath)
 {
-	// Iterate over archives in reverse order to prefer files from high priority archives
 	char *path = nullptr;
-	for (auto rit = MpqArchives.rbegin(); rit != MpqArchives.rend(); ++rit) {
-		const std::string_view unpackedDir = rit->second;
+	for (const auto &[_, unpackedDir] : MpqArchives) {
 		path = relativePath - unpackedDir.size();
 		std::memcpy(path, unpackedDir.data(), unpackedDir.size());
 		if (FileExists(path)) break;
@@ -62,10 +61,9 @@ bool FindMpqFile(std::string_view filename, MpqArchive **archive, uint32_t *file
 {
 	const MpqFileHash fileHash = CalculateMpqFileHash(filename);
 
-	// Iterate over archives in reverse order to prefer files from high priority archives
-	for (auto rit = MpqArchives.rbegin(); rit != MpqArchives.rend(); ++rit) {
-		if (rit->second.GetFileNumber(fileHash, *fileNumber)) {
-			*archive = &rit->second;
+	for (auto &[_, mpqArchive] : MpqArchives) {
+		if (mpqArchive.GetFileNumber(fileHash, *fileNumber)) {
+			*archive = &mpqArchive;
 			return true;
 		}
 	}
