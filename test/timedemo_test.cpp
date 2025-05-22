@@ -88,6 +88,7 @@ void RunTimedemo(std::string timedemoFolderName)
 	ASSERT_FALSE(gbRunGame);
 	gbRunGame = false;
 	init_cleanup();
+	LuaShutdown();
 	SDL_Quit();
 }
 
