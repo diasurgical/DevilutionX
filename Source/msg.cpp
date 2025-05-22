@@ -34,6 +34,7 @@
 #include "levels/trigs.h"
 #include "lighting.h"
 #include "missiles.h"
+#include "monster.h"
 #include "monsters/validation.hpp"
 #include "nthread.h"
 #include "objects.h"
@@ -2280,6 +2281,11 @@ size_t OnPlayerJoinLevel(const TCmdLocParam2 &message, Player &player)
 	}
 
 	if (player.plractive && &player != MyPlayer) {
+		if (player.isOnActiveLevel()) {
+			RemoveEnemyReferences(player);
+			RemovePlrMissiles(player);
+			FixPlrWalkTags(player);
+		}
 		player.position.tile = position;
 		SetPlayerOld(player);
 		if (isSetLevel)
