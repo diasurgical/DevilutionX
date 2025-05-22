@@ -36,6 +36,7 @@
 #include "loadsave.h"
 #include "minitext.h"
 #include "missiles.h"
+#include "monster.h"
 #include "nthread.h"
 #include "objects.h"
 #include "options.h"
@@ -358,6 +359,7 @@ void InitLevelChange(Player &player)
 {
 	Player &myPlayer = *MyPlayer;
 
+	RemoveEnemyReferences(player);
 	RemovePlrMissiles(player);
 	player.pManaShield = false;
 	player.wReflections = 0;

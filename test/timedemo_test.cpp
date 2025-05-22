@@ -6,7 +6,7 @@
 #include "engine/demomode.h"
 #include "game_mode.hpp"
 #include "headless_mode.hpp"
-#include "init.h"
+#include "init.hpp"
 #include "lua/lua.hpp"
 #include "monstdat.h"
 #include "options.h"
@@ -88,6 +88,7 @@ void RunTimedemo(std::string timedemoFolderName)
 	ASSERT_FALSE(gbRunGame);
 	gbRunGame = false;
 	init_cleanup();
+	LuaShutdown();
 	SDL_Quit();
 }
 

@@ -3,8 +3,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <functional>
 #include <map>
-#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -280,19 +280,17 @@ struct AssetData {
 tl::expected<AssetData, std::string> LoadAsset(std::string_view path);
 
 #ifdef UNPACKED_MPQS
-extern DVL_API_FOR_TEST std::optional<std::string> spawn_data_path;
-extern DVL_API_FOR_TEST std::optional<std::string> diabdat_data_path;
-extern std::optional<std::string> hellfire_data_path;
-extern std::optional<std::string> font_data_path;
-extern std::optional<std::string> lang_data_path;
+using MpqArchiveT = std::string;
 #else
-extern DVL_API_FOR_TEST std::map<int, std::unique_ptr<MpqArchive>> MpqArchives;
+using MpqArchiveT = MpqArchive;
+#endif
+
+extern DVL_API_FOR_TEST std::map<int, MpqArchiveT, std::greater<>> MpqArchives;
 constexpr int MainMpqPriority = 1000;
 constexpr int DevilutionXMpqPriority = 9000;
 constexpr int LangMpqPriority = 9100;
 constexpr int FontMpqPriority = 9200;
 extern bool HasHellfireMpq;
-#endif
 
 void LoadCoreArchives();
 void LoadLanguageArchive();
@@ -301,19 +299,11 @@ void LoadHellfireArchives();
 void UnloadModArchives();
 void LoadModArchives(std::span<const std::string_view> modnames);
 
-#ifdef UNPACKED_MPQS
-#ifdef BUILD_TESTING
-[[nodiscard]] inline bool HaveMainData() { return diabdat_data_path.has_value() || spawn_data_path.has_value(); }
-#endif
-[[nodiscard]] inline bool HaveHellfire() { return hellfire_data_path.has_value(); }
-[[nodiscard]] inline bool HaveExtraFonts() { return font_data_path.has_value(); }
-#else
 #ifdef BUILD_TESTING
 [[nodiscard]] inline bool HaveMainData() { return MpqArchives.find(MainMpqPriority) != MpqArchives.end(); }
 #endif
-[[nodiscard]] inline bool HaveHellfire() { return HasHellfireMpq; }
 [[nodiscard]] inline bool HaveExtraFonts() { return MpqArchives.find(FontMpqPriority) != MpqArchives.end(); }
-#endif
+[[nodiscard]] inline bool HaveHellfire() { return HasHellfireMpq; }
 [[nodiscard]] inline bool HaveIntro() { return FindAsset("gendata\\diablo1.smk").ok(); }
 [[nodiscard]] inline bool HaveFullMusic() { return FindAsset("music\\dintro.wav").ok() || FindAsset("music\\dintro.mp3").ok(); }
 [[nodiscard]] inline bool HaveBardAssets() { return FindAsset("plrgfx\\bard\\bha\\bhaas.clx").ok(); }

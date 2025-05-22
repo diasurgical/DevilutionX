@@ -949,6 +949,7 @@ void OptionEntryLanguageCode::CheckLanguagesAreInitialized() const
 {
 	if (!languages.empty())
 		return;
+	const bool haveExtraFonts = HaveExtraFonts();
 
 	// Add well-known supported languages
 	languages.emplace_back("bg", "Български");
@@ -964,7 +965,7 @@ void OptionEntryLanguageCode::CheckLanguagesAreInitialized() const
 	languages.emplace_back("hu", "Magyar");
 	languages.emplace_back("it", "Italiano");
 
-	if (HaveExtraFonts()) {
+	if (haveExtraFonts) {
 		languages.emplace_back("ja", "日本語");
 		languages.emplace_back("ko", "한국어");
 	}
@@ -977,7 +978,7 @@ void OptionEntryLanguageCode::CheckLanguagesAreInitialized() const
 	languages.emplace_back("tr", "Türkçe");
 	languages.emplace_back("uk", "Українська");
 
-	if (HaveExtraFonts()) {
+	if (haveExtraFonts) {
 		languages.emplace_back("zh_CN", "汉语");
 		languages.emplace_back("zh_TW", "漢語");
 	}

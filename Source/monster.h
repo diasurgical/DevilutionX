@@ -534,6 +534,7 @@ void PrepDoEnding();
 bool Walk(Monster &monster, Direction md);
 void GolumAi(Monster &monster);
 void DeleteMonsterList();
+void RemoveEnemyReferences(const Player &player);
 void ProcessMonsters();
 void FreeMonsters();
 bool DirOK(const Monster &monster, Direction mdir);
