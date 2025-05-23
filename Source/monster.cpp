@@ -4102,7 +4102,8 @@ void ProcessMonsters()
 			monster.hitPoints = std::min(monster.hitPoints, monster.maxHitPoints); // prevent going over max HP with part of a single regen tick
 		}
 
-		if (IsTileVisible(monster.position.tile) && monster.activeForTicks == 0) {
+		const bool isMonsterVisible = IsTileVisible(monster.position.tile);
+		if (isMonsterVisible && monster.activeForTicks == 0) {
 			if (monster.type().type == MT_CLEAVER) {
 				PlaySFX(SfxID::ButcherGreeting);
 			}
@@ -4130,14 +4131,20 @@ void ProcessMonsters()
 				assert(monster.enemy >= 0 && monster.enemy < MAX_PLRS);
 				Player &player = Players[monster.enemy];
 				monster.enemyPosition = player.position.future;
-				if (IsTileVisible(monster.position.tile)) {
-					monster.activeForTicks = UINT8_MAX;
+				if (isMonsterVisible) {
 					monster.position.last = player.position.future;
-				} else if (monster.activeForTicks != 0 && monster.type().type != MT_DIABLO) {
-					monster.activeForTicks--;
 				}
 			}
 		}
+
+		if ((monster.flags & MFLAG_TARGETS_MONSTER) == 0) {
+			if (isMonsterVisible) {
+				monster.activeForTicks = UINT8_MAX;
+			} else if (monster.activeForTicks != 0 && monster.type().type != MT_DIABLO) {
+				monster.activeForTicks--;
+			}
+		}
+
 		while (true) {
 			if ((monster.flags & MFLAG_SEARCH) == 0 || !AiPlanPath(monster)) {
 				AiProc[static_cast<int8_t>(monster.ai)](monster);
