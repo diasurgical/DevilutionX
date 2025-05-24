@@ -39,14 +39,15 @@ bool FalseAvail(const char *name, int value)
 	return true;
 }
 
-bool FetchMessage_Real(SDL_Event *event, uint16_t *modState)
+static bool FetchMessage_Real(SDL_Event *event, uint16_t *modState,
+    int (*poll)(SDL_Event *event))
 {
 #ifdef __SWITCH__
 	HandleDocking();
 #endif
 
 	SDL_Event e;
-	if (PollEvent(&e) == 0) {
+	if (poll(&e) == 0) {
 		return false;
 	}
 
@@ -151,9 +152,9 @@ EventHandler SetEventHandler(EventHandler eventHandler)
 	return previousHandler;
 }
 
-bool FetchMessage(SDL_Event *event, uint16_t *modState)
+bool FetchMessage(SDL_Event *event, uint16_t *modState, int (*poll)(SDL_Event *event))
 {
-	const bool available = demo::IsRunning() ? demo::FetchMessage(event, modState) : FetchMessage_Real(event, modState);
+	const bool available = demo::IsRunning() ? demo::FetchMessage(event, modState, poll) : FetchMessage_Real(event, modState, poll);
 
 	if (available && demo::IsRecording())
 		demo::RecordMessage(*event, *modState);
@@ -163,9 +164,9 @@ bool FetchMessage(SDL_Event *event, uint16_t *modState)
 
 void HandleMessage(const SDL_Event &event, uint16_t modState)
 {
-	assert(CurrentEventHandler != nullptr);
+	assert(CurrentEventHandler.handle != nullptr);
 
-	CurrentEventHandler(event, modState);
+	CurrentEventHandler.handle(event, modState);
 }
 
 } // namespace devilution
