@@ -811,7 +811,7 @@ void GameEventHandler(const SDL_Event &event, uint16_t modState)
 			nthread_ignore_mutex(true);
 			PaletteFadeOut(8);
 			sound_stop();
-			ShowProgress(GetCustomEvent(event.type));
+			ShowProgress(GetCustomEvent(event));
 
 			RedrawEverything();
 			if (!HeadlessMode) {
