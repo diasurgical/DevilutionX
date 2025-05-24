@@ -156,7 +156,7 @@ void MainWndProc(const SDL_Event &event)
 		break;
 	case SDL_WINDOWEVENT_LEAVE:
 		sgbMouseDown = CLICK_NONE;
-		LastMouseButtonAction = MouseActionType::None;
+		LastPlayerAction = PlayerActionType::None;
 		RedrawEverything();
 		break;
 	case SDL_WINDOWEVENT_CLOSE:
