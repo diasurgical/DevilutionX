@@ -37,6 +37,8 @@ cmake_dependent_option(PACKET_ENCRYPTION "Encrypt network packets" ON "NOT NONET
 if(CMAKE_TOOLCHAIN_FILE MATCHES "vcpkg.cmake$")
   option(USE_GETTEXT_FROM_VCPKG "Add vcpkg dependency for gettext[tools] for compiling translations" OFF)
 endif()
+option(DAPI_SERVER "Build with DAPI server component for gameplay automation" OFF)
+mark_as_advanced(DAPI_SERVER)
 option(BUILD_TESTING "Build tests." ON)
 
 # These must be included after the options above but before the `project` call.
