@@ -21,6 +21,7 @@
 #include "engine/random.hpp"
 #include "engine/world_tile.hpp"
 #include "menu.h"
+#include "monster.h"
 #include "msg.h"
 #include "nthread.h"
 #include "options.h"
@@ -275,6 +276,7 @@ void PlayerLeftMsg(Player &player, bool left)
 	RemovePortalMissile(player);
 	DeactivatePortal(player);
 	delta_close_portal(player);
+	RemoveEnemyReferences(player);
 	RemovePlrMissiles(player);
 	if (left) {
 		std::string_view pszFmt = _("Player '{:s}' just left the game");

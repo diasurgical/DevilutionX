@@ -247,13 +247,13 @@ void selgame_GameSelection_Focus(size_t value)
 			case 20:
 				infoString.append(_("Speed: Normal"));
 				break;
-			case 30:
+			case 25:
 				infoString.append(_("Speed: Fast"));
 				break;
-			case 40:
+			case 30:
 				infoString.append(_("Speed: Faster"));
 				break;
-			case 50:
+			case 35:
 				infoString.append(_("Speed: Fastest"));
 				break;
 			default:
