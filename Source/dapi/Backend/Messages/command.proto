@@ -141,6 +141,10 @@ message IdentifyItem {
 	uint32 ID = 1;
 }
 
+message SendChat {
+	string message = 1;
+}
+
 message Command {
 	oneof command {
 		Move move = 1;
@@ -176,5 +180,6 @@ message Command {
 		Quit quit = 31;
 		ClearCursor clearCursor = 32;
 		IdentifyItem identifyItem = 33;
+		SendChat sendChat = 34;
 	}
 }

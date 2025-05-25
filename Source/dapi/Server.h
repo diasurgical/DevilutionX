@@ -25,6 +25,7 @@
 #include "msg.h"
 #include "engine/random.hpp"
 #include "gamemenu.h"
+#include "qol/chatlog.h"
 
 namespace DAPI {
 enum struct CommandType {
@@ -247,6 +248,7 @@ private:
 	void quit();
 	void clearCursor();
 	void identifyItem(int itemID);
+	void sendChat(std::string message);
 
 	bool listening = false;
 

@@ -31,6 +31,7 @@ struct GameData {
 	bool invflag;
 	bool qtextflag;
 	int currlevel;
+	size_t lastLogSize;
 
 	std::map<int, PlayerData> playerList;
 	std::vector<ItemData> itemList;

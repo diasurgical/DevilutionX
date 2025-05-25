@@ -201,6 +201,9 @@ void Server::processMessages()
 			} else if (command.has_identifyitem()) {
 				auto identifyItem = command.identifyitem();
 				this->identifyItem(identifyItem.id());
+			} else if (command.has_sendchat()) {
+				auto sendChat = command.sendchat();
+				this->sendChat(sendChat.message());
 			}
 			issuedCommand = true;
 			if (command.has_setfps()) {
@@ -413,6 +416,24 @@ void Server::updateGameData()
 	auto update = message->mutable_frameupdate();
 
 	update->set_connectedto(1);
+
+	for (auto chatLogLine = data->lastLogSize; chatLogLine < devilution::ChatLogLines.size(); chatLogLine++)
+	{
+		std::stringstream message;
+		for (auto &textLine : devilution::ChatLogLines[chatLogLine].colors)
+		{
+			if (devilution::HasAnyOf(textLine.color, devilution::UiFlags::ColorWhitegold & devilution::UiFlags::ColorBlue))
+				message << textLine.text << ": ";
+			if (devilution::HasAnyOf(textLine.color, devilution::UiFlags::ColorWhite))
+				message << textLine.text;
+		}
+		if (message.str().size())
+		{
+			auto chatMessage = update->add_chatmessages();
+			*chatMessage = message.str();
+		}
+	}
+	data->lastLogSize = devilution::ChatLogLines.size();
 
 	update->set_player(devilution::MyPlayerId);
 
@@ -2447,5 +2468,18 @@ void Server::identifyItem(int itemID)
 			return;
 		}
 	}
+}
+
+void Server::sendChat(std::string message)
+{
+	if (!devilution::gbIsMultiplayer)
+		return;
+
+	if (79 < message.length())
+		message = message.substr(0, 79);
+
+	char charMsg[MAX_SEND_STR_LEN];
+	devilution::CopyUtf8(charMsg, message, sizeof(charMsg));
+	devilution::NetSendCmdString(0xFFFFFF, charMsg);
 }
 } // namespace DAPI

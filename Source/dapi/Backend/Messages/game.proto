@@ -34,4 +34,5 @@ message FrameUpdate {
 	repeated dapi.data.MissileData missileData = 26;
 	repeated dapi.data.PortalData portalData = 27;
 	repeated dapi.data.QuestData questData = 28;
+	repeated string chatMessages = 29;
 }
