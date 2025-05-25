@@ -3,8 +3,6 @@
 #include "Server.h"
 #include "qol/stash.h"
 
-
-
 namespace DAPI {
 Server::Server()
     : FPS(20)
@@ -417,18 +415,15 @@ void Server::updateGameData()
 
 	update->set_connectedto(1);
 
-	for (auto chatLogLine = data->lastLogSize; chatLogLine < devilution::ChatLogLines.size(); chatLogLine++)
-	{
+	for (auto chatLogLine = data->lastLogSize; chatLogLine < devilution::ChatLogLines.size(); chatLogLine++) {
 		std::stringstream message;
-		for (auto &textLine : devilution::ChatLogLines[chatLogLine].colors)
-		{
+		for (auto &textLine : devilution::ChatLogLines[chatLogLine].colors) {
 			if (devilution::HasAnyOf(textLine.color, devilution::UiFlags::ColorWhitegold & devilution::UiFlags::ColorBlue))
 				message << textLine.text << ": ";
 			if (devilution::HasAnyOf(textLine.color, devilution::UiFlags::ColorWhite))
 				message << textLine.text;
 		}
-		if (message.str().size())
-		{
+		if (message.str().size()) {
 			auto chatMessage = update->add_chatmessages();
 			*chatMessage = message.str();
 		}
@@ -465,8 +460,7 @@ void Server::updateGameData()
 			qtextss << line;
 		}
 		update->set_qtext(qtextss.str().c_str());
-	}
-	else
+	} else
 		update->set_qtext("");
 	update->set_fps(FPS);
 	if (!devilution::gbIsMultiplayer)
@@ -1057,7 +1051,6 @@ void Server::updateGameData()
 		if (currentItem->_itype != devilution::ItemType::None) {
 			int itemID = static_cast<int>(data->itemList.size());
 
-
 			for (auto &item : data->itemList) {
 				if (item.compare(*currentItem)) {
 					itemID = item.ID;
@@ -1272,7 +1265,7 @@ void Server::updateGameData()
 			}
 		}
 
-		for (auto& missile : devilution::Missiles) {
+		for (auto &missile : devilution::Missiles) {
 			if (isOnScreen(missile.position.tile.x, missile.position.tile.y))
 				fillMissile(missile);
 		}
@@ -1495,12 +1488,11 @@ void Server::buyItem(int itemID)
 		if (idx == -1)
 			return;
 
-				devilution::PlaySFX(devilution::SfxID::MenuSelect);
+		devilution::PlaySFX(devilution::SfxID::MenuSelect);
 
 		devilution::OldTextLine = devilution::CurrentTextLine;
 		devilution::OldScrollPos = devilution::ScrollPos;
 		devilution::OldActiveStore = devilution::ActiveStore;
-
 
 		if (!devilution::PlayerCanAfford(devilution::WitchItems[idx]._iIvalue)) {
 			devilution::StartStore(devilution::TalkID::NoMoney);
@@ -1511,14 +1503,13 @@ void Server::buyItem(int itemID)
 
 			devilution::TakePlrsMoney(devilution::WitchItems[idx]._iIvalue);
 
-
 			if (idx >= 3) {
 				if (idx == devilution::NumWitchItemsHf - 1)
 					devilution::WitchItems[devilution::NumWitchItemsHf - 1].clear();
 				else {
-					  for (; !devilution::WitchItems[idx + 1].isEmpty(); idx++) {
-							devilution::WitchItems[idx] = std::move(devilution::WitchItems[idx + 1]);
-					  }
+					for (; !devilution::WitchItems[idx + 1].isEmpty(); idx++) {
+						devilution::WitchItems[idx] = std::move(devilution::WitchItems[idx + 1]);
+					}
 					devilution::WitchItems[idx].clear();
 				}
 			}
@@ -1700,7 +1691,7 @@ void Server::sellItem(int itemID)
 {
 	int idx;
 
-	if (devilution::ActiveStore != devilution::TalkID::WitchSell &&devilution::ActiveStore != devilution::TalkID::SmithSell)
+	if (devilution::ActiveStore != devilution::TalkID::WitchSell && devilution::ActiveStore != devilution::TalkID::SmithSell)
 		return;
 
 	idx = -1;
@@ -2208,7 +2199,7 @@ void Server::putCursorItem(int location)
 	devilution::Displacement hotPixelCellOffset;
 	if (equipLocation == EquipSlot::LEFTRING) {
 		invRectIndex = 1;
-	}	else if (equipLocation == EquipSlot::RIGHTRING) {
+	} else if (equipLocation == EquipSlot::RIGHTRING) {
 		invRectIndex = 2;
 	}
 	if (equipLocation < EquipSlot::BELT1) {
@@ -2217,11 +2208,11 @@ void Server::putCursorItem(int location)
 		panelOffset = devilution::GetMainPanel().position - devilution::Point { 0, 0 };
 	}
 	if (EquipSlot::INV1 <= equipLocation && equipLocation <= EquipSlot::INV40) {
-	const devilution::Size itemSize = devilution::GetInventorySize(devilution::MyPlayer->HoldItem);
-	if (itemSize.height <= 1 && itemSize.width <= 1) {
-		hotPixelCellOffset = devilution::Displacement { 1, 1 };
-	}
-	hotPixelCellOffset = { (itemSize.width - 1) / 2 + 19, (itemSize.height - 1) / 2 + 19};
+		const devilution::Size itemSize = devilution::GetInventorySize(devilution::MyPlayer->HoldItem);
+		if (itemSize.height <= 1 && itemSize.width <= 1) {
+			hotPixelCellOffset = devilution::Displacement { 1, 1 };
+		}
+		hotPixelCellOffset = { (itemSize.width - 1) / 2 + 19, (itemSize.height - 1) / 2 + 19 };
 	} else {
 		hotPixelCellOffset = devilution::Displacement { 1, 1 };
 	}

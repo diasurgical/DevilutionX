@@ -74,8 +74,6 @@ int CurrentTextLine;
 
 namespace {
 
-
-
 /** Is the current dialog full size */
 bool IsTextFullSize;
 

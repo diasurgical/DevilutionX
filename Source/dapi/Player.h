@@ -1,7 +1,6 @@
 #pragma once
 #include "Item.h"
 
-
 namespace DAPI {
 const int NUM_INVLOC = 7;
 const int MAXINV = 40;
