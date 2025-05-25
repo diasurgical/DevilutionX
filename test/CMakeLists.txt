@@ -115,7 +115,9 @@ target_link_dependencies(path_benchmark PRIVATE libdevilutionx_pathfinding app_f
 target_link_dependencies(random_test PRIVATE libdevilutionx_random)
 target_link_dependencies(static_vector_test PRIVATE libdevilutionx_random app_fatal_for_testing)
 target_link_dependencies(str_cat_test PRIVATE libdevilutionx_strings)
-target_link_dependencies(text_render_integration_test PRIVATE libdevilutionx_so GTest::gtest GTest::gmock)
+if(NOT USE_SDL1)
+  target_link_dependencies(text_render_integration_test PRIVATE libdevilutionx_so GTest::gtest GTest::gmock)
+endif()
 target_link_dependencies(utf8_test PRIVATE libdevilutionx_utf8)
 
 target_include_directories(writehero_test PRIVATE ../3rdParty/PicoSHA2)
