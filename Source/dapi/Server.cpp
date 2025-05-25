@@ -1,7 +1,7 @@
 #include <thread>
 
 #include "Server.h"
-#include "qol\stash.h"
+#include "qol/stash.h"
 
 
 

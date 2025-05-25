@@ -26,7 +26,6 @@
 #include "controls/keymapper.hpp"
 #include "controls/plrctrls.h"
 #include "controls/remap_keyboard.h"
-#include "dapi/Server.h"
 #include "diablo.h"
 #include "diablo_msg.hpp"
 #include "discord/discord.h"
@@ -108,6 +107,10 @@
 #include "controls/touch/renderers.h"
 #endif
 
+#ifdef DAPI_SERVER
+#include "dapi/Server.h"
+#endif
+
 #ifdef __vita__
 #include "platform/vita/touch.h"
 #endif
@@ -133,7 +136,9 @@ clicktype sgbMouseDown;
 uint16_t gnTickDelay = 50;
 char gszProductName[64] = "DevilutionX vUnknown";
 
+#ifdef DAPI_SERVER
 DAPI::Server dapiServer;
+#endif
 
 #ifdef _DEBUG
 bool DebugDisableNetworkTimeout = false;
@@ -814,7 +819,7 @@ void GameEventHandler(const SDL_Event &event, uint16_t modState)
 			nthread_ignore_mutex(true);
 			PaletteFadeOut(8);
 			sound_stop();
-			ShowProgress(GetCustomEvent(event.type));
+			ShowProgress(GetCustomEvent(event));
 
 			RedrawEverything();
 			if (!HeadlessMode) {
@@ -1459,11 +1464,15 @@ void UpdateMonsterLights()
 void GameLogic()
 {
 	if (!ProcessInput()) {
+#ifdef DAPI_SERVER
 		if (gmenu_is_active())
 			dapiServer.update(); // For game menu commands
+#endif
 		return;
 	}
+#ifdef DAPI_SERVER
 	dapiServer.update();
+#endif
 	if (gbProcessPlayers) {
 		gGameLogicStep = GameLogicStep::ProcessPlayers;
 		ProcessPlayers();

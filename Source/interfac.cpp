@@ -40,7 +40,7 @@ namespace devilution {
 
 namespace {
 
-#if (defined(__APPLE__) || defined(__3DS__)) && defined(USE_SDL1)
+#if defined(__APPLE__) && defined(USE_SDL1)
 // On Tiger PPC, SDL_PushEvent from a background thread appears to do nothing.
 #define SDL_PUSH_EVENT_BG_THREAD_WORKS 0
 #else
@@ -73,8 +73,7 @@ const int BarPos[3][2] = { { 53, 37 }, { 53, 421 }, { 53, 37 } };
 
 OptionalOwnedClxSpriteList ArtCutsceneWidescreen;
 
-SdlEventType CustomEventsBegin = SDL_USEREVENT;
-constexpr uint16_t NumCustomEvents = WM_LAST - WM_FIRST + 1;
+SdlEventType CustomEventType = SDL_USEREVENT;
 
 Cutscenes GetCutSceneFromLevelType(dungeon_type type)
 {
@@ -413,7 +412,7 @@ void DoLoad(interface_mode uMsg)
 	if (!loadResult.has_value()) {
 #if SDL_PUSH_EVENT_BG_THREAD_WORKS
 		SDL_Event event;
-		event.type = CustomEventToSdlEvent(WM_ERROR);
+		CustomEventToSdlEvent(event, WM_ERROR);
 		event.user.data1 = new std::string(std::move(loadResult).error());
 		if (SDL_PushEvent(&event) < 0) {
 			LogError("Failed to send WM_ERROR {}", SDL_GetError());
@@ -428,7 +427,7 @@ void DoLoad(interface_mode uMsg)
 
 #if SDL_PUSH_EVENT_BG_THREAD_WORKS
 	SDL_Event event;
-	event.type = CustomEventToSdlEvent(WM_DONE);
+	CustomEventToSdlEvent(event, WM_DONE);
 	if (SDL_PushEvent(&event) < 0) {
 		LogError("Failed to send WM_DONE {}", SDL_GetError());
 		SDL_ClearError();
@@ -485,7 +484,7 @@ void ProgressEventHandler(const SDL_Event &event, uint16_t modState)
 	DisableInputEventHandler(event, modState);
 	if (!IsCustomEvent(event.type)) return;
 
-	const interface_mode customEvent = GetCustomEvent(event.type);
+	const interface_mode customEvent = GetCustomEvent(event);
 	switch (customEvent) {
 	case WM_PROGRESS:
 		if (!HeadlessMode && ProgressEventHandlerState.drawnProgress != sgdwProgress && !ProgressEventHandlerState.skipRendering) {
@@ -557,23 +556,24 @@ void ProgressEventHandler(const SDL_Event &event, uint16_t modState)
 void RegisterCustomEvents()
 {
 #ifndef USE_SDL1
-	CustomEventsBegin = SDL_RegisterEvents(NumCustomEvents);
+	CustomEventType = SDL_RegisterEvents(1);
 #endif
 }
 
 bool IsCustomEvent(SdlEventType eventType)
 {
-	return eventType >= CustomEventsBegin && eventType < CustomEventsBegin + NumCustomEvents;
+	return eventType == CustomEventType;
 }
 
-interface_mode GetCustomEvent(SdlEventType eventType)
+interface_mode GetCustomEvent(const SDL_Event &event)
 {
-	return static_cast<interface_mode>(eventType - CustomEventsBegin);
+	return static_cast<interface_mode>(event.user.code);
 }
 
-SdlEventType CustomEventToSdlEvent(interface_mode eventType)
+void CustomEventToSdlEvent(SDL_Event &event, interface_mode eventType)
 {
-	return CustomEventsBegin + eventType;
+	event.type = CustomEventType;
+	event.user.code = static_cast<int>(eventType);
 }
 
 void interface_msg_pump()
@@ -598,7 +598,7 @@ void IncProgress(uint32_t steps)
 	if (!HeadlessMode && sgdwProgress != prevProgress) {
 #if SDL_PUSH_EVENT_BG_THREAD_WORKS
 		SDL_Event event;
-		event.type = CustomEventToSdlEvent(WM_PROGRESS);
+		CustomEventToSdlEvent(event, WM_PROGRESS);
 		if (SDL_PushEvent(&event) < 0) {
 			LogError("Failed to send WM_PROGRESS {}", SDL_GetError());
 			SDL_ClearError();
@@ -691,7 +691,7 @@ void ShowProgress(interface_mode uMsg)
 		}
 #if !SDL_PUSH_EVENT_BG_THREAD_WORKS
 		if (const int customEventType = NextCustomEvent.type.exchange(-1); customEventType != -1) {
-			event.type = CustomEventToSdlEvent(static_cast<interface_mode>(customEventType));
+			CustomEventToSdlEvent(event, static_cast<interface_mode>(customEventType));
 			if (static_cast<interface_mode>(customEventType) == static_cast<int>(WM_ERROR)) {
 				event.user.data1 = &NextCustomEvent.error;
 			}

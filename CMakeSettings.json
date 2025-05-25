@@ -12,7 +12,7 @@
       "variables": [
         {
           "name": "DISCORD_INTEGRATION",
-          "value": "False",
+          "value": "True",
           "type": "BOOL"
         }
       ]
@@ -34,6 +34,28 @@
         },
         {
           "name": "USE_GETTEXT_FROM_VCPKG",
+          "value": "True",
+          "type": "BOOL"
+        }
+      ]
+    },
+    {
+      "name": "x64-Debug-DAPI",
+      "generator": "Ninja",
+      "configurationType": "Debug",
+      "buildRoot": "${workspaceRoot}\\build\\${name}",
+      "installRoot": "${env.USERPROFILE}\\CMakeBuilds\\${workspaceHash}\\install\\${name}",
+      "inheritEnvironments": [ "msvc_x64" ],
+      "intelliSenseMode": "windows-msvc-x64",
+      "enableClangTidyCodeAnalysis": true,
+      "variables": [
+        {
+          "name": "DISCORD_INTEGRATION",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "DAPI_SERVER",
           "value": "True",
           "type": "BOOL"
         }
