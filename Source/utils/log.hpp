@@ -59,6 +59,7 @@ std::string format(std::string_view fmt, Args &&...args)
 		SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "%s", error.c_str());
 		app_fatal(error);
 #endif
+		return "";
 	}
 }
 
