@@ -6,9 +6,9 @@
 
 English
 &nbsp;&nbsp;| &nbsp;&nbsp;
-<a href="docs/README-ru.md">Русский</a>
+<a href="README-ru.md">Русский</a>
 &nbsp;&nbsp;| &nbsp;&nbsp;
-<a href="docs/README-ua.md">Українська</a>
+<a href="README-ua.md">Українська</a>
 
 [![Discord Channel](https://img.shields.io/discord/518540764754608128?color=%237289DA&logo=discord&logoColor=%23FFFFFF)](https://discord.gg/devilutionx)
 [![Downloads](https://img.shields.io/github/downloads/diasurgical/devilutionX/total.svg)](https://github.com/diasurgical/devilutionX/releases/latest)
@@ -26,7 +26,7 @@ DevilutionX is a port of Diablo and Hellfire that strives to make it simple to r
 
 Check out the [manual](https://github.com/diasurgical/devilutionX/wiki) for available features and how to take advantage of them.
 
-For a full list of changes, see our [changelog](docs/CHANGELOG.md).
+For a full list of changes, see our [changelog](CHANGELOG.md).
 
 # How to Install
 
@@ -37,11 +37,11 @@ Download the latest [DevilutionX release](https://github.com/diasurgical/devilut
 - Copy `DIABDAT.MPQ` from the CD or Diablo installation (or [extract it from the GoG installer](https://github.com/diasurgical/devilutionX/wiki/Extracting-MPQs-from-the-GoG-installer)) to the DevilutionX folder.
 - To run the Diablo: Hellfire expansion, you will also need to copy `hellfire.mpq`, `hfmonk.mpq`, `hfmusic.mpq`, and `hfvoice.mpq`.
 
-For more detailed instructions: [Installation Instructions](./docs/installing.md).
+For more detailed instructions: [Installation Instructions](installing.md).
 
 # Contributing
 
-We are always looking for more people to help with [coding](docs/CONTRIBUTING.md), [documentation](https://github.com/diasurgical/devilutionX/wiki), [testing the latest builds](#test-builds), spreading the word, or simply just hanging out on our [Discord server](https://discord.gg/devilutionx).
+We are always looking for more people to help with [coding](CONTRIBUTING.md), [documentation](https://github.com/diasurgical/devilutionX/wiki), [testing the latest builds](#test-builds), spreading the word, or simply just hanging out on our [Discord server](https://discord.gg/devilutionx).
 
 # Mods
 
@@ -73,7 +73,7 @@ If you want to help test the latest development version (make sure to back up yo
 
 # Building from Source
 
-Want to compile the program by yourself? Great! Simply follow the [build instructions](./docs/building.md).
+Want to compile the program by yourself? Great! Simply follow the [build instructions](building.md).
 
 # Credits
 
