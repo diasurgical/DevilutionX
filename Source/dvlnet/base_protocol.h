@@ -126,9 +126,9 @@ bool base_protocol<P>::wait_firstpeer()
 template <class P>
 bool base_protocol<P>::send_info_request()
 {
-	tl::expected<bool, PacketError> status = proto.network_online();
+	tl::expected<bool, PacketError> status = proto.peers_ready();
 	if (!status.has_value()) {
-		LogError("network_online: {}", status.error().what());
+		LogError("peers_ready: {}", status.error().what());
 		return false;
 	}
 	if (!*status)

@@ -82,6 +82,7 @@ public:
 	bool recv(endpoint &peer, buffer_t &data);
 	bool get_disconnected(endpoint &peer);
 	tl::expected<bool, PacketError> network_online();
+	tl::expected<bool, PacketError> peers_ready();
 	bool is_peer_connected(endpoint &peer);
 	bool is_peer_relayed(const endpoint &peer) const;
 	static std::string make_default_gamename();
