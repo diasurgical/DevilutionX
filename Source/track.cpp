@@ -7,11 +7,13 @@
 
 #include <SDL.h>
 
+#include "automap.h"
 #include "controls/control_mode.hpp"
 #include "controls/game_controls.h"
 #include "controls/plrctrls.h"
 #include "cursor.h"
 #include "engine/point.hpp"
+#include "options.h"
 #include "player.h"
 #include "stores.h"
 
@@ -59,7 +61,7 @@ void InvalidateTargets()
 	}
 }
 
-void RepeatMouseAction()
+void RepeatPlayerAction()
 {
 	if (pcurs != CURSOR_HAND)
 		return;
@@ -70,7 +72,7 @@ void RepeatMouseAction()
 	if (IsPlayerInStore())
 		return;
 
-	if (LastMouseButtonAction == MouseActionType::None)
+	if (LastPlayerAction == PlayerActionType::None)
 		return;
 
 	Player &myPlayer = *MyPlayer;
@@ -82,49 +84,61 @@ void RepeatMouseAction()
 		return;
 
 	bool rangedAttack = myPlayer.UsesRangedWeapon();
-	switch (LastMouseButtonAction) {
-	case MouseActionType::Attack:
+	switch (LastPlayerAction) {
+	case PlayerActionType::Attack:
 		if (InDungeonBounds(cursPosition))
 			NetSendCmdLoc(MyPlayerId, true, rangedAttack ? CMD_RATTACKXY : CMD_SATTACKXY, cursPosition);
 		break;
-	case MouseActionType::AttackMonsterTarget:
+	case PlayerActionType::AttackMonsterTarget:
 		if (pcursmonst != -1)
 			NetSendCmdParam1(true, rangedAttack ? CMD_RATTACKID : CMD_ATTACKID, pcursmonst);
 		break;
-	case MouseActionType::AttackPlayerTarget:
+	case PlayerActionType::AttackPlayerTarget:
 		if (PlayerUnderCursor != nullptr && !myPlayer.friendlyMode)
 			NetSendCmdParam1(true, rangedAttack ? CMD_RATTACKPID : CMD_ATTACKPID, PlayerUnderCursor->getId());
 		break;
-	case MouseActionType::Spell:
+	case PlayerActionType::Spell:
 		if (ControlMode != ControlTypes::KeyboardAndMouse) {
 			UpdateSpellTarget(MyPlayer->_pRSpell);
 		}
 		CheckPlrSpell(ControlMode == ControlTypes::KeyboardAndMouse);
 		break;
-	case MouseActionType::SpellMonsterTarget:
+	case PlayerActionType::SpellMonsterTarget:
 		if (pcursmonst != -1)
 			CheckPlrSpell(false);
 		break;
-	case MouseActionType::SpellPlayerTarget:
+	case PlayerActionType::SpellPlayerTarget:
 		if (PlayerUnderCursor != nullptr && !myPlayer.friendlyMode)
 			CheckPlrSpell(false);
 		break;
-	case MouseActionType::OperateObject:
+	case PlayerActionType::OperateObject:
 		if (ObjectUnderCursor != nullptr && !ObjectUnderCursor->isDoor()) {
 			NetSendCmdLoc(MyPlayerId, true, CMD_OPOBJXY, cursPosition);
 		}
 		break;
-	case MouseActionType::Walk:
+	case PlayerActionType::Walk:
 		RepeatWalk(myPlayer);
 		break;
-	case MouseActionType::None:
+	case PlayerActionType::MoveAutomap: {
+		const auto &padmapper = GetOptions().Padmapper;
+		if (IsControllerButtonComboPressed(padmapper.ButtonComboForAction("Automap Move Up")))
+			AutomapUp();
+		if (IsControllerButtonComboPressed(padmapper.ButtonComboForAction("Automap Move Down")))
+			AutomapDown();
+		if (IsControllerButtonComboPressed(padmapper.ButtonComboForAction("Automap Move Left")))
+			AutomapLeft();
+		if (IsControllerButtonComboPressed(padmapper.ButtonComboForAction("Automap Move Right")))
+			AutomapRight();
+		break;
+	}
+	case PlayerActionType::None:
 		break;
 	}
 }
 
 bool track_isscrolling()
 {
-	return LastMouseButtonAction == MouseActionType::Walk;
+	return LastPlayerAction == PlayerActionType::Walk;
 }
 
 } // namespace devilution
