@@ -1,5 +1,6 @@
 #pragma once
 #include "Item.h"
+#include <map>
 
 namespace DAPI {
 const int NUM_INVLOC = 7;
