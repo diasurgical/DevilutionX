@@ -40,23 +40,6 @@ namespace devilution {
 
 namespace {
 
-#if defined(__APPLE__) && defined(USE_SDL1)
-// On Tiger PPC, SDL_PushEvent from a background thread appears to do nothing.
-#define SDL_PUSH_EVENT_BG_THREAD_WORKS 0
-#else
-#define SDL_PUSH_EVENT_BG_THREAD_WORKS 1
-#endif
-
-#if !SDL_PUSH_EVENT_BG_THREAD_WORKS
-// This workaround is not completely thread-safe but the worst
-// that can happen is we miss some WM_PROGRESS events,
-// which is not a problem.
-struct {
-	std::atomic<int> type;
-	std::string error;
-} NextCustomEvent;
-#endif
-
 constexpr uint32_t MaxProgress = 534;
 constexpr uint32_t ProgressStepSize = 23;
 
@@ -410,7 +393,6 @@ void DoLoad(interface_mode uMsg)
 	}
 
 	if (!loadResult.has_value()) {
-#if SDL_PUSH_EVENT_BG_THREAD_WORKS
 		SDL_Event event;
 		CustomEventToSdlEvent(event, WM_ERROR);
 		event.user.data1 = new std::string(std::move(loadResult).error());
@@ -418,23 +400,15 @@ void DoLoad(interface_mode uMsg)
 			LogError("Failed to send WM_ERROR {}", SDL_GetError());
 			SDL_ClearError();
 		}
-#else
-		NextCustomEvent.error = std::move(loadResult).error();
-		NextCustomEvent.type = static_cast<int>(WM_ERROR);
-#endif
 		return;
 	}
 
-#if SDL_PUSH_EVENT_BG_THREAD_WORKS
 	SDL_Event event;
 	CustomEventToSdlEvent(event, WM_DONE);
 	if (SDL_PushEvent(&event) < 0) {
 		LogError("Failed to send WM_DONE {}", SDL_GetError());
 		SDL_ClearError();
 	}
-#else
-	NextCustomEvent.type = static_cast<int>(WM_DONE);
-#endif
 }
 
 struct {
@@ -596,16 +570,12 @@ void IncProgress(uint32_t steps)
 	if (sgdwProgress > MaxProgress)
 		sgdwProgress = MaxProgress;
 	if (!HeadlessMode && sgdwProgress != prevProgress) {
-#if SDL_PUSH_EVENT_BG_THREAD_WORKS
 		SDL_Event event;
 		CustomEventToSdlEvent(event, WM_PROGRESS);
 		if (SDL_PushEvent(&event) < 0) {
 			LogError("Failed to send WM_PROGRESS {}", SDL_GetError());
 			SDL_ClearError();
 		}
-#else
-		NextCustomEvent.type = static_cast<int>(WM_PROGRESS);
-#endif
 	}
 }
 
@@ -630,10 +600,6 @@ void ShowProgress(interface_mode uMsg)
 	ProgressEventHandlerState.skipRendering = true;
 	ProgressEventHandlerState.done = false;
 	ProgressEventHandlerState.drawnProgress = 0;
-
-#if !SDL_PUSH_EVENT_BG_THREAD_WORKS
-	NextCustomEvent.type = -1;
-#endif
 
 #ifndef USE_SDL1
 	DeactivateVirtualGamepad();
@@ -689,15 +655,6 @@ void ShowProgress(interface_mode uMsg)
 		while (PollEvent(&event)) {
 			if (!processEvent(event)) return;
 		}
-#if !SDL_PUSH_EVENT_BG_THREAD_WORKS
-		if (const int customEventType = NextCustomEvent.type.exchange(-1); customEventType != -1) {
-			CustomEventToSdlEvent(event, static_cast<interface_mode>(customEventType));
-			if (static_cast<interface_mode>(customEventType) == static_cast<int>(WM_ERROR)) {
-				event.user.data1 = &NextCustomEvent.error;
-			}
-			if (!processEvent(event)) return;
-		}
-#endif
 	}
 }
 
