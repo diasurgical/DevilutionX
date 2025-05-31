@@ -415,10 +415,10 @@ void Server::updateGameData()
 
 	update->set_connectedto(1);
 
-	for (auto chatLogLine = data->lastLogSize; chatLogLine < devilution::ChatLogLines.size(); chatLogLine++) {
+	for (auto chatLogLine = devilution::ChatLogLines.size() - (devilution::MessageCounter - data->lastLogSize); chatLogLine < devilution::ChatLogLines.size(); chatLogLine++) {
 		std::stringstream message;
 		for (auto &textLine : devilution::ChatLogLines[chatLogLine].colors) {
-			if (devilution::HasAnyOf(textLine.color, devilution::UiFlags::ColorWhitegold & devilution::UiFlags::ColorBlue))
+			if (devilution::HasAnyOf(textLine.color, devilution::UiFlags::ColorWhitegold) || devilution::HasAnyOf(textLine.color, devilution::UiFlags::ColorBlue))
 				message << textLine.text << ": ";
 			if (devilution::HasAnyOf(textLine.color, devilution::UiFlags::ColorWhite))
 				message << textLine.text;
@@ -428,7 +428,7 @@ void Server::updateGameData()
 			*chatMessage = message.str();
 		}
 	}
-	data->lastLogSize = devilution::ChatLogLines.size();
+	data->lastLogSize = devilution::MessageCounter;
 
 	update->set_player(devilution::MyPlayerId);
 

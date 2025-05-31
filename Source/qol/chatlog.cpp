@@ -28,12 +28,12 @@
 namespace devilution {
 
 std::vector<MultiColoredText> ChatLogLines;
+unsigned int MessageCounter = 0;
 
 namespace {
 
 bool UnreadFlag = false;
 size_t SkipLines;
-unsigned int MessageCounter = 0;
 
 constexpr int PaddingTop = 32;
 constexpr int PaddingLeft = 32;
