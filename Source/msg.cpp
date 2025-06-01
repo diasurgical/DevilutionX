@@ -1730,8 +1730,6 @@ size_t OnSpellWall(const TCmdLocParam4 &message, Player &player)
 		return sizeof(message);
 	if (!player.isOnActiveLevel())
 		return sizeof(message);
-	if (leveltype == DTYPE_TOWN)
-		return sizeof(message);
 	if (!InDungeonBounds(position))
 		return sizeof(message);
 	const int16_t wParamDirection = SDL_SwapLE16(message.wParam3);
@@ -1758,8 +1756,6 @@ size_t OnSpellTile(const TCmdLocParam3 &message, Player &player)
 	if (gbBufferMsgs == 1)
 		return sizeof(message);
 	if (!player.isOnActiveLevel())
-		return sizeof(message);
-	if (leveltype == DTYPE_TOWN)
 		return sizeof(message);
 	if (!InDungeonBounds(position))
 		return sizeof(message);
@@ -1888,8 +1884,6 @@ size_t OnSpellPlayer(const TCmdParam4 &message, Player &player)
 	if (gbBufferMsgs == 1)
 		return sizeof(message);
 	if (!player.isOnActiveLevel())
-		return sizeof(message);
-	if (leveltype == DTYPE_TOWN)
 		return sizeof(message);
 	const uint16_t playerIdx = SDL_SwapLE16(message.wParam1);
 	if (playerIdx >= Players.size())

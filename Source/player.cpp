@@ -3142,7 +3142,7 @@ void CheckPlrSpell(bool isShiftHeld, SpellID spellID, SpellType spellType)
 		LastMouseButtonAction = MouseActionType::Spell;
 		Direction sd = GetDirection(myPlayer.position.tile, cursPosition);
 		NetSendCmdLocParam4(true, CMD_SPELLXYD, cursPosition, static_cast<int8_t>(spellID), static_cast<uint8_t>(spellType), static_cast<uint16_t>(sd), spellFrom);
-	} else if (pcursmonst != -1 && !isShiftHeld) {
+	} else if (pcursmonst != -1 && !isShiftHeld && leveltype != DTYPE_TOWN) {
 		LastMouseButtonAction = MouseActionType::SpellMonsterTarget;
 		NetSendCmdParam4(true, CMD_SPELLID, pcursmonst, static_cast<int8_t>(spellID), static_cast<uint8_t>(spellType), spellFrom);
 	} else if (PlayerUnderCursor != nullptr && !isShiftHeld && !myPlayer.friendlyMode) {
