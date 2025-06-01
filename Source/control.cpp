@@ -1692,6 +1692,7 @@ void ResetChat()
 {
 	ChatFlag = false;
 	SDL_StopTextInput();
+	ChatCursor = {};
 	ChatInputState = std::nullopt;
 	sgbPlrTalkTbl = 0;
 	RedrawEverything();
