@@ -42,6 +42,7 @@ set(standalone_tests
   file_util_test
   format_int_test
   ini_test
+  palette_blending_test
   parse_int_test
   path_test
   vision_test
@@ -58,6 +59,7 @@ set(benchmarks
   clx_render_benchmark
   crawl_benchmark
   dun_render_benchmark
+  palette_blending_benchmark
   path_benchmark
 )
 
@@ -104,6 +106,8 @@ target_link_dependencies(dun_render_benchmark PRIVATE libdevilutionx_so)
 target_link_dependencies(file_util_test PRIVATE libdevilutionx_file_util app_fatal_for_testing)
 target_link_dependencies(format_int_test PRIVATE libdevilutionx_format_int language_for_testing)
 target_link_dependencies(ini_test PRIVATE libdevilutionx_ini app_fatal_for_testing)
+target_link_dependencies(palette_blending_test PRIVATE libdevilutionx_palette_blending DevilutionX::SDL libdevilutionx_strings GTest::gmock)
+target_link_dependencies(palette_blending_benchmark PRIVATE libdevilutionx_palette_blending DevilutionX::SDL)
 target_link_dependencies(parse_int_test PRIVATE libdevilutionx_parse_int)
 target_link_dependencies(path_test PRIVATE libdevilutionx_pathfinding libdevilutionx_direction app_fatal_for_testing)
 target_link_dependencies(vision_test PRIVATE libdevilutionx_vision)

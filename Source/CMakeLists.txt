@@ -404,6 +404,13 @@ target_link_dependencies(libdevilutionx_monster PUBLIC
   libdevilutionx_txtdata
 )
 
+add_devilutionx_object_library(libdevilutionx_palette_blending
+  utils/palette_blending.cpp
+)
+target_link_dependencies(libdevilutionx_palette_blending PUBLIC
+  DevilutionX::SDL
+)
+
 add_devilutionx_object_library(libdevilutionx_parse_int
   utils/parse_int.cpp
 )
@@ -701,6 +708,7 @@ target_link_dependencies(libdevilutionx PUBLIC
   libdevilutionx_multiplayer
   libdevilutionx_options
   libdevilutionx_padmapper
+  libdevilutionx_palette_blending
   libdevilutionx_parse_int
   libdevilutionx_pathfinding
   libdevilutionx_pkware_encrypt

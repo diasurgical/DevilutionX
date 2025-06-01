@@ -18,6 +18,7 @@
 #include "hwcursor.hpp"
 #include "options.h"
 #include "utils/display.h"
+#include "utils/palette_blending.hpp"
 #include "utils/sdl_compat.h"
 
 namespace devilution {
@@ -25,15 +26,6 @@ namespace devilution {
 std::array<SDL_Color, 256> logical_palette;
 std::array<SDL_Color, 256> system_palette;
 std::array<SDL_Color, 256> orig_palette;
-
-// This array is read from a lot on every frame.
-// We do not use `std::array` here to improve debug build performance.
-// In a debug build, `std::array` accesses are function calls.
-Uint8 paletteTransparencyLookup[256][256];
-
-#if DEVILUTIONX_PALETTE_TRANSPARENCY_BLACK_16_LUT
-uint16_t paletteTransparencyLookupBlack16[65536];
-#endif
 
 namespace {
 
@@ -45,26 +37,6 @@ void LoadBrightness()
 	int brightnessValue = *GetOptions().Graphics.brightness;
 	brightnessValue = std::clamp(brightnessValue, 0, 100);
 	GetOptions().Graphics.brightness.SetValue(brightnessValue - brightnessValue % 5);
-}
-
-Uint8 FindBestMatchForColor(std::array<SDL_Color, 256> &palette, SDL_Color color, int skipFrom, int skipTo)
-{
-	Uint8 best;
-	Uint32 bestDiff = SDL_MAX_UINT32;
-	for (int i = 0; i < 256; i++) {
-		if (i >= skipFrom && i <= skipTo)
-			continue;
-		int diffr = palette[i].r - color.r;
-		int diffg = palette[i].g - color.g;
-		int diffb = palette[i].b - color.b;
-		Uint32 diff = diffr * diffr + diffg * diffg + diffb * diffb;
-
-		if (bestDiff > diff) {
-			best = i;
-			bestDiff = diff;
-		}
-	}
-	return best;
 }
 
 /**
@@ -80,55 +52,6 @@ Uint8 FindBestMatchForColor(std::array<SDL_Color, 256> &palette, SDL_Color color
  * @param skipTo Do not use colors between skipFrom and this index
  * @param toUpdate Only update the first n colors
  */
-void GenerateBlendedLookupTable(std::array<SDL_Color, 256> &palette, int skipFrom, int skipTo, int toUpdate = 256)
-{
-	for (int i = 0; i < 256; i++) {
-		for (int j = 0; j < 256; j++) {
-			if (i == j) { // No need to calculate transparency between 2 identical colors
-				paletteTransparencyLookup[i][j] = j;
-				continue;
-			}
-			if (i > j) { // Half the blends will be mirror identical ([i][j] is the same as [j][i]), so simply copy the existing combination.
-				paletteTransparencyLookup[i][j] = paletteTransparencyLookup[j][i];
-				continue;
-			}
-			if (i > toUpdate && j > toUpdate) {
-				continue;
-			}
-
-			SDL_Color blendedColor;
-			blendedColor.r = ((int)palette[i].r + (int)palette[j].r) / 2;
-			blendedColor.g = ((int)palette[i].g + (int)palette[j].g) / 2;
-			blendedColor.b = ((int)palette[i].b + (int)palette[j].b) / 2;
-			Uint8 best = FindBestMatchForColor(palette, blendedColor, skipFrom, skipTo);
-			paletteTransparencyLookup[i][j] = best;
-		}
-	}
-
-#if DEVILUTIONX_PALETTE_TRANSPARENCY_BLACK_16_LUT
-	for (unsigned i = 0; i < 256; ++i) {
-		for (unsigned j = 0; j < 256; ++j) {
-			const std::uint16_t index = i | (j << 8);
-			paletteTransparencyLookupBlack16[index] = paletteTransparencyLookup[0][i] | (paletteTransparencyLookup[0][j] << 8);
-		}
-	}
-#endif
-}
-
-#if DEVILUTIONX_PALETTE_TRANSPARENCY_BLACK_16_LUT
-void UpdateTransparencyLookupBlack16(int from, int to)
-{
-	for (int i = from; i <= to; i++) {
-		for (int j = 0; j < 256; j++) {
-			const std::uint16_t index = i | (j << 8);
-			const std::uint16_t reverseIndex = j | (i << 8);
-			paletteTransparencyLookupBlack16[index] = paletteTransparencyLookup[0][i] | (paletteTransparencyLookup[0][j] << 8);
-			paletteTransparencyLookupBlack16[reverseIndex] = paletteTransparencyLookup[0][j] | (paletteTransparencyLookup[0][i] << 8);
-		}
-	}
-}
-#endif
-
 /**
  * @brief Cycle the given range of colors in the palette
  * @param from First color index of the range
@@ -253,11 +176,11 @@ void LoadPalette(const char *pszFileName, bool blend /*= true*/)
 
 	if (blend) {
 		if (leveltype == DTYPE_CAVES || leveltype == DTYPE_CRYPT) {
-			GenerateBlendedLookupTable(orig_palette, 1, 31);
+			GenerateBlendedLookupTable(orig_palette.data(), 1, 31);
 		} else if (leveltype == DTYPE_NEST) {
-			GenerateBlendedLookupTable(orig_palette, 1, 15);
+			GenerateBlendedLookupTable(orig_palette.data(), 1, 15);
 		} else {
-			GenerateBlendedLookupTable(orig_palette, -1, -1);
+			GenerateBlendedLookupTable(orig_palette.data(), -1, -1);
 		}
 	}
 }
@@ -462,23 +385,7 @@ void palette_update_quest_palette(int n)
 	logical_palette[i] = orig_palette[i];
 	ApplyToneMapping(system_palette, logical_palette, 32);
 	palette_update(0, 31);
-	// Update blended transparency, but only for the color that was updated
-	for (int j = 0; j < 256; j++) {
-		if (i == j) { // No need to calculate transparency between 2 identical colors
-			paletteTransparencyLookup[i][j] = j;
-			continue;
-		}
-		SDL_Color blendedColor;
-		blendedColor.r = ((int)logical_palette[i].r + (int)logical_palette[j].r) / 2;
-		blendedColor.g = ((int)logical_palette[i].g + (int)logical_palette[j].g) / 2;
-		blendedColor.b = ((int)logical_palette[i].b + (int)logical_palette[j].b) / 2;
-		Uint8 best = FindBestMatchForColor(logical_palette, blendedColor, 1, 31);
-		paletteTransparencyLookup[i][j] = paletteTransparencyLookup[j][i] = best;
-	}
-
-#if DEVILUTIONX_PALETTE_TRANSPARENCY_BLACK_16_LUT
-	UpdateTransparencyLookupBlack16(i, i);
-#endif
+	UpdateBlendedLookupTableSingleColor(i, logical_palette.data(), /*skipFrom=*/1, /*skipTo=*/31);
 }
 
 } // namespace devilution
