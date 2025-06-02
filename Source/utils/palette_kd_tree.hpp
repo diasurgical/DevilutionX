@@ -71,12 +71,22 @@ struct PaletteKdTreeNode {
 		return GetColorComponent<Coord>(color);
 	}
 
-	[[nodiscard]] PaletteKdTreeNode<0> &leafForColor(const SDL_Color &color)
+	[[nodiscard]] uint8_t leafIndexForColor(const SDL_Color &color, uint8_t result = 0)
+	{
+		const bool isLeft = getColorCoordinate(color) < pivot;
+		if constexpr (RemainingDepth == 1) {
+			return (2 * result) + (isLeft ? 0 : 1);
+		} else {
+			return (2 * child(isLeft).leafIndexForColor(color, result)) + (isLeft ? 0 : 1);
+		}
+	}
+
+	[[nodiscard]] PaletteKdTreeNode<0> &leafByIndex(uint8_t index)
 	{
 		if constexpr (RemainingDepth == 1) {
-			return child(/*isLeft=*/getColorCoordinate(color) < pivot);
+			return child(index % 2 == 0);
 		} else {
-			return child(/*isLeft=*/getColorCoordinate(color) < pivot).leafForColor(color);
+			return child(index % 2 == 0).leafByIndex(index / 2);
 		}
 	}
 };
@@ -86,7 +96,10 @@ struct PaletteKdTreeNode {
  */
 template <>
 struct PaletteKdTreeNode</*RemainingDepth=*/0> {
-	StaticVector<uint8_t, 256> values;
+	// We use inclusive indices to allow for representing the full [0, 255] range.
+	// An empty node is represented as [1, 0].
+	uint8_t valuesBegin;
+	uint8_t valuesEndInclusive;
 };
 
 /**
@@ -97,7 +110,7 @@ struct PaletteKdTreeNode</*RemainingDepth=*/0> {
 class PaletteKdTree {
 private:
 	using RGB = std::array<uint8_t, 3>;
-
+	static constexpr unsigned NumLeaves = 1U << PaletteKdTreeDepth;
 public:
 	PaletteKdTree() = default;
 
@@ -111,9 +124,25 @@ public:
 	    : palette_(palette)
 	{
 		populatePivots(skipFrom, skipTo);
+		StaticVector<uint8_t, 256> leafValues[NumLeaves];
 		for (int i = 0; i < 256; ++i) {
 			if (i >= skipFrom && i <= skipTo) continue;
-			tree_.leafForColor(palette[i]).values.emplace_back(i);
+			leafValues[tree_.leafIndexForColor(palette[i])].emplace_back(i);
+		}
+
+		size_t totalLen = 0;
+		for (uint8_t leafIndex = 0; leafIndex < NumLeaves; ++leafIndex) {
+			PaletteKdTreeNode<0> &leaf = tree_.leafByIndex(leafIndex);
+			const std::span<const uint8_t> values = leafValues[leafIndex];
+			if (values.empty()) {
+				leaf.valuesBegin = 1;
+				leaf.valuesEndInclusive = 0;
+			} else {
+				leaf.valuesBegin = static_cast<uint8_t>(totalLen);
+				leaf.valuesEndInclusive = static_cast<uint8_t>(totalLen - 1 + values.size());
+				std::copy(values.begin(), values.end(), values_.data() + totalLen);
+				totalLen += values.size();
+			}
 		}
 	}
 
@@ -208,26 +237,25 @@ private:
 	void findNearestNeighborVisit(const PaletteKdTreeNode<RemainingDepth> &node, const RGB &rgb,
 	    uint32_t &bestDiff, uint8_t &best) const
 	{
-		if constexpr (RemainingDepth == 0) {
-			checkLeaf(node, rgb, bestDiff, best);
-		} else {
-			constexpr unsigned Coord = PaletteKdTreeNode<RemainingDepth>::Coord;
+		const uint8_t coord = rgb[PaletteKdTreeNode<RemainingDepth>::Coord];
+		findNearestNeighborVisit(node.child(coord < node.pivot), rgb, bestDiff, best);
 
-			findNearestNeighborVisit(node.child(rgb[Coord] < node.pivot), rgb, bestDiff, best);
-
-			// To see if we need to check a node's subtree, we compare the distance from the query
-			// to the current best candidate vs the distance to the edge of the half-space represented
-			// by the node.
-			if (bestDiff == std::numeric_limits<uint32_t>::max()
-			    || GetColorDistanceToPlane(node.pivot, rgb[Coord]) < GetColorDistance(palette_[best], rgb)) {
-				findNearestNeighborVisit(node.child(rgb[Coord] >= node.pivot), rgb, bestDiff, best);
-			}
+		// To see if we need to check a node's subtree, we compare the distance from the query
+		// to the current best candidate vs the distance to the edge of the half-space represented
+		// by the node.
+		if (bestDiff == std::numeric_limits<uint32_t>::max()
+		    || GetColorDistanceToPlane(node.pivot, coord) < GetColorDistance(palette_[best], rgb)) {
+			findNearestNeighborVisit(node.child(coord >= node.pivot), rgb, bestDiff, best);
 		}
 	}
 
-	void checkLeaf(const PaletteKdTreeNode<0> &leaf, const RGB &rgb, uint32_t &bestDiff, uint8_t &best) const
+	void findNearestNeighborVisit(const PaletteKdTreeNode<0> &node, const RGB &rgb,
+	    uint32_t &bestDiff, uint8_t &best) const
 	{
-		for (const uint8_t paletteIndex : leaf.values) {
+		const uint8_t *it = values_.data() + node.valuesBegin;
+		const uint8_t *const end = values_.data() + node.valuesEndInclusive;
+		while (it <= end) {
+			const uint8_t paletteIndex = *it++;
 			const uint32_t diff = GetColorDistance(palette_[paletteIndex], rgb);
 			if (diff < bestDiff) {
 				best = paletteIndex;
@@ -238,6 +266,7 @@ private:
 
 	const SDL_Color *palette_;
 	PaletteKdTreeNode<PaletteKdTreeDepth> tree_;
+	std::array<uint8_t, 256> values_;
 };
 
 } // namespace devilution
