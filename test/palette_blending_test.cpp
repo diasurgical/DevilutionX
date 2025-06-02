@@ -47,6 +47,8 @@ TEST(GenerateBlendedLookupTableTest, BasicTest)
 
 	GenerateBlendedLookupTable(palette, /*skipFrom=*/-1, /*skipTo=*/-1);
 
+	EXPECT_EQ(paletteTransparencyLookup[100][100], 100);
+
 	EXPECT_THAT(palette[17], ColorIs(17, 0, 34));
 	EXPECT_THAT(palette[150], ColorIs(44, 44, 44));
 	EXPECT_THAT(palette[86], ColorIs(22, 22, 44));
@@ -58,6 +60,23 @@ TEST(GenerateBlendedLookupTableTest, BasicTest)
 	EXPECT_THAT(palette[15], ColorIs(15, 0, 30));
 	EXPECT_EQ(paletteTransparencyLookup[27][130], 15);
 	EXPECT_EQ(paletteTransparencyLookup[130][27], 15);
+
+	EXPECT_THAT(palette[0], ColorIs(0, 0, 0));
+	EXPECT_THAT(palette[100], ColorIs(36, 36, 72));
+	EXPECT_THAT(palette[82], ColorIs(18, 18, 36));
+	EXPECT_EQ(paletteTransparencyLookup[0][100], 82);
+	EXPECT_EQ(paletteTransparencyLookup[100][0], 82);
+
+	EXPECT_THAT(palette[0], ColorIs(0, 0, 0));
+	EXPECT_THAT(palette[200], ColorIs(24, 24, 16));
+	EXPECT_THAT(palette[196], ColorIs(12, 12, 8));
+	EXPECT_EQ(paletteTransparencyLookup[0][200], 196);
+	EXPECT_EQ(paletteTransparencyLookup[200][0], 196);
+
+#if DEVILUTIONX_PALETTE_TRANSPARENCY_BLACK_16_LUT
+	EXPECT_EQ(paletteTransparencyLookupBlack16[100 | (100 << 8)], 82 | (82 << 8));
+	EXPECT_EQ(paletteTransparencyLookupBlack16[100 | (200 << 8)], 82 | (196 << 8));
+#endif
 }
 
 } // namespace

@@ -40,19 +40,6 @@ void LoadBrightness()
 }
 
 /**
- * @brief Generate lookup table for transparency
- *
- * This is based of the same technique found in Quake2.
- *
- * To mimic 50% transparency we figure out what colors in the existing palette are the best match for the combination of any 2 colors.
- * We save this into a lookup table for use during rendering.
- *
- * @param palette The colors to operate on
- * @param skipFrom Do not use colors between this index and skipTo
- * @param skipTo Do not use colors between skipFrom and this index
- * @param toUpdate Only update the first n colors
- */
-/**
  * @brief Cycle the given range of colors in the palette
  * @param from First color index of the range
  * @param to First color index of the range

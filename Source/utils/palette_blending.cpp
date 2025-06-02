@@ -53,20 +53,25 @@ RGB BlendColors(const SDL_Color &a, const SDL_Color &b)
 	};
 }
 
+#if DEVILUTIONX_PALETTE_TRANSPARENCY_BLACK_16_LUT
+void SetPaletteTransparencyLookupBlack16(unsigned i, unsigned j)
+{
+	paletteTransparencyLookupBlack16[i | (j << 8U)] = paletteTransparencyLookup[0][i] | (paletteTransparencyLookup[0][j] << 8U);
+}
+#endif
+
 } // namespace
 
 void GenerateBlendedLookupTable(SDL_Color palette[256], int skipFrom, int skipTo)
 {
 	for (unsigned i = 0; i < 256; i++) {
-		for (unsigned j = 0; j < 256; j++) {
-			if (i == j) { // No need to calculate transparency between 2 identical colors
-				paletteTransparencyLookup[i][j] = j;
-				continue;
-			}
-			if (i > j) { // Half the blends will be mirror identical ([i][j] is the same as [j][i]), so simply copy the existing combination.
-				paletteTransparencyLookup[i][j] = paletteTransparencyLookup[j][i];
-				continue;
-			}
+		paletteTransparencyLookup[i][i] = i;
+		unsigned j = 0;
+		for (; j < i; j++) {
+			paletteTransparencyLookup[i][j] = paletteTransparencyLookup[j][i];
+		}
+		++j;
+		for (; j < 256; j++) {
 			const uint8_t best = FindBestMatchForColor(palette, BlendColors(palette[i], palette[j]), skipFrom, skipTo);
 			paletteTransparencyLookup[i][j] = best;
 		}
@@ -74,9 +79,10 @@ void GenerateBlendedLookupTable(SDL_Color palette[256], int skipFrom, int skipTo
 
 #if DEVILUTIONX_PALETTE_TRANSPARENCY_BLACK_16_LUT
 	for (unsigned i = 0; i < 256; ++i) {
-		for (unsigned j = 0; j < 256; ++j) {
-			const uint16_t index = i | (j << 8U);
-			paletteTransparencyLookupBlack16[index] = paletteTransparencyLookup[0][i] | (paletteTransparencyLookup[0][j] << 8);
+		SetPaletteTransparencyLookupBlack16(i, i);
+		for (unsigned j = 0; j < i; ++j) {
+			SetPaletteTransparencyLookupBlack16(i, j);
+			SetPaletteTransparencyLookupBlack16(j, i);
 		}
 	}
 #endif
@@ -104,10 +110,8 @@ void UpdateTransparencyLookupBlack16(unsigned from, unsigned to)
 {
 	for (unsigned i = from; i <= to; i++) {
 		for (unsigned j = 0; j < 256; j++) {
-			const uint16_t index = i | (j << 8U);
-			const uint16_t reverseIndex = j | (i << 8U);
-			paletteTransparencyLookupBlack16[index] = paletteTransparencyLookup[0][i] | (paletteTransparencyLookup[0][j] << 8);
-			paletteTransparencyLookupBlack16[reverseIndex] = paletteTransparencyLookup[0][j] | (paletteTransparencyLookup[0][i] << 8);
+			SetPaletteTransparencyLookupBlack16(i, j);
+			SetPaletteTransparencyLookupBlack16(j, i);
 		}
 	}
 }
