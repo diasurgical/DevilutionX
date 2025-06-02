@@ -254,8 +254,8 @@ bool CanTargetMonster(const Monster &monster)
 
 void FindRangedTarget()
 {
-	int rotations = 0;
-	int distance = 0;
+	int rotations = 4;
+	int distance = 25;
 	bool canTalk = false;
 
 	for (size_t i = 0; i < ActiveMonsterCount; i++) {
@@ -287,7 +287,7 @@ void FindMeleeTarget()
 {
 	bool visited[MAXDUNX][MAXDUNY] = { {} };
 	int maxSteps = 25; // Max steps for FindPath is 25
-	int rotations = 0;
+	int rotations = 4;
 	bool canTalk = false;
 
 	struct SearchNode {
@@ -366,8 +366,8 @@ void CheckMonstersNearby()
 void CheckPlayerNearby()
 {
 	int newDdistance;
-	int rotations = 0;
-	int distance = 0;
+	int rotations = 4;
+	int distance = 25;
 
 	if (pcursmonst != -1)
 		return;
@@ -421,8 +421,8 @@ void FindActor()
 
 void FindTrigger()
 {
-	int rotations = 0;
-	int distance = 0;
+	int rotations = 4;
+	int distance = 25;
 
 	if (pcursitem != -1 || ObjectUnderCursor != nullptr)
 		return; // Prefer showing items/objects over triggers (use of cursm* conflicts)
