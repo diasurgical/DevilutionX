@@ -99,11 +99,18 @@ private:
 	using RGB = std::array<uint8_t, 3>;
 
 public:
-	explicit PaletteKdTree(const SDL_Color palette[256])
+	/**
+	 * @brief Constructs a PaletteKdTree
+	 *
+	 * The palette is used as points in the tree.
+	 * Colors between skipFrom and skipTo (inclusive) are skipped.
+	 */
+	explicit PaletteKdTree(const SDL_Color palette[256], int skipFrom, int skipTo)
 	    : palette_(palette)
 	{
-		populatePivots();
-		for (unsigned i = 0; i < 256; ++i) {
+		populatePivots(skipFrom, skipTo);
+		for (int i = 0; i < 256; ++i) {
+			if (i >= skipFrom && i <= skipTo) continue;
 			tree_.leafForColor(palette[i]).values.emplace_back(i);
 		}
 	}
@@ -166,26 +173,27 @@ private:
 	}
 
 	template <size_t TargetDepth>
-	void populatePivotsForTargetDepth()
+	void populatePivotsForTargetDepth(int skipFrom, int skipTo)
 	{
 		constexpr size_t NumSubdivisions = 1U << TargetDepth;
 		std::array<StaticVector<uint8_t, 256>, NumSubdivisions> subdivisions;
 		const std::span<StaticVector<uint8_t, 256>, NumSubdivisions> subdivisionsSpan { subdivisions };
-		for (unsigned i = 0; i < 256; ++i) {
+		for (int i = 0; i < 256; ++i) {
+			if (i >= skipFrom && i <= skipTo) continue;
 			maybeAddToSubdivisionForMedian(tree_, i, subdivisionsSpan);
 		}
 		setPivotsRecursively(tree_, subdivisionsSpan);
 	}
 
 	template <size_t... TargetDepths>
-	void populatePivotsImpl(std::integer_sequence<size_t, TargetDepths...> intSeq) // NOLINT(misc-unused-parameters)
+	void populatePivotsImpl(int skipFrom, int skipTo, std::index_sequence<TargetDepths...> intSeq) // NOLINT(misc-unused-parameters)
 	{
-		(populatePivotsForTargetDepth<TargetDepths>(), ...);
+		(populatePivotsForTargetDepth<TargetDepths>(skipFrom, skipTo), ...);
 	}
 
-	void populatePivots()
+	void populatePivots(int skipFrom, int skipTo)
 	{
-		populatePivotsImpl(std::make_integer_sequence<size_t, PaletteKdTreeDepth> {});
+		populatePivotsImpl(skipFrom, skipTo, std::make_index_sequence<PaletteKdTreeDepth> {});
 	}
 
 	template <size_t RemainingDepth>

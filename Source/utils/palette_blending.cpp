@@ -59,7 +59,7 @@ void SetPaletteTransparencyLookupBlack16(unsigned i, unsigned j)
 
 void GenerateBlendedLookupTable(SDL_Color palette[256], int skipFrom, int skipTo)
 {
-	const PaletteKdTree kdTree { palette };
+	const PaletteKdTree kdTree { palette, skipFrom, skipTo };
 	for (unsigned i = 0; i < 256; i++) {
 		paletteTransparencyLookup[i][i] = i;
 		unsigned j = 0;
