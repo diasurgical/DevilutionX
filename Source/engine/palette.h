@@ -7,6 +7,7 @@
 
 #include <array>
 #include <cstdint>
+#include <span>
 
 #include <SDL.h>
 
@@ -43,7 +44,7 @@ void palette_init();
 void LoadPalette(const char *pszFileName, bool blend = true);
 void LoadRndLvlPal(dungeon_type l);
 void IncreaseBrightness();
-void ApplyToneMapping(std::array<SDL_Color, 256> &dst, const std::array<SDL_Color, 256> &src, int n);
+void ApplyToneMapping(std::array<SDL_Color, 256> &dst, std::span<const SDL_Color, 256> src);
 void DecreaseBrightness();
 int UpdateBrightness(int sliderValue);
 void BlackPalette();
