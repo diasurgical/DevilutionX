@@ -82,8 +82,8 @@ void CycleColorsReverse(int from, int to)
 #endif
 }
 
-// When brightnessSlider==0, then a==0 (identity mapping)
-// When brightnessSlider==100, then a==-maxAdjustment (maximum brightening)
+// When brightness==0, then a==0 (identity mapping)
+// When brightness==100, then a==-MaxAdjustment (maximum brightening)
 constexpr float CalculateToneMappingParameter(int brightness)
 {
 	// Maximum adjustment factor (tweak this constant to change the effect strength)
