@@ -124,21 +124,27 @@ public:
 	}
 
 private:
-	static uint8_t getMedian(uint8_t *begin, uint8_t *end)
+	[[nodiscard]] static uint8_t getMedian(std::span<const uint8_t> elements)
 	{
-		uint8_t *middleItr = begin + ((end - begin) / 2);
-		std::nth_element(begin, middleItr, end);
-		if ((end - begin) % 2 == 0) {
-			const uint8_t leftMiddleItr = *std::max_element(begin, middleItr);
-			return (leftMiddleItr + *middleItr) / 2;
+		uint8_t min = 255;
+		uint8_t max = 0;
+		uint_fast16_t count[256] = {};
+		for (const uint8_t x : elements) {
+			min = std::min(x, min);
+			max = std::max(x, max);
+			++count[x];
 		}
-		return *middleItr;
-	}
 
-	template <typename C>
-	static uint8_t getMedian(C &c)
-	{
-		return getMedian(c.data(), c.data() + c.size());
+		const auto medianTarget = static_cast<uint_fast16_t>((elements.size() + 1) / 2);
+		uint_fast16_t partialSum = count[min];
+		for (uint_fast16_t i = min + 1; i <= max; ++i) {
+			if (partialSum >= medianTarget) return i;
+			partialSum += count[i];
+		}
+
+		// Can't find a helpful pivot so return 255 so that
+		// NN lookups through this node mostly go to the left child.
+		return 255;
 	}
 
 	template <size_t RemainingDepth, size_t N>
