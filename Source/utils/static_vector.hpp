@@ -103,9 +103,7 @@ public:
 
 	~StaticVector()
 	{
-		for (std::size_t pos = 0; pos < size_; ++pos) {
-			std::destroy_at(data_[pos].ptr());
-		}
+		std::destroy_n(begin(), size_);
 	}
 
 private:
