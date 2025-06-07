@@ -90,6 +90,12 @@ tl::expected<bool, PacketError> protocol_zt::network_online()
 	return true;
 }
 
+tl::expected<bool, PacketError> protocol_zt::peers_ready()
+{
+	return network_online()
+	    .map([&](bool isOnline) { return isOnline && zerotier_peers_ready(); });
+}
+
 tl::expected<void, PacketError> protocol_zt::send(const endpoint &peer, const buffer_t &data)
 {
 	tl::expected<buffer_t, PacketError> frame = frame_queue::MakeFrame(data);
