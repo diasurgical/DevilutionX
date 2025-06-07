@@ -103,7 +103,7 @@ public:
 
 	~StaticVector()
 	{
-		std::destroy_n(begin(), size_);
+		std::destroy_n(data(), size_);
 	}
 
 private:
