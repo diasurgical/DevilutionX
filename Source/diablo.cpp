@@ -841,7 +841,8 @@ void RunGameLoop(interface_mode uMsg)
 	nthread_ignore_mutex(true);
 	StartGame(uMsg);
 	assert(HeadlessMode || ghMainWnd);
-	EventHandler previousHandler = SetEventHandler(GameEventHandler);
+	EventHandler newHandler = { GameEventHandler, SDL_PollEvent };
+	EventHandler previousHandler = SetEventHandler(newHandler);
 	run_delta_info();
 	gbRunGame = true;
 	gbProcessPlayers = IsDiabloAlive(true);
@@ -937,7 +938,7 @@ void RunGameLoop(interface_mode uMsg)
 	RedrawEverything();
 	scrollrt_draw_game_screen();
 	previousHandler = SetEventHandler(previousHandler);
-	assert(HeadlessMode || previousHandler == GameEventHandler);
+	assert(HeadlessMode || previousHandler.handle == GameEventHandler);
 	FreeGame();
 
 	if (cineflag) {
@@ -1179,8 +1180,17 @@ void ApplicationInit()
 	if (*GetOptions().Graphics.showFPS)
 		EnableFrameCount();
 
-	init_create_window();
-	was_window_init = true;
+	if (!HeadlessMode) {
+		init_create_window();
+		was_window_init = true;
+	} else {
+#ifdef USE_SDL1
+		// Unfortunately no way to init only events queue for SDL1.2
+		SDL_Init(SDL_INIT_VIDEO);
+#else
+		SDL_Init(SDL_INIT_EVENTS);
+#endif
+	}
 
 	InitializeScreenReader();
 	LanguageInitialize();
@@ -1236,9 +1246,10 @@ void DiabloInit()
 
 	DiabloInitScreen();
 
-	snd_init();
-
-	ui_sound_init();
+	if (!HeadlessMode) {
+		snd_init();
+		ui_sound_init();
+	}
 
 	// Item graphics are loaded early, they already get touched during hero selection.
 	InitItemGFX();
