@@ -165,7 +165,8 @@ set(libdevilutionx_SRCS
   utils/sdl_bilinear_scale.cpp
   utils/sdl_thread.cpp
   utils/surface_to_clx.cpp
-  utils/timer.cpp)
+  utils/timer.cpp
+  utils/mapping.cpp)
 
 # These files are responsible for most of the runtime in Debug mode.
 # Apply some optimizations to them even in Debug mode to get reasonable performance.

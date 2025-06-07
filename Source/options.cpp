@@ -214,6 +214,7 @@ void LoadOptions()
 			pEntry->LoadFromIni(pCategory->GetKey());
 		}
 	}
+	HeadlessMode = *options.Graphics.headless;
 
 	ini->getUtf8Buf("Hellfire", "SItem", options.Hellfire.szItem, sizeof(options.Hellfire.szItem));
 	ini->getUtf8Buf("Network", "Bind Address", "0.0.0.0", options.Network.szBindAddress, sizeof(options.Network.szBindAddress));
@@ -306,6 +307,28 @@ OptionEntryType OptionEntryBoolean::GetType() const
 std::string_view OptionEntryBoolean::GetValueDescription() const
 {
 	return value ? _("ON") : _("OFF");
+}
+
+void OptionEntryString::LoadFromIni(std::string_view category)
+{
+	value = ini->getString(category, key, defaultValue);
+}
+void OptionEntryString::SaveToIni(std::string_view category) const
+{
+	ini->set(category, key, value);
+}
+void OptionEntryString::SetValue(std::string value)
+{
+	this->value = value;
+	this->NotifyValueChanged();
+}
+OptionEntryType OptionEntryString::GetType() const
+{
+	return OptionEntryType::String;
+}
+std::string_view OptionEntryString::GetValueDescription() const
+{
+	return value;
 }
 
 OptionEntryType OptionEntryListBase::GetType() const
@@ -685,6 +708,7 @@ std::string_view OptionEntryAudioDevice::GetDeviceName(size_t index) const
 GraphicsOptions::GraphicsOptions()
     : OptionCategoryBase("Graphics", N_("Graphics"), N_("Graphics Settings"))
     , fullscreen("Fullscreen", OnlyIfSupportsWindowed | OptionEntryFlags::CantChangeInGame | OptionEntryFlags::RecreateUI, N_("Fullscreen"), N_("Display the game in windowed or fullscreen mode."), true)
+    , headless("Headless", OptionEntryFlags::Invisible, "", "", false)
 #if !defined(USE_SDL1) || defined(__3DS__)
     , fitToScreen("Fit to Screen", OptionEntryFlags::CantChangeInGame | OptionEntryFlags::RecreateUI, N_("Fit to Screen"), N_("Automatically adjust the game window to your current desktop screen aspect ratio and resolution."), true)
 #endif
@@ -746,6 +770,7 @@ std::vector<OptionEntryBase *> GraphicsOptions::GetEntries()
 #ifndef __vita__
 		&fullscreen,
 #endif
+		&headless,
 #if !defined(USE_SDL1) || defined(__3DS__)
 		&fitToScreen,
 #endif
@@ -816,6 +841,12 @@ GameplayOptions::GameplayOptions()
               { FloatingNumbers::Vertical, N_("Vertical Only") },
           })
     , skipLoadingScreenThresholdMs("Skip loading screen threshold, ms", OptionEntryFlags::Invisible, "", "", 0)
+    , shareGameStateFilename("Share game state via file", OptionEntryFlags::Invisible, "", "", "")
+    , gameAndPlayerSeed("Game and player initial seed", OptionEntryFlags::Invisible, "", "", -1)
+    , gameLevel("Load player into the level", OptionEntryFlags::Invisible, "", "", 0)
+    , noMonsters("Disable all monsters", OptionEntryFlags::Invisible, "", "", false)
+    , skipAnimation("Skip animation", OptionEntryFlags::Invisible, "", "", 0)
+    , noMonstersAutoPursuing("Disable monsters auto-pursuing", OptionEntryFlags::Invisible, "", "", 0)
 {
 }
 
@@ -861,6 +892,12 @@ std::vector<OptionEntryBase *> GameplayOptions::GetEntries()
 		&grabInput,
 		&pauseOnFocusLoss,
 		&skipLoadingScreenThresholdMs,
+		&shareGameStateFilename,
+		&gameAndPlayerSeed,
+		&gameLevel,
+		&noMonsters,
+		&skipAnimation,
+		&noMonstersAutoPursuing,
 	};
 }
 

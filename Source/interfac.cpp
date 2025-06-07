@@ -271,6 +271,7 @@ void DoLoad(interface_mode uMsg)
 		currlevel = myPlayer.plrlevel;
 		leveltype = GetLevelType(currlevel);
 		IncProgress();
+		//XXX
 		loadResult = LoadGameLevel(false, ENTRY_MAIN);
 		if (loadResult.has_value()) IncProgress();
 		break;
@@ -453,6 +454,22 @@ void CheckShouldSkipRendering()
 	if (!HeadlessMode) InitRendering();
 }
 
+static int ProgressEventPoll(SDL_Event *event)
+{
+	int ret;
+
+	// SDL_QUIT event has higher priority
+	ret = SDL_PeepEvents(event, 1,  SDL_GETEVENT,
+						 SDL_QUIT, SDL_QUIT + 1);
+	if (ret)
+		return ret;
+
+	// Peek only custom events, leaving others in the queue
+	return SDL_PeepEvents(event, 1, SDL_GETEVENT,
+						  CustomEventsBegin,
+						  CustomEventsBegin + NumCustomEvents);
+}
+
 void ProgressEventHandler(const SDL_Event &event, uint16_t modState)
 {
 	DisableInputEventHandler(event, modState);
@@ -498,8 +515,8 @@ void ProgressEventHandler(const SDL_Event &event, uint16_t modState)
 		}
 
 		[[maybe_unused]] EventHandler prevHandler = SetEventHandler(ProgressEventHandlerState.prevHandler);
-		assert(prevHandler == ProgressEventHandler);
-		ProgressEventHandlerState.prevHandler = nullptr;
+		assert(prevHandler.handle == ProgressEventHandler);
+		ProgressEventHandlerState.prevHandler.handle = nullptr;
 		IsProgress = false;
 
 		Player &myPlayer = *MyPlayer;
@@ -554,7 +571,7 @@ void interface_msg_pump()
 {
 	SDL_Event event;
 	uint16_t modState;
-	while (FetchMessage(&event, &modState)) {
+	while (FetchMessage(&event, &modState, CurrentEventHandler.poll)) {
 		if (event.type != SDL_QUIT) {
 			HandleMessage(event, modState);
 		}
@@ -596,7 +613,8 @@ void ShowProgress(interface_mode uMsg)
 	gbSomebodyWonGameKludge = false;
 
 	ProgressEventHandlerState.loadStartedAt = SDL_GetTicks();
-	ProgressEventHandlerState.prevHandler = SetEventHandler(ProgressEventHandler);
+	EventHandler newHandler = { ProgressEventHandler, ProgressEventPoll };
+	ProgressEventHandlerState.prevHandler = SetEventHandler(newHandler);
 	ProgressEventHandlerState.skipRendering = true;
 	ProgressEventHandlerState.done = false;
 	ProgressEventHandlerState.drawnProgress = 0;
@@ -650,9 +668,10 @@ void ShowProgress(interface_mode uMsg)
 	while (true) {
 		CheckShouldSkipRendering();
 		SDL_Event event;
-		// We use the real `PollEvent` here instead of `FetchMessage`
-		// to process real events rather than the recorded ones in demo mode.
-		while (PollEvent(&event)) {
+		// We call `CustonEventHandler.poll` directly instead of
+		// calling the `FetchMessage` to process real events rather
+		// than the recorded ones in demo mode.
+		while (CurrentEventHandler.poll(&event)) {
 			if (!processEvent(event)) return;
 		}
 	}

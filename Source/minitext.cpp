@@ -17,6 +17,7 @@
 #include "engine/render/clx_render.hpp"
 #include "engine/render/primitive_render.hpp"
 #include "engine/render/text_render.hpp"
+#include "headless_mode.hpp"
 #include "playerdat.hpp"
 #include "textdat.h"
 #include "utils/language.h"
@@ -162,7 +163,7 @@ void InitQTextMsg(_speech_id m)
 	default:
 		break;
 	}
-	if (Speeches[m].scrlltxt) {
+	if (!HeadlessMode && Speeches[m].scrlltxt) {
 		QuestLogIsOpen = false;
 		LoadText(_(Speeches[m].txtstr));
 		qtextflag = true;

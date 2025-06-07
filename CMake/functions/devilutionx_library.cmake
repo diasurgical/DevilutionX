@@ -67,6 +67,10 @@ function(add_devilutionx_library NAME)
   target_compile_definitions(${NAME} PUBLIC ${DEVILUTIONX_DEFINITIONS})
 
   set_relative_file_macro(${NAME})
+
+  if(HAVE_LINKER_BSS_SYMBOLS)
+    target_compile_definitions(${NAME} PUBLIC HAVE_LINKER_BSS_SYMBOLS)
+  endif()
 endfunction()
 
 # Same as add_devilutionx_library(${NAME} OBJECT).
