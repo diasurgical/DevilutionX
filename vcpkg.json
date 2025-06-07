@@ -29,6 +29,10 @@
 				}
 			]
 		},
+		"dapi": {
+			"description": "Build DAPI server for gameplay automation",
+			"dependencies": [ "protobuf", "sfml" ]
+		},
 		"tests": {
 			"description": "Build tests",
 			"dependencies": [ "gtest", "benchmark" ]

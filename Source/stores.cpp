@@ -52,65 +52,39 @@ Item WitchItems[NumWitchItemsHf];
 int BoyItemLevel;
 Item BoyItem;
 
-namespace {
+/** Text lines */
+STextStruct TextLine[NumStoreLines];
 
 /** The current towner being interacted with */
 _talker_id TownerId;
+
+/** Remember currently selected text line from TextLine while displaying a dialog */
+int OldTextLine;
+
+/** Remember current store while displaying a dialog */
+TalkID OldActiveStore;
+
+/** Remember last scroll position */
+int OldScrollPos;
+/** Scroll position */
+int ScrollPos;
+
+/** Currently selected text line from TextLine */
+int CurrentTextLine;
+
+namespace {
 
 /** Is the current dialog full size */
 bool IsTextFullSize;
 
 /** Number of text lines in the current dialog */
 int NumTextLines;
-/** Remember currently selected text line from TextLine while displaying a dialog */
-int OldTextLine;
-/** Currently selected text line from TextLine */
-int CurrentTextLine;
-
-struct STextStruct {
-	enum Type : uint8_t {
-		Label,
-		Divider,
-		Selectable,
-	};
-
-	std::string text;
-	int _sval;
-	int y;
-	UiFlags flags;
-	Type type;
-	uint8_t _sx;
-	uint8_t _syoff;
-	int cursId;
-	bool cursIndent;
-
-	[[nodiscard]] bool isDivider() const
-	{
-		return type == Divider;
-	}
-	[[nodiscard]] bool isSelectable() const
-	{
-		return type == Selectable;
-	}
-
-	[[nodiscard]] bool hasText() const
-	{
-		return !text.empty();
-	}
-};
-
-/** Text lines */
-STextStruct TextLine[NumStoreLines];
 
 /** Whether to render the player's gold amount in the top left */
 bool RenderGold;
 
 /** Does the current panel have a scrollbar */
 bool HasScrollbar;
-/** Remember last scroll position */
-int OldScrollPos;
-/** Scroll position */
-int ScrollPos;
 /** Next scroll position */
 int NextScrollPos;
 /** Previous scroll position */
@@ -119,9 +93,6 @@ int PreviousScrollPos;
 int8_t CountdownScrollUp;
 /** Countdown for the push state of the scroll down button */
 int8_t CountdownScrollDown;
-
-/** Remember current store while displaying a dialog */
-TalkID OldActiveStore;
 
 /** Temporary item used to hold the item being traded */
 Item TempItem;
@@ -335,25 +306,6 @@ void PrintStoreItem(const Item &item, int l, UiFlags flags, bool cursIndent = fa
 	AddSText(40, l++, productLine, flags, false, -1, cursIndent);
 }
 
-bool StoreAutoPlace(Item &item, bool persistItem)
-{
-	Player &player = *MyPlayer;
-
-	if (AutoEquipEnabled(player, item) && AutoEquip(player, item, persistItem, true)) {
-		return true;
-	}
-
-	if (AutoPlaceItemInBelt(player, item, persistItem, true)) {
-		return true;
-	}
-
-	if (persistItem) {
-		return AutoPlaceItemInInventory(player, item, true);
-	}
-
-	return CanFitItemInInventory(player, item);
-}
-
 void ScrollVendorStore(Item *itemData, int storeLimit, int idx, int selling = true)
 {
 	ClearSText(5, 21);
@@ -400,17 +352,6 @@ void StartSmith()
 void ScrollSmithBuy(int idx)
 {
 	ScrollVendorStore(SmithItems, static_cast<int>(std::size(SmithItems)), idx);
-}
-
-uint32_t TotalPlayerGold()
-{
-	return MyPlayer->_pGold + Stash.gold;
-}
-
-// TODO: Change `_iIvalue` to be unsigned instead of passing `int` here.
-bool PlayerCanAfford(int price)
-{
-	return TotalPlayerGold() >= static_cast<uint32_t>(price);
 }
 
 void StartSmithBuy()
@@ -1417,20 +1358,6 @@ void SmithPremiumBuyEnter()
 
 	TempItem = PremiumItems[idx];
 	StartStore(TalkID::Confirm);
-}
-
-bool StoreGoldFit(Item &item)
-{
-	int cost = item._iIvalue;
-
-	Size itemSize = GetInventorySize(item);
-	int itemRoomForGold = itemSize.width * itemSize.height * MaxGold;
-
-	if (cost <= itemRoomForGold) {
-		return true;
-	}
-
-	return cost <= itemRoomForGold + RoomForGold();
 }
 
 /**
@@ -2778,6 +2705,50 @@ void ReleaseStoreBtn()
 bool IsPlayerInStore()
 {
 	return ActiveStore != TalkID::None;
+}
+
+uint32_t TotalPlayerGold()
+{
+	return MyPlayer->_pGold + Stash.gold;
+}
+
+// TODO: Change `_iIvalue` to be unsigned instead of passing `int` here.
+bool PlayerCanAfford(int price)
+{
+	return TotalPlayerGold() >= static_cast<uint32_t>(price);
+}
+
+bool StoreAutoPlace(Item &item, bool persistItem)
+{
+	Player &player = *MyPlayer;
+
+	if (AutoEquipEnabled(player, item) && AutoEquip(player, item, persistItem, true)) {
+		return true;
+	}
+
+	if (AutoPlaceItemInBelt(player, item, persistItem, true)) {
+		return true;
+	}
+
+	if (persistItem) {
+		return AutoPlaceItemInInventory(player, item, true);
+	}
+
+	return CanFitItemInInventory(player, item);
+}
+
+bool StoreGoldFit(Item &item)
+{
+	int cost = item._iIvalue;
+
+	Size itemSize = GetInventorySize(item);
+	int itemRoomForGold = itemSize.width * itemSize.height * MaxGold;
+
+	if (cost <= itemRoomForGold) {
+		return true;
+	}
+
+	return cost <= itemRoomForGold + RoomForGold();
 }
 
 } // namespace devilution
