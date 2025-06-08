@@ -298,6 +298,8 @@ void gamemenu_load_game(bool /*bActivate*/)
 	InitDiabloMsg(EMSG_LOADING);
 	RedrawEverything();
 	DrawAndBlit();
+
+	std::array<SDL_Color, 256> prevPalette = logical_palette;
 #ifndef USE_SDL1
 	DeactivateVirtualGamepad();
 	FreeVirtualGamepadTextures();
@@ -310,14 +312,15 @@ void gamemenu_load_game(bool /*bActivate*/)
 		InitVirtualGamepadTextures(*renderer);
 	}
 #endif
-	NewCursor(CURSOR_HAND);
 	ClrDiabloMsg();
+	PaletteFadeOut(8, prevPalette);
+
+	LoadPWaterPalette();
+	NewCursor(CURSOR_HAND);
 	CornerStone.activated = false;
-	PaletteFadeOut(8);
 	MyPlayerIsDead = false;
 	RedrawEverything();
 	DrawAndBlit();
-	LoadPWaterPalette();
 	PaletteFadeIn(8);
 	NewCursor(CURSOR_HAND);
 	interface_msg_pump();

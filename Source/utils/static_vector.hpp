@@ -110,12 +110,12 @@ private:
 	struct AlignedStorage {
 		alignas(alignof(T)) std::byte data[sizeof(T)];
 
-		const T *ptr() const
+		[[nodiscard]] const T *ptr() const
 		{
 			return std::launder(reinterpret_cast<const T *>(data));
 		}
 
-		T *ptr()
+		[[nodiscard]] T *ptr()
 		{
 			return std::launder(reinterpret_cast<T *>(data));
 		}

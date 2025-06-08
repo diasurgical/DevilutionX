@@ -97,7 +97,6 @@ void UiHandleEvents(SDL_Event *event);
 bool UiItemMouseEvents(SDL_Event *event, const std::vector<UiItemBase *> &items);
 bool UiItemMouseEvents(SDL_Event *event, const std::vector<std::unique_ptr<UiItemBase>> &items);
 Sint16 GetCenterOffset(Sint16 w, Sint16 bw = 0);
-void LoadPalInMem(const SDL_Color *pPal);
 void DrawMouse();
 void UiLoadDefaultPalette();
 bool UiLoadBlackBackground();

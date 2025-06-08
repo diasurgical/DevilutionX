@@ -195,6 +195,7 @@ void LoadCutsceneBackground(interface_mode uMsg)
 	assert(!sgpBackCel);
 	sgpBackCel = LoadCel(celPath, 640);
 	LoadPalette(palPath);
+	UpdateSystemPalette(logical_palette);
 
 	sgdwProgress = 0;
 }
@@ -439,7 +440,7 @@ void InitRendering()
 	}
 	FreeCutsceneBackground();
 
-	// The loading thread sets `orig_palette`, so we make sure to use
+	// The loading thread sets `logical_palette`, so we make sure to use
 	// our own palette for the fade-in.
 	PaletteFadeIn(8, ProgressEventHandlerState.palette);
 }
@@ -476,24 +477,25 @@ void ProgressEventHandler(const SDL_Event &event, uint16_t modState)
 			if (!HeadlessMode) {
 				assert(ghMainWnd);
 
-				if (RenderDirectlyToOutputSurface && PalSurface != nullptr) {
-					// The loading thread sets `orig_palette`, so we make sure to use
-					// our own palette for drawing the foreground.
-					ApplyToneMapping(logical_palette, ProgressEventHandlerState.palette);
+				// The loading thread sets `logical_palette`, so we make sure to use
+				// our own palette for drawing the foreground.
+				UpdateSystemPalette(ProgressEventHandlerState.palette);
 
-					// Ensure that all back buffers have the full progress bar.
-					const void *initialPixels = PalSurface->pixels;
-					do {
-						DrawCutsceneForeground();
-						if (DiabloUiSurface() == PalSurface)
-							BltFast(nullptr, nullptr);
-						RenderPresent();
-					} while (PalSurface->pixels != initialPixels);
-				}
+				// Ensure that all back buffers have the full progress bar.
+				const void *initialPixels = PalSurface->pixels;
+				do {
+					DrawCutsceneForeground();
+					if (DiabloUiSurface() == PalSurface)
+						BltFast(nullptr, nullptr);
+					RenderPresent();
+				} while (PalSurface->pixels != initialPixels);
 
-				// The loading thread sets `orig_palette`, so we make sure to use
+				// The loading thread sets `logical_palette`, so we make sure to use
 				// our own palette for the fade-out.
 				PaletteFadeOut(8, ProgressEventHandlerState.palette);
+
+				// Once the fade-out is done, restore the system palette.
+				UpdateSystemPalette(logical_palette);
 			}
 		}
 
@@ -623,7 +625,7 @@ void ShowProgress(interface_mode uMsg)
 		LoadCutsceneBackground(uMsg);
 
 		// Save the palette at this point because the loading process may replace it.
-		ProgressEventHandlerState.palette = orig_palette;
+		ProgressEventHandlerState.palette = logical_palette;
 	}
 
 	// Begin loading

@@ -36,7 +36,6 @@ SDLTextureUniquePtr texture;
 
 /** Currently active palette */
 SDLPaletteUniquePtr Palette;
-unsigned int pal_surface_palette_version = 0;
 
 /** 24-bit renderer texture surface */
 SDLSurfaceUniquePtr RendererTextureSurface;
@@ -94,9 +93,9 @@ void dx_init()
 	SDL_ShowWindow(ghMainWnd);
 #endif
 
+	Palette = SDLWrap::AllocPalette();
 	palette_init();
 	CreateBackBuffer();
-	pal_surface_palette_version = 1;
 }
 
 Surface GlobalBackBuffer()
@@ -149,11 +148,6 @@ void CreateBackBuffer()
 	// time the global `palette` is changed. No need to do anything here as
 	// the global `palette` doesn't have any colors set yet.
 #endif
-}
-
-void InitPalette()
-{
-	Palette = SDLWrap::AllocPalette();
 }
 
 void BltFast(SDL_Rect *srcRect, SDL_Rect *dstRect)
@@ -272,10 +266,4 @@ void RenderPresent()
 #endif
 }
 
-void PaletteGetEntries(int dwNumEntries, SDL_Color *lpEntries)
-{
-	for (int i = 0; i < dwNumEntries; i++) {
-		lpEntries[i] = system_palette[i];
-	}
-}
 } // namespace devilution

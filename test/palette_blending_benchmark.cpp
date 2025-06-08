@@ -1,9 +1,14 @@
 #include "utils/palette_blending.hpp"
 
+#include <array>
+
 #include <SDL.h>
 #include <benchmark/benchmark.h>
 
 namespace devilution {
+
+std::array<SDL_Color, 256> logical_palette;
+
 namespace {
 
 void GeneratePalette(SDL_Color palette[256])
@@ -22,10 +27,10 @@ void GeneratePalette(SDL_Color palette[256])
 
 void BM_GenerateBlendedLookupTable(benchmark::State &state)
 {
-	SDL_Color palette[256];
+	SDL_Color *palette = logical_palette.data();
 	GeneratePalette(palette);
 	for (auto _ : state) {
-		GenerateBlendedLookupTable(palette, /*skipFrom=*/-1, /*skipTo=*/-1);
+		GenerateBlendedLookupTable();
 		int result = paletteTransparencyLookup[17][98];
 		benchmark::DoNotOptimize(result);
 	}

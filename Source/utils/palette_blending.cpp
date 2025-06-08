@@ -19,25 +19,13 @@ uint8_t paletteTransparencyLookup[256][256];
 uint16_t paletteTransparencyLookupBlack16[65536];
 #endif
 
+extern std::array<SDL_Color, 256> logical_palette;
+
 namespace {
 
-using RGB = std::array<uint8_t, 3>;
+PaletteKdTree CurrentPaletteKdTree;
 
-uint8_t FindBestMatchForColor(SDL_Color palette[256], RGB color, int skipFrom, int skipTo)
-{
-	uint8_t best;
-	uint32_t bestDiff = std::numeric_limits<uint32_t>::max();
-	for (int i = 0; i < 256; i++) {
-		if (i >= skipFrom && i <= skipTo)
-			continue;
-		const uint32_t diff = GetColorDistance(palette[i], color);
-		if (bestDiff > diff) {
-			best = i;
-			bestDiff = diff;
-		}
-	}
-	return best;
-}
+using RGB = std::array<uint8_t, 3>;
 
 RGB BlendColors(const SDL_Color &a, const SDL_Color &b)
 {
@@ -57,9 +45,10 @@ void SetPaletteTransparencyLookupBlack16(unsigned i, unsigned j)
 
 } // namespace
 
-void GenerateBlendedLookupTable(SDL_Color palette[256], int skipFrom, int skipTo)
+void GenerateBlendedLookupTable(int skipFrom, int skipTo)
 {
-	const PaletteKdTree kdTree { palette, skipFrom, skipTo };
+	const SDL_Color *palette = logical_palette.data();
+	CurrentPaletteKdTree = PaletteKdTree { palette, skipFrom, skipTo };
 	for (unsigned i = 0; i < 256; i++) {
 		paletteTransparencyLookup[i][i] = i;
 		unsigned j = 0;
@@ -68,7 +57,7 @@ void GenerateBlendedLookupTable(SDL_Color palette[256], int skipFrom, int skipTo
 		}
 		++j;
 		for (; j < 256; j++) {
-			paletteTransparencyLookup[i][j] = kdTree.findNearestNeighbor(BlendColors(palette[i], palette[j]));
+			paletteTransparencyLookup[i][j] = CurrentPaletteKdTree.findNearestNeighbor(BlendColors(palette[i], palette[j]));
 		}
 	}
 
@@ -83,15 +72,15 @@ void GenerateBlendedLookupTable(SDL_Color palette[256], int skipFrom, int skipTo
 #endif
 }
 
-void UpdateBlendedLookupTableSingleColor(unsigned i, SDL_Color palette[256], int skipFrom, int skipTo)
+void UpdateBlendedLookupTableSingleColor(unsigned i)
 {
-	// Update blended transparency, but only for the color that was updated
+	const SDL_Color *palette = logical_palette.data();
 	for (unsigned j = 0; j < 256; j++) {
 		if (i == j) { // No need to calculate transparency between 2 identical colors
 			paletteTransparencyLookup[i][j] = j;
 			continue;
 		}
-		const uint8_t best = FindBestMatchForColor(palette, BlendColors(palette[i], palette[j]), skipFrom, skipTo);
+		const uint8_t best = CurrentPaletteKdTree.findNearestNeighbor(BlendColors(palette[i], palette[j]));
 		paletteTransparencyLookup[i][j] = paletteTransparencyLookup[j][i] = best;
 	}
 

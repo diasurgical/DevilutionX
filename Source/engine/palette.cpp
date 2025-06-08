@@ -28,7 +28,6 @@ namespace devilution {
 
 std::array<SDL_Color, 256> logical_palette;
 std::array<SDL_Color, 256> system_palette;
-std::array<SDL_Color, 256> orig_palette;
 
 namespace {
 
@@ -49,6 +48,7 @@ void LoadBrightness()
  */
 void CycleColors(int from, int to)
 {
+	std::rotate(logical_palette.begin() + from, logical_palette.begin() + from + 1, logical_palette.begin() + to + 1);
 	std::rotate(system_palette.begin() + from, system_palette.begin() + from + 1, system_palette.begin() + to + 1);
 
 	for (auto &palette : paletteTransparencyLookup) {
@@ -69,6 +69,7 @@ void CycleColors(int from, int to)
  */
 void CycleColorsReverse(int from, int to)
 {
+	std::rotate(logical_palette.begin() + from, logical_palette.begin() + to, logical_palette.begin() + to + 1);
 	std::rotate(system_palette.begin() + from, system_palette.begin() + to, system_palette.begin() + to + 1);
 
 	for (auto &palette : paletteTransparencyLookup) {
@@ -99,7 +100,7 @@ constexpr uint8_t MapTone(float a, uint8_t color)
 	return static_cast<uint8_t>(y * 255.0f + 0.5f);
 }
 
-void ApplyToneMappingSingleColor(SDL_Color &dst, const SDL_Color &src)
+void ApplyGlobalBrightnessSingleColor(SDL_Color &dst, const SDL_Color &src)
 {
 	const float a = CalculateToneMappingParameter(*GetOptions().Graphics.brightness);
 	dst.r = MapTone(a, src.r);
@@ -109,10 +110,7 @@ void ApplyToneMappingSingleColor(SDL_Color &dst, const SDL_Color &src)
 
 } // namespace
 
-// Applies a tone mapping curve based on the brightness slider value.
-// The brightness value is in the range [0, 100] where 0 is neutral (no change)
-// and 100 produces maximum brightening.
-void ApplyToneMapping(std::array<SDL_Color, 256> &dst, std::span<const SDL_Color, 256> src)
+void ApplyGlobalBrightness(SDL_Color *dst, const SDL_Color *src)
 {
 	// Get the brightness slider value (0 = neutral, 100 = max brightening)
 	const int brightnessSlider = *GetOptions().Graphics.brightness;
@@ -130,10 +128,28 @@ void ApplyToneMapping(std::array<SDL_Color, 256> &dst, std::span<const SDL_Color
 		dst[i].g = toneMap[src[i].g];
 		dst[i].b = toneMap[src[i].b];
 	}
+}
+
+void ApplyFadeLevel(unsigned fadeval, SDL_Color *dst, const SDL_Color *src)
+{
+	for (int i = 0; i < 256; i++) {
+		dst[i].r = (fadeval * src[i].r) / 256;
+		dst[i].g = (fadeval * src[i].g) / 256;
+		dst[i].b = (fadeval * src[i].b) / 256;
+	}
+}
+
+// Applies a tone mapping curve based on the brightness slider value.
+// The brightness value is in the range [0, 100] where 0 is neutral (no change)
+// and 100 produces maximum brightening.
+void UpdateSystemPalette(std::span<const SDL_Color, 256> src)
+{
+	ApplyGlobalBrightness(system_palette.data(), src.data());
+	SystemPaletteUpdated();
 	RedrawEverything();
 }
 
-void palette_update(int first, int ncolor)
+void SystemPaletteUpdated(int first, int ncolor)
 {
 	if (HeadlessMode)
 		return;
@@ -142,50 +158,37 @@ void palette_update(int first, int ncolor)
 	if (SDLC_SetSurfaceAndPaletteColors(PalSurface, Palette.get(), system_palette.data() + first, first, ncolor) < 0) {
 		ErrSdl();
 	}
-	pal_surface_palette_version++;
 }
 
 void palette_init()
 {
 	LoadBrightness();
-	system_palette = orig_palette;
-	InitPalette();
 }
 
-void LoadPalette(const char *pszFileName, bool blend /*= true*/)
+void LoadPalette(const char *path)
 {
-	assert(pszFileName);
+	assert(path != nullptr);
+	if (HeadlessMode) return;
 
-	if (HeadlessMode)
-		return;
-
-	struct Color {
-		uint8_t r;
-		uint8_t g;
-		uint8_t b;
-	};
-
+	LogVerbose("Loading palette from {}", path);
 	std::array<Color, 256> palData;
-
-	LoadFileInMem(pszFileName, palData);
-
+	LoadFileInMem(path, palData);
 	for (unsigned i = 0; i < palData.size(); i++) {
-		orig_palette[i].r = palData[i].r;
-		orig_palette[i].g = palData[i].g;
-		orig_palette[i].b = palData[i].b;
-#ifndef USE_SDL1
-		orig_palette[i].a = SDL_ALPHA_OPAQUE;
-#endif
+		logical_palette[i] = palData[i].toSDL();
 	}
+}
 
-	if (blend) {
-		if (leveltype == DTYPE_CAVES || leveltype == DTYPE_CRYPT) {
-			GenerateBlendedLookupTable(orig_palette.data(), 1, 31);
-		} else if (leveltype == DTYPE_NEST) {
-			GenerateBlendedLookupTable(orig_palette.data(), 1, 15);
-		} else {
-			GenerateBlendedLookupTable(orig_palette.data(), -1, -1);
-		}
+void LoadPaletteAndInitBlending(const char *path)
+{
+	assert(path != nullptr);
+	if (HeadlessMode) return;
+	LoadPalette(path);
+	if (leveltype == DTYPE_CAVES || leveltype == DTYPE_CRYPT) {
+		GenerateBlendedLookupTable(/*skipFrom=*/1, /*skipTo=*/31);
+	} else if (leveltype == DTYPE_NEST) {
+		GenerateBlendedLookupTable(/*skipFrom=*/1, /*skipTo=*/15);
+	} else {
+		GenerateBlendedLookupTable();
 	}
 }
 
@@ -195,12 +198,12 @@ void LoadRndLvlPal(dungeon_type l)
 		return;
 
 	if (l == DTYPE_TOWN) {
-		LoadPalette("levels\\towndata\\town.pal");
+		LoadPaletteAndInitBlending("levels\\towndata\\town.pal");
 		return;
 	}
 
 	if (l == DTYPE_CRYPT) {
-		LoadPalette("nlevels\\l5data\\l5base.pal");
+		LoadPaletteAndInitBlending("nlevels\\l5data\\l5base.pal");
 		return;
 	}
 
@@ -214,7 +217,7 @@ void LoadRndLvlPal(dungeon_type l)
 	} else {
 		*fmt::format_to(szFileName, R"(levels\l{0}data\l{0}_{1}.pal)", static_cast<int>(l), rv) = '\0';
 	}
-	LoadPalette(szFileName);
+	LoadPaletteAndInitBlending(szFileName);
 }
 
 void IncreaseBrightness()
@@ -223,8 +226,7 @@ void IncreaseBrightness()
 	if (brightnessValue < 100) {
 		int newBrightness = std::min(brightnessValue + 5, 100);
 		GetOptions().Graphics.brightness.SetValue(newBrightness);
-		ApplyToneMapping(system_palette, logical_palette);
-		palette_update();
+		UpdateSystemPalette(logical_palette);
 	}
 }
 
@@ -234,8 +236,7 @@ void DecreaseBrightness()
 	if (brightnessValue > 0) {
 		int newBrightness = std::max(brightnessValue - 5, 0);
 		GetOptions().Graphics.brightness.SetValue(newBrightness);
-		ApplyToneMapping(system_palette, logical_palette);
-		palette_update();
+		UpdateSystemPalette(logical_palette);
 	}
 }
 
@@ -243,38 +244,18 @@ int UpdateBrightness(int brightness)
 {
 	if (brightness >= 0) {
 		GetOptions().Graphics.brightness.SetValue(brightness);
-		ApplyToneMapping(system_palette, logical_palette);
-		palette_update();
+		UpdateSystemPalette(logical_palette);
 	}
 
 	return *GetOptions().Graphics.brightness;
 }
 
-void SetFadeLevel(int fadeval, bool updateHardwareCursor, const std::array<SDL_Color, 256> &srcPalette)
-{
-	if (HeadlessMode)
-		return;
-
-	for (int i = 0; i < 256; i++) {
-		system_palette[i].r = (fadeval * srcPalette[i].r) / 256;
-		system_palette[i].g = (fadeval * srcPalette[i].g) / 256;
-		system_palette[i].b = (fadeval * srcPalette[i].b) / 256;
-#if SDL_VERSION_ATLEAST(2, 0, 0)
-		system_palette[i].a = SDL_ALPHA_OPAQUE;
-#endif
-	}
-	palette_update();
-	if (updateHardwareCursor && IsHardwareCursor()) {
-		ReinitializeHardwareCursor();
-	}
-}
-
 void BlackPalette()
 {
-	// With fade level 0 updating the hardware cursor may be redundant
-	// since everything is black. The caller should update the cursor
-	// when needed instead.
-	SetFadeLevel(0, /*updateHardwareCursor=*/false);
+	for (SDL_Color &c : system_palette) {
+		c.r = c.g = c.b = 0;
+	}
+	SystemPaletteUpdated();
 }
 
 void PaletteFadeIn(int fr, const std::array<SDL_Color, 256> &srcPalette)
@@ -284,29 +265,39 @@ void PaletteFadeIn(int fr, const std::array<SDL_Color, 256> &srcPalette)
 	if (demo::IsRunning())
 		fr = 0;
 
-	ApplyToneMapping(logical_palette, srcPalette);
+	SDL_Color palette[256];
+	ApplyGlobalBrightness(palette, srcPalette.data());
 
 	if (fr > 0) {
 		const uint32_t tc = SDL_GetTicks();
 		fr *= 3;
 		uint32_t prevFadeValue = 255;
 		for (uint32_t i = 0; i < 256; i = fr * (SDL_GetTicks() - tc) / 50) {
-			if (i != prevFadeValue) {
-				// We can skip hardware cursor update for fade level 0 (everything is black).
-				SetFadeLevel(i, /*updateHardwareCursor=*/i != 0u, logical_palette);
-				prevFadeValue = i;
+			if (i == prevFadeValue) {
+				SDL_Delay(1);
+				continue;
 			}
+			ApplyFadeLevel(i, system_palette.data(), palette);
+			SystemPaletteUpdated();
+
+			// We can skip hardware cursor update for fade level 0 (everything is black).
+			if (i != 0 && IsHardwareCursor()) {
+				ReinitializeHardwareCursor();
+			}
+
+			prevFadeValue = i;
+
 			BltFast(nullptr, nullptr);
 			RenderPresent();
 		}
-		SetFadeLevel(256);
-	} else {
-		SetFadeLevel(256);
+	}
+	UpdateSystemPalette(palette);
+	if (IsHardwareCursor()) ReinitializeHardwareCursor();
+
+	if (fr <= 0) {
 		BltFast(nullptr, nullptr);
 		RenderPresent();
 	}
-
-	logical_palette = srcPalette;
 
 	sgbFadedIn = true;
 }
@@ -319,20 +310,30 @@ void PaletteFadeOut(int fr, const std::array<SDL_Color, 256> &srcPalette)
 		fr = 0;
 
 	if (fr > 0) {
+		SDL_Color palette[256];
+		ApplyGlobalBrightness(palette, srcPalette.data());
+
 		const uint32_t tc = SDL_GetTicks();
 		fr *= 3;
 		uint32_t prevFadeValue = 0;
 		for (uint32_t i = 0; i < 256; i = fr * (SDL_GetTicks() - tc) / 50) {
-			if (i != prevFadeValue) {
-				SetFadeLevel(256 - i, /*updateHardwareCursor=*/true, srcPalette);
-				prevFadeValue = i;
+			if (i == prevFadeValue) {
+				SDL_Delay(1);
+				continue;
 			}
+			ApplyFadeLevel(256 - i, system_palette.data(), palette);
+			SystemPaletteUpdated();
+			prevFadeValue = i;
+
 			BltFast(nullptr, nullptr);
 			RenderPresent();
 		}
-		SetFadeLevel(0, /*updateHardwareCursor=*/true, srcPalette);
-	} else {
-		SetFadeLevel(0, /*updateHardwareCursor=*/true, srcPalette);
+	}
+
+	BlackPalette();
+	if (IsHardwareCursor()) ReinitializeHardwareCursor();
+
+	if (fr <= 0) {
 		BltFast(nullptr, nullptr);
 		RenderPresent();
 	}
@@ -343,7 +344,7 @@ void PaletteFadeOut(int fr, const std::array<SDL_Color, 256> &srcPalette)
 void palette_update_caves()
 {
 	CycleColors(1, 31);
-	palette_update(0, 31);
+	SystemPaletteUpdated(1, 31);
 }
 
 /**
@@ -360,7 +361,7 @@ void palette_update_crypt()
 	}
 
 	CycleColorsReverse(16, 31);
-	palette_update(0, 31);
+	SystemPaletteUpdated(1, 31);
 	delayLava = !delayLava;
 }
 
@@ -379,18 +380,16 @@ void palette_update_hive()
 
 	CycleColorsReverse(1, 8);
 	CycleColorsReverse(9, 15);
-	palette_update(0, 15);
+	SystemPaletteUpdated(1, 15);
 	delay = 0;
 }
 
-void palette_update_quest_palette(int n)
+void SetLogicalPaletteColor(unsigned i, const SDL_Color &color)
 {
-	// n is in [1, 32], so `i` is in [0, 31].
-	const int i = 32 - n;
-	logical_palette[i] = orig_palette[i];
-	ApplyToneMappingSingleColor(system_palette[i], logical_palette[i]);
-	palette_update(i, 1);
-	UpdateBlendedLookupTableSingleColor(i, logical_palette.data(), /*skipFrom=*/1, /*skipTo=*/31);
+	logical_palette[i] = color;
+	ApplyGlobalBrightnessSingleColor(system_palette[i], logical_palette[i]);
+	SystemPaletteUpdated(i, 1);
+	UpdateBlendedLookupTableSingleColor(i);
 }
 
 } // namespace devilution

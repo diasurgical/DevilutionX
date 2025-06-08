@@ -99,6 +99,8 @@ private:
 	using RGB = std::array<uint8_t, 3>;
 
 public:
+	PaletteKdTree() = default;
+
 	/**
 	 * @brief Constructs a PaletteKdTree
 	 *

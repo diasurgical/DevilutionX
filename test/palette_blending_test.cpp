@@ -1,6 +1,7 @@
 #include "utils/palette_blending.hpp"
 
 #include <algorithm>
+#include <array>
 #include <iostream>
 
 #include <SDL.h>
@@ -18,6 +19,9 @@ void PrintTo(const SDL_Color &color, std::ostream *os)
 }
 
 namespace devilution {
+
+std::array<SDL_Color, 256> logical_palette;
+
 namespace {
 
 MATCHER_P3(ColorIs, r, g, b,
@@ -42,10 +46,10 @@ void GeneratePalette(SDL_Color palette[256])
 
 TEST(GenerateBlendedLookupTableTest, BasicTest)
 {
-	SDL_Color palette[256];
+	SDL_Color *palette = logical_palette.data();
 	GeneratePalette(palette);
 
-	GenerateBlendedLookupTable(palette, /*skipFrom=*/-1, /*skipTo=*/-1);
+	GenerateBlendedLookupTable();
 
 	EXPECT_EQ(paletteTransparencyLookup[100][100], 100);
 
