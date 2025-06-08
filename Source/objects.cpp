@@ -1519,7 +1519,7 @@ void UpdateCircle(Object &circle)
 		}
 		AddMissile(playerOnCircle->position.tile, { 35, 46 }, Direction::South, MissileID::Phasing, TARGET_BOTH, *playerOnCircle, 0, 0);
 		if (playerOnCircle == MyPlayer) {
-			LastMouseButtonAction = MouseActionType::None;
+			LastPlayerAction = PlayerActionType::None;
 			sgbMouseDown = CLICK_NONE;
 		}
 		ClrPlrPath(*playerOnCircle);

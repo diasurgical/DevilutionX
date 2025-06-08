@@ -515,7 +515,7 @@ void Interact()
 		}
 
 		NetSendCmdLoc(MyPlayerId, true, myPlayer.UsesRangedWeapon() ? CMD_RATTACKXY : CMD_SATTACKXY, position);
-		LastMouseButtonAction = MouseActionType::Attack;
+		LastPlayerAction = PlayerActionType::Attack;
 		return;
 	}
 
@@ -525,19 +525,19 @@ void Interact()
 		} else {
 			NetSendCmdParam1(true, CMD_RATTACKID, pcursmonst);
 		}
-		LastMouseButtonAction = MouseActionType::AttackMonsterTarget;
+		LastPlayerAction = PlayerActionType::AttackMonsterTarget;
 		return;
 	}
 
 	if (leveltype != DTYPE_TOWN && PlayerUnderCursor != nullptr && !myPlayer.friendlyMode) {
 		NetSendCmdParam1(true, myPlayer.UsesRangedWeapon() ? CMD_RATTACKPID : CMD_ATTACKPID, PlayerUnderCursor->getId());
-		LastMouseButtonAction = MouseActionType::AttackPlayerTarget;
+		LastPlayerAction = PlayerActionType::AttackPlayerTarget;
 		return;
 	}
 
 	if (ObjectUnderCursor != nullptr) {
 		NetSendCmdLoc(MyPlayerId, true, CMD_OPOBJXY, cursPosition);
-		LastMouseButtonAction = MouseActionType::OperateObject;
+		LastPlayerAction = PlayerActionType::OperateObject;
 		return;
 	}
 }
@@ -1826,15 +1826,6 @@ void HandleRightStickMotion()
 		return;
 	}
 
-	if (AutomapActive) { // move map
-		int dx = 0;
-		int dy = 0;
-		acc.Pool(&dx, &dy, 32);
-		AutomapOffset.deltaX += dy + dx;
-		AutomapOffset.deltaY += dy - dx;
-		return;
-	}
-
 	{ // move cursor
 		InvalidateInventorySlot();
 		int x = MousePosition.x;
@@ -1899,7 +1890,7 @@ void plrctrls_after_check_curs_move()
 	}
 
 	// While holding the button down we should retain target (but potentially lose it if it dies, goes out of view, etc)
-	if (ControllerActionHeld != GameActionType_NONE && IsNoneOf(LastMouseButtonAction, MouseActionType::None, MouseActionType::Attack, MouseActionType::Spell)) {
+	if (ControllerActionHeld != GameActionType_NONE && IsNoneOf(LastPlayerAction, PlayerActionType::None, PlayerActionType::Attack, PlayerActionType::Spell)) {
 		InvalidateTargets();
 
 		if (pcursmonst == -1 && ObjectUnderCursor == nullptr && pcursitem == -1 && pcursinvitem == -1 && pcursstashitem == StashStruct::EmptyCell && PlayerUnderCursor == nullptr) {
@@ -2100,11 +2091,11 @@ void PerformSpellAction()
 	UpdateSpellTarget(myPlayer._pRSpell);
 	CheckPlrSpell(false);
 	if (PlayerUnderCursor != nullptr)
-		LastMouseButtonAction = MouseActionType::SpellPlayerTarget;
+		LastPlayerAction = PlayerActionType::SpellPlayerTarget;
 	else if (pcursmonst != -1)
-		LastMouseButtonAction = MouseActionType::SpellMonsterTarget;
+		LastPlayerAction = PlayerActionType::SpellMonsterTarget;
 	else
-		LastMouseButtonAction = MouseActionType::Spell;
+		LastPlayerAction = PlayerActionType::Spell;
 }
 
 void CtrlUseInvItem()
@@ -2187,7 +2178,7 @@ void PerformSecondaryAction()
 		NetSendCmdLocParam1(true, CMD_GOTOAGETITEM, cursPosition, pcursitem);
 	} else if (ObjectUnderCursor != nullptr) {
 		NetSendCmdLoc(MyPlayerId, true, CMD_OPOBJXY, cursPosition);
-		LastMouseButtonAction = MouseActionType::OperateObject;
+		LastPlayerAction = PlayerActionType::OperateObject;
 	} else {
 		if (pcursmissile != nullptr) {
 			MakePlrPath(myPlayer, pcursmissile->position.tile, true);
@@ -2204,7 +2195,7 @@ void PerformSecondaryAction()
 
 void QuickCast(size_t slot)
 {
-	MouseActionType prevMouseButtonAction = LastMouseButtonAction;
+	PlayerActionType prevMouseButtonAction = LastPlayerAction;
 	Player &myPlayer = *MyPlayer;
 	SpellID spell = myPlayer._pSplHotKey[slot];
 	SpellType spellType = myPlayer._pSplTHotKey[slot];
@@ -2214,7 +2205,7 @@ void QuickCast(size_t slot)
 	}
 
 	CheckPlrSpell(false, spell, spellType);
-	LastMouseButtonAction = prevMouseButtonAction;
+	LastPlayerAction = prevMouseButtonAction;
 }
 
 } // namespace devilution
