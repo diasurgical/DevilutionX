@@ -285,7 +285,7 @@ private:
 /**
  * @brief Returns a copy of the global seed generator and fast-forwards the global seed generator to avoid collisions
  */
-xoshiro128plusplus ReserveSeedSequence();
+xoshiro128plusplus ReserveSeedSequence(int initialSeed);
 
 /**
  * @brief Advances the global seed generator state and returns the new value

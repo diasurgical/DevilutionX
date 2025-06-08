@@ -286,7 +286,12 @@ void FindRangedTarget()
 void FindMeleeTarget()
 {
 	bool visited[MAXDUNX][MAXDUNY] = { {} };
-	int maxSteps = 25; // Max steps for FindPath is 25
+	// Max steps for FindPath is 25
+	int maxSteps = 25;
+	if (*GetOptions().Gameplay.noMonstersAutoPursuing)
+		// Disable monster auto-pursuing
+		maxSteps = 0;
+
 	int rotations = 0;
 	bool canTalk = false;
 

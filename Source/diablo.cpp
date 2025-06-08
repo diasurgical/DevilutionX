@@ -101,6 +101,7 @@
 #include "utils/status_macros.hpp"
 #include "utils/str_cat.hpp"
 #include "utils/utf8.hpp"
+#include "utils/shared.h"
 
 #ifndef USE_SDL1
 #include "controls/touch/gamepad.h"
@@ -486,6 +487,7 @@ void PressKey(SDL_Keycode vkey, uint16_t modState)
 		return;
 
 	if (gmenu_presskeys(vkey) || CheckKeypress(vkey)) {
+		printf(">> %s:%d, not handled\n", __func__, __LINE__);
 		return;
 	}
 
@@ -841,11 +843,14 @@ void RunGameLoop(interface_mode uMsg)
 	nthread_ignore_mutex(true);
 	StartGame(uMsg);
 	assert(HeadlessMode || ghMainWnd);
-	EventHandler previousHandler = SetEventHandler(GameEventHandler);
+	EventHandler newHandler = { GameEventHandler, SDL_PollEvent };
+	EventHandler previousHandler = SetEventHandler(newHandler);
 	run_delta_info();
 	gbRunGame = true;
 	gbProcessPlayers = IsDiabloAlive(true);
 	gbRunGameResult = true;
+
+	printf(">> %s\n", __func__);
 
 	RedrawEverything();
 	if (!HeadlessMode) {
@@ -868,6 +873,11 @@ void RunGameLoop(interface_mode uMsg)
 #ifdef GPERF_HEAP_FIRST_GAME_ITERATION
 	unsigned run_game_iteration = 0;
 #endif
+
+	/* Start a new level on new game start if specified */
+	if (uMsg == WM_DIABNEWGAME && *GetOptions().Gameplay.gameLevel)
+		StartNewLvl(*MyPlayer, interface_mode::WM_DIABNEXTLVL,
+					*GetOptions().Gameplay.gameLevel);
 
 	while (gbRunGame) {
 
@@ -937,7 +947,7 @@ void RunGameLoop(interface_mode uMsg)
 	RedrawEverything();
 	scrollrt_draw_game_screen();
 	previousHandler = SetEventHandler(previousHandler);
-	assert(HeadlessMode || previousHandler == GameEventHandler);
+	assert(HeadlessMode || previousHandler.handle == GameEventHandler);
 	FreeGame();
 
 	if (cineflag) {
@@ -1179,8 +1189,12 @@ void ApplicationInit()
 	if (*GetOptions().Graphics.showFPS)
 		EnableFrameCount();
 
-	init_create_window();
-	was_window_init = true;
+	if (!HeadlessMode) {
+		init_create_window();
+		was_window_init = true;
+	} else {
+		SDL_Init(SDL_INIT_EVENTS);
+	}
 
 	InitializeScreenReader();
 	LanguageInitialize();
@@ -1236,9 +1250,10 @@ void DiabloInit()
 
 	DiabloInitScreen();
 
-	snd_init();
-
-	ui_sound_init();
+	if (!HeadlessMode) {
+		snd_init();
+		ui_sound_init();
+	}
 
 	// Item graphics are loaded early, they already get touched during hero selection.
 	InitItemGFX();
@@ -2524,6 +2539,9 @@ bool StartGame(bool bNewGame, bool bSinglePlayer)
 	gbSelectProvider = true;
 	ReturnToMainMenu = false;
 
+	printf(">> %s: newgame=%d, single=%d\n", __func__,
+		   bNewGame, bSinglePlayer);
+
 	do {
 		gbLoadGame = false;
 
@@ -2585,6 +2603,8 @@ void setOnInitialized(void (*callback)())
 
 int DiabloMain(int argc, char **argv)
 {
+	setlinebuf(stdout);
+
 #ifdef _DEBUG
 	SDL_LogSetAllPriority(SDL_LOG_PRIORITY_DEBUG);
 #endif
@@ -2607,6 +2627,12 @@ int DiabloMain(int argc, char **argv)
 	ApplicationInit();
 	LuaInitialize();
 	if (!demo::IsRunning()) SaveOptions();
+
+	if (!(*GetOptions().Gameplay.shareGameStateFilename).empty()) {
+		// Share whole diablo state
+		shared::share_diablo_state(paths::ConfigPath() + "/" +
+					   *GetOptions().Gameplay.shareGameStateFilename);
+	}
 
 	// Finally load game data
 	LoadGameArchives();
@@ -2740,8 +2766,10 @@ void diablo_pause_game()
 	if (!gbIsMultiplayer) {
 		if (PauseMode != 0) {
 			PauseMode = 0;
+			printf(">> %s: resumed\n", __func__);
 		} else {
 			PauseMode = 2;
+			printf(">> %s: paused\n", __func__);
 			sound_stop();
 			qtextflag = false;
 			LastMouseButtonAction = MouseActionType::None;
@@ -3300,6 +3328,133 @@ tl::expected<void, std::string> LoadGameLevel(bool firstflag, lvl_entry lvldir)
 	return {};
 }
 
+static void
+inject_sdl_events(uint32_t new_type)
+{
+	static uint32_t prev_type;
+
+	unsigned int sdl_type, sdl_sym;
+	SDL_Scancode sdl_scan;
+	unsigned int diff, i;
+	SDL_Event event;
+
+	diff = prev_type ^ new_type;
+	prev_type = new_type;
+
+	for (i = 0; i < sizeof(diff) * 8; i++) {
+		unsigned int bit = (1 << i);
+		if (!(diff & bit))
+			continue;
+
+		sdl_type = (new_type & bit ? SDL_KEYDOWN : SDL_KEYUP);
+
+		if (bit == RING_ENTRY_KEY_LEFT) {
+			sdl_sym  = SDLK_LEFT;
+			sdl_scan = SDL_SCANCODE_LEFT;
+		} else if (bit == RING_ENTRY_KEY_RIGHT) {
+			sdl_sym  = SDLK_RIGHT;
+			sdl_scan = SDL_SCANCODE_RIGHT;
+		} else if (bit == RING_ENTRY_KEY_UP) {
+			sdl_sym  = SDLK_UP;
+			sdl_scan = SDL_SCANCODE_UP;
+		} else if (bit == RING_ENTRY_KEY_DOWN) {
+			sdl_sym  = SDLK_DOWN;
+			sdl_scan = SDL_SCANCODE_DOWN;
+		} else if (bit == RING_ENTRY_KEY_X) {
+			sdl_sym  = SDLK_x;
+			sdl_scan = SDL_SCANCODE_X;
+		} else if (bit == RING_ENTRY_KEY_Y) {
+			sdl_sym  = SDLK_y;
+			sdl_scan = SDL_SCANCODE_Y;
+		} else if (bit == RING_ENTRY_KEY_A) {
+			sdl_sym  = SDLK_a;
+			sdl_scan = SDL_SCANCODE_A;
+		} else if (bit == RING_ENTRY_KEY_B) {
+			sdl_sym  = SDLK_b;
+			sdl_scan = SDL_SCANCODE_B;
+		} else if (bit == RING_ENTRY_KEY_SAVE) {
+			sdl_sym  = SDLK_F2;
+			sdl_scan = SDL_SCANCODE_F2;
+
+			if (sdl_type == SDL_KEYDOWN)
+				printf(">> %s: received SAVE\n", __func__);
+		} else if (bit == RING_ENTRY_KEY_LOAD) {
+			sdl_sym  = SDLK_F3;
+			sdl_scan = SDL_SCANCODE_F3;
+
+			if (sdl_type == SDL_KEYDOWN)
+				printf(">> %s: received LOAD\n", __func__);
+		} else if (bit == RING_ENTRY_KEY_PAUSE) {
+			sdl_sym  = SDLK_PAUSE;
+			sdl_scan = SDL_SCANCODE_PAUSE;
+
+			if (sdl_type == SDL_KEYDOWN)
+				printf(">> %s: received PAUSE\n", __func__);
+		} else {
+			/* Unknown key */
+			continue;
+		}
+
+		event.type = sdl_type;
+		event.key.keysym.sym = sdl_sym;
+		event.key.keysym.scancode = sdl_scan;
+		event.key.keysym.mod = KMOD_NONE;
+		event.key.repeat = 0;
+
+		if (SDL_PushEvent(&event) < 0) {
+			printf("Failed to push event: %s\n", SDL_GetError());
+		}
+	}
+}
+
+static void update_shared_state(void)
+{
+	static bool release_keys;
+	struct ring_entry *entry;
+
+	if (MyPlayer)
+		// Do a static cast to avoid compiler warning that writing to
+		// an object with no trivial copy-assignment is not
+		// allowed. Please, FIXME.
+		memcpy(static_cast<void *>(&shared::player), MyPlayer, sizeof(shared::player));
+
+	// "Odd" phase of a tick before key injection. Two phases are
+	// needed for proper synchronization from the submitter's side,
+	// ensuring that the submitter knows exactly one full game tick
+	// has passed since the last key acceptance.
+	shared::game_ticks++;
+	// Prevent compiler from moving increment below the barrier
+	std::atomic_signal_fence(std::memory_order_seq_cst);
+
+	// On early start, the game state is not completely initialized,
+	// so incoming keys may not work. Delay keys processing. The
+	// number of ticks to delay was chosen empirically. Also ticks are
+	// multiplied by two, since there are two phases.
+	if (shared::game_ticks > 5*2) {
+		entry = ring_queue_get_entry_to_retreive(&shared::input_queue);
+		if (entry) {
+			uint32_t keys = entry->type;
+
+			release_keys = (keys & RING_ENTRY_F_SINGLE_TICK_PRESS);
+			keys &= ~RING_ENTRY_FLAGS;
+			inject_sdl_events(keys);
+			ring_queue_retrieve(&shared::input_queue);
+
+			/* Reply with key event */
+			entry = ring_queue_get_entry_to_submit(&shared::events_queue);
+			entry->type = keys;
+			ring_queue_submit(&shared::events_queue);
+		} else if (release_keys) {
+			release_keys = false;
+			inject_sdl_events(0);
+		}
+	}
+	// Prevent compiler from moving instructions below the barrier
+	std::atomic_signal_fence(std::memory_order_seq_cst);
+	// "even" phase of a tick once keys injected
+	shared::game_ticks++;
+}
+
 bool game_loop(bool bStartup)
 {
 	uint16_t wait = bStartup ? sgGameInitInfo.nTickRate * 3 : 3;
@@ -3316,6 +3471,10 @@ bool game_loop(bool bStartup)
 		if (!gbRunGame || !gbIsMultiplayer || demo::IsRunning() || demo::IsRecording() || !nthread_has_500ms_passed())
 			break;
 	}
+
+	if (!(*GetOptions().Gameplay.shareGameStateFilename).empty())
+		update_shared_state();
+
 	return true;
 }
 

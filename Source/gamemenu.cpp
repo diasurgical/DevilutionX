@@ -20,6 +20,7 @@
 #include "pfile.h"
 #include "qol/floatingnumbers.h"
 #include "utils/language.h"
+#include "utils/shared.h"
 
 #ifndef USE_SDL1
 #include "controls/touch/renderers.h"
@@ -291,7 +292,11 @@ void gamemenu_quit_game(bool bActivate)
 
 void gamemenu_load_game(bool /*bActivate*/)
 {
-	EventHandler saveProc = SetEventHandler(DisableInputEventHandler);
+	printf(">> %s:%d\n", __func__, __LINE__);
+
+	EventHandler newHandler = { DisableInputEventHandler, SDL_PollEvent };
+	EventHandler prevHandler = SetEventHandler(newHandler);
+
 	gamemenu_off();
 	ClearFloatingNumbers();
 	NewCursor(CURSOR_NONE);
@@ -321,11 +326,14 @@ void gamemenu_load_game(bool /*bActivate*/)
 	PaletteFadeIn(8);
 	NewCursor(CURSOR_HAND);
 	interface_msg_pump();
-	SetEventHandler(saveProc);
+	SetEventHandler(prevHandler);
+	shared::game_loads++;
 }
 
 void gamemenu_save_game(bool /*bActivate*/)
 {
+	printf(">> %s:%d\n", __func__, __LINE__);
+
 	if (pcurs != CURSOR_HAND) {
 		return;
 	}
@@ -335,7 +343,8 @@ void gamemenu_save_game(bool /*bActivate*/)
 		return;
 	}
 
-	EventHandler saveProc = SetEventHandler(DisableInputEventHandler);
+	EventHandler newHandler = { DisableInputEventHandler, SDL_PollEvent };
+	EventHandler prevHandler = SetEventHandler(newHandler);
 	NewCursor(CURSOR_NONE);
 	gamemenu_off();
 	InitDiabloMsg(EMSG_SAVING);
@@ -352,11 +361,19 @@ void gamemenu_save_game(bool /*bActivate*/)
 		if (!demo::IsRunning()) SaveOptions();
 	}
 	interface_msg_pump();
-	SetEventHandler(saveProc);
+	SetEventHandler(prevHandler);
+	shared::game_saves++;
 }
 
 void gamemenu_on()
 {
+	if (HeadlessMode)
+		// Do not show any menu in headless mode, since it is not
+		// visible anyway. More importantly, we are not able to send
+		// any keys (see gmenu_presskeys() check in PressKey()), such
+		// as to load a game for example.
+		return;
+
 	isGameMenuOpen = true;
 	if (!gbIsMultiplayer) {
 		gmenu_set_items(sgSingleMenu, GamemenuUpdateSingle);

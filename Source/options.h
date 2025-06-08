@@ -94,6 +94,7 @@ enum class FloatingNumbers : uint8_t {
 
 enum class OptionEntryType : uint8_t {
 	Boolean,
+	String,
 	List,
 	Key,
 	PadButton,
@@ -175,6 +176,30 @@ public:
 private:
 	bool defaultValue;
 	bool value;
+};
+
+class OptionEntryString : public OptionEntryBase {
+public:
+	OptionEntryString(std::string_view key, OptionEntryFlags flags, const char *name, const char *description, std::string defaultValue)
+	    : OptionEntryBase(key, flags, name, description)
+	    , defaultValue(defaultValue)
+	    , value(defaultValue)
+	{
+	}
+	[[nodiscard]] std::string operator*() const
+	{
+		return value;
+	}
+	void SetValue(std::string value);
+
+	[[nodiscard]] OptionEntryType GetType() const override;
+	[[nodiscard]] std::string_view GetValueDescription() const override;
+	void LoadFromIni(std::string_view category) override;
+	void SaveToIni(std::string_view category) const override;
+
+private:
+	std::string defaultValue;
+	std::string value;
 };
 
 class OptionEntryListBase : public OptionEntryBase {
@@ -510,6 +535,8 @@ struct GraphicsOptions : OptionCategoryBase {
 	OptionEntryResolution resolution;
 	/** @brief Run in fullscreen or windowed mode. */
 	OptionEntryBoolean fullscreen;
+	/** @brief Run completely headless. */
+	OptionEntryBoolean headless;
 #if !defined(USE_SDL1) || defined(__3DS__)
 	/** @brief Expand the aspect ratio to match the screen. */
 	OptionEntryBoolean fitToScreen;
@@ -633,6 +660,19 @@ struct GameplayOptions : OptionCategoryBase {
 	 * Advanced option, not displayed in the UI.
 	 */
 	OptionEntryInt<int> skipLoadingScreenThresholdMs;
+
+	/** @brief Share the whole game state for AI via file  */
+	OptionEntryString shareGameStateFilename;
+	/** @brief Game and player initial seed */
+	OptionEntryInt<int> gameAndPlayerSeed;
+	/** @brief Load player into the level on a new game start */
+	OptionEntryInt<int> gameLevel;
+	/** @brief Disable all monsters. */
+	OptionEntryBoolean noMonsters;
+	/** @brief Skip animation */
+	OptionEntryInt<int> skipAnimation;
+	/** @brief Disable monsters auto-pursuing */
+	OptionEntryBoolean noMonstersAutoPursuing;
 };
 
 struct ControllerOptions : OptionCategoryBase {

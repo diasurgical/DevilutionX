@@ -2,6 +2,7 @@
 # and whether to link them statically.
 include(functions/dependency_options)
 include(functions/emscripten_system_library)
+include(CheckCXXSourceCompiles)
 
 if(EMSCRIPTEN)
   emscripten_system_library("zlib" ZLIB::ZLIB USE_ZLIB=1)
@@ -274,4 +275,20 @@ endif()
 if(GPERF)
   find_package(Gperftools REQUIRED)
   message("INFO: ${GPERFTOOLS_LIBRARIES}")
+endif()
+
+check_cxx_source_compiles("
+  extern char __bss_start;
+  extern char _end;
+  #include <cassert>
+  int main() {
+      assert(&__bss_start < &_end);
+      return 0;
+  }
+" HAVE_LINKER_BSS_SYMBOLS)
+
+if(HAVE_LINKER_BSS_SYMBOLS)
+    message(STATUS "Linker symbols `__bss_start` and `_end` are available")
+else()
+    message(STATUS "Linker symbols `__bss_start` and `_end` are NOT available")
 endif()
