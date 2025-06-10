@@ -540,7 +540,7 @@ add_devilutionx_object_library(libdevilutionx_utf8
   utils/utf8.cpp
 )
 target_link_dependencies(libdevilutionx_utf8 PRIVATE
-  SheenBidi::sheenbidi
+  SheenBidi::SheenBidi
 )
 
 if(NOSOUND)

@@ -5,9 +5,7 @@
 #include <cstring>
 #include <string_view>
 
-extern "C" {
-#include <SheenBidi.h>
-}
+#include <SheenBidi/SheenBidi.h>
 
 namespace devilution {
 
