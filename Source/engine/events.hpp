@@ -12,14 +12,18 @@
 
 namespace devilution {
 
-using EventHandler = void (*)(const SDL_Event &event, uint16_t modState);
+struct EventHandler {
+	void (*handle)(const SDL_Event &event, uint16_t modState);
+	int (*poll)(SDL_Event *event);
+};
 
 /** @brief The current input handler function */
 extern EventHandler CurrentEventHandler;
 
-EventHandler SetEventHandler(EventHandler NewProc);
+EventHandler SetEventHandler(EventHandler NewHandler);
 
-bool FetchMessage(SDL_Event *event, uint16_t *modState);
+bool FetchMessage(SDL_Event *event, uint16_t *modState,
+    int (*poll)(SDL_Event *event) = SDL_PollEvent);
 
 void HandleMessage(const SDL_Event &event, uint16_t modState);
 

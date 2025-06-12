@@ -7,15 +7,20 @@
 
 namespace devilution {
 
-inline int PollEvent(SDL_Event *event)
+inline int PollEventCustom(SDL_Event *event, int (*poll)(SDL_Event *event))
 {
-	int result = SDL_PollEvent(event);
+	int result = poll(event);
 	if (result != 0) {
 		UnlockControllerState(*event);
 		ProcessControllerMotion(*event);
 	}
 
 	return result;
+}
+
+inline int PollEvent(SDL_Event *event)
+{
+	return PollEventCustom(event, SDL_PollEvent);
 }
 
 } // namespace devilution
