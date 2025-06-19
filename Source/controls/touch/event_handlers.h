@@ -89,5 +89,6 @@ private:
 };
 
 void HandleTouchEvent(const SDL_Event &event);
+void DeactivateTouchEventHandlers();
 
 } // namespace devilution

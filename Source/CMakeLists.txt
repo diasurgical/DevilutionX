@@ -90,6 +90,7 @@ set(libdevilutionx_SRCS
 
   engine/render/automap_render.cpp
   engine/render/dun_render.cpp
+  engine/render/light_render.cpp
   engine/render/primitive_render.cpp
   engine/render/scrollrt.cpp
   engine/render/text_render.cpp
@@ -106,6 +107,7 @@ set(libdevilutionx_SRCS
   lua/autocomplete.cpp
   lua/lua.cpp
   lua/modules/audio.cpp
+  lua/modules/hellfire.cpp
   lua/modules/dev.cpp
   lua/modules/dev/display.cpp
   lua/modules/dev/items.cpp
@@ -121,11 +123,14 @@ set(libdevilutionx_SRCS
   lua/modules/dev/search.cpp
   lua/modules/dev/towners.cpp
   lua/modules/i18n.cpp
+  lua/modules/items.cpp
   lua/modules/log.cpp
   lua/modules/player.cpp
   lua/modules/render.cpp
   lua/modules/towners.cpp
   lua/repl.cpp
+
+  monsters/validation.cpp
 
   panels/charpanel.cpp
   panels/console.cpp
@@ -137,6 +142,8 @@ set(libdevilutionx_SRCS
 
   platform/locale.cpp
 
+  portals/validation.cpp
+
   qol/autopickup.cpp
   qol/chatlog.cpp
   qol/floatingnumbers.cpp
@@ -144,6 +151,8 @@ set(libdevilutionx_SRCS
   qol/monhealthbar.cpp
   qol/stash.cpp
   qol/xpbar.cpp
+
+  quests/validation.cpp
 
   storm/storm_net.cpp
   storm/storm_svid.cpp
@@ -307,6 +316,7 @@ add_devilutionx_object_library(libdevilutionx_init
 target_link_dependencies(libdevilutionx_init PUBLIC
   libdevilutionx_assets
   libdevilutionx_config
+  libdevilutionx_mpq
   libdevilutionx_options
 )
 
@@ -317,6 +327,7 @@ target_link_dependencies(libdevilutionx_lighting PUBLIC
   DevilutionX::SDL
   fmt::fmt
   tl
+  libdevilutionx_vision
 )
 
 add_devilutionx_object_library(libdevilutionx_logged_fstream
@@ -391,6 +402,13 @@ target_link_dependencies(libdevilutionx_monster PUBLIC
   libdevilutionx_headless_mode
   libdevilutionx_sound
   libdevilutionx_txtdata
+)
+
+add_devilutionx_object_library(libdevilutionx_palette_blending
+  utils/palette_blending.cpp
+)
+target_link_dependencies(libdevilutionx_palette_blending PUBLIC
+  DevilutionX::SDL
 )
 
 add_devilutionx_object_library(libdevilutionx_parse_int
@@ -522,7 +540,7 @@ add_devilutionx_object_library(libdevilutionx_utf8
   utils/utf8.cpp
 )
 target_link_dependencies(libdevilutionx_utf8 PRIVATE
-  SheenBidi::sheenbidi
+  SheenBidi::SheenBidi
 )
 
 if(NOSOUND)
@@ -593,6 +611,13 @@ target_link_dependencies(libdevilutionx_strings PRIVATE
 
 add_devilutionx_object_library(libdevilutionx_utils_console
   utils/console.cpp
+)
+
+add_devilutionx_object_library(libdevilutionx_vision
+  vision.cpp
+)
+target_link_dependencies(libdevilutionx_vision PUBLIC
+  tl
 )
 
 if(USE_SDL1)
@@ -705,6 +730,7 @@ target_link_dependencies(libdevilutionx PUBLIC
   libdevilutionx_multiplayer
   libdevilutionx_options
   libdevilutionx_padmapper
+  libdevilutionx_palette_blending
   libdevilutionx_parse_int
   libdevilutionx_pathfinding
   libdevilutionx_pkware_encrypt

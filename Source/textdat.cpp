@@ -916,4 +916,7 @@ const Speech Speeches[] = {
 	    1, 5, SfxID::Adria48 },
 */
 };
+
+const size_t SpeechCount = sizeof(Speeches) / sizeof(Speech);
+
 } // namespace devilution

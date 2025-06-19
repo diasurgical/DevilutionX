@@ -1,4 +1,7 @@
-option(MINGW_STDTHREADS_GENERATE_STDHEADERS "" ON)
+option(MINGW_STDTHREADS_GENERATE_STDHEADERS "" OFF)
+
+# Workaround for deprecation of older CMake versions
+set(CMAKE_POLICY_VERSION_MINIMUM 3.22)
 
 FetchContent_Declare_ExcludeFromAll(mingw-std-threads
   GIT_REPOSITORY https://github.com/meganz/mingw-std-threads

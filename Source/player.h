@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <array>
+#include <string_view>
 
 #include "diablo.h"
 #include "engine/actor_position.hpp"
@@ -188,8 +189,8 @@ constexpr std::array<char, 6> CharChar = {
 	'r', // rogue
 	's', // sorcerer
 	'm', // monk
-	'b',
-	'c',
+	'b', // bard
+	'c', // barbarian
 };
 
 /**
@@ -368,6 +369,11 @@ public:
 	uint8_t pDiabloKillLevel;
 	uint16_t wReflections;
 	ItemSpecialEffectHf pDamAcFlags;
+
+	[[nodiscard]] std::string_view name() const
+	{
+		return _pName;
+	}
 
 	/**
 	 * @brief Convenience function to get the base stats/bonuses for this player's class
@@ -966,7 +972,6 @@ void ProcessPlayers();
 void ClrPlrPath(Player &player);
 bool PosOkPlayer(const Player &player, Point position);
 void MakePlrPath(Player &player, Point targetPosition, bool endspace);
-void CalcPlrStaff(Player &player);
 void CheckPlrSpell(bool isShiftHeld, SpellID spellID = MyPlayer->_pRSpell, SpellType spellType = MyPlayer->_pRSplType);
 void SyncPlrAnim(Player &player);
 void SyncInitPlrPos(Player &player);

@@ -21,9 +21,11 @@ namespace {
 struct TDataInfo {
 	std::byte *srcData;
 	uint32_t srcOffset;
+	uint32_t srcSize;
 	std::byte *destData;
 	uint32_t destOffset;
-	uint32_t size;
+	size_t destSize;
+	bool error;
 };
 
 unsigned int PkwareBufferRead(char *buf, unsigned int *size, void *param) // NOLINT(readability-non-const-parameter)
@@ -31,8 +33,8 @@ unsigned int PkwareBufferRead(char *buf, unsigned int *size, void *param) // NOL
 	auto *pInfo = reinterpret_cast<TDataInfo *>(param);
 
 	uint32_t sSize;
-	if (*size >= pInfo->size - pInfo->srcOffset) {
-		sSize = pInfo->size - pInfo->srcOffset;
+	if (*size >= pInfo->srcSize - pInfo->srcOffset) {
+		sSize = pInfo->srcSize - pInfo->srcOffset;
 	} else {
 		sSize = *size;
 	}
@@ -46,6 +48,11 @@ unsigned int PkwareBufferRead(char *buf, unsigned int *size, void *param) // NOL
 void PkwareBufferWrite(char *buf, unsigned int *size, void *param) // NOLINT(readability-non-const-parameter)
 {
 	auto *pInfo = reinterpret_cast<TDataInfo *>(param);
+
+	pInfo->error = pInfo->error || pInfo->destOffset + *size > pInfo->destSize;
+	if (pInfo->error) {
+		return;
+	}
 
 	memcpy(pInfo->destData + pInfo->destOffset, buf, *size);
 	pInfo->destOffset += *size;
@@ -66,9 +73,11 @@ uint32_t PkwareCompress(std::byte *srcData, uint32_t size)
 	TDataInfo param;
 	param.srcData = srcData;
 	param.srcOffset = 0;
+	param.srcSize = size;
 	param.destData = destData.get();
 	param.destOffset = 0;
-	param.size = size;
+	param.destSize = destSize;
+	param.error = false;
 
 	unsigned type = 0;
 	unsigned dsize = 4096;
@@ -82,7 +91,7 @@ uint32_t PkwareCompress(std::byte *srcData, uint32_t size)
 	return size;
 }
 
-void PkwareDecompress(std::byte *inBuff, uint32_t recvSize, int maxBytes)
+uint32_t PkwareDecompress(std::byte *inBuff, uint32_t recvSize, size_t maxBytes)
 {
 	std::unique_ptr<char[]> ptr = std::make_unique<char[]>(CMP_BUFFER_SIZE);
 	std::unique_ptr<std::byte[]> outBuff { new std::byte[maxBytes] };
@@ -90,12 +99,19 @@ void PkwareDecompress(std::byte *inBuff, uint32_t recvSize, int maxBytes)
 	TDataInfo info;
 	info.srcData = inBuff;
 	info.srcOffset = 0;
+	info.srcSize = recvSize;
 	info.destData = outBuff.get();
 	info.destOffset = 0;
-	info.size = recvSize;
+	info.destSize = maxBytes;
+	info.error = false;
 
 	explode(PkwareBufferRead, PkwareBufferWrite, ptr.get(), &info);
+	if (info.error) {
+		return 0;
+	}
+
 	memcpy(inBuff, outBuff.get(), info.destOffset);
+	return info.destOffset;
 }
 
 } // namespace devilution

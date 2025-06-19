@@ -93,7 +93,7 @@ void UpdateGirlAnimAfterQuestComplete();
 void UpdateCowFarmerAnimAfterQuestComplete();
 
 #ifdef _DEBUG
-bool DebugTalkToTowner(std::string_view targetName);
+bool DebugTalkToTowner(_talker_id type);
 #endif
 extern _speech_id QuestDialogTable[NUM_TOWNER_TYPES][MAXQUESTS];
 

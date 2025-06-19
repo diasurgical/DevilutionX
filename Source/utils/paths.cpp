@@ -11,11 +11,6 @@
 #include "utils/log.hpp"
 #include "utils/sdl_ptrs.h"
 
-#ifdef __HAIKU__
-#include <FindDirectory.h>
-#include <fs_info.h>
-#endif
-
 #ifdef __IPHONEOS__
 #include "platform/ios/ios_paths.h"
 #endif
@@ -123,12 +118,7 @@ const std::string &ConfigPath()
 const std::string &AssetsPath()
 {
 	if (!assetsPath) {
-#if defined(__HAIKU__)
-		char buffer[B_PATH_NAME_LENGTH + 10];
-		find_directory(B_SYSTEM_DATA_DIRECTORY, dev_for_path("/boot"), false, buffer, B_PATH_NAME_LENGTH);
-		strcat(buffer, "/devilutionx/");
-		assetsPath.emplace(strdup(buffer));
-#elif __EMSCRIPTEN__
+#if __EMSCRIPTEN__
 		assetsPath.emplace("assets/");
 #elif defined(NXDK)
 		assetsPath.emplace("D:\\assets\\");

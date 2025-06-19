@@ -1,5 +1,8 @@
 include(functions/FetchContent_ExcludeFromAll_backport)
 
+# Workaround for deprecation of older CMake versions
+set(CMAKE_POLICY_VERSION_MINIMUM 3.22)
+
 include(FetchContent)
 FetchContent_Declare_ExcludeFromAll(Tolk
     URL https://github.com/sig-a11y/tolk/archive/89de98779e3b6365dc1688538d5de4ecba3fdbab.tar.gz

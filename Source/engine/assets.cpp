@@ -3,7 +3,8 @@
 #include <algorithm>
 #include <cstdint>
 #include <cstring>
-#include <string_view>
+#include <functional>
+#include <vector>
 
 #include "appfat.h"
 #include "game_mode.hpp"
@@ -23,25 +24,9 @@
 
 namespace devilution {
 
-#ifdef UNPACKED_MPQS
-std::optional<std::string> spawn_data_path;
-std::optional<std::string> diabdat_data_path;
-std::optional<std::string> hellfire_data_path;
-std::optional<std::string> font_data_path;
-std::optional<std::string> lang_data_path;
-#else
-std::optional<MpqArchive> spawn_mpq;
-std::optional<MpqArchive> diabdat_mpq;
-std::optional<MpqArchive> hellfire_mpq;
-std::optional<MpqArchive> hfmonk_mpq;
-std::optional<MpqArchive> hfbard_mpq;
-std::optional<MpqArchive> hfbarb_mpq;
-std::optional<MpqArchive> hfmusic_mpq;
-std::optional<MpqArchive> hfvoice_mpq;
-std::optional<MpqArchive> devilutionx_mpq;
-std::optional<MpqArchive> lang_mpq;
-std::optional<MpqArchive> font_mpq;
-#endif
+std::vector<std::string> OverridePaths;
+std::map<int, MpqArchiveT, std::greater<>> MpqArchives;
+bool HasHellfireMpq;
 
 namespace {
 
@@ -49,19 +34,12 @@ namespace {
 char *FindUnpackedMpqFile(char *relativePath)
 {
 	char *path = nullptr;
-	const auto at = [&](const std::optional<std::string> &unpackedDir) -> bool {
-		if (!unpackedDir)
-			return false;
-		path = relativePath - unpackedDir->size();
-		std::memcpy(path, unpackedDir->data(), unpackedDir->size());
-		if (FileExists(path))
-			return true;
+	for (const auto &[_, unpackedDir] : MpqArchives) {
+		path = relativePath - unpackedDir.size();
+		std::memcpy(path, unpackedDir.data(), unpackedDir.size());
+		if (FileExists(path)) break;
 		path = nullptr;
-		return false;
-	};
-	at(font_data_path) || at(lang_data_path)
-	    || (gbIsHellfire && at(hellfire_data_path))
-	    || at(spawn_data_path) || at(diabdat_data_path);
+	}
 	return path;
 }
 #else
@@ -82,17 +60,17 @@ SDL_RWops *OpenOptionalRWops(const std::string &path)
 bool FindMpqFile(std::string_view filename, MpqArchive **archive, uint32_t *fileNumber)
 {
 	const MpqFileHash fileHash = CalculateMpqFileHash(filename);
-	const auto at = [=](std::optional<MpqArchive> &src) -> bool {
-		if (src && src->GetFileNumber(fileHash, *fileNumber)) {
-			*archive = &(*src);
+
+	for (auto &[_, mpqArchive] : MpqArchives) {
+		if (mpqArchive.GetFileNumber(fileHash, *fileNumber)) {
+			*archive = &mpqArchive;
 			return true;
 		}
-		return false;
-	};
+	}
 
-	return at(font_mpq) || at(lang_mpq) || at(devilutionx_mpq)
-	    || (gbIsHellfire && (at(hfvoice_mpq) || at(hfmusic_mpq) || at(hfbarb_mpq) || at(hfbard_mpq) || at(hfmonk_mpq) || at(hellfire_mpq))) || at(spawn_mpq) || at(diabdat_mpq);
+	return false;
 }
+
 #endif
 
 } // namespace
@@ -158,11 +136,13 @@ AssetRef FindAsset(std::string_view filename)
 
 	// Files in the `PrefPath()` directory can override MPQ contents.
 	{
-		const std::string path = paths::PrefPath() + relativePath;
-		result.directHandle = OpenOptionalRWops(path);
-		if (result.directHandle != nullptr) {
-			LogVerbose("Loaded MPQ file override: {}", path);
-			return result;
+		for (const auto &overridePath : OverridePaths) {
+			const std::string path = overridePath + relativePath;
+			result.directHandle = OpenOptionalRWops(path);
+			if (result.directHandle != nullptr) {
+				LogVerbose("Loaded MPQ file override: {}", path);
+				return result;
+			}
 		}
 	}
 
@@ -266,7 +246,7 @@ std::string FailedToOpenFileErrorMessage(std::string_view path, std::string_view
 
 namespace {
 #ifdef UNPACKED_MPQS
-std::optional<std::string> FindUnpackedMpqData(const std::vector<std::string> &paths, std::string_view mpqName)
+std::optional<std::string> FindUnpackedMpqData(std::span<const std::string> paths, std::string_view mpqName)
 {
 	std::string targetPath;
 	for (const std::string &path : paths) {
@@ -280,17 +260,52 @@ std::optional<std::string> FindUnpackedMpqData(const std::vector<std::string> &p
 	}
 	return std::nullopt;
 }
+
+bool FindMPQ(std::span<const std::string> paths, std::string_view mpqName)
+{
+	return FindUnpackedMpqData(paths, mpqName).has_value();
+}
+
+bool LoadMPQ(std::span<const std::string> paths, std::string_view mpqName, int priority)
+{
+	std::optional<std::string> mpqPath = FindUnpackedMpqData(paths, mpqName);
+	if (!mpqPath.has_value()) {
+		LogVerbose("Missing: {}", mpqName);
+		return false;
+	}
+	MpqArchives[priority] = *std::move(mpqPath);
+	return true;
+}
 #else
-std::optional<MpqArchive> LoadMPQ(const std::vector<std::string> &paths, std::string_view mpqName)
+bool FindMPQ(std::span<const std::string> paths, std::string_view mpqName)
+{
+	std::string mpqAbsPath;
+	for (const auto &path : paths) {
+		mpqAbsPath = StrCat(path, mpqName, ".mpq");
+		if (FileExists(mpqAbsPath)) {
+			LogVerbose("  Found: {} in {}", mpqName, path);
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool LoadMPQ(std::span<const std::string> paths, std::string_view mpqName, int priority, std::string_view ext = ".mpq")
 {
 	std::optional<MpqArchive> archive;
 	std::string mpqAbsPath;
 	std::int32_t error = 0;
 	for (const auto &path : paths) {
-		mpqAbsPath = path + mpqName.data();
-		if ((archive = MpqArchive::Open(mpqAbsPath.c_str(), error))) {
+		mpqAbsPath = StrCat(path, mpqName, ext);
+		archive = MpqArchive::Open(mpqAbsPath.c_str(), error);
+		if (archive.has_value()) {
 			LogVerbose("  Found: {} in {}", mpqName, path);
-			return archive;
+			auto [it, inserted] = MpqArchives.emplace(priority, *std::move(archive));
+			if (!inserted) {
+				LogError("MPQ with priority {} is already registered, skipping {}", priority, mpqName);
+			}
+			return true;
 		}
 		if (error != 0) {
 			LogError("Error {}: {}", MpqArchive::ErrorMessage(error), mpqAbsPath);
@@ -300,7 +315,7 @@ std::optional<MpqArchive> LoadMPQ(const std::vector<std::string> &paths, std::st
 		LogVerbose("Missing: {}", mpqName);
 	}
 
-	return std::nullopt;
+	return false;
 }
 #endif
 
@@ -366,105 +381,120 @@ void LoadCoreArchives()
 {
 	auto paths = GetMPQSearchPaths();
 
-#ifdef UNPACKED_MPQS
-	font_data_path = FindUnpackedMpqData(paths, "fonts");
-#else // !UNPACKED_MPQS
 #if !defined(__ANDROID__) && !defined(__APPLE__) && !defined(__3DS__) && !defined(__SWITCH__)
 	// Load devilutionx.mpq first to get the font file for error messages
-	devilutionx_mpq = LoadMPQ(paths, "devilutionx.mpq");
+	LoadMPQ(paths, "devilutionx", DevilutionXMpqPriority);
 #endif
-	font_mpq = LoadMPQ(paths, "fonts.mpq"); // Extra fonts
-#endif
+	LoadMPQ(paths, "fonts", FontMpqPriority); // Extra fonts
+	HasHellfireMpq = FindMPQ(paths, "hellfire");
 }
 
 void LoadLanguageArchive()
 {
-#ifdef UNPACKED_MPQS
-	lang_data_path = std::nullopt;
-#else
-	lang_mpq = std::nullopt;
-#endif
-
-	std::string_view code = GetLanguageCode();
+	const std::string_view code = GetLanguageCode();
 	if (code != "en") {
-		std::string langMpqName { code };
-#ifdef UNPACKED_MPQS
-		lang_data_path = FindUnpackedMpqData(GetMPQSearchPaths(), langMpqName);
-#else
-		langMpqName.append(".mpq");
-		lang_mpq = LoadMPQ(GetMPQSearchPaths(), langMpqName);
-#endif
+		LoadMPQ(GetMPQSearchPaths(), code, LangMpqPriority);
 	}
 }
 
 void LoadGameArchives()
 {
-	auto paths = GetMPQSearchPaths();
+	const std::vector<std::string> paths = GetMPQSearchPaths();
+	bool haveDiabdat = false;
+	bool haveSpawn = false;
+
+#ifndef UNPACKED_MPQS
+	// DIABDAT.MPQ is uppercase on the original CD and the GOG version.
+	haveDiabdat = LoadMPQ(paths, "DIABDAT", MainMpqPriority, ".MPQ");
+#endif
+
+	if (!haveDiabdat) {
+		haveDiabdat = LoadMPQ(paths, "diabdat", MainMpqPriority);
+		if (!haveDiabdat) {
+			gbIsSpawn = haveSpawn = LoadMPQ(paths, "spawn", MainMpqPriority);
+		}
+	}
+
+	if (!HeadlessMode) {
+		if (!haveDiabdat && !haveSpawn) {
+			LogError("{}", SDL_GetError());
+			InsertCDDlg(_("diabdat.mpq or spawn.mpq"));
+		}
+	}
+
+	if (forceHellfire && !HasHellfireMpq) {
 #ifdef UNPACKED_MPQS
-	diabdat_data_path = FindUnpackedMpqData(paths, "diabdat");
-	if (!diabdat_data_path) {
-		spawn_data_path = FindUnpackedMpqData(paths, "spawn");
-		if (spawn_data_path)
-			gbIsSpawn = true;
-	}
-	if (!HeadlessMode) {
-		AssetRef ref = FindAsset("ui_art\\title.clx");
-		if (!ref.ok()) {
-			LogError("{}", SDL_GetError());
-			InsertCDDlg(_("diabdat.mpq or spawn.mpq"));
-		}
-	}
-	hellfire_data_path = FindUnpackedMpqData(paths, "hellfire");
-	if (hellfire_data_path)
-		gbIsHellfire = true;
-	if (forceHellfire && !hellfire_data_path)
 		InsertCDDlg("hellfire");
-
-	const bool hasMonk = FileExists(*hellfire_data_path + "plrgfx/monk/mha/mhaas.clx");
-	const bool hasMusic = FileExists(*hellfire_data_path + "music/dlvlf.wav")
-	    || FileExists(*hellfire_data_path + "music/dlvlf.mp3");
-	const bool hasVoice = FileExists(*hellfire_data_path + "sfx/hellfire/cowsut1.wav")
-	    || FileExists(*hellfire_data_path + "sfx/hellfire/cowsut1.mp3");
-
-	if (gbIsHellfire && (!hasMonk || !hasMusic || !hasVoice)) {
-		DisplayFatalErrorAndExit(_("Some Hellfire MPQs are missing"), _("Not all Hellfire MPQs were found.\nPlease copy all the hf*.mpq files."));
-	}
-#else // !UNPACKED_MPQS
-	diabdat_mpq = LoadMPQ(paths, "DIABDAT.MPQ");
-	if (!diabdat_mpq) {
-		// DIABDAT.MPQ is uppercase on the original CD and the GOG version.
-		diabdat_mpq = LoadMPQ(paths, "diabdat.mpq");
-	}
-
-	if (!diabdat_mpq) {
-		spawn_mpq = LoadMPQ(paths, "spawn.mpq");
-		if (spawn_mpq)
-			gbIsSpawn = true;
-	}
-	if (!HeadlessMode) {
-		AssetRef ref = FindAsset("ui_art\\title.pcx");
-		if (!ref.ok()) {
-			LogError("{}", SDL_GetError());
-			InsertCDDlg(_("diabdat.mpq or spawn.mpq"));
-		}
-	}
-
-	hellfire_mpq = LoadMPQ(paths, "hellfire.mpq");
-	if (hellfire_mpq)
-		gbIsHellfire = true;
-	if (forceHellfire && !hellfire_mpq)
+#else
 		InsertCDDlg("hellfire.mpq");
+#endif
+	}
 
-	hfmonk_mpq = LoadMPQ(paths, "hfmonk.mpq");
-	hfbard_mpq = LoadMPQ(paths, "hfbard.mpq");
-	hfbarb_mpq = LoadMPQ(paths, "hfbarb.mpq");
-	hfmusic_mpq = LoadMPQ(paths, "hfmusic.mpq");
-	hfvoice_mpq = LoadMPQ(paths, "hfvoice.mpq");
+#ifndef UNPACKED_MPQS
+	// In unpacked mode, all the hellfire data is in the hellfire directory.
+	LoadMPQ(paths, "hfbard", 8110);
+	LoadMPQ(paths, "hfbarb", 8120);
+#endif
+}
 
-	if (gbIsHellfire && (!hfmonk_mpq || !hfmusic_mpq || !hfvoice_mpq)) {
+void LoadHellfireArchives()
+{
+	const std::vector<std::string> paths = GetMPQSearchPaths();
+	LoadMPQ(paths, "hellfire", 8000);
+
+#ifdef UNPACKED_MPQS
+	const std::string &hellfireDataPath = MpqArchives.at(8000);
+	const bool hasMonk = FileExists(hellfireDataPath + "plrgfx/monk/mha/mhaas.clx");
+	const bool hasMusic = FileExists(hellfireDataPath + "music/dlvlf.wav")
+	    || FileExists(hellfireDataPath + "music/dlvlf.mp3");
+	const bool hasVoice = FileExists(hellfireDataPath + "sfx/hellfire/cowsut1.wav")
+	    || FileExists(hellfireDataPath + "sfx/hellfire/cowsut1.mp3");
+#else
+	const bool hasMonk = LoadMPQ(paths, "hfmonk", 8100);
+	const bool hasMusic = LoadMPQ(paths, "hfmusic", 8200);
+	const bool hasVoice = LoadMPQ(paths, "hfvoice", 8500);
+#endif
+
+	if (!hasMonk || !hasMusic || !hasVoice)
 		DisplayFatalErrorAndExit(_("Some Hellfire MPQs are missing"), _("Not all Hellfire MPQs were found.\nPlease copy all the hf*.mpq files."));
+}
+
+void UnloadModArchives()
+{
+	OverridePaths.clear();
+
+#ifndef UNPACKED_MPQS
+	for (auto it = MpqArchives.begin(); it != MpqArchives.end();) {
+		if ((it->first >= 8000 && it->first < 9000) || it->first >= 10000) {
+			it = MpqArchives.erase(it); // erase returns the next valid iterator
+		} else {
+			++it;
+		}
 	}
 #endif
+}
+
+void LoadModArchives(std::span<const std::string_view> modnames)
+{
+	std::string targetPath;
+	for (std::string_view modname : modnames) {
+		targetPath = StrCat(paths::PrefPath(), "mods" DIRECTORY_SEPARATOR_STR, modname, DIRECTORY_SEPARATOR_STR);
+		if (FileExists(targetPath)) {
+			OverridePaths.emplace_back(targetPath);
+		}
+		targetPath = StrCat(paths::BasePath(), "mods" DIRECTORY_SEPARATOR_STR, modname, DIRECTORY_SEPARATOR_STR);
+		if (FileExists(targetPath)) {
+			OverridePaths.emplace_back(targetPath);
+		}
+	}
+	OverridePaths.emplace_back(paths::PrefPath());
+
+	int priority = 10000;
+	auto paths = GetMPQSearchPaths();
+	for (std::string_view modname : modnames) {
+		LoadMPQ(paths, StrCat("mods" DIRECTORY_SEPARATOR_STR, modname), priority);
+		priority++;
+	}
 }
 
 } // namespace devilution

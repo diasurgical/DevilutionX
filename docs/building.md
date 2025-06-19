@@ -148,13 +148,13 @@ cmake --build build -j $(sysctl -n hw.ncpuonline)
 
 <details><summary>Installing Windows Subsystem for Linux</summary>
 
-Note: We currently recommend using Ubuntu 22.04 for the MinGW build. The following instructions will install the recommended version of Ubuntu on WSL.
+Note: We currently recommend using Ubuntu 24.04 for the MinGW build. The following instructions will install the recommended version of Ubuntu on WSL.
 
 If you are building on Windows and do not have WSL already setup this will install WSL and Ubuntu (Requires Windows 10 2004 or higher or Windows 11)
 
 In an Administrator Command Prompt or Powershell
 
-```wsl --install -d Ubuntu-22.04```
+```wsl --install -d Ubuntu-24.04```
 
 Reboot
 

@@ -33,7 +33,11 @@ jobs:
 
       - name: Install dependencies
         run: |
+          tee /etc/apt/sources.list.d/bullseye-backports.list <<LIST
+          deb http://deb.debian.org/debian bullseye-backports main
+          LIST
           apt-get update
+          apt-get install -y -t bullseye-backports cmake
           apt-get install -y \
             ffmpeg \
             gettext
@@ -87,4 +91,3 @@ jobs:
           asset_name: devilutionx-3ds.cia
           file: ./build/devilutionx.cia
           overwrite: true
-...

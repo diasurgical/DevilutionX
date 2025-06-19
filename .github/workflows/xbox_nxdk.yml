@@ -24,7 +24,6 @@ concurrency:
 
 jobs:
   xbox:
-    # `ubuntu-latest` is currently 20.04 but we require a newer clang.
     runs-on: ubuntu-22.04
     env:
       NXDK_DIR: /opt/nxdk

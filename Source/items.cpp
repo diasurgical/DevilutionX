@@ -328,7 +328,7 @@ SfxID ItemDropSnds[] = {
 	SfxID::ItemLeatherFlip,
 };
 /** Maps from Griswold premium item number to a quality level delta as added to the base quality level. */
-int premiumlvladd[] = {
+int itemLevelAdd[] = {
 	// clang-format off
 	-1,
 	-1,
@@ -339,7 +339,7 @@ int premiumlvladd[] = {
 	// clang-format on
 };
 /** Maps from Griswold premium item number to a quality level delta as added to the base quality level. */
-int premiumLvlAddHellfire[] = {
+int itemLevelAddHf[] = {
 	// clang-format off
 	-1,
 	-1,
@@ -645,8 +645,8 @@ void GetBookSpell(Item &item, int lvl)
 	const std::string_view spellName = GetSpellData(bs).sNameText;
 	const size_t iNameLen = std::string_view(item._iName).size();
 	const size_t iINameLen = std::string_view(item._iIName).size();
-	CopyUtf8(item._iName + iNameLen, spellName, sizeof(item._iName) - iNameLen);
-	CopyUtf8(item._iIName + iINameLen, spellName, sizeof(item._iIName) - iINameLen);
+	CopyUtf8(item._iName + iNameLen, spellName, ItemNameLength - iNameLen);
+	CopyUtf8(item._iIName + iINameLen, spellName, ItemNameLength - iINameLen);
 	item._iSpell = bs;
 	const SpellData &spellData = GetSpellData(bs);
 	item._iMinMag = spellData.minInt;
@@ -1134,12 +1134,12 @@ void GetStaffPower(const Player &player, Item &item, int lvl, SpellID bs, bool o
 	const ItemData &baseItemData = AllItemsList[item.IDidx];
 	std::string staffName = GenerateStaffName(baseItemData, item._iSpell, false);
 
-	CopyUtf8(item._iName, staffName, sizeof(item._iName));
+	CopyUtf8(item._iName, staffName, ItemNameLength);
 	if (preidx != -1) {
 		std::string staffNameMagical = GenerateStaffNameMagical(baseItemData, item._iSpell, preidx, false, std::nullopt);
-		CopyUtf8(item._iIName, staffNameMagical, sizeof(item._iIName));
+		CopyUtf8(item._iIName, staffNameMagical, ItemNameLength);
 	} else {
-		CopyUtf8(item._iIName, item._iName, sizeof(item._iIName));
+		CopyUtf8(item._iIName, item._iName, ItemNameLength);
 	}
 
 	CalcItemValue(item);
@@ -1242,9 +1242,9 @@ void GetItemPower(const Player &player, Item &item, int minlvl, int maxlvl, Affi
 		    pSufix = &suffix;
 	    });
 
-	CopyUtf8(item._iIName, GenerateMagicItemName(item._iName, pPrefix, pSufix, false), sizeof(item._iIName));
+	CopyUtf8(item._iIName, GenerateMagicItemName(item._iName, pPrefix, pSufix, false), ItemNameLength);
 	if (!StringInPanel(item._iIName)) {
-		CopyUtf8(item._iIName, GenerateMagicItemName(AllItemsList[item.IDidx].iSName, pPrefix, pSufix, false), sizeof(item._iIName));
+		CopyUtf8(item._iIName, GenerateMagicItemName(AllItemsList[item.IDidx].iSName, pPrefix, pSufix, false), ItemNameLength);
 	}
 	if (pPrefix != nullptr || pSufix != nullptr)
 		CalcItemValue(item);
@@ -1316,8 +1316,8 @@ void GetOilType(Item &item, int maxLvl)
 
 	int8_t t = rnd[GenerateRnd(cnt)];
 
-	CopyUtf8(item._iName, OilNames[t], sizeof(item._iName));
-	CopyUtf8(item._iIName, OilNames[t], sizeof(item._iIName));
+	CopyUtf8(item._iName, OilNames[t], ItemNameLength);
+	CopyUtf8(item._iIName, OilNames[t], ItemNameLength);
 	item._iMiscId = OilMagic[t];
 	item._ivalue = OilValues[t];
 	item._iIvalue = OilValues[t];
@@ -1437,12 +1437,12 @@ _item_indexes RndTypeItems(ItemType itemType, int imid, int lvl)
 std::vector<uint8_t> GetValidUniques(int lvl, unique_base_item baseItemId)
 {
 	std::vector<uint8_t> validUniques;
-	for (int j = 0; j < static_cast<int>(UniqueItems.size()); ++j) {
-		if (!IsUniqueAvailable(j))
-			break;
-		if (UniqueItems[j].UIItemId == baseItemId && lvl >= UniqueItems[j].UIMinLvl) {
-			validUniques.push_back(j);
+	int index = 0;
+	for (UniqueItem &itemData : UniqueItems) {
+		if (itemData.UIItemId == baseItemId && lvl >= itemData.UIMinLvl) {
+			validUniques.push_back(index);
 		}
+		index++;
 	}
 	return validUniques;
 }
@@ -1479,7 +1479,7 @@ void GetUniqueItem(const Player &player, Item &item, _unique_items uid)
 		SaveItemPower(player, item, power);
 	}
 
-	CopyUtf8(item._iIName, uniqueItemData.UIName, sizeof(item._iIName));
+	CopyUtf8(item._iIName, uniqueItemData.UIName, ItemNameLength);
 	if (uniqueItemData.UICurs != ICURS_DEFAULT)
 		item._iCurs = uniqueItemData.UICurs;
 	item._iIvalue = uniqueItemData.UIValue;
@@ -1907,12 +1907,8 @@ _item_indexes RndSmithItem(const Player &player, int lvl)
 	return RndVendorItem<SmithItemOk, true>(player, 0, lvl);
 }
 
-void SortVendor(Item *itemList)
+void SortVendor(Item *itemList, size_t count)
 {
-	int count = 1;
-	while (!itemList[count].isEmpty())
-		count++;
-
 	auto cmp = [](const Item &a, const Item &b) {
 		return a.IDidx < b.IDidx;
 	};
@@ -2424,11 +2420,6 @@ uint8_t GetOutlineColor(const Item &item, bool checkReq)
 	return ICOL_WHITE;
 }
 
-bool IsUniqueAvailable(int i)
-{
-	return gbIsHellfire || i <= 89;
-}
-
 void ClearUniqueItemFlags()
 {
 	memset(UniqueItemFlags, 0, sizeof(UniqueItemFlags));
@@ -2912,7 +2903,6 @@ void CalcPlrInv(Player &player, bool loadgfx)
 			item.updateRequiredStatsCacheForPlayer(player);
 		}
 		player.CalcScrolls();
-		CalcPlrStaff(player);
 		if (IsStashOpen) {
 			// If stash is open, ensure the items are displayed correctly
 			Stash.RefreshItemStatFlags();
@@ -2929,8 +2919,8 @@ void InitializeItem(Item &item, _item_indexes itemData)
 
 	item._itype = pAllItem.itype;
 	item._iCurs = pAllItem.iCurs;
-	CopyUtf8(item._iName, pAllItem.iName, sizeof(item._iName));
-	CopyUtf8(item._iIName, pAllItem.iName, sizeof(item._iIName));
+	CopyUtf8(item._iName, pAllItem.iName, ItemNameLength);
+	CopyUtf8(item._iIName, pAllItem.iName, ItemNameLength);
 	item._iLoc = pAllItem.iLoc;
 	item._iClass = pAllItem.iClass;
 	item._iMinDam = pAllItem.iMinDam;
@@ -3126,8 +3116,8 @@ void GetItemAttrs(Item &item, _item_indexes itemData, int lvl)
 	auto &baseItemData = AllItemsList[static_cast<size_t>(itemData)];
 	item._itype = baseItemData.itype;
 	item._iCurs = baseItemData.iCurs;
-	CopyUtf8(item._iName, baseItemData.iName, sizeof(item._iName));
-	CopyUtf8(item._iIName, baseItemData.iName, sizeof(item._iIName));
+	CopyUtf8(item._iName, baseItemData.iName, ItemNameLength);
+	CopyUtf8(item._iIName, baseItemData.iName, ItemNameLength);
 	item._iLoc = baseItemData.iLoc;
 	item._iClass = baseItemData.iClass;
 	item._iMinDam = baseItemData.iMinDam;
@@ -3462,9 +3452,6 @@ void SpawnItem(Monster &monster, Point position, bool sendmsg, bool spawn /*= fa
 	int uper = monster.isUnique() ? 15 : 1;
 
 	int8_t mLevel = monster.data().level;
-	if (!gbIsHellfire && monster.type().type == MT_DIABLO)
-		mLevel -= 15;
-
 	SetupAllItems(*MyPlayer, item, idx, AdvanceRndSeed(), mLevel, uper, onlygood, false, false);
 	TryRandomUniqueItem(item, idx, mLevel, uper, onlygood, false);
 	SetupItem(item);
@@ -3510,10 +3497,11 @@ void CreateTypeItem(Point position, bool onlygood, ItemType itemType, int imisc,
 	SetupBaseItem(position, idx, onlygood, sendmsg, delta, spawn);
 }
 
-void RecreateItem(const Player &player, Item &item, _item_indexes idx, uint16_t icreateinfo, uint32_t iseed, int ivalue, bool isHellfire)
+void RecreateItem(const Player &player, Item &item, _item_indexes idx, uint16_t icreateinfo, uint32_t iseed, int ivalue, uint32_t dwBuff)
 {
 	bool tmpIsHellfire = gbIsHellfire;
-	gbIsHellfire = isHellfire;
+	item.dwBuff = dwBuff;
+	gbIsHellfire = (item.dwBuff & CF_HELLFIRE) != 0;
 
 	if (idx == IDI_GOLD) {
 		InitializeItem(item, IDI_GOLD);
@@ -3570,8 +3558,8 @@ void RecreateEar(Item &item, uint16_t ic, uint32_t iseed, uint8_t bCursval, std:
 
 	std::string itemName = fmt::format(fmt::runtime("Ear of {:s}"), heroName);
 
-	CopyUtf8(item._iName, itemName, sizeof(item._iName));
-	CopyUtf8(item._iIName, heroName, sizeof(item._iIName));
+	CopyUtf8(item._iName, itemName, ItemNameLength);
+	CopyUtf8(item._iIName, heroName, ItemNameLength);
 
 	item._iCurs = ((bCursval >> 6) & 3) + ICURS_EAR_SORCERER;
 	item._ivalue = bCursval & 0x3F;
@@ -4392,10 +4380,10 @@ void SpawnSmith(int lvl)
 	constexpr int PinnedItemCount = 0;
 
 	int maxValue = MaxVendorValue;
-	int maxItems = 19;
+	int maxItems = NumSmithBasicItems;
 	if (gbIsHellfire) {
 		maxValue = MaxVendorValueHf;
-		maxItems = 24;
+		maxItems = NumSmithBasicItemsHf;
 	}
 
 	int iCnt = RandomIntBetween(10, maxItems);
@@ -4413,20 +4401,20 @@ void SpawnSmith(int lvl)
 		newItem._iCreateInfo = lvl | CF_SMITH;
 		newItem._iIdentified = true;
 	}
-	for (int i = iCnt; i < SMITH_ITEMS; i++)
+	for (int i = iCnt; i < NumSmithBasicItemsHf; i++)
 		SmithItems[i].clear();
 
-	SortVendor(SmithItems + PinnedItemCount);
+	SortVendor(SmithItems + PinnedItemCount, iCnt - PinnedItemCount);
 }
 
 void SpawnPremium(const Player &player)
 {
 	int lvl = player.getCharacterLevel();
-	int maxItems = gbIsHellfire ? SMITH_PREMIUM_ITEMS : 6;
+	int maxItems = gbIsHellfire ? NumSmithItemsHf : NumSmithItems;
 	if (PremiumItemCount < maxItems) {
 		for (int i = 0; i < maxItems; i++) {
 			if (PremiumItems[i].isEmpty()) {
-				int plvl = PremiumItemLevel + (gbIsHellfire ? premiumLvlAddHellfire[i] : premiumlvladd[i]);
+				int plvl = PremiumItemLevel + (gbIsHellfire ? itemLevelAddHf[i] : itemLevelAdd[i]);
 				SpawnOnePremium(PremiumItems[i], plvl, player);
 			}
 		}
@@ -4437,34 +4425,34 @@ void SpawnPremium(const Player &player)
 		if (gbIsHellfire) {
 			// Discard first 3 items and shift next 10
 			std::move(&PremiumItems[3], &PremiumItems[12] + 1, &PremiumItems[0]);
-			SpawnOnePremium(PremiumItems[10], PremiumItemLevel + premiumLvlAddHellfire[10], player);
+			SpawnOnePremium(PremiumItems[10], PremiumItemLevel + itemLevelAddHf[10], player);
 			PremiumItems[11] = PremiumItems[13];
-			SpawnOnePremium(PremiumItems[12], PremiumItemLevel + premiumLvlAddHellfire[12], player);
+			SpawnOnePremium(PremiumItems[12], PremiumItemLevel + itemLevelAddHf[12], player);
 			PremiumItems[13] = PremiumItems[14];
-			SpawnOnePremium(PremiumItems[14], PremiumItemLevel + premiumLvlAddHellfire[14], player);
+			SpawnOnePremium(PremiumItems[14], PremiumItemLevel + itemLevelAddHf[14], player);
 		} else {
 			// Discard first 2 items and shift next 3
 			std::move(&PremiumItems[2], &PremiumItems[4] + 1, &PremiumItems[0]);
-			SpawnOnePremium(PremiumItems[3], PremiumItemLevel + premiumlvladd[3], player);
+			SpawnOnePremium(PremiumItems[3], PremiumItemLevel + itemLevelAdd[3], player);
 			PremiumItems[4] = PremiumItems[5];
-			SpawnOnePremium(PremiumItems[5], PremiumItemLevel + premiumlvladd[5], player);
+			SpawnOnePremium(PremiumItems[5], PremiumItemLevel + itemLevelAdd[5], player);
 		}
 	}
 }
 
 void SpawnWitch(int lvl)
 {
-	constexpr int PinnedItemCount = 3;
+	constexpr int PinnedItemCount = NumWitchPinnedItems;
 	constexpr std::array<_item_indexes, PinnedItemCount> PinnedItemTypes = { IDI_MANA, IDI_FULLMANA, IDI_PORTAL };
 	constexpr int MaxPinnedBookCount = 4;
 	constexpr std::array<_item_indexes, MaxPinnedBookCount> PinnedBookTypes = { IDI_BOOK1, IDI_BOOK2, IDI_BOOK3, IDI_BOOK4 };
 
 	int bookCount = 0;
 	const int pinnedBookCount = gbIsHellfire ? RandomIntLessThan(MaxPinnedBookCount) : 0;
-	const int itemCount = RandomIntBetween(10, gbIsHellfire ? 24 : 17);
+	const int itemCount = RandomIntBetween(10, gbIsHellfire ? NumWitchItemsHf : NumWitchItems);
 	const int maxValue = gbIsHellfire ? MaxVendorValueHf : MaxVendorValue;
 
-	for (int i = 0; i < WITCH_ITEMS; i++) {
+	for (int i = 0; i < NumWitchItemsHf; i++) {
 		Item &item = WitchItems[i];
 		item = {};
 
@@ -4516,7 +4504,7 @@ void SpawnWitch(int lvl)
 		item._iIdentified = true;
 	}
 
-	SortVendor(WitchItems + PinnedItemCount);
+	SortVendor(WitchItems + PinnedItemCount, itemCount - PinnedItemCount);
 }
 
 void SpawnBoy(int lvl)
@@ -4635,15 +4623,15 @@ void SpawnBoy(int lvl)
 
 void SpawnHealer(int lvl)
 {
-	constexpr size_t PinnedItemCount = 2;
+	constexpr size_t PinnedItemCount = NumHealerPinnedItems;
 	constexpr std::array<_item_indexes, PinnedItemCount + 1> PinnedItemTypes = { IDI_HEAL, IDI_FULLHEAL, IDI_RESURRECT };
-	const auto itemCount = static_cast<size_t>(RandomIntBetween(10, gbIsHellfire ? 19 : 17));
+	const auto itemCount = static_cast<size_t>(RandomIntBetween(10, gbIsHellfire ? NumHealerItemsHf : NumHealerItems));
 
 	for (size_t i = 0; i < sizeof(HealerItems) / sizeof(HealerItems[0]); ++i) {
 		Item &item = HealerItems[i];
 		item = {};
 
-		if (i < PinnedItemCount || (gbIsMultiplayer && i == PinnedItemCount)) {
+		if (i < PinnedItemCount || (gbIsMultiplayer && i < NumHealerPinnedItemsMp)) {
 			item._iSeed = AdvanceRndSeed();
 			GetItemAttrs(item, PinnedItemTypes[i], 1);
 			item._iCreateInfo = lvl;
@@ -4664,7 +4652,7 @@ void SpawnHealer(int lvl)
 		item._iIdentified = true;
 	}
 
-	SortVendor(HealerItems + PinnedItemCount);
+	SortVendor(HealerItems + PinnedItemCount, itemCount - PinnedItemCount);
 }
 
 void MakeGoldStack(Item &goldItem, int value)

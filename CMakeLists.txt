@@ -1,6 +1,6 @@
-cmake_minimum_required(VERSION 3.15)
+cmake_minimum_required(VERSION 3.22)
 
-foreach(_policy CMP0111 CMP0126 CMP0135 CMP0141)
+foreach(_policy CMP0135 CMP0141)
   if(POLICY ${_policy})
     cmake_policy(SET ${_policy} NEW)
     set(CMAKE_POLICY_DEFAULT_${_policy} NEW)
@@ -353,7 +353,6 @@ else()
     if(CMAKE_STRIP AND NOT DEVILUTIONX_DISABLE_STRIP)
       add_custom_command(
         TARGET ${BIN_TARGET} POST_BUILD
-        DEPENDS ${BIN_TARGET}
         COMMAND $<$<OR:$<CONFIG:Release>,$<CONFIG:MinSizeRel>>:${CMAKE_STRIP}>
         ARGS $<TARGET_FILE:${BIN_TARGET}>)
     endif()
@@ -369,6 +368,7 @@ endif()
 
 # Must be included after `BIN_TARGET` and `libdevilutionx` are defined.
 include(Assets)
+include(Mods)
 
 if(EMSCRIPTEN)
   target_link_options(${BIN_TARGET} PRIVATE --preload-file assets)

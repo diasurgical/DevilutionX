@@ -3,7 +3,8 @@
 #include <gtest/gtest.h>
 
 #include "cursor.h"
-#include "init.h"
+#include "engine/assets.hpp"
+#include "init.hpp"
 #include "playerdat.hpp"
 
 using namespace devilution;
@@ -186,7 +187,7 @@ TEST(Player, CreatePlayer)
 
 	// The tests need spawn.mpq or diabdat.mpq
 	// Please provide them so that the tests can run successfully
-	ASSERT_TRUE(HaveSpawn() || HaveDiabdat());
+	ASSERT_TRUE(HaveMainData());
 
 	LoadPlayerDataFiles();
 	LoadMonsterData();

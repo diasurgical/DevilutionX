@@ -25,47 +25,23 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
     - name: Checkout
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
 
-    # Work around the somewhat broken packages in the GitHub Actions Ubuntu 20.04 image.
-    # https://github.com/actions/runner-images/issues/4620#issuecomment-981333260
-    - name: Work around broken packages
-      run: sudo apt-get -y install --allow-downgrades libpcre2-8-0=10.34-7
-
-    - name: Add clang repo
-      run: |
-        wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
-        sudo tee /etc/apt/sources.list.d/clang.list <<LIST
-        deb [arch=amd64,arm64] http://apt.llvm.org/focal/ llvm-toolchain-focal-18 main
-        deb-src http://apt.llvm.org/focal/ llvm-toolchain-focal-18 main
-        LIST
-
     # Installs dependencies, including arm64 libraries (runs `sudo apt-get update` as part of it)
     - name: Install dependencies
-      run: Packaging/nix/debian-cross-aarch64-prep.sh --no-gcc
-
-    - name: Install clang-18
-      run: |
-        sudo apt-get install -yq --no-install-recommends clang-18 lld-18 libc++-18-dev:arm64 \
-          libgcc-10-dev-arm64-cross binutils-aarch64-linux-gnu libc++1-18:arm64 libc++abi1-18:arm64 && \
-        sudo update-alternatives --install \
-          /usr/bin/clang++ clang++ /usr/bin/clang++-18 200 && \
-        sudo update-alternatives --install \
-          /usr/bin/clang clang /usr/bin/clang-18 200 \
-          --slave /usr/bin/lld lld /usr/bin/lld-18 \
-          --slave /usr/bin/ld.lld ld.lld /usr/bin/ld.lld-18
+      run: Packaging/nix/debian-cross-aarch64-prep.sh
 
     - name: Cache CMake build folder
       uses: actions/cache@v4
       with:
         path: build
-        key: ${{ github.workflow }}-v7-${{ github.sha }}
-        restore-keys: ${{ github.workflow }}-v7-
+        key: ${{ github.workflow }}-v8-${{ github.sha }}
+        restore-keys: ${{ github.workflow }}-v8-
 
     - name: Build
       working-directory: ${{github.workspace}}
@@ -76,7 +52,7 @@ jobs:
       # We set DEVILUTIONX_SYSTEM_LIBSODIUM=OFF because its soversion changes frequently.
       # We set DEVILUTIONX_SYSTEM_BZIP2=OFF because Fedora and Debian do not agree on how to link it.
       run: |
-        cmake -S. -Bbuild -DCMAKE_TOOLCHAIN_FILE=../CMake/platforms/aarch64-linux-gnu-clang-static-libc++.toolchain.cmake \
+        cmake -S. -Bbuild -DCMAKE_TOOLCHAIN_FILE=../CMake/platforms/aarch64-linux-gnu.toolchain.cmake \
           -DCMAKE_BUILD_TYPE=${{env.CMAKE_BUILD_TYPE}} -DCMAKE_INSTALL_PREFIX=/usr -DCPACK=ON -DDEVILUTIONX_SYSTEM_LIBFMT=OFF \
           -DDEVILUTIONX_SYSTEM_LIBSODIUM=OFF -DDEVILUTIONX_SYSTEM_BZIP2=OFF && \
         cmake --build build -j $(getconf _NPROCESSORS_ONLN) --target package

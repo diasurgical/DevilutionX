@@ -7205,11 +7205,11 @@ msgstr "Tastaturbelegungseinstellungen"
 
 #: Source/options.cpp:1516
 msgid "Padmapping"
-msgstr "Tastaturbelegung"
+msgstr "Gamepadbelegung"
 
 #: Source/options.cpp:1516
 msgid "Padmapping Settings"
-msgstr "Tastaturbelegungseinstellungen"
+msgstr "Gamepadbelegungseinstellungen"
 
 #: Source/panels/charpanel.cpp:127
 msgid "Level"

@@ -19,6 +19,12 @@ namespace devilution {
 
 namespace {
 
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+using SdlEventType = uint16_t;
+#else
+using SdlEventType = uint8_t;
+#endif
+
 VirtualGamepadEventHandler Handler(&VirtualGamepadState);
 
 Point ScaleToScreenCoordinates(float x, float y)
@@ -64,7 +70,7 @@ bool HandleGameMenuInteraction(const SDL_Event &event)
 
 bool HandleStoreInteraction(const SDL_Event &event)
 {
-	if (ActiveStore == TalkID::None)
+	if (!IsPlayerInStore())
 		return false;
 	if (event.type == SDL_FINGERDOWN)
 		CheckStoreBtn();
@@ -130,6 +136,17 @@ void HandleStashPanelInteraction(const SDL_Event &event)
 	}
 }
 
+SdlEventType GetDeactivateEventType()
+{
+	static SdlEventType customEventType = SDL_RegisterEvents(1);
+	return customEventType;
+}
+
+bool IsDeactivateEvent(const SDL_Event &event)
+{
+	return event.type == GetDeactivateEventType();
+}
+
 } // namespace
 
 void HandleTouchEvent(const SDL_Event &event)
@@ -161,14 +178,23 @@ void HandleTouchEvent(const SDL_Event &event)
 	HandleStashPanelInteraction(event);
 }
 
+void DeactivateTouchEventHandlers()
+{
+	SDL_Event event;
+	event.type = GetDeactivateEventType();
+	HandleTouchEvent(event);
+}
+
 bool VirtualGamepadEventHandler::Handle(const SDL_Event &event)
 {
-	if (!VirtualGamepadState.isActive || !IsAnyOf(event.type, SDL_FINGERDOWN, SDL_FINGERUP, SDL_FINGERMOTION)) {
-		VirtualGamepadState.primaryActionButton.didStateChange = false;
-		VirtualGamepadState.secondaryActionButton.didStateChange = false;
-		VirtualGamepadState.spellActionButton.didStateChange = false;
-		VirtualGamepadState.cancelButton.didStateChange = false;
-		return false;
+	if (!IsDeactivateEvent(event)) {
+		if (!VirtualGamepadState.isActive || !IsAnyOf(event.type, SDL_FINGERDOWN, SDL_FINGERUP, SDL_FINGERMOTION)) {
+			VirtualGamepadState.primaryActionButton.didStateChange = false;
+			VirtualGamepadState.secondaryActionButton.didStateChange = false;
+			VirtualGamepadState.spellActionButton.didStateChange = false;
+			VirtualGamepadState.cancelButton.didStateChange = false;
+			return false;
+		}
 	}
 
 	if (charMenuButtonEventHandler.Handle(event))
@@ -212,6 +238,11 @@ bool VirtualGamepadEventHandler::Handle(const SDL_Event &event)
 
 bool VirtualDirectionPadEventHandler::Handle(const SDL_Event &event)
 {
+	if (IsDeactivateEvent(event)) {
+		isActive = false;
+		return false;
+	}
+
 	switch (event.type) {
 	case SDL_FINGERDOWN:
 		return HandleFingerDown(event.tfinger);
@@ -271,6 +302,11 @@ bool VirtualDirectionPadEventHandler::HandleFingerMotion(const SDL_TouchFingerEv
 
 bool VirtualButtonEventHandler::Handle(const SDL_Event &event)
 {
+	if (IsDeactivateEvent(event)) {
+		isActive = false;
+		return false;
+	}
+
 	if (!virtualButton->isUsable()) {
 		virtualButton->didStateChange = virtualButton->isHeld;
 		virtualButton->isHeld = false;

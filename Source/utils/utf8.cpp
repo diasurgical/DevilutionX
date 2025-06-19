@@ -5,21 +5,15 @@
 #include <cstring>
 #include <string_view>
 
-extern "C" {
-#include <SheenBidi.h>
-}
+#include <SheenBidi/SheenBidi.h>
 
 namespace devilution {
 
 char32_t DecodeFirstUtf8CodePoint(std::string_view input, std::size_t *len)
 {
-	SBCodepointSequence seq {
-		.stringEncoding = SBStringEncodingUTF8,
-		.stringBuffer = const_cast<void *>(static_cast<const void *>(input.data())),
-		.stringLength = static_cast<SBUInteger>(input.size())
-	};
 	SBUInteger index = 0;
-	SBCodepoint result = SBCodepointSequenceGetCodepointAt(&seq, &index);
+	SBCodepoint result = SBCodepointDecodeNextFromUTF8(
+	    reinterpret_cast<const SBUInt8 *>(input.data()), static_cast<SBUInteger>(input.size()), &index);
 	*len = index;
 	return result;
 }

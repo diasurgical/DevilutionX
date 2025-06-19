@@ -1,11 +1,9 @@
 find_package(SDL2_image CONFIG)
 
 if(TARGET SDL2_image::SDL2_image)
-  if(CMAKE_VERSION VERSION_LESS "3.18")
-    # Aliasing local targets is not supported on CMake < 3.18, so make it global.
-    set_target_properties(SDL2_image::SDL2_image PROPERTIES IMPORTED_GLOBAL TRUE)
+  if(NOT TARGET SDL2::SDL2_image)
+    add_library(SDL2::SDL2_image ALIAS SDL2_image::SDL2_image)
   endif()
-  add_library(SDL2::SDL2_image ALIAS SDL2_image::SDL2_image)
 else()
   find_package(PkgConfig)
   pkg_check_modules(PC_SDL2_image QUIET SDL2_image>=2.0.0)

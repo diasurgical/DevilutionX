@@ -148,7 +148,7 @@ void AddItemToInvGrid(Player &player, int invGridIndex, int invListIndex, Size i
 			if (x == 0 && y == itemSize.height - 1)
 				player.InvGrid[rowGridIndex + x] = invListIndex;
 			else
-				player.InvGrid[rowGridIndex + x] = -invListIndex;
+				player.InvGrid[rowGridIndex + x] = -invListIndex; // use negative index to denote it's occupied but it's not the top-left cell.
 		}
 	}
 
@@ -573,6 +573,10 @@ void CheckInvPaste(Player &player, Point cursorPosition)
 			return;
 	}
 
+	if (&player == MyPlayer) {
+		PlaySFX(ItemInvSnds[ItemCAnimTbl[player.HoldItem._iCurs]]);
+	}
+
 	// Select the parameters that go into
 	// ChangeEquipment and add it to post switch
 	switch (location) {
@@ -601,7 +605,6 @@ void CheckInvPaste(Player &player, Point cursorPosition)
 
 	CalcPlrInv(player, true);
 	if (&player == MyPlayer) {
-		PlaySFX(ItemInvSnds[ItemCAnimTbl[player.HoldItem._iCurs]]);
 		NewCursor(player.HoldItem);
 	}
 }
@@ -1294,7 +1297,15 @@ void DrawInvBelt(const Surface &out)
 
 		if (myPlayer.SpdList[i].isUsable()
 		    && myPlayer.SpdList[i]._itype != ItemType::Gold) {
-			DrawString(out, StrCat(i + 1), { position - Displacement { 0, 12 }, InventorySlotSizeInPixels },
+			auto beltKey = StrCat("BeltItem", i + 1);
+			std::string_view keyName = ControlMode == ControlTypes::Gamepad
+			    ? GetOptions().Padmapper.InputNameForAction(beltKey, true)
+			    : GetOptions().Keymapper.KeyNameForAction(beltKey);
+
+			if (keyName.length() > 2)
+				keyName = {};
+
+			DrawString(out, keyName, { position - Displacement { 0, 12 }, InventorySlotSizeInPixels },
 			    { .flags = UiFlags::ColorWhite | UiFlags::AlignRight });
 		}
 	}
@@ -1875,7 +1886,7 @@ int SyncDropItem(Point position, _item_indexes idx, uint16_t icreateinfo, int is
 
 	Item item;
 
-	RecreateItem(*MyPlayer, item, idx, icreateinfo, iseed, ivalue, (ibuff & CF_HELLFIRE) != 0);
+	RecreateItem(*MyPlayer, item, idx, icreateinfo, iseed, ivalue, ibuff);
 	if (id != 0)
 		item._iIdentified = true;
 	item._iMaxDur = mdur;
@@ -1886,7 +1897,6 @@ int SyncDropItem(Point position, _item_indexes idx, uint16_t icreateinfo, int is
 		item._iPLToHit = ClampToHit(item, toHit);
 		item._iMaxDam = ClampMaxDam(item, maxDam);
 	}
-	item.dwBuff = ibuff;
 
 	return PlaceItemInWorld(std::move(item), position);
 }
@@ -2038,7 +2048,7 @@ void ConsumeStaffCharge(Player &player)
 		return;
 
 	staff._iCharges--;
-	CalcPlrStaff(player);
+	CalcPlrInv(player, false);
 }
 
 bool CanUseStaff(Player &player, SpellID spellId)
@@ -2068,7 +2078,7 @@ bool UseInvItem(int cii)
 		return true;
 	if (pcurs != CURSOR_HAND)
 		return true;
-	if (ActiveStore != TalkID::None)
+	if (IsPlayerInStore())
 		return true;
 	if (cii < INVITEM_INV_FIRST)
 		return false;

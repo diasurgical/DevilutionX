@@ -14,6 +14,8 @@
 #include <iterator>
 #include <optional>
 #include <span>
+#include <string>
+#include <unordered_set>
 
 #include <SDL_version.h>
 #include <expected.hpp>
@@ -52,8 +54,58 @@ namespace devilution {
 #ifndef DEFAULT_AUDIO_RESAMPLING_QUALITY
 #define DEFAULT_AUDIO_RESAMPLING_QUALITY 3
 #endif
+#ifndef DEFAULT_PER_PIXEL_LIGHTING
+#define DEFAULT_PER_PIXEL_LIGHTING true
+#endif
 
 namespace {
+
+void DiscoverMods()
+{
+	// Add mods available by default:
+	std::unordered_set<std::string> modNames = { "clock" };
+
+	if (HaveHellfire()) {
+		modNames.insert("Hellfire");
+	}
+
+	// Check if the mods directory exists.
+	const std::string modsPath = StrCat(paths::PrefPath(), "mods");
+	if (DirectoryExists(modsPath.c_str())) {
+		// Find unpacked mods
+		for (const std::string &modFolder : ListDirectories(modsPath.c_str())) {
+			// Only consider this folder if the init.lua file exists.
+			std::string modScriptPath = modsPath + modFolder + DIRECTORY_SEPARATOR_STR + "init.lua";
+			if (!FileExists(modScriptPath.c_str()))
+				continue;
+
+			modNames.insert(modFolder);
+		}
+
+		// Find packed mods
+		for (const std::string &modMpq : ListFiles(modsPath.c_str())) {
+			if (!modMpq.ends_with(".mpq"))
+				continue;
+
+			modNames.insert(modMpq.substr(0, modMpq.size() - 4));
+		}
+	}
+
+	// Get the list of mods currently stored in the INI.
+	std::vector<std::string_view> existingMods = GetOptions().Mods.GetModList();
+
+	// Add new mods.
+	for (const std::string &modName : modNames) {
+		if (std::find(existingMods.begin(), existingMods.end(), modName) == existingMods.end())
+			GetOptions().Mods.AddModEntry(modName);
+	}
+
+	// Remove mods that are no longer installed.
+	for (const std::string_view &modName : existingMods) {
+		if (modNames.find(std::string(modName)) == modNames.end())
+			GetOptions().Mods.RemoveModEntry(std::string(modName));
+	}
+}
 
 std::optional<Ini> ini;
 
@@ -155,6 +207,7 @@ bool HardwareCursorSupported()
 void LoadOptions()
 {
 	LoadIni();
+	DiscoverMods();
 	Options &options = GetOptions();
 	for (OptionCategoryBase *pCategory : options.GetCategories()) {
 		for (OptionEntryBase *pEntry : pCategory->GetEntries()) {
@@ -365,7 +418,7 @@ std::string_view OptionCategoryBase::GetDescription() const
 
 GameModeOptions::GameModeOptions()
     : OptionCategoryBase("GameMode", N_("Game Mode"), N_("Game Mode Settings"))
-    , gameMode("Game", OptionEntryFlags::NeedHellfireMpq | OptionEntryFlags::RecreateUI, N_("Game Mode"), N_("Play Diablo or Hellfire."), StartUpGameMode::Ask,
+    , gameMode("Game", OptionEntryFlags::Invisible, N_("Game Mode"), N_("Play Diablo or Hellfire."), StartUpGameMode::Ask,
           {
               { StartUpGameMode::Diablo, N_("Diablo") },
               // Ask is missing, because we want to hide it from UI-Settings.
@@ -452,7 +505,7 @@ AudioOptions::AudioOptions()
     , sampleRate("Sample Rate", OptionEntryFlags::CantChangeInGame, N_("Sample Rate"), N_("Output sample rate (Hz)."), DEFAULT_AUDIO_SAMPLE_RATE, { 22050, 44100, 48000 })
     , channels("Channels", OptionEntryFlags::CantChangeInGame, N_("Channels"), N_("Number of output channels."), DEFAULT_AUDIO_CHANNELS, { 1, 2 })
     , bufferSize("Buffer Size", OptionEntryFlags::CantChangeInGame, N_("Buffer Size"), N_("Buffer size (number of frames per channel)."), DEFAULT_AUDIO_BUFFER_SIZE, { 1024, 2048, 5120 })
-    , resamplingQuality("Resampling Quality", OptionEntryFlags::CantChangeInGame, N_("Resampling Quality"), N_("Quality of the resampler, from 0 (lowest) to 10 (highest)."), DEFAULT_AUDIO_RESAMPLING_QUALITY, { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 })
+    , resamplingQuality("Resampling Quality", OptionEntryFlags::CantChangeInGame, N_("Resampling Quality"), N_("Quality of the resampler, from 0 (lowest) to 5 (highest)."), DEFAULT_AUDIO_RESAMPLING_QUALITY, { 0, 1, 2, 3, 4, 5 })
 {
 }
 std::vector<OptionEntryBase *> AudioOptions::GetEntries()
@@ -674,6 +727,7 @@ GraphicsOptions::GraphicsOptions()
           })
     , brightness("Brightness Correction", OptionEntryFlags::Invisible, "Brightness Correction", "Brightness correction level.", 0)
     , zoom("Zoom", OptionEntryFlags::None, N_("Zoom"), N_("Zoom on when enabled."), false)
+    , perPixelLighting("Per-pixel Lighting", OptionEntryFlags::None, N_("Per-pixel Lighting"), N_("Subtile lighting for smoother light gradients."), DEFAULT_PER_PIXEL_LIGHTING)
     , colorCycling("Color Cycling", OptionEntryFlags::None, N_("Color Cycling"), N_("Color cycling effect used for water, lava, and acid animation."), true)
     , alternateNestArt("Alternate nest art", OptionEntryFlags::OnlyHellfire | OptionEntryFlags::CantChangeInGame, N_("Alternate nest art"), N_("The game will use an alternative palette for Hellfire’s nest tileset."), false)
 #if SDL_VERSION_ATLEAST(2, 0, 0)
@@ -704,6 +758,7 @@ std::vector<OptionEntryBase *> GraphicsOptions::GetEntries()
 		&brightness,
 		&zoom,
 		&showFPS,
+		&perPixelLighting,
 		&colorCycling,
 		&alternateNestArt,
 #if SDL_VERSION_ATLEAST(2, 0, 0)
@@ -894,6 +949,7 @@ void OptionEntryLanguageCode::CheckLanguagesAreInitialized() const
 {
 	if (!languages.empty())
 		return;
+	const bool haveExtraFonts = HaveExtraFonts();
 
 	// Add well-known supported languages
 	languages.emplace_back("bg", "Български");
@@ -909,7 +965,7 @@ void OptionEntryLanguageCode::CheckLanguagesAreInitialized() const
 	languages.emplace_back("hu", "Magyar");
 	languages.emplace_back("it", "Italiano");
 
-	if (HaveExtraFonts()) {
+	if (haveExtraFonts) {
 		languages.emplace_back("ja", "日本語");
 		languages.emplace_back("ko", "한국어");
 	}
@@ -922,7 +978,7 @@ void OptionEntryLanguageCode::CheckLanguagesAreInitialized() const
 	languages.emplace_back("tr", "Türkçe");
 	languages.emplace_back("uk", "Українська");
 
-	if (HaveExtraFonts()) {
+	if (haveExtraFonts) {
 		languages.emplace_back("zh_CN", "汉语");
 		languages.emplace_back("zh_TW", "漢語");
 	}
@@ -1473,19 +1529,40 @@ std::vector<OptionEntryBase *> ModOptions::GetEntries()
 	return optionEntries;
 }
 
+void ModOptions::AddModEntry(const std::string &modName)
+{
+	auto &entries = GetModEntries();
+	entries.emplace_front(modName);
+}
+
+void ModOptions::RemoveModEntry(const std::string &modName)
+{
+	if (!modEntries) {
+		return;
+	}
+
+	auto &entries = *modEntries;
+	entries.remove_if([&](const ModEntry &entry) {
+		return entry.name == modName;
+	});
+}
+
+void ModOptions::SetHellfireEnabled(bool enableHellfire)
+{
+	for (auto &modEntry : GetModEntries()) {
+		if (modEntry.name == "Hellfire") {
+			modEntry.enabled.SetValue(enableHellfire);
+			break;
+		}
+	}
+}
+
 std::forward_list<ModOptions::ModEntry> &ModOptions::GetModEntries()
 {
 	if (modEntries)
 		return *modEntries;
 
 	std::vector<std::string> modNames = ini->getKeys(key);
-
-	// Add mods available by default:
-	for (const std::string_view modName : { "clock" }) {
-		if (c_find(modNames, modName) != modNames.end()) continue;
-		ini->set(key, modName, false);
-		modNames.emplace_back(modName);
-	}
 
 	std::forward_list<ModOptions::ModEntry> &newModEntries = modEntries.emplace();
 	for (auto &modName : modNames) {
@@ -1497,7 +1574,7 @@ std::forward_list<ModOptions::ModEntry> &ModOptions::GetModEntries()
 
 ModOptions::ModEntry::ModEntry(std::string_view name)
     : name(name)
-    , enabled(this->name, OptionEntryFlags::None, this->name.c_str(), "", false)
+    , enabled(this->name, OptionEntryFlags::RecreateUI, this->name.c_str(), "", false)
 {
 }
 

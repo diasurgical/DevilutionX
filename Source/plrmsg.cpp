@@ -6,6 +6,7 @@
 #include "plrmsg.h"
 
 #include <algorithm>
+#include <array>
 #include <cstdint>
 
 #include <fmt/format.h>
@@ -123,11 +124,11 @@ void DrawPlrMsg(const Surface &out)
 
 		DrawHalfTransparentRectTo(out, x - 3, y, width + 6, message.lineHeight * chatlines);
 
-		std::vector<DrawStringFormatArg> args {
-			{ std::string_view(text.data(), message.prefixLength), UiFlags::ColorWhitegold },
-			{ std::string_view(text.data() + message.prefixLength, text.size() - message.prefixLength), message.style }
+		std::array<DrawStringFormatArg, 2> args {
+			DrawStringFormatArg { std::string_view(text.data(), message.prefixLength), UiFlags::ColorWhitegold },
+			DrawStringFormatArg { std::string_view(text.data() + message.prefixLength, text.size() - message.prefixLength), message.style }
 		};
-		DrawStringWithColors(out, "{:s}{:s}", args, { { x, y }, { width, 0 } },
+		DrawStringWithColors(out, "{:s}{:s}", args.data(), args.size(), { { x, y }, { width, 0 } },
 		    { .flags = UiFlags::None, .lineHeight = message.lineHeight });
 	}
 }
