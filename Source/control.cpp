@@ -145,8 +145,8 @@ Rectangle MainPanelButtonRect[8] = {
 
 Rectangle LevelButtonRect = { { 40, -39 }, { 41, 22 } };
 
-int BeltItems = 8;
-Size BeltSize { (INV_SLOT_SIZE_PX + 1) * BeltItems, INV_SLOT_SIZE_PX };
+constexpr int BeltItems = 8;
+constexpr Size BeltSize { (INV_SLOT_SIZE_PX + 1) * BeltItems, INV_SLOT_SIZE_PX };
 Rectangle BeltRect { { 205, 5 }, BeltSize };
 
 Rectangle SpellButtonRect { { 565, 64 }, { 56, 56 } };
