@@ -1250,7 +1250,7 @@ void DrawView(const Surface &out, Point startPosition)
 	DrawFloatingNumbers(out, startPosition, offset);
 
 	if (IsPlayerInStore() && !qtextflag)
-		DrawSText(out);
+		DrawStore(out);
 	if (invflag) {
 		DrawInv(out);
 	} else if (SpellbookFlag) {
