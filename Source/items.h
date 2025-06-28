@@ -31,6 +31,7 @@ namespace devilution {
 // Item indestructible durability
 #define DUR_INDESTRUCTIBLE 255
 
+constexpr int ItemNameLength = 64;
 constexpr int MaxVendorValue = 140000;
 constexpr int MaxVendorValueHf = 200000;
 constexpr int MaxBoyValue = 90000;
@@ -200,8 +201,8 @@ struct Item {
 	bool _iPostDraw = false;
 	bool _iIdentified = false;
 	item_quality _iMagical = ITEM_QUALITY_NORMAL;
-	char _iName[64] = {};
-	char _iIName[64] = {};
+	char _iName[ItemNameLength] = {};
+	char _iIName[ItemNameLength] = {};
 	item_equip_type _iLoc = ILOC_NONE;
 	item_class _iClass = ICLASS_NONE;
 	uint8_t _iCurs = 0;
@@ -493,7 +494,6 @@ extern DVL_API_FOR_TEST bool UniqueItemFlags[128];
 
 uint8_t GetOutlineColor(const Item &item, bool checkReq);
 bool IsItemAvailable(int i);
-bool IsUniqueAvailable(int i);
 void ClearUniqueItemFlags();
 void InitItemGFX();
 void InitItems();
@@ -530,7 +530,7 @@ void SpawnItem(Monster &monster, Point position, bool sendmsg, bool spawn = fals
 void CreateRndItem(Point position, bool onlygood, bool sendmsg, bool delta);
 void CreateRndUseful(Point position, bool sendmsg);
 void CreateTypeItem(Point position, bool onlygood, ItemType itemType, int imisc, bool sendmsg, bool delta, bool spawn = false);
-void RecreateItem(const Player &player, Item &item, _item_indexes idx, uint16_t icreateinfo, uint32_t iseed, int ivalue, bool isHellfire);
+void RecreateItem(const Player &player, Item &item, _item_indexes idx, uint16_t icreateinfo, uint32_t iseed, int ivalue, uint32_t dwBuff);
 void RecreateEar(Item &item, uint16_t ic, uint32_t iseed, uint8_t bCursval, std::string_view heroName);
 void CornerstoneSave();
 void CornerstoneLoad(Point position);

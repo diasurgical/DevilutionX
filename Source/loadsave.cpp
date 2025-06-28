@@ -35,6 +35,7 @@
 #include "mpq/mpq_common.hpp"
 #include "pfile.h"
 #include "playerdat.hpp"
+#include "plrmsg.h"
 #include "qol/stash.h"
 #include "stores.h"
 #include "utils/algorithm/container.hpp"
@@ -86,6 +87,14 @@ T SwapBE(T in)
 	}
 }
 
+void TerminateUtf8(char *str, size_t maxLength)
+{
+	std::string_view inStr { str, maxLength };
+	std::string_view truncStr = TruncateUtf8(inStr, maxLength - 1);
+	size_t utf8Length = truncStr.size();
+	str[utf8Length] = '\0';
+}
+
 class LoadHelper {
 	std::unique_ptr<std::byte[]> m_buffer_;
 	size_t m_cur_ = 0;
@@ -118,6 +127,11 @@ public:
 	{
 		return m_buffer_ != nullptr
 		    && m_size_ >= (m_cur_ + size);
+	}
+
+	size_t Size()
+	{
+		return m_size_;
 	}
 
 	template <typename T>
@@ -268,8 +282,10 @@ void LoadItemData(LoadHelper &file, Item &item)
 	item._iPostDraw = file.NextBool32();
 	item._iIdentified = file.NextBool32();
 	item._iMagical = static_cast<item_quality>(file.NextLE<int8_t>());
-	file.NextBytes(item._iName, 64);
-	file.NextBytes(item._iIName, 64);
+	file.NextBytes(item._iName, ItemNameLength);
+	TerminateUtf8(item._iName, ItemNameLength);
+	file.NextBytes(item._iIName, ItemNameLength);
+	TerminateUtf8(item._iIName, ItemNameLength);
 	item._iLoc = static_cast<item_equip_type>(file.NextLE<int8_t>());
 	item._iClass = static_cast<item_class>(file.NextLE<uint8_t>());
 	file.Skip(1); // Alignment
@@ -439,6 +455,7 @@ void LoadPlayer(LoadHelper &file, Player &player)
 	player._pLvlChanging = file.NextBool8();
 
 	file.NextBytes(player._pName, PlayerNameLength);
+	TerminateUtf8(player._pName, PlayerNameLength);
 	player._pClass = static_cast<HeroClass>(file.NextLE<int8_t>());
 	file.Skip(3); // Alignment
 	player._pStrength = file.NextLE<int32_t>();
@@ -754,7 +771,7 @@ void LoadMissile(LoadHelper *file)
 	missile.position.start.y = file->NextLE<int32_t>();
 	missile.position.traveled.deltaX = file->NextLE<int32_t>();
 	missile.position.traveled.deltaY = file->NextLE<int32_t>();
-	missile._mimfnum = file->NextLE<int32_t>();
+	missile.setFrameGroupRaw(file->NextLE<int32_t>());
 	missile._mispllvl = file->NextLE<int32_t>();
 	missile._miDelFlag = file->NextBool32();
 	missile._miAnimType = static_cast<MissileGraphicID>(file->NextLE<uint8_t>());
@@ -998,7 +1015,7 @@ void LoadMatchingItems(LoadHelper &file, const Player &player, const int n, Item
 			// game's item generation logic before attempting to use it for validation
 			if ((heroItem.dwBuff & CF_HELLFIRE) != (unpackedItem.dwBuff & CF_HELLFIRE)) {
 				unpackedItem = {};
-				RecreateItem(player, unpackedItem, heroItem.IDidx, heroItem._iCreateInfo, heroItem._iSeed, heroItem._ivalue, (heroItem.dwBuff & CF_HELLFIRE) != 0);
+				RecreateItem(player, unpackedItem, heroItem.IDidx, heroItem._iCreateInfo, heroItem._iSeed, heroItem._ivalue, heroItem.dwBuff);
 				unpackedItem._iIdentified = heroItem._iIdentified;
 				unpackedItem._iMaxDur = heroItem._iMaxDur;
 				unpackedItem._iDurability = ClampDurability(unpackedItem, heroItem._iDurability);
@@ -1088,8 +1105,8 @@ void SaveItem(SaveHelper &file, const Item &item)
 	file.WriteLE<uint32_t>(item._iPostDraw ? 1 : 0);
 	file.WriteLE<uint32_t>(item._iIdentified ? 1 : 0);
 	file.WriteLE<int8_t>(item._iMagical);
-	file.WriteBytes(item._iName, 64);
-	file.WriteBytes(item._iIName, 64);
+	file.WriteBytes(item._iName, ItemNameLength);
+	file.WriteBytes(item._iIName, ItemNameLength);
 	file.WriteLE<int8_t>(item._iLoc);
 	file.WriteLE<uint8_t>(item._iClass);
 	file.Skip(1); // Alignment
@@ -1524,7 +1541,7 @@ void SaveMissile(SaveHelper *file, const Missile &missile)
 	file->WriteLE<int32_t>(missile.position.start.y);
 	file->WriteLE<int32_t>(missile.position.traveled.deltaX);
 	file->WriteLE<int32_t>(missile.position.traveled.deltaY);
-	file->WriteLE<int32_t>(missile._mimfnum);
+	file->WriteLE<int32_t>(missile.getFrameGroupRaw());
 	file->WriteLE<int32_t>(missile._mispllvl);
 	file->WriteLE<uint32_t>(missile._miDelFlag ? 1 : 0);
 	file->WriteLE<uint8_t>(static_cast<uint8_t>(missile._miAnimType));
@@ -2010,6 +2027,21 @@ tl::expected<void, std::string> LoadLevel(LevelConversionData *levelConversionDa
 const int DiabloItemSaveSize = 368;
 const int HellfireItemSaveSize = 372;
 
+bool IsStashSizeValid(size_t stashSize, uint32_t pages, uint32_t itemCount)
+{
+	const size_t itemSize = (gbIsHellfire ? HellfireItemSaveSize : DiabloItemSaveSize);
+
+	const size_t expectedSize = sizeof(uint8_t)
+	    + sizeof(uint32_t)
+	    + sizeof(uint32_t)
+	    + (sizeof(uint32_t) + 10 * 10 * sizeof(uint16_t)) * pages
+	    + sizeof(uint32_t)
+	    + itemSize * itemCount
+	    + sizeof(uint32_t);
+
+	return stashSize == expectedSize;
+}
+
 } // namespace
 
 tl::expected<void, std::string> ConvertLevels(SaveWriter &saveWriter)
@@ -2067,7 +2099,7 @@ tl::expected<void, std::string> ConvertLevels(SaveWriter &saveWriter)
 
 void RemoveInvalidItem(Item &item)
 {
-	bool isInvalid = !IsItemAvailable(item.IDidx) || !IsUniqueAvailable(item._iUid);
+	bool isInvalid = !IsItemAvailable(item.IDidx) || item._iUid >= static_cast<int>(UniqueItems.size());
 
 	if (!gbIsHellfire) {
 		isInvalid = isInvalid || (item._itype == ItemType::Staff && GetSpellStaffLevel(item._iSpell) == -1);
@@ -2310,8 +2342,10 @@ void LoadStash()
 		return;
 
 	auto version = file.NextLE<uint8_t>();
-	if (version > StashVersion)
+	if (version > StashVersion) {
+		EventPlrMsg(_("Stash version invalid. If you attempt to access your stash, data will be overwritten!!"), UiFlags::ColorRed);
 		return;
+	}
 
 	Stash.gold = file.NextLE<uint32_t>();
 
@@ -2326,6 +2360,11 @@ void LoadStash()
 	}
 
 	auto itemCount = file.NextLE<uint32_t>();
+	if (!IsStashSizeValid(file.Size(), pages, itemCount)) {
+		Stash = {};
+		EventPlrMsg(_("Stash size invalid. If you attempt to access your stash, data will be overwritten!!"), UiFlags::ColorRed);
+		return;
+	}
 	Stash.stashList.resize(itemCount);
 	for (unsigned i = 0; i < itemCount; i++) {
 		LoadAndValidateItemData(file, Stash.stashList[i]);

@@ -116,8 +116,6 @@ enum class OptionEntryFlags : uint8_t {
 	RecreateUI = 1 << 5,
 	/** @brief diablo.mpq must be present. */
 	NeedDiabloMpq = 1 << 6,
-	/** @brief hellfire.mpq must be present. */
-	NeedHellfireMpq = 1 << 7,
 };
 use_enum_as_flags(OptionEntryFlags);
 
@@ -530,6 +528,8 @@ struct GraphicsOptions : OptionCategoryBase {
 	OptionEntryInt<int> brightness;
 	/** @brief Zoom on start. */
 	OptionEntryBoolean zoom;
+	/** @brief Subtile lighting for smoother light gradients. */
+	OptionEntryBoolean perPixelLighting;
 	/** @brief Enable color cycling animations. */
 	OptionEntryBoolean colorCycling;
 	/** @brief Use alternate nest palette. */
@@ -828,6 +828,9 @@ struct ModOptions : OptionCategoryBase {
 	std::vector<std::string_view> GetActiveModList();
 	std::vector<std::string_view> GetModList();
 	std::vector<OptionEntryBase *> GetEntries() override;
+	void AddModEntry(const std::string &modName);
+	void RemoveModEntry(const std::string &modName);
+	void SetHellfireEnabled(bool enableHellfire);
 
 private:
 	struct ModEntry {
@@ -864,6 +867,7 @@ struct Options {
 	{
 		return {
 			&Language,
+			&Mods,
 			&GameMode,
 			&StartUp,
 			&Graphics,
@@ -876,7 +880,6 @@ struct Options {
 			&Chat,
 			&Keymapper,
 			&Padmapper,
-			&Mods,
 		};
 	}
 };

@@ -538,6 +538,21 @@ void SetDungeonMicros()
 		return a.first < b.first;
 	});
 	ReencodeDungeonCels(pDungeonCels, frameToTypeList);
+
+	std::vector<std::pair<uint16_t, uint16_t>> celBlockAdjustments = ComputeCelBlockAdjustments(frameToTypeList);
+	if (celBlockAdjustments.size() == 0) return;
+	for (size_t levelPieceId = 0; levelPieceId < tileCount / blocks; levelPieceId++) {
+		for (uint32_t block = 0; block < blocks; block++) {
+			LevelCelBlock &levelCelBlock = DPieceMicros[levelPieceId].mt[block];
+			const uint16_t frame = levelCelBlock.frame();
+			const auto pair = std::make_pair(frame, frame);
+			const auto it = std::upper_bound(celBlockAdjustments.begin(), celBlockAdjustments.end(), pair,
+			    [](std::pair<uint16_t, uint16_t> p1, std::pair<uint16_t, uint16_t> p2) { return p1.first < p2.first; });
+			if (it != celBlockAdjustments.end()) {
+				levelCelBlock.data -= it->second;
+			}
+		}
+	}
 }
 
 void DRLG_InitTrans()

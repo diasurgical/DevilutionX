@@ -3,6 +3,7 @@
 #include <SDL.h>
 
 #include "control.h"
+#include "controls/touch/event_handlers.h"
 #include "controls/touch/gamepad.h"
 #include "quests.h"
 #include "utils/display.h"
@@ -188,6 +189,7 @@ void ActivateVirtualGamepad()
 void DeactivateVirtualGamepad()
 {
 	VirtualGamepadState.Deactivate();
+	DeactivateTouchEventHandlers();
 }
 
 void VirtualGamepad::Deactivate()

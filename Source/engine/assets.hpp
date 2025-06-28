@@ -3,7 +3,9 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
-#include <optional>
+#include <functional>
+#include <map>
+#include <span>
 #include <string>
 #include <string_view>
 
@@ -278,48 +280,33 @@ struct AssetData {
 tl::expected<AssetData, std::string> LoadAsset(std::string_view path);
 
 #ifdef UNPACKED_MPQS
-extern DVL_API_FOR_TEST std::optional<std::string> spawn_data_path;
-extern DVL_API_FOR_TEST std::optional<std::string> diabdat_data_path;
-extern std::optional<std::string> hellfire_data_path;
-extern std::optional<std::string> font_data_path;
-extern std::optional<std::string> lang_data_path;
+using MpqArchiveT = std::string;
 #else
-/** A handle to the spawn.mpq archive. */
-extern DVL_API_FOR_TEST std::optional<MpqArchive> spawn_mpq;
-/** A handle to the diabdat.mpq archive. */
-extern DVL_API_FOR_TEST std::optional<MpqArchive> diabdat_mpq;
-/** A handle to an hellfire.mpq archive. */
-extern std::optional<MpqArchive> hellfire_mpq;
-extern std::optional<MpqArchive> hfmonk_mpq;
-extern std::optional<MpqArchive> hfbard_mpq;
-extern std::optional<MpqArchive> hfbarb_mpq;
-extern std::optional<MpqArchive> hfmusic_mpq;
-extern std::optional<MpqArchive> hfvoice_mpq;
-extern std::optional<MpqArchive> font_mpq;
-extern std::optional<MpqArchive> lang_mpq;
-extern std::optional<MpqArchive> devilutionx_mpq;
+using MpqArchiveT = MpqArchive;
 #endif
+
+extern DVL_API_FOR_TEST std::map<int, MpqArchiveT, std::greater<>> MpqArchives;
+constexpr int MainMpqPriority = 1000;
+constexpr int DevilutionXMpqPriority = 9000;
+constexpr int LangMpqPriority = 9100;
+constexpr int FontMpqPriority = 9200;
+extern bool HasHellfireMpq;
 
 void LoadCoreArchives();
 void LoadLanguageArchive();
 void LoadGameArchives();
+void LoadHellfireArchives();
+void UnloadModArchives();
+void LoadModArchives(std::span<const std::string_view> modnames);
 
-#ifdef UNPACKED_MPQS
-[[nodiscard]] inline bool HaveSpawn() { return spawn_data_path.has_value(); }
-[[nodiscard]] inline bool HaveDiabdat() { return diabdat_data_path.has_value(); }
-[[nodiscard]] inline bool HaveHellfire() { return hellfire_data_path.has_value(); }
-[[nodiscard]] inline bool HaveExtraFonts() { return font_data_path.has_value(); }
-
-// Bard and barbarian are not currently supported in unpacked mode.
-[[nodiscard]] inline bool HaveBardAssets() { return false; }
-[[nodiscard]] inline bool HaveBarbarianAssets() { return false; }
-#else
-[[nodiscard]] inline bool HaveSpawn() { return spawn_mpq.has_value(); }
-[[nodiscard]] inline bool HaveDiabdat() { return diabdat_mpq.has_value(); }
-[[nodiscard]] inline bool HaveHellfire() { return hellfire_mpq.has_value(); }
-[[nodiscard]] inline bool HaveExtraFonts() { return font_mpq.has_value(); }
-[[nodiscard]] inline bool HaveBardAssets() { return hfbard_mpq.has_value(); }
-[[nodiscard]] inline bool HaveBarbarianAssets() { return hfbarb_mpq.has_value(); }
+#ifdef BUILD_TESTING
+[[nodiscard]] inline bool HaveMainData() { return MpqArchives.find(MainMpqPriority) != MpqArchives.end(); }
 #endif
+[[nodiscard]] inline bool HaveExtraFonts() { return MpqArchives.find(FontMpqPriority) != MpqArchives.end(); }
+[[nodiscard]] inline bool HaveHellfire() { return HasHellfireMpq; }
+[[nodiscard]] inline bool HaveIntro() { return FindAsset("gendata\\diablo1.smk").ok(); }
+[[nodiscard]] inline bool HaveFullMusic() { return FindAsset("music\\dintro.wav").ok() || FindAsset("music\\dintro.mp3").ok(); }
+[[nodiscard]] inline bool HaveBardAssets() { return FindAsset("plrgfx\\bard\\bha\\bhaas.clx").ok(); }
+[[nodiscard]] inline bool HaveBarbarianAssets() { return FindAsset("plrgfx\\barbarian\\cha\\chaas.clx").ok(); }
 
 } // namespace devilution

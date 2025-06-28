@@ -25,36 +25,23 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
     - name: Checkout
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
 
-    - name: Add gcc repo
-      run: sudo add-apt-repository ppa:ubuntu-toolchain-r/test
-
     # Installs dependencies and runs `sudo apt-get update` as part of it.
     - name: Install dependencies
-      run: Packaging/nix/debian-host-prep.sh --no-gcc
-
-    - name: Install gcc-13
-      run: |
-        sudo apt-get install -yq --no-install-recommends gcc-13 g++-13 && \
-        sudo update-alternatives --install \
-          /usr/bin/gcc gcc /usr/bin/gcc-13 13 \
-          --slave /usr/bin/g++ g++ /usr/bin/g++-13
-
-    - name: Create Build Environment
-      run: Packaging/nix/debian-host-prep.sh --no-gcc
+      run: Packaging/nix/debian-host-prep.sh
 
     - name: Cache CMake build folder
       uses: actions/cache@v4
       with:
         path: build
-        key: ${{ github.workflow }}-v6-${{ github.sha }}
-        restore-keys: ${{ github.workflow }}-v6-
+        key: ${{ github.workflow }}-v7-${{ github.sha }}
+        restore-keys: ${{ github.workflow }}-v7-
 
     - name: Build
       working-directory: ${{github.workspace}}

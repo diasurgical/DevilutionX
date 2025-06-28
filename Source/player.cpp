@@ -36,6 +36,7 @@
 #include "loadsave.h"
 #include "minitext.h"
 #include "missiles.h"
+#include "monster.h"
 #include "nthread.h"
 #include "objects.h"
 #include "options.h"
@@ -358,6 +359,7 @@ void InitLevelChange(Player &player)
 {
 	Player &myPlayer = *MyPlayer;
 
+	RemoveEnemyReferences(player);
 	RemovePlrMissiles(player);
 	player.pManaShield = false;
 	player.wReflections = 0;
@@ -1037,9 +1039,6 @@ bool DoDeath(Player &player)
 			dFlags[player.position.tile.x][player.position.tile.y] |= DungeonFlag::DeadPlayer;
 		} else if (&player == MyPlayer && player.AnimInfo.tickCounterOfCurrentFrame == 30) {
 			MyPlayerIsDead = true;
-			if (!gbIsMultiplayer) {
-				gamemenu_on();
-			}
 		}
 	}
 
@@ -1561,16 +1560,18 @@ void Player::RemoveInvItem(int iv, bool calcScrolls)
 
 	_pNumInv--;
 
-	// If the item at the end of inventory array isn't the one we removed, we need to swap its position in the array with the removed item
+	// If the item at the end of inventory array isn't the one removed, shift all following items back one index to retain inventory order.
 	if (_pNumInv > 0 && _pNumInv != iv) {
-		InvList[iv] = InvList[_pNumInv].pop();
+		for (int newIndex = iv; newIndex < _pNumInv; newIndex++) {
+			InvList[newIndex] = InvList[newIndex + 1].pop();
+		}
 
 		for (int8_t &itemIndex : InvGrid) {
-			if (itemIndex == _pNumInv + 1) {
-				itemIndex = iv + 1;
+			if (itemIndex > iv + 1) { // if item was shifted, decrease the index so it's paired with the correct item.
+				itemIndex--;
 			}
-			if (itemIndex == -(_pNumInv + 1)) {
-				itemIndex = -(iv + 1);
+			if (itemIndex < -(iv + 1)) {
+				itemIndex++; // since occupied cells are negative, increment the index to keep it same as as top-left cell for item, only negative.
 			}
 		}
 	}
@@ -2619,6 +2620,7 @@ StartPlayerKill(Player &player, DeathReason deathReason)
 
 	if (&player == MyPlayer) {
 		NetSendCmdParam1(true, CMD_PLRDEAD, static_cast<uint16_t>(deathReason));
+		gamemenu_off();
 	}
 
 	const bool dropGold = !gbIsMultiplayer || !(player.isOnLevel(16) || player.isOnArenaLevel());
@@ -2678,7 +2680,7 @@ StartPlayerKill(Player &player, DeathReason deathReason)
 				Item ear;
 				InitializeItem(ear, IDI_EAR);
 				CopyUtf8(ear._iName, fmt::format(fmt::runtime("Ear of {:s}"), player._pName), sizeof(ear._iName));
-				CopyUtf8(ear._iIName, player._pName, sizeof(ear._iIName));
+				CopyUtf8(ear._iIName, player._pName, ItemNameLength);
 				switch (player._pClass) {
 				case HeroClass::Sorcerer:
 					ear._iCurs = ICURS_EAR_SORCERER;
@@ -2811,16 +2813,10 @@ void SyncPlrKill(Player &player, DeathReason deathReason)
 
 void RemovePlrMissiles(const Player &player)
 {
-	if (leveltype != DTYPE_TOWN && &player == MyPlayer) {
-		Monster &golem = Monsters[MyPlayerId];
-		if (golem.position.tile.x != 1 || golem.position.tile.y != 0) {
-			KillMyGolem();
-			AddCorpse(golem.position.tile, golem.type().corpseId, golem.direction);
-			int mx = golem.position.tile.x;
-			int my = golem.position.tile.y;
-			dMonster[mx][my] = 0;
-			golem.isInvalid = true;
-			DeleteMonsterList();
+	if (leveltype != DTYPE_TOWN) {
+		Monster *golem;
+		while ((golem = FindGolemForPlayer(player)) != nullptr) {
+			KillGolem(*golem);
 		}
 	}
 
@@ -2865,7 +2861,7 @@ StartNewLvl(Player &player, interface_mode fom, int lvl)
 		player._pmode = PM_NEWLVL;
 		player._pInvincible = true;
 		SDL_Event event;
-		event.type = CustomEventToSdlEvent(fom);
+		CustomEventToSdlEvent(event, fom);
 		SDL_PushEvent(&event);
 		if (gbIsMultiplayer) {
 			NetSendCmdParam2(true, CMD_NEWLVL, fom, lvl);
@@ -2891,7 +2887,7 @@ void RestartTownLvl(Player &player)
 	if (&player == MyPlayer) {
 		player._pInvincible = true;
 		SDL_Event event;
-		event.type = CustomEventToSdlEvent(WM_DIABRETOWN);
+		CustomEventToSdlEvent(event, WM_DIABRETOWN);
 		SDL_PushEvent(&event);
 	}
 }
@@ -2916,7 +2912,7 @@ void StartWarpLvl(Player &player, size_t pidx)
 		player._pmode = PM_NEWLVL;
 		player._pInvincible = true;
 		SDL_Event event;
-		event.type = CustomEventToSdlEvent(WM_DIABWARPLVL);
+		CustomEventToSdlEvent(event, WM_DIABWARPLVL);
 		SDL_PushEvent(&event);
 	}
 }
@@ -3069,16 +3065,6 @@ void MakePlrPath(Player &player, Point targetPosition, bool endspace)
 	player.walkpath[path] = WALK_NONE;
 }
 
-void CalcPlrStaff(Player &player)
-{
-	player._pISpells = 0;
-	if (!player.InvBody[INVLOC_HAND_LEFT].isEmpty()
-	    && player.InvBody[INVLOC_HAND_LEFT]._iStatFlag
-	    && player.InvBody[INVLOC_HAND_LEFT]._iCharges > 0) {
-		player._pISpells |= GetSpellBitmask(player.InvBody[INVLOC_HAND_LEFT]._iSpell);
-	}
-}
-
 void CheckPlrSpell(bool isShiftHeld, SpellID spellID, SpellType spellType)
 {
 	bool addflag = false;
@@ -3156,7 +3142,7 @@ void CheckPlrSpell(bool isShiftHeld, SpellID spellID, SpellType spellType)
 		LastMouseButtonAction = MouseActionType::Spell;
 		Direction sd = GetDirection(myPlayer.position.tile, cursPosition);
 		NetSendCmdLocParam4(true, CMD_SPELLXYD, cursPosition, static_cast<int8_t>(spellID), static_cast<uint8_t>(spellType), static_cast<uint16_t>(sd), spellFrom);
-	} else if (pcursmonst != -1 && !isShiftHeld) {
+	} else if (pcursmonst != -1 && !isShiftHeld && leveltype != DTYPE_TOWN) {
 		LastMouseButtonAction = MouseActionType::SpellMonsterTarget;
 		NetSendCmdParam4(true, CMD_SPELLID, pcursmonst, static_cast<int8_t>(spellID), static_cast<uint8_t>(spellType), spellFrom);
 	} else if (PlayerUnderCursor != nullptr && !isShiftHeld && !myPlayer.friendlyMode) {

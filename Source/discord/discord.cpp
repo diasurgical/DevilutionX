@@ -17,9 +17,9 @@
 #include <fmt/format.h>
 
 #include "config.h"
-#include "game_mode.hpp"
 #include "levels/gendung.h"
 #include "levels/setmaps.h"
+#include "lua/lua.hpp"
 #include "multi.h"
 #include "panels/charpanel.hpp"
 #include "player.h"
@@ -29,11 +29,11 @@
 
 namespace devilution {
 namespace {
-void IsHellfireChanged()
+void ModChanged()
 {
 	discord_manager::UpdateMenu(true);
 }
-const auto IsHellfireChangedHandler = (AddIsHellfireChangeHandler(IsHellfireChanged), true);
+const auto ModChangedHandler = (AddModsChangedHandler(ModChanged), true);
 } // namespace
 
 namespace discord_manager {

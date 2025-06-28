@@ -5,6 +5,7 @@
  */
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 
 #include "sound_effect_enums.h"
@@ -430,6 +431,7 @@ struct Speech {
 	SfxID sfxnr;
 };
 
+extern const size_t SpeechCount;
 extern const Speech Speeches[];
 
 } // namespace devilution

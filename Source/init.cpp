@@ -3,7 +3,7 @@
  *
  * Implementation of routines for initializing the environment, disable screen saver, load MPQ.
  */
-#include "init.h"
+#include "init.hpp"
 
 #include <cstdint>
 #include <string>
@@ -71,26 +71,18 @@ bool CheckExtraFontsVersion(AssetRef &&ref)
 
 } // namespace
 
-#ifndef UNPACKED_MPQS
-bool IsDevilutionXMpqOutOfDate(MpqArchive &archive)
+bool IsDevilutionXMpqOutOfDate()
 {
-	const char filename[] = "ASSETS_VERSION";
-	const MpqFileHash fileHash = CalculateMpqFileHash(filename);
-	uint32_t fileNumber;
-	if (!archive.GetFileNumber(fileHash, fileNumber))
+	AssetRef ref = FindAsset("ASSETS_VERSION");
+	if (!ref.ok())
 		return true;
-	AssetRef ref;
-	ref.archive = &archive;
-	ref.fileNumber = fileNumber;
-	ref.filename = filename;
 	return CheckDevilutionXMpqVersion(std::move(ref));
 }
-#endif
 
 #ifdef UNPACKED_MPQS
-bool AreExtraFontsOutOfDate(const std::string &path)
+bool AreExtraFontsOutOfDate(std::string_view path)
 {
-	const std::string versionPath = path + "fonts" DIRECTORY_SEPARATOR_STR "VERSION";
+	const std::string versionPath = StrCat(path, "fonts" DIRECTORY_SEPARATOR_STR "VERSION");
 	if (versionPath.size() + 1 > AssetRef::PathBufSize)
 		app_fatal("Path too long");
 	AssetRef ref;
@@ -113,6 +105,12 @@ bool AreExtraFontsOutOfDate(MpqArchive &archive)
 }
 #endif
 
+bool AreExtraFontsOutOfDate()
+{
+	const auto it = MpqArchives.find(FontMpqPriority);
+	return it != MpqArchives.end() && AreExtraFontsOutOfDate(it->second);
+}
+
 void init_cleanup()
 {
 	if (gbIsMultiplayer && gbRunGame) {
@@ -120,25 +118,8 @@ void init_cleanup()
 		sfile_write_stash();
 	}
 
-#ifdef UNPACKED_MPQS
-	lang_data_path = std::nullopt;
-	font_data_path = std::nullopt;
-	hellfire_data_path = std::nullopt;
-	diabdat_data_path = std::nullopt;
-	spawn_data_path = std::nullopt;
-#else
-	spawn_mpq = std::nullopt;
-	diabdat_mpq = std::nullopt;
-	hellfire_mpq = std::nullopt;
-	hfmonk_mpq = std::nullopt;
-	hfbard_mpq = std::nullopt;
-	hfbarb_mpq = std::nullopt;
-	hfmusic_mpq = std::nullopt;
-	hfvoice_mpq = std::nullopt;
-	lang_mpq = std::nullopt;
-	font_mpq = std::nullopt;
-	devilutionx_mpq = std::nullopt;
-#endif
+	MpqArchives.clear();
+	HasHellfireMpq = false;
 
 	NetClose();
 }

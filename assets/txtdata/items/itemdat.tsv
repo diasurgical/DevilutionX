@@ -22,7 +22,7 @@ IDI_FUNGALTM	0	Quest	Unequippable	FUNGAL_TOME	Misc	NONE	Fungal Tome		0	0	0	0	0	0
 IDI_SPECELIX	0	Misc	Unequippable	SPECTRAL_ELIXIR	Misc	ELIXIR	Spectral Elixir		15	0	0	0	0	0	0	0	0		SPECELIX	Null	true	0
 IDI_BLDSTONE	0	Quest	Unequippable	BLOOD_STONE	Misc	NONE	Blood Stone		0	0	0	0	0	0	0	0	0		NONE	Null	false	0
 IDI_MAPOFDOOM	0	Quest	Unequippable	MAP_OF_THE_STARS	Misc	MAPOFDOOM	Cathedral Map		0	0	0	0	0	0	0	0	0		MAPOFDOOM	Null	true	0
-IDI_EAR	0	Quest	Unequippable	EAR_SORCERER	Misc	NONE	Heart		0	0	0	0	0	0	0	0	0		EAR	Null	false	0
+IDI_EAR	0	Misc	Unequippable		Misc	NONE	Ear		0	0	0	0	0	0	0	0	0		EAR	Null	false	0
 IDI_HEAL	0	Misc	Unequippable	POTION_OF_HEALING	Misc	NONE	Potion of Healing		0	0	0	0	0	0	0	0	0		HEAL	Null	true	50
 IDI_MANA	0	Misc	Unequippable	POTION_OF_MANA	Misc	NONE	Potion of Mana		0	0	0	0	0	0	0	0	0		MANA	Null	true	50
 IDI_IDENTIFY	0	Misc	Unequippable	SCROLL_OF	Misc	NONE	Scroll of Identify		1	0	0	0	0	0	0	0	0		SCROLL	Identify	true	200
@@ -107,10 +107,10 @@ IDI_GREYSUIT	0	Quest	Unequippable	GREY_SUIT	Misc	NONE	Grey Suit		0	0	0	0	0	0	0	0
 	1	Misc	Unequippable	SCROLL_OF	Misc	NONE	Scroll of Stone Curse		6	0	0	0	0	0	0	33	0		SCROLLT	StoneCurse	true	800
 	1	Misc	Unequippable	SCROLL_OF	Misc	NONE	Scroll of Chain Lightning		10	0	0	0	0	0	0	35	0		SCROLLT	ChainLightning	true	750
 	1	Misc	Unequippable	SCROLL_OF	Misc	NONE	Scroll of Guardian		12	0	0	0	0	0	0	47	0		SCROLLT	Guardian	true	950
-	0	Misc	Unequippable	SCROLL_OF	Misc	NONE	Non Item		0	0	0	0	0	0	0	0	0		NONE	Null	false	0
+	0	Misc	Unequippable		Misc	NONE			0	0	0	0	0	0	0	0	0		NONE	Null	false	0
 	1	Misc	Unequippable	SCROLL_OF	Misc	NONE	Scroll of Nova		14	0	0	0	0	0	0	57	0		SCROLL	Nova	true	1300
 	1	Misc	Unequippable	SCROLL_OF	Misc	NONE	Scroll of Golem		10	0	0	0	0	0	0	51	0		SCROLLT	Golem	true	1100
-	0	Misc	Unequippable	SCROLL_OF	Misc	NONE	Scroll of None		99	0	0	0	0	0	0	61	0		SCROLLT	Null	true	1000
+	0	Misc	Unequippable		Misc	NONE			0	0	0	0	0	0	0	0	0		NONE	Null	false	0
 	1	Misc	Unequippable	SCROLL_OF	Misc	NONE	Scroll of Teleport		14	0	0	0	0	0	0	81	0		SCROLL	Teleport	true	3000
 	1	Misc	Unequippable	SCROLL_OF	Misc	NONE	Scroll of Apocalypse		22	0	0	0	0	0	0	117	0		SCROLL	Apocalypse	true	2000
 	1	Misc	Unequippable	BOOK_BLUE	Misc	NONE	Book of 		2	0	0	0	0	0	0	0	0		BOOK	Null	true	0

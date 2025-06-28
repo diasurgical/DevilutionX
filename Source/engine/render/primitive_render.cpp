@@ -4,10 +4,10 @@
 #include <cstdint>
 #include <cstring>
 
-#include "engine/palette.h"
 #include "engine/point.hpp"
 #include "engine/size.hpp"
 #include "engine/surface.hpp"
+#include "utils/palette_blending.hpp"
 
 namespace devilution {
 namespace {

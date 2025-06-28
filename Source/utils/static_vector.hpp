@@ -55,6 +55,9 @@ public:
 	[[nodiscard]] const T &back() const { return (*this)[size_ - 1]; }
 	[[nodiscard]] T &back() { return (*this)[size_ - 1]; }
 
+	[[nodiscard]] const T *data() const { return data_[0].ptr(); }
+	[[nodiscard]] T *data() { return data_[0].ptr(); }
+
 	template <typename... Args>
 	void push_back(Args &&...args) // NOLINT(readability-identifier-naming)
 	{
@@ -71,12 +74,20 @@ public:
 	const T &operator[](std::size_t pos) const { return *data_[pos].ptr(); }
 	T &operator[](std::size_t pos) { return *data_[pos].ptr(); }
 
-	void erase(const T *begin, const T *end)
+	void erase(const T *first, const T *last)
 	{
-		for (const T *it = begin; it < end; ++it) {
-			std::destroy_at(it);
-		}
-		size_ -= end - begin;
+		if (last == first) return;
+		assert(first >= begin() && last <= end() && first <= last);
+		const auto count = last - first;
+		auto tail = std::move(const_cast<T *>(last), end(), const_cast<T *>(first));
+		std::destroy(tail, end());
+		size_ -= count;
+	}
+
+	void erase(const T *element)
+	{
+		assert(element >= begin() && element < end());
+		erase(element, element + 1);
 	}
 
 	void pop_back() // NOLINT(readability-identifier-naming)
@@ -92,21 +103,19 @@ public:
 
 	~StaticVector()
 	{
-		for (std::size_t pos = 0; pos < size_; ++pos) {
-			std::destroy_at(data_[pos].ptr());
-		}
+		std::destroy_n(data(), size_);
 	}
 
 private:
 	struct AlignedStorage {
 		alignas(alignof(T)) std::byte data[sizeof(T)];
 
-		const T *ptr() const
+		[[nodiscard]] const T *ptr() const
 		{
 			return std::launder(reinterpret_cast<const T *>(data));
 		}
 
-		T *ptr()
+		[[nodiscard]] T *ptr()
 		{
 			return std::launder(reinterpret_cast<T *>(data));
 		}

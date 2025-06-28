@@ -463,7 +463,7 @@ bool UseStashItem(uint16_t c)
 		return true;
 	if (pcurs != CURSOR_HAND)
 		return true;
-	if (ActiveStore != TalkID::None)
+	if (IsPlayerInStore())
 		return true;
 
 	Item *item = &Stash.stashList[c];

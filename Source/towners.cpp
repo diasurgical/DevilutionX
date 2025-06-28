@@ -42,18 +42,22 @@ void NewTownerAnim(Towner &towner, ClxSpriteList sprites, uint8_t numFrames, int
 	towner._tAnimDelay = delay;
 }
 
-void InitTownerInfo(int16_t i, const TownerData &townerData)
+void InitTownerInfo(Towner &towner, const TownerData &townerData)
 {
-	auto &towner = Towners[i];
-
 	towner._ttype = townerData.type;
 	towner.name = _(TownerLongNames[townerData.type]);
 	towner.position = townerData.position;
 	towner.talk = townerData.talk;
 
-	dMonster[towner.position.x][towner.position.y] = i + 1;
-
 	townerData.init(towner, townerData);
+}
+
+void InitTownerInfo(int16_t i, const TownerData &townerData)
+{
+	// It's necessary to assign this before invoking townerData.init()
+	// specifically for the cows that need to read this value to fill adjacent tiles
+	dMonster[townerData.position.x][townerData.position.y] = i + 1;
+	InitTownerInfo(Towners[i], townerData);
 }
 
 void LoadTownerAnimations(Towner &towner, const char *path, int frames, int delay)
@@ -916,25 +920,22 @@ void UpdateCowFarmerAnimAfterQuestComplete()
 }
 
 #ifdef _DEBUG
-bool DebugTalkToTowner(std::string_view targetName)
+bool DebugTalkToTowner(_talker_id type)
 {
+	if (!IsTownerPresent(type))
+		return false;
+	// cows have an init function that differs from the rest and isn't compatible with this code, skip them :(
+	if (type == TOWN_COW)
+		return false;
 	SetupTownStores();
-	const std::string lowercaseName = AsciiStrToLower(targetName);
 	Player &myPlayer = *MyPlayer;
 	for (const TownerData &townerData : TownersData) {
-		if (!IsTownerPresent(townerData.type))
-			continue;
-		// cows have an init function that differs from the rest and isn't compatible with this code, skip them :(
-		if (townerData.type == TOWN_COW)
-			continue;
+		if (townerData.type != type) continue;
 		Towner fakeTowner;
-		townerData.init(fakeTowner, townerData);
+		InitTownerInfo(fakeTowner, townerData);
 		fakeTowner.position = myPlayer.position.tile;
-		const std::string npcName = AsciiStrToLower(fakeTowner.name);
-		if (npcName.find(lowercaseName) != std::string::npos) {
-			townerData.talk(myPlayer, fakeTowner);
-			return true;
-		}
+		townerData.talk(myPlayer, fakeTowner);
+		return true;
 	}
 	return false;
 }

@@ -100,7 +100,7 @@ void DrawLifeFlaskUpper(const Surface &out);
  * First sets the fill amount then draws the empty flask cel portion then the filled
  * flask portion.
  */
-void DrawLifeFlaskLower(const Surface &out);
+void DrawLifeFlaskLower(const Surface &out, bool drawFilledPortion);
 
 /**
  * Draws the top dome of the mana flask (that part that protrudes out of the control panel).
@@ -112,7 +112,7 @@ void DrawManaFlaskUpper(const Surface &out);
 /**
  * Controls the drawing of the area of the mana flask within the control panel.
  */
-void DrawManaFlaskLower(const Surface &out);
+void DrawManaFlaskLower(const Surface &out, bool drawFilledPortion);
 
 /**
  * Controls drawing of current / max values (health, mana) within the control panel.
@@ -175,6 +175,7 @@ void CheckChrBtns();
 void ReleaseChrBtns(bool addAllStatPoints);
 void DrawDurIcon(const Surface &out);
 void RedBack(const Surface &out);
+void DrawDeathText(const Surface &out);
 void DrawSpellBook(const Surface &out);
 void DrawGoldSplit(const Surface &out);
 void control_drop_gold(SDL_Keycode vkey);
