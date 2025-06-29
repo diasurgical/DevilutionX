@@ -12,10 +12,10 @@
 namespace devilution {
 namespace {
 
-void DrawHalfTransparentUnalignedBlendedRectTo(const Surface &out, unsigned sx, unsigned sy, unsigned width, unsigned height)
+void DrawHalfTransparentUnalignedBlendedRectTo(const Surface &out, unsigned sx, unsigned sy, unsigned width, unsigned height, uint8_t color)
 {
 	uint8_t *pix = out.at(static_cast<int>(sx), static_cast<int>(sy));
-	const uint8_t *const lookupTable = paletteTransparencyLookup[0];
+	const uint8_t *const lookupTable = paletteTransparencyLookup[color];
 	const unsigned skipX = out.pitch() - width;
 	for (unsigned y = 0; y < height; ++y) {
 		for (unsigned x = 0; x < width; ++x, ++pix) {
@@ -55,7 +55,7 @@ void DrawHalfTransparentBlendedRectTo(const Surface &out, unsigned sx, unsigned 
 	// First, draw the leading unaligned part.
 	if (sx % 4 != 0) {
 		const unsigned w = 4 - sx % 4;
-		DrawHalfTransparentUnalignedBlendedRectTo(out, sx, sy, w, height);
+		DrawHalfTransparentUnalignedBlendedRectTo(out, sx, sy, w, height, 0);
 		sx += w;
 		width -= w;
 	}
@@ -66,7 +66,7 @@ void DrawHalfTransparentBlendedRectTo(const Surface &out, unsigned sx, unsigned 
 	} else if (width % 4 != 0) {
 		// Draw the trailing unaligned part.
 		const unsigned w = width % 4;
-		DrawHalfTransparentUnalignedBlendedRectTo(out, sx + (width / 4) * 4, sy, w, height);
+		DrawHalfTransparentUnalignedBlendedRectTo(out, sx + (width / 4) * 4, sy, w, height, 0);
 		width -= w;
 	}
 
@@ -153,6 +153,34 @@ void DrawHalfTransparentRectTo(const Surface &out, int sx, int sy, int width, in
 	}
 
 	DrawHalfTransparentBlendedRectTo(out, sx, sy, width, height);
+}
+
+void DrawHalfTransparentRectTo(const Surface &out, int sx, int sy, int width, int height, uint8_t color)
+{
+	if (sx + width < 0)
+		return;
+	if (sy + height < 0)
+		return;
+	if (sx >= out.w())
+		return;
+	if (sy >= out.h())
+		return;
+
+	if (sx < 0) {
+		width += sx;
+		sx = 0;
+	} else if (sx + width >= out.w()) {
+		width = out.w() - sx;
+	}
+
+	if (sy < 0) {
+		height += sy;
+		sy = 0;
+	} else if (sy + height >= out.h()) {
+		height = out.h() - sy;
+	}
+
+	DrawHalfTransparentUnalignedBlendedRectTo(out, sx, sy, width, height, color);
 }
 
 void SetHalfTransparentPixel(const Surface &out, Point position, uint8_t color)
