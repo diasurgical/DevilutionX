@@ -409,6 +409,7 @@ add_devilutionx_object_library(libdevilutionx_palette_blending
 )
 target_link_dependencies(libdevilutionx_palette_blending PUBLIC
   DevilutionX::SDL
+  libdevilutionx_strings
 )
 
 add_devilutionx_object_library(libdevilutionx_parse_int

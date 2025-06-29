@@ -11,6 +11,13 @@
 #include <SDL.h>
 
 #include "utils/static_vector.hpp"
+#include "utils/str_cat.hpp"
+
+#define DEVILUTIONX_PRINT_PALETTE_BLENDING_TREE_GRAPHVIZ 0
+
+#if DEVILUTIONX_PRINT_PALETTE_BLENDING_TREE_GRAPHVIZ
+#include <cstdio>
+#endif
 
 namespace devilution {
 
@@ -89,6 +96,26 @@ struct PaletteKdTreeNode {
 			return child(index % 2 == 0).leafByIndex(index / 2);
 		}
 	}
+
+	[[maybe_unused]] void toGraphvizDot(size_t id, std::span<const uint8_t, 256> values, std::string &dot) const
+	{
+		StrAppend(dot, "  node_", id, " [label=\"");
+		if (Coord == 0) {
+			dot += 'r';
+		} else if (Coord == 1) {
+			dot += 'g';
+		} else {
+			dot += 'b';
+		}
+		StrAppend(dot, ": ", pivot, "\"]\n");
+
+		const size_t leftId = (2 * id) + 1;
+		const size_t rightId = (2 * id) + 2;
+		left.toGraphvizDot(leftId, values, dot);
+		right.toGraphvizDot(rightId, values, dot);
+		StrAppend(dot, "  node_", id, " -- node_", leftId, "\n");
+		StrAppend(dot, "  node_", id, " -- node_", rightId, "\n");
+	}
 };
 
 /**
@@ -100,6 +127,24 @@ struct PaletteKdTreeNode</*RemainingDepth=*/0> {
 	// An empty node is represented as [1, 0].
 	uint8_t valuesBegin;
 	uint8_t valuesEndInclusive;
+
+	[[maybe_unused]] void toGraphvizDot(size_t id, std::span<const uint8_t, 256> values, std::string &dot) const
+	{
+		StrAppend(dot, "  node_", id, " [shape=box label=\"");
+		const uint8_t *it = values.data() + valuesBegin;
+		const uint8_t *const end = values.data() + valuesEndInclusive;
+		while (it <= end) {
+			StrAppend(dot, static_cast<int>(*it), ", ");
+			++it;
+		}
+		if (valuesBegin <= valuesEndInclusive) {
+			dot[dot.size() - 2] = '\"';
+			dot[dot.size() - 1] = ']';
+			dot += "\n";
+		} else {
+			StrAppend(dot, "\"]\n");
+		}
+	}
 };
 
 /**
@@ -111,6 +156,7 @@ class PaletteKdTree {
 private:
 	using RGB = std::array<uint8_t, 3>;
 	static constexpr unsigned NumLeaves = 1U << PaletteKdTreeDepth;
+
 public:
 	PaletteKdTree() = default;
 
@@ -144,6 +190,15 @@ public:
 				totalLen += values.size();
 			}
 		}
+
+#if DEVILUTIONX_PRINT_PALETTE_BLENDING_TREE_GRAPHVIZ
+		// To generate palette.dot.svg, run:
+		// dot -O -Tsvg palette.dot
+		FILE *out = std::fopen("palette.dot", "w");
+		std::string dot = toGraphvizDot();
+		std::fwrite(dot.data(), dot.size(), 1, out);
+		std::fclose(out);
+#endif
 	}
 
 	[[nodiscard]] uint8_t findNearestNeighbor(const RGB &rgb) const
@@ -152,6 +207,14 @@ public:
 		uint32_t bestDiff = std::numeric_limits<uint32_t>::max();
 		findNearestNeighborVisit(tree_, rgb, bestDiff, best);
 		return best;
+	}
+
+	[[maybe_unused]] [[nodiscard]] std::string toGraphvizDot() const
+	{
+		std::string dot = "graph palette_tree {\n  rankdir=LR\n";
+		tree_.toGraphvizDot(0, values_, dot);
+		dot.append("}\n");
+		return dot;
 	}
 
 private:
