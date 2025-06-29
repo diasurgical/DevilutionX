@@ -9,6 +9,7 @@
 #include <utility>
 
 #include <SDL.h>
+#include <fmt/format.h>
 
 #include "utils/static_vector.hpp"
 #include "utils/str_cat.hpp"
@@ -21,11 +22,11 @@
 
 namespace devilution {
 
-[[nodiscard]] inline uint32_t GetColorDistance(const SDL_Color &a, const std::array<uint8_t, 3> &b)
+[[nodiscard]] inline uint32_t GetColorDistance(const std::array<uint8_t, 3> &a, const std::array<uint8_t, 3> &b)
 {
-	const int diffr = a.r - b[0];
-	const int diffg = a.g - b[1];
-	const int diffb = a.b - b[2];
+	const int diffr = a[0] - b[0];
+	const int diffg = a[1] - b[1];
+	const int diffb = a[2] - b[2];
 	return (diffr * diffr) + (diffg * diffg) + (diffb * diffb);
 }
 
@@ -58,6 +59,8 @@ constexpr size_t PaletteKdTreeDepth = 5;
  */
 template <size_t RemainingDepth>
 struct PaletteKdTreeNode {
+	using RGB = std::array<uint8_t, 3>;
+
 	static constexpr unsigned Coord = (PaletteKdTreeDepth - RemainingDepth) % 3;
 
 	PaletteKdTreeNode<RemainingDepth - 1> left;
@@ -97,7 +100,7 @@ struct PaletteKdTreeNode {
 		}
 	}
 
-	[[maybe_unused]] void toGraphvizDot(size_t id, std::span<const uint8_t, 256> values, std::string &dot) const
+	[[maybe_unused]] void toGraphvizDot(size_t id, std::span<const std::pair<RGB, uint8_t>, 256> values, std::string &dot) const
 	{
 		StrAppend(dot, "  node_", id, " [label=\"");
 		if (Coord == 0) {
@@ -123,27 +126,36 @@ struct PaletteKdTreeNode {
  */
 template <>
 struct PaletteKdTreeNode</*RemainingDepth=*/0> {
+	using RGB = std::array<uint8_t, 3>;
+
 	// We use inclusive indices to allow for representing the full [0, 255] range.
 	// An empty node is represented as [1, 0].
 	uint8_t valuesBegin;
 	uint8_t valuesEndInclusive;
 
-	[[maybe_unused]] void toGraphvizDot(size_t id, std::span<const uint8_t, 256> values, std::string &dot) const
+	[[maybe_unused]] void toGraphvizDot(size_t id, std::span<const std::pair<RGB, uint8_t>, 256> values, std::string &dot) const
 	{
-		StrAppend(dot, "  node_", id, " [shape=box label=\"");
-		const uint8_t *it = values.data() + valuesBegin;
-		const uint8_t *const end = values.data() + valuesEndInclusive;
-		while (it <= end) {
-			StrAppend(dot, static_cast<int>(*it), ", ");
-			++it;
+		StrAppend(dot, "  node_", id, R"( [shape=plain label=<
+  <table border="0" cellborder="0" cellspacing="0" cellpadding="2" style="ROUNDED">
+    <tr>)");
+		const std::pair<RGB, uint8_t> *const end = values.data() + valuesEndInclusive;
+		for (const std::pair<RGB, uint8_t> *it = values.data() + valuesBegin; it <= end; ++it) {
+			const auto &[rgb, paletteIndex] = *it;
+			char hexColor[6];
+			fmt::format_to(hexColor, "{:02x}{:02x}{:02x}", rgb[0], rgb[1], rgb[2]);
+			StrAppend(dot, R"(<td balign="left" bgcolor="#)", std::string_view(hexColor, 6), "\">");
+			const bool useWhiteText = rgb[0] + rgb[1] + rgb[2] < 350;
+			if (useWhiteText) StrAppend(dot, R"(<font color="white">)");
+			StrAppend(dot,
+			    static_cast<int>(rgb[0]), " ",
+			    static_cast<int>(rgb[1]), " ",
+			    static_cast<int>(rgb[2]), R"(<br/>)",
+			    static_cast<int>(paletteIndex));
+			if (useWhiteText) StrAppend(dot, "</font>");
+			StrAppend(dot, "</td>");
 		}
-		if (valuesBegin <= valuesEndInclusive) {
-			dot[dot.size() - 2] = '\"';
-			dot[dot.size() - 1] = ']';
-			dot += "\n";
-		} else {
-			StrAppend(dot, "\"]\n");
-		}
+		if (valuesBegin > valuesEndInclusive) StrAppend(dot, "<td></td>");
+		StrAppend(dot, "</tr>\n  </table>>]\n");
 	}
 };
 
@@ -167,9 +179,8 @@ public:
 	 * Colors between skipFrom and skipTo (inclusive) are skipped.
 	 */
 	explicit PaletteKdTree(const SDL_Color palette[256], int skipFrom, int skipTo)
-	    : palette_(palette)
 	{
-		populatePivots(skipFrom, skipTo);
+		populatePivots(palette, skipFrom, skipTo);
 		StaticVector<uint8_t, 256> leafValues[NumLeaves];
 		for (int i = 0; i < 256; ++i) {
 			if (i >= skipFrom && i <= skipTo) continue;
@@ -186,7 +197,11 @@ public:
 			} else {
 				leaf.valuesBegin = static_cast<uint8_t>(totalLen);
 				leaf.valuesEndInclusive = static_cast<uint8_t>(totalLen - 1 + values.size());
-				std::copy(values.begin(), values.end(), values_.data() + totalLen);
+
+				for (size_t i = 0; i < values.size(); ++i) {
+					const uint8_t value = values[i];
+					values_[totalLen + i] = std::make_pair(RGB { palette[value].r, palette[value].g, palette[value].b }, value);
+				}
 				totalLen += values.size();
 			}
 		}
@@ -206,7 +221,7 @@ public:
 		uint8_t best;
 		uint32_t bestDiff = std::numeric_limits<uint32_t>::max();
 		findNearestNeighborVisit(tree_, rgb, bestDiff, best);
-		return best;
+		return values_[best].second;
 	}
 
 	[[maybe_unused]] [[nodiscard]] std::string toGraphvizDot() const
@@ -242,16 +257,18 @@ private:
 	}
 
 	template <size_t RemainingDepth, size_t N>
-	void maybeAddToSubdivisionForMedian(
-	    const PaletteKdTreeNode<RemainingDepth> &node, unsigned paletteIndex,
+	static void maybeAddToSubdivisionForMedian(
+	    const PaletteKdTreeNode<RemainingDepth> &node,
+	    const SDL_Color palette[256], unsigned paletteIndex,
 	    std::span<StaticVector<uint8_t, 256>, N> out)
 	{
-		const uint8_t color = node.getColorCoordinate(palette_[paletteIndex]);
+		const uint8_t color = node.getColorCoordinate(palette[paletteIndex]);
 		if constexpr (N == 1) {
 			out[0].emplace_back(color);
 		} else {
 			const bool isLeft = color < node.pivot;
 			maybeAddToSubdivisionForMedian(node.child(isLeft),
+			    palette,
 			    paletteIndex,
 			    isLeft
 			        ? out.template subspan<0, N / 2>()
@@ -260,7 +277,7 @@ private:
 	}
 
 	template <size_t RemainingDepth, size_t N>
-	void setPivotsRecursively(
+	static void setPivotsRecursively(
 	    PaletteKdTreeNode<RemainingDepth> &node,
 	    std::span<StaticVector<uint8_t, 256>, N> values)
 	{
@@ -273,27 +290,27 @@ private:
 	}
 
 	template <size_t TargetDepth>
-	void populatePivotsForTargetDepth(int skipFrom, int skipTo)
+	void populatePivotsForTargetDepth(const SDL_Color palette[256], int skipFrom, int skipTo)
 	{
 		constexpr size_t NumSubdivisions = 1U << TargetDepth;
 		std::array<StaticVector<uint8_t, 256>, NumSubdivisions> subdivisions;
 		const std::span<StaticVector<uint8_t, 256>, NumSubdivisions> subdivisionsSpan { subdivisions };
 		for (int i = 0; i < 256; ++i) {
 			if (i >= skipFrom && i <= skipTo) continue;
-			maybeAddToSubdivisionForMedian(tree_, i, subdivisionsSpan);
+			maybeAddToSubdivisionForMedian(tree_, palette, i, subdivisionsSpan);
 		}
 		setPivotsRecursively(tree_, subdivisionsSpan);
 	}
 
 	template <size_t... TargetDepths>
-	void populatePivotsImpl(int skipFrom, int skipTo, std::index_sequence<TargetDepths...> intSeq) // NOLINT(misc-unused-parameters)
+	void populatePivotsImpl(const SDL_Color palette[256], int skipFrom, int skipTo, std::index_sequence<TargetDepths...> intSeq) // NOLINT(misc-unused-parameters)
 	{
-		(populatePivotsForTargetDepth<TargetDepths>(skipFrom, skipTo), ...);
+		(populatePivotsForTargetDepth<TargetDepths>(palette, skipFrom, skipTo), ...);
 	}
 
-	void populatePivots(int skipFrom, int skipTo)
+	void populatePivots(const SDL_Color palette[256], int skipFrom, int skipTo)
 	{
-		populatePivotsImpl(skipFrom, skipTo, std::make_index_sequence<PaletteKdTreeDepth> {});
+		populatePivotsImpl(palette, skipFrom, skipTo, std::make_index_sequence<PaletteKdTreeDepth> {});
 	}
 
 	template <size_t RemainingDepth>
@@ -307,7 +324,7 @@ private:
 		// to the current best candidate vs the distance to the edge of the half-space represented
 		// by the node.
 		if (bestDiff == std::numeric_limits<uint32_t>::max()
-		    || GetColorDistanceToPlane(node.pivot, coord) < GetColorDistance(palette_[best], rgb)) {
+		    || GetColorDistanceToPlane(node.pivot, coord) < GetColorDistance(values_[best].first, rgb)) {
 			findNearestNeighborVisit(node.child(coord >= node.pivot), rgb, bestDiff, best);
 		}
 	}
@@ -315,21 +332,20 @@ private:
 	void findNearestNeighborVisit(const PaletteKdTreeNode<0> &node, const RGB &rgb,
 	    uint32_t &bestDiff, uint8_t &best) const
 	{
-		const uint8_t *it = values_.data() + node.valuesBegin;
-		const uint8_t *const end = values_.data() + node.valuesEndInclusive;
+		const std::pair<RGB, uint8_t> *it = values_.data() + node.valuesBegin;
+		const std::pair<RGB, uint8_t> *const end = values_.data() + node.valuesEndInclusive;
 		while (it <= end) {
-			const uint8_t paletteIndex = *it++;
-			const uint32_t diff = GetColorDistance(palette_[paletteIndex], rgb);
+			const auto &[paletteColor, paletteIndex] = *it++;
+			const uint32_t diff = GetColorDistance(paletteColor, rgb);
 			if (diff < bestDiff) {
-				best = paletteIndex;
+				best = static_cast<uint8_t>(it - values_.data() - 1);
 				bestDiff = diff;
 			}
 		}
 	}
 
-	const SDL_Color *palette_;
 	PaletteKdTreeNode<PaletteKdTreeDepth> tree_;
-	std::array<uint8_t, 256> values_;
+	std::array<std::pair<RGB, uint8_t>, 256> values_;
 };
 
 } // namespace devilution
