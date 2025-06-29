@@ -226,7 +226,7 @@ std::vector<std::byte> ReadFile(const std::string &path)
 	SDL_RWops *rwops = SDL_RWFromFile(path.c_str(), "rb");
 	std::vector<std::byte> result;
 	if (rwops == nullptr) return result;
-	const size_t size = SDL_RWsize(rwops);
+	const size_t size = static_cast<size_t>(SDL_RWsize(rwops));
 	result.resize(size);
 	SDL_RWread(rwops, result.data(), size, 1);
 	SDL_RWclose(rwops);

@@ -86,7 +86,11 @@ void dumpVisibleEnv()
 		}
 		sz += snprintf(buf + sz, sizeof(buf) - sz, "\n");
 	}
+#ifdef _WIN32
+	_write(2, buf, sz);
+#else
 	write(2, buf, sz);
+#endif
 }
 
 // This test case checks the visibility of surrounding objects
