@@ -1,0 +1,38 @@
+syntax = "proto3";
+option optimize_for = LITE_RUNTIME;
+import "data.proto";
+
+package dapi.game;
+
+message FrameUpdate {
+	uint32 player = 1;
+	sint32 stextflag = 2;
+	sint32 pauseMode = 3;
+	bool menuOpen = 4;
+	uint32 cursor = 5;
+	bool chrflag = 6;
+	bool invflag = 7;
+	bool qtextflag = 8;
+	string qtext = 9;
+	uint32 currlevel = 10;
+	bool setlevel = 11;
+	uint32 fps = 12;
+	uint32 gameMode = 13;
+	uint32 gnDifficulty = 14;
+	uint32 connectedTo = 15;
+	
+	repeated dapi.data.TileData dPiece = 16;
+	repeated dapi.data.PlayerData playerData = 17;
+	repeated dapi.data.ItemData itemData = 18;
+	repeated uint32 groundItemID = 19;
+	repeated dapi.data.TownerData townerData = 20;
+	repeated uint32 storeOption = 21;
+	repeated uint32 storeItems = 22;
+	repeated dapi.data.TriggerData triggerData = 23;
+	repeated dapi.data.MonsterData monsterData = 24;
+	repeated dapi.data.ObjectData objectData = 25;
+	repeated dapi.data.MissileData missileData = 26;
+	repeated dapi.data.PortalData portalData = 27;
+	repeated dapi.data.QuestData questData = 28;
+	repeated string chatMessages = 29;
+}
