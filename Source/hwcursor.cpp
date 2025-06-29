@@ -16,6 +16,7 @@
 #include "engine/clx_sprite.hpp"
 #include "engine/render/clx_render.hpp"
 #include "engine/surface.hpp"
+#include "headless_mode.hpp"
 #include "utils/display.h"
 #include "utils/sdl_bilinear_scale.hpp"
 #include "utils/sdl_wrap.h"
@@ -164,6 +165,8 @@ void SetHardwareCursor(CursorInfo cursorInfo)
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 	CurrentCursorInfo = cursorInfo;
 	CurrentCursorInfo.setNeedsReinitialization(false);
+	if (HeadlessMode)
+		return;
 	switch (cursorInfo.type()) {
 	case CursorType::Game:
 #if LOG_HWCURSOR
