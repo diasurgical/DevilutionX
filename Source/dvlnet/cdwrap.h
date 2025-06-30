@@ -52,6 +52,7 @@ public:
 	std::vector<GameInfo> get_gamelist() override;
 	void setup_password(std::string pw) override;
 	void clear_password() override;
+	DvlNetLatencies get_latencies(uint8_t playerid) override;
 
 	virtual ~cdwrap() = default;
 };

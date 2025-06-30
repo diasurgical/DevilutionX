@@ -211,5 +211,17 @@ bool zerotier_is_relayed(uint64_t mac)
 	return isRelayed;
 }
 
+int zerotier_latency(uint64_t mac)
+{
+	int latency = -1;
+	if (zts_core_lock_obtain() != ZTS_ERR_OK)
+		return latency;
+	zts_peer_info_t peerInfo;
+	if (zts_core_query_peer_info(ZtNetwork, mac, &peerInfo) == ZTS_ERR_OK)
+		latency = peerInfo.latency;
+	zts_core_lock_release();
+	return latency;
+}
+
 } // namespace net
 } // namespace devilution

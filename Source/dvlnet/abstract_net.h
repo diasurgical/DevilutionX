@@ -56,6 +56,11 @@ public:
 		return std::vector<GameInfo>();
 	}
 
+	virtual DvlNetLatencies get_latencies(uint8_t playerid)
+	{
+		return {};
+	}
+
 	static std::unique_ptr<abstract_net> MakeNet(provider_t provider);
 };
 

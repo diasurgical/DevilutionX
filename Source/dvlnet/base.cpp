@@ -33,6 +33,14 @@ void base::clear_password()
 	pktfty = std::make_unique<packet_factory>();
 }
 
+DvlNetLatencies base::get_latencies(uint8_t playerid)
+{
+	DvlNetLatencies latencies = abstract_net::get_latencies(playerid);
+	const PlayerState &playerState = playerStateTable_[playerid];
+	latencies.echoLatency = playerState.roundTripLatency;
+	return latencies;
+}
+
 void base::RunEventHandler(_SNETEVENT &ev)
 {
 	auto f = registered_handlers[static_cast<event_type>(ev.eventid)];

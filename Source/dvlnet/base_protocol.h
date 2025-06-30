@@ -37,6 +37,7 @@ public:
 	bool send_info_request() override;
 	void clear_gamelist() override;
 	std::vector<GameInfo> get_gamelist() override;
+	DvlNetLatencies get_latencies(uint8_t playerid) override;
 
 	~base_protocol() override = default;
 
@@ -555,6 +556,16 @@ std::vector<GameInfo> base_protocol<P>::get_gamelist()
 	}
 	c_sort(ret, [](const GameInfo &a, const GameInfo &b) { return a.name < b.name; });
 	return ret;
+}
+
+template <class P>
+DvlNetLatencies base_protocol<P>::get_latencies(uint8_t playerid)
+{
+	DvlNetLatencies latencies = base::get_latencies(playerid);
+	Peer &srcPeer = peers[playerid];
+	latencies.providerLatency = proto.get_latency_to(srcPeer.endpoint);
+	latencies.isRelayed = proto.is_peer_relayed(srcPeer.endpoint);
+	return latencies;
 }
 
 template <class P>

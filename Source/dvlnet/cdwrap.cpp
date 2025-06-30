@@ -130,4 +130,9 @@ void cdwrap::clear_password()
 	return dvlnet_wrap->clear_password();
 }
 
+DvlNetLatencies cdwrap::get_latencies(uint8_t playerid)
+{
+	return dvlnet_wrap->get_latencies(playerid);
+}
+
 } // namespace devilution::net
