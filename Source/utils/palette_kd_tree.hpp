@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <limits>
 #include <span>
+#include <string>
 #include <utility>
 
 #include <SDL.h>
@@ -323,8 +324,7 @@ private:
 		// To see if we need to check a node's subtree, we compare the distance from the query
 		// to the current best candidate vs the distance to the edge of the half-space represented
 		// by the node.
-		if (bestDiff == std::numeric_limits<uint32_t>::max()
-		    || GetColorDistanceToPlane(node.pivot, coord) < GetColorDistance(values_[best].first, rgb)) {
+		if (GetColorDistanceToPlane(node.pivot, coord) < bestDiff) {
 			findNearestNeighborVisit(node.child(coord >= node.pivot), rgb, bestDiff, best);
 		}
 	}
