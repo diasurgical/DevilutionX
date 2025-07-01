@@ -181,7 +181,7 @@ extern DVL_API_FOR_TEST MICROS DPieceMicros[MAXTILES];
 /** Specifies the transparency at each coordinate of the map. */
 extern DVL_API_FOR_TEST int8_t dTransVal[MAXDUNX][MAXDUNY];
 /** Current realtime lighting. Per tile. */
-extern uint8_t dLight[MAXDUNX][MAXDUNY];
+extern DVL_API_FOR_TEST uint8_t dLight[MAXDUNX][MAXDUNY];
 /** Precalculated static lights. dLight uses this as a base before applying lights. Per tile. */
 extern uint8_t dPreLight[MAXDUNX][MAXDUNY];
 /** Holds various information about dungeon tiles, @see DungeonFlag */
