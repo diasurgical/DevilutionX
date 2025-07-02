@@ -90,7 +90,6 @@ set(libdevilutionx_SRCS
 
   engine/render/automap_render.cpp
   engine/render/dun_render.cpp
-  engine/render/light_render.cpp
   engine/render/primitive_render.cpp
   engine/render/scrollrt.cpp
   engine/render/text_render.cpp
@@ -317,6 +316,15 @@ target_link_dependencies(libdevilutionx_init PUBLIC
   libdevilutionx_assets
   libdevilutionx_config
   libdevilutionx_mpq
+  libdevilutionx_options
+)
+
+add_devilutionx_object_library(libdevilutionx_light_render
+  engine/render/light_render.cpp
+)
+target_link_dependencies(libdevilutionx_light_render PUBLIC
+  DevilutionX::SDL
+  libdevilutionx_lighting
   libdevilutionx_options
 )
 
@@ -704,6 +712,7 @@ target_link_dependencies(libdevilutionx PUBLIC
   libdevilutionx_init
   libdevilutionx_items
   libdevilutionx_level_objects
+  libdevilutionx_light_render
   libdevilutionx_lighting
   libdevilutionx_monster
   libdevilutionx_mpq
