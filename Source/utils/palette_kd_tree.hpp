@@ -234,59 +234,61 @@ public:
 	}
 
 private:
-	[[nodiscard]] static uint8_t getMedian(std::span<const uint8_t> elements)
+	struct MedianInfo {
+		std::array<uint16_t, 256> counts = {};
+		uint16_t numValues = 0;
+	};
+
+	[[nodiscard]] static uint8_t getMedian(const MedianInfo &medianInfo)
 	{
-		uint8_t min = 255;
-		uint8_t max = 0;
-		uint_fast16_t count[256] = {};
-		for (const uint8_t x : elements) {
-			min = std::min(x, min);
-			max = std::max(x, max);
-			++count[x];
+		const std::span<const uint16_t, 256> counts = medianInfo.counts;
+		const uint_fast16_t numValues = medianInfo.numValues;
+		const auto medianTarget = static_cast<uint_fast16_t>((medianInfo.numValues + 1) / 2);
+		uint_fast16_t partialSum = 0;
+		uint_fast16_t i = 0;
+		for (; partialSum < medianTarget && partialSum != numValues; ++i) {
+			partialSum += counts[i];
 		}
 
-		const auto medianTarget = static_cast<uint_fast16_t>((elements.size() + 1) / 2);
-		uint_fast16_t partialSum = count[min];
-		for (uint_fast16_t i = min + 1; i <= max; ++i) {
-			if (partialSum >= medianTarget) return i;
-			partialSum += count[i];
-		}
-
-		// Can't find a helpful pivot so return 255 so that
-		// NN lookups through this node mostly go to the left child.
-		return 255;
+		// Special cases:
+		// 1. If the elements are empty, this will return 0.
+		// 2. If all the elements are the same, this will be `value + 1` (rolling over to 0 if value is 256).
+		//    This means all the elements will be on one side of the pivot (left unless the value is 255).
+		return static_cast<uint8_t>(i);
 	}
 
 	template <size_t RemainingDepth, size_t N>
 	static void maybeAddToSubdivisionForMedian(
 	    const PaletteKdTreeNode<RemainingDepth> &node,
 	    const SDL_Color palette[256], unsigned paletteIndex,
-	    std::span<StaticVector<uint8_t, 256>, N> out)
+	    std::span<MedianInfo, N> medianInfos)
 	{
 		const uint8_t color = node.getColorCoordinate(palette[paletteIndex]);
 		if constexpr (N == 1) {
-			out[0].emplace_back(color);
+			MedianInfo &medianInfo = medianInfos[0];
+			++medianInfo.counts[color];
+			++medianInfo.numValues;
 		} else {
 			const bool isLeft = color < node.pivot;
 			maybeAddToSubdivisionForMedian(node.child(isLeft),
 			    palette,
 			    paletteIndex,
 			    isLeft
-			        ? out.template subspan<0, N / 2>()
-			        : out.template subspan<N / 2, N / 2>());
+			        ? medianInfos.template subspan<0, N / 2>()
+			        : medianInfos.template subspan<N / 2, N / 2>());
 		}
 	}
 
 	template <size_t RemainingDepth, size_t N>
 	static void setPivotsRecursively(
 	    PaletteKdTreeNode<RemainingDepth> &node,
-	    std::span<StaticVector<uint8_t, 256>, N> values)
+	    std::span<MedianInfo, N> medianInfos)
 	{
 		if constexpr (N == 1) {
-			node.pivot = getMedian(values[0]);
+			node.pivot = getMedian(medianInfos[0]);
 		} else {
-			setPivotsRecursively(node.left, values.template subspan<0, N / 2>());
-			setPivotsRecursively(node.right, values.template subspan<N / 2, N / 2>());
+			setPivotsRecursively(node.left, medianInfos.template subspan<0, N / 2>());
+			setPivotsRecursively(node.right, medianInfos.template subspan<N / 2, N / 2>());
 		}
 	}
 
@@ -294,8 +296,8 @@ private:
 	void populatePivotsForTargetDepth(const SDL_Color palette[256], int skipFrom, int skipTo)
 	{
 		constexpr size_t NumSubdivisions = 1U << TargetDepth;
-		std::array<StaticVector<uint8_t, 256>, NumSubdivisions> subdivisions;
-		const std::span<StaticVector<uint8_t, 256>, NumSubdivisions> subdivisionsSpan { subdivisions };
+		std::array<MedianInfo, NumSubdivisions> subdivisions = {};
+		const std::span<MedianInfo, NumSubdivisions> subdivisionsSpan { subdivisions };
 		for (int i = 0; i < 256; ++i) {
 			if (i >= skipFrom && i <= skipTo) continue;
 			maybeAddToSubdivisionForMedian(tree_, palette, i, subdivisionsSpan);
