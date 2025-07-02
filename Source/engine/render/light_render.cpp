@@ -18,6 +18,20 @@ namespace {
 
 std::vector<uint8_t> LightmapBuffer;
 
+void RenderFullTile(Point position, uint8_t lightLevel, uint8_t *lightmap, uint16_t pitch)
+{
+	uint8_t *top = lightmap + (position.y + 1) * pitch + position.x - TILE_WIDTH / 2;
+	uint8_t *bottom = top + (TILE_HEIGHT - 2) * pitch;
+	for (int y = 0, w = 4; y < TILE_HEIGHT / 2 - 1; y++, w += 4) {
+		int x = (TILE_WIDTH - w) / 2;
+		memset(top + x, lightLevel, w);
+		memset(bottom + x, lightLevel, w);
+		top += pitch;
+		bottom -= pitch;
+	}
+	memset(top, lightLevel, TILE_WIDTH);
+}
+
 // Half-space method for drawing triangles
 // Points must be provided using counter-clockwise rotation
 // https://web.archive.org/web/20050408192410/http://sw-shader.sourceforge.net/rasterizer.html
@@ -367,8 +381,13 @@ void RenderCell(uint8_t quad[4], Point position, uint8_t lightLevel, uint8_t *li
 	// Fill in the whole cell
 	// All four tiles in the quad are lit
 	case 15: {
-		RenderTriangle(fpCenter0, fpCenter2, fpCenter1, lightLevel, lightmap, pitch, scanLines);
-		RenderTriangle(fpCenter0, fpCenter3, fpCenter2, lightLevel, lightmap, pitch, scanLines);
+		if (center3.x < 0 || center1.x >= pitch || center0.y < 0 || center2.y >= scanLines) {
+			RenderTriangle(fpCenter0, fpCenter2, fpCenter1, lightLevel, lightmap, pitch, scanLines);
+			RenderTriangle(fpCenter0, fpCenter3, fpCenter2, lightLevel, lightmap, pitch, scanLines);
+		} else {
+			// Optimized rendering path if full tile is visible
+			RenderFullTile(center0, lightLevel, lightmap, pitch);
+		}
 	} break;
 	}
 }
