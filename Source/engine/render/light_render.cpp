@@ -2,15 +2,17 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
 #include <span>
 #include <vector>
 
 #include "engine/displacement.hpp"
+#include "engine/lighting_defs.hpp"
 #include "engine/point.hpp"
 #include "levels/dun_tile.hpp"
-#include "levels/gendung.h"
-#include "lighting.h"
-#include "options.h"
+#include "levels/gendung_defs.hpp"
 
 namespace devilution {
 
@@ -103,11 +105,11 @@ void RenderTriangle(Point p1, Point p2, Point p3, uint8_t lightLevel, uint8_t *l
 	}
 }
 
-uint8_t GetLightLevel(Point tile)
+uint8_t GetLightLevel(const uint8_t tileLights[MAXDUNX][MAXDUNY], Point tile)
 {
 	int x = std::clamp(tile.x, 0, MAXDUNX - 1);
 	int y = std::clamp(tile.y, 0, MAXDUNY - 1);
-	return dLight[x][y];
+	return tileLights[x][y];
 }
 
 uint8_t Interpolate(int q1, int q2, int lightLevel)
@@ -392,15 +394,13 @@ void RenderCell(uint8_t quad[4], Point position, uint8_t lightLevel, uint8_t *li
 	}
 }
 
-void BuildLightmap(Point tilePosition, Point targetBufferPosition, uint16_t viewportWidth, uint16_t viewportHeight, int rows, int columns)
+void BuildLightmap(Point tilePosition, Point targetBufferPosition, uint16_t viewportWidth, uint16_t viewportHeight,
+    int rows, int columns, const uint8_t tileLights[MAXDUNX][MAXDUNY], uint_fast8_t microTileLen)
 {
-	if (!*GetOptions().Graphics.perPixelLighting)
-		return;
-
 	// Since light may need to bleed up to the top of wall tiles,
 	// expand the buffer space to include the full base diamond of the tallest tile graphics
-	const uint16_t bufferHeight = viewportHeight + TILE_HEIGHT * (MicroTileLen / 2 + 1);
-	rows += MicroTileLen + 2;
+	const uint16_t bufferHeight = viewportHeight + TILE_HEIGHT * (microTileLen / 2 + 1);
+	rows += microTileLen + 2;
 
 	const size_t totalPixels = static_cast<size_t>(viewportWidth) * bufferHeight;
 	LightmapBuffer.resize(totalPixels);
@@ -424,10 +424,10 @@ void BuildLightmap(Point tilePosition, Point targetBufferPosition, uint16_t view
 			Point tile3 = tilePosition + Displacement { 0, 1 };
 
 			uint8_t quad[] = {
-				GetLightLevel(tile0),
-				GetLightLevel(tile1),
-				GetLightLevel(tile2),
-				GetLightLevel(tile3)
+				GetLightLevel(tileLights, tile0),
+				GetLightLevel(tileLights, tile1),
+				GetLightLevel(tileLights, tile2),
+				GetLightLevel(tileLights, tile3)
 			};
 
 			uint8_t maxLight = std::max({ quad[0], quad[1], quad[2], quad[3] });
@@ -475,21 +475,24 @@ Lightmap::Lightmap(const uint8_t *outBuffer, uint16_t outPitch,
 {
 }
 
-Lightmap Lightmap::build(Point tilePosition, Point targetBufferPosition,
+Lightmap Lightmap::build(bool perPixelLighting, Point tilePosition, Point targetBufferPosition,
     int viewportWidth, int viewportHeight, int rows, int columns,
     const uint8_t *outBuffer, uint16_t outPitch,
-    const uint8_t *lightTables, size_t lightTableSize)
+    const uint8_t *lightTables, size_t lightTableSize,
+    const uint8_t tileLights[MAXDUNX][MAXDUNY],
+    uint_fast8_t microTileLen)
 {
-	BuildLightmap(tilePosition, targetBufferPosition, viewportWidth, viewportHeight, rows, columns);
-	return Lightmap(outBuffer, outPitch, LightmapBuffer, gnScreenWidth, lightTables, lightTableSize);
+	if (perPixelLighting) {
+		BuildLightmap(tilePosition, targetBufferPosition, viewportWidth, viewportHeight, rows, columns, tileLights, microTileLen);
+	}
+	return Lightmap(outBuffer, outPitch, LightmapBuffer, viewportWidth, lightTables, lightTableSize);
 }
 
-Lightmap Lightmap::bleedUp(const Lightmap &source, Point targetBufferPosition, std::span<uint8_t> lightmapBuffer)
+Lightmap Lightmap::bleedUp(bool perPixelLighting, const Lightmap &source, Point targetBufferPosition, std::span<uint8_t> lightmapBuffer)
 {
 	assert(lightmapBuffer.size() >= TILE_WIDTH * TILE_HEIGHT);
 
-	if (!*GetOptions().Graphics.perPixelLighting)
-		return source;
+	if (!perPixelLighting) return source;
 
 	const int sourceHeight = static_cast<int>(source.lightmapBuffer.size() / source.lightmapPitch);
 	const int clipLeft = std::max(0, -targetBufferPosition.x);

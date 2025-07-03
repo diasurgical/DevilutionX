@@ -16,8 +16,7 @@
 #include <ankerl/unordered_dense.h>
 #include <fmt/core.h>
 
-#include "DiabloUI/diabloui.h"
-#include "DiabloUI/ui_item.h"
+#include "DiabloUI/ui_flags.hpp"
 #include "engine/load_cel.hpp"
 #include "engine/load_clx.hpp"
 #include "engine/load_file.hpp"
@@ -26,12 +25,14 @@
 #include "engine/point.hpp"
 #include "engine/render/clx_render.hpp"
 #include "engine/render/primitive_render.hpp"
+#include "engine/surface.hpp"
 #include "engine/ticks.hpp"
 #include "options.h"
 #include "utils/algorithm/container.hpp"
 #include "utils/display.h"
 #include "utils/is_of.hpp"
 #include "utils/language.h"
+#include "utils/log.hpp"
 #include "utils/sdl_compat.h"
 #include "utils/utf8.hpp"
 

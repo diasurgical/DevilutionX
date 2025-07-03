@@ -19,6 +19,7 @@
 #include "engine/clx_sprite.hpp"
 #include "engine/palette.h"
 #include "engine/rectangle.hpp"
+#include "engine/surface.hpp"
 #include "utils/enum_traits.h"
 
 namespace devilution {

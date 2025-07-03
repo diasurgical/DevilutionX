@@ -20,17 +20,12 @@
 #include "engine/render/scrollrt.h"
 #include "engine/world_tile.hpp"
 #include "levels/dun_tile.hpp"
+#include "levels/gendung_defs.hpp"
 #include "utils/attributes.h"
 #include "utils/bitset2d.hpp"
 #include "utils/enum_traits.h"
 
 namespace devilution {
-
-#define DMAXX 40
-#define DMAXY 40
-
-#define MAXDUNX (16 + DMAXX * 2 + 16)
-#define MAXDUNY (16 + DMAXY * 2 + 16)
 
 #define MAXTHEMES 50
 #define MAXTILES 1379
@@ -63,31 +58,7 @@ inline bool IsArenaLevel(_setlevels setLevel)
 	}
 }
 
-enum dungeon_type : int8_t {
-	DTYPE_TOWN,
-	DTYPE_CATHEDRAL,
-	DTYPE_CATACOMBS,
-	DTYPE_CAVES,
-	DTYPE_HELL,
-	DTYPE_NEST,
-	DTYPE_CRYPT,
-
-	DTYPE_LAST = DTYPE_CRYPT,
-	DTYPE_NONE = -1,
-};
-
 tl::expected<dungeon_type, std::string> ParseDungeonType(std::string_view value);
-
-enum lvl_entry : uint8_t {
-	ENTRY_MAIN,
-	ENTRY_PREV,
-	ENTRY_SETLVL,
-	ENTRY_RTNLVL,
-	ENTRY_LOAD,
-	ENTRY_WARPLVL,
-	ENTRY_TWARPDN,
-	ENTRY_TWARPUP,
-};
 
 enum class DungeonFlag : uint8_t {
 	// clang-format off

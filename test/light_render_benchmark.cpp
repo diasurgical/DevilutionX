@@ -1,10 +1,13 @@
+#include <array>
 #include <cstddef>
+#include <cstdio>
 
 #include <benchmark/benchmark.h>
 
+#include "engine/lighting_defs.hpp"
 #include "engine/render/light_render.hpp"
 #include "engine/surface.hpp"
-#include "lighting.h"
+#include "levels/gendung_defs.hpp"
 #include "utils/log.hpp"
 #include "utils/paths.h"
 #include "utils/sdl_wrap.h"
@@ -14,48 +17,47 @@ namespace {
 
 void BM_BuildLightmap(benchmark::State &state)
 {
-	std::string benchmarkDataPath = paths::BasePath() + "test/fixtures/light_render_benchmark/dLight.dmp";
+	const std::string benchmarkDataPath = paths::BasePath() + "test/fixtures/light_render_benchmark/dLight.dmp";
 	FILE *lightFile = std::fopen(benchmarkDataPath.c_str(), "rb");
+	uint8_t dLight[MAXDUNX][MAXDUNY];
+	std::array<std::array<uint8_t, 256>, LightsMax> lightTables;
 	if (lightFile != nullptr) {
-		std::fread(&dLight[0][0], sizeof(uint8_t), MAXDUNX * MAXDUNY, lightFile);
+		if (std::fread(&dLight[0][0], sizeof(uint8_t) * MAXDUNX * MAXDUNY, 1, lightFile) != 1) {
+			std::perror("Failed to read dLight.dmp");
+			exit(1);
+		}
 		std::fclose(lightFile);
 	}
 
 	SDLSurfaceUniquePtr sdl_surface = SDLWrap::CreateRGBSurfaceWithFormat(
 	    /*flags=*/0, /*width=*/640, /*height=*/480, /*depth=*/8, SDL_PIXELFORMAT_INDEX8);
 	if (sdl_surface == nullptr) {
-		LogError("Failed to create SDL Surface: {}", SDL_GetError());
+		std::fprintf(stderr, "Failed to create SDL Surface: %s\n", SDL_GetError());
 		exit(1);
 	}
 	Surface out = Surface(sdl_surface.get());
 
-	Point tilePosition { 48, 44 };
-	Point targetBufferPosition { 0, -17 };
-	int viewportWidth = 640;
-	int viewportHeight = 352;
-	int rows = 25;
-	int columns = 10;
+	const Point tilePosition { 48, 44 };
+	const Point targetBufferPosition { 0, -17 };
+	const int viewportWidth = 640;
+	const int viewportHeight = 352;
+	const int rows = 25;
+	const int columns = 10;
 	const uint8_t *outBuffer = out.at(0, 0);
-	uint16_t outPitch = out.pitch();
-	const uint8_t *lightTables = LightTables[0].data();
-	size_t lightTableSize = LightTables[0].size();
+	const uint16_t outPitch = out.pitch();
 
-	size_t numViewportTiles = rows * columns;
-	size_t numPixels = viewportWidth * viewportHeight;
-	size_t numBytesProcessed = 0;
-	size_t numItemsProcessed = 0;
 	for (auto _ : state) {
-		Lightmap lightmap = Lightmap::build(tilePosition, targetBufferPosition,
+		Lightmap lightmap = Lightmap::build(/*perPixelLighting=*/true,
+		    tilePosition, targetBufferPosition,
 		    viewportWidth, viewportHeight, rows, columns,
-		    outBuffer, outPitch, lightTables, lightTableSize);
+		    outBuffer, outPitch, lightTables[0].data(), lightTables[0].size(),
+		    dLight, /*microTileLen=*/10);
 
 		uint8_t lightLevel = *lightmap.getLightingAt(outBuffer + outPitch * 120 + 120);
 		benchmark::DoNotOptimize(lightLevel);
-		numItemsProcessed += numViewportTiles;
-		numBytesProcessed += numPixels;
 	}
-	state.SetBytesProcessed(numBytesProcessed);
-	state.SetItemsProcessed(numItemsProcessed);
+	state.SetBytesProcessed(state.iterations() * viewportWidth * viewportHeight);
+	state.SetItemsProcessed(state.iterations() * rows * columns);
 }
 
 BENCHMARK(BM_BuildLightmap);

@@ -538,7 +538,7 @@ void DrawCell(const Surface &out, const Lightmap lightmap, Point tilePosition, P
 
 	// Create a special lightmap buffer to bleed light up walls
 	uint8_t lightmapBuffer[TILE_WIDTH * TILE_HEIGHT];
-	Lightmap bleedLightmap = Lightmap::bleedUp(lightmap, targetBufferPosition, lightmapBuffer);
+	Lightmap bleedLightmap = Lightmap::bleedUp(*GetOptions().Graphics.perPixelLighting, lightmap, targetBufferPosition, lightmapBuffer);
 
 	// If the first micro tile is a floor tile, it may be followed
 	// by foliage which should be rendered now.
@@ -846,7 +846,7 @@ void DrawDungeon(const Surface &out, const Lightmap &lightmap, Point tilePositio
 			if (perPixelLighting) {
 				// Create a special lightmap buffer to bleed light up walls
 				uint8_t lightmapBuffer[TILE_WIDTH * TILE_HEIGHT];
-				Lightmap bleedLightmap = Lightmap::bleedUp(lightmap, targetBufferPosition, lightmapBuffer);
+				Lightmap bleedLightmap = Lightmap::bleedUp(*GetOptions().Graphics.perPixelLighting, lightmap, targetBufferPosition, lightmapBuffer);
 
 				if (transparency)
 					ClxDrawBlendedWithLightmap(out, targetBufferPosition, (*pSpecialCels)[bArch], bleedLightmap);
@@ -1131,9 +1131,10 @@ void DrawGame(const Surface &fullOut, Point position, Displacement offset)
 	DunRenderStats.clear();
 #endif
 
-	Lightmap lightmap = Lightmap::build(position, Point {} + offset,
+	Lightmap lightmap = Lightmap::build(*GetOptions().Graphics.perPixelLighting, position, Point {} + offset,
 	    gnScreenWidth, gnViewportHeight, rows, columns,
-	    out.at(0, 0), out.pitch(), LightTables[0].data(), LightTables[0].size());
+	    out.at(0, 0), out.pitch(), LightTables[0].data(), LightTables[0].size(),
+	    dLight, MicroTileLen);
 
 	DrawFloor(out, lightmap, position, Point {} + offset, rows, columns);
 	DrawTileContent(out, lightmap, position, Point {} + offset, rows, columns);

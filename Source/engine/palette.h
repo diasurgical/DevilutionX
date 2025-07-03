@@ -11,7 +11,7 @@
 
 #include <SDL.h>
 
-#include "levels/gendung.h"
+#include "levels/gendung_defs.hpp"
 
 namespace devilution {
 

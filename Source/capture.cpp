@@ -26,6 +26,7 @@
 #include "engine/backbuffer_state.hpp"
 #include "engine/dx.h"
 #include "engine/palette.h"
+#include "engine/render/scrollrt.h"
 #include "utils/file_util.h"
 #include "utils/log.hpp"
 #include "utils/paths.h"

@@ -1,8 +1,11 @@
 #pragma once
 
+#include <cstddef>
+#include <cstdint>
 #include <span>
 
 #include "engine/point.hpp"
+#include "levels/gendung_defs.hpp"
 
 namespace devilution {
 
@@ -39,12 +42,14 @@ public:
 		return lightmapBuffer.data() + row * lightmapPitch + rowOffset;
 	}
 
-	static Lightmap build(Point tilePosition, Point targetBufferPosition,
+	static Lightmap build(bool perPixelLighting, Point tilePosition, Point targetBufferPosition,
 	    int viewportWidth, int viewportHeight, int rows, int columns,
 	    const uint8_t *outBuffer, uint16_t outPitch,
-	    const uint8_t *lightTables, size_t lightTableSize);
+	    const uint8_t *lightTables, size_t lightTableSize,
+	    const uint8_t tileLights[MAXDUNX][MAXDUNY],
+	    uint_fast8_t microTileLen);
 
-	static Lightmap bleedUp(const Lightmap &source, Point targetBufferPosition, std::span<uint8_t> lightmapBuffer);
+	static Lightmap bleedUp(bool perPixelLighting, const Lightmap &source, Point targetBufferPosition, std::span<uint8_t> lightmapBuffer);
 
 private:
 	const uint8_t *outBuffer;
