@@ -88,14 +88,32 @@ void RenderTriangle(Point p1, Point p2, Point p3, uint8_t lightLevel, uint8_t *l
 		int cx2 = cy2;
 		int cx3 = cy3;
 
-		for (int x = minx; x < maxx; x++) {
-			if (cx1 > 0 && cx2 > 0 && cx3 > 0)
-				dst[x] = lightLevel;
+		int cxe1 = cx1 - fdy12 * (maxx - minx);
+		int cxe2 = cx2 - fdy23 * (maxx - minx);
+		int cxe3 = cx3 - fdy31 * (maxx - minx);
 
-			cx1 -= fdy12;
-			cx2 -= fdy23;
-			cx3 -= fdy31;
-		}
+		auto decrementTowardZero = [](int num) {
+			return num > 0 ? num - 1 : num + 1;
+		};
+
+		int startx = std::max({
+		    cx1 > 0 ? minx : (cxe1 > 0 ? minx + ((cx1 + decrementTowardZero(fdy12)) / fdy12) : maxx),
+		    cx2 > 0 ? minx : (cxe2 > 0 ? minx + ((cx2 + decrementTowardZero(fdy23)) / fdy23) : maxx),
+		    cx3 > 0 ? minx : (cxe3 > 0 ? minx + ((cx3 + decrementTowardZero(fdy31)) / fdy31) : maxx),
+		});
+
+		int endx = std::min({
+		    cxe1 > 0 ? maxx : (cx1 > 0 ? minx + ((cx1 + decrementTowardZero(fdy12)) / fdy12) : minx),
+		    cxe2 > 0 ? maxx : (cx2 > 0 ? minx + ((cx2 + decrementTowardZero(fdy23)) / fdy23) : minx),
+		    cxe3 > 0 ? maxx : (cx3 > 0 ? minx + ((cx3 + decrementTowardZero(fdy31)) / fdy31) : minx),
+		});
+
+		if (startx < endx)
+			memset(&dst[startx], lightLevel, endx - startx);
+
+		cx1 = cxe1;
+		cx2 = cxe2;
+		cx3 = cxe3;
 
 		cy1 += fdx12;
 		cy2 += fdx23;
