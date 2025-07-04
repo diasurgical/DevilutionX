@@ -56,8 +56,6 @@ void BM_FindNearestNeighbor(benchmark::State &state)
 	GeneratePalette(palette);
 	PaletteKdTree tree(palette, -1, -1);
 
-	std::vector<std::array<uint8_t, 3>> queries;
-	int64_t itemsProcessed = 0;
 	for (auto _ : state) {
 		for (int r = 0; r < 256; ++r) {
 			for (int g = 0; g < 256; ++g) {
@@ -67,9 +65,8 @@ void BM_FindNearestNeighbor(benchmark::State &state)
 				}
 			}
 		}
-		itemsProcessed += 256 * 256 * 256;
 	}
-	state.SetItemsProcessed(itemsProcessed);
+	state.SetItemsProcessed(state.iterations() * 256 * 256 * 256);
 }
 
 BENCHMARK(BM_GenerateBlendedLookupTable);

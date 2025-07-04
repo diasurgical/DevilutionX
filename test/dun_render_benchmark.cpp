@@ -58,6 +58,7 @@ void InitOnce()
 				}
 			}
 		}
+		GetOptions().Graphics.perPixelLighting.SetValue(false);
 		return true;
 	}();
 }
@@ -66,7 +67,6 @@ void RunForTileMaskLight(benchmark::State &state, TileType tileType, MaskType ma
 {
 	Surface out = Surface(SdlSurface.get());
 	Lightmap lightmap(nullptr, {}, 1, nullptr, 0);
-	size_t numItemsProcessed = 0;
 	const std::span<const LevelCelBlock> tiles = Tiles[tileType];
 	for (auto _ : state) {
 		for (const LevelCelBlock &levelCelBlock : tiles) {
@@ -74,9 +74,8 @@ void RunForTileMaskLight(benchmark::State &state, TileType tileType, MaskType ma
 			uint8_t color = out[Point { 310, 200 }];
 			benchmark::DoNotOptimize(color);
 		}
-		numItemsProcessed += tiles.size();
 	}
-	state.SetItemsProcessed(numItemsProcessed);
+	state.SetItemsProcessed(state.iterations() * tiles.size());
 }
 
 using GetLightTableFn = const uint8_t *();
@@ -122,14 +121,12 @@ void BM_RenderBlackTile(benchmark::State &state)
 {
 	InitOnce();
 	Surface out = Surface(SdlSurface.get());
-	size_t numItemsProcessed = 0;
 	for (auto _ : state) {
 		world_draw_black_tile(out, 320, 240);
 		uint8_t color = out[Point { 310, 200 }];
 		benchmark::DoNotOptimize(color);
-		++numItemsProcessed;
 	}
-	state.SetItemsProcessed(numItemsProcessed);
+	state.SetItemsProcessed(state.iterations());
 }
 BENCHMARK(BM_RenderBlackTile);
 
