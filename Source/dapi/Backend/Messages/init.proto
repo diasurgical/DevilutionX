@@ -1,0 +1,12 @@
+syntax = "proto3";
+option optimize_for = LITE_RUNTIME;
+
+package dapi.init;
+
+message ClientBroadcast {
+
+}
+
+message ServerResponse {
+	uint32 port = 1;
+}
