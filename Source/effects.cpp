@@ -312,6 +312,10 @@ void effects_play_sound(SfxID id)
 
 int GetSFXLength(SfxID nSFX)
 {
+	if (!gbSndInited || !gbSoundOn) {
+		return 0;
+	}
+
 	TSFX &sfx = sgSFX[static_cast<int16_t>(nSFX)];
 	if (sfx.pSnd == nullptr)
 		sfx.pSnd = sound_file_load(sfx.pszName.c_str(),
