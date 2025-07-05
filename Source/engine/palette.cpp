@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <cstring>
 #include <span>
 
 #include <fmt/core.h>
@@ -291,7 +292,9 @@ void PaletteFadeIn(int fr, const std::array<SDL_Color, 256> &srcPalette)
 			RenderPresent();
 		}
 	}
-	UpdateSystemPalette(palette);
+	memcpy(system_palette.data(), palette, system_palette.size());
+	SystemPaletteUpdated();
+	RedrawEverything();
 	if (IsHardwareCursor()) ReinitializeHardwareCursor();
 
 	if (fr <= 0) {
