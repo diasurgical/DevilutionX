@@ -34,86 +34,94 @@ void RenderFullTile(Point position, uint8_t lightLevel, uint8_t *lightmap, uint1
 	memset(top, lightLevel, TILE_WIDTH);
 }
 
+int DecrementTowardZero(int num)
+{
+	return num > 0 ? num - 1 : num + 1;
+}
+
 // Half-space method for drawing triangles
 // Points must be provided using counter-clockwise rotation
 // https://web.archive.org/web/20050408192410/http://sw-shader.sourceforge.net/rasterizer.html
 void RenderTriangle(Point p1, Point p2, Point p3, uint8_t lightLevel, uint8_t *lightmap, uint16_t pitch, uint16_t scanLines)
 {
 	// Deltas (points are already 28.4 fixed-point)
-	int dx12 = p1.x - p2.x;
-	int dx23 = p2.x - p3.x;
-	int dx31 = p3.x - p1.x;
+	const int dx12 = p1.x - p2.x;
+	const int dx23 = p2.x - p3.x;
+	const int dx31 = p3.x - p1.x;
 
-	int dy12 = p1.y - p2.y;
-	int dy23 = p2.y - p3.y;
-	int dy31 = p3.y - p1.y;
+	const int dy12 = p1.y - p2.y;
+	const int dy23 = p2.y - p3.y;
+	const int dy31 = p3.y - p1.y;
 
 	// 24.8 fixed-point deltas
-	int fdx12 = dx12 << 4;
-	int fdx23 = dx23 << 4;
-	int fdx31 = dx31 << 4;
+	const int fdx12 = dx12 << 4;
+	const int fdx23 = dx23 << 4;
+	const int fdx31 = dx31 << 4;
 
-	int fdy12 = dy12 << 4;
-	int fdy23 = dy23 << 4;
-	int fdy31 = dy31 << 4;
+	const int fdy12 = dy12 << 4;
+	const int fdy23 = dy23 << 4;
+	const int fdy31 = dy31 << 4;
 
 	// Bounding rectangle
-	int minx = (std::min({ p1.x, p2.x, p3.x }) + 0xF) >> 4;
-	int maxx = (std::max({ p1.x, p2.x, p3.x }) + 0xF) >> 4;
-	int miny = (std::min({ p1.y, p2.y, p3.y }) + 0xF) >> 4;
-	int maxy = (std::max({ p1.y, p2.y, p3.y }) + 0xF) >> 4;
-	minx = std::max<int>(minx, 0);
-	maxx = std::min<int>(maxx, pitch);
-	miny = std::max<int>(miny, 0);
-	maxy = std::min<int>(maxy, scanLines);
+	const int minx = std::max((std::min({ p1.x, p2.x, p3.x }) + 0xF) >> 4, 0);
+	const int maxx = std::min<int>((std::max({ p1.x, p2.x, p3.x }) + 0xF) >> 4, pitch);
+	const int xlen = maxx - minx;
+	if (xlen <= 0) return;
+	const int miny = std::max((std::min({ p1.y, p2.y, p3.y }) + 0xF) >> 4, 0);
+	const int maxy = std::min<int>((std::max({ p1.y, p2.y, p3.y }) + 0xF) >> 4, scanLines);
+	if (maxy <= miny) return;
 
-	uint8_t *dst = lightmap + miny * pitch;
+	uint8_t *dst = lightmap + static_cast<ptrdiff_t>(miny * pitch);
 
 	// Half-edge constants
-	int c1 = dy12 * p1.x - dx12 * p1.y;
-	int c2 = dy23 * p2.x - dx23 * p2.y;
-	int c3 = dy31 * p3.x - dx31 * p3.y;
+	constexpr auto CalcHalfEdge = [](const Point &p, int dx, int dy) {
+		return (dy * p.x) - (dx * p.y) +
+		    // Correct for fill convention
+		    (dy < 0 || (dy == 0 && dx > 0) ? 1 : 0);
+	};
+	const int c1 = CalcHalfEdge(p1, dx12, dy12);
+	const int c2 = CalcHalfEdge(p2, dx23, dy23);
+	const int c3 = CalcHalfEdge(p3, dx31, dy31);
 
-	// Correct for fill convention
-	if (dy12 < 0 || (dy12 == 0 && dx12 > 0)) c1++;
-	if (dy23 < 0 || (dy23 == 0 && dx23 > 0)) c2++;
-	if (dy31 < 0 || (dy31 == 0 && dx31 > 0)) c3++;
+	constexpr auto CalcCy = [](int minx, int miny, int dx, int dy) {
+		return (dx * (miny << 4)) - (dy * (minx << 4));
+	};
 
-	int cy1 = c1 + dx12 * (miny << 4) - dy12 * (minx << 4);
-	int cy2 = c2 + dx23 * (miny << 4) - dy23 * (minx << 4);
-	int cy3 = c3 + dx31 * (miny << 4) - dy31 * (minx << 4);
+	int cy1 = c1 + CalcCy(minx, miny, dx12, dy12);
+	int cy2 = c2 + CalcCy(minx, miny, dx23, dy23);
+	int cy3 = c3 + CalcCy(minx, miny, dx31, dy31);
 
 	for (int y = miny; y < maxy; y++) {
-		int cx1 = cy1;
-		int cx2 = cy2;
-		int cx3 = cy3;
+		const int cxe1 = cy1 - (fdy12 * xlen);
+		const int cxe2 = cy2 - (fdy23 * xlen);
+		const int cxe3 = cy3 - (fdy31 * xlen);
 
-		int cxe1 = cx1 - fdy12 * (maxx - minx);
-		int cxe2 = cx2 - fdy23 * (maxx - minx);
-		int cxe3 = cx3 - fdy31 * (maxx - minx);
-
-		auto decrementTowardZero = [](int num) {
-			return num > 0 ? num - 1 : num + 1;
+		constexpr auto CalcStartX = [](int xlen, int cx, int cxe, int fdy) -> int {
+			if (cx > 0) return 0;
+			if (cxe <= 0) return xlen;
+			return (cx + DecrementTowardZero(fdy)) / fdy;
 		};
 
-		int startx = std::max({
-		    cx1 > 0 ? minx : (cxe1 > 0 ? minx + ((cx1 + decrementTowardZero(fdy12)) / fdy12) : maxx),
-		    cx2 > 0 ? minx : (cxe2 > 0 ? minx + ((cx2 + decrementTowardZero(fdy23)) / fdy23) : maxx),
-		    cx3 > 0 ? minx : (cxe3 > 0 ? minx + ((cx3 + decrementTowardZero(fdy31)) / fdy31) : maxx),
-		});
+		const int startx = minx + std::max({
+		                       CalcStartX(xlen, cy1, cxe1, fdy12),
+		                       CalcStartX(xlen, cy2, cxe2, fdy23),
+		                       CalcStartX(xlen, cy3, cxe3, fdy31),
+		                   });
 
-		int endx = std::min({
-		    cxe1 > 0 ? maxx : (cx1 > 0 ? minx + ((cx1 + decrementTowardZero(fdy12)) / fdy12) : minx),
-		    cxe2 > 0 ? maxx : (cx2 > 0 ? minx + ((cx2 + decrementTowardZero(fdy23)) / fdy23) : minx),
-		    cxe3 > 0 ? maxx : (cx3 > 0 ? minx + ((cx3 + decrementTowardZero(fdy31)) / fdy31) : minx),
-		});
+		constexpr auto CalcEndX = [](int xlen, int cx, int cxe, int fdy) -> int {
+			if (cxe > 0) return xlen;
+			if (cx <= 0) return 0;
+			return (cx + DecrementTowardZero(fdy)) / fdy;
+		};
+
+		const int endx = minx + std::min({
+		                     CalcEndX(xlen, cy1, cxe1, fdy12),
+		                     CalcEndX(xlen, cy2, cxe2, fdy23),
+		                     CalcEndX(xlen, cy3, cxe3, fdy31),
+		                 });
 
 		if (startx < endx)
 			memset(&dst[startx], lightLevel, endx - startx);
-
-		cx1 = cxe1;
-		cx2 = cxe2;
-		cx3 = cxe3;
 
 		cy1 += fdx12;
 		cy2 += fdx23;
