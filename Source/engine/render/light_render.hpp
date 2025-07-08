@@ -1,9 +1,11 @@
 #pragma once
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <span>
 
+#include "engine/lighting_defs.hpp"
 #include "engine/point.hpp"
 #include "levels/gendung_defs.hpp"
 
@@ -11,19 +13,18 @@ namespace devilution {
 
 class Lightmap {
 public:
-	explicit Lightmap(const uint8_t *outBuffer, std::span<const uint8_t> lightmapBuffer, uint16_t pitch, const uint8_t *lightTables, size_t lightTableSize)
-	    : Lightmap(outBuffer, pitch, lightmapBuffer, pitch, lightTables, lightTableSize)
+	explicit Lightmap(const uint8_t *outBuffer, std::span<const uint8_t> lightmapBuffer, uint16_t pitch, std::span<const std::array<uint8_t, LightTableSize>, NumLightingLevels> lightTables)
+	    : Lightmap(outBuffer, pitch, lightmapBuffer, pitch, lightTables)
 	{
 	}
 
 	explicit Lightmap(const uint8_t *outBuffer, uint16_t outPitch,
 	    std::span<const uint8_t> lightmapBuffer, uint16_t lightmapPitch,
-	    const uint8_t *lightTables, size_t lightTableSize);
+	    std::span<const std::array<uint8_t, LightTableSize>, NumLightingLevels> lightTables);
 
-	uint8_t adjustColor(uint8_t color, uint8_t lightLevel) const
+	[[nodiscard]] uint8_t adjustColor(uint8_t color, uint8_t lightLevel) const
 	{
-		size_t offset = lightLevel * lightTableSize + color;
-		return lightTables[offset];
+		return lightTables[lightLevel][color];
 	}
 
 	const uint8_t *getLightingAt(const uint8_t *outLoc) const
@@ -45,7 +46,7 @@ public:
 	static Lightmap build(bool perPixelLighting, Point tilePosition, Point targetBufferPosition,
 	    int viewportWidth, int viewportHeight, int rows, int columns,
 	    const uint8_t *outBuffer, uint16_t outPitch,
-	    const uint8_t *lightTables, size_t lightTableSize,
+	    std::span<const std::array<uint8_t, LightTableSize>, NumLightingLevels> lightTables,
 	    const uint8_t tileLights[MAXDUNX][MAXDUNY],
 	    uint_fast8_t microTileLen);
 
@@ -58,8 +59,7 @@ private:
 	std::span<const uint8_t> lightmapBuffer;
 	const uint16_t lightmapPitch;
 
-	const uint8_t *lightTables;
-	const size_t lightTableSize;
+	std::span<const std::array<uint8_t, LightTableSize>, NumLightingLevels> lightTables;
 };
 
 } // namespace devilution

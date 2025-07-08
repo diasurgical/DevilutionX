@@ -20,7 +20,7 @@ void BM_BuildLightmap(benchmark::State &state)
 	const std::string benchmarkDataPath = paths::BasePath() + "test/fixtures/light_render_benchmark/dLight.dmp";
 	FILE *lightFile = std::fopen(benchmarkDataPath.c_str(), "rb");
 	uint8_t dLight[MAXDUNX][MAXDUNY];
-	std::array<std::array<uint8_t, 256>, LightsMax> lightTables;
+	std::array<std::array<uint8_t, LightTableSize>, NumLightingLevels> lightTables;
 	if (lightFile != nullptr) {
 		if (std::fread(&dLight[0][0], sizeof(uint8_t) * MAXDUNX * MAXDUNY, 1, lightFile) != 1) {
 			std::perror("Failed to read dLight.dmp");
@@ -50,7 +50,7 @@ void BM_BuildLightmap(benchmark::State &state)
 		Lightmap lightmap = Lightmap::build(/*perPixelLighting=*/true,
 		    tilePosition, targetBufferPosition,
 		    viewportWidth, viewportHeight, rows, columns,
-		    outBuffer, outPitch, lightTables[0].data(), lightTables[0].size(),
+		    outBuffer, outPitch, lightTables,
 		    dLight, /*microTileLen=*/10);
 
 		uint8_t lightLevel = *lightmap.getLightingAt(outBuffer + outPitch * 120 + 120);

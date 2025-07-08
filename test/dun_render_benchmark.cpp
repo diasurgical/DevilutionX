@@ -1,4 +1,6 @@
+#include <array>
 #include <cstddef>
+#include <cstdint>
 #include <span>
 
 #include <ankerl/unordered_dense.h>
@@ -8,6 +10,7 @@
 #include "engine/assets.hpp"
 #include "engine/clx_sprite.hpp"
 #include "engine/displacement.hpp"
+#include "engine/lighting_defs.hpp"
 #include "engine/load_file.hpp"
 #include "engine/render/dun_render.hpp"
 #include "engine/surface.hpp"
@@ -66,7 +69,8 @@ void InitOnce()
 void RunForTileMaskLight(benchmark::State &state, TileType tileType, MaskType maskType, const uint8_t *lightTable)
 {
 	Surface out = Surface(SdlSurface.get());
-	Lightmap lightmap(nullptr, {}, 1, nullptr, 0);
+	std::array<std::array<uint8_t, LightTableSize>, NumLightingLevels> lightTables;
+	Lightmap lightmap(/*outBuffer=*/nullptr, /*lightmapBuffer=*/ {}, /*pitch=*/1, lightTables);
 	const std::span<const LevelCelBlock> tiles = Tiles[tileType];
 	for (auto _ : state) {
 		for (const LevelCelBlock &levelCelBlock : tiles) {

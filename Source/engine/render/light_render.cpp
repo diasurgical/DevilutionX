@@ -491,27 +491,26 @@ void BuildLightmap(Point tilePosition, Point targetBufferPosition, uint16_t view
 
 Lightmap::Lightmap(const uint8_t *outBuffer, uint16_t outPitch,
     std::span<const uint8_t> lightmapBuffer, uint16_t lightmapPitch,
-    const uint8_t *lightTables, size_t lightTableSize)
+    std::span<const std::array<uint8_t, LightTableSize>, NumLightingLevels> lightTables)
     : outBuffer(outBuffer)
     , outPitch(outPitch)
     , lightmapBuffer(lightmapBuffer)
     , lightmapPitch(lightmapPitch)
     , lightTables(lightTables)
-    , lightTableSize(lightTableSize)
 {
 }
 
 Lightmap Lightmap::build(bool perPixelLighting, Point tilePosition, Point targetBufferPosition,
     int viewportWidth, int viewportHeight, int rows, int columns,
     const uint8_t *outBuffer, uint16_t outPitch,
-    const uint8_t *lightTables, size_t lightTableSize,
+    std::span<const std::array<uint8_t, LightTableSize>, NumLightingLevels> lightTables,
     const uint8_t tileLights[MAXDUNX][MAXDUNY],
     uint_fast8_t microTileLen)
 {
 	if (perPixelLighting) {
 		BuildLightmap(tilePosition, targetBufferPosition, viewportWidth, viewportHeight, rows, columns, tileLights, microTileLen);
 	}
-	return Lightmap(outBuffer, outPitch, LightmapBuffer, viewportWidth, lightTables, lightTableSize);
+	return Lightmap(outBuffer, outPitch, LightmapBuffer, viewportWidth, lightTables);
 }
 
 Lightmap Lightmap::bleedUp(bool perPixelLighting, const Lightmap &source, Point targetBufferPosition, std::span<uint8_t> lightmapBuffer)
@@ -566,7 +565,7 @@ Lightmap Lightmap::bleedUp(bool perPixelLighting, const Lightmap &source, Point 
 
 	return Lightmap(outBuffer, source.outPitch,
 	    lightmapBuffer, lightmapPitch,
-	    source.lightTables, source.lightTableSize);
+	    source.lightTables);
 }
 
 } // namespace devilution

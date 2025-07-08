@@ -15,6 +15,7 @@
 
 #include "automap.h"
 #include "engine/displacement.hpp"
+#include "engine/lighting_defs.hpp"
 #include "engine/load_file.hpp"
 #include "engine/point.hpp"
 #include "engine/points_in_rectangle_range.hpp"
@@ -34,7 +35,7 @@ Light VisionList[MAXVISION];
 Light Lights[MAXLIGHTS];
 std::array<uint8_t, MAXLIGHTS> ActiveLights;
 int ActiveLightCount;
-std::array<std::array<uint8_t, 256>, NumLightingLevels> LightTables;
+std::array<std::array<uint8_t, LightTableSize>, NumLightingLevels> LightTables;
 uint8_t *FullyLitLightTable = nullptr;
 uint8_t *FullyDarkLightTable = nullptr;
 std::array<uint8_t, 256> InfravisionTable;
