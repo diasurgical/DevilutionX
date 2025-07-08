@@ -12,7 +12,6 @@
 #include "cursor.h"
 #include "engine/clx_sprite.hpp"
 #include "engine/load_clx.hpp"
-#include "engine/points_in_rectangle_range.hpp"
 #include "engine/rectangle.hpp"
 #include "engine/render/clx_render.hpp"
 #include "engine/render/text_render.hpp"
@@ -53,9 +52,6 @@ constexpr Rectangle StashButtonRect[] = {
 	{ { 279, 19 }, ButtonSize }  // 10 right
 	// clang-format on
 };
-
-constexpr Size StashGridSize { 10, 10 };
-constexpr PointsInRectangle<int> StashGridRange { { { 0, 0 }, StashGridSize } };
 
 OptionalOwnedClxSpriteList StashPanelArt;
 OptionalOwnedClxSpriteList StashNavButtonArt;
@@ -448,6 +444,7 @@ uint16_t CheckStashHLight(Point mousePosition)
 
 	InfoColor = item.getTextColor();
 	InfoString = item.getName();
+	FloatingInfoString = item.getName();
 	if (item._iIdentified) {
 		PrintItemDetails(item);
 	} else {
