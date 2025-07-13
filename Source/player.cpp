@@ -460,7 +460,7 @@ bool DamageWeapon(Player &player, unsigned damageFrequency)
 	if (WeaponDecay(player, INVLOC_HAND_RIGHT))
 		return true;
 
-	if (!FlipCoin(damageFrequency)) {
+	if (!FlipCoin(damageFrequency * 2)) {
 		return false;
 	}
 
