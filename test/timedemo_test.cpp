@@ -7,7 +7,7 @@
 #include "game_mode.hpp"
 #include "headless_mode.hpp"
 #include "init.hpp"
-#include "lua/lua.hpp"
+#include "lua/lua_global.hpp"
 #include "monstdat.h"
 #include "options.h"
 #include "pfile.h"

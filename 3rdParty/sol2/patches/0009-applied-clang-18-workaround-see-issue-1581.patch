@@ -1,0 +1,25 @@
+From e9524c20bca46b51215d28c53df39ee78a3cc34d Mon Sep 17 00:00:00 2001
+From: ndoxx <bg.physique@gmail.com>
+Date: Tue, 6 Aug 2024 17:44:59 +0200
+Subject: [PATCH 9/9] applied clang-18 workaround, see issue #1581
+
+---
+ include/sol/function_types_stateless.hpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git include/sol/function_types_stateless.hpp include/sol/function_types_stateless.hpp
+index a2f66ba0..2e894912 100644
+--- include/sol/function_types_stateless.hpp
++++ include/sol/function_types_stateless.hpp
+@@ -320,7 +320,7 @@ namespace sol { namespace function_detail {
+ 		}
+ 
+ 		template <bool is_yielding, bool no_trampoline>
+-		static int call(lua_State* L) noexcept(std::is_nothrow_copy_assignable_v<T>) {
++		static int call(lua_State* L) /*noexcept(std::is_nothrow_copy_assignable_v<T>)*/ {
+ 			int nr;
+ 			if constexpr (no_trampoline) {
+ 				nr = real_call(L);
+-- 
+2.48.1
+
