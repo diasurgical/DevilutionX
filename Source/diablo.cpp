@@ -1305,17 +1305,22 @@ tl::expected<void, std::string> LoadLvlGFX()
 	};
 
 	switch (leveltype) {
-	case DTYPE_TOWN:
-		if (gbIsHellfire) {
-			return loadAll(
-			    "nlevels\\towndata\\town.cel",
-			    "nlevels\\towndata\\town.til",
-			    "levels\\towndata\\towns");
+	case DTYPE_TOWN: {
+		auto cel = LoadFileInMemWithStatus("nlevels\\towndata\\town.cel");
+		if (!cel.has_value()) {
+			ASSIGN_OR_RETURN(pDungeonCels, LoadFileInMemWithStatus("levels\\towndata\\town.cel"));
+		} else {
+			pDungeonCels = std::move(*cel);
 		}
-		return loadAll(
-		    "levels\\towndata\\town.cel",
-		    "levels\\towndata\\town.til",
-		    "levels\\towndata\\towns");
+		auto til = LoadFileInMemWithStatus<MegaTile>("nlevels\\towndata\\town.til");
+		if (!til.has_value()) {
+			ASSIGN_OR_RETURN(pMegaTiles, LoadFileInMemWithStatus<MegaTile>("levels\\towndata\\town.til"));
+		} else {
+			pMegaTiles = std::move(*til);
+		}
+		ASSIGN_OR_RETURN(pSpecialCels, LoadCelWithStatus("levels\\towndata\\towns", SpecialCelWidth));
+		return {};
+	}
 	case DTYPE_CATHEDRAL:
 		return loadAll(
 		    "levels\\l1data\\l1.cel",
@@ -1360,7 +1365,7 @@ tl::expected<void, std::string> LoadAllGFX()
 	IncProgress();
 	RETURN_IF_ERROR(InitObjectGFX());
 	IncProgress();
-	RETURN_IF_ERROR(InitMissileGFX(gbIsHellfire));
+	RETURN_IF_ERROR(InitMissileGFX());
 	IncProgress();
 	return {};
 }
@@ -3088,7 +3093,7 @@ tl::expected<void, std::string> LoadGameLevelSetLevel(bool firstflag, lvl_entry 
 #if !defined(USE_SDL1) && !defined(__vita__)
 		InitVirtualGamepadGFX();
 #endif
-		RETURN_IF_ERROR(InitMissileGFX(gbIsHellfire));
+		RETURN_IF_ERROR(InitMissileGFX());
 		IncProgress();
 	}
 	InitCorpses();
@@ -3149,7 +3154,7 @@ tl::expected<void, std::string> LoadGameLevelStandardLevel(bool firstflag, lvl_e
 
 		IncProgress();
 
-		RETURN_IF_ERROR(InitMissileGFX(gbIsHellfire));
+		RETURN_IF_ERROR(InitMissileGFX());
 
 		IncProgress();
 		IncProgress();

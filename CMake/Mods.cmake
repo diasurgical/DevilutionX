@@ -5,9 +5,18 @@ endif()
 set(hellfire_mod
   lua/mods/Hellfire/init.lua
   txtdata/items/unique_itemdat.tsv
+  txtdata/missiles/misdat.tsv
+  txtdata/missiles/missile_sprites.tsv
   txtdata/monsters/monstdat.tsv
   ui_art/diablo.pal
+  ui_art/hf_titlew.clx
+  ui_art/supportw.clx
   ui_art/mainmenuw.clx)
+
+if(NOT UNPACKED_MPQS)
+  list(APPEND devilutionx_assets
+    data/inv/objcurs2-widths.txt)
+endif()
 
 foreach(asset_file ${hellfire_mod})
   set(src "${CMAKE_CURRENT_SOURCE_DIR}/mods/Hellfire/${asset_file}")

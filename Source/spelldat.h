@@ -168,6 +168,7 @@ enum class MissileID : int8_t {
 	RedPortal,
 	DiabloApocalypseBoom,
 	DiabloApocalypse,
+	LastDiablo = DiabloApocalypse,
 	Mana,
 	Magi,
 	LightningWall,
