@@ -299,8 +299,10 @@ bool gmenu_presskeys(SDL_Keycode vkey)
 		GmenuUpDown(true);
 		break;
 	default:
-		break;
+		// Key was not handled by the gmenu
+		return false;
 	}
+	// Key was handled
 	return true;
 }
 
