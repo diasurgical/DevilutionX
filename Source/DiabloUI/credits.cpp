@@ -9,6 +9,7 @@
 #include "control.h"
 #include "controls/input.h"
 #include "controls/menu_controls.h"
+#include "engine/assets.hpp"
 #include "engine/load_clx.hpp"
 #include "engine/render/clx_render.hpp"
 #include "engine/render/text_render.hpp"
@@ -179,7 +180,7 @@ bool UiCreditsDialog()
 
 bool UiSupportDialog()
 {
-	if (gbIsHellfire) {
+	if (FindAsset("ui_art\\supportw.clx").ok()) {
 		ArtBackgroundWidescreen = LoadOptionalClx("ui_art\\supportw.clx");
 		LoadBackgroundArt("ui_art\\support");
 	} else {

@@ -383,7 +383,7 @@ void LoadMisdat()
 	}
 
 	// Sanity check because we do not actually parse the IDs yet.
-	assert(static_cast<size_t>(MissileID::LAST) + 1 == MissilesData.size());
+	assert(static_cast<size_t>(MissileID::LastDiablo) + 1 == MissilesData.size() || static_cast<size_t>(MissileID::LAST) + 1 == MissilesData.size());
 
 	MissilesData.shrink_to_fit();
 }
@@ -443,14 +443,12 @@ const MissileData &GetMissileData(MissileID missileId)
 	return MissilesData[static_cast<std::underlying_type_t<MissileID>>(missileId)];
 }
 
-tl::expected<void, std::string> InitMissileGFX(bool loadHellfireGraphics)
+tl::expected<void, std::string> InitMissileGFX()
 {
 	if (HeadlessMode)
 		return {};
 
 	for (size_t mi = 0; mi < MissileSpriteData.size(); ++mi) {
-		if (!loadHellfireGraphics && mi >= static_cast<uint8_t>(MissileGraphicID::HorkSpawn))
-			break;
 		if (MissileSpriteData[mi].flags == MissileGraphicsFlags::MonsterOwned)
 			continue;
 		RETURN_IF_ERROR(MissileSpriteData[mi].LoadGFX());

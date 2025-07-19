@@ -74,7 +74,7 @@ bool IsValidMonsterForSelection(const Monster &monster)
 bool TrySelectMonster(bool flipflag, Point tile, tl::function_ref<bool(const Monster &)> isValidMonster)
 {
 	auto checkPosition = [&](SelectionRegion selectionRegion, Displacement displacement) {
-		Point posToCheck = tile + displacement;
+		const Point posToCheck = tile + displacement;
 		if (!InDungeonBounds(posToCheck) || dMonster[posToCheck.x][posToCheck.y] == 0)
 			return;
 		const uint16_t monsterId = std::abs(dMonster[posToCheck.x][posToCheck.y]) - 1;
@@ -102,7 +102,7 @@ bool TrySelectMonster(bool flipflag, Point tile, tl::function_ref<bool(const Mon
 bool TrySelectTowner(bool flipflag, Point tile)
 {
 	auto checkPosition = [&](Displacement displacement) {
-		Point posToCheck = tile + displacement;
+		const Point posToCheck = tile + displacement;
 		if (!InDungeonBounds(posToCheck) || dMonster[posToCheck.x][posToCheck.y] == 0)
 			return;
 		const uint16_t monsterId = std::abs(dMonster[posToCheck.x][posToCheck.y]) - 1;
@@ -276,7 +276,7 @@ bool TrySelectPixelBased(Point tile)
 		Displacement ret = Displacement(Direction::East) * renderingPoint.x;
 		// Rows
 		ret += Displacement(Direction::South) * renderingPoint.y / 2;
-		if (renderingPoint.y & 1)
+		if ((renderingPoint.y & 1) == 1)
 			ret.deltaY += 1;
 		return ret;
 	};
@@ -285,8 +285,8 @@ bool TrySelectPixelBased(Point tile)
 	// We search the rendered rows/columns backwards, because the last rendered tile overrides previous rendered pixels.
 	auto searchArea = PointsInRectangle(Rectangle { { -1, -1 }, { 3, 8 } });
 	for (auto it = searchArea.rbegin(); it != searchArea.rend(); ++it) {
-		Point renderingColumnRaw = *it;
-		Point adjacentTile = tile + convertFromRenderingToWorldTile(renderingColumnRaw);
+		const Point renderingColumnRaw = *it;
+		const Point adjacentTile = tile + convertFromRenderingToWorldTile(renderingColumnRaw);
 		if (!InDungeonBounds(adjacentTile))
 			continue;
 
@@ -297,7 +297,7 @@ bool TrySelectPixelBased(Point tile)
 			if (leveltype == DTYPE_TOWN) {
 				const Towner &towner = Towners[monsterId];
 				const ClxSprite sprite = towner.currentSprite();
-				Displacement renderingOffset = towner.getRenderingOffset();
+				const Displacement renderingOffset = towner.getRenderingOffset();
 				if (checkSprite(adjacentTile, sprite, renderingOffset)) {
 					cursPosition = adjacentTile;
 					pcursmonst = monsterId;
@@ -307,7 +307,7 @@ bool TrySelectPixelBased(Point tile)
 				const Monster &monster = Monsters[monsterId];
 				if (IsTileLit(adjacentTile) && IsValidMonsterForSelection(monster)) {
 					const ClxSprite sprite = monster.animInfo.currentSprite();
-					Displacement renderingOffset = monster.getRenderingOffset(sprite);
+					const Displacement renderingOffset = monster.getRenderingOffset(sprite);
 					if (checkSprite(adjacentTile, sprite, renderingOffset)) {
 						cursPosition = adjacentTile;
 						pcursmonst = monsterId;
@@ -424,12 +424,12 @@ void InitCursor()
 	assert(!pCursCels);
 #ifdef UNPACKED_MPQS
 	pCursCels = LoadClx("data\\inv\\objcurs.clx");
-	if (gbIsHellfire) {
+	if (FindAsset("data\\inv\\objcurs2.clx").ok()) {
 		pCursCels2 = LoadClx("data\\inv\\objcurs2.clx");
 	}
 #else
 	pCursCels = LoadCel("data\\inv\\objcurs", ReadWidths("data\\inv\\objcurs-widths.txt").data());
-	if (gbIsHellfire) {
+	if (FindAsset("data\\inv\\objcurs2.cel").ok() && FindAsset("data\\inv\\objcurs2-widths.txt").ok()) {
 		pCursCels2 = LoadCel("data\\inv\\objcurs2", ReadWidths("data\\inv\\objcurs2-widths.txt").data());
 	}
 #endif
@@ -450,7 +450,7 @@ ClxSprite GetInvItemSprite(int cursId)
 	if (static_cast<size_t>(cursId) <= numSprites) {
 		return (*pCursCels)[cursId - 1];
 	}
-	assert(gbIsHellfire);
+	assert(pCursCels2.has_value());
 	assert(cursId - numSprites <= pCursCels2->numSprites());
 	return (*pCursCels2)[cursId - numSprites - 1];
 }
@@ -476,7 +476,7 @@ void CreateHalfSizeItemSprites()
 	if (HalfSizeItemSprites != nullptr)
 		return;
 	const uint32_t numInvItems = pCursCels->numSprites() - (static_cast<uint32_t>(CURSOR_FIRSTITEM) - 1)
-	    + (gbIsHellfire ? pCursCels2->numSprites() : 0);
+	    + (pCursCels2.has_value() ? pCursCels2->numSprites() : 0);
 	HalfSizeItemSprites = new OptionalOwnedClxSpriteList[numInvItems];
 	HalfSizeItemSpritesRed = new OptionalOwnedClxSpriteList[numInvItems];
 	const uint8_t *redTrn = GetInfravisionTRN();
@@ -513,7 +513,7 @@ void CreateHalfSizeItemSprites()
 	for (size_t i = static_cast<int>(CURSOR_FIRSTITEM) - 1, n = pCursCels->numSprites(); i < n; ++i, ++outputIndex) {
 		createHalfSize((*pCursCels)[i], outputIndex);
 	}
-	if (gbIsHellfire) {
+	if (pCursCels2.has_value()) {
 		for (size_t i = 0, n = pCursCels2->numSprites(); i < n; ++i, ++outputIndex) {
 			createHalfSize((*pCursCels2)[i], outputIndex);
 		}

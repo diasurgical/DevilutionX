@@ -5,8 +5,12 @@ endif()
 set(hellfire_mod
   lua/mods/Hellfire/init.lua
   txtdata/items/unique_itemdat.tsv
+  txtdata/missiles/misdat.tsv
+  txtdata/missiles/missile_sprites.tsv
   txtdata/monsters/monstdat.tsv
   ui_art/diablo.pal
+  ui_art/hf_titlew.clx
+  ui_art/supportw.clx
   ui_art/mainmenuw.clx)
 
 foreach(asset_file ${hellfire_mod})

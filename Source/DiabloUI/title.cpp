@@ -5,6 +5,7 @@
 #include "controls/input.h"
 #include "controls/menu_controls.h"
 #include "discord/discord.h"
+#include "engine/assets.hpp"
 #include "engine/load_clx.hpp"
 #include "engine/load_pcx.hpp"
 #include "utils/algorithm/container.hpp"
@@ -20,7 +21,7 @@ std::vector<std::unique_ptr<UiItemBase>> vecTitleScreen;
 
 void TitleLoad()
 {
-	if (gbIsHellfire) {
+	if (FindAsset("ui_art\\hf_titlew.clx").ok()) {
 		LoadBackgroundArt("ui_art\\hf_logo1", 16);
 		ArtBackgroundWidescreen = LoadOptionalClx("ui_art\\hf_titlew.clx");
 	} else {
@@ -44,7 +45,7 @@ void UiTitleDialog()
 {
 	TitleLoad();
 	const Point uiPosition = GetUIRectangle().position;
-	if (gbIsHellfire) {
+	if (FindAsset("ui_art\\hf_titlew.clx").ok()) {
 		SDL_Rect rect = MakeSdlRect(0, uiPosition.y, 0, 0);
 		if (ArtBackgroundWidescreen)
 			vecTitleScreen.push_back(std::make_unique<UiImageClx>((*ArtBackgroundWidescreen)[0], rect, UiFlags::AlignCenter));

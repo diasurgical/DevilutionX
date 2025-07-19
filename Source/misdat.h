@@ -246,7 +246,7 @@ MissileFileData &GetMissileSpriteData(MissileGraphicID graphicId);
 
 void LoadMissileData();
 
-tl::expected<void, std::string> InitMissileGFX(bool loadHellfireGraphics = false);
+tl::expected<void, std::string> InitMissileGFX();
 void FreeMissileGFX();
 
 } // namespace devilution

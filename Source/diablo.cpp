@@ -1306,7 +1306,7 @@ tl::expected<void, std::string> LoadLvlGFX()
 
 	switch (leveltype) {
 	case DTYPE_TOWN:
-		if (gbIsHellfire) {
+		if (FindAsset("nlevels\\towndata\\town.cel").ok() && FindAsset("nlevels\\towndata\\town.til").ok()) {
 			return loadAll(
 			    "nlevels\\towndata\\town.cel",
 			    "nlevels\\towndata\\town.til",
@@ -1360,7 +1360,7 @@ tl::expected<void, std::string> LoadAllGFX()
 	IncProgress();
 	RETURN_IF_ERROR(InitObjectGFX());
 	IncProgress();
-	RETURN_IF_ERROR(InitMissileGFX(gbIsHellfire));
+	RETURN_IF_ERROR(InitMissileGFX());
 	IncProgress();
 	return {};
 }
@@ -3088,7 +3088,7 @@ tl::expected<void, std::string> LoadGameLevelSetLevel(bool firstflag, lvl_entry 
 #if !defined(USE_SDL1) && !defined(__vita__)
 		InitVirtualGamepadGFX();
 #endif
-		RETURN_IF_ERROR(InitMissileGFX(gbIsHellfire));
+		RETURN_IF_ERROR(InitMissileGFX());
 		IncProgress();
 	}
 	InitCorpses();
@@ -3149,7 +3149,7 @@ tl::expected<void, std::string> LoadGameLevelStandardLevel(bool firstflag, lvl_e
 
 		IncProgress();
 
-		RETURN_IF_ERROR(InitMissileGFX(gbIsHellfire));
+		RETURN_IF_ERROR(InitMissileGFX());
 
 		IncProgress();
 		IncProgress();
