@@ -18,14 +18,14 @@ namespace devilution {
 sol::table LuaDevModule(sol::state_view &lua)
 {
 	sol::table table = lua.create_table();
-	SetDocumented(table, "display", "", "Debugging HUD and rendering commands.", LuaDevDisplayModule(lua));
-	SetDocumented(table, "items", "", "Item-related commands.", LuaDevItemsModule(lua));
-	SetDocumented(table, "level", "", "Level-related commands.", LuaDevLevelModule(lua));
-	SetDocumented(table, "monsters", "", "Monster-related commands.", LuaDevMonstersModule(lua));
-	SetDocumented(table, "player", "", "Player-related commands.", LuaDevPlayerModule(lua));
-	SetDocumented(table, "quests", "", "Quest-related commands.", LuaDevQuestsModule(lua));
-	SetDocumented(table, "search", "", "Search the map for monsters / items / objects.", LuaDevSearchModule(lua));
-	SetDocumented(table, "towners", "", "Town NPC commands.", LuaDevTownersModule(lua));
+	LuaSetDoc(table, "display", "", "Debugging HUD and rendering commands.", LuaDevDisplayModule(lua));
+	LuaSetDoc(table, "items", "", "Item-related commands.", LuaDevItemsModule(lua));
+	LuaSetDoc(table, "level", "", "Level-related commands.", LuaDevLevelModule(lua));
+	LuaSetDoc(table, "monsters", "", "Monster-related commands.", LuaDevMonstersModule(lua));
+	LuaSetDoc(table, "player", "", "Player-related commands.", LuaDevPlayerModule(lua));
+	LuaSetDoc(table, "quests", "", "Quest-related commands.", LuaDevQuestsModule(lua));
+	LuaSetDoc(table, "search", "", "Search the map for monsters / items / objects.", LuaDevSearchModule(lua));
+	LuaSetDoc(table, "towners", "", "Town NPC commands.", LuaDevTownersModule(lua));
 	return table;
 }
 

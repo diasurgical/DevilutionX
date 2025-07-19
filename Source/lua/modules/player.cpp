@@ -13,10 +13,10 @@ namespace {
 void InitPlayerUserType(sol::state_view &lua)
 {
 	sol::usertype<Player> playerType = lua.new_usertype<Player>(sol::no_constructor);
-	SetDocumented(playerType, "name", "",
+	LuaSetDocReadonlyProperty(playerType, "name", "string",
 	    "Player's name (readonly)",
-	    sol::readonly_property(&Player::name));
-	SetDocumented(playerType, "addExperience", "(experience: integer, monsterLevel: integer = nil)",
+	    &Player::name);
+	LuaSetDocFn(playerType, "addExperience", "(experience: integer, monsterLevel: integer = nil)",
 	    "Adds experience to this player based on the current game mode",
 	    [](Player &player, uint32_t experience, std::optional<int> monsterLevel) {
 		    if (monsterLevel.has_value()) {
@@ -25,9 +25,9 @@ void InitPlayerUserType(sol::state_view &lua)
 			    player.addExperience(experience);
 		    }
 	    });
-	SetDocumented(playerType, "characterLevel", "",
+	LuaSetDocProperty(playerType, "characterLevel", "number",
 	    "Character level (writeable)",
-	    sol::property(&Player::getCharacterLevel, &Player::setCharacterLevel));
+	    &Player::getCharacterLevel, &Player::setCharacterLevel);
 }
 } // namespace
 
@@ -35,12 +35,12 @@ sol::table LuaPlayerModule(sol::state_view &lua)
 {
 	InitPlayerUserType(lua);
 	sol::table table = lua.create_table();
-	SetDocumented(table, "self", "()",
+	LuaSetDocFn(table, "self", "()",
 	    "The current player",
 	    []() {
 		    return MyPlayer;
 	    });
-	SetDocumented(table, "walk_to", "(x: integer, y: integer)",
+	LuaSetDocFn(table, "walk_to", "(x: integer, y: integer)",
 	    "Walk to the given coordinates",
 	    [](int x, int y) {
 		    NetSendCmdLoc(MyPlayerId, true, CMD_WALKXY, Point { x, y });

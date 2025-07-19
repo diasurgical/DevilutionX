@@ -10,8 +10,8 @@ namespace devilution {
 sol::table LuaHellfireModule(sol::state_view &lua)
 {
 	sol::table table = lua.create_table();
-	SetWithSignature(table, "loadData", "()", []() { LoadHellfireArchives(); });
-	SetWithSignature(table, "enable", "()", []() { gbIsHellfire = true; });
+	LuaSetDocFn(table, "loadData", "()", LoadHellfireArchives);
+	LuaSetDocFn(table, "enable", "()", []() { gbIsHellfire = true; });
 	return table;
 }
 

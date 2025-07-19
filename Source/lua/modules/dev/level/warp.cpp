@@ -72,9 +72,9 @@ std::string DebugCmdWarpToCustomMap(std::string_view path, int dunType, int x, i
 sol::table LuaDevLevelWarpModule(sol::state_view &lua)
 {
 	sol::table table = lua.create_table();
-	SetDocumented(table, "dungeon", "(n: number)", "Go to dungeon level (0 for town).", &DebugCmdWarpToDungeonLevel);
-	SetDocumented(table, "map", "(path: string, dunType: number, x: number, y: number)", "Go to custom {path}.dun level", &DebugCmdWarpToCustomMap);
-	SetDocumented(table, "quest", "(n: number)", "Go to quest level.", &DebugCmdWarpToQuestLevel);
+	LuaSetDocFn(table, "dungeon", "(n: number)", "Go to dungeon level (0 for town).", &DebugCmdWarpToDungeonLevel);
+	LuaSetDocFn(table, "map", "(path: string, dunType: number, x: number, y: number)", "Go to custom {path}.dun level", &DebugCmdWarpToCustomMap);
+	LuaSetDocFn(table, "quest", "(n: number)", "Go to quest level.", &DebugCmdWarpToQuestLevel);
 	return table;
 }
 

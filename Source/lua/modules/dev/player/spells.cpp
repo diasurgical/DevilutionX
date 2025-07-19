@@ -31,7 +31,7 @@ std::string DebugCmdSetSpellsLevel(uint8_t level)
 sol::table LuaDevPlayerSpellsModule(sol::state_view &lua)
 {
 	sol::table table = lua.create_table();
-	SetDocumented(table, "setLevel", "(level: number)", "Set spell level for all spells.", &DebugCmdSetSpellsLevel);
+	LuaSetDocFn(table, "setLevel", "(level: number)", "Set spell level for all spells.", &DebugCmdSetSpellsLevel);
 	return table;
 }
 

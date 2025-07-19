@@ -172,8 +172,8 @@ std::string DebugCmdSpawnMonster(std::string name, std::optional<unsigned> count
 sol::table LuaDevMonstersModule(sol::state_view &lua)
 {
 	sol::table table = lua.create_table();
-	SetDocumented(table, "spawn", "(name: string, count: number = 1)", "Spawn monster(s)", &DebugCmdSpawnMonster);
-	SetDocumented(table, "spawnUnique", "(name: string, count: number = 1)", "Spawn unique monster(s)", &DebugCmdSpawnUniqueMonster);
+	LuaSetDocFn(table, "spawn", "(name: string, count: number = 1)", "Spawn monster(s)", &DebugCmdSpawnMonster);
+	LuaSetDocFn(table, "spawnUnique", "(name: string, count: number = 1)", "Spawn unique monster(s)", &DebugCmdSpawnUniqueMonster);
 	return table;
 }
 
