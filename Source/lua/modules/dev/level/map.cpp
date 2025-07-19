@@ -32,8 +32,8 @@ std::string DebugCmdMapHide()
 sol::table LuaDevLevelMapModule(sol::state_view &lua)
 {
 	sol::table table = lua.create_table();
-	SetDocumented(table, "hide", "()", "Hide the map.", &DebugCmdMapHide);
-	SetDocumented(table, "reveal", "()", "Reveal the map.", &DebugCmdMapReveal);
+	LuaSetDocFn(table, "hide", "()", "Hide the map.", &DebugCmdMapHide);
+	LuaSetDocFn(table, "reveal", "()", "Reveal the map.", &DebugCmdMapReveal);
 	return table;
 }
 

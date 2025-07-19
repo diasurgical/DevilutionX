@@ -60,7 +60,7 @@
 #include "levels/trigs.h"
 #include "lighting.h"
 #include "loadsave.h"
-#include "lua/lua.hpp"
+#include "lua/lua_global.hpp"
 #include "menu.h"
 #include "minitext.h"
 #include "missiles.h"

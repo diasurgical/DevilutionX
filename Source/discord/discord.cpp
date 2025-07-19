@@ -19,7 +19,7 @@
 #include "config.h"
 #include "levels/gendung.h"
 #include "levels/setmaps.h"
-#include "lua/lua.hpp"
+#include "lua/lua_global.hpp"
 #include "multi.h"
 #include "panels/charpanel.hpp"
 #include "player.h"

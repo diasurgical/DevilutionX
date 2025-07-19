@@ -87,12 +87,12 @@ std::string DebugCmdChangeMana(int change)
 sol::table LuaDevPlayerStatsModule(sol::state_view &lua)
 {
 	sol::table table = lua.create_table();
-	SetDocumented(table, "adjustHealth", "(amount: number)", "Adjust HP (amount can be negative)", &DebugCmdChangeHealth);
-	SetDocumented(table, "adjustMana", "(amount: number)", "Adjust mana (amount can be negative)", &DebugCmdChangeMana);
-	SetDocumented(table, "levelUp", "(amount: number = 1)", "Level the player up.", &DebugCmdLevelUp);
-	SetDocumented(table, "rejuvenate", "()", "Refill health", &DebugCmdRefillHealthMana);
-	SetDocumented(table, "setAttrToMax", "()", "Set Str, Mag, Dex, and Vit to maximum.", &DebugCmdMaxStats);
-	SetDocumented(table, "setAttrToMin", "()", "Set Str, Mag, Dex, and Vit to minimum.", &DebugCmdMinStats);
+	LuaSetDocFn(table, "adjustHealth", "(amount: number)", "Adjust HP (amount can be negative)", &DebugCmdChangeHealth);
+	LuaSetDocFn(table, "adjustMana", "(amount: number)", "Adjust mana (amount can be negative)", &DebugCmdChangeMana);
+	LuaSetDocFn(table, "levelUp", "(amount: number = 1)", "Level the player up.", &DebugCmdLevelUp);
+	LuaSetDocFn(table, "rejuvenate", "()", "Refill health", &DebugCmdRefillHealthMana);
+	LuaSetDocFn(table, "setAttrToMax", "()", "Set Str, Mag, Dex, and Vit to maximum.", &DebugCmdMaxStats);
+	LuaSetDocFn(table, "setAttrToMin", "()", "Set Str, Mag, Dex, and Vit to minimum.", &DebugCmdMinStats);
 	return table;
 }
 
