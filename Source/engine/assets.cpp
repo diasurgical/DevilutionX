@@ -391,6 +391,7 @@ void LoadCoreArchives()
 
 void LoadLanguageArchive()
 {
+	MpqArchives.erase(LangMpqPriority);
 	const std::string_view code = GetLanguageCode();
 	if (code != "en") {
 		LoadMPQ(GetMPQSearchPaths(), code, LangMpqPriority);

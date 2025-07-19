@@ -496,6 +496,11 @@ void OptionLanguageCodeChanged()
 	UnloadFonts();
 	LanguageInitialize();
 	LoadLanguageArchive();
+	effects_cleanup_sfx();
+	if (gbRunGame)
+		sound_init();
+	else
+		ui_sound_init();
 }
 
 const auto OptionChangeHandlerResolution = (GetOptions().Language.code.SetValueChangedCallback(OptionLanguageCodeChanged), true);
