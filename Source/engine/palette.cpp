@@ -266,8 +266,15 @@ void PaletteFadeIn(int fr, const std::array<SDL_Color, 256> &srcPalette)
 	if (demo::IsRunning())
 		fr = 0;
 
-	SDL_Color palette[256];
-	ApplyGlobalBrightness(palette, srcPalette.data());
+	std::array<SDL_Color, 256> palette;
+
+#ifndef USE_SDL1
+	for (SDL_Color &color : palette) {
+		color.a = SDL_ALPHA_OPAQUE;
+	}
+#endif
+
+	ApplyGlobalBrightness(palette.data(), srcPalette.data());
 
 	if (fr > 0) {
 		const uint32_t tc = SDL_GetTicks();
@@ -278,7 +285,7 @@ void PaletteFadeIn(int fr, const std::array<SDL_Color, 256> &srcPalette)
 				SDL_Delay(1);
 				continue;
 			}
-			ApplyFadeLevel(i, system_palette.data(), palette);
+			ApplyFadeLevel(i, system_palette.data(), palette.data());
 			SystemPaletteUpdated();
 
 			// We can skip hardware cursor update for fade level 0 (everything is black).
@@ -292,7 +299,7 @@ void PaletteFadeIn(int fr, const std::array<SDL_Color, 256> &srcPalette)
 			RenderPresent();
 		}
 	}
-	memcpy(system_palette.data(), palette, system_palette.size());
+	system_palette = palette;
 	SystemPaletteUpdated();
 	RedrawEverything();
 	if (IsHardwareCursor()) ReinitializeHardwareCursor();
