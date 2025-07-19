@@ -31,7 +31,7 @@ const char *const TownerTableNames[NUM_TOWNER_TYPES] {
 
 void PopulateTownerTable(_talker_id townerId, sol::table &out)
 {
-	SetDocumented(out, "position", "()",
+	LuaSetDocFn(out, "position", "()",
 	    "Returns towner coordinates",
 	    [townerId]() -> std::optional<std::pair<int, int>> {
 		    const Towner *towner = GetTowner(townerId);
@@ -47,7 +47,7 @@ sol::table LuaTownersModule(sol::state_view &lua)
 	for (uint8_t townerId = TOWN_SMITH; townerId < NUM_TOWNER_TYPES; ++townerId) {
 		sol::table townerTable = lua.create_table();
 		PopulateTownerTable(static_cast<_talker_id>(townerId), townerTable);
-		SetDocumented(table, TownerTableNames[townerId], /*signature=*/"", TownerLongNames[townerId], std::move(townerTable));
+		LuaSetDoc(table, TownerTableNames[townerId], /*signature=*/"", TownerLongNames[townerId], std::move(townerTable));
 	}
 	return table;
 }

@@ -194,9 +194,9 @@ std::string DebugSpawnUniqueItem(std::string itemName)
 sol::table LuaDevItemsModule(sol::state_view &lua)
 {
 	sol::table table = lua.create_table();
-	SetDocumented(table, "info", "()", "Show info of currently selected item.", &DebugCmdItemInfo);
-	SetDocumented(table, "spawn", "(name: string)", "Attempt to generate an item.", &DebugSpawnItem);
-	SetDocumented(table, "spawnUnique", "(name: string)", "Attempt to generate a unique item.", &DebugSpawnUniqueItem);
+	LuaSetDocFn(table, "info", "()", "Show info of currently selected item.", &DebugCmdItemInfo);
+	LuaSetDocFn(table, "spawn", "(name: string)", "Attempt to generate an item.", &DebugSpawnItem);
+	LuaSetDocFn(table, "spawnUnique", "(name: string)", "Attempt to generate a unique item.", &DebugSpawnUniqueItem);
 	return table;
 }
 
