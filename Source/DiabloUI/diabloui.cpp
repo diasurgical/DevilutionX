@@ -589,9 +589,8 @@ void LoadHeros()
 
 void LoadUiGFX()
 {
-	if (gbIsHellfire) {
-		ArtLogo = LoadPcxSpriteList("ui_art\\hf_logo2", /*numFrames=*/16, /*transparentColor=*/0);
-	} else {
+	ArtLogo = LoadPcxSpriteList("ui_art\\hf_logo2", /*numFrames=*/16, /*transparentColor=*/0);
+	if (!ArtLogo.has_value()) {
 		ArtLogo = LoadPcxSpriteList("ui_art\\smlogo", /*numFrames=*/15, /*transparentColor=*/250);
 	}
 	DifficultyIndicator = LoadPcx("ui_art\\r1_gry", /*transparentColor=*/0);

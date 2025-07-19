@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <optional>
 
+#include "engine/assets.hpp"
 #include "engine/load_cel.hpp"
 #include "engine/load_clx.hpp"
 #include "engine/palette.h"
@@ -86,21 +87,21 @@ const SpellIcon SpellITbl[] = {
 
 tl::expected<void, std::string> LoadLargeSpellIcons()
 {
-	if (!gbIsHellfire) {
 #ifdef UNPACKED_MPQS
-		ASSIGN_OR_RETURN(LargeSpellIcons, LoadClxWithStatus("ctrlpan\\spelicon_fg.clx"));
-		ASSIGN_OR_RETURN(LargeSpellIconsBackground, LoadClxWithStatus("ctrlpan\\spelicon_bg.clx"));
-#else
-		ASSIGN_OR_RETURN(LargeSpellIcons, LoadCelWithStatus("ctrlpan\\spelicon", SPLICONLENGTH));
-#endif
-	} else {
-#ifdef UNPACKED_MPQS
+	if (FindAsset("data\\spelicon_fg.clx").ok() && FindAsset("data\\spelicon_bg.clx").ok()) {
 		ASSIGN_OR_RETURN(LargeSpellIcons, LoadClxWithStatus("data\\spelicon_fg.clx"));
 		ASSIGN_OR_RETURN(LargeSpellIconsBackground, LoadClxWithStatus("data\\spelicon_bg.clx"));
-#else
-		ASSIGN_OR_RETURN(LargeSpellIcons, LoadCelWithStatus("data\\spelicon", SPLICONLENGTH));
-#endif
+	} else {
+		ASSIGN_OR_RETURN(LargeSpellIcons, LoadClxWithStatus("ctrlpan\\spelicon_fg.clx"));
+		ASSIGN_OR_RETURN(LargeSpellIconsBackground, LoadClxWithStatus("ctrlpan\\spelicon_bg.clx"));
 	}
+#else
+	if (FindAsset("data\\spelicon.cel").ok()) {
+		ASSIGN_OR_RETURN(LargeSpellIcons, LoadCelWithStatus("data\\spelicon", SPLICONLENGTH));
+	} else {
+		ASSIGN_OR_RETURN(LargeSpellIcons, LoadCelWithStatus("ctrlpan\\spelicon", SPLICONLENGTH));
+	}
+#endif
 	SetSpellTrans(SpellType::Skill);
 	return {};
 }
