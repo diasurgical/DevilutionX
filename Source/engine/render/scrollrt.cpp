@@ -40,7 +40,7 @@
 #include "levels/gendung.h"
 #include "levels/tile_properties.hpp"
 #include "lighting.h"
-#include "lua/lua.hpp"
+#include "lua/lua_global.hpp"
 #include "minitext.h"
 #include "missiles.h"
 #include "nthread.h"

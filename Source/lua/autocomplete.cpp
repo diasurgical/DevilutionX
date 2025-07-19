@@ -13,7 +13,7 @@
 
 #include "appfat.h"
 #include "engine/assets.hpp"
-#include "lua/lua.hpp"
+#include "lua/lua_global.hpp"
 #include "lua/metadoc.hpp"
 #include "utils/algorithm/container.hpp"
 #include "utils/str_cat.hpp"

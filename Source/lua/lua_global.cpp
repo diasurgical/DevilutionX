@@ -1,9 +1,10 @@
-#include "lua/lua.hpp"
+#include "lua/lua_global.hpp"
 
 #include <optional>
 #include <string_view>
 
 #include <ankerl/unordered_dense.h>
+#include <sol/debug.hpp>
 #include <sol/sol.hpp>
 
 #include <config.h>
