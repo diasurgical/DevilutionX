@@ -218,15 +218,39 @@ void SuggestionsFromUserdata(UserdataQuery query, std::string_view prefix,
 	}
 }
 
+bool IsAlnum(char c)
+{
+	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9');
+}
+
+bool IsIdentifierChar(char c)
+{
+	return IsAlnum(c) || c == '_';
+}
+
+bool IsIdentifierOrExprChar(char c)
+{
+	return IsIdentifierChar(c) || c == '-' || c == '+' || c == '*' || c == '/' || c == '=';
+}
+
 } // namespace
 
-void GetLuaAutocompleteSuggestions(std::string_view text, const sol::environment &lua,
+void GetLuaAutocompleteSuggestions(std::string_view text, size_t cursorPos, const sol::environment &lua,
     size_t maxSuggestions, std::vector<LuaAutocompleteSuggestion> &out)
 {
 	out.clear();
-	if (text.empty()) return;
-	std::string_view token = GetLastToken(text);
-	const char prevChar = token.data() == text.data() ? '\0' : *(token.data() - 1);
+	const std::string_view textPrefix = text.substr(0, cursorPos);
+	if (textPrefix.empty()) return;
+	const std::string_view textSuffix = text.substr(cursorPos);
+	if (!textSuffix.empty()) {
+		const char c = textSuffix[0];
+		if (IsIdentifierOrExprChar(c) || (c == ' ' && textSuffix.size() > 1)) return;
+	}
+	if (textPrefix.size() >= 2 && textPrefix.back() == ' ' && IsIdentifierChar(textPrefix[textPrefix.size() - 2])) {
+		return;
+	}
+	std::string_view token = GetLastToken(textPrefix);
+	const char prevChar = token.data() == textPrefix.data() ? '\0' : *(token.data() - 1);
 	if (prevChar == '(' || prevChar == ',') return;
 	const size_t dotPos = token.find_last_of(".:");
 	const std::string_view prefix = token.substr(dotPos + 1);
@@ -259,7 +283,7 @@ void GetLuaAutocompleteSuggestions(std::string_view text, const sol::environment
 			addSuggestions(obj->as<sol::table>());
 		} else if (obj->get_type() == sol::type::userdata) {
 			const sol::userdata &data = obj->as<sol::userdata>();
-			SuggestionsFromUserdata(UserdataQuery { &data, completionChar == ':' },
+			SuggestionsFromUserdata(UserdataQuery { .obj = &data, .colonAccess = completionChar == ':' },
 			    prefix, maxSuggestions, suggestions);
 		}
 	}
