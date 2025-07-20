@@ -14,6 +14,7 @@
 #include "controls/control_mode.hpp"
 #include "controls/plrctrls.h"
 #include "engine/events.hpp"
+#include "game_mode.hpp"
 #include "gmenu.h"
 #include "headless_mode.hpp"
 #include "menu.h"

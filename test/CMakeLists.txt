@@ -99,7 +99,17 @@ add_library(language_for_testing OBJECT language_for_testing.cpp)
 target_sources(language_for_testing INTERFACE $<TARGET_OBJECTS:language_for_testing>)
 
 target_link_dependencies(codec_test PRIVATE libdevilutionx_codec app_fatal_for_testing)
-target_link_dependencies(clx_render_benchmark PRIVATE libdevilutionx_so)
+target_link_dependencies(clx_render_benchmark
+  PRIVATE
+  DevilutionX::SDL
+  tl
+  app_fatal_for_testing
+  language_for_testing
+  libdevilutionx_clx_render
+  libdevilutionx_load_clx
+  libdevilutionx_log
+  libdevilutionx_surface
+)
 target_link_dependencies(crawl_test PRIVATE libdevilutionx_crawl)
 target_link_dependencies(crawl_benchmark PRIVATE libdevilutionx_crawl)
 target_link_dependencies(data_file_test PRIVATE libdevilutionx_txtdata app_fatal_for_testing language_for_testing)
@@ -117,8 +127,22 @@ target_link_dependencies(path_benchmark PRIVATE libdevilutionx_pathfinding app_f
 target_link_dependencies(random_test PRIVATE libdevilutionx_random)
 target_link_dependencies(static_vector_test PRIVATE libdevilutionx_random app_fatal_for_testing)
 target_link_dependencies(str_cat_test PRIVATE libdevilutionx_strings)
-if(NOT USE_SDL1)
-  target_link_dependencies(text_render_integration_test PRIVATE libdevilutionx_so GTest::gtest GTest::gmock)
+if(DEVILUTIONX_SCREENSHOT_FORMAT STREQUAL DEVILUTIONX_SCREENSHOT_FORMAT_PNG AND NOT USE_SDL1)
+  target_link_dependencies(text_render_integration_test
+    PRIVATE
+    DevilutionX::SDL
+    GTest::gmock
+    GTest::gtest
+    tl
+    app_fatal_for_testing
+    language_for_testing
+    libdevilutionx_primitive_render
+    libdevilutionx_strings
+    libdevilutionx_strings
+    libdevilutionx_surface
+    libdevilutionx_surface_to_png
+    libdevilutionx_text_render
+  )
 endif()
 target_link_dependencies(utf8_test PRIVATE libdevilutionx_utf8)
 

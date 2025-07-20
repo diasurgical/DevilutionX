@@ -12,6 +12,7 @@
 #include "engine/events.hpp"
 #include "engine/sound.h"
 #include "engine/sound_defs.hpp"
+#include "game_mode.hpp"
 #include "gmenu.h"
 #include "headless_mode.hpp"
 #include "loadsave.h"

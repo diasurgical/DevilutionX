@@ -120,7 +120,6 @@ namespace devilution {
 uint32_t DungeonSeeds[NUMLEVELS];
 std::optional<uint32_t> LevelSeeds[NUMLEVELS];
 Point MousePosition;
-bool gbRunGame;
 bool gbRunGameResult;
 bool ReturnToMainMenu;
 /** Enable updating of player character, set to false once Diablo dies */
@@ -1700,6 +1699,20 @@ bool CanAutomapBeToggledOff()
 
 	return false;
 }
+
+void OptionLanguageCodeChanged()
+{
+	UnloadFonts();
+	LanguageInitialize();
+	LoadLanguageArchive();
+	effects_cleanup_sfx();
+	if (gbRunGame)
+		sound_init();
+	else
+		ui_sound_init();
+}
+
+const auto OptionChangeHandlerLanguage = (GetOptions().Language.code.SetValueChangedCallback(OptionLanguageCodeChanged), true);
 
 } // namespace
 

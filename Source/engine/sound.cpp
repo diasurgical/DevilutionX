@@ -18,6 +18,7 @@
 #include <expected.hpp>
 
 #include "engine/assets.hpp"
+#include "game_mode.hpp"
 #include "options.h"
 #include "utils/log.hpp"
 #include "utils/math.h"

@@ -19,8 +19,6 @@ uint8_t paletteTransparencyLookup[256][256];
 uint16_t paletteTransparencyLookupBlack16[65536];
 #endif
 
-extern std::array<SDL_Color, 256> logical_palette;
-
 namespace {
 
 PaletteKdTree CurrentPaletteKdTree;
@@ -45,9 +43,8 @@ void SetPaletteTransparencyLookupBlack16(unsigned i, unsigned j)
 
 } // namespace
 
-void GenerateBlendedLookupTable(int skipFrom, int skipTo)
+void GenerateBlendedLookupTable(const SDL_Color *palette, int skipFrom, int skipTo)
 {
-	const SDL_Color *palette = logical_palette.data();
 	CurrentPaletteKdTree = PaletteKdTree { palette, skipFrom, skipTo };
 	for (unsigned i = 0; i < 256; i++) {
 		paletteTransparencyLookup[i][i] = i;
@@ -72,9 +69,8 @@ void GenerateBlendedLookupTable(int skipFrom, int skipTo)
 #endif
 }
 
-void UpdateBlendedLookupTableSingleColor(unsigned i)
+void UpdateBlendedLookupTableSingleColor(const SDL_Color *palette, unsigned i)
 {
-	const SDL_Color *palette = logical_palette.data();
 	for (unsigned j = 0; j < 256; j++) {
 		if (i == j) { // No need to calculate transparency between 2 identical colors
 			paletteTransparencyLookup[i][j] = j;

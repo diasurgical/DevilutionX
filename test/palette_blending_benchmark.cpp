@@ -9,9 +9,6 @@
 #include "utils/palette_kd_tree.hpp"
 
 namespace devilution {
-
-std::array<SDL_Color, 256> logical_palette;
-
 namespace {
 
 void GeneratePalette(SDL_Color palette[256])
@@ -30,10 +27,10 @@ void GeneratePalette(SDL_Color palette[256])
 
 void BM_GenerateBlendedLookupTable(benchmark::State &state)
 {
-	SDL_Color *palette = logical_palette.data();
-	GeneratePalette(palette);
+	std::array<SDL_Color, 256> palette;
+	GeneratePalette(palette.data());
 	for (auto _ : state) {
-		GenerateBlendedLookupTable();
+		GenerateBlendedLookupTable(palette.data());
 		int result = paletteTransparencyLookup[17][98];
 		benchmark::DoNotOptimize(result);
 	}
@@ -41,20 +38,20 @@ void BM_GenerateBlendedLookupTable(benchmark::State &state)
 
 void BM_BuildTree(benchmark::State &state)
 {
-	SDL_Color *palette = logical_palette.data();
-	GeneratePalette(palette);
+	std::array<SDL_Color, 256> palette;
+	GeneratePalette(palette.data());
 
 	for (auto _ : state) {
-		PaletteKdTree tree(palette, -1, -1);
+		PaletteKdTree tree(palette.data(), -1, -1);
 		benchmark::DoNotOptimize(tree);
 	}
 }
 
 void BM_FindNearestNeighbor(benchmark::State &state)
 {
-	SDL_Color *palette = logical_palette.data();
-	GeneratePalette(palette);
-	PaletteKdTree tree(palette, -1, -1);
+	std::array<SDL_Color, 256> palette;
+	GeneratePalette(palette.data());
+	PaletteKdTree tree(palette.data(), -1, -1);
 
 	for (auto _ : state) {
 		for (int r = 0; r < 256; ++r) {

@@ -22,12 +22,12 @@ extern uint8_t paletteTransparencyLookup[256][256];
  * @param skipFrom Do not use colors between this index and skipTo
  * @param skipTo Do not use colors between skipFrom and this index
  */
-void GenerateBlendedLookupTable(int skipFrom = -1, int skipTo = -1);
+void GenerateBlendedLookupTable(const SDL_Color *palette, int skipFrom = -1, int skipTo = -1);
 
 /**
  * @brief Updates the transparency lookup table for a single color.
  */
-void UpdateBlendedLookupTableSingleColor(unsigned i);
+void UpdateBlendedLookupTableSingleColor(const SDL_Color *palette, unsigned i);
 
 #if DEVILUTIONX_PALETTE_TRANSPARENCY_BLACK_16_LUT
 /**

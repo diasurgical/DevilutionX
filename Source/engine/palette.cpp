@@ -185,11 +185,11 @@ void LoadPaletteAndInitBlending(const char *path)
 	if (HeadlessMode) return;
 	LoadPalette(path);
 	if (leveltype == DTYPE_CAVES || leveltype == DTYPE_CRYPT) {
-		GenerateBlendedLookupTable(/*skipFrom=*/1, /*skipTo=*/31);
+		GenerateBlendedLookupTable(logical_palette.data(), /*skipFrom=*/1, /*skipTo=*/31);
 	} else if (leveltype == DTYPE_NEST) {
-		GenerateBlendedLookupTable(/*skipFrom=*/1, /*skipTo=*/15);
+		GenerateBlendedLookupTable(logical_palette.data(), /*skipFrom=*/1, /*skipTo=*/15);
 	} else {
-		GenerateBlendedLookupTable();
+		GenerateBlendedLookupTable(logical_palette.data());
 	}
 }
 
@@ -399,7 +399,7 @@ void SetLogicalPaletteColor(unsigned i, const SDL_Color &color)
 	logical_palette[i] = color;
 	ApplyGlobalBrightnessSingleColor(system_palette[i], logical_palette[i]);
 	SystemPaletteUpdated(i, 1);
-	UpdateBlendedLookupTableSingleColor(i);
+	UpdateBlendedLookupTableSingleColor(logical_palette.data(), i);
 }
 
 } // namespace devilution

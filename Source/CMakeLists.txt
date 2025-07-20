@@ -79,20 +79,13 @@ set(libdevilutionx_SRCS
   engine/backbuffer_state.cpp
   engine/dx.cpp
   engine/events.cpp
-  engine/load_cel.cpp
-  engine/load_cl2.cpp
-  engine/load_clx.cpp
-  engine/load_pcx.cpp
   engine/palette.cpp
   engine/sound_position.cpp
-  engine/ticks.cpp
   engine/trn.cpp
 
   engine/render/automap_render.cpp
   engine/render/dun_render.cpp
-  engine/render/primitive_render.cpp
   engine/render/scrollrt.cpp
-  engine/render/text_render.cpp
 
   items/validation.cpp
 
@@ -155,12 +148,8 @@ set(libdevilutionx_SRCS
 
   storm/storm_net.cpp
   storm/storm_svid.cpp
-
-  utils/cel_to_clx.cpp
-  utils/cl2_to_clx.cpp
   utils/display.cpp
   utils/language.cpp
-  utils/pcx_to_clx.cpp
   utils/sdl_bilinear_scale.cpp
   utils/sdl_thread.cpp
   utils/surface_to_clx.cpp
@@ -204,13 +193,30 @@ target_link_dependencies(libdevilutionx_assets PUBLIC
   ${DEVILUTIONX_PLATFORM_ASSETS_LINK_LIBRARIES}
 )
 
+add_devilutionx_object_library(libdevilutionx_cel_to_clx
+  utils/cel_to_clx.cpp
+)
+target_link_dependencies(libdevilutionx_cel_to_clx
+  PRIVATE
+  libdevilutionx_endian_write
+)
+
+add_devilutionx_object_library(libdevilutionx_cl2_to_clx
+  utils/cl2_to_clx.cpp
+)
+target_link_dependencies(libdevilutionx_cl2_to_clx
+  PRIVATE
+  libdevilutionx_endian_write
+)
+
 add_devilutionx_object_library(libdevilutionx_clx_render
   engine/render/clx_render.cpp
 )
 target_link_dependencies(libdevilutionx_clx_render PUBLIC
   DevilutionX::SDL
   fmt::fmt
-  libdevilutionx_lighting
+  libdevilutionx_light_render
+  libdevilutionx_palette_blending
   libdevilutionx_strings
 )
 
@@ -255,6 +261,25 @@ target_link_dependencies(libdevilutionx_paths PUBLIC
   libdevilutionx_sdl2_to_1_2_backports
 )
 
+add_devilutionx_object_library(libdevilutionx_pcx_to_clx
+  utils/pcx_to_clx.cpp
+)
+target_link_dependencies(libdevilutionx_pcx_to_clx
+  PUBLIC
+  DevilutionX::SDL
+  libdevilutionx_assets
+  libdevilutionx_endian_write
+)
+
+add_devilutionx_object_library(libdevilutionx_primitive_render
+  engine/render/primitive_render.cpp
+)
+target_link_dependencies(libdevilutionx_primitive_render
+  PUBLIC
+  libdevilutionx_palette_blending
+  libdevilutionx_surface
+)
+
 add_devilutionx_object_library(libdevilutionx_crawl
   crawl.cpp
 )
@@ -264,6 +289,11 @@ target_link_dependencies(libdevilutionx_crawl PUBLIC
 
 add_devilutionx_object_library(libdevilutionx_direction
   engine/direction.cpp
+)
+
+add_library(libdevilutionx_endian_write INTERFACE)
+target_link_libraries(libdevilutionx_endian_write INTERFACE
+  DevilutionX::SDL
 )
 
 add_devilutionx_object_library(libdevilutionx_surface
@@ -328,6 +358,78 @@ target_link_dependencies(libdevilutionx_init PUBLIC
   libdevilutionx_mpq
   libdevilutionx_options
 )
+
+add_devilutionx_object_library(libdevilutionx_load_cel
+  engine/load_cel.cpp
+)
+target_link_dependencies(libdevilutionx_load_cel
+  PUBLIC
+  tl
+  PRIVATE
+  libdevilutionx_strings
+)
+if(SUPPORTS_MPQ)
+  target_link_dependencies(libdevilutionx_load_cel PRIVATE
+    libdevilutionx_mpq
+    libdevilutionx_cel_to_clx
+  )
+else()
+  target_link_dependencies(libdevilutionx_load_cel PRIVATE
+    libdevilutionx_load_clx
+  )
+endif()
+
+add_devilutionx_object_library(libdevilutionx_load_cl2
+  engine/load_cl2.cpp
+)
+target_link_dependencies(libdevilutionx_load_cl2
+  PUBLIC
+  tl
+  libdevilutionx_endian_write
+  PRIVATE
+  libdevilutionx_strings
+)
+if(SUPPORTS_MPQ)
+  target_link_dependencies(libdevilutionx_load_cl2 PUBLIC
+    libdevilutionx_mpq
+    libdevilutionx_cl2_to_clx
+  )
+else()
+  target_link_dependencies(libdevilutionx_load_cl2 PRIVATE
+    libdevilutionx_load_clx
+  )
+endif()
+
+add_devilutionx_object_library(libdevilutionx_load_clx
+  engine/load_clx.cpp
+)
+target_link_dependencies(libdevilutionx_load_clx
+  PUBLIC
+  tl
+  PRIVATE
+  libdevilutionx_assets
+)
+
+add_devilutionx_object_library(libdevilutionx_load_pcx
+  engine/load_pcx.cpp
+)
+target_link_dependencies(libdevilutionx_load_pcx
+  PRIVATE
+  DevilutionX::SDL
+  libdevilutionx_sdl2_to_1_2_backports
+  libdevilutionx_log
+  libdevilutionx_strings
+)
+if(SUPPORTS_MPQ)
+  target_link_dependencies(libdevilutionx_load_pcx PUBLIC
+    libdevilutionx_assets
+    libdevilutionx_pcx_to_clx
+  )
+else()
+  target_link_dependencies(libdevilutionx_load_pcx PRIVATE
+    libdevilutionx_load_clx
+  )
+endif()
 
 add_devilutionx_object_library(libdevilutionx_light_render
   engine/render/light_render.cpp
@@ -408,13 +510,16 @@ add_devilutionx_object_library(libdevilutionx_monster
   monstdat.cpp
   monster.cpp
 )
-target_link_dependencies(libdevilutionx_monster PUBLIC
+target_link_dependencies(libdevilutionx_monster
+  PUBLIC
   DevilutionX::SDL
   tl
   libdevilutionx_game_mode
   libdevilutionx_headless_mode
   libdevilutionx_sound
   libdevilutionx_txtdata
+  PRIVATE
+  libdevilutionx_cl2_to_clx
 )
 
 add_devilutionx_object_library(libdevilutionx_palette_blending
@@ -504,12 +609,16 @@ add_devilutionx_object_library(libdevilutionx_player
   player.cpp
   playerdat.cpp
 )
-target_link_dependencies(libdevilutionx_player PUBLIC
+target_link_dependencies(libdevilutionx_player
+  PUBLIC
   DevilutionX::SDL
   fmt::fmt
   tl
   unordered_dense::unordered_dense
   libdevilutionx_game_mode
+  PRIVATE
+  libdevilutionx_load_cl2
+  libdevilutionx_strings
 )
 
 add_devilutionx_object_library(libdevilutionx_quests
@@ -536,6 +645,33 @@ target_link_dependencies(libdevilutionx_spells PUBLIC
   tl
   libdevilutionx_player
   libdevilutionx_txtdata
+)
+
+add_devilutionx_object_library(libdevilutionx_text_render
+  engine/render/text_render.cpp
+)
+target_link_dependencies(libdevilutionx_text_render
+  PUBLIC
+  libdevilutionx_surface
+  PRIVATE
+  fmt::fmt
+  unordered_dense::unordered_dense
+  libdevilutionx_clx_render
+  libdevilutionx_game_mode
+  libdevilutionx_load_cel
+  libdevilutionx_load_clx
+  libdevilutionx_load_pcx
+  libdevilutionx_log
+  libdevilutionx_primitive_render
+  libdevilutionx_ticks
+  libdevilutionx_utf8
+)
+
+add_devilutionx_object_library(libdevilutionx_ticks
+  engine/ticks.cpp
+)
+target_link_dependencies(libdevilutionx_ticks PRIVATE
+  DevilutionX::SDL
 )
 
 add_devilutionx_object_library(libdevilutionx_txtdata
@@ -682,9 +818,17 @@ if(DEVILUTIONX_SCREENSHOT_FORMAT STREQUAL DEVILUTIONX_SCREENSHOT_FORMAT_PCX)
     utils/surface_to_pcx.cpp
   )
 endif()
+
 if(DEVILUTIONX_SCREENSHOT_FORMAT STREQUAL DEVILUTIONX_SCREENSHOT_FORMAT_PNG)
-  list(APPEND libdevilutionx_SRCS
+  add_devilutionx_object_library(libdevilutionx_surface_to_png
     utils/surface_to_png.cpp
+  )
+  target_link_dependencies(libdevilutionx_surface_to_png
+    PUBLIC
+    DevilutionX::SDL
+    SDL2::SDL2_image
+    tl
+    libdevilutionx_surface
   )
 endif()
 
@@ -729,6 +873,7 @@ target_link_dependencies(libdevilutionx PUBLIC
   libdevilutionx_pathfinding
   libdevilutionx_pkware_encrypt
   libdevilutionx_player
+  libdevilutionx_primitive_render
   libdevilutionx_quests
   libdevilutionx_quick_messages
   libdevilutionx_random
@@ -736,10 +881,15 @@ target_link_dependencies(libdevilutionx PUBLIC
   libdevilutionx_spells
   libdevilutionx_stores
   libdevilutionx_strings
+  libdevilutionx_text_render
   libdevilutionx_txtdata
+  libdevilutionx_ticks
   libdevilutionx_utf8
   libdevilutionx_utils_console
 )
+if(DEVILUTIONX_SCREENSHOT_FORMAT STREQUAL DEVILUTIONX_SCREENSHOT_FORMAT_PNG)
+  target_link_dependencies(libdevilutionx PUBLIC libdevilutionx_surface_to_png)
+endif()
 
 # Use file GENERATE instead of configure_file because configure_file
 # does not support generator expressions.

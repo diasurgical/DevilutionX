@@ -20,6 +20,7 @@
 #include "engine/point.hpp"
 #include "engine/random.hpp"
 #include "engine/world_tile.hpp"
+#include "game_mode.hpp"
 #include "menu.h"
 #include "monster.h"
 #include "msg.h"

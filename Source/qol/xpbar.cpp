@@ -16,6 +16,7 @@
 #include "engine/point.hpp"
 #include "engine/render/clx_render.hpp"
 #include "engine/render/primitive_render.hpp"
+#include "game_mode.hpp"
 #include "options.h"
 #include "playerdat.hpp"
 #include "utils/format_int.hpp"
