@@ -35,11 +35,17 @@ inline std::string LuaUserdataMemberTypeKey(std::string_view key)
 
 namespace lua_metadoc_internal {
 template <typename U>
-inline void SetUsertypeSignatureAndDocstring(sol::usertype<U> &table, std::string_view key, const char *signature, const char *doc, LuaUserdataMemberType memberType)
+void SetUsertypeSignatureAndDocstring(sol::usertype<U> &table, std::string_view key, const char *signature, const char *doc, LuaUserdataMemberType memberType)
 {
 	table.set(LuaSignatureKey(key), sol::var(signature));
 	table.set(LuaDocstringKey(key), sol::var(doc));
 	table.set(LuaUserdataMemberTypeKey(key), sol::var(static_cast<uint8_t>(memberType)));
+}
+
+inline void SetSignatureAndDocstring(sol::table &table, std::string_view key, const char *signature, const char *doc)
+{
+	table.set(LuaSignatureKey(key), signature);
+	table.set(LuaDocstringKey(key), doc);
 }
 } // namespace lua_metadoc_internal
 
@@ -75,20 +81,18 @@ template <typename T>
 void LuaSetDoc(sol::table &table, std::string_view key, const char *signature, const char *doc, T &&value)
 {
 	table.set(key, std::forward<T>(value));
-	table.set(LuaSignatureKey(key), signature);
-	table.set(LuaDocstringKey(key), doc);
+	lua_metadoc_internal::SetSignatureAndDocstring(table, key, signature, doc);
 }
 
 template <typename T>
 void LuaSetDocFn(sol::table &table, std::string_view key, const char *signature, const char *doc, T &&value)
 {
 	table.set_function(key, std::forward<T>(value));
-	table.set(LuaSignatureKey(key), signature);
-	table.set(LuaDocstringKey(key), doc);
+	lua_metadoc_internal::SetSignatureAndDocstring(table, key, signature, doc);
 }
 
 template <typename T>
-void LuaSetDocFn(sol::table &table, std::string_view key, std::string_view signature, T &&value)
+void LuaSetDocFn(sol::table &table, std::string_view key, const char *signature, T &&value)
 {
 	table.set_function(key, std::forward<T>(value));
 	table.set(LuaSignatureKey(key), signature);
