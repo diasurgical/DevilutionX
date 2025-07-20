@@ -225,7 +225,7 @@ std::vector<SpellListItem> GetSpellListItems()
 			continue;
 		}
 		int8_t j = static_cast<int8_t>(SpellID::Firebolt);
-		for (uint64_t spl = 1; j < MAX_SPELLS; spl <<= 1, j++) {
+		for (uint64_t spl = 1; static_cast<size_t>(j) < SpellsData.size(); spl <<= 1, j++) {
 			if ((mask & spl) == 0)
 				continue;
 			int lx = x;
@@ -362,9 +362,9 @@ void DoSpeedBook()
 				continue;
 			}
 			uint64_t spell = 1;
-			for (int j = 1; j < MAX_SPELLS; j++) {
+			for (size_t j = 1; j < SpellsData.size(); j++) {
 				if ((spell & spells) != 0) {
-					if (j == static_cast<int8_t>(myPlayer._pRSpell) && static_cast<SpellType>(i) == myPlayer._pRSplType) {
+					if (j == static_cast<size_t>(myPlayer._pRSpell) && static_cast<SpellType>(i) == myPlayer._pRSplType) {
 						x = xo + SPLICONLENGTH / 2;
 						y = yo - SPLICONLENGTH / 2;
 					}

@@ -71,9 +71,7 @@ void ClearReadiedSpell(Player &player)
 
 bool IsValidSpell(SpellID spl)
 {
-	return spl > SpellID::Null
-	    && spl <= SpellID::LAST
-	    && (spl <= SpellID::LastDiablo || gbIsHellfire);
+	return spl > SpellID::Null && static_cast<size_t>(spl) < SpellsData.size();
 }
 
 bool IsValidSpellFrom(int spellFrom)
@@ -318,16 +316,8 @@ int GetSpellBookLevel(SpellID s)
 		}
 	}
 
-	if (!gbIsHellfire) {
-		switch (s) {
-		case SpellID::Nova:
-		case SpellID::Apocalypse:
-			return -1;
-		default:
-			if (s > SpellID::LastDiablo)
-				return -1;
-			break;
-		}
+	if (static_cast<uint8_t>(s) >= SpellsData.size()) {
+		return -1;
 	}
 
 	return GetSpellData(s).sBookLvl;
@@ -350,8 +340,9 @@ int GetSpellStaffLevel(SpellID s)
 		}
 	}
 
-	if (!gbIsHellfire && s > SpellID::LastDiablo)
+	if (static_cast<uint8_t>(s) >= SpellsData.size()) {
 		return -1;
+	}
 
 	return GetSpellData(s).sStaffLvl;
 }

@@ -419,7 +419,7 @@ void LoadPlayer(LoadHelper &file, Player &player)
 	// Only read spell levels for learnable spells
 	for (int i = 0; i < static_cast<int>(SpellID::LAST); i++) {
 		auto spl = static_cast<SpellID>(i);
-		if (GetSpellData(spl).sBookLvl != -1)
+		if (GetSpellBookLevel(spl) != -1)
 			player._pSplLvl[i] = file.NextLE<uint8_t>();
 		else
 			file.Skip<uint8_t>();

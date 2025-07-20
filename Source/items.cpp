@@ -615,9 +615,7 @@ void GetBookSpell(Item &item, int lvl)
 	if (lvl == 0)
 		lvl = 1;
 
-	int maxSpells = gbIsHellfire ? MAX_SPELLS : 37;
-
-	rv = GenerateRnd(maxSpells) + 1;
+	rv = GenerateRnd(SpellsData.size()) + 1;
 
 	if (gbIsSpawn && lvl > 5)
 		lvl = 5;
@@ -639,7 +637,7 @@ void GetBookSpell(Item &item, int lvl)
 			if (s == static_cast<int8_t>(SpellID::HealOther))
 				s = static_cast<int8_t>(SpellID::BloodStar);
 		}
-		if (s == maxSpells)
+		if (static_cast<size_t>(s) == SpellsData.size())
 			s = 1;
 	}
 	const std::string_view spellName = GetSpellData(bs).sNameText;
@@ -1257,11 +1255,10 @@ void GetStaffSpell(const Player &player, Item &item, int lvl, bool onlygood)
 		return;
 	}
 
-	int maxSpells = gbIsHellfire ? MAX_SPELLS : 37;
 	int l = lvl / 2;
 	if (l == 0)
 		l = 1;
-	int rv = GenerateRnd(maxSpells) + 1;
+	int rv = GenerateRnd(SpellsData.size()) + 1;
 
 	if (gbIsSpawn && lvl > 10)
 		lvl = 10;
@@ -1279,7 +1276,7 @@ void GetStaffSpell(const Player &player, Item &item, int lvl, bool onlygood)
 			s = static_cast<int8_t>(SpellID::Telekinesis);
 		if (!gbIsMultiplayer && s == static_cast<int8_t>(SpellID::HealOther))
 			s = static_cast<int8_t>(SpellID::BloodStar);
-		if (s == maxSpells)
+		if (static_cast<size_t>(s) == SpellsData.size())
 			s = static_cast<int8_t>(SpellID::Firebolt);
 	}
 

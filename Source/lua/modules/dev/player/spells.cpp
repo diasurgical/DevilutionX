@@ -16,7 +16,7 @@ namespace devilution {
 namespace {
 std::string DebugCmdSetSpellsLevel(uint8_t level)
 {
-	for (uint8_t i = static_cast<uint8_t>(SpellID::Firebolt); i < MAX_SPELLS; i++) {
+	for (uint8_t i = static_cast<uint8_t>(SpellID::Firebolt); i < SpellsData.size(); i++) {
 		if (GetSpellBookLevel(static_cast<SpellID>(i)) != -1) {
 			NetSendCmdParam2(true, CMD_CHANGE_SPELL_LEVEL, i, level);
 		}

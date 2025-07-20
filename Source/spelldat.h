@@ -18,8 +18,6 @@
 
 namespace devilution {
 
-#define MAX_SPELLS 52
-
 enum class SpellType : uint8_t {
 	Skill,
 	FIRST = Skill,

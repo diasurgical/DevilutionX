@@ -589,7 +589,7 @@ void LoadHeros()
 
 void LoadUiGFX()
 {
-	ArtLogo = LoadPcxSpriteList("ui_art\\hf_logo2", /*numFrames=*/16, /*transparentColor=*/0);
+	ArtLogo = LoadPcxSpriteList("ui_art\\hf_logo2", /*numFrames=*/16, /*transparentColor=*/0, nullptr, false);
 	if (!ArtLogo.has_value()) {
 		ArtLogo = LoadPcxSpriteList("ui_art\\smlogo", /*numFrames=*/15, /*transparentColor=*/250);
 	}

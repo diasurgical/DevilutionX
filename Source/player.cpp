@@ -1445,7 +1445,7 @@ void ValidatePlayer()
 	}
 
 	uint64_t msk = 0;
-	for (int b = static_cast<int8_t>(SpellID::Firebolt); b < MAX_SPELLS; b++) {
+	for (size_t b = static_cast<size_t>(SpellID::Firebolt); b < SpellsData.size(); b++) {
 		if (GetSpellBookLevel((SpellID)b) != -1) {
 			msk |= GetSpellBitmask(static_cast<SpellID>(b));
 			if (myPlayer._pSplLvl[b] > MaxSpellLevel)

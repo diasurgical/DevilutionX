@@ -61,6 +61,7 @@ void SetHellfireState(bool enable)
 		LoadModArchives({ { "Hellfire" } });
 	}
 	LoadItemData();
+	LoadSpellData();
 }
 
 void ComparePackedItems(const ItemPack &item1LE, const ItemPack &item2LE)
