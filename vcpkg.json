@@ -6,7 +6,7 @@
 		"bzip2",
 		"lua"
 	],
-	"builtin-baseline": "533a5fda5c0646d1771345fb572e759283444d5f",
+	"builtin-baseline": "b91c3336aee7f32412508f7dd351ae2cabdb8819",
 	"features": {
 		"sdl1": {
 			"description": "Use SDL1.2 instead of SDL2",
