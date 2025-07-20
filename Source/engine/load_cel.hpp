@@ -50,7 +50,7 @@ inline OptionalOwnedClxSpriteList LoadOptionalCel(const char *pszName, const uin
 	tl::expected<OwnedClxSpriteListOrSheet, std::string> result = LoadCelListOrSheetWithStatus(pszName, PointerOrValue<uint16_t> { widths });
 	if (!result.has_value())
 		return std::nullopt;
-	return std::move(*result).list();
+	return (*std::move(result)).list();
 }
 
 inline tl::expected<OwnedClxSpriteList, std::string> LoadCelWithStatus(const char *pszName, const uint16_t *widths)
