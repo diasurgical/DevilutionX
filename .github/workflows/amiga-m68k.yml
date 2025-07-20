@@ -31,6 +31,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+
       - name: Run prep.sh script
         run: ./Packaging/amiga/prep.sh
 
@@ -62,4 +65,3 @@ jobs:
           asset_name: devilutionx-amiga-m68k
           file: ./build/devilutionx
           overwrite: true
-...
