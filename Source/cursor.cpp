@@ -383,7 +383,7 @@ std::vector<uint16_t> ReadWidths(AssetRef &&ref)
 	std::unique_ptr<char[]> data { new char[len] };
 
 	AssetHandle handle = OpenAsset(std::move(ref));
-	if (!handle.read(data.get(), len)) {
+	if (!handle.ok() || !handle.read(data.get(), len)) {
 		app_fatal("Failed to load widths");
 	}
 
