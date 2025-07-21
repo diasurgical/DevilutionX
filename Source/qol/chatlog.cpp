@@ -27,23 +27,13 @@
 
 namespace devilution {
 
+std::vector<MultiColoredText> ChatLogLines;
+unsigned int MessageCounter = 0;
+
 namespace {
-
-struct ColoredText {
-	std::string text;
-	UiFlags color;
-};
-
-struct MultiColoredText {
-	std::string text;
-	std::vector<ColoredText> colors;
-};
 
 bool UnreadFlag = false;
 size_t SkipLines;
-unsigned int MessageCounter = 0;
-
-std::vector<MultiColoredText> ChatLogLines;
 
 constexpr int PaddingTop = 32;
 constexpr int PaddingLeft = 32;
