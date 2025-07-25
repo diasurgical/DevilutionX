@@ -153,6 +153,8 @@ int CapVolume(int volume)
 
 void OptionAudioChanged()
 {
+	if (HeadlessMode)
+		return;
 	effects_cleanup_sfx();
 	music_stop();
 	snd_deinit();
@@ -289,6 +291,9 @@ void music_stop()
 void music_start(_music_id nTrack)
 {
 	const char *trackPath;
+
+	if (HeadlessMode)
+		return;
 
 	assert(nTrack < NUM_MUSIC);
 	music_stop();

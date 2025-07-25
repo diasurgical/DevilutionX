@@ -236,7 +236,7 @@ void VirtualDirectionPadRenderer::LoadArt()
 
 void VirtualGamepadRenderer::Render(RenderFunction renderFunction)
 {
-	if (CurrentEventHandler == DisableInputEventHandler)
+	if (CurrentEventHandler.handle == DisableInputEventHandler)
 		return;
 
 	primaryActionButtonRenderer.Render(renderFunction, buttonArt);
