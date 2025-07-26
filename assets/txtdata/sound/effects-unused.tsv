@@ -4,7 +4,6 @@ BrutalHit1	Misc	sfx\items\bhit1.wav
 SpellGuardianHit	Misc	sfx\misc\grdlanch.wav
 Griswold11	Stream	sfx\towners\bsmith11.wav
 Griswold54	Stream	sfx\towners\bsmith54.wav
-Duck	Misc,Hellfire	sfx\towners\cow8.wav
 Cain32	Stream	sfx\towners\storyt32.wav
 Ogden42	Stream	sfx\towners\tavown42.wav
 Warrior95b	Stream,Warrior	sfx\warrior\wario95b.wav

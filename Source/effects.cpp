@@ -128,7 +128,6 @@ tl::expected<sfx_flag, std::string> ParseSfxFlag(std::string_view value)
 	if (value == "Rogue") return sfx_ROGUE;
 	if (value == "Warrior") return sfx_WARRIOR;
 	if (value == "Sorcerer") return sfx_SORCERER;
-	if (value == "Hellfire") return sfx_HELLFIRE;
 	return tl::make_unexpected("Unknown enum value");
 }
 
@@ -170,10 +169,6 @@ void PrivSoundInit(uint8_t bLoadMask)
 		}
 
 		if ((sfx.bFlags & bLoadMask) == 0) {
-			continue;
-		}
-
-		if (!gbIsHellfire && (sfx.bFlags & sfx_HELLFIRE) != 0) {
 			continue;
 		}
 
@@ -264,11 +259,9 @@ void sound_init()
 {
 	uint8_t mask = sfx_MISC;
 	if (gbIsMultiplayer) {
-		mask |= sfx_WARRIOR;
+		mask |= (sfx_WARRIOR | sfx_MONK);
 		if (!gbIsSpawn)
 			mask |= (sfx_ROGUE | sfx_SORCERER);
-		if (gbIsHellfire)
-			mask |= sfx_MONK;
 	} else {
 		switch (MyPlayer->_pClass) {
 		case HeroClass::Warrior:
