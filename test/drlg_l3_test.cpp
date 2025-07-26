@@ -77,7 +77,7 @@ TEST(Drlg_l3, CreateL3Dungeon_hive_1_19770182)
 {
 	LoadExpectedLevelData("hellfire/17-19770182.dun");
 
-	TestInitGame();
+	TestInitGame(true, true, true);
 
 	TestCreateDungeon(17, 19770182, ENTRY_TWARPDN);
 	EXPECT_EQ(ViewPosition, Point(75, 81));
@@ -89,7 +89,7 @@ TEST(Drlg_l3, CreateL3Dungeon_hive_2_1522546307)
 {
 	LoadExpectedLevelData("hellfire/18-1522546307.dun");
 
-	TestInitGame();
+	TestInitGame(true, true, true);
 
 	TestCreateDungeon(18, 1522546307, ENTRY_MAIN);
 	EXPECT_EQ(ViewPosition, Point(47, 19));
@@ -101,7 +101,7 @@ TEST(Drlg_l3, CreateL3Dungeon_hive_3_125121312)
 {
 	LoadExpectedLevelData("hellfire/19-125121312.dun");
 
-	TestInitGame();
+	TestInitGame(true, true, true);
 
 	TestCreateDungeon(19, 125121312, ENTRY_MAIN);
 	EXPECT_EQ(ViewPosition, Point(61, 25));
@@ -113,7 +113,7 @@ TEST(Drlg_l3, CreateL3Dungeon_hive_4_1511478689)
 {
 	LoadExpectedLevelData("hellfire/20-1511478689.dun");
 
-	TestInitGame();
+	TestInitGame(true, true, true);
 
 	TestCreateDungeon(20, 1511478689, ENTRY_MAIN);
 	EXPECT_EQ(ViewPosition, Point(65, 41));
