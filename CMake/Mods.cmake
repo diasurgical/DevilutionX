@@ -4,6 +4,12 @@ endif()
 
 set(hellfire_mod
   lua/mods/Hellfire/init.lua
+  nlevels/cutl5w.clx
+  nlevels/cutl6w.clx
+  nlevels/l5data/cornerstone.dun
+  nlevels/l5data/uberroom.dun
+  txtdata/items/item_prefixes.tsv
+  txtdata/items/item_suffixes.tsv
   txtdata/items/unique_itemdat.tsv
   txtdata/missiles/misdat.tsv
   txtdata/missiles/missile_sprites.tsv

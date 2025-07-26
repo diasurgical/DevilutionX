@@ -359,41 +359,6 @@ int itemLevelAddHf[] = {
 	// clang-format on
 };
 
-bool IsPrefixValidForItemType(int i, AffixItemType flgs, bool hellfireItem)
-{
-	AffixItemType itemTypes = ItemPrefixes[i].PLIType;
-
-	if (!hellfireItem) {
-		if (i > 82)
-			return false;
-
-		if (i >= 12 && i <= 20)
-			itemTypes &= ~AffixItemType::Staff;
-	}
-
-	return HasAnyOf(flgs, itemTypes);
-}
-
-bool IsSuffixValidForItemType(int i, AffixItemType flgs, bool hellfireItem)
-{
-	AffixItemType itemTypes = ItemSuffixes[i].PLIType;
-
-	if (!hellfireItem) {
-		if (i > 94)
-			return false;
-
-		if ((i >= 0 && i <= 1)
-		    || (i >= 14 && i <= 15)
-		    || (i >= 21 && i <= 22)
-		    || (i >= 34 && i <= 36)
-		    || (i >= 41 && i <= 44)
-		    || (i >= 60 && i <= 63))
-			itemTypes &= ~AffixItemType::Staff;
-	}
-
-	return HasAnyOf(flgs, itemTypes);
-}
-
 int ItemsGetCurrlevel()
 {
 	if (setlevel) {
@@ -700,13 +665,6 @@ int CalculateToHitBonus(int level)
 
 int SaveItemPower(const Player &player, Item &item, ItemPower &power)
 {
-	if (!gbIsHellfire) {
-		if (power.type == IPL_TARGAC) {
-			power.param1 = 1 << power.param1;
-			power.param2 = 3 << power.param2;
-		}
-	}
-
 	int r = RndPL(power.param1, power.param2);
 
 	switch (power.type) {
@@ -1067,29 +1025,46 @@ void SaveItemAffix(const Player &player, Item &item, const PLStruct &affix)
 	}
 }
 
-int GetStaffPrefixId(int lvl, bool onlygood, bool hellfireItem)
+std::optional<const PLStruct *> SelectAffix(
+    const std::vector<PLStruct> &affixList,
+    AffixItemType type,
+    int minlvl, int maxlvl,
+    bool onlygood,
+    goodorevil goe,
+    bool excludeChargesForStaffs)
 {
-	int preidx = -1;
-	if (FlipCoin(10) || onlygood) {
-		int nl = 0;
-		int l[256];
-		for (int j = 0, n = static_cast<int>(ItemPrefixes.size()); j < n; ++j) {
-			if (!IsPrefixValidForItemType(j, AffixItemType::Staff, hellfireItem) || ItemPrefixes[j].PLMinLvl > lvl)
-				continue;
-			if (onlygood && !ItemPrefixes[j].PLOk)
-				continue;
-			l[nl] = j;
-			nl++;
-			if (ItemPrefixes[j].PLDouble) {
-				l[nl] = j;
-				nl++;
-			}
-		}
-		if (nl != 0) {
-			preidx = l[GenerateRnd(nl)];
+	StaticVector<const PLStruct *, 256> eligibleAffixes;
+
+	for (const PLStruct &affix : affixList) {
+		if (!HasAnyOf(type, affix.PLIType))
+			continue;
+		if (affix.PLMinLvl < minlvl || affix.PLMinLvl > maxlvl)
+			continue;
+		if (onlygood && !affix.PLOk)
+			continue;
+		if ((goe == GOE_GOOD && affix.PLGOE == GOE_EVIL) || (goe == GOE_EVIL && affix.PLGOE == GOE_GOOD))
+			continue;
+		if (excludeChargesForStaffs && type == AffixItemType::Staff && affix.power.type == IPL_CHARGES)
+			continue;
+
+		for (int i = 0; i < affix.PLChance; ++i) {
+			eligibleAffixes.push_back(&affix);
 		}
 	}
-	return preidx;
+
+	if (eligibleAffixes.empty())
+		return std::nullopt;
+
+	return eligibleAffixes[GenerateRnd(static_cast<int>(eligibleAffixes.size()))];
+}
+
+std::optional<const PLStruct *> GetStaffPrefix(int maxlvl, bool onlygood)
+{
+	if (!FlipCoin(10) && !onlygood) {
+		return std::nullopt;
+	}
+
+	return SelectAffix(ItemPrefixes, AffixItemType::Staff, 0, maxlvl, onlygood, GOE_ANY, false);
 }
 
 std::string GenerateStaffName(const ItemData &baseItemData, SpellID spellId, bool translate)
@@ -1105,12 +1080,12 @@ std::string GenerateStaffName(const ItemData &baseItemData, SpellID spellId, boo
 	return name;
 }
 
-std::string GenerateStaffNameMagical(const ItemData &baseItemData, SpellID spellId, int preidx, bool translate, std::optional<bool> forceNameLengthCheck)
+std::string GenerateStaffNameMagical(const ItemData &baseItemData, SpellID spellId, const PLStruct &power, bool translate, std::optional<bool> forceNameLengthCheck)
 {
 	std::string_view baseName = translate ? _(baseItemData.iName) : baseItemData.iName;
 	std::string_view magicFmt = translate ? pgettext("spell", /* TRANSLATORS: Constructs item names. Format: {Prefix} {Item} of {Spell}. Example: King's War Staff of Firewall */ "{0} {1} of {2}") : "{0} {1} of {2}";
 	std::string_view spellName = translate ? pgettext("spell", GetSpellData(spellId).sNameText) : GetSpellData(spellId).sNameText;
-	std::string_view prefixName = translate ? _(ItemPrefixes[preidx].PLName) : ItemPrefixes[preidx].PLName;
+	std::string_view prefixName = translate ? _(power.PLName) : power.PLName;
 
 	std::string identifiedName = fmt::format(fmt::runtime(magicFmt), prefixName, baseName, spellName);
 	if (forceNameLengthCheck ? *forceNameLengthCheck : !StringInPanel(identifiedName.c_str())) {
@@ -1120,21 +1095,21 @@ std::string GenerateStaffNameMagical(const ItemData &baseItemData, SpellID spell
 	return identifiedName;
 }
 
-void GetStaffPower(const Player &player, Item &item, int lvl, SpellID bs, bool onlygood)
+void GetStaffPower(const Player &player, Item &item, int maxlvl, bool onlygood)
 {
-	int preidx = GetStaffPrefixId(lvl, onlygood, gbIsHellfire);
-	if (preidx != -1) {
+	std::optional<const PLStruct *> prefix = GetStaffPrefix(maxlvl, onlygood);
+	if (prefix.has_value()) {
 		item._iMagical = ITEM_QUALITY_MAGIC;
-		SaveItemAffix(player, item, ItemPrefixes[preidx]);
-		item._iPrePower = ItemPrefixes[preidx].power.type;
+		SaveItemAffix(player, item, **prefix);
+		item._iPrePower = (*prefix)->power.type;
 	}
 
 	const ItemData &baseItemData = AllItemsList[item.IDidx];
 	std::string staffName = GenerateStaffName(baseItemData, item._iSpell, false);
 
 	CopyUtf8(item._iName, staffName, ItemNameLength);
-	if (preidx != -1) {
-		std::string staffNameMagical = GenerateStaffNameMagical(baseItemData, item._iSpell, preidx, false, std::nullopt);
+	if (prefix.has_value()) {
+		std::string staffNameMagical = GenerateStaffNameMagical(baseItemData, item._iSpell, **prefix, false, std::nullopt);
 		CopyUtf8(item._iIName, staffNameMagical, ItemNameLength);
 	} else {
 		CopyUtf8(item._iIName, item._iName, ItemNameLength);
@@ -1159,14 +1134,13 @@ std::string GenerateMagicItemName(const std::string_view &baseNamel, const PLStr
 	return std::string(baseNamel);
 }
 
-void GetItemPowerPrefixAndSuffix(int minlvl, int maxlvl, AffixItemType flgs, bool onlygood, bool hellfireItem, tl::function_ref<void(const PLStruct &prefix)> prefixFound, tl::function_ref<void(const PLStruct &suffix)> suffixFound)
+void GetItemPowerPrefixAndSuffix(
+    int minlvl, int maxlvl,
+    AffixItemType flgs,
+    bool onlygood,
+    tl::function_ref<void(const PLStruct &prefix)> prefixFound,
+    tl::function_ref<void(const PLStruct &suffix)> suffixFound)
 {
-	int preidx = -1;
-	int sufidx = -1;
-
-	int l[256];
-	goodorevil goe;
-
 	bool allocatePrefix = FlipCoin(4);
 	bool allocateSuffix = !FlipCoin(3);
 	if (!allocatePrefix && !allocateSuffix) {
@@ -1176,47 +1150,22 @@ void GetItemPowerPrefixAndSuffix(int minlvl, int maxlvl, AffixItemType flgs, boo
 		else
 			allocateSuffix = true;
 	}
-	goe = GOE_ANY;
+	goodorevil goe = GOE_ANY;
 	if (!onlygood && !FlipCoin(3))
 		onlygood = true;
+
 	if (allocatePrefix) {
-		int nt = 0;
-		for (int j = 0, n = static_cast<int>(ItemPrefixes.size()); j < n; ++j) {
-			if (!IsPrefixValidForItemType(j, flgs, hellfireItem))
-				continue;
-			if (ItemPrefixes[j].PLMinLvl < minlvl || ItemPrefixes[j].PLMinLvl > maxlvl)
-				continue;
-			if (onlygood && !ItemPrefixes[j].PLOk)
-				continue;
-			if (HasAnyOf(flgs, AffixItemType::Staff) && ItemPrefixes[j].power.type == IPL_CHARGES)
-				continue;
-			l[nt] = j;
-			nt++;
-			if (ItemPrefixes[j].PLDouble) {
-				l[nt] = j;
-				nt++;
-			}
-		}
-		if (nt != 0) {
-			preidx = l[GenerateRnd(nt)];
-			goe = ItemPrefixes[preidx].PLGOE;
-			prefixFound(ItemPrefixes[preidx]);
+		std::optional<const PLStruct *> prefix = SelectAffix(ItemPrefixes, flgs, minlvl, maxlvl, onlygood, goe, true);
+		if (prefix.has_value()) {
+			goe = (*prefix)->PLGOE;
+			prefixFound(**prefix);
 		}
 	}
+
 	if (allocateSuffix) {
-		int nl = 0;
-		for (int j = 0, n = static_cast<int>(ItemSuffixes.size()); j < n; ++j) {
-			if (IsSuffixValidForItemType(j, flgs, hellfireItem)
-			    && ItemSuffixes[j].PLMinLvl >= minlvl && ItemSuffixes[j].PLMinLvl <= maxlvl
-			    && !((goe == GOE_GOOD && ItemSuffixes[j].PLGOE == GOE_EVIL) || (goe == GOE_EVIL && ItemSuffixes[j].PLGOE == GOE_GOOD))
-			    && (!onlygood || ItemSuffixes[j].PLOk)) {
-				l[nl] = j;
-				nl++;
-			}
-		}
-		if (nl != 0) {
-			sufidx = l[GenerateRnd(nl)];
-			suffixFound(ItemSuffixes[sufidx]);
+		std::optional<const PLStruct *> suffix = SelectAffix(ItemSuffixes, flgs, minlvl, maxlvl, onlygood, goe, true);
+		if (suffix.has_value()) {
+			suffixFound(**suffix);
 		}
 	}
 }
@@ -1226,7 +1175,7 @@ void GetItemPower(const Player &player, Item &item, int minlvl, int maxlvl, Affi
 	const PLStruct *pPrefix = nullptr;
 	const PLStruct *pSufix = nullptr;
 	GetItemPowerPrefixAndSuffix(
-	    minlvl, maxlvl, flgs, onlygood, gbIsHellfire,
+	    minlvl, maxlvl, flgs, onlygood,
 	    [&item, &player, &pPrefix](const PLStruct &prefix) {
 		    item._iMagical = ITEM_QUALITY_MAGIC;
 		    SaveItemAffix(player, item, prefix);
@@ -1290,7 +1239,7 @@ void GetStaffSpell(const Player &player, Item &item, int lvl, bool onlygood)
 	int v = item._iCharges * GetSpellData(bs).staffCost() / 5;
 	item._ivalue += v;
 	item._iIvalue += v;
-	GetStaffPower(player, item, lvl, bs, onlygood);
+	GetStaffPower(player, item, lvl, onlygood);
 }
 
 void GetOilType(Item &item, int maxLvl)
@@ -2310,18 +2259,18 @@ std::string GetTranslatedItemNameMagical(const Item &item, bool hellfireItem, bo
 		} else {
 			DiscardRandomValues(2); // Spell and Charges
 
-			int preidx = GetStaffPrefixId(maxlvl, onlygood, hellfireItem);
-			if (preidx == -1 || item._iSpell == SpellID::Null) {
+			std::optional<const PLStruct *> prefix = GetStaffPrefix(maxlvl, onlygood);
+			if (!prefix.has_value() || item._iSpell == SpellID::Null) {
 				if (forceNameLengthCheck) {
 					// We generate names to check if it's a diablo or hellfire item. This checks fails => invalid item => don't generate a item name
 					identifiedName.clear();
 				} else {
 					// This can happen, if the item is hacked or a bug in the logic exists
-					LogWarn("GetTranslatedItemNameMagical failed for item '{}' with preidx '{}' and spellid '{}'", item._iIName, preidx, static_cast<std::underlying_type_t<SpellID>>(item._iSpell));
+					LogWarn("GetTranslatedItemNameMagical failed for item '{}' with prefix '{}' and spellid '{}'", item._iIName, prefix.has_value() ? (*prefix)->PLName : "NULL", static_cast<std::underlying_type_t<SpellID>>(item._iSpell));
 					identifiedName = item._iIName;
 				}
 			} else {
-				identifiedName = GenerateStaffNameMagical(baseItemData, item._iSpell, preidx, translate, forceNameLengthCheck);
+				identifiedName = GenerateStaffNameMagical(baseItemData, item._iSpell, **prefix, translate, forceNameLengthCheck);
 			}
 		}
 		break;
@@ -2340,7 +2289,7 @@ std::string GetTranslatedItemNameMagical(const Item &item, bool hellfireItem, bo
 		const PLStruct *pPrefix = nullptr;
 		const PLStruct *pSufix = nullptr;
 		GetItemPowerPrefixAndSuffix(
-		    minlvl, maxlvl, affixItemType, onlygood, hellfireItem,
+		    minlvl, maxlvl, affixItemType, onlygood,
 		    [&pPrefix](const PLStruct &prefix) {
 			    pPrefix = &prefix;
 			    // GenerateRnd(prefix.power.param2 - prefix.power.param2 + 1)
