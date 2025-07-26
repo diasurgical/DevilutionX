@@ -602,7 +602,7 @@ void LoadItemAffixesDat(std::string_view filename, std::vector<PLStruct> &out)
 		reader.readInt("minLevel", item.PLMinLvl);
 		reader.readEnumList("itemTypes", item.PLIType, ParseAffixItemType);
 		reader.read("alignment", item.PLGOE, ParseAffixAlignment);
-		reader.readBool("doubleChance", item.PLDouble);
+		reader.readInt("chance", item.PLChance);
 		reader.readBool("useful", item.PLOk);
 		reader.readInt("minVal", item.minVal);
 		reader.readInt("maxVal", item.maxVal);

@@ -622,7 +622,7 @@ struct PLStruct {
 	int8_t PLMinLvl;
 	AffixItemType PLIType; // AffixItemType as bit flags
 	enum goodorevil PLGOE;
-	bool PLDouble;
+	uint8_t PLChance;
 	bool PLOk;
 	int minVal;
 	int maxVal;

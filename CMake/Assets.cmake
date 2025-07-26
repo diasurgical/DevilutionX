@@ -152,10 +152,6 @@ set(devilutionx_assets
   lua/inspect.lua
   lua/mods/clock/init.lua
   lua/repl_prelude.lua
-  nlevels/cutl5w.clx
-  nlevels/cutl6w.clx
-  nlevels/l5data/cornerstone.dun
-  nlevels/l5data/uberroom.dun
   plrgfx/warrior/whu/whufm.trn
   plrgfx/warrior/whu/whulm.trn
   plrgfx/warrior/whu/whuqm.trn
