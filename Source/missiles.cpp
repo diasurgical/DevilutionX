@@ -274,10 +274,8 @@ int ProjectileTrapDamage()
 	return currlevel + GenerateRnd(2 * currlevel);
 }
 
-bool MonsterMHit(const Player &player, int monsterId, int mindam, int maxdam, int dist, MissileID t, WorldTilePosition startPos, DamageType damageType, bool shift)
+bool MonsterMHit(const Player &player, Monster &monster, int mindam, int maxdam, int dist, MissileID t, WorldTilePosition startPos, DamageType damageType, bool shift)
 {
-	Monster &monster = Monsters[monsterId];
-
 	if (!monster.isPossibleToHit() || monster.isImmune(t, damageType))
 		return false;
 
@@ -479,23 +477,22 @@ void CheckMissileCol(Missile &missile, DamageType damageType, int minDamage, int
 	if (!InDungeonBounds(position))
 		return;
 
-	const int mx = position.x;
-	const int my = position.y;
-
 	bool isMonsterHit = false;
-	int mid = dMonster[mx][my];
-	if (mid > 0 || (mid != 0 && Monsters[std::abs(mid) - 1].mode == MonsterMode::Petrified)) {
-		mid = std::abs(mid) - 1;
-		if (missile.IsTrap()
-		    || (missile._micaster == TARGET_PLAYERS && (                                           // or was fired by a monster and
-		            Monsters[mid].isPlayerMinion() != Monsters[missile._misource].isPlayerMinion() //  the monsters are on opposing factions
-		            || (Monsters[missile._misource].flags & MFLAG_BERSERK) != 0                    //  or the attacker is berserked
-		            || (Monsters[mid].flags & MFLAG_BERSERK) != 0                                  //  or the target is berserked
-		            ))) {
-			// then the missile can potentially hit this target
-			isMonsterHit = MonsterTrapHit(mid, minDamage, maxDamage, missile._midist, missile._mitype, damageType, isDamageShifted);
-		} else if (IsAnyOf(missile._micaster, TARGET_BOTH, TARGET_MONSTERS)) {
-			isMonsterHit = MonsterMHit(*missile.sourcePlayer(), mid, minDamage, maxDamage, missile._midist, missile._mitype, missile.position.start, damageType, isDamageShifted);
+	int mid = dMonster[position.x][position.y];
+	if (mid != 0) {
+		Monster &monster = Monsters[std::abs(mid) - 1];
+		if (mid > 0 || monster.mode == MonsterMode::Petrified) {
+			if (missile.IsTrap()
+			    || (missile._micaster == TARGET_PLAYERS && (                                     // or was fired by a monster and
+			            monster.isPlayerMinion() != Monsters[missile._misource].isPlayerMinion() //  the monsters are on opposing factions
+			            || (Monsters[missile._misource].flags & MFLAG_BERSERK) != 0              //  or the attacker is berserked
+			            || (monster.flags & MFLAG_BERSERK) != 0                                  //  or the target is berserked
+			            ))) {
+				// then the missile can potentially hit this target
+				isMonsterHit = MonsterTrapHit(monster, minDamage, maxDamage, missile._midist, missile._mitype, damageType, isDamageShifted);
+			} else if (IsAnyOf(missile._micaster, TARGET_BOTH, TARGET_MONSTERS)) {
+				isMonsterHit = MonsterMHit(*missile.sourcePlayer(), monster, minDamage, maxDamage, missile._midist, missile._mitype, missile.position.start, damageType, isDamageShifted);
+			}
 		}
 	}
 
@@ -507,7 +504,7 @@ void CheckMissileCol(Missile &missile, DamageType damageType, int minDamage, int
 
 	bool isPlayerHit = false;
 	bool blocked = false;
-	Player *player = PlayerAtPosition({ mx, my }, true);
+	Player *player = PlayerAtPosition(position, true);
 	if (player != nullptr) {
 		if (missile._micaster != TARGET_BOTH && !missile.IsTrap()) {
 			if (missile._micaster == TARGET_MONSTERS) {
@@ -532,8 +529,8 @@ void CheckMissileCol(Missile &missile, DamageType damageType, int minDamage, int
 		missile._miHitFlag = true;
 	}
 
-	if (IsMissileBlockedByTile({ mx, my })) {
-		Object *object = FindObjectAtPosition({ mx, my });
+	if (IsMissileBlockedByTile(position)) {
+		Object *object = FindObjectAtPosition(position);
 		if (object != nullptr && object->IsBreakable()) {
 			BreakObjectMissile(missile.sourcePlayer(), *object);
 		}
@@ -995,10 +992,8 @@ Direction16 GetDirection16(Point p1, Point p2)
 	return ret;
 }
 
-bool MonsterTrapHit(int monsterId, int mindam, int maxdam, int dist, MissileID t, DamageType damageType, bool shift)
+bool MonsterTrapHit(Monster &monster, int mindam, int maxdam, int dist, MissileID t, DamageType damageType, bool shift)
 {
-	Monster &monster = Monsters[monsterId];
-
 	if (!monster.isPossibleToHit() || monster.isImmune(t, damageType))
 		return false;
 

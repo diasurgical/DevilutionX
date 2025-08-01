@@ -1624,12 +1624,11 @@ void UpdateFlameTrap(Object &trap)
 		const int mindam = damage[leveltype - 1];
 		const int maxdam = mindam * 2;
 
-		const int x = trap.position.x;
-		const int y = trap.position.y;
 		constexpr MissileID TrapMissile = MissileID::FireWallControl;
-		if (dMonster[x][y] > 0)
-			MonsterTrapHit(dMonster[x][y] - 1, mindam / 2, maxdam / 2, 0, TrapMissile, GetMissileData(TrapMissile).damageType(), false);
-		Player *player = PlayerAtPosition({ x, y }, true);
+		Monster *monster = FindMonsterAtPosition(trap.position, true);
+		if (monster != nullptr)
+			MonsterTrapHit(*monster, mindam / 2, maxdam / 2, 0, TrapMissile, GetMissileData(TrapMissile).damageType(), false);
+		Player *player = PlayerAtPosition(trap.position, true);
 		if (player != nullptr) {
 			bool unused;
 			PlayerMHit(*player, nullptr, 0, mindam, maxdam, TrapMissile, GetMissileData(TrapMissile).damageType(), false, DeathReason::MonsterOrTrap, &unused);
@@ -3490,8 +3489,9 @@ void BreakBarrel(const Player &player, Object &barrel, bool forcebreak, bool sen
 		for (int yp = barrel.position.y - 1; yp <= barrel.position.y + 1; yp++) {
 			for (int xp = barrel.position.x - 1; xp <= barrel.position.x + 1; xp++) {
 				constexpr MissileID TrapMissile = MissileID::Firebolt;
-				if (dMonster[xp][yp] > 0) {
-					MonsterTrapHit(dMonster[xp][yp] - 1, 1, 4, 0, TrapMissile, GetMissileData(TrapMissile).damageType(), false);
+				Monster *monster = FindMonsterAtPosition({ xp, yp }, true);
+				if (monster != nullptr) {
+					MonsterTrapHit(*monster, 1, 4, 0, TrapMissile, GetMissileData(TrapMissile).damageType(), false);
 				}
 				Player *adjacentPlayer = PlayerAtPosition({ xp, yp }, true);
 				if (adjacentPlayer != nullptr) {
