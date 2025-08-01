@@ -744,8 +744,27 @@ Missile *PlaceWall(int id, MissileID type, Point position, Direction direction, 
 	return AddMissile(position, position + direction, direction, type, TARGET_BOTH, id, damage, spellLevel);
 }
 
-bool TryGrowWall(int id, MissileID type, Point position, Direction direction, int spellLevel, int damage)
+bool TryGrowWall(int id, MissileID type, Point position, Direction growDirection, Direction direction, int spellLevel, int damage)
 {
+	switch (growDirection) {
+	case Direction::South:
+	case Direction::West:
+	case Direction::North:
+	case Direction::East:
+		Point gapPos = position + Displacement(Right(growDirection)) - Displacement(growDirection);
+		if (CanPlaceWall(gapPos)) {
+			Missile *missile = PlaceWall(id, type, gapPos, direction, spellLevel, damage);
+			if (missile != nullptr) {
+				Displacement travelled = Displacement(Right(Right(growDirection))).worldToNormalScreen() * 30; // Move the wall to the edge to the next tile, but not over it
+				missile->position.traveled += travelled;
+				missile->_miDrawFlag = false;
+				UpdateMissilePos(*missile);
+				assert(gapPos == missile->position.tile); // Check that the tile we checked against (CanPlaceWall) didn't change
+			}
+		}
+		break;
+	}
+
 	if (!CanPlaceWall(position))
 		return false;
 	PlaceWall(id, type, position, direction, spellLevel, damage);
@@ -3783,10 +3802,10 @@ void ProcessWallControl(Missile &missile)
 		nextLeftPosition = MoveWallToNextPosition(leftPosition, leftDirection);
 		nextRightPosition = MoveWallToNextPosition(rightPosition, rightDirection);
 	} else {
-		if (!missile.limitReached && TryGrowWall(missile._misource, type, leftPosition, Direction::South, missile._mispllvl, dmg)) {
+		if (!missile.limitReached && TryGrowWall(missile._misource, type, leftPosition, leftDirection, Direction::South, missile._mispllvl, dmg)) {
 			nextLeftPosition = MoveWallToNextPosition(leftPosition, leftDirection);
 		}
-		if (missile.var7 == 0 && TryGrowWall(missile._misource, type, rightPosition, Direction::South, missile._mispllvl, dmg)) {
+		if (missile.var7 == 0 && TryGrowWall(missile._misource, type, rightPosition, rightDirection, Direction::South, missile._mispllvl, dmg)) {
 			nextRightPosition = MoveWallToNextPosition(rightPosition, rightDirection);
 		}
 	}
@@ -3855,14 +3874,14 @@ void ProcessFlameWaveControl(Missile &missile)
 		const Direction dirLeft = Left(Left(sd));
 		for (int j = 0; j < segmentsToAdd; j++) {
 			left += dirLeft;
-			if (!TryGrowWall(id, MissileID::FlameWave, left, pdir, missile._mispllvl, 0))
+			if (!TryGrowWall(id, MissileID::FlameWave, left, dirLeft, pdir, missile._mispllvl, 0))
 				break;
 		}
 		Point right = start;
 		const Direction dirRight = Right(Right(sd));
 		for (int j = 0; j < segmentsToAdd; j++) {
 			right += dirRight;
-			if (!TryGrowWall(id, MissileID::FlameWave, right, pdir, missile._mispllvl, 0))
+			if (!TryGrowWall(id, MissileID::FlameWave, right, dirRight, pdir, missile._mispllvl, 0))
 				break;
 		}
 	}
