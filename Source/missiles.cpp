@@ -472,7 +472,17 @@ void RotateBlockedMissile(Missile &missile)
 	missile.setFrameGroupRaw(dir);
 }
 
-void CheckMissileCol(Missile &missile, DamageType damageType, int minDamage, int maxDamage, bool isDamageShifted, Point position, bool dontDeleteOnCollision)
+bool CheckCanHitOnlyWalking(const Missile &missile, const ActorPosition &position, Direction wallDir)
+{
+	Point other = missile.position.tile + wallDir;
+	if (missile.position.tile == position.tile && other == position.future)
+		return true;
+	if (missile.position.tile == position.future && other == position.tile)
+		return true;
+	return false;
+}
+
+void CheckMissileCol(Missile &missile, DamageType damageType, int minDamage, int maxDamage, bool isDamageShifted, Point position, bool dontDeleteOnCollision, std::optional<Direction> onlyHitWalking = {})
 {
 	if (!InDungeonBounds(position))
 		return;
@@ -481,7 +491,7 @@ void CheckMissileCol(Missile &missile, DamageType damageType, int minDamage, int
 	int mid = dMonster[position.x][position.y];
 	if (mid != 0) {
 		Monster &monster = Monsters[std::abs(mid) - 1];
-		if (mid > 0 || monster.mode == MonsterMode::Petrified) {
+		if (onlyHitWalking.has_value() ? (monster.isWalking() && CheckCanHitOnlyWalking(missile, monster.position, *onlyHitWalking)) : (mid > 0 || monster.mode == MonsterMode::Petrified)) {
 			if (missile.IsTrap()
 			    || (missile._micaster == TARGET_PLAYERS && (                                     // or was fired by a monster and
 			            monster.isPlayerMinion() != Monsters[missile._misource].isPlayerMinion() //  the monsters are on opposing factions
@@ -504,8 +514,8 @@ void CheckMissileCol(Missile &missile, DamageType damageType, int minDamage, int
 
 	bool isPlayerHit = false;
 	bool blocked = false;
-	Player *player = PlayerAtPosition(position, true);
-	if (player != nullptr) {
+	Player *player = PlayerAtPosition(position, !onlyHitWalking.has_value());
+	if (player != nullptr && (onlyHitWalking.has_value() ? (player->isWalking() && CheckCanHitOnlyWalking(missile, player->position, *onlyHitWalking)) : true)) {
 		if (missile._micaster != TARGET_BOTH && !missile.IsTrap()) {
 			if (missile._micaster == TARGET_MONSTERS) {
 				if (player->getId() != missile._misource)
@@ -758,6 +768,7 @@ bool TryGrowWall(int id, MissileID type, Point position, Direction growDirection
 				Displacement travelled = Displacement(Right(Right(growDirection))).worldToNormalScreen() * 30; // Move the wall to the edge to the next tile, but not over it
 				missile->position.traveled += travelled;
 				missile->_miDrawFlag = false;
+				missile->var3 = static_cast<int>(Left(Left(growDirection))) + 1;
 				UpdateMissilePos(*missile);
 				assert(gapPos == missile->position.tile); // Check that the tile we checked against (CanPlaceWall) didn't change
 			}
@@ -3052,7 +3063,10 @@ void ProcessFireWall(Missile &missile)
 		missile._miAnimFrame = 13;
 		missile._miAnimAdd = -1;
 	}
-	CheckMissileCol(missile, GetMissileData(missile._mitype).damageType(), missile._midam, missile._midam, true, missile.position.tile, true);
+	std::optional<Direction> onlyHitWalking = {};
+	if (missile.var3 != 0)
+		onlyHitWalking = static_cast<Direction>(missile.var3 - 1);
+	CheckMissileCol(missile, GetMissileData(missile._mitype).damageType(), missile._midam, missile._midam, true, missile.position.tile, true, onlyHitWalking);
 	if (missile.duration == 0) {
 		missile._miDelFlag = true;
 		AddUnLight(missile._mlid);
@@ -3184,7 +3198,10 @@ void ProcessLightningWall(Missile &missile)
 {
 	missile.duration--;
 	const int range = missile.duration;
-	CheckMissileCol(missile, GetMissileData(missile._mitype).damageType(), missile._midam, missile._midam, true, missile.position.tile, false);
+	std::optional<Direction> onlyHitWalking = {};
+	if (missile.var3 != 0)
+		onlyHitWalking = static_cast<Direction>(missile.var3 - 1);
+	CheckMissileCol(missile, GetMissileData(missile._mitype).damageType(), missile._midam, missile._midam, true, missile.position.tile, false, onlyHitWalking);
 	if (missile._miHitFlag)
 		missile.duration = range;
 	if (missile.duration == 0)
