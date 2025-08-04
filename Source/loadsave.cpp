@@ -893,7 +893,7 @@ void LoadItem(LoadHelper &file, Item &item)
 	GetItemFrm(item);
 }
 
-void LoadPremium(LoadHelper &file, int i)
+void LoadPremiumItems(LoadHelper &file, int i)
 {
 	LoadAndValidateItemData(file, PremiumItems[i]);
 }
@@ -2564,7 +2564,7 @@ tl::expected<void, std::string> LoadGame(bool firstflag)
 	PremiumItemLevel = file.NextBE<int32_t>();
 
 	for (int i = 0; i < giNumberOfSmithPremiumItems; i++)
-		LoadPremium(file, i);
+		LoadPremiumItems(file, i);
 	if (gbIsHellfire && !gbIsHellfireSaveGame)
 		SpawnPremium(myPlayer);
 
