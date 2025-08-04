@@ -523,7 +523,7 @@ bool PlrHitMonst(Player &player, Monster &monster, bool adjacentDamage = false)
 {
 	int hper = 0;
 
-	if (!monster.isPossibleToHit())
+	if (!monster.isPossibleToHit() || (monster.type().type == MT_GOLEM && player.friendlyMode))
 		return false;
 
 	if (adjacentDamage) {
