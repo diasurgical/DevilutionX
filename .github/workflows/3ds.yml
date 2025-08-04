@@ -33,9 +33,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          apt-get install -t bullseye -y --no-install-recommends --no-install-suggests \
-            ffmpeg \
-            gettext
+          apt-get install -y --no-install-recommends --no-install-suggests \
+            ffmpeg
 
       - name: Get external dependencies
         run: |
