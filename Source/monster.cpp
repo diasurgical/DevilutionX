@@ -1592,15 +1592,12 @@ void GroupUnity(Monster &monster)
 
 	auto &leader = *monster.getLeader();
 	if (IsLineNotSolid(monster.position.tile, leader.position.future)) {
-		if (monster.leaderRelation == LeaderRelation::Separated
-		    && monster.position.tile.WalkingDistance(leader.position.future) < 4) {
+		if (monster.position.tile.WalkingDistance(leader.position.future) < 4) {
 			// Reunite the separated monster with the pack
-			leader.packSize++;
-			monster.leaderRelation = LeaderRelation::Leashed;
+			M_JoinLeaderPack(monster);
 		}
-	} else if (monster.leaderRelation == LeaderRelation::Leashed) {
-		leader.packSize--;
-		monster.leaderRelation = LeaderRelation::Separated;
+	} else {
+		M_SeparateFromLeaderPack(monster);
 	}
 
 	if (monster.leaderRelation == LeaderRelation::Leashed) {
@@ -2091,10 +2088,7 @@ void ScavengerAi(Monster &monster)
 	if (monster.mode != MonsterMode::Stand)
 		return;
 	if (monster.hitPoints < (monster.maxHitPoints / 2) && monster.goal != MonsterGoal::Healing) {
-		if (monster.leaderRelation != LeaderRelation::None) {
-			ShrinkLeaderPacksize(monster);
-			monster.leaderRelation = LeaderRelation::None;
-		}
+		M_SeparateFromLeaderPack(monster);
 		monster.goal = MonsterGoal::Healing;
 		monster.goalVar3 = 10;
 	}
@@ -3899,6 +3893,22 @@ void M_UpdateRelations(const Monster &monster)
 	ShrinkLeaderPacksize(monster);
 }
 
+void M_SeparateFromLeaderPack(Monster &monster)
+{
+	if (monster.leaderRelation == LeaderRelation::Leashed) {
+		monster.getLeader()->packSize--;
+		monster.leaderRelation = LeaderRelation::Separated;
+	}
+}
+
+void M_JoinLeaderPack(Monster &monster)
+{
+	if (monster.leaderRelation == LeaderRelation::Separated) {
+		monster.getLeader()->packSize++;
+		monster.leaderRelation = LeaderRelation::Leashed;
+	}
+}
+
 void DoEnding()
 {
 	if (gbIsMultiplayer) {
@@ -4820,6 +4830,7 @@ void Monster::petrify()
 {
 	mode = MonsterMode::Petrified;
 	animInfo.isPetrified = true;
+	M_SeparateFromLeaderPack(*this);
 }
 
 bool Monster::isWalking() const
