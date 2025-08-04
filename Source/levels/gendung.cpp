@@ -504,16 +504,16 @@ tl::expected<void, std::string> LoadLevelSOLData()
 	return {};
 }
 
-void SetDungeonMicros()
+void SetDungeonMicros(std::unique_ptr<std::byte[]> &dungeonCels, uint_fast8_t &microTileLen)
 {
-	MicroTileLen = 10;
+	microTileLen = 10;
 	size_t blocks = 10;
 
 	if (leveltype == DTYPE_TOWN) {
-		MicroTileLen = 16;
+		microTileLen = 16;
 		blocks = 16;
 	} else if (leveltype == DTYPE_HELL) {
-		MicroTileLen = 12;
+		microTileLen = 12;
 		blocks = 16;
 	}
 
@@ -539,7 +539,7 @@ void SetDungeonMicros()
 	c_sort(frameToTypeList, [](const std::pair<uint16_t, DunFrameInfo> &a, const std::pair<uint16_t, DunFrameInfo> &b) {
 		return a.first < b.first;
 	});
-	ReencodeDungeonCels(pDungeonCels, frameToTypeList);
+	ReencodeDungeonCels(dungeonCels, frameToTypeList);
 
 	std::vector<std::pair<uint16_t, uint16_t>> celBlockAdjustments = ComputeCelBlockAdjustments(frameToTypeList);
 	if (celBlockAdjustments.size() == 0) return;

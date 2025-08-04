@@ -578,9 +578,11 @@ void DrawCell(const Surface &out, const Lightmap lightmap, Point tilePosition, P
 		const TileType tileType = levelCelBlock.type();
 		if (!isFloor || tileType == TileType::TransparentSquare) {
 			if (isFloor && tileType == TileType::TransparentSquare) {
-				RenderTileFoliage(out, bleedLightmap, targetBufferPosition, levelCelBlock, foliageTbl);
+				RenderTileFoliage(out, bleedLightmap, targetBufferPosition,
+				    pDungeonCels.get(), levelCelBlock, foliageTbl);
 			} else {
-				RenderTile(out, bleedLightmap, targetBufferPosition, levelCelBlock, getFirstTileMaskLeft(tileType), tbl);
+				RenderTile(out, bleedLightmap, targetBufferPosition,
+				    pDungeonCels.get(), levelCelBlock, getFirstTileMaskLeft(tileType), tbl);
 			}
 		}
 	}
@@ -588,10 +590,11 @@ void DrawCell(const Surface &out, const Lightmap lightmap, Point tilePosition, P
 		const TileType tileType = levelCelBlock.type();
 		if (!isFloor || tileType == TileType::TransparentSquare) {
 			if (isFloor && tileType == TileType::TransparentSquare) {
-				RenderTileFoliage(out, bleedLightmap, targetBufferPosition + RightFrameDisplacement, levelCelBlock, foliageTbl);
+				RenderTileFoliage(out, bleedLightmap, targetBufferPosition + RightFrameDisplacement,
+				    pDungeonCels.get(), levelCelBlock, foliageTbl);
 			} else {
 				RenderTile(out, bleedLightmap, targetBufferPosition + RightFrameDisplacement,
-				    levelCelBlock, getFirstTileMaskRight(tileType), tbl);
+				    pDungeonCels.get(), levelCelBlock, getFirstTileMaskRight(tileType), tbl);
 			}
 		}
 	}
@@ -602,7 +605,7 @@ void DrawCell(const Surface &out, const Lightmap lightmap, Point tilePosition, P
 			const LevelCelBlock levelCelBlock { pMap->mt[i] };
 			if (levelCelBlock.hasValue()) {
 				RenderTile(out, bleedLightmap, targetBufferPosition,
-				    levelCelBlock,
+				    pDungeonCels.get(), levelCelBlock,
 				    transparency ? MaskType::Transparent : MaskType::Solid, foliageTbl);
 			}
 		}
@@ -610,7 +613,7 @@ void DrawCell(const Surface &out, const Lightmap lightmap, Point tilePosition, P
 			const LevelCelBlock levelCelBlock { pMap->mt[i + 1] };
 			if (levelCelBlock.hasValue()) {
 				RenderTile(out, bleedLightmap, targetBufferPosition + RightFrameDisplacement,
-				    levelCelBlock,
+				    pDungeonCels.get(), levelCelBlock,
 				    transparency ? MaskType::Transparent : MaskType::Solid, foliageTbl);
 			}
 		}
@@ -650,14 +653,14 @@ void DrawFloorTile(const Surface &out, const Lightmap &lightmap, Point tilePosit
 		const LevelCelBlock levelCelBlock { DPieceMicros[levelPieceId].mt[0] };
 		if (levelCelBlock.hasValue()) {
 			RenderTileFrame(out, lightmap, targetBufferPosition, TileType::LeftTriangle,
-			    GetDunFrame(levelCelBlock.frame()), DunFrameTriangleHeight, MaskType::Solid, tbl);
+			    GetDunFrame(pDungeonCels.get(), levelCelBlock.frame()), DunFrameTriangleHeight, MaskType::Solid, tbl);
 		}
 	}
 	{
 		const LevelCelBlock levelCelBlock { DPieceMicros[levelPieceId].mt[1] };
 		if (levelCelBlock.hasValue()) {
 			RenderTileFrame(out, lightmap, targetBufferPosition + RightFrameDisplacement, TileType::RightTriangle,
-			    GetDunFrame(levelCelBlock.frame()), DunFrameTriangleHeight, MaskType::Solid, tbl);
+			    GetDunFrame(pDungeonCels.get(), levelCelBlock.frame()), DunFrameTriangleHeight, MaskType::Solid, tbl);
 		}
 	}
 }
@@ -1164,7 +1167,7 @@ void DrawGame(const Surface &fullOut, Point position, Displacement offset)
 
 	Lightmap lightmap = Lightmap::build(*GetOptions().Graphics.perPixelLighting, position, Point {} + offset,
 	    gnScreenWidth, gnViewportHeight, rows, columns,
-	    out.at(0, 0), out.pitch(), LightTables,
+	    out.at(0, 0), out.pitch(), LightTables, FullyLitLightTable, FullyDarkLightTable,
 	    dLight, MicroTileLen);
 
 	DrawFloor(out, lightmap, position, Point {} + offset, rows, columns);

@@ -13,14 +13,17 @@ namespace devilution {
 
 class Lightmap {
 public:
-	explicit Lightmap(const uint8_t *outBuffer, std::span<const uint8_t> lightmapBuffer, uint16_t pitch, std::span<const std::array<uint8_t, LightTableSize>, NumLightingLevels> lightTables)
-	    : Lightmap(outBuffer, pitch, lightmapBuffer, pitch, lightTables)
+	explicit Lightmap(const uint8_t *outBuffer, std::span<const uint8_t> lightmapBuffer, uint16_t pitch,
+	    std::span<const std::array<uint8_t, LightTableSize>, NumLightingLevels> lightTables,
+	    const uint8_t *fullyLitLightTable, const uint8_t *fullyDarkLightTable)
+	    : Lightmap(outBuffer, pitch, lightmapBuffer, pitch, lightTables, fullyLitLightTable, fullyDarkLightTable)
 	{
 	}
 
 	explicit Lightmap(const uint8_t *outBuffer, uint16_t outPitch,
 	    std::span<const uint8_t> lightmapBuffer, uint16_t lightmapPitch,
-	    std::span<const std::array<uint8_t, LightTableSize>, NumLightingLevels> lightTables);
+	    std::span<const std::array<uint8_t, LightTableSize>, NumLightingLevels> lightTables,
+	    const uint8_t *fullyLitLightTable, const uint8_t *fullyDarkLightTable);
 
 	[[nodiscard]] uint8_t adjustColor(uint8_t color, uint8_t lightLevel) const
 	{
@@ -43,10 +46,14 @@ public:
 		return lightmapBuffer.data() + row * lightmapPitch + rowOffset;
 	}
 
+	[[nodiscard]] bool isFullyLitLightTable(const uint8_t *lightTable) const { return lightTable == fullyLitLightTable_; }
+	[[nodiscard]] bool isFullyDarkLightTable(const uint8_t *lightTable) const { return lightTable == fullyDarkLightTable_; }
+
 	static Lightmap build(bool perPixelLighting, Point tilePosition, Point targetBufferPosition,
 	    int viewportWidth, int viewportHeight, int rows, int columns,
 	    const uint8_t *outBuffer, uint16_t outPitch,
 	    std::span<const std::array<uint8_t, LightTableSize>, NumLightingLevels> lightTables,
+	    const uint8_t *fullyLitLightTable, const uint8_t *fullyDarkLightTable,
 	    const uint8_t tileLights[MAXDUNX][MAXDUNY],
 	    uint_fast8_t microTileLen);
 
@@ -60,6 +67,8 @@ private:
 	const uint16_t lightmapPitch;
 
 	std::span<const std::array<uint8_t, LightTableSize>, NumLightingLevels> lightTables;
+	const uint8_t *fullyLitLightTable_;
+	const uint8_t *fullyDarkLightTable_;
 };
 
 } // namespace devilution

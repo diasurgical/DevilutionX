@@ -5,13 +5,13 @@
  */
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
 
-#include <SDL_endian.h>
 #include <expected.hpp>
 
 #include "engine/clx_sprite.hpp"
@@ -298,7 +298,7 @@ struct Miniset {
 }
 
 tl::expected<void, std::string> LoadLevelSOLData();
-void SetDungeonMicros();
+void SetDungeonMicros(std::unique_ptr<std::byte[]> &dungeonCels, uint_fast8_t &microTileLen);
 void DRLG_InitTrans();
 void DRLG_MRectTrans(WorldTilePosition origin, WorldTilePosition extent);
 void DRLG_MRectTrans(WorldTileRectangle area);
@@ -330,16 +330,5 @@ void DRLG_LPass3(int lv);
 bool IsNearThemeRoom(WorldTilePosition position);
 void InitLevels();
 void FloodTransparencyValues(uint8_t floorID);
-
-DVL_ALWAYS_INLINE const uint8_t *GetDunFrame(uint32_t frame)
-{
-	const auto *pFrameTable = reinterpret_cast<const uint32_t *>(pDungeonCels.get());
-	return reinterpret_cast<const uint8_t *>(&pDungeonCels[SDL_SwapLE32(pFrameTable[frame])]);
-}
-
-DVL_ALWAYS_INLINE const uint8_t *GetDunFrameFoliage(uint32_t frame)
-{
-	return GetDunFrame(frame) + ReencodedTriangleFrameSize;
-}
 
 } // namespace devilution

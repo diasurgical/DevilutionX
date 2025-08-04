@@ -3246,7 +3246,7 @@ tl::expected<void, std::string> LoadGameLevel(bool firstflag, lvl_entry lvldir)
 	IncProgress();
 
 	RETURN_IF_ERROR(LoadLvlGFX());
-	SetDungeonMicros();
+	SetDungeonMicros(pDungeonCels, MicroTileLen);
 	ClearClxDrawCache();
 
 	IncProgress();

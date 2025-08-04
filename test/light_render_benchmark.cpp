@@ -50,7 +50,7 @@ void BM_BuildLightmap(benchmark::State &state)
 		Lightmap lightmap = Lightmap::build(/*perPixelLighting=*/true,
 		    tilePosition, targetBufferPosition,
 		    viewportWidth, viewportHeight, rows, columns,
-		    outBuffer, outPitch, lightTables,
+		    outBuffer, outPitch, lightTables, lightTables[0].data(), lightTables.back().data(),
 		    dLight, /*microTileLen=*/10);
 
 		uint8_t lightLevel = *lightmap.getLightingAt(outBuffer + outPitch * 120 + 120);

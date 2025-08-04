@@ -84,7 +84,6 @@ set(libdevilutionx_SRCS
   engine/trn.cpp
 
   engine/render/automap_render.cpp
-  engine/render/dun_render.cpp
   engine/render/scrollrt.cpp
 
   items/validation.cpp
@@ -289,6 +288,18 @@ target_link_dependencies(libdevilutionx_crawl PUBLIC
 
 add_devilutionx_object_library(libdevilutionx_direction
   engine/direction.cpp
+)
+
+add_devilutionx_object_library(libdevilutionx_dun_render
+  engine/render/dun_render.cpp
+)
+target_link_libraries(libdevilutionx_dun_render
+  PUBLIC
+  DevilutionX::SDL
+  libdevilutionx_light_render
+  libdevilutionx_surface
+  PRIVATE
+  libdevilutionx_options
 )
 
 add_library(libdevilutionx_endian_write INTERFACE)
@@ -851,6 +862,7 @@ target_link_dependencies(libdevilutionx PUBLIC
   libdevilutionx_control_mode
   libdevilutionx_crawl
   libdevilutionx_direction
+  libdevilutionx_dun_render
   libdevilutionx_surface
   libdevilutionx_file_util
   libdevilutionx_format_int

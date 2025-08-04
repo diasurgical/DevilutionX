@@ -138,7 +138,6 @@ if(DEVILUTIONX_SCREENSHOT_FORMAT STREQUAL DEVILUTIONX_SCREENSHOT_FORMAT_PNG AND 
     language_for_testing
     libdevilutionx_primitive_render
     libdevilutionx_strings
-    libdevilutionx_strings
     libdevilutionx_surface
     libdevilutionx_surface_to_png
     libdevilutionx_text_render
