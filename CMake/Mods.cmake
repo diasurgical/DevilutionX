@@ -14,6 +14,7 @@ set(hellfire_mod
   txtdata/missiles/misdat.tsv
   txtdata/missiles/missile_sprites.tsv
   txtdata/monsters/monstdat.tsv
+  txtdata/sound/effects.tsv
   txtdata/spells/spelldat.tsv
   ui_art/diablo.pal
   ui_art/hf_titlew.clx
