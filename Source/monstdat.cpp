@@ -19,6 +19,12 @@
 #include "textdat.h"
 #include "utils/language.h"
 
+template <>
+struct magic_enum::customize::enum_range<devilution::_monster_id> {
+	static constexpr int min = devilution::MT_INVALID;
+	static constexpr int max = devilution::NUM_MTYPES;
+};
+
 namespace devilution {
 
 namespace {
