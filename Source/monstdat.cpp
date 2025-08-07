@@ -27,6 +27,12 @@ struct magic_enum::customize::enum_range<devilution::_monster_id> {
 	static constexpr int max = devilution::NUM_DEFAULT_MTYPES;
 };
 
+template <>
+struct magic_enum::customize::enum_range<devilution::monster_resistance> {
+	static constexpr int min = 0;
+	static constexpr int max = 128;
+};
+
 namespace devilution {
 
 namespace {
@@ -243,46 +249,10 @@ tl::expected<MonsterAvailability, std::string> ParseMonsterAvailability(std::str
 
 tl::expected<MonsterAIID, std::string> ParseAiId(std::string_view value)
 {
-	if (value == "Zombie") return MonsterAIID::Zombie;
-	if (value == "Fat") return MonsterAIID::Fat;
-	if (value == "SkeletonMelee") return MonsterAIID::SkeletonMelee;
-	if (value == "SkeletonRanged") return MonsterAIID::SkeletonRanged;
-	if (value == "Scavenger") return MonsterAIID::Scavenger;
-	if (value == "Rhino") return MonsterAIID::Rhino;
-	if (value == "GoatMelee") return MonsterAIID::GoatMelee;
-	if (value == "GoatRanged") return MonsterAIID::GoatRanged;
-	if (value == "Fallen") return MonsterAIID::Fallen;
-	if (value == "Magma") return MonsterAIID::Magma;
-	if (value == "SkeletonKing") return MonsterAIID::SkeletonKing;
-	if (value == "Bat") return MonsterAIID::Bat;
-	if (value == "Gargoyle") return MonsterAIID::Gargoyle;
-	if (value == "Butcher") return MonsterAIID::Butcher;
-	if (value == "Succubus") return MonsterAIID::Succubus;
-	if (value == "Sneak") return MonsterAIID::Sneak;
-	if (value == "Storm") return MonsterAIID::Storm;
-	if (value == "FireMan") return MonsterAIID::FireMan;
-	if (value == "Gharbad") return MonsterAIID::Gharbad;
-	if (value == "Acid") return MonsterAIID::Acid;
-	if (value == "AcidUnique") return MonsterAIID::AcidUnique;
-	if (value == "Golem") return MonsterAIID::Golem;
-	if (value == "Zhar") return MonsterAIID::Zhar;
-	if (value == "Snotspill") return MonsterAIID::Snotspill;
-	if (value == "Snake") return MonsterAIID::Snake;
-	if (value == "Counselor") return MonsterAIID::Counselor;
-	if (value == "Mega") return MonsterAIID::Mega;
-	if (value == "Diablo") return MonsterAIID::Diablo;
-	if (value == "Lazarus") return MonsterAIID::Lazarus;
-	if (value == "LazarusSuccubus") return MonsterAIID::LazarusSuccubus;
-	if (value == "Lachdanan") return MonsterAIID::Lachdanan;
-	if (value == "Warlord") return MonsterAIID::Warlord;
-	if (value == "FireBat") return MonsterAIID::FireBat;
-	if (value == "Torchant") return MonsterAIID::Torchant;
-	if (value == "HorkDemon") return MonsterAIID::HorkDemon;
-	if (value == "Lich") return MonsterAIID::Lich;
-	if (value == "ArchLich") return MonsterAIID::ArchLich;
-	if (value == "Psychorb") return MonsterAIID::Psychorb;
-	if (value == "Necromorb") return MonsterAIID::Necromorb;
-	if (value == "BoneDemon") return MonsterAIID::BoneDemon;
+	const std::optional<MonsterAIID> enumValueOpt = magic_enum::enum_cast<MonsterAIID>(value);
+	if (enumValueOpt.has_value()) {
+		return enumValueOpt.value();
+	}
 	return tl::make_unexpected("Unknown enum value");
 }
 
@@ -305,21 +275,19 @@ tl::expected<monster_flag, std::string> ParseMonsterFlag(std::string_view value)
 
 tl::expected<MonsterClass, std::string> ParseMonsterClass(std::string_view value)
 {
-	if (value == "Undead") return MonsterClass::Undead;
-	if (value == "Demon") return MonsterClass::Demon;
-	if (value == "Animal") return MonsterClass::Animal;
+	const std::optional<MonsterClass> enumValueOpt = magic_enum::enum_cast<MonsterClass>(value);
+	if (enumValueOpt.has_value()) {
+		return enumValueOpt.value();
+	}
 	return tl::make_unexpected("Unknown enum value");
 }
 
 tl::expected<monster_resistance, std::string> ParseMonsterResistance(std::string_view value)
 {
-	if (value == "RESIST_MAGIC") return RESIST_MAGIC;
-	if (value == "RESIST_FIRE") return RESIST_FIRE;
-	if (value == "RESIST_LIGHTNING") return RESIST_LIGHTNING;
-	if (value == "IMMUNE_MAGIC") return IMMUNE_MAGIC;
-	if (value == "IMMUNE_FIRE") return IMMUNE_FIRE;
-	if (value == "IMMUNE_LIGHTNING") return IMMUNE_LIGHTNING;
-	if (value == "IMMUNE_ACID") return IMMUNE_ACID;
+	const std::optional<monster_resistance> enumValueOpt = magic_enum::enum_cast<monster_resistance>(value);
+	if (enumValueOpt.has_value()) {
+		return enumValueOpt.value();
+	}
 	return tl::make_unexpected("Unknown enum value");
 }
 
@@ -345,9 +313,10 @@ tl::expected<uint16_t, std::string> ParseMonsterTreasure(std::string_view value)
 
 tl::expected<UniqueMonsterPack, std::string> ParseUniqueMonsterPack(std::string_view value)
 {
-	if (value == "None") return UniqueMonsterPack::None;
-	if (value == "Independent") return UniqueMonsterPack::Independent;
-	if (value == "Leashed") return UniqueMonsterPack::Leashed;
+	const std::optional<UniqueMonsterPack> enumValueOpt = magic_enum::enum_cast<UniqueMonsterPack>(value);
+	if (enumValueOpt.has_value()) {
+		return enumValueOpt.value();
+	}
 	return tl::make_unexpected("Unknown enum value");
 }
 
