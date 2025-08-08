@@ -12,7 +12,7 @@
 <img width="838" src="https://github.com/user-attachments/assets/db6e94b1-a98b-413d-a109-1fb77dda34bd">
 </p>
 
-<sub>*(The health-bar and XP-bar are off by default but can be enabled in the [game settings](https://github.com/diasurgical/devilutionX/wiki/DevilutionX-diablo.ini-configuration-guide). Widescreen can also be disabled if preferred.)*</sub>
+<sub>*(The health-bar and XP-bar are off by default but can be enabled in the [game settings](https://github.com/diasurgical/DevilutionX/wiki/Config-File). Widescreen can also be disabled if preferred.)*</sub>
 
 # What is DevilutionX
 
