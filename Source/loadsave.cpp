@@ -736,6 +736,11 @@ void LoadMonster(LoadHelper *file, Monster &monster, MonsterConversionData *mons
 
 	if (monster.mode == MonsterMode::Petrified)
 		monster.animInfo.isPetrified = true;
+
+	if (monster.isUnique() && !IsUniqueMonsterValid(monster)) {
+		// if the unique monster is no longer valid (e.g. because the loaded mods changed and the unique monsters changed as a consequence), then this monster will cease to be unique, but will otherwise maintain its properties
+		monster.uniqueType = UniqueMonsterType::None;
+	}
 }
 
 /**

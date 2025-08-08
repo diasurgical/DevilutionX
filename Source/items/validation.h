@@ -12,6 +12,7 @@ namespace devilution {
 // Forward declared structs to avoid circular dependencies
 struct Item;
 struct TCmdPItem;
+struct Monster;
 struct Player;
 
 bool IsCreationFlagComboValid(uint16_t iCreateInfo);
@@ -21,5 +22,6 @@ bool IsUniqueMonsterItemValid(uint16_t iCreateInfo, uint32_t dwBuff);
 bool IsDungeonItemValid(uint16_t iCreateInfo, uint32_t dwBuff);
 bool IsItemValid(const Player &player, const Item &item);
 bool IsItemDeltaValid(const TCmdPItem &itemDelta);
+bool IsUniqueMonsterValid(const Monster &monster);
 
 } // namespace devilution
