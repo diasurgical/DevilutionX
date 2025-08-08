@@ -580,6 +580,8 @@ struct GameplayOptions : OptionCategoryBase {
 	OptionEntryBoolean showManaValues;
 	/** @brief Show enemy health at the top of the screen. */
 	OptionEntryBoolean enemyHealthBar;
+	/** @brief Automatically Identify Items on Drop. */
+	OptionEntryBoolean autoIdItems;
 	/** @brief Automatically pick up gold when walking over it. */
 	OptionEntryBoolean autoGoldPickup;
 	/** @brief Auto-pickup elixirs */

@@ -3118,7 +3118,10 @@ void GetItemAttrs(Item &item, _item_indexes itemData, int lvl)
 void SetupItem(Item &item)
 {
 	item.setNewAnimation(MyPlayer != nullptr && MyPlayer->pLvlLoad == 0);
-	item._iIdentified = false;
+	if (*GetOptions().Gameplay.autoIdItems == true)
+		item._iIdentified = true;
+	else
+		item._iIdentified = false;
 }
 
 Item *SpawnUnique(_unique_items uid, Point position, std::optional<int> level /*= std::nullopt*/, bool sendmsg /*= true*/, bool exactPosition /*= false*/)
