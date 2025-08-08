@@ -210,6 +210,10 @@ bool IsUniqueMonsterValid(const Monster &monster)
 		return false;
 	}
 
+	if (uniqueMonsterData.mlevel != 0 && uniqueMonsterData.mlevel != currlevel) {
+		return false;
+	}
+
 	return true;
 }
 
