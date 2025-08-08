@@ -72,6 +72,7 @@
 #include "options.h"
 #include "panels/console.hpp"
 #include "panels/info_box.hpp"
+#include "panels/partypanel.hpp"
 #include "panels/spell_book.hpp"
 #include "panels/spell_list.hpp"
 #include "pfile.h"
@@ -445,6 +446,8 @@ void RightMouseDown(bool isShiftHeld)
 	if (pcursinvitem != -1 && UseInvItem(pcursinvitem))
 		return;
 	if (pcursstashitem != StashStruct::EmptyCell && UseStashItem(pcursstashitem))
+		return;
+	if (DidRightClickPartyPortrait())
 		return;
 	if (pcurs == CURSOR_HAND) {
 		CheckPlrSpell(isShiftHeld);
@@ -1592,6 +1595,11 @@ void CharacterSheetKeyPressed()
 	ToggleCharPanel();
 }
 
+void PartyPanelSideToggleKeyPressed()
+{
+	PartySidePanelOpen = !PartySidePanelOpen;
+}
+
 void QuestLogKeyPressed()
 {
 	if (IsPlayerInStore())
@@ -1877,6 +1885,14 @@ void InitKeymapActions()
 	    N_("Open Character screen."),
 	    'C',
 	    CharacterSheetKeyPressed,
+	    nullptr,
+	    CanPlayerTakeAction);
+	options.Keymapper.AddAction(
+	    "Party",
+	    N_("Party"),
+	    N_("Open side Party panel."),
+	    'Y',
+	    PartyPanelSideToggleKeyPressed,
 	    nullptr,
 	    CanPlayerTakeAction);
 	options.Keymapper.AddAction(
