@@ -380,7 +380,7 @@ tl::expected<MonsterAvailability, std::string> ParseMonsterAvailability(std::str
 	return tl::make_unexpected("Expected one of: Always, Never, or Retail");
 }
 
-}
+} // namespace
 
 tl::expected<MonsterAIID, std::string> ParseAiId(std::string_view value)
 {
@@ -454,7 +454,7 @@ tl::expected<MonsterClass, std::string> ParseMonsterClass(std::string_view value
 	return tl::make_unexpected("Unknown enum value");
 }
 
-}
+} // namespace
 
 tl::expected<monster_resistance, std::string> ParseMonsterResistance(std::string_view value)
 {
@@ -479,7 +479,7 @@ tl::expected<SelectionRegion, std::string> ParseSelectionRegion(std::string_view
 	return tl::make_unexpected("Unknown enum value");
 }
 
-}
+} // namespace
 
 tl::expected<UniqueMonsterPack, std::string> ParseUniqueMonsterPack(std::string_view value)
 {
