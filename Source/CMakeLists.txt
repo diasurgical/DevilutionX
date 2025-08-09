@@ -116,6 +116,7 @@ set(libdevilutionx_SRCS
   lua/modules/i18n.cpp
   lua/modules/items.cpp
   lua/modules/log.cpp
+  lua/modules/monsters.cpp
   lua/modules/player.cpp
   lua/modules/render.cpp
   lua/modules/towners.cpp
