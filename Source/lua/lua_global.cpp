@@ -16,6 +16,7 @@
 #include "lua/modules/i18n.hpp"
 #include "lua/modules/items.hpp"
 #include "lua/modules/log.hpp"
+#include "lua/modules/monsters.hpp"
 #include "lua/modules/player.hpp"
 #include "lua/modules/render.hpp"
 #include "lua/modules/towners.hpp"
@@ -216,6 +217,9 @@ void LuaReloadActiveMods()
 	gbIsHellfire = false;
 	UnloadModArchives();
 
+	// Unload additional mod data
+	AdditionalUniqueMonstersData.clear();
+
 	std::vector<std::string_view> modnames = GetOptions().Mods.GetActiveModList();
 	LoadModArchives(modnames);
 
@@ -267,6 +271,7 @@ void LuaInitialize()
 	    "devilutionx.items", LuaItemModule(lua),
 	    "devilutionx.log", LuaLogModule(lua),
 	    "devilutionx.audio", LuaAudioModule(lua),
+	    "devilutionx.monsters", LuaMonstersModule(lua),
 	    "devilutionx.player", LuaPlayerModule(lua),
 	    "devilutionx.render", LuaRenderModule(lua),
 	    "devilutionx.towners", LuaTownersModule(lua),
