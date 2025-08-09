@@ -580,6 +580,8 @@ struct GameplayOptions : OptionCategoryBase {
 	OptionEntryBoolean showManaValues;
 	/** @brief Show enemy health at the top of the screen. */
 	OptionEntryBoolean enemyHealthBar;
+	/** @brief Displays item info in a floating box when hovering over an ite. */
+	OptionEntryBoolean floatingInfoBox;
 	/** @brief Automatically pick up gold when walking over it. */
 	OptionEntryBoolean autoGoldPickup;
 	/** @brief Auto-pickup elixirs */
