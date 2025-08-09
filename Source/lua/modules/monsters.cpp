@@ -5,8 +5,8 @@
 #include <fmt/format.h>
 #include <sol/sol.hpp>
 
-#include "monstdat.h"
 #include "lua/metadoc.hpp"
+#include "monstdat.h"
 #include "utils/language.h"
 #include "utils/str_split.hpp"
 
