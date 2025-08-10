@@ -48,7 +48,6 @@
 #include "panels/spell_list.hpp"
 #include "pfile.h"
 #include "playerdat.hpp"
-#include "engine/render/primitive_render.hpp"
 #include "qol/stash.h"
 #include "qol/xpbar.h"
 #include "quick_messages.hpp"

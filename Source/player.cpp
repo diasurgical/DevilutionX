@@ -2086,7 +2086,7 @@ ClxSprite GetPlayerPortraitSprite(Player &player)
 	return spriteList[(graphic == player_graphic::Stand) ? 0 : spriteList.numSprites() - 1];
 }
 
-bool IsPlayerUnarmed(Player& player)
+bool IsPlayerUnarmed(Player &player)
 {
 	const PlayerWeaponGraphic animWeaponId = GetPlayerWeaponGraphic(player_graphic::Stand, static_cast<PlayerWeaponGraphic>(player._pgfxnum & 0xF));
 	return animWeaponId == PlayerWeaponGraphic::Unarmed;

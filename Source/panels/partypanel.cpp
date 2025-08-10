@@ -15,10 +15,10 @@
 #include "engine/render/primitive_render.hpp"
 #include "engine/size.hpp"
 #include "inv.h"
-#include "qol/monhealthbar.h"
-#include "qol/stash.h"
 #include "pfile.h"
 #include "playerdat.hpp"
+#include "qol/monhealthbar.h"
+#include "qol/stash.h"
 #include "stores.h"
 #include "utils/status_macros.hpp"
 #include "utils/surface_to_clx.hpp"
@@ -51,11 +51,11 @@ constexpr int FrameGap = 25;
 constexpr int FrameBorderSize = 3;
 constexpr int FrameSpriteSize = 12;
 constexpr Size FrameSections = { 4, 4 }; // x/y can't be less than 2
-constexpr Size PortraitFrameSize = { FrameSections.width * FrameSpriteSize, FrameSections.height * FrameSpriteSize };
+constexpr Size PortraitFrameSize = { FrameSections.width * FrameSpriteSize, FrameSections.height *FrameSpriteSize };
 
 constexpr uint8_t FrameBackgroundColor = PAL16_BLUE + 14;
 
-void DrawBar(const Surface& out, Rectangle rect, uint8_t color)
+void DrawBar(const Surface &out, Rectangle rect, uint8_t color)
 {
 	for (int x = 0; x < rect.size.width; x++) {
 		DrawVerticalLine(out, { rect.position.x + x, rect.position.y }, rect.size.height, color);
@@ -170,7 +170,7 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 	int currentLongestNameWidth = PortraitFrameSize.width;
 	bool portraitUnderCursor = false;
 
-	for (Player& player : Players) {
+	for (Player &player : Players) {
 
 		if (!player.plractive || !player.friendlyMode)
 			continue;
@@ -214,11 +214,10 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 		Point portraitPos = { ((-(playerPortraitSprite.width() / 2)) + (PortraitFrameSize.width / 2)) + offset.x, offset.y };
 		// Get a subregion of the surface so the portrait doesn't get drawn over the frame
 		Surface frameSubregion = gameScreen.subregion(
-			pos.x + FrameBorderSize,
+		    pos.x + FrameBorderSize,
 		    pos.y + FrameBorderSize,
 		    PortraitFrameSize.width - (FrameBorderSize * 2),
-		    PortraitFrameSize.height - (FrameBorderSize * 2)
-		);
+		    PortraitFrameSize.height - (FrameBorderSize * 2));
 
 		PortraitFrameRects[player.getId()] = {
 			{ frameSubregion.region.x, frameSubregion.region.y },
@@ -227,10 +226,9 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 
 		// Draw the portrait sprite
 		RenderClxSprite(
-			frameSubregion,
+		    frameSubregion,
 		    playerPortraitSprite,
-			portraitPos
-		);
+		    portraitPos);
 
 		if ((player.getId() + 1) < (*PlayerTags).numSprites()) {
 			// Draw the player tag
@@ -248,8 +246,7 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 			    0, 0,
 			    PortraitFrameSize.width,
 			    PortraitFrameSize.height,
-			    PAL8_RED + 4
-			);
+			    PAL8_RED + 4);
 		}
 
 		// Add to the position before continuing to the next item
@@ -258,10 +255,9 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 		// Draw the players name under the frame
 		DrawString(
 		    gameScreen,
-			player._pName,
-			pos,
-			{ .flags = UiFlags::ColorGold | UiFlags::Outlined | UiFlags::FontSize12 }
-		);
+		    player._pName,
+		    pos,
+		    { .flags = UiFlags::ColorGold | UiFlags::Outlined | UiFlags::FontSize12 });
 
 		// Add to the position before continuing onto the next player
 		pos.y += FrameGap;
