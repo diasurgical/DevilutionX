@@ -120,6 +120,8 @@ PartySpriteOffset GetClassSpriteOffset(HeroClass hClass)
 	case HeroClass::Barbarian:
 		hClass = HeroClass::Warrior;
 		break;
+	default:
+		break;
 	}
 
 	return ClassSpriteOffsets[static_cast<size_t>(hClass)];
