@@ -40,6 +40,7 @@ _DEPS = [
     "libmpq",
     "libsmackerdec",
     "libzt",
+    "magic_enum",
     "sdl_audiolib",
     "sheenbidi",
     "unordered_dense",
