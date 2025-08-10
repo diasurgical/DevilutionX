@@ -62,7 +62,7 @@ void AddUniqueMonsterData(const std::string_view type, const std::string_view na
 	monster.customArmorClass = customArmorClass.value_or(0);
 	monster.mtalkmsg = TEXT_NONE;
 
-	AdditionalUniqueMonstersData.push_back(std::move(monster));
+	UniqueMonstersData.push_back(std::move(monster));
 }
 
 } // namespace

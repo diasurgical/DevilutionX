@@ -335,7 +335,6 @@ struct UniqueMonsterData {
 extern std::vector<MonsterData> MonstersData;
 extern const _monster_id MonstConvTbl[];
 extern std::vector<UniqueMonsterData> UniqueMonstersData;
-extern std::vector<UniqueMonsterData> AdditionalUniqueMonstersData;
 
 tl::expected<_monster_id, std::string> ParseMonsterId(std::string_view value);
 tl::expected<MonsterAIID, std::string> ParseAiId(std::string_view value);

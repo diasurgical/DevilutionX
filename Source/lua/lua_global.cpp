@@ -217,9 +217,6 @@ void LuaReloadActiveMods()
 	gbIsHellfire = false;
 	UnloadModArchives();
 
-	// Unload additional mod data
-	AdditionalUniqueMonstersData.clear();
-
 	std::vector<std::string_view> modnames = GetOptions().Mods.GetActiveModList();
 	LoadModArchives(modnames);
 

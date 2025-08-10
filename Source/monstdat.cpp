@@ -13,6 +13,7 @@
 #include "data/file.hpp"
 #include "data/record_reader.hpp"
 #include "items.h"
+#include "lua/lua_global.hpp"
 #include "monster.h"
 #include "textdat.h"
 #include "utils/language.h"
@@ -41,9 +42,6 @@ std::vector<MonsterData> MonstersData;
 
 /** Contains the data related to each unique monster ID. */
 std::vector<UniqueMonsterData> UniqueMonstersData;
-
-/** Contains the additional unique monster data from mods. */
-std::vector<UniqueMonsterData> AdditionalUniqueMonstersData;
 
 /**
  * Map between .DUN file value and monster type enum
@@ -598,9 +596,9 @@ void LoadUniqueMonstDat()
 		});
 	}
 
-	UniqueMonstersData.insert(UniqueMonstersData.end(), AdditionalUniqueMonstersData.begin(), AdditionalUniqueMonstersData.end());
-
 	UniqueMonstersData.shrink_to_fit();
+
+	LuaEvent("UniqueMonsterDataLoaded");
 }
 
 } // namespace

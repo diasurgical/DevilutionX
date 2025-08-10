@@ -44,6 +44,10 @@ local events = {
   LoadModsComplete = CreateEvent(),
   __doc_LoadModsComplete = "Called after all mods have been loaded.",
 
+  ---Called after the unique monster data TSV file has been loaded.
+  UniqueMonsterDataLoaded = CreateEvent(),
+  __doc_UniqueMonsterDataLoaded = "Called after the unique monster data TSV file has been loaded.",
+
   ---Called every time a new game is started.
   GameStart = CreateEvent(),
   __doc_GameStart = "Called every time a new game is started.",
