@@ -526,6 +526,7 @@ add_devilutionx_object_library(libdevilutionx_monster
 target_link_dependencies(libdevilutionx_monster
   PUBLIC
   DevilutionX::SDL
+  magic_enum::magic_enum
   sol2::sol2
   tl
   libdevilutionx_game_mode
