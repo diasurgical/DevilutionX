@@ -523,9 +523,6 @@ void PrintFloatingInfo(const Surface &out)
 
 	int spriteH = GetHoverSpriteHeight();
 	int anchorY = floatingInfoBox.position.y;
-	int boxH = floatingInfoBox.size.height;
-	int yAbove = anchorY - spriteH - boxH - vPadding;
-	int yBelow = anchorY + verticalSpacing / 2 + vPadding;
 
 	// Prevent the floating info box from going off-screen vertically
 	floatingInfoBox.position.y = ClampAboveOrBelow(anchorY, spriteH, floatingInfoBox.size.height, vPadding, verticalSpacing);

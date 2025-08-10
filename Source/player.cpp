@@ -2057,7 +2057,6 @@ ClxSprite GetPlayerPortraitSprite(Player &player)
 		szCel = "as";
 
 	player_graphic graphic = player_graphic::Stand;
-	int spriteIndex = 0;
 	if (player._pHitPoints <= 0) {
 		if (animWeaponId == PlayerWeaponGraphic::Unarmed) {
 			szCel = "dt";
