@@ -854,6 +854,7 @@ target_link_dependencies(libdevilutionx PUBLIC
   fmt::fmt
   libsmackerdec
   ${LUA_LIBRARIES}
+  magic_enum::magic_enum
   sol2::sol2
   tl
   unordered_dense::unordered_dense
