@@ -10,7 +10,7 @@
 #include <sol/sol.hpp>
 #include <sol/utility/to_string.hpp>
 
-#include "lua/lua.hpp"
+#include "lua/lua_global.hpp"
 #include "panels/console.hpp"
 #include "utils/str_cat.hpp"
 

@@ -189,8 +189,8 @@ constexpr std::array<char, 6> CharChar = {
 	'r', // rogue
 	's', // sorcerer
 	'm', // monk
-	'b',
-	'c',
+	'b', // bard
+	'c', // barbarian
 };
 
 /**

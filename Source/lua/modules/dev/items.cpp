@@ -20,21 +20,24 @@ namespace devilution {
 
 namespace {
 
+const Item *DebugCmdGetItem()
+{
+	const Player &myPlayer = *MyPlayer;
+	if (!myPlayer.HoldItem.isEmpty()) return &myPlayer.HoldItem;
+	if (pcursinvitem != -1) {
+		if (pcursinvitem < INVITEM_INV_FIRST) return &myPlayer.InvBody[pcursinvitem];
+		if (pcursinvitem <= INVITEM_INV_LAST) return &myPlayer.InvList[pcursinvitem - INVITEM_INV_FIRST];
+		return &myPlayer.SpdList[pcursinvitem - INVITEM_BELT_FIRST];
+	}
+	if (pcursitem != -1) return &Items[pcursitem];
+	return nullptr;
+}
+
 std::string DebugCmdItemInfo()
 {
-	Player &myPlayer = *MyPlayer;
-	Item *pItem = nullptr;
-	if (!myPlayer.HoldItem.isEmpty()) {
-		pItem = &myPlayer.HoldItem;
-	} else if (pcursinvitem != -1) {
-		if (pcursinvitem <= INVITEM_INV_LAST)
-			pItem = &myPlayer.InvList[pcursinvitem - INVITEM_INV_FIRST];
-		else
-			pItem = &myPlayer.SpdList[pcursinvitem - INVITEM_BELT_FIRST];
-	} else if (pcursitem != -1) {
-		pItem = &Items[pcursitem];
-	}
+	const Item *pItem = DebugCmdGetItem();
 	if (pItem != nullptr) {
+		const Player &myPlayer = *MyPlayer;
 		std::string_view netPackValidation { "N/A" };
 		if (gbIsMultiplayer) {
 			ItemNetPack itemPack;
@@ -119,18 +122,15 @@ std::string DebugSpawnUniqueItem(std::string itemName)
 	UniqueItem uniqueItem;
 	bool foundUnique = false;
 	int uniqueIndex = 0;
-	for (int j = 0, n = static_cast<int>(UniqueItems.size()); j < n; ++j) {
-		if (!IsUniqueAvailable(j))
-			break;
-
-		const std::string tmp = AsciiStrToLower(std::string_view(UniqueItems[j].UIName));
+	for (const auto &item : UniqueItems) {
+		const std::string tmp = AsciiStrToLower(std::string_view(item.UIName));
 		if (tmp.find(itemName) != std::string::npos) {
 			itemName = tmp;
-			uniqueItem = UniqueItems[j];
-			uniqueIndex = j;
+			uniqueItem = item;
 			foundUnique = true;
 			break;
 		}
+		++uniqueIndex;
 	}
 	if (!foundUnique) return "No unique item found!";
 
@@ -179,7 +179,6 @@ std::string DebugSpawnUniqueItem(std::string itemName)
 		const std::string tmp = AsciiStrToLower(testItem._iIName);
 		if (tmp.find(itemName) != std::string::npos)
 			break;
-		return "Impossible to generate!";
 	}
 
 	int ii = AllocateItem();
@@ -198,9 +197,10 @@ std::string DebugSpawnUniqueItem(std::string itemName)
 sol::table LuaDevItemsModule(sol::state_view &lua)
 {
 	sol::table table = lua.create_table();
-	SetDocumented(table, "info", "()", "Show info of currently selected item.", &DebugCmdItemInfo);
-	SetDocumented(table, "spawn", "(name: string)", "Attempt to generate an item.", &DebugSpawnItem);
-	SetDocumented(table, "spawnUnique", "(name: string)", "Attempt to generate a unique item.", &DebugSpawnUniqueItem);
+	LuaSetDocFn(table, "get", "() -> Item", "Get the currently selected item.", &DebugCmdGetItem);
+	LuaSetDocFn(table, "info", "()", "Show info of currently selected item.", &DebugCmdItemInfo);
+	LuaSetDocFn(table, "spawn", "(name: string)", "Attempt to generate an item.", &DebugSpawnItem);
+	LuaSetDocFn(table, "spawnUnique", "(name: string)", "Attempt to generate a unique item.", &DebugSpawnUniqueItem);
 	return table;
 }
 

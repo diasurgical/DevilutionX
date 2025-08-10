@@ -129,6 +129,41 @@ enum class MissileDataFlags : uint8_t {
 };
 use_enum_as_flags(MissileDataFlags);
 
+/**
+ * Represent a more fine-grained direction than the 8 value Direction enum.
+ *
+ * This is used when rendering projectiles like arrows which have additional sprites for "half-winds" on a 16-point compass.
+ * The sprite sheets are typically 0-indexed and use the following layout (relative to the screen projection)
+ *
+ *      W  WSW   SW  SSW  S
+ *               ^
+ *     WNW       |       SSE
+ *               |
+ *     NW -------+------> SE
+ *               |
+ *     NNW       |       ESE
+ *               |
+ *      N  NNE   NE  ENE  E
+ */
+enum class Direction16 : uint8_t {
+	South,
+	South_SouthWest,
+	SouthWest,
+	West_SouthWest,
+	West,
+	West_NorthWest,
+	NorthWest,
+	North_NorthWest,
+	North,
+	North_NorthEast,
+	NorthEast,
+	East_NorthEast,
+	East,
+	East_SouthEast,
+	SouthEast,
+	South_SouthEast,
+};
+
 struct MissileData {
 	using AddFn = void (*)(Missile &, AddMissileParameter &);
 	using ProcessFn = void (*)(Missile &);
@@ -198,11 +233,11 @@ struct MissileFileData {
 	 * @param direction One of the 16 directions. Valid range: [0, 15].
 	 * @return OptionalClxSpriteList
 	 */
-	[[nodiscard]] OptionalClxSpriteList spritesForDirection(size_t direction) const
+	[[nodiscard]] OptionalClxSpriteList spritesForDirection(Direction16 direction) const
 	{
 		if (!sprites)
 			return std::nullopt;
-		return sprites->isSheet() ? sprites->sheet()[direction] : sprites->list();
+		return sprites->isSheet() ? sprites->sheet()[static_cast<size_t>(direction)] : sprites->list();
 	}
 };
 
@@ -211,7 +246,7 @@ MissileFileData &GetMissileSpriteData(MissileGraphicID graphicId);
 
 void LoadMissileData();
 
-tl::expected<void, std::string> InitMissileGFX(bool loadHellfireGraphics = false);
+tl::expected<void, std::string> InitMissileGFX();
 void FreeMissileGFX();
 
 } // namespace devilution

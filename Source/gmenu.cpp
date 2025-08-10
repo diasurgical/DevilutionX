@@ -201,9 +201,8 @@ void gmenu_init_menu()
 	if (HeadlessMode)
 		return;
 
-	if (gbIsHellfire)
-		sgpLogo = LoadCel("data\\hf_logo3", 430);
-	else
+	sgpLogo = LoadOptionalCel("data\\hf_logo3", 430);
+	if (!sgpLogo.has_value())
 		sgpLogo = LoadCel("data\\diabsmal", 296);
 	PentSpin_cel = LoadCel("data\\pentspin", 48);
 	option_cel = LoadCel("data\\option", SliderMarkerWidth);
@@ -244,12 +243,11 @@ void gmenu_draw(const Surface &out)
 		GameMenuMove();
 		if (gmenu_current_option != nullptr)
 			gmenu_current_option();
-		if (gbIsHellfire) {
+		if (sgpLogo->numSprites() > 1) {
 			const uint32_t ticks = SDL_GetTicks();
 			if ((int)(ticks - LogoAnim_tick) > 25) {
 				++LogoAnim_frame;
-				if (LogoAnim_frame >= 16)
-					LogoAnim_frame = 0;
+				LogoAnim_frame = LogoAnim_frame % sgpLogo->numSprites();
 				LogoAnim_tick = ticks;
 			}
 		}

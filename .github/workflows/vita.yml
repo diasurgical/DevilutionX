@@ -36,7 +36,8 @@ jobs:
           apk add \
             gettext \
             git \
-            samurai
+            samurai \
+            patch
 
       - name: Configure CMake
         run: |

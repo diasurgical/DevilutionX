@@ -47,7 +47,7 @@
 #include "headless_mode.hpp"
 #include "help.h"
 #include "hwcursor.hpp"
-#include "init.h"
+#include "init.hpp"
 #include "inv.h"
 #include "levels/drlg_l1.h"
 #include "levels/drlg_l2.h"
@@ -60,7 +60,7 @@
 #include "levels/trigs.h"
 #include "lighting.h"
 #include "loadsave.h"
-#include "lua/lua.hpp"
+#include "lua/lua_global.hpp"
 #include "menu.h"
 #include "minitext.h"
 #include "missiles.h"
@@ -121,7 +121,6 @@ namespace devilution {
 uint32_t DungeonSeeds[NUMLEVELS];
 std::optional<uint32_t> LevelSeeds[NUMLEVELS];
 Point MousePosition;
-bool gbRunGame;
 bool gbRunGameResult;
 bool ReturnToMainMenu;
 /** Enable updating of player character, set to false once Diablo dies */
@@ -662,20 +661,22 @@ void HandleMouseButtonDown(Uint8 button, uint16_t modState)
 		return;
 	}
 
-	if (sgbMouseDown == CLICK_NONE) {
-		switch (button) {
-		case SDL_BUTTON_LEFT:
+	switch (button) {
+	case SDL_BUTTON_LEFT:
+		if (sgbMouseDown == CLICK_NONE) {
 			sgbMouseDown = CLICK_LEFT;
 			LeftMouseDown(modState);
-			break;
-		case SDL_BUTTON_RIGHT:
+		}
+		break;
+	case SDL_BUTTON_RIGHT:
+		if (sgbMouseDown == CLICK_NONE) {
 			sgbMouseDown = CLICK_RIGHT;
 			RightMouseDown((modState & KMOD_SHIFT) != 0);
-			break;
-		default:
-			KeymapperPress(static_cast<SDL_Keycode>(button | KeymapperMouseButtonMask));
-			break;
 		}
+		break;
+	default:
+		KeymapperPress(static_cast<SDL_Keycode>(button | KeymapperMouseButtonMask));
+		break;
 	}
 }
 
@@ -696,6 +697,19 @@ void HandleMouseButtonUp(Uint8 button, uint16_t modState)
 [[maybe_unused]] void LogUnhandledEvent(const char *name, int value)
 {
 	LogVerbose("Unhandled SDL event: {} {}", name, value);
+}
+
+void PrepareForFadeIn()
+{
+	if (HeadlessMode) return;
+	BlackPalette();
+
+	// Render the game to the buffer(s) with a fully black palette.
+	// Palette fade-in will gradually make it visible.
+	RedrawEverything();
+	while (IsRedrawEverything()) {
+		DrawAndBlit();
+	}
 }
 
 void GameEventHandler(const SDL_Event &event, uint16_t modState)
@@ -812,17 +826,9 @@ void GameEventHandler(const SDL_Event &event, uint16_t modState)
 			nthread_ignore_mutex(true);
 			PaletteFadeOut(8);
 			sound_stop();
-			ShowProgress(GetCustomEvent(event.type));
+			ShowProgress(GetCustomEvent(event));
 
-			RedrawEverything();
-			if (!HeadlessMode) {
-				while (IsRedrawEverything()) {
-					// In direct rendering mode with double/triple buffering, we need
-					// to prepare all buffers before fading in.
-					DrawAndBlit();
-				}
-			}
-
+			PrepareForFadeIn();
 			LoadPWaterPalette();
 			if (gbRunGame)
 				PaletteFadeIn(8);
@@ -848,15 +854,7 @@ void RunGameLoop(interface_mode uMsg)
 	gbProcessPlayers = IsDiabloAlive(true);
 	gbRunGameResult = true;
 
-	RedrawEverything();
-	if (!HeadlessMode) {
-		while (IsRedrawEverything()) {
-			// In direct rendering mode with double/triple buffering, we need
-			// to prepare all buffers before fading in.
-			DrawAndBlit();
-		}
-	}
-
+	PrepareForFadeIn();
 	LoadPWaterPalette();
 	PaletteFadeIn(8);
 	InitBackbufferState();
@@ -1195,10 +1193,18 @@ void DiabloInit()
 {
 	if (forceSpawn || *GetOptions().GameMode.shareware)
 		gbIsSpawn = true;
-	if (forceDiablo || *GetOptions().GameMode.gameMode == StartUpGameMode::Diablo)
-		gbIsHellfire = false;
-	if (forceHellfire)
-		gbIsHellfire = true;
+
+	bool wasHellfireDiscovered = false;
+	if (!forceDiablo && !forceHellfire)
+		wasHellfireDiscovered = (HaveHellfire() && *GetOptions().GameMode.gameMode == StartUpGameMode::Ask);
+	bool enableHellfire = forceHellfire || wasHellfireDiscovered;
+	if (!forceDiablo && *GetOptions().GameMode.gameMode == StartUpGameMode::Hellfire) { // Migrate legacy options
+		GetOptions().GameMode.gameMode.SetValue(StartUpGameMode::Diablo);
+		enableHellfire = true;
+	}
+	if (forceDiablo || enableHellfire) {
+		GetOptions().Mods.SetHellfireEnabled(enableHellfire);
+	}
 
 	gbIsHellfireSaveGame = gbIsHellfire;
 
@@ -1216,7 +1222,7 @@ void DiabloInit()
 	UiInitialize();
 	was_ui_init = true;
 
-	if (gbIsHellfire && !forceHellfire && *GetOptions().GameMode.gameMode == StartUpGameMode::Ask) {
+	if (wasHellfireDiscovered) {
 		UiSelStartUpGameOption();
 		if (!gbIsHellfire) {
 			// Reinitialize the UI Elements because we changed the game
@@ -1301,17 +1307,22 @@ tl::expected<void, std::string> LoadLvlGFX()
 	};
 
 	switch (leveltype) {
-	case DTYPE_TOWN:
-		if (gbIsHellfire) {
-			return loadAll(
-			    "nlevels\\towndata\\town.cel",
-			    "nlevels\\towndata\\town.til",
-			    "levels\\towndata\\towns");
+	case DTYPE_TOWN: {
+		auto cel = LoadFileInMemWithStatus("nlevels\\towndata\\town.cel");
+		if (!cel.has_value()) {
+			ASSIGN_OR_RETURN(pDungeonCels, LoadFileInMemWithStatus("levels\\towndata\\town.cel"));
+		} else {
+			pDungeonCels = std::move(*cel);
 		}
-		return loadAll(
-		    "levels\\towndata\\town.cel",
-		    "levels\\towndata\\town.til",
-		    "levels\\towndata\\towns");
+		auto til = LoadFileInMemWithStatus<MegaTile>("nlevels\\towndata\\town.til");
+		if (!til.has_value()) {
+			ASSIGN_OR_RETURN(pMegaTiles, LoadFileInMemWithStatus<MegaTile>("levels\\towndata\\town.til"));
+		} else {
+			pMegaTiles = std::move(*til);
+		}
+		ASSIGN_OR_RETURN(pSpecialCels, LoadCelWithStatus("levels\\towndata\\towns", SpecialCelWidth));
+		return {};
+	}
 	case DTYPE_CATHEDRAL:
 		return loadAll(
 		    "levels\\l1data\\l1.cel",
@@ -1356,7 +1367,7 @@ tl::expected<void, std::string> LoadAllGFX()
 	IncProgress();
 	RETURN_IF_ERROR(InitObjectGFX());
 	IncProgress();
-	RETURN_IF_ERROR(InitMissileGFX(gbIsHellfire));
+	RETURN_IF_ERROR(InitMissileGFX());
 	IncProgress();
 	return {};
 }
@@ -1701,6 +1712,20 @@ bool CanAutomapBeToggledOff()
 
 	return false;
 }
+
+void OptionLanguageCodeChanged()
+{
+	UnloadFonts();
+	LanguageInitialize();
+	LoadLanguageArchive();
+	effects_cleanup_sfx();
+	if (gbRunGame)
+		sound_init();
+	else
+		ui_sound_init();
+}
+
+const auto OptionChangeHandlerLanguage = (GetOptions().Language.code.SetValueChangedCallback(OptionLanguageCodeChanged), true);
 
 } // namespace
 
@@ -2722,7 +2747,7 @@ bool TryIconCurs()
 		if (IsWallSpell(spellID)) {
 			Direction sd = GetDirection(myPlayer.position.tile, cursPosition);
 			NetSendCmdLocParam4(true, CMD_SPELLXYD, cursPosition, static_cast<int8_t>(spellID), static_cast<uint8_t>(spellType), static_cast<uint16_t>(sd), spellFrom);
-		} else if (pcursmonst != -1) {
+		} else if (pcursmonst != -1 && leveltype != DTYPE_TOWN) {
 			NetSendCmdParam4(true, CMD_SPELLID, pcursmonst, static_cast<int8_t>(spellID), static_cast<uint8_t>(spellType), spellFrom);
 		} else if (PlayerUnderCursor != nullptr && !myPlayer.friendlyMode) {
 			NetSendCmdParam4(true, CMD_SPELLPID, PlayerUnderCursor->getId(), static_cast<int8_t>(spellID), static_cast<uint8_t>(spellType), spellFrom);
@@ -3097,7 +3122,7 @@ tl::expected<void, std::string> LoadGameLevelSetLevel(bool firstflag, lvl_entry 
 #if !defined(USE_SDL1) && !defined(__vita__)
 		InitVirtualGamepadGFX();
 #endif
-		RETURN_IF_ERROR(InitMissileGFX(gbIsHellfire));
+		RETURN_IF_ERROR(InitMissileGFX());
 		IncProgress();
 	}
 	InitCorpses();
@@ -3158,7 +3183,7 @@ tl::expected<void, std::string> LoadGameLevelStandardLevel(bool firstflag, lvl_e
 
 		IncProgress();
 
-		RETURN_IF_ERROR(InitMissileGFX(gbIsHellfire));
+		RETURN_IF_ERROR(InitMissileGFX());
 
 		IncProgress();
 		IncProgress();
@@ -3237,7 +3262,7 @@ tl::expected<void, std::string> LoadGameLevel(bool firstflag, lvl_entry lvldir)
 	IncProgress();
 
 	RETURN_IF_ERROR(LoadLvlGFX());
-	SetDungeonMicros();
+	SetDungeonMicros(pDungeonCels, MicroTileLen);
 	ClearClxDrawCache();
 
 	IncProgress();

@@ -31,6 +31,10 @@
 #if (_POSIX_C_SOURCE >= 200112L || defined(_BSD_SOURCE) || defined(__APPLE__)) && !defined(DEVILUTIONX_WINDOWS_NO_WCHAR)
 #include <sys/stat.h>
 #include <unistd.h>
+
+#ifndef DVL_HAS_FILESYSTEM
+#include <dirent.h>
+#endif
 #endif
 
 #if defined(__APPLE__) && DARWIN_MAJOR_VERSION >= 9
@@ -496,6 +500,18 @@ std::vector<std::string> ListDirectories(const char *path)
 			dirs.push_back(folder);
 	} while (FindNextFileA(hFind, &findData));
 	FindClose(hFind);
+#elif (_POSIX_C_SOURCE >= 200112L || defined(_BSD_SOURCE) || defined(__APPLE__))
+	DIR *d = ::opendir(path);
+	if (d != nullptr) {
+		struct dirent *dir;
+		while ((dir = ::readdir(d)) != nullptr) {
+			if (dir->d_type != DT_DIR) continue;
+			const std::string_view name = dir->d_name;
+			if (name == "." || name == "..") continue;
+			dirs.emplace_back(name);
+		}
+		::closedir(d);
+	}
 #else
 	static_assert(false, "ListDirectories not implemented for the current platform");
 #endif
@@ -529,6 +545,18 @@ std::vector<std::string> ListFiles(const char *path)
 			files.push_back(file);
 	} while (FindNextFileA(hFind, &findData));
 	FindClose(hFind);
+#elif (_POSIX_C_SOURCE >= 200112L || defined(_BSD_SOURCE) || defined(__APPLE__))
+	DIR *d = ::opendir(path);
+	if (d != nullptr) {
+		struct dirent *dir;
+		while ((dir = ::readdir(d)) != nullptr) {
+			if (dir->d_type != DT_REG) continue;
+			const std::string_view name = dir->d_name;
+			if (name == "." || name == "..") continue;
+			files.emplace_back(name);
+		}
+		::closedir(d);
+	}
 #else
 	static_assert(false, "ListFiles not implemented for the current platform");
 #endif

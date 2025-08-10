@@ -4,10 +4,10 @@
 #include <cstdint>
 #include <cstring>
 
-#include "engine/palette.h"
 #include "engine/point.hpp"
 #include "engine/size.hpp"
 #include "engine/surface.hpp"
+#include "utils/palette_blending.hpp"
 
 namespace devilution {
 namespace {
@@ -124,6 +124,35 @@ void UnsafeDrawVerticalLine(const Surface &out, Point from, int height, std::uin
 	while (height-- > 0) {
 		*dst = colorIndex;
 		dst += pitch;
+	}
+}
+
+void DrawHalfTransparentHorizontalLine(const Surface &out, Point from, int width, uint8_t colorIndex)
+{
+	// completely off-bounds?
+	if (from.y < 0 || from.y >= out.h() || width <= 0 || from.x >= out.w() || from.x + width <= 0)
+		return;
+
+	int x0 = std::max(0, from.x);
+	int x1 = std::min(out.w(), from.x + width);
+
+	for (int x = x0; x < x1; ++x) {
+		SetHalfTransparentPixel(out, { x, from.y }, colorIndex);
+	}
+}
+
+// Draw a half-transparent vertical line of `height` pixels starting at `from`.
+void DrawHalfTransparentVerticalLine(const Surface &out, Point from, int height, uint8_t colorIndex)
+{
+	// completely off-bounds?
+	if (from.x < 0 || from.x >= out.w() || height <= 0 || from.y >= out.h() || from.y + height <= 0)
+		return;
+
+	int y0 = std::max(0, from.y);
+	int y1 = std::min(out.h(), from.y + height);
+
+	for (int y = y0; y < y1; ++y) {
+		SetHalfTransparentPixel(out, { from.x, y }, colorIndex);
 	}
 }
 

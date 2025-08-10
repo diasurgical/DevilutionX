@@ -1,0 +1,140 @@
+.TH DEVILUTIONX 6 "May 2025" "1.5.4" "DevilutionX Community"
+.SH NAME
+devilutionx \- A port of Diablo and Hellfire
+.SH SYNOPSIS
+devilutionx [OPTION]
+.SH DESCRIPTION
+.I DevilutionX
+is a port of
+.B Diablo
+and
+.B Hellfire
+that strives to make it simple to run the game while providing engine improvements, bugfixes, and some optional quality of life features.
+.SH OPTIONS
+.TP
+.B \-h, \-\-help
+This lists all command line options and exit.
+.TP
+.B \-\-version
+Print the version and exit.
+.TP
+.B \-\-data\-dir
+Specify the folder of
+.I diabdat.mpq.
+.TP
+.B \-\-save\-dir
+Specify the folder of save files.
+.TP
+.B \-\-config\-dir
+Specify the location of
+.I diablo.ini.
+.TP
+.B \-\-lang
+Specify the language code (e.g.
+.I en
+or
+.I pt_BR
+).
+.TP
+.B \-n
+Skip startup videos.
+.TP
+.B \-f
+Display frames per second.
+.TP
+.B \-\-verbose
+Enable verbose logging.
+.TP
+.B \-\-record \fI<#>\fR
+Record a demo file.
+.TP
+.B \-\-demo \fI<#>\fR
+Play a demo file.
+.TP
+.B \-\-timedemo
+Disable all frame limiting during demo playback.
+.SH GAME SELECTION
+.TP
+.B \-\-spawn
+Force Shareware mode.
+.TP
+.B \-\-diablo
+Force Diablo mode.
+.TP
+.B \-\-hellfire
+Force Hellfire mode.
+.SH MULTI-PLAYER
+TCP/IP requires the host to expose the port the game is listening on, 6112 by default. Private games are encrypted and password protected.
+.SH SAVE GAMES AND CONFIGURATIONS
+By default the configurations and save games are located in:
+.I ~/.local/share/diasurgical/devilution
+.SH INSTALLATION
+To install
+.B DevilutionX:
+.IP 1.
+Extract the files in the archive.
+.IP 2.
+Install
+.B libsdl2.
+.IP 3.
+Copy
+.I DIABDAT.MPQ
+from the CD or GOG-installation (or extract it from the GOG installer) to the DevilutionX folder.
+.IP 4.
+To run the Diablo: Hellfire expansion you will need to also copy
+.I hellfire.mpq, hfmonk.mpq, hfmusic.mpq, hfvoice.mpq.
+.IP 5.
+For Chinese, Japanese, and Korean text support download:
+
+.B https://github.com/diasurgical/devilutionx-assets/releases/latest/download/fonts.mpq
+
+and add it to the game folder.
+.RE
+
+.IP 6.
+For the Polish voice pack download:
+
+.B https://github.com/diasurgical/devilutionx-assets/releases/latest/download/pl.mpq
+.IP 7.
+For the Russian voice pack download:
+
+.B https://github.com/diasurgical/devilutionx-assets/releases/latest/download/ru.mpq
+
+.IP 8.
+For the Spanish voice pack download:
+
+.B https://github.com/diasurgical/devilutionx-assets/releases/latest/download/es.mpq
+.IP 8.
+Run
+.B ./devilutionx
+.SH REPORTING BUGS
+Report bugs at
+.B https://github.com/diasurgical/devilutionX/
+.SH SEE ALSO
+Discord:
+.B https://discord.gg/devilutionx
+.RE
+.PP
+GitHub:
+.B https://github.com/diasurgical/devilutionX
+.RE
+.PP
+Manual:
+.B https://github.com/diasurgical/devilutionX/wiki
+.RE
+.PP
+Changelog:
+.B https://github.com/diasurgical/devilutionX/blob/master/docs/CHANGELOG.md
+.RE
+.SH AUTHOR
+Written by the DevilutionX community.
+.SH COPYRIGHT
+DevilutionX is made publicly available and released under the Sustainable Use License (see LICENSE).
+
+.B https://github.com/diasurgical/DevilutionX/blob/master/LICENSE.md
+.P
+The source code in this repository is for non-commercial use only. If you use the source code, you may not charge others for access to it or any derivative work thereof.
+.P
+Diablo® - Copyright © 1996 Blizzard Entertainment, Inc. All rights reserved. Diablo and Blizzard Entertainment are trademarks or registered trademarks of Blizzard Entertainment, Inc. in the U.S. and/or other countries.
+.P
+DevilutionX and any of its maintainers are in no way associated with or endorsed by Blizzard Entertainment®.

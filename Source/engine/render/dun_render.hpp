@@ -5,13 +5,15 @@
  */
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
+
+#include <SDL_endian.h>
 
 #include "engine/point.hpp"
 #include "engine/render/light_render.hpp"
 #include "engine/surface.hpp"
 #include "levels/dun_tile.hpp"
-#include "levels/gendung.h"
 #include "utils/attributes.h"
 
 // #define DUN_RENDER_STATS
@@ -117,20 +119,38 @@ void RenderTileFrame(const Surface &out, const Lightmap &lightmap, const Point &
     MaskType maskType, const uint8_t *tbl);
 
 /**
+ * @brief Returns the raw data for the given dungeon frame.
+ */
+DVL_ALWAYS_INLINE const uint8_t *GetDunFrame(const std::byte *dungeonCelData, uint32_t frame)
+{
+	const auto *frameTable = reinterpret_cast<const uint32_t *>(dungeonCelData);
+	return reinterpret_cast<const uint8_t *>(&dungeonCelData[SDL_SwapLE32(frameTable[frame])]);
+}
+
+/**
+ * @brief Returns the raw data for the given dungeon frame's foliage.
+ */
+DVL_ALWAYS_INLINE const uint8_t *GetDunFrameFoliage(const std::byte *dungeonCelData, uint32_t frame)
+{
+	return GetDunFrame(dungeonCelData, frame) + ReencodedTriangleFrameSize;
+}
+
+/**
  * @brief Blit current world CEL to the given buffer
  * @param out Target buffer
  * @param lightmap Per-pixel light buffer
  * @param position Target buffer coordinates
+ * @param dungeonCelData Dungeon CEL data.
  * @param levelCelBlock The MIN block of the level CEL file.
  * @param maskType The mask to use,
  * @param tbl LightTable or TRN for a tile.
  */
 DVL_ALWAYS_INLINE void RenderTile(const Surface &out, const Lightmap &lightmap, const Point &position,
-    LevelCelBlock levelCelBlock, MaskType maskType, const uint8_t *tbl)
+    const std::byte *dungeonCelData, LevelCelBlock levelCelBlock, MaskType maskType, const uint8_t *tbl)
 {
 	const TileType tileType = levelCelBlock.type();
 	RenderTileFrame(out, lightmap, position, tileType,
-	    GetDunFrame(levelCelBlock.frame()),
+	    GetDunFrame(dungeonCelData, levelCelBlock.frame()),
 	    (tileType == TileType::LeftTriangle || tileType == TileType::RightTriangle)
 	        ? DunFrameTriangleHeight
 	        : DunFrameHeight,
@@ -140,10 +160,11 @@ DVL_ALWAYS_INLINE void RenderTile(const Surface &out, const Lightmap &lightmap, 
 /**
  * @brief Renders a floor foliage tile.
  */
-DVL_ALWAYS_INLINE void RenderTileFoliage(const Surface &out, const Lightmap &lightmap, const Point &position, LevelCelBlock levelCelBlock, const uint8_t *tbl)
+DVL_ALWAYS_INLINE void RenderTileFoliage(const Surface &out, const Lightmap &lightmap, const Point &position,
+    const std::byte *dungeonCelData, LevelCelBlock levelCelBlock, const uint8_t *tbl)
 {
 	RenderTileFrame(out, lightmap, Point { position.x, position.y - 16 }, TileType::TransparentSquare,
-	    GetDunFrameFoliage(levelCelBlock.frame()), /*height=*/16, MaskType::Solid, tbl);
+	    GetDunFrameFoliage(dungeonCelData, levelCelBlock.frame()), /*height=*/16, MaskType::Solid, tbl);
 }
 
 /**

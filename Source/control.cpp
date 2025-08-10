@@ -26,6 +26,7 @@
 #include "engine/clx_sprite.hpp"
 #include "engine/load_cel.hpp"
 #include "engine/render/clx_render.hpp"
+#include "engine/render/primitive_render.hpp"
 #include "engine/render/text_render.hpp"
 #include "engine/trn.hpp"
 #include "gamemenu.h"
@@ -64,6 +65,7 @@
 #include "utils/status_macros.hpp"
 #include "utils/str_case.hpp"
 #include "utils/str_cat.hpp"
+#include "utils/str_split.hpp"
 #include "utils/string_or_view.hpp"
 #include "utils/utf8.hpp"
 
@@ -90,6 +92,7 @@ bool ChatFlag;
 bool SpellbookFlag;
 bool CharFlag;
 StringOrView InfoString;
+StringOrView FloatingInfoString;
 bool MainPanelFlag;
 bool MainPanelButtonDown;
 bool SpellSelectFlag;
@@ -147,14 +150,14 @@ Rectangle MainPanelButtonRect[8] = {
 
 Rectangle LevelButtonRect = { { 40, -39 }, { 41, 22 } };
 
-int BeltItems = 8;
-Size BeltSize { (INV_SLOT_SIZE_PX + 1) * BeltItems, INV_SLOT_SIZE_PX };
+constexpr int BeltItems = 8;
+constexpr Size BeltSize { (INV_SLOT_SIZE_PX + 1) * BeltItems, INV_SLOT_SIZE_PX };
 Rectangle BeltRect { { 205, 5 }, BeltSize };
 
 Rectangle SpellButtonRect { { 565, 64 }, { 56, 56 } };
 
-Rectangle FlaskTopRect { { 13, 3 }, { 60, 13 } };
-Rectangle FlaskBottomRect { { 0, 16 }, { 84, 69 } };
+Rectangle FlaskTopRect { { 11, 3 }, { 62, 13 } };
+Rectangle FlaskBottomRect { { 0, 16 }, { 88, 69 } };
 
 int MuteButtons = 3;
 int MuteButtonPadding = 2;
@@ -216,14 +219,12 @@ const char *const PanBtnStr[8] = {
  * It draws a rectangle of fixed width 59 and height 'h' from the source buffer
  * into the target buffer.
  * @param out The target buffer.
- * @param celBuf Buffer of the empty flask cel.
- * @param sourcePosition Source buffer start coordinate.
+ * @param celBuf Buffer of the flask cel.
  * @param targetPosition Target buffer coordinate.
- * @param h How many lines of the source buffer that will be copied.
  */
-void DrawFlaskAbovePanel(const Surface &out, const Surface &celBuf, Point sourcePosition, Point targetPosition, int h)
+void DrawFlaskAbovePanel(const Surface &out, const Surface &celBuf, Point targetPosition)
 {
-	out.BlitFromSkipColorIndexZero(celBuf, MakeSdlRect(sourcePosition.x, sourcePosition.y, FlaskTopRect.size.width, h), targetPosition);
+	out.BlitFromSkipColorIndexZero(celBuf, MakeSdlRect(0, 0, celBuf.w(), celBuf.h()), targetPosition);
 }
 
 /**
@@ -236,15 +237,20 @@ void DrawFlaskAbovePanel(const Surface &out, const Surface &celBuf, Point source
  */
 void DrawFlaskUpper(const Surface &out, const Surface &sourceBuffer, int offset, int fillPer)
 {
-	int emptyRows = std::clamp(81 - fillPer, 0, FlaskTopRect.size.height);
-	int filledRows = FlaskTopRect.size.height - emptyRows;
+	const Rectangle &rect = FlaskTopRect;
+	const int emptyRows = std::clamp(81 - fillPer, 0, rect.size.height);
+	const int filledRows = rect.size.height - emptyRows;
 
 	// Draw the empty part of the flask
-	DrawFlaskAbovePanel(out, sourceBuffer, FlaskTopRect.position, GetMainPanel().position + Displacement { offset, -FlaskTopRect.size.height }, FlaskTopRect.size.height);
+	DrawFlaskAbovePanel(out,
+	    sourceBuffer.subregion(rect.position.x, rect.position.y, rect.size.width, rect.size.height),
+	    GetMainPanel().position + Displacement { offset, -rect.size.height });
 
 	// Draw the filled part of the flask over the empty part
 	if (filledRows > 0) {
-		DrawFlaskAbovePanel(out, *BottomBuffer, { offset, FlaskTopRect.position.y + emptyRows }, GetMainPanel().position + Displacement { offset, -FlaskTopRect.size.height + emptyRows }, filledRows);
+		DrawFlaskAbovePanel(out,
+		    BottomBuffer->subregion(offset, rect.position.y + emptyRows, rect.size.width, filledRows),
+		    GetMainPanel().position + Displacement { offset, -rect.size.height + emptyRows });
 	}
 }
 
@@ -253,14 +259,12 @@ void DrawFlaskUpper(const Surface &out, const Surface &sourceBuffer, int offset,
  * of the flask getting empty. This function takes a cel and draws a
  * horizontal stripe of height (max-min) onto the given buffer.
  * @param out Target buffer.
- * @param position Buffer coordinate.
- * @param celBuf Buffer of the empty flask cel.
- * @param y0 Top of the flask cel section to draw.
- * @param y1 Bottom of the flask cel section to draw.
+ * @param celBuf Buffer of the flask cel.
+ * @param targetPosition Target buffer coordinate.
  */
-void DrawFlaskOnPanel(const Surface &out, Point position, const Surface &celBuf, int y0, int y1)
+void DrawFlaskOnPanel(const Surface &out, const Surface &celBuf, Point targetPosition)
 {
-	out.BlitFrom(celBuf, MakeSdlRect(0, static_cast<decltype(SDL_Rect {}.y)>(y0), celBuf.w(), y1 - y0), position);
+	out.BlitFrom(celBuf, MakeSdlRect(0, 0, celBuf.w(), celBuf.h()), targetPosition);
 }
 
 /**
@@ -270,13 +274,27 @@ void DrawFlaskOnPanel(const Surface &out, Point position, const Surface &celBuf,
  * @param sourceBuffer A sprite representing the appropriate background/empty flask style
  * @param offset X coordinate offset for where the flask should be drawn
  * @param fillPer How full the flask is (a value from 0 to 80)
+ * @param drawFilledPortion Indicates whether to draw the filled portion of the flask
  */
-void DrawFlaskLower(const Surface &out, const Surface &sourceBuffer, int offset, int fillPer)
+void DrawFlaskLower(const Surface &out, const Surface &sourceBuffer, int offset, int fillPer, bool drawFilledPortion)
 {
-	int filled = std::clamp(fillPer, 0, FlaskBottomRect.size.height);
+	const Rectangle &rect = FlaskBottomRect;
+	const int filledRows = std::clamp(fillPer, 0, rect.size.height);
+	const int emptyRows = rect.size.height - filledRows;
 
-	if (filled < FlaskBottomRect.size.height)
-		DrawFlaskOnPanel(out, GetMainPanel().position + Displacement { offset, 0 }, sourceBuffer, FlaskBottomRect.position.y, FlaskBottomRect.position.y + FlaskBottomRect.size.height - filled);
+	// Draw the empty part of the flask
+	if (emptyRows > 0) {
+		DrawFlaskOnPanel(out,
+		    sourceBuffer.subregion(rect.position.x, rect.position.y, rect.size.width, emptyRows),
+		    GetMainPanel().position + Displacement { offset, 0 });
+	}
+
+	// Draw the filled part of the flask
+	if (drawFilledPortion && filledRows > 0) {
+		DrawFlaskOnPanel(out,
+		    BottomBuffer->subregion(offset, rect.position.y + emptyRows, rect.size.width, filledRows),
+		    GetMainPanel().position + Displacement { offset, emptyRows });
+	}
 }
 
 void SetMainPanelButtonDown(int btnId)
@@ -323,6 +341,209 @@ void PrintInfo(const Surface &out)
 	    {
 	        .flags = InfoColor | UiFlags::AlignCenter | UiFlags::VerticalCenter | UiFlags::KerningFitSpacing,
 	        .spacing = 2,
+	        .lineHeight = lineHeight,
+	    });
+}
+
+Rectangle GetFloatingInfoRect(const int lineHeight, const int textSpacing)
+{
+	// Calculate the width and height of the floating info box
+	std::string txt = std::string(FloatingInfoString);
+
+	auto lines = SplitByChar(txt, '\n');
+	const GameFontTables font = GameFont12;
+	int maxW = 0;
+
+	for (const auto &line : lines) {
+		int w = GetLineWidth(line, font, textSpacing, nullptr);
+		maxW = std::max(maxW, w);
+	}
+
+	const auto lineCount = 1 + static_cast<int>(c_count(FloatingInfoString.str(), '\n'));
+	int totalH = lineCount * lineHeight;
+
+	Player &player = *InspectPlayer;
+
+	// 1) Equipment (Rect position)
+	if (pcursinvitem >= INVITEM_HEAD && pcursinvitem < INVITEM_INV_FIRST) {
+		int slot = pcursinvitem - INVITEM_HEAD;
+		static constexpr Point equipLocal[] = {
+			{ 133, 59 },
+			{ 48, 205 },
+			{ 249, 205 },
+			{ 205, 60 },
+			{ 17, 160 },
+			{ 248, 160 },
+			{ 133, 160 },
+		};
+
+		Point itemPosition = equipLocal[slot];
+		auto &item = player.InvBody[slot];
+		Size frame = GetInvItemSize(item._iCurs + CURSOR_FIRSTITEM);
+
+		if (slot == INVLOC_HAND_LEFT) {
+			itemPosition.x += frame.width == InventorySlotSizeInPixels.width
+			    ? InventorySlotSizeInPixels.width
+			    : 0;
+			itemPosition.y += frame.height == 3 * InventorySlotSizeInPixels.height
+			    ? 0
+			    : -InventorySlotSizeInPixels.height;
+		} else if (slot == INVLOC_HAND_RIGHT) {
+			itemPosition.x += frame.width == InventorySlotSizeInPixels.width
+			    ? (InventorySlotSizeInPixels.width - 1)
+			    : 1;
+			itemPosition.y += frame.height == 3 * InventorySlotSizeInPixels.height
+			    ? 0
+			    : -InventorySlotSizeInPixels.height;
+		}
+
+		itemPosition.y++;                  // Align position to bottom left of the item graphic
+		itemPosition.x += frame.width / 2; // Align position to center of the item graphic
+		itemPosition.x -= maxW / 2;        // Align position to the center of the floating item info box
+
+		Point screen = GetPanelPosition(UiPanels::Inventory, itemPosition);
+
+		return { { screen.x, screen.y }, { maxW, totalH } };
+	}
+
+	// 2) Inventory grid (Rect position)
+	if (pcursinvitem >= INVITEM_INV_FIRST && pcursinvitem < INVITEM_INV_FIRST + InventoryGridCells) {
+		int itemIdx = pcursinvitem - INVITEM_INV_FIRST;
+
+		for (int j = 0; j < InventoryGridCells; ++j) {
+			if (player.InvGrid[j] > 0 && player.InvGrid[j] - 1 == itemIdx) {
+				Item &it = player.InvList[itemIdx];
+				Point itemPosition = InvRect[j + SLOTXY_INV_FIRST].position;
+
+				itemPosition.x += GetInventorySize(it).width * InventorySlotSizeInPixels.width / 2; // Align position to center of the item graphic
+				itemPosition.x -= maxW / 2;                                                         // Align position to the center of the floating item info box
+
+				Point screen = GetPanelPosition(UiPanels::Inventory, itemPosition);
+
+				return { { screen.x, screen.y }, { maxW, totalH } };
+			}
+		}
+	}
+
+	// 3) Belt (Rect position)
+	if (pcursinvitem >= INVITEM_BELT_FIRST && pcursinvitem < INVITEM_BELT_FIRST + MaxBeltItems) {
+		int itemIdx = pcursinvitem - INVITEM_BELT_FIRST;
+		for (int i = 0; i < MaxBeltItems; ++i) {
+			if (player.SpdList[i].isEmpty())
+				continue;
+			if (i != itemIdx)
+				continue;
+
+			Item &item = player.SpdList[i];
+			Point itemPosition = InvRect[i + SLOTXY_BELT_FIRST].position;
+
+			itemPosition.x += GetInventorySize(item).width * InventorySlotSizeInPixels.width / 2; // Align position to center of the item graphic
+			itemPosition.x -= maxW / 2;                                                           // Align position to the center of the floating item info box
+
+			Point screen = GetMainPanel().position + Displacement { itemPosition.x, itemPosition.y };
+
+			return { { screen.x, screen.y }, { maxW, totalH } };
+		}
+	}
+
+	// 4) Stash (Rect position)
+	if (pcursstashitem != StashStruct::EmptyCell) {
+		for (auto slot : StashGridRange) {
+			auto itemId = Stash.GetItemIdAtPosition(slot);
+			if (itemId == StashStruct::EmptyCell)
+				continue;
+			if (itemId != pcursstashitem)
+				continue;
+
+			Item &item = Stash.stashList[itemId];
+			Point itemPosition = GetStashSlotCoord(slot);
+			Size itemGridSize = GetInventorySize(item);
+
+			itemPosition.y += itemGridSize.height * (InventorySlotSizeInPixels.height + 1) - 1; // Align position to bottom left of the item graphic
+			itemPosition.x += itemGridSize.width * InventorySlotSizeInPixels.width / 2;         // Align position to center of the item graphic
+			itemPosition.x -= maxW / 2;                                                         // Align position to the center of the floating item info box
+
+			return { { itemPosition.x, itemPosition.y }, { maxW, totalH } };
+		}
+	}
+
+	return { { 0, 0 }, { 0, 0 } };
+}
+
+int GetHoverSpriteHeight()
+{
+	if (pcursinvitem >= INVITEM_HEAD && pcursinvitem < INVITEM_INV_FIRST) {
+		auto &it = (*InspectPlayer).InvBody[pcursinvitem - INVITEM_HEAD];
+		return GetInvItemSize(it._iCurs + CURSOR_FIRSTITEM).height + 1;
+	}
+	if (pcursinvitem >= INVITEM_INV_FIRST
+	    && pcursinvitem < INVITEM_INV_FIRST + InventoryGridCells) {
+		int idx = pcursinvitem - INVITEM_INV_FIRST;
+		auto &it = (*InspectPlayer).InvList[idx];
+		return GetInventorySize(it).height * (InventorySlotSizeInPixels.height + 1)
+		    - InventorySlotSizeInPixels.height;
+	}
+	if (pcursinvitem >= INVITEM_BELT_FIRST
+	    && pcursinvitem < INVITEM_BELT_FIRST + MaxBeltItems) {
+		int idx = pcursinvitem - INVITEM_BELT_FIRST;
+		auto &it = (*InspectPlayer).SpdList[idx];
+		return GetInventorySize(it).height * (InventorySlotSizeInPixels.height + 1)
+		    - InventorySlotSizeInPixels.height - 1;
+	}
+	if (pcursstashitem != StashStruct::EmptyCell) {
+		auto &it = Stash.stashList[pcursstashitem];
+		return GetInventorySize(it).height * (InventorySlotSizeInPixels.height + 1);
+	}
+	return InventorySlotSizeInPixels.height;
+}
+
+int ClampAboveOrBelow(int anchorY, int spriteH, int boxH, int pad, int linePad)
+{
+	int yAbove = anchorY - spriteH - boxH - pad;
+	int yBelow = anchorY + linePad / 2 + pad;
+	return (yAbove >= 0) ? yAbove : yBelow;
+}
+
+void PrintFloatingInfo(const Surface &out)
+{
+	if (ChatFlag)
+		return;
+	if (FloatingInfoString.empty())
+		return;
+
+	const int verticalSpacing = 3;
+	const int lineHeight = 12 + verticalSpacing;
+	const int textSpacing = 2;
+	const int hPadding = 5;
+	const int vPadding = 4;
+
+	Rectangle floatingInfoBox = GetFloatingInfoRect(lineHeight, textSpacing);
+
+	// Prevent the floating info box from going off-screen horizontally
+	floatingInfoBox.position.x = std::clamp(floatingInfoBox.position.x, hPadding, GetScreenWidth() - (floatingInfoBox.size.width + hPadding));
+
+	int spriteH = GetHoverSpriteHeight();
+	int anchorY = floatingInfoBox.position.y;
+	int boxH = floatingInfoBox.size.height;
+	int yAbove = anchorY - spriteH - boxH - vPadding;
+	int yBelow = anchorY + verticalSpacing / 2 + vPadding;
+
+	// Prevent the floating info box from going off-screen vertically
+	floatingInfoBox.position.y = ClampAboveOrBelow(anchorY, spriteH, floatingInfoBox.size.height, vPadding, verticalSpacing);
+
+	SpeakText(FloatingInfoString);
+
+	for (int i = 0; i < 3; i++)
+		DrawHalfTransparentRectTo(out, floatingInfoBox.position.x - hPadding, floatingInfoBox.position.y - vPadding, floatingInfoBox.size.width + hPadding * 2, floatingInfoBox.size.height + vPadding * 2);
+	DrawHalfTransparentVerticalLine(out, { floatingInfoBox.position.x - hPadding - 1, floatingInfoBox.position.y - vPadding - 1 }, floatingInfoBox.size.height + (vPadding * 2) + 2, PAL16_GRAY + 10);
+	DrawHalfTransparentVerticalLine(out, { floatingInfoBox.position.x + hPadding + floatingInfoBox.size.width, floatingInfoBox.position.y - vPadding - 1 }, floatingInfoBox.size.height + (vPadding * 2) + 2, PAL16_GRAY + 10);
+	DrawHalfTransparentHorizontalLine(out, { floatingInfoBox.position.x - hPadding, floatingInfoBox.position.y - vPadding - 1 }, floatingInfoBox.size.width + (hPadding * 2), PAL16_GRAY + 10);
+	DrawHalfTransparentHorizontalLine(out, { floatingInfoBox.position.x - hPadding, floatingInfoBox.position.y + vPadding + floatingInfoBox.size.height }, floatingInfoBox.size.width + (hPadding * 2), PAL16_GRAY + 10);
+
+	DrawString(out, FloatingInfoString, floatingInfoBox,
+	    {
+	        .flags = InfoColor | UiFlags::AlignCenter | UiFlags::VerticalCenter,
+	        .spacing = textSpacing,
 	        .lineHeight = lineHeight,
 	    });
 }
@@ -424,12 +645,6 @@ void AppendArenaOverview(std::string &ret)
 	}
 }
 
-const dungeon_type DungeonTypeForArena[] = {
-	dungeon_type::DTYPE_CATHEDRAL, // SL_ARENA_CHURCH
-	dungeon_type::DTYPE_HELL,      // SL_ARENA_HELL
-	dungeon_type::DTYPE_HELL,      // SL_ARENA_CIRCLE_OF_LIFE
-};
-
 std::string TextCmdArena(const std::string_view parameter)
 {
 	std::string ret;
@@ -457,7 +672,7 @@ std::string TextCmdArena(const std::string_view parameter)
 		return ret;
 	}
 
-	setlvltype = DungeonTypeForArena[arenaLevel - SL_FIRST_ARENA];
+	setlvltype = GetArenaLevelType(arenaLevel);
 	StartNewLvl(*MyPlayer, WM_DIABSETLVL, arenaLevel);
 	return ret;
 }
@@ -799,20 +1014,24 @@ void ToggleCharPanel()
 		OpenCharPanel();
 }
 
-void AddInfoBoxString(std::string_view str)
+void AddInfoBoxString(std::string_view str, bool floatingBox /*= false*/)
 {
-	if (InfoString.empty())
-		InfoString = str;
+	StringOrView &infoString = floatingBox ? FloatingInfoString : InfoString;
+
+	if (infoString.empty())
+		infoString = str;
 	else
-		InfoString = StrCat(InfoString, "\n", str);
+		infoString = StrCat(infoString, "\n", str);
 }
 
-void AddInfoBoxString(std::string &&str)
+void AddInfoBoxString(std::string &&str, bool floatingBox /*= false*/)
 {
-	if (InfoString.empty())
-		InfoString = std::move(str);
+	StringOrView &infoString = floatingBox ? FloatingInfoString : InfoString;
+
+	if (infoString.empty())
+		infoString = std::move(str);
 	else
-		InfoString = StrCat(InfoString, "\n", str);
+		infoString = StrCat(infoString, "\n", str);
 }
 
 Point GetPanelPosition(UiPanels panel, Point offset)
@@ -841,7 +1060,7 @@ void DrawPanelBox(const Surface &out, SDL_Rect srcRect, Point targetPosition)
 
 void DrawLifeFlaskUpper(const Surface &out)
 {
-	constexpr int LifeFlaskUpperOffset = 109;
+	constexpr int LifeFlaskUpperOffset = 107;
 	DrawFlaskUpper(out, *pLifeBuff, LifeFlaskUpperOffset, MyPlayer->_pHPPer);
 }
 
@@ -851,16 +1070,16 @@ void DrawManaFlaskUpper(const Surface &out)
 	DrawFlaskUpper(out, *pManaBuff, ManaFlaskUpperOffset, MyPlayer->_pManaPer);
 }
 
-void DrawLifeFlaskLower(const Surface &out)
+void DrawLifeFlaskLower(const Surface &out, bool drawFilledPortion)
 {
 	constexpr int LifeFlaskLowerOffset = 96;
-	DrawFlaskLower(out, *pLifeBuff, LifeFlaskLowerOffset, MyPlayer->_pHPPer);
+	DrawFlaskLower(out, *pLifeBuff, LifeFlaskLowerOffset, MyPlayer->_pHPPer, drawFilledPortion);
 }
 
-void DrawManaFlaskLower(const Surface &out)
+void DrawManaFlaskLower(const Surface &out, bool drawFilledPortion)
 {
-	constexpr int ManaFlaskLowerOffeset = 464;
-	DrawFlaskLower(out, *pManaBuff, ManaFlaskLowerOffeset, MyPlayer->_pManaPer);
+	constexpr int ManaFlaskLowerOffset = 464;
+	DrawFlaskLower(out, *pManaBuff, ManaFlaskLowerOffset, MyPlayer->_pManaPer, drawFilledPortion);
 }
 
 void DrawFlaskValues(const Surface &out, Point pos, int currValue, int maxValue)
@@ -941,6 +1160,7 @@ tl::expected<void, std::string> InitMainPanel()
 		buttonEnabled = false;
 	CharPanelButtonActive = false;
 	InfoString = StringOrView {};
+	FloatingInfoString = StringOrView {};
 	RedrawComponent(PanelDrawComponent::Health);
 	RedrawComponent(PanelDrawComponent::Mana);
 	CloseCharPanel();
@@ -1078,6 +1298,7 @@ void CheckPanelInfo()
 {
 	MainPanelFlag = false;
 	InfoString = StringOrView {};
+	FloatingInfoString = StringOrView {};
 
 	int totalButtons = IsChatAvailable() ? TotalMpMainPanelButtons : TotalSpMainPanelButtons;
 
@@ -1310,6 +1531,17 @@ void DrawInfoBox(const Surface &out)
 	}
 	if (!InfoString.empty())
 		PrintInfo(out);
+}
+
+void DrawFloatingInfoBox(const Surface &out)
+{
+	if (pcursinvitem == -1 && pcursstashitem == StashStruct::EmptyCell) {
+		FloatingInfoString = StringOrView {};
+		InfoColor = UiFlags::ColorWhite;
+	}
+
+	if (!FloatingInfoString.empty())
+		PrintFloatingInfo(out);
 }
 
 void CheckLevelButton()
@@ -1697,6 +1929,7 @@ void ResetChat()
 {
 	ChatFlag = false;
 	SDL_StopTextInput();
+	ChatCursor = {};
 	ChatInputState = std::nullopt;
 	sgbPlrTalkTbl = 0;
 	RedrawEverything();

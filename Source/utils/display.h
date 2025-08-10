@@ -26,7 +26,6 @@ extern SDLTextureUniquePtr texture;
 
 extern SDLPaletteUniquePtr Palette;
 extern SDL_Surface *PalSurface;
-extern unsigned int pal_surface_palette_version;
 extern DVL_API_FOR_TEST Size forceResolution;
 
 #ifdef USE_SDL1

@@ -93,8 +93,6 @@ void ProgressRenderForeground(int progress)
 
 bool UiProgressDialog(int (*fnfunc)())
 {
-	SetFadeLevel(256);
-
 	// Blit the background once and then free it.
 	ProgressLoadBackground();
 

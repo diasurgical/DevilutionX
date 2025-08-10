@@ -152,10 +152,6 @@ set(devilutionx_assets
   lua/inspect.lua
   lua/mods/clock/init.lua
   lua/repl_prelude.lua
-  nlevels/cutl5w.clx
-  nlevels/cutl6w.clx
-  nlevels/l5data/cornerstone.dun
-  nlevels/l5data/uberroom.dun
   plrgfx/warrior/whu/whufm.trn
   plrgfx/warrior/whu/whulm.trn
   plrgfx/warrior/whu/whuqm.trn
@@ -178,18 +174,14 @@ set(devilutionx_assets
   txtdata/sound/effects.tsv
   txtdata/spells/spelldat.tsv
   ui_art/diablo.pal
-  ui_art/hellfire.pal
   ui_art/creditsw.clx
   ui_art/dvl_but_sml.clx
   ui_art/dvl_lrpopup.clx
-  ui_art/hf_titlew.clx
-  ui_art/mainmenuw.clx
-  ui_art/supportw.clx)
+  ui_art/mainmenuw.clx)
 
 if(NOT UNPACKED_MPQS)
   list(APPEND devilutionx_assets
-    data/inv/objcurs-widths.txt
-    data/inv/objcurs2-widths.txt)
+    data/inv/objcurs-widths.txt)
 endif()
 
 if(NOT USE_SDL1 AND NOT VITA)

@@ -12,12 +12,12 @@ namespace devilution {
 sol::table LuaRenderModule(sol::state_view &lua)
 {
 	sol::table table = lua.create_table();
-	SetDocumented(table, "string", "(text: string, x: integer, y: integer)",
+	LuaSetDocFn(table, "string", "(text: string, x: integer, y: integer)",
 	    "Renders a string at the given coordinates",
 	    [](std::string_view text, int x, int y) { DrawString(GlobalBackBuffer(), text, { x, y }); });
-	SetDocumented(table, "screen_width", "()",
+	LuaSetDocFn(table, "screen_width", "()",
 	    "Returns the screen width", []() { return gnScreenWidth; });
-	SetDocumented(table, "screen_height", "()",
+	LuaSetDocFn(table, "screen_height", "()",
 	    "Returns the screen height", []() { return gnScreenHeight; });
 	return table;
 }

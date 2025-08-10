@@ -7,6 +7,8 @@
 
 #include <cstdint>
 
+#include <SDL.h>
+
 #include "utils/ui_fwd.h"
 
 namespace devilution {
@@ -45,9 +47,9 @@ using SdlEventType = uint8_t;
 
 bool IsCustomEvent(SdlEventType eventType);
 
-interface_mode GetCustomEvent(SdlEventType eventType);
+interface_mode GetCustomEvent(const SDL_Event &event);
 
-SdlEventType CustomEventToSdlEvent(interface_mode eventType);
+void CustomEventToSdlEvent(SDL_Event &event, interface_mode eventType);
 
 enum Cutscenes : uint8_t {
 	CutStart,

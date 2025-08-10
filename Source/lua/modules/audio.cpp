@@ -1,4 +1,4 @@
-#include "lua/modules/render.hpp"
+#include "lua/modules/audio.hpp"
 
 #include <sol/sol.hpp>
 
@@ -19,10 +19,10 @@ bool IsValidSfx(int16_t psfx)
 sol::table LuaAudioModule(sol::state_view &lua)
 {
 	sol::table table = lua.create_table();
-	SetWithSignature(table,
+	LuaSetDocFn(table,
 	    "playSfx", "(id: number)",
 	    [](int16_t psfx) { if (IsValidSfx(psfx)) PlaySFX(static_cast<SfxID>(psfx)); });
-	SetWithSignature(table,
+	LuaSetDocFn(table,
 	    "playSfxLoc", "(id: number, x: number, y: number)",
 	    [](int16_t psfx, int x, int y) { if (IsValidSfx(psfx)) PlaySfxLoc(static_cast<SfxID>(psfx), { x, y }); });
 	return table;

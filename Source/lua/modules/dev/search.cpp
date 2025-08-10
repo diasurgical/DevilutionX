@@ -45,10 +45,10 @@ std::string DebugCmdClearSearch()
 sol::table LuaDevSearchModule(sol::state_view &lua)
 {
 	sol::table table = lua.create_table();
-	SetDocumented(table, "clear", "()", "Clear search results from the map.", &DebugCmdClearSearch);
-	SetDocumented(table, "item", "(name: string)", "Search the map for an item.", &DebugCmdSearchItem);
-	SetDocumented(table, "monster", "(name: string)", "Search the map for a monster.", &DebugCmdSearchMonster);
-	SetDocumented(table, "object", "(name: string)", "Search the map for an object.", &DebugCmdSearchObject);
+	LuaSetDocFn(table, "clear", "()", "Clear search results from the map.", &DebugCmdClearSearch);
+	LuaSetDocFn(table, "item", "(name: string)", "Search the map for an item.", &DebugCmdSearchItem);
+	LuaSetDocFn(table, "monster", "(name: string)", "Search the map for a monster.", &DebugCmdSearchMonster);
+	LuaSetDocFn(table, "object", "(name: string)", "Search the map for an object.", &DebugCmdSearchObject);
 	return table;
 }
 

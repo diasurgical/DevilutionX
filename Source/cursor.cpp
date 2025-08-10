@@ -38,6 +38,7 @@
 #include "utils/attributes.h"
 #include "utils/is_of.hpp"
 #include "utils/language.h"
+#include "utils/palette_blending.hpp"
 #include "utils/sdl_bilinear_scale.hpp"
 #include "utils/surface_to_clx.hpp"
 #include "utils/utf8.hpp"
@@ -73,7 +74,7 @@ bool IsValidMonsterForSelection(const Monster &monster)
 bool TrySelectMonster(bool flipflag, Point tile, tl::function_ref<bool(const Monster &)> isValidMonster)
 {
 	auto checkPosition = [&](SelectionRegion selectionRegion, Displacement displacement) {
-		Point posToCheck = tile + displacement;
+		const Point posToCheck = tile + displacement;
 		if (!InDungeonBounds(posToCheck) || dMonster[posToCheck.x][posToCheck.y] == 0)
 			return;
 		const uint16_t monsterId = std::abs(dMonster[posToCheck.x][posToCheck.y]) - 1;
@@ -101,7 +102,7 @@ bool TrySelectMonster(bool flipflag, Point tile, tl::function_ref<bool(const Mon
 bool TrySelectTowner(bool flipflag, Point tile)
 {
 	auto checkPosition = [&](Displacement displacement) {
-		Point posToCheck = tile + displacement;
+		const Point posToCheck = tile + displacement;
 		if (!InDungeonBounds(posToCheck) || dMonster[posToCheck.x][posToCheck.y] == 0)
 			return;
 		const uint16_t monsterId = std::abs(dMonster[posToCheck.x][posToCheck.y]) - 1;
@@ -275,7 +276,7 @@ bool TrySelectPixelBased(Point tile)
 		Displacement ret = Displacement(Direction::East) * renderingPoint.x;
 		// Rows
 		ret += Displacement(Direction::South) * renderingPoint.y / 2;
-		if (renderingPoint.y & 1)
+		if ((renderingPoint.y & 1) == 1)
 			ret.deltaY += 1;
 		return ret;
 	};
@@ -284,8 +285,8 @@ bool TrySelectPixelBased(Point tile)
 	// We search the rendered rows/columns backwards, because the last rendered tile overrides previous rendered pixels.
 	auto searchArea = PointsInRectangle(Rectangle { { -1, -1 }, { 3, 8 } });
 	for (auto it = searchArea.rbegin(); it != searchArea.rend(); ++it) {
-		Point renderingColumnRaw = *it;
-		Point adjacentTile = tile + convertFromRenderingToWorldTile(renderingColumnRaw);
+		const Point renderingColumnRaw = *it;
+		const Point adjacentTile = tile + convertFromRenderingToWorldTile(renderingColumnRaw);
 		if (!InDungeonBounds(adjacentTile))
 			continue;
 
@@ -296,7 +297,7 @@ bool TrySelectPixelBased(Point tile)
 			if (leveltype == DTYPE_TOWN) {
 				const Towner &towner = Towners[monsterId];
 				const ClxSprite sprite = towner.currentSprite();
-				Displacement renderingOffset = towner.getRenderingOffset();
+				const Displacement renderingOffset = towner.getRenderingOffset();
 				if (checkSprite(adjacentTile, sprite, renderingOffset)) {
 					cursPosition = adjacentTile;
 					pcursmonst = monsterId;
@@ -306,7 +307,7 @@ bool TrySelectPixelBased(Point tile)
 				const Monster &monster = Monsters[monsterId];
 				if (IsTileLit(adjacentTile) && IsValidMonsterForSelection(monster)) {
 					const ClxSprite sprite = monster.animInfo.currentSprite();
-					Displacement renderingOffset = monster.getRenderingOffset(sprite);
+					const Displacement renderingOffset = monster.getRenderingOffset(sprite);
 					if (checkSprite(adjacentTile, sprite, renderingOffset)) {
 						cursPosition = adjacentTile;
 						pcursmonst = monsterId;
@@ -373,10 +374,19 @@ bool TrySelectPixelBased(Point tile)
 }
 
 #ifndef UNPACKED_MPQS
-std::vector<uint16_t> ReadWidths(const char *path)
+std::vector<uint16_t> ReadWidths(AssetRef &&ref)
 {
-	size_t len;
-	const std::unique_ptr<char[]> data = LoadFileInMem<char>(path, &len);
+	const size_t len = ref.size();
+	if (len == 0) {
+		app_fatal("Missing widths");
+	}
+	std::unique_ptr<char[]> data { new char[len] };
+
+	AssetHandle handle = OpenAsset(std::move(ref));
+	if (!handle.ok() || !handle.read(data.get(), len)) {
+		app_fatal("Failed to load widths");
+	}
+
 	std::string_view str { data.get(), len };
 	std::vector<uint16_t> result;
 	while (!str.empty()) {
@@ -384,7 +394,7 @@ std::vector<uint16_t> ReadWidths(const char *path)
 		const ParseIntResult<uint16_t> parseResult = ParseInt<uint16_t>(str, std::numeric_limits<uint16_t>::min(),
 		    std::numeric_limits<uint16_t>::max(), &end);
 		if (!parseResult.has_value()) {
-			app_fatal(StrCat("Failed to parse ", path, ": [", str, "]"));
+			app_fatal(StrCat("Failed to parse width value from: [", str, "]"));
 		}
 		result.push_back(parseResult.value());
 		str.remove_prefix(end - str.data());
@@ -423,13 +433,12 @@ void InitCursor()
 	assert(!pCursCels);
 #ifdef UNPACKED_MPQS
 	pCursCels = LoadClx("data\\inv\\objcurs.clx");
-	if (gbIsHellfire) {
-		pCursCels2 = LoadClx("data\\inv\\objcurs2.clx");
-	}
+	pCursCels2 = LoadOptionalClx("data\\inv\\objcurs2.clx");
 #else
-	pCursCels = LoadCel("data\\inv\\objcurs", ReadWidths("data\\inv\\objcurs-widths.txt").data());
-	if (gbIsHellfire) {
-		pCursCels2 = LoadCel("data\\inv\\objcurs2", ReadWidths("data\\inv\\objcurs2-widths.txt").data());
+	pCursCels = LoadCel("data\\inv\\objcurs", ReadWidths(FindAsset("data\\inv\\objcurs-widths.txt")).data());
+	AssetRef ref = FindAsset("data\\inv\\objcurs2-widths.txt");
+	if (ref.ok()) {
+		pCursCels2 = LoadOptionalCel("data\\inv\\objcurs2", ReadWidths(std::move(ref)).data());
 	}
 #endif
 	ClearCursor();
@@ -449,7 +458,7 @@ ClxSprite GetInvItemSprite(int cursId)
 	if (static_cast<size_t>(cursId) <= numSprites) {
 		return (*pCursCels)[cursId - 1];
 	}
-	assert(gbIsHellfire);
+	assert(pCursCels2.has_value());
 	assert(cursId - numSprites <= pCursCels2->numSprites());
 	return (*pCursCels2)[cursId - numSprites - 1];
 }
@@ -475,7 +484,7 @@ void CreateHalfSizeItemSprites()
 	if (HalfSizeItemSprites != nullptr)
 		return;
 	const uint32_t numInvItems = pCursCels->numSprites() - (static_cast<uint32_t>(CURSOR_FIRSTITEM) - 1)
-	    + (gbIsHellfire ? pCursCels2->numSprites() : 0);
+	    + (pCursCels2.has_value() ? pCursCels2->numSprites() : 0);
 	HalfSizeItemSprites = new OptionalOwnedClxSpriteList[numInvItems];
 	HalfSizeItemSpritesRed = new OptionalOwnedClxSpriteList[numInvItems];
 	const uint8_t *redTrn = GetInfravisionTRN();
@@ -512,7 +521,7 @@ void CreateHalfSizeItemSprites()
 	for (size_t i = static_cast<int>(CURSOR_FIRSTITEM) - 1, n = pCursCels->numSprites(); i < n; ++i, ++outputIndex) {
 		createHalfSize((*pCursCels)[i], outputIndex);
 	}
-	if (gbIsHellfire) {
+	if (pCursCels2.has_value()) {
 		for (size_t i = 0, n = pCursCels2->numSprites(); i < n; ++i, ++outputIndex) {
 			createHalfSize((*pCursCels2)[i], outputIndex);
 		}

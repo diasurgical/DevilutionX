@@ -22,6 +22,7 @@
 #include "doom.h"
 #include "engine/point.hpp"
 #include "engine/points_in_rectangle_range.hpp"
+#include "game_mode.hpp"
 #include "gmenu.h"
 #include "help.h"
 #include "hwcursor.hpp"

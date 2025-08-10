@@ -391,7 +391,7 @@ void UnPackPlayer(const PlayerPack &packed, Player &player)
 	// Only read spell levels for learnable spells (Diablo)
 	for (int i = 0; i < 37; i++) { // Should be MAX_SPELLS but set to 36 to make save games compatible
 		auto spl = static_cast<SpellID>(i);
-		if (GetSpellData(spl).sBookLvl != -1)
+		if (GetSpellBookLevel(spl) != -1)
 			player._pSplLvl[i] = packed.pSplLvl[i];
 		else
 			player._pSplLvl[i] = 0;
@@ -399,7 +399,7 @@ void UnPackPlayer(const PlayerPack &packed, Player &player)
 	// Only read spell levels for learnable spells (Hellfire)
 	for (int i = 37; i < 47; i++) {
 		auto spl = static_cast<SpellID>(i);
-		if (GetSpellData(spl).sBookLvl != -1)
+		if (GetSpellBookLevel(spl) != -1)
 			player._pSplLvl[i] = packed.pSplLvl2[i - 37];
 		else
 			player._pSplLvl[i] = 0;

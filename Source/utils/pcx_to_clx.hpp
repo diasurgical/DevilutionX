@@ -3,6 +3,8 @@
 #include <cstdint>
 #include <optional>
 
+#include <SDL.h>
+
 #include "engine/assets.hpp"
 #include "engine/clx_sprite.hpp"
 

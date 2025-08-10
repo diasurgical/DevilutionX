@@ -21,11 +21,12 @@
 #include "engine/clx_sprite.hpp"
 #include "engine/dx.h"
 #include "engine/load_pcx.hpp"
+#include "engine/palette.h"
 #include "engine/render/clx_render.hpp"
 #include "engine/render/text_render.hpp"
 #include "engine/ticks.hpp"
 #include "hwcursor.hpp"
-#include "init.h"
+#include "init.hpp"
 #include "utils/algorithm/container.hpp"
 #include "utils/display.h"
 #include "utils/is_of.hpp"
@@ -89,9 +90,6 @@ bool UiItemsWraps;
 std::optional<TextInputState> UiTextInputState;
 bool allowEmptyTextInput = false;
 
-uint32_t fadeTc;
-int fadeValue = 0;
-
 struct ScrollBarState {
 	bool upArrowPressed;
 	bool downArrowPressed;
@@ -109,6 +107,49 @@ void AdjustListOffset(std::size_t itemIndex)
 		listOffset = itemIndex - (ListViewportSize - 1);
 	if (itemIndex < listOffset)
 		listOffset = itemIndex;
+}
+
+uint32_t fadeTc;
+int fadeValue;
+
+void StartUiFadeIn()
+{
+	fadeValue = 0;
+	fadeTc = 0;
+}
+
+void UiUpdateFadePalette()
+{
+	if (fadeValue == 256) return;
+	if (fadeValue == 0 && fadeTc == 0) {
+		// Start the fade-in.
+		fadeTc = SDL_GetTicks();
+		fadeValue = 0;
+		BlackPalette();
+		// We can skip hardware cursor update for fade level 0 (everything is black).
+		return;
+	}
+
+	const int prevFadeValue = fadeValue;
+	fadeValue = static_cast<int>((SDL_GetTicks() - fadeTc) / 2.083); // 32 frames @ 60hz
+	if (fadeValue == prevFadeValue) return;
+
+	if (fadeValue >= 256) {
+		// Finish the fade-in:
+		fadeValue = 256;
+		fadeTc = 0;
+		ApplyGlobalBrightness(system_palette.data(), logical_palette.data());
+		SystemPaletteUpdated();
+		if (IsHardwareCursor()) ReinitializeHardwareCursor();
+		return;
+	}
+
+	SDL_Color palette[256];
+	ApplyGlobalBrightness(palette, logical_palette.data());
+	ApplyFadeLevel(fadeValue, system_palette.data(), palette);
+
+	SystemPaletteUpdated();
+	if (IsHardwareCursor()) ReinitializeHardwareCursor();
 }
 
 } // namespace
@@ -338,15 +379,17 @@ bool HandleMenuAction(MenuAction menuAction)
 
 void UiOnBackgroundChange()
 {
-	fadeTc = 0;
-	fadeValue = 0;
-
-	BlackPalette();
+	StartUiFadeIn();
 
 	if (IsHardwareCursorEnabled() && ArtCursor && ControlDevice == ControlTypes::KeyboardAndMouse && GetCurrentCursorInfo().type() != CursorType::UserInterface) {
 		SetHardwareCursor(CursorInfo::UserInterfaceCursor());
 	}
 
+	// It may take some time to get to the first `UiFadeIn()` call from here
+	// if there is non-trivial initialization work, such as loading the list
+	// of single-player characters.
+	//
+	// Black out the screen immediately to make it appear more smooth.
 	SDL_FillRect(DiabloUiSurface(), nullptr, 0x000000);
 	if (DiabloUiSurface() == PalSurface)
 		BltFast(nullptr, nullptr);
@@ -546,9 +589,8 @@ void LoadHeros()
 
 void LoadUiGFX()
 {
-	if (gbIsHellfire) {
-		ArtLogo = LoadPcxSpriteList("ui_art\\hf_logo2", /*numFrames=*/16, /*transparentColor=*/0);
-	} else {
+	ArtLogo = LoadPcxSpriteList("ui_art\\hf_logo2", /*numFrames=*/16, /*transparentColor=*/0, nullptr, false);
+	if (!ArtLogo.has_value()) {
 		ArtLogo = LoadPcxSpriteList("ui_art\\smlogo", /*numFrames=*/15, /*transparentColor=*/250);
 	}
 	DifficultyIndicator = LoadPcx("ui_art\\r1_gry", /*transparentColor=*/0);
@@ -652,8 +694,8 @@ Sint16 GetCenterOffset(Sint16 w, Sint16 bw)
 
 void UiLoadDefaultPalette()
 {
-	LoadPalette(gbIsHellfire ? "ui_art\\hellfire.pal" : "ui_art\\diablo.pal", /*blend=*/false);
-	ApplyToneMapping(logical_palette, orig_palette, 256);
+	LoadPalette("ui_art\\diablo.pal");
+	UpdateSystemPalette(logical_palette);
 }
 
 bool UiLoadBlackBackground()
@@ -667,13 +709,11 @@ bool UiLoadBlackBackground()
 void LoadBackgroundArt(const char *pszFile, int frames)
 {
 	ArtBackground = std::nullopt;
-	SDL_Color pPal[256];
-	ArtBackground = LoadPcxSpriteList(pszFile, static_cast<uint16_t>(frames), /*transparentColor=*/std::nullopt, pPal);
+	ArtBackground = LoadPcxSpriteList(pszFile, static_cast<uint16_t>(frames), /*transparentColor=*/std::nullopt, logical_palette.data());
 	if (!ArtBackground)
 		return;
 
-	LoadPalInMem(pPal);
-	ApplyToneMapping(logical_palette, orig_palette, 256);
+	UpdateSystemPalette(logical_palette);
 	UiOnBackgroundChange();
 }
 
@@ -696,23 +736,11 @@ void UiAddLogo(std::vector<std::unique_ptr<UiItemBase>> *vecDialog, int y)
 
 void UiFadeIn()
 {
-	if (fadeValue < 256) {
-		if (fadeValue == 0 && fadeTc == 0)
-			fadeTc = SDL_GetTicks();
-		const int prevFadeValue = fadeValue;
-		fadeValue = static_cast<int>((SDL_GetTicks() - fadeTc) / 2.083); // 32 frames @ 60hz
-		if (fadeValue > 256) {
-			fadeValue = 256;
-			fadeTc = 0;
-		}
-		if (fadeValue != prevFadeValue) {
-			// We can skip hardware cursor update for fade level 0 (everything is black).
-			SetFadeLevel(fadeValue, /*updateHardwareCursor=*/fadeValue != 0);
-		}
-	}
-
-	if (DiabloUiSurface() == PalSurface)
+	if (HeadlessMode) return;
+	UiUpdateFadePalette();
+	if (DiabloUiSurface() == PalSurface) {
 		BltFast(nullptr, nullptr);
+	}
 	RenderPresent();
 }
 
@@ -765,7 +793,7 @@ void UiPollAndRender(std::optional<tl::function_ref<bool(SDL_Event &)>> eventHan
 	UiFadeIn();
 
 	// Must happen after at least one call to `UiFadeIn` with non-zero fadeValue.
-	// `UiFadeIn` calls `SetFadeLevel` which reinitializes the hardware cursor.
+	// `UiFadeIn` reinitializes the hardware cursor only for fadeValue > 0.
 	if (IsHardwareCursor() && fadeValue != 0)
 		SetHardwareCursorVisible(ControlDevice == ControlTypes::KeyboardAndMouse);
 
@@ -1009,13 +1037,6 @@ bool HandleMouseEvent(const SDL_Event &event, UiItemBase *item)
 }
 
 } // namespace
-
-void LoadPalInMem(const SDL_Color *pPal)
-{
-	for (int i = 0; i < 256; i++) {
-		orig_palette[i] = pPal[i];
-	}
-}
 
 void UiRenderItem(const UiItemBase &item)
 {

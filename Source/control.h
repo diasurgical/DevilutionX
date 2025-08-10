@@ -51,6 +51,7 @@ extern bool ChatFlag;
 extern bool SpellbookFlag;
 extern bool CharFlag;
 extern StringOrView InfoString;
+extern StringOrView FloatingInfoString;
 extern bool MainPanelFlag;
 extern bool MainPanelButtonDown;
 extern bool SpellSelectFlag;
@@ -83,8 +84,8 @@ inline bool CanPanelsCoverView()
 	return GetScreenWidth() <= mainPanel.size.width && GetScreenHeight() <= SidePanelSize.height + mainPanel.size.height;
 }
 
-void AddInfoBoxString(std::string_view str);
-void AddInfoBoxString(std::string &&str);
+void AddInfoBoxString(std::string_view str, bool floatingBox = false);
+void AddInfoBoxString(std::string &&str, bool floatingBox = false);
 void DrawPanelBox(const Surface &out, SDL_Rect srcRect, Point targetPosition);
 Point GetPanelPosition(UiPanels panel, Point offset = { 0, 0 });
 
@@ -100,7 +101,7 @@ void DrawLifeFlaskUpper(const Surface &out);
  * First sets the fill amount then draws the empty flask cel portion then the filled
  * flask portion.
  */
-void DrawLifeFlaskLower(const Surface &out);
+void DrawLifeFlaskLower(const Surface &out, bool drawFilledPortion);
 
 /**
  * Draws the top dome of the mana flask (that part that protrudes out of the control panel).
@@ -112,7 +113,7 @@ void DrawManaFlaskUpper(const Surface &out);
 /**
  * Controls the drawing of the area of the mana flask within the control panel.
  */
-void DrawManaFlaskLower(const Surface &out);
+void DrawManaFlaskLower(const Surface &out, bool drawFilledPortion);
 
 /**
  * Controls drawing of current / max values (health, mana) within the control panel.
@@ -168,6 +169,7 @@ void FreeControlPan();
  * Sets a string to be drawn in the info box and then draws it.
  */
 void DrawInfoBox(const Surface &out);
+void DrawFloatingInfoBox(const Surface &out);
 void CheckLevelButton();
 void CheckLevelButtonUp();
 void DrawLevelButton(const Surface &out);

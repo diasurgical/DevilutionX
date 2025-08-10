@@ -3,6 +3,7 @@
  *
  * Implementation of functions for keeping multiplaye games in sync.
  */
+#include "multi.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -19,10 +20,14 @@
 #include "engine/point.hpp"
 #include "engine/random.hpp"
 #include "engine/world_tile.hpp"
+#include "game_mode.hpp"
 #include "menu.h"
+#include "monster.h"
+#include "msg.h"
 #include "nthread.h"
 #include "options.h"
 #include "pfile.h"
+#include "player.h"
 #include "plrmsg.h"
 #include "qol/chatlog.h"
 #include "storm/storm_net.hpp"
@@ -272,6 +277,7 @@ void PlayerLeftMsg(Player &player, bool left)
 	RemovePortalMissile(player);
 	DeactivatePortal(player);
 	delta_close_portal(player);
+	RemoveEnemyReferences(player);
 	RemovePlrMissiles(player);
 	if (left) {
 		std::string_view pszFmt = _("Player '{:s}' just left the game");
@@ -342,7 +348,7 @@ void BeginTimeout()
 void HandleAllPackets(uint8_t pnum, const std::byte *data, size_t size)
 {
 	for (size_t offset = 0; offset < size;) {
-		size_t messageSize = ParseCmd(pnum, reinterpret_cast<const TCmd *>(&data[offset]));
+		size_t messageSize = ParseCmd(pnum, reinterpret_cast<const TCmd *>(&data[offset]), size - offset);
 		if (messageSize == 0) {
 			break;
 		}

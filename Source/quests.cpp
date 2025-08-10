@@ -208,10 +208,12 @@ void PrintQLString(const Surface &out, int x, int y, std::string_view str, bool 
 	}
 }
 
+std::array<Color, 32> PureWaterPalette;
+
 void StartPWaterPurify()
 {
 	PlaySfxLoc(SfxID::QuestDone, MyPlayer->position.tile);
-	LoadPalette("levels\\l3data\\l3pwater.pal", false);
+	LoadFileInMem("levels\\l3data\\l3pwater.pal", PureWaterPalette);
 	UpdatePWaterPalette();
 	WaterDone = 32;
 }
@@ -524,15 +526,17 @@ void LoadPWaterPalette()
 		return;
 
 	if (Quests[Q_PWATER]._qactive == QUEST_DONE)
-		LoadPalette("levels\\l3data\\l3pwater.pal");
+		LoadPaletteAndInitBlending("levels\\l3data\\l3pwater.pal");
 	else
-		LoadPalette("levels\\l3data\\l3pfoul.pal");
+		LoadPaletteAndInitBlending("levels\\l3data\\l3pfoul.pal");
 }
 
 void UpdatePWaterPalette()
 {
 	if (WaterDone > 0) {
-		palette_update_quest_palette(WaterDone);
+		// `WaterDone` is in [1, 32], so `colorIndex` is in [0, 31].
+		const unsigned colorIndex = 32 - WaterDone;
+		SetLogicalPaletteColor(colorIndex, PureWaterPalette[colorIndex].toSDL());
 		WaterDone--;
 		return;
 	}

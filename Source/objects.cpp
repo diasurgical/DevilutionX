@@ -2437,9 +2437,8 @@ void OperateShrineEnchanted(DiabloGenerator &rng, Player &player)
 
 	int cnt = 0;
 	uint64_t spell = 1;
-	uint8_t maxSpells = gbIsHellfire ? MAX_SPELLS : 37;
 	uint64_t spells = player._pMemSpells;
-	for (uint16_t j = 0; j < maxSpells; j++) {
+	for (uint16_t j = 0; j < SpellsData.size(); j++) {
 		if ((spell & spells) != 0)
 			cnt++;
 		spell *= 2;
@@ -2447,11 +2446,11 @@ void OperateShrineEnchanted(DiabloGenerator &rng, Player &player)
 	if (cnt > 1) {
 		int spellToReduce;
 		do {
-			spellToReduce = rng.generateRnd(maxSpells) + 1;
+			spellToReduce = rng.generateRnd(SpellsData.size()) + 1;
 		} while ((player._pMemSpells & GetSpellBitmask(static_cast<SpellID>(spellToReduce))) == 0);
 
 		spell = 1;
-		for (uint8_t j = static_cast<uint8_t>(SpellID::Firebolt); j < maxSpells; j++) {
+		for (uint8_t j = static_cast<uint8_t>(SpellID::Firebolt); j < SpellsData.size(); j++) {
 			if ((player._pMemSpells & spell) != 0 && player._pSplLvl[j] < MaxSpellLevel && j != spellToReduce) {
 				uint8_t newSpellLevel = static_cast<uint8_t>(player._pSplLvl[j] + 1);
 				player._pSplLvl[j] = newSpellLevel;

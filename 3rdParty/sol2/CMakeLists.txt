@@ -1,11 +1,23 @@
 include(functions/FetchContent_ExcludeFromAll_backport)
+include(FetchContent)
 
 set(SOL2_ENABLE_INSTALL OFF)
+set(SOL2_BUILD_LUA OFF)
+set(SOL2_LUA_VERSION "${LUA_VERSION_STRING}")
 
-include(FetchContent)
 FetchContent_Declare_ExcludeFromAll(sol2
-    URL https://github.com/ThePhD/sol2/archive/2b0d2fe8ba0074e16b499940c4f3126b9c7d3471.tar.gz
-    URL_HASH MD5=869937e96e7c739b89920d12256fef4f
+    # branch: devilutionx
+    # This is upstream c1f95a773c6f8f4fde8ca3efe872e7286afe4444 with the following PRs merged on top:
+    # https://github.com/ThePhD/sol2/pull/1712
+    # https://github.com/ThePhD/sol2/pull/1722
+    # https://github.com/ThePhD/sol2/pull/1676
+    # https://github.com/ThePhD/sol2/pull/1704
+    # https://github.com/ThePhD/sol2/pull/1705
+    # https://github.com/ThePhD/sol2/pull/1716
+    # https://github.com/ThePhD/sol2/pull/1674
+    # https://github.com/ThePhD/sol2/pull/1722
+    URL https://github.com/diasurgical/sol2/archive/832ac772c2cd3d9620d447e9e77897f7b5e806e3.tar.gz
+    URL_HASH MD5=06c9c0f3242ee803f50e8fd210fdfe4e
 )
 FetchContent_MakeAvailable_ExcludeFromAll(sol2)
 

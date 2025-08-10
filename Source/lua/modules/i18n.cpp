@@ -13,17 +13,17 @@ namespace devilution {
 sol::table LuaI18nModule(sol::state_view &lua)
 {
 	sol::table table = lua.create_table();
-	SetDocumented(table, "language_code", "()",
+	LuaSetDocFn(table, "language_code", "()",
 	    "Returns the current language code", GetLanguageCode);
-	SetDocumented(table, "translate", "(text: string)",
+	LuaSetDocFn(table, "translate", "(text: string)",
 	    "Translates the given string", [](const char *key) { return LanguageTranslate(key); });
-	SetDocumented(table, "plural_translate", "(singular: string, plural: string, count: integer)",
+	LuaSetDocFn(table, "plural_translate", "(singular: string, plural: string, count: integer)",
 	    "Returns a singular or plural translation for the given keys and count", [](const char *singular, std::string_view plural, int count) {
 		    return fmt::format(fmt::runtime(LanguagePluralTranslate(singular, plural, count)), count);
 	    });
-	SetDocumented(table, "particular_translate", "(context: string, text: string)",
+	LuaSetDocFn(table, "particular_translate", "(context: string, text: string)",
 	    "Returns the translation for the given context identifier and key.", LanguageParticularTranslate);
-	SetDocumented(table, "is_small_font_tall", "()",
+	LuaSetDocFn(table, "is_small_font_tall", "()",
 	    "Whether the language's small font is tall (16px)", IsSmallFontTall);
 	return table;
 }

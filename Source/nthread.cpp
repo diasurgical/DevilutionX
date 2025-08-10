@@ -5,17 +5,19 @@
  */
 #include "nthread.h"
 
+#include <cstddef>
 #include <cstdint>
 
-#include <fmt/core.h>
+#include <SDL.h>
 
 #include "diablo.h"
+#include "engine/animationinfo.h"
 #include "engine/demomode.h"
+#include "game_mode.hpp"
 #include "gmenu.h"
 #include "storm/storm_net.hpp"
 #include "utils/sdl_mutex.h"
 #include "utils/sdl_thread.h"
-#include "utils/str_cat.hpp"
 
 namespace devilution {
 

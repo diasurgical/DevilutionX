@@ -36,6 +36,7 @@
 #include "loadsave.h"
 #include "minitext.h"
 #include "missiles.h"
+#include "monster.h"
 #include "nthread.h"
 #include "objects.h"
 #include "options.h"
@@ -358,6 +359,7 @@ void InitLevelChange(Player &player)
 {
 	Player &myPlayer = *MyPlayer;
 
+	RemoveEnemyReferences(player);
 	RemovePlrMissiles(player);
 	player.pManaShield = false;
 	player.wReflections = 0;
@@ -1443,7 +1445,7 @@ void ValidatePlayer()
 	}
 
 	uint64_t msk = 0;
-	for (int b = static_cast<int8_t>(SpellID::Firebolt); b < MAX_SPELLS; b++) {
+	for (size_t b = static_cast<size_t>(SpellID::Firebolt); b < SpellsData.size(); b++) {
 		if (GetSpellBookLevel((SpellID)b) != -1) {
 			msk |= GetSpellBitmask(static_cast<SpellID>(b));
 			if (myPlayer._pSplLvl[b] > MaxSpellLevel)
@@ -2868,16 +2870,10 @@ void SyncPlrKill(Player &player, DeathReason deathReason)
 
 void RemovePlrMissiles(const Player &player)
 {
-	if (leveltype != DTYPE_TOWN && &player == MyPlayer) {
-		Monster &golem = Monsters[MyPlayerId];
-		if (golem.position.tile.x != 1 || golem.position.tile.y != 0) {
-			KillMyGolem();
-			AddCorpse(golem.position.tile, golem.type().corpseId, golem.direction);
-			int mx = golem.position.tile.x;
-			int my = golem.position.tile.y;
-			dMonster[mx][my] = 0;
-			golem.isInvalid = true;
-			DeleteMonsterList();
+	if (leveltype != DTYPE_TOWN) {
+		Monster *golem;
+		while ((golem = FindGolemForPlayer(player)) != nullptr) {
+			KillGolem(*golem);
 		}
 	}
 
@@ -2922,7 +2918,7 @@ StartNewLvl(Player &player, interface_mode fom, int lvl)
 		player._pmode = PM_NEWLVL;
 		player._pInvincible = true;
 		SDL_Event event;
-		event.type = CustomEventToSdlEvent(fom);
+		CustomEventToSdlEvent(event, fom);
 		SDL_PushEvent(&event);
 		if (gbIsMultiplayer) {
 			NetSendCmdParam2(true, CMD_NEWLVL, fom, lvl);
@@ -2948,7 +2944,7 @@ void RestartTownLvl(Player &player)
 	if (&player == MyPlayer) {
 		player._pInvincible = true;
 		SDL_Event event;
-		event.type = CustomEventToSdlEvent(WM_DIABRETOWN);
+		CustomEventToSdlEvent(event, WM_DIABRETOWN);
 		SDL_PushEvent(&event);
 	}
 }
@@ -2973,7 +2969,7 @@ void StartWarpLvl(Player &player, size_t pidx)
 		player._pmode = PM_NEWLVL;
 		player._pInvincible = true;
 		SDL_Event event;
-		event.type = CustomEventToSdlEvent(WM_DIABWARPLVL);
+		CustomEventToSdlEvent(event, WM_DIABWARPLVL);
 		SDL_PushEvent(&event);
 	}
 }
@@ -3203,7 +3199,7 @@ void CheckPlrSpell(bool isShiftHeld, SpellID spellID, SpellType spellType)
 		LastMouseButtonAction = MouseActionType::Spell;
 		Direction sd = GetDirection(myPlayer.position.tile, cursPosition);
 		NetSendCmdLocParam4(true, CMD_SPELLXYD, cursPosition, static_cast<int8_t>(spellID), static_cast<uint8_t>(spellType), static_cast<uint16_t>(sd), spellFrom);
-	} else if (pcursmonst != -1 && !isShiftHeld) {
+	} else if (pcursmonst != -1 && !isShiftHeld && leveltype != DTYPE_TOWN) {
 		LastMouseButtonAction = MouseActionType::SpellMonsterTarget;
 		NetSendCmdParam4(true, CMD_SPELLID, pcursmonst, static_cast<int8_t>(spellID), static_cast<uint8_t>(spellType), spellFrom);
 	} else if (PlayerUnderCursor != nullptr && !isShiftHeld && !myPlayer.friendlyMode) {

@@ -205,7 +205,7 @@ endif()
 add_subdirectory(3rdParty/tl)
 
 if(NOT DEFINED DEVILUTIONX_SYSTEM_SHEENBIDI)
-  find_package(SheenBidi QUIET)
+  find_package(SheenBidi 2.9.0 QUIET)
   if(SheenBidi_FOUND)
     message("-- Found SheenBidi ${SheenBidi_VERSION}")
   else()

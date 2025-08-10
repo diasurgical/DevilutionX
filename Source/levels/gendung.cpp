@@ -74,10 +74,14 @@ namespace {
 std::unique_ptr<uint16_t[]> LoadMinData(size_t &tileCount)
 {
 	switch (leveltype) {
-	case DTYPE_TOWN:
-		if (gbIsHellfire)
-			return LoadFileInMem<uint16_t>("nlevels\\towndata\\town.min", &tileCount);
-		return LoadFileInMem<uint16_t>("levels\\towndata\\town.min", &tileCount);
+	case DTYPE_TOWN: {
+		auto min = LoadFileInMemWithStatus<uint16_t>("nlevels\\towndata\\town.min", &tileCount);
+		if (!min.has_value()) {
+			return LoadFileInMem<uint16_t>("levels\\towndata\\town.min", &tileCount);
+		} else {
+			return std::move(*min);
+		}
+	}
 	case DTYPE_CATHEDRAL:
 		return LoadFileInMem<uint16_t>("levels\\l1data\\l1.min", &tileCount);
 	case DTYPE_CATACOMBS:
@@ -437,9 +441,7 @@ tl::expected<void, std::string> LoadLevelSOLData()
 {
 	switch (leveltype) {
 	case DTYPE_TOWN:
-		if (gbIsHellfire) {
-			RETURN_IF_ERROR(LoadFileInMemWithStatus("nlevels\\towndata\\town.sol", SOLData));
-		} else {
+		if (!LoadFileInMemWithStatus("nlevels\\towndata\\town.sol", SOLData).has_value()) {
 			RETURN_IF_ERROR(LoadFileInMemWithStatus("levels\\towndata\\town.sol", SOLData));
 		}
 		break;
@@ -502,16 +504,16 @@ tl::expected<void, std::string> LoadLevelSOLData()
 	return {};
 }
 
-void SetDungeonMicros()
+void SetDungeonMicros(std::unique_ptr<std::byte[]> &dungeonCels, uint_fast8_t &microTileLen)
 {
-	MicroTileLen = 10;
+	microTileLen = 10;
 	size_t blocks = 10;
 
 	if (leveltype == DTYPE_TOWN) {
-		MicroTileLen = 16;
+		microTileLen = 16;
 		blocks = 16;
 	} else if (leveltype == DTYPE_HELL) {
-		MicroTileLen = 12;
+		microTileLen = 12;
 		blocks = 16;
 	}
 
@@ -537,7 +539,7 @@ void SetDungeonMicros()
 	c_sort(frameToTypeList, [](const std::pair<uint16_t, DunFrameInfo> &a, const std::pair<uint16_t, DunFrameInfo> &b) {
 		return a.first < b.first;
 	});
-	ReencodeDungeonCels(pDungeonCels, frameToTypeList);
+	ReencodeDungeonCels(dungeonCels, frameToTypeList);
 
 	std::vector<std::pair<uint16_t, uint16_t>> celBlockAdjustments = ComputeCelBlockAdjustments(frameToTypeList);
 	if (celBlockAdjustments.size() == 0) return;

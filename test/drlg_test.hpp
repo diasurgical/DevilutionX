@@ -7,6 +7,7 @@
 
 #include <gtest/gtest.h>
 
+#include "engine/assets.hpp"
 #include "engine/load_file.hpp"
 #include "levels/themes.h"
 #include "multi.h"
@@ -44,12 +45,13 @@ void LoadExpectedLevelData(const char *fixture)
 {
 	// Set look up path to the location to load set pieces from later:
 	paths::SetPrefPath(paths::BasePath() + "test/fixtures/");
+	LoadModArchives({});
 	DunData = LoadFileInMem<uint16_t>(fixture);
 	ASSERT_NE(DunData, nullptr) << "Unable to load test fixture " << fixture;
 	ASSERT_EQ(WorldTileSize(DMAXX, DMAXY), GetDunSize(DunData.get()));
 }
 
-void TestInitGame(bool fullQuests = true, bool originalCathedral = true)
+void TestInitGame(bool fullQuests = true, bool originalCathedral = true, bool hellfire = false)
 {
 	Players.resize(1);
 	MyPlayer = &Players[0];
@@ -57,6 +59,13 @@ void TestInitGame(bool fullQuests = true, bool originalCathedral = true)
 
 	sgGameInitInfo.fullQuests = fullQuests ? 1 : 0;
 	gbIsMultiplayer = !fullQuests;
+
+	UnloadModArchives();
+	if (hellfire) {
+		LoadModArchives({ { "Hellfire" } });
+	} else {
+		LoadModArchives({});
+	}
 
 	InitQuests();
 }

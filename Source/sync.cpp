@@ -10,6 +10,7 @@
 #include "levels/gendung.h"
 #include "lighting.h"
 #include "monster.h"
+#include "monsters/validation.hpp"
 #include "player.h"
 #include "utils/is_of.hpp"
 
@@ -69,7 +70,7 @@ bool SyncMonsterActive(TSyncMonster &monsterSync)
 		return false;
 	}
 
-	SyncMonsterPos(monsterSync, ndx);
+	SyncMonsterPos(monsterSync, static_cast<int>(ndx));
 	return true;
 }
 
@@ -94,7 +95,7 @@ bool SyncMonsterActive2(TSyncMonster &monsterSync)
 		return false;
 	}
 
-	SyncMonsterPos(monsterSync, ndx);
+	SyncMonsterPos(monsterSync, static_cast<int>(ndx));
 	return true;
 }
 
@@ -160,7 +161,7 @@ void SyncMonster(bool isOwner, const TSyncMonster &monsterSync)
 	}
 
 	const Point position { monsterSync._mx, monsterSync._my };
-	const int enemyId = monsterSync._menemy;
+	const uint8_t enemyId = monsterSync._menemy;
 
 	if (monster.activeForTicks != 0) {
 		uint32_t delta = MyPlayer->position.tile.ManhattanDistance(monster.position.tile);
@@ -202,38 +203,10 @@ void SyncMonster(bool isOwner, const TSyncMonster &monsterSync)
 	}
 
 	decode_enemy(monster, enemyId);
-	monster.whoHit |= monsterSync.mWhoHit;
+	monster.whoHit = static_cast<int8_t>(monster.whoHit | monsterSync.mWhoHit);
 }
 
-bool IsEnemyIdValid(const Monster &monster, int enemyId)
-{
-	if (enemyId < 0) {
-		return false;
-	}
-
-	if (enemyId < MAX_PLRS) {
-		return Players[enemyId].plractive;
-	}
-
-	enemyId -= MAX_PLRS;
-	if (static_cast<size_t>(enemyId) >= MaxMonsters) {
-		return false;
-	}
-
-	const Monster &enemy = Monsters[enemyId];
-
-	if (&enemy == &monster) {
-		return false;
-	}
-
-	if (enemy.hitPoints <= 0) {
-		return false;
-	}
-
-	return true;
-}
-
-bool IsTSyncMonsterValidate(const TSyncMonster &monsterSync)
+bool IsTSyncMonsterValid(const TSyncMonster &monsterSync)
 {
 	const size_t monsterId = monsterSync._mndx;
 
@@ -243,10 +216,15 @@ bool IsTSyncMonsterValidate(const TSyncMonster &monsterSync)
 	if (!InDungeonBounds({ monsterSync._mx, monsterSync._my }))
 		return false;
 
-	if (!IsEnemyIdValid(Monsters[monsterId], monsterSync._menemy))
+	if (!IsEnemyIdValid(monsterSync._menemy))
 		return false;
 
 	return true;
+}
+
+bool IsTSyncEnemyValid(const TSyncMonster &monsterSync)
+{
+	return IsEnemyValid(monsterSync._mndx, monsterSync._menemy);
 }
 
 } // namespace
@@ -263,7 +241,7 @@ size_t sync_all_monsters(std::byte *pbBuf, size_t dwMaxLen)
 		return dwMaxLen;
 	}
 
-	auto *pHdr = (TSyncHeader *)pbBuf;
+	auto *pHdr = reinterpret_cast<TSyncHeader *>(pbBuf);
 	pbBuf += sizeof(TSyncHeader);
 	dwMaxLen -= sizeof(TSyncHeader);
 
@@ -295,10 +273,12 @@ size_t sync_all_monsters(std::byte *pbBuf, size_t dwMaxLen)
 	return dwMaxLen;
 }
 
-uint32_t OnSyncData(const TCmd *pCmd, const Player &player)
+size_t OnSyncData(const TSyncHeader &header, size_t maxCmdSize, const Player &player)
 {
-	const auto &header = *reinterpret_cast<const TSyncHeader *>(pCmd);
 	const uint16_t wLen = SDL_SwapLE16(header.wLen);
+
+	if (!ValidateCmdSize(wLen + sizeof(header), maxCmdSize, player.getId()))
+		return maxCmdSize;
 
 	assert(gbBufferMsgs != 2);
 
@@ -310,20 +290,22 @@ uint32_t OnSyncData(const TCmd *pCmd, const Player &player)
 	}
 
 	assert(header.wLen % sizeof(TSyncMonster) == 0);
-	int monsterCount = wLen / sizeof(TSyncMonster);
+	int monsterCount = static_cast<int>(wLen / sizeof(TSyncMonster));
 
 	uint8_t level = header.bLevel;
 	bool syncLocalLevel = !MyPlayer->_pLvlChanging && GetLevelForMultiplayer(*MyPlayer) == level;
 
 	if (IsValidLevelForMultiplayer(level)) {
-		const auto *monsterSyncs = reinterpret_cast<const TSyncMonster *>(pCmd + sizeof(header));
+		const auto *monsterSyncs = reinterpret_cast<const TSyncMonster *>(&header + 1);
 		bool isOwner = player.getId() > MyPlayerId;
 
 		for (int i = 0; i < monsterCount; i++) {
-			if (!IsTSyncMonsterValidate(monsterSyncs[i]))
+			if (!IsTSyncMonsterValid(monsterSyncs[i]))
 				continue;
 
 			if (syncLocalLevel) {
+				if (!IsTSyncEnemyValid(monsterSyncs[i]))
+					continue;
 				SyncMonster(isOwner, monsterSyncs[i]);
 			}
 
@@ -336,7 +318,7 @@ uint32_t OnSyncData(const TCmd *pCmd, const Player &player)
 
 void sync_init()
 {
-	sgnMonsters = 16 * MyPlayerId;
+	sgnMonsters = static_cast<size_t>(16 * MyPlayerId);
 	memset(sgwLRU, 255, sizeof(sgwLRU));
 }
 

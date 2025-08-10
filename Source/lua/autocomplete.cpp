@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -13,7 +14,7 @@
 
 #include "appfat.h"
 #include "engine/assets.hpp"
-#include "lua/lua.hpp"
+#include "lua/lua_global.hpp"
 #include "lua/metadoc.hpp"
 #include "utils/algorithm/container.hpp"
 #include "utils/str_cat.hpp"
@@ -121,8 +122,36 @@ ValueInfo GetValueInfo(const sol::table &table, std::string_view key, const sol:
 	return info;
 }
 
+ValueInfo GetValueInfoForUserdata(const sol::userdata &obj, std::string_view key, const sol::object &value, std::optional<LuaUserdataMemberType> memberType)
+{
+	ValueInfo info;
+	if (value.get_type() == sol::type::userdata) {
+		info.callable = false;
+		return info;
+	}
+
+	if (std::optional<std::string> signature = GetLuaUserdataSignature(obj, key); signature.has_value()) {
+		info.signature = *std::move(signature);
+	}
+	if (std::optional<std::string> docstring = GetLuaUserdataDocstring(obj, key); docstring.has_value()) {
+		info.docstring = *std::move(docstring);
+	}
+	if (memberType.has_value()) {
+		info.callable = *memberType == LuaUserdataMemberType::MemberFunction;
+	} else {
+		info.callable = value.get_type() == sol::type::function;
+	}
+	return info;
+}
+
+struct UserdataQuery {
+	const sol::userdata *obj;
+	bool colonAccess;
+};
+
 void SuggestionsFromTable(const sol::table &table, std::string_view prefix,
-    size_t maxSuggestions, ankerl::unordered_dense::set<LuaAutocompleteSuggestion> &out)
+    size_t maxSuggestions, ankerl::unordered_dense::set<LuaAutocompleteSuggestion> &out,
+    std::optional<UserdataQuery> userdataQuery = std::nullopt)
 {
 	for (const auto &[key, value] : table) {
 		if (key.get_type() == sol::type::string) {
@@ -136,7 +165,20 @@ void SuggestionsFromTable(const sol::table &table, std::string_view prefix,
 			    || keyStr.find("☢") != std::string::npos
 			    || keyStr.find("🔩") != std::string::npos)
 				continue;
-			ValueInfo info = GetValueInfo(table, keyStr, value);
+			ValueInfo info;
+			std::optional<LuaUserdataMemberType> memberType;
+			if (userdataQuery.has_value()) {
+				memberType = GetLuaUserdataMemberType(*userdataQuery->obj, keyStr, value);
+				const bool requiresColonAccess = memberType.has_value()
+				    ? *memberType == LuaUserdataMemberType::MemberFunction
+				    : value.get_type() == sol::type::function;
+				if (userdataQuery->colonAccess != requiresColonAccess) {
+					continue;
+				}
+				info = GetValueInfoForUserdata(*userdataQuery->obj, keyStr, value, memberType);
+			} else {
+				info = GetValueInfo(table, keyStr, value);
+			}
 			std::string completionText = keyStr.substr(prefix.size());
 			LuaAutocompleteSuggestion suggestion { std::move(keyStr), std::move(completionText) };
 			if (info.callable) {
@@ -144,6 +186,9 @@ void SuggestionsFromTable(const sol::table &table, std::string_view prefix,
 				suggestion.cursorAdjust = -1;
 			}
 			if (!info.signature.empty()) {
+				if (memberType.has_value() && memberType != LuaUserdataMemberType::MemberFunction) {
+					StrAppend(suggestion.displayText, ": ");
+				}
 				StrAppend(suggestion.displayText, info.signature);
 			}
 			if (!info.docstring.empty()) {
@@ -164,18 +209,52 @@ void SuggestionsFromTable(const sol::table &table, std::string_view prefix,
 	}
 }
 
+void SuggestionsFromUserdata(UserdataQuery query, std::string_view prefix,
+    size_t maxSuggestions, ankerl::unordered_dense::set<LuaAutocompleteSuggestion> &out)
+{
+	const auto &meta = query.obj->get<std::optional<sol::object>>(sol::metatable_key);
+	if (meta.has_value() && meta->get_type() == sol::type::table) {
+		SuggestionsFromTable(meta->as<sol::table>(), prefix, maxSuggestions, out, query);
+	}
+}
+
+bool IsAlnum(char c)
+{
+	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9');
+}
+
+bool IsIdentifierChar(char c)
+{
+	return IsAlnum(c) || c == '_';
+}
+
+bool IsIdentifierOrExprChar(char c)
+{
+	return IsIdentifierChar(c) || c == '-' || c == '+' || c == '*' || c == '/' || c == '=';
+}
+
 } // namespace
 
-void GetLuaAutocompleteSuggestions(std::string_view text, const sol::environment &lua,
+void GetLuaAutocompleteSuggestions(std::string_view text, size_t cursorPos, const sol::environment &lua,
     size_t maxSuggestions, std::vector<LuaAutocompleteSuggestion> &out)
 {
 	out.clear();
-	if (text.empty()) return;
-	std::string_view token = GetLastToken(text);
-	const char prevChar = token.data() == text.data() ? '\0' : *(token.data() - 1);
+	const std::string_view textPrefix = text.substr(0, cursorPos);
+	if (textPrefix.empty()) return;
+	const std::string_view textSuffix = text.substr(cursorPos);
+	if (!textSuffix.empty()) {
+		const char c = textSuffix[0];
+		if (IsIdentifierOrExprChar(c) || (c == ' ' && textSuffix.size() > 1)) return;
+	}
+	if (textPrefix.size() >= 2 && textPrefix.back() == ' ' && IsIdentifierChar(textPrefix[textPrefix.size() - 2])) {
+		return;
+	}
+	std::string_view token = GetLastToken(textPrefix);
+	const char prevChar = token.data() == textPrefix.data() ? '\0' : *(token.data() - 1);
 	if (prevChar == '(' || prevChar == ',') return;
-	const size_t dotPos = token.rfind('.');
+	const size_t dotPos = token.find_last_of(".:");
 	const std::string_view prefix = token.substr(dotPos + 1);
+	const char completionChar = dotPos != std::string_view::npos ? token[dotPos] : '\0';
 	token.remove_suffix(token.size() - (dotPos == std::string_view::npos ? 0 : dotPos));
 
 	ankerl::unordered_dense::set<LuaAutocompleteSuggestion> suggestions;
@@ -192,13 +271,20 @@ void GetLuaAutocompleteSuggestions(std::string_view text, const sol::environment
 		}
 	} else {
 		std::optional<sol::object> obj = lua;
-		for (const std::string_view part : SplitByChar(token, '.')) {
-			obj = obj->as<sol::table>().get<std::optional<sol::object>>(part);
-			if (!obj.has_value() || obj->get_type() != sol::type::table)
-				return;
+		for (const std::string_view partDot : SplitByChar(token, '.')) {
+			for (const std::string_view part : SplitByChar(partDot, ':')) {
+				obj = obj->as<sol::table>().get<std::optional<sol::object>>(part);
+				if (!obj.has_value() || !(obj->get_type() == sol::type::table || obj->get_type() == sol::type::userdata)) {
+					return;
+				}
+			}
 		}
 		if (obj->get_type() == sol::type::table) {
 			addSuggestions(obj->as<sol::table>());
+		} else if (obj->get_type() == sol::type::userdata) {
+			const sol::userdata &data = obj->as<sol::userdata>();
+			SuggestionsFromUserdata(UserdataQuery { .obj = &data, .colonAccess = completionChar == ':' },
+			    prefix, maxSuggestions, suggestions);
 		}
 	}
 

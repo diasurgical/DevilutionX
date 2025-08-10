@@ -26,6 +26,7 @@
 #include "engine/backbuffer_state.hpp"
 #include "engine/dx.h"
 #include "engine/palette.h"
+#include "engine/render/scrollrt.h"
 #include "utils/file_util.h"
 #include "utils/log.hpp"
 #include "utils/paths.h"
@@ -66,7 +67,7 @@ void RedPalette()
 		system_palette[i].g = 0;
 		system_palette[i].b = 0;
 	}
-	palette_update();
+	SystemPaletteUpdated();
 	BltFast(nullptr, nullptr);
 	RenderPresent();
 }
@@ -75,7 +76,6 @@ void RedPalette()
 
 void CaptureScreen()
 {
-	SDL_Color palette[256];
 	std::string fileName;
 	const uint32_t startTime = SDL_GetTicks();
 
@@ -86,12 +86,12 @@ void CaptureScreen()
 		return;
 	}
 	DrawAndBlit();
-	PaletteGetEntries(256, palette);
+
+	std::array<SDL_Color, 256> origSystemPalette = system_palette;
 	RedPalette();
-	for (int i = 0; i < 256; i++) {
-		system_palette[i] = palette[i];
-	}
-	palette_update();
+
+	system_palette = origSystemPalette;
+	SystemPaletteUpdated();
 
 	const tl::expected<void, std::string> result =
 #if DEVILUTIONX_SCREENSHOT_FORMAT == DEVILUTIONX_SCREENSHOT_FORMAT_PCX

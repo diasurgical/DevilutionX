@@ -6,6 +6,7 @@
 #include "diablo.h"
 #include "engine/render/primitive_render.hpp"
 #include "engine/render/scrollrt.h"
+#include "game_mode.hpp"
 #include "gmenu.h"
 #include "inv.h"
 #include "panels/spell_book.hpp"

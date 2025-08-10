@@ -18,6 +18,7 @@
 #include <expected.hpp>
 
 #include "engine/assets.hpp"
+#include "game_mode.hpp"
 #include "options.h"
 #include "utils/log.hpp"
 #include "utils/math.h"
@@ -293,10 +294,10 @@ void music_start(_music_id nTrack)
 	music_stop();
 	if (!gbMusicOn)
 		return;
-	if (HaveSpawn())
-		trackPath = SpawnMusicTracks[nTrack];
-	else
+	if (HaveFullMusic())
 		trackPath = MusicTracks[nTrack];
+	else
+		trackPath = SpawnMusicTracks[nTrack];
 
 #ifdef DISABLE_STREAMING_MUSIC
 	const bool stream = false;
