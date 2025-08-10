@@ -630,7 +630,7 @@ void LoadPlayer(LoadHelper &file, Player &player)
 
 bool gbSkipSync = false;
 
-void LoadMonster(LoadHelper *file, Monster &monster, MonsterConversionData *monsterConversionData = nullptr)
+[[nodiscard]] bool LoadMonster(LoadHelper *file, Monster &monster, MonsterConversionData *monsterConversionData = nullptr)
 {
 	monster.levelType = file->NextLE<int32_t>();
 	monster.mode = static_cast<MonsterMode>(file->NextLE<int32_t>());
@@ -738,9 +738,52 @@ void LoadMonster(LoadHelper *file, Monster &monster, MonsterConversionData *mons
 	if (monster.mode == MonsterMode::Petrified)
 		monster.animInfo.isPetrified = true;
 
-	if (monster.isUnique() && !IsUniqueMonsterValid(monster)) {
-		// if the unique monster is no longer valid (e.g. because the loaded mods changed and the unique monsters changed as a consequence), then this monster will cease to be unique, but will otherwise maintain its properties
-		monster.uniqueType = UniqueMonsterType::None;
+	if (monster.isUnique()) {
+		// check if the unique monster is still valid (it could no longer be valid e.g. because the loaded mods changed and the unique monsters changed as a consequence)
+		const bool valid = IsUniqueMonsterValid(monster);
+		if (!valid) {
+			LogWarn("Unique monster no longer valid, skipping it.");
+			return false;
+		}
+	}
+
+	return true;
+}
+
+void LoadMonsters(LoadHelper &file, ankerl::unordered_dense::set<unsigned> &removedMonsterIds, const bool applyLight, LevelConversionData *levelConversionData)
+{
+	for (unsigned &monsterId : ActiveMonsters)
+		monsterId = file.NextBE<uint32_t>();
+
+	for (size_t i = 0; i < ActiveMonsterCount;) {
+		Monster &monster = Monsters[ActiveMonsters[i]];
+		MonsterConversionData *monsterConversionData = nullptr;
+		if (levelConversionData != nullptr)
+			monsterConversionData = &levelConversionData->monsterConversionData[ActiveMonsters[i]];
+		const bool valid = LoadMonster(&file, monster, monsterConversionData);
+		if (!valid) {
+			Monsters[ActiveMonsters[i]] = {};
+			removedMonsterIds.insert(ActiveMonsters[i]);
+			for (size_t j = i + 1; j < ActiveMonsterCount; j++) {
+				ActiveMonsters[j - 1] = ActiveMonsters[j];
+			}
+			--ActiveMonsterCount;
+			continue;
+		}
+
+		if (applyLight && monster.isUnique() && monster.lightId != NO_LIGHT)
+			Lights[monster.lightId].isInvalid = false;
+
+		i++;
+	}
+
+	for (const unsigned removedMonsterId : removedMonsterIds) {
+		for (size_t i = 0; i < ActiveMonsterCount; i++) {
+			Monster &activeMonster = Monsters[ActiveMonsters[i]];
+			if ((activeMonster.flags & MFLAG_TARGETS_MONSTER) != 0 && activeMonster.enemy == removedMonsterId) {
+				activeMonster.flags |= MFLAG_NO_ENEMY;
+			}
+		}
 	}
 }
 
@@ -1950,18 +1993,11 @@ tl::expected<void, std::string> LoadLevel(LevelConversionData *levelConversionDa
 	auto savedItemCount = file.NextBE<uint32_t>();
 	ActiveObjectCount = file.NextBE<int32_t>();
 
+	ankerl::unordered_dense::set<unsigned> removedMonsterIds;
+
 	if (leveltype != DTYPE_TOWN) {
-		for (unsigned &monsterId : ActiveMonsters)
-			monsterId = file.NextBE<uint32_t>();
-		for (size_t i = 0; i < ActiveMonsterCount; i++) {
-			Monster &monster = Monsters[ActiveMonsters[i]];
-			MonsterConversionData *monsterConversionData = nullptr;
-			if (levelConversionData != nullptr)
-				monsterConversionData = &levelConversionData->monsterConversionData[ActiveMonsters[i]];
-			LoadMonster(&file, monster, monsterConversionData);
-			if (monster.isUnique() && monster.lightId != NO_LIGHT)
-				Lights[monster.lightId].isInvalid = false;
-		}
+		LoadMonsters(file, removedMonsterIds, true, levelConversionData);
+
 		if (!gbSkipSync) {
 			for (size_t i = 0; i < ActiveMonsterCount; i++)
 				RETURN_IF_ERROR(SyncMonsterAnim(Monsters[ActiveMonsters[i]]));
@@ -1991,7 +2027,12 @@ tl::expected<void, std::string> LoadLevel(LevelConversionData *levelConversionDa
 	if (leveltype != DTYPE_TOWN) {
 		for (int j = 0; j < MAXDUNY; j++) {
 			for (int i = 0; i < MAXDUNX; i++) // NOLINT(modernize-loop-convert)
+			{
 				dMonster[i][j] = file.NextBE<int32_t>();
+				if (dMonster[i][j] > 0 && removedMonsterIds.contains(std::abs(dMonster[i][j]) - 1)) {
+					dMonster[i][j] = 0;
+				}
+			}
 		}
 		for (int j = 0; j < MAXDUNY; j++) {
 			for (int i = 0; i < MAXDUNX; i++) // NOLINT(modernize-loop-convert)
@@ -2469,13 +2510,13 @@ tl::expected<void, std::string> LoadGame(bool firstflag)
 	for (int &monstkill : MonsterKillCounts)
 		monstkill = file.NextBE<int32_t>();
 
+	ankerl::unordered_dense::set<unsigned> removedMonsterIds;
+
 	// skip ahead for vanilla save compatibility (Related to bugfix where MonsterKillCounts[MaxMonsters] was changed to MonsterKillCounts[NUM_MTYPES]
 	file.Skip(4 * (MaxMonsters - NUM_MTYPES));
 	if (leveltype != DTYPE_TOWN) {
-		for (unsigned &monsterId : ActiveMonsters)
-			monsterId = file.NextBE<uint32_t>();
-		for (size_t i = 0; i < ActiveMonsterCount; i++)
-			LoadMonster(&file, Monsters[ActiveMonsters[i]]);
+		LoadMonsters(file, removedMonsterIds, false, nullptr);
+
 		for (size_t i = 0; i < ActiveMonsterCount; i++)
 			SyncPackSize(Monsters[ActiveMonsters[i]]);
 		// Skip ActiveMissiles
@@ -2536,7 +2577,12 @@ tl::expected<void, std::string> LoadGame(bool firstflag)
 	if (leveltype != DTYPE_TOWN) {
 		for (int j = 0; j < MAXDUNY; j++) {
 			for (int i = 0; i < MAXDUNX; i++) // NOLINT(modernize-loop-convert)
+			{
 				dMonster[i][j] = file.NextBE<int32_t>();
+				if (dMonster[i][j] > 0 && removedMonsterIds.contains(std::abs(dMonster[i][j]) - 1)) {
+					dMonster[i][j] = 0;
+				}
+			}
 		}
 		for (int j = 0; j < MAXDUNY; j++) {
 			for (int i = 0; i < MAXDUNX; i++) // NOLINT(modernize-loop-convert)
