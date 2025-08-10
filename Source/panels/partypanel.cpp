@@ -232,7 +232,7 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 		    playerPortraitSprite,
 		    portraitPos);
 
-		if ((player.getId() + 1) < (*PlayerTags).numSprites()) {
+		if ((player.getId() + 1U) < (*PlayerTags).numSprites()) {
 			// Draw the player tag
 			int tagWidth = (*PlayerTags)[player.getId() + 1].width();
 			RenderClxSprite(
@@ -294,9 +294,9 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 
 bool DidRightClickPartyPortrait()
 {
-	for (int i = 0; i < sizeof(PortraitFrameRects) / sizeof(PortraitFrameRects[0]); i++) {
+	for (size_t i = 0; i < sizeof(PortraitFrameRects) / sizeof(PortraitFrameRects[0]); i++) {
 		if (PortraitFrameRects[i].contains(MousePosition)) {
-			RightClickedPortraitIndex = i;
+			RightClickedPortraitIndex = static_cast<int>(i);
 			InspectingFromPartyPanel = true;
 			return true;
 		}
