@@ -194,27 +194,4 @@ bool IsItemDeltaValid(const TCmdPItem &itemDelta)
 	return IsItemValid(*MyPlayer, item);
 }
 
-bool IsUniqueMonsterValid(const Monster &monster)
-{
-	assert(monster.isUnique());
-
-	const size_t uniqueMonsterIndex = static_cast<size_t>(monster.uniqueType);
-	if (uniqueMonsterIndex >= UniqueMonstersData.size()) {
-		return false;
-	}
-
-	const CMonster &monsterType = LevelMonsterTypes[monster.levelType];
-	const _monster_id monsterId = monsterType.type;
-	const UniqueMonsterData &uniqueMonsterData = UniqueMonstersData.at(uniqueMonsterIndex);
-	if (monsterId != uniqueMonsterData.mtype) {
-		return false;
-	}
-
-	if (uniqueMonsterData.mlevel != 0 && uniqueMonsterData.mlevel != currlevel) {
-		return false;
-	}
-
-	return true;
-}
-
 } // namespace devilution

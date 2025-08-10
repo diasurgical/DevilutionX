@@ -32,6 +32,7 @@
 #include "menu.h"
 #include "missiles.h"
 #include "monster.h"
+#include "monsters/validation.hpp"
 #include "mpq/mpq_common.hpp"
 #include "pfile.h"
 #include "playerdat.hpp"

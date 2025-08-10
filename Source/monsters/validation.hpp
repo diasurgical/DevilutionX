@@ -9,7 +9,10 @@
 
 namespace devilution {
 
+struct Monster;
+
 bool IsEnemyIdValid(size_t enemyId);
 bool IsEnemyValid(size_t monsterId, size_t enemyId);
+bool IsUniqueMonsterValid(const Monster &monster);
 
 } // namespace devilution
