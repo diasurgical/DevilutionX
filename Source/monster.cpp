@@ -69,7 +69,7 @@ Monster Monsters[MaxMonsters];
 unsigned ActiveMonsters[MaxMonsters];
 size_t ActiveMonsterCount;
 /** Tracks the total number of monsters killed per monster_id. */
-int MonsterKillCounts[NUM_MTYPES];
+int MonsterKillCounts[NUM_MAX_MTYPES];
 bool sgbSaveSoundOn;
 
 namespace {
@@ -3336,7 +3336,7 @@ tl::expected<void, std::string> GetLevelMTypes()
 			RETURN_IF_ERROR(AddMonsterType(MT_SKING, PLACE_UNIQUE));
 
 			int skeletonTypeCount = 0;
-			_monster_id skeltypes[NUM_MTYPES];
+			_monster_id skeltypes[NUM_MAX_MTYPES];
 			for (const _monster_id skeletonType : SkeletonTypes) {
 				if (!IsMonsterAvailable(MonstersData[skeletonType]))
 					continue;
@@ -3581,7 +3581,7 @@ tl::expected<void, std::string> InitMonsters()
 			numplacemonsters = MaxMonsters - 10 - ActiveMonsterCount;
 		totalmonsters = ActiveMonsterCount + numplacemonsters;
 		int numscattypes = 0;
-		size_t scattertypes[NUM_MTYPES];
+		size_t scattertypes[NUM_MAX_MTYPES];
 		for (size_t i = 0; i < LevelMonsterTypeCount; i++) {
 			if ((LevelMonsterTypes[i].placeFlags & PLACE_SCATTER) != 0) {
 				scattertypes[numscattypes] = i;

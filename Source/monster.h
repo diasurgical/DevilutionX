@@ -482,7 +482,7 @@ extern size_t LevelMonsterTypeCount;
 extern Monster Monsters[MaxMonsters];
 extern unsigned ActiveMonsters[MaxMonsters];
 extern size_t ActiveMonsterCount;
-extern int MonsterKillCounts[NUM_MTYPES];
+extern int MonsterKillCounts[NUM_MAX_MTYPES];
 extern bool sgbSaveSoundOn;
 
 tl::expected<void, std::string> PrepareUniqueMonst(Monster &monster, UniqueMonsterType monsterType, size_t miniontype, int bosspacksize, const UniqueMonsterData &uniqueMonsterData);

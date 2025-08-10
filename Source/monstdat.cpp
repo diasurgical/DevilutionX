@@ -22,7 +22,7 @@
 template <>
 struct magic_enum::customize::enum_range<devilution::_monster_id> {
 	static constexpr int min = devilution::MT_INVALID;
-	static constexpr int max = devilution::NUM_MTYPES;
+	static constexpr int max = devilution::NUM_DEFAULT_MTYPES;
 };
 
 namespace devilution {
@@ -35,9 +35,9 @@ constexpr uint16_t Uniq(_unique_items item)
 	return static_cast<uint16_t>(T_UNIQ) + item;
 }
 
-std::vector<std::string> MonsterSpritePaths;
-
 } // namespace
+
+std::vector<std::string> MonsterSpritePaths;
 
 const char *MonsterData::spritePath() const
 {
@@ -49,6 +49,9 @@ std::vector<MonsterData> MonstersData;
 
 /** Contains the data related to each unique monster ID. */
 std::vector<UniqueMonsterData> UniqueMonstersData;
+
+/** Contains the mapping between monster ID strings and indices, used for parsing additional monster data. */
+ankerl::unordered_dense::map<std::string, int16_t> AdditionalMonsterIdStringsToIndices;
 
 /**
  * Map between .DUN file value and monster type enum
@@ -219,10 +222,25 @@ tl::expected<_monster_id, std::string> ParseMonsterId(std::string_view value)
 	if (enumValueOpt.has_value()) {
 		return enumValueOpt.value();
 	}
+	const auto findIt = AdditionalMonsterIdStringsToIndices.find(std::string(value));
+	if (findIt != AdditionalMonsterIdStringsToIndices.end()) {
+		return static_cast<_monster_id>(findIt->second);
+	}
 	return tl::make_unexpected("Unknown enum value");
 }
 
 namespace {
+
+tl::expected<_monster_id, std::string> ParseMonsterIdIfNotEmpty(std::string_view value)
+{
+	if (value.empty()) {
+		return MT_INVALID;
+	}
+
+	return ParseMonsterId(value);
+}
+
+} // namespace
 
 tl::expected<MonsterAvailability, std::string> ParseMonsterAvailability(std::string_view value)
 {
@@ -231,8 +249,6 @@ tl::expected<MonsterAvailability, std::string> ParseMonsterAvailability(std::str
 	if (value == "Retail") return MonsterAvailability::Retail;
 	return tl::make_unexpected("Expected one of: Always, Never, or Retail");
 }
-
-} // namespace
 
 tl::expected<MonsterAIID, std::string> ParseAiId(std::string_view value)
 {
@@ -279,8 +295,6 @@ tl::expected<MonsterAIID, std::string> ParseAiId(std::string_view value)
 	return tl::make_unexpected("Unknown enum value");
 }
 
-namespace {
-
 tl::expected<monster_flag, std::string> ParseMonsterFlag(std::string_view value)
 {
 	if (value == "HIDDEN") return MFLAG_HIDDEN;
@@ -306,8 +320,6 @@ tl::expected<MonsterClass, std::string> ParseMonsterClass(std::string_view value
 	return tl::make_unexpected("Unknown enum value");
 }
 
-} // namespace
-
 tl::expected<monster_resistance, std::string> ParseMonsterResistance(std::string_view value)
 {
 	if (value == "RESIST_MAGIC") return RESIST_MAGIC;
@@ -320,8 +332,6 @@ tl::expected<monster_resistance, std::string> ParseMonsterResistance(std::string
 	return tl::make_unexpected("Unknown enum value");
 }
 
-namespace {
-
 tl::expected<SelectionRegion, std::string> ParseSelectionRegion(std::string_view value)
 {
 	if (value.empty()) return SelectionRegion::None;
@@ -331,7 +341,15 @@ tl::expected<SelectionRegion, std::string> ParseSelectionRegion(std::string_view
 	return tl::make_unexpected("Unknown enum value");
 }
 
-} // namespace
+tl::expected<uint16_t, std::string> ParseMonsterTreasure(std::string_view value)
+{
+	// TODO: Replace this hack with proper parsing once items have been migrated to data files.
+	if (value.empty()) return 0;
+	if (value == "None") return T_NODROP;
+	if (value == "Uniq(SKCROWN)") return Uniq(UITEM_SKCROWN);
+	if (value == "Uniq(CLEAVER)") return Uniq(UITEM_CLEAVER);
+	return tl::make_unexpected("Invalid value. NOTE: Parser is incomplete");
+}
 
 tl::expected<UniqueMonsterPack, std::string> ParseUniqueMonsterPack(std::string_view value)
 {
@@ -351,6 +369,7 @@ void LoadMonstDat()
 
 	MonstersData.clear();
 	MonstersData.reserve(dataFile.numRecords());
+	AdditionalMonsterIdStringsToIndices.clear();
 	ankerl::unordered_dense::map<std::string, size_t> spritePathToId;
 	for (DataFileRecord record : dataFile) {
 		RecordReader reader { record, filename };
@@ -395,20 +414,13 @@ void LoadMonstDat()
 		reader.readEnumList("resistance", monster.resistance, ParseMonsterResistance);
 		reader.readEnumList("resistanceHell", monster.resistanceHell, ParseMonsterResistance);
 		reader.readEnumList("selectionRegion", monster.selectionRegion, ParseSelectionRegion);
-
-		// treasure
-		// TODO: Replace this hack with proper parsing once items have been migrated to data files.
-		reader.read("treasure", monster.treasure, [](std::string_view value) -> tl::expected<uint16_t, std::string> {
-			if (value.empty()) return 0;
-			if (value == "None") return T_NODROP;
-			if (value == "Uniq(SKCROWN)") return Uniq(UITEM_SKCROWN);
-			if (value == "Uniq(CLEAVER)") return Uniq(UITEM_CLEAVER);
-			return tl::make_unexpected("Invalid value. NOTE: Parser is incomplete");
-		});
+		reader.read("treasure", monster.treasure, ParseMonsterTreasure);
 
 		reader.readInt("exp", monster.exp);
 	}
 	MonstersData.shrink_to_fit();
+
+	LuaEvent("MonsterDataLoaded");
 }
 
 void LoadUniqueMonstDat()

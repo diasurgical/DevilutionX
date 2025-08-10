@@ -10,12 +10,15 @@
 #include <string>
 #include <vector>
 
+#include <ankerl/unordered_dense.h>
 #include <expected.hpp>
 
 #include "cursor.h"
 #include "textdat.h"
 
 namespace devilution {
+
+enum monster_flag : uint16_t;
 
 enum class MonsterAIID : int8_t {
 	Zombie,
@@ -288,7 +291,8 @@ enum _monster_id : int16_t {
 	MT_FLESTHNG,
 	MT_REAPER,
 	MT_NAKRUL,
-	NUM_MTYPES,
+	NUM_DEFAULT_MTYPES,
+	NUM_MAX_MTYPES = 200, // same as MaxMonsters, for the sake of save game compability
 	MT_INVALID = -1,
 };
 
@@ -332,13 +336,20 @@ struct UniqueMonsterData {
 	_speech_id mtalkmsg;
 };
 
+extern std::vector<std::string> MonsterSpritePaths;
 extern std::vector<MonsterData> MonstersData;
+extern ankerl::unordered_dense::map<std::string, int16_t> AdditionalMonsterIdStringsToIndices;
 extern const _monster_id MonstConvTbl[];
 extern std::vector<UniqueMonsterData> UniqueMonstersData;
 
 tl::expected<_monster_id, std::string> ParseMonsterId(std::string_view value);
+tl::expected<MonsterAvailability, std::string> ParseMonsterAvailability(std::string_view value);
 tl::expected<MonsterAIID, std::string> ParseAiId(std::string_view value);
+tl::expected<monster_flag, std::string> ParseMonsterFlag(std::string_view value);
+tl::expected<MonsterClass, std::string> ParseMonsterClass(std::string_view value);
 tl::expected<monster_resistance, std::string> ParseMonsterResistance(std::string_view value);
+tl::expected<SelectionRegion, std::string> ParseSelectionRegion(std::string_view value);
+tl::expected<uint16_t, std::string> ParseMonsterTreasure(std::string_view value);
 tl::expected<UniqueMonsterPack, std::string> ParseUniqueMonsterPack(std::string_view value);
 void LoadMonsterData();
 

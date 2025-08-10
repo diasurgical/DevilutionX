@@ -2507,13 +2507,15 @@ tl::expected<void, std::string> LoadGame(bool firstflag)
 	ActiveMonsterCount = tmpNummonsters;
 	ActiveObjectCount = tmpNobjects;
 
-	for (int &monstkill : MonsterKillCounts)
+	for (size_t i = 0; i < MonstersData.size(); ++i) {
+		int &monstkill = MonsterKillCounts[i];
 		monstkill = file.NextBE<int32_t>();
+	}
 
 	ankerl::unordered_dense::set<unsigned> removedMonsterIds;
 
 	// skip ahead for vanilla save compatibility (Related to bugfix where MonsterKillCounts[MaxMonsters] was changed to MonsterKillCounts[NUM_MTYPES]
-	file.Skip(4 * (MaxMonsters - NUM_MTYPES));
+	file.Skip(4 * (MaxMonsters - MonstersData.size()));
 	if (leveltype != DTYPE_TOWN) {
 		LoadMonsters(file, removedMonsterIds, false, nullptr);
 
@@ -2776,10 +2778,12 @@ void SaveGameData(SaveWriter &saveWriter)
 		SaveQuest(&file, i);
 	for (int i = 0; i < MAXPORTAL; i++)
 		SavePortal(&file, i);
-	for (const int monstkill : MonsterKillCounts)
+	for (size_t i = 0; i < MonstersData.size(); ++i) {
+		const int monstkill = MonsterKillCounts[i];
 		file.WriteBE<int32_t>(monstkill);
+	}
 	// add padding for vanilla save compatibility (Related to bugfix where MonsterKillCounts[MaxMonsters] was changed to MonsterKillCounts[NUM_MTYPES]
-	file.Skip(4 * (MaxMonsters - NUM_MTYPES));
+	file.Skip(4 * (MaxMonsters - MonstersData.size()));
 
 	if (leveltype != DTYPE_TOWN) {
 		for (const unsigned monsterId : ActiveMonsters)

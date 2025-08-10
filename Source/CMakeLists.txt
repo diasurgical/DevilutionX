@@ -455,6 +455,7 @@ target_link_dependencies(libdevilutionx_lighting PUBLIC
   DevilutionX::SDL
   fmt::fmt
   tl
+  unordered_dense::unordered_dense
   libdevilutionx_vision
 )
 
@@ -529,6 +530,7 @@ target_link_dependencies(libdevilutionx_monster
   magic_enum::magic_enum
   sol2::sol2
   tl
+  unordered_dense::unordered_dense
   libdevilutionx_game_mode
   libdevilutionx_headless_mode
   libdevilutionx_sound
