@@ -740,9 +740,9 @@ bool gbSkipSync = false;
 
 	if (monster.isUnique()) {
 		// check if the unique monster is still valid (it could no longer be valid e.g. because the loaded mods changed and the unique monsters changed as a consequence)
-		const bool valid = IsUniqueMonsterValid(monster);
+		const bool valid = IsMonsterValid(monster);
 		if (!valid) {
-			LogWarn("Unique monster no longer valid, skipping it.");
+			LogWarn("Monster no longer valid, skipping it.");
 			return false;
 		}
 	}
