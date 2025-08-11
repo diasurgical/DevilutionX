@@ -1827,7 +1827,7 @@ void AiAvoidance(Monster &monster)
 MissileID GetMissileType(MonsterAIID ai)
 {
 	switch (ai) {
-	case MonsterAIID::GoatMelee:
+	case MonsterAIID::GoatRanged:
 		return MissileID::Arrow;
 	case MonsterAIID::Succubus:
 	case MonsterAIID::LazarusSuccubus:
