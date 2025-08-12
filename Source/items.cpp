@@ -415,13 +415,13 @@ Point GetRandomAvailableItemPosition()
 
 void AddInitItems()
 {
-	int curlv = ItemsGetCurrlevel();
-	int rnd = GenerateRnd(3) + 3;
+	const int curlv = ItemsGetCurrlevel();
+	const int rnd = GenerateRnd(3) + 3;
 	for (int j = 0; j < rnd; j++) {
-		int ii = AllocateItem();
+		const int ii = AllocateItem();
 		auto &item = Items[ii];
 
-		Point position = GetRandomAvailableItemPosition();
+		const Point position = GetRandomAvailableItemPosition();
 		item.position = position;
 
 		dItem[position.x][position.y] = ii + 1;
@@ -433,7 +433,7 @@ void AddInitItems()
 
 		item._iCreateInfo = curlv | CF_PREGEN;
 		SetupItem(item);
-		item.AnimInfo.currentFrame = item.AnimInfo.numberOfFrames - 1;
+		item.AnimInfo.currentFrame = static_cast<int8_t>(item.AnimInfo.numberOfFrames - 1);
 		item._iAnimFlag = false;
 		item.selectionRegion = SelectionRegion::Bottom;
 		DeltaAddItem(ii);
@@ -456,7 +456,7 @@ void SpawnNote()
 		break;
 	}
 
-	Point position = GetRandomAvailableItemPosition();
+	const Point position = GetRandomAvailableItemPosition();
 	SpawnQuestItem(id, position, 0, SelectionRegion::Bottom, false);
 }
 
@@ -555,7 +555,7 @@ bool GetItemSpace(Point position, int8_t inum)
 	xx += position.x - 1;
 	yy += position.y - 1;
 	Items[inum].position = { xx, yy };
-	dItem[xx][yy] = inum + 1;
+	dItem[xx][yy] = static_cast<int8_t>(inum + 1);
 
 	return true;
 }
@@ -575,12 +575,10 @@ void CalcItemValue(Item &item)
 
 void GetBookSpell(Item &item, int lvl)
 {
-	int rv;
-
 	if (lvl == 0)
 		lvl = 1;
 
-	rv = GenerateRnd(SpellsData.size()) + 1;
+	int rv = GenerateRnd(static_cast<int32_t>(SpellsData.size())) + 1;
 
 	if (gbIsSpawn && lvl > 5)
 		lvl = 5;
@@ -588,7 +586,7 @@ void GetBookSpell(Item &item, int lvl)
 	int s = static_cast<int8_t>(SpellID::Firebolt);
 	SpellID bs = SpellID::Firebolt;
 	while (rv > 0) {
-		int sLevel = GetSpellBookLevel(static_cast<SpellID>(s));
+		const int sLevel = GetSpellBookLevel(static_cast<SpellID>(s));
 		if (sLevel != -1 && lvl >= sLevel) {
 			rv--;
 			bs = static_cast<SpellID>(s);
@@ -613,8 +611,8 @@ void GetBookSpell(Item &item, int lvl)
 	item._iSpell = bs;
 	const SpellData &spellData = GetSpellData(bs);
 	item._iMinMag = spellData.minInt;
-	item._ivalue += spellData.bookCost();
-	item._iIvalue += spellData.bookCost();
+	item._ivalue += static_cast<int32_t>(spellData.bookCost());
+	item._iIvalue += static_cast<int32_t>(spellData.bookCost());
 	switch (spellData.type()) {
 	case MagicType::Fire:
 		item._iCurs = ICURS_BOOK_RED;
@@ -669,27 +667,27 @@ int SaveItemPower(const Player &player, Item &item, ItemPower &power)
 
 	switch (power.type) {
 	case IPL_TOHIT:
-		item._iPLToHit += r;
+		item._iPLToHit += static_cast<int16_t>(r);
 		break;
 	case IPL_TOHIT_CURSE:
-		item._iPLToHit -= r;
+		item._iPLToHit -= static_cast<int16_t>(r);
 		break;
 	case IPL_DAMP:
-		item._iPLDam += r;
+		item._iPLDam += static_cast<int16_t>(r);
 		break;
 	case IPL_DAMP_CURSE:
-		item._iPLDam -= r;
+		item._iPLDam -= static_cast<int16_t>(r);
 		break;
 	case IPL_DOPPELGANGER:
 		item._iDamAcFlags |= ItemSpecialEffectHf::Doppelganger;
 		[[fallthrough]];
 	case IPL_TOHIT_DAMP:
 		r = RndPL(power.param1, power.param2);
-		item._iPLDam += r;
+		item._iPLDam += static_cast<int16_t>(r);
 		item._iPLToHit += CalculateToHitBonus(power.param1);
 		break;
 	case IPL_TOHIT_DAMP_CURSE:
-		item._iPLDam -= r;
+		item._iPLDam -= static_cast<int16_t>(r);
 		item._iPLToHit += CalculateToHitBonus(-power.param1);
 		break;
 	case IPL_ACP:
@@ -1207,7 +1205,7 @@ void GetStaffSpell(const Player &player, Item &item, int lvl, bool onlygood)
 	int l = lvl / 2;
 	if (l == 0)
 		l = 1;
-	int rv = GenerateRnd(SpellsData.size()) + 1;
+	int rv = GenerateRnd(static_cast<int32_t>(SpellsData.size())) + 1;
 
 	if (gbIsSpawn && lvl > 10)
 		lvl = 10;
@@ -3047,7 +3045,7 @@ uint8_t PlaceItemInWorld(Item &&item, WorldTilePosition position)
 	uint8_t ii = ActiveItems[ActiveItemCount];
 	ActiveItemCount++;
 
-	dItem[position.x][position.y] = ii + 1;
+	dItem[position.x][position.y] = static_cast<int8_t>(ii + 1);
 	auto &item_ = Items[ii];
 	item_ = std::move(item);
 	item_.position = position;
@@ -3571,7 +3569,7 @@ void CornerstoneLoad(Point position)
 	int ii = AllocateItem();
 	auto &item = Items[ii];
 
-	dItem[position.x][position.y] = ii + 1;
+	dItem[position.x][position.y] = static_cast<int8_t>(ii + 1);
 
 	UnPackItem(pkSItem, *MyPlayer, item, (pkSItem.dwBuff & CF_HELLFIRE) != 0);
 	item.position = position;

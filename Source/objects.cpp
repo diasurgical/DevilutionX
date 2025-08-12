@@ -2446,7 +2446,7 @@ void OperateShrineEnchanted(DiabloGenerator &rng, Player &player)
 	if (cnt > 1) {
 		int spellToReduce;
 		do {
-			spellToReduce = rng.generateRnd(SpellsData.size()) + 1;
+			spellToReduce = rng.generateRnd(static_cast<int32_t>(SpellsData.size())) + 1;
 		} while ((player._pMemSpells & GetSpellBitmask(static_cast<SpellID>(spellToReduce))) == 0);
 
 		spell = 1;
