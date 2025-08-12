@@ -1593,96 +1593,106 @@ void ItemDoppel()
 		idoppely = 16;
 }
 
-void PrintItemOil(char iDidx)
+void AddItemInfoBoxString(const std::string_view str)
 {
 	const bool floatingInfoBoxEnabled = *GetOptions().Gameplay.floatingInfoBox;
+	AddInfoBoxString(str, floatingInfoBoxEnabled);
+}
 
+void AddItemInfoBoxString(std::string &&str)
+{
+	const bool floatingInfoBoxEnabled = *GetOptions().Gameplay.floatingInfoBox;
+	AddInfoBoxString(std::move(str), floatingInfoBoxEnabled);
+}
+
+void PrintItemOil(char iDidx)
+{
 	switch (iDidx) {
 	case IMISC_OILACC:
-		AddInfoBoxString(_("increases a weapon's"), floatingInfoBoxEnabled);
-		AddInfoBoxString(_("chance to hit"), floatingInfoBoxEnabled);
+		AddItemInfoBoxString(_("increases a weapon's"));
+		AddItemInfoBoxString(_("chance to hit"));
 		break;
 	case IMISC_OILMAST:
-		AddInfoBoxString(_("greatly increases a"), floatingInfoBoxEnabled);
-		AddInfoBoxString(_("weapon's chance to hit"), floatingInfoBoxEnabled);
+		AddItemInfoBoxString(_("greatly increases a"));
+		AddItemInfoBoxString(_("weapon's chance to hit"));
 		break;
 	case IMISC_OILSHARP:
-		AddInfoBoxString(_("increases a weapon's"), floatingInfoBoxEnabled);
-		AddInfoBoxString(_("damage potential"), floatingInfoBoxEnabled);
+		AddItemInfoBoxString(_("increases a weapon's"));
+		AddItemInfoBoxString(_("damage potential"));
 		break;
 	case IMISC_OILDEATH:
-		AddInfoBoxString(_("greatly increases a weapon's"), floatingInfoBoxEnabled);
-		AddInfoBoxString(_("damage potential - not bows"), floatingInfoBoxEnabled);
+		AddItemInfoBoxString(_("greatly increases a weapon's"));
+		AddItemInfoBoxString(_("damage potential - not bows"));
 		break;
 	case IMISC_OILSKILL:
-		AddInfoBoxString(_("reduces attributes needed"), floatingInfoBoxEnabled);
-		AddInfoBoxString(_("to use armor or weapons"), floatingInfoBoxEnabled);
+		AddItemInfoBoxString(_("reduces attributes needed"));
+		AddItemInfoBoxString(_("to use armor or weapons"));
 		break;
 	case IMISC_OILBSMTH:
-		AddInfoBoxString(/*xgettext:no-c-format*/ _("restores 20% of an"), floatingInfoBoxEnabled);
-		AddInfoBoxString(_("item's durability"), floatingInfoBoxEnabled);
+		AddItemInfoBoxString(/*xgettext:no-c-format*/ _("restores 20% of an"));
+		AddItemInfoBoxString(_("item's durability"));
 		break;
 	case IMISC_OILFORT:
-		AddInfoBoxString(_("increases an item's"), floatingInfoBoxEnabled);
-		AddInfoBoxString(_("current and max durability"), floatingInfoBoxEnabled);
+		AddItemInfoBoxString(_("increases an item's"));
+		AddItemInfoBoxString(_("current and max durability"));
 		break;
 	case IMISC_OILPERM:
-		AddInfoBoxString(_("makes an item indestructible"), floatingInfoBoxEnabled);
+		AddItemInfoBoxString(_("makes an item indestructible"));
 		break;
 	case IMISC_OILHARD:
-		AddInfoBoxString(_("increases the armor class"), floatingInfoBoxEnabled);
-		AddInfoBoxString(_("of armor and shields"), floatingInfoBoxEnabled);
+		AddItemInfoBoxString(_("increases the armor class"));
+		AddItemInfoBoxString(_("of armor and shields"));
 		break;
 	case IMISC_OILIMP:
-		AddInfoBoxString(_("greatly increases the armor"), floatingInfoBoxEnabled);
-		AddInfoBoxString(_("class of armor and shields"), floatingInfoBoxEnabled);
+		AddItemInfoBoxString(_("greatly increases the armor"));
+		AddItemInfoBoxString(_("class of armor and shields"));
 		break;
 	case IMISC_RUNEF:
-		AddInfoBoxString(_("sets fire trap"), floatingInfoBoxEnabled);
+		AddItemInfoBoxString(_("sets fire trap"));
 		break;
 	case IMISC_RUNEL:
 	case IMISC_GR_RUNEL:
-		AddInfoBoxString(_("sets lightning trap"), floatingInfoBoxEnabled);
+		AddItemInfoBoxString(_("sets lightning trap"));
 		break;
 	case IMISC_GR_RUNEF:
-		AddInfoBoxString(_("sets fire trap"), floatingInfoBoxEnabled);
+		AddItemInfoBoxString(_("sets fire trap"));
 		break;
 	case IMISC_RUNES:
-		AddInfoBoxString(_("sets petrification trap"), floatingInfoBoxEnabled);
+		AddItemInfoBoxString(_("sets petrification trap"));
 		break;
 	case IMISC_FULLHEAL:
-		AddInfoBoxString(_("restore all life"), floatingInfoBoxEnabled);
+		AddItemInfoBoxString(_("restore all life"));
 		break;
 	case IMISC_HEAL:
-		AddInfoBoxString(_("restore some life"), floatingInfoBoxEnabled);
+		AddItemInfoBoxString(_("restore some life"));
 		break;
 	case IMISC_MANA:
-		AddInfoBoxString(_("restore some mana"), floatingInfoBoxEnabled);
+		AddItemInfoBoxString(_("restore some mana"));
 		break;
 	case IMISC_FULLMANA:
-		AddInfoBoxString(_("restore all mana"), floatingInfoBoxEnabled);
+		AddItemInfoBoxString(_("restore all mana"));
 		break;
 	case IMISC_ELIXSTR:
-		AddInfoBoxString(_("increase strength"), floatingInfoBoxEnabled);
+		AddItemInfoBoxString(_("increase strength"));
 		break;
 	case IMISC_ELIXMAG:
-		AddInfoBoxString(_("increase magic"), floatingInfoBoxEnabled);
+		AddItemInfoBoxString(_("increase magic"));
 		break;
 	case IMISC_ELIXDEX:
-		AddInfoBoxString(_("increase dexterity"), floatingInfoBoxEnabled);
+		AddItemInfoBoxString(_("increase dexterity"));
 		break;
 	case IMISC_ELIXVIT:
-		AddInfoBoxString(_("increase vitality"), floatingInfoBoxEnabled);
+		AddItemInfoBoxString(_("increase vitality"));
 		break;
 	case IMISC_REJUV:
-		AddInfoBoxString(_("restore some life and mana"), floatingInfoBoxEnabled);
+		AddItemInfoBoxString(_("restore some life and mana"));
 		break;
 	case IMISC_FULLREJUV:
-		AddInfoBoxString(_("restore all life and mana"), floatingInfoBoxEnabled);
+		AddItemInfoBoxString(_("restore all life and mana"));
 		break;
 	case IMISC_ARENAPOT:
-		AddInfoBoxString(_("restore all life and mana"), floatingInfoBoxEnabled);
-		AddInfoBoxString(_("(works only in arenas)"), floatingInfoBoxEnabled);
+		AddItemInfoBoxString(_("restore all life and mana"));
+		AddItemInfoBoxString(_("(works only in arenas)"));
 		break;
 	}
 }
@@ -1716,37 +1726,33 @@ Point DrawUniqueInfoWindow(const Surface &out)
 
 void printItemMiscKBM(const Item &item, const bool isOil, const bool isCastOnTarget)
 {
-	const bool floatingInfoBoxEnabled = *GetOptions().Gameplay.floatingInfoBox;
-
 	if (item._iMiscId == IMISC_MAPOFDOOM) {
-		AddInfoBoxString(_("Right-click to view"), floatingInfoBoxEnabled);
+		AddItemInfoBoxString(_("Right-click to view"));
 	} else if (isOil) {
 		PrintItemOil(item._iMiscId);
-		AddInfoBoxString(_("Right-click to use"), floatingInfoBoxEnabled);
+		AddItemInfoBoxString(_("Right-click to use"));
 	} else if (isCastOnTarget) {
-		AddInfoBoxString(_("Right-click to read, then\nleft-click to target"), floatingInfoBoxEnabled);
+		AddItemInfoBoxString(_("Right-click to read, then\nleft-click to target"));
 	} else if (IsAnyOf(item._iMiscId, IMISC_BOOK, IMISC_NOTE, IMISC_SCROLL, IMISC_SCROLLT)) {
-		AddInfoBoxString(_("Right-click to read"), floatingInfoBoxEnabled);
+		AddItemInfoBoxString(_("Right-click to read"));
 	}
 }
 
 void printItemMiscGenericGamepad(const Item &item, const bool isOil, bool isCastOnTarget)
 {
-	const bool floatingInfoBoxEnabled = *GetOptions().Gameplay.floatingInfoBox;
-
 	if (item._iMiscId == IMISC_MAPOFDOOM) {
-		AddInfoBoxString(_("Activate to view"), floatingInfoBoxEnabled);
+		AddItemInfoBoxString(_("Activate to view"));
 	} else if (isOil) {
 		PrintItemOil(item._iMiscId);
 		if (!invflag) {
-			AddInfoBoxString(_("Open inventory to use"), floatingInfoBoxEnabled);
+			AddItemInfoBoxString(_("Open inventory to use"));
 		} else {
-			AddInfoBoxString(_("Activate to use"), floatingInfoBoxEnabled);
+			AddItemInfoBoxString(_("Activate to use"));
 		}
 	} else if (isCastOnTarget) {
-		AddInfoBoxString(_("Select from spell book, then\ncast spell to read"), floatingInfoBoxEnabled);
+		AddItemInfoBoxString(_("Select from spell book, then\ncast spell to read"));
 	} else if (IsAnyOf(item._iMiscId, IMISC_BOOK, IMISC_NOTE, IMISC_SCROLL, IMISC_SCROLLT)) {
-		AddInfoBoxString(_("Activate to read"), floatingInfoBoxEnabled);
+		AddItemInfoBoxString(_("Activate to read"));
 	}
 }
 
@@ -1759,34 +1765,30 @@ void printItemMiscGamepad(const Item &item, bool isOil, bool isCastOnTarget)
 	const std::string_view activateButton = GetOptions().Padmapper.InputNameForAction("SecondaryAction");
 	const std::string_view castButton = GetOptions().Padmapper.InputNameForAction("SpellAction");
 
-	const bool floatingInfoBoxEnabled = *GetOptions().Gameplay.floatingInfoBox;
-
 	if (item._iMiscId == IMISC_MAPOFDOOM) {
-		AddInfoBoxString(fmt::format(fmt::runtime(_("{} to view")), activateButton), floatingInfoBoxEnabled);
+		AddItemInfoBoxString(fmt::format(fmt::runtime(_("{} to view")), activateButton));
 	} else if (isOil) {
 		PrintItemOil(item._iMiscId);
 		if (!invflag) {
-			AddInfoBoxString(_("Open inventory to use"), floatingInfoBoxEnabled);
+			AddItemInfoBoxString(_("Open inventory to use"));
 		} else {
-			AddInfoBoxString(fmt::format(fmt::runtime(_("{} to use")), activateButton), floatingInfoBoxEnabled);
+			AddItemInfoBoxString(fmt::format(fmt::runtime(_("{} to use")), activateButton));
 		}
 	} else if (isCastOnTarget) {
-		AddInfoBoxString(fmt::format(fmt::runtime(_("Select from spell book,\nthen {} to read")), castButton), floatingInfoBoxEnabled);
+		AddItemInfoBoxString(fmt::format(fmt::runtime(_("Select from spell book,\nthen {} to read")), castButton));
 	} else if (IsAnyOf(item._iMiscId, IMISC_BOOK, IMISC_NOTE, IMISC_SCROLL, IMISC_SCROLLT)) {
-		AddInfoBoxString(fmt::format(fmt::runtime(_("{} to read")), activateButton), floatingInfoBoxEnabled);
+		AddItemInfoBoxString(fmt::format(fmt::runtime(_("{} to read")), activateButton));
 	}
 }
 
 void PrintItemMisc(const Item &item)
 {
-	const bool floatingInfoBoxEnabled = *GetOptions().Gameplay.floatingInfoBox;
-
 	if (item._iMiscId == IMISC_EAR) {
-		AddInfoBoxString(fmt::format(fmt::runtime(pgettext("player", "Level: {:d}")), item._ivalue), floatingInfoBoxEnabled);
+		AddItemInfoBoxString(fmt::format(fmt::runtime(pgettext("player", "Level: {:d}")), item._ivalue));
 		return;
 	}
 	if (item._iMiscId == IMISC_AURIC) {
-		AddInfoBoxString(_("Doubles gold capacity"), floatingInfoBoxEnabled);
+		AddItemInfoBoxString(_("Doubles gold capacity"));
 		return;
 	}
 	const bool isOil = (item._iMiscId >= IMISC_USEFIRST && item._iMiscId <= IMISC_USELAST)
@@ -1826,8 +1828,7 @@ void PrintItemInfo(const Item &item)
 			text.append(fmt::format(fmt::runtime(_(" {:d} Mag")), mag));
 		if (dex != 0)
 			text.append(fmt::format(fmt::runtime(_(" {:d} Dex")), dex));
-		const bool floatingInfoBoxEnabled = *GetOptions().Gameplay.floatingInfoBox;
-		AddInfoBoxString(text, floatingInfoBoxEnabled);
+		AddItemInfoBoxString(text);
 	}
 }
 
@@ -4067,38 +4068,36 @@ void PrintItemDetails(const Item &item)
 	if (HeadlessMode)
 		return;
 
-	const bool floatingInfoBoxEnabled = *GetOptions().Gameplay.floatingInfoBox;
-
 	if (item._iClass == ICLASS_WEAPON) {
 		if (item._iMinDam == item._iMaxDam) {
 			if (item._iMaxDur == DUR_INDESTRUCTIBLE)
-				AddInfoBoxString(fmt::format(fmt::runtime(_("damage: {:d}  Indestructible")), item._iMinDam), floatingInfoBoxEnabled);
+				AddItemInfoBoxString(fmt::format(fmt::runtime(_("damage: {:d}  Indestructible")), item._iMinDam));
 			else
-				AddInfoBoxString(fmt::format(fmt::runtime(_(/* TRANSLATORS: Dur: is durability */ "damage: {:d}  Dur: {:d}/{:d}")), item._iMinDam, item._iDurability, item._iMaxDur), floatingInfoBoxEnabled);
+				AddItemInfoBoxString(fmt::format(fmt::runtime(_(/* TRANSLATORS: Dur: is durability */ "damage: {:d}  Dur: {:d}/{:d}")), item._iMinDam, item._iDurability, item._iMaxDur));
 		} else {
 			if (item._iMaxDur == DUR_INDESTRUCTIBLE)
-				AddInfoBoxString(fmt::format(fmt::runtime(_("damage: {:d}-{:d}  Indestructible")), item._iMinDam, item._iMaxDam), floatingInfoBoxEnabled);
+				AddItemInfoBoxString(fmt::format(fmt::runtime(_("damage: {:d}-{:d}  Indestructible")), item._iMinDam, item._iMaxDam));
 			else
-				AddInfoBoxString(fmt::format(fmt::runtime(_(/* TRANSLATORS: Dur: is durability */ "damage: {:d}-{:d}  Dur: {:d}/{:d}")), item._iMinDam, item._iMaxDam, item._iDurability, item._iMaxDur), floatingInfoBoxEnabled);
+				AddItemInfoBoxString(fmt::format(fmt::runtime(_(/* TRANSLATORS: Dur: is durability */ "damage: {:d}-{:d}  Dur: {:d}/{:d}")), item._iMinDam, item._iMaxDam, item._iDurability, item._iMaxDur));
 		}
 	}
 	if (item._iClass == ICLASS_ARMOR) {
 		if (item._iMaxDur == DUR_INDESTRUCTIBLE)
-			AddInfoBoxString(fmt::format(fmt::runtime(_("armor: {:d}  Indestructible")), item._iAC), floatingInfoBoxEnabled);
+			AddItemInfoBoxString(fmt::format(fmt::runtime(_("armor: {:d}  Indestructible")), item._iAC));
 		else
-			AddInfoBoxString(fmt::format(fmt::runtime(_(/* TRANSLATORS: Dur: is durability */ "armor: {:d}  Dur: {:d}/{:d}")), item._iAC, item._iDurability, item._iMaxDur), floatingInfoBoxEnabled);
+			AddItemInfoBoxString(fmt::format(fmt::runtime(_(/* TRANSLATORS: Dur: is durability */ "armor: {:d}  Dur: {:d}/{:d}")), item._iAC, item._iDurability, item._iMaxDur));
 	}
 	if (item._iMiscId == IMISC_STAFF && item._iMaxCharges != 0) {
-		AddInfoBoxString(fmt::format(fmt::runtime(_("Charges: {:d}/{:d}")), item._iCharges, item._iMaxCharges), floatingInfoBoxEnabled);
+		AddItemInfoBoxString(fmt::format(fmt::runtime(_("Charges: {:d}/{:d}")), item._iCharges, item._iMaxCharges));
 	}
 	if (item._iPrePower != -1) {
-		AddInfoBoxString(PrintItemPower(item._iPrePower, item), floatingInfoBoxEnabled);
+		AddItemInfoBoxString(PrintItemPower(item._iPrePower, item));
 	}
 	if (item._iSufPower != -1) {
-		AddInfoBoxString(PrintItemPower(item._iSufPower, item), floatingInfoBoxEnabled);
+		AddItemInfoBoxString(PrintItemPower(item._iSufPower, item));
 	}
 	if (item._iMagical == ITEM_QUALITY_UNIQUE) {
-		AddInfoBoxString(_("unique item"), floatingInfoBoxEnabled);
+		AddItemInfoBoxString(_("unique item"));
 		ShowUniqueItemInfoBox = true;
 		curruitem = item;
 	}
@@ -4110,39 +4109,37 @@ void PrintItemDur(const Item &item)
 	if (HeadlessMode)
 		return;
 
-	const bool floatingInfoBoxEnabled = *GetOptions().Gameplay.floatingInfoBox;
-
 	if (item._iClass == ICLASS_WEAPON) {
 		if (item._iMinDam == item._iMaxDam) {
 			if (item._iMaxDur == DUR_INDESTRUCTIBLE)
-				AddInfoBoxString(fmt::format(fmt::runtime(_("damage: {:d}  Indestructible")), item._iMinDam), floatingInfoBoxEnabled);
+				AddItemInfoBoxString(fmt::format(fmt::runtime(_("damage: {:d}  Indestructible")), item._iMinDam));
 			else
-				AddInfoBoxString(fmt::format(fmt::runtime(_("damage: {:d}  Dur: {:d}/{:d}")), item._iMinDam, item._iDurability, item._iMaxDur), floatingInfoBoxEnabled);
+				AddItemInfoBoxString(fmt::format(fmt::runtime(_("damage: {:d}  Dur: {:d}/{:d}")), item._iMinDam, item._iDurability, item._iMaxDur));
 		} else {
 			if (item._iMaxDur == DUR_INDESTRUCTIBLE)
-				AddInfoBoxString(fmt::format(fmt::runtime(_("damage: {:d}-{:d}  Indestructible")), item._iMinDam, item._iMaxDam), floatingInfoBoxEnabled);
+				AddItemInfoBoxString(fmt::format(fmt::runtime(_("damage: {:d}-{:d}  Indestructible")), item._iMinDam, item._iMaxDam));
 			else
-				AddInfoBoxString(fmt::format(fmt::runtime(_("damage: {:d}-{:d}  Dur: {:d}/{:d}")), item._iMinDam, item._iMaxDam, item._iDurability, item._iMaxDur), floatingInfoBoxEnabled);
+				AddItemInfoBoxString(fmt::format(fmt::runtime(_("damage: {:d}-{:d}  Dur: {:d}/{:d}")), item._iMinDam, item._iMaxDam, item._iDurability, item._iMaxDur));
 		}
 		if (item._iMiscId == IMISC_STAFF && item._iMaxCharges > 0) {
-			AddInfoBoxString(fmt::format(fmt::runtime(_("Charges: {:d}/{:d}")), item._iCharges, item._iMaxCharges), floatingInfoBoxEnabled);
+			AddItemInfoBoxString(fmt::format(fmt::runtime(_("Charges: {:d}/{:d}")), item._iCharges, item._iMaxCharges));
 		}
 		if (item._iMagical != ITEM_QUALITY_NORMAL)
-			AddInfoBoxString(_("Not Identified"), floatingInfoBoxEnabled);
+			AddItemInfoBoxString(_("Not Identified"));
 	}
 	if (item._iClass == ICLASS_ARMOR) {
 		if (item._iMaxDur == DUR_INDESTRUCTIBLE)
-			AddInfoBoxString(fmt::format(fmt::runtime(_("armor: {:d}  Indestructible")), item._iAC), floatingInfoBoxEnabled);
+			AddItemInfoBoxString(fmt::format(fmt::runtime(_("armor: {:d}  Indestructible")), item._iAC));
 		else
-			AddInfoBoxString(fmt::format(fmt::runtime(_("armor: {:d}  Dur: {:d}/{:d}")), item._iAC, item._iDurability, item._iMaxDur), floatingInfoBoxEnabled);
+			AddItemInfoBoxString(fmt::format(fmt::runtime(_("armor: {:d}  Dur: {:d}/{:d}")), item._iAC, item._iDurability, item._iMaxDur));
 		if (item._iMagical != ITEM_QUALITY_NORMAL)
-			AddInfoBoxString(_("Not Identified"), floatingInfoBoxEnabled);
+			AddItemInfoBoxString(_("Not Identified"));
 		if (item._iMiscId == IMISC_STAFF && item._iMaxCharges > 0) {
-			AddInfoBoxString(fmt::format(fmt::runtime(_("Charges: {:d}/{:d}")), item._iCharges, item._iMaxCharges), floatingInfoBoxEnabled);
+			AddItemInfoBoxString(fmt::format(fmt::runtime(_("Charges: {:d}/{:d}")), item._iCharges, item._iMaxCharges));
 		}
 	}
 	if (IsAnyOf(item._itype, ItemType::Ring, ItemType::Amulet))
-		AddInfoBoxString(_("Not Identified"), floatingInfoBoxEnabled);
+		AddItemInfoBoxString(_("Not Identified"));
 	PrintItemInfo(item);
 }
 
