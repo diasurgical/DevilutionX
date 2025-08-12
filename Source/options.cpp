@@ -75,7 +75,7 @@ void DiscoverMods()
 		// Find unpacked mods
 		for (const std::string &modFolder : ListDirectories(modsPath.c_str())) {
 			// Only consider this folder if the init.lua file exists.
-			std::string modScriptPath = modsPath + DIRECTORY_SEPARATOR_STR + modFolder + DIRECTORY_SEPARATOR_STR + "init.lua";
+			const std::string modScriptPath = modsPath + DIRECTORY_SEPARATOR_STR + modFolder + DIRECTORY_SEPARATOR_STR + "lua" + DIRECTORY_SEPARATOR_STR + "mods" + DIRECTORY_SEPARATOR_STR + modFolder + DIRECTORY_SEPARATOR_STR + "init.lua";
 			if (!FileExists(modScriptPath.c_str()))
 				continue;
 
