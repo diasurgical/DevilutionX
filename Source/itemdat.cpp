@@ -9,11 +9,10 @@
 #include <string_view>
 #include <vector>
 
-#include <expected.hpp>
-
 #include "data/file.hpp"
 #include "data/iterators.hpp"
 #include "data/record_reader.hpp"
+#include "lua/lua_global.hpp"
 #include "spelldat.h"
 #include "utils/str_cat.hpp"
 
@@ -57,6 +56,8 @@ tl::expected<item_equip_type, std::string> ParseItemEquipType(std::string_view v
 	if (value == "Belt") return ILOC_BELT;
 	return tl::make_unexpected("Unknown enum value");
 }
+
+} // namespace
 
 tl::expected<item_cursor_graphic, std::string> ParseItemCursorGraphic(std::string_view value)
 {
@@ -234,6 +235,8 @@ tl::expected<item_cursor_graphic, std::string> ParseItemCursorGraphic(std::strin
 	return tl::make_unexpected("Unknown enum value");
 }
 
+namespace {
+
 tl::expected<ItemType, std::string> ParseItemType(std::string_view value)
 {
 	if (value == "Misc") return ItemType::Misc;
@@ -253,6 +256,8 @@ tl::expected<ItemType, std::string> ParseItemType(std::string_view value)
 	if (value == "None") return ItemType::None;
 	return tl::make_unexpected("Unknown enum value");
 }
+
+} // namespace
 
 tl::expected<unique_base_item, std::string> ParseUniqueBaseItem(std::string_view value)
 {
@@ -327,6 +332,8 @@ tl::expected<unique_base_item, std::string> ParseUniqueBaseItem(std::string_view
 	if (value == "INVALID") return UITYPE_INVALID;
 	return tl::make_unexpected("Unknown enum value");
 }
+
+namespace {
 
 tl::expected<ItemSpecialEffect, std::string> ParseItemSpecialEffect(std::string_view value)
 {
@@ -409,6 +416,8 @@ tl::expected<item_misc_id, std::string> ParseItemMiscId(std::string_view value)
 	if (value == "ARENAPOT") return IMISC_ARENAPOT;
 	return tl::make_unexpected("Unknown enum value");
 }
+
+} // namespace
 
 tl::expected<item_effect_type, std::string> ParseItemEffectType(std::string_view value)
 {
@@ -494,6 +503,8 @@ tl::expected<item_effect_type, std::string> ParseItemEffectType(std::string_view
 	if (value == "LIFETOMANA") return IPL_LIFETOMANA;
 	return tl::make_unexpected("Unknown enum value");
 }
+
+namespace {
 
 tl::expected<AffixItemType, std::string> ParseAffixItemType(std::string_view value)
 {
@@ -585,6 +596,8 @@ void LoadUniqueItemDat()
 		}
 	}
 	UniqueItems.shrink_to_fit();
+
+	LuaEvent("UniqueItemDataLoaded");
 }
 
 void LoadItemAffixesDat(std::string_view filename, std::vector<PLStruct> &out)

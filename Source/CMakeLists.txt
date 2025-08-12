@@ -473,6 +473,7 @@ add_devilutionx_object_library(libdevilutionx_items
 )
 target_link_dependencies(libdevilutionx_items PUBLIC
   DevilutionX::SDL
+  sol2::sol2
   tl
   libdevilutionx_headless_mode
   libdevilutionx_sound

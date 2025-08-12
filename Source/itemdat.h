@@ -9,6 +9,8 @@
 #include <string_view>
 #include <vector>
 
+#include <expected.hpp>
+
 #include "objdat.h"
 #include "spelldat.h"
 
@@ -644,6 +646,9 @@ extern std::vector<PLStruct> ItemPrefixes;
 extern std::vector<PLStruct> ItemSuffixes;
 extern DVL_API_FOR_TEST std::vector<UniqueItem> UniqueItems;
 
+tl::expected<item_cursor_graphic, std::string> ParseItemCursorGraphic(std::string_view value);
+tl::expected<unique_base_item, std::string> ParseUniqueBaseItem(std::string_view value);
+tl::expected<item_effect_type, std::string> ParseItemEffectType(std::string_view value);
 void LoadItemData();
 
 } // namespace devilution

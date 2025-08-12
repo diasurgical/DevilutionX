@@ -44,6 +44,10 @@ local events = {
   LoadModsComplete = CreateEvent(),
   __doc_LoadModsComplete = "Called after all mods have been loaded.",
 
+  ---Called after the unique item data TSV file has been loaded.
+  UniqueItemDataLoaded = CreateEvent(),
+  __doc_UniqueItemDataLoaded = "Called after the unique item data TSV file has been loaded.",
+
   ---Called after the monster data TSV file has been loaded.
   MonsterDataLoaded = CreateEvent(),
   __doc_MonsterDataLoaded = "Called after the monster data TSV file has been loaded.",
