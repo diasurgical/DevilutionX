@@ -1351,8 +1351,8 @@ _item_indexes GetItemIndexForDroppableItem(bool considerDropRate, tl::function_r
 	ril.clear();
 
 	unsigned cumulativeWeight = 0;
-	for (std::underlying_type_t<_item_indexes> i = IDI_GOLD; i <= IDI_LAST; i++) {
-		if (!IsItemAvailable(i))
+	for (size_t i = 0; i < AllItemsList.size(); i++) {
+		if (!IsItemAvailable(static_cast<int>(i)))
 			continue;
 		const ItemData &item = AllItemsList[i];
 		if (item.dropRate == 0)
@@ -2369,7 +2369,7 @@ std::string GetTranslatedItemNameMagical(const Item &item, bool hellfireItem, bo
 
 bool IsItemAvailable(int i)
 {
-	if (i < 0 || i > IDI_LAST)
+	if (i < 0 || i >= static_cast<int>(AllItemsList.size()))
 		return false;
 
 	if (gbIsSpawn) {

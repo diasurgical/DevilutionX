@@ -62,8 +62,8 @@ void GenerateAllUniques(bool hellfire, const size_t expectedUniques)
 			continue;
 
 		_item_indexes uniqueBaseIndex = IDI_GOLD;
-		for (std::underlying_type_t<_item_indexes> j = IDI_GOLD; j <= IDI_LAST; j++) {
-			if (!IsItemAvailable(j))
+		for (size_t j = 0; j < AllItemsList.size(); j++) {
+			if (!IsItemAvailable(static_cast<int>(j)))
 				continue;
 			if (AllItemsList[j].iItemId != uniqueItem.UIItemId)
 				continue;
