@@ -59,6 +59,8 @@ public:
 
 	bool HasFile(std::string_view filename) const;
 
+	const std::string &GetPath() const;
+
 private:
 	MpqArchive(std::string path, mpq_archive_s *archive)
 	    : path_(std::move(path))

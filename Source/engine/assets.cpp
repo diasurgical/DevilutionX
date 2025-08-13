@@ -171,6 +171,42 @@ AssetRef FindAsset(std::string_view filename)
 }
 #endif
 
+AssetRef FindModAsset(std::string_view modname, std::string_view filename)
+{
+	AssetRef result;
+	if (filename.empty() || filename.back() == '\\')
+		return result;
+
+	std::string relativePath { filename };
+#ifndef _WIN32
+	std::replace(relativePath.begin(), relativePath.end(), '\\', '/');
+#endif
+
+	{
+		const std::string overridePath = StrCat(paths::PrefPath(), "mods" DIRECTORY_SEPARATOR_STR, modname, DIRECTORY_SEPARATOR_STR);
+		const std::string path = overridePath + relativePath;
+		result.directHandle = OpenOptionalRWops(path);
+		if (result.directHandle != nullptr) {
+			LogVerbose("Loaded file for mod \"{}\": {}", modname, path);
+			return result;
+		}
+	}
+
+	const MpqFileHash fileHash = CalculateMpqFileHash(filename);
+
+	for (auto &[_, mpqArchive] : MpqArchives) {
+		if (mpqArchive.GetPath().ends_with(StrCat("mods" DIRECTORY_SEPARATOR_STR, modname, ".mpq"))) {
+			if (mpqArchive.GetFileNumber(fileHash, result.fileNumber)) {
+				result.archive = &mpqArchive;
+				result.filename = filename;
+				return result;
+			}
+		}
+	}
+
+	return result;
+}
+
 AssetHandle OpenAsset(AssetRef &&ref, bool threadsafe)
 {
 #if UNPACKED_MPQS

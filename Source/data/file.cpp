@@ -32,9 +32,36 @@ tl::expected<DataFile, DataFile::Error> DataFile::load(std::string_view path)
 	return DataFile { std::move(data), size };
 }
 
+tl::expected<DataFile, DataFile::Error> DataFile::loadFromMod(std::string_view modname, std::string_view path)
+{
+	AssetRef ref = FindModAsset(modname, path);
+	if (!ref.ok())
+		return tl::unexpected { Error::NotFound };
+	const size_t size = ref.size();
+	// TODO: It should be possible to stream the data file contents instead of copying the whole thing into memory
+	std::unique_ptr<char[]> data { new char[size] };
+	{
+		AssetHandle handle = OpenAsset(std::move(ref));
+		if (!handle.ok())
+			return tl::unexpected { Error::OpenFailed };
+		if (size > 0 && !handle.read(data.get(), size))
+			return tl::unexpected { Error::BadRead };
+	}
+	return DataFile { std::move(data), size };
+}
+
 DataFile DataFile::loadOrDie(std::string_view path)
 {
 	tl::expected<DataFile, DataFile::Error> dataFileResult = DataFile::load(path);
+	if (!dataFileResult.has_value()) {
+		DataFile::reportFatalError(dataFileResult.error(), path);
+	}
+	return *std::move(dataFileResult);
+}
+
+DataFile DataFile::loadFromModOrDie(std::string_view modname, std::string_view path)
+{
+	tl::expected<DataFile, DataFile::Error> dataFileResult = DataFile::loadFromMod(modname, path);
 	if (!dataFileResult.has_value()) {
 		DataFile::reportFatalError(dataFileResult.error(), path);
 	}

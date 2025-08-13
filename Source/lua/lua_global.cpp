@@ -222,7 +222,9 @@ void LuaReloadActiveMods()
 
 	for (const std::string_view modname : modnames) {
 		const std::string packageName = StrCat("mods.", modname, ".init");
-		RunScript(CreateLuaSandbox(), packageName, /*optional=*/true);
+		auto env = CreateLuaSandbox();
+		env["modname"] = modname;
+		RunScript(std::move(env), packageName, /*optional=*/true);
 	}
 
 	for (const tl::function_ref<void()> handler : IsModChangeHandlers) {

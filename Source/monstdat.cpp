@@ -8,6 +8,7 @@
 #include <cstdint>
 
 #include <ankerl/unordered_dense.h>
+#include <fmt/format.h>
 #include <magic_enum/magic_enum.hpp>
 
 #include "cursor.h"
@@ -35,9 +36,9 @@ constexpr uint16_t Uniq(_unique_items item)
 	return static_cast<uint16_t>(T_UNIQ) + item;
 }
 
-} // namespace
-
 std::vector<std::string> MonsterSpritePaths;
+
+} // namespace
 
 const char *MonsterData::spritePath() const
 {
@@ -49,9 +50,6 @@ std::vector<MonsterData> MonstersData;
 
 /** Contains the data related to each unique monster ID. */
 std::vector<UniqueMonsterData> UniqueMonstersData;
-
-/** Contains the mapping between monster ID strings and indices, used for parsing additional monster data. */
-ankerl::unordered_dense::map<std::string, int16_t> AdditionalMonsterIdStringsToIndices;
 
 /**
  * Map between .DUN file value and monster type enum
@@ -216,6 +214,13 @@ const _monster_id MonstConvTbl[] = {
 	MT_LRDSAYTR,
 };
 
+namespace {
+
+/** Contains the mapping between monster ID strings and indices, used for parsing additional monster data. */
+ankerl::unordered_dense::map<std::string, int16_t> AdditionalMonsterIdStringsToIndices;
+
+} // namespace
+
 tl::expected<_monster_id, std::string> ParseMonsterId(std::string_view value)
 {
 	const std::optional<_monster_id> enumValueOpt = magic_enum::enum_cast<_monster_id>(value);
@@ -240,8 +245,6 @@ tl::expected<_monster_id, std::string> ParseMonsterIdIfNotEmpty(std::string_view
 	return ParseMonsterId(value);
 }
 
-} // namespace
-
 tl::expected<MonsterAvailability, std::string> ParseMonsterAvailability(std::string_view value)
 {
 	if (value == "Always") return MonsterAvailability::Always;
@@ -249,6 +252,8 @@ tl::expected<MonsterAvailability, std::string> ParseMonsterAvailability(std::str
 	if (value == "Retail") return MonsterAvailability::Retail;
 	return tl::make_unexpected("Expected one of: Always, Never, or Retail");
 }
+
+} // namespace
 
 tl::expected<MonsterAIID, std::string> ParseAiId(std::string_view value)
 {
@@ -295,6 +300,8 @@ tl::expected<MonsterAIID, std::string> ParseAiId(std::string_view value)
 	return tl::make_unexpected("Unknown enum value");
 }
 
+namespace {
+
 tl::expected<monster_flag, std::string> ParseMonsterFlag(std::string_view value)
 {
 	if (value == "HIDDEN") return MFLAG_HIDDEN;
@@ -320,6 +327,8 @@ tl::expected<MonsterClass, std::string> ParseMonsterClass(std::string_view value
 	return tl::make_unexpected("Unknown enum value");
 }
 
+} // namespace
+
 tl::expected<monster_resistance, std::string> ParseMonsterResistance(std::string_view value)
 {
 	if (value == "RESIST_MAGIC") return RESIST_MAGIC;
@@ -331,6 +340,8 @@ tl::expected<monster_resistance, std::string> ParseMonsterResistance(std::string
 	if (value == "IMMUNE_ACID") return IMMUNE_ACID;
 	return tl::make_unexpected("Unknown enum value");
 }
+
+namespace {
 
 tl::expected<SelectionRegion, std::string> ParseSelectionRegion(std::string_view value)
 {
@@ -351,6 +362,8 @@ tl::expected<uint16_t, std::string> ParseMonsterTreasure(std::string_view value)
 	return tl::make_unexpected("Invalid value. NOTE: Parser is incomplete");
 }
 
+} // namespace
+
 tl::expected<UniqueMonsterPack, std::string> ParseUniqueMonsterPack(std::string_view value)
 {
 	if (value == "None") return UniqueMonsterPack::None;
@@ -359,30 +372,41 @@ tl::expected<UniqueMonsterPack, std::string> ParseUniqueMonsterPack(std::string_
 	return tl::make_unexpected("Unknown enum value");
 }
 
-namespace {
-
-void LoadMonstDat()
+void LoadMonstDatFromFile(DataFile &dataFile, const std::string_view filename)
 {
-	const std::string_view filename = "txtdata\\monsters\\monstdat.tsv";
-	DataFile dataFile = DataFile::loadOrDie(filename);
 	dataFile.skipHeaderOrDie(filename);
 
-	MonstersData.clear();
-	MonstersData.reserve(dataFile.numRecords());
-	AdditionalMonsterIdStringsToIndices.clear();
-	ankerl::unordered_dense::map<std::string, size_t> spritePathToId;
+	MonstersData.reserve(MonstersData.size() + dataFile.numRecords());
+
 	for (DataFileRecord record : dataFile) {
+		if (MonstersData.size() >= static_cast<size_t>(NUM_MAX_MTYPES)) {
+			DisplayFatalErrorAndExit(_("Loading Monster Data Failed"), fmt::format(fmt::runtime(_("Could not add a monster, since the maximum monster type number of {} has already been reached.")), static_cast<size_t>(NUM_MAX_MTYPES)));
+		}
+
 		RecordReader reader { record, filename };
+		const size_t monsterIndex = MonstersData.size();
 		MonsterData &monster = MonstersData.emplace_back();
-		reader.advance(); // Skip the first column (monster ID).
+		if (static_cast<_monster_id>(monsterIndex) < NUM_DEFAULT_MTYPES) {
+			reader.advance(); // Skip the first column (monster ID).
+		} else {
+			std::string monsterId;
+			reader.readString("_monster_id", monsterId);
+			const auto [it, inserted] = AdditionalMonsterIdStringsToIndices.emplace(monsterId, static_cast<int16_t>(monsterIndex));
+			if (!inserted) {
+				DisplayFatalErrorAndExit(_("Loading Monster Data Failed"), fmt::format(fmt::runtime(_("A monster type already exists for ID \"{}\".")), monsterId));
+			}
+		}
 		reader.readString("name", monster.name);
 		{
 			std::string assetsSuffix;
 			reader.readString("assetsSuffix", assetsSuffix);
-			const auto [it, inserted] = spritePathToId.emplace(assetsSuffix, spritePathToId.size());
-			if (inserted)
-				MonsterSpritePaths.push_back(it->first);
-			monster.spriteId = static_cast<uint16_t>(it->second);
+			const auto findIt = std::find(MonsterSpritePaths.begin(), MonsterSpritePaths.end(), assetsSuffix);
+			if (findIt != MonsterSpritePaths.end()) {
+				monster.spriteId = static_cast<uint16_t>(findIt - MonsterSpritePaths.begin());
+			} else {
+				monster.spriteId = static_cast<uint16_t>(MonsterSpritePaths.size());
+				MonsterSpritePaths.push_back(std::string(assetsSuffix));
+			}
 		}
 		reader.readString("soundSuffix", monster.soundSuffix);
 		reader.readString("trnFile", monster.trnFile);
@@ -419,6 +443,17 @@ void LoadMonstDat()
 		reader.readInt("exp", monster.exp);
 	}
 	MonstersData.shrink_to_fit();
+}
+
+namespace {
+
+void LoadMonstDat()
+{
+	const std::string_view filename = "txtdata\\monsters\\monstdat.tsv";
+	DataFile dataFile = DataFile::loadOrDie(filename);
+	MonstersData.clear();
+	AdditionalMonsterIdStringsToIndices.clear();
+	LoadMonstDatFromFile(dataFile, filename);
 
 	LuaEvent("MonsterDataLoaded");
 }
