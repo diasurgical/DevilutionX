@@ -24,6 +24,9 @@ namespace devilution {
 /** Contains the data related to each item ID. */
 std::vector<ItemData> AllItemsList;
 
+/** Contains the mapping between unique base item ID strings and indices, used for parsing additional item data. */
+ankerl::unordered_dense::map<std::string, int8_t> AdditionalUniqueBaseItemStringsToIndices;
+
 /** Contains the data related to each unique item ID. */
 std::vector<UniqueItem> UniqueItems;
 
@@ -330,7 +333,31 @@ tl::expected<unique_base_item, std::string> ParseUniqueBaseItem(std::string_view
 	if (value == "LAZSTAFF") return UITYPE_LAZSTAFF;
 	if (value == "BOVINE") return UITYPE_BOVINE;
 	if (value == "INVALID") return UITYPE_INVALID;
+
+	const auto findIt = AdditionalUniqueBaseItemStringsToIndices.find(std::string(value));
+	if (findIt != AdditionalUniqueBaseItemStringsToIndices.end()) {
+		return static_cast<unique_base_item>(findIt->second);
+	}
+
 	return tl::make_unexpected("Unknown enum value");
+}
+
+tl::expected<unique_base_item, std::string> ParseOrAddUniqueBaseItem(std::string_view value)
+{
+	const auto parseResult = ParseUniqueBaseItem(value);
+	if (parseResult.has_value()) {
+		return parseResult.value();
+	}
+
+	const size_t newUniqueBaseItemIndex = static_cast<size_t>(NUM_DEFAULT_UITYPES) + AdditionalUniqueBaseItemStringsToIndices.size();
+
+	if (newUniqueBaseItemIndex >= static_cast<size_t>(NUM_MAX_UITYPES)) {
+		return tl::make_unexpected(fmt::format("Could not define new unique base item \"{}\", since the maximum number of {} has already been reached.", value, static_cast<size_t>(NUM_MAX_UITYPES)));
+	}
+
+	const unique_base_item newUniqueBaseItem = static_cast<unique_base_item>(newUniqueBaseItemIndex);
+	AdditionalUniqueBaseItemStringsToIndices[std::string(value)] = newUniqueBaseItem;
+	return newUniqueBaseItem;
 }
 
 tl::expected<ItemSpecialEffect, std::string> ParseItemSpecialEffect(std::string_view value)
@@ -535,7 +562,7 @@ void LoadItemDatFromFile(DataFile &dataFile, std::string_view filename)
 		reader.read("equipType", item.iLoc, ParseItemEquipType);
 		reader.read("cursorGraphic", item.iCurs, ParseItemCursorGraphic);
 		reader.read("itemType", item.itype, ParseItemType);
-		reader.read("uniqueBaseItem", item.iItemId, ParseUniqueBaseItem);
+		reader.read("uniqueBaseItem", item.iItemId, ParseOrAddUniqueBaseItem);
 		reader.readString("name", item.iName);
 		reader.readString("shortName", item.iSName);
 		reader.readInt("minMonsterLevel", item.iMinMLvl);
@@ -564,6 +591,7 @@ void LoadItemDat()
 	DataFile dataFile = DataFile::loadOrDie(filename);
 
 	AllItemsList.clear();
+	AdditionalUniqueBaseItemStringsToIndices.clear();
 	LoadItemDatFromFile(dataFile, filename);
 
 	LuaEvent("ItemDataLoaded");
