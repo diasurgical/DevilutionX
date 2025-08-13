@@ -10,7 +10,6 @@
 #include <string>
 #include <vector>
 
-#include <ankerl/unordered_dense.h>
 #include <expected.hpp>
 
 #include "cursor.h"

@@ -6,7 +6,6 @@
 #include <sol/sol.hpp>
 
 #include "data/file.hpp"
-#include "lua/lua_global.hpp"
 #include "lua/metadoc.hpp"
 #include "monstdat.h"
 #include "utils/language.h"
