@@ -519,14 +519,13 @@ tl::expected<goodorevil, std::string> ParseAffixAlignment(std::string_view value
 	return tl::make_unexpected("Unknown enum value");
 }
 
-void LoadItemDat()
+} // namespace
+
+void LoadItemDatFromFile(DataFile &dataFile, std::string_view filename)
 {
-	const std::string_view filename = "txtdata\\items\\itemdat.tsv";
-	DataFile dataFile = DataFile::loadOrDie(filename);
 	dataFile.skipHeaderOrDie(filename);
 
-	AllItemsList.clear();
-	AllItemsList.reserve(dataFile.numRecords());
+	AllItemsList.reserve(AllItemsList.size() + dataFile.numRecords());
 	for (DataFileRecord record : dataFile) {
 		RecordReader reader { record, filename };
 		ItemData &item = AllItemsList.emplace_back();
@@ -555,6 +554,19 @@ void LoadItemDat()
 		reader.readInt("value", item.iValue);
 	}
 	AllItemsList.shrink_to_fit();
+}
+
+namespace {
+
+void LoadItemDat()
+{
+	const std::string_view filename = "txtdata\\items\\itemdat.tsv";
+	DataFile dataFile = DataFile::loadOrDie(filename);
+
+	AllItemsList.clear();
+	LoadItemDatFromFile(dataFile, filename);
+
+	LuaEvent("ItemDataLoaded");
 }
 
 void ReadItemPower(RecordReader &reader, std::string_view fieldName, ItemPower &power)

@@ -650,6 +650,7 @@ extern std::vector<PLStruct> ItemSuffixes;
 extern DVL_API_FOR_TEST std::vector<UniqueItem> UniqueItems;
 extern ankerl::unordered_dense::map<int32_t, int32_t> UniqueItemMappingIdsToIndices;
 
+void LoadItemDatFromFile(DataFile &dataFile, std::string_view filename);
 void LoadUniqueItemDatFromFile(DataFile &dataFile, std::string_view filename, int32_t baseMappingId);
 void LoadItemData();
 
