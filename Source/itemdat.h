@@ -9,6 +9,7 @@
 #include <string_view>
 #include <vector>
 
+#include <ankerl/unordered_dense.h>
 #include <expected.hpp>
 
 #include "objdat.h"
@@ -639,12 +640,14 @@ struct UniqueItem {
 	uint8_t UINumPL;
 	int UIValue;
 	ItemPower powers[6];
+	int32_t mappingId;
 };
 
 extern DVL_API_FOR_TEST std::vector<ItemData> AllItemsList;
 extern std::vector<PLStruct> ItemPrefixes;
 extern std::vector<PLStruct> ItemSuffixes;
 extern DVL_API_FOR_TEST std::vector<UniqueItem> UniqueItems;
+extern ankerl::unordered_dense::map<int32_t, int32_t> UniqueItemMappingIdsToIndices;
 
 tl::expected<item_cursor_graphic, std::string> ParseItemCursorGraphic(std::string_view value);
 tl::expected<unique_base_item, std::string> ParseUniqueBaseItem(std::string_view value);

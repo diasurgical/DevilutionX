@@ -263,7 +263,7 @@ struct LevelConversionData {
 	MonsterConversionData monsterConversionData[MaxMonsters];
 };
 
-void LoadItemData(LoadHelper &file, Item &item)
+[[nodiscard]] bool LoadItemData(LoadHelper &file, Item &item)
 {
 	item._iSeed = file.NextLE<uint32_t>();
 	item._iCreateInfo = file.NextLE<uint16_t>();
@@ -321,7 +321,20 @@ void LoadItemData(LoadHelper &file, Item &item)
 	item._iSplLvlAdd = file.NextLE<int8_t>();
 	item._iRequest = file.NextBool8();
 	file.Skip(2); // Alignment
-	item._iUid = file.NextLE<int32_t>();
+
+	const int32_t uniqueMappingId = file.NextLE<int32_t>();
+	if (uniqueMappingId != 0) {
+		const auto findIt = UniqueItemMappingIdsToIndices.find(uniqueMappingId);
+		if (findIt == UniqueItemMappingIdsToIndices.end()) {
+			return false;
+		}
+
+		const int uniqueIndex = findIt->second;
+		item._iUid = uniqueIndex;
+	} else {
+		item._iUid = 0;
+	}
+
 	item._iFMinDam = file.NextLE<int32_t>();
 	item._iFMaxDam = file.NextLE<int32_t>();
 	item._iLMinDam = file.NextLE<int32_t>();
@@ -352,11 +365,18 @@ void LoadItemData(LoadHelper &file, Item &item)
 	else
 		item._iDamAcFlags = ItemSpecialEffectHf::None;
 	UpdateHellfireFlag(item, item._iIName);
+
+	return true;
 }
 
 void LoadAndValidateItemData(LoadHelper &file, Item &item)
 {
-	LoadItemData(file, item);
+	const bool success = LoadItemData(file, item);
+	if (!success) {
+		item.clear();
+		return;
+	}
+
 	RemoveInvalidItem(item);
 }
 
@@ -1052,7 +1072,11 @@ void LoadMatchingItems(LoadHelper &file, const Player &player, const int n, Item
 
 	for (int i = 0; i < n; i++) {
 		Item &unpackedItem = pItem[i];
-		LoadItemData(file, heroItem);
+		const bool success = LoadItemData(file, heroItem);
+		if (!success) {
+			heroItem.clear();
+			unpackedItem.clear();
+		}
 		if (unpackedItem.isEmpty() || heroItem.isEmpty())
 			continue;
 		if (unpackedItem._iSeed != heroItem._iSeed)
@@ -1190,7 +1214,7 @@ void SaveItem(SaveHelper &file, const Item &item)
 	file.WriteLE<int8_t>(item._iSplLvlAdd);
 	file.WriteLE<int8_t>(item._iRequest ? 1 : 0);
 	file.Skip(2); // Alignment
-	file.WriteLE<int32_t>(item._iUid);
+	file.WriteLE<int32_t>(UniqueItems[item._iUid].mappingId);
 	file.WriteLE<int32_t>(item._iFMinDam);
 	file.WriteLE<int32_t>(item._iFMaxDam);
 	file.WriteLE<int32_t>(item._iLMinDam);

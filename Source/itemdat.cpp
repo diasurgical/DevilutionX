@@ -24,6 +24,9 @@ std::vector<ItemData> AllItemsList;
 /** Contains the data related to each unique item ID. */
 std::vector<UniqueItem> UniqueItems;
 
+/** Contains unique item mapping IDs, with unique item indices assigned to them. This is used for loading saved games. */
+ankerl::unordered_dense::map<int32_t, int32_t> UniqueItemMappingIdsToIndices;
+
 /** Contains the data related to each item prefix. */
 std::vector<PLStruct> ItemPrefixes;
 
@@ -578,6 +581,7 @@ void LoadUniqueItemDat()
 
 	UniqueItems.clear();
 	UniqueItems.reserve(dataFile.numRecords());
+	UniqueItemMappingIdsToIndices.clear();
 	for (DataFileRecord record : dataFile) {
 		RecordReader reader { record, filename };
 		UniqueItem &item = UniqueItems.emplace_back();
@@ -586,6 +590,10 @@ void LoadUniqueItemDat()
 		reader.read("uniqueBaseItem", item.UIItemId, ParseUniqueBaseItem);
 		reader.readInt("minLevel", item.UIMinLvl);
 		reader.readInt("value", item.UIValue);
+
+		// for unique items defined via TSV, their mapping ID is the same as their index
+		item.mappingId = static_cast<int32_t>(UniqueItems.size()) - 1;
+		UniqueItemMappingIdsToIndices[item.mappingId] = item.mappingId;
 
 		// powers (up to 6)
 		item.UINumPL = 0;
