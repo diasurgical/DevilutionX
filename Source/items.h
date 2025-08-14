@@ -43,7 +43,7 @@ enum item_quality : uint8_t {
 	ITEM_QUALITY_UNIQUE,
 };
 
-enum _unique_items : int8_t {
+enum _unique_items : int32_t {
 	UITEM_CLEAVER,
 	UITEM_SKCROWN,
 	UITEM_INFRARING,
