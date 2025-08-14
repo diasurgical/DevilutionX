@@ -323,7 +323,7 @@ struct LevelConversionData {
 	file.Skip(2); // Alignment
 
 	const int32_t uniqueMappingId = file.NextLE<int32_t>();
-	if (uniqueMappingId != 0) {
+	if (item._iMagical == ITEM_QUALITY_UNIQUE) {
 		const auto findIt = UniqueItemMappingIdsToIndices.find(uniqueMappingId);
 		if (findIt == UniqueItemMappingIdsToIndices.end()) {
 			return false;
@@ -1075,7 +1075,7 @@ void LoadMatchingItems(LoadHelper &file, const Player &player, const int n, Item
 		const bool success = LoadItemData(file, heroItem);
 		if (!success) {
 			heroItem.clear();
-			unpackedItem.clear();
+			unpackedItem = Item();
 		}
 		if (unpackedItem.isEmpty() || heroItem.isEmpty())
 			continue;
