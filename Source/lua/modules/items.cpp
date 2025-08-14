@@ -5,6 +5,8 @@
 #include <fmt/format.h>
 #include <sol/sol.hpp>
 
+#include "data/file.hpp"
+#include "itemdat.h"
 #include "items.h"
 #include "lua/metadoc.hpp"
 #include "player.h"
@@ -452,68 +454,10 @@ void RegisterItemSpecialEffectHfEnum(sol::state_view &lua)
 	    });
 }
 
-void AddUniqueItemPower(UniqueItem &uniqueItem, const std::optional<std::string_view> power, const std::optional<int> power_value1, const std::optional<int> power_value2)
+void AddUniqueItemDataFromTsv(const std::string_view path, const int32_t baseMappingId)
 {
-	if (!power.has_value()) {
-		return;
-	}
-
-	ItemPower &itemPower = uniqueItem.powers[uniqueItem.UINumPL++];
-
-	const auto powerResult = ParseItemEffectType(power.value());
-	if (!powerResult.has_value()) {
-		DisplayFatalErrorAndExit(_("Adding Unique Item Failed"), fmt::format(fmt::runtime(_("Failed to parse power \"{}\": {}")), power.value(), powerResult.error()));
-	}
-
-	itemPower.type = powerResult.value();
-
-	if (power_value1.has_value()) {
-		itemPower.param1 = power_value1.value();
-	}
-
-	if (power_value2.has_value()) {
-		itemPower.param2 = power_value2.value();
-	}
-}
-
-void AddUniqueItemData(const std::string_view name, const int32_t mappingId, const std::string_view cursorGraphic, const std::string_view uniqueBaseItem, const int8_t minLevel, const int value, const std::optional<std::string_view> power0, const std::optional<int> power0_value1, const std::optional<int> power0_value2, const std::optional<std::string_view> power1, const std::optional<int> power1_value1, const std::optional<int> power1_value2, const std::optional<std::string_view> power2, const std::optional<int> power2_value1, const std::optional<int> power2_value2, const std::optional<std::string_view> power3, const std::optional<int> power3_value1, const std::optional<int> power3_value2, const std::optional<std::string_view> power4, const std::optional<int> power4_value1, const std::optional<int> power4_value2, const std::optional<std::string_view> power5, const std::optional<int> power5_value1, const std::optional<int> power5_value2)
-{
-	UniqueItem uniqueItem;
-
-	uniqueItem.UIName = name;
-	uniqueItem.mappingId = mappingId;
-
-	const auto cursorGraphicResult = ParseItemCursorGraphic(cursorGraphic);
-	if (!cursorGraphicResult.has_value()) {
-		DisplayFatalErrorAndExit(_("Adding Unique Item Failed"), fmt::format(fmt::runtime(_("Failed to parse cursor graphic \"{}\": {}")), cursorGraphic, cursorGraphicResult.error()));
-	}
-
-	uniqueItem.UICurs = cursorGraphicResult.value();
-
-	const auto uniqueBaseItemResult = ParseUniqueBaseItem(uniqueBaseItem);
-	if (!uniqueBaseItemResult.has_value()) {
-		DisplayFatalErrorAndExit(_("Adding Unique Item Failed"), fmt::format(fmt::runtime(_("Failed to parse unique base item \"{}\": {}")), uniqueBaseItem, uniqueBaseItemResult.error()));
-	}
-
-	uniqueItem.UIItemId = uniqueBaseItemResult.value();
-
-	uniqueItem.UIMinLvl = minLevel;
-	uniqueItem.UIValue = value;
-
-	uniqueItem.UINumPL = 0;
-	AddUniqueItemPower(uniqueItem, power0, power0_value1, power0_value2);
-	AddUniqueItemPower(uniqueItem, power1, power1_value1, power1_value2);
-	AddUniqueItemPower(uniqueItem, power2, power2_value1, power2_value2);
-	AddUniqueItemPower(uniqueItem, power3, power3_value1, power3_value2);
-	AddUniqueItemPower(uniqueItem, power4, power4_value1, power4_value2);
-	AddUniqueItemPower(uniqueItem, power5, power5_value1, power5_value2);
-
-	const auto [it, inserted] = UniqueItemMappingIdsToIndices.emplace(mappingId, static_cast<int32_t>(UniqueItems.size()));
-	if (!inserted) {
-		DisplayFatalErrorAndExit(_("Adding Unique Item Failed"), fmt::format(fmt::runtime(_("A unique item already exists for mapping ID {}.")), mappingId));
-	}
-
-	UniqueItems.push_back(std::move(uniqueItem));
+	DataFile dataFile = DataFile::loadOrDie(path);
+	LoadUniqueItemDatFromFile(dataFile, path, baseMappingId);
 }
 
 } // namespace
@@ -533,7 +477,7 @@ sol::table LuaItemModule(sol::state_view &lua)
 
 	sol::table table = lua.create_table();
 
-	LuaSetDocFn(table, "addUniqueItemData", "(name: string, mappingId: number, cursorGraphic: string, uniqueBaseItem: string, minLevel: number, value: number, power0: string = nil, power0_value1: number = nil, power0_value2: number = nil, power1: string = nil, power1_value1: number = nil, power1_value2: number = nil, power2: string = nil, power2_value1: number = nil, power2_value2: number = nil, power3: string = nil, power3_value1: number = nil, power3_value2: number = nil, power4: string = nil, power4_value1: number = nil, power4_value2: number = nil, power5: string = nil, power5_value1: number = nil, power5_value2: number = nil)", AddUniqueItemData);
+	LuaSetDocFn(table, "addUniqueItemDataFromTsv", "(path: string, baseMappingId: number)", AddUniqueItemDataFromTsv);
 
 	return table;
 }

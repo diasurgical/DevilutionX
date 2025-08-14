@@ -10,12 +10,13 @@
 #include <vector>
 
 #include <ankerl/unordered_dense.h>
-#include <expected.hpp>
 
 #include "objdat.h"
 #include "spelldat.h"
 
 namespace devilution {
+	
+class DataFile;
 
 /** @todo add missing values and apply */
 enum _item_indexes : int16_t { // TODO defines all indexes in AllItemsList
@@ -649,9 +650,7 @@ extern std::vector<PLStruct> ItemSuffixes;
 extern DVL_API_FOR_TEST std::vector<UniqueItem> UniqueItems;
 extern ankerl::unordered_dense::map<int32_t, int32_t> UniqueItemMappingIdsToIndices;
 
-tl::expected<item_cursor_graphic, std::string> ParseItemCursorGraphic(std::string_view value);
-tl::expected<unique_base_item, std::string> ParseUniqueBaseItem(std::string_view value);
-tl::expected<item_effect_type, std::string> ParseItemEffectType(std::string_view value);
+void LoadUniqueItemDatFromFile(DataFile &dataFile, std::string_view filename, int32_t baseMappingId);
 void LoadItemData();
 
 } // namespace devilution

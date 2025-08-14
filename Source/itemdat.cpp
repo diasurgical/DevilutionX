@@ -9,6 +9,9 @@
 #include <string_view>
 #include <vector>
 
+#include <expected.hpp>
+#include <fmt/format.h>
+
 #include "data/file.hpp"
 #include "data/iterators.hpp"
 #include "data/record_reader.hpp"
@@ -59,8 +62,6 @@ tl::expected<item_equip_type, std::string> ParseItemEquipType(std::string_view v
 	if (value == "Belt") return ILOC_BELT;
 	return tl::make_unexpected("Unknown enum value");
 }
-
-} // namespace
 
 tl::expected<item_cursor_graphic, std::string> ParseItemCursorGraphic(std::string_view value)
 {
@@ -238,8 +239,6 @@ tl::expected<item_cursor_graphic, std::string> ParseItemCursorGraphic(std::strin
 	return tl::make_unexpected("Unknown enum value");
 }
 
-namespace {
-
 tl::expected<ItemType, std::string> ParseItemType(std::string_view value)
 {
 	if (value == "Misc") return ItemType::Misc;
@@ -259,8 +258,6 @@ tl::expected<ItemType, std::string> ParseItemType(std::string_view value)
 	if (value == "None") return ItemType::None;
 	return tl::make_unexpected("Unknown enum value");
 }
-
-} // namespace
 
 tl::expected<unique_base_item, std::string> ParseUniqueBaseItem(std::string_view value)
 {
@@ -335,8 +332,6 @@ tl::expected<unique_base_item, std::string> ParseUniqueBaseItem(std::string_view
 	if (value == "INVALID") return UITYPE_INVALID;
 	return tl::make_unexpected("Unknown enum value");
 }
-
-namespace {
 
 tl::expected<ItemSpecialEffect, std::string> ParseItemSpecialEffect(std::string_view value)
 {
@@ -419,8 +414,6 @@ tl::expected<item_misc_id, std::string> ParseItemMiscId(std::string_view value)
 	if (value == "ARENAPOT") return IMISC_ARENAPOT;
 	return tl::make_unexpected("Unknown enum value");
 }
-
-} // namespace
 
 tl::expected<item_effect_type, std::string> ParseItemEffectType(std::string_view value)
 {
@@ -507,8 +500,6 @@ tl::expected<item_effect_type, std::string> ParseItemEffectType(std::string_view
 	return tl::make_unexpected("Unknown enum value");
 }
 
-namespace {
-
 tl::expected<AffixItemType, std::string> ParseAffixItemType(std::string_view value)
 {
 	if (value == "Misc") return AffixItemType::Misc;
@@ -573,15 +564,14 @@ void ReadItemPower(RecordReader &reader, std::string_view fieldName, ItemPower &
 	reader.readOptionalInt(StrCat(fieldName, ".value2"), power.param2);
 }
 
-void LoadUniqueItemDat()
+} // namespace
+
+void LoadUniqueItemDatFromFile(DataFile &dataFile, std::string_view filename, int32_t baseMappingId)
 {
-	const std::string_view filename = "txtdata\\items\\unique_itemdat.tsv";
-	DataFile dataFile = DataFile::loadOrDie(filename);
 	dataFile.skipHeaderOrDie(filename);
 
-	UniqueItems.clear();
-	UniqueItems.reserve(dataFile.numRecords());
-	UniqueItemMappingIdsToIndices.clear();
+	int32_t currentMappingId = baseMappingId;
+	UniqueItems.reserve(UniqueItems.size() + dataFile.numRecords());
 	for (DataFileRecord record : dataFile) {
 		RecordReader reader { record, filename };
 		UniqueItem &item = UniqueItems.emplace_back();
@@ -591,10 +581,6 @@ void LoadUniqueItemDat()
 		reader.readInt("minLevel", item.UIMinLvl);
 		reader.readInt("value", item.UIValue);
 
-		// for unique items defined via TSV, their mapping ID is the same as their index
-		item.mappingId = static_cast<int32_t>(UniqueItems.size()) - 1;
-		UniqueItemMappingIdsToIndices[item.mappingId] = item.mappingId;
-
 		// powers (up to 6)
 		item.UINumPL = 0;
 		for (size_t i = 0; i < 6; ++i) {
@@ -602,8 +588,28 @@ void LoadUniqueItemDat()
 				break;
 			ReadItemPower(reader, StrCat("power", i), item.powers[item.UINumPL++]);
 		}
+
+		item.mappingId = currentMappingId;
+		const auto [it, inserted] = UniqueItemMappingIdsToIndices.emplace(item.mappingId, static_cast<int32_t>(UniqueItems.size()) - 1);
+		if (!inserted) {
+			DisplayFatalErrorAndExit("Adding Unique Item Failed", fmt::format("A unique item already exists for mapping ID {}.", item.mappingId));
+		}
+
+		++currentMappingId;
 	}
 	UniqueItems.shrink_to_fit();
+}
+
+namespace {
+
+void LoadUniqueItemDat()
+{
+	const std::string_view filename = "txtdata\\items\\unique_itemdat.tsv";
+	DataFile dataFile = DataFile::loadOrDie(filename);
+
+	UniqueItems.clear();
+	UniqueItemMappingIdsToIndices.clear();
+	LoadUniqueItemDatFromFile(dataFile, filename, 0);
 
 	LuaEvent("UniqueItemDataLoaded");
 }
