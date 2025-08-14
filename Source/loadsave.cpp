@@ -352,13 +352,21 @@ struct LevelConversionData {
 	item._iMinDex = file.NextLE<int8_t>();
 	file.Skip(1); // Alignment
 	item._iStatFlag = file.NextBool32();
-	item.IDidx = static_cast<_item_indexes>(file.NextLE<int32_t>());
-	if (gbIsSpawn) {
-		item.IDidx = RemapItemIdxFromSpawn(item.IDidx);
+
+	int32_t itemMappingId = file.NextLE<int32_t>();
+	if (gbIsSpawn && itemMappingId < IDI_NUM_DEFAULT_ITEMS) {
+		itemMappingId = RemapItemIdxFromSpawn(static_cast<_item_indexes>(itemMappingId));
 	}
-	if (!gbIsHellfireSaveGame) {
-		item.IDidx = RemapItemIdxFromDiablo(item.IDidx);
+	if (!gbIsHellfireSaveGame && itemMappingId < IDI_NUM_DEFAULT_ITEMS) {
+		itemMappingId = RemapItemIdxFromDiablo(static_cast<_item_indexes>(itemMappingId));
 	}
+	const auto findIt = ItemMappingIdsToIndices.find(itemMappingId);
+	if (findIt == ItemMappingIdsToIndices.end()) {
+		return false;
+	}
+	const _item_indexes itemIndex = static_cast<_item_indexes>(findIt->second);
+	item.IDidx = itemIndex;
+
 	item.dwBuff = file.NextLE<uint32_t>();
 	if (gbIsHellfireSaveGame)
 		item._iDamAcFlags = static_cast<ItemSpecialEffectHf>(file.NextLE<uint32_t>());
@@ -1147,11 +1155,11 @@ int getHellfireLevelType(int type)
 
 void SaveItem(SaveHelper &file, const Item &item)
 {
-	auto idx = item.IDidx;
-	if (!gbIsHellfire)
-		idx = RemapItemIdxToDiablo(idx);
-	if (gbIsSpawn)
-		idx = RemapItemIdxToSpawn(idx);
+	int32_t idx = item.IDidx != IDI_NONE ? AllItemsList[item.IDidx].iMappingId : -1;
+	if (!gbIsHellfire && idx < IDI_NUM_DEFAULT_ITEMS)
+		idx = RemapItemIdxToDiablo(static_cast<_item_indexes>(idx));
+	if (gbIsSpawn && idx < IDI_NUM_DEFAULT_ITEMS)
+		idx = RemapItemIdxToSpawn(static_cast<_item_indexes>(idx));
 	ItemType iType = item._itype;
 	if (idx == -1) {
 		idx = _item_indexes::IDI_GOLD;

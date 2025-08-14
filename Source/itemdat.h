@@ -80,7 +80,7 @@ enum _item_indexes : int16_t { // TODO defines all indexes in AllItemsList
 	IDI_SORCERER_DIABLO,
 	IDI_ARENAPOT,
 
-	IDI_LAST = IDI_ARENAPOT,
+	IDI_NUM_DEFAULT_ITEMS,
 	IDI_NONE = -1,
 };
 
@@ -511,6 +511,7 @@ struct ItemData {
 	SpellID iSpell;
 	bool iUsable;
 	uint16_t iValue;
+	int32_t iMappingId;
 };
 
 enum item_effect_type : int8_t {
@@ -647,12 +648,13 @@ struct UniqueItem {
 };
 
 extern DVL_API_FOR_TEST std::vector<ItemData> AllItemsList;
+extern ankerl::unordered_dense::map<int32_t, int16_t> ItemMappingIdsToIndices;
 extern std::vector<PLStruct> ItemPrefixes;
 extern std::vector<PLStruct> ItemSuffixes;
 extern DVL_API_FOR_TEST std::vector<UniqueItem> UniqueItems;
 extern ankerl::unordered_dense::map<int32_t, int32_t> UniqueItemMappingIdsToIndices;
 
-void LoadItemDatFromFile(DataFile &dataFile, std::string_view filename);
+void LoadItemDatFromFile(DataFile &dataFile, std::string_view filename, int32_t baseMappingId);
 void LoadUniqueItemDatFromFile(DataFile &dataFile, std::string_view filename, int32_t baseMappingId);
 void LoadItemData();
 

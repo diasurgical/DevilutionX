@@ -24,6 +24,9 @@ namespace devilution {
 /** Contains the data related to each item ID. */
 std::vector<ItemData> AllItemsList;
 
+/** Contains item mapping IDs, with item indices assigned to them. This is used for loading saved games. */
+ankerl::unordered_dense::map<int32_t, int16_t> ItemMappingIdsToIndices;
+
 /** Contains the mapping between unique base item ID strings and indices, used for parsing additional item data. */
 ankerl::unordered_dense::map<std::string, int8_t> AdditionalUniqueBaseItemStringsToIndices;
 
@@ -548,10 +551,11 @@ tl::expected<goodorevil, std::string> ParseAffixAlignment(std::string_view value
 
 } // namespace
 
-void LoadItemDatFromFile(DataFile &dataFile, std::string_view filename)
+void LoadItemDatFromFile(DataFile &dataFile, std::string_view filename, int32_t baseMappingId)
 {
 	dataFile.skipHeaderOrDie(filename);
 
+	int32_t currentMappingId = baseMappingId;
 	AllItemsList.reserve(AllItemsList.size() + dataFile.numRecords());
 	for (DataFileRecord record : dataFile) {
 		RecordReader reader { record, filename };
@@ -579,6 +583,14 @@ void LoadItemDatFromFile(DataFile &dataFile, std::string_view filename)
 		reader.read("spell", item.iSpell, ParseSpellId);
 		reader.readBool("usable", item.iUsable);
 		reader.readInt("value", item.iValue);
+
+		item.iMappingId = currentMappingId;
+		const auto [it, inserted] = ItemMappingIdsToIndices.emplace(item.iMappingId, static_cast<int16_t>(AllItemsList.size()) - 1);
+		if (!inserted) {
+			DisplayFatalErrorAndExit("Adding Item Failed", fmt::format("An item already exists for mapping ID {}.", item.iMappingId));
+		}
+
+		++currentMappingId;
 	}
 	AllItemsList.shrink_to_fit();
 }
@@ -592,7 +604,8 @@ void LoadItemDat()
 
 	AllItemsList.clear();
 	AdditionalUniqueBaseItemStringsToIndices.clear();
-	LoadItemDatFromFile(dataFile, filename);
+	ItemMappingIdsToIndices.clear();
+	LoadItemDatFromFile(dataFile, filename, 0);
 
 	LuaEvent("ItemDataLoaded");
 }

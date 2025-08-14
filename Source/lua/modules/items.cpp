@@ -453,10 +453,10 @@ void RegisterItemSpecialEffectHfEnum(sol::state_view &lua)
 	    });
 }
 
-void AddItemDataFromTsv(const std::string_view path)
+void AddItemDataFromTsv(const std::string_view path, const int32_t baseMappingId)
 {
 	DataFile dataFile = DataFile::loadOrDie(path);
-	LoadItemDatFromFile(dataFile, path);
+	LoadItemDatFromFile(dataFile, path, baseMappingId);
 }
 
 void AddUniqueItemDataFromTsv(const std::string_view path, const int32_t baseMappingId)
@@ -482,7 +482,7 @@ sol::table LuaItemModule(sol::state_view &lua)
 
 	sol::table table = lua.create_table();
 
-	LuaSetDocFn(table, "addItemDataFromTsv", "(path: string)", AddItemDataFromTsv);
+	LuaSetDocFn(table, "addItemDataFromTsv", "(path: string, baseMappingId: number)", AddItemDataFromTsv);
 	LuaSetDocFn(table, "addUniqueItemDataFromTsv", "(path: string, baseMappingId: number)", AddUniqueItemDataFromTsv);
 
 	return table;
