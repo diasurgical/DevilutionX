@@ -41,6 +41,10 @@ jobs:
         key: ${{ github.workflow }}-v2-${{ github.sha }}
         restore-keys: ${{ github.workflow }}-v2-
 
+    - name: Clean previous DMG
+      working-directory: ${{github.workspace}}
+      run: rm -f build/*.dmg
+
     - name: Build
       working-directory: ${{github.workspace}}
       shell: bash
