@@ -712,7 +712,7 @@ int FindFirstSlotOnItem(int8_t itemInvId)
 {
 	if (itemInvId == 0)
 		return -1;
-	for (int s = SLOTXY_INV_FIRST; s < SLOTXY_INV_LAST; s++) {
+	for (int s = SLOTXY_INV_FIRST; s <= SLOTXY_INV_LAST; s++) {
 		if (GetItemIdOnSlot(s) == itemInvId)
 			return s;
 	}
