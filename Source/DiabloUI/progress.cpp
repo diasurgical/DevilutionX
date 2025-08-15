@@ -1,19 +1,24 @@
+#include <memory>
+#include <optional>
+#include <vector>
+
 #include <SDL.h>
 
 #include "DiabloUI/button.h"
 #include "DiabloUI/diabloui.h"
-#include "control.h"
+#include "DiabloUI/ui_item.h"
 #include "controls/input.h"
 #include "controls/menu_controls.h"
 #include "engine/clx_sprite.hpp"
 #include "engine/dx.h"
 #include "engine/load_pcx.hpp"
-#include "engine/palette.h"
+#include "engine/point.hpp"
 #include "engine/render/clx_render.hpp"
-#include "hwcursor.hpp"
+#include "engine/surface.hpp"
 #include "utils/display.h"
 #include "utils/is_of.hpp"
 #include "utils/language.h"
+#include "utils/ui_fwd.h"
 
 namespace devilution {
 namespace {

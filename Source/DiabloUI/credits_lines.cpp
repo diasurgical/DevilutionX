@@ -1,3 +1,5 @@
+#include <cstddef>
+
 #include "DiabloUI/credits_lines.h"
 #include "utils/language.h"
 

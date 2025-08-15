@@ -1,12 +1,19 @@
 #include "DiabloUI/button.h"
 
+#include <optional>
+
+#include <SDL.h>
+
 #include "DiabloUI/diabloui.h"
+#include "DiabloUI/ui_flags.hpp"
+#include "DiabloUI/ui_item.h"
 #include "engine/clx_sprite.hpp"
 #include "engine/load_clx.hpp"
 #include "engine/load_pcx.hpp"
+#include "engine/rectangle.hpp"
 #include "engine/render/clx_render.hpp"
 #include "engine/render/text_render.hpp"
-#include "utils/display.h"
+#include "engine/surface.hpp"
 
 namespace devilution {
 

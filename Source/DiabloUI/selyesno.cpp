@@ -1,8 +1,19 @@
 #include "selyesno.h"
 
+#include <cstddef>
+#include <memory>
+#include <optional>
+#include <vector>
+
+#include <SDL.h>
+
 #include "DiabloUI/diabloui.h"
-#include "control.h"
+#include "DiabloUI/ui_flags.hpp"
+#include "DiabloUI/ui_item.h"
+#include "engine/point.hpp"
+#include "engine/render/text_render.hpp"
 #include "utils/language.h"
+#include "utils/ui_fwd.h"
 #include "utils/utf8.hpp"
 
 namespace devilution {

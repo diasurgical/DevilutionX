@@ -1,12 +1,20 @@
+#include <cstddef>
 #include <cstdint>
+#include <memory>
+#include <optional>
+#include <vector>
+
+#include <SDL.h>
 
 #include "DiabloUI/diabloui.h"
-#include "DiabloUI/selok.h"
-#include "control.h"
+#include "DiabloUI/ui_flags.hpp"
+#include "DiabloUI/ui_item.h"
 #include "engine/assets.hpp"
 #include "engine/load_clx.hpp"
+#include "engine/point.hpp"
 #include "game_mode.hpp"
 #include "utils/language.h"
+#include "utils/ui_fwd.h"
 
 namespace devilution {
 namespace {

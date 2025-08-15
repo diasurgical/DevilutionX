@@ -15,7 +15,6 @@
 #include "utils/parse_int.hpp"
 #include "utils/sdl_ptrs.h"
 #include "utils/str_cat.hpp"
-#include "utils/utf8.hpp"
 
 namespace devilution {
 

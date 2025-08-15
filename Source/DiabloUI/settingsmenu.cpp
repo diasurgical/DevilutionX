@@ -1,24 +1,38 @@
-#include "selstart.h"
-
+#include <algorithm>
+#include <cassert>
+#include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <optional>
+#include <string>
 #include <vector>
 
+#include <SDL.h>
 #include <function_ref.hpp>
 
 #include "DiabloUI/diabloui.h"
 #include "DiabloUI/scrollbar.h"
-#include "control.h"
+#include "DiabloUI/ui_flags.hpp"
+#include "DiabloUI/ui_item.h"
+#include "controls/controller.h"
+#include "controls/controller_buttons.h"
 #include "controls/controller_motion.h"
 #include "controls/plrctrls.h"
 #include "controls/remap_keyboard.h"
 #include "engine/assets.hpp"
+#include "engine/rectangle.hpp"
 #include "engine/render/text_render.hpp"
+#include "game_mode.hpp"
 #include "hwcursor.hpp"
+#include "items.h"
 #include "options.h"
-#include "utils/display.h"
+#include "utils/enum_traits.h"
 #include "utils/is_of.hpp"
 #include "utils/language.h"
+#include "utils/sdl_geometry.h"
+#include "utils/static_vector.hpp"
+#include "utils/str_cat.hpp"
+#include "utils/ui_fwd.h"
 #include "utils/utf8.hpp"
 
 namespace devilution {

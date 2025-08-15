@@ -1,45 +1,56 @@
 #include "DiabloUI/diabloui.h"
 
 #include <algorithm>
+#include <array>
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
+#include <vector>
+
+#include <SDL.h>
+#include <function_ref.hpp>
 
 #include "DiabloUI/button.h"
-#include "DiabloUI/dialogs.h"
 #include "DiabloUI/scrollbar.h"
 #include "DiabloUI/text_input.hpp"
+#include "DiabloUI/ui_flags.hpp"
+#include "DiabloUI/ui_item.h"
+#include "appfat.h"
 #include "controls/control_mode.hpp"
 #include "controls/controller.h"
 #include "controls/input.h"
 #include "controls/menu_controls.h"
-#include "controls/plrctrls.h"
 #include "diablo.h"
 #include "discord/discord.h"
-#include "engine/assets.hpp"
+#include "effects.h"
 #include "engine/clx_sprite.hpp"
 #include "engine/dx.h"
 #include "engine/load_pcx.hpp"
 #include "engine/palette.h"
 #include "engine/render/clx_render.hpp"
 #include "engine/render/text_render.hpp"
+#include "engine/sound.h"
+#include "engine/surface.hpp"
 #include "engine/ticks.hpp"
+#include "headless_mode.hpp"
 #include "hwcursor.hpp"
 #include "init.hpp"
+#include "options.h"
+#include "player.h"
+#include "playerdat.hpp"
+#include "sound_effect_enums.h"
 #include "utils/algorithm/container.hpp"
 #include "utils/display.h"
+#include "utils/enum_traits.h"
 #include "utils/is_of.hpp"
-#include "utils/language.h"
-#include "utils/log.hpp"
-#include "utils/pcx_to_clx.hpp"
 #include "utils/screen_reader.hpp"
 #include "utils/sdl_compat.h"
 #include "utils/sdl_geometry.h"
-#include "utils/sdl_ptrs.h"
-#include "utils/sdl_wrap.h"
 #include "utils/str_cat.hpp"
-#include "utils/stubs.h"
+#include "utils/ui_fwd.h"
 #include "utils/utf8.hpp"
 
 #ifdef __SWITCH__
@@ -765,7 +776,7 @@ void DrawSelector(const SDL_Rect &rect)
 	const ClxSprite sprite = sprites[GetAnimationFrame(sprites.numSprites())];
 
 	// TODO FOCUS_MED appears higher than the box
-	const int y = rect.y + (rect.h - static_cast<int>(sprite.height())) / 2;
+	const int y = rect.y + ((rect.h - static_cast<int>(sprite.height())) / 2);
 
 	const Surface &out = Surface(DiabloUiSurface());
 	RenderClxSprite(out, sprite, { rect.x, y });

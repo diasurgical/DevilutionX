@@ -1,23 +1,30 @@
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
-#include <memory>
+#include <optional>
+#include <string>
+#include <string_view>
 #include <vector>
+
+#include <SDL.h>
 
 #include "DiabloUI/credits_lines.h"
 #include "DiabloUI/diabloui.h"
 #include "DiabloUI/support_lines.h"
-#include "control.h"
+#include "DiabloUI/ui_flags.hpp"
 #include "controls/input.h"
 #include "controls/menu_controls.h"
 #include "engine/load_clx.hpp"
+#include "engine/point.hpp"
 #include "engine/render/clx_render.hpp"
 #include "engine/render/text_render.hpp"
+#include "engine/surface.hpp"
 #include "hwcursor.hpp"
 #include "utils/display.h"
 #include "utils/is_of.hpp"
 #include "utils/language.h"
-#include "utils/log.hpp"
-#include "utils/sdl_compat.h"
+#include "utils/sdl_geometry.h"
+#include "utils/ui_fwd.h"
 
 namespace devilution {
 
@@ -90,7 +97,7 @@ private:
 
 void CreditsRenderer::Render()
 {
-	const int offsetY = -VIEWPORT.h + (SDL_GetTicks() - ticks_begin_) / 40;
+	const int offsetY = -VIEWPORT.h + ((SDL_GetTicks() - ticks_begin_) / 40);
 	if (offsetY == prev_offset_y_)
 		return;
 	prev_offset_y_ = offsetY;

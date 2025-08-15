@@ -1,26 +1,33 @@
 #include "DiabloUI/dialogs.h"
 
 #include <cstdint>
+#include <memory>
+#include <optional>
+#include <string>
 #include <string_view>
-#include <utility>
+#include <vector>
+
+#include <SDL.h>
 
 #include "DiabloUI/button.h"
 #include "DiabloUI/diabloui.h"
-#include "control.h"
+#include "DiabloUI/ui_flags.hpp"
+#include "DiabloUI/ui_item.h"
 #include "controls/input.h"
 #include "controls/menu_controls.h"
 #include "engine/clx_sprite.hpp"
-#include "engine/dx.h"
 #include "engine/load_clx.hpp"
 #include "engine/load_pcx.hpp"
-#include "engine/palette.h"
+#include "engine/point.hpp"
+#include "engine/render/text_render.hpp"
 #include "headless_mode.hpp"
 #include "hwcursor.hpp"
 #include "init.hpp"
-#include "utils/display.h"
 #include "utils/is_of.hpp"
 #include "utils/language.h"
 #include "utils/log.hpp"
+#include "utils/sdl_geometry.h"
+#include "utils/ui_fwd.h"
 
 namespace devilution {
 

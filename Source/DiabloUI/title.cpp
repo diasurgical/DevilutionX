@@ -1,15 +1,23 @@
+#include <memory>
 #include <optional>
+#include <vector>
+
+#include <SDL.h>
 
 #include "DiabloUI/diabloui.h"
-#include "control.h"
+#include "DiabloUI/ui_flags.hpp"
+#include "DiabloUI/ui_item.h"
 #include "controls/input.h"
 #include "controls/menu_controls.h"
 #include "discord/discord.h"
+#include "engine/clx_sprite.hpp"
 #include "engine/load_clx.hpp"
 #include "engine/load_pcx.hpp"
+#include "engine/point.hpp"
 #include "utils/algorithm/container.hpp"
 #include "utils/language.h"
 #include "utils/sdl_geometry.h"
+#include "utils/ui_fwd.h"
 
 namespace devilution {
 namespace {

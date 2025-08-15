@@ -1,11 +1,17 @@
 #include "DiabloUI/hero/selhero.h"
 
 #include <algorithm>
-#include <chrono>
+#include <cstddef>
 #include <cstdint>
-#include <random>
+#include <cstdlib>
+#include <cstring>
+#include <memory>
+#include <optional>
+#include <utility>
+#include <vector>
 
-#include <fmt/format.h>
+#include <SDL.h>
+#include <fmt/core.h>
 
 #include "DiabloUI/diabloui.h"
 #include "DiabloUI/dialogs.h"
@@ -13,16 +19,21 @@
 #include "DiabloUI/scrollbar.h"
 #include "DiabloUI/selok.h"
 #include "DiabloUI/selyesno.h"
-#include "control.h"
+#include "DiabloUI/ui_flags.hpp"
+#include "DiabloUI/ui_item.h"
 #include "controls/control_mode.hpp"
-#include "controls/plrctrls.h"
 #include "engine/assets.hpp"
+#include "engine/point.hpp"
 #include "game_mode.hpp"
-#include "menu.h"
+#include "levels/gendung.h"
 #include "options.h"
 #include "pfile.h"
+#include "playerdat.hpp"
+#include "utils/enum_traits.h"
 #include "utils/language.h"
+#include "utils/sdl_geometry.h"
 #include "utils/str_cat.hpp"
+#include "utils/ui_fwd.h"
 #include "utils/utf8.hpp"
 
 namespace devilution {

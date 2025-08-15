@@ -1,21 +1,35 @@
 #include "DiabloUI/multi/selgame.h"
 
+#include <cstddef>
 #include <cstdint>
+#include <cstring>
+#include <memory>
+#include <optional>
+#include <string>
+#include <string_view>
+#include <vector>
 
-#include <fmt/format.h>
+#include <SDL.h>
+#include <fmt/core.h>
 
 #include "DiabloUI/diabloui.h"
-#include "DiabloUI/dialogs.h"
 #include "DiabloUI/hero/selhero.h"
 #include "DiabloUI/scrollbar.h"
 #include "DiabloUI/selok.h"
+#include "DiabloUI/ui_flags.hpp"
+#include "DiabloUI/ui_item.h"
 #include "config.h"
-#include "control.h"
+#include "diablo.h"
+#include "engine/point.hpp"
+#include "engine/render/text_render.hpp"
+#include "levels/gendung.h"
 #include "menu.h"
+#include "multi.h"
 #include "options.h"
 #include "storm/storm_net.hpp"
 #include "utils/language.h"
 #include "utils/str_cat.hpp"
+#include "utils/ui_fwd.h"
 #include "utils/utf8.hpp"
 
 namespace devilution {

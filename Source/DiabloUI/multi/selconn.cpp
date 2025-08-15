@@ -1,11 +1,21 @@
+#include <cstddef>
+#include <memory>
+#include <optional>
 #include <string_view>
+#include <vector>
 
-#include <fmt/format.h>
+#include <SDL.h>
+#include <fmt/core.h>
 
 #include "DiabloUI/diabloui.h"
-#include "stores.h"
+#include "DiabloUI/ui_flags.hpp"
+#include "DiabloUI/ui_item.h"
+#include "engine/point.hpp"
+#include "engine/render/text_render.hpp"
+#include "multi.h"
 #include "storm/storm_net.hpp"
 #include "utils/language.h"
+#include "utils/ui_fwd.h"
 #include "utils/utf8.hpp"
 
 namespace devilution {
