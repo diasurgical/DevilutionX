@@ -69,9 +69,9 @@ void InitOnce()
 
 void RunForTileMaskLight(benchmark::State &state, TileType tileType, MaskType maskType, const uint8_t *lightTable)
 {
-	Surface out = Surface(SdlSurface.get());
+	const Surface out = Surface(SdlSurface.get());
 	std::array<std::array<uint8_t, LightTableSize>, NumLightingLevels> lightTables;
-	Lightmap lightmap(/*outBuffer=*/nullptr, /*lightmapBuffer=*/ {}, /*pitch=*/1, lightTables, FullyLitLightTable, FullyDarkLightTable);
+	const Lightmap lightmap(/*outBuffer=*/nullptr, /*lightmapBuffer=*/ {}, /*pitch=*/1, lightTables, FullyLitLightTable, FullyDarkLightTable);
 	const std::span<const LevelCelBlock> tiles = Tiles[tileType];
 	for (auto _ : state) {
 		for (const LevelCelBlock &levelCelBlock : tiles) {
@@ -125,7 +125,7 @@ DEFINE_FOR_TILE_TYPE(RightTrapezoid)
 void BM_RenderBlackTile(benchmark::State &state)
 {
 	InitOnce();
-	Surface out = Surface(SdlSurface.get());
+	const Surface out = Surface(SdlSurface.get());
 	for (auto _ : state) {
 		world_draw_black_tile(out, 320, 240);
 		uint8_t color = out[Point { 310, 200 }];

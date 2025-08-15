@@ -478,7 +478,7 @@ void UnloadModArchives()
 void LoadModArchives(std::span<const std::string_view> modnames)
 {
 	std::string targetPath;
-	for (std::string_view modname : modnames) {
+	for (const std::string_view modname : modnames) {
 		targetPath = StrCat(paths::PrefPath(), "mods" DIRECTORY_SEPARATOR_STR, modname, DIRECTORY_SEPARATOR_STR);
 		if (FileExists(targetPath)) {
 			OverridePaths.emplace_back(targetPath);
@@ -492,7 +492,7 @@ void LoadModArchives(std::span<const std::string_view> modnames)
 
 	int priority = 10000;
 	auto paths = GetMPQSearchPaths();
-	for (std::string_view modname : modnames) {
+	for (const std::string_view modname : modnames) {
 		LoadMPQ(paths, StrCat("mods" DIRECTORY_SEPARATOR_STR, modname), priority);
 		priority++;
 	}

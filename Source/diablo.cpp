@@ -250,7 +250,7 @@ void LeftMouseCmd(bool bShift)
 		return;
 	}
 
-	Player &myPlayer = *MyPlayer;
+	const Player &myPlayer = *MyPlayer;
 	bNear = myPlayer.position.tile.WalkingDistance(cursPosition) < 2;
 	if (pcursitem != -1 && pcurs == CURSOR_HAND && !bShift) {
 		NetSendCmdLocParam1(true, invflag ? CMD_GOTOGETITEM : CMD_GOTOAGETITEM, cursPosition, pcursitem);
@@ -304,7 +304,7 @@ bool TryOpenDungeonWithMouse()
 	if (leveltype != DTYPE_TOWN)
 		return false;
 
-	Item &holdItem = MyPlayer->HoldItem;
+	const Item &holdItem = MyPlayer->HoldItem;
 	if (holdItem.IDidx == IDI_RUNEBOMB && OpensHive(cursPosition))
 		OpenHive();
 	else if (holdItem.IDidx == IDI_MAPOFDOOM && OpensGrave(cursPosition))
@@ -375,7 +375,7 @@ void LeftMouseDown(uint16_t modState)
 				CheckSBook();
 			} else if (!MyPlayer->HoldItem.isEmpty()) {
 				if (!TryOpenDungeonWithMouse()) {
-					Point currentPosition = MyPlayer->position.tile;
+					const Point currentPosition = MyPlayer->position.tile;
 					std::optional<Point> itemTile = FindAdjacentPositionForItem(currentPosition, GetDirection(currentPosition, cursPosition));
 					if (itemTile) {
 						NetSendCmdPItem(true, CMD_PUTITEM, *itemTile, MyPlayer->HoldItem);
@@ -714,9 +714,9 @@ void PrepareForFadeIn()
 
 void GameEventHandler(const SDL_Event &event, uint16_t modState)
 {
-	[[maybe_unused]] Options &options = GetOptions();
+	[[maybe_unused]] const Options &options = GetOptions();
 	StaticVector<ControllerButtonEvent, 4> ctrlEvents = ToControllerButtonEvents(event);
-	for (ControllerButtonEvent ctrlEvent : ctrlEvents) {
+	for (const ControllerButtonEvent ctrlEvent : ctrlEvents) {
 		GameAction action;
 		if (HandleControllerButtonEvent(event, ctrlEvent, action) && action.type == GameActionType_SEND_KEY) {
 			if ((action.send_key.vk_code & KeymapperMouseButtonMask) != 0) {
@@ -895,7 +895,7 @@ void RunGameLoop(interface_mode uMsg)
 
 		bool drawGame = true;
 		bool processInput = true;
-		bool runGameLoop = demo::IsRunning() ? demo::GetRunGameLoop(drawGame, processInput) : nthread_has_500ms_passed(&drawGame);
+		const bool runGameLoop = demo::IsRunning() ? demo::GetRunGameLoop(drawGame, processInput) : nthread_has_500ms_passed(&drawGame);
 		if (demo::IsRecording())
 			demo::RecordGameLoopResult(runGameLoop);
 
@@ -1439,7 +1439,7 @@ void UpdateMonsterLights()
 		Monster &monster = Monsters[ActiveMonsters[i]];
 
 		if ((monster.flags & MFLAG_BERSERK) != 0) {
-			int lightRadius = leveltype == DTYPE_NEST ? 9 : 3;
+			const int lightRadius = leveltype == DTYPE_NEST ? 9 : 3;
 			monster.lightId = AddLight(monster.position.tile, lightRadius);
 		}
 
@@ -1449,7 +1449,7 @@ void UpdateMonsterLights()
 				continue;
 			}
 
-			Light &light = Lights[monster.lightId];
+			const Light &light = Lights[monster.lightId];
 			if (monster.position.tile != light.position.tile) {
 				ChangeLightXY(monster.lightId, monster.position.tile);
 			}
@@ -1739,7 +1739,7 @@ void InitKeymapActions()
 		    N_("Use Belt item."),
 		    '1' + i,
 		    [i] {
-			    Player &myPlayer = *MyPlayer;
+			    const Player &myPlayer = *MyPlayer;
 			    if (!myPlayer.SpdList[i].isEmpty() && myPlayer.SpdList[i]._itype != ItemType::Gold) {
 				    UseInvItem(INVITEM_BELT_FIRST + i);
 			    }
@@ -2059,7 +2059,7 @@ void InitPadmapActions()
 		    N_("Use Belt item."),
 		    ControllerButton_NONE,
 		    [i] {
-			    Player &myPlayer = *MyPlayer;
+			    const Player &myPlayer = *MyPlayer;
 			    if (!myPlayer.SpdList[i].isEmpty() && myPlayer.SpdList[i]._itype != ItemType::Gold) {
 				    UseInvItem(INVITEM_BELT_FIRST + i);
 			    }
@@ -2318,14 +2318,14 @@ void InitPadmapActions()
 	    { ControllerButton_BUTTON_BACK, ControllerButton_BUTTON_DPAD_RIGHT },
 	    [] {});
 	auto leftMouseDown = [] {
-		ControllerButtonCombo standGroundCombo = GetOptions().Padmapper.ButtonComboForAction("StandGround");
-		bool standGround = StandToggle || IsControllerButtonComboPressed(standGroundCombo);
+		const ControllerButtonCombo standGroundCombo = GetOptions().Padmapper.ButtonComboForAction("StandGround");
+		const bool standGround = StandToggle || IsControllerButtonComboPressed(standGroundCombo);
 		sgbMouseDown = CLICK_LEFT;
 		LeftMouseDown(standGround ? KMOD_SHIFT : KMOD_NONE);
 	};
 	auto leftMouseUp = [] {
-		ControllerButtonCombo standGroundCombo = GetOptions().Padmapper.ButtonComboForAction("StandGround");
-		bool standGround = StandToggle || IsControllerButtonComboPressed(standGroundCombo);
+		const ControllerButtonCombo standGroundCombo = GetOptions().Padmapper.ButtonComboForAction("StandGround");
+		const bool standGround = StandToggle || IsControllerButtonComboPressed(standGroundCombo);
 		LastPlayerAction = PlayerActionType::None;
 		sgbMouseDown = CLICK_NONE;
 		LeftMouseUp(standGround ? KMOD_SHIFT : KMOD_NONE);
@@ -2345,8 +2345,8 @@ void InitPadmapActions()
 	    leftMouseDown,
 	    leftMouseUp);
 	auto rightMouseDown = [] {
-		ControllerButtonCombo standGroundCombo = GetOptions().Padmapper.ButtonComboForAction("StandGround");
-		bool standGround = StandToggle || IsControllerButtonComboPressed(standGroundCombo);
+		const ControllerButtonCombo standGroundCombo = GetOptions().Padmapper.ButtonComboForAction("StandGround");
+		const bool standGround = StandToggle || IsControllerButtonComboPressed(standGroundCombo);
 		LastPlayerAction = PlayerActionType::None;
 		sgbMouseDown = CLICK_RIGHT;
 		RightMouseDown(standGround);
@@ -2384,7 +2384,7 @@ void InitPadmapActions()
 	    [] { PadMenuNavigatorActive = true; },
 	    [] { PadMenuNavigatorActive = false; });
 	auto toggleGameMenu = [] {
-		bool inMenu = gmenu_is_active();
+		const bool inMenu = gmenu_is_active();
 		PressEscKey();
 		LastPlayerAction = PlayerActionType::None;
 		PadHotspellMenuActive = false;
@@ -2769,7 +2769,7 @@ bool TryIconCurs()
 		const SpellType spellType = SpellType::Scroll;
 		const int spellFrom = myPlayer.spellFrom;
 		if (IsWallSpell(spellID)) {
-			Direction sd = GetDirection(myPlayer.position.tile, cursPosition);
+			const Direction sd = GetDirection(myPlayer.position.tile, cursPosition);
 			NetSendCmdLocParam4(true, CMD_SPELLXYD, cursPosition, static_cast<int8_t>(spellID), static_cast<uint8_t>(spellType), static_cast<uint16_t>(sd), spellFrom);
 		} else if (pcursmonst != -1 && leveltype != DTYPE_TOWN) {
 			NetSendCmdParam4(true, CMD_SPELLID, pcursmonst, static_cast<int8_t>(spellID), static_cast<uint8_t>(spellType), spellFrom);
@@ -3002,7 +3002,7 @@ void LoadGameLevelStores()
 
 void LoadGameLevelStash()
 {
-	bool isHellfireSaveGame = gbIsHellfireSaveGame;
+	const bool isHellfireSaveGame = gbIsHellfireSaveGame;
 
 	gbIsHellfireSaveGame = gbIsHellfire;
 	LoadStash();
@@ -3013,10 +3013,10 @@ tl::expected<void, std::string> LoadGameLevelDungeon(bool firstflag, lvl_entry l
 {
 	if (firstflag || lvldir == ENTRY_LOAD || !myPlayer._pLvlVisited[currlevel] || gbIsMultiplayer) {
 		HoldThemeRooms();
-		[[maybe_unused]] uint32_t mid1Seed = GetLCGEngineState();
+		[[maybe_unused]] const uint32_t mid1Seed = GetLCGEngineState();
 		InitGolems();
 		InitObjects();
-		[[maybe_unused]] uint32_t mid2Seed = GetLCGEngineState();
+		[[maybe_unused]] const uint32_t mid2Seed = GetLCGEngineState();
 
 		IncProgress();
 
@@ -3026,7 +3026,7 @@ tl::expected<void, std::string> LoadGameLevelDungeon(bool firstflag, lvl_entry l
 
 		IncProgress();
 
-		[[maybe_unused]] uint32_t mid3Seed = GetLCGEngineState();
+		[[maybe_unused]] const uint32_t mid3Seed = GetLCGEngineState();
 		InitMissiles();
 		InitCorpses();
 #ifdef _DEBUG
@@ -3270,7 +3270,7 @@ void LoadGameLevelCalculateCursor()
 
 tl::expected<void, std::string> LoadGameLevel(bool firstflag, lvl_entry lvldir)
 {
-	_music_id neededTrack = GetLevelMusic(leveltype);
+	const _music_id neededTrack = GetLevelMusic(leveltype);
 
 	ClearFloatingNumbers();
 	LoadGameLevelStopMusic(neededTrack);
@@ -3315,7 +3315,7 @@ tl::expected<void, std::string> LoadGameLevel(bool firstflag, lvl_entry lvldir)
 
 	IncProgress();
 
-	Player &myPlayer = *MyPlayer;
+	const Player &myPlayer = *MyPlayer;
 
 	if (setlevel) {
 		RETURN_IF_ERROR(LoadGameLevelSetLevel(firstflag, lvldir, myPlayer));
@@ -3357,7 +3357,7 @@ tl::expected<void, std::string> LoadGameLevel(bool firstflag, lvl_entry lvldir)
 
 bool game_loop(bool bStartup)
 {
-	uint16_t wait = bStartup ? sgGameInitInfo.nTickRate * 3 : 3;
+	const uint16_t wait = bStartup ? sgGameInitInfo.nTickRate * 3 : 3;
 
 	for (unsigned i = 0; i < wait; i++) {
 		if (!multi_handle_delta()) {

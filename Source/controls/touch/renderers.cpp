@@ -105,7 +105,7 @@ void LoadButtonArt(ButtonTexture *buttonArt)
 
 void LoadPotionArt(ButtonTexture *potionArt)
 {
-	item_cursor_graphic potionGraphics[] {
+	const item_cursor_graphic potionGraphics[] {
 		ICURS_POTION_OF_HEALING,
 		ICURS_POTION_OF_MANA,
 		ICURS_POTION_OF_REJUVENATION,
@@ -116,8 +116,8 @@ void LoadPotionArt(ButtonTexture *potionArt)
 		ICURS_SCROLL_OF
 	};
 
-	int potionFrame = static_cast<int>(CURSOR_FIRSTITEM) + static_cast<int>(ICURS_POTION_OF_HEALING);
-	Size potionSize = GetInvItemSize(potionFrame);
+	const int potionFrame = static_cast<int>(CURSOR_FIRSTITEM) + static_cast<int>(ICURS_POTION_OF_HEALING);
+	const Size potionSize = GetInvItemSize(potionFrame);
 
 	auto surface = SDLWrap::CreateRGBSurfaceWithFormat(
 	    /*flags=*/0,
@@ -130,14 +130,14 @@ void LoadPotionArt(ButtonTexture *potionArt)
 	if (SDLC_SetSurfaceAndPaletteColors(surface.get(), palette.get(), logical_palette.data(), 0, 256) < 0)
 		ErrSdl();
 
-	Uint32 bgColor = SDL_MapRGB(surface->format, logical_palette[1].r, logical_palette[1].g, logical_palette[1].b);
+	const Uint32 bgColor = SDL_MapRGB(surface->format, logical_palette[1].r, logical_palette[1].g, logical_palette[1].b);
 	if (SDL_FillRect(surface.get(), nullptr, bgColor) < 0)
 		ErrSdl();
 	if (SDL_SetColorKey(surface.get(), SDL_TRUE, bgColor) < 0)
 		ErrSdl();
 
 	Point position { 0, 0 };
-	for (item_cursor_graphic graphic : potionGraphics) {
+	for (const item_cursor_graphic graphic : potionGraphics) {
 		const int cursorID = static_cast<int>(CURSOR_FIRSTITEM) + graphic;
 		position.y += potionSize.height;
 		ClxDraw(Surface(surface.get()), position, GetInvItemSprite(cursorID));
@@ -150,7 +150,7 @@ void LoadPotionArt(ButtonTexture *potionArt)
 
 bool InteractsWithCharButton(Point point)
 {
-	Player &myPlayer = *MyPlayer;
+	const Player &myPlayer = *MyPlayer;
 	if (myPlayer._pStatPts == 0)
 		return false;
 	for (auto attribute : enum_values<CharacterAttribute>()) {
@@ -187,7 +187,7 @@ void RenderVirtualGamepad(SDL_Renderer *renderer)
 	if (!gbRunGame)
 		return;
 
-	RenderFunction renderFunction = [renderer](const ButtonTexture &art, SDL_Rect *src, SDL_Rect *dst) {
+	const RenderFunction renderFunction = [renderer](const ButtonTexture &art, SDL_Rect *src, SDL_Rect *dst) {
 		if (art.texture == nullptr)
 			return;
 
@@ -203,7 +203,7 @@ void RenderVirtualGamepad(SDL_Surface *surface)
 	if (!gbRunGame)
 		return;
 
-	RenderFunction renderFunction = [surface](const ButtonTexture &art, SDL_Rect *src, SDL_Rect *dst) {
+	const RenderFunction renderFunction = [surface](const ButtonTexture &art, SDL_Rect *src, SDL_Rect *dst) {
 		if (art.surface == nullptr)
 			return;
 
@@ -257,10 +257,10 @@ void VirtualGamepadRenderer::Render(RenderFunction renderFunction)
 
 void VirtualMenuPanelRenderer::Render(RenderFunction renderFunction)
 {
-	int x = virtualMenuPanel->area.position.x;
-	int y = virtualMenuPanel->area.position.y;
-	int width = virtualMenuPanel->area.size.width;
-	int height = virtualMenuPanel->area.size.height;
+	const int x = virtualMenuPanel->area.position.x;
+	const int y = virtualMenuPanel->area.position.y;
+	const int width = virtualMenuPanel->area.size.width;
+	const int height = virtualMenuPanel->area.size.height;
 	SDL_Rect rect { x, y, width, height };
 	renderFunction(MyPlayer->_pStatPts == 0 ? menuArt : menuArtLevelUp, nullptr, &rect);
 }
@@ -275,12 +275,12 @@ void VirtualDirectionPadRenderer::RenderPad(RenderFunction renderFunction)
 {
 	auto center = virtualDirectionPad->area.position;
 	auto radius = virtualDirectionPad->area.radius;
-	int diameter = 2 * radius;
+	const int diameter = 2 * radius;
 
-	int x = center.x - radius;
-	int y = center.y - radius;
-	int width = diameter;
-	int height = diameter;
+	const int x = center.x - radius;
+	const int y = center.y - radius;
+	const int width = diameter;
+	const int height = diameter;
 	SDL_Rect rect { x, y, width, height };
 	renderFunction(padArt, nullptr, &rect);
 }
@@ -289,12 +289,12 @@ void VirtualDirectionPadRenderer::RenderKnob(RenderFunction renderFunction)
 {
 	auto center = virtualDirectionPad->position;
 	auto radius = virtualDirectionPad->area.radius / 3;
-	int diameter = 2 * radius;
+	const int diameter = 2 * radius;
 
-	int x = center.x - radius;
-	int y = center.y - radius;
-	int width = diameter;
-	int height = diameter;
+	const int x = center.x - radius;
+	const int y = center.y - radius;
+	const int width = diameter;
+	const int height = diameter;
 	SDL_Rect rect { x, y, width, height };
 	renderFunction(knobArt, nullptr, &rect);
 }
@@ -304,20 +304,20 @@ void VirtualPadButtonRenderer::Render(RenderFunction renderFunction, const Butto
 	if (!virtualPadButton->isUsable())
 		return;
 
-	VirtualGamepadButtonType buttonType = GetButtonType();
-	Size size = buttonArt.size();
+	const VirtualGamepadButtonType buttonType = GetButtonType();
+	const Size size = buttonArt.size();
 	const auto index = static_cast<unsigned>(buttonType);
 	const int xOffset = size.width * (index / buttonArt.numFrames);
 	const int yOffset = size.height * (index % buttonArt.numFrames);
 
 	auto center = virtualPadButton->area.position;
 	auto radius = virtualPadButton->area.radius;
-	int diameter = 2 * radius;
+	const int diameter = 2 * radius;
 
-	int x = center.x - radius;
-	int y = center.y - radius;
-	int width = diameter;
-	int height = diameter;
+	const int x = center.x - radius;
+	const int y = center.y - radius;
+	const int width = diameter;
+	const int height = diameter;
 
 	SDL_Rect src = MakeSdlRect(xOffset, yOffset, size.width, size.height);
 	SDL_Rect dst = MakeSdlRect(x, y, width, height);
@@ -333,18 +333,18 @@ void PotionButtonRenderer::RenderPotion(RenderFunction renderFunction, const But
 	if (potionType == std::nullopt)
 		return;
 
-	int frame = *potionType;
-	Size size = potionArt.size();
-	int offset = size.height * frame;
+	const int frame = *potionType;
+	const Size size = potionArt.size();
+	const int offset = size.height * frame;
 
 	auto center = virtualPadButton->area.position;
 	auto radius = virtualPadButton->area.radius * 8 / 10;
-	int diameter = 2 * radius;
+	const int diameter = 2 * radius;
 
-	int x = center.x - radius;
-	int y = center.y - radius;
-	int width = diameter;
-	int height = diameter;
+	const int x = center.x - radius;
+	const int y = center.y - radius;
+	const int width = diameter;
+	const int height = diameter;
 
 	SDL_Rect src = MakeSdlRect(0, offset, size.width, size.height);
 	SDL_Rect dst = MakeSdlRect(x, y, width, height);
@@ -448,7 +448,7 @@ VirtualGamepadButtonType SecondaryActionButtonRenderer::GetButtonType()
 			return GetApplyButtonType(virtualPadButton->isHeld);
 
 		if (pcursinvitem != -1) {
-			Item &item = GetInventoryItem(*MyPlayer, pcursinvitem);
+			const Item &item = GetInventoryItem(*MyPlayer, pcursinvitem);
 			if (!item.isScroll() || !TargetsMonster(item._iSpell)) {
 				if (!item.isEquipment()) {
 					return GetApplyButtonType(virtualPadButton->isHeld);

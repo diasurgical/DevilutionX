@@ -87,7 +87,7 @@ void CaptureScreen()
 	}
 	DrawAndBlit();
 
-	std::array<SDL_Color, 256> origSystemPalette = system_palette;
+	const std::array<SDL_Color, 256> origSystemPalette = system_palette;
 	RedPalette();
 
 	system_palette = origSystemPalette;

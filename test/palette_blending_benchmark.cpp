@@ -51,7 +51,7 @@ void BM_FindNearestNeighbor(benchmark::State &state)
 {
 	std::array<SDL_Color, 256> palette;
 	GeneratePalette(palette.data());
-	PaletteKdTree tree(palette.data(), -1, -1);
+	const PaletteKdTree tree(palette.data(), -1, -1);
 
 	for (auto _ : state) {
 		for (int r = 0; r < 256; ++r) {

@@ -90,9 +90,9 @@ T SwapBE(T in)
 
 void TerminateUtf8(char *str, size_t maxLength)
 {
-	std::string_view inStr { str, maxLength };
-	std::string_view truncStr = TruncateUtf8(inStr, maxLength - 1);
-	size_t utf8Length = truncStr.size();
+	const std::string_view inStr { str, maxLength };
+	const std::string_view truncStr = TruncateUtf8(inStr, maxLength - 1);
+	const size_t utf8Length = truncStr.size();
 	str[utf8Length] = '\0';
 }
 
@@ -800,7 +800,7 @@ void SyncPackSize(Monster &leader)
 	leader.packSize = 0;
 
 	for (size_t i = 0; i < ActiveMonsterCount; i++) {
-		Monster &minion = Monsters[ActiveMonsters[i]];
+		const Monster &minion = Monsters[ActiveMonsters[i]];
 		if (minion.leaderRelation == LeaderRelation::Leashed && minion.getLeader() == &leader)
 			leader.packSize++;
 	}
@@ -1284,7 +1284,7 @@ void SavePlayer(SaveHelper &file, const Player &player)
 	file.WriteLE<int32_t>(static_cast<int8_t>(player._pSBkSpell));
 	file.Skip<int8_t>(); // Skip _pSBkSplType
 
-	for (uint8_t spellLevel : player._pSplLvl)
+	for (const uint8_t spellLevel : player._pSplLvl)
 		file.WriteLE<uint8_t>(spellLevel);
 
 	file.Skip(7); // Alignment
@@ -1404,7 +1404,7 @@ void SavePlayer(SaveHelper &file, const Player &player)
 
 	file.WriteLE<int32_t>(player._pNumInv);
 
-	for (int8_t cell : player.InvGrid)
+	for (const int8_t cell : player.InvGrid)
 		file.WriteLE<int8_t>(cell);
 
 	for (const Item &item : player.SpdList)
@@ -1828,7 +1828,7 @@ constexpr uint32_t VersionAdditionalMissiles = 0;
 void SaveAdditionalMissiles(SaveWriter &saveWriter)
 {
 	constexpr size_t BytesWrittenBySaveMissile = 180;
-	uint32_t missileCountAdditional = (Missiles.size() > MaxMissilesForSaveGame) ? static_cast<uint32_t>(Missiles.size() - MaxMissilesForSaveGame) : 0;
+	const uint32_t missileCountAdditional = (Missiles.size() > MaxMissilesForSaveGame) ? static_cast<uint32_t>(Missiles.size() - MaxMissilesForSaveGame) : 0;
 	SaveHelper file(saveWriter, "additionalMissiles", sizeof(uint32_t) + sizeof(uint32_t) + (missileCountAdditional * BytesWrittenBySaveMissile));
 
 	file.WriteLE<uint32_t>(VersionAdditionalMissiles);
@@ -1916,7 +1916,7 @@ void SaveLevel(SaveWriter &saveWriter, LevelConversionData *levelConversionData)
 	file.WriteBE<int32_t>(ActiveObjectCount);
 
 	if (leveltype != DTYPE_TOWN) {
-		for (unsigned monsterId : ActiveMonsters)
+		for (const unsigned monsterId : ActiveMonsters)
 			file.WriteBE<uint32_t>(monsterId);
 		for (size_t i = 0; i < ActiveMonsterCount; i++) {
 			MonsterConversionData *monsterConversionData = nullptr;
@@ -1924,9 +1924,9 @@ void SaveLevel(SaveWriter &saveWriter, LevelConversionData *levelConversionData)
 				monsterConversionData = &levelConversionData->monsterConversionData[ActiveMonsters[i]];
 			SaveMonster(&file, Monsters[ActiveMonsters[i]], monsterConversionData);
 		}
-		for (int objectId : ActiveObjects)
+		for (const int objectId : ActiveObjects)
 			file.WriteLE<int8_t>(objectId);
-		for (int objectId : AvailableObjects)
+		for (const int objectId : AvailableObjects)
 			file.WriteLE<int8_t>(objectId);
 		for (int i = 0; i < ActiveObjectCount; i++) {
 			SaveObject(file, Objects[ActiveObjects[i]]);
@@ -2064,7 +2064,7 @@ tl::expected<void, std::string> LoadLevel(LevelConversionData *levelConversionDa
 		UpdateLighting = true;
 	}
 
-	for (Player &player : Players) {
+	for (const Player &player : Players) {
 		if (player.plractive && player.isOnActiveLevel())
 			Lights[player.lightId].hasChanged = true;
 	}
@@ -2094,10 +2094,10 @@ bool IsStashSizeValid(size_t stashSize, uint32_t pages, uint32_t itemCount)
 tl::expected<void, std::string> ConvertLevels(SaveWriter &saveWriter)
 {
 	// Backup current level state
-	bool tmpSetlevel = setlevel;
-	_setlevels tmpSetlvlnum = setlvlnum;
-	int tmpCurrlevel = currlevel;
-	dungeon_type tmpLeveltype = leveltype;
+	const bool tmpSetlevel = setlevel;
+	const _setlevels tmpSetlvlnum = setlvlnum;
+	const int tmpCurrlevel = currlevel;
+	const dungeon_type tmpLeveltype = leveltype;
 
 	gbSkipSync = true;
 
@@ -2345,10 +2345,10 @@ void SaveHotkeys(SaveWriter &saveWriter, const Player &player)
 	file.WriteLE<uint8_t>(static_cast<uint8_t>(NumHotkeys));
 
 	// Write the spell hotkeys
-	for (auto &spellId : player._pSplHotKey) {
+	for (const auto &spellId : player._pSplHotKey) {
 		file.WriteLE<int32_t>(static_cast<int8_t>(spellId));
 	}
-	for (auto &spellType : player._pSplTHotKey) {
+	for (const auto &spellType : player._pSplTHotKey) {
 		file.WriteLE<uint8_t>(static_cast<uint8_t>(spellType));
 	}
 
@@ -2423,7 +2423,7 @@ void LoadStash()
 void RemoveEmptyInventory(Player &player)
 {
 	for (int i = InventoryGridCells; i > 0; i--) {
-		int8_t idx = player.InvGrid[i - 1];
+		const int8_t idx = player.InvGrid[i - 1];
 		if (idx > 0 && player.InvList[idx - 1].isEmpty()) {
 			player.RemoveInvItem(idx - 1);
 		}
@@ -2462,14 +2462,14 @@ tl::expected<void, std::string> LoadGame(bool firstflag)
 	leveltype = static_cast<dungeon_type>(file.NextBE<uint32_t>());
 	if (!setlevel)
 		leveltype = GetLevelType(currlevel);
-	int viewX = file.NextBE<int32_t>();
-	int viewY = file.NextBE<int32_t>();
+	const int viewX = file.NextBE<int32_t>();
+	const int viewY = file.NextBE<int32_t>();
 	invflag = file.NextBool8();
 	CharFlag = file.NextBool8();
-	int tmpNummonsters = file.NextBE<int32_t>();
+	const int tmpNummonsters = file.NextBE<int32_t>();
 	auto savedItemCount = file.NextBE<uint32_t>();
-	int tmpNummissiles = file.NextBE<int32_t>();
-	int tmpNobjects = file.NextBE<int32_t>();
+	const int tmpNummissiles = file.NextBE<int32_t>();
+	const int tmpNobjects = file.NextBE<int32_t>();
 
 	if (!gbIsHellfire && IsAnyOf(leveltype, DTYPE_NEST, DTYPE_CRYPT)) {
 		return tl::make_unexpected(std::string(_("Player is on a Hellfire only level")));
@@ -2546,7 +2546,7 @@ tl::expected<void, std::string> LoadGame(bool firstflag)
 			LoadLighting(&file, &Lights[ActiveLights[i]]);
 
 		file.Skip<int32_t>(); // VisionId
-		int visionCount = file.NextBE<int32_t>();
+		const int visionCount = file.NextBE<int32_t>();
 
 		for (int i = 0; i < visionCount; i++) {
 			LoadLighting(&file, &VisionList[i]);
@@ -2653,7 +2653,7 @@ tl::expected<void, std::string> LoadGame(bool firstflag)
 
 void SaveHeroItems(SaveWriter &saveWriter, Player &player)
 {
-	size_t itemCount = static_cast<size_t>(NUM_INVLOC) + InventoryGridCells + MaxBeltItems;
+	const size_t itemCount = static_cast<size_t>(NUM_INVLOC) + InventoryGridCells + MaxBeltItems;
 	SaveHelper file(saveWriter, "heroitems", itemCount * (gbIsHellfire ? HellfireItemSaveSize : DiabloItemSaveSize) + sizeof(uint8_t));
 
 	file.WriteLE<uint8_t>(gbIsHellfire ? 1 : 0);
@@ -2708,7 +2708,7 @@ void SaveStash(SaveWriter &stashWriter)
 	for (const auto &page : pagesToSave) {
 		file.WriteLE<uint32_t>(page);
 		for (const auto &row : Stash.stashGrids[page]) {
-			for (uint16_t cell : row) {
+			for (const uint16_t cell : row) {
 				file.WriteLE<uint16_t>(cell);
 			}
 		}
@@ -2769,20 +2769,20 @@ void SaveGameData(SaveWriter &saveWriter)
 		file.WriteBE<int32_t>(getHellfireLevelType(GetLevelType(i)));
 	}
 
-	Player &myPlayer = *MyPlayer;
+	const Player &myPlayer = *MyPlayer;
 	SavePlayer(file, myPlayer);
 
 	for (int i = 0; i < giNumberQuests; i++)
 		SaveQuest(&file, i);
 	for (int i = 0; i < MAXPORTAL; i++)
 		SavePortal(&file, i);
-	for (int monstkill : MonsterKillCounts)
+	for (const int monstkill : MonsterKillCounts)
 		file.WriteBE<int32_t>(monstkill);
 	// add padding for vanilla save compatibility (Related to bugfix where MonsterKillCounts[MaxMonsters] was changed to MonsterKillCounts[NUM_MTYPES]
 	file.Skip(4 * (MaxMonsters - NUM_MTYPES));
 
 	if (leveltype != DTYPE_TOWN) {
-		for (unsigned monsterId : ActiveMonsters)
+		for (const unsigned monsterId : ActiveMonsters)
 			file.WriteBE<uint32_t>(monsterId);
 		for (size_t i = 0; i < ActiveMonsterCount; i++)
 			SaveMonster(&file, Monsters[ActiveMonsters[i]]);
@@ -2802,16 +2802,16 @@ void SaveGameData(SaveWriter &saveWriter)
 				SaveMissile(&file, *it);
 			}
 		}
-		for (int objectId : ActiveObjects)
+		for (const int objectId : ActiveObjects)
 			file.WriteLE(static_cast<int8_t>(objectId));
-		for (int objectId : AvailableObjects)
+		for (const int objectId : AvailableObjects)
 			file.WriteLE(static_cast<int8_t>(objectId));
 		for (int i = 0; i < ActiveObjectCount; i++)
 			SaveObject(file, Objects[ActiveObjects[i]]);
 
 		file.WriteBE<int32_t>(ActiveLightCount);
 
-		for (uint8_t lightId : ActiveLights)
+		for (const uint8_t lightId : ActiveLights)
 			file.WriteLE<uint8_t>(lightId);
 		for (int i = 0; i < ActiveLightCount; i++)
 			SaveLighting(&file, &Lights[ActiveLights[i]]);
@@ -2826,7 +2826,7 @@ void SaveGameData(SaveWriter &saveWriter)
 
 	auto itemIndexes = SaveDroppedItems(file);
 
-	for (bool uniqueItemFlag : UniqueItemFlags)
+	for (const bool uniqueItemFlag : UniqueItemFlags)
 		file.WriteLE<uint8_t>(uniqueItemFlag ? 1 : 0);
 
 	for (int j = 0; j < MAXDUNY; j++) {

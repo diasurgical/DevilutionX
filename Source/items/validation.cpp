@@ -184,7 +184,7 @@ bool IsItemDeltaValid(const TCmdPItem &itemDelta)
 		return false;
 	if (!InDungeonBounds({ itemDelta.x, itemDelta.y }))
 		return false;
-	_item_indexes idx = static_cast<_item_indexes>(SDL_SwapLE16(itemDelta.def.wIndx));
+	const _item_indexes idx = static_cast<_item_indexes>(SDL_SwapLE16(itemDelta.def.wIndx));
 	if (idx == IDI_EAR)
 		return true;
 	if (!IsItemAvailable(idx))

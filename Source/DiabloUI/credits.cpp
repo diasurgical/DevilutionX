@@ -34,10 +34,10 @@ const int LINE_H = 22;
 class CreditsRenderer {
 
 public:
-	CreditsRenderer(char const *const *text, std::size_t textLines)
+	CreditsRenderer(const char *const *text, std::size_t textLines)
 	{
 		for (size_t i = 0; i < textLines; i++) {
-			std::string_view orgText = _(text[i]);
+			const std::string_view orgText = _(text[i]);
 
 			uint16_t offset = 0;
 			size_t indexFirstNotTab = 0;
@@ -50,7 +50,7 @@ public:
 
 			size_t previous = 0;
 			while (true) {
-				size_t next = paragraphs.find('\n', previous);
+				const size_t next = paragraphs.find('\n', previous);
 				linesToRender.emplace_back(LineContent { offset, paragraphs.substr(previous, next - previous) });
 				if (next == std::string::npos)
 					break;
@@ -118,7 +118,7 @@ void CreditsRenderer::Render()
 	// We use unscaled coordinates for calculation throughout.
 	Sint16 destY = static_cast<Sint16>(uiPosition.y + VIEWPORT.y - (offsetY - linesBegin * LINE_H));
 	for (std::size_t i = linesBegin; i < linesEnd; ++i, destY += LINE_H) {
-		Sint16 destX = uiPosition.x + VIEWPORT.x + 31;
+		const Sint16 destX = uiPosition.x + VIEWPORT.x + 31;
 
 		auto &lineContent = linesToRender[i];
 
@@ -133,7 +133,7 @@ void CreditsRenderer::Render()
 	}
 }
 
-bool TextDialog(char const *const *text, std::size_t textLines)
+bool TextDialog(const char *const *text, std::size_t textLines)
 {
 	CreditsRenderer creditsRenderer(text, textLines);
 	bool endMenu = false;
@@ -152,7 +152,7 @@ bool TextDialog(char const *const *text, std::size_t textLines)
 				endMenu = true;
 				break;
 			default:
-				for (MenuAction menuAction : GetMenuActions(event)) {
+				for (const MenuAction menuAction : GetMenuActions(event)) {
 					if (IsNoneOf(menuAction, MenuAction_BACK, MenuAction_SELECT))
 						continue;
 					endMenu = true;

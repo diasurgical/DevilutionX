@@ -107,7 +107,7 @@ void ReloadExperienceData()
 		bool skipRecord = false;
 
 		FieldIterator fieldIt = record.begin();
-		FieldIterator endField = record.end();
+		const FieldIterator endField = record.end();
 		for (auto &column : columns) {
 			fieldIt += column.skipLength;
 
@@ -241,7 +241,7 @@ void LoadClassesAttributes()
 	ClassAttributesPerClass.reserve(classPaths.size());
 	PlayersCombatData.clear();
 	PlayersCombatData.reserve(classPaths.size());
-	for (std::string_view path : classPaths) {
+	for (const std::string_view path : classPaths) {
 		LoadClassData(path, ClassAttributesPerClass.emplace_back(), PlayersCombatData.emplace_back());
 	}
 }

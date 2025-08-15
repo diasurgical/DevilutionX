@@ -49,7 +49,7 @@ int tcp_client::join(std::string_view addrstr)
 		}
 	} else {
 		// Assume "hostname:port"
-		SplitByChar splithost(addrstr, ':');
+		const SplitByChar splithost(addrstr, ':');
 		auto it = splithost.begin();
 		if (it != splithost.end()) host = *it++;
 		if (it != splithost.end()) port = *it++;
@@ -62,7 +62,7 @@ int tcp_client::join(std::string_view addrstr)
 	}
 
 	asio::error_code errorCode;
-	asio::ip::basic_resolver_results<asio::ip::tcp> range = resolver.resolve(host, port, errorCode);
+	const asio::ip::basic_resolver_results<asio::ip::tcp> range = resolver.resolve(host, port, errorCode);
 	if (errorCode) {
 		SDL_SetError("%s", errorCode.message().c_str());
 		return -1;
@@ -74,7 +74,7 @@ int tcp_client::join(std::string_view addrstr)
 		return -1;
 	}
 
-	asio::ip::tcp::no_delay option(true);
+	const asio::ip::tcp::no_delay option(true);
 	sock.set_option(option, errorCode);
 	if (errorCode)
 		LogError("Client error setting socket option: {}", errorCode.message());
@@ -142,12 +142,12 @@ tl::expected<void, PacketError> tcp_client::poll()
 void tcp_client::HandleReceive(const asio::error_code &error, size_t bytesRead)
 {
 	if (error) {
-		PacketError packetError = IoHandlerError(error.message());
+		const PacketError packetError = IoHandlerError(error.message());
 		RaiseIoHandlerError(packetError);
 		return;
 	}
 	if (bytesRead == 0) {
-		PacketError packetError(_("error: read 0 bytes from server"));
+		const PacketError packetError(_("error: read 0 bytes from server"));
 		RaiseIoHandlerError(packetError);
 		return;
 	}
@@ -193,7 +193,7 @@ tl::expected<void, PacketError> tcp_client::send(packet &pkt)
 	if (!frame.has_value())
 		return tl::make_unexpected(frame.error());
 	std::unique_ptr<buffer_t> framePtr = std::make_unique<buffer_t>(*frame);
-	asio::mutable_buffer buf = asio::buffer(*framePtr);
+	const asio::mutable_buffer buf = asio::buffer(*framePtr);
 	asio::async_write(sock, buf, [this, frame = std::move(framePtr)](const asio::error_code &error, size_t bytesSent) {
 		HandleSend(error, bytesSent);
 	});

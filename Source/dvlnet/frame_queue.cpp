@@ -31,7 +31,7 @@ tl::expected<buffer_t, PacketError> frame_queue::Read(framesize_t s)
 		return tl::make_unexpected(FrameQueueError());
 	buffer_t ret;
 	while (s > 0 && s >= buffer_deque.front().size()) {
-		framesize_t bufferSize = static_cast<framesize_t>(buffer_deque.front().size());
+		const framesize_t bufferSize = static_cast<framesize_t>(buffer_deque.front().size());
 		s -= bufferSize;
 		current_size -= bufferSize;
 		ret.insert(ret.end(),
@@ -83,7 +83,7 @@ tl::expected<buffer_t, PacketError> frame_queue::ReadPacket()
 tl::expected<buffer_t, PacketError> frame_queue::MakeFrame(buffer_t packetbuf)
 {
 	buffer_t ret;
-	framesize_t size = static_cast<framesize_t>(packetbuf.size());
+	const framesize_t size = static_cast<framesize_t>(packetbuf.size());
 	if (size > max_frame_size)
 		return tl::make_unexpected("Buffer exceeds maximum frame size");
 	static_assert(sizeof(size) == 4, "framesize_t is not 4 bytes");

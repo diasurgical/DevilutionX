@@ -424,7 +424,7 @@ void UiFocusNavigation(SDL_Event *event)
 	}
 
 	bool menuActionHandled = false;
-	for (MenuAction menuAction : GetMenuActions(*event))
+	for (const MenuAction menuAction : GetMenuActions(*event))
 		menuActionHandled |= HandleMenuAction(menuAction);
 	if (menuActionHandled)
 		return;
@@ -659,7 +659,7 @@ bool UiValidPlayerName(std::string_view name)
 	if (!c_all_of(name, IsBasicLatin))
 		return false;
 
-	std::string_view bannedNames[] = {
+	const std::string_view bannedNames[] = {
 		"gvdl",
 		"dvou",
 		"tiju",
@@ -674,8 +674,8 @@ bool UiValidPlayerName(std::string_view name)
 	for (char &character : buffer)
 		character++;
 
-	std::string_view tempName { buffer };
-	for (std::string_view bannedName : bannedNames) {
+	const std::string_view tempName { buffer };
+	for (const std::string_view bannedName : bannedNames) {
 		if (tempName.find(bannedName) != tempName.npos)
 			return false;
 	}
@@ -824,7 +824,7 @@ void Render(const UiArtText &uiArtText)
 
 void Render(const UiImageClx &uiImage)
 {
-	ClxSprite sprite = uiImage.sprite();
+	const ClxSprite sprite = uiImage.sprite();
 	int x = uiImage.m_rect.x;
 	if (uiImage.isCentered()) {
 		x += GetCenterOffset(sprite.width(), uiImage.m_rect.w);
@@ -834,7 +834,7 @@ void Render(const UiImageClx &uiImage)
 
 void Render(const UiImageAnimatedClx &uiImage)
 {
-	ClxSprite sprite = uiImage.sprite(GetAnimationFrame(uiImage.numFrames()));
+	const ClxSprite sprite = uiImage.sprite(GetAnimationFrame(uiImage.numFrames()));
 	int x = uiImage.m_rect.x;
 	if (uiImage.isCentered()) {
 		x += GetCenterOffset(sprite.width(), uiImage.m_rect.w);
@@ -916,7 +916,7 @@ void Render(const UiEdit &uiEdit)
 	DrawSelector(uiEdit.m_rect);
 
 	// To simulate padding we inset the region used to draw text in an edit control
-	Rectangle rect = MakeRectangle(uiEdit.m_rect).inset({ 43, 1 });
+	const Rectangle rect = MakeRectangle(uiEdit.m_rect).inset({ 43, 1 });
 
 	const Surface &out = Surface(DiabloUiSurface());
 	DrawString(out, uiEdit.m_value, rect,

@@ -54,7 +54,7 @@ bool AssetContentsEq(AssetRef &&ref, std::string_view expected)
 	const size_t size = ref.size();
 	AssetHandle handle = OpenAsset(std::move(ref), false);
 	if (!handle.ok()) return false;
-	std::unique_ptr<char[]> contents { new char[size] };
+	const std::unique_ptr<char[]> contents { new char[size] };
 	if (!handle.read(contents.get(), size)) return false;
 	return std::string_view { contents.get(), size } == expected;
 }

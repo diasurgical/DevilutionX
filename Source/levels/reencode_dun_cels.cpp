@@ -309,7 +309,7 @@ std::vector<std::pair<uint16_t, uint16_t>> ComputeCelBlockAdjustments(std::span<
 	uint16_t lastFrameIndex = 0;
 	uint16_t adjustment = 0;
 	for (auto &[frame, info] : frames) {
-		uint16_t diff = frame - lastFrameIndex - 1;
+		const uint16_t diff = frame - lastFrameIndex - 1;
 		if (diff > 0) celBlockAdjustments.emplace_back(frame, adjustment);
 		adjustment += diff;
 		lastFrameIndex = frame;

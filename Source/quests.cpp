@@ -111,7 +111,7 @@ const char *const QuestTriggerNames[5] = {
  */
 void DrawButcher()
 {
-	Point position = SetPiece.position.megaToWorld() + Displacement { 3, 3 };
+	const Point position = SetPiece.position.megaToWorld() + Displacement { 3, 3 };
 	DRLG_RectTrans({ position, { 7, 7 } });
 }
 
@@ -144,7 +144,7 @@ void DrawLTBanner(Point position)
 {
 	auto dunData = LoadFileInMem<uint16_t>("levels\\l1data\\banner1.dun");
 
-	WorldTileSize size = GetDunSize(dunData.get());
+	const WorldTileSize size = GetDunSize(dunData.get());
 
 	SetPiece = { position, size };
 
@@ -184,7 +184,7 @@ int QuestLogMouseToEntry()
 	innerArea.position += Displacement(GetLeftPanel().position.x, GetLeftPanel().position.y);
 	if (!innerArea.contains(MousePosition) || (EncounteredQuestCount == 0))
 		return -1;
-	int y = MousePosition.y - innerArea.position.y;
+	const int y = MousePosition.y - innerArea.position.y;
 	for (int i = 0; i < FirstFinishedQuest; i++) {
 		if ((y >= ListYOffset + i * LineSpacing)
 		    && (y < ListYOffset + i * LineSpacing + LineHeight)) {
@@ -196,7 +196,7 @@ int QuestLogMouseToEntry()
 
 void PrintQLString(const Surface &out, int x, int y, std::string_view str, bool marked, bool disabled = false)
 {
-	int width = GetLineWidth(str);
+	const int width = GetLineWidth(str);
 	x += std::max((257 - width) / 2, 0);
 	if (marked) {
 		ClxDraw(out, GetPanelPosition(UiPanels::Quest, { x - 20, y + 13 }), (*pSPentSpn2Cels)[PentSpn2Spin()]);
@@ -331,7 +331,7 @@ void CheckQuests()
 	    && setlevel
 	    && setlvlnum == SL_VILEBETRAYER
 	    && quest._qvar2 == 4) {
-		Point portalLocation { 35, 32 };
+		const Point portalLocation { 35, 32 };
 		AddMissile(portalLocation, portalLocation, Direction::South, MissileID::RedPortal, TARGET_MONSTERS, *MyPlayer, 0, 0);
 		quest._qvar2 = 3;
 	}
@@ -375,7 +375,7 @@ bool ForceQuests()
 
 	for (auto &quest : Quests) {
 		if (quest._qidx != Q_BETRAYER && currlevel == quest._qlevel && quest._qslvl != 0) {
-			int ql = quest._qslvl - 1;
+			const int ql = quest._qslvl - 1;
 
 			if (EntranceBoundaryContains(quest.position, cursPosition)) {
 				InfoString = fmt::format(fmt::runtime(_(/* TRANSLATORS: Used for Quest Portals. {:s} is a Map Name */ "To {:s}")), _(QuestTriggerNames[ql]));
@@ -393,7 +393,7 @@ void CheckQuestKill(const Monster &monster, bool sendmsg)
 	if (gbIsSpawn)
 		return;
 
-	Player &myPlayer = *MyPlayer;
+	const Player &myPlayer = *MyPlayer;
 
 	if (monster.type().type == MT_SKING) {
 		auto &quest = Quests[Q_SKELKING];
@@ -694,7 +694,7 @@ void ResyncQuests()
 	    && !setlevel
 	    && Quests[Q_DIABLO]._qactive == QUEST_ACTIVE
 	    && gbIsMultiplayer) {
-		Point posPentagram = Quests[Q_DIABLO].position;
+		const Point posPentagram = Quests[Q_DIABLO].position;
 		ObjChangeMapResync(posPentagram.x, posPentagram.y, posPentagram.x + 5, posPentagram.y + 5);
 		InitL4Triggers();
 	}
@@ -787,7 +787,7 @@ void ResyncQuests()
 
 void DrawQuestLog(const Surface &out)
 {
-	int l = QuestLogMouseToEntry();
+	const int l = QuestLogMouseToEntry();
 	if (l >= 0) {
 		SelectedQuest = l;
 	}
@@ -828,16 +828,16 @@ void StartQuestlog()
 	std::sort(&EncounteredQuests[0], &EncounteredQuests[FirstFinishedQuest], sortQuestIdx);
 	std::sort(&EncounteredQuests[FirstFinishedQuest], &EncounteredQuests[EncounteredQuestCount], sortQuestIdx);
 
-	bool twoBlocks = FirstFinishedQuest != 0 && FirstFinishedQuest < EncounteredQuestCount;
+	const bool twoBlocks = FirstFinishedQuest != 0 && FirstFinishedQuest < EncounteredQuestCount;
 
 	ListYOffset = 0;
 	FinishedQuestOffset = !twoBlocks ? 0 : LineHeight / 2;
 
-	int overallMinHeight = EncounteredQuestCount * LineHeight + FinishedQuestOffset;
-	int space = InnerPanel.size.height;
+	const int overallMinHeight = EncounteredQuestCount * LineHeight + FinishedQuestOffset;
+	const int space = InnerPanel.size.height;
 
 	if (EncounteredQuestCount > 0) {
-		int additionalSpace = space - overallMinHeight;
+		const int additionalSpace = space - overallMinHeight;
 		int addLineSpacing = additionalSpace / EncounteredQuestCount;
 		addLineSpacing = std::min(MaxSpacing - LineHeight, addLineSpacing);
 		LineSpacing = LineHeight + addLineSpacing;
@@ -847,7 +847,7 @@ void StartQuestlog()
 			FinishedQuestOffset = std::max(4, additionalSepSpace);
 		}
 
-		int overallHeight = EncounteredQuestCount * LineSpacing + FinishedQuestOffset;
+		const int overallHeight = EncounteredQuestCount * LineSpacing + FinishedQuestOffset;
 		ListYOffset += (space - overallHeight) / 2;
 	}
 
@@ -891,7 +891,7 @@ void QuestlogEnter()
 
 void QuestlogESC()
 {
-	int l = QuestLogMouseToEntry();
+	const int l = QuestLogMouseToEntry();
 	if (l != -1) {
 		QuestlogEnter();
 	}
@@ -903,7 +903,7 @@ void SetMultiQuest(int q, quest_state s, bool log, int v1, int v2, int16_t qmsg)
 		return;
 
 	auto &quest = Quests[q];
-	quest_state oldQuestState = quest._qactive;
+	const quest_state oldQuestState = quest._qactive;
 	if (quest._qactive != QUEST_DONE) {
 		if (s > quest._qactive || (IsAnyOf(s, QUEST_ACTIVE, QUEST_DONE) && IsAnyOf(quest._qactive, QUEST_HIVE_TEASE1, QUEST_HIVE_TEASE2, QUEST_HIVE_ACTIVE)))
 			quest._qactive = s;
@@ -918,7 +918,7 @@ void SetMultiQuest(int q, quest_state s, bool log, int v1, int v2, int16_t qmsg)
 		// Ensure that changes on another client is also updated on our own
 		ResyncQuests();
 
-		bool questGotCompleted = oldQuestState != QUEST_DONE && quest._qactive == QUEST_DONE;
+		const bool questGotCompleted = oldQuestState != QUEST_DONE && quest._qactive == QUEST_DONE;
 		// Ensure that water also changes for remote players
 		if (quest._qidx == Q_PWATER && questGotCompleted && MyPlayer->isOnLevel(quest._qslvl))
 			StartPWaterPurify();

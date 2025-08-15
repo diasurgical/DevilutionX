@@ -56,8 +56,8 @@ UiFlags GetBaseStatColor(CharacterAttribute attr)
 UiFlags GetCurrentStatColor(CharacterAttribute attr)
 {
 	UiFlags style = UiFlags::ColorWhite;
-	int current = InspectPlayer->GetCurrentAttributeValue(attr);
-	int base = InspectPlayer->GetBaseAttributeValue(attr);
+	const int current = InspectPlayer->GetCurrentAttributeValue(attr);
+	const int base = InspectPlayer->GetBaseAttributeValue(attr);
 	if (current > base)
 		style = UiFlags::ColorBlue;
 	if (current < base)
@@ -95,8 +95,8 @@ std::pair<int, int> GetDamage()
 	} else {
 		damageMod += InspectPlayer->_pDamageMod;
 	}
-	int mindam = InspectPlayer->_pIMinDam + InspectPlayer->_pIBonusDam * InspectPlayer->_pIMinDam / 100 + damageMod;
-	int maxdam = InspectPlayer->_pIMaxDam + InspectPlayer->_pIBonusDam * InspectPlayer->_pIMaxDam / 100 + damageMod;
+	const int mindam = InspectPlayer->_pIMinDam + InspectPlayer->_pIBonusDam * InspectPlayer->_pIMinDam / 100 + damageMod;
+	const int maxdam = InspectPlayer->_pIMaxDam + InspectPlayer->_pIBonusDam * InspectPlayer->_pIMaxDam / 100 + damageMod;
 	return { mindam, maxdam };
 }
 
@@ -141,7 +141,7 @@ PanelEntry panelEntries[] = {
 	        if (InspectPlayer->isMaxCharacterLevel()) {
 		        return StyledText { UiFlags::ColorWhitegold, std::string(_("None")) };
 	        }
-	        uint32_t nextExperienceThreshold = InspectPlayer->getNextExperienceThreshold();
+	        const uint32_t nextExperienceThreshold = InspectPlayer->getNextExperienceThreshold();
 	        return StyledText { UiFlags::ColorWhite, FormatInteger(nextExperienceThreshold) };
 	    } },
 
@@ -273,7 +273,7 @@ void DrawStatButtons(const Surface &out)
 tl::expected<void, std::string> LoadCharPanel()
 {
 	ASSIGN_OR_RETURN(OptionalOwnedClxSpriteList background, LoadClxWithStatus("data\\charbg.clx"));
-	OwnedSurface out((*background)[0].width(), (*background)[0].height());
+	const OwnedSurface out((*background)[0].width(), (*background)[0].height());
 	RenderClxSprite(out, (*background)[0], { 0, 0 });
 	background = std::nullopt;
 
@@ -284,7 +284,7 @@ tl::expected<void, std::string> LoadCharPanel()
 
 		const bool isSmallFontTall = IsSmallFontTall();
 		const int attributeHeadersY = isSmallFontTall ? 112 : 114;
-		for (unsigned i : AttributeHeaderEntryIndices) {
+		for (const unsigned i : AttributeHeaderEntryIndices) {
 			panelEntries[i].position.y = attributeHeadersY;
 		}
 		panelEntries[GoldHeaderEntryIndex].position.y = isSmallFontTall ? 105 : 106;
@@ -308,11 +308,11 @@ void FreeCharPanel()
 
 void DrawChr(const Surface &out)
 {
-	Point pos = GetPanelPosition(UiPanels::Character, { 0, 0 });
+	const Point pos = GetPanelPosition(UiPanels::Character, { 0, 0 });
 	RenderClxSprite(out, (*Panel)[0], pos);
 	for (auto &entry : panelEntries) {
 		if (entry.statDisplayFunc) {
-			StyledText tmp = (*entry.statDisplayFunc)();
+			const StyledText tmp = (*entry.statDisplayFunc)();
 			DrawString(
 			    out,
 			    tmp.text,

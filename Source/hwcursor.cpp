@@ -83,9 +83,9 @@ bool SetHardwareCursorFromSurface(SDL_Surface *surface, HotpointPosition hotpoin
 		newCursor = SDLCursorUniquePtr { SDL_CreateColorCursor(surface, hotpoint.x, hotpoint.y) };
 	} else {
 		// SDL does not support BlitScaled from 8-bit to RGBA.
-		SDLSurfaceUniquePtr converted { SDL_ConvertSurfaceFormat(surface, SDL_PIXELFORMAT_ARGB8888, 0) };
+		const SDLSurfaceUniquePtr converted { SDL_ConvertSurfaceFormat(surface, SDL_PIXELFORMAT_ARGB8888, 0) };
 
-		SDLSurfaceUniquePtr scaledSurface = SDLWrap::CreateRGBSurfaceWithFormat(0, scaledSize.width, scaledSize.height, 32, SDL_PIXELFORMAT_ARGB8888);
+		const SDLSurfaceUniquePtr scaledSurface = SDLWrap::CreateRGBSurfaceWithFormat(0, scaledSize.width, scaledSize.height, 32, SDL_PIXELFORMAT_ARGB8888);
 		if (ShouldUseBilinearScaling()) {
 #if LOG_HWCURSOR
 			Log("hwcursor: SetHardwareCursorFromSurface {}x{} scaled to {}x{} using bilinear scaling",
@@ -114,7 +114,7 @@ bool SetHardwareCursorFromSurface(SDL_Surface *surface, HotpointPosition hotpoin
 
 bool SetHardwareCursorFromClxSprite(ClxSprite sprite, HotpointPosition hotpointPosition)
 {
-	OwnedSurface surface { sprite.width(), sprite.height() };
+	const OwnedSurface surface { sprite.width(), sprite.height() };
 	SDL_SetSurfacePalette(surface.surface, Palette.get());
 	SDL_SetColorKey(surface.surface, SDL_TRUE, 0);
 	RenderClxSprite(surface, sprite, { 0, 0 });
@@ -136,7 +136,7 @@ bool SetHardwareCursorFromSprite(int pcurs)
 	if (!IsCursorSizeAllowed(size))
 		return false;
 
-	OwnedSurface out { size };
+	const OwnedSurface out { size };
 	SDL_SetSurfacePalette(out.surface, Palette.get());
 
 	// Transparent color must not be used in the sprite itself.

@@ -347,25 +347,25 @@ void PrintInfo(const Surface &out)
 Rectangle GetFloatingInfoRect(const int lineHeight, const int textSpacing)
 {
 	// Calculate the width and height of the floating info box
-	std::string txt = std::string(FloatingInfoString);
+	const std::string txt = std::string(FloatingInfoString);
 
 	auto lines = SplitByChar(txt, '\n');
 	const GameFontTables font = GameFont12;
 	int maxW = 0;
 
 	for (const auto &line : lines) {
-		int w = GetLineWidth(line, font, textSpacing, nullptr);
+		const int w = GetLineWidth(line, font, textSpacing, nullptr);
 		maxW = std::max(maxW, w);
 	}
 
 	const auto lineCount = 1 + static_cast<int>(c_count(FloatingInfoString.str(), '\n'));
-	int totalH = lineCount * lineHeight;
+	const int totalH = lineCount * lineHeight;
 
-	Player &player = *InspectPlayer;
+	const Player &player = *InspectPlayer;
 
 	// 1) Equipment (Rect position)
 	if (pcursinvitem >= INVITEM_HEAD && pcursinvitem < INVITEM_INV_FIRST) {
-		int slot = pcursinvitem - INVITEM_HEAD;
+		const int slot = pcursinvitem - INVITEM_HEAD;
 		static constexpr Point equipLocal[] = {
 			{ 133, 59 },
 			{ 48, 205 },
@@ -378,7 +378,7 @@ Rectangle GetFloatingInfoRect(const int lineHeight, const int textSpacing)
 
 		Point itemPosition = equipLocal[slot];
 		auto &item = player.InvBody[slot];
-		Size frame = GetInvItemSize(item._iCurs + CURSOR_FIRSTITEM);
+		const Size frame = GetInvItemSize(item._iCurs + CURSOR_FIRSTITEM);
 
 		if (slot == INVLOC_HAND_LEFT) {
 			itemPosition.x += frame.width == InventorySlotSizeInPixels.width
@@ -400,24 +400,24 @@ Rectangle GetFloatingInfoRect(const int lineHeight, const int textSpacing)
 		itemPosition.x += frame.width / 2; // Align position to center of the item graphic
 		itemPosition.x -= maxW / 2;        // Align position to the center of the floating item info box
 
-		Point screen = GetPanelPosition(UiPanels::Inventory, itemPosition);
+		const Point screen = GetPanelPosition(UiPanels::Inventory, itemPosition);
 
 		return { { screen.x, screen.y }, { maxW, totalH } };
 	}
 
 	// 2) Inventory grid (Rect position)
 	if (pcursinvitem >= INVITEM_INV_FIRST && pcursinvitem < INVITEM_INV_FIRST + InventoryGridCells) {
-		int itemIdx = pcursinvitem - INVITEM_INV_FIRST;
+		const int itemIdx = pcursinvitem - INVITEM_INV_FIRST;
 
 		for (int j = 0; j < InventoryGridCells; ++j) {
 			if (player.InvGrid[j] > 0 && player.InvGrid[j] - 1 == itemIdx) {
-				Item &it = player.InvList[itemIdx];
+				const Item &it = player.InvList[itemIdx];
 				Point itemPosition = InvRect[j + SLOTXY_INV_FIRST].position;
 
 				itemPosition.x += GetInventorySize(it).width * InventorySlotSizeInPixels.width / 2; // Align position to center of the item graphic
 				itemPosition.x -= maxW / 2;                                                         // Align position to the center of the floating item info box
 
-				Point screen = GetPanelPosition(UiPanels::Inventory, itemPosition);
+				const Point screen = GetPanelPosition(UiPanels::Inventory, itemPosition);
 
 				return { { screen.x, screen.y }, { maxW, totalH } };
 			}
@@ -426,20 +426,20 @@ Rectangle GetFloatingInfoRect(const int lineHeight, const int textSpacing)
 
 	// 3) Belt (Rect position)
 	if (pcursinvitem >= INVITEM_BELT_FIRST && pcursinvitem < INVITEM_BELT_FIRST + MaxBeltItems) {
-		int itemIdx = pcursinvitem - INVITEM_BELT_FIRST;
+		const int itemIdx = pcursinvitem - INVITEM_BELT_FIRST;
 		for (int i = 0; i < MaxBeltItems; ++i) {
 			if (player.SpdList[i].isEmpty())
 				continue;
 			if (i != itemIdx)
 				continue;
 
-			Item &item = player.SpdList[i];
+			const Item &item = player.SpdList[i];
 			Point itemPosition = InvRect[i + SLOTXY_BELT_FIRST].position;
 
 			itemPosition.x += GetInventorySize(item).width * InventorySlotSizeInPixels.width / 2; // Align position to center of the item graphic
 			itemPosition.x -= maxW / 2;                                                           // Align position to the center of the floating item info box
 
-			Point screen = GetMainPanel().position + Displacement { itemPosition.x, itemPosition.y };
+			const Point screen = GetMainPanel().position + Displacement { itemPosition.x, itemPosition.y };
 
 			return { { screen.x, screen.y }, { maxW, totalH } };
 		}
@@ -454,9 +454,9 @@ Rectangle GetFloatingInfoRect(const int lineHeight, const int textSpacing)
 			if (itemId != pcursstashitem)
 				continue;
 
-			Item &item = Stash.stashList[itemId];
+			const Item &item = Stash.stashList[itemId];
 			Point itemPosition = GetStashSlotCoord(slot);
-			Size itemGridSize = GetInventorySize(item);
+			const Size itemGridSize = GetInventorySize(item);
 
 			itemPosition.y += itemGridSize.height * (InventorySlotSizeInPixels.height + 1) - 1; // Align position to bottom left of the item graphic
 			itemPosition.x += itemGridSize.width * InventorySlotSizeInPixels.width / 2;         // Align position to center of the item graphic
@@ -477,14 +477,14 @@ int GetHoverSpriteHeight()
 	}
 	if (pcursinvitem >= INVITEM_INV_FIRST
 	    && pcursinvitem < INVITEM_INV_FIRST + InventoryGridCells) {
-		int idx = pcursinvitem - INVITEM_INV_FIRST;
+		const int idx = pcursinvitem - INVITEM_INV_FIRST;
 		auto &it = (*InspectPlayer).InvList[idx];
 		return GetInventorySize(it).height * (InventorySlotSizeInPixels.height + 1)
 		    - InventorySlotSizeInPixels.height;
 	}
 	if (pcursinvitem >= INVITEM_BELT_FIRST
 	    && pcursinvitem < INVITEM_BELT_FIRST + MaxBeltItems) {
-		int idx = pcursinvitem - INVITEM_BELT_FIRST;
+		const int idx = pcursinvitem - INVITEM_BELT_FIRST;
 		auto &it = (*InspectPlayer).SpdList[idx];
 		return GetInventorySize(it).height * (InventorySlotSizeInPixels.height + 1)
 		    - InventorySlotSizeInPixels.height - 1;
@@ -498,8 +498,8 @@ int GetHoverSpriteHeight()
 
 int ClampAboveOrBelow(int anchorY, int spriteH, int boxH, int pad, int linePad)
 {
-	int yAbove = anchorY - spriteH - boxH - pad;
-	int yBelow = anchorY + linePad / 2 + pad;
+	const int yAbove = anchorY - spriteH - boxH - pad;
+	const int yBelow = anchorY + linePad / 2 + pad;
 	return (yAbove >= 0) ? yAbove : yBelow;
 }
 
@@ -521,8 +521,8 @@ void PrintFloatingInfo(const Surface &out)
 	// Prevent the floating info box from going off-screen horizontally
 	floatingInfoBox.position.x = std::clamp(floatingInfoBox.position.x, hPadding, GetScreenWidth() - (floatingInfoBox.size.width + hPadding));
 
-	int spriteH = GetHoverSpriteHeight();
-	int anchorY = floatingInfoBox.position.y;
+	const int spriteH = GetHoverSpriteHeight();
+	const int anchorY = floatingInfoBox.position.y;
 
 	// Prevent the floating info box from going off-screen vertically
 	floatingInfoBox.position.y = ClampAboveOrBelow(anchorY, spriteH, floatingInfoBox.size.height, vPadding, verticalSpacing);
@@ -546,7 +546,7 @@ void PrintFloatingInfo(const Surface &out)
 
 int CapStatPointsToAdd(int remainingStatPoints, const Player &player, CharacterAttribute attribute)
 {
-	int pointsToReachCap = player.GetMaximumAttributeValue(attribute) - player.GetBaseAttributeValue(attribute);
+	const int pointsToReachCap = player.GetMaximumAttributeValue(attribute) - player.GetBaseAttributeValue(attribute);
 
 	return std::min(remainingStatPoints, pointsToReachCap);
 }
@@ -585,15 +585,15 @@ int DrawDurIcon4Item(const Surface &out, Item &pItem, int x, int c)
 	}
 
 	// Calculate how much of the icon should be gold and red
-	int height = (*pDurIcons)[c].height(); // Height of durability icon CEL
+	const int height = (*pDurIcons)[c].height(); // Height of durability icon CEL
 	int partition = 0;
 	if (pItem._iDurability > durabilityThresholdRed) {
-		int current = pItem._iDurability - durabilityThresholdRed;
+		const int current = pItem._iDurability - durabilityThresholdRed;
 		partition = (height * current) / (durabilityThresholdGold - durabilityThresholdRed);
 	}
 
 	// Draw icon
-	int y = -17 + GetMainPanel().position.y;
+	const int y = -17 + GetMainPanel().position.y;
 	if (partition > 0) {
 		const Surface stenciledBuffer = out.subregionY(y - partition, partition);
 		ClxDraw(stenciledBuffer, { x, partition }, (*pDurIcons)[c + 8]); // Gold icon
@@ -680,7 +680,7 @@ std::string TextCmdArenaPot(const std::string_view parameter)
 		StrAppend(ret, _("Arenas are only supported in multiplayer."));
 		return ret;
 	}
-	int numPots = ParseInt<int>(parameter, /*min=*/1).value_or(1);
+	const int numPots = ParseInt<int>(parameter, /*min=*/1).value_or(1);
 
 	Player &myPlayer = *MyPlayer;
 
@@ -761,7 +761,7 @@ bool IsQuestEnabled(const Quest &quest)
 
 std::string TextCmdLevelSeed(const std::string_view parameter)
 {
-	std::string_view levelType = setlevel ? "set level" : "dungeon level";
+	const std::string_view levelType = setlevel ? "set level" : "dungeon level";
 
 	char gameId[] = {
 		static_cast<char>((sgGameInitInfo.programid >> 24) & 0xFF),
@@ -771,8 +771,8 @@ std::string TextCmdLevelSeed(const std::string_view parameter)
 		'\0'
 	};
 
-	std::string_view mode = gbIsMultiplayer ? "MP" : "SP";
-	std::string_view questPool = UseMultiplayerQuests() ? "MP" : "Full";
+	const std::string_view mode = gbIsMultiplayer ? "MP" : "SP";
+	const std::string_view questPool = UseMultiplayerQuests() ? "MP" : "Full";
 
 	uint32_t questFlags = 0;
 	for (const Quest &quest : Quests) {
@@ -815,7 +815,7 @@ bool CheckChatCommand(const std::string_view text)
 		return true;
 	}
 
-	TextCmdItem &textCmd = *textCmdIterator;
+	const TextCmdItem &textCmd = *textCmdIterator;
 	std::string_view parameter = "";
 	if (text.length() > (textCmd.text.length() + 1))
 		parameter = text.substr(textCmd.text.length() + 1);
@@ -962,7 +962,7 @@ bool IsChatAvailable()
 
 void FocusOnCharInfo()
 {
-	Player &myPlayer = *MyPlayer;
+	const Player &myPlayer = *MyPlayer;
 
 	if (invflag || myPlayer._pStatPts <= 0)
 		return;
@@ -1032,7 +1032,7 @@ void AddInfoBoxString(std::string &&str, bool floatingBox /*= false*/)
 
 Point GetPanelPosition(UiPanels panel, Point offset)
 {
-	Displacement displacement { offset.x, offset.y };
+	const Displacement displacement { offset.x, offset.y };
 
 	switch (panel) {
 	case UiPanels::Main:
@@ -1080,7 +1080,7 @@ void DrawManaFlaskLower(const Surface &out, bool drawFilledPortion)
 
 void DrawFlaskValues(const Surface &out, Point pos, int currValue, int maxValue)
 {
-	UiFlags color = (currValue > 0 ? (currValue == maxValue ? UiFlags::ColorGold : UiFlags::ColorWhite) : UiFlags::ColorRed);
+	const UiFlags color = (currValue > 0 ? (currValue == maxValue ? UiFlags::ColorGold : UiFlags::ColorWhite) : UiFlags::ColorRed);
 
 	auto drawStringWithShadow = [out, color](std::string_view text, Point pos) {
 		DrawString(out, text, pos + Displacement { -1, -1 },
@@ -1089,7 +1089,7 @@ void DrawFlaskValues(const Surface &out, Point pos, int currValue, int maxValue)
 		    { .flags = color | UiFlags::KerningFitSpacing, .spacing = 0 });
 	};
 
-	std::string currText = StrCat(currValue);
+	const std::string currText = StrCat(currValue);
 	drawStringWithShadow(currText, pos - Displacement { GetLineWidth(currText, GameFont12) + 1, 0 });
 	drawStringWithShadow("/", pos);
 	drawStringWithShadow(StrCat(maxValue), pos + Displacement { GetLineWidth("/", GameFont12) + 1, 0 });
@@ -1192,7 +1192,7 @@ void DrawMainPanelButtons(const Surface &out)
 		if (!MainPanelButtons[i]) {
 			DrawPanelBox(out, MakeSdlRect(MainPanelButtonRect[i].position.x, MainPanelButtonRect[i].position.y + PanelPaddingHeight, MainPanelButtonRect[i].size.width, MainPanelButtonRect[i].size.height + 1), mainPanelPosition + Displacement { MainPanelButtonRect[i].position.x, MainPanelButtonRect[i].position.y });
 		} else {
-			Point position = mainPanelPosition + Displacement { MainPanelButtonRect[i].position.x, MainPanelButtonRect[i].position.y };
+			const Point position = mainPanelPosition + Displacement { MainPanelButtonRect[i].position.x, MainPanelButtonRect[i].position.y };
 			RenderClxSprite(out, (*pMainPanelButtons)[i], position);
 			RenderClxSprite(out, (*PanelButtonDown)[i], position + Displacement { 4, 0 });
 		}
@@ -1201,7 +1201,7 @@ void DrawMainPanelButtons(const Surface &out)
 	if (IsChatAvailable()) {
 		RenderClxSprite(out, (*multiButtons)[MainPanelButtons[PanelButtonSendmsg] ? 1 : 0], mainPanelPosition + Displacement { MainPanelButtonRect[PanelButtonSendmsg].position.x, MainPanelButtonRect[PanelButtonSendmsg].position.y });
 
-		Point friendlyButtonPosition = mainPanelPosition + Displacement { MainPanelButtonRect[PanelButtonFriendly].position.x, MainPanelButtonRect[PanelButtonFriendly].position.y };
+		const Point friendlyButtonPosition = mainPanelPosition + Displacement { MainPanelButtonRect[PanelButtonFriendly].position.x, MainPanelButtonRect[PanelButtonFriendly].position.y };
 
 		if (MyPlayer->friendlyMode)
 			RenderClxSprite(out, (*multiButtons)[MainPanelButtons[PanelButtonFriendly] ? 3 : 2], friendlyButtonPosition);
@@ -1219,7 +1219,7 @@ void ResetMainPanelButtons()
 
 void CheckMainPanelButton()
 {
-	int totalButtons = IsChatAvailable() ? TotalMpMainPanelButtons : TotalSpMainPanelButtons;
+	const int totalButtons = IsChatAvailable() ? TotalMpMainPanelButtons : TotalSpMainPanelButtons;
 
 	for (int i = 0; i < totalButtons; i++) {
 		Rectangle button = MainPanelButtonRect[i];
@@ -1296,7 +1296,7 @@ void CheckPanelInfo()
 	InfoString = StringOrView {};
 	FloatingInfoString = StringOrView {};
 
-	int totalButtons = IsChatAvailable() ? TotalMpMainPanelButtons : TotalSpMainPanelButtons;
+	const int totalButtons = IsChatAvailable() ? TotalMpMainPanelButtons : TotalSpMainPanelButtons;
 
 	for (int i = 0; i < totalButtons; i++) {
 		Rectangle button = MainPanelButtonRect[i];
@@ -1478,12 +1478,12 @@ void DrawInfoBox(const Surface &out)
 		InfoString = StringOrView {};
 		InfoColor = UiFlags::ColorWhite;
 	}
-	Player &myPlayer = *MyPlayer;
+	const Player &myPlayer = *MyPlayer;
 	if (SpellSelectFlag || trigflag || pcurs == CURSOR_HOURGLASS) {
 		InfoColor = UiFlags::ColorWhite;
 	} else if (!myPlayer.HoldItem.isEmpty()) {
 		if (myPlayer.HoldItem._itype == ItemType::Gold) {
-			int nGold = myPlayer.HoldItem._ivalue;
+			const int nGold = myPlayer.HoldItem._ivalue;
 			InfoString = fmt::format(fmt::runtime(ngettext("{:s} gold piece", "{:s} gold pieces", nGold)), FormatInteger(nGold));
 		} else if (!myPlayer.CanUseItem(myPlayer.HoldItem)) {
 			InfoString = _("Requirements not met");
@@ -1513,7 +1513,7 @@ void DrawInfoBox(const Surface &out)
 		}
 		if (PlayerUnderCursor != nullptr) {
 			InfoColor = UiFlags::ColorWhitegold;
-			auto &target = *PlayerUnderCursor;
+			const auto &target = *PlayerUnderCursor;
 			InfoString = std::string_view(target._pName);
 			AddInfoBoxString(fmt::format(fmt::runtime(_("{:s}, Level: {:d}")), target.getClassName(), target.getCharacterLevel()));
 			AddInfoBoxString(fmt::format(fmt::runtime(_("Hit Points {:d} of {:d}")), target._pHitPoints >> 6, target._pMaxHP >> 6));
@@ -1569,7 +1569,7 @@ void CheckLevelButtonUp()
 void DrawLevelButton(const Surface &out)
 {
 	if (IsLevelUpButtonVisible()) {
-		int nCel = LevelButtonDown ? 2 : 1;
+		const int nCel = LevelButtonDown ? 2 : 1;
 		DrawString(out, _("Level Up"), { GetMainPanel().position + Displacement { 0, LevelButtonRect.position.y - 23 }, { 120, 0 } },
 		    { .flags = UiFlags::ColorWhite | UiFlags::AlignCenter | UiFlags::KerningFitSpacing });
 		RenderClxSprite(out, (*pChrButtons)[nCel], GetMainPanel().position + Displacement { LevelButtonRect.position.x, LevelButtonRect.position.y });
@@ -1578,7 +1578,7 @@ void DrawLevelButton(const Surface &out)
 
 void CheckChrBtns()
 {
-	Player &myPlayer = *MyPlayer;
+	const Player &myPlayer = *MyPlayer;
 
 	if (CharPanelButtonActive || myPlayer._pStatPts == 0)
 		return;
@@ -1636,8 +1636,8 @@ void ReleaseChrBtns(bool addAllStatPoints)
 
 void DrawDurIcon(const Surface &out)
 {
-	bool hasRoomBetweenPanels = RightPanel.position.x - (LeftPanel.position.x + LeftPanel.size.width) >= 16 + (32 + 8 + 32 + 8 + 32 + 8 + 32) + 16;
-	bool hasRoomUnderPanels = MainPanel.position.y - (RightPanel.position.y + RightPanel.size.height) >= 16 + 32 + 16;
+	const bool hasRoomBetweenPanels = RightPanel.position.x - (LeftPanel.position.x + LeftPanel.size.width) >= 16 + (32 + 8 + 32 + 8 + 32 + 8 + 32) + 16;
+	const bool hasRoomUnderPanels = MainPanel.position.y - (RightPanel.position.y + RightPanel.size.height) >= 16 + 32 + 16;
 
 	if (!hasRoomBetweenPanels && !hasRoomUnderPanels) {
 		if (IsLeftPanelOpen() && IsRightPanelOpen())
@@ -1681,7 +1681,7 @@ void DrawDeathText(const Surface &out)
 		.spacing = 2
 	};
 	std::string text;
-	int verticalPadding = 42;
+	const int verticalPadding = 42;
 	Point linePosition { 0, gnScreenHeight / 2 - (verticalPadding * 2) };
 
 	text = _("You have died");
@@ -1798,7 +1798,7 @@ void DrawChatBox(const Surface &out)
 	DrawPanelBox(out, MakeSdlRect(170, sgbPlrTalkTbl + 80, 310, 55), mainPanelPosition + Displacement { 170, 64 });
 
 	int x = mainPanelPosition.x + 200;
-	int y = mainPanelPosition.y + 10;
+	const int y = mainPanelPosition.y + 10;
 
 	const uint32_t len = DrawString(out, TalkMessage, { { x, y }, { 250, 39 } },
 	    {
@@ -1816,12 +1816,12 @@ void DrawChatBox(const Surface &out)
 		if (&player == MyPlayer)
 			continue;
 
-		UiFlags color = player.friendlyMode ? UiFlags::ColorWhitegold : UiFlags::ColorRed;
+		const UiFlags color = player.friendlyMode ? UiFlags::ColorWhitegold : UiFlags::ColorRed;
 		const Point talkPanPosition = mainPanelPosition + Displacement { 172, 84 + 18 * talkBtn };
 		if (WhisperList[i]) {
 			// the normal (unpressed) voice button is pre-rendered on the panel, only need to draw over it when the button is held
 			if (TalkButtonsDown[talkBtn]) {
-				unsigned spriteIndex = talkBtn == 0 ? 2 : 3; // the first button sprite includes a tip from the devils wing so is different to the rest.
+				const unsigned spriteIndex = talkBtn == 0 ? 2 : 3; // the first button sprite includes a tip from the devils wing so is different to the rest.
 				ClxDraw(out, talkPanPosition, (*talkButtons)[spriteIndex]);
 
 				// Draw the translated string over the top of the default (english) button. This graphic is inset to avoid overlapping the wingtip, letting

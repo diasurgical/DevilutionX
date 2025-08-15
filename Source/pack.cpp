@@ -43,7 +43,7 @@ namespace {
 
 void EventFailedJoinAttempt(const char *playerName)
 {
-	std::string message = fmt::format("Player '{}' sent invalid player data during attempt to join the game.", playerName);
+	const std::string message = fmt::format("Player '{}' sent invalid player data during attempt to join the game.", playerName);
 	EventPlrMsg(message);
 }
 
@@ -305,10 +305,10 @@ void UnPackItem(const ItemPack &packedItem, const Player &player, Item &item, bo
 	}
 
 	if (idx == IDI_EAR) {
-		uint16_t ic = SDL_SwapLE16(packedItem.iCreateInfo);
-		uint32_t iseed = SDL_SwapLE32(packedItem.iSeed);
-		uint16_t ivalue = SDL_SwapLE16(packedItem.wValue);
-		int32_t ibuff = SDL_SwapLE32(packedItem.dwBuff);
+		const uint16_t ic = SDL_SwapLE16(packedItem.iCreateInfo);
+		const uint32_t iseed = SDL_SwapLE32(packedItem.iSeed);
+		const uint16_t ivalue = SDL_SwapLE16(packedItem.wValue);
+		const int32_t ibuff = SDL_SwapLE32(packedItem.dwBuff);
 
 		char heroName[17];
 		heroName[0] = static_cast<char>((ic >> 8) & 0x7F);
@@ -346,7 +346,7 @@ void UnPackItem(const ItemPack &packedItem, const Player &player, Item &item, bo
 
 void UnPackPlayer(const PlayerPack &packed, Player &player)
 {
-	Point position { packed.px, packed.py };
+	const Point position { packed.px, packed.py };
 
 	player = {};
 	player.setCharacterLevel(packed.pLevel);
@@ -410,7 +410,7 @@ void UnPackPlayer(const PlayerPack &packed, Player &player)
 		player._pSplLvl[static_cast<uint8_t>(SpellID::Nova)] = 0;
 	}
 
-	bool isHellfire = packed.bIsHellfire != 0;
+	const bool isHellfire = packed.bIsHellfire != 0;
 
 	for (int i = 0; i < NUM_INVLOC; i++)
 		UnPackItem(packed.InvBody[i], player, player.InvBody[i], isHellfire);
@@ -435,7 +435,7 @@ void UnPackPlayer(const PlayerPack &packed, Player &player)
 bool UnPackNetItem(const Player &player, const ItemNetPack &packedItem, Item &item)
 {
 	item = {};
-	_item_indexes idx = static_cast<_item_indexes>(SDL_SwapLE16(packedItem.def.wIndx));
+	const _item_indexes idx = static_cast<_item_indexes>(SDL_SwapLE16(packedItem.def.wIndx));
 	if (idx < 0 || idx > IDI_LAST)
 		return true;
 	if (idx == IDI_EAR) {
@@ -443,8 +443,8 @@ bool UnPackNetItem(const Player &player, const ItemNetPack &packedItem, Item &it
 		return true;
 	}
 
-	uint16_t creationFlags = SDL_SwapLE16(packedItem.item.wCI);
-	uint32_t dwBuff = SDL_SwapLE16(packedItem.item.dwBuff);
+	const uint16_t creationFlags = SDL_SwapLE16(packedItem.item.wCI);
+	const uint32_t dwBuff = SDL_SwapLE16(packedItem.item.dwBuff);
 	if (idx != IDI_GOLD)
 		ValidateField(creationFlags, IsCreationFlagComboValid(creationFlags));
 	if ((creationFlags & CF_TOWN) != 0)
@@ -467,18 +467,18 @@ bool UnPackNetPlayer(const PlayerNetPack &packed, Player &player)
 	ValidateField(packed.pClass, packed.pClass < enum_size<HeroClass>::value);
 	player._pClass = static_cast<HeroClass>(packed.pClass);
 
-	Point position { packed.px, packed.py };
+	const Point position { packed.px, packed.py };
 	ValidateFields(position.x, position.y, InDungeonBounds(position));
 	ValidateField(packed.plrlevel, packed.plrlevel < NUMLEVELS);
 	ValidateField(packed.pLevel, packed.pLevel >= 1 && packed.pLevel <= player.getMaxCharacterLevel());
 
-	int32_t baseHpMax = SDL_SwapLE32(packed.pMaxHPBase);
-	int32_t baseHp = SDL_SwapLE32(packed.pHPBase);
-	int32_t hpMax = SDL_SwapLE32(packed.pMaxHP);
+	const int32_t baseHpMax = SDL_SwapLE32(packed.pMaxHPBase);
+	const int32_t baseHp = SDL_SwapLE32(packed.pHPBase);
+	const int32_t hpMax = SDL_SwapLE32(packed.pMaxHP);
 	ValidateFields(baseHp, baseHpMax, baseHp >= (baseHpMax - hpMax) && baseHp <= baseHpMax);
 
-	int32_t baseManaMax = SDL_SwapLE32(packed.pMaxManaBase);
-	int32_t baseMana = SDL_SwapLE32(packed.pManaBase);
+	const int32_t baseManaMax = SDL_SwapLE32(packed.pMaxManaBase);
+	const int32_t baseMana = SDL_SwapLE32(packed.pManaBase);
 	ValidateFields(baseMana, baseManaMax, baseMana <= baseManaMax);
 
 	ValidateFields(packed.pClass, packed.pBaseStr, packed.pBaseStr <= player.GetMaximumAttributeValue(CharacterAttribute::Strength));
@@ -567,9 +567,9 @@ bool UnPackNetPlayer(const PlayerNetPack &packed, Player &player)
 			return false;
 		if (item.isEmpty())
 			continue;
-		Size beltItemSize = GetInventorySize(item);
-		int8_t beltItemType = static_cast<int8_t>(item._itype);
-		bool beltItemUsable = item.isUsable();
+		const Size beltItemSize = GetInventorySize(item);
+		const int8_t beltItemType = static_cast<int8_t>(item._itype);
+		const bool beltItemUsable = item.isUsable();
 		ValidateFields(beltItemSize.width, beltItemSize.height, (beltItemSize == Size { 1, 1 }));
 		ValidateField(beltItemType, item._itype != ItemType::Gold);
 		ValidateField(beltItemUsable, beltItemUsable);

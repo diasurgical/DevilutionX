@@ -215,7 +215,7 @@ void ParsePluralForms(std::string_view string)
 	if (eqPos == std::string_view::npos)
 		return;
 
-	std::string_view value = string.substr(eqPos + 1);
+	const std::string_view value = string.substr(eqPos + 1);
 	if (value.empty() || value[0] < '0')
 		return;
 
@@ -296,7 +296,7 @@ std::string_view LanguageParticularTranslate(std::string_view context, std::stri
 
 std::string_view LanguagePluralTranslate(const char *singular, std::string_view plural, int count)
 {
-	int n = GetLocalPluralId(count);
+	const int n = GetLocalPluralId(count);
 
 	auto it = translation[n].find(singular);
 	if (it == translation[n].end()) {
@@ -417,7 +417,7 @@ void LanguageInitialize()
 	}
 
 	// Read entries of source strings
-	std::unique_ptr<MoEntry[]> src { new MoEntry[head.nbMappings] };
+	const std::unique_ptr<MoEntry[]> src { new MoEntry[head.nbMappings] };
 	if (readWholeFile
 	        ? !CopyData(src.get(), data.get(), fileSize, head.srcOffset, head.nbMappings * sizeof(MoEntry))
 	        : !handle.seek(head.srcOffset) || !handle.read(src.get(), head.nbMappings * sizeof(MoEntry))) {
@@ -428,7 +428,7 @@ void LanguageInitialize()
 	}
 
 	// Read entries of target strings
-	std::unique_ptr<MoEntry[]> dst { new MoEntry[head.nbMappings] };
+	const std::unique_ptr<MoEntry[]> dst { new MoEntry[head.nbMappings] };
 	if (readWholeFile
 	        ? !CopyData(dst.get(), data.get(), fileSize, head.dstOffset, head.nbMappings * sizeof(MoEntry))
 	        : !handle.seek(head.dstOffset) || !handle.read(dst.get(), head.nbMappings * sizeof(MoEntry))) {

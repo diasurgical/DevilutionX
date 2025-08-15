@@ -46,7 +46,7 @@ void initEnvironment()
 	buildWallsAround(env, pos, box_radius);
 
 	// Place objects
-	for (auto &o : objects) {
+	for (const auto &o : objects) {
 		env[o.first.x][o.first.y] = '#';
 	}
 
@@ -98,7 +98,7 @@ TEST(VisionTest, VisibleObjects)
 {
 	doVision();
 
-	for (auto &o : objects) {
+	for (const auto &o : objects) {
 		if (o.second)
 			// Visible object
 			EXPECT_EQ(vis[o.first.x][o.first.y], '#') << "Expext visible wall or object";

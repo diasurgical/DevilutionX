@@ -75,7 +75,7 @@ void LimitFrameRate()
 	if (*GetOptions().Graphics.frameRateControl != FrameRateControl::CPUSleep)
 		return;
 	static uint32_t frameDeadline;
-	uint32_t tc = SDL_GetTicks() * 1000;
+	const uint32_t tc = SDL_GetTicks() * 1000;
 	uint32_t v = 0;
 	if (frameDeadline > tc) {
 		v = tc % refreshDelay;

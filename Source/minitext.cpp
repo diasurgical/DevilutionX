@@ -48,7 +48,7 @@ void LoadText(std::string_view text)
 
 	size_t previous = 0;
 	while (true) {
-		size_t next = paragraphs.find('\n', previous);
+		const size_t next = paragraphs.find('\n', previous);
 		TextLines.emplace_back(paragraphs.substr(previous, next - previous));
 		if (next == std::string::npos)
 			break;
@@ -98,7 +98,7 @@ int CalculateTextPosition()
  */
 void DrawQTextContent(const Surface &out)
 {
-	int y = CalculateTextPosition();
+	const int y = CalculateTextPosition();
 
 	const int sx = GetUIRectangle().position.x + 48;
 	const int sy = 0 - (y % LineHeight);

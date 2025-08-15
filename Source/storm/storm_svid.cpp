@@ -304,8 +304,8 @@ bool SVidPlayBegin(const char *filename, int flags)
 
 #ifndef USE_SDL1
 	if (renderer != nullptr) {
-		int renderWidth = static_cast<int>(SVidWidth);
-		int renderHeight = static_cast<int>(SVidHeight);
+		const int renderWidth = static_cast<int>(SVidWidth);
+		const int renderHeight = static_cast<int>(SVidHeight);
 		texture = SDLWrap::CreateTexture(renderer, DEVILUTIONX_DISPLAY_TEXTURE_FORMAT, SDL_TEXTUREACCESS_STREAMING, renderWidth, renderHeight);
 		if (SDL_RenderSetLogicalSize(renderer, renderWidth, renderHeight) <= -1) {
 			ErrSdl();
@@ -373,7 +373,7 @@ bool SVidPlayContinue()
 	if (!BlitFrame())
 		return false;
 
-	uint64_t now = GetTicksSmk();
+	const uint64_t now = GetTicksSmk();
 	if (now < SVidFrameEnd) {
 		SDL_Delay(static_cast<Uint32>(TimeSmkToMs(SVidFrameEnd - now))); // wait with next frame if the system is too fast
 	}

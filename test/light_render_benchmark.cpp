@@ -29,13 +29,13 @@ void BM_BuildLightmap(benchmark::State &state)
 		std::fclose(lightFile);
 	}
 
-	SDLSurfaceUniquePtr sdl_surface = SDLWrap::CreateRGBSurfaceWithFormat(
+	const SDLSurfaceUniquePtr sdl_surface = SDLWrap::CreateRGBSurfaceWithFormat(
 	    /*flags=*/0, /*width=*/640, /*height=*/480, /*depth=*/8, SDL_PIXELFORMAT_INDEX8);
 	if (sdl_surface == nullptr) {
 		std::fprintf(stderr, "Failed to create SDL Surface: %s\n", SDL_GetError());
 		exit(1);
 	}
-	Surface out = Surface(sdl_surface.get());
+	const Surface out = Surface(sdl_surface.get());
 
 	const Point tilePosition { 48, 44 };
 	const Point targetBufferPosition { 0, -17 };
@@ -47,7 +47,7 @@ void BM_BuildLightmap(benchmark::State &state)
 	const uint16_t outPitch = out.pitch();
 
 	for (auto _ : state) {
-		Lightmap lightmap = Lightmap::build(/*perPixelLighting=*/true,
+		const Lightmap lightmap = Lightmap::build(/*perPixelLighting=*/true,
 		    tilePosition, targetBufferPosition,
 		    viewportWidth, viewportHeight, rows, columns,
 		    outBuffer, outPitch, lightTables, lightTables[0].data(), lightTables.back().data(),

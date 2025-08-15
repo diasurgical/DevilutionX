@@ -28,7 +28,7 @@ void SyncOneMonster()
 {
 	for (size_t i = 0; i < ActiveMonsterCount; i++) {
 		const unsigned m = ActiveMonsters[i];
-		Monster &monster = Monsters[m];
+		const Monster &monster = Monsters[m];
 		sgnMonsterPriority[m] = MyPlayer->position.tile.ManhattanDistance(monster.position.tile);
 		if (monster.activeForTicks == 0) {
 			sgnMonsterPriority[m] += 0x1000;
@@ -182,7 +182,7 @@ void SyncMonster(bool isOwner, const TSyncMonster &monsterSync)
 
 	if (monster.position.tile.WalkingDistance(position) <= 2) {
 		if (!monster.isWalking()) {
-			Direction md = GetDirection(monster.position.tile, position);
+			const Direction md = GetDirection(monster.position.tile, position);
 			if (DirOK(monster, md)) {
 				M_ClearSquares(monster);
 				monster.occupyTile(monster.position.tile, false);
@@ -197,7 +197,7 @@ void SyncMonster(bool isOwner, const TSyncMonster &monsterSync)
 		if (monster.lightId != NO_LIGHT)
 			ChangeLightXY(monster.lightId, position);
 		decode_enemy(monster, enemyId);
-		Direction md = GetDirection(position, monster.enemyPosition);
+		const Direction md = GetDirection(position, monster.enemyPosition);
 		M_StartStand(monster, md);
 		monster.activeForTicks = std::numeric_limits<uint8_t>::max();
 	}
@@ -290,14 +290,14 @@ size_t OnSyncData(const TSyncHeader &header, size_t maxCmdSize, const Player &pl
 	}
 
 	assert(header.wLen % sizeof(TSyncMonster) == 0);
-	int monsterCount = static_cast<int>(wLen / sizeof(TSyncMonster));
+	const int monsterCount = static_cast<int>(wLen / sizeof(TSyncMonster));
 
-	uint8_t level = header.bLevel;
-	bool syncLocalLevel = !MyPlayer->_pLvlChanging && GetLevelForMultiplayer(*MyPlayer) == level;
+	const uint8_t level = header.bLevel;
+	const bool syncLocalLevel = !MyPlayer->_pLvlChanging && GetLevelForMultiplayer(*MyPlayer) == level;
 
 	if (IsValidLevelForMultiplayer(level)) {
 		const auto *monsterSyncs = reinterpret_cast<const TSyncMonster *>(&header + 1);
-		bool isOwner = player.getId() > MyPlayerId;
+		const bool isOwner = player.getId() > MyPlayerId;
 
 		for (int i = 0; i < monsterCount; i++) {
 			if (!IsTSyncMonsterValid(monsterSyncs[i]))

@@ -106,15 +106,15 @@ constexpr std::array<const WalkParameter, 8> WalkParameters { {
 
 DisplacementOf<int8_t> ActorPosition::CalculateWalkingOffset(Direction dir, const AnimationInfo &animInfo) const
 {
-	DisplacementOf<int16_t> offset = CalculateWalkingOffsetShifted4(dir, animInfo);
+	const DisplacementOf<int16_t> offset = CalculateWalkingOffsetShifted4(dir, animInfo);
 	return { static_cast<int8_t>(offset.deltaX >> 4), static_cast<int8_t>(offset.deltaY >> 4) };
 }
 
 DisplacementOf<int16_t> ActorPosition::CalculateWalkingOffsetShifted4(Direction dir, const AnimationInfo &animInfo) const
 {
-	int16_t velocityProgress = static_cast<int16_t>(animInfo.getAnimationProgress()) * animInfo.numberOfFrames / AnimationInfo::baseValueFraction;
+	const int16_t velocityProgress = static_cast<int16_t>(animInfo.getAnimationProgress()) * animInfo.numberOfFrames / AnimationInfo::baseValueFraction;
 	const WalkParameter &walkParameter = WalkParameters[static_cast<size_t>(dir)];
-	DisplacementOf<int16_t> velocity = walkParameter.getVelocity(animInfo.numberOfFrames);
+	const DisplacementOf<int16_t> velocity = walkParameter.getVelocity(animInfo.numberOfFrames);
 	DisplacementOf<int16_t> offset = (velocity * velocityProgress);
 	return offset;
 }

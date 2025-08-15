@@ -364,7 +364,7 @@ bool HandleControllerButtonEvent(const SDL_Event &event, const ControllerButtonE
 	};
 
 	const ButtonReleaser buttonReleaser { ctrlEvent };
-	bool isGamepadMotion = IsControllerMotion(event);
+	const bool isGamepadMotion = IsControllerMotion(event);
 	if (!isGamepadMotion) {
 		SimulateRightStickWithPadmapper(ctrlEvent);
 	}

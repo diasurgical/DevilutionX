@@ -45,7 +45,7 @@ void play_movie(const char *pszMovie, bool userCanClose)
 		while (movie_playing) {
 			while (movie_playing && FetchMessage(&event, &modState)) {
 				if (userCanClose) {
-					for (ControllerButtonEvent ctrlEvent : ToControllerButtonEvents(event)) {
+					for (const ControllerButtonEvent ctrlEvent : ToControllerButtonEvents(event)) {
 						if (!SkipsMovie(ctrlEvent))
 							continue;
 						movie_playing = false;

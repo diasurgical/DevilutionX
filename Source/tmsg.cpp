@@ -41,7 +41,7 @@ uint8_t tmsg_get(std::unique_ptr<std::byte[]> *msg)
 	if ((int)(head.time - SDL_GetTicks()) >= 0)
 		return 0;
 
-	uint8_t len = head.len;
+	const uint8_t len = head.len;
 	*msg = std::move(head.body);
 	TimedMsgList.pop_front();
 	return len;
@@ -49,7 +49,7 @@ uint8_t tmsg_get(std::unique_ptr<std::byte[]> *msg)
 
 void tmsg_add(const std::byte *msg, uint8_t len)
 {
-	uint32_t time = SDL_GetTicks() + gnTickDelay * 10;
+	const uint32_t time = SDL_GetTicks() + gnTickDelay * 10;
 	TimedMsgList.emplace_back(time, msg, len);
 }
 

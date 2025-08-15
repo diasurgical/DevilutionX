@@ -42,19 +42,19 @@ void ScaleJoystickAxes(float *x, float *y, float deadzone)
 	const float maximum = 32767.0;
 	float analogX = *x;
 	float analogY = *y;
-	float deadZone = deadzone * maximum;
+	const float deadZone = deadzone * maximum;
 
-	float magnitude = std::sqrt(analogX * analogX + analogY * analogY);
+	const float magnitude = std::sqrt(analogX * analogX + analogY * analogY);
 	if (magnitude >= deadZone) {
 		// find scaled axis values with magnitudes between zero and maximum
-		float scalingFactor = 1.F / magnitude * (magnitude - deadZone) / (maximum - deadZone);
+		const float scalingFactor = 1.F / magnitude * (magnitude - deadZone) / (maximum - deadZone);
 		analogX = (analogX * scalingFactor);
 		analogY = (analogY * scalingFactor);
 
 		// std::clamp to ensure results will never exceed the max_axis value
 		float clampingFactor = 1.F;
-		float absAnalogX = std::fabs(analogX);
-		float absAnalogY = std::fabs(analogY);
+		const float absAnalogX = std::fabs(analogX);
+		const float absAnalogY = std::fabs(analogY);
 		if (absAnalogX > 1.0 || absAnalogY > 1.0) {
 			if (absAnalogX > absAnalogY) {
 				clampingFactor = 1.F / absAnalogX;
@@ -72,21 +72,21 @@ void ScaleJoystickAxes(float *x, float *y, float deadzone)
 
 bool IsMovementOverriddenByPadmapper(ControllerButton button)
 {
-	ControllerButtonEvent releaseEvent { button, true };
-	std::string_view actionName = PadmapperActionNameTriggeredByButtonEvent(releaseEvent);
-	ControllerButtonCombo buttonCombo = GetOptions().Padmapper.ButtonComboForAction(actionName);
+	const ControllerButtonEvent releaseEvent { button, true };
+	const std::string_view actionName = PadmapperActionNameTriggeredByButtonEvent(releaseEvent);
+	const ControllerButtonCombo buttonCombo = GetOptions().Padmapper.ButtonComboForAction(actionName);
 	return buttonCombo.modifier != ControllerButton_NONE;
 }
 
 bool TriggersQuickSpellAction(ControllerButton button)
 {
-	ControllerButtonEvent releaseEvent { button, true };
-	std::string_view actionName = PadmapperActionNameTriggeredByButtonEvent(releaseEvent);
+	const ControllerButtonEvent releaseEvent { button, true };
+	const std::string_view actionName = PadmapperActionNameTriggeredByButtonEvent(releaseEvent);
 
-	std::string_view prefix { "QuickSpell" };
+	const std::string_view prefix { "QuickSpell" };
 	if (actionName.size() < prefix.size())
 		return false;
-	std::string_view truncatedActionName { actionName.data(), prefix.size() };
+	const std::string_view truncatedActionName { actionName.data(), prefix.size() };
 	return truncatedActionName == prefix;
 }
 
@@ -254,21 +254,21 @@ void SimulateRightStickWithPadmapper(ControllerButtonEvent ctrlEvent)
 	if (!ctrlEvent.up && ctrlEvent.button == SuppressedButton)
 		return;
 
-	std::string_view actionName = PadmapperActionNameTriggeredByButtonEvent(ctrlEvent);
-	bool upTriggered = actionName == "MouseUp";
-	bool downTriggered = actionName == "MouseDown";
-	bool leftTriggered = actionName == "MouseLeft";
-	bool rightTriggered = actionName == "MouseRight";
+	const std::string_view actionName = PadmapperActionNameTriggeredByButtonEvent(ctrlEvent);
+	const bool upTriggered = actionName == "MouseUp";
+	const bool downTriggered = actionName == "MouseDown";
+	const bool leftTriggered = actionName == "MouseLeft";
+	const bool rightTriggered = actionName == "MouseRight";
 	if (!upTriggered && !downTriggered && !leftTriggered && !rightTriggered) {
 		if (rightStickX == 0 && rightStickY == 0)
 			SetSimulatingMouseWithPadmapper(false);
 		return;
 	}
 
-	bool upActive = (upTriggered && !ctrlEvent.up) || (!upTriggered && PadmapperIsActionActive("MouseUp"));
-	bool downActive = (downTriggered && !ctrlEvent.up) || (!downTriggered && PadmapperIsActionActive("MouseDown"));
-	bool leftActive = (leftTriggered && !ctrlEvent.up) || (!leftTriggered && PadmapperIsActionActive("MouseLeft"));
-	bool rightActive = (rightTriggered && !ctrlEvent.up) || (!rightTriggered && PadmapperIsActionActive("MouseRight"));
+	const bool upActive = (upTriggered && !ctrlEvent.up) || (!upTriggered && PadmapperIsActionActive("MouseUp"));
+	const bool downActive = (downTriggered && !ctrlEvent.up) || (!downTriggered && PadmapperIsActionActive("MouseDown"));
+	const bool leftActive = (leftTriggered && !ctrlEvent.up) || (!leftTriggered && PadmapperIsActionActive("MouseLeft"));
+	const bool rightActive = (rightTriggered && !ctrlEvent.up) || (!rightTriggered && PadmapperIsActionActive("MouseRight"));
 
 	rightStickX = 0;
 	rightStickY = 0;

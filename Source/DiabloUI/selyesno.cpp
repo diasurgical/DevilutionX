@@ -48,10 +48,10 @@ bool UiSelHeroYesNoDialog(const char *title, const char *body)
 
 	const Point uiPosition = GetUIRectangle().position;
 
-	SDL_Rect rect1 = { (Sint16)(uiPosition.x + 24), (Sint16)(uiPosition.y + 161), 590, 35 };
+	const SDL_Rect rect1 = { (Sint16)(uiPosition.x + 24), (Sint16)(uiPosition.y + 161), 590, 35 };
 	vecSelYesNoDialog.push_back(std::make_unique<UiArtText>(title, rect1, UiFlags::AlignCenter | UiFlags::FontSize30 | UiFlags::ColorUiSilver, 3));
 
-	SDL_Rect rect2 = { (Sint16)(uiPosition.x + 120), (Sint16)(uiPosition.y + 236), MESSAGE_WIDTH, 168 };
+	const SDL_Rect rect2 = { (Sint16)(uiPosition.x + 120), (Sint16)(uiPosition.y + 236), MESSAGE_WIDTH, 168 };
 	vecSelYesNoDialog.push_back(std::make_unique<UiArtText>(selyesno_confirmationMessage, rect2, UiFlags::FontSize24 | UiFlags::ColorUiSilver));
 
 	vecSelYesNoDialogItems.push_back(std::make_unique<UiListItem>(_("Yes"), 0));

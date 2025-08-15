@@ -44,7 +44,7 @@ void AddTrailingSlash(std::string &path)
 
 std::string FromSDL(char *s)
 {
-	SDLUniquePtr<char> pinned(s);
+	const SDLUniquePtr<char> pinned(s);
 	std::string result = (s != nullptr ? s : "");
 	if (s == nullptr) {
 		Log("{}", SDL_GetError());

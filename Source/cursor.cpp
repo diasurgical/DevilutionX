@@ -323,7 +323,7 @@ bool TrySelectPixelBased(Point tile)
 			if (playerId != MyPlayerId) {
 				const Player &player = Players[playerId];
 				const ClxSprite sprite = player.currentSprite();
-				Displacement renderingOffset = player.getRenderingOffset(sprite);
+				const Displacement renderingOffset = player.getRenderingOffset(sprite);
 				if (checkSprite(adjacentTile, sprite, renderingOffset)) {
 					cursPosition = adjacentTile;
 					PlayerUnderCursor = &player;
@@ -335,7 +335,7 @@ bool TrySelectPixelBased(Point tile)
 			for (const Player &player : Players) {
 				if (player.position.tile == adjacentTile && &player != MyPlayer) {
 					const ClxSprite sprite = player.currentSprite();
-					Displacement renderingOffset = player.getRenderingOffset(sprite);
+					const Displacement renderingOffset = player.getRenderingOffset(sprite);
 					if (checkSprite(adjacentTile, sprite, renderingOffset)) {
 						cursPosition = adjacentTile;
 						PlayerUnderCursor = &player;
@@ -348,7 +348,7 @@ bool TrySelectPixelBased(Point tile)
 		Object *object = FindObjectAtPosition(adjacentTile);
 		if (object != nullptr && object->canInteractWith()) {
 			const ClxSprite sprite = object->currentSprite();
-			Displacement renderingOffset = object->getRenderingOffset(sprite, adjacentTile);
+			const Displacement renderingOffset = object->getRenderingOffset(sprite, adjacentTile);
 			if (checkSprite(adjacentTile, sprite, renderingOffset)) {
 				cursPosition = adjacentTile;
 				ObjectUnderCursor = object;
@@ -361,7 +361,7 @@ bool TrySelectPixelBased(Point tile)
 			itemId = itemId - 1;
 			const Item &item = Items[itemId];
 			const ClxSprite sprite = item.AnimInfo.currentSprite();
-			Displacement renderingOffset = item.getRenderingOffset(sprite);
+			const Displacement renderingOffset = item.getRenderingOffset(sprite);
 			if (checkSprite(adjacentTile, sprite, renderingOffset)) {
 				cursPosition = adjacentTile;
 				pcursitem = static_cast<int8_t>(itemId);
@@ -380,7 +380,7 @@ std::vector<uint16_t> ReadWidths(AssetRef &&ref)
 	if (len == 0) {
 		app_fatal("Missing widths");
 	}
-	std::unique_ptr<char[]> data { new char[len] };
+	const std::unique_ptr<char[]> data { new char[len] };
 
 	AssetHandle handle = OpenAsset(std::move(ref));
 	if (!handle.ok() || !handle.read(data.get(), len)) {
@@ -500,13 +500,13 @@ void CreateHalfSizeItemSprites()
 			return;
 		}
 		const Surface itemSurface = ownedItemSurface.subregion(0, 0, itemSprite.width(), itemSprite.height());
-		SDL_Rect itemSurfaceRect = MakeSdlRect(0, 0, itemSurface.w(), itemSurface.h());
+		const SDL_Rect itemSurfaceRect = MakeSdlRect(0, 0, itemSurface.w(), itemSurface.h());
 		SDL_SetClipRect(itemSurface.surface, &itemSurfaceRect);
 		SDL_FillRect(itemSurface.surface, nullptr, 1);
 		ClxDraw(itemSurface, { 0, itemSurface.h() }, itemSprite);
 
 		const Surface halfSurface = ownedHalfSurface.subregion(0, 0, itemSurface.w() / 2, itemSurface.h() / 2);
-		SDL_Rect halfSurfaceRect = MakeSdlRect(0, 0, halfSurface.w(), halfSurface.h());
+		const SDL_Rect halfSurfaceRect = MakeSdlRect(0, 0, halfSurface.w(), halfSurface.h());
 		SDL_SetClipRect(halfSurface.surface, &halfSurfaceRect);
 		BilinearDownscaleByHalf8(itemSurface.surface, paletteTransparencyLookup, halfSurface.surface, 1);
 		HalfSizeItemSprites[outputIndex].emplace(SurfaceToClx(halfSurface, 1, 1));
@@ -695,13 +695,13 @@ void AlterMousePositionViaPlayer(Point &screenPosition, const Player &myPlayer)
 
 	// Adjust for player walking
 	if (myPlayer.isWalking()) {
-		Displacement offset = GetOffsetForWalking(myPlayer.AnimInfo, myPlayer._pdir, true);
+		const Displacement offset = GetOffsetForWalking(myPlayer.AnimInfo, myPlayer._pdir, true);
 		screenPosition.x -= offset.deltaX;
 		screenPosition.y -= offset.deltaY;
 
 		// Predict the next frame when walking to avoid input jitter
-		DisplacementOf<int16_t> offset2 = myPlayer.position.CalculateWalkingOffsetShifted8(myPlayer._pdir, myPlayer.AnimInfo);
-		DisplacementOf<int16_t> velocity = myPlayer.position.GetWalkingVelocityShifted8(myPlayer._pdir, myPlayer.AnimInfo);
+		const DisplacementOf<int16_t> offset2 = myPlayer.position.CalculateWalkingOffsetShifted8(myPlayer._pdir, myPlayer.AnimInfo);
+		const DisplacementOf<int16_t> velocity = myPlayer.position.GetWalkingVelocityShifted8(myPlayer._pdir, myPlayer.AnimInfo);
 		int fx = offset2.deltaX / 256;
 		int fy = offset2.deltaY / 256;
 		fx -= (offset2.deltaX + velocity.deltaX) / 256;
@@ -717,7 +717,7 @@ Point ConvertToTileGrid(Point &screenPosition)
 	int columns = 0;
 	int rows = 0;
 	TilesInView(&columns, &rows);
-	int lrow = rows - RowsCoveredByPanel();
+	const int lrow = rows - RowsCoveredByPanel();
 
 	// Center player tile on screen
 	Point currentTile = ViewPosition;
@@ -736,8 +736,8 @@ Point ConvertToTileGrid(Point &screenPosition)
 		screenPosition.y -= TILE_HEIGHT / 4;
 	}
 
-	int tx = screenPosition.x / TILE_WIDTH;
-	int ty = screenPosition.y / TILE_HEIGHT;
+	const int tx = screenPosition.x / TILE_WIDTH;
+	const int ty = screenPosition.y / TILE_HEIGHT;
 	ShiftGrid(&currentTile, tx, ty);
 
 	return currentTile;
@@ -748,14 +748,14 @@ Point ConvertToTileGrid(Point &screenPosition)
  */
 void ShiftToDiamondGridAlignment(Point screenPosition, Point &tile, bool &flipflag)
 {
-	int px = screenPosition.x % TILE_WIDTH;
-	int py = screenPosition.y % TILE_HEIGHT;
+	const int px = screenPosition.x % TILE_WIDTH;
+	const int py = screenPosition.y % TILE_HEIGHT;
 
-	bool flipy = py < (px / 2);
+	const bool flipy = py < (px / 2);
 	if (flipy) {
 		tile.y--;
 	}
-	bool flipx = py >= TILE_HEIGHT - (px / 2);
+	const bool flipx = py >= TILE_HEIGHT - (px / 2);
 	if (flipx) {
 		tile.x++;
 	}

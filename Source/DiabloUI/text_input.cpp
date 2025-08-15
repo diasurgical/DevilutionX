@@ -60,7 +60,7 @@ bool HandleInputEvent(const SDL_Event &event, TextInputState &state,
 		case SDLK_v:
 			if (isCtrl) {
 				if (SDL_HasClipboardText() == SDL_TRUE) {
-					std::unique_ptr<char, SDLFreeDeleter<char>> clipboard { SDL_GetClipboardText() };
+					const std::unique_ptr<char, SDLFreeDeleter<char>> clipboard { SDL_GetClipboardText() };
 					if (clipboard == nullptr || *clipboard == '\0') {
 						Log("{}", SDL_GetError());
 					} else {

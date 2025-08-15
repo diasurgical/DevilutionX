@@ -152,7 +152,7 @@ typedef struct TestItemStruct {
 
 static void TestItemNameGeneration(const Item &item)
 {
-	bool allowIdentified = (item._iMiscId != IMISC_EAR); // Ears can't be identified. Item::getName() doesn't handle it, so don't test it.
+	const bool allowIdentified = (item._iMiscId != IMISC_EAR); // Ears can't be identified. Item::getName() doesn't handle it, so don't test it.
 	ASSERT_EQ(allowIdentified & item._iIdentified, item._iIdentified);
 
 	Item testItem = item;
@@ -165,7 +165,7 @@ static void TestItemNameGeneration(const Item &item)
 
 		// Check that UpdateHellfireFlag ensures that dwBuff is updated to get the correct name
 		if (item._iMagical == ITEM_QUALITY_MAGIC) {
-			bool isHellfireItem = (testItem.dwBuff & CF_HELLFIRE);
+			const bool isHellfireItem = (testItem.dwBuff & CF_HELLFIRE);
 			testItem.dwBuff = 0;
 			UpdateHellfireFlag(testItem, testItem._iIName);
 
@@ -1010,7 +1010,7 @@ TEST_F(NetPackTest, UnPackNetPlayer_invalid_class)
 
 TEST_F(NetPackTest, UnPackNetPlayer_invalid_oob)
 {
-	WorldTilePosition position = MyPlayer->position.tile;
+	const WorldTilePosition position = MyPlayer->position.tile;
 
 	MyPlayer->position.tile.x = MAXDUNX + 1;
 	ASSERT_FALSE(TestNetPackValidation());
@@ -1322,7 +1322,7 @@ TEST_F(NetPackTest, UnPackNetPlayer_invalid_pregenItemFlags)
 			continue;
 		if (IsAnyOf(item.IDidx, IDI_GOLD, IDI_EAR))
 			continue;
-		uint16_t createInfo = item._iCreateInfo;
+		const uint16_t createInfo = item._iCreateInfo;
 		item._iCreateInfo |= CF_PREGEN;
 		ASSERT_FALSE(TestNetPackValidation());
 		item._iCreateInfo = createInfo;
@@ -1342,7 +1342,7 @@ TEST_F(NetPackTest, UnPackNetPlayer_invalid_usefulItemFlags)
 			continue;
 		if ((item._iCreateInfo & CF_USEFUL) != CF_USEFUL)
 			continue;
-		uint16_t createInfo = item._iCreateInfo;
+		const uint16_t createInfo = item._iCreateInfo;
 		item._iCreateInfo |= CF_ONLYGOOD;
 		ASSERT_FALSE(TestNetPackValidation());
 		item._iCreateInfo = createInfo;
@@ -1362,7 +1362,7 @@ TEST_F(NetPackTest, UnPackNetPlayer_invalid_townItemFlags)
 			continue;
 		if ((item._iCreateInfo & CF_TOWN) == 0)
 			continue;
-		uint16_t createInfo = item._iCreateInfo;
+		const uint16_t createInfo = item._iCreateInfo;
 		item._iCreateInfo |= CF_ONLYGOOD;
 		ASSERT_FALSE(TestNetPackValidation());
 		item._iCreateInfo = createInfo;
@@ -1383,8 +1383,8 @@ TEST_F(NetPackTest, UnPackNetPlayer_invalid_townItemLevel)
 			continue;
 		if ((item._iCreateInfo & CF_TOWN) == 0)
 			continue;
-		uint16_t createInfo = item._iCreateInfo;
-		bool BoyItem = (item._iCreateInfo & CF_BOY) != 0;
+		const uint16_t createInfo = item._iCreateInfo;
+		const bool BoyItem = (item._iCreateInfo & CF_BOY) != 0;
 		item._iCreateInfo &= ~CF_LEVEL;
 		item._iCreateInfo |= BoyItem ? MyPlayer->getMaxCharacterLevel() + 1 : 31;
 		ASSERT_FALSE(TestNetPackValidation());
@@ -1408,7 +1408,7 @@ TEST_F(NetPackTest, UnPackNetPlayer_invalid_uniqueMonsterItemLevel)
 			continue;
 		if ((item._iCreateInfo & CF_USEFUL) != CF_UPER15)
 			continue;
-		uint16_t createInfo = item._iCreateInfo;
+		const uint16_t createInfo = item._iCreateInfo;
 		item._iCreateInfo &= ~CF_LEVEL;
 		item._iCreateInfo |= 31;
 		ASSERT_FALSE(TestNetPackValidation());
@@ -1431,7 +1431,7 @@ TEST_F(NetPackTest, UnPackNetPlayer_invalid_monsterItemLevel)
 			continue;
 		if ((item._iCreateInfo & CF_USEFUL) == CF_UPER15)
 			continue;
-		uint16_t createInfo = item._iCreateInfo;
+		const uint16_t createInfo = item._iCreateInfo;
 		item._iCreateInfo &= ~CF_LEVEL;
 		item._iCreateInfo |= 31;
 		ASSERT_FALSE(TestNetPackValidation());

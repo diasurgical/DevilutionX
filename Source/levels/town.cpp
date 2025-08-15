@@ -26,7 +26,7 @@ void FillSector(const char *path, int xi, int yy)
 {
 	auto dunData = LoadFileInMem<uint16_t>(path);
 
-	WorldTileSize size = GetDunSize(dunData.get());
+	const WorldTileSize size = GetDunSize(dunData.get());
 	const uint16_t *tileLayer = &dunData[2];
 
 	for (WorldTileCoord j = 0; j < size.height; j++) {
@@ -37,9 +37,9 @@ void FillSector(const char *path, int xi, int yy)
 			int v3 = 218;
 			int v4 = 218;
 
-			int tileId = SDL_SwapLE16(tileLayer[j * size.width + i]) - 1;
+			const int tileId = SDL_SwapLE16(tileLayer[j * size.width + i]) - 1;
 			if (tileId >= 0) {
-				MegaTile mega = pMegaTiles[tileId];
+				const MegaTile mega = pMegaTiles[tileId];
 				v1 = SDL_SwapLE16(mega.micro1);
 				v2 = SDL_SwapLE16(mega.micro2);
 				v3 = SDL_SwapLE16(mega.micro3);
@@ -64,7 +64,7 @@ void FillSector(const char *path, int xi, int yy)
  */
 void FillTile(int xx, int yy, int t)
 {
-	MegaTile mega = pMegaTiles[t - 1];
+	const MegaTile mega = pMegaTiles[t - 1];
 
 	dPiece[xx + 0][yy + 0] = SDL_SwapLE16(mega.micro1);
 	dPiece[xx + 1][yy + 0] = SDL_SwapLE16(mega.micro2);
@@ -249,15 +249,15 @@ void DrlgTPass3()
 
 bool OpensHive(Point position)
 {
-	int yp = position.y;
-	int xp = position.x;
+	const int yp = position.y;
+	const int xp = position.x;
 	return xp >= 79 && xp <= 82 && yp >= 61 && yp <= 64;
 }
 
 bool OpensGrave(Point position)
 {
-	int yp = position.y;
-	int xp = position.x;
+	const int yp = position.y;
+	const int xp = position.x;
 	return xp >= 35 && xp <= 38 && yp >= 20 && yp <= 24;
 }
 

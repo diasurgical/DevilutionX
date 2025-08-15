@@ -92,7 +92,7 @@ Cutscenes PickCutscene(interface_mode uMsg)
 	case WM_DIABPREVLVL:
 	case WM_DIABTOWNWARP:
 	case WM_DIABTWARPUP: {
-		int lvl = MyPlayer->plrlevel;
+		const int lvl = MyPlayer->plrlevel;
 		if (lvl == 1 && uMsg == WM_DIABNEXTLVL)
 			return CutTown;
 		if (lvl == 16 && uMsg == WM_DIABNEXTLVL)
@@ -504,7 +504,7 @@ void ProgressEventHandler(const SDL_Event &event, uint16_t modState)
 		ProgressEventHandlerState.prevHandler = nullptr;
 		IsProgress = false;
 
-		Player &myPlayer = *MyPlayer;
+		const Player &myPlayer = *MyPlayer;
 		NetSendCmdLocParam2(true, CMD_PLAYER_JOINLEVEL, myPlayer.position.tile, myPlayer.plrlevel, myPlayer.plrIsOnSetLevel ? 1 : 0);
 		DelayPlrMessages(SDL_GetTicks() - ProgressEventHandlerState.loadStartedAt);
 

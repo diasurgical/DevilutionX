@@ -133,8 +133,8 @@ void DrawHalfTransparentHorizontalLine(const Surface &out, Point from, int width
 	if (from.y < 0 || from.y >= out.h() || width <= 0 || from.x >= out.w() || from.x + width <= 0)
 		return;
 
-	int x0 = std::max(0, from.x);
-	int x1 = std::min(out.w(), from.x + width);
+	const int x0 = std::max(0, from.x);
+	const int x1 = std::min(out.w(), from.x + width);
 
 	for (int x = x0; x < x1; ++x) {
 		SetHalfTransparentPixel(out, { x, from.y }, colorIndex);
@@ -148,8 +148,8 @@ void DrawHalfTransparentVerticalLine(const Surface &out, Point from, int height,
 	if (from.x < 0 || from.x >= out.w() || height <= 0 || from.y >= out.h() || from.y + height <= 0)
 		return;
 
-	int y0 = std::max(0, from.y);
-	int y1 = std::min(out.h(), from.y + height);
+	const int y0 = std::max(0, from.y);
+	const int y1 = std::min(out.h(), from.y + height);
 
 	for (int y = y0; y < y1; ++y) {
 		SetHalfTransparentPixel(out, { from.x, y }, colorIndex);

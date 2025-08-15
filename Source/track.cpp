@@ -81,7 +81,7 @@ void RepeatPlayerAction()
 	if (!myPlayer.CanChangeAction())
 		return;
 
-	bool rangedAttack = myPlayer.UsesRangedWeapon();
+	const bool rangedAttack = myPlayer.UsesRangedWeapon();
 	switch (LastPlayerAction) {
 	case PlayerActionType::Attack:
 		if (InDungeonBounds(cursPosition))

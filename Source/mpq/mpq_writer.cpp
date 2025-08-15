@@ -384,7 +384,7 @@ bool MpqWriter::WriteFileContents(const std::byte *fileData, uint32_t fileSize, 
 	// We populate the table of sector offsets while we write the data.
 	// We can't pre-populate it because we don't know the compressed sector sizes yet.
 	// First offset is the start of the first sector, last offset is the end of the last sector.
-	std::unique_ptr<uint32_t[]> offsetTable { new uint32_t[numSectors + 1] };
+	const std::unique_ptr<uint32_t[]> offsetTable { new uint32_t[numSectors + 1] };
 
 #ifdef CAN_SEEKP_BEYOND_EOF
 	if (!stream_.Seekp(block->offset + offsetTableByteSize, SEEK_SET))
@@ -521,13 +521,13 @@ bool MpqWriter::WriteFile(std::string_view filename, const std::byte *data, size
 
 void MpqWriter::RenameFile(std::string_view name, std::string_view newName) // NOLINT(bugprone-easily-swappable-parameters)
 {
-	uint32_t index = FetchHandle(name);
+	const uint32_t index = FetchHandle(name);
 	if (index == HashEntryNotFound) {
 		return;
 	}
 
 	MpqHashEntry *hashEntry = &hashTable_[index];
-	uint32_t block = hashEntry->block;
+	const uint32_t block = hashEntry->block;
 	MpqBlockEntry *blockEntry = &blockTable_[block];
 	hashEntry->block = MpqHashEntry::DeletedBlock;
 	AddFile(newName, blockEntry, block);

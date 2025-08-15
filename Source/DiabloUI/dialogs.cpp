@@ -81,24 +81,24 @@ bool Init(std::string_view caption, std::string_view text, bool error, bool rend
 
 	const Point uiPosition = GetUIRectangle().position;
 	if (caption.empty()) {
-		SDL_Rect rect1 = MakeSdlRect(uiPosition.x + 180, uiPosition.y + 168, dialogSprite->width(), dialogSprite->height());
+		const SDL_Rect rect1 = MakeSdlRect(uiPosition.x + 180, uiPosition.y + 168, dialogSprite->width(), dialogSprite->height());
 		vecOkDialog.push_back(std::make_unique<UiImageClx>(*dialogSprite, rect1));
-		SDL_Rect rect2 = MakeSdlRect(uiPosition.x + 200, uiPosition.y + 211, textWidth, 80);
+		const SDL_Rect rect2 = MakeSdlRect(uiPosition.x + 200, uiPosition.y + 211, textWidth, 80);
 		vecOkDialog.push_back(std::make_unique<UiText>(wrappedText, rect2, UiFlags::AlignCenter | UiFlags::ColorDialogWhite));
 
-		SDL_Rect rect3 = MakeSdlRect(uiPosition.x + 265, uiPosition.y + 265, DialogButtonWidth, DialogButtonHeight);
+		const SDL_Rect rect3 = MakeSdlRect(uiPosition.x + 265, uiPosition.y + 265, DialogButtonWidth, DialogButtonHeight);
 		vecOkDialog.push_back(std::make_unique<UiButton>(_("OK"), &DialogActionOK, rect3));
 	} else {
-		SDL_Rect rect1 = MakeSdlRect(uiPosition.x + 127, uiPosition.y + 100, dialogSprite->width(), dialogSprite->height());
+		const SDL_Rect rect1 = MakeSdlRect(uiPosition.x + 127, uiPosition.y + 100, dialogSprite->width(), dialogSprite->height());
 		vecOkDialog.push_back(std::make_unique<UiImageClx>(*dialogSprite, rect1));
 
-		SDL_Rect rect2 = MakeSdlRect(uiPosition.x + 147, uiPosition.y + 110, textWidth, 20);
+		const SDL_Rect rect2 = MakeSdlRect(uiPosition.x + 147, uiPosition.y + 110, textWidth, 20);
 		vecOkDialog.push_back(std::make_unique<UiText>(caption, rect2, UiFlags::AlignCenter | UiFlags::ColorYellow));
 
-		SDL_Rect rect3 = MakeSdlRect(uiPosition.x + 147, uiPosition.y + 141, textWidth, 190);
+		const SDL_Rect rect3 = MakeSdlRect(uiPosition.x + 147, uiPosition.y + 141, textWidth, 190);
 		vecOkDialog.push_back(std::make_unique<UiText>(wrappedText, rect3, UiFlags::AlignCenter | UiFlags::ColorDialogWhite));
 
-		SDL_Rect rect4 = MakeSdlRect(uiPosition.x + 264, uiPosition.y + 335, DialogButtonWidth, DialogButtonHeight);
+		const SDL_Rect rect4 = MakeSdlRect(uiPosition.x + 264, uiPosition.y + 335, DialogButtonWidth, DialogButtonHeight);
 		vecOkDialog.push_back(std::make_unique<UiButton>(_("OK"), &DialogActionOK, rect4));
 	}
 	return true;
@@ -123,7 +123,7 @@ void DialogLoop(const std::vector<std::unique_ptr<UiItemBase>> &items, const std
 				UiItemMouseEvents(&event, items);
 				break;
 			default:
-				for (MenuAction menuAction : GetMenuActions(event)) {
+				for (const MenuAction menuAction : GetMenuActions(event)) {
 					if (IsNoneOf(menuAction, MenuAction_BACK, MenuAction_SELECT))
 						continue;
 					dialogEnd = true;
@@ -157,8 +157,8 @@ void UiOkDialog(std::string_view caption, std::string_view text, bool error, con
 		if (!HeadlessMode) {
 			if (SDL_ShowCursor(SDL_ENABLE) <= -1)
 				LogError("{}", SDL_GetError());
-			std::string captionStr = std::string(caption);
-			std::string textStr = std::string(text);
+			const std::string captionStr = std::string(caption);
+			const std::string textStr = std::string(text);
 			if (SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, captionStr.c_str(), textStr.c_str(), nullptr) <= -1) {
 				LogError("{}", SDL_GetError());
 			}
@@ -173,8 +173,8 @@ void UiOkDialog(std::string_view caption, std::string_view text, bool error, con
 
 	if (!Init(caption, text, error, !renderBehind.empty())) {
 		LogError("{}\n{}", caption, text);
-		std::string captionStr = std::string(caption);
-		std::string textStr = std::string(text);
+		const std::string captionStr = std::string(caption);
+		const std::string textStr = std::string(text);
 		if (SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, captionStr.c_str(), textStr.c_str(), nullptr) <= -1) {
 			LogError("{}", SDL_GetError());
 		}

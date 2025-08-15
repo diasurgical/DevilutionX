@@ -41,7 +41,7 @@ void ProgressLoadForeground()
 	ProgFil = LoadPcx("ui_art\\prog_fil");
 
 	const Point uiPosition = GetUIRectangle().position;
-	SDL_Rect rect3 = { (Sint16)(uiPosition.x + 265), (Sint16)(uiPosition.y + 267), DialogButtonWidth, DialogButtonHeight };
+	const SDL_Rect rect3 = { (Sint16)(uiPosition.x + 265), (Sint16)(uiPosition.y + 267), DialogButtonWidth, DialogButtonHeight };
 	vecProgress.push_back(std::make_unique<UiButton>(_("Cancel"), &DialogActionCancel, rect3));
 }
 
@@ -138,7 +138,7 @@ bool UiProgressDialog(int (*fnfunc)())
 				endMenu = true;
 				break;
 			default:
-				for (MenuAction menuAction : GetMenuActions(event)) {
+				for (const MenuAction menuAction : GetMenuActions(event)) {
 					if (IsNoneOf(menuAction, MenuAction_BACK, MenuAction_SELECT))
 						continue;
 					endMenu = true;

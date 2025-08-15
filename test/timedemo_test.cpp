@@ -44,7 +44,7 @@ void RunTimedemo(std::string timedemoFolderName)
 	// Please provide them so that the tests can run successfully
 	ASSERT_TRUE(HaveMainData());
 
-	std::string unitTestFolderCompletePath = paths::BasePath() + "test/fixtures/timedemo/" + timedemoFolderName;
+	const std::string unitTestFolderCompletePath = paths::BasePath() + "test/fixtures/timedemo/" + timedemoFolderName;
 	paths::SetPrefPath(unitTestFolderCompletePath);
 	paths::SetConfigPath(unitTestFolderCompletePath);
 
@@ -83,7 +83,7 @@ void RunTimedemo(std::string timedemoFolderName)
 
 	StartGame(false, true);
 
-	HeroCompareResult result = pfile_compare_hero_demo(demoNumber, true);
+	const HeroCompareResult result = pfile_compare_hero_demo(demoNumber, true);
 	ASSERT_EQ(result.status, HeroCompareResult::Same) << result.message;
 	ASSERT_FALSE(gbRunGame);
 	gbRunGame = false;

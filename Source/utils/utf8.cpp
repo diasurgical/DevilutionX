@@ -12,7 +12,7 @@ namespace devilution {
 char32_t DecodeFirstUtf8CodePoint(std::string_view input, std::size_t *len)
 {
 	SBUInteger index = 0;
-	SBCodepoint result = SBCodepointDecodeNextFromUTF8(
+	const SBCodepoint result = SBCodepointDecodeNextFromUTF8(
 	    reinterpret_cast<const SBUInt8 *>(input.data()), static_cast<SBUInteger>(input.size()), &index);
 	*len = index;
 	return result;

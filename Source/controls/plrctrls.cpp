@@ -837,10 +837,10 @@ void LiftInventoryItem()
 				return 0;
 			for (int x = 0; x < cursorSizeInCells.width; x++) {
 				for (int y = 0; y < cursorSizeInCells.height; y++) {
-					int slotUnderCursor = inventorySlot + x + y * INV_ROW_SLOT_SIZE;
+					const int slotUnderCursor = inventorySlot + x + y * INV_ROW_SLOT_SIZE;
 					if (slotUnderCursor > SLOTXY_INV_LAST)
 						continue;
-					int itemId = GetItemIdOnSlot(slotUnderCursor);
+					const int itemId = GetItemIdOnSlot(slotUnderCursor);
 					if (itemId != 0)
 						return itemId;
 				}
@@ -1743,7 +1743,7 @@ void DetectInputMethod(const SDL_Event &event, const ControllerButtonEvent &game
 			ResetCursor();
 		}
 		if (ControlDevice == ControlTypes::Gamepad) {
-			GamepadLayout newGamepadLayout = GameController::getLayout(event);
+			const GamepadLayout newGamepadLayout = GameController::getLayout(event);
 			if (newGamepadLayout != GamepadType) {
 				LogGamepadChange(newGamepadLayout);
 				GamepadType = newGamepadLayout;
@@ -2084,7 +2084,7 @@ void PerformSpellAction()
 			TryIconCurs();
 			NewCursor(CURSOR_HAND);
 		} else if (pcursinvitem != -1) {
-			int itemId = GetItemIdOnSlot(Slot);
+			const int itemId = GetItemIdOnSlot(Slot);
 			CheckInvItem(true, false);
 			if (itemId != GetItemIdOnSlot(Slot))
 				ResetInvCursorPosition();
@@ -2214,10 +2214,10 @@ void PerformSecondaryAction()
 
 void QuickCast(size_t slot)
 {
-	PlayerActionType prevMouseButtonAction = LastPlayerAction;
-	Player &myPlayer = *MyPlayer;
-	SpellID spell = myPlayer._pSplHotKey[slot];
-	SpellType spellType = myPlayer._pSplTHotKey[slot];
+	const PlayerActionType prevMouseButtonAction = LastPlayerAction;
+	const Player &myPlayer = *MyPlayer;
+	const SpellID spell = myPlayer._pSplHotKey[slot];
+	const SpellType spellType = myPlayer._pSplTHotKey[slot];
 
 	if (ControlMode != ControlTypes::KeyboardAndMouse) {
 		UpdateSpellTarget(spell);

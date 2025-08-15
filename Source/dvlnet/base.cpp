@@ -46,7 +46,7 @@ tl::expected<void, PacketError> base::SendEchoRequest(plr_t player)
 	if (player == plr_self)
 		return {};
 
-	timestamp_t now = SDL_GetTicks();
+	const timestamp_t now = SDL_GetTicks();
 	tl::expected<std::unique_ptr<packet>, PacketError> pkt
 	    = pktfty->make_packet<PT_ECHO_REQUEST>(plr_self, player, now);
 	if (!pkt.has_value()) {
@@ -96,7 +96,7 @@ tl::expected<void, PacketError> base::HandleConnect(packet &pkt)
 
 tl::expected<void, PacketError> base::HandleTurn(packet &pkt)
 {
-	plr_t src = pkt.Source();
+	const plr_t src = pkt.Source();
 	PlayerState &playerState = playerStateTable_[src];
 	std::deque<turn_t> &turnQueue = playerState.turnQueue;
 	return pkt.Turn().transform([&](turn_t &&turn) {
@@ -165,7 +165,7 @@ void base::ClearMsg(plr_t plr)
 tl::expected<void, PacketError> base::Connect(plr_t player)
 {
 	PlayerState &playerState = playerStateTable_[player];
-	bool wasConnected = playerState.isConnected;
+	const bool wasConnected = playerState.isConnected;
 	playerState.isConnected = true;
 
 	if (!wasConnected)
@@ -228,7 +228,7 @@ bool base::SNetSendMessage(uint8_t playerId, void *data, size_t size)
 	if (playerId != SNPLAYER_OTHERS && playerId >= MAX_PLRS)
 		abort();
 	auto *rawMessage = reinterpret_cast<unsigned char *>(data);
-	buffer_t message(rawMessage, rawMessage + size);
+	const buffer_t message(rawMessage, rawMessage + size);
 	if (playerId == plr_self)
 		message_queue.emplace_back(plr_self, message);
 	plr_t dest;
@@ -255,11 +255,11 @@ bool base::SNetSendMessage(uint8_t playerId, void *data, size_t size)
 bool base::AllTurnsArrived()
 {
 	for (size_t i = 0; i < Players.size(); ++i) {
-		PlayerState &playerState = playerStateTable_[i];
+		const PlayerState &playerState = playerStateTable_[i];
 		if (!playerState.isConnected)
 			continue;
 
-		std::deque<turn_t> &turnQueue = playerState.turnQueue;
+		const std::deque<turn_t> &turnQueue = playerState.turnQueue;
 		if (turnQueue.empty()) {
 			LogDebug("Turn missing from player {}", i);
 			return false;
@@ -285,7 +285,7 @@ bool base::SNetReceiveTurns(char **data, size_t *size, uint32_t *status)
 		std::deque<turn_t> &turnQueue = playerState.turnQueue;
 		while (!turnQueue.empty()) {
 			const turn_t &turn = turnQueue.front();
-			seq_t diff = turn.SequenceNumber - current_turn;
+			const seq_t diff = turn.SequenceNumber - current_turn;
 			if (diff <= 0x7F)
 				break;
 			turnQueue.pop_front();
@@ -321,11 +321,11 @@ bool base::SNetReceiveTurns(char **data, size_t *size, uint32_t *status)
 	}
 
 	for (size_t i = 0; i < Players.size(); ++i) {
-		PlayerState &playerState = playerStateTable_[i];
+		const PlayerState &playerState = playerStateTable_[i];
 		if (!playerState.isConnected)
 			continue;
 
-		std::deque<turn_t> &turnQueue = playerState.turnQueue;
+		const std::deque<turn_t> &turnQueue = playerState.turnQueue;
 		if (turnQueue.empty())
 			continue;
 
@@ -373,12 +373,12 @@ tl::expected<void, PacketError> base::SendFirstTurnIfReady(plr_t player)
 	if (awaitingSequenceNumber_)
 		return {};
 
-	PlayerState &playerState = playerStateTable_[plr_self];
-	std::deque<turn_t> &turnQueue = playerState.turnQueue;
+	const PlayerState &playerState = playerStateTable_[plr_self];
+	const std::deque<turn_t> &turnQueue = playerState.turnQueue;
 	if (turnQueue.empty())
 		return {};
 
-	for (turn_t turn : turnQueue) {
+	for (const turn_t turn : turnQueue) {
 		tl::expected<std::unique_ptr<packet>, PacketError> pkt
 		    = pktfty->make_packet<PT_TURN>(plr_self, player, turn);
 		if (!pkt.has_value()) {
@@ -468,7 +468,7 @@ bool base::SNetLeaveGame(int type)
 
 bool base::SNetDropPlayer(int playerid, uint32_t flags)
 {
-	plr_t plr = static_cast<plr_t>(playerid);
+	const plr_t plr = static_cast<plr_t>(playerid);
 	tl::expected<std::unique_ptr<packet>, PacketError> pkt
 	    = pktfty->make_packet<PT_DISCONNECT>(
 	        plr_self,
@@ -509,9 +509,9 @@ bool base::SNetGetOwnerTurnsWaiting(uint32_t *turns)
 {
 	poll();
 
-	plr_t owner = GetOwner();
-	PlayerState &playerState = playerStateTable_[owner];
-	std::deque<turn_t> &turnQueue = playerState.turnQueue;
+	const plr_t owner = GetOwner();
+	const PlayerState &playerState = playerStateTable_[owner];
+	const std::deque<turn_t> &turnQueue = playerState.turnQueue;
 	*turns = static_cast<uint32_t>(turnQueue.size());
 
 	return true;
@@ -519,8 +519,8 @@ bool base::SNetGetOwnerTurnsWaiting(uint32_t *turns)
 
 bool base::SNetGetTurnsInTransit(uint32_t *turns)
 {
-	PlayerState &playerState = playerStateTable_[plr_self];
-	std::deque<turn_t> &turnQueue = playerState.turnQueue;
+	const PlayerState &playerState = playerStateTable_[plr_self];
+	const std::deque<turn_t> &turnQueue = playerState.turnQueue;
 	*turns = static_cast<uint32_t>(turnQueue.size());
 	return true;
 }

@@ -108,7 +108,7 @@ int GetManaAmount(const Player &player, SpellID sn)
 	int adj = 0;
 
 	// spell level
-	int sl = std::max(player.GetSpellLevel(sn) - 1, 0);
+	const int sl = std::max(player.GetSpellLevel(sn) - 1, 0);
 
 	if (sl > 0) {
 		adj = sl * GetSpellData(sn).sManaAdj;

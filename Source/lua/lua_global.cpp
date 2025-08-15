@@ -86,7 +86,7 @@ sol::object LuaLoadScriptFromAssets(std::string_view packageName)
 		sol::stack::push(luaState.sol.lua_state(), assetData.error());
 		return sol::stack_object(luaState.sol.lua_state(), -1);
 	}
-	sol::load_result result = luaState.sol.load(std::string_view(*assetData), path, sol::load_mode::text);
+	const sol::load_result result = luaState.sol.load(std::string_view(*assetData), path, sol::load_mode::text);
 	if (!result.valid()) {
 		sol::stack::push(luaState.sol.lua_state(),
 		    StrCat("Lua error when loading ", path, ": ", result.get<std::string>()));
@@ -124,7 +124,7 @@ void LuaWarn(void *userData, const char *message, int continued)
 
 sol::object RunScript(std::optional<sol::environment> env, std::string_view packageName, bool optional)
 {
-	sol::object result = LuaLoadScriptFromAssets(packageName);
+	const sol::object result = LuaLoadScriptFromAssets(packageName);
 	// We return a string on error:
 	if (result.get_type() == sol::type::string) {
 		if (!optional)
@@ -220,12 +220,12 @@ void LuaReloadActiveMods()
 	std::vector<std::string_view> modnames = GetOptions().Mods.GetActiveModList();
 	LoadModArchives(modnames);
 
-	for (std::string_view modname : modnames) {
-		std::string packageName = StrCat("mods.", modname, ".init");
+	for (const std::string_view modname : modnames) {
+		const std::string packageName = StrCat("mods.", modname, ".init");
 		RunScript(CreateLuaSandbox(), packageName, /*optional=*/true);
 	}
 
-	for (tl::function_ref<void()> handler : IsModChangeHandlers) {
+	for (const tl::function_ref<void()> handler : IsModChangeHandlers) {
 		handler();
 	}
 

@@ -68,7 +68,7 @@ void DrawMemberFrame(const Surface &out, OwnedClxSpriteList &frame, Point pos)
 	FillRect(out, pos.x, pos.y, PortraitFrameSize.width, PortraitFrameSize.height, FrameBackgroundColor);
 
 	// Now draw the frame border
-	Size adjustedFrame = { FrameSections.width - 1, FrameSections.height - 1 };
+	const Size adjustedFrame = { FrameSections.width - 1, FrameSections.height - 1 };
 	for (int x = 0; x <= adjustedFrame.width; x++) {
 		for (int y = 0; y <= adjustedFrame.height; y++) {
 			// Get what section of the frame we're drawing
@@ -137,7 +137,7 @@ tl::expected<void, std::string> LoadPartyPanel()
 {
 	ASSIGN_OR_RETURN(OwnedClxSpriteList frame, LoadCelWithStatus("data\\textslid", FrameSpriteSize));
 	ASSIGN_OR_RETURN(PlayerTags, LoadClxWithStatus("data\\monstertags.clx"));
-	OwnedSurface out(PortraitFrameSize.width, PortraitFrameSize.height + HealthBarHeight);
+	const OwnedSurface out(PortraitFrameSize.width, PortraitFrameSize.height + HealthBarHeight);
 
 	// Draw the health bar background
 	DrawBar(out, { { 0, 0 }, { PortraitFrameSize.width, HealthBarHeight } }, PAL16_GRAY + 10);
@@ -182,21 +182,21 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 			continue;
 #endif
 		// Get the rect of the portrait to use later
-		Rectangle currentPortraitRect = { pos, PortraitFrameSize };
+		const Rectangle currentPortraitRect = { pos, PortraitFrameSize };
 
-		Surface gameScreen = out.subregionY(0, gnViewportHeight);
+		const Surface gameScreen = out.subregionY(0, gnViewportHeight);
 
 		// Draw the characters frame
 		RenderClxSprite(gameScreen, (*PartyMemberFrame)[0], pos);
 
 		// If the player is using mana shield change the value we use to mana
 		//	If not use their hitpoints like normal
-		int healthOrMana = (player.pManaShield) ? player._pMana : player._pHitPoints;
-		int maxHealthOrMana = (player.pManaShield) ? player._pMaxMana : player._pMaxHP;
+		const int healthOrMana = (player.pManaShield) ? player._pMana : player._pHitPoints;
+		const int maxHealthOrMana = (player.pManaShield) ? player._pMaxMana : player._pMaxHP;
 
 		// Get the players remaining life
-		int lifeTicks = ((healthOrMana * PortraitFrameSize.width) + (maxHealthOrMana / 2)) / maxHealthOrMana;
-		uint8_t hpBarColor = (player.pManaShield) ? PAL8_BLUE + 3 : PAL8_RED + 4;
+		const int lifeTicks = ((healthOrMana * PortraitFrameSize.width) + (maxHealthOrMana / 2)) / maxHealthOrMana;
+		const uint8_t hpBarColor = (player.pManaShield) ? PAL8_BLUE + 3 : PAL8_RED + 4;
 		// Now draw the characters remaining life
 		DrawBar(gameScreen, { pos, { lifeTicks, HealthBarHeight } }, hpBarColor);
 
@@ -204,18 +204,18 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 		pos.y += HealthBarHeight;
 
 		// Get the players current portrait sprite
-		ClxSprite playerPortraitSprite = GetPlayerPortraitSprite(player);
+		const ClxSprite playerPortraitSprite = GetPlayerPortraitSprite(player);
 		// Get the offset of the sprite based on the players class so it get's rendered in the correct position
-		PartySpriteOffset offsets = GetClassSpriteOffset(player._pClass);
+		const PartySpriteOffset offsets = GetClassSpriteOffset(player._pClass);
 		Point offset = (player.isOnLevel(0)) ? offsets.inTownOffset : offsets.inDungeonOffset;
 
 		if (player._pHitPoints <= 0 && IsPlayerUnarmed(player))
 			offset = offsets.isDeadOffset;
 
 		// Calculate the players portait position
-		Point portraitPos = { ((-(playerPortraitSprite.width() / 2)) + (PortraitFrameSize.width / 2)) + offset.x, offset.y };
+		const Point portraitPos = { ((-(playerPortraitSprite.width() / 2)) + (PortraitFrameSize.width / 2)) + offset.x, offset.y };
 		// Get a subregion of the surface so the portrait doesn't get drawn over the frame
-		Surface frameSubregion = gameScreen.subregion(
+		const Surface frameSubregion = gameScreen.subregion(
 		    pos.x + FrameBorderSize,
 		    pos.y + FrameBorderSize,
 		    PortraitFrameSize.width - (FrameBorderSize * 2),
@@ -234,7 +234,7 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 
 		if ((player.getId() + 1U) < (*PlayerTags).numSprites()) {
 			// Draw the player tag
-			int tagWidth = (*PlayerTags)[player.getId() + 1].width();
+			const int tagWidth = (*PlayerTags)[player.getId() + 1].width();
 			RenderClxSprite(
 			    frameSubregion,
 			    (*PlayerTags)[player.getId() + 1],
@@ -271,7 +271,7 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 		}
 
 		// Get the current players name width
-		int width = GetLineWidth(player._pName);
+		const int width = GetLineWidth(player._pName);
 		// Now check to see if it's the current longest name
 		if (width >= currentLongestNameWidth)
 			currentLongestNameWidth = width;

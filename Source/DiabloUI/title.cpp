@@ -45,7 +45,7 @@ void UiTitleDialog()
 	TitleLoad();
 	const Point uiPosition = GetUIRectangle().position;
 	if (ArtBackgroundWidescreen.has_value()) {
-		SDL_Rect rect = MakeSdlRect(0, uiPosition.y, 0, 0);
+		const SDL_Rect rect = MakeSdlRect(0, uiPosition.y, 0, 0);
 		if (ArtBackgroundWidescreen)
 			vecTitleScreen.push_back(std::make_unique<UiImageClx>((*ArtBackgroundWidescreen)[0], rect, UiFlags::AlignCenter));
 		vecTitleScreen.push_back(std::make_unique<UiImageAnimatedClx>(*ArtBackground, rect, UiFlags::AlignCenter));
@@ -55,12 +55,12 @@ void UiTitleDialog()
 		vecTitleScreen.push_back(std::make_unique<UiImageAnimatedClx>(
 		    *DiabloTitleLogo, MakeSdlRect(0, uiPosition.y + 182, 0, 0), UiFlags::AlignCenter));
 
-		SDL_Rect rect = MakeSdlRect(uiPosition.x, uiPosition.y + 410, 640, 26);
+		const SDL_Rect rect = MakeSdlRect(uiPosition.x, uiPosition.y + 410, 640, 26);
 		vecTitleScreen.push_back(std::make_unique<UiArtText>(_("Copyright © 1996-2001 Blizzard Entertainment").data(), rect, UiFlags::AlignCenter | UiFlags::FontSize24 | UiFlags::ColorUiSilver));
 	}
 
 	bool endMenu = false;
-	Uint32 timeOut = SDL_GetTicks() + 7000;
+	const Uint32 timeOut = SDL_GetTicks() + 7000;
 
 	SDL_Event event;
 	while (!endMenu && SDL_GetTicks() < timeOut) {

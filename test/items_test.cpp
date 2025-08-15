@@ -43,10 +43,10 @@ void GenerateAllUniques(bool hellfire, const size_t expectedUniques)
 	LoadItemData();
 
 	std::mt19937 betterRng;
-	std::uniform_int_distribution<uint32_t> dist(0, std::numeric_limits<uint32_t>::max());
+	const std::uniform_int_distribution<uint32_t> dist(0, std::numeric_limits<uint32_t>::max());
 
 	// Get seed for test run from time. If a test run fails, remember the seed and hardcode it here.
-	uint32_t testRunSeed = static_cast<uint32_t>(time(nullptr));
+	const uint32_t testRunSeed = static_cast<uint32_t>(time(nullptr));
 	betterRng.seed(testRunSeed);
 
 	std::set<int> foundUniques;

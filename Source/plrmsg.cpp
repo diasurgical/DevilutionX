@@ -76,7 +76,7 @@ void SendPlrMsg(Player &player, std::string_view text)
 {
 	PlayerMessage &message = GetNextMessage();
 
-	std::string from = fmt::format(fmt::runtime(_("{:s} (lvl {:d}): ")), player._pName, player.getCharacterLevel());
+	const std::string from = fmt::format(fmt::runtime(_("{:s} (lvl {:d}): ")), player._pName, player.getCharacterLevel());
 
 	message.style = UiFlags::ColorWhite;
 	message.time = SDL_GetTicks();
@@ -112,14 +112,14 @@ void DrawPlrMsg(const Surface &out)
 
 	width = std::min(540, width);
 
-	for (PlayerMessage &message : Messages) {
+	for (const PlayerMessage &message : Messages) {
 		if (message.text.empty())
 			break;
 		if (!ChatFlag && SDL_GetTicks() - message.time >= 10000)
 			break;
 
 		std::string text = WordWrapString(message.text, width);
-		int chatlines = CountLinesOfText(text);
+		const int chatlines = CountLinesOfText(text);
 		y -= message.lineHeight * chatlines;
 
 		DrawHalfTransparentRectTo(out, x - 3, y, width + 6, message.lineHeight * chatlines);

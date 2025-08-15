@@ -36,7 +36,7 @@ bool loopback::SNetSendMessage(uint8_t dest, void *data, size_t size)
 {
 	if (dest == plr_single) {
 		auto *rawMessage = reinterpret_cast<unsigned char *>(data);
-		buffer_t message(rawMessage, rawMessage + size);
+		const buffer_t message(rawMessage, rawMessage + size);
 		message_queue.push(message);
 	}
 	return true;

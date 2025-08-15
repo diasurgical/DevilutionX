@@ -759,8 +759,8 @@ void CreateBlock(int x, int y, int obs, int dir)
 	int x2;
 	int y2;
 
-	int blksizex = RandomIntBetween(3, 4);
-	int blksizey = RandomIntBetween(3, 4);
+	const int blksizex = RandomIntBetween(3, 4);
+	const int blksizey = RandomIntBetween(3, 4);
 
 	if (dir == 0) {
 		y2 = y - 1;
@@ -851,7 +851,7 @@ void FillDiagonals()
 {
 	for (int j = 0; j < DMAXY - 1; j++) {
 		for (int i = 0; i < DMAXX - 1; i++) {
-			int v = dungeon[i + 1][j + 1] + 2 * dungeon[i][j + 1] + 4 * dungeon[i + 1][j] + 8 * dungeon[i][j];
+			const int v = dungeon[i + 1][j + 1] + 2 * dungeon[i][j + 1] + 4 * dungeon[i + 1][j] + 8 * dungeon[i][j];
 			if (v == 6) {
 				if (FlipCoin()) {
 					dungeon[i][j] = 1;
@@ -900,7 +900,7 @@ void FillStraights()
 			} else {
 				if (xs > 3 && !FlipCoin()) {
 					for (int k = xc; k < i; k++) {
-						int rv = GenerateRnd(2);
+						const int rv = GenerateRnd(2);
 						dungeon[k][j] = rv;
 					}
 				}
@@ -919,7 +919,7 @@ void FillStraights()
 			} else {
 				if (xs > 3 && !FlipCoin()) {
 					for (int k = xc; k < i; k++) {
-						int rv = GenerateRnd(2);
+						const int rv = GenerateRnd(2);
 						dungeon[k][j + 1] = rv;
 					}
 				}
@@ -938,7 +938,7 @@ void FillStraights()
 			} else {
 				if (ys > 3 && !FlipCoin()) {
 					for (int k = yc; k < j; k++) {
-						int rv = GenerateRnd(2);
+						const int rv = GenerateRnd(2);
 						dungeon[i][k] = rv;
 					}
 				}
@@ -957,7 +957,7 @@ void FillStraights()
 			} else {
 				if (ys > 3 && !FlipCoin()) {
 					for (int k = yc; k < j; k++) {
-						int rv = GenerateRnd(2);
+						const int rv = GenerateRnd(2);
 						dungeon[i + 1][k] = rv;
 					}
 				}
@@ -1077,8 +1077,8 @@ void River()
 			int nodir2 = 4;
 			int dircheck = 0;
 			while (dircheck < 4 && riveramt < 100) {
-				int px = rx;
-				int py = ry;
+				const int px = rx;
+				const int py = ry;
 				if (dircheck == 0) {
 					dir = GenerateRnd(4);
 				} else {
@@ -1280,7 +1280,7 @@ bool SpawnEdge(int x, int y, int *totarea)
 		return true;
 	}
 
-	uint8_t i = dungeon[x][y];
+	const uint8_t i = dungeon[x][y];
 	dungeon[x][y] |= 0x80;
 	*totarea += 1;
 
@@ -1329,7 +1329,7 @@ bool Spawn(int x, int y, int *totarea)
 		return true;
 	}
 
-	uint8_t i = dungeon[x][y];
+	const uint8_t i = dungeon[x][y];
 	dungeon[x][y] |= 0x80;
 	*totarea += 1;
 
@@ -1471,7 +1471,7 @@ bool PlaceLavaPool()
 			} else {
 				found = true;
 			}
-			bool placePool = GenerateRnd(100) < 25;
+			const bool placePool = GenerateRnd(100) < 25;
 			for (int j = std::max(duny - totarea, 0); j < std::min(duny + totarea, DMAXY); j++) {
 				for (int i = std::max(dunx - totarea, 0); i < std::min(dunx + totarea, DMAXX); i++) {
 					// BUGFIX: In the following swap the order to first do the
@@ -1479,7 +1479,7 @@ bool PlaceLavaPool()
 					if ((dungeon[i][j] & 0x80) != 0) {
 						dungeon[i][j] &= ~0x80;
 						if (totarea > 4 && placePool && !found) {
-							uint8_t k = Poolsub[dungeon[i][j]];
+							const uint8_t k = Poolsub[dungeon[i][j]];
 							if (k != 0 && k <= 37) {
 								dungeon[i][j] = k;
 							}
@@ -1508,13 +1508,13 @@ bool PlacePool()
  */
 void PoolFix()
 {
-	for (Point tile : PointsInRectangle(Rectangle { { 1, 1 }, { DMAXX - 2, DMAXY - 2 } })) {
+	for (const Point tile : PointsInRectangle(Rectangle { { 1, 1 }, { DMAXX - 2, DMAXY - 2 } })) {
 		// Check if the tile is the default dirt ceiling tile
 		if (dungeon[tile.x][tile.y] != 8)
 			continue;
 
-		for (Point adjacentTiles : PointsInRectangle(Rectangle { tile - Displacement(1, 1), { 3, 3 } })) {
-			int tileId = dungeon[adjacentTiles.x][adjacentTiles.y];
+		for (const Point adjacentTiles : PointsInRectangle(Rectangle { tile - Displacement(1, 1), { 3, 3 } })) {
+			const int tileId = dungeon[adjacentTiles.x][adjacentTiles.y];
 			// Check if the adjacent tile is a ground lava tile
 			if (tileId >= 25 && tileId <= 41) {
 				// A ground lava tile can never be directly connected to our ceiling tile.
@@ -1712,7 +1712,7 @@ void Fence()
 						skip = false;
 					}
 					if (y2 - y1 > 1 && skip) {
-						int rp = GenerateRnd(y2 - y1 - 1) + y1 + 1;
+						const int rp = GenerateRnd(y2 - y1 - 1) + y1 + 1;
 						for (int y = y1; y <= y2; y++) {
 							if (y == rp) {
 								continue;
@@ -1761,7 +1761,7 @@ void Fence()
 						skip = false;
 					}
 					if (x2 - x1 > 1 && skip) {
-						int rp = GenerateRnd(x2 - x1 - 1) + x1 + 1;
+						const int rp = GenerateRnd(x2 - x1 - 1) + x1 + 1;
 						for (int x = x1; x <= x2; x++) {
 							if (x == rp) {
 								continue;
@@ -1800,9 +1800,9 @@ void Fence()
 
 bool PlaceAnvil()
 {
-	std::unique_ptr<uint16_t[]> setPieceData = LoadFileInMem<uint16_t>("levels\\l3data\\anvil.dun");
+	const std::unique_ptr<uint16_t[]> setPieceData = LoadFileInMem<uint16_t>("levels\\l3data\\anvil.dun");
 	// growing the size by 2 to allow a 1 tile border on all sides
-	WorldTileSize areaSize = GetDunSize(setPieceData.get()) + 2;
+	const WorldTileSize areaSize = GetDunSize(setPieceData.get()) + 2;
 	WorldTileCoord sx = GenerateRnd(DMAXX - areaSize.width);
 	WorldTileCoord sy = GenerateRnd(DMAXY - areaSize.height);
 
@@ -1819,7 +1819,7 @@ bool PlaceAnvil()
 		}
 
 		bool found = true;
-		for (WorldTilePosition tile : PointsInRectangle(WorldTileRectangle { { sx, sy }, areaSize })) {
+		for (const WorldTilePosition tile : PointsInRectangle(WorldTileRectangle { { sx, sy }, areaSize })) {
 			if (Protected.test(tile.x, tile.y) || dungeon[tile.x][tile.y] != 7) {
 				found = false;
 				break;
@@ -1832,7 +1832,7 @@ bool PlaceAnvil()
 	PlaceDunTiles(setPieceData.get(), { sx + 1, sy + 1 }, 7);
 	SetPiece = { { sx, sy }, areaSize };
 
-	for (WorldTilePosition tile : PointsInRectangle(SetPiece)) {
+	for (const WorldTilePosition tile : PointsInRectangle(SetPiece)) {
 		Protected.set(tile.x, tile.y);
 	}
 

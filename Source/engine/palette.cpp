@@ -223,9 +223,9 @@ void LoadRndLvlPal(dungeon_type l)
 
 void IncreaseBrightness()
 {
-	int brightnessValue = *GetOptions().Graphics.brightness;
+	const int brightnessValue = *GetOptions().Graphics.brightness;
 	if (brightnessValue < 100) {
-		int newBrightness = std::min(brightnessValue + 5, 100);
+		const int newBrightness = std::min(brightnessValue + 5, 100);
 		GetOptions().Graphics.brightness.SetValue(newBrightness);
 		UpdateSystemPalette(logical_palette);
 	}
@@ -233,9 +233,9 @@ void IncreaseBrightness()
 
 void DecreaseBrightness()
 {
-	int brightnessValue = *GetOptions().Graphics.brightness;
+	const int brightnessValue = *GetOptions().Graphics.brightness;
 	if (brightnessValue > 0) {
-		int newBrightness = std::max(brightnessValue - 5, 0);
+		const int newBrightness = std::max(brightnessValue - 5, 0);
 		GetOptions().Graphics.brightness.SetValue(newBrightness);
 		UpdateSystemPalette(logical_palette);
 	}

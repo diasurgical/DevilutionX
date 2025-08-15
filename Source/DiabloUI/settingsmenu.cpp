@@ -140,7 +140,7 @@ void UpdatePadEntryTimerText()
 {
 	if (shownMenu != ShownMenuType::PadInput)
 		return;
-	Uint32 elapsed = SDL_GetTicks() - padEntryStartTime;
+	const Uint32 elapsed = SDL_GetTicks() - padEntryStartTime;
 	if (padEntryStartTime == 0 || elapsed > 10000) {
 		StopPadEntryTimer();
 		return;
@@ -224,7 +224,7 @@ bool ChangeOptionValue(OptionEntryBase *pOption, size_t listIndex)
 void ItemSelected(size_t value)
 {
 	auto &vecItem = vecDialogItems[value];
-	int vecItemValue = vecItem->m_value;
+	const int vecItemValue = vecItem->m_value;
 	if (vecItemValue < 0) {
 		auto specialMenuEntry = static_cast<SpecialMenuEntry>(vecItemValue);
 		switch (specialMenuEntry) {
@@ -286,7 +286,7 @@ void ItemSelected(size_t value)
 		}
 		if (updateValueDescription) {
 			auto args = CreateDrawStringFormatArgForEntry(pOption);
-			bool optionUsesTwoLines = ((value + 1) < vecDialogItems.size() && vecDialogItems[value]->m_value == vecDialogItems[value + 1]->m_value);
+			const bool optionUsesTwoLines = ((value + 1) < vecDialogItems.size() && vecDialogItems[value]->m_value == vecDialogItems[value + 1]->m_value);
 			if (NeedsTwoLinesToDisplayOption(args) != optionUsesTwoLines) {
 				selectedOption = pOption;
 				endMenu = true;
@@ -320,7 +320,7 @@ void FullscreenChanged()
 	auto *fullscreenOption = &GetOptions().Graphics.fullscreen;
 
 	for (auto &vecItem : vecDialogItems) {
-		int vecItemValue = vecItem->m_value;
+		const int vecItemValue = vecItem->m_value;
 		if (vecItemValue < 0 || static_cast<size_t>(vecItemValue) >= vecOptions.size())
 			continue;
 
@@ -403,7 +403,7 @@ void UiSettingsMenu()
 				if (selectedOption == pEntry)
 					itemToSelect = vecDialogItems.size();
 				auto formatArgs = CreateDrawStringFormatArgForEntry(pEntry);
-				int optionId = static_cast<int>(vecOptions.size());
+				const int optionId = static_cast<int>(vecOptions.size());
 				if (NeedsTwoLinesToDisplayOption(formatArgs)) {
 					vecDialogItems.push_back(std::make_unique<UiListItem>(std::string_view("{}:"), formatArgs, optionId, UiFlags::ColorUiGold | UiFlags::NeedsNextElement));
 					vecDialogItems.push_back(std::make_unique<UiListItem>(std::string(pEntry->GetValueDescription()), optionId, UiFlags::ColorUiSilver | UiFlags::ElementDisabled));
@@ -493,9 +493,9 @@ void UiSettingsMenu()
 				if (padEntryStartTime == 0)
 					return false;
 
-				StaticVector<ControllerButtonEvent, 4> ctrlEvents = ToControllerButtonEvents(event);
-				for (ControllerButtonEvent ctrlEvent : ctrlEvents) {
-					bool isGamepadMotion = IsControllerMotion(event);
+				const StaticVector<ControllerButtonEvent, 4> ctrlEvents = ToControllerButtonEvents(event);
+				for (const ControllerButtonEvent ctrlEvent : ctrlEvents) {
+					const bool isGamepadMotion = IsControllerMotion(event);
 					DetectInputMethod(event, ctrlEvent);
 					if (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_ESCAPE) {
 						StopPadEntryTimer();
@@ -505,8 +505,8 @@ void UiSettingsMenu()
 						continue;
 					}
 
-					bool modifierPressed = padEntryCombo.modifier != ControllerButton_NONE && IsControllerButtonPressed(padEntryCombo.modifier);
-					bool buttonPressed = padEntryCombo.button != ControllerButton_NONE && IsControllerButtonPressed(padEntryCombo.button);
+					const bool modifierPressed = padEntryCombo.modifier != ControllerButton_NONE && IsControllerButtonPressed(padEntryCombo.modifier);
+					const bool buttonPressed = padEntryCombo.button != ControllerButton_NONE && IsControllerButtonPressed(padEntryCombo.button);
 					if (ctrlEvent.up) {
 						// When the player has released all relevant inputs, assume the binding is finished and stop the timer
 						if (padEntryCombo.button != ControllerButton_NONE && !modifierPressed && !buttonPressed) {

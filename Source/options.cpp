@@ -221,7 +221,7 @@ void LoadOptions()
 	ini->getUtf8Buf("Network", "Previous Host", options.Network.szPreviousHost, sizeof(options.Network.szPreviousHost));
 
 	for (size_t i = 0; i < QuickMessages.size(); i++) {
-		std::span<const Ini::Value> values = ini->get("NetMsg", QuickMessages[i].key);
+		const std::span<const Ini::Value> values = ini->get("NetMsg", QuickMessages[i].key);
 		std::vector<std::string> &result = options.Chat.szHotKeyMsgs[i];
 		result.clear();
 		result.reserve(values.size());
@@ -574,7 +574,7 @@ OptionEntryResampler::OptionEntryResampler()
 }
 void OptionEntryResampler::LoadFromIni(std::string_view category)
 {
-	std::string_view resamplerStr = ini->getString(category, key);
+	const std::string_view resamplerStr = ini->getString(category, key);
 	if (!resamplerStr.empty()) {
 		std::optional<Resampler> resampler = ResamplerFromString(resamplerStr);
 		if (resampler) {
@@ -660,7 +660,7 @@ std::string_view OptionEntryAudioDevice::GetListDescription(size_t index) const
 size_t OptionEntryAudioDevice::GetActiveListIndex() const
 {
 	for (size_t i = 0; i < GetListSize(); i++) {
-		std::string_view deviceName = GetDeviceName(i);
+		const std::string_view deviceName = GetDeviceName(i);
 		if (deviceName == deviceName_)
 			return i;
 	}
@@ -923,7 +923,7 @@ void OptionEntryLanguageCode::LoadFromIni(std::string_view category)
 	for (auto localeIter = locales.rbegin(); localeIter != locales.rend(); localeIter++) {
 		auto regionSeparator = localeIter->find('_');
 		if (regionSeparator != std::string::npos) {
-			std::string neutralLocale = localeIter->substr(0, regionSeparator);
+			const std::string neutralLocale = localeIter->substr(0, regionSeparator);
 			if (std::find(locales.rbegin(), localeIter, neutralLocale) == localeIter) {
 				localeIter = std::make_reverse_iterator(locales.insert(localeIter.base(), neutralLocale));
 			}
@@ -1387,13 +1387,13 @@ void PadmapperOptions::Action::UpdateValueDescription() const
 		boundInputShortDescription = "";
 		return;
 	}
-	std::string_view buttonName = ToString(GamepadType, boundInput.button);
+	const std::string_view buttonName = ToString(GamepadType, boundInput.button);
 	if (boundInput.modifier == ControllerButton_NONE) {
 		boundInputDescription = std::string(buttonName);
 		boundInputShortDescription = std::string(Shorten(buttonName));
 		return;
 	}
-	std::string_view modifierName = ToString(GamepadType, boundInput.modifier);
+	const std::string_view modifierName = ToString(GamepadType, boundInput.modifier);
 	boundInputDescription = StrCat(modifierName, "+", buttonName);
 	boundInputShortDescription = StrCat(Shorten(modifierName), "+", Shorten(buttonName));
 }
@@ -1474,7 +1474,7 @@ const PadmapperOptions::Action *PadmapperOptions::findAction(ControllerButton bu
 	// To give preference to button combinations,
 	// first pass ignores mappings where no modifier is bound
 	for (const Action &action : actions) {
-		ControllerButtonCombo combo = action.boundInput;
+		const ControllerButtonCombo combo = action.boundInput;
 		if (combo.modifier == ControllerButton_NONE)
 			continue;
 		if (button != combo.button)
@@ -1487,7 +1487,7 @@ const PadmapperOptions::Action *PadmapperOptions::findAction(ControllerButton bu
 	}
 
 	for (const Action &action : actions) {
-		ControllerButtonCombo combo = action.boundInput;
+		const ControllerButtonCombo combo = action.boundInput;
 		if (combo.modifier != ControllerButton_NONE)
 			continue;
 		if (button != combo.button)
@@ -1566,7 +1566,7 @@ std::forward_list<ModOptions::ModEntry> &ModOptions::GetModEntries()
 	if (modEntries)
 		return *modEntries;
 
-	std::vector<std::string> modNames = ini->getKeys(key);
+	const std::vector<std::string> modNames = ini->getKeys(key);
 
 	std::forward_list<ModOptions::ModEntry> &newModEntries = modEntries.emplace();
 	for (auto &modName : modNames) {

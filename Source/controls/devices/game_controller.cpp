@@ -176,7 +176,7 @@ void GameController::Add(int joystickIndex)
 	controllers_.push_back(result);
 
 	const SDL_JoystickGUID guid = SDL_JoystickGetGUID(sdlJoystick);
-	SDLUniquePtr<char> mapping { SDL_GameControllerMappingForGUID(guid) };
+	const SDLUniquePtr<char> mapping { SDL_GameControllerMappingForGUID(guid) };
 	if (mapping) {
 		Log("Opened game controller with mapping:\n{}", mapping.get());
 	}

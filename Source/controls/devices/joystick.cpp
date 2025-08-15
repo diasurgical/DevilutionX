@@ -15,7 +15,7 @@ StaticVector<ControllerButtonEvent, 4> Joystick::ToControllerButtonEvents(const 
 	switch (event.type) {
 	case SDL_JOYBUTTONDOWN:
 	case SDL_JOYBUTTONUP: {
-		bool up = (event.jbutton.state == SDL_RELEASED);
+		const bool up = (event.jbutton.state == SDL_RELEASED);
 #if defined(JOY_BUTTON_A) || defined(JOY_BUTTON_B) || defined(JOY_BUTTON_X) || defined(JOY_BUTTON_Y)                                            \
     || defined(JOY_BUTTON_LEFTSTICK) || defined(JOY_BUTTON_RIGHTSTICK) || defined(JOY_BUTTON_LEFTSHOULDER) || defined(JOY_BUTTON_RIGHTSHOULDER) \
     || defined(JOY_BUTTON_TRIGGERLEFT) || defined(JOY_BUTTON_TRIGGERRIGHT) || defined(JOY_BUTTON_START) || defined(JOY_BUTTON_BACK)             \

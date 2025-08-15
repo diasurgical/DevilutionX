@@ -223,7 +223,7 @@ void DoRenderBackwards(
 	const ClipX clipX = CalculateClipX(position.x, srcWidth, out);
 	if (clipX.width <= 0)
 		return;
-	RenderSrc srcForBackwards { src, src + srcSize, static_cast<uint_fast16_t>(srcWidth) };
+	const RenderSrc srcForBackwards { src, src + srcSize, static_cast<uint_fast16_t>(srcWidth) };
 	if (static_cast<std::size_t>(clipX.width) == srcWidth) {
 		DoRenderBackwardsClipY(
 		    out, position, srcForBackwards, std::forward<BlitFn>(blitFn));
@@ -448,14 +448,14 @@ void ClxApplyTrans(ClxSprite sprite, const uint8_t *trn)
 
 void ClxApplyTrans(ClxSpriteList list, const uint8_t *trn)
 {
-	for (ClxSprite sprite : list) {
+	for (const ClxSprite sprite : list) {
 		ClxApplyTrans(sprite, trn);
 	}
 }
 
 void ClxApplyTrans(ClxSpriteSheet sheet, const uint8_t *trn)
 {
-	for (ClxSpriteList list : sheet) {
+	for (const ClxSpriteList list : sheet) {
 		ClxApplyTrans(list, trn);
 	}
 }
@@ -492,14 +492,14 @@ bool IsPointWithinClx(Point position, ClxSprite clx)
 
 			if (IsClxOpaqueFill(val)) {
 				val = GetClxOpaqueFillWidth(val);
-				uint8_t color = *src++;
+				const uint8_t color = *src++;
 				if (xCur <= position.x && position.x < xCur + val)
 					return color != 0; // ignore shadows
 				xCur += val;
 			} else {
 				val = GetClxOpaquePixelsWidth(val);
 				for (uint8_t pixel = 0; pixel < val; pixel++) {
-					uint8_t color = *src++;
+					const uint8_t color = *src++;
 					if (xCur == position.x)
 						return color != 0; // ignore shadows
 					xCur++;

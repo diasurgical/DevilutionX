@@ -801,7 +801,7 @@ int SaveItemPower(const Player &player, Item &item, ItemPower &power)
 		RedrawComponent(PanelDrawComponent::Mana);
 		break;
 	case IPL_DUR: {
-		int bonus = r * item._iMaxDur / 100;
+		const int bonus = r * item._iMaxDur / 100;
 		item._iMaxDur += bonus;
 		item._iDurability += bonus;
 	} break;
@@ -978,12 +978,12 @@ int SaveItemPower(const Player &player, Item &item, ItemPower &power)
 		item._iDamAcFlags |= ItemSpecialEffectHf::ACAgainstUndead;
 		break;
 	case IPL_MANATOLIFE: {
-		int portion = ((player._pMaxManaBase >> 6) * 50 / 100) << 6;
+		const int portion = ((player._pMaxManaBase >> 6) * 50 / 100) << 6;
 		item._iPLMana -= portion;
 		item._iPLHP += portion;
 	} break;
 	case IPL_LIFETOMANA: {
-		int portion = ((player._pMaxHPBase >> 6) * 40 / 100) << 6;
+		const int portion = ((player._pMaxHPBase >> 6) * 40 / 100) << 6;
 		item._iPLHP -= portion;
 		item._iPLMana += portion;
 	} break;
@@ -1069,7 +1069,7 @@ std::string GenerateStaffName(const ItemData &baseItemData, SpellID spellId, boo
 {
 	std::string_view baseName = translate ? _(baseItemData.iName) : baseItemData.iName;
 	std::string_view spellName = translate ? pgettext("spell", GetSpellData(spellId).sNameText) : GetSpellData(spellId).sNameText;
-	std::string_view normalFmt = translate ? pgettext("spell", /* TRANSLATORS: Constructs item names. Format: {Item} of {Spell}. Example: War Staff of Firewall */ "{0} of {1}") : "{0} of {1}";
+	const std::string_view normalFmt = translate ? pgettext("spell", /* TRANSLATORS: Constructs item names. Format: {Item} of {Spell}. Example: War Staff of Firewall */ "{0} of {1}") : "{0} of {1}";
 	std::string name = fmt::format(fmt::runtime(normalFmt), baseName, spellName);
 	if (!StringInPanel(name.c_str())) {
 		std::string_view shortName = translate ? _(baseItemData.iSName) : baseItemData.iSName;
@@ -1081,7 +1081,7 @@ std::string GenerateStaffName(const ItemData &baseItemData, SpellID spellId, boo
 std::string GenerateStaffNameMagical(const ItemData &baseItemData, SpellID spellId, const PLStruct &power, bool translate, std::optional<bool> forceNameLengthCheck)
 {
 	std::string_view baseName = translate ? _(baseItemData.iName) : baseItemData.iName;
-	std::string_view magicFmt = translate ? pgettext("spell", /* TRANSLATORS: Constructs item names. Format: {Prefix} {Item} of {Spell}. Example: King's War Staff of Firewall */ "{0} {1} of {2}") : "{0} {1} of {2}";
+	const std::string_view magicFmt = translate ? pgettext("spell", /* TRANSLATORS: Constructs item names. Format: {Prefix} {Item} of {Spell}. Example: King's War Staff of Firewall */ "{0} {1} of {2}") : "{0} {1} of {2}";
 	std::string_view spellName = translate ? pgettext("spell", GetSpellData(spellId).sNameText) : GetSpellData(spellId).sNameText;
 	std::string_view prefixName = translate ? _(power.PLName) : power.PLName;
 
@@ -1103,11 +1103,11 @@ void GetStaffPower(const Player &player, Item &item, int maxlvl, bool onlygood)
 	}
 
 	const ItemData &baseItemData = AllItemsList[item.IDidx];
-	std::string staffName = GenerateStaffName(baseItemData, item._iSpell, false);
+	const std::string staffName = GenerateStaffName(baseItemData, item._iSpell, false);
 
 	CopyUtf8(item._iName, staffName, ItemNameLength);
 	if (prefix.has_value()) {
-		std::string staffNameMagical = GenerateStaffNameMagical(baseItemData, item._iSpell, **prefix, false, std::nullopt);
+		const std::string staffNameMagical = GenerateStaffNameMagical(baseItemData, item._iSpell, **prefix, false, std::nullopt);
 		CopyUtf8(item._iIName, staffNameMagical, ItemNameLength);
 	} else {
 		CopyUtf8(item._iIName, item._iName, ItemNameLength);
@@ -1119,13 +1119,13 @@ void GetStaffPower(const Player &player, Item &item, int maxlvl, bool onlygood)
 std::string GenerateMagicItemName(const std::string_view &baseNamel, const PLStruct *pPrefix, const PLStruct *pSufix, bool translate)
 {
 	if (pPrefix != nullptr && pSufix != nullptr) {
-		std::string_view fmt = translate ? _(/* TRANSLATORS: Constructs item names. Format: {Prefix} {Item} of {Suffix}. Example: King's Long Sword of the Whale */ "{0} {1} of {2}") : "{0} {1} of {2}";
+		const std::string_view fmt = translate ? _(/* TRANSLATORS: Constructs item names. Format: {Prefix} {Item} of {Suffix}. Example: King's Long Sword of the Whale */ "{0} {1} of {2}") : "{0} {1} of {2}";
 		return fmt::format(fmt::runtime(fmt), translate ? _(pPrefix->PLName) : pPrefix->PLName, baseNamel, translate ? _(pSufix->PLName) : pSufix->PLName);
 	} else if (pPrefix != nullptr) {
-		std::string_view fmt = translate ? _(/* TRANSLATORS: Constructs item names. Format: {Prefix} {Item}. Example: King's Long Sword */ "{0} {1}") : "{0} {1}";
+		const std::string_view fmt = translate ? _(/* TRANSLATORS: Constructs item names. Format: {Prefix} {Item}. Example: King's Long Sword */ "{0} {1}") : "{0} {1}";
 		return fmt::format(fmt::runtime(fmt), translate ? _(pPrefix->PLName) : pPrefix->PLName, baseNamel);
 	} else if (pSufix != nullptr) {
-		std::string_view fmt = translate ? _(/* TRANSLATORS: Constructs item names. Format: {Item} of {Suffix}. Example: Long Sword of the Whale */ "{0} of {1}") : "{0} of {1}";
+		const std::string_view fmt = translate ? _(/* TRANSLATORS: Constructs item names. Format: {Item} of {Suffix}. Example: Long Sword of the Whale */ "{0} of {1}") : "{0} of {1}";
 		return fmt::format(fmt::runtime(fmt), baseNamel, translate ? _(pSufix->PLName) : pSufix->PLName);
 	}
 
@@ -1213,7 +1213,7 @@ void GetStaffSpell(const Player &player, Item &item, int lvl, bool onlygood)
 	int s = static_cast<int8_t>(SpellID::Firebolt);
 	SpellID bs = SpellID::Null;
 	while (rv > 0) {
-		int sLevel = GetSpellStaffLevel(static_cast<SpellID>(s));
+		const int sLevel = GetSpellStaffLevel(static_cast<SpellID>(s));
 		if (sLevel != -1 && l >= sLevel) {
 			rv--;
 			bs = static_cast<SpellID>(s);
@@ -1227,14 +1227,14 @@ void GetStaffSpell(const Player &player, Item &item, int lvl, bool onlygood)
 			s = static_cast<int8_t>(SpellID::Firebolt);
 	}
 
-	int minc = GetSpellData(bs).sStaffMin;
-	int maxc = GetSpellData(bs).sStaffMax - minc + 1;
+	const int minc = GetSpellData(bs).sStaffMin;
+	const int maxc = GetSpellData(bs).sStaffMax - minc + 1;
 	item._iSpell = bs;
 	item._iCharges = minc + GenerateRnd(maxc);
 	item._iMaxCharges = item._iCharges;
 
 	item._iMinMag = GetSpellData(bs).minInt;
-	int v = item._iCharges * GetSpellData(bs).staffCost() / 5;
+	const int v = item._iCharges * GetSpellData(bs).staffCost() / 5;
 	item._ivalue += v;
 	item._iIvalue += v;
 	GetStaffPower(player, item, lvl, onlygood);
@@ -1258,7 +1258,7 @@ void GetOilType(Item &item, int maxLvl)
 		}
 	}
 
-	int8_t t = rnd[GenerateRnd(cnt)];
+	const int8_t t = rnd[GenerateRnd(cnt)];
 
 	CopyUtf8(item._iName, OilNames[t], ItemNameLength);
 	CopyUtf8(item._iIName, OilNames[t], ItemNameLength);
@@ -1331,7 +1331,7 @@ _item_indexes GetItemIndexForDroppableItem(bool considerDropRate, tl::function_r
 		cumulativeWeight += considerDropRate ? item.dropRate : 1;
 		ril.push_back({ static_cast<_item_indexes>(i), cumulativeWeight });
 	}
-	unsigned targetWeight = static_cast<unsigned>(RandomIntLessThan(static_cast<int>(cumulativeWeight)));
+	const unsigned targetWeight = static_cast<unsigned>(RandomIntLessThan(static_cast<int>(cumulativeWeight)));
 	return std::upper_bound(ril.begin(), ril.end(), targetWeight, [](unsigned target, const WeightedItemIndex &value) { return target < value.cumulativeWeight; })->index;
 }
 
@@ -1382,7 +1382,7 @@ std::vector<uint8_t> GetValidUniques(int lvl, unique_base_item baseItemId)
 {
 	std::vector<uint8_t> validUniques;
 	int index = 0;
-	for (UniqueItem &itemData : UniqueItems) {
+	for (const UniqueItem &itemData : UniqueItems) {
 		if (itemData.UIItemId == baseItemId && lvl >= itemData.UIMinLvl) {
 			validUniques.push_back(index);
 		}
@@ -1461,10 +1461,10 @@ void SetupBaseItem(Point position, _item_indexes idx, bool onlygood, bool sendms
 	if (ActiveItemCount >= MAXITEMS)
 		return;
 
-	int ii = AllocateItem();
+	const int ii = AllocateItem();
 	auto &item = Items[ii];
 	GetSuperItemSpace(position, ii);
-	int curlv = ItemsGetCurrlevel();
+	const int curlv = ItemsGetCurrlevel();
 
 	SetupAllItems(*MyPlayer, item, idx, AdvanceRndSeed(), 2 * curlv, 1, onlygood, delta);
 	TryRandomUniqueItem(item, idx, 2 * curlv, 1, onlygood, delta);
@@ -1554,12 +1554,12 @@ void SpawnRock()
 	if (stand == nullptr)
 		return;
 
-	int ii = AllocateItem();
+	const int ii = AllocateItem();
 	Item &item = Items[ii];
 
 	item.position = stand->position;
 	dItem[item.position.x][item.position.y] = ii + 1;
-	int curlv = ItemsGetCurrlevel();
+	const int curlv = ItemsGetCurrlevel();
 	GetItemAttrs(item, IDI_ROCK, curlv);
 	SetupItem(item);
 	item.selectionRegion = SelectionRegion::Middle;
@@ -1713,7 +1713,7 @@ Point DrawUniqueInfoWindow(const Surface &out)
 	const Point leftInfoPos = GetLeftPanel().position + Displacement { SidePanelSize.width, 0 };
 
 	const bool isInfoOverlapping = IsLeftPanelOpen() && IsRightPanelOpen() && GetLeftPanel().contains(rightInfoPos);
-	int fadeLevel = isInfoOverlapping ? 3 : 1;
+	const int fadeLevel = isInfoOverlapping ? 3 : 1;
 
 	for (int i = 0; i < fadeLevel; ++i) {
 		DrawHalfTransparentRectTo(out, panelX, panelY, 265, 297);
@@ -1909,13 +1909,13 @@ void SpawnOnePremium(Item &premiumItem, int plvl, const Player &player)
 
 	plvl = std::clamp(plvl, 1, 30);
 
-	int maxCount = 150;
+	const int maxCount = 150;
 	const bool unlimited = !gbIsHellfire; // TODO: This could lead to an infinite loop if a suitable item can never be generated
 	for (int count = 0; unlimited || count < maxCount; count++) {
 		premiumItem = {};
 		premiumItem._iSeed = AdvanceRndSeed();
 		SetRndSeed(premiumItem._iSeed);
-		_item_indexes itemType = RndPremiumItem(player, plvl / 4, plvl);
+		const _item_indexes itemType = RndPremiumItem(player, plvl / 4, plvl);
 		GetItemAttrs(premiumItem, itemType, plvl);
 		GetItemBonus(player, premiumItem, plvl / 2, plvl, true, !gbIsHellfire);
 
@@ -2042,7 +2042,7 @@ _item_indexes RndHealerItem(const Player &player, int lvl)
 void RecreateSmithItem(const Player &player, Item &item, int lvl, int iseed)
 {
 	SetRndSeed(iseed);
-	_item_indexes itype = RndSmithItem(player, lvl);
+	const _item_indexes itype = RndSmithItem(player, lvl);
 	GetItemAttrs(item, itype, lvl);
 
 	item._iSeed = iseed;
@@ -2053,7 +2053,7 @@ void RecreateSmithItem(const Player &player, Item &item, int lvl, int iseed)
 void RecreatePremiumItem(const Player &player, Item &item, int plvl, int iseed)
 {
 	SetRndSeed(iseed);
-	_item_indexes itype = RndPremiumItem(player, plvl / 4, plvl);
+	const _item_indexes itype = RndPremiumItem(player, plvl / 4, plvl);
 	GetItemAttrs(item, itype, plvl);
 	GetItemBonus(player, item, plvl / 2, plvl, true, !gbIsHellfire);
 
@@ -2065,7 +2065,7 @@ void RecreatePremiumItem(const Player &player, Item &item, int plvl, int iseed)
 void RecreateBoyItem(const Player &player, Item &item, int lvl, int iseed)
 {
 	SetRndSeed(iseed);
-	_item_indexes itype = RndBoyItem(player, lvl);
+	const _item_indexes itype = RndBoyItem(player, lvl);
 	GetItemAttrs(item, itype, lvl);
 	GetItemBonus(player, item, lvl, 2 * lvl, true, true);
 
@@ -2084,7 +2084,7 @@ void RecreateWitchItem(const Player &player, Item &item, _item_indexes idx, int 
 		GetItemAttrs(item, idx, lvl);
 	} else {
 		SetRndSeed(iseed);
-		_item_indexes itype = RndWitchItem(player, lvl);
+		const _item_indexes itype = RndWitchItem(player, lvl);
 		GetItemAttrs(item, itype, lvl);
 		int iblvl = -1;
 		if (GenerateRnd(100) <= 5)
@@ -2106,7 +2106,7 @@ void RecreateHealerItem(const Player &player, Item &item, _item_indexes idx, int
 		GetItemAttrs(item, idx, lvl);
 	} else {
 		SetRndSeed(iseed);
-		_item_indexes itype = RndHealerItem(player, lvl);
+		const _item_indexes itype = RndHealerItem(player, lvl);
 		GetItemAttrs(item, itype, lvl);
 	}
 
@@ -2134,7 +2134,7 @@ void CreateMagicItem(Point position, int lvl, ItemType itemType, int imid, int i
 	if (ActiveItemCount >= MAXITEMS)
 		return;
 
-	int ii = AllocateItem();
+	const int ii = AllocateItem();
 	auto &item = Items[ii];
 	_item_indexes idx = RndTypeItems(itemType, imid, lvl);
 
@@ -2202,10 +2202,10 @@ std::string GetTranslatedItemNameMagical(const Item &item, bool hellfireItem, bo
 	std::string identifiedName;
 	const auto &baseItemData = AllItemsList[static_cast<size_t>(item.IDidx)];
 
-	int lvl = item._iCreateInfo & CF_LEVEL;
-	bool onlygood = (item._iCreateInfo & (CF_ONLYGOOD | CF_SMITHPREMIUM | CF_BOY | CF_WITCH)) != 0;
+	const int lvl = item._iCreateInfo & CF_LEVEL;
+	const bool onlygood = (item._iCreateInfo & (CF_ONLYGOOD | CF_SMITHPREMIUM | CF_BOY | CF_WITCH)) != 0;
 
-	uint32_t currentSeed = GetLCGEngineState();
+	const uint32_t currentSeed = GetLCGEngineState();
 	SetRndSeed(item._iSeed);
 
 	int minlvl;
@@ -2229,7 +2229,7 @@ std::string GetTranslatedItemNameMagical(const Item &item, bool hellfireItem, bo
 		maxlvl = iblvl;
 	} else {
 		DiscardRandomValues(1); // GetItemAttrs
-		int iblvl = GetItemBLevel(lvl, item._iMiscId, onlygood, item._iCreateInfo & CF_UPER15);
+		const int iblvl = GetItemBLevel(lvl, item._iMiscId, onlygood, item._iCreateInfo & CF_UPER15);
 		minlvl = iblvl / 2;
 		maxlvl = iblvl;
 		DiscardRandomValues(1); // CheckUnique
@@ -2259,7 +2259,7 @@ std::string GetTranslatedItemNameMagical(const Item &item, bool hellfireItem, bo
 		affixItemType = AffixItemType::Armor;
 		break;
 	case ItemType::Staff: {
-		bool allowspells = !hellfireItem || ((item._iCreateInfo & CF_SMITHPREMIUM) == 0);
+		const bool allowspells = !hellfireItem || ((item._iCreateInfo & CF_SMITHPREMIUM) == 0);
 
 		if (!allowspells)
 			affixItemType = AffixItemType::Staff;
@@ -2385,7 +2385,7 @@ void InitItemGFX()
 {
 	char arglist[64];
 
-	int itemTypes = gbIsHellfire ? ITEMTYPES : 35;
+	const int itemTypes = gbIsHellfire ? ITEMTYPES : 35;
 	for (int i = 0; i < itemTypes; i++) {
 		*BufCopy(arglist, "items\\", ItemDropNames[i]) = '\0';
 		itemanims[i] = LoadCel(arglist, ItemAnimWidth);
@@ -2630,9 +2630,9 @@ PlayerWeaponGraphic GetPlrAnimWeaponId(const Player &player)
 {
 	const Item &leftHandItem = player.InvBody[INVLOC_HAND_LEFT];
 	const Item &rightHandItem = player.InvBody[INVLOC_HAND_RIGHT];
-	bool holdsShield = player.isHoldingItem(ItemType::Shield);
-	bool leftHandUsable = player.CanUseItem(leftHandItem);
-	bool rightHandUsable = player.CanUseItem(rightHandItem);
+	const bool holdsShield = player.isHoldingItem(ItemType::Shield);
+	const bool leftHandUsable = player.CanUseItem(leftHandItem);
+	const bool rightHandUsable = player.CanUseItem(rightHandItem);
 	ItemType weaponItemType = ItemType::None;
 
 	if (!leftHandItem.isEmpty() && leftHandItem._iClass == ICLASS_WEAPON && leftHandUsable) {
@@ -2662,7 +2662,7 @@ PlayerWeaponGraphic GetPlrAnimWeaponId(const Player &player)
 PlayerArmorGraphic GetPlrAnimArmorId(Player &player)
 {
 	const Item &chestItem = player.InvBody[INVLOC_CHEST];
-	bool chestUsable = player.CanUseItem(chestItem);
+	const bool chestUsable = player.CanUseItem(chestItem);
 	const uint8_t playerLevel = player.getCharacterLevel();
 
 	if (chestUsable) {
@@ -2699,7 +2699,7 @@ void CalcPlrGraphics(Player &player, PlayerWeaponGraphic animWeaponId, PlayerArm
 		ResetPlayerGFX(player);
 		SetPlrAnims(player);
 		player.previewCelSprite = std::nullopt;
-		player_graphic graphic = player.getGraphic();
+		const player_graphic graphic = player.getGraphic();
 		int8_t numberOfFrames;
 		int8_t ticksPerFrame;
 		player.getAnimationFramesAndTicksPerFrame(graphic, numberOfFrames, ticksPerFrame);
@@ -2718,7 +2718,7 @@ void CalcPlrAuricBonus(Player &player)
 {
 	if (&player == MyPlayer) {
 		if (player.InvBody[INVLOC_AMULET].isEmpty() || player.InvBody[INVLOC_AMULET].IDidx != IDI_AURIC) {
-			int half = MaxGold;
+			const int half = MaxGold;
 			MaxGold = GOLD_MAX_LIMIT;
 
 			if (half != MaxGold)
@@ -2977,8 +2977,8 @@ void CreatePlrItems(Player &player)
 	}
 
 	InitCursor();
-	for (auto &itemChoice : loadout.items) {
-		_item_indexes itemData = gbIsHellfire && itemChoice.hellfire != _item_indexes::IDI_NONE ? itemChoice.hellfire : itemChoice.diablo;
+	for (const auto &itemChoice : loadout.items) {
+		const _item_indexes itemData = gbIsHellfire && itemChoice.hellfire != _item_indexes::IDI_NONE ? itemChoice.hellfire : itemChoice.diablo;
 		if (itemData != _item_indexes::IDI_NONE)
 			CreateStartingItem(player, itemData);
 	}
@@ -3030,7 +3030,7 @@ int AllocateItem()
 {
 	assert(ActiveItemCount < MAXITEMS);
 
-	int inum = ActiveItems[ActiveItemCount];
+	const int inum = ActiveItems[ActiveItemCount];
 	ActiveItemCount++;
 
 	Items[inum] = {};
@@ -3042,7 +3042,7 @@ uint8_t PlaceItemInWorld(Item &&item, WorldTilePosition position)
 {
 	assert(ActiveItemCount < MAXITEMS);
 
-	uint8_t ii = ActiveItems[ActiveItemCount];
+	const uint8_t ii = ActiveItems[ActiveItemCount];
 	ActiveItemCount++;
 
 	dItem[position.x][position.y] = static_cast<int8_t>(ii + 1);
@@ -3062,7 +3062,7 @@ uint8_t PlaceItemInWorld(Item &&item, WorldTilePosition position)
 
 Point GetSuperItemLoc(Point position)
 {
-	std::optional<Point> itemPosition = FindClosestValidPosition(ItemSpaceOk, position, 1, 50);
+	const std::optional<Point> itemPosition = FindClosestValidPosition(ItemSpaceOk, position, 1, 50);
 
 	return itemPosition.value_or(Point { 0, 0 }); // TODO handle no space for dropping items
 }
@@ -3106,7 +3106,7 @@ void GetItemAttrs(Item &item, _item_indexes itemData, int lvl)
 		return;
 
 	int rndv;
-	int itemlevel = ItemsGetCurrlevel();
+	const int itemlevel = ItemsGetCurrlevel();
 	switch (sgGameInitInfo.nDifficulty) {
 	case DIFF_NORMAL:
 		rndv = 5 * itemlevel + GenerateRnd(10 * itemlevel);
@@ -3136,7 +3136,7 @@ Item *SpawnUnique(_unique_items uid, Point position, std::optional<int> level /*
 	if (ActiveItemCount >= MAXITEMS)
 		return nullptr;
 
-	int ii = AllocateItem();
+	const int ii = AllocateItem();
 	auto &item = Items[ii];
 	if (exactPosition && CanPut(position)) {
 		item.position = position;
@@ -3158,7 +3158,7 @@ Item *SpawnUnique(_unique_items uid, Point position, std::optional<int> level /*
 		if (level)
 			curlv = *level;
 		const ItemData &uniqueItemData = AllItemsList[idx];
-		_item_indexes dropIdx = GetItemIndexForDroppableItem(false, [&uniqueItemData](const ItemData &item) {
+		const _item_indexes dropIdx = GetItemIndexForDroppableItem(false, [&uniqueItemData](const ItemData &item) {
 			return item.itype == uniqueItemData.itype;
 		});
 		SetupAllItems(*MyPlayer, item, dropIdx, AdvanceRndSeed(), curlv * 2, 15, true, false);
@@ -3180,7 +3180,7 @@ void GetSuperItemSpace(Point position, int8_t inum)
 	for (int k = 2; k < 50; k++) {
 		for (int j = -k; j <= k; j++) {
 			for (int i = -k; i <= k; i++) {
-				Displacement offset = { i, j };
+				const Displacement offset = { i, j };
 				positionToCheck = position + offset;
 				if (!ItemSpaceOk(positionToCheck))
 					continue;
@@ -3223,7 +3223,7 @@ void SetupAllItems(const Player &player, Item &item, _item_indexes idx, uint32_t
 		item._iCreateInfo |= CF_UPER1;
 
 	if (item._iMiscId != IMISC_UNIQUE) {
-		int iblvl = GetItemBLevel(lvl, item._iMiscId, onlygood, uper == 15);
+		const int iblvl = GetItemBLevel(lvl, item._iMiscId, onlygood, uper == 15);
 		if (iblvl != -1) {
 			_unique_items uid = UITEM_INVALID;
 			if (!forceNotUnique) {
@@ -3261,7 +3261,7 @@ void TryRandomUniqueItem(Item &item, _item_indexes idx, int8_t mLevel, int uper,
 
 	// Get item base level, which is used in CheckUnique to get the correct valid uniques for the base item.
 	DiscardRandomValues(1); // GetItemAttrs
-	int blvl = GetItemBLevel(mLevel, item._iMiscId, onlygood, uper == 15);
+	const int blvl = GetItemBLevel(mLevel, item._iMiscId, onlygood, uper == 15);
 
 	// Gather all potential unique items. uid is the index into UniqueItems.
 	auto validUniques = GetValidUniques(blvl, AllItemsList[static_cast<size_t>(idx)].iItemId);
@@ -3281,7 +3281,7 @@ void TryRandomUniqueItem(Item &item, _item_indexes idx, int8_t mLevel, int uper,
 			mLevel += 4;
 		uper = 1;
 
-		Point itemPos = item.position;
+		const Point itemPos = item.position;
 
 		// Force generate a non-unique item.
 		DiabloGenerator itemGenerator(item._iSeed);
@@ -3294,8 +3294,8 @@ void TryRandomUniqueItem(Item &item, _item_indexes idx, int8_t mLevel, int uper,
 		return;
 	}
 
-	int32_t uidsIdx = std::max<int32_t>(0, GenerateRnd(static_cast<int32_t>(uids.size()))); // Index into uids, used to get a random uid from the uids vector.
-	int uid = uids[uidsIdx];                                                                // Actual unique id.
+	const int32_t uidsIdx = std::max<int32_t>(0, GenerateRnd(static_cast<int32_t>(uids.size()))); // Index into uids, used to get a random uid from the uids vector.
+	const int uid = uids[uidsIdx];                                                                // Actual unique id.
 	const UniqueItem &uniqueItem = UniqueItems[uid];
 
 	// If the selected unique was already generated, there is no need to fiddle with its parameters.
@@ -3363,8 +3363,8 @@ void SpawnItem(Monster &monster, Point position, bool sendmsg, bool spawn /*= fa
 	_item_indexes idx;
 	bool onlygood = true;
 
-	bool dropsSpecialTreasure = (monster.data().treasure & T_UNIQ) != 0;
-	bool dropBrain = Quests[Q_MUSHROOM]._qactive == QUEST_ACTIVE && Quests[Q_MUSHROOM]._qvar1 == QS_MUSHGIVEN;
+	const bool dropsSpecialTreasure = (monster.data().treasure & T_UNIQ) != 0;
+	const bool dropBrain = Quests[Q_MUSHROOM]._qactive == QUEST_ACTIVE && Quests[Q_MUSHROOM]._qvar1 == QS_MUSHGIVEN;
 
 	if (dropsSpecialTreasure && !UseMultiplayerQuests()) {
 		Item *uniqueItem = SpawnUnique(static_cast<_unique_items>(monster.data().treasure & T_MASK), position, std::nullopt, false);
@@ -3386,7 +3386,7 @@ void SpawnItem(Monster &monster, Point position, bool sendmsg, bool spawn /*= fa
 			NetSendCmdQuest(true, Quests[Q_MUSHROOM]);
 			// Drop the brain as extra item to ensure that all clients see the brain drop
 			// When executing SpawnItem is not reliable, because another client can already have the quest state updated before SpawnItem is executed
-			Point posBrain = GetSuperItemLoc(position);
+			const Point posBrain = GetSuperItemLoc(position);
 			SpawnQuestItem(IDI_BRAIN, posBrain, 0, SelectionRegion::None, true);
 		}
 		// Normal monster
@@ -3402,12 +3402,12 @@ void SpawnItem(Monster &monster, Point position, bool sendmsg, bool spawn /*= fa
 	if (ActiveItemCount >= MAXITEMS)
 		return;
 
-	int ii = AllocateItem();
+	const int ii = AllocateItem();
 	auto &item = Items[ii];
 	GetSuperItemSpace(position, ii);
-	int uper = monster.isUnique() ? 15 : 1;
+	const int uper = monster.isUnique() ? 15 : 1;
 
-	int8_t mLevel = monster.data().level;
+	const int8_t mLevel = monster.data().level;
 	SetupAllItems(*MyPlayer, item, idx, AdvanceRndSeed(), mLevel, uper, onlygood, false, false);
 	TryRandomUniqueItem(item, idx, mLevel, uper, onlygood, false);
 	SetupItem(item);
@@ -3420,7 +3420,7 @@ void SpawnItem(Monster &monster, Point position, bool sendmsg, bool spawn /*= fa
 
 void CreateRndItem(Point position, bool onlygood, bool sendmsg, bool delta)
 {
-	_item_indexes idx = onlygood ? RndUItem(nullptr) : RndAllItems();
+	const _item_indexes idx = onlygood ? RndUItem(nullptr) : RndAllItems();
 
 	SetupBaseItem(position, idx, onlygood, sendmsg, delta);
 }
@@ -3430,10 +3430,10 @@ void CreateRndUseful(Point position, bool sendmsg)
 	if (ActiveItemCount >= MAXITEMS)
 		return;
 
-	int ii = AllocateItem();
+	const int ii = AllocateItem();
 	auto &item = Items[ii];
 	GetSuperItemSpace(position, ii);
-	int curlv = ItemsGetCurrlevel();
+	const int curlv = ItemsGetCurrlevel();
 
 	SetupAllUseful(item, AdvanceRndSeed(), curlv);
 	if (sendmsg)
@@ -3444,7 +3444,7 @@ void CreateTypeItem(Point position, bool onlygood, ItemType itemType, int imisc,
 {
 	_item_indexes idx;
 
-	int curlv = ItemsGetCurrlevel();
+	const int curlv = ItemsGetCurrlevel();
 	if (itemType != ItemType::Gold)
 		idx = RndTypeItems(itemType, imisc, curlv);
 	else
@@ -3455,7 +3455,7 @@ void CreateTypeItem(Point position, bool onlygood, ItemType itemType, int imisc,
 
 void RecreateItem(const Player &player, Item &item, _item_indexes idx, uint16_t icreateinfo, uint32_t iseed, int ivalue, uint32_t dwBuff)
 {
-	bool tmpIsHellfire = gbIsHellfire;
+	const bool tmpIsHellfire = gbIsHellfire;
 	item.dwBuff = dwBuff;
 	gbIsHellfire = (item.dwBuff & CF_HELLFIRE) != 0;
 
@@ -3490,7 +3490,7 @@ void RecreateItem(const Player &player, Item &item, _item_indexes idx, uint16_t 
 		}
 	}
 
-	int level = icreateinfo & CF_LEVEL;
+	const int level = icreateinfo & CF_LEVEL;
 
 	int uper = 0;
 	if ((icreateinfo & CF_UPER1) != 0)
@@ -3498,9 +3498,9 @@ void RecreateItem(const Player &player, Item &item, _item_indexes idx, uint16_t 
 	if ((icreateinfo & CF_UPER15) != 0)
 		uper = 15;
 
-	bool onlygood = (icreateinfo & CF_ONLYGOOD) != 0;
-	bool forceNotUnique = (icreateinfo & CF_UNIQUE) == 0;
-	bool pregen = (icreateinfo & CF_PREGEN) != 0;
+	const bool onlygood = (icreateinfo & CF_ONLYGOOD) != 0;
+	const bool forceNotUnique = (icreateinfo & CF_UNIQUE) == 0;
+	const bool pregen = (icreateinfo & CF_PREGEN) != 0;
 	auto uidOffset = static_cast<int>((item.dwBuff & CF_UIDOFFSET) >> 1);
 
 	SetupAllItems(player, item, idx, iseed, level, uper, onlygood, pregen, uidOffset, forceNotUnique);
@@ -3512,7 +3512,7 @@ void RecreateEar(Item &item, uint16_t ic, uint32_t iseed, uint8_t bCursval, std:
 {
 	InitializeItem(item, IDI_EAR);
 
-	std::string itemName = fmt::format(fmt::runtime("Ear of {:s}"), heroName);
+	const std::string itemName = fmt::format(fmt::runtime("Ear of {:s}"), heroName);
 
 	CopyUtf8(item._iName, itemName, ItemNameLength);
 	CopyUtf8(item._iIName, heroName, ItemNameLength);
@@ -3551,7 +3551,7 @@ void CornerstoneLoad(Point position)
 	CornerStone.item.clear();
 	CornerStone.activated = true;
 	if (dItem[position.x][position.y] != 0) {
-		int ii = dItem[position.x][position.y] - 1;
+		const int ii = dItem[position.x][position.y] - 1;
 		for (int i = 0; i < ActiveItemCount; i++) {
 			if (ActiveItems[i] == ii) {
 				DeleteItem(i);
@@ -3566,7 +3566,7 @@ void CornerstoneLoad(Point position)
 
 	Hex2bin(GetOptions().Hellfire.szItem, sizeof(ItemPack), reinterpret_cast<uint8_t *>(&pkSItem));
 
-	int ii = AllocateItem();
+	const int ii = AllocateItem();
 	auto &item = Items[ii];
 
 	dItem[position.x][position.y] = static_cast<int8_t>(ii + 1);
@@ -3603,14 +3603,14 @@ void SpawnQuestItem(_item_indexes itemid, Point position, int randarea, Selectio
 	if (ActiveItemCount >= MAXITEMS)
 		return;
 
-	int ii = AllocateItem();
+	const int ii = AllocateItem();
 	auto &item = Items[ii];
 
 	item.position = position;
 
 	dItem[position.x][position.y] = ii + 1;
 
-	int curlv = ItemsGetCurrlevel();
+	const int curlv = ItemsGetCurrlevel();
 	GetItemAttrs(item, itemid, curlv);
 
 	SetupItem(item);
@@ -3636,12 +3636,12 @@ void SpawnRewardItem(_item_indexes itemid, Point position, bool sendmsg)
 	if (ActiveItemCount >= MAXITEMS)
 		return;
 
-	int ii = AllocateItem();
+	const int ii = AllocateItem();
 	auto &item = Items[ii];
 
 	item.position = position;
 	dItem[position.x][position.y] = ii + 1;
-	int curlv = ItemsGetCurrlevel();
+	const int curlv = ItemsGetCurrlevel();
 	GetItemAttrs(item, itemid, curlv);
 	item.setNewAnimation(true);
 	item.selectionRegion = SelectionRegion::Middle;
@@ -3671,7 +3671,7 @@ void SpawnTheodore(Point position, bool sendmsg)
 
 void RespawnItem(Item &item, bool flipFlag)
 {
-	int it = ItemCAnimTbl[item._iCurs];
+	const int it = ItemCAnimTbl[item._iCurs];
 	item.setNewAnimation(flipFlag);
 	item._iRequest = false; // Item isn't being picked up by a player
 
@@ -3719,7 +3719,7 @@ void DeleteItem(int i)
 void ProcessItems()
 {
 	for (int i = 0; i < ActiveItemCount; i++) {
-		int ii = ActiveItems[i];
+		const int ii = ActiveItems[i];
 		auto &item = Items[ii];
 		if (!item._iAnimFlag)
 			continue;
@@ -3752,7 +3752,7 @@ void FreeItemGFX()
 
 void GetItemFrm(Item &item)
 {
-	int it = ItemCAnimTbl[item._iCurs];
+	const int it = ItemCAnimTbl[item._iCurs];
 	if (itemanims[it])
 		item.AnimInfo.sprites.emplace(*itemanims[it]);
 }
@@ -3763,7 +3763,7 @@ void GetItemStr(Item &item)
 		InfoString = item.getName();
 		InfoColor = item.getTextColor();
 	} else {
-		int nGold = item._ivalue;
+		const int nGold = item._ivalue;
 		InfoString = fmt::format(fmt::runtime(ngettext("{:s} gold piece", "{:s} gold pieces", nGold)), FormatInteger(nGold));
 	}
 }
@@ -4227,7 +4227,7 @@ void UseItem(Player &player, item_misc_id mid, SpellID spellID, int spellFrom)
 		}
 		break;
 	case IMISC_BOOK: {
-		uint8_t newSpellLevel = player._pSplLvl[static_cast<int8_t>(spellID)] + 1;
+		const uint8_t newSpellLevel = player._pSplLvl[static_cast<int8_t>(spellID)] + 1;
 		if (newSpellLevel <= MaxSpellLevel) {
 			player._pSplLvl[static_cast<int8_t>(spellID)] = newSpellLevel;
 			NetSendCmdParam2(true, CMD_CHANGE_SPELL_LEVEL, static_cast<uint16_t>(spellID), newSpellLevel);
@@ -4312,7 +4312,7 @@ bool UseItemOpensHive(const Item &item, Point position)
 	if (item.IDidx != IDI_RUNEBOMB)
 		return false;
 	for (auto dir : PathDirs) {
-		Point adjacentPosition = position + dir;
+		const Point adjacentPosition = position + dir;
 		if (OpensHive(adjacentPosition))
 			return true;
 	}
@@ -4324,7 +4324,7 @@ bool UseItemOpensGrave(const Item &item, Point position)
 	if (item.IDidx != IDI_MAPOFDOOM)
 		return false;
 	for (auto dir : PathDirs) {
-		Point adjacentPosition = position + dir;
+		const Point adjacentPosition = position + dir;
 		if (OpensGrave(adjacentPosition))
 			return true;
 	}
@@ -4342,7 +4342,7 @@ void SpawnSmith(int lvl)
 		maxItems = NumSmithBasicItemsHf;
 	}
 
-	int iCnt = RandomIntBetween(10, maxItems);
+	const int iCnt = RandomIntBetween(10, maxItems);
 	for (int i = 0; i < iCnt; i++) {
 		Item &newItem = SmithItems[i];
 
@@ -4350,7 +4350,7 @@ void SpawnSmith(int lvl)
 			newItem = {};
 			newItem._iSeed = AdvanceRndSeed();
 			SetRndSeed(newItem._iSeed);
-			_item_indexes itemData = RndSmithItem(*MyPlayer, lvl);
+			const _item_indexes itemData = RndSmithItem(*MyPlayer, lvl);
 			GetItemAttrs(newItem, itemData, lvl);
 		} while (newItem._iIvalue > maxValue);
 
@@ -4365,12 +4365,12 @@ void SpawnSmith(int lvl)
 
 void SpawnPremium(const Player &player)
 {
-	int lvl = player.getCharacterLevel();
-	int maxItems = gbIsHellfire ? NumSmithItemsHf : NumSmithItems;
+	const int lvl = player.getCharacterLevel();
+	const int maxItems = gbIsHellfire ? NumSmithItemsHf : NumSmithItems;
 	if (PremiumItemCount < maxItems) {
 		for (int i = 0; i < maxItems; i++) {
 			if (PremiumItems[i].isEmpty()) {
-				int plvl = PremiumItemLevel + (gbIsHellfire ? itemLevelAddHf[i] : itemLevelAdd[i]);
+				const int plvl = PremiumItemLevel + (gbIsHellfire ? itemLevelAddHf[i] : itemLevelAdd[i]);
 				SpawnOnePremium(PremiumItems[i], plvl, player);
 			}
 		}
@@ -4422,7 +4422,7 @@ void SpawnWitch(int lvl)
 
 		if (gbIsHellfire) {
 			if (i < PinnedItemCount + MaxPinnedBookCount && bookCount < pinnedBookCount) {
-				_item_indexes bookType = PinnedBookTypes[i - PinnedItemCount];
+				const _item_indexes bookType = PinnedBookTypes[i - PinnedItemCount];
 				if (lvl >= AllItemsList[bookType].iMinMLvl) {
 					item._iSeed = AdvanceRndSeed();
 					SetRndSeed(item._iSeed);
@@ -4445,7 +4445,7 @@ void SpawnWitch(int lvl)
 			item = {};
 			item._iSeed = AdvanceRndSeed();
 			SetRndSeed(item._iSeed);
-			_item_indexes itemData = RndWitchItem(*MyPlayer, lvl);
+			const _item_indexes itemData = RndWitchItem(*MyPlayer, lvl);
 			GetItemAttrs(item, itemData, lvl);
 			int maxlvl = -1;
 			if (GenerateRnd(100) <= 5)
@@ -4469,9 +4469,9 @@ void SpawnBoy(int lvl)
 	bool keepgoing = false;
 	int count = 0;
 
-	Player &myPlayer = *MyPlayer;
+	const Player &myPlayer = *MyPlayer;
 
-	HeroClass pc = myPlayer._pClass;
+	const HeroClass pc = myPlayer._pClass;
 	int strength = std::max(myPlayer.GetMaximumAttributeValue(CharacterAttribute::Strength), myPlayer._pStrength);
 	int dexterity = std::max(myPlayer.GetMaximumAttributeValue(CharacterAttribute::Dexterity), myPlayer._pDexterity);
 	int magic = std::max(myPlayer.GetMaximumAttributeValue(CharacterAttribute::Magic), myPlayer._pMagic);
@@ -4486,7 +4486,7 @@ void SpawnBoy(int lvl)
 		BoyItem = {};
 		BoyItem._iSeed = AdvanceRndSeed();
 		SetRndSeed(BoyItem._iSeed);
-		_item_indexes itype = RndBoyItem(*MyPlayer, lvl);
+		const _item_indexes itype = RndBoyItem(*MyPlayer, lvl);
 		GetItemAttrs(BoyItem, itype, lvl);
 		GetItemBonus(*MyPlayer, BoyItem, lvl, 2 * lvl, true, true);
 
@@ -4500,7 +4500,7 @@ void SpawnBoy(int lvl)
 
 		ivalue = 0;
 
-		ItemType itemType = BoyItem._itype;
+		const ItemType itemType = BoyItem._itype;
 
 		switch (itemType) {
 		case ItemType::LightArmor:
@@ -4602,7 +4602,7 @@ void SpawnHealer(int lvl)
 
 		item._iSeed = AdvanceRndSeed();
 		SetRndSeed(item._iSeed);
-		_item_indexes itype = RndHealerItem(*MyPlayer, lvl);
+		const _item_indexes itype = RndHealerItem(*MyPlayer, lvl);
 		GetItemAttrs(item, itype, lvl);
 		item._iCreateInfo = lvl | CF_HEALER;
 		item._iIdentified = true;
@@ -4622,7 +4622,7 @@ void MakeGoldStack(Item &goldItem, int value)
 
 int ItemNoFlippy()
 {
-	int r = ActiveItems[ActiveItemCount - 1];
+	const int r = ActiveItems[ActiveItemCount - 1];
 	Items[r].AnimInfo.currentFrame = Items[r].AnimInfo.numberOfFrames - 1;
 	Items[r]._iAnimFlag = false;
 	Items[r].selectionRegion = SelectionRegion::Bottom;
@@ -4641,11 +4641,11 @@ void CreateSpellBook(Point position, SpellID ispell, bool sendmsg, bool delta)
 		}
 	}
 
-	_item_indexes idx = RndTypeItems(ItemType::Misc, IMISC_BOOK, lvl);
+	const _item_indexes idx = RndTypeItems(ItemType::Misc, IMISC_BOOK, lvl);
 	if (ActiveItemCount >= MAXITEMS)
 		return;
 
-	int ii = AllocateItem();
+	const int ii = AllocateItem();
 	auto &item = Items[ii];
 
 	while (true) {
@@ -4665,7 +4665,7 @@ void CreateSpellBook(Point position, SpellID ispell, bool sendmsg, bool delta)
 
 void CreateMagicArmor(Point position, ItemType itemType, int icurs, bool sendmsg, bool delta)
 {
-	int lvl = ItemsGetCurrlevel();
+	const int lvl = ItemsGetCurrlevel();
 	CreateMagicItem(position, lvl, itemType, IMISC_NONE, icurs, sendmsg, delta);
 }
 
@@ -4680,14 +4680,14 @@ void CreateMagicWeapon(Point position, ItemType itemType, int icurs, bool sendms
 	if (itemType == ItemType::Staff)
 		imid = IMISC_STAFF;
 
-	int curlv = ItemsGetCurrlevel();
+	const int curlv = ItemsGetCurrlevel();
 
 	CreateMagicItem(position, curlv, itemType, imid, icurs, sendmsg, delta);
 }
 
 bool GetItemRecord(uint32_t nSeed, uint16_t wCI, int nIndex)
 {
-	uint32_t ticks = SDL_GetTicks();
+	const uint32_t ticks = SDL_GetTicks();
 
 	for (int i = 0; i < gnNumGetRecords; i++) {
 		if (ticks - itemrecord[i].dwTimestamp > 6000) {
@@ -4704,7 +4704,7 @@ bool GetItemRecord(uint32_t nSeed, uint16_t wCI, int nIndex)
 
 void SetItemRecord(uint32_t nSeed, uint16_t wCI, int nIndex)
 {
-	uint32_t ticks = SDL_GetTicks();
+	const uint32_t ticks = SDL_GetTicks();
 
 	if (gnNumGetRecords == MAXITEMS) {
 		return;
@@ -4719,7 +4719,7 @@ void SetItemRecord(uint32_t nSeed, uint16_t wCI, int nIndex)
 
 void PutItemRecord(uint32_t nSeed, uint16_t wCI, int nIndex)
 {
-	uint32_t ticks = SDL_GetTicks();
+	const uint32_t ticks = SDL_GetTicks();
 
 	for (int i = 0; i < gnNumGetRecords; i++) {
 		if (ticks - itemrecord[i].dwTimestamp > 6000) {
@@ -4741,9 +4741,9 @@ bool Item::isUsable() const
 
 void Item::setNewAnimation(bool showAnimation)
 {
-	int8_t it = ItemCAnimTbl[_iCurs];
-	int8_t numberOfFrames = ItemAnimLs[it];
-	OptionalClxSpriteList sprite = itemanims[it] ? OptionalClxSpriteList { *itemanims[static_cast<size_t>(it)] } : std::nullopt;
+	const int8_t it = ItemCAnimTbl[_iCurs];
+	const int8_t numberOfFrames = ItemAnimLs[it];
+	const OptionalClxSpriteList sprite = itemanims[it] ? OptionalClxSpriteList { *itemanims[static_cast<size_t>(it)] } : std::nullopt;
 	if (_iCurs != ICURS_MAGIC_ROCK)
 		AnimInfo.setNewAnimation(sprite, numberOfFrames, 1, AnimationDistributionFlags::ProcessAnimationPending, 0, numberOfFrames);
 	else
@@ -4833,7 +4833,7 @@ void RechargeItem(Item &item, Player &player)
 	if (item._iCharges == item._iMaxCharges)
 		return;
 
-	int rechargeStrength = RandomIntBetween(1, player.getCharacterLevel() / GetSpellStaffLevel(item._iSpell));
+	const int rechargeStrength = RandomIntBetween(1, player.getCharacterLevel() / GetSpellStaffLevel(item._iSpell));
 
 	do {
 		item._iMaxCharges--;
@@ -4985,14 +4985,14 @@ void UpdateHellfireFlag(Item &item, const char *identifiedItemName)
 	if (gbIsMultiplayer)
 		return; // Vanilla hellfire multiplayer is not supported in devilutionX, so there can't be items with missing dwBuff from there
 	// We need to test both short and long name, because StringInPanel can return a different result (other font and some bugfixes)
-	std::string diabloItemNameShort = GetTranslatedItemNameMagical(item, false, false, false);
+	const std::string diabloItemNameShort = GetTranslatedItemNameMagical(item, false, false, false);
 	if (diabloItemNameShort == identifiedItemName)
 		return; // Diablo item name is identical => not a hellfire specific item
-	std::string diabloItemNameLong = GetTranslatedItemNameMagical(item, false, false, true);
+	const std::string diabloItemNameLong = GetTranslatedItemNameMagical(item, false, false, true);
 	if (diabloItemNameLong == identifiedItemName)
 		return; // Diablo item name is identical => not a hellfire specific item
-	std::string hellfireItemNameShort = GetTranslatedItemNameMagical(item, true, false, false);
-	std::string hellfireItemNameLong = GetTranslatedItemNameMagical(item, true, false, true);
+	const std::string hellfireItemNameShort = GetTranslatedItemNameMagical(item, true, false, false);
+	const std::string hellfireItemNameLong = GetTranslatedItemNameMagical(item, true, false, true);
 	if (hellfireItemNameShort == identifiedItemName || hellfireItemNameLong == identifiedItemName) {
 		// This item should be a vanilla hellfire item that has CF_HELLFIRE missing, cause only then the item name matches
 		item.dwBuff |= CF_HELLFIRE;

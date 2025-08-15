@@ -64,7 +64,7 @@ OptionalOwnedClxSpriteList StashNavButtonArt;
  */
 void AddItemToStashGrid(unsigned page, Point position, uint16_t stashListIndex, Size itemSize)
 {
-	for (Point point : PointsInRectangle(Rectangle { position, itemSize })) {
+	for (const Point point : PointsInRectangle(Rectangle { position, itemSize })) {
 		Stash.stashGrids[page][point.x][point.y] = stashListIndex + 1;
 	}
 }
@@ -72,7 +72,7 @@ void AddItemToStashGrid(unsigned page, Point position, uint16_t stashListIndex, 
 std::optional<Point> FindTargetSlotUnderItemCursor(Point cursorPosition, Size itemSize)
 {
 	for (auto point : StashGridRange) {
-		Rectangle cell {
+		const Rectangle cell {
 			GetStashSlotCoord(point),
 			InventorySlotSizeInPixels + 1
 		};
@@ -133,12 +133,12 @@ void CheckStashPaste(Point cursorPosition)
 	if (!targetSlot)
 		return;
 
-	Point firstSlot = *targetSlot;
+	const Point firstSlot = *targetSlot;
 
 	// Check that no more than 1 item is replaced by the move
 	StashStruct::StashCell stashIndex = StashStruct::EmptyCell;
-	for (Point point : PointsInRectangle(Rectangle { firstSlot, itemSize })) {
-		StashStruct::StashCell iv = Stash.GetItemIdAtPosition(point);
+	for (const Point point : PointsInRectangle(Rectangle { firstSlot, itemSize })) {
+		const StashStruct::StashCell iv = Stash.GetItemIdAtPosition(point);
 		if (iv == StashStruct::EmptyCell || stashIndex == iv)
 			continue;
 		if (stashIndex == StashStruct::EmptyCell) {
@@ -186,7 +186,7 @@ void CheckStashCut(Point cursorPosition, bool automaticMove)
 	Point slot = InvalidStashPoint;
 
 	for (auto point : StashGridRange) {
-		Rectangle cell {
+		const Rectangle cell {
 			GetStashSlotCoord(point),
 			InventorySlotSizeInPixels + 1
 		};
@@ -206,9 +206,9 @@ void CheckStashCut(Point cursorPosition, bool automaticMove)
 	holdItem.clear();
 
 	bool automaticallyMoved = false;
-	bool automaticallyEquipped = false;
+	const bool automaticallyEquipped = false;
 
-	StashStruct::StashCell iv = Stash.GetItemIdAtPosition(slot);
+	const StashStruct::StashCell iv = Stash.GetItemIdAtPosition(slot);
 	if (iv != StashStruct::EmptyCell) {
 		holdItem = Stash.stashList[iv];
 		if (automaticMove) {
@@ -285,7 +285,7 @@ void TransferItemToInventory(Player &player, uint16_t itemId)
 		return;
 	}
 
-	Item &item = Stash.stashList[itemId];
+	const Item &item = Stash.stashList[itemId];
 	if (item.isEmpty()) {
 		return;
 	}
@@ -353,47 +353,47 @@ void DrawStash(const Surface &out)
 	RenderClxSprite(out, (*StashPanelArt)[0], GetPanelPosition(UiPanels::Stash));
 
 	if (StashButtonPressed != -1) {
-		Point stashButton = GetPanelPosition(UiPanels::Stash, StashButtonRect[StashButtonPressed].position);
+		const Point stashButton = GetPanelPosition(UiPanels::Stash, StashButtonRect[StashButtonPressed].position);
 		RenderClxSprite(out, (*StashNavButtonArt)[StashButtonPressed], stashButton);
 	}
 
 	constexpr Displacement offset { 0, INV_SLOT_SIZE_PX - 1 };
 
 	for (auto slot : StashGridRange) {
-		StashStruct::StashCell itemId = Stash.GetItemIdAtPosition(slot);
+		const StashStruct::StashCell itemId = Stash.GetItemIdAtPosition(slot);
 		if (itemId == StashStruct::EmptyCell) {
 			continue; // No item in the given slot
 		}
-		Item &item = Stash.stashList[itemId];
+		const Item &item = Stash.stashList[itemId];
 		InvDrawSlotBack(out, GetStashSlotCoord(slot) + offset, InventorySlotSizeInPixels, item._iMagical);
 	}
 
 	for (auto slot : StashGridRange) {
-		StashStruct::StashCell itemId = Stash.GetItemIdAtPosition(slot);
+		const StashStruct::StashCell itemId = Stash.GetItemIdAtPosition(slot);
 		if (itemId == StashStruct::EmptyCell) {
 			continue; // No item in the given slot
 		}
 
-		Item &item = Stash.stashList[itemId];
+		const Item &item = Stash.stashList[itemId];
 		if (item.position != slot) {
 			continue; // Not the first slot of the item
 		}
 
-		int frame = item._iCurs + CURSOR_FIRSTITEM;
+		const int frame = item._iCurs + CURSOR_FIRSTITEM;
 
 		const Point position = GetStashSlotCoord(item.position) + offset;
 		const ClxSprite sprite = GetInvItemSprite(frame);
 
 		if (pcursstashitem == itemId) {
-			uint8_t color = GetOutlineColor(item, true);
+			const uint8_t color = GetOutlineColor(item, true);
 			ClxDrawOutline(out, color, position, sprite);
 		}
 
 		DrawItem(item, out, position, sprite);
 	}
 
-	Point position = GetPanelPosition(UiPanels::Stash);
-	UiFlags style = UiFlags::VerticalCenter | UiFlags::ColorWhite;
+	const Point position = GetPanelPosition(UiPanels::Stash);
+	const UiFlags style = UiFlags::VerticalCenter | UiFlags::ColorWhite;
 
 	DrawString(out, StrCat(Stash.GetPage() + 1), { position + Displacement { 132, 0 }, { 57, 11 } },
 	    { .flags = UiFlags::AlignCenter | style });
@@ -416,7 +416,7 @@ uint16_t CheckStashHLight(Point mousePosition)
 {
 	Point slot = InvalidStashPoint;
 	for (auto point : StashGridRange) {
-		Rectangle cell {
+		const Rectangle cell {
 			GetStashSlotCoord(point),
 			InventorySlotSizeInPixels + 1
 		};
@@ -432,12 +432,12 @@ uint16_t CheckStashHLight(Point mousePosition)
 
 	InfoColor = UiFlags::ColorWhite;
 
-	StashStruct::StashCell itemId = Stash.GetItemIdAtPosition(slot);
+	const StashStruct::StashCell itemId = Stash.GetItemIdAtPosition(slot);
 	if (itemId == StashStruct::EmptyCell) {
 		return -1;
 	}
 
-	Item &item = Stash.stashList[itemId];
+	const Item &item = Stash.stashList[itemId];
 	if (item.isEmpty()) {
 		return -1;
 	}
@@ -529,7 +529,7 @@ void StashStruct::RemoveStashItem(StashStruct::StashCell iv)
 	}
 
 	// If the item at the end of stash array isn't the one we removed, we need to swap its position in the array with the removed item
-	StashStruct::StashCell lastItemIndex = static_cast<StashStruct::StashCell>(stashList.size() - 1);
+	const StashStruct::StashCell lastItemIndex = static_cast<StashStruct::StashCell>(stashList.size() - 1);
 	if (lastItemIndex != iv) {
 		stashList[iv] = stashList[lastItemIndex];
 
@@ -587,7 +587,7 @@ void StartGoldWithdraw()
 	if (ChatFlag)
 		ResetChat();
 
-	Point start = GetPanelPosition(UiPanels::Stash, { 67, 128 });
+	const Point start = GetPanelPosition(UiPanels::Stash, { 67, 128 });
 	SDL_Rect rect = MakeSdlRect(start.x, start.y, 180, 20);
 	SDL_SetTextInputRect(&rect);
 
@@ -692,7 +692,7 @@ bool AutoPlaceItemInStash(Player &player, const Item &item, bool persistItem)
 		return true;
 	}
 
-	Size itemSize = GetInventorySize(item);
+	const Size itemSize = GetInventorySize(item);
 
 	// Try to add the item to the current active page and if it's not possible move forward
 	for (unsigned pageCounter = 0; pageCounter < CountStashPages; pageCounter++) {
@@ -705,7 +705,7 @@ bool AutoPlaceItemInStash(Player &player, const Item &item, bool persistItem)
 			// Check that all needed slots are free
 			bool isSpaceFree = true;
 			for (auto itemPoint : PointsInRectangle(Rectangle { stashPosition, itemSize })) {
-				uint16_t iv = Stash.stashGrids[pageIndex][itemPoint.x][itemPoint.y];
+				const uint16_t iv = Stash.stashGrids[pageIndex][itemPoint.x][itemPoint.y];
 				if (iv != 0) {
 					isSpaceFree = false;
 					break;
@@ -715,7 +715,7 @@ bool AutoPlaceItemInStash(Player &player, const Item &item, bool persistItem)
 				continue;
 			if (persistItem) {
 				Stash.stashList.push_back(item);
-				uint16_t stashIndex = static_cast<uint16_t>(Stash.stashList.size() - 1);
+				const uint16_t stashIndex = static_cast<uint16_t>(Stash.stashList.size() - 1);
 				Stash.stashList[stashIndex].position = stashPosition + Displacement { 0, itemSize.height - 1 };
 				AddItemToStashGrid(pageIndex, stashPosition, stashIndex, itemSize);
 				Stash.dirty = true;

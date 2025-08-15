@@ -192,8 +192,8 @@ void CheckPlayerInfoTimeouts()
 		}
 
 		Uint32 &timerStart = playerInfoTimers[i];
-		bool isPlayerConnected = (player_state[i] & PS_CONNECTED) != 0;
-		bool isPlayerValid = isPlayerConnected && IsNetPlayerValid(player);
+		const bool isPlayerConnected = (player_state[i] & PS_CONNECTED) != 0;
+		const bool isPlayerValid = isPlayerConnected && IsNetPlayerValid(player);
 		if (isPlayerConnected && !isPlayerValid && timerStart == 0) {
 			timerStart = SDL_GetTicks();
 		}
@@ -348,7 +348,7 @@ void BeginTimeout()
 void HandleAllPackets(uint8_t pnum, const std::byte *data, size_t size)
 {
 	for (size_t offset = 0; offset < size;) {
-		size_t messageSize = ParseCmd(pnum, reinterpret_cast<const TCmd *>(&data[offset]), size - offset);
+		const size_t messageSize = ParseCmd(pnum, reinterpret_cast<const TCmd *>(&data[offset]), size - offset);
 		if (messageSize == 0) {
 			break;
 		}
@@ -360,7 +360,7 @@ void ProcessTmsgs()
 {
 	while (true) {
 		std::unique_ptr<std::byte[]> msg;
-		uint8_t size = tmsg_get(&msg);
+		const uint8_t size = tmsg_get(&msg);
 		if (size == 0)
 			break;
 
@@ -371,7 +371,7 @@ void ProcessTmsgs()
 void SendPlayerInfo(uint8_t pnum, _cmd_id cmd)
 {
 	PlayerNetPack packed;
-	Player &myPlayer = *MyPlayer;
+	const Player &myPlayer = *MyPlayer;
 	PackNetPlayer(packed, myPlayer);
 	multi_send_zero_packet(pnum, cmd, reinterpret_cast<std::byte *>(&packed), sizeof(PlayerNetPack));
 }
@@ -514,7 +514,7 @@ bool InitMulti(GameData *gameData)
 
 void InitGameInfo()
 {
-	xoshiro128plusplus gameGenerator = ReserveSeedSequence();
+	const xoshiro128plusplus gameGenerator = ReserveSeedSequence();
 	gameGenerator.save(sgGameInitInfo.gameSeed);
 
 	sgGameInitInfo.size = sizeof(sgGameInitInfo);
@@ -664,14 +664,14 @@ void multi_process_network_packets()
 			continue;
 		Player &player = Players[playerId];
 		if (!IsNetPlayerValid(player)) {
-			_cmd_id cmd = *(const _cmd_id *)(pkt + 1);
+			const _cmd_id cmd = *(const _cmd_id *)(pkt + 1);
 			if (gbBufferMsgs == 0 && IsNoneOf(cmd, CMD_SEND_PLRINFO, CMD_ACK_PLRINFO)) {
 				// Distrust all messages until
 				// player info is received
 				continue;
 			}
 		}
-		Point syncPosition = { pkt->px, pkt->py };
+		const Point syncPosition = { pkt->px, pkt->py };
 		player.position.last = syncPosition;
 		if (&player != MyPlayer) {
 			assert(gbBufferMsgs != 2);
@@ -679,7 +679,7 @@ void multi_process_network_packets()
 			player._pMaxHP = SDL_SwapLE32(pkt->pmhp);
 			player._pMana = SDL_SwapLE32(pkt->mana);
 			player._pMaxMana = SDL_SwapLE32(pkt->maxmana);
-			bool cond = gbBufferMsgs == 1;
+			const bool cond = gbBufferMsgs == 1;
 			player._pBaseStr = pkt->bstr;
 			player._pBaseMag = pkt->bmag;
 			player._pBaseDex = pkt->bdex;
@@ -702,7 +702,7 @@ void multi_process_network_packets()
 					if (player.position.future.WalkingDistance(player.position.tile) > 1) {
 						player.position.future = player.position.tile;
 					}
-					Point target = { pkt->targx, pkt->targy };
+					const Point target = { pkt->targx, pkt->targy };
 					if (target != Point {}) // does the client send a desired (future) position of remote player?
 						MakePlrPath(player, target, true);
 				} else {
@@ -845,7 +845,7 @@ void recv_plrinfo(Player &player, const TCmdPlrInfoHdr &header, bool recv)
 	if (&player == MyPlayer) {
 		return;
 	}
-	uint8_t pnum = player.getId();
+	const uint8_t pnum = player.getId();
 	auto &packedPlayer = PackedPlayerBuffer[pnum];
 
 	if (sgwPackPlrOffsetTbl[pnum] != SDL_SwapLE16(header.wOffset)) {

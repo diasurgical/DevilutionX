@@ -280,7 +280,7 @@ public:
 		if (rest[0] != '{')
 			return result;
 
-		std::size_t closingBracePos = rest.find('}', 1);
+		const std::size_t closingBracePos = rest.find('}', 1);
 		if (closingBracePos == std::string_view::npos) {
 			LogError("Unclosed format argument: {}", fmt_);
 			return result;
