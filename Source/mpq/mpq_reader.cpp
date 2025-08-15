@@ -146,9 +146,4 @@ bool MpqArchive::HasFile(std::string_view filename) const
 	return error == 0;
 }
 
-const std::string &MpqArchive::GetPath() const
-{
-	return path_;
-}
-
 } // namespace devilution

@@ -260,7 +260,6 @@ inline bool ValidateHandle(std::string_view path, const AssetHandle &handle)
 }
 
 AssetRef FindAsset(std::string_view filename);
-AssetRef FindModAsset(std::string_view modname, std::string_view filename);
 
 AssetHandle OpenAsset(AssetRef &&ref, bool threadsafe = false);
 AssetHandle OpenAsset(std::string_view filename, bool threadsafe = false);

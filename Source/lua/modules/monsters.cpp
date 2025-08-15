@@ -15,9 +15,9 @@ namespace devilution {
 
 namespace {
 
-void AddMonsterDataFromTsv(const std::string_view modname, const std::string_view path)
+void AddMonsterDataFromTsv(const std::string_view path)
 {
-	DataFile dataFile = DataFile::loadFromModOrDie(modname, path);
+	DataFile dataFile = DataFile::loadOrDie(path);
 	LoadMonstDatFromFile(dataFile, path);
 }
 
@@ -77,7 +77,7 @@ void AddUniqueMonsterData(const std::string_view type, const std::string_view na
 sol::table LuaMonstersModule(sol::state_view &lua)
 {
 	sol::table table = lua.create_table();
-	LuaSetDocFn(table, "addMonsterDataFromTsv", "(modname: string, path: string)", AddMonsterDataFromTsv);
+	LuaSetDocFn(table, "addMonsterDataFromTsv", "(path: string)", AddMonsterDataFromTsv);
 	LuaSetDocFn(table, "addUniqueMonsterData", "(type: string, name: string, trn: string, level: number, maxHp: number, ai: string, intelligence: number, minDamage: number, maxDamage: number, resistance: string, monsterPack: string, customToHit: number = nil, customArmorClass: number = nil)", AddUniqueMonsterData);
 	return table;
 }
