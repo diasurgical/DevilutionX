@@ -226,10 +226,12 @@ else()
     endforeach()
   endif()
 
-  add_trim_command(
+  add_trim_target(devilutionx_trim_assets
     ROOT_FOLDER "${DEVILUTIONX_ASSETS_OUTPUT_DIRECTORY}"
     CURRENT_FILES ${DEVILUTIONX_MPQ_FILES})
-  add_custom_target(devilutionx_trim_assets DEPENDS "${TRIM_COMMAND_OUTPUT}")
+  if(devilutionx_lang_targets)
+    add_dependencies(devilutionx_trim_assets ${devilutionx_lang_targets})
+  endif()
 
   if(BUILD_ASSETS_MPQ)
     set(DEVILUTIONX_MPQ "${CMAKE_CURRENT_BINARY_DIR}/devilutionx.mpq")

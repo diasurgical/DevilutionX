@@ -20,10 +20,9 @@ function(trim_retired_files root_folder current_files output_file)
   endif()
 endfunction(trim_retired_files)
 
-function(add_trim_command)
+function(add_trim_target arg_TARGET_NAME)
   set(oneValueArgs
     ROOT_FOLDER
-    OUTPUT
     BYPRODUCT
     SCRIPT_PATH)
 
@@ -35,9 +34,6 @@ function(add_trim_command)
   endif()
   if(NOT arg_OUTPUT OR NOT arg_BYPRODUCT OR NOT arg_SCRIPT_PATH)
     cmake_path(GET arg_ROOT_FOLDER FILENAME root_filename)
-    if(NOT arg_OUTPUT)
-      set(arg_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${root_filename}.dne")
-    endif()
     if(NOT arg_BYPRODUCT)
       set(arg_BYPRODUCT "${CMAKE_CURRENT_BINARY_DIR}/${root_filename}.rm")
     endif()
@@ -51,14 +47,9 @@ function(add_trim_command)
     endif()
   endif()
 
-  # Mark the output file as SYMBOLIC to indicate that it will not be created by the command.
-  # Since its output file is never created, this command should execute on every build.
-  set_source_files_properties("${arg_OUTPUT}" PROPERTIES SYMBOLIC true)
-
   file(GENERATE OUTPUT "${arg_SCRIPT_PATH}" CONTENT "${SCRIPT_CONTENT}")
-  add_custom_command(
+  add_custom_target("${arg_TARGET_NAME}"
     COMMENT "Trimming ${arg_ROOT_FOLDER}"
-    OUTPUT "${arg_OUTPUT}"
     BYPRODUCTS "${arg_BYPRODUCT}"
     COMMAND ${CMAKE_COMMAND}
       -D "CMAKE_MODULE_PATH=${CMAKE_MODULE_PATH}"
@@ -68,6 +59,5 @@ function(add_trim_command)
       -P "${arg_SCRIPT_PATH}"
     VERBATIM)
 
-  set(TRIM_COMMAND_OUTPUT "${arg_OUTPUT}" PARENT_SCOPE)
   set(TRIM_COMMAND_BYPRODUCT "${arg_BYPRODUCT}" PARENT_SCOPE)
-endfunction(add_trim_command)
+endfunction(add_trim_target)
