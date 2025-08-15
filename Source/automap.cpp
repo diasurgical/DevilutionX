@@ -1434,26 +1434,25 @@ void DrawAutomapText(const Surface &out)
 
 	if (setlevel) {
 		DrawString(out, _(QuestLevelNames[setlvlnum]), linePosition);
-		return;
+	} else {
+		std::string description;
+		switch (leveltype) {
+		case DTYPE_NEST:
+			description = fmt::format(fmt::runtime(_("Level: Nest {:d}")), currlevel - 16);
+			break;
+		case DTYPE_CRYPT:
+			description = fmt::format(fmt::runtime(_("Level: Crypt {:d}")), currlevel - 20);
+			break;
+		case DTYPE_TOWN:
+			description = std::string(_("Town"));
+			break;
+		default:
+			description = fmt::format(fmt::runtime(_("Level: {:d}")), currlevel);
+			break;
+		}
+		DrawString(out, description, linePosition);
 	}
 
-	std::string description;
-	switch (leveltype) {
-	case DTYPE_NEST:
-		description = fmt::format(fmt::runtime(_("Level: Nest {:d}")), currlevel - 16);
-		break;
-	case DTYPE_CRYPT:
-		description = fmt::format(fmt::runtime(_("Level: Crypt {:d}")), currlevel - 20);
-		break;
-	case DTYPE_TOWN:
-		description = std::string(_("Town"));
-		break;
-	default:
-		description = fmt::format(fmt::runtime(_("Level: {:d}")), currlevel);
-		break;
-	}
-
-	DrawString(out, description, linePosition);
 	linePosition.y += 15;
 	std::string_view difficulty;
 	switch (sgGameInitInfo.nDifficulty) {
