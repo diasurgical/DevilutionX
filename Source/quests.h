@@ -91,7 +91,7 @@ struct Quest {
 	uint8_t _qvar1;
 	uint8_t _qvar2;
 
-	bool IsAvailable();
+	bool IsAvailable() const;
 };
 
 struct QuestData {

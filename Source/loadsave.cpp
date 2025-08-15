@@ -130,7 +130,7 @@ public:
 		    && m_size_ >= (m_cur_ + size);
 	}
 
-	size_t Size()
+	size_t Size() const
 	{
 		return m_size_;
 	}

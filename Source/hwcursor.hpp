@@ -77,7 +77,7 @@ public:
 		enabled_ = value;
 	}
 
-	[[nodiscard]] bool needsReinitialization()
+	[[nodiscard]] bool needsReinitialization() const
 	{
 		return needs_reinitialization_;
 	}

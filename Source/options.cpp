@@ -294,9 +294,9 @@ void OptionEntryBoolean::SaveToIni(std::string_view category) const
 {
 	ini->set(category, key, value);
 }
-void OptionEntryBoolean::SetValue(bool value)
+void OptionEntryBoolean::SetValue(bool newValue)
 {
-	this->value = value;
+	this->value = newValue;
 	this->NotifyValueChanged();
 }
 OptionEntryType OptionEntryBoolean::GetType() const
@@ -325,14 +325,14 @@ void OptionEntryEnumBase::SaveToIni(std::string_view category) const
 {
 	ini->set(category, key, value);
 }
-void OptionEntryEnumBase::SetValueInternal(int value)
+void OptionEntryEnumBase::SetValueInternal(int newValue)
 {
-	this->value = value;
+	this->value = newValue;
 	this->NotifyValueChanged();
 }
-void OptionEntryEnumBase::AddEntry(int value, std::string_view name)
+void OptionEntryEnumBase::AddEntry(int entryValue, std::string_view name)
 {
-	entryValues.push_back(value);
+	entryValues.push_back(entryValue);
 	entryNames.push_back(name);
 }
 size_t OptionEntryEnumBase::GetListSize() const
@@ -368,14 +368,14 @@ void OptionEntryIntBase::SaveToIni(std::string_view category) const
 {
 	ini->set(category, key, value);
 }
-void OptionEntryIntBase::SetValueInternal(int value)
+void OptionEntryIntBase::SetValueInternal(int newValue)
 {
-	this->value = value;
+	this->value = newValue;
 	this->NotifyValueChanged();
 }
-void OptionEntryIntBase::AddEntry(int value)
+void OptionEntryIntBase::AddEntry(int entryValue)
 {
-	entryValues.push_back(value);
+	entryValues.push_back(entryValue);
 }
 size_t OptionEntryIntBase::GetListSize() const
 {
@@ -384,8 +384,8 @@ size_t OptionEntryIntBase::GetListSize() const
 std::string_view OptionEntryIntBase::GetListDescription(size_t index) const
 {
 	if (entryNames.empty()) {
-		for (auto value : entryValues) {
-			entryNames.push_back(StrCat(value));
+		for (auto entryValue : entryValues) {
+			entryNames.push_back(StrCat(entryValue));
 		}
 	}
 	return entryNames[index].data();

@@ -1925,7 +1925,7 @@ void Player::UpdatePreviewCelSprite(_cmd_id cmdId, Point point, uint16_t wParam1
 
 	if (minimalWalkDistance >= 0 && position.future != point) {
 		int8_t testWalkPath[MaxPathLengthPlayer];
-		int steps = FindPath(CanStep, [this](Point position) { return PosOkPlayer(*this, position); }, position.future, point, testWalkPath, MaxPathLengthPlayer);
+		int steps = FindPath(CanStep, [this](Point tile) { return PosOkPlayer(*this, tile); }, position.future, point, testWalkPath, MaxPathLengthPlayer);
 		if (steps == 0) {
 			// Can't walk to desired location => stand still
 			return;
@@ -2001,11 +2001,11 @@ int32_t Player::calculateBaseMana() const
 	return attr.adjMana + (attr.lvlMana * getCharacterLevel()) + (attr.chrMana * _pBaseMag);
 }
 
-void Player::occupyTile(Point position, bool isMoving) const
+void Player::occupyTile(Point tilePosition, bool isMoving) const
 {
 	int16_t id = this->getId();
 	id += 1;
-	dPlayer[position.x][position.y] = isMoving ? -id : id;
+	dPlayer[tilePosition.x][tilePosition.y] = isMoving ? -id : id;
 }
 
 bool Player::isLevelOwnedByLocalClient() const

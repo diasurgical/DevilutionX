@@ -3428,9 +3428,9 @@ tl::expected<void, std::string> InitMonsterGFX(CMonster &monsterType, MonsterSpr
 		}
 		const uint32_t begin = spritesData.offsets[j];
 		const uint32_t end = spritesData.offsets[j + 1];
-		auto spritesData = reinterpret_cast<uint8_t *>(&monsterType.animData[begin]);
-		const uint16_t numLists = GetNumListsFromClxListOrSheetBuffer(spritesData, end - begin);
-		monsterType.anims[i].sprites = ClxSpriteListOrSheet { spritesData, numLists };
+		auto animSpritesData = reinterpret_cast<uint8_t *>(&monsterType.animData[begin]);
+		const uint16_t numLists = GetNumListsFromClxListOrSheetBuffer(animSpritesData, end - begin);
+		monsterType.anims[i].sprites = ClxSpriteListOrSheet { animSpritesData, numLists };
 		++j;
 	}
 
@@ -4786,9 +4786,9 @@ Monster *Monster::getLeader() const
 	return &Monsters[leader];
 }
 
-void Monster::setLeader(const Monster *leader)
+void Monster::setLeader(const Monster *newLeader)
 {
-	if (leader == nullptr) {
+	if (newLeader == nullptr) {
 		// really we should update this->leader to NoLeader to avoid leaving a dangling reference to a dead monster
 		// when passed nullptr. So that buffed minions are drawn with a distinct colour in monhealthbar we leave the
 		// reference and hope that no code tries to modify the leader through this instance later.
@@ -4796,9 +4796,9 @@ void Monster::setLeader(const Monster *leader)
 		return;
 	}
 
-	this->leader = static_cast<uint8_t>(leader->getId());
+	this->leader = static_cast<uint8_t>(newLeader->getId());
 	leaderRelation = LeaderRelation::Leashed;
-	ai = leader->ai;
+	ai = newLeader->ai;
 }
 
 [[nodiscard]] unsigned Monster::distanceToEnemy() const
@@ -4935,10 +4935,10 @@ unsigned int Monster::toHitSpecial(_difficulty difficulty) const
 	return baseToHitSpecial;
 }
 
-void Monster::occupyTile(Point position, bool isMoving) const
+void Monster::occupyTile(Point tile, bool isMoving) const
 {
 	int16_t id = static_cast<int16_t>(this->getId() + 1);
-	dMonster[position.x][position.y] = isMoving ? -id : id;
+	dMonster[tile.x][tile.y] = isMoving ? -id : id;
 }
 
 } // namespace devilution

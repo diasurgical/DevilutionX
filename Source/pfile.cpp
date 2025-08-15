@@ -254,11 +254,11 @@ struct CompareInfo {
 struct CompareCounter {
 	int reference;
 	int actual;
-	int max()
+	int max() const
 	{
 		return std::max(reference, actual);
 	}
-	void checkIfDataExists(int count, CompareInfo &compareInfoReference, CompareInfo &compareInfoActual)
+	void checkIfDataExists(int count, CompareInfo &compareInfoReference, CompareInfo &compareInfoActual) const
 	{
 		if (reference == count)
 			compareInfoReference.dataExists = false;

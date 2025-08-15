@@ -145,10 +145,10 @@ struct AutomapTile {
 	}
 
 	template <typename... Args>
-	[[nodiscard]] DVL_ALWAYS_INLINE constexpr bool hasAnyFlag(Flags flag, Args... flags)
+	[[nodiscard]] DVL_ALWAYS_INLINE constexpr bool hasAnyFlag(Flags flag, Args... testFlags)
 	{
 		return (static_cast<uint8_t>(this->flags)
-		           & (static_cast<uint8_t>(flag) | ... | static_cast<uint8_t>(flags)))
+		           & (static_cast<uint8_t>(flag) | ... | static_cast<uint8_t>(testFlags)))
 		    != 0;
 	}
 };

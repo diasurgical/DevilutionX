@@ -3158,11 +3158,11 @@ Item *SpawnUnique(_unique_items uid, Point position, std::optional<int> level /*
 		if (level)
 			curlv = *level;
 		const ItemData &uniqueItemData = AllItemsList[idx];
-		_item_indexes idx = GetItemIndexForDroppableItem(false, [&uniqueItemData](const ItemData &item) {
+		_item_indexes dropIdx = GetItemIndexForDroppableItem(false, [&uniqueItemData](const ItemData &item) {
 			return item.itype == uniqueItemData.itype;
 		});
-		SetupAllItems(*MyPlayer, item, idx, AdvanceRndSeed(), curlv * 2, 15, true, false);
-		TryRandomUniqueItem(item, idx, curlv * 2, 15, true, false);
+		SetupAllItems(*MyPlayer, item, dropIdx, AdvanceRndSeed(), curlv * 2, 15, true, false);
+		TryRandomUniqueItem(item, dropIdx, curlv * 2, 15, true, false);
 		SetupItem(item);
 	}
 

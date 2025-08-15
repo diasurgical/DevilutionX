@@ -349,16 +349,16 @@ void CheckQuests()
 			StartPWaterPurify();
 		}
 	} else if (MyPlayer->_pmode == PM_STAND) {
-		for (auto &quest : Quests) {
-			if (currlevel == quest._qlevel
-			    && quest._qslvl != 0
-			    && quest._qactive != QUEST_NOTAVAIL
-			    && MyPlayer->position.tile == quest.position
-			    && (quest._qidx != Q_BETRAYER || quest._qvar1 >= 3)) {
-				if (quest._qlvltype != DTYPE_NONE) {
-					setlvltype = quest._qlvltype;
+		for (auto &currentQuest : Quests) {
+			if (currlevel == currentQuest._qlevel
+			    && currentQuest._qslvl != 0
+			    && currentQuest._qactive != QUEST_NOTAVAIL
+			    && MyPlayer->position.tile == currentQuest.position
+			    && (currentQuest._qidx != Q_BETRAYER || currentQuest._qvar1 >= 3)) {
+				if (currentQuest._qlvltype != DTYPE_NONE) {
+					setlvltype = currentQuest._qlvltype;
 				}
-				StartNewLvl(*MyPlayer, WM_DIABSETLVL, quest._qslvl);
+				StartNewLvl(*MyPlayer, WM_DIABSETLVL, currentQuest._qslvl);
 			}
 		}
 	}
@@ -934,7 +934,7 @@ bool UseMultiplayerQuests()
 	return sgGameInitInfo.fullQuests == 0;
 }
 
-bool Quest::IsAvailable()
+bool Quest::IsAvailable() const
 {
 	if (setlevel)
 		return false;
