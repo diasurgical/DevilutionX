@@ -336,7 +336,7 @@ struct Monster { // note: missing field _mAFNum
 	std::string_view name() const
 	{
 		if (uniqueType != UniqueMonsterType::None)
-			return pgettext("monster", UniqueMonstersData[static_cast<int8_t>(uniqueType)].mName);
+			return pgettext("monster", UniqueMonstersData[static_cast<size_t>(uniqueType)].mName);
 
 		return pgettext("monster", data().name);
 	}
@@ -390,7 +390,7 @@ struct Monster { // note: missing field _mAFNum
 	{
 		unsigned int baseLevel = data().level;
 		if (isUnique()) {
-			baseLevel = UniqueMonstersData[static_cast<int8_t>(uniqueType)].mlevel;
+			baseLevel = UniqueMonstersData[static_cast<size_t>(uniqueType)].mlevel;
 			if (baseLevel != 0) {
 				baseLevel *= 2;
 			} else {
