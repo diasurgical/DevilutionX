@@ -8,6 +8,7 @@
 #include <cstdint>
 
 #include <ankerl/unordered_dense.h>
+#include <expected.hpp>
 #include <fmt/format.h>
 #include <magic_enum/magic_enum.hpp>
 
@@ -219,8 +220,6 @@ namespace {
 /** Contains the mapping between monster ID strings and indices, used for parsing additional monster data. */
 ankerl::unordered_dense::map<std::string, int16_t> AdditionalMonsterIdStringsToIndices;
 
-} // namespace
-
 tl::expected<_monster_id, std::string> ParseMonsterId(std::string_view value)
 {
 	const std::optional<_monster_id> enumValueOpt = magic_enum::enum_cast<_monster_id>(value);
@@ -233,8 +232,6 @@ tl::expected<_monster_id, std::string> ParseMonsterId(std::string_view value)
 	}
 	return tl::make_unexpected("Unknown enum value");
 }
-
-namespace {
 
 tl::expected<_monster_id, std::string> ParseMonsterIdIfNotEmpty(std::string_view value)
 {
@@ -252,8 +249,6 @@ tl::expected<MonsterAvailability, std::string> ParseMonsterAvailability(std::str
 	if (value == "Retail") return MonsterAvailability::Retail;
 	return tl::make_unexpected("Expected one of: Always, Never, or Retail");
 }
-
-} // namespace
 
 tl::expected<MonsterAIID, std::string> ParseAiId(std::string_view value)
 {
@@ -300,8 +295,6 @@ tl::expected<MonsterAIID, std::string> ParseAiId(std::string_view value)
 	return tl::make_unexpected("Unknown enum value");
 }
 
-namespace {
-
 tl::expected<monster_flag, std::string> ParseMonsterFlag(std::string_view value)
 {
 	if (value == "HIDDEN") return MFLAG_HIDDEN;
@@ -327,8 +320,6 @@ tl::expected<MonsterClass, std::string> ParseMonsterClass(std::string_view value
 	return tl::make_unexpected("Unknown enum value");
 }
 
-} // namespace
-
 tl::expected<monster_resistance, std::string> ParseMonsterResistance(std::string_view value)
 {
 	if (value == "RESIST_MAGIC") return RESIST_MAGIC;
@@ -340,8 +331,6 @@ tl::expected<monster_resistance, std::string> ParseMonsterResistance(std::string
 	if (value == "IMMUNE_ACID") return IMMUNE_ACID;
 	return tl::make_unexpected("Unknown enum value");
 }
-
-namespace {
 
 tl::expected<SelectionRegion, std::string> ParseSelectionRegion(std::string_view value)
 {
@@ -363,8 +352,6 @@ tl::expected<uint16_t, std::string> ParseMonsterTreasure(std::string_view value)
 	return tl::make_unexpected("Invalid value. NOTE: Parser is incomplete");
 }
 
-} // namespace
-
 tl::expected<UniqueMonsterPack, std::string> ParseUniqueMonsterPack(std::string_view value)
 {
 	if (value == "None") return UniqueMonsterPack::None;
@@ -372,6 +359,8 @@ tl::expected<UniqueMonsterPack, std::string> ParseUniqueMonsterPack(std::string_
 	if (value == "Leashed") return UniqueMonsterPack::Leashed;
 	return tl::make_unexpected("Unknown enum value");
 }
+
+} // namespace
 
 void LoadMonstDatFromFile(DataFile &dataFile, const std::string_view filename)
 {
@@ -464,14 +453,14 @@ void LoadMonstDat()
 	LuaEvent("MonsterDataLoaded");
 }
 
-void LoadUniqueMonstDat()
+} // namespace
+
+void LoadUniqueMonstDatFromFile(DataFile &dataFile, std::string_view filename)
 {
-	const std::string_view filename = "txtdata\\monsters\\unique_monstdat.tsv";
-	DataFile dataFile = DataFile::loadOrDie(filename);
 	dataFile.skipHeaderOrDie(filename);
 
-	UniqueMonstersData.clear();
-	UniqueMonstersData.reserve(dataFile.numRecords());
+	UniqueMonstersData.reserve(UniqueMonstersData.size() + dataFile.numRecords());
+
 	for (DataFileRecord record : dataFile) {
 		RecordReader reader { record, filename };
 		UniqueMonsterData &monster = UniqueMonstersData.emplace_back();
@@ -504,6 +493,17 @@ void LoadUniqueMonstDat()
 	}
 
 	UniqueMonstersData.shrink_to_fit();
+}
+
+namespace {
+
+void LoadUniqueMonstDat()
+{
+	const std::string_view filename = "txtdata\\monsters\\unique_monstdat.tsv";
+	DataFile dataFile = DataFile::loadOrDie(filename);
+
+	UniqueMonstersData.clear();
+	LoadUniqueMonstDatFromFile(dataFile, filename);
 
 	LuaEvent("UniqueMonsterDataLoaded");
 }
