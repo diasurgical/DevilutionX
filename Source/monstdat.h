@@ -99,44 +99,44 @@ struct MonsterData {
 	std::string name;
 	std::string soundSuffix;
 	std::string trnFile;
-	uint16_t spriteId;
-	MonsterAvailability availability;
-	uint16_t width;
-	uint16_t image;
-	bool hasSpecial;
-	bool hasSpecialSound;
-	int8_t frames[6];
-	int8_t rate[6];
-	int8_t minDunLvl;
-	int8_t maxDunLvl;
-	int8_t level;
-	uint16_t hitPointsMinimum;
-	uint16_t hitPointsMaximum;
-	MonsterAIID ai;
+	uint16_t spriteId = 0;
+	MonsterAvailability availability = MonsterAvailability::Never;
+	uint16_t width = 0;
+	uint16_t image = 0;
+	bool hasSpecial = false;
+	bool hasSpecialSound = false;
+	int8_t frames[6] {};
+	int8_t rate[6] {};
+	int8_t minDunLvl = 0;
+	int8_t maxDunLvl = 0;
+	int8_t level = 0;
+	uint16_t hitPointsMinimum = 0;
+	uint16_t hitPointsMaximum = 0;
+	MonsterAIID ai = MonsterAIID::Invalid;
 	/**
 	 * @brief Denotes monster's abilities defined in @p monster_flag as bitflags
 	 * For usage, see @p MonstersData in monstdat.cpp
 	 */
-	uint16_t abilityFlags;
-	uint8_t intelligence;
-	uint8_t toHit;
-	int8_t animFrameNum;
-	uint8_t minDamage;
-	uint8_t maxDamage;
-	uint8_t toHitSpecial;
-	int8_t animFrameNumSpecial;
-	uint8_t minDamageSpecial;
-	uint8_t maxDamageSpecial;
-	uint8_t armorClass;
-	MonsterClass monsterClass;
+	uint16_t abilityFlags = 0;
+	uint8_t intelligence = 0;
+	uint8_t toHit = 0;
+	int8_t animFrameNum = 0;
+	uint8_t minDamage = 0;
+	uint8_t maxDamage = 0;
+	uint8_t toHitSpecial = 0;
+	int8_t animFrameNumSpecial = 0;
+	uint8_t minDamageSpecial = 0;
+	uint8_t maxDamageSpecial = 0;
+	uint8_t armorClass = 0;
+	MonsterClass monsterClass {};
 	/** Using monster_resistance as bitflags */
-	uint8_t resistance;
+	uint8_t resistance = 0;
 	/** Using monster_resistance as bitflags */
-	uint8_t resistanceHell;
-	SelectionRegion selectionRegion;
+	uint8_t resistanceHell = 0;
+	SelectionRegion selectionRegion = SelectionRegion::None;
 	/** Using monster_treasure */
-	uint16_t treasure;
-	uint16_t exp;
+	uint16_t treasure = 0;
+	uint16_t exp = 0;
 
 	[[nodiscard]] const char *spritePath() const;
 

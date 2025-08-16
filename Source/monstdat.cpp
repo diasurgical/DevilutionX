@@ -384,18 +384,22 @@ void LoadMonstDatFromFile(DataFile &dataFile, const std::string_view filename)
 		}
 
 		RecordReader reader { record, filename };
-		const size_t monsterIndex = MonstersData.size();
-		MonsterData &monster = MonstersData.emplace_back();
-		if (static_cast<_monster_id>(monsterIndex) < NUM_DEFAULT_MTYPES) {
-			reader.advance(); // Skip the first column (monster ID).
-		} else {
-			std::string monsterId;
-			reader.readString("_monster_id", monsterId);
+
+		std::string monsterId;
+		reader.readString("_monster_id", monsterId);
+		const std::optional<_monster_id> monsterIdEnumValueOpt = magic_enum::enum_cast<_monster_id>(monsterId);
+
+		if (!monsterIdEnumValueOpt.has_value()) {
+			const size_t monsterIndex = MonstersData.size();
 			const auto [it, inserted] = AdditionalMonsterIdStringsToIndices.emplace(monsterId, static_cast<int16_t>(monsterIndex));
 			if (!inserted) {
 				DisplayFatalErrorAndExit(_("Loading Monster Data Failed"), fmt::format(fmt::runtime(_("A monster type already exists for ID \"{}\".")), monsterId));
 			}
 		}
+
+		// for hardcoded monsters, use their predetermined slot; for non-hardcoded ones, use the slots after that
+		MonsterData &monster = monsterIdEnumValueOpt.has_value() ? MonstersData[monsterIdEnumValueOpt.value()] : MonstersData.emplace_back();
+
 		reader.readString("name", monster.name);
 		{
 			std::string assetsSuffix;
@@ -453,6 +457,7 @@ void LoadMonstDat()
 	DataFile dataFile = DataFile::loadOrDie(filename);
 	MonstersData.clear();
 	AdditionalMonsterIdStringsToIndices.clear();
+	MonstersData.resize(NUM_DEFAULT_MTYPES); // ensure the hardcoded monster type slots are filled
 	LoadMonstDatFromFile(dataFile, filename);
 
 	LuaEvent("MonsterDataLoaded");
