@@ -354,7 +354,8 @@ tl::expected<SelectionRegion, std::string> ParseSelectionRegion(std::string_view
 
 tl::expected<uint16_t, std::string> ParseMonsterTreasure(std::string_view value)
 {
-	// TODO: Replace this hack with proper parsing once items have been migrated to data files.
+	// TODO: Replace this hack with proper parsing.
+
 	if (value.empty()) return 0;
 	if (value == "None") return T_NODROP;
 	if (value == "Uniq(SKCROWN)") return Uniq(UITEM_SKCROWN);
