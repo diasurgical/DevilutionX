@@ -5,15 +5,23 @@
  */
 #include "monstdat.h"
 
+#include <algorithm>
+#include <cstddef>
 #include <cstdint>
+#include <optional>
+#include <string>
+#include <string_view>
+#include <vector>
 
 #include <ankerl/unordered_dense.h>
 #include <expected.hpp>
-#include <fmt/format.h>
+#include <fmt/core.h>
 #include <magic_enum/magic_enum.hpp>
 
+#include "appfat.h"
 #include "cursor.h"
 #include "data/file.hpp"
+#include "data/iterators.hpp"
 #include "data/record_reader.hpp"
 #include "items.h"
 #include "lua/lua_global.hpp"

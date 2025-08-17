@@ -475,7 +475,7 @@ struct Monster { // note: missing field _mAFNum
 	 * @param position tile to update
 	 * @param isMoving specifies whether the monster is moving or not (true/moving results in a negative index in dMonster)
 	 */
-	void occupyTile(Point position, bool isMoving) const;
+	void occupyTile(Point tile, bool isMoving) const;
 };
 
 extern size_t LevelMonsterTypeCount;
@@ -500,13 +500,13 @@ void WeakenNaKrul();
 void InitGolems();
 tl::expected<void, std::string> InitMonsters();
 tl::expected<void, std::string> SetMapMonsters(const uint16_t *dunData, Point startPosition);
-Monster *AddMonster(Point position, Direction dir, size_t mtype, bool inMap);
+Monster *AddMonster(Point position, Direction dir, size_t typeIndex, bool inMap);
 /**
  * @brief Spawns a new monsters (dynamically/not on level load).
  * The command is only executed for the level owner, to prevent desyncs in multiplayer.
  * The level owner sends a CMD_SPAWNMONSTER-message to the other players.
  */
-void SpawnMonster(Point position, Direction dir, size_t typeIndex, bool startSpecialStand = false);
+void SpawnMonster(Point position, Direction dir, size_t typeIndex);
 /**
  * @brief Loads data for a dynamically spawned monster when entering a level in multiplayer.
  */
@@ -532,7 +532,7 @@ void M_UpdateRelations(const Monster &monster);
 void DoEnding();
 void PrepDoEnding();
 bool Walk(Monster &monster, Direction md);
-void GolumAi(Monster &monster);
+void GolumAi(Monster &golem);
 void DeleteMonsterList();
 void RemoveEnemyReferences(const Player &player);
 void ProcessMonsters();
