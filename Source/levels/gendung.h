@@ -59,6 +59,7 @@ inline bool IsArenaLevel(_setlevels setLevel)
 }
 
 tl::expected<dungeon_type, std::string> ParseDungeonType(std::string_view value);
+tl::expected<_setlevels, std::string> ParseSetLevel(std::string_view value);
 
 enum class DungeonFlag : uint8_t {
 	// clang-format off

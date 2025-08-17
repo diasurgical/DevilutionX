@@ -7,6 +7,9 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
+
+#include <expected.hpp>
 
 #include "sound_effect_enums.h"
 
@@ -422,6 +425,7 @@ enum _speech_id : int16_t {
 	TEXT_GRISWOLD36,
 	TEXT_GRISWOLD37,
 	*/
+	NUM_TEXT_IDS,
 	TEXT_NONE = -1,
 };
 
@@ -433,5 +437,7 @@ struct Speech {
 
 extern const size_t SpeechCount;
 extern const Speech Speeches[];
+
+tl::expected<_speech_id, std::string> ParseSpeechId(std::string_view value);
 
 } // namespace devilution

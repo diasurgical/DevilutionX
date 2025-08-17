@@ -236,6 +236,7 @@ void LuaReloadActiveMods()
 	LoadMonsterData();
 	LoadItemData();
 	LoadObjectData();
+	LoadQuestData();
 
 	LuaEvent("LoadModsComplete");
 }

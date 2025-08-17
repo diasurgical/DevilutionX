@@ -103,7 +103,7 @@ struct QuestData {
 	_setlevels _qslvl;
 	bool isSinglePlayerOnly;
 	_speech_id _qdmsg;
-	const char *_qlstr;
+	std::string _qlstr;
 };
 
 extern bool QuestLogIsOpen;
@@ -141,6 +141,8 @@ void SetMultiQuest(int q, quest_state s, bool log, int v1, int v2, int16_t qmsg)
 bool UseMultiplayerQuests();
 
 /* rdata */
-extern QuestData QuestsData[];
+extern std::vector<QuestData> QuestsData;
+
+void LoadQuestData();
 
 } // namespace devilution

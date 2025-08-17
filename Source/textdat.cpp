@@ -4,7 +4,16 @@
  * Implementation of all dialog texts.
  */
 #include "textdat.h"
+
+#include <magic_enum/magic_enum.hpp>
+
 #include "utils/language.h"
+
+template <>
+struct magic_enum::customize::enum_range<devilution::_speech_id> {
+	static constexpr int min = devilution::TEXT_NONE;
+	static constexpr int max = devilution::NUM_TEXT_IDS;
+};
 
 namespace devilution {
 
@@ -918,5 +927,14 @@ const Speech Speeches[] = {
 };
 
 const size_t SpeechCount = sizeof(Speeches) / sizeof(Speech);
+
+tl::expected<_speech_id, std::string> ParseSpeechId(std::string_view value)
+{
+	const std::optional<_speech_id> enumValueOpt = magic_enum::enum_cast<_speech_id>(value);
+	if (enumValueOpt.has_value()) {
+		return enumValueOpt.value();
+	}
+	return tl::make_unexpected("Unknown enum value");
+}
 
 } // namespace devilution

@@ -12,6 +12,8 @@
 #include "DiabloUI/ui_flags.hpp"
 #include "control.h"
 #include "cursor.h"
+#include "data/file.hpp"
+#include "data/record_reader.hpp"
 #include "engine/load_file.hpp"
 #include "engine/random.hpp"
 #include "engine/render/clx_render.hpp"
@@ -47,35 +49,7 @@ dungeon_type ReturnLevelType;
 int ReturnLevel;
 
 /** Contains the data related to each quest_id. */
-QuestData QuestsData[] = {
-	// clang-format off
-	// _qdlvl,  _qdmultlvl, _qlvlt,          bookOrder,   _qdrnd, _qslvl,          isSinglePlayerOnly, _qdmsg,        _qlstr
-	{       5,          -1, DTYPE_NONE,          5,      100,    SL_NONE,         true,               TEXT_INFRA5,   N_( /* TRANSLATORS: Quest Name Block */ "The Magic Rock")           },
-	{       9,          -1, DTYPE_NONE,         10,      100,    SL_NONE,         true,               TEXT_MUSH8,    N_("Black Mushroom")           },
-	{       4,          -1, DTYPE_NONE,          3,      100,    SL_NONE,         true,               TEXT_GARBUD1,  N_("Gharbad The Weak")         },
-	{       8,          -1, DTYPE_NONE,          9,      100,    SL_NONE,         true,               TEXT_ZHAR1,    N_("Zhar the Mad")             },
-	{      14,          -1, DTYPE_NONE,         21,      100,    SL_NONE,         true,               TEXT_VEIL9,    N_("Lachdanan")                },
-	{      15,          -1, DTYPE_NONE,         23,      100,    SL_NONE,         false,              TEXT_VILE3,    N_("Diablo")                   },
-	{       2,           2, DTYPE_NONE,          0,      100,    SL_NONE,         false,              TEXT_BUTCH9,   N_("The Butcher")              },
-	{       4,          -1, DTYPE_NONE,          4,      100,    SL_NONE,         true,               TEXT_BANNER2,  N_("Ogden's Sign")             },
-	{       7,          -1, DTYPE_NONE,          8,      100,    SL_NONE,         true,               TEXT_BLINDING, N_("Halls of the Blind")       },
-	{       5,          -1, DTYPE_NONE,          6,      100,    SL_NONE,         true,               TEXT_BLOODY,   N_("Valor")                    },
-	{      10,          -1, DTYPE_NONE,         11,      100,    SL_NONE,         true,               TEXT_ANVIL5,   N_("Anvil of Fury")            },
-	{      13,          -1, DTYPE_NONE,         20,      100,    SL_NONE,         true,               TEXT_BLOODWAR, N_("Warlord of Blood")         },
-	{       3,           3, DTYPE_CATHEDRAL,     2,      100,    SL_SKELKING,     false,              TEXT_KING2,    N_("The Curse of King Leoric") },
-	{       2,          -1, DTYPE_CAVES,         1,      100,    SL_POISONWATER,  true,               TEXT_POISON3,  N_("Poisoned Water Supply")    },
-	{       6,          -1, DTYPE_CATACOMBS,     7,      100,    SL_BONECHAMB,    true,               TEXT_BONER,    N_("The Chamber of Bone")      },
-	{      15,          15, DTYPE_CATHEDRAL,    22,      100,    SL_VILEBETRAYER, false,              TEXT_VILE1,    N_("Archbishop Lazarus")       },
-	{      17,          17, DTYPE_NONE,         17,      100,    SL_NONE,         false,              TEXT_GRAVE7,   N_("Grave Matters")            },
-	{      9,            9, DTYPE_NONE,         12,      100,    SL_NONE,         false,              TEXT_FARMER1,  N_("Farmer's Orchard")         },
-	{      17,          -1, DTYPE_NONE,         14,      100,    SL_NONE,         true,               TEXT_GIRL2,    N_("Little Girl")              },
-	{      19,          -1, DTYPE_NONE,         16,      100,    SL_NONE,         true,               TEXT_TRADER,   N_("Wandering Trader")         },
-	{      17,          17, DTYPE_NONE,         15,      100,    SL_NONE,         false,              TEXT_DEFILER1, N_("The Defiler")              },
-	{      21,          21, DTYPE_NONE,         19,      100,    SL_NONE,         false,              TEXT_NAKRUL1,  N_("Na-Krul")                  },
-	{      21,          -1, DTYPE_NONE,         18,      100,    SL_NONE,         true,               TEXT_CORNSTN,  N_("Cornerstone of the World") },
-	{       9,           9, DTYPE_NONE,         13,      100,    SL_NONE,         false,              TEXT_JERSEY4,  N_( /* TRANSLATORS: Quest Name Block end*/ "The Jersey's Jersey")      },
-	// clang-format on
-};
+std::vector<QuestData> QuestsData;
 
 namespace {
 
@@ -946,6 +920,42 @@ bool Quest::IsAvailable() const
 		return false;
 
 	return true;
+}
+
+namespace {
+
+void LoadQuestDatFromFile(DataFile &dataFile, std::string_view filename)
+{
+	dataFile.skipHeaderOrDie(filename);
+
+	QuestsData.reserve(QuestsData.size() + dataFile.numRecords());
+
+	for (DataFileRecord record : dataFile) {
+		RecordReader reader { record, filename };
+		QuestData &quest = QuestsData.emplace_back();
+		reader.readInt("qdlvl", quest._qdlvl);
+		reader.readInt("qdmultlvl", quest._qdmultlvl);
+		reader.read("qlvlt", quest._qlvlt, ParseDungeonType);
+		reader.readInt("bookOrder", quest.questBookOrder);
+		reader.readInt("qdrnd", quest._qdrnd);
+		reader.read("qslvl", quest._qslvl, ParseSetLevel);
+		reader.readBool("isSinglePlayerOnly", quest.isSinglePlayerOnly);
+		reader.read("qdmsg", quest._qdmsg, ParseSpeechId);
+		reader.readString("qlstr", quest._qlstr);
+	}
+}
+
+} // namespace
+
+void LoadQuestData()
+{
+	const std::string_view filename = "txtdata\\quests\\questdat.tsv";
+	DataFile dataFile = DataFile::loadOrDie(filename);
+
+	QuestsData.clear();
+	LoadQuestDatFromFile(dataFile, filename);
+
+	QuestsData.shrink_to_fit();
 }
 
 } // namespace devilution

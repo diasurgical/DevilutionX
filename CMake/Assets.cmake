@@ -173,6 +173,7 @@ set(devilutionx_assets
   txtdata/monsters/monstdat.tsv
   txtdata/monsters/unique_monstdat.tsv
   txtdata/objects/objdat.tsv
+  txtdata/quests/questdat.tsv
   txtdata/sound/effects.tsv
   txtdata/spells/spelldat.tsv
   ui_art/diablo.pal

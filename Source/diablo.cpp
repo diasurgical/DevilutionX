@@ -2675,6 +2675,7 @@ int DiabloMain(int argc, char **argv)
 	LoadMonsterData();
 	LoadItemData();
 	LoadObjectData();
+	LoadQuestData();
 
 	DiabloInit();
 #ifdef __UWP__

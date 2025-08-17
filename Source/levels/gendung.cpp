@@ -10,6 +10,7 @@
 
 #include <ankerl/unordered_dense.h>
 #include <expected.hpp>
+#include <magic_enum/magic_enum.hpp>
 
 #include "engine/clx_sprite.hpp"
 #include "engine/load_file.hpp"
@@ -841,6 +842,15 @@ tl::expected<dungeon_type, std::string> ParseDungeonType(std::string_view value)
 	if (value == "DTYPE_HELL") return DTYPE_HELL;
 	if (value == "DTYPE_NEST") return DTYPE_NEST;
 	if (value == "DTYPE_CRYPT") return DTYPE_CRYPT;
+	return tl::make_unexpected("Unknown enum value");
+}
+
+tl::expected<_setlevels, std::string> ParseSetLevel(std::string_view value)
+{
+	const std::optional<_setlevels> enumValueOpt = magic_enum::enum_cast<_setlevels>(value);
+	if (enumValueOpt.has_value()) {
+		return enumValueOpt.value();
+	}
 	return tl::make_unexpected("Unknown enum value");
 }
 
