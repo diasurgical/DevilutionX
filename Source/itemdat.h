@@ -15,7 +15,7 @@
 #include "spelldat.h"
 
 namespace devilution {
-	
+
 class DataFile;
 
 /** @todo add missing values and apply */
