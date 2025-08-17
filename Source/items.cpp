@@ -6,53 +6,85 @@
 #include "items.h"
 
 #include <algorithm>
-#ifdef _DEBUG
-#include <random>
-#endif
+#include <array>
+#include <cassert>
 #include <climits>
+#include <cstddef>
 #include <cstdint>
+#include <cstring>
+#include <optional>
+#include <string>
+#include <string_view>
+#include <type_traits>
+#include <utility>
+#include <vector>
 
+#include <SDL.h>
 #include <fmt/core.h>
-#include <fmt/format.h>
 
 #include "DiabloUI/ui_flags.hpp"
+#include "control.h"
 #include "controls/control_mode.hpp"
-#include "controls/plrctrls.h"
+#include "controls/controller_buttons.h"
 #include "cursor.h"
+#include "diablo.h"
 #include "doom.h"
+#include "effects.h"
+#include "engine/animationinfo.h"
 #include "engine/backbuffer_state.hpp"
 #include "engine/clx_sprite.hpp"
-#include "engine/dx.h"
 #include "engine/load_cel.hpp"
+#include "engine/path.h"
+#include "engine/point.hpp"
 #include "engine/random.hpp"
 #include "engine/render/clx_render.hpp"
 #include "engine/render/primitive_render.hpp"
 #include "engine/render/text_render.hpp"
+#include "engine/surface.hpp"
+#include "engine/world_tile.hpp"
+#include "function_ref.hpp"
 #include "game_mode.hpp"
 #include "headless_mode.hpp"
+#include "inv.h"
 #include "inv_iterators.hpp"
+#include "itemdat.h"
+#include "items/validation.h"
+#include "levels/gendung.h"
+#include "levels/gendung_defs.hpp"
 #include "levels/tile_properties.hpp"
 #include "levels/town.h"
 #include "lighting.h"
 #include "minitext.h"
-#include "missiles.h"
+#include "monstdat.h"
+#include "monster.h"
+#include "msg.h"
+#include "multi.h"
+#include "objdat.h"
+#include "objects.h"
 #include "options.h"
+#include "pack.h"
 #include "panels/info_box.hpp"
 #include "panels/ui_panels.hpp"
 #include "player.h"
 #include "playerdat.hpp"
 #include "qol/stash.h"
+#include "quests.h"
+#include "sound_effect_enums.h"
+#include "spelldat.h"
 #include "spells.h"
 #include "stores.h"
-#include "utils/algorithm/container.hpp"
+#include "textdat.h"
+#include "utils/enum_traits.h"
 #include "utils/format_int.hpp"
 #include "utils/is_of.hpp"
 #include "utils/language.h"
 #include "utils/log.hpp"
 #include "utils/math.h"
-#include "utils/str_case.hpp"
+#include "utils/sdl_geometry.h"
+#include "utils/static_vector.hpp"
 #include "utils/str_cat.hpp"
 #include "utils/str_split.hpp"
+#include "utils/string_or_view.hpp"
 #include "utils/utf8.hpp"
 
 namespace devilution {
@@ -1005,7 +1037,7 @@ int PLVal(int pv, int p1, int p2, int minv, int maxv)
 		return minv;
 	if (minv == maxv)
 		return minv;
-	return minv + (maxv - minv) * (100 * (pv - p1) / (p2 - p1)) / 100;
+	return minv + ((maxv - minv) * (100 * (pv - p1) / (p2 - p1)) / 100);
 }
 
 void SaveItemAffix(const Player &player, Item &item, const PLStruct &affix)
@@ -1121,10 +1153,12 @@ std::string GenerateMagicItemName(const std::string_view &baseNamel, const PLStr
 	if (pPrefix != nullptr && pSufix != nullptr) {
 		const std::string_view fmt = translate ? _(/* TRANSLATORS: Constructs item names. Format: {Prefix} {Item} of {Suffix}. Example: King's Long Sword of the Whale */ "{0} {1} of {2}") : "{0} {1} of {2}";
 		return fmt::format(fmt::runtime(fmt), translate ? _(pPrefix->PLName) : pPrefix->PLName, baseNamel, translate ? _(pSufix->PLName) : pSufix->PLName);
-	} else if (pPrefix != nullptr) {
+	}
+	if (pPrefix != nullptr) {
 		const std::string_view fmt = translate ? _(/* TRANSLATORS: Constructs item names. Format: {Prefix} {Item}. Example: King's Long Sword */ "{0} {1}") : "{0} {1}";
 		return fmt::format(fmt::runtime(fmt), translate ? _(pPrefix->PLName) : pPrefix->PLName, baseNamel);
-	} else if (pSufix != nullptr) {
+	}
+	if (pSufix != nullptr) {
 		const std::string_view fmt = translate ? _(/* TRANSLATORS: Constructs item names. Format: {Item} of {Suffix}. Example: Long Sword of the Whale */ "{0} of {1}") : "{0} of {1}";
 		return fmt::format(fmt::runtime(fmt), baseNamel, translate ? _(pSufix->PLName) : pSufix->PLName);
 	}
@@ -1269,8 +1303,7 @@ void GetOilType(Item &item, int maxLvl)
 
 void GetItemBonus(const Player &player, Item &item, int minlvl, int maxlvl, bool onlygood, bool allowspells)
 {
-	if (minlvl > 25)
-		minlvl = 25;
+	minlvl = std::min(minlvl, 25);
 
 	switch (item._itype) {
 	case ItemType::Sword:
@@ -1331,7 +1364,7 @@ _item_indexes GetItemIndexForDroppableItem(bool considerDropRate, tl::function_r
 		cumulativeWeight += considerDropRate ? item.dropRate : 1;
 		ril.push_back({ static_cast<_item_indexes>(i), cumulativeWeight });
 	}
-	const unsigned targetWeight = static_cast<unsigned>(RandomIntLessThan(static_cast<int>(cumulativeWeight)));
+	const auto targetWeight = static_cast<unsigned>(RandomIntLessThan(static_cast<int>(cumulativeWeight)));
 	return std::upper_bound(ril.begin(), ril.end(), targetWeight, [](unsigned target, const WeightedItemIndex &value) { return target < value.cumulativeWeight; })->index;
 }
 
@@ -1830,7 +1863,7 @@ void PrintItemInfo(const Item &item)
 	}
 }
 
-bool SmithItemOk(const Player &player, const ItemData &item)
+bool SmithItemOk(const Player & /*player*/, const ItemData &item)
 {
 	if (item.itype == ItemType::Misc)
 		return false;
@@ -1872,7 +1905,7 @@ void SortVendor(Item *itemList, size_t count)
 	std::sort(itemList, itemList + count, cmp);
 }
 
-bool PremiumItemOk(const Player &player, const ItemData &item)
+bool PremiumItemOk(const Player & /*player*/, const ItemData &item)
 {
 	if (item.itype == ItemType::Misc)
 		return false;
@@ -1971,7 +2004,7 @@ void SpawnOnePremium(Item &premiumItem, int plvl, const Player &player)
 	premiumItem._iStatFlag = player.CanUseItem(premiumItem);
 }
 
-bool WitchItemOk(const Player &player, const ItemData &item)
+bool WitchItemOk(const Player & /*player*/, const ItemData &item)
 {
 	if (IsNoneOf(item.itype, ItemType::Misc, ItemType::Staff))
 		return false;
@@ -2178,12 +2211,15 @@ StringOrView GetTranslatedItemName(const Item &item)
 
 	if (item._iCreateInfo == 0) {
 		return _(baseItemData.iName);
-	} else if (item._iMiscId == IMISC_BOOK) {
+	}
+	if (item._iMiscId == IMISC_BOOK) {
 		const std::string_view spellName = pgettext("spell", GetSpellData(item._iSpell).sNameText);
 		return fmt::format(fmt::runtime(_(/* TRANSLATORS: {:s} will be a spell name */ "Book of {:s}")), spellName);
-	} else if (item._iMiscId == IMISC_EAR) {
+	}
+	if (item._iMiscId == IMISC_EAR) {
 		return fmt::format(fmt::runtime(_(/* TRANSLATORS: {:s} will be a Character Name */ "Ear of {:s}")), item._iIName);
-	} else if (item._iMiscId > IMISC_OILFIRST && item._iMiscId < IMISC_OILLAST) {
+	}
+	if (item._iMiscId > IMISC_OILFIRST && item._iMiscId < IMISC_OILLAST) {
 		for (size_t i = 0; i < 10; i++) {
 			if (OilMagic[i] != item._iMiscId)
 				continue;
@@ -2229,14 +2265,13 @@ std::string GetTranslatedItemNameMagical(const Item &item, bool hellfireItem, bo
 		maxlvl = iblvl;
 	} else {
 		DiscardRandomValues(1); // GetItemAttrs
-		const int iblvl = GetItemBLevel(lvl, item._iMiscId, onlygood, item._iCreateInfo & CF_UPER15);
+		const int iblvl = GetItemBLevel(lvl, item._iMiscId, onlygood, (item._iCreateInfo & CF_UPER15) != 0);
 		minlvl = iblvl / 2;
 		maxlvl = iblvl;
 		DiscardRandomValues(1); // CheckUnique
 	}
 
-	if (minlvl > 25)
-		minlvl = 25;
+	minlvl = std::min(minlvl, 25);
 
 	AffixItemType affixItemType = AffixItemType::None;
 
@@ -2900,7 +2935,7 @@ void InitializeItem(Item &item, _item_indexes itemData)
 	item._iPrePower = IPL_INVALID;
 	item._iSufPower = IPL_INVALID;
 	item._iMagical = ITEM_QUALITY_NORMAL;
-	item.IDidx = static_cast<_item_indexes>(itemData);
+	item.IDidx = itemData;
 	if (gbIsHellfire)
 		item.dwBuff |= CF_HELLFIRE;
 }
@@ -3046,13 +3081,13 @@ uint8_t PlaceItemInWorld(Item &&item, WorldTilePosition position)
 	ActiveItemCount++;
 
 	dItem[position.x][position.y] = static_cast<int8_t>(ii + 1);
-	auto &item_ = Items[ii];
-	item_ = std::move(item);
-	item_.position = position;
-	RespawnItem(item_, true);
+	auto &newItem = Items[ii];
+	newItem = std::move(item);
+	newItem.position = position;
+	RespawnItem(newItem, true);
 
 	if (CornerStone.isAvailable() && position == CornerStone.position) {
-		CornerStone.item = item_;
+		CornerStone.item = newItem;
 		InitQTextMsg(TEXT_CORNSTN);
 		Quests[Q_CORNSTN]._qactive = QUEST_DONE;
 	}
@@ -3371,7 +3406,8 @@ void SpawnItem(Monster &monster, Point position, bool sendmsg, bool spawn /*= fa
 		if (uniqueItem != nullptr && sendmsg)
 			NetSendCmdPItem(false, CMD_DROPITEM, uniqueItem->position, *uniqueItem);
 		return;
-	} else if (monster.isUnique() || dropsSpecialTreasure) {
+	}
+	if (monster.isUnique() || dropsSpecialTreasure) {
 		// Unique monster is killed => use better item base (for example no gold)
 		idx = RndUItem(&monster);
 	} else if (dropBrain && !gbIsMultiplayer) {
@@ -3408,7 +3444,7 @@ void SpawnItem(Monster &monster, Point position, bool sendmsg, bool spawn /*= fa
 	const int uper = monster.isUnique() ? 15 : 1;
 
 	const int8_t mLevel = monster.data().level;
-	SetupAllItems(*MyPlayer, item, idx, AdvanceRndSeed(), mLevel, uper, onlygood, false, false);
+	SetupAllItems(*MyPlayer, item, idx, AdvanceRndSeed(), mLevel, uper, onlygood, false);
 	TryRandomUniqueItem(item, idx, mLevel, uper, onlygood, false);
 	SetupItem(item);
 
@@ -4041,7 +4077,7 @@ void DrawUniqueInfo(const Surface &out)
 	DrawString(out, _(uitem.UIName), rect, { .flags = UiFlags::AlignCenter });
 
 	const Rectangle dividerLineRect { position + Displacement { 26, 25 }, { 267, 3 } };
-	out.BlitFrom(out, MakeSdlRect(dividerLineRect), dividerLineRect.position + Displacement { 0, 5 * 12 + 13 });
+	out.BlitFrom(out, MakeSdlRect(dividerLineRect), dividerLineRect.position + Displacement { 0, (5 * 12) + 13 });
 
 	rect.position.y += (10 - uitem.UINumPL) * 12;
 	assert(uitem.UINumPL <= sizeof(uitem.powers) / sizeof(*uitem.powers));
@@ -4781,13 +4817,14 @@ StringOrView Item::getName() const
 {
 	if (isEmpty()) {
 		return std::string_view("");
-	} else if (!_iIdentified || _iCreateInfo == 0 || _iMagical == ITEM_QUALITY_NORMAL) {
-		return GetTranslatedItemName(*this);
-	} else if (_iMagical == ITEM_QUALITY_UNIQUE) {
-		return _(UniqueItems[_iUid].UIName);
-	} else {
-		return GetTranslatedItemNameMagical(*this, dwBuff & CF_HELLFIRE, true, std::nullopt);
 	}
+	if (!_iIdentified || _iCreateInfo == 0 || _iMagical == ITEM_QUALITY_NORMAL) {
+		return GetTranslatedItemName(*this);
+	}
+	if (_iMagical == ITEM_QUALITY_UNIQUE) {
+		return _(UniqueItems[_iUid].UIName);
+	}
+	return GetTranslatedItemNameMagical(*this, dwBuff & CF_HELLFIRE, true, std::nullopt);
 }
 
 bool CornerStoneStruct::isAvailable()
@@ -4978,7 +5015,7 @@ void UpdateHellfireFlag(Item &item, const char *identifiedItemName)
 	// But vanilla hellfire items don't have CF_HELLFIRE set in Item::dwBuff
 	// This functions tries to set this flag for vanilla hellfire items based on the item name
 	// This ensures that Item::getName() returns the correct translated item name
-	if (item.dwBuff & CF_HELLFIRE)
+	if ((item.dwBuff & CF_HELLFIRE) != 0U)
 		return; // Item is already a hellfire item
 	if (item._iMagical != ITEM_QUALITY_MAGIC)
 		return; // Only magic item's name can differ between diablo and hellfire

@@ -500,7 +500,7 @@ void InitItems();
 void CalcPlrItemVals(Player &player, bool Loadgfx);
 void CalcPlrInv(Player &player, bool Loadgfx);
 void InitializeItem(Item &item, _item_indexes itemData);
-void GenerateNewSeed(Item &h);
+void GenerateNewSeed(Item &item);
 int GetGoldCursor(int value);
 
 /**
