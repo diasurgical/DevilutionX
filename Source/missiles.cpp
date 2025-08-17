@@ -5,24 +5,58 @@
  */
 #include "missiles.h"
 
+#include <algorithm>
+#include <array>
+#include <cassert>
 #include <climits>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
+#include <limits>
+#include <list>
+#include <optional>
+#include <type_traits>
+#include <utility>
 
+#include "appfat.h"
 #include "control.h"
 #include "controls/control_mode.hpp"
 #include "controls/plrctrls.h"
 #include "crawl.hpp"
 #include "cursor.h"
 #include "dead.h"
+#include "diablo.h"
+#include "effects.h"
+#include "engine/clx_sprite.hpp"
+#include "engine/direction.hpp"
+#include "engine/displacement.hpp"
+#include "engine/lighting_defs.hpp"
+#include "engine/path.h"
+#include "engine/point.hpp"
+#include "engine/render/scrollrt.h"
+#include "engine/world_tile.hpp"
+#include "function_ref.hpp"
+#include "interfac.h"
+#include "itemdat.h"
+#include "items.h"
+#include "levels/gendung.h"
+#include "levels/gendung_defs.hpp"
+#include "misdat.h"
+#include "monstdat.h"
+#include "msg.h"
+#include "multi.h"
+#include "objects.h"
+#include "player.h"
+#include "playerdat.hpp"
+#include "sound_effect_enums.h"
+#include "spelldat.h"
+#include "utils/enum_traits.h"
 #ifdef _DEBUG
 #include "debug.h"
 #endif
 #include "engine/backbuffer_state.hpp"
-#include "engine/load_file.hpp"
 #include "engine/points_in_rectangle_range.hpp"
 #include "engine/random.hpp"
-#include "engine/render/primitive_render.hpp"
 #include "game_mode.hpp"
 #include "headless_mode.hpp"
 #include "inv.h"
@@ -31,7 +65,6 @@
 #include "levels/trigs.h"
 #include "lighting.h"
 #include "monster.h"
-#include "spells.h"
 #include "utils/is_of.hpp"
 #include "utils/str_cat.hpp"
 
@@ -83,7 +116,7 @@ int AddClassHealingBonus(int hp, HeroClass heroClass)
 		return hp * 2;
 	case HeroClass::Rogue:
 	case HeroClass::Bard:
-		return hp + hp / 2;
+		return hp + (hp / 2);
 	default:
 		return hp;
 	}
@@ -1474,7 +1507,7 @@ void AddWarp(Missile &missile, AddMissileParameter &parameter)
 		const Displacement triggerOffset = getTriggerOffset(trg);
 		candidate += triggerOffset;
 		const Displacement off = Point { player.position.tile } - candidate;
-		const int distanceSq = off.deltaY * off.deltaY + off.deltaX * off.deltaX;
+		const int distanceSq = (off.deltaY * off.deltaY) + (off.deltaX * off.deltaX);
 		if (distanceSq < minDistanceSq) {
 			minDistanceSq = distanceSq;
 			tile = candidate;
@@ -1524,7 +1557,7 @@ void AddLightningWall(Missile &missile, AddMissileParameter &parameter)
 void AddBigExplosion(Missile &missile, AddMissileParameter & /*parameter*/)
 {
 	if (missile.sourceType() == MissileSource::Player) {
-		int dmg = 2 * (missile.sourcePlayer()->getCharacterLevel() + GenerateRndSum(10, 2)) + 4;
+		int dmg = (2 * (missile.sourcePlayer()->getCharacterLevel() + GenerateRndSum(10, 2))) + 4;
 		dmg = ScaleSpellEffect(dmg, missile._mispllvl);
 
 		missile._midam = dmg;
@@ -1589,11 +1622,9 @@ void AddMana(Missile &missile, AddMissileParameter & /*parameter*/)
 	if (player._pClass == HeroClass::Rogue || player._pClass == HeroClass::Bard)
 		manaAmount += manaAmount / 2;
 	player._pMana += manaAmount;
-	if (player._pMana > player._pMaxMana)
-		player._pMana = player._pMaxMana;
+	player._pMana = std::min(player._pMana, player._pMaxMana);
 	player._pManaBase += manaAmount;
-	if (player._pManaBase > player._pMaxManaBase)
-		player._pManaBase = player._pMaxManaBase;
+	player._pManaBase = std::min(player._pManaBase, player._pMaxManaBase);
 	missile._miDelFlag = true;
 	RedrawComponent(PanelDrawComponent::Mana);
 }
@@ -1757,7 +1788,7 @@ void AddPhasing(Missile &missile, AddMissileParameter &parameter)
 		return;
 	}
 
-	std::array<Point, 4 * 9> targets;
+	std::array<Point, static_cast<std::size_t>(4 * 9)> targets;
 
 	int count = 0;
 	for (int y = -6; y <= 6; y++) {
@@ -1903,7 +1934,7 @@ void AddFireball(Missile &missile, AddMissileParameter &parameter)
 		sp += std::min(missile._mispllvl * 2, 34);
 		const Player &player = Players[missile._misource];
 
-		const int dmg = 2 * (player.getCharacterLevel() + GenerateRndSum(10, 2)) + 4;
+		const int dmg = (2 * (player.getCharacterLevel() + GenerateRndSum(10, 2))) + 4;
 		missile._midam = ScaleSpellEffect(dmg, missile._mispllvl);
 	}
 	UpdateMissileVelocity(missile, dst, sp);
@@ -2137,11 +2168,9 @@ void AddGuardian(Missile &missile, AddMissileParameter &parameter)
 	missile._mlid = AddLight(missile.position.tile, 1);
 	missile.duration = missile._mispllvl + (player.getCharacterLevel() / 2);
 
-	if (missile.duration > 30)
-		missile.duration = 30;
+	missile.duration = std::min(missile.duration, 30);
 	missile.duration <<= 4;
-	if (missile.duration < 30)
-		missile.duration = 30;
+	missile.duration = std::max(missile.duration, 30);
 
 	missile.var1 = missile.duration - missile._miAnimLen;
 	missile.var3 = 1;
@@ -2325,8 +2354,7 @@ void AddStoneCurse(Missile &missile, AddMissileParameter &parameter)
 	missile.position.start = missile.position.tile;
 	missile.duration = missile._mispllvl + 6;
 
-	if (missile.duration > 15)
-		missile.duration = 15;
+	missile.duration = std::min(missile.duration, 15);
 	missile.duration <<= 4;
 }
 
@@ -2356,7 +2384,7 @@ void AddGolem(Missile &missile, AddMissileParameter &parameter)
 	if (&player != MyPlayer)
 		return;
 
-	const uint8_t spellLevel = static_cast<uint8_t>(missile._mispllvl);
+	const auto spellLevel = static_cast<uint8_t>(missile._mispllvl);
 
 	// The command is only executed for the level owner, to prevent desyncs in multiplayer.
 	if (!MyPlayer->isLevelOwnedByLocalClient()) {
@@ -2417,7 +2445,7 @@ void AddElemental(Missile &missile, AddMissileParameter &parameter)
 
 	const Player &player = Players[missile._misource];
 
-	const int dmg = 2 * (player.getCharacterLevel() + GenerateRndSum(10, 2)) + 4;
+	const int dmg = (2 * (player.getCharacterLevel() + GenerateRndSum(10, 2))) + 4;
 	missile._midam = ScaleSpellEffect(dmg, missile._mispllvl) / 2;
 
 	UpdateMissileVelocity(missile, dst, 16);
@@ -2429,8 +2457,6 @@ void AddElemental(Missile &missile, AddMissileParameter &parameter)
 	missile.var5 = dst.y;
 	missile._mlid = AddLight(missile.position.start, 8);
 }
-
-extern void FocusOnInventory();
 
 void AddIdentify(Missile &missile, AddMissileParameter & /*parameter*/)
 {
@@ -2728,7 +2754,7 @@ Missile *AddMissile(WorldTilePosition src, WorldTilePosition dst, Direction midi
 		return nullptr;
 	}
 
-	Missiles.emplace_back(Missile {});
+	Missiles.emplace_back();
 	auto &missile = Missiles.back();
 
 	const MissileData &missileData = GetMissileData(mitype);

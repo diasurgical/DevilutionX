@@ -270,7 +270,7 @@ bool PlayerMHit(Player &player, Monster *monster, int dist, int mind, int maxd, 
 /**
  * @brief Could the missile collide with solid objects? (like walls or closed doors)
  */
-bool IsMissileBlockedByTile(Point position);
+bool IsMissileBlockedByTile(Point tile);
 
 void InitMissiles();
 
