@@ -353,11 +353,13 @@ tl::expected<UniqueMonsterPack, std::string> ParseUniqueMonsterPack(std::string_
 
 } // namespace
 
-void LoadMonstDatFromFile(DataFile &dataFile, const std::string_view filename)
+void LoadMonstDatFromFile(DataFile &dataFile, const std::string_view filename, bool grow)
 {
 	dataFile.skipHeaderOrDie(filename);
 
-	MonstersData.reserve(MonstersData.size() + dataFile.numRecords());
+	if (grow) {
+		MonstersData.reserve(MonstersData.size() + dataFile.numRecords());
+	}
 
 	for (DataFileRecord record : dataFile) {
 		if (MonstersData.size() >= static_cast<size_t>(NUM_MAX_MTYPES)) {
@@ -427,7 +429,6 @@ void LoadMonstDatFromFile(DataFile &dataFile, const std::string_view filename)
 
 		reader.readInt("exp", monster.exp);
 	}
-	MonstersData.shrink_to_fit();
 }
 
 namespace {
@@ -439,9 +440,11 @@ void LoadMonstDat()
 	MonstersData.clear();
 	AdditionalMonsterIdStringsToIndices.clear();
 	MonstersData.resize(NUM_DEFAULT_MTYPES); // ensure the hardcoded monster type slots are filled
-	LoadMonstDatFromFile(dataFile, filename);
+	LoadMonstDatFromFile(dataFile, filename, false);
 
 	LuaEvent("MonsterDataLoaded");
+
+	MonstersData.shrink_to_fit();
 }
 
 } // namespace
@@ -482,8 +485,6 @@ void LoadUniqueMonstDatFromFile(DataFile &dataFile, std::string_view filename)
 			return tl::make_unexpected("Invalid value. NOTE: Parser is incomplete");
 		});
 	}
-
-	UniqueMonstersData.shrink_to_fit();
 }
 
 namespace {
@@ -497,6 +498,8 @@ void LoadUniqueMonstDat()
 	LoadUniqueMonstDatFromFile(dataFile, filename);
 
 	LuaEvent("UniqueMonsterDataLoaded");
+
+	UniqueMonstersData.shrink_to_fit();
 }
 
 } // namespace

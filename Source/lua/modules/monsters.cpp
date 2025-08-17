@@ -18,7 +18,7 @@ namespace {
 void AddMonsterDataFromTsv(const std::string_view path)
 {
 	DataFile dataFile = DataFile::loadOrDie(path);
-	LoadMonstDatFromFile(dataFile, path);
+	LoadMonstDatFromFile(dataFile, path, true);
 }
 
 void AddUniqueMonsterDataFromTsv(const std::string_view path)

@@ -337,7 +337,7 @@ extern std::vector<MonsterData> MonstersData;
 extern const _monster_id MonstConvTbl[];
 extern std::vector<UniqueMonsterData> UniqueMonstersData;
 
-void LoadMonstDatFromFile(DataFile &dataFile, std::string_view filename);
+void LoadMonstDatFromFile(DataFile &dataFile, std::string_view filename, bool grow);
 void LoadUniqueMonstDatFromFile(DataFile &dataFile, std::string_view filename);
 void LoadMonsterData();
 
