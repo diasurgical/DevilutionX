@@ -930,11 +930,15 @@ const size_t SpeechCount = sizeof(Speeches) / sizeof(Speech);
 
 tl::expected<_speech_id, std::string> ParseSpeechId(std::string_view value)
 {
+	if (value.empty()) {
+		return TEXT_NONE;
+	}
+
 	const std::optional<_speech_id> enumValueOpt = magic_enum::enum_cast<_speech_id>(value);
 	if (enumValueOpt.has_value()) {
 		return enumValueOpt.value();
 	}
-	return tl::make_unexpected("Unknown enum value");
+	return tl::make_unexpected("Invalid value.");
 }
 
 } // namespace devilution

@@ -448,19 +448,7 @@ void LoadUniqueMonstDatFromFile(DataFile &dataFile, std::string_view filename)
 		reader.read("monsterPack", monster.monsterPack, ParseUniqueMonsterPack);
 		reader.readInt("customToHit", monster.customToHit);
 		reader.readInt("customArmorClass", monster.customArmorClass);
-
-		// talkMessage
-		// TODO: Replace this hack with proper parsing once messages have been migrated to data files.
-		reader.read("talkMessage", monster.mtalkmsg, [](std::string_view value) -> tl::expected<_speech_id, std::string> {
-			if (value.empty()) return TEXT_NONE;
-			if (value == "TEXT_GARBUD1") return TEXT_GARBUD1;
-			if (value == "TEXT_ZHAR1") return TEXT_ZHAR1;
-			if (value == "TEXT_BANNER10") return TEXT_BANNER10;
-			if (value == "TEXT_VILE13") return TEXT_VILE13;
-			if (value == "TEXT_VEIL9") return TEXT_VEIL9;
-			if (value == "TEXT_WARLRD9") return TEXT_WARLRD9;
-			return tl::make_unexpected("Invalid value. NOTE: Parser is incomplete");
-		});
+		reader.read("talkMessage", monster.mtalkmsg, ParseSpeechId);
 	}
 }
 
