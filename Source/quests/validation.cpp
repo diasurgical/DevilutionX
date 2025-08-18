@@ -20,7 +20,7 @@ bool IsQuestDeltaValid(quest_id qidx, quest_state qstate, uint8_t qlog, int16_t 
 	if (IsNoneOf(qlog, 0, 1))
 		return false;
 
-	if (qmsg < 0 || static_cast<size_t>(qmsg) >= SpeechCount)
+	if (qmsg < 0 || static_cast<size_t>(qmsg) >= Speeches.size())
 		return false;
 
 	switch (qstate) {

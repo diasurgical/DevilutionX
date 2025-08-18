@@ -14,6 +14,7 @@ base_paths = {
     "item_suffixes": root.joinpath("assets/txtdata/items/item_suffixes.tsv"),
     "questdat": root.joinpath("assets/txtdata/quests/questdat.tsv"),
     "spelldat": root.joinpath("assets/txtdata/spells/spelldat.tsv"),
+    "textdat": root.joinpath("assets/txtdata/text/textdat.tsv"),
 }
 
 hf_paths = {
@@ -96,6 +97,13 @@ def process_files(paths, temp_source):
         for i, row in enumerate(reader):
             var_name = 'SPELL_' + row['name'].upper().replace(' ', '_').replace('-', '_')
             write_entry(temp_source, f'{var_name}_NAME', "spell", row['name'], True)
+
+    # Text/Speeches
+    if "textdat" in paths:
+        with open(paths["textdat"], 'r') as tsv:
+            reader = csv.DictReader(tsv, delimiter='\t')
+            for i, row in enumerate(reader):
+                write_entry(temp_source, f'TEXT_{i}', "default", row['txtstr'], False)
 
 with open(translation_dummy_path, 'w') as temp_source:
     temp_source.write(f'/**\n')

@@ -9,6 +9,8 @@
 #include <memory>
 #include <string>
 
+#include <expected.hpp>
+
 #include "engine/sound.h"
 #include "sound_effect_enums.h"
 
@@ -34,5 +36,7 @@ void sound_init();
 void ui_sound_init();
 void effects_play_sound(SfxID);
 int GetSFXLength(SfxID nSFX);
+
+tl::expected<SfxID, std::string> ParseSfxId(std::string_view value);
 
 } // namespace devilution

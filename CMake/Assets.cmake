@@ -176,6 +176,7 @@ set(devilutionx_assets
   txtdata/quests/questdat.tsv
   txtdata/sound/effects.tsv
   txtdata/spells/spelldat.tsv
+  txtdata/text/textdat.tsv
   ui_art/diablo.pal
   ui_art/creditsw.clx
   ui_art/dvl_but_sml.clx

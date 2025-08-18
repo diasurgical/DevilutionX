@@ -9,6 +9,7 @@
 #include <string_view>
 
 #include <expected.hpp>
+#include <magic_enum/magic_enum.hpp>
 
 #include "data/file.hpp"
 #include "data/iterators.hpp"
@@ -20,6 +21,12 @@
 #include "game_mode.hpp"
 #include "player.h"
 #include "utils/is_of.hpp"
+
+template <>
+struct magic_enum::customize::enum_range<devilution::SfxID> {
+	static constexpr int min = static_cast<int>(devilution::SfxID::None);
+	static constexpr int max = static_cast<int>(devilution::SfxID::LAST);
+};
 
 namespace devilution {
 
@@ -308,6 +315,15 @@ int GetSFXLength(SfxID nSFX)
 		sfx.pSnd = sound_file_load(sfx.pszName.c_str(),
 		    /*stream=*/AllowStreaming && (sfx.bFlags & sfx_STREAM) != 0);
 	return sfx.pSnd->DSB.GetLength();
+}
+
+tl::expected<SfxID, std::string> ParseSfxId(std::string_view value)
+{
+	const std::optional<SfxID> enumValueOpt = magic_enum::enum_cast<SfxID>(value);
+	if (enumValueOpt.has_value()) {
+		return enumValueOpt.value();
+	}
+	return tl::make_unexpected("Unknown enum value.");
 }
 
 } // namespace devilution

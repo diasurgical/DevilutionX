@@ -354,7 +354,6 @@ enum _speech_id : int16_t {
 	TEXT_BBOOKA,
 	TEXT_BBOOKB,
 	TEXT_BBOOKC,
-	/*
 	TEXT_DEADGUY,
 	TEXT_FARNHAM14,
 	TEXT_FARNHAM15,
@@ -424,20 +423,20 @@ enum _speech_id : int16_t {
 	TEXT_GRISWOLD35,
 	TEXT_GRISWOLD36,
 	TEXT_GRISWOLD37,
-	*/
-	NUM_TEXT_IDS,
+	NUM_DEFAULT_TEXT_IDS,
 	TEXT_NONE = -1,
 };
 
 struct Speech {
-	const char *txtstr;
+	std::string txtstr;
 	bool scrlltxt;
 	SfxID sfxnr;
 };
 
-extern const size_t SpeechCount;
-extern const Speech Speeches[];
+extern std::vector<Speech> Speeches;
 
 tl::expected<_speech_id, std::string> ParseSpeechId(std::string_view value);
+
+void LoadTextData();
 
 } // namespace devilution
