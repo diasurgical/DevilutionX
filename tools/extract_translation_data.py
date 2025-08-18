@@ -12,6 +12,7 @@ base_paths = {
     "unique_itemdat": root.joinpath("assets/txtdata/items/unique_itemdat.tsv"),
     "item_prefixes": root.joinpath("assets/txtdata/items/item_prefixes.tsv"),
     "item_suffixes": root.joinpath("assets/txtdata/items/item_suffixes.tsv"),
+    "questdat": root.joinpath("assets/txtdata/quests/questdat.tsv"),
     "spelldat": root.joinpath("assets/txtdata/spells/spelldat.tsv"),
 }
 
@@ -80,6 +81,14 @@ def process_files(paths, temp_source):
         reader = csv.DictReader(tsv, delimiter='\t')
         for i, row in enumerate(reader):
             write_entry(temp_source, f'ITEM_SUFFIX_{i}_NAME', "default", row['name'], False)
+
+    # Quests
+    if "questdat" in paths:
+        with open(paths["questdat"], 'r') as tsv:
+            reader = csv.DictReader(tsv, delimiter='\t')
+            for i, row in enumerate(reader):
+                var_name = 'QUEST_' + row['qlstr'].upper().replace(' ', '_').replace('-', '_')
+                write_entry(temp_source, f'{var_name}_NAME', "default", row['qlstr'], False)
 
     # Spells
     with open(paths["spelldat"], 'r') as tsv:
