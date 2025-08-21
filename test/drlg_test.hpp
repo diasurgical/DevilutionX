@@ -60,6 +60,9 @@ void TestInitGame(bool fullQuests = true, bool originalCathedral = true, bool he
 	sgGameInitInfo.fullQuests = fullQuests ? 1 : 0;
 	gbIsMultiplayer = !fullQuests;
 
+	LoadCoreArchives();
+	LoadQuestData();
+
 	UnloadModArchives();
 	if (hellfire) {
 		LoadModArchives({ { "Hellfire" } });
