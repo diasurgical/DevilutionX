@@ -31,9 +31,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: ccache
-        uses: hendrikmuhs/ccache-action@v1.2
-
       - name: Run prep.sh script
         run: ./Packaging/amiga/prep.sh
 
