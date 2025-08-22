@@ -1,11 +1,30 @@
 #pragma once
 
+#include <cstdint>
 #include <cstring>
 #include <string>
 #include <string_view>
 #include <type_traits>
 
 namespace devilution {
+
+struct AsHexU8Pad2 {
+	uint8_t value;
+};
+
+struct AsHexU16Pad2 {
+	uint16_t value;
+};
+
+/**
+ * @brief Formats the value as a lowercase zero-padded hexadecimal with at least 2 hex digits (0-padded on the left).
+ */
+constexpr AsHexU8Pad2 AsHexPad2(uint8_t value) { return { value }; }
+
+/**
+ * @brief Formats the value as a lowercase zero-padded hexadecimal with at least 2 hex digits (0-padded on the left).
+ */
+constexpr AsHexU16Pad2 AsHexPad2(uint16_t value) { return { value }; }
 
 /**
  * @brief Writes the integer to the given buffer.
@@ -43,6 +62,9 @@ inline char *BufCopy(char *out, unsigned short value)
 	return BufCopy(out, static_cast<unsigned long long>(value));
 }
 
+char *BufCopy(char *out, AsHexU8Pad2 value);
+char *BufCopy(char *out, AsHexU16Pad2 value);
+
 /**
  * @brief Appends the integer to the given string.
  */
@@ -76,6 +98,9 @@ inline void StrAppend(std::string &out, unsigned short value)
 {
 	StrAppend(out, static_cast<unsigned long long>(value));
 }
+
+void StrAppend(std::string &out, AsHexU8Pad2 value);
+void StrAppend(std::string &out, AsHexU16Pad2 value);
 
 /**
  * @brief Copies the given std::string_view to the given buffer.

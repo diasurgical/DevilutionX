@@ -257,7 +257,6 @@ add_devilutionx_object_library(libdevilutionx_palette_kd_tree
 )
 target_link_dependencies(libdevilutionx_palette_kd_tree PUBLIC
   DevilutionX::SDL
-  fmt::fmt
   libdevilutionx_strings
 )
 
@@ -554,7 +553,6 @@ add_devilutionx_object_library(libdevilutionx_palette_blending
 )
 target_link_dependencies(libdevilutionx_palette_blending PUBLIC
   DevilutionX::SDL
-  fmt::fmt
   libdevilutionx_palette_kd_tree
   libdevilutionx_strings
 )

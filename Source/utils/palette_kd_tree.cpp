@@ -13,8 +13,6 @@
 #include <SDL_pixels.h>
 #endif
 
-#include <fmt/format.h>
-
 #include "utils/static_vector.hpp"
 #include "utils/str_cat.hpp"
 
@@ -197,9 +195,8 @@ void PaletteKdTreeNode<0>::toGraphvizDot(
 	const std::pair<RGB, uint8_t> *const end = values.data() + valuesEndInclusive;
 	for (const std::pair<RGB, uint8_t> *it = values.data() + valuesBegin; it <= end; ++it) {
 		const auto &[rgb, paletteIndex] = *it;
-		char hexColor[6];
-		fmt::format_to(hexColor, "{:02x}{:02x}{:02x}", rgb[0], rgb[1], rgb[2]);
-		StrAppend(dot, R"(<td balign="left" bgcolor="#)", std::string_view(hexColor, 6), "\">");
+		StrAppend(dot, R"(<td balign="left" bgcolor="#)",
+		    AsHexPad2(rgb[0]), AsHexPad2(rgb[1]), AsHexPad2(rgb[2]), "\">");
 		const bool useWhiteText = rgb[0] + rgb[1] + rgb[2] < 350;
 		if (useWhiteText) StrAppend(dot, R"(<font color="white">)");
 		StrAppend(dot,

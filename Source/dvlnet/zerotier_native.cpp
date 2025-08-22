@@ -66,9 +66,13 @@ std::string ComputeAlternateFolderName(std::string_view path)
 	    nullptr, 0);
 
 	if (status != 0)
-		return "";
+		return {};
 
-	return fmt::format("{:02x}", fmt::join(hash, ""));
+	char buf[hashSize * 2];
+	for (size_t i = 0; i < hashSize; ++i) {
+		BufCopy(&buf[i * 2], AsHexPad2(hash[i]));
+	}
+	return std::string(buf, hashSize * 2);
 }
 
 std::string ToZTCompliantPath(std::string_view configPath)
