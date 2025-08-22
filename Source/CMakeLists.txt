@@ -728,6 +728,7 @@ else()
     DevilutionX::SDL
     SDL_audiolib::SDL_audiolib
     fmt::fmt
+    magic_enum::magic_enum
     tl
     unordered_dense::unordered_dense
     libdevilutionx_options
