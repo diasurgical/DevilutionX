@@ -81,10 +81,20 @@ void LoadTextDatFromFile(DataFile &dataFile, std::string_view filename)
 		Speech &speech = speechIdEnumValueOpt.has_value() ? Speeches[speechIdEnumValueOpt.value()] : Speeches.emplace_back();
 
 		reader.readString("txtstr", speech.txtstr);
-		size_t pos = 0;
-		while ((pos = speech.txtstr.find("\\n", pos)) != std::string::npos) {
-			speech.txtstr.replace(pos, 2, "\n");
-			pos += 1;
+
+		{
+			std::string processed;
+			processed.reserve(speech.txtstr.size());
+			for (size_t i = 0; i < speech.txtstr.size(); ) {
+				if (i + 1 < speech.txtstr.size() && speech.txtstr[i] == '\\' && speech.txtstr[i + 1] == 'n') {
+					processed.push_back('\n');
+					i += 2;
+				} else {
+					processed.push_back(speech.txtstr[i]);
+					++i;
+				}
+			}
+			speech.txtstr = std::move(processed);
 		}
 
 		reader.readBool("scrlltxt", speech.scrlltxt);
