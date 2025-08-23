@@ -2635,7 +2635,10 @@ void CalcPlrLifeMana(Player &player, int vitality, int magic, int life, int mana
 	player._pHitPoints = std::min(life + player._pHPBase, player._pMaxHP);
 
 	if (&player == MyPlayer && (player._pHitPoints >> 6) <= 0) {
-		SetPlayerHitPoints(player, 0);
+		if (currlevel == 0)
+			SetPlayerHitPoints(player, 1 << 6);
+		else
+			SetPlayerHitPoints(player, 0);
 	}
 
 	player._pMaxMana = std::clamp(mana + player._pMaxManaBase, 0, 2000 << 6);

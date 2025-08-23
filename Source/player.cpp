@@ -2932,12 +2932,11 @@ void RestartTownLvl(Player &player)
 	player.setLevel(0);
 	player._pInvincible = false;
 
-	SetPlayerHitPoints(player, 64);
-
 	player._pMana = 0;
 	player._pManaBase = player._pMana - (player._pMaxMana - player._pMaxManaBase);
 
 	CalcPlrInv(player, false);
+	SetPlayerHitPoints(player, 1 << 6);
 	player._pmode = PM_NEWLVL;
 
 	if (&player == MyPlayer) {
