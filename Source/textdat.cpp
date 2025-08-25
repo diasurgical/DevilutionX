@@ -51,11 +51,13 @@ tl::expected<_speech_id, std::string> ParseSpeechId(std::string_view value)
 
 namespace {
 
-void LoadTextDatFromFile(DataFile &dataFile, std::string_view filename)
+void LoadTextDatFromFile(DataFile &dataFile, std::string_view filename, bool grow)
 {
 	dataFile.skipHeaderOrDie(filename);
 
-	Speeches.reserve(Speeches.size() + dataFile.numRecords());
+	if (grow) {
+		Speeches.reserve(Speeches.size() + dataFile.numRecords());
+	}
 
 	for (DataFileRecord record : dataFile) {
 		RecordReader reader { record, filename };
@@ -77,7 +79,7 @@ void LoadTextDatFromFile(DataFile &dataFile, std::string_view filename)
 			}
 		}
 
-		// for hardcoded monsters, use their predetermined slot; for non-hardcoded ones, use the slots after that
+		// for hardcoded speeches, use their predetermined slot; for non-hardcoded ones, use the slots after that
 		Speech &speech = speechIdEnumValueOpt.has_value() ? Speeches[speechIdEnumValueOpt.value()] : Speeches.emplace_back();
 
 		reader.readString("txtstr", speech.txtstr);
@@ -112,7 +114,7 @@ void LoadTextData()
 	Speeches.clear();
 	AdditionalTextIdStringsToIndices.clear();
 	Speeches.resize(NUM_DEFAULT_TEXT_IDS); // ensure the hardcoded text entry slots are filled
-	LoadTextDatFromFile(dataFile, filename);
+	LoadTextDatFromFile(dataFile, filename, false);
 
 	Speeches.shrink_to_fit();
 }
