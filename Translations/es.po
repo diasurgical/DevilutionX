@@ -4269,21 +4269,21 @@ msgstr "Cursor por hardware"
 
 #: Source/options.cpp:734
 msgid "Use a hardware cursor"
-msgstr "Usa el cursor por hardware"
+msgstr "Usar cursor HW"
 
 # la traduccion debe ser corta para que entre en el cuado de menu
 #: Source/options.cpp:735
 msgid "Hardware Cursor For Items"
-msgstr "Cursor por hw para objetos"
+msgstr "Cursor HW para objetos"
 
 #: Source/options.cpp:735
 msgid "Use a hardware cursor for items."
-msgstr "Usa el cursos por hardware para los objetos."
+msgstr "Usa un cursor HW para los objetos."
 
 # Mantener corto. Menu de configuración
 #: Source/options.cpp:736
 msgid "Hardware Cursor Maximum Size"
-msgstr "Tamaño máx del cursor por hardw"
+msgstr "Tamaño máximo del cursor HW"
 
 #: Source/options.cpp:736
 msgid ""
@@ -4295,7 +4295,7 @@ msgstr ""
 
 #: Source/options.cpp:738
 msgid "Show FPS"
-msgstr "Mostrar los FPS"
+msgstr "Mostrar FPS"
 
 #: Source/options.cpp:738
 msgid "Displays the FPS in the upper left corner of the screen."
@@ -4323,7 +4323,7 @@ msgstr "Capturar entrada"
 
 #: Source/options.cpp:777
 msgid "When enabled mouse is locked to the game window."
-msgstr "Cuando está habilitado el mouse se captura en la ventana de juego."
+msgstr "Cuando está habilitado el ratón se captura en la ventana de juego."
 
 #: Source/options.cpp:778
 msgid "Pause Game When Window Loses Focus"
