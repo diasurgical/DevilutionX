@@ -40,7 +40,7 @@ jobs:
       run: PATH="${NXDK_DIR}/bin:$PATH" make -j $(nproc) -C "$NXDK_DIR" NXDK_ONLY=1 CFLAGS=-O2 CXXFLAGS=-O2 all cxbe
 
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         fetch-depth: 0
 
