@@ -259,6 +259,9 @@ void StartSpell(Player &player, Direction d, WorldTileCoord cx, WorldTileCoord c
 	case SpellType::Charges:
 		isValid = CanUseStaff(player, player.queuedSpell.spellId);
 		break;
+	case SpellType::Rune:
+		isValid = CanUseScroll(player, player.queuedSpell.spellId);
+		break;
 	default:
 		break;
 	}
@@ -1002,7 +1005,7 @@ bool DoSpell(Player &player)
 		    player.position.temp,
 		    player.executedSpell.spellLevel);
 
-		if (IsAnyOf(player.executedSpell.spellType, SpellType::Scroll, SpellType::Charges)) {
+		if (IsAnyOf(player.executedSpell.spellType, SpellType::Scroll, SpellType::Charges, SpellType::Rune)) {
 			EnsureValidReadiedSpell(player);
 		}
 	}
@@ -1526,6 +1529,20 @@ void Player::CalcScrolls()
 	EnsureValidReadiedSpell(*this);
 }
 
+void Player::CalcRunes()
+{
+	_pRuneSpells = 0;
+	for (const Item &item : InventoryAndBeltPlayerItemsRange { *this }) {
+		if (item.isRune() && item._iStatFlag) {
+			for (SpellID spell : { SpellID::RuneOfFire, SpellID::RuneOfLight, SpellID::RuneOfNova, SpellID::RuneOfImmolation, SpellID::RuneOfStone }) {
+				if (item.isRuneOf(spell))
+					_pRuneSpells |= GetSpellBitmask(spell);
+			}
+		}
+	}
+	EnsureValidReadiedSpell(*this);
+}
+
 bool Player::CanUseItem(const Item &item) const
 {
 	if (!IsItemValid(*this, item))
@@ -1578,6 +1595,7 @@ void Player::RemoveInvItem(int iv, bool calcScrolls)
 
 	if (calcScrolls) {
 		CalcScrolls();
+		CalcRunes();
 	}
 }
 
@@ -1590,6 +1608,7 @@ void Player::RemoveSpdBarItem(int iv)
 	SpdList[iv].clear();
 
 	CalcScrolls();
+	CalcRunes();
 	RedrawEverything();
 }
 
@@ -3170,6 +3189,9 @@ void CheckPlrSpell(bool isShiftHeld, SpellID spellID, SpellType spellType)
 		break;
 	case SpellType::Charges:
 		addflag = pcurs == CURSOR_HAND && CanUseStaff(myPlayer, spellID);
+		break;
+	case SpellType::Rune:
+		addflag = pcurs == CURSOR_HAND && CanUseScroll(myPlayer, spellID);
 		break;
 	case SpellType::Invalid:
 		return;
