@@ -329,7 +329,7 @@ msgstr "OK"
 
 #: Source/DiabloUI/hero/selhero.cpp:157
 msgid "Choose Class"
-msgstr "Elija Clase"
+msgstr "Elegir Clase"
 
 #. TRANSLATORS: Player Block start
 #. HeroClass::Warrior
@@ -406,8 +406,8 @@ msgid ""
 "Invalid name. A name cannot contain spaces, reserved characters, or reserved "
 "words.\n"
 msgstr ""
-"Nombre inválido. Un nombre no puede contener espacios, caracteres reservados "
-"ni palabras reservadas.\n"
+"Nombre inválido. El nombre no puede contener espacios, ni caracteres o "
+"palabras reservadas.\n"
 
 #. TRANSLATORS: Error Message
 #: Source/DiabloUI/hero/selhero.cpp:323
@@ -452,7 +452,7 @@ msgstr "Eliminar"
 
 #: Source/DiabloUI/hero/selhero.cpp:542
 msgid "Multi Player Characters"
-msgstr "Personajes Multi Jugador"
+msgstr "Personajes Multijugador"
 
 #: Source/DiabloUI/hero/selhero.cpp:593
 msgid "Delete Multi Player Hero"
@@ -465,7 +465,7 @@ msgstr "Eliminar Héroe"
 #: Source/DiabloUI/hero/selhero.cpp:597
 #, c++-format
 msgid "Are you sure you want to delete the character \"{:s}\"?"
-msgstr "¿Está seguro de que desea borrar el personaje \"{:s}\"?"
+msgstr "¿Seguro que quieres eliminar el personaje \"{:s}\"?"
 
 #: Source/DiabloUI/mainmenu.cpp:40
 msgid "Single Player"
@@ -510,7 +510,7 @@ msgstr "Fuera de línea"
 #: Source/DiabloUI/multi/selconn.cpp:58 Source/DiabloUI/multi/selgame.cpp:648
 #: Source/DiabloUI/multi/selgame.cpp:674
 msgid "Multi Player Game"
-msgstr "Juego Multijugador"
+msgstr "Partida Multijugador"
 
 #: Source/DiabloUI/multi/selconn.cpp:64
 msgid "Requirements:"
@@ -522,7 +522,7 @@ msgstr "sin puerta de enlace"
 
 #: Source/DiabloUI/multi/selconn.cpp:76
 msgid "Select Connection"
-msgstr "Seleccionar conexión"
+msgstr "Conexión"
 
 #: Source/DiabloUI/multi/selconn.cpp:79
 msgid "Change Gateway"
@@ -566,12 +566,12 @@ msgstr "Hellfire Shareware"
 
 #: Source/DiabloUI/multi/selgame.cpp:98
 msgid "The host is running a different game than you."
-msgstr "El equipo está ejecutando un juego diferente al tuyo."
+msgstr "El anfitrión está ejecutando un juego diferente al tuyo."
 
 #: Source/DiabloUI/multi/selgame.cpp:100
 #, c++-format
 msgid "The host is running a different game mode ({:s}) than you."
-msgstr "El equipo está ejecutando un modo de juego ({:s}) diferente al tuyo."
+msgstr "El anfitrión está ejecutando un modo de juego ({:s}) diferente al tuyo."
 
 #. TRANSLATORS: Error message when somebody tries to join a game running another version.
 #: Source/DiabloUI/multi/selgame.cpp:102
@@ -619,7 +619,7 @@ msgstr "Ninguno"
 #: Source/DiabloUI/multi/selgame.cpp:365 Source/DiabloUI/multi/selgame.cpp:507
 #: Source/DiabloUI/multi/selgame.cpp:584
 msgid "CANCEL"
-msgstr "CANCELAR"
+msgstr "Cancelar"
 
 #: Source/DiabloUI/multi/selgame.cpp:215
 msgid "Create a new game with a difficulty setting of your choice."
@@ -693,7 +693,7 @@ msgstr "Jugadores: "
 
 #: Source/DiabloUI/multi/selgame.cpp:327
 msgid "Select Difficulty"
-msgstr "Seleccione dificultad"
+msgstr "Dificultad"
 
 #: Source/DiabloUI/multi/selgame.cpp:345
 #, c++-format
@@ -744,7 +744,7 @@ msgid ""
 "of Nightmare difficulty."
 msgstr ""
 "Su personaje debe alcanzar el nivel 20 antes de que pueda ingresar a un "
-"juego multi jugador de dificultad Pesadilla."
+"juego multijugador de dificultad Pesadilla."
 
 #: Source/DiabloUI/multi/selgame.cpp:416
 msgid ""
@@ -752,7 +752,7 @@ msgid ""
 "of Hell difficulty."
 msgstr ""
 "Su personaje debe alcanzar el nivel 30 antes de que pueda ingresar a una "
-"partida multi jugador de dificultad infernal."
+"partida multijugador de dificultad infernal."
 
 #: Source/DiabloUI/multi/selgame.cpp:494
 msgid "Select Game Speed"
