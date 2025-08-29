@@ -171,6 +171,7 @@ sudo apt-get install git
 git clone https://github.com/diasurgical/devilutionx
 cd devilutionx
 ```
+
 </details>
 
 ### Installing dependencies on WSL, Debian and Ubuntu
@@ -183,7 +184,7 @@ sudo apt-get update
 sudo apt-get install cmake git libz-mingw-w64-dev mingw-w64 mingw-w64-tools smpq wget
 ```
 
-#### 32-bit
+<details><summary>MinGW 32-bit</summary>
 
 The 32-bit build depends on the 32-bit MinGW Development Libraries for [SDL2](https://www.libsdl.org/download-2.0.php) and [libsodium](https://github.com/jedisct1/libsodium/releases) as well as headers for [zlib](https://zlib.net/zlib-1.2.12.tar.gz). These dependencies will need to be placed in the appropriate subfolders under `/usr/i686-w64-mingw32`.
 
@@ -203,7 +204,26 @@ the path to the parent of the `i686-w64-mingw32` directory.
 Packaging/windows/mingw-prep.sh
 ```
 
-#### 64-bit
+### Compiling
+
+By compiling the `package` target, the build will produce the `devilutionx.zip` archive which should contain all the dlls necessary to run the game. If you encounter any errors suggesting a dll is missing, try extracting the dlls from the zip archive.
+
+```bash
+# Configure the project to disable unit tests,
+# statically link bzip2 and libsodium,
+# and enable Discord integration
+cmake -S. -Bbuild -DCMAKE_TOOLCHAIN_FILE=../CMake/platforms/mingwcc.toolchain.cmake \
+    -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF -DDEVILUTIONX_SYSTEM_BZIP2=OFF \
+    -DDEVILUTIONX_STATIC_LIBSODIUM=ON -DDISCORD_INTEGRATION=ON
+
+# Build the "package" target which produces devilutionx.zip
+# containing all the necessary dlls to run the game
+cmake --build build -j $(getconf _NPROCESSORS_ONLN) --target package
+```
+
+</details>
+
+<details open><summary>MinGW 64-bit</summary>
 
 The 64-bit build depends on the 64-bit MinGW Development Libraries of [SDL2](https://www.libsdl.org/download-2.0.php) and [libsodium](https://github.com/jedisct1/libsodium/releases) as well as headers for [zlib](https://zlib.net/zlib-1.2.12.tar.gz). These dependencies will need to be placed in the appropriate subfolders under `/usr/x86_64-w64-mingw32`.
 
@@ -225,25 +245,6 @@ Packaging/windows/mingw-prep64.sh
 
 ### Compiling
 
-By compiling the `package` target, the build will produce the `devilutionx.zip` archive which should contain all the dlls necessary to run the game. If you encounter any errors suggesting a dll is missing, try extracting the dlls from the zip archive.
-
-#### 32-bit
-
-```bash
-# Configure the project to disable unit tests,
-# statically link bzip2 and libsodium,
-# and enable Discord integration
-cmake -S. -Bbuild -DCMAKE_TOOLCHAIN_FILE=../CMake/platforms/mingwcc.toolchain.cmake \
-    -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF -DDEVILUTIONX_SYSTEM_BZIP2=OFF \
-    -DDEVILUTIONX_STATIC_LIBSODIUM=ON -DDISCORD_INTEGRATION=ON
-
-# Build the "package" target which produces devilutionx.zip
-# containing all the necessary dlls to run the game
-cmake --build build -j $(getconf _NPROCESSORS_ONLN) --target package
-```
-
-#### 64-bit
-
 ```bash
 # Configure the project to disable unit tests,
 # statically link bzip2 and libsodium,
@@ -258,6 +259,9 @@ cmake --build build -j $(getconf _NPROCESSORS_ONLN) --target package
 ```
 
 </details>
+
+</details>
+
 <details><summary>Windows via Visual Studio</summary>
 
 ### Installing dependencies
