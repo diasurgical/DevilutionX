@@ -175,13 +175,16 @@ cd devilutionx
 
 ### Installing dependencies on WSL, Debian and Ubuntu
 
+#### MinGW build tools
+
 ```bash
 # Install MinGW build tools
 sudo apt-get update
 sudo apt-get install cmake git libz-mingw-w64-dev mingw-w64 mingw-w64-tools smpq wget
 ```
 
-### 32-bit
+#### 32-bit
+
 The 32-bit build depends on the 32-bit MinGW Development Libraries for [SDL2](https://www.libsdl.org/download-2.0.php) and [libsodium](https://github.com/jedisct1/libsodium/releases) as well as headers for [zlib](https://zlib.net/zlib-1.2.12.tar.gz). These dependencies will need to be placed in the appropriate subfolders under `/usr/i686-w64-mingw32`.
 
 When linking zlib, libpng will always prefer dynamically linking with `libz.dll.a` if it can be found. We recommend renaming or deleting `libz.dll.a` to force libpng to use static linkage. This will prevent errors about missing dlls when you attempt to run the game.
@@ -195,7 +198,8 @@ These can be done automatically by running [`Packaging/windows/mingw-prep.sh`](/
 Packaging/windows/mingw-prep.sh
 ```
 
-### 64-bit
+#### 64-bit
+
 The 64-bit build depends on the 64-bit MinGW Development Libraries of [SDL2](https://www.libsdl.org/download-2.0.php) and [libsodium](https://github.com/jedisct1/libsodium/releases) as well as headers for [zlib](https://zlib.net/zlib-1.2.12.tar.gz). These dependencies will need to be placed in the appropriate subfolders under `/usr/x86_64-w64-mingw32`.
 
 When linking zlib, libpng will always prefer dynamically linking with `libz.dll.a` if it can be found. We recommend renaming or deleting `libz.dll.a` to force libpng to use static linkage. This will prevent errors about missing dlls when you attempt to run the game.
@@ -213,7 +217,7 @@ Packaging/windows/mingw-prep64.sh
 
 By compiling the `package` target, the build will produce the `devilutionx.zip` archive which should contain all the dlls necessary to run the game. If you encounter any errors suggesting a dll is missing, try extracting the dlls from the zip archive.
 
-### 32-bit
+#### 32-bit
 
 ```bash
 # Configure the project to disable unit tests,
@@ -228,7 +232,7 @@ cmake -S. -Bbuild -DCMAKE_TOOLCHAIN_FILE=../CMake/platforms/mingwcc.toolchain.cm
 cmake --build build -j $(getconf _NPROCESSORS_ONLN) --target package
 ```
 
-### 64-bit
+#### 64-bit
 
 ```bash
 # Configure the project to disable unit tests,
