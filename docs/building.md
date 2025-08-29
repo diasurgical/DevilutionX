@@ -178,7 +178,7 @@ cd devilutionx
 ```bash
 # Install MinGW build tools
 sudo apt-get update
-sudo apt-get install cmake git libz-mingw-w64-dev mingw-w64 mingw-w64-tools wget
+sudo apt-get install cmake git libz-mingw-w64-dev mingw-w64 mingw-w64-tools smpq wget
 ```
 
 ### 32-bit
