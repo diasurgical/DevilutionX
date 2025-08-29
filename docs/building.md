@@ -191,6 +191,11 @@ When linking zlib, libpng will always prefer dynamically linking with `libz.dll.
 
 These can be done automatically by running [`Packaging/windows/mingw-prep.sh`](/Packaging/windows/mingw-prep.sh).
 
+Note: If your `i686-w64-mingw32` directory is not in `/usr` (e.g. when on
+Debian), the mingw-prep scripts and the CMake command won't work. You need
+adjust the mingw-prep scripts and pass `-DCROSS_PREFIX=/path` to CMake to set
+the path to the parent of the `i686-w64-mingw32` directory.
+
 ```bash
 # Download the 32-bit development libraries for SDL2 and libsodium
 # as well as the headers for zlib and place them in subfolders under
@@ -205,6 +210,11 @@ The 64-bit build depends on the 64-bit MinGW Development Libraries of [SDL2](htt
 When linking zlib, libpng will always prefer dynamically linking with `libz.dll.a` if it can be found. We recommend renaming or deleting `libz.dll.a` to force libpng to use static linkage. This will prevent errors about missing dlls when you attempt to run the game.
 
 These can be done automatically by running [`Packaging/windows/mingw-prep64.sh`](/Packaging/windows/mingw-prep64.sh).
+
+Note: If your `x86_64-w64-mingw32` directory is not in `/usr` (e.g. when
+on Debian), the mingw-prep scripts and the CMake command won't work. You need
+adjust the mingw-prep scripts and pass `-DCROSS_PREFIX=/path` to CMake to set
+the path to the parent of the `x86_64-w64-mingw32` directory.  
 
 ```bash
 # Download the 64-bit development libraries for SDL2 and libsodium
@@ -247,9 +257,6 @@ cmake -S. -Bbuild -DCMAKE_TOOLCHAIN_FILE=../CMake/platforms/mingwcc64.toolchain.
 cmake --build build -j $(getconf _NPROCESSORS_ONLN) --target package
 ```
 
-Note: If your `(i686|x86_64)-w64-mingw32` directory is not in `/usr` (e.g. when on Debian), the mingw-prep scripts and the CMake
-command won't work. You need adjust the mingw-prep scripts and pass `-DCROSS_PREFIX=/path` to CMake to set the path to the parent
-of the `(i686|x86_64)-w64-mingw32` directory.
 </details>
 <details><summary>Windows via Visual Studio</summary>
 
