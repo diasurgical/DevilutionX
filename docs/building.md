@@ -175,14 +175,17 @@ cd devilutionx
 
 ### Installing dependencies on WSL, Debian and Ubuntu
 
+```bash
+# Install MinGW build tools
+sudo apt-get update
+sudo apt-get install cmake git libz-mingw-w64-dev mingw-w64 mingw-w64-tools wget
+```
+
 ### 32-bit
 
 In addition to the 32-bit MinGW build tools, the build process depends on the 32-bit MinGW Development Libraries for [SDL2](https://www.libsdl.org/download-2.0.php) and [libsodium](https://github.com/jedisct1/libsodium/releases) as well as headers for [zlib](https://zlib.net/zlib-1.2.12.tar.gz). These dependencies will need to be placed in the appropriate subfolders under `/usr/i686-w64-mingw32`. This can be done automatically by running [`Packaging/windows/mingw-prep.sh`](/Packaging/windows/mingw-prep.sh).
 
 ```bash
-# Install the 32-bit MinGW build tools
-sudo apt install cmake gcc-mingw-w64-i686 g++-mingw-w64-i686 pkg-config-mingw-w64-i686 libz-mingw-w64-dev git wget
-
 # Download the 32-bit development libraries for SDL2 and libsodium
 # as well as the headers for zlib and place them in subfolders under
 # /usr/i686-w64-mingw32
@@ -194,9 +197,6 @@ Packaging/windows/mingw-prep.sh
 In addition to the 64-bit MinGW build tools, the build process depends on the 64-bit MinGW Development Libraries of [SDL2](https://www.libsdl.org/download-2.0.php) and [libsodium](https://github.com/jedisct1/libsodium/releases) as well as headers for [zlib](https://zlib.net/zlib-1.2.12.tar.gz). These dependencies will need to be placed in the appropriate subfolders under `/usr/x86_64-w64-mingw32`. This can be done automatically by running [`Packaging/windows/mingw-prep64.sh`](/Packaging/windows/mingw-prep64.sh).
 
 ```bash
-# Install the 64-bit MinGW build tools
-sudo apt install cmake gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 pkg-config-mingw-w64-x86-64 libz-mingw-w64-dev git wget
-
 # Download the 64-bit development libraries for SDL2 and libsodium
 # as well as the headers for zlib and place them in subfolders under
 # /usr/x86_64-w64-mingw32
