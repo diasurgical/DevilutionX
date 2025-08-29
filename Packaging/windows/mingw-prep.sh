@@ -51,3 +51,6 @@ find "${MINGW_PREFIX}/lib/pkgconfig/" -name '*.pc' -exec \
 # Fixup CMake prefix:
 find "${MINGW_PREFIX}" -name '*.cmake' -exec \
   $SUDO sed -i "s|/opt/local/${MINGW_ARCH}|${MINGW_PREFIX}|" '{}' \;
+
+# Fixup zlib linking:
+$SUDO mv "${MINGW_PREFIX}/lib/libz.dll.a" "${MINGW_PREFIX}/lib/libz.dll.a.bak"
