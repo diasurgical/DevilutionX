@@ -579,7 +579,7 @@ void DrawConsole(const Surface &out)
 	};
 
 	if (FirstRender) {
-		const SDL_Rect sdlInputRect = MakeSdlRect(InputRect);
+		SDL_Rect sdlInputRect = MakeSdlRect(InputRect);
 		SDL_SetTextInputRect(&sdlInputRect);
 		SDL_StartTextInput();
 		FirstRender = false;

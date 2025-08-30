@@ -88,7 +88,7 @@ AssetRef FindAsset(std::string_view filename)
 	char *const relativePath = &pathBuf[AssetRef::PathBufSize - filename.size() - 1];
 	*BufCopy(relativePath, filename) = '\0';
 
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__DJGPP__)
 	std::replace(relativePath, pathEnd, '\\', '/');
 #endif
 	// Absolute path:
@@ -383,7 +383,11 @@ void LoadCoreArchives()
 
 #if !defined(__ANDROID__) && !defined(__APPLE__) && !defined(__3DS__) && !defined(__SWITCH__)
 	// Load devilutionx.mpq first to get the font file for error messages
+#ifdef __DJGPP__
+	LoadMPQ(paths, "devx", DevilutionXMpqPriority);
+#else
 	LoadMPQ(paths, "devilutionx", DevilutionXMpqPriority);
+#endif
 #endif
 	LoadMPQ(paths, "fonts", FontMpqPriority); // Extra fonts
 	HasHellfireMpq = FindMPQ(paths, "hellfire");

@@ -877,7 +877,6 @@ endif()
 add_devilutionx_object_library(libdevilutionx ${libdevilutionx_SRCS})
 target_include_directories(libdevilutionx PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 target_link_dependencies(libdevilutionx PUBLIC
-  Threads::Threads
   DevilutionX::SDL
   fmt::fmt
   libsmackerdec
@@ -931,6 +930,9 @@ target_link_dependencies(libdevilutionx PUBLIC
   libdevilutionx_utf8
   libdevilutionx_utils_console
 )
+if(NOT TARGET_PLATFORM STREQUAL "dos")
+  target_link_dependencies(libdevilutionx PUBLIC Threads::Threads)
+endif()
 if(DEVILUTIONX_SCREENSHOT_FORMAT STREQUAL DEVILUTIONX_SCREENSHOT_FORMAT_PNG)
   target_link_dependencies(libdevilutionx PUBLIC libdevilutionx_surface_to_png)
 endif()

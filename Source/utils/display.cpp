@@ -242,6 +242,7 @@ void UpdateAvailableResolutions()
 			ErrSdl();
 		}
 		for (auto &size : sizes) {
+			if (mode.h == 0) continue;
 			// Ensure that the ini specified resolution remains present in the resolution list
 			if (size.height == configuredSize.height)
 				size.width = configuredSize.width;

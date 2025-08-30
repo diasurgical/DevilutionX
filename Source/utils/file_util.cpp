@@ -15,6 +15,10 @@
 #include "utils/sdl2_to_1_2_backports.h"
 #endif
 
+#if defined(__DJGPP__)
+#include <fstream>
+#endif
+
 #ifdef _WIN32
 #include <memory>
 
@@ -103,7 +107,7 @@ bool FileExists(const char *path)
 		return false;
 	}
 	return true;
-#elif (_POSIX_C_SOURCE >= 200112L || defined(_BSD_SOURCE) || defined(__APPLE__)) && !defined(__ANDROID__)
+#elif (_POSIX_C_SOURCE >= 200112L || defined(_BSD_SOURCE) || defined(__APPLE__)) && !defined(__ANDROID__) && !defined(__DJGPP__)
 	return ::access(path, F_OK) == 0;
 #elif defined(DVL_HAS_FILESYSTEM)
 	std::error_code ec;
@@ -167,7 +171,7 @@ bool FileExistsAndIsWriteable(const char *path)
 #ifdef _WIN32
 	const DWORD attr = WindowsGetFileAttributes(path);
 	return attr != INVALID_FILE_ATTRIBUTES && (attr & FILE_ATTRIBUTE_READONLY) == 0;
-#elif (_POSIX_C_SOURCE >= 200112L || defined(_BSD_SOURCE) || defined(__APPLE__)) && !defined(__ANDROID__)
+#elif (_POSIX_C_SOURCE >= 200112L || defined(_BSD_SOURCE) || defined(__APPLE__)) && !defined(__ANDROID__) && !defined(__DJGPP__)
 	return ::access(path, W_OK) == 0;
 #else
 	if (!FileExists(path))
@@ -221,6 +225,14 @@ bool GetFileSize(const char *path, std::uintmax_t *size)
 	*size = static_cast<std::uintmax_t>(attr.nFileSizeHigh) << (sizeof(attr.nFileSizeHigh) * 8) | attr.nFileSizeLow;
 	return true;
 #endif
+#elif defined(__DJGPP__)
+	SDL_RWops *rw = SDL_RWFromFile(path, "rb");
+	if (rw == nullptr) return false;
+	Sint64 length = SDL_RWsize(rw);
+	SDL_RWclose(rw);
+	if (length < 0) return false;
+	*size = static_cast<std::uintmax_t>(length);
+	return true;
 #else
 	struct ::stat statResult;
 	if (::stat(path, &statResult) == -1)
@@ -232,6 +244,7 @@ bool GetFileSize(const char *path, std::uintmax_t *size)
 
 bool CreateDir(const char *path)
 {
+	if (strlen(path) == 0) return true;
 #ifdef DVL_HAS_FILESYSTEM
 	std::error_code error;
 	std::filesystem::create_directory(reinterpret_cast<const char8_t *>(path), error);
@@ -273,6 +286,7 @@ bool CreateDir(const char *path)
 
 void RecursivelyCreateDir(const char *path)
 {
+	if (strlen(path) == 0) return;
 #ifdef DVL_HAS_FILESYSTEM
 	std::error_code error;
 	std::filesystem::create_directories(reinterpret_cast<const char8_t *>(path), error);
@@ -350,6 +364,13 @@ bool ResizeFile(const char *path, std::uintmax_t size)
 		return false;
 	}
 	::CloseHandle(file);
+	return true;
+#elif defined(__DJGPP__)
+	std::ofstream file(path, std::ios::in | std::ios::out | std::ios::binary);
+	if (!file.is_open()) return false;
+	file.seekp(static_cast<std::streamoff>(size));
+	file.put('\0');
+	file.close();
 	return true;
 #elif _POSIX_C_SOURCE >= 200112L || defined(_BSD_SOURCE) || defined(__APPLE__)
 	return ::truncate(path, static_cast<off_t>(size)) == 0;

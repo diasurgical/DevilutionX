@@ -15,9 +15,39 @@ namespace devilution {
 namespace this_sdl_thread {
 inline SDL_threadID get_id()
 {
+#if defined(__DJGPP__)
+	return 1;
+#else
 	return SDL_GetThreadID(nullptr);
+#endif
 }
 } // namespace this_sdl_thread
+
+#if defined(__DJGPP__)
+class SdlThread final {
+public:
+	SdlThread(int(SDLCALL *handler)(void *), void *data)
+	{
+		if (handler != nullptr) handler(data);
+	}
+	explicit SdlThread(void (*handler)(void))
+	{
+		if (handler != nullptr) handler();
+	}
+	SdlThread() = default;
+	bool joinable() const
+	{
+		return false;
+	}
+	SDL_threadID get_id() const
+	{
+		return this_sdl_thread::get_id();
+	}
+	void join()
+	{
+	}
+};
+#else
 
 class SdlThread final {
 	static int SDLCALL ThreadTranslate(void *ptr);
@@ -65,5 +95,7 @@ public:
 		thread.release();
 	}
 };
+
+#endif
 
 } // namespace devilution

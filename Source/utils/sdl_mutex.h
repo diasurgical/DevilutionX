@@ -13,6 +13,23 @@ namespace devilution {
  * RAII wrapper for SDL_mutex. Satisfies std's "Lockable" (SDL 2) or "BasicLockable" (SDL 1)
  * requirements so it can be used with std::lock_guard and friends.
  */
+#ifdef __DJGPP__
+class SdlMutex final {
+public:
+	SdlMutex() noexcept { }
+	~SdlMutex() noexcept { }
+
+	SdlMutex(const SdlMutex &) = delete;
+	SdlMutex(SdlMutex &&) = delete;
+	SdlMutex &operator=(const SdlMutex &) = delete;
+	SdlMutex &operator=(SdlMutex &&) = delete;
+
+	void lock() noexcept { }
+	void unlock() noexcept { }
+
+	void *get() noexcept { return nullptr; } // Dummy
+};
+#else
 class SdlMutex final {
 public:
 	SdlMutex()
@@ -64,5 +81,6 @@ public:
 private:
 	SDL_mutex *mutex_;
 };
+#endif
 
 } // namespace devilution

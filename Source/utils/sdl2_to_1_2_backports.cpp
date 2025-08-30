@@ -862,7 +862,7 @@ extern "C" char *SDL_GetPrefPath(const char *org, const char *app)
 	 *
 	 * https://standards.freedesktop.org/basedir-spec/basedir-spec-latest.html
 	 */
-#if defined(WINVER) && WINVER <= 0x0500 && (!defined(_WIN32_WINNT) || _WIN32_WINNT == 0)
+#if (defined(WINVER) && WINVER <= 0x0500 && (!defined(_WIN32_WINNT) || _WIN32_WINNT == 0)) || defined(__DJGPP__)
 	// On Windows9x there is no such thing as PrefPath. Simply use the current directory.
 	char *result = (char *)SDL_malloc(1);
 	*result = '\0';

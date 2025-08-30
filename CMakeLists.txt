@@ -325,7 +325,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON) # for clang-tidy
 set(CMAKE_THREAD_PREFER_PTHREAD ON)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
-find_package(Threads REQUIRED)
+if(NOT TARGET_PLATFORM STREQUAL "dos")
+  find_package(Threads REQUIRED)
+endif()
 
 # Dependencies must be included after Platforms.
 include(Dependencies)
@@ -356,6 +358,14 @@ else()
         COMMAND $<$<OR:$<CONFIG:Release>,$<CONFIG:MinSizeRel>>:${CMAKE_STRIP}>
         ARGS $<TARGET_FILE:${BIN_TARGET}>)
     endif()
+endif()
+
+if(TARGET_PLATFORM STREQUAL "dos")
+    # Allow multiple definitions for math stubs in DJGPP
+    set_target_properties(devilutionx PROPERTIES
+        LINK_FLAGS "-Wl,--allow-multiple-definition -static"
+    )
+    target_link_libraries(devilutionx PRIVATE m)
 endif()
 
 if(NOT UWP_LIB)
