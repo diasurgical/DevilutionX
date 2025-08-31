@@ -39,7 +39,7 @@ set -eu
 set -x
 
 # Build and install SDL2 for DOS
-git clone --branch=patch-1 https://github.com/AJenbo/SDL.git
+git clone --branch=dos-vbe https://github.com/diasurgical/SDL.git
 cd SDL
 autoreconf -fi
 ./configure --host=i386-pc-msdosdjgpp --prefix="${INSTALL_PREFIX}/i386-pc-msdosdjgpp" --disable-shared --enable-static --enable-video-svga --enable-timer-dos --enable-uclock
