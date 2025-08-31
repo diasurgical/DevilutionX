@@ -22,12 +22,6 @@
 #include "player.h"
 #include "utils/is_of.hpp"
 
-template <>
-struct magic_enum::customize::enum_range<devilution::SfxID> {
-	static constexpr int min = static_cast<int>(devilution::SfxID::None);
-	static constexpr int max = static_cast<int>(devilution::SfxID::LAST);
-};
-
 namespace devilution {
 
 int sfxdelay;

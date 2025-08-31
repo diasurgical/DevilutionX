@@ -345,6 +345,7 @@ add_devilutionx_object_library(libdevilutionx_game_mode
 )
 target_link_dependencies(libdevilutionx_game_mode PRIVATE
   tl
+  magic_enum::magic_enum
   libdevilutionx_options
 )
 
@@ -374,6 +375,7 @@ add_devilutionx_object_library(libdevilutionx_init
   init.cpp
 )
 target_link_dependencies(libdevilutionx_init PUBLIC
+  magic_enum::magic_enum
   libdevilutionx_assets
   libdevilutionx_config
   libdevilutionx_mpq
@@ -462,6 +464,7 @@ add_devilutionx_object_library(libdevilutionx_lighting
 target_link_dependencies(libdevilutionx_lighting PUBLIC
   DevilutionX::SDL
   fmt::fmt
+  magic_enum::magic_enum
   tl
   unordered_dense::unordered_dense
   libdevilutionx_vision
@@ -600,6 +603,7 @@ add_devilutionx_object_library(libdevilutionx_options
 target_link_dependencies(libdevilutionx_options PUBLIC
   DevilutionX::SDL
   fmt::fmt
+  magic_enum::magic_enum
   tl
   unordered_dense::unordered_dense
   libdevilutionx_controller_buttons
@@ -639,6 +643,7 @@ target_link_dependencies(libdevilutionx_player
   PUBLIC
   DevilutionX::SDL
   fmt::fmt
+  magic_enum::magic_enum
   tl
   unordered_dense::unordered_dense
   libdevilutionx_game_mode
@@ -724,6 +729,16 @@ if(NOSOUND)
   add_devilutionx_object_library(libdevilutionx_sound
     effects_stubs.cpp
     engine/sound_stubs.cpp
+  )
+  target_link_dependencies(libdevilutionx_sound PUBLIC
+    DevilutionX::SDL
+    fmt::fmt
+    magic_enum::magic_enum
+    tl
+    unordered_dense::unordered_dense
+    libdevilutionx_options
+    libdevilutionx_random
+    libdevilutionx_sdl2_to_1_2_backports
   )
 else()
   add_devilutionx_object_library(libdevilutionx_sound

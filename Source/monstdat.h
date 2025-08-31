@@ -10,6 +10,8 @@
 #include <string>
 #include <vector>
 
+#include <magic_enum/magic_enum.hpp>
+
 #include "cursor.h"
 #include "textdat.h"
 
@@ -349,3 +351,15 @@ void LoadMonsterData();
 size_t GetNumMonsterSprites();
 
 } // namespace devilution
+
+template <>
+struct magic_enum::customize::enum_range<devilution::_monster_id> {
+	static constexpr int min = devilution::MT_INVALID;
+	static constexpr int max = devilution::NUM_DEFAULT_MTYPES;
+};
+
+template <>
+struct magic_enum::customize::enum_range<devilution::monster_resistance> {
+	static constexpr int min = 0;
+	static constexpr int max = 128;
+};

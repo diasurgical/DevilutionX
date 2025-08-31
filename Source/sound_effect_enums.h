@@ -2,6 +2,8 @@
 
 #include <cstdint>
 
+#include <magic_enum/magic_enum.hpp>
+
 namespace devilution {
 
 enum class HeroSpeech : uint8_t {
@@ -1039,3 +1041,9 @@ enum sfx_flag : uint8_t {
 };
 
 } // namespace devilution
+
+template <>
+struct magic_enum::customize::enum_range<devilution::SfxID> {
+	static constexpr int min = static_cast<int>(devilution::SfxID::None);
+	static constexpr int max = static_cast<int>(devilution::SfxID::LAST);
+};

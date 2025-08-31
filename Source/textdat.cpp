@@ -14,12 +14,6 @@
 #include "effects.h"
 #include "utils/language.h"
 
-template <>
-struct magic_enum::customize::enum_range<devilution::_speech_id> {
-	static constexpr int min = devilution::TEXT_NONE;
-	static constexpr int max = devilution::NUM_DEFAULT_TEXT_IDS;
-};
-
 namespace devilution {
 
 /* todo: move text out of struct */
