@@ -231,6 +231,90 @@ void LoadClassData(std::string_view classPath, ClassAttributes &attributes, Play
 	readInt("baseRangedToHit", combat.baseRangedToHit);
 }
 
+void LoadClassStartingLoadoutData(std::string_view classPath, PlayerStartingLoadoutData &startingLoadoutData)
+{
+	const std::string filename = StrCat("txtdata\\classes\\", classPath, "\\starting_loadout.tsv");
+	tl::expected<DataFile, DataFile::Error> dataFileResult = DataFile::load(filename);
+	if (!dataFileResult.has_value()) {
+		DataFile::reportFatalError(dataFileResult.error(), filename);
+	}
+	DataFile &dataFile = dataFileResult.value();
+
+	if (tl::expected<void, DataFile::Error> result = dataFile.skipHeader();
+	    !result.has_value()) {
+		DataFile::reportFatalError(result.error(), filename);
+	}
+
+	auto recordIt = dataFile.begin();
+	const auto recordEnd = dataFile.end();
+
+	const auto getValueField = [&](std::string_view expectedKey) {
+		if (recordIt == recordEnd) {
+			app_fatal(fmt::format("Missing field {} in {}", expectedKey, filename));
+		}
+		DataFileRecord record = *recordIt;
+		FieldIterator fieldIt = record.begin();
+		const FieldIterator endField = record.end();
+
+		const std::string_view key = (*fieldIt).value();
+		if (key != expectedKey) {
+			app_fatal(fmt::format("Unexpected field in {}: got {}, expected {}", filename, key, expectedKey));
+		}
+
+		++fieldIt;
+		if (fieldIt == endField) {
+			DataFile::reportFatalError(DataFile::Error::NotEnoughColumns, filename);
+		}
+		return *fieldIt;
+	};
+
+	const auto valueReader = [&](auto &&readFn) {
+		return [&](std::string_view expectedKey, auto &outValue) {
+			DataFileField valueField = getValueField(expectedKey);
+			if (const tl::expected<void, devilution::DataFileField::Error> result = readFn(valueField, outValue);
+			    !result.has_value()) {
+				DataFile::reportFatalFieldError(result.error(), filename, "Value", valueField);
+			}
+			++recordIt;
+		};
+	};
+
+	const auto readString = valueReader([](DataFileField &valueField, auto &outValue) {
+		outValue = valueField.value();
+		return tl::expected<void, devilution::DataFileField::Error> {};
+	});
+
+	const auto readInt = valueReader([](DataFileField &valueField, auto &outValue) {
+		return valueField.parseInt(outValue);
+	});
+
+	const auto readSpellId = valueReader([](DataFileField &valueField, auto &outValue) -> tl::expected<void, devilution::DataFileField::Error> {
+		const auto result = ParseSpellId(valueField.value());
+		if (!result.has_value()) {
+			return tl::make_unexpected(devilution::DataFileField::Error::InvalidValue);
+		}
+
+		outValue = result.value();
+	});
+
+	const auto readItemId = valueReader([](DataFileField &valueField, auto &outValue) -> tl::expected<void, devilution::DataFileField::Error> {
+		const auto result = ParseItemId(valueField.value());
+		if (!result.has_value()) {
+			return tl::make_unexpected(devilution::DataFileField::Error::InvalidValue);
+		}
+
+		outValue = result.value();
+	});
+
+	readSpellId("skill", startingLoadoutData.skill);
+	readSpellId("spell", startingLoadoutData.spell);
+	readInt("spellLevel", startingLoadoutData.spellLevel);
+	for (size_t i = 0; i < startingLoadoutData.items.size(); ++i) {
+		readItemId(StrCat("item", i), startingLoadoutData.items[i]);
+	}
+	readInt("gold", startingLoadoutData.gold);
+}
+
 void LoadClassSpriteData(std::string_view classPath, PlayerSpriteData &spriteData)
 {
 	const std::string filename = StrCat("txtdata\\classes\\", classPath, "\\sprites.tsv");
@@ -308,6 +392,8 @@ std::vector<ClassAttributes> ClassAttributesPerClass;
 
 std::vector<PlayerCombatData> PlayersCombatData;
 
+std::vector<PlayerStartingLoadoutData> PlayersStartingLoadoutData;
+
 /** Contains the data related to each player class. */
 std::vector<PlayerSpriteData> PlayersSpriteData;
 
@@ -351,26 +437,17 @@ void LoadClassesAttributes()
 	ClassAttributesPerClass.reserve(PlayersData.size());
 	PlayersCombatData.clear();
 	PlayersCombatData.reserve(PlayersData.size());
+	PlayersStartingLoadoutData.clear();
+	PlayersStartingLoadoutData.reserve(PlayersData.size());
 	PlayersSpriteData.clear();
 	PlayersSpriteData.reserve(PlayersData.size());
 
 	for (const PlayerData &playerData : PlayersData) {
 		LoadClassData(playerData.folderName, ClassAttributesPerClass.emplace_back(), PlayersCombatData.emplace_back());
+		LoadClassStartingLoadoutData(playerData.folderName, PlayersStartingLoadoutData.emplace_back());
 		LoadClassSpriteData(playerData.folderName, PlayersSpriteData.emplace_back());
 	}
 }
-
-const std::array<PlayerStartingLoadoutData, enum_size<HeroClass>::value> PlayersStartingLoadoutData { {
-	// clang-format off
-// HeroClass                 skill,                  spell,             spellLevel,     items[0].diablo,       items[0].hellfire, items[1].diablo,  items[1].hellfire, items[2].diablo, items[2].hellfire, items[3].diablo, items[3].hellfire, items[4].diablo, items[4].hellfire, gold,
-/* HeroClass::Warrior   */ { SpellID::ItemRepair,    SpellID::Null,              0, { { { IDI_WARRIOR,         IDI_WARRIOR,    }, { IDI_WARRSHLD,   IDI_WARRSHLD,   }, { IDI_WARRCLUB,  IDI_WARRCLUB,   }, { IDI_HEAL,    IDI_HEAL,  }, { IDI_HEAL,      IDI_HEAL, }, }, },  100, },
-/* HeroClass::Rogue     */ { SpellID::TrapDisarm,    SpellID::Null,              0, { { { IDI_ROGUE,           IDI_ROGUE,      }, { IDI_HEAL,       IDI_HEAL,       }, { IDI_HEAL,      IDI_HEAL,       }, { IDI_NONE,    IDI_NONE,  }, { IDI_NONE,      IDI_NONE, }, }, },  100, },
-/* HeroClass::Sorcerer  */ { SpellID::StaffRecharge, SpellID::Firebolt,          2, { { { IDI_SORCERER_DIABLO, IDI_SORCERER,   }, { IDI_MANA,       IDI_HEAL,       }, { IDI_MANA,      IDI_HEAL,       }, { IDI_NONE,    IDI_NONE,  }, { IDI_NONE,      IDI_NONE, }, }, },  100, },
-/* HeroClass::Monk      */ { SpellID::Search,        SpellID::Null,              0, { { { IDI_SHORTSTAFF,      IDI_SHORTSTAFF, }, { IDI_HEAL,       IDI_HEAL,       }, { IDI_HEAL,      IDI_HEAL,       }, { IDI_NONE,    IDI_NONE,  }, { IDI_NONE,      IDI_NONE, }, }, },  100, },
-/* HeroClass::Bard      */ { SpellID::Identify,      SpellID::Null,              0, { { { IDI_BARDSWORD,       IDI_BARDSWORD,  }, { IDI_BARDDAGGER, IDI_BARDDAGGER, }, { IDI_HEAL,      IDI_HEAL,       }, { IDI_HEAL,    IDI_HEAL,  }, { IDI_NONE,      IDI_NONE, }, }, },  100, },
-/* HeroClass::Barbarian */ { SpellID::Rage,          SpellID::Null,              0, { { { IDI_BARBARIAN,       IDI_BARBARIAN,  }, { IDI_WARRSHLD,   IDI_WARRSHLD,   }, { IDI_HEAL,      IDI_HEAL,       }, { IDI_HEAL,    IDI_HEAL,  }, { IDI_NONE,      IDI_NONE, }, }, },  100, }
-	// clang-format on
-} };
 
 } // namespace
 

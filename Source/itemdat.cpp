@@ -9,7 +9,6 @@
 #include <string_view>
 #include <vector>
 
-#include <expected.hpp>
 #include <fmt/format.h>
 
 #include "data/file.hpp"
@@ -41,6 +40,15 @@ std::vector<PLStruct> ItemPrefixes;
 
 /** Contains the data related to each item suffix. */
 std::vector<PLStruct> ItemSuffixes;
+
+tl::expected<_item_indexes, std::string> ParseItemId(std::string_view value)
+{
+	const std::optional<_item_indexes> enumValueOpt = magic_enum::enum_cast<_item_indexes>(value);
+	if (enumValueOpt.has_value()) {
+		return enumValueOpt.value();
+	}
+	return tl::make_unexpected("Unknown enum value");
+}
 
 namespace {
 

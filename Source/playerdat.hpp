@@ -100,12 +100,7 @@ struct PlayerStartingLoadoutData {
 	/* Initial level of the starting spell */
 	uint8_t spellLevel;
 
-	struct ItemType {
-		_item_indexes diablo;
-		_item_indexes hellfire;
-	};
-
-	std::array<ItemType, 5> items;
+	std::array<_item_indexes, 5> items;
 
 	/* Initial gold amount, up to a single stack (5000 gold) */
 	uint16_t gold;

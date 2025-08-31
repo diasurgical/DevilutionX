@@ -8,6 +8,7 @@ set(hellfire_mod
   nlevels/cutl6w.clx
   nlevels/l5data/cornerstone.dun
   nlevels/l5data/uberroom.dun
+  txtdata/classes/sorcerer/starting_loadout.tsv
   txtdata/items/item_prefixes.tsv
   txtdata/items/item_suffixes.tsv
   txtdata/items/unique_itemdat.tsv

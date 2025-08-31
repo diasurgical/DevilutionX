@@ -3012,8 +3012,7 @@ void CreatePlrItems(Player &player)
 	}
 
 	InitCursor();
-	for (const auto &itemChoice : loadout.items) {
-		const _item_indexes itemData = gbIsHellfire && itemChoice.hellfire != _item_indexes::IDI_NONE ? itemChoice.hellfire : itemChoice.diablo;
+	for (const _item_indexes itemData : loadout.items) {
 		if (itemData != _item_indexes::IDI_NONE)
 			CreateStartingItem(player, itemData);
 	}
