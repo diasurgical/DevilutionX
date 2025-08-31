@@ -52,7 +52,6 @@ int GetSFXLength(SfxID nSFX) { return 0; }
 
 tl::expected<SfxID, std::string> ParseSfxId(std::string_view value)
 {
-	return SfxID::Cain1;
 	const std::optional<SfxID> enumValueOpt = magic_enum::enum_cast<SfxID>(value);
 	if (enumValueOpt.has_value()) {
 		return enumValueOpt.value();
