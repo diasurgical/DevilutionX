@@ -130,6 +130,12 @@ SDL_DisplayMode GetNearestDisplayMode(Size preferredSize)
 		nearestDisplayMode = displayMode;
 	}
 
+	LogVerbose("Nearest display mode to {}x{} is {}x{} {}bpp {}Hz",
+	    preferredSize.width, preferredSize.height,
+	    nearestDisplayMode.w, nearestDisplayMode.h,
+	    SDL_BITSPERPIXEL(nearestDisplayMode.format),
+	    nearestDisplayMode.refresh_rate);
+
 	return nearestDisplayMode;
 }
 #endif
