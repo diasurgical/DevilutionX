@@ -320,7 +320,12 @@ if(GPERF)
 endif()
 
 set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_EXTENSIONS OFF)
+
+# On some platforms, such as DJGPP,
+# `-std=c++20` defines `__STRICT_ANSI__` which disables
+# all POSIX extensions, so we need to use `-std=gnu++20` instead.
+set(CMAKE_CXX_EXTENSIONS ON)
+
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON) # for clang-tidy
 set(CMAKE_THREAD_PREFER_PTHREAD ON)
