@@ -31,25 +31,12 @@ build_and_install_djgpp() {
 	$SUDO rm -rf build-gcc
 }
 
-# Build and install SDL2 for DOS
-build_and_install_sdl2() {
-	git clone --branch=dos-vbe-rebase https://github.com/diasurgical/SDL.git
-	cd SDL
-	"${INSTALL_PREFIX}/bin/i386-pc-msdosdjgpp-setenv" autoreconf -fi --verbose
-	"${INSTALL_PREFIX}/bin/i386-pc-msdosdjgpp-setenv" ./configure --host=i386-pc-msdosdjgpp --prefix="${INSTALL_PREFIX}/i386-pc-msdosdjgpp" --disable-shared --enable-static --enable-video-svga --enable-timer-dos --enable-uclock
-	"${INSTALL_PREFIX}/bin/i386-pc-msdosdjgpp-setenv" make -j$(nproc)
-	$SUDO "${INSTALL_PREFIX}/bin/i386-pc-msdosdjgpp-setenv" make install
-	cd -
-	rm -rf SDL
-}
-
 main() {
 	set -x
 	mkdir -p tmp/dos-prep
 	cd tmp/dos-prep
 	install_system_deps
 	build_and_install_djgpp
-	build_and_install_sdl2
 }
 
 main "$@"
