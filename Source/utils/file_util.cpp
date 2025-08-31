@@ -236,7 +236,6 @@ bool GetFileSize(const char *path, std::uintmax_t *size)
 
 bool CreateDir(const char *path)
 {
-	if (strlen(path) == 0) return true;
 #ifdef DVL_HAS_FILESYSTEM
 	std::error_code error;
 	std::filesystem::create_directory(reinterpret_cast<const char8_t *>(path), error);
@@ -278,7 +277,6 @@ bool CreateDir(const char *path)
 
 void RecursivelyCreateDir(const char *path)
 {
-	if (strlen(path) == 0) return;
 #ifdef DVL_HAS_FILESYSTEM
 	std::error_code error;
 	std::filesystem::create_directories(reinterpret_cast<const char8_t *>(path), error);
