@@ -236,7 +236,11 @@ else()
   endif()
 
   if(BUILD_ASSETS_MPQ)
-    set(DEVILUTIONX_MPQ "${CMAKE_CURRENT_BINARY_DIR}/devilutionx.mpq")
+    if(TARGET_PLATFORM STREQUAL "dos")
+      set(DEVILUTIONX_MPQ "${CMAKE_CURRENT_BINARY_DIR}/devx.mpq")
+    else()
+      set(DEVILUTIONX_MPQ "${CMAKE_CURRENT_BINARY_DIR}/devilutionx.mpq")
+    endif()
     add_custom_command(
       COMMENT "Building devilutionx.mpq"
       OUTPUT "${DEVILUTIONX_MPQ}"

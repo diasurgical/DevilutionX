@@ -342,6 +342,8 @@ add_subdirectory(Source)
 set(BIN_TARGET devilutionx)
 if(NINTENDO_3DS)
   set(BIN_TARGET ${BIN_TARGET}.elf)
+elseif(TARGET_PLATFORM STREQUAL "dos")
+  set(BIN_TARGET devx)
 endif()
 
 if(ANDROID)
@@ -367,10 +369,10 @@ endif()
 
 if(TARGET_PLATFORM STREQUAL "dos")
     # Allow multiple definitions for math stubs in DJGPP
-    set_target_properties(devilutionx PROPERTIES
+    set_target_properties(${BIN_TARGET} PROPERTIES
         LINK_FLAGS "-Wl,--allow-multiple-definition -static"
     )
-    target_link_libraries(devilutionx PRIVATE m)
+    target_link_libraries(${BIN_TARGET} PRIVATE m)
 endif()
 
 if(NOT UWP_LIB)

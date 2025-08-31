@@ -28,5 +28,3 @@ mkdir dos-build
 cd dos-build/
 cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF -DCMAKE_TOOLCHAIN_FILE=../CMake/platforms/djgpp.toolchain.cmake          -DTARGET_PLATFORM=dos -DNOSOUND=ON
 make -j$(nproc)
-mv devilutionx.mpq mv devx.mpq
-mv devilutionx.exe mv devx.exe
