@@ -321,7 +321,9 @@ uint8_t GetMaximumCharacterLevel()
 
 const PlayerData &GetPlayerDataForClass(HeroClass playerClass)
 {
-	return PlayersData[static_cast<size_t>(playerClass)];
+	const size_t playerClassIndex = static_cast<size_t>(playerClass);
+	assert(playerClassIndex < PlayersData.size());
+	return PlayersData[playerClassIndex];
 }
 
 const SfxID herosounds[enum_size<HeroClass>::value][enum_size<HeroSpeech>::value] = {
@@ -337,12 +339,16 @@ const SfxID herosounds[enum_size<HeroClass>::value][enum_size<HeroSpeech>::value
 
 const PlayerCombatData &GetPlayerCombatDataForClass(HeroClass pClass)
 {
-	return PlayersCombatData[static_cast<size_t>(pClass)];
+	const size_t playerClassIndex = static_cast<size_t>(pClass);
+	assert(playerClassIndex < PlayersCombatData.size());
+	return PlayersCombatData[playerClassIndex];
 }
 
 const PlayerStartingLoadoutData &GetPlayerStartingLoadoutForClass(HeroClass pClass)
 {
-	return PlayersStartingLoadoutData[static_cast<size_t>(pClass)];
+	const size_t playerClassIndex = static_cast<size_t>(pClass);
+	assert(playerClassIndex < PlayersStartingLoadoutData.size());
+	return PlayersStartingLoadoutData[playerClassIndex];
 }
 
 /** Contains the data related to each player class. */
