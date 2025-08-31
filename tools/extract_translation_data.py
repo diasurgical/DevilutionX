@@ -6,6 +6,7 @@ root = pathlib.Path(__file__).resolve().parent.parent
 translation_dummy_path = root.joinpath("Source/translation_dummy.cpp")
 
 base_paths = {
+    "classdat": root.joinpath("assets/txtdata/classes/classdat.tsv"),
     "monstdat": root.joinpath("assets/txtdata/monsters/monstdat.tsv"),
     "unique_monstdat": root.joinpath("assets/txtdata/monsters/unique_monstdat.tsv"),
     "itemdat": root.joinpath("assets/txtdata/items/itemdat.tsv"),
@@ -40,6 +41,14 @@ def write_entry(temp_source, var_name, context, string_value, use_p):
         temp_source.write(f'const char *{var_name} = N_("{string_value}");\n')
 
 def process_files(paths, temp_source):
+    # Classes
+    if "classdat" in paths:
+        with open(paths["classdat"], 'r') as tsv:
+            reader = csv.DictReader(tsv, delimiter='\t')
+            for i, row in enumerate(reader):
+                var_name = 'CLASS_' + row['className'].upper().replace(' ', '_').replace('-', '_')
+                write_entry(temp_source, f'{var_name}_NAME', "default", row['className'], False)
+
     # Monsters
     with open(paths["monstdat"], 'r') as tsv:
         reader = csv.DictReader(tsv, delimiter='\t')

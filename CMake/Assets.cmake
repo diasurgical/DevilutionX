@@ -164,6 +164,7 @@ set(devilutionx_assets
   txtdata/classes/rogue/attributes.tsv
   txtdata/classes/sorcerer/attributes.tsv
   txtdata/classes/warrior/attributes.tsv
+  txtdata/classes/classdat.tsv
   txtdata/items/item_prefixes.tsv
   txtdata/items/item_suffixes.tsv
   txtdata/items/itemdat.tsv

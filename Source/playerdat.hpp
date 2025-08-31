@@ -22,14 +22,16 @@ enum class HeroClass : uint8_t {
 	Bard,
 	Barbarian,
 
-	LAST = Barbarian
+	NUM_MAX_CLASSES = std::numeric_limits<uint8_t>::max(),
+
+	LAST = Barbarian,
 };
 
 struct PlayerData {
 	/* Class Name */
-	const char *className;
-	/* Class Skill */
-	SpellID skill = SpellID::Null;
+	std::string className;
+	/* Class Folder Name */
+	std::string folderName;
 };
 
 struct ClassAttributes {
@@ -192,8 +194,9 @@ struct PlayerAnimData {
 };
 
 /**
- * @brief Attempts to load data values from external files, currently only Experience.tsv is supported.
+ * @brief Attempts to load data values from external files.
  */
+void LoadClassDatFromFile(DataFile &dataFile, const std::string_view filename);
 void LoadPlayerDataFiles();
 
 extern const SfxID herosounds[enum_size<HeroClass>::value][enum_size<HeroSpeech>::value];

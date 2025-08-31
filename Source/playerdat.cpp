@@ -17,6 +17,7 @@
 #include <fmt/format.h>
 
 #include "data/file.hpp"
+#include "data/record_reader.hpp"
 #include "items.h"
 #include "player.h"
 #include "textdat.h"
@@ -230,36 +231,57 @@ void LoadClassData(std::string_view classPath, ClassAttributes &attributes, Play
 	readInt("baseRangedToHit", combat.baseRangedToHit);
 }
 
+/** Contains the data related to each player class. */
+std::vector<PlayerData> PlayersData;
+
 std::vector<ClassAttributes> ClassAttributesPerClass;
 
 std::vector<PlayerCombatData> PlayersCombatData;
 
-void LoadClassesAttributes()
+} // namespace
+
+void LoadClassDatFromFile(DataFile &dataFile, const std::string_view filename)
 {
-	const std::array classPaths { "warrior", "rogue", "sorcerer", "monk", "bard", "barbarian" };
-	ClassAttributesPerClass.clear();
-	ClassAttributesPerClass.reserve(classPaths.size());
-	PlayersCombatData.clear();
-	PlayersCombatData.reserve(classPaths.size());
-	for (const std::string_view path : classPaths) {
-		LoadClassData(path, ClassAttributesPerClass.emplace_back(), PlayersCombatData.emplace_back());
+	dataFile.skipHeaderOrDie(filename);
+
+	PlayersData.reserve(PlayersData.size() + dataFile.numRecords());
+
+	for (DataFileRecord record : dataFile) {
+		if (PlayersData.size() >= static_cast<size_t>(HeroClass::NUM_MAX_CLASSES)) {
+			DisplayFatalErrorAndExit(_("Loading Class Data Failed"), fmt::format(fmt::runtime(_("Could not add a class, since the maximum class number of {} has already been reached.")), static_cast<size_t>(HeroClass::NUM_MAX_CLASSES)));
+		}
+
+		RecordReader reader { record, filename };
+
+		PlayerData &playerData = PlayersData.emplace_back();
+
+		reader.readString("className", playerData.className);
+		reader.readString("folderName", playerData.folderName);
 	}
 }
 
-/** Contains the data related to each player class. */
-const PlayerData PlayersData[] = {
-	// clang-format off
-// HeroClass                 className
-// TRANSLATORS: Player Block start
-/* HeroClass::Warrior */   { N_("Warrior"),   },
-/* HeroClass::Rogue */     { N_("Rogue"),     },
-/* HeroClass::Sorcerer */  { N_("Sorcerer"),  },
-/* HeroClass::Monk */      { N_("Monk"),      },
-/* HeroClass::Bard */      { N_("Bard"),      },
-// TRANSLATORS: Player Block end
-/* HeroClass::Barbarian */ { N_("Barbarian"), },
-	// clang-format on
-};
+namespace {
+
+void LoadClassDat()
+{
+	const std::string_view filename = "txtdata\\classes\\classdat.tsv";
+	DataFile dataFile = DataFile::loadOrDie(filename);
+	PlayersData.clear();
+	LoadClassDatFromFile(dataFile, filename);
+
+	PlayersData.shrink_to_fit();
+}
+
+void LoadClassesAttributes()
+{
+	ClassAttributesPerClass.clear();
+	ClassAttributesPerClass.reserve(PlayersData.size());
+	PlayersCombatData.clear();
+	PlayersCombatData.reserve(PlayersData.size());
+	for (const PlayerData &playerData : PlayersData) {
+		LoadClassData(playerData.folderName, ClassAttributesPerClass.emplace_back(), PlayersCombatData.emplace_back());
+	}
+}
 
 const std::array<PlayerStartingLoadoutData, enum_size<HeroClass>::value> PlayersStartingLoadoutData { {
 	// clang-format off
@@ -283,6 +305,7 @@ const ClassAttributes &GetClassAttributes(HeroClass playerClass)
 void LoadPlayerDataFiles()
 {
 	ReloadExperienceData();
+	LoadClassDat();
 	LoadClassesAttributes();
 }
 
