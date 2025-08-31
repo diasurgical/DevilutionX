@@ -63,22 +63,6 @@ if(EMSCRIPTEN)
 elseif(USE_SDL1)
   find_package(SDL 1.2.10 REQUIRED)
   include_directories(${SDL_INCLUDE_DIR})
-elseif(TARGET_PLATFORM STREQUAL "dos")
-    set(DEVILUTIONX_SYSTEM_SDL2 ON)
-    set(DEVILUTIONX_STATIC_SDL2 ON)
-
-    add_library(SDL2::SDL2 STATIC IMPORTED GLOBAL)
-    set_target_properties(SDL2::SDL2 PROPERTIES
-        INTERFACE_INCLUDE_DIRECTORIES "${DJGPP_ROOT}/include/SDL2"
-        IMPORTED_LOCATION "${DJGPP_ROOT}/lib/libSDL2.a"
-    )
-
-    add_library(SDL2::SDL2main STATIC IMPORTED GLOBAL)
-    set_target_properties(SDL2::SDL2main PROPERTIES
-        IMPORTED_LOCATION "${DJGPP_ROOT}/lib/libSDL2main.a"
-    )
-
-    set(SDL2_MAIN SDL2::SDL2main)
 else()
   dependency_options("SDL2" DEVILUTIONX_SYSTEM_SDL2 ON DEVILUTIONX_STATIC_SDL2)
   if(DEVILUTIONX_SYSTEM_SDL2)
@@ -120,7 +104,7 @@ if(USE_SDL1)
   target_link_libraries(DevilutionX::SDL INTERFACE ${SDL_LIBRARY})
   target_compile_definitions(DevilutionX::SDL INTERFACE USE_SDL1)
 else()
-  if(TARGET SDL2::SDL2)
+  if(TARGET SDL2::SDL2 AND NOT (DEVILUTIONX_STATIC_SDL2 AND TARGET SDL2::SDL2-static))
     target_link_libraries(DevilutionX::SDL INTERFACE SDL2::SDL2)
   elseif(TARGET SDL2::SDL2-static)
     target_link_libraries(DevilutionX::SDL INTERFACE SDL2::SDL2-static)
