@@ -37,6 +37,7 @@ void ui_sound_init();
 void effects_play_sound(SfxID);
 int GetSFXLength(SfxID nSFX);
 
+tl::expected<HeroSpeech, std::string> ParseHeroSpeech(std::string_view value);
 tl::expected<SfxID, std::string> ParseSfxId(std::string_view value);
 
 } // namespace devilution

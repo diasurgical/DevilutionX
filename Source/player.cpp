@@ -1683,7 +1683,7 @@ int Player::GetPositionPathIndex(Point pos)
 
 void Player::Say(HeroSpeech speechId) const
 {
-	const SfxID soundEffect = herosounds[static_cast<size_t>(_pClass)][static_cast<size_t>(speechId)];
+	const SfxID soundEffect = GetHeroSound(_pClass, speechId);
 
 	if (soundEffect == SfxID::None)
 		return;
@@ -1693,7 +1693,7 @@ void Player::Say(HeroSpeech speechId) const
 
 void Player::SaySpecific(HeroSpeech speechId) const
 {
-	const SfxID soundEffect = herosounds[static_cast<size_t>(_pClass)][static_cast<size_t>(speechId)];
+	const SfxID soundEffect = GetHeroSound(_pClass, speechId);
 
 	if (soundEffect == SfxID::None || effect_is_playing(soundEffect))
 		return;
@@ -1704,7 +1704,7 @@ void Player::SaySpecific(HeroSpeech speechId) const
 void Player::Say(HeroSpeech speechId, int delay) const
 {
 	sfxdelay = delay;
-	sfxdnum = herosounds[static_cast<size_t>(_pClass)][static_cast<size_t>(speechId)];
+	sfxdnum = GetHeroSound(_pClass, speechId);
 }
 
 void Player::Stop()
