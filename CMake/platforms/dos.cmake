@@ -3,6 +3,7 @@ set(UBSAN OFF)
 set(DIST ON)
 
 set(NONET ON)
+set(NOSOUND ON)
 
 set(PREFILL_PLAYER_NAME ON)
 

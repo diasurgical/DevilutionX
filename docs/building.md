@@ -234,14 +234,14 @@ These can be done automatically by running [`Packaging/windows/mingw-prep64.sh`]
 Note: If your `x86_64-w64-mingw32` directory is not in `/usr` (e.g. when
 on Debian), the mingw-prep scripts and the CMake command won't work. You need
 adjust the mingw-prep scripts and pass `-DCROSS_PREFIX=/path` to CMake to set
-the path to the parent of the `x86_64-w64-mingw32` directory.  
+the path to the parent of the `x86_64-w64-mingw32` directory.
 
 ```bash
 # Download the 64-bit development libraries for SDL2 and libsodium
 # as well as the headers for zlib and place them in subfolders under
 # /usr/x86_64-w64-mingw32
 Packaging/windows/mingw-prep64.sh
-```  
+```
 
 ### Compiling
 
@@ -619,6 +619,26 @@ To run tools from the `tools/` directory (only needed for development), you also
 sudo port install python312
 sudo port select --set python python312
 sudo port select --set python3 python312
+~~~
+
+</details>
+
+<details><summary>DOS</summary>
+
+You can build for DOS from Linux using DJGPP.
+
+First, install / compile the dependencies (only needs to be done once):
+
+~~~ bash
+Packaging/windows/dos-prep.sh
+~~~
+
+Then, build DevilutionX:
+
+~~~ bash
+cmake -S. -Bbuild-dos -DCMAKE_TOOLCHAIN_FILE=CMake/platforms/djcpp.toolchain.cmake -DTARGET_PLATFORM="dos" \
+  -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
+cmake --build build-dos -j $(getconf _NPROCESSORS_ONLN)
 ~~~
 
 </details>

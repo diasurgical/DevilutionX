@@ -1,30 +1,49 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
-apt-get update
-apt-get install bison flex curl gcc g++ make texinfo zlib1g-dev tar bzip2 gzip xz-utils unzip python3-dev m4 dos2unix nasm
-apt-get install cmake
+set -euo pipefail
 
+# only use sudo when necessary
+if [ `id -u` -ne 0 ]; then
+	SUDO=sudo
+else
+	SUDO=""
+fi
+
+# Install dependencies on Debian / Ubuntu:
+if which apt-get 2>/dev/null; then
+	set -x
+	$SUDO apt-get update
+	$SUDO apt-get install bison flex curl gcc g++ make texinfo zlib1g-dev tar bzip2 \
+		gzip xz-utils unzip python3-dev m4 dos2unix nasm cmake
+	{ set +x; } 2>/dev/null
+fi
+
+INSTALL_PREFIX=/opt/i386-pc-msdosdjgpp-toolchain
+
+set -x
+mkdir -p tmp/dos-prep
+cd tmp/dos-prep
+
+# Build and install DJGPP
 git clone https://github.com/jwt27/build-gcc.git
-cd build-gcc/
+cd build-gcc
+$SUDO ./build-djgpp.sh --prefix="$INSTALL_PREFIX" --batch binutils gcc-14.2.0 djgpp-cvs
+cd -
+$SUDO rm -rf build-gcc
 
-./build-djgpp.sh --prefix=$HOME/.local binutils gcc-14.2.0 djgpp-cvs
+# Activate DJGPP environment
+{ set +x; } 2>/dev/null
+set +eu
+source "${INSTALL_PREFIX}/bin/i386-pc-msdosdjgpp-setenv"
+set -eu
+set -x
 
-mkdir ~/.local/i386-pc-msdosdjgpp/include
-
-cd ..
-
-source $HOME/.local/bin/i386-pc-msdosdjgpp-setenv
-
-git clone https://github.com/AJenbo/SDL.git
-cd SDL/
-git checkout patch-1
+# Build and install SDL2 for DOS
+git clone --branch=patch-1 https://github.com/AJenbo/SDL.git
+cd SDL
 autoreconf -fi
-./configure --host=i386-pc-msdosdjgpp --prefix=$HOME/.local/i386-pc-msdosdjgpp --disable-shared --enable-static --enable-video-svga --enable-timer-dos --enable-uclock
+./configure --host=i386-pc-msdosdjgpp --prefix="${INSTALL_PREFIX}/i386-pc-msdosdjgpp" --disable-shared --enable-static --enable-video-svga --enable-timer-dos --enable-uclock
 make -j$(nproc)
-make install
-cd ..
-
-mkdir dos-build
-cd dos-build/
-cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF -DCMAKE_TOOLCHAIN_FILE=../CMake/platforms/djgpp.toolchain.cmake          -DTARGET_PLATFORM=dos -DNOSOUND=ON
-make -j$(nproc)
+$SUDO "${INSTALL_PREFIX}/bin/i386-pc-msdosdjgpp-setenv" make install
+cd -
+rm -rf SDL
