@@ -170,7 +170,9 @@ void CopySaveFile(uint32_t saveNum, std::string targetPath)
 #ifdef DVL_NO_FILESYSTEM
 #error "UNPACKED_SAVES requires either DISABLE_DEMOMODE or C++17 <filesystem>"
 #endif
-	CreateDir(targetPath.c_str());
+	if (!targetPath.empty()) {
+		CreateDir(targetPath.c_str());
+	}
 	for (const std::filesystem::directory_entry &entry : std::filesystem::directory_iterator(savePath)) {
 		CopyFileOverwrite(entry.path().string().c_str(), (targetPath + entry.path().filename().string()).c_str());
 	}

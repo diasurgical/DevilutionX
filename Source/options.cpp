@@ -157,7 +157,9 @@ void SaveIni()
 {
 	if (!ini.has_value()) return;
 	if (!ini->changed()) return;
-	RecursivelyCreateDir(paths::ConfigPath().c_str());
+	if (!paths::ConfigPath().empty()) {
+		RecursivelyCreateDir(paths::ConfigPath().c_str());
+	}
 	const std::string iniPath = GetIniPath();
 	LoggedFStream out;
 	if (!out.Open(iniPath.c_str(), "wb")) {

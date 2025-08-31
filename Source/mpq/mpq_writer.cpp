@@ -89,7 +89,9 @@ bool IsUnallocatedBlock(const MpqBlockEntry *block)
 MpqWriter::MpqWriter(const char *path)
 {
 	const std::string dir = std::string(Dirname(path));
-	RecursivelyCreateDir(dir.c_str());
+	if (!dir.empty()) {
+		RecursivelyCreateDir(dir.c_str());
+	}
 	LogVerbose("Opening {}", path);
 	bool isNewFile = false;
 	std::string error;
