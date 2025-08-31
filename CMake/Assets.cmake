@@ -159,11 +159,17 @@ set(devilutionx_assets
   plrgfx/warrior/whu/whuqm.trn
   txtdata/Experience.tsv
   txtdata/classes/barbarian/attributes.tsv
+  txtdata/classes/barbarian/sprites.tsv
   txtdata/classes/bard/attributes.tsv
+  txtdata/classes/bard/sprites.tsv
   txtdata/classes/monk/attributes.tsv
+  txtdata/classes/monk/sprites.tsv
   txtdata/classes/rogue/attributes.tsv
+  txtdata/classes/rogue/sprites.tsv
   txtdata/classes/sorcerer/attributes.tsv
+  txtdata/classes/sorcerer/sprites.tsv
   txtdata/classes/warrior/attributes.tsv
+  txtdata/classes/warrior/sprites.tsv
   txtdata/classes/classdat.tsv
   txtdata/items/item_prefixes.tsv
   txtdata/items/item_suffixes.tsv

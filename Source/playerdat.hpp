@@ -113,7 +113,7 @@ struct PlayerStartingLoadoutData {
 
 struct PlayerSpriteData {
 	/* Class Directory Path */
-	const char *classPath;
+	std::string classPath;
 	/* Sprite width: Stand */
 	uint8_t stand;
 	/* Sprite width: Walk */
@@ -205,7 +205,7 @@ uint8_t GetMaximumCharacterLevel();
 const PlayerData &GetPlayerDataForClass(HeroClass clazz);
 const PlayerCombatData &GetPlayerCombatDataForClass(HeroClass clazz);
 const PlayerStartingLoadoutData &GetPlayerStartingLoadoutForClass(HeroClass clazz);
-extern const PlayerSpriteData PlayersSpriteData[];
+const PlayerSpriteData &GetPlayerSpriteDataForClass(HeroClass clazz);
 extern const PlayerAnimData PlayersAnimData[];
 
 } // namespace devilution

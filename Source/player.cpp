@@ -1486,7 +1486,7 @@ PlayerWeaponGraphic GetPlayerWeaponGraphic(player_graphic graphic, PlayerWeaponG
 
 uint16_t GetPlayerSpriteWidth(HeroClass cls, player_graphic graphic, PlayerWeaponGraphic weaponGraphic)
 {
-	const PlayerSpriteData spriteData = PlayersSpriteData[static_cast<size_t>(cls)];
+	const PlayerSpriteData spriteData = GetPlayerSpriteDataForClass(cls);
 
 	switch (graphic) {
 	case player_graphic::Stand:
@@ -2048,7 +2048,7 @@ ClxSprite GetPlayerPortraitSprite(Player &player)
 	const HeroClass cls = GetPlayerSpriteClass(player._pClass);
 	const PlayerWeaponGraphic animWeaponId = GetPlayerWeaponGraphic(player_graphic::Stand, static_cast<PlayerWeaponGraphic>(player._pgfxnum & 0xF));
 
-	const char *path = PlayersSpriteData[static_cast<std::size_t>(cls)].classPath;
+	const char *path = GetPlayerSpriteDataForClass(cls).classPath.c_str();
 
 	const char *szCel;
 	if (!inDungeon)
@@ -2103,7 +2103,7 @@ void LoadPlrGFX(Player &player, player_graphic graphic)
 	const HeroClass cls = GetPlayerSpriteClass(player._pClass);
 	const PlayerWeaponGraphic animWeaponId = GetPlayerWeaponGraphic(graphic, static_cast<PlayerWeaponGraphic>(player._pgfxnum & 0xF));
 
-	const char *path = PlayersSpriteData[static_cast<std::size_t>(cls)].classPath;
+	const char *path = GetPlayerSpriteDataForClass(cls).classPath.c_str();
 
 	const char *szCel;
 	switch (graphic) {

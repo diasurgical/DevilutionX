@@ -231,12 +231,85 @@ void LoadClassData(std::string_view classPath, ClassAttributes &attributes, Play
 	readInt("baseRangedToHit", combat.baseRangedToHit);
 }
 
+void LoadClassSpriteData(std::string_view classPath, PlayerSpriteData &spriteData)
+{
+	const std::string filename = StrCat("txtdata\\classes\\", classPath, "\\sprites.tsv");
+	tl::expected<DataFile, DataFile::Error> dataFileResult = DataFile::load(filename);
+	if (!dataFileResult.has_value()) {
+		DataFile::reportFatalError(dataFileResult.error(), filename);
+	}
+	DataFile &dataFile = dataFileResult.value();
+
+	if (tl::expected<void, DataFile::Error> result = dataFile.skipHeader();
+	    !result.has_value()) {
+		DataFile::reportFatalError(result.error(), filename);
+	}
+
+	auto recordIt = dataFile.begin();
+	const auto recordEnd = dataFile.end();
+
+	const auto getValueField = [&](std::string_view expectedKey) {
+		if (recordIt == recordEnd) {
+			app_fatal(fmt::format("Missing field {} in {}", expectedKey, filename));
+		}
+		DataFileRecord record = *recordIt;
+		FieldIterator fieldIt = record.begin();
+		const FieldIterator endField = record.end();
+
+		const std::string_view key = (*fieldIt).value();
+		if (key != expectedKey) {
+			app_fatal(fmt::format("Unexpected field in {}: got {}, expected {}", filename, key, expectedKey));
+		}
+
+		++fieldIt;
+		if (fieldIt == endField) {
+			DataFile::reportFatalError(DataFile::Error::NotEnoughColumns, filename);
+		}
+		return *fieldIt;
+	};
+
+	const auto valueReader = [&](auto &&readFn) {
+		return [&](std::string_view expectedKey, auto &outValue) {
+			DataFileField valueField = getValueField(expectedKey);
+			if (const tl::expected<void, devilution::DataFileField::Error> result = readFn(valueField, outValue);
+			    !result.has_value()) {
+				DataFile::reportFatalFieldError(result.error(), filename, "Value", valueField);
+			}
+			++recordIt;
+		};
+	};
+
+	const auto readString = valueReader([](DataFileField &valueField, auto &outValue) {
+		outValue = valueField.value();
+		return tl::expected<void, devilution::DataFileField::Error> {};
+	});
+
+	const auto readInt = valueReader([](DataFileField &valueField, auto &outValue) {
+		return valueField.parseInt(outValue);
+	});
+
+	readString("classPath", spriteData.classPath);
+	readInt("stand", spriteData.stand);
+	readInt("walk", spriteData.walk);
+	readInt("attack", spriteData.attack);
+	readInt("bow", spriteData.bow);
+	readInt("swHit", spriteData.swHit);
+	readInt("block", spriteData.block);
+	readInt("lightning", spriteData.lightning);
+	readInt("fire", spriteData.fire);
+	readInt("magic", spriteData.magic);
+	readInt("death", spriteData.death);
+}
+
 /** Contains the data related to each player class. */
 std::vector<PlayerData> PlayersData;
 
 std::vector<ClassAttributes> ClassAttributesPerClass;
 
 std::vector<PlayerCombatData> PlayersCombatData;
+
+/** Contains the data related to each player class. */
+std::vector<PlayerSpriteData> PlayersSpriteData;
 
 } // namespace
 
@@ -278,8 +351,12 @@ void LoadClassesAttributes()
 	ClassAttributesPerClass.reserve(PlayersData.size());
 	PlayersCombatData.clear();
 	PlayersCombatData.reserve(PlayersData.size());
+	PlayersSpriteData.clear();
+	PlayersSpriteData.reserve(PlayersData.size());
+
 	for (const PlayerData &playerData : PlayersData) {
 		LoadClassData(playerData.folderName, ClassAttributesPerClass.emplace_back(), PlayersCombatData.emplace_back());
+		LoadClassSpriteData(playerData.folderName, PlayersSpriteData.emplace_back());
 	}
 }
 
@@ -351,19 +428,12 @@ const PlayerStartingLoadoutData &GetPlayerStartingLoadoutForClass(HeroClass pCla
 	return PlayersStartingLoadoutData[playerClassIndex];
 }
 
-/** Contains the data related to each player class. */
-const PlayerSpriteData PlayersSpriteData[] = {
-	// clang-format off
-// HeroClass                 classPath,  stand,   walk,   attack,   bow, swHit,   block,   lightning,   fire,   magic,   death
-
-/* HeroClass::Warrior */   { "warrior",     96,     96,      128,    96,    96,      96,          96,     96,      96,     128 },
-/* HeroClass::Rogue */     { "rogue",       96,     96,      128,   128,    96,      96,          96,     96,      96,     128 },
-/* HeroClass::Sorcerer */  { "sorceror",    96,     96,      128,   128,    96,      96,         128,    128,     128,     128 },
-/* HeroClass::Monk */      { "monk",       112,    112,      130,   130,    98,      98,         114,    114,     114,     160 },
-/* HeroClass::Bard */      { "rogue",       96,     96,      128,   128,    96,      96,          96,     96,      96,     128 },
-/* HeroClass::Barbarian */ { "warrior",     96,     96,      128,    96,    96,      96,          96,     96,      96,     128 },
-	// clang-format on
-};
+const PlayerSpriteData &GetPlayerSpriteDataForClass(HeroClass pClass)
+{
+	const size_t playerClassIndex = static_cast<size_t>(pClass);
+	assert(playerClassIndex < PlayersSpriteData.size());
+	return PlayersSpriteData[playerClassIndex];
+}
 
 const PlayerAnimData PlayersAnimData[] = {
 	// clang-format off
