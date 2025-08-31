@@ -962,6 +962,26 @@ void PrintHelpOption(std::string_view flags, std::string_view description)
 	printNewlineInConsole();
 }
 
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+FILE *SdlLogFile = nullptr;
+
+extern "C" void SdlLogToFile(void *userdata, int category, SDL_LogPriority priority, const char *message)
+{
+	FILE *file = reinterpret_cast<FILE *>(userdata);
+	static const char *const LogPriorityPrefixes[SDL_NUM_LOG_PRIORITIES] = {
+		"",
+		"VERBOSE",
+		"DEBUG",
+		"INFO",
+		"WARN",
+		"ERROR",
+		"CRITICAL"
+	};
+	std::fprintf(file, "%s: %s\n", LogPriorityPrefixes[priority], message);
+	std::fflush(file);
+}
+#endif
+
 [[noreturn]] void PrintHelpAndExit()
 {
 	printInConsole((/* TRANSLATORS: Commandline Option */ "Options:"));
@@ -975,6 +995,9 @@ void PrintHelpOption(std::string_view flags, std::string_view description)
 	PrintHelpOption("-n", _(/* TRANSLATORS: Commandline Option */ "Skip startup videos"));
 	PrintHelpOption("-f", _(/* TRANSLATORS: Commandline Option */ "Display frames per second"));
 	PrintHelpOption("--verbose", _(/* TRANSLATORS: Commandline Option */ "Enable verbose logging"));
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+	PrintHelpOption("--log-to-file <path>", _(/* TRANSLATORS: Commandline Option */ "Log to a file instead of stderr"));
+#endif
 #ifndef DISABLE_DEMOMODE
 	PrintHelpOption("--record <#>", _(/* TRANSLATORS: Commandline Option */ "Record a demo file"));
 	PrintHelpOption("--demo <#>", _(/* TRANSLATORS: Commandline Option */ "Play a demo file"));
@@ -1107,6 +1130,19 @@ void DiabloParseFlags(int argc, char **argv)
 			gbVanilla = true;
 		} else if (arg == "--verbose") {
 			SDL_LogSetAllPriority(SDL_LOG_PRIORITY_VERBOSE);
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+		} else if (arg == "--log-to-file") {
+			if (i + 1 == argc) {
+				PrintFlagRequiresArgument("--log-to-file");
+				diablo_quit(64);
+			}
+			SdlLogFile = OpenFile(argv[++i], "wb");
+			if (SdlLogFile == nullptr) {
+				printInConsole("Failed to open log file for writing");
+				diablo_quit(64);
+			}
+			SDL_LogSetOutputFunction(&SdlLogToFile, /*userdata=*/SdlLogFile);
+#endif
 #ifdef _DEBUG
 		} else if (arg == "-i") {
 			DebugDisableNetworkTimeout = true;
@@ -2626,6 +2662,11 @@ void diablo_quit(int exitStatus)
 	FreeGameMem();
 	music_stop();
 	DiabloDeinit();
+
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+	if (SdlLogFile != nullptr) std::fclose(SdlLogFile);
+#endif
+
 	exit(exitStatus);
 }
 
