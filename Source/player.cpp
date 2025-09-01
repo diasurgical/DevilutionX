@@ -2048,7 +2048,8 @@ ClxSprite GetPlayerPortraitSprite(Player &player)
 	const HeroClass cls = GetPlayerSpriteClass(player._pClass);
 	const PlayerWeaponGraphic animWeaponId = GetPlayerWeaponGraphic(player_graphic::Stand, static_cast<PlayerWeaponGraphic>(player._pgfxnum & 0xF));
 
-	const char *path = GetPlayerSpriteDataForClass(cls).classPath.c_str();
+	const PlayerSpriteData &spriteData = GetPlayerSpriteDataForClass(cls);
+	const char *path = spriteData.classPath.c_str();
 
 	const char *szCel;
 	if (!inDungeon)
@@ -2064,7 +2065,7 @@ ClxSprite GetPlayerPortraitSprite(Player &player)
 		}
 	}
 
-	char prefix[3] = { CharChar[static_cast<std::size_t>(cls)], ArmourChar[player._pgfxnum >> 4], WepChar[static_cast<std::size_t>(animWeaponId)] };
+	char prefix[3] = { spriteData.classChar, ArmourChar[player._pgfxnum >> 4], WepChar[static_cast<std::size_t>(animWeaponId)] };
 	char pszName[256];
 	*fmt::format_to(pszName, R"(plrgfx\{0}\{1}\{1}{2})", path, std::string_view(prefix, 3), szCel) = 0;
 
@@ -2103,7 +2104,8 @@ void LoadPlrGFX(Player &player, player_graphic graphic)
 	const HeroClass cls = GetPlayerSpriteClass(player._pClass);
 	const PlayerWeaponGraphic animWeaponId = GetPlayerWeaponGraphic(graphic, static_cast<PlayerWeaponGraphic>(player._pgfxnum & 0xF));
 
-	const char *path = GetPlayerSpriteDataForClass(cls).classPath.c_str();
+	const PlayerSpriteData &spriteData = GetPlayerSpriteDataForClass(cls);
+	const char *path = spriteData.classPath.c_str();
 
 	const char *szCel;
 	switch (graphic) {
@@ -2152,7 +2154,7 @@ void LoadPlrGFX(Player &player, player_graphic graphic)
 		app_fatal("PLR:2");
 	}
 
-	char prefix[3] = { CharChar[static_cast<std::size_t>(cls)], ArmourChar[player._pgfxnum >> 4], WepChar[static_cast<std::size_t>(animWeaponId)] };
+	char prefix[3] = { spriteData.classChar, ArmourChar[player._pgfxnum >> 4], WepChar[static_cast<std::size_t>(animWeaponId)] };
 	char pszName[256];
 	*fmt::format_to(pszName, R"(plrgfx\{0}\{1}\{1}{2})", path, std::string_view(prefix, 3), szCel) = 0;
 	const uint16_t animationWidth = GetPlayerSpriteWidth(cls, graphic, animWeaponId);

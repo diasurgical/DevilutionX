@@ -111,6 +111,8 @@ struct PlayerStartingLoadoutData {
 struct PlayerSpriteData {
 	/* Class Directory Path */
 	std::string classPath;
+	/* Class letter used in graphic files */
+	char classChar;
 	/* Class TRN file */
 	std::string trn;
 	/* Sprite width: Stand */

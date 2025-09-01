@@ -373,7 +373,16 @@ void LoadClassSpriteData(std::string_view classPath, PlayerSpriteData &spriteDat
 		return valueField.parseInt(outValue);
 	});
 
+	const auto readChar = valueReader([](DataFileField &valueField, auto &outValue) -> tl::expected<void, devilution::DataFileField::Error> {
+		if (valueField.value().size() != 1) {
+			return tl::make_unexpected(devilution::DataFileField::Error::InvalidValue);
+		}
+
+		outValue = valueField.value().at(0);
+	});
+
 	readString("classPath", spriteData.classPath);
+	readChar("classChar", spriteData.classChar);
 	readString("trn", spriteData.trn);
 	readInt("stand", spriteData.stand);
 	readInt("walk", spriteData.walk);
