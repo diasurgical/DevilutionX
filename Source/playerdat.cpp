@@ -374,6 +374,7 @@ void LoadClassSpriteData(std::string_view classPath, PlayerSpriteData &spriteDat
 	});
 
 	readString("classPath", spriteData.classPath);
+	readString("trn", spriteData.trn);
 	readInt("stand", spriteData.stand);
 	readInt("walk", spriteData.walk);
 	readInt("attack", spriteData.attack);
