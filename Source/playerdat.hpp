@@ -32,6 +32,8 @@ struct PlayerData {
 	std::string className;
 	/* Class Folder Name */
 	std::string folderName;
+	/* Class Portrait Index */
+	uint8_t portrait;
 };
 
 struct ClassAttributes {
@@ -199,6 +201,7 @@ void LoadPlayerDataFiles();
 SfxID GetHeroSound(HeroClass clazz, HeroSpeech speech);
 uint32_t GetNextExperienceThresholdForLevel(unsigned level);
 uint8_t GetMaximumCharacterLevel();
+size_t GetNumPlayerClasses();
 const PlayerData &GetPlayerDataForClass(HeroClass clazz);
 const PlayerCombatData &GetPlayerCombatDataForClass(HeroClass clazz);
 const PlayerStartingLoadoutData &GetPlayerStartingLoadoutForClass(HeroClass clazz);

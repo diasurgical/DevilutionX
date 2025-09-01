@@ -570,6 +570,7 @@ void LoadClassDatFromFile(DataFile &dataFile, const std::string_view filename)
 
 		reader.readString("className", playerData.className);
 		reader.readString("folderName", playerData.folderName);
+		reader.readInt("portrait", playerData.portrait);
 	}
 }
 
@@ -643,6 +644,11 @@ uint32_t GetNextExperienceThresholdForLevel(unsigned level)
 uint8_t GetMaximumCharacterLevel()
 {
 	return ExperienceData.getMaxLevel();
+}
+
+size_t GetNumPlayerClasses()
+{
+	return PlayersData.size();
 }
 
 const PlayerData &GetPlayerDataForClass(HeroClass playerClass)

@@ -82,8 +82,8 @@ std::size_t SelectedItem = 0;
 namespace {
 
 OptionalOwnedClxSpriteList ArtHero;
-std::array<uint8_t, enum_size<HeroClass>::value + 1> ArtHeroPortraitOrder;
-std::array<OptionalOwnedClxSpriteList, enum_size<HeroClass>::value + 1> ArtHeroOverrides;
+std::vector<uint8_t> ArtHeroPortraitOrder;
+std::vector<OptionalOwnedClxSpriteList> ArtHeroOverrides;
 
 std::size_t SelectedItemMax;
 std::size_t ListViewportSize = 1;
@@ -581,17 +581,18 @@ void LoadHeros()
 		return;
 	const uint16_t numPortraits = ClxSpriteList { *ArtHero }.numSprites();
 
-	ArtHeroPortraitOrder = { 0, 1, 2, 2, 1, 0, 3 };
-	if (numPortraits >= 6) {
-		ArtHeroPortraitOrder[static_cast<std::size_t>(HeroClass::Monk)] = 3;
-		ArtHeroPortraitOrder[static_cast<std::size_t>(HeroClass::Bard)] = 4;
-		ArtHeroPortraitOrder[enum_size<HeroClass>::value] = 5;
+	ArtHeroPortraitOrder.resize(GetNumPlayerClasses() + 1);
+	for (size_t i = 0; i < GetNumPlayerClasses(); ++i) {
+		const PlayerData &playerClassData = GetPlayerDataForClass(static_cast<HeroClass>(i));
+		ArtHeroPortraitOrder[i] = playerClassData.portrait;
 	}
-	if (numPortraits >= 7) {
-		ArtHeroPortraitOrder[static_cast<std::size_t>(HeroClass::Barbarian)] = 6;
+	ArtHeroPortraitOrder.back() = 3;
+	if (numPortraits >= 6) {
+		ArtHeroPortraitOrder.back() = 5;
 	}
 
-	for (size_t i = 0; i <= enum_size<HeroClass>::value; ++i) {
+	ArtHeroOverrides.resize(GetNumPlayerClasses() + 1);
+	for (size_t i = 0; i <= GetNumPlayerClasses(); ++i) {
 		char portraitPath[18];
 		*BufCopy(portraitPath, "ui_art\\hero", i) = '\0';
 		ArtHeroOverrides[i] = LoadPcx(portraitPath, /*transparentColor=*/std::nullopt, /*outPalette=*/nullptr, /*logError=*/false);
