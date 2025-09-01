@@ -19,8 +19,8 @@ if(TARGET_PLATFORM STREQUAL "dos")
   set(DOS ON)
   FetchContent_Declare(SDL2
     # branch: dos-vbe-rebase
-    URL https://github.com/diasurgical/SDL/archive/d9cf9066d9cb796b56d1d70c9c560c055a32149b.tar.gz
-    URL_HASH MD5=9ad9ae69ee0266c895e79cf05a1e0e49
+    URL https://github.com/diasurgical/SDL/archive/b55cac0c06aa191dcc7a3e63ae6fe6656593026e.tar.gz
+    URL_HASH MD5=99eabd2fc675f5539e055b1d8fa519e4
   )
 else()
   FetchContent_Declare(SDL2

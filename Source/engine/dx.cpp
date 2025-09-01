@@ -63,7 +63,12 @@ bool CanRenderDirectlyToOutputSurface()
 	    && outputSurface->format->BitsPerPixel == 8);
 #endif
 #else // !USE_SDL1
-	return false;
+	if (renderer != nullptr) return false;
+	SDL_Surface *outputSurface = GetOutputSurface();
+	// Assumes double-buffering is available.
+	return outputSurface->w == static_cast<int>(gnScreenWidth)
+	    && outputSurface->h == static_cast<int>(gnScreenHeight)
+	    && outputSurface->format->BitsPerPixel == 8;
 #endif
 }
 

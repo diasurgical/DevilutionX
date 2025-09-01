@@ -109,4 +109,8 @@ void LogicalToOutput(T *x, T *y)
 #endif
 }
 
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+SDL_DisplayMode GetNearestDisplayMode(Size preferredSize, SDL_PixelFormatEnum preferredPixelFormat = SDL_PIXELFORMAT_UNKNOWN);
+#endif
+
 } // namespace devilution

@@ -180,6 +180,11 @@ void UpdatePalette()
 	if (SDL_SetSurfacePalette(SVidSurface.get(), SVidPalette.get()) <= -1) {
 		ErrSdl();
 	}
+	if (GetOutputSurface()->format->BitsPerPixel == 8) {
+		if (SDL_SetSurfacePalette(GetOutputSurface(), SVidPalette.get()) <= -1) {
+			ErrSdl();
+		}
+	}
 #endif
 }
 
@@ -311,6 +316,15 @@ bool SVidPlayBegin(const char *filename, int flags)
 			ErrSdl();
 		}
 	}
+#if defined(DEVILUTIONX_DISPLAY_PIXELFORMAT) && DEVILUTIONX_DISPLAY_PIXELFORMAT == SDL_PIXELFORMAT_INDEX8
+	else {
+		const Size windowSize = { static_cast<int>(SVidWidth), static_cast<int>(SVidHeight) };
+		SDL_DisplayMode nearestDisplayMode = GetNearestDisplayMode(windowSize, DEVILUTIONX_DISPLAY_PIXELFORMAT);
+		if (SDL_SetWindowDisplayMode(ghMainWnd, &nearestDisplayMode) != 0) {
+			ErrSdl();
+		}
+	}
+#endif
 #else
 	TrySetVideoModeToSVidForSDL1();
 #endif
@@ -405,6 +419,15 @@ void SVidPlayEnd()
 			ErrSdl();
 		}
 	}
+#if defined(DEVILUTIONX_DISPLAY_PIXELFORMAT) && DEVILUTIONX_DISPLAY_PIXELFORMAT == SDL_PIXELFORMAT_INDEX8
+	else {
+		const Size windowSize = { static_cast<int>(gnScreenWidth), static_cast<int>(gnScreenHeight) };
+		SDL_DisplayMode nearestDisplayMode = GetNearestDisplayMode(windowSize, DEVILUTIONX_DISPLAY_PIXELFORMAT);
+		if (SDL_SetWindowDisplayMode(ghMainWnd, &nearestDisplayMode) != 0) {
+			ErrSdl();
+		}
+	}
+#endif
 #else
 	if (IsSVidVideoMode) {
 		SetVideoModeToPrimary(IsFullScreen(), gnScreenWidth, gnScreenHeight);

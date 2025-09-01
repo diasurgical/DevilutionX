@@ -107,37 +107,6 @@ void CalculatePreferredWindowSize(int &width, int &height)
 		height = mode.h * width / mode.w;
 	}
 }
-
-SDL_DisplayMode GetNearestDisplayMode(Size preferredSize)
-{
-	SDL_DisplayMode nearestDisplayMode;
-	if (SDL_GetWindowDisplayMode(ghMainWnd, &nearestDisplayMode) != 0)
-		ErrSdl();
-
-	const int displayIndex = SDL_GetWindowDisplayIndex(ghMainWnd);
-	const int modeCount = SDL_GetNumDisplayModes(displayIndex);
-	for (int modeIndex = 0; modeIndex < modeCount; modeIndex++) {
-		SDL_DisplayMode displayMode;
-		if (SDL_GetDisplayMode(displayIndex, modeIndex, &displayMode) != 0)
-			continue;
-
-		const int diffHeight = std::abs(nearestDisplayMode.h - preferredSize.height) - std::abs(displayMode.h - preferredSize.height);
-		const int diffWidth = std::abs(nearestDisplayMode.w - preferredSize.width) - std::abs(displayMode.w - preferredSize.width);
-		if (diffHeight < 0)
-			continue;
-		if (diffHeight == 0 && diffWidth < 0)
-			continue;
-		nearestDisplayMode = displayMode;
-	}
-
-	LogVerbose("Nearest display mode to {}x{} is {}x{} {}bpp {}Hz",
-	    preferredSize.width, preferredSize.height,
-	    nearestDisplayMode.w, nearestDisplayMode.h,
-	    SDL_BITSPERPIXEL(nearestDisplayMode.format),
-	    nearestDisplayMode.refresh_rate);
-
-	return nearestDisplayMode;
-}
 #endif
 
 void CalculateUIRectangle()
@@ -299,6 +268,59 @@ const auto OptionChangeHandlerVSync = (GetOptions().Graphics.frameRateControl.Se
 
 } // namespace
 
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+SDL_DisplayMode GetNearestDisplayMode(Size preferredSize, SDL_PixelFormatEnum preferredPixelFormat)
+{
+	SDL_DisplayMode nearestDisplayMode;
+	if (SDL_GetWindowDisplayMode(ghMainWnd, &nearestDisplayMode) != 0)
+		ErrSdl();
+
+	const int displayIndex = SDL_GetWindowDisplayIndex(ghMainWnd);
+	const int modeCount = SDL_GetNumDisplayModes(displayIndex);
+
+	// First, find the best mode among the modes with the requested pixel format.
+	SDL_PixelFormatEnum bestPixelFormat = SDL_PIXELFORMAT_UNKNOWN;
+	for (int modeIndex = 0; modeIndex < modeCount; modeIndex++) {
+		SDL_DisplayMode displayMode;
+		if (SDL_GetDisplayMode(displayIndex, modeIndex, &displayMode) != 0)
+			continue;
+		const int diffHeight = std::abs(nearestDisplayMode.h - preferredSize.height) - std::abs(displayMode.h - preferredSize.height);
+		const int diffWidth = std::abs(nearestDisplayMode.w - preferredSize.width) - std::abs(displayMode.w - preferredSize.width);
+		if (diffHeight < 0)
+			continue;
+		if (diffHeight == 0 && diffWidth < 0)
+			continue;
+		if (preferredPixelFormat == SDL_PIXELFORMAT_UNKNOWN
+		    || displayMode.format == preferredPixelFormat) {
+			nearestDisplayMode = displayMode;
+		}
+	}
+	if (preferredPixelFormat != SDL_PIXELFORMAT_UNKNOWN && bestPixelFormat == SDL_PIXELFORMAT_UNKNOWN) {
+		// If no mode with the preferred pixel format was found, allow any pixel format:
+		for (int modeIndex = 0; modeIndex < modeCount; modeIndex++) {
+			SDL_DisplayMode displayMode;
+			if (SDL_GetDisplayMode(displayIndex, modeIndex, &displayMode) != 0)
+				continue;
+			const int diffHeight = std::abs(nearestDisplayMode.h - preferredSize.height) - std::abs(displayMode.h - preferredSize.height);
+			const int diffWidth = std::abs(nearestDisplayMode.w - preferredSize.width) - std::abs(displayMode.w - preferredSize.width);
+			if (diffHeight < 0)
+				continue;
+			if (diffHeight == 0 && diffWidth < 0)
+				continue;
+			nearestDisplayMode = displayMode;
+		}
+	}
+
+	LogVerbose("Nearest display mode to {}x{} is {}x{} {}bpp {}Hz",
+	    preferredSize.width, preferredSize.height,
+	    nearestDisplayMode.w, nearestDisplayMode.h,
+	    SDL_BITSPERPIXEL(nearestDisplayMode.format),
+	    nearestDisplayMode.refresh_rate);
+
+	return nearestDisplayMode;
+}
+#endif
+
 void AdjustToScreenGeometry(Size windowSize)
 {
 	gnScreenWidth = windowSize.width;
@@ -454,6 +476,13 @@ bool SpawnWindow(const char *lpWindowName)
 	}
 
 	ghMainWnd = SDL_CreateWindow(lpWindowName, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, windowSize.width, windowSize.height, flags);
+
+#if defined(DEVILUTIONX_DISPLAY_PIXELFORMAT)
+	SDL_DisplayMode nearestDisplayMode = GetNearestDisplayMode(windowSize, DEVILUTIONX_DISPLAY_PIXELFORMAT);
+	if (SDL_SetWindowDisplayMode(ghMainWnd, &nearestDisplayMode) != 0) {
+		ErrSdl();
+	}
+#endif
 
 	// Note: https://github.com/libsdl-org/SDL/issues/962
 	// This is a solution to a problem related to SDL mouse grab.
