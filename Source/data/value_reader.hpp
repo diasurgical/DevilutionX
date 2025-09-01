@@ -85,7 +85,6 @@ public:
 	}
 
 private:
-
 	RecordIterator it_;
 	const RecordIterator end_;
 	std::string_view filename_;

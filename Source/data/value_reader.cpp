@@ -13,7 +13,6 @@ ValueReader::ValueReader(DataFile &dataFile, std::string_view filename)
 {
 }
 
-
 DataFileField ValueReader::getValueField(std::string_view expectedKey)
 {
 	if (it_ == end_) {
