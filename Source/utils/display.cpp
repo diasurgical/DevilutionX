@@ -260,10 +260,41 @@ void ResizeWindowAndUpdateResolutionOptions()
 const auto OptionChangeHandlerFitToScreen = (GetOptions().Graphics.fitToScreen.SetValueChangedCallback(ResizeWindowAndUpdateResolutionOptions), true);
 #endif
 
-#ifndef USE_SDL1
+#if SDL_VERSION_ATLEAST(2, 0, 0)
 const auto OptionChangeHandlerScaleQuality = (GetOptions().Graphics.scaleQuality.SetValueChangedCallback(ReinitializeTexture), true);
 const auto OptionChangeHandlerIntegerScaling = (GetOptions().Graphics.integerScaling.SetValueChangedCallback(ReinitializeIntegerScale), true);
 const auto OptionChangeHandlerVSync = (GetOptions().Graphics.frameRateControl.SetValueChangedCallback(ReinitializeRenderer), true);
+
+struct DisplayModeComparator {
+	Size size;
+	SDL_PixelFormatEnum pixelFormat;
+
+	// Is `a` better than `b`?
+	[[nodiscard]] bool operator()(const SDL_DisplayMode &a, const SDL_DisplayMode &b)
+	{
+		if (pixelFormat != SDL_PIXELFORMAT_UNKNOWN) {
+			if (a.format != b.format) {
+				if (a.format == pixelFormat) return true;
+				if (b.format == pixelFormat) return false;
+			}
+		}
+
+		const int dwa = a.w - size.width;
+		const int dha = a.h - size.height;
+		const int dwb = b.w - size.width;
+		const int dhb = b.h - size.height;
+
+		// A mode that fits the target is always better than one that doesn't:
+		if (dha >= 0 && dwa >= 0 && (dhb < 0 || dwb < 0)) return true;
+		if (dhb >= 0 && dwb >= 0 && (dha < 0 || dwa < 0)) return false;
+
+		// Either both modes fit or they both don't.
+		// Prefer smallest difference, or width difference if heights are the same.
+		return a.h != b.h ? std::abs(dha) < std::abs(dhb)
+		                  : std::abs(dwa) < std::abs(dwb);
+	}
+};
+
 #endif
 
 } // namespace
@@ -279,36 +310,17 @@ SDL_DisplayMode GetNearestDisplayMode(Size preferredSize, SDL_PixelFormatEnum pr
 	const int modeCount = SDL_GetNumDisplayModes(displayIndex);
 
 	// First, find the best mode among the modes with the requested pixel format.
-	SDL_PixelFormatEnum bestPixelFormat = SDL_PIXELFORMAT_UNKNOWN;
+	std::vector<SDL_DisplayMode> modes;
+	modes.reserve(modeCount);
 	for (int modeIndex = 0; modeIndex < modeCount; modeIndex++) {
 		SDL_DisplayMode displayMode;
 		if (SDL_GetDisplayMode(displayIndex, modeIndex, &displayMode) != 0)
 			continue;
-		const int diffHeight = std::abs(nearestDisplayMode.h - preferredSize.height) - std::abs(displayMode.h - preferredSize.height);
-		const int diffWidth = std::abs(nearestDisplayMode.w - preferredSize.width) - std::abs(displayMode.w - preferredSize.width);
-		if (diffHeight < 0)
-			continue;
-		if (diffHeight == 0 && diffWidth < 0)
-			continue;
-		if (preferredPixelFormat == SDL_PIXELFORMAT_UNKNOWN
-		    || displayMode.format == preferredPixelFormat) {
-			nearestDisplayMode = displayMode;
-		}
+		modes.push_back(displayMode);
 	}
-	if (preferredPixelFormat != SDL_PIXELFORMAT_UNKNOWN && bestPixelFormat == SDL_PIXELFORMAT_UNKNOWN) {
-		// If no mode with the preferred pixel format was found, allow any pixel format:
-		for (int modeIndex = 0; modeIndex < modeCount; modeIndex++) {
-			SDL_DisplayMode displayMode;
-			if (SDL_GetDisplayMode(displayIndex, modeIndex, &displayMode) != 0)
-				continue;
-			const int diffHeight = std::abs(nearestDisplayMode.h - preferredSize.height) - std::abs(displayMode.h - preferredSize.height);
-			const int diffWidth = std::abs(nearestDisplayMode.w - preferredSize.width) - std::abs(displayMode.w - preferredSize.width);
-			if (diffHeight < 0)
-				continue;
-			if (diffHeight == 0 && diffWidth < 0)
-				continue;
-			nearestDisplayMode = displayMode;
-		}
+	if (!modes.empty()) {
+		nearestDisplayMode = *std::min_element(
+		    modes.begin(), modes.end(), DisplayModeComparator { preferredSize, preferredPixelFormat });
 	}
 
 	LogVerbose("Nearest display mode to {}x{} is {}x{} {}bpp {}Hz",
