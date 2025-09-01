@@ -34,6 +34,8 @@ struct PlayerData {
 	std::string folderName;
 	/* Class Portrait Index */
 	uint8_t portrait;
+	/* Class Inventory UI File */
+	std::string inv;
 };
 
 struct ClassAttributes {

@@ -317,6 +317,7 @@ void LoadClassDatFromFile(DataFile &dataFile, const std::string_view filename)
 		reader.readString("className", playerData.className);
 		reader.readString("folderName", playerData.folderName);
 		reader.readInt("portrait", playerData.portrait);
+		reader.readString("inv", playerData.inv);
 	}
 }
 

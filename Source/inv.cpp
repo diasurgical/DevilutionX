@@ -1158,22 +1158,12 @@ void FreeInvGFX()
 
 void InitInv()
 {
-	switch (MyPlayer->_pClass) {
-	case HeroClass::Warrior:
-	case HeroClass::Barbarian:
-		pInvCels = LoadCel("data\\inv\\inv", static_cast<uint16_t>(SidePanelSize.width));
-		break;
-	case HeroClass::Rogue:
-	case HeroClass::Bard:
-		pInvCels = LoadCel("data\\inv\\inv_rog", static_cast<uint16_t>(SidePanelSize.width));
-		break;
-	case HeroClass::Sorcerer:
-		pInvCels = LoadCel("data\\inv\\inv_sor", static_cast<uint16_t>(SidePanelSize.width));
-		break;
-	case HeroClass::Monk:
-		pInvCels = LoadCel(!gbIsSpawn ? "data\\inv\\inv_sor" : "data\\inv\\inv", static_cast<uint16_t>(SidePanelSize.width));
-		break;
+	const PlayerData &playerClassData = GetPlayerDataForClass(MyPlayer->_pClass);
+	const char *invName = playerClassData.inv.c_str();
+	if (gbIsSpawn && (playerClassData.inv == "inv_rog" || playerClassData.inv == "inv_sor")) {
+		invName = "inv";
 	}
+	pInvCels = LoadCel(StrCat("data\\inv\\", invName).c_str(), static_cast<uint16_t>(SidePanelSize.width));
 }
 
 void DrawInv(const Surface &out)
