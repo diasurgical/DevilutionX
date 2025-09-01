@@ -278,7 +278,14 @@ void sound_init()
 			mask |= sfx_MONK;
 			break;
 		default:
-			app_fatal("effects:1");
+			if (static_cast<size_t>(MyPlayer->_pClass) < GetNumPlayerClasses()) {
+				// this is a custom class, so we need to add init sounds, since we can't determine which ones will be used by it
+				mask |= (sfx_WARRIOR | sfx_MONK);
+				if (!gbIsSpawn)
+					mask |= (sfx_ROGUE | sfx_SORCERER);
+			} else {
+				app_fatal("effects:1");
+			}
 		}
 	}
 
