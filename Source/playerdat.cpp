@@ -19,6 +19,7 @@
 
 #include "data/file.hpp"
 #include "data/record_reader.hpp"
+#include "data/value_reader.hpp"
 #include "items.h"
 #include "player.h"
 #include "textdat.h"
@@ -158,389 +159,125 @@ void ReloadExperienceData()
 void LoadClassData(std::string_view classPath, ClassAttributes &attributes, PlayerCombatData &combat)
 {
 	const std::string filename = StrCat("txtdata\\classes\\", classPath, "\\attributes.tsv");
-	tl::expected<DataFile, DataFile::Error> dataFileResult = DataFile::load(filename);
-	if (!dataFileResult.has_value()) {
-		DataFile::reportFatalError(dataFileResult.error(), filename);
-	}
+	tl::expected<DataFile, DataFile::Error> dataFileResult = DataFile::loadOrDie(filename);
 	DataFile &dataFile = dataFileResult.value();
+	dataFile.skipHeaderOrDie(filename);
 
-	if (tl::expected<void, DataFile::Error> result = dataFile.skipHeader();
-	    !result.has_value()) {
-		DataFile::reportFatalError(result.error(), filename);
-	}
+	ValueReader reader { dataFile, filename };
 
-	auto recordIt = dataFile.begin();
-	const auto recordEnd = dataFile.end();
-
-	const auto getValueField = [&](std::string_view expectedKey) {
-		if (recordIt == recordEnd) {
-			app_fatal(fmt::format("Missing field {} in {}", expectedKey, filename));
-		}
-		DataFileRecord record = *recordIt;
-		FieldIterator fieldIt = record.begin();
-		const FieldIterator endField = record.end();
-
-		const std::string_view key = (*fieldIt).value();
-		if (key != expectedKey) {
-			app_fatal(fmt::format("Unexpected field in {}: got {}, expected {}", filename, key, expectedKey));
-		}
-
-		++fieldIt;
-		if (fieldIt == endField) {
-			DataFile::reportFatalError(DataFile::Error::NotEnoughColumns, filename);
-		}
-		return *fieldIt;
-	};
-
-	const auto valueReader = [&](auto &&readFn) {
-		return [&](std::string_view expectedKey, auto &outValue) {
-			DataFileField valueField = getValueField(expectedKey);
-			if (const tl::expected<void, devilution::DataFileField::Error> result = readFn(valueField, outValue);
-			    !result.has_value()) {
-				DataFile::reportFatalFieldError(result.error(), filename, "Value", valueField);
-			}
-			++recordIt;
-		};
-	};
-
-	const auto readInt = valueReader([](DataFileField &valueField, auto &outValue) {
-		return valueField.parseInt(outValue);
-	});
-	const auto readDecimal = valueReader([](DataFileField &valueField, auto &outValue) {
-		return valueField.parseFixed6(outValue);
-	});
-
-	readInt("baseStr", attributes.baseStr);
-	readInt("baseMag", attributes.baseMag);
-	readInt("baseDex", attributes.baseDex);
-	readInt("baseVit", attributes.baseVit);
-	readInt("maxStr", attributes.maxStr);
-	readInt("maxMag", attributes.maxMag);
-	readInt("maxDex", attributes.maxDex);
-	readInt("maxVit", attributes.maxVit);
-	readInt("blockBonus", combat.baseToBlock);
-	readDecimal("adjLife", attributes.adjLife);
-	readDecimal("adjMana", attributes.adjMana);
-	readDecimal("lvlLife", attributes.lvlLife);
-	readDecimal("lvlMana", attributes.lvlMana);
-	readDecimal("chrLife", attributes.chrLife);
-	readDecimal("chrMana", attributes.chrMana);
-	readDecimal("itmLife", attributes.itmLife);
-	readDecimal("itmMana", attributes.itmMana);
-	readInt("baseMagicToHit", combat.baseMagicToHit);
-	readInt("baseMeleeToHit", combat.baseMeleeToHit);
-	readInt("baseRangedToHit", combat.baseRangedToHit);
+	reader.readInt("baseStr", attributes.baseStr);
+	reader.readInt("baseMag", attributes.baseMag);
+	reader.readInt("baseDex", attributes.baseDex);
+	reader.readInt("baseVit", attributes.baseVit);
+	reader.readInt("maxStr", attributes.maxStr);
+	reader.readInt("maxMag", attributes.maxMag);
+	reader.readInt("maxDex", attributes.maxDex);
+	reader.readInt("maxVit", attributes.maxVit);
+	reader.readInt("blockBonus", combat.baseToBlock);
+	reader.readDecimal("adjLife", attributes.adjLife);
+	reader.readDecimal("adjMana", attributes.adjMana);
+	reader.readDecimal("lvlLife", attributes.lvlLife);
+	reader.readDecimal("lvlMana", attributes.lvlMana);
+	reader.readDecimal("chrLife", attributes.chrLife);
+	reader.readDecimal("chrMana", attributes.chrMana);
+	reader.readDecimal("itmLife", attributes.itmLife);
+	reader.readDecimal("itmMana", attributes.itmMana);
+	reader.readInt("baseMagicToHit", combat.baseMagicToHit);
+	reader.readInt("baseMeleeToHit", combat.baseMeleeToHit);
+	reader.readInt("baseRangedToHit", combat.baseRangedToHit);
 }
 
 void LoadClassStartingLoadoutData(std::string_view classPath, PlayerStartingLoadoutData &startingLoadoutData)
 {
 	const std::string filename = StrCat("txtdata\\classes\\", classPath, "\\starting_loadout.tsv");
-	tl::expected<DataFile, DataFile::Error> dataFileResult = DataFile::load(filename);
-	if (!dataFileResult.has_value()) {
-		DataFile::reportFatalError(dataFileResult.error(), filename);
-	}
+	tl::expected<DataFile, DataFile::Error> dataFileResult = DataFile::loadOrDie(filename);
 	DataFile &dataFile = dataFileResult.value();
+	dataFile.skipHeaderOrDie(filename);
 
-	if (tl::expected<void, DataFile::Error> result = dataFile.skipHeader();
-	    !result.has_value()) {
-		DataFile::reportFatalError(result.error(), filename);
-	}
+	ValueReader reader { dataFile, filename };
 
-	auto recordIt = dataFile.begin();
-	const auto recordEnd = dataFile.end();
-
-	const auto getValueField = [&](std::string_view expectedKey) {
-		if (recordIt == recordEnd) {
-			app_fatal(fmt::format("Missing field {} in {}", expectedKey, filename));
-		}
-		DataFileRecord record = *recordIt;
-		FieldIterator fieldIt = record.begin();
-		const FieldIterator endField = record.end();
-
-		const std::string_view key = (*fieldIt).value();
-		if (key != expectedKey) {
-			app_fatal(fmt::format("Unexpected field in {}: got {}, expected {}", filename, key, expectedKey));
-		}
-
-		++fieldIt;
-		if (fieldIt == endField) {
-			DataFile::reportFatalError(DataFile::Error::NotEnoughColumns, filename);
-		}
-		return *fieldIt;
-	};
-
-	const auto valueReader = [&](auto &&readFn) {
-		return [&](std::string_view expectedKey, auto &outValue) {
-			DataFileField valueField = getValueField(expectedKey);
-			if (const tl::expected<void, devilution::DataFileField::Error> result = readFn(valueField, outValue);
-			    !result.has_value()) {
-				DataFile::reportFatalFieldError(result.error(), filename, "Value", valueField);
-			}
-			++recordIt;
-		};
-	};
-
-	const auto readString = valueReader([](DataFileField &valueField, auto &outValue) {
-		outValue = valueField.value();
-		return tl::expected<void, devilution::DataFileField::Error> {};
-	});
-
-	const auto readInt = valueReader([](DataFileField &valueField, auto &outValue) {
-		return valueField.parseInt(outValue);
-	});
-
-	const auto readSpellId = valueReader([](DataFileField &valueField, auto &outValue) -> tl::expected<void, devilution::DataFileField::Error> {
-		const auto result = ParseSpellId(valueField.value());
-		if (!result.has_value()) {
-			return tl::make_unexpected(devilution::DataFileField::Error::InvalidValue);
-		}
-
-		outValue = result.value();
-	});
-
-	const auto readItemId = valueReader([](DataFileField &valueField, auto &outValue) -> tl::expected<void, devilution::DataFileField::Error> {
-		const auto result = ParseItemId(valueField.value());
-		if (!result.has_value()) {
-			return tl::make_unexpected(devilution::DataFileField::Error::InvalidValue);
-		}
-
-		outValue = result.value();
-	});
-
-	readSpellId("skill", startingLoadoutData.skill);
-	readSpellId("spell", startingLoadoutData.spell);
-	readInt("spellLevel", startingLoadoutData.spellLevel);
+	reader.read("skill", startingLoadoutData.skill, ParseSpellId);
+	reader.read("spell", startingLoadoutData.spell, ParseSpellId);
+	reader.readInt("spellLevel", startingLoadoutData.spellLevel);
 	for (size_t i = 0; i < startingLoadoutData.items.size(); ++i) {
-		readItemId(StrCat("item", i), startingLoadoutData.items[i]);
+		reader.read(StrCat("item", i), startingLoadoutData.items[i], ParseItemId);
 	}
-	readInt("gold", startingLoadoutData.gold);
+	reader.readInt("gold", startingLoadoutData.gold);
 }
 
 void LoadClassSpriteData(std::string_view classPath, PlayerSpriteData &spriteData)
 {
 	const std::string filename = StrCat("txtdata\\classes\\", classPath, "\\sprites.tsv");
-	tl::expected<DataFile, DataFile::Error> dataFileResult = DataFile::load(filename);
-	if (!dataFileResult.has_value()) {
-		DataFile::reportFatalError(dataFileResult.error(), filename);
-	}
+	tl::expected<DataFile, DataFile::Error> dataFileResult = DataFile::loadOrDie(filename);
 	DataFile &dataFile = dataFileResult.value();
+	dataFile.skipHeaderOrDie(filename);
 
-	if (tl::expected<void, DataFile::Error> result = dataFile.skipHeader();
-	    !result.has_value()) {
-		DataFile::reportFatalError(result.error(), filename);
-	}
+	ValueReader reader { dataFile, filename };
 
-	auto recordIt = dataFile.begin();
-	const auto recordEnd = dataFile.end();
-
-	const auto getValueField = [&](std::string_view expectedKey) {
-		if (recordIt == recordEnd) {
-			app_fatal(fmt::format("Missing field {} in {}", expectedKey, filename));
-		}
-		DataFileRecord record = *recordIt;
-		FieldIterator fieldIt = record.begin();
-		const FieldIterator endField = record.end();
-
-		const std::string_view key = (*fieldIt).value();
-		if (key != expectedKey) {
-			app_fatal(fmt::format("Unexpected field in {}: got {}, expected {}", filename, key, expectedKey));
-		}
-
-		++fieldIt;
-		if (fieldIt == endField) {
-			DataFile::reportFatalError(DataFile::Error::NotEnoughColumns, filename);
-		}
-		return *fieldIt;
-	};
-
-	const auto valueReader = [&](auto &&readFn) {
-		return [&](std::string_view expectedKey, auto &outValue) {
-			DataFileField valueField = getValueField(expectedKey);
-			if (const tl::expected<void, devilution::DataFileField::Error> result = readFn(valueField, outValue);
-			    !result.has_value()) {
-				DataFile::reportFatalFieldError(result.error(), filename, "Value", valueField);
-			}
-			++recordIt;
-		};
-	};
-
-	const auto readString = valueReader([](DataFileField &valueField, auto &outValue) {
-		outValue = valueField.value();
-		return tl::expected<void, devilution::DataFileField::Error> {};
-	});
-
-	const auto readInt = valueReader([](DataFileField &valueField, auto &outValue) {
-		return valueField.parseInt(outValue);
-	});
-
-	const auto readChar = valueReader([](DataFileField &valueField, auto &outValue) -> tl::expected<void, devilution::DataFileField::Error> {
-		if (valueField.value().size() != 1) {
-			return tl::make_unexpected(devilution::DataFileField::Error::InvalidValue);
-		}
-
-		outValue = valueField.value().at(0);
-	});
-
-	readString("classPath", spriteData.classPath);
-	readChar("classChar", spriteData.classChar);
-	readString("trn", spriteData.trn);
-	readInt("stand", spriteData.stand);
-	readInt("walk", spriteData.walk);
-	readInt("attack", spriteData.attack);
-	readInt("bow", spriteData.bow);
-	readInt("swHit", spriteData.swHit);
-	readInt("block", spriteData.block);
-	readInt("lightning", spriteData.lightning);
-	readInt("fire", spriteData.fire);
-	readInt("magic", spriteData.magic);
-	readInt("death", spriteData.death);
+	reader.readString("classPath", spriteData.classPath);
+	reader.readChar("classChar", spriteData.classChar);
+	reader.readString("trn", spriteData.trn);
+	reader.readInt("stand", spriteData.stand);
+	reader.readInt("walk", spriteData.walk);
+	reader.readInt("attack", spriteData.attack);
+	reader.readInt("bow", spriteData.bow);
+	reader.readInt("swHit", spriteData.swHit);
+	reader.readInt("block", spriteData.block);
+	reader.readInt("lightning", spriteData.lightning);
+	reader.readInt("fire", spriteData.fire);
+	reader.readInt("magic", spriteData.magic);
+	reader.readInt("death", spriteData.death);
 }
 
 void LoadClassAnimData(std::string_view classPath, PlayerAnimData &animData)
 {
 	const std::string filename = StrCat("txtdata\\classes\\", classPath, "\\animations.tsv");
-	tl::expected<DataFile, DataFile::Error> dataFileResult = DataFile::load(filename);
-	if (!dataFileResult.has_value()) {
-		DataFile::reportFatalError(dataFileResult.error(), filename);
-	}
+	tl::expected<DataFile, DataFile::Error> dataFileResult = DataFile::loadOrDie(filename);
 	DataFile &dataFile = dataFileResult.value();
+	dataFile.skipHeaderOrDie(filename);
 
-	if (tl::expected<void, DataFile::Error> result = dataFile.skipHeader();
-	    !result.has_value()) {
-		DataFile::reportFatalError(result.error(), filename);
-	}
+	ValueReader reader { dataFile, filename };
 
-	auto recordIt = dataFile.begin();
-	const auto recordEnd = dataFile.end();
-
-	const auto getValueField = [&](std::string_view expectedKey) {
-		if (recordIt == recordEnd) {
-			app_fatal(fmt::format("Missing field {} in {}", expectedKey, filename));
-		}
-		DataFileRecord record = *recordIt;
-		FieldIterator fieldIt = record.begin();
-		const FieldIterator endField = record.end();
-
-		const std::string_view key = (*fieldIt).value();
-		if (key != expectedKey) {
-			app_fatal(fmt::format("Unexpected field in {}: got {}, expected {}", filename, key, expectedKey));
-		}
-
-		++fieldIt;
-		if (fieldIt == endField) {
-			DataFile::reportFatalError(DataFile::Error::NotEnoughColumns, filename);
-		}
-		return *fieldIt;
-	};
-
-	const auto valueReader = [&](auto &&readFn) {
-		return [&](std::string_view expectedKey, auto &outValue) {
-			DataFileField valueField = getValueField(expectedKey);
-			if (const tl::expected<void, devilution::DataFileField::Error> result = readFn(valueField, outValue);
-			    !result.has_value()) {
-				DataFile::reportFatalFieldError(result.error(), filename, "Value", valueField);
-			}
-			++recordIt;
-		};
-	};
-
-	const auto readString = valueReader([](DataFileField &valueField, auto &outValue) {
-		outValue = valueField.value();
-		return tl::expected<void, devilution::DataFileField::Error> {};
-	});
-
-	const auto readInt = valueReader([](DataFileField &valueField, auto &outValue) {
-		return valueField.parseInt(outValue);
-	});
-
-	readInt("unarmedFrames", animData.unarmedFrames);
-	readInt("unarmedActionFrame", animData.unarmedActionFrame);
-	readInt("unarmedShieldFrames", animData.unarmedShieldFrames);
-	readInt("unarmedShieldActionFrame", animData.unarmedShieldActionFrame);
-	readInt("swordFrames", animData.swordFrames);
-	readInt("swordActionFrame", animData.swordActionFrame);
-	readInt("swordShieldFrames", animData.swordShieldFrames);
-	readInt("swordShieldActionFrame", animData.swordShieldActionFrame);
-	readInt("bowFrames", animData.bowFrames);
-	readInt("bowActionFrame", animData.bowActionFrame);
-	readInt("axeFrames", animData.axeFrames);
-	readInt("axeActionFrame", animData.axeActionFrame);
-	readInt("maceFrames", animData.maceFrames);
-	readInt("maceActionFrame", animData.maceActionFrame);
-	readInt("maceShieldFrames", animData.maceShieldFrames);
-	readInt("maceShieldActionFrame", animData.maceShieldActionFrame);
-	readInt("staffFrames", animData.staffFrames);
-	readInt("staffActionFrame", animData.staffActionFrame);
-	readInt("idleFrames", animData.idleFrames);
-	readInt("walkingFrames", animData.walkingFrames);
-	readInt("blockingFrames", animData.blockingFrames);
-	readInt("deathFrames", animData.deathFrames);
-	readInt("castingFrames", animData.castingFrames);
-	readInt("recoveryFrames", animData.recoveryFrames);
-	readInt("townIdleFrames", animData.townIdleFrames);
-	readInt("townWalkingFrames", animData.townWalkingFrames);
-	readInt("castingActionFrame", animData.castingActionFrame);
+	reader.readInt("unarmedFrames", animData.unarmedFrames);
+	reader.readInt("unarmedActionFrame", animData.unarmedActionFrame);
+	reader.readInt("unarmedShieldFrames", animData.unarmedShieldFrames);
+	reader.readInt("unarmedShieldActionFrame", animData.unarmedShieldActionFrame);
+	reader.readInt("swordFrames", animData.swordFrames);
+	reader.readInt("swordActionFrame", animData.swordActionFrame);
+	reader.readInt("swordShieldFrames", animData.swordShieldFrames);
+	reader.readInt("swordShieldActionFrame", animData.swordShieldActionFrame);
+	reader.readInt("bowFrames", animData.bowFrames);
+	reader.readInt("bowActionFrame", animData.bowActionFrame);
+	reader.readInt("axeFrames", animData.axeFrames);
+	reader.readInt("axeActionFrame", animData.axeActionFrame);
+	reader.readInt("maceFrames", animData.maceFrames);
+	reader.readInt("maceActionFrame", animData.maceActionFrame);
+	reader.readInt("maceShieldFrames", animData.maceShieldFrames);
+	reader.readInt("maceShieldActionFrame", animData.maceShieldActionFrame);
+	reader.readInt("staffFrames", animData.staffFrames);
+	reader.readInt("staffActionFrame", animData.staffActionFrame);
+	reader.readInt("idleFrames", animData.idleFrames);
+	reader.readInt("walkingFrames", animData.walkingFrames);
+	reader.readInt("blockingFrames", animData.blockingFrames);
+	reader.readInt("deathFrames", animData.deathFrames);
+	reader.readInt("castingFrames", animData.castingFrames);
+	reader.readInt("recoveryFrames", animData.recoveryFrames);
+	reader.readInt("townIdleFrames", animData.townIdleFrames);
+	reader.readInt("townWalkingFrames", animData.townWalkingFrames);
+	reader.readInt("castingActionFrame", animData.castingActionFrame);
 }
 
 void LoadClassSounds(std::string_view classPath, ankerl::unordered_dense::map<HeroSpeech, SfxID> &sounds)
 {
 	const std::string filename = StrCat("txtdata\\classes\\", classPath, "\\sounds.tsv");
-	tl::expected<DataFile, DataFile::Error> dataFileResult = DataFile::load(filename);
-	if (!dataFileResult.has_value()) {
-		DataFile::reportFatalError(dataFileResult.error(), filename);
-	}
+	tl::expected<DataFile, DataFile::Error> dataFileResult = DataFile::loadOrDie(filename);
 	DataFile &dataFile = dataFileResult.value();
+	dataFile.skipHeaderOrDie(filename);
 
-	if (tl::expected<void, DataFile::Error> result = dataFile.skipHeader();
-	    !result.has_value()) {
-		DataFile::reportFatalError(result.error(), filename);
-	}
-
-	auto recordIt = dataFile.begin();
-	const auto recordEnd = dataFile.end();
-
-	const auto getValueField = [&](std::string_view expectedKey) {
-		if (recordIt == recordEnd) {
-			app_fatal(fmt::format("Missing field {} in {}", expectedKey, filename));
-		}
-		DataFileRecord record = *recordIt;
-		FieldIterator fieldIt = record.begin();
-		const FieldIterator endField = record.end();
-
-		const std::string_view key = (*fieldIt).value();
-		if (key != expectedKey) {
-			app_fatal(fmt::format("Unexpected field in {}: got {}, expected {}", filename, key, expectedKey));
-		}
-
-		++fieldIt;
-		if (fieldIt == endField) {
-			DataFile::reportFatalError(DataFile::Error::NotEnoughColumns, filename);
-		}
-		return *fieldIt;
-	};
-
-	const auto valueReader = [&](auto &&readFn) {
-		return [&](std::string_view expectedKey, auto &outValue) {
-			DataFileField valueField = getValueField(expectedKey);
-			if (const tl::expected<void, devilution::DataFileField::Error> result = readFn(valueField, outValue);
-			    !result.has_value()) {
-				DataFile::reportFatalFieldError(result.error(), filename, "Value", valueField);
-			}
-			++recordIt;
-		};
-	};
-
-	const auto readSfxId = valueReader([](DataFileField &valueField, auto &outValue) -> tl::expected<void, devilution::DataFileField::Error> {
-		const auto result = ParseSfxId(valueField.value());
-		if (!result.has_value()) {
-			return tl::make_unexpected(devilution::DataFileField::Error::InvalidValue);
-		}
-
-		outValue = result.value();
-	});
+	ValueReader reader { dataFile, filename };
 
 	magic_enum::enum_for_each<HeroSpeech>([&](const HeroSpeech speech) {
-		readSfxId(magic_enum::enum_name(speech), sounds[speech]);
+		reader.read(magic_enum::enum_name(speech), sounds[speech], ParseSfxId);
 	});
 }
 

@@ -709,6 +709,7 @@ add_devilutionx_object_library(libdevilutionx_txtdata
   data/file.cpp
   data/parser.cpp
   data/record_reader.cpp
+  data/value_reader.cpp
 )
 target_link_dependencies(libdevilutionx_txtdata PUBLIC
   fmt::fmt
