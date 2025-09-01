@@ -143,7 +143,7 @@ void SelheroListFocus(size_t value)
 		return;
 	}
 
-	SELHERO_DIALOG_HERO_IMG->setSprite(UiGetHeroDialogSprite(enum_size<HeroClass>::value));
+	SELHERO_DIALOG_HERO_IMG->setSprite(UiGetHeroDialogSprite(GetNumPlayerClasses()));
 	for (char *textStat : textStats)
 		strcpy(textStat, "--");
 	SELLIST_DIALOG_DELETE_BUTTON->SetFlags(baseFlags | UiFlags::ColorUiSilver | UiFlags::ElementDisabled);
@@ -169,22 +169,31 @@ void SelheroListSelect(size_t value)
 
 		vecSelHeroDlgItems.clear();
 		int itemH = 33;
-		vecSelHeroDlgItems.push_back(std::make_unique<UiListItem>(_("Warrior"), static_cast<int>(HeroClass::Warrior)));
-		vecSelHeroDlgItems.push_back(std::make_unique<UiListItem>(_("Rogue"), static_cast<int>(HeroClass::Rogue)));
-		vecSelHeroDlgItems.push_back(std::make_unique<UiListItem>(_("Sorcerer"), static_cast<int>(HeroClass::Sorcerer)));
-		if (gbIsHellfire) {
-			vecSelHeroDlgItems.push_back(std::make_unique<UiListItem>(_("Monk"), static_cast<int>(HeroClass::Monk)));
-			if (HaveBardAssets() || *GetOptions().Gameplay.testBard) {
-				vecSelHeroDlgItems.push_back(std::make_unique<UiListItem>(_("Bard"), static_cast<int>(HeroClass::Bard)));
+		for (size_t i = 0; i < GetNumPlayerClasses(); ++i) {
+			const HeroClass heroClass = static_cast<HeroClass>(i);
+
+			if ((heroClass == HeroClass::Monk || heroClass == HeroClass::Bard || heroClass == HeroClass::Barbarian) && !gbIsHellfire) {
+				continue;
 			}
-			if (HaveBarbarianAssets() || *GetOptions().Gameplay.testBarbarian) {
-				vecSelHeroDlgItems.push_back(std::make_unique<UiListItem>(_("Barbarian"), static_cast<int>(HeroClass::Barbarian)));
+
+			if (heroClass == HeroClass::Bard && !HaveBardAssets() && !(*GetOptions().Gameplay.testBard)) {
+				continue;
 			}
+
+			if (heroClass == HeroClass::Barbarian && !HaveBarbarianAssets() && !(*GetOptions().Gameplay.testBarbarian)) {
+				continue;
+			}
+
+			const PlayerData &playerData = GetPlayerDataForClass(heroClass);
+			vecSelHeroDlgItems.push_back(std::make_unique<UiListItem>(std::string_view(playerData.className), static_cast<int>(heroClass)));
 		}
 		if (vecSelHeroDlgItems.size() > 4)
 			itemH = 26;
-		const int itemY = static_cast<int>(246 + (176 - vecSelHeroDlgItems.size() * itemH) / 2);
-		vecSelDlgItems.push_back(std::make_unique<UiList>(vecSelHeroDlgItems, vecSelHeroDlgItems.size(), uiPosition.x + 264, (uiPosition.y + itemY), 320, itemH, UiFlags::AlignCenter | UiFlags::FontSize24 | UiFlags::ColorUiGold));
+		const int itemY = static_cast<int>(246 + (176 - std::min(vecSelHeroDlgItems.size(), 6u) * itemH) / 2);
+		vecSelDlgItems.push_back(std::make_unique<UiList>(vecSelHeroDlgItems, std::min(vecSelHeroDlgItems.size(), 6u), uiPosition.x + 264, (uiPosition.y + itemY), 320, itemH, UiFlags::AlignCenter | UiFlags::FontSize24 | UiFlags::ColorUiGold));
+
+		const SDL_Rect rectScrollBar = { (Sint16)(uiPosition.x + 585), (Sint16)(uiPosition.y + 244), 25, 178 };
+		vecSelDlgItems.push_back(std::make_unique<UiScrollbar>((*ArtScrollBarBackground)[0], (*ArtScrollBarThumb)[0], *ArtScrollBarArrow, rectScrollBar));
 
 		const SDL_Rect rect2 = { (Sint16)(uiPosition.x + 279), (Sint16)(uiPosition.y + 429), 140, 35 };
 		vecSelDlgItems.push_back(std::make_unique<UiArtTextButton>(_("OK"), &UiFocusNavigationSelect, rect2, UiFlags::AlignCenter | UiFlags::FontSize30 | UiFlags::ColorUiGold));
