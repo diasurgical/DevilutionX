@@ -124,7 +124,7 @@ std::string GetTooltipString()
 std::string GetPlayerAssetString()
 {
 	char chars[5] {
-		CharChar[static_cast<int>(MyPlayer->_pClass)],
+		GetPlayerSpriteDataForClass(MyPlayer->_pClass).classChar,
 		ArmourChar[tracked_data.playerGfx >> 4],
 		WepChar[tracked_data.playerGfx & 0xF],
 		'a',
