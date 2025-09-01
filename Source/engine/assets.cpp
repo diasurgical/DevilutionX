@@ -330,7 +330,7 @@ std::vector<std::string> GetMPQSearchPaths()
 	if (paths[0] == paths[1] || (paths.size() == 3 && (paths[0] == paths[2] || paths[1] == paths[2])))
 		paths.pop_back();
 
-#if (defined(__unix__) || defined(__APPLE__)) && !defined(__ANDROID__)
+#if (defined(__unix__) || defined(__APPLE__)) && !defined(__ANDROID__) && !defined(__DJGPP__)
 	// `XDG_DATA_HOME` is usually the root path of `paths::PrefPath()`, so we only
 	// add `XDG_DATA_DIRS`.
 	const char *xdgDataDirs = std::getenv("XDG_DATA_DIRS");
