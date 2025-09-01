@@ -359,7 +359,7 @@ void UnPackPlayer(const PlayerPack &packed, Player &player)
 	player.position.future = position;
 	player.setLevel(std::clamp<int8_t>(packed.plrlevel, 0, NUMLEVELS));
 
-	player._pClass = static_cast<HeroClass>(std::clamp<uint8_t>(packed.pClass, 0, GetNumPlayerClasses() - 1));
+	player._pClass = static_cast<HeroClass>(std::clamp<uint8_t>(packed.pClass, 0, static_cast<uint8_t>(GetNumPlayerClasses() - 1)));
 
 	ClrPlrPath(player);
 	player.destAction = ACTION_NONE;
