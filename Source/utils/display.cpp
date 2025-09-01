@@ -272,13 +272,6 @@ struct DisplayModeComparator {
 	// Is `a` better than `b`?
 	[[nodiscard]] bool operator()(const SDL_DisplayMode &a, const SDL_DisplayMode &b)
 	{
-		if (pixelFormat != SDL_PIXELFORMAT_UNKNOWN) {
-			if (a.format != b.format) {
-				if (a.format == pixelFormat) return true;
-				if (b.format == pixelFormat) return false;
-			}
-		}
-
 		const int dwa = a.w - size.width;
 		const int dha = a.h - size.height;
 		const int dwb = b.w - size.width;
@@ -289,7 +282,16 @@ struct DisplayModeComparator {
 		if (dhb >= 0 && dwb >= 0 && (dha < 0 || dwa < 0)) return false;
 
 		// Either both modes fit or they both don't.
-		// Prefer smallest difference, or width difference if heights are the same.
+
+		// If they're the same size, prefer one with matching pixel format.
+		if (pixelFormat != SDL_PIXELFORMAT_UNKNOWN && a.h == b.h && a.w == b.w) {
+			if (a.format != b.format) {
+				if (a.format == pixelFormat) return true;
+				if (b.format == pixelFormat) return false;
+			}
+		}
+
+		// Prefer smallest height difference, or width difference if heights are the same.
 		return a.h != b.h ? std::abs(dha) < std::abs(dhb)
 		                  : std::abs(dwa) < std::abs(dwb);
 	}
