@@ -386,6 +386,92 @@ void LoadClassSpriteData(std::string_view classPath, PlayerSpriteData &spriteDat
 	readInt("death", spriteData.death);
 }
 
+void LoadClassAnimData(std::string_view classPath, PlayerAnimData &animData)
+{
+	const std::string filename = StrCat("txtdata\\classes\\", classPath, "\\animations.tsv");
+	tl::expected<DataFile, DataFile::Error> dataFileResult = DataFile::load(filename);
+	if (!dataFileResult.has_value()) {
+		DataFile::reportFatalError(dataFileResult.error(), filename);
+	}
+	DataFile &dataFile = dataFileResult.value();
+
+	if (tl::expected<void, DataFile::Error> result = dataFile.skipHeader();
+	    !result.has_value()) {
+		DataFile::reportFatalError(result.error(), filename);
+	}
+
+	auto recordIt = dataFile.begin();
+	const auto recordEnd = dataFile.end();
+
+	const auto getValueField = [&](std::string_view expectedKey) {
+		if (recordIt == recordEnd) {
+			app_fatal(fmt::format("Missing field {} in {}", expectedKey, filename));
+		}
+		DataFileRecord record = *recordIt;
+		FieldIterator fieldIt = record.begin();
+		const FieldIterator endField = record.end();
+
+		const std::string_view key = (*fieldIt).value();
+		if (key != expectedKey) {
+			app_fatal(fmt::format("Unexpected field in {}: got {}, expected {}", filename, key, expectedKey));
+		}
+
+		++fieldIt;
+		if (fieldIt == endField) {
+			DataFile::reportFatalError(DataFile::Error::NotEnoughColumns, filename);
+		}
+		return *fieldIt;
+	};
+
+	const auto valueReader = [&](auto &&readFn) {
+		return [&](std::string_view expectedKey, auto &outValue) {
+			DataFileField valueField = getValueField(expectedKey);
+			if (const tl::expected<void, devilution::DataFileField::Error> result = readFn(valueField, outValue);
+			    !result.has_value()) {
+				DataFile::reportFatalFieldError(result.error(), filename, "Value", valueField);
+			}
+			++recordIt;
+		};
+	};
+
+	const auto readString = valueReader([](DataFileField &valueField, auto &outValue) {
+		outValue = valueField.value();
+		return tl::expected<void, devilution::DataFileField::Error> {};
+	});
+
+	const auto readInt = valueReader([](DataFileField &valueField, auto &outValue) {
+		return valueField.parseInt(outValue);
+	});
+
+	readInt("unarmedFrames", animData.unarmedFrames);
+	readInt("unarmedActionFrame", animData.unarmedActionFrame);
+	readInt("unarmedShieldFrames", animData.unarmedShieldFrames);
+	readInt("unarmedShieldActionFrame", animData.unarmedShieldActionFrame);
+	readInt("swordFrames", animData.swordFrames);
+	readInt("swordActionFrame", animData.swordActionFrame);
+	readInt("swordShieldFrames", animData.swordShieldFrames);
+	readInt("swordShieldActionFrame", animData.swordShieldActionFrame);
+	readInt("bowFrames", animData.bowFrames);
+	readInt("bowActionFrame", animData.bowActionFrame);
+	readInt("axeFrames", animData.axeFrames);
+	readInt("axeActionFrame", animData.axeActionFrame);
+	readInt("maceFrames", animData.maceFrames);
+	readInt("maceActionFrame", animData.maceActionFrame);
+	readInt("maceShieldFrames", animData.maceShieldFrames);
+	readInt("maceShieldActionFrame", animData.maceShieldActionFrame);
+	readInt("staffFrames", animData.staffFrames);
+	readInt("staffActionFrame", animData.staffActionFrame);
+	readInt("idleFrames", animData.idleFrames);
+	readInt("walkingFrames", animData.walkingFrames);
+	readInt("blockingFrames", animData.blockingFrames);
+	readInt("deathFrames", animData.deathFrames);
+	readInt("castingFrames", animData.castingFrames);
+	readInt("recoveryFrames", animData.recoveryFrames);
+	readInt("townIdleFrames", animData.townIdleFrames);
+	readInt("townWalkingFrames", animData.townWalkingFrames);
+	readInt("castingActionFrame", animData.castingActionFrame);
+}
+
 void LoadClassSounds(std::string_view classPath, ankerl::unordered_dense::map<HeroSpeech, SfxID> &sounds)
 {
 	const std::string filename = StrCat("txtdata\\classes\\", classPath, "\\sounds.tsv");
@@ -460,6 +546,8 @@ std::vector<PlayerStartingLoadoutData> PlayersStartingLoadoutData;
 /** Contains the data related to each player class. */
 std::vector<PlayerSpriteData> PlayersSpriteData;
 
+std::vector<PlayerAnimData> PlayersAnimData;
+
 std::vector<ankerl::unordered_dense::map<HeroSpeech, SfxID>> herosounds;
 
 } // namespace
@@ -506,6 +594,8 @@ void LoadClassesAttributes()
 	PlayersStartingLoadoutData.reserve(PlayersData.size());
 	PlayersSpriteData.clear();
 	PlayersSpriteData.reserve(PlayersData.size());
+	PlayersAnimData.clear();
+	PlayersAnimData.reserve(PlayersData.size());
 	herosounds.clear();
 	herosounds.reserve(PlayersData.size());
 
@@ -513,6 +603,7 @@ void LoadClassesAttributes()
 		LoadClassData(playerData.folderName, ClassAttributesPerClass.emplace_back(), PlayersCombatData.emplace_back());
 		LoadClassStartingLoadoutData(playerData.folderName, PlayersStartingLoadoutData.emplace_back());
 		LoadClassSpriteData(playerData.folderName, PlayersSpriteData.emplace_back());
+		LoadClassAnimData(playerData.folderName, PlayersAnimData.emplace_back());
 		LoadClassSounds(playerData.folderName, herosounds.emplace_back());
 	}
 }
@@ -581,16 +672,11 @@ const PlayerSpriteData &GetPlayerSpriteDataForClass(HeroClass pClass)
 	return PlayersSpriteData[playerClassIndex];
 }
 
-const PlayerAnimData PlayersAnimData[] = {
-	// clang-format off
-// HeroClass                  unarmedFrames,  unarmedActionFrame,  unarmedShieldFrames,  unarmedShieldActionFrame,  swordFrames,  swordActionFrame,  swordShieldFrames,  swordShieldActionFrame,  bowFrames,  bowActionFrame,  axeFrames,  axeActionFrame,  maceFrames,  maceActionFrame,  maceShieldFrames,  maceShieldActionFrame,  staffFrames,  staffActionFrame,  idleFrames,  walkingFrames,  blockingFrames,  deathFrames,  castingFrames,  recoveryFrames,  townIdleFrames,  townWalkingFrames,  castingActionFrame
-/* HeroClass::Warrior */   {             16,                   9,                   16,                         9,           16,                 9,                 16,                       9,         16,              11,         20,              10,          16,                9,                16,                      9,           16,                11,          10,              8,               2,           20,             20,               6,              20,                  8,                  14 },
-/* HeroClass::Rogue */     {             18,                  10,                   18,                        10,           18,                10,                 18,                      10,         12,               7,         22,              13,          18,               10,                18,                     10,           16,                11,           8,              8,               4,           20,             16,               7,              20,                  8,                  12 },
-/* HeroClass::Sorcerer */  {             20,                  12,                   16,                         9,           16,                12,                 16,                      12,         20,              16,         24,              16,          16,               12,                16,                     12,           16,                12,           8,              8,               6,           20,             12,               8,              20,                  8,                   8 },
-/* HeroClass::Monk */      {             12,                   7,                   12,                         7,           16,                12,                 16,                      12,         20,              14,         23,              14,          16,               12,                16,                     12,           13,                 8,           8,              8,               3,           20,             18,               6,              20,                  8,                  13 },
-/* HeroClass::Bard */      {             18,                  10,                   18,                        10,           18,                10,                 18,                      10,         12,              11,         22,              13,          18,               10,                18,                     10,           16,                11,           8,              8,               4,           20,             16,               7,              20,                  8,                  12 },
-/* HeroClass::Barbarian */ {             16,                   9,                   16,                         9,           16,                 9,                 16,                       9,         16,              11,         20,               8,          16,                8,                16,                      8,           16,                11,          10,              8,               2,           20,             20,               6,              20,                  8,                  14 },
-	// clang-format on
-};
+const PlayerAnimData &GetPlayerAnimDataForClass(HeroClass pClass)
+{
+	const size_t playerClassIndex = static_cast<size_t>(pClass);
+	assert(playerClassIndex < PlayersAnimData.size());
+	return PlayersAnimData[playerClassIndex];
+}
 
 } // namespace devilution

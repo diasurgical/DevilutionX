@@ -2224,7 +2224,7 @@ void NewPlrAnim(Player &player, player_graphic graphic, Direction dir, Animation
 void SetPlrAnims(Player &player)
 {
 	const HeroClass pc = player._pClass;
-	const PlayerAnimData plrAtkAnimData = PlayersAnimData[static_cast<uint8_t>(pc)];
+	const PlayerAnimData &plrAtkAnimData = GetPlayerAnimDataForClass(pc);
 	auto gn = static_cast<PlayerWeaponGraphic>(player._pgfxnum & 0xFU);
 
 	if (leveltype == DTYPE_TOWN) {

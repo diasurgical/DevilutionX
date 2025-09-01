@@ -201,6 +201,6 @@ const PlayerData &GetPlayerDataForClass(HeroClass clazz);
 const PlayerCombatData &GetPlayerCombatDataForClass(HeroClass clazz);
 const PlayerStartingLoadoutData &GetPlayerStartingLoadoutForClass(HeroClass clazz);
 const PlayerSpriteData &GetPlayerSpriteDataForClass(HeroClass clazz);
-extern const PlayerAnimData PlayersAnimData[];
+const PlayerAnimData &GetPlayerAnimDataForClass(HeroClass clazz);
 
 } // namespace devilution
