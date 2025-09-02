@@ -46,6 +46,19 @@ public:
 		});
 	}
 
+	template <typename T, typename F>
+	void readEnumList(std::string_view expectedKey, T &outValue, F &&parseFn)
+	{
+		readValue(expectedKey, outValue, [&parseFn](DataFileField &valueField, T &outValue) -> tl::expected<void, devilution::DataFileField::Error> {
+			const auto result = valueField.parseEnumList(outValue, std::forward<F>(parseFn));
+			if (!result.has_value()) {
+				return tl::make_unexpected(devilution::DataFileField::Error::InvalidValue);
+			}
+
+			return {};
+		});
+	}
+
 	template <typename T>
 	typename std::enable_if_t<std::is_integral_v<T>, void>
 	readInt(std::string_view expectedKey, T &outValue)

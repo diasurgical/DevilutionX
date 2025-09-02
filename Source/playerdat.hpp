@@ -27,6 +27,16 @@ enum class HeroClass : uint8_t {
 	LAST = Barbarian,
 };
 
+enum class PlayerClassFlag : uint8_t {
+	// clang-format off
+	None = 0,
+	DualWield = 1 << 0,
+
+	Last = DualWield
+	// clang-format on
+};
+use_enum_as_flags(PlayerClassFlag);
+
 struct PlayerData {
 	/* Class Name */
 	std::string className;
@@ -39,6 +49,8 @@ struct PlayerData {
 };
 
 struct ClassAttributes {
+	/* Class Flags */
+	PlayerClassFlag classFlags;
 	/* Class Starting Strength Stat */
 	uint8_t baseStr;
 	/* Class Starting Magic Stat */
@@ -213,3 +225,10 @@ const PlayerSpriteData &GetPlayerSpriteDataForClass(HeroClass clazz);
 const PlayerAnimData &GetPlayerAnimDataForClass(HeroClass clazz);
 
 } // namespace devilution
+
+
+template <>
+struct magic_enum::customize::enum_range<devilution::PlayerClassFlag> {
+	static constexpr uint8_t min = static_cast<uint64_t>(devilution::PlayerClassFlag::None);
+	static constexpr uint8_t max = static_cast<uint64_t>(devilution::PlayerClassFlag::Last);
+};
