@@ -2553,14 +2553,14 @@ void CalcPlrDamageMod(Player &player)
 	switch (player._pClass) {
 	case HeroClass::Rogue:
 		player._pDamageMod = strDexMod / 200;
-		return;
+		break;
 	case HeroClass::Monk:
 		if (player.isHoldingItem(ItemType::Staff) || (leftHandItem.isEmpty() && rightHandItem.isEmpty())) {
 			player._pDamageMod = strDexMod / 150;
 		} else {
 			player._pDamageMod = strDexMod / 300;
 		}
-		return;
+		break;
 	case HeroClass::Bard:
 		if (player.isHoldingItem(ItemType::Sword)) {
 			player._pDamageMod = strDexMod / 150;
@@ -2569,7 +2569,7 @@ void CalcPlrDamageMod(Player &player)
 		} else {
 			player._pDamageMod = strMod / 100;
 		}
-		return;
+		break;
 	case HeroClass::Barbarian:
 		if (player.isHoldingItem(ItemType::Axe) || player.isHoldingItem(ItemType::Mace)) {
 			player._pDamageMod = strMod / 75;
@@ -2586,11 +2586,15 @@ void CalcPlrDamageMod(Player &player)
 		} else if (!player.isHoldingItem(ItemType::Staff) && !player.isHoldingItem(ItemType::Bow)) {
 			player._pDamageMod += playerLevel * player._pVitality / 100;
 		}
-		player._pIAC += playerLevel / 4;
-		return;
+		break;
 	default:
 		player._pDamageMod = strMod / 100;
-		return;
+		break;
+	}
+
+	const ClassAttributes &classAttributes = GetClassAttributes(player._pClass);
+	if (HasAnyOf(classAttributes.classFlags, PlayerClassFlag::IronSkin)) {
+		player._pIAC += playerLevel / 4;
 	}
 }
 
@@ -2598,7 +2602,9 @@ void CalcPlrResistances(Player &player, ItemSpecialEffect iflgs, int fire, int l
 {
 	const uint8_t playerLevel = player.getCharacterLevel();
 
-	if (player._pClass == HeroClass::Barbarian) {
+	const ClassAttributes &classAttributes = GetClassAttributes(player._pClass);
+
+	if (HasAnyOf(classAttributes.classFlags, PlayerClassFlag::NaturalResistance)) {
 		magic += playerLevel;
 		fire += playerLevel;
 		lightning += playerLevel;

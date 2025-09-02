@@ -31,8 +31,10 @@ enum class PlayerClassFlag : uint8_t {
 	// clang-format off
 	None = 0,
 	DualWield = 1 << 0,
+	IronSkin = 1 << 1,
+	NaturalResistance = 1 << 2,
 
-	Last = DualWield
+	Last = NaturalResistance
 	// clang-format on
 };
 use_enum_as_flags(PlayerClassFlag);
