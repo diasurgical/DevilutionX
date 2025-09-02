@@ -30,9 +30,10 @@ enum class HeroClass : uint8_t {
 enum class PlayerClassFlag : uint8_t {
 	// clang-format off
 	None = 0,
-	DualWield = 1 << 0,
-	IronSkin = 1 << 1,
-	NaturalResistance = 1 << 2,
+	CriticalStrike = 1 << 0,
+	DualWield = 1 << 1,
+	IronSkin = 1 << 2,
+	NaturalResistance = 1 << 3,
 
 	Last = NaturalResistance
 	// clang-format on
