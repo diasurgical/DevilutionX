@@ -259,6 +259,8 @@ void RenderPresent()
 		if (SDL_UpdateWindowSurface(ghMainWnd) <= -1) {
 			ErrSdl();
 		}
+		if (RenderDirectlyToOutputSurface)
+			PalSurface = GetOutputSurface();
 		LimitFrameRate();
 	}
 #else
