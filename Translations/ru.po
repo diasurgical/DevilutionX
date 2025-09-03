@@ -12,7 +12,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: DevilutionX\n"
-"POT-Creation-Date: 2025-06-28 11:10+0300\n"
+"POT-Creation-Date: 2025-06-28 11:52+0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: @Maderator3000\n"
 "Language-Team: \n"
@@ -1240,30 +1240,30 @@ msgstr "Новый уровень"
 
 #: Source/control.cpp:1454
 msgid "You have died"
-msgstr "Вы погибли"
+msgstr ""
 
 #: Source/control.cpp:1462
 msgid "ESC"
-msgstr "ESC"
+msgstr ""
 
 #: Source/control.cpp:1468
 msgid "Menu Button"
-msgstr "Выход в меню"
+msgstr ""
 
 #: Source/control.cpp:1476
 #, c++-format
 msgid "Press {} to load last save."
-msgstr "Нажмите {} чтобы загрузить последнее сохранение."
+msgstr ""
 
 #: Source/control.cpp:1478
 #, c++-format
 msgid "Press {} to return to Main Menu."
-msgstr "Нажмите {} чтобы вернуться в главное меню."
+msgstr ""
 
 #: Source/control.cpp:1481
 #, c++-format
 msgid "Press {} to restart in town."
-msgstr "Нажмите {} для рестарта в городе."
+msgstr ""
 
 #. TRANSLATORS: {:s} is a number with separators. Dialog is shown when splitting a stash of Gold.
 #: Source/control.cpp:1499
@@ -2324,8 +2324,10 @@ msgid "Save Game"
 msgstr "Сохранить игру"
 
 #: Source/gamemenu.cpp:50 Source/gamemenu.cpp:60
+#, fuzzy
+#| msgid "Main Menu"
 msgid "Exit to Main Menu"
-msgstr "Выйти в Главное меню"
+msgstr "Главное меню"
 
 #: Source/gamemenu.cpp:51 Source/gamemenu.cpp:61
 msgid "Quit Game"
@@ -3473,23 +3475,17 @@ msgstr "Вернуться на {:d} уровень"
 msgid "Unable to open save file archive"
 msgstr "Невозможно открыть файл сохранённой игры"
 
-# несколько изменил оригинальную формулировку
 #: Source/loadsave.cpp:2346
 msgid ""
 "Stash version invalid. If you attempt to access your stash, data will be "
 "overwritten!!"
 msgstr ""
-"Недействительная версия хранилища. Если вы попытаетесь что-то положить в "
-"хранилище, данные будут перезаписаны!!"
 
-# несколько изменил оригинальную формулировку
 #: Source/loadsave.cpp:2365
 msgid ""
 "Stash size invalid. If you attempt to access your stash, data will be "
 "overwritten!!"
 msgstr ""
-"Недопустимый размер хранилища. Если вы попытаетесь что-то положить в "
-"хранилище, данные будут перезаписаны!!"
 
 #: Source/loadsave.cpp:2396
 msgid "Invalid save file"
@@ -3629,127 +3625,127 @@ msgstr "Игрок '{:s}' (уровень {:d}) уже в игре"
 #. TRANSLATORS: Shrine Name Block
 #: Source/objects.cpp:127
 msgid "Mysterious"
-msgstr "Таинственное"
+msgstr "Таинственный"
 
 #: Source/objects.cpp:128
 msgid "Hidden"
-msgstr "Скрытое"
+msgstr "Скрытый"
 
 #: Source/objects.cpp:129
 msgid "Gloomy"
-msgstr "Хмурое"
+msgstr "Хмурый"
 
 #: Source/objects.cpp:130 Source/translation_dummy.cpp:606
 msgid "Weird"
-msgstr "Причудливое"
+msgstr "Причудливый"
 
 #: Source/objects.cpp:131 Source/objects.cpp:138
 msgid "Magical"
-msgstr "Магическое"
+msgstr "Магический"
 
 #: Source/objects.cpp:132
 msgid "Stone"
-msgstr "Каменное"
+msgstr "Каменный"
 
 #: Source/objects.cpp:133
 msgid "Religious"
-msgstr "Религиозное"
+msgstr "Религиозный"
 
 #: Source/objects.cpp:134
 msgid "Enchanted"
-msgstr "Заколдованное"
+msgstr "Заколдованный"
 
 #: Source/objects.cpp:135
 msgid "Thaumaturgic"
-msgstr "Чудотворное"
+msgstr "Чудотворный"
 
 #: Source/objects.cpp:136
 msgid "Fascinating"
-msgstr "Обворожительное"
+msgstr "Обворожительный"
 
 #: Source/objects.cpp:137
 msgid "Cryptic"
-msgstr "Загадочное"
+msgstr "Загадочный"
 
 #: Source/objects.cpp:139
 msgid "Eldritch"
-msgstr "Сверхъестественное"
+msgstr "Сверхъестественный"
 
 #: Source/objects.cpp:140
 msgid "Eerie"
-msgstr "Жуткое"
+msgstr "Жуткий"
 
 #: Source/objects.cpp:141
 msgid "Divine"
-msgstr "Божественное"
+msgstr "Божественный"
 
 #: Source/objects.cpp:142 Source/translation_dummy.cpp:641
 msgid "Holy"
-msgstr "Святое"
+msgstr "Святой"
 
 #: Source/objects.cpp:143
 msgid "Sacred"
-msgstr "Священное"
+msgstr "Священный"
 
 #: Source/objects.cpp:144
 msgid "Spiritual"
-msgstr "Духовное"
+msgstr "Духовный"
 
 #: Source/objects.cpp:145
 msgid "Spooky"
-msgstr "Пугающее"
+msgstr "Пугающий"
 
 #: Source/objects.cpp:146
 msgid "Abandoned"
-msgstr "Заброшенное"
+msgstr "Заброшенный"
 
 #: Source/objects.cpp:147
 msgid "Creepy"
-msgstr "Жуткое"
+msgstr "Страшный"
 
 #: Source/objects.cpp:148
 msgid "Quiet"
-msgstr "Тихое"
+msgstr "Тихий"
 
 #: Source/objects.cpp:149
 msgid "Secluded"
-msgstr "Уединённое"
+msgstr "Уединённый"
 
 #: Source/objects.cpp:150
 msgid "Ornate"
-msgstr "Украшенное"
+msgstr "Украшенный"
 
 #: Source/objects.cpp:151
 msgid "Glimmering"
-msgstr "Блестящее"
+msgstr "Блестящий"
 
 #: Source/objects.cpp:152
 msgid "Tainted"
-msgstr "Испорченное"
+msgstr "Испорченный"
 
 #: Source/objects.cpp:153
 msgid "Oily"
-msgstr "Маслянистое"
+msgstr "Маслянистый"
 
 #: Source/objects.cpp:154
 msgid "Glowing"
-msgstr "Светящееся"
+msgstr "Светящийся"
 
 #: Source/objects.cpp:155
 msgid "Mendicant's"
-msgstr "Нищенское"
+msgstr "Нищенский"
 
 #: Source/objects.cpp:156
 msgid "Sparkling"
-msgstr "Сверкающее"
+msgstr "Сверкающий"
 
 #: Source/objects.cpp:158
 msgid "Shimmering"
-msgstr "Мерцающее"
+msgstr "Мерцающий"
 
 #: Source/objects.cpp:159
 msgid "Solar"
-msgstr "Солнечное"
+msgstr "Солнечный"
 
 #. TRANSLATORS: Shrine Name Block end
 #: Source/objects.cpp:161
@@ -4137,8 +4133,10 @@ msgid "Resampling Quality"
 msgstr "Качество передискретизации"
 
 #: Source/options.cpp:508
+#, fuzzy
+#| msgid "Quality of the resampler, from 0 (lowest) to 10 (highest)."
 msgid "Quality of the resampler, from 0 (lowest) to 5 (highest)."
-msgstr "Качество передискретизации, от 0 (самое низкое) до 5 (самое высокое)."
+msgstr "Качество передискретизации, от 0 (самое низкое) до 10 (самое высокое)."
 
 # Полный корректный перевод не влазит в 3 строки.
 #: Source/options.cpp:533
@@ -4264,12 +4262,14 @@ msgid "Zoom on when enabled."
 msgstr "Приближает, если включено."
 
 #: Source/options.cpp:730
+#, fuzzy
+#| msgid " Lightning"
 msgid "Per-pixel Lighting"
-msgstr " Пиксельное освещение"
+msgstr " Молния"
 
 #: Source/options.cpp:730
 msgid "Subtile lighting for smoother light gradients."
-msgstr "Тонкое освещение для более плавных световых градиентов."
+msgstr ""
 
 #: Source/options.cpp:731
 msgid "Color Cycling"
@@ -4714,6 +4714,8 @@ msgid "Armor class"
 msgstr "Класс защиты"
 
 #: Source/panels/charpanel.cpp:176
+#, fuzzy
+#| msgid "chance to hit"
 msgid "Chance To Hit"
 msgstr "меткость оружия"
 
