@@ -108,7 +108,7 @@ msgstr "Помощник продюсера"
 #. TRANSLATORS: Keep Strike Team as Name
 #: Source/DiabloUI/credits_lines.cpp:75
 msgid "Diablo Strike Team"
-msgstr "Ударная команда Diablo"
+msgstr "Diablo Strike Team"
 
 #: Source/DiabloUI/credits_lines.cpp:79 Source/gamemenu.cpp:79
 msgid "Music"
@@ -1236,10 +1236,8 @@ msgid "Hit Points {:d} of {:d}"
 msgstr "Здоровье {:d} из {:d}"
 
 #: Source/control.cpp:1525
-#, fuzzy
-#| msgid "Right-click to use"
 msgid "Right click to inspect"
-msgstr "Правый клик для использования"
+msgstr "ПКМ, чтобы проверить"
 
 #: Source/control.cpp:1573
 msgid "Level Up"
@@ -1390,7 +1388,7 @@ msgstr "Включить подробное логирование"
 #. TRANSLATORS: Commandline Option
 #: Source/diablo.cpp:999
 msgid "Log to a file instead of stderr"
-msgstr ""
+msgstr "Лог файлом вместо stderr"
 
 #. TRANSLATORS: Commandline Option
 #: Source/diablo.cpp:1002
@@ -1610,11 +1608,11 @@ msgstr "Открыть экран персонажа."
 
 #: Source/diablo.cpp:1928
 msgid "Party"
-msgstr ""
+msgstr "Мультиплеер"
 
 #: Source/diablo.cpp:1929
 msgid "Open side Party panel."
-msgstr ""
+msgstr "Открывает боковую панель мультиплеера."
 
 #: Source/diablo.cpp:1936 Source/diablo.cpp:2274
 msgid "Quest log"
@@ -1823,46 +1821,36 @@ msgid "Toggle whether the player moves."
 msgstr "Переключить на ходьбу."
 
 #: Source/diablo.cpp:2310
-#, fuzzy
-#| msgid "Automap"
 msgid "Automap Move Up"
-msgstr "Автокарта"
+msgstr "Автокарта двигается вверх"
 
 #: Source/diablo.cpp:2311
 msgid "Moves the automap up when active."
-msgstr ""
+msgstr "Перемещает автокарту вверх, когда она активна."
 
 #: Source/diablo.cpp:2316
-#, fuzzy
-#| msgid "Move down"
 msgid "Automap Move Down"
-msgstr "Движение вниз"
+msgstr "Автокарта двигается вниз"
 
 #: Source/diablo.cpp:2317
 msgid "Moves the automap down when active."
-msgstr ""
+msgstr "Перемещает автокарту вниз, когда она активна."
 
 #: Source/diablo.cpp:2322
-#, fuzzy
-#| msgid "Move left"
 msgid "Automap Move Left"
-msgstr "Движение влево"
+msgstr "Автокарта двигается влево"
 
 #: Source/diablo.cpp:2323
-#, fuzzy
-#| msgid "Moves the player character up."
 msgid "Moves the automap left when active."
-msgstr "Перемещает персонажа вверх."
+msgstr "Перемещает автоматическую карту влево, когда она активна."
 
 #: Source/diablo.cpp:2328
-#, fuzzy
-#| msgid "Move right"
 msgid "Automap Move Right"
-msgstr "Движение вправо"
+msgstr "Автокарта двигается вправо"
 
 #: Source/diablo.cpp:2329
 msgid "Moves the automap right when active."
-msgstr ""
+msgstr "Перемещает автокарту вправо, когда она активна."
 
 #: Source/diablo.cpp:2334
 msgid "Move mouse up"
@@ -3570,7 +3558,7 @@ msgstr "Невозможно отобразить главное меню"
 
 #: Source/monstdat.cpp:331 Source/monstdat.cpp:344
 msgid "Loading Monster Data Failed"
-msgstr ""
+msgstr "Не удалось загрузить данные монстров"
 
 #: Source/monstdat.cpp:331
 #, c++-format
@@ -3578,11 +3566,13 @@ msgid ""
 "Could not add a monster, since the maximum monster type number of {} has "
 "already been reached."
 msgstr ""
+"Не удалось добавить монстра, так как максимальное количество типов монстров, "
+"равное {}, уже достигнуто."
 
 #: Source/monstdat.cpp:344
 #, c++-format
 msgid "A monster type already exists for ID \"{}\"."
-msgstr ""
+msgstr "Тип монстра уже существует для ID \"{}\"."
 
 #: Source/monster.cpp:2990
 msgid "Animal"
@@ -4519,15 +4509,13 @@ msgid "Displays current / max mana value on mana globe."
 msgstr "Отображает текущее/максимальное значение маны на шаре маны."
 
 #: Source/options.cpp:797
-#, fuzzy
-#| msgid "Character Information"
 msgid "Show Party Information"
-msgstr "Информация о персонаже"
+msgstr "Информация о мультиплеере"
 
 #: Source/options.cpp:797
 msgid ""
 "Displays the health and mana of all connected multiplayer party members."
-msgstr ""
+msgstr "Отображает уровень здоровья и маны всех участников мультиплеера."
 
 #: Source/options.cpp:798
 msgid "Enemy Health Bar"
@@ -4539,11 +4527,11 @@ msgstr "Полоса здоровья врага отображается в в�
 
 #: Source/options.cpp:799
 msgid "Floating Item Info Box"
-msgstr ""
+msgstr "Характеристики товара при наведении курсора"
 
 #: Source/options.cpp:799
 msgid "Displays item info in a floating box when hovering over an item."
-msgstr ""
+msgstr "Отображает информацию о товаре при наведении курсора мыши на товар."
 
 #: Source/options.cpp:800
 msgid "Gold is automatically collected when in close proximity to the player."
@@ -4756,7 +4744,9 @@ msgstr "Настройки модов"
 
 #: Source/panels/charpanel.cpp:133
 msgid "Level"
-msgstr "Уровень"
+msgstr ""
+"Номер\n"
+"уровня"
 
 #: Source/panels/charpanel.cpp:135
 msgid "Experience"
@@ -4808,7 +4798,7 @@ msgstr "Класс защиты"
 
 #: Source/panels/charpanel.cpp:176
 msgid "Chance To Hit"
-msgstr "меткость оружия"
+msgstr "Меткость"
 
 #: Source/panels/charpanel.cpp:178
 msgid "Damage"
@@ -4839,7 +4829,7 @@ msgstr "Сопр. молнии"
 
 #: Source/panels/mainpanel.cpp:91
 msgid "char"
-msgstr "перс"
+msgstr "персонаж"
 
 #: Source/panels/mainpanel.cpp:92
 msgid "quests"
@@ -4855,11 +4845,11 @@ msgstr "меню"
 
 #: Source/panels/mainpanel.cpp:95
 msgid "inv"
-msgstr "инв"
+msgstr "инвентарь"
 
 #: Source/panels/mainpanel.cpp:96
 msgid "spells"
-msgstr "закл"
+msgstr "магия"
 
 #: Source/panels/mainpanel.cpp:106 Source/panels/mainpanel.cpp:132
 #: Source/panels/mainpanel.cpp:134
@@ -5032,7 +5022,7 @@ msgstr "Вот кое-что для тебя."
 
 #: Source/quick_messages.cpp:13
 msgid "Now you DIE!"
-msgstr "Сейчас ты СДОХНЕШЬ!"
+msgstr "Сейчас ты УМРЁШЬ!"
 
 #: Source/quick_messages.cpp:14
 msgid "Heal yourself!"
@@ -5383,12 +5373,12 @@ msgstr "Ваше золото: {:s}"
 
 #: Source/textdat.cpp:72
 msgid "Loading Text Data Failed"
-msgstr ""
+msgstr "Не удалось загрузить данные текста"
 
 #: Source/textdat.cpp:72
 #, c++-format
 msgid "A text data entry already exists for ID \"{}\"."
-msgstr ""
+msgstr "Текстовая запись данных уже существует для ID \"{}\"."
 
 #: Source/towners.cpp:269
 msgid "Slain Townsman"
@@ -6539,7 +6529,7 @@ msgstr "Карта Собора"
 
 #: Source/translation_dummy.cpp:233
 msgid "Ear"
-msgstr ""
+msgstr "Ухо"
 
 #: Source/translation_dummy.cpp:234
 msgid "Potion of Healing"
@@ -7042,10 +7032,8 @@ msgid "The Butcher's Cleaver"
 msgstr "Тесак Мясника"
 
 #: Source/translation_dummy.cpp:364
-#, fuzzy
-#| msgid "Lightsabre"
 msgid "Lightforge"
-msgstr "Световой Меч"
+msgstr ""
 
 #: Source/translation_dummy.cpp:365
 msgid "The Rift Bow"
