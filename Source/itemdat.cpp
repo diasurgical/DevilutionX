@@ -6,7 +6,6 @@
 
 #include "itemdat.h"
 
-#include <charconv>
 #include <string_view>
 #include <vector>
 
@@ -729,3 +728,4 @@ std::string_view ItemTypeToString(ItemType itemType)
 }
 
 } // namespace devilution
+
