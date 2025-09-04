@@ -728,4 +728,3 @@ std::string_view ItemTypeToString(ItemType itemType)
 }
 
 } // namespace devilution
-
