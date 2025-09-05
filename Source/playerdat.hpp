@@ -230,7 +230,6 @@ const PlayerAnimData &GetPlayerAnimDataForClass(HeroClass clazz);
 
 } // namespace devilution
 
-
 template <>
 struct magic_enum::customize::enum_range<devilution::PlayerClassFlag> {
 	static constexpr uint8_t min = static_cast<uint64_t>(devilution::PlayerClassFlag::None);
