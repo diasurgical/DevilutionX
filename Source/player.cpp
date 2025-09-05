@@ -138,8 +138,8 @@ void StartWalkAnimation(Player &player, Direction dir, bool pmWillBeCalled)
 {
 	int8_t skippedFrames = -2;
 	if (leveltype == DTYPE_TOWN && sgGameInitInfo.bRunInTown != 0)
-		skippedFrames = 2;
-	if (pmWillBeCalled)
+		skippedFrames = 3;
+	else if (pmWillBeCalled)
 		skippedFrames += 1;
 	NewPlrAnim(player, player_graphic::Walk, dir, AnimationDistributionFlags::ProcessAnimationPending, skippedFrames);
 }
