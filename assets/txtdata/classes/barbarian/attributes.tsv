@@ -1,4 +1,5 @@
 Attribute	Value
+classFlags	CriticalStrike,IronSkin,NaturalResistance
 baseStr	40
 baseMag	0
 baseDex	20
