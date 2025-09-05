@@ -172,7 +172,7 @@ void SelheroListSelect(size_t value)
 		for (size_t i = 0; i < GetNumPlayerClasses(); ++i) {
 			const HeroClass heroClass = static_cast<HeroClass>(i);
 
-			if ((heroClass == HeroClass::Monk || heroClass == HeroClass::Bard || heroClass == HeroClass::Barbarian) && !gbIsHellfire) {
+			if (heroClass == HeroClass::Monk && !gbIsHellfire) {
 				continue;
 			}
 
