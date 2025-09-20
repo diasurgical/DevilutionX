@@ -33,7 +33,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          apt-get install -y --no-install-recommends --no-install-suggests \
+          apt-get update && apt-get install -y --no-install-recommends --no-install-suggests \
             ffmpeg
 
       - name: Get external dependencies
