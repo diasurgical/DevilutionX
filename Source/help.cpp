@@ -207,7 +207,7 @@ void DrawHelp(const Surface &out)
 
 	DrawString(out, title,
 	    { { sx, sy + PaddingTop + blankLineHeight }, { ContentTextWidth, lineHeight } },
-	    UiFlags::ColorWhitegold | UiFlags::AlignCenter);
+	    { UiFlags::ColorWhitegold | UiFlags::AlignCenter });
 
 	const int titleBottom = sy + HeaderHeight();
 	DrawSLine(out, titleBottom);
@@ -227,12 +227,12 @@ void DrawHelp(const Surface &out)
 			style = UiFlags::ColorBlue;
 		}
 
-		DrawString(out, line.substr(offset), { { sx, contentY + i * lineHeight }, { ContentTextWidth, lineHeight } }, style, /*spacing=*/1, lineHeight);
+		DrawString(out, line.substr(offset), { { sx, contentY + i * lineHeight }, { ContentTextWidth, lineHeight } }, { style, /*spacing=*/1, lineHeight });
 	}
 
 	DrawString(out, _("Press ESC to end or the arrow keys to scroll."),
 	    { { sx, contentY + ContentsTextHeight() + ContentPaddingY() + blankLineHeight }, { ContentTextWidth, lineHeight } },
-	    UiFlags::ColorWhitegold | UiFlags::AlignCenter);
+	    { UiFlags::ColorWhitegold | UiFlags::AlignCenter });
 
 	DrawHelpSlider(out);
 }

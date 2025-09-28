@@ -35,8 +35,11 @@ namespace devilution {
 extern std::array<SDL_Color, 256> logical_palette;
 extern std::array<SDL_Color, 256> system_palette;
 extern std::array<SDL_Color, 256> orig_palette;
-/** Lookup table for transparency */
-extern std::array<std::array<Uint8, 256>, 256> paletteTransparencyLookup;
+
+/**
+ * @brief Lookup table for the average of two colors in `logical_palette`.
+ */
+extern uint8_t paletteTransparencyLookup[256][256];
 
 #if DEVILUTIONX_PALETTE_TRANSPARENCY_BLACK_16_LUT
 /**

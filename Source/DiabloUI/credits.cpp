@@ -127,7 +127,7 @@ void CreditsRenderer::Render()
 		dstRect.y -= viewport.y;
 
 		const Surface &out = Surface(DiabloUiSurface(), viewport);
-		DrawString(out, lineContent.text, Point { dstRect.x, dstRect.y }, UiFlags::FontSizeDialog | UiFlags::ColorDialogWhite, -1);
+		DrawString(out, lineContent.text, Point { dstRect.x, dstRect.y }, { UiFlags::FontSizeDialog | UiFlags::ColorDialogWhite, -1 });
 	}
 }
 

@@ -6,18 +6,15 @@
 #pragma once
 
 #include <cstdint>
-
-#include <array>
 #include <utility>
 
 #ifdef DEBUG_CLX
 #include <string>
 #endif
 
-#include "engine.h"
 #include "engine/clx_sprite.hpp"
 #include "engine/point.hpp"
-#include "lighting.h"
+#include "engine/surface.hpp"
 
 namespace devilution {
 
@@ -82,39 +79,31 @@ inline void RenderClxSpriteWithTRN(const Surface &out, ClxSprite clx, Point posi
 
 void ClxDrawBlendedTRN(const Surface &out, Point position, ClxSprite clx, const uint8_t *trn);
 
-// defined in scrollrt.cpp
-extern int LightTableIndex;
-
 /**
- * @brief Blit CL2 sprite, and apply lighting, to the given buffer at the given coordinates
+ * @brief Blit CLX sprite with 50% transparency to the given buffer at the given coordinates.
  * @param out Output buffer
  * @param position Target buffer coordinate
  * @param clx CLX frame
  */
-inline void ClxDrawLight(const Surface &out, Point position, ClxSprite clx)
-{
-	if (LightTableIndex != 0)
-		ClxDrawTRN(out, position, clx, LightTables[LightTableIndex].data());
-	else
-		ClxDraw(out, position, clx);
-}
+void ClxDrawBlended(const Surface &out, Point position, ClxSprite clx);
 
 /**
- * @brief Blit CL2 sprite, and apply lighting and transparency blending, to the given buffer at the given coordinates
- * @param out Output buffer
- * @param position Target buffer coordinate
- * @param clx CLX frame
+ * Returns if cursor is within the CLX sprite (ignores shadow)
  */
-inline void ClxDrawLightBlended(const Surface &out, Point position, ClxSprite clx)
-{
-	ClxDrawBlendedTRN(out, position, clx, LightTables[LightTableIndex].data());
-}
+bool IsPointWithinClx(Point position, ClxSprite clx);
 
 /**
  * Returns a pair of X coordinates containing the start (inclusive) and end (exclusive)
  * of fully transparent columns in the sprite.
  */
 std::pair<int, int> ClxMeasureSolidHorizontalBounds(ClxSprite clx);
+
+/**
+ * @brief Clears the CLX draw cache.
+ *
+ * Must be called whenever CLX sprites are freed.
+ */
+void ClearClxDrawCache();
 
 #ifdef DEBUG_CLX
 std::string ClxDescribe(ClxSprite clx);

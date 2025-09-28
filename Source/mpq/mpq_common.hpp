@@ -3,7 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 
-#include "utils/endian.hpp"
+#include "utils/endian_read.hpp"
 
 namespace devilution {
 

@@ -159,13 +159,13 @@ void DrawChatLog(const Surface &out)
 
 	DrawString(out, fmt::format(fmt::runtime(_("Chat History (Messages: {:d})")), MessageCounter),
 	    { { sx, sy + PaddingTop + blankLineHeight }, { ContentTextWidth, lineHeight } },
-	    (UnreadFlag ? UiFlags::ColorRed : UiFlags::ColorWhitegold) | UiFlags::AlignCenter);
+	    { (UnreadFlag ? UiFlags::ColorRed : UiFlags::ColorWhitegold) | UiFlags::AlignCenter });
 
 	time_t timeResult = time(nullptr);
 	const std::tm *localtimeResult = localtime(&timeResult);
 	if (localtimeResult != nullptr) {
 		std::string timestamp = fmt::format("{:02}:{:02}:{:02}", localtimeResult->tm_hour, localtimeResult->tm_min, localtimeResult->tm_sec);
-		DrawString(out, timestamp, { { sx, sy + PaddingTop + blankLineHeight }, { ContentTextWidth, lineHeight } }, UiFlags::ColorWhitegold);
+		DrawString(out, timestamp, { { sx, sy + PaddingTop + blankLineHeight }, { ContentTextWidth, lineHeight } }, { UiFlags::ColorWhitegold });
 	}
 
 	const int titleBottom = sy + HeaderHeight();
@@ -183,12 +183,12 @@ void DrawChatLog(const Surface &out)
 		for (auto &x : text.colors) {
 			args.emplace_back(DrawStringFormatArg { x.text, x.color });
 		}
-		DrawStringWithColors(out, line, args, { { (sx + text.offset), contentY + i * lineHeight }, { ContentTextWidth - text.offset * 2, lineHeight } }, UiFlags::ColorWhite, /*spacing=*/1, lineHeight);
+		DrawStringWithColors(out, line, args, { { (sx + text.offset), contentY + i * lineHeight }, { ContentTextWidth - text.offset * 2, lineHeight } }, { UiFlags::ColorWhite, /*spacing=*/1, lineHeight });
 	}
 
 	DrawString(out, _("Press ESC to end or the arrow keys to scroll."),
 	    { { sx, contentY + ContentsTextHeight() + ContentPaddingY() + blankLineHeight }, { ContentTextWidth, lineHeight } },
-	    UiFlags::ColorWhitegold | UiFlags::AlignCenter);
+	    { UiFlags::ColorWhitegold | UiFlags::AlignCenter });
 }
 
 void ChatLogScrollUp()

@@ -24,7 +24,11 @@ namespace devilution {
 std::array<SDL_Color, 256> logical_palette;
 std::array<SDL_Color, 256> system_palette;
 std::array<SDL_Color, 256> orig_palette;
-std::array<std::array<Uint8, 256>, 256> paletteTransparencyLookup;
+
+/**
+ * @brief Lookup table for the average of two colors in `logical_palette`.
+ */
+uint8_t paletteTransparencyLookup[256][256];
 
 #if DEVILUTIONX_PALETTE_TRANSPARENCY_BLACK_16_LUT
 uint16_t paletteTransparencyLookupBlack16[65536];
@@ -120,10 +124,10 @@ void CycleColors(int from, int to)
 	std::rotate(system_palette.begin() + from, system_palette.begin() + from + 1, system_palette.begin() + to + 1);
 
 	for (auto &palette : paletteTransparencyLookup) {
-		std::rotate(palette.begin() + from, palette.begin() + from + 1, palette.begin() + to + 1);
+		std::rotate(std::begin(palette) + from, std::begin(palette) + from + 1, std::begin(palette) + to + 1);
 	}
 
-	std::rotate(paletteTransparencyLookup.begin() + from, paletteTransparencyLookup.begin() + from + 1, paletteTransparencyLookup.begin() + to + 1);
+	std::rotate(&paletteTransparencyLookup[from][0], &paletteTransparencyLookup[from + 1][0], &paletteTransparencyLookup[to + 1][0]);
 }
 
 /**
@@ -136,10 +140,10 @@ void CycleColorsReverse(int from, int to)
 	std::rotate(system_palette.begin() + from, system_palette.begin() + to, system_palette.begin() + to + 1);
 
 	for (auto &palette : paletteTransparencyLookup) {
-		std::rotate(palette.begin() + from, palette.begin() + to, palette.begin() + to + 1);
+		std::rotate(std::begin(palette) + from, std::begin(palette) + to, std::begin(palette) + to + 1);
 	}
 
-	std::rotate(paletteTransparencyLookup.begin() + from, paletteTransparencyLookup.begin() + to, paletteTransparencyLookup.begin() + to + 1);
+	std::rotate(&paletteTransparencyLookup[from][0], &paletteTransparencyLookup[to][0], &paletteTransparencyLookup[to + 1][0]);
 }
 
 } // namespace

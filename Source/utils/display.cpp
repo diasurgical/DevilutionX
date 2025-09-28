@@ -112,7 +112,7 @@ void FreeRenderer()
 	if (renderer != nullptr) {
 		SDL_RendererInfo previousRendererInfo;
 		SDL_GetRendererInfo(renderer, &previousRendererInfo);
-		wasD3D9 = (std::string_view(previousRendererInfo.name) == "direct3d");
+		wasD3D9 = (string_view(previousRendererInfo.name) == "direct3d");
 	}
 #endif
 

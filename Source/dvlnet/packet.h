@@ -14,6 +14,8 @@
 #include "appfat.h"
 #include "dvlnet/abstract_net.h"
 #include "utils/attributes.h"
+#include "utils/endian_read.hpp"
+#include "utils/endian_write.hpp"
 #include "utils/stubs.h"
 
 namespace devilution {

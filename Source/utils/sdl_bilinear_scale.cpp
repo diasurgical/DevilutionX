@@ -148,7 +148,7 @@ void BilinearScale32(SDL_Surface *src, SDL_Surface *dst)
 	}
 }
 
-void BilinearDownscaleByHalf8(const SDL_Surface *src, const std::array<std::array<Uint8, 256>, 256> &paletteBlendingTable, SDL_Surface *dst, uint8_t transparentIndex)
+void BilinearDownscaleByHalf8(const SDL_Surface *src, const Uint8 paletteBlendingTable[256][256], SDL_Surface *dst, uint8_t transparentIndex)
 {
 	const auto *const srcPixelsBegin = static_cast<const uint8_t *>(src->pixels)
 	    + static_cast<size_t>(src->clip_rect.y * src->pitch + src->clip_rect.x);

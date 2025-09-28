@@ -2,6 +2,8 @@
 
 #include <cstdint>
 
+#include <SDL.h>
+
 #include "engine/assets.hpp"
 #include "engine/clx_sprite.hpp"
 #include "utils/stdcompat/optional.hpp"

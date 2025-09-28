@@ -17,6 +17,7 @@
 #include "engine/dx.h"
 #include "engine/render/clx_render.hpp"
 #include "engine/render/dun_render.hpp"
+#include "engine/render/primitive_render.hpp"
 #include "engine/render/text_render.hpp"
 #include "engine/trn.hpp"
 #include "error.h"
@@ -42,7 +43,7 @@
 #include "towners.h"
 #include "utils/bitset2d.hpp"
 #include "utils/display.h"
-#include "utils/endian.hpp"
+#include "utils/endian_read.hpp"
 #include "utils/log.hpp"
 #include "utils/str_cat.hpp"
 
@@ -227,6 +228,36 @@ bool ShouldShowCursor()
 }
 
 /**
+ * @brief Blit CL2 sprite, and apply lighting, to the given buffer at the given coordinates
+ * @param out Output buffer
+ * @param position Target buffer coordinate
+ * @param clx CLX frame
+ */
+void ClxDrawLight(const Surface &out, Point position, ClxSprite clx, int lightTableIndex)
+{
+	if (lightTableIndex != 0) {
+		ClxDrawTRN(out, position, clx, LightTables[lightTableIndex].data());
+	} else {
+		ClxDraw(out, position, clx);
+	}
+}
+
+/**
+ * @brief Blit CL2 sprite, and apply lighting and transparency blending, to the given buffer at the given coordinates
+ * @param out Output buffer
+ * @param position Target buffer coordinate
+ * @param clx CLX frame
+ */
+void ClxDrawLightBlended(const Surface &out, Point position, ClxSprite clx, int lightTableIndex)
+{
+	if (lightTableIndex != 0) {
+		ClxDrawBlendedTRN(out, position, clx, LightTables[lightTableIndex].data());
+	} else {
+		ClxDrawBlended(out, position, clx);
+	}
+}
+
+/**
  * @brief Save the content behind the cursor to a temporary buffer, then draw the cursor.
  */
 void DrawCursor(const Surface &out)
@@ -289,7 +320,7 @@ void DrawCursor(const Surface &out)
  * @param targetBufferPosition Output buffer coordinate
  * @param pre Is the sprite in the background
  */
-void DrawMissilePrivate(const Surface &out, const Missile &missile, Point targetBufferPosition, bool pre)
+void DrawMissilePrivate(const Surface &out, const Missile &missile, Point targetBufferPosition, bool pre, int lightTableIndex)
 {
 	if (missile._miPreFlag != pre || !missile._miDrawFlag)
 		return;
@@ -299,7 +330,7 @@ void DrawMissilePrivate(const Surface &out, const Missile &missile, Point target
 	if (missile._miUniqTrans != 0)
 		ClxDrawTRN(out, missileRenderPosition, sprite, Monsters[missile._misource].uniqueMonsterTRN.get());
 	else if (missile._miLightFlag)
-		ClxDrawLight(out, missileRenderPosition, sprite);
+		ClxDrawLight(out, missileRenderPosition, sprite, lightTableIndex);
 	else
 		ClxDraw(out, missileRenderPosition, sprite);
 }
@@ -311,11 +342,11 @@ void DrawMissilePrivate(const Surface &out, const Missile &missile, Point target
  * @param targetBufferPosition Output buffer coordinates
  * @param pre Is the sprite in the background
  */
-void DrawMissile(const Surface &out, Point tilePosition, Point targetBufferPosition, bool pre)
+void DrawMissile(const Surface &out, Point tilePosition, Point targetBufferPosition, bool pre, int lightTableIndex)
 {
 	const auto range = MissilesAtRenderingTile.equal_range(tilePosition);
 	for (auto it = range.first; it != range.second; it++) {
-		DrawMissilePrivate(out, *it->second, targetBufferPosition, pre);
+		DrawMissilePrivate(out, *it->second, targetBufferPosition, pre, lightTableIndex);
 	}
 }
 
@@ -349,7 +380,7 @@ void DrawMonster(const Surface &out, Point tilePosition, Point targetBufferPosit
 	if (trn != nullptr)
 		ClxDrawTRN(out, targetBufferPosition, sprite, trn);
 	else
-		ClxDrawLight(out, targetBufferPosition, sprite);
+		ClxDrawLight(out, targetBufferPosition, sprite, LightTableIndex);
 }
 
 /**
@@ -371,7 +402,7 @@ void DrawPlayerIconHelper(const Surface &out, MissileGraphicID missileGraphicId,
 		return;
 	}
 
-	ClxDrawLight(out, position, sprite);
+	ClxDrawLight(out, position, sprite, LightTableIndex);
 }
 
 /**
@@ -427,7 +458,7 @@ void DrawPlayer(const Surface &out, const Player &player, Point tilePosition, Po
 	else
 		LightTableIndex -= 5;
 
-	ClxDrawLight(out, spriteBufferPosition, sprite);
+	ClxDrawLight(out, spriteBufferPosition, sprite, LightTableIndex);
 	DrawPlayerIcons(out, player, targetBufferPosition, false);
 
 	LightTableIndex = l;
@@ -488,7 +519,7 @@ void DrawObject(const Surface &out, Point tilePosition, Point targetBufferPositi
 		ClxDrawOutlineSkipColorZero(out, 194, screenPosition, sprite);
 	}
 	if (objectToDraw.applyLighting) {
-		ClxDrawLight(out, screenPosition, sprite);
+		ClxDrawLight(out, screenPosition, sprite, LightTableIndex);
 	} else {
 		ClxDraw(out, screenPosition, sprite);
 	}
@@ -666,7 +697,7 @@ void DrawItem(const Surface &out, Point tilePosition, Point targetBufferPosition
 	if (stextflag == TalkID::None && (bItem - 1 == pcursitem || AutoMapShowItems)) {
 		ClxDrawOutlineSkipColorZero(out, GetOutlineColor(item, false), position, sprite);
 	}
-	ClxDrawLight(out, position, sprite);
+	ClxDrawLight(out, position, sprite, LightTableIndex);
 	if (item.AnimInfo.isLastFrame() || item._iCurs == ICURS_MAGIC_ROCK)
 		AddItemToLabelQueue(bItem - 1, position);
 }
@@ -780,7 +811,7 @@ void DrawDungeon(const Surface &out, Point tilePosition, Point targetBufferPosit
 #endif
 
 	if (MissilePreFlag) {
-		DrawMissile(out, tilePosition, targetBufferPosition, true);
+		DrawMissile(out, tilePosition, targetBufferPosition, true, LightTableIndex);
 	}
 
 	if (LightTableIndex < LightsMax && bDead != 0) {
@@ -791,7 +822,7 @@ void DrawDungeon(const Surface &out, Point tilePosition, Point targetBufferPosit
 			const uint8_t *trn = Monsters[corpse.translationPaletteIndex - 1].uniqueMonsterTRN.get();
 			ClxDrawTRN(out, position, sprite, trn);
 		} else {
-			ClxDrawLight(out, position, sprite);
+			ClxDrawLight(out, position, sprite, LightTableIndex);
 		}
 	}
 	DrawObject(out, tilePosition, targetBufferPosition, true);
@@ -807,7 +838,7 @@ void DrawDungeon(const Surface &out, Point tilePosition, Point targetBufferPosit
 	if (dMonster[tilePosition.x][tilePosition.y] != 0) {
 		DrawMonsterHelper(out, tilePosition, targetBufferPosition);
 	}
-	DrawMissile(out, tilePosition, targetBufferPosition, false);
+	DrawMissile(out, tilePosition, targetBufferPosition, false, LightTableIndex);
 	DrawObject(out, tilePosition, targetBufferPosition, false);
 	DrawItem(out, tilePosition, targetBufferPosition, false);
 
@@ -820,9 +851,9 @@ void DrawDungeon(const Surface &out, Point tilePosition, Point targetBufferPosit
 			transparency = transparency && (SDL_GetModState() & KMOD_ALT) == 0;
 #endif
 			if (transparency) {
-				ClxDrawLightBlended(out, targetBufferPosition, (*pSpecialCels)[bArch - 1]);
+				ClxDrawLightBlended(out, targetBufferPosition, (*pSpecialCels)[bArch - 1], LightTableIndex);
 			} else {
-				ClxDrawLight(out, targetBufferPosition, (*pSpecialCels)[bArch - 1]);
+				ClxDrawLight(out, targetBufferPosition, (*pSpecialCels)[bArch - 1], LightTableIndex);
 			}
 		}
 	} else {
@@ -1112,10 +1143,10 @@ void DrawGame(const Surface &fullOut, Point position, Displacement offset)
 	Point pos { 100, 20 };
 	for (size_t i = 0; i < sortedStats.size(); ++i) {
 		const auto &stat = sortedStats[i];
-		DrawString(out, StrCat(i, "."), Rectangle(pos, Size { 20, 16 }), UiFlags::AlignRight);
+		DrawString(out, StrCat(i, "."), Rectangle(pos, Size { 20, 16 }), { UiFlags::AlignRight });
 		DrawString(out, MaskTypeToString(stat.first.maskType), { pos.x + 24, pos.y });
 		DrawString(out, TileTypeToString(stat.first.tileType), { pos.x + 184, pos.y });
-		DrawString(out, FormatInteger(stat.second), Rectangle({ pos.x + 354, pos.y }, Size(40, 16)), UiFlags::AlignRight);
+		DrawString(out, FormatInteger(stat.second), Rectangle({ pos.x + 354, pos.y }, Size(40, 16)), { UiFlags::AlignRight });
 		pos.y += 16;
 	}
 #endif
@@ -1158,7 +1189,7 @@ void DrawView(const Surface &out, Point startPosition)
 				Size tileSize = { TILE_WIDTH, TILE_HEIGHT };
 				if (*sgOptions.Graphics.zoom)
 					tileSize *= 2;
-				DrawString(out, debugGridTextBuffer, { pixelCoords - Displacement { 0, tileSize.height }, tileSize }, UiFlags::ColorRed | UiFlags::AlignCenter | UiFlags::VerticalCenter);
+				DrawString(out, debugGridTextBuffer, { pixelCoords - Displacement { 0, tileSize.height }, tileSize }, { UiFlags::ColorRed | UiFlags::AlignCenter | UiFlags::VerticalCenter });
 			}
 			if (DebugGrid) {
 				auto DrawDebugSquare = [&out](Point center, Displacement hor, Displacement ver, uint8_t col) {
@@ -1231,10 +1262,10 @@ void DrawView(const Surface &out, Point startPosition)
 	if (spselflag) {
 		DrawSpellList(out);
 	}
-	if (dropGoldFlag) {
-		DrawGoldSplit(out, dropGoldValue);
+	if (DropGoldFlag) {
+		DrawGoldSplit(out);
 	}
-	DrawGoldWithdraw(out, WithdrawGoldValue);
+	DrawGoldWithdraw(out);
 	if (HelpFlag) {
 		DrawHelp(out);
 	}
@@ -1287,7 +1318,7 @@ void DrawFPS(const Surface &out)
 		    : BufCopy(buf, fps / FpsPow10, ".", fps % FpsPow10, " FPS");
 		formatted = { buf, static_cast<string_view::size_type>(end - buf) };
 	};
-	DrawString(out, formatted, Point { 8, 68 }, UiFlags::ColorRed);
+	DrawString(out, formatted, Point { 8, 68 }, { UiFlags::ColorRed });
 }
 
 /**

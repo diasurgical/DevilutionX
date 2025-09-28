@@ -17,7 +17,7 @@
 namespace devilution {
 
 extern std::size_t SelectedItem;
-extern bool textInputActive;
+bool IsTextInputActive();
 
 extern const string_view BannedNames[];
 extern const size_t BannedNamesCount;

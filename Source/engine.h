@@ -82,52 +82,6 @@ constexpr bool IsNoneOf(const V &v, X x, Xs... xs)
 #endif
 
 /**
- * @brief Draw a horizontal line segment in the target buffer (left to right)
- * @param out Target buffer
- * @param from Start of the line segment
- * @param width
- * @param colorIndex Color index from current palette
- */
-void DrawHorizontalLine(const Surface &out, Point from, int width, std::uint8_t colorIndex);
-
-/** Same as DrawHorizontalLine but without bounds clipping. */
-void UnsafeDrawHorizontalLine(const Surface &out, Point from, int width, std::uint8_t colorIndex);
-
-/**
- * @brief Draw a vertical line segment in the target buffer (top to bottom)
- * @param out Target buffer
- * @param from Start of the line segment
- * @param height
- * @param colorIndex Color index from current palette
- */
-void DrawVerticalLine(const Surface &out, Point from, int height, std::uint8_t colorIndex);
-
-/** Same as DrawVerticalLine but without bounds clipping. */
-void UnsafeDrawVerticalLine(const Surface &out, Point from, int height, std::uint8_t colorIndex);
-
-/**
- * Draws a half-transparent rectangle by blacking out odd pixels on odd lines,
- * even pixels on even lines.
- *
- * @brief Render a transparent black rectangle
- * @param out Target buffer
- * @param sx Screen coordinate
- * @param sy Screen coordinate
- * @param width Rectangle width
- * @param height Rectangle height
- */
-void DrawHalfTransparentRectTo(const Surface &out, int sx, int sy, int width, int height);
-
-/**
- * Draws a 2px inset border.
- *
- * @param out Target buffer
- * @param rect The rectangle that border pixels are rendered inside of.
- * @param color Border color.
- */
-void UnsafeDrawBorder2px(const Surface &out, Rectangle rect, uint8_t color);
-
-/**
  * @brief Calculate the best fit direction between two points
  * @param start Tile coordinate
  * @param destination Tile coordinate

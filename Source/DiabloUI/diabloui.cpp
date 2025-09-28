@@ -27,6 +27,7 @@
 #include "utils/sdl_compat.h"
 #include "utils/sdl_geometry.h"
 #include "utils/sdl_wrap.h"
+#include "utils/stdcompat/optional.hpp"
 #include "utils/str_case.hpp"
 #include "utils/str_cat.hpp"
 #include "utils/stubs.h"
@@ -113,8 +114,7 @@ bool (*gfnListYesNo)();
 std::vector<UiItemBase *> gUiItems;
 UiList *gUiList = nullptr;
 bool UiItemsWraps;
-char *UiTextInput;
-int UiTextInputLen;
+std::optional<TextInputState> UiTextInputState;
 bool allowEmptyTextInput = false;
 
 uint32_t fadeTc;
@@ -179,8 +179,11 @@ void UiInitList(void (*fnFocus)(int value), void (*fnSelect)(int value), void (*
 #else
 			SDL_StartTextInput();
 #endif
-			UiTextInput = pItemUIEdit->m_value;
-			UiTextInputLen = pItemUIEdit->m_max_length;
+			UiTextInputState.emplace(TextInputState::Options {
+			    .value = pItemUIEdit->m_value,
+			    .cursor = &pItemUIEdit->m_cursor,
+			    .maxLength = pItemUIEdit->m_max_length,
+			});
 		} else if (item->IsType(UiType::List)) {
 			auto *uiList = static_cast<UiList *>(item.get());
 			SelectedItemMax = std::max(uiList->m_vecItems.size() - 1, static_cast<size_t>(0));
@@ -436,53 +439,8 @@ void UiFocusNavigation(SDL_Event *event)
 	}
 #endif
 
-	if (textInputActive) {
-		switch (event->type) {
-		case SDL_KEYDOWN: {
-			switch (event->key.keysym.sym) {
-#ifndef USE_SDL1
-			case SDLK_v:
-				if ((SDL_GetModState() & KMOD_CTRL) != 0) {
-					char *clipboard = SDL_GetClipboardText();
-					if (clipboard == nullptr) {
-						Log("{}", SDL_GetError());
-					} else {
-						SelheroCatToName(clipboard, UiTextInput, UiTextInputLen);
-					}
-				}
-				return;
-#endif
-			case SDLK_BACKSPACE:
-			case SDLK_LEFT: {
-				UiTextInput[FindLastUtf8Symbols(UiTextInput)] = '\0';
-				return;
-			}
-			default:
-				break;
-			}
-#ifdef USE_SDL1
-			if ((event->key.keysym.mod & KMOD_CTRL) == 0) {
-				std::string utf8;
-				AppendUtf8(event->key.keysym.unicode, utf8);
-				SelheroCatToName(utf8.c_str(), UiTextInput, UiTextInputLen);
-			}
-#endif
-			break;
-		}
-#ifndef USE_SDL1
-		case SDL_TEXTINPUT:
-			if (textInputActive) {
-#ifdef __vita__
-				CopyUtf8(UiTextInput, event->text.text, UiTextInputLen);
-#else
-				SelheroCatToName(event->text.text, UiTextInput, UiTextInputLen);
-#endif
-			}
-			return;
-#endif
-		default:
-			break;
-		}
+	if (UiTextInputState && HandleTextInputEvent(*event, *UiTextInputState)) {
+		return;
 	}
 
 	if (event->type == SDL_MOUSEBUTTONDOWN || event->type == SDL_MOUSEBUTTONUP) {
@@ -551,15 +509,14 @@ void UiHandleEvents(SDL_Event *event)
 void UiFocusNavigationSelect()
 {
 	UiPlaySelectSound();
-	if (textInputActive) {
-		if (!allowEmptyTextInput && strlen(UiTextInput) == 0) {
+	if (IsTextInputActive()) {
+		if (!allowEmptyTextInput && UiTextInputState->empty()) {
 			return;
 		}
 #ifndef __SWITCH__
 		SDL_StopTextInput();
 #endif
-		UiTextInput = nullptr;
-		UiTextInputLen = 0;
+		UiTextInputState = std::nullopt;
 	}
 	if (gfnListSelect != nullptr)
 		gfnListSelect(SelectedItem);
@@ -568,12 +525,11 @@ void UiFocusNavigationSelect()
 void UiFocusNavigationEsc()
 {
 	UiPlaySelectSound();
-	if (textInputActive) {
+	if (IsTextInputActive()) {
 #ifndef __SWITCH__
 		SDL_StopTextInput();
 #endif
-		UiTextInput = nullptr;
-		UiTextInputLen = 0;
+		UiTextInputState = std::nullopt;
 	}
 	if (gfnListEsc != nullptr)
 		gfnListEsc();
@@ -639,6 +595,11 @@ void LoadUiGFX()
 }
 
 } // namespace
+
+bool IsTextInputActive()
+{
+	return bool(UiTextInputState);
+}
 
 ClxSprite UiGetHeroDialogSprite(size_t heroClassIndex)
 {
@@ -841,13 +802,13 @@ namespace {
 void Render(const UiText &uiText)
 {
 	const Surface &out = Surface(DiabloUiSurface());
-	DrawString(out, uiText.GetText(), MakeRectangle(uiText.m_rect), uiText.GetFlags() | UiFlags::FontSizeDialog);
+	DrawString(out, uiText.GetText(), MakeRectangle(uiText.m_rect), { uiText.GetFlags() | UiFlags::FontSizeDialog });
 }
 
 void Render(const UiArtText &uiArtText)
 {
 	const Surface &out = Surface(DiabloUiSurface());
-	DrawString(out, uiArtText.GetText(), MakeRectangle(uiArtText.m_rect), uiArtText.GetFlags(), uiArtText.GetSpacing(), uiArtText.GetLineHeight());
+	DrawString(out, uiArtText.GetText(), MakeRectangle(uiArtText.m_rect), { uiArtText.GetFlags(), uiArtText.GetSpacing(), uiArtText.GetLineHeight() });
 }
 
 void Render(const UiImageClx &uiImage)
@@ -873,7 +834,7 @@ void Render(const UiImageAnimatedClx &uiImage)
 void Render(const UiArtTextButton &uiButton)
 {
 	const Surface &out = Surface(DiabloUiSurface());
-	DrawString(out, uiButton.GetText(), MakeRectangle(uiButton.m_rect), uiButton.GetFlags());
+	DrawString(out, uiButton.GetText(), MakeRectangle(uiButton.m_rect), { uiButton.GetFlags() });
 }
 
 void Render(const UiList &uiList)
@@ -888,9 +849,9 @@ void Render(const UiList &uiList)
 
 		Rectangle rectangle = MakeRectangle(rect);
 		if (item.args.empty())
-			DrawString(out, item.m_text, rectangle, uiList.GetFlags() | item.uiFlags, uiList.GetSpacing());
+			DrawString(out, item.m_text, rectangle, { uiList.GetFlags() | item.uiFlags, uiList.GetSpacing() });
 		else
-			DrawStringWithColors(out, item.m_text, item.args, rectangle, uiList.GetFlags() | item.uiFlags, uiList.GetSpacing());
+			DrawStringWithColors(out, item.m_text, item.args, rectangle, { uiList.GetFlags() | item.uiFlags, uiList.GetSpacing() });
 	}
 }
 
@@ -937,7 +898,15 @@ void Render(const UiEdit &uiEdit)
 	Rectangle rect = MakeRectangle(uiEdit.m_rect).inset({ 43, 1 });
 
 	const Surface &out = Surface(DiabloUiSurface());
-	DrawString(out, uiEdit.m_value, rect, uiEdit.GetFlags() | UiFlags::TextCursor);
+	DrawString(out, uiEdit.m_value, rect,
+	    {
+	        uiEdit.GetFlags(),
+	        /*spacing=*/1,
+	        /*lineHeight=*/-1,
+	        /*cursorPosition=*/static_cast<int>(uiEdit.m_cursor.position),
+	        /*highlightRange=*/ { static_cast<int>(uiEdit.m_cursor.selection.begin), static_cast<int>(uiEdit.m_cursor.selection.end) },
+	        /*highlightColor=*/126,
+	    });
 }
 
 bool HandleMouseEventArtTextButton(const SDL_Event &event, const UiArtTextButton *uiButton)

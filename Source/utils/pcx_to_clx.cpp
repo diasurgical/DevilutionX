@@ -1,5 +1,6 @@
 #include "utils/pcx_to_clx.hpp"
 
+#include <cstddef>
 #include <cstdint>
 #include <cstring>
 
@@ -11,9 +12,10 @@
 
 #include "appfat.h"
 #include "utils/clx_encode.hpp"
-#include "utils/endian.hpp"
+#include "utils/endian_read.hpp"
+#include "utils/endian_write.hpp"
 #include "utils/pcx.hpp"
-#include "utils/stdcompat/cstddef.hpp"
+#include "utils/stdcompat/optional.hpp"
 
 #ifdef DEBUG_PCX_TO_CL2_SIZE
 #include <iomanip>
@@ -98,20 +100,13 @@ OptionalOwnedClxSpriteList PcxToClx(AssetHandle &handle, size_t fileSize, int nu
 	for (unsigned frame = 1; frame <= numFrames; ++frame) {
 		WriteLE32(&cl2Data[4 * static_cast<size_t>(frame)], static_cast<uint32_t>(cl2Data.size()));
 
-		// Frame header: 5 16-bit values:
-		// 1. Offset to start of the pixel data.
-		// 2. Width
-		// 3. Height
-		// 4..5. Unused (0)
 		const size_t frameHeaderPos = cl2Data.size();
-		constexpr size_t FrameHeaderSize = 10;
-		cl2Data.resize(cl2Data.size() + FrameHeaderSize);
+		cl2Data.resize(cl2Data.size() + ClxFrameHeaderSize);
 
 		// Frame header:
-		WriteLE16(&cl2Data[frameHeaderPos], FrameHeaderSize);
+		WriteLE16(&cl2Data[frameHeaderPos], ClxFrameHeaderSize);
 		WriteLE16(&cl2Data[frameHeaderPos + 2], static_cast<uint16_t>(width));
 		WriteLE16(&cl2Data[frameHeaderPos + 4], static_cast<uint16_t>(frameHeight));
-		memset(&cl2Data[frameHeaderPos + 6], 0, 4);
 
 		for (unsigned j = 0; j < frameHeight; ++j) {
 			uint8_t *buffer = &frameBuffer[static_cast<size_t>(j) * width];

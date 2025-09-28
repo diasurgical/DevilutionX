@@ -1,8 +1,6 @@
 #include "utils/paths.h"
 
-#include <optional>
 #include <string>
-#include <string_view>
 
 #include <SDL.h>
 
@@ -10,6 +8,7 @@
 #include "utils/file_util.h"
 #include "utils/log.hpp"
 #include "utils/sdl_ptrs.h"
+#include "utils/stdcompat/optional.hpp"
 
 #ifdef __IPHONEOS__
 #include "platform/ios/ios_paths.h"

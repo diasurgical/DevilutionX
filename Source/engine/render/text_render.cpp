@@ -5,28 +5,33 @@
  */
 #include "text_render.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
 #include <unordered_map>
 #include <utility>
+#include <variant>
 
 #include <fmt/core.h>
 
-#include "DiabloUI/diabloui.h"
-#include "DiabloUI/ui_item.h"
-#include "engine.h"
+#include "DiabloUI/ui_flags.hpp"
+#include "engine/clx_sprite.hpp"
 #include "engine/load_cel.hpp"
 #include "engine/load_clx.hpp"
 #include "engine/load_file.hpp"
 #include "engine/load_pcx.hpp"
-#include "engine/palette.h"
 #include "engine/point.hpp"
+#include "engine/rectangle.hpp"
 #include "engine/render/clx_render.hpp"
-#include "utils/display.h"
+#include "engine/render/primitive_render.hpp"
+#include "engine/surface.hpp"
+#include "utils/algorithm/container.hpp"
 #include "utils/language.h"
-#include "utils/sdl_compat.h"
+#include "utils/log.hpp"
 #include "utils/stdcompat/optional.hpp"
+#include "utils/stdcompat/string_view.hpp"
+#include "utils/str_cat.hpp"
 #include "utils/utf8.hpp"
 
 namespace devilution {
@@ -37,20 +42,53 @@ namespace {
 
 constexpr char32_t ZWSP = U'\u200B'; // Zero-width space
 
-std::unordered_map<uint32_t, OptionalOwnedClxSpriteList> Fonts;
+struct OwnedFontStack {
+	OptionalOwnedClxSpriteList baseFont;
+	OptionalOwnedClxSpriteList overrideFont;
+};
+
+struct FontStack {
+	OptionalClxSpriteList baseFont;
+	OptionalClxSpriteList overrideFont;
+
+	FontStack() = default;
+
+	explicit FontStack(const OwnedFontStack &owned)
+	{
+		if (owned.baseFont.has_value()) baseFont.emplace(*owned.baseFont);
+		if (owned.overrideFont.has_value()) overrideFont.emplace(*owned.overrideFont);
+	}
+
+	[[nodiscard]] bool has_value() const // NOLINT(readability-identifier-naming)
+	{
+		return baseFont.has_value() || overrideFont.has_value();
+	}
+
+	[[nodiscard]] ClxSprite glyph(size_t i) const
+	{
+		if (overrideFont.has_value()) {
+			ClxSprite overrideGlyph = (*overrideFont)[i];
+			if (overrideGlyph.width() != 0) return overrideGlyph;
+		}
+		return (*baseFont)[i];
+	}
+};
+
+std::unordered_map<uint32_t, OwnedFontStack> Fonts;
 
 std::array<int, 6> FontSizes = { 12, 24, 30, 42, 46, 22 };
 constexpr std::array<int, 6> LineHeights = { 12, 26, 38, 42, 50, 22 };
 constexpr int SmallFontTallLineHeight = 16;
 std::array<int, 6> BaseLineOffset = { -3, -2, -3, -6, -7, 3 };
 
-std::array<const char *, 15> ColorTranslations = {
+std::array<const char *, 19> ColorTranslations = {
 	"fonts\\goldui.trn",
 	"fonts\\grayui.trn",
 	"fonts\\golduis.trn",
 	"fonts\\grayuis.trn",
 
-	nullptr,
+	nullptr, // ColorDialogWhite
+	nullptr, // ColorDialogRed
 	"fonts\\yellow.trn",
 
 	nullptr,
@@ -64,55 +102,46 @@ std::array<const char *, 15> ColorTranslations = {
 
 	"fonts\\buttonface.trn",
 	"fonts\\buttonpushed.trn",
+	"fonts\\gamedialogwhite.trn",
+	"fonts\\gamedialogyellow.trn",
+	"fonts\\gamedialogred.trn",
 };
 
-std::array<std::optional<std::array<uint8_t, 256>>, 15> ColorTranslationsData;
-
-GameFontTables GetSizeFromFlags(UiFlags flags)
-{
-	if (HasAnyOf(flags, UiFlags::FontSize24))
-		return GameFont24;
-	else if (HasAnyOf(flags, UiFlags::FontSize30))
-		return GameFont30;
-	else if (HasAnyOf(flags, UiFlags::FontSize42))
-		return GameFont42;
-	else if (HasAnyOf(flags, UiFlags::FontSize46))
-		return GameFont46;
-	else if (HasAnyOf(flags, UiFlags::FontSizeDialog))
-		return FontSizeDialog;
-
-	return GameFont12;
-}
+std::array<std::optional<std::array<uint8_t, 256>>, 19> ColorTranslationsData;
 
 text_color GetColorFromFlags(UiFlags flags)
 {
 	if (HasAnyOf(flags, UiFlags::ColorWhite))
 		return ColorWhite;
-	else if (HasAnyOf(flags, UiFlags::ColorBlue))
+	if (HasAnyOf(flags, UiFlags::ColorBlue))
 		return ColorBlue;
-	else if (HasAnyOf(flags, UiFlags::ColorOrange))
+	if (HasAnyOf(flags, UiFlags::ColorOrange))
 		return ColorOrange;
-	else if (HasAnyOf(flags, UiFlags::ColorRed))
+	if (HasAnyOf(flags, UiFlags::ColorRed))
 		return ColorRed;
-	else if (HasAnyOf(flags, UiFlags::ColorBlack))
+	if (HasAnyOf(flags, UiFlags::ColorBlack))
 		return ColorBlack;
-	else if (HasAnyOf(flags, UiFlags::ColorGold))
+	if (HasAnyOf(flags, UiFlags::ColorGold))
 		return ColorGold;
-	else if (HasAnyOf(flags, UiFlags::ColorUiGold))
+	if (HasAnyOf(flags, UiFlags::ColorUiGold))
 		return ColorUiGold;
-	else if (HasAnyOf(flags, UiFlags::ColorUiSilver))
+	if (HasAnyOf(flags, UiFlags::ColorUiSilver))
 		return ColorUiSilver;
-	else if (HasAnyOf(flags, UiFlags::ColorUiGoldDark))
+	if (HasAnyOf(flags, UiFlags::ColorUiGoldDark))
 		return ColorUiGoldDark;
-	else if (HasAnyOf(flags, UiFlags::ColorUiSilverDark))
+	if (HasAnyOf(flags, UiFlags::ColorUiSilverDark))
 		return ColorUiSilverDark;
-	else if (HasAnyOf(flags, UiFlags::ColorDialogWhite))
-		return ColorDialogWhite;
-	else if (HasAnyOf(flags, UiFlags::ColorYellow))
+	if (HasAnyOf(flags, UiFlags::ColorDialogWhite))
+		return gbRunGame ? ColorInGameDialogWhite : ColorDialogWhite;
+	if (HasAnyOf(flags, UiFlags::ColorDialogYellow))
+		return ColorInGameDialogYellow;
+	if (HasAnyOf(flags, UiFlags::ColorDialogRed))
+		return ColorInGameDialogRed;
+	if (HasAnyOf(flags, UiFlags::ColorYellow))
 		return ColorYellow;
-	else if (HasAnyOf(flags, UiFlags::ColorButtonface))
+	if (HasAnyOf(flags, UiFlags::ColorButtonface))
 		return ColorButtonface;
-	else if (HasAnyOf(flags, UiFlags::ColorButtonpushed))
+	if (HasAnyOf(flags, UiFlags::ColorButtonpushed))
 		return ColorButtonpushed;
 
 	return ColorWhitegold;
@@ -140,12 +169,12 @@ bool IsSmallFontTallRow(uint16_t row)
 
 void GetFontPath(GameFontTables size, uint16_t row, string_view ext, char *out)
 {
-	*fmt::format_to(out, R"(fonts\{}-{:02x}{})", FontSizes[size], row, ext) = '\0';
+	*BufCopy(out, "fonts\\", FontSizes[size], "-", AsHexPad2(row), ext) = '\0';
 }
 
 void GetFontPath(string_view language_code, GameFontTables size, uint16_t row, string_view ext, char *out)
 {
-	*fmt::format_to(out, R"(fonts\{}\{}-{:02x}{})", language_code, FontSizes[size], row, ext) = '\0';
+	*BufCopy(out, "fonts\\", language_code, "\\", FontSizes[size], "-", AsHexPad2(row), ext) = '\0';
 }
 
 uint32_t GetFontId(GameFontTables size, uint16_t row)
@@ -153,7 +182,7 @@ uint32_t GetFontId(GameFontTables size, uint16_t row)
 	return (size << 16) | row;
 }
 
-OptionalClxSpriteList LoadFont(GameFontTables size, text_color color, uint16_t row)
+FontStack LoadFont(GameFontTables size, text_color color, uint16_t row)
 {
 	if (ColorTranslations[color] != nullptr && !ColorTranslationsData[color]) {
 		ColorTranslationsData[color].emplace();
@@ -163,48 +192,52 @@ OptionalClxSpriteList LoadFont(GameFontTables size, text_color color, uint16_t r
 	const uint32_t fontId = GetFontId(size, row);
 	auto hotFont = Fonts.find(fontId);
 	if (hotFont != Fonts.end()) {
-		return OptionalClxSpriteList(*hotFont->second);
+		return FontStack(hotFont->second);
 	}
 
-	OptionalOwnedClxSpriteList &font = Fonts[fontId];
+	OwnedFontStack &font = Fonts[fontId];
 	char path[32];
 
-	// Try loading the language-specific variant first:
-	const string_view language_code = GetLanguageCode();
-	const string_view language_tag = language_code.substr(0, 2);
-	if (language_tag == "zh" || language_tag == "ja" || language_tag == "ko"
-	    || (language_tag == "tr" && row == 0)) {
-		GetFontPath(language_code, size, row, ".clx", &path[0]);
-		font = LoadOptionalClx(path);
-	}
-	if (!font) {
-		// Fall back to the base variant:
-		GetFontPath(size, row, ".clx", &path[0]);
-		font = LoadOptionalClx(path);
+	// Load language-specific glyphs:
+	const string_view languageCode = GetLanguageCode();
+	const string_view lang = languageCode.substr(0, 2);
+	if (lang == "zh" || lang == "ja" || lang == "ko"
+	    || (lang == "tr" && row == 0)) {
+		GetFontPath(languageCode, size, row, ".clx", &path[0]);
+		font.overrideFont = LoadOptionalClx(path);
 	}
 
+	// Load the base glyphs:
+	GetFontPath(size, row, ".clx", &path[0]);
+	font.baseFont = LoadOptionalClx(path);
+
 #ifndef UNPACKED_MPQS
-	if (!font) {
+	if (!font.baseFont.has_value()) {
 		// Could be an old devilutionx.mpq or fonts.mpq with PCX instead of CLX.
 		//
 		// We'll show an error elsewhere (in `CheckArchivesUpToDate`) and we need to load
 		// the font files to display it.
 		char pcxPath[32];
 		GetFontPath(size, row, "", &pcxPath[0]);
-		font = LoadPcxSpriteList(pcxPath, /*numFramesOrFrameHeight=*/256, /*transparentColor=*/1);
+		font.baseFont = LoadPcxSpriteList(pcxPath, /*numFramesOrFrameHeight=*/256, /*transparentColor=*/1);
 	}
 #endif
 
-	if (!font) {
+	if (!font.baseFont.has_value()) {
 		LogError("Error loading font: {}", path);
 	}
 
-	return OptionalClxSpriteList(*font);
+	return FontStack(font);
 }
 
 class CurrentFont {
 public:
-	OptionalClxSpriteList sprite;
+	FontStack fontStack;
+
+	[[nodiscard]] ClxSprite glyph(size_t i) const
+	{
+		return fontStack.glyph(i);
+	}
 
 	bool load(GameFontTables size, text_color color, char32_t next)
 	{
@@ -213,11 +246,11 @@ public:
 			return true;
 		}
 
-		sprite = LoadFont(size, color, unicodeRow);
+		fontStack = LoadFont(size, color, unicodeRow);
 		hasAttemptedLoad_ = true;
 		currentUnicodeRow_ = unicodeRow;
 
-		return sprite;
+		return fontStack.has_value();
 	}
 
 	void clear()
@@ -230,9 +263,8 @@ private:
 	uint32_t currentUnicodeRow_ = 0;
 };
 
-void DrawFont(const Surface &out, Point position, const ClxSpriteList font, text_color color, int frame, bool outline)
+void DrawFont(const Surface &out, Point position, ClxSprite glyph, text_color color, bool outline)
 {
-	ClxSprite glyph = font[frame];
 	if (outline) {
 		ClxDrawOutlineSkipColorZero(out, 0, { position.x, position.y + glyph.height() - 1 }, glyph);
 	}
@@ -241,11 +273,6 @@ void DrawFont(const Surface &out, Point position, const ClxSpriteList font, text
 	} else {
 		RenderClxSprite(out, glyph, position);
 	}
-}
-
-bool IsWhitespace(char32_t c)
-{
-	return IsAnyOf(c, U' ', U'　', ZWSP);
 }
 
 bool IsFullWidthPunct(char32_t c)
@@ -260,10 +287,10 @@ bool IsBreakAllowed(char32_t codepoint, char32_t nextCodepoint)
 
 std::size_t CountNewlines(string_view fmt, const DrawStringFormatArg *args, std::size_t argsLen)
 {
-	std::size_t result = std::count(fmt.begin(), fmt.end(), '\n');
+	std::size_t result = c_count(fmt, '\n');
 	for (std::size_t i = 0; i < argsLen; ++i) {
-		if (args[i].GetType() == DrawStringFormatArg::Type::StringView)
-			result += std::count(args[i].GetFormatted().begin(), args[i].GetFormatted().end(), '\n');
+		if (std::holds_alternative<string_view>(args[i].value()))
+			result += c_count(args[i].GetFormatted(), '\n');
 	}
 	return result;
 }
@@ -287,7 +314,7 @@ public:
 		if (rest[0] != '{')
 			return result;
 
-		std::size_t closingBracePos = rest.find('}', 1);
+		const std::size_t closingBracePos = rest.find('}', 1);
 		if (closingBracePos == string_view::npos) {
 			LogError("Unclosed format argument: {}", fmt_);
 			return result;
@@ -311,8 +338,8 @@ public:
 			result = std::nullopt;
 		} else {
 			if (!args_[*result].HasFormatted()) {
-				const auto fmtStr = positional ? "{}" : fmt::string_view(rest.data(), fmtLen);
-				args_[*result].SetFormatted(fmt::format(fmt::runtime(fmtStr), args_[*result].GetIntValue()));
+				const auto fmtStr = positional ? "{}" : string_view(rest.data(), fmtLen);
+				args_[*result].SetFormatted(fmt::format(fmt::runtime(fmtStr), std::get<int>(args_[*result].value())));
 			}
 			rest.remove_prefix(fmtLen);
 		}
@@ -349,32 +376,20 @@ int GetLineHeight(string_view fmt, DrawStringFormatArg *args, std::size_t argsLe
 {
 	constexpr std::array<int, 6> LineHeights = { 12, 26, 38, 42, 50, 22 };
 	if (fontIndex == GameFont12 && IsSmallFontTall()) {
-		char32_t prev = U'\0';
-		char32_t next;
 		FmtArgParser fmtArgParser { fmt, args, argsLen };
 		string_view rest = fmt;
 		while (!rest.empty()) {
-			if ((prev == U'{' || prev == U'}') && static_cast<char>(prev) == rest[0]) {
-				rest.remove_prefix(1);
-				continue;
-			}
 			const std::optional<std::size_t> fmtArgPos = fmtArgParser(rest);
 			if (fmtArgPos) {
-				if (ContainsSmallFontTallCodepoints(args[*fmtArgPos].GetFormatted()))
+				if (ContainsSmallFontTallCodepoints(args[*fmtArgPos].GetFormatted())) {
 					return SmallFontTallLineHeight;
-				prev = U'\0';
+				}
 				continue;
 			}
-
-			next = ConsumeFirstUtf8CodePoint(&rest);
-			if (next == Utf8DecodeError)
-				break;
-			if (next == ZWSP) {
-				prev = next;
-				continue;
-			}
-			if (IsSmallFontTallRow(GetUnicodeRow(next)))
-				return SmallFontTallLineHeight;
+			const char32_t cp = ConsumeFirstUtf8CodePoint(&rest);
+			if (cp == Utf8DecodeError) break;
+			if (cp == ZWSP) continue;
+			if (IsSmallFontTallRow(GetUnicodeRow(cp))) return SmallFontTallLineHeight;
 		}
 	}
 	return LineHeights[fontIndex];
@@ -390,6 +405,17 @@ Surface ClipSurface(const Surface &out, Rectangle rect)
 	    std::min(rect.position.y + rect.size.height, out.h()));
 }
 
+int AdjustSpacingToFitHorizontally(int &lineWidth, int maxSpacing, int charactersInLine, int availableWidth)
+{
+	if (lineWidth <= availableWidth || charactersInLine < 2)
+		return maxSpacing;
+
+	const int overhang = lineWidth - availableWidth;
+	const int spacingRedux = (overhang + charactersInLine - 2) / (charactersInLine - 1);
+	lineWidth -= spacingRedux * (charactersInLine - 1);
+	return maxSpacing - spacingRedux;
+}
+
 void MaybeWrap(Point &characterPosition, int characterWidth, int rightMargin, int initialX, int lineHeight)
 {
 	if (characterPosition.x + characterWidth > rightMargin) {
@@ -400,22 +426,48 @@ void MaybeWrap(Point &characterPosition, int characterWidth, int rightMargin, in
 
 int GetLineStartX(UiFlags flags, const Rectangle &rect, int lineWidth)
 {
-	if (HasAnyOf(flags, UiFlags::AlignCenter))
-		return rect.position.x + (rect.size.width - lineWidth) / 2;
+	if (HasAnyOf(flags, UiFlags::AlignCenter)) {
+		return std::max(rect.position.x, rect.position.x + (rect.size.width - lineWidth) / 2);
+	}
 	if (HasAnyOf(flags, UiFlags::AlignRight))
 		return rect.position.x + rect.size.width - lineWidth;
 	return rect.position.x;
 }
 
 uint32_t DoDrawString(const Surface &out, string_view text, Rectangle rect, Point &characterPosition,
-    int spacing, int lineHeight, int lineWidth, int rightMargin, int bottomMargin,
-    UiFlags flags, GameFontTables size, text_color color, bool outline)
+    int lineWidth, int charactersInLine, int rightMargin, int bottomMargin, GameFontTables size, text_color color, bool outline,
+    TextRenderOptions &opts)
 {
 	CurrentFont currentFont;
+	int curSpacing = opts.spacing;
+	if (HasAnyOf(opts.flags, UiFlags::KerningFitSpacing)) {
+		curSpacing = AdjustSpacingToFitHorizontally(lineWidth, opts.spacing, charactersInLine, rect.size.width);
+		if (curSpacing != opts.spacing && HasAnyOf(opts.flags, UiFlags::AlignCenter | UiFlags::AlignRight)) {
+			const int adjustedLineWidth = GetLineWidth(text, size, curSpacing, &charactersInLine);
+			characterPosition.x = GetLineStartX(opts.flags, rect, adjustedLineWidth);
+		}
+	}
 
 	char32_t next;
 	string_view remaining = text;
 	size_t cpLen;
+
+	const auto maybeDrawCursor = [&]() {
+		if (opts.cursorPosition == static_cast<int>(text.size() - remaining.size())) {
+			Point position = characterPosition;
+			MaybeWrap(position, 2, rightMargin, position.x, opts.lineHeight);
+			if (GetAnimationFrame(2, 500) != 0) {
+				FontStack baseFont = LoadFont(size, color, 0);
+				if (baseFont.has_value()) {
+					DrawFont(out, position, baseFont.glyph('|'), color, outline);
+				}
+			}
+			if (opts.renderedCursorPositionOut != nullptr) {
+				*opts.renderedCursorPositionOut = position;
+			}
+		}
+	};
+
 	for (; !remaining.empty() && remaining[0] != '\0'
 	     && (next = DecodeFirstUtf8CodePoint(remaining, &cpLen)) != Utf8DecodeError;
 	     remaining.remove_prefix(cpLen)) {
@@ -430,28 +482,48 @@ uint32_t DoDrawString(const Surface &out, string_view text, Rectangle rect, Poin
 		}
 
 		const uint8_t frame = next & 0xFF;
-		const uint16_t width = (*currentFont.sprite)[frame].width();
+		const uint16_t width = currentFont.glyph(frame).width();
 		if (next == U'\n' || characterPosition.x + width > rightMargin) {
-			const int nextLineY = characterPosition.y + lineHeight;
+			if (next == '\n')
+				maybeDrawCursor();
+			const int nextLineY = characterPosition.y + opts.lineHeight;
 			if (nextLineY >= bottomMargin)
 				break;
 			characterPosition.y = nextLineY;
 
-			if (HasAnyOf(flags, (UiFlags::AlignCenter | UiFlags::AlignRight))) {
+			if (HasAnyOf(opts.flags, UiFlags::KerningFitSpacing)) {
+				int nextLineWidth = GetLineWidth(remaining.substr(cpLen), size, opts.spacing, &charactersInLine);
+				curSpacing = AdjustSpacingToFitHorizontally(nextLineWidth, opts.spacing, charactersInLine, rect.size.width);
+			}
+
+			if (HasAnyOf(opts.flags, UiFlags::AlignCenter | UiFlags::AlignRight)) {
 				lineWidth = width;
 				if (remaining.size() > cpLen)
-					lineWidth += spacing + GetLineWidth(remaining.substr(cpLen), size, spacing);
+					lineWidth += curSpacing + GetLineWidth(remaining.substr(cpLen), size, curSpacing);
 			}
-			characterPosition.x = GetLineStartX(flags, rect, lineWidth);
+			characterPosition.x = GetLineStartX(opts.flags, rect, lineWidth);
 
 			if (next == U'\n')
 				continue;
 		}
 
-		DrawFont(out, characterPosition, *currentFont.sprite, color, frame, outline);
-		characterPosition.x += width + spacing;
+		const ClxSprite glyph = currentFont.glyph(frame);
+		const auto byteIndex = static_cast<int>(text.size() - remaining.size());
+
+		// Draw highlight
+		if (byteIndex >= opts.highlightRange.begin && byteIndex < opts.highlightRange.end) {
+			const bool lastInRange = static_cast<int>(byteIndex + cpLen) == opts.highlightRange.end;
+			FillRect(out, characterPosition.x, characterPosition.y,
+			    glyph.width() + (lastInRange ? 0 : curSpacing), glyph.height(),
+			    opts.highlightColor);
+		}
+
+		DrawFont(out, characterPosition, glyph, color, outline);
+		maybeDrawCursor();
+		characterPosition.x += width + curSpacing;
 	}
-	return remaining.data() - text.data();
+	maybeDrawCursor();
+	return static_cast<uint32_t>(remaining.data() - text.data());
 }
 
 } // namespace
@@ -490,7 +562,7 @@ int GetLineWidth(string_view text, GameFontTables size, int spacing, int *charac
 		}
 
 		const uint8_t frame = next & 0xFF;
-		lineWidth += (*currentFont.sprite)[frame].width() + spacing;
+		lineWidth += currentFont.glyph(frame).width() + spacing;
 		++codepoints;
 	}
 	if (charactersInLine != nullptr)
@@ -499,7 +571,10 @@ int GetLineWidth(string_view text, GameFontTables size, int spacing, int *charac
 	return lineWidth != 0 ? (lineWidth - spacing) : 0;
 }
 
-int GetLineWidth(string_view fmt, DrawStringFormatArg *args, std::size_t argsLen, size_t argsOffset, GameFontTables size, int spacing, int *charactersInLine)
+bool IsConsumed(string_view s) { return s.empty() || s[0] == '\0'; };
+
+int GetLineWidth(string_view fmt, DrawStringFormatArg *args, std::size_t argsLen, size_t argsOffset, GameFontTables size, int spacing, int *charactersInLine,
+    std::optional<size_t> firstArgOffset)
 {
 	int lineWidth = 0;
 	CurrentFont currentFont;
@@ -507,32 +582,48 @@ int GetLineWidth(string_view fmt, DrawStringFormatArg *args, std::size_t argsLen
 	uint32_t codepoints = 0;
 	char32_t prev = U'\0';
 	char32_t next;
-
+	string_view remaining = fmt;
 	FmtArgParser fmtArgParser { fmt, args, argsLen, argsOffset };
-	string_view rest = fmt;
-	while (!rest.empty()) {
-		if ((prev == U'{' || prev == U'}') && static_cast<char>(prev) == rest[0]) {
-			rest.remove_prefix(1);
-			continue;
-		}
-		const std::optional<std::size_t> fmtArgPos = fmtArgParser(rest);
-		if (fmtArgPos) {
-			int argCodePoints;
-			lineWidth += GetLineWidth(args[*fmtArgPos].GetFormatted(), size, spacing, &argCodePoints);
-			codepoints += argCodePoints;
-			prev = U'\0';
-			continue;
-		}
+	size_t cpLen;
 
-		next = ConsumeFirstUtf8CodePoint(&rest);
-		if (next == Utf8DecodeError)
-			break;
-		if (next == ZWSP) {
-			prev = next;
-			continue;
+	// The current formatted argument value being processed.
+	string_view curFormatted;
+
+	// The string that we're currently processing: either `remaining` or `curFormatted`.
+	string_view *str;
+
+	if (firstArgOffset.has_value()) {
+		curFormatted = args[argsOffset - 1].GetFormatted().substr(*firstArgOffset);
+	}
+
+	for (; !(IsConsumed(curFormatted) && IsConsumed(remaining));
+	     str->remove_prefix(cpLen), prev = next) {
+		const bool isProcessingFormatArgValue = !IsConsumed(curFormatted);
+		str = isProcessingFormatArgValue ? &curFormatted : &remaining;
+		next = DecodeFirstUtf8CodePoint(*str, &cpLen);
+		if (next == Utf8DecodeError) break;
+
+		// {{ and }} escapes in fmt.
+		if (!isProcessingFormatArgValue && (prev == U'{' || prev == U'}') && prev == next) continue;
+		// ZWSP are line-breaking opportunities that can otherwise be skipped for rendering as they have 0-width.
+		if (next == ZWSP) continue;
+		if (next == U'\n') break;
+
+		if (!isProcessingFormatArgValue) {
+			const std::optional<std::size_t> fmtArgPos = fmtArgParser(*str);
+			if (fmtArgPos.has_value()) {
+				// `fmtArgParser` has already consumed `*str`. Ensure the loop doesn't consume any more.
+				cpLen = 0;
+				// The loop assigns `prev = next`.
+				// We reset it to U'\0' to ensure that {{ and }} escapes are not processed accross
+				// the boundary of the format string and a formatted value.
+				next = U'\0';
+				currentFont.clear();
+				const DrawStringFormatArg &arg = args[*fmtArgPos];
+				curFormatted = arg.GetFormatted();
+				continue;
+			}
 		}
-		if (next == U'\n')
-			break;
 
 		if (!currentFont.load(size, text_color::ColorDialogWhite, next)) {
 			next = U'?';
@@ -542,9 +633,8 @@ int GetLineWidth(string_view fmt, DrawStringFormatArg *args, std::size_t argsLen
 		}
 
 		const uint8_t frame = next & 0xFF;
-		lineWidth += (*currentFont.sprite)[frame].width() + spacing;
-		codepoints++;
-		prev = next;
+		lineWidth += currentFont.glyph(frame).width() + spacing;
+		++codepoints;
 	}
 	if (charactersInLine != nullptr)
 		*charactersInLine = codepoints;
@@ -560,17 +650,6 @@ int GetLineHeight(string_view text, GameFontTables fontIndex)
 	return LineHeights[fontIndex];
 }
 
-int AdjustSpacingToFitHorizontally(int &lineWidth, int maxSpacing, int charactersInLine, int availableWidth)
-{
-	if (lineWidth <= availableWidth || charactersInLine < 2)
-		return maxSpacing;
-
-	const int overhang = lineWidth - availableWidth;
-	const int spacingRedux = (overhang + charactersInLine - 2) / (charactersInLine - 1);
-	lineWidth -= spacingRedux * (charactersInLine - 1);
-	return maxSpacing - spacingRedux;
-}
-
 std::string WordWrapString(string_view text, unsigned width, GameFontTables size, int spacing)
 {
 	std::string output;
@@ -581,8 +660,7 @@ std::string WordWrapString(string_view text, unsigned width, GameFontTables size
 	const char *begin = text.data();
 	const char *processedEnd = text.data();
 	string_view::size_type lastBreakablePos = string_view::npos;
-	std::size_t lastBreakableLen;
-	bool lastBreakableKeep = false;
+	std::size_t lastBreakableLen = 0;
 	unsigned lineWidth = 0;
 	CurrentFont currentFont;
 
@@ -616,30 +694,31 @@ std::string WordWrapString(string_view text, unsigned width, GameFontTables size
 				}
 			}
 
-			lineWidth += (*currentFont.sprite)[frame].width() + spacing;
+			lineWidth += currentFont.glyph(frame).width() + spacing;
 		}
 
-		const bool isWhitespace = IsWhitespace(codepoint);
-		if (isWhitespace || IsBreakAllowed(codepoint, nextCodepoint)) {
+		if (IsBreakableWhitespace(codepoint)) {
 			lastBreakablePos = remaining.data() - begin - codepointLen;
 			lastBreakableLen = codepointLen;
-			lastBreakableKeep = !isWhitespace;
 			continue;
 		}
 
 		if (lineWidth - spacing <= width) {
+			if (IsBreakAllowed(codepoint, nextCodepoint)) {
+				lastBreakablePos = remaining.data() - begin;
+				lastBreakableLen = 0;
+			}
+
 			continue; // String is still within the limit, continue to the next symbol
 		}
 
 		if (lastBreakablePos == string_view::npos) { // Single word longer than width
-			continue;
+			lastBreakablePos = remaining.data() - begin - codepointLen;
+			lastBreakableLen = 0;
 		}
 
 		// Break line and continue to next line
 		const char *end = &text[lastBreakablePos];
-		if (lastBreakableKeep) {
-			end += lastBreakableLen;
-		}
 		output.append(processedEnd, end);
 		output += '\n';
 
@@ -657,161 +736,194 @@ std::string WordWrapString(string_view text, unsigned width, GameFontTables size
 /**
  * @todo replace Rectangle with cropped Surface
  */
-uint32_t DrawString(const Surface &out, string_view text, const Rectangle &rect, UiFlags flags, int spacing, int lineHeight)
+uint32_t DrawString(const Surface &out, string_view text, const Rectangle &rect, TextRenderOptions opts)
 {
-	GameFontTables size = GetSizeFromFlags(flags);
-	text_color color = GetColorFromFlags(flags);
+	const GameFontTables size = GetFontSizeFromUiFlags(opts.flags);
+	const text_color color = GetColorFromFlags(opts.flags);
 
 	int charactersInLine = 0;
 	int lineWidth = 0;
-	if (HasAnyOf(flags, (UiFlags::AlignCenter | UiFlags::AlignRight | UiFlags::KerningFitSpacing)))
-		lineWidth = GetLineWidth(text, size, spacing, &charactersInLine);
+	if (HasAnyOf(opts.flags, (UiFlags::AlignCenter | UiFlags::AlignRight | UiFlags::KerningFitSpacing)))
+		lineWidth = GetLineWidth(text, size, opts.spacing, &charactersInLine);
 
-	int maxSpacing = spacing;
-	if (HasAnyOf(flags, UiFlags::KerningFitSpacing))
-		spacing = AdjustSpacingToFitHorizontally(lineWidth, maxSpacing, charactersInLine, rect.size.width);
-
-	Point characterPosition { GetLineStartX(flags, rect, lineWidth), rect.position.y };
+	Point characterPosition { GetLineStartX(opts.flags, rect, lineWidth), rect.position.y };
 	const int initialX = characterPosition.x;
 
 	const int rightMargin = rect.position.x + rect.size.width;
 	const int bottomMargin = rect.size.height != 0 ? std::min(rect.position.y + rect.size.height + BaseLineOffset[size], out.h()) : out.h();
 
-	if (lineHeight == -1)
-		lineHeight = GetLineHeight(text, size);
+	if (opts.lineHeight == -1)
+		opts.lineHeight = GetLineHeight(text, size);
 
-	if (HasAnyOf(flags, UiFlags::VerticalCenter)) {
-		int textHeight = (std::count(text.cbegin(), text.cend(), '\n') + 1) * lineHeight;
+	if (HasAnyOf(opts.flags, UiFlags::VerticalCenter)) {
+		const int textHeight = static_cast<int>((c_count(text, '\n') + 1) * opts.lineHeight);
 		characterPosition.y += std::max(0, (rect.size.height - textHeight) / 2);
 	}
 
 	characterPosition.y += BaseLineOffset[size];
 
-	const bool outlined = HasAnyOf(flags, UiFlags::Outlined);
+	const bool outlined = HasAnyOf(opts.flags, UiFlags::Outlined);
 
 	const Surface clippedOut = ClipSurface(out, rect);
 
-	const uint32_t bytesDrawn = DoDrawString(clippedOut, text, rect, characterPosition, spacing, lineHeight, lineWidth, rightMargin, bottomMargin, flags, size, color, outlined);
+	// Only draw the PentaCursor if the cursor is not at the end.
+	if (HasAnyOf(opts.flags, UiFlags::PentaCursor) && static_cast<size_t>(opts.cursorPosition) == text.size()) {
+		opts.cursorPosition = -1;
+	}
 
-	if (HasAnyOf(flags, UiFlags::PentaCursor)) {
+	const uint32_t bytesDrawn = DoDrawString(clippedOut, text, rect, characterPosition,
+	    lineWidth, charactersInLine, rightMargin, bottomMargin, size, color, outlined, opts);
+
+	if (HasAnyOf(opts.flags, UiFlags::PentaCursor)) {
 		const ClxSprite sprite = (*pSPentSpn2Cels)[PentSpn2Spin()];
-		MaybeWrap(characterPosition, sprite.width(), rightMargin, initialX, lineHeight);
-		ClxDraw(clippedOut, characterPosition + Displacement { 0, lineHeight - BaseLineOffset[size] }, sprite);
-	} else if (HasAnyOf(flags, UiFlags::TextCursor) && GetAnimationFrame(2, 500) != 0) {
-		MaybeWrap(characterPosition, 2, rightMargin, initialX, lineHeight);
-		OptionalClxSpriteList baseFont = LoadFont(size, color, 0);
-		if (baseFont)
-			DrawFont(clippedOut, characterPosition, *baseFont, color, '|', outlined);
+		MaybeWrap(characterPosition, sprite.width(), rightMargin, initialX, opts.lineHeight);
+		ClxDraw(clippedOut, characterPosition + Displacement { 0, opts.lineHeight - BaseLineOffset[size] }, sprite);
 	}
 
 	return bytesDrawn;
 }
 
-void DrawStringWithColors(const Surface &out, string_view fmt, DrawStringFormatArg *args, std::size_t argsLen, const Rectangle &rect, UiFlags flags, int spacing, int lineHeight)
+void DrawStringWithColors(const Surface &out, string_view fmt, DrawStringFormatArg *args, std::size_t argsLen, const Rectangle &rect, TextRenderOptions opts)
 {
-	GameFontTables size = GetSizeFromFlags(flags);
-	text_color color = GetColorFromFlags(flags);
+	const GameFontTables size = GetFontSizeFromUiFlags(opts.flags);
+	const text_color color = GetColorFromFlags(opts.flags);
 
 	int charactersInLine = 0;
 	int lineWidth = 0;
-	if (HasAnyOf(flags, (UiFlags::AlignCenter | UiFlags::AlignRight | UiFlags::KerningFitSpacing)))
-		lineWidth = GetLineWidth(fmt, args, argsLen, 0, size, spacing, &charactersInLine);
+	if (HasAnyOf(opts.flags, (UiFlags::AlignCenter | UiFlags::AlignRight | UiFlags::KerningFitSpacing)))
+		lineWidth = GetLineWidth(fmt, args, argsLen, 0, size, opts.spacing, &charactersInLine);
 
-	int maxSpacing = spacing;
-	if (HasAnyOf(flags, UiFlags::KerningFitSpacing))
-		spacing = AdjustSpacingToFitHorizontally(lineWidth, maxSpacing, charactersInLine, rect.size.width);
-
-	Point characterPosition { GetLineStartX(flags, rect, lineWidth), rect.position.y };
+	Point characterPosition { GetLineStartX(opts.flags, rect, lineWidth), rect.position.y };
 	const int initialX = characterPosition.x;
 
 	const int rightMargin = rect.position.x + rect.size.width;
 	const int bottomMargin = rect.size.height != 0 ? std::min(rect.position.y + rect.size.height + BaseLineOffset[size], out.h()) : out.h();
 
-	if (lineHeight == -1)
-		lineHeight = GetLineHeight(fmt, args, argsLen, size);
+	if (opts.lineHeight == -1)
+		opts.lineHeight = GetLineHeight(fmt, args, argsLen, size);
 
-	if (HasAnyOf(flags, UiFlags::VerticalCenter)) {
-		int textHeight = (CountNewlines(fmt, args, argsLen) + 1) * lineHeight;
+	if (HasAnyOf(opts.flags, UiFlags::VerticalCenter)) {
+		const int textHeight = static_cast<int>((CountNewlines(fmt, args, argsLen) + 1) * opts.lineHeight);
 		characterPosition.y += std::max(0, (rect.size.height - textHeight) / 2);
 	}
 
 	characterPosition.y += BaseLineOffset[size];
 
-	const bool outlined = HasAnyOf(flags, UiFlags::Outlined);
+	const bool outlined = HasAnyOf(opts.flags, UiFlags::Outlined);
 
 	const Surface clippedOut = ClipSurface(out, rect);
 
 	CurrentFont currentFont;
+	const int originalSpacing = opts.spacing;
+	if (HasAnyOf(opts.flags, UiFlags::KerningFitSpacing)) {
+		opts.spacing = AdjustSpacingToFitHorizontally(lineWidth, originalSpacing, charactersInLine, rect.size.width);
+		if (opts.spacing != originalSpacing && HasAnyOf(opts.flags, UiFlags::AlignCenter | UiFlags::AlignRight)) {
+			const int adjustedLineWidth = GetLineWidth(fmt, args, argsLen, 0, size, opts.spacing, &charactersInLine);
+			characterPosition.x = GetLineStartX(opts.flags, rect, adjustedLineWidth);
+		}
+	}
 
 	char32_t prev = U'\0';
 	char32_t next;
 	string_view remaining = fmt;
 	FmtArgParser fmtArgParser { fmt, args, argsLen };
 	size_t cpLen;
-	for (; !remaining.empty() && remaining[0] != '\0'
-	     && (next = DecodeFirstUtf8CodePoint(remaining, &cpLen)) != Utf8DecodeError;
-	     remaining.remove_prefix(cpLen), prev = next) {
-		if (((prev == U'{' || prev == U'}') && prev == next)
-		    || next == ZWSP)
-			continue;
 
-		const std::optional<std::size_t> fmtArgPos = fmtArgParser(remaining);
-		if (fmtArgPos) {
-			DoDrawString(clippedOut, args[*fmtArgPos].GetFormatted(), rect, characterPosition, spacing, lineHeight, lineWidth, rightMargin, bottomMargin, flags, size,
-			    GetColorFromFlags(args[*fmtArgPos].GetFlags()), outlined);
-			// `fmtArgParser` has already consumed `remaining`. Ensure the loop doesn't consume any more.
-			cpLen = 0;
-			// The loop assigns `prev = next`. We want `prev` to be `\0` after this.
-			next = U'\0';
-			currentFont.clear();
-			continue;
+	// The current formatted argument value being processed.
+	string_view curFormatted;
+	text_color curFormattedColor;
+
+	// The string that we're currently processing: either `remaining` or `curFormatted`.
+	string_view *str;
+
+	for (; !(IsConsumed(curFormatted) && IsConsumed(remaining));
+	     str->remove_prefix(cpLen), prev = next) {
+		const bool isProcessingFormatArgValue = !IsConsumed(curFormatted);
+		str = isProcessingFormatArgValue ? &curFormatted : &remaining;
+		next = DecodeFirstUtf8CodePoint(*str, &cpLen);
+		if (next == Utf8DecodeError) break;
+
+		// {{ and }} escapes in fmt.
+		if (!isProcessingFormatArgValue && (prev == U'{' || prev == U'}') && prev == next) continue;
+		// ZWSP are line-breaking opportunities that can otherwise be skipped for rendering as they have 0-width.
+		if (next == ZWSP) continue;
+
+		if (!isProcessingFormatArgValue) {
+			const std::optional<std::size_t> fmtArgPos = fmtArgParser(*str);
+			if (fmtArgPos.has_value()) {
+				// `fmtArgParser` has already consumed `*str`. Ensure the loop doesn't consume any more.
+				cpLen = 0;
+				// The loop assigns `prev = next`.
+				// We reset it to U'\0' to ensure that {{ and }} escapes are not processed accross
+				// the boundary of the format string and a formatted value.
+				next = U'\0';
+				currentFont.clear();
+				const DrawStringFormatArg &arg = args[*fmtArgPos];
+				curFormatted = arg.GetFormatted();
+				curFormattedColor = GetColorFromFlags(arg.GetFlags());
+				continue;
+			}
 		}
 
-		if (!currentFont.load(size, color, next)) {
+		const text_color curColor = isProcessingFormatArgValue ? curFormattedColor : color;
+		if (!currentFont.load(size, curColor, next)) {
 			next = U'?';
-			if (!currentFont.load(size, color, next)) {
+			if (!currentFont.load(size, curColor, next)) {
 				app_fatal("Missing fonts");
 			}
 		}
 
 		const uint8_t frame = next & 0xFF;
-		const uint16_t width = (*currentFont.sprite)[frame].width();
+		const uint16_t width = currentFont.glyph(frame).width();
 		if (next == U'\n' || characterPosition.x + width > rightMargin) {
-			const int nextLineY = characterPosition.y + lineHeight;
+			const int nextLineY = characterPosition.y + opts.lineHeight;
 			if (nextLineY >= bottomMargin)
 				break;
 			characterPosition.y = nextLineY;
 
-			if (HasAnyOf(flags, (UiFlags::AlignCenter | UiFlags::AlignRight))) {
-				lineWidth = width;
-				if (remaining.size() > cpLen)
-					lineWidth += spacing + GetLineWidth(remaining.substr(cpLen), args, argsLen, fmtArgParser.offset(), size, spacing);
+			if (HasAnyOf(opts.flags, UiFlags::KerningFitSpacing)) {
+				int nextLineWidth = isProcessingFormatArgValue
+				    ? GetLineWidth(remaining, args, argsLen, fmtArgParser.offset(), size, originalSpacing, &charactersInLine,
+				          /*firstArgOffset=*/args[fmtArgParser.offset() - 1].GetFormatted().size() - (curFormatted.size() - cpLen))
+				    : GetLineWidth(remaining.substr(cpLen), args, argsLen, fmtArgParser.offset(), size, originalSpacing, &charactersInLine);
+				opts.spacing = AdjustSpacingToFitHorizontally(nextLineWidth, originalSpacing, charactersInLine, rect.size.width);
 			}
-			characterPosition.x = GetLineStartX(flags, rect, lineWidth);
+
+			if (HasAnyOf(opts.flags, UiFlags::AlignCenter | UiFlags::AlignRight)) {
+				lineWidth = width;
+				if (str->size() > cpLen) {
+					lineWidth += opts.spacing
+					    + (isProcessingFormatArgValue
+					            ? GetLineWidth(remaining, args, argsLen, fmtArgParser.offset(), size, opts.spacing, &charactersInLine,
+					                  /*firstArgOffset=*/args[fmtArgParser.offset() - 1].GetFormatted().size() - (curFormatted.size() - cpLen))
+					            : GetLineWidth(remaining.substr(cpLen), args, argsLen, fmtArgParser.offset(), size, opts.spacing, &charactersInLine));
+				}
+			}
+			characterPosition.x = GetLineStartX(opts.flags, rect, lineWidth);
 
 			if (next == U'\n')
 				continue;
 		}
 
-		DrawFont(clippedOut, characterPosition, *currentFont.sprite, color, frame, outlined);
-		characterPosition.x += width + spacing;
+		DrawFont(clippedOut, characterPosition, currentFont.glyph(frame), curColor, outlined);
+		characterPosition.x += width + opts.spacing;
 	}
 
-	if (HasAnyOf(flags, UiFlags::PentaCursor)) {
+	if (HasAnyOf(opts.flags, UiFlags::PentaCursor)) {
 		const ClxSprite sprite = (*pSPentSpn2Cels)[PentSpn2Spin()];
-		MaybeWrap(characterPosition, sprite.width(), rightMargin, initialX, lineHeight);
-		ClxDraw(clippedOut, characterPosition + Displacement { 0, lineHeight - BaseLineOffset[size] }, sprite);
-	} else if (HasAnyOf(flags, UiFlags::TextCursor) && GetAnimationFrame(2, 500) != 0) {
-		MaybeWrap(characterPosition, 2, rightMargin, initialX, lineHeight);
-		OptionalClxSpriteList baseFont = LoadFont(size, color, 0);
-		if (baseFont)
-			DrawFont(clippedOut, characterPosition, *baseFont, color, '|', outlined);
+		MaybeWrap(characterPosition, sprite.width(), rightMargin, initialX, opts.lineHeight);
+		ClxDraw(clippedOut, characterPosition + Displacement { 0, opts.lineHeight - BaseLineOffset[size] }, sprite);
 	}
 }
 
 uint8_t PentSpn2Spin()
 {
-	return (SDL_GetTicks() / 50) % 8;
+	return GetAnimationFrame(8, 50);
+}
+
+bool IsBreakableWhitespace(char32_t c)
+{
+	return IsAnyOf(c, U' ', U'　', ZWSP);
 }
 
 } // namespace devilution

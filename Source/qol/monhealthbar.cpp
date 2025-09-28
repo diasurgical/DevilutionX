@@ -14,6 +14,7 @@
 #include "engine/clx_sprite.hpp"
 #include "engine/load_clx.hpp"
 #include "engine/render/clx_render.hpp"
+#include "engine/render/primitive_render.hpp"
 #include "options.h"
 #include "utils/language.h"
 #include "utils/str_cat.hpp"
@@ -130,17 +131,17 @@ void DrawMonsterHealthBar(const Surface &out)
 	}
 
 	UiFlags style = UiFlags::AlignCenter | UiFlags::VerticalCenter;
-	DrawString(out, monster.name(), { position + Displacement { -1, 1 }, { width, height } }, style | UiFlags::ColorBlack);
+	DrawString(out, monster.name(), { position + Displacement { -1, 1 }, { width, height } }, { style | UiFlags::ColorBlack });
 	if (monster.isUnique())
 		style |= UiFlags::ColorWhitegold;
 	else if (monster.leader != Monster::NoLeader)
 		style |= UiFlags::ColorBlue;
 	else
 		style |= UiFlags::ColorWhite;
-	DrawString(out, monster.name(), { position, { width, height } }, style);
+	DrawString(out, monster.name(), { position, { width, height } }, { style });
 
 	if (multiplier > 0)
-		DrawString(out, StrCat("x", multiplier), { position, { width - 2, height } }, UiFlags::ColorWhite | UiFlags::AlignRight | UiFlags::VerticalCenter);
+		DrawString(out, StrCat("x", multiplier), { position, { width - 2, height } }, { UiFlags::ColorWhite | UiFlags::AlignRight | UiFlags::VerticalCenter });
 	if (monster.isUnique() || MonsterKillCounts[monster.type().type] >= 15) {
 		monster_resistance immunes[] = { IMMUNE_MAGIC, IMMUNE_FIRE, IMMUNE_LIGHTNING };
 		monster_resistance resists[] = { RESIST_MAGIC, RESIST_FIRE, RESIST_LIGHTNING };

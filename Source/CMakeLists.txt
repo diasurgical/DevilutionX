@@ -84,6 +84,7 @@ set(libdevilutionx_SRCS
   DiabloUI/selyesno.cpp
   DiabloUI/settingsmenu.cpp
   DiabloUI/support_lines.cpp
+  DiabloUI/text_input.cpp
   DiabloUI/title.cpp
 
   dvlnet/abstract_net.cpp
@@ -114,6 +115,7 @@ set(libdevilutionx_SRCS
   engine/render/automap_render.cpp
   engine/render/clx_render.cpp
   engine/render/dun_render.cpp
+  engine/render/primitive_render.cpp
   engine/render/scrollrt.cpp
   engine/render/text_render.cpp
 
@@ -158,6 +160,7 @@ set(libdevilutionx_SRCS
   utils/format_int.cpp
   utils/language.cpp
   utils/logged_fstream.cpp
+  utils/parse_int.cpp
   utils/paths.cpp
   utils/pcx_to_clx.cpp
   utils/sdl_bilinear_scale.cpp

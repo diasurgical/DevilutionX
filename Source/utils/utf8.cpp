@@ -10,22 +10,6 @@
 
 namespace devilution {
 
-namespace {
-
-/** Truncates `str` to at most `len` at a code point boundary. */
-string_view TruncateUtf8(string_view str, std::size_t len)
-{
-	if (str.size() > len) {
-		std::size_t truncIndex = len;
-		while (truncIndex > 0 && IsTrailUtf8CodeUnit(str[truncIndex]))
-			truncIndex--;
-		str.remove_suffix(str.size() - truncIndex);
-	}
-	return str;
-}
-
-} // namespace
-
 char32_t DecodeFirstUtf8CodePoint(string_view input, std::size_t *len)
 {
 	uint32_t codepoint = 0;
@@ -43,6 +27,17 @@ char32_t DecodeFirstUtf8CodePoint(string_view input, std::size_t *len)
 	}
 	*len = input.size();
 	return Utf8DecodeError;
+}
+
+string_view TruncateUtf8(string_view str, std::size_t len)
+{
+	if (str.size() > len) {
+		std::size_t truncIndex = len;
+		while (truncIndex > 0 && IsTrailUtf8CodeUnit(str[truncIndex]))
+			truncIndex--;
+		str.remove_suffix(str.size() - truncIndex);
+	}
+	return str;
 }
 
 void CopyUtf8(char *dest, string_view source, std::size_t bytes)

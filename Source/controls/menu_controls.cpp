@@ -113,16 +113,25 @@ std::vector<MenuAction> GetMenuActions(const SDL_Event &event)
 		case SDLK_KP_ENTER:
 			return { MenuAction_SELECT };
 		case SDLK_SPACE:
-			if (!textInputActive) {
+			if (!IsTextInputActive()) {
 				return { MenuAction_SELECT };
 			}
 			break;
 		case SDLK_DELETE:
-			return { MenuAction_DELETE };
+			if (!IsTextInputActive()) {
+				return { MenuAction_DELETE };
+			}
+			break;
 		case SDLK_LEFT:
-			return { MenuAction_LEFT };
+			if (!IsTextInputActive()) {
+				return { MenuAction_LEFT };
+			}
+			break;
 		case SDLK_RIGHT:
-			return { MenuAction_RIGHT };
+			if (!IsTextInputActive()) {
+				return { MenuAction_RIGHT };
+			}
+			break;
 		case SDLK_ESCAPE:
 			return { MenuAction_BACK };
 		default:

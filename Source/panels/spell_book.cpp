@@ -72,7 +72,7 @@ void PrintSBookStr(const Surface &out, Point position, string_view text, UiFlags
 	    Rectangle(GetPanelPosition(UiPanels::Spell, position + Displacement { SPLICONLENGTH, 0 }),
 	        SpellBookDescription)
 	        .inset({ SpellBookDescriptionPaddingHorizontal, 0 }),
-	    UiFlags::ColorWhite | flags);
+	    { UiFlags::ColorWhite | flags });
 }
 
 SpellType GetSBookTrans(SpellID ii, bool townok)

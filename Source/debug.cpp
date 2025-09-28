@@ -903,7 +903,7 @@ std::string DebugCmdItemInfo(const string_view parameter)
 		pItem = &Items[pcursitem];
 	}
 	if (pItem != nullptr) {
-		std::string_view netPackValidation { "N/A" };
+		string_view netPackValidation { "N/A" };
 		if (gbIsMultiplayer) {
 			ItemNetPack itemPack;
 			Item unpacked;

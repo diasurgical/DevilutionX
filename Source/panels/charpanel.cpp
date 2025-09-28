@@ -243,8 +243,8 @@ void DrawShadowString(const Surface &out, const PanelEntry &entry)
 	const int textHeight = (std::count(wrapped.begin(), wrapped.end(), '\n') + 1) * GetLineHeight(wrapped, GameFont12);
 	const int labelHeight = std::max(PanelFieldHeight, textHeight);
 
-	DrawString(out, text, { labelPosition + Displacement { -2, 2 }, { entry.labelLength, labelHeight } }, style | UiFlags::ColorBlack, Spacing);
-	DrawString(out, text, { labelPosition, { entry.labelLength, labelHeight } }, style | UiFlags::ColorWhite, Spacing);
+	DrawString(out, text, { labelPosition + Displacement { -2, 2 }, { entry.labelLength, labelHeight } }, { style | UiFlags::ColorBlack, Spacing });
+	DrawString(out, text, { labelPosition, { entry.labelLength, labelHeight } }, { style | UiFlags::ColorWhite, Spacing });
 }
 
 void DrawStatButtons(const Surface &out)
@@ -309,7 +309,7 @@ void DrawChr(const Surface &out)
 			    out,
 			    tmp.text,
 			    { entry.position + Displacement { pos.x, pos.y + PanelFieldPaddingTop }, { entry.length, PanelFieldInnerHeight } },
-			    UiFlags::AlignCenter | UiFlags::VerticalCenter | tmp.style, tmp.spacing);
+			    { UiFlags::AlignCenter | UiFlags::VerticalCenter | tmp.style, tmp.spacing });
 		}
 	}
 	DrawStatButtons(out);

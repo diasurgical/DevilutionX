@@ -13,7 +13,7 @@
 #include "init.h"
 #include "levels/gendung.h"
 #include "utils/attributes.h"
-#include "utils/endian.hpp"
+#include "utils/endian_read.hpp"
 
 namespace devilution {
 
