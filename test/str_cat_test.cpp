@@ -1,3 +1,5 @@
+#include <cstdint>
+
 #include <gtest/gtest.h>
 
 #include "utils/str_cat.hpp"
@@ -8,6 +10,11 @@ namespace {
 TEST(StrCatTest, StrCatBasicTest)
 {
 	EXPECT_EQ(StrCat("a", "b", "c", 5), "abc5");
+}
+
+TEST(StrCatTest, LeftPadTest)
+{
+	EXPECT_EQ(StrCat(LeftPad(static_cast<uint8_t>(5), 2, '0')), "05");
 }
 
 TEST(StrCatTest, BufCopyBasicTest)

@@ -797,8 +797,8 @@ if(USE_SDL1)
     utils/sdl2_to_1_2_backports.cpp
   )
   target_link_dependencies(libdevilutionx_sdl2_to_1_2_backports PRIVATE
+    libdevilutionx_strings
     libdevilutionx_utils_console
-    fmt::fmt
   )
   target_link_libraries(DevilutionX::SDL INTERFACE
     libdevilutionx_sdl2_to_1_2_backports

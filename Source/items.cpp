@@ -3573,7 +3573,7 @@ void CornerstoneSave()
 		PackItem(id, CornerStone.item, (CornerStone.item.dwBuff & CF_HELLFIRE) != 0);
 		const auto *buffer = reinterpret_cast<uint8_t *>(&id);
 		for (size_t i = 0; i < sizeof(ItemPack); i++) {
-			fmt::format_to(&GetOptions().Hellfire.szItem[i * 2], "{:02X}", buffer[i]);
+			BufCopy(&GetOptions().Hellfire.szItem[i * 2], AsHexPad2(buffer[i], /*uppercase=*/true));
 		}
 		GetOptions().Hellfire.szItem[sizeof(GetOptions().Hellfire.szItem) - 1] = '\0';
 	} else {

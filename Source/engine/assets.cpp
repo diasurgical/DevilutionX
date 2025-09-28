@@ -367,7 +367,7 @@ std::vector<std::string> GetMPQSearchPaths()
 
 		std::string message;
 		for (std::size_t i = 0; i < paths.size(); ++i) {
-			message.append(fmt::format("\n{:6d}. '{}'", i + 1, paths[i]));
+			message.append(StrCat("\n", LeftPad(i + 1, 6, ' '), ". '", paths[i], "'"));
 		}
 		LogVerbose("MPQ search paths:{}", message);
 	}

@@ -11,7 +11,6 @@
 
 #include <SDL.h>
 #include <expected.hpp>
-#include <fmt/format.h>
 
 #define DEVILUTIONX_SCREENSHOT_FORMAT_PCX 0
 #define DEVILUTIONX_SCREENSHOT_FORMAT_PNG 1
@@ -46,8 +45,9 @@ SDL_RWops *CaptureFile(std::string *dstPath)
 	const std::time_t tt = std::time(nullptr);
 	const std::tm *tm = std::localtime(&tt);
 	const std::string filename = tm != nullptr
-	    ? fmt::format("Screenshot from {:04}-{:02}-{:02} {:02}-{:02}-{:02}",
-	          tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday, tm->tm_hour, tm->tm_min, tm->tm_sec)
+	    ? StrCat("Screenshot from ",
+	          LeftPad(tm->tm_year + 1900, 4, '0'), "-", LeftPad(tm->tm_mon + 1, 2, '0'), "-", LeftPad(tm->tm_mday, 2, '0'), "-",
+	          LeftPad(tm->tm_hour, 2, '0'), "-", LeftPad(tm->tm_min, 2, '0'), "-", LeftPad(tm->tm_sec, 2, '0'))
 	    : "Screenshot";
 	*dstPath = StrCat(paths::PrefPath(), filename, ext);
 	int i = 0;

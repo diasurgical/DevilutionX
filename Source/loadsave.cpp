@@ -15,7 +15,6 @@
 #include <SDL.h>
 #include <ankerl/unordered_dense.h>
 #include <expected.hpp>
-#include <fmt/core.h>
 
 #include "automap.h"
 #include "codec.h"
@@ -1049,7 +1048,7 @@ void GetLevelNames(std::string_view prefix, char *out)
 		suf = 'l';
 		num = currlevel;
 	}
-	*fmt::format_to(out, "{}{}{:02d}", prefix, suf, num) = '\0';
+	*BufCopy(out, prefix, std::string_view(&suf, 1), LeftPad(num, 2, '0')) = '\0';
 }
 
 void GetTempLevelNames(char *szTemp)

@@ -1516,6 +1516,11 @@ uint16_t GetPlayerSpriteWidth(HeroClass cls, player_graphic graphic, PlayerWeapo
 	app_fatal("Invalid player_graphic");
 }
 
+void GetPlayerGraphicsPath(std::string_view path, std::string_view prefix, std::string_view type, char out[256])
+{
+	*BufCopy(out, "plrgfx\\", path, "\\", prefix, "\\", prefix, type) = '\0';
+}
+
 } // namespace
 
 void Player::CalcScrolls()
@@ -2054,11 +2059,7 @@ ClxSprite GetPlayerPortraitSprite(Player &player)
 	const PlayerSpriteData &spriteData = GetPlayerSpriteDataForClass(cls);
 	const char *path = spriteData.classPath.c_str();
 
-	const char *szCel;
-	if (!inDungeon)
-		szCel = "st";
-	else
-		szCel = "as";
+	std::string_view szCel = inDungeon ? "as" : "st";
 
 	player_graphic graphic = player_graphic::Stand;
 	if (player._pHitPoints <= 0) {
@@ -2068,9 +2069,9 @@ ClxSprite GetPlayerPortraitSprite(Player &player)
 		}
 	}
 
-	char prefix[3] = { spriteData.classChar, ArmourChar[player._pgfxnum >> 4], WepChar[static_cast<std::size_t>(animWeaponId)] };
+	const char prefixBuf[3] = { spriteData.classChar, ArmourChar[player._pgfxnum >> 4], WepChar[static_cast<std::size_t>(animWeaponId)] };
 	char pszName[256];
-	*fmt::format_to(pszName, R"(plrgfx\{0}\{1}\{1}{2})", path, std::string_view(prefix, 3), szCel) = 0;
+	GetPlayerGraphicsPath(path, std::string_view(prefixBuf, 3), szCel, pszName);
 
 	const std::string spritePath { pszName };
 	// Check to see if the sprite has updated.
@@ -2110,7 +2111,7 @@ void LoadPlrGFX(Player &player, player_graphic graphic)
 	const PlayerSpriteData &spriteData = GetPlayerSpriteDataForClass(cls);
 	const char *path = spriteData.classPath.c_str();
 
-	const char *szCel;
+	std::string_view szCel;
 	switch (graphic) {
 	case player_graphic::Stand:
 		szCel = "as";
@@ -2157,9 +2158,9 @@ void LoadPlrGFX(Player &player, player_graphic graphic)
 		app_fatal("PLR:2");
 	}
 
-	char prefix[3] = { spriteData.classChar, ArmourChar[player._pgfxnum >> 4], WepChar[static_cast<std::size_t>(animWeaponId)] };
+	const char prefixBuf[3] = { spriteData.classChar, ArmourChar[player._pgfxnum >> 4], WepChar[static_cast<std::size_t>(animWeaponId)] };
 	char pszName[256];
-	*fmt::format_to(pszName, R"(plrgfx\{0}\{1}\{1}{2})", path, std::string_view(prefix, 3), szCel) = 0;
+	GetPlayerGraphicsPath(path, std::string_view(prefixBuf, 3), szCel, pszName);
 	const uint16_t animationWidth = GetPlayerSpriteWidth(cls, graphic, animWeaponId);
 	animationData.sprites = LoadCl2Sheet(pszName, animationWidth);
 	std::optional<std::array<uint8_t, 256>> graphicTRN = GetPlayerGraphicTRN(pszName);

@@ -24,6 +24,7 @@
 #include "minitext.h"
 #include "stores.h"
 #include "utils/language.h"
+#include "utils/str_cat.hpp"
 
 namespace devilution {
 
@@ -119,8 +120,9 @@ void AddMessageToChatLog(std::string_view message, Player *player, UiFlags flags
 	MessageCounter++;
 	const time_t timeResult = time(nullptr);
 	const std::tm *localtimeResult = localtime(&timeResult);
-	std::string timestamp = localtimeResult != nullptr ? fmt::format("[#{:d}] {:02}:{:02}:{:02}", MessageCounter, localtimeResult->tm_hour, localtimeResult->tm_min, localtimeResult->tm_sec)
-	                                                   : fmt::format("[#{:d}] ", MessageCounter);
+	std::string timestamp = localtimeResult != nullptr
+	    ? StrCat("[#", MessageCounter, "] ", LeftPad(localtimeResult->tm_hour, 2, '0'), ":", LeftPad(localtimeResult->tm_min, 2, '0'), ":", LeftPad(localtimeResult->tm_sec, 2, '0'))
+	    : StrCat("[#", MessageCounter, "] ");
 	const size_t oldSize = ChatLogLines.size();
 	if (player == nullptr) {
 		ChatLogLines.emplace_back(MultiColoredText { "{0} {1}", { { timestamp, UiFlags::ColorRed }, { std::string(message), flags } } });
@@ -172,7 +174,8 @@ void DrawChatLog(const Surface &out)
 	const time_t timeResult = time(nullptr);
 	const std::tm *localtimeResult = localtime(&timeResult);
 	if (localtimeResult != nullptr) {
-		const std::string timestamp = fmt::format("{:02}:{:02}:{:02}", localtimeResult->tm_hour, localtimeResult->tm_min, localtimeResult->tm_sec);
+		const std::string timestamp = StrCat(
+		    LeftPad(localtimeResult->tm_hour, 2, '0'), ":", LeftPad(localtimeResult->tm_min, 2, '0'), ":", LeftPad(localtimeResult->tm_sec, 2, '0'));
 		DrawString(out, timestamp, { { sx, sy + PaddingTop + blankLineHeight }, { ContentTextWidth, lineHeight } },
 		    { .flags = UiFlags::ColorWhitegold });
 	}

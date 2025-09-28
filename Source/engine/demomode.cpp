@@ -5,8 +5,6 @@
 #include <limits>
 #include <optional>
 
-#include <fmt/format.h>
-
 #ifdef USE_SDL1
 #include "utils/sdl2_to_1_2_backports.h"
 #endif
@@ -180,7 +178,7 @@ void ReadSettings(FILE *in, uint8_t version) // NOLINT(readability-identifier-le
 		DemoSettings = {};
 	}
 
-	std::string message = fmt::format("⚙️\n{}={}x{}", _("Resolution"), DemoGraphicsWidth, DemoGraphicsHeight);
+	std::string message = StrCat("⚙️\n", _("Resolution"), "=", DemoGraphicsWidth, "x", DemoGraphicsHeight);
 	for (const auto &[key, value] : std::initializer_list<std::pair<std::string_view, bool>> {
 	         { _("Run in Town"), DemoSettings.runInTown },
 	         { _("Theo Quest"), DemoSettings.theoQuest },
@@ -199,7 +197,7 @@ void ReadSettings(FILE *in, uint8_t version) // NOLINT(readability-identifier-le
 	         { _("Show Item Labels"), DemoSettings.showItemLabels },
 	         { _("Auto Refill Belt"), DemoSettings.autoRefillBelt },
 	         { _("Disable Crippling Shrines"), DemoSettings.disableCripplingShrines } }) {
-		fmt::format_to(std::back_inserter(message), "\n{}={:d}", key, value);
+		StrAppend(message, "\n", key, "=", value ? "1" : "0");
 	}
 	for (const auto &[key, value] : std::initializer_list<std::pair<std::string_view, uint8_t>> {
 	         { _("Heal Potion Pickup"), DemoSettings.numHealPotionPickup },
@@ -208,7 +206,7 @@ void ReadSettings(FILE *in, uint8_t version) // NOLINT(readability-identifier-le
 	         { _("Full Mana Potion Pickup"), DemoSettings.numFullManaPotionPickup },
 	         { _("Rejuvenation Potion Pickup"), DemoSettings.numRejuPotionPickup },
 	         { _("Full Rejuvenation Potion Pickup"), DemoSettings.numFullRejuPotionPickup } }) {
-		fmt::format_to(std::back_inserter(message), "\n{}={}", key, value);
+		StrAppend(message, "\n", key, "=", static_cast<int>(value));
 	}
 	Log("{}", message);
 }
@@ -776,8 +774,8 @@ void RecordMessage(const SDL_Event &event, uint16_t modState)
 		    || event.wheel.x > std::numeric_limits<int16_t>::max()
 		    || event.wheel.y < std::numeric_limits<int16_t>::min()
 		    || event.wheel.y > std::numeric_limits<int16_t>::max()) {
-			app_fatal(fmt::format("Mouse wheel event x/y out of int16_t range. x={} y={}",
-			    event.wheel.x, event.wheel.y));
+			app_fatal(StrCat("Mouse wheel event x/y out of int16_t range. x=",
+			    event.wheel.x, " y=", event.wheel.y));
 		}
 		WriteLE16(DemoRecording, event.wheel.x);
 		WriteLE16(DemoRecording, event.wheel.y);
