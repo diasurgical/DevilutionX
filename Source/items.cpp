@@ -26,6 +26,7 @@
 #include "engine/load_cel.hpp"
 #include "engine/random.hpp"
 #include "engine/render/clx_render.hpp"
+#include "engine/render/primitive_render.hpp"
 #include "engine/render/text_render.hpp"
 #include "init.h"
 #include "inv_iterators.hpp"
@@ -3932,7 +3933,7 @@ void DrawUniqueInfo(const Surface &out)
 
 	Rectangle rect { position + Displacement { 32, 56 }, { 257, 0 } };
 	const UniqueItem &uitem = UniqueItems[curruitem._iUid];
-	DrawString(out, _(uitem.UIName), rect, UiFlags::AlignCenter);
+	DrawString(out, _(uitem.UIName), rect, { UiFlags::AlignCenter });
 
 	const Rectangle dividerLineRect { position + Displacement { 26, 25 }, { 267, 3 } };
 	out.BlitFrom(out, MakeSdlRect(dividerLineRect), dividerLineRect.position + Displacement { 0, 5 * 12 + 13 });
@@ -3943,7 +3944,7 @@ void DrawUniqueInfo(const Surface &out)
 		if (power.type == IPL_INVALID)
 			break;
 		rect.position.y += 2 * 12;
-		DrawString(out, PrintItemPower(power.type, curruitem), rect, UiFlags::ColorWhite | UiFlags::AlignCenter);
+		DrawString(out, PrintItemPower(power.type, curruitem), rect, { UiFlags::ColorWhite | UiFlags::AlignCenter });
 	}
 }
 

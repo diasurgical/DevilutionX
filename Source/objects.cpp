@@ -3091,9 +3091,8 @@ void OperateShrine(Player &player, Object &shrine, _sfx_id sType)
 	if (shrine._oSelFlag == 0)
 		return;
 
-	if (dropGoldFlag) {
+	if (DropGoldFlag) {
 		CloseGoldDrop();
-		dropGoldValue = 0;
 	}
 
 	SetRndSeed(shrine._oRndSeed);

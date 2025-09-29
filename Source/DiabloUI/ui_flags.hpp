@@ -22,32 +22,33 @@ enum class UiFlags : uint32_t {
 	ColorUiGoldDark    = 1 << 8,
 	ColorUiSilverDark  = 1 << 9,
 	ColorDialogWhite   = 1 << 10,
-	ColorYellow        = 1 << 11,
-	ColorGold          = 1 << 12,
-	ColorBlack         = 1 << 13,
-	ColorWhite         = 1 << 14,
-	ColorWhitegold     = 1 << 15,
-	ColorRed           = 1 << 16,
-	ColorBlue          = 1 << 17,
-	ColorOrange        = 1 << 18,
-	ColorButtonface    = 1 << 19,
-	ColorButtonpushed  = 1 << 20,
+	ColorDialogYellow  = 1 << 11,
+	ColorDialogRed     = 1 << 12,
+	ColorYellow        = 1 << 13,
+	ColorGold          = 1 << 14,
+	ColorBlack         = 1 << 15,
+	ColorWhite         = 1 << 16,
+	ColorWhitegold     = 1 << 17,
+	ColorRed           = 1 << 18,
+	ColorBlue          = 1 << 19,
+	ColorOrange        = 1 << 20,
+	ColorButtonface    = 1 << 21,
+	ColorButtonpushed  = 1 << 22,
 
-	AlignCenter        = 1 << 21,
-	AlignRight         = 1 << 22,
-	VerticalCenter     = 1 << 23,
+	AlignCenter        = 1 << 23,
+	AlignRight         = 1 << 24,
+	VerticalCenter     = 1 << 25,
 
-	KerningFitSpacing  = 1 << 24,
+	KerningFitSpacing  = 1 << 26,
 
-	ElementDisabled    = 1 << 25,
-	ElementHidden      = 1 << 26,
+	ElementDisabled    = 1 << 27,
+	ElementHidden      = 1 << 28,
 
-	PentaCursor        = 1 << 27,
-	TextCursor         = 1 << 28,
-	Outlined           = 1 << 29,
+	PentaCursor        = 1 << 29,
+	Outlined           = 1 << 30,
 
 	/** @brief Ensures that the if current element is active that the next element is also visible. */
-	NeedsNextElement   = 1 << 30,
+	NeedsNextElement   = 1U << 31U,
 	// clang-format on
 };
 use_enum_as_flags(UiFlags);

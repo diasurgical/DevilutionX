@@ -565,9 +565,8 @@ void CheckInvCut(Player &player, Point cursorPosition, bool automaticMove, bool 
 		return;
 	}
 
-	if (dropGoldFlag) {
+	if (DropGoldFlag) {
 		CloseGoldDrop();
-		dropGoldValue = 0;
 	}
 
 	uint32_t r = 0;
@@ -955,25 +954,22 @@ void StartGoldDrop()
 {
 	CloseGoldWithdraw();
 
-	initialDropGoldIndex = pcursinvitem;
+	const int8_t invIndex = pcursinvitem;
 
-	Player &myPlayer = *MyPlayer;
+	const Player &myPlayer = *MyPlayer;
 
-	if (pcursinvitem <= INVITEM_INV_LAST)
-		initialDropGoldValue = myPlayer.InvList[pcursinvitem - INVITEM_INV_FIRST]._ivalue;
-	else
-		initialDropGoldValue = myPlayer.SpdList[pcursinvitem - INVITEM_BELT_FIRST]._ivalue;
+	const int max = (invIndex <= INVITEM_INV_LAST)
+	    ? myPlayer.InvList[invIndex - INVITEM_INV_FIRST]._ivalue
+	    : myPlayer.SpdList[invIndex - INVITEM_BELT_FIRST]._ivalue;
 
 	if (talkflag)
 		control_reset_talk();
 
-	Point start = GetPanelPosition(UiPanels::Inventory, { 67, 128 });
+	const Point start = GetPanelPosition(UiPanels::Inventory, { 67, 128 });
 	SDL_Rect rect = MakeSdlRect(start.x, start.y, 180, 20);
 	SDL_SetTextInputRect(&rect);
 
-	dropGoldFlag = true;
-	dropGoldValue = 0;
-	SDL_StartTextInput();
+	OpenGoldDrop(invIndex, max);
 }
 
 int CreateGoldItemInInventorySlot(Player &player, int slotIndex, int value)
@@ -1115,11 +1111,9 @@ void DrawInv(const Surface &out)
 			if (slot == INVLOC_HAND_LEFT) {
 				if (myPlayer.GetItemLocation(myPlayer.InvBody[slot]) == ILOC_TWOHAND) {
 					InvDrawSlotBack(out, GetPanelPosition(UiPanels::Inventory, slotPos[INVLOC_HAND_RIGHT]), { slotSize[INVLOC_HAND_RIGHT].width * InventorySlotSizeInPixels.width, slotSize[INVLOC_HAND_RIGHT].height * InventorySlotSizeInPixels.height }, myPlayer.InvBody[slot]._iMagical);
-					LightTableIndex = 0;
-
 					const int dstX = GetRightPanel().position.x + slotPos[INVLOC_HAND_RIGHT].x + (frameSize.width == InventorySlotSizeInPixels.width ? INV_SLOT_HALF_SIZE_PX : 0) - 1;
 					const int dstY = GetRightPanel().position.y + slotPos[INVLOC_HAND_RIGHT].y;
-					ClxDrawLightBlended(out, { dstX, dstY }, sprite);
+					ClxDrawBlended(out, { dstX, dstY }, sprite);
 				}
 			}
 		}
@@ -1184,7 +1178,7 @@ void DrawInvBelt(const Surface &out)
 
 		if (myPlayer.SpdList[i].isUsable()
 		    && myPlayer.SpdList[i]._itype != ItemType::Gold) {
-			DrawString(out, StrCat(i + 1), { position - Displacement { 0, 12 }, InventorySlotSizeInPixels }, UiFlags::ColorWhite | UiFlags::AlignRight);
+			DrawString(out, StrCat(i + 1), { position - Displacement { 0, 12 }, InventorySlotSizeInPixels }, { UiFlags::ColorWhite | UiFlags::AlignRight });
 		}
 	}
 }
@@ -1543,9 +1537,8 @@ void CheckInvScrn(bool isShiftHeld, bool isCtrlHeld)
 void InvGetItem(Player &player, int ii)
 {
 	auto &item = Items[ii];
-	if (dropGoldFlag) {
+	if (DropGoldFlag) {
 		CloseGoldDrop();
-		dropGoldValue = 0;
 	}
 
 	if (dItem[item.position.x][item.position.y] == 0)
@@ -1617,9 +1610,8 @@ void AutoGetItem(Player &player, Item *itemPointer, int ii)
 {
 	Item &item = *itemPointer;
 
-	if (dropGoldFlag) {
+	if (DropGoldFlag) {
 		CloseGoldDrop();
-		dropGoldValue = 0;
 	}
 
 	if (dItem[item.position.x][item.position.y] == 0)
@@ -2047,9 +2039,8 @@ bool UseInvItem(int cii)
 		return true;
 	}
 
-	if (dropGoldFlag) {
+	if (DropGoldFlag) {
 		CloseGoldDrop();
-		dropGoldValue = 0;
 	}
 
 	if (item->isScroll() && leveltype == DTYPE_TOWN && !GetSpellData(item->_iSpell).isAllowedInTown()) {

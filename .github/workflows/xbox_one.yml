@@ -6,14 +6,17 @@ on:
       - master
     paths-ignore:
       - '*.md'
+      - 'docs/**'
   pull_request:
     types: [opened, synchronize]
     paths-ignore:
       - '*.md'
+      - 'docs/**'
   release:
     types: [published]
     paths-ignore:
       - '*.md'
+      - 'docs/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -24,7 +27,7 @@ jobs:
     runs-on: windows-latest
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v5
       with:
         fetch-depth: 0
 
@@ -32,7 +35,7 @@ jobs:
       uses: hendrikmuhs/ccache-action@v1.2
 
     - name: Add msbuild to PATH
-      uses: microsoft/setup-msbuild@v1.3
+      uses: microsoft/setup-msbuild@v2
       with:
         msbuild-architecture: x64
 

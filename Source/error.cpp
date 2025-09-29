@@ -11,6 +11,7 @@
 
 #include "DiabloUI/ui_flags.hpp"
 #include "engine/render/clx_render.hpp"
+#include "engine/render/primitive_render.hpp"
 #include "engine/render/text_render.hpp"
 #include "panels/info_box.hpp"
 #include "stores.h"
@@ -181,7 +182,7 @@ void DrawDiabloMsg(const Surface &out)
 
 	int lineNumber = 0;
 	for (auto &line : TextLines) {
-		DrawString(out, line, { { uiRectanglePosition.x + 109, dialogStartY + 12 + lineNumber * LineHeight }, { LineWidth, LineHeight } }, UiFlags::AlignCenter, 1, LineHeight);
+		DrawString(out, line, { { uiRectanglePosition.x + 109, dialogStartY + 12 + lineNumber * LineHeight }, { LineWidth, LineHeight } }, { UiFlags::AlignCenter, 1, LineHeight });
 		lineNumber += 1;
 	}
 

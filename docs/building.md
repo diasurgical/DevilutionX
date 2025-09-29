@@ -498,7 +498,7 @@ emrun index.html
 * Git
 * Visual Studio 2022 with the foloowing packages installed:
     * C++ (v143) Universal Windows Platform tools
-    * Windows 11 SDK (10.0.22000.0)
+    * Windows 11 SDK (10.0.26100.0)
     * Windows 10 SDK (10.0.18362.0)
     * MSVC v143 - VS 2022 C++ x64/x86 build tools
 

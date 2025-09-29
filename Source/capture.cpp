@@ -138,7 +138,7 @@ FILE *CaptureFile(std::string *dstPath)
 	const std::tm *tm = std::localtime(&tt);
 	const std::string filename = tm != nullptr
 	    ? fmt::format("Screenshot from {:04}-{:02}-{:02} {:02}-{:02}-{:02}",
-	        tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday, tm->tm_hour, tm->tm_min, tm->tm_sec)
+	          tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday, tm->tm_hour, tm->tm_min, tm->tm_sec)
 	    : "Screenshot";
 	*dstPath = StrCat(paths::PrefPath(), filename, ".pcx");
 	int i = 0;

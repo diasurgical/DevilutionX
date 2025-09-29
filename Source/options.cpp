@@ -825,10 +825,10 @@ void OptionEntryResolution::SetActiveListIndex(size_t index)
 
 OptionEntryResampler::OptionEntryResampler()
     : OptionEntryListBase("Resampler", OptionEntryFlags::CantChangeInGame
-            // When there are exactly 2 options there is no submenu, so we need to recreate the UI
-            // to reflect the change in the "Resampling quality" setting visibility.
-            | (NumResamplers == 2 ? OptionEntryFlags::RecreateUI : OptionEntryFlags::None),
-        N_("Resampler"), N_("Audio resampler"))
+              // When there are exactly 2 options there is no submenu, so we need to recreate the UI
+              // to reflect the change in the "Resampling quality" setting visibility.
+              | (NumResamplers == 2 ? OptionEntryFlags::RecreateUI : OptionEntryFlags::None),
+          N_("Resampler"), N_("Audio resampler"))
 {
 }
 void OptionEntryResampler::LoadFromIni(string_view category)
@@ -1521,7 +1521,7 @@ void KeymapperOptions::KeyReleased(SDL_Keycode key) const
 
 	// Check that the action can be triggered and that the chat or gold textbox is not
 	// open. If either of those textboxes are open, only return if the key can be used for entry into the box
-	if (!action.actionReleased || (action.enable && !action.enable()) || ((talkflag && IsTextEntryKey(key)) || (dropGoldFlag && IsNumberEntryKey(key))))
+	if (!action.actionReleased || (action.enable && !action.enable()) || ((talkflag && IsTextEntryKey(key)) || (DropGoldFlag && IsNumberEntryKey(key))))
 		return;
 
 	action.actionReleased();

@@ -15,7 +15,7 @@
 #include "playerdat.hpp"
 #include "plrmsg.h"
 #include "stores.h"
-#include "utils/endian.hpp"
+#include "utils/endian_read.hpp"
 #include "utils/log.hpp"
 #include "utils/utf8.hpp"
 

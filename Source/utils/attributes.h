@@ -11,6 +11,12 @@
 #define DVL_HAVE_ATTRIBUTE(x) 0
 #endif
 
+#if DVL_HAVE_ATTRIBUTE(pure)
+#define DVL_PURE __attribute__((pure))
+#else
+#define DVL_PURE
+#endif
+
 #if DVL_HAVE_ATTRIBUTE(format) || (defined(__GNUC__) && !defined(__clang__))
 #define DVL_PRINTF_ATTRIBUTE(fmtargnum, firstarg) \
 	__attribute__((__format__(__printf__, fmtargnum, firstarg)))
@@ -61,4 +67,30 @@
 #define DVL_RESTRICT __restrict
 #else
 #define DVL_RESTRICT __restrict__
+#endif
+
+#ifdef __has_cpp_attribute
+#if __has_cpp_attribute(assume) >= 202207L
+#define DVL_ASSUME(...) [[assume(__VA_ARGS__)]]
+#endif
+#endif
+#ifndef DVL_ASSUME
+#if defined(__clang__)
+#define DVL_ASSUME(...)                \
+	do {                               \
+		__builtin_assume(__VA_ARGS__); \
+	} while (false)
+#elif defined(_MSC_VER)
+#define DVL_ASSUME(...)        \
+	do {                       \
+		__assume(__VA_ARGS__); \
+	} while (false)
+#elif defined(__GNUC__)
+#if __GNUC__ >= 13
+#define DVL_ASSUME(...) __attribute__((__assume__(__VA_ARGS__)))
+#endif
+#endif
+#endif
+#ifndef DVL_ASSUME
+#define DVL_ASSUME(...)
 #endif

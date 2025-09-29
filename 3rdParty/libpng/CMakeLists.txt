@@ -1,5 +1,10 @@
 include(functions/FetchContent_MakeAvailableExcludeFromAll)
 
+if(CMAKE_VERSION VERSION_GREATER_EQUAL "4.0")
+  # Workaround for removal of CMake 3.5 compatibility in CMake 4.0+.
+  set(CMAKE_POLICY_VERSION_MINIMUM 3.22)
+endif()
+
 if(NOT DISABLE_LTO)
   # Force CMake to raise an error if INTERPROCEDURAL_OPTIMIZATION
   # is enabled and compiler does not support IPO

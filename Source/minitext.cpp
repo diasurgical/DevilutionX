@@ -14,6 +14,7 @@
 #include "engine/dx.h"
 #include "engine/load_cel.hpp"
 #include "engine/render/clx_render.hpp"
+#include "engine/render/primitive_render.hpp"
 #include "engine/render/text_render.hpp"
 #include "playerdat.hpp"
 #include "textdat.h"
@@ -115,7 +116,7 @@ void DrawQTextContent(const Surface &out)
 			continue;
 		}
 
-		DrawString(out, line, { { sx, sy + i * LineHeight }, { 543, LineHeight } }, UiFlags::FontSize30 | UiFlags::ColorGold);
+		DrawString(out, line, { { sx, sy + i * LineHeight }, { 543, LineHeight } }, { UiFlags::FontSize30 | UiFlags::ColorGold });
 	}
 }
 

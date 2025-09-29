@@ -11,6 +11,7 @@
 #include "cursor.h"
 #include "engine/point.hpp"
 #include "engine/render/clx_render.hpp"
+#include "engine/render/primitive_render.hpp"
 #include "gmenu.h"
 #include "inv.h"
 #include "options.h"
@@ -142,13 +143,6 @@ bool IsMouseOverGameArea()
 	return true;
 }
 
-void FillRect(const Surface &out, int x, int y, int width, int height, Uint8 col)
-{
-	for (int j = 0; j < height; j++) {
-		DrawHorizontalLine(out, { x, y + j }, width, col);
-	}
-}
-
 void DrawItemNameLabels(const Surface &out)
 {
 	const Surface clippedOut = out.subregionY(0, gnViewportHeight);
@@ -211,7 +205,7 @@ void DrawItemNameLabels(const Surface &out)
 		else
 			DrawHalfTransparentRectTo(clippedOut, label.pos.x, label.pos.y, label.width, labelHeight);
 		DrawString(clippedOut, label.text, { { label.pos.x + MarginX, label.pos.y + labelMarginTop }, { label.width, labelHeight } },
-		    item.getTextColor());
+		    { item.getTextColor() });
 	}
 	labelQueue.clear();
 }

@@ -35,7 +35,7 @@
 #include "plrmsg.h"
 #include "qol/stash.h"
 #include "stores.h"
-#include "utils/endian.hpp"
+#include "utils/endian_read.hpp"
 #include "utils/language.h"
 #include "utils/stdcompat/algorithm.hpp"
 

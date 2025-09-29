@@ -7,27 +7,10 @@
 
 #include "utils/clx_decode.hpp"
 #include "utils/clx_encode.hpp"
-#include "utils/endian.hpp"
+#include "utils/endian_read.hpp"
+#include "utils/endian_write.hpp"
 
 namespace devilution {
-
-namespace {
-
-constexpr size_t FrameHeaderSize = 10;
-
-struct SkipSize {
-	int_fast16_t wholeLines;
-	int_fast16_t xOffset;
-};
-SkipSize GetSkipSize(int_fast16_t overrun, int_fast16_t srcWidth)
-{
-	SkipSize result;
-	result.wholeLines = overrun / srcWidth;
-	result.xOffset = overrun - srcWidth * result.wholeLines;
-	return result;
-}
-
-} // namespace
 
 uint16_t Cl2ToClx(const uint8_t *data, size_t size,
     PointerOrValue<uint16_t> widthOrWidths, std::vector<uint8_t> &clxData)
@@ -55,7 +38,7 @@ uint16_t Cl2ToClx(const uint8_t *data, size_t size,
 		} else {
 			groupBegin = &data[LoadLE32(&data[group * 4])];
 			numFrames = LoadLE32(groupBegin);
-			WriteLE32(&clxData[4 * group], clxData.size());
+			WriteLE32(&clxData[4 * group], static_cast<uint32_t>(clxData.size()));
 		}
 
 		// CLX header: frame count, frame offset for each frame, file size
@@ -74,51 +57,45 @@ uint16_t Cl2ToClx(const uint8_t *data, size_t size,
 			const uint16_t frameWidth = widthOrWidths.HoldsPointer() ? widthOrWidths.AsPointer()[frame - 1] : widthOrWidths.AsValue();
 
 			const size_t frameHeaderPos = clxData.size();
-			clxData.resize(clxData.size() + FrameHeaderSize);
-			WriteLE16(&clxData[frameHeaderPos], FrameHeaderSize);
+			clxData.resize(clxData.size() + ClxFrameHeaderSize);
+			WriteLE16(&clxData[frameHeaderPos], ClxFrameHeaderSize);
 			WriteLE16(&clxData[frameHeaderPos + 2], frameWidth);
 
 			unsigned transparentRunWidth = 0;
 			int_fast16_t xOffset = 0;
 			size_t frameHeight = 0;
-			const uint8_t *src = frameBegin + FrameHeaderSize;
+			const uint8_t *src = frameBegin + LoadLE16(frameBegin);
 			while (src != frameEnd) {
 				auto remainingWidth = static_cast<int_fast16_t>(frameWidth) - xOffset;
 				while (remainingWidth > 0) {
-					const BlitCommand cmd = ClxGetBlitCommand(src);
-					switch (cmd.type) {
-					case BlitType::Transparent:
+					const uint8_t control = *src++;
+					if (!IsClxOpaque(control)) {
 						if (!pixels.empty()) {
 							AppendClxPixelsOrFillRun(pixels.data(), pixels.size(), clxData);
 							pixels.clear();
 						}
-
-						transparentRunWidth += cmd.length;
-						break;
-					case BlitType::Fill:
-					case BlitType::Pixels:
+						transparentRunWidth += control;
+						remainingWidth -= control;
+					} else if (IsClxOpaqueFill(control)) {
 						AppendClxTransparentRun(transparentRunWidth, clxData);
 						transparentRunWidth = 0;
-
-						if (cmd.type == BlitType::Fill) {
-							pixels.insert(pixels.end(), cmd.length, cmd.color);
-						} else { // BlitType::Pixels
-							pixels.insert(pixels.end(), src + 1, cmd.srcEnd);
-						}
-						break;
+						const uint8_t width = GetClxOpaqueFillWidth(control);
+						const uint8_t color = *src++;
+						pixels.insert(pixels.end(), width, color);
+						remainingWidth -= width;
+					} else {
+						AppendClxTransparentRun(transparentRunWidth, clxData);
+						transparentRunWidth = 0;
+						const uint8_t width = GetClxOpaquePixelsWidth(control);
+						pixels.insert(pixels.end(), src, src + width);
+						src += width;
+						remainingWidth -= width;
 					}
-					src = cmd.srcEnd;
-					remainingWidth -= cmd.length;
 				}
 
-				++frameHeight;
-				if (remainingWidth < 0) {
-					const auto skipSize = GetSkipSize(-remainingWidth, static_cast<int_fast16_t>(frameWidth));
-					xOffset = skipSize.xOffset;
-					frameHeight += skipSize.wholeLines;
-				} else {
-					xOffset = 0;
-				}
+				const auto skipSize = GetSkipSize(remainingWidth, static_cast<int_fast16_t>(frameWidth));
+				xOffset = skipSize.xOffset;
+				frameHeight += skipSize.wholeLines;
 			}
 			if (!pixels.empty()) {
 				AppendClxPixelsOrFillRun(pixels.data(), pixels.size(), clxData);
@@ -126,8 +103,7 @@ uint16_t Cl2ToClx(const uint8_t *data, size_t size,
 			}
 			AppendClxTransparentRun(transparentRunWidth, clxData);
 
-			WriteLE16(&clxData[frameHeaderPos + 4], frameHeight);
-			memset(&clxData[frameHeaderPos + 6], 0, 4);
+			WriteLE16(&clxData[frameHeaderPos + 4], static_cast<uint16_t>(frameHeight));
 		}
 
 		WriteLE32(&clxData[clxDataOffset + 4 * (1 + static_cast<size_t>(numFrames))], static_cast<uint32_t>(clxData.size() - clxDataOffset));

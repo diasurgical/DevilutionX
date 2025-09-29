@@ -6,14 +6,15 @@
 #include <cstdio>
 #include <cstring>
 
-#include "utils/endian.hpp"
+#include "utils/endian_read.hpp"
+#include "utils/endian_write.hpp"
 #include "utils/log.hpp"
 
 namespace devilution {
 
 inline void LoggedFread(void *buffer, size_t size, FILE *stream)
 {
-	if (std::fread(buffer, size, 1, stream) != 1) {
+	if (std::fread(buffer, size, 1, stream) != 1 && !std::feof(stream)) {
 		LogError("fread failed: {}", std::strerror(errno));
 	}
 }

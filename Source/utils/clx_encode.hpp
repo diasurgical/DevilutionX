@@ -6,6 +6,17 @@
 
 namespace devilution {
 
+/**
+ * CLX frame header is 6 bytes:
+ *
+ *  Bytes |   Type   | Value
+ * :-----:|:--------:|-------------
+ *  0..2  | uint16_t | header size
+ *  2..4  | uint16_t | width
+ *  4..6  | uint16_t | height
+ */
+constexpr size_t ClxFrameHeaderSize = 6;
+
 inline void AppendClxTransparentRun(unsigned width, std::vector<uint8_t> &out)
 {
 	while (width >= 0x7F) {
@@ -46,7 +57,7 @@ inline void AppendClxPixelsRun(const uint8_t *src, unsigned width, std::vector<u
 		out.push_back(src[i]);
 }
 
-inline void AppendClxPixelsOrFillRun(const uint8_t *src, unsigned length, std::vector<uint8_t> &out)
+inline void AppendClxPixelsOrFillRun(const uint8_t *src, size_t length, std::vector<uint8_t> &out)
 {
 	const uint8_t *begin = src;
 	const uint8_t *prevColorBegin = src;
@@ -61,7 +72,7 @@ inline void AppendClxPixelsOrFillRun(const uint8_t *src, unsigned length, std::v
 			// 3 appears to be optimal for most of our data (much better than 2, rarely very slightly worse than 4).
 			constexpr unsigned MinFillRunLength = 3;
 			if (prevColorRunLength >= MinFillRunLength) {
-				AppendClxPixelsRun(begin, prevColorBegin - begin, out);
+				AppendClxPixelsRun(begin, static_cast<unsigned>(prevColorBegin - begin), out);
 				AppendClxFillRun(prevColor, prevColorRunLength, out);
 				begin = src;
 			}
@@ -76,10 +87,10 @@ inline void AppendClxPixelsOrFillRun(const uint8_t *src, unsigned length, std::v
 	// is followed by transparent pixels.
 	// Width=2 Fill command takes 2 bytes, while the Pixels command is 3 bytes.
 	if (prevColorRunLength >= 2) {
-		AppendClxPixelsRun(begin, prevColorBegin - begin, out);
+		AppendClxPixelsRun(begin, static_cast<unsigned>(prevColorBegin - begin), out);
 		AppendClxFillRun(prevColor, prevColorRunLength, out);
 	} else {
-		AppendClxPixelsRun(begin, prevColorBegin - begin + prevColorRunLength, out);
+		AppendClxPixelsRun(begin, static_cast<unsigned>(prevColorBegin - begin + prevColorRunLength), out);
 	}
 }
 

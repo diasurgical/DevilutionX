@@ -16,7 +16,9 @@
 
 #include <algorithm>
 #include <climits>
+#include <cstddef>
 #include <cstdint>
+#include <string>
 
 #include "engine/render/blit_impl.hpp"
 #include "lighting.h"
@@ -1175,7 +1177,7 @@ void RenderTile(const Surface &out, Point position,
 
 #ifdef DEBUG_STR
 	const std::pair<string_view, UiFlags> debugStr = GetTileDebugStr(tile);
-	DrawString(out, debugStr.first, Rectangle { Point { position.x + 2, position.y - 29 }, Size { 28, 28 } }, debugStr.second);
+	DrawString(out, debugStr.first, Rectangle { Point { position.x + 2, position.y - 29 }, Size { 28, 28 } }, { debugStr.second });
 #endif
 }
 
