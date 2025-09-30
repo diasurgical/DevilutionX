@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: DevilutionX\n"
 "POT-Creation-Date: 2025-09-30 09:04-0300\n"
-"PO-Revision-Date: 2025-09-30 09:04-0300\n"
+"PO-Revision-Date: 2025-09-30 09:19-0300\n"
 "Last-Translator: Emiliano Augusto Gonzalez <emigonza@gmail.com>\n"
 "Language-Team: Spanish\n"
 "Language: es\n"
@@ -1195,10 +1195,8 @@ msgid "Hit Points {:d} of {:d}"
 msgstr "Vida {:d} de {:d}"
 
 #: Source/control.cpp:1525
-#, fuzzy
-#| msgid "Right-click to use"
 msgid "Right click to inspect"
-msgstr "Clic derecho para usar"
+msgstr "Clic derecho para inspeccionar"
 
 #: Source/control.cpp:1573
 msgid "Level Up"
@@ -1349,7 +1347,7 @@ msgstr "Habilitar el registro detallado"
 #. TRANSLATORS: Commandline Option
 #: Source/diablo.cpp:999
 msgid "Log to a file instead of stderr"
-msgstr ""
+msgstr "Log en un archivo en lugar de stderr"
 
 #. TRANSLATORS: Commandline Option
 #: Source/diablo.cpp:1002
@@ -1570,11 +1568,11 @@ msgstr "Abrir pantalla de Personaje."
 
 #: Source/diablo.cpp:1928
 msgid "Party"
-msgstr ""
+msgstr "Grupo"
 
 #: Source/diablo.cpp:1929
 msgid "Open side Party panel."
-msgstr ""
+msgstr "Abrir panel lateral de Grupo"
 
 #: Source/diablo.cpp:1936 Source/diablo.cpp:2274
 msgid "Quest log"
@@ -1782,46 +1780,36 @@ msgid "Toggle whether the player moves."
 msgstr "Alternar mientras el jugador se mueve."
 
 #: Source/diablo.cpp:2310
-#, fuzzy
-#| msgid "Automap"
 msgid "Automap Move Up"
-msgstr "Automapa"
+msgstr "Subir Automapa"
 
 #: Source/diablo.cpp:2311
 msgid "Moves the automap up when active."
-msgstr ""
+msgstr "Mueve el automapa hacia arriba cuando está activo."
 
 #: Source/diablo.cpp:2316
-#, fuzzy
-#| msgid "Move down"
 msgid "Automap Move Down"
-msgstr "Descender"
+msgstr "Bajar Automapa"
 
 #: Source/diablo.cpp:2317
 msgid "Moves the automap down when active."
-msgstr ""
+msgstr "Mueve el automapa hacia abajo cuando está activo."
 
 #: Source/diablo.cpp:2322
-#, fuzzy
-#| msgid "Move left"
 msgid "Automap Move Left"
-msgstr "Mover a la izquierda"
+msgstr "Mover Automapa a la izquierda"
 
 #: Source/diablo.cpp:2323
-#, fuzzy
-#| msgid "Moves the player character up."
 msgid "Moves the automap left when active."
-msgstr "Mueve el personaje del jugador hacia arriba."
+msgstr "Mueve el automapa hacia la izquierda cuando está activo."
 
 #: Source/diablo.cpp:2328
-#, fuzzy
-#| msgid "Move right"
 msgid "Automap Move Right"
-msgstr "Mover a la derecha"
+msgstr "Mover Automapa a la derecha"
 
 #: Source/diablo.cpp:2329
 msgid "Moves the automap right when active."
-msgstr ""
+msgstr "Mueve el automapa hacia la derecha cuando está activo."
 
 #: Source/diablo.cpp:2334
 msgid "Move mouse up"
@@ -3515,7 +3503,7 @@ msgstr "No se puede mostrar el menú principal"
 
 #: Source/monstdat.cpp:331 Source/monstdat.cpp:344
 msgid "Loading Monster Data Failed"
-msgstr ""
+msgstr "Error al cargar los datos del monstruo"
 
 #: Source/monstdat.cpp:331
 #, c++-format
@@ -3523,11 +3511,13 @@ msgid ""
 "Could not add a monster, since the maximum monster type number of {} has "
 "already been reached."
 msgstr ""
+"No se pudo agregar un monstruo, ya que el número máximo de tipo de monstruo "
+"de {} ha sido alcanzado."
 
 #: Source/monstdat.cpp:344
 #, c++-format
 msgid "A monster type already exists for ID \"{}\"."
-msgstr ""
+msgstr "Ya existe un tipo de monstruo para el ID \"{}\"."
 
 #: Source/monster.cpp:2990
 msgid "Animal"
@@ -4467,15 +4457,15 @@ msgid "Displays current / max mana value on mana globe."
 msgstr "Muestra el valor de maná actual/máximo en el globo de maná."
 
 #: Source/options.cpp:797
-#, fuzzy
-#| msgid "Character Information"
 msgid "Show Party Information"
-msgstr "Información del Personaje"
+msgstr "Mostrar Información del Grupo"
 
 #: Source/options.cpp:797
 msgid ""
 "Displays the health and mana of all connected multiplayer party members."
 msgstr ""
+"Muestra la salud y el maná de todos los miembros del grupo multijugador "
+"conectados."
 
 #: Source/options.cpp:798
 msgid "Enemy Health Bar"
@@ -4488,11 +4478,13 @@ msgstr ""
 
 #: Source/options.cpp:799
 msgid "Floating Item Info Box"
-msgstr ""
+msgstr "Cuadro de información de elemento flotante"
 
 #: Source/options.cpp:799
 msgid "Displays item info in a floating box when hovering over an item."
 msgstr ""
+"Muestra la información del artículo en un cuadro flotante al pasar el cursor "
+"sobre un artículo."
 
 #: Source/options.cpp:800
 msgid "Gold is automatically collected when in close proximity to the player."
@@ -4894,7 +4886,7 @@ msgstr "No se puede cargar el personaje"
 
 #: Source/playerdat.cpp:320
 msgid "Loading Class Data Failed"
-msgstr ""
+msgstr "Error al cargar datos de la clase"
 
 #: Source/playerdat.cpp:320
 #, c++-format
@@ -4902,6 +4894,8 @@ msgid ""
 "Could not add a class, since the maximum class number of {} has already been "
 "reached."
 msgstr ""
+"No se pudo agregar una clase, ya que se alcanzó el número máximo de clases "
+"de {}."
 
 #: Source/plrmsg.cpp:79 Source/qol/chatlog.cpp:130
 #, c++-format
@@ -5335,12 +5329,12 @@ msgstr "Tu oro: {:s}"
 
 #: Source/textdat.cpp:72
 msgid "Loading Text Data Failed"
-msgstr ""
+msgstr "Error al cargar datos de texto"
 
 #: Source/textdat.cpp:72
 #, c++-format
 msgid "A text data entry already exists for ID \"{}\"."
-msgstr ""
+msgstr "Ya existe una entrada de datos de texto para el ID \"{}\"."
 
 #: Source/towners.cpp:269
 msgid "Slain Townsman"
@@ -6475,7 +6469,7 @@ msgstr "Mapa de la Catedral"
 
 #: Source/translation_dummy.cpp:233
 msgid "Ear"
-msgstr ""
+msgstr "Oreja"
 
 #: Source/translation_dummy.cpp:234
 msgid "Potion of Healing"
@@ -6978,10 +6972,8 @@ msgid "The Butcher's Cleaver"
 msgstr "La Cuchilla del Carnicero"
 
 #: Source/translation_dummy.cpp:364
-#, fuzzy
-#| msgid "Lightsabre"
 msgid "Lightforge"
-msgstr "Sable de Luz"
+msgstr "Forja de luz"
 
 #: Source/translation_dummy.cpp:365
 msgid "The Rift Bow"
