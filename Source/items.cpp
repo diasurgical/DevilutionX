@@ -4603,6 +4603,8 @@ void SpawnBoy(int lvl)
 				if (IsAnyOf(itemType, ItemType::Bow, ItemType::Staff))
 					ivalue = INT_MAX;
 				break;
+			default:
+				break;
 			}
 		}
 	} while (keepgoing

@@ -2756,6 +2756,8 @@ StartPlayerKill(Player &player, DeathReason deathReason)
 				case HeroClass::Barbarian:
 					ear._iCurs = ICURS_EAR_ROGUE;
 					break;
+				default:
+					break;
 				}
 
 				ear._iCreateInfo = player._pName[0] << 8 | player._pName[1];
