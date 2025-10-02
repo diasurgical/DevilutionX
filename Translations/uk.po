@@ -15,7 +15,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
 "n%10<=4 && (n%100<12 || n%100>14) ? 1 : 2);\n"
-"X-Generator: Poedit 3.6\n"
+"X-Generator: Poedit 3.7\n"
 "X-Poedit-SourceCharset: UTF-8\n"
 "X-Poedit-KeywordsList: _;N_;P_:1c,2\n"
 "X-Poedit-Basepath: ..\n"
@@ -1185,10 +1185,8 @@ msgid "Hit Points {:d} of {:d}"
 msgstr "Здоров'я {:d} з {:d}"
 
 #: Source/control.cpp:1525
-#, fuzzy
-#| msgid "Right-click to use"
 msgid "Right click to inspect"
-msgstr "Правий клік щоб використати"
+msgstr "Правий клік щоб оглянути"
 
 #: Source/control.cpp:1573
 msgid "Level Up"
@@ -1340,7 +1338,7 @@ msgstr "Ввімкнути велемовне логування"
 #. TRANSLATORS: Commandline Option
 #: Source/diablo.cpp:999
 msgid "Log to a file instead of stderr"
-msgstr ""
+msgstr "Писати лог в файл, замість stderr"
 
 #. TRANSLATORS: Commandline Option
 #: Source/diablo.cpp:1002
@@ -1556,11 +1554,11 @@ msgstr "Відкрити вікно Героя."
 
 #: Source/diablo.cpp:1928
 msgid "Party"
-msgstr ""
+msgstr "Група"
 
 #: Source/diablo.cpp:1929
 msgid "Open side Party panel."
-msgstr ""
+msgstr "Відкрити панель Групи."
 
 #: Source/diablo.cpp:1936 Source/diablo.cpp:2274
 msgid "Quest log"
@@ -1768,46 +1766,36 @@ msgid "Toggle whether the player moves."
 msgstr "Перемикає, чи може гравець рухатись."
 
 #: Source/diablo.cpp:2310
-#, fuzzy
-#| msgid "Automap"
 msgid "Automap Move Up"
-msgstr "Автокарта"
+msgstr "Перемістити Автокарту Вгору"
 
 #: Source/diablo.cpp:2311
 msgid "Moves the automap up when active."
-msgstr ""
+msgstr "При активації, переміщує автокарту вгору."
 
 #: Source/diablo.cpp:2316
-#, fuzzy
-#| msgid "Move down"
 msgid "Automap Move Down"
-msgstr "Ідти вниз"
+msgstr "Перемістити Автокарту Вниз"
 
 #: Source/diablo.cpp:2317
 msgid "Moves the automap down when active."
-msgstr ""
+msgstr "При активації, переміщує автокарту вниз."
 
 #: Source/diablo.cpp:2322
-#, fuzzy
-#| msgid "Move left"
 msgid "Automap Move Left"
-msgstr "Ідти вліво"
+msgstr "Перемістити Автокарту Вліво"
 
 #: Source/diablo.cpp:2323
-#, fuzzy
-#| msgid "Moves the player character up."
 msgid "Moves the automap left when active."
-msgstr "Переміщує персонажа гравця вгору."
+msgstr "При активації, переміщує автокарту вліво."
 
 #: Source/diablo.cpp:2328
-#, fuzzy
-#| msgid "Move right"
 msgid "Automap Move Right"
-msgstr "Ідти вправо"
+msgstr "Перемістити Автокарту Вправо"
 
 #: Source/diablo.cpp:2329
 msgid "Moves the automap right when active."
-msgstr ""
+msgstr "При активації, переміщує автокарту вправо."
 
 #: Source/diablo.cpp:2334
 msgid "Move mouse up"
@@ -3463,12 +3451,14 @@ msgid ""
 "Stash version invalid. If you attempt to access your stash, data will be "
 "overwritten!!"
 msgstr ""
+"Версія схованки невірна. Дані будуть перезаписані при спробі зайти до неї!!!"
 
 #: Source/loadsave.cpp:2443
 msgid ""
 "Stash size invalid. If you attempt to access your stash, data will be "
 "overwritten!!"
 msgstr ""
+"Розмір схованки невірний. Дані будуть перезаписані при спробі зайти до неї!!!"
 
 #: Source/loadsave.cpp:2474
 msgid "Invalid save file"
@@ -3488,7 +3478,7 @@ msgstr "Неможливо показати головне меню"
 
 #: Source/monstdat.cpp:331 Source/monstdat.cpp:344
 msgid "Loading Monster Data Failed"
-msgstr ""
+msgstr "Не вдалося завантажити дані про монстра"
 
 #: Source/monstdat.cpp:331
 #, c++-format
@@ -3496,11 +3486,13 @@ msgid ""
 "Could not add a monster, since the maximum monster type number of {} has "
 "already been reached."
 msgstr ""
+"Не вдалося додати монстра, оскільки максимальний номер типу монстра {} вже "
+"досягнуто."
 
 #: Source/monstdat.cpp:344
 #, c++-format
 msgid "A monster type already exists for ID \"{}\"."
-msgstr ""
+msgstr "Для ідентифікатора \"{}\" вже існує тип монстра."
 
 #: Source/monster.cpp:2990
 msgid "Animal"
@@ -4423,15 +4415,15 @@ msgid "Displays current / max mana value on mana globe."
 msgstr "Показує значення поточної/максимальної мани на кулі мани."
 
 #: Source/options.cpp:797
-#, fuzzy
-#| msgid "Character Information"
 msgid "Show Party Information"
-msgstr "Інформація про Героя"
+msgstr "Показати Інформацію про Групу"
 
 #: Source/options.cpp:797
 msgid ""
 "Displays the health and mana of all connected multiplayer party members."
 msgstr ""
+"Відображає рівень здоров'я та мани всіх підключених учасників мережевої "
+"групи."
 
 #: Source/options.cpp:798
 msgid "Enemy Health Bar"
@@ -4443,11 +4435,13 @@ msgstr "Додає внизу екрана Шкалу Ворожого Житт�
 
 #: Source/options.cpp:799
 msgid "Floating Item Info Box"
-msgstr ""
+msgstr "Плаваюче Інформаційне Вікно Предмету"
 
 #: Source/options.cpp:799
 msgid "Displays item info in a floating box when hovering over an item."
 msgstr ""
+"Відображає інформацію про предмет у плаваючому вікні при наведенні на нього "
+"курсору."
 
 #: Source/options.cpp:800
 msgid "Gold is automatically collected when in close proximity to the player."
@@ -4833,7 +4827,7 @@ msgstr "Неможливо завантажити героя"
 
 #: Source/playerdat.cpp:320
 msgid "Loading Class Data Failed"
-msgstr ""
+msgstr "Не вдалося завантажити дані класу"
 
 #: Source/playerdat.cpp:320
 #, c++-format
@@ -4841,6 +4835,7 @@ msgid ""
 "Could not add a class, since the maximum class number of {} has already been "
 "reached."
 msgstr ""
+"Не вдалося додати клас, оскільки максимальний номер класу {} вже досягнуто."
 
 #: Source/plrmsg.cpp:79 Source/qol/chatlog.cpp:130
 #, c++-format
@@ -5274,12 +5269,12 @@ msgstr "Ваше золото: {:s}"
 
 #: Source/textdat.cpp:72
 msgid "Loading Text Data Failed"
-msgstr ""
+msgstr "Не вдалося завантажити текстові дані"
 
 #: Source/textdat.cpp:72
 #, c++-format
 msgid "A text data entry already exists for ID \"{}\"."
-msgstr ""
+msgstr "Для ідентифікатора \"{}\" вже існує текстовий запис."
 
 #: Source/towners.cpp:269
 msgid "Slain Townsman"
@@ -6438,7 +6433,7 @@ msgstr "Карта Собору"
 
 #: Source/translation_dummy.cpp:239
 msgid "Ear"
-msgstr ""
+msgstr "Вухо"
 
 #: Source/translation_dummy.cpp:240
 msgid "Potion of Healing"
@@ -6941,10 +6936,8 @@ msgid "The Butcher's Cleaver"
 msgstr "Сікач М'ясника"
 
 #: Source/translation_dummy.cpp:370
-#, fuzzy
-#| msgid "Lightsabre"
 msgid "Lightforge"
-msgstr "Світловий Меч"
+msgstr "Горно Світла"
 
 #: Source/translation_dummy.cpp:371
 msgid "The Rift Bow"
