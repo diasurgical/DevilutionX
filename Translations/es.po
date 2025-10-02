@@ -6,8 +6,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: DevilutionX\n"
-"POT-Creation-Date: 2025-10-02 13:53+0300\n"
-"PO-Revision-Date: 2025-10-02 13:53+0300\n"
+"POT-Creation-Date: 2025-10-02 15:19+0200\n"
+"PO-Revision-Date: 2025-10-02 15:19+0200\n"
 "Last-Translator: Oleksandr Kalko (tsunami_state) <tsunami.wave@ukr.net>\n"
 "Language-Team: Spanish\n"
 "Language: es\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Poedit 3.7\n"
+"X-Generator: Poedit 3.6\n"
 "X-Poedit-SourceCharset: UTF-8\n"
 "X-Poedit-KeywordsList: _;N_;P_:1c,2\n"
 "X-Poedit-Basepath: ..\n"
@@ -8053,6 +8053,10 @@ msgstr "Lachdanan"
 msgid "The Butcher"
 msgstr "El Carnicero"
 
+#: Source/translation_dummy.cpp:632
+msgid "Ogden's Sign"
+msgstr "Signo de Ogden"
+
 #: Source/translation_dummy.cpp:633
 msgid "Halls of the Blind"
 msgstr "Pasillos de los Ciegos"
@@ -8077,6 +8081,10 @@ msgstr "Arzobispo Lazarus"
 msgid "Grave Matters"
 msgstr "Asuntos de Tumbas"
 
+#: Source/translation_dummy.cpp:641
+msgid "Farmer's Orchard"
+msgstr "Huerto del Granjero"
+
 #: Source/translation_dummy.cpp:642
 msgid "Little Girl"
 msgstr "Niñita"
@@ -8092,6 +8100,10 @@ msgstr "El Profanador"
 #: Source/translation_dummy.cpp:645
 msgid "Na-Krul"
 msgstr "Na-Krul"
+
+#: Source/translation_dummy.cpp:647
+msgid "The Jersey's Jersey"
+msgstr "El Jersey de Jersey"
 
 #: Source/translation_dummy.cpp:648
 msgctxt "spell"
@@ -12122,15 +12134,6 @@ msgstr ","
 
 #~ msgid "Trying to drop a floor item?"
 #~ msgstr "¿Está intentando lanzar un objeto al suelo?"
-
-#~ msgid "Ogden's Sign"
-#~ msgstr "Signo de Ogden"
-
-#~ msgid "Farmer's Orchard"
-#~ msgstr "Huerto del Granjero"
-
-#~ msgid "The Jersey's Jersey"
-#~ msgstr "El Jersey de Jersey"
 
 #~ msgid "Heart"
 #~ msgstr "Corazón"
