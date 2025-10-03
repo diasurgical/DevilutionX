@@ -14,7 +14,7 @@ msgstr ""
 "Project-Id-Version: DevilutionX\n"
 "POT-Creation-Date: 2025-10-03 17:01+0300\n"
 "PO-Revision-Date: \n"
-"Last-Translator: Maderator Creator\n"
+"Last-Translator: Maderator Creator0\n"
 "Language-Team: \n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
@@ -108,7 +108,7 @@ msgstr "Помощник продюсера"
 #. TRANSLATORS: Keep Strike Team as Name
 #: Source/DiabloUI/credits_lines.cpp:75
 msgid "Diablo Strike Team"
-msgstr "Ударная команда Diablo"
+msgstr "Diablo Strike Team"
 
 #: Source/DiabloUI/credits_lines.cpp:79 Source/gamemenu.cpp:79
 msgid "Music"
@@ -132,7 +132,7 @@ msgstr "Сценарий и история"
 
 #: Source/DiabloUI/credits_lines.cpp:95
 msgid "Voice Editing"
-msgstr "Обработка озвучивания"
+msgstr "Обработка озвучки"
 
 #: Source/DiabloUI/credits_lines.cpp:98 Source/DiabloUI/credits_lines.cpp:252
 msgid "Voices"
@@ -374,8 +374,8 @@ msgid ""
 "The Rogue and Sorcerer are only available in the full retail version of "
 "Diablo. Visit https://www.gog.com/game/diablo to purchase."
 msgstr ""
-"Разбойник и маг доступны только в полной версии Diablo. Перейдите на https://"
-"www.gog.com/game/diablo для покупки."
+"Разбойница и маг доступны только в полной версии Diablo. Перейдите на "
+"https://www.gog.com/game/diablo для покупки."
 
 #: Source/DiabloUI/hero/selhero.cpp:304 Source/DiabloUI/hero/selhero.cpp:307
 msgid "Enter Name"
@@ -1208,10 +1208,8 @@ msgid "Hit Points {:d} of {:d}"
 msgstr "Здоровье {:d} из {:d}"
 
 #: Source/control.cpp:1525
-#, fuzzy
-#| msgid "Right-click to use"
 msgid "Right click to inspect"
-msgstr "Правый клик для использования"
+msgstr "Правый клик для проверки"
 
 #: Source/control.cpp:1573
 msgid "Level Up"
@@ -1362,7 +1360,7 @@ msgstr "Включить подробное логирование"
 #. TRANSLATORS: Commandline Option
 #: Source/diablo.cpp:999
 msgid "Log to a file instead of stderr"
-msgstr ""
+msgstr "Записать лог в файл, вместо stderr"
 
 #. TRANSLATORS: Commandline Option
 #: Source/diablo.cpp:1002
@@ -1582,11 +1580,11 @@ msgstr "Открыть экран персонажа."
 
 #: Source/diablo.cpp:1928
 msgid "Party"
-msgstr ""
+msgstr "Группа"
 
 #: Source/diablo.cpp:1929
 msgid "Open side Party panel."
-msgstr ""
+msgstr "Открыть панель группы."
 
 #: Source/diablo.cpp:1936 Source/diablo.cpp:2274
 msgid "Quest log"
@@ -1795,46 +1793,36 @@ msgid "Toggle whether the player moves."
 msgstr "Переключить на ходьбу."
 
 #: Source/diablo.cpp:2310
-#, fuzzy
-#| msgid "Automap"
 msgid "Automap Move Up"
-msgstr "Автокарта"
+msgstr "Переместить автокарту вверх"
 
 #: Source/diablo.cpp:2311
 msgid "Moves the automap up when active."
-msgstr ""
+msgstr "При активации перемещает автокарту вверх."
 
 #: Source/diablo.cpp:2316
-#, fuzzy
-#| msgid "Move down"
 msgid "Automap Move Down"
-msgstr "Движение вниз"
+msgstr "Переместить автокарту вниз"
 
 #: Source/diablo.cpp:2317
 msgid "Moves the automap down when active."
-msgstr ""
+msgstr "При активации перемещает автокарту вниз."
 
 #: Source/diablo.cpp:2322
-#, fuzzy
-#| msgid "Move left"
 msgid "Automap Move Left"
-msgstr "Движение влево"
+msgstr "Переместить автокарту влево"
 
 #: Source/diablo.cpp:2323
-#, fuzzy
-#| msgid "Moves the player character up."
 msgid "Moves the automap left when active."
-msgstr "Перемещает персонажа вверх."
+msgstr "При активации перемещает автокарту влево."
 
 #: Source/diablo.cpp:2328
-#, fuzzy
-#| msgid "Move right"
 msgid "Automap Move Right"
-msgstr "Движение вправо"
+msgstr "Переместить автокарту вправо"
 
 #: Source/diablo.cpp:2329
 msgid "Moves the automap right when active."
-msgstr ""
+msgstr "При активации перемещает автокарту вправо."
 
 #: Source/diablo.cpp:2334
 msgid "Move mouse up"
@@ -1973,9 +1961,6 @@ msgstr "Меч правосудия быстр и остр"
 msgid "While the spirit is vigilant the body thrives"
 msgstr "В здоровом теле здоровый дух"
 
-# Явно не "Перефокусированные силы маны обновляются"
-# ---------------------------------------------
-# Поменял на "мощь". Больше пафоса!
 #. TRANSLATORS: Shrine Text. Keep atmospheric. :)
 #: Source/diablo_msg.cpp:79
 msgid "The powers of mana refocused renews"
@@ -2501,7 +2486,7 @@ msgid ""
 "attack without moving."
 msgstr ""
 "Если удерживать клавишу shift, а затем щёлкнуть левой кнопкой мыши, персонаж "
-"может атаковать, не двигаясь."
+"будет атаковать, не передвигаясь."
 
 #: Source/help.cpp:57
 msgid "$Auto-map:"
@@ -2546,7 +2531,7 @@ msgid ""
 "of gold in your inventory."
 msgstr ""
 "Вы можете выбрать определённое количество золота для сброса, щёлкнув правой "
-"кнопкой мыши на куче золота в инвентаре."
+"кнопкой мыши по куче золота в инвентаре."
 
 #: Source/help.cpp:74
 msgid "$Skills & Spells:"
@@ -2561,7 +2546,7 @@ msgid ""
 "in the play area."
 msgstr ""
 "Вы можете получить доступ к списку навыков и заклинаний, нажав левой кнопкой "
-"мыши на кнопку 'ЗАКЛ' на панели интерфейса. Здесь перечислены запомненные "
+"мыши на кнопку 'МАГИЯ' на панели интерфейса. Здесь перечислены запомненные "
 "заклинания, а также заклинания, доступные при помощи посохов. Щёлкнув левой "
 "кнопкой мыши на заклинании, которое вы хотите произнести, вы подготовите "
 "заклинание. Готовое заклинание можно применить, просто щёлкнув правой "
@@ -3268,9 +3253,7 @@ msgstr[2] "+{:d} очков к урону"
 msgid "fires random speed arrows"
 msgstr "выпускает случайные быстрые стрелы"
 
-# этот параметр бесполезен, можно хоть матом писать
-# ᅠ ᅠᅠ
-# Было принято решение привести к общему виду "изменённая прочность" и "изменённый урон" соответственно
+# этот параметр бесполезен, можно хоть матом писать | Было принято решение привести к общему виду "изменённая прочность" и "изменённый урон" соответственно
 #: Source/items.cpp:4033
 msgid "unusual item damage"
 msgstr "изменённый урон"
@@ -3542,7 +3525,7 @@ msgstr "Невозможно отобразить главное меню"
 
 #: Source/monstdat.cpp:331 Source/monstdat.cpp:344
 msgid "Loading Monster Data Failed"
-msgstr ""
+msgstr "Не удалось загрузить данные монстров"
 
 #: Source/monstdat.cpp:331
 #, c++-format
@@ -3550,11 +3533,13 @@ msgid ""
 "Could not add a monster, since the maximum monster type number of {} has "
 "already been reached."
 msgstr ""
+"Не удалось добавить монстра, так как максимальный номер монстра {} уже "
+"достигнут."
 
 #: Source/monstdat.cpp:344
 #, c++-format
 msgid "A monster type already exists for ID \"{}\"."
-msgstr ""
+msgstr "Тип монстра для ID \"{}\" уже существует."
 
 #: Source/monster.cpp:2990
 msgid "Animal"
@@ -4187,7 +4172,7 @@ msgstr "Качество передискретизации"
 msgid "Quality of the resampler, from 0 (lowest) to 5 (highest)."
 msgstr "Качество передискретизации, от 0 (самое низкое) до 5 (самое высокое)."
 
-# Полный корректный перевод не влазит в 3 строки.
+# Убрал лишнюю инфу
 #: Source/options.cpp:535
 msgid ""
 "Affect the game's internal resolution and determine your view area. Note: "
@@ -4195,8 +4180,7 @@ msgid ""
 "Fit to Screen is used."
 msgstr ""
 "Влияет на внутреннее разрешение игры и определяет область просмотра. "
-"Примечание: зависит от использованного типа масштабирования (Upscaling, "
-"Integer Scaling или Fit to Screen)."
+"Примечание: зависит от используемого типа масштабирования."
 
 #: Source/options.cpp:574
 msgid "Resampler"
@@ -4491,15 +4475,14 @@ msgid "Displays current / max mana value on mana globe."
 msgstr "Отображает текущее/максимальное значение маны на шаре маны."
 
 #: Source/options.cpp:797
-#, fuzzy
-#| msgid "Character Information"
 msgid "Show Party Information"
-msgstr "Информация о персонаже"
+msgstr "Показывать информацию о группе"
 
 #: Source/options.cpp:797
 msgid ""
 "Displays the health and mana of all connected multiplayer party members."
 msgstr ""
+"Отображает уровень здоровья и маны всех участников группы сетевой игры."
 
 #: Source/options.cpp:798
 msgid "Enemy Health Bar"
@@ -4511,11 +4494,13 @@ msgstr "Полоса здоровья врага отображается в в�
 
 #: Source/options.cpp:799
 msgid "Floating Item Info Box"
-msgstr ""
+msgstr "Всплывающая информация предмета"
 
 #: Source/options.cpp:799
 msgid "Displays item info in a floating box when hovering over an item."
 msgstr ""
+"При наведении курсора мыши на предмет показывает информацию о нём во "
+"всплывающем окне."
 
 #: Source/options.cpp:800
 msgid "Gold is automatically collected when in close proximity to the player."
@@ -4728,7 +4713,9 @@ msgstr "Настройки модов"
 
 #: Source/panels/charpanel.cpp:133
 msgid "Level"
-msgstr "Уровень"
+msgstr ""
+"Уро-\n"
+"вень"
 
 #: Source/panels/charpanel.cpp:135
 msgid "Experience"
@@ -4811,7 +4798,7 @@ msgstr "Сопр. молнии"
 
 #: Source/panels/mainpanel.cpp:91
 msgid "char"
-msgstr "перс"
+msgstr "персонаж"
 
 #: Source/panels/mainpanel.cpp:92
 msgid "quests"
@@ -4827,11 +4814,11 @@ msgstr "меню"
 
 #: Source/panels/mainpanel.cpp:95
 msgid "inv"
-msgstr "инв"
+msgstr "инвентарь"
 
 #: Source/panels/mainpanel.cpp:96
 msgid "spells"
-msgstr "закл"
+msgstr "магия"
 
 #: Source/panels/mainpanel.cpp:106 Source/panels/mainpanel.cpp:132
 #: Source/panels/mainpanel.cpp:134
@@ -4864,10 +4851,10 @@ msgstr "Лечение: {:d} - {:d}"
 msgid "Damage: {:d} - {:d}"
 msgstr "Урон: {:d} - {:d}"
 
-# Why "умение", but "навык"?
+# Why "умение", but "навык"? | Ну навык так навык
 #: Source/panels/spell_book.cpp:172 Source/panels/spell_list.cpp:152
 msgid "Skill"
-msgstr "Умение"
+msgstr "Навык"
 
 #: Source/panels/spell_book.cpp:176
 #, c++-format
@@ -4891,10 +4878,10 @@ msgctxt "spellbook"
 msgid "Mana: {:d}"
 msgstr "Мана: {:d}"
 
-# Why "чары", but "заклинание"?
+# Why "чары", but "заклинание"? | Будет магия в соответствии с новым переводом кнопки "spells"
 #: Source/panels/spell_list.cpp:159
 msgid "Spell"
-msgstr "Чары"
+msgstr "Магия"
 
 #: Source/panels/spell_list.cpp:162
 msgid "Damages undead only"
@@ -4911,7 +4898,7 @@ msgstr "Посох"
 #: Source/panels/spell_list.cpp:194
 #, c++-format
 msgid "Spell Hotkey {:s}"
-msgstr "Горячая клавиша заклинания {:s}"
+msgstr "Горячая клавиша магии {:s}"
 
 #: Source/pfile.cpp:762
 msgid "Unable to open archive"
@@ -4923,7 +4910,7 @@ msgstr "Невозможно загрузить персонажа"
 
 #: Source/playerdat.cpp:320
 msgid "Loading Class Data Failed"
-msgstr ""
+msgstr "Не удалось загрузить данные классов"
 
 #: Source/playerdat.cpp:320
 #, c++-format
@@ -4931,11 +4918,13 @@ msgid ""
 "Could not add a class, since the maximum class number of {} has already been "
 "reached."
 msgstr ""
+"Не удалось добавить класс, так как максимальный номер класса {} уже "
+"достигнут."
 
 #: Source/plrmsg.cpp:79 Source/qol/chatlog.cpp:130
 #, c++-format
 msgid "{:s} (lvl {:d}): "
-msgstr "{:s} (урвн {:d}): "
+msgstr "{:s} (ур {:d}): "
 
 #: Source/qol/chatlog.cpp:170
 #, c++-format
@@ -4978,7 +4967,7 @@ msgstr "{:s} до уровня {:d}"
 #. TRANSLATORS: Quest Map
 #: Source/quests.cpp:76
 msgid "King Leoric's Tomb"
-msgstr "Могила Короля Леорика"
+msgstr "Гробница Короля Леорика"
 
 #. TRANSLATORS: Quest Map
 #: Source/quests.cpp:77 Source/translation_dummy.cpp:638
@@ -5015,7 +5004,7 @@ msgstr "Вот кое-что для тебя."
 
 #: Source/quick_messages.cpp:13
 msgid "Now you DIE!"
-msgstr "Сейчас ты СДОХНЕШЬ!"
+msgstr "Сейчас ты УМРЁШЬ!"
 
 #: Source/quick_messages.cpp:14
 msgid "Heal yourself!"
@@ -5366,12 +5355,12 @@ msgstr "Ваше золото: {:s}"
 
 #: Source/textdat.cpp:72
 msgid "Loading Text Data Failed"
-msgstr ""
+msgstr "Не удалось загрузить данные текста"
 
 #: Source/textdat.cpp:72
 #, c++-format
 msgid "A text data entry already exists for ID \"{}\"."
-msgstr ""
+msgstr "Для ID \"{}\" уже существует текстовая запись данных."
 
 #: Source/towners.cpp:269
 msgid "Slain Townsman"
@@ -5427,7 +5416,7 @@ msgstr "Воин"
 
 #: Source/translation_dummy.cpp:12
 msgid "Rogue"
-msgstr "Разбойник"
+msgstr "Разбойница"
 
 #: Source/translation_dummy.cpp:13
 msgid "Sorcerer"
@@ -6546,7 +6535,7 @@ msgstr "Карта Собора"
 
 #: Source/translation_dummy.cpp:239
 msgid "Ear"
-msgstr ""
+msgstr "Ухо"
 
 #: Source/translation_dummy.cpp:240
 msgid "Potion of Healing"
@@ -7049,10 +7038,8 @@ msgid "The Butcher's Cleaver"
 msgstr "Тесак Мясника"
 
 #: Source/translation_dummy.cpp:370
-#, fuzzy
-#| msgid "Lightsabre"
 msgid "Lightforge"
-msgstr "Световой Меч"
+msgstr "Световой Горн"
 
 #: Source/translation_dummy.cpp:371
 msgid "The Rift Bow"
