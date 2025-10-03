@@ -185,7 +185,7 @@ void SelheroListSelect(size_t value)
 			}
 
 			const PlayerData &playerData = GetPlayerDataForClass(heroClass);
-			vecSelHeroDlgItems.push_back(std::make_unique<UiListItem>(std::string_view(playerData.className), static_cast<int>(heroClass)));
+			vecSelHeroDlgItems.push_back(std::make_unique<UiListItem>(_(playerData.className), static_cast<int>(heroClass)));
 		}
 		if (vecSelHeroDlgItems.size() > 4)
 			itemH = 26;
@@ -652,3 +652,4 @@ void UiSelHeroMultDialog(
 }
 
 } // namespace devilution
+
