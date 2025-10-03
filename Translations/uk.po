@@ -100,7 +100,7 @@ msgstr "Помічник Режисера"
 #. TRANSLATORS: Keep Strike Team as Name
 #: Source/DiabloUI/credits_lines.cpp:75
 msgid "Diablo Strike Team"
-msgstr "Ударна Команда Diablo"
+msgstr "Diablo Strike Team"
 
 #: Source/DiabloUI/credits_lines.cpp:79 Source/gamemenu.cpp:79
 msgid "Music"
@@ -364,7 +364,7 @@ msgid ""
 "The Rogue and Sorcerer are only available in the full retail version of "
 "Diablo. Visit https://www.gog.com/game/diablo to purchase."
 msgstr ""
-"Пройдисвіт і Чаклун доступні тільки в повній версії Diablo. Зайдіть на "
+"Пройдисвітка і Чаклун доступні тільки в повній версії Diablo. Зайдіть на "
 "https://www.gog.com/game/diablo щоб купити її."
 
 #: Source/DiabloUI/hero/selhero.cpp:304 Source/DiabloUI/hero/selhero.cpp:307
