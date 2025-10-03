@@ -7,7 +7,7 @@
 		"lua",
 		"magic-enum"
 	],
-	"builtin-baseline": "b91c3336aee7f32412508f7dd351ae2cabdb8819",
+	"builtin-baseline": "a62ce77d56ee07513b4b67de1ec2daeaebfae51a",
 	"features": {
 		"sdl1": {
 			"description": "Use SDL1.2 instead of SDL2",
