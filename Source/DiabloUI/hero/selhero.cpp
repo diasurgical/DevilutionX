@@ -652,4 +652,3 @@ void UiSelHeroMultDialog(
 }
 
 } // namespace devilution
-
