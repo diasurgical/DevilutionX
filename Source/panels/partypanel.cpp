@@ -15,6 +15,7 @@
 #include "engine/render/primitive_render.hpp"
 #include "engine/size.hpp"
 #include "inv.h"
+#include "options.h"
 #include "pfile.h"
 #include "playerdat.hpp"
 #include "qol/monhealthbar.h"
@@ -43,7 +44,7 @@ const PartySpriteOffset ClassSpriteOffsets[] = {
 OptionalOwnedClxSpriteList PartyMemberFrame;
 OptionalOwnedClxSpriteList PlayerTags;
 
-Point PartyPanelPos = { 5, 5 };
+Point PartyPanelPos = { 8, 8 };
 Rectangle PortraitFrameRects[MAX_PLRS];
 int RightClickedPortraitIndex = -1;
 constexpr int HealthBarHeight = 7;
@@ -167,7 +168,9 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 
 	Point pos = PartyPanelPos;
 	if (AutomapActive)
-		pos.y += PortraitFrameSize.height + FrameGap;
+		pos.y += 60;
+	if (*GetOptions().Graphics.showFPS)
+		pos.y += 15;
 
 	int currentLongestNameWidth = PortraitFrameSize.width;
 	bool portraitUnderCursor = false;
