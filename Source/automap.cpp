@@ -17,6 +17,7 @@
 #include "engine/render/primitive_render.hpp"
 #include "levels/gendung.h"
 #include "levels/setmaps.h"
+#include "options.h"
 #include "player.h"
 #include "utils/attributes.h"
 #include "utils/enum_traits.h"
@@ -1410,6 +1411,10 @@ void DrawAutomapPlr(const Surface &out, const Displacement &myPlayerOffset, cons
 void DrawAutomapText(const Surface &out)
 {
 	Point linePosition { 8, 8 };
+
+	if (*GetOptions().Graphics.showFPS) {
+		linePosition.y += 15;
+	}
 
 	if (gbIsMultiplayer) {
 		if (GameName != "0.0.0.0" && !IsLoopback) {
