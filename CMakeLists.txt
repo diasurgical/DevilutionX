@@ -31,6 +31,7 @@ include(functions/genex)
 
 # Options required by `VcPkgManifestFeatures`, which must be included before the `project` call.
 option(USE_SDL1 "Use SDL1.2 instead of SDL2" OFF)
+option(USE_SDL3 "Use SDL3 instead of SDL2" OFF)
 option(NONET "Disable network support" OFF)
 cmake_dependent_option(PACKET_ENCRYPTION "Encrypt network packets" ON "NOT NONET" OFF)
 # The gettext[tools] package takes a very long time to install
@@ -104,6 +105,10 @@ option(WIN_NSIS "Generate an NSIS installer" OFF)
 # Network options
 cmake_dependent_option(DISABLE_TCP "Disable TCP multiplayer option" OFF "NOT NONET" ON)
 cmake_dependent_option(DISABLE_ZERO_TIER "Disable ZeroTier multiplayer option" OFF "NOT NONET" ON)
+
+if(USE_SDL1 AND USE_SDL3)
+  message(FATAL_ERROR "USE_SDL1 and USE_SDL3 cannot be set at the same time")
+endif()
 
 # Graphics options
 if(NOT USE_SDL1)

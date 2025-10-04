@@ -183,16 +183,6 @@ constexpr std::array<char, 9> WepChar = {
 	't', // staff
 };
 
-/** Maps from player class to letter used in graphic files. */
-constexpr std::array<char, 6> CharChar = {
-	'w', // warrior
-	'r', // rogue
-	's', // sorcerer
-	'm', // monk
-	'b', // bard
-	'c', // barbarian
-};
-
 /**
  * @brief Contains Data (CelSprites) for a player graphic (player_graphic)
  */

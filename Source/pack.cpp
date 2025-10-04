@@ -359,7 +359,7 @@ void UnPackPlayer(const PlayerPack &packed, Player &player)
 	player.position.future = position;
 	player.setLevel(std::clamp<int8_t>(packed.plrlevel, 0, NUMLEVELS));
 
-	player._pClass = static_cast<HeroClass>(std::clamp<uint8_t>(packed.pClass, 0, enum_size<HeroClass>::value - 1));
+	player._pClass = static_cast<HeroClass>(std::clamp<uint8_t>(packed.pClass, 0, static_cast<uint8_t>(GetNumPlayerClasses() - 1)));
 
 	ClrPlrPath(player);
 	player.destAction = ACTION_NONE;
@@ -464,7 +464,7 @@ bool UnPackNetPlayer(const PlayerNetPack &packed, Player &player)
 {
 	CopyUtf8(player._pName, packed.pName, sizeof(player._pName));
 
-	ValidateField(packed.pClass, packed.pClass < enum_size<HeroClass>::value);
+	ValidateField(packed.pClass, packed.pClass < GetNumPlayerClasses());
 	player._pClass = static_cast<HeroClass>(packed.pClass);
 
 	const Point position { packed.px, packed.py };

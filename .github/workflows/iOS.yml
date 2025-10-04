@@ -39,8 +39,8 @@ jobs:
       uses: actions/cache@v4
       with:
         path: build
-        key: ${{ github.workflow }}-v4-${{ github.sha }}
-        restore-keys: ${{ github.workflow }}-v4-
+        key: ${{ github.workflow }}-v5-${{ github.sha }}
+        restore-keys: ${{ github.workflow }}-v5-
 
     - name: Configure CMake
       # Use a bash shell so we can use the same syntax for environment variable

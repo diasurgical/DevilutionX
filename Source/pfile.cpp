@@ -11,7 +11,6 @@
 
 #include <ankerl/unordered_dense.h>
 #include <expected.hpp>
-#include <fmt/core.h>
 
 #include "codec.h"
 #include "engine/load_file.hpp"
@@ -92,7 +91,7 @@ bool GetSaveNames(uint8_t index, std::string_view prefix, char *out)
 		return false;
 	}
 
-	*fmt::format_to(out, "{}{}{:02d}", prefix, suf, index) = '\0';
+	*BufCopy(out, prefix, std::string_view(&suf, 1), LeftPad(index, 2, '0')) = '\0';
 	return true;
 }
 

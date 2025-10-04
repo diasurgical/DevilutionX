@@ -709,6 +709,7 @@ add_devilutionx_object_library(libdevilutionx_txtdata
   data/file.cpp
   data/parser.cpp
   data/record_reader.cpp
+  data/value_reader.cpp
 )
 target_link_dependencies(libdevilutionx_txtdata PUBLIC
   fmt::fmt
@@ -796,8 +797,8 @@ if(USE_SDL1)
     utils/sdl2_to_1_2_backports.cpp
   )
   target_link_dependencies(libdevilutionx_sdl2_to_1_2_backports PRIVATE
+    libdevilutionx_strings
     libdevilutionx_utils_console
-    fmt::fmt
   )
   target_link_libraries(DevilutionX::SDL INTERFACE
     libdevilutionx_sdl2_to_1_2_backports
@@ -868,10 +869,15 @@ if(DEVILUTIONX_SCREENSHOT_FORMAT STREQUAL DEVILUTIONX_SCREENSHOT_FORMAT_PNG)
   target_link_dependencies(libdevilutionx_surface_to_png
     PUBLIC
     DevilutionX::SDL
-    SDL2::SDL2_image
     tl
     libdevilutionx_surface
   )
+  if(USE_SDL3)
+    target_link_dependencies(libdevilutionx_surface_to_png PUBLIC SDL3_image::SDL3_image)
+    target_compile_definitions(libdevilutionx_surface_to_png INTERFACE USE_SDL3)
+  else()
+    target_link_dependencies(libdevilutionx_surface_to_png PUBLIC SDL2::SDL2_image)
+  endif()
 endif()
 
 add_devilutionx_object_library(libdevilutionx ${libdevilutionx_SRCS})
@@ -972,7 +978,11 @@ if(SCREEN_READER_INTEGRATION)
   endif()
 endif()
 
-if(NOT USE_SDL1)
+if(USE_SDL1)
+  # No need for SDL_image
+elseif(USE_SDL3)
+  target_link_libraries(libdevilutionx PUBLIC SDL3_image::SDL3_image)
+else()
   target_link_libraries(libdevilutionx PUBLIC SDL2::SDL2_image)
 endif()
 

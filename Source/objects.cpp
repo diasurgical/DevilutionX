@@ -617,6 +617,8 @@ void AddCryptObject(Object &object, int a2)
 			case HeroClass::Bard:
 				object._oVar2 = TEXT_BBOOKA;
 				break;
+			default:
+				break;
 			}
 			break;
 		case 7:
@@ -637,6 +639,8 @@ void AddCryptObject(Object &object, int a2)
 			case HeroClass::Bard:
 				object._oVar2 = TEXT_BBOOKB;
 				break;
+			default:
+				break;
 			}
 			break;
 		case 8:
@@ -656,6 +660,8 @@ void AddCryptObject(Object &object, int a2)
 				break;
 			case HeroClass::Bard:
 				object._oVar2 = TEXT_BBOOKC;
+				break;
+			default:
 				break;
 			}
 			break;
@@ -2000,6 +2006,8 @@ void OperateChamberOfBoneBook(Object &questBook, bool sendmsg)
 	case HeroClass::Barbarian:
 		textdef = TEXT_BONER;
 		break;
+	default:
+		break;
 	}
 	if (sendmsg) {
 		Quests[Q_SCHAMB]._qmsg = textdef;
@@ -2812,6 +2820,8 @@ void OperateShrineOily(Player &player, Point spawnPosition)
 	case HeroClass::Bard:
 		ModifyPlrDex(player, 1);
 		ModifyPlrMag(player, 1);
+		break;
+	default:
 		break;
 	}
 
@@ -3868,6 +3878,8 @@ void InitObjects()
 				case HeroClass::Barbarian:
 					spId = TEXT_BLINDING;
 					break;
+				default:
+					break;
 				}
 				Quests[Q_BLIND]._qmsg = spId;
 				AddBookLever(OBJ_BLINDBOOK, { SetPiece.position, SetPiece.size + 1 }, spId);
@@ -3893,6 +3905,8 @@ void InitObjects()
 					break;
 				case HeroClass::Barbarian:
 					spId = TEXT_BLOODY;
+					break;
+				default:
 					break;
 				}
 				Quests[Q_BLOOD]._qmsg = spId;
@@ -3926,6 +3940,8 @@ void InitObjects()
 					break;
 				case HeroClass::Barbarian:
 					spId = TEXT_BLOODWAR;
+					break;
+				default:
 					break;
 				}
 				Quests[Q_WARLORD]._qmsg = spId;
@@ -4890,7 +4906,8 @@ StringOrView Object::name() const
 void GetObjectStr(const Object &object)
 {
 	InfoString = object.name();
-	if (MyPlayer->_pClass == HeroClass::Rogue) {
+	const ClassAttributes &classAttributes = GetClassAttributes(MyPlayer->_pClass);
+	if (HasAnyOf(classAttributes.classFlags, PlayerClassFlag::TrapSense)) {
 		if (object._oTrapFlag) {
 			InfoString = fmt::format(fmt::runtime(_(/* TRANSLATORS: {:s} will either be a chest or a door */ "Trapped {:s}")), InfoString.str());
 			InfoColor = UiFlags::ColorRed;

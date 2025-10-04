@@ -9,6 +9,7 @@ namespace devilution {
 namespace {
 
 [[nodiscard]] char HexDigit(uint8_t v) { return "0123456789abcdef"[v]; }
+[[nodiscard]] char HexDigitUpper(uint8_t v) { return "0123456789ABCDEF"[v]; }
 
 } // namespace
 
@@ -26,8 +27,13 @@ char *BufCopy(char *out, unsigned long long value)
 }
 char *BufCopy(char *out, AsHexU8Pad2 value)
 {
-	*out++ = HexDigit(value.value >> 4);
-	*out++ = HexDigit(value.value & 0xf);
+	if (value.uppercase) {
+		*out++ = HexDigitUpper(value.value >> 4);
+		*out++ = HexDigitUpper(value.value & 0xf);
+	} else {
+		*out++ = HexDigit(value.value >> 4);
+		*out++ = HexDigit(value.value & 0xf);
+	}
 	return out;
 }
 char *BufCopy(char *out, AsHexU16Pad2 value)
@@ -36,7 +42,7 @@ char *BufCopy(char *out, AsHexU16Pad2 value)
 		if (value.value > 0xfff) {
 			out = BufCopy(out, AsHexU8Pad2 { static_cast<uint8_t>(value.value >> 8) });
 		} else {
-			*out++ = HexDigit(value.value >> 8);
+			*out++ = value.uppercase ? HexDigitUpper(value.value >> 8) : HexDigit(value.value >> 8);
 		}
 	}
 	return BufCopy(out, AsHexU8Pad2 { static_cast<uint8_t>(value.value & 0xff) });

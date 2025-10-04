@@ -563,7 +563,9 @@ bool PlrHitMonst(Player &player, Monster &monster, bool adjacentDamage = false)
 	dam += player._pIBonusDamMod;
 	int dam2 = dam << 6;
 	dam += player._pDamageMod;
-	if (player._pClass == HeroClass::Warrior || player._pClass == HeroClass::Barbarian) {
+
+	const ClassAttributes &classAttributes = GetClassAttributes(player._pClass);
+	if (HasAnyOf(classAttributes.classFlags, PlayerClassFlag::CriticalStrike)) {
 		if (GenerateRnd(100) < player.getCharacterLevel()) {
 			dam *= 2;
 		}
@@ -730,7 +732,8 @@ bool PlrHitPlr(Player &attacker, Player &target)
 	dam += (dam * attacker._pIBonusDam) / 100;
 	dam += attacker._pIBonusDamMod + attacker._pDamageMod;
 
-	if (attacker._pClass == HeroClass::Warrior || attacker._pClass == HeroClass::Barbarian) {
+	const ClassAttributes &classAttributes = GetClassAttributes(attacker._pClass);
+	if (HasAnyOf(classAttributes.classFlags, PlayerClassFlag::CriticalStrike)) {
 		if (GenerateRnd(100) < attacker.getCharacterLevel()) {
 			dam *= 2;
 		}
@@ -1486,7 +1489,7 @@ PlayerWeaponGraphic GetPlayerWeaponGraphic(player_graphic graphic, PlayerWeaponG
 
 uint16_t GetPlayerSpriteWidth(HeroClass cls, player_graphic graphic, PlayerWeaponGraphic weaponGraphic)
 {
-	const PlayerSpriteData spriteData = PlayersSpriteData[static_cast<size_t>(cls)];
+	const PlayerSpriteData spriteData = GetPlayerSpriteDataForClass(cls);
 
 	switch (graphic) {
 	case player_graphic::Stand:
@@ -1511,6 +1514,11 @@ uint16_t GetPlayerSpriteWidth(HeroClass cls, player_graphic graphic, PlayerWeapo
 		return spriteData.death;
 	}
 	app_fatal("Invalid player_graphic");
+}
+
+void GetPlayerGraphicsPath(std::string_view path, std::string_view prefix, std::string_view type, char out[256])
+{
+	*BufCopy(out, "plrgfx\\", path, "\\", prefix, "\\", prefix, type) = '\0';
 }
 
 } // namespace
@@ -1683,7 +1691,7 @@ int Player::GetPositionPathIndex(Point pos)
 
 void Player::Say(HeroSpeech speechId) const
 {
-	const SfxID soundEffect = herosounds[static_cast<size_t>(_pClass)][static_cast<size_t>(speechId)];
+	const SfxID soundEffect = GetHeroSound(_pClass, speechId);
 
 	if (soundEffect == SfxID::None)
 		return;
@@ -1693,7 +1701,7 @@ void Player::Say(HeroSpeech speechId) const
 
 void Player::SaySpecific(HeroSpeech speechId) const
 {
-	const SfxID soundEffect = herosounds[static_cast<size_t>(_pClass)][static_cast<size_t>(speechId)];
+	const SfxID soundEffect = GetHeroSound(_pClass, speechId);
 
 	if (soundEffect == SfxID::None || effect_is_playing(soundEffect))
 		return;
@@ -1704,7 +1712,7 @@ void Player::SaySpecific(HeroSpeech speechId) const
 void Player::Say(HeroSpeech speechId, int delay) const
 {
 	sfxdelay = delay;
-	sfxdnum = herosounds[static_cast<size_t>(_pClass)][static_cast<size_t>(speechId)];
+	sfxdnum = GetHeroSound(_pClass, speechId);
 }
 
 void Player::Stop()
@@ -2048,13 +2056,10 @@ ClxSprite GetPlayerPortraitSprite(Player &player)
 	const HeroClass cls = GetPlayerSpriteClass(player._pClass);
 	const PlayerWeaponGraphic animWeaponId = GetPlayerWeaponGraphic(player_graphic::Stand, static_cast<PlayerWeaponGraphic>(player._pgfxnum & 0xF));
 
-	const char *path = PlayersSpriteData[static_cast<std::size_t>(cls)].classPath;
+	const PlayerSpriteData &spriteData = GetPlayerSpriteDataForClass(cls);
+	const char *path = spriteData.classPath.c_str();
 
-	const char *szCel;
-	if (!inDungeon)
-		szCel = "st";
-	else
-		szCel = "as";
+	std::string_view szCel = inDungeon ? "as" : "st";
 
 	player_graphic graphic = player_graphic::Stand;
 	if (player._pHitPoints <= 0) {
@@ -2064,9 +2069,9 @@ ClxSprite GetPlayerPortraitSprite(Player &player)
 		}
 	}
 
-	char prefix[3] = { CharChar[static_cast<std::size_t>(cls)], ArmourChar[player._pgfxnum >> 4], WepChar[static_cast<std::size_t>(animWeaponId)] };
+	const char prefixBuf[3] = { spriteData.classChar, ArmourChar[player._pgfxnum >> 4], WepChar[static_cast<std::size_t>(animWeaponId)] };
 	char pszName[256];
-	*fmt::format_to(pszName, R"(plrgfx\{0}\{1}\{1}{2})", path, std::string_view(prefix, 3), szCel) = 0;
+	GetPlayerGraphicsPath(path, std::string_view(prefixBuf, 3), szCel, pszName);
 
 	const std::string spritePath { pszName };
 	// Check to see if the sprite has updated.
@@ -2103,9 +2108,10 @@ void LoadPlrGFX(Player &player, player_graphic graphic)
 	const HeroClass cls = GetPlayerSpriteClass(player._pClass);
 	const PlayerWeaponGraphic animWeaponId = GetPlayerWeaponGraphic(graphic, static_cast<PlayerWeaponGraphic>(player._pgfxnum & 0xF));
 
-	const char *path = PlayersSpriteData[static_cast<std::size_t>(cls)].classPath;
+	const PlayerSpriteData &spriteData = GetPlayerSpriteDataForClass(cls);
+	const char *path = spriteData.classPath.c_str();
 
-	const char *szCel;
+	std::string_view szCel;
 	switch (graphic) {
 	case player_graphic::Stand:
 		szCel = "as";
@@ -2152,9 +2158,9 @@ void LoadPlrGFX(Player &player, player_graphic graphic)
 		app_fatal("PLR:2");
 	}
 
-	char prefix[3] = { CharChar[static_cast<std::size_t>(cls)], ArmourChar[player._pgfxnum >> 4], WepChar[static_cast<std::size_t>(animWeaponId)] };
+	const char prefixBuf[3] = { spriteData.classChar, ArmourChar[player._pgfxnum >> 4], WepChar[static_cast<std::size_t>(animWeaponId)] };
 	char pszName[256];
-	*fmt::format_to(pszName, R"(plrgfx\{0}\{1}\{1}{2})", path, std::string_view(prefix, 3), szCel) = 0;
+	GetPlayerGraphicsPath(path, std::string_view(prefixBuf, 3), szCel, pszName);
 	const uint16_t animationWidth = GetPlayerSpriteWidth(cls, graphic, animWeaponId);
 	animationData.sprites = LoadCl2Sheet(pszName, animationWidth);
 	std::optional<std::array<uint8_t, 256>> graphicTRN = GetPlayerGraphicTRN(pszName);
@@ -2224,7 +2230,7 @@ void NewPlrAnim(Player &player, player_graphic graphic, Direction dir, Animation
 void SetPlrAnims(Player &player)
 {
 	const HeroClass pc = player._pClass;
-	const PlayerAnimData plrAtkAnimData = PlayersAnimData[static_cast<uint8_t>(pc)];
+	const PlayerAnimData &plrAtkAnimData = GetPlayerAnimDataForClass(pc);
 	auto gn = static_cast<PlayerWeaponGraphic>(player._pgfxnum & 0xFU);
 
 	if (leveltype == DTYPE_TOWN) {
@@ -2749,6 +2755,8 @@ StartPlayerKill(Player &player, DeathReason deathReason)
 				case HeroClass::Bard:
 				case HeroClass::Barbarian:
 					ear._iCurs = ICURS_EAR_ROGUE;
+					break;
+				default:
 					break;
 				}
 

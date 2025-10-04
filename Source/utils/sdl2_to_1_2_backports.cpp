@@ -15,9 +15,8 @@
 #include <windows.h>
 #endif
 
-#include <fmt/format.h>
-
 #include "utils/console.h"
+#include "utils/str_cat.hpp"
 
 #define DEFAULT_PRIORITY SDL_LOG_PRIORITY_CRITICAL
 #define DEFAULT_ASSERT_PRIORITY SDL_LOG_PRIORITY_WARN
@@ -919,9 +918,9 @@ extern "C" char *SDL_GetPrefPath(const char *org, const char *app)
 	}
 
 	if (*org) {
-		*fmt::format_to_n(retval, len - 1, "{}{}{}/{}", envr, append, org, app).out = '\0';
+		*devilution::BufCopy(retval, envr, append, org, "/", app) = '\0';
 	} else {
-		*fmt::format_to_n(retval, len - 1, "{}{}{}", envr, append, app).out = '\0';
+		*devilution::BufCopy(retval, envr, append, app) = '\0';
 	}
 
 	for (ptr = retval + 1; *ptr; ptr++) {

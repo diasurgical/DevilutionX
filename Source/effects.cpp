@@ -278,7 +278,14 @@ void sound_init()
 			mask |= sfx_MONK;
 			break;
 		default:
-			app_fatal("effects:1");
+			if (static_cast<size_t>(MyPlayer->_pClass) < GetNumPlayerClasses()) {
+				// this is a custom class, so we need to add init sounds, since we can't determine which ones will be used by it
+				mask |= (sfx_WARRIOR | sfx_MONK);
+				if (!gbIsSpawn)
+					mask |= (sfx_ROGUE | sfx_SORCERER);
+			} else {
+				app_fatal("effects:1");
+			}
 		}
 	}
 
@@ -309,6 +316,15 @@ int GetSFXLength(SfxID nSFX)
 		sfx.pSnd = sound_file_load(sfx.pszName.c_str(),
 		    /*stream=*/AllowStreaming && (sfx.bFlags & sfx_STREAM) != 0);
 	return sfx.pSnd->DSB.GetLength();
+}
+
+tl::expected<HeroSpeech, std::string> ParseHeroSpeech(std::string_view value)
+{
+	const std::optional<HeroSpeech> enumValueOpt = magic_enum::enum_cast<HeroSpeech>(value);
+	if (enumValueOpt.has_value()) {
+		return enumValueOpt.value();
+	}
+	return tl::make_unexpected("Unknown enum value.");
 }
 
 tl::expected<SfxID, std::string> ParseSfxId(std::string_view value)

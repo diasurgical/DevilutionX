@@ -47,6 +47,7 @@ Point PartyPanelPos = { 5, 5 };
 Rectangle PortraitFrameRects[MAX_PLRS];
 int RightClickedPortraitIndex = -1;
 constexpr int HealthBarHeight = 7;
+constexpr int ManaBarHeight = 7;
 constexpr int FrameGap = 25;
 constexpr int FrameBorderSize = 3;
 constexpr int FrameSpriteSize = 12;
@@ -137,12 +138,14 @@ tl::expected<void, std::string> LoadPartyPanel()
 {
 	ASSIGN_OR_RETURN(OwnedClxSpriteList frame, LoadCelWithStatus("data\\textslid", FrameSpriteSize));
 	ASSIGN_OR_RETURN(PlayerTags, LoadClxWithStatus("data\\monstertags.clx"));
-	const OwnedSurface out(PortraitFrameSize.width, PortraitFrameSize.height + HealthBarHeight);
+	const OwnedSurface out(PortraitFrameSize.width, PortraitFrameSize.height + HealthBarHeight + ManaBarHeight);
 
 	// Draw the health bar background
 	DrawBar(out, { { 0, 0 }, { PortraitFrameSize.width, HealthBarHeight } }, PAL16_GRAY + 10);
 	// Draw the frame the character portrait sprite will go
 	DrawMemberFrame(out, frame, { 0, HealthBarHeight });
+	// Draw the mana bar background
+	DrawBar(out, { { 0, HealthBarHeight + PortraitFrameSize.height }, { PortraitFrameSize.width, ManaBarHeight } }, PAL16_GRAY + 10);
 
 	PartyMemberFrame = SurfaceToClx(out);
 
@@ -189,14 +192,10 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 		// Draw the characters frame
 		RenderClxSprite(gameScreen, (*PartyMemberFrame)[0], pos);
 
-		// If the player is using mana shield change the value we use to mana
-		//	If not use their hitpoints like normal
-		const int healthOrMana = (player.pManaShield) ? player._pMana : player._pHitPoints;
-		const int maxHealthOrMana = (player.pManaShield) ? player._pMaxMana : player._pMaxHP;
-
 		// Get the players remaining life
-		const int lifeTicks = ((healthOrMana * PortraitFrameSize.width) + (maxHealthOrMana / 2)) / maxHealthOrMana;
-		const uint8_t hpBarColor = (player.pManaShield) ? PAL8_BLUE + 3 : PAL8_RED + 4;
+		// If the player is using mana shield change the color
+		const int lifeTicks = ((player._pHitPoints * PortraitFrameSize.width) + (player._pMaxHP / 2)) / player._pMaxHP;
+		const uint8_t hpBarColor = (player.pManaShield) ? PAL8_YELLOW + 5 : PAL8_RED + 4;
 		// Now draw the characters remaining life
 		DrawBar(gameScreen, { pos, { lifeTicks, HealthBarHeight } }, hpBarColor);
 
@@ -252,7 +251,16 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 		}
 
 		// Add to the position before continuing to the next item
-		pos.y += PortraitFrameSize.height + 4;
+		pos.y += PortraitFrameSize.height;
+
+		// Get the players remaining mana
+		const int manaTicks = ((player._pMana * PortraitFrameSize.width) + (player._pMaxMana / 2)) / player._pMaxMana;
+		const uint8_t manaBarColor = PAL8_BLUE + 3;
+		// Now draw the characters remaining mana
+		DrawBar(gameScreen, { pos, { manaTicks, ManaBarHeight } }, manaBarColor);
+
+		// Add to the position before continuing to the next item
+		pos.y += ManaBarHeight + 4;
 
 		// Draw the players name under the frame
 		DrawString(

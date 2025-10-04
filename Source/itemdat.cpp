@@ -9,7 +9,6 @@
 #include <string_view>
 #include <vector>
 
-#include <expected.hpp>
 #include <fmt/format.h>
 
 #include "data/file.hpp"
@@ -41,6 +40,15 @@ std::vector<PLStruct> ItemPrefixes;
 
 /** Contains the data related to each item suffix. */
 std::vector<PLStruct> ItemSuffixes;
+
+tl::expected<_item_indexes, std::string> ParseItemId(std::string_view value)
+{
+	const std::optional<_item_indexes> enumValueOpt = magic_enum::enum_cast<_item_indexes>(value);
+	if (enumValueOpt.has_value()) {
+		return enumValueOpt.value();
+	}
+	return tl::make_unexpected("Unknown enum value");
+}
 
 namespace {
 
@@ -242,7 +250,11 @@ tl::expected<item_cursor_graphic, std::string> ParseItemCursorGraphic(std::strin
 	if (value == "DEMON_PLATE_ARMOR") return ICURS_DEMON_PLATE_ARMOR;
 	if (value == "BOVINE") return ICURS_BOVINE;
 	if (value == "") return ICURS_DEFAULT;
-	return tl::make_unexpected("Unknown enum value");
+
+	// also support providing the item cursor icon frame number directly
+	return ParseInt<uint8_t>(value)
+	    .map([](auto numericalValue) { return static_cast<item_cursor_graphic>(numericalValue); })
+	    .map_error([](auto) { return std::string("Unknown enum value"); });
 }
 
 tl::expected<ItemType, std::string> ParseItemType(std::string_view value)
