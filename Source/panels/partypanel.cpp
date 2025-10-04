@@ -291,6 +291,10 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 		if (pos.y >= GetMainPanel().position.y - PortraitFrameSize.height - 10) {
 			// If so we need to draw the next set of portraits back at the top and to the right of the original position
 			pos.y = PartyPanelPos.y;
+			if (AutomapActive)
+				pos.y += (FrameGap * 4);
+			if (*GetOptions().Graphics.showFPS)
+				pos.y += FrameGap;
 			// Add the current longest name width to the X position
 			pos.x += currentLongestNameWidth + (FrameGap / 2);
 		}
