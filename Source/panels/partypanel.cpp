@@ -49,7 +49,7 @@ Rectangle PortraitFrameRects[MAX_PLRS];
 int RightClickedPortraitIndex = -1;
 constexpr int HealthBarHeight = 7;
 constexpr int ManaBarHeight = 7;
-constexpr int FrameGap = 25;
+constexpr int FrameGap = 15;
 constexpr int FrameBorderSize = 3;
 constexpr int FrameSpriteSize = 12;
 constexpr Size FrameSections = { 4, 4 }; // x/y can't be less than 2
@@ -171,9 +171,9 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 
 	Point pos = PartyPanelPos;
 	if (AutomapActive)
-		pos.y += 60;
+		pos.y += (FrameGap * 4);
 	if (*GetOptions().Graphics.showFPS)
-		pos.y += 15;
+		pos.y += FrameGap;
 
 	int currentLongestNameWidth = PortraitFrameSize.width;
 	bool portraitUnderCursor = false;
@@ -263,7 +263,7 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 		DrawBar(gameScreen, { pos, { manaTicks, ManaBarHeight } }, manaBarColor);
 
 		// Add to the position before continuing to the next item
-		pos.y += ManaBarHeight + 4;
+		pos.y += ManaBarHeight;
 
 		// Draw the players name under the frame
 		DrawString(
@@ -273,7 +273,7 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 		    { .flags = UiFlags::ColorGold | UiFlags::Outlined | UiFlags::FontSize12 });
 
 		// Add to the position before continuing onto the next player
-		pos.y += FrameGap;
+		pos.y += FrameGap + 5;
 
 		// Check to see if the player is hovering over this portrait and if so draw a string under the cursor saying they can right click to inspect
 		if (currentPortraitRect.contains(MousePosition)) {
@@ -291,6 +291,10 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 		if (pos.y >= GetMainPanel().position.y - PortraitFrameSize.height - 10) {
 			// If so we need to draw the next set of portraits back at the top and to the right of the original position
 			pos.y = PartyPanelPos.y;
+			if (AutomapActive)
+				pos.y += (FrameGap * 4);
+			if (*GetOptions().Graphics.showFPS)
+				pos.y += FrameGap;
 			// Add the current longest name width to the X position
 			pos.x += currentLongestNameWidth + (FrameGap / 2);
 		}
