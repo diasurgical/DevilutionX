@@ -1,4 +1,4 @@
-name: macOS x86_64
+name: macOS arm64
 
 on:
   push:
@@ -25,7 +25,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on: macos-15-intel
+    runs-on: macos-14
     steps:
     - uses: actions/checkout@v5
       with:
@@ -38,8 +38,8 @@ jobs:
       uses: actions/cache@v4
       with:
         path: build
-        key: ${{ github.workflow }}-v2-${{ github.sha }}
-        restore-keys: ${{ github.workflow }}-v2-
+        key: ${{ github.workflow }}-v1-${{ github.sha }}
+        restore-keys: ${{ github.workflow }}-v1-
 
     - name: Clean previous DMG
       working-directory: ${{github.workspace}}
@@ -52,16 +52,16 @@ jobs:
         CMAKE_BUILD_TYPE: ${{github.event_name == 'release' && 'Release' || 'RelWithDebInfo'}}
       run: |
         cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=${{env.CMAKE_BUILD_TYPE}} -DBUILD_TESTING=OFF \
-          -DMACOSX_STANDALONE_APP_BUNDLE=ON -DDISCORD_INTEGRATION=ON && \
+          -DMACOSX_STANDALONE_APP_BUNDLE=ON && \
         cmake --build build -j $(sysctl -n hw.physicalcpu) --target package && \
-        mv build/devilutionx.dmg build/devilutionx-x86_64-macOS.dmg
+        mv build/devilutionx.dmg build/devilutionx-arm64-macOS.dmg
 
     - name: Upload-Package
       if: ${{ !env.ACT }}
       uses: actions/upload-artifact@v4
       with:
-        name: devilutionx-x86_64-macOS.dmg
-        path: build/devilutionx-x86_64-macOS.dmg
+        name: devilutionx-arm64-macOS.dmg
+        path: build/devilutionx-arm64-macOS.dmg
 
     - name: Clean up artifacts
       run: rm -rf build/_CPack_Packages build/*.dmg
