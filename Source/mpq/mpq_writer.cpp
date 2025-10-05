@@ -6,11 +6,11 @@
 #include <memory>
 #include <type_traits>
 
-#include <SDL_endian.h>
 #include <libmpq/mpq.h>
 
 #include "appfat.h"
 #include "encrypt.h"
+#include "utils/endian_swap.hpp"
 #include "utils/file_util.h"
 #include "utils/language.h"
 #include "utils/log.hpp"
@@ -63,15 +63,15 @@ constexpr uint32_t MinBlockSize = 1024;
 
 void ByteSwapHdr(MpqFileHeader *hdr)
 {
-	hdr->signature = SDL_SwapLE32(hdr->signature);
-	hdr->headerSize = SDL_SwapLE32(hdr->headerSize);
-	hdr->fileSize = SDL_SwapLE32(hdr->fileSize);
-	hdr->version = SDL_SwapLE16(hdr->version);
-	hdr->blockSizeFactor = SDL_SwapLE16(hdr->blockSizeFactor);
-	hdr->hashEntriesOffset = SDL_SwapLE32(hdr->hashEntriesOffset);
-	hdr->blockEntriesOffset = SDL_SwapLE32(hdr->blockEntriesOffset);
-	hdr->hashEntriesCount = SDL_SwapLE32(hdr->hashEntriesCount);
-	hdr->blockEntriesCount = SDL_SwapLE32(hdr->blockEntriesCount);
+	hdr->signature = Swap32LE(hdr->signature);
+	hdr->headerSize = Swap32LE(hdr->headerSize);
+	hdr->fileSize = Swap32LE(hdr->fileSize);
+	hdr->version = Swap16LE(hdr->version);
+	hdr->blockSizeFactor = Swap16LE(hdr->blockSizeFactor);
+	hdr->hashEntriesOffset = Swap32LE(hdr->hashEntriesOffset);
+	hdr->blockEntriesOffset = Swap32LE(hdr->blockEntriesOffset);
+	hdr->hashEntriesCount = Swap32LE(hdr->hashEntriesCount);
+	hdr->blockEntriesCount = Swap32LE(hdr->blockEntriesCount);
 }
 
 bool IsAllocatedUnusedBlock(const MpqBlockEntry *block)
@@ -421,7 +421,7 @@ bool MpqWriter::WriteFileContents(const std::byte *fileData, uint32_t fileSize, 
 		len = PkwareCompress(mpqBuf, len);
 		if (!stream_.Write(reinterpret_cast<const char *>(&mpqBuf[0]), len))
 			return false;
-		offsetTable[curSector++] = SDL_SwapLE32(destSize);
+		offsetTable[curSector++] = Swap32LE(destSize);
 		destSize += len; // compressed length
 		if (fileSize <= BlockSize)
 			break;
@@ -429,7 +429,7 @@ bool MpqWriter::WriteFileContents(const std::byte *fileData, uint32_t fileSize, 
 		fileSize -= BlockSize;
 	}
 
-	offsetTable[numSectors] = SDL_SwapLE32(destSize);
+	offsetTable[numSectors] = Swap32LE(destSize);
 	if (!stream_.Seekp(block->offset, SEEK_SET))
 		return false;
 	if (!stream_.Write(reinterpret_cast<const char *>(offsetTable.get()), offsetTableByteSize))

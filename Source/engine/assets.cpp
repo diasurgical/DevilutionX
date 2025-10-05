@@ -6,6 +6,13 @@
 #include <functional>
 #include <vector>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_error.h>
+#include <SDL3/SDL_iostream.h>
+#else
+#include <SDL.h>
+#endif
+
 #include "appfat.h"
 #include "game_mode.hpp"
 #include "utils/file_util.h"
@@ -45,16 +52,25 @@ char *FindUnpackedMpqFile(char *relativePath)
 #else
 bool IsDebugLogging()
 {
-	return SDL_LogGetPriority(SDL_LOG_CATEGORY_APPLICATION) <= SDL_LOG_PRIORITY_DEBUG;
+	return IsLogLevel(LogCategory::Application, SDL_LOG_PRIORITY_DEBUG);
 }
 
-SDL_RWops *OpenOptionalRWops(const std::string &path)
+#ifdef USE_SDL3
+SDL_IOStream *
+#else
+SDL_RWops *
+#endif
+OpenOptionalRWops(const std::string &path)
 {
 	// SDL always logs an error in Debug mode.
 	// We check the file presence in Debug mode to avoid this.
 	if (IsDebugLogging() && !FileExists(path.c_str()))
 		return nullptr;
+#ifdef USE_SDL3
+	return SDL_IOFromFile(path.c_str(), "rb");
+#else
 	return SDL_RWFromFile(path.c_str(), "rb");
+#endif
 };
 
 bool FindMpqFile(std::string_view filename, MpqArchive **archive, uint32_t *fileNumber)
@@ -128,7 +144,12 @@ AssetRef FindAsset(std::string_view filename)
 #endif
 
 	if (relativePath[0] == '/') {
-		result.directHandle = SDL_RWFromFile(relativePath.c_str(), "rb");
+		result.directHandle =
+#ifdef USE_SDL3
+		    SDL_IOFromFile(relativePath.c_str(), "rb");
+#else
+		    SDL_RWFromFile(relativePath.c_str(), "rb");
+#endif
 		if (result.directHandle != nullptr) {
 			return result;
 		}
@@ -161,7 +182,12 @@ AssetRef FindAsset(std::string_view filename)
 	// Fall back to the bundled assets on supported systems.
 	// This is handled by SDL when we pass a relative path.
 	if (!paths::AssetsPath().empty()) {
-		result.directHandle = SDL_RWFromFile(relativePath.c_str(), "rb");
+		result.directHandle =
+#ifdef USE_SDL3
+		    SDL_IOFromFile(relativePath.c_str(), "rb");
+#else
+		    SDL_RWFromFile(relativePath.c_str(), "rb");
+#endif
 		if (result.directHandle != nullptr)
 			return result;
 	}
@@ -180,7 +206,7 @@ AssetHandle OpenAsset(AssetRef &&ref, bool threadsafe)
 		return AssetHandle { SDL_RWops_FromMpqFile(*ref.archive, ref.fileNumber, ref.filename, threadsafe) };
 	if (ref.directHandle != nullptr) {
 		// Transfer handle ownership:
-		SDL_RWops *handle = ref.directHandle;
+		auto *handle = ref.directHandle;
 		ref.directHandle = nullptr;
 		return AssetHandle { handle };
 	}
@@ -205,13 +231,22 @@ AssetHandle OpenAsset(std::string_view filename, size_t &fileSize, bool threadsa
 	return OpenAsset(std::move(ref), threadsafe);
 }
 
-SDL_RWops *OpenAssetAsSdlRwOps(std::string_view filename, bool threadsafe)
+#ifdef USE_SDL3
+SDL_IOStream *
+#else
+SDL_RWops *
+#endif
+OpenAssetAsSdlRwOps(std::string_view filename, bool threadsafe)
 {
 #ifdef UNPACKED_MPQS
 	AssetRef ref = FindAsset(filename);
 	if (!ref.ok())
 		return nullptr;
+#ifdef USE_SDL3
+	return SDL_IOFromFile(ref.path, "rb");
+#else
 	return SDL_RWFromFile(ref.path, "rb");
+#endif
 #else
 	return OpenAsset(filename, threadsafe).release();
 #endif
@@ -361,7 +396,7 @@ std::vector<std::string> GetMPQSearchPaths()
 		paths.emplace_back(); // PWD
 	}
 
-	if (SDL_LOG_PRIORITY_VERBOSE >= SDL_LogGetPriority(SDL_LOG_CATEGORY_APPLICATION)) {
+	if (IsLogLevel(LogCategory::Application, SDL_LOG_PRIORITY_VERBOSE)) {
 		LogVerbose("Paths:\n    base: {}\n    pref: {}\n  config: {}\n  assets: {}",
 		    paths::BasePath(), paths::PrefPath(), paths::ConfigPath(), paths::AssetsPath());
 

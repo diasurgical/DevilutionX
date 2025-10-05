@@ -52,21 +52,21 @@ SDL_Window *ghMainWnd;
 
 Size forceResolution;
 
-Uint16 gnScreenWidth;
-Uint16 gnScreenHeight;
-Uint16 gnViewportHeight;
+uint16_t gnScreenWidth;
+uint16_t gnScreenHeight;
+uint16_t gnViewportHeight;
 
-Uint16 GetScreenWidth()
+uint16_t GetScreenWidth()
 {
 	return gnScreenWidth;
 }
 
-Uint16 GetScreenHeight()
+uint16_t GetScreenHeight()
 {
 	return gnScreenHeight;
 }
 
-Uint16 GetViewportHeight()
+uint16_t GetViewportHeight()
 {
 	return gnViewportHeight;
 }

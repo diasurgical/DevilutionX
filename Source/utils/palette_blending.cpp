@@ -2,9 +2,12 @@
 
 #include <array>
 #include <cstdint>
-#include <limits>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_pixels.h>
+#else
 #include <SDL.h>
+#endif
 
 #include "utils/palette_kd_tree.hpp"
 

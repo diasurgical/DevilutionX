@@ -11,6 +11,12 @@
 #include <cstring>
 #include <span>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_pixels.h>
+#else
+#include <SDL.h>
+#endif
+
 #include "engine/backbuffer_state.hpp"
 #include "engine/demomode.h"
 #include "engine/dx.h"

@@ -2,7 +2,12 @@
 
 #include <string_view>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_log.h>
+#else
 #include <SDL.h>
+#endif
+
 #include <fmt/core.h>
 #include <fmt/format.h>
 #include <fmt/ranges.h>
@@ -85,10 +90,19 @@ inline void LogVerbose(LogCategory category, std::string_view str)
 	SDL_LogVerbose(static_cast<int>(category), "%.*s", static_cast<int>(str.size()), str.data());
 }
 
+inline bool IsLogLevel(LogCategory category, SDL_LogPriority priority)
+{
+#ifdef USE_SDL3
+	return SDL_GetLogPriority(static_cast<int>(category)) <= priority;
+#else
+	return SDL_LogGetPriority(static_cast<int>(category)) <= priority;
+#endif
+}
+
 template <typename... Args>
 void LogVerbose(LogCategory category, std::string_view fmt, Args &&...args)
 {
-	if (SDL_LogGetPriority(static_cast<int>(category)) > SDL_LOG_PRIORITY_VERBOSE) return;
+	if (!IsLogLevel(category, SDL_LOG_PRIORITY_VERBOSE)) return;
 	auto str = detail::format(fmt, std::forward<Args>(args)...);
 	SDL_LogVerbose(static_cast<int>(category), "%s", str.c_str());
 }
@@ -107,7 +121,7 @@ inline void LogDebug(LogCategory category, std::string_view str)
 template <typename... Args>
 void LogDebug(LogCategory category, std::string_view fmt, Args &&...args)
 {
-	if (SDL_LogGetPriority(static_cast<int>(category)) > SDL_LOG_PRIORITY_DEBUG) return;
+	if (!IsLogLevel(category, SDL_LOG_PRIORITY_DEBUG)) return;
 	auto str = detail::format(fmt, std::forward<Args>(args)...);
 	SDL_LogDebug(static_cast<int>(category), "%s", str.c_str());
 }

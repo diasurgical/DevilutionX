@@ -6,12 +6,18 @@
 
 #include <config.h>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_thread.h>
+#include <SDL3/SDL_timer.h>
+#else
 #include <SDL.h>
-#include <fmt/format.h>
 
 #ifdef USE_SDL1
 #include "utils/sdl2_to_1_2_backports.h"
 #endif
+#endif
+
+#include <fmt/format.h>
 
 #include "diablo.h"
 #include "multi.h"
@@ -27,8 +33,13 @@ namespace {
 
 /** Set to true when a fatal error is encountered and the application should shut down. */
 bool Terminating = false;
+
 /** Thread id of the last callee to FreeDlg(). */
+#ifdef USE_SDL3
+SDL_ThreadID CleanupThreadId;
+#else
 SDL_threadID CleanupThreadId;
+#endif
 
 /**
  * @brief Cleans up after a fatal application error.

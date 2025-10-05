@@ -12,7 +12,12 @@
 #include <string_view>
 #include <utility>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_version.h>
+#else
 #include <SDL_version.h>
+#endif
+
 #include <ankerl/unordered_dense.h>
 #include <function_ref.hpp>
 

@@ -4,7 +4,12 @@
 #include <string>
 #include <string_view>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_error.h>
+#include <SDL3/SDL_filesystem.h>
+#else
 #include <SDL.h>
+#endif
 
 #include "appfat.h"
 #include "utils/file_util.h"
@@ -67,16 +72,31 @@ const std::string &NxdkGetPrefPath()
 }
 #endif
 
+std::string GetSdlBasePath()
+{
+	std::string result;
+#if defined(__DJGPP__)
+	// In DOS, use an empty base path.
+#elif defined(USE_SDL3)
+	const char *s = SDL_GetBasePath();
+	if (s == nullptr) {
+		LogError("{}", SDL_GetError());
+		SDL_ClearError();
+	} else {
+		result = s;
+	}
+#else
+	result = FromSDL(SDL_GetBasePath());
+#endif
+	return result;
+}
+
 } // namespace
 
 const std::string &BasePath()
 {
 	if (!basePath) {
-#if defined(__DJGPP__)
-		basePath = std::string();
-#else
-		basePath = FromSDL(SDL_GetBasePath());
-#endif
+		basePath = GetSdlBasePath();
 	}
 	return *basePath;
 }
@@ -148,9 +168,9 @@ const std::string &AssetsPath()
 		//
 		// Note that SDL3 reverts to SDL1 behaviour!
 		// https://github.com/libsdl-org/SDL/blob/962268ca21ed10b9cee31198c22681099293f20a/docs/README-migration.md?plain=1#L1623
-		assetsPath.emplace(FromSDL(SDL_GetBasePath()));
+		assetsPath.emplace(GetSdlBasePath());
 #else
-		assetsPath.emplace(FromSDL(SDL_GetBasePath()) + ("assets" DIRECTORY_SEPARATOR_STR));
+		assetsPath.emplace(GetSdlBasePath() + ("assets" DIRECTORY_SEPARATOR_STR));
 #endif
 	}
 	return *assetsPath;

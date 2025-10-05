@@ -9,7 +9,6 @@
 #include <cstring>
 #include <memory>
 
-#include <SDL.h>
 #include <pkware.h>
 
 #include "encrypt.h"

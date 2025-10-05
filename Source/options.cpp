@@ -17,7 +17,15 @@
 #include <string>
 #include <unordered_set>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_audio.h>
+#include <SDL3/SDL_keycode.h>
+#include <SDL3/SDL_stdinc.h>
+#include <SDL3/SDL_version.h>
+#else
 #include <SDL_version.h>
+#endif
+
 #include <expected.hpp>
 #include <fmt/format.h>
 #include <function_ref.hpp>
@@ -36,6 +44,7 @@
 #include "utils/log.hpp"
 #include "utils/logged_fstream.hpp"
 #include "utils/paths.h"
+#include "utils/sdl_ptrs.h"
 #include "utils/str_cat.hpp"
 #include "utils/str_split.hpp"
 #include "utils/utf8.hpp"
@@ -198,6 +207,8 @@ bool HardwareCursorSupported()
 {
 #if (defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE == 1) || __DJGPP__
 	return false;
+#elif USE_SDL3
+	return true;
 #else
 	SDL_version v;
 	SDL_GetVersion(&v);
@@ -645,7 +656,11 @@ void OptionEntryAudioDevice::SaveToIni(std::string_view category) const
 
 size_t OptionEntryAudioDevice::GetListSize() const
 {
-#if SDL_VERSION_ATLEAST(2, 0, 0)
+#if defined(USE_SDL3)
+	int numDevices = 0;
+	SDLUniquePtr<SDL_AudioDeviceID> devices { SDL_GetAudioPlaybackDevices(&numDevices) };
+	return static_cast<size_t>(numDevices) + 1;
+#elif SDL_VERSION_ATLEAST(2, 0, 0)
 	return SDL_GetNumAudioDevices(false) + 1;
 #else
 	return 1;
@@ -661,12 +676,22 @@ std::string_view OptionEntryAudioDevice::GetListDescription(size_t index) const
 
 size_t OptionEntryAudioDevice::GetActiveListIndex() const
 {
-	for (size_t i = 0; i < GetListSize(); i++) {
-		const std::string_view deviceName = GetDeviceName(i);
-		if (deviceName == deviceName_)
-			return i;
+#ifdef USE_SDL3
+	int numDevices;
+	SDLUniquePtr<SDL_AudioDeviceID> devices { SDL_GetAudioPlaybackDevices(&numDevices) };
+	if (devices == nullptr) return 0;
+	for (int i = 0; i < numDevices; ++i) {
+		const char *deviceName = SDL_GetAudioDeviceName(devices.get()[i]);
+		if (deviceName_ == deviceName) return i;
 	}
 	return 0;
+#else
+	for (size_t i = 0; i < GetListSize(); i++) {
+		const std::string_view deviceName = GetDeviceName(i);
+		if (deviceName_ == deviceName) return i;
+	}
+	return 0;
+#endif
 }
 
 void OptionEntryAudioDevice::SetActiveListIndex(size_t index)
@@ -677,11 +702,18 @@ void OptionEntryAudioDevice::SetActiveListIndex(size_t index)
 
 std::string_view OptionEntryAudioDevice::GetDeviceName(size_t index) const
 {
-#if SDL_VERSION_ATLEAST(2, 0, 0)
-	if (index != 0)
-		return SDL_GetAudioDeviceName(static_cast<int>(index) - 1, false);
+	if (index == 0) return {}; // System Default
+#if defined(USE_SDL3)
+	int numDevices = 0;
+	SDLUniquePtr<SDL_AudioDeviceID> devices { SDL_GetAudioPlaybackDevices(&numDevices) };
+	if (devices == nullptr || static_cast<int>(index) > numDevices) return "Unknown";
+	const char *deviceName = SDL_GetAudioDeviceName(devices.get()[index - 1]);
+	if (deviceName == nullptr) return "Unknown";
+	return deviceName;
+#elif SDL_VERSION_ATLEAST(2, 0, 0)
+	return SDL_GetAudioDeviceName(static_cast<int>(index) - 1, false);
 #endif
-	return "";
+	return {};
 }
 
 GraphicsOptions::GraphicsOptions()
@@ -1078,12 +1110,26 @@ KeymapperOptions::KeymapperOptions()
 	keyIDToKeyName.emplace(MouseScrollLeftButton, "SCROLLLEFTMOUSE");
 	keyIDToKeyName.emplace(MouseScrollRightButton, "SCROLLRIGHTMOUSE");
 
-	keyIDToKeyName.emplace(SDLK_BACKQUOTE, "`");
+	keyIDToKeyName.emplace(
+#ifdef USE_SDL3
+	    SDLK_GRAVE
+#else
+	    SDLK_BACKQUOTE
+#endif
+	    ,
+	    "`");
 	keyIDToKeyName.emplace(SDLK_LEFTBRACKET, "[");
 	keyIDToKeyName.emplace(SDLK_RIGHTBRACKET, "]");
 	keyIDToKeyName.emplace(SDLK_BACKSLASH, "\\");
 	keyIDToKeyName.emplace(SDLK_SEMICOLON, ";");
-	keyIDToKeyName.emplace(SDLK_QUOTE, "'");
+	keyIDToKeyName.emplace(
+#ifdef USE_SDL3
+	    SDLK_APOSTROPHE
+#else
+	    SDLK_QUOTE
+#endif
+	    ,
+	    "'");
 	keyIDToKeyName.emplace(SDLK_COMMA, ",");
 	keyIDToKeyName.emplace(SDLK_PERIOD, ".");
 	keyIDToKeyName.emplace(SDLK_SLASH, "/");
