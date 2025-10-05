@@ -2,6 +2,12 @@
 
 #include <cmath>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_events.h>
+#else
+#include <SDL.h>
+#endif
+
 #include "control.h"
 #include "controls/control_mode.hpp"
 #include "controls/controller.h"
@@ -144,6 +150,15 @@ void ScaleJoysticks()
 bool IsControllerMotion(const SDL_Event &event)
 {
 #ifndef USE_SDL1
+#ifdef USE_SDL3
+	if (event.type == SDL_EVENT_GAMEPAD_AXIS_MOTION) {
+		return IsAnyOf(event.gaxis.axis,
+		    SDL_GAMEPAD_AXIS_LEFTX,
+		    SDL_GAMEPAD_AXIS_LEFTY,
+		    SDL_GAMEPAD_AXIS_RIGHTX,
+		    SDL_GAMEPAD_AXIS_RIGHTY);
+	}
+#else
 	if (event.type == SDL_CONTROLLERAXISMOTION) {
 		return IsAnyOf(event.caxis.axis,
 		    SDL_CONTROLLER_AXIS_LEFTX,
@@ -152,9 +167,15 @@ bool IsControllerMotion(const SDL_Event &event)
 		    SDL_CONTROLLER_AXIS_RIGHTY);
 	}
 #endif
+#endif
 
 #if defined(JOY_AXIS_LEFTX) || defined(JOY_AXIS_LEFTY) || defined(JOY_AXIS_RIGHTX) || defined(JOY_AXIS_RIGHTY)
-	if (event.type == SDL_JOYAXISMOTION) {
+#ifdef USE_SDL3
+	if (event.type == SDL_EVENT_JOYSTICK_AXIS_MOTION)
+#else
+	if (event.type == SDL_JOYAXISMOTION)
+#endif
+	{
 		switch (event.jaxis.axis) {
 #ifdef JOY_AXIS_LEFTX
 		case JOY_AXIS_LEFTX:

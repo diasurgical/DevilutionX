@@ -2,6 +2,12 @@
 
 #include <cmath>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_events.h>
+#else
+#include <SDL.h>
+#endif
+
 #ifndef USE_SDL1
 #include "controls/devices/game_controller.h"
 #endif
@@ -91,16 +97,33 @@ bool HandleControllerAddedOrRemovedEvent(const SDL_Event &event)
 {
 #ifndef USE_SDL1
 	switch (event.type) {
+#ifdef USE_SDL3
+	case SDL_EVENT_GAMEPAD_ADDED:
+		GameController::Add(event.gdevice.which);
+		break;
+	case SDL_EVENT_GAMEPAD_REMOVED:
+		GameController::Remove(event.gdevice.which);
+		break;
+#else
 	case SDL_CONTROLLERDEVICEADDED:
 		GameController::Add(event.cdevice.which);
 		break;
 	case SDL_CONTROLLERDEVICEREMOVED:
 		GameController::Remove(event.cdevice.which);
 		break;
+#endif
+#ifdef USE_SDL3
+	case SDL_EVENT_JOYSTICK_ADDED:
+#else
 	case SDL_JOYDEVICEADDED:
+#endif
 		Joystick::Add(event.jdevice.which);
 		break;
+#ifdef USE_SDL3
+	case SDL_EVENT_JOYSTICK_REMOVED:
+#else
 	case SDL_JOYDEVICEREMOVED:
+#endif
 		Joystick::Remove(event.jdevice.which);
 		break;
 	default:

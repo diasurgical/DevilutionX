@@ -11,12 +11,19 @@
 #include <string>
 #include <string_view>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_events.h>
+#include <SDL3/SDL_keycode.h>
+#include <SDL3/SDL_rect.h>
+#else
 #include <SDL.h>
-#include <expected.hpp>
 
 #ifdef USE_SDL1
 #include "utils/sdl2_to_1_2_backports.h"
 #endif
+#endif
+
+#include <expected.hpp>
 
 #include "DiabloUI/text_input.hpp"
 #include "DiabloUI/ui_flags.hpp"

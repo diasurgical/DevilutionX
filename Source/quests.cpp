@@ -30,6 +30,7 @@
 #include "panels/ui_panels.hpp"
 #include "stores.h"
 #include "towners.h"
+#include "utils/endian_swap.hpp"
 #include "utils/is_of.hpp"
 #include "utils/language.h"
 #include "utils/utf8.hpp"
@@ -126,7 +127,7 @@ void DrawLTBanner(Point position)
 
 	for (WorldTileCoord j = 0; j < size.height; j++) {
 		for (WorldTileCoord i = 0; i < size.width; i++) {
-			auto tileId = static_cast<uint8_t>(SDL_SwapLE16(tileLayer[j * size.width + i]));
+			auto tileId = static_cast<uint8_t>(Swap16LE(tileLayer[j * size.width + i]));
 			if (tileId != 0) {
 				pdungeon[position.x + i][position.y + j] = tileId;
 			}

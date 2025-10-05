@@ -13,7 +13,11 @@ class GameController {
 	static std::vector<GameController> controllers_;
 
 public:
+#ifdef USE_SDL3
+	static void Add(SDL_JoystickID joystickId);
+#else
 	static void Add(int joystickIndex);
+#endif
 	static void Remove(SDL_JoystickID instanceId);
 	static GameController *Get(SDL_JoystickID instanceId);
 	static GameController *Get(const SDL_Event &event);
@@ -27,7 +31,13 @@ public:
 
 	bool IsPressed(ControllerButton button) const;
 	static bool ProcessAxisMotion(const SDL_Event &event);
+
+#ifdef USE_SDL3
+	static SDL_GamepadButton ToSdlGameControllerButton(ControllerButton button);
+#else
 	static SDL_GameControllerButton ToSdlGameControllerButton(ControllerButton button);
+#endif
+
 	static GamepadLayout getLayout(const SDL_Event &event);
 
 private:

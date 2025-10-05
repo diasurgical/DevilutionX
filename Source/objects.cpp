@@ -45,6 +45,7 @@
 #include "towners.h"
 #include "track.h"
 #include "utils/algorithm/container.hpp"
+#include "utils/endian_swap.hpp"
 #include "utils/is_of.hpp"
 #include "utils/language.h"
 #include "utils/log.hpp"
@@ -574,7 +575,7 @@ void LoadMapObjects(const char *path, Point start, WorldTileRectangle mapRange =
 
 	for (WorldTileCoord j = 0; j < size.height; j++) {
 		for (WorldTileCoord i = 0; i < size.width; i++) {
-			auto objectId = static_cast<uint8_t>(SDL_SwapLE16(objectLayer[j * size.width + i]));
+			auto objectId = static_cast<uint8_t>(Swap16LE(objectLayer[j * size.width + i]));
 			if (objectId != 0) {
 				const Point mapPos = start + Displacement { i, j };
 				Object *mapObject = AddObject(ObjTypeConv[objectId], mapPos);
@@ -1669,10 +1670,10 @@ void ObjSetMini(Point position, int v)
 
 	const Point megaOrigin = position.megaToWorld();
 
-	ObjSetMicro(megaOrigin, SDL_SwapLE16(mega.micro1));
-	ObjSetMicro(megaOrigin + Direction::SouthEast, SDL_SwapLE16(mega.micro2));
-	ObjSetMicro(megaOrigin + Direction::SouthWest, SDL_SwapLE16(mega.micro3));
-	ObjSetMicro(megaOrigin + Direction::South, SDL_SwapLE16(mega.micro4));
+	ObjSetMicro(megaOrigin, Swap16LE(mega.micro1));
+	ObjSetMicro(megaOrigin + Direction::SouthEast, Swap16LE(mega.micro2));
+	ObjSetMicro(megaOrigin + Direction::SouthWest, Swap16LE(mega.micro3));
+	ObjSetMicro(megaOrigin + Direction::South, Swap16LE(mega.micro4));
 }
 
 void ObjL1Special(int x1, int y1, int x2, int y2)
@@ -3988,7 +3989,7 @@ void SetMapObjects(const uint16_t *dunData, int startx, int starty)
 
 	for (WorldTileCoord j = 0; j < size.height; j++) {
 		for (WorldTileCoord i = 0; i < size.width; i++) {
-			auto objectId = static_cast<uint8_t>(SDL_SwapLE16(objectLayer[j * size.width + i]));
+			auto objectId = static_cast<uint8_t>(Swap16LE(objectLayer[j * size.width + i]));
 			if (objectId != 0) {
 				const ObjectData &objectData = AllObjects[ObjTypeConv[objectId]];
 				filesWidths[objectData.ofindex] = objectData.animWidth;
@@ -4000,7 +4001,7 @@ void SetMapObjects(const uint16_t *dunData, int startx, int starty)
 
 	for (WorldTileCoord j = 0; j < size.height; j++) {
 		for (WorldTileCoord i = 0; i < size.width; i++) {
-			auto objectId = static_cast<uint8_t>(SDL_SwapLE16(objectLayer[j * size.width + i]));
+			auto objectId = static_cast<uint8_t>(Swap16LE(objectLayer[j * size.width + i]));
 			if (objectId != 0) {
 				AddObject(ObjTypeConv[objectId], { startx + 16 + i, starty + 16 + j });
 			}

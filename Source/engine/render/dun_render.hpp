@@ -8,13 +8,12 @@
 #include <cstddef>
 #include <cstdint>
 
-#include <SDL_endian.h>
-
 #include "engine/point.hpp"
 #include "engine/render/light_render.hpp"
 #include "engine/surface.hpp"
 #include "levels/dun_tile.hpp"
 #include "utils/attributes.h"
+#include "utils/endian_swap.hpp"
 
 // #define DUN_RENDER_STATS
 #ifdef DUN_RENDER_STATS
@@ -124,7 +123,7 @@ void RenderTileFrame(const Surface &out, const Lightmap &lightmap, const Point &
 DVL_ALWAYS_INLINE const uint8_t *GetDunFrame(const std::byte *dungeonCelData, uint32_t frame)
 {
 	const auto *frameTable = reinterpret_cast<const uint32_t *>(dungeonCelData);
-	return reinterpret_cast<const uint8_t *>(&dungeonCelData[SDL_SwapLE32(frameTable[frame])]);
+	return reinterpret_cast<const uint8_t *>(&dungeonCelData[Swap32LE(frameTable[frame])]);
 }
 
 /**

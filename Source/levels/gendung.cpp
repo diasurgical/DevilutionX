@@ -29,6 +29,7 @@
 #include "objects.h"
 #include "utils/algorithm/container.hpp"
 #include "utils/bitset2d.hpp"
+#include "utils/endian_swap.hpp"
 #include "utils/is_of.hpp"
 #include "utils/log.hpp"
 #include "utils/status_macros.hpp"
@@ -526,7 +527,7 @@ void SetDungeonMicros(std::unique_ptr<std::byte[]> &dungeonCels, uint_fast8_t &m
 	for (size_t levelPieceId = 0; levelPieceId < tileCount / blocks; levelPieceId++) {
 		uint16_t *pieces = &levelPieces[blocks * levelPieceId];
 		for (uint32_t block = 0; block < blocks; block++) {
-			const LevelCelBlock levelCelBlock { SDL_SwapLE16(pieces[blocks - 2 + (block & 1) - (block & 0xE)]) };
+			const LevelCelBlock levelCelBlock { Swap16LE(pieces[blocks - 2 + (block & 1) - (block & 0xE)]) };
 			DPieceMicros[levelPieceId].mt[block] = levelCelBlock;
 			if (levelCelBlock.hasValue()) {
 				if (const auto it = frameToTypeMap.find(levelCelBlock.frame()); it == frameToTypeMap.end()) {
@@ -607,7 +608,7 @@ void LoadTransparency(const uint16_t *dunData)
 
 	for (WorldTileCoord j = 0; j < size.height; j++) {
 		for (WorldTileCoord i = 0; i < size.width; i++) {
-			dTransVal[16 + i][16 + j] = static_cast<int8_t>(SDL_SwapLE16(*transparentLayer));
+			dTransVal[16 + i][16 + j] = static_cast<int8_t>(Swap16LE(*transparentLayer));
 			transparentLayer++;
 		}
 	}
@@ -694,7 +695,7 @@ void PlaceDunTiles(const uint16_t *dunData, Point position, int floorId)
 
 	for (WorldTileCoord j = 0; j < size.height; j++) {
 		for (WorldTileCoord i = 0; i < size.width; i++) {
-			auto tileId = static_cast<uint8_t>(SDL_SwapLE16(tileLayer[j * size.width + i]));
+			auto tileId = static_cast<uint8_t>(Swap16LE(tileLayer[j * size.width + i]));
 			if (tileId != 0) {
 				dungeon[position.x + i][position.y + j] = tileId;
 				Protected.set(position.x + i, position.y + j);
@@ -761,17 +762,17 @@ void DRLG_HoldThemeRooms()
 
 WorldTileSize GetDunSize(const uint16_t *dunData)
 {
-	return WorldTileSize(static_cast<WorldTileCoord>(SDL_SwapLE16(dunData[0])), static_cast<WorldTileCoord>(SDL_SwapLE16(dunData[1])));
+	return WorldTileSize(static_cast<WorldTileCoord>(Swap16LE(dunData[0])), static_cast<WorldTileCoord>(Swap16LE(dunData[1])));
 }
 
 void DRLG_LPass3(int lv)
 {
 	{
 		const MegaTile mega = pMegaTiles[lv];
-		const int v1 = SDL_SwapLE16(mega.micro1);
-		const int v2 = SDL_SwapLE16(mega.micro2);
-		const int v3 = SDL_SwapLE16(mega.micro3);
-		const int v4 = SDL_SwapLE16(mega.micro4);
+		const int v1 = Swap16LE(mega.micro1);
+		const int v2 = Swap16LE(mega.micro2);
+		const int v3 = Swap16LE(mega.micro3);
+		const int v4 = Swap16LE(mega.micro4);
 
 		for (int j = 0; j < MAXDUNY; j += 2) {
 			for (int i = 0; i < MAXDUNX; i += 2) {
@@ -789,10 +790,10 @@ void DRLG_LPass3(int lv)
 		for (int i = 0; i < DMAXX; i++) { // NOLINT(modernize-loop-convert)
 			const int tileId = dungeon[i][j] - 1;
 			const MegaTile mega = pMegaTiles[tileId];
-			dPiece[xx + 0][yy + 0] = SDL_SwapLE16(mega.micro1);
-			dPiece[xx + 1][yy + 0] = SDL_SwapLE16(mega.micro2);
-			dPiece[xx + 0][yy + 1] = SDL_SwapLE16(mega.micro3);
-			dPiece[xx + 1][yy + 1] = SDL_SwapLE16(mega.micro4);
+			dPiece[xx + 0][yy + 0] = Swap16LE(mega.micro1);
+			dPiece[xx + 1][yy + 0] = Swap16LE(mega.micro2);
+			dPiece[xx + 0][yy + 1] = Swap16LE(mega.micro3);
+			dPiece[xx + 1][yy + 1] = Swap16LE(mega.micro4);
 			xx += 2;
 		}
 		yy += 2;
