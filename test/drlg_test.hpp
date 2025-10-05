@@ -13,6 +13,7 @@
 #include "multi.h"
 #include "player.h"
 #include "quests.h"
+#include "utils/endian_swap.hpp"
 #include "utils/paths.h"
 
 using namespace devilution;
@@ -88,7 +89,7 @@ void TestCreateDungeon(int level, uint32_t seed, lvl_entry entry)
 
 	for (int y = 0; y < DMAXY; y++) {
 		for (int x = 0; x < DMAXX; x++) {
-			auto tileId = static_cast<uint8_t>(SDL_SwapLE16(*tileLayer));
+			auto tileId = static_cast<uint8_t>(Swap16LE(*tileLayer));
 			tileLayer++;
 			ASSERT_EQ(dungeon[x][y], tileId) << "Tiles don't match at " << x << "x" << y;
 		}
@@ -98,7 +99,7 @@ void TestCreateDungeon(int level, uint32_t seed, lvl_entry entry)
 
 	for (int y = 16; y < 16 + DMAXY * 2; y++) {
 		for (int x = 16; x < 16 + DMAXX * 2; x++) {
-			auto sectorId = static_cast<uint8_t>(SDL_SwapLE16(*transparentLayer));
+			auto sectorId = static_cast<uint8_t>(Swap16LE(*transparentLayer));
 			transparentLayer++;
 			ASSERT_EQ(dTransVal[x][y], sectorId) << "Room/region indexes don't match at " << x << "x" << y;
 		}

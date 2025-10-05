@@ -12,6 +12,7 @@
 #include "monster.h"
 #include "monsters/validation.hpp"
 #include "player.h"
+#include "utils/endian_swap.hpp"
 #include "utils/is_of.hpp"
 
 namespace devilution {
@@ -47,7 +48,7 @@ void SyncMonsterPos(TSyncMonster &monsterSync, int ndx)
 	monsterSync._menemy = encode_enemy(monster);
 	monsterSync._mdelta = sgnMonsterPriority[ndx] > 255 ? 255 : sgnMonsterPriority[ndx];
 	monsterSync.mWhoHit = monster.whoHit;
-	monsterSync._mhitpoints = SDL_SwapLE32(monster.hitPoints);
+	monsterSync._mhitpoints = Swap32LE(monster.hitPoints);
 
 	sgnMonsterPriority[ndx] = 0xFFFF;
 	sgwLRU[ndx] = monster.activeForTicks == 0 ? 0xFFFF : 0xFFFE;
@@ -111,27 +112,27 @@ void SyncPlrInv(TSyncHeader *pHdr)
 		auto &item = Items[pHdr->bItemI];
 		pHdr->bItemX = item.position.x;
 		pHdr->bItemY = item.position.y;
-		pHdr->wItemIndx = SDL_SwapLE16(item.IDidx);
+		pHdr->wItemIndx = Swap16LE(item.IDidx);
 		if (item.IDidx == IDI_EAR) {
-			pHdr->wItemCI = SDL_SwapLE16((item._iIName[0] << 8) | item._iIName[1]);
-			pHdr->dwItemSeed = SDL_SwapLE32((item._iIName[2] << 24) | (item._iIName[3] << 16) | (item._iIName[4] << 8) | item._iIName[5]);
+			pHdr->wItemCI = Swap16LE((item._iIName[0] << 8) | item._iIName[1]);
+			pHdr->dwItemSeed = Swap32LE((item._iIName[2] << 24) | (item._iIName[3] << 16) | (item._iIName[4] << 8) | item._iIName[5]);
 			pHdr->bItemId = item._iIName[6];
 			pHdr->bItemDur = item._iIName[7];
 			pHdr->bItemMDur = item._iIName[8];
 			pHdr->bItemCh = item._iIName[9];
 			pHdr->bItemMCh = item._iIName[10];
-			pHdr->wItemVal = SDL_SwapLE16((item._iIName[11] << 8) | ((item._iCurs - ICURS_EAR_SORCERER) << 6) | item._ivalue);
-			pHdr->dwItemBuff = SDL_SwapLE32((item._iIName[12] << 24) | (item._iIName[13] << 16) | (item._iIName[14] << 8) | item._iIName[15]);
+			pHdr->wItemVal = Swap16LE((item._iIName[11] << 8) | ((item._iCurs - ICURS_EAR_SORCERER) << 6) | item._ivalue);
+			pHdr->dwItemBuff = Swap32LE((item._iIName[12] << 24) | (item._iIName[13] << 16) | (item._iIName[14] << 8) | item._iIName[15]);
 		} else {
-			pHdr->wItemCI = SDL_SwapLE16(item._iCreateInfo);
-			pHdr->dwItemSeed = SDL_SwapLE32(item._iSeed);
+			pHdr->wItemCI = Swap16LE(item._iCreateInfo);
+			pHdr->dwItemSeed = Swap32LE(item._iSeed);
 			pHdr->bItemId = item._iIdentified ? 1 : 0;
 			pHdr->bItemDur = item._iDurability;
 			pHdr->bItemMDur = item._iMaxDur;
 			pHdr->bItemCh = item._iCharges;
 			pHdr->bItemMCh = item._iMaxCharges;
 			if (item.IDidx == IDI_GOLD) {
-				pHdr->wItemVal = SDL_SwapLE16(item._ivalue);
+				pHdr->wItemVal = Swap16LE(item._ivalue);
 			}
 		}
 	}
@@ -141,9 +142,9 @@ void SyncPlrInv(TSyncHeader *pHdr)
 	const auto &item = MyPlayer->InvBody[sgnSyncPInv];
 	if (!item.isEmpty()) {
 		pHdr->bPInvLoc = sgnSyncPInv;
-		pHdr->wPInvIndx = SDL_SwapLE16(item.IDidx);
-		pHdr->wPInvCI = SDL_SwapLE16(item._iCreateInfo);
-		pHdr->dwPInvSeed = SDL_SwapLE32(item._iSeed);
+		pHdr->wPInvIndx = Swap16LE(item.IDidx);
+		pHdr->wPInvCI = Swap16LE(item._iCreateInfo);
+		pHdr->dwPInvSeed = Swap32LE(item._iSeed);
 		pHdr->bPInvId = item._iIdentified ? 1 : 0;
 	}
 
@@ -268,14 +269,14 @@ size_t sync_all_monsters(std::byte *pbBuf, size_t dwMaxLen)
 		pHdr->wLen += sizeof(TSyncMonster);
 		dwMaxLen -= sizeof(TSyncMonster);
 	}
-	pHdr->wLen = SDL_SwapLE16(pHdr->wLen);
+	pHdr->wLen = Swap16LE(pHdr->wLen);
 
 	return dwMaxLen;
 }
 
 size_t OnSyncData(const TSyncHeader &header, size_t maxCmdSize, const Player &player)
 {
-	const uint16_t wLen = SDL_SwapLE16(header.wLen);
+	const uint16_t wLen = Swap16LE(header.wLen);
 
 	if (!ValidateCmdSize(wLen + sizeof(header), maxCmdSize, player.getId()))
 		return maxCmdSize;

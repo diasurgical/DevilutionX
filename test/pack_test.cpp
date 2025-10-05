@@ -8,6 +8,7 @@
 #include "monstdat.h"
 #include "pack.h"
 #include "playerdat.hpp"
+#include "utils/endian_swap.hpp"
 #include "utils/is_of.hpp"
 #include "utils/paths.h"
 
@@ -16,34 +17,34 @@ namespace {
 
 void SwapLE(ItemPack &pack)
 {
-	pack.iSeed = SDL_SwapLE32(pack.iSeed);
-	pack.iCreateInfo = SDL_SwapLE16(pack.iCreateInfo);
-	pack.idx = SDL_SwapLE16(pack.idx);
-	pack.wValue = SDL_SwapLE16(pack.wValue);
-	pack.dwBuff = SDL_SwapLE32(pack.dwBuff);
+	pack.iSeed = Swap32LE(pack.iSeed);
+	pack.iCreateInfo = Swap16LE(pack.iCreateInfo);
+	pack.idx = Swap16LE(pack.idx);
+	pack.wValue = Swap16LE(pack.wValue);
+	pack.dwBuff = Swap32LE(pack.dwBuff);
 }
 
 void SwapLE(PlayerPack &pack)
 {
-	pack.dwLowDateTime = SDL_SwapLE32(pack.dwLowDateTime);
-	pack.dwHighDateTime = SDL_SwapLE32(pack.dwHighDateTime);
-	pack.pExperience = SDL_SwapLE32(pack.pExperience);
-	pack.pGold = SDL_SwapLE32(pack.pGold);
-	pack.pHPBase = SDL_SwapLE32(pack.pHPBase);
-	pack.pMaxHPBase = SDL_SwapLE32(pack.pMaxHPBase);
-	pack.pManaBase = SDL_SwapLE32(pack.pManaBase);
-	pack.pMaxManaBase = SDL_SwapLE32(pack.pMaxManaBase);
-	pack.pMemSpells = SDL_SwapLE64(pack.pMemSpells);
+	pack.dwLowDateTime = Swap32LE(pack.dwLowDateTime);
+	pack.dwHighDateTime = Swap32LE(pack.dwHighDateTime);
+	pack.pExperience = Swap32LE(pack.pExperience);
+	pack.pGold = Swap32LE(pack.pGold);
+	pack.pHPBase = Swap32LE(pack.pHPBase);
+	pack.pMaxHPBase = Swap32LE(pack.pMaxHPBase);
+	pack.pManaBase = Swap32LE(pack.pManaBase);
+	pack.pMaxManaBase = Swap32LE(pack.pMaxManaBase);
+	pack.pMemSpells = Swap64LE(pack.pMemSpells);
 	for (ItemPack &item : pack.InvBody)
 		SwapLE(item);
 	for (ItemPack &item : pack.InvList)
 		SwapLE(item);
 	for (ItemPack &item : pack.SpdList)
 		SwapLE(item);
-	pack.wReflections = SDL_SwapLE16(pack.wReflections);
-	pack.pDiabloKillLevel = SDL_SwapLE32(pack.pDiabloKillLevel);
-	pack.pDifficulty = SDL_SwapLE32(pack.pDifficulty);
-	pack.pDamAcFlags = SDL_SwapLE32(pack.pDamAcFlags);
+	pack.wReflections = Swap16LE(pack.wReflections);
+	pack.pDiabloKillLevel = Swap32LE(pack.pDiabloKillLevel);
+	pack.pDifficulty = Swap32LE(pack.pDifficulty);
+	pack.pDamAcFlags = Swap32LE(pack.pDamAcFlags);
 }
 
 ItemPack SwappedLE(const ItemPack &pack)
@@ -834,7 +835,7 @@ TEST_F(PackTest, PackItem_empty)
 
 	// Copy the value out before comparing to avoid loading a misaligned address.
 	const auto idx = is.idx;
-	ASSERT_EQ(SDL_SwapLE16(idx), 0xFFFF);
+	ASSERT_EQ(Swap16LE(idx), 0xFFFF);
 	TestItemNameGeneration(id);
 }
 
@@ -845,7 +846,7 @@ static void compareGold(const ItemPack &is, int iCurs)
 	ASSERT_EQ(id._iCurs, iCurs);
 	ASSERT_EQ(id.IDidx, IDI_GOLD);
 	// Copy the value out before comparing to avoid loading a misaligned address.
-	const auto wvalue = SDL_SwapLE16(is.wValue);
+	const auto wvalue = Swap16LE(is.wValue);
 	ASSERT_EQ(id._ivalue, wvalue);
 	ASSERT_EQ(id._itype, ItemType::Gold);
 	ASSERT_EQ(id._iClass, ICLASS_GOLD);

@@ -40,6 +40,7 @@
 #include "stores.h"
 #include "utils/algorithm/container.hpp"
 #include "utils/endian_read.hpp"
+#include "utils/endian_swap.hpp"
 #include "utils/is_of.hpp"
 #include "utils/language.h"
 #include "utils/status_macros.hpp"
@@ -62,11 +63,11 @@ T SwapLE(T in)
 {
 	switch (sizeof(T)) {
 	case 2:
-		return SDL_SwapLE16(in);
+		return Swap16LE(in);
 	case 4:
-		return SDL_SwapLE32(in);
+		return Swap32LE(in);
 	case 8:
-		return SDL_SwapLE64(in);
+		return Swap64LE(in);
 	default:
 		return in;
 	}
@@ -77,11 +78,11 @@ T SwapBE(T in)
 {
 	switch (sizeof(T)) {
 	case 2:
-		return SDL_SwapBE16(in);
+		return Swap16BE(in);
 	case 4:
-		return SDL_SwapBE32(in);
+		return Swap32BE(in);
 	case 8:
-		return static_cast<T>(SDL_SwapBE64(in));
+		return static_cast<T>(Swap64BE(in));
 	default:
 		return in;
 	}

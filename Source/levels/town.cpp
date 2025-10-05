@@ -11,6 +11,7 @@
 #include "multi.h"
 #include "player.h"
 #include "quests.h"
+#include "utils/endian_swap.hpp"
 
 namespace devilution {
 
@@ -37,13 +38,13 @@ void FillSector(const char *path, int xi, int yy)
 			int v3 = 218;
 			int v4 = 218;
 
-			const int tileId = SDL_SwapLE16(tileLayer[j * size.width + i]) - 1;
+			const int tileId = Swap16LE(tileLayer[j * size.width + i]) - 1;
 			if (tileId >= 0) {
 				const MegaTile mega = pMegaTiles[tileId];
-				v1 = SDL_SwapLE16(mega.micro1);
-				v2 = SDL_SwapLE16(mega.micro2);
-				v3 = SDL_SwapLE16(mega.micro3);
-				v4 = SDL_SwapLE16(mega.micro4);
+				v1 = Swap16LE(mega.micro1);
+				v2 = Swap16LE(mega.micro2);
+				v3 = Swap16LE(mega.micro3);
+				v4 = Swap16LE(mega.micro4);
 			}
 
 			dPiece[xx + 0][yy + 0] = v1;
@@ -66,10 +67,10 @@ void FillTile(int xx, int yy, int t)
 {
 	const MegaTile mega = pMegaTiles[t - 1];
 
-	dPiece[xx + 0][yy + 0] = SDL_SwapLE16(mega.micro1);
-	dPiece[xx + 1][yy + 0] = SDL_SwapLE16(mega.micro2);
-	dPiece[xx + 0][yy + 1] = SDL_SwapLE16(mega.micro3);
-	dPiece[xx + 1][yy + 1] = SDL_SwapLE16(mega.micro4);
+	dPiece[xx + 0][yy + 0] = Swap16LE(mega.micro1);
+	dPiece[xx + 1][yy + 0] = Swap16LE(mega.micro2);
+	dPiece[xx + 0][yy + 1] = Swap16LE(mega.micro3);
+	dPiece[xx + 1][yy + 1] = Swap16LE(mega.micro4);
 }
 
 /**

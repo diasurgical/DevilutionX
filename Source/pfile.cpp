@@ -23,6 +23,7 @@
 #include "playerdat.hpp"
 #include "qol/stash.h"
 #include "utils/endian_read.hpp"
+#include "utils/endian_swap.hpp"
 #include "utils/file_util.h"
 #include "utils/language.h"
 #include "utils/parse_int.hpp"
@@ -340,9 +341,9 @@ void CreateDetailDiffs(std::string_view prefix, std::string_view memoryMapFile, 
 			app_fatal("read32BitInt failed. Too less bytes to read.");
 		memcpy(&value, compareInfo.data.get() + compareInfo.currentPosition, sizeof(value));
 		if (useLE)
-			value = SDL_SwapLE32(value);
+			value = Swap32LE(value);
 		else
-			value = SDL_SwapBE32(value);
+			value = Swap32BE(value);
 		return value;
 	};
 

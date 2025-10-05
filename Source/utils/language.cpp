@@ -11,6 +11,7 @@
 #include "engine/assets.hpp"
 #include "options.h"
 #include "utils/algorithm/container.hpp"
+#include "utils/endian_swap.hpp"
 #include "utils/file_util.h"
 #include "utils/log.hpp"
 #include "utils/paths.h"
@@ -72,12 +73,12 @@ struct MoHead {
 
 void SwapLE(MoHead &head)
 {
-	head.magic = SDL_SwapLE32(head.magic);
-	head.revision.major = SDL_SwapLE16(head.revision.major);
-	head.revision.minor = SDL_SwapLE16(head.revision.minor);
-	head.nbMappings = SDL_SwapLE32(head.nbMappings);
-	head.srcOffset = SDL_SwapLE32(head.srcOffset);
-	head.dstOffset = SDL_SwapLE32(head.dstOffset);
+	head.magic = Swap32LE(head.magic);
+	head.revision.major = Swap16LE(head.revision.major);
+	head.revision.minor = Swap16LE(head.revision.minor);
+	head.nbMappings = Swap32LE(head.nbMappings);
+	head.srcOffset = Swap32LE(head.srcOffset);
+	head.dstOffset = Swap32LE(head.dstOffset);
 }
 
 struct MoEntry {
@@ -87,8 +88,8 @@ struct MoEntry {
 
 void SwapLE(MoEntry &entry)
 {
-	entry.length = SDL_SwapLE32(entry.length);
-	entry.offset = SDL_SwapLE32(entry.offset);
+	entry.length = Swap32LE(entry.length);
+	entry.offset = Swap32LE(entry.offset);
 }
 
 std::string_view TrimLeft(std::string_view str)

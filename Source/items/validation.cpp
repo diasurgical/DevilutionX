@@ -13,6 +13,7 @@
 #include "msg.h"
 #include "player.h"
 #include "spells.h"
+#include "utils/endian_swap.hpp"
 #include "utils/is_of.hpp"
 
 namespace devilution {
@@ -184,7 +185,7 @@ bool IsItemDeltaValid(const TCmdPItem &itemDelta)
 		return false;
 	if (!InDungeonBounds({ itemDelta.x, itemDelta.y }))
 		return false;
-	const _item_indexes idx = static_cast<_item_indexes>(SDL_SwapLE16(itemDelta.def.wIndx));
+	const _item_indexes idx = static_cast<_item_indexes>(Swap16LE(itemDelta.def.wIndx));
 	if (idx == IDI_EAR)
 		return true;
 	if (!IsItemAvailable(idx))
