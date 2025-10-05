@@ -6,6 +6,13 @@
 
 #include <cstdint>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_events.h>
+#include <SDL3/SDL_keycode.h>
+#else
+#include <SDL.h>
+#endif
+
 #include "controls/control_mode.hpp"
 #include "controls/plrctrls.h"
 #include "diablo.h"
@@ -53,12 +60,30 @@ void play_movie(const char *pszMovie, bool userCanClose)
 					}
 				}
 				switch (event.type) {
+#ifdef USE_SDL3
+				case SDL_EVENT_KEY_DOWN:
+				case SDL_EVENT_MOUSE_BUTTON_UP:
+#else
 				case SDL_KEYDOWN:
 				case SDL_MOUSEBUTTONUP:
-					if (userCanClose || (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE))
+#endif
+					if (userCanClose || (
+#ifdef USE_SDL3
+					        event.type == SDL_EVENT_KEY_DOWN && event.key.key == SDLK_ESCAPE
+#else
+					        event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE
+#endif
+					        ))
 						movie_playing = false;
 					break;
-#ifndef USE_SDL1
+#ifdef USE_SDL3
+				case SDL_EVENT_WINDOW_FOCUS_LOST:
+					if (*GetOptions().Gameplay.pauseOnFocusLoss) diablo_focus_pause();
+					break;
+				case SDL_EVENT_WINDOW_FOCUS_GAINED:
+					if (*GetOptions().Gameplay.pauseOnFocusLoss) diablo_focus_unpause();
+					break;
+#elif !defined(USE_SDL1)
 				case SDL_WINDOWEVENT:
 					if (*GetOptions().Gameplay.pauseOnFocusLoss) {
 						if (event.window.event == SDL_WINDOWEVENT_FOCUS_LOST)
@@ -77,7 +102,11 @@ void play_movie(const char *pszMovie, bool userCanClose)
 					}
 					break;
 #endif
+#ifdef USE_SDL3
+				case SDL_EVENT_QUIT:
+#else
 				case SDL_QUIT:
+#endif
 					SVidPlayEnd();
 					diablo_quit(0);
 				}

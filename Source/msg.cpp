@@ -11,6 +11,12 @@
 #include <list>
 #include <memory>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_timer.h>
+#else
+#include <SDL.h>
+#endif
+
 #include <ankerl/unordered_dense.h>
 #include <fmt/format.h>
 

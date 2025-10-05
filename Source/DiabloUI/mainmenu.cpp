@@ -4,7 +4,12 @@
 #include <optional>
 #include <vector>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_rect.h>
+#include <SDL3/SDL_timer.h>
+#else
 #include <SDL.h>
+#endif
 
 #include "DiabloUI/diabloui.h"
 #include "DiabloUI/ui_flags.hpp"

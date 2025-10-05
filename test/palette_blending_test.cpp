@@ -4,7 +4,12 @@
 #include <array>
 #include <iostream>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_pixels.h>
+#else
 #include <SDL.h>
+#endif
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 

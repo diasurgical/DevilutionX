@@ -1,5 +1,11 @@
 #include "controls/touch/renderers.h"
 
+#ifdef USE_SDL
+#include <SDL3/SDL_surface.h>
+#else
+#include <SDL.h>
+#endif
+
 #include "control.h"
 #include "cursor.h"
 #include "diablo.h"
@@ -127,14 +133,19 @@ void LoadPotionArt(ButtonTexture *potionArt)
 	    SDL_PIXELFORMAT_INDEX8);
 
 	auto palette = SDLWrap::AllocPalette();
-	if (SDLC_SetSurfaceAndPaletteColors(surface.get(), palette.get(), logical_palette.data(), 0, 256) < 0)
+	if (!SDLC_SetSurfaceAndPaletteColors(surface.get(), palette.get(), logical_palette.data(), 0, 256))
 		ErrSdl();
 
 	const Uint32 bgColor = SDL_MapRGB(surface->format, logical_palette[1].r, logical_palette[1].g, logical_palette[1].b);
+#ifdef USE_SDL3
+	if (!SDL_FillSurfaceRect(surface.get(), nullptr, bgColor)) ErrSdl();
+	if (!SDL_SetSurfaceColorKey(surface.get(), true, bgColor)) ErrSdl();
+#else
 	if (SDL_FillRect(surface.get(), nullptr, bgColor) < 0)
 		ErrSdl();
 	if (SDL_SetColorKey(surface.get(), SDL_TRUE, bgColor) < 0)
 		ErrSdl();
+#endif
 
 	Point position { 0, 0 };
 	for (const item_cursor_graphic graphic : potionGraphics) {
@@ -145,7 +156,13 @@ void LoadPotionArt(ButtonTexture *potionArt)
 
 	potionArt->numFrames = sizeof(potionGraphics);
 
-	potionArt->surface.reset(SDL_ConvertSurfaceFormat(surface.get(), SDL_PIXELFORMAT_ARGB8888, 0));
+	potionArt->surface.reset(
+#ifdef USE_SDL3
+	    SDL_ConvertSurface(surface.get(), SDL_PIXELFORMAT_ARGB8888)
+#else
+	    SDL_ConvertSurfaceFormat(surface.get(), SDL_PIXELFORMAT_ARGB8888, 0)
+#endif
+	);
 }
 
 bool InteractsWithCharButton(Point point)
@@ -191,8 +208,11 @@ void RenderVirtualGamepad(SDL_Renderer *renderer)
 		if (art.texture == nullptr)
 			return;
 
-		if (SDL_RenderCopy(renderer, art.texture.get(), src, dst) <= -1)
-			ErrSdl();
+#ifdef USE_SDL3
+		if (!SDL_RenderTexture(renderer, art.texture.get(), src, dst)) ErrSdl();
+#else
+		if (SDL_RenderCopy(renderer, art.texture.get(), src, dst) <= -1) ErrSdl();
+#endif
 	};
 
 	Renderer.Render(renderFunction);

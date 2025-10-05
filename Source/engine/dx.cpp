@@ -5,8 +5,16 @@
  */
 #include "engine/dx.h"
 
-#include <SDL.h>
 #include <cstdint>
+
+#ifdef USE_SDL3
+#include <SDL3/SDL_rect.h>
+#include <SDL3/SDL_render.h>
+#include <SDL3/SDL_surface.h>
+#include <SDL3/SDL_video.h>
+#else
+#include <SDL.h>
+#endif
 
 #include "controls/control_mode.hpp"
 #include "controls/plrctrls.h"
@@ -144,7 +152,9 @@ void CreateBackBuffer()
 		PalSurface = PinnedPalSurface.get();
 	}
 
-#ifndef USE_SDL1
+#if defined(USE_SDL3)
+	if (!SDL_SetSurfacePalette(PalSurface, Palette.get())) ErrSdl();
+#elif !defined(USE_SDL1)
 	// In SDL2, `PalSurface` points to the global `palette`.
 	if (SDL_SetSurfacePalette(PalSurface, Palette.get()) < 0)
 		ErrSdl();
@@ -168,7 +178,9 @@ void Blit(SDL_Surface *src, SDL_Rect *srcRect, SDL_Rect *dstRect)
 		return;
 
 	SDL_Surface *dst = GetOutputSurface();
-#ifndef USE_SDL1
+#if defined(USE_SDL3)
+	if (!SDL_BlitSurface(src, srcRect, dst, dstRect)) ErrSdl();
+#elif !defined(USE_SDL1)
 	if (SDL_BlitSurface(src, srcRect, dst, dstRect) < 0)
 		ErrSdl();
 #else
@@ -229,21 +241,32 @@ void RenderPresent()
 
 #ifndef USE_SDL1
 	if (renderer != nullptr) {
-		if (SDL_UpdateTexture(texture.get(), nullptr, surface->pixels, surface->pitch) <= -1) { // pitch is 2560
-			ErrSdl();
-		}
+#ifdef USE_SDL3
+		if (!SDL_UpdateTexture(texture.get(), nullptr, surface->pixels, surface->pitch)) ErrSdl();
+#else
+		if (SDL_UpdateTexture(texture.get(), nullptr, surface->pixels, surface->pitch) <= -1) ErrSdl();
+#endif
 
-		// Clear buffer to avoid artifacts in case the window was resized
-		if (SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255) <= -1) { // TODO only do this if window was resized
-			ErrSdl();
-		}
+			// Clear buffer to avoid artifacts in case the window was resized
+			// TODO only do this if window was resized
+#ifdef USE_SDL3
+		if (!SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255)) ErrSdl();
+#else
+		if (SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255) <= -1) ErrSdl();
+#endif
 
-		if (SDL_RenderClear(renderer) <= -1) {
-			ErrSdl();
-		}
-		if (SDL_RenderCopy(renderer, texture.get(), nullptr, nullptr) <= -1) {
-			ErrSdl();
-		}
+#ifdef USE_SDL3
+		if (!SDL_RenderClear(renderer)) ErrSdl();
+#else
+		if (SDL_RenderClear(renderer) <= -1) ErrSdl();
+#endif
+
+#ifdef USE_SDL3
+		if (!SDL_RenderCopy(renderer, texture.get(), nullptr, nullptr)) ErrSdl();
+#else
+		if (SDL_RenderCopy(renderer, texture.get(), nullptr, nullptr) <= -1) ErrSdl();
+#endif
+
 		if (ControlMode == ControlTypes::VirtualGamepad) {
 			RenderVirtualGamepad(renderer);
 		}
@@ -256,9 +279,13 @@ void RenderPresent()
 		if (ControlMode == ControlTypes::VirtualGamepad) {
 			RenderVirtualGamepad(surface);
 		}
-		if (SDL_UpdateWindowSurface(ghMainWnd) <= -1) {
-			ErrSdl();
-		}
+
+#ifdef USE_SDL3
+		if (!SDL_UpdateWindowSurface(ghMainWnd)) ErrSdl();
+#else
+		if (SDL_UpdateWindowSurface(ghMainWnd) <= -1) ErrSdl();
+#endif
+
 		if (RenderDirectlyToOutputSurface)
 			PalSurface = GetOutputSurface();
 		LimitFrameRate();

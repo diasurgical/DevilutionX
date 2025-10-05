@@ -5,8 +5,16 @@
 #include <cstdint>
 #include <list>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_events.h>
+#include <SDL3/SDL_gamepad.h>
+#include <SDL3/SDL_timer.h>
+#else
+#include <SDL.h>
+
 #ifdef USE_SDL1
 #include "utils/sdl2_to_1_2_backports.h"
+#endif
 #endif
 
 #include "automap.h"
@@ -1592,34 +1600,102 @@ bool IsStickMovementSignificant()
 
 ControlTypes GetInputTypeFromEvent(const SDL_Event &event)
 {
-	if (IsAnyOf(event.type, SDL_KEYDOWN, SDL_KEYUP))
+	switch (event.type) {
+#ifdef USE_SDL3
+	case SDL_EVENT_KEY_DOWN:
+	case SDL_EVENT_KEY_UP:
+#else
+	case SDL_KEYDOWN:
+	case SDL_KEYUP:
+#endif
 		return ControlTypes::KeyboardAndMouse;
 #ifdef USE_SDL1
-	if (IsAnyOf(event.type, SDL_MOUSEBUTTONDOWN, SDL_MOUSEBUTTONUP, SDL_MOUSEMOTION))
+	case SDL_MOUSEBUTTONDOWN:
+	case SDL_MOUSEBUTTONUP:
+	case SDL_MOUSEMOTION:
 		return ControlTypes::KeyboardAndMouse;
 #else
-	if (IsAnyOf(event.type, SDL_MOUSEBUTTONDOWN, SDL_MOUSEBUTTONUP))
-		return event.button.which == SDL_TOUCH_MOUSEID ? ControlTypes::VirtualGamepad : ControlTypes::KeyboardAndMouse;
-	if (event.type == SDL_MOUSEMOTION)
-		return event.motion.which == SDL_TOUCH_MOUSEID ? ControlTypes::VirtualGamepad : ControlTypes::KeyboardAndMouse;
-	if (event.type == SDL_MOUSEWHEEL)
-		return event.wheel.which == SDL_TOUCH_MOUSEID ? ControlTypes::VirtualGamepad : ControlTypes::KeyboardAndMouse;
-	if (IsAnyOf(event.type, SDL_FINGERDOWN, SDL_FINGERUP, SDL_FINGERMOTION))
-		return ControlTypes::VirtualGamepad;
-	if (event.type == SDL_CONTROLLERAXISMOTION
-	    && (event.caxis.axis == SDL_CONTROLLER_AXIS_TRIGGERLEFT || event.caxis.axis == SDL_CONTROLLER_AXIS_TRIGGERRIGHT
-	        || IsStickMovementSignificant()))
-		return ControlTypes::Gamepad;
-	if (event.type >= SDL_CONTROLLERBUTTONDOWN && event.type <= SDL_CONTROLLERDEVICEREMAPPED)
-		return ControlTypes::Gamepad;
-	if (IsAnyOf(event.type, SDL_JOYDEVICEADDED, SDL_JOYDEVICEREMOVED))
-		return ControlTypes::Gamepad;
+// SDL 2/3-only events (touch / gamepad):
+#ifdef USE_SDL3
+	case SDL_EVENT_MOUSE_BUTTON_DOWN:
+	case SDL_EVENT_MOUSE_BUTTON_UP:
+#else
+	case SDL_MOUSEBUTTONDOWN:
+	case SDL_MOUSEBUTTONUP:
 #endif
-	if (event.type == SDL_JOYAXISMOTION && IsStickMovementSignificant())
+		return event.button.which == SDL_TOUCH_MOUSEID ? ControlTypes::VirtualGamepad : ControlTypes::KeyboardAndMouse;
+#ifdef USE_SDL3
+	case SDL_EVENT_MOUSE_MOTION:
+#else
+	case SDL_MOUSEMOTION:
+#endif
+		return event.motion.which == SDL_TOUCH_MOUSEID ? ControlTypes::VirtualGamepad : ControlTypes::KeyboardAndMouse;
+#ifdef USE_SDL3
+	case SDL_EVENT_MOUSE_WHEEL:
+#else
+	case SDL_MOUSEWHEEL:
+#endif
+		return event.wheel.which == SDL_TOUCH_MOUSEID ? ControlTypes::VirtualGamepad : ControlTypes::KeyboardAndMouse;
+#ifdef USE_SDL3
+	case SDL_EVENT_FINGER_DOWN:
+	case SDL_EVENT_FINGER_UP:
+	case SDL_EVENT_FINGER_MOTION:
+#else
+	case SDL_FINGERDOWN:
+	case SDL_FINGERUP:
+	case SDL_FINGERMOTION:
+#endif
+		return ControlTypes::VirtualGamepad;
+#ifdef USE_SDL3
+	case SDL_EVENT_GAMEPAD_AXIS_MOTION:
+#else
+	case SDL_CONTROLLERAXISMOTION:
+#endif
+		if (
+#ifdef USE_SDL3
+		    IsAnyOf(event.gaxis.axis, SDL_GAMEPAD_AXIS_LEFT_TRIGGER, SDL_GAMEPAD_AXIS_RIGHT_TRIGGER)
+#else
+		    IsAnyOf(event.caxis.axis, SDL_CONTROLLER_AXIS_TRIGGERLEFT, SDL_CONTROLLER_AXIS_TRIGGERRIGHT)
+#endif
+		    || IsStickMovementSignificant()) {
+			return ControlTypes::Gamepad;
+		}
+		break;
+#endif // !USE_SDL1
+#ifdef USE_SDL3
+	case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
+	case SDL_EVENT_GAMEPAD_BUTTON_UP:
+	case SDL_EVENT_GAMEPAD_ADDED:
+	case SDL_EVENT_JOYSTICK_BALL_MOTION:
+	case SDL_EVENT_JOYSTICK_HAT_MOTION:
+	case SDL_EVENT_JOYSTICK_BUTTON_DOWN:
+	case SDL_EVENT_JOYSTICK_BUTTON_UP:
+#else
+#ifndef USE_SDL1
+	case SDL_CONTROLLERBUTTONDOWN:
+	case SDL_CONTROLLERBUTTONUP:
+	case SDL_CONTROLLERDEVICEADDED:
+#endif
+	case SDL_JOYBALLMOTION:
+	case SDL_JOYHATMOTION:
+	case SDL_JOYBUTTONDOWN:
+	case SDL_JOYBUTTONUP:
+#endif
 		return ControlTypes::Gamepad;
-	if (event.type >= SDL_JOYBALLMOTION && event.type <= SDL_JOYBUTTONUP)
-		return ControlTypes::Gamepad;
-
+#ifdef USE_SDL3
+	case SDL_EVENT_JOYSTICK_AXIS_MOTION:
+	case SDL_EVENT_JOYSTICK_ADDED:
+#else
+	case SDL_JOYAXISMOTION:
+#ifndef USE_SDL1
+	case SDL_JOYDEVICEADDED:
+#endif
+#endif
+		if (IsStickMovementSignificant()) return ControlTypes::Gamepad;
+		break;
+	default:
+		break;
+	}
 	return ControlTypes::None;
 }
 
@@ -1631,9 +1707,16 @@ bool ContinueSimulatedMouseEvent(const SDL_Event &event, const ControllerButtonE
 		return false;
 
 #if !defined(USE_SDL1) && !defined(JOY_AXIS_RIGHTX) && !defined(JOY_AXIS_RIGHTY)
-	if (IsAnyOf(event.type, SDL_JOYAXISMOTION, SDL_JOYHATMOTION, SDL_JOYBUTTONDOWN, SDL_JOYBUTTONUP)) {
-		if (!GameController::All().empty())
-			return true;
+	if (IsAnyOf(event.type,
+#ifdef USE_SDL3
+	        SDL_EVENT_JOYSTICK_AXIS_MOTION, SDL_EVENT_JOYSTICK_HAT_MOTION,
+	        SDL_EVENT_JOYSTICK_BUTTON_DOWN, SDL_EVENT_JOYSTICK_BUTTON_UP
+#else
+	        SDL_JOYAXISMOTION, SDL_JOYHATMOTION, SDL_JOYBUTTONDOWN, SDL_JOYBUTTONUP
+#endif
+	        )
+	    && !GameController::All().empty()) {
+		return true;
 	}
 #endif
 
@@ -1662,8 +1745,7 @@ std::string_view ControlTypeToString(ControlTypes controlType)
 
 void LogControlDeviceAndModeChange(ControlTypes newControlDevice, ControlTypes newControlMode)
 {
-	if (SDL_LogGetPriority(SDL_LOG_CATEGORY_APPLICATION) > SDL_LOG_PRIORITY_VERBOSE)
-		return;
+	if (!IsLogLevel(LogCategory::Application, SDL_LOG_PRIORITY_VERBOSE)) return;
 	if (newControlDevice == ControlDevice && newControlMode == ControlMode)
 		return;
 	constexpr auto DebugChange = [](ControlTypes before, ControlTypes after) -> std::string {
@@ -1692,8 +1774,7 @@ std::string_view GamepadTypeToString(GamepadLayout gamepadLayout)
 
 void LogGamepadChange(GamepadLayout newGamepad)
 {
-	if (SDL_LogGetPriority(SDL_LOG_CATEGORY_APPLICATION) > SDL_LOG_PRIORITY_VERBOSE)
-		return;
+	if (!IsLogLevel(LogCategory::Application, SDL_LOG_PRIORITY_VERBOSE)) return;
 	constexpr auto DebugChange = [](GamepadLayout before, GamepadLayout after) -> std::string {
 		if (before == after)
 			return std::string { GamepadTypeToString(before) };

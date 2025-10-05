@@ -5,7 +5,12 @@
  */
 #pragma once
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_rect.h>
+#include <SDL3/SDL_surface.h>
+#else
 #include <SDL.h>
+#endif
 
 #include "engine/surface.hpp"
 

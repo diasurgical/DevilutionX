@@ -7,7 +7,16 @@
 #include <string_view>
 #include <vector>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_error.h>
+#include <SDL3/SDL_events.h>
+#include <SDL3/SDL_messagebox.h>
+#include <SDL3/SDL_mouse.h>
+#include <SDL3/SDL_rect.h>
+#include <SDL3/SDL_surface.h>
+#else
 #include <SDL.h>
+#endif
 
 #include "DiabloUI/button.h"
 #include "DiabloUI/diabloui.h"
@@ -68,7 +77,13 @@ bool Init(std::string_view caption, std::string_view text, bool error, bool rend
 {
 	if (!renderBehind) {
 		if (!UiLoadBlackBackground()) {
-			if (SDL_ShowCursor(SDL_ENABLE) <= -1)
+			if (
+#ifdef USE_SDL3
+			    SDL_ShowCursor()
+#else
+			    SDL_ShowCursor(SDL_ENABLE) <= -1
+#endif
+			)
 				LogError("{}", SDL_GetError());
 		}
 	}
@@ -123,10 +138,15 @@ void DialogLoop(const std::vector<std::unique_ptr<UiItemBase>> &items, const std
 	SDL_Event event;
 	dialogEnd = false;
 	do {
-		while (PollEvent(&event) != 0) {
+		while (PollEvent(&event)) {
 			switch (event.type) {
+#ifdef USE_SDL3
+			case SDL_EVENT_MOUSE_BUTTON_DOWN:
+			case SDL_EVENT_MOUSE_BUTTON_UP:
+#else
 			case SDL_MOUSEBUTTONDOWN:
 			case SDL_MOUSEBUTTONUP:
+#endif
 				UiItemMouseEvents(&event, items);
 				break;
 			default:
@@ -162,8 +182,15 @@ void UiOkDialog(std::string_view caption, std::string_view text, bool error, con
 
 	if (!gbActive || inDialog) {
 		if (!HeadlessMode) {
-			if (SDL_ShowCursor(SDL_ENABLE) <= -1)
+			if (
+#ifdef USE_SDL3
+			    SDL_ShowCursor()
+#else
+			    SDL_ShowCursor(SDL_ENABLE) <= -1
+#endif
+			) {
 				LogError("{}", SDL_GetError());
+			}
 			const std::string captionStr = std::string(caption);
 			const std::string textStr = std::string(text);
 			if (SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, captionStr.c_str(), textStr.c_str(), nullptr) <= -1) {
@@ -174,21 +201,38 @@ void UiOkDialog(std::string_view caption, std::string_view text, bool error, con
 	}
 
 	if (IsHardwareCursor()) {
-		if (SDL_ShowCursor(SDL_ENABLE) <= -1)
+		if (
+#ifdef USE_SDL3
+		    SDL_ShowCursor()
+#else
+		    SDL_ShowCursor(SDL_ENABLE) <= -1
+#endif
+		) {
 			LogError("{}", SDL_GetError());
+		}
 	}
 
 	if (!Init(caption, text, error, !renderBehind.empty())) {
 		LogError("{}\n{}", caption, text);
 		const std::string captionStr = std::string(caption);
 		const std::string textStr = std::string(text);
-		if (SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, captionStr.c_str(), textStr.c_str(), nullptr) <= -1) {
+		if (
+#ifdef USE_SDL3
+		    !SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, captionStr.c_str(), textStr.c_str(), nullptr)
+#else
+		    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, captionStr.c_str(), textStr.c_str(), nullptr) <= -1
+#endif
+		) {
 			LogError("{}", SDL_GetError());
 		}
 	}
 
 	inDialog = true;
+#ifdef USE_SDL3
+	SDL_SetSurfaceClipRect(DiabloUiSurface(), nullptr);
+#else
 	SDL_SetClipRect(DiabloUiSurface(), nullptr);
+#endif
 	DialogLoop(vecOkDialog, renderBehind);
 	Deinit();
 	inDialog = false;

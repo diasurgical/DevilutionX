@@ -4,7 +4,12 @@
 #include <string_view>
 #include <vector>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_rect.h>
+#else
 #include <SDL.h>
+#endif
+
 #include <fmt/core.h>
 
 #include "DiabloUI/diabloui.h"

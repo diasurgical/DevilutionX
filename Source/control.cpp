@@ -15,6 +15,7 @@
 
 #ifdef USE_SDL3
 #include <SDL3/SDL_events.h>
+#include <SDL3/SDL_keyboard.h>
 #include <SDL3/SDL_keycode.h>
 #include <SDL3/SDL_rect.h>
 #else
@@ -1248,7 +1249,14 @@ void CheckMainPanelButton()
 	SetPanelObjectPosition(UiPanels::Main, spellSelectButton);
 
 	if (!SpellSelectFlag && spellSelectButton.contains(MousePosition)) {
-		if ((SDL_GetModState() & KMOD_SHIFT) != 0) {
+		if ((SDL_GetModState() &
+#ifdef USE_SDL3
+		        SDL_KMOD_SHIFT
+#else
+		        KMOD_SHIFT
+#endif
+		        )
+		    != 0) {
 			Player &myPlayer = *MyPlayer;
 			myPlayer._pRSpell = SpellID::Invalid;
 			myPlayer._pRSplType = SpellType::Invalid;
@@ -1922,21 +1930,31 @@ void TypeChatMessage()
 	    .value = TalkMessage,
 	    .cursor = &ChatCursor,
 	    .maxLength = sizeof(TalkMessage) - 1 });
-	SDL_Rect rect = MakeSdlRect(GetMainPanel().position.x + 200, GetMainPanel().position.y + 22, 0, 27);
-	SDL_SetTextInputRect(&rect);
 	for (bool &talkButtonDown : TalkButtonsDown) {
 		talkButtonDown = false;
 	}
 	sgbPlrTalkTbl = GetMainPanel().size.height + PanelPaddingHeight;
 	RedrawEverything();
 	TalkSaveIndex = NextTalkSave;
+
+	SDL_Rect rect = MakeSdlRect(GetMainPanel().position.x + 200, GetMainPanel().position.y + 22, 0, 27);
+#ifdef USE_SDL3
+	SDL_SetTextInputArea(ghMainWnd, &rect, /*cursor=*/0);
+	SDL_StartTextInput(ghMainWnd);
+#else
+	SDL_SetTextInputRect(&rect);
 	SDL_StartTextInput();
+#endif
 }
 
 void ResetChat()
 {
 	ChatFlag = false;
+#ifdef USE_SDL3
+	SDL_StopTextInput(ghMainWnd);
+#else
 	SDL_StopTextInput();
+#endif
 	ChatCursor = {};
 	ChatInputState = std::nullopt;
 	sgbPlrTalkTbl = 0;
@@ -2042,14 +2060,22 @@ void OpenGoldDrop(int8_t invIndex, int max)
 	    .min = 0,
 	    .max = max,
 	});
+#ifdef USE_SDL3
+	SDL_StartTextInput(ghMainWnd);
+#else
 	SDL_StartTextInput();
+#endif
 }
 
 void CloseGoldDrop()
 {
 	if (!DropGoldFlag)
 		return;
+#ifdef USE_SDL3
+	SDL_StopTextInput(ghMainWnd);
+#else
 	SDL_StopTextInput();
+#endif
 	DropGoldFlag = false;
 	GoldDropInputState = std::nullopt;
 	GoldDropInvIndex = 0;

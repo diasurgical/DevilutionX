@@ -9,6 +9,9 @@
 
 #ifdef USE_SDL3
 #include <SDL3/SDL_events.h>
+#include <SDL3/SDL_keyboard.h>
+#include <SDL3/SDL_rect.h>
+#include <SDL3/SDL_scancode.h>
 #else
 #include <SDL.h>
 
@@ -31,6 +34,7 @@
 #include "lua/autocomplete.hpp"
 #include "lua/repl.hpp"
 #include "utils/algorithm/container.hpp"
+#include "utils/display.h"
 #include "utils/sdl_geometry.h"
 #include "utils/str_cat.hpp"
 #include "utils/str_split.hpp"
@@ -452,7 +456,13 @@ bool ConsoleHandleEvent(const SDL_Event &event)
 {
 	if (!IsConsoleVisible) {
 		// Make console open on the top-left keyboard key even if it is not a backtick.
-		if (event.type == SDL_KEYDOWN && event.key.keysym.scancode == SDL_SCANCODE_GRAVE) {
+		if (
+#ifdef USE_SDL3
+		    event.type == SDL_EVENT_KEY_DOWN && event.key.scancode == SDL_SCANCODE_GRAVE
+#else
+		    event.type == SDL_KEYDOWN && event.key.keysym.scancode == SDL_SCANCODE_GRAVE
+#endif
+		) {
 			OpenConsole();
 			return true;
 		}
@@ -463,10 +473,23 @@ bool ConsoleHandleEvent(const SDL_Event &event)
 		return true;
 	}
 	const auto modState = SDL_GetModState();
-	const bool isShift = (modState & KMOD_SHIFT) != 0;
+	const bool isShift = (modState &
+#ifdef USE_SDL3
+	                         SDL_KMOD_SHIFT
+#else
+	                         KMOD_SHIFT
+#endif
+	                         )
+	    != 0;
 	switch (event.type) {
+#ifdef USE_SDL3
+	case SDL_EVENT_KEY_DOWN:
+		switch (event.key.key)
+#else
 	case SDL_KEYDOWN:
-		switch (event.key.keysym.sym) {
+		switch (event.key.keysym.sym)
+#endif
+		{
 		case SDLK_ESCAPE:
 			if (!AutocompleteSuggestions.empty()) {
 				AutocompleteSuggestions.clear();
@@ -517,14 +540,26 @@ bool ConsoleHandleEvent(const SDL_Event &event)
 		case SDLK_PAGEDOWN:
 			--PendingScrollPages;
 			return true;
+#ifdef USE_SDL3
+		case SDLK_L:
+#else
 		case SDLK_l:
+#endif
 			ClearConsole();
 			return true;
 		default:
 			return false;
 		}
 		break;
-#if SDL_VERSION_ATLEAST(2, 0, 0)
+#ifdef USE_SDL3
+	case SDL_EVENT_MOUSE_WHEEL:
+		if (event.wheel.integer_y > 0) {
+			ScrollOffset += ScrollStep;
+		} else if (event.wheel.integer_y < 0) {
+			ScrollOffset -= ScrollStep;
+		}
+		return true;
+#elif SDL_VERSION_ATLEAST(2, 0, 0)
 	case SDL_MOUSEWHEEL:
 		if (event.wheel.y > 0) {
 			ScrollOffset += ScrollStep;
@@ -585,8 +620,13 @@ void DrawConsole(const Surface &out)
 
 	if (FirstRender) {
 		SDL_Rect sdlInputRect = MakeSdlRect(InputRect);
+#ifdef USE_SDL3
+		SDL_SetTextInputArea(ghMainWnd, &sdlInputRect, ConsoleInputState.cursorPosition());
+		SDL_StartTextInput(ghMainWnd);
+#else
 		SDL_SetTextInputRect(&sdlInputRect);
 		SDL_StartTextInput();
+#endif
 		FirstRender = false;
 		if (ConsoleLines.empty()) {
 			InitConsole();

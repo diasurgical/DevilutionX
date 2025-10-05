@@ -1,5 +1,13 @@
 #include "controls/menu_controls.h"
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_events.h>
+#include <SDL3/SDL_keyboard.h>
+#include <SDL3/SDL_keycode.h>
+#else
+#include <SDL.h>
+#endif
+
 #include "DiabloUI/diabloui.h"
 #include "controls/axis_direction.h"
 #include "controls/control_mode.hpp"
@@ -78,7 +86,13 @@ std::vector<MenuAction> GetMenuActions(const SDL_Event &event)
 		return menuActions;
 	}
 
-	if (event.type == SDL_MOUSEBUTTONDOWN) {
+	if (event.type ==
+#ifdef USE_SDL3
+	    SDL_EVENT_MOUSE_BUTTON_DOWN
+#else
+	    SDL_MOUSEBUTTONDOWN
+#endif
+	) {
 		switch (event.button.button) {
 		case SDL_BUTTON_X1:
 #if !SDL_VERSION_ATLEAST(2, 0, 0)
@@ -89,8 +103,20 @@ std::vector<MenuAction> GetMenuActions(const SDL_Event &event)
 	}
 
 #if HAS_KBCTRL == 0
-	if (event.type == SDL_KEYDOWN) {
-		SDL_Keycode sym = event.key.keysym.sym;
+	if (
+	    event.type ==
+#ifdef USE_SDL3
+	    SDL_EVENT_KEY_DOWN
+#else
+	    SDL_KEYDOWN
+#endif
+	) {
+		SDL_Keycode sym =
+#ifdef USE_SDL3
+		    event.key.key;
+#else
+		    event.key.keysym.sym;
+#endif
 		remap_keyboard_key(&sym);
 		switch (sym) {
 		case SDLK_UP:
@@ -98,16 +124,30 @@ std::vector<MenuAction> GetMenuActions(const SDL_Event &event)
 		case SDLK_DOWN:
 			return { MenuAction_DOWN };
 		case SDLK_TAB:
-			if ((SDL_GetModState() & KMOD_SHIFT) != 0)
+			if ((SDL_GetModState() &
+#ifdef USE_SDL3
+			        SDL_KMOD_SHIFT
+#else
+			        KMOD_SHIFT
+#endif
+			        )
+			    != 0) {
 				return { MenuAction_UP };
-			else
-				return { MenuAction_DOWN };
+			}
+			return { MenuAction_DOWN };
 		case SDLK_PAGEUP:
 			return { MenuAction_PAGE_UP };
 		case SDLK_PAGEDOWN:
 			return { MenuAction_PAGE_DOWN };
 		case SDLK_RETURN:
-			if ((SDL_GetModState() & KMOD_ALT) == 0) {
+			if ((SDL_GetModState() &
+#ifdef USE_SDL3
+			        SDL_KMOD_ALT
+#else
+			        KMOD_ALT
+#endif
+			        )
+			    == 0) {
 				return { MenuAction_SELECT };
 			}
 			break;

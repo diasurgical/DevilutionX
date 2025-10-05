@@ -7,7 +7,12 @@
 
 #include <cstdint>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_error.h>
+#include <SDL3/SDL_version.h>
+#else
 #include <SDL_version.h>
+#endif
 
 #include "options.h"
 #include "utils/log.hpp"
@@ -139,7 +144,9 @@ inline void DoReinitializeHardwareCursor()
 
 inline bool IsHardwareCursorVisible()
 {
-#if SDL_VERSION_ATLEAST(2, 0, 0)
+#ifdef USE_SDL3
+	return SDL_CursorVisible();
+#elif SDL_VERSION_ATLEAST(2, 0, 0)
 	return SDL_ShowCursor(SDL_QUERY) == SDL_ENABLE;
 #else
 	return false;
@@ -157,7 +164,13 @@ inline void SetHardwareCursorVisible(bool visible)
 #if LOG_HWCURSOR
 	Log("hwcursor: SetHardwareCursorVisible {}", visible);
 #endif
-	if (SDL_ShowCursor(visible ? SDL_ENABLE : SDL_DISABLE) < 0) {
+	if (
+#ifdef USE_SDL3
+	    visible ? SDL_ShowCursor() : SDL_HideCursor()
+#else
+	    SDL_ShowCursor(visible ? SDL_ENABLE : SDL_DISABLE) < 0
+#endif
+	) {
 		LogError("{}", SDL_GetError());
 		SDL_ClearError();
 	}

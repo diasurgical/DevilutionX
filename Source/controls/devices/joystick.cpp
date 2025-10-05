@@ -320,14 +320,22 @@ bool Joystick::IsPressed(ControllerButton button) const
 	const int joyButton = ToSdlJoyButton(button);
 	if (joyButton == -1)
 		return false;
+#ifdef USE_SDL3
+	const int numButtons = SDL_GetNumJoystickButtons(sdl_joystick_);
+	return joyButton < numButtons && SDL_GetJoystickButton(sdl_joystick_, joyButton);
+#else
 	const int numButtons = SDL_JoystickNumButtons(sdl_joystick_);
 	return joyButton < numButtons && SDL_JoystickGetButton(sdl_joystick_, joyButton) != 0;
+#endif
 }
 
 bool Joystick::ProcessAxisMotion(const SDL_Event &event)
 {
-	if (event.type != SDL_JOYAXISMOTION)
-		return false;
+#ifdef USE_SDL3
+	if (event.type != SDL_EVENT_JOYSTICK_AXIS_MOTION) return false;
+#else
+	if (event.type != SDL_JOYAXISMOTION) return false;
+#endif
 
 #if defined(JOY_AXIS_LEFTX) || defined(JOY_AXIS_LEFTY) || defined(JOY_AXIS_RIGHTX) || defined(JOY_AXIS_RIGHTY)
 	switch (event.jaxis.axis) {

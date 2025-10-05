@@ -6,7 +6,14 @@
 #include <string_view>
 #include <vector>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_events.h>
+#include <SDL3/SDL_rect.h>
+#include <SDL3/SDL_surface.h>
+#include <SDL3/SDL_timer.h>
+#else
 #include <SDL.h>
+#endif
 
 #include "DiabloUI/credits_lines.h"
 #include "DiabloUI/diabloui.h"
@@ -102,7 +109,11 @@ void CreditsRenderer::Render()
 		return;
 	prev_offset_y_ = offsetY;
 
+#ifdef USE_SDL3
+	SDL_FillSurfaceRect(DiabloUiSurface(), nullptr, 0);
+#else
 	SDL_FillRect(DiabloUiSurface(), nullptr, 0x000000);
+#endif
 	const Point uiPosition = GetUIRectangle().position;
 	if (ArtBackgroundWidescreen)
 		RenderClxSprite(Surface(DiabloUiSurface()), (*ArtBackgroundWidescreen)[0], uiPosition - Displacement { 320, 0 });
@@ -152,10 +163,15 @@ bool TextDialog(const char *const *text, std::size_t textLines)
 	do {
 		creditsRenderer.Render();
 		UiFadeIn();
-		while (PollEvent(&event) != 0) {
+		while (PollEvent(&event)) {
 			switch (event.type) {
+#ifdef USE_SDL3
+			case SDL_EVENT_KEY_DOWN:
+			case SDL_EVENT_MOUSE_BUTTON_UP:
+#else
 			case SDL_KEYDOWN:
 			case SDL_MOUSEBUTTONUP:
+#endif
 				endMenu = true;
 				break;
 			default:

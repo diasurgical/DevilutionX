@@ -9,6 +9,12 @@
 #include <array>
 #include <cstdint>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_timer.h>
+#else
+#include <SDL.h>
+#endif
+
 #include <fmt/format.h>
 
 #include "control.h"
@@ -27,7 +33,7 @@ namespace {
 
 struct PlayerMessage {
 	/** Time message was received */
-	Uint32 time;
+	uint32_t time;
 	/** The default text color */
 	UiFlags style;
 	/** The text message to display on screen */

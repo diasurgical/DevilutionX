@@ -36,11 +36,17 @@ StaticVector<ControllerButtonEvent, 4> ToControllerButtonEvents(const SDL_Event 
 {
 	ControllerButtonEvent result { ControllerButton_NONE, false };
 	switch (event.type) {
+#ifdef USE_SDL3
+	case SDL_EVENT_GAMEPAD_BUTTON_UP:
+	case SDL_EVENT_JOYSTICK_BUTTON_UP:
+	case SDL_EVENT_KEY_UP:
+#else
 #ifndef USE_SDL1
 	case SDL_CONTROLLERBUTTONUP:
 #endif
 	case SDL_JOYBUTTONUP:
 	case SDL_KEYUP:
+#endif
 		result.up = true;
 		break;
 	default:

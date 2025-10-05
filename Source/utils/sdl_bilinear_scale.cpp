@@ -1,7 +1,18 @@
 #include "utils/sdl_bilinear_scale.hpp"
 
+#include <cstddef>
 #include <cstdint>
 #include <memory>
+
+#ifdef USE_SDL3
+#include <SDL3/SDL_error.h>
+#include <SDL3/SDL_rect.h>
+#include <SDL3/SDL_surface.h>
+#else
+#include <SDL.h>
+#endif
+
+#include "appfat.h"
 
 // Performs bilinear scaling using fixed-width integer math.
 
@@ -148,16 +159,25 @@ void BilinearScale32(SDL_Surface *src, SDL_Surface *dst)
 	}
 }
 
-void BilinearDownscaleByHalf8(const SDL_Surface *src, const Uint8 paletteBlendingTable[256][256], SDL_Surface *dst, uint8_t transparentIndex)
+void BilinearDownscaleByHalf8(SDL_Surface *src, const uint8_t paletteBlendingTable[256][256], SDL_Surface *dst, uint8_t transparentIndex)
 {
+	SDL_Rect srcClipRect, dstClipRect;
+#ifdef USE_SDL3
+	if (!SDL_GetSurfaceClipRect(src, &srcClipRect)) app_fatal(SDL_GetError());
+	if (!SDL_GetSurfaceClipRect(dst, &dstClipRect)) app_fatal(SDL_GetError());
+#else
+	srcClipRect = src->clip_rect;
+	dstClipRect = dst->clip_rect;
+#endif
+
 	const auto *const srcPixelsBegin = static_cast<const uint8_t *>(src->pixels)
-	    + static_cast<size_t>(src->clip_rect.y * src->pitch + src->clip_rect.x);
+	    + static_cast<size_t>((srcClipRect.y * src->pitch) + srcClipRect.x);
 	auto *const dstPixelsBegin = static_cast<uint8_t *>(dst->pixels)
-	    + static_cast<size_t>(dst->clip_rect.y * dst->pitch + dst->clip_rect.x);
-	for (unsigned y = 0, h = static_cast<unsigned>(dst->clip_rect.h); y < h; ++y) {
+	    + static_cast<size_t>((dstClipRect.y * dst->pitch) + dstClipRect.x);
+	for (unsigned y = 0, h = static_cast<unsigned>(dstClipRect.h); y < h; ++y) {
 		const uint8_t *srcPixels = srcPixelsBegin + static_cast<size_t>(2 * y * src->pitch);
 		uint8_t *dstPixels = dstPixelsBegin + static_cast<size_t>(y * dst->pitch);
-		for (unsigned x = 0, w = static_cast<unsigned>(dst->clip_rect.w); x < w; ++x) {
+		for (unsigned x = 0, w = static_cast<unsigned>(dstClipRect.w); x < w; ++x) {
 			uint8_t quad[] = {
 				srcPixels[0],
 				srcPixels[1],

@@ -9,7 +9,14 @@
 #include <cstring>
 #include <ctime>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_error.h>
+#include <SDL3/SDL_iostream.h>
+#include <SDL3/SDL_timer.h>
+#else
 #include <SDL.h>
+#endif
+
 #include <expected.hpp>
 
 #define DEVILUTIONX_SCREENSHOT_FORMAT_PCX 0
@@ -34,7 +41,12 @@
 namespace devilution {
 namespace {
 
-SDL_RWops *CaptureFile(std::string *dstPath)
+#ifdef USE_SDL3
+SDL_IOStream *
+#else
+SDL_RWops *
+#endif
+CaptureFile(std::string *dstPath)
 {
 	const char *ext =
 #if DEVILUTIONX_SCREENSHOT_FORMAT == DEVILUTIONX_SCREENSHOT_FORMAT_PCX
@@ -55,7 +67,11 @@ SDL_RWops *CaptureFile(std::string *dstPath)
 		i++;
 		*dstPath = StrCat(paths::PrefPath(), filename, "-", i, ext);
 	}
+#ifdef USE_SDL3
+	return SDL_IOFromFile(dstPath->c_str(), "wb");
+#else
 	return SDL_RWFromFile(dstPath->c_str(), "wb");
+#endif
 }
 
 /**
@@ -79,7 +95,7 @@ void CaptureScreen()
 	std::string fileName;
 	const uint32_t startTime = SDL_GetTicks();
 
-	SDL_RWops *outStream = CaptureFile(&fileName);
+	auto *outStream = CaptureFile(&fileName);
 	if (outStream == nullptr) {
 		LogError("Failed to open {} for writing: {}", fileName, SDL_GetError());
 		SDL_ClearError();

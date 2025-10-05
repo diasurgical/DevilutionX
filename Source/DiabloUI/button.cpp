@@ -2,7 +2,12 @@
 
 #include <optional>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_events.h>
+#include <SDL3/SDL_mouse.h>
+#else
 #include <SDL.h>
+#endif
 
 #include "DiabloUI/diabloui.h"
 #include "DiabloUI/ui_flags.hpp"
@@ -60,13 +65,21 @@ bool HandleMouseEventButton(const SDL_Event &event, UiButton *button)
 	if (event.button.button != SDL_BUTTON_LEFT)
 		return false;
 	switch (event.type) {
+#ifdef USE_SDL3
+	case SDL_EVENT_MOUSE_BUTTON_UP:
+#else
 	case SDL_MOUSEBUTTONUP:
+#endif
 		if (button->IsPressed()) {
 			button->Activate();
 			return true;
 		}
 		return false;
+#ifdef USE_SDL3
+	case SDL_EVENT_MOUSE_BUTTON_DOWN:
+#else
 	case SDL_MOUSEBUTTONDOWN:
+#endif
 		button->Press();
 		return true;
 	default:

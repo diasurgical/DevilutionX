@@ -5,6 +5,22 @@
 #include <cstdint>
 #include <utility>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_hints.h>
+#include <SDL3/SDL_init.h>
+#include <SDL3/SDL_rect.h>
+#include <SDL3/SDL_render.h>
+#include <SDL3/SDL_surface.h>
+#include <SDL3/SDL_video.h>
+#else
+#include <SDL.h>
+#ifdef USE_SDL1
+#include "utils/sdl2_to_1_2_backports.h"
+#else
+#include "utils/sdl2_backports.h"
+#endif
+#endif
+
 #ifdef __vita__
 #include <psp2/power.h>
 #endif
@@ -136,11 +152,16 @@ const auto OptionChangeHandlerFullscreen = (GetOptions().Graphics.fullscreen.Set
 
 void OptionGrabInputChanged()
 {
-#ifdef USE_SDL1
-	SDL_WM_GrabInput(*GetOptions().Gameplay.grabInput ? SDL_GRAB_ON : SDL_GRAB_OFF);
-#else
-	if (ghMainWnd != nullptr)
+#ifdef USE_SDL3
+	if (ghMainWnd != nullptr) {
+		SDL_SetWindowMouseGrab(ghMainWnd, *GetOptions().Gameplay.grabInput);
+	}
+#elif !defined(USE_SDL1)
+	if (ghMainWnd != nullptr) {
 		SDL_SetWindowGrab(ghMainWnd, *GetOptions().Gameplay.grabInput ? SDL_TRUE : SDL_FALSE);
+	}
+#else
+	SDL_WM_GrabInput(*GetOptions().Gameplay.grabInput ? SDL_GRAB_ON : SDL_GRAB_OFF);
 #endif
 }
 const auto OptionChangeHandlerGrabInput = (GetOptions().Gameplay.grabInput.SetValueChangedCallback(OptionGrabInputChanged), true);
@@ -267,11 +288,23 @@ const auto OptionChangeHandlerVSync = (GetOptions().Graphics.frameRateControl.Se
 
 struct DisplayModeComparator {
 	Size size;
+#ifdef USE_SDL3
+	SDL_PixelFormat pixelFormat;
+#else
 	SDL_PixelFormatEnum pixelFormat;
+#endif
 
 	// Is `a` better than `b`?
+#ifdef USE_SDL3
+	[[nodiscard]] bool operator()(const SDL_DisplayMode *aPtr, const SDL_DisplayMode *bPtr)
+#else
 	[[nodiscard]] bool operator()(const SDL_DisplayMode &a, const SDL_DisplayMode &b)
+#endif
 	{
+#ifdef USE_SDL3
+		const SDL_DisplayMode &a = *aPtr;
+		const SDL_DisplayMode &b = *bPtr;
+#endif
 		const int dwa = a.w - size.width;
 		const int dha = a.h - size.height;
 		const int dwb = b.w - size.width;
@@ -302,11 +335,29 @@ struct DisplayModeComparator {
 } // namespace
 
 #if SDL_VERSION_ATLEAST(2, 0, 0)
-SDL_DisplayMode GetNearestDisplayMode(Size preferredSize, SDL_PixelFormatEnum preferredPixelFormat)
+SDL_DisplayMode GetNearestDisplayMode(Size preferredSize,
+#ifdef USE_SDL3
+    SDL_PixelFormat preferredPixelFormat
+#else
+    SDL_PixelFormatEnum preferredPixelFormat
+#endif
+)
 {
-	SDL_DisplayMode nearestDisplayMode;
-	if (SDL_GetWindowDisplayMode(ghMainWnd, &nearestDisplayMode) != 0)
-		ErrSdl();
+	SDL_DisplayMode *nearestDisplayMode = nullptr;
+#ifdef USE_SDL3
+	const SDL_DisplayMode *fullscreenMode = SDL_GetWindowFullscreenMode(ghMainWnd);
+	if (fullscreenMode == nullptr) ErrSdl();
+	const SDL_DisplayID displayId = SDL_GetDisplayForWindow(ghMainWnd);
+	if (displayId == 0) ErrSdl();
+	int modeCount;
+	SDLUniquePtr<SDL_DisplayMode *> modes { SDL_GetFullscreenDisplayModes(displayId, &modeCount) };
+	if (modes == nullptr) ErrSdl();
+	nearestDisplayMode = *std::min_element(
+	    modes.get(), modes.get() + modeCount, DisplayModeComparator { preferredSize, preferredPixelFormat });
+#else
+	SDL_DisplayMode ownedNearestDisplayMode;
+	if (SDL_GetWindowDisplayMode(ghMainWnd, &ownedNearestDisplayMode) != 0) ErrSdl();
+	nearestDisplayMode = &ownedNearestDisplayMode;
 
 	const int displayIndex = SDL_GetWindowDisplayIndex(ghMainWnd);
 	const int modeCount = SDL_GetNumDisplayModes(displayIndex);
@@ -321,17 +372,18 @@ SDL_DisplayMode GetNearestDisplayMode(Size preferredSize, SDL_PixelFormatEnum pr
 		modes.push_back(displayMode);
 	}
 	if (!modes.empty()) {
-		nearestDisplayMode = *std::min_element(
+		nearestDisplayMode = &*std::min_element(
 		    modes.begin(), modes.end(), DisplayModeComparator { preferredSize, preferredPixelFormat });
 	}
+#endif
 
 	LogVerbose("Nearest display mode to {}x{} is {}x{} {}bpp {}Hz",
 	    preferredSize.width, preferredSize.height,
-	    nearestDisplayMode.w, nearestDisplayMode.h,
-	    SDL_BITSPERPIXEL(nearestDisplayMode.format),
-	    nearestDisplayMode.refresh_rate);
+	    nearestDisplayMode->w, nearestDisplayMode->h,
+	    SDL_BITSPERPIXEL(nearestDisplayMode->format),
+	    nearestDisplayMode->refresh_rate);
 
-	return nearestDisplayMode;
+	return *nearestDisplayMode;
 }
 #endif
 
@@ -353,7 +405,11 @@ float GetDpiScalingFactor()
 
 	int renderWidth;
 	int renderHeight;
+#ifdef USE_SDL3
+	SDL_GetCurrentRenderOutputSize(renderer, &renderWidth, &renderHeight);
+#else
 	SDL_GetRendererOutputSize(renderer, &renderWidth, &renderHeight);
+#endif
 
 	int windowWidth;
 	int windowHeight;
@@ -399,10 +455,12 @@ void SetVideoModeToPrimary(bool fullscreen, int width, int height)
 
 bool IsFullScreen()
 {
-#ifdef USE_SDL1
-	return (SDL_GetVideoSurface()->flags & SDL_FULLSCREEN) != 0;
-#else
+#ifdef USE_SDL3
+	return (SDL_GetWindowFlags(ghMainWnd) & SDL_WINDOW_FULLSCREEN) != 0;
+#elif !defined(USE_SDL1)
 	return (SDL_GetWindowFlags(ghMainWnd) & (SDL_WINDOW_FULLSCREEN | SDL_WINDOW_FULLSCREEN_DESKTOP)) != 0;
+#else
+	return (SDL_GetVideoSurface()->flags & SDL_FULLSCREEN) != 0;
 #endif
 }
 
@@ -424,7 +482,10 @@ bool SpawnWindow(const char *lpWindowName)
 	}
 #endif
 
-#if SDL_VERSION_ATLEAST(2, 0, 4)
+#ifdef USE_SDL3
+	SDL_SetHint(SDL_HINT_RETURN_KEY_HIDES_IME, "1");
+#endif
+#if SDL_VERSION_ATLEAST(2, 0, 4) && !defined(USE_SDL3)
 	SDL_SetHint(SDL_HINT_IME_INTERNAL_EDITING, "1");
 #endif
 #if SDL_VERSION_ATLEAST(2, 0, 6) && defined(__vita__)
@@ -433,10 +494,12 @@ bool SpawnWindow(const char *lpWindowName)
 #if SDL_VERSION_ATLEAST(2, 0, 10)
 	SDL_SetHint(SDL_HINT_MOUSE_TOUCH_EVENTS, "0");
 #endif
-#if SDL_VERSION_ATLEAST(2, 0, 2)
+#ifdef USE_SDL3
+	SDL_SetHint(SDL_HINT_GAMECONTROLLER_SENSOR_FUSION, "0");
+#elif SDL_VERSION_ATLEAST(2, 0, 2)
 	SDL_SetHint(SDL_HINT_ACCELEROMETER_AS_JOYSTICK, "0");
 #endif
-#if SDL_VERSION_ATLEAST(2, 0, 12)
+#if SDL_VERSION_ATLEAST(2, 0, 12) && !defined(USE_SDL3)
 	SDL_SetHint(SDL_HINT_GAMECONTROLLER_USE_BUTTON_LABELS, "0");
 #endif
 
@@ -445,7 +508,11 @@ bool SpawnWindow(const char *lpWindowName)
 	initFlags |= SDL_INIT_AUDIO;
 #endif
 #ifndef USE_SDL1
+#ifdef USE_SDL3
+	initFlags |= SDL_INIT_GAMEPAD;
+#else
 	initFlags |= SDL_INIT_GAMECONTROLLER;
+#endif
 
 	SDL_SetHint(SDL_HINT_ORIENTATIONS, "LandscapeLeft LandscapeRight");
 #endif
@@ -456,7 +523,11 @@ bool SpawnWindow(const char *lpWindowName)
 
 #ifndef USE_SDL1
 	if (GetOptions().Controller.szMapping[0] != '\0') {
+#ifdef USE_SDL3
+		SDL_AddGamepadMapping(GetOptions().Controller.szMapping);
+#else
 		SDL_GameControllerAddMapping(GetOptions().Controller.szMapping);
+#endif
 	}
 #endif
 
@@ -479,30 +550,51 @@ bool SpawnWindow(const char *lpWindowName)
 		SDL_WM_GrabInput(SDL_GRAB_ON);
 	atexit(SDL_VideoQuit); // Without this video mode is not restored after fullscreen.
 #else
+#ifdef USE_SDL3
+	int flags = SDL_WINDOW_HIGH_PIXEL_DENSITY;
+#else
 	int flags = SDL_WINDOW_ALLOW_HIGHDPI;
+#endif
 	if (*GetOptions().Graphics.upscale) {
 		if (*GetOptions().Graphics.fullscreen) {
+#ifdef USE_SDL3
+			flags |= SDL_WINDOW_FULLSCREEN;
+#else
 			flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
+#endif
 		}
 		flags |= SDL_WINDOW_RESIZABLE;
 	} else if (*GetOptions().Graphics.fullscreen) {
 		flags |= SDL_WINDOW_FULLSCREEN;
 	}
 
+#ifdef USE_SDL3
+	ghMainWnd = SDL_CreateWindow(lpWindowName, windowSize.width, windowSize.height, flags);
+#else
 	ghMainWnd = SDL_CreateWindow(lpWindowName, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, windowSize.width, windowSize.height, flags);
+#endif
 
 #if defined(DEVILUTIONX_DISPLAY_PIXELFORMAT)
 	SDL_DisplayMode nearestDisplayMode = GetNearestDisplayMode(windowSize, DEVILUTIONX_DISPLAY_PIXELFORMAT);
-	if (SDL_SetWindowDisplayMode(ghMainWnd, &nearestDisplayMode) != 0) {
-		ErrSdl();
-	}
+#if USE_SDL3
+	if (SDL_SetWindowFullscreenMode(ghMainWnd, &nearestDisplayMode) != 0) ErrSdl();
+#else
+	if (SDL_SetWindowDisplayMode(ghMainWnd, &nearestDisplayMode) != 0) ErrSdl();
+#endif
 #endif
 
-	// Note: https://github.com/libsdl-org/SDL/issues/962
-	// This is a solution to a problem related to SDL mouse grab.
-	// See https://github.com/diasurgical/devilutionX/issues/4251
-	if (ghMainWnd != nullptr)
+// Note: https://github.com/libsdl-org/SDL/issues/962
+// This is a solution to a problem related to SDL mouse grab.
+// See https://github.com/diasurgical/devilutionX/issues/4251
+#ifdef USE_SDL3
+	if (ghMainWnd != nullptr) {
+		SDL_SetWindowMouseGrab(ghMainWnd, *GetOptions().Gameplay.grabInput);
+	}
+#else
+	if (ghMainWnd != nullptr) {
 		SDL_SetWindowGrab(ghMainWnd, *GetOptions().Gameplay.grabInput ? SDL_TRUE : SDL_FALSE);
+	}
+#endif
 
 #endif
 	if (ghMainWnd == nullptr) {
@@ -511,11 +603,21 @@ bool SpawnWindow(const char *lpWindowName)
 
 	int refreshRate = 60;
 #ifndef USE_SDL1
+#ifdef USE_SDL3
+	const SDL_DisplayID displayId = SDL_GetDisplayForWindow(ghMainWnd);
+	if (displayId == 0) ErrSdl();
+	const SDL_DisplayMode *displayMode = SDL_GetCurrentDisplayMode(displayId);
+	if (displayMode == nullptr) ErrSdl();
+	if (displayMode->refresh_rate != 0.F) {
+		refreshRate = static_cast<int>(displayMode->refresh_rate);
+	}
+#else
 	SDL_DisplayMode mode;
 	SDL_GetDisplayMode(0, 0, &mode);
 	if (mode.refresh_rate != 0) {
 		refreshRate = mode.refresh_rate;
 	}
+#endif
 #endif
 	refreshDelay = 1000000 / refreshRate;
 
@@ -539,9 +641,16 @@ void ReinitializeTexture()
 		return;
 
 	auto quality = StrCat(static_cast<int>(*GetOptions().Graphics.scaleQuality));
-	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, quality.c_str());
 
+#ifdef USE_SDL3
 	texture = SDLWrap::CreateTexture(renderer, DEVILUTIONX_DISPLAY_TEXTURE_FORMAT, SDL_TEXTUREACCESS_STREAMING, gnScreenWidth, gnScreenHeight);
+	if (quality == "nearest") {
+		SDL_SetTextureScaleMode(texture.get(), SDL_SCALEMODE_NEAREST);
+	}
+#else
+	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, quality.c_str());
+	texture = SDLWrap::CreateTexture(renderer, DEVILUTIONX_DISPLAY_TEXTURE_FORMAT, SDL_TEXTUREACCESS_STREAMING, gnScreenWidth, gnScreenHeight);
+#endif
 }
 
 void ReinitializeIntegerScale()
@@ -550,10 +659,21 @@ void ReinitializeIntegerScale()
 		ResizeWindow();
 		return;
 	}
+	if (renderer == nullptr) return;
 
-	if (renderer != nullptr && SDL_RenderSetIntegerScale(renderer, *GetOptions().Graphics.integerScaling ? SDL_TRUE : SDL_FALSE) < 0) {
+#ifdef USE_SDL3
+	int w, h;
+	SDL_RendererLogicalPresentation mode;
+	if (!SDL_GetRenderLogicalPresentation(renderer, &w, &h, &mode)) ErrSdl();
+	const SDL_RendererLogicalPresentation newMode = *GetOptions().Graphics.integerScaling
+	    ? SDL_LOGICAL_PRESENTATION_INTEGER_SCALE
+	    : SDL_LOGICAL_PRESENTATION_LETTERBOX;
+	if (mode != newMode) SDL_SetRenderLogicalPresentation(renderer, w, h, newMode);
+#else
+	if (SDL_RenderSetIntegerScale(renderer, *GetOptions().Graphics.integerScaling ? SDL_TRUE : SDL_FALSE) < 0) {
 		ErrSdl();
 	}
+#endif
 }
 #endif
 
@@ -573,18 +693,32 @@ void ReinitializeRenderer()
 	if (*GetOptions().Graphics.upscale) {
 		// We don't recreate the renderer, because this can result in a freezing (not refreshing) rendering
 		if (renderer == nullptr) {
+#ifdef USE_SDL3
+			renderer = SDL_CreateRenderer(ghMainWnd, nullptr);
+#else
 			renderer = SDL_CreateRenderer(ghMainWnd, -1, 0);
+#endif
 			if (renderer == nullptr) {
 				ErrSdl();
 			}
 		}
 
-#if SDL_VERSION_ATLEAST(2, 0, 18)
+#ifdef USE_SDL3
+		SDL_SetRenderVSync(renderer, *GetOptions().Graphics.frameRateControl == FrameRateControl::VerticalSync ? 1 : 0);
+#elif SDL_VERSION_ATLEAST(2, 0, 18)
 		SDL_RenderSetVSync(renderer, *GetOptions().Graphics.frameRateControl == FrameRateControl::VerticalSync ? 1 : 0);
 #endif
 
 		ReinitializeTexture();
 
+#ifdef USE_SDL3
+		if (!SDL_SetRenderLogicalPresentation(renderer, gnScreenWidth, gnScreenHeight,
+		        *GetOptions().Graphics.integerScaling
+		            ? SDL_LOGICAL_PRESENTATION_INTEGER_SCALE
+		            : SDL_LOGICAL_PRESENTATION_LETTERBOX)) {
+			ErrSdl();
+		}
+#else
 		if (SDL_RenderSetIntegerScale(renderer, *GetOptions().Graphics.integerScaling ? SDL_TRUE : SDL_FALSE) < 0) {
 			ErrSdl();
 		}
@@ -592,11 +726,16 @@ void ReinitializeRenderer()
 		if (SDL_RenderSetLogicalSize(renderer, gnScreenWidth, gnScreenHeight) <= -1) {
 			ErrSdl();
 		}
+#endif
 
+#ifdef USE_SDL3
+		RendererTextureSurface = SDLSurfaceUniquePtr { SDL_CreateSurface(gnScreenWidth, gnScreenHeight, texture->format) };
+		if (RendererTextureSurface == nullptr) ErrSdl();
+#else
 		Uint32 format;
-		if (SDL_QueryTexture(texture.get(), &format, nullptr, nullptr, nullptr) < 0)
-			ErrSdl();
+		if (SDL_QueryTexture(texture.get(), &format, nullptr, nullptr, nullptr) < 0) ErrSdl();
 		RendererTextureSurface = SDLWrap::CreateRGBSurfaceWithFormat(0, gnScreenWidth, gnScreenHeight, SDL_BITSPERPIXEL(format), format);
+#endif
 	} else {
 		Size windowSize = {};
 		SDL_GetWindowSize(ghMainWnd, &windowSize.width, &windowSize.height);
@@ -623,14 +762,20 @@ void SetFullscreenMode()
 	if (*GetOptions().Graphics.fullscreen && !*GetOptions().Graphics.upscale) {
 		const Size windowSize = GetPreferredWindowSize();
 		const SDL_DisplayMode displayMode = GetNearestDisplayMode(windowSize);
-		if (SDL_SetWindowDisplayMode(ghMainWnd, &displayMode) != 0) {
-			ErrSdl();
-		}
+#ifdef USE_SDL3
+		if (!SDL_SetWindowFullscreenMode(ghMainWnd, &displayMode)) ErrSdl();
+#else
+		if (SDL_SetWindowDisplayMode(ghMainWnd, &displayMode) != 0) ErrSdl();
+#endif
 	}
 
 	Uint32 flags = 0;
 	if (*GetOptions().Graphics.fullscreen) {
+#if USE_SDL3
+		flags = SDL_WINDOW_FULLSCREEN;
+#else
 		flags = *GetOptions().Graphics.upscale ? SDL_WINDOW_FULLSCREEN_DESKTOP : SDL_WINDOW_FULLSCREEN;
+#endif
 	}
 	if (SDL_SetWindowFullscreen(ghMainWnd, flags) != 0) {
 		ErrSdl();
@@ -666,14 +811,21 @@ void ResizeWindow()
 	const bool trueFullscreen = *GetOptions().Graphics.fullscreen && !*GetOptions().Graphics.upscale;
 	if (trueFullscreen) {
 		const SDL_DisplayMode displayMode = GetNearestDisplayMode(windowSize);
-		if (SDL_SetWindowDisplayMode(ghMainWnd, &displayMode) != 0)
-			ErrSdl();
+#ifdef USE_SDL3
+		if (!SDL_SetWindowFullscreenMode(ghMainWnd, &displayMode)) ErrSdl();
+#else
+		if (SDL_SetWindowDisplayMode(ghMainWnd, &displayMode) != 0) ErrSdl();
+#endif
 	}
 
 	// Handle switching between "fake fullscreen" and "true fullscreen" when upscale is toggled
 	const bool upscaleChanged = *GetOptions().Graphics.upscale != (renderer != nullptr);
 	if (upscaleChanged && *GetOptions().Graphics.fullscreen) {
+#ifdef USE_SDL3
+		const Uint32 flags = SDL_WINDOW_FULLSCREEN;
+#else
 		const Uint32 flags = *GetOptions().Graphics.upscale ? SDL_WINDOW_FULLSCREEN_DESKTOP : SDL_WINDOW_FULLSCREEN;
+#endif
 		if (SDL_SetWindowFullscreen(ghMainWnd, flags) != 0)
 			ErrSdl();
 		if (!*GetOptions().Graphics.fullscreen)
@@ -687,7 +839,11 @@ void ResizeWindow()
 	ReinitializeRenderer();
 
 #ifndef USE_SDL1
+#ifdef USE_SDL3
+	SDL_SetWindowResizable(ghMainWnd, renderer != nullptr);
+#else
 	SDL_SetWindowResizable(ghMainWnd, renderer != nullptr ? SDL_TRUE : SDL_FALSE);
+#endif
 	InitializeVirtualGamepad();
 #endif
 

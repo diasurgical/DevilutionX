@@ -161,7 +161,7 @@ void SystemPaletteUpdated(int first, int ncolor)
 		return;
 
 	assert(Palette);
-	if (SDLC_SetSurfaceAndPaletteColors(PalSurface, Palette.get(), system_palette.data() + first, first, ncolor) < 0) {
+	if (!SDLC_SetSurfaceAndPaletteColors(PalSurface, Palette.get(), system_palette.data() + first, first, ncolor)) {
 		ErrSdl();
 	}
 }

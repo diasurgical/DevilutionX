@@ -12,6 +12,13 @@
 #include <ankerl/unordered_dense.h>
 #include <expected.hpp>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_iostream.h>
+#include <SDL3/SDL_timer.h>
+#else
+#include <SDL.h>
+#endif
+
 #include "codec.h"
 #include "engine/load_file.hpp"
 #include "engine/render/primitive_render.hpp"
@@ -281,20 +288,37 @@ void CreateDetailDiffs(std::string_view prefix, std::string_view memoryMapFile, 
 	// Note: Detail diffs are currently only supported in unit tests
 	const std::string memoryMapFileAssetName = StrCat(paths::BasePath(), "/test/fixtures/memory_map/", memoryMapFile, ".txt");
 
+#ifdef USE_SDL3
+	SDL_IOStream *handle = SDL_IOFromFile(memoryMapFileAssetName.c_str(), "r");
+#else
 	SDL_RWops *handle = SDL_RWFromFile(memoryMapFileAssetName.c_str(), "r");
+#endif
 	if (handle == nullptr) {
 		app_fatal(StrCat("MemoryMapFile ", memoryMapFile, " is missing"));
 		return;
 	}
 
-	const size_t readBytes = static_cast<size_t>(SDL_RWsize(handle));
+	const size_t readBytes = static_cast<size_t>(
+#ifdef USE_SDL3
+	    SDL_GetIOSize(handle)
+#else
+	    SDL_RWsize(handle)
+#endif
+	);
 	const std::unique_ptr<std::byte[]> memoryMapFileData { new std::byte[readBytes] };
-#if SDL_VERSION_ATLEAST(2, 0, 0)
+#ifdef USE_SDL3
+	SDL_ReadIO(handle, memoryMapFileData.get(), readBytes);
+#elif SDL_VERSION_ATLEAST(2, 0, 0)
 	SDL_RWread(handle, memoryMapFileData.get(), readBytes, 1);
 #else
 	SDL_RWread(handle, memoryMapFileData.get(), static_cast<int>(readBytes), 1);
 #endif
+
+#ifdef USE_SDL3
+	SDL_CloseIO(handle);
+#else
 	SDL_RWclose(handle);
+#endif
 
 	const std::string_view buffer(reinterpret_cast<const char *>(memoryMapFileData.get()), readBytes);
 

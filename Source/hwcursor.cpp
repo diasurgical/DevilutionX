@@ -3,10 +3,20 @@
 #include <cstdint>
 #include <tuple>
 
-#if SDL_VERSION_ATLEAST(2, 0, 0)
+#ifdef USE_SDL3
+#include <SDL3/SDL_error.h>
+#include <SDL3/SDL_mouse.h>
+#include <SDL3/SDL_render.h>
+#include <SDL3/SDL_surface.h>
+#include <SDL3/SDL_version.h>
+#else
+#include <SDL_version.h>
+
+#ifndef USE_SDL1
 #include <SDL_mouse.h>
 #include <SDL_render.h>
 #include <SDL_surface.h>
+#endif
 #endif
 
 #include "DiabloUI/diabloui.h"
@@ -35,9 +45,16 @@ enum class HotpointPosition : uint8_t {
 Size ScaledSize(Size size)
 {
 	if (renderer != nullptr) {
-		float scaleX;
-		float scaleY;
+		float scaleX = 1.0F;
+		float scaleY = 1.0F;
+#ifdef USE_SDL3
+		if (!SDL_GetRenderScale(renderer, &scaleX, &scaleY)) {
+			LogError("SDL_GetRenderScale: {}", SDL_GetError());
+			SDL_ClearError();
+		}
+#else
 		SDL_RenderGetScale(renderer, &scaleX, &scaleY);
+#endif
 		size.width = static_cast<int>(size.width * scaleX);
 		size.height = static_cast<int>(size.height * scaleY);
 	}
@@ -83,7 +100,13 @@ bool SetHardwareCursorFromSurface(SDL_Surface *surface, HotpointPosition hotpoin
 		newCursor = SDLCursorUniquePtr { SDL_CreateColorCursor(surface, hotpoint.x, hotpoint.y) };
 	} else {
 		// SDL does not support BlitScaled from 8-bit to RGBA.
-		const SDLSurfaceUniquePtr converted { SDL_ConvertSurfaceFormat(surface, SDL_PIXELFORMAT_ARGB8888, 0) };
+		const SDLSurfaceUniquePtr converted {
+#ifdef USE_SDL3
+			SDL_ConvertSurface(surface, SDL_PIXELFORMAT_ARGB8888)
+#else
+			SDL_ConvertSurfaceFormat(surface, SDL_PIXELFORMAT_ARGB8888, 0)
+#endif
+		};
 
 		const SDLSurfaceUniquePtr scaledSurface = SDLWrap::CreateRGBSurfaceWithFormat(0, scaledSize.width, scaledSize.height, 32, SDL_PIXELFORMAT_ARGB8888);
 		if (ShouldUseBilinearScaling()) {
@@ -97,7 +120,11 @@ bool SetHardwareCursorFromSurface(SDL_Surface *surface, HotpointPosition hotpoin
 			Log("hwcursor: SetHardwareCursorFromSurface {}x{} scaled to {}x{} using nearest neighbour scaling",
 			    size.width, size.height, scaledSize.width, scaledSize.height);
 #endif
+#ifdef USE_SDL3
+			SDL_BlitSurfaceScaled(converted.get(), nullptr, scaledSurface.get(), nullptr, SDL_SCALEMODE_NEAREST);
+#else
 			SDL_BlitScaled(converted.get(), nullptr, scaledSurface.get(), nullptr);
+#endif
 		}
 		const Point hotpoint = GetHotpointPosition(*scaledSurface, hotpointPosition);
 		newCursor = SDLCursorUniquePtr { SDL_CreateColorCursor(scaledSurface.get(), hotpoint.x, hotpoint.y) };
@@ -107,7 +134,15 @@ bool SetHardwareCursorFromSurface(SDL_Surface *surface, HotpointPosition hotpoin
 		SDL_ClearError();
 		return false;
 	}
+#ifdef USE_SDL3
+	if (!SDL_SetCursor(newCursor.get())) {
+		LogError("SDL_SetCursor: {}", SDL_GetError());
+		SDL_ClearError();
+		return false;
+	}
+#else
 	SDL_SetCursor(newCursor.get());
+#endif
 	CurrentCursor = std::move(newCursor);
 	return true;
 }
@@ -115,8 +150,29 @@ bool SetHardwareCursorFromSurface(SDL_Surface *surface, HotpointPosition hotpoin
 bool SetHardwareCursorFromClxSprite(ClxSprite sprite, HotpointPosition hotpointPosition)
 {
 	const OwnedSurface surface { sprite.width(), sprite.height() };
-	SDL_SetSurfacePalette(surface.surface, Palette.get());
-	SDL_SetColorKey(surface.surface, SDL_TRUE, 0);
+#ifdef USE_SDL3
+	if (!SDL_SetSurfacePalette(surface.surface, Palette.get())) {
+		LogError("SDL_SetSurfacePalette: {}", SDL_GetError());
+		SDL_ClearError();
+		return false;
+	}
+	if (!SDL_SetSurfaceColorKey(surface.surface, true, 0)) {
+		LogError("SDL_SetSurfaceColorKey: {}", SDL_GetError());
+		SDL_ClearError();
+		return false;
+	}
+#else
+	if (SDL_SetSurfacePalette(surface.surface, Palette.get()) != 0) {
+		LogError("SDL_SetSurfacePalette: {}", SDL_GetError());
+		SDL_ClearError();
+		return false;
+	}
+	if (SDL_SetColorKey(surface.surface, SDL_TRUE, 0) != 0) {
+		LogError("SDL_SetColorKey: {}", SDL_GetError());
+		SDL_ClearError();
+		return false;
+	}
+#endif
 	RenderClxSprite(surface, sprite, { 0, 0 });
 	return SetHardwareCursorFromSurface(surface.surface, hotpointPosition);
 }
@@ -142,8 +198,29 @@ bool SetHardwareCursorFromSprite(int pcurs)
 	// Transparent color must not be used in the sprite itself.
 	// Colors 1-127 are outside of the UI palette so are safe to use.
 	constexpr std::uint8_t TransparentColor = 1;
-	SDL_FillRect(out.surface, nullptr, TransparentColor);
-	SDL_SetColorKey(out.surface, 1, TransparentColor);
+#ifdef USE_SDL3
+	if (!SDL_FillSurfaceRect(out.surface, nullptr, TransparentColor)) {
+		LogError("SDL_FillSurfaceRect: {}", SDL_GetError());
+		SDL_ClearError();
+		return false;
+	}
+	if (!SDL_SetSurfaceColorKey(out.surface, true, TransparentColor)) {
+		LogError("SDL_SetSurfaceColorKey: {}", SDL_GetError());
+		SDL_ClearError();
+		return false;
+	}
+#else
+	if (SDL_FillRect(out.surface, nullptr, TransparentColor) != 0) {
+		LogError("SDL_FillRect: {}", SDL_GetError());
+		SDL_ClearError();
+		return false;
+	}
+	if (SDL_SetColorKey(out.surface, 1, TransparentColor) != 0) {
+		LogError("SDL_SetColorKey: {}", SDL_GetError());
+		SDL_ClearError();
+		return false;
+	}
+#endif
 	DrawSoftwareCursor(out, { outlineWidth, size.height - outlineWidth - 1 }, pcurs);
 
 	const bool result = SetHardwareCursorFromSurface(

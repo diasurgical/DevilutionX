@@ -9,7 +9,12 @@
 #include <string>
 
 #ifdef USE_SDL3
+#include <SDL3/SDL_error.h>
 #include <SDL3/SDL_events.h>
+#include <SDL3/SDL_keyboard.h>
+#include <SDL3/SDL_rect.h>
+#include <SDL3/SDL_surface.h>
+#include <SDL3/SDL_timer.h>
 #include <SDL3/SDL_version.h>
 #else
 #include <SDL.h>
@@ -66,7 +71,11 @@ const int BarPos[3][2] = { { 53, 37 }, { 53, 421 }, { 53, 37 } };
 
 OptionalOwnedClxSpriteList ArtCutsceneWidescreen;
 
+#ifdef USE_SDL3
+SdlEventType CustomEventType = SDL_EVENT_USER;
+#else
 SdlEventType CustomEventType = SDL_USEREVENT;
+#endif
 
 Cutscenes GetCutSceneFromLevelType(dungeon_type type)
 {
@@ -220,7 +229,11 @@ void DrawCutsceneBackground()
 {
 	const Rectangle &uiRectangle = GetUIRectangle();
 	const Surface &out = GlobalBackBuffer();
+#ifdef USE_SDL3
+	SDL_FillSurfaceRect(out.surface, nullptr, 0);
+#else
 	SDL_FillRect(out.surface, nullptr, 0x000000);
+#endif
 	if (ArtCutsceneWidescreen) {
 		const ClxSprite sprite = (*ArtCutsceneWidescreen)[0];
 		RenderClxSprite(out, sprite, { uiRectangle.position.x - (sprite.width() - uiRectangle.size.width) / 2, uiRectangle.position.y });
@@ -238,7 +251,11 @@ void DrawCutsceneForeground()
 	    out.region.y + BarPos[progress_id][1] + uiRectangle.position.y,
 	    sgdwProgress,
 	    ProgressHeight);
+#ifdef USE_SDL3
+	SDL_FillSurfaceRect(out.surface, &rect, BarColor[progress_id]);
+#else
 	SDL_FillRect(out.surface, &rect, BarColor[progress_id]);
+#endif
 
 	if (DiabloUiSurface() == PalSurface)
 		BltFast(&rect, &rect);
@@ -293,9 +310,15 @@ bool HandleProgressBarUpdate()
 	SDL_Event event;
 	// We use the real `PollEvent` here instead of `FetchMessage`
 	// to process real events rather than the recorded ones in demo mode.
-	while (PollEvent(&event) != 0) {
+	while (PollEvent(&event)) {
 		CheckShouldSkipRendering();
-		if (event.type != SDL_QUIT) {
+		if (event.type !=
+#ifdef USE_SDL3
+		    SDL_EVENT_QUIT
+#else
+		    SDL_QUIT
+#endif
+		) {
 			HandleMessage(event, SDL_GetModState());
 		}
 		if (ProgressEventHandlerState.done) return false;
@@ -465,7 +488,13 @@ void DoLoad(interface_mode uMsg)
 		SDL_Event event;
 		CustomEventToSdlEvent(event, WM_ERROR);
 		event.user.data1 = new std::string(std::move(loadResult).error());
-		if (SDL_PushEvent(&event) < 0) {
+		if (
+#ifdef USE_SDL3
+		    !SDL_PushEvent(&event)
+#else
+		    SDL_PushEvent(&event) < 0
+#endif
+		) {
 			LogError("Failed to send WM_ERROR {}", SDL_GetError());
 			SDL_ClearError();
 		}
@@ -477,7 +506,13 @@ void DoLoad(interface_mode uMsg)
 
 	SDL_Event event;
 	CustomEventToSdlEvent(event, WM_DONE);
-	if (SDL_PushEvent(&event) < 0) {
+	if (
+#ifdef USE_SDL3
+	    !SDL_PushEvent(&event)
+#else
+	    SDL_PushEvent(&event) < 0
+#endif
+	) {
 		LogError("Failed to send WM_DONE {}", SDL_GetError());
 		SDL_ClearError();
 	}
@@ -592,7 +627,13 @@ void interface_msg_pump()
 	SDL_Event event;
 	uint16_t modState;
 	while (FetchMessage(&event, &modState)) {
-		if (event.type != SDL_QUIT) {
+		if (event.type !=
+#ifdef USE_SDL3
+		    SDL_EVENT_QUIT
+#else
+		    SDL_QUIT
+#endif
+		) {
 			HandleMessage(event, modState);
 		}
 	}
@@ -609,7 +650,13 @@ void IncProgress(uint32_t steps)
 	if (!HeadlessMode && sgdwProgress != prevProgress) {
 		SDL_Event event;
 		CustomEventToSdlEvent(event, WM_PROGRESS);
-		if (SDL_PushEvent(&event) < 0) {
+		if (
+#ifdef USE_SDL3
+		    !SDL_PushEvent(&event)
+#else
+		    SDL_PushEvent(&event) < 0
+#endif
+		) {
 			LogError("Failed to send WM_PROGRESS {}", SDL_GetError());
 			SDL_ClearError();
 		}

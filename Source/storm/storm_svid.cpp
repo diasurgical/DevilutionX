@@ -5,6 +5,16 @@
 #include <cstring>
 #include <optional>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_pixels.h>
+#include <SDL3/SDL_rect.h>
+#include <SDL3/SDL_render.h>
+#include <SDL3/SDL_surface.h>
+#include <SDL3/SDL_timer.h>
+#else
+#include <SDL.h>
+#endif
+
 #include <SmackerDecoder.h>
 
 #ifndef NOSOUND
@@ -39,7 +49,7 @@ constexpr uint64_t TimeMsToSmk(uint64_t ms) { return ms * SmackerTimeUnit; }
 constexpr uint64_t TimeSmkToMs(uint64_t time) { return time / SmackerTimeUnit; };
 uint64_t GetTicksSmk()
 {
-#if SDL_VERSION_ATLEAST(2, 0, 18)
+#if SDL_VERSION_ATLEAST(2, 0, 18) && !defined(USE_SDL3)
 	return TimeMsToSmk(SDL_GetTicks64());
 #else
 	return TimeMsToSmk(SDL_GetTicks());
@@ -180,7 +190,15 @@ void UpdatePalette()
 	if (SDL_SetSurfacePalette(SVidSurface.get(), SVidPalette.get()) <= -1) {
 		ErrSdl();
 	}
-	if (GetOutputSurface()->format->BitsPerPixel == 8) {
+
+	const SDL_Surface *surface = GetOutputSurface();
+	if (
+#ifdef USE_SDL3
+	    SDL_BITSPERPIXEL(surface->format)
+#else
+	    surface->format->BitsPerPixel
+#endif
+	    == 8) {
 		if (SDL_SetSurfacePalette(GetOutputSurface(), SVidPalette.get()) <= -1) {
 			ErrSdl();
 		}
@@ -192,7 +210,13 @@ bool BlitFrame()
 {
 #ifndef USE_SDL1
 	if (renderer != nullptr) {
-		if (SDL_BlitSurface(SVidSurface.get(), nullptr, GetOutputSurface(), nullptr) <= -1) {
+		if (
+#ifdef USE_SDL3
+		    SDL_BlitSurface(SVidSurface.get(), nullptr, GetOutputSurface(), nullptr)
+#else
+		    SDL_BlitSurface(SVidSurface.get(), nullptr, GetOutputSurface(), nullptr) <= -1
+#endif
+		) {
 			Log("{}", SDL_GetError());
 			return false;
 		}
@@ -203,7 +227,12 @@ bool BlitFrame()
 #ifdef USE_SDL1
 		const bool isIndexedOutputFormat = SDLBackport_IsPixelFormatIndexed(outputSurface->format);
 #else
+
+#ifdef USE_SDL3
+		const SDL_PixelFormat wndFormat = SDL_GetWindowPixelFormat(ghMainWnd);
+#else
 		const Uint32 wndFormat = SDL_GetWindowPixelFormat(ghMainWnd);
+#endif
 		const bool isIndexedOutputFormat = SDL_ISPIXELFORMAT_INDEXED(wndFormat);
 #endif
 		SDL_Rect outputRect;
@@ -224,7 +253,13 @@ bool BlitFrame()
 		if (isIndexedOutputFormat
 		    || outputSurface->w == static_cast<int>(SVidWidth)
 		    || outputSurface->h == static_cast<int>(SVidHeight)) {
-			if (SDL_BlitSurface(SVidSurface.get(), nullptr, outputSurface, &outputRect) <= -1) {
+			if (
+#ifdef USE_SDL3
+			    SDL_BlitSurface(SVidSurface.get(), nullptr, outputSurface, &outputRect)
+#else
+			    SDL_BlitSurface(SVidSurface.get(), nullptr, outputSurface, &outputRect) <= -1
+#endif
+			) {
 				ErrSdl();
 			}
 		} else {
@@ -235,7 +270,13 @@ bool BlitFrame()
 #else
 			SDLSurfaceUniquePtr converted = SDLWrap::ConvertSurfaceFormat(SVidSurface.get(), wndFormat, 0);
 #endif
-			if (SDL_BlitScaled(converted.get(), nullptr, outputSurface, &outputRect) <= -1) {
+			if (
+#ifdef USE_SDL3
+			    SDL_BlitSurfaceScaled(converted.get(), nullptr, outputSurface, &outputRect, SDL_SCALEMODE_LINEAR)
+#else
+			    SDL_BlitScaled(converted.get(), nullptr, outputSurface, &outputRect) <= -1
+#endif
+			) {
 				Log("{}", SDL_GetError());
 				return false;
 			}
@@ -264,7 +305,7 @@ bool SVidPlayBegin(const char *filename, int flags)
 	// 0x800000 // Edge detection
 	// 0x200800 // Clear FB
 
-	SDL_RWops *videoStream = OpenAssetAsSdlRwOps(filename);
+	auto *videoStream = OpenAssetAsSdlRwOps(filename);
 	SVidHandle = Smacker_Open(videoStream);
 	if (!SVidHandle.isValid) {
 		return false;
@@ -312,7 +353,14 @@ bool SVidPlayBegin(const char *filename, int flags)
 		const int renderWidth = static_cast<int>(SVidWidth);
 		const int renderHeight = static_cast<int>(SVidHeight);
 		texture = SDLWrap::CreateTexture(renderer, DEVILUTIONX_DISPLAY_TEXTURE_FORMAT, SDL_TEXTUREACCESS_STREAMING, renderWidth, renderHeight);
-		if (SDL_RenderSetLogicalSize(renderer, renderWidth, renderHeight) <= -1) {
+		if (
+#ifdef USE_SDL3
+		    !SDL_SetRenderLogicalPresentation(renderer, renderWidth, renderHeight,
+		        *GetOptions().Graphics.integerScaling ? SDL_LOGICAL_PRESENTATION_INTEGER_SCALE : SDL_LOGICAL_PRESENTATION_STRETCH)
+#else
+		    SDL_RenderSetLogicalSize(renderer, renderWidth, renderHeight) <= -1
+#endif
+		) {
 			ErrSdl();
 		}
 	}
@@ -330,7 +378,11 @@ bool SVidPlayBegin(const char *filename, int flags)
 #endif
 
 	// Set the background to black.
+#ifdef USE_SDL3
+	SDL_FillSurfaceRect(GetOutputSurface(), nullptr, 0x000000);
+#else
 	SDL_FillRect(GetOutputSurface(), nullptr, 0x000000);
+#endif
 
 	// The buffer for the frame. It is not the same as the SDL surface because the SDL surface also has pitch padding.
 	SVidFrameBuffer = std::unique_ptr<uint8_t[]> { new uint8_t[static_cast<size_t>(SVidWidth * SVidHeight)] };
@@ -415,7 +467,14 @@ void SVidPlayEnd()
 #ifndef USE_SDL1
 	if (renderer != nullptr) {
 		texture = SDLWrap::CreateTexture(renderer, DEVILUTIONX_DISPLAY_TEXTURE_FORMAT, SDL_TEXTUREACCESS_STREAMING, gnScreenWidth, gnScreenHeight);
-		if (renderer != nullptr && SDL_RenderSetLogicalSize(renderer, gnScreenWidth, gnScreenHeight) <= -1) {
+		if (
+#ifdef USE_SDL3
+		    !SDL_SetRenderLogicalPresentation(renderer, gnScreenWidth, gnScreenHeight,
+		        *GetOptions().Graphics.integerScaling ? SDL_LOGICAL_PRESENTATION_INTEGER_SCALE : SDL_LOGICAL_PRESENTATION_STRETCH)
+#else
+		    SDL_RenderSetLogicalSize(renderer, gnScreenWidth, gnScreenHeight) <= -1
+#endif
+		) {
 			ErrSdl();
 		}
 	}

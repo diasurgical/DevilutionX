@@ -12,7 +12,6 @@
 #include <numeric>
 #include <string>
 
-#include <SDL.h>
 #include <ankerl/unordered_dense.h>
 #include <expected.hpp>
 

@@ -9,7 +9,17 @@
 #include <cstdint>
 #include <optional>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_keycode.h>
+#include <SDL3/SDL_rect.h>
+#include <SDL3/SDL_surface.h>
+#include <SDL3/SDL_timer.h>
+#else
+#include <SDL.h>
+#endif
+
 #include "DiabloUI/ui_flags.hpp"
+#include "appfat.h"
 #include "control.h"
 #include "controls/axis_direction.h"
 #include "controls/controller_motion.h"
@@ -125,7 +135,11 @@ void GmenuDrawMenuItem(const Surface &out, TMenuItem *pItem, int y)
 		const uint16_t steps = std::max<uint16_t>(pItem->sliderSteps(), 2);
 		const uint16_t pos = SliderFillMin + step * (SliderFillMax - SliderFillMin) / steps;
 		SDL_Rect rect = MakeSdlRect(SliderValueLeft + uiPositionX, y + SliderValuePaddingTop, pos, SliderValueHeight);
+#ifdef USE_SDL3
+		SDL_FillSurfaceRect(out.surface, &rect, 205);
+#else
 		SDL_FillRect(out.surface, &rect, 205);
+#endif
 		ClxDraw(out, { SliderValueLeft + pos - SliderMarkerWidth / 2 + uiPositionX, y + SliderValuePaddingTop + SliderValueHeight - 1 }, (*option_cel)[0]);
 	}
 

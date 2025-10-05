@@ -10,7 +10,16 @@
 #include <string_view>
 #include <vector>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_events.h>
+#include <SDL3/SDL_keyboard.h>
+#include <SDL3/SDL_rect.h>
+#include <SDL3/SDL_surface.h>
+#include <SDL3/SDL_timer.h>
+#else
 #include <SDL.h>
+#endif
+
 #include <function_ref.hpp>
 
 #include "DiabloUI/button.h"
@@ -401,17 +410,34 @@ void UiOnBackgroundChange()
 	// of single-player characters.
 	//
 	// Black out the screen immediately to make it appear more smooth.
+#ifdef USE_SDL3
+	SDL_FillSurfaceRect(DiabloUiSurface(), nullptr, 0);
+#else
 	SDL_FillRect(DiabloUiSurface(), nullptr, 0x000000);
+#endif
 	if (DiabloUiSurface() == PalSurface)
 		BltFast(nullptr, nullptr);
 	RenderPresent();
 }
 
-} // namespace
-
 void UiFocusNavigation(SDL_Event *event)
 {
 	switch (event->type) {
+#ifdef USE_SDL3
+	case SDL_EVENT_KEY_UP:
+	case SDL_EVENT_MOUSE_BUTTON_UP:
+	case SDL_EVENT_MOUSE_MOTION:
+	case SDL_EVENT_MOUSE_WHEEL:
+	case SDL_EVENT_JOYSTICK_BUTTON_UP:
+	case SDL_EVENT_JOYSTICK_AXIS_MOTION:
+	case SDL_EVENT_JOYSTICK_BALL_MOTION:
+	case SDL_EVENT_JOYSTICK_HAT_MOTION:
+	case SDL_EVENT_FINGER_UP:
+	case SDL_EVENT_FINGER_MOTION:
+	case SDL_EVENT_GAMEPAD_BUTTON_UP:
+	case SDL_EVENT_GAMEPAD_AXIS_MOTION:
+	case SDL_EVENT_WINDOW_EXPOSED:
+#else
 	case SDL_KEYUP:
 	case SDL_MOUSEBUTTONUP:
 	case SDL_MOUSEMOTION:
@@ -430,7 +456,10 @@ void UiFocusNavigation(SDL_Event *event)
 	case SDL_WINDOWEVENT:
 #endif
 	case SDL_SYSWMEVENT:
+#endif
 		mainmenu_restart_repintro();
+		break;
+	default:
 		break;
 	}
 
@@ -440,7 +469,16 @@ void UiFocusNavigation(SDL_Event *event)
 	if (menuActionHandled)
 		return;
 
-#if SDL_VERSION_ATLEAST(2, 0, 0)
+#ifdef USE_SDL3
+	if (event->type == SDL_EVENT_MOUSE_WHEEL) {
+		if (event->wheel.integer_y > 0) {
+			UiFocusUp();
+		} else if (event->wheel.integer_y < 0) {
+			UiFocusDown();
+		}
+		return;
+	}
+#elif SDL_VERSION_ATLEAST(2, 0, 0)
 	if (event->type == SDL_MOUSEWHEEL) {
 		if (event->wheel.y > 0) {
 			UiFocusUp();
@@ -466,15 +504,29 @@ void UiFocusNavigation(SDL_Event *event)
 		return;
 	}
 
-	if (event->type == SDL_MOUSEBUTTONDOWN || event->type == SDL_MOUSEBUTTONUP) {
-		if (UiItemMouseEvents(event, gUiItems))
-			return;
+	if (IsAnyOf(event->type,
+#ifdef USE_SDL3
+	        SDL_EVENT_MOUSE_BUTTON_DOWN, SDL_EVENT_MOUSE_BUTTON_UP
+#else
+	        SDL_MOUSEBUTTONDOWN, SDL_MOUSEBUTTONUP
+#endif
+	        )
+	    && UiItemMouseEvents(event, gUiItems)) {
+		return;
 	}
 }
 
+} // namespace
+
 void UiHandleEvents(SDL_Event *event)
 {
-	if (event->type == SDL_MOUSEMOTION) {
+	if (event->type ==
+#ifdef USE_SDL3
+	    SDL_EVENT_MOUSE_MOTION
+#else
+	    SDL_MOUSEMOTION
+#endif
+	) {
 #ifdef USE_SDL1
 		OutputToLogical(&event->motion.x, &event->motion.y);
 #endif
@@ -482,8 +534,13 @@ void UiHandleEvents(SDL_Event *event)
 		return;
 	}
 
-	if (event->type == SDL_KEYDOWN && event->key.keysym.sym == SDLK_RETURN) {
-		const Uint8 *state = SDLC_GetKeyState();
+#ifdef USE_SDL3
+	if (event->type == SDL_EVENT_KEY_DOWN && event->key.key == SDLK_RETURN)
+#else
+	if (event->type == SDL_KEYDOWN && event->key.keysym.sym == SDLK_RETURN)
+#endif
+	{
+		const auto *state = SDLC_GetKeyState();
 		if (state[SDLC_KEYSTATE_LALT] != 0 || state[SDLC_KEYSTATE_RALT] != 0) {
 			GetOptions().Graphics.fullscreen.SetValue(!IsFullScreen());
 			SaveOptions();
@@ -493,12 +550,41 @@ void UiHandleEvents(SDL_Event *event)
 		}
 	}
 
-	if (event->type == SDL_QUIT)
+	if (event->type ==
+#ifdef USE_SDL3
+	    SDL_EVENT_QUIT
+#else
+	    SDL_QUIT
+#endif
+	) {
 		diablo_quit(0);
+	}
 
 #ifndef USE_SDL1
 	HandleControllerAddedOrRemovedEvent(*event);
 
+#ifdef USE_SDL3
+	switch (event->type) {
+	case SDL_EVENT_WINDOW_SHOWN:
+	case SDL_EVENT_WINDOW_EXPOSED:
+	case SDL_EVENT_WINDOW_RESTORED:
+		gbActive = true;
+		break;
+	case SDL_EVENT_WINDOW_HIDDEN:
+	case SDL_EVENT_WINDOW_MINIMIZED:
+		gbActive = false;
+		break;
+	case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
+		DoReinitializeHardwareCursor();
+		break;
+	case SDL_EVENT_WINDOW_FOCUS_LOST:
+		if (*GetOptions().Gameplay.pauseOnFocusLoss) music_mute();
+		break;
+	case SDL_EVENT_WINDOW_FOCUS_GAINED:
+		if (*GetOptions().Gameplay.pauseOnFocusLoss) diablo_focus_unpause();
+		break;
+	}
+#else
 	if (event->type == SDL_WINDOWEVENT) {
 		if (IsAnyOf(event->window.event, SDL_WINDOWEVENT_SHOWN, SDL_WINDOWEVENT_EXPOSED, SDL_WINDOWEVENT_RESTORED)) {
 			gbActive = true;
@@ -517,6 +603,7 @@ void UiHandleEvents(SDL_Event *event)
 			diablo_focus_unpause();
 		}
 	}
+#endif
 #else
 	if (event->type == SDL_ACTIVEEVENT && (event->active.state & SDL_APPINPUTFOCUS) != 0) {
 		if (event->active.gain == 0)
@@ -786,14 +873,19 @@ void DrawSelector(const SDL_Rect &rect)
 
 void UiClearScreen()
 {
-	if (!ArtBackground || gnScreenWidth > (*ArtBackground)[0].width() || gnScreenHeight > (*ArtBackground)[0].height())
+	if (!ArtBackground || gnScreenWidth > (*ArtBackground)[0].width() || gnScreenHeight > (*ArtBackground)[0].height()) {
+#ifdef USE_SDL3
+		SDL_FillSurfaceRect(DiabloUiSurface(), nullptr, 0);
+#else
 		SDL_FillRect(DiabloUiSurface(), nullptr, 0x000000);
+#endif
+	}
 }
 
 void UiPollAndRender(std::optional<tl::function_ref<bool(SDL_Event &)>> eventHandler)
 {
 	SDL_Event event;
-	while (PollEvent(&event) != 0) {
+	while (PollEvent(&event)) {
 		if (eventHandler && (*eventHandler)(event))
 			continue;
 		UiFocusNavigation(&event);
@@ -942,7 +1034,13 @@ void Render(const UiEdit &uiEdit)
 
 bool HandleMouseEventArtTextButton(const SDL_Event &event, const UiArtTextButton *uiButton)
 {
-	if (event.type != SDL_MOUSEBUTTONUP || event.button.button != SDL_BUTTON_LEFT) {
+	if (event.type !=
+#ifdef USE_SDL3
+	        SDL_EVENT_MOUSE_BUTTON_UP
+#else
+	        SDL_MOUSEBUTTONUP
+#endif
+	    || event.button.button != SDL_BUTTON_LEFT) {
 		return false;
 	}
 
@@ -959,17 +1057,37 @@ bool HandleMouseEventList(const SDL_Event &event, UiList *uiList)
 	if (event.button.button != SDL_BUTTON_LEFT)
 		return false;
 
-	if (event.type != SDL_MOUSEBUTTONUP && event.type != SDL_MOUSEBUTTONDOWN)
+	if (!IsAnyOf(event.type,
+#ifdef USE_SDL3
+	        SDL_EVENT_MOUSE_BUTTON_UP, SDL_EVENT_MOUSE_BUTTON_DOWN
+#else
+	        SDL_MOUSEBUTTONUP, SDL_MOUSEBUTTONDOWN
+#endif
+	        )) {
 		return false;
+	}
 
 	std::size_t index = uiList->indexAt(event.button.y);
-	if (event.type == SDL_MOUSEBUTTONDOWN) {
+	if (event.type ==
+#ifdef USE_SDL3
+	    SDL_EVENT_MOUSE_BUTTON_DOWN
+#else
+	    SDL_MOUSEBUTTONDOWN
+#endif
+	) {
 		uiList->Press(index);
 		return true;
 	}
 
-	if (event.type == SDL_MOUSEBUTTONUP && !uiList->IsPressed(index))
+	if (event.type ==
+#ifdef USE_SDL3
+	        SDL_EVENT_MOUSE_BUTTON_UP
+#else
+	        SDL_MOUSEBUTTONUP
+#endif
+	    && !uiList->IsPressed(index)) {
 		return false;
+	}
 
 	index += listOffset;
 
@@ -998,7 +1116,13 @@ bool HandleMouseEventScrollBar(const SDL_Event &event, const UiScrollbar *uiSb)
 {
 	if (event.button.button != SDL_BUTTON_LEFT)
 		return false;
-	if (event.type == SDL_MOUSEBUTTONUP) {
+	if (event.type ==
+#ifdef USE_SDL3
+	    SDL_EVENT_MOUSE_BUTTON_UP
+#else
+	    SDL_MOUSEBUTTONUP
+#endif
+	) {
 		if (scrollBarState.upArrowPressed && IsInsideRect(event, UpArrowRect(*uiSb))) {
 			UiFocusUp();
 			return true;
@@ -1007,7 +1131,14 @@ bool HandleMouseEventScrollBar(const SDL_Event &event, const UiScrollbar *uiSb)
 			UiFocusDown();
 			return true;
 		}
-	} else if (event.type == SDL_MOUSEBUTTONDOWN) {
+	} else if (event.type ==
+#ifdef USE_SDL3
+	    SDL_EVENT_MOUSE_BUTTON_DOWN
+#else
+	    SDL_MOUSEBUTTONDOWN
+#endif
+
+	) {
 		if (IsInsideRect(event, BarRect(*uiSb))) {
 			// Scroll up or down based on thumb position.
 			const SDL_Rect thumbRect = ThumbRect(*uiSb, SelectedItem, SelectedItemMax + 1);
@@ -1116,7 +1247,13 @@ bool UiItemMouseEvents(SDL_Event *event, const std::vector<UiItemBase *> &items)
 		}
 	}
 
-	if (event->type == SDL_MOUSEBUTTONUP && event->button.button == SDL_BUTTON_LEFT) {
+	if (event->type ==
+#ifdef USE_SDL3
+	        SDL_EVENT_MOUSE_BUTTON_UP
+#else
+	        SDL_MOUSEBUTTONUP
+#endif
+	    && event->button.button == SDL_BUTTON_LEFT) {
 		scrollBarState.downArrowPressed = scrollBarState.upArrowPressed = false;
 		for (const auto &item : items) {
 			if (item->IsType(UiType::Button)) {
@@ -1149,7 +1286,13 @@ bool UiItemMouseEvents(SDL_Event *event, const std::vector<std::unique_ptr<UiIte
 		}
 	}
 
-	if (event->type == SDL_MOUSEBUTTONUP && event->button.button == SDL_BUTTON_LEFT) {
+	if (event->type ==
+#ifdef USE_SDL3
+	        SDL_EVENT_MOUSE_BUTTON_UP
+#else
+	        SDL_MOUSEBUTTONUP
+#endif
+	    && event->button.button == SDL_BUTTON_LEFT) {
 		scrollBarState.downArrowPressed = scrollBarState.upArrowPressed = false;
 		for (const auto &item : items) {
 			if (item->IsType(UiType::Button)) {

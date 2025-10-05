@@ -8,6 +8,12 @@
 #include <cstdint>
 #include <deque>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_timer.h>
+#else
+#include <SDL.h>
+#endif
+
 #include "diablo_msg.hpp"
 
 #include "DiabloUI/ui_flags.hpp"

@@ -112,7 +112,12 @@ endif()
 
 # Graphics options
 if(NOT USE_SDL1)
-  set(DEVILUTIONX_DISPLAY_TEXTURE_FORMAT "SDL_PIXELFORMAT_RGB888" CACHE STRING "Texture format for DevilutionX textures when using the GPU renderer")
+if(USE_SDL3)
+  set(_texture_format_default "SDL_PIXELFORMAT_XRGB8888")
+else()
+  set(_texture_format_default "SDL_PIXELFORMAT_RGB888")
+endif()
+  set(DEVILUTIONX_DISPLAY_TEXTURE_FORMAT "${_texture_format_default}" CACHE STRING "Texture format for DevilutionX textures when using the GPU renderer")
   mark_as_advanced(DEVILUTIONX_DISPLAY_TEXTURE_FORMAT)
 endif()
 

@@ -9,6 +9,14 @@
 #include <cstddef>
 #include <cstdint>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_keyboard.h>
+#include <SDL3/SDL_rect.h>
+#include <SDL3/SDL_timer.h>
+#else
+#include <SDL.h>
+#endif
+
 #include <ankerl/unordered_dense.h>
 
 #include "DiabloUI/ui_flags.hpp"
@@ -530,8 +538,16 @@ void DrawCell(const Surface &out, const Lightmap lightmap, Point tilePosition, P
 
 	bool transparency = TileHasAny(tilePosition, TileProperties::Transparent) && TransList[dTransVal[tilePosition.x][tilePosition.y]];
 #ifdef _DEBUG
-	if ((SDL_GetModState() & KMOD_ALT) != 0)
+	if ((SDL_GetModState() &
+#ifdef USE_SDL3
+	        SDL_KMOD_ALT
+#else
+	        KMOD_ALT
+#endif
+	        )
+	    != 0) {
 		transparency = false;
+	}
 #endif
 
 	const auto getFirstTileMaskLeft = [=](TileType tile) -> MaskType {
@@ -876,7 +892,14 @@ void DrawDungeon(const Surface &out, const Lightmap &lightmap, Point tilePositio
 			bool transparency = TransList[bMap];
 #ifdef _DEBUG
 			// Turn transparency off here for debugging
-			transparency = transparency && (SDL_GetModState() & KMOD_ALT) == 0;
+			transparency = transparency && (SDL_GetModState() &
+#ifdef USE_SDL3
+			                                   SDL_KMOD_ALT
+#else
+			                                   KMOD_ALT
+#endif
+			                                   )
+			        == 0;
 #endif
 			if (perPixelLighting) {
 				// Create a special lightmap buffer to bleed light up walls
@@ -1629,7 +1652,11 @@ void ClearScreenBuffer()
 		return;
 
 	assert(PalSurface != nullptr);
+#ifdef USE_SDL3
+	SDL_FillSurfaceRect(PalSurface, nullptr, 0);
+#else
 	SDL_FillRect(PalSurface, nullptr, 0);
+#endif
 }
 
 #ifdef _DEBUG

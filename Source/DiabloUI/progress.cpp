@@ -2,7 +2,13 @@
 #include <optional>
 #include <vector>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_events.h>
+#include <SDL3/SDL_rect.h>
+#include <SDL3/SDL_surface.h>
+#else
 #include <SDL.h>
+#endif
 
 #include "DiabloUI/button.h"
 #include "DiabloUI/diabloui.h"
@@ -71,7 +77,11 @@ Point GetPosition()
 
 void ProgressRenderBackground()
 {
+#ifdef USE_SDL3
+	SDL_FillSurfaceRect(DiabloUiSurface(), nullptr, 0);
+#else
 	SDL_FillRect(DiabloUiSurface(), nullptr, 0x000000);
+#endif
 
 	const Surface &out = Surface(DiabloUiSurface());
 	const Point position = GetPosition();
@@ -128,19 +138,36 @@ bool UiProgressDialog(int (*fnfunc)())
 		DrawMouse();
 		UiFadeIn();
 
-		while (PollEvent(&event) != 0) {
+		while (PollEvent(&event)) {
 			switch (event.type) {
+#ifdef USE_SDL3
+			case SDL_EVENT_MOUSE_BUTTON_DOWN:
+			case SDL_EVENT_MOUSE_BUTTON_UP:
+#else
 			case SDL_MOUSEBUTTONDOWN:
 			case SDL_MOUSEBUTTONUP:
+#endif
 				UiItemMouseEvents(&event, vecProgress);
 				break;
-#ifndef USE_SDL1
-			case SDLK_KP_ENTER:
+#ifdef USE_SDL3
+			case SDL_EVENT_KEY_DOWN:
+				switch (event.key.key)
+#else
+			case SDL_KEYDOWN:
+				switch (event.key.keysym.sym)
 #endif
-			case SDLK_ESCAPE:
-			case SDLK_RETURN:
-			case SDLK_SPACE:
-				endMenu = true;
+				{
+#ifndef USE_SDL1
+				case SDLK_KP_ENTER:
+#endif
+				case SDLK_ESCAPE:
+				case SDLK_RETURN:
+				case SDLK_SPACE:
+					endMenu = true;
+					break;
+				default:
+					break;
+				}
 				break;
 			default:
 				for (const MenuAction menuAction : GetMenuActions(event)) {

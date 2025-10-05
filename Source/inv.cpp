@@ -9,6 +9,13 @@
 #include <optional>
 #include <utility>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_keyboard.h>
+#include <SDL3/SDL_rect.h>
+#else
+#include <SDL.h>
+#endif
+
 #include <fmt/format.h>
 
 #include "DiabloUI/ui_flags.hpp"
@@ -34,6 +41,7 @@
 #include "qol/stash.h"
 #include "stores.h"
 #include "towners.h"
+#include "utils/display.h"
 #include "utils/format_int.hpp"
 #include "utils/is_of.hpp"
 #include "utils/language.h"
@@ -1088,7 +1096,11 @@ void StartGoldDrop()
 
 	const Point start = GetPanelPosition(UiPanels::Inventory, { 67, 128 });
 	SDL_Rect rect = MakeSdlRect(start.x, start.y, 180, 20);
+#ifdef USE_SDL3
+	SDL_SetTextInputArea(ghMainWnd, &rect, 0);
+#else
 	SDL_SetTextInputRect(&rect);
+#endif
 
 	OpenGoldDrop(invIndex, max);
 }

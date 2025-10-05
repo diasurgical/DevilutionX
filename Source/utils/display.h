@@ -3,11 +3,18 @@
 #include <cstdint>
 #include <type_traits>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_rect.h>
+#include <SDL3/SDL_render.h>
+#include <SDL3/SDL_surface.h>
+#include <SDL3/SDL_video.h>
+#else
 #include <SDL.h>
 #ifdef USE_SDL1
 #include "utils/sdl2_to_1_2_backports.h"
 #else
 #include "utils/sdl2_backports.h"
+#endif
 #endif
 
 #include "utils/attributes.h"
@@ -62,14 +69,22 @@ void OutputToLogical(T *x, T *y)
 		return;
 
 	float scaleX;
-	SDL_RenderGetScale(renderer, &scaleX, NULL);
+#ifdef USE_SDL3
+	SDL_GetRenderScale(renderer, &scaleX, nullptr);
+#else
+	SDL_RenderGetScale(renderer, &scaleX, nullptr);
+#endif
 	float scaleDpi = GetDpiScalingFactor();
 	float scale = scaleX / scaleDpi;
 	*x = static_cast<T>(*x / scale);
 	*y = static_cast<T>(*y / scale);
 
 	SDL_Rect view;
+#ifdef USE_SDL3
+	SDL_GetRenderViewport(renderer, &view);
+#else
 	SDL_RenderGetViewport(renderer, &view);
+#endif
 	*x -= view.x;
 	*y -= view.y;
 #else
@@ -90,12 +105,20 @@ void LogicalToOutput(T *x, T *y)
 	if (!renderer)
 		return;
 	SDL_Rect view;
+#ifdef USE_SDL3
+	SDL_GetRenderViewport(renderer, &view);
+#else
 	SDL_RenderGetViewport(renderer, &view);
+#endif
 	*x += view.x;
 	*y += view.y;
 
 	float scaleX;
-	SDL_RenderGetScale(renderer, &scaleX, NULL);
+#ifdef USE_SDL3
+	SDL_GetRenderScale(renderer, &scaleX, nullptr);
+#else
+	SDL_RenderGetScale(renderer, &scaleX, nullptr);
+#endif
 	float scaleDpi = GetDpiScalingFactor();
 	float scale = scaleX / scaleDpi;
 	*x = static_cast<T>(*x * scale);
@@ -110,7 +133,13 @@ void LogicalToOutput(T *x, T *y)
 }
 
 #if SDL_VERSION_ATLEAST(2, 0, 0)
-SDL_DisplayMode GetNearestDisplayMode(Size preferredSize, SDL_PixelFormatEnum preferredPixelFormat = SDL_PIXELFORMAT_UNKNOWN);
+SDL_DisplayMode GetNearestDisplayMode(Size preferredSize,
+#ifdef USE_SDL3
+    SDL_PixelFormat preferredPixelFormat = SDL_PIXELFORMAT_UNKNOWN
+#else
+    SDL_PixelFormatEnum preferredPixelFormat = SDL_PIXELFORMAT_UNKNOWN
+#endif
+);
 #endif
 
 } // namespace devilution
