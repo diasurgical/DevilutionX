@@ -1,3 +1,4 @@
+include(functions/copy_files)
 include(functions/trim_retired_files)
 
 if(NOT DEFINED DEVILUTIONX_ASSETS_OUTPUT_DIRECTORY)
@@ -235,18 +236,12 @@ else()
   # Copy assets to the build assets subdirectory. This serves two purposes:
   # - If smpq is installed, devilutionx.mpq is built from these files.
   # - If smpq is not installed, the game will load the assets directly from this directory.
-  foreach(asset_file ${devilutionx_assets})
-    set(src "${CMAKE_CURRENT_SOURCE_DIR}/assets/${asset_file}")
-    set(dst "${DEVILUTIONX_ASSETS_OUTPUT_DIRECTORY}/${asset_file}")
-    list(APPEND DEVILUTIONX_MPQ_FILES "${asset_file}")
-    list(APPEND DEVILUTIONX_OUTPUT_ASSETS_FILES "${dst}")
-    add_custom_command(
-      COMMENT "Copying ${asset_file}"
-      OUTPUT "${dst}"
-      DEPENDS "${src}"
-      COMMAND ${CMAKE_COMMAND} -E copy "${src}" "${dst}"
-      VERBATIM)
-  endforeach()
+  copy_files(
+    FILES ${devilutionx_assets}
+    SRC_PREFIX "assets/"
+    OUTPUT_DIR "${DEVILUTIONX_ASSETS_OUTPUT_DIRECTORY}"
+    OUTPUT_VARIABLE DEVILUTIONX_OUTPUT_ASSETS_FILES)
+  set(DEVILUTIONX_MPQ_FILES ${devilutionx_assets})
   if (Gettext_FOUND)
     foreach(lang ${devilutionx_langs})
       list(APPEND DEVILUTIONX_MPQ_FILES "${lang}.gmo")

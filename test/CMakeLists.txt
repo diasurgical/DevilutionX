@@ -1,4 +1,5 @@
 include(GoogleTest)
+include(functions/copy_files)
 
 add_library(libdevilutionx_so SHARED)
 set_target_properties(libdevilutionx_so PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
@@ -148,6 +149,38 @@ if(DEVILUTIONX_SCREENSHOT_FORMAT STREQUAL DEVILUTIONX_SCREENSHOT_FORMAT_PNG AND 
     libdevilutionx_surface_to_png
     libdevilutionx_text_render
   )
+  copy_files(
+    FILES
+      basic-colors.png
+      basic.png
+      horizontal_overflow.png
+      horizontal_overflow-colors.png
+      kerning_fit_spacing-colors.png
+      kerning_fit_spacing.png
+      kerning_fit_spacing__align_center-colors.png
+      kerning_fit_spacing__align_center.png
+      kerning_fit_spacing__align_center__newlines.png
+      kerning_fit_spacing__align_center__newlines_in_fmt-colors.png
+      kerning_fit_spacing__align_center__newlines_in_value-colors.png
+      kerning_fit_spacing__align_right-colors.png
+      kerning_fit_spacing__align_right.png
+      vertical_overflow.png
+      vertical_overflow-colors.png
+    SRC_PREFIX fixtures/text_render_integration_test/
+    OUTPUT_DIR "${DEVILUTIONX_TEST_FIXTURES_OUTPUT_DIRECTORY}/text_render_integration_test"
+    OUTPUT_VARIABLE _text_render_integration_test_fixtures
+  )
+  add_custom_target(text_render_integration_test_resources
+    DEPENDS
+    "${DEVILUTIONX_ASSETS_OUTPUT_DIRECTORY}/fonts/12-00.clx"
+    "${DEVILUTIONX_ASSETS_OUTPUT_DIRECTORY}/fonts/goldui.trn"
+    "${DEVILUTIONX_ASSETS_OUTPUT_DIRECTORY}/fonts/golduis.trn"
+    "${DEVILUTIONX_ASSETS_OUTPUT_DIRECTORY}/fonts/grayuis.trn"
+    "${DEVILUTIONX_ASSETS_OUTPUT_DIRECTORY}/fonts/grayui.trn"
+    "${DEVILUTIONX_ASSETS_OUTPUT_DIRECTORY}/ui_art/diablo.pal"
+    ${_text_render_integration_test_fixtures}
+  )
+  add_dependencies(text_render_integration_test text_render_integration_test_resources)
 endif()
 target_link_dependencies(utf8_test PRIVATE libdevilutionx_utf8)
 
