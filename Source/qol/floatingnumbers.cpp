@@ -90,6 +90,7 @@ void UpdateFloatingData(FloatingNumber &num)
 		break;
 	case FloatingNumberType::Exp:
 		num.style |= UiFlags::ColorWhite;
+		num.text = StrCat(num.text, " XP");
 		break;
 	}
 }
