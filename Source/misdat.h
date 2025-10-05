@@ -31,6 +31,7 @@ enum class DamageType : uint8_t {
 	Lightning,
 	Magic,
 	Acid,
+	Exp,
 };
 
 enum class MissileGraphicID : uint8_t {

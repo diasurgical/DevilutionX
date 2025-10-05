@@ -88,6 +88,9 @@ void UpdateFloatingData(FloatingNumber &num)
 	case DamageType::Acid:
 		num.style |= UiFlags::ColorYellow;
 		break;
+	case DamageType::Exp:
+		num.style |= UiFlags::ColorWhite;
+		break;
 	}
 }
 

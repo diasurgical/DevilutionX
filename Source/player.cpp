@@ -2449,6 +2449,8 @@ void Player::_addExperience(uint32_t experience, int levelDelta)
 		RedrawEverything();
 	}
 
+	AddFloatingNumber(DamageType::Exp, *MyPlayer, clampedExp);
+
 	// Increase player level if applicable
 	while (!isMaxCharacterLevel() && _pExperience >= getNextExperienceThreshold()) {
 		// NextPlrLevel increments character level which changes the next experience threshold
