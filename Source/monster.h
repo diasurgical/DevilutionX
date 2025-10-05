@@ -436,8 +436,8 @@ struct Monster { // note: missing field _mAFNum
 	 * @brief Is the monster currently walking?
 	 */
 	[[nodiscard]] bool isWalking() const;
-	[[nodiscard]] bool isImmune(MissileID mitype, DamageType missileElement) const;
-	[[nodiscard]] bool isResistant(MissileID mitype, DamageType missileElement) const;
+	[[nodiscard]] bool isImmune(MissileID mitype, FloatingNumberType missileElement) const;
+	[[nodiscard]] bool isResistant(MissileID mitype, FloatingNumberType missileElement) const;
 
 	/**
 	 * Is this a player's golem?
@@ -516,7 +516,7 @@ void LoadDeltaSpawnedMonster(size_t typeIndex, size_t monsterId, uint32_t seed, 
  */
 void InitializeSpawnedMonster(Point position, Direction dir, size_t typeIndex, size_t monsterId, uint32_t seed, uint8_t golemOwnerPlayerId, int16_t golemSpellLevel);
 void AddDoppelganger(Monster &monster);
-void ApplyMonsterDamage(DamageType damageType, Monster &monster, int damage);
+void ApplyMonsterDamage(FloatingNumberType floatingNumberType, Monster &monster, int damage);
 bool M_Talker(const Monster &monster);
 void M_StartStand(Monster &monster, Direction md);
 void M_ClearSquares(const Monster &monster);

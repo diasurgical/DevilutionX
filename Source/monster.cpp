@@ -1108,7 +1108,7 @@ void MonsterAttackMonster(Monster &attacker, Monster &target, int hper, int mind
 		return;
 
 	const int dam = RandomIntBetween(mind, maxd) << 6;
-	ApplyMonsterDamage(DamageType::Physical, target, dam);
+	ApplyMonsterDamage(FloatingNumberType::Physical, target, dam);
 
 	if (attacker.isPlayerMinion()) {
 		const auto playerId = static_cast<size_t>(attacker.goalVar3);
@@ -1135,7 +1135,7 @@ int CheckReflect(Monster &monster, Player &player, int dam)
 		NetSendCmdParam1(true, CMD_SETREFLECT, 0);
 	// reflects 20-30% damage
 	const int mdam = dam * RandomIntBetween(20, 30, true) / 100;
-	ApplyMonsterDamage(DamageType::Physical, monster, mdam);
+	ApplyMonsterDamage(FloatingNumberType::Physical, monster, mdam);
 	if (monster.hitPoints >> 6 <= 0)
 		M_StartKill(monster, player);
 	else
@@ -1216,13 +1216,13 @@ void MonsterAttackPlayer(Monster &monster, Player &player, int hit, int minDam, 
 			const int reflectedDamage = CheckReflect(monster, player, dam);
 			dam = std::max(dam - reflectedDamage, 0);
 		}
-		ApplyPlrDamage(DamageType::Physical, player, 0, 0, dam);
+		ApplyPlrDamage(FloatingNumberType::Physical, player, 0, 0, dam);
 	}
 
 	// Reflect can also kill a monster, so make sure the monster is still alive
 	if (HasAnyOf(player._pIFlags, ItemSpecialEffect::Thorns) && monster.mode != MonsterMode::Death) {
 		const int mdam = (GenerateRnd(3) + 1) << 6;
-		ApplyMonsterDamage(DamageType::Physical, monster, mdam);
+		ApplyMonsterDamage(FloatingNumberType::Physical, monster, mdam);
 		if (monster.hitPoints >> 6 <= 0)
 			M_StartKill(monster, player);
 		else
@@ -3769,9 +3769,9 @@ void AddDoppelganger(Monster &monster)
 	}
 }
 
-void ApplyMonsterDamage(DamageType damageType, Monster &monster, int damage)
+void ApplyMonsterDamage(FloatingNumberType floatingNumberType, Monster &monster, int damage)
 {
-	AddFloatingNumber(damageType, monster, damage);
+	AddFloatingNumber(floatingNumberType, monster, damage);
 
 	monster.hitPoints -= damage;
 
@@ -4871,23 +4871,23 @@ bool Monster::isWalking() const
 	}
 }
 
-bool Monster::isImmune(MissileID missileType, DamageType missileElement) const
+bool Monster::isImmune(MissileID missileType, FloatingNumberType missileElement) const
 {
-	if (((resistance & IMMUNE_MAGIC) != 0 && missileElement == DamageType::Magic)
-	    || ((resistance & IMMUNE_FIRE) != 0 && missileElement == DamageType::Fire)
-	    || ((resistance & IMMUNE_LIGHTNING) != 0 && missileElement == DamageType::Lightning)
-	    || ((resistance & IMMUNE_ACID) != 0 && missileElement == DamageType::Acid))
+	if (((resistance & IMMUNE_MAGIC) != 0 && missileElement == FloatingNumberType::Magic)
+	    || ((resistance & IMMUNE_FIRE) != 0 && missileElement == FloatingNumberType::Fire)
+	    || ((resistance & IMMUNE_LIGHTNING) != 0 && missileElement == FloatingNumberType::Lightning)
+	    || ((resistance & IMMUNE_ACID) != 0 && missileElement == FloatingNumberType::Acid))
 		return true;
 	if (missileType == MissileID::HolyBolt && type().type != MT_DIABLO && data().monsterClass != MonsterClass::Undead)
 		return true;
 	return false;
 }
 
-bool Monster::isResistant(MissileID missileType, DamageType missileElement) const
+bool Monster::isResistant(MissileID missileType, FloatingNumberType missileElement) const
 {
-	if (((resistance & RESIST_MAGIC) != 0 && missileElement == DamageType::Magic)
-	    || ((resistance & RESIST_FIRE) != 0 && missileElement == DamageType::Fire)
-	    || ((resistance & RESIST_LIGHTNING) != 0 && missileElement == DamageType::Lightning))
+	if (((resistance & RESIST_MAGIC) != 0 && missileElement == FloatingNumberType::Magic)
+	    || ((resistance & RESIST_FIRE) != 0 && missileElement == FloatingNumberType::Fire)
+	    || ((resistance & RESIST_LIGHTNING) != 0 && missileElement == FloatingNumberType::Lightning))
 		return true;
 	if (gbIsHellfire && missileType == MissileID::HolyBolt && IsAnyOf(type().type, MT_DIABLO, MT_BONEDEMN))
 		return true;

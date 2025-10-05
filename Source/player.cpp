@@ -624,7 +624,7 @@ bool PlrHitMonst(Player &player, Monster &monster, bool adjacentDamage = false)
 		if (HasAnyOf(player.pDamAcFlags, ItemSpecialEffectHf::Peril)) {
 			dam2 += player._pIGetHit << 6;
 			if (dam2 >= 0) {
-				ApplyPlrDamage(DamageType::Physical, player, 0, 1, dam2);
+				ApplyPlrDamage(FloatingNumberType::Physical, player, 0, 1, dam2);
 			}
 			dam *= 2;
 		}
@@ -633,7 +633,7 @@ bool PlrHitMonst(Player &player, Monster &monster, bool adjacentDamage = false)
 			dam = monster.hitPoints; /* ensure monster is killed with one hit */
 		}
 #endif
-		ApplyMonsterDamage(DamageType::Physical, monster, dam);
+		ApplyMonsterDamage(FloatingNumberType::Physical, monster, dam);
 	}
 
 	int skdam = 0;
@@ -752,7 +752,7 @@ bool PlrHitPlr(Player &attacker, Player &target)
 		RedrawComponent(PanelDrawComponent::Health);
 	}
 	if (&attacker == MyPlayer) {
-		NetSendCmdDamage(true, target, skdam, DamageType::Physical);
+		NetSendCmdDamage(true, target, skdam, FloatingNumberType::Physical);
 	}
 	StartPlrHit(target, skdam, false);
 
@@ -2449,7 +2449,7 @@ void Player::_addExperience(uint32_t experience, int levelDelta)
 		RedrawEverything();
 	}
 
-	AddFloatingNumber(DamageType::Exp, *MyPlayer, clampedExp);
+	AddFloatingNumber(FloatingNumberType::Exp, *MyPlayer, clampedExp);
 
 	// Increase player level if applicable
 	while (!isMaxCharacterLevel() && _pExperience >= getNextExperienceThreshold()) {
@@ -2818,11 +2818,11 @@ void StripTopGold(Player &player)
 	NewCursor(CURSOR_HAND);
 }
 
-void ApplyPlrDamage(DamageType damageType, Player &player, int dam, int minHP /*= 0*/, int frac /*= 0*/, DeathReason deathReason /*= DeathReason::MonsterOrTrap*/)
+void ApplyPlrDamage(FloatingNumberType floatingNumberType, Player &player, int dam, int minHP /*= 0*/, int frac /*= 0*/, DeathReason deathReason /*= DeathReason::MonsterOrTrap*/)
 {
 	int totalDamage = (dam << 6) + frac;
 	if (&player == MyPlayer && player._pHitPoints > 0) {
-		AddFloatingNumber(damageType, player, totalDamage);
+		AddFloatingNumber(floatingNumberType, player, totalDamage);
 	}
 	if (totalDamage > 0 && player.pManaShield && HasNoneOf(player._pIFlags, ItemSpecialEffect::NoMana)) {
 		const uint8_t manaShieldLevel = player._pSplLvl[static_cast<int8_t>(SpellID::ManaShield)];
@@ -3025,7 +3025,7 @@ void ProcessPlayers()
 
 			if (&player == MyPlayer) {
 				if (HasAnyOf(player._pIFlags, ItemSpecialEffect::DrainLife) && leveltype != DTYPE_TOWN) {
-					ApplyPlrDamage(DamageType::Physical, player, 0, 0, 4);
+					ApplyPlrDamage(FloatingNumberType::Physical, player, 0, 0, 4);
 				}
 				if (player.pManaShield && HasAnyOf(player._pIFlags, ItemSpecialEffect::NoMana)) {
 					NetSendCmd(true, CMD_REMSHIELD);

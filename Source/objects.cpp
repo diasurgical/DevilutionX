@@ -1627,11 +1627,11 @@ void UpdateFlameTrap(Object &trap)
 		const int y = trap.position.y;
 		constexpr MissileID TrapMissile = MissileID::FireWallControl;
 		if (dMonster[x][y] > 0)
-			MonsterTrapHit(dMonster[x][y] - 1, mindam / 2, maxdam / 2, 0, TrapMissile, GetMissileData(TrapMissile).damageType(), false);
+			MonsterTrapHit(dMonster[x][y] - 1, mindam / 2, maxdam / 2, 0, TrapMissile, GetMissileData(TrapMissile).floatingNumberType(), false);
 		Player *player = PlayerAtPosition({ x, y }, true);
 		if (player != nullptr) {
 			bool unused;
-			PlayerMHit(*player, nullptr, 0, mindam, maxdam, TrapMissile, GetMissileData(TrapMissile).damageType(), false, DeathReason::MonsterOrTrap, &unused);
+			PlayerMHit(*player, nullptr, 0, mindam, maxdam, TrapMissile, GetMissileData(TrapMissile).floatingNumberType(), false, DeathReason::MonsterOrTrap, &unused);
 		}
 
 		if (trap._oAnimFrame == trap._oAnimLen)
@@ -1657,7 +1657,7 @@ void UpdateBurningCrossDamage(Object &cross)
 	if (myPlayer.position.tile != cross.position + Displacement { 0, -1 })
 		return;
 
-	ApplyPlrDamage(DamageType::Fire, myPlayer, 0, 0, damage[leveltype - 1]);
+	ApplyPlrDamage(FloatingNumberType::Fire, myPlayer, 0, 0, damage[leveltype - 1]);
 	if (myPlayer._pHitPoints >> 6 > 0) {
 		myPlayer.Say(HeroSpeech::Argh);
 	}
@@ -3490,12 +3490,12 @@ void BreakBarrel(const Player &player, Object &barrel, bool forcebreak, bool sen
 			for (int xp = barrel.position.x - 1; xp <= barrel.position.x + 1; xp++) {
 				constexpr MissileID TrapMissile = MissileID::Firebolt;
 				if (dMonster[xp][yp] > 0) {
-					MonsterTrapHit(dMonster[xp][yp] - 1, 1, 4, 0, TrapMissile, GetMissileData(TrapMissile).damageType(), false);
+					MonsterTrapHit(dMonster[xp][yp] - 1, 1, 4, 0, TrapMissile, GetMissileData(TrapMissile).floatingNumberType(), false);
 				}
 				Player *adjacentPlayer = PlayerAtPosition({ xp, yp }, true);
 				if (adjacentPlayer != nullptr) {
 					bool unused;
-					PlayerMHit(*adjacentPlayer, nullptr, 0, 8, 16, TrapMissile, GetMissileData(TrapMissile).damageType(), false, DeathReason::MonsterOrTrap, &unused);
+					PlayerMHit(*adjacentPlayer, nullptr, 0, 8, 16, TrapMissile, GetMissileData(TrapMissile).floatingNumberType(), false, DeathReason::MonsterOrTrap, &unused);
 				}
 				// don't really need to exclude large objects as explosive barrels are single tile objects, but using considerLargeObjects == false as this matches the old logic.
 				Object *adjacentObject = FindObjectAtPosition({ xp, yp }, false);

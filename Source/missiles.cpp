@@ -274,11 +274,11 @@ int ProjectileTrapDamage()
 	return currlevel + GenerateRnd(2 * currlevel);
 }
 
-bool MonsterMHit(const Player &player, int monsterId, int mindam, int maxdam, int dist, MissileID t, WorldTilePosition startPos, DamageType damageType, bool shift)
+bool MonsterMHit(const Player &player, int monsterId, int mindam, int maxdam, int dist, MissileID t, WorldTilePosition startPos, FloatingNumberType floatingNumberType, bool shift)
 {
 	Monster &monster = Monsters[monsterId];
 
-	if (!monster.isPossibleToHit() || monster.isImmune(t, damageType))
+	if (!monster.isPossibleToHit() || monster.isImmune(t, floatingNumberType))
 		return false;
 
 	int hit = RandomIntLessThan(100);
@@ -314,7 +314,7 @@ bool MonsterMHit(const Player &player, int monsterId, int mindam, int maxdam, in
 		dam = RandomIntBetween(mindam, maxdam);
 	}
 
-	if (missileData.isArrow() && damageType == DamageType::Physical) {
+	if (missileData.isArrow() && floatingNumberType == FloatingNumberType::Physical) {
 		dam = player._pIBonusDamMod + dam * player._pIBonusDam / 100 + dam;
 		if (player._pClass == HeroClass::Rogue)
 			dam += player._pDamageMod;
@@ -323,14 +323,14 @@ bool MonsterMHit(const Player &player, int monsterId, int mindam, int maxdam, in
 		if (monster.data().monsterClass == MonsterClass::Demon && HasAnyOf(player._pIFlags, ItemSpecialEffect::TripleDemonDamage))
 			dam *= 3;
 	}
-	const bool resist = monster.isResistant(t, damageType);
+	const bool resist = monster.isResistant(t, floatingNumberType);
 	if (!shift)
 		dam <<= 6;
 	if (resist)
 		dam >>= 2;
 
 	if (&player == MyPlayer)
-		ApplyMonsterDamage(damageType, monster, dam);
+		ApplyMonsterDamage(floatingNumberType, monster, dam);
 
 	if (monster.hitPoints >> 6 <= 0) {
 		M_StartKill(monster, player);
@@ -352,7 +352,7 @@ bool MonsterMHit(const Player &player, int monsterId, int mindam, int maxdam, in
 	return true;
 }
 
-bool Plr2PlrMHit(const Player &player, Player &target, int mindam, int maxdam, int dist, MissileID mtype, DamageType damageType, bool shift, bool *blocked)
+bool Plr2PlrMHit(const Player &player, Player &target, int mindam, int maxdam, int dist, MissileID mtype, FloatingNumberType floatingNumberType, bool shift, bool *blocked)
 {
 	if (sgGameInitInfo.bFriendlyFire == 0 && player.friendlyMode)
 		return false;
@@ -377,15 +377,15 @@ bool Plr2PlrMHit(const Player &player, Player &target, int mindam, int maxdam, i
 	}
 
 	int8_t resper;
-	switch (damageType) {
-	case DamageType::Fire:
+	switch (floatingNumberType) {
+	case FloatingNumberType::Fire:
 		resper = target._pFireResist;
 		break;
-	case DamageType::Lightning:
+	case FloatingNumberType::Lightning:
 		resper = target._pLghtResist;
 		break;
-	case DamageType::Magic:
-	case DamageType::Acid:
+	case FloatingNumberType::Magic:
+	case FloatingNumberType::Acid:
 		resper = target._pMagResist;
 		break;
 	default:
@@ -425,7 +425,7 @@ bool Plr2PlrMHit(const Player &player, Player &target, int mindam, int maxdam, i
 		dam = target._pHitPoints / 3;
 	} else {
 		dam = RandomIntBetween(mindam, maxdam);
-		if (missileData.isArrow() && damageType == DamageType::Physical) {
+		if (missileData.isArrow() && floatingNumberType == FloatingNumberType::Physical) {
 			const int damMod = IsAnyOf(player._pClass, HeroClass::Rogue) ? player._pDamageMod : player._pDamageMod / 2;
 			dam += player._pIBonusDamMod + damMod + dam * player._pIBonusDam / 100;
 		}
@@ -437,7 +437,7 @@ bool Plr2PlrMHit(const Player &player, Player &target, int mindam, int maxdam, i
 	if (resper > 0) {
 		dam -= (dam * resper) / 100;
 		if (&player == MyPlayer)
-			NetSendCmdDamage(true, target, dam, damageType);
+			NetSendCmdDamage(true, target, dam, floatingNumberType);
 		target.Say(HeroSpeech::ArghClang);
 		return true;
 	}
@@ -447,7 +447,7 @@ bool Plr2PlrMHit(const Player &player, Player &target, int mindam, int maxdam, i
 		*blocked = true;
 	} else {
 		if (&player == MyPlayer)
-			NetSendCmdDamage(true, target, dam, damageType);
+			NetSendCmdDamage(true, target, dam, floatingNumberType);
 		StartPlrHit(target, dam, false);
 	}
 
@@ -474,7 +474,7 @@ void RotateBlockedMissile(Missile &missile)
 	missile.setFrameGroupRaw(dir);
 }
 
-void CheckMissileCol(Missile &missile, DamageType damageType, int minDamage, int maxDamage, bool isDamageShifted, Point position, bool dontDeleteOnCollision)
+void CheckMissileCol(Missile &missile, FloatingNumberType floatingNumberType, int minDamage, int maxDamage, bool isDamageShifted, Point position, bool dontDeleteOnCollision)
 {
 	if (!InDungeonBounds(position))
 		return;
@@ -493,9 +493,9 @@ void CheckMissileCol(Missile &missile, DamageType damageType, int minDamage, int
 		            || (Monsters[mid].flags & MFLAG_BERSERK) != 0                                  //  or the target is berserked
 		            ))) {
 			// then the missile can potentially hit this target
-			isMonsterHit = MonsterTrapHit(mid, minDamage, maxDamage, missile._midist, missile._mitype, damageType, isDamageShifted);
+			isMonsterHit = MonsterTrapHit(mid, minDamage, maxDamage, missile._midist, missile._mitype, floatingNumberType, isDamageShifted);
 		} else if (IsAnyOf(missile._micaster, TARGET_BOTH, TARGET_MONSTERS)) {
-			isMonsterHit = MonsterMHit(*missile.sourcePlayer(), mid, minDamage, maxDamage, missile._midist, missile._mitype, missile.position.start, damageType, isDamageShifted);
+			isMonsterHit = MonsterMHit(*missile.sourcePlayer(), mid, minDamage, maxDamage, missile._midist, missile._mitype, missile.position.start, floatingNumberType, isDamageShifted);
 		}
 	}
 
@@ -512,14 +512,14 @@ void CheckMissileCol(Missile &missile, DamageType damageType, int minDamage, int
 		if (missile._micaster != TARGET_BOTH && !missile.IsTrap()) {
 			if (missile._micaster == TARGET_MONSTERS) {
 				if (player->getId() != missile._misource)
-					isPlayerHit = Plr2PlrMHit(Players[missile._misource], *player, minDamage, maxDamage, missile._midist, missile._mitype, damageType, isDamageShifted, &blocked);
+					isPlayerHit = Plr2PlrMHit(Players[missile._misource], *player, minDamage, maxDamage, missile._midist, missile._mitype, floatingNumberType, isDamageShifted, &blocked);
 			} else {
 				Monster &monster = Monsters[missile._misource];
-				isPlayerHit = PlayerMHit(*player, &monster, missile._midist, minDamage, maxDamage, missile._mitype, damageType, isDamageShifted, DeathReason::MonsterOrTrap, &blocked);
+				isPlayerHit = PlayerMHit(*player, &monster, missile._midist, minDamage, maxDamage, missile._mitype, floatingNumberType, isDamageShifted, DeathReason::MonsterOrTrap, &blocked);
 			}
 		} else {
 			const DeathReason deathReason = missile.sourceType() == MissileSource::Player ? DeathReason::Player : DeathReason::MonsterOrTrap;
-			isPlayerHit = PlayerMHit(*player, nullptr, missile._midist, minDamage, maxDamage, missile._mitype, damageType, isDamageShifted, deathReason, &blocked);
+			isPlayerHit = PlayerMHit(*player, nullptr, missile._midist, minDamage, maxDamage, missile._mitype, floatingNumberType, isDamageShifted, deathReason, &blocked);
 		}
 	}
 
@@ -632,13 +632,13 @@ bool MoveMissile(Missile &missile, tl::function_ref<bool(Point)> checkTile, bool
 	return true;
 }
 
-void MoveMissileAndCheckMissileCol(Missile &missile, DamageType damageType, int mindam, int maxdam, bool ignoreStart, bool ifCollidesDontMoveToHitTile)
+void MoveMissileAndCheckMissileCol(Missile &missile, FloatingNumberType floatingNumberType, int mindam, int maxdam, bool ignoreStart, bool ifCollidesDontMoveToHitTile)
 {
 	auto checkTile = [&](Point tile) {
 		if (ignoreStart && missile.position.start == tile)
 			return true;
 
-		CheckMissileCol(missile, damageType, mindam, maxdam, false, tile, false);
+		CheckMissileCol(missile, floatingNumberType, mindam, maxdam, false, tile, false);
 
 		// Did missile hit anything?
 		if (missile.duration != 0)
@@ -656,7 +656,7 @@ void MoveMissileAndCheckMissileCol(Missile &missile, DamageType damageType, int 
 
 	// missile didn't change the tile... check that we perform CheckMissileCol only once for any monster/player to avoid multiple hits for slow missiles
 	if (!tileChanged && missile.lastCollisionTargetHash != tileTargetHash) {
-		CheckMissileCol(missile, damageType, mindam, maxdam, false, missile.position.tile, false);
+		CheckMissileCol(missile, floatingNumberType, mindam, maxdam, false, missile.position.tile, false);
 	}
 
 	// remember what target CheckMissileCol was checked against
@@ -977,11 +977,11 @@ Direction16 GetDirection16(Point p1, Point p2)
 	return ret;
 }
 
-bool MonsterTrapHit(int monsterId, int mindam, int maxdam, int dist, MissileID t, DamageType damageType, bool shift)
+bool MonsterTrapHit(int monsterId, int mindam, int maxdam, int dist, MissileID t, FloatingNumberType floatingNumberType, bool shift)
 {
 	Monster &monster = Monsters[monsterId];
 
-	if (!monster.isPossibleToHit() || monster.isImmune(t, damageType))
+	if (!monster.isPossibleToHit() || monster.isImmune(t, floatingNumberType))
 		return false;
 
 	const int hit = GenerateRnd(100);
@@ -996,13 +996,13 @@ bool MonsterTrapHit(int monsterId, int mindam, int maxdam, int dist, MissileID t
 			return false;
 	}
 
-	const bool resist = monster.isResistant(t, damageType);
+	const bool resist = monster.isResistant(t, floatingNumberType);
 	int dam = RandomIntBetween(mindam, maxdam);
 	if (!shift)
 		dam <<= 6;
 	if (resist)
 		dam /= 4;
-	ApplyMonsterDamage(damageType, monster, dam);
+	ApplyMonsterDamage(floatingNumberType, monster, dam);
 #ifdef _DEBUG
 	if (DebugGodMode)
 		monster.hitPoints = 0;
@@ -1017,7 +1017,7 @@ bool MonsterTrapHit(int monsterId, int mindam, int maxdam, int dist, MissileID t
 	return true;
 }
 
-bool PlayerMHit(Player &player, Monster *monster, int dist, int mind, int maxd, MissileID mtype, DamageType damageType, bool shift, DeathReason deathReason, bool *blocked)
+bool PlayerMHit(Player &player, Monster *monster, int dist, int mind, int maxd, MissileID mtype, FloatingNumberType floatingNumberType, bool shift, DeathReason deathReason, bool *blocked)
 {
 	*blocked = false;
 
@@ -1080,15 +1080,15 @@ bool PlayerMHit(Player &player, Monster *monster, int dist, int mind, int maxd, 
 	blkper = std::clamp(blkper, 0, 100);
 
 	int8_t resper;
-	switch (damageType) {
-	case DamageType::Fire:
+	switch (floatingNumberType) {
+	case FloatingNumberType::Fire:
 		resper = player._pFireResist;
 		break;
-	case DamageType::Lightning:
+	case FloatingNumberType::Lightning:
 		resper = player._pLghtResist;
 		break;
-	case DamageType::Magic:
-	case DamageType::Acid:
+	case FloatingNumberType::Magic:
+	case FloatingNumberType::Acid:
 		resper = player._pMagResist;
 		break;
 	default:
@@ -1135,7 +1135,7 @@ bool PlayerMHit(Player &player, Monster *monster, int dist, int mind, int maxd, 
 	if (resper > 0) {
 		dam -= dam * resper / 100;
 		if (&player == MyPlayer) {
-			ApplyPlrDamage(damageType, player, 0, 0, dam, deathReason);
+			ApplyPlrDamage(floatingNumberType, player, 0, 0, dam, deathReason);
 		}
 
 		if (player._pHitPoints >> 6 > 0) {
@@ -1145,7 +1145,7 @@ bool PlayerMHit(Player &player, Monster *monster, int dist, int mind, int maxd, 
 	}
 
 	if (&player == MyPlayer) {
-		ApplyPlrDamage(damageType, player, 0, 0, dam, deathReason);
+		ApplyPlrDamage(floatingNumberType, player, 0, 0, dam, deathReason);
 	}
 
 	if (player._pHitPoints >> 6 > 0) {
@@ -1177,7 +1177,7 @@ void InitMissiles()
 			if (missile._mitype == MissileID::Rage) {
 				if (missile.sourcePlayer() == MyPlayer) {
 					CalcPlrItemVals(myPlayer, true);
-					ApplyPlrDamage(DamageType::Physical, myPlayer, missile._midam, 1);
+					ApplyPlrDamage(FloatingNumberType::Physical, myPlayer, missile._midam, 1);
 				}
 			}
 		}
@@ -1562,9 +1562,9 @@ void AddBigExplosion(Missile &missile, AddMissileParameter & /*parameter*/)
 
 		missile._midam = dmg;
 
-		const DamageType damageType = GetMissileData(missile._mitype).damageType();
+		const FloatingNumberType floatingNumberType = GetMissileData(missile._mitype).floatingNumberType();
 		for (const Point position : PointsInRectangleColMajor(Rectangle { missile.position.tile, 1 }))
-			CheckMissileCol(missile, damageType, dmg, dmg, false, position, true);
+			CheckMissileCol(missile, floatingNumberType, dmg, dmg, false, position, true);
 	}
 	missile._mlid = AddLight(missile.position.start, 8);
 	missile.setDefaultFrameGroup();
@@ -2827,7 +2827,7 @@ void ProcessElementalArrow(Missile &missile)
 			mind = GenerateRnd(10) + 1 + currlevel;
 			maxd = GenerateRnd(10) + 1 + currlevel * 2;
 		}
-		MoveMissileAndCheckMissileCol(missile, DamageType::Physical, mind, maxd, true, false);
+		MoveMissileAndCheckMissileCol(missile, FloatingNumberType::Physical, mind, maxd, true, false);
 		if (missile.duration == 0) {
 			missile.setDefaultFrameGroup();
 			missile.duration = missile._miAnimLen - 1;
@@ -2836,7 +2836,7 @@ void ProcessElementalArrow(Missile &missile)
 			int eMind;
 			int eMaxd;
 			MissileGraphicID eAnim;
-			DamageType damageType;
+			FloatingNumberType floatingNumberType;
 			switch (missile._mitype) {
 			case MissileID::LightningArrow:
 				if (!missile.IsTrap()) {
@@ -2849,7 +2849,7 @@ void ProcessElementalArrow(Missile &missile)
 					eMaxd = GenerateRnd(10) + 1 + currlevel * 2;
 				}
 				eAnim = MissileGraphicID::ChargedBolt;
-				damageType = DamageType::Lightning;
+				floatingNumberType = FloatingNumberType::Lightning;
 				break;
 			case MissileID::FireArrow:
 				if (!missile.IsTrap()) {
@@ -2862,14 +2862,14 @@ void ProcessElementalArrow(Missile &missile)
 					eMaxd = GenerateRnd(10) + 1 + currlevel * 2;
 				}
 				eAnim = MissileGraphicID::MagmaBallExplosion;
-				damageType = DamageType::Fire;
+				floatingNumberType = FloatingNumberType::Fire;
 				break;
 			default:
 				app_fatal(StrCat("wrong missile ID ", static_cast<int>(missile._mitype)));
 				break;
 			}
 			missile.setAnimation(eAnim);
-			CheckMissileCol(missile, damageType, eMind, eMaxd, false, missile.position.tile, true);
+			CheckMissileCol(missile, floatingNumberType, eMind, eMaxd, false, missile.position.tile, true);
 		} else {
 			if (missile.position.tile != Point { missile.var1, missile.var2 }) {
 				missile.var1 = missile.position.tile.x;
@@ -2910,7 +2910,7 @@ void ProcessArrow(Missile &missile)
 		maxd = 2 * currlevel;
 		break;
 	}
-	MoveMissileAndCheckMissileCol(missile, GetMissileData(missile._mitype).damageType(), mind, maxd, true, false);
+	MoveMissileAndCheckMissileCol(missile, GetMissileData(missile._mitype).floatingNumberType(), mind, maxd, true, false);
 	if (missile.duration == 0)
 		missile._miDelFlag = true;
 	PutMissile(missile);
@@ -2920,7 +2920,7 @@ void ProcessGenericProjectile(Missile &missile)
 {
 	missile.duration--;
 
-	MoveMissileAndCheckMissileCol(missile, GetMissileData(missile._mitype).damageType(), missile._midam, missile._midam, true, true);
+	MoveMissileAndCheckMissileCol(missile, GetMissileData(missile._mitype).floatingNumberType(), missile._midam, missile._midam, true, true);
 	if (missile.duration == 0) {
 		missile._miDelFlag = true;
 		const Point dst = { 0, 0 };
@@ -2973,7 +2973,7 @@ void ProcessNovaBall(Missile &missile)
 	const Point targetPosition = { missile.var1, missile.var2 };
 	missile.duration--;
 	const int j = missile.duration;
-	MoveMissileAndCheckMissileCol(missile, GetMissileData(missile._mitype).damageType(), missile._midam, missile._midam, false, false);
+	MoveMissileAndCheckMissileCol(missile, GetMissileData(missile._mitype).floatingNumberType(), missile._midam, missile._midam, false, false);
 	if (missile._miHitFlag)
 		missile.duration = j;
 
@@ -2992,7 +2992,7 @@ void ProcessAcidPuddle(Missile &missile)
 {
 	missile.duration--;
 	const int range = missile.duration;
-	CheckMissileCol(missile, GetMissileData(missile._mitype).damageType(), missile._midam, missile._midam, true, missile.position.tile, false);
+	CheckMissileCol(missile, GetMissileData(missile._mitype).floatingNumberType(), missile._midam, missile._midam, true, missile.position.tile, false);
 	missile.duration = range;
 	if (range == 0) {
 		if (missile.getFrameGroup<AcidPuddleFrame>() != AcidPuddleFrame::Idle) {
@@ -3020,7 +3020,7 @@ void ProcessFireWall(Missile &missile)
 		missile._miAnimFrame = 13;
 		missile._miAnimAdd = -1;
 	}
-	CheckMissileCol(missile, GetMissileData(missile._mitype).damageType(), missile._midam, missile._midam, true, missile.position.tile, true);
+	CheckMissileCol(missile, GetMissileData(missile._mitype).floatingNumberType(), missile._midam, missile._midam, true, missile.position.tile, true);
 	if (missile.duration == 0) {
 		missile._miDelFlag = true;
 		AddUnLight(missile._mlid);
@@ -3054,8 +3054,8 @@ void ProcessFireball(Missile &missile)
 			minDam = monster.minDamage;
 			maxDam = monster.maxDamage;
 		}
-		const DamageType damageType = GetMissileData(missile._mitype).damageType();
-		MoveMissileAndCheckMissileCol(missile, damageType, minDam, maxDam, true, false);
+		const FloatingNumberType floatingNumberType = GetMissileData(missile._mitype).floatingNumberType();
+		MoveMissileAndCheckMissileCol(missile, floatingNumberType, minDam, maxDam, true, false);
 		if (missile.duration == 0) {
 			const Point missilePosition = missile.position.tile;
 			ChangeLight(missile._mlid, missile.position.tile, missile._miAnimFrame);
@@ -3073,7 +3073,7 @@ void ProcessFireball(Missile &missile)
 			};
 			for (const Direction offset : Offsets) {
 				if (!CheckBlock(missile.position.start, missilePosition + offset))
-					CheckMissileCol(missile, damageType, minDam, maxDam, false, missilePosition + offset, true);
+					CheckMissileCol(missile, floatingNumberType, minDam, maxDam, false, missilePosition + offset, true);
 			}
 
 			if (!TransList[dTransVal[missilePosition.x][missilePosition.y]]
@@ -3108,7 +3108,7 @@ void ProcessFireball(Missile &missile)
 void ProcessHorkSpawn(Missile &missile)
 {
 	missile.duration--;
-	CheckMissileCol(missile, GetMissileData(missile._mitype).damageType(), 0, 0, false, missile.position.tile, false);
+	CheckMissileCol(missile, GetMissileData(missile._mitype).floatingNumberType(), 0, 0, false, missile.position.tile, false);
 	if (missile.duration <= 0) {
 		missile._miDelFlag = true;
 
@@ -3152,7 +3152,7 @@ void ProcessLightningWall(Missile &missile)
 {
 	missile.duration--;
 	const int range = missile.duration;
-	CheckMissileCol(missile, GetMissileData(missile._mitype).damageType(), missile._midam, missile._midam, true, missile.position.tile, false);
+	CheckMissileCol(missile, GetMissileData(missile._mitype).floatingNumberType(), missile._midam, missile._midam, true, missile.position.tile, false);
 	if (missile._miHitFlag)
 		missile.duration = range;
 	if (missile.duration == 0)
@@ -3317,7 +3317,7 @@ void ProcessLightning(Missile &missile)
 	missile.duration--;
 	const int j = missile.duration;
 	if (missile.position.tile != missile.position.start)
-		CheckMissileCol(missile, GetMissileData(missile._mitype).damageType(), missile._midam, missile._midam, true, missile.position.tile, false);
+		CheckMissileCol(missile, GetMissileData(missile._mitype).floatingNumberType(), missile._midam, missile._midam, true, missile.position.tile, false);
 	if (missile._miHitFlag)
 		missile.duration = j;
 	if (missile.duration == 0) {
@@ -3376,7 +3376,7 @@ void ProcessFlashBottom(Missile &missile)
 		Direction::South
 	};
 	for (const Direction offset : Offsets)
-		CheckMissileCol(missile, GetMissileData(missile._mitype).damageType(), missile._midam, missile._midam, true, missile.position.tile + offset, true);
+		CheckMissileCol(missile, GetMissileData(missile._mitype).floatingNumberType(), missile._midam, missile._midam, true, missile.position.tile + offset, true);
 
 	if (missile.duration == 0) {
 		missile._miDelFlag = true;
@@ -3402,7 +3402,7 @@ void ProcessFlashTop(Missile &missile)
 		Direction::East
 	};
 	for (const Direction offset : Offsets)
-		CheckMissileCol(missile, GetMissileData(missile._mitype).damageType(), missile._midam, missile._midam, true, missile.position.tile + offset, true);
+		CheckMissileCol(missile, GetMissileData(missile._mitype).floatingNumberType(), missile._midam, missile._midam, true, missile.position.tile + offset, true);
 
 	if (missile.duration == 0) {
 		missile._miDelFlag = true;
@@ -3429,7 +3429,7 @@ void ProcessFlameWave(Missile &missile)
 		missile._miAnimFrame = GenerateRnd(11) + 1;
 	}
 	const int j = missile.duration;
-	MoveMissileAndCheckMissileCol(missile, GetMissileData(missile._mitype).damageType(), missile._midam, missile._midam, false, false);
+	MoveMissileAndCheckMissileCol(missile, GetMissileData(missile._mitype).floatingNumberType(), missile._midam, missile._midam, false, false);
 	if (missile._miHitFlag)
 		missile.duration = j;
 	if (missile.duration == 0) {
@@ -3548,19 +3548,19 @@ void ProcessWeaponExplosion(Missile &missile)
 	const Player &player = Players[missile._misource];
 	int mind;
 	int maxd;
-	DamageType damageType;
+	FloatingNumberType floatingNumberType;
 	if (missile.var2 == 1) {
 		// BUGFIX: damage of missile should be encoded in missile struct; player can be dead/have left the game before missile arrives.
 		mind = player._pIFMinDam;
 		maxd = player._pIFMaxDam;
-		damageType = DamageType::Fire;
+		floatingNumberType = FloatingNumberType::Fire;
 	} else {
 		// BUGFIX: damage of missile should be encoded in missile struct; player can be dead/have left the game before missile arrives.
 		mind = player._pILMinDam;
 		maxd = player._pILMaxDam;
-		damageType = DamageType::Lightning;
+		floatingNumberType = FloatingNumberType::Lightning;
 	}
-	CheckMissileCol(missile, damageType, mind, maxd, false, missile.position.tile, false);
+	CheckMissileCol(missile, floatingNumberType, mind, maxd, false, missile.position.tile, false);
 	if (missile.var1 == 0) {
 		missile._mlid = AddLight(missile.position.tile, 9);
 	} else {
@@ -3680,7 +3680,7 @@ void ProcessApocalypseBoom(Missile &missile)
 {
 	missile.duration--;
 	if (missile.var1 == 0)
-		CheckMissileCol(missile, GetMissileData(missile._mitype).damageType(), missile._midam, missile._midam, false, missile.position.tile, true);
+		CheckMissileCol(missile, GetMissileData(missile._mitype).floatingNumberType(), missile._midam, missile._midam, false, missile.position.tile, true);
 	if (missile._miHitFlag)
 		missile.var1 = 1;
 	if (missile.duration == 0)
@@ -3904,7 +3904,7 @@ void ProcessRage(Missile &missile)
 	player.Say(HeroSpeech::HeavyBreathing);
 
 	if (missile._miDelFlag)
-		ApplyPlrDamage(DamageType::Physical, player, missile._midam, 1); // Prevent penalty from killing the player
+		ApplyPlrDamage(FloatingNumberType::Physical, player, missile._midam, 1); // Prevent penalty from killing the player
 }
 
 void ProcessInferno(Missile &missile)
@@ -3912,7 +3912,7 @@ void ProcessInferno(Missile &missile)
 	missile.duration--;
 	missile.var2--;
 	int k = missile.duration;
-	CheckMissileCol(missile, GetMissileData(missile._mitype).damageType(), missile._midam, missile._midam, true, missile.position.tile, false);
+	CheckMissileCol(missile, GetMissileData(missile._mitype).floatingNumberType(), missile._midam, missile._midam, true, missile.position.tile, false);
 	if (missile.duration == 0 && missile._miHitFlag)
 		missile.duration = k;
 	if (missile.var2 == 0)
@@ -3982,7 +3982,7 @@ void ProcessChargedBolt(Missile &missile)
 		} else {
 			missile.var3--;
 		}
-		MoveMissileAndCheckMissileCol(missile, GetMissileData(missile._mitype).damageType(), missile._midam, missile._midam, false, false);
+		MoveMissileAndCheckMissileCol(missile, GetMissileData(missile._mitype).floatingNumberType(), missile._midam, missile._midam, false, false);
 		if (missile._miHitFlag) {
 			missile.var1 = 8;
 			missile.setDefaultFrameGroup();
@@ -4005,7 +4005,7 @@ void ProcessHolyBolt(Missile &missile)
 	missile.duration--;
 	if (missile._miAnimType != MissileGraphicID::HolyBoltExplosion) {
 		const int dam = missile._midam;
-		MoveMissileAndCheckMissileCol(missile, GetMissileData(missile._mitype).damageType(), dam, dam, true, true);
+		MoveMissileAndCheckMissileCol(missile, GetMissileData(missile._mitype).floatingNumberType(), dam, dam, true, true);
 		if (missile.duration == 0) {
 			missile.setDefaultFrameGroup();
 			missile.setAnimation(MissileGraphicID::HolyBoltExplosion);
@@ -4050,7 +4050,7 @@ void ProcessElemental(Missile &missile)
 		};
 		for (const Direction offset : Offsets) {
 			if (!CheckBlock(startPoint, missilePosition + offset))
-				CheckMissileCol(missile, GetMissileData(missile._mitype).damageType(), dam, dam, true, missilePosition + offset, true);
+				CheckMissileCol(missile, GetMissileData(missile._mitype).floatingNumberType(), dam, dam, true, missilePosition + offset, true);
 		}
 
 		if (missile.duration == 0) {
@@ -4058,7 +4058,7 @@ void ProcessElemental(Missile &missile)
 			AddUnLight(missile._mlid);
 		}
 	} else {
-		MoveMissileAndCheckMissileCol(missile, GetMissileData(missile._mitype).damageType(), dam, dam, false, false);
+		MoveMissileAndCheckMissileCol(missile, GetMissileData(missile._mitype).floatingNumberType(), dam, dam, false, false);
 		if (missile.var3 == 0 && missilePosition == Point { missile.var4, missile.var5 })
 			missile.var3 = 1;
 		if (missile.var3 == 1) {
@@ -4102,7 +4102,7 @@ void ProcessBoneSpirit(Missile &missile)
 		}
 		PutMissile(missile);
 	} else {
-		MoveMissileAndCheckMissileCol(missile, GetMissileData(missile._mitype).damageType(), dam, dam, false, false);
+		MoveMissileAndCheckMissileCol(missile, GetMissileData(missile._mitype).floatingNumberType(), dam, dam, false, false);
 		const Point c = missile.position.tile;
 		if (missile.var3 == 0 && c == Point { missile.var4, missile.var5 })
 			missile.var3 = 1;

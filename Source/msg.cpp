@@ -2070,7 +2070,7 @@ size_t OnPlayerDamage(const TCmdDamage &message, Player &player)
 	Player &target = Players[message.bPlr];
 	if (&target == MyPlayer && leveltype != DTYPE_TOWN && gbBufferMsgs != 1) {
 		if (player.isOnActiveLevel() && damage <= 192000 && target._pHitPoints >> 6 > 0) {
-			ApplyPlrDamage(message.damageType, target, 0, 0, static_cast<int>(damage), DeathReason::Player);
+			ApplyPlrDamage(message.floatingNumberType, target, 0, 0, static_cast<int>(damage), DeathReason::Player);
 		}
 	}
 
@@ -3256,14 +3256,14 @@ void NetSendCmdChBeltItem(bool bHiPri, int beltIndex)
 		NetSendLoPri(MyPlayerId, reinterpret_cast<std::byte *>(&cmd), sizeof(cmd));
 }
 
-void NetSendCmdDamage(bool bHiPri, const Player &player, uint32_t dwDam, DamageType damageType)
+void NetSendCmdDamage(bool bHiPri, const Player &player, uint32_t dwDam, FloatingNumberType floatingNumberType)
 {
 	TCmdDamage cmd;
 
 	cmd.bCmd = CMD_PLRDAMAGE;
 	cmd.bPlr = player.getId();
 	cmd.dwDam = dwDam;
-	cmd.damageType = damageType;
+	cmd.floatingNumberType = floatingNumberType;
 	if (bHiPri)
 		NetSendHiPri(MyPlayerId, reinterpret_cast<std::byte *>(&cmd), sizeof(cmd));
 	else
