@@ -33,6 +33,7 @@
 #include "options.h"
 #include "stores.h"
 #include "utils/language.h"
+#include "utils/sdl_compat.h"
 #include "utils/ui_fwd.h"
 
 namespace devilution {
@@ -135,11 +136,7 @@ void GmenuDrawMenuItem(const Surface &out, TMenuItem *pItem, int y)
 		const uint16_t steps = std::max<uint16_t>(pItem->sliderSteps(), 2);
 		const uint16_t pos = SliderFillMin + step * (SliderFillMax - SliderFillMin) / steps;
 		SDL_Rect rect = MakeSdlRect(SliderValueLeft + uiPositionX, y + SliderValuePaddingTop, pos, SliderValueHeight);
-#ifdef USE_SDL3
 		SDL_FillSurfaceRect(out.surface, &rect, 205);
-#else
-		SDL_FillRect(out.surface, &rect, 205);
-#endif
 		ClxDraw(out, { SliderValueLeft + pos - SliderMarkerWidth / 2 + uiPositionX, y + SliderValuePaddingTop + SliderValueHeight - 1 }, (*option_cel)[0]);
 	}
 

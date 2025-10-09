@@ -15,6 +15,7 @@
 #ifdef USE_SDL1
 #include "utils/sdl2_to_1_2_backports.h"
 #endif
+#include "utils/sdl_compat.h"
 #endif
 
 #include <fmt/format.h>
@@ -35,11 +36,7 @@ namespace {
 bool Terminating = false;
 
 /** Thread id of the last callee to FreeDlg(). */
-#ifdef USE_SDL3
 SDL_ThreadID CleanupThreadId;
-#else
-SDL_threadID CleanupThreadId;
-#endif
 
 /**
  * @brief Cleans up after a fatal application error.

@@ -70,6 +70,7 @@
 #include "utils/display.h"
 #include "utils/is_of.hpp"
 #include "utils/log.hpp"
+#include "utils/sdl_compat.h"
 #include "utils/str_cat.hpp"
 
 #ifndef USE_SDL1
@@ -538,14 +539,7 @@ void DrawCell(const Surface &out, const Lightmap lightmap, Point tilePosition, P
 
 	bool transparency = TileHasAny(tilePosition, TileProperties::Transparent) && TransList[dTransVal[tilePosition.x][tilePosition.y]];
 #ifdef _DEBUG
-	if ((SDL_GetModState() &
-#ifdef USE_SDL3
-	        SDL_KMOD_ALT
-#else
-	        KMOD_ALT
-#endif
-	        )
-	    != 0) {
+	if ((SDL_GetModState() & SDL_KMOD_ALT) != 0) {
 		transparency = false;
 	}
 #endif
@@ -892,14 +886,7 @@ void DrawDungeon(const Surface &out, const Lightmap &lightmap, Point tilePositio
 			bool transparency = TransList[bMap];
 #ifdef _DEBUG
 			// Turn transparency off here for debugging
-			transparency = transparency && (SDL_GetModState() &
-#ifdef USE_SDL3
-			                                   SDL_KMOD_ALT
-#else
-			                                   KMOD_ALT
-#endif
-			                                   )
-			        == 0;
+			transparency = transparency && (SDL_GetModState() & SDL_KMOD_ALT) == 0;
 #endif
 			if (perPixelLighting) {
 				// Create a special lightmap buffer to bleed light up walls
@@ -1652,11 +1639,7 @@ void ClearScreenBuffer()
 		return;
 
 	assert(PalSurface != nullptr);
-#ifdef USE_SDL3
 	SDL_FillSurfaceRect(PalSurface, nullptr, 0);
-#else
-	SDL_FillRect(PalSurface, nullptr, 0);
-#endif
 }
 
 #ifdef _DEBUG

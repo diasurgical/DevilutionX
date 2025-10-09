@@ -1,5 +1,9 @@
+#ifdef USE_SDL3
+#include <SDL3/SDL.h>
+#else
 #include <SDL.h>
 #include <SDL_main.h>
+#endif
 
 #ifdef __SWITCH__
 #include "platform/switch/network.h"

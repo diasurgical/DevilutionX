@@ -1,6 +1,10 @@
 #include "lua/modules/log.hpp"
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_log.h>
+#else
 #include <SDL.h>
+#endif
 
 #include <fmt/args.h>
 #include <fmt/format.h>

@@ -28,6 +28,7 @@
 #include "engine/surface.hpp"
 #include "utils/display.h"
 #include "utils/sdl_bilinear_scale.hpp"
+#include "utils/sdl_compat.h"
 #include "utils/sdl_wrap.h"
 
 namespace devilution {
@@ -47,14 +48,10 @@ Size ScaledSize(Size size)
 	if (renderer != nullptr) {
 		float scaleX = 1.0F;
 		float scaleY = 1.0F;
-#ifdef USE_SDL3
 		if (!SDL_GetRenderScale(renderer, &scaleX, &scaleY)) {
 			LogError("SDL_GetRenderScale: {}", SDL_GetError());
 			SDL_ClearError();
 		}
-#else
-		SDL_RenderGetScale(renderer, &scaleX, &scaleY);
-#endif
 		size.width = static_cast<int>(size.width * scaleX);
 		size.height = static_cast<int>(size.height * scaleY);
 	}
@@ -150,8 +147,7 @@ bool SetHardwareCursorFromSurface(SDL_Surface *surface, HotpointPosition hotpoin
 bool SetHardwareCursorFromClxSprite(ClxSprite sprite, HotpointPosition hotpointPosition)
 {
 	const OwnedSurface surface { sprite.width(), sprite.height() };
-#ifdef USE_SDL3
-	if (!SDL_SetSurfacePalette(surface.surface, Palette.get())) {
+	if (!SDLC_SetSurfacePalette(surface.surface, Palette.get())) {
 		LogError("SDL_SetSurfacePalette: {}", SDL_GetError());
 		SDL_ClearError();
 		return false;
@@ -161,18 +157,6 @@ bool SetHardwareCursorFromClxSprite(ClxSprite sprite, HotpointPosition hotpointP
 		SDL_ClearError();
 		return false;
 	}
-#else
-	if (SDL_SetSurfacePalette(surface.surface, Palette.get()) != 0) {
-		LogError("SDL_SetSurfacePalette: {}", SDL_GetError());
-		SDL_ClearError();
-		return false;
-	}
-	if (SDL_SetColorKey(surface.surface, SDL_TRUE, 0) != 0) {
-		LogError("SDL_SetColorKey: {}", SDL_GetError());
-		SDL_ClearError();
-		return false;
-	}
-#endif
 	RenderClxSprite(surface, sprite, { 0, 0 });
 	return SetHardwareCursorFromSurface(surface.surface, hotpointPosition);
 }
@@ -198,7 +182,6 @@ bool SetHardwareCursorFromSprite(int pcurs)
 	// Transparent color must not be used in the sprite itself.
 	// Colors 1-127 are outside of the UI palette so are safe to use.
 	constexpr std::uint8_t TransparentColor = 1;
-#ifdef USE_SDL3
 	if (!SDL_FillSurfaceRect(out.surface, nullptr, TransparentColor)) {
 		LogError("SDL_FillSurfaceRect: {}", SDL_GetError());
 		SDL_ClearError();
@@ -209,18 +192,6 @@ bool SetHardwareCursorFromSprite(int pcurs)
 		SDL_ClearError();
 		return false;
 	}
-#else
-	if (SDL_FillRect(out.surface, nullptr, TransparentColor) != 0) {
-		LogError("SDL_FillRect: {}", SDL_GetError());
-		SDL_ClearError();
-		return false;
-	}
-	if (SDL_SetColorKey(out.surface, 1, TransparentColor) != 0) {
-		LogError("SDL_SetColorKey: {}", SDL_GetError());
-		SDL_ClearError();
-		return false;
-	}
-#endif
 	DrawSoftwareCursor(out, { outlineWidth, size.height - outlineWidth - 1 }, pcurs);
 
 	const bool result = SetHardwareCursorFromSurface(

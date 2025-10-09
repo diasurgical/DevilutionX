@@ -51,6 +51,7 @@
 #include "track.h"
 #include "utils/is_of.hpp"
 #include "utils/log.hpp"
+#include "utils/sdl_compat.h"
 #include "utils/str_cat.hpp"
 
 namespace devilution {
@@ -1601,13 +1602,8 @@ bool IsStickMovementSignificant()
 ControlTypes GetInputTypeFromEvent(const SDL_Event &event)
 {
 	switch (event.type) {
-#ifdef USE_SDL3
 	case SDL_EVENT_KEY_DOWN:
 	case SDL_EVENT_KEY_UP:
-#else
-	case SDL_KEYDOWN:
-	case SDL_KEYUP:
-#endif
 		return ControlTypes::KeyboardAndMouse;
 #ifdef USE_SDL1
 	case SDL_MOUSEBUTTONDOWN:
@@ -1615,81 +1611,38 @@ ControlTypes GetInputTypeFromEvent(const SDL_Event &event)
 	case SDL_MOUSEMOTION:
 		return ControlTypes::KeyboardAndMouse;
 #else
-// SDL 2/3-only events (touch / gamepad):
-#ifdef USE_SDL3
+		// SDL 2/3-only events (touch / gamepad):
 	case SDL_EVENT_MOUSE_BUTTON_DOWN:
 	case SDL_EVENT_MOUSE_BUTTON_UP:
-#else
-	case SDL_MOUSEBUTTONDOWN:
-	case SDL_MOUSEBUTTONUP:
-#endif
 		return event.button.which == SDL_TOUCH_MOUSEID ? ControlTypes::VirtualGamepad : ControlTypes::KeyboardAndMouse;
-#ifdef USE_SDL3
 	case SDL_EVENT_MOUSE_MOTION:
-#else
-	case SDL_MOUSEMOTION:
-#endif
 		return event.motion.which == SDL_TOUCH_MOUSEID ? ControlTypes::VirtualGamepad : ControlTypes::KeyboardAndMouse;
-#ifdef USE_SDL3
 	case SDL_EVENT_MOUSE_WHEEL:
-#else
-	case SDL_MOUSEWHEEL:
-#endif
 		return event.wheel.which == SDL_TOUCH_MOUSEID ? ControlTypes::VirtualGamepad : ControlTypes::KeyboardAndMouse;
-#ifdef USE_SDL3
 	case SDL_EVENT_FINGER_DOWN:
 	case SDL_EVENT_FINGER_UP:
 	case SDL_EVENT_FINGER_MOTION:
-#else
-	case SDL_FINGERDOWN:
-	case SDL_FINGERUP:
-	case SDL_FINGERMOTION:
-#endif
 		return ControlTypes::VirtualGamepad;
-#ifdef USE_SDL3
 	case SDL_EVENT_GAMEPAD_AXIS_MOTION:
-#else
-	case SDL_CONTROLLERAXISMOTION:
-#endif
-		if (
-#ifdef USE_SDL3
-		    IsAnyOf(event.gaxis.axis, SDL_GAMEPAD_AXIS_LEFT_TRIGGER, SDL_GAMEPAD_AXIS_RIGHT_TRIGGER)
-#else
-		    IsAnyOf(event.caxis.axis, SDL_CONTROLLER_AXIS_TRIGGERLEFT, SDL_CONTROLLER_AXIS_TRIGGERRIGHT)
-#endif
+		if (IsAnyOf(SDLC_EventGamepadAxis(event).axis, SDL_GAMEPAD_AXIS_LEFT_TRIGGER, SDL_GAMEPAD_AXIS_RIGHT_TRIGGER)
 		    || IsStickMovementSignificant()) {
 			return ControlTypes::Gamepad;
 		}
 		break;
 #endif // !USE_SDL1
-#ifdef USE_SDL3
+#ifndef USE_SDL1
 	case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
 	case SDL_EVENT_GAMEPAD_BUTTON_UP:
 	case SDL_EVENT_GAMEPAD_ADDED:
+#endif
 	case SDL_EVENT_JOYSTICK_BALL_MOTION:
 	case SDL_EVENT_JOYSTICK_HAT_MOTION:
 	case SDL_EVENT_JOYSTICK_BUTTON_DOWN:
 	case SDL_EVENT_JOYSTICK_BUTTON_UP:
-#else
-#ifndef USE_SDL1
-	case SDL_CONTROLLERBUTTONDOWN:
-	case SDL_CONTROLLERBUTTONUP:
-	case SDL_CONTROLLERDEVICEADDED:
-#endif
-	case SDL_JOYBALLMOTION:
-	case SDL_JOYHATMOTION:
-	case SDL_JOYBUTTONDOWN:
-	case SDL_JOYBUTTONUP:
-#endif
 		return ControlTypes::Gamepad;
-#ifdef USE_SDL3
 	case SDL_EVENT_JOYSTICK_AXIS_MOTION:
-	case SDL_EVENT_JOYSTICK_ADDED:
-#else
-	case SDL_JOYAXISMOTION:
 #ifndef USE_SDL1
-	case SDL_JOYDEVICEADDED:
-#endif
+	case SDL_EVENT_JOYSTICK_ADDED:
 #endif
 		if (IsStickMovementSignificant()) return ControlTypes::Gamepad;
 		break;
@@ -1708,13 +1661,8 @@ bool ContinueSimulatedMouseEvent(const SDL_Event &event, const ControllerButtonE
 
 #if !defined(USE_SDL1) && !defined(JOY_AXIS_RIGHTX) && !defined(JOY_AXIS_RIGHTY)
 	if (IsAnyOf(event.type,
-#ifdef USE_SDL3
 	        SDL_EVENT_JOYSTICK_AXIS_MOTION, SDL_EVENT_JOYSTICK_HAT_MOTION,
-	        SDL_EVENT_JOYSTICK_BUTTON_DOWN, SDL_EVENT_JOYSTICK_BUTTON_UP
-#else
-	        SDL_JOYAXISMOTION, SDL_JOYHATMOTION, SDL_JOYBUTTONDOWN, SDL_JOYBUTTONUP
-#endif
-	        )
+	        SDL_EVENT_JOYSTICK_BUTTON_DOWN, SDL_EVENT_JOYSTICK_BUTTON_UP)
 	    && !GameController::All().empty()) {
 		return true;
 	}

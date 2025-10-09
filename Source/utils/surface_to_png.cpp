@@ -3,10 +3,13 @@
 #include <string>
 
 #ifdef USE_SDL3
+#include <SDL3/SDL_error.h>
 #include <SDL3/SDL_iostream.h>
 #include <SDL3_image/SDL_image.h>
 #else
 #include <SDL.h>
+
+#include "utils/sdl_compat.h"
 #endif
 
 #include <expected.hpp>
@@ -20,13 +23,7 @@ extern "C" int IMG_SavePNG_RW(SDL_Surface *surface, SDL_RWops *dst, int freedst)
 #endif
 
 tl::expected<void, std::string>
-WriteSurfaceToFilePng(const Surface &buf,
-#ifdef USE_SDL3
-    SDL_IOStream *
-#else
-    SDL_RWops *
-#endif
-        dst)
+WriteSurfaceToFilePng(const Surface &buf, SDL_IOStream *dst)
 {
 #ifdef USE_SDL3
 	const bool ok = IMG_SavePNG_IO(buf.surface, dst, /*closeio=*/true);

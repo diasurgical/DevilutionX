@@ -10,6 +10,8 @@
 #include <SDL3/SDL_iostream.h>
 #else
 #include <SDL.h>
+
+#include "utils/sdl_compat.h"
 #endif
 
 namespace devilution {
@@ -78,25 +80,13 @@ static OffsetType MpqFileRwSeek(struct SDL_RWops *context, OffsetType offset, in
 	Data &data = *GetData(context);
 	OffsetType newPosition;
 	switch (whence) {
-#ifdef USE_SDL3
 	case SDL_IO_SEEK_SET:
-#else
-	case RW_SEEK_SET:
-#endif
 		newPosition = offset;
 		break;
-#ifdef USE_SDL3
 	case SDL_IO_SEEK_CUR:
-#else
-	case RW_SEEK_CUR:
-#endif
 		newPosition = static_cast<OffsetType>(data.position + offset);
 		break;
-#ifdef USE_SDL3
 	case SDL_IO_SEEK_END:
-#else
-	case RW_SEEK_END:
-#endif
 		newPosition = static_cast<OffsetType>(data.size + offset);
 		break;
 	default:
@@ -212,12 +202,7 @@ static int MpqFileRwClose(struct SDL_RWops *context)
 
 } // namespace
 
-#ifdef USE_SDL3
-SDL_IOStream *
-#else
-SDL_RWops *
-#endif
-SDL_RWops_FromMpqFile(MpqArchive &mpqArchive, uint32_t fileNumber, std::string_view filename, bool threadsafe)
+SDL_IOStream *SDL_RWops_FromMpqFile(MpqArchive &mpqArchive, uint32_t fileNumber, std::string_view filename, bool threadsafe)
 {
 #ifdef USE_SDL3
 	SDL_IOStreamInterface interface;

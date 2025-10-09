@@ -6,6 +6,12 @@
 #include <fmt/format.h>
 #include <string>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_timer.h>
+#else
+#include <SDL.h>
+#endif
+
 #include "engine/render/text_render.hpp"
 #include "options.h"
 #include "utils/str_cat.hpp"
@@ -119,7 +125,10 @@ void AddFloatingNumber(Point pos, Displacement offset, DamageType type, int valu
 		}
 	}
 	FloatingNumber num {
-		pos, offset, endOffset, "", SDL_GetTicks() + 2500, SDL_GetTicks(), UiFlags::Outlined, type, value, index, damageToPlayer
+		pos, offset, endOffset, "",
+		static_cast<uint32_t>(SDL_GetTicks() + 2500),
+		static_cast<uint32_t>(SDL_GetTicks()),
+		UiFlags::Outlined, type, value, index, damageToPlayer
 	};
 	UpdateFloatingData(num);
 	FloatingQueue.push_back(num);

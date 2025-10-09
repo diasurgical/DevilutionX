@@ -1110,26 +1110,12 @@ KeymapperOptions::KeymapperOptions()
 	keyIDToKeyName.emplace(MouseScrollLeftButton, "SCROLLLEFTMOUSE");
 	keyIDToKeyName.emplace(MouseScrollRightButton, "SCROLLRIGHTMOUSE");
 
-	keyIDToKeyName.emplace(
-#ifdef USE_SDL3
-	    SDLK_GRAVE
-#else
-	    SDLK_BACKQUOTE
-#endif
-	    ,
-	    "`");
+	keyIDToKeyName.emplace(SDLK_GRAVE, "`");
 	keyIDToKeyName.emplace(SDLK_LEFTBRACKET, "[");
 	keyIDToKeyName.emplace(SDLK_RIGHTBRACKET, "]");
 	keyIDToKeyName.emplace(SDLK_BACKSLASH, "\\");
 	keyIDToKeyName.emplace(SDLK_SEMICOLON, ";");
-	keyIDToKeyName.emplace(
-#ifdef USE_SDL3
-	    SDLK_APOSTROPHE
-#else
-	    SDLK_QUOTE
-#endif
-	    ,
-	    "'");
+	keyIDToKeyName.emplace(SDLK_APOSTROPHE, "'");
 	keyIDToKeyName.emplace(SDLK_COMMA, ",");
 	keyIDToKeyName.emplace(SDLK_PERIOD, ".");
 	keyIDToKeyName.emplace(SDLK_SLASH, "/");

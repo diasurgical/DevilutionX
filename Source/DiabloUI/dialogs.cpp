@@ -35,6 +35,7 @@
 #include "utils/is_of.hpp"
 #include "utils/language.h"
 #include "utils/log.hpp"
+#include "utils/sdl_compat.h"
 #include "utils/sdl_geometry.h"
 #include "utils/ui_fwd.h"
 
@@ -77,14 +78,9 @@ bool Init(std::string_view caption, std::string_view text, bool error, bool rend
 {
 	if (!renderBehind) {
 		if (!UiLoadBlackBackground()) {
-			if (
-#ifdef USE_SDL3
-			    SDL_ShowCursor()
-#else
-			    SDL_ShowCursor(SDL_ENABLE) <= -1
-#endif
-			)
+			if (!SDLC_ShowCursor()) {
 				LogError("{}", SDL_GetError());
+			}
 		}
 	}
 	if (!IsHardwareCursor() && !ArtCursor) {
@@ -140,13 +136,8 @@ void DialogLoop(const std::vector<std::unique_ptr<UiItemBase>> &items, const std
 	do {
 		while (PollEvent(&event)) {
 			switch (event.type) {
-#ifdef USE_SDL3
 			case SDL_EVENT_MOUSE_BUTTON_DOWN:
 			case SDL_EVENT_MOUSE_BUTTON_UP:
-#else
-			case SDL_MOUSEBUTTONDOWN:
-			case SDL_MOUSEBUTTONUP:
-#endif
 				UiItemMouseEvents(&event, items);
 				break;
 			default:
@@ -182,18 +173,12 @@ void UiOkDialog(std::string_view caption, std::string_view text, bool error, con
 
 	if (!gbActive || inDialog) {
 		if (!HeadlessMode) {
-			if (
-#ifdef USE_SDL3
-			    SDL_ShowCursor()
-#else
-			    SDL_ShowCursor(SDL_ENABLE) <= -1
-#endif
-			) {
+			if (!SDLC_ShowCursor()) {
 				LogError("{}", SDL_GetError());
 			}
 			const std::string captionStr = std::string(caption);
 			const std::string textStr = std::string(text);
-			if (SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, captionStr.c_str(), textStr.c_str(), nullptr) <= -1) {
+			if (!SDLC_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, captionStr.c_str(), textStr.c_str(), nullptr)) {
 				LogError("{}", SDL_GetError());
 			}
 		}
@@ -201,13 +186,7 @@ void UiOkDialog(std::string_view caption, std::string_view text, bool error, con
 	}
 
 	if (IsHardwareCursor()) {
-		if (
-#ifdef USE_SDL3
-		    SDL_ShowCursor()
-#else
-		    SDL_ShowCursor(SDL_ENABLE) <= -1
-#endif
-		) {
+		if (!SDLC_ShowCursor()) {
 			LogError("{}", SDL_GetError());
 		}
 	}
@@ -216,23 +195,13 @@ void UiOkDialog(std::string_view caption, std::string_view text, bool error, con
 		LogError("{}\n{}", caption, text);
 		const std::string captionStr = std::string(caption);
 		const std::string textStr = std::string(text);
-		if (
-#ifdef USE_SDL3
-		    !SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, captionStr.c_str(), textStr.c_str(), nullptr)
-#else
-		    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, captionStr.c_str(), textStr.c_str(), nullptr) <= -1
-#endif
-		) {
+		if (!SDLC_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, captionStr.c_str(), textStr.c_str(), nullptr)) {
 			LogError("{}", SDL_GetError());
 		}
 	}
 
 	inDialog = true;
-#ifdef USE_SDL3
 	SDL_SetSurfaceClipRect(DiabloUiSurface(), nullptr);
-#else
-	SDL_SetClipRect(DiabloUiSurface(), nullptr);
-#endif
 	DialogLoop(vecOkDialog, renderBehind);
 	Deinit();
 	inDialog = false;

@@ -109,6 +109,7 @@
 #include "utils/parse_int.hpp"
 #include "utils/paths.h"
 #include "utils/screen_reader.hpp"
+#include "utils/sdl_compat.h"
 #include "utils/sdl_thread.h"
 #include "utils/status_macros.hpp"
 #include "utils/str_cat.hpp"
@@ -363,8 +364,8 @@ void LeftMouseDown(uint16_t modState)
 		return;
 	}
 
-	const bool isShiftHeld = (modState & KMOD_SHIFT) != 0;
-	const bool isCtrlHeld = (modState & KMOD_CTRL) != 0;
+	const bool isShiftHeld = (modState & SDL_KMOD_SHIFT) != 0;
+	const bool isCtrlHeld = (modState & SDL_KMOD_CTRL) != 0;
 
 	if (!GetMainPanel().contains(MousePosition)) {
 		if (!gmenu_is_active() && !TryIconCurs()) {
@@ -417,7 +418,7 @@ void LeftMouseUp(uint16_t modState)
 		CheckMainPanelButtonUp();
 	CheckStashButtonRelease(MousePosition);
 	if (CharPanelButtonActive) {
-		const bool isShiftHeld = (modState & KMOD_SHIFT) != 0;
+		const bool isShiftHeld = (modState & SDL_KMOD_SHIFT) != 0;
 		ReleaseChrBtns(isShiftHeld);
 	}
 	if (LevelButtonDown)
@@ -519,7 +520,7 @@ void PressKey(SDL_Keycode vkey, uint16_t modState)
 		}
 		KeymapperPress(vkey);
 		if (vkey == SDLK_RETURN || vkey == SDLK_KP_ENTER) {
-			if ((modState & KMOD_ALT) != 0) {
+			if ((modState & SDL_KMOD_ALT) != 0) {
 				options.Graphics.fullscreen.SetValue(!IsFullScreen());
 				if (!demo::IsRunning()) SaveOptions();
 			} else {
@@ -555,7 +556,7 @@ void PressKey(SDL_Keycode vkey, uint16_t modState)
 	KeymapperPress(vkey);
 
 	if (PauseMode == 2) {
-		if ((vkey == SDLK_RETURN || vkey == SDLK_KP_ENTER) && (modState & KMOD_ALT) != 0) {
+		if ((vkey == SDLK_RETURN || vkey == SDLK_KP_ENTER) && (modState & SDL_KMOD_ALT) != 0) {
 			options.Graphics.fullscreen.SetValue(!IsFullScreen());
 			if (!demo::IsRunning()) SaveOptions();
 		}
@@ -584,8 +585,8 @@ void PressKey(SDL_Keycode vkey, uint16_t modState)
 		}
 		return;
 #ifdef _DEBUG
-	case SDLK_v:
-		if ((modState & KMOD_SHIFT) != 0)
+	case SDLK_V:
+		if ((modState & SDL_KMOD_SHIFT) != 0)
 			NextDebugMonster();
 		else
 			GetDebugMonster();
@@ -593,7 +594,7 @@ void PressKey(SDL_Keycode vkey, uint16_t modState)
 #endif
 	case SDLK_RETURN:
 	case SDLK_KP_ENTER:
-		if ((modState & KMOD_ALT) != 0) {
+		if ((modState & SDL_KMOD_ALT) != 0) {
 			options.Graphics.fullscreen.SetValue(!IsFullScreen());
 			if (!demo::IsRunning()) SaveOptions();
 		} else if (IsPlayerInStore()) {
@@ -682,7 +683,7 @@ void HandleMouseButtonDown(Uint8 button, uint16_t modState)
 	case SDL_BUTTON_RIGHT:
 		if (sgbMouseDown == CLICK_NONE) {
 			sgbMouseDown = CLICK_RIGHT;
-			RightMouseDown((modState & KMOD_SHIFT) != 0);
+			RightMouseDown((modState & SDL_KMOD_SHIFT) != 0);
 		}
 		break;
 	default:
@@ -765,29 +766,29 @@ void GameEventHandler(const SDL_Event &event, uint16_t modState)
 	}
 
 	switch (event.type) {
-	case SDL_KEYDOWN:
-		PressKey(event.key.keysym.sym, modState);
+	case SDL_EVENT_KEY_DOWN:
+		PressKey(SDLC_EventKey(event), modState);
 		return;
-	case SDL_KEYUP:
-		ReleaseKey(event.key.keysym.sym);
+	case SDL_EVENT_KEY_UP:
+		ReleaseKey(SDLC_EventKey(event));
 		return;
-	case SDL_MOUSEMOTION:
+	case SDL_EVENT_MOUSE_MOTION:
 		if (ControlMode == ControlTypes::KeyboardAndMouse && invflag)
 			InvalidateInventorySlot();
-		MousePosition = { event.motion.x, event.motion.y };
+		MousePosition = { SDLC_EventMotionIntX(event), SDLC_EventMotionIntY(event) };
 		gmenu_on_mouse_move();
 		return;
-	case SDL_MOUSEBUTTONDOWN:
-		MousePosition = { event.button.x, event.button.y };
+	case SDL_EVENT_MOUSE_BUTTON_DOWN:
+		MousePosition = { SDLC_EventButtonIntX(event), SDLC_EventButtonIntY(event) };
 		HandleMouseButtonDown(event.button.button, modState);
 		return;
-	case SDL_MOUSEBUTTONUP:
-		MousePosition = { event.button.x, event.button.y };
+	case SDL_EVENT_MOUSE_BUTTON_UP:
+		MousePosition = { SDLC_EventButtonIntX(event), SDLC_EventButtonIntY(event) };
 		HandleMouseButtonUp(event.button.button, modState);
 		return;
 #if SDL_VERSION_ATLEAST(2, 0, 0)
-	case SDL_MOUSEWHEEL:
-		if (event.wheel.y > 0) { // Up
+	case SDL_EVENT_MOUSE_WHEEL:
+		if (SDLC_EventWheelIntY(event)) { // Up
 			if (IsPlayerInStore()) {
 				StoreUp();
 			} else if (QuestLogIsOpen) {
@@ -798,14 +799,14 @@ void GameEventHandler(const SDL_Event &event, uint16_t modState)
 				ChatLogScrollUp();
 			} else if (IsStashOpen) {
 				Stash.PreviousPage();
-			} else if (SDL_GetModState() & KMOD_CTRL) {
+			} else if (SDL_GetModState() & SDL_KMOD_CTRL) {
 				if (AutomapActive) {
 					AutomapZoomIn();
 				}
 			} else {
 				KeymapperPress(MouseScrollUpButton);
 			}
-		} else if (event.wheel.y < 0) { // down
+		} else if (SDLC_EventWheelIntY(event)) { // down
 			if (IsPlayerInStore()) {
 				StoreDown();
 			} else if (QuestLogIsOpen) {
@@ -816,16 +817,16 @@ void GameEventHandler(const SDL_Event &event, uint16_t modState)
 				ChatLogScrollDown();
 			} else if (IsStashOpen) {
 				Stash.NextPage();
-			} else if (SDL_GetModState() & KMOD_CTRL) {
+			} else if (SDL_GetModState() & SDL_KMOD_CTRL) {
 				if (AutomapActive) {
 					AutomapZoomOut();
 				}
 			} else {
 				KeymapperPress(MouseScrollDownButton);
 			}
-		} else if (event.wheel.x > 0) { // left
+		} else if (SDLC_EventWheelIntX(event) > 0) { // left
 			KeymapperPress(MouseScrollLeftButton);
-		} else if (event.wheel.x < 0) { // right
+		} else if (SDLC_EventWheelIntX(event) < 0) { // right
 			KeymapperPress(MouseScrollRightButton);
 		}
 		break;
@@ -894,7 +895,7 @@ void RunGameLoop(interface_mode uMsg)
 		SDL_Event event;
 		uint16_t modState;
 		while (FetchMessage(&event, &modState)) {
-			if (event.type == SDL_QUIT) {
+			if (event.type == SDL_EVENT_QUIT) {
 				gbRunGameResult = false;
 				gbRunGame = false;
 				break;
@@ -979,7 +980,7 @@ FILE *SdlLogFile = nullptr;
 extern "C" void SdlLogToFile(void *userdata, int category, SDL_LogPriority priority, const char *message)
 {
 	FILE *file = reinterpret_cast<FILE *>(userdata);
-	static const char *const LogPriorityPrefixes[SDL_NUM_LOG_PRIORITIES] = {
+	static const char *const LogPriorityPrefixes[SDL_LOG_PRIORITY_COUNT] = {
 		"",
 		"VERBOSE",
 		"DEBUG",
@@ -1140,7 +1141,7 @@ void DiabloParseFlags(int argc, char **argv)
 		} else if (arg == "--vanilla") {
 			gbVanilla = true;
 		} else if (arg == "--verbose") {
-			SDL_LogSetAllPriority(SDL_LOG_PRIORITY_VERBOSE);
+			SDL_SetLogPriorities(SDL_LOG_PRIORITY_VERBOSE);
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 		} else if (arg == "--log-to-file") {
 			if (i + 1 == argc) {
@@ -1152,7 +1153,7 @@ void DiabloParseFlags(int argc, char **argv)
 				printInConsole("Failed to open log file for writing");
 				diablo_quit(64);
 			}
-			SDL_LogSetOutputFunction(&SdlLogToFile, /*userdata=*/SdlLogFile);
+			SDL_SetLogOutputFunction(&SdlLogToFile, /*userdata=*/SdlLogFile);
 #endif
 #ifdef _DEBUG
 		} else if (arg == "-i") {
@@ -1337,7 +1338,7 @@ void DiabloDeinit()
 	if (was_window_init)
 		dx_cleanup(); // Cleanup SDL surfaces stuff, so we have to do it before SDL_Quit().
 	UnloadFonts();
-	if (SDL_WasInit(SDL_INIT_EVERYTHING & ~SDL_INIT_HAPTIC) != 0)
+	if (SDL_WasInit((~0U) & ~SDL_INIT_HAPTIC) != 0)
 		SDL_Quit();
 }
 
@@ -1538,7 +1539,7 @@ void GameLogic()
 	gGameLogicStep = GameLogicStep::None;
 
 #ifdef _DEBUG
-	if (DebugScrollViewEnabled && (SDL_GetModState() & KMOD_SHIFT) != 0) {
+	if (DebugScrollViewEnabled && (SDL_GetModState() & SDL_KMOD_SHIFT) != 0) {
 		ScrollView();
 	}
 #endif
@@ -1913,7 +1914,7 @@ void InitKeymapActions()
 	    "CycleAutomapType",
 	    N_("Cycle map type"),
 	    N_("Opaque -> Transparent -> Minimap -> None"),
-	    SDLK_m,
+	    SDLK_M,
 	    CycleAutomapType,
 	    nullptr,
 	    IsGameRunning);
@@ -2082,7 +2083,7 @@ void InitKeymapActions()
 	    "OpenConsole",
 	    N_("Console"),
 	    N_("Opens Lua console."),
-	    SDLK_BACKQUOTE,
+	    SDLK_GRAVE,
 	    OpenConsole);
 	options.Keymapper.AddAction(
 	    "DebugToggle",
@@ -2368,14 +2369,14 @@ void InitPadmapActions()
 		const ControllerButtonCombo standGroundCombo = GetOptions().Padmapper.ButtonComboForAction("StandGround");
 		const bool standGround = StandToggle || IsControllerButtonComboPressed(standGroundCombo);
 		sgbMouseDown = CLICK_LEFT;
-		LeftMouseDown(standGround ? KMOD_SHIFT : KMOD_NONE);
+		LeftMouseDown(standGround ? SDL_KMOD_SHIFT : SDL_KMOD_NONE);
 	};
 	auto leftMouseUp = [] {
 		const ControllerButtonCombo standGroundCombo = GetOptions().Padmapper.ButtonComboForAction("StandGround");
 		const bool standGround = StandToggle || IsControllerButtonComboPressed(standGroundCombo);
 		LastPlayerAction = PlayerActionType::None;
 		sgbMouseDown = CLICK_NONE;
-		LeftMouseUp(standGround ? KMOD_SHIFT : KMOD_NONE);
+		LeftMouseUp(standGround ? SDL_KMOD_SHIFT : SDL_KMOD_NONE);
 	};
 	options.Padmapper.AddAction(
 	    "LeftMouseClick1",
@@ -2693,7 +2694,7 @@ void setOnInitialized(void (*callback)())
 int DiabloMain(int argc, char **argv)
 {
 #ifdef _DEBUG
-	SDL_LogSetAllPriority(SDL_LOG_PRIORITY_DEBUG);
+	SDL_SetLogPriorities(SDL_LOG_PRIORITY_DEBUG);
 #endif
 
 	DiabloParseFlags(argc, argv);
@@ -2972,10 +2973,10 @@ bool PressEscKey()
 void DisableInputEventHandler(const SDL_Event &event, uint16_t modState)
 {
 	switch (event.type) {
-	case SDL_MOUSEMOTION:
-		MousePosition = { event.motion.x, event.motion.y };
+	case SDL_EVENT_MOUSE_MOTION:
+		MousePosition = { SDLC_EventMotionIntX(event), SDLC_EventMotionIntY(event) };
 		return;
-	case SDL_MOUSEBUTTONDOWN:
+	case SDL_EVENT_MOUSE_BUTTON_DOWN:
 		if (sgbMouseDown != CLICK_NONE)
 			return;
 		switch (event.button.button) {
@@ -2988,7 +2989,7 @@ void DisableInputEventHandler(const SDL_Event &event, uint16_t modState)
 		default:
 			return;
 		}
-	case SDL_MOUSEBUTTONUP:
+	case SDL_EVENT_MOUSE_BUTTON_UP:
 		sgbMouseDown = CLICK_NONE;
 		return;
 	}

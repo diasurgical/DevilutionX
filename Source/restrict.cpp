@@ -16,25 +16,18 @@
 #include <SDL.h>
 #endif
 
+#include "utils/sdl_compat.h"
+
 namespace devilution {
 
 void ReadOnlyTest()
 {
 	const std::string path = paths::PrefPath() + "Diablo1ReadOnlyTest.foo";
-#ifdef USE_SDL3
 	SDL_IOStream *file = SDL_IOFromFile(path.c_str(), "w");
-#else
-	SDL_RWops *file = SDL_RWFromFile(path.c_str(), "w");
-#endif
 	if (file == nullptr) {
 		DirErrorDlg(paths::PrefPath());
 	}
-
-#ifdef USE_SDL3
 	SDL_CloseIO(file);
-#else
-	SDL_RWclose(file);
-#endif
 	RemoveFile(path.c_str());
 }
 

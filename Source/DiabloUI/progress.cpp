@@ -24,6 +24,7 @@
 #include "utils/display.h"
 #include "utils/is_of.hpp"
 #include "utils/language.h"
+#include "utils/sdl_compat.h"
 #include "utils/ui_fwd.h"
 
 namespace devilution {
@@ -77,11 +78,7 @@ Point GetPosition()
 
 void ProgressRenderBackground()
 {
-#ifdef USE_SDL3
 	SDL_FillSurfaceRect(DiabloUiSurface(), nullptr, 0);
-#else
-	SDL_FillRect(DiabloUiSurface(), nullptr, 0x000000);
-#endif
 
 	const Surface &out = Surface(DiabloUiSurface());
 	const Point position = GetPosition();
@@ -140,23 +137,12 @@ bool UiProgressDialog(int (*fnfunc)())
 
 		while (PollEvent(&event)) {
 			switch (event.type) {
-#ifdef USE_SDL3
 			case SDL_EVENT_MOUSE_BUTTON_DOWN:
 			case SDL_EVENT_MOUSE_BUTTON_UP:
-#else
-			case SDL_MOUSEBUTTONDOWN:
-			case SDL_MOUSEBUTTONUP:
-#endif
 				UiItemMouseEvents(&event, vecProgress);
 				break;
-#ifdef USE_SDL3
 			case SDL_EVENT_KEY_DOWN:
-				switch (event.key.key)
-#else
-			case SDL_KEYDOWN:
-				switch (event.key.keysym.sym)
-#endif
-				{
+				switch (SDLC_EventKey(event)) {
 #ifndef USE_SDL1
 				case SDLK_KP_ENTER:
 #endif

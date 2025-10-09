@@ -76,7 +76,7 @@ bool CanRenderDirectlyToOutputSurface()
 	// Assumes double-buffering is available.
 	return outputSurface->w == static_cast<int>(gnScreenWidth)
 	    && outputSurface->h == static_cast<int>(gnScreenHeight)
-	    && outputSurface->format->BitsPerPixel == 8;
+	    && SDLC_SURFACE_BITSPERPIXEL(outputSurface) == 8;
 #endif
 }
 
@@ -262,7 +262,7 @@ void RenderPresent()
 #endif
 
 #ifdef USE_SDL3
-		if (!SDL_RenderCopy(renderer, texture.get(), nullptr, nullptr)) ErrSdl();
+		if (!SDL_RenderTexture(renderer, texture.get(), nullptr, nullptr)) ErrSdl();
 #else
 		if (SDL_RenderCopy(renderer, texture.get(), nullptr, nullptr) <= -1) ErrSdl();
 #endif

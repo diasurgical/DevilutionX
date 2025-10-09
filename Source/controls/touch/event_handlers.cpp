@@ -21,6 +21,7 @@
 #include "qol/stash.h"
 #include "stores.h"
 #include "utils/is_of.hpp"
+#include "utils/sdl_compat.h"
 #include "utils/ui_fwd.h"
 
 namespace devilution {
@@ -45,29 +46,17 @@ Point ScaleToScreenCoordinates(float x, float y)
 
 constexpr bool IsFingerDown(const SDL_Event &event)
 {
-#ifdef USE_SDL3
 	return event.type == SDL_EVENT_FINGER_DOWN;
-#else
-	return event.type == SDL_FINGERDOWN;
-#endif
 }
 
 constexpr bool IsFingerUp(const SDL_Event &event)
 {
-#ifdef USE_SDL3
 	return event.type == SDL_EVENT_FINGER_UP;
-#else
-	return event.type == SDL_FINGERUP;
-#endif
 }
 
 constexpr bool IsFingerMotion(const SDL_Event &event)
 {
-#ifdef USE_SDL3
 	return event.type == SDL_EVENT_FINGER_MOTION;
-#else
-	return event.type == SDL_FINGERMOTION;
-#endif
 }
 
 constexpr SDL_FingerID FingerId(const SDL_TouchFingerEvent &event)

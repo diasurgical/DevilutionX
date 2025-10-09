@@ -48,6 +48,7 @@
 #include "headless_mode.hpp"
 #include "options.h"
 #include "utils/log.hpp"
+#include "utils/sdl_compat.h"
 #include "utils/sdl_geometry.h"
 #include "utils/sdl_wrap.h"
 #include "utils/str_cat.hpp"
@@ -99,9 +100,13 @@ namespace {
 void CalculatePreferredWindowSize(int &width, int &height)
 {
 	SDL_DisplayMode mode;
-	if (SDL_GetDesktopDisplayMode(0, &mode) != 0) {
-		ErrSdl();
-	}
+#ifdef USE_SDL3
+	const SDL_DisplayMode *modePtr = SDL_GetDesktopDisplayMode(0);
+	if (modePtr == nullptr) ErrSdl();
+	mode = *modePtr;
+#else
+	if (SDL_GetDesktopDisplayMode(0, &mode) != 0) ErrSdl();
+#endif
 
 	if (mode.w < mode.h) {
 		std::swap(mode.w, mode.h);
@@ -175,22 +180,25 @@ void UpdateAvailableResolutions()
 
 	// Add resolutions
 	bool supportsAnyResolution = false;
-#ifdef USE_SDL1
-	auto *modes = SDL_ListModes(nullptr, SDL_FULLSCREEN | SDL_HWPALETTE);
-	// SDL_ListModes returns -1 if any resolution is allowed (for example returned on 3DS)
-	if (modes == (SDL_Rect **)-1) {
-		supportsAnyResolution = true;
-	} else if (modes != nullptr) {
-		for (size_t i = 0; modes[i] != nullptr; i++) {
-			if (modes[i]->w < modes[i]->h) {
-				std::swap(modes[i]->w, modes[i]->h);
-			}
-			sizes.emplace_back(Size {
-			    static_cast<int>(modes[i]->w * scaleFactor),
-			    static_cast<int>(modes[i]->h * scaleFactor) });
-		}
+#ifdef USE_SDL3
+	const SDL_DisplayMode *fullscreenMode = SDL_GetWindowFullscreenMode(ghMainWnd);
+	if (fullscreenMode == nullptr) return;
+	const SDL_DisplayID displayId = SDL_GetDisplayForWindow(ghMainWnd);
+	if (displayId == 0) return;
+	int modeCount;
+	SDLUniquePtr<SDL_DisplayMode *> modes { SDL_GetFullscreenDisplayModes(displayId, &modeCount) };
+	if (modes == nullptr) return;
+	for (SDL_DisplayMode **it = modes.get(), **end = modes.get() + modeCount; it != end; ++it) {
+		const SDL_DisplayMode &mode = **it;
+		int w = mode.w;
+		int h = mode.h;
+		if (w < h) std::swap(w, h);
+		sizes.emplace_back(Size {
+		    static_cast<int>(w * scaleFactor),
+		    static_cast<int>(h * scaleFactor) });
 	}
-#else
+	supportsAnyResolution = *GetOptions().Graphics.upscale;
+#elif !defined(USE_SDL1)
 	int displayModeCount = SDL_GetNumDisplayModes(0);
 	for (int i = 0; i < displayModeCount; i++) {
 		SDL_DisplayMode mode;
@@ -205,6 +213,21 @@ void UpdateAvailableResolutions()
 		    static_cast<int>(mode.h * scaleFactor) });
 	}
 	supportsAnyResolution = *GetOptions().Graphics.upscale;
+#else
+	auto *modes = SDL_ListModes(nullptr, SDL_FULLSCREEN | SDL_HWPALETTE);
+	// SDL_ListModes returns -1 if any resolution is allowed (for example returned on 3DS)
+	if (modes == (SDL_Rect **)-1) {
+		supportsAnyResolution = true;
+	} else if (modes != nullptr) {
+		for (size_t i = 0; modes[i] != nullptr; i++) {
+			if (modes[i]->w < modes[i]->h) {
+				std::swap(modes[i]->w, modes[i]->h);
+			}
+			sizes.emplace_back(Size {
+			    static_cast<int>(modes[i]->w * scaleFactor),
+			    static_cast<int>(modes[i]->h * scaleFactor) });
+		}
+	}
 #endif
 
 	if (supportsAnyResolution && sizes.size() == 1) {
@@ -233,10 +256,14 @@ void UpdateAvailableResolutions()
 
 #ifndef USE_SDL1
 	if (*graphicsOptions.fitToScreen) {
+#ifdef USE_SDL3
+		const SDL_DisplayMode *modePtr = SDL_GetDesktopDisplayMode(0);
+		if (modePtr == nullptr) ErrSdl();
+		const SDL_DisplayMode &mode = *modePtr;
+#else
 		SDL_DisplayMode mode;
-		if (SDL_GetDesktopDisplayMode(0, &mode) != 0) {
-			ErrSdl();
-		}
+		if (SDL_GetDesktopDisplayMode(0, &mode) != 0) ErrSdl();
+#endif
 		for (auto &size : sizes) {
 			if (mode.h == 0) continue;
 			// Ensure that the ini specified resolution remains present in the resolution list
@@ -516,7 +543,13 @@ bool SpawnWindow(const char *lpWindowName)
 
 	SDL_SetHint(SDL_HINT_ORIENTATIONS, "LandscapeLeft LandscapeRight");
 #endif
-	if (SDL_Init(initFlags) <= -1) {
+	if (
+#ifdef USE_SDL3
+	    !SDL_Init(initFlags)
+#else
+	    SDL_Init(initFlags) <= -1
+#endif
+	) {
 		ErrSdl();
 	}
 	RegisterCustomEvents();

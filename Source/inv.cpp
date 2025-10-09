@@ -1096,12 +1096,7 @@ void StartGoldDrop()
 
 	const Point start = GetPanelPosition(UiPanels::Inventory, { 67, 128 });
 	SDL_Rect rect = MakeSdlRect(start.x, start.y, 180, 20);
-#ifdef USE_SDL3
-	SDL_SetTextInputArea(ghMainWnd, &rect, 0);
-#else
-	SDL_SetTextInputRect(&rect);
-#endif
-
+	SDL_SetTextInputArea(ghMainWnd, &rect, /*cursor=*/0);
 	OpenGoldDrop(invIndex, max);
 }
 

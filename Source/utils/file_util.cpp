@@ -10,6 +10,8 @@
 #include <SDL3/SDL_iostream.h>
 #else
 #include <SDL.h>
+
+#include "utils/sdl_compat.h"
 #endif
 
 #include "utils/log.hpp"
@@ -116,15 +118,10 @@ bool FileExists(const char *path)
 #elif defined(DVL_HAS_FILESYSTEM)
 	std::error_code ec;
 	return std::filesystem::exists(reinterpret_cast<const char8_t *>(path), ec);
-#elif USE_SDL3
+#else
 	SDL_IOStream *file = SDL_IOFromFile(path, "rb");
 	if (file == nullptr) return false;
 	SDL_CloseIO(file);
-	return true;
-#else
-	SDL_RWops *file = SDL_RWFromFile(path, "rb");
-	if (file == nullptr) return false;
-	SDL_RWclose(file);
 	return true;
 #endif
 }
@@ -184,17 +181,10 @@ bool FileExistsAndIsWriteable(const char *path)
 #else
 	if (!FileExists(path))
 		return false;
-#ifdef USE_SDL3
 	SDL_IOStream *file = SDL_IOFromFile(path, "ab");
 	if (file == nullptr) return false;
 	SDL_CloseIO(file);
 	return true;
-#else
-	SDL_RWops *file = SDL_RWFromFile(path, "ab");
-	if (file == nullptr) return false;
-	SDL_RWclose(file);
-	return true;
-#endif
 #endif
 }
 

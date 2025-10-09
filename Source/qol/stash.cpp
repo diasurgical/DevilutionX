@@ -4,6 +4,12 @@
 #include <cstdint>
 #include <utility>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_keyboard.h>
+#else
+#include <SDL.h>
+#endif
+
 #include <fmt/format.h>
 
 #include "DiabloUI/text_input.hpp"
@@ -21,8 +27,10 @@
 #include "inv.h"
 #include "minitext.h"
 #include "stores.h"
+#include "utils/display.h"
 #include "utils/format_int.hpp"
 #include "utils/language.h"
+#include "utils/sdl_compat.h"
 #include "utils/str_cat.hpp"
 #include "utils/utf8.hpp"
 
@@ -589,7 +597,7 @@ void StartGoldWithdraw()
 
 	const Point start = GetPanelPosition(UiPanels::Stash, { 67, 128 });
 	SDL_Rect rect = MakeSdlRect(start.x, start.y, 180, 20);
-	SDL_SetTextInputRect(&rect);
+	SDL_SetTextInputArea(ghMainWnd, &rect, /*cursor=*/0);
 
 	IsWithdrawGoldOpen = true;
 	GoldWithdrawText[0] = '\0';
@@ -602,7 +610,7 @@ void StartGoldWithdraw()
 	    .min = 0,
 	    .max = std::min(RoomForGold(), Stash.gold),
 	});
-	SDL_StartTextInput();
+	SDLC_StartTextInput(ghMainWnd);
 }
 
 void WithdrawGoldKeyPress(SDL_Keycode vkey)
@@ -667,7 +675,7 @@ void CloseGoldWithdraw()
 {
 	if (!IsWithdrawGoldOpen)
 		return;
-	SDL_StopTextInput();
+	SDLC_StopTextInput(ghMainWnd);
 	IsWithdrawGoldOpen = false;
 	GoldWithdrawInputState = std::nullopt;
 }

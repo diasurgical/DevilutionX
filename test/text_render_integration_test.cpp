@@ -27,6 +27,7 @@
 #include "engine/size.hpp"
 #include "engine/surface.hpp"
 #include "utils/paths.h"
+#include "utils/sdl_compat.h"
 #include "utils/sdl_wrap.h"
 #include "utils/str_cat.hpp"
 #include "utils/surface_to_png.hpp"
@@ -229,28 +230,13 @@ SDLPaletteUniquePtr LoadPalette()
 
 std::vector<std::byte> ReadFile(const std::string &path)
 {
-#ifdef USE_SDL3
 	SDL_IOStream *rwops = SDL_IOFromFile(path.c_str(), "rb");
-#else
-	SDL_RWops *rwops = SDL_RWFromFile(path.c_str(), "rb");
-#endif
 	std::vector<std::byte> result;
 	if (rwops == nullptr) return result;
-	const size_t size = static_cast<size_t>(
-#ifdef USE_SDL3
-	    SDL_GetIOSize(rwops)
-#else
-	    SDL_RWsize(rwops)
-#endif
-	);
+	const size_t size = static_cast<size_t>(SDL_GetIOSize(rwops));
 	result.resize(size);
-#ifdef USE_SDL3
 	SDL_ReadIO(rwops, result.data(), size);
 	SDL_CloseIO(rwops);
-#else
-	SDL_RWread(rwops, result.data(), size, 1);
-	SDL_RWclose(rwops);
-#endif
 	return result;
 }
 
@@ -315,11 +301,7 @@ TEST_P(TextRenderIntegrationTest, RenderAndCompareTest)
 
 	const std::string actualPath = StrCat(paths::BasePath(), FixturesPath, GetParam().name, "-Actual.png");
 	const std::string expectedPath = StrCat(paths::BasePath(), FixturesPath, GetParam().name, ".png");
-#ifdef USE_SDL3
 	SDL_IOStream *actual = SDL_IOFromFile(actualPath.c_str(), "wb");
-#else
-	SDL_RWops *actual = SDL_RWFromFile(actualPath.c_str(), "wb");
-#endif
 	ASSERT_NE(actual, nullptr) << SDL_GetError();
 
 	const tl::expected<void, std::string> result = WriteSurfaceToFilePng(out, actual);

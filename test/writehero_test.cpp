@@ -4,7 +4,6 @@
 #include <cstdio>
 #include <vector>
 
-#include <SDL_endian.h>
 #include <gtest/gtest.h>
 #include <picosha2.h>
 

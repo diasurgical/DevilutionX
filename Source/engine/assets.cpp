@@ -18,6 +18,7 @@
 #include "utils/file_util.h"
 #include "utils/log.hpp"
 #include "utils/paths.h"
+#include "utils/sdl_compat.h"
 #include "utils/str_cat.hpp"
 #include "utils/str_split.hpp"
 
@@ -55,22 +56,13 @@ bool IsDebugLogging()
 	return IsLogLevel(LogCategory::Application, SDL_LOG_PRIORITY_DEBUG);
 }
 
-#ifdef USE_SDL3
-SDL_IOStream *
-#else
-SDL_RWops *
-#endif
-OpenOptionalRWops(const std::string &path)
+SDL_IOStream *OpenOptionalRWops(const std::string &path)
 {
 	// SDL always logs an error in Debug mode.
 	// We check the file presence in Debug mode to avoid this.
 	if (IsDebugLogging() && !FileExists(path.c_str()))
 		return nullptr;
-#ifdef USE_SDL3
 	return SDL_IOFromFile(path.c_str(), "rb");
-#else
-	return SDL_RWFromFile(path.c_str(), "rb");
-#endif
 };
 
 bool FindMpqFile(std::string_view filename, MpqArchive **archive, uint32_t *fileNumber)
@@ -144,12 +136,7 @@ AssetRef FindAsset(std::string_view filename)
 #endif
 
 	if (relativePath[0] == '/') {
-		result.directHandle =
-#ifdef USE_SDL3
-		    SDL_IOFromFile(relativePath.c_str(), "rb");
-#else
-		    SDL_RWFromFile(relativePath.c_str(), "rb");
-#endif
+		result.directHandle = SDL_IOFromFile(relativePath.c_str(), "rb");
 		if (result.directHandle != nullptr) {
 			return result;
 		}
@@ -182,12 +169,7 @@ AssetRef FindAsset(std::string_view filename)
 	// Fall back to the bundled assets on supported systems.
 	// This is handled by SDL when we pass a relative path.
 	if (!paths::AssetsPath().empty()) {
-		result.directHandle =
-#ifdef USE_SDL3
-		    SDL_IOFromFile(relativePath.c_str(), "rb");
-#else
-		    SDL_RWFromFile(relativePath.c_str(), "rb");
-#endif
+		result.directHandle = SDL_IOFromFile(relativePath.c_str(), "rb");
 		if (result.directHandle != nullptr)
 			return result;
 	}
@@ -231,22 +213,13 @@ AssetHandle OpenAsset(std::string_view filename, size_t &fileSize, bool threadsa
 	return OpenAsset(std::move(ref), threadsafe);
 }
 
-#ifdef USE_SDL3
-SDL_IOStream *
-#else
-SDL_RWops *
-#endif
-OpenAssetAsSdlRwOps(std::string_view filename, bool threadsafe)
+SDL_IOStream *OpenAssetAsSdlRwOps(std::string_view filename, bool threadsafe)
 {
 #ifdef UNPACKED_MPQS
 	AssetRef ref = FindAsset(filename);
 	if (!ref.ok())
 		return nullptr;
-#ifdef USE_SDL3
 	return SDL_IOFromFile(ref.path, "rb");
-#else
-	return SDL_RWFromFile(ref.path, "rb");
-#endif
 #else
 	return OpenAsset(filename, threadsafe).release();
 #endif

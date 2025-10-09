@@ -16,6 +16,7 @@
 
 #include "controls/controller_motion.h"
 #include "utils/log.hpp"
+#include "utils/sdl_compat.h"
 #include "utils/stubs.h"
 
 namespace devilution {
@@ -25,14 +26,8 @@ std::vector<Joystick> Joystick::joysticks_;
 StaticVector<ControllerButtonEvent, 4> Joystick::ToControllerButtonEvents(const SDL_Event &event)
 {
 	switch (event.type) {
-#ifdef USE_SDL3
 	case SDL_EVENT_JOYSTICK_BUTTON_DOWN:
-	case SDL_EVENT_JOYSTICK_BUTTON_UP:
-#else
-	case SDL_JOYBUTTONDOWN:
-	case SDL_JOYBUTTONUP:
-#endif
-	{
+	case SDL_EVENT_JOYSTICK_BUTTON_UP: {
 #ifdef USE_SDL3
 		const bool up = !event.jbutton.down;
 #else
@@ -331,11 +326,7 @@ bool Joystick::IsPressed(ControllerButton button) const
 
 bool Joystick::ProcessAxisMotion(const SDL_Event &event)
 {
-#ifdef USE_SDL3
 	if (event.type != SDL_EVENT_JOYSTICK_AXIS_MOTION) return false;
-#else
-	if (event.type != SDL_JOYAXISMOTION) return false;
-#endif
 
 #if defined(JOY_AXIS_LEFTX) || defined(JOY_AXIS_LEFTY) || defined(JOY_AXIS_RIGHTX) || defined(JOY_AXIS_RIGHTY)
 	switch (event.jaxis.axis) {
@@ -445,31 +436,14 @@ Joystick *Joystick::Get(const SDL_Event &event)
 {
 	switch (event.type) {
 #ifndef USE_SDL1
-#ifdef USE_SDL3
 	case SDL_EVENT_JOYSTICK_AXIS_MOTION:
-#else
-	case SDL_JOYAXISMOTION:
-#endif
 		return Get(event.jaxis.which);
-#ifdef USE_SDL3
 	case SDL_EVENT_JOYSTICK_BALL_MOTION:
-#else
-	case SDL_JOYBALLMOTION:
-#endif
 		return Get(event.jball.which);
-#ifdef USE_SDL3
 	case SDL_EVENT_JOYSTICK_HAT_MOTION:
-#else
-	case SDL_JOYHATMOTION:
-#endif
 		return Get(event.jhat.which);
-#ifdef USE_SDL3
 	case SDL_EVENT_JOYSTICK_BUTTON_DOWN:
 	case SDL_EVENT_JOYSTICK_BUTTON_UP:
-#else
-	case SDL_JOYBUTTONDOWN:
-	case SDL_JOYBUTTONUP:
-#endif
 		return Get(event.jbutton.which);
 	default:
 		return nullptr;

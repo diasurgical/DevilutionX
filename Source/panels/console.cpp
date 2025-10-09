@@ -10,6 +10,7 @@
 #ifdef USE_SDL3
 #include <SDL3/SDL_events.h>
 #include <SDL3/SDL_keyboard.h>
+#include <SDL3/SDL_keycode.h>
 #include <SDL3/SDL_rect.h>
 #include <SDL3/SDL_scancode.h>
 #else
@@ -35,6 +36,7 @@
 #include "lua/repl.hpp"
 #include "utils/algorithm/container.hpp"
 #include "utils/display.h"
+#include "utils/sdl_compat.h"
 #include "utils/sdl_geometry.h"
 #include "utils/str_cat.hpp"
 #include "utils/str_split.hpp"
@@ -142,7 +144,7 @@ constexpr int ScrollStep = LineHeight * 3;
 void CloseConsole()
 {
 	IsConsoleVisible = false;
-	SDL_StopTextInput();
+	SDLC_StopTextInput(ghMainWnd);
 }
 
 int GetConsoleLinesInnerWidth()
@@ -456,13 +458,7 @@ bool ConsoleHandleEvent(const SDL_Event &event)
 {
 	if (!IsConsoleVisible) {
 		// Make console open on the top-left keyboard key even if it is not a backtick.
-		if (
-#ifdef USE_SDL3
-		    event.type == SDL_EVENT_KEY_DOWN && event.key.scancode == SDL_SCANCODE_GRAVE
-#else
-		    event.type == SDL_KEYDOWN && event.key.keysym.scancode == SDL_SCANCODE_GRAVE
-#endif
-		) {
+		if (event.type == SDL_EVENT_KEY_DOWN && SDLC_EventScancode(event) == SDL_SCANCODE_GRAVE) {
 			OpenConsole();
 			return true;
 		}
@@ -473,23 +469,10 @@ bool ConsoleHandleEvent(const SDL_Event &event)
 		return true;
 	}
 	const auto modState = SDL_GetModState();
-	const bool isShift = (modState &
-#ifdef USE_SDL3
-	                         SDL_KMOD_SHIFT
-#else
-	                         KMOD_SHIFT
-#endif
-	                         )
-	    != 0;
+	const bool isShift = (modState & SDL_KMOD_SHIFT) != 0;
 	switch (event.type) {
-#ifdef USE_SDL3
 	case SDL_EVENT_KEY_DOWN:
-		switch (event.key.key)
-#else
-	case SDL_KEYDOWN:
-		switch (event.key.keysym.sym)
-#endif
-		{
+		switch (SDLC_EventKey(event)) {
 		case SDLK_ESCAPE:
 			if (!AutocompleteSuggestions.empty()) {
 				AutocompleteSuggestions.clear();
@@ -540,30 +523,18 @@ bool ConsoleHandleEvent(const SDL_Event &event)
 		case SDLK_PAGEDOWN:
 			--PendingScrollPages;
 			return true;
-#ifdef USE_SDL3
 		case SDLK_L:
-#else
-		case SDLK_l:
-#endif
 			ClearConsole();
 			return true;
 		default:
 			return false;
 		}
 		break;
-#ifdef USE_SDL3
+#ifndef USE_SDL1
 	case SDL_EVENT_MOUSE_WHEEL:
-		if (event.wheel.integer_y > 0) {
+		if (SDLC_EventWheelIntY(event) > 0) {
 			ScrollOffset += ScrollStep;
-		} else if (event.wheel.integer_y < 0) {
-			ScrollOffset -= ScrollStep;
-		}
-		return true;
-#elif SDL_VERSION_ATLEAST(2, 0, 0)
-	case SDL_MOUSEWHEEL:
-		if (event.wheel.y > 0) {
-			ScrollOffset += ScrollStep;
-		} else if (event.wheel.y < 0) {
+		} else if (SDLC_EventWheelIntY(event) < 0) {
 			ScrollOffset -= ScrollStep;
 		}
 		return true;
@@ -620,13 +591,8 @@ void DrawConsole(const Surface &out)
 
 	if (FirstRender) {
 		SDL_Rect sdlInputRect = MakeSdlRect(InputRect);
-#ifdef USE_SDL3
 		SDL_SetTextInputArea(ghMainWnd, &sdlInputRect, ConsoleInputState.cursorPosition());
-		SDL_StartTextInput(ghMainWnd);
-#else
-		SDL_SetTextInputRect(&sdlInputRect);
-		SDL_StartTextInput();
-#endif
+		SDLC_StartTextInput(ghMainWnd);
 		FirstRender = false;
 		if (ConsoleLines.empty()) {
 			InitConsole();

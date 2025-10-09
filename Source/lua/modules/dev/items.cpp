@@ -4,6 +4,12 @@
 #include <random>
 #include <string>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_timer.h>
+#else
+#include <SDL.h>
+#endif
+
 #include <sol/sol.hpp>
 
 #include "cursor.h"

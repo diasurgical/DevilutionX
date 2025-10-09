@@ -187,19 +187,13 @@ void UpdatePalette()
 		ErrSdl();
 	}
 #else
-	if (SDL_SetSurfacePalette(SVidSurface.get(), SVidPalette.get()) <= -1) {
+	if (!SDLC_SetSurfacePalette(SVidSurface.get(), SVidPalette.get())) {
 		ErrSdl();
 	}
 
 	const SDL_Surface *surface = GetOutputSurface();
-	if (
-#ifdef USE_SDL3
-	    SDL_BITSPERPIXEL(surface->format)
-#else
-	    surface->format->BitsPerPixel
-#endif
-	    == 8) {
-		if (SDL_SetSurfacePalette(GetOutputSurface(), SVidPalette.get()) <= -1) {
+	if (SDLC_SURFACE_BITSPERPIXEL(surface) == 8) {
+		if (!SDLC_SetSurfacePalette(GetOutputSurface(), SVidPalette.get())) {
 			ErrSdl();
 		}
 	}
@@ -378,11 +372,7 @@ bool SVidPlayBegin(const char *filename, int flags)
 #endif
 
 	// Set the background to black.
-#ifdef USE_SDL3
 	SDL_FillSurfaceRect(GetOutputSurface(), nullptr, 0x000000);
-#else
-	SDL_FillRect(GetOutputSurface(), nullptr, 0x000000);
-#endif
 
 	// The buffer for the frame. It is not the same as the SDL surface because the SDL surface also has pitch padding.
 	SVidFrameBuffer = std::unique_ptr<uint8_t[]> { new uint8_t[static_cast<size_t>(SVidWidth * SVidHeight)] };

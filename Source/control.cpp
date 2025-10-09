@@ -72,6 +72,7 @@
 #include "utils/log.hpp"
 #include "utils/parse_int.hpp"
 #include "utils/screen_reader.hpp"
+#include "utils/sdl_compat.h"
 #include "utils/sdl_geometry.h"
 #include "utils/sdl_ptrs.h"
 #include "utils/status_macros.hpp"
@@ -1249,14 +1250,7 @@ void CheckMainPanelButton()
 	SetPanelObjectPosition(UiPanels::Main, spellSelectButton);
 
 	if (!SpellSelectFlag && spellSelectButton.contains(MousePosition)) {
-		if ((SDL_GetModState() &
-#ifdef USE_SDL3
-		        SDL_KMOD_SHIFT
-#else
-		        KMOD_SHIFT
-#endif
-		        )
-		    != 0) {
+		if ((SDL_GetModState() & SDL_KMOD_SHIFT) != 0) {
 			Player &myPlayer = *MyPlayer;
 			myPlayer._pRSpell = SpellID::Invalid;
 			myPlayer._pRSplType = SpellType::Invalid;
@@ -1938,23 +1932,14 @@ void TypeChatMessage()
 	TalkSaveIndex = NextTalkSave;
 
 	SDL_Rect rect = MakeSdlRect(GetMainPanel().position.x + 200, GetMainPanel().position.y + 22, 0, 27);
-#ifdef USE_SDL3
 	SDL_SetTextInputArea(ghMainWnd, &rect, /*cursor=*/0);
-	SDL_StartTextInput(ghMainWnd);
-#else
-	SDL_SetTextInputRect(&rect);
-	SDL_StartTextInput();
-#endif
+	SDLC_StartTextInput(ghMainWnd);
 }
 
 void ResetChat()
 {
 	ChatFlag = false;
-#ifdef USE_SDL3
-	SDL_StopTextInput(ghMainWnd);
-#else
-	SDL_StopTextInput();
-#endif
+	SDLC_StopTextInput(ghMainWnd);
 	ChatCursor = {};
 	ChatInputState = std::nullopt;
 	sgbPlrTalkTbl = 0;
@@ -2015,7 +2000,7 @@ bool CheckKeypress(SDL_Keycode vkey)
 		ControlUpDown(-1);
 		return true;
 	default:
-		return vkey >= SDLK_SPACE && vkey <= SDLK_z;
+		return vkey >= SDLK_SPACE && vkey <= SDLK_Z;
 	}
 }
 
@@ -2060,22 +2045,14 @@ void OpenGoldDrop(int8_t invIndex, int max)
 	    .min = 0,
 	    .max = max,
 	});
-#ifdef USE_SDL3
-	SDL_StartTextInput(ghMainWnd);
-#else
-	SDL_StartTextInput();
-#endif
+	SDLC_StartTextInput(ghMainWnd);
 }
 
 void CloseGoldDrop()
 {
 	if (!DropGoldFlag)
 		return;
-#ifdef USE_SDL3
-	SDL_StopTextInput(ghMainWnd);
-#else
-	SDL_StopTextInput();
-#endif
+	SDLC_StopTextInput(ghMainWnd);
 	DropGoldFlag = false;
 	GoldDropInputState = std::nullopt;
 	GoldDropInvIndex = 0;

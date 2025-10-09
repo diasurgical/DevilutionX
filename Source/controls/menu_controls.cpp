@@ -103,20 +103,8 @@ std::vector<MenuAction> GetMenuActions(const SDL_Event &event)
 	}
 
 #if HAS_KBCTRL == 0
-	if (
-	    event.type ==
-#ifdef USE_SDL3
-	    SDL_EVENT_KEY_DOWN
-#else
-	    SDL_KEYDOWN
-#endif
-	) {
-		SDL_Keycode sym =
-#ifdef USE_SDL3
-		    event.key.key;
-#else
-		    event.key.keysym.sym;
-#endif
+	if (event.type == SDL_EVENT_KEY_DOWN) {
+		SDL_Keycode sym = SDLC_EventKey(event);
 		remap_keyboard_key(&sym);
 		switch (sym) {
 		case SDLK_UP:
@@ -124,14 +112,7 @@ std::vector<MenuAction> GetMenuActions(const SDL_Event &event)
 		case SDLK_DOWN:
 			return { MenuAction_DOWN };
 		case SDLK_TAB:
-			if ((SDL_GetModState() &
-#ifdef USE_SDL3
-			        SDL_KMOD_SHIFT
-#else
-			        KMOD_SHIFT
-#endif
-			        )
-			    != 0) {
+			if ((SDL_GetModState() & SDL_KMOD_SHIFT) != 0) {
 				return { MenuAction_UP };
 			}
 			return { MenuAction_DOWN };
@@ -140,14 +121,7 @@ std::vector<MenuAction> GetMenuActions(const SDL_Event &event)
 		case SDLK_PAGEDOWN:
 			return { MenuAction_PAGE_DOWN };
 		case SDLK_RETURN:
-			if ((SDL_GetModState() &
-#ifdef USE_SDL3
-			        SDL_KMOD_ALT
-#else
-			        KMOD_ALT
-#endif
-			        )
-			    == 0) {
+			if ((SDL_GetModState() & SDL_KMOD_ALT) == 0) {
 				return { MenuAction_SELECT };
 			}
 			break;

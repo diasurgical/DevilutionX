@@ -6,7 +6,13 @@
 #include <stdexcept>
 #include <system_error>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_error.h>
+#include <SDL3/SDL_timer.h>
+#else
 #include <SDL.h>
+#endif
+
 #include <asio/connect.hpp>
 #include <expected.hpp>
 

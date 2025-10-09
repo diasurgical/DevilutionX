@@ -2,7 +2,13 @@
 #include <optional>
 #include <vector>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_events.h>
+#include <SDL3/SDL_rect.h>
+#include <SDL3/SDL_timer.h>
+#else
 #include <SDL.h>
+#endif
 
 #include "DiabloUI/diabloui.h"
 #include "DiabloUI/ui_flags.hpp"
@@ -16,6 +22,7 @@
 #include "engine/point.hpp"
 #include "utils/algorithm/container.hpp"
 #include "utils/language.h"
+#include "utils/sdl_compat.h"
 #include "utils/sdl_geometry.h"
 #include "utils/ui_fwd.h"
 
@@ -83,8 +90,8 @@ void UiTitleDialog()
 				break;
 			}
 			switch (event.type) {
-			case SDL_KEYDOWN:
-			case SDL_MOUSEBUTTONUP:
+			case SDL_EVENT_KEY_DOWN:
+			case SDL_EVENT_MOUSE_BUTTON_UP:
 				endMenu = true;
 				break;
 			}

@@ -2,14 +2,19 @@
 
 #include <atomic>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_timer.h>
+#else
 #include <SDL.h>
-#include <ankerl/unordered_dense.h>
 
 #ifdef USE_SDL1
 #include "utils/sdl2_to_1_2_backports.h"
 #else
 #include "utils/sdl2_backports.h"
 #endif
+#endif
+
+#include <ankerl/unordered_dense.h>
 
 #if defined(_WIN32) && !defined(DEVILUTIONX_WINDOWS_NO_WCHAR)
 #include "utils/stdcompat/filesystem.hpp"

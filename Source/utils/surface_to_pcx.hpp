@@ -1,10 +1,11 @@
 #include <string>
 
 #ifdef USE_SDL3
-#include <SDL3/SDL_error.h>
 #include <SDL3/SDL_iostream.h>
 #else
 #include <SDL.h>
+
+#include "utils/sdl_compat.h"
 #endif
 
 #include <expected.hpp>
@@ -14,12 +15,6 @@
 namespace devilution {
 
 tl::expected<void, std::string>
-WriteSurfaceToFilePcx(const Surface &buf,
-#ifdef USE_SDL3
-    SDL_IOStream *
-#else
-    SDL_RWops *
-#endif
-        outStream);
+WriteSurfaceToFilePcx(const Surface &buf, SDL_IOStream *outStream);
 
 } // namespace devilution

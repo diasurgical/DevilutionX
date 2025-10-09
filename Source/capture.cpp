@@ -15,6 +15,8 @@
 #include <SDL3/SDL_timer.h>
 #else
 #include <SDL.h>
+
+#include "utils/sdl_compat.h"
 #endif
 
 #include <expected.hpp>
@@ -41,12 +43,7 @@
 namespace devilution {
 namespace {
 
-#ifdef USE_SDL3
-SDL_IOStream *
-#else
-SDL_RWops *
-#endif
-CaptureFile(std::string *dstPath)
+SDL_IOStream *CaptureFile(std::string *dstPath)
 {
 	const char *ext =
 #if DEVILUTIONX_SCREENSHOT_FORMAT == DEVILUTIONX_SCREENSHOT_FORMAT_PCX
@@ -67,11 +64,7 @@ CaptureFile(std::string *dstPath)
 		i++;
 		*dstPath = StrCat(paths::PrefPath(), filename, "-", i, ext);
 	}
-#ifdef USE_SDL3
 	return SDL_IOFromFile(dstPath->c_str(), "wb");
-#else
-	return SDL_RWFromFile(dstPath->c_str(), "wb");
-#endif
 }
 
 /**

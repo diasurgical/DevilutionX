@@ -5,6 +5,17 @@
 #include <string_view>
 #include <vector>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_timer.h>
+
+#else
+#include <SDL.h>
+
+#ifdef USE_SDL1
+#include "utils/sdl2_to_1_2_backports.h"
+#endif
+#endif
+
 #include <ankerl/unordered_dense.h>
 #include <function_ref.hpp>
 
@@ -16,10 +27,6 @@
 #include "utils/log.hpp"
 #include "utils/paths.h"
 #include "utils/string_view_hash.hpp"
-
-#ifdef USE_SDL1
-#include "utils/sdl2_to_1_2_backports.h"
-#endif
 
 #define MO_MAGIC 0x950412de
 
@@ -387,9 +394,15 @@ void LanguageInitialize()
 #ifdef UNPACKED_MPQS
 	const bool readWholeFile = false;
 #else
+#ifdef USE_SDL3
+	// In SDL3, we don't have a way to check if the handle is to an MPQ file.
+	// Assume that it is.
+	const bool readWholeFile = true;
+#else
 	// If reading from an MPQ, it is much faster to
 	// load the whole file instead of seeking.
 	const bool readWholeFile = handle.handle->type == SDL_RWOPS_UNKNOWN;
+#endif
 #endif
 
 	std::unique_ptr<std::byte[]> data;

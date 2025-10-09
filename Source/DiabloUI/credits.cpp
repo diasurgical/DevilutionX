@@ -30,6 +30,7 @@
 #include "utils/display.h"
 #include "utils/is_of.hpp"
 #include "utils/language.h"
+#include "utils/sdl_compat.h"
 #include "utils/sdl_geometry.h"
 #include "utils/ui_fwd.h"
 
@@ -109,11 +110,7 @@ void CreditsRenderer::Render()
 		return;
 	prev_offset_y_ = offsetY;
 
-#ifdef USE_SDL3
 	SDL_FillSurfaceRect(DiabloUiSurface(), nullptr, 0);
-#else
-	SDL_FillRect(DiabloUiSurface(), nullptr, 0x000000);
-#endif
 	const Point uiPosition = GetUIRectangle().position;
 	if (ArtBackgroundWidescreen)
 		RenderClxSprite(Surface(DiabloUiSurface()), (*ArtBackgroundWidescreen)[0], uiPosition - Displacement { 320, 0 });
@@ -165,13 +162,8 @@ bool TextDialog(const char *const *text, std::size_t textLines)
 		UiFadeIn();
 		while (PollEvent(&event)) {
 			switch (event.type) {
-#ifdef USE_SDL3
 			case SDL_EVENT_KEY_DOWN:
 			case SDL_EVENT_MOUSE_BUTTON_UP:
-#else
-			case SDL_KEYDOWN:
-			case SDL_MOUSEBUTTONUP:
-#endif
 				endMenu = true;
 				break;
 			default:

@@ -144,11 +144,7 @@ bool mainmenu_select_hero_dialog(GameData *gameData)
 
 void mainmenu_wait_for_button_sound()
 {
-#ifdef USE_SDL3
 	SDL_FillSurfaceRect(DiabloUiSurface(), nullptr, 0);
-#else
-	SDL_FillRect(DiabloUiSurface(), nullptr, 0x000000);
-#endif
 	UiFadeIn();
 	SDL_Delay(350); // delay to let button pressed sound finish playing
 }

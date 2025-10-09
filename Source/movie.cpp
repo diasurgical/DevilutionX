@@ -24,6 +24,7 @@
 #include "hwcursor.hpp"
 #include "storm/storm_svid.h"
 #include "utils/display.h"
+#include "utils/sdl_compat.h"
 
 namespace devilution {
 
@@ -60,20 +61,9 @@ void play_movie(const char *pszMovie, bool userCanClose)
 					}
 				}
 				switch (event.type) {
-#ifdef USE_SDL3
 				case SDL_EVENT_KEY_DOWN:
 				case SDL_EVENT_MOUSE_BUTTON_UP:
-#else
-				case SDL_KEYDOWN:
-				case SDL_MOUSEBUTTONUP:
-#endif
-					if (userCanClose || (
-#ifdef USE_SDL3
-					        event.type == SDL_EVENT_KEY_DOWN && event.key.key == SDLK_ESCAPE
-#else
-					        event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE
-#endif
-					        ))
+					if (userCanClose || (event.type == SDL_EVENT_KEY_DOWN && SDLC_EventKey(event) == SDLK_ESCAPE))
 						movie_playing = false;
 					break;
 #ifdef USE_SDL3
@@ -102,13 +92,11 @@ void play_movie(const char *pszMovie, bool userCanClose)
 					}
 					break;
 #endif
-#ifdef USE_SDL3
 				case SDL_EVENT_QUIT:
-#else
-				case SDL_QUIT:
-#endif
 					SVidPlayEnd();
 					diablo_quit(0);
+				default:
+					break;
 				}
 			}
 			if (!SVidPlayContinue())
@@ -121,7 +109,14 @@ void play_movie(const char *pszMovie, bool userCanClose)
 
 	movie_playing = false;
 
+#ifdef USE_SDL3
+	float x, y;
+	SDL_GetMouseState(&x, &y);
+	MousePosition.x = static_cast<int>(x);
+	MousePosition.y = static_cast<int>(y);
+#else
 	SDL_GetMouseState(&MousePosition.x, &MousePosition.y);
+#endif
 	OutputToLogical(&MousePosition.x, &MousePosition.y);
 	InitBackbufferState();
 }
