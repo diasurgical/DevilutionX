@@ -322,8 +322,8 @@ inline bool SDL_CursorVisible() { return SDL_ShowCursor(SDL_QUERY) == SDL_ENABLE
 inline bool SDLC_PointInRect(const SDL_Point *p, const SDL_Rect *r) { return SDL_PointInRect(p, r) == SDL_TRUE; }
 #endif
 
-inline bool SDLC_ShowCursor() { return SDL_ShowCursor(SDL_ENABLE) == 0; }
-inline bool SDLC_HideCursor() { return SDL_ShowCursor(SDL_DISABLE) == 0; }
+inline bool SDLC_ShowCursor() { return SDL_ShowCursor(SDL_ENABLE) >= 0; }
+inline bool SDLC_HideCursor() { return SDL_ShowCursor(SDL_DISABLE) >= 0; }
 
 inline size_t SDL_ReadIO(SDL_IOStream *context, void *ptr, size_t size)
 {
@@ -419,7 +419,7 @@ inline bool SDLC_SetSurfaceAndPaletteColors(SDL_Surface *surface, SDL_Palette *p
 	if (SDL_SetPaletteColors(palette, colors, firstcolor, ncolors) < 0)
 		return false;
 	if (surface->format->palette != palette)
-		return SDL_SetSurfacePalette(surface, palette);
+		return SDL_SetSurfacePalette(surface, palette) == 0;
 	return true;
 #endif
 }

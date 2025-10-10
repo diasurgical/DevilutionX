@@ -16,7 +16,7 @@ inline bool PollEvent(SDL_Event *event)
 #ifdef USE_SDL3
 	const bool result = SDL_PollEvent(event);
 #else
-	const bool result = SDL_PollEvent(event) >= 0;
+	const bool result = SDL_PollEvent(event) != 0;
 #endif
 	if (result) {
 		UnlockControllerState(*event);
