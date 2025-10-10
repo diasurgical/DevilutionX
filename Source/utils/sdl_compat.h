@@ -408,7 +408,7 @@ inline bool SDLC_SetSurfaceAndPaletteColors(SDL_Surface *surface, SDL_Palette *p
 #endif
 	// In SDL1, the surface always has its own distinct palette, so we need to
 	// update it as well.
-	return SDL_SetPalette(surface, SDL_LOGPAL, colors, firstcolor, ncolors) == 0;
+	return SDL_SetPalette(surface, SDL_LOGPAL, colors, firstcolor, ncolors) != 0;
 #elif defined(USE_SDL3)
 	if (!SDL_SetPaletteColors(palette, colors, firstcolor, ncolors)) return false;
 	if (SDL_GetSurfacePalette(surface) != palette) {
