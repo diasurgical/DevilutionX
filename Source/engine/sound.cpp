@@ -14,7 +14,11 @@
 #include <string>
 
 #include <Aulib/Stream.h>
+#ifdef USE_SDL3
+#include <SDL3/SDL_timer.h>
+#else
 #include <SDL.h>
+#endif
 #include <expected.hpp>
 
 #include "engine/assets.hpp"

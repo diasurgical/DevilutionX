@@ -9,11 +9,16 @@
 #include <Aulib/DecoderDrwav.h>
 #include <Aulib/Stream.h>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_error.h>
+#include <SDL3/SDL_iostream.h>
+#else
 #include <SDL.h>
 #ifdef USE_SDL1
 #include "utils/sdl2_to_1_2_backports.h"
 #else
 #include "utils/sdl2_backports.h"
+#endif
 #endif
 
 #include "engine/assets.hpp"
@@ -67,7 +72,7 @@ std::unique_ptr<Aulib::Decoder> CreateDecoder(bool isMp3)
 	return std::make_unique<Aulib::DecoderDrwav>();
 }
 
-std::unique_ptr<Aulib::Stream> CreateStream(SDL_RWops *handle, bool isMp3)
+std::unique_ptr<Aulib::Stream> CreateStream(SDL_IOStream *handle, bool isMp3)
 {
 	auto decoder = CreateDecoder(isMp3);
 	if (!decoder->open(handle)) // open for `getRate`
@@ -139,7 +144,7 @@ bool SoundSample::Play(int numIterations)
 
 int SoundSample::SetChunkStream(std::string filePath, bool isMp3, bool logErrors)
 {
-	SDL_RWops *handle = OpenAssetAsSdlRwOps(filePath.c_str(), /*threadsafe=*/true);
+	SDL_IOStream *handle = OpenAssetAsSdlRwOps(filePath.c_str(), /*threadsafe=*/true);
 	if (handle == nullptr) {
 		if (logErrors)
 			LogError(LogCategory::Audio, "OpenAsset failed (from SoundSample::SetChunkStream) for {}: {}", filePath, SDL_GetError());
@@ -162,7 +167,7 @@ int SoundSample::SetChunk(ArraySharedPtr<std::uint8_t> fileData, std::size_t dwB
 	isMp3_ = isMp3;
 	file_data_ = std::move(fileData);
 	file_data_size_ = dwBytes;
-	SDL_RWops *buf = SDL_RWFromConstMem(file_data_.get(), static_cast<int>(dwBytes));
+	SDL_IOStream *buf = SDL_IOFromConstMem(file_data_.get(), static_cast<int>(dwBytes));
 	if (buf == nullptr) {
 		return -1;
 	}
