@@ -1,6 +1,6 @@
 #include "controls/touch/renderers.h"
 
-#ifdef USE_SDL
+#ifdef USE_SDL3
 #include <SDL3/SDL_surface.h>
 #else
 #include <SDL.h>
@@ -136,11 +136,12 @@ void LoadPotionArt(ButtonTexture *potionArt)
 	if (!SDLC_SetSurfaceAndPaletteColors(surface.get(), palette.get(), logical_palette.data(), 0, 256))
 		ErrSdl();
 
-	const Uint32 bgColor = SDL_MapRGB(surface->format, logical_palette[1].r, logical_palette[1].g, logical_palette[1].b);
 #ifdef USE_SDL3
+	const Uint32 bgColor = SDL_MapRGB(SDL_GetPixelFormatDetails(surface->format), SDL_GetSurfacePalette(&*surface), logical_palette[1].r, logical_palette[1].g, logical_palette[1].b);
 	if (!SDL_FillSurfaceRect(surface.get(), nullptr, bgColor)) ErrSdl();
 	if (!SDL_SetSurfaceColorKey(surface.get(), true, bgColor)) ErrSdl();
 #else
+	const Uint32 bgColor = SDL_MapRGB(surface->format, logical_palette[1].r, logical_palette[1].g, logical_palette[1].b);
 	if (SDL_FillRect(surface.get(), nullptr, bgColor) < 0)
 		ErrSdl();
 	if (SDL_SetColorKey(surface.get(), SDL_TRUE, bgColor) < 0)
@@ -192,7 +193,14 @@ Size ButtonTexture::size() const
 		w = surface->w;
 		h = surface->h;
 	} else {
+#ifdef USE_SDL3
+		float fw, fh;
+		SDL_GetTextureSize(texture.get(), &fw, &fh);
+		w = fw;
+		h = fh;
+#else
 		SDL_QueryTexture(texture.get(), /*format=*/nullptr, /*access=*/nullptr, &w, &h);
+#endif
 	}
 	w /= numSprites;
 	h /= numFrames;
@@ -209,7 +217,10 @@ void RenderVirtualGamepad(SDL_Renderer *renderer)
 			return;
 
 #ifdef USE_SDL3
-		if (!SDL_RenderTexture(renderer, art.texture.get(), src, dst)) ErrSdl();
+		SDL_FRect fsrc, fdst;
+		SDL_RectToFRect(src, &fsrc);
+		SDL_RectToFRect(dst, &fdst);
+		if (!SDL_RenderTexture(renderer, art.texture.get(), &fsrc, &fdst)) ErrSdl();
 #else
 		if (SDL_RenderCopy(renderer, art.texture.get(), src, dst) <= -1) ErrSdl();
 #endif
@@ -227,7 +238,11 @@ void RenderVirtualGamepad(SDL_Surface *surface)
 		if (art.surface == nullptr)
 			return;
 
+#ifdef USE_SDL3
+		if (!SDL_BlitSurfaceScaled(art.surface.get(), src, surface, dst, SDL_SCALEMODE_LINEAR))
+#else
 		if (SDL_BlitScaled(art.surface.get(), src, surface, dst) <= -1)
+#endif
 			ErrSdl();
 	};
 

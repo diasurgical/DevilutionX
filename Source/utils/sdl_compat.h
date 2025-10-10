@@ -8,6 +8,7 @@
 #include <SDL3/SDL_pixels.h>
 #include <SDL3/SDL_scancode.h>
 #include <SDL3/SDL_surface.h>
+#include <SDL3/SDL_version.h>
 #else
 #include <SDL.h>
 #ifndef USE_SDL1
@@ -31,8 +32,23 @@ inline int SDLC_EventMotionIntX(const SDL_Event &event) { return static_cast<int
 inline int SDLC_EventMotionIntY(const SDL_Event &event) { return static_cast<int>(event.motion.y); }
 inline int SDLC_EventButtonIntX(const SDL_Event &event) { return static_cast<int>(event.button.x); }
 inline int SDLC_EventButtonIntY(const SDL_Event &event) { return static_cast<int>(event.button.y); }
-inline int SDLC_EventWheelIntX(const SDL_Event &event) { return event.wheel.integer_x; }
-inline int SDLC_EventWheelIntY(const SDL_Event &event) { return event.wheel.integer_y; }
+inline int SDLC_EventWheelIntX(const SDL_Event &event)
+{
+#if SDL_VERSION_ATLEAST(3, 2, 12)
+	return event.wheel.integer_x;
+#else
+	return static_cast<int>(event.wheel.x);
+#endif
+}
+
+inline int SDLC_EventWheelIntY(const SDL_Event &event)
+{
+#if SDL_VERSION_ATLEAST(3, 2, 12)
+	return event.wheel.integer_y;
+#else
+	return static_cast<int>(event.wheel.y);
+#endif
+}
 
 inline const SDL_GamepadAxisEvent &SDLC_EventGamepadAxis(const SDL_Event &event) { return event.gaxis; }
 inline const SDL_GamepadButtonEvent &SDLC_EventGamepadButton(const SDL_Event &event) { return event.gbutton; }

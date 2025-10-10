@@ -286,8 +286,13 @@ bool CreateSdlEvent(const DemoMsg &dmsg, SDL_Event &event, uint16_t &modState)
 	case DemoMsg::MouseWheelEvent:
 #ifdef USE_SDL3
 		event.type = SDL_EVENT_MOUSE_WHEEL;
+#if SDL_VERSION_ATLEAST(3, 2, 12)
 		event.wheel.integer_x = dmsg.wheel.x;
 		event.wheel.integer_y = dmsg.wheel.y;
+#else
+		event.wheel.x = dmsg.wheel.x;
+		event.wheel.y = dmsg.wheel.y;
+#endif
 		event.wheel.mouse_x = 0;
 		event.wheel.mouse_y = 0;
 #else
@@ -853,15 +858,23 @@ void RecordMessage(const SDL_Event &event, uint16_t modState)
 		WriteDemoMsgHeader(DemoMsg::MouseWheelEvent);
 
 #ifdef USE_SDL3
-		if (event.wheel.integer_x < std::numeric_limits<int16_t>::min()
-		    || event.wheel.integer_x > std::numeric_limits<int16_t>::max()
-		    || event.wheel.integer_y < std::numeric_limits<int16_t>::min()
-		    || event.wheel.integer_y > std::numeric_limits<int16_t>::max()) {
+		int wheelX, wheelY;
+#if SDL_VERSION_ATLEAST(3, 2, 12)
+		wheelX = event.wheel.integer_x;
+		wheelY = event.wheel.integer_y;
+#else
+		wheelX = event.wheel.x;
+		wheelY = event.wheel.y;
+#endif
+		if (wheelX < std::numeric_limits<int16_t>::min()
+		    || wheelX > std::numeric_limits<int16_t>::max()
+		    || wheelY < std::numeric_limits<int16_t>::min()
+		    || wheelY > std::numeric_limits<int16_t>::max()) {
 			app_fatal(StrCat("Mouse wheel event integer_x/y out of int16_t range. x=",
-			    event.wheel.integer_x, " y=", event.wheel.integer_y));
+			    wheelX, " y=", wheelY));
 		}
-		WriteLE16(DemoRecording, event.wheel.integer_x);
-		WriteLE16(DemoRecording, event.wheel.integer_y);
+		WriteLE16(DemoRecording, wheelX);
+		WriteLE16(DemoRecording, wheelY);
 #else
 		if (event.wheel.x < std::numeric_limits<int16_t>::min()
 		    || event.wheel.x > std::numeric_limits<int16_t>::max()

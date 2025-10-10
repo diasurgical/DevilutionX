@@ -1,6 +1,10 @@
 #include <cmath>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_video.h>
+#else
 #include <SDL.h>
+#endif
 
 #include "control.h"
 #include "controls/touch/event_handlers.h"
@@ -56,15 +60,19 @@ constexpr bool PointsRight(float angle)
 
 void InitializeVirtualGamepad()
 {
-	const float sqrt2 = sqrtf(2);
+	const float sqrt2 = sqrtf(2.0F);
 
 	const int screenPixels = std::min(gnScreenWidth, gnScreenHeight);
 	int inputMargin = screenPixels / 10;
 	int menuButtonWidth = screenPixels / 10;
 	int directionPadSize = screenPixels / 4;
-	int padButtonSize = roundToInt(1.1f * screenPixels / 10);
+	int padButtonSize = roundToInt(1.1F * screenPixels / 10);
 	int padButtonSpacing = inputMargin / 3;
 
+#ifdef USE_SDL3
+	const float dpi = SDL_GetWindowDisplayScale(ghMainWnd);
+#else
+	float dpi = 0.0F;
 	float hdpi;
 	float vdpi;
 	const int displayIndex = SDL_GetWindowDisplayIndex(ghMainWnd);
@@ -79,12 +87,16 @@ void InitializeVirtualGamepad()
 		hdpi *= static_cast<float>(gnScreenWidth) / clientWidth;
 		vdpi *= static_cast<float>(gnScreenHeight) / clientHeight;
 
-		const float dpi = std::min(hdpi, vdpi);
-		inputMargin = roundToInt(0.25f * dpi);
-		menuButtonWidth = roundToInt(0.2f * dpi);
+		dpi = std::min(hdpi, vdpi);
+	}
+#endif
+
+	if (dpi != 0.0F) {
+		inputMargin = roundToInt(0.25F * dpi);
+		menuButtonWidth = roundToInt(0.2F * dpi);
 		directionPadSize = roundToInt(dpi);
-		padButtonSize = roundToInt(0.3f * dpi);
-		padButtonSpacing = roundToInt(0.1f * dpi);
+		padButtonSize = roundToInt(0.3F * dpi);
+		padButtonSpacing = roundToInt(0.1F * dpi);
 	}
 
 	const int menuPanelTopMargin = 30;

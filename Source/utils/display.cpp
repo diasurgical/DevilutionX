@@ -101,7 +101,10 @@ void CalculatePreferredWindowSize(int &width, int &height)
 {
 	SDL_DisplayMode mode;
 #ifdef USE_SDL3
-	const SDL_DisplayMode *modePtr = SDL_GetDesktopDisplayMode(0);
+	int numDisplays = 0;
+	SDL_DisplayID *displays = SDL_GetDisplays(&numDisplays);
+	if (numDisplays <= 0 || displays == nullptr) ErrSdl();
+	const SDL_DisplayMode *modePtr = SDL_GetDesktopDisplayMode(displays[0]);
 	if (modePtr == nullptr) ErrSdl();
 	mode = *modePtr;
 #else
@@ -181,10 +184,8 @@ void UpdateAvailableResolutions()
 	// Add resolutions
 	bool supportsAnyResolution = false;
 #ifdef USE_SDL3
-	const SDL_DisplayMode *fullscreenMode = SDL_GetWindowFullscreenMode(ghMainWnd);
-	if (fullscreenMode == nullptr) return;
 	const SDL_DisplayID displayId = SDL_GetDisplayForWindow(ghMainWnd);
-	if (displayId == 0) return;
+	if (displayId == 0) ErrSdl();
 	int modeCount;
 	SDLUniquePtr<SDL_DisplayMode *> modes { SDL_GetFullscreenDisplayModes(displayId, &modeCount) };
 	if (modes == nullptr) return;
@@ -257,7 +258,9 @@ void UpdateAvailableResolutions()
 #ifndef USE_SDL1
 	if (*graphicsOptions.fitToScreen) {
 #ifdef USE_SDL3
-		const SDL_DisplayMode *modePtr = SDL_GetDesktopDisplayMode(0);
+		const SDL_DisplayID displayId = SDL_GetDisplayForWindow(ghMainWnd);
+		if (displayId == 0) ErrSdl();
+		const SDL_DisplayMode *modePtr = SDL_GetDesktopDisplayMode(displayId);
 		if (modePtr == nullptr) ErrSdl();
 		const SDL_DisplayMode &mode = *modePtr;
 #else
@@ -372,8 +375,6 @@ SDL_DisplayMode GetNearestDisplayMode(Size preferredSize,
 {
 	SDL_DisplayMode *nearestDisplayMode = nullptr;
 #ifdef USE_SDL3
-	const SDL_DisplayMode *fullscreenMode = SDL_GetWindowFullscreenMode(ghMainWnd);
-	if (fullscreenMode == nullptr) ErrSdl();
 	const SDL_DisplayID displayId = SDL_GetDisplayForWindow(ghMainWnd);
 	if (displayId == 0) ErrSdl();
 	int modeCount;
@@ -810,9 +811,11 @@ void SetFullscreenMode()
 		flags = *GetOptions().Graphics.upscale ? SDL_WINDOW_FULLSCREEN_DESKTOP : SDL_WINDOW_FULLSCREEN;
 #endif
 	}
-	if (SDL_SetWindowFullscreen(ghMainWnd, flags) != 0) {
-		ErrSdl();
-	}
+#if USE_SDL3
+	if (!SDL_SetWindowFullscreen(ghMainWnd, flags)) ErrSdl();
+#else
+	if (SDL_SetWindowFullscreen(ghMainWnd, flags) != 0) ErrSdl();
+#endif
 
 	if (!*GetOptions().Graphics.fullscreen) {
 		SDL_RestoreWindow(ghMainWnd); // Avoid window being maximized before resizing
