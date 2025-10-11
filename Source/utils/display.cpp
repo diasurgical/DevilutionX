@@ -34,6 +34,7 @@
 #endif
 
 #include "DiabloUI/diabloui.h"
+#include "config.h"
 #include "control.h"
 #include "controls/controller.h"
 #ifndef USE_SDL1
@@ -511,6 +512,12 @@ bool SpawnWindow(const char *lpWindowName)
 #endif
 
 #ifdef USE_SDL3
+	SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_NAME_STRING, PROJECT_NAME);
+	SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_VERSION_STRING, PROJECT_VERSION);
+	SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_IDENTIFIER_STRING, "org.diasurgical.devilutionx");
+	SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_URL_STRING, "https://devilutionx.com");
+	SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_TYPE_STRING, "game");
+
 	SDL_SetHint(SDL_HINT_RETURN_KEY_HIDES_IME, "1");
 #endif
 #if SDL_VERSION_ATLEAST(2, 0, 4) && !defined(USE_SDL3)
