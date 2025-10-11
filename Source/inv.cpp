@@ -1331,6 +1331,7 @@ bool AutoPlaceItemInBelt(Player &player, const Item &item, bool persistItem, boo
 			if (persistItem) {
 				beltItem = item;
 				player.CalcScrolls();
+				player.CalcRunes();
 				RedrawComponent(PanelDrawComponent::Belt);
 				if (sendNetworkMessage) {
 					const auto beltIndex = static_cast<int>(std::distance<const Item *>(&player.SpdList[0], &beltItem));
@@ -1403,6 +1404,7 @@ bool AutoPlaceItemInInventory(Player &player, const Item &item, bool sendNetwork
 
 		AddItemToInvGrid(player, *targetSlot, player._pNumInv, itemSize, sendNetworkMessage);
 		player.CalcScrolls();
+		player.CalcRunes();
 
 		return true;
 	}
