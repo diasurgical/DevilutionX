@@ -18,6 +18,7 @@
 #endif
 
 #include "utils/attributes.h"
+#include "utils/log.hpp"
 #include "utils/sdl_ptrs.h"
 #include "utils/ui_fwd.h"
 
@@ -64,27 +65,27 @@ template <
     typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type>
 void OutputToLogical(T *x, T *y)
 {
-#ifndef USE_SDL1
-	if (!renderer)
-		return;
-
-	float scaleX;
 #ifdef USE_SDL3
-	SDL_GetRenderScale(renderer, &scaleX, nullptr);
-#else
+	if (renderer == nullptr) return;
+	float outX, outY;
+	if (!SDL_RenderCoordinatesFromWindow(renderer, *x, *y, &outX, &outY)) {
+		LogError("SDL_RenderCoordinatesFromWindow: {}", SDL_GetError());
+		SDL_ClearError();
+		return;
+	}
+	*x = static_cast<T>(outX);
+	*y = static_cast<T>(outY);
+#elif !defined(USE_SDL1)
+	if (renderer == nullptr) return;
+	float scaleX;
 	SDL_RenderGetScale(renderer, &scaleX, nullptr);
-#endif
 	float scaleDpi = GetDpiScalingFactor();
 	float scale = scaleX / scaleDpi;
 	*x = static_cast<T>(*x / scale);
 	*y = static_cast<T>(*y / scale);
 
 	SDL_Rect view;
-#ifdef USE_SDL3
-	SDL_GetRenderViewport(renderer, &view);
-#else
 	SDL_RenderGetViewport(renderer, &view);
-#endif
 	*x -= view.x;
 	*y -= view.y;
 #else
@@ -101,24 +102,25 @@ template <
     typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type>
 void LogicalToOutput(T *x, T *y)
 {
-#ifndef USE_SDL1
-	if (!renderer)
-		return;
-	SDL_Rect view;
 #ifdef USE_SDL3
-	SDL_GetRenderViewport(renderer, &view);
-#else
+	if (renderer == nullptr) return;
+	float outX, outY;
+	if (!SDL_RenderCoordinatesToWindow(renderer, *x, *y, &outX, &outY)) {
+		LogError("SDL_RenderCoordinatesFromWindow: {}", SDL_GetError());
+		SDL_ClearError();
+		return;
+	}
+	*x = static_cast<T>(outX);
+	*y = static_cast<T>(outY);
+#elif !defined(USE_SDL1)
+	if (renderer == nullptr) return;
+	SDL_Rect view;
 	SDL_RenderGetViewport(renderer, &view);
-#endif
 	*x += view.x;
 	*y += view.y;
 
 	float scaleX;
-#ifdef USE_SDL3
-	SDL_GetRenderScale(renderer, &scaleX, nullptr);
-#else
 	SDL_RenderGetScale(renderer, &scaleX, nullptr);
-#endif
 	float scaleDpi = GetDpiScalingFactor();
 	float scale = scaleX / scaleDpi;
 	*x = static_cast<T>(*x * scale);

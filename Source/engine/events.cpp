@@ -3,6 +3,7 @@
 #include <cstdint>
 
 #ifdef USE_SDL3
+#include <SDL3/SDL_error.h>
 #include <SDL3/SDL_events.h>
 #else
 #include <SDL.h>
@@ -20,13 +21,12 @@
 #include "movie.h"
 #include "options.h"
 #include "panels/console.hpp"
+#include "utils/display.h"
 #include "utils/is_of.hpp"
 #include "utils/log.hpp"
 #include "utils/sdl_compat.h"
 
-#ifdef USE_SDL1
-#include "utils/display.h"
-#else
+#ifndef USE_SDL1
 #include "controls/touch/event_handlers.h"
 #endif
 
@@ -93,13 +93,10 @@ bool FetchMessage_Real(SDL_Event *event, uint16_t *modState)
 	}
 #endif
 
-#ifdef USE_SDL1
-	if (e.type == SDL_MOUSEMOTION) {
-		OutputToLogical(&e.motion.x, &e.motion.y);
-	} else if (IsAnyOf(e.type, SDL_MOUSEBUTTONDOWN, SDL_MOUSEBUTTONUP)) {
-		OutputToLogical(&e.button.x, &e.button.y);
+	if (!SDLC_ConvertEventToRenderCoordinates(renderer, &e)) {
+		LogWarn(LogCategory::Application, "SDL_ConvertEventToRenderCoordinates: {}", SDL_GetError());
+		SDL_ClearError();
 	}
-#endif
 
 	if (HandleControllerAddedOrRemovedEvent(e))
 		return true;

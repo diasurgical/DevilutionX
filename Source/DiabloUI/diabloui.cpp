@@ -11,6 +11,7 @@
 #include <vector>
 
 #ifdef USE_SDL3
+#include <SDL3/SDL_error.h>
 #include <SDL3/SDL_events.h>
 #include <SDL3/SDL_keyboard.h>
 #include <SDL3/SDL_rect.h>
@@ -490,9 +491,6 @@ void UiFocusNavigation(SDL_Event *event)
 void UiHandleEvents(SDL_Event *event)
 {
 	if (event->type == SDL_EVENT_MOUSE_MOTION) {
-#ifdef USE_SDL1
-		OutputToLogical(&event->motion.x, &event->motion.y);
-#endif
 		MousePosition = { SDLC_EventMotionIntX(*event), SDLC_EventMotionIntY(*event) };
 		return;
 	}
@@ -836,6 +834,10 @@ void UiPollAndRender(std::optional<tl::function_ref<bool(SDL_Event &)>> eventHan
 	while (PollEvent(&event)) {
 		if (eventHandler && (*eventHandler)(event))
 			continue;
+		if (!SDLC_ConvertEventToRenderCoordinates(renderer, &event)) {
+			LogWarn(LogCategory::Application, "SDL_ConvertEventToRenderCoordinates: {}", SDL_GetError());
+			SDL_ClearError();
+		}
 		UiFocusNavigation(&event);
 		UiHandleEvents(&event);
 	}
@@ -1145,11 +1147,6 @@ bool UiItemMouseEvents(SDL_Event *event, const std::vector<UiItemBase *> &items)
 		return false;
 	}
 
-	// In SDL2 mouse events already use logical coordinates.
-#ifdef USE_SDL1
-	OutputToLogical(&event->button.x, &event->button.y);
-#endif
-
 	bool handled = false;
 	for (const auto &item : items) {
 		if (HandleMouseEvent(*event, item)) {
@@ -1177,11 +1174,6 @@ bool UiItemMouseEvents(SDL_Event *event, const std::vector<std::unique_ptr<UiIte
 	if (items.empty()) {
 		return false;
 	}
-
-	// In SDL2 mouse events already use logical coordinates.
-#ifdef USE_SDL1
-	OutputToLogical(&event->button.x, &event->button.y);
-#endif
 
 	bool handled = false;
 	for (const auto &item : items) {
