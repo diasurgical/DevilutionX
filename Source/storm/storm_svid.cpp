@@ -6,26 +6,31 @@
 #include <optional>
 
 #ifdef USE_SDL3
+#include <SDL3/SDL_error.h>
 #include <SDL3/SDL_pixels.h>
 #include <SDL3/SDL_rect.h>
 #include <SDL3/SDL_render.h>
 #include <SDL3/SDL_surface.h>
 #include <SDL3/SDL_timer.h>
+
+#ifndef NOSOUND
+#include <SDL3/SDL_audio.h>
+#endif
 #else
 #include <SDL.h>
+
+#ifndef NOSOUND
+#include "utils/aulib.hpp"
+#include "utils/push_aulib_decoder.h"
+#endif
 #endif
 
 #include <SmackerDecoder.h>
-
-#ifndef NOSOUND
-#include "utils/push_aulib_decoder.h"
-#endif
 
 #include "engine/assets.hpp"
 #include "engine/dx.h"
 #include "engine/palette.h"
 #include "options.h"
-#include "utils/aulib.hpp"
 #include "utils/display.h"
 #include "utils/log.hpp"
 #include "utils/sdl_compat.h"
@@ -35,8 +40,13 @@ namespace devilution {
 namespace {
 
 #ifndef NOSOUND
+#ifdef USE_SDL3
+SDL_AudioStream *SVidAudioStream;
+bool SVidAutoStreamEnabled;
+#else
 std::optional<Aulib::Stream> SVidAudioStream;
 PushAulibDecoder *SVidAudioDecoder;
+#endif
 std::uint8_t SVidAudioDepth;
 std::unique_ptr<int16_t[]> SVidAudioBuffer;
 #endif
@@ -138,9 +148,16 @@ void TrySetVideoModeToSVidForSDL1()
 #endif
 
 #ifndef NOSOUND
-bool HasAudio()
+// Returns the volume scaled to [0.0F, 1.0F] range.
+float GetVolume() { return static_cast<float>(*GetOptions().Audio.soundVolume - VOLUME_MIN) / -VOLUME_MIN; }
+
+bool ShouldPushAudioData()
 {
+#ifdef USE_SDL3
+	return SVidAudioStream != nullptr && SVidAutoStreamEnabled;
+#else
 	return SVidAudioStream && SVidAudioStream->isPlaying();
+#endif
 }
 #endif
 
@@ -206,7 +223,7 @@ bool BlitFrame()
 	if (renderer != nullptr) {
 		if (
 #ifdef USE_SDL3
-		    SDL_BlitSurface(SVidSurface.get(), nullptr, GetOutputSurface(), nullptr)
+		    !SDL_BlitSurface(SVidSurface.get(), nullptr, GetOutputSurface(), nullptr)
 #else
 		    SDL_BlitSurface(SVidSurface.get(), nullptr, GetOutputSurface(), nullptr) <= -1
 #endif
@@ -281,6 +298,35 @@ bool BlitFrame()
 	return true;
 }
 
+#if defined(USE_SDL3) && !defined(NOSOUND)
+void SVidInitAudioStream(const SmackerAudioInfo &audioInfo)
+{
+	SVidAutoStreamEnabled = diablo_is_focused();
+	SDL_AudioSpec srcSpec = {};
+	srcSpec.channels = static_cast<int>(audioInfo.nChannels);
+	srcSpec.freq = static_cast<int>(audioInfo.sampleRate);
+	srcSpec.format = audioInfo.bitsPerSample == 8 ? SDL_AUDIO_U8 : SDL_AUDIO_S16LE;
+	SVidAudioStream = SDL_CreateAudioStream(&srcSpec, /*dstSpec=*/&srcSpec);
+	if (SVidAudioStream == nullptr) {
+		LogError(LogCategory::Audio, "SDL_CreateAudioStream (from SVidPlayBegin): {}", SDL_GetError());
+		SDL_ClearError();
+		SVidAudioStream = nullptr;
+		return;
+	}
+	if (!SDL_BindAudioStream(CurrentAudioDeviceId, SVidAudioStream)) {
+		LogError(LogCategory::Audio, "SDL_BindAudioStream (from SVidPlayBegin): {}", SDL_GetError());
+		SDL_ClearError();
+		SDL_DestroyAudioStream(SVidAudioStream);
+		SVidAudioStream = nullptr;
+		return;
+	}
+	if (!SDL_SetAudioStreamGain(SVidAudioStream, GetVolume())) {
+		LogWarn(LogCategory::Audio, "SDL_SetAudioStreamGain (from SVidPlayBegin): {}", SDL_GetError());
+		SDL_ClearError();
+	}
+}
+#endif
+
 } // namespace
 
 bool SVidPlayBegin(const char *filename, int flags)
@@ -315,12 +361,18 @@ bool SVidPlayBegin(const char *filename, int flags)
 		sound_stop(); // Stop in-progress music and sound effects
 
 		SVidAudioDepth = audioInfo.bitsPerSample;
-		SVidAudioBuffer = std::unique_ptr<int16_t[]> { new int16_t[audioInfo.idealBufferSize] };
+		SVidAudioBuffer = std::unique_ptr<int16_t[]> { new int16_t[audioInfo.idealBufferSize / 2] };
+
+#ifndef USE_SDL3
 		auto decoder = std::make_unique<PushAulibDecoder>(audioInfo.nChannels, audioInfo.sampleRate);
 		SVidAudioDecoder = decoder.get();
 		SVidAudioStream.emplace(/*rwops=*/nullptr, std::move(decoder), CreateAulibResampler(audioInfo.sampleRate), /*closeRw=*/false);
-		const float volume = static_cast<float>(*GetOptions().Audio.soundVolume - VOLUME_MIN) / -VOLUME_MIN;
-		SVidAudioStream->setVolume(volume);
+		SVidAudioStream->setVolume(GetVolume());
+#endif
+
+#ifdef USE_SDL3
+		SVidInitAudioStream(audioInfo);
+#else
 		if (!diablo_is_focused())
 			SVidMute();
 		if (!SVidAudioStream->open()) {
@@ -333,6 +385,7 @@ bool SVidPlayBegin(const char *filename, int flags)
 			SVidAudioStream = std::nullopt;
 			SVidAudioDecoder = nullptr;
 		}
+#endif
 	}
 #endif
 
@@ -407,18 +460,30 @@ bool SVidPlayContinue()
 	}
 
 	if (GetTicksSmk() >= SVidFrameEnd) {
+#if defined(USE_SDL3) && !defined(NOSOUND)
+		if (ShouldPushAudioData()) SDL_ClearAudioStream(SVidAudioStream);
+#endif
 		return SVidLoadNextFrame(); // Skip video and audio if the system is to slow
 	}
 
 #ifndef NOSOUND
-	if (HasAudio()) {
+	if (ShouldPushAudioData()) {
 		std::int16_t *buf = SVidAudioBuffer.get();
 		const auto len = Smacker_GetAudioData(SVidHandle, 0, buf);
+#ifdef USE_SDL3
+		if (!SDL_PutAudioStreamData(SVidAudioStream, buf, static_cast<int>(len))) {
+			LogError(LogCategory::Audio, "SDL_PutAudioStreamData (from SVidPlayContinue): {}", SDL_GetError());
+			SDL_ClearError();
+			SDL_DestroyAudioStream(SVidAudioStream);
+			SVidAudioStream = nullptr;
+		}
+#else
 		if (SVidAudioDepth == 16) {
 			SVidAudioDecoder->PushSamples(buf, len / 2);
 		} else {
 			SVidAudioDecoder->PushSamples(reinterpret_cast<const std::uint8_t *>(buf), len);
 		}
+#endif
 	}
 #endif
 
@@ -440,9 +505,14 @@ bool SVidPlayContinue()
 void SVidPlayEnd()
 {
 #ifndef NOSOUND
-	if (HasAudio()) {
+	if (SVidAudioStream) {
+#ifdef USE_SDL3
+		SDL_DestroyAudioStream(SVidAudioStream);
+		SVidAudioStream = nullptr;
+#else
 		SVidAudioStream = std::nullopt;
 		SVidAudioDecoder = nullptr;
+#endif
 		SVidAudioBuffer = nullptr;
 	}
 #endif
@@ -488,16 +558,24 @@ void SVidPlayEnd()
 void SVidMute()
 {
 #ifndef NOSOUND
+#ifdef USE_SDL3
+	SVidAutoStreamEnabled = false;
+#else
 	if (SVidAudioStream)
 		SVidAudioStream->mute();
+#endif
 #endif
 }
 
 void SVidUnmute()
 {
 #ifndef NOSOUND
+#ifdef USE_SDL3
+	if (SVidAudioStream != nullptr) SVidAutoStreamEnabled = true;
+#else
 	if (SVidAudioStream)
 		SVidAudioStream->unmute();
+#endif
 #endif
 }
 

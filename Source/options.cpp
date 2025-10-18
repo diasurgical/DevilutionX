@@ -716,6 +716,25 @@ std::string_view OptionEntryAudioDevice::GetDeviceName(size_t index) const
 	return {};
 }
 
+#ifdef USE_SDL3
+SDL_AudioDeviceID OptionEntryAudioDevice::id() const
+{
+	if (deviceName_.empty()) return SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK;
+	int numDevices = 0;
+	SDLUniquePtr<SDL_AudioDeviceID> devices { SDL_GetAudioPlaybackDevices(&numDevices) };
+	if (devices == nullptr) {
+		LogWarn("Failed to get audio devices: {}", SDL_GetError());
+		SDL_ClearError();
+		return SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK;
+	}
+	for (int i = 0; i < numDevices; ++i) {
+		const SDL_AudioDeviceID id = devices.get()[i];
+		if (deviceName_ == SDL_GetAudioDeviceName(id)) return id;
+	}
+	return SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK;
+}
+#endif
+
 GraphicsOptions::GraphicsOptions()
     : OptionCategoryBase("Graphics", N_("Graphics"), N_("Graphics Settings"))
     , fullscreen("Fullscreen", OnlyIfSupportsWindowed | OptionEntryFlags::CantChangeInGame | OptionEntryFlags::RecreateUI, N_("Fullscreen"), N_("Display the game in windowed or fullscreen mode."), true)

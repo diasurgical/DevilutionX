@@ -36,16 +36,16 @@ jobs:
       uses: actions/cache@v4
       with:
         path: build
-        key: ${{ github.workflow }}-v3-${{ github.sha }}
-        restore-keys: ${{ github.workflow }}-v3-
+        key: ${{ github.workflow }}-v4-${{ github.sha }}
+        restore-keys: ${{ github.workflow }}-v4-
 
     # We specify `-DDEVILUTIONX_SYSTEM_BENCHMARK=OFF` to work around the following error:
     # lto1: fatal error: bytecode stream in file ‘/usr/lib/x86_64-linux-gnu/libbenchmark_main.a’ generated with LTO version 11.2 instead of the expected 11.3
     - name: Build tests
       run: |
-        cmake -S. -Bbuild -G Ninja -DUSE_SDL3=ON -DDEVILUTIONX_SYSTEM_SDL3=OFF -DDEVILUTIONX_STATIC_SDL3=ON -DDEVILUTIONX_SYSTEM_SDL_IMAGE=OFF -DNOSOUND=ON -DDEVILUTIONX_SYSTEM_BENCHMARK=OFF
+        cmake -S. -Bbuild -G Ninja -DUSE_SDL3=ON -DDEVILUTIONX_SYSTEM_SDL3=OFF -DDEVILUTIONX_STATIC_SDL3=ON -DDEVILUTIONX_SYSTEM_SDL_IMAGE=OFF -DDEVILUTIONX_SYSTEM_BENCHMARK=OFF
         wget -qnc https://github.com/diasurgical/devilutionx-assets/releases/download/v2/spawn.mpq -P build
-        cmake --build build -j $(nproc) --target text_render_integration_test
+        cmake --build build -j $(nproc)
 
     - name: Run tests
-      run: cd build && ctest -R 'TextRenderIntegrationTest' --output-on-failure
+      run: cd build && ctest --output-on-failure

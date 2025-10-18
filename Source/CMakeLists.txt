@@ -745,12 +745,17 @@ else()
   add_devilutionx_object_library(libdevilutionx_sound
     effects.cpp
     engine/sound.cpp
-    utils/push_aulib_decoder.cpp
     utils/soundsample.cpp
   )
+  if(NOT USE_SDL3)
+    target_sources(libdevilutionx_sound PRIVATE
+      utils/push_aulib_decoder.cpp)
+    target_link_dependencies(libdevilutionx_sound PUBLIC
+      SDL_audiolib::SDL_audiolib
+    )
+  endif()
   target_link_dependencies(libdevilutionx_sound PUBLIC
     DevilutionX::SDL
-    SDL_audiolib::SDL_audiolib
     fmt::fmt
     magic_enum::magic_enum
     tl
@@ -995,7 +1000,7 @@ if(NOT NONET)
   endif()
 endif()
 
-if(NOT NOSOUND)
+if(NOT NOSOUND AND NOT USE_SDL3)
   target_link_libraries(libdevilutionx PUBLIC SDL_audiolib::SDL_audiolib)
 endif()
 

@@ -195,7 +195,7 @@ else()
   add_subdirectory(3rdParty/libfmt)
 endif()
 
-if(NOT NOSOUND)
+if(NOT NOSOUND AND NOT USE_SDL3)
   if(NOT DEFINED DEVILUTIONX_SYSTEM_SDL_AUDIOLIB)
     find_package(SDL_audiolib QUIET)
     if(SDL_audiolib_FOUND)

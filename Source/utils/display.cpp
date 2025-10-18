@@ -177,6 +177,12 @@ const auto OptionChangeHandlerGrabInput = (GetOptions().Gameplay.grabInput.SetVa
 
 void UpdateAvailableResolutions()
 {
+#ifndef USE_SDL1
+	if ((SDL_WasInit(SDL_INIT_VIDEO) & SDL_INIT_VIDEO) == 0) {
+		// Called before the video subsystem has been initialized, no-op.
+		return;
+	}
+#endif
 	GraphicsOptions &graphicsOptions = GetOptions().Graphics;
 
 	std::vector<Size> sizes;
@@ -592,7 +598,7 @@ bool SpawnWindow(const char *lpWindowName)
 	atexit(SDL_VideoQuit); // Without this video mode is not restored after fullscreen.
 #else
 #ifdef USE_SDL3
-	int flags = SDL_WINDOW_HIGH_PIXEL_DENSITY;
+	SDL_WindowFlags flags = SDL_WINDOW_HIGH_PIXEL_DENSITY;
 #else
 	int flags = SDL_WINDOW_ALLOW_HIGHDPI;
 #endif
@@ -618,7 +624,7 @@ bool SpawnWindow(const char *lpWindowName)
 #if defined(DEVILUTIONX_DISPLAY_PIXELFORMAT)
 	SDL_DisplayMode nearestDisplayMode = GetNearestDisplayMode(windowSize, DEVILUTIONX_DISPLAY_PIXELFORMAT);
 #if USE_SDL3
-	if (SDL_SetWindowFullscreenMode(ghMainWnd, &nearestDisplayMode) != 0) ErrSdl();
+	if (!SDL_SetWindowFullscreenMode(ghMainWnd, &nearestDisplayMode)) ErrSdl();
 #else
 	if (SDL_SetWindowDisplayMode(ghMainWnd, &nearestDisplayMode) != 0) ErrSdl();
 #endif
@@ -810,18 +816,10 @@ void SetFullscreenMode()
 #endif
 	}
 
-	Uint32 flags = 0;
-	if (*GetOptions().Graphics.fullscreen) {
 #if USE_SDL3
-		flags = SDL_WINDOW_FULLSCREEN;
+	if (!SDL_SetWindowFullscreen(ghMainWnd, *GetOptions().Graphics.fullscreen)) ErrSdl();
 #else
-		flags = *GetOptions().Graphics.upscale ? SDL_WINDOW_FULLSCREEN_DESKTOP : SDL_WINDOW_FULLSCREEN;
-#endif
-	}
-#if USE_SDL3
-	if (!SDL_SetWindowFullscreen(ghMainWnd, flags)) ErrSdl();
-#else
-	if (SDL_SetWindowFullscreen(ghMainWnd, flags) != 0) ErrSdl();
+	if (SDL_SetWindowFullscreen(ghMainWnd, *GetOptions().Graphics.upscale ? SDL_WINDOW_FULLSCREEN_DESKTOP : SDL_WINDOW_FULLSCREEN) != 0) ErrSdl();
 #endif
 
 	if (!*GetOptions().Graphics.fullscreen) {
@@ -865,12 +863,11 @@ void ResizeWindow()
 	const bool upscaleChanged = *GetOptions().Graphics.upscale != (renderer != nullptr);
 	if (upscaleChanged && *GetOptions().Graphics.fullscreen) {
 #ifdef USE_SDL3
-		const Uint32 flags = SDL_WINDOW_FULLSCREEN;
+		if (!SDL_SetWindowFullscreen(ghMainWnd, *GetOptions().Graphics.fullscreen)) ErrSdl();
 #else
 		const Uint32 flags = *GetOptions().Graphics.upscale ? SDL_WINDOW_FULLSCREEN_DESKTOP : SDL_WINDOW_FULLSCREEN;
+		if (SDL_SetWindowFullscreen(ghMainWnd, flags) != 0) ErrSdl();
 #endif
-		if (SDL_SetWindowFullscreen(ghMainWnd, flags) != 0)
-			ErrSdl();
 		if (!*GetOptions().Graphics.fullscreen)
 			SDL_RestoreWindow(ghMainWnd); // Avoid window being maximized before resizing
 	}

@@ -14,6 +14,10 @@
 
 #ifdef USE_SDL3
 #include <SDL3/SDL_version.h>
+
+#ifndef NOSOUND
+#include <SDL3/SDL_audio.h>
+#endif
 #else
 #include <SDL_version.h>
 #endif
@@ -412,10 +416,17 @@ public:
 		return "";
 	}
 
+#ifdef USE_SDL3
+	[[nodiscard]] SDL_AudioDeviceID id() const;
+#endif
+
 private:
 	std::string_view GetDeviceName(size_t index) const;
 
 	std::string deviceName_;
+#ifdef USE_SDL3
+	SDL_AudioDeviceID deviceId_ = SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK;
+#endif
 };
 
 struct OptionCategoryBase {
