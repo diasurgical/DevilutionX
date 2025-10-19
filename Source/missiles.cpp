@@ -2005,8 +2005,14 @@ void AddMissileExplosion(Missile &missile, AddMissileParameter &parameter)
 
 void AddWeaponExplosion(Missile &missile, AddMissileParameter &parameter)
 {
-	missile.var2 = parameter.dst.x;
-	if (parameter.dst.x == 1)
+	bool isFireExplosion = parameter.dst.x == 1;
+
+	if (missile._midam > 0) {
+		DamageType damageType = isFireExplosion ? DamageType::Fire : DamageType::Lightning;
+		CheckMissileCol(missile, damageType, missile._midam, missile._midam, false, missile.position.tile, true);
+	}
+
+	if (isFireExplosion)
 		missile.setAnimation(MissileGraphicID::MagmaBallExplosion);
 	else
 		missile.setAnimation(MissileGraphicID::ChargedBolt);
@@ -3546,21 +3552,6 @@ void ProcessWeaponExplosion(Missile &missile)
 
 	missile.duration--;
 	const Player &player = Players[missile._misource];
-	int mind;
-	int maxd;
-	DamageType damageType;
-	if (missile.var2 == 1) {
-		// BUGFIX: damage of missile should be encoded in missile struct; player can be dead/have left the game before missile arrives.
-		mind = player._pIFMinDam;
-		maxd = player._pIFMaxDam;
-		damageType = DamageType::Fire;
-	} else {
-		// BUGFIX: damage of missile should be encoded in missile struct; player can be dead/have left the game before missile arrives.
-		mind = player._pILMinDam;
-		maxd = player._pILMaxDam;
-		damageType = DamageType::Lightning;
-	}
-	CheckMissileCol(missile, damageType, mind, maxd, false, missile.position.tile, false);
 	if (missile.var1 == 0) {
 		missile._mlid = AddLight(missile.position.tile, 9);
 	} else {
