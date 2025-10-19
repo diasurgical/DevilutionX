@@ -406,7 +406,7 @@ if(NOT USE_SDL1 AND NOT UWP_LIB)
 endif()
 
 if(BUILD_TESTING)
-  add_subdirectory(test)
+  include(Tests)
 endif()
 
 include(functions/set_relative_file_macro)

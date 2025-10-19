@@ -7,7 +7,7 @@ set_target_properties(libdevilutionx_so PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CM
 target_link_dependencies(libdevilutionx_so PUBLIC libdevilutionx)
 set_target_properties(libdevilutionx_so PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
-add_library(test_main OBJECT main.cpp)
+add_library(test_main OBJECT test/main.cpp)
 target_link_dependencies(test_main PUBLIC libdevilutionx_so GTest::gtest GTest::gmock)
 
 set(tests
@@ -65,10 +65,10 @@ set(benchmarks
   path_benchmark
 )
 
-include(Fixtures.cmake)
+include(test/Fixtures.cmake)
 
 foreach(test_target ${tests} ${standalone_tests} ${benchmarks})
-  add_executable(${test_target} "${test_target}.cpp")
+  add_executable(${test_target} "test/${test_target}.cpp")
   set_target_properties(${test_target} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
   if(GPERF)
     target_link_libraries(${test_target} PUBLIC ${GPERFTOOLS_LIBRARIES})
@@ -93,10 +93,10 @@ foreach(target ${benchmarks})
   target_include_directories(${target} PRIVATE "${PROJECT_SOURCE_DIR}/Source")
 endforeach()
 
-add_library(app_fatal_for_testing OBJECT app_fatal_for_testing.cpp)
+add_library(app_fatal_for_testing OBJECT test/app_fatal_for_testing.cpp)
 target_sources(app_fatal_for_testing INTERFACE $<TARGET_OBJECTS:app_fatal_for_testing>)
 
-add_library(language_for_testing OBJECT language_for_testing.cpp)
+add_library(language_for_testing OBJECT test/language_for_testing.cpp)
 target_sources(language_for_testing INTERFACE $<TARGET_OBJECTS:language_for_testing>)
 
 target_link_dependencies(codec_test PRIVATE libdevilutionx_codec app_fatal_for_testing)
@@ -166,7 +166,7 @@ if(DEVILUTIONX_SCREENSHOT_FORMAT STREQUAL DEVILUTIONX_SCREENSHOT_FORMAT_PNG AND 
       kerning_fit_spacing__align_right.png
       vertical_overflow.png
       vertical_overflow-colors.png
-    SRC_PREFIX fixtures/text_render_integration_test/
+    SRC_PREFIX test/fixtures/text_render_integration_test/
     OUTPUT_DIR "${DEVILUTIONX_TEST_FIXTURES_OUTPUT_DIRECTORY}/text_render_integration_test"
     OUTPUT_VARIABLE _text_render_integration_test_fixtures
   )
@@ -184,4 +184,4 @@ if(DEVILUTIONX_SCREENSHOT_FORMAT STREQUAL DEVILUTIONX_SCREENSHOT_FORMAT_PNG AND 
 endif()
 target_link_dependencies(utf8_test PRIVATE libdevilutionx_utf8)
 
-target_include_directories(writehero_test PRIVATE ../3rdParty/PicoSHA2)
+target_include_directories(writehero_test PRIVATE 3rdParty/PicoSHA2)

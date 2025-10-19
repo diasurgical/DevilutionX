@@ -1,7 +1,7 @@
 include(functions/copy_files)
 
 if(NOT DEFINED DEVILUTIONX_TEST_FIXTURES_OUTPUT_DIRECTORY)
-  set(DEVILUTIONX_TEST_FIXTURES_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/fixtures")
+  set(DEVILUTIONX_TEST_FIXTURES_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/test/fixtures")
 endif()
 
 set(devilutionx_fixtures
@@ -98,7 +98,7 @@ set(devilutionx_fixtures
 
 copy_files(
   FILES ${devilutionx_fixtures}
-  SRC_PREFIX fixtures/
+  SRC_PREFIX test/fixtures/
   OUTPUT_DIR "${DEVILUTIONX_TEST_FIXTURES_OUTPUT_DIRECTORY}"
   OUTPUT_VARIABLE DEVILUTIONX_OUTPUT_TEST_FIXTURES_FILES
 )
