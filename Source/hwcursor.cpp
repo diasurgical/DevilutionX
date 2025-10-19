@@ -46,6 +46,31 @@ enum class HotpointPosition : uint8_t {
 Size ScaledSize(Size size)
 {
 	if (renderer != nullptr) {
+#ifdef USE_SDL3
+		SDL_FRect logicalDstRect;
+		int logicalWidth;
+		int logicalHeight;
+		if (!SDL_GetRenderLogicalPresentation(renderer, &logicalWidth, &logicalHeight, /*mode=*/nullptr)) {
+			LogError("SDL_GetRenderOutputSize: {}", SDL_GetError());
+			SDL_ClearError();
+			return size;
+		}
+		if (!SDL_GetRenderLogicalPresentationRect(renderer, &logicalDstRect)) {
+			LogError("SDL_GetRenderLogicalPresentationRect: {}", SDL_GetError());
+			SDL_ClearError();
+			return size;
+		}
+		const float dispScale = SDL_GetWindowDisplayScale(ghMainWnd);
+		if (dispScale == 0.0F) {
+			LogError("SDL_GetWindowDisplayScale: {}", SDL_GetError());
+			SDL_ClearError();
+			return size;
+		}
+		const float scaleX = logicalDstRect.w / static_cast<float>(logicalWidth);
+		const float scaleY = logicalDstRect.h / static_cast<float>(logicalHeight);
+		size.width = static_cast<int>(static_cast<float>(size.width) * scaleX / dispScale);
+		size.height = static_cast<int>(static_cast<float>(size.height) * scaleY / dispScale);
+#else
 		float scaleX = 1.0F;
 		float scaleY = 1.0F;
 		if (!SDL_GetRenderScale(renderer, &scaleX, &scaleY)) {
@@ -54,6 +79,7 @@ Size ScaledSize(Size size)
 		}
 		size.width = static_cast<int>(size.width * scaleX);
 		size.height = static_cast<int>(size.height * scaleY);
+#endif
 	}
 	return size;
 }
