@@ -747,7 +747,11 @@ else()
     engine/sound.cpp
     utils/soundsample.cpp
   )
-  if(NOT USE_SDL3)
+  if(USE_SDL3)
+    target_link_dependencies(libdevilutionx_sound PUBLIC
+      SDL3_mixer::SDL3_mixer
+    )
+  else()
     target_sources(libdevilutionx_sound PRIVATE
       utils/push_aulib_decoder.cpp)
     target_link_dependencies(libdevilutionx_sound PUBLIC

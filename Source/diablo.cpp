@@ -9,6 +9,7 @@
 
 #ifdef USE_SDL3
 #include <SDL3/SDL_events.h>
+#include <SDL3/SDL_init.h>
 #include <SDL3/SDL_keycode.h>
 #else
 #include <SDL.h>

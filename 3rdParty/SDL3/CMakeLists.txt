@@ -16,7 +16,7 @@ include(functions/FetchContent_ExcludeFromAll_backport)
 include(FetchContent)
 
 FetchContent_Declare(SDL3
-  URL https://github.com/libsdl-org/SDL/releases/download/release-3.2.24/SDL3-3.2.24.tar.gz
-  URL_HASH SHA256=81cc0fc17e5bf2c1754eeca9af9c47a76789ac5efdd165b3b91cbbe4b90bfb76
+  URL https://github.com/libsdl-org/SDL/archive/02c4478f9364ac9ba8c0b157c01e47c2f059552c.tar.gz
+  URL_HASH SHA256=1c8e9369ef6c67b6ca4102cc957846966815de56924b24a8a28feeac344a506a
 )
 FetchContent_MakeAvailable_ExcludeFromAll(SDL3)

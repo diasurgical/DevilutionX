@@ -5,6 +5,10 @@
  */
 #include "gamemenu.h"
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_timer.h>
+#endif
+
 #include "cursor.h"
 #include "diablo_msg.hpp"
 #include "engine/backbuffer_state.hpp"

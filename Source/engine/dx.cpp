@@ -11,6 +11,7 @@
 #include <SDL3/SDL_rect.h>
 #include <SDL3/SDL_render.h>
 #include <SDL3/SDL_surface.h>
+#include <SDL3/SDL_timer.h>
 #include <SDL3/SDL_video.h>
 #else
 #include <SDL.h>
