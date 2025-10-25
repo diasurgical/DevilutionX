@@ -27,6 +27,7 @@
 #include "engine/size.hpp"
 #include "engine/surface.hpp"
 #include "utils/paths.h"
+#include "utils/png.h"
 #include "utils/sdl_compat.h"
 #include "utils/sdl_wrap.h"
 #include "utils/str_cat.hpp"
@@ -228,18 +229,6 @@ SDLPaletteUniquePtr LoadPalette()
 	return palette;
 }
 
-std::vector<std::byte> ReadFile(const std::string &path)
-{
-	SDL_IOStream *rwops = SDL_IOFromFile(path.c_str(), "rb");
-	std::vector<std::byte> result;
-	if (rwops == nullptr) return result;
-	const size_t size = static_cast<size_t>(SDL_GetIOSize(rwops));
-	result.resize(size);
-	SDL_ReadIO(rwops, result.data(), size);
-	SDL_CloseIO(rwops);
-	return result;
-}
-
 void DrawWithBorder(const Surface &out, const Rectangle &area, tl::function_ref<void(const Rectangle &)> fn)
 {
 	const uint8_t debugColor = PAL8_RED;
@@ -252,17 +241,11 @@ void DrawWithBorder(const Surface &out, const Rectangle &area, tl::function_ref<
 	    Size { area.size.width - 2, area.size.height - 2 } });
 }
 
-MATCHER_P(FileContentsEq, expectedPath,
-    StrCat(negation ? "doesn't have" : "has", " the same contents as ", ::testing::PrintToString(expectedPath)))
+bool MaybeUpdateExpected(const std::string &actualPath, const std::string &expectedPath)
 {
-	if (ReadFile(arg) != ReadFile(expectedPath)) {
-		if (UpdateExpected) {
-			CopyFileOverwrite(arg.c_str(), expectedPath.c_str());
-			std::clog << "⬆️ Updated expected file at " << expectedPath << std::endl;
-			return true;
-		}
-		return false;
-	}
+	if (!UpdateExpected) return false;
+	CopyFileOverwrite(actualPath.c_str(), expectedPath.c_str());
+	std::clog << "⬆️ Updated expected file at " << expectedPath << std::endl;
 	return true;
 }
 
@@ -307,7 +290,32 @@ TEST_P(TextRenderIntegrationTest, RenderAndCompareTest)
 	const tl::expected<void, std::string> result = WriteSurfaceToFilePng(out, actual);
 	ASSERT_TRUE(result.has_value()) << result.error();
 
-	EXPECT_THAT(actualPath, FileContentsEq(expectedPath));
+	// We compare pixels rather than PNG file contents because different
+	// versions of SDL may use different PNG encoders.
+	SDLSurfaceUniquePtr actualSurface { LoadPNG(actualPath.c_str()) };
+	ASSERT_NE(actualSurface, nullptr) << SDL_GetError();
+	SDLSurfaceUniquePtr expectedSurface { LoadPNG(expectedPath.c_str()) };
+	ASSERT_NE(expectedSurface, nullptr) << SDL_GetError();
+	ASSERT_NE(actualSurface->pixels, nullptr);
+	ASSERT_NE(expectedSurface->pixels, nullptr);
+
+	if ((actualSurface->h != expectedSurface->h || actualSurface->w != expectedSurface->w)
+	    && MaybeUpdateExpected(actualPath, expectedPath)) {
+		return;
+	}
+	ASSERT_EQ(actualSurface->h, expectedSurface->h);
+	ASSERT_EQ(actualSurface->w, expectedSurface->w);
+	for (int y = 0; y < expectedSurface->h; y++) {
+		for (int x = 0; x < expectedSurface->w; x++) {
+			const uint8_t actualPixel = reinterpret_cast<uint8_t *>(actualSurface->pixels)[y * actualSurface->pitch + x];
+			const uint8_t expectedPixel = reinterpret_cast<uint8_t *>(expectedSurface->pixels)[y * expectedSurface->pitch + x];
+			if (actualPixel != expectedPixel) {
+				if (MaybeUpdateExpected(actualPath, expectedPath)) return;
+				ASSERT_TRUE(false) << "Images are different at (" << x << ", " << y << ") "
+				                   << static_cast<int>(actualPixel) << " != " << static_cast<int>(expectedPixel);
+			}
+		}
+	}
 }
 
 INSTANTIATE_TEST_SUITE_P(GoldenTests, TextRenderIntegrationTest,
