@@ -2810,8 +2810,8 @@ void delta_monster_hp(const Monster &monster, const Player &player)
 		return;
 
 	DMonsterStr *pD = &GetDeltaLevel(player).monster[monster.getId()];
-	if (Swap32LE(pD->hitPoints) > monster.hitPoints)
-		pD->hitPoints = Swap32LE(monster.hitPoints);
+	if (SwapSigned32LE(pD->hitPoints) > monster.hitPoints)
+		pD->hitPoints = SwapSigned32LE(monster.hitPoints);
 }
 
 void delta_sync_monster(const TSyncMonster &monsterSync, uint8_t level)

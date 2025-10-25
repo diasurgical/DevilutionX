@@ -37,6 +37,11 @@ inline uint32_t Swap32LE(uint32_t val)
 #endif
 }
 
+inline int32_t SwapSigned32LE(int32_t val)
+{
+	return static_cast<int32_t>(Swap32LE(static_cast<uint32_t>(val)));
+}
+
 inline uint32_t Swap32BE(uint32_t val)
 {
 #ifdef USE_SDL3
