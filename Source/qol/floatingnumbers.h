@@ -12,8 +12,8 @@
 
 namespace devilution {
 
-void AddFloatingNumber(DamageType damageType, const Monster &monster, int damage);
-void AddFloatingNumber(DamageType damageType, const Player &player, int damage);
+void AddFloatingNumber(FloatingNumberType floatingNumberType, const Monster &monster, int damage);
+void AddFloatingNumber(FloatingNumberType floatingNumberType, const Player &player, int damage);
 void DrawFloatingNumbers(const Surface &out, Point viewPosition, Displacement offset);
 void ClearFloatingNumbers();
 
