@@ -130,6 +130,11 @@ public class DataActivity extends Activity {
 				(!fileManager.hasFile("spawn.mpq") || isDownloadingSpawn);
 	}
 
+	public void importData(View view) {
+		Intent intent = new Intent(this, ImportActivity.class);
+		startActivity(intent);
+	}
+
 	/**
 	 * Start downloading the shareware
 	 */
