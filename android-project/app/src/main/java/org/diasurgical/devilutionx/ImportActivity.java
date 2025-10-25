@@ -24,6 +24,7 @@ import java.util.Objects;
 public class ImportActivity extends Activity {
 
 	private static final int IMPORT_REQUEST_CODE = 0xD1AB70;
+	private boolean userConfirmed = false;
 
 	@RequiresApi(api = Build.VERSION_CODES.KITKAT)
 	@Override
@@ -36,11 +37,15 @@ public class ImportActivity extends Activity {
 		AlertDialog.Builder builder = new AlertDialog.Builder(this);
 		builder.setMessage(getString(R.string.import_data_info, externalFilesDir));
 		builder.setPositiveButton(R.string.ok_button, (dialog, which) -> {
+			this.userConfirmed = true;
 			Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
 			intent.addCategory(Intent.CATEGORY_OPENABLE);
 			intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
 			intent.setType("*/*");
 			startActivityForResult(intent, IMPORT_REQUEST_CODE);
+		});
+		builder.setOnDismissListener(dialog -> {
+			if (!this.userConfirmed && !isFinishing()) finish();
 		});
 
 		AlertDialog dialog = builder.create();
@@ -76,6 +81,8 @@ public class ImportActivity extends Activity {
 
 			AlertDialog dialog = builder.create();
 			dialog.show();
+		} else {
+			super.onBackPressed();
 		}
 	}
 

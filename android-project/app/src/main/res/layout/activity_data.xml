@@ -54,16 +54,37 @@
 		app:layout_constraintEnd_toEndOf="parent"
 		app:layout_constraintStart_toStartOf="parent" />
 
-	<Button
-		android:id="@+id/download_button"
-		android:layout_width="wrap_content"
+	<LinearLayout
+		android:id="@+id/import_buttons"
+		android:layout_width="0dp"
 		android:layout_height="wrap_content"
+		android:layout_marginStart="16dp"
 		android:layout_marginTop="16dp"
-		android:onClick="sendDownloadRequest"
-		android:text="@string/download_spawn"
+		android:layout_marginEnd="16dp"
+		android:gravity="center"
+		android:orientation="horizontal"
 		app:layout_constraintEnd_toEndOf="parent"
 		app:layout_constraintStart_toStartOf="parent"
-		app:layout_constraintTop_toBottomOf="@+id/spawn_guide" />
+		app:layout_constraintTop_toBottomOf="@+id/spawn_guide">
+
+		<Button
+			android:id="@+id/import_button"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:onClick="importData"
+			android:text="Import Data" />
+		<Space
+			android:layout_width="16dp"
+			android:layout_height="wrap_content" />
+
+		<Button
+			android:id="@+id/download_button"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:onClick="sendDownloadRequest"
+			android:text="@string/download_spawn" />
+
+	</LinearLayout>
 
 	<Button
 		android:id="@+id/check_data_button"
@@ -98,6 +119,9 @@
 		android:visibility="gone"
 		app:layout_constraintEnd_toEndOf="parent"
 		app:layout_constraintStart_toStartOf="parent"
-		app:layout_constraintTop_toBottomOf="@+id/download_button" />
+		app:layout_constraintTop_toBottomOf="@+id/import_buttons" />
+
+	<android.support.constraint.Group android:layout_width="wrap_content"
+		android:layout_height="wrap_content" />
 
 </android.support.constraint.ConstraintLayout>
