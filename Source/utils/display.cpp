@@ -432,19 +432,21 @@ void AdjustToScreenGeometry(Size windowSize)
 
 float GetDpiScalingFactor()
 {
-#ifdef USE_SDL1
-	return 1.0F;
-#else
+#ifdef USE_SDL3
+	const float dispScale = SDL_GetWindowDisplayScale(ghMainWnd);
+	if (dispScale == 0.0F) {
+		LogError("SDL_GetWindowDisplayScale: {}", SDL_GetError());
+		SDL_ClearError();
+		return 1.0F;
+	}
+	return dispScale;
+#elif !defined(USE_SDL1)
 	if (renderer == nullptr)
 		return 1.0F;
 
 	int renderWidth;
 	int renderHeight;
-#ifdef USE_SDL3
-	SDL_GetCurrentRenderOutputSize(renderer, &renderWidth, &renderHeight);
-#else
 	SDL_GetRendererOutputSize(renderer, &renderWidth, &renderHeight);
-#endif
 
 	int windowWidth;
 	int windowHeight;
@@ -454,6 +456,8 @@ float GetDpiScalingFactor()
 	const float vhfactor = static_cast<float>(renderHeight) / windowHeight;
 
 	return std::min(hfactor, vhfactor);
+#else
+	return 1.0F;
 #endif
 }
 
@@ -616,7 +620,11 @@ bool SpawnWindow(const char *lpWindowName)
 	}
 
 #ifdef USE_SDL3
-	ghMainWnd = SDL_CreateWindow(lpWindowName, windowSize.width, windowSize.height, flags);
+	if (*GetOptions().Graphics.upscale) {
+		if (!SDL_CreateWindowAndRenderer(lpWindowName, windowSize.width, windowSize.height, flags, &ghMainWnd, &renderer)) ErrSdl();
+	} else {
+		ghMainWnd = SDL_CreateWindow(lpWindowName, windowSize.width, windowSize.height, flags);
+	}
 #else
 	ghMainWnd = SDL_CreateWindow(lpWindowName, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, windowSize.width, windowSize.height, flags);
 #endif
@@ -687,14 +695,17 @@ void ReinitializeTexture()
 	if (renderer == nullptr)
 		return;
 
-	auto quality = StrCat(static_cast<int>(*GetOptions().Graphics.scaleQuality));
-
 #ifdef USE_SDL3
-	texture = SDLWrap::CreateTexture(renderer, DEVILUTIONX_DISPLAY_TEXTURE_FORMAT, SDL_TEXTUREACCESS_STREAMING, gnScreenWidth, gnScreenHeight);
-	if (quality == "nearest") {
-		SDL_SetTextureScaleMode(texture.get(), SDL_SCALEMODE_NEAREST);
+	if (!SDL_SetDefaultTextureScaleMode(renderer,
+	        *GetOptions().Graphics.scaleQuality == ScalingQuality::NearestPixel
+	            ? SDL_SCALEMODE_PIXELART
+	            : SDL_SCALEMODE_LINEAR)) {
+		Log("SDL_SetDefaultTextureScaleMode: {}", SDL_GetError());
+		SDL_ClearError();
 	}
+	texture = SDLWrap::CreateTexture(renderer, DEVILUTIONX_DISPLAY_TEXTURE_FORMAT, SDL_TEXTUREACCESS_STREAMING, gnScreenWidth, gnScreenHeight);
 #else
+	auto quality = StrCat(static_cast<int>(*GetOptions().Graphics.scaleQuality));
 	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, quality.c_str());
 	texture = SDLWrap::CreateTexture(renderer, DEVILUTIONX_DISPLAY_TEXTURE_FORMAT, SDL_TEXTUREACCESS_STREAMING, gnScreenWidth, gnScreenHeight);
 #endif
@@ -756,8 +767,6 @@ void ReinitializeRenderer()
 		SDL_RenderSetVSync(renderer, *GetOptions().Graphics.frameRateControl == FrameRateControl::VerticalSync ? 1 : 0);
 #endif
 
-		ReinitializeTexture();
-
 #ifdef USE_SDL3
 		if (!SDL_SetRenderLogicalPresentation(renderer, gnScreenWidth, gnScreenHeight,
 		        *GetOptions().Graphics.integerScaling
@@ -774,6 +783,8 @@ void ReinitializeRenderer()
 			ErrSdl();
 		}
 #endif
+
+		ReinitializeTexture();
 
 #ifdef USE_SDL3
 		RendererTextureSurface = SDLSurfaceUniquePtr { SDL_CreateSurface(gnScreenWidth, gnScreenHeight, texture->format) };

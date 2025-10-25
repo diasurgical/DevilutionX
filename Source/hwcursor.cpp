@@ -144,7 +144,7 @@ bool SetHardwareCursorFromSurface(SDL_Surface *surface, HotpointPosition hotpoin
 			    size.width, size.height, scaledSize.width, scaledSize.height);
 #endif
 #ifdef USE_SDL3
-			SDL_BlitSurfaceScaled(converted.get(), nullptr, scaledSurface.get(), nullptr, SDL_SCALEMODE_NEAREST);
+			SDL_BlitSurfaceScaled(converted.get(), nullptr, scaledSurface.get(), nullptr, SDL_SCALEMODE_PIXELART);
 #else
 			SDL_BlitScaled(converted.get(), nullptr, scaledSurface.get(), nullptr);
 #endif

@@ -243,28 +243,14 @@ void RenderPresent()
 #ifndef USE_SDL1
 	if (renderer != nullptr) {
 #ifdef USE_SDL3
-		if (!SDL_UpdateTexture(texture.get(), nullptr, surface->pixels, surface->pitch)) ErrSdl();
-#else
-		if (SDL_UpdateTexture(texture.get(), nullptr, surface->pixels, surface->pitch) <= -1) ErrSdl();
-#endif
-
-			// Clear buffer to avoid artifacts in case the window was resized
-			// TODO only do this if window was resized
-#ifdef USE_SDL3
 		if (!SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255)) ErrSdl();
-#else
-		if (SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255) <= -1) ErrSdl();
-#endif
-
-#ifdef USE_SDL3
 		if (!SDL_RenderClear(renderer)) ErrSdl();
-#else
-		if (SDL_RenderClear(renderer) <= -1) ErrSdl();
-#endif
-
-#ifdef USE_SDL3
+		if (!SDL_UpdateTexture(texture.get(), nullptr, surface->pixels, surface->pitch)) ErrSdl();
 		if (!SDL_RenderTexture(renderer, texture.get(), nullptr, nullptr)) ErrSdl();
 #else
+		if (SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255) <= -1) ErrSdl();
+		if (SDL_RenderClear(renderer) <= -1) ErrSdl();
+		if (SDL_UpdateTexture(texture.get(), nullptr, surface->pixels, surface->pitch) <= -1) ErrSdl();
 		if (SDL_RenderCopy(renderer, texture.get(), nullptr, nullptr) <= -1) ErrSdl();
 #endif
 
