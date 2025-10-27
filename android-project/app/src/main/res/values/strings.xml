@@ -13,6 +13,8 @@
 	<string name="shareware_data">Diablo Demo Data</string>
 	<string name="import_short_label">Import Data</string>
 	<string name="gamepad_tv_text">This game requires a gamepad to play</string>
+	<string name="no_file_browser">Please install a file explorer to select the files you want to import.</string>
+	<string name="recommended_file_browser">For Android TV, we recommend %1$s.</string>
 	<string name="import_data_info">On the next screen, select files that will be imported into:\n\n%1$s</string>
 	<string name="overwrite_query">The following files will be overwritten. Is this okay?\n\n%1$s</string>
 	<string name="ok_button">OK</string>
