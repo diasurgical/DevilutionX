@@ -42,7 +42,7 @@ jobs:
 
     - name: Upload-Package
       if: ${{ !env.ACT }}
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         path: devilutionx-windows-xp-32bit.zip
 

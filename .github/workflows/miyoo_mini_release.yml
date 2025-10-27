@@ -31,14 +31,14 @@ jobs:
 
     - name: Upload-OnionOS-Package
       if: ${{ !env.ACT }}
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: devilutionx-miyoo-mini-onion-os.zip
         path: build-miyoo-mini/devilutionx-miyoo-mini-onion-os.zip
 
     - name: Upload-miniUI-Package
       if: ${{ !env.ACT }}
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: devilutionx-miyoo-mini-miniui.zip
         path: build-miyoo-mini/devilutionx-miyoo-mini-miniui.zip

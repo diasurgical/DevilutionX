@@ -48,7 +48,7 @@ jobs:
 
     - name: Upload-Package
       if: ${{ !env.ACT }}
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: devilutionx-ps5.zip
         path: build-ps5/devilutionx-ps5.zip

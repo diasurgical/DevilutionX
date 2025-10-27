@@ -65,14 +65,14 @@ jobs:
 
     - name: Upload Package
       if: ${{ !env.ACT }}
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: devilutionx-x86_64-linux-gnu.tar.xz
         path: devilutionx-x86_64-linux-gnu.tar.xz
 
     - name: Upload AppImage
       if: ${{ !env.ACT }}
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: devilutionx-x86_64-linux-gnu.appimage
         path: devilutionx-x86_64-linux-gnu.appimage

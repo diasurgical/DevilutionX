@@ -66,7 +66,7 @@ jobs:
 
     - name: Upload Package
       if: ${{ !env.ACT }}
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: devilutionx-aarch64-linux-gnu.tar.xz
         path: devilutionx-aarch64-linux-gnu.tar.xz
@@ -74,7 +74,7 @@ jobs:
     # AppImage cross-packaging is not implemented yet.
     # - name: Upload AppImage
     #   if: ${{ !env.ACT }}
-    #   uses: actions/upload-artifact@v4
+    #   uses: actions/upload-artifact@v5
     #   with:
     #     name: devilutionx-aarch64-linux-gnu.appimage
     #     path: devilutionx-aarch64-linux-gnu.appimage

@@ -58,14 +58,14 @@ jobs:
 
       - name: Upload 3dsx Package
         if: ${{ !env.ACT }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: devilutionx.3dsx
           path: ./build/devilutionx.3dsx
 
       - name: Upload cia Package
         if: ${{ !env.ACT }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: devilutionx.cia
           path: ./build/devilutionx.cia

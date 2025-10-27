@@ -39,7 +39,7 @@ jobs:
 
     - name: Upload-Package
       if: ${{ !env.ACT }}
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: devilutionx-rg350.opk.zip
         path: build-rg350/devilutionx-rg350.opk
@@ -77,7 +77,7 @@ jobs:
 
     - name: Upload-Package
       if: ${{ !env.ACT }}
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: devilutionx-lepus.opk.zip
         path: build-lepus/devilutionx-lepus.opk

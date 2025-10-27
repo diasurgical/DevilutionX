@@ -54,7 +54,7 @@ jobs:
 
     - name: Upload-Package
       if: ${{ !env.ACT }}
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: devilutionx-debug.apk
         path: android-project/app/build/outputs/apk/debug/app-debug.apk
