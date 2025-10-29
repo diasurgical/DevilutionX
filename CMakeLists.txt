@@ -648,7 +648,7 @@ if(CPACK AND (APPLE OR BUILD_ASSETS_MPQ OR SRC_DIST))
     install(FILES "${DEVILUTIONX_MPQ}"
       DESTINATION "share/diasurgical/${project_name}"
     )
-    install(FILES "${PROJECT_SOURCE_DIR}/Packaging/resources/icon.png"
+    install(FILES "${PROJECT_SOURCE_DIR}/Packaging/resources/icon_flat.png"
       DESTINATION "share/icons/hicolor/512x512/apps"
       RENAME "${project_name}.png"
     )
