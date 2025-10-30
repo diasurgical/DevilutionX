@@ -579,11 +579,10 @@ bool PlrHitMonst(Player &player, Monster &monster, bool adjacentDamage = false)
 	}
 
 	ItemType phanditype = ItemType::None;
-	if (player.InvBody[INVLOC_HAND_LEFT]._itype == ItemType::Sword || player.InvBody[INVLOC_HAND_RIGHT]._itype == ItemType::Sword) {
-		phanditype = ItemType::Sword;
-	}
-	if (player.InvBody[INVLOC_HAND_LEFT]._itype == ItemType::Mace || player.InvBody[INVLOC_HAND_RIGHT]._itype == ItemType::Mace) {
-		phanditype = ItemType::Mace;
+	if (IsAnyOf(player.InvBody[INVLOC_HAND_RIGHT]._itype, ItemType::Sword, ItemType::Mace)) {
+		phanditype = player.InvBody[INVLOC_HAND_RIGHT]._itype;
+	} else if (IsAnyOf(player.InvBody[INVLOC_HAND_LEFT]._itype, ItemType::Sword, ItemType::Mace)) {
+		phanditype = player.InvBody[INVLOC_HAND_LEFT]._itype;
 	}
 
 	switch (monster.data().monsterClass) {
@@ -3498,6 +3497,11 @@ void PlayDungMsgs()
 bool TestPlayerDoGotHit(Player &player)
 {
 	return DoGotHit(player);
+}
+
+bool TestPlayerPlrHitMonst(Player &player, Monster &monster)
+{
+	return PlrHitMonst(player, monster);
 }
 #endif
 
