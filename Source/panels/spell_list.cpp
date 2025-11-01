@@ -82,6 +82,65 @@ std::optional<std::string_view> GetHotkeyName(SpellID spellId, SpellType spellTy
 
 } // namespace
 
+SpellID GetRuneSpellIdForDisplay(const Item &item, SpellID spellId)
+{
+	// Only used for display/counting, not assignment
+	switch (item._iMiscId) {
+	case IMISC_RUNEF:
+		return SpellID::RuneOfFire;
+	case IMISC_RUNEL:
+		return SpellID::RuneOfLight;
+	case IMISC_GR_RUNEL:
+		return SpellID::RuneOfNova;
+	case IMISC_GR_RUNEF:
+		return SpellID::RuneOfImmolation;
+	case IMISC_RUNES:
+		return SpellID::RuneOfStone;
+	default:
+		return SpellID::Invalid;
+	}
+}
+
+std::pair<std::string_view, int> GetRuneInfoStringAndCount(const devilution::Player &player, devilution::SpellID spellId)
+{
+	const Item *runeItem = nullptr;
+	for (const auto &item : InventoryAndBeltPlayerItemsRange { player }) {
+		if (GetRuneSpellIdForDisplay(item, spellId) == spellId) {
+			runeItem = &item;
+			break;
+		}
+	}
+	std::string_view runeName;
+	if (runeItem != nullptr) {
+		switch (runeItem->_iMiscId) {
+		case IMISC_GR_RUNEF:
+			runeName = _("Greater Rune of Fire");
+			break;
+		case IMISC_GR_RUNEL:
+			runeName = _("Greater Rune of Lightning");
+			break;
+		case IMISC_RUNEF:
+			runeName = _("Rune of Fire");
+			break;
+		case IMISC_RUNEL:
+			runeName = _("Rune of Lightning");
+			break;
+		case IMISC_RUNES:
+			runeName = _("Rune of Stone");
+			break;
+		default:
+			runeName = _("Rune");
+			break;
+		}
+	} else {
+		runeName = _("Rune");
+	}
+	const int runeCount = c_count_if(InventoryAndBeltPlayerItemsRange { player }, [spellId](const Item &item) {
+		return GetRuneSpellIdForDisplay(item, spellId) == spellId;
+	});
+	return { runeName, runeCount };
+}
+
 void DrawSpell(const Surface &out)
 {
 	const Player &myPlayer = *MyPlayer;
@@ -186,6 +245,13 @@ void DrawSpellList(const Surface &out)
 			int charges = myPlayer.InvBody[INVLOC_HAND_LEFT]._iCharges;
 			AddInfoBoxString(fmt::format(fmt::runtime(ngettext("{:d} Charge", "{:d} Charges", charges)), charges));
 		} break;
+		case SpellType::Rune: {
+			spellColor = PAL16_YELLOW + 2;
+			auto [runeName, runeCount] = GetRuneInfoStringAndCount(myPlayer, spellId);
+			PrintSBookSpellType(out, spellListItem.location, _("Rune"), spellColor);
+			InfoString = runeName; // Only show the item name
+			AddInfoBoxString(fmt::format(fmt::runtime(ngettext("{:d} Rune", "{:d} Runes", runeCount)), runeCount));
+		} break;
 		case SpellType::Invalid:
 			break;
 		}
@@ -220,6 +286,9 @@ std::vector<SpellListItem> GetSpellListItems()
 			break;
 		case SpellType::Charges:
 			mask = myPlayer._pISpells;
+			break;
+		case SpellType::Rune:
+			mask = myPlayer._pRuneSpells;
 			break;
 		default:
 			continue;
@@ -313,6 +382,9 @@ bool IsValidSpeedSpell(size_t slot)
 		break;
 	case SpellType::Charges:
 		spells = myPlayer._pISpells;
+		break;
+	case SpellType::Rune:
+		spells = myPlayer._pRuneSpells;
 		break;
 	case SpellType::Invalid:
 		return false;
