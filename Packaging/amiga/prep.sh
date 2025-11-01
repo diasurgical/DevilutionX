@@ -23,7 +23,7 @@ cd deps
 # SDL1.2
 wget https://github.com/AmigaPorts/libSDL12/archive/update.tar.gz -O SDL-1.2.tar.gz
 tar -xvf SDL-1.2.tar.gz
-cd libSDL12-master
+cd libSDL12-update
 make PREFX=${SYSROOT} PREF=${SYSROOT} -j"$PARALLELISM"
 mkdir -p ${SYSROOT}/usr/lib
 mkdir -p ${SYSROOT}/usr/include
