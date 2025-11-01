@@ -946,7 +946,7 @@ int CalcStatDiff(Player &player);
 void NextPlrLevel(Player &player);
 #endif
 void AddPlrMonstExper(int lvl, unsigned int exp, char pmask);
-void ApplyPlrDamage(DamageType damageType, Player &player, int dam, int minHP = 0, int frac = 0, DeathReason deathReason = DeathReason::MonsterOrTrap);
+void ApplyPlrDamage(FloatingNumberType floatingNumberType, Player &player, int dam, int minHP = 0, int frac = 0, DeathReason deathReason = DeathReason::MonsterOrTrap);
 void InitPlayer(Player &player, bool FirstTime);
 void InitMultiView();
 void PlrClrTrans(Point position);

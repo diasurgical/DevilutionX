@@ -25,12 +25,13 @@ enum mienemy_type : uint8_t {
 	TARGET_BOTH,
 };
 
-enum class DamageType : uint8_t {
+enum class FloatingNumberType : uint8_t {
 	Physical,
 	Fire,
 	Lightning,
 	Magic,
 	Acid,
+	Exp,
 };
 
 enum class MissileGraphicID : uint8_t {
@@ -118,12 +119,12 @@ struct Missile;
 struct AddMissileParameter;
 
 enum class MissileDataFlags : uint8_t {
-	// The lower 3 bytes are used to store DamageType.
-	Physical = static_cast<uint8_t>(DamageType::Physical),
-	Fire = static_cast<uint8_t>(DamageType::Fire),
-	Lightning = static_cast<uint8_t>(DamageType::Lightning),
-	Magic = static_cast<uint8_t>(DamageType::Magic),
-	Acid = static_cast<uint8_t>(DamageType::Acid),
+	// The lower 3 bytes are used to store FloatingNumberType.
+	Physical = static_cast<uint8_t>(FloatingNumberType::Physical),
+	Fire = static_cast<uint8_t>(FloatingNumberType::Fire),
+	Lightning = static_cast<uint8_t>(FloatingNumberType::Lightning),
+	Magic = static_cast<uint8_t>(FloatingNumberType::Magic),
+	Acid = static_cast<uint8_t>(FloatingNumberType::Acid),
 	Arrow = 1 << 4,
 	Invisible = 1 << 5,
 };
@@ -193,9 +194,9 @@ struct MissileData {
 		return HasAnyOf(flags, MissileDataFlags::Arrow);
 	}
 
-	[[nodiscard]] DamageType damageType() const
+	[[nodiscard]] FloatingNumberType floatingNumberType() const
 	{
-		return static_cast<DamageType>(static_cast<std::underlying_type<MissileDataFlags>::type>(flags) & 0b111U);
+		return static_cast<FloatingNumberType>(static_cast<std::underlying_type<MissileDataFlags>::type>(flags) & 0b111U);
 	}
 };
 
