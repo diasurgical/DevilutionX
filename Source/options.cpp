@@ -12,6 +12,7 @@
 #define SI_NO_CONVERSION
 #include <SimpleIni.h>
 
+#include "bannedwords.hpp"
 #include "control.h"
 #include "controls/controller.h"
 #include "controls/game_controls.h"
@@ -375,6 +376,8 @@ void LoadOptions()
 
 	if (demo::IsRunning())
 		demo::OverrideOptions();
+
+	LoadBannedWords();
 }
 
 void SaveOptions()
