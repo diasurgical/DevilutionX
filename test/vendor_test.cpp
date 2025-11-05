@@ -198,10 +198,11 @@ TEST_F(VendorTest, SmithGenHf)
 
 TEST_F(VendorTest, PremiumQlvl)
 {
-	constexpr int QLVLS[3][NumSmithItems] = {
+	constexpr int QLVLS[4][NumSmithItems] = {
 		{  1,  1,  1,  1,  2,  3 },
 		{  4,  4,  5,  5,  6,  7 },
-		{ 24, 24, 25, 25, 26, 27 }
+		{ 24, 24, 25, 25, 26, 27 },
+		{ 30, 30, 30, 30, 30, 30 }
 	};
 
 	// Create level 1 character
@@ -254,15 +255,62 @@ TEST_F(VendorTest, PremiumQlvl)
 		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, QLVLS[2][i]) << "Index: " << i;
 		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatch(i), PremiumTypeMatch(i)));
 	}
+
+	// Clear global state
+	for (int i = 0; i < NumSmithItems; i++) {
+		PremiumItems[i].clear();
+	}
+	PremiumItemLevel = 1;
+
+	// Finally test level 30+ characters
+	MyPlayer->setCharacterLevel(31);
+	SpawnPremium(*MyPlayer);
+	for (int i = 0; i < NumSmithItems; i++) {
+		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, QLVLS[3][i]) << "Index: " << i;
+		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatch(i), PremiumTypeMatch(i)));
+	}
+
+	// Test buying select items
+	PremiumItems[0].clear();
+	PremiumItems[3].clear();
+	PremiumItems[5].clear();
+	PremiumItemCount -= 3;
+	SpawnPremium(*MyPlayer);
+	for (int i = 0; i < NumSmithItems; i++) {
+		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, QLVLS[3][i]) << "Index: " << i;
+		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatch(i), PremiumTypeMatch(i)));
+	}
+
+	// Test 30+ levelling
+	MyPlayer->setCharacterLevel(35);
+	SpawnPremium(*MyPlayer);
+	for (int i = 0; i < NumSmithItems; i++) {
+		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, QLVLS[3][i]) << "Index: " << i;
+		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatch(i), PremiumTypeMatch(i)));
+	}
+
+	// Test buying select items
+	PremiumItems[0].clear();
+	PremiumItems[3].clear();
+	PremiumItems[5].clear();
+	PremiumItemCount -= 3;
+	SpawnPremium(*MyPlayer);
+	for (int i = 0; i < NumSmithItems; i++) {
+		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, QLVLS[3][i]) << "Index: " << i;
+		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatch(i), PremiumTypeMatch(i)));
+	}
 }
 
 TEST_F(VendorTest, PremiumQlvlHf)
 {
-	constexpr int QLVLS[4][NumSmithItemsHf] = {
+	constexpr int QLVLS[7][NumSmithItemsHf] = {
 		{ 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 4, 4 },
 		{ 3, 3, 4, 4, 4, 4, 5, 5, 5, 6, 6, 6, 7, 7, 8 },
 		{ 23, 23, 23, 24, 24, 24, 25, 25, 25, 26, 26, 26, 27, 27, 28 },
-		{ 24, 23, 23, 24, 24, 24, 25, 26, 25, 26, 26, 26, 27, 27, 28 }
+		{ 24, 23, 23, 24, 24, 24, 25, 26, 25, 26, 26, 26, 27, 27, 28 },
+		{ 29, 29, 29, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30 },
+		{ 30, 29, 29, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30 },
+		{ 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30 }
 	};
 
 	// Create level 1 character
@@ -313,6 +361,50 @@ TEST_F(VendorTest, PremiumQlvlHf)
 	SpawnPremium(*MyPlayer);
 	for (int i = 0; i < NumSmithItemsHf; i++) {
 		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, QLVLS[3][i]) << "Index: " << i;
+		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatchHf(i), PremiumTypeMatch(i)));
+	}
+
+	// Clear global state
+	for (int i = 0; i < NumSmithItemsHf; i++) {
+		PremiumItems[i].clear();
+	}
+	PremiumItemLevel = 1;
+
+	// Finally test level 30+ characters
+	MyPlayer->setCharacterLevel(31);
+	SpawnPremium(*MyPlayer);
+	for (int i = 0; i < NumSmithItemsHf; i++) {
+		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, QLVLS[4][i]) << "Index: " << i;
+		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatchHf(i), PremiumTypeMatch(i)));
+	}
+
+	// Test buying select items
+	PremiumItems[0].clear();
+	PremiumItems[7].clear();
+	PremiumItems[14].clear();
+	PremiumItemCount -= 3;
+	SpawnPremium(*MyPlayer);
+	for (int i = 0; i < NumSmithItemsHf; i++) {
+		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, QLVLS[5][i]) << "Index: " << i;
+		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatchHf(i), PremiumTypeMatch(i)));
+	}
+
+	// Test 30+ levelling
+	MyPlayer->setCharacterLevel(35);
+	SpawnPremium(*MyPlayer);
+	for (int i = 0; i < NumSmithItems; i++) {
+		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, QLVLS[6][i]) << "Index: " << i;
+		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatchHf(i), PremiumTypeMatch(i)));
+	}
+
+	// Test buying select items
+	PremiumItems[0].clear();
+	PremiumItems[7].clear();
+	PremiumItems[14].clear();
+	PremiumItemCount -= 3;
+	SpawnPremium(*MyPlayer);
+	for (int i = 0; i < NumSmithItems; i++) {
+		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, QLVLS[6][i]) << "Index: " << i;
 		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatchHf(i), PremiumTypeMatch(i)));
 	}
 }
