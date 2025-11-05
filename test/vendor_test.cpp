@@ -1,13 +1,13 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include "init.h"
 #include "items.h"
 #include "player.h"
 #include "playerdat.hpp"
 #include "stores.h"
 
 #include "engine/random.hpp"
+#include "engine/assets.hpp"
 
 namespace devilution {
 namespace {
@@ -144,36 +144,41 @@ std::string misctype_str(item_misc_id type)
 	return MISC_TYPES[static_cast<int>(type)];
 }
 
-int test_premium_qlvl(int *qlvls, int n_qlvls, int clvl, int plvl, bool hf)
+int test_premium_qlvl(int *qlvls, int n_premiums, int clvl, bool hf)
 {
-	constexpr int QLVL_DELTAS[] = { -1, -1, 0, 0, 1, 2 };
-	constexpr int QLVL_DELTAS_HF[] = { -1, -1, -1, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 3, 3 };
+	constexpr int QLVL_DELTAS[3][NumSmithItems] = {
+		{ -1, -1, 0, 0, 1, 2 },
+		{ 0, 0, 0, 0, 1, 2 },
+		{ -1, -1, 0, 0, 1, 2 }
+	};
+	constexpr int QLVL_DELTAS_HF[7][NumSmithItemsHf] = {
+		{ -1, -1, -1, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 3, 3 },
+		{ 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 3, 3 },
+		{ -1, -1, -1, -1, 0, 0, 0, 0, 1, 1, 1, 2, 2, 2, 3 },
+		{ -2, -1, -1, -1, -1, 0, 0, 0, 1, 1, 1, 1, 2, 2, 3 },
+		{ -2, -2, -1, -1, -1, 0, 0, 0, 0, 1, 1, 1, 2, 2, 3 },
+		{ -2, -2, -1, -1, -1, -1, 0, 0, 0, 1, 1, 1, 2, 2, 3 },
+		{ -2, -2, -2, -1, -1, -1, 0, 0, 0, 1, 1, 1, 2, 2, 3 }
+	};
 
-	for (int i = 0; i < n_qlvls; i++) {
-		if (qlvls[i] == 0) {
-			qlvls[i] = clvl + (hf ? QLVL_DELTAS_HF[i] : QLVL_DELTAS[i]);
-			qlvls[i] = qlvls[i] < 1 ? 1 : qlvls[i];
-		}
+	int index = clvl;
+
+	if (hf) {
+		index = clvl >= 6 ? 6 : clvl;
+	} else {
+		index = clvl >= 2 ? 2 : clvl;
 	}
 
-	while (plvl < clvl) {
-		plvl++;
-		if (hf) {
-			std::move(qlvls + 3, qlvls + 13, qlvls);
-			qlvls[11] = qlvls[13];
-			qlvls[13] = qlvls[14];
-			qlvls[10] = QLVL_DELTAS_HF[10] + plvl;
-			qlvls[12] = QLVL_DELTAS_HF[12] + plvl;
-			qlvls[14] = QLVL_DELTAS_HF[14] + plvl;
+	for (int i = 0; i < n_premiums; i++) {
+		if (hf && qlvls[i] == 0) {
+			qlvls[i] = clvl + (hf ? QLVL_DELTAS_HF[0][i] : QLVL_DELTAS[index][i]);;
 		} else {
-			std::move(qlvls + 2, qlvls + 5, qlvls);
-			qlvls[4] = qlvls[5];
-			qlvls[3] = QLVL_DELTAS[3] + plvl;
-			qlvls[5] = QLVL_DELTAS[5] + plvl;
+			qlvls[i] = clvl + (hf ? QLVL_DELTAS_HF[index][i] : QLVL_DELTAS[index][i]);
 		}
+		qlvls[i] = qlvls[i] < 1 ? 1 : qlvls[i];
 	}
 
-	return plvl;
+	return clvl;
 }
 
 TEST_F(VendorTest, SmithGen)
@@ -231,7 +236,6 @@ TEST_F(VendorTest, SmithGenHf)
 TEST_F(VendorTest, PremiumQlvl)
 {
 	int qlvls[NumSmithItems] = {};
-	int plvl = 1;
 
 	// Create level 1 character
 	CreatePlayer(*MyPlayer, HeroClass::Warrior);
@@ -246,7 +250,7 @@ TEST_F(VendorTest, PremiumQlvl)
 	// Test level 1 character item qlvl
 	SetRndSeed(SEED);
 	SpawnPremium(*MyPlayer);
-	plvl = test_premium_qlvl(qlvls, NumSmithItems, MyPlayer->getCharacterLevel(), 1, gbIsHellfire);
+	test_premium_qlvl(qlvls, PremiumItemCount, MyPlayer->getCharacterLevel(), gbIsHellfire);
 	for (int i = 0; i < NumSmithItems; i++) {
 		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, qlvls[i]) << "Index: " << i;
 		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatch(i), PremiumTypeMatch(i)));
@@ -255,7 +259,7 @@ TEST_F(VendorTest, PremiumQlvl)
 	// Test level ups
 	MyPlayer->setCharacterLevel(5);
 	SpawnPremium(*MyPlayer);
-	test_premium_qlvl(qlvls, NumSmithItems, MyPlayer->getCharacterLevel(), plvl, gbIsHellfire);
+	test_premium_qlvl(qlvls, PremiumItemCount, MyPlayer->getCharacterLevel(), gbIsHellfire);
 	for (int i = 0; i < NumSmithItems; i++) {
 		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, qlvls[i]) << "Index: " << i;
 		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatch(i), PremiumTypeMatch(i)));
@@ -270,7 +274,7 @@ TEST_F(VendorTest, PremiumQlvl)
 	// Test starting game as a level 25 character
 	MyPlayer->setCharacterLevel(25);
 	SpawnPremium(*MyPlayer);
-	plvl = test_premium_qlvl(qlvls, NumSmithItems, MyPlayer->getCharacterLevel(), 1, gbIsHellfire);
+	test_premium_qlvl(qlvls, PremiumItemCount, MyPlayer->getCharacterLevel(), gbIsHellfire);
 	for (int i = 0; i < NumSmithItems; i++) {
 		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, qlvls[i]) << "Index: " << i;
 		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatch(i), PremiumTypeMatch(i)));
@@ -286,7 +290,7 @@ TEST_F(VendorTest, PremiumQlvl)
 	PremiumItems[5].clear();
 	PremiumItemCount -= 3;
 	SpawnPremium(*MyPlayer);
-	test_premium_qlvl(qlvls, NumSmithItems, MyPlayer->getCharacterLevel(), plvl, gbIsHellfire);
+	test_premium_qlvl(qlvls, PremiumItemCount, MyPlayer->getCharacterLevel(), gbIsHellfire);
 	for (int i = 0; i < NumSmithItems; i++) {
 		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, qlvls[i]) << "Index: " << i;
 		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatch(i), PremiumTypeMatch(i)));
@@ -296,7 +300,6 @@ TEST_F(VendorTest, PremiumQlvl)
 TEST_F(VendorTest, PremiumQlvlHf)
 {
 	int qlvls[NumSmithItemsHf] = {};
-	int plvl = 1;
 
 	// Create level 1 character
 	CreatePlayer(*MyPlayer, HeroClass::Warrior);
@@ -311,7 +314,7 @@ TEST_F(VendorTest, PremiumQlvlHf)
 	// Test level 1 character item qlvl
 	SetRndSeed(SEED);
 	SpawnPremium(*MyPlayer);
-	plvl = test_premium_qlvl(qlvls, NumSmithItemsHf, MyPlayer->getCharacterLevel(), 1, gbIsHellfire);
+	test_premium_qlvl(qlvls, PremiumItemCount, MyPlayer->getCharacterLevel(), gbIsHellfire);
 	for (int i = 0; i < NumSmithItemsHf; i++) {
 		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, qlvls[i]) << "Index: " << i;
 		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatchHf(i), PremiumTypeMatch(i)));
@@ -320,7 +323,7 @@ TEST_F(VendorTest, PremiumQlvlHf)
 	// Test level ups
 	MyPlayer->setCharacterLevel(5);
 	SpawnPremium(*MyPlayer);
-	test_premium_qlvl(qlvls, NumSmithItemsHf, MyPlayer->getCharacterLevel(), plvl, gbIsHellfire);
+	test_premium_qlvl(qlvls, PremiumItemCount, MyPlayer->getCharacterLevel(), gbIsHellfire);
 	for (int i = 0; i < NumSmithItemsHf; i++) {
 		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, qlvls[i]) << "Index: " << i;
 		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatchHf(i), PremiumTypeMatch(i)));
@@ -335,7 +338,7 @@ TEST_F(VendorTest, PremiumQlvlHf)
 	// Test starting game as a level 25 character
 	MyPlayer->setCharacterLevel(25);
 	SpawnPremium(*MyPlayer);
-	plvl = test_premium_qlvl(qlvls, NumSmithItemsHf, MyPlayer->getCharacterLevel(), 1, gbIsHellfire);
+	test_premium_qlvl(qlvls, PremiumItemCount, MyPlayer->getCharacterLevel(), gbIsHellfire);
 	for (int i = 0; i < NumSmithItemsHf; i++) {
 		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, qlvls[i]) << "Index: " << i;
 		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatchHf(i), PremiumTypeMatch(i)));
@@ -350,7 +353,7 @@ TEST_F(VendorTest, PremiumQlvlHf)
 	PremiumItems[14].clear();
 	PremiumItemCount -= 3;
 	SpawnPremium(*MyPlayer);
-	test_premium_qlvl(qlvls, NumSmithItemsHf, MyPlayer->getCharacterLevel(), plvl, gbIsHellfire);
+	test_premium_qlvl(qlvls, PremiumItemCount, MyPlayer->getCharacterLevel(), gbIsHellfire);
 	for (int i = 0; i < NumSmithItemsHf; i++) {
 		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, qlvls[i]) << "Index: " << i;
 		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatchHf(i), PremiumTypeMatch(i)));
