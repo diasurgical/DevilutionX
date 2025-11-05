@@ -81,6 +81,8 @@ public:
 		Players.resize(1);
 		MyPlayer = &Players[0];
 		gbIsHellfire = false;
+		CreatePlayer(*MyPlayer, HeroClass::Warrior);
+		SetRndSeed(SEED);
 	}
 
 	static void SetUpTestSuite()
@@ -146,7 +148,6 @@ std::string misctype_str(item_misc_id type)
 
 TEST_F(VendorTest, SmithGen)
 {
-	CreatePlayer(*MyPlayer, HeroClass::Warrior);
 	MyPlayer->setCharacterLevel(25);
 
 	// Clear global state for test, and force Diablo game mode
@@ -172,7 +173,6 @@ TEST_F(VendorTest, SmithGen)
 
 TEST_F(VendorTest, SmithGenHf)
 {
-	CreatePlayer(*MyPlayer, HeroClass::Warrior);
 	MyPlayer->setCharacterLevel(25);
 
 	// Clear global state for test, and force Hellfire game mode
@@ -413,7 +413,6 @@ TEST_F(VendorTest, WitchGen)
 {
 	constexpr _item_indexes PINNED_ITEMS[] = { IDI_MANA, IDI_FULLMANA, IDI_PORTAL };
 
-	CreatePlayer(*MyPlayer, HeroClass::Warrior);
 	MyPlayer->setCharacterLevel(25);
 
 	// Clear global state for test, and force Diablo game mode
@@ -451,13 +450,13 @@ TEST_F(VendorTest, WitchGenHf)
 	constexpr _item_indexes PINNED_ITEMS[] = { IDI_MANA, IDI_FULLMANA, IDI_PORTAL };
 	constexpr int MAX_PINNED_BOOKS = 4;
 
-	CreatePlayer(*MyPlayer, HeroClass::Warrior);
+	MyPlayer->setCharacterLevel(25);
+	gbIsHellfire = true;
 
 	// Clear global state for test, and force Hellfire game mode
 	for (int i = 0; i < NumWitchItemsHf; i++) {
 		WitchItems[i].clear();
 	}
-	gbIsHellfire = true;
 
 	SetRndSeed(SEED);
 	SpawnWitch(16);
@@ -491,7 +490,6 @@ TEST_F(VendorTest, HealerGen)
 {
 	constexpr _item_indexes PINNED_ITEMS[] = { IDI_HEAL, IDI_FULLHEAL, IDI_RESURRECT };
 
-	CreatePlayer(*MyPlayer, HeroClass::Warrior);
 	MyPlayer->setCharacterLevel(25);
 
 	// Clear global state for test, and force Diablo game mode
@@ -524,7 +522,6 @@ TEST_F(VendorTest, HealerGenHf)
 {
 	constexpr _item_indexes PINNED_ITEMS[] = { IDI_HEAL, IDI_FULLHEAL, IDI_RESURRECT };
 
-	CreatePlayer(*MyPlayer, HeroClass::Warrior);
 	MyPlayer->setCharacterLevel(25);
 
 	// Clear global state for test, and force Hellfire game mode
