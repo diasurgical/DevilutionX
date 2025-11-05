@@ -6,8 +6,8 @@
 #include "playerdat.hpp"
 #include "stores.h"
 
-#include "engine/random.hpp"
 #include "engine/assets.hpp"
+#include "engine/random.hpp"
 
 namespace devilution {
 namespace {
@@ -251,7 +251,7 @@ TEST_F(VendorTest, PremiumQlvl25)
 
 TEST_F(VendorTest, PremiumQlvl30Plus)
 {
-	constexpr int QLVLS[] =  { 30, 30, 30, 30, 30, 30 };
+	constexpr int QLVLS[] = { 30, 30, 30, 30, 30, 30 };
 
 	for (int i = 0; i < NumSmithItems; i++) {
 		PremiumItems[i].clear();
