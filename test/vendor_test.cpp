@@ -156,7 +156,6 @@ TEST_F(VendorTest, SmithGen)
 	}
 	gbIsHellfire = false;
 
-	SetRndSeed(SEED);
 	SpawnSmith(16);
 
 	SetRndSeed(SEED);
@@ -181,7 +180,6 @@ TEST_F(VendorTest, SmithGenHf)
 	}
 	gbIsHellfire = true;
 
-	SetRndSeed(SEED);
 	SpawnSmith(16);
 
 	SetRndSeed(SEED);
@@ -419,7 +417,6 @@ TEST_F(VendorTest, WitchGen)
 	}
 	gbIsHellfire = false;
 
-	SetRndSeed(SEED);
 	SpawnWitch(16);
 
 	SetRndSeed(SEED);
@@ -456,7 +453,6 @@ TEST_F(VendorTest, WitchGenHf)
 		WitchItems[i].clear();
 	}
 
-	SetRndSeed(SEED);
 	SpawnWitch(16);
 
 	SetRndSeed(SEED);
@@ -496,7 +492,6 @@ TEST_F(VendorTest, HealerGen)
 	}
 	gbIsHellfire = false;
 
-	SetRndSeed(SEED);
 	SpawnHealer(16);
 
 	SetRndSeed(SEED);
@@ -528,7 +523,6 @@ TEST_F(VendorTest, HealerGenHf)
 	}
 	gbIsHellfire = true;
 
-	SetRndSeed(SEED);
 	SpawnHealer(16);
 
 	SetRndSeed(SEED);
