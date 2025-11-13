@@ -760,7 +760,7 @@ bool TryGrowWall(int id, MissileID type, Point position, Direction growDirection
 	case Direction::South:
 	case Direction::West:
 	case Direction::North:
-	case Direction::East:
+	case Direction::East: {
 		Point gapPos = position + Displacement(Right(growDirection)) - Displacement(growDirection);
 		if (CanPlaceWall(gapPos)) {
 			Missile *missile = PlaceWall(id, type, gapPos, direction, spellLevel, damage);
@@ -773,6 +773,9 @@ bool TryGrowWall(int id, MissileID type, Point position, Direction growDirection
 				assert(gapPos == missile->position.tile); // Check that the tile we checked against (CanPlaceWall) didn't change
 			}
 		}
+		break;
+	}
+	default:
 		break;
 	}
 
