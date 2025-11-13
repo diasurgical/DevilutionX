@@ -789,7 +789,7 @@ void GameEventHandler(const SDL_Event &event, uint16_t modState)
 		return;
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 	case SDL_EVENT_MOUSE_WHEEL:
-		if (SDLC_EventWheelIntY(event)) { // Up
+		if (SDLC_EventWheelIntY(event) > 0) { // Up
 			if (IsPlayerInStore()) {
 				StoreUp();
 			} else if (QuestLogIsOpen) {
@@ -807,7 +807,7 @@ void GameEventHandler(const SDL_Event &event, uint16_t modState)
 			} else {
 				KeymapperPress(MouseScrollUpButton);
 			}
-		} else if (SDLC_EventWheelIntY(event)) { // down
+		} else if (SDLC_EventWheelIntY(event) < 0) { // down
 			if (IsPlayerInStore()) {
 				StoreDown();
 			} else if (QuestLogIsOpen) {
@@ -3471,3 +3471,4 @@ void PrintScreen(SDL_Keycode vkey)
 }
 
 } // namespace devilution
+
