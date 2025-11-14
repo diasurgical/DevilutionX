@@ -988,7 +988,7 @@ msgstr "Registro de Misiones"
 
 #: Source/control.cpp:222
 msgid "Automap"
-msgstr "Mapa"
+msgstr "Automapa"
 
 #: Source/control.cpp:223
 msgid "Main Menu"
@@ -1090,7 +1090,7 @@ msgstr "<número-arena>"
 
 #: Source/control.cpp:816
 msgid "Gives Arena Potions."
-msgstr "Permitir pociones en arena."
+msgstr "Da pociones de arena."
 
 #: Source/control.cpp:816
 msgid "<number>"
@@ -1564,11 +1564,11 @@ msgstr "Abrir pantalla de Personaje."
 
 #: Source/diablo.cpp:1940
 msgid "Party"
-msgstr "Evento"
+msgstr "Grupo"
 
 #: Source/diablo.cpp:1941
 msgid "Open side Party panel."
-msgstr "Abre el panel lateral del evento."
+msgstr "Abre el panel lateral del grupo."
 
 #: Source/diablo.cpp:1948 Source/diablo.cpp:2286
 msgid "Quest log"
@@ -3358,7 +3358,7 @@ msgstr "Sin identificar"
 
 #: Source/levels/setmaps.cpp:27
 msgid "Skeleton King's Lair"
-msgstr "Guarida del rey esqueleto"
+msgstr "Guarida del Rey Esqueleto"
 
 #: Source/levels/setmaps.cpp:28
 msgid "Chamber of Bone"
@@ -4455,7 +4455,7 @@ msgstr "Muestra el valor de maná actual/máximo en el globo de maná."
 
 #: Source/options.cpp:848
 msgid "Show Party Information"
-msgstr "Mostrar información del evento"
+msgstr "Mostrar información del grupo"
 
 #: Source/options.cpp:848
 msgid ""
@@ -5231,7 +5231,7 @@ msgstr "Dejar la Botica"
 
 #: Source/stores.cpp:1079
 msgid "The Town Elder"
-msgstr "Deckard Caín"
+msgstr "El anciano del pueblo"
 
 #: Source/stores.cpp:1081
 msgid "Talk to Cain"
@@ -8596,7 +8596,7 @@ msgstr ""
 "no me permití creer las leyendas antiguas, no puedo negarlas ahora. Quizás "
 "ha llegado el momento de revelar quién soy.\n"
 " \n"
-"Mi verdadero nombre es Deckard Cain el Sabio, y soy el último descendiente "
+"Mi verdadero nombre es Deckard Caín el Viejo, y soy el último descendiente "
 "de una antigua Hermandad que se dedicó a salvaguardar los secretos de un mal "
 "atemporal. Un mal que obviamente ahora se ha liberado.\n"
 " \n"
@@ -9889,7 +9889,7 @@ msgstr ""
 "de eso! Supongo que es hora de que te diga la verdad sobre quién soy, amigo "
 "mío. Verás, no soy todo lo que parezco ...\n"
 " \n"
-"Mi verdadero nombre es Deckard Cain el Sabio, y soy el último descendiente "
+"Mi verdadero nombre es Deckard Cain el Viejo, y soy el último descendiente "
 "de una antigua Hermandad que se dedicó a conservar y salvaguardar los "
 "secretos de un mal atemporal. Un mal que obviamente ahora ha sido "
 "liberado ...\n"
