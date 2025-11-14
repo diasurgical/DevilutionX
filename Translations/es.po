@@ -1913,7 +1913,7 @@ msgstr "Problema de sincronización multijugador"
 
 #: Source/diablo_msg.cpp:77
 msgid "No pause in multiplayer"
-msgstr "Sin hay pausa en multijugador"
+msgstr "Sin pausa en multijugador"
 
 #: Source/diablo_msg.cpp:79
 msgid "Saving..."
