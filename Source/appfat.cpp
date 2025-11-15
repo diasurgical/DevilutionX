@@ -50,7 +50,7 @@ void FreeDlg()
 	CleanupThreadId = this_sdl_thread::get_id();
 
 	if (gbIsMultiplayer) {
-		if (SNetLeaveGame(3))
+		if (SNetLeaveGame(LEAVE_EXIT))
 			SDL_Delay(2000);
 	}
 
