@@ -16,6 +16,7 @@
 #include "headless_mode.hpp"
 #include "menu.h"
 #include "options.h"
+#include "utils/log.hpp"
 #include "utils/stubs.h"
 #include "utils/utf8.hpp"
 
@@ -114,6 +115,8 @@ bool SNetLeaveGame(int type)
 #endif
 	if (dvlnet_inst == nullptr)
 		return true;
+	if (!IsLoopback)
+		LogInfo("Leaving multiplayer game '{}' (reason: 0x{:08X})", GameName, static_cast<uint32_t>(type));
 	return dvlnet_inst->SNetLeaveGame(type);
 }
 
@@ -155,8 +158,13 @@ bool SNetCreateGame(const char *pszGameName, const char *pszGamePassword, char *
 		DvlNet_SetPassword(pszGamePassword);
 	else
 		DvlNet_ClearPassword();
-	*playerID = dvlnet_inst->create(pszGameName);
-	return *playerID != -1;
+	const int createdPlayerId = dvlnet_inst->create(pszGameName);
+	if (createdPlayerId == -1)
+		return false;
+	*playerID = createdPlayerId;
+	if (!IsLoopback)
+		LogInfo("Created multiplayer game '{}' (player id: {})", GameName, createdPlayerId);
+	return true;
 }
 
 bool SNetJoinGame(char *pszGameName, char *pszGamePassword, int *playerID)

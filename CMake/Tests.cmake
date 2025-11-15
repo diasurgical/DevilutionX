@@ -27,6 +27,7 @@ set(tests
   items_test
   math_test
   missiles_test
+  multi_logging_test
   pack_test
   player_test
   quests_test
