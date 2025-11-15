@@ -9,6 +9,7 @@ set_target_properties(libdevilutionx_so PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON
 
 add_library(test_main OBJECT test/main.cpp)
 target_link_dependencies(test_main PUBLIC libdevilutionx_so GTest::gtest GTest::gmock)
+target_compile_definitions(test_main PRIVATE DEVILUTIONX_TEST_BASE_PATH="${PROJECT_SOURCE_DIR}/")
 
 set(tests
   animationinfo_test

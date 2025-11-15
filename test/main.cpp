@@ -14,6 +14,10 @@ int main(int argc, char **argv)
 	devilution::GetOptions().Graphics.hardwareCursor.SetValue(false);
 #endif
 
+#ifdef DEVILUTIONX_TEST_BASE_PATH
+	devilution::paths::SetBasePath(DEVILUTIONX_TEST_BASE_PATH);
+#endif
+
 #ifdef __APPLE__
 	devilution::paths::SetAssetsPath(
 	    devilution::paths::BasePath() + "devilutionx.app/Contents/Resources/");
