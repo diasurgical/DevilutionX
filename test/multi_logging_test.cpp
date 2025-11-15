@@ -5,14 +5,9 @@
 
 namespace devilution {
 
-TEST(MultiplayerLogging, RequestedExitReason)
+TEST(MultiplayerLogging, NormalExitReason)
 {
-	EXPECT_EQ("requested exit", DescribeLeaveReason(0));
-}
-
-TEST(MultiplayerLogging, GameClosedReason)
-{
-	EXPECT_EQ("game closed", DescribeLeaveReason(3));
+	EXPECT_EQ("normal exit", DescribeLeaveReason(LEAVE_EXIT));
 }
 
 TEST(MultiplayerLogging, DiabloEndingReason)

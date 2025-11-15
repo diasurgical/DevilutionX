@@ -533,10 +533,8 @@ bool InitMulti(GameData *gameData)
 DVL_API_FOR_TEST std::string DescribeLeaveReason(uint32_t leaveReason)
 {
 	switch (leaveReason) {
-	case 0:
-		return "requested exit";
-	case 3:
-		return "game closed";
+	case LEAVE_EXIT:
+		return "normal exit";
 	case LEAVE_ENDING:
 		return "Diablo defeated";
 	case LEAVE_DROP:
@@ -795,7 +793,7 @@ void NetClose()
 	nthread_cleanup();
 	tmsg_cleanup();
 	UnregisterNetEventHandlers();
-	SNetLeaveGame(3);
+	SNetLeaveGame(LEAVE_EXIT);
 	if (gbIsMultiplayer)
 		SDL_Delay(2000);
 	if (!demo::IsRunning()) {
