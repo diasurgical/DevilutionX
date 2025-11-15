@@ -10,6 +10,11 @@ TEST(MultiplayerLogging, RequestedExitReason)
 	EXPECT_EQ("requested exit", DescribeLeaveReason(0));
 }
 
+TEST(MultiplayerLogging, GameClosedReason)
+{
+	EXPECT_EQ("game closed", DescribeLeaveReason(3));
+}
+
 TEST(MultiplayerLogging, DiabloEndingReason)
 {
 	EXPECT_EQ("Diablo defeated", DescribeLeaveReason(LEAVE_ENDING));

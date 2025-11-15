@@ -1,5 +1,6 @@
 #include "storm/storm_net.hpp"
 
+#include <algorithm>
 #include <cstdint>
 #include <memory>
 
@@ -15,6 +16,7 @@
 #include "engine/demomode.h"
 #include "headless_mode.hpp"
 #include "menu.h"
+#include "multi.h"
 #include "options.h"
 #include "utils/log.hpp"
 #include "utils/stubs.h"
@@ -115,8 +117,13 @@ bool SNetLeaveGame(int type)
 #endif
 	if (dvlnet_inst == nullptr)
 		return true;
-	if (!IsLoopback)
-		LogInfo("Leaving multiplayer game '{}' (reason: 0x{:08X})", GameName, static_cast<uint32_t>(type));
+	if (!IsLoopback) {
+		std::string upperGameName = GameName;
+		std::transform(upperGameName.begin(), upperGameName.end(), upperGameName.begin(), ::toupper);
+		const std::string reasonDescription = DescribeLeaveReason(static_cast<uint32_t>(type));
+		LogInfo("Leaving {} multiplayer game '{}' (reason: {})",
+			ConnectionNames[provider], upperGameName, reasonDescription);
+	}
 	return dvlnet_inst->SNetLeaveGame(type);
 }
 
@@ -162,8 +169,13 @@ bool SNetCreateGame(const char *pszGameName, const char *pszGamePassword, char *
 	if (createdPlayerId == -1)
 		return false;
 	*playerID = createdPlayerId;
-	if (!IsLoopback)
-		LogInfo("Created multiplayer game '{}' (player id: {})", GameName, createdPlayerId);
+	if (!IsLoopback) {
+		std::string upperGameName = GameName;
+		std::transform(upperGameName.begin(), upperGameName.end(), upperGameName.begin(), ::toupper);
+		const char *privacy = GameIsPublic ? "public" : "private";
+		LogInfo("Created {} {} multiplayer game '{}' (player id: {})",
+			privacy, ConnectionNames[provider], upperGameName, createdPlayerId);
+	}
 	return true;
 }
 
@@ -178,8 +190,18 @@ bool SNetJoinGame(char *pszGameName, char *pszGamePassword, int *playerID)
 		DvlNet_SetPassword(pszGamePassword);
 	else
 		DvlNet_ClearPassword();
-	*playerID = dvlnet_inst->join(pszGameName);
-	return *playerID != -1;
+	const int joinedPlayerId = dvlnet_inst->join(pszGameName);
+	if (joinedPlayerId == -1)
+		return false;
+	*playerID = joinedPlayerId;
+	if (!IsLoopback) {
+		std::string upperGameName = GameName;
+		std::transform(upperGameName.begin(), upperGameName.end(), upperGameName.begin(), ::toupper);
+		const char *privacy = GameIsPublic ? "public" : "private";
+		LogInfo("Joined {} {} multiplayer game '{}' (player id: {})",
+			privacy, ConnectionNames[provider], upperGameName, joinedPlayerId);
+	}
+	return true;
 }
 
 /**

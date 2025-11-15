@@ -22,6 +22,7 @@ enum event_type : uint8_t {
 };
 
 extern const char *ConnectionNames[];
+extern int provider;
 
 struct _SNETCAPS {
 	uint32_t size;

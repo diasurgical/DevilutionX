@@ -302,10 +302,11 @@ void PlayerLeftMsg(Player &player, bool left)
 			break;
 		}
 		if (!IsLoopback) {
+			const uint8_t remainingPlayers = gbActivePlayers - 1;
 			if (player._pName[0] != '\0')
-				LogInfo("Player '{}' left the game ({})", player._pName, reasonDescription);
+				LogInfo("Player '{}' left the {} game ({}, {}/{} players)", player._pName, ConnectionNames[provider], reasonDescription, remainingPlayers, MAX_PLRS);
 			else
-				LogInfo("Player left the game ({})", reasonDescription);
+				LogInfo("Player left the {} game ({}, {}/{} players)", ConnectionNames[provider], reasonDescription, remainingPlayers, MAX_PLRS);
 		}
 		EventPlrMsg(fmt::format(fmt::runtime(pszFmt), player._pName));
 	}
@@ -534,6 +535,8 @@ DVL_API_FOR_TEST std::string DescribeLeaveReason(uint32_t leaveReason)
 	switch (leaveReason) {
 	case 0:
 		return "requested exit";
+	case 3:
+		return "game closed";
 	case LEAVE_ENDING:
 		return "Diablo defeated";
 	case LEAVE_DROP:
@@ -916,7 +919,7 @@ void recv_plrinfo(Player &player, const TCmdPlrInfoHdr &header, bool recv)
 	if (sgbPlayerTurnBitTbl[pnum]) {
 		szEvent = _("Player '{:s}' (level {:d}) just joined the game");
 		if (!IsLoopback)
-			LogInfo("Player '{}' joined the game (level {})", player._pName, player.getCharacterLevel());
+			LogInfo("Player '{}' joined the {} game (level {}, {}/{} players)", player._pName, ConnectionNames[provider], player.getCharacterLevel(), gbActivePlayers, MAX_PLRS);
 	} else {
 		szEvent = _("Player '{:s}' (level {:d}) is already in the game");
 	}
