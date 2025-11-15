@@ -24,7 +24,8 @@ enum class SpellType : uint8_t {
 	Spell,
 	Scroll,
 	Charges,
-	LAST = Charges,
+	Rune,
+	LAST = Rune,
 	Invalid,
 };
 
