@@ -61,6 +61,8 @@ extern uint8_t gbDeltaSender;
 extern uint32_t player_state[MAX_PLRS];
 extern bool IsLoopback;
 
+DVL_API_FOR_TEST std::string DescribeLeaveReason(uint32_t leaveReason);
+
 void InitGameInfo();
 void NetSendLoPri(uint8_t playerId, const std::byte *data, size_t size);
 void NetSendHiPri(uint8_t playerId, const std::byte *data, size_t size);

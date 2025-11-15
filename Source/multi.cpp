@@ -44,6 +44,7 @@
 #include "utils/endian_swap.hpp"
 #include "utils/is_of.hpp"
 #include "utils/language.h"
+#include "utils/log.hpp"
 #include "utils/str_cat.hpp"
 
 namespace devilution {
@@ -288,8 +289,10 @@ void PlayerLeftMsg(Player &player, bool left)
 	RemoveEnemyReferences(player);
 	RemovePlrMissiles(player);
 	if (left) {
+		const uint32_t leaveReason = sgdwPlayerLeftReasonTbl[player.getId()];
+		const std::string reasonDescription = DescribeLeaveReason(leaveReason);
 		std::string_view pszFmt = _("Player '{:s}' just left the game");
-		switch (sgdwPlayerLeftReasonTbl[player.getId()]) {
+		switch (leaveReason) {
 		case LEAVE_ENDING:
 			pszFmt = _("Player '{:s}' killed Diablo and left the game!");
 			gbSomebodyWonGameKludge = true;
@@ -297,6 +300,13 @@ void PlayerLeftMsg(Player &player, bool left)
 		case LEAVE_DROP:
 			pszFmt = _("Player '{:s}' dropped due to timeout");
 			break;
+		}
+		if (!IsLoopback) {
+			const uint8_t remainingPlayers = gbActivePlayers - 1;
+			if (player._pName[0] != '\0')
+				LogInfo("Player '{}' left the {} game ({}, {}/{} players)", player._pName, ConnectionNames[provider], reasonDescription, remainingPlayers, MAX_PLRS);
+			else
+				LogInfo("Player left the {} game ({}, {}/{} players)", ConnectionNames[provider], reasonDescription, remainingPlayers, MAX_PLRS);
 		}
 		EventPlrMsg(fmt::format(fmt::runtime(pszFmt), player._pName));
 	}
@@ -519,6 +529,20 @@ bool InitMulti(GameData *gameData)
 }
 
 } // namespace
+
+DVL_API_FOR_TEST std::string DescribeLeaveReason(uint32_t leaveReason)
+{
+	switch (leaveReason) {
+	case LEAVE_EXIT:
+		return "normal exit";
+	case LEAVE_ENDING:
+		return "Diablo defeated";
+	case LEAVE_DROP:
+		return "connection timeout";
+	default:
+		return fmt::format("code 0x{:08X}", leaveReason);
+	}
+}
 
 void InitGameInfo()
 {
@@ -769,7 +793,7 @@ void NetClose()
 	nthread_cleanup();
 	tmsg_cleanup();
 	UnregisterNetEventHandlers();
-	SNetLeaveGame(3);
+	SNetLeaveGame(LEAVE_EXIT);
 	if (gbIsMultiplayer)
 		SDL_Delay(2000);
 	if (!demo::IsRunning()) {
@@ -892,6 +916,8 @@ void recv_plrinfo(Player &player, const TCmdPlrInfoHdr &header, bool recv)
 	std::string_view szEvent;
 	if (sgbPlayerTurnBitTbl[pnum]) {
 		szEvent = _("Player '{:s}' (level {:d}) just joined the game");
+		if (!IsLoopback)
+			LogInfo("Player '{}' joined the {} game (level {}, {}/{} players)", player._pName, ConnectionNames[provider], player.getCharacterLevel(), gbActivePlayers, MAX_PLRS);
 	} else {
 		szEvent = _("Player '{:s}' (level {:d}) is already in the game");
 	}

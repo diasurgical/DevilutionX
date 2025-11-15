@@ -22,6 +22,7 @@ enum event_type : uint8_t {
 };
 
 extern const char *ConnectionNames[];
+extern int provider;
 
 struct _SNETCAPS {
 	uint32_t size;
@@ -46,6 +47,7 @@ struct _SNETEVENT {
 #define PS_TURN_ARRIVED 0x20000
 #define PS_ACTIVE 0x40000
 
+#define LEAVE_EXIT 3
 #define LEAVE_ENDING 0x40000004
 #define LEAVE_DROP 0x40000006
 
