@@ -163,7 +163,7 @@ inline void SetHardwareCursorVisible(bool visible)
 #if LOG_HWCURSOR
 	Log("hwcursor: SetHardwareCursorVisible {}", visible);
 #endif
-	if (visible ? SDLC_ShowCursor() : SDLC_HideCursor()) {
+	if (!(visible ? SDLC_ShowCursor() : SDLC_HideCursor())) {
 		LogError("{}", SDL_GetError());
 		SDL_ClearError();
 	}
