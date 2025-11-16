@@ -65,6 +65,7 @@
 #include "qol/xpbar.h"
 #include "quick_messages.hpp"
 #include "stores.h"
+#include "storm/storm_net.hpp"
 #include "towners.h"
 #include "utils/algorithm/container.hpp"
 #include "utils/format_int.hpp"
@@ -810,12 +811,40 @@ std::string TextCmdLevelSeed(const std::string_view parameter)
 	    "Storybook: ", DungeonSeeds[16]);
 }
 
+std::string TextCmdPing(const std::string_view parameter)
+{
+	std::string ret;
+	const std::string param = AsciiStrToLower(parameter);
+	auto it = c_find_if(Players, [&param](const Player &player) {
+		return AsciiStrToLower(player._pName) == param;
+	});
+	if (it == Players.end()) {
+		it = c_find_if(Players, [&param](const Player &player) {
+			return AsciiStrToLower(player._pName).find(param) != std::string::npos;
+		});
+	}
+	if (it == Players.end()) {
+		StrAppend(ret, _("No players found with such a name"));
+		return ret;
+	}
+
+	Player &player = *it;
+	DvlNetLatencies latencies = DvlNet_GetLatencies(player.getId());
+	StrAppend(ret, "Echo latency: ", latencies.echoLatency, " ms");
+	if (latencies.providerLatency != std::nullopt)
+		StrAppend(ret, "\nProvider latency: ", *latencies.providerLatency, " ms");
+	if (latencies.isRelayed != std::nullopt && *latencies.isRelayed)
+		StrAppend(ret, " (relayed)");
+	return ret;
+}
+
 std::vector<TextCmdItem> TextCmdList = {
 	{ "/help", N_("Prints help overview or help for a specific command."), N_("[command]"), &TextCmdHelp },
 	{ "/arena", N_("Enter a PvP Arena."), N_("<arena-number>"), &TextCmdArena },
 	{ "/arenapot", N_("Gives Arena Potions."), N_("<number>"), &TextCmdArenaPot },
 	{ "/inspect", N_("Inspects stats and equipment of another player."), N_("<player name>"), &TextCmdInspect },
 	{ "/seedinfo", N_("Show seed infos for current level."), "", &TextCmdLevelSeed },
+	{ "/ping", N_("Show latency statistics for another player."), N_("<player name>"), &TextCmdPing },
 };
 
 bool CheckChatCommand(const std::string_view text)
