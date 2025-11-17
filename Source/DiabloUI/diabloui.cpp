@@ -111,6 +111,10 @@ bool UiItemsWraps;
 std::optional<TextInputState> UiTextInputState;
 bool allowEmptyTextInput = false;
 
+constexpr Uint32 ListDoubleClickTimeMs = 500;
+std::size_t lastListClickIndex = static_cast<std::size_t>(-1);
+Uint32 lastListClickTicks = 0;
+
 struct ScrollBarState {
 	bool upArrowPressed;
 	bool downArrowPressed;
@@ -992,10 +996,6 @@ bool HandleMouseEventArtTextButton(const SDL_Event &event, const UiArtTextButton
 	return true;
 }
 
-#ifdef USE_SDL1
-Uint32 dbClickTimer;
-#endif
-
 bool HandleMouseEventList(const SDL_Event &event, UiList *uiList)
 {
 	if (event.button.button != SDL_BUTTON_LEFT)
@@ -1016,27 +1016,35 @@ bool HandleMouseEventList(const SDL_Event &event, UiList *uiList)
 	}
 
 	index += listOffset;
-
-	if (gfnListFocus != nullptr && SelectedItem != index) {
-		UiFocus(index, true, false);
-#ifdef USE_SDL1
-		dbClickTimer = SDL_GetTicks();
-	} else if (gfnListFocus == NULL || dbClickTimer + 500 >= SDL_GetTicks()) {
+	const bool hasFocusCallback = gfnListFocus != nullptr;
+	const Uint32 ticksNow = SDL_GetTicks();
+	const bool recentlyClickedSameItem = hasFocusCallback && lastListClickIndex == index && ticksNow - lastListClickTicks <= ListDoubleClickTimeMs;
+#ifndef USE_SDL1
+	const bool sdlReportedDoubleClick = event.button.clicks >= 2;
 #else
-	} else if (gfnListFocus == nullptr || event.button.clicks >= 2) {
+	const bool sdlReportedDoubleClick = false;
 #endif
-		if (HasAnyOf(uiList->GetItem(index)->uiFlags, UiFlags::ElementHidden | UiFlags::ElementDisabled))
-			return false;
-		SelectedItem = index;
-		UiFocusNavigationSelect();
-#ifdef USE_SDL1
-	} else {
-		dbClickTimer = SDL_GetTicks();
-#endif
+	const bool doubleClicked = recentlyClickedSameItem || sdlReportedDoubleClick;
+	lastListClickIndex = index;
+	lastListClickTicks = ticksNow;
+
+	if (hasFocusCallback && SelectedItem != index) {
+		UiFocus(index, true, false);
+		return true;
 	}
+
+	if (hasFocusCallback && !doubleClicked) {
+		return true;
+	}
+
+	if (HasAnyOf(uiList->GetItem(index)->uiFlags, UiFlags::ElementHidden | UiFlags::ElementDisabled))
+		return false;
+	SelectedItem = index;
+	UiFocusNavigationSelect();
 
 	return true;
 }
+
 
 bool HandleMouseEventScrollBar(const SDL_Event &event, const UiScrollbar *uiSb)
 {
