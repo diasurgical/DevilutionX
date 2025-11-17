@@ -1045,7 +1045,6 @@ bool HandleMouseEventList(const SDL_Event &event, UiList *uiList)
 	return true;
 }
 
-
 bool HandleMouseEventScrollBar(const SDL_Event &event, const UiScrollbar *uiSb)
 {
 	if (event.button.button != SDL_BUTTON_LEFT)
