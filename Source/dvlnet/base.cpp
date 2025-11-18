@@ -231,6 +231,7 @@ bool base::SNetReceiveMessage(uint8_t *sender, void **data, size_t *size)
 	if (lastEchoTime == 0 || now - lastEchoTime > 5000) {
 		for (plr_t i = 0; i < Players.size(); i++)
 			SendEchoRequest(i);
+		lastEchoTime = now;
 	}
 	poll();
 	if (message_queue.empty())
