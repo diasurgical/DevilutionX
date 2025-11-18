@@ -226,6 +226,12 @@ tl::expected<void, PacketError> base::RecvLocal(packet &pkt)
 
 bool base::SNetReceiveMessage(uint8_t *sender, void **data, size_t *size)
 {
+	uint32_t now = SDL_GetTicks();
+	if (now == 0) now++;
+	if (lastEchoTime == 0 || now - lastEchoTime > 5000) {
+		for (plr_t i = 0; i < Players.size(); i++)
+			SendEchoRequest(i);
+	}
 	poll();
 	if (message_queue.empty())
 		return false;

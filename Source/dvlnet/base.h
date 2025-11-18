@@ -90,6 +90,7 @@ protected:
 private:
 	std::array<PlayerState, MAX_PLRS> playerStateTable_;
 	bool awaitingSequenceNumber_ = true;
+	uint32_t lastEchoTime = 0;
 
 	plr_t GetOwner();
 	bool AllTurnsArrived();
