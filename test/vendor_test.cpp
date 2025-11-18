@@ -90,7 +90,9 @@ public:
 	{
 		LoadCoreArchives();
 		LoadGameArchives();
-		ASSERT_TRUE(HaveMainData());
+		if (!HaveMainData()) {
+			GTEST_SKIP() << "MPQ assets (spawn.mpq or DIABDAT.MPQ) not found - skipping test suite";
+		}
 		LoadPlayerDataFiles();
 		LoadItemData();
 		LoadSpellData();

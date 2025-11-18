@@ -23,8 +23,9 @@ public:
 		LoadGameArchives();
 
 		// The tests need spawn.mpq or diabdat.mpq
-		// Please provide them so that the tests can run successfully
-		ASSERT_TRUE(HaveMainData());
+		if (!HaveMainData()) {
+			GTEST_SKIP() << "MPQ assets (spawn.mpq or DIABDAT.MPQ) not found - skipping test suite";
+		}
 
 		InitCursor();
 		LoadSpellData();
