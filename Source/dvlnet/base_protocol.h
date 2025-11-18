@@ -241,7 +241,7 @@ tl::expected<void, PacketError> base_protocol<P>::InitiateHandshake(plr_t player
 	// It will cause problems if both peers attempt to initiate the handshake simultaneously.
 	// If the connection is already open, it should be safe to initiate from either end.
 	// If not, only the player with the smaller player number should initiate the handshake.
-	if (plr_self < player || proto.is_peer_connected(peer.endpoint))
+	if (peer.endpoint && (plr_self < player || proto.is_peer_connected(peer.endpoint)))
 		return SendEchoRequest(player);
 
 	return {};
@@ -261,7 +261,7 @@ tl::expected<void, PacketError> base_protocol<P>::send(packet &pkt)
 	}
 	if (destination >= MAX_PLRS)
 		return tl::make_unexpected("Invalid player ID");
-	if (destination == MyPlayerId)
+	if (destination == plr_self)
 		return {};
 	return SendTo(destination, pkt);
 }
