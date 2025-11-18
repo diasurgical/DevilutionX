@@ -9,12 +9,17 @@
 namespace devilution {
 namespace {
 
+constexpr const char MissingMpqAssetsSkipReason[] = "MPQ assets (spawn.mpq or DIABDAT.MPQ) not found - skipping test suite";
+
 class InvTest : public ::testing::Test {
 public:
 	void SetUp() override
 	{
 		Players.resize(1);
 		MyPlayer = &Players[0];
+		if (missingMpqAssets_) {
+			GTEST_SKIP() << MissingMpqAssetsSkipReason;
+		}
 	}
 
 	static void SetUpTestSuite()
@@ -22,15 +27,21 @@ public:
 		LoadCoreArchives();
 		LoadGameArchives();
 
-		// The tests need spawn.mpq or diabdat.mpq
-		// Please provide them so that the tests can run successfully
-		ASSERT_TRUE(HaveMainData());
+		missingMpqAssets_ = !HaveMainData();
+		if (missingMpqAssets_) {
+			return;
+		}
 
 		InitCursor();
 		LoadSpellData();
 		LoadItemData();
 	}
+
+private:
+	static bool missingMpqAssets_;
 };
+
+bool InvTest::missingMpqAssets_ = false;
 
 /* Set up a given item as a spell scroll, allowing for its usage. */
 void set_up_scroll(Item &item, SpellID spell)
