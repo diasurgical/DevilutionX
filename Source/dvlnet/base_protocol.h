@@ -551,8 +551,10 @@ std::vector<GameInfo> base_protocol<P>::get_gamelist()
 	std::vector<GameInfo> ret;
 	ret.reserve(game_list.size());
 	for (const auto &[name, gameInfo] : game_list) {
-		const auto &[gameData, players, _] = gameInfo;
-		ret.push_back(GameInfo { name, gameData, players });
+		const auto &[gameData, players, endpoint] = gameInfo;
+		std::optional<int> latency = proto.get_latency_to(endpoint);
+		std::optional<bool> isRelayed = proto.is_peer_relayed(endpoint);
+		ret.push_back(GameInfo { name, gameData, players, latency, isRelayed });
 	}
 	c_sort(ret, [](const GameInfo &a, const GameInfo &b) { return a.name < b.name; });
 	return ret;
