@@ -1,16 +1,25 @@
-#include "player_test.h"
+#include "player_test.hh"
 
 #include <gtest/gtest.h>
 
 #include "cursor.h"
+#include "debug.h"
 #include "engine/assets.hpp"
 #include "init.hpp"
+#include "inv.h"
+#include "itemdat.h"
+#include "items.h"
+#include "monster.h"
+#include "monstdat.h"
+#include "objdat.h"
 #include "playerdat.hpp"
+#include "pfile.h"
 
 using namespace devilution;
 
 namespace devilution {
 extern bool TestPlayerDoGotHit(Player &player);
+extern bool TestPlayerPlrHitMonst(Player &player, Monster &monster);
 }
 
 int RunBlockTest(int frames, ItemSpecialEffect flags)
@@ -200,4 +209,66 @@ TEST(Player, CreatePlayer)
 	Players.resize(1);
 	CreatePlayer(Players[0], HeroClass::Rogue);
 	AssertPlayer(Players[0]);
+}
+
+TEST(Player, PlrHitMonst_DualWield)
+{
+	// Setup
+	LoadCoreArchives();
+	LoadGameArchives();
+	ASSERT_TRUE(HaveMainData());
+	LoadPlayerDataFiles();
+	LoadMonsterData();
+	InitItemGFX(); // Needed for item attributes
+	Players.resize(1);
+	MyPlayer = &Players[0];
+	MyPlayerId = 0;
+	DebugGodMode = true;
+
+	CreatePlayer(*MyPlayer, HeroClass::Warrior);
+	MyPlayer->position.tile = { 50, 50 };
+
+	// Set fixed damage to a predictable value
+	MyPlayer->_pIMinDam = 10;
+	MyPlayer->_pIMaxDam = 10;
+	MyPlayer->_pIBonusDam = 0;
+	MyPlayer->_pIBonusDamMod = 0;
+	MyPlayer->_pDamageMod = 0;
+
+	// Create a zombie
+	auto monsterId = AddMonster({ 50, 51 }, Direction::South, MT_ZOMBIE, true);
+	ASSERT_TRUE(monsterId);
+	Monster &zombie = Monsters[*monsterId];
+	int initialHP = zombie.hitPoints;
+
+	// Create weapons
+	Item sword, mace;
+	GetItemAttrs(sword, IDI_SHORTSWORD, 1);
+	GetItemAttrs(mace, IDI_SPIKEDCLUB, 1);
+
+	// Case 1: Sword in right hand (main), Mace in left. Damage to undead should be halved.
+	MyPlayer->InvBody[INVLOC_HAND_RIGHT] = sword;
+	MyPlayer->InvBody[INVLOC_HAND_LEFT] = mace;
+	CalcPlrInv(*MyPlayer, true);
+
+	TestPlayerPlrHitMonst(*MyPlayer, zombie);
+
+	// Base damage is 10. Sword vs Undead is 0.5x damage. So 5 damage.
+	// The damage value is stored as a 6-bit fixed point number, so we shift it.
+	int expectedDamage1 = 5 << 6;
+	EXPECT_EQ(zombie.hitPoints, initialHP - expectedDamage1);
+
+	// Case 2: Mace in right hand (main), Sword in left. Damage to undead should be 1.5x.
+	zombie.hitPoints = initialHP; // Reset HP
+	MyPlayer->InvBody[INVLOC_HAND_RIGHT] = mace;
+	MyPlayer->InvBody[INVLOC_HAND_LEFT] = sword;
+	CalcPlrInv(*MyPlayer, true);
+
+	TestPlayerPlrHitMonst(*MyPlayer, zombie);
+
+	// Base damage is 10. Mace vs Undead is 1.5x damage. So 15 damage.
+	int expectedDamage2 = 15 << 6;
+	EXPECT_EQ(zombie.hitPoints, initialHP - expectedDamage2);
+
+	DebugGodMode = false;
 }
