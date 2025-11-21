@@ -35,6 +35,7 @@
 #include "utils/language.h"
 #include "utils/log.hpp"
 #include "utils/str_cat.hpp"
+#include "utils/unicode-bidi.hpp"
 #include "utils/utf8.hpp"
 
 namespace devilution {
@@ -453,7 +454,8 @@ void DrawLine(
 {
 	CurrentFont currentFont;
 
-	std::string_view lineCopy = text;
+	std::string visualText = ConvertLogicalToVisual(text);
+	std::string_view lineCopy = visualText;
 
 	size_t cpLen;
 
@@ -461,7 +463,7 @@ void DrawLine(
 	characterPosition.x = GetLineStartX(flags, rect, totalWidth);
 
 	// Draw all characters in line
-	size_t currentPos = 0;
+	size_t visualPos = 0;
 
 	while (!lineCopy.empty()) {
 		char32_t c = DecodeFirstUtf8CodePoint(lineCopy, &cpLen);
@@ -482,7 +484,9 @@ void DrawLine(
 		const ClxSprite glyph = currentFont.glyph(frame);
 		const int charWidth = glyph.width();
 
-		const auto byteIndex = static_cast<int>(lineStartPos + currentPos);
+		// Get the logical position for this character
+		int logicalPos = ConvertVisualToLogicalPosition(text, visualPos);
+		const auto byteIndex = static_cast<int>(lineStartPos + logicalPos);
 
 		// Draw highlight
 		if (byteIndex >= opts.highlightRange.begin && byteIndex < opts.highlightRange.end) {
@@ -496,7 +500,7 @@ void DrawLine(
 
 		// Move to the next position
 		characterPosition.x += charWidth + curSpacing;
-		currentPos += cpLen;
+		visualPos += cpLen;
 		lineCopy.remove_prefix(cpLen);
 	}
 }
