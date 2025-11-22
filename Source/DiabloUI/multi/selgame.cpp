@@ -290,9 +290,9 @@ void selgame_GameSelection_Focus(size_t value)
 			}
 			infoString += '\n';
 			if (gameInfo.peerIsRelayed.value_or(false))
-				infoString.append(fmt::format(fmt::runtime(_("Latency: {:d} ms (RELAYED)")), gameInfo.latency.value_or(0)));
+				infoString.append(fmt::format(fmt::runtime(_("Ping: {:d} ms (RELAYED)")), gameInfo.latency.value_or(0)));
 			else
-				infoString.append(fmt::format(fmt::runtime(_("Latency: {:d} ms")), gameInfo.latency.value_or(0)));
+				infoString.append(fmt::format(fmt::runtime(_("Ping: {:d} ms")), gameInfo.latency.value_or(0)));
 		} else {
 			infoString.append(GetErrorMessageIncompatibility(gameInfo.gameData));
 		}
