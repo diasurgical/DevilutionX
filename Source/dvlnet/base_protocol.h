@@ -75,7 +75,7 @@ private:
 	tl::expected<void, PacketError> recv_ingame(packet &pkt, endpoint_t sender);
 	bool is_recognized(endpoint_t sender);
 
-	tl::expected<bool, PacketError> wait_network();
+	tl::expected<void, PacketError> wait_network();
 	bool wait_firstpeer();
 	tl::expected<void, PacketError> wait_join();
 };
@@ -91,18 +91,18 @@ plr_t base_protocol<P>::get_master()
 }
 
 template <class P>
-tl::expected<bool, PacketError> base_protocol<P>::wait_network()
+tl::expected<void, PacketError> base_protocol<P>::wait_network()
 {
 	// wait for ZeroTier for 5 seconds
 	for (auto i = 0; i < 500; ++i) {
 		tl::expected<bool, PacketError> status = proto.network_online();
 		if (!status.has_value())
-			return status;
+			return tl::make_unexpected(std::move(status).error());
 		if (*status)
-			return true;
+			return {};
 		SDL_Delay(10);
 	}
-	return false;
+	return tl::make_unexpected("Timeout waiting for ZeroTier network initialization");
 }
 
 template <class P>
@@ -178,20 +178,20 @@ int base_protocol<P>::create(std::string_view addrstr)
 	gamename = addrstr;
 	isGameHost_ = true;
 
-	tl::expected<bool, PacketError> isReady = wait_network();
+	tl::expected<void, PacketError> isReady = wait_network();
 	if (!isReady.has_value()) {
-		LogError("wait_network: {}", isReady.error().what());
+		const std::string_view message = isReady.error().what();
+		SDL_SetError("%.*s", static_cast<int>(message.size()), message.data());
 		return -1;
 	}
-	if (*isReady) {
-		plr_self = 0;
-		if (tl::expected<void, PacketError> result = Connect(plr_self);
-		    !result.has_value()) {
-			LogError("Connect: {}", result.error().what());
-			return -1;
-		}
+	plr_self = 0;
+	if (tl::expected<void, PacketError> result = Connect(plr_self);
+	    !result.has_value()) {
+		const std::string_view message = result.error().what();
+		SDL_SetError("%.*s", static_cast<int>(message.size()), message.data());
+		return -1;
 	}
-	return (plr_self == PLR_BROADCAST ? -1 : plr_self);
+	return plr_self;
 }
 
 template <class P>
@@ -200,20 +200,18 @@ int base_protocol<P>::join(std::string_view addrstr)
 	gamename = addrstr;
 	isGameHost_ = false;
 
-	tl::expected<bool, PacketError> isReady = wait_network();
+	tl::expected<void, PacketError> isReady = wait_network();
 	if (!isReady.has_value()) {
 		const std::string_view message = isReady.error().what();
-		SDL_SetError("wait_join: %.*s", static_cast<int>(message.size()), message.data());
+		SDL_SetError("%.*s", static_cast<int>(message.size()), message.data());
 		return -1;
 	}
-	if (*isReady) {
-		if (wait_firstpeer()) {
-			tl::expected<void, PacketError> result = wait_join();
-			if (!result.has_value()) {
-				const std::string_view message = result.error().what();
-				SDL_SetError("wait_join: %.*s", static_cast<int>(message.size()), message.data());
-				return -1;
-			}
+	if (wait_firstpeer()) {
+		tl::expected<void, PacketError> result = wait_join();
+		if (!result.has_value()) {
+			const std::string_view message = result.error().what();
+			SDL_SetError("%.*s", static_cast<int>(message.size()), message.data());
+			return -1;
 		}
 	}
 	return (plr_self == PLR_BROADCAST ? -1 : plr_self);
