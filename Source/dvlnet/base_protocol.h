@@ -76,7 +76,7 @@ private:
 	bool is_recognized(endpoint_t sender);
 
 	tl::expected<void, PacketError> wait_network();
-	bool wait_firstpeer();
+	tl::expected<void, PacketError> wait_firstpeer();
 	tl::expected<void, PacketError> wait_join();
 };
 
@@ -114,8 +114,9 @@ void base_protocol<P>::DisconnectNet(plr_t plr)
 }
 
 template <class P>
-bool base_protocol<P>::wait_firstpeer()
+tl::expected<void, PacketError> base_protocol<P>::wait_firstpeer()
 {
+	firstpeer = {};
 	// wait for peer for 5 seconds
 	for (auto i = 0; i < 500; ++i) {
 		auto it = game_list.find(gamename);
@@ -127,7 +128,9 @@ bool base_protocol<P>::wait_firstpeer()
 		recv();
 		SDL_Delay(10);
 	}
-	return bool { firstpeer };
+	if (!firstpeer)
+		return tl::make_unexpected("Timeout waiting for response from game host");
+	return {};
 }
 
 template <class P>
@@ -206,13 +209,17 @@ int base_protocol<P>::join(std::string_view addrstr)
 		SDL_SetError("%.*s", static_cast<int>(message.size()), message.data());
 		return -1;
 	}
-	if (wait_firstpeer()) {
-		tl::expected<void, PacketError> result = wait_join();
-		if (!result.has_value()) {
-			const std::string_view message = result.error().what();
-			SDL_SetError("%.*s", static_cast<int>(message.size()), message.data());
-			return -1;
-		}
+	tl::expected<void, PacketError> isPeerReady = wait_firstpeer();
+	if (!isPeerReady.has_value()) {
+		const std::string_view message = isPeerReady.error().what();
+		SDL_SetError("%.*s", static_cast<int>(message.size()), message.data());
+		return -1;
+	}
+	tl::expected<void, PacketError> isJoined = wait_join();
+	if (!isJoined.has_value()) {
+		const std::string_view message = isJoined.error().what();
+		SDL_SetError("%.*s", static_cast<int>(message.size()), message.data());
+		return -1;
 	}
 	return (plr_self == PLR_BROADCAST ? -1 : plr_self);
 }
