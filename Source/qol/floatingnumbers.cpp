@@ -6,6 +6,12 @@
 #include <fmt/format.h>
 #include <string>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_timer.h>
+#else
+#include <SDL.h>
+#endif
+
 #include "engine/render/text_render.hpp"
 #include "options.h"
 #include "utils/str_cat.hpp"
@@ -33,7 +39,7 @@ std::deque<FloatingNumber> FloatingQueue;
 void ClearExpiredNumbers()
 {
 	while (!FloatingQueue.empty()) {
-		FloatingNumber &num = FloatingQueue.front();
+		const FloatingNumber &num = FloatingQueue.front();
 		if (num.time > SDL_GetTicks())
 			break;
 
@@ -94,7 +100,7 @@ void UpdateFloatingData(FloatingNumber &num)
 void AddFloatingNumber(Point pos, Displacement offset, DamageType type, int value, size_t index, bool damageToPlayer)
 {
 	// 45 deg angles to avoid jitter caused by px alignment
-	Displacement goodAngles[] = {
+	const Displacement goodAngles[] = {
 		{ 0, -140 },
 		{ 100, -100 },
 		{ -100, -100 },
@@ -119,7 +125,10 @@ void AddFloatingNumber(Point pos, Displacement offset, DamageType type, int valu
 		}
 	}
 	FloatingNumber num {
-		pos, offset, endOffset, "", SDL_GetTicks() + 2500, SDL_GetTicks(), UiFlags::Outlined, type, value, index, damageToPlayer
+		pos, offset, endOffset, "",
+		static_cast<uint32_t>(SDL_GetTicks() + 2500),
+		static_cast<uint32_t>(SDL_GetTicks()),
+		UiFlags::Outlined, type, value, index, damageToPlayer
 	};
 	UpdateFloatingData(num);
 	FloatingQueue.push_back(num);
@@ -184,10 +193,10 @@ void DrawFloatingNumbers(const Surface &out, Point viewPosition, Displacement of
 
 		Point screenPosition { worldOffset.deltaX, worldOffset.deltaY };
 
-		int lineWidth = GetLineWidth(floatingNum.text, GetGameFontSizeByDamage(floatingNum.value));
+		const int lineWidth = GetLineWidth(floatingNum.text, GetGameFontSizeByDamage(floatingNum.value));
 		screenPosition.x -= lineWidth / 2;
-		uint32_t timeLeft = floatingNum.time - SDL_GetTicks();
-		float mul = 1 - (timeLeft / 2500.0f);
+		const uint32_t timeLeft = floatingNum.time - SDL_GetTicks();
+		const float mul = 1 - (timeLeft / 2500.0f);
 		screenPosition += floatingNum.endOffset * mul;
 
 		DrawString(out, floatingNum.text, Rectangle { screenPosition, { lineWidth, 0 } },

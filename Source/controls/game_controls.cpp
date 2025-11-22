@@ -2,6 +2,12 @@
 
 #include <cstdint>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_events.h>
+#else
+#include <SDL.h>
+#endif
+
 #include "controls/control_mode.hpp"
 #include "controls/controller_motion.h"
 #ifndef USE_SDL1
@@ -92,7 +98,12 @@ bool GetGameAction(const SDL_Event &event, ControllerButtonEvent ctrlEvent, Game
 
 #ifndef USE_SDL1
 	if (ControlMode == ControlTypes::VirtualGamepad) {
-		if (event.type == SDL_FINGERDOWN) {
+		switch (event.type) {
+#ifdef USE_SDL3
+		case SDL_EVENT_FINGER_DOWN:
+#else
+		case SDL_FINGERDOWN:
+#endif
 			if (VirtualGamepadState.menuPanel.charButton.isHeld && VirtualGamepadState.menuPanel.charButton.didStateChange) {
 				*action = GameAction(GameActionType_TOGGLE_CHARACTER_INFO);
 				return true;
@@ -161,13 +172,19 @@ bool GetGameAction(const SDL_Event &event, ControllerButtonEvent ctrlEvent, Game
 					*action = GameAction(GameActionType_USE_MANA_POTION);
 				return true;
 			}
-		} else if (event.type == SDL_FINGERUP) {
+			break;
+#ifdef USE_SDL3
+		case SDL_EVENT_FINGER_UP:
+#else
+		case SDL_FINGERUP:
+#endif
 			if ((!VirtualGamepadState.primaryActionButton.isHeld && ControllerActionHeld == GameActionType_PRIMARY_ACTION)
 			    || (!VirtualGamepadState.secondaryActionButton.isHeld && ControllerActionHeld == GameActionType_SECONDARY_ACTION)
 			    || (!VirtualGamepadState.spellActionButton.isHeld && ControllerActionHeld == GameActionType_CAST_SPELL)) {
 				ControllerActionHeld = GameActionType_NONE;
-				LastMouseButtonAction = MouseActionType::None;
+				LastPlayerAction = PlayerActionType::None;
 			}
+			break;
 		}
 	}
 #endif
@@ -265,7 +282,7 @@ void PressControllerButton(ControllerButton button)
 		switch (button) {
 		case devilution::ControllerButton_BUTTON_DPAD_UP:
 			PressEscKey();
-			LastMouseButtonAction = MouseActionType::None;
+			LastPlayerAction = PlayerActionType::None;
 			PadHotspellMenuActive = false;
 			PadMenuNavigatorActive = false;
 			gamemenu_on();
@@ -364,7 +381,7 @@ bool HandleControllerButtonEvent(const SDL_Event &event, const ControllerButtonE
 	};
 
 	const ButtonReleaser buttonReleaser { ctrlEvent };
-	bool isGamepadMotion = IsControllerMotion(event);
+	const bool isGamepadMotion = IsControllerMotion(event);
 	if (!isGamepadMotion) {
 		SimulateRightStickWithPadmapper(ctrlEvent);
 	}

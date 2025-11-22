@@ -15,6 +15,7 @@
 #include "engine/demomode.h"
 #include "headless_mode.hpp"
 #include "menu.h"
+#include "multi.h"
 #include "options.h"
 #include "utils/stubs.h"
 #include "utils/utf8.hpp"
@@ -236,6 +237,11 @@ void DvlNet_ClearPassword()
 bool DvlNet_IsPublicGame()
 {
 	return GameIsPublic;
+}
+
+DvlNetLatencies DvlNet_GetLatencies(uint8_t playerId)
+{
+	return dvlnet_inst->get_latencies(playerId);
 }
 
 } // namespace devilution

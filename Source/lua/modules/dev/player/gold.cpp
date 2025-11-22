@@ -92,8 +92,8 @@ std::string DebugCmdTakeGoldCheat(std::optional<int> amount)
 sol::table LuaDevPlayerGoldModule(sol::state_view &lua)
 {
 	sol::table table = lua.create_table();
-	SetDocumented(table, "give", "(amount: number = MAX)", "Gives the player gold.", &DebugCmdGiveGoldCheat);
-	SetDocumented(table, "take", "(amount: number = MAX)", "Takes the player's gold away.", &DebugCmdTakeGoldCheat);
+	LuaSetDocFn(table, "give", "(amount: number = MAX)", "Gives the player gold.", &DebugCmdGiveGoldCheat);
+	LuaSetDocFn(table, "take", "(amount: number = MAX)", "Takes the player's gold away.", &DebugCmdTakeGoldCheat);
 	return table;
 }
 

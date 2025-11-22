@@ -5,6 +5,12 @@
 #include <string>
 #include <string_view>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_timer.h>
+#else
+#include <SDL.h>
+#endif
+
 #include <ankerl/unordered_dense.h>
 
 #include "dvlnet/base.h"
@@ -31,6 +37,7 @@ public:
 	bool send_info_request() override;
 	void clear_gamelist() override;
 	std::vector<GameInfo> get_gamelist() override;
+	DvlNetLatencies get_latencies(uint8_t playerid) override;
 
 	~base_protocol() override = default;
 
@@ -234,7 +241,7 @@ tl::expected<void, PacketError> base_protocol<P>::InitiateHandshake(plr_t player
 	// It will cause problems if both peers attempt to initiate the handshake simultaneously.
 	// If the connection is already open, it should be safe to initiate from either end.
 	// If not, only the player with the smaller player number should initiate the handshake.
-	if (plr_self < player || proto.is_peer_connected(peer.endpoint))
+	if (peer.endpoint && (plr_self < player || proto.is_peer_connected(peer.endpoint)))
 		return SendEchoRequest(player);
 
 	return {};
@@ -254,7 +261,7 @@ tl::expected<void, PacketError> base_protocol<P>::send(packet &pkt)
 	}
 	if (destination >= MAX_PLRS)
 		return tl::make_unexpected("Invalid player ID");
-	if (destination == MyPlayerId)
+	if (destination == plr_self)
 		return {};
 	return SendTo(destination, pkt);
 }
@@ -544,11 +551,23 @@ std::vector<GameInfo> base_protocol<P>::get_gamelist()
 	std::vector<GameInfo> ret;
 	ret.reserve(game_list.size());
 	for (const auto &[name, gameInfo] : game_list) {
-		const auto &[gameData, players, _] = gameInfo;
-		ret.push_back(GameInfo { name, gameData, players });
+		const auto &[gameData, players, endpoint] = gameInfo;
+		std::optional<int> latency = proto.get_latency_to(endpoint);
+		std::optional<bool> isRelayed = proto.is_peer_relayed(endpoint);
+		ret.push_back(GameInfo { name, gameData, players, latency, isRelayed });
 	}
 	c_sort(ret, [](const GameInfo &a, const GameInfo &b) { return a.name < b.name; });
 	return ret;
+}
+
+template <class P>
+DvlNetLatencies base_protocol<P>::get_latencies(uint8_t playerid)
+{
+	DvlNetLatencies latencies = base::get_latencies(playerid);
+	Peer &srcPeer = peers[playerid];
+	latencies.providerLatency = proto.get_latency_to(srcPeer.endpoint);
+	latencies.isRelayed = proto.is_peer_relayed(srcPeer.endpoint);
+	return latencies;
 }
 
 template <class P>

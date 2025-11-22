@@ -72,14 +72,14 @@ public:
 	[[nodiscard]] const_iterator find(const PointT &point) const
 	{
 		const Bucket &b = bucket(point);
-		const auto it = c_find_if(b, [r = repr(point)](const Entry &e) { return e.first == r; });
+		const auto *const it = c_find_if(b, [r = repr(point)](const Entry &e) { return e.first == r; });
 		if (it == b.end()) return nullptr;
 		return it;
 	}
 	[[nodiscard]] iterator find(const PointT &point)
 	{
 		Bucket &b = bucket(point);
-		auto it = c_find_if(b, [r = repr(point)](const Entry &e) { return e.first == r; });
+		auto *it = c_find_if(b, [r = repr(point)](const Entry &e) { return e.first == r; });
 		if (it == b.end()) return nullptr;
 		return it;
 	}
@@ -157,7 +157,7 @@ int ReconstructPath(const ExploredNodes &explored, PointT dest, int8_t *path, si
 	size_t len = 0;
 	PointT cur = dest;
 	while (true) {
-		const auto it = explored.find(cur);
+		const auto *const it = explored.find(cur);
 		if (it == explored.end()) app_fatal("Failed to reconstruct path");
 		if (it->second.g == 0) break; // reached start
 		if (len == maxPathLength) {
@@ -257,7 +257,7 @@ int FindPath(tl::function_ref<bool(Point, Point)> canStep, tl::function_ref<bool
 			const CostType g = curG + GetDistance(cur.position, neighborPos);
 			if (curG >= PathDiagonalStepCost * maxPathLength) continue;
 			bool improved = false;
-			if (auto it = explored.find(neighborPos); it == explored.end()) {
+			if (auto *it = explored.find(neighborPos); it == explored.end()) {
 				if (explored.canInsert(neighborPos)) {
 					explored.emplace(neighborPos, ExploredNode { .prev = cur.position, .g = g });
 					improved = true;

@@ -1,11 +1,51 @@
 #pragma once
 
+#include <cstdint>
 #include <cstring>
 #include <string>
 #include <string_view>
 #include <type_traits>
 
 namespace devilution {
+
+struct AsHexU8Pad2 {
+	uint8_t value;
+	bool uppercase = false;
+};
+
+struct AsHexU16Pad2 {
+	uint16_t value;
+	bool uppercase = false;
+};
+
+/** @brief Maximum number of digits for a value of type T.
+ * If T is signed, also accounts for a potential '-'.
+ */
+template <typename T>
+constexpr size_t MaxNumDigits = (8 * sizeof(T) * 28 / 93) + 1 + (std::is_signed_v<T> ? 1 : 0);
+
+template <typename T>
+struct LeftPadT {
+	T value;
+	unsigned length;
+	char padChar;
+};
+
+/**
+ * @brief Formats the value as a lowercase zero-padded hexadecimal with at least 2 hex digits (0-padded on the left).
+ */
+constexpr AsHexU8Pad2 AsHexPad2(uint8_t value, bool uppercase = false) { return { value, uppercase }; }
+
+/**
+ * @brief Formats the value as a lowercase zero-padded hexadecimal with at least 2 hex digits (0-padded on the left).
+ */
+constexpr AsHexU16Pad2 AsHexPad2(uint16_t value, bool uppercase = false) { return { value, uppercase }; }
+
+/**
+ * @brief Left-pads the value to the specified length with the specified character.
+ */
+template <typename T>
+constexpr LeftPadT<T> LeftPad(T value, unsigned length, char padChar) { return { value, length, padChar }; }
 
 /**
  * @brief Writes the integer to the given buffer.
@@ -43,6 +83,22 @@ inline char *BufCopy(char *out, unsigned short value)
 	return BufCopy(out, static_cast<unsigned long long>(value));
 }
 
+char *BufCopy(char *out, AsHexU8Pad2 value);
+char *BufCopy(char *out, AsHexU16Pad2 value);
+
+template <typename T>
+char *BufCopy(char *out, LeftPadT<T> value)
+{
+	char buf[MaxNumDigits<T>];
+	const char *end = BufCopy(buf, value.value);
+	const std::string_view str = std::string_view(buf, end - buf);
+	for (size_t i = str.size(); i < value.length; ++i) {
+		*out++ = value.padChar;
+	}
+	std::memcpy(out, str.data(), str.size());
+	return out + str.size();
+}
+
 /**
  * @brief Appends the integer to the given string.
  */
@@ -75,6 +131,17 @@ inline void StrAppend(std::string &out, unsigned int value)
 inline void StrAppend(std::string &out, unsigned short value)
 {
 	StrAppend(out, static_cast<unsigned long long>(value));
+}
+
+void StrAppend(std::string &out, AsHexU8Pad2 value);
+void StrAppend(std::string &out, AsHexU16Pad2 value);
+
+template <typename T>
+void StrAppend(std::string &out, LeftPadT<T> value)
+{
+	char buf[MaxNumDigits<T>];
+	const auto len = static_cast<size_t>(BufCopy(buf, value) - buf);
+	out.append(buf, len);
 }
 
 /**

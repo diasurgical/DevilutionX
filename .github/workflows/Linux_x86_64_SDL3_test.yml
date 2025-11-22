@@ -1,0 +1,51 @@
+name: Linux x64 SDL3 Tests
+
+on:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
+  pull_request:
+    types: [ opened, synchronize ]
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+    - uses: actions/checkout@v5
+      with:
+        fetch-depth: 0
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update -y
+        sudo apt-get install -y cmake curl g++ git libgtest-dev libgmock-dev libbenchmark-dev libfmt-dev libsodium-dev libpng-dev libbz2-dev wget
+
+    - name: Cache CMake build folder
+      uses: actions/cache@v4
+      with:
+        path: build
+        key: ${{ github.workflow }}-v4-${{ github.sha }}
+        restore-keys: ${{ github.workflow }}-v4-
+
+    # We specify `-DDEVILUTIONX_SYSTEM_BENCHMARK=OFF` to work around the following error:
+    # lto1: fatal error: bytecode stream in file ‘/usr/lib/x86_64-linux-gnu/libbenchmark_main.a’ generated with LTO version 11.2 instead of the expected 11.3
+    - name: Build tests
+      run: |
+        cmake -S. -Bbuild -G Ninja -DUSE_SDL3=ON -DDEVILUTIONX_SYSTEM_SDL3=OFF -DDEVILUTIONX_STATIC_SDL3=ON -DDEVILUTIONX_SYSTEM_SDL_IMAGE=OFF -DDEVILUTIONX_SYSTEM_BENCHMARK=OFF
+        wget -qnc https://github.com/diasurgical/devilutionx-assets/releases/download/v2/spawn.mpq -P build
+        cmake --build build -j $(nproc)
+
+    - name: Run tests
+      run: cd build && ctest --output-on-failure

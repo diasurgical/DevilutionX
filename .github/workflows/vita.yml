@@ -27,7 +27,7 @@ jobs:
     container: vitasdk/vitasdk:latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -36,7 +36,8 @@ jobs:
           apk add \
             gettext \
             git \
-            samurai
+            samurai \
+            patch
 
       - name: Configure CMake
         run: |
@@ -52,7 +53,7 @@ jobs:
 
       - name: Upload Package
         if: ${{ !env.ACT }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: devilutionx.vpk
           path: ./build/devilutionx.vpk

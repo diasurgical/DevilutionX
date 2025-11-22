@@ -373,7 +373,7 @@ void FillFloor()
 			if (dungeon[i][j] != Floor || Protected.test(i, j))
 				continue;
 
-			int rv = RandomIntLessThan(3);
+			const int rv = RandomIntLessThan(3);
 			if (rv == 1)
 				dungeon[i][j] = Floor22;
 			else if (rv == 2)
@@ -395,7 +395,7 @@ void InitSetPiece()
 		return; // no setpiece needed for this level
 	}
 
-	WorldTilePosition setPiecePosition = SelectChamber();
+	const WorldTilePosition setPiecePosition = SelectChamber();
 	PlaceDunTiles(setPieceData.get(), setPiecePosition, Floor);
 	SetPiece = { setPiecePosition, GetDunSize(setPieceData.get()) };
 }
@@ -459,7 +459,7 @@ bool CheckRoom(Rectangle room)
 
 void GenerateRoom(Rectangle area, bool verticalLayout)
 {
-	bool rotate = FlipCoin(4);
+	const bool rotate = FlipCoin(4);
 	verticalLayout = (!verticalLayout && rotate) || (verticalLayout && !rotate);
 
 	bool placeRoom1;
@@ -518,7 +518,7 @@ void FirstRoom()
 		HasChamber2 = true;
 
 	Rectangle chamber1 { { 1, 15 }, { 10, 10 } };
-	Rectangle chamber2 { { 15, 15 }, { 10, 10 } };
+	const Rectangle chamber2 { { 15, 15 }, { 10, 10 } };
 	Rectangle chamber3 { { 29, 15 }, { 10, 10 } };
 	Rectangle hallway { { 1, 17 }, { 38, 6 } };
 	if (!HasChamber1) {
@@ -653,7 +653,7 @@ void HorizontalWall(Point position, Tile start, int maxX)
 		dungeon[position.x + x][position.y] = wallTile;
 	}
 
-	int x = GenerateRnd(maxX - 1) + 1;
+	const int x = GenerateRnd(maxX - 1) + 1;
 
 	dungeon[position.x + x][position.y] = doorTile;
 	if (doorTile == HDoor) {
@@ -695,7 +695,7 @@ void VerticalWall(Point position, Tile start, int maxY)
 		dungeon[position.x][position.y + y] = wallTile;
 	}
 
-	int y = GenerateRnd(maxY - 1) + 1;
+	const int y = GenerateRnd(maxY - 1) + 1;
 
 	dungeon[position.x][position.y + y] = doorTile;
 	if (doorTile == VDoor) {
@@ -712,42 +712,42 @@ void AddWall()
 
 			if (dungeon[i][j] == Corner) {
 				DiscardRandomValues(1);
-				int maxX = HorizontalWallOk({ i, j });
+				const int maxX = HorizontalWallOk({ i, j });
 				if (maxX != -1) {
 					HorizontalWall({ i, j }, HWall, maxX);
 				}
 			}
 			if (dungeon[i][j] == Corner) {
 				DiscardRandomValues(1);
-				int maxY = VerticalWallOk({ i, j });
+				const int maxY = VerticalWallOk({ i, j });
 				if (maxY != -1) {
 					VerticalWall({ i, j }, VWall, maxY);
 				}
 			}
 			if (dungeon[i][j] == VWallEnd) {
 				DiscardRandomValues(1);
-				int maxX = HorizontalWallOk({ i, j });
+				const int maxX = HorizontalWallOk({ i, j });
 				if (maxX != -1) {
 					HorizontalWall({ i, j }, DWall, maxX);
 				}
 			}
 			if (dungeon[i][j] == HWallEnd) {
 				DiscardRandomValues(1);
-				int maxY = VerticalWallOk({ i, j });
+				const int maxY = VerticalWallOk({ i, j });
 				if (maxY != -1) {
 					VerticalWall({ i, j }, DWall, maxY);
 				}
 			}
 			if (dungeon[i][j] == HWall) {
 				DiscardRandomValues(1);
-				int maxX = HorizontalWallOk({ i, j });
+				const int maxX = HorizontalWallOk({ i, j });
 				if (maxX != -1) {
 					HorizontalWall({ i, j }, HWall, maxX);
 				}
 			}
 			if (dungeon[i][j] == VWall) {
 				DiscardRandomValues(1);
-				int maxY = VerticalWallOk({ i, j });
+				const int maxY = VerticalWallOk({ i, j });
 				if (maxY != -1) {
 					VerticalWall({ i, j }, VWall, maxY);
 				}
@@ -953,7 +953,7 @@ void Substitution()
 	for (int y = 0; y < DMAXY; y++) {
 		for (int x = 0; x < DMAXX; x++) {
 			if (FlipCoin(4)) {
-				uint8_t c = TileDecorations[dungeon[x][y]];
+				const uint8_t c = TileDecorations[dungeon[x][y]];
 				if (c != 0 && !Protected.test(x, y)) {
 					int rv = GenerateRnd(16);
 					int i = -1;
@@ -1118,9 +1118,9 @@ bool PlaceCathedralStairs(lvl_entry entry)
 		if (!position) {
 			success = false;
 		} else {
-			int8_t t = TransVal;
+			const int8_t t = TransVal;
 			TransVal = 0;
-			Point miniPosition = *position;
+			const Point miniPosition = *position;
 			DRLG_MRectTrans({ miniPosition + Displacement { 0, 2 }, { 5, 2 } });
 			TransVal = t;
 			Quests[Q_PWATER].position = miniPosition.megaToWorld() + Displacement { 5, 6 };
@@ -1202,8 +1202,8 @@ void GenerateLevel(lvl_entry entry)
 	for (int j = 0; j < DMAXY; j++) {
 		for (int i = 0; i < DMAXX; i++) {
 			if (dungeon[i][j] == EntranceStairs) {
-				int xx = 2 * i + 16; /* todo: fix loop */
-				int yy = 2 * j + 16;
+				const int xx = 2 * i + 16; /* todo: fix loop */
+				const int yy = 2 * j + 16;
 				DRLG_CopyTrans(xx, yy + 1, xx, yy);
 				DRLG_CopyTrans(xx + 1, yy + 1, xx + 1, yy);
 			}
@@ -1224,7 +1224,7 @@ void GenerateLevel(lvl_entry entry)
 		Substitution();
 		ApplyShadowsPatterns();
 
-		int numt = GenerateRnd(5) + 5;
+		const int numt = GenerateRnd(5) + 5;
 		for (int i = 0; i < numt; i++) {
 			PlaceMiniSet(LAMPS, DMAXX * DMAXY, true);
 		}

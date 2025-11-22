@@ -11,6 +11,7 @@
 #include "inv.h"
 #include "minitext.h"
 #include "stores.h"
+#include "textdat.h"
 #include "utils/is_of.hpp"
 #include "utils/language.h"
 #include "utils/str_case.hpp"
@@ -215,7 +216,7 @@ void InitCows(Towner &towner, const TownerData &townerData)
 	towner._tAnimFrame = GenerateRnd(11);
 
 	const Point position = townerData.position;
-	int16_t cowId = dMonster[position.x][position.y];
+	const int16_t cowId = dMonster[position.x][position.y];
 
 	// Cows are large sprites so take up multiple tiles. Vanilla Diablo/Hellfire allowed the player to stand adjacent
 	//  to a cow facing an ordinal direction (the two top-right cows) which leads to visual clipping. It's easier to

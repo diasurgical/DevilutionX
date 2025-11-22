@@ -11,7 +11,13 @@
 
 #include <ankerl/unordered_dense.h>
 #include <expected.hpp>
-#include <fmt/core.h>
+
+#ifdef USE_SDL3
+#include <SDL3/SDL_iostream.h>
+#include <SDL3/SDL_timer.h>
+#else
+#include <SDL.h>
+#endif
 
 #include "codec.h"
 #include "engine/load_file.hpp"
@@ -24,10 +30,12 @@
 #include "playerdat.hpp"
 #include "qol/stash.h"
 #include "utils/endian_read.hpp"
+#include "utils/endian_swap.hpp"
 #include "utils/file_util.h"
 #include "utils/language.h"
 #include "utils/parse_int.hpp"
 #include "utils/paths.h"
+#include "utils/sdl_compat.h"
 #include "utils/stdcompat/filesystem.hpp"
 #include "utils/str_cat.hpp"
 #include "utils/str_split.hpp"
@@ -92,7 +100,7 @@ bool GetSaveNames(uint8_t index, std::string_view prefix, char *out)
 		return false;
 	}
 
-	*fmt::format_to(out, "{}{}{:02d}", prefix, suf, index) = '\0';
+	*BufCopy(out, prefix, std::string_view(&suf, 1), LeftPad(index, 2, '0')) = '\0';
 	return true;
 }
 
@@ -113,7 +121,7 @@ void RenameTempToPerm(SaveWriter &saveWriter)
 
 	uint32_t dwIndex = 0;
 	while (GetTempSaveNames(dwIndex, szTemp)) {
-		[[maybe_unused]] bool result = GetPermSaveNames(dwIndex, szPerm); // DO NOT PUT DIRECTLY INTO ASSERT!
+		[[maybe_unused]] const bool result = GetPermSaveNames(dwIndex, szPerm); // DO NOT PUT DIRECTLY INTO ASSERT!
 		assert(result);
 		dwIndex++;
 		if (saveWriter.HasFile(szTemp)) {
@@ -144,8 +152,8 @@ bool ReadHero(SaveReader &archive, PlayerPack *pPack)
 
 void EncodeHero(SaveWriter &saveWriter, const PlayerPack *pack)
 {
-	size_t packedLen = codec_get_encoded_len(sizeof(*pack));
-	std::unique_ptr<std::byte[]> packed { new std::byte[packedLen] };
+	const size_t packedLen = codec_get_encoded_len(sizeof(*pack));
+	const std::unique_ptr<std::byte[]> packed { new std::byte[packedLen] };
 
 	memcpy(packed.get(), pack, sizeof(*pack));
 	codec_encode(packed.get(), sizeof(*pack), packedLen, pfile_get_password());
@@ -170,7 +178,9 @@ void CopySaveFile(uint32_t saveNum, std::string targetPath)
 #ifdef DVL_NO_FILESYSTEM
 #error "UNPACKED_SAVES requires either DISABLE_DEMOMODE or C++17 <filesystem>"
 #endif
-	CreateDir(targetPath.c_str());
+	if (!targetPath.empty()) {
+		CreateDir(targetPath.c_str());
+	}
 	for (const std::filesystem::directory_entry &entry : std::filesystem::directory_iterator(savePath)) {
 		CopyFileOverwrite(entry.path().string().c_str(), (targetPath + entry.path().filename().string()).c_str());
 	}
@@ -225,7 +235,7 @@ bool ArchiveContainsGame(SaveReader &hsArchive)
 	if (gameData == nullptr)
 		return false;
 
-	uint32_t hdr = LoadLE32(gameData.get());
+	const uint32_t hdr = LoadLE32(gameData.get());
 
 	return IsHeaderValid(hdr);
 }
@@ -254,11 +264,11 @@ struct CompareInfo {
 struct CompareCounter {
 	int reference;
 	int actual;
-	int max()
+	int max() const
 	{
 		return std::max(reference, actual);
 	}
-	void checkIfDataExists(int count, CompareInfo &compareInfoReference, CompareInfo &compareInfoActual)
+	void checkIfDataExists(int count, CompareInfo &compareInfoReference, CompareInfo &compareInfoActual) const
 	{
 		if (reference == count)
 			compareInfoReference.dataExists = false;
@@ -277,22 +287,18 @@ inline bool string_ends_with(std::string_view value, std::string_view suffix)
 void CreateDetailDiffs(std::string_view prefix, std::string_view memoryMapFile, CompareInfo &compareInfoReference, CompareInfo &compareInfoActual, ankerl::unordered_dense::segmented_map<std::string, size_t> &foundDiffs)
 {
 	// Note: Detail diffs are currently only supported in unit tests
-	std::string memoryMapFileAssetName = StrCat(paths::BasePath(), "/test/fixtures/memory_map/", memoryMapFile, ".txt");
+	const std::string memoryMapFileAssetName = StrCat(paths::BasePath(), "/test/fixtures/memory_map/", memoryMapFile, ".txt");
 
-	SDL_RWops *handle = SDL_RWFromFile(memoryMapFileAssetName.c_str(), "r");
+	SDL_IOStream *handle = SDL_IOFromFile(memoryMapFileAssetName.c_str(), "r");
 	if (handle == nullptr) {
 		app_fatal(StrCat("MemoryMapFile ", memoryMapFile, " is missing"));
 		return;
 	}
 
-	size_t readBytes = static_cast<size_t>(SDL_RWsize(handle));
-	std::unique_ptr<std::byte[]> memoryMapFileData { new std::byte[readBytes] };
-#if SDL_VERSION_ATLEAST(2, 0, 0)
-	SDL_RWread(handle, memoryMapFileData.get(), readBytes, 1);
-#else
-	SDL_RWread(handle, memoryMapFileData.get(), static_cast<int>(readBytes), 1);
-#endif
-	SDL_RWclose(handle);
+	const size_t readBytes = static_cast<size_t>(SDL_GetIOSize(handle));
+	const std::unique_ptr<std::byte[]> memoryMapFileData { new std::byte[readBytes] };
+	SDL_ReadIO(handle, memoryMapFileData.get(), readBytes);
+	SDL_CloseIO(handle);
 
 	const std::string_view buffer(reinterpret_cast<const char *>(memoryMapFileData.get()), readBytes);
 
@@ -339,9 +345,9 @@ void CreateDetailDiffs(std::string_view prefix, std::string_view memoryMapFile, 
 			app_fatal("read32BitInt failed. Too less bytes to read.");
 		memcpy(&value, compareInfo.data.get() + compareInfo.currentPosition, sizeof(value));
 		if (useLE)
-			value = SDL_SwapLE32(value);
+			value = Swap32LE(value);
 		else
-			value = SDL_SwapBE32(value);
+			value = Swap32BE(value);
 		return value;
 	};
 
@@ -358,8 +364,8 @@ void CreateDetailDiffs(std::string_view prefix, std::string_view memoryMapFile, 
 
 		std::string_view command = *it;
 
-		bool dataExistsReference = compareInfoReference.dataExists;
-		bool dataExistsActual = compareInfoActual.dataExists;
+		const bool dataExistsReference = compareInfoReference.dataExists;
+		const bool dataExistsActual = compareInfoActual.dataExists;
 
 		if (string_ends_with(command, "_HF")) {
 			if (!gbIsHellfire)
@@ -389,29 +395,29 @@ void CreateDetailDiffs(std::string_view prefix, std::string_view memoryMapFile, 
 			const size_t bytes = static_cast<size_t>(parsedBytes.value() / 8);
 
 			if (command == "LT") {
-				int32_t valueReference = read32BitInt(compareInfoReference, false);
-				int32_t valueActual = read32BitInt(compareInfoActual, false);
+				const int32_t valueReference = read32BitInt(compareInfoReference, false);
+				const int32_t valueActual = read32BitInt(compareInfoActual, false);
 				assert(sizeof(valueReference) == bytes);
 				compareInfoReference.isTownLevel = valueReference == 0;
 				compareInfoActual.isTownLevel = valueActual == 0;
 			}
 			if (command == "LC" || command == "LC_LE") {
-				int32_t valueReference = read32BitInt(compareInfoReference, command == "LC_LE");
-				int32_t valueActual = read32BitInt(compareInfoActual, command == "LC_LE");
+				const int32_t valueReference = read32BitInt(compareInfoReference, command == "LC_LE");
+				const int32_t valueActual = read32BitInt(compareInfoActual, command == "LC_LE");
 				assert(sizeof(valueReference) == bytes);
 				counter.insert_or_assign(std::string(comment), CompareCounter { valueReference, valueActual });
 			}
 
 			if (!compareBytes(bytes)) {
-				std::string diffKey = StrCat(prefix, ".", comment);
+				const std::string diffKey = StrCat(prefix, ".", comment);
 				addDiff(diffKey);
 			}
 		} else if (command == "M") {
 			const auto countAsString = std::string(*++it);
 			const auto bitsAsString = std::string(*++it);
-			std::string_view comment = *++it;
+			const std::string_view comment = *++it;
 
-			CompareCounter count = getCounter(countAsString);
+			const CompareCounter count = getCounter(countAsString);
 			const ParseIntResult<size_t> parsedBytes = ParseInt<size_t>(bitsAsString);
 			if (!parsedBytes.has_value())
 				app_fatal(StrCat("Failed to parse ", bitsAsString, " as size_t"));
@@ -419,7 +425,7 @@ void CreateDetailDiffs(std::string_view prefix, std::string_view memoryMapFile, 
 			for (int i = 0; i < count.max(); i++) {
 				count.checkIfDataExists(i, compareInfoReference, compareInfoActual);
 				if (!compareBytes(bytes)) {
-					std::string diffKey = StrCat(prefix, ".", comment);
+					const std::string diffKey = StrCat(prefix, ".", comment);
 					addDiff(diffKey);
 				}
 			}
@@ -428,11 +434,11 @@ void CreateDetailDiffs(std::string_view prefix, std::string_view memoryMapFile, 
 			auto subMemoryMapFile = std::string(*++it);
 			const auto comment = std::string(*++it);
 
-			CompareCounter count = getCounter(countAsString);
+			const CompareCounter count = getCounter(countAsString);
 			subMemoryMapFile.erase(std::remove(subMemoryMapFile.begin(), subMemoryMapFile.end(), '\r'), subMemoryMapFile.end());
 			for (int i = 0; i < count.max(); i++) {
 				count.checkIfDataExists(i, compareInfoReference, compareInfoActual);
-				std::string subPrefix = StrCat(prefix, ".", comment);
+				const std::string subPrefix = StrCat(prefix, ".", comment);
 				CreateDetailDiffs(subPrefix, subMemoryMapFile, compareInfoReference, compareInfoActual, foundDiffs);
 			}
 		}
@@ -600,7 +606,7 @@ std::unique_ptr<std::byte[]> ReadArchive(SaveReader &archive, const char *pszNam
 	if (error != 0)
 		return nullptr;
 
-	std::size_t decodedLength = codec_decode(result.get(), length, pfile_get_password());
+	const std::size_t decodedLength = codec_decode(result.get(), length, pfile_get_password());
 	if (decodedLength == 0)
 		return nullptr;
 
@@ -626,7 +632,7 @@ void pfile_write_hero(bool writeGameData)
 #ifndef DISABLE_DEMOMODE
 void pfile_write_hero_demo(int demo)
 {
-	std::string savePath = GetSavePath(gSaveNumber, StrCat("demo_", demo, "_reference_"));
+	const std::string savePath = GetSavePath(gSaveNumber, StrCat("demo_", demo, "_reference_"));
 	CopySaveFile(gSaveNumber, savePath);
 	auto saveWriter = SaveWriter(savePath.c_str());
 	pfile_write_hero(saveWriter, true);
@@ -634,12 +640,12 @@ void pfile_write_hero_demo(int demo)
 
 HeroCompareResult pfile_compare_hero_demo(int demo, bool logDetails)
 {
-	std::string referenceSavePath = GetSavePath(gSaveNumber, StrCat("demo_", demo, "_reference_"));
+	const std::string referenceSavePath = GetSavePath(gSaveNumber, StrCat("demo_", demo, "_reference_"));
 
 	if (!FileExists(referenceSavePath.c_str()))
 		return { HeroCompareResult::ReferenceNotFound, {} };
 
-	std::string actualSavePath = GetSavePath(gSaveNumber, StrCat("demo_", demo, "_actual_"));
+	const std::string actualSavePath = GetSavePath(gSaveNumber, StrCat("demo_", demo, "_actual_"));
 	{
 		CopySaveFile(gSaveNumber, actualSavePath);
 		SaveWriter saveWriter(actualSavePath.c_str());
@@ -674,7 +680,7 @@ bool pfile_ui_set_hero_infos(bool (*uiAddHeroInfo)(_uiheroinfo *))
 				_uiheroinfo uihero;
 				uihero.saveNumber = i;
 				strcpy(hero_names[i], pkplr.pName);
-				bool hasSaveGame = ArchiveContainsGame(*archive);
+				const bool hasSaveGame = ArchiveContainsGame(*archive);
 				if (hasSaveGame)
 					pkplr.bIsHellfire = gbIsHellfireSaveGame ? 1 : 0;
 
@@ -717,7 +723,7 @@ bool pfile_ui_save_create(_uiheroinfo *heroinfo)
 {
 	PlayerPack pkplr;
 
-	uint32_t saveNum = heroinfo->saveNumber;
+	const uint32_t saveNum = heroinfo->saveNumber;
 	if (saveNum >= MAX_CHARACTERS)
 		return false;
 	heroinfo->saveNumber = saveNum;
@@ -744,7 +750,7 @@ bool pfile_ui_save_create(_uiheroinfo *heroinfo)
 
 bool pfile_delete_save(_uiheroinfo *heroInfo)
 {
-	uint32_t saveNum = heroInfo->saveNumber;
+	const uint32_t saveNum = heroInfo->saveNumber;
 	if (saveNum < MAX_CHARACTERS) {
 		hero_names[saveNum][0] = '\0';
 		RemoveFile(GetSavePath(saveNum).c_str());
@@ -801,7 +807,7 @@ void pfile_update(bool forceSave)
 	if (!gbIsMultiplayer)
 		return;
 
-	Uint32 tick = SDL_GetTicks();
+	const Uint32 tick = SDL_GetTicks();
 	if (!forceSave && tick - prevTick <= 60000)
 		return;
 

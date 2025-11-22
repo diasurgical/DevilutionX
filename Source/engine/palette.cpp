@@ -8,9 +8,15 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <cstring>
 #include <span>
 
-#include <fmt/core.h>
+#ifdef USE_SDL3
+#include <SDL3/SDL_pixels.h>
+#include <SDL3/SDL_timer.h>
+#else
+#include <SDL.h>
+#endif
 
 #include "engine/backbuffer_state.hpp"
 #include "engine/demomode.h"
@@ -23,6 +29,7 @@
 #include "utils/display.h"
 #include "utils/palette_blending.hpp"
 #include "utils/sdl_compat.h"
+#include "utils/str_cat.hpp"
 
 namespace devilution {
 
@@ -155,7 +162,7 @@ void SystemPaletteUpdated(int first, int ncolor)
 		return;
 
 	assert(Palette);
-	if (SDLC_SetSurfaceAndPaletteColors(PalSurface, Palette.get(), system_palette.data() + first, first, ncolor) < 0) {
+	if (!SDLC_SetSurfaceAndPaletteColors(PalSurface, Palette.get(), system_palette.data() + first, first, ncolor)) {
 		ErrSdl();
 	}
 }
@@ -184,11 +191,11 @@ void LoadPaletteAndInitBlending(const char *path)
 	if (HeadlessMode) return;
 	LoadPalette(path);
 	if (leveltype == DTYPE_CAVES || leveltype == DTYPE_CRYPT) {
-		GenerateBlendedLookupTable(/*skipFrom=*/1, /*skipTo=*/31);
+		GenerateBlendedLookupTable(logical_palette.data(), /*skipFrom=*/1, /*skipTo=*/31);
 	} else if (leveltype == DTYPE_NEST) {
-		GenerateBlendedLookupTable(/*skipFrom=*/1, /*skipTo=*/15);
+		GenerateBlendedLookupTable(logical_palette.data(), /*skipFrom=*/1, /*skipTo=*/15);
 	} else {
-		GenerateBlendedLookupTable();
+		GenerateBlendedLookupTable(logical_palette.data());
 	}
 }
 
@@ -213,18 +220,21 @@ void LoadRndLvlPal(dungeon_type l)
 		if (!*GetOptions().Graphics.alternateNestArt) {
 			rv++;
 		}
-		*fmt::format_to(szFileName, R"(nlevels\l{0}data\l{0}base{1}.pal)", 6, rv) = '\0';
+		*BufCopy(szFileName, R"(nlevels\l6data\l6base)", rv, ".pal") = '\0';
 	} else {
-		*fmt::format_to(szFileName, R"(levels\l{0}data\l{0}_{1}.pal)", static_cast<int>(l), rv) = '\0';
+		char nbuf[3];
+		const char *end = BufCopy(nbuf, static_cast<int>(l));
+		const std::string_view n = std::string_view(nbuf, end - nbuf);
+		*BufCopy(szFileName, "levels\\l", n, "data\\l", n, "_", rv, ".pal") = '\0';
 	}
 	LoadPaletteAndInitBlending(szFileName);
 }
 
 void IncreaseBrightness()
 {
-	int brightnessValue = *GetOptions().Graphics.brightness;
+	const int brightnessValue = *GetOptions().Graphics.brightness;
 	if (brightnessValue < 100) {
-		int newBrightness = std::min(brightnessValue + 5, 100);
+		const int newBrightness = std::min(brightnessValue + 5, 100);
 		GetOptions().Graphics.brightness.SetValue(newBrightness);
 		UpdateSystemPalette(logical_palette);
 	}
@@ -232,9 +242,9 @@ void IncreaseBrightness()
 
 void DecreaseBrightness()
 {
-	int brightnessValue = *GetOptions().Graphics.brightness;
+	const int brightnessValue = *GetOptions().Graphics.brightness;
 	if (brightnessValue > 0) {
-		int newBrightness = std::max(brightnessValue - 5, 0);
+		const int newBrightness = std::max(brightnessValue - 5, 0);
 		GetOptions().Graphics.brightness.SetValue(newBrightness);
 		UpdateSystemPalette(logical_palette);
 	}
@@ -265,8 +275,15 @@ void PaletteFadeIn(int fr, const std::array<SDL_Color, 256> &srcPalette)
 	if (demo::IsRunning())
 		fr = 0;
 
-	SDL_Color palette[256];
-	ApplyGlobalBrightness(palette, srcPalette.data());
+	std::array<SDL_Color, 256> palette;
+
+#ifndef USE_SDL1
+	for (SDL_Color &color : palette) {
+		color.a = SDL_ALPHA_OPAQUE;
+	}
+#endif
+
+	ApplyGlobalBrightness(palette.data(), srcPalette.data());
 
 	if (fr > 0) {
 		const uint32_t tc = SDL_GetTicks();
@@ -277,7 +294,7 @@ void PaletteFadeIn(int fr, const std::array<SDL_Color, 256> &srcPalette)
 				SDL_Delay(1);
 				continue;
 			}
-			ApplyFadeLevel(i, system_palette.data(), palette);
+			ApplyFadeLevel(i, system_palette.data(), palette.data());
 			SystemPaletteUpdated();
 
 			// We can skip hardware cursor update for fade level 0 (everything is black).
@@ -291,7 +308,9 @@ void PaletteFadeIn(int fr, const std::array<SDL_Color, 256> &srcPalette)
 			RenderPresent();
 		}
 	}
-	UpdateSystemPalette(palette);
+	system_palette = palette;
+	SystemPaletteUpdated();
+	RedrawEverything();
 	if (IsHardwareCursor()) ReinitializeHardwareCursor();
 
 	if (fr <= 0) {
@@ -389,7 +408,7 @@ void SetLogicalPaletteColor(unsigned i, const SDL_Color &color)
 	logical_palette[i] = color;
 	ApplyGlobalBrightnessSingleColor(system_palette[i], logical_palette[i]);
 	SystemPaletteUpdated(i, 1);
-	UpdateBlendedLookupTableSingleColor(i);
+	UpdateBlendedLookupTableSingleColor(logical_palette.data(), i);
 }
 
 } // namespace devilution

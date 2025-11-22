@@ -1,0 +1,109 @@
+id	addFn	processFn	castSound	hitSound	graphic	flags	movementDistribution
+Arrow	AddArrow	ProcessArrow			Arrow	Physical,Arrow	Blockable
+Firebolt	AddFirebolt	ProcessGenericProjectile	SpellFirebolt	SpellFireHit	Fireball	Fire	Blockable
+Guardian	AddGuardian	ProcessGuardian	SpellGuardian		Guardian	Physical	
+Phasing	AddPhasing	ProcessTeleport	SpellTeleport			Physical,Invisible	
+NovaBall	AddNovaBall	ProcessNovaBall			Lightning	Lightning	Unblockable
+FireWall	AddFireWall	ProcessFireWall	SpellFireWall	SpellFireHit	FireWall	Fire	
+Fireball	AddFireball	ProcessFireball	SpellFirebolt	SpellFireHit	Fireball	Fire	Blockable
+LightningControl	AddLightningControl	ProcessLightningControl			Lightning	Lightning,Invisible	
+Lightning	AddLightning	ProcessLightning	SpellLightning	SpellLightningHit	Lightning	Lightning	
+MagmaBallExplosion	AddMissileExplosion	ProcessMissileExplosion			MagmaBallExplosion	Physical	
+TownPortal	AddTownPortal	ProcessTownPortal	SpellPortal		TownPortal	Magic	
+FlashBottom	AddFlashBottom	ProcessFlashBottom	SpellNova	SpellLightningHit	FlashBottom	Magic	
+FlashTop	AddFlashTop	ProcessFlashTop			FlashTop	Magic	
+ManaShield	AddManaShield		SpellManaShield		ManaShield	Magic,Invisible	
+FlameWave	AddFlameWave	ProcessFlameWave			FireWall	Fire	Unblockable
+ChainLightning	AddChainLightning	ProcessChainLightning	SpellLightning	SpellLightningHit	Lightning	Lightning	
+ChainBall					Lightning	Lightning	
+BloodHit			SpellBloodStar	SpellBloodStarHit	BloodHit	Physical	
+BoneHit					BoneHit	Physical	
+MetalHit					MetalHit	Physical	
+Rhino	AddRhino	ProcessRhino				Physical	Blockable
+MagmaBall	AddMagmaBall	ProcessGenericProjectile			MagmaBall	Fire	Blockable
+ThinLightningControl	AddLightningControl	ProcessLightningControl			ThinLightning	Lightning,Invisible	
+ThinLightning	AddLightning	ProcessLightning			ThinLightning	Lightning	
+BloodStar	AddGenericMagicMissile	ProcessGenericProjectile			BloodStar	Magic	Blockable
+BloodStarExplosion	AddMissileExplosion	ProcessMissileExplosion			BloodStarExplosion	Magic	
+Teleport	AddTeleport	ProcessTeleport	SpellElemental			Physical,Invisible	
+FireArrow	AddElementalArrow	ProcessElementalArrow			FireArrow	Fire,Arrow	Blockable
+DoomSerpents			SpellDoomSerpents		DoomSerpents	Magic,Invisible	
+FireOnly					FireWall	Fire	
+StoneCurse	AddStoneCurse	ProcessStoneCurse	SpellStoneCurse			Magic,Invisible	
+BloodRitual						Physical	
+Invisibility			SpellInvisibility			Physical,Invisible	
+Golem	AddGolem		SpellGolem			Physical,Invisible	
+Etherealize			SpellEtherealize		Etherealize	Physical	
+Spurt					Spurt	Physical	
+ApocalypseBoom	AddApocalypseBoom	ProcessApocalypseBoom			ApocalypseBoom	Physical	
+Healing	AddHealing					Physical,Invisible	
+FireWallControl	AddWallControl	ProcessWallControl			FireWall	Fire,Invisible	
+Infravision	AddInfravision	ProcessInfravision	SpellInfravision			Physical,Invisible	
+Identify	AddIdentify					Physical,Invisible	
+FlameWaveControl	AddFlameWaveControl	ProcessFlameWaveControl	SpellFlameWave		FireWall	Fire	
+Nova	AddNova	ProcessNova	SpellNova		Lightning	Lightning	
+Rage	AddRage	ProcessRage				Physical,Invisible	
+Apocalypse	AddApocalypse	ProcessApocalypse	SpellApocalypse		ApocalypseBoom	Magic	
+ItemRepair	AddItemRepair					Physical,Invisible	
+StaffRecharge	AddStaffRecharge					Physical,Invisible	
+TrapDisarm	AddTrapDisarm		SpellTrapDisarm			Physical,Invisible	
+Inferno	AddInferno	ProcessInferno	SpellInferno		Inferno	Fire	
+InfernoControl	AddInfernoControl	ProcessInfernoControl				Fire,Invisible	
+FireMan						Physical	Blockable
+Krull					Krull	Fire,Arrow	Blockable
+ChargedBolt	AddChargedBolt	ProcessChargedBolt	SpellChargedBolt		ChargedBolt	Lightning	Blockable
+HolyBolt	AddHolyBolt	ProcessHolyBolt	SpellHolyBolt	SpellLightningHit	HolyBolt	Physical	Blockable
+Resurrect	AddResurrect			SpellResurrect		Magic,Invisible	
+Telekinesis	AddTelekinesis		SpellEtherealize			Physical,Invisible	
+LightningArrow	AddElementalArrow	ProcessElementalArrow			LightningArrow	Lightning,Arrow	Blockable
+Acid	AddAcid	ProcessGenericProjectile	SpellAcid		Acid	Acid	Blockable
+AcidSplat	AddMissileExplosion	ProcessAcidSplate			AcidSplat	Acid	
+AcidPuddle	AddAcidPuddle	ProcessAcidPuddle	SpellPuddle		AcidPuddle	Acid	
+HealOther	AddHealOther					Physical,Invisible	
+Elemental	AddElemental	ProcessElemental	SpellElemental		Elemental	Fire	Unblockable
+ResurrectBeam	AddResurrectBeam	ProcessResurrectBeam			Resurrect	Physical	
+BoneSpirit	AddBoneSpirit	ProcessBoneSpirit	SpellBoneSpirit	SpellBoneSpiritHit	BoneSpirit	Magic	Blockable
+WeaponExplosion	AddWeaponExplosion	ProcessWeaponExplosion				Physical	
+RedPortal	AddRedPortal	ProcessRedPortal	SpellPortal		RedPortal	Physical	
+DiabloApocalypseBoom	AddApocalypseBoom	ProcessApocalypseBoom			DiabloApocalypseBoom	Physical	
+DiabloApocalypse	AddDiabloApocalypse					Physical,Invisible	
+Mana	AddMana					Physical,Invisible	
+Magi	AddMagi					Physical,Invisible	
+LightningWall	AddLightningWall	ProcessLightningWall	SpellLightningWall	SpellLightningHit	Lightning	Lightning	
+LightningWallControl	AddWallControl	ProcessWallControl			Lightning	Lightning,Invisible	
+Immolation	AddNova	ProcessImmolation	SpellFirebolt	SpellFireHit	Fireball	Fire	
+SpectralArrow	AddSpectralArrow	ProcessSpectralArrow			Arrow	Physical,Arrow	
+FireballBow	AddImmolation	ProcessFireball	ShootFireballBow	SpellFireHit	Fireball	Fire	Blockable
+LightningBow	AddLightningBow	ProcessLightningBow	ShootFireballBow		Lightning	Lightning,Invisible	
+ChargedBoltBow	AddChargedBoltBow	ProcessChargedBolt	SpellChargedBolt		ChargedBolt	Lightning	Blockable
+HolyBoltBow	AddHolyBolt	ProcessHolyBolt	SpellHolyBolt	SpellLightningHit	HolyBolt	Physical	Blockable
+Warp	AddWarp	ProcessTeleport	SpellEtherealize			Physical,Invisible	
+Reflect	AddReflect		SpellManaShield		Reflect	Physical,Invisible	
+Berserk	AddBerserk					Physical,Invisible	
+RingOfFire	AddRingOfFire	ProcessRingOfFire			FireWall	Fire,Invisible	
+StealPotions	AddStealPotions					Physical,Invisible	
+StealMana	AddStealMana		SpellEnd			Physical,Invisible	
+RingOfLightning					Lightning	Lightning,Invisible	
+Search	AddSearch	ProcessSearch				Physical,Invisible	
+Aura				SpellLightningHit	FlashBottom	Magic,Invisible	
+Aura2					FlashTop	Magic,Invisible	
+SpiralFireball			SpellFirebolt	SpellFireHit	Fireball	Fire	
+RuneOfFire	AddRuneOfFire	ProcessRune			Rune	Physical	
+RuneOfLight	AddRuneOfLight	ProcessRune			Rune	Physical	
+RuneOfNova	AddRuneOfNova	ProcessRune			Rune	Physical	
+RuneOfImmolation	AddRuneOfImmolation	ProcessRune			Rune	Physical	
+RuneOfStone	AddRuneOfStone	ProcessRune			Rune	Physical	
+BigExplosion	AddBigExplosion	ProcessBigExplosion	BigExplosion	BigExplosion	BigExplosion	Fire	
+HorkSpawn	AddHorkSpawn	ProcessHorkSpawn				Physical,Invisible	
+Jester	AddJester					Physical,Invisible	
+OpenNest	AddOpenNest					Physical,Invisible	
+OrangeFlare	AddGenericMagicMissile	ProcessGenericProjectile			OrangeFlare	Magic	Blockable
+BlueFlare	AddGenericMagicMissile	ProcessGenericProjectile			BlueFlare2	Magic	Blockable
+RedFlare	AddGenericMagicMissile	ProcessGenericProjectile			RedFlare	Magic	Blockable
+YellowFlare	AddGenericMagicMissile	ProcessGenericProjectile			YellowFlare	Magic	Blockable
+BlueFlare2	AddGenericMagicMissile	ProcessGenericProjectile			BlueFlare2	Magic	Blockable
+YellowExplosion	AddMissileExplosion	ProcessMissileExplosion	SpellFireHit		YellowFlareExplosion	Physical	
+RedExplosion	AddMissileExplosion	ProcessMissileExplosion	SpellFireHit		RedFlareExplosion	Physical	
+BlueExplosion	AddMissileExplosion	ProcessMissileExplosion	SpellFireHit		BlueFlareExplosion	Physical	
+BlueExplosion2	AddMissileExplosion	ProcessMissileExplosion	SpellFireHit		BlueFlareExplosion2	Physical	
+OrangeExplosion	AddMissileExplosion	ProcessMissileExplosion	SpellFireHit		OrangeFlareExplosion	Physical	

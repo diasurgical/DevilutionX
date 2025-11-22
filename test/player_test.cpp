@@ -84,6 +84,11 @@ BlockTestCase BlockData[] = {
 
 TEST(Player, PM_DoGotHit)
 {
+	LoadCoreArchives();
+	LoadGameArchives();
+	ASSERT_TRUE(HaveMainData());
+	LoadPlayerDataFiles();
+
 	Players.resize(1);
 	MyPlayer = &Players[0];
 	for (size_t i = 0; i < sizeof(BlockData) / sizeof(*BlockData); i++) {

@@ -6,23 +6,32 @@
 #include "engine/sound.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <list>
 #include <memory>
 #include <mutex>
 #include <optional>
 #include <string>
+#include <utility>
 
 #ifdef PS2
 #include <loadfile.h>
 #include <ps2snd.h>
+#elif defined(USE_SDL3)
+#include <SDL3/SDL_audio.h>
+#include <SDL3/SDL_error.h>
+#include <SDL3/SDL_timer.h>
 #else
 #include <Aulib/Stream.h>
 #endif
 #include <SDL.h>
+#endif
 #include <expected.hpp>
 
+#include "appfat.h"
 #include "engine/assets.hpp"
+#include "game_mode.hpp"
 #include "options.h"
 #include "utils/log.hpp"
 #include "utils/math.h"
@@ -35,6 +44,11 @@
 namespace devilution {
 
 bool gbSndInited;
+
+#ifdef USE_SDL3
+SDL_AudioDeviceID CurrentAudioDeviceId;
+#endif
+
 /** The active background music track id. */
 _music_id sgnMusicTrack = NUM_MUSIC;
 
@@ -123,6 +137,9 @@ std::optional<SdlMutex> duplicateSoundsMutex;
 
 SoundSample *DuplicateSound(const SoundSample &sound)
 {
+#ifdef USE_SDL3
+	return nullptr;
+#else
 	auto duplicate = std::make_unique<SoundSample>();
 	if (duplicate->DuplicateFrom(sound) != 0)
 		return nullptr;
@@ -141,6 +158,7 @@ SoundSample *DuplicateSound(const SoundSample &sound)
 	});
 #endif
 	return result;
+#endif
 }
 
 /** Maps from track ID to track name in spawn. */
@@ -205,7 +223,7 @@ void snd_play_snd(TSnd *pSnd, int lVolume, int lPan)
 		return;
 	}
 
-	uint32_t tc = SDL_GetTicks();
+	const uint32_t tc = SDL_GetTicks();
 	if (tc - pSnd->start_tc < 80) {
 		return;
 	}
@@ -284,12 +302,27 @@ void snd_init()
 	// Initialize the SDL_audiolib library. Set the output sample rate to
 	// 22kHz, the audio format to 16-bit signed, use 2 output channels
 	// (stereo), and a 2KiB output buffer.
+#ifdef USE_SDL3
+	const AudioOptions &audioOptions = GetOptions().Audio;
+	SDL_AudioSpec specHint = {};
+	specHint.format = SDL_AUDIO_S16LE;
+	specHint.channels = *audioOptions.channels;
+	specHint.freq = static_cast<int>(*audioOptions.sampleRate);
+	const SDL_AudioDeviceID resolvedId = SDL_OpenAudioDevice(audioOptions.device.id(), &specHint);
+	if (resolvedId == 0) {
+		LogError(LogCategory::Audio, "Failed to open audio device: {}", SDL_GetError());
+		SDL_ClearError();
+		return;
+	}
+	CurrentAudioDeviceId = resolvedId;
+#else
 	if (!Aulib::init(*GetOptions().Audio.sampleRate, AUDIO_S16, *GetOptions().Audio.channels, *GetOptions().Audio.bufferSize, *GetOptions().Audio.device)) {
 		LogError(LogCategory::Audio, "Failed to initialize audio (Aulib::init): {}", SDL_GetError());
 		return;
 	}
 	LogVerbose(LogCategory::Audio, "Aulib sampleRate={} channels={} frameSize={} format={:#x}",
 	    Aulib::sampleRate(), Aulib::channelCount(), Aulib::frameSize(), Aulib::sampleFormat());
+#endif
 
 	duplicateSoundsMutex.emplace();
 #endif
@@ -300,7 +333,12 @@ void snd_deinit()
 {
 	if (gbSndInited) {
 #ifndef PS2
+#ifdef USE_SDL3
+		const AudioOptions &audioOptions = GetOptions().Audio;
+		SDL_CloseAudioDevice(audioOptions.device.id());
+#else
 		Aulib::quit();
+#endif
 		duplicateSoundsMutex = std::nullopt;
 #endif
 	}

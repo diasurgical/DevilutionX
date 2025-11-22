@@ -271,14 +271,14 @@ void LoadObjectData()
 
 		reader.advance(); // skip id
 
-		std::string filename;
-		reader.readString("file", filename);
-		if (const auto it = filenameToId.find(filename); it != filenameToId.end()) {
+		std::string objFilename;
+		reader.readString("file", objFilename);
+		if (const auto it = filenameToId.find(objFilename); it != filenameToId.end()) {
 			item.ofindex = it->second;
 		} else {
 			const auto id = static_cast<uint8_t>(ObjMasterLoadList.size());
-			ObjMasterLoadList.push_back(filename);
-			filenameToId.emplace(std::move(filename), id);
+			ObjMasterLoadList.push_back(objFilename);
+			filenameToId.emplace(std::move(objFilename), id);
 			item.ofindex = id;
 		}
 

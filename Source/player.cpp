@@ -7,6 +7,13 @@
 #include <cmath>
 #include <cstdint>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_events.h>
+#include <SDL3/SDL_timer.h>
+#else
+#include <SDL.h>
+#endif
+
 #include <fmt/core.h>
 
 #include "control.h"
@@ -98,8 +105,8 @@ constexpr std::array<const DirectionSettings, 8> WalkSettings { {
 
 bool PlrDirOK(const Player &player, Direction dir)
 {
-	Point position = player.position.tile;
-	Point futurePosition = position + dir;
+	const Point position = player.position.tile;
+	const Point futurePosition = position + dir;
 	if (futurePosition.x < 0 || !PosOkPlayer(player, futurePosition)) {
 		return false;
 	}
@@ -287,7 +294,7 @@ void RespawnDeadItem(Item &&itm, Point target)
 	if (ActiveItemCount >= MAXITEMS)
 		return;
 
-	int ii = AllocateItem();
+	const int ii = AllocateItem();
 	Item &item = Items[ii];
 
 	dItem[target.x][target.y] = ii + 1;
@@ -347,7 +354,7 @@ int DropGold(Player &player, int amount, bool skipFullStacks)
 
 void DropHalfPlayersGold(Player &player)
 {
-	int remainingGold = DropGold(player, player._pGold / 2, true);
+	const int remainingGold = DropGold(player, player._pGold / 2, true);
 	if (remainingGold > 0) {
 		DropGold(player, remainingGold, false);
 	}
@@ -357,7 +364,7 @@ void DropHalfPlayersGold(Player &player)
 
 void InitLevelChange(Player &player)
 {
-	Player &myPlayer = *MyPlayer;
+	const Player &myPlayer = *MyPlayer;
 
 	RemoveEnemyReferences(player);
 	RemovePlrMissiles(player);
@@ -553,17 +560,19 @@ bool PlrHitMonst(Player &player, Monster &monster, bool adjacentDamage = false)
 
 	if (gbIsHellfire && HasAllOf(player._pIFlags, ItemSpecialEffect::FireDamage | ItemSpecialEffect::LightningDamage)) {
 		// Fixed off by 1 error from Hellfire
-		int midam = RandomIntBetween(player._pIFMinDam, player._pIFMaxDam);
+		const int midam = RandomIntBetween(player._pIFMinDam, player._pIFMaxDam);
 		AddMissile(player.position.tile, player.position.temp, player._pdir, MissileID::SpectralArrow, TARGET_MONSTERS, player, midam, 0);
 	}
-	int mind = player._pIMinDam;
-	int maxd = player._pIMaxDam;
+	const int mind = player._pIMinDam;
+	const int maxd = player._pIMaxDam;
 	int dam = RandomIntBetween(mind, maxd);
 	dam += dam * player._pIBonusDam / 100;
 	dam += player._pIBonusDamMod;
 	int dam2 = dam << 6;
 	dam += player._pDamageMod;
-	if (player._pClass == HeroClass::Warrior || player._pClass == HeroClass::Barbarian) {
+
+	const ClassAttributes &classAttributes = GetClassAttributes(player._pClass);
+	if (HasAnyOf(classAttributes.classFlags, PlayerClassFlag::CriticalStrike)) {
 		if (GenerateRnd(100) < player.getCharacterLevel()) {
 			dam *= 2;
 		}
@@ -701,7 +710,7 @@ bool PlrHitPlr(Player &attacker, Player &target)
 		return false;
 	}
 
-	int hit = GenerateRnd(100);
+	const int hit = GenerateRnd(100);
 
 	int hper = attacker.GetMeleeToHit() - target.GetArmor();
 	hper = std::clamp(hper, 5, 95);
@@ -719,25 +728,26 @@ bool PlrHitPlr(Player &attacker, Player &target)
 	}
 
 	if (blk < blkper) {
-		Direction dir = GetDirection(target.position.tile, attacker.position.tile);
+		const Direction dir = GetDirection(target.position.tile, attacker.position.tile);
 		StartPlrBlock(target, dir);
 		return true;
 	}
 
-	int mind = attacker._pIMinDam;
-	int maxd = attacker._pIMaxDam;
+	const int mind = attacker._pIMinDam;
+	const int maxd = attacker._pIMaxDam;
 	int dam = RandomIntBetween(mind, maxd);
 	dam += (dam * attacker._pIBonusDam) / 100;
 	dam += attacker._pIBonusDamMod + attacker._pDamageMod;
 
-	if (attacker._pClass == HeroClass::Warrior || attacker._pClass == HeroClass::Barbarian) {
+	const ClassAttributes &classAttributes = GetClassAttributes(attacker._pClass);
+	if (HasAnyOf(classAttributes.classFlags, PlayerClassFlag::CriticalStrike)) {
 		if (GenerateRnd(100) < attacker.getCharacterLevel()) {
 			dam *= 2;
 		}
 	}
-	int skdam = dam << 6;
+	const int skdam = dam << 6;
 	if (HasAnyOf(attacker._pIFlags, ItemSpecialEffect::RandomStealLife)) {
-		int tac = GenerateRnd(skdam / 8);
+		const int tac = GenerateRnd(skdam / 8);
 		attacker._pHitPoints += tac;
 		if (attacker._pHitPoints > attacker._pMaxHP) {
 			attacker._pHitPoints = attacker._pMaxHP;
@@ -855,11 +865,11 @@ bool DoRangeAttack(Player &player)
 		int xoff = 0;
 		int yoff = 0;
 		if (arrows != 1) {
-			int angle = arrow == 0 ? -1 : 1;
-			int x = player.position.temp.x - player.position.tile.x;
+			const int angle = arrow == 0 ? -1 : 1;
+			const int x = player.position.temp.x - player.position.tile.x;
 			if (x != 0)
 				yoff = x < 0 ? angle : -angle;
-			int y = player.position.temp.y - player.position.tile.y;
+			const int y = player.position.temp.y - player.position.tile.y;
 			if (y != 0)
 				xoff = y < 0 ? -angle : angle;
 		}
@@ -1047,7 +1057,7 @@ bool DoDeath(Player &player)
 
 bool IsPlayerAdjacentToObject(Player &player, Object &object)
 {
-	int x = std::abs(player.position.tile.x - object.position.x);
+	const int x = std::abs(player.position.tile.x - object.position.x);
 	int y = std::abs(player.position.tile.y - object.position.y);
 	if (y > 1 && object.position.y >= 1 && FindObjectAtPosition(object.position + Direction::NorthEast) == &object) {
 		// special case for activating a large object from the north-east side
@@ -1063,7 +1073,7 @@ void TryDisarm(const Player &player, Object &object)
 	if (!object._oTrapFlag) {
 		return;
 	}
-	int trapdisper = 2 * player._pDexterity - 5 * currlevel;
+	const int trapdisper = 2 * player._pDexterity - 5 * currlevel;
 	if (GenerateRnd(100) > trapdisper) {
 		return;
 	}
@@ -1089,7 +1099,7 @@ void CheckNewPath(Player &player, bool pmWillBeCalled)
 	Object *object;
 	Item *item;
 
-	int targetId = player.destParam1;
+	const int targetId = player.destParam1;
 
 	switch (player.destAction) {
 	case ACTION_ATTACKMON:
@@ -1445,7 +1455,7 @@ void ValidatePlayer()
 	}
 
 	uint64_t msk = 0;
-	for (int b = static_cast<int8_t>(SpellID::Firebolt); b < MAX_SPELLS; b++) {
+	for (size_t b = static_cast<size_t>(SpellID::Firebolt); b < SpellsData.size(); b++) {
 		if (GetSpellBookLevel((SpellID)b) != -1) {
 			msk |= GetSpellBitmask(static_cast<SpellID>(b));
 			if (myPlayer._pSplLvl[b] > MaxSpellLevel)
@@ -1486,7 +1496,7 @@ PlayerWeaponGraphic GetPlayerWeaponGraphic(player_graphic graphic, PlayerWeaponG
 
 uint16_t GetPlayerSpriteWidth(HeroClass cls, player_graphic graphic, PlayerWeaponGraphic weaponGraphic)
 {
-	PlayerSpriteData spriteData = PlayersSpriteData[static_cast<size_t>(cls)];
+	const PlayerSpriteData spriteData = GetPlayerSpriteDataForClass(cls);
 
 	switch (graphic) {
 	case player_graphic::Stand:
@@ -1513,12 +1523,17 @@ uint16_t GetPlayerSpriteWidth(HeroClass cls, player_graphic graphic, PlayerWeapo
 	app_fatal("Invalid player_graphic");
 }
 
+void GetPlayerGraphicsPath(std::string_view path, std::string_view prefix, std::string_view type, char out[256])
+{
+	*BufCopy(out, "plrgfx\\", path, "\\", prefix, "\\", prefix, type) = '\0';
+}
+
 } // namespace
 
 void Player::CalcScrolls()
 {
 	_pScrlSpells = 0;
-	for (Item &item : InventoryAndBeltPlayerItemsRange { *this }) {
+	for (const Item &item : InventoryAndBeltPlayerItemsRange { *this }) {
 		if (item.isScroll() && item._iStatFlag) {
 			_pScrlSpells |= GetSpellBitmask(item._iSpell);
 		}
@@ -1541,7 +1556,7 @@ void Player::RemoveInvItem(int iv, bool calcScrolls)
 	if (this == MyPlayer) {
 		// Locate the first grid index containing this item and notify remote clients
 		for (size_t i = 0; i < InventoryGridCells; i++) {
-			int8_t itemIndex = InvGrid[i];
+			const int8_t itemIndex = InvGrid[i];
 			if (std::abs(itemIndex) - 1 == iv) {
 				NetSendCmdParam1(false, CMD_DELINVITEMS, static_cast<uint16_t>(i));
 				break;
@@ -1683,7 +1698,7 @@ int Player::GetPositionPathIndex(Point pos)
 
 void Player::Say(HeroSpeech speechId) const
 {
-	SfxID soundEffect = herosounds[static_cast<size_t>(_pClass)][static_cast<size_t>(speechId)];
+	const SfxID soundEffect = GetHeroSound(_pClass, speechId);
 
 	if (soundEffect == SfxID::None)
 		return;
@@ -1693,7 +1708,7 @@ void Player::Say(HeroSpeech speechId) const
 
 void Player::SaySpecific(HeroSpeech speechId) const
 {
-	SfxID soundEffect = herosounds[static_cast<size_t>(_pClass)][static_cast<size_t>(speechId)];
+	const SfxID soundEffect = GetHeroSound(_pClass, speechId);
 
 	if (soundEffect == SfxID::None || effect_is_playing(soundEffect))
 		return;
@@ -1704,7 +1719,7 @@ void Player::SaySpecific(HeroSpeech speechId) const
 void Player::Say(HeroSpeech speechId, int delay) const
 {
 	sfxdelay = delay;
-	sfxdnum = herosounds[static_cast<size_t>(_pClass)][static_cast<size_t>(speechId)];
+	sfxdnum = GetHeroSound(_pClass, speechId);
 }
 
 void Player::Stop()
@@ -1726,7 +1741,7 @@ int Player::GetManaShieldDamageReduction()
 
 void Player::RestorePartialLife()
 {
-	int wholeHitpoints = _pMaxHP >> 6;
+	const int wholeHitpoints = _pMaxHP >> 6;
 	int l = ((wholeHitpoints / 8) + GenerateRnd(wholeHitpoints / 4)) << 6;
 	if (IsAnyOf(_pClass, HeroClass::Warrior, HeroClass::Barbarian))
 		l *= 2;
@@ -1738,7 +1753,7 @@ void Player::RestorePartialLife()
 
 void Player::RestorePartialMana()
 {
-	int wholeManaPoints = _pMaxMana >> 6;
+	const int wholeManaPoints = _pMaxMana >> 6;
 	int l = ((wholeManaPoints / 8) + GenerateRnd(wholeManaPoints / 4)) << 6;
 	if (_pClass == HeroClass::Sorcerer)
 		l *= 2;
@@ -1752,7 +1767,7 @@ void Player::RestorePartialMana()
 
 void Player::ReadySpellFromEquipment(inv_body_loc bodyLocation, bool forceSpell)
 {
-	Item &item = InvBody[bodyLocation];
+	const Item &item = InvBody[bodyLocation];
 	if (item._itype == ItemType::Staff && IsValidSpell(item._iSpell) && item._iCharges > 0 && item._iStatFlag) {
 		if (forceSpell || _pRSpell == SpellID::Invalid || _pRSplType == SpellType::Invalid) {
 			_pRSpell = item._iSpell;
@@ -1850,19 +1865,19 @@ void Player::UpdatePreviewCelSprite(_cmd_id cmdId, Point point, uint16_t wParam1
 
 	switch (cmdId) {
 	case _cmd_id::CMD_RATTACKID: {
-		Monster &monster = Monsters[wParam1];
+		const Monster &monster = Monsters[wParam1];
 		dir = GetDirection(position.future, monster.position.future);
 		graphic = player_graphic::Attack;
 		break;
 	}
 	case _cmd_id::CMD_SPELLID: {
-		Monster &monster = Monsters[wParam1];
+		const Monster &monster = Monsters[wParam1];
 		dir = GetDirection(position.future, monster.position.future);
 		graphic = GetPlayerGraphicForSpell(static_cast<SpellID>(wParam2));
 		break;
 	}
 	case _cmd_id::CMD_ATTACKID: {
-		Monster &monster = Monsters[wParam1];
+		const Monster &monster = Monsters[wParam1];
 		point = monster.position.future;
 		minimalWalkDistance = 2;
 		if (!CanTalkToMonst(monster)) {
@@ -1872,19 +1887,19 @@ void Player::UpdatePreviewCelSprite(_cmd_id cmdId, Point point, uint16_t wParam1
 		break;
 	}
 	case _cmd_id::CMD_RATTACKPID: {
-		Player &targetPlayer = Players[wParam1];
+		const Player &targetPlayer = Players[wParam1];
 		dir = GetDirection(position.future, targetPlayer.position.future);
 		graphic = player_graphic::Attack;
 		break;
 	}
 	case _cmd_id::CMD_SPELLPID: {
-		Player &targetPlayer = Players[wParam1];
+		const Player &targetPlayer = Players[wParam1];
 		dir = GetDirection(position.future, targetPlayer.position.future);
 		graphic = GetPlayerGraphicForSpell(static_cast<SpellID>(wParam2));
 		break;
 	}
 	case _cmd_id::CMD_ATTACKPID: {
-		Player &targetPlayer = Players[wParam1];
+		const Player &targetPlayer = Players[wParam1];
 		point = targetPlayer.position.future;
 		minimalWalkDistance = 2;
 		dir = GetDirection(position.future, targetPlayer.position.future);
@@ -1925,7 +1940,7 @@ void Player::UpdatePreviewCelSprite(_cmd_id cmdId, Point point, uint16_t wParam1
 
 	if (minimalWalkDistance >= 0 && position.future != point) {
 		int8_t testWalkPath[MaxPathLengthPlayer];
-		int steps = FindPath(CanStep, [this](Point position) { return PosOkPlayer(*this, position); }, position.future, point, testWalkPath, MaxPathLengthPlayer);
+		const int steps = FindPath(CanStep, [this](Point tile) { return PosOkPlayer(*this, tile); }, position.future, point, testWalkPath, MaxPathLengthPlayer);
 		if (steps == 0) {
 			// Can't walk to desired location => stand still
 			return;
@@ -1967,7 +1982,7 @@ void Player::UpdatePreviewCelSprite(_cmd_id cmdId, Point point, uint16_t wParam1
 		return;
 
 	LoadPlrGFX(*this, *graphic);
-	ClxSpriteList sprites = AnimationData[static_cast<size_t>(*graphic)].spritesForDirection(dir);
+	const ClxSpriteList sprites = AnimationData[static_cast<size_t>(*graphic)].spritesForDirection(dir);
 	if (!previewCelSprite || *previewCelSprite != sprites[0]) {
 		previewCelSprite = sprites[0];
 		progressToNextGameTickWhenPreviewWasSet = ProgressToNextGameTick;
@@ -2001,11 +2016,11 @@ int32_t Player::calculateBaseMana() const
 	return attr.adjMana + (attr.lvlMana * getCharacterLevel()) + (attr.chrMana * _pBaseMag);
 }
 
-void Player::occupyTile(Point position, bool isMoving) const
+void Player::occupyTile(Point tilePosition, bool isMoving) const
 {
 	int16_t id = this->getId();
 	id += 1;
-	dPlayer[position.x][position.y] = isMoving ? -id : id;
+	dPlayer[tilePosition.x][tilePosition.y] = isMoving ? -id : id;
 }
 
 bool Player::isLevelOwnedByLocalClient() const
@@ -2041,6 +2056,53 @@ Player *PlayerAtPosition(Point position, bool ignoreMovingPlayers /*= false*/)
 	return &Players[std::abs(playerIndex) - 1];
 }
 
+ClxSprite GetPlayerPortraitSprite(Player &player)
+{
+	const bool inDungeon = (player.plrlevel != 0);
+
+	const HeroClass cls = GetPlayerSpriteClass(player._pClass);
+	const PlayerWeaponGraphic animWeaponId = GetPlayerWeaponGraphic(player_graphic::Stand, static_cast<PlayerWeaponGraphic>(player._pgfxnum & 0xF));
+
+	const PlayerSpriteData &spriteData = GetPlayerSpriteDataForClass(cls);
+	const char *path = spriteData.classPath.c_str();
+
+	std::string_view szCel = inDungeon ? "as" : "st";
+
+	player_graphic graphic = player_graphic::Stand;
+	if (player._pHitPoints <= 0) {
+		if (animWeaponId == PlayerWeaponGraphic::Unarmed) {
+			szCel = "dt";
+			graphic = player_graphic::Death;
+		}
+	}
+
+	const char prefixBuf[3] = { spriteData.classChar, ArmourChar[player._pgfxnum >> 4], WepChar[static_cast<std::size_t>(animWeaponId)] };
+	char pszName[256];
+	GetPlayerGraphicsPath(path, std::string_view(prefixBuf, 3), szCel, pszName);
+
+	const std::string spritePath { pszName };
+	// Check to see if the sprite has updated.
+	if (player.PartyInfoSpriteLocations[inDungeon] != spritePath) {
+		// The sprite has changed so store the new location
+		player.PartyInfoSpriteLocations[inDungeon] = spritePath;
+
+		player.PartyInfoSprites[inDungeon] = std::nullopt;
+
+		// And now load the new sprite and store it
+		const uint16_t animationWidth = GetPlayerSpriteWidth(cls, graphic, animWeaponId);
+		player.PartyInfoSprites[inDungeon] = LoadCl2Sheet(pszName, animationWidth);
+	}
+
+	const ClxSpriteList spriteList = (*player.PartyInfoSprites[inDungeon])[static_cast<size_t>(Direction::South)];
+	return spriteList[(graphic == player_graphic::Stand) ? 0 : spriteList.numSprites() - 1];
+}
+
+bool IsPlayerUnarmed(Player &player)
+{
+	const PlayerWeaponGraphic animWeaponId = GetPlayerWeaponGraphic(player_graphic::Stand, static_cast<PlayerWeaponGraphic>(player._pgfxnum & 0xF));
+	return animWeaponId == PlayerWeaponGraphic::Unarmed;
+}
+
 void LoadPlrGFX(Player &player, player_graphic graphic)
 {
 	if (HeadlessMode)
@@ -2053,9 +2115,10 @@ void LoadPlrGFX(Player &player, player_graphic graphic)
 	const HeroClass cls = GetPlayerSpriteClass(player._pClass);
 	const PlayerWeaponGraphic animWeaponId = GetPlayerWeaponGraphic(graphic, static_cast<PlayerWeaponGraphic>(player._pgfxnum & 0xF));
 
-	const char *path = PlayersSpriteData[static_cast<std::size_t>(cls)].classPath;
+	const PlayerSpriteData &spriteData = GetPlayerSpriteDataForClass(cls);
+	const char *path = spriteData.classPath.c_str();
 
-	const char *szCel;
+	std::string_view szCel;
 	switch (graphic) {
 	case player_graphic::Stand:
 		szCel = "as";
@@ -2102,9 +2165,9 @@ void LoadPlrGFX(Player &player, player_graphic graphic)
 		app_fatal("PLR:2");
 	}
 
-	char prefix[3] = { CharChar[static_cast<std::size_t>(cls)], ArmourChar[player._pgfxnum >> 4], WepChar[static_cast<std::size_t>(animWeaponId)] };
+	const char prefixBuf[3] = { spriteData.classChar, ArmourChar[player._pgfxnum >> 4], WepChar[static_cast<std::size_t>(animWeaponId)] };
 	char pszName[256];
-	*fmt::format_to(pszName, R"(plrgfx\{0}\{1}\{1}{2})", path, std::string_view(prefix, 3), szCel) = 0;
+	GetPlayerGraphicsPath(path, std::string_view(prefixBuf, 3), szCel, pszName);
 	const uint16_t animationWidth = GetPlayerSpriteWidth(cls, graphic, animWeaponId);
 	animationData.sprites = LoadCl2Sheet(pszName, animationWidth);
 	std::optional<std::array<uint8_t, 256>> graphicTRN = GetPlayerGraphicTRN(pszName);
@@ -2141,6 +2204,12 @@ void InitPlayerGFX(Player &player)
 void ResetPlayerGFX(Player &player)
 {
 	player.AnimInfo.sprites = std::nullopt;
+
+	if (!gbRunGame) {
+		player.PartyInfoSprites[0] = std::nullopt;
+		player.PartyInfoSprites[1] = std::nullopt;
+	}
+
 	for (PlayerAnimationData &animData : player.AnimationData) {
 		animData.sprites = std::nullopt;
 	}
@@ -2167,8 +2236,8 @@ void NewPlrAnim(Player &player, player_graphic graphic, Direction dir, Animation
 
 void SetPlrAnims(Player &player)
 {
-	HeroClass pc = player._pClass;
-	PlayerAnimData plrAtkAnimData = PlayersAnimData[static_cast<uint8_t>(pc)];
+	const HeroClass pc = player._pClass;
+	const PlayerAnimData &plrAtkAnimData = GetPlayerAnimDataForClass(pc);
 	auto gn = static_cast<PlayerWeaponGraphic>(player._pgfxnum & 0xFU);
 
 	if (leveltype == DTYPE_TOWN) {
@@ -2222,7 +2291,7 @@ void SetPlrAnims(Player &player)
 	player._pDFrames = plrAtkAnimData.deathFrames;
 	player._pSFrames = plrAtkAnimData.castingFrames;
 	player._pSFNum = plrAtkAnimData.castingActionFrame;
-	int armorGraphicIndex = player._pgfxnum & ~0xFU;
+	const int armorGraphicIndex = player._pgfxnum & ~0xFU;
 	if (IsAnyOf(pc, HeroClass::Warrior, HeroClass::Barbarian)) {
 		if (gn == PlayerWeaponGraphic::Bow && leveltype != DTYPE_TOWN)
 			player._pNFrames = 8;
@@ -2326,7 +2395,7 @@ void NextPlrLevel(Player &player)
 	} else {
 		player._pStatPts += 5;
 	}
-	int hp = player.getClassAttributes().lvlLife;
+	const int hp = player.getClassAttributes().lvlLife;
 
 	player._pMaxHP += hp;
 	player._pHitPoints = player._pMaxHP;
@@ -2337,7 +2406,7 @@ void NextPlrLevel(Player &player)
 		RedrawComponent(PanelDrawComponent::Health);
 	}
 
-	int mana = player.getClassAttributes().lvlMana;
+	const int mana = player.getClassAttributes().lvlMana;
 
 	player._pMaxMana += mana;
 	player._pMaxManaBase += mana;
@@ -2406,7 +2475,7 @@ void AddPlrMonstExper(int lvl, unsigned exp, char pmask)
 	}
 
 	if (totplrs != 0) {
-		unsigned e = exp / totplrs;
+		const unsigned e = exp / totplrs;
 		if ((pmask & (1 << MyPlayerId)) != 0)
 			MyPlayer->addExperience(e, lvl);
 	}
@@ -2586,7 +2655,7 @@ void StartPlrHit(Player &player, int dam, bool forcehit)
 		return;
 	}
 
-	Direction pd = player._pdir;
+	const Direction pd = player._pdir;
 
 	int8_t skippedAnimationFrames = 0;
 	if (HasAnyOf(player._pIFlags, ItemSpecialEffect::FastestHitRecovery)) {
@@ -2694,6 +2763,8 @@ StartPlayerKill(Player &player, DeathReason deathReason)
 				case HeroClass::Barbarian:
 					ear._iCurs = ICURS_EAR_ROGUE;
 					break;
+				default:
+					break;
 				}
 
 				ear._iCreateInfo = player._pName[0] << 8 | player._pName[1];
@@ -2745,7 +2816,7 @@ void StripTopGold(Player &player)
 		return;
 	if (AutoPlaceItemInBelt(player, player.HoldItem))
 		return;
-	std::optional<Point> itemTile = FindAdjacentPositionForItem(player.position.tile, player._pdir);
+	const std::optional<Point> itemTile = FindAdjacentPositionForItem(player.position.tile, player._pdir);
 	if (itemTile)
 		return;
 	DeadItem(player, std::move(player.HoldItem), { 0, 0 });
@@ -2759,7 +2830,7 @@ void ApplyPlrDamage(DamageType damageType, Player &player, int dam, int minHP /*
 		AddFloatingNumber(damageType, player, totalDamage);
 	}
 	if (totalDamage > 0 && player.pManaShield && HasNoneOf(player._pIFlags, ItemSpecialEffect::NoMana)) {
-		uint8_t manaShieldLevel = player._pSplLvl[static_cast<int8_t>(SpellID::ManaShield)];
+		const uint8_t manaShieldLevel = player._pSplLvl[static_cast<int8_t>(SpellID::ManaShield)];
 		if (manaShieldLevel > 0) {
 			totalDamage += totalDamage / -player.GetManaShieldDamageReduction();
 		}
@@ -2791,7 +2862,7 @@ void ApplyPlrDamage(DamageType damageType, Player &player, int dam, int minHP /*
 		player._pHitPoints = player._pMaxHP;
 		player._pHPBase = player._pMaxHPBase;
 	}
-	int minHitPoints = minHP << 6;
+	const int minHitPoints = minHP << 6;
 	if (player._pHitPoints < minHitPoints) {
 		SetPlayerHitPoints(player, minHitPoints);
 	}
@@ -3132,21 +3203,21 @@ void CheckPlrSpell(bool isShiftHeld, SpellID spellID, SpellType spellType)
 				myPlayer.Say(HeroSpeech::ICantDoThat);
 				break;
 			}
-			LastMouseButtonAction = MouseActionType::None;
+			LastPlayerAction = PlayerActionType::None;
 		}
 		return;
 	}
 
 	const int spellFrom = 0;
 	if (IsWallSpell(spellID)) {
-		LastMouseButtonAction = MouseActionType::Spell;
-		Direction sd = GetDirection(myPlayer.position.tile, cursPosition);
+		LastPlayerAction = PlayerActionType::Spell;
+		const Direction sd = GetDirection(myPlayer.position.tile, cursPosition);
 		NetSendCmdLocParam4(true, CMD_SPELLXYD, cursPosition, static_cast<int8_t>(spellID), static_cast<uint8_t>(spellType), static_cast<uint16_t>(sd), spellFrom);
-	} else if (pcursmonst != -1 && !isShiftHeld && leveltype != DTYPE_TOWN) {
-		LastMouseButtonAction = MouseActionType::SpellMonsterTarget;
+	} else if (pcursmonst != -1 && !isShiftHeld) {
+		LastPlayerAction = PlayerActionType::SpellMonsterTarget;
 		NetSendCmdParam4(true, CMD_SPELLID, pcursmonst, static_cast<int8_t>(spellID), static_cast<uint8_t>(spellType), spellFrom);
 	} else if (PlayerUnderCursor != nullptr && !isShiftHeld && !myPlayer.friendlyMode) {
-		LastMouseButtonAction = MouseActionType::SpellPlayerTarget;
+		LastPlayerAction = PlayerActionType::SpellPlayerTarget;
 		NetSendCmdParam4(true, CMD_SPELLPID, PlayerUnderCursor->getId(), static_cast<int8_t>(spellID), static_cast<uint8_t>(spellType), spellFrom);
 	} else {
 		Point targetedTile = cursPosition;
@@ -3154,12 +3225,12 @@ void CheckPlrSpell(bool isShiftHeld, SpellID spellID, SpellType spellType)
 			// Check if the player is attempting to queue Teleport onto a tile that is currently being targeted with Teleport, or a nearby tile
 			if (cursPosition.WalkingDistance(myPlayer.position.temp) <= 1) {
 				// Get the relative displacement from the player's current position to the cursor position
-				WorldTileDisplacement relativeMove = cursPosition - static_cast<Point>(myPlayer.position.tile);
+				const WorldTileDisplacement relativeMove = cursPosition - static_cast<Point>(myPlayer.position.tile);
 				// Target the tile the relative distance away from the player's targeted Teleport tile
 				targetedTile = myPlayer.position.temp + relativeMove;
 			}
 		}
-		LastMouseButtonAction = MouseActionType::Spell;
+		LastPlayerAction = PlayerActionType::Spell;
 		NetSendCmdLocParam3(true, CMD_SPELLXY, targetedTile, static_cast<int8_t>(spellID), static_cast<uint8_t>(spellType), spellFrom);
 	}
 }
@@ -3178,14 +3249,14 @@ void SyncInitPlrPos(Player &player)
 
 	const WorldTileDisplacement offset[9] = { { 0, 0 }, { 1, 0 }, { 0, 1 }, { 1, 1 }, { 2, 0 }, { 0, 2 }, { 1, 2 }, { 2, 1 }, { 2, 2 } };
 
-	Point position = [&]() {
+	const Point position = [&]() {
 		for (int i = 0; i < 8; i++) {
 			Point position = player.position.tile + offset[i];
 			if (PosOkPlayer(player, position))
 				return position;
 		}
 
-		std::optional<Point> nearPosition = FindClosestValidPosition(
+		const std::optional<Point> nearPosition = FindClosestValidPosition(
 		    [&player](Point testPosition) {
 			    for (int i = 0; i < numtrigs; i++) {
 				    if (trigs[i].position == testPosition)
@@ -3220,7 +3291,7 @@ void SyncInitPlr(Player &player)
 void CheckStats(Player &player)
 {
 	for (auto attribute : enum_values<CharacterAttribute>()) {
-		int maxStatPoint = player.GetMaximumAttributeValue(attribute);
+		const int maxStatPoint = player.GetMaximumAttributeValue(attribute);
 		switch (attribute) {
 		case CharacterAttribute::Strength:
 			player._pBaseStr = std::clamp(player._pBaseStr, 0, maxStatPoint);

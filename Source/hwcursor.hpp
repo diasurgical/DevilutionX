@@ -7,10 +7,16 @@
 
 #include <cstdint>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_error.h>
+#include <SDL3/SDL_version.h>
+#else
 #include <SDL_version.h>
+#endif
 
 #include "options.h"
 #include "utils/log.hpp"
+#include "utils/sdl_compat.h"
 
 // Set this to 1 to log the hardware cursor state changes.
 #define LOG_HWCURSOR 0
@@ -77,7 +83,7 @@ public:
 		enabled_ = value;
 	}
 
-	[[nodiscard]] bool needsReinitialization()
+	[[nodiscard]] bool needsReinitialization() const
 	{
 		return needs_reinitialization_;
 	}
@@ -139,8 +145,8 @@ inline void DoReinitializeHardwareCursor()
 
 inline bool IsHardwareCursorVisible()
 {
-#if SDL_VERSION_ATLEAST(2, 0, 0)
-	return SDL_ShowCursor(SDL_QUERY) == SDL_ENABLE;
+#ifndef USE_SDL1
+	return SDL_CursorVisible();
 #else
 	return false;
 #endif
@@ -157,7 +163,7 @@ inline void SetHardwareCursorVisible(bool visible)
 #if LOG_HWCURSOR
 	Log("hwcursor: SetHardwareCursorVisible {}", visible);
 #endif
-	if (SDL_ShowCursor(visible ? SDL_ENABLE : SDL_DISABLE) < 0) {
+	if (!(visible ? SDLC_ShowCursor() : SDLC_HideCursor())) {
 		LogError("{}", SDL_GetError());
 		SDL_ClearError();
 	}

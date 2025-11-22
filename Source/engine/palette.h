@@ -9,9 +9,13 @@
 #include <cstdint>
 #include <span>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_pixels.h>
+#else
 #include <SDL.h>
+#endif
 
-#include "levels/gendung.h"
+#include "levels/gendung_defs.hpp"
 
 namespace devilution {
 

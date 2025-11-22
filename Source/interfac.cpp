@@ -7,8 +7,19 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <utility>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_error.h>
+#include <SDL3/SDL_events.h>
+#include <SDL3/SDL_keyboard.h>
+#include <SDL3/SDL_rect.h>
+#include <SDL3/SDL_surface.h>
+#include <SDL3/SDL_timer.h>
+#else
 #include <SDL.h>
+#endif
+
 #include <expected.hpp>
 
 #include "control.h"
@@ -29,11 +40,16 @@
 #include "pfile.h"
 #include "plrmsg.h"
 #include "utils/log.hpp"
+#include "utils/sdl_compat.h"
 #include "utils/sdl_geometry.h"
 #include "utils/sdl_thread.h"
 
 #ifndef USE_SDL1
 #include "controls/touch/renderers.h"
+#endif
+
+#ifdef __DJGPP__
+#define LOAD_ON_MAIN_THREAD
 #endif
 
 namespace devilution {
@@ -56,7 +72,7 @@ const int BarPos[3][2] = { { 53, 37 }, { 53, 421 }, { 53, 37 } };
 
 OptionalOwnedClxSpriteList ArtCutsceneWidescreen;
 
-SdlEventType CustomEventType = SDL_USEREVENT;
+SdlEventType CustomEventType = SDL_EVENT_USER;
 
 Cutscenes GetCutSceneFromLevelType(dungeon_type type)
 {
@@ -92,7 +108,7 @@ Cutscenes PickCutscene(interface_mode uMsg)
 	case WM_DIABPREVLVL:
 	case WM_DIABTOWNWARP:
 	case WM_DIABTWARPUP: {
-		int lvl = MyPlayer->plrlevel;
+		const int lvl = MyPlayer->plrlevel;
 		if (lvl == 1 && uMsg == WM_DIABNEXTLVL)
 			return CutTown;
 		if (lvl == 16 && uMsg == WM_DIABNEXTLVL)
@@ -210,7 +226,7 @@ void DrawCutsceneBackground()
 {
 	const Rectangle &uiRectangle = GetUIRectangle();
 	const Surface &out = GlobalBackBuffer();
-	SDL_FillRect(out.surface, nullptr, 0x000000);
+	SDL_FillSurfaceRect(out.surface, nullptr, 0);
 	if (ArtCutsceneWidescreen) {
 		const ClxSprite sprite = (*ArtCutsceneWidescreen)[0];
 		RenderClxSprite(out, sprite, { uiRectangle.position.x - (sprite.width() - uiRectangle.size.width) / 2, uiRectangle.position.y });
@@ -228,11 +244,69 @@ void DrawCutsceneForeground()
 	    out.region.y + BarPos[progress_id][1] + uiRectangle.position.y,
 	    sgdwProgress,
 	    ProgressHeight);
-	SDL_FillRect(out.surface, &rect, BarColor[progress_id]);
+	SDL_FillSurfaceRect(out.surface, &rect, BarColor[progress_id]);
 
 	if (DiabloUiSurface() == PalSurface)
 		BltFast(&rect, &rect);
 	RenderPresent();
+}
+
+struct {
+	uint32_t loadStartedAt;
+	EventHandler prevHandler;
+	bool skipRendering;
+	bool done;
+	uint32_t drawnProgress;
+	std::array<SDL_Color, 256> palette;
+} ProgressEventHandlerState;
+
+void InitRendering()
+{
+	// Blit the background once and then free it.
+	DrawCutsceneBackground();
+	if (RenderDirectlyToOutputSurface && PalSurface != nullptr) {
+		// Render into all the backbuffers if there are multiple.
+		const void *initialPixels = PalSurface->pixels;
+		if (DiabloUiSurface() == PalSurface)
+			BltFast(nullptr, nullptr);
+		RenderPresent();
+		while (PalSurface->pixels != initialPixels) {
+			DrawCutsceneBackground();
+			if (DiabloUiSurface() == PalSurface)
+				BltFast(nullptr, nullptr);
+			RenderPresent();
+		}
+	}
+	FreeCutsceneBackground();
+
+	// The loading thread sets `logical_palette`, so we make sure to use
+	// our own palette for the fade-in.
+	PaletteFadeIn(8, ProgressEventHandlerState.palette);
+}
+
+void CheckShouldSkipRendering()
+{
+	if (!ProgressEventHandlerState.skipRendering) return;
+	const bool shouldSkip = ProgressEventHandlerState.loadStartedAt + *GetOptions().Gameplay.skipLoadingScreenThresholdMs > SDL_GetTicks();
+	if (shouldSkip) return;
+	ProgressEventHandlerState.skipRendering = false;
+	if (!HeadlessMode) InitRendering();
+}
+
+bool HandleProgressBarUpdate()
+{
+	CheckShouldSkipRendering();
+	SDL_Event event;
+	// We use the real `PollEvent` here instead of `FetchMessage`
+	// to process real events rather than the recorded ones in demo mode.
+	while (PollEvent(&event)) {
+		CheckShouldSkipRendering();
+		if (event.type != SDL_EVENT_QUIT) {
+			HandleMessage(event, SDL_GetModState());
+		}
+		if (ProgressEventHandlerState.done) return false;
+	}
+	return true;
 }
 
 void DoLoad(interface_mode uMsg)
@@ -397,61 +471,25 @@ void DoLoad(interface_mode uMsg)
 		SDL_Event event;
 		CustomEventToSdlEvent(event, WM_ERROR);
 		event.user.data1 = new std::string(std::move(loadResult).error());
-		if (SDL_PushEvent(&event) < 0) {
+		if (!SDLC_PushEvent(&event)) {
 			LogError("Failed to send WM_ERROR {}", SDL_GetError());
 			SDL_ClearError();
 		}
+#ifdef LOAD_ON_MAIN_THREAD
+		HandleProgressBarUpdate();
+#endif
 		return;
 	}
 
 	SDL_Event event;
 	CustomEventToSdlEvent(event, WM_DONE);
-	if (SDL_PushEvent(&event) < 0) {
+	if (!SDLC_PushEvent(&event)) {
 		LogError("Failed to send WM_DONE {}", SDL_GetError());
 		SDL_ClearError();
 	}
-}
-
-struct {
-	uint32_t loadStartedAt;
-	EventHandler prevHandler;
-	bool skipRendering;
-	bool done;
-	uint32_t drawnProgress;
-	std::array<SDL_Color, 256> palette;
-} ProgressEventHandlerState;
-
-void InitRendering()
-{
-	// Blit the background once and then free it.
-	DrawCutsceneBackground();
-	if (RenderDirectlyToOutputSurface && PalSurface != nullptr) {
-		// Render into all the backbuffers if there are multiple.
-		const void *initialPixels = PalSurface->pixels;
-		if (DiabloUiSurface() == PalSurface)
-			BltFast(nullptr, nullptr);
-		RenderPresent();
-		while (PalSurface->pixels != initialPixels) {
-			DrawCutsceneBackground();
-			if (DiabloUiSurface() == PalSurface)
-				BltFast(nullptr, nullptr);
-			RenderPresent();
-		}
-	}
-	FreeCutsceneBackground();
-
-	// The loading thread sets `logical_palette`, so we make sure to use
-	// our own palette for the fade-in.
-	PaletteFadeIn(8, ProgressEventHandlerState.palette);
-}
-
-void CheckShouldSkipRendering()
-{
-	if (!ProgressEventHandlerState.skipRendering) return;
-	const bool shouldSkip = ProgressEventHandlerState.loadStartedAt + *GetOptions().Gameplay.skipLoadingScreenThresholdMs > SDL_GetTicks();
-	if (shouldSkip) return;
-	ProgressEventHandlerState.skipRendering = false;
-	if (!HeadlessMode) InitRendering();
+#ifdef LOAD_ON_MAIN_THREAD
+	HandleProgressBarUpdate();
+#endif
 }
 
 void ProgressEventHandler(const SDL_Event &event, uint16_t modState)
@@ -504,7 +542,7 @@ void ProgressEventHandler(const SDL_Event &event, uint16_t modState)
 		ProgressEventHandlerState.prevHandler = nullptr;
 		IsProgress = false;
 
-		Player &myPlayer = *MyPlayer;
+		const Player &myPlayer = *MyPlayer;
 		NetSendCmdLocParam2(true, CMD_PLAYER_JOINLEVEL, myPlayer.position.tile, myPlayer.plrlevel, myPlayer.plrIsOnSetLevel ? 1 : 0);
 		DelayPlrMessages(SDL_GetTicks() - ProgressEventHandlerState.loadStartedAt);
 
@@ -525,6 +563,9 @@ void ProgressEventHandler(const SDL_Event &event, uint16_t modState)
 		app_fatal("Unknown progress mode");
 		break;
 	}
+#ifdef LOAD_ON_MAIN_THREAD
+	HandleProgressBarUpdate();
+#endif
 }
 
 } // namespace
@@ -557,7 +598,7 @@ void interface_msg_pump()
 	SDL_Event event;
 	uint16_t modState;
 	while (FetchMessage(&event, &modState)) {
-		if (event.type != SDL_QUIT) {
+		if (event.type != SDL_EVENT_QUIT) {
 			HandleMessage(event, modState);
 		}
 	}
@@ -574,10 +615,13 @@ void IncProgress(uint32_t steps)
 	if (!HeadlessMode && sgdwProgress != prevProgress) {
 		SDL_Event event;
 		CustomEventToSdlEvent(event, WM_PROGRESS);
-		if (SDL_PushEvent(&event) < 0) {
+		if (!SDLC_PushEvent(&event)) {
 			LogError("Failed to send WM_PROGRESS {}", SDL_GetError());
 			SDL_ClearError();
 		}
+#ifdef LOAD_ON_MAIN_THREAD
+		HandleProgressBarUpdate();
+#endif
 	}
 }
 
@@ -629,6 +673,11 @@ void ShowProgress(interface_mode uMsg)
 	}
 
 	// Begin loading
+#ifdef LOAD_ON_MAIN_THREAD
+	const uint32_t start = SDL_GetTicks();
+	DoLoad(uMsg);
+	LogVerbose("Loading finished in {}ms", SDL_GetTicks() - start);
+#else
 	static interface_mode loadTarget;
 	loadTarget = uMsg;
 	SdlThread loadThread = SdlThread([]() {
@@ -636,28 +685,9 @@ void ShowProgress(interface_mode uMsg)
 		DoLoad(loadTarget);
 		LogVerbose("Load thread finished in {}ms", SDL_GetTicks() - start);
 	});
-
-	const auto processEvent = [&](const SDL_Event &event) {
-		CheckShouldSkipRendering();
-		if (event.type != SDL_QUIT) {
-			HandleMessage(event, SDL_GetModState());
-		}
-		if (ProgressEventHandlerState.done) {
-			loadThread.join();
-			return false;
-		}
-		return true;
-	};
-
-	while (true) {
-		CheckShouldSkipRendering();
-		SDL_Event event;
-		// We use the real `PollEvent` here instead of `FetchMessage`
-		// to process real events rather than the recorded ones in demo mode.
-		while (PollEvent(&event)) {
-			if (!processEvent(event)) return;
-		}
-	}
+	while (HandleProgressBarUpdate()) { }
+	loadThread.join();
+#endif
 }
 
 } // namespace devilution

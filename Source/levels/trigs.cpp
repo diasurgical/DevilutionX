@@ -82,7 +82,7 @@ bool IsWarpOpen(dungeon_type type)
 	if (gbIsMultiplayer && type != DTYPE_NEST) // Opening the nest is part of in town quest
 		return true;
 
-	Player &myPlayer = *MyPlayer;
+	const Player &myPlayer = *MyPlayer;
 
 	if (type == DTYPE_CATACOMBS && (myPlayer.pTownWarps & 1) != 0)
 		return true;
@@ -448,8 +448,8 @@ bool ForceL2Trig()
 		if (dPiece[cursPosition.x][cursPosition.y] == tileId) {
 			for (int j = 0; j < numtrigs; j++) {
 				if (trigs[j]._tmsg == WM_DIABPREVLVL) {
-					int dx = std::abs(trigs[j].position.x - cursPosition.x);
-					int dy = std::abs(trigs[j].position.y - cursPosition.y);
+					const int dx = std::abs(trigs[j].position.x - cursPosition.x);
+					const int dy = std::abs(trigs[j].position.y - cursPosition.y);
 					if (dx < 4 && dy < 4) {
 						InfoString = fmt::format(fmt::runtime(_("Up to level {:d}")), currlevel - 1);
 						cursPosition = trigs[j].position;
@@ -477,8 +477,8 @@ bool ForceL2Trig()
 			if (dPiece[cursPosition.x][cursPosition.y] == tileId) {
 				for (int j = 0; j < numtrigs; j++) {
 					if (trigs[j]._tmsg == WM_DIABTWARPUP) {
-						int dx = std::abs(trigs[j].position.x - cursPosition.x);
-						int dy = std::abs(trigs[j].position.y - cursPosition.y);
+						const int dx = std::abs(trigs[j].position.x - cursPosition.x);
+						const int dy = std::abs(trigs[j].position.y - cursPosition.y);
 						if (dx < 4 && dy < 4) {
 							InfoString = _("Up to town");
 							cursPosition = trigs[j].position;
@@ -500,8 +500,8 @@ bool ForceL3Trig()
 			InfoString = fmt::format(fmt::runtime(_("Up to level {:d}")), currlevel - 1);
 			for (int j = 0; j < numtrigs; j++) {
 				if (trigs[j]._tmsg == WM_DIABPREVLVL) {
-					int dx = std::abs(trigs[j].position.x - cursPosition.x);
-					int dy = std::abs(trigs[j].position.y - cursPosition.y);
+					const int dx = std::abs(trigs[j].position.x - cursPosition.x);
+					const int dy = std::abs(trigs[j].position.y - cursPosition.y);
 					if (dx < 4 && dy < 4) {
 						cursPosition = trigs[j].position;
 						return true;
@@ -529,8 +529,8 @@ bool ForceL3Trig()
 			if (dPiece[cursPosition.x][cursPosition.y] == tileId) {
 				for (int j = 0; j < numtrigs; j++) {
 					if (trigs[j]._tmsg == WM_DIABTWARPUP) {
-						int dx = std::abs(trigs[j].position.x - cursPosition.x);
-						int dy = std::abs(trigs[j].position.y - cursPosition.y);
+						const int dx = std::abs(trigs[j].position.x - cursPosition.x);
+						const int dy = std::abs(trigs[j].position.y - cursPosition.y);
 						if (dx < 4 && dy < 4) {
 							InfoString = _("Up to town");
 							cursPosition = trigs[j].position;
@@ -576,8 +576,8 @@ bool ForceL4Trig()
 			if (dPiece[cursPosition.x][cursPosition.y] == tileId) {
 				for (int j = 0; j < numtrigs; j++) {
 					if (trigs[j]._tmsg == WM_DIABTWARPUP) {
-						int dx = std::abs(trigs[j].position.x - cursPosition.x);
-						int dy = std::abs(trigs[j].position.y - cursPosition.y);
+						const int dx = std::abs(trigs[j].position.x - cursPosition.x);
+						const int dy = std::abs(trigs[j].position.y - cursPosition.y);
 						if (dx < 4 && dy < 4) {
 							InfoString = _("Up to town");
 							cursPosition = trigs[j].position;
@@ -638,8 +638,8 @@ bool ForceHiveTrig()
 			if (dPiece[cursPosition.x][cursPosition.y] == tileId) {
 				for (int j = 0; j < numtrigs; j++) {
 					if (trigs[j]._tmsg == WM_DIABTWARPUP) {
-						int dx = std::abs(trigs[j].position.x - cursPosition.x);
-						int dy = std::abs(trigs[j].position.y - cursPosition.y);
+						const int dx = std::abs(trigs[j].position.x - cursPosition.x);
+						const int dy = std::abs(trigs[j].position.y - cursPosition.y);
 						if (dx < 4 && dy < 4) {
 							InfoString = _("Up to town");
 							cursPosition = trigs[j].position;
@@ -687,8 +687,8 @@ bool ForceCryptTrig()
 			if (dPiece[cursPosition.x][cursPosition.y] == tileId) {
 				for (int j = 0; j < numtrigs; j++) {
 					if (trigs[j]._tmsg == WM_DIABTWARPUP) {
-						int dx = std::abs(trigs[j].position.x - cursPosition.x);
-						int dy = std::abs(trigs[j].position.y - cursPosition.y);
+						const int dx = std::abs(trigs[j].position.x - cursPosition.x);
+						const int dy = std::abs(trigs[j].position.y - cursPosition.y);
 						if (dx < 4 && dy < 4) {
 							InfoString = _("Up to town");
 							cursPosition = trigs[j].position;
@@ -706,8 +706,8 @@ bool ForceCryptTrig()
 void Freeupstairs()
 {
 	for (int i = 0; i < numtrigs; i++) {
-		int tx = trigs[i].position.x;
-		int ty = trigs[i].position.y;
+		const int tx = trigs[i].position.x;
+		const int ty = trigs[i].position.y;
 
 		for (int yy = -2; yy <= 2; yy++) {
 			for (int xx = -2; xx <= 2; xx++) {

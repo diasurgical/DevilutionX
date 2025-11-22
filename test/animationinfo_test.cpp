@@ -100,18 +100,18 @@ void RunAnimationTest(const std::vector<TestData *> &vecTestData)
 	for (TestData *x : vecTestData) {
 		switch (x->type()) {
 		case TestDataType::SetNewAnimation: {
-			auto setNewAnimationData = static_cast<SetNewAnimationData *>(x);
+			auto *setNewAnimationData = static_cast<SetNewAnimationData *>(x);
 			animInfo.setNewAnimation(std::nullopt, setNewAnimationData->_NumberOfFrames, setNewAnimationData->_DelayLen, setNewAnimationData->_Params, setNewAnimationData->_NumSkippedFrames, setNewAnimationData->_DistributeFramesBeforeFrame);
 		} break;
 		case TestDataType::GameTick: {
-			auto gameTickData = static_cast<GameTickData *>(x);
+			auto *gameTickData = static_cast<GameTickData *>(x);
 			currentGameTick += 1;
 			animInfo.processAnimation();
 			EXPECT_EQ(animInfo.currentFrame, gameTickData->_ExpectedAnimationFrame);
 			EXPECT_EQ(animInfo.tickCounterOfCurrentFrame, gameTickData->_ExpectedAnimationCnt);
 		} break;
 		case TestDataType::Rendering: {
-			auto renderingData = static_cast<RenderingData *>(x);
+			auto *renderingData = static_cast<RenderingData *>(x);
 			ProgressToNextGameTick = static_cast<uint8_t>(renderingData->_fProgressToNextGameTick * AnimationInfo::baseValueFraction);
 			EXPECT_EQ(animInfo.getFrameToUseForRendering(), renderingData->_ExpectedRenderingFrame)
 			    << std::fixed << std::setprecision(2)

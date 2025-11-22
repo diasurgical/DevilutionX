@@ -14,6 +14,7 @@
 #include "engine/surface.hpp"
 #include "game_mode.hpp"
 #include "utils/attributes.h"
+#include "utils/static_vector.hpp"
 
 namespace devilution {
 
@@ -72,19 +73,19 @@ extern int8_t PlayerItemIndexes[48];
 extern DVL_API_FOR_TEST Item PlayerItems[48];
 
 /** Items sold by Griswold */
-extern Item SmithItems[NumSmithBasicItemsHf];
+extern DVL_API_FOR_TEST StaticVector<Item, NumSmithBasicItemsHf> SmithItems;
 /** Number of premium items for sale by Griswold */
-extern int PremiumItemCount;
+extern DVL_API_FOR_TEST int PremiumItemCount;
 /** Base level of current premium items sold by Griswold */
-extern int PremiumItemLevel;
+extern DVL_API_FOR_TEST int PremiumItemLevel;
 /** Premium items sold by Griswold */
-extern Item PremiumItems[NumSmithItemsHf];
+extern DVL_API_FOR_TEST StaticVector<Item, NumSmithItemsHf> PremiumItems;
 
 /** Items sold by Pepin */
-extern Item HealerItems[20];
+extern DVL_API_FOR_TEST StaticVector<Item, NumHealerItemsHf> HealerItems;
 
 /** Items sold by Adria */
-extern Item WitchItems[NumWitchItemsHf];
+extern DVL_API_FOR_TEST StaticVector<Item, NumWitchItemsHf> WitchItems;
 
 /** Current level of the item sold by Wirt */
 extern int BoyItemLevel;

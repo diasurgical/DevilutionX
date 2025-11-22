@@ -1,12 +1,16 @@
 #include "lua/modules/items.hpp"
 
-#include <optional>
+#include <string_view>
 
+#include <fmt/format.h>
 #include <sol/sol.hpp>
 
+#include "data/file.hpp"
+#include "itemdat.h"
 #include "items.h"
 #include "lua/metadoc.hpp"
 #include "player.h"
+#include "utils/utf8.hpp"
 
 namespace devilution {
 
@@ -18,98 +22,94 @@ void InitItemUserType(sol::state_view &lua)
 	sol::usertype<Item> itemType = lua.new_usertype<Item>(sol::no_constructor);
 
 	// Member variables
-	SetDocumented(itemType, "seed", "number", "Randomly generated identifier", [](const Item &i) { return i._iSeed; }, [](Item &i, unsigned int val) { i._iSeed = val; });
-	SetDocumented(itemType, "createInfo", "number", "Creation flags", [](const Item &i) { return i._iCreateInfo; }, [](Item &i, unsigned int val) { i._iCreateInfo = val; });
-	SetDocumented(itemType, "type", "ItemType", "Item type", [](const Item &i) { return i._itype; }, [](Item &i, int val) { i._itype = static_cast<ItemType>(val); });
-	SetDocumented(itemType, "animFlag", "boolean", "Animation flag", [](const Item &i) { return i._iAnimFlag; }, [](Item &i, bool val) { i._iAnimFlag = val; });
-	SetDocumented(itemType, "position", "Point", "Item world position", [](const Item &i) { return i.position; }, [](Item &i, Point val) { i.position = val; });
+	LuaSetDocProperty(itemType, "seed", "number", "Randomly generated identifier", &Item::_iSeed);
+	LuaSetDocProperty(itemType, "createInfo", "number", "Creation flags", &Item::_iCreateInfo);
+	LuaSetDocProperty(itemType, "type", "ItemType", "Item type", &Item::_itype);
+	LuaSetDocProperty(itemType, "animFlag", "boolean", "Animation flag", &Item::_iAnimFlag);
+	LuaSetDocProperty(itemType, "position", "Point", "Item world position", &Item::position);
 	// TODO: Add AnimationInfo usertype
-	// SetDocumented(itemType, "animInfo", "AnimationInfo", "Animation information", [](const Item &i) { return i.AnimInfo; }, [](Item &i, AnimationInfo val) { i.AnimInfo = val; });
-	SetDocumented(itemType, "delFlag", "boolean", "Deletion flag", [](const Item &i) { return i._iDelFlag; }, [](Item &i, bool val) { i._iDelFlag = val; });
-	SetDocumented(itemType, "selectionRegion", "number", "Selection region", [](const Item &i) { return static_cast<int>(i.selectionRegion); }, [](Item &i, int val) { i.selectionRegion = static_cast<SelectionRegion>(val); });
-	SetDocumented(itemType, "postDraw", "boolean", "Post-draw flag", [](const Item &i) { return i._iPostDraw; }, [](Item &i, bool val) { i._iPostDraw = val; });
-	SetDocumented(itemType, "identified", "boolean", "Identified flag", [](const Item &i) { return i._iIdentified; }, [](Item &i, bool val) { i._iIdentified = val; });
-	SetDocumented(itemType, "magical", "number", "Item quality", [](const Item &i) { return static_cast<int>(i._iMagical); }, [](Item &i, int val) { i._iMagical = static_cast<item_quality>(val); });
-	SetDocumented(itemType, "name", "string", "Item name", [](const Item &i) { return std::string(i._iName); }, [](Item &i, const std::string &val) {
-        std::strncpy(i._iName, val.c_str(), sizeof(i._iName));
-        i._iName[sizeof(i._iName) - 1] = '\0'; });
-	SetDocumented(itemType, "iName", "string", "Identified item name", [](const Item &i) { return std::string(i._iIName); }, [](Item &i, const std::string &val) {
-        std::strncpy(i._iIName, val.c_str(), sizeof(i._iIName));
-        i._iIName[sizeof(i._iIName) - 1] = '\0'; });
-	SetDocumented(itemType, "loc", "ItemEquipType", "Equipment location", [](const Item &i) { return i._iLoc; }, [](Item &i, int val) { i._iLoc = static_cast<item_equip_type>(val); });
-	SetDocumented(itemType, "class", "ItemClass", "Item class", [](const Item &i) { return i._iClass; }, [](Item &i, int val) { i._iClass = static_cast<item_class>(val); });
-	SetDocumented(itemType, "curs", "number", "Cursor index", [](const Item &i) { return i._iCurs; }, [](Item &i, int val) { i._iCurs = val; });
-	SetDocumented(itemType, "value", "number", "Item value", [](const Item &i) { return i._ivalue; }, [](Item &i, int val) { i._ivalue = val; });
-	SetDocumented(itemType, "ivalue", "number", "Identified item value", [](const Item &i) { return i._iIvalue; }, [](Item &i, int val) { i._iIvalue = val; });
-	SetDocumented(itemType, "minDam", "number", "Minimum damage", [](const Item &i) { return i._iMinDam; }, [](Item &i, int val) { i._iMinDam = val; });
-	SetDocumented(itemType, "maxDam", "number", "Maximum damage", [](const Item &i) { return i._iMaxDam; }, [](Item &i, int val) { i._iMaxDam = val; });
-	SetDocumented(itemType, "AC", "number", "Armor class", [](const Item &i) { return i._iAC; }, [](Item &i, int val) { i._iAC = val; });
-	SetDocumented(itemType, "flags", "ItemSpecialEffect", "Special effect flags", [](const Item &i) { return static_cast<int>(i._iFlags); }, [](Item &i, int val) { i._iFlags = static_cast<ItemSpecialEffect>(val); });
-	SetDocumented(itemType, "miscId", "ItemMiscID", "Miscellaneous ID", [](const Item &i) { return i._iMiscId; }, [](Item &i, int val) { i._iMiscId = static_cast<item_misc_id>(val); });
-	SetDocumented(itemType, "spell", "SpellID", "Spell", [](const Item &i) { return i._iSpell; }, [](Item &i, int val) { i._iSpell = static_cast<SpellID>(val); });
-	SetDocumented(itemType, "IDidx", "ItemIndex", "Base item index", [](const Item &i) { return i.IDidx; }, [](Item &i, int val) { i.IDidx = static_cast<_item_indexes>(val); });
-	SetDocumented(itemType, "charges", "number", "Number of charges", [](const Item &i) { return i._iCharges; }, [](Item &i, int val) { i._iCharges = val; });
-	SetDocumented(itemType, "maxCharges", "number", "Maximum charges", [](const Item &i) { return i._iMaxCharges; }, [](Item &i, int val) { i._iMaxCharges = val; });
-	SetDocumented(itemType, "durability", "number", "Durability", [](const Item &i) { return i._iDurability; }, [](Item &i, int val) { i._iDurability = val; });
-	SetDocumented(itemType, "maxDur", "number", "Maximum durability", [](const Item &i) { return i._iMaxDur; }, [](Item &i, int val) { i._iMaxDur = val; });
-	SetDocumented(itemType, "PLDam", "number", "Damage % bonus", [](const Item &i) { return i._iPLDam; }, [](Item &i, int val) { i._iPLDam = val; });
-	SetDocumented(itemType, "PLToHit", "number", "Chance to hit bonus", [](const Item &i) { return i._iPLToHit; }, [](Item &i, int val) { i._iPLToHit = val; });
-	SetDocumented(itemType, "PLAC", "number", "Armor class % bonus", [](const Item &i) { return i._iPLAC; }, [](Item &i, int val) { i._iPLAC = val; });
-	SetDocumented(itemType, "PLStr", "number", "Strength bonus", [](const Item &i) { return i._iPLStr; }, [](Item &i, int val) { i._iPLStr = val; });
-	SetDocumented(itemType, "PLMag", "number", "Magic bonus", [](const Item &i) { return i._iPLMag; }, [](Item &i, int val) { i._iPLMag = val; });
-	SetDocumented(itemType, "PLDex", "number", "Dexterity bonus", [](const Item &i) { return i._iPLDex; }, [](Item &i, int val) { i._iPLDex = val; });
-	SetDocumented(itemType, "PLVit", "number", "Vitality bonus", [](const Item &i) { return i._iPLVit; }, [](Item &i, int val) { i._iPLVit = val; });
-	SetDocumented(itemType, "PLFR", "number", "Fire resistance bonus", [](const Item &i) { return i._iPLFR; }, [](Item &i, int val) { i._iPLFR = val; });
-	SetDocumented(itemType, "PLLR", "number", "Lightning resistance bonus", [](const Item &i) { return i._iPLLR; }, [](Item &i, int val) { i._iPLLR = val; });
-	SetDocumented(itemType, "PLMR", "number", "Magic resistance bonus", [](const Item &i) { return i._iPLMR; }, [](Item &i, int val) { i._iPLMR = val; });
-	SetDocumented(itemType, "PLMana", "number", "Mana bonus", [](const Item &i) { return i._iPLMana; }, [](Item &i, int val) { i._iPLMana = val; });
-	SetDocumented(itemType, "PLHP", "number", "Life bonus", [](const Item &i) { return i._iPLHP; }, [](Item &i, int val) { i._iPLHP = val; });
-	SetDocumented(itemType, "PLDamMod", "number", "Damage modifier bonus", [](const Item &i) { return i._iPLDamMod; }, [](Item &i, int val) { i._iPLDamMod = val; });
-	SetDocumented(itemType, "PLGetHit", "number", "Damage from enemies bonus", [](const Item &i) { return i._iPLGetHit; }, [](Item &i, int val) { i._iPLGetHit = val; });
-	SetDocumented(itemType, "PLLight", "number", "Light bonus", [](const Item &i) { return i._iPLLight; }, [](Item &i, int val) { i._iPLLight = val; });
-	SetDocumented(itemType, "splLvlAdd", "number", "Spell level bonus", [](const Item &i) { return i._iSplLvlAdd; }, [](Item &i, int val) { i._iSplLvlAdd = val; });
-	SetDocumented(itemType, "request", "boolean", "Request flag", [](const Item &i) { return i._iRequest; }, [](Item &i, bool val) { i._iRequest = val; });
-	SetDocumented(itemType, "uid", "number", "Unique item ID", [](const Item &i) { return i._iUid; }, [](Item &i, int val) { i._iUid = val; });
-	SetDocumented(itemType, "fMinDam", "number", "Fire minimum damage", [](const Item &i) { return i._iFMinDam; }, [](Item &i, int val) { i._iFMinDam = val; });
-	SetDocumented(itemType, "fMaxDam", "number", "Fire maximum damage", [](const Item &i) { return i._iFMaxDam; }, [](Item &i, int val) { i._iFMaxDam = val; });
-	SetDocumented(itemType, "lMinDam", "number", "Lightning minimum damage", [](const Item &i) { return i._iLMinDam; }, [](Item &i, int val) { i._iLMinDam = val; });
-	SetDocumented(itemType, "lMaxDam", "number", "Lightning maximum damage", [](const Item &i) { return i._iLMaxDam; }, [](Item &i, int val) { i._iLMaxDam = val; });
-	SetDocumented(itemType, "PLEnAc", "number", "Damage target AC bonus", [](const Item &i) { return i._iPLEnAc; }, [](Item &i, int val) { i._iPLEnAc = val; });
-	SetDocumented(itemType, "prePower", "ItemEffectType", "Prefix power", [](const Item &i) { return i._iPrePower; }, [](Item &i, int val) { i._iPrePower = static_cast<item_effect_type>(val); });
-	SetDocumented(itemType, "sufPower", "ItemEffectType", "Suffix power", [](const Item &i) { return i._iSufPower; }, [](Item &i, int val) { i._iSufPower = static_cast<item_effect_type>(val); });
-	SetDocumented(itemType, "vAdd1", "number", "Value addition 1", [](const Item &i) { return i._iVAdd1; }, [](Item &i, int val) { i._iVAdd1 = val; });
-	SetDocumented(itemType, "vMult1", "number", "Value multiplier 1", [](const Item &i) { return i._iVMult1; }, [](Item &i, int val) { i._iVMult1 = val; });
-	SetDocumented(itemType, "vAdd2", "number", "Value addition 2", [](const Item &i) { return i._iVAdd2; }, [](Item &i, int val) { i._iVAdd2 = val; });
-	SetDocumented(itemType, "vMult2", "number", "Value multiplier 2", [](const Item &i) { return i._iVMult2; }, [](Item &i, int val) { i._iVMult2 = val; });
-	SetDocumented(itemType, "minStr", "number", "Minimum strength required", [](const Item &i) { return i._iMinStr; }, [](Item &i, int val) { i._iMinStr = val; });
-	SetDocumented(itemType, "minMag", "number", "Minimum magic required", [](const Item &i) { return i._iMinMag; }, [](Item &i, int val) { i._iMinMag = val; });
-	SetDocumented(itemType, "minDex", "number", "Minimum dexterity required", [](const Item &i) { return i._iMinDex; }, [](Item &i, int val) { i._iMinDex = val; });
-	SetDocumented(itemType, "statFlag", "boolean", "Equippable flag", [](const Item &i) { return i._iStatFlag; }, [](Item &i, bool val) { i._iStatFlag = val; });
-	SetDocumented(itemType, "damAcFlags", "ItemSpecialEffectHf", "Secondary special effect flags", [](const Item &i) { return i._iDamAcFlags; }, [](Item &i, int val) { i._iDamAcFlags = static_cast<ItemSpecialEffectHf>(val); });
-	SetDocumented(itemType, "buff", "number", "Secondary creation flags", [](const Item &i) { return i.dwBuff; }, [](Item &i, int val) { i.dwBuff = val; });
+	// LuaSetDocProperty(itemType, "animInfo", "AnimationInfo", "Animation information", &Item::AnimInfo);
+	LuaSetDocProperty(itemType, "delFlag", "boolean", "Deletion flag", &Item::_iDelFlag);
+	LuaSetDocProperty(itemType, "selectionRegion", "number", "Selection region", &Item::selectionRegion);
+	LuaSetDocProperty(itemType, "postDraw", "boolean", "Post-draw flag", &Item::_iPostDraw);
+	LuaSetDocProperty(itemType, "identified", "boolean", "Identified flag", &Item::_iIdentified);
+	LuaSetDocProperty(itemType, "magical", "number", "Item quality", &Item::_iMagical);
+	LuaSetDocProperty(itemType, "name", "string", "Item name", [](const Item &i) { return std::string_view(i._iName); }, [](Item &i, std::string_view val) { CopyUtf8(i._iName, val, sizeof(i._iName)); });
+	LuaSetDocProperty(itemType, "iName", "string", "Identified item name", [](const Item &i) { return std::string_view(i._iIName); }, [](Item &i, std::string_view val) { CopyUtf8(i._iIName, val, sizeof(i._iIName)); });
+	LuaSetDocProperty(itemType, "loc", "ItemEquipType", "Equipment location", &Item::_iLoc);
+	LuaSetDocProperty(itemType, "class", "ItemClass", "Item class", &Item::_iClass);
+	LuaSetDocProperty(itemType, "curs", "number", "Cursor index", &Item::_iCurs);
+	LuaSetDocProperty(itemType, "value", "number", "Item value", &Item::_ivalue);
+	LuaSetDocProperty(itemType, "ivalue", "number", "Identified item value", &Item::_iIvalue);
+	LuaSetDocProperty(itemType, "minDam", "number", "Minimum damage", &Item::_iMinDam);
+	LuaSetDocProperty(itemType, "maxDam", "number", "Maximum damage", &Item::_iMaxDam);
+	LuaSetDocProperty(itemType, "AC", "number", "Armor class", &Item::_iAC);
+	LuaSetDocProperty(itemType, "flags", "ItemSpecialEffect", "Special effect flags", &Item::_iFlags);
+	LuaSetDocProperty(itemType, "miscId", "ItemMiscID", "Miscellaneous ID", &Item::_iMiscId);
+	LuaSetDocProperty(itemType, "spell", "SpellID", "Spell", &Item::_iSpell);
+	LuaSetDocProperty(itemType, "IDidx", "ItemIndex", "Base item index", &Item::IDidx);
+	LuaSetDocProperty(itemType, "charges", "number", "Number of charges", &Item::_iCharges);
+	LuaSetDocProperty(itemType, "maxCharges", "number", "Maximum charges", &Item::_iMaxCharges);
+	LuaSetDocProperty(itemType, "durability", "number", "Durability", &Item::_iDurability);
+	LuaSetDocProperty(itemType, "maxDur", "number", "Maximum durability", &Item::_iMaxDur);
+	LuaSetDocProperty(itemType, "PLDam", "number", "Damage % bonus", &Item::_iPLDam);
+	LuaSetDocProperty(itemType, "PLToHit", "number", "Chance to hit bonus", &Item::_iPLToHit);
+	LuaSetDocProperty(itemType, "PLAC", "number", "Armor class % bonus", &Item::_iPLAC);
+	LuaSetDocProperty(itemType, "PLStr", "number", "Strength bonus", &Item::_iPLStr);
+	LuaSetDocProperty(itemType, "PLMag", "number", "Magic bonus", &Item::_iPLMag);
+	LuaSetDocProperty(itemType, "PLDex", "number", "Dexterity bonus", &Item::_iPLDex);
+	LuaSetDocProperty(itemType, "PLVit", "number", "Vitality bonus", &Item::_iPLVit);
+	LuaSetDocProperty(itemType, "PLFR", "number", "Fire resistance bonus", &Item::_iPLFR);
+	LuaSetDocProperty(itemType, "PLLR", "number", "Lightning resistance bonus", &Item::_iPLLR);
+	LuaSetDocProperty(itemType, "PLMR", "number", "Magic resistance bonus", &Item::_iPLMR);
+	LuaSetDocProperty(itemType, "PLMana", "number", "Mana bonus", &Item::_iPLMana);
+	LuaSetDocProperty(itemType, "PLHP", "number", "Life bonus", &Item::_iPLHP);
+	LuaSetDocProperty(itemType, "PLDamMod", "number", "Damage modifier bonus", &Item::_iPLDamMod);
+	LuaSetDocProperty(itemType, "PLGetHit", "number", "Damage from enemies bonus", &Item::_iPLGetHit);
+	LuaSetDocProperty(itemType, "PLLight", "number", "Light bonus", &Item::_iPLLight);
+	LuaSetDocProperty(itemType, "splLvlAdd", "number", "Spell level bonus", &Item::_iSplLvlAdd);
+	LuaSetDocProperty(itemType, "request", "boolean", "Request flag", &Item::_iRequest);
+	LuaSetDocProperty(itemType, "uid", "number", "Unique item ID", &Item::_iUid);
+	LuaSetDocProperty(itemType, "fMinDam", "number", "Fire minimum damage", &Item::_iFMinDam);
+	LuaSetDocProperty(itemType, "fMaxDam", "number", "Fire maximum damage", &Item::_iFMaxDam);
+	LuaSetDocProperty(itemType, "lMinDam", "number", "Lightning minimum damage", &Item::_iLMinDam);
+	LuaSetDocProperty(itemType, "lMaxDam", "number", "Lightning maximum damage", &Item::_iLMaxDam);
+	LuaSetDocProperty(itemType, "PLEnAc", "number", "Damage target AC bonus", &Item::_iPLEnAc);
+	LuaSetDocProperty(itemType, "prePower", "ItemEffectType", "Prefix power", &Item::_iPrePower);
+	LuaSetDocProperty(itemType, "sufPower", "ItemEffectType", "Suffix power", &Item::_iSufPower);
+	LuaSetDocProperty(itemType, "vAdd1", "number", "Value addition 1", &Item::_iVAdd1);
+	LuaSetDocProperty(itemType, "vMult1", "number", "Value multiplier 1", &Item::_iVMult1);
+	LuaSetDocProperty(itemType, "vAdd2", "number", "Value addition 2", &Item::_iVAdd2);
+	LuaSetDocProperty(itemType, "vMult2", "number", "Value multiplier 2", &Item::_iVMult2);
+	LuaSetDocProperty(itemType, "minStr", "number", "Minimum strength required", &Item::_iMinStr);
+	LuaSetDocProperty(itemType, "minMag", "number", "Minimum magic required", &Item::_iMinMag);
+	LuaSetDocProperty(itemType, "minDex", "number", "Minimum dexterity required", &Item::_iMinDex);
+	LuaSetDocProperty(itemType, "statFlag", "boolean", "Equippable flag", &Item::_iStatFlag);
+	LuaSetDocProperty(itemType, "damAcFlags", "ItemSpecialEffectHf", "Secondary special effect flags", &Item::_iDamAcFlags);
+	LuaSetDocProperty(itemType, "buff", "number", "Secondary creation flags", &Item::dwBuff);
 
 	// Member functions
-	SetDocumented(itemType, "pop", "() -> Item", "Clears this item and returns the old value", &Item::pop);
-	SetDocumented(itemType, "clear", "() -> void", "Resets the item", &Item::clear);
-	SetDocumented(itemType, "isEmpty", "() -> boolean", "Checks whether this item is empty", &Item::isEmpty);
-	SetDocumented(itemType, "isEquipment", "() -> boolean", "Checks if item is equipment", &Item::isEquipment);
-	SetDocumented(itemType, "isWeapon", "() -> boolean", "Checks if item is a weapon", &Item::isWeapon);
-	SetDocumented(itemType, "isArmor", "() -> boolean", "Checks if item is armor", &Item::isArmor);
-	SetDocumented(itemType, "isGold", "() -> boolean", "Checks if item is gold", &Item::isGold);
-	SetDocumented(itemType, "isHelm", "() -> boolean", "Checks if item is a helm", &Item::isHelm);
-	SetDocumented(itemType, "isShield", "() -> boolean", "Checks if item is a shield", &Item::isShield);
-	SetDocumented(itemType, "isJewelry", "() -> boolean", "Checks if item is jewelry", &Item::isJewelry);
-	SetDocumented(itemType, "isScroll", "() -> boolean", "Checks if item is a scroll", &Item::isScroll);
-	SetDocumented(itemType, "isScrollOf", "(spell: SpellID) -> boolean", "Checks if item is a scroll of a given spell", &Item::isScrollOf);
-	SetDocumented(itemType, "isRune", "() -> boolean", "Checks if item is a rune", &Item::isRune);
-	SetDocumented(itemType, "isRuneOf", "(spell: SpellID) -> boolean", "Checks if item is a rune of a given spell", &Item::isRuneOf);
-	SetDocumented(itemType, "isUsable", "() -> boolean", "Checks if item is usable", &Item::isUsable);
-	SetDocumented(itemType, "keyAttributesMatch", "(seed: number, idx: number, createInfo: number) -> boolean", "Checks if key attributes match", &Item::keyAttributesMatch);
-	SetDocumented(itemType, "getTextColor", "() -> UiFlags", "Gets the text color", &Item::getTextColor);
-	SetDocumented(itemType, "getTextColorWithStatCheck", "() -> UiFlags", "Gets the text color with stat check", &Item::getTextColorWithStatCheck);
-	SetDocumented(itemType, "setNewAnimation", "(showAnimation: boolean) -> void", "Sets the new animation", &Item::setNewAnimation);
-	SetDocumented(itemType, "updateRequiredStatsCacheForPlayer", "(player: Player) -> void", "Updates the required stats cache", &Item::updateRequiredStatsCacheForPlayer);
-	SetDocumented(itemType, "getName", "() -> string", "Gets the translated item name", &Item::getName);
+	LuaSetDocFn(itemType, "pop", "() -> Item", "Clears this item and returns the old value", &Item::pop);
+	LuaSetDocFn(itemType, "clear", "() -> void", "Resets the item", &Item::clear);
+	LuaSetDocFn(itemType, "isEmpty", "() -> boolean", "Checks whether this item is empty", &Item::isEmpty);
+	LuaSetDocFn(itemType, "isEquipment", "() -> boolean", "Checks if item is equipment", &Item::isEquipment);
+	LuaSetDocFn(itemType, "isWeapon", "() -> boolean", "Checks if item is a weapon", &Item::isWeapon);
+	LuaSetDocFn(itemType, "isArmor", "() -> boolean", "Checks if item is armor", &Item::isArmor);
+	LuaSetDocFn(itemType, "isGold", "() -> boolean", "Checks if item is gold", &Item::isGold);
+	LuaSetDocFn(itemType, "isHelm", "() -> boolean", "Checks if item is a helm", &Item::isHelm);
+	LuaSetDocFn(itemType, "isShield", "() -> boolean", "Checks if item is a shield", &Item::isShield);
+	LuaSetDocFn(itemType, "isJewelry", "() -> boolean", "Checks if item is jewelry", &Item::isJewelry);
+	LuaSetDocFn(itemType, "isScroll", "() -> boolean", "Checks if item is a scroll", &Item::isScroll);
+	LuaSetDocFn(itemType, "isScrollOf", "(spell: SpellID) -> boolean", "Checks if item is a scroll of a given spell", &Item::isScrollOf);
+	LuaSetDocFn(itemType, "isRune", "() -> boolean", "Checks if item is a rune", &Item::isRune);
+	LuaSetDocFn(itemType, "isRuneOf", "(spell: SpellID) -> boolean", "Checks if item is a rune of a given spell", &Item::isRuneOf);
+	LuaSetDocFn(itemType, "isUsable", "() -> boolean", "Checks if item is usable", &Item::isUsable);
+	LuaSetDocFn(itemType, "keyAttributesMatch", "(seed: number, idx: number, createInfo: number) -> boolean", "Checks if key attributes match", &Item::keyAttributesMatch);
+	LuaSetDocFn(itemType, "getTextColor", "() -> UiFlags", "Gets the text color", &Item::getTextColor);
+	LuaSetDocFn(itemType, "getTextColorWithStatCheck", "() -> UiFlags", "Gets the text color with stat check", &Item::getTextColorWithStatCheck);
+	LuaSetDocFn(itemType, "setNewAnimation", "(showAnimation: boolean) -> void", "Sets the new animation", &Item::setNewAnimation);
+	LuaSetDocFn(itemType, "updateRequiredStatsCacheForPlayer", "(player: Player) -> void", "Updates the required stats cache", &Item::updateRequiredStatsCacheForPlayer);
+	LuaSetDocFn(itemType, "getName", "() -> string", "Gets the translated item name", &Item::getName);
 }
 
 void RegisterItemTypeEnum(sol::state_view &lua)
@@ -346,7 +346,6 @@ void RegisterItemIndexEnum(sol::state_view &lua)
 	        { "RuneOfStone", IDI_RUNEOFSTONE },
 	        { "SorcererDiablo", IDI_SORCERER_DIABLO },
 	        { "ArenaPotion", IDI_ARENAPOT },
-	        { "Last", IDI_LAST },
 	        { "None", IDI_NONE },
 	    });
 }
@@ -454,6 +453,18 @@ void RegisterItemSpecialEffectHfEnum(sol::state_view &lua)
 	    });
 }
 
+void AddItemDataFromTsv(const std::string_view path, const int32_t baseMappingId)
+{
+	DataFile dataFile = DataFile::loadOrDie(path);
+	LoadItemDatFromFile(dataFile, path, baseMappingId);
+}
+
+void AddUniqueItemDataFromTsv(const std::string_view path, const int32_t baseMappingId)
+{
+	DataFile dataFile = DataFile::loadOrDie(path);
+	LoadUniqueItemDatFromFile(dataFile, path, baseMappingId);
+}
+
 } // namespace
 
 sol::table LuaItemModule(sol::state_view &lua)
@@ -470,6 +481,9 @@ sol::table LuaItemModule(sol::state_view &lua)
 	RegisterItemSpecialEffectHfEnum(lua);
 
 	sol::table table = lua.create_table();
+
+	LuaSetDocFn(table, "addItemDataFromTsv", "(path: string, baseMappingId: number)", AddItemDataFromTsv);
+	LuaSetDocFn(table, "addUniqueItemDataFromTsv", "(path: string, baseMappingId: number)", AddUniqueItemDataFromTsv);
 
 	return table;
 }

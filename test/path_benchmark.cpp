@@ -21,7 +21,7 @@ struct Map {
 std::pair<Point, Point> FindStartDest(const Map &m)
 {
 	Point start, dest;
-	for (Point p : PointsInRectangle(Rectangle(Point { 0, 0 }, m.size))) {
+	for (const Point p : PointsInRectangle(Rectangle(Point { 0, 0 }, m.size))) {
 		switch (m[p]) {
 		case 'S':
 			start = p;

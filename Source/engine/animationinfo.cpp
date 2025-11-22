@@ -34,7 +34,7 @@ int8_t AnimationInfo::getFrameToUseForRendering() const
 	}
 
 	// we don't use the processed game ticks alone but also the fraction of the next game tick (if a rendering happens between game ticks). This helps to smooth the animations.
-	int32_t totalTicksForCurrentAnimationSequence = getProgressToNextGameTick() + ticksSinceSequenceStarted;
+	const int32_t totalTicksForCurrentAnimationSequence = getProgressToNextGameTick() + ticksSinceSequenceStarted;
 
 	int8_t absoluteAnimationFrame = static_cast<int8_t>(totalTicksForCurrentAnimationSequence * tickModifier_ / baseValueFraction / baseValueFraction);
 	if (skippedFramesFromPreviousAnimation_ > 0) {
@@ -75,9 +75,9 @@ uint8_t AnimationInfo::getAnimationProgress() const
 		tickModifier = baseValueFraction / ticksPerFrame;
 	}
 
-	int32_t totalTicksForCurrentAnimationSequence = getProgressToNextGameTick() + ticksSinceSequenceStarted;
-	int32_t progressInAnimationFrames = totalTicksForCurrentAnimationSequence * tickModifier;
-	int32_t animationFraction = progressInAnimationFrames / numberOfFrames / baseValueFraction;
+	const int32_t totalTicksForCurrentAnimationSequence = getProgressToNextGameTick() + ticksSinceSequenceStarted;
+	const int32_t progressInAnimationFrames = totalTicksForCurrentAnimationSequence * tickModifier;
+	const int32_t animationFraction = progressInAnimationFrames / numberOfFrames / baseValueFraction;
 	assert(animationFraction <= baseValueFraction);
 	return static_cast<uint8_t>(animationFraction);
 }

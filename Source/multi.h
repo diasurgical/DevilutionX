@@ -45,6 +45,8 @@ struct GameInfo {
 	std::string name;
 	GameData gameData;
 	std::vector<std::string> players;
+	std::optional<int> latency;
+	std::optional<bool> peerIsRelayed;
 };
 
 extern bool gbSomebodyWonGameKludge;

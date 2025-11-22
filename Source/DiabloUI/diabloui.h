@@ -5,7 +5,13 @@
 #include <cstdint>
 #include <optional>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_events.h>
+#include <SDL3/SDL_surface.h>
+#else
 #include <SDL.h>
+#endif
+
 #include <function_ref.hpp>
 
 #include "DiabloUI/ui_item.h"

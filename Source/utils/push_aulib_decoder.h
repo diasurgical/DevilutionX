@@ -9,8 +9,14 @@
 #include <variant>
 
 #include <Aulib/Decoder.h>
-#include <SDL_mutex.h>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_mutex.h>
+#else
+#include <SDL_mutex.h>
+#endif
+
+#include "utils/sdl_compat.h"
 #include "utils/sdl_mutex.h"
 
 namespace devilution {
@@ -36,7 +42,7 @@ public:
 
 	void DiscardPendingSamples() noexcept;
 
-	bool open(SDL_RWops *rwops) override;
+	bool open(SDL_IOStream *rwops) override;
 
 	[[nodiscard]] int getChannels() const override
 	{

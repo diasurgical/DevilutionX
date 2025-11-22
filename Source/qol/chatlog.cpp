@@ -24,6 +24,7 @@
 #include "minitext.h"
 #include "stores.h"
 #include "utils/language.h"
+#include "utils/str_cat.hpp"
 
 namespace devilution {
 
@@ -117,18 +118,19 @@ void ToggleChatLog()
 void AddMessageToChatLog(std::string_view message, Player *player, UiFlags flags)
 {
 	MessageCounter++;
-	time_t timeResult = time(nullptr);
+	const time_t timeResult = time(nullptr);
 	const std::tm *localtimeResult = localtime(&timeResult);
-	std::string timestamp = localtimeResult != nullptr ? fmt::format("[#{:d}] {:02}:{:02}:{:02}", MessageCounter, localtimeResult->tm_hour, localtimeResult->tm_min, localtimeResult->tm_sec)
-	                                                   : fmt::format("[#{:d}] ", MessageCounter);
-	size_t oldSize = ChatLogLines.size();
+	std::string timestamp = localtimeResult != nullptr
+	    ? StrCat("[#", MessageCounter, "] ", LeftPad(localtimeResult->tm_hour, 2, '0'), ":", LeftPad(localtimeResult->tm_min, 2, '0'), ":", LeftPad(localtimeResult->tm_sec, 2, '0'))
+	    : StrCat("[#", MessageCounter, "] ");
+	const size_t oldSize = ChatLogLines.size();
 	if (player == nullptr) {
 		ChatLogLines.emplace_back(MultiColoredText { "{0} {1}", { { timestamp, UiFlags::ColorRed }, { std::string(message), flags } } });
 	} else {
 		std::string playerInfo = fmt::format(fmt::runtime(_("{:s} (lvl {:d}): ")), player->_pName, player->getCharacterLevel());
 		UiFlags nameColor = player == MyPlayer ? UiFlags::ColorWhitegold : UiFlags::ColorBlue;
-		std::string prefix = timestamp + " - " + playerInfo;
-		std::string text = WordWrapString(prefix + std::string(message), ContentTextWidth);
+		const std::string prefix = timestamp + " - " + playerInfo;
+		const std::string text = WordWrapString(prefix + std::string(message), ContentTextWidth);
 		std::vector<std::string> lines;
 		std::stringstream ss(text);
 
@@ -142,7 +144,7 @@ void AddMessageToChatLog(std::string_view message, Player *player, UiFlags flags
 		ChatLogLines.emplace_back(MultiColoredText { "{0} - {1}{2}", { { timestamp, UiFlags::ColorRed }, { playerInfo, nameColor }, { lines[0], UiFlags::ColorWhite } } });
 	}
 
-	size_t diff = ChatLogLines.size() - oldSize;
+	const size_t diff = ChatLogLines.size() - oldSize;
 	// only autoscroll when on top of the log
 	if (SkipLines != 0) {
 		SkipLines += diff;
@@ -169,10 +171,11 @@ void DrawChatLog(const Surface &out)
 	    { { sx, sy + PaddingTop + blankLineHeight }, { ContentTextWidth, lineHeight } },
 	    { .flags = (UnreadFlag ? UiFlags::ColorRed : UiFlags::ColorWhitegold) | UiFlags::AlignCenter });
 
-	time_t timeResult = time(nullptr);
+	const time_t timeResult = time(nullptr);
 	const std::tm *localtimeResult = localtime(&timeResult);
 	if (localtimeResult != nullptr) {
-		std::string timestamp = fmt::format("{:02}:{:02}:{:02}", localtimeResult->tm_hour, localtimeResult->tm_min, localtimeResult->tm_sec);
+		const std::string timestamp = StrCat(
+		    LeftPad(localtimeResult->tm_hour, 2, '0'), ":", LeftPad(localtimeResult->tm_min, 2, '0'), ":", LeftPad(localtimeResult->tm_sec, 2, '0'));
 		DrawString(out, timestamp, { { sx, sy + PaddingTop + blankLineHeight }, { ContentTextWidth, lineHeight } },
 		    { .flags = UiFlags::ColorWhitegold });
 	}
@@ -185,7 +188,7 @@ void DrawChatLog(const Surface &out)
 	for (int i = 0; i < numLines; i++) {
 		if (i + SkipLines >= ChatLogLines.size())
 			break;
-		MultiColoredText &text = ChatLogLines[ChatLogLines.size() - (i + SkipLines + 1)];
+		const MultiColoredText &text = ChatLogLines[ChatLogLines.size() - (i + SkipLines + 1)];
 		const std::string_view line = text.text;
 
 		std::vector<DrawStringFormatArg> args;

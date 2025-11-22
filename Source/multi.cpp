@@ -10,7 +10,14 @@
 #include <cstring>
 #include <string_view>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_endian.h>
+#include <SDL3/SDL_error.h>
+#include <SDL3/SDL_timer.h>
+#else
 #include <SDL.h>
+#endif
+
 #include <config.h>
 #include <fmt/format.h>
 
@@ -20,6 +27,7 @@
 #include "engine/point.hpp"
 #include "engine/random.hpp"
 #include "engine/world_tile.hpp"
+#include "game_mode.hpp"
 #include "menu.h"
 #include "monster.h"
 #include "msg.h"
@@ -33,6 +41,7 @@
 #include "sync.h"
 #include "tmsg.h"
 #include "utils/endian_read.hpp"
+#include "utils/endian_swap.hpp"
 #include "utils/is_of.hpp"
 #include "utils/language.h"
 #include "utils/str_cat.hpp"
@@ -79,12 +88,12 @@ const event_type EventTypes[3] = {
 
 void GameData::swapLE()
 {
-	size = SDL_SwapLE32(size);
-	programid = SDL_SwapLE32(programid);
-	gameSeed[0] = SDL_SwapLE32(gameSeed[0]);
-	gameSeed[1] = SDL_SwapLE32(gameSeed[1]);
-	gameSeed[2] = SDL_SwapLE32(gameSeed[2]);
-	gameSeed[3] = SDL_SwapLE32(gameSeed[3]);
+	size = Swap32LE(size);
+	programid = Swap32LE(programid);
+	gameSeed[0] = Swap32LE(gameSeed[0]);
+	gameSeed[1] = Swap32LE(gameSeed[1]);
+	gameSeed[2] = Swap32LE(gameSeed[2]);
+	gameSeed[3] = Swap32LE(gameSeed[3]);
 }
 
 namespace {
@@ -163,10 +172,10 @@ void NetReceivePlayerData(TPkt *pkt)
 	pkt->hdr.py = myPlayer.position.tile.y;
 	pkt->hdr.targx = target.x;
 	pkt->hdr.targy = target.y;
-	pkt->hdr.php = SDL_SwapLE32(myPlayer._pHitPoints);
-	pkt->hdr.pmhp = SDL_SwapLE32(myPlayer._pMaxHP);
-	pkt->hdr.mana = SDL_SwapLE32(myPlayer._pMana);
-	pkt->hdr.maxmana = SDL_SwapLE32(myPlayer._pMaxMana);
+	pkt->hdr.php = Swap32LE(myPlayer._pHitPoints);
+	pkt->hdr.pmhp = Swap32LE(myPlayer._pMaxHP);
+	pkt->hdr.mana = Swap32LE(myPlayer._pMana);
+	pkt->hdr.maxmana = Swap32LE(myPlayer._pMaxMana);
 	pkt->hdr.bstr = myPlayer._pBaseStr;
 	pkt->hdr.bmag = myPlayer._pBaseMag;
 	pkt->hdr.bdex = myPlayer._pBaseDex;
@@ -176,7 +185,7 @@ bool IsNetPlayerValid(const Player &player)
 {
 	// we no longer check character level here, players with out-of-range clevels are not allowed to join the game and we don't observe change clevel messages that would set it out of range
 	// (there's no code path that would result in _pLevel containing an out of range value in the DevilutionX code)
-	return static_cast<uint8_t>(player._pClass) < enum_size<HeroClass>::value
+	return static_cast<uint8_t>(player._pClass) < GetNumPlayerClasses()
 	    && player.plrlevel < NUMLEVELS
 	    && InDungeonBounds(player.position.tile)
 	    && !std::string_view(player._pName).empty();
@@ -191,8 +200,8 @@ void CheckPlayerInfoTimeouts()
 		}
 
 		Uint32 &timerStart = playerInfoTimers[i];
-		bool isPlayerConnected = (player_state[i] & PS_CONNECTED) != 0;
-		bool isPlayerValid = isPlayerConnected && IsNetPlayerValid(player);
+		const bool isPlayerConnected = (player_state[i] & PS_CONNECTED) != 0;
+		const bool isPlayerValid = isPlayerConnected && IsNetPlayerValid(player);
 		if (isPlayerConnected && !isPlayerValid && timerStart == 0) {
 			timerStart = SDL_GetTicks();
 		}
@@ -219,7 +228,7 @@ void SendPacket(uint8_t playerId, const std::byte *packet, size_t size)
 
 	NetReceivePlayerData(&pkt);
 	const size_t sizeWithheader = size + sizeof(pkt.hdr);
-	pkt.hdr.wLen = SDL_SwapLE16(static_cast<uint16_t>(sizeWithheader));
+	pkt.hdr.wLen = Swap16LE(static_cast<uint16_t>(sizeWithheader));
 	memcpy(pkt.body, packet, size);
 	if (!SNetSendMessage(playerId, &pkt.hdr, sizeWithheader))
 		nthread_terminate_game("SNetSendMessage0");
@@ -347,7 +356,7 @@ void BeginTimeout()
 void HandleAllPackets(uint8_t pnum, const std::byte *data, size_t size)
 {
 	for (size_t offset = 0; offset < size;) {
-		size_t messageSize = ParseCmd(pnum, reinterpret_cast<const TCmd *>(&data[offset]), size - offset);
+		const size_t messageSize = ParseCmd(pnum, reinterpret_cast<const TCmd *>(&data[offset]), size - offset);
 		if (messageSize == 0) {
 			break;
 		}
@@ -359,7 +368,7 @@ void ProcessTmsgs()
 {
 	while (true) {
 		std::unique_ptr<std::byte[]> msg;
-		uint8_t size = tmsg_get(&msg);
+		const uint8_t size = tmsg_get(&msg);
 		if (size == 0)
 			break;
 
@@ -370,7 +379,7 @@ void ProcessTmsgs()
 void SendPlayerInfo(uint8_t pnum, _cmd_id cmd)
 {
 	PlayerNetPack packed;
-	Player &myPlayer = *MyPlayer;
+	const Player &myPlayer = *MyPlayer;
 	PackNetPlayer(packed, myPlayer);
 	multi_send_zero_packet(pnum, cmd, reinterpret_cast<std::byte *>(&packed), sizeof(PlayerNetPack));
 }
@@ -416,7 +425,7 @@ void HandleEvents(_SNETEVENT *pEvt)
 		int32_t leftReason = 0;
 		if (pEvt->data != nullptr && pEvt->databytes >= sizeof(leftReason)) {
 			std::memcpy(&leftReason, pEvt->data, sizeof(leftReason));
-			leftReason = SDL_SwapLE32(leftReason);
+			leftReason = Swap32LE(leftReason);
 		}
 		sgdwPlayerLeftReasonTbl[playerId] = leftReason;
 		if (leftReason == LEAVE_ENDING)
@@ -513,7 +522,7 @@ bool InitMulti(GameData *gameData)
 
 void InitGameInfo()
 {
-	xoshiro128plusplus gameGenerator = ReserveSeedSequence();
+	const xoshiro128plusplus gameGenerator = ReserveSeedSequence();
 	gameGenerator.save(sgGameInitInfo.gameSeed);
 
 	sgGameInitInfo.size = sizeof(sgGameInitInfo);
@@ -554,7 +563,7 @@ void NetSendHiPri(uint8_t playerId, const std::byte *data, size_t size)
 		destination = CopyBufferedPackets(destination, &lowPriorityBuffer, &remainingSpace);
 		remainingSpace = sync_all_monsters(destination, remainingSpace);
 		const size_t len = gdwNormalMsgSize - remainingSpace;
-		pkt.hdr.wLen = SDL_SwapLE16(static_cast<uint16_t>(len));
+		pkt.hdr.wLen = Swap16LE(static_cast<uint16_t>(len));
 		if (!SNetSendMessage(SNPLAYER_OTHERS, &pkt.hdr, len))
 			nthread_terminate_game("SNetSendMessage");
 	}
@@ -565,7 +574,7 @@ void multi_send_msg_packet(uint32_t pmask, const std::byte *data, size_t size)
 	TPkt pkt;
 	NetReceivePlayerData(&pkt);
 	const size_t len = size + sizeof(pkt.hdr);
-	pkt.hdr.wLen = SDL_SwapLE16(static_cast<uint16_t>(len));
+	pkt.hdr.wLen = Swap16LE(static_cast<uint16_t>(len));
 	memcpy(pkt.body, data, size);
 	uint8_t playerID = 0;
 	for (uint32_t v = 1; playerID < Players.size(); playerID++, v <<= 1) {
@@ -659,26 +668,26 @@ void multi_process_network_packets()
 			continue;
 		if (pkt->wCheck != HeaderCheckVal)
 			continue;
-		if (SDL_SwapLE16(pkt->wLen) != dwMsgSize)
+		if (Swap16LE(pkt->wLen) != dwMsgSize)
 			continue;
 		Player &player = Players[playerId];
 		if (!IsNetPlayerValid(player)) {
-			_cmd_id cmd = *(const _cmd_id *)(pkt + 1);
+			const _cmd_id cmd = *(const _cmd_id *)(pkt + 1);
 			if (gbBufferMsgs == 0 && IsNoneOf(cmd, CMD_SEND_PLRINFO, CMD_ACK_PLRINFO)) {
 				// Distrust all messages until
 				// player info is received
 				continue;
 			}
 		}
-		Point syncPosition = { pkt->px, pkt->py };
+		const Point syncPosition = { pkt->px, pkt->py };
 		player.position.last = syncPosition;
 		if (&player != MyPlayer) {
 			assert(gbBufferMsgs != 2);
-			player._pHitPoints = SDL_SwapLE32(pkt->php);
-			player._pMaxHP = SDL_SwapLE32(pkt->pmhp);
-			player._pMana = SDL_SwapLE32(pkt->mana);
-			player._pMaxMana = SDL_SwapLE32(pkt->maxmana);
-			bool cond = gbBufferMsgs == 1;
+			player._pHitPoints = Swap32LE(pkt->php);
+			player._pMaxHP = Swap32LE(pkt->pmhp);
+			player._pMana = Swap32LE(pkt->mana);
+			player._pMaxMana = Swap32LE(pkt->maxmana);
+			const bool cond = gbBufferMsgs == 1;
 			player._pBaseStr = pkt->bstr;
 			player._pBaseMag = pkt->bmag;
 			player._pBaseDex = pkt->bdex;
@@ -701,7 +710,7 @@ void multi_process_network_packets()
 					if (player.position.future.WalkingDistance(player.position.tile) > 1) {
 						player.position.future = player.position.tile;
 					}
-					Point target = { pkt->targx, pkt->targy };
+					const Point target = { pkt->targx, pkt->targy };
 					if (target != Point {}) // does the client send a desired (future) position of remote player?
 						MakePlrPath(player, target, true);
 				} else {
@@ -728,18 +737,18 @@ void multi_send_zero_packet(uint8_t pnum, _cmd_id bCmd, const std::byte *data, s
 		auto &message = *reinterpret_cast<TCmdPlrInfoHdr *>(pkt.body);
 		message.bCmd = bCmd;
 		assert(offset <= 0x0ffff);
-		message.wOffset = SDL_SwapLE16(static_cast<uint16_t>(offset));
+		message.wOffset = Swap16LE(static_cast<uint16_t>(offset));
 
 		size_t dwBody = gdwLargestMsgSize - sizeof(pkt.hdr) - sizeof(message);
 		dwBody = std::min(dwBody, size - offset);
 		assert(dwBody <= 0x0ffff);
-		message.wBytes = SDL_SwapLE16(static_cast<uint16_t>(dwBody));
+		message.wBytes = Swap16LE(static_cast<uint16_t>(dwBody));
 
 		memcpy(&pkt.body[sizeof(message)], &data[offset], dwBody);
 
 		const size_t dwMsg = sizeof(pkt.hdr) + sizeof(message) + dwBody;
 		assert(dwMsg <= 0x0ffff);
-		pkt.hdr.wLen = SDL_SwapLE16(static_cast<uint16_t>(dwMsg));
+		pkt.hdr.wLen = Swap16LE(static_cast<uint16_t>(dwMsg));
 
 		if (!SNetSendMessage(pnum, &pkt, dwMsg)) {
 			nthread_terminate_game("SNetSendMessage2");
@@ -844,10 +853,10 @@ void recv_plrinfo(Player &player, const TCmdPlrInfoHdr &header, bool recv)
 	if (&player == MyPlayer) {
 		return;
 	}
-	uint8_t pnum = player.getId();
+	const uint8_t pnum = player.getId();
 	auto &packedPlayer = PackedPlayerBuffer[pnum];
 
-	if (sgwPackPlrOffsetTbl[pnum] != SDL_SwapLE16(header.wOffset)) {
+	if (sgwPackPlrOffsetTbl[pnum] != Swap16LE(header.wOffset)) {
 		sgwPackPlrOffsetTbl[pnum] = 0;
 		if (header.wOffset != 0) {
 			return;
@@ -857,9 +866,9 @@ void recv_plrinfo(Player &player, const TCmdPlrInfoHdr &header, bool recv)
 		SendPlayerInfo(pnum, CMD_ACK_PLRINFO);
 	}
 
-	memcpy(reinterpret_cast<uint8_t *>(&packedPlayer) + SDL_SwapLE16(header.wOffset), reinterpret_cast<const uint8_t *>(&header) + sizeof(header), SDL_SwapLE16(header.wBytes));
+	memcpy(reinterpret_cast<uint8_t *>(&packedPlayer) + Swap16LE(header.wOffset), reinterpret_cast<const uint8_t *>(&header) + sizeof(header), Swap16LE(header.wBytes));
 
-	sgwPackPlrOffsetTbl[pnum] += SDL_SwapLE16(header.wBytes);
+	sgwPackPlrOffsetTbl[pnum] += Swap16LE(header.wBytes);
 	if (sgwPackPlrOffsetTbl[pnum] != sizeof(packedPlayer)) {
 		return;
 	}

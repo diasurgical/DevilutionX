@@ -9,11 +9,12 @@
 #include <string_view>
 #include <vector>
 
-#include <expected.hpp>
+#include <fmt/format.h>
 
 #include "data/file.hpp"
 #include "data/iterators.hpp"
 #include "data/record_reader.hpp"
+#include "lua/lua_global.hpp"
 #include "spelldat.h"
 #include "utils/str_cat.hpp"
 
@@ -22,14 +23,32 @@ namespace devilution {
 /** Contains the data related to each item ID. */
 std::vector<ItemData> AllItemsList;
 
+/** Contains item mapping IDs, with item indices assigned to them. This is used for loading saved games. */
+ankerl::unordered_dense::map<int32_t, int16_t> ItemMappingIdsToIndices;
+
+/** Contains the mapping between unique base item ID strings and indices, used for parsing additional item data. */
+ankerl::unordered_dense::map<std::string, int8_t> AdditionalUniqueBaseItemStringsToIndices;
+
 /** Contains the data related to each unique item ID. */
 std::vector<UniqueItem> UniqueItems;
+
+/** Contains unique item mapping IDs, with unique item indices assigned to them. This is used for loading saved games. */
+ankerl::unordered_dense::map<int32_t, int32_t> UniqueItemMappingIdsToIndices;
 
 /** Contains the data related to each item prefix. */
 std::vector<PLStruct> ItemPrefixes;
 
 /** Contains the data related to each item suffix. */
 std::vector<PLStruct> ItemSuffixes;
+
+tl::expected<_item_indexes, std::string> ParseItemId(std::string_view value)
+{
+	const std::optional<_item_indexes> enumValueOpt = magic_enum::enum_cast<_item_indexes>(value);
+	if (enumValueOpt.has_value()) {
+		return enumValueOpt.value();
+	}
+	return tl::make_unexpected("Unknown enum value");
+}
 
 namespace {
 
@@ -231,7 +250,11 @@ tl::expected<item_cursor_graphic, std::string> ParseItemCursorGraphic(std::strin
 	if (value == "DEMON_PLATE_ARMOR") return ICURS_DEMON_PLATE_ARMOR;
 	if (value == "BOVINE") return ICURS_BOVINE;
 	if (value == "") return ICURS_DEFAULT;
-	return tl::make_unexpected("Unknown enum value");
+
+	// also support providing the item cursor icon frame number directly
+	return ParseInt<uint8_t>(value)
+	    .map([](auto numericalValue) { return static_cast<item_cursor_graphic>(numericalValue); })
+	    .map_error([](auto) { return std::string("Unknown enum value"); });
 }
 
 tl::expected<ItemType, std::string> ParseItemType(std::string_view value)
@@ -325,7 +348,31 @@ tl::expected<unique_base_item, std::string> ParseUniqueBaseItem(std::string_view
 	if (value == "LAZSTAFF") return UITYPE_LAZSTAFF;
 	if (value == "BOVINE") return UITYPE_BOVINE;
 	if (value == "INVALID") return UITYPE_INVALID;
+
+	const auto findIt = AdditionalUniqueBaseItemStringsToIndices.find(std::string(value));
+	if (findIt != AdditionalUniqueBaseItemStringsToIndices.end()) {
+		return static_cast<unique_base_item>(findIt->second);
+	}
+
 	return tl::make_unexpected("Unknown enum value");
+}
+
+tl::expected<unique_base_item, std::string> ParseOrAddUniqueBaseItem(std::string_view value)
+{
+	const auto parseResult = ParseUniqueBaseItem(value);
+	if (parseResult.has_value()) {
+		return parseResult.value();
+	}
+
+	const size_t newUniqueBaseItemIndex = static_cast<size_t>(NUM_DEFAULT_UITYPES) + AdditionalUniqueBaseItemStringsToIndices.size();
+
+	if (newUniqueBaseItemIndex >= static_cast<size_t>(NUM_MAX_UITYPES)) {
+		return tl::make_unexpected(fmt::format("Could not define new unique base item \"{}\", since the maximum number of {} has already been reached.", value, static_cast<size_t>(NUM_MAX_UITYPES)));
+	}
+
+	const unique_base_item newUniqueBaseItem = static_cast<unique_base_item>(newUniqueBaseItemIndex);
+	AdditionalUniqueBaseItemStringsToIndices[std::string(value)] = newUniqueBaseItem;
+	return newUniqueBaseItem;
 }
 
 tl::expected<ItemSpecialEffect, std::string> ParseItemSpecialEffect(std::string_view value)
@@ -514,14 +561,14 @@ tl::expected<goodorevil, std::string> ParseAffixAlignment(std::string_view value
 	return tl::make_unexpected("Unknown enum value");
 }
 
-void LoadItemDat()
+} // namespace
+
+void LoadItemDatFromFile(DataFile &dataFile, std::string_view filename, int32_t baseMappingId)
 {
-	const std::string_view filename = "txtdata\\items\\itemdat.tsv";
-	DataFile dataFile = DataFile::loadOrDie(filename);
 	dataFile.skipHeaderOrDie(filename);
 
-	AllItemsList.clear();
-	AllItemsList.reserve(dataFile.numRecords());
+	int32_t currentMappingId = baseMappingId;
+	AllItemsList.reserve(AllItemsList.size() + dataFile.numRecords());
 	for (DataFileRecord record : dataFile) {
 		RecordReader reader { record, filename };
 		ItemData &item = AllItemsList.emplace_back();
@@ -531,7 +578,7 @@ void LoadItemDat()
 		reader.read("equipType", item.iLoc, ParseItemEquipType);
 		reader.read("cursorGraphic", item.iCurs, ParseItemCursorGraphic);
 		reader.read("itemType", item.itype, ParseItemType);
-		reader.read("uniqueBaseItem", item.iItemId, ParseUniqueBaseItem);
+		reader.read("uniqueBaseItem", item.iItemId, ParseOrAddUniqueBaseItem);
 		reader.readString("name", item.iName);
 		reader.readString("shortName", item.iSName);
 		reader.readInt("minMonsterLevel", item.iMinMLvl);
@@ -548,8 +595,31 @@ void LoadItemDat()
 		reader.read("spell", item.iSpell, ParseSpellId);
 		reader.readBool("usable", item.iUsable);
 		reader.readInt("value", item.iValue);
+
+		item.iMappingId = currentMappingId;
+		const auto [it, inserted] = ItemMappingIdsToIndices.emplace(item.iMappingId, static_cast<int16_t>(AllItemsList.size()) - 1);
+		if (!inserted) {
+			DisplayFatalErrorAndExit("Adding Item Failed", fmt::format("An item already exists for mapping ID {}.", item.iMappingId));
+		}
+
+		++currentMappingId;
 	}
 	AllItemsList.shrink_to_fit();
+}
+
+namespace {
+
+void LoadItemDat()
+{
+	const std::string_view filename = "txtdata\\items\\itemdat.tsv";
+	DataFile dataFile = DataFile::loadOrDie(filename);
+
+	AllItemsList.clear();
+	AdditionalUniqueBaseItemStringsToIndices.clear();
+	ItemMappingIdsToIndices.clear();
+	LoadItemDatFromFile(dataFile, filename, 0);
+
+	LuaEvent("ItemDataLoaded");
 }
 
 void ReadItemPower(RecordReader &reader, std::string_view fieldName, ItemPower &power)
@@ -559,14 +629,14 @@ void ReadItemPower(RecordReader &reader, std::string_view fieldName, ItemPower &
 	reader.readOptionalInt(StrCat(fieldName, ".value2"), power.param2);
 }
 
-void LoadUniqueItemDat()
+} // namespace
+
+void LoadUniqueItemDatFromFile(DataFile &dataFile, std::string_view filename, int32_t baseMappingId)
 {
-	const std::string_view filename = "txtdata\\items\\unique_itemdat.tsv";
-	DataFile dataFile = DataFile::loadOrDie(filename);
 	dataFile.skipHeaderOrDie(filename);
 
-	UniqueItems.clear();
-	UniqueItems.reserve(dataFile.numRecords());
+	int32_t currentMappingId = baseMappingId;
+	UniqueItems.reserve(UniqueItems.size() + dataFile.numRecords());
 	for (DataFileRecord record : dataFile) {
 		RecordReader reader { record, filename };
 		UniqueItem &item = UniqueItems.emplace_back();
@@ -583,8 +653,30 @@ void LoadUniqueItemDat()
 				break;
 			ReadItemPower(reader, StrCat("power", i), item.powers[item.UINumPL++]);
 		}
+
+		item.mappingId = currentMappingId;
+		const auto [it, inserted] = UniqueItemMappingIdsToIndices.emplace(item.mappingId, static_cast<int32_t>(UniqueItems.size()) - 1);
+		if (!inserted) {
+			DisplayFatalErrorAndExit("Adding Unique Item Failed", fmt::format("A unique item already exists for mapping ID {}.", item.mappingId));
+		}
+
+		++currentMappingId;
 	}
 	UniqueItems.shrink_to_fit();
+}
+
+namespace {
+
+void LoadUniqueItemDat()
+{
+	const std::string_view filename = "txtdata\\items\\unique_itemdat.tsv";
+	DataFile dataFile = DataFile::loadOrDie(filename);
+
+	UniqueItems.clear();
+	UniqueItemMappingIdsToIndices.clear();
+	LoadUniqueItemDatFromFile(dataFile, filename, 0);
+
+	LuaEvent("UniqueItemDataLoaded");
 }
 
 void LoadItemAffixesDat(std::string_view filename, std::vector<PLStruct> &out)
@@ -602,7 +694,7 @@ void LoadItemAffixesDat(std::string_view filename, std::vector<PLStruct> &out)
 		reader.readInt("minLevel", item.PLMinLvl);
 		reader.readEnumList("itemTypes", item.PLIType, ParseAffixItemType);
 		reader.read("alignment", item.PLGOE, ParseAffixAlignment);
-		reader.readBool("doubleChance", item.PLDouble);
+		reader.readInt("chance", item.PLChance);
 		reader.readBool("useful", item.PLOk);
 		reader.readInt("minVal", item.minVal);
 		reader.readInt("maxVal", item.maxVal);

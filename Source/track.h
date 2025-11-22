@@ -8,7 +8,7 @@
 namespace devilution {
 
 void InvalidateTargets();
-void RepeatMouseAction();
+void RepeatPlayerAction();
 bool track_isscrolling();
 
 } // namespace devilution

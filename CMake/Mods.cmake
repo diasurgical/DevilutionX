@@ -4,10 +4,29 @@ endif()
 
 set(hellfire_mod
   lua/mods/Hellfire/init.lua
+  nlevels/cutl5w.clx
+  nlevels/cutl6w.clx
+  nlevels/l5data/cornerstone.dun
+  nlevels/l5data/uberroom.dun
+  txtdata/classes/sorcerer/starting_loadout.tsv
+  txtdata/classes/classdat.tsv
+  txtdata/items/item_prefixes.tsv
+  txtdata/items/item_suffixes.tsv
   txtdata/items/unique_itemdat.tsv
+  txtdata/missiles/misdat.tsv
+  txtdata/missiles/missile_sprites.tsv
   txtdata/monsters/monstdat.tsv
+  txtdata/sound/effects.tsv
+  txtdata/spells/spelldat.tsv
   ui_art/diablo.pal
+  ui_art/hf_titlew.clx
+  ui_art/supportw.clx
   ui_art/mainmenuw.clx)
+
+if(NOT UNPACKED_MPQS)
+  list(APPEND hellfire_mod
+    data/inv/objcurs2-widths.txt)
+endif()
 
 foreach(asset_file ${hellfire_mod})
   set(src "${CMAKE_CURRENT_SOURCE_DIR}/mods/Hellfire/${asset_file}")

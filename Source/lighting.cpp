@@ -15,6 +15,7 @@
 
 #include "automap.h"
 #include "engine/displacement.hpp"
+#include "engine/lighting_defs.hpp"
 #include "engine/load_file.hpp"
 #include "engine/point.hpp"
 #include "engine/points_in_rectangle_range.hpp"
@@ -34,7 +35,7 @@ Light VisionList[MAXVISION];
 Light Lights[MAXLIGHTS];
 std::array<uint8_t, MAXLIGHTS> ActiveLights;
 int ActiveLightCount;
-std::array<std::array<uint8_t, 256>, NumLightingLevels> LightTables;
+std::array<std::array<uint8_t, LightTableSize>, NumLightingLevels> LightTables;
 uint8_t *FullyLitLightTable = nullptr;
 uint8_t *FullyDarkLightTable = nullptr;
 std::array<uint8_t, 256> InfravisionTable;
@@ -117,7 +118,7 @@ void DoUnLight(Point position, uint8_t radius)
 
 	auto searchArea = PointsInRectangle(WorldTileRectangle { position, radius });
 
-	for (WorldTilePosition targetPosition : searchArea) {
+	for (const WorldTilePosition targetPosition : searchArea) {
 		if (InDungeonBounds(targetPosition))
 			dLight[targetPosition.x][targetPosition.y] = dPreLight[targetPosition.x][targetPosition.y];
 	}
@@ -168,15 +169,15 @@ void DoLighting(Point position, uint8_t radius, DisplacementOf<int8_t> offset)
 	}
 
 	for (int i = 0; i < 4; i++) {
-		int yBound = i > 0 && i < 3 ? maxY : minY;
-		int xBound = i < 2 ? maxX : minX;
+		const int yBound = i > 0 && i < 3 ? maxY : minY;
+		const int xBound = i < 2 ? maxX : minX;
 		for (int y = 0; y < yBound; y++) {
 			for (int x = 1; x < xBound; x++) {
-				int linearDistance = LightConeInterpolations[offset.deltaX][offset.deltaY][x + block.deltaX][y + block.deltaY];
+				const int linearDistance = LightConeInterpolations[offset.deltaX][offset.deltaY][x + block.deltaX][y + block.deltaY];
 				if (linearDistance >= 128)
 					continue;
-				Point temp = position + (Displacement { x, y }).Rotate(-i);
-				uint8_t v = LightFalloffs[radius][linearDistance];
+				const Point temp = position + (Displacement { x, y }).Rotate(-i);
+				const uint8_t v = LightFalloffs[radius][linearDistance];
 				if (!InDungeonBounds(temp))
 					continue;
 				if (v < GetLight(temp))
@@ -194,7 +195,7 @@ void DoUnVision(Point position, uint8_t radius)
 
 	auto searchArea = PointsInRectangle(WorldTileRectangle { position, radius });
 
-	for (WorldTilePosition targetPosition : searchArea) {
+	for (const WorldTilePosition targetPosition : searchArea) {
 		if (InDungeonBounds(targetPosition))
 			dFlags[targetPosition.x][targetPosition.y] &= ~(DungeonFlag::Visible | DungeonFlag::Lit);
 	}
@@ -206,7 +207,7 @@ void DoVision(Point position, uint8_t radius, MapExplorationType doAutomap, bool
 		DoVisionFlags(rayPoint, doAutomap, visible);
 	};
 	auto markTransparentFn = [](Point rayPoint) {
-		int8_t trans = dTransVal[rayPoint.x][rayPoint.y];
+		const int8_t trans = dTransVal[rayPoint.x][rayPoint.y];
 		if (trans != 0)
 			TransList[trans] = true;
 	};
@@ -235,7 +236,7 @@ void MakeLightTable()
 	constexpr uint8_t White = 255;
 	for (auto &lightTable : LightTables) {
 		uint8_t colorIndex = 0;
-		for (uint8_t steps : { 16, 16, 16, 16, 16, 16, 16, 16, 8, 8, 8, 8, 16, 16, 16, 16, 16, 16 }) {
+		for (const uint8_t steps : { 16, 16, 16, 16, 16, 16, 16, 16, 8, 8, 8, 8, 16, 16, 16, 16, 16, 16 }) {
 			const uint8_t shading = shade * steps / 16;
 			const uint8_t shadeStart = colorIndex;
 			const uint8_t shadeEnd = shadeStart + steps - 1;
@@ -317,8 +318,8 @@ void MakeLightTable()
 		for (int offsetX = 0; offsetX < 8; offsetX++) {
 			for (int y = 0; y < 16; y++) {
 				for (int x = 0; x < 16; x++) {
-					int a = (8 * x - offsetX);
-					int b = (8 * y - offsetY);
+					const int a = (8 * x - offsetX);
+					const int b = (8 * y - offsetY);
 					LightConeInterpolations[offsetX][offsetY][x][y] = static_cast<uint8_t>(sqrt(a * a + b * b));
 				}
 			}
@@ -368,7 +369,7 @@ int AddLight(Point position, uint8_t radius)
 	if (ActiveLightCount >= MAXLIGHTS)
 		return NO_LIGHT;
 
-	int lid = ActiveLights[ActiveLightCount++];
+	const int lid = ActiveLights[ActiveLightCount++];
 	Light &light = Lights[lid];
 	light.position.tile = position;
 	light.radius = radius;
@@ -568,7 +569,7 @@ void ProcessVisionList()
 		const size_t id = player.getId();
 		if (!VisionActive[id])
 			continue;
-		Light &vision = VisionList[id];
+		const Light &vision = VisionList[id];
 		MapExplorationType doautomap = MAP_EXP_SELF;
 		if (&player != MyPlayer)
 			doautomap = player.friendlyMode ? MAP_EXP_OTHERS : MAP_EXP_NONE;

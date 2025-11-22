@@ -4,9 +4,10 @@
 	"dependencies": [
 		"fmt",
 		"bzip2",
-		"lua"
+		"lua",
+		"magic-enum"
 	],
-	"builtin-baseline": "533a5fda5c0646d1771345fb572e759283444d5f",
+	"builtin-baseline": "a62ce77d56ee07513b4b67de1ec2daeaebfae51a",
 	"features": {
 		"sdl1": {
 			"description": "Use SDL1.2 instead of SDL2",

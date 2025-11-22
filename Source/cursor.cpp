@@ -11,6 +11,13 @@
 #include <string_view>
 #include <vector>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_rect.h>
+#include <SDL3/SDL_surface.h>
+#else
+#include <SDL.h>
+#endif
+
 #include <fmt/format.h>
 
 #include "DiabloUI/diabloui.h"
@@ -74,7 +81,7 @@ bool IsValidMonsterForSelection(const Monster &monster)
 bool TrySelectMonster(bool flipflag, Point tile, tl::function_ref<bool(const Monster &)> isValidMonster)
 {
 	auto checkPosition = [&](SelectionRegion selectionRegion, Displacement displacement) {
-		Point posToCheck = tile + displacement;
+		const Point posToCheck = tile + displacement;
 		if (!InDungeonBounds(posToCheck) || dMonster[posToCheck.x][posToCheck.y] == 0)
 			return;
 		const uint16_t monsterId = std::abs(dMonster[posToCheck.x][posToCheck.y]) - 1;
@@ -102,7 +109,7 @@ bool TrySelectMonster(bool flipflag, Point tile, tl::function_ref<bool(const Mon
 bool TrySelectTowner(bool flipflag, Point tile)
 {
 	auto checkPosition = [&](Displacement displacement) {
-		Point posToCheck = tile + displacement;
+		const Point posToCheck = tile + displacement;
 		if (!InDungeonBounds(posToCheck) || dMonster[posToCheck.x][posToCheck.y] == 0)
 			return;
 		const uint16_t monsterId = std::abs(dMonster[posToCheck.x][posToCheck.y]) - 1;
@@ -276,7 +283,7 @@ bool TrySelectPixelBased(Point tile)
 		Displacement ret = Displacement(Direction::East) * renderingPoint.x;
 		// Rows
 		ret += Displacement(Direction::South) * renderingPoint.y / 2;
-		if (renderingPoint.y & 1)
+		if ((renderingPoint.y & 1) == 1)
 			ret.deltaY += 1;
 		return ret;
 	};
@@ -285,8 +292,8 @@ bool TrySelectPixelBased(Point tile)
 	// We search the rendered rows/columns backwards, because the last rendered tile overrides previous rendered pixels.
 	auto searchArea = PointsInRectangle(Rectangle { { -1, -1 }, { 3, 8 } });
 	for (auto it = searchArea.rbegin(); it != searchArea.rend(); ++it) {
-		Point renderingColumnRaw = *it;
-		Point adjacentTile = tile + convertFromRenderingToWorldTile(renderingColumnRaw);
+		const Point renderingColumnRaw = *it;
+		const Point adjacentTile = tile + convertFromRenderingToWorldTile(renderingColumnRaw);
 		if (!InDungeonBounds(adjacentTile))
 			continue;
 
@@ -297,7 +304,7 @@ bool TrySelectPixelBased(Point tile)
 			if (leveltype == DTYPE_TOWN) {
 				const Towner &towner = Towners[monsterId];
 				const ClxSprite sprite = towner.currentSprite();
-				Displacement renderingOffset = towner.getRenderingOffset();
+				const Displacement renderingOffset = towner.getRenderingOffset();
 				if (checkSprite(adjacentTile, sprite, renderingOffset)) {
 					cursPosition = adjacentTile;
 					pcursmonst = monsterId;
@@ -307,7 +314,7 @@ bool TrySelectPixelBased(Point tile)
 				const Monster &monster = Monsters[monsterId];
 				if (IsTileLit(adjacentTile) && IsValidMonsterForSelection(monster)) {
 					const ClxSprite sprite = monster.animInfo.currentSprite();
-					Displacement renderingOffset = monster.getRenderingOffset(sprite);
+					const Displacement renderingOffset = monster.getRenderingOffset(sprite);
 					if (checkSprite(adjacentTile, sprite, renderingOffset)) {
 						cursPosition = adjacentTile;
 						pcursmonst = monsterId;
@@ -323,7 +330,7 @@ bool TrySelectPixelBased(Point tile)
 			if (playerId != MyPlayerId) {
 				const Player &player = Players[playerId];
 				const ClxSprite sprite = player.currentSprite();
-				Displacement renderingOffset = player.getRenderingOffset(sprite);
+				const Displacement renderingOffset = player.getRenderingOffset(sprite);
 				if (checkSprite(adjacentTile, sprite, renderingOffset)) {
 					cursPosition = adjacentTile;
 					PlayerUnderCursor = &player;
@@ -335,7 +342,7 @@ bool TrySelectPixelBased(Point tile)
 			for (const Player &player : Players) {
 				if (player.position.tile == adjacentTile && &player != MyPlayer) {
 					const ClxSprite sprite = player.currentSprite();
-					Displacement renderingOffset = player.getRenderingOffset(sprite);
+					const Displacement renderingOffset = player.getRenderingOffset(sprite);
 					if (checkSprite(adjacentTile, sprite, renderingOffset)) {
 						cursPosition = adjacentTile;
 						PlayerUnderCursor = &player;
@@ -348,7 +355,7 @@ bool TrySelectPixelBased(Point tile)
 		Object *object = FindObjectAtPosition(adjacentTile);
 		if (object != nullptr && object->canInteractWith()) {
 			const ClxSprite sprite = object->currentSprite();
-			Displacement renderingOffset = object->getRenderingOffset(sprite, adjacentTile);
+			const Displacement renderingOffset = object->getRenderingOffset(sprite, adjacentTile);
 			if (checkSprite(adjacentTile, sprite, renderingOffset)) {
 				cursPosition = adjacentTile;
 				ObjectUnderCursor = object;
@@ -361,7 +368,7 @@ bool TrySelectPixelBased(Point tile)
 			itemId = itemId - 1;
 			const Item &item = Items[itemId];
 			const ClxSprite sprite = item.AnimInfo.currentSprite();
-			Displacement renderingOffset = item.getRenderingOffset(sprite);
+			const Displacement renderingOffset = item.getRenderingOffset(sprite);
 			if (checkSprite(adjacentTile, sprite, renderingOffset)) {
 				cursPosition = adjacentTile;
 				pcursitem = static_cast<int8_t>(itemId);
@@ -374,10 +381,19 @@ bool TrySelectPixelBased(Point tile)
 }
 
 #ifndef UNPACKED_MPQS
-std::vector<uint16_t> ReadWidths(const char *path)
+std::vector<uint16_t> ReadWidths(AssetRef &&ref)
 {
-	size_t len;
-	const std::unique_ptr<char[]> data = LoadFileInMem<char>(path, &len);
+	const size_t len = ref.size();
+	if (len == 0) {
+		app_fatal("Missing widths");
+	}
+	const std::unique_ptr<char[]> data { new char[len] };
+
+	AssetHandle handle = OpenAsset(std::move(ref));
+	if (!handle.ok() || !handle.read(data.get(), len)) {
+		app_fatal("Failed to load widths");
+	}
+
 	std::string_view str { data.get(), len };
 	std::vector<uint16_t> result;
 	while (!str.empty()) {
@@ -385,7 +401,7 @@ std::vector<uint16_t> ReadWidths(const char *path)
 		const ParseIntResult<uint16_t> parseResult = ParseInt<uint16_t>(str, std::numeric_limits<uint16_t>::min(),
 		    std::numeric_limits<uint16_t>::max(), &end);
 		if (!parseResult.has_value()) {
-			app_fatal(StrCat("Failed to parse ", path, ": [", str, "]"));
+			app_fatal(StrCat("Failed to parse width value from: [", str, "]"));
 		}
 		result.push_back(parseResult.value());
 		str.remove_prefix(end - str.data());
@@ -424,13 +440,12 @@ void InitCursor()
 	assert(!pCursCels);
 #ifdef UNPACKED_MPQS
 	pCursCels = LoadClx("data\\inv\\objcurs.clx");
-	if (gbIsHellfire) {
-		pCursCels2 = LoadClx("data\\inv\\objcurs2.clx");
-	}
+	pCursCels2 = LoadOptionalClx("data\\inv\\objcurs2.clx");
 #else
-	pCursCels = LoadCel("data\\inv\\objcurs", ReadWidths("data\\inv\\objcurs-widths.txt").data());
-	if (gbIsHellfire) {
-		pCursCels2 = LoadCel("data\\inv\\objcurs2", ReadWidths("data\\inv\\objcurs2-widths.txt").data());
+	pCursCels = LoadCel("data\\inv\\objcurs", ReadWidths(FindAsset("data\\inv\\objcurs-widths.txt")).data());
+	AssetRef ref = FindAsset("data\\inv\\objcurs2-widths.txt");
+	if (ref.ok()) {
+		pCursCels2 = LoadOptionalCel("data\\inv\\objcurs2", ReadWidths(std::move(ref)).data());
 	}
 #endif
 	ClearCursor();
@@ -450,7 +465,7 @@ ClxSprite GetInvItemSprite(int cursId)
 	if (static_cast<size_t>(cursId) <= numSprites) {
 		return (*pCursCels)[cursId - 1];
 	}
-	assert(gbIsHellfire);
+	assert(pCursCels2.has_value());
 	assert(cursId - numSprites <= pCursCels2->numSprites());
 	return (*pCursCels2)[cursId - numSprites - 1];
 }
@@ -476,7 +491,7 @@ void CreateHalfSizeItemSprites()
 	if (HalfSizeItemSprites != nullptr)
 		return;
 	const uint32_t numInvItems = pCursCels->numSprites() - (static_cast<uint32_t>(CURSOR_FIRSTITEM) - 1)
-	    + (gbIsHellfire ? pCursCels2->numSprites() : 0);
+	    + (pCursCels2.has_value() ? pCursCels2->numSprites() : 0);
 	HalfSizeItemSprites = new OptionalOwnedClxSpriteList[numInvItems];
 	HalfSizeItemSpritesRed = new OptionalOwnedClxSpriteList[numInvItems];
 	const uint8_t *redTrn = GetInfravisionTRN();
@@ -492,18 +507,19 @@ void CreateHalfSizeItemSprites()
 			return;
 		}
 		const Surface itemSurface = ownedItemSurface.subregion(0, 0, itemSprite.width(), itemSprite.height());
-		SDL_Rect itemSurfaceRect = MakeSdlRect(0, 0, itemSurface.w(), itemSurface.h());
-		SDL_SetClipRect(itemSurface.surface, &itemSurfaceRect);
-		SDL_FillRect(itemSurface.surface, nullptr, 1);
+		const SDL_Rect itemSurfaceRect = MakeSdlRect(0, 0, itemSurface.w(), itemSurface.h());
+
+		SDL_SetSurfaceClipRect(itemSurface.surface, &itemSurfaceRect);
+		SDL_FillSurfaceRect(itemSurface.surface, nullptr, 1);
 		ClxDraw(itemSurface, { 0, itemSurface.h() }, itemSprite);
 
 		const Surface halfSurface = ownedHalfSurface.subregion(0, 0, itemSurface.w() / 2, itemSurface.h() / 2);
-		SDL_Rect halfSurfaceRect = MakeSdlRect(0, 0, halfSurface.w(), halfSurface.h());
-		SDL_SetClipRect(halfSurface.surface, &halfSurfaceRect);
+		const SDL_Rect halfSurfaceRect = MakeSdlRect(0, 0, halfSurface.w(), halfSurface.h());
+		SDL_SetSurfaceClipRect(halfSurface.surface, &halfSurfaceRect);
 		BilinearDownscaleByHalf8(itemSurface.surface, paletteTransparencyLookup, halfSurface.surface, 1);
 		HalfSizeItemSprites[outputIndex].emplace(SurfaceToClx(halfSurface, 1, 1));
 
-		SDL_FillRect(itemSurface.surface, nullptr, 1);
+		SDL_FillSurfaceRect(itemSurface.surface, nullptr, 1);
 		ClxDrawTRN(itemSurface, { 0, itemSurface.h() }, itemSprite, redTrn);
 		BilinearDownscaleByHalf8(itemSurface.surface, paletteTransparencyLookup, halfSurface.surface, 1);
 		HalfSizeItemSpritesRed[outputIndex].emplace(SurfaceToClx(halfSurface, 1, 1));
@@ -513,7 +529,7 @@ void CreateHalfSizeItemSprites()
 	for (size_t i = static_cast<int>(CURSOR_FIRSTITEM) - 1, n = pCursCels->numSprites(); i < n; ++i, ++outputIndex) {
 		createHalfSize((*pCursCels)[i], outputIndex);
 	}
-	if (gbIsHellfire) {
+	if (pCursCels2.has_value()) {
 		for (size_t i = 0, n = pCursCels2->numSprites(); i < n; ++i, ++outputIndex) {
 			createHalfSize((*pCursCels2)[i], outputIndex);
 		}
@@ -687,13 +703,13 @@ void AlterMousePositionViaPlayer(Point &screenPosition, const Player &myPlayer)
 
 	// Adjust for player walking
 	if (myPlayer.isWalking()) {
-		Displacement offset = GetOffsetForWalking(myPlayer.AnimInfo, myPlayer._pdir, true);
+		const Displacement offset = GetOffsetForWalking(myPlayer.AnimInfo, myPlayer._pdir, true);
 		screenPosition.x -= offset.deltaX;
 		screenPosition.y -= offset.deltaY;
 
 		// Predict the next frame when walking to avoid input jitter
-		DisplacementOf<int16_t> offset2 = myPlayer.position.CalculateWalkingOffsetShifted8(myPlayer._pdir, myPlayer.AnimInfo);
-		DisplacementOf<int16_t> velocity = myPlayer.position.GetWalkingVelocityShifted8(myPlayer._pdir, myPlayer.AnimInfo);
+		const DisplacementOf<int16_t> offset2 = myPlayer.position.CalculateWalkingOffsetShifted8(myPlayer._pdir, myPlayer.AnimInfo);
+		const DisplacementOf<int16_t> velocity = myPlayer.position.GetWalkingVelocityShifted8(myPlayer._pdir, myPlayer.AnimInfo);
 		int fx = offset2.deltaX / 256;
 		int fy = offset2.deltaY / 256;
 		fx -= (offset2.deltaX + velocity.deltaX) / 256;
@@ -709,7 +725,7 @@ Point ConvertToTileGrid(Point &screenPosition)
 	int columns = 0;
 	int rows = 0;
 	TilesInView(&columns, &rows);
-	int lrow = rows - RowsCoveredByPanel();
+	const int lrow = rows - RowsCoveredByPanel();
 
 	// Center player tile on screen
 	Point currentTile = ViewPosition;
@@ -728,8 +744,8 @@ Point ConvertToTileGrid(Point &screenPosition)
 		screenPosition.y -= TILE_HEIGHT / 4;
 	}
 
-	int tx = screenPosition.x / TILE_WIDTH;
-	int ty = screenPosition.y / TILE_HEIGHT;
+	const int tx = screenPosition.x / TILE_WIDTH;
+	const int ty = screenPosition.y / TILE_HEIGHT;
 	ShiftGrid(&currentTile, tx, ty);
 
 	return currentTile;
@@ -740,14 +756,14 @@ Point ConvertToTileGrid(Point &screenPosition)
  */
 void ShiftToDiamondGridAlignment(Point screenPosition, Point &tile, bool &flipflag)
 {
-	int px = screenPosition.x % TILE_WIDTH;
-	int py = screenPosition.y % TILE_HEIGHT;
+	const int px = screenPosition.x % TILE_WIDTH;
+	const int py = screenPosition.y % TILE_HEIGHT;
 
-	bool flipy = py < (px / 2);
+	const bool flipy = py < (px / 2);
 	if (flipy) {
 		tile.y--;
 	}
-	bool flipx = py >= TILE_HEIGHT - (px / 2);
+	const bool flipx = py >= TILE_HEIGHT - (px / 2);
 	if (flipx) {
 		tile.x++;
 	}
@@ -763,7 +779,7 @@ void ShiftToDiamondGridAlignment(Point screenPosition, Point &tile, bool &flipfl
  */
 bool CheckMouseHold(const Point currentTile)
 {
-	if ((sgbMouseDown != CLICK_NONE || ControllerActionHeld != GameActionType_NONE) && IsNoneOf(LastMouseButtonAction, MouseActionType::None, MouseActionType::Attack, MouseActionType::Spell)) {
+	if ((sgbMouseDown != CLICK_NONE || ControllerActionHeld != GameActionType_NONE) && IsNoneOf(LastPlayerAction, PlayerActionType::None, PlayerActionType::Attack, PlayerActionType::Spell)) {
 		InvalidateTargets();
 
 		if (pcursmonst == -1 && ObjectUnderCursor == nullptr && pcursitem == -1 && pcursinvitem == -1 && pcursstashitem == StashStruct::EmptyCell && PlayerUnderCursor == nullptr) {

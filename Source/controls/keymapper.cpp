@@ -1,9 +1,15 @@
 #include "controls/keymapper.hpp"
 
+#include <cstdint>
+
+#ifdef USE_SDL3
+#include <SDL3/SDL_keycode.h>
+#else
 #include <SDL.h>
 
 #ifdef USE_SDL1
 #include "utils/sdl2_to_1_2_backports.h"
+#endif
 #endif
 
 #include "control.h"
@@ -15,7 +21,12 @@ namespace {
 
 bool IsTextEntryKey(SDL_Keycode vkey)
 {
-	return IsAnyOf(vkey, SDLK_ESCAPE, SDLK_RETURN, SDLK_KP_ENTER, SDLK_BACKSPACE, SDLK_DOWN, SDLK_UP) || (vkey >= SDLK_SPACE && vkey <= SDLK_z);
+	return IsAnyOf(vkey, SDLK_ESCAPE, SDLK_RETURN, SDLK_KP_ENTER, SDLK_BACKSPACE, SDLK_DOWN, SDLK_UP)
+#ifdef USE_SDL3
+	    || (vkey >= SDLK_SPACE && vkey <= SDLK_Z);
+#else
+	    || (vkey >= SDLK_SPACE && vkey <= SDLK_z);
+#endif
 }
 
 bool IsNumberEntryKey(SDL_Keycode vkey)
@@ -25,8 +36,14 @@ bool IsNumberEntryKey(SDL_Keycode vkey)
 
 SDL_Keycode ToAsciiUpper(SDL_Keycode key)
 {
-	if (key >= SDLK_a && key <= SDLK_z) {
-		return static_cast<SDL_Keycode>(static_cast<Sint32>(key) - ('a' - 'A'));
+	if (
+#ifdef USE_SDL3
+	    key >= SDLK_A && key <= SDLK_Z
+#else
+	    key >= SDLK_a && key <= SDLK_z
+#endif
+	) {
+		return static_cast<SDL_Keycode>(static_cast<int32_t>(key) - ('a' - 'A'));
 	}
 	return key;
 }

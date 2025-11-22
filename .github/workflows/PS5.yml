@@ -28,7 +28,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         fetch-depth: 0
 
@@ -38,7 +38,7 @@ jobs:
         sudo apt install cmake pkg-config clang-15 lld-15
         sudo apt install build-essential autoconf libtool yasm nasm
         sudo apt install smpq gperf pkgconf libarchive-tools autopoint po4a git curl doxygen wget
-        wget https://github.com/ps5-payload-dev/pacbrew-repo/releases/download/v0.18/ps5-payload-dev.tar.gz
+        wget https://github.com/ps5-payload-dev/pacbrew-repo/releases/download/v0.27/ps5-payload-dev.tar.gz
         sudo tar -xf ps5-payload-dev.tar.gz -C /
 
     - name: Build
@@ -48,7 +48,7 @@ jobs:
 
     - name: Upload-Package
       if: ${{ !env.ACT }}
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: devilutionx-ps5.zip
         path: build-ps5/devilutionx-ps5.zip

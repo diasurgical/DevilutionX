@@ -1,0 +1,67 @@
+name: macOS arm64
+
+on:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
+  pull_request:
+    types: [opened, synchronize]
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
+  release:
+    types: [published]
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+    - uses: actions/checkout@v5
+      with:
+        fetch-depth: 0
+
+    - name: Create Build Environment
+      run: brew bundle install
+
+    - name: Cache CMake build folder
+      uses: actions/cache@v4
+      with:
+        path: build
+        key: ${{ github.workflow }}-v1-${{ github.sha }}
+        restore-keys: ${{ github.workflow }}-v1-
+
+    - name: Clean previous DMG
+      working-directory: ${{github.workspace}}
+      run: rm -f build/*.dmg
+
+    - name: Build
+      working-directory: ${{github.workspace}}
+      shell: bash
+      env:
+        CMAKE_BUILD_TYPE: ${{github.event_name == 'release' && 'Release' || 'RelWithDebInfo'}}
+      run: |
+        cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=${{env.CMAKE_BUILD_TYPE}} -DBUILD_TESTING=OFF \
+          -DMACOSX_STANDALONE_APP_BUNDLE=ON && \
+        cmake --build build -j $(sysctl -n hw.physicalcpu) --target package && \
+        mv build/devilutionx.dmg build/devilutionx-arm64-macOS.dmg
+
+    - name: Upload-Package
+      if: ${{ !env.ACT }}
+      uses: actions/upload-artifact@v5
+      with:
+        name: devilutionx-arm64-macOS.dmg
+        path: build/devilutionx-arm64-macOS.dmg
+
+    - name: Clean up artifacts
+      run: rm -rf build/_CPack_Packages build/*.dmg

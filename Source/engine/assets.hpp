@@ -9,7 +9,13 @@
 #include <string>
 #include <string_view>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_error.h>
+#include <SDL3/SDL_iostream.h>
+#else
 #include <SDL.h>
+#endif
+
 #include <expected.hpp>
 
 #include <fmt/format.h>
@@ -19,6 +25,7 @@
 #include "headless_mode.hpp"
 #include "utils/file_util.h"
 #include "utils/language.h"
+#include "utils/sdl_compat.h"
 #include "utils/str_cat.hpp"
 #include "utils/string_or_view.hpp"
 
@@ -114,8 +121,8 @@ struct AssetRef {
 	uint32_t fileNumber;
 	std::string_view filename;
 
-	// Alternatively, a direct SDL_RWops handle:
-	SDL_RWops *directHandle = nullptr;
+	// Alternatively, a direct SDL_IOStream handle:
+	SDL_IOStream *directHandle = nullptr;
 
 	AssetRef() = default;
 
@@ -130,8 +137,7 @@ struct AssetRef {
 
 	AssetRef &operator=(AssetRef &&other) noexcept
 	{
-		if (directHandle != nullptr)
-			SDL_RWclose(directHandle);
+		closeDirectHandle();
 		archive = other.archive;
 		fileNumber = other.fileNumber;
 		filename = other.filename;
@@ -142,8 +148,7 @@ struct AssetRef {
 
 	~AssetRef()
 	{
-		if (directHandle != nullptr)
-			SDL_RWclose(directHandle);
+		closeDirectHandle();
 	}
 
 	[[nodiscard]] bool ok() const
@@ -163,16 +168,24 @@ struct AssetRef {
 			int32_t error;
 			return archive->GetUnpackedFileSize(fileNumber, error);
 		}
-		return static_cast<size_t>(SDL_RWsize(directHandle));
+		return static_cast<size_t>(SDL_GetIOSize(directHandle));
+	}
+
+private:
+	void closeDirectHandle()
+	{
+		if (directHandle != nullptr) {
+			SDL_CloseIO(directHandle);
+		}
 	}
 };
 
 struct AssetHandle {
-	SDL_RWops *handle = nullptr;
+	SDL_IOStream *handle = nullptr;
 
 	AssetHandle() = default;
 
-	explicit AssetHandle(SDL_RWops *handle)
+	explicit AssetHandle(SDL_IOStream *handle)
 	    : handle(handle)
 	{
 	}
@@ -185,9 +198,7 @@ struct AssetHandle {
 
 	AssetHandle &operator=(AssetHandle &&other) noexcept
 	{
-		if (handle != nullptr) {
-			SDL_RWclose(handle);
-		}
+		closeHandle();
 		handle = other.handle;
 		other.handle = nullptr;
 		return *this;
@@ -195,8 +206,7 @@ struct AssetHandle {
 
 	~AssetHandle()
 	{
-		if (handle != nullptr)
-			SDL_RWclose(handle);
+		closeHandle();
 	}
 
 	[[nodiscard]] bool ok() const
@@ -206,16 +216,12 @@ struct AssetHandle {
 
 	bool read(void *buffer, size_t len)
 	{
-#if SDL_VERSION_ATLEAST(2, 0, 0)
-		return handle->read(handle, buffer, len, 1) == 1;
-#else
-		return handle->read(handle, buffer, static_cast<int>(len), 1) == 1;
-#endif
+		return SDL_ReadIO(handle, buffer, len) == len;
 	}
 
 	bool seek(long pos)
 	{
-		return handle->seek(handle, pos, RW_SEEK_SET) != -1;
+		return SDL_SeekIO(handle, pos, SDL_IO_SEEK_SET) != -1;
 	}
 
 	[[nodiscard]] const char *error() const
@@ -223,11 +229,19 @@ struct AssetHandle {
 		return SDL_GetError();
 	}
 
-	SDL_RWops *release() &&
+	SDL_IOStream *release() &&
 	{
-		SDL_RWops *result = handle;
+		SDL_IOStream *result = handle;
 		handle = nullptr;
 		return result;
+	}
+
+private:
+	void closeHandle()
+	{
+		if (handle != nullptr) {
+			SDL_CloseIO(handle);
+		}
 	}
 };
 #endif
@@ -265,7 +279,7 @@ AssetHandle OpenAsset(AssetRef &&ref, bool threadsafe = false);
 AssetHandle OpenAsset(std::string_view filename, bool threadsafe = false);
 AssetHandle OpenAsset(std::string_view filename, size_t &fileSize, bool threadsafe = false);
 
-SDL_RWops *OpenAssetAsSdlRwOps(std::string_view filename, bool threadsafe = false);
+SDL_IOStream *OpenAssetAsSdlRwOps(std::string_view filename, bool threadsafe = false);
 
 struct AssetData {
 	std::unique_ptr<char[]> data;

@@ -185,7 +185,7 @@ tl::expected<void, PacketError> tcp_server::StartSend(const scc &con, packet &pk
 	if (!frame.has_value())
 		return tl::make_unexpected(frame.error());
 	std::unique_ptr<buffer_t> framePtr = std::make_unique<buffer_t>(*frame);
-	asio::mutable_buffer buf = asio::buffer(*framePtr);
+	const asio::mutable_buffer buf = asio::buffer(*framePtr);
 	asio::async_write(con->socket, buf,
 	    [this, con, frame = std::move(framePtr)](const asio::error_code &ec, size_t bytesSent) {
 		    HandleSend(con, ec, bytesSent);
@@ -213,7 +213,7 @@ void tcp_server::StartAccept()
 void tcp_server::HandleAccept(const scc &con, const asio::error_code &ec)
 {
 	if (ec) {
-		PacketError packetError = IoHandlerError(ec.message());
+		const PacketError packetError = IoHandlerError(ec.message());
 		RaiseIoHandlerError(packetError);
 		return;
 	}
@@ -221,7 +221,7 @@ void tcp_server::HandleAccept(const scc &con, const asio::error_code &ec)
 		DropConnection(con);
 	} else {
 		asio::error_code errorCode;
-		asio::ip::tcp::no_delay option(true);
+		const asio::ip::tcp::no_delay option(true);
 		con->socket.set_option(option, errorCode);
 		if (errorCode)
 			LogError("Server error setting socket option: {}", errorCode.message());
@@ -257,7 +257,7 @@ void tcp_server::HandleTimeout(const scc &con, const asio::error_code &ec)
 
 void tcp_server::DropConnection(const scc &con)
 {
-	plr_t plr = con->plr;
+	const plr_t plr = con->plr;
 	con->timer.cancel();
 	con->socket.close();
 	if (plr == PLR_BROADCAST) {

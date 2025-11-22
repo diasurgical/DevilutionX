@@ -10,29 +10,31 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <string_view>
 #include <utility>
 #include <variant>
 
 #include <ankerl/unordered_dense.h>
 #include <fmt/core.h>
 
-#include "DiabloUI/diabloui.h"
-#include "DiabloUI/ui_item.h"
+#include "DiabloUI/ui_flags.hpp"
+#include "engine/clx_sprite.hpp"
 #include "engine/load_cel.hpp"
 #include "engine/load_clx.hpp"
 #include "engine/load_file.hpp"
 #include "engine/load_pcx.hpp"
-#include "engine/palette.h"
 #include "engine/point.hpp"
+#include "engine/rectangle.hpp"
 #include "engine/render/clx_render.hpp"
 #include "engine/render/primitive_render.hpp"
+#include "engine/surface.hpp"
 #include "engine/ticks.hpp"
-#include "options.h"
+#include "game_mode.hpp"
 #include "utils/algorithm/container.hpp"
-#include "utils/display.h"
 #include "utils/is_of.hpp"
 #include "utils/language.h"
-#include "utils/sdl_compat.h"
+#include "utils/log.hpp"
+#include "utils/str_cat.hpp"
 #include "utils/utf8.hpp"
 
 namespace devilution {
@@ -43,7 +45,39 @@ namespace {
 
 constexpr char32_t ZWSP = U'\u200B'; // Zero-width space
 
-ankerl::unordered_dense::map<uint32_t, OptionalOwnedClxSpriteList> Fonts;
+struct OwnedFontStack {
+	OptionalOwnedClxSpriteList baseFont;
+	OptionalOwnedClxSpriteList overrideFont;
+};
+
+struct FontStack {
+	OptionalClxSpriteList baseFont;
+	OptionalClxSpriteList overrideFont;
+
+	FontStack() = default;
+
+	explicit FontStack(const OwnedFontStack &owned)
+	{
+		if (owned.baseFont.has_value()) baseFont.emplace(*owned.baseFont);
+		if (owned.overrideFont.has_value()) overrideFont.emplace(*owned.overrideFont);
+	}
+
+	[[nodiscard]] bool has_value() const // NOLINT(readability-identifier-naming)
+	{
+		return baseFont.has_value() || overrideFont.has_value();
+	}
+
+	[[nodiscard]] ClxSprite glyph(size_t i) const
+	{
+		if (overrideFont.has_value()) {
+			ClxSprite overrideGlyph = (*overrideFont)[i];
+			if (overrideGlyph.width() != 0) return overrideGlyph;
+		}
+		return (*baseFont)[i];
+	}
+};
+
+ankerl::unordered_dense::map<uint32_t, OwnedFontStack> Fonts;
 
 std::array<int, 6> FontSizes = { 12, 24, 30, 42, 46, 22 };
 constexpr std::array<int, 6> LineHeights = { 12, 26, 38, 42, 50, 22 };
@@ -138,12 +172,12 @@ bool IsSmallFontTallRow(uint16_t row)
 
 void GetFontPath(GameFontTables size, uint16_t row, std::string_view ext, char *out)
 {
-	*fmt::format_to(out, R"(fonts\{}-{:02x}{})", FontSizes[size], row, ext) = '\0';
+	*BufCopy(out, "fonts\\", FontSizes[size], "-", AsHexPad2(row), ext) = '\0';
 }
 
 void GetFontPath(std::string_view language_code, GameFontTables size, uint16_t row, std::string_view ext, char *out)
 {
-	*fmt::format_to(out, R"(fonts\{}\{}-{:02x}{})", language_code, FontSizes[size], row, ext) = '\0';
+	*BufCopy(out, "fonts\\", language_code, "\\", FontSizes[size], "-", AsHexPad2(row), ext) = '\0';
 }
 
 uint32_t GetFontId(GameFontTables size, uint16_t row)
@@ -151,7 +185,7 @@ uint32_t GetFontId(GameFontTables size, uint16_t row)
 	return (size << 16) | row;
 }
 
-OptionalClxSpriteList LoadFont(GameFontTables size, text_color color, uint16_t row)
+FontStack LoadFont(GameFontTables size, text_color color, uint16_t row)
 {
 	if (ColorTranslations[color] != nullptr && !ColorTranslationsData[color]) {
 		ColorTranslationsData[color].emplace();
@@ -161,48 +195,52 @@ OptionalClxSpriteList LoadFont(GameFontTables size, text_color color, uint16_t r
 	const uint32_t fontId = GetFontId(size, row);
 	auto hotFont = Fonts.find(fontId);
 	if (hotFont != Fonts.end()) {
-		return OptionalClxSpriteList(*hotFont->second);
+		return FontStack(hotFont->second);
 	}
 
-	OptionalOwnedClxSpriteList &font = Fonts[fontId];
+	OwnedFontStack &font = Fonts[fontId];
 	char path[32];
 
-	// Try loading the language-specific variant first:
-	const std::string_view language_code = GetLanguageCode();
-	const std::string_view language_tag = language_code.substr(0, 2);
-	if (language_tag == "zh" || language_tag == "ja" || language_tag == "ko"
-	    || (language_tag == "tr" && row == 0)) {
-		GetFontPath(language_code, size, row, ".clx", &path[0]);
-		font = LoadOptionalClx(path);
-	}
-	if (!font) {
-		// Fall back to the base variant:
-		GetFontPath(size, row, ".clx", &path[0]);
-		font = LoadOptionalClx(path);
+	// Load language-specific glyphs:
+	const std::string_view languageCode = GetLanguageCode();
+	const std::string_view lang = languageCode.substr(0, 2);
+	if (lang == "zh" || lang == "ja" || lang == "ko"
+	    || (lang == "tr" && row == 0)) {
+		GetFontPath(languageCode, size, row, ".clx", &path[0]);
+		font.overrideFont = LoadOptionalClx(path);
 	}
 
+	// Load the base glyphs:
+	GetFontPath(size, row, ".clx", &path[0]);
+	font.baseFont = LoadOptionalClx(path);
+
 #ifndef UNPACKED_MPQS
-	if (!font) {
+	if (!font.baseFont.has_value()) {
 		// Could be an old devilutionx.mpq or fonts.mpq with PCX instead of CLX.
 		//
 		// We'll show an error elsewhere (in `CheckArchivesUpToDate`) and we need to load
 		// the font files to display it.
 		char pcxPath[32];
 		GetFontPath(size, row, "", &pcxPath[0]);
-		font = LoadPcxSpriteList(pcxPath, /*numFramesOrFrameHeight=*/256, /*transparentColor=*/1);
+		font.baseFont = LoadPcxSpriteList(pcxPath, /*numFramesOrFrameHeight=*/256, /*transparentColor=*/1);
 	}
 #endif
 
-	if (!font) {
+	if (!font.baseFont.has_value()) {
 		LogError("Error loading font: {}", path);
 	}
 
-	return OptionalClxSpriteList(*font);
+	return FontStack(font);
 }
 
 class CurrentFont {
 public:
-	OptionalClxSpriteList sprite;
+	FontStack fontStack;
+
+	[[nodiscard]] ClxSprite glyph(size_t i) const
+	{
+		return fontStack.glyph(i);
+	}
 
 	bool load(GameFontTables size, text_color color, char32_t next)
 	{
@@ -211,11 +249,11 @@ public:
 			return true;
 		}
 
-		sprite = LoadFont(size, color, unicodeRow);
+		fontStack = LoadFont(size, color, unicodeRow);
 		hasAttemptedLoad_ = true;
 		currentUnicodeRow_ = unicodeRow;
 
-		return sprite;
+		return fontStack.has_value();
 	}
 
 	void clear()
@@ -279,7 +317,7 @@ public:
 		if (rest[0] != '{')
 			return result;
 
-		std::size_t closingBracePos = rest.find('}', 1);
+		const std::size_t closingBracePos = rest.find('}', 1);
 		if (closingBracePos == std::string_view::npos) {
 			LogError("Unclosed format argument: {}", fmt_);
 			return result;
@@ -422,9 +460,10 @@ uint32_t DoDrawString(const Surface &out, std::string_view text, Rectangle rect,
 			Point position = characterPosition;
 			MaybeWrap(position, 2, rightMargin, position.x, opts.lineHeight);
 			if (GetAnimationFrame(2, 500) != 0) {
-				OptionalClxSpriteList baseFont = LoadFont(size, color, 0);
-				if (baseFont)
-					DrawFont(out, position, (*baseFont)['|'], color, outline);
+				FontStack baseFont = LoadFont(size, color, 0);
+				if (baseFont.has_value()) {
+					DrawFont(out, position, baseFont.glyph('|'), color, outline);
+				}
 			}
 			if (opts.renderedCursorPositionOut != nullptr) {
 				*opts.renderedCursorPositionOut = position;
@@ -446,7 +485,7 @@ uint32_t DoDrawString(const Surface &out, std::string_view text, Rectangle rect,
 		}
 
 		const uint8_t frame = next & 0xFF;
-		const uint16_t width = (*currentFont.sprite)[frame].width();
+		const uint16_t width = currentFont.glyph(frame).width();
 		if (next == U'\n' || characterPosition.x + width > rightMargin) {
 			if (next == '\n')
 				maybeDrawCursor();
@@ -471,7 +510,7 @@ uint32_t DoDrawString(const Surface &out, std::string_view text, Rectangle rect,
 				continue;
 		}
 
-		const ClxSprite glyph = (*currentFont.sprite)[frame];
+		const ClxSprite glyph = currentFont.glyph(frame);
 		const auto byteIndex = static_cast<int>(text.size() - remaining.size());
 
 		// Draw highlight
@@ -489,15 +528,6 @@ uint32_t DoDrawString(const Surface &out, std::string_view text, Rectangle rect,
 	maybeDrawCursor();
 	return static_cast<uint32_t>(remaining.data() - text.data());
 }
-
-void OptionLanguageCodeChanged()
-{
-	UnloadFonts();
-	LanguageInitialize();
-	LoadLanguageArchive();
-}
-
-const auto OptionChangeHandlerResolution = (GetOptions().Language.code.SetValueChangedCallback(OptionLanguageCodeChanged), true);
 
 } // namespace
 
@@ -535,7 +565,7 @@ int GetLineWidth(std::string_view text, GameFontTables size, int spacing, int *c
 		}
 
 		const uint8_t frame = next & 0xFF;
-		lineWidth += (*currentFont.sprite)[frame].width() + spacing;
+		lineWidth += currentFont.glyph(frame).width() + spacing;
 		++codepoints;
 	}
 	if (charactersInLine != nullptr)
@@ -606,7 +636,7 @@ int GetLineWidth(std::string_view fmt, DrawStringFormatArg *args, std::size_t ar
 		}
 
 		const uint8_t frame = next & 0xFF;
-		lineWidth += (*currentFont.sprite)[frame].width() + spacing;
+		lineWidth += currentFont.glyph(frame).width() + spacing;
 		++codepoints;
 	}
 	if (charactersInLine != nullptr)
@@ -667,7 +697,7 @@ std::string WordWrapString(std::string_view text, unsigned width, GameFontTables
 				}
 			}
 
-			lineWidth += (*currentFont.sprite)[frame].width() + spacing;
+			lineWidth += currentFont.glyph(frame).width() + spacing;
 		}
 
 		if (IsBreakableWhitespace(codepoint)) {
@@ -847,7 +877,7 @@ void DrawStringWithColors(const Surface &out, std::string_view fmt, DrawStringFo
 		}
 
 		const uint8_t frame = next & 0xFF;
-		const uint16_t width = (*currentFont.sprite)[frame].width();
+		const uint16_t width = currentFont.glyph(frame).width();
 		if (next == U'\n' || characterPosition.x + width > rightMargin) {
 			const int nextLineY = characterPosition.y + opts.lineHeight;
 			if (nextLineY >= bottomMargin)
@@ -878,7 +908,7 @@ void DrawStringWithColors(const Surface &out, std::string_view fmt, DrawStringFo
 				continue;
 		}
 
-		DrawFont(clippedOut, characterPosition, (*currentFont.sprite)[frame], curColor, outlined);
+		DrawFont(clippedOut, characterPosition, currentFont.glyph(frame), curColor, outlined);
 		characterPosition.x += width + opts.spacing;
 	}
 

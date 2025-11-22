@@ -4,7 +4,12 @@
 #include <array>
 #include <iostream>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_pixels.h>
+#else
 #include <SDL.h>
+#endif
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
@@ -19,9 +24,6 @@ void PrintTo(const SDL_Color &color, std::ostream *os)
 }
 
 namespace devilution {
-
-std::array<SDL_Color, 256> logical_palette;
-
 namespace {
 
 MATCHER_P3(ColorIs, r, g, b,
@@ -46,10 +48,10 @@ void GeneratePalette(SDL_Color palette[256])
 
 TEST(GenerateBlendedLookupTableTest, BasicTest)
 {
-	SDL_Color *palette = logical_palette.data();
-	GeneratePalette(palette);
+	std::array<SDL_Color, 256> palette;
+	GeneratePalette(palette.data());
 
-	GenerateBlendedLookupTable();
+	GenerateBlendedLookupTable(palette.data());
 
 	EXPECT_EQ(paletteTransparencyLookup[100][100], 100);
 

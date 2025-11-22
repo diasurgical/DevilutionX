@@ -9,6 +9,7 @@
 #include <string_view>
 
 #include <expected.hpp>
+#include <magic_enum/magic_enum.hpp>
 
 #include "data/file.hpp"
 #include "data/iterators.hpp"
@@ -128,7 +129,6 @@ tl::expected<sfx_flag, std::string> ParseSfxFlag(std::string_view value)
 	if (value == "Rogue") return sfx_ROGUE;
 	if (value == "Warrior") return sfx_WARRIOR;
 	if (value == "Sorcerer") return sfx_SORCERER;
-	if (value == "Hellfire") return sfx_HELLFIRE;
 	return tl::make_unexpected("Unknown enum value");
 }
 
@@ -148,8 +148,6 @@ void LoadEffectsData()
 		reader.readString("path", item.pszName);
 	}
 	sgSFX.shrink_to_fit();
-	// We're not actually parsing the IDs yet, thus this sanity check here.
-	assert(static_cast<size_t>(SfxID::LAST) + 1 == sgSFX.size());
 }
 
 void PrivSoundInit(uint8_t bLoadMask)
@@ -170,10 +168,6 @@ void PrivSoundInit(uint8_t bLoadMask)
 		}
 
 		if ((sfx.bFlags & bLoadMask) == 0) {
-			continue;
-		}
-
-		if (!gbIsHellfire && (sfx.bFlags & sfx_HELLFIRE) != 0) {
 			continue;
 		}
 
@@ -264,11 +258,9 @@ void sound_init()
 {
 	uint8_t mask = sfx_MISC;
 	if (gbIsMultiplayer) {
-		mask |= sfx_WARRIOR;
+		mask |= (sfx_WARRIOR | sfx_MONK);
 		if (!gbIsSpawn)
 			mask |= (sfx_ROGUE | sfx_SORCERER);
-		if (gbIsHellfire)
-			mask |= sfx_MONK;
 	} else {
 		switch (MyPlayer->_pClass) {
 		case HeroClass::Warrior:
@@ -286,7 +278,14 @@ void sound_init()
 			mask |= sfx_MONK;
 			break;
 		default:
-			app_fatal("effects:1");
+			if (static_cast<size_t>(MyPlayer->_pClass) < GetNumPlayerClasses()) {
+				// this is a custom class, so we need to add init sounds, since we can't determine which ones will be used by it
+				mask |= (sfx_WARRIOR | sfx_MONK);
+				if (!gbIsSpawn)
+					mask |= (sfx_ROGUE | sfx_SORCERER);
+			} else {
+				app_fatal("effects:1");
+			}
 		}
 	}
 
@@ -317,6 +316,24 @@ int GetSFXLength(SfxID nSFX)
 		sfx.pSnd = sound_file_load(sfx.pszName.c_str(),
 		    /*stream=*/AllowStreaming && (sfx.bFlags & sfx_STREAM) != 0);
 	return sfx.pSnd->DSB.GetLength();
+}
+
+tl::expected<HeroSpeech, std::string> ParseHeroSpeech(std::string_view value)
+{
+	const std::optional<HeroSpeech> enumValueOpt = magic_enum::enum_cast<HeroSpeech>(value);
+	if (enumValueOpt.has_value()) {
+		return enumValueOpt.value();
+	}
+	return tl::make_unexpected("Unknown enum value.");
+}
+
+tl::expected<SfxID, std::string> ParseSfxId(std::string_view value)
+{
+	const std::optional<SfxID> enumValueOpt = magic_enum::enum_cast<SfxID>(value);
+	if (enumValueOpt.has_value()) {
+		return enumValueOpt.value();
+	}
+	return tl::make_unexpected("Unknown enum value.");
 }
 
 } // namespace devilution

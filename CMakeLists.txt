@@ -31,6 +31,7 @@ include(functions/genex)
 
 # Options required by `VcPkgManifestFeatures`, which must be included before the `project` call.
 option(USE_SDL1 "Use SDL1.2 instead of SDL2" OFF)
+option(USE_SDL3 "Use SDL3 instead of SDL2" OFF)
 option(NONET "Disable network support" OFF)
 cmake_dependent_option(PACKET_ENCRYPTION "Encrypt network packets" ON "NOT NONET" OFF)
 # The gettext[tools] package takes a very long time to install
@@ -105,9 +106,18 @@ option(WIN_NSIS "Generate an NSIS installer" OFF)
 cmake_dependent_option(DISABLE_TCP "Disable TCP multiplayer option" OFF "NOT NONET" ON)
 cmake_dependent_option(DISABLE_ZERO_TIER "Disable ZeroTier multiplayer option" OFF "NOT NONET" ON)
 
+if(USE_SDL1 AND USE_SDL3)
+  message(FATAL_ERROR "USE_SDL1 and USE_SDL3 cannot be set at the same time")
+endif()
+
 # Graphics options
 if(NOT USE_SDL1)
-  set(DEVILUTIONX_DISPLAY_TEXTURE_FORMAT "SDL_PIXELFORMAT_RGB888" CACHE STRING "Texture format for DevilutionX textures when using the GPU renderer")
+if(USE_SDL3)
+  set(_texture_format_default "SDL_PIXELFORMAT_XRGB8888")
+else()
+  set(_texture_format_default "SDL_PIXELFORMAT_RGB888")
+endif()
+  set(DEVILUTIONX_DISPLAY_TEXTURE_FORMAT "${_texture_format_default}" CACHE STRING "Texture format for DevilutionX textures when using the GPU renderer")
   mark_as_advanced(DEVILUTIONX_DISPLAY_TEXTURE_FORMAT)
 endif()
 
@@ -320,12 +330,19 @@ if(GPERF)
 endif()
 
 set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_EXTENSIONS OFF)
+
+# On some platforms, such as DJGPP,
+# `-std=c++20` defines `__STRICT_ANSI__` which disables
+# all POSIX extensions, so we need to use `-std=gnu++20` instead.
+set(CMAKE_CXX_EXTENSIONS ON)
+
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON) # for clang-tidy
 set(CMAKE_THREAD_PREFER_PTHREAD ON)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
-find_package(Threads REQUIRED)
+if(NOT TARGET_PLATFORM STREQUAL "dos")
+  find_package(Threads REQUIRED)
+endif()
 
 # Dependencies must be included after Platforms.
 include(Dependencies)
@@ -335,6 +352,8 @@ add_subdirectory(Source)
 set(BIN_TARGET devilutionx)
 if(NINTENDO_3DS OR PS2)
   set(BIN_TARGET ${BIN_TARGET}.elf)
+elseif(TARGET_PLATFORM STREQUAL "dos")
+  set(BIN_TARGET devx)
 endif()
 
 if(ANDROID)
@@ -358,6 +377,14 @@ else()
     endif()
 endif()
 
+if(TARGET_PLATFORM STREQUAL "dos")
+    # Allow multiple definitions for math stubs in DJGPP
+    set_target_properties(${BIN_TARGET} PROPERTIES
+        LINK_FLAGS "-Wl,--allow-multiple-definition -static"
+    )
+    target_link_libraries(${BIN_TARGET} PRIVATE m)
+endif()
+
 if(NOT UWP_LIB)
   target_link_dependencies(${BIN_TARGET} PRIVATE libdevilutionx)
 endif()
@@ -379,7 +406,7 @@ if(NOT USE_SDL1 AND NOT UWP_LIB)
 endif()
 
 if(BUILD_TESTING)
-  add_subdirectory(test)
+  include(Tests)
 endif()
 
 include(functions/set_relative_file_macro)
@@ -621,7 +648,7 @@ if(CPACK AND (APPLE OR BUILD_ASSETS_MPQ OR SRC_DIST))
     install(FILES "${DEVILUTIONX_MPQ}"
       DESTINATION "share/diasurgical/${project_name}"
     )
-    install(FILES "${PROJECT_SOURCE_DIR}/Packaging/resources/icon.png"
+    install(FILES "${PROJECT_SOURCE_DIR}/Packaging/resources/icon_flat.png"
       DESTINATION "share/icons/hicolor/512x512/apps"
       RENAME "${project_name}.png"
     )

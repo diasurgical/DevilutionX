@@ -5,8 +5,11 @@
  */
 #pragma once
 
-#include <cstddef>
 #include <cstdint>
+#include <string>
+
+#include <expected.hpp>
+#include <magic_enum/magic_enum.hpp>
 
 #include "sound_effect_enums.h"
 
@@ -351,7 +354,6 @@ enum _speech_id : int16_t {
 	TEXT_BBOOKA,
 	TEXT_BBOOKB,
 	TEXT_BBOOKC,
-	/*
 	TEXT_DEADGUY,
 	TEXT_FARNHAM14,
 	TEXT_FARNHAM15,
@@ -421,17 +423,26 @@ enum _speech_id : int16_t {
 	TEXT_GRISWOLD35,
 	TEXT_GRISWOLD36,
 	TEXT_GRISWOLD37,
-	*/
+	NUM_DEFAULT_TEXT_IDS,
 	TEXT_NONE = -1,
 };
 
 struct Speech {
-	const char *txtstr;
+	std::string txtstr;
 	bool scrlltxt;
 	SfxID sfxnr;
 };
 
-extern const size_t SpeechCount;
-extern const Speech Speeches[];
+extern std::vector<Speech> Speeches;
+
+tl::expected<_speech_id, std::string> ParseSpeechId(std::string_view value);
+
+void LoadTextData();
 
 } // namespace devilution
+
+template <>
+struct magic_enum::customize::enum_range<devilution::_speech_id> {
+	static constexpr int min = devilution::TEXT_NONE;
+	static constexpr int max = devilution::NUM_DEFAULT_TEXT_IDS;
+};

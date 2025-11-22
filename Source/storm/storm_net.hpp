@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -40,6 +41,12 @@ struct _SNETEVENT {
 	uint32_t playerid; // native-endian
 	void *data;        // little-endian
 	size_t databytes;  // native-endian
+};
+
+struct DvlNetLatencies {
+	uint32_t echoLatency;
+	std::optional<int> providerLatency;
+	std::optional<bool> isRelayed;
 };
 
 #define PS_CONNECTED 0x10000
@@ -138,5 +145,6 @@ std::vector<GameInfo> DvlNet_GetGamelist();
 void DvlNet_SetPassword(std::string pw);
 void DvlNet_ClearPassword();
 bool DvlNet_IsPublicGame();
+DvlNetLatencies DvlNet_GetLatencies(uint8_t playerId);
 
 } // namespace devilution

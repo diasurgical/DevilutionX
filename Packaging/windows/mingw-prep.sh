@@ -38,7 +38,7 @@ cd "tmp-mingw-${MINGW_ARCH}-prep"
 wget -q https://www.libsdl.org/release/SDL2-devel-${SDLDEV_VERS}-mingw.tar.gz -OSDL2-devel-${SDLDEV_VERS}-mingw.tar.gz
 tar -xzf SDL2-devel-${SDLDEV_VERS}-mingw.tar.gz
 sed -i '/$(CROSS_PATH)\/cmake/ s/^/#/' SDL2*/Makefile
-CROSS_PATH=/usr ARCHITECTURES=${MINGW_ARCH} $SUDO make -eC SDL2*/ cross
+$SUDO make -C SDL2*/ cross CROSS_PATH=/usr ARCHITECTURES=${MINGW_ARCH}
 
 wget -q https://github.com/jedisct1/libsodium/releases/download/${SODIUM_VERS}-RELEASE/libsodium-${SODIUM_VERS}-mingw.tar.gz -Olibsodium-${SODIUM_VERS}-mingw.tar.gz
 tar -xzf libsodium-${SODIUM_VERS}-mingw.tar.gz --no-same-owner
@@ -51,3 +51,6 @@ find "${MINGW_PREFIX}/lib/pkgconfig/" -name '*.pc' -exec \
 # Fixup CMake prefix:
 find "${MINGW_PREFIX}" -name '*.cmake' -exec \
   $SUDO sed -i "s|/opt/local/${MINGW_ARCH}|${MINGW_PREFIX}|" '{}' \;
+
+# Fixup zlib linking:
+$SUDO mv "${MINGW_PREFIX}/lib/libz.dll.a" "${MINGW_PREFIX}/lib/libz.dll.a.bak"

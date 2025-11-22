@@ -2,14 +2,19 @@
 
 #include <atomic>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_timer.h>
+#else
 #include <SDL.h>
-#include <ankerl/unordered_dense.h>
 
 #ifdef USE_SDL1
 #include "utils/sdl2_to_1_2_backports.h"
 #else
 #include "utils/sdl2_backports.h"
 #endif
+#endif
+
+#include <ankerl/unordered_dense.h>
 
 #if defined(_WIN32) && !defined(DEVILUTIONX_WINDOWS_NO_WCHAR)
 #include "utils/stdcompat/filesystem.hpp"
@@ -66,9 +71,13 @@ std::string ComputeAlternateFolderName(std::string_view path)
 	    nullptr, 0);
 
 	if (status != 0)
-		return "";
+		return {};
 
-	return fmt::format("{:02x}", fmt::join(hash, ""));
+	char buf[hashSize * 2];
+	for (size_t i = 0; i < hashSize; ++i) {
+		BufCopy(&buf[i * 2], AsHexPad2(hash[i]));
+	}
+	return std::string(buf, hashSize * 2);
 }
 
 std::string ToZTCompliantPath(std::string_view configPath)
@@ -200,6 +209,18 @@ bool zerotier_is_relayed(uint64_t mac)
 	}
 	zts_core_lock_release();
 	return isRelayed;
+}
+
+int zerotier_latency(uint64_t mac)
+{
+	int latency = -1;
+	if (zts_core_lock_obtain() != ZTS_ERR_OK)
+		return latency;
+	zts_peer_info_t peerInfo;
+	if (zts_core_query_peer_info(ZtNetwork, mac, &peerInfo) == ZTS_ERR_OK)
+		latency = peerInfo.latency;
+	zts_core_lock_release();
+	return latency;
 }
 
 } // namespace net

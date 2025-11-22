@@ -1,13 +1,15 @@
+#include <array>
 #include <cstddef>
+#include <cstdint>
 #include <span>
 
 #include <ankerl/unordered_dense.h>
 #include <benchmark/benchmark.h>
 
-#include "diablo.h"
 #include "engine/assets.hpp"
 #include "engine/clx_sprite.hpp"
 #include "engine/displacement.hpp"
+#include "engine/lighting_defs.hpp"
 #include "engine/load_file.hpp"
 #include "engine/render/dun_render.hpp"
 #include "engine/surface.hpp"
@@ -23,6 +25,8 @@ namespace {
 
 SDLSurfaceUniquePtr SdlSurface;
 ankerl::unordered_dense::map<TileType, std::vector<LevelCelBlock>> Tiles;
+std::unique_ptr<std::byte[]> BmDunCelData;
+uint_fast8_t BmMicroTileLen;
 
 void InitOnce()
 {
@@ -35,8 +39,8 @@ void InitOnce()
 		}
 
 		leveltype = DTYPE_CATHEDRAL;
-		pDungeonCels = LoadFileInMem("levels\\l1data\\l1.cel");
-		SetDungeonMicros();
+		BmDunCelData = LoadFileInMem("levels\\l1data\\l1.cel");
+		SetDungeonMicros(BmDunCelData, BmMicroTileLen);
 		MakeLightTable();
 
 		SdlSurface = SDLWrap::CreateRGBSurfaceWithFormat(
@@ -58,31 +62,31 @@ void InitOnce()
 				}
 			}
 		}
+		GetOptions().Graphics.perPixelLighting.SetValue(false);
 		return true;
 	}();
 }
 
 void RunForTileMaskLight(benchmark::State &state, TileType tileType, MaskType maskType, const uint8_t *lightTable)
 {
-	Surface out = Surface(SdlSurface.get());
-	Lightmap lightmap(nullptr, {}, 1, nullptr, 0);
-	size_t numItemsProcessed = 0;
+	const Surface out = Surface(SdlSurface.get());
+	std::array<std::array<uint8_t, LightTableSize>, NumLightingLevels> lightTables;
+	const Lightmap lightmap(/*outBuffer=*/nullptr, /*lightmapBuffer=*/ {}, /*pitch=*/1, lightTables, FullyLitLightTable, FullyDarkLightTable);
 	const std::span<const LevelCelBlock> tiles = Tiles[tileType];
 	for (auto _ : state) {
 		for (const LevelCelBlock &levelCelBlock : tiles) {
-			RenderTile(out, lightmap, Point { 320, 240 }, levelCelBlock, maskType, lightTable);
+			RenderTile(out, lightmap, Point { 320, 240 }, BmDunCelData.get(), levelCelBlock, maskType, lightTable);
 			uint8_t color = out[Point { 310, 200 }];
 			benchmark::DoNotOptimize(color);
 		}
-		numItemsProcessed += tiles.size();
 	}
-	state.SetItemsProcessed(numItemsProcessed);
+	state.SetItemsProcessed(state.iterations() * tiles.size());
 }
 
 using GetLightTableFn = const uint8_t *();
 
-const uint8_t *FullyLit() { return FullyLitLightTable; }
-const uint8_t *FullyDark() { return FullyDarkLightTable; }
+const uint8_t *FullyLit() { return LightTables[0].data(); }
+const uint8_t *FullyDark() { return LightTables.back().data(); }
 const uint8_t *PartiallyLit() { return LightTables[5].data(); }
 
 template <TileType TileT, MaskType MaskT, GetLightTableFn GetLightTableFnT>
@@ -121,15 +125,13 @@ DEFINE_FOR_TILE_TYPE(RightTrapezoid)
 void BM_RenderBlackTile(benchmark::State &state)
 {
 	InitOnce();
-	Surface out = Surface(SdlSurface.get());
-	size_t numItemsProcessed = 0;
+	const Surface out = Surface(SdlSurface.get());
 	for (auto _ : state) {
 		world_draw_black_tile(out, 320, 240);
 		uint8_t color = out[Point { 310, 200 }];
 		benchmark::DoNotOptimize(color);
-		++numItemsProcessed;
 	}
-	state.SetItemsProcessed(numItemsProcessed);
+	state.SetItemsProcessed(state.iterations());
 }
 BENCHMARK(BM_RenderBlackTile);
 

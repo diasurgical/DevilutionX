@@ -15,9 +15,8 @@
 #include <windows.h>
 #endif
 
-#include <fmt/format.h>
-
 #include "utils/console.h"
+#include "utils/str_cat.hpp"
 
 #define DEFAULT_PRIORITY SDL_LOG_PRIORITY_CRITICAL
 #define DEFAULT_ASSERT_PRIORITY SDL_LOG_PRIORITY_WARN
@@ -385,8 +384,8 @@ int SDL_BlitScaled(SDL_Surface *src, SDL_Rect *srcrect,
 	if (NULL == dstrect) {
 		dst_x0 = 0;
 		dst_y0 = 0;
-		dst_x1 = dst_w - 1;
-		dst_y1 = dst_h - 1;
+		dst_x1 = static_cast<float>(dst_w - 1);
+		dst_y1 = static_cast<float>(dst_h - 1);
 	} else {
 		dst_x0 = dstrect->x;
 		dst_y0 = dstrect->y;
@@ -397,8 +396,8 @@ int SDL_BlitScaled(SDL_Surface *src, SDL_Rect *srcrect,
 	if (NULL == srcrect) {
 		src_x0 = 0;
 		src_y0 = 0;
-		src_x1 = src_w - 1;
-		src_y1 = src_h - 1;
+		src_x1 = static_cast<float>(src_w - 1);
+		src_y1 = static_cast<float>(src_h - 1);
 	} else {
 		src_x0 = srcrect->x;
 		src_y0 = srcrect->y;
@@ -414,7 +413,7 @@ int SDL_BlitScaled(SDL_Surface *src, SDL_Rect *srcrect,
 
 		if (src_x1 >= src->w) {
 			dst_x1 -= (src_x1 - src->w + 1) * scaling_w;
-			src_x1 = src->w - 1;
+			src_x1 = static_cast<float>(src->w - 1);
 		}
 
 		if (src_y0 < 0) {
@@ -424,7 +423,7 @@ int SDL_BlitScaled(SDL_Surface *src, SDL_Rect *srcrect,
 
 		if (src_y1 >= src->h) {
 			dst_y1 -= (src_y1 - src->h + 1) * scaling_h;
-			src_y1 = src->h - 1;
+			src_y1 = static_cast<float>(src->h - 1);
 		}
 	}
 
@@ -443,7 +442,7 @@ int SDL_BlitScaled(SDL_Surface *src, SDL_Rect *srcrect,
 
 	if (dst_x1 >= dst->clip_rect.w) {
 		src_x1 -= (dst_x1 - dst->clip_rect.w + 1) / scaling_w;
-		dst_x1 = dst->clip_rect.w - 1;
+		dst_x1 = static_cast<float>(dst->clip_rect.w - 1);
 	}
 
 	if (dst_y0 < 0) {
@@ -453,7 +452,7 @@ int SDL_BlitScaled(SDL_Surface *src, SDL_Rect *srcrect,
 
 	if (dst_y1 >= dst->clip_rect.h) {
 		src_y1 -= (dst_y1 - dst->clip_rect.h + 1) / scaling_h;
-		dst_y1 = dst->clip_rect.h - 1;
+		dst_y1 = static_cast<float>(dst->clip_rect.h - 1);
 	}
 
 	/* Translate back to surface coordinates */
@@ -862,7 +861,7 @@ extern "C" char *SDL_GetPrefPath(const char *org, const char *app)
 	 *
 	 * https://standards.freedesktop.org/basedir-spec/basedir-spec-latest.html
 	 */
-#if defined(WINVER) && WINVER <= 0x0500 && (!defined(_WIN32_WINNT) || _WIN32_WINNT == 0)
+#if (defined(WINVER) && WINVER <= 0x0500 && (!defined(_WIN32_WINNT) || _WIN32_WINNT == 0)) || defined(__DJGPP__)
 	// On Windows9x there is no such thing as PrefPath. Simply use the current directory.
 	char *result = (char *)SDL_malloc(1);
 	*result = '\0';
@@ -919,9 +918,9 @@ extern "C" char *SDL_GetPrefPath(const char *org, const char *app)
 	}
 
 	if (*org) {
-		*fmt::format_to_n(retval, len - 1, "{}{}{}/{}", envr, append, org, app).out = '\0';
+		*devilution::BufCopy(retval, envr, append, org, "/", app) = '\0';
 	} else {
-		*fmt::format_to_n(retval, len - 1, "{}{}{}", envr, append, app).out = '\0';
+		*devilution::BufCopy(retval, envr, append, app) = '\0';
 	}
 
 	for (ptr = retval + 1; *ptr; ptr++) {

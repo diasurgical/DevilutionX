@@ -6,11 +6,19 @@
 #include <functional>
 #include <vector>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_error.h>
+#include <SDL3/SDL_iostream.h>
+#else
+#include <SDL.h>
+#endif
+
 #include "appfat.h"
 #include "game_mode.hpp"
 #include "utils/file_util.h"
 #include "utils/log.hpp"
 #include "utils/paths.h"
+#include "utils/sdl_compat.h"
 #include "utils/str_cat.hpp"
 #include "utils/str_split.hpp"
 
@@ -45,16 +53,16 @@ char *FindUnpackedMpqFile(char *relativePath)
 #else
 bool IsDebugLogging()
 {
-	return SDL_LogGetPriority(SDL_LOG_CATEGORY_APPLICATION) <= SDL_LOG_PRIORITY_DEBUG;
+	return IsLogLevel(LogCategory::Application, SDL_LOG_PRIORITY_DEBUG);
 }
 
-SDL_RWops *OpenOptionalRWops(const std::string &path)
+SDL_IOStream *OpenOptionalRWops(const std::string &path)
 {
 	// SDL always logs an error in Debug mode.
 	// We check the file presence in Debug mode to avoid this.
 	if (IsDebugLogging() && !FileExists(path.c_str()))
 		return nullptr;
-	return SDL_RWFromFile(path.c_str(), "rb");
+	return SDL_IOFromFile(path.c_str(), "rb");
 };
 
 bool FindMpqFile(std::string_view filename, MpqArchive **archive, uint32_t *fileNumber)
@@ -88,7 +96,7 @@ AssetRef FindAsset(std::string_view filename)
 	char *const relativePath = &pathBuf[AssetRef::PathBufSize - filename.size() - 1];
 	*BufCopy(relativePath, filename) = '\0';
 
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__DJGPP__)
 	std::replace(relativePath, pathEnd, '\\', '/');
 #endif
 	// Absolute path:
@@ -128,7 +136,7 @@ AssetRef FindAsset(std::string_view filename)
 #endif
 
 	if (relativePath[0] == '/') {
-		result.directHandle = SDL_RWFromFile(relativePath.c_str(), "rb");
+		result.directHandle = SDL_IOFromFile(relativePath.c_str(), "rb");
 		if (result.directHandle != nullptr) {
 			return result;
 		}
@@ -161,7 +169,7 @@ AssetRef FindAsset(std::string_view filename)
 	// Fall back to the bundled assets on supported systems.
 	// This is handled by SDL when we pass a relative path.
 	if (!paths::AssetsPath().empty()) {
-		result.directHandle = SDL_RWFromFile(relativePath.c_str(), "rb");
+		result.directHandle = SDL_IOFromFile(relativePath.c_str(), "rb");
 		if (result.directHandle != nullptr)
 			return result;
 	}
@@ -180,7 +188,7 @@ AssetHandle OpenAsset(AssetRef &&ref, bool threadsafe)
 		return AssetHandle { SDL_RWops_FromMpqFile(*ref.archive, ref.fileNumber, ref.filename, threadsafe) };
 	if (ref.directHandle != nullptr) {
 		// Transfer handle ownership:
-		SDL_RWops *handle = ref.directHandle;
+		auto *handle = ref.directHandle;
 		ref.directHandle = nullptr;
 		return AssetHandle { handle };
 	}
@@ -205,13 +213,13 @@ AssetHandle OpenAsset(std::string_view filename, size_t &fileSize, bool threadsa
 	return OpenAsset(std::move(ref), threadsafe);
 }
 
-SDL_RWops *OpenAssetAsSdlRwOps(std::string_view filename, bool threadsafe)
+SDL_IOStream *OpenAssetAsSdlRwOps(std::string_view filename, bool threadsafe)
 {
 #ifdef UNPACKED_MPQS
 	AssetRef ref = FindAsset(filename);
 	if (!ref.ok())
 		return nullptr;
-	return SDL_RWFromFile(ref.path, "rb");
+	return SDL_IOFromFile(ref.path, "rb");
 #else
 	return OpenAsset(filename, threadsafe).release();
 #endif
@@ -330,7 +338,7 @@ std::vector<std::string> GetMPQSearchPaths()
 	if (paths[0] == paths[1] || (paths.size() == 3 && (paths[0] == paths[2] || paths[1] == paths[2])))
 		paths.pop_back();
 
-#if (defined(__unix__) || defined(__APPLE__)) && !defined(__ANDROID__)
+#if (defined(__unix__) || defined(__APPLE__)) && !defined(__ANDROID__) && !defined(__DJGPP__)
 	// `XDG_DATA_HOME` is usually the root path of `paths::PrefPath()`, so we only
 	// add `XDG_DATA_DIRS`.
 	const char *xdgDataDirs = std::getenv("XDG_DATA_DIRS");
@@ -361,13 +369,13 @@ std::vector<std::string> GetMPQSearchPaths()
 		paths.emplace_back(); // PWD
 	}
 
-	if (SDL_LOG_PRIORITY_VERBOSE >= SDL_LogGetPriority(SDL_LOG_CATEGORY_APPLICATION)) {
+	if (IsLogLevel(LogCategory::Application, SDL_LOG_PRIORITY_VERBOSE)) {
 		LogVerbose("Paths:\n    base: {}\n    pref: {}\n  config: {}\n  assets: {}",
 		    paths::BasePath(), paths::PrefPath(), paths::ConfigPath(), paths::AssetsPath());
 
 		std::string message;
 		for (std::size_t i = 0; i < paths.size(); ++i) {
-			message.append(fmt::format("\n{:6d}. '{}'", i + 1, paths[i]));
+			message.append(StrCat("\n", LeftPad(i + 1, 6, ' '), ". '", paths[i], "'"));
 		}
 		LogVerbose("MPQ search paths:{}", message);
 	}
@@ -383,7 +391,11 @@ void LoadCoreArchives()
 
 #if !defined(__ANDROID__) && !defined(__APPLE__) && !defined(__3DS__) && !defined(__SWITCH__)
 	// Load devilutionx.mpq first to get the font file for error messages
+#ifdef __DJGPP__
+	LoadMPQ(paths, "devx", DevilutionXMpqPriority);
+#else
 	LoadMPQ(paths, "devilutionx", DevilutionXMpqPriority);
+#endif
 #endif
 	LoadMPQ(paths, "fonts", FontMpqPriority); // Extra fonts
 	HasHellfireMpq = FindMPQ(paths, "hellfire");
@@ -391,6 +403,7 @@ void LoadCoreArchives()
 
 void LoadLanguageArchive()
 {
+	MpqArchives.erase(LangMpqPriority);
 	const std::string_view code = GetLanguageCode();
 	if (code != "en") {
 		LoadMPQ(GetMPQSearchPaths(), code, LangMpqPriority);
@@ -477,7 +490,7 @@ void UnloadModArchives()
 void LoadModArchives(std::span<const std::string_view> modnames)
 {
 	std::string targetPath;
-	for (std::string_view modname : modnames) {
+	for (const std::string_view modname : modnames) {
 		targetPath = StrCat(paths::PrefPath(), "mods" DIRECTORY_SEPARATOR_STR, modname, DIRECTORY_SEPARATOR_STR);
 		if (FileExists(targetPath)) {
 			OverridePaths.emplace_back(targetPath);
@@ -491,7 +504,7 @@ void LoadModArchives(std::span<const std::string_view> modnames)
 
 	int priority = 10000;
 	auto paths = GetMPQSearchPaths();
-	for (std::string_view modname : modnames) {
+	for (const std::string_view modname : modnames) {
 		LoadMPQ(paths, StrCat("mods" DIRECTORY_SEPARATOR_STR, modname), priority);
 		priority++;
 	}

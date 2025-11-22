@@ -18,7 +18,7 @@ TEST(DrlgTest, RectangleRangeIterator)
 
 	int counter = 0;
 	// Iterate over a 9 tile area in the top left of the region.
-	for (WorldTilePosition position : PointsInRectangle(topLeftArea)) {
+	for (const WorldTilePosition position : PointsInRectangle(topLeftArea)) {
 		region[position.x][position.y] = ++counter;
 	}
 
@@ -46,7 +46,7 @@ TEST(DrlgTest, RectangleRangeIterator)
 	region = {};
 	counter = 0;
 
-	for (WorldTilePosition position : PointsInRectangleColMajor(topLeftArea)) {
+	for (const WorldTilePosition position : PointsInRectangleColMajor(topLeftArea)) {
 		region[position.x][position.y] = ++counter;
 	}
 

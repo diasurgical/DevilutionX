@@ -28,7 +28,7 @@ dungeon_type GetQuestLevelType(_setlevels questLevel)
 
 dungeon_type GetSetLevelType(_setlevels setLevel)
 {
-	bool isArenaLevel = setLevel >= SL_FIRST_ARENA && setLevel <= SL_LAST;
+	const bool isArenaLevel = setLevel >= SL_FIRST_ARENA && setLevel <= SL_LAST;
 	return isArenaLevel ? GetArenaLevelType(setLevel) : GetQuestLevelType(setLevel);
 }
 
@@ -38,7 +38,7 @@ bool IsPortalDeltaValid(WorldTilePosition location, uint8_t level, uint8_t ltype
 {
 	if (!InDungeonBounds(location))
 		return false;
-	dungeon_type levelType = static_cast<dungeon_type>(ltype);
+	const dungeon_type levelType = static_cast<dungeon_type>(ltype);
 	if (levelType == DTYPE_NONE)
 		return false;
 	if (isOnSetLevel)

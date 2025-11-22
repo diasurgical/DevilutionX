@@ -5,15 +5,26 @@
  */
 #include "monstdat.h"
 
+#include <algorithm>
+#include <cstddef>
 #include <cstdint>
+#include <optional>
+#include <string>
+#include <string_view>
+#include <vector>
 
 #include <ankerl/unordered_dense.h>
 #include <expected.hpp>
+#include <fmt/core.h>
+#include <magic_enum/magic_enum.hpp>
 
+#include "appfat.h"
 #include "cursor.h"
 #include "data/file.hpp"
+#include "data/iterators.hpp"
 #include "data/record_reader.hpp"
 #include "items.h"
+#include "lua/lua_global.hpp"
 #include "monster.h"
 #include "textdat.h"
 #include "utils/language.h"
@@ -208,165 +219,19 @@ const _monster_id MonstConvTbl[] = {
 
 namespace {
 
+/** Contains the mapping between monster ID strings and indices, used for parsing additional monster data. */
+ankerl::unordered_dense::map<std::string, int16_t> AdditionalMonsterIdStringsToIndices;
+
 tl::expected<_monster_id, std::string> ParseMonsterId(std::string_view value)
 {
-	if (value == "MT_NZOMBIE") return MT_NZOMBIE;
-	if (value == "MT_BZOMBIE") return MT_BZOMBIE;
-	if (value == "MT_GZOMBIE") return MT_GZOMBIE;
-	if (value == "MT_YZOMBIE") return MT_YZOMBIE;
-	if (value == "MT_RFALLSP") return MT_RFALLSP;
-	if (value == "MT_DFALLSP") return MT_DFALLSP;
-	if (value == "MT_YFALLSP") return MT_YFALLSP;
-	if (value == "MT_BFALLSP") return MT_BFALLSP;
-	if (value == "MT_WSKELAX") return MT_WSKELAX;
-	if (value == "MT_TSKELAX") return MT_TSKELAX;
-	if (value == "MT_RSKELAX") return MT_RSKELAX;
-	if (value == "MT_XSKELAX") return MT_XSKELAX;
-	if (value == "MT_RFALLSD") return MT_RFALLSD;
-	if (value == "MT_DFALLSD") return MT_DFALLSD;
-	if (value == "MT_YFALLSD") return MT_YFALLSD;
-	if (value == "MT_BFALLSD") return MT_BFALLSD;
-	if (value == "MT_NSCAV") return MT_NSCAV;
-	if (value == "MT_BSCAV") return MT_BSCAV;
-	if (value == "MT_WSCAV") return MT_WSCAV;
-	if (value == "MT_YSCAV") return MT_YSCAV;
-	if (value == "MT_WSKELBW") return MT_WSKELBW;
-	if (value == "MT_TSKELBW") return MT_TSKELBW;
-	if (value == "MT_RSKELBW") return MT_RSKELBW;
-	if (value == "MT_XSKELBW") return MT_XSKELBW;
-	if (value == "MT_WSKELSD") return MT_WSKELSD;
-	if (value == "MT_TSKELSD") return MT_TSKELSD;
-	if (value == "MT_RSKELSD") return MT_RSKELSD;
-	if (value == "MT_XSKELSD") return MT_XSKELSD;
-	if (value == "MT_SNEAK") return MT_SNEAK;
-	if (value == "MT_STALKER") return MT_STALKER;
-	if (value == "MT_UNSEEN") return MT_UNSEEN;
-	if (value == "MT_ILLWEAV") return MT_ILLWEAV;
-	if (value == "MT_NGOATMC") return MT_NGOATMC;
-	if (value == "MT_BGOATMC") return MT_BGOATMC;
-	if (value == "MT_RGOATMC") return MT_RGOATMC;
-	if (value == "MT_GGOATMC") return MT_GGOATMC;
-	if (value == "MT_FIEND") return MT_FIEND;
-	if (value == "MT_GLOOM") return MT_GLOOM;
-	if (value == "MT_BLINK") return MT_BLINK;
-	if (value == "MT_FAMILIAR") return MT_FAMILIAR;
-	if (value == "MT_NGOATBW") return MT_NGOATBW;
-	if (value == "MT_BGOATBW") return MT_BGOATBW;
-	if (value == "MT_RGOATBW") return MT_RGOATBW;
-	if (value == "MT_GGOATBW") return MT_GGOATBW;
-	if (value == "MT_NACID") return MT_NACID;
-	if (value == "MT_RACID") return MT_RACID;
-	if (value == "MT_BACID") return MT_BACID;
-	if (value == "MT_XACID") return MT_XACID;
-	if (value == "MT_SKING") return MT_SKING;
-	if (value == "MT_FAT") return MT_FAT;
-	if (value == "MT_MUDMAN") return MT_MUDMAN;
-	if (value == "MT_TOAD") return MT_TOAD;
-	if (value == "MT_FLAYED") return MT_FLAYED;
-	if (value == "MT_WYRM") return MT_WYRM;
-	if (value == "MT_CAVSLUG") return MT_CAVSLUG;
-	if (value == "MT_DEVOUR") return MT_DEVOUR;
-	if (value == "MT_DVLWYRM") return MT_DVLWYRM;
-	if (value == "MT_NMAGMA") return MT_NMAGMA;
-	if (value == "MT_YMAGMA") return MT_YMAGMA;
-	if (value == "MT_BMAGMA") return MT_BMAGMA;
-	if (value == "MT_WMAGMA") return MT_WMAGMA;
-	if (value == "MT_HORNED") return MT_HORNED;
-	if (value == "MT_MUDRUN") return MT_MUDRUN;
-	if (value == "MT_FROSTC") return MT_FROSTC;
-	if (value == "MT_OBLORD") return MT_OBLORD;
-	if (value == "MT_BONEDMN") return MT_BONEDMN;
-	if (value == "MT_REDDTH") return MT_REDDTH;
-	if (value == "MT_LTCHDMN") return MT_LTCHDMN;
-	if (value == "MT_UDEDBLRG") return MT_UDEDBLRG;
-	if (value == "MT_INVALID") return MT_INVALID;
-	if (value == "MT_INVALID") return MT_INVALID;
-	if (value == "MT_INVALID") return MT_INVALID;
-	if (value == "MT_INVALID") return MT_INVALID;
-	if (value == "MT_INCIN") return MT_INCIN;
-	if (value == "MT_FLAMLRD") return MT_FLAMLRD;
-	if (value == "MT_DOOMFIRE") return MT_DOOMFIRE;
-	if (value == "MT_HELLBURN") return MT_HELLBURN;
-	if (value == "MT_INVALID") return MT_INVALID;
-	if (value == "MT_INVALID") return MT_INVALID;
-	if (value == "MT_INVALID") return MT_INVALID;
-	if (value == "MT_INVALID") return MT_INVALID;
-	if (value == "MT_RSTORM") return MT_RSTORM;
-	if (value == "MT_STORM") return MT_STORM;
-	if (value == "MT_STORML") return MT_STORML;
-	if (value == "MT_MAEL") return MT_MAEL;
-	if (value == "MT_WINGED") return MT_WINGED;
-	if (value == "MT_GARGOYLE") return MT_GARGOYLE;
-	if (value == "MT_BLOODCLW") return MT_BLOODCLW;
-	if (value == "MT_DEATHW") return MT_DEATHW;
-	if (value == "MT_MEGA") return MT_MEGA;
-	if (value == "MT_GUARD") return MT_GUARD;
-	if (value == "MT_VTEXLRD") return MT_VTEXLRD;
-	if (value == "MT_BALROG") return MT_BALROG;
-	if (value == "MT_NSNAKE") return MT_NSNAKE;
-	if (value == "MT_RSNAKE") return MT_RSNAKE;
-	if (value == "MT_GSNAKE") return MT_GSNAKE;
-	if (value == "MT_BSNAKE") return MT_BSNAKE;
-	if (value == "MT_NBLACK") return MT_NBLACK;
-	if (value == "MT_RTBLACK") return MT_RTBLACK;
-	if (value == "MT_BTBLACK") return MT_BTBLACK;
-	if (value == "MT_RBLACK") return MT_RBLACK;
-	if (value == "MT_UNRAV") return MT_UNRAV;
-	if (value == "MT_HOLOWONE") return MT_HOLOWONE;
-	if (value == "MT_PAINMSTR") return MT_PAINMSTR;
-	if (value == "MT_REALWEAV") return MT_REALWEAV;
-	if (value == "MT_SUCCUBUS") return MT_SUCCUBUS;
-	if (value == "MT_SNOWWICH") return MT_SNOWWICH;
-	if (value == "MT_HLSPWN") return MT_HLSPWN;
-	if (value == "MT_SOLBRNR") return MT_SOLBRNR;
-	if (value == "MT_COUNSLR") return MT_COUNSLR;
-	if (value == "MT_MAGISTR") return MT_MAGISTR;
-	if (value == "MT_CABALIST") return MT_CABALIST;
-	if (value == "MT_ADVOCATE") return MT_ADVOCATE;
-	if (value == "MT_INVALID") return MT_INVALID;
-	if (value == "MT_DIABLO") return MT_DIABLO;
-	if (value == "MT_INVALID") return MT_INVALID;
-	if (value == "MT_GOLEM") return MT_GOLEM;
-	if (value == "MT_INVALID") return MT_INVALID;
-	if (value == "MT_INVALID") return MT_INVALID;
-	if (value == "MT_INVALID") return MT_INVALID;
-	if (value == "MT_INVALID") return MT_INVALID;
-	if (value == "MT_INVALID") return MT_INVALID;
-	if (value == "MT_INVALID") return MT_INVALID;
-	if (value == "MT_INVALID") return MT_INVALID;
-	if (value == "MT_INVALID") return MT_INVALID;
-	if (value == "MT_INVALID") return MT_INVALID;
-	if (value == "MT_BIGFALL") return MT_BIGFALL;
-	if (value == "MT_DARKMAGE") return MT_DARKMAGE;
-	if (value == "MT_HELLBOAR") return MT_HELLBOAR;
-	if (value == "MT_STINGER") return MT_STINGER;
-	if (value == "MT_PSYCHORB") return MT_PSYCHORB;
-	if (value == "MT_ARACHNON") return MT_ARACHNON;
-	if (value == "MT_FELLTWIN") return MT_FELLTWIN;
-	if (value == "MT_HORKSPWN") return MT_HORKSPWN;
-	if (value == "MT_VENMTAIL") return MT_VENMTAIL;
-	if (value == "MT_NECRMORB") return MT_NECRMORB;
-	if (value == "MT_SPIDLORD") return MT_SPIDLORD;
-	if (value == "MT_LASHWORM") return MT_LASHWORM;
-	if (value == "MT_TORCHANT") return MT_TORCHANT;
-	if (value == "MT_HORKDMN") return MT_HORKDMN;
-	if (value == "MT_DEFILER") return MT_DEFILER;
-	if (value == "MT_GRAVEDIG") return MT_GRAVEDIG;
-	if (value == "MT_TOMBRAT") return MT_TOMBRAT;
-	if (value == "MT_FIREBAT") return MT_FIREBAT;
-	if (value == "MT_SKLWING") return MT_SKLWING;
-	if (value == "MT_LICH") return MT_LICH;
-	if (value == "MT_CRYPTDMN") return MT_CRYPTDMN;
-	if (value == "MT_HELLBAT") return MT_HELLBAT;
-	if (value == "MT_BONEDEMN") return MT_BONEDEMN;
-	if (value == "MT_LICH") return MT_LICH;
-	if (value == "MT_BICLOPS") return MT_BICLOPS;
-	if (value == "MT_FLESTHNG") return MT_FLESTHNG;
-	if (value == "MT_REAPER") return MT_REAPER;
-	if (value == "MT_NAKRUL") return MT_NAKRUL;
-	if (value == "MT_CLEAVER") return MT_CLEAVER;
-	if (value == "MT_INVILORD") return MT_INVILORD;
-	if (value == "MT_LRDSAYTR") return MT_LRDSAYTR;
+	const std::optional<_monster_id> enumValueOpt = magic_enum::enum_cast<_monster_id>(value);
+	if (enumValueOpt.has_value()) {
+		return enumValueOpt.value();
+	}
+	const auto findIt = AdditionalMonsterIdStringsToIndices.find(std::string(value));
+	if (findIt != AdditionalMonsterIdStringsToIndices.end()) {
+		return static_cast<_monster_id>(findIt->second);
+	}
 	return tl::make_unexpected("Unknown enum value");
 }
 
@@ -380,46 +245,10 @@ tl::expected<MonsterAvailability, std::string> ParseMonsterAvailability(std::str
 
 tl::expected<MonsterAIID, std::string> ParseAiId(std::string_view value)
 {
-	if (value == "Zombie") return MonsterAIID::Zombie;
-	if (value == "Fat") return MonsterAIID::Fat;
-	if (value == "SkeletonMelee") return MonsterAIID::SkeletonMelee;
-	if (value == "SkeletonRanged") return MonsterAIID::SkeletonRanged;
-	if (value == "Scavenger") return MonsterAIID::Scavenger;
-	if (value == "Rhino") return MonsterAIID::Rhino;
-	if (value == "GoatMelee") return MonsterAIID::GoatMelee;
-	if (value == "GoatRanged") return MonsterAIID::GoatRanged;
-	if (value == "Fallen") return MonsterAIID::Fallen;
-	if (value == "Magma") return MonsterAIID::Magma;
-	if (value == "SkeletonKing") return MonsterAIID::SkeletonKing;
-	if (value == "Bat") return MonsterAIID::Bat;
-	if (value == "Gargoyle") return MonsterAIID::Gargoyle;
-	if (value == "Butcher") return MonsterAIID::Butcher;
-	if (value == "Succubus") return MonsterAIID::Succubus;
-	if (value == "Sneak") return MonsterAIID::Sneak;
-	if (value == "Storm") return MonsterAIID::Storm;
-	if (value == "FireMan") return MonsterAIID::FireMan;
-	if (value == "Gharbad") return MonsterAIID::Gharbad;
-	if (value == "Acid") return MonsterAIID::Acid;
-	if (value == "AcidUnique") return MonsterAIID::AcidUnique;
-	if (value == "Golem") return MonsterAIID::Golem;
-	if (value == "Zhar") return MonsterAIID::Zhar;
-	if (value == "Snotspill") return MonsterAIID::Snotspill;
-	if (value == "Snake") return MonsterAIID::Snake;
-	if (value == "Counselor") return MonsterAIID::Counselor;
-	if (value == "Mega") return MonsterAIID::Mega;
-	if (value == "Diablo") return MonsterAIID::Diablo;
-	if (value == "Lazarus") return MonsterAIID::Lazarus;
-	if (value == "LazarusSuccubus") return MonsterAIID::LazarusSuccubus;
-	if (value == "Lachdanan") return MonsterAIID::Lachdanan;
-	if (value == "Warlord") return MonsterAIID::Warlord;
-	if (value == "FireBat") return MonsterAIID::FireBat;
-	if (value == "Torchant") return MonsterAIID::Torchant;
-	if (value == "HorkDemon") return MonsterAIID::HorkDemon;
-	if (value == "Lich") return MonsterAIID::Lich;
-	if (value == "ArchLich") return MonsterAIID::ArchLich;
-	if (value == "Psychorb") return MonsterAIID::Psychorb;
-	if (value == "Necromorb") return MonsterAIID::Necromorb;
-	if (value == "BoneDemon") return MonsterAIID::BoneDemon;
+	const std::optional<MonsterAIID> enumValueOpt = magic_enum::enum_cast<MonsterAIID>(value);
+	if (enumValueOpt.has_value()) {
+		return enumValueOpt.value();
+	}
 	return tl::make_unexpected("Unknown enum value");
 }
 
@@ -442,21 +271,19 @@ tl::expected<monster_flag, std::string> ParseMonsterFlag(std::string_view value)
 
 tl::expected<MonsterClass, std::string> ParseMonsterClass(std::string_view value)
 {
-	if (value == "Undead") return MonsterClass::Undead;
-	if (value == "Demon") return MonsterClass::Demon;
-	if (value == "Animal") return MonsterClass::Animal;
+	const std::optional<MonsterClass> enumValueOpt = magic_enum::enum_cast<MonsterClass>(value);
+	if (enumValueOpt.has_value()) {
+		return enumValueOpt.value();
+	}
 	return tl::make_unexpected("Unknown enum value");
 }
 
 tl::expected<monster_resistance, std::string> ParseMonsterResistance(std::string_view value)
 {
-	if (value == "RESIST_MAGIC") return RESIST_MAGIC;
-	if (value == "RESIST_FIRE") return RESIST_FIRE;
-	if (value == "RESIST_LIGHTNING") return RESIST_LIGHTNING;
-	if (value == "IMMUNE_MAGIC") return IMMUNE_MAGIC;
-	if (value == "IMMUNE_FIRE") return IMMUNE_FIRE;
-	if (value == "IMMUNE_LIGHTNING") return IMMUNE_LIGHTNING;
-	if (value == "IMMUNE_ACID") return IMMUNE_ACID;
+	const std::optional<monster_resistance> enumValueOpt = magic_enum::enum_cast<monster_resistance>(value);
+	if (enumValueOpt.has_value()) {
+		return enumValueOpt.value();
+	}
 	return tl::make_unexpected("Unknown enum value");
 }
 
@@ -469,35 +296,69 @@ tl::expected<SelectionRegion, std::string> ParseSelectionRegion(std::string_view
 	return tl::make_unexpected("Unknown enum value");
 }
 
+tl::expected<uint16_t, std::string> ParseMonsterTreasure(std::string_view value)
+{
+	// TODO: Replace this hack with proper parsing.
+
+	if (value.empty()) return 0;
+	if (value == "None") return T_NODROP;
+	if (value == "Uniq(SKCROWN)") return Uniq(UITEM_SKCROWN);
+	if (value == "Uniq(CLEAVER)") return Uniq(UITEM_CLEAVER);
+	return tl::make_unexpected("Invalid value. NOTE: Parser is incomplete");
+}
+
 tl::expected<UniqueMonsterPack, std::string> ParseUniqueMonsterPack(std::string_view value)
 {
-	if (value == "None") return UniqueMonsterPack::None;
-	if (value == "Independent") return UniqueMonsterPack::Independent;
-	if (value == "Leashed") return UniqueMonsterPack::Leashed;
+	const std::optional<UniqueMonsterPack> enumValueOpt = magic_enum::enum_cast<UniqueMonsterPack>(value);
+	if (enumValueOpt.has_value()) {
+		return enumValueOpt.value();
+	}
 	return tl::make_unexpected("Unknown enum value");
 }
 
-void LoadMonstDat()
+} // namespace
+
+void LoadMonstDatFromFile(DataFile &dataFile, const std::string_view filename, bool grow)
 {
-	const std::string_view filename = "txtdata\\monsters\\monstdat.tsv";
-	DataFile dataFile = DataFile::loadOrDie(filename);
 	dataFile.skipHeaderOrDie(filename);
 
-	MonstersData.clear();
-	MonstersData.reserve(dataFile.numRecords());
-	ankerl::unordered_dense::map<std::string, size_t> spritePathToId;
+	if (grow) {
+		MonstersData.reserve(MonstersData.size() + dataFile.numRecords());
+	}
+
 	for (DataFileRecord record : dataFile) {
+		if (MonstersData.size() >= static_cast<size_t>(NUM_MAX_MTYPES)) {
+			DisplayFatalErrorAndExit(_("Loading Monster Data Failed"), fmt::format(fmt::runtime(_("Could not add a monster, since the maximum monster type number of {} has already been reached.")), static_cast<size_t>(NUM_MAX_MTYPES)));
+		}
+
 		RecordReader reader { record, filename };
-		MonsterData &monster = MonstersData.emplace_back();
-		reader.advance(); // Skip the first column (monster ID).
+
+		std::string monsterId;
+		reader.readString("_monster_id", monsterId);
+		const std::optional<_monster_id> monsterIdEnumValueOpt = magic_enum::enum_cast<_monster_id>(monsterId);
+
+		if (!monsterIdEnumValueOpt.has_value()) {
+			const size_t monsterIndex = MonstersData.size();
+			const auto [it, inserted] = AdditionalMonsterIdStringsToIndices.emplace(monsterId, static_cast<int16_t>(monsterIndex));
+			if (!inserted) {
+				DisplayFatalErrorAndExit(_("Loading Monster Data Failed"), fmt::format(fmt::runtime(_("A monster type already exists for ID \"{}\".")), monsterId));
+			}
+		}
+
+		// for hardcoded monsters, use their predetermined slot; for non-hardcoded ones, use the slots after that
+		MonsterData &monster = monsterIdEnumValueOpt.has_value() ? MonstersData[monsterIdEnumValueOpt.value()] : MonstersData.emplace_back();
+
 		reader.readString("name", monster.name);
 		{
 			std::string assetsSuffix;
 			reader.readString("assetsSuffix", assetsSuffix);
-			const auto [it, inserted] = spritePathToId.emplace(assetsSuffix, spritePathToId.size());
-			if (inserted)
-				MonsterSpritePaths.push_back(it->first);
-			monster.spriteId = static_cast<uint16_t>(it->second);
+			const auto findIt = std::find(MonsterSpritePaths.begin(), MonsterSpritePaths.end(), assetsSuffix);
+			if (findIt != MonsterSpritePaths.end()) {
+				monster.spriteId = static_cast<uint16_t>(findIt - MonsterSpritePaths.begin());
+			} else {
+				monster.spriteId = static_cast<uint16_t>(MonsterSpritePaths.size());
+				MonsterSpritePaths.push_back(std::string(assetsSuffix));
+			}
 		}
 		reader.readString("soundSuffix", monster.soundSuffix);
 		reader.readString("trnFile", monster.trnFile);
@@ -529,30 +390,36 @@ void LoadMonstDat()
 		reader.readEnumList("resistance", monster.resistance, ParseMonsterResistance);
 		reader.readEnumList("resistanceHell", monster.resistanceHell, ParseMonsterResistance);
 		reader.readEnumList("selectionRegion", monster.selectionRegion, ParseSelectionRegion);
-
-		// treasure
-		// TODO: Replace this hack with proper parsing once items have been migrated to data files.
-		reader.read("treasure", monster.treasure, [](std::string_view value) -> tl::expected<uint16_t, std::string> {
-			if (value.empty()) return 0;
-			if (value == "None") return T_NODROP;
-			if (value == "Uniq(SKCROWN)") return Uniq(UITEM_SKCROWN);
-			if (value == "Uniq(CLEAVER)") return Uniq(UITEM_CLEAVER);
-			return tl::make_unexpected("Invalid value. NOTE: Parser is incomplete");
-		});
+		reader.read("treasure", monster.treasure, ParseMonsterTreasure);
 
 		reader.readInt("exp", monster.exp);
 	}
+}
+
+namespace {
+
+void LoadMonstDat()
+{
+	const std::string_view filename = "txtdata\\monsters\\monstdat.tsv";
+	DataFile dataFile = DataFile::loadOrDie(filename);
+	MonstersData.clear();
+	AdditionalMonsterIdStringsToIndices.clear();
+	MonstersData.resize(NUM_DEFAULT_MTYPES); // ensure the hardcoded monster type slots are filled
+	LoadMonstDatFromFile(dataFile, filename, false);
+
+	LuaEvent("MonsterDataLoaded");
+
 	MonstersData.shrink_to_fit();
 }
 
-void LoadUniqueMonstDat()
+} // namespace
+
+void LoadUniqueMonstDatFromFile(DataFile &dataFile, std::string_view filename)
 {
-	const std::string_view filename = "txtdata\\monsters\\unique_monstdat.tsv";
-	DataFile dataFile = DataFile::loadOrDie(filename);
 	dataFile.skipHeaderOrDie(filename);
 
-	UniqueMonstersData.clear();
-	UniqueMonstersData.reserve(dataFile.numRecords());
+	UniqueMonstersData.reserve(UniqueMonstersData.size() + dataFile.numRecords());
+
 	for (DataFileRecord record : dataFile) {
 		RecordReader reader { record, filename };
 		UniqueMonsterData &monster = UniqueMonstersData.emplace_back();
@@ -569,20 +436,22 @@ void LoadUniqueMonstDat()
 		reader.read("monsterPack", monster.monsterPack, ParseUniqueMonsterPack);
 		reader.readInt("customToHit", monster.customToHit);
 		reader.readInt("customArmorClass", monster.customArmorClass);
-
-		// talkMessage
-		// TODO: Replace this hack with proper parsing once messages have been migrated to data files.
-		reader.read("talkMessage", monster.mtalkmsg, [](std::string_view value) -> tl::expected<_speech_id, std::string> {
-			if (value.empty()) return TEXT_NONE;
-			if (value == "TEXT_GARBUD1") return TEXT_GARBUD1;
-			if (value == "TEXT_ZHAR1") return TEXT_ZHAR1;
-			if (value == "TEXT_BANNER10") return TEXT_BANNER10;
-			if (value == "TEXT_VILE13") return TEXT_VILE13;
-			if (value == "TEXT_VEIL9") return TEXT_VEIL9;
-			if (value == "TEXT_WARLRD9") return TEXT_WARLRD9;
-			return tl::make_unexpected("Invalid value. NOTE: Parser is incomplete");
-		});
+		reader.read("talkMessage", monster.mtalkmsg, ParseSpeechId);
 	}
+}
+
+namespace {
+
+void LoadUniqueMonstDat()
+{
+	const std::string_view filename = "txtdata\\monsters\\unique_monstdat.tsv";
+	DataFile dataFile = DataFile::loadOrDie(filename);
+
+	UniqueMonstersData.clear();
+	LoadUniqueMonstDatFromFile(dataFile, filename);
+
+	LuaEvent("UniqueMonsterDataLoaded");
+
 	UniqueMonstersData.shrink_to_fit();
 }
 

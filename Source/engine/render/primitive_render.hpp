@@ -38,6 +38,9 @@ void DrawVerticalLine(const Surface &out, Point from, int height, std::uint8_t c
 /** Same as DrawVerticalLine but without bounds clipping. */
 void UnsafeDrawVerticalLine(const Surface &out, Point from, int height, std::uint8_t colorIndex);
 
+void DrawHalfTransparentHorizontalLine(const Surface &out, Point from, int width, uint8_t colorIndex);
+void DrawHalfTransparentVerticalLine(const Surface &out, Point from, int width, uint8_t colorIndex);
+
 /**
  * Draws a half-transparent rectangle by palette blending with black.
  *
@@ -49,6 +52,8 @@ void UnsafeDrawVerticalLine(const Surface &out, Point from, int height, std::uin
  * @param height Rectangle height
  */
 void DrawHalfTransparentRectTo(const Surface &out, int sx, int sy, int width, int height);
+
+void DrawHalfTransparentRectTo(const Surface &out, int sx, int sy, int width, int height, uint8_t color);
 
 /**
  * Draws a half-transparent pixel

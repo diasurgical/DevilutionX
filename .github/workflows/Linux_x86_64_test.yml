@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
       with:
         fetch-depth: 0
 
@@ -36,15 +36,15 @@ jobs:
       uses: actions/cache@v4
       with:
         path: build
-        key: ${{ github.workflow }}-v2-${{ github.sha }}
-        restore-keys: ${{ github.workflow }}-v2-
+        key: ${{ github.workflow }}-v3-${{ github.sha }}
+        restore-keys: ${{ github.workflow }}-v3-
 
     # We specify `-DDEVILUTIONX_SYSTEM_BENCHMARK=OFF` to work around the following error:
     # lto1: fatal error: bytecode stream in file ‘/usr/lib/x86_64-linux-gnu/libbenchmark_main.a’ generated with LTO version 11.2 instead of the expected 11.3
     - name: Build tests
       run: |
-        cmake -S. -Bbuild -DENABLE_CODECOVERAGE=ON -DDEVILUTIONX_SYSTEM_BENCHMARK=OFF
-        wget -nc https://github.com/diasurgical/devilutionx-assets/releases/download/v2/spawn.mpq -P build
+        cmake -S. -Bbuild -G Ninja -DENABLE_CODECOVERAGE=ON -DDEVILUTIONX_SYSTEM_BENCHMARK=OFF
+        wget -qnc https://github.com/diasurgical/devilutionx-assets/releases/download/v2/spawn.mpq -P build
         cmake --build build -j $(nproc)
 
     - name: Run tests

@@ -5,8 +5,17 @@
  */
 #include "engine/dx.h"
 
-#include <SDL.h>
 #include <cstdint>
+
+#ifdef USE_SDL3
+#include <SDL3/SDL_rect.h>
+#include <SDL3/SDL_render.h>
+#include <SDL3/SDL_surface.h>
+#include <SDL3/SDL_timer.h>
+#include <SDL3/SDL_video.h>
+#else
+#include <SDL.h>
+#endif
 
 #include "controls/control_mode.hpp"
 #include "controls/plrctrls.h"
@@ -63,7 +72,12 @@ bool CanRenderDirectlyToOutputSurface()
 	    && outputSurface->format->BitsPerPixel == 8);
 #endif
 #else // !USE_SDL1
-	return false;
+	if (renderer != nullptr) return false;
+	SDL_Surface *outputSurface = GetOutputSurface();
+	// Assumes double-buffering is available.
+	return outputSurface->w == static_cast<int>(gnScreenWidth)
+	    && outputSurface->h == static_cast<int>(gnScreenHeight)
+	    && SDLC_SURFACE_BITSPERPIXEL(outputSurface) == 8;
 #endif
 }
 
@@ -75,7 +89,7 @@ void LimitFrameRate()
 	if (*GetOptions().Graphics.frameRateControl != FrameRateControl::CPUSleep)
 		return;
 	static uint32_t frameDeadline;
-	uint32_t tc = SDL_GetTicks() * 1000;
+	const uint32_t tc = SDL_GetTicks() * 1000;
 	uint32_t v = 0;
 	if (frameDeadline > tc) {
 		v = tc % refreshDelay;
@@ -139,7 +153,9 @@ void CreateBackBuffer()
 		PalSurface = PinnedPalSurface.get();
 	}
 
-#ifndef USE_SDL1
+#if defined(USE_SDL3)
+	if (!SDL_SetSurfacePalette(PalSurface, Palette.get())) ErrSdl();
+#elif !defined(USE_SDL1)
 	// In SDL2, `PalSurface` points to the global `palette`.
 	if (SDL_SetSurfacePalette(PalSurface, Palette.get()) < 0)
 		ErrSdl();
@@ -163,7 +179,9 @@ void Blit(SDL_Surface *src, SDL_Rect *srcRect, SDL_Rect *dstRect)
 		return;
 
 	SDL_Surface *dst = GetOutputSurface();
-#ifndef USE_SDL1
+#if defined(USE_SDL3)
+	if (!SDL_BlitSurface(src, srcRect, dst, dstRect)) ErrSdl();
+#elif !defined(USE_SDL1)
 	if (SDL_BlitSurface(src, srcRect, dst, dstRect) < 0)
 		ErrSdl();
 #else
@@ -224,21 +242,18 @@ void RenderPresent()
 
 #ifndef USE_SDL1
 	if (renderer != nullptr) {
-		if (SDL_UpdateTexture(texture.get(), nullptr, surface->pixels, surface->pitch) <= -1) { // pitch is 2560
-			ErrSdl();
-		}
+#ifdef USE_SDL3
+		if (!SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255)) ErrSdl();
+		if (!SDL_RenderClear(renderer)) ErrSdl();
+		if (!SDL_UpdateTexture(texture.get(), nullptr, surface->pixels, surface->pitch)) ErrSdl();
+		if (!SDL_RenderTexture(renderer, texture.get(), nullptr, nullptr)) ErrSdl();
+#else
+		if (SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255) <= -1) ErrSdl();
+		if (SDL_RenderClear(renderer) <= -1) ErrSdl();
+		if (SDL_UpdateTexture(texture.get(), nullptr, surface->pixels, surface->pitch) <= -1) ErrSdl();
+		if (SDL_RenderCopy(renderer, texture.get(), nullptr, nullptr) <= -1) ErrSdl();
+#endif
 
-		// Clear buffer to avoid artifacts in case the window was resized
-		if (SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255) <= -1) { // TODO only do this if window was resized
-			ErrSdl();
-		}
-
-		if (SDL_RenderClear(renderer) <= -1) {
-			ErrSdl();
-		}
-		if (SDL_RenderCopy(renderer, texture.get(), nullptr, nullptr) <= -1) {
-			ErrSdl();
-		}
 		if (ControlMode == ControlTypes::VirtualGamepad) {
 			RenderVirtualGamepad(renderer);
 		}
@@ -251,9 +266,15 @@ void RenderPresent()
 		if (ControlMode == ControlTypes::VirtualGamepad) {
 			RenderVirtualGamepad(surface);
 		}
-		if (SDL_UpdateWindowSurface(ghMainWnd) <= -1) {
-			ErrSdl();
-		}
+
+#ifdef USE_SDL3
+		if (!SDL_UpdateWindowSurface(ghMainWnd)) ErrSdl();
+#else
+		if (SDL_UpdateWindowSurface(ghMainWnd) <= -1) ErrSdl();
+#endif
+
+		if (RenderDirectlyToOutputSurface)
+			PalSurface = GetOutputSurface();
 		LimitFrameRate();
 	}
 #else

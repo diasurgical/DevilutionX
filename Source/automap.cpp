@@ -17,6 +17,7 @@
 #include "engine/render/primitive_render.hpp"
 #include "levels/gendung.h"
 #include "levels/setmaps.h"
+#include "options.h"
 #include "player.h"
 #include "utils/attributes.h"
 #include "utils/enum_traits.h"
@@ -145,10 +146,10 @@ struct AutomapTile {
 	}
 
 	template <typename... Args>
-	[[nodiscard]] DVL_ALWAYS_INLINE constexpr bool hasAnyFlag(Flags flag, Args... flags)
+	[[nodiscard]] DVL_ALWAYS_INLINE constexpr bool hasAnyFlag(Flags flag, Args... testFlags)
 	{
 		return (static_cast<uint8_t>(this->flags)
-		           & (static_cast<uint8_t>(flag) | ... | static_cast<uint8_t>(flags)))
+		           & (static_cast<uint8_t>(flag) | ... | static_cast<uint8_t>(testFlags)))
 		    != 0;
 	}
 };
@@ -630,9 +631,9 @@ void DrawWallConnections(const Surface &out, Point center, AutomapTile tile, Aut
  */
 void DrawMapVerticalGrate(const Surface &out, Point center, uint8_t colorDim)
 {
-	Point pos1 = center + AmOffset(AmWidthOffset::HalfTileLeft, AmHeightOffset::None) + AmOffset(AmWidthOffset::EighthTileRight, AmHeightOffset::EighthTileUp);
-	Point pos2 = center + AmOffset(AmWidthOffset::HalfTileLeft, AmHeightOffset::None);
-	Point pos3 = center + AmOffset(AmWidthOffset::HalfTileLeft, AmHeightOffset::None) + AmOffset(AmWidthOffset::EighthTileLeft, AmHeightOffset::EighthTileDown);
+	const Point pos1 = center + AmOffset(AmWidthOffset::HalfTileLeft, AmHeightOffset::None) + AmOffset(AmWidthOffset::EighthTileRight, AmHeightOffset::EighthTileUp);
+	const Point pos2 = center + AmOffset(AmWidthOffset::HalfTileLeft, AmHeightOffset::None);
+	const Point pos3 = center + AmOffset(AmWidthOffset::HalfTileLeft, AmHeightOffset::None) + AmOffset(AmWidthOffset::EighthTileLeft, AmHeightOffset::EighthTileDown);
 
 	SetMapPixel(out, pos1 + Displacement { 0, 1 }, 0);
 	SetMapPixel(out, pos2 + Displacement { 0, 1 }, 0);
@@ -647,9 +648,9 @@ void DrawMapVerticalGrate(const Surface &out, Point center, uint8_t colorDim)
  */
 void DrawMapHorizontalGrate(const Surface &out, Point center, uint8_t colorDim)
 {
-	Point pos1 = center + AmOffset(AmWidthOffset::HalfTileRight, AmHeightOffset::None) + AmOffset(AmWidthOffset::EighthTileLeft, AmHeightOffset::EighthTileUp);
-	Point pos2 = center + AmOffset(AmWidthOffset::HalfTileRight, AmHeightOffset::None);
-	Point pos3 = center + AmOffset(AmWidthOffset::HalfTileRight, AmHeightOffset::None) + AmOffset(AmWidthOffset::EighthTileRight, AmHeightOffset::EighthTileDown);
+	const Point pos1 = center + AmOffset(AmWidthOffset::HalfTileRight, AmHeightOffset::None) + AmOffset(AmWidthOffset::EighthTileLeft, AmHeightOffset::EighthTileUp);
+	const Point pos2 = center + AmOffset(AmWidthOffset::HalfTileRight, AmHeightOffset::None);
+	const Point pos3 = center + AmOffset(AmWidthOffset::HalfTileRight, AmHeightOffset::None) + AmOffset(AmWidthOffset::EighthTileRight, AmHeightOffset::EighthTileDown);
 
 	SetMapPixel(out, pos1 + Displacement { 0, 1 }, 0);
 	SetMapPixel(out, pos2 + Displacement { 0, 1 }, 0);
@@ -978,7 +979,7 @@ void DrawAutomapTile(const Surface &out, Point center, Point map)
 {
 	uint8_t colorBright = MapColorsBright;
 	uint8_t colorDim = MapColorsDim;
-	MapExplorationType explorationType = static_cast<MapExplorationType>(AutomapView[std::clamp(map.x, 0, DMAXX - 1)][std::clamp(map.y, 0, DMAXY - 1)]);
+	const MapExplorationType explorationType = static_cast<MapExplorationType>(AutomapView[std::clamp(map.x, 0, DMAXX - 1)][std::clamp(map.y, 0, DMAXY - 1)]);
 
 	switch (explorationType) {
 	case MAP_EXP_SHRINE:
@@ -1324,16 +1325,16 @@ void DrawAutomapPlr(const Surface &out, const Displacement &myPlayerOffset, cons
 {
 	const uint8_t playerColor = MapColorsPlayer + (8 * player.getId()) % 128;
 
-	Point tile = player.position.tile;
+	const Point tile = player.position.tile;
 
-	int px = tile.x - 2 * AutomapOffset.deltaX - ViewPosition.x;
-	int py = tile.y - 2 * AutomapOffset.deltaY - ViewPosition.y;
+	const int px = tile.x - 2 * AutomapOffset.deltaX - ViewPosition.x;
+	const int py = tile.y - 2 * AutomapOffset.deltaY - ViewPosition.y;
 
 	Displacement playerOffset = {};
 	if (player.isWalking())
 		playerOffset = GetOffsetForWalking(player.AnimInfo, player._pdir);
 
-	int scale = (GetAutomapType() == AutomapType::Minimap) ? MinimapScale : AutoMapScale;
+	const int scale = (GetAutomapType() == AutomapType::Minimap) ? MinimapScale : AutoMapScale;
 
 	Point base = {
 		((playerOffset.deltaX + myPlayerOffset.deltaX) * scale / 100 / 2) + (px - py) * AmLine(AmLineLength::DoubleTile),
@@ -1411,6 +1412,10 @@ void DrawAutomapText(const Surface &out)
 {
 	Point linePosition { 8, 8 };
 
+	if (*GetOptions().Graphics.showFPS) {
+		linePosition.y += 15;
+	}
+
 	if (gbIsMultiplayer) {
 		if (GameName != "0.0.0.0" && !IsLoopback) {
 			std::string description = std::string(_("Game: "));
@@ -1468,7 +1473,7 @@ void DrawAutomapText(const Surface &out)
 		break;
 	}
 
-	std::string difficultyString = fmt::format(fmt::runtime(_(/* TRANSLATORS: {:s} means: Game Difficulty. */ "Difficulty: {:s}")), difficulty);
+	const std::string difficultyString = fmt::format(fmt::runtime(_(/* TRANSLATORS: {:s} means: Game Difficulty. */ "Difficulty: {:s}")), difficulty);
 	DrawString(out, difficultyString, linePosition);
 
 #ifdef _DEBUG
@@ -1545,15 +1550,15 @@ void InitAutomapOnce()
 	AutoMapScale = 50;
 
 	// Set the dimensions and screen position of the minimap relative to the screen dimensions
-	int minimapWidth = gnScreenWidth / 4;
-	Size minimapSize { minimapWidth, minimapWidth / 2 };
-	int minimapPadding = gnScreenWidth / 128;
+	const int minimapWidth = gnScreenWidth / 4;
+	const Size minimapSize { minimapWidth, minimapWidth / 2 };
+	const int minimapPadding = gnScreenWidth / 128;
 	MinimapRect = Rectangle { { gnScreenWidth - minimapPadding - minimapSize.width, minimapPadding }, minimapSize };
 
 	// Set minimap scale
-	int height = 480;
-	int scale = 25;
-	int factor = gnScreenHeight / height;
+	const int height = 480;
+	const int scale = 25;
+	const int factor = gnScreenHeight / height;
 
 	if (factor >= 8) {
 		MinimapScale = scale * 8;
@@ -1565,7 +1570,7 @@ void InitAutomapOnce()
 void InitAutomap()
 {
 	size_t tileCount = 0;
-	std::unique_ptr<AutomapTile[]> tileTypes = LoadAutomapData(tileCount);
+	const std::unique_ptr<AutomapTile[]> tileTypes = LoadAutomapData(tileCount);
 
 	switch (leveltype) {
 	case DTYPE_CATACOMBS:
@@ -1758,8 +1763,8 @@ void DrawAutomap(const Surface &out)
 	if (myPlayer.isWalking())
 		myPlayerOffset = GetOffsetForWalking(myPlayer.AnimInfo, myPlayer._pdir, true);
 
-	int scale = (GetAutomapType() == AutomapType::Minimap) ? MinimapScale : AutoMapScale;
-	int d = (scale * 64) / 100;
+	const int scale = (GetAutomapType() == AutomapType::Minimap) ? MinimapScale : AutoMapScale;
+	const int d = (scale * 64) / 100;
 	int cells = 2 * (gnScreenWidth / 2 / d) + 1;
 	if (((gnScreenWidth / 2) % d) != 0)
 		cells++;
@@ -1772,7 +1777,7 @@ void DrawAutomap(const Surface &out)
 		// Background fill
 		DrawHalfTransparentRectTo(out, MinimapRect.position.x, MinimapRect.position.y, MinimapRect.size.width, MinimapRect.size.height);
 
-		uint8_t frameShadowColor = PAL16_YELLOW + 12;
+		const uint8_t frameShadowColor = PAL16_YELLOW + 12;
 
 		// Shadow
 		DrawHorizontalLine(out, MinimapRect.position + Displacement { -1, -1 }, MinimapRect.size.width + 1, frameShadowColor);
@@ -1876,8 +1881,8 @@ void SetAutomapView(Point position, MapExplorationType explorer)
 
 	UpdateAutomapExplorer(map, explorer);
 
-	AutomapTile tile = GetAutomapTileType(map);
-	bool solid = tile.hasFlag(AutomapTile::Flags::Dirt);
+	const AutomapTile tile = GetAutomapTileType(map);
+	const bool solid = tile.hasFlag(AutomapTile::Flags::Dirt);
 
 	switch (tile.type) {
 	case AutomapTile::Types::Vertical:
