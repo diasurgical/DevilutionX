@@ -23,6 +23,7 @@
 
 #include "DiabloUI/diabloui.h"
 #include "diablo.h"
+#include "dvlnet/packet.h"
 #include "engine/demomode.h"
 #include "engine/point.hpp"
 #include "engine/random.hpp"
@@ -44,6 +45,7 @@
 #include "utils/endian_swap.hpp"
 #include "utils/is_of.hpp"
 #include "utils/language.h"
+#include "utils/log.hpp"
 #include "utils/str_cat.hpp"
 
 namespace devilution {
@@ -59,7 +61,7 @@ bool sgbSendDeltaTbl[MAX_PLRS];
 GameData sgGameInitInfo;
 bool gbSelectProvider;
 int sglTimeoutStart;
-uint32_t sgdwPlayerLeftReasonTbl[MAX_PLRS];
+leaveinfo_t sgdwPlayerLeftReasonTbl[MAX_PLRS];
 uint32_t sgdwGameLoops;
 /**
  * Specifies the maximum number of players in a game, where 1
@@ -216,7 +218,7 @@ void CheckPlayerInfoTimeouts()
 		// Time the player out after 15 seconds
 		// if we do not receive valid player info
 		if (SDL_GetTicks() - timerStart >= 15000) {
-			SNetDropPlayer(i, LEAVE_DROP);
+			SNetDropPlayer(i, leaveinfo_t::LEAVE_DROP);
 			timerStart = 0;
 		}
 	}
@@ -288,15 +290,26 @@ void PlayerLeftMsg(Player &player, bool left)
 	RemoveEnemyReferences(player);
 	RemovePlrMissiles(player);
 	if (left) {
+		const leaveinfo_t leaveReason = sgdwPlayerLeftReasonTbl[player.getId()];
+		const std::string reasonDescription = DescribeLeaveReason(leaveReason);
 		std::string_view pszFmt = _("Player '{:s}' just left the game");
-		switch (sgdwPlayerLeftReasonTbl[player.getId()]) {
-		case LEAVE_ENDING:
+		switch (leaveReason) {
+		case leaveinfo_t::LEAVE_EXIT:
+			break;
+		case leaveinfo_t::LEAVE_ENDING:
 			pszFmt = _("Player '{:s}' killed Diablo and left the game!");
 			gbSomebodyWonGameKludge = true;
 			break;
-		case LEAVE_DROP:
+		case leaveinfo_t::LEAVE_DROP:
 			pszFmt = _("Player '{:s}' dropped due to timeout");
 			break;
+		}
+		if (!IsLoopback) {
+			const uint8_t remainingPlayers = gbActivePlayers > 0 ? gbActivePlayers - 1 : 0;
+			if (player._pName[0] != '\0')
+				LogInfo("Player '{}' left the {} game ({}, {}/{} players)", player._pName, ConnectionNames[provider], reasonDescription, remainingPlayers, MAX_PLRS);
+			else
+				LogInfo("Player left the {} game ({}, {}/{} players)", ConnectionNames[provider], reasonDescription, remainingPlayers, MAX_PLRS);
 		}
 		EventPlrMsg(fmt::format(fmt::runtime(pszFmt), player._pName));
 	}
@@ -316,7 +329,7 @@ void ClearPlayerLeftState()
 				PlayerLeftMsg(Players[i], true);
 
 			sgbPlayerLeftGameTbl[i] = false;
-			sgdwPlayerLeftReasonTbl[i] = 0;
+			sgdwPlayerLeftReasonTbl[i] = static_cast<leaveinfo_t>(0);
 		}
 	}
 }
@@ -325,7 +338,7 @@ void CheckDropPlayer()
 {
 	for (uint8_t i = 0; i < Players.size(); i++) {
 		if ((player_state[i] & PS_ACTIVE) == 0 && (player_state[i] & PS_CONNECTED) != 0) {
-			SNetDropPlayer(i, LEAVE_DROP);
+			SNetDropPlayer(i, leaveinfo_t::LEAVE_DROP);
 		}
 	}
 }
@@ -422,13 +435,14 @@ void HandleEvents(_SNETEVENT *pEvt)
 		sgbPlayerLeftGameTbl[playerId] = true;
 		sgbPlayerTurnBitTbl[playerId] = false;
 
-		int32_t leftReason = 0;
-		if (pEvt->data != nullptr && pEvt->databytes >= sizeof(leftReason)) {
-			std::memcpy(&leftReason, pEvt->data, sizeof(leftReason));
-			leftReason = Swap32LE(leftReason);
+		uint32_t leftReasonRaw = 0;
+		if (pEvt->data != nullptr && pEvt->databytes >= sizeof(leftReasonRaw)) {
+			std::memcpy(&leftReasonRaw, pEvt->data, sizeof(leftReasonRaw));
+			leftReasonRaw = Swap32LE(leftReasonRaw);
 		}
+		leaveinfo_t leftReason = static_cast<leaveinfo_t>(leftReasonRaw);
 		sgdwPlayerLeftReasonTbl[playerId] = leftReason;
-		if (leftReason == LEAVE_ENDING)
+		if (leftReason == leaveinfo_t::LEAVE_ENDING)
 			gbSomebodyWonGameKludge = true;
 
 		sgbSendDeltaTbl[playerId] = false;
@@ -520,6 +534,26 @@ bool InitMulti(GameData *gameData)
 
 } // namespace
 
+DVL_API_FOR_TEST std::string DescribeLeaveReason(leaveinfo_t leaveReason)
+{
+	switch (leaveReason) {
+	case leaveinfo_t::LEAVE_EXIT:
+		return "normal exit";
+	case leaveinfo_t::LEAVE_ENDING:
+		return "Diablo defeated";
+	case leaveinfo_t::LEAVE_DROP:
+		return "connection timeout";
+	default:
+		return fmt::format("code 0x{:08X}", static_cast<uint32_t>(leaveReason));
+	}
+}
+
+std::string FormatGameSeed(const uint32_t gameSeed[4])
+{
+	return fmt::format("{:08X}{:08X}{:08X}{:08X}",
+	    gameSeed[0], gameSeed[1], gameSeed[2], gameSeed[3]);
+}
+
 void InitGameInfo()
 {
 	const xoshiro128plusplus gameGenerator = ReserveSeedSequence();
@@ -597,7 +631,7 @@ void multi_msg_countdown()
 	}
 }
 
-void multi_player_left(uint8_t pnum, int reason)
+void multi_player_left(uint8_t pnum, leaveinfo_t reason)
 {
 	sgbPlayerLeftGameTbl[pnum] = true;
 	sgdwPlayerLeftReasonTbl[pnum] = reason;
@@ -769,7 +803,7 @@ void NetClose()
 	nthread_cleanup();
 	tmsg_cleanup();
 	UnregisterNetEventHandlers();
-	SNetLeaveGame(3);
+	SNetLeaveGame(leaveinfo_t::LEAVE_EXIT);
 	if (gbIsMultiplayer)
 		SDL_Delay(2000);
 	if (!demo::IsRunning()) {
@@ -843,6 +877,16 @@ bool NetInit(bool bSinglePlayer)
 	AddMessageToChatLog(_("New Game"), nullptr, UiFlags::ColorRed);
 	AddMessageToChatLog(fmt::format(fmt::runtime(_("Player '{:s}' (level {:d}) just joined the game")), myPlayer._pName, myPlayer.getCharacterLevel()));
 
+	// Log join message with seed for joining players (creator already logged it in SNetCreateGame)
+	if (gbIsMultiplayer && !IsLoopback && MyPlayerId != 0) {
+		std::string upperGameName = GameName;
+		std::transform(upperGameName.begin(), upperGameName.end(), upperGameName.begin(), ::toupper);
+		const char *privacy = PublicGame ? "public" : "private";
+		LogInfo("Joined {} {} multiplayer game '{}' (player id: {}, seed: {})",
+		    privacy, ConnectionNames[provider], upperGameName, MyPlayerId,
+		    FormatGameSeed(sgGameInitInfo.gameSeed));
+	}
+
 	return true;
 }
 
@@ -877,7 +921,7 @@ void recv_plrinfo(Player &player, const TCmdPlrInfoHdr &header, bool recv)
 	PlayerLeftMsg(player, false);
 	if (!UnPackNetPlayer(packedPlayer, player)) {
 		player = {};
-		SNetDropPlayer(pnum, LEAVE_DROP);
+		SNetDropPlayer(pnum, leaveinfo_t::LEAVE_DROP);
 		return;
 	}
 
@@ -892,6 +936,8 @@ void recv_plrinfo(Player &player, const TCmdPlrInfoHdr &header, bool recv)
 	std::string_view szEvent;
 	if (sgbPlayerTurnBitTbl[pnum]) {
 		szEvent = _("Player '{:s}' (level {:d}) just joined the game");
+		if (!IsLoopback)
+			LogInfo("Player '{}' joined the {} game (level {}, {}/{} players)", player._pName, ConnectionNames[provider], player.getCharacterLevel(), gbActivePlayers, MAX_PLRS);
 	} else {
 		szEvent = _("Player '{:s}' (level {:d}) is already in the game");
 	}

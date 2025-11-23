@@ -1,5 +1,6 @@
 #include "storm/storm_net.hpp"
 
+#include <algorithm>
 #include <cstdint>
 #include <memory>
 
@@ -17,6 +18,7 @@
 #include "menu.h"
 #include "multi.h"
 #include "options.h"
+#include "utils/log.hpp"
 #include "utils/stubs.h"
 #include "utils/utf8.hpp"
 
@@ -100,7 +102,7 @@ bool SNetDestroy()
 	return true;
 }
 
-bool SNetDropPlayer(uint8_t playerid, uint32_t flags)
+bool SNetDropPlayer(uint8_t playerid, leaveinfo_t flags)
 {
 #ifndef NONET
 	std::lock_guard<SdlMutex> lg(storm_net_mutex);
@@ -108,13 +110,20 @@ bool SNetDropPlayer(uint8_t playerid, uint32_t flags)
 	return dvlnet_inst->SNetDropPlayer(playerid, flags);
 }
 
-bool SNetLeaveGame(int type)
+bool SNetLeaveGame(leaveinfo_t type)
 {
 #ifndef NONET
 	std::lock_guard<SdlMutex> lg(storm_net_mutex);
 #endif
 	if (dvlnet_inst == nullptr)
 		return true;
+	if (!IsLoopback) {
+		std::string upperGameName = GameName;
+		std::transform(upperGameName.begin(), upperGameName.end(), upperGameName.begin(), ::toupper);
+		const std::string reasonDescription = DescribeLeaveReason(type);
+		LogInfo("Leaving {} multiplayer game '{}' (reason: {})",
+		    ConnectionNames[provider], upperGameName, reasonDescription);
+	}
 	return dvlnet_inst->SNetLeaveGame(type);
 }
 
@@ -156,8 +165,25 @@ bool SNetCreateGame(const char *pszGameName, const char *pszGamePassword, char *
 		DvlNet_SetPassword(pszGamePassword);
 	else
 		DvlNet_ClearPassword();
-	*playerID = dvlnet_inst->create(pszGameName);
-	return *playerID != -1;
+	const int createdPlayerId = dvlnet_inst->create(pszGameName);
+	if (createdPlayerId == -1)
+		return false;
+	*playerID = createdPlayerId;
+	if (!IsLoopback) {
+		std::string upperGameName = GameName;
+		std::transform(upperGameName.begin(), upperGameName.end(), upperGameName.begin(), ::toupper);
+		const char *privacy = GameIsPublic ? "public" : "private";
+		if (gameTemplateData != nullptr && gameTemplateSize >= static_cast<int>(sizeof(GameData))) {
+			const GameData *gameData = reinterpret_cast<const GameData *>(gameTemplateData);
+			LogInfo("Created {} {} multiplayer game '{}' (player id: {}, seed: {})",
+			    privacy, ConnectionNames[provider], upperGameName, createdPlayerId,
+			    FormatGameSeed(gameData->gameSeed));
+		} else {
+			LogInfo("Created {} {} multiplayer game '{}' (player id: {}, seed unavailable)",
+			    privacy, ConnectionNames[provider], upperGameName, createdPlayerId);
+		}
+	}
+	return true;
 }
 
 bool SNetJoinGame(char *pszGameName, char *pszGamePassword, int *playerID)
@@ -171,8 +197,12 @@ bool SNetJoinGame(char *pszGameName, char *pszGamePassword, int *playerID)
 		DvlNet_SetPassword(pszGamePassword);
 	else
 		DvlNet_ClearPassword();
-	*playerID = dvlnet_inst->join(pszGameName);
-	return *playerID != -1;
+	const int joinedPlayerId = dvlnet_inst->join(pszGameName);
+	if (joinedPlayerId == -1)
+		return false;
+	*playerID = joinedPlayerId;
+	// Join message with seed will be logged in NetInit after game data is synchronized
+	return true;
 }
 
 /**

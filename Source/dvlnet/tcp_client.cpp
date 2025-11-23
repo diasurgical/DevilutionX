@@ -212,7 +212,7 @@ void tcp_client::DisconnectNet(plr_t plr)
 		local_server->DisconnectNet(plr);
 }
 
-bool tcp_client::SNetLeaveGame(int type)
+bool tcp_client::SNetLeaveGame(net::leaveinfo_t type)
 {
 	auto ret = base::SNetLeaveGame(type);
 	poll();

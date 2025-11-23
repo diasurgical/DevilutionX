@@ -25,7 +25,9 @@
 
 #ifdef DVL_ZT_SYMLINK
 #include <shlobj.h>
+#ifdef PACKET_ENCRYPTION
 #include <sodium.h>
+#endif
 
 #include "utils/str_cat.hpp"
 #include "utils/utf8.hpp"
@@ -61,6 +63,7 @@ bool HasMultiByteChars(std::string_view path)
 	return c_any_of(path, IsTrailUtf8CodeUnit);
 }
 
+#ifdef PACKET_ENCRYPTION
 std::string ComputeAlternateFolderName(std::string_view path)
 {
 	const size_t hashSize = crypto_generichash_BYTES;
@@ -79,6 +82,12 @@ std::string ComputeAlternateFolderName(std::string_view path)
 	}
 	return std::string(buf, hashSize * 2);
 }
+#else
+std::string ComputeAlternateFolderName(std::string_view path)
+{
+	return {};
+}
+#endif
 
 std::string ToZTCompliantPath(std::string_view configPath)
 {

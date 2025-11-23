@@ -10,6 +10,8 @@
 
 namespace devilution {
 
+using net::leaveinfo_t;
+
 enum conn_type : uint8_t {
 	SELCONN_ZT,
 	SELCONN_TCP,
@@ -23,6 +25,7 @@ enum event_type : uint8_t {
 };
 
 extern const char *ConnectionNames[];
+extern int provider;
 
 struct _SNETCAPS {
 	uint32_t size;
@@ -53,9 +56,6 @@ struct DvlNetLatencies {
 #define PS_TURN_ARRIVED 0x20000
 #define PS_ACTIVE 0x40000
 
-#define LEAVE_ENDING 0x40000004
-#define LEAVE_DROP 0x40000006
-
 bool SNetCreateGame(const char *pszGameName, const char *pszGamePassword, char *GameTemplateData, int GameTemplateSize, int *playerID);
 bool SNetDestroy();
 
@@ -68,7 +68,7 @@ bool SNetDestroy();
  *
  *  Returns true if the function was called successfully and false otherwise.
  */
-bool SNetDropPlayer(uint8_t playerid, uint32_t flags);
+bool SNetDropPlayer(uint8_t playerid, leaveinfo_t flags);
 
 /*  SNetGetTurnsInTransit @ 115
  *
@@ -92,7 +92,7 @@ bool SNetJoinGame(char *gameName, char *gamePassword, int *playerid);
  *
  *  Returns true if the function was called successfully and false otherwise.
  */
-bool SNetLeaveGame(int type);
+bool SNetLeaveGame(leaveinfo_t type);
 
 bool SNetReceiveMessage(uint8_t *senderplayerid, void **data, size_t *databytes);
 bool SNetReceiveTurns(int arraysize, char **arraydata, size_t *arraydatabytes, uint32_t *arrayplayerstatus);

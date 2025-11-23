@@ -2,6 +2,7 @@ enable_language(OBJC)
 
 # General build options.
 set(BUILD_TESTING OFF)
+set(PACKET_ENCRYPTION OFF)
 
 # Disable all system dependencies.
 # All of these will be fetched via FetchContent and linked statically.

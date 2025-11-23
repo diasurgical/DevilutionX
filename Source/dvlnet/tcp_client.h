@@ -34,7 +34,7 @@ public:
 	tl::expected<void, PacketError> send(packet &pkt) override;
 	void DisconnectNet(plr_t plr) override;
 
-	bool SNetLeaveGame(int type) override;
+	bool SNetLeaveGame(net::leaveinfo_t type) override;
 
 	~tcp_client() override;
 

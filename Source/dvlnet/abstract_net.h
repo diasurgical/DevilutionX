@@ -25,8 +25,8 @@ public:
 	virtual void SNetGetProviderCaps(struct _SNETCAPS *caps) = 0;
 	virtual bool SNetRegisterEventHandler(event_type evtype, SEVTHANDLER func) = 0;
 	virtual bool SNetUnregisterEventHandler(event_type evtype) = 0;
-	virtual bool SNetLeaveGame(int type) = 0;
-	virtual bool SNetDropPlayer(int playerid, uint32_t flags) = 0;
+	virtual bool SNetLeaveGame(net::leaveinfo_t type) = 0;
+	virtual bool SNetDropPlayer(int playerid, net::leaveinfo_t flags) = 0;
 	virtual bool SNetGetOwnerTurnsWaiting(uint32_t *turns) = 0;
 	virtual bool SNetGetTurnsInTransit(uint32_t *turns) = 0;
 	virtual void setup_gameinfo(buffer_t info) = 0;
