@@ -78,12 +78,12 @@ bool cdwrap::SNetRegisterEventHandler(event_type evtype, SEVTHANDLER func)
 	return true;
 }
 
-bool cdwrap::SNetLeaveGame(int type)
+bool cdwrap::SNetLeaveGame(net::leaveinfo_t type)
 {
 	return dvlnet_wrap->SNetLeaveGame(type);
 }
 
-bool cdwrap::SNetDropPlayer(int playerid, uint32_t flags)
+bool cdwrap::SNetDropPlayer(int playerid, net::leaveinfo_t flags)
 {
 	return dvlnet_wrap->SNetDropPlayer(playerid, flags);
 }

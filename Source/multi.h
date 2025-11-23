@@ -13,6 +13,13 @@
 #include "utils/attributes.h"
 
 namespace devilution {
+namespace net {
+
+enum class leaveinfo_t : uint32_t;
+
+} // namespace net
+
+using net::leaveinfo_t;
 
 // Defined in player.h, forward declared here to allow for functions which operate in the context of a player.
 struct Player;
@@ -63,12 +70,15 @@ extern uint8_t gbDeltaSender;
 extern uint32_t player_state[MAX_PLRS];
 extern bool IsLoopback;
 
+DVL_API_FOR_TEST std::string DescribeLeaveReason(leaveinfo_t leaveReason);
+std::string FormatGameSeed(const uint32_t gameSeed[4]);
+
 void InitGameInfo();
 void NetSendLoPri(uint8_t playerId, const std::byte *data, size_t size);
 void NetSendHiPri(uint8_t playerId, const std::byte *data, size_t size);
 void multi_send_msg_packet(uint32_t pmask, const std::byte *data, size_t size);
 void multi_msg_countdown();
-void multi_player_left(uint8_t pnum, int reason);
+void multi_player_left(uint8_t pnum, leaveinfo_t reason);
 void multi_net_ping();
 
 /**

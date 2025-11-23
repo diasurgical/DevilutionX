@@ -31,7 +31,7 @@ public:
 	tl::expected<void, PacketError> send(packet &pkt) override;
 	void DisconnectNet(plr_t plr) override;
 
-	bool SNetLeaveGame(int type) override;
+	bool SNetLeaveGame(net::leaveinfo_t type) override;
 
 	std::string make_default_gamename() override;
 	bool send_info_request() override;
@@ -576,7 +576,7 @@ DvlNetLatencies base_protocol<P>::get_latencies(uint8_t playerid)
 }
 
 template <class P>
-bool base_protocol<P>::SNetLeaveGame(int type)
+bool base_protocol<P>::SNetLeaveGame(net::leaveinfo_t type)
 {
 	auto ret = base::SNetLeaveGame(type);
 	recv();
