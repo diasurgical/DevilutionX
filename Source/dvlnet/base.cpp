@@ -469,11 +469,11 @@ bool base::SNetRegisterEventHandler(event_type evtype, SEVTHANDLER func)
 	return true;
 }
 
-bool base::SNetLeaveGame(int type)
+bool base::SNetLeaveGame(net::leaveinfo_t type)
 {
 	tl::expected<std::unique_ptr<packet>, PacketError> pkt
 	    = pktfty->make_packet<PT_DISCONNECT>(
-	        plr_self, PLR_BROADCAST, plr_self, static_cast<leaveinfo_t>(type));
+	        plr_self, PLR_BROADCAST, plr_self, type);
 	if (!pkt.has_value()) {
 		LogError("make_packet: {}", pkt.error().what());
 		return false;
@@ -487,7 +487,7 @@ bool base::SNetLeaveGame(int type)
 	return true;
 }
 
-bool base::SNetDropPlayer(int playerid, uint32_t flags)
+bool base::SNetDropPlayer(int playerid, net::leaveinfo_t flags)
 {
 	const plr_t plr = static_cast<plr_t>(playerid);
 	tl::expected<std::unique_ptr<packet>, PacketError> pkt
@@ -495,7 +495,7 @@ bool base::SNetDropPlayer(int playerid, uint32_t flags)
 	        plr_self,
 	        PLR_BROADCAST,
 	        plr,
-	        static_cast<leaveinfo_t>(flags));
+	        flags);
 	if (!pkt.has_value()) {
 		LogError("make_packet: {}", pkt.error().what());
 		return false;

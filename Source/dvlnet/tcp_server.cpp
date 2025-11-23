@@ -267,7 +267,7 @@ void tcp_server::DropConnection(const scc &con)
 
 	tl::expected<std::unique_ptr<packet>, PacketError> pkt
 	    = pktfty.make_packet<PT_DISCONNECT>(PLR_MASTER, PLR_BROADCAST,
-	        plr, static_cast<leaveinfo_t>(LEAVE_DROP));
+	        plr, leaveinfo_t::LEAVE_DROP);
 	if (pkt.has_value()) {
 		SendPacket(**pkt);
 	} else {

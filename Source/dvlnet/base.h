@@ -25,8 +25,8 @@ public:
 	void SNetGetProviderCaps(struct _SNETCAPS *caps) override;
 	bool SNetRegisterEventHandler(event_type evtype, SEVTHANDLER func) override;
 	bool SNetUnregisterEventHandler(event_type evtype) override;
-	bool SNetLeaveGame(int type) override;
-	bool SNetDropPlayer(int playerid, uint32_t flags) override;
+	bool SNetLeaveGame(net::leaveinfo_t type) override;
+	bool SNetDropPlayer(int playerid, net::leaveinfo_t flags) override;
 	bool SNetGetOwnerTurnsWaiting(uint32_t *turns) override;
 	bool SNetGetTurnsInTransit(uint32_t *turns) override;
 

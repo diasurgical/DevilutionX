@@ -15,6 +15,7 @@
 
 #include "appfat.h"
 #include "dvlnet/abstract_net.h"
+#include "dvlnet/leaveinfo.hpp"
 #include "utils/attributes.h"
 #include "utils/endian_read.hpp"
 #include "utils/endian_write.hpp"
@@ -46,7 +47,6 @@ typedef uint8_t plr_t;
 typedef uint8_t seq_t;
 typedef uint32_t cookie_t;
 typedef uint32_t timestamp_t;
-typedef uint32_t leaveinfo_t;
 #ifdef PACKET_ENCRYPTION
 typedef std::array<unsigned char, crypto_secretbox_KEYBYTES> key_t;
 #else
@@ -404,11 +404,19 @@ tl::expected<void, PacketError> packet_out::process_element(const T &x)
 	static_assert(sizeof(T) == 4 || sizeof(T) == 2 || sizeof(T) == 1, "Unsupported T");
 	if (sizeof(T) == 4) {
 		unsigned char buf[4];
-		WriteLE32(buf, x);
+		if constexpr (std::is_enum<T>::value) {
+			WriteLE32(buf, static_cast<std::underlying_type_t<T>>(x));
+		} else {
+			WriteLE32(buf, x);
+		}
 		decrypted_buffer.insert(decrypted_buffer.end(), buf, buf + 4);
 	} else if (sizeof(T) == 2) {
 		unsigned char buf[2];
-		WriteLE16(buf, x);
+		if constexpr (std::is_enum<T>::value) {
+			WriteLE16(buf, static_cast<std::underlying_type_t<T>>(x));
+		} else {
+			WriteLE16(buf, x);
+		}
 		decrypted_buffer.insert(decrypted_buffer.end(), buf, buf + 2);
 	} else if (sizeof(T) == 1) {
 		decrypted_buffer.push_back(static_cast<unsigned char>(x));

@@ -39,6 +39,7 @@
 #include "cursor.h"
 #include "dead.h"
 #include "diablo.h"
+#include "dvlnet/leaveinfo.hpp"
 #include "effects.h"
 #include "engine/animationinfo.h"
 #include "engine/clx_sprite.hpp"
@@ -3947,7 +3948,7 @@ void M_UpdateRelations(const Monster &monster)
 void DoEnding()
 {
 	if (gbIsMultiplayer) {
-		SNetLeaveGame(LEAVE_ENDING);
+		SNetLeaveGame(leaveinfo_t::LEAVE_ENDING);
 	}
 
 	music_stop();

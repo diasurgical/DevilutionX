@@ -30,6 +30,7 @@
 #include "config.h"
 #include "control.h"
 #include "dead.h"
+#include "dvlnet/packet.h"
 #include "engine/backbuffer_state.hpp"
 #include "engine/random.hpp"
 #include "engine/world_tile.hpp"
@@ -444,7 +445,7 @@ void PrePacket()
 				auto *cmd = reinterpret_cast<TFakeDropPlr *>(data);
 				data += sizeof(*cmd);
 				remainingBytes -= sizeof(*cmd);
-				multi_player_left(cmd->bPlr, Swap32LE(cmd->dwReason));
+				multi_player_left(cmd->bPlr, static_cast<leaveinfo_t>(Swap32LE(cmd->dwReason)));
 				continue;
 			}
 
@@ -780,7 +781,7 @@ void DeltaImportData(_cmd_id cmd, uint32_t recvOffset, int pnum)
 		deltaSize = PkwareDecompress(&sgRecvBuf[1], static_cast<uint32_t>(deltaSize), sizeof(sgRecvBuf) - 1);
 		if (deltaSize == 0) {
 			Log("PKWare decompression failure, dropping player {}", pnum);
-			SNetDropPlayer(pnum, LEAVE_DROP);
+			SNetDropPlayer(pnum, leaveinfo_t::LEAVE_DROP);
 			return;
 		}
 	}
@@ -800,13 +801,13 @@ void DeltaImportData(_cmd_id cmd, uint32_t recvOffset, int pnum)
 		src = DeltaImportSpawnedMonsters(src, end, deltaLevel.spawnedMonsters);
 	} else {
 		Log("Received invalid deltas, dropping player {}", pnum);
-		SNetDropPlayer(pnum, LEAVE_DROP);
+		SNetDropPlayer(pnum, leaveinfo_t::LEAVE_DROP);
 		return;
 	}
 
 	if (src == nullptr) {
 		Log("Received invalid deltas, dropping player {}", pnum);
-		SNetDropPlayer(pnum, LEAVE_DROP);
+		SNetDropPlayer(pnum, leaveinfo_t::LEAVE_DROP);
 		return;
 	}
 
@@ -995,7 +996,7 @@ size_t OnLevelData(const TCmdPlrInfoHdr &message, size_t maxCmdSize, const Playe
 
 	if (sgdwRecvOffset + wBytes > sizeof(sgRecvBuf)) {
 		Log("Received too many deltas, dropping player {}", player.getId());
-		SNetDropPlayer(player.getId(), LEAVE_DROP);
+		SNetDropPlayer(player.getId(), leaveinfo_t::LEAVE_DROP);
 		return wBytes + sizeof(message);
 	}
 
@@ -1115,7 +1116,7 @@ void DeltaPutItem(const TCmdPItem &message, Point position, const Player &player
 		    && item.def.dwSeed == message.def.dwSeed) {
 			if (item.bCmd != TCmdPItem::DroppedItem) {
 				Log("Suspicious floor item duplication, dropping player {}", player.getId());
-				SNetDropPlayer(player.getId(), LEAVE_DROP);
+				SNetDropPlayer(player.getId(), leaveinfo_t::LEAVE_DROP);
 			}
 			return;
 		}
@@ -2694,11 +2695,11 @@ void ClearLastSentPlayerCmd()
 	lastSentPlayerCmd = {};
 }
 
-void msg_send_drop_pkt(uint8_t pnum, int reason)
+void msg_send_drop_pkt(uint8_t pnum, leaveinfo_t reason)
 {
 	TFakeDropPlr cmd;
 
-	cmd.dwReason = Swap32LE(reason);
+	cmd.dwReason = Swap32LE(static_cast<uint32_t>(reason));
 	cmd.bCmd = FAKE_CMD_DROPID;
 	cmd.bPlr = pnum;
 	BufferMessage(pnum, &cmd, sizeof(cmd));
@@ -3310,7 +3311,7 @@ bool ValidateCmdSize(size_t requiredCmdSize, size_t maxCmdSize, size_t playerId)
 		return true;
 
 	Log("Suspiciously small packet size, dropping player {}", playerId);
-	SNetDropPlayer(static_cast<uint8_t>(playerId), LEAVE_DROP);
+	SNetDropPlayer(static_cast<uint8_t>(playerId), leaveinfo_t::LEAVE_DROP);
 	return false;
 }
 
@@ -3480,7 +3481,7 @@ size_t ParseCmd(uint8_t pnum, const TCmd *pCmd, size_t maxCmdSize)
 
 	if (pCmd->bCmd < CMD_DLEVEL || pCmd->bCmd > CMD_DLEVEL_END) {
 		Log("Unrecognized network message {}, dropping player {}", static_cast<uint8_t>(pCmd->bCmd), pnum);
-		SNetDropPlayer(pnum, LEAVE_DROP);
+		SNetDropPlayer(pnum, leaveinfo_t::LEAVE_DROP);
 		return 0;
 	}
 
