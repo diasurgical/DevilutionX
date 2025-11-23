@@ -3,6 +3,7 @@ set(UBSAN OFF)
 set(BUILD_ASSETS_MPQ OFF)
 set(BUILD_TESTING OFF)
 set(DISCORD_INTEGRATION OFF)
+set(PACKET_ENCRYPTION OFF)
 set(DEVILUTIONX_GAMEPAD_TYPE Xbox)
 
 # setting all libs to be built statically and from source
