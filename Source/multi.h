@@ -15,6 +15,8 @@
 
 namespace devilution {
 
+using net::leaveinfo_t;
+
 // Defined in player.h, forward declared here to allow for functions which operate in the context of a player.
 struct Player;
 

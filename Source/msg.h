@@ -17,6 +17,8 @@
 
 namespace devilution {
 
+using net::leaveinfo_t;
+
 #define MAX_SEND_STR_LEN 80
 
 enum _cmd_id : uint8_t {
