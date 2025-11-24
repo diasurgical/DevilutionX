@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 
-#include "dvlnet/packet.h"
 #include "multi.h"
 
 namespace devilution {

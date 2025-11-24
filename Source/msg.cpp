@@ -30,7 +30,6 @@
 #include "config.h"
 #include "control.h"
 #include "dead.h"
-#include "dvlnet/packet.h"
 #include "engine/backbuffer_state.hpp"
 #include "engine/random.hpp"
 #include "engine/world_tile.hpp"

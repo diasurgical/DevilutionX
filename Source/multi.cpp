@@ -23,7 +23,6 @@
 
 #include "DiabloUI/diabloui.h"
 #include "diablo.h"
-#include "dvlnet/packet.h"
 #include "engine/demomode.h"
 #include "engine/point.hpp"
 #include "engine/random.hpp"
