@@ -26,7 +26,6 @@
 #include <Aulib/Stream.h>
 #endif
 #include <SDL.h>
-#endif
 #include <expected.hpp>
 
 #include "appfat.h"

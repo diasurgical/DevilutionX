@@ -5,6 +5,10 @@
 #include <functional>
 #include <memory>
 #include <string>
+#ifdef __PS2__
+#include <audsrv.h>
+#endif
+
 
 #include "engine/sound_defs.hpp"
 #include "utils/stdcompat/shared_ptr_array.hpp"
@@ -123,8 +127,8 @@ private:
 	std::size_t file_data_size_;
 
 	bool isMp3_;
-
-#ifndef USE_SDL3
+#endif
+#if !defined(USE_SDL3) && !defined(PS2)
 	std::unique_ptr<Aulib::Stream> stream_;
 #endif
 };

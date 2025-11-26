@@ -9,9 +9,11 @@
 #include <SDL3/SDL_error.h>
 #include <SDL3/SDL_iostream.h>
 #else
+#ifndef PS2
 #include <Aulib/DecoderDrmp3.h>
 #include <Aulib/DecoderDrwav.h>
 #include <Aulib/Stream.h>
+#endif
 
 #include <SDL.h>
 #ifdef USE_SDL1
@@ -19,7 +21,9 @@
 #else
 #include "utils/sdl2_backports.h"
 #endif
+#ifndef PS2
 #include "utils/aulib.hpp"
+#endif
 #endif
 
 #include "engine/assets.hpp"
@@ -73,7 +77,6 @@ std::unique_ptr<Aulib::Decoder> CreateDecoder(bool isMp3)
 		return std::make_unique<Aulib::DecoderDrmp3>();
 	return std::make_unique<Aulib::DecoderDrwav>();
 }
-#endif
 
 std::unique_ptr<Aulib::Stream> CreateStream(SDL_IOStream *handle, bool isMp3)
 {
@@ -83,6 +86,7 @@ std::unique_ptr<Aulib::Stream> CreateStream(SDL_IOStream *handle, bool isMp3)
 	auto resampler = CreateAulibResampler(decoder->getRate());
 	return std::make_unique<Aulib::Stream>(handle, std::move(decoder), std::move(resampler), /*closeRw=*/true);
 }
+#endif
 
 /**
  * @brief Converts log volume passed in into linear volume.
