@@ -154,6 +154,7 @@ set(devilutionx_assets
   lua/devilutionx/events.lua
   lua/inspect.lua
   lua/mods/clock/init.lua
+  lua/mods/persist_mana_shield/init.lua
   lua/repl_prelude.lua
   plrgfx/warrior/whu/whufm.trn
   plrgfx/warrior/whu/whulm.trn
