@@ -25,6 +25,8 @@ set(tests
   effects_test
   inv_test
   items_test
+  lua_player_test
+  mana_shield_integration_test
   math_test
   missiles_test
   multi_logging_test

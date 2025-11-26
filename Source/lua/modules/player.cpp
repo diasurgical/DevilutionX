@@ -9,6 +9,8 @@
 #include "inv.h"
 #include "items.h"
 #include "lua/metadoc.hpp"
+#include "msg.h"
+#include "multi.h"
 #include "player.h"
 
 namespace devilution {
@@ -93,6 +95,12 @@ void InitPlayerUserType(sol::state_view &lua)
 		    player._pMana = player._pMaxMana;
 		    player._pManaBase = player._pMaxManaBase;
 	    });
+	LuaSetDocProperty(playerType, "manaShield", "boolean", "Whether mana shield is active (writeable)", [](const Player &player) { return player.pManaShield; }, [](Player &player, bool value) {
+		    if (value == player.pManaShield)
+			    return;
+		    player.pManaShield = value;
+		    if (gbIsMultiplayer && &player == MyPlayer)
+			    NetSendCmd(true, value ? CMD_SETSHIELD : CMD_REMSHIELD); });
 }
 } // namespace
 
