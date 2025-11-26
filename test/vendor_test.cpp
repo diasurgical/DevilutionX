@@ -16,6 +16,7 @@ using ::testing::AnyOf;
 using ::testing::Eq;
 
 constexpr int SEED = 75357;
+constexpr const char MissingMpqAssetsSkipReason[] = "MPQ assets (spawn.mpq or DIABDAT.MPQ) not found - skipping test suite";
 
 std::string itemtype_str(ItemType type);
 std::string misctype_str(item_misc_id type);
@@ -78,6 +79,10 @@ class VendorTest : public ::testing::Test {
 public:
 	void SetUp() override
 	{
+		if (missingMpqAssets_) {
+			GTEST_SKIP() << MissingMpqAssetsSkipReason;
+		}
+
 		Players.resize(1);
 		MyPlayer = &Players[0];
 		gbIsHellfire = false;
@@ -90,12 +95,20 @@ public:
 	{
 		LoadCoreArchives();
 		LoadGameArchives();
-		ASSERT_TRUE(HaveMainData());
+		missingMpqAssets_ = !HaveMainData();
+		if (missingMpqAssets_) {
+			return;
+		}
 		LoadPlayerDataFiles();
 		LoadItemData();
 		LoadSpellData();
 	}
+
+private:
+	static bool missingMpqAssets_;
 };
+
+bool VendorTest::missingMpqAssets_ = false;
 
 std::string itemtype_str(ItemType type)
 {

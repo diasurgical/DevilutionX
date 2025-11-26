@@ -15,6 +15,8 @@
 namespace devilution {
 namespace {
 
+constexpr const char MissingMpqAssetsSkipReason[] = "MPQ assets (spawn.mpq or DIABDAT.MPQ) not found - skipping test suite";
+
 void SwapLE(ItemPack &pack)
 {
 	pack.iSeed = Swap32LE(pack.iSeed);
@@ -894,6 +896,10 @@ class NetPackTest : public ::testing::Test {
 public:
 	void SetUp() override
 	{
+		if (missingMpqAssets_) {
+			GTEST_SKIP() << MissingMpqAssetsSkipReason;
+		}
+
 		Players.resize(2);
 		MyPlayer = &Players[0];
 		gbIsMultiplayer = true;
@@ -976,9 +982,10 @@ public:
 		LoadCoreArchives();
 		LoadGameArchives();
 
-		// The tests need spawn.mpq or diabdat.mpq
-		// Please provide them so that the tests can run successfully
-		ASSERT_TRUE(HaveMainData());
+		missingMpqAssets_ = !HaveMainData();
+		if (missingMpqAssets_) {
+			return;
+		}
 
 		SetHellfireState(false);
 		InitCursor();
@@ -987,7 +994,12 @@ public:
 		LoadMonsterData();
 		LoadItemData();
 	}
+
+private:
+	static bool missingMpqAssets_;
 };
+
+bool NetPackTest::missingMpqAssets_ = false;
 
 bool TestNetPackValidation()
 {

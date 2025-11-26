@@ -145,7 +145,7 @@ void SetPluralForm(std::string_view expression)
 		return;
 	}
 
-	// en, bg, da, de, es, it, sv
+	// en, bg, da, de, es, fi, it, sv
 	if (expression == "(n != 1)") {
 		GetLocalPluralId = PluralIfNotOne;
 		return;

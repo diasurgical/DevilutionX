@@ -13,13 +13,16 @@
 
 #include "dvlnet/frame_queue.h"
 #include "dvlnet/packet.h"
+#include "utils/log.hpp"
 
 namespace devilution {
 namespace net {
 
-inline PacketError ProtocolError()
+template <typename... Args>
+PacketError ProtocolError(std::string_view fmt, Args &&...args)
 {
-	return PacketError("Protocol error");
+	auto str = detail::format(fmt, std::forward<Args>(args)...);
+	return PacketError(str);
 }
 
 class protocol_zt {
@@ -56,8 +59,11 @@ public:
 
 		tl::expected<void, PacketError> unserialize(const buffer_t &buf)
 		{
-			if (buf.size() != 16)
-				return tl::make_unexpected(ProtocolError());
+			if (buf.size() != 16) {
+				std::string_view format = "Endpoint deserialization expected 16 bytes, got {}";
+				PacketError error = ProtocolError(format, buf.size());
+				return tl::make_unexpected(std::move(error));
+			}
 			std::copy(buf.begin(), buf.end(), addr.begin());
 			return {};
 		}

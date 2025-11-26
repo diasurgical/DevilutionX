@@ -21,6 +21,7 @@
 #include <fmt/format.h>
 
 #include "diablo.h"
+#include "dvlnet/leaveinfo.hpp"
 #include "multi.h"
 #include "storm/storm_net.hpp"
 #include "utils/language.h"
@@ -50,7 +51,7 @@ void FreeDlg()
 	CleanupThreadId = this_sdl_thread::get_id();
 
 	if (gbIsMultiplayer) {
-		if (SNetLeaveGame(3))
+		if (SNetLeaveGame(leaveinfo_t::LEAVE_EXIT))
 			SDL_Delay(2000);
 	}
 

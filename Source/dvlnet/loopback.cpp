@@ -85,13 +85,13 @@ bool loopback::SNetUnregisterEventHandler(event_type /*evtype*/)
 	return true;
 }
 
-bool loopback::SNetLeaveGame(int /*type*/)
+bool loopback::SNetLeaveGame(net::leaveinfo_t /*type*/)
 {
 	IsLoopback = false;
 	return true;
 }
 
-bool loopback::SNetDropPlayer(int /*playerid*/, uint32_t /*flags*/)
+bool loopback::SNetDropPlayer(int /*playerid*/, net::leaveinfo_t /*flags*/)
 {
 	return true;
 }

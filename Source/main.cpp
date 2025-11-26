@@ -38,14 +38,18 @@ extern "C" int main(int argc, char **argv)
 #ifdef __SWITCH__
 	switch_romfs_init();
 	switch_enable_network();
+#ifdef PACKET_ENCRYPTION
 	randombytes_switchrandom_init();
+#endif
 #endif
 #ifdef __3DS__
 	ctr_sys_init();
 #endif
 #ifdef __vita__
 	vita_enable_network();
+#ifdef PACKET_ENCRYPTION
 	randombytes_vitarandom_init();
+#endif
 #endif
 #ifdef NXDK
 	nxMountDrive('E', "\\Device\\Harddisk0\\Partition1\\");

@@ -93,9 +93,9 @@ tl::expected<bool, PacketError> protocol_zt::network_online()
 		set_reuseaddr(fd_udp);
 		auto ret = lwip_bind(fd_udp, (struct sockaddr *)&in6, sizeof(in6));
 		if (ret < 0) {
-			Log("lwip, (udp) bind: {}", strerror(errno));
-			SDL_SetError("lwip, (udp) bind: %s", strerror(errno));
-			return tl::make_unexpected(ProtocolError());
+			std::string_view format = "Error binding to ZeroTier UDP socket: {}";
+			PacketError error = ProtocolError(format, strerror(errno));
+			return tl::make_unexpected(std::move(error));
 		}
 		set_nonblock(fd_udp);
 	}
@@ -104,15 +104,15 @@ tl::expected<bool, PacketError> protocol_zt::network_online()
 		set_reuseaddr(fd_tcp);
 		auto r1 = lwip_bind(fd_tcp, (struct sockaddr *)&in6, sizeof(in6));
 		if (r1 < 0) {
-			Log("lwip, (tcp) bind: {}", strerror(errno));
-			SDL_SetError("lwip, (udp) bind: %s", strerror(errno));
-			return tl::make_unexpected(ProtocolError());
+			std::string_view format = "Error binding to ZeroTier TCP socket: {}";
+			PacketError error = ProtocolError(format, strerror(errno));
+			return tl::make_unexpected(std::move(error));
 		}
 		auto r2 = lwip_listen(fd_tcp, 10);
 		if (r2 < 0) {
-			Log("lwip, listen: {}", strerror(errno));
-			SDL_SetError("lwip, listen: %s", strerror(errno));
-			return tl::make_unexpected(ProtocolError());
+			std::string_view format = "Error listening on ZeroTier TCP socket: {}";
+			PacketError error = ProtocolError(format, strerror(errno));
+			return tl::make_unexpected(std::move(error));
 		}
 		set_nonblock(fd_tcp);
 		set_nodelay(fd_tcp);
@@ -183,7 +183,9 @@ tl::expected<bool, PacketError> protocol_zt::send_queued_peer(const endpoint &pe
 		if (decltype(len)(r) == len) {
 			state.send_queue.pop_front();
 		} else {
-			return tl::make_unexpected(ProtocolError());
+			std::string_view format = "Impossible number of bytes sent: {} available, {} sent";
+			PacketError error = ProtocolError(format, len, decltype(len)(r));
+			return tl::make_unexpected(std::move(error));
 		}
 	}
 	return true;
