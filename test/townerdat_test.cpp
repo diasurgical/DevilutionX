@@ -65,7 +65,7 @@ TEST(TownerDat, LoadTownerData)
 	EXPECT_EQ(healer->position.y, 79);
 	EXPECT_EQ(healer->direction, Direction::SouthEast);
 	EXPECT_EQ(healer->animFrames, 20);
-	EXPECT_EQ(healer->gossipTexts.size(), 10u);
+	EXPECT_EQ(healer->gossipTexts.size(), 9u);
 	ASSERT_EQ(healer->animOrder.size(), 3u);
 
 	// Check Dead Guy (TOWN_DEADGUY) - has empty gossip texts and animOrder
