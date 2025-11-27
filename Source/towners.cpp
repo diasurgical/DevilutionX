@@ -855,7 +855,7 @@ bool DebugTalkToTowner(_talker_id type)
 {
 	if (!IsTownerPresent(type))
 		return false;
-		// cows have an init function that differs from the rest and isn't compatible with this code, skip them :(
+	// cows have an init function that differs from the rest and isn't compatible with this code, skip them :(
 	if (type == TOWN_COW)
 		return false;
 
