@@ -34,6 +34,7 @@ set(libdevilutionx_SRCS
   sync.cpp
   textdat.cpp
   tmsg.cpp
+  townerdat.cpp
   towners.cpp
   track.cpp
 
