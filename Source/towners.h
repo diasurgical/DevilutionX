@@ -9,7 +9,10 @@
 #include <cstdint>
 #include <memory>
 #include <span>
+#include <string>
 #include <string_view>
+#include <unordered_map>
+#include <vector>
 
 #include "engine/clx_sprite.hpp"
 #include "items.h"
@@ -18,8 +21,6 @@
 #include "quests.h"
 
 namespace devilution {
-
-#define NUM_TOWNERS 16
 
 enum _talker_id : uint8_t {
 	TOWN_SMITH,
@@ -35,10 +36,12 @@ enum _talker_id : uint8_t {
 	TOWN_FARMER,
 	TOWN_GIRL,
 	TOWN_COWFARM,
-	NUM_TOWNER_TYPES,
+	// Note: Enum values are parsed from TSV using magic_enum
+	// The actual count is determined dynamically from TSV data
 };
 
-extern const char *const TownerLongNames[NUM_TOWNER_TYPES];
+// Runtime mappings built from TSV data
+extern std::unordered_map<_talker_id, std::string> TownerLongNames; // Maps towner type enum to display name
 
 struct Towner {
 	OptionalOwnedClxSpriteList ownedAnim;
@@ -75,7 +78,20 @@ struct Towner {
 	}
 };
 
-extern Towner Towners[NUM_TOWNERS];
+extern std::vector<Towner> Towners;
+
+/**
+ * @brief Returns the number of unique towner types found in TSV data.
+ * This is dynamically determined from the loaded towner data.
+ */
+size_t GetNumTownerTypes();
+
+/**
+ * @brief Returns the number of towner instances (actual spawned towners).
+ * This is dynamically determined from the loaded towner data.
+ */
+size_t GetNumTowners();
+
 bool IsTownerPresent(_talker_id npc);
 /**
  * @brief Maps from a _talker_id value to a pointer to the Towner object, if they have been initialised

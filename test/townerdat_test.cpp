@@ -2,6 +2,7 @@
 
 #include "engine/assets.hpp"
 #include "townerdat.hpp"
+#include "towners.h"
 #include "utils/paths.h"
 
 namespace devilution {
@@ -138,8 +139,105 @@ TEST(TownerDat, GetQuestDialogInvalidType)
 	LoadTownerData();
 
 	// Invalid towner type should return TEXT_NONE
-	_speech_id result = GetTownerQuestDialog(NUM_TOWNER_TYPES, Q_BUTCHER);
+	// Use a value that's guaranteed to be invalid (beyond enum range)
+	_talker_id invalidType = static_cast<_talker_id>(255);
+	_speech_id result = GetTownerQuestDialog(invalidType, Q_BUTCHER);
 	EXPECT_EQ(result, TEXT_NONE) << "Should return TEXT_NONE for invalid towner type";
+}
+
+TEST(TownerDat, GetQuestDialogInvalidQuest)
+{
+	SetTestAssetsPath();
+	LoadTownerData();
+
+	// Invalid quest ID should return TEXT_NONE
+	_speech_id result = GetTownerQuestDialog(TOWN_SMITH, static_cast<quest_id>(-1));
+	EXPECT_EQ(result, TEXT_NONE) << "Should return TEXT_NONE for invalid quest ID";
+
+	result = GetTownerQuestDialog(TOWN_SMITH, static_cast<quest_id>(MAXQUESTS));
+	EXPECT_EQ(result, TEXT_NONE) << "Should return TEXT_NONE for out-of-range quest ID";
+}
+
+TEST(TownerDat, TownerLongNamesPopulated)
+{
+	SetTestAssetsPath();
+	LoadTownerData();
+
+	// Build TownerLongNames as InitTowners() does
+	TownerLongNames.clear();
+	for (const auto &entry : TownersDataEntries) {
+		TownerLongNames.try_emplace(entry.type, entry.name);
+	}
+
+	// Verify TownerLongNames is populated correctly
+	EXPECT_FALSE(TownerLongNames.empty()) << "TownerLongNames should not be empty after loading";
+
+	// Check specific entries
+	auto smithIt = TownerLongNames.find(TOWN_SMITH);
+	ASSERT_NE(smithIt, TownerLongNames.end()) << "Should find TOWN_SMITH in TownerLongNames";
+	EXPECT_EQ(smithIt->second, "Griswold the Blacksmith");
+
+	auto healerIt = TownerLongNames.find(TOWN_HEALER);
+	ASSERT_NE(healerIt, TownerLongNames.end()) << "Should find TOWN_HEALER in TownerLongNames";
+	EXPECT_EQ(healerIt->second, "Pepin the Healer");
+}
+
+TEST(TownerDat, GetNumTownerTypes)
+{
+	SetTestAssetsPath();
+	LoadTownerData();
+
+	// Build TownerLongNames as InitTowners() does
+	TownerLongNames.clear();
+	for (const auto &entry : TownersDataEntries) {
+		TownerLongNames.try_emplace(entry.type, entry.name);
+	}
+
+	// GetNumTownerTypes should return the number of unique towner types
+	size_t numTypes = GetNumTownerTypes();
+	EXPECT_GT(numTypes, 0u) << "Should have at least one towner type";
+	EXPECT_EQ(numTypes, TownerLongNames.size()) << "GetNumTownerTypes should match TownerLongNames size";
+}
+
+TEST(TownerDat, MultipleCowsOnlyOneType)
+{
+	SetTestAssetsPath();
+	LoadTownerData();
+
+	// Count how many TOWN_COW entries exist in the data
+	size_t cowCount = 0;
+	for (const auto &entry : TownersDataEntries) {
+		if (entry.type == TOWN_COW) {
+			cowCount++;
+		}
+	}
+
+	// There should be multiple cows but only one type entry
+	EXPECT_GT(cowCount, 1u) << "TSV should have multiple cow entries";
+
+	// Build TownerLongNames
+	TownerLongNames.clear();
+	for (const auto &entry : TownersDataEntries) {
+		TownerLongNames.try_emplace(entry.type, entry.name);
+	}
+
+	// But only one entry in TownerLongNames for TOWN_COW
+	auto cowIt = TownerLongNames.find(TOWN_COW);
+	ASSERT_NE(cowIt, TownerLongNames.end()) << "Should find TOWN_COW in TownerLongNames";
+	EXPECT_EQ(cowIt->second, "Cow");
+}
+
+TEST(TownerDat, QuestDialogOptionalColumns)
+{
+	SetTestAssetsPath();
+	LoadTownerData();
+
+	// Verify that missing quest columns default to TEXT_NONE
+	// Q_FARMER, Q_GIRL, Q_DEFILER, Q_NAKRUL, Q_CORNSTN, Q_JERSEY may not be in base TSV
+	// but the code should handle them gracefully
+	_speech_id result = GetTownerQuestDialog(TOWN_SMITH, Q_FARMER);
+	// Should be TEXT_NONE since TOWN_SMITH doesn't have farmer quest dialog
+	EXPECT_EQ(result, TEXT_NONE) << "Should return TEXT_NONE for unused quest columns";
 }
 
 } // namespace devilution

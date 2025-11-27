@@ -20,7 +20,7 @@
 namespace devilution {
 
 std::vector<TownerDataEntry> TownersDataEntries;
-std::vector<std::array<_speech_id, MAXQUESTS>> TownerQuestDialogTable;
+std::unordered_map<_talker_id, std::array<_speech_id, MAXQUESTS>> TownerQuestDialogTable;
 
 namespace {
 
@@ -135,12 +135,8 @@ void LoadQuestDialogFromFile()
 	const std::string_view filename = "txtdata\\towners\\quest_dialog.tsv";
 	DataFile dataFile = DataFile::loadOrDie(filename);
 
-	// Initialize table with TEXT_NONE
+	// Initialize table (will be populated as we read rows)
 	TownerQuestDialogTable.clear();
-	TownerQuestDialogTable.resize(NUM_TOWNER_TYPES);
-	for (auto &row : TownerQuestDialogTable) {
-		row.fill(TEXT_NONE);
-	}
 
 	// Parse header to find which quest columns exist
 	DataFileRecord headerRecord = *dataFile.begin();
@@ -155,21 +151,19 @@ void LoadQuestDialogFromFile()
 	dataFile.skipHeaderOrDie(filename);
 
 	// Find the towner_type column index
-	auto townerTypeColIt = columnMap.find("towner_type");
-	if (townerTypeColIt == columnMap.end()) {
+	if (!columnMap.contains("towner_type")) {
 		return; // Invalid file format
 	}
-	unsigned townerTypeColIndex = townerTypeColIt->second;
+	unsigned townerTypeColIndex = columnMap["towner_type"];
 
 	// Build quest column index map
 	std::unordered_map<quest_id, unsigned> questColumnMap;
 	for (quest_id quest : magic_enum::enum_values<quest_id>()) {
 		if (quest == Q_INVALID || quest >= MAXQUESTS) continue;
 
-		auto questName = magic_enum::enum_name(quest);
-		auto questColIt = columnMap.find(std::string(questName));
-		if (questColIt != columnMap.end()) {
-			questColumnMap[quest] = questColIt->second;
+		auto questName = std::string(magic_enum::enum_name(quest));
+		if (columnMap.contains(questName)) {
+			questColumnMap[quest] = columnMap[questName];
 		}
 	}
 
@@ -182,31 +176,30 @@ void LoadQuestDialogFromFile()
 		}
 
 		// Read towner_type
-		auto townerTypeFieldIt = fields.find(townerTypeColIndex);
-		if (townerTypeFieldIt == fields.end()) {
+		if (!fields.contains(townerTypeColIndex)) {
 			continue; // Invalid row
 		}
 
-		auto townerTypeResult = ParseEnum<_talker_id>(townerTypeFieldIt->second);
+		auto townerTypeResult = ParseEnum<_talker_id>(fields[townerTypeColIndex]);
 		if (!townerTypeResult.has_value()) {
 			continue; // Invalid towner type
 		}
 		_talker_id townerType = townerTypeResult.value();
 
-		if (static_cast<size_t>(townerType) >= TownerQuestDialogTable.size()) {
-			continue;
+		// Initialize row if it doesn't exist, then get reference
+		auto [it, inserted] = TownerQuestDialogTable.try_emplace(townerType);
+		if (inserted) {
+			it->second.fill(TEXT_NONE);
 		}
-
-		auto &dialogRow = TownerQuestDialogTable[static_cast<size_t>(townerType)];
+		auto &dialogRow = it->second;
 
 		// Read quest columns that exist in this file
 		for (const auto &[quest, colIndex] : questColumnMap) {
-			auto fieldIt = fields.find(colIndex);
-			if (fieldIt == fields.end()) {
+			if (!fields.contains(colIndex)) {
 				continue; // Column missing in this row
 			}
 
-			auto speechResult = ParseSpeechId(fieldIt->second);
+			auto speechResult = ParseSpeechId(fields[colIndex]);
 			if (speechResult.has_value()) {
 				dialogRow[quest] = speechResult.value();
 			}
@@ -224,24 +217,27 @@ void LoadTownerData()
 
 _speech_id GetTownerQuestDialog(_talker_id type, quest_id quest)
 {
-	if (static_cast<size_t>(type) >= TownerQuestDialogTable.size()) {
-		return TEXT_NONE;
-	}
 	if (quest < 0 || quest >= MAXQUESTS) {
 		return TEXT_NONE;
 	}
-	return TownerQuestDialogTable[static_cast<size_t>(type)][quest];
+	auto it = TownerQuestDialogTable.find(type);
+	if (it == TownerQuestDialogTable.end()) {
+		return TEXT_NONE;
+	}
+	return it->second[quest];
 }
 
 void SetTownerQuestDialog(_talker_id type, quest_id quest, _speech_id speech)
 {
-	if (static_cast<size_t>(type) >= TownerQuestDialogTable.size()) {
-		return;
-	}
 	if (quest < 0 || quest >= MAXQUESTS) {
 		return;
 	}
-	TownerQuestDialogTable[static_cast<size_t>(type)][quest] = speech;
+	// Initialize row if it doesn't exist
+	auto [it, inserted] = TownerQuestDialogTable.try_emplace(type);
+	if (inserted) {
+		it->second.fill(TEXT_NONE);
+	}
+	it->second[quest] = speech;
 }
 
 } // namespace devilution

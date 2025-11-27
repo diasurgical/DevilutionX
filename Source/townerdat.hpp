@@ -7,6 +7,7 @@
 
 #include <cstdint>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "engine/direction.hpp"
@@ -21,7 +22,7 @@ namespace devilution {
  * @brief Data for a single towner entry loaded from TSV.
  */
 struct TownerDataEntry {
-	_talker_id type;
+	_talker_id type; // Parsed from TSV using magic_enum
 	std::string name;
 	Point position;
 	Direction direction;
@@ -37,7 +38,7 @@ struct TownerDataEntry {
 extern std::vector<TownerDataEntry> TownersDataEntries;
 
 /** Contains the quest dialog table loaded from TSV. Indexed by [towner_type][quest_id]. */
-extern std::vector<std::array<_speech_id, MAXQUESTS>> TownerQuestDialogTable;
+extern std::unordered_map<_talker_id, std::array<_speech_id, MAXQUESTS>> TownerQuestDialogTable;
 
 /**
  * @brief Loads towner data from TSV files.

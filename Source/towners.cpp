@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <unordered_map>
 
 #include "cursor.h"
 #include "engine/clx_sprite.hpp"
@@ -50,7 +51,7 @@ struct TownerData {
  *
  * Populated during InitTowners() from the TownersData array.
  */
-const TownerData *TownerBehaviors[NUM_TOWNER_TYPES];
+std::unordered_map<_talker_id, const TownerData *> TownerBehaviors;
 
 /**
  * @brief Default towner initialization using TSV data.
@@ -88,7 +89,8 @@ void NewTownerAnim(Towner &towner, ClxSpriteList sprites, uint8_t numFrames, int
 void InitTownerInfo(Towner &towner, const TownerData &townerData, const TownerDataEntry &entry)
 {
 	towner._ttype = townerData.type;
-	towner.name = _(TownerLongNames[townerData.type]);
+	auto nameIt = TownerLongNames.find(townerData.type);
+	towner.name = nameIt != TownerLongNames.end() ? _(nameIt->second.c_str()) : std::string_view(entry.name);
 	towner.position = entry.position;
 	towner.talk = townerData.talk;
 
@@ -97,14 +99,6 @@ void InitTownerInfo(Towner &towner, const TownerData &townerData, const TownerDa
 	} else {
 		InitTownerFromData(towner, entry);
 	}
-}
-
-void InitTownerInfo(int16_t i, const TownerData &townerData, const TownerDataEntry &entry)
-{
-	// It's necessary to assign this before invoking townerData.init()
-	// specifically for the cows that need to read this value to fill adjacent tiles
-	dMonster[entry.position.x][entry.position.y] = i + 1;
-	InitTownerInfo(Towners[i], townerData, entry);
 }
 
 void LoadTownerAnimations(Towner &towner, const char *path, int frames, int delay)
@@ -704,23 +698,19 @@ const TownerData TownersData[] = {
 
 } // namespace
 
-Towner Towners[NUM_TOWNERS];
+std::vector<Towner> Towners;
 
-const char *const TownerLongNames[NUM_TOWNER_TYPES] {
-	N_("Griswold the Blacksmith"),
-	N_("Pepin the Healer"),
-	N_("Wounded Townsman"),
-	N_("Ogden the Tavern owner"),
-	N_("Cain the Elder"),
-	N_("Farnham the Drunk"),
-	N_("Adria the Witch"),
-	N_("Gillian the Barmaid"),
-	N_("Wirt the Peg-legged boy"),
-	N_("Cow"),
-	N_("Lester the farmer"),
-	N_("Celia"),
-	N_("Complete Nut")
-};
+std::unordered_map<_talker_id, std::string> TownerLongNames;
+
+size_t GetNumTownerTypes()
+{
+	return TownerLongNames.size();
+}
+
+size_t GetNumTowners()
+{
+	return Towners.size();
+}
 
 bool IsTownerPresent(_talker_id npc)
 {
@@ -756,23 +746,36 @@ void InitTowners()
 	TownerAnimOrderStorage.clear();
 
 	// Build lookup table for towner behaviors
-	std::fill(std::begin(TownerBehaviors), std::end(TownerBehaviors), nullptr);
+	TownerBehaviors.clear();
 	for (const auto &behavior : TownersData) {
 		TownerBehaviors[behavior.type] = &behavior;
 	}
 
+	// Build TownerLongNames from TSV data (first occurrence of each type wins)
+	TownerLongNames.clear();
+	for (const auto &entry : TownersDataEntries) {
+		TownerLongNames.try_emplace(entry.type, entry.name);
+	}
+
 	CowSprites.emplace(LoadCelSheet("towners\\animals\\cow", 128));
 
+	Towners.clear();
+	Towners.reserve(TownersDataEntries.size());
 	int16_t i = 0;
 	for (const auto &entry : TownersDataEntries) {
 		if (!IsTownerPresent(entry.type))
 			continue;
 
-		const TownerData *behavior = TownerBehaviors[entry.type];
-		if (behavior == nullptr)
+		auto behaviorIt = TownerBehaviors.find(entry.type);
+		if (behaviorIt == TownerBehaviors.end() || behaviorIt->second == nullptr)
 			continue;
 
-		InitTownerInfo(i, *behavior, entry);
+		// It's necessary to assign this before invoking townerData.init()
+		// specifically for the cows that need to read this value to fill adjacent tiles
+		dMonster[entry.position.x][entry.position.y] = i + 1;
+
+		Towners.emplace_back();
+		InitTownerInfo(Towners.back(), *behaviorIt->second, entry);
 		i++;
 	}
 }
@@ -852,7 +855,7 @@ bool DebugTalkToTowner(_talker_id type)
 {
 	if (!IsTownerPresent(type))
 		return false;
-	// Cows have special init logic that isn't compatible with this debug function
+		// cows have an init function that differs from the rest and isn't compatible with this code, skip them :(
 	if (type == TOWN_COW)
 		return false;
 

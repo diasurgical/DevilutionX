@@ -1953,7 +1953,7 @@ size_t OnTalkXY(const TCmdLocParam1 &message, Player &player)
 	const Point position { message.x, message.y };
 	const uint16_t townerIdx = Swap16LE(message.wParam1);
 
-	if (gbBufferMsgs != 1 && player.isOnActiveLevel() && InDungeonBounds(position) && townerIdx < NUM_TOWNERS) {
+	if (gbBufferMsgs != 1 && player.isOnActiveLevel() && InDungeonBounds(position) && townerIdx < GetNumTowners()) {
 		MakePlrPath(player, position, false);
 		player.destAction = ACTION_TALK;
 		player.destParam1 = townerIdx;
