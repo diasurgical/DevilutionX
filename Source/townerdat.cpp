@@ -8,6 +8,8 @@
 #include <charconv>
 #include <optional>
 #include <string_view>
+#include <unordered_map>
+#include <vector>
 
 #include <expected.hpp>
 #include <magic_enum/magic_enum.hpp>
@@ -132,7 +134,6 @@ void LoadQuestDialogFromFile()
 {
 	const std::string_view filename = "txtdata\\towners\\quest_dialog.tsv";
 	DataFile dataFile = DataFile::loadOrDie(filename);
-	dataFile.skipHeaderOrDie(filename);
 
 	// Initialize table with TEXT_NONE
 	TownerQuestDialogTable.clear();
@@ -141,11 +142,56 @@ void LoadQuestDialogFromFile()
 		row.fill(TEXT_NONE);
 	}
 
-	for (DataFileRecord record : dataFile) {
-		RecordReader reader { record, filename };
+	// Parse header to find which quest columns exist
+	DataFileRecord headerRecord = *dataFile.begin();
+	std::unordered_map<std::string, unsigned> columnMap;
+	unsigned columnIndex = 0;
+	for (DataFileField field : headerRecord) {
+		columnMap[std::string(field.value())] = columnIndex++;
+	}
 
-		_talker_id townerType;
-		reader.read("towner_type", townerType, ParseEnum<_talker_id>);
+	// Reset header position and skip for data reading
+	dataFile.resetHeader();
+	dataFile.skipHeaderOrDie(filename);
+
+	// Find the towner_type column index
+	auto townerTypeColIt = columnMap.find("towner_type");
+	if (townerTypeColIt == columnMap.end()) {
+		return; // Invalid file format
+	}
+	unsigned townerTypeColIndex = townerTypeColIt->second;
+
+	// Build quest column index map
+	std::unordered_map<quest_id, unsigned> questColumnMap;
+	for (quest_id quest : magic_enum::enum_values<quest_id>()) {
+		if (quest == Q_INVALID || quest >= MAXQUESTS) continue;
+
+		auto questName = magic_enum::enum_name(quest);
+		auto questColIt = columnMap.find(std::string(questName));
+		if (questColIt != columnMap.end()) {
+			questColumnMap[quest] = questColIt->second;
+		}
+	}
+
+	// Read data rows
+	for (DataFileRecord record : dataFile) {
+		// Read all fields into a map keyed by column index for indexed access
+		std::unordered_map<unsigned, std::string_view> fields;
+		for (DataFileField field : record) {
+			fields[field.column()] = field.value();
+		}
+
+		// Read towner_type
+		auto townerTypeFieldIt = fields.find(townerTypeColIndex);
+		if (townerTypeFieldIt == fields.end()) {
+			continue; // Invalid row
+		}
+
+		auto townerTypeResult = ParseEnum<_talker_id>(townerTypeFieldIt->second);
+		if (!townerTypeResult.has_value()) {
+			continue; // Invalid towner type
+		}
+		_talker_id townerType = townerTypeResult.value();
 
 		if (static_cast<size_t>(townerType) >= TownerQuestDialogTable.size()) {
 			continue;
@@ -153,14 +199,17 @@ void LoadQuestDialogFromFile()
 
 		auto &dialogRow = TownerQuestDialogTable[static_cast<size_t>(townerType)];
 
-		// Read each quest column using magic_enum to iterate quest IDs
-		for (quest_id quest : magic_enum::enum_values<quest_id>()) {
-			if (quest == Q_INVALID || quest >= MAXQUESTS) continue;
+		// Read quest columns that exist in this file
+		for (const auto &[quest, colIndex] : questColumnMap) {
+			auto fieldIt = fields.find(colIndex);
+			if (fieldIt == fields.end()) {
+				continue; // Column missing in this row
+			}
 
-			auto questName = magic_enum::enum_name(quest);
-			_speech_id speech = TEXT_NONE;
-			reader.read(questName, speech, ParseSpeechId);
-			dialogRow[quest] = speech;
+			auto speechResult = ParseSpeechId(fieldIt->second);
+			if (speechResult.has_value()) {
+				dialogRow[quest] = speechResult.value();
+			}
 		}
 	}
 }
