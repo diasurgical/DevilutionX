@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
-#include "townerdat.hpp"
 #include "engine/assets.hpp"
+#include "townerdat.hpp"
 #include "utils/paths.h"
 
 namespace devilution {

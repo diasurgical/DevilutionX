@@ -33,7 +33,7 @@ std::vector<std::vector<uint8_t>> TownerAnimOrderStorage;
 
 /**
  * @brief Defines the behavior (init and talk functions) for each towner type.
- * 
+ *
  * The actual data (position, animation, gossip) comes from TSV files.
  * This struct only holds the code that can't be data-driven.
  */
@@ -47,14 +47,14 @@ struct TownerData {
 
 /**
  * @brief Lookup table from towner type to its behavior data.
- * 
+ *
  * Populated during InitTowners() from the TownersData array.
  */
 const TownerData *TownerBehaviors[NUM_TOWNER_TYPES];
 
 /**
  * @brief Default towner initialization using TSV data.
- * 
+ *
  * Sets up animation, gossip texts, and other properties from the TSV entry.
  * Used for most towners; special cases (cows, cow farmer) have custom init functions.
  */
@@ -142,7 +142,7 @@ void InitTownerFromData(Towner &towner, const TownerDataEntry &entry)
 
 /**
  * @brief Special initialization for cows.
- * 
+ *
  * Cows differ from other towners:
  * - They share a sprite sheet (CowSprites) instead of loading individual animations
  * - They occupy multiple tiles (4 tiles for collision purposes)
@@ -175,7 +175,7 @@ void InitCows(Towner &towner, const TownerDataEntry &entry)
 
 /**
  * @brief Special initialization for the cow farmer (Complete Nut).
- * 
+ *
  * Uses different sprites depending on whether the Jersey quest is complete.
  */
 void InitCowFarmer(Towner &towner, const TownerDataEntry &entry)
