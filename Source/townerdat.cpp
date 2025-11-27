@@ -139,7 +139,9 @@ void LoadQuestDialogFromFile()
 	TownerQuestDialogTable.clear();
 
 	// Parse header to find which quest columns exist
-	DataFileRecord headerRecord = *dataFile.begin();
+	// Store the iterator to avoid temporary lifetime issues
+	auto headerIt = dataFile.begin();
+	DataFileRecord headerRecord = *headerIt;
 	std::unordered_map<std::string, unsigned> columnMap;
 	unsigned columnIndex = 0;
 	for (DataFileField field : headerRecord) {

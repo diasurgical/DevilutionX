@@ -1,5 +1,11 @@
 #include <gtest/gtest.h>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL.h>
+#else
+#include <SDL.h>
+#endif
+
 #include "engine/assets.hpp"
 #include "townerdat.hpp"
 #include "towners.h"
@@ -13,6 +19,26 @@ void SetTestAssetsPath()
 {
 	const std::string assetsPath = paths::BasePath() + "/assets/";
 	paths::SetAssetsPath(assetsPath);
+}
+
+void InitializeSDL()
+{
+#ifdef USE_SDL3
+	if (!SDL_Init(SDL_INIT_EVENTS)) {
+		// SDL_Init returns 0 on success in SDL3
+		return;
+	}
+#elif !defined(USE_SDL1)
+	if (SDL_Init(SDL_INIT_EVENTS) >= 0) {
+		return;
+	}
+#else
+	if (SDL_Init(0) >= 0) {
+		return;
+	}
+#endif
+	// If we get here, SDL initialization failed
+	// In tests, we'll continue anyway as file operations might still work
 }
 
 /**
@@ -32,6 +58,7 @@ const TownerDataEntry *FindTownerDataByType(_talker_id type)
 
 TEST(TownerDat, LoadTownerData)
 {
+	InitializeSDL();
 	SetTestAssetsPath();
 	LoadTownerData();
 
@@ -96,6 +123,7 @@ TEST(TownerDat, LoadTownerData)
 
 TEST(TownerDat, LoadQuestDialogTable)
 {
+	InitializeSDL();
 	SetTestAssetsPath();
 	LoadTownerData();
 
@@ -117,6 +145,7 @@ TEST(TownerDat, LoadQuestDialogTable)
 
 TEST(TownerDat, SetTownerQuestDialog)
 {
+	InitializeSDL();
 	SetTestAssetsPath();
 	LoadTownerData();
 
@@ -135,6 +164,7 @@ TEST(TownerDat, SetTownerQuestDialog)
 
 TEST(TownerDat, GetQuestDialogInvalidType)
 {
+	InitializeSDL();
 	SetTestAssetsPath();
 	LoadTownerData();
 
@@ -147,6 +177,7 @@ TEST(TownerDat, GetQuestDialogInvalidType)
 
 TEST(TownerDat, GetQuestDialogInvalidQuest)
 {
+	InitializeSDL();
 	SetTestAssetsPath();
 	LoadTownerData();
 
@@ -160,6 +191,7 @@ TEST(TownerDat, GetQuestDialogInvalidQuest)
 
 TEST(TownerDat, TownerLongNamesPopulated)
 {
+	InitializeSDL();
 	SetTestAssetsPath();
 	LoadTownerData();
 
@@ -184,6 +216,7 @@ TEST(TownerDat, TownerLongNamesPopulated)
 
 TEST(TownerDat, GetNumTownerTypes)
 {
+	InitializeSDL();
 	SetTestAssetsPath();
 	LoadTownerData();
 
@@ -201,6 +234,7 @@ TEST(TownerDat, GetNumTownerTypes)
 
 TEST(TownerDat, MultipleCowsOnlyOneType)
 {
+	InitializeSDL();
 	SetTestAssetsPath();
 	LoadTownerData();
 
@@ -229,6 +263,7 @@ TEST(TownerDat, MultipleCowsOnlyOneType)
 
 TEST(TownerDat, QuestDialogOptionalColumns)
 {
+	InitializeSDL();
 	SetTestAssetsPath();
 	LoadTownerData();
 
