@@ -113,8 +113,8 @@ void LoadTownersFromFile()
 		reader.read("direction", entry.direction, ParseEnum<Direction>);
 		reader.readInt("animWidth", entry.animWidth);
 		reader.readString("animPath", entry.animPath);
-		reader.readInt("animFrames", entry.animFrames);
-		reader.readInt("animDelay", entry.animDelay);
+		reader.readOptionalInt("animFrames", entry.animFrames);
+		reader.readOptionalInt("animDelay", entry.animDelay);
 
 		std::string gossipStr;
 		reader.readString("gossipTexts", gossipStr);

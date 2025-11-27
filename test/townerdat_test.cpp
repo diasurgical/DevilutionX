@@ -35,7 +35,7 @@ TEST(TownerDat, LoadTownerData)
 	LoadTownerData();
 
 	// Verify we loaded the expected number of towners from test fixture
-	ASSERT_GE(TownersDataEntries.size(), 3u) << "Should load at least 3 towners from test fixture";
+	ASSERT_GE(TownersDataEntries.size(), 4u) << "Should load at least 4 towners from test fixture";
 
 	// Check Griswold (TOWN_SMITH)
 	const TownerDataEntry *smith = FindTownerDataByType(TOWN_SMITH);
@@ -77,9 +77,20 @@ TEST(TownerDat, LoadTownerData)
 	EXPECT_TRUE(deadguy->gossipTexts.empty()) << "Dead guy should have no gossip texts";
 	EXPECT_TRUE(deadguy->animOrder.empty()) << "Dead guy should have no custom anim order";
 
-	// Test non-existent towner (COW is not in the test fixture)
+	// Check Cow (TOWN_COW) - has empty animPath, animFrames, and animDelay (uses special initialization)
 	const TownerDataEntry *cow = FindTownerDataByType(TOWN_COW);
-	EXPECT_EQ(cow, nullptr) << "Should return nullptr for towner not in data file";
+	ASSERT_NE(cow, nullptr) << "Should find TOWN_COW data";
+	EXPECT_EQ(cow->type, TOWN_COW);
+	EXPECT_EQ(cow->name, "Cow");
+	EXPECT_EQ(cow->position.x, 58);
+	EXPECT_EQ(cow->position.y, 16);
+	EXPECT_EQ(cow->direction, Direction::SouthWest);
+	EXPECT_EQ(cow->animWidth, 128);
+	EXPECT_TRUE(cow->animPath.empty()) << "Cow should have empty animPath (uses special initialization)";
+	EXPECT_EQ(cow->animFrames, 0) << "Cow should have animFrames default to 0 when empty";
+	EXPECT_EQ(cow->animDelay, 0) << "Cow should have animDelay default to 0 when empty";
+	EXPECT_TRUE(cow->gossipTexts.empty()) << "Cow should have no gossip texts";
+	EXPECT_TRUE(cow->animOrder.empty()) << "Cow should have no custom anim order";
 }
 
 TEST(TownerDat, LoadQuestDialogTable)

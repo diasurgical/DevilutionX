@@ -49,14 +49,21 @@ struct TownerData {
  * @brief Lookup table from towner type to its behavior data.
  * 
  * Populated during InitTowners() from the TownersData array.
- * Allows O(1) lookup of init/talk functions by towner type.
  */
 const TownerData *TownerBehaviors[NUM_TOWNER_TYPES];
 
 /**
+ * @brief Default towner initialization using TSV data.
+ * 
+ * Sets up animation, gossip texts, and other properties from the TSV entry.
+ * Used for most towners; special cases (cows, cow farmer) have custom init functions.
+ */
+void InitTownerFromData(Towner &towner, const TownerDataEntry &entry);
+
+/**
  * @brief Finds the towner data entry from TSV for a given type.
  */
-const TownerDataEntry *FindTownerDataEntry(_talker_id type, Point position = {})
+[[maybe_unused]] const TownerDataEntry *FindTownerDataEntry(_talker_id type, Point position = {})
 {
 	for (const auto &entry : TownersDataEntries) {
 		if (entry.type == type) {
@@ -109,9 +116,6 @@ void LoadTownerAnimations(Towner &towner, const char *path, int frames, int dela
 
 /**
  * @brief Default towner initialization using TSV data.
- * 
- * Sets up animation, gossip texts, and other properties from the TSV entry.
- * Used for most towners; special cases (cows, cow farmer) have custom init functions.
  */
 void InitTownerFromData(Towner &towner, const TownerDataEntry &entry)
 {
@@ -131,7 +135,8 @@ void InitTownerFromData(Towner &towner, const TownerDataEntry &entry)
 
 	// Set gossip from TSV data
 	if (!entry.gossipTexts.empty()) {
-		towner.gossip = PickRandomlyAmong(entry.gossipTexts);
+		const auto index = std::max<int32_t>(GenerateRnd(static_cast<int32_t>(entry.gossipTexts.size())), 0);
+		towner.gossip = entry.gossipTexts[index];
 	}
 }
 
