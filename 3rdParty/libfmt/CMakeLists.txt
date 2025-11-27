@@ -34,6 +34,6 @@ if(TARGET_PLATFORM STREQUAL "rg99")
 endif()
 
 # https://github.com/fmtlib/fmt/issues/4189
-if(NINTENDO_3DS OR NINTENDO_SWITCH OR VITA)
+if(NINTENDO_3DS OR NINTENDO_SWITCH OR VITA OR PS2)
   target_compile_definitions(fmt PUBLIC FMT_USE_FALLBACK_FILE=1)
 endif()

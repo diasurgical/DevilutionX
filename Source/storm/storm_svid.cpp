@@ -1,7 +1,3 @@
-#ifdef PS2
-#define NOSOUND 1
-#endif
-
 #include "storm/storm_svid.h"
 
 #include <cstddef>
@@ -24,9 +20,7 @@
 #include <SDL.h>
 
 #ifndef NOSOUND
-#ifndef PS2
 #include "utils/aulib.hpp"
-#endif
 #include "utils/push_aulib_decoder.h"
 #endif
 #endif

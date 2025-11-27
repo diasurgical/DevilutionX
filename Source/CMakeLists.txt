@@ -747,20 +747,6 @@ else()
     engine/sound.cpp
     utils/soundsample.cpp
   )
-endif()
-if(PS2)
-  target_link_dependencies(libdevilutionx_sound PUBLIC
-    DevilutionX::SDL
-    audsrv
-    ps2snd
-    fmt::fmt
-    tl
-    unordered_dense::unordered_dense
-    libdevilutionx_options
-    libdevilutionx_random
-    libdevilutionx_sdl2_to_1_2_backports
-  )
-else()
   if(USE_SDL3)
     target_link_dependencies(libdevilutionx_sound PUBLIC
       SDL3_mixer::SDL3_mixer

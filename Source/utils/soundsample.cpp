@@ -9,11 +9,9 @@
 #include <SDL3/SDL_error.h>
 #include <SDL3/SDL_iostream.h>
 #else
-#ifndef PS2
 #include <Aulib/DecoderDrmp3.h>
 #include <Aulib/DecoderDrwav.h>
 #include <Aulib/Stream.h>
-#endif
 
 #include <SDL.h>
 #ifdef USE_SDL1
@@ -21,9 +19,7 @@
 #else
 #include "utils/sdl2_backports.h"
 #endif
-#ifndef PS2
 #include "utils/aulib.hpp"
-#endif
 #endif
 
 #include "engine/assets.hpp"
@@ -70,7 +66,6 @@ float PanLogToLinear(int logPan)
 	return copysign(1.F - factor, static_cast<float>(logPan));
 }
 
-#ifndef PS2
 std::unique_ptr<Aulib::Decoder> CreateDecoder(bool isMp3)
 {
 	if (isMp3)
@@ -86,7 +81,6 @@ std::unique_ptr<Aulib::Stream> CreateStream(SDL_IOStream *handle, bool isMp3)
 	auto resampler = CreateAulibResampler(decoder->getRate());
 	return std::make_unique<Aulib::Stream>(handle, std::move(decoder), std::move(resampler), /*closeRw=*/true);
 }
-#endif
 
 /**
  * @brief Converts log volume passed in into linear volume.
@@ -106,7 +100,7 @@ float VolumeLogToLinear(int logVolume, int logMin, int logMax)
 
 ///// SoundSample /////
 
-#if !defined(USE_SDL3) && !defined(PS2)
+#ifndef USE_SDL3
 void SoundSample::SetFinishCallback(Aulib::Stream::Callback &&callback)
 {
 	stream_->setFinishCallback(std::forward<Aulib::Stream::Callback>(callback));
@@ -115,54 +109,32 @@ void SoundSample::SetFinishCallback(Aulib::Stream::Callback &&callback)
 
 void SoundSample::Stop()
 {
-#ifdef PS2
-	/** Hack: Implement way to stop sounds in PS2SDK */
-	if (channel_ != -1)
-		audsrv_adpcm_set_volume_and_pan(channel_, 0, pan_);
-#else
 #ifndef USE_SDL3
 	stream_->stop();
-#endif
 #endif
 }
 
 void SoundSample::Mute()
 {
-#ifdef PS2
-	if (channel_ != -1)
-		audsrv_adpcm_set_volume_and_pan(channel_, 0, pan_);
-#else
 #ifndef USE_SDL3
 	stream_->mute();
-#endif
 #endif
 }
 
 void SoundSample::Unmute()
 {
-#ifdef PS2
-	if (channel_ != -1)
-		audsrv_adpcm_set_volume_and_pan(channel_, volume_, pan_);
-#else
 #ifndef USE_SDL3
 	stream_->unmute();
-#endif
 #endif
 }
 
 void SoundSample::Release()
 {
-#ifdef PS2
-	if (stream_ != nullptr) // We are the owner
-		audsrv_free_adpcm(sampleId_);
-	sampleId_ = nullptr;
-#else
 #ifndef USE_SDL3
 	stream_ = nullptr;
 #endif
 	file_data_ = nullptr;
 	file_data_size_ = 0;
-#endif
 	stream_ = nullptr;
 }
 
@@ -171,11 +143,7 @@ void SoundSample::Release()
  */
 bool SoundSample::IsPlaying()
 {
-#ifdef PS2
-	if (channel_ == -1)
-		return false;
-	return audsrv_is_adpcm_playing(channel_, sampleId_) != 0;
-#elif defined(USE_SDL3)
+#ifdef USE_SDL3
 	return false;
 #else
 	return stream_ && stream_->isPlaying();
@@ -184,30 +152,15 @@ bool SoundSample::IsPlaying()
 
 bool SoundSample::Play(int numIterations)
 {
-#ifdef PS2
-	if (IsStreaming()) {
-		return true;
-	}
-
-	int channel = audsrv_ch_play_adpcm(-1, sampleId_);
-	printf("channel %d\n", channel);
-	if (channel < 0) {
-		LogError(LogCategory::Audio, "audsrv_ch_play_adpcm (from SoundSample::Play): {}", channel);
-		return false;
-	}
-	channel_ = channel;
-
-	audsrv_adpcm_set_volume_and_pan(channel_, volume_, pan_);
-#elif defined(USE_SDL3)
+#ifdef USE_SDL3
 	return false;
 #else
 	if (!stream_->play(numIterations)) {
 		LogError(LogCategory::Audio, "Aulib::Stream::play (from SoundSample::Play): {}", SDL_GetError());
 		return false;
 	}
-#endif
 	return true;
-
+#endif
 }
 
 int SoundSample::SetChunkStream(std::string filePath, bool isMp3, bool logErrors)
@@ -222,7 +175,6 @@ int SoundSample::SetChunkStream(std::string filePath, bool isMp3, bool logErrors
 		return -1;
 	}
 	file_path_ = std::move(filePath);
-#ifndef PS2
 	isMp3_ = isMp3;
 	stream_ = CreateStream(handle, isMp3);
 	if (!stream_->open()) {
@@ -231,22 +183,13 @@ int SoundSample::SetChunkStream(std::string filePath, bool isMp3, bool logErrors
 			LogError(LogCategory::Audio, "Aulib::Stream::open (from SoundSample::SetChunkStream) for {}: {}", file_path_, SDL_GetError());
 		return -1;
 	}
-#endif
 	return 0;
 #endif
 }
 
 int SoundSample::SetChunk(ArraySharedPtr<std::uint8_t> fileData, std::size_t dwBytes, bool isMp3)
 {
-#ifdef PS2
-	stream_ = std::make_unique<audsrv_adpcm_t>();
-	int success = audsrv_load_adpcm(stream_.get(), fileData.get(), dwBytes);
-	if (success != 0) {
-		LogError(LogCategory::Audio, "audsrv_load_adpcm (from SoundSample::SetChunk): {}", success);
-		return -1;
-	}
-	sampleId_ = stream_.get();
-#elif defined(USE_SDL3)
+#ifdef USE_SDL3
 	return 0;
 #else
 	isMp3_ = isMp3;
@@ -264,68 +207,28 @@ int SoundSample::SetChunk(ArraySharedPtr<std::uint8_t> fileData, std::size_t dwB
 		LogError(LogCategory::Audio, "Aulib::Stream::open (from SoundSample::SetChunk): {}", SDL_GetError());
 		return -1;
 	}
-#endif
+
 	return 0;
+#endif
 }
 
 void SoundSample::SetVolume(int logVolume, int logMin, int logMax)
 {
-#ifdef PS2
-	volume_ = VolumeLogToLinear(logVolume, logMin, logMax) * MAX_VOLUME;
-	if (channel_ == -1)
-		return;
-
-	audsrv_adpcm_set_volume_and_pan(channel_, volume_, pan_);
-#else
 #ifndef USE_SDL3
 	stream_->setVolume(VolumeLogToLinear(logVolume, logMin, logMax));
-#endif
 #endif
 }
 
 void SoundSample::SetStereoPosition(int logPan)
 {
-#ifdef PS2
-	pan_ = PanLogToLinear(logPan) * 100;
-	if (channel_ == -1)
-		return;
-
-	audsrv_adpcm_set_volume_and_pan(channel_, volume_, pan_);
-#else
 #ifndef USE_SDL3
 	stream_->setStereoPosition(PanLogToLinear(logPan));
-#endif
 #endif
 }
 
 int SoundSample::GetLength() const
 {
-#ifdef PS2
-	size_t size = 0;
-	int pitch = 0;
-
-	if (stream_ != nullptr) {
-		size = stream_->size;
-		pitch = stream_->pitch;
-	} else if (!file_path_.empty()) {
-		AssetHandle handle = OpenAsset(file_path_.c_str(), size);
-		if (handle.ok()) {
-			size -= 16;
-			uint32_t buffer[3];
-			if (handle.read(buffer, sizeof(buffer))) {
-				pitch = buffer[2];
-			}
-		}
-	}
-
-	if (pitch == 0)
-		return 0;
-
-	uint64_t microSamples = size;
-	microSamples *= 56 * 1000;
-
-	return microSamples / (pitch * 375);
-#elif defined(USE_SDL3)
+#ifdef USE_SDL3
 	return 0;
 #else
 	if (!stream_)

@@ -5,10 +5,6 @@
 #include <functional>
 #include <memory>
 #include <string>
-#ifdef __PS2__
-#include <audsrv.h>
-#endif
-
 
 #include "engine/sound_defs.hpp"
 #include "utils/stdcompat/shared_ptr_array.hpp"
@@ -44,7 +40,7 @@ public:
 	// Returns 0 on success.
 	int SetChunkStream(std::string filePath, bool isMp3, bool logErrors = true);
 
-#if !defined(USE_SDL3) && !defined(PS2)
+#ifndef USE_SDL3
 	void SetFinishCallback(std::function<void(Aulib::Stream &)> &&callback);
 #endif
 
@@ -59,25 +55,14 @@ public:
 
 	[[nodiscard]] bool IsStreaming() const
 	{
-#ifdef PS2
-		return sampleId_ == nullptr;
-#else
 		return file_data_ == nullptr;
-#endif
 	}
 
 	int DuplicateFrom(const SoundSample &other)
 	{
-#ifdef PS2
-		if (other.IsStreaming())
-			return SetChunkStream(other.file_path_, false);
-		sampleId_ = other.sampleId_;
-		return 0;
-#else
 		if (other.IsStreaming())
 			return SetChunkStream(other.file_path_, other.isMp3_);
 		return SetChunk(other.file_data_, other.file_data_size_, other.isMp3_);
-#endif
 	}
 
 	/**
@@ -112,23 +97,16 @@ public:
 	int GetLength() const;
 
 private:
-	// Set for streaming audio to allow for duplicating it:
-	std::string file_path_;
-
-#ifdef PS2
-	int channel_ = -1;
-	int pan_ = 0;
-	int volume_ = 100;
-	audsrv_adpcm_t *sampleId_ = nullptr;
-	std::unique_ptr<audsrv_adpcm_t> stream_;
-#else
 	// Non-streaming audio fields:
 	ArraySharedPtr<std::uint8_t> file_data_;
 	std::size_t file_data_size_;
 
+	// Set for streaming audio to allow for duplicating it:
+	std::string file_path_;
+
 	bool isMp3_;
-#endif
-#if !defined(USE_SDL3) && !defined(PS2)
+
+#ifndef USE_SDL3
 	std::unique_ptr<Aulib::Stream> stream_;
 #endif
 };
