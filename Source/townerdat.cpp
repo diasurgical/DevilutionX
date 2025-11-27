@@ -145,7 +145,7 @@ void LoadQuestDialogFromFile()
 		RecordReader reader { record, filename };
 
 		_talker_id townerType;
-		reader.read("townerType", townerType, ParseEnum<_talker_id>);
+		reader.read("towner_type", townerType, ParseEnum<_talker_id>);
 
 		if (static_cast<size_t>(townerType) >= TownerQuestDialogTable.size()) {
 			continue;
