@@ -61,10 +61,11 @@ std::unordered_map<_talker_id, const TownerData *> TownerBehaviors;
  */
 void InitTownerFromData(Towner &towner, const TownerDataEntry &entry);
 
+#ifdef _DEBUG
 /**
  * @brief Finds the towner data entry from TSV for a given type.
  */
-[[maybe_unused]] const TownerDataEntry *FindTownerDataEntry(_talker_id type, Point position = {})
+const TownerDataEntry *FindTownerDataEntry(_talker_id type, Point position = {})
 {
 	for (const auto &entry : TownersDataEntries) {
 		if (entry.type == type) {
@@ -76,6 +77,7 @@ void InitTownerFromData(Towner &towner, const TownerDataEntry &entry);
 	}
 	return nullptr;
 }
+#endif
 
 void NewTownerAnim(Towner &towner, ClxSpriteList sprites, uint8_t numFrames, int delay)
 {
