@@ -57,6 +57,7 @@ private:
 	void HandleReceive(const asio::error_code &error, size_t bytesRead);
 	void StartReceive();
 	void HandleSend(const asio::error_code &error, size_t bytesSent);
+	void HandleTcpErrorCode();
 
 	void RaiseIoHandlerError(const PacketError &error);
 };

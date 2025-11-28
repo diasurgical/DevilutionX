@@ -168,6 +168,10 @@ void tcp_client::HandleReceive(const asio::error_code &error, size_t bytesRead)
 		}
 		if (!*ready)
 			break;
+		if (recv_queue.ReadPacketFlags() == TcpErrorCodeFlags) {
+			HandleTcpErrorCode();
+			return;
+		}
 		tl::expected<void, PacketError> result
 		    = recv_queue.ReadPacket()
 		          .and_then([this](buffer_t &&pktData) { return pktfty->make_packet(pktData); })
@@ -191,6 +195,27 @@ void tcp_client::HandleSend(const asio::error_code &error, size_t bytesSent)
 {
 	if (error)
 		RaiseIoHandlerError(error.message());
+}
+
+void tcp_client::HandleTcpErrorCode()
+{
+	tl::expected<buffer_t, PacketError> packet = recv_queue.ReadPacket();
+	if (!packet.has_value()) {
+		RaiseIoHandlerError(packet.error());
+		return;
+	}
+
+	buffer_t pktData = *packet;
+	if (pktData.size() != 1) {
+		RaiseIoHandlerError(PacketError());
+		return;
+	}
+
+	PacketError::ErrorCode code = static_cast<PacketError::ErrorCode>(pktData[0]);
+	if (code == PacketError::ErrorCode::DecryptionFailed)
+		RaiseIoHandlerError(_("Server failed to decrypt your packet. Check if you typed the password correctly."));
+	else
+		RaiseIoHandlerError(fmt::format("Unknown error code received from server: {:#04x}", pktData[0]));
 }
 
 tl::expected<void, PacketError> tcp_client::send(packet &pkt)
