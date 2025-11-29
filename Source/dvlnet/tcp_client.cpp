@@ -240,7 +240,7 @@ void tcp_client::DisconnectNet(plr_t plr)
 bool tcp_client::SNetLeaveGame(net::leaveinfo_t type)
 {
 	auto ret = base::SNetLeaveGame(type);
-	poll();
+	process_network_packets();
 	if (local_server != nullptr)
 		local_server->Close();
 	sock.close();

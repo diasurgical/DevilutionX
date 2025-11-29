@@ -139,6 +139,7 @@ bool SNetSetBasePlayer(int);
 bool SNetInitializeProvider(uint32_t provider, struct GameData *gameData);
 void SNetGetProviderCaps(struct _SNETCAPS *);
 
+void DvlNet_ProcessNetworkPackets();
 bool DvlNet_SendInfoRequest();
 void DvlNet_ClearGamelist();
 std::vector<GameInfo> DvlNet_GetGamelist();

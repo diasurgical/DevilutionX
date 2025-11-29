@@ -45,6 +45,7 @@ public:
 	bool SNetDropPlayer(int playerid, net::leaveinfo_t flags) override;
 	bool SNetGetOwnerTurnsWaiting(uint32_t *turns) override;
 	bool SNetGetTurnsInTransit(uint32_t *turns) override;
+	void process_network_packets() override;
 	void setup_gameinfo(buffer_t info) override;
 	std::string make_default_gamename() override;
 	bool send_info_request() override;

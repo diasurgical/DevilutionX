@@ -18,6 +18,14 @@
 namespace devilution {
 namespace net {
 
+void base::process_network_packets()
+{
+	tl::expected<void, PacketError> result = poll();
+	if (!result.has_value()) {
+		LogVerbose("Error polling network: {}", result.error().what());
+	}
+}
+
 void base::setup_gameinfo(buffer_t info)
 {
 	game_init_info = std::move(info);
@@ -233,7 +241,7 @@ bool base::SNetReceiveMessage(uint8_t *sender, void **data, size_t *size)
 			SendEchoRequest(i);
 		lastEchoTime = now;
 	}
-	poll();
+	process_network_packets();
 	if (message_queue.empty())
 		return false;
 	message_last = message_queue.front();
@@ -292,7 +300,7 @@ bool base::AllTurnsArrived()
 
 bool base::SNetReceiveTurns(char **data, size_t *size, uint32_t *status)
 {
-	poll();
+	process_network_packets();
 
 	for (size_t i = 0; i < Players.size(); ++i) {
 		status[i] = 0;
@@ -528,7 +536,7 @@ plr_t base::GetOwner()
 
 bool base::SNetGetOwnerTurnsWaiting(uint32_t *turns)
 {
-	poll();
+	process_network_packets();
 
 	const plr_t owner = GetOwner();
 	const PlayerState &playerState = playerStateTable_[owner];

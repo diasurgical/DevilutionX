@@ -81,7 +81,7 @@ void multi_net_ping();
  * @return Always true for singleplayer
  */
 bool multi_handle_delta();
-void multi_process_network_packets();
+void ProcessGameMessagePackets();
 void multi_send_zero_packet(uint8_t pnum, _cmd_id bCmd, const std::byte *data, size_t size);
 void NetClose();
 bool NetInit(bool bSinglePlayer);

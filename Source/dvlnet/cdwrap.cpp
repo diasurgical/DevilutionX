@@ -30,6 +30,11 @@ int cdwrap::join(std::string_view addrstr)
 	return dvlnet_wrap->join(addrstr);
 }
 
+void cdwrap::process_network_packets()
+{
+	dvlnet_wrap->process_network_packets();
+}
+
 void cdwrap::setup_gameinfo(buffer_t info)
 {
 	game_init_info = std::move(info);

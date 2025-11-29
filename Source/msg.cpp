@@ -509,7 +509,7 @@ int WaitForTurns()
 			return 0;
 		sgbDeltaChunks++;
 	}
-	multi_process_network_packets();
+	ProcessGameMessagePackets();
 	nthread_send_and_recv_turn(0, 0);
 	if (nthread_has_500ms_passed()) {
 		nthread_recv_turns();

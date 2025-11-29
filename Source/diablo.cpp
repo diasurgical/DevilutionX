@@ -917,6 +917,7 @@ void RunGameLoop(interface_mode uMsg)
 		if (!runGameLoop) {
 			if (processInput)
 				ProcessInput();
+			DvlNet_ProcessNetworkPackets();
 			if (!drawGame)
 				continue;
 			RedrawViewport();
@@ -924,7 +925,7 @@ void RunGameLoop(interface_mode uMsg)
 			continue;
 		}
 
-		multi_process_network_packets();
+		ProcessGameMessagePackets();
 		if (game_loop(gbGameLoopStartup))
 			diablo_color_cyc_logic();
 		gbGameLoopStartup = false;

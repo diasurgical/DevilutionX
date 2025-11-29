@@ -34,6 +34,10 @@ public:
 
 	virtual std::string make_default_gamename() = 0;
 
+	virtual void process_network_packets()
+	{
+	}
+
 	virtual void setup_password(std::string passwd)
 	{
 	}
