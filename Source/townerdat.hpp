@@ -15,6 +15,7 @@
 #include "objdat.h"
 #include "textdat.h"
 #include "towners.h"
+#include "utils/attributes.h"
 
 namespace devilution {
 
@@ -35,7 +36,7 @@ struct TownerDataEntry {
 };
 
 /** Contains the data for all towners loaded from TSV. */
-extern std::vector<TownerDataEntry> TownersDataEntries;
+extern DVL_API_FOR_TEST std::vector<TownerDataEntry> TownersDataEntries;
 
 /** Contains the quest dialog table loaded from TSV. Indexed by [towner_type][quest_id]. */
 extern std::unordered_map<_talker_id, std::array<_speech_id, MAXQUESTS>> TownerQuestDialogTable;

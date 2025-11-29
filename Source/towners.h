@@ -19,6 +19,7 @@
 #include "levels/dun_tile.hpp"
 #include "player.h"
 #include "quests.h"
+#include "utils/attributes.h"
 
 namespace devilution {
 
@@ -41,7 +42,7 @@ enum _talker_id : uint8_t {
 };
 
 // Runtime mappings built from TSV data
-extern std::unordered_map<_talker_id, std::string> TownerLongNames; // Maps towner type enum to display name
+extern DVL_API_FOR_TEST std::unordered_map<_talker_id, std::string> TownerLongNames; // Maps towner type enum to display name
 
 struct Towner {
 	OptionalOwnedClxSpriteList ownedAnim;
