@@ -582,6 +582,11 @@ bool SpawnWindow(const char *lpWindowName)
 	}
 #endif
 
+#ifdef PS2
+	// TODO: ps2 sdl2 dóesn´t report joystick similar to switch
+	Joystick::Add(0);
+#endif
+
 #ifdef USE_SDL1
 	// On SDL 1, there are no ADDED/REMOVED events.
 	// Always try to initialize the first joystick.
