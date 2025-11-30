@@ -142,6 +142,7 @@ if(DEVILUTIONX_SCREENSHOT_FORMAT STREQUAL DEVILUTIONX_SCREENSHOT_FORMAT_PNG AND 
     DevilutionX::SDL
     GTest::gmock
     GTest::gtest
+    fmt::fmt
     tl
     app_fatal_for_testing
     language_for_testing
