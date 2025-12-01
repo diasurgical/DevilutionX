@@ -289,10 +289,8 @@ bool base::AllTurnsArrived()
 			continue;
 
 		const std::deque<turn_t> &turnQueue = playerState.turnQueue;
-		if (turnQueue.empty()) {
-			LogDebug("Turn missing from player {}", i);
+		if (turnQueue.empty())
 			return false;
-		}
 	}
 
 	return true;
