@@ -2079,7 +2079,7 @@ void InitKeymapActions()
 	    'V',
 	    [] {
 		    EventPlrMsg(fmt::format(
-		                    fmt::runtime(_(/* TRANSLATORS: {:s} means: Character Name, Game Version, Game Difficulty. */ "{:s} {:s}")),
+		                    fmt::runtime(_(/* TRANSLATORS: {:s} means: Project Name, Game Version. */ "{:s} {:s}")),
 		                    PROJECT_NAME,
 		                    PROJECT_VERSION),
 		        UiFlags::ColorWhite);
@@ -2591,7 +2591,7 @@ void InitPadmapActions()
 	    ControllerButton_NONE,
 	    [] {
 		    EventPlrMsg(fmt::format(
-		                    fmt::runtime(_(/* TRANSLATORS: {:s} means: Character Name, Game Version, Game Difficulty. */ "{:s} {:s}")),
+		                    fmt::runtime(_(/* TRANSLATORS: {:s} means: Project Name, Game Version. */ "{:s} {:s}")),
 		                    PROJECT_NAME,
 		                    PROJECT_VERSION),
 		        UiFlags::ColorWhite);
