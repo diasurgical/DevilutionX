@@ -1564,6 +1564,28 @@ void TimeoutCursor(bool bTimeout)
 			InfoString = StringOrView {};
 			AddInfoBoxString(_("-- Network timeout --"));
 			AddInfoBoxString(_("-- Waiting for players --"));
+			for (uint8_t i = 0; i < Players.size(); i++) {
+				bool isConnected = (player_state[i] & PS_CONNECTED) != 0;
+				bool isActive = (player_state[i] & PS_ACTIVE) != 0;
+				if (!(isConnected && !isActive)) continue;
+
+				DvlNetLatencies latencies = DvlNet_GetLatencies(i);
+
+				std::string ping = fmt::format(
+				    fmt::runtime(_(/* TRANSLATORS: {:s} means: Character Name */ "Player {:s} is timing out!")),
+				    Players[i].name());
+
+				StrAppend(ping, "\n  ", fmt::format(fmt::runtime(_(/* TRANSLATORS: Network connectivity statistics */ "Echo latency: {:d} ms")), latencies.echoLatency));
+
+				if (latencies.providerLatency) {
+					if (latencies.isRelayed && *latencies.isRelayed) {
+						StrAppend(ping, "\n  ", fmt::format(fmt::runtime(_(/* TRANSLATORS: Network connectivity statistics */ "Provider latency: {:d} ms (Relayed)")), *latencies.providerLatency));
+					} else {
+						StrAppend(ping, "\n  ", fmt::format(fmt::runtime(_(/* TRANSLATORS: Network connectivity statistics */ "Provider latency: {:d} ms")), *latencies.providerLatency));
+					}
+				}
+				EventPlrMsg(ping);
+			}
 			NewCursor(CURSOR_HOURGLASS);
 			RedrawEverything();
 		}
