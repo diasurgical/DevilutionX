@@ -2064,6 +2064,9 @@ void FixTilesPatterns()
 			if (dungeon[i][j] == 11 && dungeon[i + 1][j] == 14) {
 				dungeon[i + 1][j] = 16;
 			}
+			if (dungeon[i][j] == 15 && dungeon[i][j + 1] == 1) {
+				dungeon[i][j + 1] = 8;
+			}
 		}
 	}
 }

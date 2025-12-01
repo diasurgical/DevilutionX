@@ -237,8 +237,11 @@ tl::expected<void, PacketError> packet_in::Decrypt(buffer_t buf)
 	    encrypted_buffer.size() - crypto_secretbox_NONCEBYTES,
 	    encrypted_buffer.data(),
 	    key.data());
-	if (status != 0)
-		return tl::make_unexpected(PacketError());
+	if (status != 0) {
+		auto code = PacketError::ErrorCode::DecryptionFailed;
+		std::string_view message = "Failed to decrypt packet data";
+		return tl::make_unexpected(PacketError(code, message));
+	}
 
 	have_decrypted = true;
 	return {};
@@ -246,12 +249,12 @@ tl::expected<void, PacketError> packet_in::Decrypt(buffer_t buf)
 #endif
 
 #ifdef PACKET_ENCRYPTION
-void packet_out::Encrypt()
+tl::expected<void, PacketError> packet_out::Encrypt()
 {
 	assert(have_decrypted);
 
 	if (have_encrypted)
-		return;
+		return {};
 
 	auto lenCleartext = decrypted_buffer.size();
 	encrypted_buffer.insert(encrypted_buffer.begin(),
@@ -265,10 +268,14 @@ void packet_out::Encrypt()
 	    lenCleartext,
 	    encrypted_buffer.data(),
 	    key.data());
-	if (status != 0)
-		ABORT();
+	if (status != 0) {
+		auto code = PacketError::ErrorCode::EncryptionFailed;
+		std::string_view message = "Failed to encrypt packet data";
+		return tl::make_unexpected(PacketError(code, message));
+	}
 
 	have_encrypted = true;
+	return {};
 }
 #endif
 

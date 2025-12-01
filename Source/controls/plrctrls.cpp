@@ -221,13 +221,13 @@ void FindItemOrObject()
 
 void CheckTownersNearby()
 {
-	for (int i = 0; i < 16; i++) {
+	for (size_t i = 0; i < GetNumTowners(); i++) {
 		const int distance = GetDistance(Towners[i].position, 2);
 		if (distance == 0)
 			continue;
 		if (!IsTownerPresent(Towners[i]._ttype))
 			continue;
-		pcursmonst = i;
+		pcursmonst = static_cast<int>(i);
 	}
 }
 

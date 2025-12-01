@@ -684,7 +684,7 @@ bool multi_handle_delta()
 	return true;
 }
 
-void multi_process_network_packets()
+void ProcessGameMessagePackets()
 {
 	ClearPlayerLeftState();
 	ProcessTmsgs();

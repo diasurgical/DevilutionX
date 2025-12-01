@@ -29,6 +29,7 @@
 #include "options.h"
 #include "panels/ui_panels.hpp"
 #include "stores.h"
+#include "townerdat.hpp"
 #include "towners.h"
 #include "utils/endian_swap.hpp"
 #include "utils/is_of.hpp"
@@ -197,8 +198,8 @@ void StartPWaterPurify()
 
 void InitQuests()
 {
-	QuestDialogTable[TOWN_HEALER][Q_MUSHROOM] = TEXT_NONE;
-	QuestDialogTable[TOWN_WITCH][Q_MUSHROOM] = TEXT_MUSH9;
+	SetTownerQuestDialog(TOWN_HEALER, Q_MUSHROOM, TEXT_NONE);
+	SetTownerQuestDialog(TOWN_WITCH, Q_MUSHROOM, TEXT_MUSH9);
 
 	QuestLogIsOpen = false;
 	WaterDone = 0;
@@ -626,10 +627,10 @@ void ResyncQuests()
 		} else {
 			if (Quests[Q_MUSHROOM]._qactive == QUEST_ACTIVE) {
 				if (Quests[Q_MUSHROOM]._qvar1 >= QS_MUSHGIVEN) {
-					QuestDialogTable[TOWN_WITCH][Q_MUSHROOM] = TEXT_NONE;
-					QuestDialogTable[TOWN_HEALER][Q_MUSHROOM] = TEXT_MUSH3;
+					SetTownerQuestDialog(TOWN_WITCH, Q_MUSHROOM, TEXT_NONE);
+					SetTownerQuestDialog(TOWN_HEALER, Q_MUSHROOM, TEXT_MUSH3);
 				} else if (Quests[Q_MUSHROOM]._qvar1 >= QS_BRAINGIVEN) {
-					QuestDialogTable[TOWN_HEALER][Q_MUSHROOM] = TEXT_NONE;
+					SetTownerQuestDialog(TOWN_HEALER, Q_MUSHROOM, TEXT_NONE);
 				}
 			}
 		}

@@ -235,6 +235,11 @@ bool SNetSetBasePlayer(int /*unused*/)
 	return true;
 }
 
+void DvlNet_ProcessNetworkPackets()
+{
+	return dvlnet_inst->process_network_packets();
+}
+
 bool DvlNet_SendInfoRequest()
 {
 	return dvlnet_inst->send_info_request();

@@ -95,6 +95,8 @@ void tcp_server::HandleReceive(const scc &con, const asio::error_code &ec,
 		tl::expected<std::unique_ptr<packet>, PacketError> pkt = pktfty.make_packet(*pktData);
 		if (!pkt.has_value()) {
 			Log("make_packet: {}", pkt.error().what());
+			if (pkt.error().code() == PacketError::ErrorCode::DecryptionFailed)
+				StartSend(con, pkt.error().code());
 			DropConnection(con);
 			return;
 		}
@@ -181,7 +183,19 @@ tl::expected<void, PacketError> tcp_server::SendPacket(packet &pkt)
 
 tl::expected<void, PacketError> tcp_server::StartSend(const scc &con, packet &pkt)
 {
-	tl::expected<buffer_t, PacketError> frame = frame_queue::MakeFrame(pkt.Data());
+	return StartSend(con, pkt.Data(), 0);
+}
+
+tl::expected<void, PacketError> tcp_server::StartSend(const scc &con, PacketError::ErrorCode errorCode)
+{
+	buffer_t pktData;
+	pktData.push_back(static_cast<unsigned char>(errorCode));
+	return StartSend(con, pktData, TcpErrorCodeFlags);
+}
+
+tl::expected<void, PacketError> tcp_server::StartSend(const scc &con, buffer_t pktData, uint16_t flags)
+{
+	tl::expected<buffer_t, PacketError> frame = frame_queue::MakeFrame(pktData, flags);
 	if (!frame.has_value())
 		return tl::make_unexpected(frame.error());
 	std::unique_ptr<buffer_t> framePtr = std::make_unique<buffer_t>(*frame);

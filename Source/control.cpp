@@ -830,11 +830,19 @@ std::string TextCmdPing(const std::string_view parameter)
 
 	Player &player = *it;
 	DvlNetLatencies latencies = DvlNet_GetLatencies(player.getId());
-	StrAppend(ret, "Echo latency: ", latencies.echoLatency, " ms");
-	if (latencies.providerLatency != std::nullopt)
-		StrAppend(ret, "\nProvider latency: ", *latencies.providerLatency, " ms");
-	if (latencies.isRelayed != std::nullopt && *latencies.isRelayed)
-		StrAppend(ret, " (relayed)");
+
+	StrAppend(ret, fmt::format(fmt::runtime(_(/* TRANSLATORS: {:s} means: Character Name */ "Latency statistics for {:s}:")), player.name()));
+
+	StrAppend(ret, "\n", fmt::format(fmt::runtime(_(/* TRANSLATORS: Network connectivity statistics */ "Echo latency: {:d} ms")), latencies.echoLatency));
+
+	if (latencies.providerLatency) {
+		if (latencies.isRelayed && *latencies.isRelayed) {
+			StrAppend(ret, "\n", fmt::format(fmt::runtime(_(/* TRANSLATORS: Network connectivity statistics */ "Provider latency: {:d} ms (Relayed)")), *latencies.providerLatency));
+		} else {
+			StrAppend(ret, "\n", fmt::format(fmt::runtime(_(/* TRANSLATORS: Network connectivity statistics */ "Provider latency: {:d} ms")), *latencies.providerLatency));
+		}
+	}
+
 	return ret;
 }
 

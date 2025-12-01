@@ -34,6 +34,8 @@ public:
 	virtual tl::expected<void, PacketError> send(packet &pkt) = 0;
 	virtual void DisconnectNet(plr_t plr);
 
+	void process_network_packets() override;
+
 	void setup_gameinfo(buffer_t info) override;
 
 	void setup_password(std::string pw) override;

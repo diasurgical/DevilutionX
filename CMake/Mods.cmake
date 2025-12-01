@@ -18,6 +18,8 @@ set(hellfire_mod
   txtdata/monsters/monstdat.tsv
   txtdata/sound/effects.tsv
   txtdata/spells/spelldat.tsv
+  txtdata/towners/quest_dialog.tsv
+  txtdata/towners/towners.tsv
   ui_art/diablo.pal
   ui_art/hf_titlew.clx
   ui_art/supportw.clx

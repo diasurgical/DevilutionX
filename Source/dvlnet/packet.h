@@ -64,33 +64,63 @@ static constexpr plr_t PLR_BROADCAST = 0xFF;
 
 class PacketError {
 public:
+	enum class ErrorCode : uint8_t {
+		None,
+		EncryptionFailed,
+		DecryptionFailed
+	};
+
 	PacketError()
-	    : message_(std::string_view("Incorrect package size"))
+	    : message_(std::string_view("Incorrect packet size"))
+	    , code_(ErrorCode::None)
 	{
 	}
 
 	PacketError(const char message[])
 	    : message_(std::string_view(message))
+	    , code_(ErrorCode::None)
 	{
 	}
 
 	PacketError(std::string &&message)
 	    : message_(std::move(message))
+	    , code_(ErrorCode::None)
 	{
 	}
 
 	PacketError(std::string_view message)
 	    : message_(message)
+	    , code_(ErrorCode::None)
+	{
+	}
+
+	PacketError(ErrorCode code, const char message[])
+	    : message_(std::string_view(message))
+	    , code_(code)
+	{
+	}
+
+	PacketError(ErrorCode code, std::string &&message)
+	    : message_(std::move(message))
+	    , code_(code)
+	{
+	}
+
+	PacketError(ErrorCode code, std::string_view message)
+	    : message_(message)
+	    , code_(code)
 	{
 	}
 
 	PacketError(const PacketError &error)
 	    : message_(std::string(error.message_))
+	    , code_(error.code_)
 	{
 	}
 
 	PacketError(PacketError &&error)
 	    : message_(std::move(error.message_))
+	    , code_(error.code_)
 	{
 	}
 
@@ -99,8 +129,14 @@ public:
 		return message_;
 	}
 
+	ErrorCode code() const
+	{
+		return code_;
+	}
+
 private:
 	StringOrView message_;
+	ErrorCode code_;
 };
 
 inline PacketError IoHandlerError(std::string message)
@@ -176,7 +212,7 @@ public:
 	template <class T>
 	tl::expected<void, PacketError> process_element(const T &x);
 	static cookie_t GenerateCookie();
-	void Encrypt();
+	tl::expected<void, PacketError> Encrypt();
 };
 
 template <class P>
@@ -442,13 +478,15 @@ inline tl::expected<std::unique_ptr<packet>, PacketError> packet_factory::make_p
 {
 	auto ret = std::make_unique<packet_in>(key);
 #ifndef PACKET_ENCRYPTION
-	ret->Create(std::move(buf));
+	tl::expected<void, PacketError> isCreated = ret->Create(std::move(buf));
 #else
-	if (!secure)
-		ret->Create(std::move(buf));
-	else
-		ret->Decrypt(std::move(buf));
+	tl::expected<void, PacketError> isCreated = !secure
+	    ? ret->Create(std::move(buf))
+	    : ret->Decrypt(std::move(buf));
 #endif
+	if (!isCreated.has_value()) {
+		return tl::make_unexpected(isCreated.error());
+	}
 	if (const tl::expected<void, PacketError> result = ret->process_data(); !result.has_value()) {
 		return tl::make_unexpected(result.error());
 	}
@@ -464,8 +502,12 @@ tl::expected<std::unique_ptr<packet>, PacketError> packet_factory::make_packet(A
 		return tl::make_unexpected(result.error());
 	}
 #ifdef PACKET_ENCRYPTION
-	if (secure)
-		ret->Encrypt();
+	if (secure) {
+		tl::expected<void, PacketError> isEncrypted = ret->Encrypt();
+		if (!isEncrypted.has_value()) {
+			return tl::make_unexpected(isEncrypted.error());
+		}
+	}
 #endif
 	return ret;
 }
