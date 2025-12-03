@@ -702,7 +702,7 @@ void UpdateEnemy(Monster &monster)
 		Monster &otherMonster = Monsters[monsterId];
 		if (&otherMonster == &monster)
 			continue;
-		if ((otherMonster.hitPoints >> 6) <= 0)
+		if (otherMonster.hasNoLife())
 			continue;
 		if (otherMonster.position.tile == GolemHoldingCell)
 			continue;
@@ -1123,7 +1123,7 @@ void MonsterAttackMonster(Monster &attacker, Monster &target, int hper, int mind
 		target.tag(player);
 	}
 
-	if (target.hitPoints >> 6 <= 0) {
+	if (target.hasNoLife()) {
 		StartDeathFromMonster(attacker, target);
 	} else {
 		MonsterHitMonster(attacker, target, dam);
@@ -1143,7 +1143,7 @@ int CheckReflect(Monster &monster, Player &player, int dam)
 	// reflects 20-30% damage
 	const int mdam = dam * RandomIntBetween(20, 30, true) / 100;
 	ApplyMonsterDamage(DamageType::Physical, monster, mdam);
-	if (monster.hitPoints >> 6 <= 0)
+	if (monster.hasNoLife())
 		M_StartKill(monster, player);
 	else
 		M_StartHit(monster, player, mdam);
@@ -1230,7 +1230,7 @@ void MonsterAttackPlayer(Monster &monster, Player &player, int hit, int minDam, 
 	if (HasAnyOf(player._pIFlags, ItemSpecialEffect::Thorns) && monster.mode != MonsterMode::Death) {
 		const int mdam = (GenerateRnd(3) + 1) << 6;
 		ApplyMonsterDamage(DamageType::Physical, monster, mdam);
-		if (monster.hitPoints >> 6 <= 0)
+		if (monster.hasNoLife())
 			M_StartKill(monster, player);
 		else
 			M_StartHit(monster, player, mdam);
@@ -3782,7 +3782,7 @@ void ApplyMonsterDamage(DamageType damageType, Monster &monster, int damage)
 
 	monster.hitPoints -= damage;
 
-	if (monster.hitPoints >> 6 <= 0) {
+	if (monster.hasNoLife()) {
 		delta_kill_monster(monster, monster.position.tile, *MyPlayer);
 		NetSendCmdLocParam1(false, CMD_MONSTDEATH, monster.position.tile, static_cast<uint16_t>(monster.getId()));
 		return;
@@ -4139,7 +4139,7 @@ void ProcessMonsters()
 			SetRndSeed(monster.aiSeed);
 			monster.aiSeed = AdvanceRndSeed();
 		}
-		if (monster.hitPoints < monster.maxHitPoints && monster.hitPoints >> 6 > 0) {
+		if (monster.hitPoints < monster.maxHitPoints && !monster.hasNoLife()) {
 			if (monster.level(sgGameInitInfo.nDifficulty) > 1) {
 				monster.hitPoints += monster.level(sgGameInitInfo.nDifficulty) / 2;
 			} else {
@@ -4404,7 +4404,7 @@ void M_FallenFear(Point position)
 		if (m == 0)
 			continue;
 		Monster &monster = Monsters[std::abs(m) - 1];
-		if (monster.ai != MonsterAIID::Fallen || monster.hitPoints >> 6 <= 0)
+		if (monster.ai != MonsterAIID::Fallen || monster.hasNoLife())
 			continue;
 
 		const int runDistance = std::max((8 - monster.data().level), 2);
@@ -4908,7 +4908,7 @@ bool Monster::isPlayerMinion() const
 
 bool Monster::isPossibleToHit() const
 {
-	return hitPoints >> 6 > 0
+	return !hasNoLife()
 	    && talkMsg == TEXT_NONE
 	    && (type().type != MT_ILLWEAV || goal != MonsterGoal::Retreat)
 	    && !(IsAnyOf(mode, MonsterMode::Charge, MonsterMode::Death))

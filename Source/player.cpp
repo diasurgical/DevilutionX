@@ -690,7 +690,7 @@ bool PlrHitMonst(Player &player, Monster &monster, bool adjacentDamage = false)
 		}
 		RedrawComponent(PanelDrawComponent::Health);
 	}
-	if ((monster.hitPoints >> 6) <= 0) {
+	if (monster.hasNoLife()) {
 		M_StartKill(monster, player);
 	} else {
 		if (monster.mode != MonsterMode::Petrified && HasAnyOf(player._pIFlags, ItemSpecialEffect::Knockback))
@@ -1106,7 +1106,7 @@ void CheckNewPath(Player &player, bool pmWillBeCalled)
 	case ACTION_RATTACKMON:
 	case ACTION_SPELLMON:
 		monster = &Monsters[targetId];
-		if ((monster->hitPoints >> 6) <= 0) {
+		if (monster->hasNoLife()) {
 			player.Stop();
 			return;
 		}
@@ -3110,7 +3110,7 @@ bool PosOkPlayer(const Player &player, Point position)
 		if (dMonster[position.x][position.y] <= 0) {
 			return false;
 		}
-		if ((Monsters[dMonster[position.x][position.y] - 1].hitPoints >> 6) > 0) {
+		if (!Monsters[dMonster[position.x][position.y] - 1].hasNoLife()) {
 			return false;
 		}
 	}

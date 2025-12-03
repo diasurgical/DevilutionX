@@ -69,7 +69,7 @@ OptionalOwnedClxSpriteList *HalfSizeItemSpritesRed;
 
 bool IsValidMonsterForSelection(const Monster &monster)
 {
-	if (monster.hitPoints >> 6 <= 0)
+	if (monster.hasNoLife())
 		return false;
 	if ((monster.flags & MFLAG_HIDDEN) != 0)
 		return false;

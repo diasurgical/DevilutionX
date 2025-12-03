@@ -330,7 +330,7 @@ bool MonsterMHit(const Player &player, Monster &monster, int mindam, int maxdam,
 	if (&player == MyPlayer)
 		ApplyMonsterDamage(damageType, monster, dam);
 
-	if (monster.hitPoints >> 6 <= 0) {
+	if (monster.hasNoLife()) {
 		M_StartKill(monster, player);
 	} else if (resist) {
 		monster.tag(player);
@@ -723,7 +723,7 @@ bool GuardianTryFireAt(Missile &missile, Point target)
 	const Monster &monster = Monsters[mid];
 	if (monster.isPlayerMinion())
 		return false;
-	if (monster.hitPoints >> 6 <= 0)
+	if (monster.hasNoLife())
 		return false;
 
 	const Player &player = Players[missile._misource];
@@ -1053,7 +1053,7 @@ bool MonsterTrapHit(Monster &monster, int mindam, int maxdam, int dist, MissileI
 	if (DebugGodMode)
 		monster.hitPoints = 0;
 #endif
-	if (monster.hitPoints >> 6 <= 0) {
+	if (monster.hasNoLife()) {
 		MonsterDeath(monster, monster.direction, true);
 	} else if (resist) {
 		PlayEffect(monster, MonsterSound::Hit);

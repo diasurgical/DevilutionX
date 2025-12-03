@@ -476,6 +476,11 @@ struct Monster { // note: missing field _mAFNum
 	 * @param isMoving specifies whether the monster is moving or not (true/moving results in a negative index in dMonster)
 	 */
 	void occupyTile(Point tile, bool isMoving) const;
+
+	bool hasNoLife() const
+	{
+		hitPoints >> 6 <= 0;
+	}
 };
 
 extern size_t LevelMonsterTypeCount;
