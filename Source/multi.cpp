@@ -948,7 +948,7 @@ void recv_plrinfo(Player &player, const TCmdPlrInfoHdr &header, bool recv)
 		return;
 	}
 
-	if (player._pHitPoints >> 6 > 0) {
+	if (!player.hasNoLife()) {
 		StartStand(player, Direction::South);
 		return;
 	}

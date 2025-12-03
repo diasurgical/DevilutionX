@@ -617,7 +617,7 @@ void WithdrawGoldKeyPress(SDL_Keycode vkey)
 {
 	Player &myPlayer = *MyPlayer;
 
-	if (myPlayer._pHitPoints >> 6 <= 0) {
+	if (myPlayer.hasNoLife()) {
 		CloseGoldWithdraw();
 		return;
 	}

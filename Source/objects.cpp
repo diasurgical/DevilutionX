@@ -1658,7 +1658,7 @@ void UpdateBurningCrossDamage(Object &cross)
 		return;
 
 	ApplyPlrDamage(DamageType::Fire, myPlayer, 0, 0, damage[leveltype - 1]);
-	if (myPlayer._pHitPoints >> 6 > 0) {
+	if (!myPlayer.hasNoLife()) {
 		myPlayer.Say(HeroSpeech::Argh);
 	}
 }

@@ -1067,7 +1067,7 @@ bool PlayerMHit(Player &player, Monster *monster, int dist, int mind, int maxd, 
 {
 	*blocked = false;
 
-	if (player._pHitPoints >> 6 <= 0) {
+	if (player.hasNoLife()) {
 		return false;
 	}
 
@@ -1184,7 +1184,7 @@ bool PlayerMHit(Player &player, Monster *monster, int dist, int mind, int maxd, 
 			ApplyPlrDamage(damageType, player, 0, 0, dam, deathReason);
 		}
 
-		if (player._pHitPoints >> 6 > 0) {
+		if (!player.hasNoLife()) {
 			player.Say(HeroSpeech::ArghClang);
 		}
 		return true;
@@ -1194,7 +1194,7 @@ bool PlayerMHit(Player &player, Monster *monster, int dist, int mind, int maxd, 
 		ApplyPlrDamage(damageType, player, 0, 0, dam, deathReason);
 	}
 
-	if (player._pHitPoints >> 6 > 0) {
+	if (!player.hasNoLife()) {
 		StartPlrHit(player, dam, false);
 	}
 
@@ -3932,7 +3932,7 @@ void ProcessRage(Missile &missile)
 	CalcPlrItemVals(player, true);
 
 	// Prevent the player from dying as a result of recalculating their current life
-	if ((player._pHitPoints >> 6) <= 0)
+	if (player.hasNoLife())
 		SetPlayerHitPoints(player, 64);
 
 	RedrawEverything();

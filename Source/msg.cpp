@@ -2076,7 +2076,7 @@ size_t OnPlayerDamage(const TCmdDamage &message, Player &player)
 
 	Player &target = Players[message.bPlr];
 	if (&target == MyPlayer && leveltype != DTYPE_TOWN && gbBufferMsgs != 1) {
-		if (player.isOnActiveLevel() && damage <= 192000 && target._pHitPoints >> 6 > 0) {
+		if (player.isOnActiveLevel() && damage <= 192000 && !target.hasNoLife()) {
 			ApplyPlrDamage(message.damageType, target, 0, 0, static_cast<int>(damage), DeathReason::Player);
 		}
 	}
@@ -2308,7 +2308,7 @@ size_t OnPlayerJoinLevel(const TCmdLocParam2 &message, Player &player)
 		ResetPlayerGFX(player);
 		if (player.isOnActiveLevel()) {
 			SyncInitPlr(player);
-			if ((player._pHitPoints >> 6) > 0) {
+			if (!player.hasNoLife()) {
 				StartStand(player, Direction::South);
 			} else {
 				player._pgfxnum &= ~0xFU;

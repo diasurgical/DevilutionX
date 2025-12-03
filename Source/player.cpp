@@ -1117,7 +1117,7 @@ void CheckNewPath(Player &player, bool pmWillBeCalled)
 	case ACTION_RATTACKPLR:
 	case ACTION_SPELLPLR:
 		target = &Players[targetId];
-		if ((target->_pHitPoints >> 6) <= 0) {
+		if (!target->hasNoLife()) {
 			player.Stop();
 			return;
 		}
@@ -2187,7 +2187,7 @@ void InitPlayerGFX(Player &player)
 
 	ResetPlayerGFX(player);
 
-	if (player._pHitPoints >> 6 == 0) {
+	if (player.hasNoLife()) {
 		player._pgfxnum &= ~0xFU;
 		LoadPlrGFX(player, player_graphic::Death);
 		return;
@@ -2501,7 +2501,7 @@ void InitPlayer(Player &player, bool firstTime)
 
 		ClearStateVariables(player);
 
-		if (player._pHitPoints >> 6 > 0) {
+		if (!player.hasNoLife()) {
 			player._pmode = PM_STAND;
 			NewPlrAnim(player, player_graphic::Stand, Direction::South);
 			player.AnimInfo.currentFrame = GenerateRnd(player._pNFrames - 1);
@@ -2866,7 +2866,7 @@ void ApplyPlrDamage(DamageType damageType, Player &player, int dam, int minHP /*
 	if (player._pHitPoints < minHitPoints) {
 		SetPlayerHitPoints(player, minHitPoints);
 	}
-	if (player._pHitPoints >> 6 <= 0) {
+	if (player.hasNoLife()) {
 		SyncPlrKill(player, deathReason);
 	}
 }
@@ -3024,7 +3024,7 @@ void ProcessPlayers()
 	for (size_t pnum = 0; pnum < Players.size(); pnum++) {
 		Player &player = Players[pnum];
 		if (player.plractive && player.isOnActiveLevel() && (&player == MyPlayer || !player._pLvlChanging)) {
-			if (!PlrDeathModeOK(player) && (player._pHitPoints >> 6) <= 0) {
+			if (!PlrDeathModeOK(player) && player.hasNoLife()) {
 				SyncPlrKill(player, DeathReason::Unknown);
 			}
 

@@ -900,6 +900,11 @@ public:
 
 		return (type == leftHandItem._itype && leftHandItem._iStatFlag) || (type == rightHandItem._itype && rightHandItem._iStatFlag);
 	}
+
+	inline bool hasNoLife() const
+	{
+		return currlevel == 0 ? false : _pHitPoints >> 6 <= 0;
+	}
 };
 
 extern DVL_API_FOR_TEST uint8_t MyPlayerId;

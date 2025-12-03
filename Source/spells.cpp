@@ -272,7 +272,7 @@ void DoResurrect(Player &player, Player &target)
 
 void DoHealOther(const Player &caster, Player &target)
 {
-	if ((target._pHitPoints >> 6) <= 0) {
+	if (target.hasNoLife()) {
 		return;
 	}
 
