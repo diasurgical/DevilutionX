@@ -4008,7 +4008,7 @@ void PrepDoEnding()
 		if (gbIsMultiplayer) {
 			if (player.hasNoLife())
 				player._pHitPoints = 64;
-			if (player._pMana >> 6 == 0)
+			if (player.hasNoMana())
 				player._pMana = 64;
 		}
 	}

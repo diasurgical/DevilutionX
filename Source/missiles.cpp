@@ -4207,7 +4207,7 @@ static void DeleteMissiles()
 void ProcessManaShield()
 {
 	Player &myPlayer = *MyPlayer;
-	if (myPlayer.pManaShield && myPlayer._pMana <= 0) {
+	if (myPlayer.pManaShield && myPlayer.hasNoMana()) {
 		myPlayer.pManaShield = false;
 		NetSendCmd(true, CMD_REMSHIELD);
 	}

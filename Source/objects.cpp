@@ -2533,7 +2533,7 @@ void OperateShrineCostOfWisdom(Player &player, SpellID spellId, diablo_message m
 	player._pMana -= t;
 	player._pMaxMana -= t;
 	player._pMaxManaBase -= t;
-	if (player._pMana >> 6 <= 0) {
+	if (player.hasNoMana()) {
 		player._pMana = v1;
 		player._pManaBase = 0;
 	}
