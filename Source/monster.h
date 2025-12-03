@@ -479,7 +479,7 @@ struct Monster { // note: missing field _mAFNum
 
 	bool hasNoLife() const
 	{
-		hitPoints >> 6 <= 0;
+		return hitPoints >> 6 <= 0;
 	}
 };
 
