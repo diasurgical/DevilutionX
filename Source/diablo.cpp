@@ -36,6 +36,7 @@
 #include "DiabloUI/diabloui.h"
 #include "controls/control_mode.hpp"
 #include "controls/keymapper.hpp"
+#include "controls/local_coop.hpp"
 #include "controls/plrctrls.h"
 #include "controls/remap_keyboard.h"
 #include "diablo.h"
@@ -368,7 +369,14 @@ void LeftMouseDown(uint16_t modState)
 	const bool isShiftHeld = (modState & SDL_KMOD_SHIFT) != 0;
 	const bool isCtrlHeld = (modState & SDL_KMOD_CTRL) != 0;
 
-	if (!GetMainPanel().contains(MousePosition)) {
+#ifndef USE_SDL1
+	// Skip main panel mouse handling when local co-op is enabled
+	const bool skipMainPanelForLocalCoop = *GetOptions().Gameplay.enableLocalCoop;
+#else
+	const bool skipMainPanelForLocalCoop = false;
+#endif
+
+	if (!GetMainPanel().contains(MousePosition) || skipMainPanelForLocalCoop) {
 		if (!gmenu_is_active() && !TryIconCurs()) {
 			if (QuestLogIsOpen && GetLeftPanel().contains(MousePosition)) {
 				QuestlogESC();
@@ -727,6 +735,13 @@ void PrepareForFadeIn()
 
 void GameEventHandler(const SDL_Event &event, uint16_t modState)
 {
+#ifndef USE_SDL1
+	// Handle local co-op player input before Player 1's input
+	if (ProcessLocalCoopInput(event)) {
+		return;
+	}
+#endif
+
 	[[maybe_unused]] const Options &options = GetOptions();
 	StaticVector<ControllerButtonEvent, 4> ctrlEvents = ToControllerButtonEvents(event);
 	for (const ControllerButtonEvent ctrlEvent : ctrlEvents) {

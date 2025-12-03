@@ -25,6 +25,7 @@
 #endif
 #include "controls/control_mode.hpp"
 #include "controls/game_controls.h"
+#include "controls/local_coop.hpp"
 #include "controls/touch/gamepad.h"
 #include "cursor.h"
 #include "doom.h"
@@ -1980,6 +1981,12 @@ void plrctrls_every_frame()
 void plrctrls_after_game_logic()
 {
 	Movement(*MyPlayer);
+
+	// Update local co-op player movement
+	UpdateLocalCoopMovement();
+
+	// Update camera to follow all local co-op players
+	UpdateLocalCoopCamera();
 }
 
 void UseBeltItem(BeltItemType type)
