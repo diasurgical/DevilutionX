@@ -464,7 +464,7 @@ uint16_t CheckStashHLight(Point mousePosition)
 
 bool UseStashItem(uint16_t c)
 {
-	if (MyPlayer->_pInvincible && MyPlayer->_pHitPoints == 0)
+	if (MyPlayer->_pInvincible && MyPlayer->hasNoLife())
 		return true;
 	if (pcurs != CURSOR_HAND)
 		return true;

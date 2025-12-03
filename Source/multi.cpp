@@ -724,7 +724,7 @@ void ProcessGameMessagePackets()
 			player._pBaseStr = pkt->bstr;
 			player._pBaseMag = pkt->bmag;
 			player._pBaseDex = pkt->bdex;
-			if (!cond && player.plractive && player._pHitPoints != 0) {
+			if (!cond && player.plractive && !player.hasNoLife()) {
 				if (player.isOnActiveLevel() && !player._pLvlChanging) {
 					if (player.position.tile.WalkingDistance(syncPosition) > 3 && PosOkPlayer(player, syncPosition)) {
 						// got out of sync, clear the tiles around where we last thought the player was located

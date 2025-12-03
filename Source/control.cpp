@@ -1466,7 +1466,7 @@ void CheckMainPanelButtonUp()
 					NetSendCmd(true, CMD_RETOWN);
 				}
 				break;
-			} else if (MyPlayer->_pHitPoints == 0) {
+			} else if (MyPlayer->hasNoLife()) {
 				break;
 			}
 			qtextflag = false;
