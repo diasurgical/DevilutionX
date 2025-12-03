@@ -903,7 +903,7 @@ public:
 
 	inline bool hasNoLife() const
 	{
-		return currlevel == 0 ? false : _pHitPoints >> 6 <= 0;
+		return leveltype == DTYPE_TOWN ? false : _pHitPoints >> 6 <= 0;
 	}
 };
 
