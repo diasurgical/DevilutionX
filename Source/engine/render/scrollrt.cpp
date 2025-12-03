@@ -1,4 +1,3 @@
-/**
  * @file scrollrt.cpp
  *
  * Implementation of functionality for rendering the dungeons, monsters and calling other render routines.

@@ -519,7 +519,14 @@ bool InitSingle(GameData *gameData)
 
 bool InitMulti(GameData *gameData)
 {
-	Players.resize(MAX_PLRS);
+	// Check if local co-op is available (multiple controllers)
+	if (IsLocalCoopAvailable()) {
+		InitLocalCoop();
+		// Resize players array to accommodate all local players
+		Players.resize(g_LocalCoop.GetTotalPlayerCount());
+	} else {
+		Players.resize(MAX_PLRS);
+	}
 
 	int playerId;
 
@@ -544,6 +551,15 @@ bool InitMulti(GameData *gameData)
 	gbIsMultiplayer = true;
 
 	pfile_read_player_from_save(gSaveNumber, *MyPlayer);
+
+	// Load available heroes for local co-op players
+	if (IsLocalCoopEnabled()) {
+		for (size_t i = 0; i < g_LocalCoop.players.size(); ++i) {
+			if (g_LocalCoop.players[i].active) {
+				LoadAvailableHeroesForLocalPlayer(static_cast<int>(i));
+			}
+		}
+	}
 
 	return true;
 }

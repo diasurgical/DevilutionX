@@ -31,6 +31,7 @@
 #include "DiabloUI/text_input.hpp"
 #include "automap.h"
 #include "controls/control_mode.hpp"
+#include "controls/local_coop.hpp"
 #include "controls/modifier_hints.h"
 #include "controls/plrctrls.h"
 #include "cursor.h"
@@ -335,8 +336,8 @@ void PrintInfo(const Surface &out)
 		return;
 
 #ifndef USE_SDL1
-	// Hide info box text in local co-op mode
-	if (*GetOptions().Gameplay.enableLocalCoop)
+	// Hide info box text in local co-op mode (only when actually enabled with 2+ controllers)
+	if (IsLocalCoopEnabled())
 		return;
 #endif
 
@@ -1531,8 +1532,8 @@ void FreeControlPan()
 void DrawInfoBox(const Surface &out)
 {
 #ifndef USE_SDL1
-	// Hide info box in local co-op mode
-	if (*GetOptions().Gameplay.enableLocalCoop)
+	// Hide info box in local co-op mode (only when actually enabled with 2+ controllers)
+	if (IsLocalCoopEnabled())
 		return;
 #endif
 
