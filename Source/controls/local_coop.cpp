@@ -28,6 +28,7 @@
 #include "msg.h"
 #include "multi.h"
 #include "options.h"
+#include "pack.h"
 #include "pfile.h"
 #include "player.h"
 #include "playerdat.hpp"
@@ -88,42 +89,64 @@ void ScaleJoystickAxes(float *x, float *y, float deadzone)
 	}
 }
 
-/// Callback for collecting available heroes
-int g_CollectHeroExcludeSaveNum = -1;
-std::vector<uint32_t> g_CollectHeroExcludeSaves;
-std::vector<_uiheroinfo> *g_CollectHeroTarget = nullptr;
+/// Static variables for hero collection callback
+static std::vector<_uiheroinfo> *g_LocalCoopHeroList = nullptr;
+static const std::vector<uint32_t> *g_LocalCoopExcludeSaves = nullptr;
 
-bool CollectHeroInfo(_uiheroinfo *info)
+/**
+ * @brief Callback for collecting heroes in LoadHeroInfosForLocalCoop.
+ */
+bool CollectHeroForLocalCoop(_uiheroinfo *info)
 {
-	// Don't include heroes already selected by other players
-	if (info->saveNumber == static_cast<uint32_t>(g_CollectHeroExcludeSaveNum))
+	if (g_LocalCoopHeroList == nullptr || g_LocalCoopExcludeSaves == nullptr)
 		return true;
 
-	for (uint32_t excludeSave : g_CollectHeroExcludeSaves) {
-		if (info->saveNumber == excludeSave)
-			return true;
+	// Check if this hero should be excluded
+	bool excluded = false;
+	for (uint32_t excludeSave : *g_LocalCoopExcludeSaves) {
+		if (info->saveNumber == excludeSave) {
+			excluded = true;
+			break;
+		}
 	}
-
-	if (g_CollectHeroTarget != nullptr) {
-		g_CollectHeroTarget->push_back(*info);
+	if (!excluded) {
+		g_LocalCoopHeroList->push_back(*info);
 	}
-	return true;
+	return true; // Continue processing
 }
 
 /**
- * @brief Get the controller ID for a player slot.
- *
- * Controller 0 = Player 1 (existing system)
- * Controller 1 = Player 2 (first local co-op player)
- * etc.
+ * @brief Load hero info from save files.
+ * Uses pfile_ui_set_hero_infos which temporarily modifies Players[0],
+ * but we restore it by re-reading player 1's save file after.
+ * Respects the current game mode (single-player vs multiplayer) to show
+ * the correct character saves. pfile_ui_set_hero_infos uses gbIsMultiplayer
+ * to determine which save directory to read from (single_ vs multi_).
  */
-SDL_JoystickID GetControllerIdForSlot(size_t slot)
+void LoadHeroInfosForLocalCoop(std::vector<_uiheroinfo> &heroList, const std::vector<uint32_t> &excludeSaves)
 {
-	const auto &controllers = GameController::All();
-	if (slot < controllers.size()) {
-		return controllers[slot].GetInstanceId();
+	heroList.clear();
+
+	// Save player 1's save number so we can restore it
+	uint32_t savedSaveNumber = gSaveNumber;
+
+	// Set up static variables for callback
+	g_LocalCoopHeroList = &heroList;
+	g_LocalCoopExcludeSaves = &excludeSaves;
+
+	// This will modify Players[0] for each hero
+	// It uses gbIsMultiplayer to determine save directory (single_ vs multi_)
+	// so it will automatically show the correct characters based on the current game mode
+	pfile_ui_set_hero_infos(CollectHeroForLocalCoop);
+
+	// Restore player 1 by re-reading their save file
+	if (savedSaveNumber < MAX_CHARACTERS) {
+		pfile_read_player_from_save(savedSaveNumber, Players[0]);
 	}
-	return -1;
+
+	// Clear static variables
+	g_LocalCoopHeroList = nullptr;
+	g_LocalCoopExcludeSaves = nullptr;
 }
 
 /**
@@ -220,17 +243,63 @@ void ProcessLocalCoopAxisMotion(int localIndex, const SDL_Event &event)
 		coopPlayer.leftStickXUnscaled = static_cast<float>(axis.value);
 		break;
 	case SDL_GAMEPAD_AXIS_LEFTY:
-		coopPlayer.leftStickYUnscaled = static_cast<float>(-axis.value);
+		coopPlayer.leftStickYUnscaled = static_cast<float>(-axis.value); // Invert Y axis
 		break;
 	default:
 		return;
 	}
 
-	// Apply deadzone scaling
+	// Apply deadzone scaling (values are in range -32767 to 32767)
 	coopPlayer.leftStickX = coopPlayer.leftStickXUnscaled;
 	coopPlayer.leftStickY = coopPlayer.leftStickYUnscaled;
 	constexpr float deadzone = 0.25f;
 	ScaleJoystickAxes(&coopPlayer.leftStickX, &coopPlayer.leftStickY, deadzone);
+}
+
+/**
+ * @brief Process D-pad input for local co-op player movement.
+ */
+void ProcessLocalCoopDpadMovement(int localIndex, const SDL_Event &event)
+{
+	LocalCoopPlayer &coopPlayer = g_LocalCoop.players[localIndex];
+
+	// Only process D-pad for movement when not in character selection
+	if (coopPlayer.characterSelectActive)
+		return;
+
+	if (event.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN) {
+		const auto button = SDLC_EventGamepadButton(event).button;
+		switch (button) {
+		case SDL_GAMEPAD_BUTTON_DPAD_UP:
+			coopPlayer.leftStickY = 1.0f;
+			break;
+		case SDL_GAMEPAD_BUTTON_DPAD_DOWN:
+			coopPlayer.leftStickY = -1.0f;
+			break;
+		case SDL_GAMEPAD_BUTTON_DPAD_LEFT:
+			coopPlayer.leftStickX = -1.0f;
+			break;
+		case SDL_GAMEPAD_BUTTON_DPAD_RIGHT:
+			coopPlayer.leftStickX = 1.0f;
+			break;
+		default:
+			break;
+		}
+	} else if (event.type == SDL_EVENT_GAMEPAD_BUTTON_UP) {
+		const auto button = SDLC_EventGamepadButton(event).button;
+		switch (button) {
+		case SDL_GAMEPAD_BUTTON_DPAD_UP:
+		case SDL_GAMEPAD_BUTTON_DPAD_DOWN:
+			coopPlayer.leftStickY = 0.0f;
+			break;
+		case SDL_GAMEPAD_BUTTON_DPAD_LEFT:
+		case SDL_GAMEPAD_BUTTON_DPAD_RIGHT:
+			coopPlayer.leftStickX = 0.0f;
+			break;
+		default:
+			break;
+		}
+	}
 }
 
 /**
@@ -273,8 +342,12 @@ void UpdateLocalCoopPlayerMovement(int localIndex)
 	}
 
 	// Try to walk to new position
+	// For local co-op players, use StartWalk directly instead of NetSendCmdLoc
+	// since they're local players in single player mode
 	if (PosOkPlayer(player, delta)) {
-		NetSendCmdLoc(playerId, true, CMD_WALKXY, delta);
+		if (player._pmode == PM_STAND && player.CanChangeAction()) {
+			StartWalk(player, pdir, false);
+		}
 	} else {
 		// Just turn to face direction if can't move
 		if (player._pmode == PM_STAND) {
@@ -437,6 +510,7 @@ bool ProcessLocalCoopInput(const SDL_Event &event)
 		return false;
 
 	ProcessLocalCoopAxisMotion(localIndex, event);
+	ProcessLocalCoopDpadMovement(localIndex, event);
 	ProcessLocalCoopButtonInput(localIndex, event);
 
 	return true;
@@ -462,8 +536,10 @@ void LoadAvailableHeroesForLocalPlayer(int localIndex)
 	coopPlayer.selectedHeroIndex = 0;
 
 	// Build list of save numbers to exclude
-	g_CollectHeroExcludeSaves.clear();
-	g_CollectHeroExcludeSaveNum = static_cast<int>(gSaveNumber); // Exclude player 1's hero
+	std::vector<uint32_t> excludeSaves;
+
+	// Exclude player 1's currently selected hero
+	excludeSaves.push_back(gSaveNumber);
 
 	// Exclude heroes already selected by other local co-op players
 	for (size_t i = 0; i < g_LocalCoop.players.size(); ++i) {
@@ -472,15 +548,14 @@ void LoadAvailableHeroesForLocalPlayer(int localIndex)
 		const LocalCoopPlayer &other = g_LocalCoop.players[i];
 		if (other.active && !other.characterSelectActive && !other.availableHeroes.empty()) {
 			// This player has confirmed, exclude their hero
-			if (other.selectedHeroIndex < static_cast<int>(other.availableHeroes.size())) {
-				g_CollectHeroExcludeSaves.push_back(other.availableHeroes[other.selectedHeroIndex].saveNumber);
+			if (other.selectedHeroIndex >= 0 && other.selectedHeroIndex < static_cast<int>(other.availableHeroes.size())) {
+				excludeSaves.push_back(other.availableHeroes[other.selectedHeroIndex].saveNumber);
 			}
 		}
 	}
 
-	g_CollectHeroTarget = &coopPlayer.availableHeroes;
-	pfile_ui_set_hero_infos(CollectHeroInfo);
-	g_CollectHeroTarget = nullptr;
+	// Load hero info without corrupting Players array
+	LoadHeroInfosForLocalCoop(coopPlayer.availableHeroes, excludeSaves);
 
 	Log("Local co-op: Player {} has {} available heroes",
 	    localIndex + 2, coopPlayer.availableHeroes.size());
@@ -498,8 +573,7 @@ void ConfirmLocalCoopCharacter(int localIndex)
 		return;
 	}
 
-	if (coopPlayer.selectedHeroIndex < 0 ||
-	    coopPlayer.selectedHeroIndex >= static_cast<int>(coopPlayer.availableHeroes.size())) {
+	if (coopPlayer.selectedHeroIndex < 0 || coopPlayer.selectedHeroIndex >= static_cast<int>(coopPlayer.availableHeroes.size())) {
 		Log("Local co-op: Player {} has invalid hero index", localIndex + 2);
 		return;
 	}
@@ -543,13 +617,23 @@ void ConfirmLocalCoopCharacter(int localIndex)
 		}
 	}
 
+	// Mark player as active first (needed for getId() to work correctly)
+	player.plractive = true;
+	gbActivePlayers++;
+
+	// Set initial position before SyncInitPlr (which may adjust it)
 	player.position.tile = spawnPos;
 	player.position.future = spawnPos;
 	player.position.old = spawnPos;
 	player._pdir = Direction::South;
 
 	// Initialize graphics and state
+	// ResetPlayerGFX must be called before InitPlayerGFX
+	ResetPlayerGFX(player);
 	InitPlayerGFX(player);
+	// SyncInitPlr will set up animations and position (calls occupyTile)
+	SyncInitPlr(player);
+	// InitPlayer sets up player state and vision
 	InitPlayer(player, true);
 
 	coopPlayer.characterSelectActive = false;
@@ -559,8 +643,7 @@ void ConfirmLocalCoopCharacter(int localIndex)
 
 	// Reload available heroes for remaining players who haven't selected yet
 	for (size_t i = 0; i < g_LocalCoop.players.size(); ++i) {
-		if (static_cast<int>(i) != localIndex && g_LocalCoop.players[i].active &&
-		    g_LocalCoop.players[i].characterSelectActive) {
+		if (static_cast<int>(i) != localIndex && g_LocalCoop.players[i].active && g_LocalCoop.players[i].characterSelectActive) {
 			LoadAvailableHeroesForLocalPlayer(static_cast<int>(i));
 		}
 	}
@@ -601,7 +684,7 @@ void DrawLocalCoopCharacterSelect(const Surface &out)
 		} else {
 			const _uiheroinfo &hero = coopPlayer.availableHeroes[coopPlayer.selectedHeroIndex];
 
-			// Show hero name
+			// Show hero name (use the name from the hero info, which matches what will be loaded)
 			DrawString(out, hero.name, { { x, y + 14 }, { boxWidth, 0 } },
 			    { .flags = UiFlags::ColorWhite | UiFlags::AlignCenter, .spacing = 1 });
 
@@ -699,8 +782,8 @@ bool LocalCoopHUDOpen = true;
 
 void DrawLocalCoopPlayerHUD(const Surface &out)
 {
-	// Show HUD when local co-op option is enabled (even if only one player)
-	if (!*GetOptions().Gameplay.enableLocalCoop)
+	// Show HUD only when local co-op is actually enabled (2+ controllers)
+	if (!IsLocalCoopEnabled())
 		return;
 
 	// Only draw HUD when not in character selection mode
@@ -708,7 +791,7 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 		return;
 
 	constexpr int padding = 8;
-	constexpr int barWidth = 240;
+	constexpr int barWidth = 232;
 	constexpr int barHeight = 6;
 	constexpr int barSpacing = 2;
 	constexpr int textHeight = 14;
@@ -837,8 +920,40 @@ void HandleLocalCoopControllerDisconnect(SDL_JoystickID controllerId)
 
 void HandleLocalCoopControllerConnect(SDL_JoystickID controllerId)
 {
-	if (!g_LocalCoop.enabled)
+	// Check if local co-op option is enabled
+	if (!*GetOptions().Gameplay.enableLocalCoop)
 		return;
+
+	// If local co-op isn't initialized yet, try to initialize it now
+	if (!g_LocalCoop.enabled) {
+		const auto &controllers = GameController::All();
+		if (controllers.size() >= 2) {
+			// We now have enough controllers, initialize local co-op
+			InitLocalCoop();
+			// After initialization, check if this controller was assigned
+			// (it might be controller 0 which goes to player 1, or controller 1+ which goes to local co-op)
+			for (size_t i = 0; i < g_LocalCoop.players.size(); ++i) {
+				if (g_LocalCoop.players[i].active && g_LocalCoop.players[i].controllerId == controllerId) {
+					// This controller was assigned to a local co-op player during InitLocalCoop
+					// Load available heroes for character selection
+					LoadAvailableHeroesForLocalPlayer(static_cast<int>(i));
+					return;
+				}
+			}
+			// If we get here, the controller is controller 0 (player 1's controller), so we're done
+			return;
+		}
+		// Not enough controllers yet, wait for more
+		return;
+	}
+
+	// Check if this controller is controller 0 (player 1's controller)
+	// Controller 0 should not be assigned to local co-op players
+	const auto &controllers = GameController::All();
+	if (!controllers.empty() && controllers[0].GetInstanceId() == controllerId) {
+		Log("Local co-op: Controller {} is player 1's controller, ignoring", controllerId);
+		return;
+	}
 
 	// Check if this controller was previously assigned
 	for (size_t i = 0; i < g_LocalCoop.players.size(); ++i) {
@@ -914,24 +1029,69 @@ void UpdateLocalCoopCamera()
 	if (g_LocalCoop.IsAnyCharacterSelectActive())
 		return;
 
+	// Calculate maximum distance between any two players
+	size_t totalPlayers = g_LocalCoop.GetTotalPlayerCount();
+	std::vector<Point> playerPositions;
+	for (size_t i = 0; i < totalPlayers && i < Players.size(); ++i) {
+		const Player &player = Players[i];
+		if (player.plractive && player._pHitPoints > 0) {
+			playerPositions.push_back(player.position.tile);
+		}
+	}
+
+	// Need at least 2 players to calculate distance
+	if (playerPositions.size() < 2)
+		return;
+
+	// Find maximum distance between any two players
+	int maxDistance = 0;
+	for (size_t i = 0; i < playerPositions.size(); ++i) {
+		for (size_t j = i + 1; j < playerPositions.size(); ++j) {
+			int dx = std::abs(playerPositions[i].x - playerPositions[j].x);
+			int dy = std::abs(playerPositions[i].y - playerPositions[j].y);
+			int distance = std::max(dx, dy); // Chebyshev distance
+			maxDistance = std::max(maxDistance, distance);
+		}
+	}
+
+	// Only move camera if players are far enough apart
+	const int distanceThreshold = 4; // Only move if players are at least 4 tiles apart
+	if (maxDistance < distanceThreshold)
+		return;
+
 	// Calculate target position (center of all players)
 	Point targetPos = CalculateLocalCoopViewPosition();
 
-	// Smoothly move camera towards target (simple lerp)
-	// This prevents jarring camera movements
+	// Smoothly move camera towards target using interpolation
 	int dx = targetPos.x - ViewPosition.x;
 	int dy = targetPos.y - ViewPosition.y;
 
-	// Move camera one tile at a time towards target
-	if (dx > 0)
-		ViewPosition.x++;
-	else if (dx < 0)
-		ViewPosition.x--;
+	// Calculate distance from current view to target
+	int viewDistance = std::max(std::abs(dx), std::abs(dy));
 
-	if (dy > 0)
-		ViewPosition.y++;
-	else if (dy < 0)
-		ViewPosition.y--;
+	// If already close to target, don't move (prevents jitter)
+	if (viewDistance < 2)
+		return;
+
+	// Move camera smoothly - move faster when far away, slower when close
+	const float lerpFactor = std::min(0.3f, 1.0f / static_cast<float>(viewDistance + 1));
+
+	// Calculate movement amount
+	int moveX = static_cast<int>(std::round(dx * lerpFactor));
+	int moveY = static_cast<int>(std::round(dy * lerpFactor));
+
+	// Ensure we move at least 1 tile if there's a significant difference
+	if (std::abs(dx) >= 2) {
+		if (moveX == 0)
+			moveX = (dx > 0) ? 1 : -1;
+		ViewPosition.x += moveX;
+	}
+
+	if (std::abs(dy) >= 2) {
+		if (moveY == 0)
+			moveY = (dy > 0) ? 1 : -1;
+		ViewPosition.y += moveY;
+	}
 }
 
 bool TryJoinLocalCoopMidGame(SDL_JoystickID controllerId)

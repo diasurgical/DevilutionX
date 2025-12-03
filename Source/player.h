@@ -963,6 +963,7 @@ void PlrClrTrans(Point position);
 void PlrDoTrans(Point position);
 void SetPlayerOld(Player &player);
 void FixPlayerLocation(Player &player, Direction bDir);
+void StartWalk(Player &player, Direction dir, bool pmWillBeCalled);
 void StartStand(Player &player, Direction dir);
 void StartPlrBlock(Player &player, Direction dir);
 void FixPlrWalkTags(const Player &player);

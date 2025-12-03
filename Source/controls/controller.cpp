@@ -10,6 +10,7 @@
 
 #ifndef USE_SDL1
 #include "controls/devices/game_controller.h"
+#include "controls/local_coop.hpp"
 #endif
 #include "controls/devices/joystick.h"
 #include "controls/devices/kbcontroller.h"
@@ -97,12 +98,18 @@ bool HandleControllerAddedOrRemovedEvent(const SDL_Event &event)
 {
 #ifndef USE_SDL1
 	switch (event.type) {
-	case SDL_EVENT_GAMEPAD_ADDED:
-		GameController::Add(SDLC_EventGamepadDevice(event).which);
+	case SDL_EVENT_GAMEPAD_ADDED: {
+		SDL_JoystickID controllerId = SDLC_EventGamepadDevice(event).which;
+		GameController::Add(controllerId);
+		HandleLocalCoopControllerConnect(controllerId);
 		break;
-	case SDL_EVENT_GAMEPAD_REMOVED:
-		GameController::Remove(SDLC_EventGamepadDevice(event).which);
+	}
+	case SDL_EVENT_GAMEPAD_REMOVED: {
+		SDL_JoystickID controllerId = SDLC_EventGamepadDevice(event).which;
+		GameController::Remove(controllerId);
+		HandleLocalCoopControllerDisconnect(controllerId);
 		break;
+	}
 	case SDL_EVENT_JOYSTICK_ADDED:
 		Joystick::Add(event.jdevice.which);
 		break;

@@ -8,6 +8,7 @@
 #endif
 
 #include "control/control.hpp"
+#include "controls/local_coop.hpp"
 #include "controls/plrctrls.h"
 #include "cursor.h"
 #include "diablo.h"
@@ -135,8 +136,8 @@ void HandleBottomPanelInteraction(const SDL_Event &event)
 		return;
 
 #ifndef USE_SDL1
-	// Skip main panel interactions when local co-op is enabled
-	if (*GetOptions().Gameplay.enableLocalCoop)
+	// Skip main panel interactions when local co-op is actually enabled (2+ controllers)
+	if (IsLocalCoopEnabled())
 		return;
 #endif
 
