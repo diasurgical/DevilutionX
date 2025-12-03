@@ -74,6 +74,7 @@
 #include "utils/str_cat.hpp"
 
 #ifndef USE_SDL1
+#include "controls/local_coop.hpp"
 #include "controls/touch/renderers.h"
 #endif
 
@@ -1443,8 +1444,15 @@ void DrawView(const Surface &out, Point startPosition)
 	doom_draw(out);
 	DrawInfoBox(out);
 	UpdateLifeManaPercent(); // Update life/mana totals before rendering any portion of the flask.
-	DrawLifeFlaskUpper(out);
-	DrawManaFlaskUpper(out);
+#ifndef USE_SDL1
+	// Hide flask tops when local co-op is enabled
+	if (!*GetOptions().Gameplay.enableLocalCoop) {
+#endif
+		DrawLifeFlaskUpper(out);
+		DrawManaFlaskUpper(out);
+#ifndef USE_SDL1
+	}
+#endif
 }
 
 /**
@@ -1861,38 +1869,57 @@ void DrawAndBlit()
 	nthread_UpdateProgressToNextGameTick();
 
 	DrawView(out, ViewPosition);
-	if (drawCtrlPan) {
-		DrawMainPanel(out);
-	}
-	if (drawHealth) {
-		DrawLifeFlaskLower(out, !drawCtrlPan);
-	}
-	if (drawMana) {
-		DrawManaFlaskLower(out, !drawCtrlPan);
 
-		DrawSpell(out);
+#ifndef USE_SDL1
+	// When local co-op option is enabled, hide the main panel UI and use corner HUDs instead
+	// This applies even with one player, so the local co-op UI is shown by default
+	const bool hideMainPanelForLocalCoop = *GetOptions().Gameplay.enableLocalCoop && (!g_LocalCoop.enabled || !g_LocalCoop.IsAnyCharacterSelectActive());
+#else
+	const bool hideMainPanelForLocalCoop = false;
+#endif
+
+	if (!hideMainPanelForLocalCoop) {
+		if (drawCtrlPan) {
+			DrawMainPanel(out);
+		}
+		if (drawHealth) {
+			DrawLifeFlaskLower(out, !drawCtrlPan);
+		}
+		if (drawMana) {
+			DrawManaFlaskLower(out, !drawCtrlPan);
+			DrawSpell(out);
+		}
+		if (drawControlButtons) {
+			DrawMainPanelButtons(out);
+		}
+		if (drawBelt) {
+			DrawInvBelt(out);
+		}
+		if (drawChatInput) {
+			DrawChatBox(out);
+		}
+		DrawXPBar(out);
+		if (*GetOptions().Gameplay.showHealthValues)
+			DrawFlaskValues(out, { mainPanel.position.x + 134, mainPanel.position.y + 28 }, MyPlayer->_pHitPoints >> 6, MyPlayer->_pMaxHP >> 6);
+		if (*GetOptions().Gameplay.showManaValues)
+			DrawFlaskValues(out, { mainPanel.position.x + mainPanel.size.width - 138, mainPanel.position.y + 28 },
+				(HasAnyOf(InspectPlayer->_pIFlags, ItemSpecialEffect::NoMana) || MyPlayer->hasNoMana()) ? 0 : MyPlayer->_pMana >> 6,
+				HasAnyOf(InspectPlayer->_pIFlags, ItemSpecialEffect::NoMana) ? 0 : MyPlayer->_pMaxMana >> 6);
 	}
-	if (drawControlButtons) {
-		DrawMainPanelButtons(out);
-	}
-	if (drawBelt) {
-		DrawInvBelt(out);
-	}
-	if (drawChatInput) {
-		DrawChatBox(out);
-	}
-	DrawXPBar(out);
-	if (*GetOptions().Gameplay.showHealthValues)
-		DrawFlaskValues(out, { mainPanel.position.x + 134, mainPanel.position.y + 28 }, MyPlayer->_pHitPoints >> 6, MyPlayer->_pMaxHP >> 6);
-	if (*GetOptions().Gameplay.showManaValues)
-		DrawFlaskValues(out, { mainPanel.position.x + mainPanel.size.width - 138, mainPanel.position.y + 28 },
-		    (HasAnyOf(InspectPlayer->_pIFlags, ItemSpecialEffect::NoMana) || MyPlayer->hasNoMana()) ? 0 : MyPlayer->_pMana >> 6,
-		    HasAnyOf(InspectPlayer->_pIFlags, ItemSpecialEffect::NoMana) ? 0 : MyPlayer->_pMaxMana >> 6);
-	if (*GetOptions().Gameplay.floatingInfoBox)
+
+	// Draw floating info box (always draw when local co-op is active, otherwise check option)
+	if (hideMainPanelForLocalCoop || *GetOptions().Gameplay.floatingInfoBox)
 		DrawFloatingInfoBox(out);
 
 	if (*GetOptions().Gameplay.showMultiplayerPartyInfo && PartySidePanelOpen)
 		DrawPartyMemberInfoPanel(out);
+
+#ifndef USE_SDL1
+	// Draw local co-op character selection UI
+	DrawLocalCoopCharacterSelect(out);
+	// Draw local co-op player HUD (text-only stats in corners)
+	DrawLocalCoopPlayerHUD(out);
+#endif
 
 	DrawCursor(out);
 

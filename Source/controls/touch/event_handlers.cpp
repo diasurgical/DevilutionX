@@ -16,6 +16,7 @@
 #include "game_mode.hpp"
 #include "gmenu.h"
 #include "inv.h"
+#include "options.h"
 #include "panels/spell_book.hpp"
 #include "panels/spell_list.hpp"
 #include "qol/stash.h"
@@ -132,6 +133,12 @@ void HandleBottomPanelInteraction(const SDL_Event &event)
 {
 	if (!gbRunGame || !MyPlayer->HoldItem.isEmpty())
 		return;
+
+#ifndef USE_SDL1
+	// Skip main panel interactions when local co-op is enabled
+	if (*GetOptions().Gameplay.enableLocalCoop)
+		return;
+#endif
 
 	ResetMainPanelButtons();
 

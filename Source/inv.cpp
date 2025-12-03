@@ -637,13 +637,20 @@ std::optional<inv_xy_slot> FindSlotUnderCursor(Point cursorPosition)
 		}
 	}
 
-	testPosition = static_cast<Point>(cursorPosition - GetMainPanel().position);
-	for (std::underlying_type_t<inv_xy_slot> r = SLOTXY_BELT_FIRST; r != NUM_XY_SLOTS; r++) {
-		// check which belt rectangle the mouse is in, if any
-		if (InvRect[r].contains(testPosition)) {
-			return static_cast<inv_xy_slot>(r);
+#ifndef USE_SDL1
+	// Skip belt mouse events when local co-op is enabled
+	if (!*GetOptions().Gameplay.enableLocalCoop) {
+#endif
+		testPosition = static_cast<Point>(cursorPosition - GetMainPanel().position);
+		for (std::underlying_type_t<inv_xy_slot> r = SLOTXY_BELT_FIRST; r != NUM_XY_SLOTS; r++) {
+			// check which belt rectangle the mouse is in, if any
+			if (InvRect[r].contains(testPosition)) {
+				return static_cast<inv_xy_slot>(r);
+			}
 		}
+#ifndef USE_SDL1
 	}
+#endif
 
 	return {};
 }
@@ -1914,8 +1921,19 @@ int SyncDropEar(Point position, uint16_t icreateinfo, uint32_t iseed, uint8_t cu
 
 int8_t CheckInvHLight()
 {
+#ifndef USE_SDL1
+	// Skip belt mouse events when local co-op is enabled
+	const bool skipBeltForLocalCoop = *GetOptions().Gameplay.enableLocalCoop;
+#else
+	const bool skipBeltForLocalCoop = false;
+#endif
+
 	int8_t r = 0;
 	for (; r < NUM_XY_SLOTS; r++) {
+		// Skip belt slots when local co-op is enabled
+		if (skipBeltForLocalCoop && r >= SLOTXY_BELT_FIRST)
+			continue;
+
 		int xo = GetRightPanel().position.x;
 		int yo = GetRightPanel().position.y;
 		if (r >= SLOTXY_BELT_FIRST) {
