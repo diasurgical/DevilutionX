@@ -2069,7 +2069,7 @@ ClxSprite GetPlayerPortraitSprite(Player &player)
 	std::string_view szCel = inDungeon ? "as" : "st";
 
 	player_graphic graphic = player_graphic::Stand;
-	if (player._pHitPoints <= 0) {
+	if (player.hasNoLife()) {
 		if (animWeaponId == PlayerWeaponGraphic::Unarmed) {
 			szCel = "dt";
 			graphic = player_graphic::Death;
@@ -2430,7 +2430,7 @@ void NextPlrLevel(Player &player)
 
 void Player::_addExperience(uint32_t experience, int levelDelta)
 {
-	if (this != MyPlayer || _pHitPoints <= 0)
+	if (this != MyPlayer || hasNoLife())
 		return;
 
 	if (isMaxCharacterLevel()) {
@@ -2683,7 +2683,7 @@ __attribute__((no_sanitize("shift-base")))
 void
 StartPlayerKill(Player &player, DeathReason deathReason)
 {
-	if (player._pHitPoints <= 0 && player._pmode == PM_DEATH) {
+	if (player.hasNoLife() && player._pmode == PM_DEATH) {
 		return;
 	}
 
@@ -2826,7 +2826,7 @@ void StripTopGold(Player &player)
 void ApplyPlrDamage(DamageType damageType, Player &player, int dam, int minHP /*= 0*/, int frac /*= 0*/, DeathReason deathReason /*= DeathReason::MonsterOrTrap*/)
 {
 	int totalDamage = (dam << 6) + frac;
-	if (&player == MyPlayer && player._pHitPoints > 0) {
+	if (&player == MyPlayer && !player.hasNoLife()) {
 		AddFloatingNumber(damageType, player, totalDamage);
 	}
 	if (totalDamage > 0 && player.pManaShield && HasNoneOf(player._pIFlags, ItemSpecialEffect::NoMana)) {
@@ -2873,11 +2873,6 @@ void ApplyPlrDamage(DamageType damageType, Player &player, int dam, int minHP /*
 
 void SyncPlrKill(Player &player, DeathReason deathReason)
 {
-	if (player._pHitPoints <= 0 && leveltype == DTYPE_TOWN) {
-		SetPlayerHitPoints(player, 64);
-		return;
-	}
-
 	SetPlayerHitPoints(player, 0);
 	StartPlayerKill(player, deathReason);
 }
