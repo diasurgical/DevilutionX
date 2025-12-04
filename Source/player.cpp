@@ -1117,7 +1117,7 @@ void CheckNewPath(Player &player, bool pmWillBeCalled)
 	case ACTION_RATTACKPLR:
 	case ACTION_SPELLPLR:
 		target = &Players[targetId];
-		if (!target->hasNoLife()) {
+		if (target->hasNoLife()) {
 			player.Stop();
 			return;
 		}
@@ -2680,8 +2680,7 @@ void StartPlrHit(Player &player, int dam, bool forcehit)
 #if defined(__clang__) || defined(__GNUC__)
 __attribute__((no_sanitize("shift-base")))
 #endif
-void
-StartPlayerKill(Player &player, DeathReason deathReason)
+void StartPlayerKill(Player &player, DeathReason deathReason)
 {
 	if (player.hasNoLife() && player._pmode == PM_DEATH) {
 		return;
@@ -2896,8 +2895,7 @@ void RemovePlrMissiles(const Player &player)
 #if defined(__clang__) || defined(__GNUC__)
 __attribute__((no_sanitize("shift-base")))
 #endif
-void
-StartNewLvl(Player &player, interface_mode fom, int lvl)
+void StartNewLvl(Player &player, interface_mode fom, int lvl)
 {
 	InitLevelChange(player);
 
