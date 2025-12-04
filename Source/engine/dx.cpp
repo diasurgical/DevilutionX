@@ -17,6 +17,10 @@
 #include <SDL.h>
 #endif
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+
 #include "controls/control_mode.hpp"
 #include "controls/plrctrls.h"
 #include "engine/render/primitive_render.hpp"
@@ -258,6 +262,11 @@ void RenderPresent()
 			RenderVirtualGamepad(renderer);
 		}
 		SDL_RenderPresent(renderer);
+
+#ifdef __EMSCRIPTEN__
+		// Yield to browser to allow rendering
+		emscripten_sleep(1);
+#endif
 
 		if (*GetOptions().Graphics.frameRateControl != FrameRateControl::VerticalSync) {
 			LimitFrameRate();

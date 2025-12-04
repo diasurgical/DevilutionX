@@ -168,7 +168,11 @@ bool gbGameLoopStartup;
 bool forceSpawn;
 bool forceDiablo;
 int sgnTimeoutCurs;
+#ifdef __EMSCRIPTEN__
+bool gbShowIntro = false; // Skip intro videos in browser for performance
+#else
 bool gbShowIntro = true;
+#endif
 /** To know if these things have been done when we get to the diablo_deinit() function */
 bool was_archives_init = false;
 /** To know if surfaces have been initialized or not */
