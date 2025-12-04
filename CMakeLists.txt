@@ -406,9 +406,12 @@ if(EMSCRIPTEN)
     -sFORCE_FILESYSTEM=1
     -sALLOW_MEMORY_GROWTH=1
     -sASYNCIFY
+    --shell-file ${CMAKE_CURRENT_SOURCE_DIR}/Packaging/emscripten/index.html
   )
   # Add JavaScript to load MPQ files from the server directory at runtime
   target_link_options(${BIN_TARGET} PRIVATE --pre-js ${CMAKE_CURRENT_SOURCE_DIR}/CMake/emscripten_pre.js)
+  # Disable fullscreen by default
+  target_compile_definitions(${BIN_TARGET} PRIVATE EMSCRIPTEN_NO_FULLSCREEN)
 endif()
 
 if(NOT USE_SDL1 AND NOT UWP_LIB)
