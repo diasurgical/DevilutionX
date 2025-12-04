@@ -1,3 +1,4 @@
+/**
  * @file scrollrt.cpp
  *
  * Implementation of functionality for rendering the dungeons, monsters and calling other render routines.
@@ -502,7 +503,7 @@ void DrawDeadPlayer(const Surface &out, Point tilePosition, Point targetBufferPo
 	dFlags[tilePosition.x][tilePosition.y] &= ~DungeonFlag::DeadPlayer;
 
 	for (const Player &player : Players) {
-		if (player.plractive && player.hasNoLife() && player.isOnActiveLevel() && player.position.tile == tilePosition) {
+		if (player.plractive && player._pHitPoints == 0 && player.isOnActiveLevel() && player.position.tile == tilePosition) {
 			dFlags[tilePosition.x][tilePosition.y] |= DungeonFlag::DeadPlayer;
 			const Point playerRenderPosition { targetBufferPosition };
 			DrawPlayer(out, player, tilePosition, playerRenderPosition, lightTableIndex);
@@ -953,8 +954,10 @@ void DrawFloor(const Surface &out, const Lightmap &lightmap, Point tilePosition,
 {
 	for (int i = 0; i < rows; i++) {
 		for (int j = 0; j < columns; j++, tilePosition += Direction::East, targetBufferPosition.x += TILE_WIDTH) {
-			if (!InDungeonBounds(tilePosition))
+			if (!InDungeonBounds(tilePosition)) {
+				world_draw_black_tile(out, targetBufferPosition.x, targetBufferPosition.y);
 				continue;
+			}
 			if (IsFloor(tilePosition)) {
 				DrawFloorTile(out, lightmap, tilePosition, targetBufferPosition);
 			}
@@ -1022,77 +1025,6 @@ void DrawTileContent(const Surface &out, const Lightmap &lightmap, Point tilePos
 			}
 			tilePosition += Direction::East;
 			targetBufferPosition.x += TILE_WIDTH;
-		}
-		// Return to start of row
-		tilePosition += Displacement(Direction::West) * columns;
-		targetBufferPosition.x -= columns * TILE_WIDTH;
-
-		// Jump to next row
-		targetBufferPosition.y += TILE_HEIGHT / 2;
-		if ((i & 1) != 0) {
-			tilePosition.x++;
-			columns--;
-			targetBufferPosition.x += TILE_WIDTH / 2;
-		} else {
-			tilePosition.y++;
-			columns++;
-			targetBufferPosition.x -= TILE_WIDTH / 2;
-		}
-	}
-}
-
-void DrawDirtTile(const Surface &out, const Lightmap &lightmap, Point tilePosition, Point targetBufferPosition)
-{
-	// This should be the *top-left* of the 2×2 dirt pattern in the actual dungeon.
-	// You might need to tweak these to where your dirt patch actually lives.
-	constexpr Point base { 0, 0 };
-
-	// Decide which of the 4 tiles of the 2×2 block to use,
-	// based on where this OOB tile is in the world grid.
-	const int ox = (tilePosition.x & 1); // 0 or 1
-	const int oy = (tilePosition.y & 1); // 0 or 1
-
-	Point sample {
-		base.x + ox,
-		base.y + oy,
-	};
-
-	// Safety: clamp in case tilePosition is wildly outside and base+offset ever escapes
-	sample.x = std::clamp(sample.x, 0, MAXDUNX - 1);
-	sample.y = std::clamp(sample.y, 0, MAXDUNY - 1);
-
-	if (!InDungeonBounds(sample) || dPiece[sample.x][sample.y] == 0) {
-		// Failsafe: if our sample somehow isn't valid, fall back to black
-		world_draw_black_tile(out, targetBufferPosition.x, targetBufferPosition.y);
-		return;
-	}
-
-	const int lightTableIndex = dLight[sample.x][sample.y];
-
-	// Let the normal dungeon tile renderer compose the full tile
-	DrawCell(out, lightmap, sample, targetBufferPosition, lightTableIndex);
-}
-
-/**
- * @brief Render a row of tiles
- * @param out Buffer to render to
- * @param lightmap Per-pixel light buffer
- * @param tilePosition dPiece coordinates
- * @param targetBufferPosition Target buffer coordinates
- * @param rows Number of rows
- * @param columns Tile in a row
- */
-void DrawOOB(const Surface &out, const Lightmap &lightmap, Point tilePosition, Point targetBufferPosition, int rows, int columns)
-{
-	for (int i = 0; i < rows + 5; i++) { // 5 extra rows needed to make sure everything gets rendered at the bottom half of the screen
-		for (int j = 0; j < columns; j++, tilePosition += Direction::East, targetBufferPosition.x += TILE_WIDTH) {
-			if (!InDungeonBounds(tilePosition)) {
-				if (leveltype == DTYPE_TOWN) {
-					world_draw_black_tile(out, targetBufferPosition.x, targetBufferPosition.y);
-				} else {
-					DrawDirtTile(out, lightmap, tilePosition, targetBufferPosition);
-				}
-			}
 		}
 		// Return to start of row
 		tilePosition += Displacement(Direction::West) * columns;
@@ -1277,7 +1209,6 @@ void DrawGame(const Surface &fullOut, Point position, Displacement offset)
 
 	DrawFloor(out, lightmap, position, Point {} + offset, rows, columns);
 	DrawTileContent(out, lightmap, position, Point {} + offset, rows, columns);
-	DrawOOB(out, lightmap, position, Point {} + offset, rows, columns);
 
 	if (*GetOptions().Graphics.zoom) {
 		Zoom(fullOut.subregionY(0, gnViewportHeight));
@@ -1444,8 +1375,8 @@ void DrawView(const Surface &out, Point startPosition)
 	DrawInfoBox(out);
 	UpdateLifeManaPercent(); // Update life/mana totals before rendering any portion of the flask.
 #ifndef USE_SDL1
-	// Hide flask tops when local co-op is enabled
-	if (!*GetOptions().Gameplay.enableLocalCoop) {
+	// Hide flask tops when local co-op is actually enabled (2+ controllers)
+	if (!IsLocalCoopEnabled()) {
 #endif
 		DrawLifeFlaskUpper(out);
 		DrawManaFlaskUpper(out);
@@ -1848,7 +1779,7 @@ void DrawAndBlit()
 
 	const Rectangle &mainPanel = GetMainPanel();
 
-	if (gnScreenWidth > mainPanel.size.width || IsRedrawEverything()) {
+	if (gnScreenWidth > mainPanel.size.width || IsRedrawEverything() || *GetOptions().Gameplay.enableFloatingNumbers != FloatingNumbers::Off) {
 		drawHealth = true;
 		drawMana = true;
 		drawControlButtons = true;
@@ -1870,9 +1801,9 @@ void DrawAndBlit()
 	DrawView(out, ViewPosition);
 
 #ifndef USE_SDL1
-	// When local co-op option is enabled, hide the main panel UI and use corner HUDs instead
-	// This applies even with one player, so the local co-op UI is shown by default
-	const bool hideMainPanelForLocalCoop = *GetOptions().Gameplay.enableLocalCoop && (!g_LocalCoop.enabled || !g_LocalCoop.IsAnyCharacterSelectActive());
+	// When local co-op is enabled (2+ controllers), hide the main panel UI and use corner HUDs instead.
+	// Player 1's corner HUD will always show when local coop is enabled.
+	const bool hideMainPanelForLocalCoop = IsLocalCoopEnabled();
 #else
 	const bool hideMainPanelForLocalCoop = false;
 #endif
@@ -1902,8 +1833,8 @@ void DrawAndBlit()
 			DrawFlaskValues(out, { mainPanel.position.x + 134, mainPanel.position.y + 28 }, MyPlayer->_pHitPoints >> 6, MyPlayer->_pMaxHP >> 6);
 		if (*GetOptions().Gameplay.showManaValues)
 			DrawFlaskValues(out, { mainPanel.position.x + mainPanel.size.width - 138, mainPanel.position.y + 28 },
-				(HasAnyOf(InspectPlayer->_pIFlags, ItemSpecialEffect::NoMana) || MyPlayer->hasNoMana()) ? 0 : MyPlayer->_pMana >> 6,
-				HasAnyOf(InspectPlayer->_pIFlags, ItemSpecialEffect::NoMana) ? 0 : MyPlayer->_pMaxMana >> 6);
+			    (HasAnyOf(InspectPlayer->_pIFlags, ItemSpecialEffect::NoMana) || (MyPlayer->_pMana >> 6) <= 0) ? 0 : MyPlayer->_pMana >> 6,
+			    HasAnyOf(InspectPlayer->_pIFlags, ItemSpecialEffect::NoMana) ? 0 : MyPlayer->_pMaxMana >> 6);
 	}
 
 	// Draw floating info box (always draw when local co-op is active, otherwise check option)
