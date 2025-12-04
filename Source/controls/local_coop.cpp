@@ -142,6 +142,9 @@ void LoadHeroInfosForLocalCoop(std::vector<_uiheroinfo> &heroList, const std::ve
 	// Restore player 1 by re-reading their save file
 	if (savedSaveNumber < MAX_CHARACTERS) {
 		pfile_read_player_from_save(savedSaveNumber, Players[0]);
+		// pfile_read_player_from_save calls CalcPlrInv with loadgfx=false,
+		// so we need to recalculate to ensure graphics are properly set
+		CalcPlrInv(Players[0], true);
 	}
 
 	// Clear static variables
@@ -595,6 +598,10 @@ void ConfirmLocalCoopCharacter(int localIndex)
 
 	// Read hero from save file
 	pfile_read_player_from_save(selectedHero.saveNumber, player);
+
+	// pfile_read_player_from_save calls CalcPlrInv with loadgfx=false,
+	// so we need to recalculate to ensure _pgfxnum matches equipped items
+	CalcPlrInv(player, true);
 
 	// Initialize player on the same level as Player 1
 	player.plrlevel = Players[0].plrlevel;
