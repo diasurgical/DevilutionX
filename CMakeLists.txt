@@ -406,6 +406,7 @@ if(EMSCRIPTEN)
     -sFORCE_FILESYSTEM=1
     -sALLOW_MEMORY_GROWTH=1
     -sASYNCIFY
+    -lidbfs.js
     --shell-file ${CMAKE_CURRENT_SOURCE_DIR}/Packaging/emscripten/index.html
   )
   # Add JavaScript to load MPQ files from the server directory at runtime
