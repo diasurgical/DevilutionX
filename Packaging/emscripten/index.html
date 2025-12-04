@@ -33,6 +33,11 @@
 			background-color: black;
 			width: 640px;
 			height: 480px;
+			user-select: none;
+			-webkit-user-select: none;
+			-webkit-user-drag: none;
+			-moz-user-select: none;
+			-ms-user-select: none;
 		}
 
 		#emscripten_logo {
@@ -140,10 +145,148 @@
 			font-family: 'Lucida Console', Monaco, monospace;
 			outline: none;
 		}
+
+		/* File Manager Styles */
+		#fileManagerBtn {
+			position: fixed;
+			top: 20px;
+			right: 20px;
+			cursor: pointer;
+			z-index: 1000;
+		}
+
+		#fileManagerModal {
+			display: none;
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			background: rgba(0,0,0,0.5);
+			z-index: 2000;
+			justify-content: center;
+			align-items: center;
+		}
+
+		#fileManagerModal.show {
+			display: flex;
+		}
+
+		.modal-content {
+			background: white;
+			border: 1px solid black;
+			padding: 20px;
+			max-width: 600px;
+			width: 90%;
+			max-height: 80vh;
+			overflow-y: auto;
+		}
+
+		.modal-header {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			margin-bottom: 20px;
+		}
+
+		.modal-header h2 {
+			margin: 0;
+		}
+
+		.close-btn {
+			border: 1px solid black;
+			cursor: pointer;
+			padding: 5px 10px;
+		}
+
+		.drop-zone {
+			border: 1px solid black;
+			padding: 20px;
+			text-align: center;
+			margin: 20px 0;
+			cursor: pointer;
+		}
+
+		.drop-zone p {
+			margin: 10px 0;
+		}
+
+		.file-list {
+			margin: 20px 0;
+		}
+
+		.file-item {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			padding: 10px;
+			margin: 5px 0;
+			border: 1px solid black;
+		}
+
+		.file-item-name {
+			flex: 1;
+		}
+
+		.file-item-size {
+			margin: 0 15px;
+		}
+
+		.btn {
+			padding: 8px 16px;
+			border: 1px solid black;
+			cursor: pointer;
+		}
+
+		.section {
+			margin: 20px 0;
+		}
+
+		#fileInput {
+			display: none;
+		}
 	</style>
 </head>
 
 <body>
+	<button id="fileManagerBtn" title="File Manager">File Manager</button>
+	<div id="fileManagerModal">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h2>File Manager</h2>
+				<button class="close-btn" id="closeModal">&times;</button>
+			</div>
+
+			<div class="section">
+				<h3>Upload MPQ Files</h3>
+				<div class="info-text">
+					Upload DIABDAT.MPQ or SPAWN.MPQ or other game files. Files will persist across browser sessions.
+				</div>
+				<div class="drop-zone" id="dropZone">
+					<p>📁 Drag and drop MPQ files here</p>
+					<p>or</p>
+					<p><button class="btn" id="browseBtn">Browse Files</button></p>
+				</div>
+				<input type="file" id="fileInput" accept=".mpq,.MPQ" multiple>
+			</div>
+
+			<div class="section">
+				<div class="file-list">
+					<h3>Loaded MPQ Files</h3>
+					<div id="mpqFilesList"></div>
+				</div>
+			</div>
+
+			<div class="section">
+				<h3>Settings</h3>
+				<div class="info-text">
+					Reset game settings (diablo.ini) without deleting saves. Useful if settings get corrupted.
+				</div>
+				<button class="btn btn-reset" id="resetSettingsBtn">Reset Game Settings</button>
+			</div>
+		</div>
+	</div>
+
 	<div class="spinner" id='spinner'></div>
 	<div class="emscripten" id="status">Downloading...</div>
 
@@ -183,6 +326,9 @@
 				// application robust, you may want to override this behavior before shipping!
 				// See http://www.khronos.org/registry/webgl/specs/latest/1.0/#5.15.2
 				canvas.addEventListener("webglcontextlost", function (e) { alert('WebGL context lost. You will need to reload the page.'); e.preventDefault(); }, false);
+
+				// Prevent canvas from being dragged
+				canvas.addEventListener("dragstart", function (e) { e.preventDefault(); }, false);
 
 				return canvas;
 			})(),
@@ -224,6 +370,7 @@
 			};
 		};
 	</script>
+	<script type='text/javascript' src="file-manager.js"></script>
 	<script async type="text/javascript" src="devilutionx.js"></script>
 </body>
 
