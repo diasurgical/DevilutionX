@@ -1467,6 +1467,13 @@ void WalkInDir(Player &player, AxisDirection dir)
 		return;
 	}
 
+	// Check if target position would be off-screen in local co-op mode
+	if (!IsLocalCoopPositionOnScreen(delta)) {
+		if (player._pmode == PM_STAND)
+			StartStand(player, pdir);
+		return; // Don't allow walking off-screen in local co-op
+	}
+
 	if (PosOkPlayer(player, delta) && IsPathBlocked(player.position.future, pdir)) {
 		if (player._pmode == PM_STAND)
 			StartStand(player, pdir);

@@ -201,6 +201,15 @@ Point CalculateLocalCoopViewPosition();
 void UpdateLocalCoopCamera();
 
 /**
+ * @brief Check if a tile position is within the visible screen boundaries.
+ *
+ * Used to prevent local co-op players from moving off-screen.
+ * @param tilePos The tile position to check.
+ * @return true if the position is within the visible screen area.
+ */
+bool IsLocalCoopPositionOnScreen(Point tilePos);
+
+/**
  * @brief Attempt to join a new local co-op player mid-game.
  *
  * Called when a new controller connects during gameplay.

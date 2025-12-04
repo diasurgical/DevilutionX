@@ -18,6 +18,7 @@
 #include "engine/palette.h"
 #include "engine/render/clx_render.hpp"
 #include "engine/render/primitive_render.hpp"
+#include "engine/render/scrollrt.h"
 #include "engine/render/text_render.hpp"
 #include "game_mode.hpp"
 #include "init.hpp"
@@ -32,6 +33,7 @@
 #include "pfile.h"
 #include "player.h"
 #include "playerdat.hpp"
+#include "utils/display.h"
 #include "utils/language.h"
 #include "utils/log.hpp"
 #include "utils/sdl_compat.h"
@@ -50,6 +52,30 @@ const Direction FaceDir[3][3] = {
 	{ Direction::North, Direction::NorthWest, Direction::NorthEast }, // AxisDirectionY_UP
 	{ Direction::South, Direction::SouthWest, Direction::SouthEast }, // AxisDirectionY_DOWN
 };
+
+/**
+ * @brief Check if a tile position is within the visible screen boundaries.
+ * 
+ * Used to prevent local co-op players from moving off-screen.
+ * @param tilePos The tile position to check.
+ * @param margin Screen edge margin in pixels to keep players away from the edge.
+ * @return true if the position is within the visible screen area.
+ */
+bool IsTilePositionOnScreen(Point tilePos, int margin = 64)
+{
+	Point screenPos = GetScreenPosition(tilePos);
+
+	// Get screen dimensions
+	const int screenWidth = static_cast<int>(GetScreenWidth());
+	const int viewportHeight = static_cast<int>(GetViewportHeight());
+
+	// Check if the position is within screen bounds with margin
+	// Screen position is relative to the viewport, so we check against viewport dimensions
+	return screenPos.x >= margin &&
+	       screenPos.x <= screenWidth - margin &&
+	       screenPos.y >= margin &&
+	       screenPos.y <= viewportHeight - margin;
+}
 
 /**
  * @brief Apply deadzone scaling to joystick axes.
@@ -342,6 +368,16 @@ void UpdateLocalCoopPlayerMovement(int localIndex)
 	// Update facing direction
 	if (!player.isWalking() && player.CanChangeAction()) {
 		player._pdir = pdir;
+	}
+
+	// Check if the target position would be on screen
+	// This prevents local co-op players from walking off the visible screen
+	if (!IsTilePositionOnScreen(delta)) {
+		// Target is off-screen, only allow turning
+		if (player._pmode == PM_STAND) {
+			StartStand(player, pdir);
+		}
+		return;
 	}
 
 	// Try to walk to new position
@@ -1044,7 +1080,7 @@ void UpdateLocalCoopCamera()
 	if (g_LocalCoop.IsAnyCharacterSelectActive())
 		return;
 
-	// Calculate maximum distance between any two players
+	// Need at least 2 active players for local co-op camera
 	size_t totalPlayers = g_LocalCoop.GetTotalPlayerCount();
 	std::vector<Point> playerPositions;
 	for (size_t i = 0; i < totalPlayers && i < Players.size(); ++i) {
@@ -1054,59 +1090,78 @@ void UpdateLocalCoopCamera()
 		}
 	}
 
-	// Need at least 2 players to calculate distance
 	if (playerPositions.size() < 2)
-		return;
-
-	// Find maximum distance between any two players
-	int maxDistance = 0;
-	for (size_t i = 0; i < playerPositions.size(); ++i) {
-		for (size_t j = i + 1; j < playerPositions.size(); ++j) {
-			int dx = std::abs(playerPositions[i].x - playerPositions[j].x);
-			int dy = std::abs(playerPositions[i].y - playerPositions[j].y);
-			int distance = std::max(dx, dy); // Chebyshev distance
-			maxDistance = std::max(maxDistance, distance);
-		}
-	}
-
-	// Only move camera if players are far enough apart
-	const int distanceThreshold = 4; // Only move if players are at least 4 tiles apart
-	if (maxDistance < distanceThreshold)
 		return;
 
 	// Calculate target position (center of all players)
 	Point targetPos = CalculateLocalCoopViewPosition();
 
-	// Smoothly move camera towards target using interpolation
+	// Calculate distance from current view to target centroid
 	int dx = targetPos.x - ViewPosition.x;
 	int dy = targetPos.y - ViewPosition.y;
-
-	// Calculate distance from current view to target
 	int viewDistance = std::max(std::abs(dx), std::abs(dy));
 
-	// If already close to target, don't move (prevents jitter)
-	if (viewDistance < 2)
+	// Dead zone threshold - camera doesn't move if centroid is within this distance
+	// This prevents constant small camera adjustments when players are close
+	constexpr int deadZoneThreshold = 3;
+
+	// If within dead zone, don't move the camera at all
+	if (viewDistance <= deadZoneThreshold)
 		return;
 
-	// Move camera smoothly - move faster when far away, slower when close
-	const float lerpFactor = std::min(0.3f, 1.0f / static_cast<float>(viewDistance + 1));
+	// Calculate how much we're outside the dead zone
+	int distanceOutsideDeadZone = viewDistance - deadZoneThreshold;
 
-	// Calculate movement amount
-	int moveX = static_cast<int>(std::round(dx * lerpFactor));
-	int moveY = static_cast<int>(std::round(dy * lerpFactor));
+	// Use smooth interpolation for camera movement
+	// The further outside the dead zone, the faster the camera moves
+	// Use a slower lerp factor for smoother movement
+	constexpr float baseLerpFactor = 0.15f;
+	constexpr float maxLerpFactor = 0.4f;
 
-	// Ensure we move at least 1 tile if there's a significant difference
-	if (std::abs(dx) >= 2) {
-		if (moveX == 0)
-			moveX = (dx > 0) ? 1 : -1;
+	// Scale lerp factor based on how far outside dead zone we are
+	float lerpFactor = std::min(maxLerpFactor, baseLerpFactor + (distanceOutsideDeadZone * 0.05f));
+
+	// Calculate movement amount - only move the amount needed to get back to dead zone edge
+	// This creates a smooth "elastic" feel where camera accelerates as players get further apart
+	float targetMoveX = dx * lerpFactor;
+	float targetMoveY = dy * lerpFactor;
+
+	// Accumulate sub-tile movement for smoother motion
+	static float accumulatedMoveX = 0.0f;
+	static float accumulatedMoveY = 0.0f;
+
+	accumulatedMoveX += targetMoveX;
+	accumulatedMoveY += targetMoveY;
+
+	// Only move whole tiles
+	int moveX = static_cast<int>(accumulatedMoveX);
+	int moveY = static_cast<int>(accumulatedMoveY);
+
+	// Subtract the integer part we're about to move
+	if (moveX != 0) {
+		accumulatedMoveX -= static_cast<float>(moveX);
 		ViewPosition.x += moveX;
 	}
 
-	if (std::abs(dy) >= 2) {
-		if (moveY == 0)
-			moveY = (dy > 0) ? 1 : -1;
+	if (moveY != 0) {
+		accumulatedMoveY -= static_cast<float>(moveY);
 		ViewPosition.y += moveY;
 	}
+
+	// Decay accumulated movement to prevent drift when players are stationary
+	constexpr float decayFactor = 0.9f;
+	if (std::abs(accumulatedMoveX) < 0.01f) accumulatedMoveX = 0.0f;
+	else accumulatedMoveX *= decayFactor;
+	if (std::abs(accumulatedMoveY) < 0.01f) accumulatedMoveY = 0.0f;
+	else accumulatedMoveY *= decayFactor;
+}
+
+bool IsLocalCoopPositionOnScreen(Point tilePos)
+{
+	if (!g_LocalCoop.enabled || !IsLocalCoopEnabled())
+		return true; // No restriction if local co-op is not enabled
+
+	return IsTilePositionOnScreen(tilePos);
 }
 
 bool TryJoinLocalCoopMidGame(SDL_JoystickID controllerId)
@@ -1181,6 +1236,7 @@ void HandleLocalCoopControllerDisconnect(SDL_JoystickID /*controllerId*/) { }
 void HandleLocalCoopControllerConnect(SDL_JoystickID /*controllerId*/) { }
 Point CalculateLocalCoopViewPosition() { return {}; }
 void UpdateLocalCoopCamera() { }
+bool IsLocalCoopPositionOnScreen(Point /*tilePos*/) { return true; }
 bool TryJoinLocalCoopMidGame(SDL_JoystickID /*controllerId*/) { return false; }
 
 void LocalCoopPlayer::Reset() { }
