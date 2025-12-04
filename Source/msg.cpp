@@ -1313,7 +1313,7 @@ bool IsPItemValid(const TCmdPItem &message, const Player &player)
 void PrepareItemForNetwork(const Item &item, TCmdGItem &message)
 {
 	message.def.wIndx = static_cast<_item_indexes>(Swap16LE(item.IDidx));
-	message.def.wCI = Swap16LE(item._iCreateInfo);
+	message.def.wCI = Swap16LE(item.getAllCreationFlags());
 	message.def.dwSeed = Swap32LE(item._iSeed);
 
 	if (item.IDidx == IDI_EAR)
@@ -1325,7 +1325,7 @@ void PrepareItemForNetwork(const Item &item, TCmdGItem &message)
 void PrepareItemForNetwork(const Item &item, TCmdPItem &message)
 {
 	message.def.wIndx = static_cast<_item_indexes>(Swap16LE(item.IDidx));
-	message.def.wCI = Swap16LE(item._iCreateInfo);
+	message.def.wCI = Swap16LE(item.getAllCreationFlags());
 	message.def.dwSeed = Swap32LE(item._iSeed);
 
 	if (item.IDidx == IDI_EAR)
@@ -1337,7 +1337,7 @@ void PrepareItemForNetwork(const Item &item, TCmdPItem &message)
 void PrepareItemForNetwork(const Item &item, TCmdChItem &message)
 {
 	message.def.wIndx = static_cast<_item_indexes>(Swap16LE(item.IDidx));
-	message.def.wCI = Swap16LE(item._iCreateInfo);
+	message.def.wCI = Swap16LE(item.getAllCreationFlags());
 	message.def.dwSeed = Swap32LE(item._iSeed);
 
 	if (item.IDidx == IDI_EAR)
@@ -2662,7 +2662,7 @@ void PrepareItemForNetwork(const Item &item, TItem &messageItem)
 	messageItem.wValue = Swap16LE(item._ivalue);
 	messageItem.wToHit = Swap16LE(item._iPLToHit);
 	messageItem.wMaxDam = Swap16LE(item._iMaxDam);
-	messageItem.dwBuff = Swap32LE(item.dwBuff);
+	messageItem.dwBuff = Swap32LE(item.getAllCreationFlags2());
 }
 
 void PrepareEarForNetwork(const Item &item, TEar &ear)
@@ -2876,7 +2876,7 @@ void DeltaAddItem(int ii)
 	for (const TCmdPItem &item : deltaLevel.item) {
 		if (item.bCmd != CMD_INVALID
 		    && static_cast<_item_indexes>(Swap16LE(item.def.wIndx)) == Items[ii].IDidx
-		    && Swap16LE(item.def.wCI) == Items[ii]._iCreateInfo
+		    && Swap16LE(item.def.wCI) == Items[ii].getAllCreationFlags()
 		    && static_cast<uint32_t>(Swap32LE(item.def.dwSeed)) == Items[ii]._iSeed
 		    && IsAnyOf(item.bCmd, TCmdPItem::PickedUpItem, TCmdPItem::FloorItem)) {
 			return;

@@ -188,7 +188,11 @@ struct Player;
 struct Item {
 	/** Randomly generated identifier */
 	uint32_t _iSeed = 0;
+
+private:
 	uint16_t _iCreateInfo = 0;
+
+public:
 	ItemType _itype = ItemType::None;
 	bool _iAnimFlag = false;
 	Point position = { 0, 0 };
@@ -254,8 +258,11 @@ struct Item {
 	int8_t _iMinDex = 0;
 	bool _iStatFlag = false;
 	ItemSpecialEffectHf _iDamAcFlags = ItemSpecialEffectHf::None;
+
+private:
 	uint32_t dwBuff = 0;
 
+public:
 	/**
 	 * @brief Clears this item and returns the old value
 	 */
@@ -465,6 +472,73 @@ struct Item {
 	[[nodiscard]] Displacement getRenderingOffset(const ClxSprite sprite) const
 	{
 		return { -CalculateSpriteTileCenterX(sprite.width()), 0 };
+	}
+
+	bool hasCreationFlag(uint16_t flag) const
+	{
+		return (_iCreateInfo & flag) != 0;
+	}
+
+	bool matchesCreationFlags(uint16_t mask, uint16_t value) const
+	{
+		return (_iCreateInfo & mask) == value;
+	}
+
+	void setCreationFlag(uint16_t flag)
+	{
+		_iCreateInfo |= flag;
+	}
+
+	void clearCreationFlag(uint16_t flag)
+	{
+		_iCreateInfo &= ~flag;
+	}
+
+	void setAllCreationFlags(uint16_t value)
+	{
+		_iCreateInfo = value;
+	}
+
+	uint16_t getAllCreationFlags() const
+	{
+		return _iCreateInfo;
+	}
+
+	void setItemLevel(uint8_t level)
+	{
+		std::min(level, static_cast<uint8_t>(63)); // ilvl is only a 6-bit integer
+		_iCreateInfo &= ~CF_LEVEL;
+		_iCreateInfo |= (level & CF_LEVEL);
+	}
+
+	int getItemLevel() const
+	{
+		return _iCreateInfo & CF_LEVEL;
+	}
+
+	bool hasCreationFlag2(uint16_t flag) const
+	{
+		return (dwBuff & flag) != 0;
+	}
+
+	void setCreationFlag2(uint16_t flag)
+	{
+		dwBuff |= flag;
+	}
+
+	void clearCreationFlag2(uint16_t flag)
+	{
+		dwBuff &= ~flag;
+	}
+
+	void setAllCreationFlags2(uint16_t value)
+	{
+		dwBuff = value;
+	}
+
+	uint16_t getAllCreationFlags2() const
+	{
+		return dwBuff;
 	}
 };
 
