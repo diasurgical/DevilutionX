@@ -240,7 +240,12 @@ void RenderPresent()
 	SDL_Surface *surface = GetOutputSurface();
 
 	if (!gbActive) {
+#ifdef __EMSCRIPTEN__
+		// Just yield to browser when inactive instead of blocking
+		emscripten_sleep(1);
+#else
 		LimitFrameRate();
+#endif
 		return;
 	}
 
