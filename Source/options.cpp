@@ -1621,6 +1621,16 @@ void ModOptions::SetHellfireEnabled(bool enableHellfire)
 	}
 }
 
+void ModOptions::SetModEnabled(std::string_view modName, bool enabled)
+{
+	for (auto &modEntry : GetModEntries()) {
+		if (modEntry.name == modName) {
+			modEntry.enabled.SetValue(enabled);
+			return;
+		}
+	}
+}
+
 std::forward_list<ModOptions::ModEntry> &ModOptions::GetModEntries()
 {
 	if (modEntries)

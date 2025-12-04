@@ -851,6 +851,7 @@ struct ModOptions : OptionCategoryBase {
 	void AddModEntry(const std::string &modName);
 	void RemoveModEntry(const std::string &modName);
 	void SetHellfireEnabled(bool enableHellfire);
+	void SetModEnabled(std::string_view modName, bool enabled);
 
 private:
 	struct ModEntry {
