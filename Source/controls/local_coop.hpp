@@ -28,6 +28,24 @@ namespace devilution {
 /// Maximum number of local co-op players supported
 constexpr size_t MaxLocalPlayers = 4;
 
+struct Object;
+struct Player;
+struct Missile;
+
+/// Per-player cursor/targeting state for local co-op
+struct LocalCoopCursorState {
+	int pcursmonst = -1;        ///< Monster under cursor (-1 = none)
+	int8_t pcursitem = -1;      ///< Item under cursor (-1 = none)
+	Object *objectUnderCursor = nullptr;  ///< Object under cursor
+	const Player *playerUnderCursor = nullptr;  ///< Player under cursor
+	Point cursPosition = { -1, -1 };  ///< Cursor tile position
+	Missile *pcursmissile = nullptr;  ///< Missile/portal under cursor
+	int pcurstrig = -1;         ///< Trigger under cursor
+	
+	/// Reset all cursor state
+	void Reset();
+};
+
 /// State for a single local co-op player (players 2-4)
 struct LocalCoopPlayer {
 	bool active = false;
@@ -52,6 +70,12 @@ struct LocalCoopPlayer {
 
 	// D-pad repeat timing for character selection
 	uint32_t lastDpadPress = 0;
+	
+	// Per-player cursor/targeting state
+	LocalCoopCursorState cursor;
+	
+	// Action state (similar to ControllerActionHeld for player 1)
+	uint8_t actionHeld = 0; // GameActionType
 
 	/// Reset player state
 	void Reset();
@@ -70,6 +94,23 @@ struct LocalCoopState {
 
 	/// D-pad repeat delay in milliseconds
 	static constexpr uint32_t DpadRepeatDelay = 300;
+	
+	/// Panel ownership: which player controls the currently open panels
+	/// -1 = no owner (player 1 by default), 0-2 = local coop player index
+	int panelOwner = -1;
+	
+	/// Check if a local coop player owns the panels
+	[[nodiscard]] bool HasPanelOwner() const { return panelOwner >= 0; }
+	
+	/// Get the game player ID that owns panels (0 for player 1, 1-3 for local coop)
+	[[nodiscard]] uint8_t GetPanelOwnerPlayerId() const;
+	
+	/// Try to claim panel ownership for a local coop player
+	/// Returns true if ownership was granted
+	bool TryClaimPanelOwnership(int localIndex);
+	
+	/// Release panel ownership (call when all panels are closed)
+	void ReleasePanelOwnership();
 
 	/// Get number of active local co-op players (excluding player 1)
 	[[nodiscard]] size_t GetActivePlayerCount() const;
@@ -239,5 +280,57 @@ extern bool LocalCoopHUDOpen;
  * @param out The surface to draw on.
  */
 void DrawLocalCoopPlayerHUD(const Surface &out);
+
+/**
+ * @brief Update target selection for a local co-op player.
+ *
+ * Finds monsters, NPCs, items, objects and triggers near the player
+ * and updates their cursor state accordingly. This is the local coop
+ * equivalent of plrctrls_after_check_curs_move().
+ *
+ * @param localIndex Local co-op player index (0-2)
+ */
+void UpdateLocalCoopTargetSelection(int localIndex);
+
+/**
+ * @brief Process a game action for a local co-op player.
+ *
+ * Handles panel toggles, primary/secondary actions, spells, etc.
+ * When a panel is opened, that player gains panel ownership.
+ *
+ * @param localIndex Local co-op player index (0-2)
+ * @param actionType The game action type to process
+ */
+void ProcessLocalCoopGameAction(int localIndex, uint8_t actionType);
+
+/**
+ * @brief Perform primary action for a local co-op player.
+ *
+ * Attack monsters, talk to NPCs, interact with the world.
+ * Uses the player's own cursor state for targeting.
+ *
+ * @param localIndex Local co-op player index (0-2)
+ */
+void PerformLocalCoopPrimaryAction(int localIndex);
+
+/**
+ * @brief Perform secondary action for a local co-op player.
+ *
+ * Pick up items, open chests/doors, interact with objects.
+ *
+ * @param localIndex Local co-op player index (0-2)
+ */
+void PerformLocalCoopSecondaryAction(int localIndex);
+
+/**
+ * @brief Check if panels are currently open and owned by anyone.
+ */
+bool AreLocalCoopPanelsOpen();
+
+/**
+ * @brief Get the player who currently owns the UI panels.
+ * @return Pointer to the player who owns panels, or nullptr if player 1 owns them
+ */
+Player* GetLocalCoopPanelOwnerPlayer();
 
 } // namespace devilution
