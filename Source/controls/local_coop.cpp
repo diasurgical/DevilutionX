@@ -786,10 +786,6 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 	if (!IsLocalCoopEnabled())
 		return;
 
-	// Only draw HUD when not in character selection mode
-	if (g_LocalCoop.enabled && g_LocalCoop.IsAnyCharacterSelectActive())
-		return;
-
 	constexpr int padding = 8;
 	constexpr int barWidth = 232;
 	constexpr int barHeight = 6;
@@ -797,6 +793,9 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 	constexpr int textHeight = 14;
 	constexpr int beltHeight = BeltSlotSize; // Single row
 	constexpr int hudHeight = textHeight + (barHeight + barSpacing) * 2 + 4 + beltHeight + 4;
+
+	// Check if any local coop player is still in character selection
+	const bool anyCharSelectActive = g_LocalCoop.enabled && g_LocalCoop.IsAnyCharacterSelectActive();
 
 	// Draw HUD for each active player
 	// Player 1: Bottom-left
@@ -809,9 +808,18 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 	for (size_t playerId = 0; playerId < totalPlayers && playerId < Players.size(); ++playerId) {
 		const Player &player = Players[playerId];
 
-		// Skip if player is not active
+		// Skip if player is not active in the game
 		if (!player.plractive)
 			continue;
+
+		// Player 1 (playerId 0) always shows their corner HUD when local coop is enabled.
+		// Other players only show their corner HUD after they've confirmed their character
+		// (during character selection, they show the character select UI instead).
+		if (playerId > 0 && anyCharSelectActive) {
+			const LocalCoopPlayer &coopPlayer = g_LocalCoop.players[playerId - 1];
+			if (coopPlayer.active && coopPlayer.characterSelectActive)
+				continue;
+		}
 
 		// Determine position based on player ID
 		int x, y;

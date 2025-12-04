@@ -14,6 +14,7 @@
 #include "controls/controller.h"
 #ifndef USE_SDL1
 #include "controls/devices/game_controller.h"
+#include "controls/local_coop.hpp"
 #endif
 #include "controls/devices/joystick.h"
 #include "controls/game_controls.h"
@@ -193,6 +194,15 @@ bool IsControllerMotion(const SDL_Event &event)
 void ProcessControllerMotion(const SDL_Event &event)
 {
 #ifndef USE_SDL1
+	// When local co-op is enabled, only update global stick values for player 1's controller.
+	// Local co-op players (2-4) have their own stick tracking in LocalCoopPlayer struct.
+	// If we update global values for all controllers, player 2's stick would overwrite player 1's!
+	if (IsLocalCoopEnabled() && GetLocalCoopPlayerIndex(event) >= 0) {
+		// This event is from a local co-op player's controller, skip updating global values.
+		// The local co-op system handles this controller's input separately.
+		return;
+	}
+
 	GameController *const controller = GameController::Get(event);
 	if (controller != nullptr && devilution::GameController::ProcessAxisMotion(event)) {
 		ScaleJoysticks();
