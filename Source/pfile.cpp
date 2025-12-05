@@ -779,6 +779,20 @@ void pfile_read_player_from_save(uint32_t saveNum, Player &player)
 	CalcPlrInv(player, false);
 }
 
+void pfile_write_player_to_save(uint32_t saveNum, Player &player)
+{
+	SaveWriter saveWriter = GetSaveWriter(saveNum);
+
+	PlayerPack pkplr;
+	PackPlayer(pkplr, player);
+	EncodeHero(saveWriter, &pkplr);
+
+	if (!gbVanilla) {
+		SaveHotkeys(saveWriter, player);
+		SaveHeroItems(saveWriter, player);
+	}
+}
+
 void pfile_save_level()
 {
 	SaveWriter saveWriter = GetSaveWriter(gSaveNumber);

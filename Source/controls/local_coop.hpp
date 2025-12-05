@@ -76,6 +76,9 @@ struct LocalCoopPlayer {
 	
 	// Action state (similar to ControllerActionHeld for player 1)
 	uint8_t actionHeld = 0; // GameActionType
+	
+	// Save slot number for this player (used for saving progress)
+	uint32_t saveNumber = 0;
 
 	/// Reset player state
 	void Reset();
@@ -98,6 +101,14 @@ struct LocalCoopState {
 	/// Panel ownership: which player controls the currently open panels
 	/// -1 = no owner (player 1 by default), 0-2 = local coop player index
 	int panelOwner = -1;
+	
+	/// Store ownership: which player is currently using a store/shop
+	/// -1 = no owner (player 1 by default), 0-2 = local coop player index
+	/// When set, MyPlayer is temporarily switched to the store owner
+	int storeOwner = -1;
+	
+	/// Saved MyPlayer pointer when store ownership is active
+	Player* savedMyPlayer = nullptr;
 	
 	/// Check if a local coop player owns the panels
 	[[nodiscard]] bool HasPanelOwner() const { return panelOwner >= 0; }
@@ -168,6 +179,18 @@ int GetLocalCoopPlayerIndex(const SDL_Event &event);
 inline uint8_t LocalCoopIndexToPlayerId(int localIndex)
 {
 	return static_cast<uint8_t>(localIndex + 1);
+}
+
+/**
+ * @brief Get the local co-op player index for a game player ID.
+ * @param playerId Game player ID (0-3)
+ * @return Local co-op player index (0-2), or -1 if it's player 1 (ID 0)
+ */
+inline int PlayerIdToLocalCoopIndex(uint8_t playerId)
+{
+	if (playerId == 0)
+		return -1; // Player 1 is not a local co-op player
+	return static_cast<int>(playerId - 1);
 }
 
 /**
@@ -332,5 +355,44 @@ bool AreLocalCoopPanelsOpen();
  * @return Pointer to the player who owns panels, or nullptr if player 1 owns them
  */
 Player* GetLocalCoopPanelOwnerPlayer();
+
+/**
+ * @brief Save all local co-op players to their respective save files.
+ *
+ * Called when the game saves. Each local co-op player is saved to the
+ * save slot they originally loaded from.
+ *
+ * @param writeGameData Whether to also save game/level data
+ */
+void SaveLocalCoopPlayers(bool writeGameData);
+
+/**
+ * @brief Set store ownership for a local co-op player.
+ *
+ * When a local co-op player talks to a shopkeeper, this function
+ * temporarily sets MyPlayer to their player so the store UI shows
+ * the correct inventory/gold.
+ *
+ * @param localIndex Local co-op player index (0-2), or -1 to clear
+ */
+void SetLocalCoopStoreOwner(int localIndex);
+
+/**
+ * @brief Clear store ownership and restore MyPlayer.
+ *
+ * Called when the store is closed.
+ */
+void ClearLocalCoopStoreOwner();
+
+/**
+ * @brief Check if a local co-op player owns the store.
+ */
+bool IsLocalCoopStoreActive();
+
+/**
+ * @brief Get the player ID that owns the store.
+ * @return Player ID (0-3), or 0 if player 1 owns it
+ */
+uint8_t GetLocalCoopStoreOwnerPlayerId();
 
 } // namespace devilution
