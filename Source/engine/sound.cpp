@@ -171,7 +171,7 @@ int CapVolume(int volume)
 
 void OptionAudioChanged()
 {
-	effects_cleanup_sfx();
+	effects_cleanup_sfx(false);
 	music_stop();
 	snd_deinit();
 	snd_init();

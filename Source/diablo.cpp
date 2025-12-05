@@ -1790,7 +1790,7 @@ void OptionLanguageCodeChanged()
 	UnloadFonts();
 	LanguageInitialize();
 	LoadLanguageArchive();
-	effects_cleanup_sfx();
+	effects_cleanup_sfx(false);
 	if (gbRunGame)
 		sound_init();
 	else
