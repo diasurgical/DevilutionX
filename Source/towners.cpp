@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <unordered_map>
 
+#include "controls/local_coop.hpp"
 #include "cursor.h"
 #include "engine/clx_sprite.hpp"
 #include "engine/load_cel.hpp"
@@ -829,6 +830,17 @@ void TalkToTowner(Player &player, int t)
 
 	if (!player.HoldItem.isEmpty()) {
 		return;
+	}
+
+	// Set the store owner for local co-op players
+	// Player 0 is the main player (MyPlayer), players 1+ are local co-op players
+	if (IsLocalCoopEnabled()) {
+		int localIndex = PlayerIdToLocalCoopIndex(player.getId());
+		if (localIndex >= 0) {
+			SetLocalCoopStoreOwner(localIndex);
+		} else {
+			ClearLocalCoopStoreOwner();
+		}
 	}
 
 	towner.talk(player, towner);

@@ -30,6 +30,7 @@
 #include "levels/gendung.h"
 #include "levels/town.h"
 #include "levels/trigs.h"
+#include "loadsave.h"
 #include "menu.h"
 #include "missiles.h"
 #include "monster.h"
@@ -478,6 +479,7 @@ void LocalCoopPlayer::Reset()
 	lastDpadPress = 0;
 	cursor.Reset();
 	actionHeld = 0;
+	saveNumber = 0;
 }
 
 AxisDirection LocalCoopPlayer::GetMoveDirection() const
@@ -733,6 +735,9 @@ void ConfirmLocalCoopCharacter(int localIndex)
 
 	// Read hero from save file
 	pfile_read_player_from_save(selectedHero.saveNumber, player);
+
+	// Store the save number so we can save this player's progress later
+	coopPlayer.saveNumber = selectedHero.saveNumber;
 
 	// pfile_read_player_from_save calls CalcPlrInv with loadgfx=false,
 	// so we need to recalculate to ensure _pgfxnum matches equipped items
@@ -1837,6 +1842,75 @@ Player* GetLocalCoopPanelOwnerPlayer()
 	return nullptr;
 }
 
+void SaveLocalCoopPlayers(bool /*writeGameData*/)
+{
+	if (!g_LocalCoop.enabled)
+		return;
+
+	for (size_t i = 0; i < g_LocalCoop.players.size(); ++i) {
+		const LocalCoopPlayer &coopPlayer = g_LocalCoop.players[i];
+
+		if (!coopPlayer.active || !coopPlayer.initialized)
+			continue;
+
+		if (coopPlayer.saveNumber == 0)
+			continue; // No valid save number assigned
+
+		const uint8_t playerId = LocalCoopIndexToPlayerId(static_cast<int>(i));
+		if (playerId >= Players.size())
+			continue;
+
+		Player &player = Players[playerId];
+
+		Log("Local co-op: Saving player {} (index {}) to save slot {}", playerId + 1, i, coopPlayer.saveNumber);
+
+		// Use the pfile function to save this player to their save slot
+		pfile_write_player_to_save(coopPlayer.saveNumber, player);
+	}
+}
+
+void SetLocalCoopStoreOwner(int localIndex)
+{
+	if (!g_LocalCoop.enabled)
+		return;
+
+	if (localIndex < 0 || localIndex >= static_cast<int>(g_LocalCoop.players.size()))
+		return;
+
+	const LocalCoopPlayer &coopPlayer = g_LocalCoop.players[localIndex];
+	if (!coopPlayer.active || !coopPlayer.initialized)
+		return;
+
+	g_LocalCoop.storeOwner = localIndex;
+
+	Log("Local co-op: Setting store owner to player index {}", localIndex);
+}
+
+void ClearLocalCoopStoreOwner()
+{
+	if (!g_LocalCoop.enabled)
+		return;
+
+	if (g_LocalCoop.storeOwner >= 0) {
+		Log("Local co-op: Clearing store owner (was player index {})", g_LocalCoop.storeOwner);
+	}
+
+	g_LocalCoop.storeOwner = -1;
+}
+
+bool IsLocalCoopStoreActive()
+{
+	return g_LocalCoop.enabled && g_LocalCoop.storeOwner >= 0;
+}
+
+uint8_t GetLocalCoopStoreOwnerPlayerId()
+{
+	if (!g_LocalCoop.enabled || g_LocalCoop.storeOwner < 0)
+		return 0;
+
+	return LocalCoopIndexToPlayerId(g_LocalCoop.storeOwner);
+}
+
 } // namespace devilution
 
 #else // USE_SDL1
@@ -1867,6 +1941,11 @@ void PerformLocalCoopPrimaryAction(int /*localIndex*/) { }
 void PerformLocalCoopSecondaryAction(int /*localIndex*/) { }
 bool AreLocalCoopPanelsOpen() { return false; }
 Player* GetLocalCoopPanelOwnerPlayer() { return nullptr; }
+void SaveLocalCoopPlayers(bool /*writeGameData*/) { }
+void SetLocalCoopStoreOwner(int /*localIndex*/) { }
+void ClearLocalCoopStoreOwner() { }
+bool IsLocalCoopStoreActive() { return false; }
+uint8_t GetLocalCoopStoreOwnerPlayerId() { return 0; }
 
 void LocalCoopCursorState::Reset() { }
 void LocalCoopPlayer::Reset() { }
