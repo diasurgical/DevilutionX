@@ -1281,26 +1281,30 @@ void CheckNewPath(Player &player, bool pmWillBeCalled)
 			}
 			break;
 		case ACTION_PICKUPITEM:
-			if (&player == MyPlayer) {
+			if (&player == MyPlayer || IsLocalCoopPlayer(player)) {
 				x = std::abs(player.position.tile.x - item->position.x);
 				y = std::abs(player.position.tile.y - item->position.y);
-				if (x <= 1 && y <= 1 && pcurs == CURSOR_HAND && !item->_iRequest) {
+				// For local co-op players, we always use CURSOR_HAND since they have their own cursor state
+				const bool canPickup = (&player == MyPlayer) ? (pcurs == CURSOR_HAND) : true;
+				if (x <= 1 && y <= 1 && canPickup && !item->_iRequest) {
 					NetSendCmdGItem(true, CMD_REQUESTGITEM, player, targetId);
 					item->_iRequest = true;
 				}
 			}
 			break;
 		case ACTION_PICKUPAITEM:
-			if (&player == MyPlayer) {
+			if (&player == MyPlayer || IsLocalCoopPlayer(player)) {
 				x = std::abs(player.position.tile.x - item->position.x);
 				y = std::abs(player.position.tile.y - item->position.y);
-				if (x <= 1 && y <= 1 && pcurs == CURSOR_HAND) {
+				// For local co-op players, we always use CURSOR_HAND since they have their own cursor state
+				const bool canPickup = (&player == MyPlayer) ? (pcurs == CURSOR_HAND) : true;
+				if (x <= 1 && y <= 1 && canPickup) {
 					NetSendCmdGItem(true, CMD_REQUESTAGITEM, player, targetId);
 				}
 			}
 			break;
 		case ACTION_TALK:
-			if (&player == MyPlayer) {
+			if (&player == MyPlayer || IsLocalCoopPlayer(player)) {
 				HelpFlag = false;
 				TalkToTowner(player, player.destParam1);
 			}
