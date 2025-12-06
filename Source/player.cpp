@@ -2583,9 +2583,9 @@ void FixPlayerLocation(Player &player, Direction bDir)
 	player.position.future = player.position.tile;
 	player._pdir = bDir;
 	if (&player == MyPlayer) {
-		// In local co-op mode with multiple active players, let UpdateLocalCoopCamera handle ViewPosition
+		// In local co-op mode with spawned players, let UpdateLocalCoopCamera handle ViewPosition
 		// to center the view between all players instead of just following Player 1
-		if (!IsLocalCoopEnabled() || g_LocalCoop.GetActivePlayerCount() == 0) {
+		if (!IsLocalCoopEnabled() || g_LocalCoop.GetInitializedPlayerCount() == 0) {
 			ViewPosition = player.position.tile;
 		}
 	}
@@ -3281,9 +3281,9 @@ void SyncInitPlrPos(Player &player)
 	player.position.future = position;
 
 	if (&player == MyPlayer) {
-		// In local co-op mode with active players, let UpdateLocalCoopCamera handle ViewPosition
+		// In local co-op mode with spawned players, let UpdateLocalCoopCamera handle ViewPosition
 		// to center the view between all players instead of just following Player 1
-		if (!IsLocalCoopEnabled() || g_LocalCoop.GetActivePlayerCount() == 0) {
+		if (!IsLocalCoopEnabled() || g_LocalCoop.GetInitializedPlayerCount() == 0) {
 			ViewPosition = position;
 		}
 	}

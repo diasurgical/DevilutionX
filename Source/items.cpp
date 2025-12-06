@@ -2894,8 +2894,10 @@ void CalcPlrInv(Player &player, bool loadgfx)
 	CalcSelfItems(player);
 
 	// Determine the current item bonuses gained from usable equipped items
-	if (&player != MyPlayer && !player.isOnActiveLevel()) {
-		// Ensure we don't load graphics for players that aren't on our level
+	// For local co-op players on the same level, we always want to load graphics
+	// For network multiplayer players not on our level, skip graphics loading
+	if (&player != MyPlayer && !IsLocalCoopPlayer(player) && !player.isOnActiveLevel()) {
+		// Ensure we don't load graphics for remote network players that aren't on our level
 		loadgfx = false;
 	}
 	CalcPlrItemVals(player, loadgfx);

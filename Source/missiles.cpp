@@ -3697,9 +3697,9 @@ void ProcessTeleport(Missile &missile)
 		ChangeVisionXY(player.getId(), player.position.tile);
 	}
 	if (&player == MyPlayer) {
-		// In local co-op mode, let UpdateLocalCoopCamera handle the ViewPosition
+		// In local co-op mode with spawned players, let UpdateLocalCoopCamera handle the ViewPosition
 		// to keep the camera centered between all players
-		if (!IsLocalCoopEnabled() || g_LocalCoop.GetActivePlayerCount() == 0) {
+		if (!IsLocalCoopEnabled() || g_LocalCoop.GetInitializedPlayerCount() == 0) {
 			ViewPosition = player.position.tile;
 		}
 	}
