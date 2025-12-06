@@ -111,6 +111,11 @@ struct LocalCoopState {
 	/// Saved MyPlayer pointer when store ownership is active
 	Player* savedMyPlayer = nullptr;
 	
+	/// Camera offset for smooth scrolling (calculated by UpdateLocalCoopCamera)
+	/// These store the averaged walking offset of all players in screen pixels
+	int cameraOffsetX = 0;
+	int cameraOffsetY = 0;
+	
 	/// Check if a local coop player owns the panels
 	[[nodiscard]] bool HasPanelOwner() const { return panelOwner >= 0; }
 	

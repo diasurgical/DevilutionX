@@ -1279,6 +1279,26 @@ Point CalculateLocalCoopViewPosition()
 	return { totalX / activeCount, totalY / activeCount };
 }
 
+/**
+ * @brief Calculate pixel-precise camera position for smooth local co-op scrolling.
+ * 
+ * For smooth camera movement with multiple players, we need to work in pixel space
+ * rather than tile space. Each player's position is converted to screen pixels
+ * (including their walking offset if they're moving), then we average all positions
+ * and convert back to tile + offset for the camera.
+ * 
+ * This ensures the camera moves smoothly even when:
+ * - Some players are walking and others are standing
+ * - Players are walking in different directions
+ * - Players finish walking at different times
+ * 
+ * The key insight is that screen coordinates are derived from world coordinates
+ * using an isometric transformation: screenX = (tileY - tileX) * 32
+ *                                     screenY = (tileY + tileX) * -16
+ * 
+ * By working in screen space, we can average player positions with sub-tile
+ * precision and convert back to a tile position + pixel offset.
+ */
 void UpdateLocalCoopCamera()
 {
 	if (!g_LocalCoop.enabled || !IsLocalCoopEnabled())
@@ -1301,17 +1321,36 @@ void UpdateLocalCoopCamera()
 	if (!anyInitialized)
 		return;
 
-	// Count active players and calculate their average position
+	// Calculate pixel-precise positions for all active players in screen space
+	// Screen coordinates: screenX = (tileY - tileX) * 32, screenY = (tileY + tileX) * -16
+	// We scale by 256 for precision before division
 	size_t totalPlayers = g_LocalCoop.GetTotalPlayerCount();
-	int totalX = 0;
-	int totalY = 0;
 	int activeCount = 0;
+	
+	// Accumulate screen-space positions (scaled by 256 for precision)
+	int64_t totalScreenX = 0;
+	int64_t totalScreenY = 0;
 
 	for (size_t i = 0; i < totalPlayers && i < Players.size(); ++i) {
 		const Player &player = Players[i];
 		if (player.plractive && player._pHitPoints > 0) {
-			totalX += player.position.tile.x;
-			totalY += player.position.tile.y;
+			// Convert tile position to screen space (scaled by 256)
+			// worldToScreen: screenX = (tileY - tileX) * 32, screenY = (tileY + tileX) * -16
+			int tileX = player.position.tile.x;
+			int tileY = player.position.tile.y;
+			int64_t screenX = static_cast<int64_t>(tileY - tileX) * 32 * 256;
+			int64_t screenY = static_cast<int64_t>(tileY + tileX) * -16 * 256;
+			
+			// If player is walking, add their walking offset (already in screen pixels)
+			// Scale it up by 256 to match our precision
+			if (player.isWalking()) {
+				Displacement screenOffset = GetOffsetForWalking(player.AnimInfo, player._pdir, true);
+				screenX += static_cast<int64_t>(screenOffset.deltaX) * 256;
+				screenY += static_cast<int64_t>(screenOffset.deltaY) * 256;
+			}
+			
+			totalScreenX += screenX;
+			totalScreenY += screenY;
 			activeCount++;
 		}
 	}
@@ -1320,12 +1359,33 @@ void UpdateLocalCoopCamera()
 	if (activeCount == 0)
 		return;
 
-	// Calculate target center position
-	Point targetPos = { totalX / activeCount, totalY / activeCount };
-
-	// Simply set the ViewPosition to the center of all players
-	// This provides instant, smooth camera following without lag
-	ViewPosition = targetPos;
+	// Calculate average screen position (still scaled by 256)
+	int64_t avgScreenX256 = totalScreenX / activeCount;
+	int64_t avgScreenY256 = totalScreenY / activeCount;
+	
+	// Convert back to world coordinates
+	// screenToWorld: tileX = (2*screenY + screenX) / -64, tileY = (2*screenY - screenX) / -64
+	// Since our values are scaled by 256, we need: tileX = (2*screenY256 + screenX256) / (-64 * 256)
+	int64_t worldX256 = (2 * avgScreenY256 + avgScreenX256) / -64;
+	int64_t worldY256 = (2 * avgScreenY256 - avgScreenX256) / -64;
+	
+	// Extract integer tile position and fractional part
+	int tileX = static_cast<int>(worldX256 / 256);
+	int tileY = static_cast<int>(worldY256 / 256);
+	int fracX = static_cast<int>(worldX256 % 256);
+	int fracY = static_cast<int>(worldY256 % 256);
+	
+	// Handle negative remainders
+	if (fracX < 0) { fracX += 256; tileX--; }
+	if (fracY < 0) { fracY += 256; tileY--; }
+	
+	// Set ViewPosition to the integer tile position
+	ViewPosition = { tileX, tileY };
+	
+	// Convert the fractional world position back to screen offset
+	// worldToScreen: screenX = (fracY - fracX) * 32 / 256, screenY = (fracY + fracX) * -16 / 256
+	g_LocalCoop.cameraOffsetX = ((fracY - fracX) * 32) / 256;
+	g_LocalCoop.cameraOffsetY = ((fracY + fracX) * -16) / 256;
 }
 
 Displacement GetLocalCoopCameraOffset()
@@ -1346,28 +1406,8 @@ Displacement GetLocalCoopCameraOffset()
 	if (!anyInitialized)
 		return {};
 
-	// Calculate the average walking offset of all active players
-	size_t totalPlayers = g_LocalCoop.GetTotalPlayerCount();
-	int totalOffsetX = 0;
-	int totalOffsetY = 0;
-	int walkingCount = 0;
-
-	for (size_t i = 0; i < totalPlayers && i < Players.size(); ++i) {
-		const Player &player = Players[i];
-		if (player.plractive && player._pHitPoints > 0 && player.isWalking()) {
-			Displacement offset = GetOffsetForWalking(player.AnimInfo, player._pdir, true);
-			totalOffsetX += offset.deltaX;
-			totalOffsetY += offset.deltaY;
-			walkingCount++;
-		}
-	}
-
-	// If no players are walking, return no offset
-	if (walkingCount == 0)
-		return {};
-
-	// Return the average offset
-	return { totalOffsetX / walkingCount, totalOffsetY / walkingCount };
+	// Return the pre-calculated average offset from UpdateLocalCoopCamera
+	return { g_LocalCoop.cameraOffsetX, g_LocalCoop.cameraOffsetY };
 }
 
 bool IsLocalCoopPositionOnScreen(Point tilePos)
