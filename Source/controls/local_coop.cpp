@@ -30,6 +30,7 @@
 #include "levels/gendung.h"
 #include "levels/town.h"
 #include "levels/trigs.h"
+#include "lighting.h"
 #include "loadsave.h"
 #include "menu.h"
 #include "missiles.h"
@@ -783,6 +784,14 @@ void ConfirmLocalCoopCharacter(int localIndex)
 	// InitPlayer sets up player state and vision
 	InitPlayer(player, true);
 
+	// In local co-op, each player needs their own light source (unlike multiplayer where
+	// other players are remote and don't need local lights). InitPlayer sets lightId to
+	// NO_LIGHT for non-MyPlayer, so we need to add it ourselves.
+	if (player.lightId == NO_LIGHT) {
+		player.lightId = AddLight(player.position.tile, player._pLightRad);
+		ChangeLightXY(player.lightId, player.position.tile);
+	}
+
 	coopPlayer.characterSelectActive = false;
 	coopPlayer.initialized = true;
 
@@ -931,6 +940,10 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 {
 	// Show HUD only when local co-op is actually enabled (2+ controllers)
 	if (!IsLocalCoopEnabled())
+		return;
+
+	// Allow HUD to be toggled off
+	if (!LocalCoopHUDOpen)
 		return;
 
 	constexpr int padding = 8;
@@ -1264,6 +1277,24 @@ bool IsLocalCoopPositionOnScreen(Point tilePos)
 {
 	if (!g_LocalCoop.enabled || !IsLocalCoopEnabled())
 		return true; // No restriction if local co-op is not enabled
+
+	// If no local co-op players have joined yet, don't restrict movement
+	// This allows Player 1 to move freely until other players join
+	if (g_LocalCoop.GetActivePlayerCount() == 0)
+		return true;
+
+	// Check if any local co-op player has been initialized (spawned)
+	bool anyInitialized = false;
+	for (const auto &player : g_LocalCoop.players) {
+		if (player.active && player.initialized) {
+			anyInitialized = true;
+			break;
+		}
+	}
+
+	// If no local co-op players are initialized, don't restrict movement
+	if (!anyInitialized)
+		return true;
 
 	return IsTilePositionOnScreen(tilePos);
 }

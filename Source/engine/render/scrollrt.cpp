@@ -1776,9 +1776,20 @@ void DrawAndBlit()
 	DrawView(out, ViewPosition);
 
 #ifndef USE_SDL1
-	// When local co-op is enabled (2+ controllers), hide the main panel UI and use corner HUDs instead.
-	// Player 1's corner HUD will always show when local coop is enabled.
-	const bool hideMainPanelForLocalCoop = IsLocalCoopEnabled();
+	// When local co-op is enabled AND at least one other player has spawned,
+	// hide the main panel UI and use corner HUDs instead.
+	// Player 1's corner HUD will show when local coop is enabled.
+	// But keep the main panel visible until other players have actually joined the game.
+	bool hideMainPanelForLocalCoop = false;
+	if (IsLocalCoopEnabled()) {
+		// Only hide main panel if at least one local co-op player has spawned
+		for (size_t i = 0; i < g_LocalCoop.players.size(); ++i) {
+			if (g_LocalCoop.players[i].active && g_LocalCoop.players[i].initialized) {
+				hideMainPanelForLocalCoop = true;
+				break;
+			}
+		}
+	}
 #else
 	const bool hideMainPanelForLocalCoop = false;
 #endif
