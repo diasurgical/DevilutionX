@@ -194,6 +194,13 @@ inline int PlayerIdToLocalCoopIndex(uint8_t playerId)
 }
 
 /**
+ * @brief Check if a player is a local co-op player (player 2-4 in local co-op mode).
+ * @param player The player to check
+ * @return true if the player is a local co-op player
+ */
+bool IsLocalCoopPlayer(const Player &player);
+
+/**
  * @brief Process SDL event for local co-op players.
  *
  * Handles axis motion and button presses for players 2-4.
