@@ -1177,9 +1177,45 @@ void DrawGame(const Surface &fullOut, Point position, Displacement offset)
 
 	UpdateMissilesRendererData();
 
+#ifndef USE_SDL1
+	// In local co-op mode with sub-tile camera offset, we need extra tiles to cover edges
+	Displacement localCoopOffset = GetLocalCoopCameraOffset();
+	if (localCoopOffset.deltaX != 0 || localCoopOffset.deltaY != 0) {
+		// Add extra tiles in all directions to ensure full coverage
+		// The offset can shift the view in any direction, so we add padding
+		columns += 2;
+		rows += 2;
+	}
+#endif
+
 	// Draw areas moving in and out of the screen
+	// In local co-op, check if any player is walking and expand render area accordingly
+#ifndef USE_SDL1
+	bool shouldExpandForWalk = false;
+	Direction expandDir = Direction::South;
+	if (IsLocalCoopEnabled() && g_LocalCoop.GetInitializedPlayerCount() > 0) {
+		// Check all players for walking
+		size_t totalPlayers = g_LocalCoop.GetTotalPlayerCount();
+		for (size_t i = 0; i < totalPlayers && i < Players.size(); ++i) {
+			const Player &player = Players[i];
+			if (player.plractive && player._pHitPoints > 0 && player.isWalking()) {
+				shouldExpandForWalk = true;
+				expandDir = player._pdir;
+				// Use the direction that requires most expansion
+				// For simplicity, just add tiles for any walking player
+				break;
+			}
+		}
+	} else {
+		shouldExpandForWalk = MyPlayer->isWalking();
+		expandDir = MyPlayer->_pdir;
+	}
+	if (shouldExpandForWalk) {
+		switch (expandDir) {
+#else
 	if (MyPlayer->isWalking()) {
 		switch (MyPlayer->_pdir) {
+#endif
 		case Direction::NoDirection:
 			break;
 		case Direction::North:
