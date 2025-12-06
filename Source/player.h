@@ -331,6 +331,7 @@ public:
 	uint64_t _pAblSpells;
 	/** @brief Bitmask of spells available via scrolls */
 	uint64_t _pScrlSpells;
+	uint64_t _pRuneSpells;
 	SpellFlag _pSpellFlags;
 	SpellID _pSplHotKey[NumHotkeys];
 	SpellType _pSplTHotKey[NumHotkeys];
@@ -399,6 +400,8 @@ public:
 	}
 
 	void CalcScrolls();
+
+	void CalcRunes();
 
 	bool CanUseItem(const Item &item) const;
 

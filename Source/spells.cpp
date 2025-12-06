@@ -44,6 +44,9 @@ bool IsReadiedSpellValid(const Player &player)
 	case SpellType::Scroll:
 		return (player._pScrlSpells & GetSpellBitmask(player._pRSpell)) != 0;
 
+	case SpellType::Rune:
+		return (player._pRuneSpells & GetSpellBitmask(player._pRSpell)) != 0;
+
 	default:
 		return false;
 	}
@@ -153,6 +156,9 @@ void ConsumeSpell(Player &player, SpellID sn)
 	case SpellType::Scroll:
 		ConsumeScroll(player);
 		break;
+	case SpellType::Rune:
+		ConsumeScroll(player);
+		break;
 	case SpellType::Charges:
 		ConsumeStaffCharge(player);
 		break;
@@ -228,7 +234,11 @@ void CastSpell(Player &player, SpellID spl, WorldTilePosition src, WorldTilePosi
 		}
 	}
 	if (!fizzled) {
-		ConsumeSpell(player, spl);
+		if (player.executedSpell.spellType == SpellType::Rune) {
+			ConsumeScroll(player);
+		} else {
+			ConsumeSpell(player, spl);
+		}
 	}
 }
 
