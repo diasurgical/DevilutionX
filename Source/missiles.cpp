@@ -21,6 +21,7 @@
 #include "appfat.h"
 #include "control/control.hpp"
 #include "controls/control_mode.hpp"
+#include "controls/local_coop.hpp"
 #include "controls/plrctrls.h"
 #include "crawl.hpp"
 #include "cursor.h"
@@ -3696,7 +3697,11 @@ void ProcessTeleport(Missile &missile)
 		ChangeVisionXY(player.getId(), player.position.tile);
 	}
 	if (&player == MyPlayer) {
-		ViewPosition = player.position.tile;
+		// In local co-op mode, let UpdateLocalCoopCamera handle the ViewPosition
+		// to keep the camera centered between all players
+		if (!IsLocalCoopEnabled() || g_LocalCoop.GetActivePlayerCount() == 0) {
+			ViewPosition = player.position.tile;
+		}
 	}
 }
 

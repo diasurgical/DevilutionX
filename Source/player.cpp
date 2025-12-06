@@ -3281,7 +3281,11 @@ void SyncInitPlrPos(Player &player)
 	player.position.future = position;
 
 	if (&player == MyPlayer) {
-		ViewPosition = position;
+		// In local co-op mode with active players, let UpdateLocalCoopCamera handle ViewPosition
+		// to center the view between all players instead of just following Player 1
+		if (!IsLocalCoopEnabled() || g_LocalCoop.GetActivePlayerCount() == 0) {
+			ViewPosition = position;
+		}
 	}
 }
 

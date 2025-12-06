@@ -614,6 +614,26 @@ bool IsLocalCoopEnabled()
 	return g_LocalCoop.enabled;
 }
 
+bool IsLocalCoopPlayer(const Player &player)
+{
+	if (!g_LocalCoop.enabled)
+		return false;
+	
+	// Player 1 (index 0) is never a local co-op player
+	uint8_t playerId = player.getId();
+	if (playerId == 0)
+		return false;
+	
+	// Check if this player ID corresponds to an active local co-op slot
+	// We only check 'active' here, not 'initialized', because CalcPlrInv
+	// may be called during character loading before initialization completes
+	int localIndex = PlayerIdToLocalCoopIndex(playerId);
+	if (localIndex < 0 || localIndex >= static_cast<int>(g_LocalCoop.players.size()))
+		return false;
+	
+	return g_LocalCoop.players[localIndex].active;
+}
+
 SDL_JoystickID GetControllerIdFromEvent(const SDL_Event &event)
 {
 	switch (event.type) {
@@ -1225,84 +1245,48 @@ void UpdateLocalCoopCamera()
 	if (!g_LocalCoop.enabled || !IsLocalCoopEnabled())
 		return;
 
-	// Only update camera if any character selection is complete
+	// Only update camera if character selection is complete for all players
 	if (g_LocalCoop.IsAnyCharacterSelectActive())
 		return;
 
-	// Need at least 2 active players for local co-op camera
-	size_t totalPlayers = g_LocalCoop.GetTotalPlayerCount();
-	std::vector<Point> playerPositions;
-	for (size_t i = 0; i < totalPlayers && i < Players.size(); ++i) {
-		const Player &player = Players[i];
-		if (player.plractive && player._pHitPoints > 0) {
-			playerPositions.push_back(player.position.tile);
+	// Check if any local co-op player has been initialized (spawned)
+	bool anyInitialized = false;
+	for (const auto &player : g_LocalCoop.players) {
+		if (player.active && player.initialized) {
+			anyInitialized = true;
+			break;
 		}
 	}
 
-	if (playerPositions.size() < 2)
+	// Don't take over camera control until at least one local co-op player has spawned
+	if (!anyInitialized)
 		return;
 
-	// Calculate target position (center of all players)
-	Point targetPos = CalculateLocalCoopViewPosition();
+	// Count active players and calculate their average position
+	size_t totalPlayers = g_LocalCoop.GetTotalPlayerCount();
+	int totalX = 0;
+	int totalY = 0;
+	int activeCount = 0;
 
-	// Calculate distance from current view to target centroid
-	int dx = targetPos.x - ViewPosition.x;
-	int dy = targetPos.y - ViewPosition.y;
-	int viewDistance = std::max(std::abs(dx), std::abs(dy));
+	for (size_t i = 0; i < totalPlayers && i < Players.size(); ++i) {
+		const Player &player = Players[i];
+		if (player.plractive && player._pHitPoints > 0) {
+			totalX += player.position.tile.x;
+			totalY += player.position.tile.y;
+			activeCount++;
+		}
+	}
 
-	// Dead zone threshold - camera doesn't move if centroid is within this distance
-	// This prevents constant small camera adjustments when players are close
-	constexpr int deadZoneThreshold = 3;
-
-	// If within dead zone, don't move the camera at all
-	if (viewDistance <= deadZoneThreshold)
+	// Need at least 1 active player
+	if (activeCount == 0)
 		return;
 
-	// Calculate how much we're outside the dead zone
-	int distanceOutsideDeadZone = viewDistance - deadZoneThreshold;
+	// Calculate target center position
+	Point targetPos = { totalX / activeCount, totalY / activeCount };
 
-	// Use smooth interpolation for camera movement
-	// The further outside the dead zone, the faster the camera moves
-	// Use a slower lerp factor for smoother movement
-	constexpr float baseLerpFactor = 0.15f;
-	constexpr float maxLerpFactor = 0.4f;
-
-	// Scale lerp factor based on how far outside dead zone we are
-	float lerpFactor = std::min(maxLerpFactor, baseLerpFactor + (distanceOutsideDeadZone * 0.05f));
-
-	// Calculate movement amount - only move the amount needed to get back to dead zone edge
-	// This creates a smooth "elastic" feel where camera accelerates as players get further apart
-	float targetMoveX = dx * lerpFactor;
-	float targetMoveY = dy * lerpFactor;
-
-	// Accumulate sub-tile movement for smoother motion
-	static float accumulatedMoveX = 0.0f;
-	static float accumulatedMoveY = 0.0f;
-
-	accumulatedMoveX += targetMoveX;
-	accumulatedMoveY += targetMoveY;
-
-	// Only move whole tiles
-	int moveX = static_cast<int>(accumulatedMoveX);
-	int moveY = static_cast<int>(accumulatedMoveY);
-
-	// Subtract the integer part we're about to move
-	if (moveX != 0) {
-		accumulatedMoveX -= static_cast<float>(moveX);
-		ViewPosition.x += moveX;
-	}
-
-	if (moveY != 0) {
-		accumulatedMoveY -= static_cast<float>(moveY);
-		ViewPosition.y += moveY;
-	}
-
-	// Decay accumulated movement to prevent drift when players are stationary
-	constexpr float decayFactor = 0.9f;
-	if (std::abs(accumulatedMoveX) < 0.01f) accumulatedMoveX = 0.0f;
-	else accumulatedMoveX *= decayFactor;
-	if (std::abs(accumulatedMoveY) < 0.01f) accumulatedMoveY = 0.0f;
-	else accumulatedMoveY *= decayFactor;
+	// Simply set the ViewPosition to the center of all players
+	// This provides instant, smooth camera following without lag
+	ViewPosition = targetPos;
 }
 
 bool IsLocalCoopPositionOnScreen(Point tilePos)
@@ -1992,6 +1976,7 @@ void InitLocalCoop() { }
 void ShutdownLocalCoop() { }
 bool IsLocalCoopAvailable() { return false; }
 bool IsLocalCoopEnabled() { return false; }
+bool IsLocalCoopPlayer(const Player & /*player*/) { return false; }
 void UpdateLocalCoopMovement() { }
 void LoadAvailableHeroesForLocalPlayer(int /*localIndex*/) { }
 void ConfirmLocalCoopCharacter(int /*localIndex*/) { }

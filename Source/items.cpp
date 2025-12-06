@@ -31,6 +31,7 @@
 #include "control/control.hpp"
 #include "controls/control_mode.hpp"
 #include "controls/controller_buttons.h"
+#include "controls/local_coop.hpp"
 #include "cursor.h"
 #include "diablo.h"
 #include "doom.h"
@@ -2899,13 +2900,15 @@ void CalcPlrInv(Player &player, bool loadgfx)
 	}
 	CalcPlrItemVals(player, loadgfx);
 
-	if (&player == MyPlayer) {
+	// For MyPlayer or local co-op players, update item stat flags for inventory/belt items
+	// This determines whether items show as usable (normal color) or unusable (red tint)
+	if (&player == MyPlayer || IsLocalCoopPlayer(player)) {
 		// Now that stat gains from equipped items have been calculated, mark unusable scrolls etc
 		for (Item &item : InventoryAndBeltPlayerItemsRange { player }) {
 			item.updateRequiredStatsCacheForPlayer(player);
 		}
 		player.CalcScrolls();
-		if (IsStashOpen) {
+		if (&player == MyPlayer && IsStashOpen) {
 			// If stash is open, ensure the items are displayed correctly
 			Stash.RefreshItemStatFlags();
 		}
