@@ -58,6 +58,7 @@ int AvailableObjects[MAXOBJECTS];
 int ActiveObjects[MAXOBJECTS];
 int ActiveObjectCount;
 bool LoadingMapObjects;
+int NaKrulTomeSequence;
 
 namespace {
 
@@ -114,9 +115,6 @@ object_graphic_id ObjFileList[40];
 /** Specifies the number of active objects. */
 int leverid;
 int numobjfiles;
-
-/** Tracks progress through the tome sequence that spawns Na-Krul (see OperateNakrulBook()) */
-int NaKrulTomeSequence;
 
 /** Specifies the X-coordinate delta between barrels. */
 int bxadd[8] = { -1, 0, 1, -1, 1, -1, 0, 1 };

@@ -3356,6 +3356,7 @@ tl::expected<void, std::string> LoadGameLevel(bool firstflag, lvl_entry lvldir)
 	LoadGameLevelStopMusic(neededTrack);
 	LoadGameLevelResetCursor();
 	SetRndSeedForDungeonLevel();
+	NaKrulTomeSequence = 0;
 
 	IncProgress();
 
