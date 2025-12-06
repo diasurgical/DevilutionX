@@ -816,8 +816,10 @@ void ConfirmLocalCoopCharacter(int localIndex)
 	player.plrIsOnSetLevel = Players[0].plrIsOnSetLevel;
 
 	// pfile_read_player_from_save calls CalcPlrInv with loadgfx=false,
-	// so we need to recalculate to ensure _pgfxnum matches equipped items
-	// and graphics are properly loaded
+	// which sets _pgfxnum but doesn't load graphics. CalcPlrGraphics (called by CalcPlrInv)
+	// only loads graphics if _pgfxnum changes. By invalidating _pgfxnum here,
+	// we force CalcPlrInv to reload graphics with the correct equipment sprites.
+	player._pgfxnum = 0xFF; // Invalid value to force graphics reload
 	CalcPlrInv(player, true);
 
 	// Find a spawn position near Player 1
@@ -848,8 +850,7 @@ void ConfirmLocalCoopCharacter(int localIndex)
 	player._pdir = Direction::South;
 
 	// Initialize graphics and state
-	// ResetPlayerGFX must be called before InitPlayerGFX
-	ResetPlayerGFX(player);
+	// InitPlayerGFX already calls ResetPlayerGFX internally, so no need to call it separately
 	InitPlayerGFX(player);
 	// SyncInitPlr will set up animations and position (calls occupyTile)
 	SyncInitPlr(player);
@@ -1287,6 +1288,10 @@ Point CalculateLocalCoopViewPosition()
  * (including their walking offset if they're moving), then we average all positions
  * and convert back to tile + offset for the camera.
  * 
+ * A dead zone is applied around the camera target to prevent constant small
+ * adjustments when players are close together. The camera only moves when the
+ * average player position exceeds the dead zone threshold.
+ * 
  * This ensures the camera moves smoothly even when:
  * - Some players are walking and others are standing
  * - Players are walking in different directions
@@ -1363,11 +1368,67 @@ void UpdateLocalCoopCamera()
 	int64_t avgScreenX256 = totalScreenX / activeCount;
 	int64_t avgScreenY256 = totalScreenY / activeCount;
 	
+	// Apply dead zone: only update camera target if average position moved outside the dead zone
+	// Dead zone is in screen pixels, so scale by 256 to match our precision
+	const int64_t deadZone256 = static_cast<int64_t>(LocalCoopState::CameraDeadZone) * 256;
+	
+	if (!g_LocalCoop.cameraInitialized) {
+		// First time - initialize camera to current average position
+		g_LocalCoop.cameraTargetScreenX = avgScreenX256;
+		g_LocalCoop.cameraTargetScreenY = avgScreenY256;
+		g_LocalCoop.cameraSmoothScreenX = avgScreenX256;
+		g_LocalCoop.cameraSmoothScreenY = avgScreenY256;
+		g_LocalCoop.cameraInitialized = true;
+	} else {
+		// Calculate distance from current camera target to new average position
+		int64_t deltaX = avgScreenX256 - g_LocalCoop.cameraTargetScreenX;
+		int64_t deltaY = avgScreenY256 - g_LocalCoop.cameraTargetScreenY;
+		
+		// Check if we're outside the dead zone (using squared distance to avoid sqrt)
+		// If outside, move camera target to keep average position at edge of dead zone
+		int64_t distSq = deltaX * deltaX + deltaY * deltaY;
+		int64_t deadZoneSq = deadZone256 * deadZone256;
+		
+		if (distSq > deadZoneSq) {
+			// Move camera target towards average position, keeping it at dead zone distance
+			// Using integer approximation: move by (delta - deadZone * delta/dist)
+			// Simplified: new_target = avg - deadZone * (delta / dist)
+			// We approximate dist using the larger of |deltaX| and |deltaY| + half the smaller
+			int64_t absDeltaX = deltaX >= 0 ? deltaX : -deltaX;
+			int64_t absDeltaY = deltaY >= 0 ? deltaY : -deltaY;
+			int64_t approxDist = (absDeltaX > absDeltaY) 
+				? absDeltaX + absDeltaY / 2 
+				: absDeltaY + absDeltaX / 2;
+			
+			if (approxDist > 0) {
+				// Move camera so that average position is at edge of dead zone
+				g_LocalCoop.cameraTargetScreenX = avgScreenX256 - (deltaX * deadZone256) / approxDist;
+				g_LocalCoop.cameraTargetScreenY = avgScreenY256 - (deltaY * deadZone256) / approxDist;
+			}
+		}
+		// If inside dead zone, don't move camera target
+	}
+	
+	// Apply smoothing: interpolate smoothed camera position towards target
+	// This prevents jerky camera movement by gradually moving towards the target
+	// Using fixed-point arithmetic: smoothFactor is represented as an integer out of 256
+	constexpr int64_t smoothFactor256 = static_cast<int64_t>(LocalCoopState::CameraSmoothFactor * 256);
+	
+	int64_t smoothDeltaX = g_LocalCoop.cameraTargetScreenX - g_LocalCoop.cameraSmoothScreenX;
+	int64_t smoothDeltaY = g_LocalCoop.cameraTargetScreenY - g_LocalCoop.cameraSmoothScreenY;
+	
+	g_LocalCoop.cameraSmoothScreenX += (smoothDeltaX * smoothFactor256) / 256;
+	g_LocalCoop.cameraSmoothScreenY += (smoothDeltaY * smoothFactor256) / 256;
+	
+	// Use smoothed camera position for rendering
+	int64_t cameraScreenX256 = g_LocalCoop.cameraSmoothScreenX;
+	int64_t cameraScreenY256 = g_LocalCoop.cameraSmoothScreenY;
+	
 	// Convert back to world coordinates
 	// screenToWorld: tileX = (2*screenY + screenX) / -64, tileY = (2*screenY - screenX) / -64
 	// Since our values are scaled by 256, we need: tileX = (2*screenY256 + screenX256) / (-64 * 256)
-	int64_t worldX256 = (2 * avgScreenY256 + avgScreenX256) / -64;
-	int64_t worldY256 = (2 * avgScreenY256 - avgScreenX256) / -64;
+	int64_t worldX256 = (2 * cameraScreenY256 + cameraScreenX256) / -64;
+	int64_t worldY256 = (2 * cameraScreenY256 - cameraScreenX256) / -64;
 	
 	// Extract integer tile position and fractional part
 	int tileX = static_cast<int>(worldX256 / 256);

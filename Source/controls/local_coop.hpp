@@ -116,6 +116,25 @@ struct LocalCoopState {
 	int cameraOffsetX = 0;
 	int cameraOffsetY = 0;
 	
+	/// Camera target position in screen space (scaled by 256 for precision)
+	/// Used for dead zone calculations - camera only moves when target exceeds dead zone
+	int64_t cameraTargetScreenX = 0;
+	int64_t cameraTargetScreenY = 0;
+	bool cameraInitialized = false;
+	
+	/// Smoothed camera position (what's actually rendered) in screen space (scaled by 256)
+	/// The camera smoothly interpolates from current position to target position
+	int64_t cameraSmoothScreenX = 0;
+	int64_t cameraSmoothScreenY = 0;
+	
+	/// Dead zone radius in screen pixels - camera won't move if average player position
+	/// is within this distance from the current camera target
+	static constexpr int CameraDeadZone = 48;
+	
+	/// Camera smoothing factor (0.0 = no smoothing, 1.0 = instant)
+	/// Lower values = smoother but more delayed camera movement
+	static constexpr float CameraSmoothFactor = 0.15f;
+	
 	/// Check if a local coop player owns the panels
 	[[nodiscard]] bool HasPanelOwner() const { return panelOwner >= 0; }
 	

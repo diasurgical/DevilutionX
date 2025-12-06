@@ -20,6 +20,7 @@
 
 #include "DiabloUI/ui_flags.hpp"
 #include "controls/control_mode.hpp"
+#include "controls/local_coop.hpp"
 #include "controls/plrctrls.h"
 #include "cursor.h"
 #include "engine/backbuffer_state.hpp"
@@ -638,8 +639,8 @@ std::optional<inv_xy_slot> FindSlotUnderCursor(Point cursorPosition)
 	}
 
 #ifndef USE_SDL1
-	// Skip belt mouse events when local co-op is enabled
-	if (!*GetOptions().Gameplay.enableLocalCoop) {
+	// Skip belt mouse events when local co-op is actually enabled (2+ controllers)
+	if (!IsLocalCoopEnabled()) {
 #endif
 		testPosition = static_cast<Point>(cursorPosition - GetMainPanel().position);
 		for (std::underlying_type_t<inv_xy_slot> r = SLOTXY_BELT_FIRST; r != NUM_XY_SLOTS; r++) {
@@ -1650,12 +1651,17 @@ void CheckInvItem(bool isShiftHeld, bool isCtrlHeld)
 {
 	if (IsInspectingPlayer())
 		return;
-	if (!MyPlayer->HoldItem.isEmpty()) {
-		CheckInvPaste(*MyPlayer, MousePosition);
+	
+	// In local co-op, inventory interactions affect the panel owner player
+	Player *panelOwner = GetLocalCoopPanelOwnerPlayer();
+	Player &player = panelOwner != nullptr ? *panelOwner : *MyPlayer;
+	
+	if (!player.HoldItem.isEmpty()) {
+		CheckInvPaste(player, MousePosition);
 	} else if (IsStashOpen && isCtrlHeld) {
-		TransferItemToStash(*MyPlayer, pcursinvitem);
+		TransferItemToStash(player, pcursinvitem);
 	} else {
-		CheckInvCut(*MyPlayer, MousePosition, isShiftHeld, isCtrlHeld);
+		CheckInvCut(player, MousePosition, isShiftHeld, isCtrlHeld);
 	}
 }
 
@@ -1922,8 +1928,8 @@ int SyncDropEar(Point position, uint16_t icreateinfo, uint32_t iseed, uint8_t cu
 int8_t CheckInvHLight()
 {
 #ifndef USE_SDL1
-	// Skip belt mouse events when local co-op is enabled
-	const bool skipBeltForLocalCoop = *GetOptions().Gameplay.enableLocalCoop;
+	// Skip belt mouse events when local co-op is actually enabled (2+ controllers)
+	const bool skipBeltForLocalCoop = IsLocalCoopEnabled();
 #else
 	const bool skipBeltForLocalCoop = false;
 #endif
@@ -2094,7 +2100,7 @@ bool UseInvItem(int cii)
 
 	Player &player = *MyPlayer;
 
-	if (player._pInvincible && player.hasNoLife() && &player == MyPlayer)
+	if (player._pInvincible && player._pHitPoints == 0 && &player == MyPlayer)
 		return true;
 	if (pcurs != CURSOR_HAND)
 		return true;
