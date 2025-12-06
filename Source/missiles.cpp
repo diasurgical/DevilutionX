@@ -313,7 +313,7 @@ bool MonsterMHit(const Player &player, Monster &monster, int mindam, int maxdam,
 	}
 
 	if (missileData.isArrow() && damageType == DamageType::Physical) {
-		dam = player._pIBonusDamMod + dam * player._pIBonusDam / 100 + dam;
+		dam += player._pIBonusDamMod;
 		if (player._pClass == HeroClass::Rogue)
 			dam += player._pDamageMod;
 		else
@@ -425,7 +425,7 @@ bool Plr2PlrMHit(const Player &player, Player &target, int mindam, int maxdam, i
 		dam = RandomIntBetween(mindam, maxdam);
 		if (missileData.isArrow() && damageType == DamageType::Physical) {
 			const int damMod = IsAnyOf(player._pClass, HeroClass::Rogue) ? player._pDamageMod : player._pDamageMod / 2;
-			dam += player._pIBonusDamMod + damMod + dam * player._pIBonusDam / 100;
+			dam += player._pIBonusDamMod + damMod;
 		}
 		if (!shift)
 			dam <<= 6;
@@ -2861,8 +2861,8 @@ void ProcessElementalArrow(Missile &missile)
 			if (missile._micaster == TARGET_MONSTERS) {
 				// BUGFIX: damage of missile should be encoded in missile struct; player can be dead/have left the game before missile arrives.
 				const Player &player = Players[p];
-				mind = player._pIMinDam;
-				maxd = player._pIMaxDam;
+				mind = player._pIMinDam + player._pIBonusMinDam;
+				maxd = player._pIMaxDam + player._pIBonusMaxDam;
 			} else {
 				// BUGFIX: damage of missile should be encoded in missile struct; monster can be dead before missile arrives.
 				const Monster &monster = Monsters[p];
@@ -2942,8 +2942,8 @@ void ProcessArrow(Missile &missile)
 	case MissileSource::Player: {
 		// BUGFIX: damage of missile should be encoded in missile struct; player can be dead/have left the game before missile arrives.
 		const Player &player = *missile.sourcePlayer();
-		mind = player._pIMinDam;
-		maxd = player._pIMaxDam;
+		mind = player._pIMinDam + player._pIBonusMinDam;
+		maxd = player._pIMaxDam + player._pIBonusMaxDam;
 	} break;
 	case MissileSource::Monster: {
 		// BUGFIX: damage of missile should be encoded in missile struct; monster can be dead before missile arrives.
