@@ -751,13 +751,15 @@ void ConfirmLocalCoopCharacter(int localIndex)
 	// Store the save number so we can save this player's progress later
 	coopPlayer.saveNumber = selectedHero.saveNumber;
 
-	// pfile_read_player_from_save calls CalcPlrInv with loadgfx=false,
-	// so we need to recalculate to ensure _pgfxnum matches equipped items
-	CalcPlrInv(player, true);
-
-	// Initialize player on the same level as Player 1
+	// Initialize player on the same level as Player 1 BEFORE CalcPlrInv
+	// so that isOnActiveLevel() returns true and graphics get loaded
 	player.plrlevel = Players[0].plrlevel;
 	player.plrIsOnSetLevel = Players[0].plrIsOnSetLevel;
+
+	// pfile_read_player_from_save calls CalcPlrInv with loadgfx=false,
+	// so we need to recalculate to ensure _pgfxnum matches equipped items
+	// and graphics are properly loaded
+	CalcPlrInv(player, true);
 
 	// Find a spawn position near Player 1
 	Point spawnPos = Players[0].position.tile;
@@ -976,6 +978,16 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 
 	size_t totalPlayers = g_LocalCoop.GetTotalPlayerCount();
 
+	// Check if any local co-op player has actually spawned (initialized)
+	// If none have spawned yet, we show the main panel, so Player 1 shouldn't show their corner HUD
+	bool anyCoopPlayerInitialized = false;
+	for (size_t i = 0; i < g_LocalCoop.players.size(); ++i) {
+		if (g_LocalCoop.players[i].active && g_LocalCoop.players[i].initialized) {
+			anyCoopPlayerInitialized = true;
+			break;
+		}
+	}
+
 	for (size_t playerId = 0; playerId < totalPlayers && playerId < Players.size(); ++playerId) {
 		const Player &player = Players[playerId];
 
@@ -983,7 +995,11 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 		if (!player.plractive)
 			continue;
 
-		// Player 1 (playerId 0) always shows their corner HUD when local coop is enabled.
+		// Player 1 (playerId 0) only shows their corner HUD when the main panel is hidden.
+		// The main panel is hidden when at least one local co-op player has spawned.
+		if (playerId == 0 && !anyCoopPlayerInitialized)
+			continue;
+
 		// Other players only show their corner HUD after they've confirmed their character
 		// (during character selection, they show the character select UI instead).
 		if (playerId > 0 && anyCharSelectActive) {
