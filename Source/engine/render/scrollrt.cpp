@@ -1084,8 +1084,17 @@ void CalcFirstTilePosition(Point &position, Displacement &offset)
 	// Adjust by player offset and tile grid alignment
 	const Player &myPlayer = *MyPlayer;
 	offset = tileOffset;
-	if (myPlayer.isWalking())
+
+#ifndef USE_SDL1
+	// In local co-op mode, use the average walking offset of all players for smooth camera
+	Displacement localCoopOffset = GetLocalCoopCameraOffset();
+	if (localCoopOffset.deltaX != 0 || localCoopOffset.deltaY != 0) {
+		offset += localCoopOffset;
+	} else
+#endif
+	if (myPlayer.isWalking()) {
 		offset += GetOffsetForWalking(myPlayer.AnimInfo, myPlayer._pdir, true);
+	}
 
 	position += tileShift;
 
@@ -1102,8 +1111,29 @@ void CalcFirstTilePosition(Point &position, Displacement &offset)
 	}
 
 	// Draw areas moving in and out of the screen
+	// In local co-op, we need to expand the render area if any player is walking
+#ifndef USE_SDL1
+	bool anyPlayerWalking = false;
+	Direction walkDir = Direction::South;
+	if (IsLocalCoopEnabled() && g_LocalCoop.GetInitializedPlayerCount() > 0) {
+		for (size_t i = 0; i < Players.size(); ++i) {
+			const Player &player = Players[i];
+			if (player.plractive && player._pHitPoints > 0 && player.isWalking()) {
+				anyPlayerWalking = true;
+				walkDir = player._pdir;
+				break;
+			}
+		}
+	} else {
+		anyPlayerWalking = myPlayer.isWalking();
+		walkDir = myPlayer._pdir;
+	}
+	if (anyPlayerWalking) {
+#else
 	if (myPlayer.isWalking()) {
-		switch (myPlayer._pdir) {
+		Direction walkDir = myPlayer._pdir;
+#endif
+		switch (walkDir) {
 		case Direction::North:
 		case Direction::NorthEast:
 			offset.deltaY -= TILE_HEIGHT;

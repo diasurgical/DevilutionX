@@ -1299,6 +1299,48 @@ void UpdateLocalCoopCamera()
 	ViewPosition = targetPos;
 }
 
+Displacement GetLocalCoopCameraOffset()
+{
+	if (!g_LocalCoop.enabled || !IsLocalCoopEnabled())
+		return {};
+
+	// Check if any local co-op player has been initialized (spawned)
+	bool anyInitialized = false;
+	for (const auto &player : g_LocalCoop.players) {
+		if (player.active && player.initialized) {
+			anyInitialized = true;
+			break;
+		}
+	}
+
+	// Don't provide camera offset until at least one local co-op player has spawned
+	if (!anyInitialized)
+		return {};
+
+	// Calculate the average walking offset of all active players
+	size_t totalPlayers = g_LocalCoop.GetTotalPlayerCount();
+	int totalOffsetX = 0;
+	int totalOffsetY = 0;
+	int walkingCount = 0;
+
+	for (size_t i = 0; i < totalPlayers && i < Players.size(); ++i) {
+		const Player &player = Players[i];
+		if (player.plractive && player._pHitPoints > 0 && player.isWalking()) {
+			Displacement offset = GetOffsetForWalking(player.AnimInfo, player._pdir, true);
+			totalOffsetX += offset.deltaX;
+			totalOffsetY += offset.deltaY;
+			walkingCount++;
+		}
+	}
+
+	// If no players are walking, return no offset
+	if (walkingCount == 0)
+		return {};
+
+	// Return the average offset
+	return { totalOffsetX / walkingCount, totalOffsetY / walkingCount };
+}
+
 bool IsLocalCoopPositionOnScreen(Point tilePos)
 {
 	if (!g_LocalCoop.enabled || !IsLocalCoopEnabled())
@@ -1996,6 +2038,7 @@ void HandleLocalCoopControllerDisconnect(SDL_JoystickID /*controllerId*/) { }
 void HandleLocalCoopControllerConnect(SDL_JoystickID /*controllerId*/) { }
 Point CalculateLocalCoopViewPosition() { return {}; }
 void UpdateLocalCoopCamera() { }
+Displacement GetLocalCoopCameraOffset() { return {}; }
 bool IsLocalCoopPositionOnScreen(Point /*tilePos*/) { return true; }
 bool TryJoinLocalCoopMidGame(SDL_JoystickID /*controllerId*/) { return false; }
 void UpdateLocalCoopTargetSelection(int /*localIndex*/) { }
