@@ -46,6 +46,7 @@
 #include "playerdat.hpp"
 #include "qol/stash.h"
 #include "quests.h"
+#include "stores.h"
 #include "towners.h"
 #include "track.h"
 #include "utils/display.h"
@@ -250,6 +251,29 @@ void ProcessLocalCoopButtonInput(int localIndex, const SDL_Event &event)
 
 	if (player._pHitPoints <= 0)
 		return;
+	
+	// Store mode: this player owns the store
+	if (g_LocalCoop.storeOwner == localIndex && IsPlayerInStore()) {
+		if (isButtonDown) {
+			switch (button) {
+			case SDL_GAMEPAD_BUTTON_SOUTH: // A button = Confirm/Enter
+				StoreEnter();
+				break;
+			case SDL_GAMEPAD_BUTTON_EAST: // B button = Back/ESC
+				StoreESC();
+				break;
+			case SDL_GAMEPAD_BUTTON_DPAD_UP:
+				StoreUp();
+				break;
+			case SDL_GAMEPAD_BUTTON_DPAD_DOWN:
+				StoreDown();
+				break;
+			default:
+				break;
+			}
+		}
+		return;
+	}
 
 	// Handle button presses - map to game actions
 	if (isButtonDown) {
@@ -351,6 +375,11 @@ void ProcessLocalCoopDpadMovement(int localIndex, const SDL_Event &event)
 
 	// Only process D-pad for movement when not in character selection
 	if (coopPlayer.characterSelectActive)
+		return;
+	
+	// Don't process D-pad for movement when this player owns a panel or store
+	// (D-pad is used for UI navigation in those cases)
+	if (g_LocalCoop.panelOwner == localIndex || g_LocalCoop.storeOwner == localIndex)
 		return;
 
 	if (event.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN) {
@@ -1718,6 +1747,39 @@ void UpdateLocalCoopTargetSelection(int localIndex)
 	FindLocalCoopTriggers(localIndex);
 }
 
+/**
+ * @brief RAII helper to temporarily swap MyPlayer and MyPlayerId for local co-op actions.
+ * 
+ * This ensures network commands are sent with the correct player ID and that
+ * player-specific state is properly managed during action execution.
+ */
+class LocalCoopPlayerContext {
+public:
+	LocalCoopPlayerContext(uint8_t playerId)
+	    : savedMyPlayer_(MyPlayer)
+	    , savedMyPlayerId_(MyPlayerId)
+	{
+		if (playerId < Players.size()) {
+			MyPlayer = &Players[playerId];
+			MyPlayerId = playerId;
+		}
+	}
+
+	~LocalCoopPlayerContext()
+	{
+		MyPlayer = savedMyPlayer_;
+		MyPlayerId = savedMyPlayerId_;
+	}
+
+	// Non-copyable
+	LocalCoopPlayerContext(const LocalCoopPlayerContext &) = delete;
+	LocalCoopPlayerContext &operator=(const LocalCoopPlayerContext &) = delete;
+
+private:
+	Player *savedMyPlayer_;
+	uint8_t savedMyPlayerId_;
+};
+
 void PerformLocalCoopPrimaryAction(int localIndex)
 {
 	if (localIndex < 0 || localIndex >= static_cast<int>(g_LocalCoop.players.size()))
@@ -1734,6 +1796,9 @@ void PerformLocalCoopPrimaryAction(int localIndex)
 	Player &player = Players[playerId];
 	if (player._pHitPoints <= 0)
 		return;
+
+	// Temporarily swap player context so network commands use correct player ID
+	LocalCoopPlayerContext context(playerId);
 		
 	LocalCoopCursorState &cursor = coopPlayer.cursor;
 	
@@ -1784,6 +1849,9 @@ void PerformLocalCoopSecondaryAction(int localIndex)
 	Player &player = Players[playerId];
 	if (player._pHitPoints <= 0)
 		return;
+	
+	// Swap player context so network commands are sent for the correct player
+	LocalCoopPlayerContext context(playerId);
 		
 	LocalCoopCursorState &cursor = coopPlayer.cursor;
 	
@@ -1841,35 +1909,34 @@ void ProcessLocalCoopGameAction(int localIndex, uint8_t actionType)
 		
 	case GameActionType_USE_HEALTH_POTION:
 		// Use health potion from belt
-		for (int i = 0; i < MaxBeltItems; i++) {
-			Item &item = Players[playerId].SpdList[i];
-			if (item.isEmpty())
-				continue;
-			const bool isHealing = IsAnyOf(item._iMiscId, IMISC_HEAL, IMISC_FULLHEAL, IMISC_REJUV, IMISC_FULLREJUV);
-			if (isHealing) {
-				// Switch to this player temporarily and use item
-				Player *savedMyPlayer = MyPlayer;
-				MyPlayer = &Players[playerId];
-				UseInvItem(INVITEM_BELT_FIRST + i);
-				MyPlayer = savedMyPlayer;
-				break;
+		{
+			LocalCoopPlayerContext context(playerId);
+			for (int i = 0; i < MaxBeltItems; i++) {
+				Item &item = Players[playerId].SpdList[i];
+				if (item.isEmpty())
+					continue;
+				const bool isHealing = IsAnyOf(item._iMiscId, IMISC_HEAL, IMISC_FULLHEAL, IMISC_REJUV, IMISC_FULLREJUV);
+				if (isHealing) {
+					UseInvItem(INVITEM_BELT_FIRST + i);
+					break;
+				}
 			}
 		}
 		break;
 		
 	case GameActionType_USE_MANA_POTION:
 		// Use mana potion from belt
-		for (int i = 0; i < MaxBeltItems; i++) {
-			Item &item = Players[playerId].SpdList[i];
-			if (item.isEmpty())
-				continue;
-			const bool isMana = IsAnyOf(item._iMiscId, IMISC_MANA, IMISC_FULLMANA, IMISC_REJUV, IMISC_FULLREJUV);
-			if (isMana) {
-				Player *savedMyPlayer = MyPlayer;
-				MyPlayer = &Players[playerId];
-				UseInvItem(INVITEM_BELT_FIRST + i);
-				MyPlayer = savedMyPlayer;
-				break;
+		{
+			LocalCoopPlayerContext context(playerId);
+			for (int i = 0; i < MaxBeltItems; i++) {
+				Item &item = Players[playerId].SpdList[i];
+				if (item.isEmpty())
+					continue;
+				const bool isMana = IsAnyOf(item._iMiscId, IMISC_MANA, IMISC_FULLMANA, IMISC_REJUV, IMISC_FULLREJUV);
+				if (isMana) {
+					UseInvItem(INVITEM_BELT_FIRST + i);
+					break;
+				}
 			}
 		}
 		break;
@@ -1880,14 +1947,11 @@ void ProcessLocalCoopGameAction(int localIndex, uint8_t actionType)
 	case GameActionType_TOGGLE_QUEST_LOG:
 		// Panel toggles - try to claim ownership
 		if (g_LocalCoop.TryClaimPanelOwnership(localIndex)) {
-			// Temporarily switch MyPlayer to show correct info
-			Player *savedMyPlayer = MyPlayer;
-			MyPlayer = &Players[playerId];
+			// Temporarily switch player context to show correct info
+			LocalCoopPlayerContext context(playerId);
 			
 			// Use the standard ProcessGameAction
 			ProcessGameAction(GameAction { static_cast<GameActionType>(actionType) });
-			
-			MyPlayer = savedMyPlayer;
 			
 			// Check if panels were closed, release ownership
 			g_LocalCoop.ReleasePanelOwnership();
@@ -1897,16 +1961,15 @@ void ProcessLocalCoopGameAction(int localIndex, uint8_t actionType)
 	case GameActionType_TOGGLE_QUICK_SPELL_MENU:
 		// Quick spell menu - no ownership needed, just switch player context
 		{
-			Player *savedMyPlayer = MyPlayer;
-			MyPlayer = &Players[playerId];
+			LocalCoopPlayerContext context(playerId);
 			ProcessGameAction(GameAction { GameActionType_TOGGLE_QUICK_SPELL_MENU });
-			MyPlayer = savedMyPlayer;
 		}
 		break;
 		
 	case GameActionType_CAST_SPELL:
 		// Cast currently selected spell
 		{
+			LocalCoopPlayerContext context(playerId);
 			Player &player = Players[playerId];
 			if (player._pRSpell != SpellID::Invalid) {
 				// Update target position for the spell
@@ -1997,6 +2060,13 @@ void ClearLocalCoopStoreOwner()
 
 	if (g_LocalCoop.storeOwner >= 0) {
 		Log("Local co-op: Clearing store owner (was player index {})", g_LocalCoop.storeOwner);
+		
+		// Reset stick state to prevent residual movement after exiting store
+		if (g_LocalCoop.storeOwner < static_cast<int>(g_LocalCoop.players.size())) {
+			LocalCoopPlayer &coopPlayer = g_LocalCoop.players[g_LocalCoop.storeOwner];
+			coopPlayer.leftStickX = 0.0f;
+			coopPlayer.leftStickY = 0.0f;
+		}
 	}
 
 	g_LocalCoop.storeOwner = -1;
