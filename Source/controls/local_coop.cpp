@@ -514,6 +514,16 @@ size_t LocalCoopState::GetActivePlayerCount() const
 	return count;
 }
 
+size_t LocalCoopState::GetInitializedPlayerCount() const
+{
+	size_t count = 0;
+	for (const auto &player : players) {
+		if (player.active && player.initialized)
+			++count;
+	}
+	return count;
+}
+
 size_t LocalCoopState::GetTotalPlayerCount() const
 {
 	return 1 + GetActivePlayerCount(); // Player 1 + local co-op players
@@ -2004,6 +2014,7 @@ void LocalCoopCursorState::Reset() { }
 void LocalCoopPlayer::Reset() { }
 AxisDirection LocalCoopPlayer::GetMoveDirection() const { return { AxisDirectionX_NONE, AxisDirectionY_NONE }; }
 size_t LocalCoopState::GetActivePlayerCount() const { return 0; }
+size_t LocalCoopState::GetInitializedPlayerCount() const { return 0; }
 size_t LocalCoopState::GetTotalPlayerCount() const { return 1; }
 bool LocalCoopState::IsAnyCharacterSelectActive() const { return false; }
 uint8_t LocalCoopState::GetPanelOwnerPlayerId() const { return 0; }

@@ -124,7 +124,12 @@ struct LocalCoopState {
 	void ReleasePanelOwnership();
 
 	/// Get number of active local co-op players (excluding player 1)
+	/// Note: "active" means a controller is assigned, not necessarily spawned
 	[[nodiscard]] size_t GetActivePlayerCount() const;
+
+	/// Get number of initialized/spawned local co-op players (excluding player 1)
+	/// Use this to check if any co-op player has actually joined the game
+	[[nodiscard]] size_t GetInitializedPlayerCount() const;
 
 	/// Get total number of players (including player 1)
 	[[nodiscard]] size_t GetTotalPlayerCount() const;
