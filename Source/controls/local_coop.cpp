@@ -589,6 +589,12 @@ void InitLocalCoop()
 	size_t totalPlayers = g_LocalCoop.GetTotalPlayerCount();
 	if (Players.size() < totalPlayers) {
 		Players.resize(totalPlayers);
+		// IMPORTANT: Resizing the vector may reallocate, invalidating MyPlayer pointer
+		// We must update MyPlayer to point to the new location
+		if (MyPlayer != nullptr && MyPlayerId < Players.size()) {
+			MyPlayer = &Players[MyPlayerId];
+			InspectPlayer = MyPlayer;
+		}
 	}
 }
 
@@ -730,6 +736,11 @@ void ConfirmLocalCoopCharacter(int localIndex)
 
 	if (playerId >= Players.size()) {
 		Players.resize(playerId + 1);
+		// IMPORTANT: Resizing the vector may reallocate, invalidating MyPlayer pointer
+		if (MyPlayer != nullptr && MyPlayerId < Players.size()) {
+			MyPlayer = &Players[MyPlayerId];
+			InspectPlayer = MyPlayer;
+		}
 	}
 
 	Player &player = Players[playerId];
@@ -1151,6 +1162,11 @@ void HandleLocalCoopControllerConnect(SDL_JoystickID controllerId)
 			size_t totalPlayers = g_LocalCoop.GetTotalPlayerCount();
 			if (Players.size() < totalPlayers) {
 				Players.resize(totalPlayers);
+				// IMPORTANT: Resizing the vector may reallocate, invalidating MyPlayer pointer
+				if (MyPlayer != nullptr && MyPlayerId < Players.size()) {
+					MyPlayer = &Players[MyPlayerId];
+					InspectPlayer = MyPlayer;
+				}
 			}
 
 			// Load available heroes
@@ -1333,6 +1349,11 @@ bool TryJoinLocalCoopMidGame(SDL_JoystickID controllerId)
 	// Make sure we have enough player slots
 	if (Players.size() <= playerId) {
 		Players.resize(playerId + 1);
+		// IMPORTANT: Resizing the vector may reallocate, invalidating MyPlayer pointer
+		if (MyPlayer != nullptr && MyPlayerId < Players.size()) {
+			MyPlayer = &Players[MyPlayerId];
+			InspectPlayer = MyPlayer;
+		}
 	}
 
 	// Initialize the local co-op player slot
