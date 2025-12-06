@@ -1874,4 +1874,3 @@ void DrawAndBlit()
 }
 
 } // namespace devilution
-

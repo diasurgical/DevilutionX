@@ -21,6 +21,7 @@
 
 #include "DiabloUI/diabloui.h"
 #include "controls/axis_direction.h"
+#include "engine/displacement.hpp"
 #include "engine/surface.hpp"
 
 namespace devilution {
@@ -275,6 +276,16 @@ Point CalculateLocalCoopViewPosition();
  * Uses smooth interpolation to avoid jarring camera movements.
  */
 void UpdateLocalCoopCamera();
+
+/**
+ * @brief Calculate the camera offset for smooth scrolling in local co-op mode.
+ *
+ * Returns the average walking offset of all active players. This is used by the
+ * rendering code to produce smooth camera movement that follows all players.
+ *
+ * @return The camera offset displacement in pixels, or zero if local co-op is not active.
+ */
+Displacement GetLocalCoopCameraOffset();
 
 /**
  * @brief Check if a tile position is within the visible screen boundaries.
