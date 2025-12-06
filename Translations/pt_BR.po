@@ -1187,7 +1187,7 @@ msgstr "{:s}, Nível: {:d}"
 
 #: Source/control.cpp:1519
 #, c++-format
-msgid "Hit Points {:d} of {:d}"
+msgid "Life {:d} of {:d}"
 msgstr "Pontos de vida {:d} de {:d}"
 
 #: Source/control.cpp:1525
@@ -3080,7 +3080,7 @@ msgstr "{:+d} de dano dos inimigos"
 
 #: Source/items.cpp:3951
 #, c++-format
-msgid "Hit Points: {:+d}"
+msgid "Life: {:+d}"
 msgstr "Pontos de vida: {:+d}"
 
 #: Source/items.cpp:3954

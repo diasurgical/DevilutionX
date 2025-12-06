@@ -1194,7 +1194,7 @@ msgstr "{:s}, Επίπεδο: {:d}"
 
 #: Source/control.cpp:1519
 #, c++-format
-msgid "Hit Points {:d} of {:d}"
+msgid "Life {:d} of {:d}"
 msgstr "Πόντοι Ζωής {:d} από {:d}"
 
 #: Source/control.cpp:1525
@@ -3090,7 +3090,7 @@ msgstr "{:+d} ζημιά από εχθρούς"
 
 #: Source/items.cpp:3951
 #, c++-format
-msgid "Hit Points: {:+d}"
+msgid "Life: {:+d}"
 msgstr "Πόντοι Ζωής {:+d}"
 
 #: Source/items.cpp:3954

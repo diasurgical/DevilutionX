@@ -1163,7 +1163,7 @@ msgstr "{:s}, 等级: {:d}"
 
 #: Source/control.cpp:1519
 #, c++-format
-msgid "Hit Points {:d} of {:d}"
+msgid "Life {:d} of {:d}"
 msgstr "生命值 {:d} 的 {:d}"
 
 #: Source/control.cpp:1525
@@ -3012,7 +3012,7 @@ msgstr "{:+d} 来自​敌人​的​伤害"
 
 #: Source/items.cpp:3951
 #, c++-format
-msgid "Hit Points: {:+d}"
+msgid "Life: {:+d}"
 msgstr "生命​值: {:+d}"
 
 #: Source/items.cpp:3954
