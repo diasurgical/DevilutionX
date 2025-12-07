@@ -1350,63 +1350,6 @@ void StashMove(AxisDirection dir)
 	FocusOnInventory();
 }
 
-void HotSpellMove(AxisDirection dir)
-{
-	static AxisDirectionRepeater repeater;
-	dir = repeater.Get(dir);
-	if (dir.x == AxisDirectionX_NONE && dir.y == AxisDirectionY_NONE)
-		return;
-
-	auto spellListItems = GetSpellListItems();
-
-	Point position = MousePosition;
-	int shortestDistance = std::numeric_limits<int>::max();
-	for (auto &spellListItem : spellListItems) {
-		const Point center = spellListItem.location + Displacement { SPLICONLENGTH / 2, -SPLICONLENGTH / 2 };
-		const int distance = MousePosition.ManhattanDistance(center);
-		if (distance < shortestDistance) {
-			position = center;
-			shortestDistance = distance;
-		}
-	}
-
-	const auto search = [&](AxisDirection dir, bool searchForward) {
-		if (dir.x == AxisDirectionX_NONE && dir.y == AxisDirectionY_NONE)
-			return;
-
-		for (size_t i = 0; i < spellListItems.size(); i++) {
-			const size_t index = searchForward ? spellListItems.size() - i - 1 : i;
-
-			auto &spellListItem = spellListItems[index];
-			if (spellListItem.isSelected)
-				continue;
-
-			const Point center = spellListItem.location + Displacement { SPLICONLENGTH / 2, -SPLICONLENGTH / 2 };
-			if (dir.x == AxisDirectionX_LEFT && center.x >= MousePosition.x)
-				continue;
-			if (dir.x == AxisDirectionX_RIGHT && center.x <= MousePosition.x)
-				continue;
-			if (dir.x == AxisDirectionX_NONE && center.x != position.x)
-				continue;
-			if (dir.y == AxisDirectionY_UP && center.y >= MousePosition.y)
-				continue;
-			if (dir.y == AxisDirectionY_DOWN && center.y <= MousePosition.y)
-				continue;
-			if (dir.y == AxisDirectionY_NONE && center.y != position.y)
-				continue;
-
-			position = center;
-			break;
-		}
-	};
-	search({ AxisDirectionX_NONE, dir.y }, dir.y == AxisDirectionY_DOWN);
-	search({ dir.x, AxisDirectionY_NONE }, dir.x == AxisDirectionX_RIGHT);
-
-	if (position != MousePosition) {
-		SetCursorPos(position);
-	}
-}
-
 void SpellBookMove(AxisDirection dir)
 {
 	static AxisDirectionRepeater repeater;
@@ -1742,6 +1685,63 @@ void LogGamepadChange(GamepadLayout newGamepad)
 
 } // namespace
 
+void HotSpellMove(AxisDirection dir)
+{
+	static AxisDirectionRepeater repeater;
+	dir = repeater.Get(dir);
+	if (dir.x == AxisDirectionX_NONE && dir.y == AxisDirectionY_NONE)
+		return;
+
+	auto spellListItems = GetSpellListItems();
+
+	Point position = MousePosition;
+	int shortestDistance = std::numeric_limits<int>::max();
+	for (auto &spellListItem : spellListItems) {
+		const Point center = spellListItem.location + Displacement { SPLICONLENGTH / 2, -SPLICONLENGTH / 2 };
+		const int distance = MousePosition.ManhattanDistance(center);
+		if (distance < shortestDistance) {
+			position = center;
+			shortestDistance = distance;
+		}
+	}
+
+	const auto search = [&](AxisDirection dir, bool searchForward) {
+		if (dir.x == AxisDirectionX_NONE && dir.y == AxisDirectionY_NONE)
+			return;
+
+		for (size_t i = 0; i < spellListItems.size(); i++) {
+			const size_t index = searchForward ? spellListItems.size() - i - 1 : i;
+
+			auto &spellListItem = spellListItems[index];
+			if (spellListItem.isSelected)
+				continue;
+
+			const Point center = spellListItem.location + Displacement { SPLICONLENGTH / 2, -SPLICONLENGTH / 2 };
+			if (dir.x == AxisDirectionX_LEFT && center.x >= MousePosition.x)
+				continue;
+			if (dir.x == AxisDirectionX_RIGHT && center.x <= MousePosition.x)
+				continue;
+			if (dir.x == AxisDirectionX_NONE && center.x != position.x)
+				continue;
+			if (dir.y == AxisDirectionY_UP && center.y >= MousePosition.y)
+				continue;
+			if (dir.y == AxisDirectionY_DOWN && center.y <= MousePosition.y)
+				continue;
+			if (dir.y == AxisDirectionY_NONE && center.y != position.y)
+				continue;
+
+			position = center;
+			break;
+		}
+	};
+	search({ AxisDirectionX_NONE, dir.y }, dir.y == AxisDirectionY_DOWN);
+	search({ dir.x, AxisDirectionY_NONE }, dir.x == AxisDirectionX_RIGHT);
+
+	if (position != MousePosition) {
+		SetCursorPos(position);
+	}
+}
+
 void DetectInputMethod(const SDL_Event &event, const ControllerButtonEvent &gamepadEvent)
 {
 	ControlTypes inputType = GetInputTypeFromEvent(event);
@@ -1991,6 +1991,9 @@ void plrctrls_after_game_logic()
 
 	// Update local co-op player movement
 	UpdateLocalCoopMovement();
+	
+	// Update local co-op skill button holds (for quick spell menu)
+	UpdateLocalCoopSkillButtons();
 
 	// Update camera to follow all local co-op players
 	UpdateLocalCoopCamera();
