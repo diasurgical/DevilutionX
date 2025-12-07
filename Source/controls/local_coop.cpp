@@ -690,6 +690,15 @@ SDL_JoystickID GetControllerIdFromEvent(const SDL_Event &event)
 	case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
 	case SDL_EVENT_GAMEPAD_BUTTON_UP:
 		return SDLC_EventGamepadButton(event).which;
+#ifndef USE_SDL1
+	case SDL_EVENT_JOYSTICK_AXIS_MOTION:
+		return event.jaxis.which;
+	case SDL_EVENT_JOYSTICK_BUTTON_DOWN:
+	case SDL_EVENT_JOYSTICK_BUTTON_UP:
+		return event.jbutton.which;
+	case SDL_EVENT_JOYSTICK_HAT_MOTION:
+		return event.jhat.which;
+#endif
 	default:
 		return -1;
 	}
