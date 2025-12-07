@@ -2139,8 +2139,8 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 	
 	// Content area width (belt width) - skills are now outside the panel
 	const int contentWidth = beltWidth;
-	// Bar width = full content width + 3px for wider bars
-	const int barsWidth = contentWidth + 3;
+	// Bar width = full content width + 6px for wider bars (increased by 3px)
+	const int barsWidth = contentWidth + 6;
 	
 	// Panel content height: name row + middle (bars/belt stacked) 
 	// Middle section: bars + spacing + belt
@@ -2148,7 +2148,7 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 	
 	// Panel dimensions with proper borders
 	// Layout: topBorder + nameTopOffset + [name row] + spacing + [middle: bars+belt | skills] + bottomBorder
-	const int panelContentWidth = contentWidth + 2; // 2px wider
+	const int panelContentWidth = contentWidth + 6; // 6px wider (increased by 4px)
 	const int panelHeight = topBorderPadding + nameTopOffset + nameFieldHeight + elementSpacing + middleContentHeight + bottomBorderPadding + 2; // 2px taller
 	const int panelWidth = leftBorderPadding + panelContentWidth + rightBorderPadding;
 	
