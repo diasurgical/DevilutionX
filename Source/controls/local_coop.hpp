@@ -64,6 +64,10 @@ struct LocalCoopPlayer {
 	float leftStickXUnscaled = 0;
 	float leftStickYUnscaled = 0;
 
+	// D-pad values for movement (-1, 0, or 1)
+	int dpadX = 0;
+	int dpadY = 0;
+
 	// Character selection state
 	bool characterSelectActive = true;
 	std::vector<_uiheroinfo> availableHeroes;
@@ -80,11 +84,17 @@ struct LocalCoopPlayer {
 	
 	// Save slot number for this player (used for saving progress)
 	uint32_t saveNumber = 0;
+	
+	// Skill button hold state for long-press quick spell assignment
+	// -1 = no button held, 0-3 = skill slot being held
+	int skillButtonHeld = -1;
+	uint32_t skillButtonPressTime = 0;
+	bool skillMenuOpenedByHold = false;  // Track if we opened the menu via long press
 
 	/// Reset player state
 	void Reset();
 
-	/// Get the movement direction from stick input
+	/// Get the movement direction from stick and D-pad input
 	AxisDirection GetMoveDirection() const;
 };
 
@@ -252,6 +262,24 @@ bool ProcessLocalCoopInput(const SDL_Event &event);
  * Should be called in the game loop after player 1's movement.
  */
 void UpdateLocalCoopMovement();
+
+/**
+ * @brief Update skill button hold states for quick spell menu.
+ *
+ * Checks if any skill button has been held long enough to open quick spell menu.
+ * Should be called in the game loop.
+ */
+void UpdateLocalCoopSkillButtons();
+
+/**
+ * @brief Handle spell selection for local co-op when quick spell menu is open.
+ *
+ * Called when a spell is selected from the quick spell menu while a local coop
+ * player is assigning skills.
+ * @param localIndex Local co-op player index (0-2)
+ * @param slotIndex Skill slot to assign (0-3)
+ */
+void AssignLocalCoopSpellToSlot(int localIndex, int slotIndex);
 
 /**
  * @brief Load available heroes for local co-op player selection.

@@ -63,6 +63,7 @@ void InvalidateInventorySlot();
 void FocusOnInventory();
 void PerformSpellAction();
 void QuickCast(size_t slot);
+void HotSpellMove(AxisDirection dir);
 
 extern int speedspellcount;
 
