@@ -129,11 +129,11 @@ struct LocalCoopState {
 	
 	/// Dead zone radius in screen pixels - camera won't move if average player position
 	/// is within this distance from the current camera target
-	static constexpr int CameraDeadZone = 48;
+	static constexpr int CameraDeadZone = 32;
 	
 	/// Camera smoothing factor (0.0 = no smoothing, 1.0 = instant)
-	/// Lower values = smoother but more delayed camera movement
-	static constexpr float CameraSmoothFactor = 0.15f;
+	/// Higher values = faster camera response but potentially jerky movement
+	static constexpr float CameraSmoothFactor = 0.25f;
 	
 	/// Check if a local coop player owns the panels
 	[[nodiscard]] bool HasPanelOwner() const { return panelOwner >= 0; }

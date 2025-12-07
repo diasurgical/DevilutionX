@@ -70,39 +70,76 @@ const Direction FaceDir[3][3] = {
 };
 
 /**
- * @brief Check if a tile position is within a reasonable distance from the camera center.
+ * @brief Check if a tile position is within allowed distance from other players.
  * 
- * Used to prevent local co-op players from moving too far off-screen.
- * Instead of checking screen pixel boundaries (which depend on camera position that updates
- * after movement), we check the tile distance from the camera target position.
- * This allows players to move toward the edge of the screen, and the camera will follow.
+ * In local co-op, all players must stay close enough that they can all fit on screen.
+ * This checks if moving to a new position would put this player too far from any other
+ * active player, which would cause someone to be pushed off-screen.
+ * 
+ * The check uses tile distance in screen space (isometric projection) to account for
+ * the actual visual distance on screen.
  * 
  * @param tilePos The tile position to check.
- * @param maxTileDistance Maximum allowed tile distance from camera center.
- * @return true if the position is within the allowed distance.
+ * @param excludePlayerId Player ID to exclude from distance check (the player trying to move).
+ * @return true if the position keeps all players within screen bounds.
  */
-bool IsTilePositionOnScreen(Point tilePos, int maxTileDistance = 12)
+bool IsTilePositionOnScreen(Point tilePos, uint8_t excludePlayerId = 255)
 {
-	// Use the camera target position if initialized, otherwise use ViewPosition
-	Point cameraCenter;
-	if (g_LocalCoop.cameraInitialized) {
-		// Convert camera screen position back to world position
-		// screenToWorld: tileX = (2*screenY + screenX) / -64, tileY = (2*screenY - screenX) / -64
-		int64_t cameraScreenX256 = g_LocalCoop.cameraSmoothScreenX;
-		int64_t cameraScreenY256 = g_LocalCoop.cameraSmoothScreenY;
-		int64_t worldX256 = (2 * cameraScreenY256 + cameraScreenX256) / -64;
-		int64_t worldY256 = (2 * cameraScreenY256 - cameraScreenX256) / -64;
-		cameraCenter = { static_cast<int>(worldX256 / 256), static_cast<int>(worldY256 / 256) };
-	} else {
-		cameraCenter = ViewPosition;
+	// Maximum allowed distance between any two players in screen pixels
+	// This should be less than half the screen size to ensure both fit
+	const int screenWidth = static_cast<int>(GetScreenWidth());
+	const int viewportHeight = static_cast<int>(GetViewportHeight());
+	
+	// Use the smaller dimension with some margin for player sprites and UI
+	const int maxScreenDistance = std::min(screenWidth, viewportHeight) - 150;
+	
+	// Convert tile position to screen space for distance calculation
+	// In isometric view: screenX = (tileY - tileX) * 32, screenY = (tileY + tileX) * 16
+	auto tileToScreen = [](Point tile) -> Point {
+		return {
+			(tile.y - tile.x) * 32,
+			(tile.y + tile.x) * 16
+		};
+	};
+	
+	Point newScreenPos = tileToScreen(tilePos);
+	
+	// Count how many other active players we check against
+	int otherPlayersChecked = 0;
+	
+	// Check distance to all other active players
+	size_t totalPlayers = g_LocalCoop.GetTotalPlayerCount();
+	for (size_t i = 0; i < totalPlayers && i < Players.size(); ++i) {
+		if (static_cast<uint8_t>(i) == excludePlayerId)
+			continue;
+			
+		const Player &otherPlayer = Players[i];
+		if (!otherPlayer.plractive || otherPlayer._pHitPoints <= 0)
+			continue;
+		if (otherPlayer.plrlevel != Players[0].plrlevel)
+			continue;
+		
+		otherPlayersChecked++;
+		Point otherScreenPos = tileToScreen(otherPlayer.position.future);
+		
+		// Calculate screen distance
+		int distX = std::abs(newScreenPos.x - otherScreenPos.x);
+		int distY = std::abs(newScreenPos.y - otherScreenPos.y);
+		
+		// Use Chebyshev distance (max of x,y) for rectangular screen bounds
+		int screenDist = std::max(distX, distY);
+		
+		if (screenDist > maxScreenDistance) {
+			return false; // Would be too far from this player
+		}
 	}
-
-	// Use Chebyshev distance (max of x and y difference) for a square boundary
-	int distX = std::abs(tilePos.x - cameraCenter.x);
-	int distY = std::abs(tilePos.y - cameraCenter.y);
-	int distance = std::max(distX, distY);
-
-	return distance <= maxTileDistance;
+	
+	// If there are no other players to check against, allow movement
+	if (otherPlayersChecked == 0) {
+		return true;
+	}
+	
+	return true;
 }
 
 /**
@@ -475,10 +512,10 @@ void UpdateLocalCoopPlayerMovement(int localIndex)
 		player._pdir = pdir;
 	}
 
-	// Check if the target position would be on screen
-	// This prevents local co-op players from walking off the visible screen
-	if (!IsTilePositionOnScreen(delta)) {
-		// Target is off-screen, only allow turning
+	// Check if the target position would keep all players on screen
+	// This prevents local co-op players from walking too far from others
+	if (!IsTilePositionOnScreen(delta, playerId)) {
+		// Target is too far from other players, only allow turning
 		if (player._pmode == PM_STAND) {
 			StartStand(player, pdir);
 		}
@@ -1513,7 +1550,9 @@ bool IsLocalCoopPositionOnScreen(Point tilePos)
 	if (!anyInitialized)
 		return true;
 
-	return IsTilePositionOnScreen(tilePos);
+	// Check if this position keeps Player 1 within range of all other players
+	// Pass 0 as the excludePlayerId since this is for Player 1
+	return IsTilePositionOnScreen(tilePos, 0);
 }
 
 bool TryJoinLocalCoopMidGame(SDL_JoystickID controllerId)
@@ -1868,20 +1907,23 @@ void UpdateLocalCoopTargetSelection(int localIndex)
 }
 
 /**
- * @brief RAII helper to temporarily swap MyPlayer and MyPlayerId for local co-op actions.
+ * @brief RAII helper to temporarily swap MyPlayer, MyPlayerId, and InspectPlayer for local co-op actions.
  * 
  * This ensures network commands are sent with the correct player ID and that
  * player-specific state is properly managed during action execution.
+ * InspectPlayer is also swapped because UI elements like the spell menu use it.
  */
 class LocalCoopPlayerContext {
 public:
 	LocalCoopPlayerContext(uint8_t playerId)
 	    : savedMyPlayer_(MyPlayer)
 	    , savedMyPlayerId_(MyPlayerId)
+	    , savedInspectPlayer_(InspectPlayer)
 	{
 		if (playerId < Players.size()) {
 			MyPlayer = &Players[playerId];
 			MyPlayerId = playerId;
+			InspectPlayer = &Players[playerId];
 		}
 	}
 
@@ -1889,6 +1931,7 @@ public:
 	{
 		MyPlayer = savedMyPlayer_;
 		MyPlayerId = savedMyPlayerId_;
+		InspectPlayer = savedInspectPlayer_;
 	}
 
 	// Non-copyable
@@ -1898,6 +1941,7 @@ public:
 private:
 	Player *savedMyPlayer_;
 	uint8_t savedMyPlayerId_;
+	Player *savedInspectPlayer_;
 };
 
 void PerformLocalCoopPrimaryAction(int localIndex)
