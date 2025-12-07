@@ -1944,8 +1944,8 @@ void DrawPlayerBelt(const Surface &out, const Player &player, Point basePosition
 		}
 
 		// Calculate slot position (29px spacing between slots, starting at x=207 relative to belt area)
-		const int slotX = basePosition.x + 2 + (i * 29);
-		const int slotY = basePosition.y + 3;
+		const int slotX = basePosition.x + (i * 29);
+		const int slotY = basePosition.y;
 		const Point position { slotX, slotY + InventorySlotSizeInPixels.height };
 		
 		// Draw item quality background
