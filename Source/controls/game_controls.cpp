@@ -10,6 +10,7 @@
 
 #include "controls/control_mode.hpp"
 #include "controls/controller_motion.h"
+#include "controls/local_coop.hpp"
 #ifndef USE_SDL1
 #include "controls/devices/game_controller.h"
 #endif
@@ -249,6 +250,40 @@ void PressControllerButton(ControllerButton button)
 		}
 	}
 
+	// Local coop skill button handling for player 1
+	// When local coop is enabled, A/B/X/Y directly cast skills
+	// Uses same slot mapping as PadHotspellMenu: A=2, B=3, X=0, Y=1
+	// Long press opens the quick spell menu
+	if (IsLocalCoopEnabled()) {
+		int slotIndex = -1;
+		switch (button) {
+		case devilution::ControllerButton_BUTTON_A:
+			slotIndex = 2;
+			break;
+		case devilution::ControllerButton_BUTTON_B:
+			slotIndex = 3;
+			break;
+		case devilution::ControllerButton_BUTTON_X:
+			slotIndex = 0;
+			break;
+		case devilution::ControllerButton_BUTTON_Y:
+			slotIndex = 1;
+			break;
+		default:
+			break;
+		}
+		
+		if (slotIndex >= 0) {
+			// HandlePlayer1SkillButtonDown returns true if we should not process further
+			// (e.g., when assigning a spell from the quick menu)
+			if (HandlePlayer1SkillButtonDown(slotIndex))
+				return;
+			// Otherwise, we start tracking for long press
+			// The actual spell cast happens on button release (handled elsewhere)
+			return;
+		}
+	}
+
 	if (PadHotspellMenuActive) {
 		auto quickSpellAction = [](size_t slot) {
 			if (SpellSelectFlag) {
@@ -370,6 +405,47 @@ bool HandleControllerButtonEvent(const SDL_Event &event, const ControllerButtonE
 {
 	if (ctrlEvent.button == ControllerButton_IGNORE) {
 		return false;
+	}
+
+	// Handle player 1 skill button release in local coop mode
+	// Uses same slot mapping as PadHotspellMenu: A=2, B=3, X=0, Y=1
+	if (IsLocalCoopEnabled() && ctrlEvent.up) {
+		int slotIndex = -1;
+		switch (ctrlEvent.button) {
+		case devilution::ControllerButton_BUTTON_A:
+			slotIndex = 2;
+			break;
+		case devilution::ControllerButton_BUTTON_B:
+			slotIndex = 3;
+			break;
+		case devilution::ControllerButton_BUTTON_X:
+			slotIndex = 0;
+			break;
+		case devilution::ControllerButton_BUTTON_Y:
+			slotIndex = 1;
+			break;
+		default:
+			break;
+		}
+		
+		if (slotIndex >= 0) {
+			// HandlePlayer1SkillButtonUp returns true if it was a long press (opened menu)
+			// Returns false if it was a short press - we should cast the spell
+			if (!HandlePlayer1SkillButtonUp(slotIndex)) {
+				// Short press - cast the spell from the slot
+				Player &player = Players[0];
+				SpellID spell = player._pSplHotKey[slotIndex];
+				SpellType spellType = player._pSplTHotKey[slotIndex];
+				
+				if (spell != SpellID::Invalid && spellType != SpellType::Invalid) {
+					// Set the readied spell and cast it
+					player._pRSpell = spell;
+					player._pRSplType = spellType;
+					PerformSpellAction();
+				}
+			}
+			return true;
+		}
 	}
 
 	struct ButtonReleaser {

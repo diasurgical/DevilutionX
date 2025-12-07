@@ -171,6 +171,12 @@ struct LocalCoopState {
 
 	/// Check if any player has character selection active
 	[[nodiscard]] bool IsAnyCharacterSelectActive() const;
+	
+	/// Player 1 skill button hold state for long-press quick spell assignment
+	/// -1 = no button held, 0-3 = skill slot being held
+	int player1SkillButtonHeld = -1;
+	uint32_t player1SkillButtonPressTime = 0;
+	bool player1SkillMenuOpenedByHold = false;  // Track if we opened the menu via long press
 };
 
 extern LocalCoopState g_LocalCoop;
@@ -267,9 +273,43 @@ void UpdateLocalCoopMovement();
  * @brief Update skill button hold states for quick spell menu.
  *
  * Checks if any skill button has been held long enough to open quick spell menu.
- * Should be called in the game loop.
+ * Should be called in the game loop. Handles both player 1 and local coop players.
  */
 void UpdateLocalCoopSkillButtons();
+
+/**
+ * @brief Handle player 1 skill button press when local coop is enabled.
+ *
+ * Tracks button hold state for long-press to open quick spell menu.
+ * @param slotIndex Skill slot index (0=A, 1=B, 2=X, 3=Y)
+ * @return true if the press was handled (should not be processed further)
+ */
+bool HandlePlayer1SkillButtonDown(int slotIndex);
+
+/**
+ * @brief Handle player 1 skill button release when local coop is enabled.
+ *
+ * If short press, casts the spell. If long press was used to open menu, does nothing.
+ * @param slotIndex Skill slot index (0=A, 1=B, 2=X, 3=Y)
+ * @return true if the release was handled
+ */
+bool HandlePlayer1SkillButtonUp(int slotIndex);
+
+/**
+ * @brief Assign spell to player 1's skill slot from quick spell menu.
+ *
+ * Called when player 1 selects a spell while the quick spell menu is open.
+ * @param slotIndex Skill slot to assign (0-3)
+ */
+void AssignPlayer1SpellToSlot(int slotIndex);
+
+/**
+ * @brief Draw skill slots for player 1 on the main panel.
+ *
+ * Displays skill slots similar to local coop players, next to the belt.
+ * @param out Output surface to draw to
+ */
+void DrawPlayer1SkillSlots(const Surface &out);
 
 /**
  * @brief Handle spell selection for local co-op when quick spell menu is open.

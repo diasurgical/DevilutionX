@@ -1892,6 +1892,9 @@ void DrawAndBlit()
 		}
 		if (drawBelt) {
 			DrawInvBelt(out);
+#ifndef USE_SDL1
+			DrawPlayer1SkillSlots(out);
+#endif
 		}
 		if (drawChatInput) {
 			DrawChatBox(out);
