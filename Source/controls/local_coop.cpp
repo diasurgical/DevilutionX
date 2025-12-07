@@ -1494,29 +1494,58 @@ void DrawGoldenBorder(const Surface &out, Rectangle rect)
 
 	// Sprites are 24px tall (PanelFieldHeight)
 	const int spriteHeight = left.height(); // Should be 24
-	const int bottomBorderHeight = 4; // Height of fake bottom border from bottom of sprite
 	const int width = rect.size.width;
 	const int height = rect.size.height;
+
+	// Calculate bottom border height: split region roughly in half if height > 20px
+	// Otherwise use a smaller bottom border
+	int bottomBorderHeight;
+	if (height > 20) {
+		bottomBorderHeight = height / 2; // Use half the height for bottom border
+	} else {
+		bottomBorderHeight = 4; // Use smaller border for small regions
+	}
 
 	// Render top portion of sprite (cropped from bottom)
 	// The subregion clips what we render so only the top portion shows
 	int topHeight = height - bottomBorderHeight;
 	if (topHeight > 0) {
-		// Left end - render full sprite but clip to topHeight
-		Surface topRegion = out.subregion(rect.position.x, rect.position.y, left.width(), topHeight);
-		RenderClxSprite(topRegion, left, { 0, 0 });
+		// Left end - tile vertically if needed
+		int leftY = rect.position.y;
+		int leftRemaining = topHeight;
+		while (leftRemaining > 0) {
+			int leftChunkHeight = std::min(leftRemaining, spriteHeight);
+			Surface leftRegion = out.subregion(rect.position.x, leftY, left.width(), leftChunkHeight);
+			RenderClxSprite(leftRegion, left, { 0, 0 });
+			leftY += leftChunkHeight;
+			leftRemaining -= leftChunkHeight;
+		}
 
-		// Middle - tile across width
+		// Middle - tile across width and vertically if needed
 		int middleStart = rect.position.x + left.width();
 		int middleLen = width - left.width() - right.width();
 		if (middleLen > 0) {
-			Surface middleRegion = out.subregion(middleStart, rect.position.y, middleLen, topHeight);
-			RenderClxSprite(middleRegion, middle, { 0, 0 });
+			int middleY = rect.position.y;
+			int middleRemaining = topHeight;
+			while (middleRemaining > 0) {
+				int middleChunkHeight = std::min(middleRemaining, spriteHeight);
+				Surface middleRegion = out.subregion(middleStart, middleY, middleLen, middleChunkHeight);
+				RenderClxSprite(middleRegion, middle, { 0, 0 });
+				middleY += middleChunkHeight;
+				middleRemaining -= middleChunkHeight;
+			}
 		}
 
-		// Right end
-		Surface rightRegion = out.subregion(rect.position.x + width - right.width(), rect.position.y, right.width(), topHeight);
-		RenderClxSprite(rightRegion, right, { 0, 0 });
+		// Right end - tile vertically if needed
+		int rightY = rect.position.y;
+		int rightRemaining = topHeight;
+		while (rightRemaining > 0) {
+			int rightChunkHeight = std::min(rightRemaining, spriteHeight);
+			Surface rightRegion = out.subregion(rect.position.x + width - right.width(), rightY, right.width(), rightChunkHeight);
+			RenderClxSprite(rightRegion, right, { 0, 0 });
+			rightY += rightChunkHeight;
+			rightRemaining -= rightChunkHeight;
+		}
 	}
 
 	// Render bottom portion of sprite as the bottom border
@@ -1931,11 +1960,12 @@ void DrawPlayerBeltSlot(const Surface &out, const Player &player, int slotIndex,
 void DrawPlayerBelt(const Surface &out, const Player &player, Point basePosition, bool alignRight)
 {
 	// Draw golden border around the belt (same style as health/mana bars)
-	DrawGoldenBorder(out, Rectangle { basePosition, Size { 232, 28 } });
-	
-	// Use the same belt rendering as the main panel for consistency
+	// Belt region increased by 4 pixels (right and bottom)
+	DrawGoldenBorder(out, Rectangle { basePosition, Size { 238, 34 } });
+
 	// Belt area in the main panel sprite: { 205, 21, 232, 28 }
-	DrawPanelBox(out, { 205, 21, 232, 28 }, basePosition);
+	// Offset panel box by 2 pixels to the right and 2 pixels to the bottom
+	DrawPanelBox(out, { 205, 21, 232, 28 }, basePosition + Displacement { 3, 3 });
 
 	// Draw belt items using the same positioning as the main panel
 	for (int i = 0; i < MaxBeltItems; i++) {
@@ -1944,8 +1974,9 @@ void DrawPlayerBelt(const Surface &out, const Player &player, Point basePosition
 		}
 
 		// Calculate slot position (29px spacing between slots, starting at x=207 relative to belt area)
-		const int slotX = basePosition.x + (i * 29);
-		const int slotY = basePosition.y;
+		// Offset slots by 2px to the right and 2px to the bottom
+		const int slotX = basePosition.x + (i * 29) + 4;
+		const int slotY = basePosition.y + 2;
 		const Point position { slotX, slotY + InventorySlotSizeInPixels.height };
 		
 		// Draw item quality background
@@ -1954,9 +1985,6 @@ void DrawPlayerBelt(const Surface &out, const Player &player, Point basePosition
 		// Get item sprite
 		const int cursId = player.SpdList[i]._iCurs + CURSOR_FIRSTITEM;
 		const ClxSprite sprite = GetInvItemSprite(cursId);
-
-		// Draw golden outline around the item
-		ClxDrawOutline(out, GetOutlineColor(player.SpdList[i], true), position, sprite);
 
 		// Draw the item
 		DrawItem(player.SpdList[i], out, position, sprite);
@@ -2260,8 +2288,8 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 		int skillY = panelY + (panelHeight - skillGridHeight) / 2;
 		DrawPlayerSkillSlots2x2Small(out, player, { skillX, skillY }, SkillSlotSize);
 
-		// === BELT: Right after XP bar (moved 1px right) ===
-		DrawPlayerBelt(out, player, { contentX + barsExtraRightOffset + 1, barY }, false);
+		// === BELT: Right after XP bar ===
+		DrawPlayerBelt(out, player, { contentX + barsExtraRightOffset, barY - 4 }, false);
 
 		// Draw durability icons - above panel for bottom players, below panel for top players
 		int durabilityY;
