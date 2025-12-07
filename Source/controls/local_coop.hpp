@@ -202,6 +202,13 @@ SDL_JoystickID GetControllerIdFromEvent(const SDL_Event &event);
 int GetLocalCoopPlayerIndex(const SDL_Event &event);
 
 /**
+ * @brief Check if a controller ID belongs to a local co-op player.
+ * @param controllerId The controller ID to check.
+ * @return true if the controller is assigned to a local co-op player.
+ */
+bool IsLocalCoopControllerId(SDL_JoystickID controllerId);
+
+/**
  * @brief Get the game player ID for a local co-op player index.
  * @param localIndex Local co-op player index (0-2)
  * @return Game player ID (1-3)
