@@ -1344,28 +1344,24 @@ void DrawPlayerBelt(const Surface &out, const Player &player, Point basePosition
 
 void DrawPlayerSkillSlot(const Surface &out, const Player &player, int slotIndex, Point position)
 {
-	// Draw slot background
-	FillRect(out, position.x, position.y, SkillSlotSize, SkillSlotHeight, PAL16_GRAY + 12);
-
-	// Draw border
-	DrawHorizontalLine(out, position, SkillSlotSize, PAL16_GRAY + 8);
-	DrawHorizontalLine(out, { position.x, position.y + SkillSlotHeight - 1 }, SkillSlotSize, PAL16_GRAY + 8);
-	DrawVerticalLine(out, position, SkillSlotHeight, PAL16_GRAY + 8);
-	DrawVerticalLine(out, { position.x + SkillSlotSize - 1, position.y }, SkillSlotHeight, PAL16_GRAY + 8);
-
 	// Get spell from hotkey slot
 	SpellID spell = player._pSplHotKey[slotIndex];
 	SpellType spellType = player._pSplTHotKey[slotIndex];
 
-	// Face button labels for each slot (A, B, X, Y) - triggered with RT+button
+	// Face button labels for each slot (A, B, X, Y)
 	static constexpr std::string_view ButtonLabels[] = { "A", "B", "X", "Y" };
 	const char *label = slotIndex < 4 ? ButtonLabels[slotIndex].data() : "";
 
-	// If no spell assigned, draw empty slot with button label
+	// Position for ClxDraw is bottom-left of slot
+	Point iconPos = { position.x, position.y + SkillSlotHeight };
+
+	// If no spell assigned, draw empty spell icon background
 	if (spell == SpellID::Invalid || spellType == SpellType::Invalid) {
-		// Draw button label in center of empty slot
-		DrawString(out, label, { { position.x, position.y + SkillSlotHeight / 2 - 6 }, { SkillSlotSize, 0 } },
-		    { .flags = UiFlags::ColorGold | UiFlags::Outlined | UiFlags::FontSize12 | UiFlags::AlignCenter, .spacing = 0 });
+		SetSpellTrans(SpellType::Skill);
+		DrawSmallSpellIcon(out, iconPos, SpellID::Null);
+		// Draw button label in bottom-right corner of empty slot
+		DrawString(out, label, { { position.x + SkillSlotSize - 14, position.y + SkillSlotHeight - 14 }, { 12, 0 } },
+		    { .flags = UiFlags::ColorGold | UiFlags::Outlined | UiFlags::FontSize12, .spacing = 0 });
 		return;
 	}
 
@@ -1380,13 +1376,12 @@ void DrawPlayerSkillSlot(const Surface &out, const Player &player, int slotIndex
 			transType = SpellType::Invalid;
 	}
 
-	// Draw the spell icon (position needs to be at bottom-left of slot for ClxDraw)
-	Point iconPos = { position.x, position.y + SkillSlotHeight };
+	// Draw the spell icon with its own background
 	SetSpellTrans(transType);
 	DrawSmallSpellIcon(out, iconPos, spell);
 
-	// Draw button label in top-left corner
-	DrawString(out, label, { { position.x + 2, position.y + 2 }, { SkillSlotSize - 4, 0 } },
+	// Draw button label in bottom-right corner
+	DrawString(out, label, { { position.x + SkillSlotSize - 14, position.y + SkillSlotHeight - 14 }, { 12, 0 } },
 	    { .flags = UiFlags::ColorWhite | UiFlags::Outlined | UiFlags::FontSize12, .spacing = 0 });
 }
 
