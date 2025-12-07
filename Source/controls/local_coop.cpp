@@ -634,8 +634,8 @@ void ProcessLocalCoopAxisMotion(int localIndex, const SDL_Event &event)
 /**
  * @brief Update movement for a single local co-op player.
  * 
- * Uses the same command-based approach as player 1 (via NetSendCmdLoc with CMD_WALKXY)
- * to ensure smooth walking animation through the MakePlrPath system.
+ * Directly calls MakePlrPath instead of using network commands, since the
+ * loopback network layer only processes messages for player 0 (MyPlayerId).
  * 
  * Supports both left analog stick and D-pad for movement.
  */
@@ -643,23 +643,16 @@ void UpdateLocalCoopPlayerMovement(int localIndex)
 {
 	LocalCoopPlayer &coopPlayer = g_LocalCoop.players[localIndex];
 
-	if (!coopPlayer.active || !coopPlayer.initialized) {
-		LogVerbose("Local co-op: Skipping movement for player {} - active={}, initialized={}",
-		          localIndex + 2, coopPlayer.active, coopPlayer.initialized);
+	if (!coopPlayer.active || !coopPlayer.initialized)
 		return;
-	}
-	if (coopPlayer.characterSelectActive) {
-		LogVerbose("Local co-op: Skipping movement for player {} - in character select",
-		          localIndex + 2);
+	if (coopPlayer.characterSelectActive)
 		return;
-	}
 
 	// Don't move when this player owns a panel or store
 	if (g_LocalCoop.panelOwner == localIndex || g_LocalCoop.storeOwner == localIndex)
 		return;
 
 	const uint8_t playerId = LocalCoopIndexToPlayerId(localIndex);
-
 	if (playerId >= Players.size())
 		return;
 
@@ -676,16 +669,14 @@ void UpdateLocalCoopPlayerMovement(int localIndex)
 	if (dir.x == AxisDirectionX_NONE && dir.y == AxisDirectionY_NONE) {
 		// If no input and player has a walk path, stop walking
 		if (player.walkpath[0] != WALK_NONE && player.destAction == ACTION_NONE) {
-			NetSendCmdLoc(playerId, true, CMD_WALKXY, player.position.future);
+			ClrPlrPath(player);
+			player.destAction = ACTION_NONE;
 		}
 		return;
 	}
 
-	LogVerbose("Local co-op: Player {} (id {}) moving dir x={} y={}",
-	          localIndex + 2, playerId, static_cast<int>(dir.x), static_cast<int>(dir.y));
-
 	const Direction pdir = FaceDir[static_cast<size_t>(dir.y)][static_cast<size_t>(dir.x)];
-	const Point delta = player.position.future + pdir;
+	const Point target = player.position.future + pdir;
 
 	// Update facing direction when not walking
 	if (!player.isWalking() && player.CanChangeAction()) {
@@ -693,8 +684,7 @@ void UpdateLocalCoopPlayerMovement(int localIndex)
 	}
 
 	// Check if the target position would keep all players on screen
-	// This prevents local co-op players from walking too far from others
-	if (!IsTilePositionOnScreen(delta, playerId)) {
+	if (!IsTilePositionOnScreen(target, playerId)) {
 		// Target is too far from other players, only allow turning
 		if (player._pmode == PM_STAND) {
 			StartStand(player, pdir);
@@ -702,9 +692,12 @@ void UpdateLocalCoopPlayerMovement(int localIndex)
 		return;
 	}
 
-	// Use the command system for walking, same as player 1
-	// This goes through MakePlrPath which handles smooth movement properly
-	NetSendCmdLoc(playerId, true, CMD_WALKXY, delta);
+	// Directly update the path - this is what OnWalk() does when processing CMD_WALKXY
+	if (player.isOnActiveLevel() && InDungeonBounds(target)) {
+		ClrPlrPath(player);
+		MakePlrPath(player, target, true);
+		player.destAction = ACTION_NONE;
+	}
 }
 
 } // namespace
