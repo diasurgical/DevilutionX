@@ -1473,60 +1473,71 @@ constexpr int PanelFieldPaddingSide = 4;
 /**
  * @brief Draw a golden border around a rectangular area using box sprites
  * Uses the same boxleftend/boxmiddle/boxrightend sprites as charpanel
- * Draws the sprite twice (top and bottom halves) to stretch vertically
+ * Uses boxleftend/boxmiddle/boxrightend sprites with bottom portion cropped from top
+ * and rendered as a fake bottom border to create borders with proper golden styling
  */
 void DrawGoldenBorder(const Surface &out, Rectangle rect)
 {
-	if (!LocalCoopBoxLeft || !LocalCoopBoxMiddle || !LocalCoopBoxRight)
+	if (!LocalCoopBoxLeft || !LocalCoopBoxMiddle || !LocalCoopBoxRight) {
+		// Fallback to FillRect if sprites not loaded
+		const uint8_t borderColor = PAL16_YELLOW + 2;
+		FillRect(out, rect.position.x, rect.position.y, rect.size.width, 1, borderColor); // Top
+		FillRect(out, rect.position.x, rect.position.y + rect.size.height - 1, rect.size.width, 1, borderColor); // Bottom
+		FillRect(out, rect.position.x, rect.position.y, 1, rect.size.height, borderColor); // Left
+		FillRect(out, rect.position.x + rect.size.width - 1, rect.position.y, 1, rect.size.height, borderColor); // Right
 		return;
+	}
 
 	const ClxSprite left = (*LocalCoopBoxLeft)[0];
 	const ClxSprite middle = (*LocalCoopBoxMiddle)[0];
 	const ClxSprite right = (*LocalCoopBoxRight)[0];
 
-	const int spriteHeight = left.height();
-	const int halfHeight = rect.size.height / 2;
-	const int len = rect.size.width;
+	// Sprites are 24px tall (PanelFieldHeight)
+	const int spriteHeight = left.height(); // Should be 24
+	const int bottomBorderHeight = 4; // Height of fake bottom border from bottom of sprite
+	const int width = rect.size.width;
+	const int height = rect.size.height;
 
-	// Draw top half of the border
-	{
-		Point pos = rect.position;
-		Surface topRegion = out.subregion(pos.x, pos.y, len, halfHeight);
-		
-		// Left end
-		RenderClxSprite(topRegion.subregion(0, 0, left.width(), halfHeight), left, { 0, 0 });
-		
-		// Middle
-		int middleLen = len - left.width() - right.width();
+	// Render top portion of sprite (cropped from bottom)
+	// The subregion clips what we render so only the top portion shows
+	int topHeight = height - bottomBorderHeight;
+	if (topHeight > 0) {
+		// Left end - render full sprite but clip to topHeight
+		Surface topRegion = out.subregion(rect.position.x, rect.position.y, left.width(), topHeight);
+		RenderClxSprite(topRegion, left, { 0, 0 });
+
+		// Middle - tile across width
+		int middleStart = rect.position.x + left.width();
+		int middleLen = width - left.width() - right.width();
 		if (middleLen > 0) {
-			RenderClxSprite(topRegion.subregion(left.width(), 0, middleLen, halfHeight), middle, { 0, 0 });
+			Surface middleRegion = out.subregion(middleStart, rect.position.y, middleLen, topHeight);
+			RenderClxSprite(middleRegion, middle, { 0, 0 });
 		}
-		
+
 		// Right end
-		RenderClxSprite(topRegion.subregion(len - right.width(), 0, right.width(), halfHeight), right, { 0, 0 });
+		Surface rightRegion = out.subregion(rect.position.x + width - right.width(), rect.position.y, right.width(), topHeight);
+		RenderClxSprite(rightRegion, right, { 0, 0 });
 	}
 
-	// Draw bottom half of the border
-	{
-		Point pos = { rect.position.x, rect.position.y + halfHeight };
-		int bottomHeight = rect.size.height - halfHeight;
-		Surface bottomRegion = out.subregion(pos.x, pos.y, len, bottomHeight);
-		
-		// Calculate Y offset to show bottom portion of sprite
-		int spriteYOffset = -(spriteHeight - bottomHeight);
-		
-		// Left end
-		RenderClxSprite(bottomRegion.subregion(0, 0, left.width(), bottomHeight), left, { 0, spriteYOffset });
-		
-		// Middle
-		int middleLen = len - left.width() - right.width();
-		if (middleLen > 0) {
-			RenderClxSprite(bottomRegion.subregion(left.width(), 0, middleLen, bottomHeight), middle, { 0, spriteYOffset });
-		}
-		
-		// Right end
-		RenderClxSprite(bottomRegion.subregion(len - right.width(), 0, right.width(), bottomHeight), right, { 0, spriteYOffset });
+	// Render bottom portion of sprite as the bottom border
+	// We need to render the sprite shifted up so only the bottom portion is visible
+	int bottomY = rect.position.y + height - bottomBorderHeight;
+	int spriteYOffset = -(spriteHeight - bottomBorderHeight); // Negative offset to shift sprite up
+
+	// Left end bottom
+	Surface bottomLeftRegion = out.subregion(rect.position.x, bottomY, left.width(), bottomBorderHeight);
+	RenderClxSprite(bottomLeftRegion, left, { 0, spriteYOffset });
+
+	// Middle bottom
+	int middleLen = width - left.width() - right.width();
+	if (middleLen > 0) {
+		Surface bottomMiddleRegion = out.subregion(rect.position.x + left.width(), bottomY, middleLen, bottomBorderHeight);
+		RenderClxSprite(bottomMiddleRegion, middle, { 0, spriteYOffset });
 	}
+
+	// Right end bottom
+	Surface bottomRightRegion = out.subregion(rect.position.x + width - right.width(), bottomY, right.width(), bottomBorderHeight);
+	RenderClxSprite(bottomRightRegion, right, { 0, spriteYOffset });
 }
 
 /**
@@ -1603,69 +1614,14 @@ void DrawCoopHealthBar(const Surface &out, Point position, int current, int max,
  * Uses boxleftend/boxmiddle/boxrightend sprites with bottom 2px cropped from top portion
  * and rendered as a fake bottom border to create shorter bars with proper golden borders
  */
-void DrawCoopHealthBarSmall(const Surface &out, Point position, int width, int height, int current, int max, bool isMana, bool hasManaShield, bool isXP = false)
+void DrawCoopSmallBar(const Surface &out, Point position, int width, int height, int current, int max, bool isMana, bool hasManaShield, bool isXP = false)
 {
-	if (!LocalCoopBoxLeft || !LocalCoopBoxMiddle || !LocalCoopBoxRight) {
-		// Fallback to FillRect if sprites not loaded
-		const uint8_t borderColor = PAL16_YELLOW + 2;
-		FillRect(out, position.x, position.y, width, 1, borderColor); // Top
-		FillRect(out, position.x, position.y + height - 1, width, 1, borderColor); // Bottom
-		FillRect(out, position.x, position.y, 1, height, borderColor); // Left
-		FillRect(out, position.x + width - 1, position.y, 1, height, borderColor); // Right
-		return;
-	}
+	// Draw the golden border
+	DrawGoldenBorder(out, Rectangle { position, Size { width, height } });
 
-	const ClxSprite left = (*LocalCoopBoxLeft)[0];
-	const ClxSprite middle = (*LocalCoopBoxMiddle)[0];
-	const ClxSprite right = (*LocalCoopBoxRight)[0];
-	
-	// Sprites are 24px tall (PanelFieldHeight). We want a shorter bar.
-	const int spriteHeight = left.height(); // Should be 24
-	const int bottomBorderHeight = 4; // Height of fake bottom border from bottom of sprite
-	
-	// Render top portion of sprite (cropped from bottom)
-	// The subregion clips what we render so only the top portion shows
-	int topHeight = height - bottomBorderHeight;
-	if (topHeight > 0) {
-		// Left end - render full sprite but clip to topHeight
-		Surface topRegion = out.subregion(position.x, position.y, left.width(), topHeight);
-		RenderClxSprite(topRegion, left, { 0, 0 });
-		
-		// Middle - tile across width
-		int middleStart = position.x + left.width();
-		int middleLen = width - left.width() - right.width();
-		if (middleLen > 0) {
-			Surface middleRegion = out.subregion(middleStart, position.y, middleLen, topHeight);
-			RenderClxSprite(middleRegion, middle, { 0, 0 });
-		}
-		
-		// Right end
-		Surface rightRegion = out.subregion(position.x + width - right.width(), position.y, right.width(), topHeight);
-		RenderClxSprite(rightRegion, right, { 0, 0 });
-	}
-	
-	// Render bottom 2px of sprite as the bottom border
-	// We need to render the sprite shifted up so only the bottom 2px are visible
-	int bottomY = position.y + height - bottomBorderHeight;
-	int spriteYOffset = -(spriteHeight - bottomBorderHeight); // Negative offset to shift sprite up
-	
-	// Left end bottom
-	Surface bottomLeftRegion = out.subregion(position.x, bottomY, left.width(), bottomBorderHeight);
-	RenderClxSprite(bottomLeftRegion, left, { 0, spriteYOffset });
-	
-	// Middle bottom
-	int middleLen = width - left.width() - right.width();
-	if (middleLen > 0) {
-		Surface bottomMiddleRegion = out.subregion(position.x + left.width(), bottomY, middleLen, bottomBorderHeight);
-		RenderClxSprite(bottomMiddleRegion, middle, { 0, spriteYOffset });
-	}
-	
-	// Right end bottom
-	Surface bottomRightRegion = out.subregion(position.x + width - right.width(), bottomY, right.width(), bottomBorderHeight);
-	RenderClxSprite(bottomRightRegion, right, { 0, spriteYOffset });
-	
 	// Calculate inner area for the bar fill (between top sprite and bottom border)
 	const int borderSize = 3; // Thicker golden border for better visibility
+	const int bottomBorderHeight = 4; // Height of fake bottom border from bottom of sprite
 	int innerX = position.x + borderSize;
 	int innerY = position.y + borderSize;
 	int innerWidth = width - (borderSize * 2);
@@ -2285,11 +2241,11 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 		int barY = middleY; // Start bars right after name row + extra offset
 		
 		// Health bar
-		DrawCoopHealthBarSmall(out, { barX, barY - 1 }, barsWidth, barHeight, currentHP, maxHP, false, hasManaShield);
+		DrawCoopSmallBar(out, { barX, barY - 1 }, barsWidth, barHeight, currentHP, maxHP, false, hasManaShield);
 		barY += barHeight + barSpacing;
 		
 		// Mana bar
-		DrawCoopHealthBarSmall(out, { barX, barY - 3 }, barsWidth, barHeight, currentMana, maxMana, true, false);
+		DrawCoopSmallBar(out, { barX, barY - 3 }, barsWidth, barHeight, currentMana, maxMana, true, false);
 		barY += barHeight + barsToBeltSpacing;
 
 		// Skill grid: OUTSIDE panel, 2x2 layout
