@@ -819,17 +819,10 @@ void ConfirmLocalCoopCharacter(int localIndex)
 	// Store the save number so we can save this player's progress later
 	coopPlayer.saveNumber = selectedHero.saveNumber;
 
-	// Initialize player on the same level as Player 1 BEFORE CalcPlrInv
+	// Initialize player on the same level as Player 1 BEFORE initializing graphics
 	// so that isOnActiveLevel() returns true and graphics get loaded
 	player.plrlevel = Players[0].plrlevel;
 	player.plrIsOnSetLevel = Players[0].plrIsOnSetLevel;
-
-	// pfile_read_player_from_save calls CalcPlrInv with loadgfx=false,
-	// which sets _pgfxnum but doesn't load graphics. CalcPlrGraphics (called by CalcPlrInv)
-	// only loads graphics if _pgfxnum changes. By invalidating _pgfxnum here,
-	// we force CalcPlrInv to reload graphics with the correct equipment sprites.
-	player._pgfxnum = 0xFF; // Invalid value to force graphics reload
-	CalcPlrInv(player, true);
 
 	// Find a spawn position near Player 1
 	Point spawnPos = Players[0].position.tile;
@@ -858,9 +851,17 @@ void ConfirmLocalCoopCharacter(int localIndex)
 	player.position.old = spawnPos;
 	player._pdir = Direction::South;
 
-	// Initialize graphics and state
-	// InitPlayerGFX already calls ResetPlayerGFX internally, so no need to call it separately
+	// Initialize base graphics first with default settings
+	// InitPlayerGFX calls ResetPlayerGFX and then loads all graphics based on _pgfxnum
 	InitPlayerGFX(player);
+
+	// Now recalculate inventory and graphics based on actual equipment
+	// pfile_read_player_from_save called CalcPlrInv with loadgfx=false, so _pgfxnum was set
+	// but graphics weren't loaded. By invalidating _pgfxnum, we force CalcPlrInv to
+	// detect a change and reload graphics with the correct armor/weapon sprites.
+	player._pgfxnum = 0xFF; // Invalid value to force graphics reload
+	CalcPlrInv(player, true);
+
 	// SyncInitPlr will set up animations and position (calls occupyTile)
 	SyncInitPlr(player);
 	// InitPlayer sets up player state and vision
