@@ -7,6 +7,7 @@
 #include "control/control.hpp"
 #include "controls/controller_motion.h"
 #include "controls/game_controls.h"
+#include "controls/local_coop.hpp"
 #include "controls/plrctrls.h"
 #include "engine/clx_sprite.hpp"
 #include "engine/load_clx.hpp"
@@ -177,8 +178,22 @@ void FreeModifierHints()
 
 void DrawControllerModifierHints(const Surface &out)
 {
+	// Skip drawing when local coop HUD is active - it has its own skill slot display
+	if (IsLocalCoopEnabled() && g_LocalCoop.GetInitializedPlayerCount() > 0)
+		return;
+	
 	DrawGamepadMenuNavigator(out);
 	DrawGamepadHotspellMenu(out);
+}
+
+OptionalOwnedClxSpriteList &GetHintBoxSprite()
+{
+	return hintBox;
+}
+
+OptionalOwnedClxSpriteList &GetHintBoxBackgroundSprite()
+{
+	return hintBoxBackground;
 }
 
 } // namespace devilution

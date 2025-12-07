@@ -141,6 +141,20 @@ void DrawLevelButton(const Surface &out);
 void CheckChrBtns();
 void ReleaseChrBtns(bool addAllStatPoints);
 void DrawDurIcon(const Surface &out);
+
+/**
+ * @brief Draw durability warning icons for a specific player at a given position.
+ * 
+ * Shows icons for equipped items with low durability (<=5).
+ * Icons are drawn side by side horizontally.
+ * 
+ * @param out The surface to draw on.
+ * @param player The player whose equipment to check.
+ * @param position Top-left corner where icons should start.
+ * @param alignRight If true, icons are aligned to the right of the position.
+ */
+void DrawPlayerDurabilityIcons(const Surface &out, const Player &player, Point position, bool alignRight);
+
 void RedBack(const Surface &out);
 void DrawDeathText(const Surface &out);
 void DrawSpellBook(const Surface &out);

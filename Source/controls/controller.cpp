@@ -80,8 +80,9 @@ bool IsControllerButtonPressed(ControllerButton button)
 #ifndef USE_SDL1
 	SDL_JoystickID which;
 	if (GameController::IsPressedOnAnyController(button, &which)) {
-		// When local co-op is enabled, exclude local co-op controllers
-		// (they have their own input handling in ProcessLocalCoopInput)
+		// When local co-op is enabled, only exclude controllers assigned to coop players (players 2-4)
+		// Player 1's controller should still work normally
+		// IsLocalCoopControllerId returns true only for coop player controllers, not Player 1's
 		if (!IsLocalCoopControllerId(which))
 			return true;
 	}
@@ -93,7 +94,7 @@ bool IsControllerButtonPressed(ControllerButton button)
 	SDL_JoystickID joystickWhich;
 	if (Joystick::IsPressedOnAnyJoystick(button, &joystickWhich)) {
 #ifndef USE_SDL1
-		// When local co-op is enabled, exclude local co-op controllers
+		// When local co-op is enabled, only exclude controllers assigned to coop players
 		if (!IsLocalCoopControllerId(joystickWhich))
 			return true;
 #else

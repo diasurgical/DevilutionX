@@ -90,6 +90,10 @@ struct LocalCoopPlayer {
 	int skillButtonHeld = -1;
 	uint32_t skillButtonPressTime = 0;
 	bool skillMenuOpenedByHold = false;  // Track if we opened the menu via long press
+	
+	// Trigger state for inventory/character screen (like player 1)
+	bool leftTriggerPressed = false;   // Character screen
+	bool rightTriggerPressed = false;  // Inventory screen
 
 	/// Reset player state
 	void Reset();
@@ -117,6 +121,11 @@ struct LocalCoopState {
 	/// -1 = no owner (player 1 by default), 0-2 = local coop player index
 	/// When set, MyPlayer is temporarily switched to the store owner
 	int storeOwner = -1;
+	
+	/// Spell menu ownership: which player has the quick spell menu open
+	/// -1 = player 1 (or no one), 0-2 = local coop player index
+	/// While open, MyPlayer/InspectPlayer are set to the owning player
+	int spellMenuOwner = -1;
 	
 	/// Saved MyPlayer pointer when store ownership is active
 	Player* savedMyPlayer = nullptr;
@@ -190,6 +199,18 @@ extern LocalCoopState g_LocalCoop;
 void InitLocalCoop();
 
 /**
+ * @brief Initialize local co-op HUD assets (sprites for panel, health bars, etc.)
+ * Called automatically when drawing the HUD for the first time.
+ */
+void InitLocalCoopHUDAssets();
+
+/**
+ * @brief Free local co-op HUD assets.
+ * Should be called during shutdown.
+ */
+void FreeLocalCoopHUDAssets();
+
+/**
  * @brief Shutdown local co-op system and reset all state.
  */
 void ShutdownLocalCoop();
@@ -203,6 +224,12 @@ bool IsLocalCoopAvailable();
  * @brief Check if local co-op is currently enabled.
  */
 bool IsLocalCoopEnabled();
+
+/**
+ * @brief Check if any local co-op player (other than player 1) has spawned/initialized.
+ * When true, corner HUDs are shown and main panel is hidden.
+ */
+bool IsAnyLocalCoopPlayerInitialized();
 
 #ifndef USE_SDL1
 /**
@@ -449,6 +476,17 @@ void UpdateLocalCoopTargetSelection(int localIndex);
 void ProcessLocalCoopGameAction(int localIndex, uint8_t actionType);
 
 /**
+ * @brief Handle Player 1's panel toggle actions when local coop is enabled.
+ *
+ * Routes Player 1's panel actions through the panel ownership system
+ * so they work the same way as coop players.
+ *
+ * @param actionType The panel action type (TOGGLE_CHARACTER_INFO, TOGGLE_INVENTORY, etc.)
+ * @return true if the action was handled, false if it should use default processing
+ */
+bool HandleLocalCoopPlayer1PanelAction(uint8_t actionType);
+
+/**
  * @brief Perform primary action for a local co-op player.
  *
  * Attack monsters, talk to NPCs, interact with the world.
@@ -477,6 +515,17 @@ bool AreLocalCoopPanelsOpen();
  * @return Pointer to the player who owns panels, or nullptr if player 1 owns them
  */
 Player* GetLocalCoopPanelOwnerPlayer();
+
+/**
+ * @brief Check if a monster/towner should be highlighted for any local coop player.
+ * 
+ * This is used by the rendering code to draw outlines around targeted entities
+ * for local coop players in addition to player 1's global pcursmonst.
+ * 
+ * @param monsterId The monster/towner ID to check
+ * @return true if any local coop player is targeting this entity
+ */
+bool IsLocalCoopTargetMonster(int monsterId);
 
 /**
  * @brief Save all local co-op players to their respective save files.

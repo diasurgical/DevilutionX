@@ -12,6 +12,7 @@
 
 #include "control/control.hpp"
 #include "controls/control_mode.hpp"
+#include "controls/local_coop.hpp"
 #include "controls/plrctrls.h"
 #include "cursor.h"
 #include "diablo_msg.hpp"
@@ -869,69 +870,116 @@ void CheckTriggers()
 	if (myPlayer._pmode != PM_STAND)
 		return;
 
+	// In local co-op mode, check if ANY local player is standing on a trigger
+	// When one player triggers a level change, all players go together
+	Player *triggeringPlayer = nullptr;
+	int triggerIndex = -1;
+
+	// First check player 1 (MyPlayer)
 	for (int i = 0; i < numtrigs; i++) {
-		if (myPlayer.position.tile != trigs[i].position) {
-			continue;
+		if (myPlayer.position.tile == trigs[i].position) {
+			triggeringPlayer = &myPlayer;
+			triggerIndex = i;
+			break;
 		}
+	}
 
-		switch (trigs[i]._tmsg) {
-		case WM_DIABNEXTLVL:
-			if (gbIsSpawn && currlevel >= 2) {
-				NetSendCmdLoc(MyPlayerId, true, CMD_WALKXY, { myPlayer.position.tile.x, myPlayer.position.tile.y + 1 });
-				myPlayer.Say(HeroSpeech::NotAChance);
-				InitDiabloMsg(EMSG_NOT_IN_SHAREWARE);
-			} else {
-				StartNewLvl(myPlayer, trigs[i]._tmsg, currlevel + 1);
-			}
-			break;
-		case WM_DIABPREVLVL:
-			StartNewLvl(myPlayer, trigs[i]._tmsg, currlevel - 1);
-			break;
-		case WM_DIABRTNLVL:
-			StartNewLvl(myPlayer, trigs[i]._tmsg, GetMapReturnLevel());
-			break;
-		case WM_DIABTOWNWARP:
-			if (gbIsMultiplayer) {
-				bool abort = false;
-				diablo_message abortflag;
+	// If player 1 didn't trigger, check local co-op players
+	if (triggeringPlayer == nullptr && IsLocalCoopEnabled()) {
+		for (size_t localIdx = 0; localIdx < g_LocalCoop.players.size(); ++localIdx) {
+			const LocalCoopPlayer &coopPlayer = g_LocalCoop.players[localIdx];
+			if (!coopPlayer.active || !coopPlayer.initialized)
+				continue;
 
-				auto position = myPlayer.position.tile;
-				if (trigs[i]._tlvl == 5 && myPlayer.getCharacterLevel() < 8) {
-					abort = true;
-					position.y += 1;
-					abortflag = EMSG_REQUIRES_LVL_8;
-				}
+			const uint8_t playerId = LocalCoopIndexToPlayerId(static_cast<int>(localIdx));
+			if (playerId >= Players.size())
+				continue;
 
-				if (IsAnyOf(trigs[i]._tlvl, 9, 17) && myPlayer.getCharacterLevel() < 13) {
-					abort = true;
-					position.x += 1;
-					abortflag = EMSG_REQUIRES_LVL_13;
-				}
+			Player &player = Players[playerId];
+			if (player._pmode != PM_STAND)
+				continue;
+			if (!player.isOnActiveLevel())
+				continue;
 
-				if (IsAnyOf(trigs[i]._tlvl, 13, 21) && myPlayer.getCharacterLevel() < 17) {
-					abort = true;
-					position.y += 1;
-					abortflag = EMSG_REQUIRES_LVL_17;
-				}
-
-				if (abort) {
-					myPlayer.Say(HeroSpeech::ICantGetThereFromHere);
-
-					InitDiabloMsg(abortflag);
-					NetSendCmdLoc(MyPlayerId, true, CMD_WALKXY, position);
-					return;
+			for (int i = 0; i < numtrigs; i++) {
+				if (player.position.tile == trigs[i].position) {
+					triggeringPlayer = &player;
+					triggerIndex = i;
+					break;
 				}
 			}
-
-			StartNewLvl(myPlayer, trigs[i]._tmsg, trigs[i]._tlvl);
-			break;
-		case WM_DIABTWARPUP:
-			TWarpFrom = currlevel;
-			StartNewLvl(myPlayer, trigs[i]._tmsg, 0);
-			break;
-		default:
-			app_fatal("Unknown trigger msg");
+			if (triggeringPlayer != nullptr)
+				break;
 		}
+	}
+
+	// No player triggered anything
+	if (triggeringPlayer == nullptr || triggerIndex < 0)
+		return;
+
+	// Process the trigger - always use myPlayer for level change since that's
+	// the player whose save file we're using, but check requirements against
+	// the triggering player
+	switch (trigs[triggerIndex]._tmsg) {
+	case WM_DIABNEXTLVL:
+		if (gbIsSpawn && currlevel >= 2) {
+			NetSendCmdLoc(MyPlayerId, true, CMD_WALKXY, { myPlayer.position.tile.x, myPlayer.position.tile.y + 1 });
+			myPlayer.Say(HeroSpeech::NotAChance);
+			InitDiabloMsg(EMSG_NOT_IN_SHAREWARE);
+		} else {
+			StartNewLvl(myPlayer, trigs[triggerIndex]._tmsg, currlevel + 1);
+		}
+		break;
+	case WM_DIABPREVLVL:
+		StartNewLvl(myPlayer, trigs[triggerIndex]._tmsg, currlevel - 1);
+		break;
+	case WM_DIABRTNLVL:
+		StartNewLvl(myPlayer, trigs[triggerIndex]._tmsg, GetMapReturnLevel());
+		break;
+	case WM_DIABTOWNWARP:
+		if (gbIsMultiplayer) {
+			bool abort = false;
+			diablo_message abortflag;
+
+			// Check level requirements against the triggering player
+			auto position = triggeringPlayer->position.tile;
+			if (trigs[triggerIndex]._tlvl == 5 && triggeringPlayer->getCharacterLevel() < 8) {
+				abort = true;
+				position.y += 1;
+				abortflag = EMSG_REQUIRES_LVL_8;
+			}
+
+			if (IsAnyOf(trigs[triggerIndex]._tlvl, 9, 17) && triggeringPlayer->getCharacterLevel() < 13) {
+				abort = true;
+				position.x += 1;
+				abortflag = EMSG_REQUIRES_LVL_13;
+			}
+
+			if (IsAnyOf(trigs[triggerIndex]._tlvl, 13, 21) && triggeringPlayer->getCharacterLevel() < 17) {
+				abort = true;
+				position.y += 1;
+				abortflag = EMSG_REQUIRES_LVL_17;
+			}
+
+			if (abort) {
+				triggeringPlayer->Say(HeroSpeech::ICantGetThereFromHere);
+
+				InitDiabloMsg(abortflag);
+				// Move the triggering player away from the trigger
+				uint8_t triggerId = triggeringPlayer == &myPlayer ? MyPlayerId : static_cast<uint8_t>(triggeringPlayer - &Players[0]);
+				NetSendCmdLoc(triggerId, true, CMD_WALKXY, position);
+				return;
+			}
+		}
+
+		StartNewLvl(myPlayer, trigs[triggerIndex]._tmsg, trigs[triggerIndex]._tlvl);
+		break;
+	case WM_DIABTWARPUP:
+		TWarpFrom = currlevel;
+		StartNewLvl(myPlayer, trigs[triggerIndex]._tmsg, 0);
+		break;
+	default:
+		app_fatal("Unknown trigger msg");
 	}
 }
 

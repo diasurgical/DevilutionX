@@ -18,6 +18,7 @@
 #include "controls/padmapper.hpp"
 #include "controls/plrctrls.h"
 #include "controls/touch/gamepad.h"
+#include "cursor.h"
 #include "doom.h"
 #include "gamemenu.h"
 #include "gmenu.h"
@@ -254,14 +255,24 @@ void PressControllerButton(ControllerButton button)
 	// When local coop is enabled, A/B/X/Y directly cast skills
 	// Uses same slot mapping as PadHotspellMenu: A=2, B=3, X=0, Y=1
 	// Long press opens the quick spell menu
+	// BUT: A button should interact with NPCs/monsters/objects first
+	//      B button should pick up items/operate objects first
 	if (IsLocalCoopEnabled()) {
+		// Check if Player 1 has an interaction target (uses global cursor vars)
+		const bool hasPrimaryTarget = (pcursmonst != -1 || ObjectUnderCursor != nullptr);
+		const bool hasSecondaryTarget = (pcursitem != -1 || ObjectUnderCursor != nullptr);
+
 		int slotIndex = -1;
 		switch (button) {
 		case devilution::ControllerButton_BUTTON_A:
-			slotIndex = 2;
+			// A button: interact with target if present, otherwise skill slot 2
+			if (!hasPrimaryTarget)
+				slotIndex = 2;
 			break;
 		case devilution::ControllerButton_BUTTON_B:
-			slotIndex = 3;
+			// B button: pick up item/operate if target present, otherwise skill slot 3
+			if (!hasSecondaryTarget)
+				slotIndex = 3;
 			break;
 		case devilution::ControllerButton_BUTTON_X:
 			slotIndex = 0;
@@ -281,6 +292,23 @@ void PressControllerButton(ControllerButton button)
 			// Otherwise, we start tracking for long press
 			// The actual spell cast happens on button release (handled elsewhere)
 			return;
+		}
+		
+		// When local coop is active with other players joined, Player 1 uses Start/Select 
+		// for inventory/character panels like coop players do
+		if (IsAnyLocalCoopPlayerInitialized()) {
+			switch (button) {
+			case devilution::ControllerButton_BUTTON_START:
+				// Start = Toggle inventory (like coop players)
+				ProcessGameAction(GameAction { GameActionType_TOGGLE_INVENTORY });
+				return;
+			case devilution::ControllerButton_BUTTON_BACK:
+				// Select/Back = Toggle character info (like coop players)
+				ProcessGameAction(GameAction { GameActionType_TOGGLE_CHARACTER_INFO });
+				return;
+			default:
+				break;
+			}
 		}
 	}
 
@@ -409,7 +437,8 @@ bool HandleControllerButtonEvent(const SDL_Event &event, const ControllerButtonE
 
 	// Handle player 1 skill button release in local coop mode
 	// Uses same slot mapping as PadHotspellMenu: A=2, B=3, X=0, Y=1
-	if (IsLocalCoopEnabled() && ctrlEvent.up) {
+	// Don't process if player is in a store or game menu
+	if (IsLocalCoopEnabled() && ctrlEvent.up && !IsPlayerInStore() && !InGameMenu()) {
 		int slotIndex = -1;
 		switch (ctrlEvent.button) {
 		case devilution::ControllerButton_BUTTON_A:
@@ -442,6 +471,9 @@ bool HandleControllerButtonEvent(const SDL_Event &event, const ControllerButtonE
 					player._pRSpell = spell;
 					player._pRSplType = spellType;
 					PerformSpellAction();
+				} else {
+					// No spell assigned - perform primary action (attack)
+					PerformPrimaryAction();
 				}
 			}
 			return true;

@@ -1742,6 +1742,37 @@ void HotSpellMove(AxisDirection dir)
 	}
 }
 
+void ProcessGamePanelNavigation(AxisDirection dir)
+{
+	// Apply the direction to whichever panel navigation handler is active
+	// This is used by local coop players to navigate panels with their D-pad
+	// We need to call the same handlers used by GetLeftStickOrDPadGameUIHandler
+	if (SpellSelectFlag) {
+		HotSpellMove(dir);
+	} else if (invflag) {
+		// Call CheckInventoryMove logic directly - it adds repeat delay
+		static AxisDirectionRepeater repeater(/*min_interval_ms=*/150);
+		dir = repeater.Get(dir);
+		if (dir.x != AxisDirectionX_NONE || dir.y != AxisDirectionY_NONE)
+			InventoryMove(dir);
+	} else if (CharFlag && MyPlayer->_pStatPts > 0) {
+		static AxisDirectionRepeater repeater;
+		dir = repeater.Get(dir);
+		if (dir.x != AxisDirectionX_NONE || dir.y != AxisDirectionY_NONE)
+			AttrIncBtnSnap(dir);
+	} else if (QuestLogIsOpen) {
+		static AxisDirectionRepeater repeater;
+		dir = repeater.Get(dir);
+		if (dir.x != AxisDirectionX_NONE || dir.y != AxisDirectionY_NONE)
+			QuestLogMove(dir);
+	} else if (SpellbookFlag) {
+		static AxisDirectionRepeater repeater;
+		dir = repeater.Get(dir);
+		if (dir.x != AxisDirectionX_NONE || dir.y != AxisDirectionY_NONE)
+			SpellBookMove(dir);
+	}
+}
+
 void DetectInputMethod(const SDL_Event &event, const ControllerButtonEvent &gamepadEvent)
 {
 	ControlTypes inputType = GetInputTypeFromEvent(event);

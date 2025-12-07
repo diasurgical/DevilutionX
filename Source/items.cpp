@@ -2403,10 +2403,15 @@ bool IsItemAvailable(int i)
 	        *GetOptions().Gameplay.testBard && IsAnyOf(i, IDI_BARDSWORD, IDI_BARDDAGGER));
 }
 
-uint8_t GetOutlineColor(const Item &item, bool checkReq)
+uint8_t GetOutlineColor(const Item &item, bool checkReq, const Player *player)
 {
-	if (checkReq && !item._iStatFlag)
-		return ICOL_RED;
+	if (checkReq) {
+		// If a player is specified, check if that player can use the item.
+		// Otherwise, use the pre-computed _iStatFlag.
+		bool canUse = player != nullptr ? player->CanUseItem(item) : item._iStatFlag;
+		if (!canUse)
+			return ICOL_RED;
+	}
 	if (item._itype == ItemType::Gold)
 		return ICOL_YELLOW;
 	if (item._iMagical == ITEM_QUALITY_MAGIC)
