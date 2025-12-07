@@ -1112,10 +1112,16 @@ void CalcFirstTilePosition(Point &position, Displacement &offset)
 
 	// Draw areas moving in and out of the screen
 	// In local co-op, we need to expand the render area if any player is walking
+	// or if the camera has any offset (to ensure smooth scrolling doesn't leave gaps)
 #ifndef USE_SDL1
 	bool anyPlayerWalking = false;
 	Direction walkDir = Direction::South;
+	bool hasLocalCoopCameraOffset = false;
 	if (IsLocalCoopEnabled() && g_LocalCoop.GetInitializedPlayerCount() > 0) {
+		// Check if camera has any offset (indicating it's interpolating)
+		if (localCoopOffset.deltaX != 0 || localCoopOffset.deltaY != 0) {
+			hasLocalCoopCameraOffset = true;
+		}
 		for (size_t i = 0; i < Players.size(); ++i) {
 			const Player &player = Players[i];
 			if (player.plractive && player._pHitPoints > 0 && player.isWalking()) {
@@ -1128,7 +1134,15 @@ void CalcFirstTilePosition(Point &position, Displacement &offset)
 		anyPlayerWalking = myPlayer.isWalking();
 		walkDir = myPlayer._pdir;
 	}
-	if (anyPlayerWalking) {
+	
+	// In local co-op with camera offset, expand rendering in all directions
+	// This ensures no gaps appear when the camera is smoothly following players
+	if (hasLocalCoopCameraOffset) {
+		// Expand rendering area in all directions by one tile
+		offset.deltaX -= TILE_WIDTH / 2;
+		offset.deltaY -= TILE_HEIGHT / 2;
+		position += Direction::NorthWest;
+	} else if (anyPlayerWalking) {
 #else
 	if (myPlayer.isWalking()) {
 		Direction walkDir = myPlayer._pdir;
@@ -1151,7 +1165,9 @@ void CalcFirstTilePosition(Point &position, Displacement &offset)
 		default:
 			break;
 		}
+#ifndef USE_SDL1
 	}
+#endif
 }
 
 /**

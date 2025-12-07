@@ -70,27 +70,39 @@ const Direction FaceDir[3][3] = {
 };
 
 /**
- * @brief Check if a tile position is within the visible screen boundaries.
+ * @brief Check if a tile position is within a reasonable distance from the camera center.
  * 
- * Used to prevent local co-op players from moving off-screen.
+ * Used to prevent local co-op players from moving too far off-screen.
+ * Instead of checking screen pixel boundaries (which depend on camera position that updates
+ * after movement), we check the tile distance from the camera target position.
+ * This allows players to move toward the edge of the screen, and the camera will follow.
+ * 
  * @param tilePos The tile position to check.
- * @param margin Screen edge margin in pixels to keep players away from the edge.
- * @return true if the position is within the visible screen area.
+ * @param maxTileDistance Maximum allowed tile distance from camera center.
+ * @return true if the position is within the allowed distance.
  */
-bool IsTilePositionOnScreen(Point tilePos, int margin = 64)
+bool IsTilePositionOnScreen(Point tilePos, int maxTileDistance = 12)
 {
-	Point screenPos = GetScreenPosition(tilePos);
+	// Use the camera target position if initialized, otherwise use ViewPosition
+	Point cameraCenter;
+	if (g_LocalCoop.cameraInitialized) {
+		// Convert camera screen position back to world position
+		// screenToWorld: tileX = (2*screenY + screenX) / -64, tileY = (2*screenY - screenX) / -64
+		int64_t cameraScreenX256 = g_LocalCoop.cameraSmoothScreenX;
+		int64_t cameraScreenY256 = g_LocalCoop.cameraSmoothScreenY;
+		int64_t worldX256 = (2 * cameraScreenY256 + cameraScreenX256) / -64;
+		int64_t worldY256 = (2 * cameraScreenY256 - cameraScreenX256) / -64;
+		cameraCenter = { static_cast<int>(worldX256 / 256), static_cast<int>(worldY256 / 256) };
+	} else {
+		cameraCenter = ViewPosition;
+	}
 
-	// Get screen dimensions
-	const int screenWidth = static_cast<int>(GetScreenWidth());
-	const int viewportHeight = static_cast<int>(GetViewportHeight());
+	// Use Chebyshev distance (max of x and y difference) for a square boundary
+	int distX = std::abs(tilePos.x - cameraCenter.x);
+	int distY = std::abs(tilePos.y - cameraCenter.y);
+	int distance = std::max(distX, distY);
 
-	// Check if the position is within screen bounds with margin
-	// Screen position is relative to the viewport, so we check against viewport dimensions
-	return screenPos.x >= margin &&
-	       screenPos.x <= screenWidth - margin &&
-	       screenPos.y >= margin &&
-	       screenPos.y <= viewportHeight - margin;
+	return distance <= maxTileDistance;
 }
 
 /**
