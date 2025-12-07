@@ -1059,7 +1059,7 @@ void DrawDirtTile(const Surface &out, const Lightmap &lightmap, Point tilePositi
  */
 void DrawOOB(const Surface &out, const Lightmap &lightmap, Point tilePosition, Point targetBufferPosition, int rows, int columns)
 {
-	for (int i = 0; i < rows + 4; i++) {
+	for (int i = 0; i < rows + 5; i++) { // 5 extra rows needed to make sure everything gets rendered at the bottom half of the screen
 		for (int j = 0; j < columns; j++, tilePosition += Direction::East, targetBufferPosition.x += TILE_WIDTH) {
 			if (!InDungeonBounds(tilePosition)) {
 				if (leveltype == DTYPE_TOWN) {
