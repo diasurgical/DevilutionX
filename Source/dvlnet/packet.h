@@ -15,6 +15,7 @@
 
 #include "appfat.h"
 #include "dvlnet/abstract_net.h"
+#include "dvlnet/leaveinfo.hpp"
 #include "utils/attributes.h"
 #include "utils/endian_read.hpp"
 #include "utils/endian_write.hpp"
@@ -46,7 +47,6 @@ typedef uint8_t plr_t;
 typedef uint8_t seq_t;
 typedef uint32_t cookie_t;
 typedef uint32_t timestamp_t;
-typedef uint32_t leaveinfo_t;
 #ifdef PACKET_ENCRYPTION
 typedef std::array<unsigned char, crypto_secretbox_KEYBYTES> key_t;
 #else
@@ -64,33 +64,63 @@ static constexpr plr_t PLR_BROADCAST = 0xFF;
 
 class PacketError {
 public:
+	enum class ErrorCode : uint8_t {
+		None,
+		EncryptionFailed,
+		DecryptionFailed
+	};
+
 	PacketError()
-	    : message_(std::string_view("Incorrect package size"))
+	    : message_(std::string_view("Incorrect packet size"))
+	    , code_(ErrorCode::None)
 	{
 	}
 
 	PacketError(const char message[])
 	    : message_(std::string_view(message))
+	    , code_(ErrorCode::None)
 	{
 	}
 
 	PacketError(std::string &&message)
 	    : message_(std::move(message))
+	    , code_(ErrorCode::None)
 	{
 	}
 
 	PacketError(std::string_view message)
 	    : message_(message)
+	    , code_(ErrorCode::None)
+	{
+	}
+
+	PacketError(ErrorCode code, const char message[])
+	    : message_(std::string_view(message))
+	    , code_(code)
+	{
+	}
+
+	PacketError(ErrorCode code, std::string &&message)
+	    : message_(std::move(message))
+	    , code_(code)
+	{
+	}
+
+	PacketError(ErrorCode code, std::string_view message)
+	    : message_(message)
+	    , code_(code)
 	{
 	}
 
 	PacketError(const PacketError &error)
 	    : message_(std::string(error.message_))
+	    , code_(error.code_)
 	{
 	}
 
 	PacketError(PacketError &&error)
 	    : message_(std::move(error.message_))
+	    , code_(error.code_)
 	{
 	}
 
@@ -99,8 +129,14 @@ public:
 		return message_;
 	}
 
+	ErrorCode code() const
+	{
+		return code_;
+	}
+
 private:
 	StringOrView message_;
+	ErrorCode code_;
 };
 
 inline PacketError IoHandlerError(std::string message)
@@ -176,7 +212,7 @@ public:
 	template <class T>
 	tl::expected<void, PacketError> process_element(const T &x);
 	static cookie_t GenerateCookie();
-	void Encrypt();
+	tl::expected<void, PacketError> Encrypt();
 };
 
 template <class P>
@@ -404,11 +440,19 @@ tl::expected<void, PacketError> packet_out::process_element(const T &x)
 	static_assert(sizeof(T) == 4 || sizeof(T) == 2 || sizeof(T) == 1, "Unsupported T");
 	if (sizeof(T) == 4) {
 		unsigned char buf[4];
-		WriteLE32(buf, x);
+		if constexpr (std::is_enum<T>::value) {
+			WriteLE32(buf, static_cast<std::underlying_type_t<T>>(x));
+		} else {
+			WriteLE32(buf, x);
+		}
 		decrypted_buffer.insert(decrypted_buffer.end(), buf, buf + 4);
 	} else if (sizeof(T) == 2) {
 		unsigned char buf[2];
-		WriteLE16(buf, x);
+		if constexpr (std::is_enum<T>::value) {
+			WriteLE16(buf, static_cast<std::underlying_type_t<T>>(x));
+		} else {
+			WriteLE16(buf, x);
+		}
 		decrypted_buffer.insert(decrypted_buffer.end(), buf, buf + 2);
 	} else if (sizeof(T) == 1) {
 		decrypted_buffer.push_back(static_cast<unsigned char>(x));
@@ -434,13 +478,15 @@ inline tl::expected<std::unique_ptr<packet>, PacketError> packet_factory::make_p
 {
 	auto ret = std::make_unique<packet_in>(key);
 #ifndef PACKET_ENCRYPTION
-	ret->Create(std::move(buf));
+	tl::expected<void, PacketError> isCreated = ret->Create(std::move(buf));
 #else
-	if (!secure)
-		ret->Create(std::move(buf));
-	else
-		ret->Decrypt(std::move(buf));
+	tl::expected<void, PacketError> isCreated = !secure
+	    ? ret->Create(std::move(buf))
+	    : ret->Decrypt(std::move(buf));
 #endif
+	if (!isCreated.has_value()) {
+		return tl::make_unexpected(isCreated.error());
+	}
 	if (const tl::expected<void, PacketError> result = ret->process_data(); !result.has_value()) {
 		return tl::make_unexpected(result.error());
 	}
@@ -456,8 +502,12 @@ tl::expected<std::unique_ptr<packet>, PacketError> packet_factory::make_packet(A
 		return tl::make_unexpected(result.error());
 	}
 #ifdef PACKET_ENCRYPTION
-	if (secure)
-		ret->Encrypt();
+	if (secure) {
+		tl::expected<void, PacketError> isEncrypted = ret->Encrypt();
+		if (!isEncrypted.has_value()) {
+			return tl::make_unexpected(isEncrypted.error());
+		}
+	}
 #endif
 	return ret;
 }

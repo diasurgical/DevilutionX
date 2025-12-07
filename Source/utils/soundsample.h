@@ -9,11 +9,13 @@
 #include "engine/sound_defs.hpp"
 #include "utils/stdcompat/shared_ptr_array.hpp"
 
+#ifndef USE_SDL3
 // Forward-declares Aulib::Stream to avoid adding dependencies
 // on SDL_audiolib to every user of this header.
 namespace Aulib {
 class Stream;
 } // namespace Aulib
+#endif
 
 namespace devilution {
 
@@ -25,7 +27,11 @@ public:
 
 	[[nodiscard]] bool IsLoaded() const
 	{
+#ifdef USE_SDL3
+		return false;
+#else
 		return stream_ != nullptr;
+#endif
 	}
 
 	void Release();
@@ -34,7 +40,9 @@ public:
 	// Returns 0 on success.
 	int SetChunkStream(std::string filePath, bool isMp3, bool logErrors = true);
 
+#ifndef USE_SDL3
 	void SetFinishCallback(std::function<void(Aulib::Stream &)> &&callback);
+#endif
 
 	/**
 	 * @brief Sets the sample's WAV, FLAC, or Ogg/Vorbis data.
@@ -98,7 +106,9 @@ private:
 
 	bool isMp3_;
 
+#ifndef USE_SDL3
 	std::unique_ptr<Aulib::Stream> stream_;
+#endif
 };
 
 } // namespace devilution

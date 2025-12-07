@@ -1,12 +1,25 @@
+#include <cstddef>
 #include <cstdint>
+#include <memory>
+#include <optional>
+#include <vector>
+
+#ifdef USE_SDL3
+#include <SDL3/SDL_rect.h>
+#include <SDL3/SDL_timer.h>
+#else
+#include <SDL.h>
+#endif
 
 #include "DiabloUI/diabloui.h"
-#include "DiabloUI/selok.h"
-#include "control.h"
+#include "DiabloUI/ui_flags.hpp"
+#include "DiabloUI/ui_item.h"
 #include "engine/assets.hpp"
 #include "engine/load_clx.hpp"
+#include "engine/point.hpp"
 #include "game_mode.hpp"
 #include "utils/language.h"
+#include "utils/ui_fwd.h"
 
 namespace devilution {
 namespace {
@@ -26,7 +39,7 @@ void UiMainMenuSelect(size_t value)
 #ifndef NOEXIT
 void MainmenuEsc()
 {
-	std::size_t last = vecMenuItems.size() - 1;
+	const std::size_t last = vecMenuItems.size() - 1;
 	if (SelectedItem == last) {
 		UiMainMenuSelect(last);
 	} else {
@@ -59,13 +72,13 @@ void MainmenuLoad(const char *name)
 	const Point uiPosition = GetUIRectangle().position;
 
 	if (gbIsSpawn && gbIsHellfire) {
-		SDL_Rect rect1 = { (Sint16)(uiPosition.x), (Sint16)(uiPosition.y + 145), 640, 30 };
+		const SDL_Rect rect1 = { (Sint16)(uiPosition.x), (Sint16)(uiPosition.y + 145), 640, 30 };
 		vecMainMenuDialog.push_back(std::make_unique<UiArtText>(_("Shareware").data(), rect1, UiFlags::FontSize30 | UiFlags::ColorUiSilver | UiFlags::AlignCenter, 8));
 	}
 
 	vecMainMenuDialog.push_back(std::make_unique<UiList>(vecMenuItems, vecMenuItems.size(), uiPosition.x + 64, (uiPosition.y + 192), 510, 43, UiFlags::FontSize42 | UiFlags::ColorUiGold | UiFlags::AlignCenter, 5));
 
-	SDL_Rect rect2 = { 17, (Sint16)(gnScreenHeight - 36), 605, 21 };
+	const SDL_Rect rect2 = { 17, (Sint16)(gnScreenHeight - 36), 605, 21 };
 	vecMainMenuDialog.push_back(std::make_unique<UiArtText>(name, rect2, UiFlags::FontSize12 | UiFlags::ColorUiSilverDark));
 
 #ifndef NOEXIT

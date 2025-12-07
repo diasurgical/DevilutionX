@@ -9,7 +9,7 @@
 
 namespace devilution {
 
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__DJGPP__)
 constexpr char DirectorySeparator = '\\';
 #define DIRECTORY_SEPARATOR_STR "\\"
 #else

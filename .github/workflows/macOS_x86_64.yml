@@ -25,9 +25,9 @@ concurrency:
 
 jobs:
   build:
-    runs-on: macos-13
+    runs-on: macos-15-intel
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         fetch-depth: 0
 
@@ -38,8 +38,12 @@ jobs:
       uses: actions/cache@v4
       with:
         path: build
-        key: ${{ github.workflow }}-v2-${{ github.sha }}
-        restore-keys: ${{ github.workflow }}-v2-
+        key: ${{ github.workflow }}-v3-${{ github.sha }}
+        restore-keys: ${{ github.workflow }}-v3-
+
+    - name: Clean previous DMG
+      working-directory: ${{github.workspace}}
+      run: rm -f build/*.dmg
 
     - name: Build
       working-directory: ${{github.workspace}}
@@ -54,7 +58,7 @@ jobs:
 
     - name: Upload-Package
       if: ${{ !env.ACT }}
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: devilutionx-x86_64-macOS.dmg
         path: build/devilutionx-x86_64-macOS.dmg

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <component type="desktop-application">
 	<id>org.diasurgical.DevilutionX</id>
 
@@ -10,7 +10,7 @@
 	<summary>Experience Diablo and Hellfire anew</summary>
 
 	<metadata_license>CC-BY-SA-4.0</metadata_license>
-	<project_license>LicenseRef-scancode-sustainable-use-1.0=https://scancode-licensedb.aboutcode.org/sustainable-use-1.0.html</project_license>
+	<project_license>SUL-1.0</project_license>
 
 	<branding>
 		<color type="primary" scheme_preference="light">#c86666</color>
@@ -76,6 +76,21 @@
 		</screenshot>
 	</screenshots>
 	<releases>
+		<release version="1.5.5" date="2025-10-31">
+			<description>
+				<p>This release includes the following updates:</p>
+				<ul>
+					<li>App icon on Linux is now aligned with Android</li>
+					<li>Adjusted game speeds for Multiplayer</li>
+					<li>You can now use CTRL+ Mouse Scroll to zoom the map</li>
+					<li>Murphy Shrine has been added to Crippling Shrines</li>
+					<li>Updates to Russian and Polish translations</li>
+					<li>Crash fixes</li>
+				</ul>
+				<p>Please visit the full changelog for more detailed notes</p>
+			</description>
+			<url>https://github.com/diasurgical/devilutionX/releases/tag/1.5.5</url>
+		</release>
 		<release version="1.5.4" date="2025-02-08">
 			<description>
 				<p>This release includes the following updates:</p>
@@ -148,21 +163,21 @@
 			</description>
 			<url>https://github.com/diasurgical/devilutionX/releases/tag/1.5.0</url>
 		</release>
-		<release version="1.4.1" date="2022-07-25"/>
-		<release version="1.4.0" date="2022-04-14"/>
-		<release version="1.3.0" date="2021-11-02"/>
-		<release version="1.2.1" date="2021-04-13"/>
-		<release version="1.2.0" date="2021-04-06"/>
-		<release version="1.1.0" date="2020-10-11"/>
-		<release version="1.0.3" date="2020-10-11"/>
-		<release version="1.0.2" date="2020-10-10"/>
-		<release version="1.0.1" date="2020-03-09"/>
-		<release version="1.0.0" date="2019-12-31"/>
-		<release version="0.5.0" date="2019-10-10"/>
-		<release version="0.4.0" date="2019-03-20"/>
-		<release version="0.3.1" date="2019-03-20"/>
-		<release version="0.3.0" date="2019-03-20"/>
-		<release version="0.2.0" date="2019-03-17"/>
-		<release version="0.1.0" date="2019-02-27"/>
+		<release version="1.4.1" date="2022-07-25" />
+		<release version="1.4.0" date="2022-04-14" />
+		<release version="1.3.0" date="2021-11-02" />
+		<release version="1.2.1" date="2021-04-13" />
+		<release version="1.2.0" date="2021-04-06" />
+		<release version="1.1.0" date="2020-10-11" />
+		<release version="1.0.3" date="2020-10-11" />
+		<release version="1.0.2" date="2020-10-10" />
+		<release version="1.0.1" date="2020-03-09" />
+		<release version="1.0.0" date="2019-12-31" />
+		<release version="0.5.0" date="2019-10-10" />
+		<release version="0.4.0" date="2019-03-20" />
+		<release version="0.3.1" date="2019-03-20" />
+		<release version="0.3.0" date="2019-03-20" />
+		<release version="0.2.0" date="2019-03-17" />
+		<release version="0.1.0" date="2019-02-27" />
 	</releases>
 </component>

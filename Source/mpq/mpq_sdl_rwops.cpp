@@ -6,6 +6,14 @@
 #include <string_view>
 #include <vector>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_iostream.h>
+#else
+#include <SDL.h>
+
+#include "utils/sdl_compat.h"
+#endif
+
 namespace devilution {
 
 namespace {
@@ -26,6 +34,9 @@ struct Data {
 	std::unique_ptr<uint8_t[]> blockData;
 };
 
+#ifdef USE_SDL3
+Data *GetData(void *userdata) { return reinterpret_cast<Data *>(userdata); }
+#else
 Data *GetData(struct SDL_RWops *context)
 {
 	return reinterpret_cast<Data *>(context->hidden.unknown.data1);
@@ -35,6 +46,7 @@ void SetData(struct SDL_RWops *context, Data *data)
 {
 	context->hidden.unknown.data1 = data;
 }
+#endif
 
 #ifndef USE_SDL1
 using OffsetType = Sint64;
@@ -47,24 +59,34 @@ using SizeType = int;
 extern "C" {
 
 #ifndef USE_SDL1
-static Sint64 MpqFileRwSize(struct SDL_RWops *context)
+static Sint64 MpqFileRwSize(
+#ifdef USE_SDL3
+    void *
+#else
+    struct SDL_RWops *
+#endif
+        context)
 {
-	return GetData(context)->size;
+	return static_cast<Sint64>(GetData(context)->size);
 }
 #endif
 
+#ifdef USE_SDL3
+static Sint64 MpqFileRwSeek(void *context, Sint64 offset, SDL_IOWhence whence)
+#else
 static OffsetType MpqFileRwSeek(struct SDL_RWops *context, OffsetType offset, int whence)
+#endif
 {
 	Data &data = *GetData(context);
 	OffsetType newPosition;
 	switch (whence) {
-	case RW_SEEK_SET:
+	case SDL_IO_SEEK_SET:
 		newPosition = offset;
 		break;
-	case RW_SEEK_CUR:
+	case SDL_IO_SEEK_CUR:
 		newPosition = static_cast<OffsetType>(data.position + offset);
 		break;
-	case RW_SEEK_END:
+	case SDL_IO_SEEK_END:
 		newPosition = static_cast<OffsetType>(data.size + offset);
 		break;
 	default:
@@ -92,8 +114,15 @@ static OffsetType MpqFileRwSeek(struct SDL_RWops *context, OffsetType offset, in
 	return newPosition;
 }
 
+#ifdef USE_SDL3
+static SizeType MpqFileRwRead(void *context, void *ptr, size_t size, SDL_IOStatus *status)
+#else
 static SizeType MpqFileRwRead(struct SDL_RWops *context, void *ptr, SizeType size, SizeType maxnum)
+#endif
 {
+#ifdef USE_SDL3
+	const size_t maxnum = 1;
+#endif
 	Data &data = *GetData(context);
 	const size_t totalSize = size * maxnum;
 	size_t remainingSize = totalSize;
@@ -104,9 +133,12 @@ static SizeType MpqFileRwRead(struct SDL_RWops *context, void *ptr, SizeType siz
 		data.blockData = std::unique_ptr<uint8_t[]> { new uint8_t[data.blockSize] };
 	}
 
-	uint32_t blockNumber = static_cast<uint32_t>(data.position / data.blockSize);
+	auto blockNumber = static_cast<uint32_t>(data.position / data.blockSize);
 	while (remainingSize > 0) {
 		if (data.position == data.size) {
+#ifdef USE_SDL3
+			*status = SDL_IO_STATUS_EOF;
+#endif
 			break;
 		}
 
@@ -121,13 +153,17 @@ static SizeType MpqFileRwRead(struct SDL_RWops *context, void *ptr, SizeType siz
 			data.blockRead = true;
 		}
 
-		const size_t blockPosition = data.position - blockNumber * data.blockSize;
+		const size_t blockPosition = data.position - (blockNumber * data.blockSize);
 		const size_t remainingBlockSize = currentBlockSize - blockPosition;
 
 		if (remainingSize < remainingBlockSize) {
 			std::memcpy(out, data.blockData.get() + blockPosition, remainingSize);
 			data.position += remainingSize;
+#ifdef USE_SDL3
+			return size;
+#else
 			return maxnum;
+#endif
 		}
 
 		std::memcpy(out, data.blockData.get() + blockPosition, remainingBlockSize);
@@ -138,30 +174,50 @@ static SizeType MpqFileRwRead(struct SDL_RWops *context, void *ptr, SizeType siz
 		data.blockRead = false;
 	}
 
+#ifdef USE_SDL3
+	return static_cast<SizeType>(totalSize - remainingSize);
+#else
 	return static_cast<SizeType>((totalSize - remainingSize) / size);
+#endif
 }
 
+#ifdef USE_SDL3
+static bool MpqFileRwClose(void *context)
+#else
 static int MpqFileRwClose(struct SDL_RWops *context)
+#endif
 {
 	Data *data = GetData(context);
 	data->mpqArchive->CloseBlockOffsetTable(data->fileNumber);
 	delete data;
+#ifdef USE_SDL3
+	return true;
+#else
 	delete context;
 	return 0;
+#endif
 }
 
 } // extern "C"
 
 } // namespace
 
-SDL_RWops *SDL_RWops_FromMpqFile(MpqArchive &mpqArchive, uint32_t fileNumber, std::string_view filename, bool threadsafe)
+SDL_IOStream *SDL_RWops_FromMpqFile(MpqArchive &mpqArchive, uint32_t fileNumber, std::string_view filename, bool threadsafe)
 {
+#ifdef USE_SDL3
+	SDL_IOStreamInterface interface;
+	SDL_INIT_INTERFACE(&interface);
+	SDL_IOStreamInterface *result = &interface;
+#else
 	auto result = std::make_unique<SDL_RWops>();
 	std::memset(result.get(), 0, sizeof(*result));
+#endif
 
 #ifndef USE_SDL1
 	result->size = &MpqFileRwSize;
+#ifndef USE_SDL3
 	result->type = SDL_RWOPS_UNKNOWN;
+#endif
 #else
 	result->type = 0;
 #endif
@@ -170,6 +226,9 @@ SDL_RWops *SDL_RWops_FromMpqFile(MpqArchive &mpqArchive, uint32_t fileNumber, st
 	result->read = &MpqFileRwRead;
 	result->write = nullptr;
 	result->close = &MpqFileRwClose;
+#ifdef USE_SDL3
+	result->flush = nullptr;
+#endif
 
 	auto data = std::make_unique<Data>();
 	int32_t error = 0;
@@ -226,8 +285,12 @@ SDL_RWops *SDL_RWops_FromMpqFile(MpqArchive &mpqArchive, uint32_t fileNumber, st
 	data->position = 0;
 	data->blockRead = false;
 
+#ifdef USE_SDL3
+	return SDL_OpenIO(&interface, data.release());
+#else
 	SetData(result.get(), data.release());
 	return result.release();
+#endif
 }
 
 } // namespace devilution

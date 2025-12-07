@@ -6,11 +6,11 @@
 #include <memory>
 #include <type_traits>
 
-#include <SDL_endian.h>
 #include <libmpq/mpq.h>
 
 #include "appfat.h"
 #include "encrypt.h"
+#include "utils/endian_swap.hpp"
 #include "utils/file_util.h"
 #include "utils/language.h"
 #include "utils/log.hpp"
@@ -63,15 +63,15 @@ constexpr uint32_t MinBlockSize = 1024;
 
 void ByteSwapHdr(MpqFileHeader *hdr)
 {
-	hdr->signature = SDL_SwapLE32(hdr->signature);
-	hdr->headerSize = SDL_SwapLE32(hdr->headerSize);
-	hdr->fileSize = SDL_SwapLE32(hdr->fileSize);
-	hdr->version = SDL_SwapLE16(hdr->version);
-	hdr->blockSizeFactor = SDL_SwapLE16(hdr->blockSizeFactor);
-	hdr->hashEntriesOffset = SDL_SwapLE32(hdr->hashEntriesOffset);
-	hdr->blockEntriesOffset = SDL_SwapLE32(hdr->blockEntriesOffset);
-	hdr->hashEntriesCount = SDL_SwapLE32(hdr->hashEntriesCount);
-	hdr->blockEntriesCount = SDL_SwapLE32(hdr->blockEntriesCount);
+	hdr->signature = Swap32LE(hdr->signature);
+	hdr->headerSize = Swap32LE(hdr->headerSize);
+	hdr->fileSize = Swap32LE(hdr->fileSize);
+	hdr->version = Swap16LE(hdr->version);
+	hdr->blockSizeFactor = Swap16LE(hdr->blockSizeFactor);
+	hdr->hashEntriesOffset = Swap32LE(hdr->hashEntriesOffset);
+	hdr->blockEntriesOffset = Swap32LE(hdr->blockEntriesOffset);
+	hdr->hashEntriesCount = Swap32LE(hdr->hashEntriesCount);
+	hdr->blockEntriesCount = Swap32LE(hdr->blockEntriesCount);
 }
 
 bool IsAllocatedUnusedBlock(const MpqBlockEntry *block)
@@ -89,7 +89,9 @@ bool IsUnallocatedBlock(const MpqBlockEntry *block)
 MpqWriter::MpqWriter(const char *path)
 {
 	const std::string dir = std::string(Dirname(path));
-	RecursivelyCreateDir(dir.c_str());
+	if (!dir.empty()) {
+		RecursivelyCreateDir(dir.c_str());
+	}
 	LogVerbose("Opening {}", path);
 	bool isNewFile = false;
 	std::string error;
@@ -384,7 +386,7 @@ bool MpqWriter::WriteFileContents(const std::byte *fileData, uint32_t fileSize, 
 	// We populate the table of sector offsets while we write the data.
 	// We can't pre-populate it because we don't know the compressed sector sizes yet.
 	// First offset is the start of the first sector, last offset is the end of the last sector.
-	std::unique_ptr<uint32_t[]> offsetTable { new uint32_t[numSectors + 1] };
+	const std::unique_ptr<uint32_t[]> offsetTable { new uint32_t[numSectors + 1] };
 
 #ifdef CAN_SEEKP_BEYOND_EOF
 	if (!stream_.Seekp(block->offset + offsetTableByteSize, SEEK_SET))
@@ -419,7 +421,7 @@ bool MpqWriter::WriteFileContents(const std::byte *fileData, uint32_t fileSize, 
 		len = PkwareCompress(mpqBuf, len);
 		if (!stream_.Write(reinterpret_cast<const char *>(&mpqBuf[0]), len))
 			return false;
-		offsetTable[curSector++] = SDL_SwapLE32(destSize);
+		offsetTable[curSector++] = Swap32LE(destSize);
 		destSize += len; // compressed length
 		if (fileSize <= BlockSize)
 			break;
@@ -427,7 +429,7 @@ bool MpqWriter::WriteFileContents(const std::byte *fileData, uint32_t fileSize, 
 		fileSize -= BlockSize;
 	}
 
-	offsetTable[numSectors] = SDL_SwapLE32(destSize);
+	offsetTable[numSectors] = Swap32LE(destSize);
 	if (!stream_.Seekp(block->offset, SEEK_SET))
 		return false;
 	if (!stream_.Write(reinterpret_cast<const char *>(offsetTable.get()), offsetTableByteSize))
@@ -521,13 +523,13 @@ bool MpqWriter::WriteFile(std::string_view filename, const std::byte *data, size
 
 void MpqWriter::RenameFile(std::string_view name, std::string_view newName) // NOLINT(bugprone-easily-swappable-parameters)
 {
-	uint32_t index = FetchHandle(name);
+	const uint32_t index = FetchHandle(name);
 	if (index == HashEntryNotFound) {
 		return;
 	}
 
 	MpqHashEntry *hashEntry = &hashTable_[index];
-	uint32_t block = hashEntry->block;
+	const uint32_t block = hashEntry->block;
 	MpqBlockEntry *blockEntry = &blockTable_[block];
 	hashEntry->block = MpqHashEntry::DeletedBlock;
 	AddFile(newName, blockEntry, block);

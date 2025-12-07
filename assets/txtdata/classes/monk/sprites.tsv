@@ -1,0 +1,14 @@
+Variable	Value
+classPath	monk
+classChar	m
+trn	monk
+stand	112
+walk	112
+attack	130
+bow	130
+swHit	98
+block	98
+lightning	114
+fire	114
+magic	114
+death	160

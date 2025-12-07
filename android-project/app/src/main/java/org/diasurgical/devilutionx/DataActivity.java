@@ -130,6 +130,11 @@ public class DataActivity extends Activity {
 				(!fileManager.hasFile("spawn.mpq") || isDownloadingSpawn);
 	}
 
+	public void importData(View view) {
+		Intent intent = new Intent(this, ImportActivity.class);
+		startActivity(intent);
+	}
+
 	/**
 	 * Start downloading the shareware
 	 */
@@ -153,7 +158,9 @@ public class DataActivity extends Activity {
 				.setDescription(description)
 				.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE);
 
-		File file = fileManager.getFile(fileName);
+		// Download to a temp file which will be renamed later
+		// See: https://stackoverflow.com/a/48128014
+		File file = fileManager.getFile(fileName + "~");
 		Uri destination = Uri.fromFile(file);
 		request.setDestinationUri(destination);
 
@@ -184,12 +191,21 @@ public class DataActivity extends Activity {
 			DownloadManager.Query query = new DownloadManager.Query();
 			query.setFilterById(receivedID);
 			Cursor cur = mgr.query(query);
-			int index = cur.getColumnIndex(DownloadManager.COLUMN_STATUS);
+			int statusIndex = cur.getColumnIndex(DownloadManager.COLUMN_STATUS);
 			if (cur.moveToFirst()) {
-				if (cur.getInt(index) == DownloadManager.STATUS_SUCCESSFUL) {
+				int status = cur.getInt(statusIndex);
+				if (status == DownloadManager.STATUS_SUCCESSFUL) {
+					// Rename temp file by removing the tilde
+					// See: https://stackoverflow.com/a/48128014
+					int titleIndex = cur.getColumnIndex(DownloadManager.COLUMN_TITLE);
+					String fileName = cur.getString(titleIndex);
+					File temp = fileManager.getFile(fileName + "~");
+					File file = fileManager.getFile(fileName);
+					temp.renameTo(file);
+
 					pendingDownloads--;
 				}
-				if (cur.getInt(index) == DownloadManager.STATUS_FAILED) {
+				if (status == DownloadManager.STATUS_FAILED) {
 					isDownloadingSpawn = false;
 					isDownloadingFonts = false;
 					isDownloadingTranslation = false;

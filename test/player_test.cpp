@@ -84,6 +84,13 @@ BlockTestCase BlockData[] = {
 
 TEST(Player, PM_DoGotHit)
 {
+	LoadCoreArchives();
+	LoadGameArchives();
+	if (!HaveMainData()) {
+		GTEST_SKIP() << "MPQ assets (spawn.mpq or DIABDAT.MPQ) not found - skipping test";
+	}
+	LoadPlayerDataFiles();
+
 	Players.resize(1);
 	MyPlayer = &Players[0];
 	for (size_t i = 0; i < sizeof(BlockData) / sizeof(*BlockData); i++) {
@@ -186,8 +193,9 @@ TEST(Player, CreatePlayer)
 	LoadGameArchives();
 
 	// The tests need spawn.mpq or diabdat.mpq
-	// Please provide them so that the tests can run successfully
-	ASSERT_TRUE(HaveMainData());
+	if (!HaveMainData()) {
+		GTEST_SKIP() << "MPQ assets (spawn.mpq or DIABDAT.MPQ) not found - skipping test";
+	}
 
 	LoadPlayerDataFiles();
 	LoadMonsterData();

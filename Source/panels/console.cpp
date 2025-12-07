@@ -5,11 +5,20 @@
 #include <cstdint>
 #include <string_view>
 
-#include <SDL.h>
 #include <function_ref.hpp>
+
+#ifdef USE_SDL3
+#include <SDL3/SDL_events.h>
+#include <SDL3/SDL_keyboard.h>
+#include <SDL3/SDL_keycode.h>
+#include <SDL3/SDL_rect.h>
+#include <SDL3/SDL_scancode.h>
+#else
+#include <SDL.h>
 
 #ifdef USE_SDL1
 #include "utils/sdl2_to_1_2_backports.h"
+#endif
 #endif
 
 #include "DiabloUI/text_input.hpp"
@@ -26,6 +35,8 @@
 #include "lua/autocomplete.hpp"
 #include "lua/repl.hpp"
 #include "utils/algorithm/container.hpp"
+#include "utils/display.h"
+#include "utils/sdl_compat.h"
 #include "utils/sdl_geometry.h"
 #include "utils/str_cat.hpp"
 #include "utils/str_split.hpp"
@@ -133,7 +144,7 @@ constexpr int ScrollStep = LineHeight * 3;
 void CloseConsole()
 {
 	IsConsoleVisible = false;
-	SDL_StopTextInput();
+	SDLC_StopTextInput(ghMainWnd);
 }
 
 int GetConsoleLinesInnerWidth()
@@ -447,7 +458,7 @@ bool ConsoleHandleEvent(const SDL_Event &event)
 {
 	if (!IsConsoleVisible) {
 		// Make console open on the top-left keyboard key even if it is not a backtick.
-		if (event.type == SDL_KEYDOWN && event.key.keysym.scancode == SDL_SCANCODE_GRAVE) {
+		if (event.type == SDL_EVENT_KEY_DOWN && SDLC_EventScancode(event) == SDL_SCANCODE_GRAVE) {
 			OpenConsole();
 			return true;
 		}
@@ -458,10 +469,10 @@ bool ConsoleHandleEvent(const SDL_Event &event)
 		return true;
 	}
 	const auto modState = SDL_GetModState();
-	const bool isShift = (modState & KMOD_SHIFT) != 0;
+	const bool isShift = (modState & SDL_KMOD_SHIFT) != 0;
 	switch (event.type) {
-	case SDL_KEYDOWN:
-		switch (event.key.keysym.sym) {
+	case SDL_EVENT_KEY_DOWN:
+		switch (SDLC_EventKey(event)) {
 		case SDLK_ESCAPE:
 			if (!AutocompleteSuggestions.empty()) {
 				AutocompleteSuggestions.clear();
@@ -512,18 +523,18 @@ bool ConsoleHandleEvent(const SDL_Event &event)
 		case SDLK_PAGEDOWN:
 			--PendingScrollPages;
 			return true;
-		case SDLK_l:
+		case SDLK_L:
 			ClearConsole();
 			return true;
 		default:
 			return false;
 		}
 		break;
-#if SDL_VERSION_ATLEAST(2, 0, 0)
-	case SDL_MOUSEWHEEL:
-		if (event.wheel.y > 0) {
+#ifndef USE_SDL1
+	case SDL_EVENT_MOUSE_WHEEL:
+		if (SDLC_EventWheelIntY(event) > 0) {
 			ScrollOffset += ScrollStep;
-		} else if (event.wheel.y < 0) {
+		} else if (SDLC_EventWheelIntY(event) < 0) {
 			ScrollOffset -= ScrollStep;
 		}
 		return true;
@@ -560,7 +571,7 @@ void DrawConsole(const Surface &out)
 		if (CurrentInputTextState == InputTextState::RestoredFromHistory) {
 			AutocompleteSuggestions.clear();
 		} else {
-			GetLuaAutocompleteSuggestions(originalInputText.substr(0, ConsoleInputCursor.position), GetLuaReplEnvironment(), /*maxSuggestions=*/MaxSuggestions, AutocompleteSuggestions);
+			GetLuaAutocompleteSuggestions(originalInputText, ConsoleInputCursor.position, GetLuaReplEnvironment(), /*maxSuggestions=*/MaxSuggestions, AutocompleteSuggestions);
 		}
 		AutocompleteSuggestionsMaxWidth = -1;
 		AutocompleteSuggestionFocusIndex = AutocompleteSuggestions.empty() ? -1 : 0;
@@ -579,9 +590,9 @@ void DrawConsole(const Surface &out)
 	};
 
 	if (FirstRender) {
-		const SDL_Rect sdlInputRect = MakeSdlRect(InputRect);
-		SDL_SetTextInputRect(&sdlInputRect);
-		SDL_StartTextInput();
+		SDL_Rect sdlInputRect = MakeSdlRect(InputRect);
+		SDL_SetTextInputArea(ghMainWnd, &sdlInputRect, static_cast<int>(ConsoleInputState.cursorPosition()));
+		SDLC_StartTextInput(ghMainWnd);
 		FirstRender = false;
 		if (ConsoleLines.empty()) {
 			InitConsole();

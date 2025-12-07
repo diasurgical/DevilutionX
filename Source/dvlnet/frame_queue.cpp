@@ -31,7 +31,7 @@ tl::expected<buffer_t, PacketError> frame_queue::Read(framesize_t s)
 		return tl::make_unexpected(FrameQueueError());
 	buffer_t ret;
 	while (s > 0 && s >= buffer_deque.front().size()) {
-		framesize_t bufferSize = static_cast<framesize_t>(buffer_deque.front().size());
+		const framesize_t bufferSize = static_cast<framesize_t>(buffer_deque.front().size());
 		s -= bufferSize;
 		current_size -= bufferSize;
 		ret.insert(ret.end(),
@@ -68,27 +68,34 @@ tl::expected<bool, PacketError> frame_queue::PacketReady()
 		if (nextsize == 0)
 			return tl::make_unexpected(FrameQueueError());
 	}
-	return Size() >= nextsize;
+	return Size() >= (nextsize & frame_size_mask);
+}
+
+uint16_t frame_queue::ReadPacketFlags()
+{
+	static_assert(sizeof(nextsize) == 4, "framesize_t is not 4 bytes");
+	return static_cast<uint16_t>(nextsize >> 16);
 }
 
 tl::expected<buffer_t, PacketError> frame_queue::ReadPacket()
 {
-	if (nextsize == 0 || Size() < nextsize)
+	const framesize_t packetSize = nextsize & frame_size_mask;
+	if (nextsize == 0 || Size() < packetSize)
 		return tl::make_unexpected(FrameQueueError());
-	tl::expected<buffer_t, PacketError> ret = Read(nextsize);
+	tl::expected<buffer_t, PacketError> ret = Read(packetSize);
 	nextsize = 0;
 	return ret;
 }
 
-tl::expected<buffer_t, PacketError> frame_queue::MakeFrame(buffer_t packetbuf)
+tl::expected<buffer_t, PacketError> frame_queue::MakeFrame(buffer_t packetbuf, uint16_t flags)
 {
 	buffer_t ret;
-	framesize_t size = static_cast<framesize_t>(packetbuf.size());
+	const framesize_t size = static_cast<framesize_t>(packetbuf.size());
 	if (size > max_frame_size)
 		return tl::make_unexpected("Buffer exceeds maximum frame size");
 	static_assert(sizeof(size) == 4, "framesize_t is not 4 bytes");
 	unsigned char sizeBuf[4];
-	WriteLE32(sizeBuf, size);
+	WriteLE32(sizeBuf, size | (static_cast<framesize_t>(flags) << 16));
 	ret.insert(ret.end(), sizeBuf, sizeBuf + 4);
 	ret.insert(ret.end(), packetbuf.begin(), packetbuf.end());
 	return ret;

@@ -25,8 +25,8 @@ public:
 	void SNetGetProviderCaps(struct _SNETCAPS *caps) override;
 	bool SNetRegisterEventHandler(event_type evtype, SEVTHANDLER func) override;
 	bool SNetUnregisterEventHandler(event_type evtype) override;
-	bool SNetLeaveGame(int type) override;
-	bool SNetDropPlayer(int playerid, uint32_t flags) override;
+	bool SNetLeaveGame(net::leaveinfo_t type) override;
+	bool SNetDropPlayer(int playerid, net::leaveinfo_t flags) override;
 	bool SNetGetOwnerTurnsWaiting(uint32_t *turns) override;
 	bool SNetGetTurnsInTransit(uint32_t *turns) override;
 
@@ -34,10 +34,14 @@ public:
 	virtual tl::expected<void, PacketError> send(packet &pkt) = 0;
 	virtual void DisconnectNet(plr_t plr);
 
+	void process_network_packets() override;
+
 	void setup_gameinfo(buffer_t info) override;
 
 	void setup_password(std::string pw) override;
 	void clear_password() override;
+
+	DvlNetLatencies get_latencies(uint8_t playerid) override;
 
 	~base() override = default;
 
@@ -88,6 +92,7 @@ protected:
 private:
 	std::array<PlayerState, MAX_PLRS> playerStateTable_;
 	bool awaitingSequenceNumber_ = true;
+	uint32_t lastEchoTime = 0;
 
 	plr_t GetOwner();
 	bool AllTurnsArrived();

@@ -3,7 +3,11 @@
 #include <cstdint>
 #include <optional>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_render.h>
+#else
 #include <SDL.h>
+#endif
 
 #include "controls/plrctrls.h"
 #include "controls/touch/gamepad.h"

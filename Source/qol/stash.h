@@ -11,6 +11,7 @@
 #include <ankerl/unordered_dense.h>
 
 #include "engine/point.hpp"
+#include "engine/points_in_rectangle_range.hpp"
 #include "items.h"
 
 namespace devilution {
@@ -72,6 +73,9 @@ extern StashStruct Stash;
 
 extern bool IsWithdrawGoldOpen;
 extern int WithdrawGoldValue;
+
+inline constexpr Size StashGridSize { 10, 10 };
+inline constexpr PointsInRectangle<int> StashGridRange { { { 0, 0 }, StashGridSize } };
 
 Point GetStashSlotCoord(Point slot);
 void InitStash();

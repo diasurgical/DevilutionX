@@ -9,7 +9,6 @@
 #include <cstring>
 #include <memory>
 
-#include <SDL.h>
 #include <pkware.h>
 
 #include "encrypt.h"
@@ -62,13 +61,13 @@ void PkwareBufferWrite(char *buf, unsigned int *size, void *param) // NOLINT(rea
 
 uint32_t PkwareCompress(std::byte *srcData, uint32_t size)
 {
-	std::unique_ptr<char[]> ptr = std::make_unique<char[]>(CMP_BUFFER_SIZE);
+	const std::unique_ptr<char[]> ptr = std::make_unique<char[]>(CMP_BUFFER_SIZE);
 
 	unsigned destSize = 2 * size;
 	if (destSize < 2 * 4096)
 		destSize = 2 * 4096;
 
-	std::unique_ptr<std::byte[]> destData { new std::byte[destSize] };
+	const std::unique_ptr<std::byte[]> destData { new std::byte[destSize] };
 
 	TDataInfo param;
 	param.srcData = srcData;
@@ -93,8 +92,8 @@ uint32_t PkwareCompress(std::byte *srcData, uint32_t size)
 
 uint32_t PkwareDecompress(std::byte *inBuff, uint32_t recvSize, size_t maxBytes)
 {
-	std::unique_ptr<char[]> ptr = std::make_unique<char[]>(CMP_BUFFER_SIZE);
-	std::unique_ptr<std::byte[]> outBuff { new std::byte[maxBytes] };
+	const std::unique_ptr<char[]> ptr = std::make_unique<char[]>(CMP_BUFFER_SIZE);
+	const std::unique_ptr<std::byte[]> outBuff { new std::byte[maxBytes] };
 
 	TDataInfo info;
 	info.srcData = inBuff;

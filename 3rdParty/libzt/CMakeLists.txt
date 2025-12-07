@@ -5,7 +5,7 @@ set(BUILD_HOST_SELFTEST OFF)
 include(FetchContent)
 FetchContent_Declare_ExcludeFromAll(libzt
   GIT_REPOSITORY https://github.com/diasurgical/libzt.git
-  GIT_TAG 72a518bcf7d87e32f718ca612ce2c8303ceedd12)
+  GIT_TAG 1a9d83b8c4c2bdcd7ea6d8ab1dd2771b16eb4e13)
 FetchContent_MakeAvailable_ExcludeFromAll(libzt)
 
 if(NOT ANDROID)

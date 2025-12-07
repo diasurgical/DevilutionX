@@ -6,7 +6,13 @@
 #include <cstring>
 #include <limits>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_iostream.h>
+#else
 #include <SDL.h>
+
+#include "utils/sdl_compat.h"
+#endif
 
 #include "utils/log.hpp"
 #include "utils/stdcompat/filesystem.hpp"
@@ -28,9 +34,17 @@
 #endif
 #endif
 
-#if (_POSIX_C_SOURCE >= 200112L || defined(_BSD_SOURCE) || defined(__APPLE__)) && !defined(DEVILUTIONX_WINDOWS_NO_WCHAR)
+#if _POSIX_C_SOURCE >= 200112L || defined(_BSD_SOURCE) || defined(__APPLE__) || defined(__DJGPP__)
+#define DVL_HAS_POSIX_2001
+#endif
+
+#if defined(DVL_HAS_POSIX_2001) && !defined(DEVILUTIONX_WINDOWS_NO_WCHAR)
 #include <sys/stat.h>
 #include <unistd.h>
+
+#ifndef DVL_HAS_FILESYSTEM
+#include <dirent.h>
+#endif
 #endif
 
 #if defined(__APPLE__) && DARWIN_MAJOR_VERSION >= 9
@@ -99,16 +113,15 @@ bool FileExists(const char *path)
 		return false;
 	}
 	return true;
-#elif (_POSIX_C_SOURCE >= 200112L || defined(_BSD_SOURCE) || defined(__APPLE__)) && !defined(__ANDROID__)
+#elif defined(DVL_HAS_POSIX_2001) && !defined(__ANDROID__)
 	return ::access(path, F_OK) == 0;
 #elif defined(DVL_HAS_FILESYSTEM)
 	std::error_code ec;
 	return std::filesystem::exists(reinterpret_cast<const char8_t *>(path), ec);
 #else
-	SDL_RWops *file = SDL_RWFromFile(path, "r+b");
-	if (file == nullptr)
-		return false;
-	SDL_RWclose(file);
+	SDL_IOStream *file = SDL_IOFromFile(path, "rb");
+	if (file == nullptr) return false;
+	SDL_CloseIO(file);
 	return true;
 #endif
 }
@@ -163,15 +176,14 @@ bool FileExistsAndIsWriteable(const char *path)
 #ifdef _WIN32
 	const DWORD attr = WindowsGetFileAttributes(path);
 	return attr != INVALID_FILE_ATTRIBUTES && (attr & FILE_ATTRIBUTE_READONLY) == 0;
-#elif (_POSIX_C_SOURCE >= 200112L || defined(_BSD_SOURCE) || defined(__APPLE__)) && !defined(__ANDROID__)
+#elif defined(DVL_HAS_POSIX_2001) && !defined(__ANDROID__)
 	return ::access(path, W_OK) == 0;
 #else
 	if (!FileExists(path))
 		return false;
-	SDL_RWops *file = SDL_RWFromFile(path, "a+b");
-	if (file == nullptr)
-		return false;
-	SDL_RWclose(file);
+	SDL_IOStream *file = SDL_IOFromFile(path, "ab");
+	if (file == nullptr) return false;
+	SDL_CloseIO(file);
 	return true;
 #endif
 }
@@ -347,7 +359,7 @@ bool ResizeFile(const char *path, std::uintmax_t size)
 	}
 	::CloseHandle(file);
 	return true;
-#elif _POSIX_C_SOURCE >= 200112L || defined(_BSD_SOURCE) || defined(__APPLE__)
+#elif defined(DVL_HAS_POSIX_2001)
 	return ::truncate(path, static_cast<off_t>(size)) == 0;
 #else
 	static_assert(false, "truncate not implemented for the current platform");
@@ -496,6 +508,18 @@ std::vector<std::string> ListDirectories(const char *path)
 			dirs.push_back(folder);
 	} while (FindNextFileA(hFind, &findData));
 	FindClose(hFind);
+#elif (_POSIX_C_SOURCE >= 200112L || defined(_BSD_SOURCE) || defined(__APPLE__))
+	DIR *d = ::opendir(path);
+	if (d != nullptr) {
+		struct dirent *dir;
+		while ((dir = ::readdir(d)) != nullptr) {
+			if (dir->d_type != DT_DIR) continue;
+			const std::string_view name = dir->d_name;
+			if (name == "." || name == "..") continue;
+			dirs.emplace_back(name);
+		}
+		::closedir(d);
+	}
 #else
 	static_assert(false, "ListDirectories not implemented for the current platform");
 #endif
@@ -529,6 +553,18 @@ std::vector<std::string> ListFiles(const char *path)
 			files.push_back(file);
 	} while (FindNextFileA(hFind, &findData));
 	FindClose(hFind);
+#elif (_POSIX_C_SOURCE >= 200112L || defined(_BSD_SOURCE) || defined(__APPLE__))
+	DIR *d = ::opendir(path);
+	if (d != nullptr) {
+		struct dirent *dir;
+		while ((dir = ::readdir(d)) != nullptr) {
+			if (dir->d_type != DT_REG) continue;
+			const std::string_view name = dir->d_name;
+			if (name == "." || name == "..") continue;
+			files.emplace_back(name);
+		}
+		::closedir(d);
+	}
 #else
 	static_assert(false, "ListFiles not implemented for the current platform");
 #endif

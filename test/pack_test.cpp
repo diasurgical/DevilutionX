@@ -8,42 +8,45 @@
 #include "monstdat.h"
 #include "pack.h"
 #include "playerdat.hpp"
+#include "utils/endian_swap.hpp"
 #include "utils/is_of.hpp"
 #include "utils/paths.h"
 
 namespace devilution {
 namespace {
 
+constexpr const char MissingMpqAssetsSkipReason[] = "MPQ assets (spawn.mpq or DIABDAT.MPQ) not found - skipping test suite";
+
 void SwapLE(ItemPack &pack)
 {
-	pack.iSeed = SDL_SwapLE32(pack.iSeed);
-	pack.iCreateInfo = SDL_SwapLE16(pack.iCreateInfo);
-	pack.idx = SDL_SwapLE16(pack.idx);
-	pack.wValue = SDL_SwapLE16(pack.wValue);
-	pack.dwBuff = SDL_SwapLE32(pack.dwBuff);
+	pack.iSeed = Swap32LE(pack.iSeed);
+	pack.iCreateInfo = Swap16LE(pack.iCreateInfo);
+	pack.idx = Swap16LE(pack.idx);
+	pack.wValue = Swap16LE(pack.wValue);
+	pack.dwBuff = Swap32LE(pack.dwBuff);
 }
 
 void SwapLE(PlayerPack &pack)
 {
-	pack.dwLowDateTime = SDL_SwapLE32(pack.dwLowDateTime);
-	pack.dwHighDateTime = SDL_SwapLE32(pack.dwHighDateTime);
-	pack.pExperience = SDL_SwapLE32(pack.pExperience);
-	pack.pGold = SDL_SwapLE32(pack.pGold);
-	pack.pHPBase = SDL_SwapLE32(pack.pHPBase);
-	pack.pMaxHPBase = SDL_SwapLE32(pack.pMaxHPBase);
-	pack.pManaBase = SDL_SwapLE32(pack.pManaBase);
-	pack.pMaxManaBase = SDL_SwapLE32(pack.pMaxManaBase);
-	pack.pMemSpells = SDL_SwapLE64(pack.pMemSpells);
+	pack.dwLowDateTime = Swap32LE(pack.dwLowDateTime);
+	pack.dwHighDateTime = Swap32LE(pack.dwHighDateTime);
+	pack.pExperience = Swap32LE(pack.pExperience);
+	pack.pGold = Swap32LE(pack.pGold);
+	pack.pHPBase = Swap32LE(pack.pHPBase);
+	pack.pMaxHPBase = Swap32LE(pack.pMaxHPBase);
+	pack.pManaBase = Swap32LE(pack.pManaBase);
+	pack.pMaxManaBase = Swap32LE(pack.pMaxManaBase);
+	pack.pMemSpells = Swap64LE(pack.pMemSpells);
 	for (ItemPack &item : pack.InvBody)
 		SwapLE(item);
 	for (ItemPack &item : pack.InvList)
 		SwapLE(item);
 	for (ItemPack &item : pack.SpdList)
 		SwapLE(item);
-	pack.wReflections = SDL_SwapLE16(pack.wReflections);
-	pack.pDiabloKillLevel = SDL_SwapLE32(pack.pDiabloKillLevel);
-	pack.pDifficulty = SDL_SwapLE32(pack.pDifficulty);
-	pack.pDamAcFlags = SDL_SwapLE32(pack.pDamAcFlags);
+	pack.wReflections = Swap16LE(pack.wReflections);
+	pack.pDiabloKillLevel = Swap32LE(pack.pDiabloKillLevel);
+	pack.pDifficulty = Swap32LE(pack.pDifficulty);
+	pack.pDamAcFlags = Swap32LE(pack.pDamAcFlags);
 }
 
 ItemPack SwappedLE(const ItemPack &pack)
@@ -61,6 +64,7 @@ void SetHellfireState(bool enable)
 		LoadModArchives({ { "Hellfire" } });
 	}
 	LoadItemData();
+	LoadSpellData();
 }
 
 void ComparePackedItems(const ItemPack &item1LE, const ItemPack &item2LE)
@@ -151,7 +155,7 @@ typedef struct TestItemStruct {
 
 static void TestItemNameGeneration(const Item &item)
 {
-	bool allowIdentified = (item._iMiscId != IMISC_EAR); // Ears can't be identified. Item::getName() doesn't handle it, so don't test it.
+	const bool allowIdentified = (item._iMiscId != IMISC_EAR); // Ears can't be identified. Item::getName() doesn't handle it, so don't test it.
 	ASSERT_EQ(allowIdentified & item._iIdentified, item._iIdentified);
 
 	Item testItem = item;
@@ -164,7 +168,7 @@ static void TestItemNameGeneration(const Item &item)
 
 		// Check that UpdateHellfireFlag ensures that dwBuff is updated to get the correct name
 		if (item._iMagical == ITEM_QUALITY_MAGIC) {
-			bool isHellfireItem = (testItem.dwBuff & CF_HELLFIRE);
+			const bool isHellfireItem = (testItem.dwBuff & CF_HELLFIRE);
 			testItem.dwBuff = 0;
 			UpdateHellfireFlag(testItem, testItem._iIName);
 
@@ -833,7 +837,7 @@ TEST_F(PackTest, PackItem_empty)
 
 	// Copy the value out before comparing to avoid loading a misaligned address.
 	const auto idx = is.idx;
-	ASSERT_EQ(SDL_SwapLE16(idx), 0xFFFF);
+	ASSERT_EQ(Swap16LE(idx), 0xFFFF);
 	TestItemNameGeneration(id);
 }
 
@@ -844,7 +848,7 @@ static void compareGold(const ItemPack &is, int iCurs)
 	ASSERT_EQ(id._iCurs, iCurs);
 	ASSERT_EQ(id.IDidx, IDI_GOLD);
 	// Copy the value out before comparing to avoid loading a misaligned address.
-	const auto wvalue = SDL_SwapLE16(is.wValue);
+	const auto wvalue = Swap16LE(is.wValue);
 	ASSERT_EQ(id._ivalue, wvalue);
 	ASSERT_EQ(id._itype, ItemType::Gold);
 	ASSERT_EQ(id._iClass, ICLASS_GOLD);
@@ -892,6 +896,10 @@ class NetPackTest : public ::testing::Test {
 public:
 	void SetUp() override
 	{
+		if (missingMpqAssets_) {
+			GTEST_SKIP() << MissingMpqAssetsSkipReason;
+		}
+
 		Players.resize(2);
 		MyPlayer = &Players[0];
 		gbIsMultiplayer = true;
@@ -974,9 +982,10 @@ public:
 		LoadCoreArchives();
 		LoadGameArchives();
 
-		// The tests need spawn.mpq or diabdat.mpq
-		// Please provide them so that the tests can run successfully
-		ASSERT_TRUE(HaveMainData());
+		missingMpqAssets_ = !HaveMainData();
+		if (missingMpqAssets_) {
+			return;
+		}
 
 		SetHellfireState(false);
 		InitCursor();
@@ -985,7 +994,12 @@ public:
 		LoadMonsterData();
 		LoadItemData();
 	}
+
+private:
+	static bool missingMpqAssets_;
 };
+
+bool NetPackTest::missingMpqAssets_ = false;
 
 bool TestNetPackValidation()
 {
@@ -1009,7 +1023,7 @@ TEST_F(NetPackTest, UnPackNetPlayer_invalid_class)
 
 TEST_F(NetPackTest, UnPackNetPlayer_invalid_oob)
 {
-	WorldTilePosition position = MyPlayer->position.tile;
+	const WorldTilePosition position = MyPlayer->position.tile;
 
 	MyPlayer->position.tile.x = MAXDUNX + 1;
 	ASSERT_FALSE(TestNetPackValidation());
@@ -1321,7 +1335,7 @@ TEST_F(NetPackTest, UnPackNetPlayer_invalid_pregenItemFlags)
 			continue;
 		if (IsAnyOf(item.IDidx, IDI_GOLD, IDI_EAR))
 			continue;
-		uint16_t createInfo = item._iCreateInfo;
+		const uint16_t createInfo = item._iCreateInfo;
 		item._iCreateInfo |= CF_PREGEN;
 		ASSERT_FALSE(TestNetPackValidation());
 		item._iCreateInfo = createInfo;
@@ -1341,7 +1355,7 @@ TEST_F(NetPackTest, UnPackNetPlayer_invalid_usefulItemFlags)
 			continue;
 		if ((item._iCreateInfo & CF_USEFUL) != CF_USEFUL)
 			continue;
-		uint16_t createInfo = item._iCreateInfo;
+		const uint16_t createInfo = item._iCreateInfo;
 		item._iCreateInfo |= CF_ONLYGOOD;
 		ASSERT_FALSE(TestNetPackValidation());
 		item._iCreateInfo = createInfo;
@@ -1361,7 +1375,7 @@ TEST_F(NetPackTest, UnPackNetPlayer_invalid_townItemFlags)
 			continue;
 		if ((item._iCreateInfo & CF_TOWN) == 0)
 			continue;
-		uint16_t createInfo = item._iCreateInfo;
+		const uint16_t createInfo = item._iCreateInfo;
 		item._iCreateInfo |= CF_ONLYGOOD;
 		ASSERT_FALSE(TestNetPackValidation());
 		item._iCreateInfo = createInfo;
@@ -1382,8 +1396,8 @@ TEST_F(NetPackTest, UnPackNetPlayer_invalid_townItemLevel)
 			continue;
 		if ((item._iCreateInfo & CF_TOWN) == 0)
 			continue;
-		uint16_t createInfo = item._iCreateInfo;
-		bool BoyItem = (item._iCreateInfo & CF_BOY) != 0;
+		const uint16_t createInfo = item._iCreateInfo;
+		const bool BoyItem = (item._iCreateInfo & CF_BOY) != 0;
 		item._iCreateInfo &= ~CF_LEVEL;
 		item._iCreateInfo |= BoyItem ? MyPlayer->getMaxCharacterLevel() + 1 : 31;
 		ASSERT_FALSE(TestNetPackValidation());
@@ -1407,7 +1421,7 @@ TEST_F(NetPackTest, UnPackNetPlayer_invalid_uniqueMonsterItemLevel)
 			continue;
 		if ((item._iCreateInfo & CF_USEFUL) != CF_UPER15)
 			continue;
-		uint16_t createInfo = item._iCreateInfo;
+		const uint16_t createInfo = item._iCreateInfo;
 		item._iCreateInfo &= ~CF_LEVEL;
 		item._iCreateInfo |= 31;
 		ASSERT_FALSE(TestNetPackValidation());
@@ -1430,7 +1444,7 @@ TEST_F(NetPackTest, UnPackNetPlayer_invalid_monsterItemLevel)
 			continue;
 		if ((item._iCreateInfo & CF_USEFUL) == CF_UPER15)
 			continue;
-		uint16_t createInfo = item._iCreateInfo;
+		const uint16_t createInfo = item._iCreateInfo;
 		item._iCreateInfo &= ~CF_LEVEL;
 		item._iCreateInfo |= 31;
 		ASSERT_FALSE(TestNetPackValidation());

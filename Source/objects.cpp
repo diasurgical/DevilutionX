@@ -45,6 +45,7 @@
 #include "towners.h"
 #include "track.h"
 #include "utils/algorithm/container.hpp"
+#include "utils/endian_swap.hpp"
 #include "utils/is_of.hpp"
 #include "utils/language.h"
 #include "utils/log.hpp"
@@ -267,12 +268,12 @@ bool CanPlaceWallTrap(Point pos)
 
 void InitRndLocObj(int min, int max, _object_id objtype)
 {
-	int numobjs = GenerateRnd(max - min) + min;
+	const int numobjs = GenerateRnd(max - min) + min;
 
 	for (int i = 0; i < numobjs; i++) {
 		while (true) {
-			int xp = GenerateRnd(80) + 16;
-			int yp = GenerateRnd(80) + 16;
+			const int xp = GenerateRnd(80) + 16;
+			const int yp = GenerateRnd(80) + 16;
 			if (IsAreaOk(Rectangle { { xp - 1, yp - 1 }, { 3, 3 } })) {
 				AddObject(objtype, { xp, yp });
 				break;
@@ -283,11 +284,11 @@ void InitRndLocObj(int min, int max, _object_id objtype)
 
 void InitRndLocBigObj(int min, int max, _object_id objtype)
 {
-	int numobjs = GenerateRnd(max - min) + min;
+	const int numobjs = GenerateRnd(max - min) + min;
 	for (int i = 0; i < numobjs; i++) {
 		while (true) {
-			int xp = GenerateRnd(80) + 16;
-			int yp = GenerateRnd(80) + 16;
+			const int xp = GenerateRnd(80) + 16;
+			const int yp = GenerateRnd(80) + 16;
 			if (IsAreaOk(Rectangle { { xp - 1, yp - 2 }, { 3, 4 } })) {
 				AddObject(objtype, { xp, yp });
 				break;
@@ -314,7 +315,7 @@ std::optional<Point> GetRandomObjectPosition(Displacement standoff)
 
 void InitRndLocObj5x5(int min, int max, _object_id objtype)
 {
-	int numobjs = min + GenerateRnd(max - min);
+	const int numobjs = min + GenerateRnd(max - min);
 	for (int i = 0; i < numobjs; i++) {
 		std::optional<Point> position = GetRandomObjectPosition({ 2, 2 });
 		if (!position)
@@ -362,8 +363,8 @@ void AddTortures()
 
 void AddCandles()
 {
-	int tx = Quests[Q_PWATER].position.x;
-	int ty = Quests[Q_PWATER].position.y;
+	const int tx = Quests[Q_PWATER].position.x;
+	const int ty = Quests[Q_PWATER].position.y;
 	AddObject(OBJ_STORYCANDLE, { tx - 2, ty + 1 });
 	AddObject(OBJ_STORYCANDLE, { tx + 3, ty + 1 });
 	AddObject(OBJ_STORYCANDLE, { tx - 1, ty + 2 });
@@ -408,7 +409,7 @@ void InitRndBarrels()
 	}
 
 	/** number of groups of barrels to generate */
-	int numobjs = GenerateRnd(5) + 3;
+	const int numobjs = GenerateRnd(5) + 3;
 	for (int i = 0; i < numobjs; i++) {
 		int xp;
 		int yp;
@@ -430,7 +431,7 @@ void InitRndBarrels()
 			while (true) {
 				if (t >= 3)
 					break;
-				int dir = GenerateRnd(8);
+				const int dir = GenerateRnd(8);
 				xp += bxadd[dir];
 				yp += byadd[dir];
 				found = RndLocOk({ xp, yp });
@@ -452,11 +453,11 @@ void AddL2Torches()
 {
 	for (int j = 0; j < MAXDUNY; j++) {
 		for (int i = 0; i < MAXDUNX; i++) {
-			Point testPosition = { i, j };
+			const Point testPosition = { i, j };
 			if (TileContainsSetPiece(testPosition))
 				continue;
 
-			int pn = dPiece[i][j];
+			const int pn = dPiece[i][j];
 			if (pn == 0 && FlipCoin(3)) {
 				AddObject(OBJ_TORCHL2, testPosition);
 			}
@@ -565,7 +566,7 @@ void LoadMapObjects(const char *path, Point start, WorldTileRectangle mapRange =
 
 	WorldTileSize size = GetDunSize(dunData.get());
 
-	int layer2Offset = 2 + size.width * size.height;
+	const int layer2Offset = 2 + size.width * size.height;
 
 	// The rest of the layers are at dPiece scale
 	size *= static_cast<WorldTileCoord>(2);
@@ -574,9 +575,9 @@ void LoadMapObjects(const char *path, Point start, WorldTileRectangle mapRange =
 
 	for (WorldTileCoord j = 0; j < size.height; j++) {
 		for (WorldTileCoord i = 0; i < size.width; i++) {
-			auto objectId = static_cast<uint8_t>(SDL_SwapLE16(objectLayer[j * size.width + i]));
+			auto objectId = static_cast<uint8_t>(Swap16LE(objectLayer[j * size.width + i]));
 			if (objectId != 0) {
-				Point mapPos = start + Displacement { i, j };
+				const Point mapPos = start + Displacement { i, j };
 				Object *mapObject = AddObject(ObjTypeConv[objectId], mapPos);
 				if (leveridx > 0 && mapObject != nullptr)
 					mapObject->InitializeLoadedObject(mapRange, leveridx);
@@ -597,7 +598,7 @@ void AddDiabObjs()
 void AddCryptObject(Object &object, int a2)
 {
 	if (a2 > 5) {
-		Player &myPlayer = *MyPlayer;
+		const Player &myPlayer = *MyPlayer;
 		switch (a2) {
 		case 6:
 			switch (myPlayer._pClass) {
@@ -616,6 +617,8 @@ void AddCryptObject(Object &object, int a2)
 				break;
 			case HeroClass::Bard:
 				object._oVar2 = TEXT_BBOOKA;
+				break;
+			default:
 				break;
 			}
 			break;
@@ -637,6 +640,8 @@ void AddCryptObject(Object &object, int a2)
 			case HeroClass::Bard:
 				object._oVar2 = TEXT_BBOOKB;
 				break;
+			default:
+				break;
 			}
 			break;
 		case 8:
@@ -656,6 +661,8 @@ void AddCryptObject(Object &object, int a2)
 				break;
 			case HeroClass::Bard:
 				object._oVar2 = TEXT_BBOOKC;
+				break;
+			default:
 				break;
 			}
 			break;
@@ -723,7 +730,7 @@ void AddCryptBook(_object_id ot, int v2, Point position)
 	if (ActiveObjectCount >= MAXOBJECTS)
 		return;
 
-	int oi = AvailableObjects[0];
+	const int oi = AvailableObjects[0];
 	AvailableObjects[0] = AvailableObjects[MAXOBJECTS - 1 - ActiveObjectCount];
 	ActiveObjects[ActiveObjectCount] = oi;
 	dObject[position.x][position.y] = oi + 1;
@@ -750,8 +757,8 @@ void AddCryptStoryBook(int s)
 void AddNakrulLever()
 {
 	while (true) {
-		int xp = GenerateRnd(80) + 16;
-		int yp = GenerateRnd(80) + 16;
+		const int xp = GenerateRnd(80) + 16;
+		const int yp = GenerateRnd(80) + 16;
 		if (IsAreaOk(Rectangle { { xp - 1, yp - 1 }, { 3, 3 } })) {
 			break;
 		}
@@ -819,9 +826,9 @@ void AddStoryBooks()
 void AddHookedBodies(int freq)
 {
 	for (WorldTileCoord j = 0; j < DMAXY; j++) {
-		WorldTileCoord jj = 16 + j * 2;
+		const WorldTileCoord jj = 16 + j * 2;
 		for (WorldTileCoord i = 0; i < DMAXX; i++) {
-			WorldTileCoord ii = 16 + i * 2;
+			const WorldTileCoord ii = 16 + i * 2;
 			if (dungeon[i][j] != 1 && dungeon[i][j] != 2)
 				continue;
 			if (!FlipCoin(freq))
@@ -897,7 +904,7 @@ void AddLazStand()
 void DeleteObject(int oi, int i)
 {
 	const Object &object = Objects[oi];
-	Point position = object.position;
+	const Point position = object.position;
 	dObject[position.x][position.y] = 0;
 	AvailableObjects[-ActiveObjectCount + MAXOBJECTS] = oi;
 	ActiveObjectCount--;
@@ -950,7 +957,7 @@ void ObjSetMicro(Point position, int pn)
 
 void DoorSet(Point position, bool isLeftDoor)
 {
-	int pn = dPiece[position.x][position.y];
+	const int pn = dPiece[position.x][position.y];
 	switch (pn) {
 	case 42:
 		ObjSetMicro(position, 391);
@@ -1003,7 +1010,7 @@ void DoorSet(Point position, bool isLeftDoor)
 
 void CryptDoorSet(Point position, bool isLeftDoor)
 {
-	int pn = dPiece[position.x][position.y];
+	const int pn = dPiece[position.x][position.y];
 	switch (pn) {
 	case 74:
 		ObjSetMicro(position, 203);
@@ -1227,7 +1234,7 @@ void AddTrap(Object &trap)
 	else if (leveltype == DTYPE_CRYPT)
 		effectiveLevel -= 8;
 
-	int missileType = GenerateRnd(effectiveLevel / 3 + 1);
+	const int missileType = GenerateRnd(effectiveLevel / 3 + 1);
 	if (missileType == 0)
 		trap._oVar3 = static_cast<int8_t>(MissileID::Arrow);
 	if (missileType == 1)
@@ -1294,7 +1301,7 @@ void AddShrine(Object &shrine)
 	shrine._oRndSeed = AdvanceRndSeed();
 	shrine._oPreFlag = true;
 
-	int shrineCount = gbIsHellfire ? NumberOfShrineTypes : 26;
+	const int shrineCount = gbIsHellfire ? NumberOfShrineTypes : 26;
 	bool slist[NumberOfShrineTypes] = {};
 
 	for (int i = 0; i < shrineCount; i++) {
@@ -1306,8 +1313,8 @@ void AddShrine(Object &shrine)
 			isShrineAvailable = (shrineavail[i] != ShrineTypeMulti);
 		}
 
-		bool isEnchantedShrine = (i == ShrineEnchanted);
-		bool isCorrectLevelType = IsAnyOf(leveltype, DTYPE_CATHEDRAL, DTYPE_CATACOMBS);
+		const bool isEnchantedShrine = (i == ShrineEnchanted);
+		const bool isCorrectLevelType = IsAnyOf(leveltype, DTYPE_CATHEDRAL, DTYPE_CATACOMBS);
 
 		slist[i] = isShrineAvailable && (!isEnchantedShrine || isCorrectLevelType);
 	}
@@ -1333,9 +1340,9 @@ void AddBookcase(Object &bookcase)
 
 void AddLargeFountain(Object &fountain)
 {
-	int ox = fountain.position.x;
-	int oy = fountain.position.y;
-	uint8_t id = -(static_cast<int8_t>(fountain.GetId()) + 1);
+	const int ox = fountain.position.x;
+	const int oy = fountain.position.y;
+	const uint8_t id = -(static_cast<int8_t>(fountain.GetId()) + 1);
 	dObject[ox][oy - 1] = id;
 	dObject[ox - 1][oy] = id;
 	dObject[ox - 1][oy - 1] = id;
@@ -1436,7 +1443,7 @@ Point GetRndObjLoc(int randarea)
 void AddMushPatch()
 {
 	if (ActiveObjectCount < MAXOBJECTS) {
-		int i = AvailableObjects[0];
+		const int i = AvailableObjects[0];
 		const Point loc = GetRndObjLoc(5);
 		dObject[loc.x + 1][loc.y + 1] = -(i + 1);
 		dObject[loc.x + 2][loc.y + 1] = -(i + 1);
@@ -1519,7 +1526,7 @@ void UpdateCircle(Object &circle)
 		}
 		AddMissile(playerOnCircle->position.tile, { 35, 46 }, Direction::South, MissileID::Phasing, TARGET_BOTH, *playerOnCircle, 0, 0);
 		if (playerOnCircle == MyPlayer) {
-			LastMouseButtonAction = MouseActionType::None;
+			LastPlayerAction = PlayerActionType::None;
 			sgbMouseDown = CLICK_NONE;
 		}
 		ClrPlrPath(*playerOnCircle);
@@ -1594,14 +1601,14 @@ void UpdateFlameTrap(Object &trap)
 	} else if (trap._oVar4 == 0) {
 		if (trap._oVar3 == 2) {
 			int x = trap.position.x - 2;
-			int y = trap.position.y;
+			const int y = trap.position.y;
 			for (int j = 0; j < 5; j++) {
 				if (dPlayer[x][y] != 0 || dMonster[x][y] != 0)
 					trap._oVar4 = 1;
 				x++;
 			}
 		} else {
-			int x = trap.position.x;
+			const int x = trap.position.x;
 			int y = trap.position.y - 2;
 			for (int k = 0; k < 5; k++) {
 				if (dPlayer[x][y] != 0 || dMonster[x][y] != 0)
@@ -1612,17 +1619,16 @@ void UpdateFlameTrap(Object &trap)
 		if (trap._oVar4 != 0)
 			ActivateTrapLine(trap._otype, trap._oVar1);
 	} else {
-		int damage[6] = { 6, 8, 10, 12, 10, 12 };
+		const int damage[6] = { 6, 8, 10, 12, 10, 12 };
 
-		int mindam = damage[leveltype - 1];
-		int maxdam = mindam * 2;
+		const int mindam = damage[leveltype - 1];
+		const int maxdam = mindam * 2;
 
-		int x = trap.position.x;
-		int y = trap.position.y;
 		constexpr MissileID TrapMissile = MissileID::FireWallControl;
-		if (dMonster[x][y] > 0)
-			MonsterTrapHit(dMonster[x][y] - 1, mindam / 2, maxdam / 2, 0, TrapMissile, GetMissileData(TrapMissile).damageType(), false);
-		Player *player = PlayerAtPosition({ x, y }, true);
+		Monster *monster = FindMonsterAtPosition(trap.position, true);
+		if (monster != nullptr)
+			MonsterTrapHit(*monster, mindam / 2, maxdam / 2, 0, TrapMissile, GetMissileData(TrapMissile).damageType(), false);
+		Player *player = PlayerAtPosition(trap.position, true);
 		if (player != nullptr) {
 			bool unused;
 			PlayerMHit(*player, nullptr, 0, mindam, maxdam, TrapMissile, GetMissileData(TrapMissile).damageType(), false, DeathReason::MonsterOrTrap, &unused);
@@ -1644,7 +1650,7 @@ void UpdateBurningCrossDamage(Object &cross)
 	if (myPlayer._pmode == PM_DEATH)
 		return;
 
-	int8_t fireResist = myPlayer._pFireResist;
+	const int8_t fireResist = myPlayer._pFireResist;
 	if (fireResist > 0)
 		damage[leveltype - 1] -= fireResist * damage[leveltype - 1] / 100;
 
@@ -1652,21 +1658,21 @@ void UpdateBurningCrossDamage(Object &cross)
 		return;
 
 	ApplyPlrDamage(DamageType::Fire, myPlayer, 0, 0, damage[leveltype - 1]);
-	if (myPlayer._pHitPoints >> 6 > 0) {
+	if (!myPlayer.hasNoLife()) {
 		myPlayer.Say(HeroSpeech::Argh);
 	}
 }
 
 void ObjSetMini(Point position, int v)
 {
-	MegaTile mega = pMegaTiles[v - 1];
+	const MegaTile mega = pMegaTiles[v - 1];
 
-	Point megaOrigin = position.megaToWorld();
+	const Point megaOrigin = position.megaToWorld();
 
-	ObjSetMicro(megaOrigin, SDL_SwapLE16(mega.micro1));
-	ObjSetMicro(megaOrigin + Direction::SouthEast, SDL_SwapLE16(mega.micro2));
-	ObjSetMicro(megaOrigin + Direction::SouthWest, SDL_SwapLE16(mega.micro3));
-	ObjSetMicro(megaOrigin + Direction::South, SDL_SwapLE16(mega.micro4));
+	ObjSetMicro(megaOrigin, Swap16LE(mega.micro1));
+	ObjSetMicro(megaOrigin + Direction::SouthEast, Swap16LE(mega.micro2));
+	ObjSetMicro(megaOrigin + Direction::SouthWest, Swap16LE(mega.micro3));
+	ObjSetMicro(megaOrigin + Direction::South, Swap16LE(mega.micro4));
 }
 
 void ObjL1Special(int x1, int y1, int x2, int y2)
@@ -1755,8 +1761,8 @@ void CloseDoor(Object &door)
 
 void OperateDoor(Object &door, bool sendflag)
 {
-	bool isCrypt = IsAnyOf(door._otype, OBJ_L5LDOOR, OBJ_L5RDOOR);
-	bool openDoor = door._oVar4 == DOOR_CLOSED;
+	const bool isCrypt = IsAnyOf(door._otype, OBJ_L5LDOOR, OBJ_L5RDOOR);
+	const bool openDoor = door._oVar4 == DOOR_CLOSED;
 
 	if (!openDoor && !IsDoorClear(door)) {
 		PlaySfxLoc(isCrypt ? SfxID::CryptDoorClose : SfxID::DoorClose, door.position);
@@ -1781,7 +1787,7 @@ void OperateDoor(Object &door, bool sendflag)
 bool AreAllLeversActivated(int leverId)
 {
 	for (int j = 0; j < ActiveObjectCount; j++) {
-		Object &lever = Objects[ActiveObjects[j]];
+		const Object &lever = Objects[ActiveObjects[j]];
 		if (lever._otype == OBJ_SWITCHSKL
 		    && lever._oVar8 == leverId
 		    && lever.canInteractWith()) {
@@ -1876,7 +1882,7 @@ void OperateBook(Player &player, Object &book, bool sendmsg)
 
 	if (setlvlnum == SL_BONECHAMB) {
 		if (sendmsg) {
-			uint8_t newSpellLevel = player._pSplLvl[static_cast<int8_t>(SpellID::Guardian)] + 1;
+			const uint8_t newSpellLevel = player._pSplLvl[static_cast<int8_t>(SpellID::Guardian)] + 1;
 			if (newSpellLevel <= MaxSpellLevel) {
 				player._pSplLvl[static_cast<int8_t>(SpellID::Guardian)] = newSpellLevel;
 				NetSendCmdParam2(true, CMD_CHANGE_SPELL_LEVEL, static_cast<uint16_t>(SpellID::Guardian), newSpellLevel);
@@ -2000,6 +2006,8 @@ void OperateChamberOfBoneBook(Object &questBook, bool sendmsg)
 	case HeroClass::Barbarian:
 		textdef = TEXT_BONER;
 		break;
+	default:
+		break;
 	}
 	if (sendmsg) {
 		Quests[Q_SCHAMB]._qmsg = textdef;
@@ -2032,7 +2040,7 @@ void OperateChest(const Player &player, Object &chest, bool sendLootMsg)
 		}
 	}
 	if (chest.IsTrappedChest()) {
-		Direction mdir = GetDirection(chest.position, player.position.tile);
+		const Direction mdir = GetDirection(chest.position, player.position.tile);
 		MissileID mtype;
 		switch (chest._oVar4) {
 		case 0:
@@ -2085,7 +2093,7 @@ void OperateMushroomPatch(const Player &player, Object &mushroomPatch)
 	mushroomPatch._oAnimFrame++;
 
 	PlaySfxLoc(SfxID::ChestOpen, mushroomPatch.position);
-	Point pos = GetSuperItemLoc(mushroomPatch.position);
+	const Point pos = GetSuperItemLoc(mushroomPatch.position);
 
 	if (&player == MyPlayer) {
 		SpawnQuestItem(IDI_MUSHROOM, pos, 0, SelectionRegion::None, true);
@@ -2118,7 +2126,7 @@ void OperateInnSignChest(const Player &player, Object &questContainer, bool send
 	PlaySfxLoc(SfxID::ChestOpen, questContainer.position);
 
 	if (sendmsg) {
-		Point pos = GetSuperItemLoc(questContainer.position);
+		const Point pos = GetSuperItemLoc(questContainer.position);
 		SpawnQuestItem(IDI_BANNER, pos, 0, SelectionRegion::None, true);
 		NetSendCmdLoc(MyPlayerId, true, CMD_OPERATEOBJ, questContainer.position);
 	}
@@ -2303,7 +2311,7 @@ void OperateShrineHidden(DiabloGenerator &rng, Player &player)
 			}
 			if (cnt == 0)
 				break;
-			int r = rng.generateRnd(NUM_INVLOC);
+			const int r = rng.generateRnd(NUM_INVLOC);
 			if (player.InvBody[r].isEmpty() || player.InvBody[r]._iMaxDur == DUR_INDESTRUCTIBLE || player.InvBody[r]._iMaxDur == 0)
 				continue;
 
@@ -2437,9 +2445,8 @@ void OperateShrineEnchanted(DiabloGenerator &rng, Player &player)
 
 	int cnt = 0;
 	uint64_t spell = 1;
-	uint8_t maxSpells = gbIsHellfire ? MAX_SPELLS : 37;
-	uint64_t spells = player._pMemSpells;
-	for (uint16_t j = 0; j < maxSpells; j++) {
+	const uint64_t spells = player._pMemSpells;
+	for (uint16_t j = 0; j < SpellsData.size(); j++) {
 		if ((spell & spells) != 0)
 			cnt++;
 		spell *= 2;
@@ -2447,13 +2454,13 @@ void OperateShrineEnchanted(DiabloGenerator &rng, Player &player)
 	if (cnt > 1) {
 		int spellToReduce;
 		do {
-			spellToReduce = rng.generateRnd(maxSpells) + 1;
+			spellToReduce = rng.generateRnd(static_cast<int32_t>(SpellsData.size())) + 1;
 		} while ((player._pMemSpells & GetSpellBitmask(static_cast<SpellID>(spellToReduce))) == 0);
 
 		spell = 1;
-		for (uint8_t j = static_cast<uint8_t>(SpellID::Firebolt); j < maxSpells; j++) {
+		for (uint8_t j = static_cast<uint8_t>(SpellID::Firebolt); j < SpellsData.size(); j++) {
 			if ((player._pMemSpells & spell) != 0 && player._pSplLvl[j] < MaxSpellLevel && j != spellToReduce) {
-				uint8_t newSpellLevel = static_cast<uint8_t>(player._pSplLvl[j] + 1);
+				const uint8_t newSpellLevel = static_cast<uint8_t>(player._pSplLvl[j] + 1);
 				player._pSplLvl[j] = newSpellLevel;
 				NetSendCmdParam2(true, CMD_CHANGE_SPELL_LEVEL, j, newSpellLevel);
 			}
@@ -2461,7 +2468,7 @@ void OperateShrineEnchanted(DiabloGenerator &rng, Player &player)
 		}
 
 		if (player._pSplLvl[spellToReduce] > 0) {
-			uint8_t newSpellLevel = static_cast<uint8_t>(player._pSplLvl[spellToReduce] - 1);
+			const uint8_t newSpellLevel = static_cast<uint8_t>(player._pSplLvl[spellToReduce] - 1);
 			player._pSplLvl[spellToReduce] = newSpellLevel;
 			NetSendCmdParam2(true, CMD_CHANGE_SPELL_LEVEL, spellToReduce, newSpellLevel);
 		}
@@ -2503,9 +2510,9 @@ void OperateShrineCostOfWisdom(Player &player, SpellID spellId, diablo_message m
 
 	player._pMemSpells |= GetSpellBitmask(spellId);
 
-	uint8_t curSpellLevel = player._pSplLvl[static_cast<int8_t>(spellId)];
+	const uint8_t curSpellLevel = player._pSplLvl[static_cast<int8_t>(spellId)];
 	if (curSpellLevel < MaxSpellLevel) {
-		uint8_t newSpellLevel = std::min(static_cast<uint8_t>(curSpellLevel + 2), MaxSpellLevel);
+		const uint8_t newSpellLevel = std::min(static_cast<uint8_t>(curSpellLevel + 2), MaxSpellLevel);
 		player._pSplLvl[static_cast<int8_t>(spellId)] = newSpellLevel;
 		NetSendCmdParam2(true, CMD_CHANGE_SPELL_LEVEL, static_cast<uint16_t>(spellId), newSpellLevel);
 	}
@@ -2519,14 +2526,14 @@ void OperateShrineCostOfWisdom(Player &player, SpellID spellId, diablo_message m
 		}
 	}
 
-	uint32_t t = player._pMaxManaBase / 10;
-	int v1 = player._pMana - player._pManaBase;
-	int v2 = player._pMaxMana - player._pMaxManaBase;
+	const uint32_t t = player._pMaxManaBase / 10;
+	const int v1 = player._pMana - player._pManaBase;
+	const int v2 = player._pMaxMana - player._pMaxManaBase;
 	player._pManaBase -= t;
 	player._pMana -= t;
 	player._pMaxMana -= t;
 	player._pMaxManaBase -= t;
-	if (player._pMana >> 6 <= 0) {
+	if (player.hasNoMana()) {
 		player._pMana = v1;
 		player._pManaBase = 0;
 	}
@@ -2761,12 +2768,12 @@ void OperateShrineTainted(DiabloGenerator &rng, const Player &player)
 		return;
 	}
 
-	int r = rng.generateRnd(4);
+	const int r = rng.generateRnd(4);
 
-	int v1 = r == 0 ? 1 : -1;
-	int v2 = r == 1 ? 1 : -1;
-	int v3 = r == 2 ? 1 : -1;
-	int v4 = r == 3 ? 1 : -1;
+	const int v1 = r == 0 ? 1 : -1;
+	const int v2 = r == 1 ? 1 : -1;
+	const int v3 = r == 2 ? 1 : -1;
+	const int v4 = r == 3 ? 1 : -1;
 
 	Player &myPlayer = *MyPlayer;
 
@@ -2814,6 +2821,8 @@ void OperateShrineOily(Player &player, Point spawnPosition)
 		ModifyPlrDex(player, 1);
 		ModifyPlrMag(player, 1);
 		break;
+	default:
+		break;
 	}
 
 	CheckStats(player);
@@ -2858,7 +2867,7 @@ void OperateShrineMendicant(Player &player)
 	if (&player != MyPlayer)
 		return;
 
-	int gold = player._pGold / 2;
+	const int gold = player._pGold / 2;
 	player.addExperience(gold);
 	TakePlrsMoney(gold);
 
@@ -2935,9 +2944,9 @@ void OperateShrineSolar(Player &player)
 	if (&player != MyPlayer)
 		return;
 
-	time_t timeResult = time(nullptr);
+	const time_t timeResult = time(nullptr);
 	const std::tm *localtimeResult = localtime(&timeResult);
-	int hour = localtimeResult != nullptr ? localtimeResult->tm_hour : 20;
+	const int hour = localtimeResult != nullptr ? localtimeResult->tm_hour : 20;
 	if (hour >= 20 || hour < 4) {
 		InitDiabloMsg(EMSG_SHRINE_SOLAR4);
 		ModifyPlrVit(player, 2);
@@ -3169,7 +3178,7 @@ void OperateArmorStand(Object &armorStand, bool sendmsg, bool sendLootMsg)
 	armorStand.selectionRegion = SelectionRegion::None;
 	armorStand._oAnimFrame++;
 	SetRndSeed(armorStand._oRndSeed);
-	bool uniqueRnd = !FlipCoin();
+	const bool uniqueRnd = !FlipCoin();
 	if (currlevel <= 5) {
 		CreateTypeItem(armorStand.position, true, ItemType::LightArmor, IMISC_NONE, sendLootMsg, false);
 	} else if (currlevel >= 6 && currlevel <= 9) {
@@ -3186,7 +3195,7 @@ void OperateArmorStand(Object &armorStand, bool sendmsg, bool sendLootMsg)
 int FindValidShrine()
 {
 	for (;;) {
-		int rv = GenerateRnd(gbIsHellfire ? NumberOfShrineTypes : 26);
+		const int rv = GenerateRnd(gbIsHellfire ? NumberOfShrineTypes : 26);
 		if ((rv == ShrineEnchanted && !IsAnyOf(leveltype, DTYPE_CATHEDRAL, DTYPE_CATACOMBS)) || rv == ShrineThaumaturgic)
 			continue;
 		if (gbIsMultiplayer && shrineavail[rv] == ShrineTypeSingle)
@@ -3322,7 +3331,7 @@ void OperateWeaponRack(Object &weaponRack, bool sendmsg, bool sendLootMsg)
 		return;
 	SetRndSeed(weaponRack._oRndSeed);
 
-	ItemType weaponType { PickRandomlyAmong({ ItemType::Sword, ItemType::Axe, ItemType::Bow, ItemType::Mace }) };
+	const ItemType weaponType { PickRandomlyAmong({ ItemType::Sword, ItemType::Axe, ItemType::Bow, ItemType::Mace }) };
 
 	weaponRack.selectionRegion = SelectionRegion::None;
 	weaponRack._oAnimFrame++;
@@ -3401,7 +3410,7 @@ void OperateLazStand(Object &stand)
 
 	stand._oAnimFrame++;
 	stand.selectionRegion = SelectionRegion::None;
-	Point pos = GetSuperItemLoc(stand.position);
+	const Point pos = GetSuperItemLoc(stand.position);
 	SpawnQuestItem(IDI_LAZSTAFF, pos, 0, SelectionRegion::None, true);
 	NetSendCmdLoc(MyPlayerId, false, CMD_OPERATEOBJ, stand.position);
 }
@@ -3480,8 +3489,9 @@ void BreakBarrel(const Player &player, Object &barrel, bool forcebreak, bool sen
 		for (int yp = barrel.position.y - 1; yp <= barrel.position.y + 1; yp++) {
 			for (int xp = barrel.position.x - 1; xp <= barrel.position.x + 1; xp++) {
 				constexpr MissileID TrapMissile = MissileID::Firebolt;
-				if (dMonster[xp][yp] > 0) {
-					MonsterTrapHit(dMonster[xp][yp] - 1, 1, 4, 0, TrapMissile, GetMissileData(TrapMissile).damageType(), false);
+				Monster *monster = FindMonsterAtPosition({ xp, yp }, true);
+				if (monster != nullptr) {
+					MonsterTrapHit(*monster, 1, 4, 0, TrapMissile, GetMissileData(TrapMissile).damageType(), false);
 				}
 				Player *adjacentPlayer = PlayerAtPosition({ xp, yp }, true);
 				if (adjacentPlayer != nullptr) {
@@ -3564,7 +3574,7 @@ void SyncPedestal(const Object &pedestal)
 
 void UpdatePedestalState(Object &pedestal)
 {
-	int addedStones = Quests[Q_BLOOD]._qvar2;
+	const int addedStones = Quests[Q_BLOOD]._qvar2;
 	pedestal._oAnimFrame += addedStones;
 	pedestal._oVar6 += addedStones;
 	SyncPedestal(pedestal);
@@ -3594,7 +3604,7 @@ void ResyncDoors(WorldTilePosition p1, WorldTilePosition p2, bool sendmsg)
 			continue;
 		SyncDoor(*obj);
 		if (sendmsg) {
-			bool isOpen = obj->_oVar4 == DOOR_OPEN;
+			const bool isOpen = obj->_oVar4 == DOOR_OPEN;
 			NetSendCmdLoc(MyPlayerId, true, isOpen ? CMD_OPENDOOR : CMD_CLOSEDOOR, obj->position);
 		}
 	}
@@ -3747,7 +3757,7 @@ void AddL1Objs(int x1, int y1, int x2, int y2)
 {
 	for (int j = y1; j < y2; j++) {
 		for (int i = x1; i < x2; i++) {
-			int pn = dPiece[i][j];
+			const int pn = dPiece[i][j];
 			if (pn == 269)
 				AddObject(OBJ_L1LIGHT, { i, j });
 			if (pn == 43 || pn == 50 || pn == 213)
@@ -3762,7 +3772,7 @@ void AddL2Objs(int x1, int y1, int x2, int y2)
 {
 	for (int j = y1; j < y2; j++) {
 		for (int i = x1; i < x2; i++) {
-			int pn = dPiece[i][j];
+			const int pn = dPiece[i][j];
 			if (pn == 12 || pn == 540)
 				AddObject(OBJ_L2LDOOR, { i, j });
 			if (pn == 16 || pn == 541)
@@ -3775,7 +3785,7 @@ void AddL3Objs(int x1, int y1, int x2, int y2)
 {
 	for (int j = y1; j < y2; j++) {
 		for (int i = x1; i < x2; i++) {
-			int pn = dPiece[i][j];
+			const int pn = dPiece[i][j];
 			if (pn == 530)
 				AddObject(OBJ_L3LDOOR, { i, j });
 			if (pn == 533)
@@ -3788,7 +3798,7 @@ void AddCryptObjects(int x1, int y1, int x2, int y2)
 {
 	for (int j = y1; j < y2; j++) {
 		for (int i = x1; i < x2; i++) {
-			int pn = dPiece[i][j];
+			const int pn = dPiece[i][j];
 			if (pn == 76)
 				AddObject(OBJ_L5LDOOR, { i, j });
 			if (pn == 79)
@@ -3799,7 +3809,7 @@ void AddCryptObjects(int x1, int y1, int x2, int y2)
 
 void AddSlainHero()
 {
-	Point rndObjLoc = GetRndObjLoc(5);
+	const Point rndObjLoc = GetRndObjLoc(5);
 	AddObject(OBJ_SLAINHERO, rndObjLoc + Displacement { 2, 2 });
 }
 
@@ -3869,6 +3879,8 @@ void InitObjects()
 				case HeroClass::Barbarian:
 					spId = TEXT_BLINDING;
 					break;
+				default:
+					break;
 				}
 				Quests[Q_BLIND]._qmsg = spId;
 				AddBookLever(OBJ_BLINDBOOK, { SetPiece.position, SetPiece.size + 1 }, spId);
@@ -3894,6 +3906,8 @@ void InitObjects()
 					break;
 				case HeroClass::Barbarian:
 					spId = TEXT_BLOODY;
+					break;
+				default:
 					break;
 				}
 				Quests[Q_BLOOD]._qmsg = spId;
@@ -3927,6 +3941,8 @@ void InitObjects()
 					break;
 				case HeroClass::Barbarian:
 					spId = TEXT_BLOODWAR;
+					break;
+				default:
 					break;
 				}
 				Quests[Q_WARLORD]._qmsg = spId;
@@ -3964,7 +3980,7 @@ void SetMapObjects(const uint16_t *dunData, int startx, int starty)
 
 	WorldTileSize size = GetDunSize(dunData);
 
-	int layer2Offset = 2 + size.width * size.height;
+	const int layer2Offset = 2 + size.width * size.height;
 
 	// The rest of the layers are at dPiece scale
 	size *= static_cast<WorldTileCoord>(2);
@@ -3973,7 +3989,7 @@ void SetMapObjects(const uint16_t *dunData, int startx, int starty)
 
 	for (WorldTileCoord j = 0; j < size.height; j++) {
 		for (WorldTileCoord i = 0; i < size.width; i++) {
-			auto objectId = static_cast<uint8_t>(SDL_SwapLE16(objectLayer[j * size.width + i]));
+			auto objectId = static_cast<uint8_t>(Swap16LE(objectLayer[j * size.width + i]));
 			if (objectId != 0) {
 				const ObjectData &objectData = AllObjects[ObjTypeConv[objectId]];
 				filesWidths[objectData.ofindex] = objectData.animWidth;
@@ -3985,7 +4001,7 @@ void SetMapObjects(const uint16_t *dunData, int startx, int starty)
 
 	for (WorldTileCoord j = 0; j < size.height; j++) {
 		for (WorldTileCoord i = 0; i < size.width; i++) {
-			auto objectId = static_cast<uint8_t>(SDL_SwapLE16(objectLayer[j * size.width + i]));
+			auto objectId = static_cast<uint8_t>(Swap16LE(objectLayer[j * size.width + i]));
 			if (objectId != 0) {
 				AddObject(ObjTypeConv[objectId], { startx + 16 + i, starty + 16 + j });
 			}
@@ -3998,7 +4014,7 @@ Object *AddObject(_object_id objType, Point objPos)
 	if (ActiveObjectCount >= MAXOBJECTS)
 		return nullptr;
 
-	int oi = AvailableObjects[0];
+	const int oi = AvailableObjects[0];
 	AvailableObjects[0] = AvailableObjects[MAXOBJECTS - 1 - ActiveObjectCount];
 	ActiveObjects[ActiveObjectCount] = oi;
 	dObject[objPos.x][objPos.y] = oi + 1;
@@ -4166,7 +4182,7 @@ void OperateTrap(Object &trap)
 		return;
 
 	// default to firing at the trigger object
-	Point triggerPosition = { trap._oVar1, trap._oVar2 };
+	const Point triggerPosition = { trap._oVar1, trap._oVar2 };
 	Point target = triggerPosition;
 
 	auto searchArea = PointsInRectangle(Rectangle { target, 1 });
@@ -4177,7 +4193,7 @@ void OperateTrap(Object &trap)
 		target = *foundPosition;
 	}
 
-	Direction dir = GetDirection(trap.position, target);
+	const Direction dir = GetDirection(trap.position, target);
 	AddMissile(trap.position, target, dir, static_cast<MissileID>(trap._oVar3), TARGET_PLAYERS, -1, 0, 0);
 	PlaySfxLoc(SfxID::TriggerTrap, triggerPosition);
 }
@@ -4265,7 +4281,7 @@ void ProcessObjects()
 	}
 
 	for (int i = 0; i < ActiveObjectCount;) {
-		int oi = ActiveObjects[i];
+		const int oi = ActiveObjects[i];
 		if (Objects[oi]._oDelFlag) {
 			DeleteObject(oi, i);
 		} else {
@@ -4285,7 +4301,7 @@ void RedoPlayerVision()
 
 void MonstCheckDoors(const Monster &monster)
 {
-	for (Direction dir : { Direction::NorthEast, Direction::SouthWest, Direction::North, Direction::East, Direction::South, Direction::West, Direction::NorthWest, Direction::SouthEast }) {
+	for (const Direction dir : { Direction::NorthEast, Direction::SouthWest, Direction::North, Direction::East, Direction::South, Direction::West, Direction::NorthWest, Direction::SouthEast }) {
 		Object *object = FindObjectAtPosition(monster.position.tile + dir);
 		if (object == nullptr)
 			continue;
@@ -4308,10 +4324,10 @@ void ObjChangeMap(int x1, int y1, int x2, int y2)
 		}
 	}
 
-	WorldTilePosition mega1 { static_cast<WorldTileCoord>(x1), static_cast<WorldTileCoord>(y1) };
-	WorldTilePosition mega2 { static_cast<WorldTileCoord>(x2), static_cast<WorldTileCoord>(y2) };
-	WorldTilePosition world1 = mega1.megaToWorld();
-	WorldTilePosition world2 = mega2.megaToWorld() + Displacement { 1, 1 };
+	const WorldTilePosition mega1 { static_cast<WorldTileCoord>(x1), static_cast<WorldTileCoord>(y1) };
+	const WorldTilePosition mega2 { static_cast<WorldTileCoord>(x2), static_cast<WorldTileCoord>(y2) };
+	const WorldTilePosition world1 = mega1.megaToWorld();
+	const WorldTilePosition world2 = mega2.megaToWorld() + Displacement { 1, 1 };
 	if (leveltype == DTYPE_CATHEDRAL) {
 		ObjL1Special(world1.x, world1.y, world2.x, world2.y);
 		AddL1Objs(world1.x, world1.y, world2.x, world2.y);
@@ -4338,10 +4354,10 @@ void ObjChangeMapResync(int x1, int y1, int x2, int y2)
 		}
 	}
 
-	WorldTilePosition mega1 { static_cast<WorldTileCoord>(x1), static_cast<WorldTileCoord>(y1) };
-	WorldTilePosition mega2 { static_cast<WorldTileCoord>(x2), static_cast<WorldTileCoord>(y2) };
-	WorldTilePosition world1 = mega1.megaToWorld();
-	WorldTilePosition world2 = mega2.megaToWorld() + Displacement { 1, 1 };
+	const WorldTilePosition mega1 { static_cast<WorldTileCoord>(x1), static_cast<WorldTileCoord>(y1) };
+	const WorldTilePosition mega2 { static_cast<WorldTileCoord>(x2), static_cast<WorldTileCoord>(y2) };
+	const WorldTilePosition world1 = mega1.megaToWorld();
+	const WorldTilePosition world2 = mega2.megaToWorld() + Displacement { 1, 1 };
 	if (leveltype == DTYPE_CATHEDRAL) {
 		ObjL1Special(world1.x, world1.y, world2.x, world2.y);
 	}
@@ -4363,7 +4379,7 @@ _item_indexes ItemMiscIdIdx(item_misc_id imiscid)
 
 void OperateObject(Player &player, Object &object)
 {
-	bool sendmsg = &player == MyPlayer;
+	const bool sendmsg = &player == MyPlayer;
 
 	switch (object._otype) {
 	case OBJ_L1LDOOR:
@@ -4566,7 +4582,7 @@ void DeltaSyncCloseObj(Object &object)
 
 void SyncOpObject(Player &player, int cmd, Object &object)
 {
-	bool sendmsg = &player == MyPlayer;
+	const bool sendmsg = &player == MyPlayer;
 
 	switch (object._otype) {
 	case OBJ_L1LDOOR:
@@ -4891,7 +4907,8 @@ StringOrView Object::name() const
 void GetObjectStr(const Object &object)
 {
 	InfoString = object.name();
-	if (MyPlayer->_pClass == HeroClass::Rogue) {
+	const ClassAttributes &classAttributes = GetClassAttributes(MyPlayer->_pClass);
+	if (HasAnyOf(classAttributes.classFlags, PlayerClassFlag::TrapSense)) {
 		if (object._oTrapFlag) {
 			InfoString = fmt::format(fmt::runtime(_(/* TRANSLATORS: {:s} will either be a chest or a door */ "Trapped {:s}")), InfoString.str());
 			InfoColor = UiFlags::ColorRed;

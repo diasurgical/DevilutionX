@@ -15,8 +15,11 @@
 
 #include <expected.hpp>
 #include <fmt/format.h>
+#include <magic_enum/magic_enum_utility.hpp>
 
 #include "data/file.hpp"
+#include "data/record_reader.hpp"
+#include "data/value_reader.hpp"
 #include "items.h"
 #include "player.h"
 #include "textdat.h"
@@ -107,7 +110,7 @@ void ReloadExperienceData()
 		bool skipRecord = false;
 
 		FieldIterator fieldIt = record.begin();
-		FieldIterator endField = record.end();
+		const FieldIterator endField = record.end();
 		for (auto &column : columns) {
 			fieldIt += column.skipLength;
 
@@ -153,125 +156,216 @@ void ReloadExperienceData()
 	}
 }
 
+tl::expected<PlayerClassFlag, std::string> ParsePlayerClassFlag(std::string_view value)
+{
+	const std::optional<PlayerClassFlag> enumValueOpt = magic_enum::enum_cast<PlayerClassFlag>(value);
+	if (enumValueOpt.has_value()) {
+		return enumValueOpt.value();
+	}
+	return tl::make_unexpected("Unknown enum value");
+}
+
 void LoadClassData(std::string_view classPath, ClassAttributes &attributes, PlayerCombatData &combat)
 {
 	const std::string filename = StrCat("txtdata\\classes\\", classPath, "\\attributes.tsv");
-	tl::expected<DataFile, DataFile::Error> dataFileResult = DataFile::load(filename);
-	if (!dataFileResult.has_value()) {
-		DataFile::reportFatalError(dataFileResult.error(), filename);
-	}
+	tl::expected<DataFile, DataFile::Error> dataFileResult = DataFile::loadOrDie(filename);
 	DataFile &dataFile = dataFileResult.value();
+	dataFile.skipHeaderOrDie(filename);
 
-	if (tl::expected<void, DataFile::Error> result = dataFile.skipHeader();
-	    !result.has_value()) {
-		DataFile::reportFatalError(result.error(), filename);
-	}
+	ValueReader reader { dataFile, filename };
 
-	auto recordIt = dataFile.begin();
-	const auto recordEnd = dataFile.end();
-
-	const auto getValueField = [&](std::string_view expectedKey) {
-		if (recordIt == recordEnd) {
-			app_fatal(fmt::format("Missing field {} in {}", expectedKey, filename));
-		}
-		DataFileRecord record = *recordIt;
-		FieldIterator fieldIt = record.begin();
-		const FieldIterator endField = record.end();
-
-		const std::string_view key = (*fieldIt).value();
-		if (key != expectedKey) {
-			app_fatal(fmt::format("Unexpected field in {}: got {}, expected {}", filename, key, expectedKey));
-		}
-
-		++fieldIt;
-		if (fieldIt == endField) {
-			DataFile::reportFatalError(DataFile::Error::NotEnoughColumns, filename);
-		}
-		return *fieldIt;
-	};
-
-	const auto valueReader = [&](auto &&readFn) {
-		return [&](std::string_view expectedKey, auto &outValue) {
-			DataFileField valueField = getValueField(expectedKey);
-			if (const tl::expected<void, devilution::DataFileField::Error> result = readFn(valueField, outValue);
-			    !result.has_value()) {
-				DataFile::reportFatalFieldError(result.error(), filename, "Value", valueField);
-			}
-			++recordIt;
-		};
-	};
-
-	const auto readInt = valueReader([](DataFileField &valueField, auto &outValue) {
-		return valueField.parseInt(outValue);
-	});
-	const auto readDecimal = valueReader([](DataFileField &valueField, auto &outValue) {
-		return valueField.parseFixed6(outValue);
-	});
-
-	readInt("baseStr", attributes.baseStr);
-	readInt("baseMag", attributes.baseMag);
-	readInt("baseDex", attributes.baseDex);
-	readInt("baseVit", attributes.baseVit);
-	readInt("maxStr", attributes.maxStr);
-	readInt("maxMag", attributes.maxMag);
-	readInt("maxDex", attributes.maxDex);
-	readInt("maxVit", attributes.maxVit);
-	readInt("blockBonus", combat.baseToBlock);
-	readDecimal("adjLife", attributes.adjLife);
-	readDecimal("adjMana", attributes.adjMana);
-	readDecimal("lvlLife", attributes.lvlLife);
-	readDecimal("lvlMana", attributes.lvlMana);
-	readDecimal("chrLife", attributes.chrLife);
-	readDecimal("chrMana", attributes.chrMana);
-	readDecimal("itmLife", attributes.itmLife);
-	readDecimal("itmMana", attributes.itmMana);
-	readInt("baseMagicToHit", combat.baseMagicToHit);
-	readInt("baseMeleeToHit", combat.baseMeleeToHit);
-	readInt("baseRangedToHit", combat.baseRangedToHit);
+	reader.readEnumList("classFlags", attributes.classFlags, ParsePlayerClassFlag);
+	reader.readInt("baseStr", attributes.baseStr);
+	reader.readInt("baseMag", attributes.baseMag);
+	reader.readInt("baseDex", attributes.baseDex);
+	reader.readInt("baseVit", attributes.baseVit);
+	reader.readInt("maxStr", attributes.maxStr);
+	reader.readInt("maxMag", attributes.maxMag);
+	reader.readInt("maxDex", attributes.maxDex);
+	reader.readInt("maxVit", attributes.maxVit);
+	reader.readInt("blockBonus", combat.baseToBlock);
+	reader.readDecimal("adjLife", attributes.adjLife);
+	reader.readDecimal("adjMana", attributes.adjMana);
+	reader.readDecimal("lvlLife", attributes.lvlLife);
+	reader.readDecimal("lvlMana", attributes.lvlMana);
+	reader.readDecimal("chrLife", attributes.chrLife);
+	reader.readDecimal("chrMana", attributes.chrMana);
+	reader.readDecimal("itmLife", attributes.itmLife);
+	reader.readDecimal("itmMana", attributes.itmMana);
+	reader.readInt("baseMagicToHit", combat.baseMagicToHit);
+	reader.readInt("baseMeleeToHit", combat.baseMeleeToHit);
+	reader.readInt("baseRangedToHit", combat.baseRangedToHit);
 }
+
+void LoadClassStartingLoadoutData(std::string_view classPath, PlayerStartingLoadoutData &startingLoadoutData)
+{
+	const std::string filename = StrCat("txtdata\\classes\\", classPath, "\\starting_loadout.tsv");
+	tl::expected<DataFile, DataFile::Error> dataFileResult = DataFile::loadOrDie(filename);
+	DataFile &dataFile = dataFileResult.value();
+	dataFile.skipHeaderOrDie(filename);
+
+	ValueReader reader { dataFile, filename };
+
+	reader.read("skill", startingLoadoutData.skill, ParseSpellId);
+	reader.read("spell", startingLoadoutData.spell, ParseSpellId);
+	reader.readInt("spellLevel", startingLoadoutData.spellLevel);
+	for (size_t i = 0; i < startingLoadoutData.items.size(); ++i) {
+		reader.read(StrCat("item", i), startingLoadoutData.items[i], ParseItemId);
+	}
+	reader.readInt("gold", startingLoadoutData.gold);
+}
+
+void LoadClassSpriteData(std::string_view classPath, PlayerSpriteData &spriteData)
+{
+	const std::string filename = StrCat("txtdata\\classes\\", classPath, "\\sprites.tsv");
+	tl::expected<DataFile, DataFile::Error> dataFileResult = DataFile::loadOrDie(filename);
+	DataFile &dataFile = dataFileResult.value();
+	dataFile.skipHeaderOrDie(filename);
+
+	ValueReader reader { dataFile, filename };
+
+	reader.readString("classPath", spriteData.classPath);
+	reader.readChar("classChar", spriteData.classChar);
+	reader.readString("trn", spriteData.trn);
+	reader.readInt("stand", spriteData.stand);
+	reader.readInt("walk", spriteData.walk);
+	reader.readInt("attack", spriteData.attack);
+	reader.readInt("bow", spriteData.bow);
+	reader.readInt("swHit", spriteData.swHit);
+	reader.readInt("block", spriteData.block);
+	reader.readInt("lightning", spriteData.lightning);
+	reader.readInt("fire", spriteData.fire);
+	reader.readInt("magic", spriteData.magic);
+	reader.readInt("death", spriteData.death);
+}
+
+void LoadClassAnimData(std::string_view classPath, PlayerAnimData &animData)
+{
+	const std::string filename = StrCat("txtdata\\classes\\", classPath, "\\animations.tsv");
+	tl::expected<DataFile, DataFile::Error> dataFileResult = DataFile::loadOrDie(filename);
+	DataFile &dataFile = dataFileResult.value();
+	dataFile.skipHeaderOrDie(filename);
+
+	ValueReader reader { dataFile, filename };
+
+	reader.readInt("unarmedFrames", animData.unarmedFrames);
+	reader.readInt("unarmedActionFrame", animData.unarmedActionFrame);
+	reader.readInt("unarmedShieldFrames", animData.unarmedShieldFrames);
+	reader.readInt("unarmedShieldActionFrame", animData.unarmedShieldActionFrame);
+	reader.readInt("swordFrames", animData.swordFrames);
+	reader.readInt("swordActionFrame", animData.swordActionFrame);
+	reader.readInt("swordShieldFrames", animData.swordShieldFrames);
+	reader.readInt("swordShieldActionFrame", animData.swordShieldActionFrame);
+	reader.readInt("bowFrames", animData.bowFrames);
+	reader.readInt("bowActionFrame", animData.bowActionFrame);
+	reader.readInt("axeFrames", animData.axeFrames);
+	reader.readInt("axeActionFrame", animData.axeActionFrame);
+	reader.readInt("maceFrames", animData.maceFrames);
+	reader.readInt("maceActionFrame", animData.maceActionFrame);
+	reader.readInt("maceShieldFrames", animData.maceShieldFrames);
+	reader.readInt("maceShieldActionFrame", animData.maceShieldActionFrame);
+	reader.readInt("staffFrames", animData.staffFrames);
+	reader.readInt("staffActionFrame", animData.staffActionFrame);
+	reader.readInt("idleFrames", animData.idleFrames);
+	reader.readInt("walkingFrames", animData.walkingFrames);
+	reader.readInt("blockingFrames", animData.blockingFrames);
+	reader.readInt("deathFrames", animData.deathFrames);
+	reader.readInt("castingFrames", animData.castingFrames);
+	reader.readInt("recoveryFrames", animData.recoveryFrames);
+	reader.readInt("townIdleFrames", animData.townIdleFrames);
+	reader.readInt("townWalkingFrames", animData.townWalkingFrames);
+	reader.readInt("castingActionFrame", animData.castingActionFrame);
+}
+
+void LoadClassSounds(std::string_view classPath, ankerl::unordered_dense::map<HeroSpeech, SfxID> &sounds)
+{
+	const std::string filename = StrCat("txtdata\\classes\\", classPath, "\\sounds.tsv");
+	tl::expected<DataFile, DataFile::Error> dataFileResult = DataFile::loadOrDie(filename);
+	DataFile &dataFile = dataFileResult.value();
+	dataFile.skipHeaderOrDie(filename);
+
+	ValueReader reader { dataFile, filename };
+
+	magic_enum::enum_for_each<HeroSpeech>([&](const HeroSpeech speech) {
+		reader.read(magic_enum::enum_name(speech), sounds[speech], ParseSfxId);
+	});
+}
+
+/** Contains the data related to each player class. */
+std::vector<PlayerData> PlayersData;
 
 std::vector<ClassAttributes> ClassAttributesPerClass;
 
 std::vector<PlayerCombatData> PlayersCombatData;
 
-void LoadClassesAttributes()
+std::vector<PlayerStartingLoadoutData> PlayersStartingLoadoutData;
+
+/** Contains the data related to each player class. */
+std::vector<PlayerSpriteData> PlayersSpriteData;
+
+std::vector<PlayerAnimData> PlayersAnimData;
+
+std::vector<ankerl::unordered_dense::map<HeroSpeech, SfxID>> herosounds;
+
+} // namespace
+
+void LoadClassDatFromFile(DataFile &dataFile, const std::string_view filename)
 {
-	const std::array classPaths { "warrior", "rogue", "sorcerer", "monk", "bard", "barbarian" };
-	ClassAttributesPerClass.clear();
-	ClassAttributesPerClass.reserve(classPaths.size());
-	PlayersCombatData.clear();
-	PlayersCombatData.reserve(classPaths.size());
-	for (std::string_view path : classPaths) {
-		LoadClassData(path, ClassAttributesPerClass.emplace_back(), PlayersCombatData.emplace_back());
+	dataFile.skipHeaderOrDie(filename);
+
+	PlayersData.reserve(PlayersData.size() + dataFile.numRecords());
+
+	for (DataFileRecord record : dataFile) {
+		if (PlayersData.size() >= static_cast<size_t>(HeroClass::NUM_MAX_CLASSES)) {
+			DisplayFatalErrorAndExit(_("Loading Class Data Failed"), fmt::format(fmt::runtime(_("Could not add a class, since the maximum class number of {} has already been reached.")), static_cast<size_t>(HeroClass::NUM_MAX_CLASSES)));
+		}
+
+		RecordReader reader { record, filename };
+
+		PlayerData &playerData = PlayersData.emplace_back();
+
+		reader.readString("className", playerData.className);
+		reader.readString("folderName", playerData.folderName);
+		reader.readInt("portrait", playerData.portrait);
+		reader.readString("inv", playerData.inv);
 	}
 }
 
-/** Contains the data related to each player class. */
-const PlayerData PlayersData[] = {
-	// clang-format off
-// HeroClass                 className
-// TRANSLATORS: Player Block start
-/* HeroClass::Warrior */   { N_("Warrior"),   },
-/* HeroClass::Rogue */     { N_("Rogue"),     },
-/* HeroClass::Sorcerer */  { N_("Sorcerer"),  },
-/* HeroClass::Monk */      { N_("Monk"),      },
-/* HeroClass::Bard */      { N_("Bard"),      },
-// TRANSLATORS: Player Block end
-/* HeroClass::Barbarian */ { N_("Barbarian"), },
-	// clang-format on
-};
+namespace {
 
-const std::array<PlayerStartingLoadoutData, enum_size<HeroClass>::value> PlayersStartingLoadoutData { {
-	// clang-format off
-// HeroClass                 skill,                  spell,             spellLevel,     items[0].diablo,       items[0].hellfire, items[1].diablo,  items[1].hellfire, items[2].diablo, items[2].hellfire, items[3].diablo, items[3].hellfire, items[4].diablo, items[4].hellfire, gold,
-/* HeroClass::Warrior   */ { SpellID::ItemRepair,    SpellID::Null,              0, { { { IDI_WARRIOR,         IDI_WARRIOR,    }, { IDI_WARRSHLD,   IDI_WARRSHLD,   }, { IDI_WARRCLUB,  IDI_WARRCLUB,   }, { IDI_HEAL,    IDI_HEAL,  }, { IDI_HEAL,      IDI_HEAL, }, }, },  100, },
-/* HeroClass::Rogue     */ { SpellID::TrapDisarm,    SpellID::Null,              0, { { { IDI_ROGUE,           IDI_ROGUE,      }, { IDI_HEAL,       IDI_HEAL,       }, { IDI_HEAL,      IDI_HEAL,       }, { IDI_NONE,    IDI_NONE,  }, { IDI_NONE,      IDI_NONE, }, }, },  100, },
-/* HeroClass::Sorcerer  */ { SpellID::StaffRecharge, SpellID::Firebolt,          2, { { { IDI_SORCERER_DIABLO, IDI_SORCERER,   }, { IDI_MANA,       IDI_HEAL,       }, { IDI_MANA,      IDI_HEAL,       }, { IDI_NONE,    IDI_NONE,  }, { IDI_NONE,      IDI_NONE, }, }, },  100, },
-/* HeroClass::Monk      */ { SpellID::Search,        SpellID::Null,              0, { { { IDI_SHORTSTAFF,      IDI_SHORTSTAFF, }, { IDI_HEAL,       IDI_HEAL,       }, { IDI_HEAL,      IDI_HEAL,       }, { IDI_NONE,    IDI_NONE,  }, { IDI_NONE,      IDI_NONE, }, }, },  100, },
-/* HeroClass::Bard      */ { SpellID::Identify,      SpellID::Null,              0, { { { IDI_BARDSWORD,       IDI_BARDSWORD,  }, { IDI_BARDDAGGER, IDI_BARDDAGGER, }, { IDI_HEAL,      IDI_HEAL,       }, { IDI_HEAL,    IDI_HEAL,  }, { IDI_NONE,      IDI_NONE, }, }, },  100, },
-/* HeroClass::Barbarian */ { SpellID::Rage,          SpellID::Null,              0, { { { IDI_BARBARIAN,       IDI_BARBARIAN,  }, { IDI_WARRSHLD,   IDI_WARRSHLD,   }, { IDI_HEAL,      IDI_HEAL,       }, { IDI_HEAL,    IDI_HEAL,  }, { IDI_NONE,      IDI_NONE, }, }, },  100, }
-	// clang-format on
-} };
+void LoadClassDat()
+{
+	const std::string_view filename = "txtdata\\classes\\classdat.tsv";
+	DataFile dataFile = DataFile::loadOrDie(filename);
+	PlayersData.clear();
+	LoadClassDatFromFile(dataFile, filename);
+
+	PlayersData.shrink_to_fit();
+}
+
+void LoadClassesAttributes()
+{
+	ClassAttributesPerClass.clear();
+	ClassAttributesPerClass.reserve(PlayersData.size());
+	PlayersCombatData.clear();
+	PlayersCombatData.reserve(PlayersData.size());
+	PlayersStartingLoadoutData.clear();
+	PlayersStartingLoadoutData.reserve(PlayersData.size());
+	PlayersSpriteData.clear();
+	PlayersSpriteData.reserve(PlayersData.size());
+	PlayersAnimData.clear();
+	PlayersAnimData.reserve(PlayersData.size());
+	herosounds.clear();
+	herosounds.reserve(PlayersData.size());
+
+	for (const PlayerData &playerData : PlayersData) {
+		LoadClassData(playerData.folderName, ClassAttributesPerClass.emplace_back(), PlayersCombatData.emplace_back());
+		LoadClassStartingLoadoutData(playerData.folderName, PlayersStartingLoadoutData.emplace_back());
+		LoadClassSpriteData(playerData.folderName, PlayersSpriteData.emplace_back());
+		LoadClassAnimData(playerData.folderName, PlayersAnimData.emplace_back());
+		LoadClassSounds(playerData.folderName, herosounds.emplace_back());
+	}
+}
 
 } // namespace
 
@@ -283,7 +377,20 @@ const ClassAttributes &GetClassAttributes(HeroClass playerClass)
 void LoadPlayerDataFiles()
 {
 	ReloadExperienceData();
+	LoadClassDat();
 	LoadClassesAttributes();
+}
+
+SfxID GetHeroSound(HeroClass clazz, HeroSpeech speech)
+{
+	const size_t playerClassIndex = static_cast<size_t>(clazz);
+	assert(playerClassIndex < herosounds.size());
+	const auto findIt = herosounds[playerClassIndex].find(speech);
+	if (findIt != herosounds[playerClassIndex].end()) {
+		return findIt->second;
+	}
+
+	return SfxID::None;
 }
 
 uint32_t GetNextExperienceThresholdForLevel(unsigned level)
@@ -296,56 +403,44 @@ uint8_t GetMaximumCharacterLevel()
 	return ExperienceData.getMaxLevel();
 }
 
-const PlayerData &GetPlayerDataForClass(HeroClass playerClass)
+size_t GetNumPlayerClasses()
 {
-	return PlayersData[static_cast<size_t>(playerClass)];
+	return PlayersData.size();
 }
 
-const SfxID herosounds[enum_size<HeroClass>::value][enum_size<HeroSpeech>::value] = {
-	// clang-format off
-	{ SfxID::Warrior1,  SfxID::Warrior2,  SfxID::Warrior3,  SfxID::Warrior4,  SfxID::Warrior5,  SfxID::Warrior6,  SfxID::Warrior7,  SfxID::Warrior8,  SfxID::Warrior9,  SfxID::Warrior10,  SfxID::Warrior11,  SfxID::Warrior12,  SfxID::Warrior13,  SfxID::Warrior14,  SfxID::Warrior15,  SfxID::Warrior16,  SfxID::Warrior17,  SfxID::Warrior18,  SfxID::Warrior19,  SfxID::Warrior20,  SfxID::Warrior21,  SfxID::Warrior22,  SfxID::Warrior23,  SfxID::Warrior24,  SfxID::Warrior25,  SfxID::Warrior26,  SfxID::Warrior27,  SfxID::Warrior28,  SfxID::Warrior29,  SfxID::Warrior30,  SfxID::Warrior31,  SfxID::Warrior32,  SfxID::Warrior33,  SfxID::Warrior34,  SfxID::Warrior35,  SfxID::Warrior36,  SfxID::Warrior37,  SfxID::Warrior38,  SfxID::Warrior39,  SfxID::Warrior40,  SfxID::Warrior41,  SfxID::Warrior42,  SfxID::Warrior43,  SfxID::Warrior44,  SfxID::Warrior45,  SfxID::Warrior46,  SfxID::Warrior47,  SfxID::Warrior48,  SfxID::Warrior49,  SfxID::Warrior50,  SfxID::Warrior51,  SfxID::Warrior52,  SfxID::Warrior53,  SfxID::Warrior54,  SfxID::Warrior55,  SfxID::Warrior56,  SfxID::Warrior57,  SfxID::Warrior58,  SfxID::Warrior59,  SfxID::Warrior60,  SfxID::Warrior61,  SfxID::Warrior62,  SfxID::Warrior63,  SfxID::Warrior64,  SfxID::Warrior65,  SfxID::Warrior66,  SfxID::Warrior67,  SfxID::Warrior68,  SfxID::Warrior69,  SfxID::Warrior70,  SfxID::Warrior71,  SfxID::Warrior72,  SfxID::Warrior73,  SfxID::Warrior74,  SfxID::Warrior75,  SfxID::Warrior76,  SfxID::Warrior77,  SfxID::Warrior78,  SfxID::Warrior79,  SfxID::Warrior80,  SfxID::Warrior81,  SfxID::Warrior82,  SfxID::Warrior83,  SfxID::Warrior84,  SfxID::Warrior85,  SfxID::Warrior86,  SfxID::Warrior87,  SfxID::Warrior88,  SfxID::Warrior89,  SfxID::Warrior90,  SfxID::Warrior91,  SfxID::Warrior92,  SfxID::Warrior93,  SfxID::Warrior94,  SfxID::Warrior95,  SfxID::Warrior96b,  SfxID::Warrior97,  SfxID::Warrior98,  SfxID::Warrior99,  SfxID::Warrior100,  SfxID::Warrior101,  SfxID::Warrior102,  SfxID::WarriorDeath  },
-	{ SfxID::Rogue1,    SfxID::Rogue2,    SfxID::Rogue3,    SfxID::Rogue4,    SfxID::Rogue5,    SfxID::Rogue6,    SfxID::Rogue7,    SfxID::Rogue8,    SfxID::Rogue9,    SfxID::Rogue10,    SfxID::Rogue11,    SfxID::Rogue12,    SfxID::Rogue13,    SfxID::Rogue14,    SfxID::Rogue15,    SfxID::Rogue16,    SfxID::Rogue17,    SfxID::Rogue18,    SfxID::Rogue19,    SfxID::Rogue20,    SfxID::Rogue21,    SfxID::Rogue22,    SfxID::Rogue23,    SfxID::Rogue24,    SfxID::Rogue25,    SfxID::Rogue26,    SfxID::Rogue27,    SfxID::Rogue28,    SfxID::Rogue29,    SfxID::Rogue30,    SfxID::Rogue31,    SfxID::Rogue32,    SfxID::Rogue33,    SfxID::Rogue34,    SfxID::Rogue35,    SfxID::Rogue36,    SfxID::Rogue37,    SfxID::Rogue38,    SfxID::Rogue39,    SfxID::Rogue40,    SfxID::Rogue41,    SfxID::Rogue42,    SfxID::Rogue43,    SfxID::Rogue44,    SfxID::Rogue45,    SfxID::Rogue46,    SfxID::Rogue47,    SfxID::Rogue48,    SfxID::Rogue49,    SfxID::Rogue50,    SfxID::Rogue51,    SfxID::Rogue52,    SfxID::Rogue53,    SfxID::Rogue54,    SfxID::Rogue55,    SfxID::Rogue56,    SfxID::Rogue57,    SfxID::Rogue58,    SfxID::Rogue59,    SfxID::Rogue60,    SfxID::Rogue61,    SfxID::Rogue62,    SfxID::Rogue63,    SfxID::Rogue64,    SfxID::Rogue65,    SfxID::Rogue66,    SfxID::Rogue67,    SfxID::Rogue68,    SfxID::Rogue69,    SfxID::Rogue70,    SfxID::Rogue71,    SfxID::Rogue72,    SfxID::Rogue73,    SfxID::Rogue74,    SfxID::Rogue75,    SfxID::Rogue76,    SfxID::Rogue77,    SfxID::Rogue78,    SfxID::Rogue79,    SfxID::Rogue80,    SfxID::Rogue81,    SfxID::Rogue82,    SfxID::Rogue83,    SfxID::Rogue84,    SfxID::Rogue85,    SfxID::Rogue86,    SfxID::Rogue87,    SfxID::Rogue88,    SfxID::Rogue89,    SfxID::Rogue90,    SfxID::Rogue91,    SfxID::Rogue92,    SfxID::Rogue93,    SfxID::Rogue94,    SfxID::Rogue95,    SfxID::Rogue96,     SfxID::Rogue97,    SfxID::Rogue98,    SfxID::Rogue99,    SfxID::Rogue100,    SfxID::Rogue101,    SfxID::Rogue102,    SfxID::Rogue71       },
-	{ SfxID::Sorceror1, SfxID::Sorceror2, SfxID::Sorceror3, SfxID::Sorceror4, SfxID::Sorceror5, SfxID::Sorceror6, SfxID::Sorceror7, SfxID::Sorceror8, SfxID::Sorceror9, SfxID::Sorceror10, SfxID::Sorceror11, SfxID::Sorceror12, SfxID::Sorceror13, SfxID::Sorceror14, SfxID::Sorceror15, SfxID::Sorceror16, SfxID::Sorceror17, SfxID::Sorceror18, SfxID::Sorceror19, SfxID::Sorceror20, SfxID::Sorceror21, SfxID::Sorceror22, SfxID::Sorceror23, SfxID::Sorceror24, SfxID::Sorceror25, SfxID::Sorceror26, SfxID::Sorceror27, SfxID::Sorceror28, SfxID::Sorceror29, SfxID::Sorceror30, SfxID::Sorceror31, SfxID::Sorceror32, SfxID::Sorceror33, SfxID::Sorceror34, SfxID::Sorceror35, SfxID::Sorceror36, SfxID::Sorceror37, SfxID::Sorceror38, SfxID::Sorceror39, SfxID::Sorceror40, SfxID::Sorceror41, SfxID::Sorceror42, SfxID::Sorceror43, SfxID::Sorceror44, SfxID::Sorceror45, SfxID::Sorceror46, SfxID::Sorceror47, SfxID::Sorceror48, SfxID::Sorceror49, SfxID::Sorceror50, SfxID::Sorceror51, SfxID::Sorceror52, SfxID::Sorceror53, SfxID::Sorceror54, SfxID::Sorceror55, SfxID::Sorceror56, SfxID::Sorceror57, SfxID::Sorceror58, SfxID::Sorceror59, SfxID::Sorceror60, SfxID::Sorceror61, SfxID::Sorceror62, SfxID::Sorceror63, SfxID::Sorceror64, SfxID::Sorceror65, SfxID::Sorceror66, SfxID::Sorceror67, SfxID::Sorceror68, SfxID::Sorceror69, SfxID::Sorceror70, SfxID::Sorceror71, SfxID::Sorceror72, SfxID::Sorceror73, SfxID::Sorceror74, SfxID::Sorceror75, SfxID::Sorceror76, SfxID::Sorceror77, SfxID::Sorceror78, SfxID::Sorceror79, SfxID::Sorceror80, SfxID::Sorceror81, SfxID::Sorceror82, SfxID::Sorceror83, SfxID::Sorceror84, SfxID::Sorceror85, SfxID::Sorceror86, SfxID::Sorceror87, SfxID::Sorceror88, SfxID::Sorceror89, SfxID::Sorceror90, SfxID::Sorceror91, SfxID::Sorceror92, SfxID::Sorceror93, SfxID::Sorceror94, SfxID::Sorceror95, SfxID::Sorceror96,  SfxID::Sorceror97, SfxID::Sorceror98, SfxID::Sorceror99, SfxID::Sorceror100, SfxID::Sorceror101, SfxID::Sorceror102, SfxID::Sorceror71    },
-	{ SfxID::Monk1,     SfxID::None,      SfxID::None,      SfxID::None,      SfxID::None,      SfxID::None,      SfxID::None,      SfxID::Monk8,     SfxID::Monk9,     SfxID::Monk10,     SfxID::Monk11,     SfxID::Monk12,     SfxID::Monk13,     SfxID::Monk14,     SfxID::Monk15,     SfxID::Monk16,     SfxID::None,       SfxID::None,       SfxID::None,       SfxID::None,       SfxID::None,       SfxID::None,       SfxID::None,       SfxID::Monk24,     SfxID::None,       SfxID::None,       SfxID::Monk27,     SfxID::None,       SfxID::Monk29,     SfxID::None,       SfxID::None,       SfxID::None,       SfxID::None,       SfxID::Monk34,     SfxID::Monk35,     SfxID::None,       SfxID::None,       SfxID::None,       SfxID::None,       SfxID::None,       SfxID::None,       SfxID::None,       SfxID::Monk43,     SfxID::None,       SfxID::None,       SfxID::Monk46,     SfxID::None,       SfxID::None,       SfxID::Monk49,     SfxID::Monk50,     SfxID::None,       SfxID::Monk52,     SfxID::None,       SfxID::Monk54,     SfxID::Monk55,     SfxID::Monk56,     SfxID::None,       SfxID::None,       SfxID::None,       SfxID::None,       SfxID::Monk61,     SfxID::Monk62,     SfxID::None,       SfxID::None,       SfxID::None,       SfxID::None,       SfxID::None,       SfxID::Monk68,     SfxID::Monk69,     SfxID::Monk70,     SfxID::Monk71,     SfxID::None,       SfxID::None,       SfxID::None,       SfxID::None,       SfxID::None,       SfxID::None,       SfxID::None,       SfxID::Monk79,     SfxID::Monk80,     SfxID::None,       SfxID::Monk82,     SfxID::Monk83,     SfxID::None,       SfxID::None,       SfxID::None,       SfxID::Monk87,     SfxID::Monk88,     SfxID::Monk89,     SfxID::None,       SfxID::Monk91,     SfxID::Monk92,     SfxID::None,       SfxID::Monk94,     SfxID::Monk95,     SfxID::Monk96,      SfxID::Monk97,     SfxID::Monk98,     SfxID::Monk99,     SfxID::None,        SfxID::None,        SfxID::None,        SfxID::Monk71        },
-	{ SfxID::Rogue1,    SfxID::Rogue2,    SfxID::Rogue3,    SfxID::Rogue4,    SfxID::Rogue5,    SfxID::Rogue6,    SfxID::Rogue7,    SfxID::Rogue8,    SfxID::Rogue9,    SfxID::Rogue10,    SfxID::Rogue11,    SfxID::Rogue12,    SfxID::Rogue13,    SfxID::Rogue14,    SfxID::Rogue15,    SfxID::Rogue16,    SfxID::Rogue17,    SfxID::Rogue18,    SfxID::Rogue19,    SfxID::Rogue20,    SfxID::Rogue21,    SfxID::Rogue22,    SfxID::Rogue23,    SfxID::Rogue24,    SfxID::Rogue25,    SfxID::Rogue26,    SfxID::Rogue27,    SfxID::Rogue28,    SfxID::Rogue29,    SfxID::Rogue30,    SfxID::Rogue31,    SfxID::Rogue32,    SfxID::Rogue33,    SfxID::Rogue34,    SfxID::Rogue35,    SfxID::Rogue36,    SfxID::Rogue37,    SfxID::Rogue38,    SfxID::Rogue39,    SfxID::Rogue40,    SfxID::Rogue41,    SfxID::Rogue42,    SfxID::Rogue43,    SfxID::Rogue44,    SfxID::Rogue45,    SfxID::Rogue46,    SfxID::Rogue47,    SfxID::Rogue48,    SfxID::Rogue49,    SfxID::Rogue50,    SfxID::Rogue51,    SfxID::Rogue52,    SfxID::Rogue53,    SfxID::Rogue54,    SfxID::Rogue55,    SfxID::Rogue56,    SfxID::Rogue57,    SfxID::Rogue58,    SfxID::Rogue59,    SfxID::Rogue60,    SfxID::Rogue61,    SfxID::Rogue62,    SfxID::Rogue63,    SfxID::Rogue64,    SfxID::Rogue65,    SfxID::Rogue66,    SfxID::Rogue67,    SfxID::Rogue68,    SfxID::Rogue69,    SfxID::Rogue70,    SfxID::Rogue71,    SfxID::Rogue72,    SfxID::Rogue73,    SfxID::Rogue74,    SfxID::Rogue75,    SfxID::Rogue76,    SfxID::Rogue77,    SfxID::Rogue78,    SfxID::Rogue79,    SfxID::Rogue80,    SfxID::Rogue81,    SfxID::Rogue82,    SfxID::Rogue83,    SfxID::Rogue84,    SfxID::Rogue85,    SfxID::Rogue86,    SfxID::Rogue87,    SfxID::Rogue88,    SfxID::Rogue89,    SfxID::Rogue90,    SfxID::Rogue91,    SfxID::Rogue92,    SfxID::Rogue93,    SfxID::Rogue94,    SfxID::Rogue95,    SfxID::Rogue96,     SfxID::Rogue97,    SfxID::Rogue98,    SfxID::Rogue99,    SfxID::Rogue100,    SfxID::Rogue101,    SfxID::Rogue102,    SfxID::Rogue71       },
-	{ SfxID::Warrior1,  SfxID::Warrior2,  SfxID::Warrior3,  SfxID::Warrior4,  SfxID::Warrior5,  SfxID::Warrior6,  SfxID::Warrior7,  SfxID::Warrior8,  SfxID::Warrior9,  SfxID::Warrior10,  SfxID::Warrior11,  SfxID::Warrior12,  SfxID::Warrior13,  SfxID::Warrior14,  SfxID::Warrior15,  SfxID::Warrior16,  SfxID::Warrior17,  SfxID::Warrior18,  SfxID::Warrior19,  SfxID::Warrior20,  SfxID::Warrior21,  SfxID::Warrior22,  SfxID::Warrior23,  SfxID::Warrior24,  SfxID::Warrior25,  SfxID::Warrior26,  SfxID::Warrior27,  SfxID::Warrior28,  SfxID::Warrior29,  SfxID::Warrior30,  SfxID::Warrior31,  SfxID::Warrior32,  SfxID::Warrior33,  SfxID::Warrior34,  SfxID::Warrior35,  SfxID::Warrior36,  SfxID::Warrior37,  SfxID::Warrior38,  SfxID::Warrior39,  SfxID::Warrior40,  SfxID::Warrior41,  SfxID::Warrior42,  SfxID::Warrior43,  SfxID::Warrior44,  SfxID::Warrior45,  SfxID::Warrior46,  SfxID::Warrior47,  SfxID::Warrior48,  SfxID::Warrior49,  SfxID::Warrior50,  SfxID::Warrior51,  SfxID::Warrior52,  SfxID::Warrior53,  SfxID::Warrior54,  SfxID::Warrior55,  SfxID::Warrior56,  SfxID::Warrior57,  SfxID::Warrior58,  SfxID::Warrior59,  SfxID::Warrior60,  SfxID::Warrior61,  SfxID::Warrior62,  SfxID::Warrior63,  SfxID::Warrior64,  SfxID::Warrior65,  SfxID::Warrior66,  SfxID::Warrior67,  SfxID::Warrior68,  SfxID::Warrior69,  SfxID::Warrior70,  SfxID::Warrior71,  SfxID::Warrior72,  SfxID::Warrior73,  SfxID::Warrior74,  SfxID::Warrior75,  SfxID::Warrior76,  SfxID::Warrior77,  SfxID::Warrior78,  SfxID::Warrior79,  SfxID::Warrior80,  SfxID::Warrior81,  SfxID::Warrior82,  SfxID::Warrior83,  SfxID::Warrior84,  SfxID::Warrior85,  SfxID::Warrior86,  SfxID::Warrior87,  SfxID::Warrior88,  SfxID::Warrior89,  SfxID::Warrior90,  SfxID::Warrior91,  SfxID::Warrior92,  SfxID::Warrior93,  SfxID::Warrior94,  SfxID::Warrior95,  SfxID::Warrior96b,  SfxID::Warrior97,  SfxID::Warrior98,  SfxID::Warrior99,  SfxID::Warrior100,  SfxID::Warrior101,  SfxID::Warrior102,  SfxID::Warrior71     },
-	// clang-format on
-};
+const PlayerData &GetPlayerDataForClass(HeroClass playerClass)
+{
+	const size_t playerClassIndex = static_cast<size_t>(playerClass);
+	assert(playerClassIndex < PlayersData.size());
+	return PlayersData[playerClassIndex];
+}
 
 const PlayerCombatData &GetPlayerCombatDataForClass(HeroClass pClass)
 {
-	return PlayersCombatData[static_cast<size_t>(pClass)];
+	const size_t playerClassIndex = static_cast<size_t>(pClass);
+	assert(playerClassIndex < PlayersCombatData.size());
+	return PlayersCombatData[playerClassIndex];
 }
 
 const PlayerStartingLoadoutData &GetPlayerStartingLoadoutForClass(HeroClass pClass)
 {
-	return PlayersStartingLoadoutData[static_cast<size_t>(pClass)];
+	const size_t playerClassIndex = static_cast<size_t>(pClass);
+	assert(playerClassIndex < PlayersStartingLoadoutData.size());
+	return PlayersStartingLoadoutData[playerClassIndex];
 }
 
-/** Contains the data related to each player class. */
-const PlayerSpriteData PlayersSpriteData[] = {
-	// clang-format off
-// HeroClass                 classPath,  stand,   walk,   attack,   bow, swHit,   block,   lightning,   fire,   magic,   death
+const PlayerSpriteData &GetPlayerSpriteDataForClass(HeroClass pClass)
+{
+	const size_t playerClassIndex = static_cast<size_t>(pClass);
+	assert(playerClassIndex < PlayersSpriteData.size());
+	return PlayersSpriteData[playerClassIndex];
+}
 
-/* HeroClass::Warrior */   { "warrior",     96,     96,      128,    96,    96,      96,          96,     96,      96,     128 },
-/* HeroClass::Rogue */     { "rogue",       96,     96,      128,   128,    96,      96,          96,     96,      96,     128 },
-/* HeroClass::Sorcerer */  { "sorceror",    96,     96,      128,   128,    96,      96,         128,    128,     128,     128 },
-/* HeroClass::Monk */      { "monk",       112,    112,      130,   130,    98,      98,         114,    114,     114,     160 },
-/* HeroClass::Bard */      { "rogue",       96,     96,      128,   128,    96,      96,          96,     96,      96,     128 },
-/* HeroClass::Barbarian */ { "warrior",     96,     96,      128,    96,    96,      96,          96,     96,      96,     128 },
-	// clang-format on
-};
-
-const PlayerAnimData PlayersAnimData[] = {
-	// clang-format off
-// HeroClass                  unarmedFrames,  unarmedActionFrame,  unarmedShieldFrames,  unarmedShieldActionFrame,  swordFrames,  swordActionFrame,  swordShieldFrames,  swordShieldActionFrame,  bowFrames,  bowActionFrame,  axeFrames,  axeActionFrame,  maceFrames,  maceActionFrame,  maceShieldFrames,  maceShieldActionFrame,  staffFrames,  staffActionFrame,  idleFrames,  walkingFrames,  blockingFrames,  deathFrames,  castingFrames,  recoveryFrames,  townIdleFrames,  townWalkingFrames,  castingActionFrame
-/* HeroClass::Warrior */   {             16,                   9,                   16,                         9,           16,                 9,                 16,                       9,         16,              11,         20,              10,          16,                9,                16,                      9,           16,                11,          10,              8,               2,           20,             20,               6,              20,                  8,                  14 },
-/* HeroClass::Rogue */     {             18,                  10,                   18,                        10,           18,                10,                 18,                      10,         12,               7,         22,              13,          18,               10,                18,                     10,           16,                11,           8,              8,               4,           20,             16,               7,              20,                  8,                  12 },
-/* HeroClass::Sorcerer */  {             20,                  12,                   16,                         9,           16,                12,                 16,                      12,         20,              16,         24,              16,          16,               12,                16,                     12,           16,                12,           8,              8,               6,           20,             12,               8,              20,                  8,                   8 },
-/* HeroClass::Monk */      {             12,                   7,                   12,                         7,           16,                12,                 16,                      12,         20,              14,         23,              14,          16,               12,                16,                     12,           13,                 8,           8,              8,               3,           20,             18,               6,              20,                  8,                  13 },
-/* HeroClass::Bard */      {             18,                  10,                   18,                        10,           18,                10,                 18,                      10,         12,              11,         22,              13,          18,               10,                18,                     10,           16,                11,           8,              8,               4,           20,             16,               7,              20,                  8,                  12 },
-/* HeroClass::Barbarian */ {             16,                   9,                   16,                         9,           16,                 9,                 16,                       9,         16,              11,         20,               8,          16,                8,                16,                      8,           16,                11,          10,              8,               2,           20,             20,               6,              20,                  8,                  14 },
-	// clang-format on
-};
+const PlayerAnimData &GetPlayerAnimDataForClass(HeroClass pClass)
+{
+	const size_t playerClassIndex = static_cast<size_t>(pClass);
+	assert(playerClassIndex < PlayersAnimData.size());
+	return PlayersAnimData[playerClassIndex];
+}
 
 } // namespace devilution

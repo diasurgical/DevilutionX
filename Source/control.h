@@ -11,12 +11,19 @@
 #include <string>
 #include <string_view>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_events.h>
+#include <SDL3/SDL_keycode.h>
+#include <SDL3/SDL_rect.h>
+#else
 #include <SDL.h>
-#include <expected.hpp>
 
 #ifdef USE_SDL1
 #include "utils/sdl2_to_1_2_backports.h"
 #endif
+#endif
+
+#include <expected.hpp>
 
 #include "DiabloUI/text_input.hpp"
 #include "DiabloUI/ui_flags.hpp"
@@ -51,6 +58,7 @@ extern bool ChatFlag;
 extern bool SpellbookFlag;
 extern bool CharFlag;
 extern StringOrView InfoString;
+extern StringOrView FloatingInfoString;
 extern bool MainPanelFlag;
 extern bool MainPanelButtonDown;
 extern bool SpellSelectFlag;
@@ -83,8 +91,8 @@ inline bool CanPanelsCoverView()
 	return GetScreenWidth() <= mainPanel.size.width && GetScreenHeight() <= SidePanelSize.height + mainPanel.size.height;
 }
 
-void AddInfoBoxString(std::string_view str);
-void AddInfoBoxString(std::string &&str);
+void AddInfoBoxString(std::string_view str, bool floatingBox = false);
+void AddInfoBoxString(std::string &&str, bool floatingBox = false);
 void DrawPanelBox(const Surface &out, SDL_Rect srcRect, Point targetPosition);
 Point GetPanelPosition(UiPanels panel, Point offset = { 0, 0 });
 
@@ -168,6 +176,7 @@ void FreeControlPan();
  * Sets a string to be drawn in the info box and then draws it.
  */
 void DrawInfoBox(const Surface &out);
+void DrawFloatingInfoBox(const Surface &out);
 void CheckLevelButton();
 void CheckLevelButtonUp();
 void DrawLevelButton(const Surface &out);

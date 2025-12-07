@@ -15,7 +15,7 @@ TEST(StaticVector, StaticVector_push_back)
 	StaticVector<size_t, MAX_SIZE> container;
 
 	SetRndSeed(testing::UnitTest::GetInstance()->random_seed());
-	size_t size = RandomIntBetween(10, MAX_SIZE);
+	const size_t size = RandomIntBetween(10, MAX_SIZE);
 
 	for (size_t i = 0; i < size; i++) {
 		container.push_back(i);
@@ -31,7 +31,7 @@ TEST(StaticVector, StaticVector_push_back_full)
 {
 	StaticVector<size_t, MAX_SIZE> container;
 
-	size_t size = MAX_SIZE;
+	const size_t size = MAX_SIZE;
 	for (size_t i = 0; i < size; i++) {
 		container.push_back(i);
 	}
@@ -98,7 +98,7 @@ TEST(StaticVector, StaticVector_erase_random)
 	std::vector<size_t> expected;
 
 	SetRndSeed(testing::UnitTest::GetInstance()->random_seed());
-	size_t size = RandomIntBetween(10, MAX_SIZE);
+	const size_t size = RandomIntBetween(10, MAX_SIZE);
 	size_t erasures = RandomIntBetween(1, static_cast<int32_t>(size) - 1, true);
 
 	for (size_t i = 0; i < size; i++) {
@@ -107,7 +107,7 @@ TEST(StaticVector, StaticVector_erase_random)
 	}
 
 	while (erasures-- > 0) {
-		size_t idx = RandomIntLessThan(static_cast<int32_t>(container.size()));
+		const size_t idx = RandomIntLessThan(static_cast<int32_t>(container.size()));
 		container.erase(container.begin() + idx);
 		expected.erase(expected.begin() + idx);
 	}
@@ -121,7 +121,7 @@ TEST(StaticVector, StaticVector_erase_random)
 TEST(StaticVector, StaticVector_erase_range)
 {
 	StaticVector<size_t, MAX_SIZE> container;
-	std::vector<size_t> erase_idx;
+	const std::vector<size_t> erase_idx;
 	std::vector<size_t> expected;
 
 	SetRndSeed(testing::UnitTest::GetInstance()->random_seed());
@@ -140,8 +140,8 @@ TEST(StaticVector, StaticVector_erase_range)
 		EXPECT_EQ(container[i], expected[i]);
 	}
 
-	int32_t from = RandomIntBetween(0, static_cast<int32_t>(container.size()) - 1);
-	int32_t to = RandomIntBetween(from + 1, static_cast<int32_t>(container.size()));
+	const int32_t from = RandomIntBetween(0, static_cast<int32_t>(container.size()) - 1);
+	const int32_t to = RandomIntBetween(from + 1, static_cast<int32_t>(container.size()));
 	container.erase(container.begin() + from, container.begin() + to);
 	for (int32_t i = to - from; i > 0; i--) {
 		expected.erase(expected.begin() + from);

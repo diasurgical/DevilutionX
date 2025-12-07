@@ -1,12 +1,9 @@
 #include "engine/load_clx.hpp"
 
+#include <cstddef>
 #include <cstdint>
 
-#include <SDL.h>
-
-#ifdef USE_SDL1
-#include "utils/sdl2_to_1_2_backports.h"
-#endif
+#include <expected.hpp>
 
 #include "appfat.h"
 #include "engine/assets.hpp"

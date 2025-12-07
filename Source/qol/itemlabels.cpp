@@ -117,7 +117,7 @@ void AddItemToLabelQueue(int id, Point position)
 
 	int nameWidth = GetLineWidth(textOnGround);
 	nameWidth += MarginX * 2;
-	int index = ItemCAnimTbl[item._iCurs];
+	const int index = ItemCAnimTbl[item._iCurs];
 	if (!labelCenterOffsets[index]) {
 		const auto [xBegin, xEnd] = ClxMeasureSolidHorizontalBounds((*item.AnimInfo.sprites)[item.AnimInfo.currentFrame]);
 		labelCenterOffsets[index].emplace((xBegin + xEnd) / 2);
@@ -163,7 +163,7 @@ void DrawItemNameLabels(const Surface &out)
 			canShow = true;
 			for (unsigned j = 0; j < i; ++j) {
 				ItemLabel &a = labelQueue[i];
-				ItemLabel &b = labelQueue[j];
+				const ItemLabel &b = labelQueue[j];
 				if (std::abs(b.pos.y - a.pos.y) < labelHeight + BorderY) {
 					const int widthA = a.width + BorderX + MarginX * 2;
 					const int widthB = b.width + BorderX + MarginX * 2;
@@ -187,7 +187,7 @@ void DrawItemNameLabels(const Surface &out)
 	}
 
 	for (const ItemLabel &label : labelQueue) {
-		Item &item = Items[label.id];
+		const Item &item = Items[label.id];
 
 		if (MousePosition.x >= label.pos.x && MousePosition.x < label.pos.x + label.width
 		    && MousePosition.y >= label.pos.y && MousePosition.y < label.pos.y + labelHeight) {
@@ -196,7 +196,7 @@ void DrawItemNameLabels(const Surface &out)
 			    && !MyPlayerIsDead
 			    && !IsPlayerInStore()
 			    && IsMouseOverGameArea()
-			    && LastMouseButtonAction == MouseActionType::None) {
+			    && LastPlayerAction == PlayerActionType::None) {
 				isLabelHighlighted = true;
 				cursPosition = item.position;
 				pcursitem = label.id;

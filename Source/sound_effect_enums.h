@@ -2,6 +2,8 @@
 
 #include <cstdint>
 
+#include <magic_enum/magic_enum.hpp>
+
 namespace devilution {
 
 enum class HeroSpeech : uint8_t {
@@ -119,15 +121,9 @@ enum class SfxID : int16_t {
 	Swing,
 	Swing2,
 	WarriorDeath,
-	ShootBow2,
-	ShootFireballBow,
 	QuestDone,
 	BarrelExpload,
 	BarrelBreak,
-	PodExpload,
-	PodPop,
-	UrnExpload,
-	UrnBreak,
 	ChestOpen,
 	DoorClose,
 	DoorOpen,
@@ -208,7 +204,6 @@ enum class SfxID : int16_t {
 	SpellInvisibility, // Unused
 	SpellLightning,
 	SpellManaShield,
-	BigExplosion,
 	SpellNova,
 	SpellPuddle,
 	SpellResurrect,
@@ -218,7 +213,6 @@ enum class SfxID : int16_t {
 	SpellTrapDisarm,
 	SpellTeleport,
 	SpellFireWall,
-	SpellLightningWall,
 	Gillian1,
 	Gillian2,
 	Gillian3,
@@ -315,7 +309,6 @@ enum class SfxID : int16_t {
 	Griswold56,
 	Cow1,
 	Cow2,
-	Pig,
 	WoundedTownsmanOld, // Unused
 	Farnham1,
 	Farnham2,
@@ -899,6 +892,43 @@ enum class SfxID : int16_t {
 	Warrior100,
 	Warrior101,
 	Warrior102,
+	Narrator1,
+	Narrator2,
+	Narrator3,
+	Narrator4,
+	Narrator5,
+	Narrator6,
+	Narrator7,
+	Narrator8,
+	Narrator9,
+	DiabloGreeting,
+	ButcherGreeting,
+	Gharbad1,
+	Gharbad2,
+	Gharbad3,
+	Gharbad4,
+	Lachdanan1,
+	Lachdanan2,
+	Lachdanan3,
+	LazarusGreeting,
+	LeoricGreeting,
+	Snotspill1,
+	Snotspill2,
+	Snotspill3,
+	Warlord,
+	Zhar1,
+	Zhar2,
+	DiabloDeath,
+
+	ShootBow2,
+	ShootFireballBow,
+	PodExpload,
+	PodPop,
+	UrnExpload,
+	UrnBreak,
+	BigExplosion,
+	SpellLightningWall,
+	Pig,
 	Monk1,
 	Monk8,
 	Monk9,
@@ -944,33 +974,6 @@ enum class SfxID : int16_t {
 	Monk97,
 	Monk98,
 	Monk99,
-	Narrator1,
-	Narrator2,
-	Narrator3,
-	Narrator4,
-	Narrator5,
-	Narrator6,
-	Narrator7,
-	Narrator8,
-	Narrator9,
-	DiabloGreeting,
-	ButcherGreeting,
-	Gharbad1,
-	Gharbad2,
-	Gharbad3,
-	Gharbad4,
-	Lachdanan1,
-	Lachdanan2,
-	Lachdanan3,
-	LazarusGreeting,
-	LeoricGreeting,
-	Snotspill1,
-	Snotspill2,
-	Snotspill3,
-	Warlord,
-	Zhar1,
-	Zhar2,
-	DiabloDeath,
 	Farmer1,
 	Farmer2,
 	Farmer2a,
@@ -1034,8 +1037,13 @@ enum sfx_flag : uint8_t {
 	sfx_ROGUE    = 1 << 4,
 	sfx_WARRIOR  = 1 << 5,
 	sfx_SORCERER = 1 << 6,
-	sfx_HELLFIRE = 1 << 7,
 	// clang-format on
 };
 
 } // namespace devilution
+
+template <>
+struct magic_enum::customize::enum_range<devilution::SfxID> {
+	static constexpr int min = static_cast<int>(devilution::SfxID::None);
+	static constexpr int max = static_cast<int>(devilution::SfxID::LAST);
+};

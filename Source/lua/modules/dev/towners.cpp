@@ -99,8 +99,8 @@ std::string DebugCmdTalkToTowner(std::string_view name)
 sol::table LuaDevTownersModule(sol::state_view &lua)
 {
 	sol::table table = lua.create_table();
-	SetDocumented(table, "talk", "(name: string)", "Talk to towner.", &DebugCmdTalkToTowner);
-	SetDocumented(table, "visit", "(name: string)", "Teleport to towner.", &DebugCmdVisitTowner);
+	LuaSetDocFn(table, "talk", "(name: string)", "Talk to towner.", &DebugCmdTalkToTowner);
+	LuaSetDocFn(table, "visit", "(name: string)", "Teleport to towner.", &DebugCmdVisitTowner);
 	return table;
 }
 

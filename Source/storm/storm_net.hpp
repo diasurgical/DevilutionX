@@ -2,12 +2,15 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <vector>
 
 #include "multi.h"
 
 namespace devilution {
+
+using net::leaveinfo_t;
 
 enum conn_type : uint8_t {
 	SELCONN_ZT,
@@ -22,6 +25,7 @@ enum event_type : uint8_t {
 };
 
 extern const char *ConnectionNames[];
+extern int provider;
 
 struct _SNETCAPS {
 	uint32_t size;
@@ -42,12 +46,15 @@ struct _SNETEVENT {
 	size_t databytes;  // native-endian
 };
 
+struct DvlNetLatencies {
+	uint32_t echoLatency;
+	std::optional<int> providerLatency;
+	std::optional<bool> isRelayed;
+};
+
 #define PS_CONNECTED 0x10000
 #define PS_TURN_ARRIVED 0x20000
 #define PS_ACTIVE 0x40000
-
-#define LEAVE_ENDING 0x40000004
-#define LEAVE_DROP 0x40000006
 
 bool SNetCreateGame(const char *pszGameName, const char *pszGamePassword, char *GameTemplateData, int GameTemplateSize, int *playerID);
 bool SNetDestroy();
@@ -61,7 +68,7 @@ bool SNetDestroy();
  *
  *  Returns true if the function was called successfully and false otherwise.
  */
-bool SNetDropPlayer(uint8_t playerid, uint32_t flags);
+bool SNetDropPlayer(uint8_t playerid, leaveinfo_t flags);
 
 /*  SNetGetTurnsInTransit @ 115
  *
@@ -85,7 +92,7 @@ bool SNetJoinGame(char *gameName, char *gamePassword, int *playerid);
  *
  *  Returns true if the function was called successfully and false otherwise.
  */
-bool SNetLeaveGame(int type);
+bool SNetLeaveGame(leaveinfo_t type);
 
 bool SNetReceiveMessage(uint8_t *senderplayerid, void **data, size_t *databytes);
 bool SNetReceiveTurns(int arraysize, char **arraydata, size_t *arraydatabytes, uint32_t *arrayplayerstatus);
@@ -132,11 +139,13 @@ bool SNetSetBasePlayer(int);
 bool SNetInitializeProvider(uint32_t provider, struct GameData *gameData);
 void SNetGetProviderCaps(struct _SNETCAPS *);
 
+void DvlNet_ProcessNetworkPackets();
 bool DvlNet_SendInfoRequest();
 void DvlNet_ClearGamelist();
 std::vector<GameInfo> DvlNet_GetGamelist();
 void DvlNet_SetPassword(std::string pw);
 void DvlNet_ClearPassword();
 bool DvlNet_IsPublicGame();
+DvlNetLatencies DvlNet_GetLatencies(uint8_t playerId);
 
 } // namespace devilution

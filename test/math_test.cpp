@@ -21,7 +21,7 @@ TEST(MathTest, WorldScreenTransformation)
 
 	// Most screen to world transformations will have a further displacement applied, this is a simple case of
 	// selecting a tile on the edge of the world with the default origin
-	Displacement cursorPosition = { 342, -150 };
+	const Displacement cursorPosition = { 342, -150 };
 	EXPECT_EQ(cursorPosition.screenToWorld(), Displacement(0, 10));
 
 	// Screen > World transforms lose information, so cannot be reversed exactly using ints

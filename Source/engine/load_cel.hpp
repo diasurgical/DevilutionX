@@ -26,6 +26,14 @@ inline OwnedClxSpriteList LoadCel(const char *pszName, uint16_t width)
 	return LoadCelListOrSheet(pszName, PointerOrValue<uint16_t> { width }).list();
 }
 
+inline OptionalOwnedClxSpriteList LoadOptionalCel(const char *pszName, uint16_t width)
+{
+	tl::expected<OwnedClxSpriteListOrSheet, std::string> result = LoadCelListOrSheetWithStatus(pszName, PointerOrValue<uint16_t> { width });
+	if (!result.has_value())
+		return std::nullopt;
+	return (*std::move(result)).list();
+}
+
 inline tl::expected<OwnedClxSpriteList, std::string> LoadCelWithStatus(const char *pszName, uint16_t width)
 {
 	ASSIGN_OR_RETURN(OwnedClxSpriteListOrSheet result, LoadCelListOrSheetWithStatus(pszName, PointerOrValue<uint16_t> { width }));
@@ -35,6 +43,14 @@ inline tl::expected<OwnedClxSpriteList, std::string> LoadCelWithStatus(const cha
 inline OwnedClxSpriteList LoadCel(const char *pszName, const uint16_t *widths)
 {
 	return LoadCelListOrSheet(pszName, PointerOrValue<uint16_t> { widths }).list();
+}
+
+inline OptionalOwnedClxSpriteList LoadOptionalCel(const char *pszName, const uint16_t *widths)
+{
+	tl::expected<OwnedClxSpriteListOrSheet, std::string> result = LoadCelListOrSheetWithStatus(pszName, PointerOrValue<uint16_t> { widths });
+	if (!result.has_value())
+		return std::nullopt;
+	return (*std::move(result)).list();
 }
 
 inline tl::expected<OwnedClxSpriteList, std::string> LoadCelWithStatus(const char *pszName, const uint16_t *widths)

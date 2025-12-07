@@ -6,8 +6,10 @@ namespace devilution {
 namespace net {
 
 bool zerotier_network_ready();
+bool zerotier_peers_ready();
 void zerotier_network_start();
 bool zerotier_is_relayed(uint64_t mac);
+int zerotier_latency(uint64_t mac);
 
 // NOTE: We have patched our libzt to have the corresponding multicast
 // MAC hardcoded, since libzt is still missing the proper handling.

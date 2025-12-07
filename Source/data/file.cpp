@@ -110,7 +110,7 @@ tl::expected<void, DataFile::Error> DataFile::parseHeader(ColumnDefinition *begi
 			continue;
 		}
 
-		uint8_t columnType = mapResult.value();
+		const uint8_t columnType = mapResult.value();
 		if (seenColumns.test(columnType)) {
 			// Repeated column? unusual, maybe this should be an error
 			continue;

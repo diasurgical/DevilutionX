@@ -2,14 +2,19 @@
 
 #include <atomic>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_timer.h>
+#else
 #include <SDL.h>
-#include <ankerl/unordered_dense.h>
 
 #ifdef USE_SDL1
 #include "utils/sdl2_to_1_2_backports.h"
 #else
 #include "utils/sdl2_backports.h"
 #endif
+#endif
+
+#include <ankerl/unordered_dense.h>
 
 #if defined(_WIN32) && !defined(DEVILUTIONX_WINDOWS_NO_WCHAR)
 #include "utils/stdcompat/filesystem.hpp"
@@ -20,7 +25,9 @@
 
 #ifdef DVL_ZT_SYMLINK
 #include <shlobj.h>
+#ifdef PACKET_ENCRYPTION
 #include <sodium.h>
+#endif
 
 #include "utils/str_cat.hpp"
 #include "utils/utf8.hpp"
@@ -46,6 +53,7 @@ constexpr uint64_t ZtNetwork = 0xa84ac5c10a7ebb5f;
 std::atomic_bool zt_network_ready(false);
 std::atomic_bool zt_node_online(false);
 std::atomic_bool zt_joined(false);
+std::atomic_uint zt_peers_ready(0);
 
 ankerl::unordered_dense::map<uint64_t, zts_event_t> ztPeerEvents;
 
@@ -55,6 +63,7 @@ bool HasMultiByteChars(std::string_view path)
 	return c_any_of(path, IsTrailUtf8CodeUnit);
 }
 
+#ifdef PACKET_ENCRYPTION
 std::string ComputeAlternateFolderName(std::string_view path)
 {
 	const size_t hashSize = crypto_generichash_BYTES;
@@ -65,10 +74,20 @@ std::string ComputeAlternateFolderName(std::string_view path)
 	    nullptr, 0);
 
 	if (status != 0)
-		return "";
+		return {};
 
-	return fmt::format("{:02x}", fmt::join(hash, ""));
+	char buf[hashSize * 2];
+	for (size_t i = 0; i < hashSize; ++i) {
+		BufCopy(&buf[i * 2], AsHexPad2(hash[i]));
+	}
+	return std::string(buf, hashSize * 2);
 }
+#else
+std::string ComputeAlternateFolderName(std::string_view path)
+{
+	return {};
+}
+#endif
 
 std::string ToZTCompliantPath(std::string_view configPath)
 {
@@ -142,6 +161,7 @@ void Callback(void *ptr)
 		Log("ZeroTier: ZTS_EVENT_NETWORK_READY_IP6, networkId={:x}", (unsigned long long)msg->network->net_id);
 		zt_ip6setup();
 		zt_network_ready = true;
+		zt_peers_ready = SDL_GetTicks();
 		break;
 
 	case ZTS_EVENT_ADDR_ADDED_IP6:
@@ -151,6 +171,8 @@ void Callback(void *ptr)
 	case ZTS_EVENT_PEER_DIRECT:
 	case ZTS_EVENT_PEER_RELAY:
 		ztPeerEvents[msg->peer->peer_id] = static_cast<zts_event_t>(msg->event_code);
+		if (!zerotier_peers_ready())
+			zt_peers_ready = SDL_GetTicks();
 		break;
 
 	case ZTS_EVENT_PEER_PATH_DEAD:
@@ -164,6 +186,11 @@ void Callback(void *ptr)
 bool zerotier_network_ready()
 {
 	return zt_network_ready && zt_node_online;
+}
+
+bool zerotier_peers_ready()
+{
+	return SDL_GetTicks() - zt_peers_ready >= 5000;
 }
 
 void zerotier_network_start()
@@ -191,6 +218,18 @@ bool zerotier_is_relayed(uint64_t mac)
 	}
 	zts_core_lock_release();
 	return isRelayed;
+}
+
+int zerotier_latency(uint64_t mac)
+{
+	int latency = -1;
+	if (zts_core_lock_obtain() != ZTS_ERR_OK)
+		return latency;
+	zts_peer_info_t peerInfo;
+	if (zts_core_query_peer_info(ZtNetwork, mac, &peerInfo) == ZTS_ERR_OK)
+		latency = peerInfo.latency;
+	zts_core_lock_release();
+	return latency;
 }
 
 } // namespace net

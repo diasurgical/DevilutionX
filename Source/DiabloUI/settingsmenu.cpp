@@ -1,24 +1,46 @@
-#include "selstart.h"
-
+#include <algorithm>
+#include <cassert>
+#include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <optional>
+#include <string>
 #include <vector>
+
+#ifdef USE_SDL3
+#include <SDL3/SDL_events.h>
+#include <SDL3/SDL_rect.h>
+#include <SDL3/SDL_timer.h>
+#else
+#include <SDL.h>
+#endif
 
 #include <function_ref.hpp>
 
 #include "DiabloUI/diabloui.h"
 #include "DiabloUI/scrollbar.h"
-#include "control.h"
+#include "DiabloUI/ui_flags.hpp"
+#include "DiabloUI/ui_item.h"
+#include "controls/controller.h"
+#include "controls/controller_buttons.h"
 #include "controls/controller_motion.h"
 #include "controls/plrctrls.h"
 #include "controls/remap_keyboard.h"
 #include "engine/assets.hpp"
+#include "engine/rectangle.hpp"
 #include "engine/render/text_render.hpp"
+#include "game_mode.hpp"
 #include "hwcursor.hpp"
+#include "items.h"
 #include "options.h"
-#include "utils/display.h"
+#include "utils/enum_traits.h"
 #include "utils/is_of.hpp"
 #include "utils/language.h"
+#include "utils/sdl_compat.h"
+#include "utils/sdl_geometry.h"
+#include "utils/static_vector.hpp"
+#include "utils/str_cat.hpp"
+#include "utils/ui_fwd.h"
 #include "utils/utf8.hpp"
 
 namespace devilution {
@@ -140,7 +162,7 @@ void UpdatePadEntryTimerText()
 {
 	if (shownMenu != ShownMenuType::PadInput)
 		return;
-	Uint32 elapsed = SDL_GetTicks() - padEntryStartTime;
+	const Uint32 elapsed = SDL_GetTicks() - padEntryStartTime;
 	if (padEntryStartTime == 0 || elapsed > 10000) {
 		StopPadEntryTimer();
 		return;
@@ -224,7 +246,7 @@ bool ChangeOptionValue(OptionEntryBase *pOption, size_t listIndex)
 void ItemSelected(size_t value)
 {
 	auto &vecItem = vecDialogItems[value];
-	int vecItemValue = vecItem->m_value;
+	const int vecItemValue = vecItem->m_value;
 	if (vecItemValue < 0) {
 		auto specialMenuEntry = static_cast<SpecialMenuEntry>(vecItemValue);
 		switch (specialMenuEntry) {
@@ -286,7 +308,7 @@ void ItemSelected(size_t value)
 		}
 		if (updateValueDescription) {
 			auto args = CreateDrawStringFormatArgForEntry(pOption);
-			bool optionUsesTwoLines = ((value + 1) < vecDialogItems.size() && vecDialogItems[value]->m_value == vecDialogItems[value + 1]->m_value);
+			const bool optionUsesTwoLines = ((value + 1) < vecDialogItems.size() && vecDialogItems[value]->m_value == vecDialogItems[value + 1]->m_value);
 			if (NeedsTwoLinesToDisplayOption(args) != optionUsesTwoLines) {
 				selectedOption = pOption;
 				endMenu = true;
@@ -320,7 +342,7 @@ void FullscreenChanged()
 	auto *fullscreenOption = &GetOptions().Graphics.fullscreen;
 
 	for (auto &vecItem : vecDialogItems) {
-		int vecItemValue = vecItem->m_value;
+		const int vecItemValue = vecItem->m_value;
 		if (vecItemValue < 0 || static_cast<size_t>(vecItemValue) >= vecOptions.size())
 			continue;
 
@@ -403,7 +425,7 @@ void UiSettingsMenu()
 				if (selectedOption == pEntry)
 					itemToSelect = vecDialogItems.size();
 				auto formatArgs = CreateDrawStringFormatArgForEntry(pEntry);
-				int optionId = static_cast<int>(vecOptions.size());
+				const int optionId = static_cast<int>(vecOptions.size());
 				if (NeedsTwoLinesToDisplayOption(formatArgs)) {
 					vecDialogItems.push_back(std::make_unique<UiListItem>(std::string_view("{}:"), formatArgs, optionId, UiFlags::ColorUiGold | UiFlags::NeedsNextElement));
 					vecDialogItems.push_back(std::make_unique<UiListItem>(std::string(pEntry->GetValueDescription()), optionId, UiFlags::ColorUiSilver | UiFlags::ElementDisabled));
@@ -431,15 +453,15 @@ void UiSettingsMenu()
 					return false;
 				uint32_t key = SDLK_UNKNOWN;
 				switch (event.type) {
-				case SDL_KEYDOWN: {
-					SDL_Keycode keycode = event.key.keysym.sym;
+				case SDL_EVENT_KEY_DOWN: {
+					SDL_Keycode keycode = SDLC_EventKey(event);
 					remap_keyboard_key(&keycode);
 					key = static_cast<uint32_t>(keycode);
-					if (key >= SDLK_a && key <= SDLK_z) {
+					if (key >= SDLK_A && key <= SDLK_Z) {
 						key -= 'a' - 'A';
 					}
 				} break;
-				case SDL_MOUSEBUTTONDOWN:
+				case SDL_EVENT_MOUSE_BUTTON_DOWN:
 					switch (event.button.button) {
 					case SDL_BUTTON_MIDDLE:
 					case SDL_BUTTON_X1:
@@ -449,14 +471,14 @@ void UiSettingsMenu()
 					}
 					break;
 #if SDL_VERSION_ATLEAST(2, 0, 0)
-				case SDL_MOUSEWHEEL:
-					if (event.wheel.y > 0) {
+				case SDL_EVENT_MOUSE_WHEEL:
+					if (SDLC_EventWheelIntY(event) > 0) {
 						key = MouseScrollUpButton;
-					} else if (event.wheel.y < 0) {
+					} else if (SDLC_EventWheelIntY(event) < 0) {
 						key = MouseScrollDownButton;
-					} else if (event.wheel.x > 0) {
+					} else if (SDLC_EventWheelIntX(event) > 0) {
 						key = MouseScrollLeftButton;
-					} else if (event.wheel.x < 0) {
+					} else if (SDLC_EventWheelIntX(event) < 0) {
 						key = MouseScrollRightButton;
 					}
 					break;
@@ -493,11 +515,11 @@ void UiSettingsMenu()
 				if (padEntryStartTime == 0)
 					return false;
 
-				StaticVector<ControllerButtonEvent, 4> ctrlEvents = ToControllerButtonEvents(event);
-				for (ControllerButtonEvent ctrlEvent : ctrlEvents) {
-					bool isGamepadMotion = IsControllerMotion(event);
+				const StaticVector<ControllerButtonEvent, 4> ctrlEvents = ToControllerButtonEvents(event);
+				for (const ControllerButtonEvent ctrlEvent : ctrlEvents) {
+					const bool isGamepadMotion = IsControllerMotion(event);
 					DetectInputMethod(event, ctrlEvent);
-					if (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_ESCAPE) {
+					if (event.type == SDL_EVENT_KEY_UP && SDLC_EventKey(event) == SDLK_ESCAPE) {
 						StopPadEntryTimer();
 						return true;
 					}
@@ -505,8 +527,8 @@ void UiSettingsMenu()
 						continue;
 					}
 
-					bool modifierPressed = padEntryCombo.modifier != ControllerButton_NONE && IsControllerButtonPressed(padEntryCombo.modifier);
-					bool buttonPressed = padEntryCombo.button != ControllerButton_NONE && IsControllerButtonPressed(padEntryCombo.button);
+					const bool modifierPressed = padEntryCombo.modifier != ControllerButton_NONE && IsControllerButtonPressed(padEntryCombo.modifier);
+					const bool buttonPressed = padEntryCombo.button != ControllerButton_NONE && IsControllerButtonPressed(padEntryCombo.button);
 					if (ctrlEvent.up) {
 						// When the player has released all relevant inputs, assume the binding is finished and stop the timer
 						if (padEntryCombo.button != ControllerButton_NONE && !modifierPressed && !buttonPressed) {

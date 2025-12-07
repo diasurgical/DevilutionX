@@ -1,20 +1,23 @@
-#include "lua/lua.hpp"
+#include "lua/lua_global.hpp"
 
 #include <optional>
 #include <string_view>
 
 #include <ankerl/unordered_dense.h>
+#include <sol/debug.hpp>
 #include <sol/sol.hpp>
 
 #include <config.h>
 
 #include "appfat.h"
+#include "effects.h"
 #include "engine/assets.hpp"
 #include "lua/modules/audio.hpp"
 #include "lua/modules/hellfire.hpp"
 #include "lua/modules/i18n.hpp"
 #include "lua/modules/items.hpp"
 #include "lua/modules/log.hpp"
+#include "lua/modules/monsters.hpp"
 #include "lua/modules/player.hpp"
 #include "lua/modules/render.hpp"
 #include "lua/modules/towners.hpp"
@@ -84,7 +87,7 @@ sol::object LuaLoadScriptFromAssets(std::string_view packageName)
 		sol::stack::push(luaState.sol.lua_state(), assetData.error());
 		return sol::stack_object(luaState.sol.lua_state(), -1);
 	}
-	sol::load_result result = luaState.sol.load(std::string_view(*assetData), path, sol::load_mode::text);
+	const sol::load_result result = luaState.sol.load(std::string_view(*assetData), path, sol::load_mode::text);
 	if (!result.valid()) {
 		sol::stack::push(luaState.sol.lua_state(),
 		    StrCat("Lua error when loading ", path, ": ", result.get<std::string>()));
@@ -122,7 +125,7 @@ void LuaWarn(void *userData, const char *message, int continued)
 
 sol::object RunScript(std::optional<sol::environment> env, std::string_view packageName, bool optional)
 {
-	sol::object result = LuaLoadScriptFromAssets(packageName);
+	const sol::object result = LuaLoadScriptFromAssets(packageName);
 	// We return a string on error:
 	if (result.get_type() == sol::type::string) {
 		if (!optional)
@@ -218,22 +221,31 @@ void LuaReloadActiveMods()
 	std::vector<std::string_view> modnames = GetOptions().Mods.GetActiveModList();
 	LoadModArchives(modnames);
 
-	for (std::string_view modname : modnames) {
-		std::string packageName = StrCat("mods.", modname, ".init");
+	for (const std::string_view modname : modnames) {
+		const std::string packageName = StrCat("mods.", modname, ".init");
 		RunScript(CreateLuaSandbox(), packageName, /*optional=*/true);
 	}
 
-	for (tl::function_ref<void()> handler : IsModChangeHandlers) {
+	for (const tl::function_ref<void()> handler : IsModChangeHandlers) {
 		handler();
 	}
 
+	// Reload sound effects in case a mod archive overrides effects.tsv
+	effects_cleanup_sfx();
+	if (gbRunGame)
+		sound_init();
+	else
+		ui_sound_init();
+
 	// Reload game data (this can probably be done later in the process to avoid having to reload it)
+	LoadTextData();
 	LoadPlayerDataFiles();
 	LoadSpellData();
 	LoadMissileData();
 	LoadMonsterData();
 	LoadItemData();
 	LoadObjectData();
+	LoadQuestData();
 
 	LuaEvent("LoadModsComplete");
 }
@@ -266,6 +278,7 @@ void LuaInitialize()
 	    "devilutionx.items", LuaItemModule(lua),
 	    "devilutionx.log", LuaLogModule(lua),
 	    "devilutionx.audio", LuaAudioModule(lua),
+	    "devilutionx.monsters", LuaMonstersModule(lua),
 	    "devilutionx.player", LuaPlayerModule(lua),
 	    "devilutionx.render", LuaRenderModule(lua),
 	    "devilutionx.towners", LuaTownersModule(lua),
@@ -294,6 +307,10 @@ void LuaShutdown()
 
 void LuaEvent(std::string_view name)
 {
+	if (!CurrentLuaState.has_value()) {
+		return;
+	}
+
 	const auto trigger = CurrentLuaState->events.traverse_get<std::optional<sol::object>>(name, "trigger");
 	if (!trigger.has_value() || !trigger->is<sol::protected_function>()) {
 		LogError("events.{}.trigger is not a function", name);

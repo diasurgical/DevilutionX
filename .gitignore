@@ -465,3 +465,7 @@ uwp-project/Assets/gendata
 uwp-project/Assets/ui_art
 !uwp-project/devilutionX_TemporaryKey.pfx
 /.s390x-ccache/
+
+# Temporary directory for prep scripts and other purposes.
+/tmp/
+/compile_commands.json

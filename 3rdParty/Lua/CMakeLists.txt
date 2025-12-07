@@ -13,16 +13,21 @@ endif()
 
 include(FetchContent)
 FetchContent_Declare_ExcludeFromAll(Lua
-    URL https://github.com/walterschell/Lua/archive/88246d621abf7b6fba9332f49229d507f020e450.tar.gz
-    URL_HASH MD5=03b76927cb5341ffc53bea12c37ddcca
+    URL https://github.com/walterschell/Lua/archive/3ed55a56eaa05c9221f40b3c07d0e908eb1067b0.tar.gz
+    URL_HASH MD5=77907b8209f77c65cb681a5012f2d804
 )
 FetchContent_MakeAvailable_ExcludeFromAll(Lua)
+
+# Needed for sol2
+set(LUA_VERSION_STRING "5.4.7" PARENT_SCOPE)
 
 if(CMAKE_SYSTEM_NAME MATCHES "Darwin" AND DARWIN_MAJOR_VERSION VERSION_EQUAL 8)
   # We need legacy-support from MacPorts for:
   # localtime_r gmtime_r
   find_package(MacportsLegacySupport REQUIRED)
   target_link_libraries(lua_static PRIVATE MacportsLegacySupport::MacportsLegacySupport)
+elseif(TARGET_PLATFORM STREQUAL "dos")
+  target_compile_definitions(lua_static PUBLIC -DLUA_USE_C89)
 elseif(ANDROID AND ("${ANDROID_ABI}" STREQUAL "armeabi-v7a" OR "${ANDROID_ABI}" STREQUAL "x86"))
   target_compile_definitions(lua_static PUBLIC -DLUA_USE_C89)
 elseif(NINTENDO_3DS OR VITA OR NINTENDO_SWITCH OR NXDK)

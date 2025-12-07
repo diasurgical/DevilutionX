@@ -6,6 +6,13 @@
 
 #include <cstdint>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_surface.h>
+#include <SDL3/SDL_timer.h>
+#else
+#include <SDL.h>
+#endif
+
 #include "DiabloUI/diabloui.h"
 #include "DiabloUI/settingsmenu.h"
 #include "engine/assets.hpp"
@@ -137,7 +144,7 @@ bool mainmenu_select_hero_dialog(GameData *gameData)
 
 void mainmenu_wait_for_button_sound()
 {
-	SDL_FillRect(DiabloUiSurface(), nullptr, 0x000000);
+	SDL_FillSurfaceRect(DiabloUiSurface(), nullptr, 0);
 	UiFadeIn();
 	SDL_Delay(350); // delay to let button pressed sound finish playing
 }

@@ -65,7 +65,7 @@ void SyncPortals()
 	for (int i = 0; i < MAXPORTAL; i++) {
 		if (!Portals[i].open)
 			continue;
-		Player &player = Players[i];
+		const Player &player = Players[i];
 		if (leveltype == DTYPE_TOWN)
 			AddPortalMissile(player, PortalTownPosition[i], true);
 		else {

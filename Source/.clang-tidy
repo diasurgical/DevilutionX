@@ -92,3 +92,6 @@ CheckOptions:
   - { key: bugprone-signed-char-misuse.CharTypdefsToIgnore, value: "std::int8_t" }
 
   - { key: readability-identifier-length.MinimumLoopCounterNameLength, value: 1 }
+
+  # Ignore warnings for individual SDL headers, e.g. SDL_video.h, SDL_render.h
+  - { key: misc-include-cleaner.IgnoreHeaders, value: 'SDL_.*\\.h' }

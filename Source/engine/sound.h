@@ -15,6 +15,10 @@
 #include "utils/attributes.h"
 
 #ifndef NOSOUND
+#ifdef USE_SDL3
+#include <SDL3/SDL_audio.h>
+#endif
+
 #include "utils/soundsample.h"
 #endif
 
@@ -53,6 +57,10 @@ struct TSnd {
 };
 
 extern bool gbSndInited;
+#ifdef USE_SDL3
+extern SDL_AudioDeviceID CurrentAudioDeviceId;
+#endif
+
 extern _music_id sgnMusicTrack;
 
 void ClearDuplicateSounds();

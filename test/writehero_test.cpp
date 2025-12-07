@@ -4,7 +4,6 @@
 #include <cstdio>
 #include <vector>
 
-#include <SDL_endian.h>
 #include <gtest/gtest.h>
 #include <picosha2.h>
 
@@ -16,6 +15,7 @@
 #include "pack.h"
 #include "pfile.h"
 #include "playerdat.hpp"
+#include "utils/endian_swap.hpp"
 #include "utils/file_util.h"
 #include "utils/paths.h"
 
@@ -30,24 +30,24 @@ constexpr int SpellDatVanilla[] = {
 
 void SwapLE(ItemPack &pack)
 {
-	pack.iSeed = SDL_SwapLE32(pack.iSeed);
-	pack.iCreateInfo = SDL_SwapLE16(pack.iCreateInfo);
-	pack.idx = SDL_SwapLE16(pack.idx);
-	pack.wValue = SDL_SwapLE16(pack.wValue);
-	pack.dwBuff = SDL_SwapLE32(pack.dwBuff);
+	pack.iSeed = Swap32LE(pack.iSeed);
+	pack.iCreateInfo = Swap16LE(pack.iCreateInfo);
+	pack.idx = Swap16LE(pack.idx);
+	pack.wValue = Swap16LE(pack.wValue);
+	pack.dwBuff = Swap32LE(pack.dwBuff);
 }
 
 void SwapLE(PlayerPack &player)
 {
-	player.dwLowDateTime = SDL_SwapLE32(player.dwLowDateTime);
-	player.dwHighDateTime = SDL_SwapLE32(player.dwHighDateTime);
-	player.pExperience = SDL_SwapLE32(player.pExperience);
-	player.pGold = SDL_SwapLE32(player.pGold);
-	player.pHPBase = SDL_SwapLE32(player.pHPBase);
-	player.pMaxHPBase = SDL_SwapLE32(player.pMaxHPBase);
-	player.pManaBase = SDL_SwapLE32(player.pManaBase);
-	player.pMaxManaBase = SDL_SwapLE32(player.pMaxManaBase);
-	player.pMemSpells = SDL_SwapLE64(player.pMemSpells);
+	player.dwLowDateTime = Swap32LE(player.dwLowDateTime);
+	player.dwHighDateTime = Swap32LE(player.dwHighDateTime);
+	player.pExperience = Swap32LE(player.pExperience);
+	player.pGold = Swap32LE(player.pGold);
+	player.pHPBase = Swap32LE(player.pHPBase);
+	player.pMaxHPBase = Swap32LE(player.pMaxHPBase);
+	player.pManaBase = Swap32LE(player.pManaBase);
+	player.pMaxManaBase = Swap32LE(player.pMaxManaBase);
+	player.pMemSpells = Swap64LE(player.pMemSpells);
 	for (ItemPack &item : player.InvBody) {
 		SwapLE(item);
 	}
@@ -57,10 +57,10 @@ void SwapLE(PlayerPack &player)
 	for (ItemPack &item : player.SpdList) {
 		SwapLE(item);
 	}
-	player.wReflections = SDL_SwapLE16(player.wReflections);
-	player.pDiabloKillLevel = SDL_SwapLE32(player.pDiabloKillLevel);
-	player.pDifficulty = SDL_SwapLE32(player.pDifficulty);
-	player.pDamAcFlags = SDL_SwapLE32(player.pDamAcFlags);
+	player.wReflections = Swap16LE(player.wReflections);
+	player.pDiabloKillLevel = Swap32LE(player.pDiabloKillLevel);
+	player.pDifficulty = Swap32LE(player.pDifficulty);
+	player.pDamAcFlags = Swap32LE(player.pDamAcFlags);
 }
 
 void PackItemUnique(ItemPack *id, int idx)
@@ -368,8 +368,9 @@ TEST(Writehero, pfile_write_hero)
 	LoadGameArchives();
 
 	// The tests need spawn.mpq or diabdat.mpq
-	// Please provide them so that the tests can run successfully
-	ASSERT_TRUE(HaveMainData());
+	if (!HaveMainData()) {
+		GTEST_SKIP() << "MPQ assets (spawn.mpq or DIABDAT.MPQ) not found - skipping test";
+	}
 
 	const std::string savePath = paths::BasePath() + "multi_0.sv";
 	paths::SetPrefPath(paths::BasePath());
@@ -402,10 +403,10 @@ TEST(Writehero, pfile_write_hero)
 
 	uintmax_t fileSize;
 	ASSERT_TRUE(GetFileSize(savePath.c_str(), &fileSize));
-	size_t size = static_cast<size_t>(fileSize);
+	const size_t size = static_cast<size_t>(fileSize);
 	FILE *f = OpenFile(savePath.c_str(), "rb");
 	ASSERT_TRUE(f != nullptr);
-	std::unique_ptr<char[]> data { new char[size] };
+	const std::unique_ptr<char[]> data { new char[size] };
 	ASSERT_EQ(std::fread(data.get(), size, 1, f), 1);
 	std::fclose(f);
 

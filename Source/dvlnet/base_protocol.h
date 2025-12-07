@@ -5,6 +5,12 @@
 #include <string>
 #include <string_view>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_timer.h>
+#else
+#include <SDL.h>
+#endif
+
 #include <ankerl/unordered_dense.h>
 
 #include "dvlnet/base.h"
@@ -25,12 +31,13 @@ public:
 	tl::expected<void, PacketError> send(packet &pkt) override;
 	void DisconnectNet(plr_t plr) override;
 
-	bool SNetLeaveGame(int type) override;
+	bool SNetLeaveGame(net::leaveinfo_t type) override;
 
 	std::string make_default_gamename() override;
 	bool send_info_request() override;
 	void clear_gamelist() override;
 	std::vector<GameInfo> get_gamelist() override;
+	DvlNetLatencies get_latencies(uint8_t playerid) override;
 
 	~base_protocol() override = default;
 
@@ -68,8 +75,8 @@ private:
 	tl::expected<void, PacketError> recv_ingame(packet &pkt, endpoint_t sender);
 	bool is_recognized(endpoint_t sender);
 
-	tl::expected<bool, PacketError> wait_network();
-	bool wait_firstpeer();
+	tl::expected<void, PacketError> wait_network();
+	tl::expected<void, PacketError> wait_firstpeer();
 	tl::expected<void, PacketError> wait_join();
 };
 
@@ -84,18 +91,18 @@ plr_t base_protocol<P>::get_master()
 }
 
 template <class P>
-tl::expected<bool, PacketError> base_protocol<P>::wait_network()
+tl::expected<void, PacketError> base_protocol<P>::wait_network()
 {
 	// wait for ZeroTier for 5 seconds
 	for (auto i = 0; i < 500; ++i) {
 		tl::expected<bool, PacketError> status = proto.network_online();
 		if (!status.has_value())
-			return status;
+			return tl::make_unexpected(std::move(status).error());
 		if (*status)
-			return true;
+			return {};
 		SDL_Delay(10);
 	}
-	return false;
+	return tl::make_unexpected("Timeout waiting for ZeroTier network initialization");
 }
 
 template <class P>
@@ -107,8 +114,9 @@ void base_protocol<P>::DisconnectNet(plr_t plr)
 }
 
 template <class P>
-bool base_protocol<P>::wait_firstpeer()
+tl::expected<void, PacketError> base_protocol<P>::wait_firstpeer()
 {
+	firstpeer = {};
 	// wait for peer for 5 seconds
 	for (auto i = 0; i < 500; ++i) {
 		auto it = game_list.find(gamename);
@@ -120,15 +128,17 @@ bool base_protocol<P>::wait_firstpeer()
 		recv();
 		SDL_Delay(10);
 	}
-	return bool { firstpeer };
+	if (!firstpeer)
+		return tl::make_unexpected("Timeout waiting for response from game host");
+	return {};
 }
 
 template <class P>
 bool base_protocol<P>::send_info_request()
 {
-	tl::expected<bool, PacketError> status = proto.network_online();
+	tl::expected<bool, PacketError> status = proto.peers_ready();
 	if (!status.has_value()) {
-		LogError("network_online: {}", status.error().what());
+		LogError("peers_ready: {}", status.error().what());
 		return false;
 	}
 	if (!*status)
@@ -171,20 +181,20 @@ int base_protocol<P>::create(std::string_view addrstr)
 	gamename = addrstr;
 	isGameHost_ = true;
 
-	tl::expected<bool, PacketError> isReady = wait_network();
+	tl::expected<void, PacketError> isReady = wait_network();
 	if (!isReady.has_value()) {
-		LogError("wait_network: {}", isReady.error().what());
+		const std::string_view message = isReady.error().what();
+		SDL_SetError("%.*s", static_cast<int>(message.size()), message.data());
 		return -1;
 	}
-	if (*isReady) {
-		plr_self = 0;
-		if (tl::expected<void, PacketError> result = Connect(plr_self);
-		    !result.has_value()) {
-			LogError("Connect: {}", result.error().what());
-			return -1;
-		}
+	plr_self = 0;
+	if (tl::expected<void, PacketError> result = Connect(plr_self);
+	    !result.has_value()) {
+		const std::string_view message = result.error().what();
+		SDL_SetError("%.*s", static_cast<int>(message.size()), message.data());
+		return -1;
 	}
-	return (plr_self == PLR_BROADCAST ? -1 : plr_self);
+	return plr_self;
 }
 
 template <class P>
@@ -193,21 +203,23 @@ int base_protocol<P>::join(std::string_view addrstr)
 	gamename = addrstr;
 	isGameHost_ = false;
 
-	tl::expected<bool, PacketError> isReady = wait_network();
+	tl::expected<void, PacketError> isReady = wait_network();
 	if (!isReady.has_value()) {
 		const std::string_view message = isReady.error().what();
-		SDL_SetError("wait_join: %.*s", static_cast<int>(message.size()), message.data());
+		SDL_SetError("%.*s", static_cast<int>(message.size()), message.data());
 		return -1;
 	}
-	if (*isReady) {
-		if (wait_firstpeer()) {
-			tl::expected<void, PacketError> result = wait_join();
-			if (!result.has_value()) {
-				const std::string_view message = result.error().what();
-				SDL_SetError("wait_join: %.*s", static_cast<int>(message.size()), message.data());
-				return -1;
-			}
-		}
+	tl::expected<void, PacketError> isPeerReady = wait_firstpeer();
+	if (!isPeerReady.has_value()) {
+		const std::string_view message = isPeerReady.error().what();
+		SDL_SetError("%.*s", static_cast<int>(message.size()), message.data());
+		return -1;
+	}
+	tl::expected<void, PacketError> isJoined = wait_join();
+	if (!isJoined.has_value()) {
+		const std::string_view message = isJoined.error().what();
+		SDL_SetError("%.*s", static_cast<int>(message.size()), message.data());
+		return -1;
 	}
 	return (plr_self == PLR_BROADCAST ? -1 : plr_self);
 }
@@ -234,7 +246,7 @@ tl::expected<void, PacketError> base_protocol<P>::InitiateHandshake(plr_t player
 	// It will cause problems if both peers attempt to initiate the handshake simultaneously.
 	// If the connection is already open, it should be safe to initiate from either end.
 	// If not, only the player with the smaller player number should initiate the handshake.
-	if (plr_self < player || proto.is_peer_connected(peer.endpoint))
+	if (peer.endpoint && (plr_self < player || proto.is_peer_connected(peer.endpoint)))
 		return SendEchoRequest(player);
 
 	return {};
@@ -254,7 +266,7 @@ tl::expected<void, PacketError> base_protocol<P>::send(packet &pkt)
 	}
 	if (destination >= MAX_PLRS)
 		return tl::make_unexpected("Invalid player ID");
-	if (destination == MyPlayerId)
+	if (destination == plr_self)
 		return {};
 	return SendTo(destination, pkt);
 }
@@ -544,15 +556,27 @@ std::vector<GameInfo> base_protocol<P>::get_gamelist()
 	std::vector<GameInfo> ret;
 	ret.reserve(game_list.size());
 	for (const auto &[name, gameInfo] : game_list) {
-		const auto &[gameData, players, _] = gameInfo;
-		ret.push_back(GameInfo { name, gameData, players });
+		const auto &[gameData, players, endpoint] = gameInfo;
+		std::optional<int> latency = proto.get_latency_to(endpoint);
+		std::optional<bool> isRelayed = proto.is_peer_relayed(endpoint);
+		ret.push_back(GameInfo { name, gameData, players, latency, isRelayed });
 	}
 	c_sort(ret, [](const GameInfo &a, const GameInfo &b) { return a.name < b.name; });
 	return ret;
 }
 
 template <class P>
-bool base_protocol<P>::SNetLeaveGame(int type)
+DvlNetLatencies base_protocol<P>::get_latencies(uint8_t playerid)
+{
+	DvlNetLatencies latencies = base::get_latencies(playerid);
+	Peer &srcPeer = peers[playerid];
+	latencies.providerLatency = proto.get_latency_to(srcPeer.endpoint);
+	latencies.isRelayed = proto.is_peer_relayed(srcPeer.endpoint);
+	return latencies;
+}
+
+template <class P>
+bool base_protocol<P>::SNetLeaveGame(net::leaveinfo_t type)
 {
 	auto ret = base::SNetLeaveGame(type);
 	recv();

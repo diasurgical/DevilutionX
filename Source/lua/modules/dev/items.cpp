@@ -4,6 +4,12 @@
 #include <random>
 #include <string>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_timer.h>
+#else
+#include <SDL.h>
+#endif
+
 #include <sol/sol.hpp>
 
 #include "cursor.h"
@@ -20,21 +26,24 @@ namespace devilution {
 
 namespace {
 
+const Item *DebugCmdGetItem()
+{
+	const Player &myPlayer = *MyPlayer;
+	if (!myPlayer.HoldItem.isEmpty()) return &myPlayer.HoldItem;
+	if (pcursinvitem != -1) {
+		if (pcursinvitem < INVITEM_INV_FIRST) return &myPlayer.InvBody[pcursinvitem];
+		if (pcursinvitem <= INVITEM_INV_LAST) return &myPlayer.InvList[pcursinvitem - INVITEM_INV_FIRST];
+		return &myPlayer.SpdList[pcursinvitem - INVITEM_BELT_FIRST];
+	}
+	if (pcursitem != -1) return &Items[pcursitem];
+	return nullptr;
+}
+
 std::string DebugCmdItemInfo()
 {
-	Player &myPlayer = *MyPlayer;
-	Item *pItem = nullptr;
-	if (!myPlayer.HoldItem.isEmpty()) {
-		pItem = &myPlayer.HoldItem;
-	} else if (pcursinvitem != -1) {
-		if (pcursinvitem <= INVITEM_INV_LAST)
-			pItem = &myPlayer.InvList[pcursinvitem - INVITEM_INV_FIRST];
-		else
-			pItem = &myPlayer.SpdList[pcursinvitem - INVITEM_BELT_FIRST];
-	} else if (pcursitem != -1) {
-		pItem = &Items[pcursitem];
-	}
+	const Item *pItem = DebugCmdGetItem();
 	if (pItem != nullptr) {
+		const Player &myPlayer = *MyPlayer;
 		std::string_view netPackValidation { "N/A" };
 		if (gbIsMultiplayer) {
 			ItemNetPack itemPack;
@@ -132,8 +141,8 @@ std::string DebugSpawnUniqueItem(std::string itemName)
 	if (!foundUnique) return "No unique item found!";
 
 	_item_indexes uniqueBaseIndex = IDI_GOLD;
-	for (std::underlying_type_t<_item_indexes> j = IDI_GOLD; j <= IDI_LAST; j++) {
-		if (!IsItemAvailable(j))
+	for (size_t j = 0; j < AllItemsList.size(); j++) {
+		if (!IsItemAvailable(static_cast<int>(j)))
 			continue;
 		if (AllItemsList[j].iItemId == uniqueItem.UIItemId) {
 			uniqueBaseIndex = static_cast<_item_indexes>(j);
@@ -194,9 +203,10 @@ std::string DebugSpawnUniqueItem(std::string itemName)
 sol::table LuaDevItemsModule(sol::state_view &lua)
 {
 	sol::table table = lua.create_table();
-	SetDocumented(table, "info", "()", "Show info of currently selected item.", &DebugCmdItemInfo);
-	SetDocumented(table, "spawn", "(name: string)", "Attempt to generate an item.", &DebugSpawnItem);
-	SetDocumented(table, "spawnUnique", "(name: string)", "Attempt to generate a unique item.", &DebugSpawnUniqueItem);
+	LuaSetDocFn(table, "get", "() -> Item", "Get the currently selected item.", &DebugCmdGetItem);
+	LuaSetDocFn(table, "info", "()", "Show info of currently selected item.", &DebugCmdItemInfo);
+	LuaSetDocFn(table, "spawn", "(name: string)", "Attempt to generate an item.", &DebugSpawnItem);
+	LuaSetDocFn(table, "spawnUnique", "(name: string)", "Attempt to generate a unique item.", &DebugSpawnUniqueItem);
 	return table;
 }
 

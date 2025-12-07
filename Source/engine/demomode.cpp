@@ -5,15 +5,22 @@
 #include <limits>
 #include <optional>
 
-#include <fmt/format.h>
+#ifdef USE_SDL3
+#include <SDL3/SDL_events.h>
+#include <SDL3/SDL_keyboard.h>
+#include <SDL3/SDL_timer.h>
+#else
+#include <SDL.h>
 
 #ifdef USE_SDL1
 #include "utils/sdl2_to_1_2_backports.h"
+#endif
 #endif
 
 #include "controls/control_mode.hpp"
 #include "controls/plrctrls.h"
 #include "engine/events.hpp"
+#include "game_mode.hpp"
 #include "gmenu.h"
 #include "headless_mode.hpp"
 #include "menu.h"
@@ -179,7 +186,7 @@ void ReadSettings(FILE *in, uint8_t version) // NOLINT(readability-identifier-le
 		DemoSettings = {};
 	}
 
-	std::string message = fmt::format("⚙️\n{}={}x{}", _("Resolution"), DemoGraphicsWidth, DemoGraphicsHeight);
+	std::string message = StrCat("⚙️\n", _("Resolution"), "=", DemoGraphicsWidth, "x", DemoGraphicsHeight);
 	for (const auto &[key, value] : std::initializer_list<std::pair<std::string_view, bool>> {
 	         { _("Run in Town"), DemoSettings.runInTown },
 	         { _("Theo Quest"), DemoSettings.theoQuest },
@@ -198,7 +205,7 @@ void ReadSettings(FILE *in, uint8_t version) // NOLINT(readability-identifier-le
 	         { _("Show Item Labels"), DemoSettings.showItemLabels },
 	         { _("Auto Refill Belt"), DemoSettings.autoRefillBelt },
 	         { _("Disable Crippling Shrines"), DemoSettings.disableCripplingShrines } }) {
-		fmt::format_to(std::back_inserter(message), "\n{}={:d}", key, value);
+		StrAppend(message, "\n", key, "=", value ? "1" : "0");
 	}
 	for (const auto &[key, value] : std::initializer_list<std::pair<std::string_view, uint8_t>> {
 	         { _("Heal Potion Pickup"), DemoSettings.numHealPotionPickup },
@@ -207,7 +214,7 @@ void ReadSettings(FILE *in, uint8_t version) // NOLINT(readability-identifier-le
 	         { _("Full Mana Potion Pickup"), DemoSettings.numFullManaPotionPickup },
 	         { _("Rejuvenation Potion Pickup"), DemoSettings.numRejuPotionPickup },
 	         { _("Full Rejuvenation Potion Pickup"), DemoSettings.numFullRejuPotionPickup } }) {
-		fmt::format_to(std::back_inserter(message), "\n{}={}", key, value);
+		StrAppend(message, "\n", key, "=", static_cast<int>(value));
 	}
 	Log("{}", message);
 }
@@ -248,23 +255,49 @@ bool CreateSdlEvent(const DemoMsg &dmsg, SDL_Event &event, uint16_t &modState)
 	const uint8_t type = dmsg.type;
 	switch (type) {
 	case DemoMsg::MouseMotionEvent:
+#ifdef USE_SDL3
+		event.type = SDL_EVENT_MOUSE_MOTION;
+		event.motion.state = 0;
+		event.motion.xrel = 0.F;
+		event.motion.yrel = 0.F;
+#else
 		event.type = SDL_MOUSEMOTION;
+#endif
 		event.motion.which = 0;
 		event.motion.x = dmsg.motion.x;
 		event.motion.y = dmsg.motion.y;
 		return true;
 	case DemoMsg::MouseButtonDownEvent:
 	case DemoMsg::MouseButtonUpEvent:
+#ifdef USE_SDL3
+		event.type = type == DemoMsg::MouseButtonDownEvent ? SDL_EVENT_MOUSE_BUTTON_DOWN : SDL_EVENT_MOUSE_BUTTON_UP;
+		event.button.down = type == DemoMsg::MouseButtonDownEvent;
+		event.button.clicks = 1;
+#else
 		event.type = type == DemoMsg::MouseButtonDownEvent ? SDL_MOUSEBUTTONDOWN : SDL_MOUSEBUTTONUP;
+		event.button.state = type == DemoMsg::MouseButtonDownEvent ? SDL_PRESSED : SDL_RELEASED;
+#endif
 		event.button.which = 0;
 		event.button.button = dmsg.button.button;
-		event.button.state = type == DemoMsg::MouseButtonDownEvent ? SDL_PRESSED : SDL_RELEASED;
 		event.button.x = dmsg.button.x;
 		event.button.y = dmsg.button.y;
 		modState = dmsg.button.mod;
 		return true;
 	case DemoMsg::MouseWheelEvent:
+#ifdef USE_SDL3
+		event.type = SDL_EVENT_MOUSE_WHEEL;
+#if SDL_VERSION_ATLEAST(3, 2, 12)
+		event.wheel.integer_x = dmsg.wheel.x;
+		event.wheel.integer_y = dmsg.wheel.y;
+#else
+		event.wheel.x = dmsg.wheel.x;
+		event.wheel.y = dmsg.wheel.y;
+#endif
+		event.wheel.mouse_x = 0;
+		event.wheel.mouse_y = 0;
+#else
 		event.type = SDL_MOUSEWHEEL;
+#endif
 		event.wheel.which = 0;
 		event.wheel.x = dmsg.wheel.x;
 		event.wheel.y = dmsg.wheel.y;
@@ -272,11 +305,19 @@ bool CreateSdlEvent(const DemoMsg &dmsg, SDL_Event &event, uint16_t &modState)
 		return true;
 	case DemoMsg::KeyDownEvent:
 	case DemoMsg::KeyUpEvent:
+#ifdef USE_SDL3
+		event.type = type == DemoMsg::KeyDownEvent ? SDL_EVENT_KEY_DOWN : SDL_EVENT_KEY_UP;
+		event.key.down = type == DemoMsg::KeyDownEvent;
+		event.key.scancode = SDL_GetScancodeFromKey(dmsg.key.sym, nullptr);
+		event.key.key = dmsg.key.sym;
+		event.key.mod = dmsg.key.mod;
+#else
 		event.type = type == DemoMsg::KeyDownEvent ? SDL_KEYDOWN : SDL_KEYUP;
 		event.key.state = type == DemoMsg::KeyDownEvent ? SDL_PRESSED : SDL_RELEASED;
 		event.key.keysym.scancode = SDL_GetScancodeFromKey(dmsg.key.sym);
 		event.key.keysym.sym = dmsg.key.sym;
 		event.key.keysym.mod = dmsg.key.mod;
+#endif
 		return true;
 	default:
 		if (type >= DemoMsg::MinCustomEvent) {
@@ -653,9 +694,9 @@ bool GetRunGameLoop(bool &drawGame, bool &processInput)
 		// disable additional rendering to speedup replay
 		drawGame = dmsg.type == DemoMsg::GameTick && !HeadlessMode;
 	} else {
-		int currentTickCount = SDL_GetTicks();
-		int ticksElapsed = currentTickCount - DemoModeLastTick;
-		bool tickDue = ticksElapsed >= gnTickDelay;
+		const int currentTickCount = SDL_GetTicks();
+		const int ticksElapsed = currentTickCount - DemoModeLastTick;
+		const bool tickDue = ticksElapsed >= gnTickDelay;
 		drawGame = false;
 		if (tickDue) {
 			if (dmsg.type == DemoMsg::GameTick) {
@@ -664,7 +705,7 @@ bool GetRunGameLoop(bool &drawGame, bool &processInput)
 		} else {
 			int32_t fraction = ticksElapsed * AnimationInfo::baseValueFraction / gnTickDelay;
 			fraction = std::clamp<int32_t>(fraction, 0, AnimationInfo::baseValueFraction);
-			uint8_t progressToNextGameTick = static_cast<uint8_t>(fraction);
+			const uint8_t progressToNextGameTick = static_cast<uint8_t>(fraction);
 			if (dmsg.type == DemoMsg::GameTick || dmsg.progressToNextGameTick > progressToNextGameTick) {
 				// we are ahead of the replay => add a additional rendering for smoothness
 				if (gbRunGame && PauseMode == 0 && (gbIsMultiplayer || !gmenu_is_active()) && gbProcessPlayers) // if game is not running or paused there is no next gametick in the near future
@@ -689,27 +730,51 @@ bool FetchMessage(SDL_Event *event, uint16_t *modState)
 		return false;
 
 	SDL_Event e;
-	if (SDL_PollEvent(&e) != 0) {
-		if (e.type == SDL_QUIT) {
+	if (
+#ifdef USE_SDL3
+	    SDL_PollEvent(&e)
+#else
+	    SDL_PollEvent(&e) != 0
+#endif
+	) {
+		if (e.type ==
+#ifdef USE_SDL3
+		    SDL_EVENT_QUIT
+#else
+		    SDL_QUIT
+#endif
+		) {
 			*event = e;
 			return true;
 		}
-		if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_ESCAPE) {
-			CloseDemoFile();
-			CurrentDemoMessage = std::nullopt;
-			DemoNumber = -1;
-			Timedemo = false;
-			last_tick = SDL_GetTicks();
-		}
-		if (e.type == SDL_KEYDOWN && IsAnyOf(e.key.keysym.sym, SDLK_KP_PLUS, SDLK_PLUS) && sgGameInitInfo.nTickRate < 255) {
-			sgGameInitInfo.nTickRate++;
-			GetOptions().Gameplay.tickRate.SetValue(sgGameInitInfo.nTickRate);
-			gnTickDelay = 1000 / sgGameInitInfo.nTickRate;
-		}
-		if (e.type == SDL_KEYDOWN && IsAnyOf(e.key.keysym.sym, SDLK_KP_MINUS, SDLK_MINUS) && sgGameInitInfo.nTickRate > 1) {
-			sgGameInitInfo.nTickRate--;
-			GetOptions().Gameplay.tickRate.SetValue(sgGameInitInfo.nTickRate);
-			gnTickDelay = 1000 / sgGameInitInfo.nTickRate;
+		if (e.type ==
+#ifdef USE_SDL3
+		    SDL_EVENT_KEY_DOWN
+#else
+		    SDL_KEYDOWN
+#endif
+		) {
+			const SDL_Keycode key =
+#ifdef USE_SDL3
+			    e.key.key;
+#else
+			    e.key.keysym.sym;
+#endif
+			if (key == SDLK_ESCAPE) {
+				CloseDemoFile();
+				CurrentDemoMessage = std::nullopt;
+				DemoNumber = -1;
+				Timedemo = false;
+				last_tick = SDL_GetTicks();
+			} else if (IsAnyOf(key, SDLK_KP_PLUS, SDLK_PLUS) && sgGameInitInfo.nTickRate < 255) {
+				sgGameInitInfo.nTickRate++;
+				GetOptions().Gameplay.tickRate.SetValue(sgGameInitInfo.nTickRate);
+				gnTickDelay = 1000 / sgGameInitInfo.nTickRate;
+			} else if (IsAnyOf(key, SDLK_KP_MINUS, SDLK_MINUS) && sgGameInitInfo.nTickRate > 1) {
+				sgGameInitInfo.nTickRate--;
+				GetOptions().Gameplay.tickRate.SetValue(sgGameInitInfo.nTickRate);
+				gnTickDelay = 1000 / sgGameInitInfo.nTickRate;
+			}
 		}
 	}
 
@@ -744,13 +809,22 @@ void RecordMessage(const SDL_Event &event, uint16_t modState)
 	if (CurrentEventHandler == DisableInputEventHandler)
 		return;
 	switch (event.type) {
+#ifdef USE_SDL3
+	case SDL_EVENT_MOUSE_MOTION:
+#else
 	case SDL_MOUSEMOTION:
+#endif
 		WriteDemoMsgHeader(DemoMsg::MouseMotionEvent);
 		WriteLE16(DemoRecording, event.motion.x);
 		WriteLE16(DemoRecording, event.motion.y);
 		break;
+#ifdef USE_SDL3
+	case SDL_EVENT_MOUSE_BUTTON_DOWN:
+	case SDL_EVENT_MOUSE_BUTTON_UP:
+#else
 	case SDL_MOUSEBUTTONDOWN:
 	case SDL_MOUSEBUTTONUP:
+#endif
 #ifdef USE_SDL1
 		if (event.button.button == SDL_BUTTON_WHEELUP || event.button.button == SDL_BUTTON_WHEELDOWN) {
 			WriteDemoMsgHeader(DemoMsg::MouseWheelEvent);
@@ -759,7 +833,14 @@ void RecordMessage(const SDL_Event &event, uint16_t modState)
 			WriteLE16(DemoRecording, modState);
 		} else {
 #endif
-			WriteDemoMsgHeader(event.type == SDL_MOUSEBUTTONDOWN ? DemoMsg::MouseButtonDownEvent : DemoMsg::MouseButtonUpEvent);
+			WriteDemoMsgHeader(
+#ifdef USE_SDL3
+			    event.button.down
+#else
+		    event.type == SDL_MOUSEBUTTONDOWN
+#endif
+			        ? DemoMsg::MouseButtonDownEvent
+			        : DemoMsg::MouseButtonUpEvent);
 			WriteByte(DemoRecording, event.button.button);
 			WriteLE16(DemoRecording, event.button.x);
 			WriteLE16(DemoRecording, event.button.y);
@@ -769,34 +850,74 @@ void RecordMessage(const SDL_Event &event, uint16_t modState)
 #endif
 		break;
 #ifndef USE_SDL1
+#ifdef USE_SDL3
+	case SDL_EVENT_MOUSE_WHEEL:
+#else
 	case SDL_MOUSEWHEEL:
+#endif
 		WriteDemoMsgHeader(DemoMsg::MouseWheelEvent);
+
+#ifdef USE_SDL3
+		int wheelX, wheelY;
+#if SDL_VERSION_ATLEAST(3, 2, 12)
+		wheelX = event.wheel.integer_x;
+		wheelY = event.wheel.integer_y;
+#else
+		wheelX = event.wheel.x;
+		wheelY = event.wheel.y;
+#endif
+		if (wheelX < std::numeric_limits<int16_t>::min()
+		    || wheelX > std::numeric_limits<int16_t>::max()
+		    || wheelY < std::numeric_limits<int16_t>::min()
+		    || wheelY > std::numeric_limits<int16_t>::max()) {
+			app_fatal(StrCat("Mouse wheel event integer_x/y out of int16_t range. x=",
+			    wheelX, " y=", wheelY));
+		}
+		WriteLE16(DemoRecording, wheelX);
+		WriteLE16(DemoRecording, wheelY);
+#else
 		if (event.wheel.x < std::numeric_limits<int16_t>::min()
 		    || event.wheel.x > std::numeric_limits<int16_t>::max()
 		    || event.wheel.y < std::numeric_limits<int16_t>::min()
 		    || event.wheel.y > std::numeric_limits<int16_t>::max()) {
-			app_fatal(fmt::format("Mouse wheel event x/y out of int16_t range. x={} y={}",
-			    event.wheel.x, event.wheel.y));
+			app_fatal(StrCat("Mouse wheel event x/y out of int16_t range. x=",
+			    event.wheel.x, " y=", event.wheel.y));
 		}
 		WriteLE16(DemoRecording, event.wheel.x);
 		WriteLE16(DemoRecording, event.wheel.y);
+#endif
 		WriteLE16(DemoRecording, modState);
 		break;
 #endif
+#ifdef USE_SDL3
+	case SDL_EVENT_KEY_DOWN:
+	case SDL_EVENT_KEY_UP:
+		WriteDemoMsgHeader(event.key.down ? DemoMsg::KeyDownEvent : DemoMsg::KeyUpEvent);
+		WriteLE32(DemoRecording, static_cast<uint32_t>(event.key.key));
+		WriteLE16(DemoRecording, static_cast<uint16_t>(event.key.mod));
+		break;
+#else
 	case SDL_KEYDOWN:
 	case SDL_KEYUP:
 		WriteDemoMsgHeader(event.type == SDL_KEYDOWN ? DemoMsg::KeyDownEvent : DemoMsg::KeyUpEvent);
 		WriteLE32(DemoRecording, static_cast<uint32_t>(event.key.keysym.sym));
 		WriteLE16(DemoRecording, static_cast<uint16_t>(event.key.keysym.mod));
 		break;
+#endif
 #ifndef USE_SDL1
+#ifndef USE_SDL3
 	case SDL_WINDOWEVENT:
 		if (event.window.type == SDL_WINDOWEVENT_CLOSE) {
 			WriteDemoMsgHeader(DemoMsg::QuitEvent);
 		}
 		break;
 #endif
+#endif
+#ifdef USE_SDL3
+	case SDL_EVENT_QUIT:
+#else
 	case SDL_QUIT:
+#endif
 		WriteDemoMsgHeader(DemoMsg::QuitEvent);
 		break;
 	default:
@@ -844,17 +965,17 @@ void NotifyGameLoopEnd()
 
 	if (IsRunning() && !HeadlessMode) {
 		const float seconds = (SDL_GetTicks() - StartTime) / 1000.0F;
-		SDL_Log("%d frames, %.2f seconds: %.1f fps", LogicTick, seconds, LogicTick / seconds);
+		Log("{} frames, {:.2f} seconds: {:.1f} fps", LogicTick, seconds, LogicTick / seconds);
 		gbRunGameResult = false;
 		gbRunGame = false;
 
 		HeroCompareResult compareResult = pfile_compare_hero_demo(DemoNumber, false);
 		switch (compareResult.status) {
 		case HeroCompareResult::ReferenceNotFound:
-			SDL_Log("Timedemo: No final comparison because reference is not present.");
+			Log("Timedemo: No final comparison because reference is not present.");
 			break;
 		case HeroCompareResult::Same:
-			SDL_Log("Timedemo: Same outcome as initial run. :)");
+			Log("Timedemo: Same outcome as initial run. :)");
 			break;
 		case HeroCompareResult::Difference:
 			Log("Timedemo: Different outcome than initial run. ;(\n{}", compareResult.message);

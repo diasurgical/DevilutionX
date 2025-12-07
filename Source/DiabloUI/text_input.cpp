@@ -4,18 +4,26 @@
 #include <string>
 #include <string_view>
 
-#include <SDL.h>
 #include <function_ref.hpp>
+
+#ifdef USE_SDL3
+#include <SDL3/SDL_clipboard.h>
+#include <SDL3/SDL_events.h>
+#include <SDL3/SDL_keyboard.h>
+#include <SDL3/SDL_keycode.h>
+#else
+#include <SDL.h>
 
 #ifdef USE_SDL1
 #include "utils/sdl2_to_1_2_backports.h"
 #endif
+#endif
 
 #include "utils/log.hpp"
 #include "utils/parse_int.hpp"
+#include "utils/sdl_compat.h"
 #include "utils/sdl_ptrs.h"
 #include "utils/str_cat.hpp"
-#include "utils/utf8.hpp"
 
 namespace devilution {
 
@@ -26,44 +34,47 @@ bool HandleInputEvent(const SDL_Event &event, TextInputState &state,
     [[maybe_unused]] tl::function_ref<bool(std::string_view)> assignFn)
 {
 	const auto modState = SDL_GetModState();
-	const bool isCtrl = (modState & KMOD_CTRL) != 0;
-	const bool isAlt = (modState & KMOD_ALT) != 0;
-	const bool isShift = (modState & KMOD_SHIFT) != 0;
+	const bool isCtrl = (modState & SDL_KMOD_CTRL) != 0;
+	const bool isAlt = (modState & SDL_KMOD_ALT) != 0;
+	const bool isShift = (modState & SDL_KMOD_SHIFT) != 0;
 	switch (event.type) {
-	case SDL_KEYDOWN: {
-		switch (event.key.keysym.sym) {
+	case SDL_EVENT_KEY_DOWN: {
+		switch (SDLC_EventKey(event)) {
 #ifndef USE_SDL1
-		case SDLK_a:
+		case SDLK_A:
 			if (isCtrl) {
 				state.setCursorToStart();
 				state.setSelectCursorToEnd();
 			}
 			return true;
-		case SDLK_c:
+		case SDLK_C:
 			if (isCtrl) {
 				const std::string selectedText { state.selectedText() };
-				if (SDL_SetClipboardText(selectedText.c_str()) < 0) {
-					Log("{}", SDL_GetError());
+				if (SDLC_SetClipboardText(selectedText.c_str())) {
+					LogError("Failed to set clipboard text: {}", SDL_GetError());
+					SDL_ClearError();
 				}
 			}
 			return true;
-		case SDLK_x:
+		case SDLK_X:
 			if (isCtrl) {
 				const std::string selectedText { state.selectedText() };
-				if (SDL_SetClipboardText(selectedText.c_str()) < 0) {
-					Log("{}", SDL_GetError());
+				if (SDLC_SetClipboardText(selectedText.c_str())) {
+					LogError("Failed to set clipboard text: {}", SDL_GetError());
+					SDL_ClearError();
 				} else {
 					state.eraseSelection();
 				}
 			}
 			return true;
-		case SDLK_v:
+		case SDLK_V:
 			if (isCtrl) {
-				if (SDL_HasClipboardText() == SDL_TRUE) {
-					std::unique_ptr<char, SDLFreeDeleter<char>> clipboard { SDL_GetClipboardText() };
-					if (clipboard == nullptr || *clipboard == '\0') {
-						Log("{}", SDL_GetError());
-					} else {
+				if (SDLC_HasClipboardText()) {
+					const std::unique_ptr<char, SDLFreeDeleter<char>> clipboard { SDL_GetClipboardText() };
+					if (clipboard == nullptr) {
+						LogError("Failed to get clipboard text: {}", SDL_GetError());
+						SDL_ClearError();
+					} else if (*clipboard != '\0') {
 						typeFn(clipboard.get());
 					}
 				}
@@ -101,18 +112,23 @@ bool HandleInputEvent(const SDL_Event &event, TextInputState &state,
 #else
 		// Mark events that will also trigger SDL_TEXTINPUT as handled.
 		return !isCtrl && !isAlt
-		    && event.key.keysym.sym >= SDLK_SPACE && event.key.keysym.sym <= SDLK_z;
+		    && SDLC_EventKey(event) >= SDLK_SPACE && SDLC_EventKey(event) <= SDLK_Z;
 #endif
 	} break;
 #ifndef USE_SDL1
-	case SDL_TEXTINPUT:
+	case SDL_EVENT_TEXT_INPUT:
 #ifdef __vita__
 		assignFn(event.text.text);
 #else
 		typeFn(event.text.text);
 #endif
 		return true;
+#ifdef USE_SDL3
+	case SDL_EVENT_TEXT_EDITING:
+	case SDL_EVENT_TEXT_EDITING_CANDIDATES:
+#else
 	case SDL_TEXTEDITING:
+#endif
 		return true;
 #endif
 	default:

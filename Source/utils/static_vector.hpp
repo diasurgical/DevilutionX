@@ -103,21 +103,19 @@ public:
 
 	~StaticVector()
 	{
-		for (std::size_t pos = 0; pos < size_; ++pos) {
-			std::destroy_at(data_[pos].ptr());
-		}
+		std::destroy_n(data(), size_);
 	}
 
 private:
 	struct AlignedStorage {
 		alignas(alignof(T)) std::byte data[sizeof(T)];
 
-		const T *ptr() const
+		[[nodiscard]] const T *ptr() const
 		{
 			return std::launder(reinterpret_cast<const T *>(data));
 		}
 
-		T *ptr()
+		[[nodiscard]] T *ptr()
 		{
 			return std::launder(reinterpret_cast<T *>(data));
 		}

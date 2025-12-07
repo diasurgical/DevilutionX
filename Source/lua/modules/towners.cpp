@@ -1,6 +1,7 @@
 #include "lua/modules/towners.hpp"
 
 #include <optional>
+#include <unordered_map>
 #include <utility>
 
 #include <sol/sol.hpp>
@@ -13,25 +14,26 @@
 namespace devilution {
 namespace {
 
-const char *const TownerTableNames[NUM_TOWNER_TYPES] {
-	"griswold",
-	"pepin",
-	"deadguy",
-	"ogden",
-	"cain",
-	"farnham",
-	"adria",
-	"gillian",
-	"wirt",
-	"cow",
-	"lester",
-	"celia",
-	"nut",
+// Map from towner type enum to Lua table name
+const std::unordered_map<_talker_id, const char *> TownerTableNames = {
+	{ TOWN_SMITH, "griswold" },
+	{ TOWN_HEALER, "pepin" },
+	{ TOWN_DEADGUY, "deadguy" },
+	{ TOWN_TAVERN, "ogden" },
+	{ TOWN_STORY, "cain" },
+	{ TOWN_DRUNK, "farnham" },
+	{ TOWN_WITCH, "adria" },
+	{ TOWN_BMAID, "gillian" },
+	{ TOWN_PEGBOY, "wirt" },
+	{ TOWN_COW, "cow" },
+	{ TOWN_FARMER, "lester" },
+	{ TOWN_GIRL, "celia" },
+	{ TOWN_COWFARM, "nut" },
 };
 
 void PopulateTownerTable(_talker_id townerId, sol::table &out)
 {
-	SetDocumented(out, "position", "()",
+	LuaSetDocFn(out, "position", "()",
 	    "Returns towner coordinates",
 	    [townerId]() -> std::optional<std::pair<int, int>> {
 		    const Towner *towner = GetTowner(townerId);
@@ -44,10 +46,15 @@ void PopulateTownerTable(_talker_id townerId, sol::table &out)
 sol::table LuaTownersModule(sol::state_view &lua)
 {
 	sol::table table = lua.create_table();
-	for (uint8_t townerId = TOWN_SMITH; townerId < NUM_TOWNER_TYPES; ++townerId) {
+	// Iterate over all towner types found in TSV data
+	for (const auto &[townerId, name] : TownerLongNames) {
+		auto tableNameIt = TownerTableNames.find(townerId);
+		if (tableNameIt == TownerTableNames.end())
+			continue; // Skip if no table name mapping
+
 		sol::table townerTable = lua.create_table();
-		PopulateTownerTable(static_cast<_talker_id>(townerId), townerTable);
-		SetDocumented(table, TownerTableNames[townerId], /*signature=*/"", TownerLongNames[townerId], std::move(townerTable));
+		PopulateTownerTable(townerId, townerTable);
+		LuaSetDoc(table, tableNameIt->second, /*signature=*/"", name.c_str(), std::move(townerTable));
 	}
 	return table;
 }

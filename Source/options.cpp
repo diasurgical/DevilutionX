@@ -17,7 +17,15 @@
 #include <string>
 #include <unordered_set>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_audio.h>
+#include <SDL3/SDL_keycode.h>
+#include <SDL3/SDL_stdinc.h>
+#include <SDL3/SDL_version.h>
+#else
 #include <SDL_version.h>
+#endif
+
 #include <expected.hpp>
 #include <fmt/format.h>
 #include <function_ref.hpp>
@@ -36,6 +44,7 @@
 #include "utils/log.hpp"
 #include "utils/logged_fstream.hpp"
 #include "utils/paths.h"
+#include "utils/sdl_ptrs.h"
 #include "utils/str_cat.hpp"
 #include "utils/str_split.hpp"
 #include "utils/utf8.hpp"
@@ -75,7 +84,7 @@ void DiscoverMods()
 		// Find unpacked mods
 		for (const std::string &modFolder : ListDirectories(modsPath.c_str())) {
 			// Only consider this folder if the init.lua file exists.
-			std::string modScriptPath = modsPath + modFolder + DIRECTORY_SEPARATOR_STR + "init.lua";
+			const std::string modScriptPath = modsPath + DIRECTORY_SEPARATOR_STR + modFolder + DIRECTORY_SEPARATOR_STR + "lua" + DIRECTORY_SEPARATOR_STR + "mods" + DIRECTORY_SEPARATOR_STR + modFolder + DIRECTORY_SEPARATOR_STR + "init.lua";
 			if (!FileExists(modScriptPath.c_str()))
 				continue;
 
@@ -157,7 +166,9 @@ void SaveIni()
 {
 	if (!ini.has_value()) return;
 	if (!ini->changed()) return;
-	RecursivelyCreateDir(paths::ConfigPath().c_str());
+	if (!paths::ConfigPath().empty()) {
+		RecursivelyCreateDir(paths::ConfigPath().c_str());
+	}
 	const std::string iniPath = GetIniPath();
 	LoggedFStream out;
 	if (!out.Open(iniPath.c_str(), "wb")) {
@@ -194,8 +205,10 @@ Options &GetOptions()
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 bool HardwareCursorSupported()
 {
-#if (defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE == 1)
+#if (defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE == 1) || __DJGPP__
 	return false;
+#elif USE_SDL3
+	return true;
 #else
 	SDL_version v;
 	SDL_GetVersion(&v);
@@ -221,7 +234,7 @@ void LoadOptions()
 	ini->getUtf8Buf("Network", "Previous Host", options.Network.szPreviousHost, sizeof(options.Network.szPreviousHost));
 
 	for (size_t i = 0; i < QuickMessages.size(); i++) {
-		std::span<const Ini::Value> values = ini->get("NetMsg", QuickMessages[i].key);
+		const std::span<const Ini::Value> values = ini->get("NetMsg", QuickMessages[i].key);
 		std::vector<std::string> &result = options.Chat.szHotKeyMsgs[i];
 		result.clear();
 		result.reserve(values.size());
@@ -294,9 +307,9 @@ void OptionEntryBoolean::SaveToIni(std::string_view category) const
 {
 	ini->set(category, key, value);
 }
-void OptionEntryBoolean::SetValue(bool value)
+void OptionEntryBoolean::SetValue(bool newValue)
 {
-	this->value = value;
+	this->value = newValue;
 	this->NotifyValueChanged();
 }
 OptionEntryType OptionEntryBoolean::GetType() const
@@ -325,14 +338,14 @@ void OptionEntryEnumBase::SaveToIni(std::string_view category) const
 {
 	ini->set(category, key, value);
 }
-void OptionEntryEnumBase::SetValueInternal(int value)
+void OptionEntryEnumBase::SetValueInternal(int newValue)
 {
-	this->value = value;
+	this->value = newValue;
 	this->NotifyValueChanged();
 }
-void OptionEntryEnumBase::AddEntry(int value, std::string_view name)
+void OptionEntryEnumBase::AddEntry(int entryValue, std::string_view name)
 {
-	entryValues.push_back(value);
+	entryValues.push_back(entryValue);
 	entryNames.push_back(name);
 }
 size_t OptionEntryEnumBase::GetListSize() const
@@ -368,14 +381,14 @@ void OptionEntryIntBase::SaveToIni(std::string_view category) const
 {
 	ini->set(category, key, value);
 }
-void OptionEntryIntBase::SetValueInternal(int value)
+void OptionEntryIntBase::SetValueInternal(int newValue)
 {
-	this->value = value;
+	this->value = newValue;
 	this->NotifyValueChanged();
 }
-void OptionEntryIntBase::AddEntry(int value)
+void OptionEntryIntBase::AddEntry(int entryValue)
 {
-	entryValues.push_back(value);
+	entryValues.push_back(entryValue);
 }
 size_t OptionEntryIntBase::GetListSize() const
 {
@@ -384,8 +397,8 @@ size_t OptionEntryIntBase::GetListSize() const
 std::string_view OptionEntryIntBase::GetListDescription(size_t index) const
 {
 	if (entryNames.empty()) {
-		for (auto value : entryValues) {
-			entryNames.push_back(StrCat(value));
+		for (auto entryValue : entryValues) {
+			entryNames.push_back(StrCat(entryValue));
 		}
 	}
 	return entryNames[index].data();
@@ -574,7 +587,7 @@ OptionEntryResampler::OptionEntryResampler()
 }
 void OptionEntryResampler::LoadFromIni(std::string_view category)
 {
-	std::string_view resamplerStr = ini->getString(category, key);
+	const std::string_view resamplerStr = ini->getString(category, key);
 	if (!resamplerStr.empty()) {
 		std::optional<Resampler> resampler = ResamplerFromString(resamplerStr);
 		if (resampler) {
@@ -643,7 +656,11 @@ void OptionEntryAudioDevice::SaveToIni(std::string_view category) const
 
 size_t OptionEntryAudioDevice::GetListSize() const
 {
-#if SDL_VERSION_ATLEAST(2, 0, 0)
+#if defined(USE_SDL3)
+	int numDevices = 0;
+	SDLUniquePtr<SDL_AudioDeviceID> devices { SDL_GetAudioPlaybackDevices(&numDevices) };
+	return static_cast<size_t>(numDevices) + 1;
+#elif SDL_VERSION_ATLEAST(2, 0, 0)
 	return SDL_GetNumAudioDevices(false) + 1;
 #else
 	return 1;
@@ -659,12 +676,22 @@ std::string_view OptionEntryAudioDevice::GetListDescription(size_t index) const
 
 size_t OptionEntryAudioDevice::GetActiveListIndex() const
 {
-	for (size_t i = 0; i < GetListSize(); i++) {
-		std::string_view deviceName = GetDeviceName(i);
-		if (deviceName == deviceName_)
-			return i;
+#ifdef USE_SDL3
+	int numDevices;
+	SDLUniquePtr<SDL_AudioDeviceID> devices { SDL_GetAudioPlaybackDevices(&numDevices) };
+	if (devices == nullptr) return 0;
+	for (int i = 0; i < numDevices; ++i) {
+		const char *deviceName = SDL_GetAudioDeviceName(devices.get()[i]);
+		if (deviceName_ == deviceName) return i;
 	}
 	return 0;
+#else
+	for (size_t i = 0; i < GetListSize(); i++) {
+		const std::string_view deviceName = GetDeviceName(i);
+		if (deviceName_ == deviceName) return i;
+	}
+	return 0;
+#endif
 }
 
 void OptionEntryAudioDevice::SetActiveListIndex(size_t index)
@@ -675,22 +702,54 @@ void OptionEntryAudioDevice::SetActiveListIndex(size_t index)
 
 std::string_view OptionEntryAudioDevice::GetDeviceName(size_t index) const
 {
-#if SDL_VERSION_ATLEAST(2, 0, 0)
-	if (index != 0)
-		return SDL_GetAudioDeviceName(static_cast<int>(index) - 1, false);
+	if (index == 0) return {}; // System Default
+#if defined(USE_SDL3)
+	int numDevices = 0;
+	SDLUniquePtr<SDL_AudioDeviceID> devices { SDL_GetAudioPlaybackDevices(&numDevices) };
+	if (devices == nullptr || static_cast<int>(index) > numDevices) return "Unknown";
+	const char *deviceName = SDL_GetAudioDeviceName(devices.get()[index - 1]);
+	if (deviceName == nullptr) return "Unknown";
+	return deviceName;
+#elif SDL_VERSION_ATLEAST(2, 0, 0)
+	return SDL_GetAudioDeviceName(static_cast<int>(index) - 1, false);
 #endif
-	return "";
+	return {};
 }
+
+#ifdef USE_SDL3
+SDL_AudioDeviceID OptionEntryAudioDevice::id() const
+{
+	if (deviceName_.empty()) return SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK;
+	int numDevices = 0;
+	SDLUniquePtr<SDL_AudioDeviceID> devices { SDL_GetAudioPlaybackDevices(&numDevices) };
+	if (devices == nullptr) {
+		LogWarn("Failed to get audio devices: {}", SDL_GetError());
+		SDL_ClearError();
+		return SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK;
+	}
+	for (int i = 0; i < numDevices; ++i) {
+		const SDL_AudioDeviceID id = devices.get()[i];
+		if (deviceName_ == SDL_GetAudioDeviceName(id)) return id;
+	}
+	return SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK;
+}
+#endif
 
 GraphicsOptions::GraphicsOptions()
     : OptionCategoryBase("Graphics", N_("Graphics"), N_("Graphics Settings"))
     , fullscreen("Fullscreen", OnlyIfSupportsWindowed | OptionEntryFlags::CantChangeInGame | OptionEntryFlags::RecreateUI, N_("Fullscreen"), N_("Display the game in windowed or fullscreen mode."), true)
 #if !defined(USE_SDL1) || defined(__3DS__)
-    , fitToScreen("Fit to Screen", OptionEntryFlags::CantChangeInGame | OptionEntryFlags::RecreateUI, N_("Fit to Screen"), N_("Automatically adjust the game window to your current desktop screen aspect ratio and resolution."), true)
+    , fitToScreen("Fit to Screen", OptionEntryFlags::CantChangeInGame | OptionEntryFlags::RecreateUI, N_("Fit to Screen"), N_("Automatically adjust the game window to your current desktop screen aspect ratio and resolution."),
+#ifdef __DJGPP__
+          false
+#else
+          true
+#endif
+          )
 #endif
 #ifndef USE_SDL1
     , upscale("Upscale", OptionEntryFlags::Invisible | OptionEntryFlags::CantChangeInGame | OptionEntryFlags::RecreateUI, N_("Upscale"), N_("Enables image scaling from the game resolution to your monitor resolution. Prevents changing the monitor resolution and allows window resizing."),
-#ifdef NXDK
+#if defined(NXDK) || defined(__DJGPP__)
           false
 #else
           true
@@ -786,7 +845,9 @@ GameplayOptions::GameplayOptions()
     , showItemGraphicsInStores("Show Item Graphics in Stores", OptionEntryFlags::None, N_("Show Item Graphics in Stores"), N_("Show item graphics to the left of item descriptions in store menus."), false)
     , showHealthValues("Show health values", OptionEntryFlags::None, N_("Show health values"), N_("Displays current / max health value on health globe."), false)
     , showManaValues("Show mana values", OptionEntryFlags::None, N_("Show mana values"), N_("Displays current / max mana value on mana globe."), false)
+    , showMultiplayerPartyInfo("Show Multiplayer Party Information", OptionEntryFlags::CantChangeInMultiPlayer, N_("Show Party Information"), N_("Displays the health and mana of all connected multiplayer party members."), false)
     , enemyHealthBar("Enemy Health Bar", OptionEntryFlags::None, N_("Enemy Health Bar"), N_("Enemy Health Bar is displayed at the top of the screen."), false)
+    , floatingInfoBox("Floating Item Info Box", OptionEntryFlags::None, N_("Floating Item Info Box"), N_("Displays item info in a floating box when hovering over an item."), false)
     , autoGoldPickup("Auto Gold Pickup", OptionEntryFlags::None, N_("Auto Gold Pickup"), N_("Gold is automatically collected when in close proximity to the player."), false)
     , autoElixirPickup("Auto Elixir Pickup", OptionEntryFlags::None, N_("Auto Elixir Pickup"), N_("Elixirs are automatically collected when in close proximity to the player."), false)
     , autoOilPickup("Auto Oil Pickup", OptionEntryFlags::OnlyHellfire, N_("Auto Oil Pickup"), N_("Oils are automatically collected when in close proximity to the player."), false)
@@ -836,7 +897,9 @@ std::vector<OptionEntryBase *> GameplayOptions::GetEntries()
 		&showItemGraphicsInStores,
 		&showHealthValues,
 		&showManaValues,
+		&showMultiplayerPartyInfo,
 		&enemyHealthBar,
+		&floatingInfoBox,
 		&showMonsterType,
 		&showItemLabels,
 		&enableFloatingNumbers,
@@ -919,7 +982,7 @@ void OptionEntryLanguageCode::LoadFromIni(std::string_view category)
 	for (auto localeIter = locales.rbegin(); localeIter != locales.rend(); localeIter++) {
 		auto regionSeparator = localeIter->find('_');
 		if (regionSeparator != std::string::npos) {
-			std::string neutralLocale = localeIter->substr(0, regionSeparator);
+			const std::string neutralLocale = localeIter->substr(0, regionSeparator);
 			if (std::find(locales.rbegin(), localeIter, neutralLocale) == localeIter) {
 				localeIter = std::make_reverse_iterator(locales.insert(localeIter.base(), neutralLocale));
 			}
@@ -974,6 +1037,7 @@ void OptionEntryLanguageCode::CheckLanguagesAreInitialized() const
 	languages.emplace_back("pt_BR", "Português do Brasil");
 	languages.emplace_back("ro", "Română");
 	languages.emplace_back("ru", "Русский");
+	languages.emplace_back("fi", "Suomi");
 	languages.emplace_back("sv", "Svenska");
 	languages.emplace_back("tr", "Türkçe");
 	languages.emplace_back("uk", "Українська");
@@ -1066,12 +1130,12 @@ KeymapperOptions::KeymapperOptions()
 	keyIDToKeyName.emplace(MouseScrollLeftButton, "SCROLLLEFTMOUSE");
 	keyIDToKeyName.emplace(MouseScrollRightButton, "SCROLLRIGHTMOUSE");
 
-	keyIDToKeyName.emplace(SDLK_BACKQUOTE, "`");
+	keyIDToKeyName.emplace(SDLK_GRAVE, "`");
 	keyIDToKeyName.emplace(SDLK_LEFTBRACKET, "[");
 	keyIDToKeyName.emplace(SDLK_RIGHTBRACKET, "]");
 	keyIDToKeyName.emplace(SDLK_BACKSLASH, "\\");
 	keyIDToKeyName.emplace(SDLK_SEMICOLON, ";");
-	keyIDToKeyName.emplace(SDLK_QUOTE, "'");
+	keyIDToKeyName.emplace(SDLK_APOSTROPHE, "'");
 	keyIDToKeyName.emplace(SDLK_COMMA, ",");
 	keyIDToKeyName.emplace(SDLK_PERIOD, ".");
 	keyIDToKeyName.emplace(SDLK_SLASH, "/");
@@ -1383,13 +1447,13 @@ void PadmapperOptions::Action::UpdateValueDescription() const
 		boundInputShortDescription = "";
 		return;
 	}
-	std::string_view buttonName = ToString(GamepadType, boundInput.button);
+	const std::string_view buttonName = ToString(GamepadType, boundInput.button);
 	if (boundInput.modifier == ControllerButton_NONE) {
 		boundInputDescription = std::string(buttonName);
 		boundInputShortDescription = std::string(Shorten(buttonName));
 		return;
 	}
-	std::string_view modifierName = ToString(GamepadType, boundInput.modifier);
+	const std::string_view modifierName = ToString(GamepadType, boundInput.modifier);
 	boundInputDescription = StrCat(modifierName, "+", buttonName);
 	boundInputShortDescription = StrCat(Shorten(modifierName), "+", Shorten(buttonName));
 }
@@ -1470,7 +1534,7 @@ const PadmapperOptions::Action *PadmapperOptions::findAction(ControllerButton bu
 	// To give preference to button combinations,
 	// first pass ignores mappings where no modifier is bound
 	for (const Action &action : actions) {
-		ControllerButtonCombo combo = action.boundInput;
+		const ControllerButtonCombo combo = action.boundInput;
 		if (combo.modifier == ControllerButton_NONE)
 			continue;
 		if (button != combo.button)
@@ -1483,7 +1547,7 @@ const PadmapperOptions::Action *PadmapperOptions::findAction(ControllerButton bu
 	}
 
 	for (const Action &action : actions) {
-		ControllerButtonCombo combo = action.boundInput;
+		const ControllerButtonCombo combo = action.boundInput;
 		if (combo.modifier != ControllerButton_NONE)
 			continue;
 		if (button != combo.button)
@@ -1562,7 +1626,7 @@ std::forward_list<ModOptions::ModEntry> &ModOptions::GetModEntries()
 	if (modEntries)
 		return *modEntries;
 
-	std::vector<std::string> modNames = ini->getKeys(key);
+	const std::vector<std::string> modNames = ini->getKeys(key);
 
 	std::forward_list<ModOptions::ModEntry> &newModEntries = modEntries.emplace();
 	for (auto &modName : modNames) {

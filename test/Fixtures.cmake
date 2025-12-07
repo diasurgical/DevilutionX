@@ -1,5 +1,7 @@
+include(functions/copy_files)
+
 if(NOT DEFINED DEVILUTIONX_TEST_FIXTURES_OUTPUT_DIRECTORY)
-  set(DEVILUTIONX_TEST_FIXTURES_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/fixtures")
+  set(DEVILUTIONX_TEST_FIXTURES_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/test/fixtures")
 endif()
 
 set(devilutionx_fixtures
@@ -81,21 +83,6 @@ set(devilutionx_fixtures
   memory_map/player.txt
   memory_map/portal.txt
   memory_map/quest.txt
-  text_render_integration_test/basic-colors.png
-  text_render_integration_test/basic.png
-  text_render_integration_test/horizontal_overflow.png
-  text_render_integration_test/horizontal_overflow-colors.png
-  text_render_integration_test/kerning_fit_spacing-colors.png
-  text_render_integration_test/kerning_fit_spacing.png
-  text_render_integration_test/kerning_fit_spacing__align_center-colors.png
-  text_render_integration_test/kerning_fit_spacing__align_center.png
-  text_render_integration_test/kerning_fit_spacing__align_center__newlines.png
-  text_render_integration_test/kerning_fit_spacing__align_center__newlines_in_fmt-colors.png
-  text_render_integration_test/kerning_fit_spacing__align_center__newlines_in_value-colors.png
-  text_render_integration_test/kerning_fit_spacing__align_right-colors.png
-  text_render_integration_test/kerning_fit_spacing__align_right.png
-  text_render_integration_test/vertical_overflow.png
-  text_render_integration_test/vertical_overflow-colors.png
   timedemo/WarriorLevel1to2/demo_0.dmo
   timedemo/WarriorLevel1to2/demo_0_reference_spawn_0.sv
   timedemo/WarriorLevel1to2/spawn_0.sv
@@ -109,17 +96,12 @@ set(devilutionx_fixtures
   txtdata/utf8_bom.tsv
 )
 
-foreach(fixture ${devilutionx_fixtures})
-  set(src "${CMAKE_CURRENT_SOURCE_DIR}/fixtures/${fixture}")
-  set(dst "${DEVILUTIONX_TEST_FIXTURES_OUTPUT_DIRECTORY}/${fixture}")
-  list(APPEND DEVILUTIONX_OUTPUT_TEST_FIXTURES_FILES "${dst}")
-  add_custom_command(
-    COMMENT "Copying ${fixture}"
-    OUTPUT "${dst}"
-    DEPENDS "${src}"
-    COMMAND ${CMAKE_COMMAND} -E copy "${src}" "${dst}"
-    VERBATIM)
-endforeach()
+copy_files(
+  FILES ${devilutionx_fixtures}
+  SRC_PREFIX test/fixtures/
+  OUTPUT_DIR "${DEVILUTIONX_TEST_FIXTURES_OUTPUT_DIRECTORY}"
+  OUTPUT_VARIABLE DEVILUTIONX_OUTPUT_TEST_FIXTURES_FILES
+)
 
 add_custom_target(devilutionx_copied_fixtures DEPENDS ${DEVILUTIONX_OUTPUT_TEST_FIXTURES_FILES})
 add_dependencies(test_main devilutionx_copied_fixtures)

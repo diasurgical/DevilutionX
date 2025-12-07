@@ -1,0 +1,25 @@
+qdlvl	qdmultlvl	qlvlt	bookOrder	qdrnd	qslvl	isSinglePlayerOnly	qdmsg	qlstr
+5	-1		5	100	SL_NONE	true	TEXT_INFRA5	The Magic Rock
+9	-1		10	100	SL_NONE	true	TEXT_MUSH8	Black Mushroom
+4	-1		3	100	SL_NONE	true	TEXT_GARBUD1	Gharbad The Weak
+8	-1		9	100	SL_NONE	true	TEXT_ZHAR1	Zhar the Mad
+14	-1		21	100	SL_NONE	true	TEXT_VEIL9	Lachdanan
+15	-1		23	100	SL_NONE	false	TEXT_VILE3	Diablo
+2	2		0	100	SL_NONE	false	TEXT_BUTCH9	The Butcher
+4	-1		4	100	SL_NONE	true	TEXT_BANNER2	Ogden's Sign
+7	-1		8	100	SL_NONE	true	TEXT_BLINDING	Halls of the Blind
+5	-1		6	100	SL_NONE	true	TEXT_BLOODY	Valor
+10	-1		11	100	SL_NONE	true	TEXT_ANVIL5	Anvil of Fury
+13	-1		20	100	SL_NONE	true	TEXT_BLOODWAR	Warlord of Blood
+3	3	DTYPE_CATHEDRAL	2	100	SL_SKELKING	false	TEXT_KING2	The Curse of King Leoric
+2	-1	DTYPE_CAVES	1	100	SL_POISONWATER	true	TEXT_POISON3	Poisoned Water Supply
+6	-1	DTYPE_CATACOMBS	7	100	SL_BONECHAMB	true	TEXT_BONER	The Chamber of Bone
+15	15	DTYPE_CATHEDRAL	22	100	SL_VILEBETRAYER	false	TEXT_VILE1	Archbishop Lazarus
+17	17		17	100	SL_NONE	false	TEXT_GRAVE7	Grave Matters
+9	9		12	100	SL_NONE	false	TEXT_FARMER1	Farmer's Orchard
+17	-1		14	100	SL_NONE	true	TEXT_GIRL2	Little Girl
+19	-1		16	100	SL_NONE	true	TEXT_TRADER	Wandering Trader
+17	17		15	100	SL_NONE	false	TEXT_DEFILER1	The Defiler
+21	21		19	100	SL_NONE	false	TEXT_NAKRUL1	Na-Krul
+21	-1		18	100	SL_NONE	true	TEXT_CORNSTN	Cornerstone of the World
+9	9		13	100	SL_NONE	false	TEXT_JERSEY4	The Jersey's Jersey

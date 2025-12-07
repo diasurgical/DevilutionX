@@ -21,7 +21,7 @@
     <ApplicationTypeRevision>8.2</ApplicationTypeRevision>
     <TargetPlatformVersion>10.0.10069.0</TargetPlatformVersion>
     <TargetPlatformMinVersion>10.0.10069.0</TargetPlatformMinVersion>
-    <WindowsTargetPlatformVersion>10.0.22000.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.26100.0</WindowsTargetPlatformVersion>
     <WindowsTargetPlatformMinVersion>10.0.14393.0</WindowsTargetPlatformMinVersion>
     <ProjectName>devilutionX</ProjectName>
   </PropertyGroup>
@@ -74,7 +74,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Link>
       <AdditionalDependencies>sdl_image.lib;libpng16_staticd.lib;pkware.lib;fmtd.lib;zlibstatic.lib;bzip2.lib;libsmackerdec.lib;libmpq.lib;libdevilutionx.lib;lua_static.lib;sdl2.lib;sdl_audiolib.lib;asio.lib;sodium.lib;zt.lib;lwip_pic.lib;miniupnpc_pic.lib;natpmp_pic.lib;zt_pic.lib;zto_pic.lib;shlwapi.lib;shell32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>..\build\SDL\VisualC-WinRT\x64\Debug\SDL-UWP;..\build\3rdParty\SDL_image\Debug;..\build\_deps\zlib-build\Debug;..\build\3rdParty\PKWare\Debug;..\build\3rdParty\bzip2\Debug;..\build\3rdParty\libsmackerdec\Debug;..\build\3rdParty\libmpq\Debug;..\build\_deps\lua-build\lua-5.4.6\Debug;..\build\_deps\sdl_audiolib-build\Debug;..\build\3rdParty\asio\Debug;..\build\_deps\libsodium-build\Debug;..\build\_deps\libzt-build\lib\Debug;..\build\_deps\libfmt-build\Debug;..\build\_deps\libpng-build\Debug;..\build\Source\libdevilutionx.dir\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\build\SDL\VisualC-WinRT\x64\Debug\SDL-UWP;..\build\3rdParty\SDL_image\Debug;..\build\_deps\zlib-build\Debug;..\build\3rdParty\PKWare\Debug;..\build\3rdParty\bzip2\Debug;..\build\3rdParty\libsmackerdec\Debug;..\build\3rdParty\libmpq\Debug;..\build\_deps\lua-build\lua-5.4.7\Debug;..\build\_deps\sdl_audiolib-build\Debug;..\build\3rdParty\asio\Debug;..\build\_deps\libsodium-build\Debug;..\build\_deps\libzt-build\lib\Debug;..\build\_deps\libfmt-build\Debug;..\build\_deps\libpng-build\Debug;..\build\Source\libdevilutionx.dir\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <ClCompile>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
@@ -93,7 +93,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Link>
       <AdditionalDependencies>sdl_image.lib;libpng16_static.lib;pkware.lib;fmt.lib;zlibstatic.lib;bzip2.lib;libsmackerdec.lib;libmpq.lib;libdevilutionx.lib;lua_static.lib;sdl2.lib;sdl_audiolib.lib;sheenbidi.lib;asio.lib;sodium.lib;zt.lib;lwip_pic.lib;miniupnpc_pic.lib;natpmp_pic.lib;zt_pic.lib;zto_pic.lib;shlwapi.lib;shell32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>..\build\SDL\VisualC-WinRT\x64\Release\SDL-UWP;..\build\3rdParty\SDL_image\Release;..\build\_deps\zlib-build\Release;..\build\3rdParty\PKWare\Release;..\build\3rdParty\bzip2\Release;..\build\3rdParty\libsmackerdec\Release;..\build\3rdParty\libmpq\Release;..\build\_deps\lua-build\lua-5.4.6\Release;..\build\_deps\sdl_audiolib-build\Release;..\build\3rdParty\asio\Release;..\build\_deps\libsodium-build\Release;..\build\_deps\libzt-build\lib\Release;..\build\_deps\libfmt-build\Release;..\build\_deps\libpng-build\Release;..\build\_deps\sheenbidi-build\Release;..\build\Source\libdevilutionx.dir\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\build\SDL\VisualC-WinRT\x64\Release\SDL-UWP;..\build\3rdParty\SDL_image\Release;..\build\_deps\zlib-build\Release;..\build\3rdParty\PKWare\Release;..\build\3rdParty\bzip2\Release;..\build\3rdParty\libsmackerdec\Release;..\build\3rdParty\libmpq\Release;..\build\_deps\lua-build\lua-5.4.7\Release;..\build\_deps\sdl_audiolib-build\Release;..\build\3rdParty\asio\Release;..\build\_deps\libsodium-build\Release;..\build\_deps\libzt-build\lib\Release;..\build\_deps\libfmt-build\Release;..\build\_deps\libpng-build\Release;..\build\_deps\sheenbidi-build\Release;..\build\Source\libdevilutionx.dir\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <ClCompile>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>

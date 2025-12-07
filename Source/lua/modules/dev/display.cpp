@@ -121,13 +121,13 @@ std::string DebugCmdToggleFPS(std::optional<bool> on)
 sol::table LuaDevDisplayModule(sol::state_view &lua)
 {
 	sol::table table = lua.create_table();
-	SetDocumented(table, "fps", "(name: string = nil)", "Toggle FPS display.", &DebugCmdToggleFPS);
-	SetDocumented(table, "fullbright", "(on: boolean = nil)", "Toggle light shading.", &DebugCmdFullbright);
-	SetDocumented(table, "grid", "(on: boolean = nil)", "Toggle showing the grid.", &DebugCmdShowGrid);
-	SetDocumented(table, "path", "(on: boolean = nil)", "Toggle path debug rendering.", &DebugCmdPath);
-	SetDocumented(table, "scrollView", "(on: boolean = nil)", "Toggle view scrolling via Shift+Mouse.", &DebugCmdScrollView);
-	SetDocumented(table, "tileData", "(name: string = nil)", "Toggle showing tile data.", &DebugCmdShowTileData);
-	SetDocumented(table, "vision", "(on: boolean = nil)", "Toggle vision debug rendering.", &DebugCmdVision);
+	LuaSetDocFn(table, "fps", "(name: string = nil)", "Toggle FPS display.", &DebugCmdToggleFPS);
+	LuaSetDocFn(table, "fullbright", "(on: boolean = nil)", "Toggle light shading.", &DebugCmdFullbright);
+	LuaSetDocFn(table, "grid", "(on: boolean = nil)", "Toggle showing the grid.", &DebugCmdShowGrid);
+	LuaSetDocFn(table, "path", "(on: boolean = nil)", "Toggle path debug rendering.", &DebugCmdPath);
+	LuaSetDocFn(table, "scrollView", "(on: boolean = nil)", "Toggle view scrolling via Shift+Mouse.", &DebugCmdScrollView);
+	LuaSetDocFn(table, "tileData", "(name: string = nil)", "Toggle showing tile data.", &DebugCmdShowTileData);
+	LuaSetDocFn(table, "vision", "(on: boolean = nil)", "Toggle vision debug rendering.", &DebugCmdVision);
 	return table;
 }
 

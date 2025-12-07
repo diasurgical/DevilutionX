@@ -7,6 +7,7 @@
 
 #include <cstdint>
 
+#include "dvlnet/leaveinfo.hpp"
 #include "engine/point.hpp"
 #include "items.h"
 #include "monster.h"
@@ -15,6 +16,8 @@
 #include "quests.h"
 
 namespace devilution {
+
+using net::leaveinfo_t;
 
 #define MAX_SEND_STR_LEN 80
 
@@ -67,10 +70,6 @@ enum _cmd_id : uint8_t {
 	// attempted loot item when inventory is full).
 	// body (TCmdPItem)
 	CMD_SPAWNITEM,
-	// Attack target location.
-	//
-	// body (TCmdLoc)
-	CMD_ATTACKXY,
 	// Range attack target location.
 	//
 	// body (TCmdLoc)
@@ -716,7 +715,7 @@ extern int dwRecCount;
 void PrepareItemForNetwork(const Item &item, TItem &messageItem);
 void PrepareEarForNetwork(const Item &item, TEar &ear);
 void RecreateItem(const Player &player, const TItem &messageItem, Item &item);
-void msg_send_drop_pkt(uint8_t pnum, int reason);
+void msg_send_drop_pkt(uint8_t pnum, leaveinfo_t reason);
 bool msg_wait_resync();
 void run_delta_info();
 void DeltaExportData(uint8_t pnum);

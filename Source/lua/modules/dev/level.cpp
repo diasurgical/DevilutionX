@@ -122,11 +122,11 @@ std::string DebugCmdLevelSeed(std::optional<uint8_t> level)
 sol::table LuaDevLevelModule(sol::state_view &lua)
 {
 	sol::table table = lua.create_table();
-	SetDocumented(table, "exportDun", "()", "Save the current level as a dun-file.", &ExportDun);
-	SetDocumented(table, "map", "", "Automap-related commands.", LuaDevLevelMapModule(lua));
-	SetDocumented(table, "reset", "(n: number, seed: number = nil)", "Resets specified level.", &DebugCmdResetLevel);
-	SetDocumented(table, "seed", "(level: number = nil)", "Get the seed of the current or given level.", &DebugCmdLevelSeed);
-	SetDocumented(table, "warp", "", "Warp to a level or a custom map.", LuaDevLevelWarpModule(lua));
+	LuaSetDocFn(table, "exportDun", "()", "Save the current level as a dun-file.", &ExportDun);
+	LuaSetDocFn(table, "map", "", "Automap-related commands.", LuaDevLevelMapModule(lua));
+	LuaSetDocFn(table, "reset", "(n: number, seed: number = nil)", "Resets specified level.", &DebugCmdResetLevel);
+	LuaSetDocFn(table, "seed", "(level: number = nil)", "Get the seed of the current or given level.", &DebugCmdLevelSeed);
+	LuaSetDocFn(table, "warp", "", "Warp to a level or a custom map.", LuaDevLevelWarpModule(lua));
 	return table;
 }
 

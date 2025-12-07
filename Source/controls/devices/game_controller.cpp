@@ -1,11 +1,22 @@
 #include "controls/devices/game_controller.h"
 
 #include <cstddef>
+#include <vector>
+
+#ifdef USE_SDL3
+#include <SDL3/SDL_error.h>
+#include <SDL3/SDL_events.h>
+#include <SDL3/SDL_gamepad.h>
+#else
+#include <SDL.h>
+
+#include "utils/sdl2_backports.h"
+#endif
 
 #include "controls/controller_motion.h"
 #include "controls/devices/joystick.h"
 #include "utils/log.hpp"
-#include "utils/sdl2_backports.h"
+#include "utils/sdl_compat.h"
 #include "utils/sdl_ptrs.h"
 #include "utils/stubs.h"
 
@@ -22,60 +33,61 @@ void GameController::UnlockTriggerState()
 ControllerButton GameController::ToControllerButton(const SDL_Event &event)
 {
 	switch (event.type) {
-	case SDL_CONTROLLERAXISMOTION:
-		switch (event.caxis.axis) {
-		case SDL_CONTROLLER_AXIS_TRIGGERLEFT:
-			if (event.caxis.value < 8192 && trigger_left_is_down_) { // 25% pressed
+	case SDL_EVENT_GAMEPAD_AXIS_MOTION: {
+		const SDL_GamepadAxisEvent &axis = SDLC_EventGamepadAxis(event);
+		switch (axis.axis) {
+		case SDL_GAMEPAD_AXIS_LEFT_TRIGGER:
+			if (axis.value < 8192 && trigger_left_is_down_) { // 25% pressed
 				trigger_left_is_down_ = false;
 				trigger_left_state_ = ControllerButton_AXIS_TRIGGERLEFT;
 			}
-			if (event.caxis.value > 16384 && !trigger_left_is_down_) { // 50% pressed
+			if (axis.value > 16384 && !trigger_left_is_down_) { // 50% pressed
 				trigger_left_is_down_ = true;
 				trigger_left_state_ = ControllerButton_AXIS_TRIGGERLEFT;
 			}
 			return trigger_left_state_;
-		case SDL_CONTROLLER_AXIS_TRIGGERRIGHT:
-			if (event.caxis.value < 8192 && trigger_right_is_down_) { // 25% pressed
+		case SDL_GAMEPAD_AXIS_RIGHT_TRIGGER:
+			if (axis.value < 8192 && trigger_right_is_down_) { // 25% pressed
 				trigger_right_is_down_ = false;
 				trigger_right_state_ = ControllerButton_AXIS_TRIGGERRIGHT;
 			}
-			if (event.caxis.value > 16384 && !trigger_right_is_down_) { // 50% pressed
+			if (axis.value > 16384 && !trigger_right_is_down_) { // 50% pressed
 				trigger_right_is_down_ = true;
 				trigger_right_state_ = ControllerButton_AXIS_TRIGGERRIGHT;
 			}
 			return trigger_right_state_;
 		}
-		break;
-	case SDL_CONTROLLERBUTTONDOWN:
-	case SDL_CONTROLLERBUTTONUP:
-		switch (event.cbutton.button) {
-		case SDL_CONTROLLER_BUTTON_A:
+	} break;
+	case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
+	case SDL_EVENT_GAMEPAD_BUTTON_UP:
+		switch (SDLC_EventGamepadButton(event).button) {
+		case SDL_GAMEPAD_BUTTON_SOUTH:
 			return ControllerButton_BUTTON_A;
-		case SDL_CONTROLLER_BUTTON_B:
+		case SDL_GAMEPAD_BUTTON_EAST:
 			return ControllerButton_BUTTON_B;
-		case SDL_CONTROLLER_BUTTON_X:
+		case SDL_GAMEPAD_BUTTON_WEST:
 			return ControllerButton_BUTTON_X;
-		case SDL_CONTROLLER_BUTTON_Y:
+		case SDL_GAMEPAD_BUTTON_NORTH:
 			return ControllerButton_BUTTON_Y;
-		case SDL_CONTROLLER_BUTTON_LEFTSTICK:
+		case SDL_GAMEPAD_BUTTON_LEFT_STICK:
 			return ControllerButton_BUTTON_LEFTSTICK;
-		case SDL_CONTROLLER_BUTTON_RIGHTSTICK:
+		case SDL_GAMEPAD_BUTTON_RIGHT_STICK:
 			return ControllerButton_BUTTON_RIGHTSTICK;
-		case SDL_CONTROLLER_BUTTON_LEFTSHOULDER:
+		case SDL_GAMEPAD_BUTTON_LEFT_SHOULDER:
 			return ControllerButton_BUTTON_LEFTSHOULDER;
-		case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER:
+		case SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER:
 			return ControllerButton_BUTTON_RIGHTSHOULDER;
-		case SDL_CONTROLLER_BUTTON_START:
+		case SDL_GAMEPAD_BUTTON_START:
 			return ControllerButton_BUTTON_START;
-		case SDL_CONTROLLER_BUTTON_BACK:
+		case SDL_GAMEPAD_BUTTON_BACK:
 			return ControllerButton_BUTTON_BACK;
-		case SDL_CONTROLLER_BUTTON_DPAD_UP:
+		case SDL_GAMEPAD_BUTTON_DPAD_UP:
 			return ControllerButton_BUTTON_DPAD_UP;
-		case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
+		case SDL_GAMEPAD_BUTTON_DPAD_DOWN:
 			return ControllerButton_BUTTON_DPAD_DOWN;
-		case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
+		case SDL_GAMEPAD_BUTTON_DPAD_LEFT:
 			return ControllerButton_BUTTON_DPAD_LEFT;
-		case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
+		case SDL_GAMEPAD_BUTTON_DPAD_RIGHT:
 			return ControllerButton_BUTTON_DPAD_RIGHT;
 		default:
 			break;
@@ -86,41 +98,41 @@ ControllerButton GameController::ToControllerButton(const SDL_Event &event)
 	return ControllerButton_NONE;
 }
 
-SDL_GameControllerButton GameController::ToSdlGameControllerButton(ControllerButton button)
+SDL_GamepadButton GameController::ToSdlGameControllerButton(ControllerButton button)
 {
 	if (button == ControllerButton_AXIS_TRIGGERLEFT || button == ControllerButton_AXIS_TRIGGERRIGHT)
 		UNIMPLEMENTED();
 	switch (button) {
 	case ControllerButton_BUTTON_A:
-		return SDL_CONTROLLER_BUTTON_A;
+		return SDL_GAMEPAD_BUTTON_SOUTH;
 	case ControllerButton_BUTTON_B:
-		return SDL_CONTROLLER_BUTTON_B;
+		return SDL_GAMEPAD_BUTTON_EAST;
 	case ControllerButton_BUTTON_X:
-		return SDL_CONTROLLER_BUTTON_X;
+		return SDL_GAMEPAD_BUTTON_WEST;
 	case ControllerButton_BUTTON_Y:
-		return SDL_CONTROLLER_BUTTON_Y;
+		return SDL_GAMEPAD_BUTTON_NORTH;
 	case ControllerButton_BUTTON_BACK:
-		return SDL_CONTROLLER_BUTTON_BACK;
+		return SDL_GAMEPAD_BUTTON_BACK;
 	case ControllerButton_BUTTON_START:
-		return SDL_CONTROLLER_BUTTON_START;
+		return SDL_GAMEPAD_BUTTON_START;
 	case ControllerButton_BUTTON_LEFTSTICK:
-		return SDL_CONTROLLER_BUTTON_LEFTSTICK;
+		return SDL_GAMEPAD_BUTTON_LEFT_STICK;
 	case ControllerButton_BUTTON_RIGHTSTICK:
-		return SDL_CONTROLLER_BUTTON_RIGHTSTICK;
+		return SDL_GAMEPAD_BUTTON_RIGHT_STICK;
 	case ControllerButton_BUTTON_LEFTSHOULDER:
-		return SDL_CONTROLLER_BUTTON_LEFTSHOULDER;
+		return SDL_GAMEPAD_BUTTON_LEFT_SHOULDER;
 	case ControllerButton_BUTTON_RIGHTSHOULDER:
-		return SDL_CONTROLLER_BUTTON_RIGHTSHOULDER;
+		return SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER;
 	case ControllerButton_BUTTON_DPAD_UP:
-		return SDL_CONTROLLER_BUTTON_DPAD_UP;
+		return SDL_GAMEPAD_BUTTON_DPAD_UP;
 	case ControllerButton_BUTTON_DPAD_DOWN:
-		return SDL_CONTROLLER_BUTTON_DPAD_DOWN;
+		return SDL_GAMEPAD_BUTTON_DPAD_DOWN;
 	case ControllerButton_BUTTON_DPAD_LEFT:
-		return SDL_CONTROLLER_BUTTON_DPAD_LEFT;
+		return SDL_GAMEPAD_BUTTON_DPAD_LEFT;
 	case ControllerButton_BUTTON_DPAD_RIGHT:
-		return SDL_CONTROLLER_BUTTON_DPAD_RIGHT;
+		return SDL_GAMEPAD_BUTTON_DPAD_RIGHT;
 	default:
-		return SDL_CONTROLLER_BUTTON_INVALID;
+		return SDL_GAMEPAD_BUTTON_INVALID;
 	}
 }
 
@@ -130,29 +142,30 @@ bool GameController::IsPressed(ControllerButton button) const
 		return trigger_left_is_down_;
 	if (button == ControllerButton_AXIS_TRIGGERRIGHT)
 		return trigger_right_is_down_;
-	const SDL_GameControllerButton gcButton = ToSdlGameControllerButton(button);
-	return SDL_GameControllerHasButton(sdl_game_controller_, gcButton) && SDL_GameControllerGetButton(sdl_game_controller_, gcButton) != 0;
+
+	const SDL_GamepadButton gcButton = ToSdlGameControllerButton(button);
+	return SDL_GamepadHasButton(sdl_game_controller_, gcButton) && SDL_GetGamepadButton(sdl_game_controller_, gcButton);
 }
 
 bool GameController::ProcessAxisMotion(const SDL_Event &event)
 {
-	if (event.type != SDL_CONTROLLERAXISMOTION)
-		return false;
-	switch (event.caxis.axis) {
-	case SDL_CONTROLLER_AXIS_LEFTX:
-		leftStickXUnscaled = static_cast<float>(event.caxis.value);
+	if (event.type != SDL_EVENT_GAMEPAD_AXIS_MOTION) return false;
+	const SDL_GamepadAxisEvent &axis = SDLC_EventGamepadAxis(event);
+	switch (axis.axis) {
+	case SDL_GAMEPAD_AXIS_LEFTX:
+		leftStickXUnscaled = static_cast<float>(axis.value);
 		leftStickNeedsScaling = true;
 		break;
-	case SDL_CONTROLLER_AXIS_LEFTY:
-		leftStickYUnscaled = static_cast<float>(-event.caxis.value);
+	case SDL_GAMEPAD_AXIS_LEFTY:
+		leftStickYUnscaled = static_cast<float>(-axis.value);
 		leftStickNeedsScaling = true;
 		break;
-	case SDL_CONTROLLER_AXIS_RIGHTX:
-		rightStickXUnscaled = static_cast<float>(event.caxis.value);
+	case SDL_GAMEPAD_AXIS_RIGHTX:
+		rightStickXUnscaled = static_cast<float>(axis.value);
 		rightStickNeedsScaling = true;
 		break;
-	case SDL_CONTROLLER_AXIS_RIGHTY:
-		rightStickYUnscaled = static_cast<float>(-event.caxis.value);
+	case SDL_GAMEPAD_AXIS_RIGHTY:
+		rightStickYUnscaled = static_cast<float>(-axis.value);
 		rightStickNeedsScaling = true;
 		break;
 	default:
@@ -161,22 +174,37 @@ bool GameController::ProcessAxisMotion(const SDL_Event &event)
 	return true;
 }
 
+#ifdef USE_SDL3
+void GameController::Add(SDL_JoystickID joystickId)
+#else
 void GameController::Add(int joystickIndex)
+#endif
 {
-	Log("Opening game controller for joystick at index {}", joystickIndex);
 	GameController result;
+#ifdef USE_SDL3
+	Log("Opening game controller for joystick with ID {}", joystickId);
+	result.sdl_game_controller_ = SDL_OpenGamepad(joystickId);
+#else
+	Log("Opening game controller for joystick at index {}", joystickIndex);
 	result.sdl_game_controller_ = SDL_GameControllerOpen(joystickIndex);
+#endif
+
 	if (result.sdl_game_controller_ == nullptr) {
 		Log("{}", SDL_GetError());
 		SDL_ClearError();
 		return;
 	}
+#ifdef USE_SDL3
+	result.instance_id_ = joystickId;
+	const SDLUniquePtr<char> mapping { SDL_GetGamepadMappingForID(joystickId) };
+#else
 	SDL_Joystick *const sdlJoystick = SDL_GameControllerGetJoystick(result.sdl_game_controller_);
 	result.instance_id_ = SDL_JoystickInstanceID(sdlJoystick);
+	const SDL_JoystickGUID guid = SDL_JoystickGetGUID(sdlJoystick);
+	const SDLUniquePtr<char> mapping { SDL_GameControllerMappingForGUID(guid) };
+#endif
 	controllers_.push_back(result);
 
-	const SDL_JoystickGUID guid = SDL_JoystickGetGUID(sdlJoystick);
-	SDLUniquePtr<char> mapping { SDL_GameControllerMappingForGUID(guid) };
 	if (mapping) {
 		Log("Opened game controller with mapping:\n{}", mapping.get());
 	}
@@ -207,11 +235,11 @@ GameController *GameController::Get(SDL_JoystickID instanceId)
 GameController *GameController::Get(const SDL_Event &event)
 {
 	switch (event.type) {
-	case SDL_CONTROLLERAXISMOTION:
-		return Get(event.caxis.which);
-	case SDL_CONTROLLERBUTTONDOWN:
-	case SDL_CONTROLLERBUTTONUP:
-		return Get(event.cbutton.which);
+	case SDL_EVENT_GAMEPAD_AXIS_MOTION:
+		return Get(SDLC_EventGamepadAxis(event).which);
+	case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
+	case SDL_EVENT_GAMEPAD_BUTTON_UP:
+		return Get(SDLC_EventGamepadButton(event).which);
 	default:
 		return nullptr;
 	}
@@ -239,7 +267,24 @@ GamepadLayout GameController::getLayout(const SDL_Event &event)
 #if defined(DEVILUTIONX_GAMEPAD_TYPE)
 	return GamepadLayout::
 	    DEVILUTIONX_GAMEPAD_TYPE;
-#else // !defined(DEVILUTIONX_GAMEPAD_TYPE)
+#elif USE_SDL3
+	switch (SDL_GetGamepadTypeForID(event.gdevice.which)) {
+	case SDL_GAMEPAD_TYPE_XBOX360:
+	case SDL_GAMEPAD_TYPE_XBOXONE:
+		return GamepadLayout::Xbox;
+	case SDL_GAMEPAD_TYPE_PS3:
+	case SDL_GAMEPAD_TYPE_PS4:
+	case SDL_GAMEPAD_TYPE_PS5:
+		return GamepadLayout::PlayStation;
+	case SDL_GAMEPAD_TYPE_NINTENDO_SWITCH_PRO:
+	case SDL_GAMEPAD_TYPE_NINTENDO_SWITCH_JOYCON_LEFT:
+	case SDL_GAMEPAD_TYPE_NINTENDO_SWITCH_JOYCON_RIGHT:
+	case SDL_GAMEPAD_TYPE_NINTENDO_SWITCH_JOYCON_PAIR:
+		return GamepadLayout::Nintendo;
+	default:
+		return GamepadLayout::Generic;
+	}
+#else
 #if SDL_VERSION_ATLEAST(2, 0, 12)
 	const int index = event.cdevice.which;
 	const SDL_GameControllerType gamepadType = SDL_GameControllerTypeForIndex(index);

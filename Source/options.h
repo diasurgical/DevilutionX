@@ -12,7 +12,16 @@
 #include <string_view>
 #include <utility>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_version.h>
+
+#ifndef NOSOUND
+#include <SDL3/SDL_audio.h>
+#endif
+#else
 #include <SDL_version.h>
+#endif
+
 #include <ankerl/unordered_dense.h>
 #include <function_ref.hpp>
 
@@ -233,8 +242,8 @@ public:
 	OptionEntryEnum(std::string_view key, OptionEntryFlags flags, const char *name, const char *description, T defaultValue, std::initializer_list<std::pair<T, std::string_view>> entries)
 	    : OptionEntryEnumBase(key, flags, name, description, static_cast<int>(defaultValue))
 	{
-		for (auto &&[key, value] : entries) {
-			AddEntry(static_cast<int>(key), value);
+		for (auto &&[entryValue, entryName] : entries) {
+			AddEntry(static_cast<int>(entryValue), entryName);
 		}
 	}
 	[[nodiscard]] T operator*() const
@@ -407,10 +416,17 @@ public:
 		return "";
 	}
 
+#ifdef USE_SDL3
+	[[nodiscard]] SDL_AudioDeviceID id() const;
+#endif
+
 private:
 	std::string_view GetDeviceName(size_t index) const;
 
 	std::string deviceName_;
+#ifdef USE_SDL3
+	SDL_AudioDeviceID deviceId_ = SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK;
+#endif
 };
 
 struct OptionCategoryBase {
@@ -578,8 +594,12 @@ struct GameplayOptions : OptionCategoryBase {
 	OptionEntryBoolean showHealthValues;
 	/** @brief Display current/max mana values on mana globe. */
 	OptionEntryBoolean showManaValues;
+	/** @brief Enable the multiplayer party information display */
+	OptionEntryBoolean showMultiplayerPartyInfo;
 	/** @brief Show enemy health at the top of the screen. */
 	OptionEntryBoolean enemyHealthBar;
+	/** @brief Displays item info in a floating box when hovering over an ite. */
+	OptionEntryBoolean floatingInfoBox;
 	/** @brief Automatically pick up gold when walking over it. */
 	OptionEntryBoolean autoGoldPickup;
 	/** @brief Auto-pickup elixirs */

@@ -3,14 +3,22 @@
 #include <cstdint>
 #include <type_traits>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_rect.h>
+#include <SDL3/SDL_render.h>
+#include <SDL3/SDL_surface.h>
+#include <SDL3/SDL_video.h>
+#else
 #include <SDL.h>
 #ifdef USE_SDL1
 #include "utils/sdl2_to_1_2_backports.h"
 #else
 #include "utils/sdl2_backports.h"
 #endif
+#endif
 
 #include "utils/attributes.h"
+#include "utils/log.hpp"
 #include "utils/sdl_ptrs.h"
 #include "utils/ui_fwd.h"
 
@@ -26,7 +34,6 @@ extern SDLTextureUniquePtr texture;
 
 extern SDLPaletteUniquePtr Palette;
 extern SDL_Surface *PalSurface;
-extern unsigned int pal_surface_palette_version;
 extern DVL_API_FOR_TEST Size forceResolution;
 
 #ifdef USE_SDL1
@@ -58,12 +65,20 @@ template <
     typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type>
 void OutputToLogical(T *x, T *y)
 {
-#ifndef USE_SDL1
-	if (!renderer)
+#ifdef USE_SDL3
+	if (renderer == nullptr) return;
+	float outX, outY;
+	if (!SDL_RenderCoordinatesFromWindow(renderer, *x, *y, &outX, &outY)) {
+		LogError("SDL_RenderCoordinatesFromWindow: {}", SDL_GetError());
+		SDL_ClearError();
 		return;
-
+	}
+	*x = static_cast<T>(outX);
+	*y = static_cast<T>(outY);
+#elif !defined(USE_SDL1)
+	if (renderer == nullptr) return;
 	float scaleX;
-	SDL_RenderGetScale(renderer, &scaleX, NULL);
+	SDL_RenderGetScale(renderer, &scaleX, nullptr);
 	float scaleDpi = GetDpiScalingFactor();
 	float scale = scaleX / scaleDpi;
 	*x = static_cast<T>(*x / scale);
@@ -87,16 +102,25 @@ template <
     typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type>
 void LogicalToOutput(T *x, T *y)
 {
-#ifndef USE_SDL1
-	if (!renderer)
+#ifdef USE_SDL3
+	if (renderer == nullptr) return;
+	float outX, outY;
+	if (!SDL_RenderCoordinatesToWindow(renderer, *x, *y, &outX, &outY)) {
+		LogError("SDL_RenderCoordinatesFromWindow: {}", SDL_GetError());
+		SDL_ClearError();
 		return;
+	}
+	*x = static_cast<T>(outX);
+	*y = static_cast<T>(outY);
+#elif !defined(USE_SDL1)
+	if (renderer == nullptr) return;
 	SDL_Rect view;
 	SDL_RenderGetViewport(renderer, &view);
 	*x += view.x;
 	*y += view.y;
 
 	float scaleX;
-	SDL_RenderGetScale(renderer, &scaleX, NULL);
+	SDL_RenderGetScale(renderer, &scaleX, nullptr);
 	float scaleDpi = GetDpiScalingFactor();
 	float scale = scaleX / scaleDpi;
 	*x = static_cast<T>(*x * scale);
@@ -109,5 +133,15 @@ void LogicalToOutput(T *x, T *y)
 	*y = *y * surface->h / gnScreenHeight;
 #endif
 }
+
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+SDL_DisplayMode GetNearestDisplayMode(Size preferredSize,
+#ifdef USE_SDL3
+    SDL_PixelFormat preferredPixelFormat = SDL_PIXELFORMAT_UNKNOWN
+#else
+    SDL_PixelFormatEnum preferredPixelFormat = SDL_PIXELFORMAT_UNKNOWN
+#endif
+);
+#endif
 
 } // namespace devilution

@@ -1,0 +1,14 @@
+Variable	Value
+classPath	sorceror
+classChar	s
+trn	sorcerer
+stand	96
+walk	96
+attack	128
+bow	128
+swHit	96
+block	96
+lightning	128
+fire	128
+magic	128
+death	128

@@ -8,7 +8,13 @@
 #include <string_view>
 #include <variant>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_iostream.h>
+#include <SDL3/SDL_surface.h>
+#else
 #include <SDL.h>
+#endif
+
 #include <expected.hpp>
 #include <function_ref.hpp>
 
@@ -21,6 +27,8 @@
 #include "engine/size.hpp"
 #include "engine/surface.hpp"
 #include "utils/paths.h"
+#include "utils/png.h"
+#include "utils/sdl_compat.h"
 #include "utils/sdl_wrap.h"
 #include "utils/str_cat.hpp"
 #include "utils/surface_to_png.hpp"
@@ -221,18 +229,6 @@ SDLPaletteUniquePtr LoadPalette()
 	return palette;
 }
 
-std::vector<std::byte> ReadFile(const std::string &path)
-{
-	SDL_RWops *rwops = SDL_RWFromFile(path.c_str(), "rb");
-	std::vector<std::byte> result;
-	if (rwops == nullptr) return result;
-	const size_t size = SDL_RWsize(rwops);
-	result.resize(size);
-	SDL_RWread(rwops, result.data(), size, 1);
-	SDL_RWclose(rwops);
-	return result;
-}
-
 void DrawWithBorder(const Surface &out, const Rectangle &area, tl::function_ref<void(const Rectangle &)> fn)
 {
 	const uint8_t debugColor = PAL8_RED;
@@ -245,17 +241,11 @@ void DrawWithBorder(const Surface &out, const Rectangle &area, tl::function_ref<
 	    Size { area.size.width - 2, area.size.height - 2 } });
 }
 
-MATCHER_P(FileContentsEq, expectedPath,
-    StrCat(negation ? "doesn't have" : "has", " the same contents as ", ::testing::PrintToString(expectedPath)))
+bool MaybeUpdateExpected(const std::string &actualPath, const std::string &expectedPath)
 {
-	if (ReadFile(arg) != ReadFile(expectedPath)) {
-		if (UpdateExpected) {
-			CopyFileOverwrite(arg.c_str(), expectedPath.c_str());
-			std::clog << "⬆️ Updated expected file at " << expectedPath << std::endl;
-			return true;
-		}
-		return false;
-	}
+	if (!UpdateExpected) return false;
+	CopyFileOverwrite(actualPath.c_str(), expectedPath.c_str());
+	std::clog << "⬆️ Updated expected file at " << expectedPath << std::endl;
 	return true;
 }
 
@@ -294,11 +284,38 @@ TEST_P(TextRenderIntegrationTest, RenderAndCompareTest)
 
 	const std::string actualPath = StrCat(paths::BasePath(), FixturesPath, GetParam().name, "-Actual.png");
 	const std::string expectedPath = StrCat(paths::BasePath(), FixturesPath, GetParam().name, ".png");
-	SDL_RWops *actual = SDL_RWFromFile(actualPath.c_str(), "wb");
+	SDL_IOStream *actual = SDL_IOFromFile(actualPath.c_str(), "wb");
 	ASSERT_NE(actual, nullptr) << SDL_GetError();
-	ASSERT_TRUE(WriteSurfaceToFilePng(out, actual).has_value());
 
-	EXPECT_THAT(actualPath, FileContentsEq(expectedPath));
+	const tl::expected<void, std::string> result = WriteSurfaceToFilePng(out, actual);
+	ASSERT_TRUE(result.has_value()) << result.error();
+
+	// We compare pixels rather than PNG file contents because different
+	// versions of SDL may use different PNG encoders.
+	SDLSurfaceUniquePtr actualSurface { LoadPNG(actualPath.c_str()) };
+	ASSERT_NE(actualSurface, nullptr) << SDL_GetError();
+	SDLSurfaceUniquePtr expectedSurface { LoadPNG(expectedPath.c_str()) };
+	ASSERT_NE(expectedSurface, nullptr) << SDL_GetError();
+	ASSERT_NE(actualSurface->pixels, nullptr);
+	ASSERT_NE(expectedSurface->pixels, nullptr);
+
+	if ((actualSurface->h != expectedSurface->h || actualSurface->w != expectedSurface->w)
+	    && MaybeUpdateExpected(actualPath, expectedPath)) {
+		return;
+	}
+	ASSERT_EQ(actualSurface->h, expectedSurface->h);
+	ASSERT_EQ(actualSurface->w, expectedSurface->w);
+	for (int y = 0; y < expectedSurface->h; y++) {
+		for (int x = 0; x < expectedSurface->w; x++) {
+			const uint8_t actualPixel = reinterpret_cast<uint8_t *>(actualSurface->pixels)[y * actualSurface->pitch + x];
+			const uint8_t expectedPixel = reinterpret_cast<uint8_t *>(expectedSurface->pixels)[y * expectedSurface->pitch + x];
+			if (actualPixel != expectedPixel) {
+				if (MaybeUpdateExpected(actualPath, expectedPath)) return;
+				ASSERT_TRUE(false) << "Images are different at (" << x << ", " << y << ") "
+				                   << static_cast<int>(actualPixel) << " != " << static_cast<int>(expectedPixel);
+			}
+		}
+	}
 }
 
 INSTANTIATE_TEST_SUITE_P(GoldenTests, TextRenderIntegrationTest,

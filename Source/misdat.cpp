@@ -6,8 +6,13 @@
 #include "misdat.h"
 
 #include <array>
+#include <cassert>
+#include <cstddef>
 #include <cstdint>
 #include <string>
+#include <string_view>
+#include <type_traits>
+#include <utility>
 #include <vector>
 
 #include <expected.hpp>
@@ -15,9 +20,12 @@
 #include "data/file.hpp"
 #include "data/iterators.hpp"
 #include "data/record_reader.hpp"
+#include "engine/clx_sprite.hpp"
 #include "headless_mode.hpp"
 #include "missiles.h"
 #include "mpq/mpq_common.hpp"
+#include "sound_effect_enums.h"
+#include "spelldat.h"
 #include "utils/file_name_generator.hpp"
 #include "utils/status_macros.hpp"
 #include "utils/str_cat.hpp"
@@ -383,7 +391,7 @@ void LoadMisdat()
 	}
 
 	// Sanity check because we do not actually parse the IDs yet.
-	assert(static_cast<size_t>(MissileID::LAST) + 1 == MissilesData.size());
+	assert(static_cast<size_t>(MissileID::LastDiablo) + 1 == MissilesData.size() || static_cast<size_t>(MissileID::LAST) + 1 == MissilesData.size());
 
 	MissilesData.shrink_to_fit();
 }
@@ -443,24 +451,22 @@ const MissileData &GetMissileData(MissileID missileId)
 	return MissilesData[static_cast<std::underlying_type_t<MissileID>>(missileId)];
 }
 
-tl::expected<void, std::string> InitMissileGFX(bool loadHellfireGraphics)
+tl::expected<void, std::string> InitMissileGFX()
 {
 	if (HeadlessMode)
 		return {};
 
-	for (size_t mi = 0; mi < MissileSpriteData.size(); ++mi) {
-		if (!loadHellfireGraphics && mi >= static_cast<uint8_t>(MissileGraphicID::HorkSpawn))
-			break;
-		if (MissileSpriteData[mi].flags == MissileGraphicsFlags::MonsterOwned)
+	for (MissileFileData &missileSprite : MissileSpriteData) {
+		if (missileSprite.flags == MissileGraphicsFlags::MonsterOwned)
 			continue;
-		RETURN_IF_ERROR(MissileSpriteData[mi].LoadGFX());
+		RETURN_IF_ERROR(missileSprite.LoadGFX());
 	}
 	return {};
 }
 
 void FreeMissileGFX()
 {
-	for (auto &missileData : MissileSpriteData) {
+	for (MissileFileData &missileData : MissileSpriteData) {
 		missileData.FreeGFX();
 	}
 }

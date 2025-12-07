@@ -1,0 +1,14 @@
+Variable	Value
+classPath	rogue
+classChar	r
+trn	rogue
+stand	96
+walk	96
+attack	128
+bow	128
+swHit	96
+block	96
+lightning	96
+fire	96
+magic	96
+death	128

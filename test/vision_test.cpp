@@ -46,7 +46,7 @@ void initEnvironment()
 	buildWallsAround(env, pos, box_radius);
 
 	// Place objects
-	for (auto &o : objects) {
+	for (const auto &o : objects) {
 		env[o.first.x][o.first.y] = '#';
 	}
 
@@ -86,7 +86,11 @@ void dumpVisibleEnv()
 		}
 		sz += snprintf(buf + sz, sizeof(buf) - sz, "\n");
 	}
+#ifdef _WIN32
+	_write(2, buf, sz);
+#else
 	write(2, buf, sz);
+#endif
 }
 
 // This test case checks the visibility of surrounding objects
@@ -94,7 +98,7 @@ TEST(VisionTest, VisibleObjects)
 {
 	doVision();
 
-	for (auto &o : objects) {
+	for (const auto &o : objects) {
 		if (o.second)
 			// Visible object
 			EXPECT_EQ(vis[o.first.x][o.first.y], '#') << "Expext visible wall or object";

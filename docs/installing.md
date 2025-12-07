@@ -34,7 +34,7 @@ When the transfer is done you can disconnect your device and press "Check again"
 ![image](https://user-images.githubusercontent.com/204594/139541657-d8c1197d-fbef-42b6-a34f-2b17f1ceab5f.png)
 
 **Troubleshooting**: If you encounter some trouble getting the MPQ files onto your Android device, you can refer to
-[our guide](https://github.com/diasurgical/devilutionX/wiki/Extracting-the-.MPQs-from-the-GoG-installer#android) for extracting the MPQ files on the Android device itself.
+[our guide](https://github.com/diasurgical/devilutionX/wiki/Extracting-MPQs-from-the-GoG-installer#android) for extracting the MPQ files on the Android device itself.
 Note that Inno Setup Extractor is only available for Android 8+ and the Import Data feature is only available for Android 7.1.1+.
 
 </details>

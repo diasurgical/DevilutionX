@@ -5,7 +5,13 @@
 #include <cstdint>
 #include <optional>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_events.h>
+#include <SDL3/SDL_surface.h>
+#else
 #include <SDL.h>
+#endif
+
 #include <function_ref.hpp>
 
 #include "DiabloUI/ui_item.h"
@@ -97,7 +103,6 @@ void UiHandleEvents(SDL_Event *event);
 bool UiItemMouseEvents(SDL_Event *event, const std::vector<UiItemBase *> &items);
 bool UiItemMouseEvents(SDL_Event *event, const std::vector<std::unique_ptr<UiItemBase>> &items);
 Sint16 GetCenterOffset(Sint16 w, Sint16 bw = 0);
-void LoadPalInMem(const SDL_Color *pPal);
 void DrawMouse();
 void UiLoadDefaultPalette();
 bool UiLoadBlackBackground();

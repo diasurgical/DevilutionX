@@ -1644,7 +1644,7 @@ void InitSetPiece()
 		return; // no setpiece needed for this level
 	}
 
-	WorldTilePosition setPiecePosition = SetPieceRoom.position;
+	const WorldTilePosition setPiecePosition = SetPieceRoom.position;
 	PlaceDunTiles(setPieceData.get(), setPiecePosition, 3);
 	SetPiece = { setPiecePosition, GetDunSize(setPieceData.get()) };
 }
@@ -1769,8 +1769,8 @@ void CreateRoom(WorldTilePosition topLeft, WorldTilePosition bottomRight, int nR
 	if (nRoomCnt >= 80 || topLeft.x + AreaMin > bottomRight.x || topLeft.y + AreaMin > bottomRight.y)
 		return;
 
-	WorldTileDisplacement areaDisplacement = bottomRight - topLeft;
-	WorldTileSize area(areaDisplacement.deltaX, areaDisplacement.deltaY);
+	const WorldTileDisplacement areaDisplacement = bottomRight - topLeft;
+	const WorldTileSize area(areaDisplacement.deltaX, areaDisplacement.deltaY);
 
 	constexpr WorldTileCoord RoomMax = 10;
 	constexpr WorldTileCoord RoomMin = 4;
@@ -1808,7 +1808,7 @@ void CreateRoom(WorldTilePosition topLeft, WorldTilePosition bottomRight, int nR
 	if (size)
 		SetPieceRoom = { roomTopLeft + standoff, roomSize - 1 };
 
-	int nRid = nRoomCnt;
+	const int nRid = nRoomCnt;
 
 	if (nRDest != 0) {
 		WorldTileCoord nHx1 = 0;
@@ -1818,14 +1818,14 @@ void CreateRoom(WorldTilePosition topLeft, WorldTilePosition bottomRight, int nR
 		if (nHDir == HallDirection::Up) {
 			nHx1 = GenerateRnd(roomSize.width - 2) + roomTopLeft.x + 1;
 			nHy1 = roomTopLeft.y;
-			int nHw = RoomList[nRDest].bottomRight.x - RoomList[nRDest].topLeft.x - 2;
+			const int nHw = RoomList[nRDest].bottomRight.x - RoomList[nRDest].topLeft.x - 2;
 			nHx2 = GenerateRnd(nHw) + RoomList[nRDest].topLeft.x + 1;
 			nHy2 = RoomList[nRDest].bottomRight.y;
 		}
 		if (nHDir == HallDirection::Down) {
 			nHx1 = GenerateRnd(roomSize.width - 2) + roomTopLeft.x + 1;
 			nHy1 = roomBottomRight.y;
-			int nHw = RoomList[nRDest].bottomRight.x - RoomList[nRDest].topLeft.x - 2;
+			const int nHw = RoomList[nRDest].bottomRight.x - RoomList[nRDest].topLeft.x - 2;
 			nHx2 = GenerateRnd(nHw) + RoomList[nRDest].topLeft.x + 1;
 			nHy2 = RoomList[nRDest].topLeft.y;
 		}
@@ -1833,21 +1833,21 @@ void CreateRoom(WorldTilePosition topLeft, WorldTilePosition bottomRight, int nR
 			nHx1 = roomBottomRight.x;
 			nHy1 = GenerateRnd(roomSize.height - 2) + roomTopLeft.y + 1;
 			nHx2 = RoomList[nRDest].topLeft.x;
-			int nHh = RoomList[nRDest].bottomRight.y - RoomList[nRDest].topLeft.y - 2;
+			const int nHh = RoomList[nRDest].bottomRight.y - RoomList[nRDest].topLeft.y - 2;
 			nHy2 = GenerateRnd(nHh) + RoomList[nRDest].topLeft.y + 1;
 		}
 		if (nHDir == HallDirection::Left) {
 			nHx1 = roomTopLeft.x;
 			nHy1 = GenerateRnd(roomSize.height - 2) + roomTopLeft.y + 1;
 			nHx2 = RoomList[nRDest].bottomRight.x;
-			int nHh = RoomList[nRDest].bottomRight.y - RoomList[nRDest].topLeft.y - 2;
+			const int nHh = RoomList[nRDest].bottomRight.y - RoomList[nRDest].topLeft.y - 2;
 			nHy2 = GenerateRnd(nHh) + RoomList[nRDest].topLeft.y + 1;
 		}
 		HallList.push_back({ { nHx1, nHy1 }, { nHx2, nHy2 }, nHDir });
 	}
 
-	WorldTilePosition roomBottomLeft { roomTopLeft.x, roomBottomRight.y };
-	WorldTilePosition roomTopRight { roomBottomRight.x, roomTopLeft.y };
+	const WorldTilePosition roomBottomLeft { roomTopLeft.x, roomBottomRight.y };
+	const WorldTilePosition roomTopRight { roomBottomRight.x, roomTopLeft.y };
 	if (roomSize.height > roomSize.width) {
 		CreateRoom(topLeft + standoff, roomBottomLeft - standoff, nRid, HallDirection::Right, {});
 		CreateRoom(roomTopRight + standoff, bottomRight - standoff, nRid, HallDirection::Left, {});
@@ -1866,8 +1866,8 @@ void ConnectHall(const HallNode &node)
 	Point beginning = node.beginning;
 	Point end = node.end;
 
-	bool fMinusFlag = GenerateRnd(100) < 50;
-	bool fPlusFlag = GenerateRnd(100) < 50;
+	const bool fMinusFlag = GenerateRnd(100) < 50;
+	const bool fPlusFlag = GenerateRnd(100) < 50;
 	CreateDoorType(beginning);
 	CreateDoorType(end);
 	HallDirection nCurrd = node.direction;
@@ -1918,10 +1918,10 @@ void ConnectHall(const HallNode &node)
 			if (predungeon[beginning.x][beginning.y] != ',')
 				fInroom = true;
 		}
-		int nDx = std::abs(end.x - beginning.x);
-		int nDy = std::abs(end.y - beginning.y);
+		const int nDx = std::abs(end.x - beginning.x);
+		const int nDy = std::abs(end.y - beginning.y);
 		if (nDx > nDy) {
-			int nRp = std::min(2 * nDx, 30);
+			const int nRp = std::min(2 * nDx, 30);
 			if (GenerateRnd(100) < nRp) {
 				if (end.x <= beginning.x || beginning.x >= DMAXX)
 					nCurrd = HallDirection::Left;
@@ -1929,7 +1929,7 @@ void ConnectHall(const HallNode &node)
 					nCurrd = HallDirection::Right;
 			}
 		} else {
-			int nRp = std::min(5 * nDy, 80);
+			const int nRp = std::min(5 * nDy, 80);
 			if (GenerateRnd(100) < nRp) {
 				if (end.y <= beginning.y || beginning.y >= DMAXY)
 					nCurrd = HallDirection::Up;
@@ -2064,6 +2064,9 @@ void FixTilesPatterns()
 			if (dungeon[i][j] == 11 && dungeon[i + 1][j] == 14) {
 				dungeon[i + 1][j] = 16;
 			}
+			if (dungeon[i][j] == 15 && dungeon[i][j + 1] == 1) {
+				dungeon[i][j + 1] = 8;
+			}
 		}
 	}
 }
@@ -2077,7 +2080,7 @@ void Substitution()
 			if (!FlipCoin(4))
 				continue;
 
-			uint8_t c = BTYPESL2[dungeon[x][y]];
+			const uint8_t c = BTYPESL2[dungeon[x][y]];
 			if (c != 0) {
 				int rv = GenerateRnd(16);
 				int i = -1;
@@ -2379,8 +2382,8 @@ bool FillVoids()
 {
 	int to = 0;
 	while (CountEmptyTiles() > 700 && to < 100) {
-		int xx = GenerateRnd(38) + 1;
-		int yy = GenerateRnd(38) + 1;
+		const int xx = GenerateRnd(38) + 1;
+		const int yy = GenerateRnd(38) + 1;
 		if (predungeon[xx][yy] != '#') {
 			continue;
 		}

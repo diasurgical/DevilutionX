@@ -1,6 +1,8 @@
 #include "towners.h"
 
+#include <algorithm>
 #include <cstdint>
+#include <unordered_map>
 
 #include "cursor.h"
 #include "engine/clx_sprite.hpp"
@@ -11,6 +13,8 @@
 #include "inv.h"
 #include "minitext.h"
 #include "stores.h"
+#include "textdat.h"
+#include "townerdat.hpp"
 #include "utils/is_of.hpp"
 #include "utils/language.h"
 #include "utils/str_case.hpp"
@@ -25,13 +29,55 @@ int CowClicks;
 /** Specifies the active sound effect ID for interacting with cows. */
 SfxID CowPlaying = SfxID::None;
 
+/** Storage for animation order data loaded from TSV (needs stable addresses for span). */
+std::vector<std::vector<uint8_t>> TownerAnimOrderStorage;
+
+/**
+ * @brief Defines the behavior (init and talk functions) for each towner type.
+ *
+ * The actual data (position, animation, gossip) comes from TSV files.
+ * This struct only holds the code that can't be data-driven.
+ */
 struct TownerData {
 	_talker_id type;
-	Point position;
-	Direction dir;
-	void (*init)(Towner &towner, const TownerData &townerData);
+	/** Custom initialization function, or nullptr to use the default InitTownerFromData. */
+	void (*init)(Towner &towner, const TownerDataEntry &entry);
+	/** Function called when the player talks to this towner. */
 	void (*talk)(Player &player, Towner &towner);
 };
+
+/**
+ * @brief Lookup table from towner type to its behavior data.
+ *
+ * Populated during InitTowners() from the TownersData array.
+ */
+std::unordered_map<_talker_id, const TownerData *> TownerBehaviors;
+
+/**
+ * @brief Default towner initialization using TSV data.
+ *
+ * Sets up animation, gossip texts, and other properties from the TSV entry.
+ * Used for most towners; special cases (cows, cow farmer) have custom init functions.
+ */
+void InitTownerFromData(Towner &towner, const TownerDataEntry &entry);
+
+#ifdef _DEBUG
+/**
+ * @brief Finds the towner data entry from TSV for a given type.
+ */
+const TownerDataEntry *FindTownerDataEntry(_talker_id type, Point position = {})
+{
+	for (const auto &entry : TownersDataEntries) {
+		if (entry.type == type) {
+			// For types with multiple instances (like cows), match by position
+			if (position != Point {} && entry.position != position)
+				continue;
+			return &entry;
+		}
+	}
+	return nullptr;
+}
+#endif
 
 void NewTownerAnim(Towner &towner, ClxSpriteList sprites, uint8_t numFrames, int delay)
 {
@@ -42,22 +88,19 @@ void NewTownerAnim(Towner &towner, ClxSpriteList sprites, uint8_t numFrames, int
 	towner._tAnimDelay = delay;
 }
 
-void InitTownerInfo(Towner &towner, const TownerData &townerData)
+void InitTownerInfo(Towner &towner, const TownerData &townerData, const TownerDataEntry &entry)
 {
 	towner._ttype = townerData.type;
-	towner.name = _(TownerLongNames[townerData.type]);
-	towner.position = townerData.position;
+	auto nameIt = TownerLongNames.find(townerData.type);
+	towner.name = nameIt != TownerLongNames.end() ? _(nameIt->second.c_str()) : std::string_view(entry.name);
+	towner.position = entry.position;
 	towner.talk = townerData.talk;
 
-	townerData.init(towner, townerData);
-}
-
-void InitTownerInfo(int16_t i, const TownerData &townerData)
-{
-	// It's necessary to assign this before invoking townerData.init()
-	// specifically for the cows that need to read this value to fill adjacent tiles
-	dMonster[townerData.position.x][townerData.position.y] = i + 1;
-	InitTownerInfo(Towners[i], townerData);
+	if (townerData.init != nullptr) {
+		townerData.init(towner, entry);
+	} else {
+		InitTownerFromData(towner, entry);
+	}
 }
 
 void LoadTownerAnimations(Towner &towner, const char *path, int frames, int delay)
@@ -68,154 +111,50 @@ void LoadTownerAnimations(Towner &towner, const char *path, int frames, int dela
 }
 
 /**
- * @brief Load Griswold into the game
+ * @brief Default towner initialization using TSV data.
  */
-void InitSmith(Towner &towner, const TownerData &townerData)
+void InitTownerFromData(Towner &towner, const TownerDataEntry &entry)
 {
-	towner._tAnimWidth = 96;
-	static const uint8_t AnimOrder[] = {
-		// clang-format off
-		4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4,
-		4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4,
-		4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4,
-		4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4,
-		4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4,
-		4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
-		0, 0, 0, 0, 0, 0,  0,  0,  0,  0,  0,  0,  0,  0, 0, 1, 2, 3
-		// clang-format on
-	};
-	towner.animOrder = { AnimOrder };
-	LoadTownerAnimations(towner, "towners\\smith\\smithn", 16, 3);
-	towner.gossip = PickRandomlyAmong({ TEXT_GRISWOLD2, TEXT_GRISWOLD3, TEXT_GRISWOLD4, TEXT_GRISWOLD5, TEXT_GRISWOLD6, TEXT_GRISWOLD7, TEXT_GRISWOLD8, TEXT_GRISWOLD9, TEXT_GRISWOLD10, TEXT_GRISWOLD12, TEXT_GRISWOLD13 });
+	towner._tAnimWidth = entry.animWidth;
+
+	// Store animation order and set the span
+	if (!entry.animOrder.empty()) {
+		TownerAnimOrderStorage.push_back(entry.animOrder);
+		towner.animOrder = { TownerAnimOrderStorage.back() };
+	} else {
+		towner.animOrder = {};
+	}
+
+	if (!entry.animPath.empty()) {
+		LoadTownerAnimations(towner, entry.animPath.c_str(), entry.animFrames, entry.animDelay);
+	}
+
+	// Set gossip from TSV data
+	if (!entry.gossipTexts.empty()) {
+		const auto index = std::max<int32_t>(GenerateRnd(static_cast<int32_t>(entry.gossipTexts.size())), 0);
+		towner.gossip = entry.gossipTexts[index];
+	}
 }
 
-void InitBarOwner(Towner &towner, const TownerData &townerData)
+/**
+ * @brief Special initialization for cows.
+ *
+ * Cows differ from other towners:
+ * - They share a sprite sheet (CowSprites) instead of loading individual animations
+ * - They occupy multiple tiles (4 tiles for collision purposes)
+ * - Animation frame is randomized on spawn
+ */
+void InitCows(Towner &towner, const TownerDataEntry &entry)
 {
-	towner._tAnimWidth = 96;
-	static const uint8_t AnimOrder[] = {
-		// clang-format off
-		0, 1, 2, 2, 1, 0, 15, 14, 13, 13, 14, 15,
-		0, 1, 2, 2, 1, 0, 15, 14, 13, 13, 14, 15,
-		0, 1, 2, 2, 1, 0, 15, 14, 13, 13, 14, 15,
-		0, 1, 2, 2, 1, 0, 15, 14, 13, 13, 14, 15,
-		0, 1, 2, 2, 1, 0, 15, 14, 13, 13, 14, 15,
-		0, 1, 2, 2, 1, 0, 15, 14, 13, 13, 14, 15,
-		0, 1, 2, 2, 1, 0, 15, 14, 13, 13, 14, 15,
-		0, 1, 2, 1, 0, 15, 14, 13, 13, 14, 15,
-		0, 1, 2, 3, 4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15
-		// clang-format on
-	};
-	towner.animOrder = { AnimOrder };
-	LoadTownerAnimations(towner, "towners\\twnf\\twnfn", 16, 3);
-	towner.gossip = PickRandomlyAmong({ TEXT_OGDEN2, TEXT_OGDEN3, TEXT_OGDEN4, TEXT_OGDEN5, TEXT_OGDEN6, TEXT_OGDEN8, TEXT_OGDEN9, TEXT_OGDEN10 });
-}
-
-void InitTownDead(Towner &towner, const TownerData &townerData)
-{
-	towner._tAnimWidth = 96;
-	towner.animOrder = {};
-	LoadTownerAnimations(towner, "towners\\butch\\deadguy", 8, 6);
-}
-
-void InitWitch(Towner &towner, const TownerData &townerData)
-{
-	towner._tAnimWidth = 96;
-	static const uint8_t AnimOrder[] = {
-		// clang-format off
-		 3,  3,  3,  4,  5,  5,  5,  4,  3, 14, 13, 12, 12, 12, 13, 14, 3, 4, 5, 5, 5, 4,
-		 3,  3,  3,  4,  5,  5,  5,  4,  3, 14, 13, 12, 12, 12, 13, 14, 3, 4, 5, 5, 5, 4,
-		 3,  3,  3,  4,  5,  5,  5,  4,  3, 14, 13, 12, 12, 12, 13, 14, 3, 4, 5, 5, 5, 4,
-		 3,  2,  1,  0, 18, 17, 18,  0,  1,  0, 18, 17, 18,  0,  1,
-		 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14,
-		14, 14, 13, 12, 12, 12, 12, 13, 14,
-		14, 14, 13, 12, 11, 11, 11, 10,  9,  9,  9,  8,
-		 7,  8,  9,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
-		 0,  1,  0, 18, 17, 18,  0,  1,  0,  1,  2
-		// clang-format on
-	};
-	towner.animOrder = { AnimOrder };
-	LoadTownerAnimations(towner, "towners\\townwmn1\\witch", 19, 6);
-	towner.gossip = PickRandomlyAmong({ TEXT_ADRIA2, TEXT_ADRIA3, TEXT_ADRIA4, TEXT_ADRIA5, TEXT_ADRIA6, TEXT_ADRIA7, TEXT_ADRIA8, TEXT_ADRIA9, TEXT_ADRIA10, TEXT_ADRIA12, TEXT_ADRIA13 });
-}
-
-void InitBarmaid(Towner &towner, const TownerData &townerData)
-{
-	towner._tAnimWidth = 96;
-	towner.animOrder = {};
-	LoadTownerAnimations(towner, "towners\\townwmn1\\wmnn", 18, 6);
-	towner.gossip = PickRandomlyAmong({ TEXT_GILLIAN2, TEXT_GILLIAN3, TEXT_GILLIAN4, TEXT_GILLIAN5, TEXT_GILLIAN6, TEXT_GILLIAN7, TEXT_GILLIAN9, TEXT_GILLIAN10 });
-}
-
-void InitBoy(Towner &towner, const TownerData &townerData)
-{
-	towner._tAnimWidth = 96;
-	towner.animOrder = {};
-	LoadTownerAnimations(towner, "towners\\townboy\\pegkid1", 20, 6);
-	towner.gossip = PickRandomlyAmong({ TEXT_WIRT2, TEXT_WIRT3, TEXT_WIRT4, TEXT_WIRT5, TEXT_WIRT6, TEXT_WIRT7, TEXT_WIRT8, TEXT_WIRT9, TEXT_WIRT11, TEXT_WIRT12 });
-}
-
-void InitHealer(Towner &towner, const TownerData &townerData)
-{
-	towner._tAnimWidth = 96;
-	static const uint8_t AnimOrder[] = {
-		// clang-format off
-		 0,  1,  2,  2,  1,  0, 19, 18, 18, 19,
-		 0,  1,  2,  2,  1,  0, 19, 18, 18, 19,
-		 0,  1,  2,  2,  1,  0, 19, 18, 18, 19,
-		 0,  1,  2,  2,  1,  0, 19, 18, 18, 19,
-		 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15,
-		14, 13, 12, 11, 10,  9,  8,  7,  6,  5,  4,  3,
-		 4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15,
-		14, 13, 12, 11, 10,  9,  8,  7,  6,  5,  4,  3,
-		 4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19
-		// clang-format on
-	};
-	towner.animOrder = { AnimOrder };
-	LoadTownerAnimations(towner, "towners\\healer\\healer", 20, 6);
-	towner.gossip = PickRandomlyAmong({ TEXT_PEPIN2, TEXT_PEPIN3, TEXT_PEPIN4, TEXT_PEPIN5, TEXT_PEPIN6, TEXT_PEPIN7, TEXT_PEPIN9, TEXT_PEPIN10, TEXT_PEPIN11 });
-}
-
-void InitTeller(Towner &towner, const TownerData &townerData)
-{
-	towner._tAnimWidth = 96;
-	static const uint8_t AnimOrder[] = {
-		// clang-format off
-		 0,  0, 24, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14,
-		15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 24, 24,  0,  0,  0, 24,
-		 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14,
-		13, 12, 11, 10,  9,  8,  7,  6,  5,  4,  3,  2,  1,  0
-		// clang-format on
-	};
-	towner.animOrder = { AnimOrder };
-	LoadTownerAnimations(towner, "towners\\strytell\\strytell", 25, 3);
-	towner.gossip = PickRandomlyAmong({ TEXT_STORY2, TEXT_STORY3, TEXT_STORY4, TEXT_STORY5, TEXT_STORY6, TEXT_STORY7, TEXT_STORY9, TEXT_STORY10, TEXT_STORY11 });
-}
-
-void InitDrunk(Towner &towner, const TownerData &townerData)
-{
-	towner._tAnimWidth = 96;
-	static const uint8_t AnimOrder[] = {
-		// clang-format off
-		 0, 0, 0,  1,  2,  3,  4,  5,  6,  7,  8, 9, 10, 10, 10, 10, 11, 12, 13, 14, 15, 16, 17, 17,
-		 0, 0, 0, 17, 16, 15, 14, 13, 12, 11, 10, 9, 10, 11, 12, 13, 14, 15, 16, 17,
-		 0, 1, 2,  3,  4,  4,  4,  3,  2,  1
-		// clang-format on
-	};
-	towner.animOrder = { AnimOrder };
-	LoadTownerAnimations(towner, "towners\\drunk\\twndrunk", 18, 3);
-	towner.gossip = PickRandomlyAmong({ TEXT_FARNHAM2, TEXT_FARNHAM3, TEXT_FARNHAM4, TEXT_FARNHAM5, TEXT_FARNHAM6, TEXT_FARNHAM8, TEXT_FARNHAM9, TEXT_FARNHAM10, TEXT_FARNHAM11, TEXT_FARNHAM12, TEXT_FARNHAM13 });
-}
-
-void InitCows(Towner &towner, const TownerData &townerData)
-{
-	towner._tAnimWidth = 128;
+	// Cows use a shared sprite sheet and need special handling
+	towner._tAnimWidth = entry.animWidth;
 	towner.animOrder = {};
 
-	NewTownerAnim(towner, (*CowSprites)[static_cast<size_t>(townerData.dir)], 12, 3);
+	NewTownerAnim(towner, (*CowSprites)[static_cast<size_t>(entry.direction)], 12, 3);
 	towner._tAnimFrame = GenerateRnd(11);
 
-	const Point position = townerData.position;
-	int16_t cowId = dMonster[position.x][position.y];
+	const Point position = entry.position;
+	const int16_t cowId = dMonster[position.x][position.y];
 
 	// Cows are large sprites so take up multiple tiles. Vanilla Diablo/Hellfire allowed the player to stand adjacent
 	//  to a cow facing an ordinal direction (the two top-right cows) which leads to visual clipping. It's easier to
@@ -230,29 +169,22 @@ void InitCows(Towner &towner, const TownerData &townerData)
 	dMonster[offset.x][offset.y] = -cowId;
 }
 
-void InitFarmer(Towner &towner, const TownerData &townerData)
+/**
+ * @brief Special initialization for the cow farmer (Complete Nut).
+ *
+ * Uses different sprites depending on whether the Jersey quest is complete.
+ */
+void InitCowFarmer(Towner &towner, const TownerDataEntry &entry)
 {
-	towner._tAnimWidth = 96;
+	towner._tAnimWidth = entry.animWidth;
 	towner.animOrder = {};
-	LoadTownerAnimations(towner, "towners\\farmer\\farmrn2", 15, 3);
-}
 
-void InitCowFarmer(Towner &towner, const TownerData &townerData)
-{
+	// CowFarmer has special logic for quest state
 	const char *celPath = "towners\\farmer\\cfrmrn2";
 	if (Quests[Q_JERSEY]._qactive == QUEST_DONE) {
 		celPath = "towners\\farmer\\mfrmrn2";
 	}
-	towner._tAnimWidth = 96;
-	towner.animOrder = {};
 	LoadTownerAnimations(towner, celPath, 15, 3);
-}
-
-void InitGirl(Towner &towner, const TownerData &townerData)
-{
-	towner._tAnimWidth = 96;
-	towner.animOrder = {};
-	LoadTownerAnimations(towner, "towners\\girl\\girlw1", 20, 6);
 }
 
 void TownDead(Towner &towner)
@@ -420,8 +352,8 @@ void TalkToWitch(Player &player, Towner & /*witch*/)
 			if (Quests[Q_MUSHROOM]._qvar1 >= QS_TOMEGIVEN && Quests[Q_MUSHROOM]._qvar1 < QS_MUSHGIVEN) {
 				if (RemoveInventoryItemById(player, IDI_MUSHROOM)) {
 					Quests[Q_MUSHROOM]._qvar1 = QS_MUSHGIVEN;
-					QuestDialogTable[TOWN_HEALER][Q_MUSHROOM] = TEXT_MUSH3;
-					QuestDialogTable[TOWN_WITCH][Q_MUSHROOM] = TEXT_NONE;
+					SetTownerQuestDialog(TOWN_HEALER, Q_MUSHROOM, TEXT_MUSH3);
+					SetTownerQuestDialog(TOWN_WITCH, Q_MUSHROOM, TEXT_NONE);
 					Quests[Q_MUSHROOM]._qmsg = TEXT_MUSH10;
 					NetSendCmdQuest(true, Quests[Q_MUSHROOM]);
 					InitQTextMsg(TEXT_MUSH10);
@@ -504,7 +436,7 @@ void TalkToHealer(Player &player, Towner &healer)
 			SpawnQuestItem(IDI_SPECELIX, healer.position + Displacement { 0, 1 }, 0, SelectionRegion::None, true);
 			InitQTextMsg(TEXT_MUSH4);
 			blackMushroom._qvar1 = QS_BRAINGIVEN;
-			QuestDialogTable[TOWN_HEALER][Q_MUSHROOM] = TEXT_NONE;
+			SetTownerQuestDialog(TOWN_HEALER, Q_MUSHROOM, TEXT_NONE);
 			NetSendCmdQuest(true, blackMushroom);
 			return;
 		}
@@ -749,64 +681,38 @@ void TalkToGirl(Player &player, Towner &girl)
 
 const TownerData TownersData[] = {
 	// clang-format off
-	// type         position    dir                   init           talk
-	{ TOWN_SMITH,   { 62, 63 }, Direction::SouthWest, InitSmith,     TalkToBlackSmith  },
-	{ TOWN_HEALER,  { 55, 79 }, Direction::SouthEast, InitHealer,    TalkToHealer      },
-	{ TOWN_DEADGUY, { 24, 32 }, Direction::North,     InitTownDead,  TalkToDeadguy     },
-	{ TOWN_TAVERN,  { 55, 62 }, Direction::SouthWest, InitBarOwner,  TalkToBarOwner    },
-	{ TOWN_STORY,   { 62, 71 }, Direction::South,     InitTeller,    TalkToStoryteller },
-	{ TOWN_DRUNK,   { 71, 84 }, Direction::South,     InitDrunk,     TalkToDrunk       },
-	{ TOWN_WITCH,   { 80, 20 }, Direction::South,     InitWitch,     TalkToWitch       },
-	{ TOWN_BMAID,   { 43, 66 }, Direction::South,     InitBarmaid,   TalkToBarmaid     },
-	{ TOWN_PEGBOY,  { 11, 53 }, Direction::South,     InitBoy,       TalkToBoy         },
-	{ TOWN_COW,     { 58, 16 }, Direction::SouthWest, InitCows,      TalkToCow         },
-	{ TOWN_COW,     { 56, 14 }, Direction::NorthWest, InitCows,      TalkToCow         },
-	{ TOWN_COW,     { 59, 20 }, Direction::North,     InitCows,      TalkToCow         },
-	{ TOWN_COWFARM, { 61, 22 }, Direction::SouthWest, InitCowFarmer, TalkToCowFarmer   },
-	{ TOWN_FARMER,  { 62, 16 }, Direction::South,     InitFarmer,    TalkToFarmer      },
-	{ TOWN_GIRL,    { 77, 43 }, Direction::South,     InitGirl,      TalkToGirl        },
+	// type          init (nullptr = default)  talk
+	{ TOWN_SMITH,   nullptr,       TalkToBlackSmith  },
+	{ TOWN_HEALER,  nullptr,       TalkToHealer      },
+	{ TOWN_DEADGUY, nullptr,       TalkToDeadguy     },
+	{ TOWN_TAVERN,  nullptr,       TalkToBarOwner    },
+	{ TOWN_STORY,   nullptr,       TalkToStoryteller },
+	{ TOWN_DRUNK,   nullptr,       TalkToDrunk       },
+	{ TOWN_WITCH,   nullptr,       TalkToWitch       },
+	{ TOWN_BMAID,   nullptr,       TalkToBarmaid     },
+	{ TOWN_PEGBOY,  nullptr,       TalkToBoy         },
+	{ TOWN_COW,     InitCows,      TalkToCow         },
+	{ TOWN_COWFARM, InitCowFarmer, TalkToCowFarmer   },
+	{ TOWN_FARMER,  nullptr,       TalkToFarmer      },
+	{ TOWN_GIRL,    nullptr,       TalkToGirl        },
 	// clang-format on
 };
 
 } // namespace
 
-Towner Towners[NUM_TOWNERS];
+std::vector<Towner> Towners;
 
-const char *const TownerLongNames[NUM_TOWNER_TYPES] {
-	N_("Griswold the Blacksmith"),
-	N_("Pepin the Healer"),
-	N_("Wounded Townsman"),
-	N_("Ogden the Tavern owner"),
-	N_("Cain the Elder"),
-	N_("Farnham the Drunk"),
-	N_("Adria the Witch"),
-	N_("Gillian the Barmaid"),
-	N_("Wirt the Peg-legged boy"),
-	N_("Cow"),
-	N_("Lester the farmer"),
-	N_("Celia"),
-	N_("Complete Nut")
-};
+std::unordered_map<_talker_id, std::string> TownerLongNames;
 
-/** Contains the data related to quest gossip for each towner ID. */
-_speech_id QuestDialogTable[NUM_TOWNER_TYPES][MAXQUESTS] = {
-	// clang-format off
-	//                 Q_ROCK,       Q_MUSHROOM,  Q_GARBUD,  Q_ZHAR,    Q_VEIL,     Q_DIABLO,   Q_BUTCHER,   Q_LTBANNER,   Q_BLIND,     Q_BLOOD,     Q_ANVIL,      Q_WARLORD,    Q_SKELKING,  Q_PWATER,      Q_SCHAMB,   Q_BETRAYER,  Q_GRAVE,     Q_FARMER,  Q_GIRL,    Q_TRADER,  Q_DEFILER, Q_NAKRUL,  Q_CORNSTN, Q_JERSEY
-	/*TOWN_SMITH*/   { TEXT_INFRA6,  TEXT_MUSH6,  TEXT_NONE, TEXT_NONE, TEXT_VEIL5, TEXT_NONE,  TEXT_BUTCH5, TEXT_BANNER6, TEXT_BLIND5, TEXT_BLOOD5, TEXT_ANVIL6,  TEXT_WARLRD5, TEXT_KING7,  TEXT_POISON7,  TEXT_BONE5, TEXT_VILE9,  TEXT_GRAVE2, TEXT_NONE, TEXT_NONE, TEXT_NONE, TEXT_NONE, TEXT_NONE, TEXT_NONE, TEXT_NONE },
-	/*TOWN_HEALER*/  { TEXT_INFRA3,  TEXT_NONE,   TEXT_NONE, TEXT_NONE, TEXT_VEIL3, TEXT_NONE,  TEXT_BUTCH3, TEXT_BANNER4, TEXT_BLIND3, TEXT_BLOOD3, TEXT_ANVIL3,  TEXT_WARLRD3, TEXT_KING5,  TEXT_POISON4,  TEXT_BONE3, TEXT_VILE7,  TEXT_GRAVE3, TEXT_NONE, TEXT_NONE, TEXT_NONE, TEXT_NONE, TEXT_NONE, TEXT_NONE, TEXT_NONE },
-	/*TOWN_DEADGUY*/ { TEXT_NONE,    TEXT_NONE,   TEXT_NONE, TEXT_NONE, TEXT_NONE,  TEXT_NONE,  TEXT_NONE,   TEXT_NONE,    TEXT_NONE,   TEXT_NONE,   TEXT_NONE,    TEXT_NONE,    TEXT_NONE,   TEXT_NONE,     TEXT_NONE,  TEXT_NONE,   TEXT_NONE,   TEXT_NONE, TEXT_NONE, TEXT_NONE, TEXT_NONE, TEXT_NONE, TEXT_NONE, TEXT_NONE },
-	/*TOWN_TAVERN*/  { TEXT_INFRA2,  TEXT_MUSH2,  TEXT_NONE, TEXT_NONE, TEXT_VEIL2, TEXT_NONE,  TEXT_BUTCH2, TEXT_NONE,    TEXT_BLIND2, TEXT_BLOOD2, TEXT_ANVIL2,  TEXT_WARLRD2, TEXT_KING3,  TEXT_POISON2,  TEXT_BONE2, TEXT_VILE4,  TEXT_GRAVE5, TEXT_NONE, TEXT_NONE, TEXT_NONE, TEXT_NONE, TEXT_NONE, TEXT_NONE, TEXT_NONE },
-	/*TOWN_STORY*/   { TEXT_INFRA1,  TEXT_MUSH1,  TEXT_NONE, TEXT_NONE, TEXT_VEIL1, TEXT_VILE3, TEXT_BUTCH1, TEXT_BANNER1, TEXT_BLIND1, TEXT_BLOOD1, TEXT_ANVIL1,  TEXT_WARLRD1, TEXT_KING1,  TEXT_POISON1,  TEXT_BONE1, TEXT_VILE2,  TEXT_GRAVE6, TEXT_NONE, TEXT_NONE, TEXT_NONE, TEXT_NONE, TEXT_NONE, TEXT_NONE, TEXT_NONE },
-	/*TOWN_DRUNK*/   { TEXT_INFRA8,  TEXT_MUSH7,  TEXT_NONE, TEXT_NONE, TEXT_VEIL6, TEXT_NONE,  TEXT_BUTCH6, TEXT_BANNER7, TEXT_BLIND6, TEXT_BLOOD6, TEXT_ANVIL8,  TEXT_WARLRD6, TEXT_KING8,  TEXT_POISON8,  TEXT_BONE6, TEXT_VILE10, TEXT_GRAVE7, TEXT_NONE, TEXT_NONE, TEXT_NONE, TEXT_NONE, TEXT_NONE, TEXT_NONE, TEXT_NONE },
-	/*TOWN_WITCH*/   { TEXT_INFRA9,  TEXT_MUSH9,  TEXT_NONE, TEXT_NONE, TEXT_VEIL7, TEXT_NONE,  TEXT_BUTCH7, TEXT_BANNER8, TEXT_BLIND7, TEXT_BLOOD7, TEXT_ANVIL9,  TEXT_WARLRD7, TEXT_KING9,  TEXT_POISON9,  TEXT_BONE7, TEXT_VILE11, TEXT_GRAVE1, TEXT_NONE, TEXT_NONE, TEXT_NONE, TEXT_NONE, TEXT_NONE, TEXT_NONE, TEXT_NONE },
-	/*TOWN_BMAID*/   { TEXT_INFRA4,  TEXT_MUSH5,  TEXT_NONE, TEXT_NONE, TEXT_VEIL4, TEXT_NONE,  TEXT_BUTCH4, TEXT_BANNER5, TEXT_BLIND4, TEXT_BLOOD4, TEXT_ANVIL4,  TEXT_WARLRD4, TEXT_KING6,  TEXT_POISON6,  TEXT_BONE4, TEXT_VILE8,  TEXT_GRAVE8, TEXT_NONE, TEXT_NONE, TEXT_NONE, TEXT_NONE, TEXT_NONE, TEXT_NONE, TEXT_NONE },
-	/*TOWN_PEGBOY*/  { TEXT_INFRA10, TEXT_MUSH13, TEXT_NONE, TEXT_NONE, TEXT_VEIL8, TEXT_NONE,  TEXT_BUTCH8, TEXT_BANNER9, TEXT_BLIND8, TEXT_BLOOD8, TEXT_ANVIL10, TEXT_WARLRD8, TEXT_KING10, TEXT_POISON10, TEXT_BONE8, TEXT_VILE12, TEXT_GRAVE9, TEXT_NONE, TEXT_NONE, TEXT_NONE, TEXT_NONE, TEXT_NONE, TEXT_NONE, TEXT_NONE },
-	/*TOWN_COW*/     { TEXT_NONE,    TEXT_NONE,   TEXT_NONE, TEXT_NONE, TEXT_NONE,  TEXT_NONE,  TEXT_NONE,   TEXT_NONE,    TEXT_NONE,   TEXT_NONE,   TEXT_NONE,    TEXT_NONE,    TEXT_NONE,   TEXT_NONE,     TEXT_NONE,  TEXT_NONE,   TEXT_NONE,   TEXT_NONE, TEXT_NONE, TEXT_NONE, TEXT_NONE, TEXT_NONE, TEXT_NONE, TEXT_NONE },
-	/*TOWN_FARMER*/  { TEXT_NONE,    TEXT_NONE,   TEXT_NONE, TEXT_NONE, TEXT_NONE,  TEXT_NONE,  TEXT_NONE,   TEXT_NONE,    TEXT_NONE,   TEXT_NONE,   TEXT_NONE,    TEXT_NONE,    TEXT_NONE,   TEXT_NONE,     TEXT_NONE,  TEXT_NONE,   TEXT_NONE,   TEXT_NONE, TEXT_NONE, TEXT_NONE, TEXT_NONE, TEXT_NONE, TEXT_NONE, TEXT_NONE },
-	/*TOWN_GIRL*/    { TEXT_NONE,    TEXT_NONE,   TEXT_NONE, TEXT_NONE, TEXT_NONE,  TEXT_NONE,  TEXT_NONE,   TEXT_NONE,    TEXT_NONE,   TEXT_NONE,   TEXT_NONE,    TEXT_NONE,    TEXT_NONE,   TEXT_NONE,     TEXT_NONE,  TEXT_NONE,   TEXT_NONE,   TEXT_NONE, TEXT_NONE, TEXT_NONE, TEXT_NONE, TEXT_NONE, TEXT_NONE, TEXT_NONE },
-	/*TOWN_COWFARM*/ { TEXT_NONE,    TEXT_NONE,   TEXT_NONE, TEXT_NONE, TEXT_NONE,  TEXT_NONE,  TEXT_NONE,   TEXT_NONE,    TEXT_NONE,   TEXT_NONE,   TEXT_NONE,    TEXT_NONE,    TEXT_NONE,   TEXT_NONE,     TEXT_NONE,  TEXT_NONE,   TEXT_NONE,   TEXT_NONE, TEXT_NONE, TEXT_NONE, TEXT_NONE, TEXT_NONE, TEXT_NONE, TEXT_NONE },
-	// clang-format on
-};
+size_t GetNumTownerTypes()
+{
+	return TownerLongNames.size();
+}
+
+size_t GetNumTowners()
+{
+	return Towners.size();
+}
 
 bool IsTownerPresent(_talker_id npc)
 {
@@ -837,14 +743,41 @@ void InitTowners()
 {
 	assert(!CowSprites);
 
+	// Load towner data from TSV files
+	LoadTownerData();
+	TownerAnimOrderStorage.clear();
+
+	// Build lookup table for towner behaviors
+	TownerBehaviors.clear();
+	for (const auto &behavior : TownersData) {
+		TownerBehaviors[behavior.type] = &behavior;
+	}
+
+	// Build TownerLongNames from TSV data (first occurrence of each type wins)
+	TownerLongNames.clear();
+	for (const auto &entry : TownersDataEntries) {
+		TownerLongNames.try_emplace(entry.type, entry.name);
+	}
+
 	CowSprites.emplace(LoadCelSheet("towners\\animals\\cow", 128));
 
+	Towners.clear();
+	Towners.reserve(TownersDataEntries.size());
 	int16_t i = 0;
-	for (const auto &townerData : TownersData) {
-		if (!IsTownerPresent(townerData.type))
+	for (const auto &entry : TownersDataEntries) {
+		if (!IsTownerPresent(entry.type))
 			continue;
 
-		InitTownerInfo(i, townerData);
+		auto behaviorIt = TownerBehaviors.find(entry.type);
+		if (behaviorIt == TownerBehaviors.end() || behaviorIt->second == nullptr)
+			continue;
+
+		// It's necessary to assign this before invoking townerData.init()
+		// specifically for the cows that need to read this value to fill adjacent tiles
+		dMonster[entry.position.x][entry.position.y] = i + 1;
+
+		Towners.emplace_back();
+		InitTownerInfo(Towners.back(), *behaviorIt->second, entry);
 		i++;
 	}
 }
@@ -927,17 +860,22 @@ bool DebugTalkToTowner(_talker_id type)
 	// cows have an init function that differs from the rest and isn't compatible with this code, skip them :(
 	if (type == TOWN_COW)
 		return false;
+
+	const TownerData *behavior = TownerBehaviors[type];
+	if (behavior == nullptr)
+		return false;
+
+	const TownerDataEntry *entry = FindTownerDataEntry(type);
+	if (entry == nullptr)
+		return false;
+
 	SetupTownStores();
 	Player &myPlayer = *MyPlayer;
-	for (const TownerData &townerData : TownersData) {
-		if (townerData.type != type) continue;
-		Towner fakeTowner;
-		InitTownerInfo(fakeTowner, townerData);
-		fakeTowner.position = myPlayer.position.tile;
-		townerData.talk(myPlayer, fakeTowner);
-		return true;
-	}
-	return false;
+	Towner fakeTowner;
+	InitTownerInfo(fakeTowner, *behavior, *entry);
+	fakeTowner.position = myPlayer.position.tile;
+	behavior->talk(myPlayer, fakeTowner);
+	return true;
 }
 #endif
 

@@ -5,6 +5,7 @@
  */
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <string>
@@ -13,12 +14,12 @@
 #include <variant>
 #include <vector>
 
-#include <SDL.h>
-
 #include "DiabloUI/ui_flags.hpp"
 #include "engine/clx_sprite.hpp"
 #include "engine/palette.h"
+#include "engine/point.hpp"
 #include "engine/rectangle.hpp"
+#include "engine/surface.hpp"
 #include "utils/enum_traits.h"
 
 namespace devilution {

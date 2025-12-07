@@ -14,6 +14,8 @@
 
 namespace devilution {
 
+#define MAX_SPELLS 52
+
 #pragma pack(push, 1)
 struct ItemPack {
 	uint32_t iSeed;

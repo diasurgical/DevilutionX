@@ -27,19 +27,9 @@ jobs:
     container: devkitpro/devkita64:latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
-
-      - name: Install dependencies
-        run: |
-          tee /etc/apt/sources.list.d/bullseye-backports.list <<LIST
-          deb http://deb.debian.org/debian bullseye-backports main
-          LIST
-          apt-get update
-          apt-get install -y -t bullseye-backports cmake
-          apt-get install -y --no-install-recommends --no-install-suggests \
-            gettext
 
       - name: Configure CMake
         run: |
@@ -54,7 +44,7 @@ jobs:
 
       - name: Upload Package
         if: ${{ !env.ACT }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: devilutionx.nro
           path: ./build/devilutionx.nro

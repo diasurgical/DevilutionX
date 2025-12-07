@@ -1,6 +1,10 @@
 #include <cmath>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_video.h>
+#else
 #include <SDL.h>
+#endif
 
 #include "control.h"
 #include "controls/touch/event_handlers.h"
@@ -56,18 +60,22 @@ constexpr bool PointsRight(float angle)
 
 void InitializeVirtualGamepad()
 {
-	const float sqrt2 = sqrtf(2);
+	const float sqrt2 = sqrtf(2.0F);
 
-	int screenPixels = std::min(gnScreenWidth, gnScreenHeight);
+	const int screenPixels = std::min(gnScreenWidth, gnScreenHeight);
 	int inputMargin = screenPixels / 10;
 	int menuButtonWidth = screenPixels / 10;
 	int directionPadSize = screenPixels / 4;
-	int padButtonSize = roundToInt(1.1f * screenPixels / 10);
+	int padButtonSize = roundToInt(1.1F * screenPixels / 10);
 	int padButtonSpacing = inputMargin / 3;
 
+#ifdef USE_SDL3
+	const float dpi = SDL_GetWindowDisplayScale(ghMainWnd);
+#else
+	float dpi = 0.0F;
 	float hdpi;
 	float vdpi;
-	int displayIndex = SDL_GetWindowDisplayIndex(ghMainWnd);
+	const int displayIndex = SDL_GetWindowDisplayIndex(ghMainWnd);
 	if (SDL_GetDisplayDPI(displayIndex, nullptr, &hdpi, &vdpi) == 0) {
 		int clientWidth;
 		int clientHeight;
@@ -79,28 +87,32 @@ void InitializeVirtualGamepad()
 		hdpi *= static_cast<float>(gnScreenWidth) / clientWidth;
 		vdpi *= static_cast<float>(gnScreenHeight) / clientHeight;
 
-		float dpi = std::min(hdpi, vdpi);
-		inputMargin = roundToInt(0.25f * dpi);
-		menuButtonWidth = roundToInt(0.2f * dpi);
+		dpi = std::min(hdpi, vdpi);
+	}
+#endif
+
+	if (dpi != 0.0F) {
+		inputMargin = roundToInt(0.25F * dpi);
+		menuButtonWidth = roundToInt(0.2F * dpi);
 		directionPadSize = roundToInt(dpi);
-		padButtonSize = roundToInt(0.3f * dpi);
-		padButtonSpacing = roundToInt(0.1f * dpi);
+		padButtonSize = roundToInt(0.3F * dpi);
+		padButtonSpacing = roundToInt(0.1F * dpi);
 	}
 
-	int menuPanelTopMargin = 30;
-	int menuPanelButtonSpacing = 4;
-	Size menuPanelButtonSize = { 64, 62 };
-	int rightMarginMenuButton4 = menuPanelButtonSpacing + menuPanelButtonSize.width;
-	int rightMarginMenuButton3 = rightMarginMenuButton4 + menuPanelButtonSpacing + menuPanelButtonSize.width;
-	int rightMarginMenuButton2 = rightMarginMenuButton3 + menuPanelButtonSpacing + menuPanelButtonSize.width;
-	int rightMarginMenuButton1 = rightMarginMenuButton2 + menuPanelButtonSpacing + menuPanelButtonSize.width;
+	const int menuPanelTopMargin = 30;
+	const int menuPanelButtonSpacing = 4;
+	const Size menuPanelButtonSize = { 64, 62 };
+	const int rightMarginMenuButton4 = menuPanelButtonSpacing + menuPanelButtonSize.width;
+	const int rightMarginMenuButton3 = rightMarginMenuButton4 + menuPanelButtonSpacing + menuPanelButtonSize.width;
+	const int rightMarginMenuButton2 = rightMarginMenuButton3 + menuPanelButtonSpacing + menuPanelButtonSize.width;
+	const int rightMarginMenuButton1 = rightMarginMenuButton2 + menuPanelButtonSpacing + menuPanelButtonSize.width;
 
-	int padButtonAreaWidth = roundToInt(sqrt2 * (padButtonSize + padButtonSpacing));
+	const int padButtonAreaWidth = roundToInt(sqrt2 * (padButtonSize + padButtonSpacing));
 
-	int padButtonRight = gnScreenWidth - inputMargin - padButtonSize / 2;
-	int padButtonLeft = padButtonRight - padButtonAreaWidth;
-	int padButtonBottom = gnScreenHeight - inputMargin - padButtonSize / 2;
-	int padButtonTop = padButtonBottom - padButtonAreaWidth;
+	const int padButtonRight = gnScreenWidth - inputMargin - padButtonSize / 2;
+	const int padButtonLeft = padButtonRight - padButtonAreaWidth;
+	const int padButtonBottom = gnScreenHeight - inputMargin - padButtonSize / 2;
+	const int padButtonTop = padButtonBottom - padButtonAreaWidth;
 
 	Rectangle &charButtonArea = VirtualGamepadState.menuPanel.charButton.area;
 	charButtonArea.position.x = gnScreenWidth - rightMarginMenuButton1 * menuButtonWidth / menuPanelButtonSize.width;
@@ -139,8 +151,8 @@ void InitializeVirtualGamepad()
 	directionPadArea.radius = directionPadSize / 2;
 	directionPad.position = directionPadArea.position;
 
-	int standButtonDiagonalOffset = directionPadArea.radius + padButtonSpacing / 2 + padButtonSize / 2;
-	int standButtonOffset = roundToInt(standButtonDiagonalOffset / sqrt2);
+	const int standButtonDiagonalOffset = directionPadArea.radius + padButtonSpacing / 2 + padButtonSize / 2;
+	const int standButtonOffset = roundToInt(standButtonDiagonalOffset / sqrt2);
 	Circle &standButtonArea = VirtualGamepadState.standButton.area;
 	standButtonArea.position.x = directionPadArea.position.x - standButtonOffset;
 	standButtonArea.position.y = directionPadArea.position.y + standButtonOffset;
@@ -221,7 +233,7 @@ void VirtualDirectionPad::UpdatePosition(Point touchCoordinates)
 {
 	position = touchCoordinates;
 
-	Displacement diff = position - area.position;
+	const Displacement diff = position - area.position;
 	if (diff == Displacement { 0, 0 }) {
 		isUpPressed = false;
 		isDownPressed = false;
@@ -233,14 +245,14 @@ void VirtualDirectionPad::UpdatePosition(Point touchCoordinates)
 	if (!area.contains(position)) {
 		int x = diff.deltaX;
 		int y = diff.deltaY;
-		float dist = sqrtf(static_cast<float>(x * x + y * y));
+		const float dist = sqrtf(static_cast<float>(x * x + y * y));
 		x = roundToInt(x * area.radius / dist);
 		y = roundToInt(y * area.radius / dist);
 		position.x = area.position.x + x;
 		position.y = area.position.y + y;
 	}
 
-	float angle = atan2f(static_cast<float>(-diff.deltaY), static_cast<float>(diff.deltaX));
+	const float angle = atan2f(static_cast<float>(-diff.deltaY), static_cast<float>(diff.deltaX));
 
 	isUpPressed = PointsUp(angle);
 	isDownPressed = PointsDown(angle);

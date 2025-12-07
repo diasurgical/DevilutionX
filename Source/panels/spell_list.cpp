@@ -51,7 +51,7 @@ bool GetSpellListSelection(SpellID &pSpell, SpellType &pSplType)
 {
 	pSpell = SpellID::Invalid;
 	pSplType = SpellType::Invalid;
-	Player &myPlayer = *MyPlayer;
+	const Player &myPlayer = *MyPlayer;
 
 	for (auto &spellListItem : GetSpellListItems()) {
 		if (spellListItem.isSelected) {
@@ -68,7 +68,7 @@ bool GetSpellListSelection(SpellID &pSpell, SpellType &pSplType)
 
 std::optional<std::string_view> GetHotkeyName(SpellID spellId, SpellType spellType, bool useShortName = false)
 {
-	Player &myPlayer = *MyPlayer;
+	const Player &myPlayer = *MyPlayer;
 	for (size_t t = 0; t < NumHotkeys; t++) {
 		if (myPlayer._pSplHotKey[t] != spellId || myPlayer._pSplTHotKey[t] != spellType)
 			continue;
@@ -84,7 +84,7 @@ std::optional<std::string_view> GetHotkeyName(SpellID spellId, SpellType spellTy
 
 void DrawSpell(const Surface &out)
 {
-	Player &myPlayer = *MyPlayer;
+	const Player &myPlayer = *MyPlayer;
 	SpellID spl = myPlayer._pRSpell;
 	SpellType st = myPlayer._pRSplType;
 
@@ -94,7 +94,7 @@ void DrawSpell(const Surface &out)
 	}
 
 	if (st == SpellType::Spell) {
-		int tlvl = myPlayer.GetSpellLevel(spl);
+		const int tlvl = myPlayer.GetSpellLevel(spl);
 		if (CheckSpell(*MyPlayer, spl, st, true) != SpellCheckResult::Success)
 			st = SpellType::Invalid;
 		if (tlvl <= 0)
@@ -207,7 +207,7 @@ std::vector<SpellListItem> GetSpellListItems()
 	int y = mainPanelPosition.y - 17;
 
 	for (auto i : enum_values<SpellType>()) {
-		Player &myPlayer = *MyPlayer;
+		const Player &myPlayer = *MyPlayer;
 		switch (static_cast<SpellType>(i)) {
 		case SpellType::Skill:
 			mask = myPlayer._pAblSpells;
@@ -225,12 +225,12 @@ std::vector<SpellListItem> GetSpellListItems()
 			continue;
 		}
 		int8_t j = static_cast<int8_t>(SpellID::Firebolt);
-		for (uint64_t spl = 1; j < MAX_SPELLS; spl <<= 1, j++) {
+		for (uint64_t spl = 1; static_cast<size_t>(j) < SpellsData.size(); spl <<= 1, j++) {
 			if ((mask & spl) == 0)
 				continue;
-			int lx = x;
-			int ly = y - SPLICONLENGTH;
-			bool isSelected = (MousePosition.x >= lx && MousePosition.x < lx + SPLICONLENGTH && MousePosition.y >= ly && MousePosition.y < ly + SPLICONLENGTH);
+			const int lx = x;
+			const int ly = y - SPLICONLENGTH;
+			const bool isSelected = (MousePosition.x >= lx && MousePosition.x < lx + SPLICONLENGTH && MousePosition.y >= ly && MousePosition.y < ly + SPLICONLENGTH);
 			spellListItems.emplace_back(SpellListItem { { x, y }, static_cast<SpellType>(i), static_cast<SpellID>(j), isSelected });
 			x -= SPLICONLENGTH;
 			if (x == mainPanelPosition.x + 12 - SPLICONLENGTH) {
@@ -294,7 +294,7 @@ bool IsValidSpeedSpell(size_t slot)
 {
 	uint64_t spells;
 
-	Player &myPlayer = *MyPlayer;
+	const Player &myPlayer = *MyPlayer;
 
 	const SpellID spellId = myPlayer._pSplHotKey[slot];
 	if (!IsValidSpell(spellId)) {
@@ -340,7 +340,7 @@ void DoSpeedBook()
 	int x = xo + SPLICONLENGTH / 2;
 	int y = yo - SPLICONLENGTH / 2;
 
-	Player &myPlayer = *MyPlayer;
+	const Player &myPlayer = *MyPlayer;
 
 	if (IsValidSpell(myPlayer._pRSpell)) {
 		for (auto i : enum_values<SpellType>()) {
@@ -362,9 +362,9 @@ void DoSpeedBook()
 				continue;
 			}
 			uint64_t spell = 1;
-			for (int j = 1; j < MAX_SPELLS; j++) {
+			for (size_t j = 1; j < SpellsData.size(); j++) {
 				if ((spell & spells) != 0) {
-					if (j == static_cast<int8_t>(myPlayer._pRSpell) && static_cast<SpellType>(i) == myPlayer._pRSplType) {
+					if (j == static_cast<size_t>(myPlayer._pRSpell) && static_cast<SpellType>(i) == myPlayer._pRSplType) {
 						x = xo + SPLICONLENGTH / 2;
 						y = yo - SPLICONLENGTH / 2;
 					}

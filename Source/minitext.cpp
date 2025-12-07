@@ -48,7 +48,7 @@ void LoadText(std::string_view text)
 
 	size_t previous = 0;
 	while (true) {
-		size_t next = paragraphs.find('\n', previous);
+		const size_t next = paragraphs.find('\n', previous);
 		TextLines.emplace_back(paragraphs.substr(previous, next - previous));
 		if (next == std::string::npos)
 			break;
@@ -98,7 +98,7 @@ int CalculateTextPosition()
  */
 void DrawQTextContent(const Surface &out)
 {
-	int y = CalculateTextPosition();
+	const int y = CalculateTextPosition();
 
 	const int sx = GetUIRectangle().position.x + 48;
 	const int sy = 0 - (y % LineHeight);
@@ -136,28 +136,27 @@ void InitQuestText()
 void InitQTextMsg(_speech_id m)
 {
 	SfxID sfxnr = Speeches[m].sfxnr;
-	const SfxID *classSounds = herosounds[static_cast<size_t>(MyPlayer->_pClass)];
 	switch (sfxnr) {
 	case SfxID::Warrior1:
-		sfxnr = classSounds[static_cast<size_t>(HeroSpeech::ChamberOfBoneLore)];
+		sfxnr = GetHeroSound(MyPlayer->_pClass, HeroSpeech::ChamberOfBoneLore);
 		break;
 	case SfxID::Warrior10:
-		sfxnr = classSounds[static_cast<size_t>(HeroSpeech::ValorLore)];
+		sfxnr = GetHeroSound(MyPlayer->_pClass, HeroSpeech::ValorLore);
 		break;
 	case SfxID::Warrior11:
-		sfxnr = classSounds[static_cast<size_t>(HeroSpeech::HallsOfTheBlindLore)];
+		sfxnr = GetHeroSound(MyPlayer->_pClass, HeroSpeech::HallsOfTheBlindLore);
 		break;
 	case SfxID::Warrior12:
-		sfxnr = classSounds[static_cast<size_t>(HeroSpeech::WarlordOfBloodLore)];
+		sfxnr = GetHeroSound(MyPlayer->_pClass, HeroSpeech::WarlordOfBloodLore);
 		break;
 	case SfxID::Warrior54:
-		sfxnr = classSounds[static_cast<size_t>(HeroSpeech::InSpirituSanctum)];
+		sfxnr = GetHeroSound(MyPlayer->_pClass, HeroSpeech::InSpirituSanctum);
 		break;
 	case SfxID::Warrior55:
-		sfxnr = classSounds[static_cast<size_t>(HeroSpeech::PraedictumOtium)];
+		sfxnr = GetHeroSound(MyPlayer->_pClass, HeroSpeech::PraedictumOtium);
 		break;
 	case SfxID::Warrior56:
-		sfxnr = classSounds[static_cast<size_t>(HeroSpeech::EfficioObitusUtInimicus)];
+		sfxnr = GetHeroSound(MyPlayer->_pClass, HeroSpeech::EfficioObitusUtInimicus);
 		break;
 	default:
 		break;

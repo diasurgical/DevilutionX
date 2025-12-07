@@ -121,7 +121,7 @@ TEST(ParseInt, ParseFixed6)
 	ASSERT_TRUE(result.has_value()) << "A fixed point value with no integer part is accepted";
 	EXPECT_EQ(result.value(), 32);
 
-	std::string_view badString { "-." };
+	const std::string_view badString { "-." };
 	const char *endOfParse = nullptr;
 	result = ParseFixed6<int>(badString, &endOfParse);
 	ASSERT_FALSE(result.has_value()) << "To match std::from_chars ParseFixed6 should fail to parse a decimal string with no digits, even if it starts with a minus sign.";

@@ -52,12 +52,12 @@ void DrawButtonOnPanel(Point position, std::string_view text, int frame)
 
 void RenderMainButton(const Surface &out, int buttonId, std::string_view text, int frame)
 {
-	Point panelPosition { MainPanelButtonRect[buttonId].position + Displacement { 4, 17 } };
+	const Point panelPosition { MainPanelButtonRect[buttonId].position + Displacement { 4, 17 } };
 	DrawButtonOnPanel(panelPosition, text, frame);
 	if (IsChatAvailable())
 		DrawButtonOnPanel(panelPosition + Displacement { 0, GetMainPanel().size.height + 16 }, text, frame);
 
-	Point position { 0, 19 * buttonId };
+	const Point position { 0, 19 * buttonId };
 	int spacing = 2;
 	int width = std::min<int>(GetLineWidth(text, GameFont12, spacing), (*PanelButton)[0].width());
 	if (width > 38) {
@@ -78,7 +78,7 @@ tl::expected<void, std::string> LoadMainPanel()
 		ASSIGN_OR_RETURN(OptionalOwnedClxSpriteList background, LoadClxWithStatus("data\\panel8bucp.clx"));
 		out.emplace((*background)[0].width(), (*background)[0].height() * NumButtonSprites);
 		int y = 0;
-		for (ClxSprite sprite : ClxSpriteList(*background)) {
+		for (const ClxSprite sprite : ClxSpriteList(*background)) {
 			RenderClxSprite(*out, sprite, { 0, y });
 			y += sprite.height();
 		}
@@ -103,19 +103,19 @@ tl::expected<void, std::string> LoadMainPanel()
 
 		constexpr size_t NumOtherPlayers = 3;
 		// Render the unpressed voice buttons to BottomBuffer.
-		std::string_view text = _("voice");
+		const std::string_view text = _("voice");
 		const int textWidth = GetLineWidth(text, GameFont12, 1);
 		for (size_t i = 0; i < NumOtherPlayers; ++i) {
-			Point position { 176, static_cast<int>(GetMainPanel().size.height + 101 + 18 * i) };
+			const Point position { 176, static_cast<int>(GetMainPanel().size.height + 101 + 18 * i) };
 			RenderClxSprite(*BottomBuffer, (*talkButton)[0], position);
-			int width = std::min<int>(textWidth, (*PanelButton)[0].width());
+			const int width = std::min<int>(textWidth, (*PanelButton)[0].width());
 			RenderClxSprite(BottomBuffer->subregion(position.x + (talkButtonWidth - width) / 2, position.y + 6, width, 9), (*PanelButtonGrime)[1], { 0, 0 });
 			DrawButtonText(*BottomBuffer, text, { position, { talkButtonWidth, 0 } }, UiFlags::ColorButtonface);
 		}
 
 		const int talkButtonHeight = (*talkButton)[0].height();
 		constexpr uint16_t NumTalkButtonSprites = 3;
-		OwnedSurface talkSurface(talkButtonWidth, talkButtonHeight * NumTalkButtonSprites);
+		const OwnedSurface talkSurface(talkButtonWidth, talkButtonHeight * NumTalkButtonSprites);
 
 		// Prerender translated versions of the other button states for voice buttons
 		RenderClxSprite(talkSurface, (*talkButton)[0], { 0, 0 });                    // background for unpressed mute button
@@ -124,12 +124,12 @@ tl::expected<void, std::string> LoadMainPanel()
 
 		talkButton = std::nullopt;
 
-		int muteWidth = GetLineWidth(_("mute"), GameFont12, 2);
+		const int muteWidth = GetLineWidth(_("mute"), GameFont12, 2);
 		RenderClxSprite(talkSurface.subregion((talkButtonWidth - muteWidth) / 2, 6, muteWidth, 9), (*PanelButtonGrime)[1], { 0, 0 });
 		DrawButtonText(talkSurface, _("mute"), { { 0, 0 }, { talkButtonWidth, 0 } }, UiFlags::ColorButtonface);
 		RenderClxSprite(talkSurface.subregion((talkButtonWidth - muteWidth) / 2, 23, muteWidth, 9), (*PanelButtonGrime)[1], { 0, 0 });
 		DrawButtonText(talkSurface, _("mute"), { { 0, 17 }, { talkButtonWidth, 0 } }, UiFlags::ColorButtonpushed);
-		int voiceWidth = GetLineWidth(_("voice"), GameFont12, 2);
+		const int voiceWidth = GetLineWidth(_("voice"), GameFont12, 2);
 		RenderClxSprite(talkSurface.subregion((talkButtonWidth - voiceWidth) / 2, 39, voiceWidth, 9), (*PanelButtonGrime)[1], { 0, 0 });
 		DrawButtonText(talkSurface, _("voice"), { { 0, 33 }, { talkButtonWidth, 0 } }, UiFlags::ColorButtonpushed);
 		TalkButton = SurfaceToClx(talkSurface, NumTalkButtonSprites);

@@ -5,20 +5,28 @@
 #include <string_view>
 #include <vector>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_timer.h>
+
+#else
+#include <SDL.h>
+
+#ifdef USE_SDL1
+#include "utils/sdl2_to_1_2_backports.h"
+#endif
+#endif
+
 #include <ankerl/unordered_dense.h>
 #include <function_ref.hpp>
 
 #include "engine/assets.hpp"
 #include "options.h"
 #include "utils/algorithm/container.hpp"
+#include "utils/endian_swap.hpp"
 #include "utils/file_util.h"
 #include "utils/log.hpp"
 #include "utils/paths.h"
 #include "utils/string_view_hash.hpp"
-
-#ifdef USE_SDL1
-#include "utils/sdl2_to_1_2_backports.h"
-#endif
 
 #define MO_MAGIC 0x950412de
 
@@ -72,12 +80,12 @@ struct MoHead {
 
 void SwapLE(MoHead &head)
 {
-	head.magic = SDL_SwapLE32(head.magic);
-	head.revision.major = SDL_SwapLE16(head.revision.major);
-	head.revision.minor = SDL_SwapLE16(head.revision.minor);
-	head.nbMappings = SDL_SwapLE32(head.nbMappings);
-	head.srcOffset = SDL_SwapLE32(head.srcOffset);
-	head.dstOffset = SDL_SwapLE32(head.dstOffset);
+	head.magic = Swap32LE(head.magic);
+	head.revision.major = Swap16LE(head.revision.major);
+	head.revision.minor = Swap16LE(head.revision.minor);
+	head.nbMappings = Swap32LE(head.nbMappings);
+	head.srcOffset = Swap32LE(head.srcOffset);
+	head.dstOffset = Swap32LE(head.dstOffset);
 }
 
 struct MoEntry {
@@ -87,8 +95,8 @@ struct MoEntry {
 
 void SwapLE(MoEntry &entry)
 {
-	entry.length = SDL_SwapLE32(entry.length);
-	entry.offset = SDL_SwapLE32(entry.offset);
+	entry.length = Swap32LE(entry.length);
+	entry.offset = Swap32LE(entry.offset);
 }
 
 std::string_view TrimLeft(std::string_view str)
@@ -137,7 +145,7 @@ void SetPluralForm(std::string_view expression)
 		return;
 	}
 
-	// en, bg, da, de, es, it, sv
+	// en, bg, da, de, es, fi, it, sv
 	if (expression == "(n != 1)") {
 		GetLocalPluralId = PluralIfNotOne;
 		return;
@@ -215,7 +223,7 @@ void ParsePluralForms(std::string_view string)
 	if (eqPos == std::string_view::npos)
 		return;
 
-	std::string_view value = string.substr(eqPos + 1);
+	const std::string_view value = string.substr(eqPos + 1);
 	if (value.empty() || value[0] < '0')
 		return;
 
@@ -296,7 +304,7 @@ std::string_view LanguageParticularTranslate(std::string_view context, std::stri
 
 std::string_view LanguagePluralTranslate(const char *singular, std::string_view plural, int count)
 {
-	int n = GetLocalPluralId(count);
+	const int n = GetLocalPluralId(count);
 
 	auto it = translation[n].find(singular);
 	if (it == translation[n].end()) {
@@ -386,9 +394,15 @@ void LanguageInitialize()
 #ifdef UNPACKED_MPQS
 	const bool readWholeFile = false;
 #else
+#ifdef USE_SDL3
+	// In SDL3, we don't have a way to check if the handle is to an MPQ file.
+	// Assume that it is.
+	const bool readWholeFile = true;
+#else
 	// If reading from an MPQ, it is much faster to
 	// load the whole file instead of seeking.
 	const bool readWholeFile = handle.handle->type == SDL_RWOPS_UNKNOWN;
+#endif
 #endif
 
 	std::unique_ptr<std::byte[]> data;
@@ -417,7 +431,7 @@ void LanguageInitialize()
 	}
 
 	// Read entries of source strings
-	std::unique_ptr<MoEntry[]> src { new MoEntry[head.nbMappings] };
+	const std::unique_ptr<MoEntry[]> src { new MoEntry[head.nbMappings] };
 	if (readWholeFile
 	        ? !CopyData(src.get(), data.get(), fileSize, head.srcOffset, head.nbMappings * sizeof(MoEntry))
 	        : !handle.seek(head.srcOffset) || !handle.read(src.get(), head.nbMappings * sizeof(MoEntry))) {
@@ -428,7 +442,7 @@ void LanguageInitialize()
 	}
 
 	// Read entries of target strings
-	std::unique_ptr<MoEntry[]> dst { new MoEntry[head.nbMappings] };
+	const std::unique_ptr<MoEntry[]> dst { new MoEntry[head.nbMappings] };
 	if (readWholeFile
 	        ? !CopyData(dst.get(), data.get(), fileSize, head.dstOffset, head.nbMappings * sizeof(MoEntry))
 	        : !handle.seek(head.dstOffset) || !handle.read(dst.get(), head.nbMappings * sizeof(MoEntry))) {

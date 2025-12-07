@@ -7,7 +7,12 @@
 
 #include <cstdint>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_events.h>
+#include <SDL3/SDL_version.h>
+#else
 #include <SDL.h>
+#endif
 
 #include "utils/ui_fwd.h"
 

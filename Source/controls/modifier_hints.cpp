@@ -74,19 +74,19 @@ struct CircleMenuHint {
 void DrawCircleMenuHint(const Surface &out, const CircleMenuHint &hint, const Point &origin)
 {
 	const Displacement backgroundDisplacement = { (HintBoxSize - IconSize) / 2 + 1, (HintBoxSize - IconSize) / 2 - 1 };
-	Point hintBoxPositions[4] = {
+	const Point hintBoxPositions[4] = {
 		origin + Displacement { 0, LineHeight - HintBoxSize },
 		origin + Displacement { HintBoxSize + HintBoxMargin, LineHeight - HintBoxSize * 2 - HintBoxMargin },
 		origin + Displacement { HintBoxSize + HintBoxMargin, LineHeight + HintBoxMargin },
 		origin + Displacement { HintBoxSize * 2 + HintBoxMargin * 2, LineHeight - HintBoxSize }
 	};
-	Point iconPositions[4] = {
+	const Point iconPositions[4] = {
 		hintBoxPositions[0] + backgroundDisplacement,
 		hintBoxPositions[1] + backgroundDisplacement,
 		hintBoxPositions[2] + backgroundDisplacement,
 		hintBoxPositions[3] + backgroundDisplacement,
 	};
-	uint8_t iconIndices[4] { hint.left, hint.top, hint.bottom, hint.right };
+	const uint8_t iconIndices[4] { hint.left, hint.top, hint.bottom, hint.right };
 
 	for (int slot = 0; slot < 4; ++slot) {
 		if (iconIndices[slot] == HintIcon::IconNull)
@@ -107,19 +107,19 @@ void DrawSpellsCircleMenuHint(const Surface &out, const Point &origin)
 {
 	const Player &myPlayer = *MyPlayer;
 	const Displacement spellIconDisplacement = { (HintBoxSize - IconSize) / 2 + 1, HintBoxSize - (HintBoxSize - IconSize) / 2 - 1 };
-	Point hintBoxPositions[4] = {
+	const Point hintBoxPositions[4] = {
 		origin + Displacement { 0, LineHeight - HintBoxSize },
 		origin + Displacement { HintBoxSize + HintBoxMargin, LineHeight - HintBoxSize * 2 - HintBoxMargin },
 		origin + Displacement { HintBoxSize + HintBoxMargin, LineHeight + HintBoxMargin },
 		origin + Displacement { HintBoxSize * 2 + HintBoxMargin * 2, LineHeight - HintBoxSize }
 	};
-	Point spellIconPositions[4] = {
+	const Point spellIconPositions[4] = {
 		hintBoxPositions[0] + spellIconDisplacement,
 		hintBoxPositions[1] + spellIconDisplacement,
 		hintBoxPositions[2] + spellIconDisplacement,
 		hintBoxPositions[3] + spellIconDisplacement,
 	};
-	uint64_t spells = myPlayer._pAblSpells | myPlayer._pMemSpells | myPlayer._pScrlSpells | myPlayer._pISpells;
+	const uint64_t spells = myPlayer._pAblSpells | myPlayer._pMemSpells | myPlayer._pScrlSpells | myPlayer._pISpells;
 	SpellID splId;
 	SpellType splType;
 

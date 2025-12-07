@@ -616,28 +616,28 @@ void PlaceMiniSetRandom1x1(uint8_t search, uint8_t replace, int rndper)
 
 void CryptCracked(int rndper)
 {
-	for (ReplaceTile pair : CrackedTiles) {
+	for (const ReplaceTile pair : CrackedTiles) {
 		PlaceMiniSetRandom1x1(pair.search, pair.replace, rndper);
 	}
 }
 
 void CryptBroken(int rndper)
 {
-	for (ReplaceTile pair : BrokenTiles) {
+	for (const ReplaceTile pair : BrokenTiles) {
 		PlaceMiniSetRandom1x1(pair.search, pair.replace, rndper);
 	}
 }
 
 void CryptLeaking(int rndper)
 {
-	for (ReplaceTile pair : LeakingTiles) {
+	for (const ReplaceTile pair : LeakingTiles) {
 		PlaceMiniSetRandom1x1(pair.search, pair.replace, rndper);
 	}
 }
 
 void CryptSubstitions1(int rndper)
 {
-	for (ReplaceTile pair : Substitions1Tiles) {
+	for (const ReplaceTile pair : Substitions1Tiles) {
 		PlaceMiniSetRandom1x1(pair.search, pair.replace, rndper);
 	}
 }
@@ -651,14 +651,14 @@ void CryptSubstitions2(int rndper)
 	PlaceMiniSetRandom(CryptPillar5, rndper);
 	PlaceMiniSetRandom(CryptStar, rndper);
 
-	for (ReplaceTile pair : Substition1Floor) {
+	for (const ReplaceTile pair : Substition1Floor) {
 		PlaceMiniSetRandom1x1(pair.search, pair.replace, rndper);
 	}
 }
 
 void CryptFloor(int rndper)
 {
-	for (ReplaceTile pair : Substition2Floor) {
+	for (const ReplaceTile pair : Substition2Floor) {
 		PlaceMiniSetRandom1x1(pair.search, pair.replace, rndper);
 	}
 }
@@ -680,7 +680,7 @@ void InitCryptPieces()
 
 void SetCryptRoom()
 {
-	Point position = SelectChamber();
+	const Point position = SelectChamber();
 
 	UberRow = 2 * position.x + 6;
 	UberCol = 2 * position.y + 8;
@@ -696,7 +696,7 @@ void SetCryptRoom()
 
 void SetCornerRoom()
 {
-	Point position = SelectChamber();
+	const Point position = SelectChamber();
 
 	auto dunData = LoadFileInMem<uint16_t>("nlevels\\l5data\\cornerstone.dun");
 
@@ -750,7 +750,7 @@ bool PlaceCryptStairs(lvl_entry entry)
 
 void CryptSubstitution()
 {
-	for (ReplaceTile pair : Statues) {
+	for (const ReplaceTile pair : Statues) {
 		PlaceMiniSetRandom1x1(pair.search, pair.replace, 10);
 	}
 	PlaceMiniSetRandom1x1(VArch, VArch5, 95);

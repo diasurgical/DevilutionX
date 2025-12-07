@@ -16,6 +16,7 @@
 #include "engine/point.hpp"
 #include "engine/render/clx_render.hpp"
 #include "engine/render/primitive_render.hpp"
+#include "game_mode.hpp"
 #include "options.h"
 #include "playerdat.hpp"
 #include "utils/format_int.hpp"
@@ -102,13 +103,13 @@ void DrawXPBar(const Surface &out)
 	if (player._pExperience < prevXp)
 		return;
 
-	uint64_t prevXpDelta1 = player._pExperience - prevXp;
-	uint64_t prevXpDelta = GetNextExperienceThresholdForLevel(charLevel) - prevXp;
-	uint64_t fullBar = BarWidth * prevXpDelta1 / prevXpDelta;
+	const uint64_t prevXpDelta1 = player._pExperience - prevXp;
+	const uint64_t prevXpDelta = GetNextExperienceThresholdForLevel(charLevel) - prevXp;
+	const uint64_t fullBar = BarWidth * prevXpDelta1 / prevXpDelta;
 
 	// Figure out how much to fill the last pixel of the XP bar, to make it gradually appear with gained XP
-	uint64_t onePx = prevXpDelta / BarWidth + 1;
-	uint64_t lastFullPx = fullBar * prevXpDelta / BarWidth;
+	const uint64_t onePx = prevXpDelta / BarWidth + 1;
+	const uint64_t lastFullPx = fullBar * prevXpDelta / BarWidth;
 
 	const uint64_t fade = (prevXpDelta1 - lastFullPx) * (SilverGradient.size() - 1) / onePx;
 
@@ -150,7 +151,7 @@ bool CheckXPBarInfo()
 	InfoColor = UiFlags::ColorWhite;
 
 	AddInfoBoxString(fmt::format(fmt::runtime(_("Experience: {:s}")), FormatInteger(player._pExperience)));
-	uint32_t nextExperienceThreshold = player.getNextExperienceThreshold();
+	const uint32_t nextExperienceThreshold = player.getNextExperienceThreshold();
 	AddInfoBoxString(fmt::format(fmt::runtime(_("Next Level: {:s}")), FormatInteger(nextExperienceThreshold)));
 	AddInfoBoxString(fmt::format(fmt::runtime(_("{:s} to Level {:d}")), FormatInteger(nextExperienceThreshold - player._pExperience), charLevel + 1));
 

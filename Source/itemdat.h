@@ -9,10 +9,16 @@
 #include <string_view>
 #include <vector>
 
+#include <ankerl/unordered_dense.h>
+#include <expected.hpp>
+#include <magic_enum/magic_enum.hpp>
+
 #include "objdat.h"
 #include "spelldat.h"
 
 namespace devilution {
+
+class DataFile;
 
 /** @todo add missing values and apply */
 enum _item_indexes : int16_t { // TODO defines all indexes in AllItemsList
@@ -76,7 +82,7 @@ enum _item_indexes : int16_t { // TODO defines all indexes in AllItemsList
 	IDI_SORCERER_DIABLO,
 	IDI_ARENAPOT,
 
-	IDI_LAST = IDI_ARENAPOT,
+	IDI_NUM_DEFAULT_ITEMS,
 	IDI_NONE = -1,
 };
 
@@ -372,6 +378,8 @@ enum unique_base_item : int8_t {
 	UITYPE_LGTFORGE,
 	UITYPE_LAZSTAFF,
 	UITYPE_BOVINE,
+	NUM_DEFAULT_UITYPES,
+	NUM_MAX_UITYPES = std::numeric_limits<int8_t>::max(),
 	UITYPE_INVALID = -1,
 };
 
@@ -505,6 +513,7 @@ struct ItemData {
 	SpellID iSpell;
 	bool iUsable;
 	uint16_t iValue;
+	int32_t iMappingId;
 };
 
 enum item_effect_type : int8_t {
@@ -622,7 +631,7 @@ struct PLStruct {
 	int8_t PLMinLvl;
 	AffixItemType PLIType; // AffixItemType as bit flags
 	enum goodorevil PLGOE;
-	bool PLDouble;
+	uint8_t PLChance;
 	bool PLOk;
 	int minVal;
 	int maxVal;
@@ -637,13 +646,25 @@ struct UniqueItem {
 	uint8_t UINumPL;
 	int UIValue;
 	ItemPower powers[6];
+	int32_t mappingId;
 };
 
 extern DVL_API_FOR_TEST std::vector<ItemData> AllItemsList;
+extern ankerl::unordered_dense::map<int32_t, int16_t> ItemMappingIdsToIndices;
 extern std::vector<PLStruct> ItemPrefixes;
 extern std::vector<PLStruct> ItemSuffixes;
 extern DVL_API_FOR_TEST std::vector<UniqueItem> UniqueItems;
+extern ankerl::unordered_dense::map<int32_t, int32_t> UniqueItemMappingIdsToIndices;
 
+tl::expected<_item_indexes, std::string> ParseItemId(std::string_view value);
+void LoadItemDatFromFile(DataFile &dataFile, std::string_view filename, int32_t baseMappingId);
+void LoadUniqueItemDatFromFile(DataFile &dataFile, std::string_view filename, int32_t baseMappingId);
 void LoadItemData();
 
 } // namespace devilution
+
+template <>
+struct magic_enum::customize::enum_range<devilution::_item_indexes> {
+	static constexpr int min = devilution::_item_indexes::IDI_NONE;
+	static constexpr int max = devilution::_item_indexes::IDI_NUM_DEFAULT_ITEMS;
+};

@@ -34,7 +34,7 @@ public:
 	tl::expected<void, PacketError> send(packet &pkt) override;
 	void DisconnectNet(plr_t plr) override;
 
-	bool SNetLeaveGame(int type) override;
+	bool SNetLeaveGame(net::leaveinfo_t type) override;
 
 	~tcp_client() override;
 
@@ -57,6 +57,7 @@ private:
 	void HandleReceive(const asio::error_code &error, size_t bytesRead);
 	void StartReceive();
 	void HandleSend(const asio::error_code &error, size_t bytesSent);
+	void HandleTcpErrorCode();
 
 	void RaiseIoHandlerError(const PacketError &error);
 };

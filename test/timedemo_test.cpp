@@ -2,12 +2,18 @@
 #include <gtest/gtest.h>
 #include <iostream>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL.h>
+#else
+#include <SDL.h>
+#endif
+
 #include "engine/assets.hpp"
 #include "engine/demomode.h"
 #include "game_mode.hpp"
 #include "headless_mode.hpp"
 #include "init.hpp"
-#include "lua/lua.hpp"
+#include "lua/lua_global.hpp"
 #include "monstdat.h"
 #include "options.h"
 #include "pfile.h"
@@ -26,14 +32,15 @@ bool Dummy_GetHeroInfo(_uiheroinfo *pInfo)
 
 void RunTimedemo(std::string timedemoFolderName)
 {
-	if (SDL_Init(
-#ifdef USE_SDL1
-	        0
+	if (
+#ifdef USE_SDL3
+	    !SDL_Init(SDL_INIT_EVENTS)
+#elif !defined(USE_SDL1)
+	    SDL_Init(SDL_INIT_EVENTS) < 0
 #else
-	        SDL_INIT_EVENTS
+	    SDL_Init(0) < 0
 #endif
-	        )
-	    <= -1) {
+	) {
 		ErrSdl();
 	}
 
@@ -41,10 +48,11 @@ void RunTimedemo(std::string timedemoFolderName)
 	LoadGameArchives();
 
 	// The tests need spawn.mpq or diabdat.mpq
-	// Please provide them so that the tests can run successfully
-	ASSERT_TRUE(HaveMainData());
+	if (!HaveMainData()) {
+		GTEST_SKIP() << "MPQ assets (spawn.mpq or DIABDAT.MPQ) not found - skipping test";
+	}
 
-	std::string unitTestFolderCompletePath = paths::BasePath() + "test/fixtures/timedemo/" + timedemoFolderName;
+	const std::string unitTestFolderCompletePath = paths::BasePath() + "test/fixtures/timedemo/" + timedemoFolderName;
 	paths::SetPrefPath(unitTestFolderCompletePath);
 	paths::SetConfigPath(unitTestFolderCompletePath);
 
@@ -83,7 +91,7 @@ void RunTimedemo(std::string timedemoFolderName)
 
 	StartGame(false, true);
 
-	HeroCompareResult result = pfile_compare_hero_demo(demoNumber, true);
+	const HeroCompareResult result = pfile_compare_hero_demo(demoNumber, true);
 	ASSERT_EQ(result.status, HeroCompareResult::Same) << result.message;
 	ASSERT_FALSE(gbRunGame);
 	gbRunGame = false;

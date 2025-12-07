@@ -2,13 +2,19 @@
 
 #include <cmath>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_events.h>
+#else
+#include <SDL.h>
+#endif
+
 #ifndef USE_SDL1
 #include "controls/devices/game_controller.h"
 #endif
 #include "controls/devices/joystick.h"
 #include "controls/devices/kbcontroller.h"
-
 #include "engine/demomode.h"
+#include "utils/sdl_compat.h"
 
 namespace devilution {
 
@@ -30,11 +36,11 @@ StaticVector<ControllerButtonEvent, 4> ToControllerButtonEvents(const SDL_Event 
 {
 	ControllerButtonEvent result { ControllerButton_NONE, false };
 	switch (event.type) {
+	case SDL_EVENT_JOYSTICK_BUTTON_UP:
+	case SDL_EVENT_KEY_UP:
 #ifndef USE_SDL1
-	case SDL_CONTROLLERBUTTONUP:
+	case SDL_EVENT_GAMEPAD_BUTTON_UP:
 #endif
-	case SDL_JOYBUTTONUP:
-	case SDL_KEYUP:
 		result.up = true;
 		break;
 	default:
@@ -91,16 +97,16 @@ bool HandleControllerAddedOrRemovedEvent(const SDL_Event &event)
 {
 #ifndef USE_SDL1
 	switch (event.type) {
-	case SDL_CONTROLLERDEVICEADDED:
-		GameController::Add(event.cdevice.which);
+	case SDL_EVENT_GAMEPAD_ADDED:
+		GameController::Add(SDLC_EventGamepadDevice(event).which);
 		break;
-	case SDL_CONTROLLERDEVICEREMOVED:
-		GameController::Remove(event.cdevice.which);
+	case SDL_EVENT_GAMEPAD_REMOVED:
+		GameController::Remove(SDLC_EventGamepadDevice(event).which);
 		break;
-	case SDL_JOYDEVICEADDED:
+	case SDL_EVENT_JOYSTICK_ADDED:
 		Joystick::Add(event.jdevice.which);
 		break;
-	case SDL_JOYDEVICEREMOVED:
+	case SDL_EVENT_JOYSTICK_REMOVED:
 		Joystick::Remove(event.jdevice.which);
 		break;
 	default:

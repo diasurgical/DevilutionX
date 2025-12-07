@@ -1,8 +1,11 @@
+include(functions/copy_files)
+include(functions/trim_retired_files)
+
 if(NOT DEFINED DEVILUTIONX_ASSETS_OUTPUT_DIRECTORY)
   set(DEVILUTIONX_ASSETS_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/assets")
 endif()
 
-set(devilutionx_langs bg cs da de el es et fr hr hu it ja ko pl pt_BR ro ru uk sv tr zh_CN zh_TW)
+set(devilutionx_langs bg cs da de el es et fi fr hr hu it ja ko pl pt_BR ro ru uk sv tr zh_CN zh_TW)
 if(USE_GETTEXT_FROM_VCPKG)
   # vcpkg doesn't add its own tools directory to the search path
   list(APPEND Gettext_ROOT ${CMAKE_CURRENT_BINARY_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/tools/gettext/bin)
@@ -152,20 +155,41 @@ set(devilutionx_assets
   lua/inspect.lua
   lua/mods/clock/init.lua
   lua/repl_prelude.lua
-  nlevels/cutl5w.clx
-  nlevels/cutl6w.clx
-  nlevels/l5data/cornerstone.dun
-  nlevels/l5data/uberroom.dun
   plrgfx/warrior/whu/whufm.trn
   plrgfx/warrior/whu/whulm.trn
   plrgfx/warrior/whu/whuqm.trn
   txtdata/Experience.tsv
+  txtdata/classes/barbarian/animations.tsv
   txtdata/classes/barbarian/attributes.tsv
+  txtdata/classes/barbarian/sounds.tsv
+  txtdata/classes/barbarian/sprites.tsv
+  txtdata/classes/barbarian/starting_loadout.tsv
+  txtdata/classes/bard/animations.tsv
   txtdata/classes/bard/attributes.tsv
+  txtdata/classes/bard/sounds.tsv
+  txtdata/classes/bard/sprites.tsv
+  txtdata/classes/bard/starting_loadout.tsv
+  txtdata/classes/monk/animations.tsv
   txtdata/classes/monk/attributes.tsv
+  txtdata/classes/monk/sounds.tsv
+  txtdata/classes/monk/sprites.tsv
+  txtdata/classes/monk/starting_loadout.tsv
+  txtdata/classes/rogue/animations.tsv
   txtdata/classes/rogue/attributes.tsv
+  txtdata/classes/rogue/sounds.tsv
+  txtdata/classes/rogue/sprites.tsv
+  txtdata/classes/rogue/starting_loadout.tsv
+  txtdata/classes/sorcerer/animations.tsv
   txtdata/classes/sorcerer/attributes.tsv
+  txtdata/classes/sorcerer/sounds.tsv
+  txtdata/classes/sorcerer/sprites.tsv
+  txtdata/classes/sorcerer/starting_loadout.tsv
+  txtdata/classes/warrior/animations.tsv
   txtdata/classes/warrior/attributes.tsv
+  txtdata/classes/warrior/sounds.tsv
+  txtdata/classes/warrior/sprites.tsv
+  txtdata/classes/warrior/starting_loadout.tsv
+  txtdata/classes/classdat.tsv
   txtdata/items/item_prefixes.tsv
   txtdata/items/item_suffixes.tsv
   txtdata/items/itemdat.tsv
@@ -175,21 +199,21 @@ set(devilutionx_assets
   txtdata/monsters/monstdat.tsv
   txtdata/monsters/unique_monstdat.tsv
   txtdata/objects/objdat.tsv
+  txtdata/quests/questdat.tsv
   txtdata/sound/effects.tsv
   txtdata/spells/spelldat.tsv
+  txtdata/text/textdat.tsv
+  txtdata/towners/quest_dialog.tsv
+  txtdata/towners/towners.tsv
   ui_art/diablo.pal
-  ui_art/hellfire.pal
   ui_art/creditsw.clx
   ui_art/dvl_but_sml.clx
   ui_art/dvl_lrpopup.clx
-  ui_art/hf_titlew.clx
-  ui_art/mainmenuw.clx
-  ui_art/supportw.clx)
+  ui_art/mainmenuw.clx)
 
 if(NOT UNPACKED_MPQS)
   list(APPEND devilutionx_assets
-    data/inv/objcurs-widths.txt
-    data/inv/objcurs2-widths.txt)
+    data/inv/objcurs-widths.txt)
 endif()
 
 if(NOT USE_SDL1 AND NOT VITA)
@@ -213,39 +237,46 @@ if(APPLE)
 else()
   # Copy assets to the build assets subdirectory. This serves two purposes:
   # - If smpq is installed, devilutionx.mpq is built from these files.
-  # - If smpq is not installed, the game will load the assets directly from this directoy.
-  foreach(asset_file ${devilutionx_assets})
-    set(src "${CMAKE_CURRENT_SOURCE_DIR}/assets/${asset_file}")
-    set(dst "${DEVILUTIONX_ASSETS_OUTPUT_DIRECTORY}/${asset_file}")
-    list(APPEND DEVILUTIONX_MPQ_FILES "${asset_file}")
-    list(APPEND DEVILUTIONX_OUTPUT_ASSETS_FILES "${dst}")
-    add_custom_command(
-      COMMENT "Copying ${asset_file}"
-      OUTPUT "${dst}"
-      DEPENDS "${src}"
-      COMMAND ${CMAKE_COMMAND} -E copy "${src}" "${dst}"
-      VERBATIM)
-  endforeach()
+  # - If smpq is not installed, the game will load the assets directly from this directory.
+  copy_files(
+    FILES ${devilutionx_assets}
+    SRC_PREFIX "assets/"
+    OUTPUT_DIR "${DEVILUTIONX_ASSETS_OUTPUT_DIRECTORY}"
+    OUTPUT_VARIABLE DEVILUTIONX_OUTPUT_ASSETS_FILES)
+  set(DEVILUTIONX_MPQ_FILES ${devilutionx_assets})
   if (Gettext_FOUND)
     foreach(lang ${devilutionx_langs})
       list(APPEND DEVILUTIONX_MPQ_FILES "${lang}.gmo")
     endforeach()
   endif()
 
+  add_trim_target(devilutionx_trim_assets
+    ROOT_FOLDER "${DEVILUTIONX_ASSETS_OUTPUT_DIRECTORY}"
+    CURRENT_FILES ${DEVILUTIONX_MPQ_FILES})
+  if(devilutionx_lang_targets)
+    add_dependencies(devilutionx_trim_assets ${devilutionx_lang_targets})
+  endif()
+
   if(BUILD_ASSETS_MPQ)
-    set(DEVILUTIONX_MPQ "${CMAKE_CURRENT_BINARY_DIR}/devilutionx.mpq")
+    if(TARGET_PLATFORM STREQUAL "dos")
+      set(DEVILUTIONX_MPQ "${CMAKE_CURRENT_BINARY_DIR}/devx.mpq")
+    else()
+      set(DEVILUTIONX_MPQ "${CMAKE_CURRENT_BINARY_DIR}/devilutionx.mpq")
+    endif()
     add_custom_command(
       COMMENT "Building devilutionx.mpq"
       OUTPUT "${DEVILUTIONX_MPQ}"
       COMMAND ${CMAKE_COMMAND} -E remove -f "${DEVILUTIONX_MPQ}"
       COMMAND ${SMPQ} -A -M 1 -C BZIP2 -c "${DEVILUTIONX_MPQ}" ${DEVILUTIONX_MPQ_FILES}
       WORKING_DIRECTORY "${DEVILUTIONX_ASSETS_OUTPUT_DIRECTORY}"
-      DEPENDS ${DEVILUTIONX_OUTPUT_ASSETS_FILES} ${devilutionx_lang_targets} ${devilutionx_lang_files}
+      DEPENDS ${TRIM_COMMAND_BYPRODUCT} ${DEVILUTIONX_OUTPUT_ASSETS_FILES} ${devilutionx_lang_targets} ${devilutionx_lang_files}
       VERBATIM)
     add_custom_target(devilutionx_mpq DEPENDS "${DEVILUTIONX_MPQ}")
+    add_dependencies(devilutionx_mpq devilutionx_trim_assets)
     add_dependencies(libdevilutionx devilutionx_mpq)
   else()
     add_custom_target(devilutionx_copied_assets DEPENDS ${DEVILUTIONX_OUTPUT_ASSETS_FILES} ${devilutionx_lang_targets})
+    add_dependencies(devilutionx_copied_assets devilutionx_trim_assets)
     add_dependencies(libdevilutionx devilutionx_copied_assets)
   endif()
 endif()

@@ -71,9 +71,7 @@ void ClearReadiedSpell(Player &player)
 
 bool IsValidSpell(SpellID spl)
 {
-	return spl > SpellID::Null
-	    && spl <= SpellID::LAST
-	    && (spl <= SpellID::LastDiablo || gbIsHellfire);
+	return spl > SpellID::Null && static_cast<size_t>(spl) < SpellsData.size();
 }
 
 bool IsValidSpellFrom(int spellFrom)
@@ -110,7 +108,7 @@ int GetManaAmount(const Player &player, SpellID sn)
 	int adj = 0;
 
 	// spell level
-	int sl = std::max(player.GetSpellLevel(sn) - 1, 0);
+	const int sl = std::max(player.GetSpellLevel(sn) - 1, 0);
 
 	if (sl > 0) {
 		adj = sl * GetSpellData(sn).sManaAdj;
@@ -238,7 +236,7 @@ void DoResurrect(Player &player, Player &target)
 {
 	AddMissile(target.position.tile, target.position.tile, Direction::South, MissileID::ResurrectBeam, TARGET_MONSTERS, player, 0, 0);
 
-	if (target._pHitPoints != 0)
+	if (!target.hasNoLife())
 		return;
 
 	if (&target == MyPlayer) {
@@ -274,7 +272,7 @@ void DoResurrect(Player &player, Player &target)
 
 void DoHealOther(const Player &caster, Player &target)
 {
-	if ((target._pHitPoints >> 6) <= 0) {
+	if (target.hasNoLife()) {
 		return;
 	}
 
@@ -318,16 +316,8 @@ int GetSpellBookLevel(SpellID s)
 		}
 	}
 
-	if (!gbIsHellfire) {
-		switch (s) {
-		case SpellID::Nova:
-		case SpellID::Apocalypse:
-			return -1;
-		default:
-			if (s > SpellID::LastDiablo)
-				return -1;
-			break;
-		}
+	if (static_cast<uint8_t>(s) >= SpellsData.size()) {
+		return -1;
 	}
 
 	return GetSpellData(s).sBookLvl;
@@ -350,8 +340,9 @@ int GetSpellStaffLevel(SpellID s)
 		}
 	}
 
-	if (!gbIsHellfire && s > SpellID::LastDiablo)
+	if (static_cast<uint8_t>(s) >= SpellsData.size()) {
 		return -1;
+	}
 
 	return GetSpellData(s).sStaffLvl;
 }

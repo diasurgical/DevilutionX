@@ -44,7 +44,7 @@ void PushAulibDecoder::DiscardPendingSamples() noexcept
 	queue_ = std::queue<AudioQueueItem>();
 }
 
-bool PushAulibDecoder::open([[maybe_unused]] SDL_RWops *rwops)
+bool PushAulibDecoder::open([[maybe_unused]] SDL_IOStream *rwops)
 {
 	assert(rwops == nullptr);
 	return true;

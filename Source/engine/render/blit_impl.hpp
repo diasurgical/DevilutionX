@@ -5,9 +5,9 @@
 #include <execution>
 #include <version>
 
-#include "engine/palette.h"
 #include "engine/render/light_render.hpp"
 #include "utils/attributes.h"
+#include "utils/palette_blending.hpp"
 
 namespace devilution {
 
