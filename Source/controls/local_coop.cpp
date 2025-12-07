@@ -419,6 +419,9 @@ void ProcessLocalCoopDpadMovement(int localIndex, const SDL_Event &event)
 
 /**
  * @brief Update movement for a single local co-op player.
+ * 
+ * Uses the same command-based approach as player 1 (via NetSendCmdLoc with CMD_WALKXY)
+ * to ensure smooth walking animation through the MakePlrPath system.
  */
 void UpdateLocalCoopPlayerMovement(int localIndex)
 {
@@ -445,13 +448,17 @@ void UpdateLocalCoopPlayerMovement(int localIndex)
 	AxisDirection dir = coopPlayer.GetMoveDirection();
 
 	if (dir.x == AxisDirectionX_NONE && dir.y == AxisDirectionY_NONE) {
+		// If no input and player has a walk path, stop walking
+		if (player.walkpath[0] != WALK_NONE && player.destAction == ACTION_NONE) {
+			NetSendCmdLoc(playerId, true, CMD_WALKXY, player.position.future);
+		}
 		return;
 	}
 
 	const Direction pdir = FaceDir[static_cast<size_t>(dir.y)][static_cast<size_t>(dir.x)];
 	const Point delta = player.position.future + pdir;
 
-	// Update facing direction
+	// Update facing direction when not walking
 	if (!player.isWalking() && player.CanChangeAction()) {
 		player._pdir = pdir;
 	}
@@ -466,19 +473,9 @@ void UpdateLocalCoopPlayerMovement(int localIndex)
 		return;
 	}
 
-	// Try to walk to new position
-	// For local co-op players, use StartWalk directly instead of NetSendCmdLoc
-	// since they're local players in single player mode
-	if (PosOkPlayer(player, delta)) {
-		if (player._pmode == PM_STAND && player.CanChangeAction()) {
-			StartWalk(player, pdir, false);
-		}
-	} else {
-		// Just turn to face direction if can't move
-		if (player._pmode == PM_STAND) {
-			StartStand(player, pdir);
-		}
-	}
+	// Use the command system for walking, same as player 1
+	// This goes through MakePlrPath which handles smooth movement properly
+	NetSendCmdLoc(playerId, true, CMD_WALKXY, delta);
 }
 
 } // namespace
