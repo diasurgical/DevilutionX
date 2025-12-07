@@ -478,14 +478,9 @@ void UnregisterNetEventHandlers()
 
 bool InitSingle(GameData *gameData)
 {
-	// Check if local co-op is available (multiple controllers)
-	if (IsLocalCoopAvailable()) {
-		InitLocalCoop();
-		// Resize players array to accommodate all local players
-		Players.resize(g_LocalCoop.GetTotalPlayerCount());
-	} else {
-		Players.resize(1);
-	}
+	// Local co-op is only available in multiplayer games
+	// Single player games use standard single player mode
+	Players.resize(1);
 
 	if (!SNetInitializeProvider(SELCONN_LOOPBACK, gameData)) {
 		return false;

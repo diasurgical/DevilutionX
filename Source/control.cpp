@@ -336,8 +336,9 @@ void PrintInfo(const Surface &out)
 		return;
 
 #ifndef USE_SDL1
-	// Hide info box text in local co-op mode (only when actually enabled with 2+ controllers)
-	if (IsLocalCoopEnabled())
+	// Hide info box text in local co-op mode only when the main panel is hidden
+	// (i.e., at least one co-op player has spawned)
+	if (IsLocalCoopEnabled() && IsAnyLocalCoopPlayerInitialized())
 		return;
 #endif
 
@@ -1532,8 +1533,9 @@ void FreeControlPan()
 void DrawInfoBox(const Surface &out)
 {
 #ifndef USE_SDL1
-	// Hide info box in local co-op mode (only when actually enabled with 2+ controllers)
-	if (IsLocalCoopEnabled())
+	// Hide info box in local co-op mode only when the main panel is hidden
+	// (i.e., at least one co-op player has spawned)
+	if (IsLocalCoopEnabled() && IsAnyLocalCoopPlayerInitialized())
 		return;
 #endif
 
@@ -1700,6 +1702,11 @@ void ReleaseChrBtns(bool addAllStatPoints)
 
 void DrawDurIcon(const Surface &out)
 {
+	// When local co-op is active and any player has joined, durability icons are drawn
+	// on the corner HUDs instead of the main panel position
+	if (IsAnyLocalCoopPlayerInitialized())
+		return;
+
 	const bool hasRoomBetweenPanels = RightPanel.position.x - (LeftPanel.position.x + LeftPanel.size.width) >= 16 + (32 + 8 + 32 + 8 + 32 + 8 + 32) + 16;
 	const bool hasRoomUnderPanels = MainPanel.position.y - (RightPanel.position.y + RightPanel.size.height) >= 16 + 32 + 16;
 
@@ -1719,6 +1726,133 @@ void DrawDurIcon(const Surface &out)
 	x = DrawDurIcon4Item(out, myPlayer.InvBody[INVLOC_CHEST], x, 2);
 	x = DrawDurIcon4Item(out, myPlayer.InvBody[INVLOC_HAND_LEFT], x, 0);
 	DrawDurIcon4Item(out, myPlayer.InvBody[INVLOC_HAND_RIGHT], x, 0);
+}
+
+namespace {
+
+/**
+ * @brief Internal helper to draw a single durability icon for an item at a specific position.
+ * 
+ * @param out The surface to draw on.
+ * @param pItem The item to check durability for.
+ * @param x The x position to draw at.
+ * @param y The y position (bottom of icon).
+ * @param c The icon type (0=shield/weapon, 2=chest, 3=head, etc).
+ * @return The x position for the next icon (with spacing).
+ */
+int DrawDurIcon4ItemAtPosition(const Surface &out, Item &pItem, int x, int y, int c)
+{
+	const int durabilityThresholdGold = 5;
+	const int durabilityThresholdRed = 2;
+
+	if (pItem.isEmpty())
+		return x;
+	if (pItem._iDurability > durabilityThresholdGold)
+		return x;
+	if (c == 0) {
+		switch (pItem._itype) {
+		case ItemType::Sword:
+			c = 1;
+			break;
+		case ItemType::Axe:
+			c = 5;
+			break;
+		case ItemType::Bow:
+			c = 6;
+			break;
+		case ItemType::Mace:
+			c = 4;
+			break;
+		case ItemType::Staff:
+			c = 7;
+			break;
+		case ItemType::Shield:
+		default:
+			c = 0;
+			break;
+		}
+	}
+
+	// Calculate how much of the icon should be gold and red
+	const int height = (*pDurIcons)[c].height(); // Height of durability icon CEL
+	int partition = 0;
+	if (pItem._iDurability > durabilityThresholdRed) {
+		const int current = pItem._iDurability - durabilityThresholdRed;
+		partition = (height * current) / (durabilityThresholdGold - durabilityThresholdRed);
+	}
+
+	// Draw icon at the specified y position
+	if (partition > 0) {
+		const Surface stenciledBuffer = out.subregionY(y - partition, partition);
+		ClxDraw(stenciledBuffer, { x, partition }, (*pDurIcons)[c + 8]); // Gold icon
+	}
+	if (partition != height) {
+		const Surface stenciledBuffer = out.subregionY(y - height, height - partition);
+		ClxDraw(stenciledBuffer, { x, height }, (*pDurIcons)[c]); // Red icon
+	}
+
+	return x + (*pDurIcons)[c].width() + 8; // Add spacing for the next durability icon (going left to right)
+}
+
+} // namespace
+
+void DrawPlayerDurabilityIcons(const Surface &out, const Player &player, Point position, bool alignRight)
+{
+	if (!pDurIcons)
+		return;
+
+	// Durability icons are 32x32 pixels, with 8 pixel spacing
+	constexpr int iconSize = 32;
+	constexpr int iconSpacing = 8;
+	
+	// Count how many items need durability icons
+	int iconCount = 0;
+	Item items[4];
+	int iconTypes[4] = { 3, 2, 0, 0 }; // head, chest, left hand, right hand
+	
+	// Copy items to check (we need non-const access for the draw function)
+	items[0] = player.InvBody[INVLOC_HEAD];
+	items[1] = player.InvBody[INVLOC_CHEST];
+	items[2] = player.InvBody[INVLOC_HAND_LEFT];
+	items[3] = player.InvBody[INVLOC_HAND_RIGHT];
+	
+	// Count items that need durability warning
+	for (int i = 0; i < 4; i++) {
+		if (!items[i].isEmpty() && items[i]._iDurability <= 5) {
+			iconCount++;
+		}
+	}
+	
+	if (iconCount == 0)
+		return;
+	
+	// Calculate total width needed
+	int totalWidth = iconCount * iconSize + (iconCount - 1) * iconSpacing;
+	
+	// Determine starting x position based on alignment
+	int x;
+	if (alignRight) {
+		// Start from the right, draw icons from right to left
+		x = position.x + totalWidth - iconSize;
+	} else {
+		// Start from the left, draw icons from left to right
+		x = position.x;
+	}
+	
+	// Y position is the bottom of the icons
+	int y = position.y + iconSize;
+	
+	// Draw icons for items with low durability
+	for (int i = 0; i < 4; i++) {
+		if (!items[i].isEmpty() && items[i]._iDurability <= 5) {
+			DrawDurIcon4ItemAtPosition(out, items[i], x, y, iconTypes[i]);
+			if (alignRight) {
+				x -= iconSize + iconSpacing;
+			} else {
+				x += iconSize + iconSpacing;
+			}
+		}
+	}
 }
 
 void RedBack(const Surface &out)

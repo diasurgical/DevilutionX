@@ -440,7 +440,15 @@ void DrawPlayerIcons(const Surface &out, const Player &player, Point position, b
  */
 void DrawPlayer(const Surface &out, const Player &player, Point tilePosition, Point targetBufferPosition, int lightTableIndex)
 {
-	if (!IsTileLit(tilePosition) && !MyPlayer->_pInfraFlag && !MyPlayer->isOnArenaLevel() && leveltype != DTYPE_TOWN) {
+	// For local coop players, always render them (they have their own light source)
+	// This prevents them from disappearing when walking away from Player 1's lit area
+#ifndef USE_SDL1
+	const bool isLocalCoop = IsLocalCoopEnabled() && IsLocalCoopPlayer(player);
+#else
+	const bool isLocalCoop = false;
+#endif
+	
+	if (!isLocalCoop && !IsTileLit(tilePosition) && !MyPlayer->_pInfraFlag && !MyPlayer->isOnArenaLevel() && leveltype != DTYPE_TOWN) {
 		return;
 	}
 
@@ -500,7 +508,22 @@ void DrawObject(const Surface &out, const Object &objectToDraw, Point tilePositi
 
 	const Point screenPosition = targetBufferPosition + objectToDraw.getRenderingOffset(sprite, tilePosition);
 
-	if (&objectToDraw == ObjectUnderCursor) {
+	// Check if this object is under any player's cursor (Player 1 or local coop players)
+	bool isHighlighted = (&objectToDraw == ObjectUnderCursor);
+	if (!isHighlighted && IsLocalCoopEnabled()) {
+		// Check if any local coop player has this object under cursor
+		for (size_t i = 0; i < g_LocalCoop.players.size(); ++i) {
+			const LocalCoopPlayer &coopPlayer = g_LocalCoop.players[i];
+			if (coopPlayer.active && coopPlayer.initialized) {
+				if (coopPlayer.cursor.objectUnderCursor == &objectToDraw) {
+					isHighlighted = true;
+					break;
+				}
+			}
+		}
+	}
+
+	if (isHighlighted) {
 		ClxDrawOutlineSkipColorZero(out, 194, screenPosition, sprite);
 	}
 	if (objectToDraw.applyLighting) {
@@ -713,7 +736,8 @@ void DrawMonsterHelper(const Surface &out, Point tilePosition, Point targetBuffe
 		auto &towner = Towners[mi];
 		const Point position = targetBufferPosition + towner.getRenderingOffset();
 		const ClxSprite sprite = towner.currentSprite();
-		if (mi == pcursmonst) {
+		// Highlight if player 1 or any local coop player is targeting this towner
+		if (mi == pcursmonst || IsLocalCoopTargetMonster(mi)) {
 			ClxDrawOutlineSkipColorZero(out, 166, position, sprite);
 		}
 		ClxDraw(out, position, sprite);
@@ -738,7 +762,8 @@ void DrawMonsterHelper(const Surface &out, Point tilePosition, Point targetBuffe
 	const Displacement offset = monster.getRenderingOffset(sprite);
 
 	const Point monsterRenderPosition = targetBufferPosition + offset;
-	if (mi == pcursmonst) {
+	// Highlight if player 1 or any local coop player is targeting this monster
+	if (mi == pcursmonst || IsLocalCoopTargetMonster(mi)) {
 		ClxDrawOutlineSkipColorZero(out, 233, monsterRenderPosition, sprite);
 	}
 	DrawMonster(out, tilePosition, monsterRenderPosition, monster, lightTableIndex);
@@ -1432,8 +1457,9 @@ void DrawView(const Surface &out, Point startPosition)
 	DrawInfoBox(out);
 	UpdateLifeManaPercent(); // Update life/mana totals before rendering any portion of the flask.
 #ifndef USE_SDL1
-	// Hide flask tops when local co-op is actually enabled (2+ controllers)
-	if (!IsLocalCoopEnabled()) {
+	// Hide flask tops only when local co-op has at least one other player initialized
+	// When only player 1, show the original UI with flask tops
+	if (!IsLocalCoopEnabled() || g_LocalCoop.GetInitializedPlayerCount() == 0) {
 #endif
 		DrawLifeFlaskUpper(out);
 		DrawManaFlaskUpper(out);

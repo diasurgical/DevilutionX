@@ -2989,7 +2989,9 @@ void NetSendCmdSpawnMonster(Point position, Direction dir, uint16_t typeIndex, u
 
 void NetSendCmdLoc(uint8_t playerId, bool bHiPri, _cmd_id bCmd, Point position)
 {
-	if (playerId == MyPlayerId && WasPlayerCmdAlreadyRequested(bCmd, position))
+	// Check if command was already requested for this specific player
+	// This is important for local coop where playerId != MyPlayerId
+	if (WasPlayerCmdAlreadyRequested(bCmd, position))
 		return;
 
 	TCmdLoc cmd;

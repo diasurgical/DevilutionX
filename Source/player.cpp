@@ -2520,15 +2520,21 @@ void InitPlayer(Player &player, bool firstTime)
 
 		player._pdir = Direction::South;
 
-		if (&player == MyPlayer && (!firstTime || leveltype != DTYPE_TOWN)) {
-			player.position.tile = ViewPosition;
+		if ((!firstTime || leveltype != DTYPE_TOWN)) {
+			// Set spawn position for MyPlayer and local coop players
+			bool isLocalCoopPlr = IsLocalCoopEnabled() && IsLocalCoopPlayer(player);
+			if (&player == MyPlayer || isLocalCoopPlr) {
+				player.position.tile = ViewPosition;
+			}
 		}
 
 		SetPlayerOld(player);
 		player.walkpath[0] = WALK_NONE;
 		player.destAction = ACTION_NONE;
 
-		if (&player == MyPlayer) {
+		// Set up lighting for local players (MyPlayer and local coop players)
+		bool isLocalCoopPlr = IsLocalCoopEnabled() && IsLocalCoopPlayer(player);
+		if (&player == MyPlayer || isLocalCoopPlr) {
 			player.lightId = AddLight(player.position.tile, player._pLightRad);
 			ChangeLightXY(player.lightId, player.position.tile); // fix for a bug where old light is still visible at the entrance after reentering level
 		} else {
@@ -2549,7 +2555,19 @@ void InitPlayer(Player &player, bool firstTime)
 void InitMultiView()
 {
 	assert(MyPlayer != nullptr);
-	ViewPosition = MyPlayer->position.tile;
+	
+	// In local co-op mode with initialized players, center view on all players
+	// Otherwise just use MyPlayer's position
+	if (IsLocalCoopEnabled() && g_LocalCoop.GetInitializedPlayerCount() > 0) {
+		// Calculate center position of all active local coop players
+		Point centerPos = CalculateLocalCoopViewPosition();
+		ViewPosition = centerPos;
+		
+		// Reset camera smoothing to snap to new position
+		g_LocalCoop.cameraInitialized = false;
+	} else {
+		ViewPosition = MyPlayer->position.tile;
+	}
 }
 
 void PlrClrTrans(Point position)
@@ -2940,6 +2958,53 @@ StartNewLvl(Player &player, interface_mode fom, int lvl)
 	if (&player == MyPlayer) {
 		player._pmode = PM_NEWLVL;
 		player._pInvincible = true;
+
+		// In local co-op, sync all local coop players to the same level
+		// They share the same screen and must always be on the same level
+		if (IsLocalCoopEnabled()) {
+			for (size_t localIdx = 0; localIdx < g_LocalCoop.players.size(); ++localIdx) {
+				const LocalCoopPlayer &coopPlayer = g_LocalCoop.players[localIdx];
+				if (!coopPlayer.active || !coopPlayer.initialized)
+					continue;
+
+				const uint8_t coopPlayerId = LocalCoopIndexToPlayerId(static_cast<int>(localIdx));
+				if (coopPlayerId >= Players.size())
+					continue;
+
+				Player &coopPlayerRef = Players[coopPlayerId];
+				
+				// Sync level for local coop player
+				InitLevelChange(coopPlayerRef);
+				
+				// Set the same mode and invincibility as MyPlayer for level transition
+				coopPlayerRef._pmode = PM_NEWLVL;
+				coopPlayerRef._pInvincible = true;
+				
+				switch (fom) {
+				case WM_DIABNEXTLVL:
+				case WM_DIABPREVLVL:
+				case WM_DIABRTNLVL:
+				case WM_DIABTOWNWARP:
+					coopPlayerRef.setLevel(lvl);
+					break;
+				case WM_DIABSETLVL:
+					coopPlayerRef.setLevel(setlvlnum);
+					break;
+				case WM_DIABTWARPUP:
+					coopPlayerRef.setLevel(lvl);
+					break;
+				case WM_DIABRETOWN:
+					break;
+				default:
+					break;
+				}
+			}
+			
+			// Reset camera initialization so it re-centers on all players
+			// at the new level's spawn point
+			g_LocalCoop.cameraInitialized = false;
+		}
+
 		SDL_Event event;
 		CustomEventToSdlEvent(event, fom);
 		SDL_PushEvent(&event);

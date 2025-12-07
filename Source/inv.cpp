@@ -1230,7 +1230,7 @@ void DrawInv(const Surface &out)
 			const Point position = GetPanelPosition(UiPanels::Inventory, { screenX, screenY });
 
 			if (pcursinvitem == slot) {
-				ClxDrawOutline(out, GetOutlineColor(myPlayer.InvBody[slot], true), position, sprite);
+				ClxDrawOutline(out, GetOutlineColor(myPlayer.InvBody[slot], true, &myPlayer), position, sprite);
 			}
 
 			DrawItem(myPlayer.InvBody[slot], out, position, sprite);
@@ -1264,7 +1264,7 @@ void DrawInv(const Surface &out)
 			const ClxSprite sprite = GetInvItemSprite(cursId);
 			const Point position = GetPanelPosition(UiPanels::Inventory, InvRect[j + SLOTXY_INV_FIRST].position) + Displacement { 0, InventorySlotSizeInPixels.height };
 			if (pcursinvitem == ii + INVITEM_INV_FIRST) {
-				ClxDrawOutline(out, GetOutlineColor(myPlayer.InvList[ii], true), position, sprite);
+				ClxDrawOutline(out, GetOutlineColor(myPlayer.InvList[ii], true, &myPlayer), position, sprite);
 			}
 
 			DrawItem(myPlayer.InvList[ii], out, position, sprite);
@@ -1297,7 +1297,7 @@ void DrawInvBelt(const Surface &out)
 
 		if (pcursinvitem == i + INVITEM_BELT_FIRST) {
 			if (ControlMode == ControlTypes::KeyboardAndMouse || invflag) {
-				ClxDrawOutline(out, GetOutlineColor(myPlayer.SpdList[i], true), position, sprite);
+				ClxDrawOutline(out, GetOutlineColor(myPlayer.SpdList[i], true, &myPlayer), position, sprite);
 			}
 		}
 

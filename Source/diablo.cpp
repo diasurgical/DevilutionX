@@ -27,7 +27,7 @@
 #include "appfat.h"
 #include "automap.h"
 #include "capture.h"
-#include "control/control.hpp"
+#include "control.h"
 #include "cursor.h"
 #include "dead.h"
 #ifdef _DEBUG
@@ -370,8 +370,9 @@ void LeftMouseDown(uint16_t modState)
 	const bool isCtrlHeld = (modState & SDL_KMOD_CTRL) != 0;
 
 #ifndef USE_SDL1
-	// Skip main panel mouse handling when local co-op is enabled
-	const bool skipMainPanelForLocalCoop = *GetOptions().Gameplay.enableLocalCoop;
+	// Skip main panel mouse handling only when the main panel is actually hidden for local co-op
+	// (i.e., local co-op is enabled AND at least one co-op player has spawned)
+	const bool skipMainPanelForLocalCoop = IsLocalCoopEnabled() && IsAnyLocalCoopPlayerInitialized();
 #else
 	const bool skipMainPanelForLocalCoop = false;
 #endif
@@ -1805,7 +1806,7 @@ void OptionLanguageCodeChanged()
 	UnloadFonts();
 	LanguageInitialize();
 	LoadLanguageArchive();
-	effects_cleanup_sfx(false);
+	effects_cleanup_sfx();
 	if (gbRunGame)
 		sound_init();
 	else
@@ -2251,31 +2252,31 @@ void InitPadmapActions()
 	    N_("Move up"),
 	    N_("Moves the player character up."),
 	    ControllerButton_BUTTON_DPAD_UP,
-	    [] {});
+	    [] { });
 	options.Padmapper.AddAction(
 	    "MoveDown",
 	    N_("Move down"),
 	    N_("Moves the player character down."),
 	    ControllerButton_BUTTON_DPAD_DOWN,
-	    [] {});
+	    [] { });
 	options.Padmapper.AddAction(
 	    "MoveLeft",
 	    N_("Move left"),
 	    N_("Moves the player character left."),
 	    ControllerButton_BUTTON_DPAD_LEFT,
-	    [] {});
+	    [] { });
 	options.Padmapper.AddAction(
 	    "MoveRight",
 	    N_("Move right"),
 	    N_("Moves the player character right."),
 	    ControllerButton_BUTTON_DPAD_RIGHT,
-	    [] {});
+	    [] { });
 	options.Padmapper.AddAction(
 	    "StandGround",
 	    N_("Stand ground"),
 	    N_("Hold to prevent the player from moving."),
 	    ControllerButton_NONE,
-	    [] {});
+	    [] { });
 	options.Padmapper.AddAction(
 	    "ToggleStandGround",
 	    N_("Toggle stand ground"),
@@ -2361,49 +2362,49 @@ void InitPadmapActions()
 	    N_("Automap Move Up"),
 	    N_("Moves the automap up when active."),
 	    ControllerButton_NONE,
-	    [] {});
+	    [] { });
 	options.Padmapper.AddAction(
 	    "AutomapMoveDown",
 	    N_("Automap Move Down"),
 	    N_("Moves the automap down when active."),
 	    ControllerButton_NONE,
-	    [] {});
+	    [] { });
 	options.Padmapper.AddAction(
 	    "AutomapMoveLeft",
 	    N_("Automap Move Left"),
 	    N_("Moves the automap left when active."),
 	    ControllerButton_NONE,
-	    [] {});
+	    [] { });
 	options.Padmapper.AddAction(
 	    "AutomapMoveRight",
 	    N_("Automap Move Right"),
 	    N_("Moves the automap right when active."),
 	    ControllerButton_NONE,
-	    [] {});
+	    [] { });
 	options.Padmapper.AddAction(
 	    "MouseUp",
 	    N_("Move mouse up"),
 	    N_("Simulates upward mouse movement."),
 	    { ControllerButton_BUTTON_BACK, ControllerButton_BUTTON_DPAD_UP },
-	    [] {});
+	    [] { });
 	options.Padmapper.AddAction(
 	    "MouseDown",
 	    N_("Move mouse down"),
 	    N_("Simulates downward mouse movement."),
 	    { ControllerButton_BUTTON_BACK, ControllerButton_BUTTON_DPAD_DOWN },
-	    [] {});
+	    [] { });
 	options.Padmapper.AddAction(
 	    "MouseLeft",
 	    N_("Move mouse left"),
 	    N_("Simulates leftward mouse movement."),
 	    { ControllerButton_BUTTON_BACK, ControllerButton_BUTTON_DPAD_LEFT },
-	    [] {});
+	    [] { });
 	options.Padmapper.AddAction(
 	    "MouseRight",
 	    N_("Move mouse right"),
 	    N_("Simulates rightward mouse movement."),
 	    { ControllerButton_BUTTON_BACK, ControllerButton_BUTTON_DPAD_RIGHT },
-	    [] {});
+	    [] { });
 	auto leftMouseDown = [] {
 		const ControllerButtonCombo standGroundCombo = GetOptions().Padmapper.ButtonComboForAction("StandGround");
 		const bool standGround = StandToggle || IsControllerButtonComboPressed(standGroundCombo);
@@ -3152,7 +3153,15 @@ tl::expected<void, std::string> LoadGameLevelDungeon(bool firstflag, lvl_entry l
 void LoadGameLevelSyncPlayerEntry(lvl_entry lvldir)
 {
 	for (Player &player : Players) {
-		if (player.plractive && player.isOnActiveLevel() && (!player._pLvlChanging || &player == MyPlayer)) {
+		if (!player.plractive || !player.isOnActiveLevel())
+			continue;
+		
+		// Include player if:
+		// 1. They're not changing levels (normal case for remote multiplayer players)
+		// 2. OR they're MyPlayer (local player 1 initiating the change)
+		// 3. OR they're a local coop player (they change levels together with MyPlayer)
+		bool isLocalCoopPlayer = IsLocalCoopEnabled() && IsLocalCoopPlayer(player);
+		if (!player._pLvlChanging || &player == MyPlayer || isLocalCoopPlayer) {
 			if (player._pHitPoints > 0) {
 				if (lvldir != ENTRY_LOAD)
 					SyncInitPlrPos(player);
@@ -3187,6 +3196,12 @@ void LoadGameLevelInitPlayers(bool firstflag, lvl_entry lvldir)
 			InitPlayerGFX(player);
 			if (lvldir != ENTRY_LOAD)
 				InitPlayer(player, firstflag);
+			
+			// Clear level changing flag for local coop players
+			// In single-player local coop, there's no network message to clear this flag
+			if (IsLocalCoopEnabled() && IsLocalCoopPlayer(player)) {
+				player._pLvlChanging = false;
+			}
 		}
 	}
 }
@@ -3371,7 +3386,6 @@ tl::expected<void, std::string> LoadGameLevel(bool firstflag, lvl_entry lvldir)
 	LoadGameLevelStopMusic(neededTrack);
 	LoadGameLevelResetCursor();
 	SetRndSeedForDungeonLevel();
-	NaKrulTomeSequence = 0;
 
 	IncProgress();
 
