@@ -78,14 +78,29 @@ StaticVector<ControllerButtonEvent, 4> ToControllerButtonEvents(const SDL_Event 
 bool IsControllerButtonPressed(ControllerButton button)
 {
 #ifndef USE_SDL1
-	if (GameController::IsPressedOnAnyController(button))
-		return true;
+	SDL_JoystickID which;
+	if (GameController::IsPressedOnAnyController(button, &which)) {
+		// When local co-op is enabled, exclude local co-op controllers
+		// (they have their own input handling in ProcessLocalCoopInput)
+		if (!IsLocalCoopControllerId(which))
+			return true;
+	}
 #endif
 #if HAS_KBCTRL == 1
 	if (!demo::IsRunning() && IsKbCtrlButtonPressed(button))
 		return true;
 #endif
-	return Joystick::IsPressedOnAnyJoystick(button);
+	SDL_JoystickID joystickWhich;
+	if (Joystick::IsPressedOnAnyJoystick(button, &joystickWhich)) {
+#ifndef USE_SDL1
+		// When local co-op is enabled, exclude local co-op controllers
+		if (!IsLocalCoopControllerId(joystickWhich))
+			return true;
+#else
+		return true;
+#endif
+	}
+	return false;
 }
 
 bool IsControllerButtonComboPressed(ControllerButtonCombo combo)

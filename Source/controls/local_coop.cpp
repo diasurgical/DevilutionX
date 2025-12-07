@@ -759,6 +759,20 @@ int GetLocalCoopPlayerIndex(const SDL_Event &event)
 	return -1;
 }
 
+bool IsLocalCoopControllerId(SDL_JoystickID controllerId)
+{
+	if (!g_LocalCoop.enabled)
+		return false;
+
+	for (const LocalCoopPlayer &player : g_LocalCoop.players) {
+		if (player.active && player.controllerId == controllerId) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
 bool ProcessLocalCoopInput(const SDL_Event &event)
 {
 	if (!g_LocalCoop.enabled)
