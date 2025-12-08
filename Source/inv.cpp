@@ -1303,7 +1303,26 @@ void DrawInvBelt(const Surface &out)
 
 		DrawItem(myPlayer.SpdList[i], out, position, sprite);
 
-		if (myPlayer.SpdList[i].isUsable()
+		// Draw button labels if shoulder buttons are held (local coop mode)
+		bool showShoulderLabel = false;
+		const char *shoulderLabel = nullptr;
+		if (IsLocalCoopEnabled() && &myPlayer == &Players[0]) {
+			// Button labels for belt slots: A, B, X, Y
+			static constexpr std::string_view ButtonLabels[] = { "A", "B", "X", "Y" };
+			if (g_LocalCoop.player1LeftShoulderHeld && i < 4) {
+				shoulderLabel = ButtonLabels[i].data();
+				showShoulderLabel = true;
+			} else if (g_LocalCoop.player1RightShoulderHeld && i >= 4 && i < 8) {
+				shoulderLabel = ButtonLabels[i - 4].data();
+				showShoulderLabel = true;
+			}
+		}
+		
+		if (showShoulderLabel && shoulderLabel != nullptr) {
+			// Draw shoulder button label (overrides normal key label)
+			DrawString(out, shoulderLabel, { position - Displacement { 0, 12 }, InventorySlotSizeInPixels },
+			    { .flags = UiFlags::ColorWhite | UiFlags::Outlined | UiFlags::AlignRight | UiFlags::FontSize12, .spacing = 0 });
+		} else if (myPlayer.SpdList[i].isUsable()
 		    && myPlayer.SpdList[i]._itype != ItemType::Gold) {
 			auto beltKey = StrCat("BeltItem", i + 1);
 			std::string_view keyName = ControlMode == ControlTypes::Gamepad
