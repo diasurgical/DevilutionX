@@ -394,7 +394,8 @@ void DrawMonster(const Surface &out, Point tilePosition, Point targetBufferPosit
  */
 void DrawPlayerIconHelper(const Surface &out, MissileGraphicID missileGraphicId, Point position, const Player &player, bool infraVision, int lightTableIndex)
 {
-	const bool lighting = &player != MyPlayer;
+	// Local players (MyPlayer and local coop players) don't have lighting applied to their icons
+	const bool lighting = !IsLocalPlayer(player);
 
 	if (player.isWalking())
 		position += GetOffsetForWalking(player.AnimInfo, player._pdir);
@@ -458,7 +459,8 @@ void DrawPlayer(const Surface &out, const Player &player, Point tilePosition, Po
 	if (&player == PlayerUnderCursor)
 		ClxDrawOutlineSkipColorZero(out, 165, spriteBufferPosition, sprite);
 
-	if (&player == MyPlayer && IsNoneOf(leveltype, DTYPE_NEST, DTYPE_CRYPT)) {
+	// Local players (MyPlayer and local coop players) are drawn without lighting in non-dungeon areas
+	if (IsLocalPlayer(player) && IsNoneOf(leveltype, DTYPE_NEST, DTYPE_CRYPT)) {
 		ClxDraw(out, spriteBufferPosition, sprite);
 		DrawPlayerIcons(out, player, targetBufferPosition, /*infraVision=*/false, lightTableIndex);
 		return;

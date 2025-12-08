@@ -1188,6 +1188,16 @@ bool IsLocalCoopPlayer(const Player &player)
 	return g_LocalCoop.players[localIndex].active;
 }
 
+bool IsLocalPlayer(const Player &player)
+{
+	// Check if this is MyPlayer (player 1)
+	if (&player == MyPlayer)
+		return true;
+	
+	// Check if this is a local co-op player (player 2-4 in local co-op mode)
+	return IsLocalCoopPlayer(player);
+}
+
 SDL_JoystickID GetControllerIdFromEvent(const SDL_Event &event)
 {
 	switch (event.type) {
@@ -3624,6 +3634,7 @@ bool IsLocalCoopAvailable() { return false; }
 bool IsLocalCoopEnabled() { return false; }
 bool IsAnyLocalCoopPlayerInitialized() { return false; }
 bool IsLocalCoopPlayer(const Player & /*player*/) { return false; }
+bool IsLocalPlayer(const Player &player) { return &player == MyPlayer; }
 void UpdateLocalCoopMovement() { }
 void UpdateLocalCoopSkillButtons() { }
 bool HandlePlayer1SkillButtonDown(int /*slotIndex*/) { return false; }

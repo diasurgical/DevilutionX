@@ -3158,10 +3158,8 @@ void LoadGameLevelSyncPlayerEntry(lvl_entry lvldir)
 		
 		// Include player if:
 		// 1. They're not changing levels (normal case for remote multiplayer players)
-		// 2. OR they're MyPlayer (local player 1 initiating the change)
-		// 3. OR they're a local coop player (they change levels together with MyPlayer)
-		bool isLocalCoopPlayer = IsLocalCoopEnabled() && IsLocalCoopPlayer(player);
-		if (!player._pLvlChanging || &player == MyPlayer || isLocalCoopPlayer) {
+		// 2. OR they're a local player (MyPlayer or local coop players change levels together)
+		if (!player._pLvlChanging || IsLocalPlayer(player)) {
 			if (player._pHitPoints > 0) {
 				if (lvldir != ENTRY_LOAD)
 					SyncInitPlrPos(player);
@@ -3199,7 +3197,7 @@ void LoadGameLevelInitPlayers(bool firstflag, lvl_entry lvldir)
 			
 			// Clear level changing flag for local coop players
 			// In single-player local coop, there's no network message to clear this flag
-			if (IsLocalCoopEnabled() && IsLocalCoopPlayer(player)) {
+			if (IsLocalCoopPlayer(player)) {
 				player._pLvlChanging = false;
 			}
 		}

@@ -289,6 +289,18 @@ inline int PlayerIdToLocalCoopIndex(uint8_t playerId)
 bool IsLocalCoopPlayer(const Player &player);
 
 /**
+ * @brief Check if a player is controlled locally (MyPlayer or a local co-op player).
+ *
+ * This is the primary function to use when you need to check if a player should
+ * receive local processing (e.g., item pickup, spell casting, damage application).
+ * Use this instead of checking `&player == MyPlayer` when local co-op is supported.
+ *
+ * @param player The player to check
+ * @return true if the player is MyPlayer or a local co-op player
+ */
+bool IsLocalPlayer(const Player &player);
+
+/**
  * @brief Process SDL event for local co-op players.
  *
  * Handles axis motion and button presses for players 2-4.
