@@ -1592,53 +1592,6 @@ void DrawCoopPanelField(const Surface &out, Point pos, int len)
 }
 
 /**
- * @brief Draw health or mana bar with golden border (using healthbox.clx style)
- */
-void DrawCoopHealthBar(const Surface &out, Point position, int current, int max, bool isMana, bool hasManaShield)
-{
-	if (!LocalCoopHealthBox || !LocalCoopHealth)
-		return;
-
-	const int boxWidth = (*LocalCoopHealthBox)[0].width();
-	const int boxHeight = (*LocalCoopHealthBox)[0].height();
-
-	// Draw the golden box frame
-	RenderClxSprite(out, (*LocalCoopHealthBox)[0], position);
-
-	// Draw black/transparent background inside the box instead of half-transparent white
-	const int border = 3;
-	FillRect(out, position.x + border, position.y + border,
-	    boxWidth - (border * 2), boxHeight - (border * 2), 0); // Black fill
-
-	// Extend golden border by 1px at the bottom
-	const uint8_t goldenColor = PAL16_YELLOW + 2;
-	FillRect(out, position.x + border, position.y + boxHeight - border, 
-	    boxWidth - (border * 2), 1, goldenColor);
-
-	// Calculate bar fill
-	if (max > 0 && current > 0) {
-		int barWidth = (*LocalCoopHealth)[0].width();
-		int fillWidth = (barWidth * current) / max;
-		if (fillWidth > barWidth)
-			fillWidth = barWidth;
-
-		if (fillWidth > 0) {
-			// Choose color: blue for mana, red for health (yellow if mana shield)
-			OptionalOwnedClxSpriteList *healthSprite = &LocalCoopHealth;
-			if (isMana || hasManaShield) {
-				healthSprite = &LocalCoopHealthBlue;
-			}
-
-			if (*healthSprite) {
-				RenderClxSprite(
-				    out.subregion(position.x + border + 1, position.y + border + 1, fillWidth, boxHeight - (border * 2) - 2),
-				    (**healthSprite)[0], { 0, 0 });
-			}
-		}
-	}
-}
-
-/**
  * @brief Draw a health or mana bar with golden border using sprites
  * Uses boxleftend/boxmiddle/boxrightend sprites with bottom 2px cropped from top portion
  * and rendered as a fake bottom border to create shorter bars with proper golden borders
@@ -1705,7 +1658,7 @@ void DrawPlayerSkillSlotSmall(const Surface &out, const Player &player, int slot
 	// Position calculations for spell icon (bottom-left based)
 	// Add extra padding to shrink the visible icon area for a thicker border
 	// +1px additional padding for better visual separation
-	const Displacement spellIconDisplacement = { IconBorderPadding + 1, HintBoxSize - IconBorderPadding - 1 };
+	const Displacement spellIconDisplacement = { IconBorderPadding, HintBoxSize - IconBorderPadding };
 	Point iconPos = borderPos + spellIconDisplacement;
 
 	const uint64_t spells = player._pAblSpells | player._pMemSpells | player._pScrlSpells | player._pISpells;
@@ -1960,8 +1913,8 @@ void DrawPlayerBeltSlot(const Surface &out, const Player &player, int slotIndex,
 void DrawPlayerBelt(const Surface &out, const Player &player, Point basePosition, bool alignRight)
 {
 	// Draw golden border around the belt (same style as health/mana bars)
-	// Belt region increased by 4 pixels (right and bottom)
-	DrawGoldenBorder(out, Rectangle { basePosition, Size { 238, 34 } });
+	// Belt region increased by 4 pixels (right and bottom), width reduced by 1px
+	DrawGoldenBorder(out, Rectangle { basePosition, Size { 237, 34 } });
 
 	// Belt area in the main panel sprite: { 205, 21, 232, 28 }
 	// Offset panel box by 2 pixels to the right and 2 pixels to the bottom
@@ -2103,7 +2056,7 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 	// Panel layout constants - charbg sprite borders
 	constexpr int topBorderPadding = 5;      // Top border in charbg.clx
 	constexpr int leftBorderPadding = 7;     // Left border (1px more to shift elements right)
-	constexpr int rightBorderPadding = 9;    // Right border (content padding, not visual border)
+	constexpr int rightBorderPadding = 8;    // Right border (content padding, not visual border) - reduced by 1px
 	constexpr int bottomBorderPadding = 19;  // Bottom border (content padding, not visual border)
 	constexpr int panelEdgePadding = 0;      // No padding from screen edge - panels touch edges
 	constexpr int elementSpacing = 1;        // Reduced spacing between elements
@@ -2134,13 +2087,13 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 	
 	// Name field height  
 	constexpr int nameFieldHeight = 20;
-	constexpr int playerNumWidth = 25;  // P# and level field width (1px wider)
+	constexpr int playerNumWidth = 28;  // P# and level field width (increased by 3px)
 	constexpr int playerNumSpacing = 1; // 1px spacing between P#/name/level
 	
 	// Content area width (belt width) - skills are now outside the panel
 	const int contentWidth = beltWidth;
-	// Bar width = full content width + 6px for wider bars (increased by 3px)
-	const int barsWidth = contentWidth + 6;
+	// Bar width = full content width + 5px for wider bars (reduced by 1px)
+	const int barsWidth = contentWidth + 5;
 	
 	// Panel content height: name row + middle (bars/belt stacked) 
 	// Middle section: bars + spacing + belt
@@ -2148,7 +2101,7 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 	
 	// Panel dimensions with proper borders
 	// Layout: topBorder + nameTopOffset + [name row] + spacing + [middle: bars+belt | skills] + bottomBorder
-	const int panelContentWidth = contentWidth + 6; // 6px wider (increased by 4px)
+	const int panelContentWidth = contentWidth + 6; // 6px wider (increased by 1px to compensate for reduced right padding)
 	const int panelHeight = topBorderPadding + nameTopOffset + nameFieldHeight + elementSpacing + middleContentHeight + bottomBorderPadding + 2; // 2px taller
 	const int panelWidth = leftBorderPadding + panelContentWidth + rightBorderPadding;
 	
@@ -2233,9 +2186,10 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 		// === TOP ROW: Player number + Name + Level ===
 		// Apply nameLeftOffset (1px extra right)
 		int nameRowX = contentX + nameLeftOffset;
+		int extraOffset = 1;
 		
 		// Draw player number field on the left
-		DrawCoopPanelField(out, { nameRowX, currentY }, playerNumWidth);
+		DrawCoopPanelField(out, { nameRowX, currentY }, playerNumWidth - extraOffset);
 		char playerNumStr[4];
 		snprintf(playerNumStr, sizeof(playerNumStr), "P%zu", playerId + 1);
 		DrawString(out, playerNumStr, 
@@ -2243,7 +2197,7 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 		    { .flags = UiFlags::AlignCenter | UiFlags::VerticalCenter | UiFlags::ColorWhite, .spacing = 0 });
 
 		// Draw player name in middle (reduced width to make room for level)
-		int nameX = nameRowX + playerNumWidth + playerNumSpacing;
+		int nameX = nameRowX + playerNumWidth + playerNumSpacing - extraOffset;
 		int nameWidth = panelContentWidth - playerNumWidth - playerNumSpacing - playerNumSpacing - playerNumWidth - nameLeftOffset;
 		DrawCoopPanelField(out, { nameX, currentY }, nameWidth);
 		DrawString(out, player._pName, 
@@ -2251,7 +2205,7 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 		    { .flags = UiFlags::AlignCenter | UiFlags::VerticalCenter | UiFlags::ColorWhite, .spacing = 1 });
 
 		// Draw level field on the right (same size as P#)
-		int levelX = nameRowX + panelContentWidth - playerNumWidth - nameLeftOffset;
+		int levelX = nameRowX + panelContentWidth - playerNumWidth - nameLeftOffset - extraOffset;
 		DrawCoopPanelField(out, { levelX, currentY }, playerNumWidth);
 		char levelStr[4];
 		snprintf(levelStr, sizeof(levelStr), "%d", player.getCharacterLevel());
@@ -2280,12 +2234,12 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 		// For P2/P4 (right side of screen), skills go on LEFT of panel
 		int skillX;
 		if (skillsOnLeft) {
-			skillX = panelX - skillColumnSpacing - skillGridWidth;
+			skillX = panelX - skillColumnSpacing - skillGridWidth + 1; // Moved 1px to the right
 		} else {
-			skillX = panelX + panelWidth + skillColumnSpacing;
+			skillX = panelX + panelWidth + skillColumnSpacing + 1; // Moved 1px to the right
 		}
-		// Center the skill grid vertically on the panel
-		int skillY = panelY + (panelHeight - skillGridHeight) / 2;
+		// Center the skill grid vertically on the panel, moved 1px up
+		int skillY = panelY + (panelHeight - skillGridHeight) / 2 - 1;
 		DrawPlayerSkillSlots2x2Small(out, player, { skillX, skillY }, SkillSlotSize);
 
 		// === BELT: Right after XP bar ===
