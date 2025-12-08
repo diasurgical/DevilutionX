@@ -643,7 +643,25 @@ void ProcessLocalCoopButtonInput(int localIndex, const SDL_Event &event)
 		}
 		
 		switch (button) {
+		case SDL_GAMEPAD_BUTTON_LEFT_SHOULDER: // LB = Hold to show belt labels on slots 1-4
+			coopPlayer.leftShoulderHeld = true;
+			break;
+			
+		case SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER: // RB = Hold to show belt labels on slots 5-8
+			coopPlayer.rightShoulderHeld = true;
+			break;
 		case SDL_GAMEPAD_BUTTON_SOUTH: // A button - Primary action or skill slot 2
+			// Check if shoulder button is held - if so, use belt item
+			if (coopPlayer.leftShoulderHeld || coopPlayer.rightShoulderHeld) {
+				int beltSlot = (coopPlayer.leftShoulderHeld ? 0 : 4);
+				if (beltSlot < MaxBeltItems) {
+					LocalCoopPlayerContext context(playerId);
+					if (!Players[playerId].SpdList[beltSlot].isEmpty()) {
+						UseInvItem(INVITEM_BELT_FIRST + beltSlot);
+					}
+					return;
+				}
+			}
 			// If this player owns panels (inventory/character/etc.), always perform primary action for panel interaction
 			if (g_LocalCoop.panelOwner == localIndex && (invflag || CharFlag || QuestLogIsOpen || SpellbookFlag)) {
 				coopPlayer.actionHeld = GameActionType_PRIMARY_ACTION;
@@ -666,6 +684,17 @@ void ProcessLocalCoopButtonInput(int localIndex, const SDL_Event &event)
 			break;
 			
 		case SDL_GAMEPAD_BUTTON_EAST: // B button - Secondary action (pickup) or skill slot 3
+			// Check if shoulder button is held - if so, use belt item
+			if (coopPlayer.leftShoulderHeld || coopPlayer.rightShoulderHeld) {
+				int beltSlot = (coopPlayer.leftShoulderHeld ? 1 : 5);
+				if (beltSlot < MaxBeltItems) {
+					LocalCoopPlayerContext context(playerId);
+					if (!Players[playerId].SpdList[beltSlot].isEmpty()) {
+						UseInvItem(INVITEM_BELT_FIRST + beltSlot);
+					}
+					return;
+				}
+			}
 			if (HasLocalCoopSecondaryTarget(localIndex)) {
 				// Only perform action if player can change action
 				if (player.CanChangeAction() && player.destAction == ACTION_NONE) {
@@ -681,6 +710,17 @@ void ProcessLocalCoopButtonInput(int localIndex, const SDL_Event &event)
 			break;
 			
 		case SDL_GAMEPAD_BUTTON_WEST: // X button - Skill slot 0
+			// Check if shoulder button is held - if so, use belt item
+			if (coopPlayer.leftShoulderHeld || coopPlayer.rightShoulderHeld) {
+				int beltSlot = (coopPlayer.leftShoulderHeld ? 2 : 6);
+				if (beltSlot < MaxBeltItems) {
+					LocalCoopPlayerContext context(playerId);
+					if (!Players[playerId].SpdList[beltSlot].isEmpty()) {
+						UseInvItem(INVITEM_BELT_FIRST + beltSlot);
+					}
+					return;
+				}
+			}
 			// Only allow spell casting if not already in an action
 			if (player.CanChangeAction() && player.destAction == ACTION_NONE) {
 				// Start tracking hold for skill slot assignment (X = slot 0)
@@ -691,6 +731,17 @@ void ProcessLocalCoopButtonInput(int localIndex, const SDL_Event &event)
 			break;
 			
 		case SDL_GAMEPAD_BUTTON_NORTH: // Y button - Skill slot 1
+			// Check if shoulder button is held - if so, use belt item
+			if (coopPlayer.leftShoulderHeld || coopPlayer.rightShoulderHeld) {
+				int beltSlot = (coopPlayer.leftShoulderHeld ? 3 : 7);
+				if (beltSlot < MaxBeltItems) {
+					LocalCoopPlayerContext context(playerId);
+					if (!Players[playerId].SpdList[beltSlot].isEmpty()) {
+						UseInvItem(INVITEM_BELT_FIRST + beltSlot);
+					}
+					return;
+				}
+			}
 			// Only allow spell casting if not already in an action
 			if (player.CanChangeAction() && player.destAction == ACTION_NONE) {
 				// Start tracking hold for skill slot assignment (Y = slot 1)
@@ -698,14 +749,6 @@ void ProcessLocalCoopButtonInput(int localIndex, const SDL_Event &event)
 				coopPlayer.skillButtonPressTime = now;
 				coopPlayer.skillMenuOpenedByHold = false;
 			}
-			break;
-			
-		case SDL_GAMEPAD_BUTTON_LEFT_SHOULDER: // LB = Use health potion
-			ProcessLocalCoopGameAction(localIndex, GameActionType_USE_HEALTH_POTION);
-			break;
-			
-		case SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER: // RB = Use mana potion  
-			ProcessLocalCoopGameAction(localIndex, GameActionType_USE_MANA_POTION);
 			break;
 			
 		case SDL_GAMEPAD_BUTTON_BACK: // Select/Back = Toggle character info
@@ -757,6 +800,18 @@ void ProcessLocalCoopButtonInput(int localIndex, const SDL_Event &event)
 			coopPlayer.skillButtonHeld = -1;
 			coopPlayer.skillButtonPressTime = 0;
 			// Keep skillMenuOpenedByHold true if the spell menu is still open
+		}
+		
+		// Handle shoulder button release
+		switch (button) {
+		case SDL_GAMEPAD_BUTTON_LEFT_SHOULDER:
+			coopPlayer.leftShoulderHeld = false;
+			break;
+		case SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER:
+			coopPlayer.rightShoulderHeld = false;
+			break;
+		default:
+			break;
 		}
 	}
 }
@@ -917,6 +972,10 @@ void LocalCoopPlayer::Reset()
 	skillButtonHeld = -1;
 	skillButtonPressTime = 0;
 	skillMenuOpenedByHold = false;
+	leftTriggerPressed = false;
+	rightTriggerPressed = false;
+	leftShoulderHeld = false;
+	rightShoulderHeld = false;
 }
 
 AxisDirection LocalCoopPlayer::GetMoveDirection() const
@@ -1636,15 +1695,15 @@ void DrawCoopSmallBar(const Surface &out, Point position, int width, int height,
 /**
  * @brief Draw a single skill slot with configurable size
  */
-void DrawPlayerSkillSlotSmall(const Surface &out, const Player &player, int slotIndex, Point position, int slotSize)
+void DrawPlayerSkillSlotSmall(const Surface &out, const Player &player, int slotIndex, Point position, int slotSize, bool hideLabel = false)
 {
 	// Get spell from hotkey slot
 	SpellID spell = player._pSplHotKey[slotIndex];
 	SpellType spellType = player._pSplTHotKey[slotIndex];
 
-	// Button labels
+	// Button labels - hide if hideLabel is true (when left shoulder is held)
 	static constexpr std::string_view ButtonLabels[] = { "X", "Y", "A", "B" };
-	const char *label = slotIndex < 4 ? ButtonLabels[slotIndex].data() : "";
+	const char *label = (!hideLabel && slotIndex < 4) ? ButtonLabels[slotIndex].data() : "";
 
 	// HintBox sprite is 39x39, icon is 37x37
 	constexpr int HintBoxSize = 39;
@@ -1698,7 +1757,7 @@ void DrawPlayerSkillSlotSmall(const Surface &out, const Player &player, int slot
 /**
  * @brief Draw 2x2 grid of skill slots with configurable size
  */
-void DrawPlayerSkillSlots2x2Small(const Surface &out, const Player &player, Point basePosition, int slotSize)
+void DrawPlayerSkillSlots2x2Small(const Surface &out, const Player &player, Point basePosition, int slotSize, bool hideLabels = false)
 {
 	constexpr int spacing = 1; // Reduced spacing between slots
 	// Grid layout: A B / X Y  ->  indices 2,3 / 0,1
@@ -1711,7 +1770,7 @@ void DrawPlayerSkillSlots2x2Small(const Surface &out, const Player &player, Poin
 		for (int col = 0; col < 2; col++) {
 			int slotX = basePosition.x + col * (slotSize + spacing);
 			int slotY = basePosition.y + row * (slotSize + spacing);
-			DrawPlayerSkillSlotSmall(out, player, SlotGrid[row][col], { slotX, slotY }, slotSize);
+			DrawPlayerSkillSlotSmall(out, player, SlotGrid[row][col], { slotX, slotY }, slotSize, hideLabels);
 		}
 	}
 }
@@ -1910,7 +1969,7 @@ void DrawPlayerBeltSlot(const Surface &out, const Player &player, int slotIndex,
 	DrawItem(item, out, itemPos, sprite);
 }
 
-void DrawPlayerBelt(const Surface &out, const Player &player, Point basePosition, bool alignRight)
+void DrawPlayerBelt(const Surface &out, const Player &player, Point basePosition, bool alignRight, bool leftShoulderHeld = false, bool rightShoulderHeld = false)
 {
 	// Draw golden border around the belt (same style as health/mana bars)
 	// Belt region increased by 4 pixels (right and bottom), width reduced by 1px
@@ -1919,6 +1978,9 @@ void DrawPlayerBelt(const Surface &out, const Player &player, Point basePosition
 	// Belt area in the main panel sprite: { 205, 21, 232, 28 }
 	// Offset panel box by 2 pixels to the right and 2 pixels to the bottom
 	DrawPanelBox(out, { 205, 21, 232, 28 }, basePosition + Displacement { 3, 3 });
+
+	// Button labels for belt slots: A, B, X, Y
+	static constexpr std::string_view ButtonLabels[] = { "A", "B", "X", "Y" };
 
 	// Draw belt items using the same positioning as the main panel
 	for (int i = 0; i < MaxBeltItems; i++) {
@@ -1941,6 +2003,22 @@ void DrawPlayerBelt(const Surface &out, const Player &player, Point basePosition
 
 		// Draw the item
 		DrawItem(player.SpdList[i], out, position, sprite);
+		
+		// Draw button label if shoulder button is held
+		// Left shoulder: slots 0-3 (A, B, X, Y)
+		// Right shoulder: slots 4-7 (A, B, X, Y)
+		const char *label = nullptr;
+		if (leftShoulderHeld && i < 4) {
+			label = ButtonLabels[i].data();
+		} else if (rightShoulderHeld && i >= 4 && i < 8) {
+			label = ButtonLabels[i - 4].data();
+		}
+		
+		if (label != nullptr) {
+			// Draw label above the belt slot (similar to main inventory belt labels)
+			DrawString(out, label, { position - Displacement { 0, 12 }, InventorySlotSizeInPixels },
+			    { .flags = UiFlags::ColorWhite | UiFlags::Outlined | UiFlags::AlignRight | UiFlags::FontSize12, .spacing = 0 });
+		}
 	}
 }
 
@@ -2131,11 +2209,12 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 			continue;
 
 		// For local co-op players, check their state
+		const LocalCoopPlayer *coopPlayer = nullptr;
 		if (playerId > 0) {
 			if (playerId - 1 >= g_LocalCoop.players.size())
 				continue;
-			const LocalCoopPlayer &coopPlayer = g_LocalCoop.players[playerId - 1];
-			if (!coopPlayer.active || coopPlayer.characterSelectActive || !coopPlayer.initialized)
+			coopPlayer = &g_LocalCoop.players[playerId - 1];
+			if (!coopPlayer->active || coopPlayer->characterSelectActive || !coopPlayer->initialized)
 				continue;
 		}
 
@@ -2240,10 +2319,14 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 		}
 		// Center the skill grid vertically on the panel, moved 1px up
 		int skillY = panelY + (panelHeight - skillGridHeight) / 2 - 1;
-		DrawPlayerSkillSlots2x2Small(out, player, { skillX, skillY }, SkillSlotSize);
+		// Hide skill labels when left shoulder is held
+		bool hideSkillLabels = (coopPlayer != nullptr && coopPlayer->leftShoulderHeld);
+		DrawPlayerSkillSlots2x2Small(out, player, { skillX, skillY }, SkillSlotSize, hideSkillLabels);
 
 		// === BELT: Right after XP bar ===
-		DrawPlayerBelt(out, player, { contentX + barsExtraRightOffset, barY - 4 }, false);
+		bool leftShoulderHeld = (coopPlayer != nullptr && coopPlayer->leftShoulderHeld);
+		bool rightShoulderHeld = (coopPlayer != nullptr && coopPlayer->rightShoulderHeld);
+		DrawPlayerBelt(out, player, { contentX + barsExtraRightOffset, barY - 4 }, false, leftShoulderHeld, rightShoulderHeld);
 
 		// Draw durability icons - above panel for bottom players, below panel for top players
 		int durabilityY;

@@ -258,6 +258,47 @@ void PressControllerButton(ControllerButton button)
 	// BUT: A button should interact with NPCs/monsters/objects first
 	//      B button should pick up items/operate objects first
 	if (IsLocalCoopEnabled()) {
+		// Handle shoulder buttons for belt item access
+		switch (button) {
+		case devilution::ControllerButton_BUTTON_LEFTSHOULDER:
+			g_LocalCoop.player1LeftShoulderHeld = true;
+			return;
+		case devilution::ControllerButton_BUTTON_RIGHTSHOULDER:
+			g_LocalCoop.player1RightShoulderHeld = true;
+			return;
+		default:
+			break;
+		}
+		
+		// Check if shoulder buttons are held - if so, A/B/X/Y should use belt items
+		if (g_LocalCoop.player1LeftShoulderHeld || g_LocalCoop.player1RightShoulderHeld) {
+			int beltSlot = -1;
+			switch (button) {
+			case devilution::ControllerButton_BUTTON_A:
+				beltSlot = (g_LocalCoop.player1LeftShoulderHeld ? 0 : 4);
+				break;
+			case devilution::ControllerButton_BUTTON_B:
+				beltSlot = (g_LocalCoop.player1LeftShoulderHeld ? 1 : 5);
+				break;
+			case devilution::ControllerButton_BUTTON_X:
+				beltSlot = (g_LocalCoop.player1LeftShoulderHeld ? 2 : 6);
+				break;
+			case devilution::ControllerButton_BUTTON_Y:
+				beltSlot = (g_LocalCoop.player1LeftShoulderHeld ? 3 : 7);
+				break;
+			default:
+				break;
+			}
+			
+			if (beltSlot >= 0 && beltSlot < MaxBeltItems) {
+				// Use belt item at this slot
+				if (!Players[0].SpdList[beltSlot].isEmpty()) {
+					UseInvItem(INVITEM_BELT_FIRST + beltSlot);
+				}
+				return;
+			}
+		}
+		
 		// Check if Player 1 has an interaction target (uses global cursor vars)
 		const bool hasPrimaryTarget = (pcursmonst != -1 || ObjectUnderCursor != nullptr);
 		const bool hasSecondaryTarget = (pcursitem != -1 || ObjectUnderCursor != nullptr);
@@ -439,6 +480,18 @@ bool HandleControllerButtonEvent(const SDL_Event &event, const ControllerButtonE
 	// Uses same slot mapping as PadHotspellMenu: A=2, B=3, X=0, Y=1
 	// Don't process if player is in a store or game menu
 	if (IsLocalCoopEnabled() && ctrlEvent.up && !IsPlayerInStore() && !InGameMenu()) {
+		// Handle shoulder button release
+		switch (ctrlEvent.button) {
+		case devilution::ControllerButton_BUTTON_LEFTSHOULDER:
+			g_LocalCoop.player1LeftShoulderHeld = false;
+			return true;
+		case devilution::ControllerButton_BUTTON_RIGHTSHOULDER:
+			g_LocalCoop.player1RightShoulderHeld = false;
+			return true;
+		default:
+			break;
+		}
+		
 		int slotIndex = -1;
 		switch (ctrlEvent.button) {
 		case devilution::ControllerButton_BUTTON_A:

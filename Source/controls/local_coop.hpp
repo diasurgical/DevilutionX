@@ -94,6 +94,10 @@ struct LocalCoopPlayer {
 	// Trigger state for inventory/character screen (like player 1)
 	bool leftTriggerPressed = false;   // Character screen
 	bool rightTriggerPressed = false;  // Inventory screen
+	
+	// Shoulder button hold state for belt item access
+	bool leftShoulderHeld = false;   // When held, shows A/B/X/Y labels on belt slots 1-4
+	bool rightShoulderHeld = false;  // When held, shows A/B/X/Y labels on belt slots 5-8
 
 	/// Reset player state
 	void Reset();
@@ -186,6 +190,10 @@ struct LocalCoopState {
 	int player1SkillButtonHeld = -1;
 	uint32_t player1SkillButtonPressTime = 0;
 	bool player1SkillMenuOpenedByHold = false;  // Track if we opened the menu via long press
+	
+	// Player 1 shoulder button hold state for belt item access
+	bool player1LeftShoulderHeld = false;   // When held, shows A/B/X/Y labels on belt slots 1-4
+	bool player1RightShoulderHeld = false;  // When held, shows A/B/X/Y labels on belt slots 5-8
 };
 
 extern LocalCoopState g_LocalCoop;
