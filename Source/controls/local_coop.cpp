@@ -2210,23 +2210,29 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 	for (size_t playerId = 0; playerId < totalPlayers && playerId < Players.size(); ++playerId) {
 		const Player &player = Players[playerId];
 
-		// Skip if player is not active in the game
-		if (!player.plractive)
-			continue;
-
-		// Player 1 only shows corner HUD when main panel is hidden
-		if (playerId == 0 && !anyCoopPlayerInitialized)
-			continue;
-
-		// For local co-op players, check their state
-		const LocalCoopPlayer *coopPlayer = nullptr;
-		if (playerId > 0) {
+		// For Player 1, show mini-HUD when any coop player has initialized (main panel hidden)
+		if (playerId == 0) {
+			// Only show Player 1's corner HUD when main panel is hidden
+			if (!anyCoopPlayerInitialized)
+				continue;
+			// Player 1 (host) should always be active, but check just in case
+			if (!player.plractive)
+				continue;
+		} else {
+			// For local co-op players (2-4), check their state
 			if (playerId - 1 >= g_LocalCoop.players.size())
 				continue;
-			coopPlayer = &g_LocalCoop.players[playerId - 1];
-			if (!coopPlayer->active || coopPlayer->characterSelectActive || !coopPlayer->initialized)
+			const LocalCoopPlayer &coopPlayer = g_LocalCoop.players[playerId - 1];
+			// Skip if this coop slot isn't active, still in character select, or not yet spawned
+			if (!coopPlayer.active || coopPlayer.characterSelectActive || !coopPlayer.initialized)
+				continue;
+			// Skip if the player in the game isn't active (shouldn't happen if initialized, but be safe)
+			if (!player.plractive)
 				continue;
 		}
+
+		// Get coopPlayer pointer for later use (nullptr for Player 1)
+		const LocalCoopPlayer *coopPlayer = (playerId > 0) ? &g_LocalCoop.players[playerId - 1] : nullptr;
 
 		// Determine panel position based on player ID - with 1px edge padding
 		int panelX, panelY;
