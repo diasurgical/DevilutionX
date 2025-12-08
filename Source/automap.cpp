@@ -17,6 +17,7 @@
 #include "engine/render/primitive_render.hpp"
 #include "levels/gendung.h"
 #include "levels/setmaps.h"
+#include "monster.h"
 #include "options.h"
 #include "player.h"
 #include "utils/attributes.h"
@@ -1437,7 +1438,12 @@ void DrawAutomapText(const Surface &out)
 	}
 
 	if (setlevel) {
-		DrawString(out, _(QuestLevelNames[setlvlnum]), linePosition);
+		std::string description;
+		description = std::string(_(QuestLevelNames[setlvlnum]));
+		if (ActiveMonsterCount == 4) {
+			description.append(std::string(_(" (Cleared)")));
+		}
+		DrawString(out, description, linePosition);
 		return;
 	}
 
@@ -1445,15 +1451,24 @@ void DrawAutomapText(const Surface &out)
 	switch (leveltype) {
 	case DTYPE_NEST:
 		description = fmt::format(fmt::runtime(_("Level: Nest {:d}")), currlevel - 16);
+		if (ActiveMonsterCount == 4) {
+			description.append(std::string(_(" (Cleared)")));
+		}
 		break;
 	case DTYPE_CRYPT:
 		description = fmt::format(fmt::runtime(_("Level: Crypt {:d}")), currlevel - 20);
+		if (ActiveMonsterCount == 4) {
+			description.append(std::string(_(" (Cleared)")));
+		}
 		break;
 	case DTYPE_TOWN:
 		description = std::string(_("Town"));
 		break;
 	default:
 		description = fmt::format(fmt::runtime(_("Level: {:d}")), currlevel);
+		if (ActiveMonsterCount == 4) {
+			description.append(std::string(_(" (Cleared)")));
+		}
 		break;
 	}
 
