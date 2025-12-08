@@ -3433,6 +3433,7 @@ tl::expected<void, std::string> LoadGameLevel(bool firstflag, lvl_entry lvldir)
 	CompleteProgress();
 
 	LoadGameLevelCalculateCursor();
+	LuaEvent("EnterLevel");
 	return {};
 }
 

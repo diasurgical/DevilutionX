@@ -16,6 +16,7 @@
 #include "lua/modules/hellfire.hpp"
 #include "lua/modules/i18n.hpp"
 #include "lua/modules/items.hpp"
+#include "lua/modules/level.hpp"
 #include "lua/modules/log.hpp"
 #include "lua/modules/monsters.hpp"
 #include "lua/modules/player.hpp"
@@ -276,6 +277,7 @@ void LuaInitialize()
 	    "devilutionx.version", PROJECT_VERSION,
 	    "devilutionx.i18n", LuaI18nModule(lua),
 	    "devilutionx.items", LuaItemModule(lua),
+	    "devilutionx.level", LuaLevelModule(lua),
 	    "devilutionx.log", LuaLogModule(lua),
 	    "devilutionx.audio", LuaAudioModule(lua),
 	    "devilutionx.monsters", LuaMonstersModule(lua),
