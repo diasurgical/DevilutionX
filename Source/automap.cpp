@@ -10,7 +10,9 @@
 
 #include <fmt/format.h>
 
+#include "control.h"
 #include "control/control.hpp"
+#include "controls/local_coop.hpp"
 #include "engine/load_file.hpp"
 #include "engine/palette.h"
 #include "engine/render/automap_render.hpp"
@@ -1860,7 +1862,8 @@ void DrawAutomap(const Surface &out)
 	}
 
 	for (const Player &player : Players) {
-		if (player.isOnActiveLevel() && player.plractive && !player._pLvlChanging && (&player == MyPlayer || player.friendlyMode)) {
+		// Show local players (MyPlayer and local coop players) and other friendly players on the automap
+		if (player.isOnActiveLevel() && player.plractive && !player._pLvlChanging && (IsLocalPlayer(player) || player.friendlyMode)) {
 			DrawAutomapPlr(out, myPlayerOffset, player);
 		}
 	}

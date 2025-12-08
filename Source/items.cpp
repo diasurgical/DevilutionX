@@ -2899,17 +2899,17 @@ void CalcPlrInv(Player &player, bool loadgfx)
 	CalcSelfItems(player);
 
 	// Determine the current item bonuses gained from usable equipped items
-	// For local co-op players on the same level, we always want to load graphics
+	// For local players, we always want to load graphics
 	// For network multiplayer players not on our level, skip graphics loading
-	if (&player != MyPlayer && !IsLocalCoopPlayer(player) && !player.isOnActiveLevel()) {
+	if (!IsLocalPlayer(player) && !player.isOnActiveLevel()) {
 		// Ensure we don't load graphics for remote network players that aren't on our level
 		loadgfx = false;
 	}
 	CalcPlrItemVals(player, loadgfx);
 
-	// For MyPlayer or local co-op players, update item stat flags for inventory/belt items
+	// For local players, update item stat flags for inventory/belt items
 	// This determines whether items show as usable (normal color) or unusable (red tint)
-	if (&player == MyPlayer || IsLocalCoopPlayer(player)) {
+	if (IsLocalPlayer(player)) {
 		// Now that stat gains from equipped items have been calculated, mark unusable scrolls etc
 		for (Item &item : InventoryAndBeltPlayerItemsRange { player }) {
 			item.updateRequiredStatsCacheForPlayer(player);

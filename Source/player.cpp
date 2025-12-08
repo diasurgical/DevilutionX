@@ -1281,7 +1281,7 @@ void CheckNewPath(Player &player, bool pmWillBeCalled)
 			}
 			break;
 		case ACTION_PICKUPITEM:
-			if (&player == MyPlayer || IsLocalCoopPlayer(player)) {
+			if (IsLocalPlayer(player)) {
 				x = std::abs(player.position.tile.x - item->position.x);
 				y = std::abs(player.position.tile.y - item->position.y);
 				// For local co-op players, we always use CURSOR_HAND since they have their own cursor state
@@ -1293,7 +1293,7 @@ void CheckNewPath(Player &player, bool pmWillBeCalled)
 			}
 			break;
 		case ACTION_PICKUPAITEM:
-			if (&player == MyPlayer || IsLocalCoopPlayer(player)) {
+			if (IsLocalPlayer(player)) {
 				x = std::abs(player.position.tile.x - item->position.x);
 				y = std::abs(player.position.tile.y - item->position.y);
 				// For local co-op players, we always use CURSOR_HAND since they have their own cursor state
@@ -1304,7 +1304,7 @@ void CheckNewPath(Player &player, bool pmWillBeCalled)
 			}
 			break;
 		case ACTION_TALK:
-			if (&player == MyPlayer || IsLocalCoopPlayer(player)) {
+			if (IsLocalPlayer(player)) {
 				HelpFlag = false;
 				TalkToTowner(player, player.destParam1);
 			}
@@ -2521,9 +2521,8 @@ void InitPlayer(Player &player, bool firstTime)
 		player._pdir = Direction::South;
 
 		if ((!firstTime || leveltype != DTYPE_TOWN)) {
-			// Set spawn position for MyPlayer and local coop players
-			bool isLocalCoopPlr = IsLocalCoopEnabled() && IsLocalCoopPlayer(player);
-			if (&player == MyPlayer || isLocalCoopPlr) {
+			// Set spawn position for local players (MyPlayer and local coop players)
+			if (IsLocalPlayer(player)) {
 				player.position.tile = ViewPosition;
 			}
 		}
@@ -2533,8 +2532,7 @@ void InitPlayer(Player &player, bool firstTime)
 		player.destAction = ACTION_NONE;
 
 		// Set up lighting for local players (MyPlayer and local coop players)
-		bool isLocalCoopPlr = IsLocalCoopEnabled() && IsLocalCoopPlayer(player);
-		if (&player == MyPlayer || isLocalCoopPlr) {
+		if (IsLocalPlayer(player)) {
 			player.lightId = AddLight(player.position.tile, player._pLightRad);
 			ChangeLightXY(player.lightId, player.position.tile); // fix for a bug where old light is still visible at the entrance after reentering level
 		} else {
