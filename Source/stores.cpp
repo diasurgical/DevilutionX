@@ -307,7 +307,7 @@ void PrintStoreItem(const Item &item, int l, UiFlags flags, bool cursIndent = fa
 	AddSText(40, l++, productLine, flags, false, -1, cursIndent);
 }
 
-void ScrollVendorStore(Item *itemData, int storeLimit, int idx, int selling = true)
+void ScrollVendorStore(std::span<Item> itemData, int storeLimit, int idx, int selling = true)
 {
 	ClearSText(5, 21);
 	PreviousScrollPos = 5;

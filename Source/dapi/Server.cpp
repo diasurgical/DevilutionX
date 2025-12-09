@@ -102,6 +102,8 @@ void Server::processMessages()
 {
 	bool issuedCommand = false;
 	while (protoClient.messageQueueSize()) {
+		if (devilution::MonstersData.size() != 138)
+			issuedCommand = false;
 		auto message = protoClient.getNextMessage();
 		if (message.get() == nullptr)
 			return;
@@ -1022,21 +1024,21 @@ void Server::updateGameData()
 		useiValue = true;
 		break;
 	case devilution::TalkID::WitchBuy:
-		storeLoopMax = devilution::NumWitchItemsHf;
+		storeLoopMax = devilution::WitchItems.size();
 		currentItem = &devilution::WitchItems[0];
 		break;
 	case devilution::TalkID::SmithBuy:
-		storeLoopMax = devilution::NumSmithBasicItemsHf;
+		storeLoopMax = devilution::SmithItems.size();
 		currentItem = &devilution::SmithItems[0];
 		useiValue = true;
 		break;
 	case devilution::TalkID::HealerBuy:
-		storeLoopMax = devilution::NumHealerItemsHf;
+		storeLoopMax = devilution::HealerItems.size();
 		currentItem = &devilution::HealerItems[0];
 		useiValue = true;
 		break;
 	case devilution::TalkID::SmithPremiumBuy:
-		storeLoopMax = devilution::NumSmithItemsHf;
+		storeLoopMax = devilution::PremiumItems.size();
 		currentItem = &devilution::PremiumItems[0];
 		break;
 	case devilution::TalkID::BoyBuy:
@@ -1082,7 +1084,8 @@ void Server::updateGameData()
 			townerData._ty = -1;
 		}
 	} else {
-		for (auto i = 0; devilution::gbIsHellfire ? i < NUM_TOWNERS : i < 12; i++) {
+		for (auto &towner : devilution::Towners)
+			for (auto i = 0; i < devilution::Towners.size(); i++) {
 			auto townerID = i;
 			auto &towner = data->townerList[townerID];
 			towner.ID = static_cast<int>(townerID);
@@ -1324,11 +1327,11 @@ void Server::move(int x, int y)
 void Server::talk(int x, int y)
 {
 	int index;
-	for (index = 0; index < NUM_TOWNERS; index++) {
+	for (index = 0; index < devilution::Towners.size(); index++) {
 		if (devilution::Towners[index].position.x == x && devilution::Towners[index].position.y == y)
 			break;
 	}
-	if (index != NUM_TOWNERS)
+	if (index != devilution::Towners.size())
 		devilution::NetSendCmdLocParam1(true, devilution::_cmd_id::CMD_TALKXY, devilution::Point { x, y }, index);
 }
 
@@ -1478,7 +1481,7 @@ void Server::buyItem(int itemID)
 
 		idx = -1;
 
-		for (int i = 0; i < 20; i++) {
+		for (int i = 0; i < devilution::WitchItems.size(); i++) {
 			if (data->itemList[itemID].compare(devilution::WitchItems[i])) {
 				idx = i;
 				break;
@@ -1497,33 +1500,27 @@ void Server::buyItem(int itemID)
 		if (!devilution::PlayerCanAfford(devilution::WitchItems[idx]._iIvalue)) {
 			devilution::StartStore(devilution::TalkID::NoMoney);
 			return;
-		} else if (devilution::StoreAutoPlace(devilution::WitchItems[idx], true)) {
+		} else if (!devilution::StoreAutoPlace(devilution::WitchItems[idx], false)) {
+			devilution::StartStore(devilution::TalkID::NoRoom);
+			return;
+		} else {
 			if (idx < 3)
 				devilution::WitchItems[idx]._iSeed = devilution::AdvanceRndSeed();
 
 			devilution::TakePlrsMoney(devilution::WitchItems[idx]._iIvalue);
+			devilution::StoreAutoPlace(devilution::WitchItems[idx], true);
 
 			if (idx >= 3) {
-				if (idx == devilution::NumWitchItemsHf - 1)
-					devilution::WitchItems[devilution::NumWitchItemsHf - 1].clear();
-				else {
-					for (; !devilution::WitchItems[idx + 1].isEmpty(); idx++) {
-						devilution::WitchItems[idx] = std::move(devilution::WitchItems[idx + 1]);
-					}
-					devilution::WitchItems[idx].clear();
-				}
+				devilution::WitchItems.erase(devilution::WitchItems.begin() + idx);
 			}
 
 			devilution::CalcPlrInv(*devilution::MyPlayer, true);
-		} else {
-			devilution::StartStore(devilution::TalkID::NoRoom);
-			return;
 		}
 		devilution::StartStore(devilution::OldActiveStore);
 	} else if (devilution::ActiveStore == devilution::TalkID::SmithBuy) {
 		idx = -1;
 
-		for (int i = 0; i < 20; i++) {
+		for (int i = 0; i < devilution::SmithItems.size(); i++) {
 			if (data->itemList[itemID].compare(devilution::SmithItems[i])) {
 				idx = i;
 				break;
@@ -1549,20 +1546,13 @@ void Server::buyItem(int itemID)
 			if (devilution::SmithItems[idx]._iMagical == devilution::item_quality::ITEM_QUALITY_NORMAL)
 				devilution::SmithItems[idx]._iIdentified = false;
 			devilution::StoreAutoPlace(devilution::SmithItems[idx], true);
-			if (idx == devilution::NumSmithBasicItemsHf - 1) {
-				devilution::SmithItems[devilution::NumSmithBasicItemsHf - 1].clear();
-			} else {
-				for (; !devilution::SmithItems[idx + 1].isEmpty(); idx++) {
-					devilution::SmithItems[idx] = std::move(devilution::SmithItems[idx + 1]);
-				}
-				devilution::SmithItems[idx].clear();
-			}
+			devilution::SmithItems.erase(devilution::SmithItems.begin() + idx);
 			devilution::CalcPlrInv(*devilution::MyPlayer, true);
 			devilution::StartStore(devilution::OldActiveStore);
 		}
 	} else if (devilution::ActiveStore == devilution::TalkID::SmithPremiumBuy) {
 		int idx = -1;
-		for (int i = 0; i < 20; i++) {
+		for (int i = 0; i < devilution::PremiumItems.size(); i++) {
 			if (data->itemList[itemID].compare(devilution::PremiumItems[i])) {
 				idx = i;
 				break;
@@ -1589,21 +1579,14 @@ void Server::buyItem(int itemID)
 			if (devilution::PremiumItems[idx]._iMagical == devilution::item_quality::ITEM_QUALITY_NORMAL)
 				devilution::PremiumItems[idx]._iIdentified = false;
 			devilution::StoreAutoPlace(devilution::PremiumItems[idx], true);
-			if (idx == devilution::NumSmithBasicItemsHf - 1) {
-				devilution::PremiumItems[devilution::NumSmithBasicItemsHf - 1].clear();
-			} else {
-				for (; !devilution::PremiumItems[idx + 1].isEmpty(); idx++) {
-					devilution::PremiumItems[idx] = std::move(devilution::PremiumItems[idx + 1]);
-				}
-				devilution::PremiumItems[idx].clear();
-			}
+			devilution::ReplacePremium(*devilution::MyPlayer, idx);
 			devilution::CalcPlrInv(*devilution::MyPlayer, true);
 			devilution::StartStore(devilution::OldActiveStore);
 		}
 	} else if (devilution::ActiveStore == devilution::TalkID::HealerBuy) {
 		idx = -1;
 
-		for (int i = 0; i < 20; i++) {
+		for (int i = 0; i < devilution::HealerItems.size(); i++) {
 			if (data->itemList[itemID].compare(devilution::HealerItems[i])) {
 				idx = i;
 				break;
@@ -1646,17 +1629,10 @@ void Server::buyItem(int itemID)
 				if (idx < 3)
 					return;
 			}
+			devilution::HealerItems.erase(devilution::HealerItems.begin() + idx);
+			CalcPlrInv(*devilution::MyPlayer, true);
+			devilution::StartStore(devilution::OldActiveStore);
 		}
-		if (idx == 19) {
-			devilution::HealerItems[19].clear();
-		} else {
-			for (; !devilution::HealerItems[idx + 1].isEmpty(); idx++) {
-				devilution::HealerItems[idx] = std::move(devilution::HealerItems[idx + 1]);
-			}
-			devilution::HealerItems[idx].clear();
-		}
-		CalcPlrInv(*devilution::MyPlayer, true);
-		devilution::StartStore(devilution::OldActiveStore);
 	} else if (devilution::ActiveStore == devilution::TalkID::BoyBuy) {
 		devilution::PlaySFX(devilution::SfxID::MenuSelect);
 
@@ -1681,9 +1657,10 @@ void Server::buyItem(int itemID)
 			devilution::StoreAutoPlace(devilution::BoyItem, true);
 			devilution::BoyItem.clear();
 			devilution::OldActiveStore = devilution::TalkID::Boy;
+			devilution::CalcPlrInv(*devilution::MyPlayer, true);
 			devilution::OldTextLine = 12;
+			devilution::StartStore(devilution::OldActiveStore);
 		}
-		devilution::StartStore(devilution::OldActiveStore);
 	}
 }
 
@@ -1724,7 +1701,7 @@ void Server::sellItem(int itemID)
 	else
 		myPlayer.RemoveSpdBarItem(-(devilution::PlayerItemIndexes[idx] + 1));
 
-	int cost = devilution::PlayerItems[idx]._iIvalue;
+	const int cost = devilution::PlayerItems[idx]._iIvalue;
 	devilution::CurrentItemIndex--;
 	if (idx != devilution::CurrentItemIndex) {
 		while (idx < devilution::CurrentItemIndex) {
