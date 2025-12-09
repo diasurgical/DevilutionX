@@ -1,227 +1,216 @@
-# Installing
+# 🛠️ Installation Guide for DevilutionX
 
-First, you will need access to the game's MPQ files.
+This guide will walk you through the process of installing DevilutionX, starting with the required game files and then providing system-specific instructions.
 
-- Locate `DIABDAT.MPQ` on your CD, or in the [GoG](https://www.gog.com/game/diablo) installation (or [extract it from the GoG installer](https://github.com/diasurgical/devilutionX/wiki/Extracting-MPQs-from-the-GoG-installer)).
-- For the Diablo: Hellfire expansion you will also need `hellfire.mpq`, `hfmonk.mpq`, `hfmusic.mpq`, `hfvoice.mpq`.
-- DevilutionX comes with [devilutionx.mpq](https://github.com/diasurgical/devilutionx-assets/releases/latest/download/devilutionx.mpq) which is required to run the game properly.
-- Chinese, Korean, and Japanese users will also need [fonts.mpq](https://github.com/diasurgical/devilutionx-assets/releases/latest/download/fonts.mpq) or the text will be missing.
-- For Polish voice support you need [pl.mpq](https://github.com/diasurgical/devilutionx-assets/releases/latest/download/pl.mpq)
-- For Russian voice support you need [ru.mpq](https://github.com/diasurgical/devilutionx-assets/releases/latest/download/ru.mpq)
+## 1. Required MPQ Files
 
-Download the latest [DevilutionX release](https://github.com/diasurgical/devilutionX/releases) for your system (if available) and extract the contents to a location of your choosing, or [build from source](building.md). Then follow the system-specific instructions below.
+First, you will need the base game's files (`.mpq` files). You should place all the necessary files in the **same directory** for your specific platform's installation steps below.
 
-<details><summary>Android</summary>
+### Base Game Files (Required)
 
-First install the App via one of these 3 methods:
+* Locate **`DIABDAT.MPQ`** from your original Diablo CD or the [GoG installation](https://www.gog.com/game/diablo).
+    * *Tip:* If you have the GoG installer, you can [extract the MPQ file](https://github.com/diasurgical/devilutionX/wiki/Extracting-MPQs-from-the-GoG-installer).
 
-- [Google Play](https://play.google.com/store/apps/details?id=org.diasurgical.devilutionx)
-- Copy the APK file to the device and tap on it in the device's file explorer and follow the instructions
-- Install via `adb install` (if USB debugging is enabled on the device)
+### DevilutionX Assets (Conditional)
 
-Then launch the App, this will let it create the folder where you need to place the MPQ files.
+For some platforms, these assets are packaged within the application (e.g., Android, macOS, Switch). When needed, this should normally have been included when you downloaded the application.
 
-Connect the device to your computer via USB cable, and allow data access from your device:
+* **If you are somehow missing it and getting errors regarding missing files or the game not starting correctly, you can try downloading the latest bundle:**
+    * [Download `devilutionx.mpq`](https://github.com/diasurgical/devilutionx-assets/releases/latest/download/devilutionx.mpq)
 
-![image](https://user-images.githubusercontent.com/204594/139543023-3c45bb22-35f7-41af-8b3d-c714a9542d23.png)
+### Diablo: Hellfire Expansion (Optional)
 
-Open the device's internal storage, and navigate to `Android/data/org.diasurgical.devilutionx/files`, then copy the MPQ-files to this folder.
+If you own the Hellfire expansion, include these additional files:
 
-![image](https://user-images.githubusercontent.com/204594/139542962-4e776854-6ca4-4872-8ed6-6303fc4bf040.png)
+* **`hellfire.mpq`**
+* **`hfmonk.mpq`**
+* **`hfmusic.mpq`**
+* **`hfvoice.mpq`**
 
-When the transfer is done you can disconnect your device and press "Check again" in the App to start the game.
+### Language/Region Specific Files (Optional)
 
-![image](https://user-images.githubusercontent.com/204594/139541657-d8c1197d-fbef-42b6-a34f-2b17f1ceab5f.png)
+Include these files if you need special language support:
 
-**Troubleshooting**: If you encounter some trouble getting the MPQ files onto your Android device, you can refer to
-[our guide](https://github.com/diasurgical/devilutionX/wiki/Extracting-MPQs-from-the-GoG-installer#android) for extracting the MPQ files on the Android device itself.
-Note that Inno Setup Extractor is only available for Android 8+ and the Import Data feature is only available for Android 7.1.1+.
+* **`fonts.mpq`**: Required for Chinese, Korean, and Japanese text.
+    * [Download `fonts.mpq`](https://github.com/diasurgical/devilutionx-assets/releases/latest/download/fonts.mpq)
+* **`pl.mpq`**: For Polish voice support.
+    * [Download `pl.mpq`](https://github.com/diasurgical/devilutionx-assets/releases/latest/download/pl.mpq)
+* **`ru.mpq`**: For Spanish voice support.
+    * [Download `es.mpq`](https://github.com/diasurgical/devilutionx-assets/releases/latest/download/es.mpq)
+* **`ru.mpq`**: For Russian voice support.
+    * [Download `ru.mpq`](https://github.com/diasurgical/devilutionx-assets/releases/latest/download/ru.mpq)
 
-</details>
+## 2. Download DevilutionX
 
-<details><summary>Windows</summary>
+Download the latest [DevilutionX release](https://github.com/diasurgical/devilutionX/releases) for your system (if available) and extract the contents to a location of your choosing, or [build from source](building.md).
 
-**Note**: if you have the GoG version installed on your Windows machine, you do not need to copy the MPQ files as described in the instructions.
-- Copy the MPQ files to the folder containing the DevilutionX exe, or to the data folder. The data folder path may differ, but will normally be `%AppData%\diasurgical\devilution`
-- Run `devilutionx.exe`
+---
 
-</details>
+## 3. System-Specific Instructions
 
-<details><summary>Linux</summary>
+Follow the instructions for your specific operating system or device.
 
-- Copy the MPQ files to the folder containing the DevilutionX executable, or to the data folder. The data folder path may differ depending on distro, version, and security settings, but will normally be `~/.local/share/diasurgical/devilution/`, for flatpak installation the path is `~/.var/app/org.diasurgical.DevilutionX/data/diasurgical/devilution/`
-- Install [SDL2](https://www.libsdl.org/download-2.0.php):
-- Ubuntu/Debian/Rasbian `sudo apt install libsdl2-2.0-0 libsdl2-image-2.0-0`
-- Fedora `sudo dnf install SDL2`
-- Run `./devilutionx`
+<details><summary>💻 Windows</summary>
 
-</details>
+**Note**: If you have the GoG version installed on your Windows machine, you do not need to manually copy the MPQ files.
 
-<details><summary>MacOS X</summary>
-
-- Copy the MPQ files to the folder containing the DevilutionX application, or to the data folder. The data folder path may differ, but will normally be `~/Library/Application Support/diasurgical/devilution`
-- Double-click `devilutionx`
+1.  Copy the MPQ files (from section 1) to **one** of the following locations:
+    * The folder containing the `devilutionx.exe` executable.
+    * The data folder, usually located at: `%AppData%\diasurgical\devilution`
+2.  Run `devilutionx.exe`.
 
 </details>
 
-<details><summary>FreeBSD</summary>
+<details><summary>🐧 Linux</summary>
 
-- Copy the MPQ files to the folder containing the DevilutionX application, or to the data folder `~/.local/share/diasurgical/devilution/`
-- To install the port: `cd /usr/ports/games/devilutionX/ && make install clean`
-- To add the package, run one of these commands:
-  `pkg install games/devilutionX` || `pkg install devilutionX`
-- Run `devilutionx`
-
-</details>
-
-<details><summary>iOS & iPadOS</summary>
-
-Certain sideloading applications exist which can let you install IPA packages to your device such as AltStore (https://altstore.io/) and Sideloadly (https://sideloadly.io/). Using such a sideloading application, install the .ipa file to your iDevice.
-
-Once the App is installed, launch it once. It will say that it cannot find the data file (.MPQ). This is ok. Close the game. Do not skip this step as it will create your Documents folder that you will need to access in later steps.
-
-There are 3 way to get install the MPQs. Make sure to have installed the app and have launched it once before attempting to copy over the MPQ files.
-
-~~Method 1~~ (***May no longer work***): ~~Using the files.app~~
-
-~~- Using the files.app, navigate to "On My iPhone / On My iPad"~~
-
-![ios_mpq_files01](https://user-images.githubusercontent.com/1339414/145088910-5664aed6-3a53-43f4-8088-834796792f68.png)
-
-~~- Copy the MPQs to the devilutionx directory. Your directory should look like on the picture below~~
-
-![ios_mpq_files02](https://user-images.githubusercontent.com/1339414/145089068-2c87887b-58c3-4759-9270-9d8934fe90bb.png)
-
-~~- Go back to your home screen and launch the game~~
-
-Method 2: Using Finder (MacOS)
-
-On more recent versions of MacOS, iTunes is no more. Instead you can use Finder to directly copy data to and from your iDevices
-
-- Connect your iDevice to your computer and click on the "Files" tab.
-
-  ![ios_mpq_finder01](https://user-images.githubusercontent.com/1339414/145089218-f5424196-f345-45da-aca6-9c2b2e06cdf0.png)
-
-- Drag and drop the MPQ files on the devilutionx directory
-
-Method 3: Using iTunes (Windows and older MacOS)
-
-- Connect you iDevice to your computer and launch iTunes
-
-- Click on your device and in the files tab drag and drop the MPQ files to the devilutionx directory
+1.  Install [SDL2](https://www.libsdl.org/download-2.0.php):
+    * **Ubuntu/Debian/Rasbian**: `sudo apt install libsdl2-2.0-0 libsdl2-image-2.0-0`
+    * **Fedora**: `sudo dnf install SDL2`
+2.  Copy the MPQ files (from section 1) to **one** of the following locations:
+    * The folder containing the DevilutionX executable.
+    * The data folder, which will normally be: `~/.local/share/diasurgical/devilution/`
+    * *Flatpak Installation Path:* `~/.var/app/org.diasurgical.DevilutionX/data/diasurgical/devilution/`
+3.  Run `./devilutionx`.
 
 </details>
 
-<details><summary>Nintendo Switch</summary>
+<details><summary>🍎 MacOS X</summary>
 
-- Copy `devilutionx.nro` in into `/switch/devilutionx`
-- Copy the MPQ files to `/switch/devilutionx`.
-- Launch `devilutionx.nro` by holding R the installed game. Do not use the album to launch, if you use the album, the homebrew will only have a small amount of memory available, and the touch keyboard won't work. This is true for all homebrew, not just DevilutionX.
+1.  Copy the MPQ files (from section 1) to **one** of the following locations:
+    * The folder containing the DevilutionX application.
+    * The data folder, which will normally be: `~/Library/Application Support/diasurgical/devilution`
+2.  Double-click `devilutionx`.
 
 </details>
 
-<details><summary>Nintendo 3DS</summary>
+<details><summary>🤖 Android</summary>
 
-Download `devilutionx.cia` from the [latest release](https://github.com/diasurgical/devilutionX/releases/latest) and place it on your SD card.
-This file will be used later to install the game on the 3DS console.
+1.  **Install the App** via one of these 3 methods:
+    * [Google Play](https://play.google.com/store/apps/details?id=org.diasurgical.devilutionx)
+    * Copy the APK file to the device and tap on it.
+    * Install via `adb install` (if USB debugging is enabled).
+2.  **Launch the App once** to create the necessary data folder.
+3.  Connect the device to your computer via USB cable, and allow data access.
+4.  Copy the MPQ files (from section 1) to the folder: `Android/data/org.diasurgical.devilutionx/files` on the device's internal storage.
+5.  Disconnect your device and press **"Check again"** in the App to start the game.
 
-Copy the MPQ files to the `devilutionx` subfolder under the `3ds` folder on your SD card (`/3ds/devilutionx`). The game will read these files from this location.
-You do not need a copy of `devilutionx.mpq` on your SD card to run the game on 3DS.
-To avoid errors when you run the game, if you have an old version of `devilutionx.mpq` in the folder, you should remove it now. Note, all file and folder names should be lowercase, as shown in the example screenshot below.
+> **Troubleshooting**: If you have trouble getting the MPQ files onto your device, refer to [our guide](https://github.com/diasurgical/devilutionX/wiki/Extracting-MPQs-from-the-GoG-installer#android) for extracting the MPQ files on the Android device itself.
 
-![image](https://user-images.githubusercontent.com/9203145/141046152-61be39dc-d14e-4b10-accf-1755a93972f7.png)
+</details>
 
-Put the SD card back into the 3DS console and then power it on.
-Use a title manager such as [FBI](https://github.com/Steveice10/FBI) to install `devilutionx.cia`.
-You will no longer need `devilutionx.cia` after this step, and so it can be removed after the installation.
+<details><summary>📱 iOS & iPadOS</summary>
 
-![image](https://user-images.githubusercontent.com/9203145/141047377-789e5f1c-d049-4a25-82bb-8b3572d791cf.png)
+Use a sideloading application like [AltStore](https://altstore.io/) or [Sideloadly](https://sideloadly.io/) to install the `.ipa` file to your iDevice.
 
-FBI provides the `Remote Install` option to download and install a cia in one step by scanning a QR code using the Nintendo 3DS camera.
-This is most useful when upgrading from a previous version so that you can perform the installation without removing the SD card from the console.
-If you'd like to use this option, scan the QR code below.
+1.  **Launch the App once** after installation. It will state it cannot find the data file (`.MPQ`). This is required to create your Documents folder. Close the game.
+2.  Copy the MPQ files (from section 1) using one of the following methods:
 
-![image](https://user-images.githubusercontent.com/9203145/144300019-e315c05f-515c-484d-975b-ce99da641585.png)
+    **Method 1: Using Finder (MacOS)**
+    * Connect your iDevice to your computer.
+    * In Finder, click on your device and navigate to the **"Files"** tab.
+    * Drag and drop the MPQ files onto the `devilutionx` directory.
+
+    **Method 2: Using iTunes (Windows and older MacOS)**
+    * Connect your iDevice to your computer and launch iTunes.
+    * Click on your device, go to the **"File Sharing"** section, and drag and drop the MPQ files to the `devilutionx` directory.
+
+</details>
+
+<details><summary>🕹️ Nintendo Switch</summary>
+
+1.  Copy **`devilutionx.nro`** into `/switch/devilutionx`.
+2.  Copy the MPQ files (from section 1) to `/switch/devilutionx`.
+3.  Launch `devilutionx.nro` by holding **R** on the installed game.
+    > **Note:** Do not use the album to launch, as this limits memory and disables the touch keyboard for all homebrew.
+
+</details>
+
+<details><summary>🕹️ Nintendo 3DS</summary>
+
+1.  Download **`devilutionx.cia`** from the [latest release](https://github.com/diasurgical/devilutionX/releases/latest) and place it on your SD card.
+2.  Copy the MPQ files (from section 1) to the **`devilutionx`** subfolder under the **`3ds`** folder on your SD card (`/3ds/devilutionx`).
+    > **Note:** All file and folder names should be lowercase. You do **not** need `devilutionx.mpq` on the SD card for 3DS.
+3.  Put the SD card back into the console and power it on.
+4.  Use a title manager like [FBI](https://github.com/Steveice10/FBI) to install `devilutionx.cia`.
+    > *Optional:* You can use FBI's `Remote Install` option by scanning the QR code:
+    > ![image](https://user-images.githubusercontent.com/9203145/144300019-e315c05f-515c-484d-975b-ce99da641585.png)
 
 [Nintendo 3DS manual](/docs/manual/platforms/3ds.md)
 
 </details>
 
-<details><summary>Xbox One/Series</summary>
+<details><summary>🎮 Xbox One/Series</summary>
 
-- Go to https://gamr13.github.io/ and follow the instructions in the Discord server
-- Install DevilutionX and FTP-server from the given URLs
-- Open DevilutionX
-- Open and start the FTP-server
-- Press `View` on DevilutionX and select `Manage game and add-ons`
-- Go to `File info` and note `FullName`
-- Copy the MPQ files to `/LOCALFOLDER/*FullName*/LocalState/diasurgical/devilution` using a FTP-client on your PC
-
-![image](https://user-images.githubusercontent.com/204594/187104388-fc5648da-5629-4335-ae8b-403600721e2a.png)
+1.  Go to https://gamr13.github.io/ and follow the instructions in the Discord server.
+2.  Install **DevilutionX** and **FTP-server** from the given URLs.
+3.  Open DevilutionX, then open and start the FTP-server.
+4.  Press `View` on DevilutionX and select `Manage game and add-ons`.
+5.  Go to `File info` and note the `FullName`.
+6.  Copy the MPQ files (from section 1) using an FTP-client on your PC to the path:
+    `/LOCALFOLDER/*FullName*/LocalState/diasurgical/devilution`
 
 </details>
 
-<details><summary>Playstation 4</summary>
+<details><summary>🎮 Playstation 4</summary>
 
-- Install devilutionx-ps4.pkg
-- Copy the MPQ files (e.g., using ftp) to `/user/data/diasurgical/devilution/`
-
-</details>
-
-<details><summary>Playstation Vita</summary>
-
-- Install devilutionx.vpk
-- Copy the MPQ files to `ux0:/data/diasurgical/devilution/`.
+1.  Install `devilutionx-ps4.pkg`.
+2.  Copy the MPQ files (from section 1) to `/user/data/diasurgical/devilution/` (e.g., using FTP).
 
 </details>
 
-<details><summary>ClockworkPi GameShell</summary>
+<details><summary>🎮 Playstation Vita</summary>
 
-- Copy the `__init__.py` to a newly created folder under /home/cpi/apps/Menu and run it from the menu. The folder then symbolizes the devilutionX icon.
-- From this menu, you can press 'X' to clone the git repository for devilutionX and compile the code. Dependencies are installed automatically (cmake and SDL development packages).
-- Once installed, 'X' pulls the updated code and does the compiling. Note that any changes made locally to the source are reverted before pulling.
-- When the compile is finished, Copy the MPQ files to `/home/cpi/.local/share/diasurgical/devilution/`
-- You can now play the game from the same icon.
+1.  Install `devilutionx.vpk`.
+2.  Copy the MPQ files (from section 1) to `ux0:/data/diasurgical/devilution/`.
 
 </details>
 
-<details><summary>GKD350h</summary>
+<details><summary>🕹️ ClockworkPi GameShell</summary>
 
-- Copy [devilutionx-gkd350h.opk](https://github.com/diasurgical/devilutionX/releases/download/1.0.1/devilutionx-gkd350h.opk) to `/media/data/apps` or `/media/sdcard/apps/`.
-- Copy the MPQ files to `/usr/local/home/.local/share/diasurgical/devilution/`
-
-</details>
-
-<details><summary>RetroFW</summary>
-
-**Requires RetroFW 2.0+.**
-
-- Copy [devilutionx-retrofw.opk](https://github.com/diasurgical/devilutionX/releases/latest/download/devilutionx-retrofw.opk) to the apps directory.
-- Copy the MPQ files to `~/.local/share/diasurgical/devilution`
-
-`~` is your home directory, `/home/retrofw` by default.
+1.  Copy the `__init__.py` to a newly created folder under `/home/cpi/apps/Menu` and run it from the menu.
+2.  From this menu, press **'X'** to clone the git repository and compile the code (dependencies are installed automatically).
+3.  Once installed, pressing **'X'** will update and recompile.
+4.  Copy the MPQ files (from section 1) to `/home/cpi/.local/share/diasurgical/devilution/`.
+5.  You can now play the game from the same icon.
 
 </details>
 
-<details><summary>RG350</summary>
+<details><summary>🕹️ GKD350h</summary>
+
+1.  Copy [devilutionx-gkd350h.opk](https://github.com/diasurgical/devilutionX/releases/download/1.0.1/devilutionx-gkd350h.opk) to `/media/data/apps` or `/media/sdcard/apps/`.
+2.  Copy the MPQ files (from section 1) to `/usr/local/home/.local/share/diasurgical/devilution/`.
+
+</details>
+
+<details><summary>🕹️ RetroFW</summary>
+
+**Requires RetroFW 2.0+**
+
+1.  Copy [devilutionx-retrofw.opk](https://github.com/diasurgical/devilutionX/releases/latest/download/devilutionx-retrofw.opk) to the apps directory.
+2.  Copy the MPQ files (from section 1) to `~/.local/share/diasurgical/devilution`.
+    > `~` is your home directory, `/home/retrofw` by default.
+
+</details>
+
+<details><summary>🕹️ RG350</summary>
 
 **Requires firmware v1.5+**
 
-- Copy [devilutionx-rg350.opk](https://github.com/diasurgical/devilutionX/releases/latest/download/devilutionx-rg350.opk) to `/media/sdcard/APPS/`.
-- Copy the MPQ files to `/media/home/.local/share/diasurgical/devilution/`
-- **NOTE:** You can copy the MPQ files to sdcard instead and create a symlink at the expected location. To do this, SSH into your RG350 and run:
-
- ~~~bash
- ln -sf /media/sdcard/<path_to_MPQ> /media/home/.local/share/diasurgical/devilution/<MPQ>
- ~~~
+1.  Copy [devilutionx-rg350.opk](https://github.com/diasurgical/devilutionX/releases/latest/download/devilutionx-rg350.opk) to `/media/sdcard/APPS/`.
+2.  Copy the MPQ files (from section 1) to `/media/home/.local/share/diasurgical/devilution/`.
+3.  **NOTE (Advanced):** You can create a symlink instead. SSH into your RG350 and run:
+    ```bash
+    ln -sf /media/sdcard/<path_to_MPQ> /media/home/.local/share/diasurgical/devilution/<MPQ>
+    ```
 
 </details>
 
-<details><summary>Miyoo Mini</summary>
+<details><summary>🕹️ Miyoo Mini</summary>
 
 **Requires OnionOS to be installed**
 
-- Activate the ports collection by using the onion installer on the device
-- Copy the contents of the released .zip-file onto the root of your SD card
-- Copy the MPQ files to `/Emu/PORTS/Binaries/Diablo.port/FILES_HERE/`
+1.  Activate the ports collection using the Onion Installer on the device.
+2.  Copy the contents of the released `.zip` file onto the root of your SD card.
+3.  Copy the MPQ files (from section 1) to `/Emu/PORTS/Binaries/Diablo.port/FILES_HERE/`.
+
 </details>
