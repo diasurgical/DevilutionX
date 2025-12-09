@@ -885,32 +885,8 @@ void CheckTriggers()
 	}
 
 	// If player 1 didn't trigger, check local co-op players
-	if (triggeringPlayer == nullptr && IsLocalCoopEnabled()) {
-		for (size_t localIdx = 0; localIdx < g_LocalCoop.players.size(); ++localIdx) {
-			const LocalCoopPlayer &coopPlayer = g_LocalCoop.players[localIdx];
-			if (!coopPlayer.active || !coopPlayer.initialized)
-				continue;
-
-			const uint8_t playerId = LocalCoopIndexToPlayerId(static_cast<int>(localIdx));
-			if (playerId >= Players.size())
-				continue;
-
-			Player &player = Players[playerId];
-			if (player._pmode != PM_STAND)
-				continue;
-			if (!player.isOnActiveLevel())
-				continue;
-
-			for (int i = 0; i < numtrigs; i++) {
-				if (player.position.tile == trigs[i].position) {
-					triggeringPlayer = &player;
-					triggerIndex = i;
-					break;
-				}
-			}
-			if (triggeringPlayer != nullptr)
-				break;
-		}
+	if (triggeringPlayer == nullptr) {
+		triggeringPlayer = FindLocalCoopPlayerOnTrigger(triggerIndex);
 	}
 
 	// No player triggered anything

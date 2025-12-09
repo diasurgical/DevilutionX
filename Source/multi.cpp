@@ -501,13 +501,7 @@ bool InitSingle(GameData *gameData)
 	pfile_read_player_from_save(gSaveNumber, *MyPlayer);
 
 	// Load available heroes for local co-op players
-	if (IsLocalCoopEnabled()) {
-		for (size_t i = 0; i < g_LocalCoop.players.size(); ++i) {
-			if (g_LocalCoop.players[i].active) {
-				LoadAvailableHeroesForLocalPlayer(static_cast<int>(i));
-			}
-		}
-	}
+	LoadAvailableHeroesForAllLocalCoopPlayers();
 
 	return true;
 }
@@ -518,7 +512,7 @@ bool InitMulti(GameData *gameData)
 	if (IsLocalCoopAvailable()) {
 		InitLocalCoop();
 		// Resize players array to accommodate all local players
-		Players.resize(g_LocalCoop.GetTotalPlayerCount());
+		Players.resize(GetLocalCoopTotalPlayerCount());
 	} else {
 		Players.resize(MAX_PLRS);
 	}
@@ -548,13 +542,7 @@ bool InitMulti(GameData *gameData)
 	pfile_read_player_from_save(gSaveNumber, *MyPlayer);
 
 	// Load available heroes for local co-op players
-	if (IsLocalCoopEnabled()) {
-		for (size_t i = 0; i < g_LocalCoop.players.size(); ++i) {
-			if (g_LocalCoop.players[i].active) {
-				LoadAvailableHeroesForLocalPlayer(static_cast<int>(i));
-			}
-		}
-	}
+	LoadAvailableHeroesForAllLocalCoopPlayers();
 
 	return true;
 }

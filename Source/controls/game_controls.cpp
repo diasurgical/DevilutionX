@@ -261,42 +261,23 @@ void PressControllerButton(ControllerButton button)
 		// Handle shoulder buttons for belt item access
 		switch (button) {
 		case devilution::ControllerButton_BUTTON_LEFTSHOULDER:
-			g_LocalCoop.player1LeftShoulderHeld = true;
+			SetPlayerShoulderHeld(0, true, true);
 			return;
 		case devilution::ControllerButton_BUTTON_RIGHTSHOULDER:
-			g_LocalCoop.player1RightShoulderHeld = true;
+			SetPlayerShoulderHeld(0, false, true);
 			return;
 		default:
 			break;
 		}
 		
 		// Check if shoulder buttons are held - if so, A/B/X/Y should use belt items
-		if (g_LocalCoop.player1LeftShoulderHeld || g_LocalCoop.player1RightShoulderHeld) {
-			int beltSlot = -1;
-			switch (button) {
-			case devilution::ControllerButton_BUTTON_A:
-				beltSlot = (g_LocalCoop.player1LeftShoulderHeld ? 0 : 4);
-				break;
-			case devilution::ControllerButton_BUTTON_B:
-				beltSlot = (g_LocalCoop.player1LeftShoulderHeld ? 1 : 5);
-				break;
-			case devilution::ControllerButton_BUTTON_X:
-				beltSlot = (g_LocalCoop.player1LeftShoulderHeld ? 2 : 6);
-				break;
-			case devilution::ControllerButton_BUTTON_Y:
-				beltSlot = (g_LocalCoop.player1LeftShoulderHeld ? 3 : 7);
-				break;
-			default:
-				break;
+		const int beltSlot = GetPlayerBeltSlotFromButton(0, button);
+		if (beltSlot >= 0 && beltSlot < MaxBeltItems) {
+			// Use belt item at this slot
+			if (!Players[0].SpdList[beltSlot].isEmpty()) {
+				UseInvItem(INVITEM_BELT_FIRST + beltSlot);
 			}
-			
-			if (beltSlot >= 0 && beltSlot < MaxBeltItems) {
-				// Use belt item at this slot
-				if (!Players[0].SpdList[beltSlot].isEmpty()) {
-					UseInvItem(INVITEM_BELT_FIRST + beltSlot);
-				}
-				return;
-			}
+			return;
 		}
 		
 		// Check if Player 1 has an interaction target (uses global cursor vars)
@@ -326,9 +307,9 @@ void PressControllerButton(ControllerButton button)
 		}
 		
 		if (slotIndex >= 0) {
-			// HandlePlayer1SkillButtonDown returns true if we should not process further
+			// HandlePlayerSkillButtonDown returns true if we should not process further
 			// (e.g., when assigning a spell from the quick menu)
-			if (HandlePlayer1SkillButtonDown(slotIndex))
+			if (HandlePlayerSkillButtonDown(0, slotIndex))
 				return;
 			// Otherwise, we start tracking for long press
 			// The actual spell cast happens on button release (handled elsewhere)
@@ -483,10 +464,10 @@ bool HandleControllerButtonEvent(const SDL_Event &event, const ControllerButtonE
 		// Handle shoulder button release
 		switch (ctrlEvent.button) {
 		case devilution::ControllerButton_BUTTON_LEFTSHOULDER:
-			g_LocalCoop.player1LeftShoulderHeld = false;
+			SetPlayerShoulderHeld(0, true, false);
 			return true;
 		case devilution::ControllerButton_BUTTON_RIGHTSHOULDER:
-			g_LocalCoop.player1RightShoulderHeld = false;
+			SetPlayerShoulderHeld(0, false, false);
 			return true;
 		default:
 			break;
@@ -511,9 +492,9 @@ bool HandleControllerButtonEvent(const SDL_Event &event, const ControllerButtonE
 		}
 		
 		if (slotIndex >= 0) {
-			// HandlePlayer1SkillButtonUp returns true if it was a long press (opened menu)
+			// HandlePlayerSkillButtonUp returns true if it was a long press (opened menu)
 			// Returns false if it was a short press - we should cast the spell
-			if (!HandlePlayer1SkillButtonUp(slotIndex)) {
+			if (!HandlePlayerSkillButtonUp(0, slotIndex)) {
 				// Short press - cast the spell from the slot
 				Player &player = Players[0];
 				SpellID spell = player._pSplHotKey[slotIndex];

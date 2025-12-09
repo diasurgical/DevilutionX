@@ -511,19 +511,7 @@ void DrawObject(const Surface &out, const Object &objectToDraw, Point tilePositi
 	const Point screenPosition = targetBufferPosition + objectToDraw.getRenderingOffset(sprite, tilePosition);
 
 	// Check if this object is under any player's cursor (Player 1 or local coop players)
-	bool isHighlighted = (&objectToDraw == ObjectUnderCursor);
-	if (!isHighlighted && IsLocalCoopEnabled()) {
-		// Check if any local coop player has this object under cursor
-		for (size_t i = 0; i < g_LocalCoop.players.size(); ++i) {
-			const LocalCoopPlayer &coopPlayer = g_LocalCoop.players[i];
-			if (coopPlayer.active && coopPlayer.initialized) {
-				if (coopPlayer.cursor.objectUnderCursor == &objectToDraw) {
-					isHighlighted = true;
-					break;
-				}
-			}
-		}
-	}
+	const bool isHighlighted = (&objectToDraw == ObjectUnderCursor) || IsLocalCoopTargetObject(&objectToDraw);
 
 	if (isHighlighted) {
 		ClxDrawOutlineSkipColorZero(out, 194, screenPosition, sprite);
@@ -1144,7 +1132,7 @@ void CalcFirstTilePosition(Point &position, Displacement &offset)
 	bool anyPlayerWalking = false;
 	Direction walkDir = Direction::South;
 	bool hasLocalCoopCameraOffset = false;
-	if (IsLocalCoopEnabled() && g_LocalCoop.GetInitializedPlayerCount() > 0) {
+	if (IsAnyLocalCoopPlayerInitialized()) {
 		// Check if camera has any offset (indicating it's interpolating)
 		if (localCoopOffset.deltaX != 0 || localCoopOffset.deltaY != 0) {
 			hasLocalCoopCameraOffset = true;
@@ -1234,25 +1222,8 @@ void DrawGame(const Surface &fullOut, Point position, Displacement offset)
 	// Draw areas moving in and out of the screen
 	// In local co-op, check if any player is walking and expand render area accordingly
 #ifndef USE_SDL1
-	bool shouldExpandForWalk = false;
 	Direction expandDir = Direction::South;
-	if (IsLocalCoopEnabled() && g_LocalCoop.GetInitializedPlayerCount() > 0) {
-		// Check all players for walking
-		size_t totalPlayers = g_LocalCoop.GetTotalPlayerCount();
-		for (size_t i = 0; i < totalPlayers && i < Players.size(); ++i) {
-			const Player &player = Players[i];
-			if (player.plractive && player._pHitPoints > 0 && player.isWalking()) {
-				shouldExpandForWalk = true;
-				expandDir = player._pdir;
-				// Use the direction that requires most expansion
-				// For simplicity, just add tiles for any walking player
-				break;
-			}
-		}
-	} else {
-		shouldExpandForWalk = MyPlayer->isWalking();
-		expandDir = MyPlayer->_pdir;
-	}
+	const bool shouldExpandForWalk = IsAnyLocalPlayerWalking(expandDir);
 	if (shouldExpandForWalk) {
 		switch (expandDir) {
 #else
@@ -1461,7 +1432,7 @@ void DrawView(const Surface &out, Point startPosition)
 #ifndef USE_SDL1
 	// Hide flask tops only when local co-op has at least one other player initialized
 	// When only player 1, show the original UI with flask tops
-	if (!IsLocalCoopEnabled() || g_LocalCoop.GetInitializedPlayerCount() == 0) {
+	if (!IsAnyLocalCoopPlayerInitialized()) {
 #endif
 		DrawLifeFlaskUpper(out);
 		DrawManaFlaskUpper(out);
@@ -1890,16 +1861,7 @@ void DrawAndBlit()
 	// hide the main panel UI and use corner HUDs instead.
 	// Player 1's corner HUD will show when local coop is enabled.
 	// But keep the main panel visible until other players have actually joined the game.
-	bool hideMainPanelForLocalCoop = false;
-	if (IsLocalCoopEnabled()) {
-		// Only hide main panel if at least one local co-op player has spawned
-		for (size_t i = 0; i < g_LocalCoop.players.size(); ++i) {
-			if (g_LocalCoop.players[i].active && g_LocalCoop.players[i].initialized) {
-				hideMainPanelForLocalCoop = true;
-				break;
-			}
-		}
-	}
+	const bool hideMainPanelForLocalCoop = IsAnyLocalCoopPlayerInitialized();
 #else
 	const bool hideMainPanelForLocalCoop = false;
 #endif

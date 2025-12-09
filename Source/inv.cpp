@@ -1309,10 +1309,10 @@ void DrawInvBelt(const Surface &out)
 		if (IsLocalCoopEnabled() && &myPlayer == &Players[0]) {
 			// Button labels for belt slots: A, B, X, Y
 			static constexpr std::string_view ButtonLabels[] = { "A", "B", "X", "Y" };
-			if (g_LocalCoop.player1LeftShoulderHeld && i < 4) {
+			if (IsPlayerShoulderHeld(0, true) && i < 4) {
 				shoulderLabel = ButtonLabels[i].data();
 				showShoulderLabel = true;
-			} else if (g_LocalCoop.player1RightShoulderHeld && i >= 4 && i < 8) {
+			} else if (IsPlayerShoulderHeld(0, false) && i >= 4 && i < 8) {
 				shoulderLabel = ButtonLabels[i - 4].data();
 				showShoulderLabel = true;
 			}
