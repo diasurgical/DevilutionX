@@ -25,19 +25,32 @@
 
 		div.emscripten_border {
 			border: 1px solid black;
+			margin: 20px auto;
+			width: min(90vw, calc((100vh - 200px) * 4 / 3));
+			max-width: 1280px;
+			aspect-ratio: 4 / 3;
+			display: flex;
+			justify-content: center;
+			align-items: center;
 		}
 
 		/* the canvas *must not* have any border or padding, or mouse coords will be wrong */
 		canvas.emscripten {
 			border: 0px none;
 			background-color: black;
-			width: 640px;
-			height: 480px;
-			user-select: none;
+			width: 100%;
+			height: 100%;
+			max-width: 100%;
+			max-height: 100%;
+			object-fit: contain;
+			image-rendering: pixelated;
+			image-rendering: crisp-edges;
 			-webkit-user-select: none;
-			-webkit-user-drag: none;
 			-moz-user-select: none;
 			-ms-user-select: none;
+			user-select: none;
+			-webkit-user-drag: none;
+			pointer-events: auto;
 		}
 
 		#emscripten_logo {
@@ -244,6 +257,12 @@
 
 		#fileInput {
 			display: none;
+		}
+
+		@media screen and (max-width: 700px) {
+			div.emscripten_border {
+				width: min(calc(100vw - 40px), calc((100vh - 200px) * 4 / 3));
+			}
 		}
 	</style>
 </head>
