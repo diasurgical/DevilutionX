@@ -172,6 +172,55 @@ const Direction FaceDir[3][3] = {
 	{ Direction::South, Direction::SouthWest, Direction::SouthEast }, // AxisDirectionY_DOWN
 };
 
+/// Button to skill slot mapping: A=2, B=3, X=0, Y=1
+constexpr int ButtonToSkillSlot[] = { 2, 3, 0, 1 };  // South, East, West, North
+
+/// Button to belt slot offset mapping (when shoulder held): A=0, B=1, X=2, Y=3
+constexpr int ButtonToBeltOffset[] = { 0, 1, 2, 3 };  // South, East, West, North
+
+/**
+ * @brief Calculate belt slot index from button press and shoulder state.
+ * 
+ * @param buttonIndex 0=South/A, 1=East/B, 2=West/X, 3=North/Y
+ * @param leftShoulderHeld True if left shoulder is held (belt slots 0-3)
+ * @param rightShoulderHeld True if right shoulder is held (belt slots 4-7)
+ * @return Belt slot index (0-7), or -1 if no shoulder is held
+ */
+int GetBeltSlotFromButton(int buttonIndex, bool leftShoulderHeld, bool rightShoulderHeld)
+{
+	if (!leftShoulderHeld && !rightShoulderHeld)
+		return -1;
+	
+	int baseSlot = leftShoulderHeld ? 0 : 4;
+	return baseSlot + ButtonToBeltOffset[buttonIndex];
+}
+
+/**
+ * @brief Try to use a belt item for the given player based on button press.
+ * 
+ * @param playerId Game player ID
+ * @param buttonIndex 0=South/A, 1=East/B, 2=West/X, 3=North/Y
+ * @param leftShoulderHeld True if left shoulder is held
+ * @param rightShoulderHeld True if right shoulder is held
+ * @return true if a belt item was used, false otherwise
+ */
+bool TryUseBeltItem(uint8_t playerId, int buttonIndex, bool leftShoulderHeld, bool rightShoulderHeld)
+{
+	int beltSlot = GetBeltSlotFromButton(buttonIndex, leftShoulderHeld, rightShoulderHeld);
+	if (beltSlot < 0 || beltSlot >= MaxBeltItems)
+		return false;
+	
+	if (playerId >= Players.size())
+		return false;
+	
+	if (Players[playerId].SpdList[beltSlot].isEmpty())
+		return false;
+	
+	LocalCoopPlayerContext context(playerId);
+	UseInvItem(INVITEM_BELT_FIRST + beltSlot);
+	return true;
+}
+
 /**
  * @brief Check if a tile position is within allowed distance from other players.
  * 
@@ -450,7 +499,8 @@ void ProcessLocalCoopDpadInput(int localIndex, const SDL_Event &event)
 	
 	// If this coop player owns panels, use D-pad for panel navigation instead of movement
 	// Panels: inventory, character sheet, quest log, spellbook
-	if (g_LocalCoop.panelOwner == localIndex && (invflag || CharFlag || QuestLogIsOpen || SpellbookFlag)) {
+	const uint8_t playerId = LocalCoopIndexToPlayerId(localIndex);
+	if (g_LocalCoop.panelOwnerPlayerId == playerId && (invflag || CharFlag || QuestLogIsOpen || SpellbookFlag)) {
 		if (event.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN) {
 			const auto button = SDLC_EventGamepadButton(event).button;
 			AxisDirection dir = { AxisDirectionX_NONE, AxisDirectionY_NONE };
@@ -474,7 +524,6 @@ void ProcessLocalCoopDpadInput(int localIndex, const SDL_Event &event)
 			
 			if (dir.x != AxisDirectionX_NONE || dir.y != AxisDirectionY_NONE) {
 				// Swap player context so panel navigation works for this coop player
-				const uint8_t playerId = LocalCoopIndexToPlayerId(localIndex);
 				if (playerId < Players.size()) {
 					LocalCoopPlayerContext context(playerId);
 					// Navigate the panel using the navigation system
@@ -594,7 +643,7 @@ void ProcessLocalCoopButtonInput(int localIndex, const SDL_Event &event)
 		return;
 	
 	// Store mode: this player owns the store
-	if (g_LocalCoop.storeOwner == localIndex && IsPlayerInStore()) {
+	if (g_LocalCoop.storeOwnerPlayerId == playerId && IsPlayerInStore()) {
 		if (isButtonDown) {
 			switch (button) {
 			case SDL_GAMEPAD_BUTTON_SOUTH: // A button = Confirm/Enter
@@ -650,20 +699,13 @@ void ProcessLocalCoopButtonInput(int localIndex, const SDL_Event &event)
 		case SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER: // RB = Hold to show belt labels on slots 5-8
 			coopPlayer.rightShoulderHeld = true;
 			break;
+			
 		case SDL_GAMEPAD_BUTTON_SOUTH: // A button - Primary action or skill slot 2
 			// Check if shoulder button is held - if so, use belt item
-			if (coopPlayer.leftShoulderHeld || coopPlayer.rightShoulderHeld) {
-				int beltSlot = (coopPlayer.leftShoulderHeld ? 0 : 4);
-				if (beltSlot < MaxBeltItems) {
-					LocalCoopPlayerContext context(playerId);
-					if (!Players[playerId].SpdList[beltSlot].isEmpty()) {
-						UseInvItem(INVITEM_BELT_FIRST + beltSlot);
-					}
-					return;
-				}
-			}
+			if (TryUseBeltItem(playerId, 0, coopPlayer.leftShoulderHeld, coopPlayer.rightShoulderHeld))
+				return;
 			// If this player owns panels (inventory/character/etc.), always perform primary action for panel interaction
-			if (g_LocalCoop.panelOwner == localIndex && (invflag || CharFlag || QuestLogIsOpen || SpellbookFlag)) {
+			if (g_LocalCoop.panelOwnerPlayerId == playerId && (invflag || CharFlag || QuestLogIsOpen || SpellbookFlag)) {
 				coopPlayer.actionHeld = GameActionType_PRIMARY_ACTION;
 				ProcessLocalCoopGameAction(localIndex, GameActionType_PRIMARY_ACTION);
 			}
@@ -677,7 +719,7 @@ void ProcessLocalCoopButtonInput(int localIndex, const SDL_Event &event)
 				}
 			} else {
 				// No target - use skill slot 2 (A button slot)
-				coopPlayer.skillButtonHeld = 2;
+				coopPlayer.skillButtonHeld = ButtonToSkillSlot[0];
 				coopPlayer.skillButtonPressTime = now;
 				coopPlayer.skillMenuOpenedByHold = false;
 			}
@@ -685,16 +727,8 @@ void ProcessLocalCoopButtonInput(int localIndex, const SDL_Event &event)
 			
 		case SDL_GAMEPAD_BUTTON_EAST: // B button - Secondary action (pickup) or skill slot 3
 			// Check if shoulder button is held - if so, use belt item
-			if (coopPlayer.leftShoulderHeld || coopPlayer.rightShoulderHeld) {
-				int beltSlot = (coopPlayer.leftShoulderHeld ? 1 : 5);
-				if (beltSlot < MaxBeltItems) {
-					LocalCoopPlayerContext context(playerId);
-					if (!Players[playerId].SpdList[beltSlot].isEmpty()) {
-						UseInvItem(INVITEM_BELT_FIRST + beltSlot);
-					}
-					return;
-				}
-			}
+			if (TryUseBeltItem(playerId, 1, coopPlayer.leftShoulderHeld, coopPlayer.rightShoulderHeld))
+				return;
 			if (HasLocalCoopSecondaryTarget(localIndex)) {
 				// Only perform action if player can change action
 				if (player.CanChangeAction() && player.destAction == ACTION_NONE) {
@@ -703,7 +737,7 @@ void ProcessLocalCoopButtonInput(int localIndex, const SDL_Event &event)
 				}
 			} else {
 				// Start tracking hold for skill slot assignment (B = slot 3)
-				coopPlayer.skillButtonHeld = 3;
+				coopPlayer.skillButtonHeld = ButtonToSkillSlot[1];
 				coopPlayer.skillButtonPressTime = now;
 				coopPlayer.skillMenuOpenedByHold = false;
 			}
@@ -711,20 +745,12 @@ void ProcessLocalCoopButtonInput(int localIndex, const SDL_Event &event)
 			
 		case SDL_GAMEPAD_BUTTON_WEST: // X button - Skill slot 0
 			// Check if shoulder button is held - if so, use belt item
-			if (coopPlayer.leftShoulderHeld || coopPlayer.rightShoulderHeld) {
-				int beltSlot = (coopPlayer.leftShoulderHeld ? 2 : 6);
-				if (beltSlot < MaxBeltItems) {
-					LocalCoopPlayerContext context(playerId);
-					if (!Players[playerId].SpdList[beltSlot].isEmpty()) {
-						UseInvItem(INVITEM_BELT_FIRST + beltSlot);
-					}
-					return;
-				}
-			}
+			if (TryUseBeltItem(playerId, 2, coopPlayer.leftShoulderHeld, coopPlayer.rightShoulderHeld))
+				return;
 			// Only allow spell casting if not already in an action
 			if (player.CanChangeAction() && player.destAction == ACTION_NONE) {
 				// Start tracking hold for skill slot assignment (X = slot 0)
-				coopPlayer.skillButtonHeld = 0;
+				coopPlayer.skillButtonHeld = ButtonToSkillSlot[2];
 				coopPlayer.skillButtonPressTime = now;
 				coopPlayer.skillMenuOpenedByHold = false;
 			}
@@ -732,20 +758,12 @@ void ProcessLocalCoopButtonInput(int localIndex, const SDL_Event &event)
 			
 		case SDL_GAMEPAD_BUTTON_NORTH: // Y button - Skill slot 1
 			// Check if shoulder button is held - if so, use belt item
-			if (coopPlayer.leftShoulderHeld || coopPlayer.rightShoulderHeld) {
-				int beltSlot = (coopPlayer.leftShoulderHeld ? 3 : 7);
-				if (beltSlot < MaxBeltItems) {
-					LocalCoopPlayerContext context(playerId);
-					if (!Players[playerId].SpdList[beltSlot].isEmpty()) {
-						UseInvItem(INVITEM_BELT_FIRST + beltSlot);
-					}
-					return;
-				}
-			}
+			if (TryUseBeltItem(playerId, 3, coopPlayer.leftShoulderHeld, coopPlayer.rightShoulderHeld))
+				return;
 			// Only allow spell casting if not already in an action
 			if (player.CanChangeAction() && player.destAction == ACTION_NONE) {
 				// Start tracking hold for skill slot assignment (Y = slot 1)
-				coopPlayer.skillButtonHeld = 1;
+				coopPlayer.skillButtonHeld = ButtonToSkillSlot[3];
 				coopPlayer.skillButtonPressTime = now;
 				coopPlayer.skillMenuOpenedByHold = false;
 			}
@@ -884,10 +902,10 @@ void UpdateLocalCoopPlayerMovement(int localIndex)
 		return;
 
 	// Don't move when this player owns a panel or store
-	if (g_LocalCoop.panelOwner == localIndex || g_LocalCoop.storeOwner == localIndex)
+	const uint8_t playerId = LocalCoopIndexToPlayerId(localIndex);
+	if (g_LocalCoop.panelOwnerPlayerId == playerId || g_LocalCoop.storeOwnerPlayerId == playerId)
 		return;
 
-	const uint8_t playerId = LocalCoopIndexToPlayerId(localIndex);
 	if (playerId >= Players.size())
 		return;
 
@@ -1047,28 +1065,28 @@ bool LocalCoopState::IsAnyCharacterSelectActive() const
 
 uint8_t LocalCoopState::GetPanelOwnerPlayerId() const
 {
-	if (panelOwner < 0)
+	if (panelOwnerPlayerId < 0)
 		return 0; // Player 1
-	return static_cast<uint8_t>(panelOwner + 1); // Local coop index 0 = player 2
+	return static_cast<uint8_t>(panelOwnerPlayerId);
 }
 
-bool LocalCoopState::TryClaimPanelOwnership(int localIndex)
+bool LocalCoopState::TryClaimPanelOwnership(uint8_t playerId)
 {
 	// Check if panels are currently open
 	bool panelsOpen = IsLeftPanelOpen() || IsRightPanelOpen();
 	
 	// If no panels are open, anyone can claim
 	if (!panelsOpen) {
-		panelOwner = localIndex;
+		panelOwnerPlayerId = static_cast<int>(playerId);
 		return true;
 	}
 	// If this player already owns the panels, allow
-	if (panelOwner == localIndex)
+	if (panelOwnerPlayerId == static_cast<int>(playerId))
 		return true;
-	// If panels are open but panelOwner == -1, Player 1 owns them - block coop players
-	if (panelOwner == -1)
-		return false;
-	// Otherwise, panels are owned by a different coop player
+	// If panels are open but no explicit owner, Player 1 owns them
+	if (panelOwnerPlayerId < 0 && playerId == 0)
+		return true;
+	// Panels are owned by another player
 	return false;
 }
 
@@ -1076,7 +1094,7 @@ void LocalCoopState::ReleasePanelOwnership()
 {
 	// Only release if no panels are open
 	if (!IsLeftPanelOpen() && !IsRightPanelOpen()) {
-		panelOwner = -1;
+		panelOwnerPlayerId = -1;
 		// Restore MyPlayer and InspectPlayer to Player 1
 		if (Players.size() > 0) {
 			MyPlayer = &Players[0];
@@ -1084,6 +1102,20 @@ void LocalCoopState::ReleasePanelOwnership()
 			InspectPlayer = &Players[0];
 		}
 	}
+}
+
+LocalCoopPlayer* LocalCoopState::GetCoopPlayer(uint8_t playerId)
+{
+	if (playerId == 0 || playerId > players.size())
+		return nullptr;
+	return &players[playerId - 1];
+}
+
+const LocalCoopPlayer* LocalCoopState::GetCoopPlayer(uint8_t playerId) const
+{
+	if (playerId == 0 || playerId > players.size())
+		return nullptr;
+	return &players[playerId - 1];
 }
 
 void InitLocalCoop()
@@ -1158,14 +1190,212 @@ bool IsLocalCoopEnabled()
 
 bool IsAnyLocalCoopPlayerInitialized()
 {
-	if (!g_LocalCoop.enabled)
+	if (!IsLocalCoopEnabled())
+		return false;
+	
+	return g_LocalCoop.GetInitializedPlayerCount() > 0;
+}
+
+size_t GetLocalCoopTotalPlayerCount()
+{
+	if (!IsLocalCoopEnabled())
+		return 1; // Just player 1
+	return g_LocalCoop.GetTotalPlayerCount();
+}
+
+bool IsLocalCoopTargetObject(const Object *object)
+{
+	if (object == nullptr || !IsLocalCoopEnabled())
 		return false;
 	
 	for (size_t i = 0; i < g_LocalCoop.players.size(); ++i) {
-		if (g_LocalCoop.players[i].active && g_LocalCoop.players[i].initialized)
-			return true;
+		const LocalCoopPlayer &coopPlayer = g_LocalCoop.players[i];
+		if (coopPlayer.active && coopPlayer.initialized) {
+			if (coopPlayer.cursor.objectUnderCursor == object) {
+				return true;
+			}
+		}
 	}
 	return false;
+}
+
+void LoadAvailableHeroesForAllLocalCoopPlayers()
+{
+	if (!IsLocalCoopEnabled())
+		return;
+	
+	for (size_t i = 0; i < g_LocalCoop.players.size(); ++i) {
+		if (g_LocalCoop.players[i].active) {
+			LoadAvailableHeroesForLocalPlayer(static_cast<int>(i));
+		}
+	}
+}
+
+void SyncLocalCoopPlayersToLevel(interface_mode fom, int lvl)
+{
+	if (!IsLocalCoopEnabled())
+		return;
+	
+	for (size_t localIdx = 0; localIdx < g_LocalCoop.players.size(); ++localIdx) {
+		const LocalCoopPlayer &coopPlayer = g_LocalCoop.players[localIdx];
+		if (!coopPlayer.active || !coopPlayer.initialized)
+			continue;
+
+		const uint8_t coopPlayerId = LocalCoopIndexToPlayerId(static_cast<int>(localIdx));
+		if (coopPlayerId >= Players.size())
+			continue;
+
+		Player &coopPlayerRef = Players[coopPlayerId];
+		
+		// Sync level for local coop player
+		InitLevelChange(coopPlayerRef);
+		
+		// Set the same mode and invincibility as MyPlayer for level transition
+		coopPlayerRef._pmode = PM_NEWLVL;
+		coopPlayerRef._pInvincible = true;
+		
+		switch (fom) {
+		case WM_DIABNEXTLVL:
+		case WM_DIABPREVLVL:
+		case WM_DIABRTNLVL:
+		case WM_DIABTOWNWARP:
+			coopPlayerRef.setLevel(lvl);
+			break;
+		case WM_DIABSETLVL:
+			coopPlayerRef.setLevel(setlvlnum);
+			break;
+		case WM_DIABTWARPUP:
+			coopPlayerRef.setLevel(lvl);
+			break;
+		case WM_DIABRETOWN:
+			break;
+		default:
+			break;
+		}
+	}
+	
+	// Reset camera initialization so it re-centers on all players
+	// at the new level's spawn point
+	g_LocalCoop.cameraInitialized = false;
+}
+
+void ResetLocalCoopCamera()
+{
+	g_LocalCoop.cameraInitialized = false;
+}
+
+Player* FindLocalCoopPlayerOnTrigger(int &outTriggerIndex)
+{
+	if (!IsLocalCoopEnabled())
+		return nullptr;
+	
+	for (size_t localIdx = 0; localIdx < g_LocalCoop.players.size(); ++localIdx) {
+		const LocalCoopPlayer &coopPlayer = g_LocalCoop.players[localIdx];
+		if (!coopPlayer.active || !coopPlayer.initialized)
+			continue;
+
+		const uint8_t playerId = LocalCoopIndexToPlayerId(static_cast<int>(localIdx));
+		if (playerId >= Players.size())
+			continue;
+
+		Player &player = Players[playerId];
+		if (player._pmode != PM_STAND)
+			continue;
+		if (!player.isOnActiveLevel())
+			continue;
+
+		for (int i = 0; i < numtrigs; i++) {
+			if (player.position.tile == trigs[i].position) {
+				outTriggerIndex = i;
+				return &player;
+			}
+		}
+	}
+	return nullptr;
+}
+
+bool IsAnyLocalPlayerWalking(Direction &outDirection)
+{
+	if (IsAnyLocalCoopPlayerInitialized()) {
+		// Check all players for walking
+		size_t totalPlayers = g_LocalCoop.GetTotalPlayerCount();
+		for (size_t i = 0; i < totalPlayers && i < Players.size(); ++i) {
+			const Player &player = Players[i];
+			if (player.plractive && player._pHitPoints > 0 && player.isWalking()) {
+				outDirection = player._pdir;
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	// Fallback: just check MyPlayer
+	if (MyPlayer->isWalking()) {
+		outDirection = MyPlayer->_pdir;
+		return true;
+	}
+	return false;
+}
+
+void SetPlayerShoulderHeld(uint8_t playerId, bool isLeft, bool held)
+{
+	if (playerId == 0) {
+		// Player 1
+		if (isLeft) {
+			g_LocalCoop.player1InputState.leftShoulderHeld = held;
+		} else {
+			g_LocalCoop.player1InputState.rightShoulderHeld = held;
+		}
+	} else {
+		// Coop player
+		LocalCoopPlayer* coopPlayer = g_LocalCoop.GetCoopPlayer(playerId);
+		if (coopPlayer != nullptr) {
+			if (isLeft) {
+				coopPlayer->leftShoulderHeld = held;
+			} else {
+				coopPlayer->rightShoulderHeld = held;
+			}
+		}
+	}
+}
+
+bool IsPlayerShoulderHeld(uint8_t playerId, bool isLeft)
+{
+	if (playerId == 0) {
+		// Player 1
+		return isLeft ? g_LocalCoop.player1InputState.leftShoulderHeld 
+		              : g_LocalCoop.player1InputState.rightShoulderHeld;
+	} else {
+		// Coop player
+		const LocalCoopPlayer* coopPlayer = g_LocalCoop.GetCoopPlayer(playerId);
+		if (coopPlayer != nullptr) {
+			return isLeft ? coopPlayer->leftShoulderHeld : coopPlayer->rightShoulderHeld;
+		}
+	}
+	return false;
+}
+
+int GetPlayerBeltSlotFromButton(uint8_t playerId, ControllerButton button)
+{
+	bool leftHeld = IsPlayerShoulderHeld(playerId, true);
+	bool rightHeld = IsPlayerShoulderHeld(playerId, false);
+	
+	if (!leftHeld && !rightHeld)
+		return -1;
+	
+	const int baseOffset = leftHeld ? 0 : 4;
+	switch (button) {
+	case ControllerButton_BUTTON_A:
+		return baseOffset + 0;
+	case ControllerButton_BUTTON_B:
+		return baseOffset + 1;
+	case ControllerButton_BUTTON_X:
+		return baseOffset + 2;
+	case ControllerButton_BUTTON_Y:
+		return baseOffset + 3;
+	default:
+		return -1;
+	}
 }
 
 bool IsLocalCoopPlayer(const Player &player)
@@ -1287,7 +1517,7 @@ void UpdateLocalCoopMovement()
 
 	// Check if a coop player owns panels and they've been closed
 	// If so, release ownership and restore Player 1's context
-	if (g_LocalCoop.panelOwner >= 0) {
+	if (g_LocalCoop.panelOwnerPlayerId > 0) {
 		if (!IsLeftPanelOpen() && !IsRightPanelOpen()) {
 			g_LocalCoop.ReleasePanelOwnership();
 		}
@@ -3082,7 +3312,7 @@ void OpenLocalCoopQuickSpellMenu(int localIndex, int slotIndex)
 	
 	// Set spell menu owner - this player will own the menu until it closes
 	// We switch MyPlayer/InspectPlayer to this player and keep it that way
-	g_LocalCoop.spellMenuOwner = localIndex;
+	g_LocalCoop.spellMenuOwnerPlayerId = static_cast<int>(playerId);
 	
 	// Switch to this player's context for the spell menu
 	MyPlayer = &Players[playerId];
@@ -3105,29 +3335,34 @@ void UpdateLocalCoopSkillButtons()
 	
 	// Check if spell menu was closed while a local coop player owned it
 	// If so, restore MyPlayer/InspectPlayer back to Player 1
-	if (g_LocalCoop.spellMenuOwner >= 0 && !SpellSelectFlag) {
+	if (g_LocalCoop.spellMenuOwnerPlayerId >= 0 && !SpellSelectFlag) {
 		// Menu was closed, restore context
 		MyPlayer = &Players[0];
 		MyPlayerId = 0;
 		InspectPlayer = &Players[0];
 		
 		// Clear ownership
-		int ownerIndex = g_LocalCoop.spellMenuOwner;
-		g_LocalCoop.spellMenuOwner = -1;
+		int ownerPlayerId = g_LocalCoop.spellMenuOwnerPlayerId;
+		g_LocalCoop.spellMenuOwnerPlayerId = -1;
 		
 		// Clear the hold state for the owner
-		if (ownerIndex >= 0 && ownerIndex < static_cast<int>(g_LocalCoop.players.size())) {
-			g_LocalCoop.players[ownerIndex].skillMenuOpenedByHold = false;
+		if (ownerPlayerId == 0) {
+			g_LocalCoop.player1InputState.skillMenuOpenedByHold = false;
+		} else {
+			LocalCoopPlayer* coopPlayer = g_LocalCoop.GetCoopPlayer(static_cast<uint8_t>(ownerPlayerId));
+			if (coopPlayer != nullptr) {
+				coopPlayer->skillMenuOpenedByHold = false;
+			}
 		}
 	}
 	
 	// Check player 1's skill button hold
-	if (g_LocalCoop.player1SkillButtonHeld >= 0 && !g_LocalCoop.player1SkillMenuOpenedByHold) {
-		uint32_t holdDuration = now - g_LocalCoop.player1SkillButtonPressTime;
+	if (g_LocalCoop.player1InputState.skillButtonHeld >= 0 && !g_LocalCoop.player1InputState.skillMenuOpenedByHold) {
+		uint32_t holdDuration = now - g_LocalCoop.player1InputState.skillButtonPressTime;
 		if (holdDuration >= SkillButtonHoldTime) {
 			// Held long enough - open quick spell menu for player 1
 			DoSpeedBook();
-			g_LocalCoop.player1SkillMenuOpenedByHold = true;
+			g_LocalCoop.player1InputState.skillMenuOpenedByHold = true;
 		}
 	}
 	
@@ -3150,7 +3385,7 @@ void UpdateLocalCoopSkillButtons()
 	}
 }
 
-bool HandlePlayer1SkillButtonDown(int slotIndex)
+bool HandlePlayerSkillButtonDown(uint8_t playerId, int slotIndex)
 {
 	if (!g_LocalCoop.enabled)
 		return false;
@@ -3158,21 +3393,40 @@ bool HandlePlayer1SkillButtonDown(int slotIndex)
 	if (slotIndex < 0 || slotIndex >= NumSkillSlots)
 		return false;
 	
-	// If quick spell menu is open and player 1 opened it, assign the spell
-	if (SpellSelectFlag && g_LocalCoop.player1SkillMenuOpenedByHold) {
-		AssignPlayer1SpellToSlot(slotIndex);
-		return true;
+	if (playerId == 0) {
+		// Player 1
+		// If quick spell menu is open and player 1 opened it, assign the spell
+		if (SpellSelectFlag && g_LocalCoop.player1InputState.skillMenuOpenedByHold) {
+			AssignPlayerSpellToSlot(0, slotIndex);
+			return true;
+		}
+		
+		// Start tracking hold for skill slot assignment
+		g_LocalCoop.player1InputState.skillButtonHeld = slotIndex;
+		g_LocalCoop.player1InputState.skillButtonPressTime = SDL_GetTicks();
+		g_LocalCoop.player1InputState.skillMenuOpenedByHold = false;
+	} else {
+		// Coop player
+		LocalCoopPlayer* coopPlayer = g_LocalCoop.GetCoopPlayer(playerId);
+		if (coopPlayer == nullptr || !coopPlayer->active || !coopPlayer->initialized)
+			return false;
+		
+		// If quick spell menu is open and this coop player opened it, assign the spell
+		if (SpellSelectFlag && g_LocalCoop.spellMenuOwnerPlayerId == playerId && coopPlayer->skillMenuOpenedByHold) {
+			AssignPlayerSpellToSlot(playerId, slotIndex);
+			return true;
+		}
+		
+		// Start tracking hold for skill slot assignment
+		coopPlayer->skillButtonHeld = slotIndex;
+		coopPlayer->skillButtonPressTime = SDL_GetTicks();
+		coopPlayer->skillMenuOpenedByHold = false;
 	}
-	
-	// Start tracking hold for skill slot assignment
-	g_LocalCoop.player1SkillButtonHeld = slotIndex;
-	g_LocalCoop.player1SkillButtonPressTime = SDL_GetTicks();
-	g_LocalCoop.player1SkillMenuOpenedByHold = false;
 	
 	return false; // Don't consume - let normal processing happen if not held long enough
 }
 
-bool HandlePlayer1SkillButtonUp(int slotIndex)
+bool HandlePlayerSkillButtonUp(uint8_t playerId, int slotIndex)
 {
 	if (!g_LocalCoop.enabled)
 		return false;
@@ -3180,45 +3434,71 @@ bool HandlePlayer1SkillButtonUp(int slotIndex)
 	if (slotIndex < 0 || slotIndex >= NumSkillSlots)
 		return false;
 	
-	// If we released a skill button that was being held
-	if (g_LocalCoop.player1SkillButtonHeld == slotIndex) {
-		bool wasLongPress = g_LocalCoop.player1SkillMenuOpenedByHold;
-		
-		// Reset hold tracking (but NOT player1SkillMenuOpenedByHold if menu is open)
-		g_LocalCoop.player1SkillButtonHeld = -1;
-		g_LocalCoop.player1SkillButtonPressTime = 0;
-		// Keep player1SkillMenuOpenedByHold true if the spell menu is still open
-		// It will be reset when the menu closes or a spell is assigned
-		
-		// If it was a long press that opened the menu, don't cast
-		if (wasLongPress) {
-			return true;
+	if (playerId == 0) {
+		// Player 1
+		if (g_LocalCoop.player1InputState.skillButtonHeld == slotIndex) {
+			bool wasLongPress = g_LocalCoop.player1InputState.skillMenuOpenedByHold;
+			
+			// Reset hold tracking
+			g_LocalCoop.player1InputState.skillButtonHeld = -1;
+			g_LocalCoop.player1InputState.skillButtonPressTime = 0;
+			
+			// If it was a long press that opened the menu, don't cast
+			if (wasLongPress) {
+				return true;
+			}
+			
+			// Short press - cast the spell (return false to let normal processing handle it)
+			return false;
 		}
+	} else {
+		// Coop player
+		LocalCoopPlayer* coopPlayer = g_LocalCoop.GetCoopPlayer(playerId);
+		if (coopPlayer == nullptr)
+			return true;
 		
-		// Short press - cast the spell (return false to let normal processing handle it)
-		return false;
+		if (coopPlayer->skillButtonHeld == slotIndex) {
+			bool wasLongPress = coopPlayer->skillMenuOpenedByHold;
+			
+			// Reset hold tracking
+			coopPlayer->skillButtonHeld = -1;
+			coopPlayer->skillButtonPressTime = 0;
+			
+			if (wasLongPress) {
+				return true;
+			}
+			
+			return false;
+		}
 	}
 	
-	// Tracking wasn't started for this slot (e.g., A button with target did primary action on press)
-	// Return true to indicate we should NOT process spell cast on release
+	// Tracking wasn't started for this slot
 	return true;
 }
 
-void AssignPlayer1SpellToSlot(int slotIndex)
+void AssignPlayerSpellToSlot(uint8_t playerId, int slotIndex)
 {
 	if (slotIndex < 0 || slotIndex >= NumSkillSlots)
 		return;
 	
-	// Use the standard SetSpeedSpell function
-	SetSpeedSpell(static_cast<size_t>(slotIndex));
-	
-	// Close the spell menu
-	SpellSelectFlag = false;
-	
-	// Reset hold state
-	g_LocalCoop.player1SkillButtonHeld = -1;
-	g_LocalCoop.player1SkillButtonPressTime = 0;
-	g_LocalCoop.player1SkillMenuOpenedByHold = false;
+	if (playerId == 0) {
+		// Player 1 - use the standard SetSpeedSpell function
+		SetSpeedSpell(static_cast<size_t>(slotIndex));
+		
+		// Close the spell menu
+		SpellSelectFlag = false;
+		
+		// Reset hold state
+		g_LocalCoop.player1InputState.skillButtonHeld = -1;
+		g_LocalCoop.player1InputState.skillButtonPressTime = 0;
+		g_LocalCoop.player1InputState.skillMenuOpenedByHold = false;
+	} else {
+		// Coop player - delegate to AssignLocalCoopSpellToSlot
+		int localIndex = PlayerIdToLocalCoopIndex(playerId);
+		if (localIndex >= 0) {
+			AssignLocalCoopSpellToSlot(localIndex, slotIndex);
+		}
+	}
 }
 
 void DrawPlayer1SkillSlots(const Surface &out)
@@ -3260,7 +3540,7 @@ void AssignLocalCoopSpellToSlot(int localIndex, int slotIndex)
 	InspectPlayer = &Players[0];
 	
 	// Clear spell menu ownership
-	g_LocalCoop.spellMenuOwner = -1;
+	g_LocalCoop.spellMenuOwnerPlayerId = -1;
 	coopPlayer.skillMenuOpenedByHold = false;
 }
 
@@ -3286,7 +3566,7 @@ void PerformLocalCoopPrimaryAction(int localIndex)
 	
 	// If this player owns panels and inventory is open, use the standard PerformPrimaryAction
 	// which handles inventory item interaction
-	if (g_LocalCoop.panelOwner == localIndex && invflag) {
+	if (g_LocalCoop.panelOwnerPlayerId == playerId && invflag) {
 		PerformPrimaryAction();
 		return;
 	}
@@ -3436,8 +3716,8 @@ void ProcessLocalCoopGameAction(int localIndex, uint8_t actionType)
 	case GameActionType_TOGGLE_INVENTORY:
 	case GameActionType_TOGGLE_SPELL_BOOK:
 	case GameActionType_TOGGLE_QUEST_LOG:
-		// Panel toggles - try to claim ownership
-		if (g_LocalCoop.TryClaimPanelOwnership(localIndex)) {
+		// Panel toggles - try to claim ownership using playerId
+		if (g_LocalCoop.TryClaimPanelOwnership(playerId)) {
 			// Switch to this player's context for all panel operations
 			// This sets MyPlayer, MyPlayerId, and InspectPlayer to the coop player
 			MyPlayer = &Players[playerId];
@@ -3495,7 +3775,7 @@ void ProcessLocalCoopGameAction(int localIndex, uint8_t actionType)
 	}
 }
 
-bool HandleLocalCoopPlayer1PanelAction(uint8_t actionType)
+bool HandleLocalCoopPanelAction(uint8_t playerId, uint8_t actionType)
 {
 	if (!g_LocalCoop.enabled)
 		return false;
@@ -3508,13 +3788,13 @@ bool HandleLocalCoopPlayer1PanelAction(uint8_t actionType)
 		return false;
 	}
 	
-	// If a coop player owns panels, block Player 1 from interfering
-	if (g_LocalCoop.panelOwner >= 0) {
-		// A coop player owns the panels, Player 1 can't toggle
+	// If another player owns panels, block this player from interfering
+	if (g_LocalCoop.panelOwnerPlayerId >= 0 && g_LocalCoop.panelOwnerPlayerId != static_cast<int>(playerId)) {
+		// Another player owns the panels, this player can't toggle
 		return true; // Consume the action, do nothing
 	}
 	
-	// Player 1 can toggle panels - let the normal handler do it
+	// This player can toggle panels - let the normal handler do it
 	// Return false so ProcessGameAction continues with normal processing
 	return false;
 }
@@ -3526,7 +3806,7 @@ bool AreLocalCoopPanelsOpen()
 
 Player* GetLocalCoopPanelOwnerPlayer()
 {
-	if (!g_LocalCoop.enabled || g_LocalCoop.panelOwner < 0)
+	if (!g_LocalCoop.enabled || g_LocalCoop.panelOwnerPlayerId < 0)
 		return nullptr;
 		
 	uint8_t playerId = g_LocalCoop.GetPanelOwnerPlayerId();
@@ -3588,9 +3868,10 @@ void SetLocalCoopStoreOwner(int localIndex)
 	if (!coopPlayer.active || !coopPlayer.initialized)
 		return;
 
-	g_LocalCoop.storeOwner = localIndex;
+	const uint8_t playerId = LocalCoopIndexToPlayerId(localIndex);
+	g_LocalCoop.storeOwnerPlayerId = static_cast<int>(playerId);
 
-	Log("Local co-op: Setting store owner to player index {}", localIndex);
+	Log("Local co-op: Setting store owner to player {}", playerId + 1);
 }
 
 void ClearLocalCoopStoreOwner()
@@ -3598,31 +3879,31 @@ void ClearLocalCoopStoreOwner()
 	if (!g_LocalCoop.enabled)
 		return;
 
-	if (g_LocalCoop.storeOwner >= 0) {
-		Log("Local co-op: Clearing store owner (was player index {})", g_LocalCoop.storeOwner);
+	if (g_LocalCoop.storeOwnerPlayerId > 0) {
+		Log("Local co-op: Clearing store owner (was player {})", g_LocalCoop.storeOwnerPlayerId + 1);
 		
 		// Reset stick state to prevent residual movement after exiting store
-		if (g_LocalCoop.storeOwner < static_cast<int>(g_LocalCoop.players.size())) {
-			LocalCoopPlayer &coopPlayer = g_LocalCoop.players[g_LocalCoop.storeOwner];
-			coopPlayer.leftStickX = 0.0f;
-			coopPlayer.leftStickY = 0.0f;
+		LocalCoopPlayer* coopPlayer = g_LocalCoop.GetCoopPlayer(static_cast<uint8_t>(g_LocalCoop.storeOwnerPlayerId));
+		if (coopPlayer != nullptr) {
+			coopPlayer->leftStickX = 0.0f;
+			coopPlayer->leftStickY = 0.0f;
 		}
 	}
 
-	g_LocalCoop.storeOwner = -1;
+	g_LocalCoop.storeOwnerPlayerId = -1;
 }
 
 bool IsLocalCoopStoreActive()
 {
-	return g_LocalCoop.enabled && g_LocalCoop.storeOwner >= 0;
+	return g_LocalCoop.enabled && g_LocalCoop.storeOwnerPlayerId > 0;
 }
 
 uint8_t GetLocalCoopStoreOwnerPlayerId()
 {
-	if (!g_LocalCoop.enabled || g_LocalCoop.storeOwner < 0)
+	if (!g_LocalCoop.enabled || g_LocalCoop.storeOwnerPlayerId < 0)
 		return 0;
 
-	return LocalCoopIndexToPlayerId(g_LocalCoop.storeOwner);
+	return static_cast<uint8_t>(g_LocalCoop.storeOwnerPlayerId);
 }
 
 } // namespace devilution
@@ -3643,11 +3924,14 @@ bool IsLocalCoopPlayer(const Player & /*player*/) { return false; }
 bool IsLocalPlayer(const Player &player) { return &player == MyPlayer; }
 void UpdateLocalCoopMovement() { }
 void UpdateLocalCoopSkillButtons() { }
-bool HandlePlayer1SkillButtonDown(int /*slotIndex*/) { return false; }
-bool HandlePlayer1SkillButtonUp(int /*slotIndex*/) { return false; }
-void AssignPlayer1SpellToSlot(int /*slotIndex*/) { }
+bool HandlePlayerSkillButtonDown(uint8_t /*playerId*/, int /*slotIndex*/) { return false; }
+bool HandlePlayerSkillButtonUp(uint8_t /*playerId*/, int /*slotIndex*/) { return false; }
+void AssignPlayerSpellToSlot(uint8_t /*playerId*/, int /*slotIndex*/) { }
 void DrawPlayer1SkillSlots(const Surface & /*out*/) { }
 void AssignLocalCoopSpellToSlot(int /*localIndex*/, int /*slotIndex*/) { }
+void SetPlayerShoulderHeld(uint8_t /*playerId*/, bool /*isLeft*/, bool /*held*/) { }
+bool IsPlayerShoulderHeld(uint8_t /*playerId*/, bool /*isLeft*/) { return false; }
+int GetPlayerBeltSlotFromButton(uint8_t /*playerId*/, ControllerButton /*button*/) { return -1; }
 void LoadAvailableHeroesForLocalPlayer(int /*localIndex*/) { }
 void ConfirmLocalCoopCharacter(int /*localIndex*/) { }
 void DrawLocalCoopCharacterSelect(const Surface & /*out*/) { }
@@ -3671,6 +3955,7 @@ void SetLocalCoopStoreOwner(int /*localIndex*/) { }
 void ClearLocalCoopStoreOwner() { }
 bool IsLocalCoopStoreActive() { return false; }
 uint8_t GetLocalCoopStoreOwnerPlayerId() { return 0; }
+bool HandleLocalCoopPanelAction(uint8_t /*playerId*/, uint8_t /*actionType*/) { return false; }
 
 void LocalCoopCursorState::Reset() { }
 void LocalCoopPlayer::Reset() { }
@@ -3680,8 +3965,10 @@ size_t LocalCoopState::GetInitializedPlayerCount() const { return 0; }
 size_t LocalCoopState::GetTotalPlayerCount() const { return 1; }
 bool LocalCoopState::IsAnyCharacterSelectActive() const { return false; }
 uint8_t LocalCoopState::GetPanelOwnerPlayerId() const { return 0; }
-bool LocalCoopState::TryClaimPanelOwnership(int /*localIndex*/) { return false; }
+bool LocalCoopState::TryClaimPanelOwnership(uint8_t /*playerId*/) { return false; }
 void LocalCoopState::ReleasePanelOwnership() { }
+LocalCoopPlayer* LocalCoopState::GetCoopPlayer(uint8_t /*playerId*/) { return nullptr; }
+const LocalCoopPlayer* LocalCoopState::GetCoopPlayer(uint8_t /*playerId*/) const { return nullptr; }
 
 } // namespace devilution
 

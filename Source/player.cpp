@@ -349,42 +349,6 @@ void DropHalfPlayersGold(Player &player)
 	player._pGold /= 2;
 }
 
-void InitLevelChange(Player &player)
-{
-	const Player &myPlayer = *MyPlayer;
-
-	RemoveEnemyReferences(player);
-	RemovePlrMissiles(player);
-	player.pManaShield = false;
-	player.wReflections = 0;
-	if (&player != MyPlayer) {
-		// share info about your manashield when another player joins the level
-		if (myPlayer.pManaShield)
-			NetSendCmd(true, CMD_SETSHIELD);
-		// share info about your reflect charges when another player joins the level
-		NetSendCmdParam1(true, CMD_SETREFLECT, myPlayer.wReflections);
-	} else if (qtextflag) {
-		qtextflag = false;
-		stream_stop();
-	}
-
-	FixPlrWalkTags(player);
-	SetPlayerOld(player);
-	if (IsLocalPlayer(player)) {
-		player.occupyTile(player.position.tile, false);
-	} else {
-		player._pLvlVisited[player.plrlevel] = true;
-	}
-
-	ClrPlrPath(player);
-	player.destAction = ACTION_NONE;
-	player._pLvlChanging = true;
-
-	if (IsLocalPlayer(player)) {
-		player.pLvlLoad = 10;
-	}
-}
-
 /**
  * @brief Continue movement towards new tile
  */
@@ -1522,6 +1486,42 @@ void GetPlayerGraphicsPath(std::string_view path, std::string_view prefix, std::
 
 } // namespace
 
+void InitLevelChange(Player &player)
+{
+	const Player &myPlayer = *MyPlayer;
+
+	RemoveEnemyReferences(player);
+	RemovePlrMissiles(player);
+	player.pManaShield = false;
+	player.wReflections = 0;
+	if (&player != MyPlayer) {
+		// share info about your manashield when another player joins the level
+		if (myPlayer.pManaShield)
+			NetSendCmd(true, CMD_SETSHIELD);
+		// share info about your reflect charges when another player joins the level
+		NetSendCmdParam1(true, CMD_SETREFLECT, myPlayer.wReflections);
+	} else if (qtextflag) {
+		qtextflag = false;
+		stream_stop();
+	}
+
+	FixPlrWalkTags(player);
+	SetPlayerOld(player);
+	if (IsLocalPlayer(player)) {
+		player.occupyTile(player.position.tile, false);
+	} else {
+		player._pLvlVisited[player.plrlevel] = true;
+	}
+
+	ClrPlrPath(player);
+	player.destAction = ACTION_NONE;
+	player._pLvlChanging = true;
+
+	if (IsLocalPlayer(player)) {
+		player.pLvlLoad = 10;
+	}
+}
+
 /**
  * @brief Start moving a player to a new tile
  */
@@ -2557,13 +2557,13 @@ void InitMultiView()
 	
 	// In local co-op mode with initialized players, center view on all players
 	// Otherwise just use MyPlayer's position
-	if (IsLocalCoopEnabled() && g_LocalCoop.GetInitializedPlayerCount() > 0) {
+	if (IsAnyLocalCoopPlayerInitialized()) {
 		// Calculate center position of all active local coop players
 		Point centerPos = CalculateLocalCoopViewPosition();
 		ViewPosition = centerPos;
 		
 		// Reset camera smoothing to snap to new position
-		g_LocalCoop.cameraInitialized = false;
+		ResetLocalCoopCamera();
 	} else {
 		ViewPosition = MyPlayer->position.tile;
 	}
@@ -2606,7 +2606,7 @@ void FixPlayerLocation(Player &player, Direction bDir)
 	if (IsLocalPlayer(player)) {
 		// In local co-op mode with spawned players, let UpdateLocalCoopCamera handle ViewPosition
 		// to center the view between all players instead of just following Player 1
-		if (!IsLocalCoopEnabled() || g_LocalCoop.GetInitializedPlayerCount() == 0) {
+		if (!IsAnyLocalCoopPlayerInitialized()) {
 			ViewPosition = player.position.tile;
 		}
 	}
@@ -2960,49 +2960,7 @@ StartNewLvl(Player &player, interface_mode fom, int lvl)
 
 		// In local co-op, sync all local coop players to the same level
 		// They share the same screen and must always be on the same level
-		if (IsLocalCoopEnabled()) {
-			for (size_t localIdx = 0; localIdx < g_LocalCoop.players.size(); ++localIdx) {
-				const LocalCoopPlayer &coopPlayer = g_LocalCoop.players[localIdx];
-				if (!coopPlayer.active || !coopPlayer.initialized)
-					continue;
-
-				const uint8_t coopPlayerId = LocalCoopIndexToPlayerId(static_cast<int>(localIdx));
-				if (coopPlayerId >= Players.size())
-					continue;
-
-				Player &coopPlayerRef = Players[coopPlayerId];
-				
-				// Sync level for local coop player
-				InitLevelChange(coopPlayerRef);
-				
-				// Set the same mode and invincibility as MyPlayer for level transition
-				coopPlayerRef._pmode = PM_NEWLVL;
-				coopPlayerRef._pInvincible = true;
-				
-				switch (fom) {
-				case WM_DIABNEXTLVL:
-				case WM_DIABPREVLVL:
-				case WM_DIABRTNLVL:
-				case WM_DIABTOWNWARP:
-					coopPlayerRef.setLevel(lvl);
-					break;
-				case WM_DIABSETLVL:
-					coopPlayerRef.setLevel(setlvlnum);
-					break;
-				case WM_DIABTWARPUP:
-					coopPlayerRef.setLevel(lvl);
-					break;
-				case WM_DIABRETOWN:
-					break;
-				default:
-					break;
-				}
-			}
-			
-			// Reset camera initialization so it re-centers on all players
-			// at the new level's spawn point
-			g_LocalCoop.cameraInitialized = false;
-		}
+		SyncLocalCoopPlayersToLevel(fom, lvl);
 
 		SDL_Event event;
 		CustomEventToSdlEvent(event, fom);
@@ -3351,7 +3309,7 @@ void SyncInitPlrPos(Player &player)
 	if (IsLocalPlayer(player)) {
 		// In local co-op mode with spawned players, let UpdateLocalCoopCamera handle ViewPosition
 		// to center the view between all players instead of just following Player 1
-		if (!IsLocalCoopEnabled() || g_LocalCoop.GetInitializedPlayerCount() == 0) {
+		if (!IsAnyLocalCoopPlayerInitialized()) {
 			ViewPosition = position;
 		}
 	}

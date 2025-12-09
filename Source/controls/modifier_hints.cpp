@@ -179,7 +179,7 @@ void FreeModifierHints()
 void DrawControllerModifierHints(const Surface &out)
 {
 	// Skip drawing when local coop HUD is active - it has its own skill slot display
-	if (IsLocalCoopEnabled() && g_LocalCoop.GetInitializedPlayerCount() > 0)
+	if (IsAnyLocalCoopPlayerInitialized())
 		return;
 	
 	DrawGamepadMenuNavigator(out);

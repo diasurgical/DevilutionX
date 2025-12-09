@@ -21,6 +21,7 @@
 
 #include "DiabloUI/diabloui.h"
 #include "controls/axis_direction.h"
+#include "controls/controller_buttons.h"
 #include "engine/displacement.hpp"
 #include "engine/surface.hpp"
 
@@ -117,19 +118,20 @@ struct LocalCoopState {
 	/// D-pad repeat delay in milliseconds
 	static constexpr uint32_t DpadRepeatDelay = 300;
 	
-	/// Panel ownership: which player controls the currently open panels
-	/// -1 = no owner (player 1 by default), 0-2 = local coop player index
-	int panelOwner = -1;
+	/// Panel ownership: which game player ID controls the currently open panels
+	/// 0 = player 1 (default), 1-3 = local coop players 2-4
+	/// Use -1 to indicate no explicit owner (falls back to player 1)
+	int panelOwnerPlayerId = -1;
 	
-	/// Store ownership: which player is currently using a store/shop
-	/// -1 = no owner (player 1 by default), 0-2 = local coop player index
+	/// Store ownership: which game player ID is currently using a store/shop
+	/// -1 = no owner (player 1 by default), 1-3 = local coop players 2-4
 	/// When set, MyPlayer is temporarily switched to the store owner
-	int storeOwner = -1;
+	int storeOwnerPlayerId = -1;
 	
-	/// Spell menu ownership: which player has the quick spell menu open
-	/// -1 = player 1 (or no one), 0-2 = local coop player index
+	/// Spell menu ownership: which game player ID has the quick spell menu open
+	/// -1 = no owner (falls back to player 1), 0-3 = game player ID
 	/// While open, MyPlayer/InspectPlayer are set to the owning player
-	int spellMenuOwner = -1;
+	int spellMenuOwnerPlayerId = -1;
 	
 	/// Saved MyPlayer pointer when store ownership is active
 	Player* savedMyPlayer = nullptr;
@@ -158,15 +160,16 @@ struct LocalCoopState {
 	/// Higher values = faster camera response but potentially jerky movement
 	static constexpr float CameraSmoothFactor = 0.25f;
 	
-	/// Check if a local coop player owns the panels
-	[[nodiscard]] bool HasPanelOwner() const { return panelOwner >= 0; }
+	/// Check if a local coop player owns the panels (not player 1)
+	[[nodiscard]] bool HasPanelOwner() const { return panelOwnerPlayerId > 0; }
 	
 	/// Get the game player ID that owns panels (0 for player 1, 1-3 for local coop)
 	[[nodiscard]] uint8_t GetPanelOwnerPlayerId() const;
 	
-	/// Try to claim panel ownership for a local coop player
+	/// Try to claim panel ownership for a game player
+	/// @param playerId Game player ID (0 = player 1, 1-3 = coop players)
 	/// Returns true if ownership was granted
-	bool TryClaimPanelOwnership(int localIndex);
+	bool TryClaimPanelOwnership(uint8_t playerId);
 	
 	/// Release panel ownership (call when all panels are closed)
 	void ReleasePanelOwnership();
@@ -185,15 +188,21 @@ struct LocalCoopState {
 	/// Check if any player has character selection active
 	[[nodiscard]] bool IsAnyCharacterSelectActive() const;
 	
-	/// Player 1 skill button hold state for long-press quick spell assignment
-	/// -1 = no button held, 0-3 = skill slot being held
-	int player1SkillButtonHeld = -1;
-	uint32_t player1SkillButtonPressTime = 0;
-	bool player1SkillMenuOpenedByHold = false;  // Track if we opened the menu via long press
+	/// Player 1 input state - uses same structure as LocalCoopPlayer for consistency
+	/// Note: Only the input-related fields are used (shoulder/skill button state)
+	struct {
+		int skillButtonHeld = -1;           ///< Skill slot being held (-1 = none, 0-3 = slot)
+		uint32_t skillButtonPressTime = 0;  ///< When skill button was pressed
+		bool skillMenuOpenedByHold = false; ///< Whether menu was opened via long press
+		bool leftShoulderHeld = false;      ///< Left shoulder held for belt slots 1-4
+		bool rightShoulderHeld = false;     ///< Right shoulder held for belt slots 5-8
+	} player1InputState;
 	
-	// Player 1 shoulder button hold state for belt item access
-	bool player1LeftShoulderHeld = false;   // When held, shows A/B/X/Y labels on belt slots 1-4
-	bool player1RightShoulderHeld = false;  // When held, shows A/B/X/Y labels on belt slots 5-8
+	/// Get the LocalCoopPlayer for a coop player (players 2-4)
+	/// @param playerId Game player ID (1-3 for coop players)
+	/// @return Pointer to LocalCoopPlayer, or nullptr if invalid or player 1
+	[[nodiscard]] LocalCoopPlayer* GetCoopPlayer(uint8_t playerId);
+	[[nodiscard]] const LocalCoopPlayer* GetCoopPlayer(uint8_t playerId) const;
 };
 
 extern LocalCoopState g_LocalCoop;
@@ -238,6 +247,77 @@ bool IsLocalCoopEnabled();
  * When true, corner HUDs are shown and main panel is hidden.
  */
 bool IsAnyLocalCoopPlayerInitialized();
+
+/**
+ * @brief Get total player count including player 1.
+ * @return Total number of players (1 + active local coop players)
+ */
+size_t GetLocalCoopTotalPlayerCount();
+
+/**
+ * @brief Check if an object is being targeted by any local coop player.
+ * @param object The object to check
+ * @return true if any local coop player has this object under their cursor
+ */
+bool IsLocalCoopTargetObject(const Object *object);
+
+/**
+ * @brief Load available heroes for all active local coop players.
+ * Should be called when game is initialized to populate character selection.
+ */
+void LoadAvailableHeroesForAllLocalCoopPlayers();
+
+/**
+ * @brief Sync all local coop players to a new level.
+ * Called when any player triggers a level change.
+ * @param fom The interface mode (level change type)
+ * @param lvl The target level
+ */
+void SyncLocalCoopPlayersToLevel(interface_mode fom, int lvl);
+
+/**
+ * @brief Reset local coop camera state.
+ * Should be called when entering a new level to re-center camera.
+ */
+void ResetLocalCoopCamera();
+
+/**
+ * @brief Find the first local coop player standing on a trigger.
+ * @param callback Function to call with playerId and trigger index when found
+ * @return Pointer to the triggering player, or nullptr if none
+ */
+Player* FindLocalCoopPlayerOnTrigger(int &outTriggerIndex);
+
+/**
+ * @brief Check if any local player (including Player 1) is walking.
+ * @param outDirection If a player is walking, their direction is stored here
+ * @return true if any player is walking
+ */
+bool IsAnyLocalPlayerWalking(Direction &outDirection);
+
+/**
+ * @brief Set a player's shoulder button held state.
+ * @param playerId Game player ID (0 = player 1, 1-3 = coop players)
+ * @param isLeft true for left shoulder, false for right shoulder
+ * @param held Whether the button is held
+ */
+void SetPlayerShoulderHeld(uint8_t playerId, bool isLeft, bool held);
+
+/**
+ * @brief Check if a player's shoulder button is held.
+ * @param playerId Game player ID (0 = player 1, 1-3 = coop players)
+ * @param isLeft true for left shoulder, false for right shoulder
+ * @return true if the shoulder button is held
+ */
+bool IsPlayerShoulderHeld(uint8_t playerId, bool isLeft);
+
+/**
+ * @brief Get belt slot from button when shoulder is held for a player.
+ * @param playerId Game player ID (0 = player 1, 1-3 = coop players)
+ * @param button The face button (A/B/X/Y)
+ * @return Belt slot 0-7 if shoulder is held and valid button, or -1 if not applicable
+ */
+int GetPlayerBeltSlotFromButton(uint8_t playerId, ControllerButton button);
 
 #ifndef USE_SDL1
 /**
@@ -325,30 +405,33 @@ void UpdateLocalCoopMovement();
 void UpdateLocalCoopSkillButtons();
 
 /**
- * @brief Handle player 1 skill button press when local coop is enabled.
+ * @brief Handle skill button press for any player when local coop is enabled.
  *
  * Tracks button hold state for long-press to open quick spell menu.
- * @param slotIndex Skill slot index (0=A, 1=B, 2=X, 3=Y)
+ * @param playerId Game player ID (0 = player 1, 1-3 = coop players)
+ * @param slotIndex Skill slot index (0=X, 1=Y, 2=A, 3=B)
  * @return true if the press was handled (should not be processed further)
  */
-bool HandlePlayer1SkillButtonDown(int slotIndex);
+bool HandlePlayerSkillButtonDown(uint8_t playerId, int slotIndex);
 
 /**
- * @brief Handle player 1 skill button release when local coop is enabled.
+ * @brief Handle skill button release for any player when local coop is enabled.
  *
  * If short press, casts the spell. If long press was used to open menu, does nothing.
- * @param slotIndex Skill slot index (0=A, 1=B, 2=X, 3=Y)
+ * @param playerId Game player ID (0 = player 1, 1-3 = coop players)
+ * @param slotIndex Skill slot index (0=X, 1=Y, 2=A, 3=B)
  * @return true if the release was handled
  */
-bool HandlePlayer1SkillButtonUp(int slotIndex);
+bool HandlePlayerSkillButtonUp(uint8_t playerId, int slotIndex);
 
 /**
- * @brief Assign spell to player 1's skill slot from quick spell menu.
+ * @brief Assign spell to a player's skill slot from quick spell menu.
  *
- * Called when player 1 selects a spell while the quick spell menu is open.
+ * Called when a player selects a spell while the quick spell menu is open.
+ * @param playerId Game player ID (0 = player 1, 1-3 = coop players)
  * @param slotIndex Skill slot to assign (0-3)
  */
-void AssignPlayer1SpellToSlot(int slotIndex);
+void AssignPlayerSpellToSlot(uint8_t playerId, int slotIndex);
 
 /**
  * @brief Draw skill slots for player 1 on the main panel.
@@ -365,6 +448,7 @@ void DrawPlayer1SkillSlots(const Surface &out);
  * player is assigning skills.
  * @param localIndex Local co-op player index (0-2)
  * @param slotIndex Skill slot to assign (0-3)
+ * @deprecated Use AssignPlayerSpellToSlot with playerId instead
  */
 void AssignLocalCoopSpellToSlot(int localIndex, int slotIndex);
 
@@ -496,15 +580,16 @@ void UpdateLocalCoopTargetSelection(int localIndex);
 void ProcessLocalCoopGameAction(int localIndex, uint8_t actionType);
 
 /**
- * @brief Handle Player 1's panel toggle actions when local coop is enabled.
+ * @brief Handle panel toggle actions for any player when local coop is enabled.
  *
- * Routes Player 1's panel actions through the panel ownership system
- * so they work the same way as coop players.
+ * Routes panel actions through the panel ownership system so all players
+ * are treated the same way.
  *
+ * @param playerId Game player ID (0 = player 1, 1-3 = coop players)
  * @param actionType The panel action type (TOGGLE_CHARACTER_INFO, TOGGLE_INVENTORY, etc.)
- * @return true if the action was handled, false if it should use default processing
+ * @return true if the action was handled (panel opened or ownership blocked), false if default processing should continue
  */
-bool HandleLocalCoopPlayer1PanelAction(uint8_t actionType);
+bool HandleLocalCoopPanelAction(uint8_t playerId, uint8_t actionType);
 
 /**
  * @brief Perform primary action for a local co-op player.

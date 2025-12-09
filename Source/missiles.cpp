@@ -3702,7 +3702,7 @@ void ProcessTeleport(Missile &missile)
 	if (IsLocalPlayer(player)) {
 		// In local co-op mode with spawned players, let UpdateLocalCoopCamera handle the ViewPosition
 		// to keep the camera centered between all players
-		if (!IsLocalCoopEnabled() || g_LocalCoop.GetInitializedPlayerCount() == 0) {
+		if (!IsAnyLocalCoopPlayerInitialized()) {
 			ViewPosition = player.position.tile;
 		}
 	}
