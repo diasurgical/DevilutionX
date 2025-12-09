@@ -35,7 +35,7 @@ Include these files if you need special language support:
     * [Download `fonts.mpq`](https://github.com/diasurgical/devilutionx-assets/releases/latest/download/fonts.mpq)
 * **`pl.mpq`**: For Polish voice support.
     * [Download `pl.mpq`](https://github.com/diasurgical/devilutionx-assets/releases/latest/download/pl.mpq)
-* **`ru.mpq`**: For Spanish voice support.
+* **`es.mpq`**: For Spanish voice support.
     * [Download `es.mpq`](https://github.com/diasurgical/devilutionx-assets/releases/latest/download/es.mpq)
 * **`ru.mpq`**: For Russian voice support.
     * [Download `ru.mpq`](https://github.com/diasurgical/devilutionx-assets/releases/latest/download/ru.mpq)
