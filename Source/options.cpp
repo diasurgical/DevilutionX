@@ -740,11 +740,11 @@ GraphicsOptions::GraphicsOptions()
     : OptionCategoryBase("Graphics", N_("Graphics"), N_("Graphics Settings"))
     , fullscreen("Fullscreen", OnlyIfSupportsWindowed | OptionEntryFlags::CantChangeInGame | OptionEntryFlags::RecreateUI, N_("Fullscreen"), N_("Display the game in windowed or fullscreen mode."),
 #ifdef __EMSCRIPTEN__
-        false  // Default to windowed mode for browser
+          false // Default to windowed mode for browser
 #else
-        true
+          true
 #endif
-    )
+          )
 #if !defined(USE_SDL1) || defined(__3DS__)
     , fitToScreen("Fit to Screen", OptionEntryFlags::CantChangeInGame | OptionEntryFlags::RecreateUI, N_("Fit to Screen"), N_("Automatically adjust the game window to your current desktop screen aspect ratio and resolution."),
 #if defined(__DJGPP__) || defined(__EMSCRIPTEN__)
