@@ -1488,7 +1488,7 @@ void DrawAutomapText(const Surface &out)
 		.flags = UiFlags::ColorOrange,
 	};
 
-	advanceLine(1);
+	advanceLine();
 	drawStringAndAdvanceLine("Debug toggles:");
 	drawStringAndAdvanceLine("Player:");
 	drawStringAndAdvanceLine("God Mode", DebugGodMode ? enabled : disabled);
