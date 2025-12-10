@@ -58,6 +58,7 @@ int AvailableObjects[MAXOBJECTS];
 int ActiveObjects[MAXOBJECTS];
 int ActiveObjectCount;
 bool LoadingMapObjects;
+int NaKrulTomeSequence;
 
 namespace {
 
@@ -114,9 +115,6 @@ object_graphic_id ObjFileList[40];
 /** Specifies the number of active objects. */
 int leverid;
 int numobjfiles;
-
-/** Tracks progress through the tome sequence that spawns Na-Krul (see OperateNakrulBook()) */
-int NaKrulTomeSequence;
 
 /** Specifies the X-coordinate delta between barrels. */
 int bxadd[8] = { -1, 0, 1, -1, 1, -1, 0, 1 };
@@ -1658,7 +1656,7 @@ void UpdateBurningCrossDamage(Object &cross)
 		return;
 
 	ApplyPlrDamage(DamageType::Fire, myPlayer, 0, 0, damage[leveltype - 1]);
-	if (myPlayer._pHitPoints >> 6 > 0) {
+	if (!myPlayer.hasNoLife()) {
 		myPlayer.Say(HeroSpeech::Argh);
 	}
 }
@@ -2533,7 +2531,7 @@ void OperateShrineCostOfWisdom(Player &player, SpellID spellId, diablo_message m
 	player._pMana -= t;
 	player._pMaxMana -= t;
 	player._pMaxManaBase -= t;
-	if (player._pMana >> 6 <= 0) {
+	if (player.hasNoMana()) {
 		player._pMana = v1;
 		player._pManaBase = 0;
 	}
@@ -3388,7 +3386,7 @@ void OperateStoryBook(Object &storyBook)
 			NetSendCmd(false, CMD_NAKRUL);
 			return;
 		}
-	} else if (leveltype == DTYPE_CRYPT) {
+	} else if (leveltype == DTYPE_CRYPT && Quests[Q_NAKRUL]._qactive != QUEST_DONE) {
 		Quests[Q_NAKRUL]._qactive = QUEST_ACTIVE;
 		Quests[Q_NAKRUL]._qlog = true;
 		Quests[Q_NAKRUL]._qmsg = msg;

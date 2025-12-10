@@ -380,7 +380,6 @@ bool WasPlayerCmdAlreadyRequested(_cmd_id bCmd, Point position = {}, uint16_t wP
 	case _cmd_id::CMD_RATTACKPID:
 	case _cmd_id::CMD_SPELLPID:
 	case _cmd_id::CMD_ATTACKPID:
-	case _cmd_id::CMD_ATTACKXY:
 	case _cmd_id::CMD_SATTACKXY:
 	case _cmd_id::CMD_RATTACKXY:
 	case _cmd_id::CMD_SPELLXY:
@@ -1653,20 +1652,6 @@ size_t OnSyncPutItem(const TCmdPItem &message, Player &player)
 	return sizeof(message);
 }
 
-size_t OnAttackTile(const TCmdLoc &message, Player &player)
-{
-	const Point position { message.x, message.y };
-
-	if (gbBufferMsgs != 1 && player.isOnActiveLevel() && leveltype != DTYPE_TOWN && InDungeonBounds(position)) {
-		MakePlrPath(player, position, false);
-		player.destAction = ACTION_ATTACK;
-		player.destParam1 = position.x;
-		player.destParam2 = position.y;
-	}
-
-	return sizeof(message);
-}
-
 size_t OnStandingAttackTile(const TCmdLoc &message, Player &player)
 {
 	const Point position { message.x, message.y };
@@ -2076,7 +2061,7 @@ size_t OnPlayerDamage(const TCmdDamage &message, Player &player)
 
 	Player &target = Players[message.bPlr];
 	if (&target == MyPlayer && leveltype != DTYPE_TOWN && gbBufferMsgs != 1) {
-		if (player.isOnActiveLevel() && damage <= 192000 && target._pHitPoints >> 6 > 0) {
+		if (player.isOnActiveLevel() && damage <= 192000 && !target.hasNoLife()) {
 			ApplyPlrDamage(message.damageType, target, 0, 0, static_cast<int>(damage), DeathReason::Player);
 		}
 	}
@@ -2308,7 +2293,7 @@ size_t OnPlayerJoinLevel(const TCmdLocParam2 &message, Player &player)
 		ResetPlayerGFX(player);
 		if (player.isOnActiveLevel()) {
 			SyncInitPlr(player);
-			if ((player._pHitPoints >> 6) > 0) {
+			if (!player.hasNoLife()) {
 				StartStand(player, Direction::South);
 			} else {
 				player._pgfxnum &= ~0xFU;
@@ -3359,8 +3344,6 @@ size_t ParseCmd(uint8_t pnum, const TCmd *pCmd, size_t maxCmdSize)
 		return HandleCmd(OnSyncPutItem, player, pCmd, maxCmdSize);
 	case CMD_SPAWNITEM:
 		return HandleCmd(OnSpawnItem, player, pCmd, maxCmdSize);
-	case CMD_ATTACKXY:
-		return HandleCmd(OnAttackTile, player, pCmd, maxCmdSize);
 	case CMD_SATTACKXY:
 		return HandleCmd(OnStandingAttackTile, player, pCmd, maxCmdSize);
 	case CMD_RATTACKXY:

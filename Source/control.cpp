@@ -1466,7 +1466,7 @@ void CheckMainPanelButtonUp()
 					NetSendCmd(true, CMD_RETOWN);
 				}
 				break;
-			} else if (MyPlayer->_pHitPoints == 0) {
+			} else if (MyPlayer->hasNoLife()) {
 				break;
 			}
 			qtextflag = false;
@@ -1808,7 +1808,7 @@ void control_drop_gold(SDL_Keycode vkey)
 {
 	Player &myPlayer = *MyPlayer;
 
-	if (myPlayer._pHitPoints >> 6 <= 0) {
+	if (myPlayer.hasNoLife()) {
 		CloseGoldDrop();
 		return;
 	}

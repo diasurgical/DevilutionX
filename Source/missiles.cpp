@@ -330,7 +330,7 @@ bool MonsterMHit(const Player &player, Monster &monster, int mindam, int maxdam,
 	if (&player == MyPlayer)
 		ApplyMonsterDamage(damageType, monster, dam);
 
-	if (monster.hitPoints >> 6 <= 0) {
+	if (monster.hasNoLife()) {
 		M_StartKill(monster, player);
 	} else if (resist) {
 		monster.tag(player);
@@ -723,7 +723,7 @@ bool GuardianTryFireAt(Missile &missile, Point target)
 	const Monster &monster = Monsters[mid];
 	if (monster.isPlayerMinion())
 		return false;
-	if (monster.hitPoints >> 6 <= 0)
+	if (monster.hasNoLife())
 		return false;
 
 	const Player &player = Players[missile._misource];
@@ -1053,7 +1053,7 @@ bool MonsterTrapHit(Monster &monster, int mindam, int maxdam, int dist, MissileI
 	if (DebugGodMode)
 		monster.hitPoints = 0;
 #endif
-	if (monster.hitPoints >> 6 <= 0) {
+	if (monster.hasNoLife()) {
 		MonsterDeath(monster, monster.direction, true);
 	} else if (resist) {
 		PlayEffect(monster, MonsterSound::Hit);
@@ -1067,7 +1067,7 @@ bool PlayerMHit(Player &player, Monster *monster, int dist, int mind, int maxd, 
 {
 	*blocked = false;
 
-	if (player._pHitPoints >> 6 <= 0) {
+	if (player.hasNoLife()) {
 		return false;
 	}
 
@@ -1184,7 +1184,7 @@ bool PlayerMHit(Player &player, Monster *monster, int dist, int mind, int maxd, 
 			ApplyPlrDamage(damageType, player, 0, 0, dam, deathReason);
 		}
 
-		if (player._pHitPoints >> 6 > 0) {
+		if (!player.hasNoLife()) {
 			player.Say(HeroSpeech::ArghClang);
 		}
 		return true;
@@ -1194,7 +1194,7 @@ bool PlayerMHit(Player &player, Monster *monster, int dist, int mind, int maxd, 
 		ApplyPlrDamage(damageType, player, 0, 0, dam, deathReason);
 	}
 
-	if (player._pHitPoints >> 6 > 0) {
+	if (!player.hasNoLife()) {
 		StartPlrHit(player, dam, false);
 	}
 
@@ -3932,7 +3932,7 @@ void ProcessRage(Missile &missile)
 	CalcPlrItemVals(player, true);
 
 	// Prevent the player from dying as a result of recalculating their current life
-	if ((player._pHitPoints >> 6) <= 0)
+	if (player.hasNoLife())
 		SetPlayerHitPoints(player, 64);
 
 	RedrawEverything();
@@ -4207,7 +4207,7 @@ static void DeleteMissiles()
 void ProcessManaShield()
 {
 	Player &myPlayer = *MyPlayer;
-	if (myPlayer.pManaShield && myPlayer._pMana <= 0) {
+	if (myPlayer.pManaShield && myPlayer.hasNoMana()) {
 		myPlayer.pManaShield = false;
 		NetSendCmd(true, CMD_REMSHIELD);
 	}

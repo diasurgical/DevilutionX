@@ -1338,7 +1338,7 @@ void DrawAutomapPlr(const Surface &out, const Displacement &myPlayerOffset, cons
 
 	Point base = {
 		((playerOffset.deltaX + myPlayerOffset.deltaX) * scale / 100 / 2) + (px - py) * AmLine(AmLineLength::DoubleTile),
-		((playerOffset.deltaY + myPlayerOffset.deltaY) * scale / 100 / 2) + (px + py) * AmLine(AmLineLength::FullTile) + AmOffset(AmWidthOffset::None, AmHeightOffset::FullTileDown).deltaY
+		((playerOffset.deltaY + myPlayerOffset.deltaY) * scale / 100 / 2) + (px + py) * AmLine(AmLineLength::FullTile) + AmOffset(AmWidthOffset::None, AmHeightOffset::HalfTileUp).deltaY
 	};
 
 	base += GetAutomapScreen();
@@ -1349,7 +1349,6 @@ void DrawAutomapPlr(const Surface &out, const Displacement &myPlayerOffset, cons
 		if (IsLeftPanelOpen())
 			base.x += gnScreenWidth / 4;
 	}
-	base.y -= AmLine(AmLineLength::DoubleTile);
 
 	switch (player._pdir) {
 	case Direction::North: {

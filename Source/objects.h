@@ -287,6 +287,8 @@ extern int ActiveObjects[MAXOBJECTS];
 extern int ActiveObjectCount;
 /** @brief Indicates that objects are being loaded during gameplay and pre calculated data should be updated. */
 extern bool LoadingMapObjects;
+/** Tracks progress through the tome sequence that spawns Na-Krul (see OperateNakrulBook()) */
+extern int NaKrulTomeSequence;
 
 /**
  * @brief Find an object given a point in map coordinates

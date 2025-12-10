@@ -2645,7 +2645,7 @@ void CalcPlrLifeMana(Player &player, int vitality, int magic, int life, int mana
 	player._pMaxHP = std::clamp(life + player._pMaxHPBase, 1 << 6, 2000 << 6);
 	player._pHitPoints = std::min(life + player._pHPBase, player._pMaxHP);
 
-	if (&player == MyPlayer && (player._pHitPoints >> 6) <= 0) {
+	if (&player == MyPlayer && player.hasNoLife()) {
 		SetPlayerHitPoints(player, 0);
 	}
 
@@ -2909,6 +2909,8 @@ void CalcPlrInv(Player &player, bool loadgfx)
 			// If stash is open, ensure the items are displayed correctly
 			Stash.RefreshItemStatFlags();
 		}
+		if (!player.HoldItem.isEmpty())
+			player.HoldItem.updateRequiredStatsCacheForPlayer(player);
 	}
 }
 

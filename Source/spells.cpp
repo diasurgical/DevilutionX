@@ -236,7 +236,7 @@ void DoResurrect(Player &player, Player &target)
 {
 	AddMissile(target.position.tile, target.position.tile, Direction::South, MissileID::ResurrectBeam, TARGET_MONSTERS, player, 0, 0);
 
-	if (target._pHitPoints != 0)
+	if (!target.hasNoLife())
 		return;
 
 	if (&target == MyPlayer) {
@@ -272,7 +272,7 @@ void DoResurrect(Player &player, Player &target)
 
 void DoHealOther(const Player &caster, Player &target)
 {
-	if ((target._pHitPoints >> 6) <= 0) {
+	if (target.hasNoLife()) {
 		return;
 	}
 
