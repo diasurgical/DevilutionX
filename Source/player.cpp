@@ -2108,7 +2108,7 @@ void LoadPlrGFX(Player &player, player_graphic graphic)
 		return;
 
 	const HeroClass cls = GetPlayerSpriteClass(player._pClass);
-	const PlayerWeaponGraphic animWeaponId = GetPlayerWeaponGraphic(graphic, static_cast<PlayerWeaponGraphic>(player._pgfxnum & 0xF));
+	PlayerWeaponGraphic animWeaponId = GetPlayerWeaponGraphic(graphic, static_cast<PlayerWeaponGraphic>(player._pgfxnum & 0xF));
 
 	const PlayerSpriteData &spriteData = GetPlayerSpriteDataForClass(cls);
 	const char *path = spriteData.classPath.c_str();
@@ -2145,8 +2145,11 @@ void LoadPlrGFX(Player &player, player_graphic graphic)
 		szCel = "qm";
 		break;
 	case player_graphic::Death:
-		if (animWeaponId != PlayerWeaponGraphic::Unarmed)
-			return;
+		if (animWeaponId != PlayerWeaponGraphic::Unarmed) {
+			assert("LoadPlrGFX: requested Death animation with non-unarmed weapon");
+			player._pgfxnum &= ~0xFU;
+			animWeaponId = PlayerWeaponGraphic::Unarmed;
+		}
 		szCel = "dt";
 		break;
 	case player_graphic::Block:
