@@ -74,11 +74,11 @@ const SpellIcon SpellITbl[] = {
 /* SpellID::Berserk          */ SpellIcon::Berserk,
 /* SpellID::RingOfFire       */ SpellIcon::RingOfFire,
 /* SpellID::Search           */ SpellIcon::Search,
-/* SpellID::RuneOfFire       */ SpellIcon::PentaStar,
-/* SpellID::RuneOfLight      */ SpellIcon::PentaStar,
-/* SpellID::RuneOfNova       */ SpellIcon::PentaStar,
-/* SpellID::RuneOfImmolation */ SpellIcon::PentaStar,
-/* SpellID::RuneOfStone      */ SpellIcon::PentaStar,
+/* SpellID::RuneOfFire       */ SpellIcon::Fireball,
+/* SpellID::RuneOfLight      */ SpellIcon::LightningWall,
+/* SpellID::RuneOfNova       */ SpellIcon::Nova,
+/* SpellID::RuneOfImmolation */ SpellIcon::Immolation,
+/* SpellID::RuneOfStone      */ SpellIcon::StoneCurse,
 	// clang-format on
 };
 
@@ -202,6 +202,16 @@ void SetSpellTrans(SpellType t)
 		for (int i = PAL16_ORANGE; i < PAL16_ORANGE + 16; i++) {
 			SplTransTbl[PAL16_BEIGE - PAL16_ORANGE + i] = i;
 			SplTransTbl[PAL16_YELLOW - PAL16_ORANGE + i] = i;
+		}
+		break;
+	case SpellType::Rune:
+		SplTransTbl[PAL8_YELLOW] = 0;
+		SplTransTbl[PAL8_YELLOW + 1] = +3;
+		SplTransTbl[PAL8_YELLOW + 2] = +5;
+		for (int i = 0; i < 16; i++) {
+			SplTransTbl[PAL16_BEIGE + i] = i;
+			SplTransTbl[PAL16_YELLOW + i] = i;
+			SplTransTbl[PAL16_ORANGE + i] = i;
 		}
 		break;
 	case SpellType::Invalid:

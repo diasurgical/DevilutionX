@@ -1,10 +1,12 @@
 #pragma once
 
 #include <cstddef>
+#include <string_view>
 #include <vector>
 
 #include "engine/point.hpp"
 #include "engine/surface.hpp"
+#include "player.h"
 #include "spelldat.h"
 
 namespace devilution {
@@ -27,6 +29,7 @@ void SetSpell();
 void SetSpeedSpell(size_t slot);
 bool IsValidSpeedSpell(size_t slot);
 void ToggleSpell(size_t slot);
+std::pair<std::string_view, int> GetRuneInfoStringAndCount(const devilution::Player &player, devilution::SpellID spellId);
 
 /**
  * Draws the "Speed Book": the rows of known spells for quick-setting a spell that

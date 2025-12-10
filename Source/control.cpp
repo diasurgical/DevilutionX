@@ -1403,6 +1403,11 @@ void CheckPanelInfo()
 				AddInfoBoxString(fmt::format(fmt::runtime(_("Staff of {:s}")), pgettext("spell", GetSpellData(spellId).sNameText)));
 				AddInfoBoxString(fmt::format(fmt::runtime(ngettext("{:d} Charge", "{:d} Charges", myPlayer.InvBody[INVLOC_HAND_LEFT]._iCharges)), myPlayer.InvBody[INVLOC_HAND_LEFT]._iCharges));
 				break;
+			case SpellType::Rune: {
+				auto [runeName, runeCount] = GetRuneInfoStringAndCount(myPlayer, spellId);
+				AddInfoBoxString(runeName);
+				AddInfoBoxString(fmt::format(fmt::runtime(ngettext("{:d} Rune", "{:d} Runes", runeCount)), runeCount));
+			} break;
 			case SpellType::Invalid:
 				break;
 			}
