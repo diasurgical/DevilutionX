@@ -90,7 +90,10 @@ bool TFit_Shrine(int i)
 bool CheckThemeObj5(Point origin, int8_t regionId)
 {
 	return c_all_of(PointsInRectangle(Rectangle { origin, 2 }), [regionId](Point testPosition) {
-		// note out-of-bounds tiles are not solid, this function relies on the guard in TFit_Obj5 and dungeon border
+		// If the theme area would go out of the dungeon, it doesn't fit.
+		if (!InDungeonBounds(testPosition)) {
+			return false;
+		}
 		if (IsTileSolid(testPosition)) {
 			return false;
 		}

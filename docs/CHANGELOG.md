@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Bug Fixes
+
+#### Stability / Performance / System
+
+- Crash occurring on some systems related to Crypt level generation
+
 ## DevilutionX 1.5.2
 
 ### Bug Fixes
