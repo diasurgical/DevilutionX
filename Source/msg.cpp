@@ -1905,15 +1905,16 @@ size_t OnKnockback(const TCmdParam1 &message, Player &player)
 	return sizeof(message);
 }
 
-size_t OnResurrect(const TCmdParam1 &message, Player &player)
+size_t OnResurrect(const TCmdParam1 &message, Player &caster)
 {
 	const uint16_t playerIdx = Swap16LE(message.wParam1);
+	Player &target = Players[playerIdx];
 
 	if (gbBufferMsgs == 1) {
-		BufferMessage(player, &message, sizeof(message));
-	} else if (playerIdx < Players.size()) {
-		DoResurrect(player, Players[playerIdx]);
-		if (&player == MyPlayer)
+		BufferMessage(caster, &message, sizeof(message));
+	} else if (caster.isOnActiveLevel() && playerIdx < Players.size()) {
+		DoResurrect(caster, target);
+		if (&target == MyPlayer)
 			pfile_update(true);
 	}
 

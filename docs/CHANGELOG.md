@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Bug Fixes
+
+#### Multiplayer
+
+- Resurrect beams appear on levels it wasn't cast on
+
 ## DevilutionX 1.5.2
 
 ### Bug Fixes
