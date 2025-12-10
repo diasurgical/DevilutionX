@@ -830,7 +830,8 @@ void SetFullscreenMode()
 #if USE_SDL3
 	if (!SDL_SetWindowFullscreen(ghMainWnd, *GetOptions().Graphics.fullscreen)) ErrSdl();
 #else
-	if (SDL_SetWindowFullscreen(ghMainWnd, *GetOptions().Graphics.upscale ? SDL_WINDOW_FULLSCREEN_DESKTOP : SDL_WINDOW_FULLSCREEN) != 0) ErrSdl();
+	const Uint32 flags = *GetOptions().Graphics.upscale ? SDL_WINDOW_FULLSCREEN_DESKTOP : SDL_WINDOW_FULLSCREEN;
+	if (SDL_SetWindowFullscreen(ghMainWnd, *GetOptions().Graphics.fullscreen ? flags : 0) != 0) ErrSdl();
 #endif
 
 	if (!*GetOptions().Graphics.fullscreen) {
