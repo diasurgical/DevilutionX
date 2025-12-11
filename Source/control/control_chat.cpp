@@ -1,3 +1,4 @@
+#include "control_chat.hpp"
 #include "control.hpp"
 #include "control_panel.hpp"
 

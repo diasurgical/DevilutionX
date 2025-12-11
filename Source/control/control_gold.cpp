@@ -1,4 +1,5 @@
 #include "control.hpp"
+#include "control_chat.hpp"
 
 #include "DiabloUI/text_input.hpp"
 #include "engine/render/clx_render.hpp"

@@ -40,30 +40,40 @@ constexpr Size SidePanelSize { 320, 352 };
 
 constexpr Rectangle InfoBoxRect = { { 177, 46 }, { 288, 64 } };
 
-// control_panel.cpp
-
 extern bool CharPanelButton[4];
-extern bool LevelButtonDown;
 extern bool CharPanelButtonActive;
-extern UiFlags InfoColor;
+
 extern int SpellbookTab;
+
+extern UiFlags InfoColor;
+
+extern StringOrView InfoString;
+extern StringOrView FloatingInfoString;
+
+extern Rectangle MainPanelButtonRect[8];
+extern Rectangle CharPanelButtonRect[4];
+
+extern bool MainPanelButtonDown;
+extern bool LevelButtonDown;
+
+extern std::optional<OwnedSurface> BottomBuffer;
+extern OptionalOwnedClxSpriteList GoldBoxBuffer;
+
+extern std::optional<TextInputState> ChatInputState;
+extern std::optional<NumberInputState> GoldDropInputState;
+
+
+extern bool MainPanelFlag;
 extern bool ChatFlag;
 extern bool SpellbookFlag;
 extern bool CharFlag;
-extern StringOrView InfoString;
-extern StringOrView FloatingInfoString;
-extern bool MainPanelFlag;
-extern bool MainPanelButtonDown;
 extern bool SpellSelectFlag;
-const Rectangle &GetMainPanel();
-const Rectangle &GetLeftPanel();
-const Rectangle &GetRightPanel();
+
+[[nodiscard]] const Rectangle &GetMainPanel();
+[[nodiscard]] const Rectangle &GetLeftPanel();
+[[nodiscard]] const Rectangle &GetRightPanel();
 bool IsLeftPanelOpen();
 bool IsRightPanelOpen();
-extern std::optional<OwnedSurface> BottomBuffer;
-extern OptionalOwnedClxSpriteList GoldBoxBuffer;
-extern Rectangle MainPanelButtonRect[8];
-
 void CalculatePanelAreas();
 
 /**
@@ -77,7 +87,7 @@ void ToggleCharPanel();
 /**
  * @brief Check if the UI can cover the game area entirely
  */
-inline bool CanPanelsCoverView()
+[[nodiscard]] inline bool CanPanelsCoverView()
 {
 	const Rectangle &mainPanel = GetMainPanel();
 	return GetScreenWidth() <= mainPanel.size.width && GetScreenHeight() <= SidePanelSize.height + mainPanel.size.height;
@@ -141,8 +151,6 @@ void DrawSpellBook(const Surface &out);
 
 extern Rectangle CharPanelButtonRect[4];
 
-// control_chat.cpp
-
 bool CheckKeypress(SDL_Keycode vkey);
 void DiabloHotkeyMsg(uint32_t dwMsg);
 void DrawChatBox(const Surface &out);
@@ -153,24 +161,6 @@ void ResetChat();
 bool IsChatActive();
 bool IsChatAvailable();
 bool HandleTalkTextInputEvent(const SDL_Event &event);
-
-template <typename InputStateType>
-bool HandleInputEvent(const SDL_Event &event, std::optional<InputStateType> &inputState)
-{
-	if (!inputState) {
-		return false; // No input state to handle
-	}
-
-	if constexpr (std::is_same_v<InputStateType, TextInputState>) {
-		return HandleTextInputEvent(event, *inputState);
-	} else if constexpr (std::is_same_v<InputStateType, NumberInputState>) {
-		return HandleNumberInputEvent(event, *inputState);
-	}
-
-	return false; // Unknown input state type
-}
-
-// control_flasks.cpp
 
 /**
  * Draws the top dome of the life flask (that part that protrudes out of the control panel).
@@ -212,9 +202,8 @@ void DrawFlaskValues(const Surface &out, Point pos, int currValue, int maxValue)
  */
 void UpdateLifeManaPercent();
 
-// control_gold.cpp
-
 extern bool DropGoldFlag;
+
 void DrawGoldSplit(const Surface &out);
 void control_drop_gold(SDL_Keycode vkey);
 void OpenGoldDrop(int8_t invIndex, int max);
