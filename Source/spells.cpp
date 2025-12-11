@@ -5,7 +5,7 @@
  */
 #include "spells.h"
 
-#include "control.h"
+#include "control/control.hpp"
 #include "cursor.h"
 #ifdef _DEBUG
 #include "debug.h"

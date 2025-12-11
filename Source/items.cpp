@@ -28,7 +28,7 @@
 #include <fmt/core.h>
 
 #include "DiabloUI/ui_flags.hpp"
-#include "control.h"
+#include "control/control.hpp"
 #include "controls/control_mode.hpp"
 #include "controls/controller_buttons.h"
 #include "cursor.h"

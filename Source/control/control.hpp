@@ -45,10 +45,6 @@ constexpr Size SidePanelSize { 320, 352 };
 
 constexpr Rectangle InfoBoxRect = { { 177, 46 }, { 288, 64 } };
 
-extern bool DropGoldFlag;
-extern TextInputCursorState GoldDropCursor;
-extern char GoldDropText[21];
-
 extern bool CharPanelButton[4];
 extern bool LevelButtonDown;
 extern bool CharPanelButtonActive;
@@ -70,9 +66,16 @@ bool IsRightPanelOpen();
 extern std::optional<OwnedSurface> BottomBuffer;
 extern OptionalOwnedClxSpriteList GoldBoxBuffer;
 extern Rectangle MainPanelButtonRect[8];
+extern OptionalOwnedClxSpriteList talkButtons;
+extern int PanelPaddingHeight;
+extern int TotalSpMainPanelButtons;
+extern int TotalMpMainPanelButtons;
+extern const char *const PanBtnStr[8];
+extern const char *const PanBtnHotKey[8];
+extern Rectangle SpellButtonRect;
+extern Rectangle BeltRect;
 
 void CalculatePanelAreas();
-bool IsChatAvailable();
 
 /**
  * @brief Moves the mouse to the first attribute "+" button.
@@ -95,46 +98,6 @@ void AddInfoBoxString(std::string_view str, bool floatingBox = false);
 void AddInfoBoxString(std::string &&str, bool floatingBox = false);
 void DrawPanelBox(const Surface &out, SDL_Rect srcRect, Point targetPosition);
 Point GetPanelPosition(UiPanels panel, Point offset = { 0, 0 });
-
-/**
- * Draws the top dome of the life flask (that part that protrudes out of the control panel).
- * The empty flask cel is drawn from the top of the flask to the fill level (there is always a 2 pixel "air gap") and
- * the filled flask cel is drawn from that level to the top of the control panel if required.
- */
-void DrawLifeFlaskUpper(const Surface &out);
-
-/**
- * Controls the drawing of the area of the life flask within the control panel.
- * First sets the fill amount then draws the empty flask cel portion then the filled
- * flask portion.
- */
-void DrawLifeFlaskLower(const Surface &out, bool drawFilledPortion);
-
-/**
- * Draws the top dome of the mana flask (that part that protrudes out of the control panel).
- * The empty flask cel is drawn from the top of the flask to the fill level (there is always a 2 pixel "air gap") and
- * the filled flask cel is drawn from that level to the top of the control panel if required.
- */
-void DrawManaFlaskUpper(const Surface &out);
-
-/**
- * Controls the drawing of the area of the mana flask within the control panel.
- */
-void DrawManaFlaskLower(const Surface &out, bool drawFilledPortion);
-
-/**
- * Controls drawing of current / max values (health, mana) within the control panel.
- */
-void DrawFlaskValues(const Surface &out, Point pos, int currValue, int maxValue);
-
-/**
- * @brief calls on the active player object to update HP/Mana percentage variables
- *
- * This is used to ensure that DrawFlaskAbovePanel routines display an accurate representation of the players health/mana
- *
- * @see Player::UpdateHitPointPercentage() and Player::UpdateManaPercentage()
- */
-void UpdateLifeManaPercent();
 
 tl::expected<void, std::string> InitMainPanel();
 void DrawMainPanel(const Surface &out);
@@ -186,21 +149,96 @@ void DrawDurIcon(const Surface &out);
 void RedBack(const Surface &out);
 void DrawDeathText(const Surface &out);
 void DrawSpellBook(const Surface &out);
-void DrawGoldSplit(const Surface &out);
-void control_drop_gold(SDL_Keycode vkey);
+
+extern Rectangle CharPanelButtonRect[4];
+
+void SetPanelObjectPosition(UiPanels panel, Rectangle &button);
+
+// control_chat.cpp
+
+extern std::optional<TextInputState> ChatInputState;
+extern char TalkMessage[MAX_SEND_STR_LEN];
+extern bool TalkButtonsDown[3];
+extern int sgbPlrTalkTbl;
+extern bool WhisperList[MAX_PLRS];
+bool CheckKeypress(SDL_Keycode vkey);
+void DiabloHotkeyMsg(uint32_t dwMsg);
 void DrawChatBox(const Surface &out);
 bool CheckMuteButton();
 void CheckMuteButtonUp();
 void TypeChatMessage();
 void ResetChat();
 bool IsChatActive();
+bool IsChatAvailable();
 bool HandleTalkTextInputEvent(const SDL_Event &event);
-bool CheckKeypress(SDL_Keycode vkey);
-void DiabloHotkeyMsg(uint32_t dwMsg);
+
+template <typename InputStateType>
+bool HandleInputEvent(const SDL_Event &event, std::optional<InputStateType> &inputState)
+{
+	if (!inputState) {
+		return false; // No input state to handle
+	}
+
+	if constexpr (std::is_same_v<InputStateType, TextInputState>) {
+		return HandleTextInputEvent(event, *inputState);
+	} else if constexpr (std::is_same_v<InputStateType, NumberInputState>) {
+		return HandleNumberInputEvent(event, *inputState);
+	}
+
+	return false; // Unknown input state type
+}
+
+// control_flasks.cpp
+
+extern std::optional<OwnedSurface> pLifeBuff;
+extern std::optional<OwnedSurface> pManaBuff;
+/**
+ * Draws the top dome of the life flask (that part that protrudes out of the control panel).
+ * The empty flask cel is drawn from the top of the flask to the fill level (there is always a 2 pixel "air gap") and
+ * the filled flask cel is drawn from that level to the top of the control panel if required.
+ */
+void DrawLifeFlaskUpper(const Surface &out);
+
+/**
+ * Controls the drawing of the area of the life flask within the control panel.
+ * First sets the fill amount then draws the empty flask cel portion then the filled
+ * flask portion.
+ */
+void DrawLifeFlaskLower(const Surface &out, bool drawFilledPortion);
+
+/**
+ * Draws the top dome of the mana flask (that part that protrudes out of the control panel).
+ * The empty flask cel is drawn from the top of the flask to the fill level (there is always a 2 pixel "air gap") and
+ * the filled flask cel is drawn from that level to the top of the control panel if required.
+ */
+void DrawManaFlaskUpper(const Surface &out);
+
+/**
+ * Controls the drawing of the area of the mana flask within the control panel.
+ */
+void DrawManaFlaskLower(const Surface &out, bool drawFilledPortion);
+
+/**
+ * Controls drawing of current / max values (health, mana) within the control panel.
+ */
+void DrawFlaskValues(const Surface &out, Point pos, int currValue, int maxValue);
+
+/**
+ * @brief calls on the active player object to update HP/Mana percentage variables
+ *
+ * This is used to ensure that DrawFlaskAbovePanel routines display an accurate representation of the players health/mana
+ *
+ * @see Player::UpdateHitPointPercentage() and Player::UpdateManaPercentage()
+ */
+void UpdateLifeManaPercent();
+
+// control_gold.cpp
+
+extern bool DropGoldFlag;
+void DrawGoldSplit(const Surface &out);
+void control_drop_gold(SDL_Keycode vkey);
 void OpenGoldDrop(int8_t invIndex, int max);
 void CloseGoldDrop();
-int GetGoldDropMax();
 bool HandleGoldDropTextInputEvent(const SDL_Event &event);
-extern Rectangle CharPanelButtonRect[4];
 
 } // namespace devilution

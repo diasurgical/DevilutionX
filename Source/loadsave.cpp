@@ -17,7 +17,7 @@
 
 #include "automap.h"
 #include "codec.h"
-#include "control.h"
+#include "control/control.hpp"
 #include "cursor.h"
 #include "dead.h"
 #include "doom.h"

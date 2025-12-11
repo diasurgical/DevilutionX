@@ -35,7 +35,7 @@
 
 #include "DiabloUI/diabloui.h"
 #include "config.h"
-#include "control.h"
+#include "control/control.hpp"
 #include "controls/controller.h"
 #ifndef USE_SDL1
 #include "controls/devices/game_controller.h"

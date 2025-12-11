@@ -10,7 +10,7 @@
 #include <fmt/format.h>
 
 #include "DiabloUI/ui_flags.hpp"
-#include "control.h"
+#include "control/control.hpp"
 #include "cursor.h"
 #include "data/file.hpp"
 #include "data/record_reader.hpp"

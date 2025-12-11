@@ -34,7 +34,7 @@
 #include <fmt/core.h>
 
 #include "automap.h"
-#include "control.h"
+#include "control/control.hpp"
 #include "crawl.hpp"
 #include "cursor.h"
 #include "dead.h"

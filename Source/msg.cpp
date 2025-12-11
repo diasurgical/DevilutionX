@@ -28,7 +28,7 @@
 #include "DiabloUI/diabloui.h"
 #include "automap.h"
 #include "config.h"
-#include "control.h"
+#include "control/control.hpp"
 #include "dead.h"
 #include "engine/backbuffer_state.hpp"
 #include "engine/random.hpp"

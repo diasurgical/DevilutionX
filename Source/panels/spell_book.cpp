@@ -7,7 +7,7 @@
 #include <expected.hpp>
 #include <fmt/format.h>
 
-#include "control.h"
+#include "control/control.hpp"
 #include "engine/backbuffer_state.hpp"
 #include "engine/clx_sprite.hpp"
 #include "engine/load_cel.hpp"
