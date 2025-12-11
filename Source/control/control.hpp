@@ -59,10 +59,6 @@ extern bool LevelButtonDown;
 extern std::optional<OwnedSurface> BottomBuffer;
 extern OptionalOwnedClxSpriteList GoldBoxBuffer;
 
-extern std::optional<TextInputState> ChatInputState;
-extern std::optional<NumberInputState> GoldDropInputState;
-
-
 extern bool MainPanelFlag;
 extern bool ChatFlag;
 extern bool SpellbookFlag;
