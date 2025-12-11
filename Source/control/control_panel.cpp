@@ -1,6 +1,6 @@
-#include "control/control.hpp"
-#include "control/control_chat.hpp"
-#include "control/control_flasks.hpp"
+#include "control.hpp"
+#include "control_chat.hpp"
+#include "control_flasks.hpp"
 
 #include "automap.h"
 #include "controls/control_mode.hpp"

@@ -1,5 +1,5 @@
 #include "control_chat_commands.hpp"
-#include "control/control.hpp"
+#include "control.hpp"
 
 #include "diablo_msg.hpp"
 #include "engine/backbuffer_state.hpp"

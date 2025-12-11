@@ -1,4 +1,5 @@
 #include "control.hpp"
+#include "control_panel.hpp"
 
 #include "engine/render/primitive_render.hpp"
 #include "inv.h"

@@ -1,4 +1,5 @@
-#include "control/control.hpp"
+#include "control.hpp"
+#include "control_panel.hpp"
 
 #include "control/control_chat_commands.hpp"
 #include "engine/backbuffer_state.hpp"

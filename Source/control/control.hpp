@@ -1,8 +1,3 @@
-/**
- * @file control.h
- *
- * Interface of the character and main control panels
- */
 #pragma once
 
 #include <cstddef>
