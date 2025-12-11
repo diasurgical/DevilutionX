@@ -1,8 +1,3 @@
-/**
- * @file control_chat_commands.hpp
- *
- * Interface of the chat
- */
 #pragma once
 
 #include <string_view>

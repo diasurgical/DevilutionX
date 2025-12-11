@@ -1,8 +1,3 @@
-/**
- * @file control_chat_commands.cpp
- *
- * Implementation of chat commands
- */
 #include "control_chat_commands.hpp"
 #include "control/control.hpp"
 

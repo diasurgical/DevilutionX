@@ -1,8 +1,3 @@
-/**
- * @file control_flasks.cpp
- *
- * Implementation of the info box
- */
 #include "control.hpp"
 
 #include "engine/render/primitive_render.hpp"

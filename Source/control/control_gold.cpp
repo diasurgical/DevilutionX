@@ -1,8 +1,3 @@
-/**
- * @file control_gold.cpp
- *
- * Implementation of the gold drop dialog
- */
 #include "control.hpp"
 
 #include "DiabloUI/text_input.hpp"

@@ -1,8 +1,3 @@
-/**
- * @file control_chat.cpp
- *
- * Implementation of chat
- */
 #include "control/control.hpp"
 
 #include "control/control_chat_commands.hpp"
@@ -23,6 +18,7 @@ char TalkMessage[MAX_SEND_STR_LEN];
 bool TalkButtonsDown[3];
 int sgbPlrTalkTbl;
 bool WhisperList[MAX_PLRS];
+OptionalOwnedClxSpriteList talkButtons;
 
 namespace {
 

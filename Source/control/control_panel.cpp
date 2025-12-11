@@ -1,9 +1,6 @@
-/**
- * @file control_panel.cpp
- *
- * Implementation of the character and main control panels
- */
 #include "control/control.hpp"
+#include "control/control_chat.hpp"
+#include "control/control_flasks.hpp"
 
 #include "automap.h"
 #include "controls/control_mode.hpp"
@@ -100,8 +97,6 @@ constexpr Size BeltSize { (INV_SLOT_SIZE_PX + 1) * BeltItems, INV_SLOT_SIZE_PX }
 Rectangle BeltRect { { 205, 5 }, BeltSize };
 
 Rectangle SpellButtonRect { { 565, 64 }, { 56, 56 } };
-
-OptionalOwnedClxSpriteList talkButtons;
 
 int PanelPaddingHeight = 16;
 

@@ -1,8 +1,3 @@
-/**
- * @file control_flasks.cpp
- *
- * Implementation of the panel flasks
- */
 #include "control/control.hpp"
 
 #include "engine/surface.hpp"

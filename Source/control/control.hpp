@@ -45,6 +45,8 @@ constexpr Size SidePanelSize { 320, 352 };
 
 constexpr Rectangle InfoBoxRect = { { 177, 46 }, { 288, 64 } };
 
+// control_panel.cpp
+
 extern bool CharPanelButton[4];
 extern bool LevelButtonDown;
 extern bool CharPanelButtonActive;
@@ -66,14 +68,6 @@ bool IsRightPanelOpen();
 extern std::optional<OwnedSurface> BottomBuffer;
 extern OptionalOwnedClxSpriteList GoldBoxBuffer;
 extern Rectangle MainPanelButtonRect[8];
-extern OptionalOwnedClxSpriteList talkButtons;
-extern int PanelPaddingHeight;
-extern int TotalSpMainPanelButtons;
-extern int TotalMpMainPanelButtons;
-extern const char *const PanBtnStr[8];
-extern const char *const PanBtnHotKey[8];
-extern Rectangle SpellButtonRect;
-extern Rectangle BeltRect;
 
 void CalculatePanelAreas();
 
@@ -152,15 +146,8 @@ void DrawSpellBook(const Surface &out);
 
 extern Rectangle CharPanelButtonRect[4];
 
-void SetPanelObjectPosition(UiPanels panel, Rectangle &button);
-
 // control_chat.cpp
 
-extern std::optional<TextInputState> ChatInputState;
-extern char TalkMessage[MAX_SEND_STR_LEN];
-extern bool TalkButtonsDown[3];
-extern int sgbPlrTalkTbl;
-extern bool WhisperList[MAX_PLRS];
 bool CheckKeypress(SDL_Keycode vkey);
 void DiabloHotkeyMsg(uint32_t dwMsg);
 void DrawChatBox(const Surface &out);
@@ -190,8 +177,6 @@ bool HandleInputEvent(const SDL_Event &event, std::optional<InputStateType> &inp
 
 // control_flasks.cpp
 
-extern std::optional<OwnedSurface> pLifeBuff;
-extern std::optional<OwnedSurface> pManaBuff;
 /**
  * Draws the top dome of the life flask (that part that protrudes out of the control panel).
  * The empty flask cel is drawn from the top of the flask to the fill level (there is always a 2 pixel "air gap") and
