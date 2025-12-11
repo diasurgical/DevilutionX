@@ -232,13 +232,21 @@ void CastSpell(Player &player, SpellID spl, WorldTilePosition src, WorldTilePosi
 	}
 }
 
-void DoResurrect(Player &player, Player &target)
+void SpawnResurrectBeam(Player &caster, Player &target)
 {
-	AddMissile(target.position.tile, target.position.tile, Direction::South, MissileID::ResurrectBeam, TARGET_MONSTERS, player, 0, 0);
+	AddMissile(
+	    target.position.tile,
+	    target.position.tile,
+	    Direction::South,
+	    MissileID::ResurrectBeam,
+	    TARGET_MONSTERS,
+	    caster.getId(),
+	    0,
+	    0);
+}
 
-	if (!target.hasNoLife())
-		return;
-
+void ApplyResurrect(Player &target)
+{
 	if (&target == MyPlayer) {
 		MyPlayerIsDead = false;
 		gamemenu_off();
@@ -257,6 +265,7 @@ void DoResurrect(Player &player, Player &target)
 	}
 	SetPlayerHitPoints(target, hp);
 
+	// BUGFIX: Redundant line due to SetPlayerHitPoints()
 	target._pHPBase = target._pHitPoints + (target._pMaxHPBase - target._pMaxHP); // CODEFIX: does the same stuff as SetPlayerHitPoints above, can be removed
 	target._pMana = 0;
 	target._pManaBase = target._pMana + (target._pMaxManaBase - target._pMaxMana);

@@ -1905,16 +1905,45 @@ size_t OnKnockback(const TCmdParam1 &message, Player &player)
 	return sizeof(message);
 }
 
-size_t OnResurrect(const TCmdParam1 &message, Player &player)
+size_t OnResurrect(const TCmdParam1 &message, Player &caster)
 {
 	const uint16_t playerIdx = Swap16LE(message.wParam1);
 
 	if (gbBufferMsgs == 1) {
-		BufferMessage(player, &message, sizeof(message));
-	} else if (playerIdx < Players.size()) {
-		DoResurrect(player, Players[playerIdx]);
-		if (&player == MyPlayer)
-			pfile_update(true);
+		BufferMessage(caster, &message, sizeof(message));
+		return sizeof(message);
+	}
+
+	if (playerIdx >= Players.size())
+		return sizeof(message);
+
+	Player &target = Players[playerIdx];
+
+	SpawnResurrectBeam(caster, target);
+
+	if (playerIdx == MyPlayerId && target._pHitPoints <= 0) {
+		NetSendCmdParam1(true, CMD_PLRALIVE, static_cast<uint16_t>(playerIdx));
+	}
+
+	return sizeof(message);
+}
+
+size_t OnPlayerAlive(const TCmdParam1 &message, Player &target)
+{
+	const uint16_t playerIdx = Swap16LE(message.wParam1);
+
+	if (gbBufferMsgs == 1) {
+		BufferMessage(target, &message, sizeof(message));
+		return sizeof(message);
+	}
+
+	if (playerIdx >= Players.size())
+		return sizeof(message);
+
+	ApplyResurrect(target);
+
+	if (&target == MyPlayer) {
+		pfile_update(true);
 	}
 
 	return sizeof(message);
