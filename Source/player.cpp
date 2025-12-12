@@ -2145,11 +2145,8 @@ void LoadPlrGFX(Player &player, player_graphic graphic)
 		szCel = "qm";
 		break;
 	case player_graphic::Death:
-		if (animWeaponId != PlayerWeaponGraphic::Unarmed) {
-			// Only one Death animation exists, for unarmed characters
-			player._pgfxnum &= ~0xFU;
-			animWeaponId = PlayerWeaponGraphic::Unarmed;
-		}
+		// Only one Death animation exists, for unarmed characters
+		animWeaponId = PlayerWeaponGraphic::Unarmed;
 		szCel = "dt";
 		break;
 	case player_graphic::Block:
