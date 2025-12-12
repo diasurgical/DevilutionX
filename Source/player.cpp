@@ -2146,7 +2146,7 @@ void LoadPlrGFX(Player &player, player_graphic graphic)
 		break;
 	case player_graphic::Death:
 		if (animWeaponId != PlayerWeaponGraphic::Unarmed) {
-			assert("LoadPlrGFX: requested Death animation with non-unarmed weapon");
+			// Only one Death animation exists, for unarmed characters
 			player._pgfxnum &= ~0xFU;
 			animWeaponId = PlayerWeaponGraphic::Unarmed;
 		}
