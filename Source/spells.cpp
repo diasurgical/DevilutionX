@@ -233,17 +233,21 @@ void CastSpell(int id, SpellID spl, int sx, int sy, int dx, int dy, int spllvl)
 	}
 }
 
-void DoResurrect(size_t pnum, Player &target)
+void SpawnResurrectBeam(Player &caster, Player &target)
 {
-	if (pnum >= Players.size()) {
-		return;
-	}
+	AddMissile(
+	    target.position.tile,
+	    target.position.tile,
+	    Direction::South,
+	    MissileID::ResurrectBeam,
+	    TARGET_MONSTERS,
+	    caster.getId(),
+	    0,
+	    0);
+}
 
-	AddMissile(target.position.tile, target.position.tile, Direction::South, MissileID::ResurrectBeam, TARGET_MONSTERS, pnum, 0, 0);
-
-	if (target._pHitPoints != 0)
-		return;
-
+void ApplyResurrect(Player &target)
+{
 	if (&target == MyPlayer) {
 		MyPlayerIsDead = false;
 		gamemenu_off();
