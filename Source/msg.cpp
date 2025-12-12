@@ -1922,7 +1922,7 @@ size_t OnResurrect(const TCmdParam1 &message, Player &caster)
 	SpawnResurrectBeam(caster, target);
 
 	if (&target == MyPlayer && target._pHitPoints <= 0) {
-		NetSendCmdParam1(true, CMD_PLRALIVE, static_cast<uint16_t>(playerIdx));
+		NetSendCmd(true, CMD_PLRALIVE);
 	}
 
 	return sizeof(message);
