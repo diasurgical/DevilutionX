@@ -1928,17 +1928,12 @@ size_t OnResurrect(const TCmdParam1 &message, Player &caster)
 	return sizeof(message);
 }
 
-size_t OnPlayerAlive(const TCmdParam1 &message, Player &target)
+size_t OnPlayerAlive(const TCmd &message, Player &target)
 {
-	const uint16_t playerIdx = Swap16LE(message.wParam1);
-
 	if (gbBufferMsgs == 1) {
 		BufferMessage(target, &message, sizeof(message));
 		return sizeof(message);
 	}
-
-	if (playerIdx >= Players.size())
-		return sizeof(message);
 
 	ApplyResurrect(target);
 
