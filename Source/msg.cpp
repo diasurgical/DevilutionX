@@ -3410,6 +3410,8 @@ size_t ParseCmd(uint8_t pnum, const TCmd *pCmd, size_t maxCmdSize)
 		return HandleCmd(OnMonstDamage, player, pCmd, maxCmdSize);
 	case CMD_PLRDEAD:
 		return HandleCmd(OnPlayerDeath, player, pCmd, maxCmdSize);
+	case CMD_PLRALIVE:
+		return HandleCmd(OnPlayerAlive, player, pCmd, maxCmdSize);
 	case CMD_PLRDAMAGE:
 		return HandleCmd(OnPlayerDamage, player, pCmd, maxCmdSize);
 	case CMD_OPENDOOR:
