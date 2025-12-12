@@ -3955,7 +3955,7 @@ bool DoOil(Player &player, int cii)
 		return fmt::format(fmt::runtime(_("{:+d} damage from enemies")), item._iPLGetHit);
 	case IPL_LIFE:
 	case IPL_LIFE_CURSE:
-		return fmt::format(fmt::runtime(_("Hit Points: {:+d}")), item._iPLHP >> 6);
+		return fmt::format(fmt::runtime(_("Life: {:+d}")), item._iPLHP >> 6);
 	case IPL_MANA:
 	case IPL_MANA_CURSE:
 		return fmt::format(fmt::runtime(_("Mana: {:+d}")), item._iPLMana >> 6);

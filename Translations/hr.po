@@ -1196,7 +1196,7 @@ msgstr "{:s}, Razina: {:d}"
 
 #: Source/control.cpp:1519
 #, c++-format
-msgid "Hit Points {:d} of {:d}"
+msgid "Life {:d} of {:d}"
 msgstr "Pogoci {:d} od {:d}"
 
 #: Source/control.cpp:1525
@@ -3106,7 +3106,7 @@ msgstr "{:+d} na štetu od neprijatelja"
 
 #: Source/items.cpp:3951
 #, c++-format
-msgid "Hit Points: {:+d}"
+msgid "Life: {:+d}"
 msgstr "Pogodci: {:+d}"
 
 #: Source/items.cpp:3954

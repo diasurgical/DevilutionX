@@ -1191,7 +1191,7 @@ msgstr "{:s}, Úroveň: {:d}"
 
 #: Source/control.cpp:1519
 #, c++-format
-msgid "Hit Points {:d} of {:d}"
+msgid "Life {:d} of {:d}"
 msgstr "Životy {:d} ze {:d}"
 
 #: Source/control.cpp:1525
@@ -3107,7 +3107,7 @@ msgstr "{:+d} poškození od nepřátel"
 
 #: Source/items.cpp:3951
 #, c++-format
-msgid "Hit Points: {:+d}"
+msgid "Life: {:+d}"
 msgstr "Životy {:+d}"
 
 #: Source/items.cpp:3954

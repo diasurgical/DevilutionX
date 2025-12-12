@@ -1168,7 +1168,7 @@ msgstr "{:s}, 레벨: {:d}"
 
 #: Source/control.cpp:1519
 #, c++-format
-msgid "Hit Points {:d} of {:d}"
+msgid "Life {:d} of {:d}"
 msgstr "히트 포인트 {:d} / {:d}"
 
 #: Source/control.cpp:1525
@@ -3049,7 +3049,7 @@ msgstr "{:+d} 적에게서 받는 피해"
 
 #: Source/items.cpp:3951
 #, c++-format
-msgid "Hit Points: {:+d}"
+msgid "Life: {:+d}"
 msgstr "히트포인트: {:+d}"
 
 #: Source/items.cpp:3954

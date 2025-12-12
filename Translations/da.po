@@ -1252,7 +1252,7 @@ msgstr "Niveau:"
 
 #: Source/control.cpp:1519
 #, fuzzy, c++-format
-msgid "Hit Points {:d} of {:d}"
+msgid "Life {:d} of {:d}"
 msgstr "Understøttede spillere: {:d}"
 
 #: Source/control.cpp:1525
@@ -3209,7 +3209,7 @@ msgstr ""
 
 #: Source/items.cpp:3951
 #, fuzzy, c++-format
-msgid "Hit Points: {:+d}"
+msgid "Life: {:+d}"
 msgstr "Understøttede spillere: {:d}"
 
 #: Source/items.cpp:3954

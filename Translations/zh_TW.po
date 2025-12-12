@@ -1213,7 +1213,7 @@ msgstr "{:s}，層數: {:d}"
 
 #: Source/control.cpp:1519
 #, c++-format
-msgid "Hit Points {:d} of {:d}"
+msgid "Life {:d} of {:d}"
 msgstr "生命​點{:d}​的​{:d}"
 
 #: Source/control.cpp:1525
@@ -3177,7 +3177,7 @@ msgstr "{:+d}​敵人​傷害"
 
 #: Source/items.cpp:3951
 #, c++-format
-msgid "Hit Points: {:+d}"
+msgid "Life: {:+d}"
 msgstr "生命​值: {:+d}"
 
 #: Source/items.cpp:3954

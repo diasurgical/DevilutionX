@@ -1175,7 +1175,7 @@ msgstr "{:s}, レベル: {:d}"
 
 #: Source/control.cpp:1519
 #, c++-format
-msgid "Hit Points {:d} of {:d}"
+msgid "Life {:d} of {:d}"
 msgstr "ヒット​ポイント: {:d}/{:d}"
 
 #: Source/control.cpp:1525
@@ -3055,7 +3055,7 @@ msgstr "敵​から​受ける​ダメージ​{:+d}"
 
 #: Source/items.cpp:3951
 #, c++-format
-msgid "Hit Points: {:+d}"
+msgid "Life: {:+d}"
 msgstr "ヒット​ポイント: {:+d}"
 
 #: Source/items.cpp:3954

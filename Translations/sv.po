@@ -1191,7 +1191,7 @@ msgstr "{:s}, Nivå: {:d}"
 
 #: Source/control.cpp:1519
 #, c++-format
-msgid "Hit Points {:d} of {:d}"
+msgid "Life {:d} of {:d}"
 msgstr "Livspoäng {:d} av {:d}"
 
 #: Source/control.cpp:1525
@@ -3107,7 +3107,7 @@ msgstr "{:+d} skada från fiender"
 
 #: Source/items.cpp:3951
 #, c++-format
-msgid "Hit Points: {:+d}"
+msgid "Life: {:+d}"
 msgstr "Livspoäng: {:+d}"
 
 #: Source/items.cpp:3954

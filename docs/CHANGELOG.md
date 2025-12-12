@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Features
+
+#### Stability / Performance / System
+
+- Standardizes the term "Life" instead of "Hit Points" where applicable in game text
+
 ## DevilutionX 1.5.2
 
 ### Bug Fixes
