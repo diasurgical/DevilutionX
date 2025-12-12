@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Bug Fixes
+
+#### Multiplayer
+
+- Potential item deletion when dropping a large amount of items and leaving the level
+
 ## DevilutionX 1.5.2
 
 ### Bug Fixes
