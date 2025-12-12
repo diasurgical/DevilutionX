@@ -2749,8 +2749,6 @@ void CalcPlrGraphics(Player &player, PlayerWeaponGraphic animWeaponId, PlayerArm
 		int8_t numberOfFrames;
 		int8_t ticksPerFrame;
 		player.getAnimationFramesAndTicksPerFrame(graphic, numberOfFrames, ticksPerFrame);
-		if (graphic == player_graphic::Death && (player._pgfxnum & 0xF) != 0)
-			assert("CalcPlrGraphics: Death graphic requested while weapon bits are still set");
 		LoadPlrGFX(player, graphic);
 		OptionalClxSpriteList sprites;
 		if (!HeadlessMode)
