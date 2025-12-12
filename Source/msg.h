@@ -207,8 +207,7 @@ enum _cmd_id : uint8_t {
 	CMD_PLRDEAD,
 	// Player resurrection.
 	//
-	// body (TCmdParam1):
-	//    size_t pnum
+	// body (TCmd)
 	CMD_PLRALIVE,
 	// Lift item to hand request.
 	//
