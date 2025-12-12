@@ -1937,10 +1937,6 @@ size_t OnPlayerAlive(const TCmd &message, Player &target)
 
 	ApplyResurrect(target);
 
-	if (&target == MyPlayer) {
-		pfile_update(true);
-	}
-
 	return sizeof(message);
 }
 
