@@ -448,7 +448,7 @@ void DrawPlayer(const Surface &out, const Player &player, Point tilePosition, Po
 #else
 	const bool isLocalCoop = false;
 #endif
-	
+
 	if (!isLocalCoop && !IsTileLit(tilePosition) && !MyPlayer->_pInfraFlag && !MyPlayer->isOnArenaLevel() && leveltype != DTYPE_TOWN) {
 		return;
 	}
@@ -1107,7 +1107,7 @@ void CalcFirstTilePosition(Point &position, Displacement &offset)
 		offset += localCoopOffset;
 	} else
 #endif
-	if (myPlayer.isWalking()) {
+	    if (myPlayer.isWalking()) {
 		offset += GetOffsetForWalking(myPlayer.AnimInfo, myPlayer._pdir, true);
 	}
 
@@ -1149,7 +1149,7 @@ void CalcFirstTilePosition(Point &position, Displacement &offset)
 		anyPlayerWalking = myPlayer.isWalking();
 		walkDir = myPlayer._pdir;
 	}
-	
+
 	// In local co-op with camera offset, expand rendering in all directions
 	// This ensures no gaps appear when the camera is smoothly following players
 	if (hasLocalCoopCameraOffset) {
@@ -1227,8 +1227,8 @@ void DrawGame(const Surface &fullOut, Point position, Displacement offset)
 	if (shouldExpandForWalk) {
 		switch (expandDir) {
 #else
-	if (MyPlayer->isWalking()) {
-		switch (MyPlayer->_pdir) {
+		if (MyPlayer->isWalking()) {
+			switch (MyPlayer->_pdir) {
 #endif
 		case Direction::NoDirection:
 			break;

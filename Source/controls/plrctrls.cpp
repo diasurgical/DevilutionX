@@ -2022,7 +2022,7 @@ void plrctrls_after_game_logic()
 
 	// Update local co-op player movement
 	UpdateLocalCoopMovement();
-	
+
 	// Update local co-op skill button holds (for quick spell menu)
 	UpdateLocalCoopSkillButtons();
 

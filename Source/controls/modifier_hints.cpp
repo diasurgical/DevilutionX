@@ -181,7 +181,7 @@ void DrawControllerModifierHints(const Surface &out)
 	// Skip drawing when local coop HUD is active - it has its own skill slot display
 	if (IsAnyLocalCoopPlayerInitialized())
 		return;
-	
+
 	DrawGamepadMenuNavigator(out);
 	DrawGamepadHotspellMenu(out);
 }

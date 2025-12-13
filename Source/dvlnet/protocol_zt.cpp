@@ -82,8 +82,7 @@ tl::expected<bool, PacketError> protocol_zt::network_online()
 	if (!zerotier_network_ready())
 		return false;
 
-	struct sockaddr_in6 in6 {
-	};
+	struct sockaddr_in6 in6 {};
 	in6.sin6_port = htons(default_port);
 	in6.sin6_family = AF_INET6;
 	in6.sin6_addr = in6addr_any;
@@ -137,8 +136,7 @@ tl::expected<void, PacketError> protocol_zt::send(const endpoint &peer, const bu
 
 bool protocol_zt::send_oob(const endpoint &peer, const buffer_t &data) const
 {
-	struct sockaddr_in6 in6 {
-	};
+	struct sockaddr_in6 in6 {};
 	in6.sin6_port = htons(default_port);
 	in6.sin6_family = AF_INET6;
 	std::copy(peer.addr.begin(), peer.addr.end(), in6.sin6_addr.s6_addr);
@@ -160,8 +158,7 @@ tl::expected<bool, PacketError> protocol_zt::send_queued_peer(const endpoint &pe
 		state.fd = lwip_socket(AF_INET6, SOCK_STREAM, 0);
 		set_nodelay(state.fd);
 		set_nonblock(state.fd);
-		struct sockaddr_in6 in6 {
-		};
+		struct sockaddr_in6 in6 {};
 		in6.sin6_port = htons(default_port);
 		in6.sin6_family = AF_INET6;
 		std::copy(peer.addr.begin(), peer.addr.end(), in6.sin6_addr.s6_addr);
@@ -235,8 +232,7 @@ bool protocol_zt::recv_from_peers()
 bool protocol_zt::recv_from_udp()
 {
 	unsigned char buf[PKTBUF_LEN];
-	struct sockaddr_in6 in6 {
-	};
+	struct sockaddr_in6 in6 {};
 	socklen_t addrlen = sizeof(in6);
 	auto len = lwip_recvfrom(fd_udp, buf, sizeof(buf), 0, (struct sockaddr *)&in6, &addrlen);
 	if (len < 0)
@@ -250,8 +246,7 @@ bool protocol_zt::recv_from_udp()
 
 bool protocol_zt::accept_all()
 {
-	struct sockaddr_in6 in6 {
-	};
+	struct sockaddr_in6 in6 {};
 	socklen_t addrlen = sizeof(in6);
 	while (true) {
 		auto newfd = lwip_accept(fd_tcp, (struct sockaddr *)&in6, &addrlen);
