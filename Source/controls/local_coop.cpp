@@ -246,7 +246,8 @@ bool IsTilePositionOnScreen(Point tilePos, uint8_t excludePlayerId = 255)
 	// Use separate limits for X and Y, with margin for player sprites and UI
 	// Note: viewportHeight is usually smaller than screenWidth on most displays
 	// Horizontal margin is smaller to allow players to spread out more across the wider screen
-	const int maxScreenDistanceX = (screenWidth / 2) - 50;   // Half screen width with small margin
+	// Allow players to spread out more horizontally (use most of screen width) while keeping vertical constraint tighter
+	const int maxScreenDistanceX = screenWidth - 100;   // Most of screen width with margin for UI
 	const int maxScreenDistanceY = (viewportHeight / 2) - 80; // Half viewport height with margin
 	
 	// Convert tile position to screen space for distance calculation
