@@ -412,6 +412,14 @@ std::vector<uint16_t> ReadWidths(AssetRef &&ref)
 	return result;
 }
 #endif
+/**
+ * @brief Checks if the tile under the cursor is within the specified radius of the target position
+ */
+bool IsWithinTileRadius(Point cursor, Point target, int radius)
+{
+	return std::abs(cursor.x - target.x) <= radius
+	    && std::abs(cursor.y - target.y) <= radius;
+}
 
 } // namespace
 
@@ -779,16 +787,39 @@ void ShiftToDiamondGridAlignment(Point screenPosition, Point &tile, bool &flipfl
  */
 bool CheckMouseHold(const Point currentTile)
 {
-	if ((sgbMouseDown != CLICK_NONE || ControllerActionHeld != GameActionType_NONE) && IsNoneOf(LastPlayerAction, PlayerActionType::None, PlayerActionType::Attack, PlayerActionType::Spell)) {
-		InvalidateTargets();
+	const bool holdActive = (sgbMouseDown != CLICK_NONE || ControllerActionHeld != GameActionType_NONE)
+	    && IsNoneOf(LastPlayerAction, PlayerActionType::None, PlayerActionType::Attack, PlayerActionType::Spell);
 
-		if (pcursmonst == -1 && ObjectUnderCursor == nullptr && pcursitem == -1 && pcursinvitem == -1 && pcursstashitem == StashStruct::EmptyCell && PlayerUnderCursor == nullptr) {
-			cursPosition = currentTile;
-			DisplayTriggerInfo();
-		}
-		return true;
+	if (!holdActive) {
+		return false;
 	}
-	return false;
+
+	if (sgbMouseDown != CLICK_NONE) {
+		if (pcursmonst != -1) {
+			const Monster &monster = Monsters[pcursmonst];
+			if (!IsWithinTileRadius(currentTile, monster.position.tile, 1)) {
+				pcursmonst = -1;
+			}
+		}
+
+		if (PlayerUnderCursor != nullptr) {
+			const Player &player = *PlayerUnderCursor;
+			if (!IsWithinTileRadius(currentTile, player.position.tile, 1)) {
+				PlayerUnderCursor = nullptr;
+			}
+		}
+	}
+
+	InvalidateTargets();
+
+	if (pcursmonst == -1 && ObjectUnderCursor == nullptr && pcursitem == -1
+	    && pcursinvitem == -1 && pcursstashitem == StashStruct::EmptyCell
+	    && PlayerUnderCursor == nullptr) {
+		cursPosition = currentTile;
+		DisplayTriggerInfo();
+	}
+
+	return true;
 }
 
 void ResetCursorInfo()

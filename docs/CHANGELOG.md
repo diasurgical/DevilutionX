@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Features
+
+#### Gameplay
+
+- Improved balance for mouse and keyboard by requiring repeating actions to have the mouse near the target
+
 ## DevilutionX 1.5.2
 
 ### Bug Fixes
