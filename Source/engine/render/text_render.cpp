@@ -35,6 +35,7 @@
 #include "utils/language.h"
 #include "utils/log.hpp"
 #include "utils/str_cat.hpp"
+#include "utils/unicode-bidi.hpp"
 #include "utils/utf8.hpp"
 
 namespace devilution {
@@ -437,6 +438,73 @@ int GetLineStartX(UiFlags flags, const Rectangle &rect, int lineWidth)
 	return rect.position.x;
 }
 
+void DrawLine(
+    const Surface &out,
+    std::string_view text,
+    Point characterPosition,
+    Rectangle rect,
+    UiFlags flags,
+    int curSpacing,
+    GameFontTables size,
+    text_color color,
+    bool outline,
+    const TextRenderOptions &opts,
+    size_t lineStartPos,
+    int totalWidth)
+{
+	CurrentFont currentFont;
+
+	std::string visualText = ConvertLogicalToVisual(text);
+	std::string_view lineCopy = visualText;
+
+	size_t cpLen;
+
+	// Start from the beginning of the line
+	characterPosition.x = GetLineStartX(flags, rect, totalWidth);
+
+	// Draw all characters in line
+	size_t visualPos = 0;
+
+	while (!lineCopy.empty()) {
+		char32_t c = DecodeFirstUtf8CodePoint(lineCopy, &cpLen);
+		if (c == Utf8DecodeError) break;
+		if (c == ZWSP) {
+			lineCopy.remove_prefix(cpLen);
+			continue;
+		}
+
+		if (!currentFont.load(size, color, c)) {
+			c = U'?';
+			if (!currentFont.load(size, color, c)) {
+				app_fatal("Missing fonts");
+			}
+		}
+		const uint8_t frame = c & 0xFF;
+
+		const ClxSprite glyph = currentFont.glyph(frame);
+		const int charWidth = glyph.width();
+
+		// Get the logical position for this character
+		int logicalPos = ConvertVisualToLogicalPosition(text, visualPos);
+		const auto byteIndex = static_cast<int>(lineStartPos + logicalPos);
+
+		// Draw highlight
+		if (byteIndex >= opts.highlightRange.begin && byteIndex < opts.highlightRange.end) {
+			const bool lastInRange = static_cast<int>(byteIndex + cpLen) == opts.highlightRange.end;
+			FillRect(out, characterPosition.x, characterPosition.y,
+			    glyph.width() + (lastInRange ? 0 : curSpacing), glyph.height(),
+			    opts.highlightColor);
+		}
+
+		DrawFont(out, characterPosition, glyph, color, outline);
+
+		// Move to the next position
+		characterPosition.x += charWidth + curSpacing;
+		visualPos += cpLen;
+		lineCopy.remove_prefix(cpLen);
+	}
+}
+
 uint32_t DoDrawString(const Surface &out, std::string_view text, Rectangle rect, Point &characterPosition,
     int lineWidth, int charactersInLine, int rightMargin, int bottomMargin, GameFontTables size, text_color color, bool outline,
     TextRenderOptions &opts)
@@ -455,9 +523,12 @@ uint32_t DoDrawString(const Surface &out, std::string_view text, Rectangle rect,
 	std::string_view remaining = text;
 	size_t cpLen;
 
-	const auto maybeDrawCursor = [&]() {
+	// Track line boundaries
+	size_t lineStartPos = 0;
+	size_t lineEndPos = 0;
+
+	const auto maybeDrawCursor = [&](Point position) {
 		if (opts.cursorPosition == static_cast<int>(text.size() - remaining.size())) {
-			Point position = characterPosition;
 			MaybeWrap(position, 2, rightMargin, position.x, opts.lineHeight);
 			if (GetAnimationFrame(2, 500) != 0) {
 				FontStack baseFont = LoadFont(size, color, 0);
@@ -470,6 +541,9 @@ uint32_t DoDrawString(const Surface &out, std::string_view text, Rectangle rect,
 			}
 		}
 	};
+
+	lineStartPos = 0;
+	lineEndPos = 0;
 
 	for (; !remaining.empty() && remaining[0] != '\0'
 	     && (next = DecodeFirstUtf8CodePoint(remaining, &cpLen)) != Utf8DecodeError;
@@ -487,8 +561,28 @@ uint32_t DoDrawString(const Surface &out, std::string_view text, Rectangle rect,
 		const uint8_t frame = next & 0xFF;
 		const uint16_t width = currentFont.glyph(frame).width();
 		if (next == U'\n' || characterPosition.x + width > rightMargin) {
+			lineEndPos = text.size() - remaining.size();
+
+			std::string_view lineText = text.substr(lineStartPos, lineEndPos - lineStartPos);
+			if (!lineText.empty()) {
+				DrawLine(
+				    out,
+				    lineText,
+				    characterPosition,
+				    rect,
+				    opts.flags,
+				    curSpacing,
+				    size,
+				    color,
+				    outline,
+				    opts,
+				    lineStartPos,
+				    lineWidth);
+			}
+
+			// Check cursor position at line breaks
 			if (next == '\n')
-				maybeDrawCursor();
+				maybeDrawCursor(characterPosition);
 			const int nextLineY = characterPosition.y + opts.lineHeight;
 			if (nextLineY >= bottomMargin)
 				break;
@@ -506,26 +600,45 @@ uint32_t DoDrawString(const Surface &out, std::string_view text, Rectangle rect,
 			}
 			characterPosition.x = GetLineStartX(opts.flags, rect, lineWidth);
 
+			// Start a new line
+			lineStartPos = next == U'\n' ? (text.size() - remaining.size() + cpLen) : (text.size() - remaining.size());
+			lineEndPos = lineStartPos;
+
 			if (next == U'\n')
 				continue;
 		}
 
-		const ClxSprite glyph = currentFont.glyph(frame);
-		const auto byteIndex = static_cast<int>(text.size() - remaining.size());
+		// Update end position as we add characters
+		lineEndPos = text.size() - remaining.size() + cpLen;
 
-		// Draw highlight
-		if (byteIndex >= opts.highlightRange.begin && byteIndex < opts.highlightRange.end) {
-			const bool lastInRange = static_cast<int>(byteIndex + cpLen) == opts.highlightRange.end;
-			FillRect(out, characterPosition.x, characterPosition.y,
-			    glyph.width() + (lastInRange ? 0 : curSpacing), glyph.height(),
-			    opts.highlightColor);
-		}
+		// Check if cursor should be at this position
+		maybeDrawCursor(characterPosition);
 
-		DrawFont(out, characterPosition, glyph, color, outline);
-		maybeDrawCursor();
+		// Update position for the next character
 		characterPosition.x += width + curSpacing;
 	}
-	maybeDrawCursor();
+
+	// Draw any remaining characters in the last line
+	if (lineStartPos < lineEndPos) {
+		std::string_view lineText = text.substr(lineStartPos, lineEndPos - lineStartPos);
+
+		DrawLine(
+		    out,
+		    lineText,
+		    characterPosition,
+		    rect,
+		    opts.flags,
+		    curSpacing,
+		    size,
+		    color,
+		    outline,
+		    opts,
+		    lineStartPos,
+		    lineWidth);
+	}
+
+	// Final cursor check after all text
+	maybeDrawCursor(characterPosition);
 	return static_cast<uint32_t>(remaining.data() - text.data());
 }
 
