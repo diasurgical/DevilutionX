@@ -3533,6 +3533,7 @@ void UpdateLocalCoopSkillButtons()
 				// Held long enough - open quick spell menu
 				if (i == 0) {
 					// Player 1
+					g_LocalCoop.spellMenuOwnerPlayerId = 0;
 					DoSpeedBook();
 					player.skillMenuOpenedByHold = true;
 				} else {
@@ -3621,6 +3622,9 @@ void AssignPlayerSpellToSlot(uint8_t playerId, int slotIndex)
 
 		// Close the spell menu
 		SpellSelectFlag = false;
+
+		// Clear spell menu ownership
+		g_LocalCoop.spellMenuOwnerPlayerId = -1;
 
 		// Reset hold state
 		player->skillButtonHeld = -1;
