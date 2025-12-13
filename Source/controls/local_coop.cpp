@@ -2066,22 +2066,28 @@ void DrawPlayerSkillSlotSmall(const Surface &out, const Player &player, int slot
 
 	// Draw scaled border sprite AFTER icon so it appears on top
 	// Position it 1px to the left and so the full width is visible (not clipped)
+	Point hintBoxPosition = { position.x - 1, position.y }; // Move 1px to the left
 	if (GetHintBoxSprite()) {
-		Point hintBoxPosition = { position.x - 1, position.y }; // Move 1px to the left
 		DrawScaledClxSprite(out, (*GetHintBoxSprite())[0], hintBoxPosition, scaledHintBoxWidth, scaledHintBoxHeight);
 	}
 
 	// Draw button label AFTER icon (bottom-right inside slot, scaled down)
 	// Match original positioning: 14px offset from bottom-right in 39px slot
+	// For scaled slots, use proportional offset: 14/39 ≈ 0.359 of slotSize
 	constexpr int OriginalLabelOffset = 14;
 	constexpr int OriginalLabelWidth = 12;
-	int labelOffset = (OriginalLabelOffset * slotSize) / OriginalHintBoxSize;
-	int labelWidth = std::max(8, (OriginalLabelWidth * slotSize) / OriginalHintBoxSize); // Minimum 8px for readability
+	int labelOffset = (OriginalLabelOffset * slotSize + OriginalHintBoxSize / 2) / OriginalHintBoxSize; // Round properly
+	int labelWidth = std::max(12, (OriginalLabelWidth * slotSize + OriginalHintBoxSize / 2) / OriginalHintBoxSize); // Increased minimum to 12px
+	// Position label at bottom-right of the slot (using actual slot position and size)
+	// The hintBox is drawn 1px to the left, but we position relative to the slot itself
 	int labelX = position.x + slotSize - labelOffset;
 	int labelY = position.y + slotSize - labelOffset;
-	// Use 0 for height to auto-size like the original
-	DrawString(out, label, { { labelX, labelY }, { labelWidth, 0 } },
-	    { .flags = UiFlags::ColorWhite | UiFlags::Outlined | UiFlags::FontSize12, .spacing = 0 });
+	// Only draw if label is not empty
+	if (label != nullptr && *label != '\0') {
+		// Use 0 for height to auto-size like the original
+		DrawString(out, label, { { labelX, labelY }, { labelWidth, 0 } },
+		    { .flags = UiFlags::ColorWhite | UiFlags::Outlined | UiFlags::FontSize12, .spacing = 0 });
+	}
 }
 
 /**
@@ -2335,11 +2341,14 @@ void DrawPlayerBelt(const Surface &out, const Player &player, Point basePosition
 		// Draw button label if shoulder button is held
 		// Left shoulder: slots 0-3 (A, B, X, Y)
 		// Right shoulder: slots 4-7 (A, B, X, Y)
+		// If both are held, prioritize right shoulder
 		const char *label = nullptr;
-		if (leftShoulderHeld && i < 4) {
-			label = ButtonLabels[i].data();
-		} else if (rightShoulderHeld && i >= 4 && i < 8) {
+		if (rightShoulderHeld && i >= 4 && i < 8) {
+			// Right shoulder takes priority if both are held
 			label = ButtonLabels[i - 4].data();
+		} else if (leftShoulderHeld && i < 4) {
+			// Left shoulder only if right is not held
+			label = ButtonLabels[i].data();
 		}
 		
 		if (label != nullptr) {
@@ -2474,7 +2483,7 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 	constexpr int barsToBeltSpacing = 1;     // 1px spacing between bars and belt
 	
 	// Health/mana bar dimensions - with golden border
-	constexpr int barHeight = 11; // Height increased by 1px for taller golden border sprite
+	constexpr int barHeight = 19; // Height increased by 8px (from 11 to 19)
 	constexpr int barSpacing = 2;
 	// Bars: health, mana (full height only, no XP bar)
 	constexpr int barsHeight = barHeight * 2 + barSpacing; // = 10+10+2 = 22px
@@ -2653,14 +2662,14 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 		}
 		// Align skill column vertically with panel (top-aligned)
 		int skillY = panelY;
-		// Hide skill labels when left shoulder is held
-		bool hideSkillLabels = (coopPlayer != nullptr && coopPlayer->leftShoulderHeld);
+		// Hide skill labels when either shoulder button is held (shows belt labels instead)
+		bool hideSkillLabels = (coopPlayer != nullptr && (coopPlayer->leftShoulderHeld || coopPlayer->rightShoulderHeld));
 		DrawPlayerSkillSlotsVertical(out, player, { skillX, skillY }, SkillSlotSize, skillGridHeight, hideSkillLabels);
 
 		// === BELT: Right after XP bar ===
 		bool leftShoulderHeld = (coopPlayer != nullptr && coopPlayer->leftShoulderHeld);
 		bool rightShoulderHeld = (coopPlayer != nullptr && coopPlayer->rightShoulderHeld);
-		DrawPlayerBelt(out, player, { contentX + barsExtraRightOffset, barY - 4 }, false, leftShoulderHeld, rightShoulderHeld);
+		DrawPlayerBelt(out, player, { contentX + barsExtraRightOffset, barY - 2 }, false, leftShoulderHeld, rightShoulderHeld);
 
 		// Draw durability icons - above panel for bottom players, below panel for top players
 		int durabilityY;
