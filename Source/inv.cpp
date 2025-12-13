@@ -2117,6 +2117,9 @@ bool UseInvItem(int cii)
 	if (IsInspectingPlayer())
 		return false;
 
+	if (MyPlayer == nullptr)
+		return false;
+
 	Player &player = *MyPlayer;
 
 	if (player._pInvincible && player._pHitPoints == 0 && &player == MyPlayer)
