@@ -111,66 +111,67 @@ struct LocalCoopPlayer {
 struct LocalCoopState {
 	bool enabled = false;
 
-	/// Local co-op players (index 0 = player 2, index 1 = player 3, etc.)
-	/// Player 1 uses the existing input system
-	std::array<LocalCoopPlayer, MaxLocalPlayers - 1> players;
+	/// Unified player array (index 0 = player 1, index 1 = player 2, etc.)
+	/// In local coop mode, all players use the same LocalCoopPlayer structure
+	/// Player 1 (index 0) is always marked as active when local coop is enabled
+	std::array<LocalCoopPlayer, MaxLocalPlayers> players;
 
 	/// D-pad repeat delay in milliseconds
 	static constexpr uint32_t DpadRepeatDelay = 300;
-	
+
 	/// Panel ownership: which game player ID controls the currently open panels
 	/// 0 = player 1 (default), 1-3 = local coop players 2-4
 	/// Use -1 to indicate no explicit owner (falls back to player 1)
 	int panelOwnerPlayerId = -1;
-	
+
 	/// Store ownership: which game player ID is currently using a store/shop
 	/// -1 = no owner (player 1 by default), 1-3 = local coop players 2-4
 	/// When set, MyPlayer is temporarily switched to the store owner
 	int storeOwnerPlayerId = -1;
-	
+
 	/// Spell menu ownership: which game player ID has the quick spell menu open
 	/// -1 = no owner (falls back to player 1), 0-3 = game player ID
 	/// While open, MyPlayer/InspectPlayer are set to the owning player
 	int spellMenuOwnerPlayerId = -1;
-	
+
 	/// Saved MyPlayer pointer when store ownership is active
 	Player* savedMyPlayer = nullptr;
-	
+
 	/// Camera offset for smooth scrolling (calculated by UpdateLocalCoopCamera)
 	/// These store the averaged walking offset of all players in screen pixels
 	int cameraOffsetX = 0;
 	int cameraOffsetY = 0;
-	
+
 	/// Camera target position in screen space (scaled by 256 for precision)
 	/// Used for dead zone calculations - camera only moves when target exceeds dead zone
 	int64_t cameraTargetScreenX = 0;
 	int64_t cameraTargetScreenY = 0;
 	bool cameraInitialized = false;
-	
+
 	/// Smoothed camera position (what's actually rendered) in screen space (scaled by 256)
 	/// The camera smoothly interpolates from current position to target position
 	int64_t cameraSmoothScreenX = 0;
 	int64_t cameraSmoothScreenY = 0;
-	
+
 	/// Dead zone radius in screen pixels - camera won't move if average player position
 	/// is within this distance from the current camera target
 	static constexpr int CameraDeadZone = 32;
-	
+
 	/// Camera smoothing factor (0.0 = no smoothing, 1.0 = instant)
 	/// Higher values = faster camera response but potentially jerky movement
 	static constexpr float CameraSmoothFactor = 0.25f;
-	
+
 	/// Check if a local coop player owns the panels (not player 1)
 	[[nodiscard]] bool HasPanelOwner() const { return panelOwnerPlayerId > 0; }
-	
+
 	/// Get the game player ID that owns panels (0 for player 1, 1-3 for local coop)
 	[[nodiscard]] uint8_t GetPanelOwnerPlayerId() const;
-	
+
 	/// Try to claim panel ownership for a game player
 	/// @param playerId Game player ID (0 = player 1, 1-3 = coop players)
 	/// Returns true if ownership was granted
 	bool TryClaimPanelOwnership(uint8_t playerId);
-	
+
 	/// Release panel ownership (call when all panels are closed)
 	void ReleasePanelOwnership();
 
@@ -187,18 +188,14 @@ struct LocalCoopState {
 
 	/// Check if any player has character selection active
 	[[nodiscard]] bool IsAnyCharacterSelectActive() const;
-	
-	/// Player 1 input state - uses same structure as LocalCoopPlayer for consistency
-	/// Note: Only the input-related fields are used (shoulder/skill button state)
-	struct {
-		int skillButtonHeld = -1;           ///< Skill slot being held (-1 = none, 0-3 = slot)
-		uint32_t skillButtonPressTime = 0;  ///< When skill button was pressed
-		bool skillMenuOpenedByHold = false; ///< Whether menu was opened via long press
-		bool leftShoulderHeld = false;      ///< Left shoulder held for belt slots 1-4
-		bool rightShoulderHeld = false;     ///< Right shoulder held for belt slots 5-8
-	} player1InputState;
-	
-	/// Get the LocalCoopPlayer for a coop player (players 2-4)
+
+	/// Get the LocalCoopPlayer for any player (including player 1)
+	/// @param playerId Game player ID (0-3)
+	/// @return Pointer to LocalCoopPlayer, or nullptr if invalid
+	[[nodiscard]] LocalCoopPlayer* GetPlayer(uint8_t playerId);
+	[[nodiscard]] const LocalCoopPlayer* GetPlayer(uint8_t playerId) const;
+
+	/// Get the LocalCoopPlayer for a coop player (players 2-4) - deprecated, use GetPlayer instead
 	/// @param playerId Game player ID (1-3 for coop players)
 	/// @return Pointer to LocalCoopPlayer, or nullptr if invalid or player 1
 	[[nodiscard]] LocalCoopPlayer* GetCoopPlayer(uint8_t playerId);
@@ -423,6 +420,30 @@ bool HandlePlayerSkillButtonDown(uint8_t playerId, int slotIndex);
  * @return true if the release was handled
  */
 bool HandlePlayerSkillButtonUp(uint8_t playerId, int slotIndex);
+
+/**
+ * @brief Unified button press handler for any player in local coop mode.
+ *
+ * Handles all button presses (face buttons, shoulders, triggers) for any player
+ * including Player 1. This consolidates the logic that was previously split
+ * between game_controls.cpp and local_coop.cpp.
+ *
+ * @param playerId Game player ID (0 = player 1, 1-3 = coop players)
+ * @param button The button that was pressed
+ * @return true if the button was handled and should not be processed further
+ */
+bool HandleLocalCoopButtonPress(uint8_t playerId, ControllerButton button);
+
+/**
+ * @brief Unified button release handler for any player in local coop mode.
+ *
+ * Handles all button releases for any player including Player 1.
+ *
+ * @param playerId Game player ID (0 = player 1, 1-3 = coop players)
+ * @param button The button that was released
+ * @return true if the button was handled and should not be processed further
+ */
+bool HandleLocalCoopButtonRelease(uint8_t playerId, ControllerButton button);
 
 /**
  * @brief Assign spell to a player's skill slot from quick spell menu.

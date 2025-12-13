@@ -251,86 +251,10 @@ void PressControllerButton(ControllerButton button)
 		}
 	}
 
-	// Local coop skill button handling for player 1
-	// When local coop is enabled, A/B/X/Y directly cast skills
-	// Uses same slot mapping as PadHotspellMenu: A=2, B=3, X=0, Y=1
-	// Long press opens the quick spell menu
-	// BUT: A button should interact with NPCs/monsters/objects first
-	//      B button should pick up items/operate objects first
+	// Local coop unified button handling - handles Player 1 and all coop players the same way
 	if (IsLocalCoopEnabled()) {
-		// Handle shoulder buttons for belt item access
-		switch (button) {
-		case devilution::ControllerButton_BUTTON_LEFTSHOULDER:
-			SetPlayerShoulderHeld(0, true, true);
+		if (HandleLocalCoopButtonPress(0, button)) {
 			return;
-		case devilution::ControllerButton_BUTTON_RIGHTSHOULDER:
-			SetPlayerShoulderHeld(0, false, true);
-			return;
-		default:
-			break;
-		}
-		
-		// Check if shoulder buttons are held - if so, A/B/X/Y should use belt items
-		const int beltSlot = GetPlayerBeltSlotFromButton(0, button);
-		if (beltSlot >= 0 && beltSlot < MaxBeltItems) {
-			// Use belt item at this slot
-			if (!Players[0].SpdList[beltSlot].isEmpty()) {
-				UseInvItem(INVITEM_BELT_FIRST + beltSlot);
-			}
-			return;
-		}
-		
-		// Check if Player 1 has an interaction target (uses global cursor vars)
-		const bool hasPrimaryTarget = (pcursmonst != -1 || ObjectUnderCursor != nullptr);
-		const bool hasSecondaryTarget = (pcursitem != -1 || ObjectUnderCursor != nullptr);
-
-		int slotIndex = -1;
-		switch (button) {
-		case devilution::ControllerButton_BUTTON_A:
-			// A button: interact with target if present, otherwise skill slot 2
-			if (!hasPrimaryTarget)
-				slotIndex = 2;
-			break;
-		case devilution::ControllerButton_BUTTON_B:
-			// B button: pick up item/operate if target present, otherwise skill slot 3
-			if (!hasSecondaryTarget)
-				slotIndex = 3;
-			break;
-		case devilution::ControllerButton_BUTTON_X:
-			slotIndex = 0;
-			break;
-		case devilution::ControllerButton_BUTTON_Y:
-			slotIndex = 1;
-			break;
-		default:
-			break;
-		}
-		
-		if (slotIndex >= 0) {
-			// HandlePlayerSkillButtonDown returns true if we should not process further
-			// (e.g., when assigning a spell from the quick menu)
-			if (HandlePlayerSkillButtonDown(0, slotIndex))
-				return;
-			// Otherwise, we start tracking for long press
-			// The actual spell cast happens on button release (handled elsewhere)
-			return;
-		}
-		
-		// When local coop is active with other players joined, Player 1 uses Start/Select 
-		// for inventory/character panels like coop players do
-		if (IsAnyLocalCoopPlayerInitialized()) {
-			switch (button) {
-			case devilution::ControllerButton_BUTTON_START:
-				// Start = Toggle inventory (like coop players)
-				ProcessGameAction(GameAction { GameActionType_TOGGLE_INVENTORY });
-				return;
-			case devilution::ControllerButton_BUTTON_BACK:
-				// Select/Back = Toggle character info (like coop players)
-				ProcessGameAction(GameAction { GameActionType_TOGGLE_CHARACTER_INFO });
-				return;
-			default:
-				break;
-			}
 		}
 	}
 
@@ -457,59 +381,9 @@ bool HandleControllerButtonEvent(const SDL_Event &event, const ControllerButtonE
 		return false;
 	}
 
-	// Handle player 1 skill button release in local coop mode
-	// Uses same slot mapping as PadHotspellMenu: A=2, B=3, X=0, Y=1
-	// Don't process if player is in a store or game menu
-	if (IsLocalCoopEnabled() && ctrlEvent.up && !IsPlayerInStore() && !InGameMenu()) {
-		// Handle shoulder button release
-		switch (ctrlEvent.button) {
-		case devilution::ControllerButton_BUTTON_LEFTSHOULDER:
-			SetPlayerShoulderHeld(0, true, false);
-			return true;
-		case devilution::ControllerButton_BUTTON_RIGHTSHOULDER:
-			SetPlayerShoulderHeld(0, false, false);
-			return true;
-		default:
-			break;
-		}
-		
-		int slotIndex = -1;
-		switch (ctrlEvent.button) {
-		case devilution::ControllerButton_BUTTON_A:
-			slotIndex = 2;
-			break;
-		case devilution::ControllerButton_BUTTON_B:
-			slotIndex = 3;
-			break;
-		case devilution::ControllerButton_BUTTON_X:
-			slotIndex = 0;
-			break;
-		case devilution::ControllerButton_BUTTON_Y:
-			slotIndex = 1;
-			break;
-		default:
-			break;
-		}
-		
-		if (slotIndex >= 0) {
-			// HandlePlayerSkillButtonUp returns true if it was a long press (opened menu)
-			// Returns false if it was a short press - we should cast the spell
-			if (!HandlePlayerSkillButtonUp(0, slotIndex)) {
-				// Short press - cast the spell from the slot
-				Player &player = Players[0];
-				SpellID spell = player._pSplHotKey[slotIndex];
-				SpellType spellType = player._pSplTHotKey[slotIndex];
-				
-				if (spell != SpellID::Invalid && spellType != SpellType::Invalid) {
-					// Set the readied spell and cast it
-					player._pRSpell = spell;
-					player._pRSplType = spellType;
-					PerformSpellAction();
-				} else {
-					// No spell assigned - perform primary action (attack)
-					PerformPrimaryAction();
-				}
-			}
+	// Handle player 1 button release in local coop mode - unified with coop players
+	if (IsLocalCoopEnabled() && ctrlEvent.up) {
+		if (HandleLocalCoopButtonRelease(0, ctrlEvent.button)) {
 			return true;
 		}
 	}
