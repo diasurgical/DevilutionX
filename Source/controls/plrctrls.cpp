@@ -385,7 +385,7 @@ void CheckPlayerNearby()
 	const Player &myPlayer = *MyPlayer;
 
 	const SpellID spl = myPlayer._pRSpell;
-	if (myPlayer.friendlyMode && spl != SpellID::Resurrect && spl != SpellID::HealOther)
+	if (myPlayer.friendlyMode && IsNoneOf(spl, SpellID::Resurrect, SpellID::HealOther))
 		return;
 
 	for (const Player &player : Players) {
@@ -393,12 +393,12 @@ void CheckPlayerNearby()
 			continue;
 		const int mx = player.position.future.x;
 		const int my = player.position.future.y;
-		if (dPlayer[mx][my] == 0
+		if ((dPlayer[mx][my] == 0 && spl != SpellID::Resurrect)
 		    || !IsTileLit(player.position.future)
 		    || (player.hasNoLife() && spl != SpellID::Resurrect))
 			continue;
 
-		if (myPlayer.UsesRangedWeapon() || HasRangedSpell() || spl == SpellID::HealOther) {
+		if (myPlayer.UsesRangedWeapon() || HasRangedSpell() || IsAnyOf(spl, SpellID::Resurrect, SpellID::HealOther)) {
 			newDdistance = GetDistanceRanged(player.position.future);
 		} else {
 			newDdistance = GetDistance(player.position.future, distance);
@@ -2130,7 +2130,7 @@ void PerformSpellAction()
 
 	const Player &myPlayer = *MyPlayer;
 	const SpellID spl = myPlayer._pRSpell;
-	if ((PlayerUnderCursor == nullptr && (spl == SpellID::Resurrect || spl == SpellID::HealOther))
+	if ((PlayerUnderCursor == nullptr && IsAnyOf(spl, SpellID::Resurrect, SpellID::HealOther))
 	    || (ObjectUnderCursor == nullptr && spl == SpellID::TrapDisarm)) {
 		myPlayer.Say(HeroSpeech::ICantCastThatHere);
 		return;
