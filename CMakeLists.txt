@@ -350,7 +350,7 @@ include(Dependencies)
 add_subdirectory(Source)
 
 set(BIN_TARGET devilutionx)
-if(NINTENDO_3DS)
+if(NINTENDO_3DS OR PS2)
   set(BIN_TARGET ${BIN_TARGET}.elf)
 elseif(TARGET_PLATFORM STREQUAL "dos")
   set(BIN_TARGET devx)
