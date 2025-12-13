@@ -1,0 +1,185 @@
+syntax = "proto3";
+option optimize_for = LITE_RUNTIME;
+
+package dapi.commands;
+
+message SetFPS {
+	uint32 FPS = 1;
+}
+
+message CancelQText {
+
+}
+
+message Move {
+	uint32 type = 1;
+	uint32 targetX = 2;
+	uint32 targetY = 3;
+}
+
+message Talk {
+	uint32 targetX = 1;
+	uint32 targetY = 2;
+}
+
+message SelectStoreOption {
+	uint32 option = 1;
+}
+
+message BuyItem {
+	uint32 ID = 1;
+}
+
+message SellItem {
+	uint32 ID = 1;
+}
+
+message RechargeItem {
+	uint32 ID = 1;
+}
+
+message RepairItem {
+	uint32 ID = 1;
+}
+
+message AttackMonster {
+	uint32 index = 1;
+}
+
+message AttackXY {
+	sint32 x = 1;
+	sint32 y = 2;
+}
+
+message OperateObject {
+	uint32 index = 1;
+}
+
+message UseBeltItem {
+	uint32 slot = 1;
+}
+
+message ToggleCharacterSheet {
+
+}
+
+message IncreaseStat {
+	uint32 stat = 1;
+}
+
+message GetItem {
+	uint32 ID = 1;
+}
+
+message SetSpell {
+	sint32 spellID = 1;
+	sint32 spellType = 2;
+}
+
+message CastMonster  {
+	uint32 index = 1;
+}
+
+message CastXY {
+	sint32 x = 1;
+	sint32 y = 2;
+}
+
+message ToggleInventory {
+
+}
+
+message PutInCursor {
+	uint32 ID = 1;
+}
+
+message PutCursorItem {
+	sint32 target = 1;
+}
+
+message DropCursorItem {
+
+}
+
+message UseItem {
+	uint32 ID = 1;
+}
+
+message IdentifyStoreItem {
+	uint32 ID = 1;
+}
+
+message DisarmTrap {
+	uint32 index = 1;
+}
+
+message SkillRepair {
+	uint32 ID = 1;
+}
+
+message SkillRecharge {
+	uint32 ID = 1;
+}
+
+message ToggleMenu {
+
+}
+
+message SaveGame {
+
+}
+
+message Quit {
+
+}
+
+message ClearCursor {
+
+}
+
+message IdentifyItem {
+	uint32 ID = 1;
+}
+
+message SendChat {
+	string message = 1;
+}
+
+message Command {
+	oneof command {
+		Move move = 1;
+		Talk talk = 2;
+		SelectStoreOption option = 3;
+		BuyItem buyItem = 4;
+		SellItem sellItem = 5;
+		RechargeItem rechargeItem = 6;
+		RepairItem repairItem = 7;
+		AttackMonster attackMonster = 8;
+		AttackXY attackXY = 9;
+		OperateObject operateObject = 10;
+		UseBeltItem useBeltItem = 11;
+		ToggleCharacterSheet toggleCharacterSheet = 12;
+		IncreaseStat increaseStat = 13;
+		GetItem getItem = 14;
+		SetSpell setSpell = 15;
+		CastMonster castMonster = 16;
+		CastXY castXY = 17;
+		ToggleInventory toggleInventory = 18;
+		PutInCursor putInCursor = 19;
+		PutCursorItem putCursorItem = 20;
+		DropCursorItem dropCursorItem = 21;
+		UseItem useItem = 22;
+		IdentifyStoreItem identifyStoreItem = 23;
+		CancelQText cancelQText = 24;
+		SetFPS setFPS = 25;
+		DisarmTrap disarmTrap = 26;
+		SkillRepair skillRepair = 27;
+		SkillRecharge skillRecharge = 28;
+		ToggleMenu toggleMenu = 29;
+		SaveGame saveGame = 30;
+		Quit quit = 31;
+		ClearCursor clearCursor = 32;
+		IdentifyItem identifyItem = 33;
+		SendChat sendChat = 34;
+	}
+}
