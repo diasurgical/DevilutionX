@@ -35,6 +35,7 @@
 #include "lighting.h"
 #include "loadsave.h"
 #include "menu.h"
+#include "minitext.h"
 #include "missiles.h"
 #include "monster.h"
 #include "msg.h"
@@ -668,6 +669,19 @@ void ProcessLocalCoopButtonInput(int localIndex, const SDL_Event &event)
 	// Handle button presses - map to game actions
 	if (isButtonDown) {
 		uint32_t now = SDL_GetTicks();
+		
+		// Check if speech text is active - allow any player to exit it with B button
+		if (qtextflag && button == SDL_GAMEPAD_BUTTON_EAST) {
+			qtextflag = false;
+			if (leveltype == DTYPE_TOWN)
+				stream_stop();
+			// If there's no active store and this player is the store owner, clear ownership
+			// This allows movement after closing speech that started without a store menu
+			if (!IsPlayerInStore() && g_LocalCoop.storeOwnerPlayerId == playerId) {
+				ClearLocalCoopStoreOwner();
+			}
+			return;
+		}
 		
 		// If quick spell menu is open and this player opened it, handle spell assignment
 		// Use same slot mapping as player 1: A=2, B=3, X=0, Y=1
