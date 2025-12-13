@@ -752,7 +752,7 @@ bool FillRoom(int x1, int y1, int x2, int y2)
 	return true;
 }
 
-void CreateBlock(int x, int y, int obs, int dir)
+void CreateBlock(Point point, int obs, int dir)
 {
 	int x1;
 	int y1;
@@ -763,58 +763,58 @@ void CreateBlock(int x, int y, int obs, int dir)
 	const int blksizey = RandomIntBetween(3, 4);
 
 	if (dir == 0) {
-		y2 = y - 1;
+		y2 = point.y - 1;
 		y1 = y2 - blksizey;
 		if (blksizex < obs) {
-			x1 = GenerateRnd(blksizex) + x;
+			x1 = GenerateRnd(blksizex) + point.x;
 		}
 		if (blksizex == obs) {
-			x1 = x;
+			x1 = point.x;
 		}
 		if (blksizex > obs) {
-			x1 = x - GenerateRnd(blksizex);
+			x1 = point.x - GenerateRnd(blksizex);
 		}
 		x2 = blksizex + x1;
 	}
 	if (dir == 1) {
-		x1 = x + 1;
+		x1 = point.x + 1;
 		x2 = x1 + blksizex;
 		if (blksizey < obs) {
-			y1 = GenerateRnd(blksizey) + y;
+			y1 = GenerateRnd(blksizey) + point.y;
 		}
 		if (blksizey == obs) {
-			y1 = y;
+			y1 = point.y;
 		}
 		if (blksizey > obs) {
-			y1 = y - GenerateRnd(blksizey);
+			y1 = point.y - GenerateRnd(blksizey);
 		}
 		y2 = y1 + blksizey;
 	}
 	if (dir == 2) {
-		y1 = y + 1;
+		y1 = point.y + 1;
 		y2 = y1 + blksizey;
 		if (blksizex < obs) {
-			x1 = GenerateRnd(blksizex) + x;
+			x1 = GenerateRnd(blksizex) + point.x;
 		}
 		if (blksizex == obs) {
-			x1 = x;
+			x1 = point.x;
 		}
 		if (blksizex > obs) {
-			x1 = x - GenerateRnd(blksizex);
+			x1 = point.x - GenerateRnd(blksizex);
 		}
 		x2 = blksizex + x1;
 	}
 	if (dir == 3) {
-		x2 = x - 1;
+		x2 = point.x - 1;
 		x1 = x2 - blksizex;
 		if (blksizey < obs) {
-			y1 = GenerateRnd(blksizey) + y;
+			y1 = GenerateRnd(blksizey) + point.y;
 		}
 		if (blksizey == obs) {
-			y1 = y;
+			y1 = point.y;
 		}
 		if (blksizey > obs) {
-			y1 = y - GenerateRnd(blksizey);
+			y1 = point.y - GenerateRnd(blksizey);
 		}
 		y2 = y1 + blksizey;
 	}
@@ -824,16 +824,16 @@ void CreateBlock(int x, int y, int obs, int dir)
 			return;
 
 		if (dir != 2) {
-			CreateBlock(x1, y1, blksizey, 0);
+			CreateBlock({ x1, y1 }, blksizey, 0);
 		}
 		if (dir != 3) {
-			CreateBlock(x2, y1, blksizex, 1);
+			CreateBlock({ x2, y1 }, blksizex, 1);
 		}
 		if (dir != 0) {
-			CreateBlock(x1, y2, blksizey, 2);
+			CreateBlock({ x1, y2 }, blksizey, 2);
 		}
 		if (dir != 1) {
-			CreateBlock(x1, y1, blksizex, 3);
+			CreateBlock({ x1, y1 }, blksizex, 3);
 		}
 	}
 }
@@ -2001,10 +2001,10 @@ void GenerateLevel(lvl_entry entry)
 		int x2 = x1 + 2;
 		int y2 = y1 + 2;
 		FillRoom(x1, y1, x2, y2);
-		CreateBlock(x1, y1, 2, 0);
-		CreateBlock(x2, y1, 2, 1);
-		CreateBlock(x1, y2, 2, 2);
-		CreateBlock(x1, y1, 2, 3);
+		CreateBlock({ x1, y1 }, 2, 0);
+		CreateBlock({ x2, y1 }, 2, 1);
+		CreateBlock({ x1, y2 }, 2, 2);
+		CreateBlock({ x1, y1 }, 2, 3);
 		if (Quests[Q_ANVIL].IsAvailable()) {
 			x1 = GenerateRnd(10) + 10;
 			y1 = GenerateRnd(10) + 10;

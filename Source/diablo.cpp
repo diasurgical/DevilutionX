@@ -27,7 +27,7 @@
 #include "appfat.h"
 #include "automap.h"
 #include "capture.h"
-#include "control.h"
+#include "control/control.hpp"
 #include "cursor.h"
 #include "dead.h"
 #ifdef _DEBUG
@@ -3356,6 +3356,7 @@ tl::expected<void, std::string> LoadGameLevel(bool firstflag, lvl_entry lvldir)
 	LoadGameLevelStopMusic(neededTrack);
 	LoadGameLevelResetCursor();
 	SetRndSeedForDungeonLevel();
+	NaKrulTomeSequence = 0;
 
 	IncProgress();
 

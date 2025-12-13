@@ -9,7 +9,7 @@
 #include <fmt/format.h>
 #include <function_ref.hpp>
 
-#include "control.h"
+#include "control/control.hpp"
 #include "engine/load_clx.hpp"
 #include "engine/render/clx_render.hpp"
 #include "engine/render/text_render.hpp"

@@ -22,7 +22,7 @@
 #endif
 
 #include "DiabloUI/text_input.hpp"
-#include "control.h"
+#include "control/control.hpp"
 #include "engine/assets.hpp"
 #include "engine/displacement.hpp"
 #include "engine/dx.h"

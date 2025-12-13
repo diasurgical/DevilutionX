@@ -16,7 +16,7 @@
 
 #include <fmt/core.h>
 
-#include "control.h"
+#include "control/control.hpp"
 #include "controls/control_mode.hpp"
 #include "controls/plrctrls.h"
 #include "cursor.h"
@@ -1117,7 +1117,7 @@ void CheckNewPath(Player &player, bool pmWillBeCalled)
 	case ACTION_RATTACKPLR:
 	case ACTION_SPELLPLR:
 		target = &Players[targetId];
-		if (!target->hasNoLife()) {
+		if (target->hasNoLife()) {
 			player.Stop();
 			return;
 		}
