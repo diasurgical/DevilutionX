@@ -76,19 +76,19 @@ void DataFile::reportFatalFieldError(DataFileField::Error code, std::string_view
 		                          /* TRANSLATORS: Error message when parsing a data file and a text value is encountered when a number is expected. Arguments are {found value}, {column heading}, {file name}, {row/record number}, {column/field number} */
 		                          "Non-numeric value {0} for {1} in {2} at row {3} and column {4}")),
 		    field.currentValue(), fieldName, fileName, field.row(), field.column())
-		              .append(detailsStr));
+		        .append(detailsStr));
 	case DataFileField::Error::OutOfRange:
 		app_fatal(fmt::format(fmt::runtime(_(
 		                          /* TRANSLATORS: Error message when parsing a data file and we find a number larger than expected. Arguments are {found value}, {column heading}, {file name}, {row/record number}, {column/field number} */
 		                          "Out of range value {0} for {1} in {2} at row {3} and column {4}")),
 		    field.currentValue(), fieldName, fileName, field.row(), field.column())
-		              .append(detailsStr));
+		        .append(detailsStr));
 	case DataFileField::Error::InvalidValue:
 		app_fatal(fmt::format(fmt::runtime(_(
 		                          /* TRANSLATORS: Error message when we find an unrecognised value in a key column. Arguments are {found value}, {column heading}, {file name}, {row/record number}, {column/field number} */
 		                          "Invalid value {0} for {1} in {2} at row {3} and column {4}")),
 		    field.currentValue(), fieldName, fileName, field.row(), field.column())
-		              .append(detailsStr));
+		        .append(detailsStr));
 	}
 }
 

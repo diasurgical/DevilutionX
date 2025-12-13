@@ -144,10 +144,10 @@ void DrawDurIcon(const Surface &out);
 
 /**
  * @brief Draw durability warning icons for a specific player at a given position.
- * 
+ *
  * Shows icons for equipped items with low durability (<=5).
  * Icons are drawn side by side horizontally.
- * 
+ *
  * @param out The surface to draw on.
  * @param player The player whose equipment to check.
  * @param position Top-left corner where icons should start.

@@ -1732,7 +1732,7 @@ namespace {
 
 /**
  * @brief Internal helper to draw a single durability icon for an item at a specific position.
- * 
+ *
  * @param out The surface to draw on.
  * @param pItem The item to check durability for.
  * @param x The x position to draw at.
@@ -1804,31 +1804,31 @@ void DrawPlayerDurabilityIcons(const Surface &out, const Player &player, Point p
 	// Durability icons are 32x32 pixels, with 8 pixel spacing
 	constexpr int iconSize = 32;
 	constexpr int iconSpacing = 8;
-	
+
 	// Count how many items need durability icons
 	int iconCount = 0;
 	Item items[4];
 	int iconTypes[4] = { 3, 2, 0, 0 }; // head, chest, left hand, right hand
-	
+
 	// Copy items to check (we need non-const access for the draw function)
 	items[0] = player.InvBody[INVLOC_HEAD];
 	items[1] = player.InvBody[INVLOC_CHEST];
 	items[2] = player.InvBody[INVLOC_HAND_LEFT];
 	items[3] = player.InvBody[INVLOC_HAND_RIGHT];
-	
+
 	// Count items that need durability warning
 	for (int i = 0; i < 4; i++) {
 		if (!items[i].isEmpty() && items[i]._iDurability <= 5) {
 			iconCount++;
 		}
 	}
-	
+
 	if (iconCount == 0)
 		return;
-	
+
 	// Calculate total width needed
 	int totalWidth = iconCount * iconSize + (iconCount - 1) * iconSpacing;
-	
+
 	// Determine starting x position based on alignment
 	int x;
 	if (alignRight) {
@@ -1838,10 +1838,10 @@ void DrawPlayerDurabilityIcons(const Surface &out, const Player &player, Point p
 		// Start from the left, draw icons from left to right
 		x = position.x;
 	}
-	
+
 	// Y position is the bottom of the icons
 	int y = position.y + iconSize;
-	
+
 	// Draw icons for items with low durability
 	for (int i = 0; i < 4; i++) {
 		if (!items[i].isEmpty() && items[i]._iDurability <= 5) {

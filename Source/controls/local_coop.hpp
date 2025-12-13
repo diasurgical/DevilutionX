@@ -36,14 +36,14 @@ struct Missile;
 
 /// Per-player cursor/targeting state for local co-op
 struct LocalCoopCursorState {
-	int pcursmonst = -1;        ///< Monster under cursor (-1 = none)
-	int8_t pcursitem = -1;      ///< Item under cursor (-1 = none)
-	Object *objectUnderCursor = nullptr;  ///< Object under cursor
-	const Player *playerUnderCursor = nullptr;  ///< Player under cursor
-	Point cursPosition = { -1, -1 };  ///< Cursor tile position
-	Missile *pcursmissile = nullptr;  ///< Missile/portal under cursor
-	int pcurstrig = -1;         ///< Trigger under cursor
-	
+	int pcursmonst = -1;                       ///< Monster under cursor (-1 = none)
+	int8_t pcursitem = -1;                     ///< Item under cursor (-1 = none)
+	Object *objectUnderCursor = nullptr;       ///< Object under cursor
+	const Player *playerUnderCursor = nullptr; ///< Player under cursor
+	Point cursPosition = { -1, -1 };           ///< Cursor tile position
+	Missile *pcursmissile = nullptr;           ///< Missile/portal under cursor
+	int pcurstrig = -1;                        ///< Trigger under cursor
+
 	/// Reset all cursor state
 	void Reset();
 };
@@ -76,29 +76,29 @@ struct LocalCoopPlayer {
 
 	// D-pad repeat timing for character selection
 	uint32_t lastDpadPress = 0;
-	
+
 	// Per-player cursor/targeting state
 	LocalCoopCursorState cursor;
-	
+
 	// Action state (similar to ControllerActionHeld for player 1)
 	uint8_t actionHeld = 0; // GameActionType
-	
+
 	// Save slot number for this player (used for saving progress)
 	uint32_t saveNumber = 0;
-	
+
 	// Skill button hold state for long-press quick spell assignment
 	// -1 = no button held, 0-3 = skill slot being held
 	int skillButtonHeld = -1;
 	uint32_t skillButtonPressTime = 0;
-	bool skillMenuOpenedByHold = false;  // Track if we opened the menu via long press
-	
+	bool skillMenuOpenedByHold = false; // Track if we opened the menu via long press
+
 	// Trigger state for inventory/character screen (like player 1)
-	bool leftTriggerPressed = false;   // Character screen
-	bool rightTriggerPressed = false;  // Inventory screen
-	
+	bool leftTriggerPressed = false;  // Character screen
+	bool rightTriggerPressed = false; // Inventory screen
+
 	// Shoulder button hold state for belt item access
-	bool leftShoulderHeld = false;   // When held, shows A/B/X/Y labels on belt slots 1-4
-	bool rightShoulderHeld = false;  // When held, shows A/B/X/Y labels on belt slots 5-8
+	bool leftShoulderHeld = false;  // When held, shows A/B/X/Y labels on belt slots 1-4
+	bool rightShoulderHeld = false; // When held, shows A/B/X/Y labels on belt slots 5-8
 
 	/// Reset player state
 	void Reset();
@@ -135,7 +135,7 @@ struct LocalCoopState {
 	int spellMenuOwnerPlayerId = -1;
 
 	/// Saved MyPlayer pointer when store ownership is active
-	Player* savedMyPlayer = nullptr;
+	Player *savedMyPlayer = nullptr;
 
 	/// Camera offset for smooth scrolling (calculated by UpdateLocalCoopCamera)
 	/// These store the averaged walking offset of all players in screen pixels
@@ -192,14 +192,14 @@ struct LocalCoopState {
 	/// Get the LocalCoopPlayer for any player (including player 1)
 	/// @param playerId Game player ID (0-3)
 	/// @return Pointer to LocalCoopPlayer, or nullptr if invalid
-	[[nodiscard]] LocalCoopPlayer* GetPlayer(uint8_t playerId);
-	[[nodiscard]] const LocalCoopPlayer* GetPlayer(uint8_t playerId) const;
+	[[nodiscard]] LocalCoopPlayer *GetPlayer(uint8_t playerId);
+	[[nodiscard]] const LocalCoopPlayer *GetPlayer(uint8_t playerId) const;
 
 	/// Get the LocalCoopPlayer for a coop player (players 2-4) - deprecated, use GetPlayer instead
 	/// @param playerId Game player ID (1-3 for coop players)
 	/// @return Pointer to LocalCoopPlayer, or nullptr if invalid or player 1
-	[[nodiscard]] LocalCoopPlayer* GetCoopPlayer(uint8_t playerId);
-	[[nodiscard]] const LocalCoopPlayer* GetCoopPlayer(uint8_t playerId) const;
+	[[nodiscard]] LocalCoopPlayer *GetCoopPlayer(uint8_t playerId);
+	[[nodiscard]] const LocalCoopPlayer *GetCoopPlayer(uint8_t playerId) const;
 };
 
 extern LocalCoopState g_LocalCoop;
@@ -283,7 +283,7 @@ void ResetLocalCoopCamera();
  * @param callback Function to call with playerId and trigger index when found
  * @return Pointer to the triggering player, or nullptr if none
  */
-Player* FindLocalCoopPlayerOnTrigger(int &outTriggerIndex);
+Player *FindLocalCoopPlayerOnTrigger(int &outTriggerIndex);
 
 /**
  * @brief Check if any local player (including Player 1) is walking.
@@ -570,7 +570,7 @@ extern bool LocalCoopHUDOpen;
  *
  * Shows player name with level, and HP/Mana bars in each corner:
  * - Bottom-left: Player 1
- * - Bottom-right: Player 2  
+ * - Bottom-right: Player 2
  * - Top-left: Player 3
  * - Top-right: Player 4
  *
@@ -640,14 +640,14 @@ bool AreLocalCoopPanelsOpen();
  * @brief Get the player who currently owns the UI panels.
  * @return Pointer to the player who owns panels, or nullptr if player 1 owns them
  */
-Player* GetLocalCoopPanelOwnerPlayer();
+Player *GetLocalCoopPanelOwnerPlayer();
 
 /**
  * @brief Check if a monster/towner should be highlighted for any local coop player.
- * 
+ *
  * This is used by the rendering code to draw outlines around targeted entities
  * for local coop players in addition to player 1's global pcursmonst.
- * 
+ *
  * @param monsterId The monster/towner ID to check
  * @return true if any local coop player is targeting this entity
  */

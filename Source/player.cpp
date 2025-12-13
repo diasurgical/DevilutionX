@@ -2554,14 +2554,14 @@ void InitPlayer(Player &player, bool firstTime)
 void InitMultiView()
 {
 	assert(MyPlayer != nullptr);
-	
+
 	// In local co-op mode with initialized players, center view on all players
 	// Otherwise just use MyPlayer's position
 	if (IsAnyLocalCoopPlayerInitialized()) {
 		// Calculate center position of all active local coop players
 		Point centerPos = CalculateLocalCoopViewPosition();
 		ViewPosition = centerPos;
-		
+
 		// Reset camera smoothing to snap to new position
 		ResetLocalCoopCamera();
 	} else {

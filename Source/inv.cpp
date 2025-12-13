@@ -1317,7 +1317,7 @@ void DrawInvBelt(const Surface &out)
 				showShoulderLabel = true;
 			}
 		}
-		
+
 		if (showShoulderLabel && shoulderLabel != nullptr) {
 			// Draw shoulder button label (overrides normal key label)
 			DrawString(out, shoulderLabel, { position - Displacement { 0, 12 }, InventorySlotSizeInPixels },
@@ -1670,11 +1670,11 @@ void CheckInvItem(bool isShiftHeld, bool isCtrlHeld)
 {
 	if (IsInspectingPlayer())
 		return;
-	
+
 	// In local co-op, inventory interactions affect the panel owner player
 	Player *panelOwner = GetLocalCoopPanelOwnerPlayer();
 	Player &player = panelOwner != nullptr ? *panelOwner : *MyPlayer;
-	
+
 	if (!player.HoldItem.isEmpty()) {
 		CheckInvPaste(player, MousePosition);
 	} else if (IsStashOpen && isCtrlHeld) {

@@ -41,7 +41,7 @@ namespace discord_manager {
 // App ID used for DevilutionX's Diablo (classic Diablo's is 496571953147150354)
 constexpr discord::ClientId DiscordDevilutionxAppId = 795760213524742205;
 
-constexpr auto IgnoreResult = [](discord::Result result) {};
+constexpr auto IgnoreResult = [](discord::Result result) { };
 
 discord::Core *discord_core = []() -> discord::Core * {
 	discord::Core *core;

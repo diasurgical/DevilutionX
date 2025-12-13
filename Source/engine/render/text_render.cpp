@@ -562,8 +562,8 @@ uint32_t DoDrawString(const Surface &out, std::string_view text, Rectangle rect,
 	};
 
 	for (; !remaining.empty() && remaining[0] != '\0'
-	     && (next = DecodeFirstUtf8CodePoint(remaining, &cpLen)) != Utf8DecodeError;
-	     remaining.remove_prefix(cpLen)) {
+	    && (next = DecodeFirstUtf8CodePoint(remaining, &cpLen)) != Utf8DecodeError;
+	    remaining.remove_prefix(cpLen)) {
 		if (next == ZWSP)
 			continue;
 
@@ -692,7 +692,7 @@ int GetLineWidth(std::string_view fmt, DrawStringFormatArg *args, std::size_t ar
 	}
 
 	for (; !(IsConsumed(curFormatted) && IsConsumed(remaining));
-	     str->remove_prefix(cpLen), prev = next) {
+	    str->remove_prefix(cpLen), prev = next) {
 		const bool isProcessingFormatArgValue = !IsConsumed(curFormatted);
 		str = isProcessingFormatArgValue ? &curFormatted : &remaining;
 		next = DecodeFirstUtf8CodePoint(*str, &cpLen);
@@ -932,7 +932,7 @@ void DrawStringWithColors(const Surface &out, std::string_view fmt, DrawStringFo
 	std::string_view *str;
 
 	for (; !(IsConsumed(curFormatted) && IsConsumed(remaining));
-	     str->remove_prefix(cpLen), prev = next) {
+	    str->remove_prefix(cpLen), prev = next) {
 		const bool isProcessingFormatArgValue = !IsConsumed(curFormatted);
 		str = isProcessingFormatArgValue ? &curFormatted : &remaining;
 		next = DecodeFirstUtf8CodePoint(*str, &cpLen);

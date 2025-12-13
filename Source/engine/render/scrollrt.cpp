@@ -465,7 +465,15 @@ uint8_t GetPlayerOutlineColor(int id)
  */
 void DrawPlayer(const Surface &out, const Player &player, Point tilePosition, Point targetBufferPosition, int lightTableIndex)
 {
-	if (!IsTileLit(tilePosition) && !MyPlayer->_pInfraFlag && !MyPlayer->isOnArenaLevel() && leveltype != DTYPE_TOWN) {
+	// For local coop players, always render them (they have their own light source)
+	// This prevents them from disappearing when walking away from Player 1's lit area
+#ifndef USE_SDL1
+	const bool isLocalCoop = IsLocalCoopEnabled() && IsLocalCoopPlayer(player);
+#else
+	const bool isLocalCoop = false;
+#endif
+
+	if (!isLocalCoop && !IsTileLit(tilePosition) && !MyPlayer->_pInfraFlag && !MyPlayer->isOnArenaLevel() && leveltype != DTYPE_TOWN) {
 		return;
 	}
 
@@ -475,7 +483,12 @@ void DrawPlayer(const Surface &out, const Player &player, Point tilePosition, Po
 	if (&player == PlayerUnderCursor)
 		ClxDrawOutlineSkipColorZero(out, GetPlayerOutlineColor(player.getId()), spriteBufferPosition, sprite);
 
+	// Local players (MyPlayer and local coop players) are drawn without lighting in non-dungeon areas
+#ifndef USE_SDL1
+	if (IsLocalPlayer(player) && IsNoneOf(leveltype, DTYPE_NEST, DTYPE_CRYPT)) {
+#else
 	if (&player == MyPlayer && IsNoneOf(leveltype, DTYPE_NEST, DTYPE_CRYPT)) {
+#endif
 		ClxDraw(out, spriteBufferPosition, sprite);
 		DrawPlayerIcons(out, player, targetBufferPosition, /*infraVision=*/false, lightTableIndex);
 		return;
@@ -525,7 +538,14 @@ void DrawObject(const Surface &out, const Object &objectToDraw, Point tilePositi
 
 	const Point screenPosition = targetBufferPosition + objectToDraw.getRenderingOffset(sprite, tilePosition);
 
-	if (&objectToDraw == ObjectUnderCursor) {
+	// Check if this object is under any player's cursor (Player 1 or local coop players)
+#ifndef USE_SDL1
+	const bool isHighlighted = (&objectToDraw == ObjectUnderCursor) || IsLocalCoopTargetObject(&objectToDraw);
+#else
+	const bool isHighlighted = (&objectToDraw == ObjectUnderCursor);
+#endif
+
+	if (isHighlighted) {
 		ClxDrawOutlineSkipColorZero(out, OutlineColorsObject, screenPosition, sprite);
 	}
 	if (objectToDraw.applyLighting) {
@@ -738,7 +758,12 @@ void DrawMonsterHelper(const Surface &out, Point tilePosition, Point targetBuffe
 		auto &towner = Towners[mi];
 		const Point position = targetBufferPosition + towner.getRenderingOffset();
 		const ClxSprite sprite = towner.currentSprite();
+		// Highlight if player 1 or any local coop player is targeting this towner
+#ifndef USE_SDL1
+		if (mi == pcursmonst || IsLocalCoopTargetMonster(mi)) {
+#else
 		if (mi == pcursmonst) {
+#endif
 			ClxDrawOutlineSkipColorZero(out, OutlineColorsTowner, position, sprite);
 		}
 		ClxDraw(out, position, sprite);
@@ -763,7 +788,12 @@ void DrawMonsterHelper(const Surface &out, Point tilePosition, Point targetBuffe
 	const Displacement offset = monster.getRenderingOffset(sprite);
 
 	const Point monsterRenderPosition = targetBufferPosition + offset;
+	// Highlight if player 1 or any local coop player is targeting this monster
+#ifndef USE_SDL1
+	if (mi == pcursmonst || IsLocalCoopTargetMonster(mi)) {
+#else
 	if (mi == pcursmonst) {
+#endif
 		ClxDrawOutlineSkipColorZero(out, OutlineColorsMonster, monsterRenderPosition, sprite);
 	}
 	DrawMonster(out, tilePosition, monsterRenderPosition, monster, lightTableIndex);
