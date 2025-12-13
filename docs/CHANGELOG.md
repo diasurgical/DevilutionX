@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Bug Fixes
+
+#### Gameplay
+
+- Players killed by charging monsters are able to be knocked back after death
+
 ## DevilutionX 1.5.2
 
 ### Bug Fixes
