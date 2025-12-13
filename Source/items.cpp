@@ -4816,13 +4816,10 @@ void Item::updateRequiredStatsCacheForPlayer(const Player &player)
 	if (_itype == ItemType::Misc && _iMiscId == IMISC_BOOK) {
 		_iMinMag = GetSpellData(_iSpell).minInt;
 		int8_t spellLevel = player._pSplLvl[static_cast<int8_t>(_iSpell)];
-		while (spellLevel != 0) {
-			_iMinMag += 20 * _iMinMag / 100;
+
+		while (spellLevel > 0 && _iMinMag < 255) {
+			_iMinMag = std::clamp(_iMinMag + _iMinMag * 20 / 100, 0, 255);
 			spellLevel--;
-			if (_iMinMag + 20 * _iMinMag / 100 > 255) {
-				_iMinMag = 255;
-				spellLevel = 0;
-			}
 		}
 	}
 	_iStatFlag = player.CanUseItem(*this);

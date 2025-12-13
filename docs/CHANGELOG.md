@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Bug Fixes
+
+#### Gameplay
+
+- Book magic requirement hits 255 one spell level too early for some spells
+
 ## DevilutionX 1.5.2
 
 ### Bug Fixes
