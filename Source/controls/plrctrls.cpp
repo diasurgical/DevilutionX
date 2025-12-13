@@ -18,7 +18,7 @@
 #endif
 
 #include "automap.h"
-#include "control/control.hpp"
+#include "control.h"
 #include "controls/controller_motion.h"
 #ifndef USE_SDL1
 #include "controls/devices/game_controller.h"
@@ -77,7 +77,7 @@ bool InGameMenu()
 	    || qtextflag
 	    || gmenu_is_active()
 	    || PauseMode == 2
-	    || (MyPlayer != nullptr && MyPlayer->_pInvincible && MyPlayer->hasNoLife());
+	    || (MyPlayer != nullptr && MyPlayer->_pInvincible && MyPlayer->_pHitPoints == 0);
 }
 
 namespace {
@@ -249,7 +249,7 @@ bool CanTargetMonster(const Monster &monster)
 		return false;
 	if (monster.isPlayerMinion())
 		return false;
-	if (monster.hasNoLife()) // dead
+	if (monster.hitPoints >> 6 <= 0) // dead
 		return false;
 
 	if (!IsTileLit(monster.position.tile)) // not visible
@@ -396,7 +396,7 @@ void CheckPlayerNearby()
 		const int my = player.position.future.y;
 		if (dPlayer[mx][my] == 0
 		    || !IsTileLit(player.position.future)
-		    || (player.hasNoLife() && spl != SpellID::Resurrect))
+		    || (player._pHitPoints == 0 && spl != SpellID::Resurrect))
 			continue;
 
 		if (myPlayer.UsesRangedWeapon() || HasRangedSpell() || spl == SpellID::HealOther) {

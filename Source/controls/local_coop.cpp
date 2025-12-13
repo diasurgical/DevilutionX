@@ -1933,6 +1933,56 @@ void DrawCoopSmallBar(const Surface &out, Point position, int width, int height,
 }
 
 /**
+ * @brief Scale and draw a CLX sprite to a target size using nearest-neighbor scaling
+ */
+void DrawScaledClxSprite(const Surface &out, ClxSprite sprite, Point position, int targetWidth, int targetHeight)
+{
+	const int srcWidth = sprite.width();
+	const int srcHeight = sprite.height();
+
+	// Create temporary surfaces for scaling
+	OwnedSurface srcSurface(srcWidth, srcHeight);
+	OwnedSurface dstSurface(targetWidth, targetHeight);
+
+	// Fill source surface with transparent color (0)
+	FillRect(srcSurface, 0, 0, srcWidth, srcHeight, 0);
+
+	// Draw sprite to source surface (bottom-left positioning for ClxDraw)
+	ClxDraw(srcSurface, { 0, srcHeight - 1 }, sprite);
+
+	// Scale using nearest-neighbor sampling
+	const float scaleX = static_cast<float>(srcWidth) / targetWidth;
+	const float scaleY = static_cast<float>(srcHeight) / targetHeight;
+
+	// Fill destination with transparent
+	FillRect(dstSurface, 0, 0, targetWidth, targetHeight, 0);
+
+	for (int y = 0; y < targetHeight; y++) {
+		for (int x = 0; x < targetWidth; x++) {
+			// Use proper scaling to ensure we sample all source pixels including the last column
+			// Map target pixel to source: use center of target pixel
+			float srcXFloat = (x + 0.5f) * scaleX;
+			float srcYFloat = (y + 0.5f) * scaleY;
+			int srcX = static_cast<int>(srcXFloat);
+			int srcY = static_cast<int>(srcYFloat);
+			// Clamp to source bounds to avoid out-of-bounds access
+			srcX = std::min(srcX, srcWidth - 1);
+			srcY = std::min(srcY, srcHeight - 1);
+			if (srcX >= 0 && srcY >= 0) {
+				uint8_t pixel = *srcSurface.at(srcX, srcY);
+				if (pixel != 0) { // Skip transparent pixels
+					*dstSurface.at(x, y) = pixel;
+				}
+			}
+		}
+	}
+
+	// Draw scaled surface to output
+	SDL_Rect srcRect = { 0, 0, targetWidth, targetHeight };
+	out.BlitFromSkipColorIndexZero(dstSurface, srcRect, position);
+}
+
+/**
  * @brief Draw a single skill slot with configurable size
  */
 void DrawPlayerSkillSlotSmall(const Surface &out, const Player &player, int slotIndex, Point position, int slotSize, bool hideLabel = false)
@@ -1945,30 +1995,38 @@ void DrawPlayerSkillSlotSmall(const Surface &out, const Player &player, int slot
 	static constexpr std::string_view ButtonLabels[] = { "X", "Y", "A", "B" };
 	const char *label = (!hideLabel && slotIndex < 4) ? ButtonLabels[slotIndex].data() : "";
 
-	// HintBox sprite is 39x39, icon is 37x37
-	constexpr int HintBoxSize = 39;
-	constexpr int IconSize = 37;
+	// Original sprite sizes
+	constexpr int OriginalHintBoxSize = 39;
+	constexpr int OriginalIconSize = 37;
+	constexpr int OriginalIconHeight = 38;
+	
 	constexpr int IconBorderPadding = 2;
+	// Scale everything to fit within slotSize (30px)
+	const int scaledHintBoxWidth = slotSize + 3; // 34px width (4px wider than slot, +1px from previous)
+	const int scaledHintBoxHeight = slotSize + 2; // 33px height (3px taller than slot, +1px from previous)
+	const int scaledIconSize = (OriginalIconSize * slotSize) / OriginalHintBoxSize + 1; // ~28px for 30px slot
+	const int scaledIconHeight = (OriginalIconHeight * slotSize) / OriginalHintBoxSize + 1; // ~29px for 30px slot
+	const int scaledPadding = (IconBorderPadding * slotSize) / OriginalHintBoxSize; // ~1-2px
 
-	// Center the hintBox within the slotSize
-	int borderOffset = (slotSize - HintBoxSize) / 2;
-	Point borderPos = { position.x + borderOffset - 1, position.y + borderOffset - 2};
 	
 	// Position calculations for spell icon (bottom-left based)
-	// Add extra padding to shrink the visible icon area for a thicker border
-	// +1px additional padding for better visual separation
-	const Displacement spellIconDisplacement = { IconBorderPadding, HintBoxSize - IconBorderPadding };
-	Point iconPos = borderPos + spellIconDisplacement;
+	// Icon should be centered within the scaled hintBox
+	int iconX = position.x + scaledPadding;
+	int iconY = position.y + slotSize - scaledPadding; // Bottom-aligned
+	Point iconPos = { iconX, iconY };
 
+	// Scale and draw spell icon
 	const uint64_t spells = player._pAblSpells | player._pMemSpells | player._pScrlSpells | player._pISpells;
 
-	// If no spell assigned or spell not available, draw empty gray slot
+	// Create temporary surfaces for icon scaling
+	OwnedSurface iconSrcSurface(OriginalIconSize, OriginalIconHeight);
+	FillRect(iconSrcSurface, 0, 0, OriginalIconSize, OriginalIconHeight, 0);
+
+	// Draw spell icon to source surface
 	if (spell == SpellID::Invalid || spellType == SpellType::Invalid || (spells & GetSpellBitmask(spell)) == 0) {
-		// Draw empty icon with gray coloring
 		SetSpellTrans(SpellType::Invalid);
-		DrawSmallSpellIcon(out, iconPos, SpellID::Null);
+		DrawSmallSpellIcon(iconSrcSurface, { 0, OriginalIconHeight - 1 }, SpellID::Null);
 	} else {
-		// Determine spell validity for coloring
 		SpellType transType = spellType;
 		if (leveltype == DTYPE_TOWN && !GetSpellData(spell).isAllowedInTown()) {
 			transType = SpellType::Invalid;
@@ -1978,19 +2036,51 @@ void DrawPlayerSkillSlotSmall(const Surface &out, const Player &player, int slot
 			if (spellLevel == 0)
 				transType = SpellType::Invalid;
 		}
-
-		// Draw the spell icon
 		SetSpellTrans(transType);
-		DrawSmallSpellIcon(out, iconPos, spell);
+		DrawSmallSpellIcon(iconSrcSurface, { 0, OriginalIconHeight - 1 }, spell);
 	}
 
-	// Draw border sprite
+	// Scale icon using nearest-neighbor
+	OwnedSurface iconDstSurface(scaledIconSize, scaledIconHeight);
+	FillRect(iconDstSurface, 0, 0, scaledIconSize, scaledIconHeight, 0);
+
+	const float iconScaleX = static_cast<float>(OriginalIconSize) / scaledIconSize;
+	const float iconScaleY = static_cast<float>(OriginalIconHeight) / scaledIconHeight;
+	for (int y = 0; y < scaledIconHeight; y++) {
+		for (int x = 0; x < scaledIconSize; x++) {
+			int srcX = static_cast<int>(x * iconScaleX);
+			int srcY = static_cast<int>(y * iconScaleY);
+			if (srcX < OriginalIconSize && srcY < OriginalIconHeight) {
+				uint8_t pixel = *iconSrcSurface.at(srcX, srcY);
+				if (pixel != 0) { // Skip transparent pixels
+					*iconDstSurface.at(x, y) = pixel;
+				}
+			}
+		}
+	}
+
+	// Draw scaled icon to output (bottom-left positioning)
+	SDL_Rect iconSrcRect = { 0, 0, scaledIconSize, scaledIconHeight };
+	Point iconDstPos = { iconPos.x, iconPos.y - scaledIconHeight + 1 };
+	out.BlitFromSkipColorIndexZero(iconDstSurface, iconSrcRect, iconDstPos);
+
+	// Draw scaled border sprite AFTER icon so it appears on top
+	// Position it 1px to the left and so the full width is visible (not clipped)
 	if (GetHintBoxSprite()) {
-		RenderClxSprite(out, (*GetHintBoxSprite())[0], borderPos);
+		Point hintBoxPosition = { position.x - 1, position.y }; // Move 1px to the left
+		DrawScaledClxSprite(out, (*GetHintBoxSprite())[0], hintBoxPosition, scaledHintBoxWidth, scaledHintBoxHeight);
 	}
 
-	// Draw button label AFTER icon (bottom-right inside slot)
-	DrawString(out, label, { { borderPos.x + HintBoxSize - 14, borderPos.y + HintBoxSize - 14 }, { 12, 0 } },
+	// Draw button label AFTER icon (bottom-right inside slot, scaled down)
+	// Match original positioning: 14px offset from bottom-right in 39px slot
+	constexpr int OriginalLabelOffset = 14;
+	constexpr int OriginalLabelWidth = 12;
+	int labelOffset = (OriginalLabelOffset * slotSize) / OriginalHintBoxSize;
+	int labelWidth = std::max(8, (OriginalLabelWidth * slotSize) / OriginalHintBoxSize); // Minimum 8px for readability
+	int labelX = position.x + slotSize - labelOffset;
+	int labelY = position.y + slotSize - labelOffset;
+	// Use 0 for height to auto-size like the original
+	DrawString(out, label, { { labelX, labelY }, { labelWidth, 0 } },
 	    { .flags = UiFlags::ColorWhite | UiFlags::Outlined | UiFlags::FontSize12, .spacing = 0 });
 }
 
@@ -2019,20 +2109,18 @@ void DrawPlayerSkillSlots2x2Small(const Surface &out, const Player &player, Poin
  * @brief Draw 4 skill slots in a vertical column (1x4 layout)
  * Order from top to bottom: A, B, X, Y (indices 2, 3, 0, 1)
  */
-void DrawPlayerSkillSlotsVertical(const Surface &out, const Player &player, Point basePosition, int slotSize, int totalHeight)
+void DrawPlayerSkillSlotsVertical(const Surface &out, const Player &player, Point basePosition, int slotSize, int totalHeight, bool hideLabels = false)
 {
-	// 4 slots stacked vertically with spacing to fill totalHeight
-	// Calculate spacing between slots
-	const int totalSlotHeight = slotSize * 4;
-	const int totalSpacing = totalHeight - totalSlotHeight;
-	const int spacing = totalSpacing / 3; // 3 gaps between 4 slots
+	// 4 slots stacked vertically with fixed 2px spacing
+	constexpr int spacing = 2; // Fixed 2px spacing between slots
+	constexpr int topOffset = 1; // Slots start at the top (moved 1px up from previous 1px offset)
 	
 	// Order: A, B, X, Y (indices 2, 3, 0, 1)
 	static constexpr int SlotOrder[] = { 2, 3, 0, 1 };
 	
 	for (int i = 0; i < 4; i++) {
-		int slotY = basePosition.y + i * (slotSize + spacing);
-		DrawPlayerSkillSlotSmall(out, player, SlotOrder[i], { basePosition.x, slotY }, slotSize);
+		int slotY = basePosition.y + topOffset + i * (slotSize + spacing);
+		DrawPlayerSkillSlotSmall(out, player, SlotOrder[i], { basePosition.x, slotY }, slotSize, hideLabels);
 	}
 }
 
@@ -2230,9 +2318,9 @@ void DrawPlayerBelt(const Surface &out, const Player &player, Point basePosition
 
 		// Calculate slot position (29px spacing between slots, starting at x=207 relative to belt area)
 		// Offset slots by 2px to the right and 2px to the bottom
-		const int slotX = basePosition.x + (i * 29) + 4;
-		const int slotY = basePosition.y + 2;
-		const Point position { slotX, slotY + InventorySlotSizeInPixels.height };
+		const int slotX = basePosition.x + (i * 29) + 5;
+		const int slotY = basePosition.y + 3;
+		const Point position { slotX - 2, slotY + InventorySlotSizeInPixels.height };
 		
 		// Draw item quality background
 		InvDrawSlotBack(out, position, InventorySlotSizeInPixels, player.SpdList[i]._iMagical);
@@ -2391,13 +2479,13 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 	// Bars: health, mana (full height only, no XP bar)
 	constexpr int barsHeight = barHeight * 2 + barSpacing; // = 10+10+2 = 22px
 	
-	// Skill slot dimensions - 2x2 grid OUTSIDE panel
-	// Use 41px slots (39px hintBox + 1px padding each side)
-	constexpr int SkillSlotSize = 41; // Slightly larger than hintBox for better fit
-	constexpr int skillSlotSpacing = 1; // Reduced spacing between skill slots
-	constexpr int skillColumnSpacing = 2; // Gap between panel and skill column
-	constexpr int skillGridWidth = SkillSlotSize * 2 + skillSlotSpacing; // Width of 2x2 grid
-	constexpr int skillGridHeight = SkillSlotSize * 2 + skillSlotSpacing; // Height of 2x2 grid
+	// Skill slot dimensions - vertical column OUTSIDE panel
+	// Use 30px slots for skill slots
+	constexpr int SkillSlotSize = 30; // 30x30px skill slots
+	constexpr int skillSlotSpacing = 0; // Spacing calculated automatically in DrawPlayerSkillSlotsVertical
+	constexpr int skillColumnSpacing = 0; // Gap between panel and skill column (moved 2px closer)
+	constexpr int skillGridWidth = SkillSlotSize; // Width of vertical column (single column)
+	constexpr int skillGridHeight = 128; // Height matches panel height (128px with gaps between slots)
 	
 	// Belt dimensions - use actual sprite dimensions from main panel
 	constexpr int beltWidth = 232; // Full belt sprite width
@@ -2420,7 +2508,7 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 	// Panel dimensions with proper borders
 	// Layout: topBorder + nameTopOffset + [name row] + spacing + [middle: bars+belt | skills] + bottomBorder
 	const int panelContentWidth = contentWidth + 6; // 6px wider (increased by 1px to compensate for reduced right padding)
-	const int panelHeight = topBorderPadding + nameTopOffset + nameFieldHeight + elementSpacing + middleContentHeight + bottomBorderPadding + 2; // 2px taller
+	constexpr int panelHeight = 128; // Fixed panel height of 128px (skill slots have gaps between them)
 	const int panelWidth = leftBorderPadding + panelContentWidth + rightBorderPadding;
 	
 	constexpr int durabilityIconHeight = 32;
@@ -2555,19 +2643,19 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 		DrawCoopSmallBar(out, { barX, barY - 3 }, barsWidth, barHeight, currentMana, maxMana, true, false);
 		barY += barHeight + barsToBeltSpacing;
 
-		// Skill grid: OUTSIDE panel, 2x2 layout
+		// Skill slots: OUTSIDE panel, vertical column layout
 		// For P2/P4 (right side of screen), skills go on LEFT of panel
 		int skillX;
 		if (skillsOnLeft) {
-			skillX = panelX - skillColumnSpacing - skillGridWidth + 1; // Moved 1px to the right
+			skillX = panelX - skillColumnSpacing - skillGridWidth - 2;
 		} else {
-			skillX = panelX + panelWidth + skillColumnSpacing + 1; // Moved 1px to the right
+			skillX = panelX + panelWidth + skillColumnSpacing;
 		}
-		// Center the skill grid vertically on the panel, moved 1px up
-		int skillY = panelY + (panelHeight - skillGridHeight) / 2 - 1;
+		// Align skill column vertically with panel (top-aligned)
+		int skillY = panelY;
 		// Hide skill labels when left shoulder is held
 		bool hideSkillLabels = (coopPlayer != nullptr && coopPlayer->leftShoulderHeld);
-		DrawPlayerSkillSlots2x2Small(out, player, { skillX, skillY }, SkillSlotSize, hideSkillLabels);
+		DrawPlayerSkillSlotsVertical(out, player, { skillX, skillY }, SkillSlotSize, skillGridHeight, hideSkillLabels);
 
 		// === BELT: Right after XP bar ===
 		bool leftShoulderHeld = (coopPlayer != nullptr && coopPlayer->leftShoulderHeld);
