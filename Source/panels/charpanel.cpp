@@ -95,8 +95,8 @@ std::pair<int, int> GetDamage()
 	} else {
 		damageMod += InspectPlayer->_pDamageMod;
 	}
-	const int mindam = InspectPlayer->_pIMinDam + InspectPlayer->_pIBonusDam * InspectPlayer->_pIMinDam / 100 + damageMod;
-	const int maxdam = InspectPlayer->_pIMaxDam + InspectPlayer->_pIBonusDam * InspectPlayer->_pIMaxDam / 100 + damageMod;
+	const int mindam = InspectPlayer->_pIMinDam + InspectPlayer->_pIBonusMinDam + damageMod;
+	const int maxdam = InspectPlayer->_pIMaxDam + InspectPlayer->_pIBonusMaxDam + damageMod;
 	return { mindam, maxdam };
 }
 
@@ -178,7 +178,7 @@ PanelEntry panelEntries[] = {
 	{ N_("Damage"), { RightColumnLabelX, 219 }, 57, RightColumnLabelWidth,
 	    []() {
 	        const auto [dmgMin, dmgMax] = GetDamage();
-	        return StyledText { GetValueColor(InspectPlayer->_pIBonusDam), StrCat(dmgMin, "-", dmgMax) };
+	        return StyledText { GetValueColor(InspectPlayer->_pIBonusMinDam), StrCat(dmgMin, "-", dmgMax) };
 	    } },
 
 	{ N_("Life"), { LeftColumnLabelX, 284 }, 45, LeftColumnLabelWidth,

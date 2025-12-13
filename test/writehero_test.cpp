@@ -346,7 +346,8 @@ void AssertPlayer(Player &player)
 	ASSERT_EQ(player._pIMinDam, 1);
 	ASSERT_EQ(player._pIMaxDam, 14);
 	ASSERT_EQ(player._pIAC, 115);
-	ASSERT_EQ(player._pIBonusDam, 0);
+	ASSERT_EQ(player._pIBonusMinDam, 0);
+	ASSERT_EQ(player._pIBonusMaxDam, 0);
 	ASSERT_EQ(player._pIBonusToHit, 0);
 	ASSERT_EQ(player._pIBonusAC, 0);
 	ASSERT_EQ(player._pIBonusDamMod, 0);

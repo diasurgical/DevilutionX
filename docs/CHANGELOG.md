@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Features
+
+#### Gameplay
+
+- Apply +Damage% item power per item
+
 ## DevilutionX 1.5.2
 
 ### Bug Fixes

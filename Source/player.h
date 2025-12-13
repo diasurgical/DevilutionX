@@ -244,7 +244,8 @@ struct Player {
 	int _pIMinDam;
 	int _pIMaxDam;
 	int _pIAC;
-	int _pIBonusDam;
+	int _pIBonusMinDam;
+	int _pIBonusMaxDam;
 	int _pIBonusToHit;
 	int _pIBonusAC;
 	int _pIBonusDamMod;

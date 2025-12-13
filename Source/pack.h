@@ -131,7 +131,8 @@ struct PlayerNetPack {
 	int32_t pIMinDam;
 	int32_t pIMaxDam;
 	int32_t pIAC;
-	int32_t pIBonusDam;
+	int32_t pIBonusMinDam;
+	int32_t pIBonusMaxDam;
 	int32_t pIBonusToHit;
 	int32_t pIBonusAC;
 	int32_t pIBonusDamMod;

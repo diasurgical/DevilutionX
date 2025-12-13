@@ -2478,6 +2478,34 @@ void InitItems()
 	initItemGetRecords();
 }
 
+int GetBonusMinDamage(const Item &item)
+{
+	if (item._iPLDam != 0) {
+		int tempDam = item._iMinDam;
+		tempDam *= item._iPLDam;
+		tempDam /= 100;
+		if (tempDam == 0)
+			tempDam = math::Sign(item._iPLDam);
+		return tempDam;
+	}
+
+	return 0;
+}
+
+int GetBonusMaxDamage(const Item &item)
+{
+	if (item._iPLDam != 0) {
+		int tempDam = item._iMaxDam;
+		tempDam *= item._iPLDam;
+		tempDam /= 100;
+		if (tempDam == 0)
+			tempDam = math::Sign(item._iPLDam);
+		return tempDam;
+	}
+
+	return 0;
+}
+
 int GetBonusAC(const Item &item)
 {
 	if (item._iPLAC != 0) {
@@ -2781,7 +2809,8 @@ void CalcPlrItemVals(Player &player, bool loadgfx)
 	int maxDamage = 0;
 	int ac = 0;
 
-	int dam = 0;
+	int bonusMinDam = 0;
+	int bonusMaxDam = 0;
 	int toHit = 0;
 	int bonusAc = 0;
 
@@ -2827,7 +2856,8 @@ void CalcPlrItemVals(Player &player, bool loadgfx)
 			}
 
 			if (item._iMagical == ITEM_QUALITY_NORMAL || item._iIdentified) {
-				dam += item._iPLDam;
+				bonusMinDam += GetBonusMinDamage(item);
+				bonusMaxDam += GetBonusMaxDamage(item);
 				toHit += item._iPLToHit;
 				bonusAc += GetBonusAC(item);
 				flags |= item._iFlags;
@@ -2857,7 +2887,8 @@ void CalcPlrItemVals(Player &player, bool loadgfx)
 	CalcPlrDamage(player, minDamage, maxDamage);
 	CalcPlrPrimaryStats(player, strength, magic, dexterity, vitality);
 	player._pIAC = ac;
-	player._pIBonusDam = dam;
+	player._pIBonusMinDam = bonusMinDam;
+	player._pIBonusMaxDam = bonusMaxDam;
 	player._pIBonusToHit = toHit;
 	player._pIBonusAC = bonusAc;
 	player._pIFlags = flags;

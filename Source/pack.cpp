@@ -272,7 +272,8 @@ void PackNetPlayer(PlayerNetPack &packed, const Player &player)
 	packed.pIMinDam = Swap32LE(player._pIMinDam);
 	packed.pIMaxDam = Swap32LE(player._pIMaxDam);
 	packed.pIAC = Swap32LE(player._pIAC);
-	packed.pIBonusDam = Swap32LE(player._pIBonusDam);
+	packed.pIBonusMinDam = Swap32LE(player._pIBonusMinDam);
+	packed.pIBonusMaxDam = Swap32LE(player._pIBonusMaxDam);
 	packed.pIBonusToHit = Swap32LE(player._pIBonusToHit);
 	packed.pIBonusAC = Swap32LE(player._pIBonusAC);
 	packed.pIBonusDamMod = Swap32LE(player._pIBonusDamMod);
@@ -592,7 +593,8 @@ bool UnPackNetPlayer(const PlayerNetPack &packed, Player &player)
 	ValidateFields(player._pIMinDam, SwapSigned32LE(packed.pIMinDam), player._pIMinDam == SwapSigned32LE(packed.pIMinDam));
 	ValidateFields(player._pIMaxDam, SwapSigned32LE(packed.pIMaxDam), player._pIMaxDam == SwapSigned32LE(packed.pIMaxDam));
 	ValidateFields(player._pIAC, SwapSigned32LE(packed.pIAC), player._pIAC == SwapSigned32LE(packed.pIAC));
-	ValidateFields(player._pIBonusDam, SwapSigned32LE(packed.pIBonusDam), player._pIBonusDam == SwapSigned32LE(packed.pIBonusDam));
+	ValidateFields(player._pIBonusMinDam, SwapSigned32LE(packed.pIBonusMinDam), player._pIBonusMinDam == SwapSigned32LE(packed.pIBonusMinDam));
+	ValidateFields(player._pIBonusMaxDam, SwapSigned32LE(packed.pIBonusMaxDam), player._pIBonusMaxDam == SwapSigned32LE(packed.pIBonusMaxDam));
 	ValidateFields(player._pIBonusToHit, SwapSigned32LE(packed.pIBonusToHit), player._pIBonusToHit == SwapSigned32LE(packed.pIBonusToHit));
 	ValidateFields(player._pIBonusAC, SwapSigned32LE(packed.pIBonusAC), player._pIBonusAC == SwapSigned32LE(packed.pIBonusAC));
 	ValidateFields(player._pIBonusDamMod, SwapSigned32LE(packed.pIBonusDamMod), player._pIBonusDamMod == SwapSigned32LE(packed.pIBonusDamMod));
