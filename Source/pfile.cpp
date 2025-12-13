@@ -47,6 +47,10 @@
 #include "mpq/mpq_reader.hpp"
 #endif
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+
 namespace devilution {
 
 #define PASSWORD_SPAWN_SINGLE "adslhfb1"
@@ -627,6 +631,11 @@ void pfile_write_hero(bool writeGameData)
 {
 	SaveWriter saveWriter = GetSaveWriter(gSaveNumber);
 	pfile_write_hero(saveWriter, writeGameData);
+
+#ifdef __EMSCRIPTEN__
+	// Persist saves to IndexedDB for browser storage
+	emscripten_run_script("if (typeof Module !== 'undefined' && Module.saveToIndexedDB) Module.saveToIndexedDB();");
+#endif
 }
 
 #ifndef DISABLE_DEMOMODE
