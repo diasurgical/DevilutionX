@@ -65,6 +65,7 @@
 #include "levels/trigs.h"
 #include "lighting.h"
 #include "monster.h"
+#include "qol/autopickup.h"
 #include "utils/is_of.hpp"
 #include "utils/str_cat.hpp"
 
@@ -3697,6 +3698,7 @@ void ProcessTeleport(Missile &missile)
 	}
 	if (&player == MyPlayer) {
 		ViewPosition = player.position.tile;
+		AutoPickup(player);
 	}
 }
 

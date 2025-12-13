@@ -438,7 +438,6 @@ bool DoWalk(Player &player)
 		ChangeLightOffset(player.lightId, { 0, 0 });
 	}
 
-	AutoPickup(player);
 	return true;
 }
 
@@ -2596,6 +2595,7 @@ void StartStand(Player &player, Direction dir)
 	FixPlrWalkTags(player);
 	player.occupyTile(player.position.tile, false);
 	SetPlayerOld(player);
+	AutoPickup(player);
 }
 
 void StartPlrBlock(Player &player, Direction dir)
