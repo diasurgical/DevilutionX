@@ -2331,10 +2331,13 @@ void CastLocalCoopHotkeySpell(int localIndex, int slotIndex)
 		spellTarget = cursor.playerUnderCursor->position.future;
 	}
 
-	// Cast the spell
+	// Cast the spell - need to use LocalCoopPlayerContext so MyPlayerId is set correctly
+	// NetSendCmdLocParam3 uses MyPlayerId internally
+	// Last parameter is spellFrom (0 = regular cast, not from item)
+	LocalCoopPlayerContext context(playerId);
 	NetSendCmdLocParam3(true, CMD_SPELLXY, spellTarget,
 		static_cast<int16_t>(spell),
-		static_cast<int8_t>(spellType), playerId);
+		static_cast<int8_t>(spellType), 0);
 }
 
 void DrawPlayerBeltSlot(const Surface &out, const Player &player, int slotIndex, Point position)
@@ -3904,10 +3907,10 @@ void ProcessLocalCoopGameAction(int localIndex, uint8_t actionType)
 					spellTarget = Monsters[cursor.pcursmonst].position.tile;
 				}
 				
-				// Cast spell at target
+				// Cast spell at target (last param is spellFrom, 0 = regular cast)
 				NetSendCmdLocParam3(true, CMD_SPELLXY, spellTarget,
 					static_cast<int16_t>(player._pRSpell),
-					static_cast<int8_t>(player._pRSplType), playerId);
+					static_cast<int8_t>(player._pRSplType), 0);
 			}
 		}
 		break;
@@ -4209,11 +4212,39 @@ bool HandleLocalCoopButtonRelease(uint8_t playerId, ControllerButton button)
 				SpellType spellType = targetPlayer._pSplTHotKey[slotIndex];
 
 				if (spell != SpellID::Invalid && spellType != SpellType::Invalid) {
-					// Set the readied spell and cast it
-					LocalCoopPlayerContext context(playerId);
-					targetPlayer._pRSpell = spell;
-					targetPlayer._pRSplType = spellType;
-					PerformSpellAction();
+					// Cast the spell
+					if (playerId == 0) {
+						// Player 1 - use standard spell action with global cursor state
+						LocalCoopPlayerContext context(playerId);
+						targetPlayer._pRSpell = spell;
+						targetPlayer._pRSplType = spellType;
+						PerformSpellAction();
+					} else {
+						// Local coop player - use their own cursor state
+						int localIndex = PlayerIdToLocalCoopIndex(playerId);
+						if (localIndex >= 0) {
+							LocalCoopPlayer* coopPlayer = g_LocalCoop.GetPlayer(playerId);
+							if (coopPlayer != nullptr && coopPlayer->active && coopPlayer->initialized) {
+								// Calculate target position using this player's cursor state
+								LocalCoopCursorState &cursor = coopPlayer->cursor;
+								Point spellTarget = targetPlayer.position.future + Displacement(targetPlayer._pdir);
+
+								if (cursor.pcursmonst != -1) {
+									spellTarget = Monsters[cursor.pcursmonst].position.tile;
+								} else if (cursor.playerUnderCursor != nullptr && cursor.playerUnderCursor != &targetPlayer) {
+									spellTarget = cursor.playerUnderCursor->position.future;
+								}
+
+								// Cast the spell - need to use LocalCoopPlayerContext so MyPlayerId is set correctly
+								// NetSendCmdLocParam3 uses MyPlayerId internally
+								// Last parameter is spellFrom (0 = regular cast, not from item)
+								LocalCoopPlayerContext context(playerId);
+								NetSendCmdLocParam3(true, CMD_SPELLXY, spellTarget,
+									static_cast<int16_t>(spell),
+									static_cast<int8_t>(spellType), 0);
+							}
+						}
+					}
 				} else {
 					// No spell assigned - perform primary action (attack)
 					if (playerId == 0) {
