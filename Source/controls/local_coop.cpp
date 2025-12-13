@@ -408,6 +408,22 @@ void LoadHeroInfosForLocalCoop(std::vector<_uiheroinfo> &heroList, const std::ve
 }
 
 /**
+ * @brief Check if player 1 has a valid target for primary action (attack/talk/operate).
+ */
+bool HasPlayer1PrimaryTarget()
+{
+	// Monster to attack or towner to talk to
+	if (pcursmonst != -1)
+		return true;
+	
+	// Object to operate
+	if (ObjectUnderCursor != nullptr)
+		return true;
+	
+	return false;
+}
+
+/**
  * @brief Check if there's a valid target for primary action (attack/talk/operate).
  */
 bool HasLocalCoopPrimaryTarget(int localIndex)
@@ -4082,6 +4098,25 @@ bool HandleLocalCoopButtonPress(uint8_t playerId, ControllerButton button)
 	}
 
 	if (slotIndex >= 0) {
+		// For player 1, check if A button is pressed with a target under cursor
+		// If so, perform primary action instead of using skill slot
+		if (playerId == 0 && button == ControllerButton_BUTTON_A) {
+			if (HasPlayer1PrimaryTarget()) {
+				// Track that we're performing primary action
+				if (playerId < Players.size()) {
+					Player &targetPlayer = Players[playerId];
+					if (targetPlayer.CanChangeAction() && targetPlayer.destAction == ACTION_NONE) {
+						LocalCoopPlayer* coopPlayer = g_LocalCoop.GetPlayer(playerId);
+						if (coopPlayer != nullptr) {
+							coopPlayer->actionHeld = GameActionType_PRIMARY_ACTION;
+						}
+						PerformPrimaryAction();
+					}
+				}
+				return true;
+			}
+		}
+
 		// Handle skill button press - tracks hold state for long press
 		// Returns true if we should not process further (e.g., when assigning a spell)
 		if (HandlePlayerSkillButtonDown(playerId, slotIndex))
@@ -4152,6 +4187,14 @@ bool HandleLocalCoopButtonRelease(uint8_t playerId, ControllerButton button)
 	}
 
 	if (slotIndex >= 0) {
+		// Check if this was a primary action (e.g., attacking a target)
+		// If so, just clear the action state and don't cast a spell
+		LocalCoopPlayer* coopPlayer = g_LocalCoop.GetPlayer(playerId);
+		if (coopPlayer != nullptr && coopPlayer->actionHeld == GameActionType_PRIMARY_ACTION) {
+			coopPlayer->actionHeld = GameActionType_NONE;
+			return true;
+		}
+
 		// HandlePlayerSkillButtonUp returns true if it was a long press (opened menu)
 		// Returns false if it was a short press - we should cast the spell
 		if (!HandlePlayerSkillButtonUp(playerId, slotIndex)) {
