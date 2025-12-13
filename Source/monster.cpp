@@ -1237,7 +1237,7 @@ void MonsterAttackPlayer(Monster &monster, Player &player, int hit, int minDam, 
 	}
 
 	if ((monster.flags & MFLAG_NOLIFESTEAL) == 0 && monster.type().type == MT_SKING && gbIsMultiplayer)
-		monster.hitPoints += dam;
+		ApplyMonsterDamage(DamageType::Physical, monster, -dam);
 	if (player.hasNoLife()) {
 		if (gbIsHellfire)
 			M_StartStand(monster, monster.direction);
@@ -3778,7 +3778,8 @@ void AddDoppelganger(Monster &monster)
 
 void ApplyMonsterDamage(DamageType damageType, Monster &monster, int damage)
 {
-	AddFloatingNumber(damageType, monster, damage);
+	if (damage > 0)
+		AddFloatingNumber(damageType, monster, damage);
 
 	monster.hitPoints -= damage;
 
