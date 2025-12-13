@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Bug Fixes
+
+#### Multiplayer
+
+- Cursed items are able to lock the player in a death loop
+
 ## DevilutionX 1.5.2
 
 ### Bug Fixes
