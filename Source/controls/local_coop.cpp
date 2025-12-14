@@ -2060,10 +2060,10 @@ void DrawPlayerSkillSlotSmall(const Surface &out, const Player &player, int slot
 
 	constexpr int IconBorderPadding = 2;
 	// Scale everything to fit within slotSize (30px)
-	const int scaledHintBoxWidth = slotSize + 3;                                            // 34px width (4px wider than slot, +1px from previous)
-	const int scaledHintBoxHeight = slotSize + 2;                                           // 33px height (3px taller than slot, +1px from previous)
-	const int scaledIconSize = (OriginalIconSize * slotSize) / OriginalHintBoxSize + 1;     // ~28px for 30px slot
-	const int scaledIconHeight = (OriginalIconHeight * slotSize) / OriginalHintBoxSize + 1; // ~29px for 30px slot
+	const int scaledHintBoxWidth = slotSize + 2;                                            // Reduced by 1px (was slotSize + 3)
+	const int scaledHintBoxHeight = slotSize;                                               // Reduced by 1px (was slotSize + 1)
+	const int scaledIconSize = (OriginalIconSize * slotSize) / OriginalHintBoxSize + 4;     // Increased by 2px
+	const int scaledIconHeight = (OriginalIconHeight * slotSize) / OriginalHintBoxSize + 4; // Increased by 2px more (was +2, now +4)
 	const int scaledPadding = (IconBorderPadding * slotSize) / OriginalHintBoxSize;         // ~1-2px
 
 	// Position calculations for spell icon (bottom-left based)
@@ -2117,8 +2117,8 @@ void DrawPlayerSkillSlotSmall(const Surface &out, const Player &player, int slot
 	}
 
 	// Draw scaled icon to output (bottom-left positioning)
-	SDL_Rect iconSrcRect = { 0, 0, scaledIconSize, scaledIconHeight };
-	Point iconDstPos = { iconPos.x, iconPos.y - scaledIconHeight + 1 };
+	SDL_Rect iconSrcRect = { 0, 0, scaledIconSize, scaledIconHeight }; // Fixed: use full source surface to avoid glitch
+	Point iconDstPos = { iconPos.x - 2, iconPos.y - scaledIconHeight + 1 + 2 }; // Moved 2px left and 2px down
 	out.BlitFromSkipColorIndexZero(iconDstSurface, iconSrcRect, iconDstPos);
 
 	// Draw scaled border sprite AFTER icon so it appears on top
@@ -2152,7 +2152,8 @@ void DrawPlayerSkillSlotSmall(const Surface &out, const Player &player, int slot
  */
 void DrawPlayerSkillSlots2x2Small(const Surface &out, const Player &player, Point basePosition, int slotSize, bool hideLabels = false)
 {
-	constexpr int spacing = 1; // Reduced spacing between slots
+	constexpr int spacingX = 2; // Horizontal spacing between slots (width spacing)
+	constexpr int spacingY = 1; // Vertical spacing between slots
 	// Grid layout: A B / X Y  ->  indices 2,3 / 0,1
 	static constexpr int SlotGrid[2][2] = {
 		{ 2, 3 }, // Top row: A, B
@@ -2161,8 +2162,8 @@ void DrawPlayerSkillSlots2x2Small(const Surface &out, const Player &player, Poin
 
 	for (int row = 0; row < 2; row++) {
 		for (int col = 0; col < 2; col++) {
-			int slotX = basePosition.x + col * (slotSize + spacing);
-			int slotY = basePosition.y + row * (slotSize + spacing);
+			int slotX = basePosition.x + col * (slotSize + spacingX);
+			int slotY = basePosition.y + row * (slotSize + spacingY);
 			DrawPlayerSkillSlotSmall(out, player, SlotGrid[row][col], { slotX, slotY }, slotSize, hideLabels);
 		}
 	}
@@ -2536,26 +2537,25 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 	constexpr int bottomBorderPadding = 19; // Bottom border (content padding, not visual border)
 	constexpr int panelEdgePadding = 0;     // No padding from screen edge - panels touch edges
 	constexpr int elementSpacing = 1;       // Reduced spacing between elements
-	constexpr int nameTopOffset = 8;        // Offset for name row (1px more down)
+	constexpr int nameTopOffset = 4;        // Reduced offset for top row
 	constexpr int nameLeftOffset = 0;       // No extra offset (elements shifted via leftBorderPadding)
-	constexpr int barsToNameSpacing = 3;    // 3px spacing between name and bars
-	constexpr int barsExtraDownOffset = 7;  // Extra 7px down for bars and belt (1px more)
+	constexpr int barsToNameSpacing = 3;    // 3px spacing between name and bars (unused now)
+	constexpr int barsExtraDownOffset = 1;  // Reduced extra offset for belt
 	constexpr int barsExtraRightOffset = 0; // No extra offset - bars and belt aligned with left edge
 	constexpr int barsToBeltSpacing = 1;    // 1px spacing between bars and belt
 
-	// Health/mana bar dimensions - with golden border
-	constexpr int barHeight = 19; // Height increased by 8px (from 11 to 19)
-	constexpr int barSpacing = 2;
-	// Bars: health, mana (full height only, no XP bar)
-	constexpr int barsHeight = barHeight * 2 + barSpacing; // = 10+10+2 = 22px
+	// Health/mana bar dimensions - reduced size
+	constexpr int barHeight = 14; // Bar height (increased by 2px from 12px)
+	constexpr int barSpacing = 1; // Reduced spacing between bars
+	// Bars: health, mana (stacked vertically)
+	constexpr int barsHeight = barHeight * 2 + barSpacing; // = 14+14+1 = 29px
 
-	// Skill slot dimensions - vertical column OUTSIDE panel
-	// Use 30px slots for skill slots
-	constexpr int SkillSlotSize = 30;             // 30x30px skill slots
-	constexpr int skillSlotSpacing = 0;           // Spacing calculated automatically in DrawPlayerSkillSlotsVertical
-	constexpr int skillColumnSpacing = 0;         // Gap between panel and skill column (moved 2px closer)
-	constexpr int skillGridWidth = SkillSlotSize; // Width of vertical column (single column)
-	constexpr int skillGridHeight = 128;          // Height matches panel height (128px with gaps between slots)
+	// Skill slot dimensions - 2x2 grid OUTSIDE panel
+	// Skill slot size calculated so 2 slots height = panel height
+	// Formula: 2 * slotSize + spacing = panelHeight
+	// We'll calculate this after panelHeight is determined
+	constexpr int skillSlotSpacing = 1;           // Spacing between slots in 2x2 grid
+	constexpr int skillColumnSpacing = 0;         // Gap between panel and skill grid
 
 	// Belt dimensions - use actual sprite dimensions from main panel
 	constexpr int beltWidth = 232; // Full belt sprite width
@@ -2568,18 +2568,23 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 
 	// Content area width (belt width) - skills are now outside the panel
 	const int contentWidth = beltWidth;
-	// Bar width = full content width + 5px for wider bars (reduced by 1px)
-	const int barsWidth = contentWidth + 5;
 
-	// Panel content height: name row + middle (bars/belt stacked)
-	// Middle section: bars + spacing + belt
-	constexpr int middleContentHeight = barsHeight + barsToBeltSpacing + beltHeight;
+	// Panel content height: top row (P# + bars + Level) + middle (belt)
+	// Middle section: belt only (bars are now in top row)
+	constexpr int middleContentHeight = beltHeight;
 
 	// Panel dimensions with proper borders
-	// Layout: topBorder + nameTopOffset + [name row] + spacing + [middle: bars+belt | skills] + bottomBorder
+	// Layout: topBorder + nameTopOffset + [top row: P# + bars + Level] + spacing + [middle: belt | skills] + bottomBorder
 	const int panelContentWidth = contentWidth + 6; // 6px wider (increased by 1px to compensate for reduced right padding)
-	constexpr int panelHeight = 128;                // Fixed panel height of 128px (skill slots have gaps between them)
+	// Bar width = space between P# and Level (reduced to fit in top row)
+	const int barsWidth = panelContentWidth - playerNumWidth - playerNumSpacing - playerNumWidth;
+	// Reduced panel height: topBorder(5) + nameTopOffset(4) + barsHeight(29) + elementSpacing(1) + barsExtraDownOffset(1) + beltHeight(28) + bottomBorder(19) = 87px
+	constexpr int panelHeight = 87;                // Adjusted to 87px (bars are now 14px each, 29px total)
 	const int panelWidth = leftBorderPadding + panelContentWidth + rightBorderPadding;
+	// Skill slot size: 2 slots height = panel height, so slotSize = (panelHeight - spacing) / 2
+	constexpr int SkillSlotSize = (panelHeight - skillSlotSpacing) / 2; // = (87 - 1) / 2 = 43px
+	constexpr int skillGridWidth = SkillSlotSize * 2 + skillSlotSpacing; // Width of 2x2 grid (2 columns)
+	constexpr int skillGridHeight = SkillSlotSize * 2 + skillSlotSpacing; // Height of 2x2 grid (2 rows) = panel height
 
 	constexpr int durabilityIconHeight = 32;
 	constexpr int durabilityIconSpacing = 4;
@@ -2665,9 +2670,9 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 
 		// Content area starts after the border padding + nameTopOffset
 		int contentX = panelX + leftBorderPadding;
-		int currentY = panelY + topBorderPadding + nameTopOffset;
+		int currentY = panelY + topBorderPadding + nameTopOffset + 4; // Top row moved 3px down
 
-		// === TOP ROW: Player number + Name + Level ===
+		// === TOP ROW: Player number + Health/Mana bars + Level ===
 		// Apply nameLeftOffset (1px extra right)
 		int nameRowX = contentX + nameLeftOffset;
 		int extraOffset = 1;
@@ -2680,14 +2685,6 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 		    { { nameRowX + 2, currentY + 2 }, { playerNumWidth - 4, nameFieldHeight - 4 } },
 		    { .flags = UiFlags::AlignCenter | UiFlags::VerticalCenter | UiFlags::ColorWhite, .spacing = 0 });
 
-		// Draw player name in middle (reduced width to make room for level)
-		int nameX = nameRowX + playerNumWidth + playerNumSpacing - extraOffset;
-		int nameWidth = panelContentWidth - playerNumWidth - playerNumSpacing - playerNumSpacing - playerNumWidth - nameLeftOffset;
-		DrawCoopPanelField(out, { nameX, currentY }, nameWidth);
-		DrawString(out, player._pName,
-		    { { nameX + 2, currentY + 2 }, { nameWidth - 4, nameFieldHeight - 4 } },
-		    { .flags = UiFlags::AlignCenter | UiFlags::VerticalCenter | UiFlags::ColorWhite, .spacing = 1 });
-
 		// Draw level field on the right (same size as P#)
 		int levelX = nameRowX + panelContentWidth - playerNumWidth - nameLeftOffset - extraOffset;
 		DrawCoopPanelField(out, { levelX, currentY }, playerNumWidth);
@@ -2697,24 +2694,25 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 		    { { levelX + 2, currentY + 2 }, { playerNumWidth - 4, nameFieldHeight - 4 } },
 		    { .flags = UiFlags::AlignCenter | UiFlags::VerticalCenter | UiFlags::ColorWhite, .spacing = 0 });
 
-		currentY += nameFieldHeight + elementSpacing;
-
-		// === MIDDLE ROW: Bars then Belt ===
-		int middleY = currentY + barsExtraDownOffset;
-
-		// Bars: Health, Mana (stacked vertically) - with extra right offset
-		int barX = contentX + barsExtraRightOffset;
-		int barY = middleY; // Start bars right after name row + extra offset
+		// Bars: Health, Mana (stacked vertically) - positioned between P# and Level
+		int barX = nameRowX + playerNumWidth + playerNumSpacing - extraOffset;
+		int barY = currentY;
 
 		// Health bar
-		DrawCoopSmallBar(out, { barX, barY - 1 }, barsWidth, barHeight, currentHP, maxHP, false, hasManaShield);
+		DrawCoopSmallBar(out, { barX, barY }, barsWidth, barHeight, currentHP, maxHP, false, hasManaShield);
 		barY += barHeight + barSpacing;
 
 		// Mana bar
-		DrawCoopSmallBar(out, { barX, barY - 3 }, barsWidth, barHeight, currentMana, maxMana, true, false);
-		barY += barHeight + barsToBeltSpacing;
+		DrawCoopSmallBar(out, { barX, barY - 2 }, barsWidth, barHeight, currentMana, maxMana, true, false);
+		barY += barHeight;
 
-		// Skill slots: OUTSIDE panel, vertical column layout
+		// Move currentY down to account for the tallest element in the top row (bars)
+		currentY += barsHeight + elementSpacing;
+
+		// === MIDDLE ROW: Belt ===
+		int middleY = currentY + barsExtraDownOffset;
+
+		// Skill slots: OUTSIDE panel, 2x2 grid layout
 		// For P2/P4 (right side of screen), skills go on LEFT of panel
 		int skillX;
 		if (skillsOnLeft) {
@@ -2726,12 +2724,12 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 		int skillY = panelY;
 		// Hide skill labels when either shoulder button is held (shows belt labels instead)
 		bool hideSkillLabels = (coopPlayer != nullptr && (coopPlayer->leftShoulderHeld || coopPlayer->rightShoulderHeld));
-		DrawPlayerSkillSlotsVertical(out, player, { skillX, skillY }, SkillSlotSize, skillGridHeight, hideSkillLabels);
+		DrawPlayerSkillSlots2x2Small(out, player, { skillX, skillY }, SkillSlotSize, hideSkillLabels);
 
-		// === BELT: Right after XP bar ===
+		// === BELT: Right after top row (moved up 4px) ===
 		bool leftShoulderHeld = (coopPlayer != nullptr && coopPlayer->leftShoulderHeld);
 		bool rightShoulderHeld = (coopPlayer != nullptr && coopPlayer->rightShoulderHeld);
-		DrawPlayerBelt(out, player, { contentX + barsExtraRightOffset, barY - 2 }, false, leftShoulderHeld, rightShoulderHeld);
+		DrawPlayerBelt(out, player, { contentX + barsExtraRightOffset, middleY - 3 }, false, leftShoulderHeld, rightShoulderHeld);
 
 		// Draw durability icons - above panel for bottom players, below panel for top players
 		int durabilityY;
