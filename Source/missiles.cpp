@@ -19,7 +19,7 @@
 #include <utility>
 
 #include "appfat.h"
-#include "control.h"
+#include "control/control.hpp"
 #include "controls/control_mode.hpp"
 #include "controls/plrctrls.h"
 #include "crawl.hpp"

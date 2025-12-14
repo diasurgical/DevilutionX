@@ -6,7 +6,6 @@ set(libdevilutionx_SRCS
   appfat.cpp
   automap.cpp
   capture.cpp
-  control.cpp
   cursor.cpp
   dead.cpp
   debug.cpp
@@ -37,6 +36,13 @@ set(libdevilutionx_SRCS
   townerdat.cpp
   towners.cpp
   track.cpp
+
+  control/control_chat.cpp
+  control/control_chat_commands.cpp
+  control/control_flasks.cpp
+  control/control_gold.cpp
+  control/control_infobox.cpp
+  control/control_panel.cpp
 
   controls/axis_direction.cpp
   controls/controller_motion.cpp
