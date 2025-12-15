@@ -30,7 +30,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update -y
-        sudo apt-get install -y cmake curl g++ git libgtest-dev libgmock-dev libbenchmark-dev libfmt-dev libsodium-dev libpng-dev libbz2-dev wget
+        sudo apt-get install -y cmake curl g++ git libgtest-dev libgmock-dev libbenchmark-dev libfmt-dev libsodium-dev libpng-dev libbz2-dev libasound2-dev libxcursor-dev libxi-dev libxrandr-dev libxss-dev libxtst-dev libxkbcommon-dev wget
 
     - name: Cache CMake build folder
       uses: actions/cache@v5
