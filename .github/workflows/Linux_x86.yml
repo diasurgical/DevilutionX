@@ -37,7 +37,7 @@ jobs:
       run: Packaging/nix/debian-cross-i386-prep.sh
 
     - name: Cache CMake build folder
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: build
         key: ${{ github.workflow }}-v7-${{ github.sha }}
