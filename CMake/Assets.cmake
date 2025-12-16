@@ -72,6 +72,7 @@ set(devilutionx_assets
   fonts/12-02.clx
   fonts/12-03.clx
   fonts/12-04.clx
+  fonts/12-05.clx
   fonts/12-1f4.clx
   fonts/12-1f6.clx
   fonts/12-1f9.clx
@@ -90,6 +91,7 @@ set(devilutionx_assets
   fonts/24-02.clx
   fonts/24-03.clx
   fonts/24-04.clx
+  fonts/24-05.clx
   fonts/24-1f4.clx
   fonts/24-1f6.clx
   fonts/24-1f9.clx
@@ -101,6 +103,7 @@ set(devilutionx_assets
   fonts/30-02.clx
   fonts/30-03.clx
   fonts/30-04.clx
+  fonts/30-05.clx
   fonts/30-20.clx
   fonts/30-e0.clx
   fonts/42-00.clx
@@ -108,12 +111,14 @@ set(devilutionx_assets
   fonts/42-02.clx
   fonts/42-03.clx
   fonts/42-04.clx
+  fonts/42-05.clx
   fonts/42-20.clx
   fonts/46-00.clx
   fonts/46-01.clx
   fonts/46-02.clx
   fonts/46-03.clx
   fonts/46-04.clx
+  fonts/46-05.clx
   fonts/46-20.clx
   fonts/black.trn
   fonts/blue.trn
@@ -280,3 +285,4 @@ else()
     add_dependencies(libdevilutionx devilutionx_copied_assets)
   endif()
 endif()
+

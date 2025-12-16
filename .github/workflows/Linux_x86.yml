@@ -37,7 +37,7 @@ jobs:
       run: Packaging/nix/debian-cross-i386-prep.sh
 
     - name: Cache CMake build folder
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: build
         key: ${{ github.workflow }}-v7-${{ github.sha }}
@@ -67,7 +67,7 @@ jobs:
 
     - name: Upload Package
       if: ${{ !env.ACT }}
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v6
       with:
         name: devilutionx-i386-linux-gnu.tar.xz
         path: devilutionx-i386-linux-gnu.tar.xz
@@ -75,7 +75,7 @@ jobs:
     # AppImage cross-packaging is not implemented yet.
     # - name: Upload AppImage
     #   if: ${{ !env.ACT }}
-    #   uses: actions/upload-artifact@v5
+    #   uses: actions/upload-artifact@v6
     #   with:
     #     name: devilutionx-i386-linux-gnu.appimage
     #     path: devilutionx-i386-linux-gnu.appimage

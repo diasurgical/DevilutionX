@@ -27,7 +27,7 @@ set(SDLMIXER_VORBIS_TREMOR OFF)
 set(SDLMIXER_WAVPACK OFF)
 
 FetchContent_Declare_ExcludeFromAll(SDL_mixer
-  URL https://github.com/libsdl-org/SDL_mixer/archive/4b4b05949208ad0a49832ed34f59beeae6d6c2da.tar.gz
-  URL_HASH SHA256=744bbe25e127121a87b070f9211794b38e71db7e6ea497757bf45ac85525a905
+  URL https://github.com/libsdl-org/SDL_mixer/archive/7d37755016f0952c32c9483c556d8608da7ee82f.tar.gz
+  URL_HASH SHA256=2fa63f1eb623e3acd0012a461771eb93332e2026205f9487da3a3a75bc790111
 )
 FetchContent_MakeAvailable_ExcludeFromAll(SDL_mixer)
