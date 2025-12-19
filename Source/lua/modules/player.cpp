@@ -100,13 +100,11 @@ sol::table LuaPlayerModule(sol::state_view &lua)
 {
 	InitPlayerUserType(lua);
 	sol::table table = lua.create_table();
-
 	LuaSetDocFn(table, "self", "()",
 	    "The current player",
 	    []() {
 		    return MyPlayer;
 	    });
-
 	LuaSetDocFn(table, "walk_to", "(x: integer, y: integer)",
 	    "Walk to the given coordinates",
 	    [](int x, int y) {
