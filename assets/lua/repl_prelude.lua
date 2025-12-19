@@ -10,10 +10,13 @@ message = require('devilutionx.message')
 if _DEBUG then dev = require('devilutionx.dev') end
 inspect = require('inspect')
 
--- Expose item enums for easy access in console
-ItemIndex = ItemIndex
-ItemType = ItemType
-ItemClass = ItemClass
-ItemEquipType = ItemEquipType
-ItemMiscID = ItemMiscID
-SpellID = SpellID
+-- Expose item enums from items module for easy access in console
+ItemIndex = items.ItemIndex
+ItemType = items.ItemType
+ItemClass = items.ItemClass
+ItemEquipType = items.ItemEquipType
+ItemMiscID = items.ItemMiscID
+SpellID = items.SpellID
+ItemEffectType = items.ItemEffectType
+ItemSpecialEffect = items.ItemSpecialEffect
+ItemSpecialEffectHf = items.ItemSpecialEffectHf
