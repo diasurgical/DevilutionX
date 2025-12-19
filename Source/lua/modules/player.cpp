@@ -5,6 +5,7 @@
 #include <sol/sol.hpp>
 
 #include "engine/point.hpp"
+#include "engine/random.hpp"
 #include "inv.h"
 #include "items.h"
 #include "lua/metadoc.hpp"
@@ -12,6 +13,7 @@
 
 namespace devilution {
 namespace {
+
 void InitPlayerUserType(sol::state_view &lua)
 {
 	sol::usertype<Player> playerType = lua.new_usertype<Player>(sol::no_constructor);
