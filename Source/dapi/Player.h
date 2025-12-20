@@ -69,6 +69,7 @@ struct PlayerData {
 	int _pIBonusToHit;
 	int _pIBonusAC;
 	int _pIBonusDamMod;
+	char _pISplLvlAdd;
 	bool pManaShield;
 };
 } // namespace DAPI

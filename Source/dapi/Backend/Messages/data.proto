@@ -174,5 +174,6 @@ message PlayerData {
 	uint32 _pIBonusToHit = 47;
 	uint32 _pIBonusAC = 48;
 	uint32 _pIBonusDamMod = 49;
-	bool pManaShield = 50;
+	int32 _pISplLvlAdd = 50;
+	bool pManaShield = 51;
 }

@@ -713,6 +713,7 @@ void Server::updateGameData()
 			data->playerList[i]._pIBonusToHit = devilution::Players[i]._pIBonusToHit;
 			data->playerList[i]._pIBonusAC = devilution::Players[i]._pIBonusAC;
 			data->playerList[i]._pIBonusDamMod = devilution::Players[i]._pIBonusDamMod;
+			data->playerList[i]._pISplLvlAdd = devilution::Players[i]._pISplLvlAdd;
 			data->playerList[i].pManaShield = devilution::Players[i].pManaShield;
 		} else if (devilution::Players.size() >= i + 1 && devilution::Players[i].plractive && devilution::Players[i].isOnActiveLevel() && devilution::IsTileLit(devilution::Point { devilution::Players[i].position.tile.x, devilution::Players[i].position.tile.y })) {
 			memcpy(data->playerList[i]._pName, devilution::Players[i]._pName, 32);
@@ -779,6 +780,7 @@ void Server::updateGameData()
 			data->playerList[i]._pIBonusToHit = -1;
 			data->playerList[i]._pIBonusAC = -1;
 			data->playerList[i]._pIBonusDamMod = -1;
+			data->playerList[i]._pISplLvlAdd = -1;
 			data->playerList[i].pManaShield = devilution::Players[i].pManaShield;
 		} else {
 			memset(data->playerList[i]._pName, 0, 32);
@@ -845,6 +847,7 @@ void Server::updateGameData()
 			data->playerList[i]._pIBonusToHit = -1;
 			data->playerList[i]._pIBonusAC = -1;
 			data->playerList[i]._pIBonusDamMod = -1;
+			data->playerList[i]._pISplLvlAdd = -1;
 			data->playerList[i].pManaShield = false;
 		}
 
@@ -911,6 +914,7 @@ void Server::updateGameData()
 		playerData->set__pibonustohit(data->playerList[i]._pIBonusToHit);
 		playerData->set__pibonusac(data->playerList[i]._pIBonusAC);
 		playerData->set__pibonusdammod(data->playerList[i]._pIBonusDamMod);
+		playerData->set__pispllvladd(data->playerList[i]._pISplLvlAdd);
 		playerData->set_pmanashield(data->playerList[i].pManaShield);
 	}
 
