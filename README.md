@@ -16,7 +16,7 @@
 
 # What is DevilutionX
 
-DevilutionX is an open-source reimplementation of the Diablo and Hellfire game engine, created through extensive analysis of the original game binaries. The project provides a source-compatible engine that allows users who legally own the original games to run them on modern systems, while offering bug fixes, performance improvements, and optional quality-of-life features. DevilutionX does not include or distribute any copyrighted game assets and requires the original data files to function. It is not affiliated with or endorsed by Blizzard Entertainment.
+DevilutionX is an open-source reimplementation of the Diablo and Hellfire game engine, created through extensive analysis of the original game binaries. The project provides a source-compatible engine that allows users who legally own the original games to run them on modern systems, while offering bug fixes, performance improvements, and optional quality-of-life features. DevilutionX does not include or distribute any copyrighted game assets and requires the original data files to function.
 
 Check out the [manual](https://github.com/diasurgical/devilutionX/wiki) for available features and how to take advantage of them.
 
