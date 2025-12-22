@@ -127,7 +127,6 @@ struct {
 	bool autoElixirPickup = false;
 	bool autoOilPickup = false;
 	bool autoPickupInTown = false;
-	bool adriaRefillsMana = false;
 	bool autoEquipWeapons = false;
 	bool autoEquipArmor = false;
 	bool autoEquipHelms = false;
@@ -166,7 +165,6 @@ void ReadSettings(FILE *in, uint8_t version) // NOLINT(readability-identifier-le
 		DemoSettings.autoElixirPickup = ReadByte(in) != 0;
 		DemoSettings.autoOilPickup = ReadByte(in) != 0;
 		DemoSettings.autoPickupInTown = ReadByte(in) != 0;
-		DemoSettings.adriaRefillsMana = ReadByte(in) != 0;
 		DemoSettings.autoEquipWeapons = ReadByte(in) != 0;
 		DemoSettings.autoEquipArmor = ReadByte(in) != 0;
 		DemoSettings.autoEquipHelms = ReadByte(in) != 0;
@@ -195,7 +193,6 @@ void ReadSettings(FILE *in, uint8_t version) // NOLINT(readability-identifier-le
 	         { _("Auto Elixir Pickup"), DemoSettings.autoGoldPickup },
 	         { _("Auto Oil Pickup"), DemoSettings.autoOilPickup },
 	         { _("Auto Pickup in Town"), DemoSettings.autoPickupInTown },
-	         { _("Adria Refills Mana"), DemoSettings.adriaRefillsMana },
 	         { _("Auto Equip Weapons"), DemoSettings.autoEquipWeapons },
 	         { _("Auto Equip Armor"), DemoSettings.autoEquipArmor },
 	         { _("Auto Equip Helms"), DemoSettings.autoEquipHelms },
@@ -231,7 +228,6 @@ void WriteSettings(FILE *out)
 	WriteByte(out, static_cast<uint8_t>(*options.Gameplay.autoElixirPickup));
 	WriteByte(out, static_cast<uint8_t>(*options.Gameplay.autoOilPickup));
 	WriteByte(out, static_cast<uint8_t>(*options.Gameplay.autoPickupInTown));
-	WriteByte(out, static_cast<uint8_t>(*options.Gameplay.adriaRefillsMana));
 	WriteByte(out, static_cast<uint8_t>(*options.Gameplay.autoEquipWeapons));
 	WriteByte(out, static_cast<uint8_t>(*options.Gameplay.autoEquipArmor));
 	WriteByte(out, static_cast<uint8_t>(*options.Gameplay.autoEquipHelms));
@@ -650,7 +646,6 @@ void OverrideOptions()
 	options.Gameplay.autoElixirPickup.SetValue(DemoSettings.autoElixirPickup);
 	options.Gameplay.autoOilPickup.SetValue(DemoSettings.autoOilPickup);
 	options.Gameplay.autoPickupInTown.SetValue(DemoSettings.autoPickupInTown);
-	options.Gameplay.adriaRefillsMana.SetValue(DemoSettings.adriaRefillsMana);
 	options.Gameplay.autoEquipWeapons.SetValue(DemoSettings.autoEquipWeapons);
 	options.Gameplay.autoEquipArmor.SetValue(DemoSettings.autoEquipArmor);
 	options.Gameplay.autoEquipHelms.SetValue(DemoSettings.autoEquipHelms);
