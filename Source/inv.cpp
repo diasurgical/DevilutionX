@@ -2122,7 +2122,7 @@ bool UseInvItem(int cii)
 
 	Player &player = *MyPlayer;
 
-	if (player._pInvincible && player._pHitPoints == 0 && &player == MyPlayer)
+	if (player._pInvincible && player.hasNoLife() && &player == MyPlayer)
 		return true;
 	if (pcurs != CURSOR_HAND)
 		return true;

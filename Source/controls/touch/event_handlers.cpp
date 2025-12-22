@@ -136,7 +136,7 @@ void HandleBottomPanelInteraction(const SDL_Event &event)
 		return;
 
 #ifndef USE_SDL1
-	// Skip main panel interactions when local co-op is actually enabled (2+ controllers)
+	// Skip main panel interactions when local co-op is actually enabled
 	if (IsLocalCoopEnabled())
 		return;
 #endif

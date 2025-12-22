@@ -161,7 +161,7 @@ void ClearStateVariables(Player &player)
 
 void StartAttack(Player &player, Direction d, bool includesFirstFrame)
 {
-	if (player._pInvincible && player._pHitPoints == 0 && IsLocalPlayer(player)) {
+	if (player._pInvincible && player.hasNoLife() && IsLocalPlayer(player)) {
 		SyncPlrKill(player, DeathReason::Unknown);
 		return;
 	}
@@ -193,7 +193,7 @@ void StartAttack(Player &player, Direction d, bool includesFirstFrame)
 
 void StartRangeAttack(Player &player, Direction d, WorldTileCoord cx, WorldTileCoord cy, bool includesFirstFrame)
 {
-	if (player._pInvincible && player._pHitPoints == 0 && IsLocalPlayer(player)) {
+	if (player._pInvincible && player.hasNoLife() && IsLocalPlayer(player)) {
 		SyncPlrKill(player, DeathReason::Unknown);
 		return;
 	}
@@ -235,7 +235,7 @@ player_graphic GetPlayerGraphicForSpell(SpellID spellId)
 
 void StartSpell(Player &player, Direction d, WorldTileCoord cx, WorldTileCoord cy)
 {
-	if (player._pInvincible && player._pHitPoints == 0 && IsLocalPlayer(player)) {
+	if (player._pInvincible && player.hasNoLife() && IsLocalPlayer(player)) {
 		SyncPlrKill(player, DeathReason::Unknown);
 		return;
 	}
@@ -1058,7 +1058,7 @@ void CheckNewPath(Player &player, bool pmWillBeCalled)
 	case ACTION_RATTACKMON:
 	case ACTION_SPELLMON:
 		monster = &Monsters[targetId];
-		if ((monster->hitPoints >> 6) <= 0) {
+		if (monster->hasNoLife()) {
 			player.Stop();
 			return;
 		}
@@ -1069,7 +1069,7 @@ void CheckNewPath(Player &player, bool pmWillBeCalled)
 	case ACTION_RATTACKPLR:
 	case ACTION_SPELLPLR:
 		target = &Players[targetId];
-		if ((target->_pHitPoints >> 6) <= 0) {
+		if (target->hasNoLife()) {
 			player.Stop();
 			return;
 		}
@@ -1527,7 +1527,7 @@ void InitLevelChange(Player &player)
  */
 void StartWalk(Player &player, Direction dir, bool pmWillBeCalled)
 {
-	if (player._pInvincible && player._pHitPoints == 0 && IsLocalPlayer(player)) {
+	if (player._pInvincible && player.hasNoLife() && IsLocalPlayer(player)) {
 		SyncPlrKill(player, DeathReason::Unknown);
 		return;
 	}
@@ -2070,7 +2070,7 @@ ClxSprite GetPlayerPortraitSprite(Player &player)
 	std::string_view szCel = inDungeon ? "as" : "st";
 
 	player_graphic graphic = player_graphic::Stand;
-	if (player._pHitPoints <= 0) {
+	if (player.hasNoLife()) {
 		if (animWeaponId == PlayerWeaponGraphic::Unarmed) {
 			szCel = "dt";
 			graphic = player_graphic::Death;
@@ -2188,7 +2188,7 @@ void InitPlayerGFX(Player &player)
 
 	ResetPlayerGFX(player);
 
-	if (player._pHitPoints >> 6 == 0) {
+	if (player.hasNoLife()) {
 		player._pgfxnum &= ~0xFU;
 		LoadPlrGFX(player, player_graphic::Death);
 		return;
@@ -2431,7 +2431,7 @@ void NextPlrLevel(Player &player)
 
 void Player::_addExperience(uint32_t experience, int levelDelta)
 {
-	if (this != MyPlayer || _pHitPoints <= 0)
+	if (this != MyPlayer || this->hasNoLife())
 		return;
 
 	if (isMaxCharacterLevel()) {
@@ -2611,7 +2611,7 @@ void FixPlayerLocation(Player &player, Direction bDir)
 
 void StartStand(Player &player, Direction dir)
 {
-	if (player._pInvincible && player._pHitPoints == 0 && IsLocalPlayer(player)) {
+	if (player._pInvincible && player.hasNoLife() && IsLocalPlayer(player)) {
 		SyncPlrKill(player, DeathReason::Unknown);
 		return;
 	}
@@ -2626,7 +2626,7 @@ void StartStand(Player &player, Direction dir)
 
 void StartPlrBlock(Player &player, Direction dir)
 {
-	if (player._pInvincible && player._pHitPoints == 0 && IsLocalPlayer(player)) {
+	if (player._pInvincible && player.hasNoLife() && IsLocalPlayer(player)) {
 		SyncPlrKill(player, DeathReason::Unknown);
 		return;
 	}
@@ -2660,7 +2660,7 @@ void FixPlrWalkTags(const Player &player)
 
 void StartPlrHit(Player &player, int dam, bool forcehit)
 {
-	if (player._pInvincible && player._pHitPoints == 0 && IsLocalPlayer(player)) {
+	if (player._pInvincible && player.hasNoLife() && IsLocalPlayer(player)) {
 		SyncPlrKill(player, DeathReason::Unknown);
 		return;
 	}
@@ -2704,7 +2704,7 @@ __attribute__((no_sanitize("shift-base")))
 void
 StartPlayerKill(Player &player, DeathReason deathReason)
 {
-	if (player._pHitPoints <= 0 && player._pmode == PM_DEATH) {
+	if (player.hasNoLife() && player._pmode == PM_DEATH) {
 		return;
 	}
 
@@ -2887,14 +2887,14 @@ void ApplyPlrDamage(DamageType damageType, Player &player, int dam, int minHP /*
 	if (player._pHitPoints < minHitPoints) {
 		SetPlayerHitPoints(player, minHitPoints);
 	}
-	if (player._pHitPoints >> 6 <= 0) {
+	if (player.hasNoLife()) {
 		SyncPlrKill(player, deathReason);
 	}
 }
 
 void SyncPlrKill(Player &player, DeathReason deathReason)
 {
-	if (player._pHitPoints <= 0 && leveltype == DTYPE_TOWN) {
+	if (player.hasNoLife() && leveltype == DTYPE_TOWN) {
 		SetPlayerHitPoints(player, 64);
 		return;
 	}
