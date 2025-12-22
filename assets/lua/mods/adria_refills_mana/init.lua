@@ -18,10 +18,10 @@ events.StoreOpened.add(function(townerName)
     return
   end
 
-  -- Only play sound if mana wasn't already full
+  -- Only restore mana if it wasn't already full
   if p.mana < p.maxMana then
     audio.playSfx(SFX_CAST_HEALING)
+    p:restoreFullMana()
   end
-
-  p:restoreFullMana()
+  
 end)
