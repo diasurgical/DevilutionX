@@ -371,7 +371,6 @@ void LeftMouseDown(uint16_t modState)
 
 #ifndef USE_SDL1
 	// Skip main panel mouse handling only when the main panel is actually hidden for local co-op
-	// (i.e., local co-op is enabled AND at least one co-op player has spawned)
 	const bool skipMainPanelForLocalCoop = IsLocalCoopEnabled() && IsAnyLocalCoopPlayerInitialized();
 #else
 	const bool skipMainPanelForLocalCoop = false;
@@ -3196,7 +3195,6 @@ void LoadGameLevelInitPlayers(bool firstflag, lvl_entry lvldir)
 				InitPlayer(player, firstflag);
 
 			// Clear level changing flag for local coop players
-			// In single-player local coop, there's no network message to clear this flag
 			if (IsLocalCoopPlayer(player)) {
 				player._pLvlChanging = false;
 			}
@@ -3384,6 +3382,7 @@ tl::expected<void, std::string> LoadGameLevel(bool firstflag, lvl_entry lvldir)
 	LoadGameLevelStopMusic(neededTrack);
 	LoadGameLevelResetCursor();
 	SetRndSeedForDungeonLevel();
+	NaKrulTomeSequence = 0;
 
 	IncProgress();
 

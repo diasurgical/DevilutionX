@@ -1385,7 +1385,7 @@ bool IsAnyLocalPlayerWalking(Direction &outDirection)
 		size_t totalPlayers = g_LocalCoop.GetTotalPlayerCount();
 		for (size_t i = 0; i < totalPlayers && i < Players.size(); ++i) {
 			const Player &player = Players[i];
-			if (player.plractive && player._pHitPoints > 0 && player.isWalking()) {
+			if (player.plractive && !player.hasNoLife() && player.isWalking()) {
 				outDirection = player._pdir;
 				return true;
 			}
@@ -2861,7 +2861,7 @@ Point CalculateLocalCoopViewPosition()
 	size_t totalPlayers = g_LocalCoop.GetTotalPlayerCount();
 	for (size_t i = 0; i < totalPlayers && i < Players.size(); ++i) {
 		const Player &player = Players[i];
-		if (player.plractive && player._pHitPoints > 0) {
+		if (player.plractive && !player.hasNoLife()) {
 			totalX += player.position.tile.x;
 			totalY += player.position.tile.y;
 			activeCount++;
@@ -2934,7 +2934,7 @@ void UpdateLocalCoopCamera()
 
 	for (size_t i = 0; i < totalPlayers && i < Players.size(); ++i) {
 		const Player &player = Players[i];
-		if (player.plractive && player._pHitPoints > 0) {
+		if (player.plractive && !player.hasNoLife()) {
 			// Convert tile position to screen space (scaled by 256)
 			// worldToScreen: screenX = (tileY - tileX) * 32, screenY = (tileY + tileX) * -16
 			int tileX = player.position.tile.x;
@@ -3173,7 +3173,7 @@ bool CanLocalCoopTargetMonster(const Monster &monster)
 		return false;
 	if (monster.isPlayerMinion())
 		return false;
-	if (monster.hitPoints >> 6 <= 0) // dead
+	if (monster.hasNoLife()) // dead
 		return false;
 	if (!IsTileLit(monster.position.tile)) // not visible
 		return false;

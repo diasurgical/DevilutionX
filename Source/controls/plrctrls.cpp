@@ -77,8 +77,12 @@ bool InGameMenu()
 	    || qtextflag
 	    || gmenu_is_active()
 	    || PauseMode == 2
-	    || (MyPlayer != nullptr && MyPlayer->_pInvincible && MyPlayer->_pHitPoints == 0);
+	    || (MyPlayer != nullptr && MyPlayer->_pInvincible && MyPlayer->hasNoLife());
 }
+
+// Forward declarations for functions defined after anonymous namespace
+void QuestLogMove(AxisDirection moveDir);
+void HotSpellMove(AxisDirection dir);
 
 namespace {
 
@@ -249,7 +253,7 @@ bool CanTargetMonster(const Monster &monster)
 		return false;
 	if (monster.isPlayerMinion())
 		return false;
-	if (monster.hitPoints >> 6 <= 0) // dead
+	if (monster.hasNoLife()) // dead
 		return false;
 
 	if (!IsTileLit(monster.position.tile)) // not visible
@@ -396,7 +400,7 @@ void CheckPlayerNearby()
 		const int my = player.position.future.y;
 		if (dPlayer[mx][my] == 0
 		    || !IsTileLit(player.position.future)
-		    || (player._pHitPoints == 0 && spl != SpellID::Resurrect))
+		    || (player.hasNoLife() && spl != SpellID::Resurrect))
 			continue;
 
 		if (myPlayer.UsesRangedWeapon() || HasRangedSpell() || spl == SpellID::HealOther) {
@@ -1426,16 +1430,6 @@ void WalkInDir(Player &player, AxisDirection dir)
 	NetSendCmdLoc(player.getId(), true, CMD_WALKXY, delta);
 }
 
-void QuestLogMove(AxisDirection moveDir)
-{
-	static AxisDirectionRepeater repeater;
-	moveDir = repeater.Get(moveDir);
-	if (moveDir.y == AxisDirectionY_UP)
-		QuestlogUp();
-	else if (moveDir.y == AxisDirectionY_DOWN)
-		QuestlogDown();
-}
-
 void StoreMove(AxisDirection moveDir)
 {
 	static AxisDirectionRepeater repeater;
@@ -1684,6 +1678,16 @@ void LogGamepadChange(GamepadLayout newGamepad)
 #endif
 
 } // namespace
+
+void QuestLogMove(AxisDirection moveDir)
+{
+	static AxisDirectionRepeater repeater;
+	moveDir = repeater.Get(moveDir);
+	if (moveDir.y == AxisDirectionY_UP)
+		QuestlogUp();
+	else if (moveDir.y == AxisDirectionY_DOWN)
+		QuestlogDown();
+}
 
 void HotSpellMove(AxisDirection dir)
 {
