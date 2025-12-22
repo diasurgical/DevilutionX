@@ -168,7 +168,7 @@ protected:
 
 public:
 	packet(const key_t &k)
-	    : key(k) { };
+	    : key(k) {};
 
 	const buffer_t &Data();
 

@@ -58,6 +58,7 @@ extern bool LevelButtonDown;
 
 extern std::optional<OwnedSurface> BottomBuffer;
 extern OptionalOwnedClxSpriteList GoldBoxBuffer;
+extern OptionalOwnedClxSpriteList pDurIcons;
 
 extern bool MainPanelFlag;
 extern bool ChatFlag;
