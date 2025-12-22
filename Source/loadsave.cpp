@@ -17,7 +17,6 @@
 
 #include "automap.h"
 #include "codec.h"
-#include "control.h"
 #include "control/control.hpp"
 #include "controls/local_coop.hpp"
 #include "cursor.h"

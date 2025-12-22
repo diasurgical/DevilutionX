@@ -10,7 +10,7 @@
 #include <algorithm>
 #include <cmath>
 
-#include "control.h"
+#include "control/control.hpp"
 #include "controls/controller_motion.h"
 #include "controls/devices/game_controller.h"
 #include "controls/game_controls.h"

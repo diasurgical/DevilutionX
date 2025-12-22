@@ -18,7 +18,7 @@
 #endif
 
 #include "automap.h"
-#include "control.h"
+#include "control/control.hpp"
 #include "controls/controller_motion.h"
 #ifndef USE_SDL1
 #include "controls/devices/game_controller.h"

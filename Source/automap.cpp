@@ -10,7 +10,6 @@
 
 #include <fmt/format.h>
 
-#include "control.h"
 #include "control/control.hpp"
 #include "controls/local_coop.hpp"
 #include "engine/load_file.hpp"
