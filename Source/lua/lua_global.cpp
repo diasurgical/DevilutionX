@@ -201,6 +201,9 @@ sol::environment CreateLuaSandbox()
 
 	sandbox["require"] = lua["requireGen"](sandbox, CurrentLuaState->commonPackages, LuaLoadScriptFromAssets);
 
+	// Expose commonly used enums globally for mods
+	sandbox["SfxID"] = lua["SfxID"];
+
 	return sandbox;
 }
 

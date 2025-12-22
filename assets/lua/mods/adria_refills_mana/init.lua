@@ -5,9 +5,6 @@ local events = require("devilutionx.events")
 local player = require("devilutionx.player")
 local audio = require("devilutionx.audio")
 
--- SfxID.CastHealing = 62 (0-indexed enum value)
-local SFX_CAST_HEALING = 62
-
 events.StoreOpened.add(function(townerName)
   if townerName ~= "adria" then
     return
@@ -18,10 +15,9 @@ events.StoreOpened.add(function(townerName)
     return
   end
 
-  -- Only restore mana if it wasn't already full
-  if p.mana < p.maxMana then
-    audio.playSfx(SFX_CAST_HEALING)
+  -- Restore mana if player has mana capacity and it's not already full
+  if p.maxMana > 0 and p.mana < p.maxMana then
+    audio.playSfx(audio.SfxID.CastHealing)
     p:restoreFullMana()
   end
-  
 end)
