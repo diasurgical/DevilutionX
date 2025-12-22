@@ -21,6 +21,7 @@
 #include "engine/render/text_render.hpp"
 #include "engine/trn.hpp"
 #include "game_mode.hpp"
+#include "lua/lua_event.hpp"
 #include "minitext.h"
 #include "multi.h"
 #include "options.h"
@@ -2215,6 +2216,37 @@ void StartStore(TalkID s)
 	CloseGoldDrop();
 	ClearSText(0, NumStoreLines);
 	ReleaseStoreBtn();
+
+	// Fire StoreOpened Lua event for main store entries
+	switch (s) {
+	case TalkID::Smith:
+		LuaEvent("StoreOpened", "griswold");
+		break;
+	case TalkID::Witch:
+		LuaEvent("StoreOpened", "adria");
+		break;
+	case TalkID::Boy:
+		LuaEvent("StoreOpened", "wirt");
+		break;
+	case TalkID::Healer:
+		LuaEvent("StoreOpened", "pepin");
+		break;
+	case TalkID::Storyteller:
+		LuaEvent("StoreOpened", "cain");
+		break;
+	case TalkID::Tavern:
+		LuaEvent("StoreOpened", "ogden");
+		break;
+	case TalkID::Drunk:
+		LuaEvent("StoreOpened", "farnham");
+		break;
+	case TalkID::Barmaid:
+		LuaEvent("StoreOpened", "gillian");
+		break;
+	default:
+		break;
+	}
+
 	switch (s) {
 	case TalkID::Smith:
 		StartSmith();

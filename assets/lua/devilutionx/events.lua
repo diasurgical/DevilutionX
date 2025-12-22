@@ -67,6 +67,10 @@ local events = {
   ---Called every frame at the end.
   GameDrawComplete = CreateEvent(),
   __doc_GameDrawComplete = "Called every frame at the end.",
+
+  ---Called when opening a towner store. Passes the towner name as argument (e.g., "griswold", "adria", "pepin", "wirt", "cain").
+  StoreOpened = CreateEvent(),
+  __doc_StoreOpened = "Called when opening a towner store. Passes the towner name as argument.",
 }
 
 ---Registers a custom event type with the given name.

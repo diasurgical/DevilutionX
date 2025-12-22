@@ -4,6 +4,8 @@
 
 #include <sol/sol.hpp>
 
+#include "effects.h"
+#include "engine/backbuffer_state.hpp"
 #include "engine/point.hpp"
 #include "engine/random.hpp"
 #include "inv.h"
@@ -93,6 +95,12 @@ void InitPlayerUserType(sol::state_view &lua)
 		    player._pMana = player._pMaxMana;
 		    player._pManaBase = player._pMaxManaBase;
 	    });
+	LuaSetDocReadonlyProperty(playerType, "mana", "number",
+	    "Current mana (readonly)",
+	    [](Player &player) { return player._pMana >> 6; });
+	LuaSetDocReadonlyProperty(playerType, "maxMana", "number",
+	    "Maximum mana (readonly)",
+	    [](Player &player) { return player._pMaxMana >> 6; });
 }
 } // namespace
 
