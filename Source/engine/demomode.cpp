@@ -165,6 +165,7 @@ void ReadSettings(FILE *in, uint8_t version) // NOLINT(readability-identifier-le
 		DemoSettings.autoElixirPickup = ReadByte(in) != 0;
 		DemoSettings.autoOilPickup = ReadByte(in) != 0;
 		DemoSettings.autoPickupInTown = ReadByte(in) != 0;
+		(void)ReadByte(in); // adriaRefillsMana (removed feature, kept for backward compatibility)
 		DemoSettings.autoEquipWeapons = ReadByte(in) != 0;
 		DemoSettings.autoEquipArmor = ReadByte(in) != 0;
 		DemoSettings.autoEquipHelms = ReadByte(in) != 0;
@@ -228,6 +229,7 @@ void WriteSettings(FILE *out)
 	WriteByte(out, static_cast<uint8_t>(*options.Gameplay.autoElixirPickup));
 	WriteByte(out, static_cast<uint8_t>(*options.Gameplay.autoOilPickup));
 	WriteByte(out, static_cast<uint8_t>(*options.Gameplay.autoPickupInTown));
+	WriteByte(out, 0); // adriaRefillsMana (removed feature, kept for backward compatibility)
 	WriteByte(out, static_cast<uint8_t>(*options.Gameplay.autoEquipWeapons));
 	WriteByte(out, static_cast<uint8_t>(*options.Gameplay.autoEquipArmor));
 	WriteByte(out, static_cast<uint8_t>(*options.Gameplay.autoEquipHelms));
