@@ -2206,10 +2206,15 @@ void Server::dropCursorItem()
 {
 	if (!isOnScreen(devilution::Players[devilution::MyPlayerId].position.tile.x, devilution::Players[devilution::MyPlayerId].position.tile.y))
 		return;
-
-	if (12 <= devilution::pcurs) {
-		devilution::NetSendCmdPItem(true, devilution::_cmd_id::CMD_PUTITEM, devilution::Point { devilution::Players[devilution::MyPlayerId].position.tile.x, devilution::Players[devilution::MyPlayerId].position.tile.y }, devilution::MyPlayer->HoldItem);
-		devilution::NewCursor(devilution::cursor_id::CURSOR_HAND);
+	else if (!devilution::MyPlayer->HoldItem.isEmpty()) {
+		if (!devilution::TryOpenDungeonWithMouse()) {
+			const devilution::Point currentPosition = devilution::MyPlayer->position.tile;
+			std::optional<devilution::Point> itemTile = FindAdjacentPositionForItem(currentPosition, GetDirection(currentPosition, devilution::MyPlayer->position.tile));
+			if (itemTile) {
+				NetSendCmdPItem(true, devilution::_cmd_id::CMD_PUTITEM, *itemTile, devilution::MyPlayer->HoldItem);
+				devilution::NewCursor(devilution::cursor_id::CURSOR_HAND);
+			}
+		}
 	}
 }
 

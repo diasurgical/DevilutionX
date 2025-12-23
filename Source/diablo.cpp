@@ -320,23 +320,6 @@ void LeftMouseCmd(bool bShift)
 	}
 }
 
-bool TryOpenDungeonWithMouse()
-{
-	if (leveltype != DTYPE_TOWN)
-		return false;
-
-	const Item &holdItem = MyPlayer->HoldItem;
-	if (holdItem.IDidx == IDI_RUNEBOMB && OpensHive(cursPosition))
-		OpenHive();
-	else if (holdItem.IDidx == IDI_MAPOFDOOM && OpensGrave(cursPosition))
-		OpenGrave();
-	else
-		return false;
-
-	NewCursor(CURSOR_HAND);
-	return true;
-}
-
 void LeftMouseDown(uint16_t modState)
 {
 	LastPlayerAction = PlayerActionType::None;
@@ -3506,6 +3489,23 @@ bool IsDiabloAlive(bool playSFX)
 void PrintScreen(SDL_Keycode vkey)
 {
 	ReleaseKey(vkey);
+}
+
+bool TryOpenDungeonWithMouse()
+{
+	if (leveltype != DTYPE_TOWN)
+		return false;
+
+	const Item &holdItem = MyPlayer->HoldItem;
+	if (holdItem.IDidx == IDI_RUNEBOMB && OpensHive(cursPosition))
+		OpenHive();
+	else if (holdItem.IDidx == IDI_MAPOFDOOM && OpensGrave(cursPosition))
+		OpenGrave();
+	else
+		return false;
+
+	NewCursor(CURSOR_HAND);
+	return true;
 }
 
 } // namespace devilution
