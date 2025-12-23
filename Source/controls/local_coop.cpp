@@ -2123,7 +2123,7 @@ void DrawPlayerSkillSlotSmall(const Surface &out, const Player &player, int slot
 	}
 
 	// Draw scaled icon to output (bottom-left positioning)
-	SDL_Rect iconSrcRect = { 0, 0, scaledIconSize, scaledIconHeight }; // Fixed: use full source surface to avoid glitch
+	SDL_Rect iconSrcRect = { 0, 0, scaledIconSize, scaledIconHeight };          // Fixed: use full source surface to avoid glitch
 	Point iconDstPos = { iconPos.x - 2, iconPos.y - scaledIconHeight + 1 + 2 }; // Moved 2px left and 2px down
 	out.BlitFromSkipColorIndexZero(iconDstSurface, iconSrcRect, iconDstPos);
 
@@ -2557,8 +2557,8 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 	// Skill slot size calculated so 2 slots height = panel height
 	// Formula: 2 * slotSize + spacing = panelHeight
 	// We'll calculate this after panelHeight is determined
-	constexpr int skillSlotSpacing = 1;           // Spacing between slots in 2x2 grid
-	constexpr int skillColumnSpacing = 0;         // Gap between panel and skill grid
+	constexpr int skillSlotSpacing = 1;   // Spacing between slots in 2x2 grid
+	constexpr int skillColumnSpacing = 0; // Gap between panel and skill grid
 
 	// Belt dimensions - use actual sprite dimensions from main panel
 	constexpr int beltWidth = 232; // Full belt sprite width
@@ -2578,10 +2578,10 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 	// Bar width = space between P# and Level (reduced to fit in top row)
 	const int barsWidth = panelContentWidth - playerNumWidth - playerNumSpacing - playerNumWidth;
 	// Reduced panel height: topBorder(5) + nameTopOffset(4) + barsHeight(29) + elementSpacing(1) + barsExtraDownOffset(1) + beltHeight(28) + bottomBorder(19) = 87px
-	constexpr int panelHeight = 87;                // Adjusted to 87px (bars are now 14px each, 29px total)
+	constexpr int panelHeight = 87; // Adjusted to 87px (bars are now 14px each, 29px total)
 	const int panelWidth = leftBorderPadding + panelContentWidth + rightBorderPadding;
 	// Skill slot size: 2 slots height = panel height, so slotSize = (panelHeight - spacing) / 2
-	constexpr int SkillSlotSize = (panelHeight - skillSlotSpacing) / 2; // = (87 - 1) / 2 = 43px
+	constexpr int SkillSlotSize = (panelHeight - skillSlotSpacing) / 2;  // = (87 - 1) / 2 = 43px
 	constexpr int skillGridWidth = SkillSlotSize * 2 + skillSlotSpacing; // Width of 2x2 grid (2 columns)
 
 	constexpr int durabilityIconHeight = 32;
