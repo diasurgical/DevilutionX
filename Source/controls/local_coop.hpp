@@ -316,26 +316,6 @@ bool IsPlayerShoulderHeld(uint8_t playerId, bool isLeft);
  */
 int GetPlayerBeltSlotFromButton(uint8_t playerId, ControllerButton button);
 
-#ifndef USE_SDL1
-/**
- * @brief Get the controller ID from an SDL event.
- * @return The joystick ID, or -1 if not a controller event.
- */
-SDL_JoystickID GetControllerIdFromEvent(const SDL_Event &event);
-
-/**
- * @brief Check if an event belongs to a local co-op player (not player 1).
- * @return The local co-op player index (0-2), or -1 if it's player 1's controller.
- */
-int GetLocalCoopPlayerIndex(const SDL_Event &event);
-
-/**
- * @brief Check if a controller ID belongs to a local co-op player.
- * @param controllerId The controller ID to check.
- * @return true if the controller is assigned to a local co-op player.
- */
-bool IsLocalCoopControllerId(SDL_JoystickID controllerId);
-
 /**
  * @brief Get the game player ID for a local co-op player index.
  * @param localIndex Local co-op player index (0-2)
@@ -357,6 +337,26 @@ inline int PlayerIdToLocalCoopIndex(uint8_t playerId)
 		return -1; // Player 1 is not a local co-op player
 	return static_cast<int>(playerId - 1);
 }
+
+#ifndef USE_SDL1
+/**
+ * @brief Get the controller ID from an SDL event.
+ * @return The joystick ID, or -1 if not a controller event.
+ */
+SDL_JoystickID GetControllerIdFromEvent(const SDL_Event &event);
+
+/**
+ * @brief Check if an event belongs to a local co-op player (not player 1).
+ * @return The local co-op player index (0-2), or -1 if it's player 1's controller.
+ */
+int GetLocalCoopPlayerIndex(const SDL_Event &event);
+
+/**
+ * @brief Check if a controller ID belongs to a local co-op player.
+ * @param controllerId The controller ID to check.
+ * @return true if the controller is assigned to a local co-op player.
+ */
+bool IsLocalCoopControllerId(SDL_JoystickID controllerId);
 #endif
 
 /**
