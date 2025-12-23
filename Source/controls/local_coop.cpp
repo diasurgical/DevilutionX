@@ -4315,6 +4315,13 @@ bool IsLocalCoopStoreActive() { return false; }
 uint8_t GetLocalCoopStoreOwnerPlayerId() { return 0; }
 bool HandleLocalCoopPanelAction(uint8_t /*playerId*/, uint8_t /*actionType*/) { return false; }
 
+size_t GetLocalCoopTotalPlayerCount() { return 1; }
+bool IsLocalCoopTargetObject(const Object * /*object*/) { return false; }
+void LoadAvailableHeroesForAllLocalCoopPlayers() { }
+void SyncLocalCoopPlayersToLevel(interface_mode /*fom*/, int /*lvl*/) { }
+void ResetLocalCoopCamera() { }
+Player *FindLocalCoopPlayerOnTrigger(int & /*outTriggerIndex*/) { return nullptr; }
+
 void LocalCoopCursorState::Reset() { }
 void LocalCoopPlayer::Reset() { }
 AxisDirection LocalCoopPlayer::GetMoveDirection() const { return { AxisDirectionX_NONE, AxisDirectionY_NONE }; }

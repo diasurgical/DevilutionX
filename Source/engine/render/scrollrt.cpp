@@ -73,8 +73,8 @@
 #include "utils/sdl_compat.h"
 #include "utils/str_cat.hpp"
 
-#ifndef USE_SDL1
 #include "controls/local_coop.hpp"
+#ifndef USE_SDL1
 #include "controls/touch/renderers.h"
 #endif
 
@@ -1270,10 +1270,6 @@ void CalcFirstTilePosition(Point &position, Displacement &offset)
 		offset.deltaY -= TILE_HEIGHT / 2;
 		position += Direction::NorthWest;
 	} else if (anyPlayerWalking) {
-#else
-	if (myPlayer.isWalking()) {
-		Direction walkDir = myPlayer._pdir;
-#endif
 		switch (walkDir) {
 		case Direction::North:
 		case Direction::NorthEast:
@@ -1293,7 +1289,28 @@ void CalcFirstTilePosition(Point &position, Displacement &offset)
 		default:
 			break;
 		}
-#ifndef USE_SDL1
+	}
+#else
+	if (myPlayer.isWalking()) {
+		Direction walkDir = myPlayer._pdir;
+		switch (walkDir) {
+		case Direction::North:
+		case Direction::NorthEast:
+			offset.deltaY -= TILE_HEIGHT;
+			position += Direction::North;
+			break;
+		case Direction::SouthWest:
+		case Direction::West:
+			offset.deltaX -= TILE_WIDTH;
+			position += Direction::West;
+			break;
+		case Direction::NorthWest:
+			offset.deltaX -= TILE_WIDTH / 2;
+			offset.deltaY -= TILE_HEIGHT / 2;
+			position += Direction::NorthWest;
+		default:
+			break;
+		}
 	}
 #endif
 }
@@ -1401,6 +1418,8 @@ void DrawGame(const Surface &fullOut, Point position, Displacement offset)
 	}
 #endif
 }
+
+} // namespace
 
 /**
  * @brief Start rendering of screen, town variation
@@ -1661,6 +1680,8 @@ void DrawMain(int dwHgt, bool drawDesc, bool drawHp, bool drawMana, bool drawSba
 		}
 	}
 }
+
+namespace {
 
 void OptionShowFPSChanged()
 {
