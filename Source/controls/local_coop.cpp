@@ -59,6 +59,12 @@
 #include "utils/sdl_compat.h"
 #include "utils/str_cat.hpp"
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_timer.h>
+#else
+#include <SDL.h>
+#endif
+
 namespace devilution {
 
 // Local co-op HUD sprites
@@ -1502,7 +1508,7 @@ int GetLocalCoopPlayerIndex(const SDL_Event &event)
 		return -1;
 
 	SDL_JoystickID eventControllerId = GetControllerIdFromEvent(event);
-	if (eventControllerId == -1)
+	if (eventControllerId == static_cast<SDL_JoystickID>(-1))
 		return -1;
 
 	// Check players 2-4 (indices 1-3 in unified array)
@@ -2173,7 +2179,7 @@ void DrawPlayerSkillSlots2x2Small(const Surface &out, const Player &player, Poin
  * @brief Draw 4 skill slots in a vertical column (1x4 layout)
  * Order from top to bottom: A, B, X, Y (indices 2, 3, 0, 1)
  */
-void DrawPlayerSkillSlotsVertical(const Surface &out, const Player &player, Point basePosition, int slotSize, int totalHeight, bool hideLabels = false)
+[[maybe_unused]] void DrawPlayerSkillSlotsVertical(const Surface &out, const Player &player, Point basePosition, int slotSize, int totalHeight, bool hideLabels = false)
 {
 	// 4 slots stacked vertically with fixed 2px spacing
 	constexpr int spacing = 2;   // Fixed 2px spacing between slots
@@ -2340,7 +2346,7 @@ void CastLocalCoopHotkeySpell(int localIndex, int slotIndex)
 	    static_cast<int8_t>(spellType), 0);
 }
 
-void DrawPlayerBeltSlot(const Surface &out, const Player &player, int slotIndex, Point position)
+[[maybe_unused]] void DrawPlayerBeltSlot(const Surface &out, const Player &player, int slotIndex, Point position)
 {
 	const Item &item = player.SpdList[slotIndex];
 
@@ -2534,15 +2540,12 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 	constexpr int topBorderPadding = 5;     // Top border in charbg.clx
 	constexpr int leftBorderPadding = 7;    // Left border (1px more to shift elements right)
 	constexpr int rightBorderPadding = 8;   // Right border (content padding, not visual border) - reduced by 1px
-	constexpr int bottomBorderPadding = 19; // Bottom border (content padding, not visual border)
 	constexpr int panelEdgePadding = 0;     // No padding from screen edge - panels touch edges
 	constexpr int elementSpacing = 1;       // Reduced spacing between elements
 	constexpr int nameTopOffset = 4;        // Reduced offset for top row
 	constexpr int nameLeftOffset = 0;       // No extra offset (elements shifted via leftBorderPadding)
-	constexpr int barsToNameSpacing = 3;    // 3px spacing between name and bars (unused now)
 	constexpr int barsExtraDownOffset = 1;  // Reduced extra offset for belt
 	constexpr int barsExtraRightOffset = 0; // No extra offset - bars and belt aligned with left edge
-	constexpr int barsToBeltSpacing = 1;    // 1px spacing between bars and belt
 
 	// Health/mana bar dimensions - reduced size
 	constexpr int barHeight = 14; // Bar height (increased by 2px from 12px)
@@ -2569,10 +2572,6 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 	// Content area width (belt width) - skills are now outside the panel
 	const int contentWidth = beltWidth;
 
-	// Panel content height: top row (P# + bars + Level) + middle (belt)
-	// Middle section: belt only (bars are now in top row)
-	constexpr int middleContentHeight = beltHeight;
-
 	// Panel dimensions with proper borders
 	// Layout: topBorder + nameTopOffset + [top row: P# + bars + Level] + spacing + [middle: belt | skills] + bottomBorder
 	const int panelContentWidth = contentWidth + 6; // 6px wider (increased by 1px to compensate for reduced right padding)
@@ -2584,7 +2583,6 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 	// Skill slot size: 2 slots height = panel height, so slotSize = (panelHeight - spacing) / 2
 	constexpr int SkillSlotSize = (panelHeight - skillSlotSpacing) / 2; // = (87 - 1) / 2 = 43px
 	constexpr int skillGridWidth = SkillSlotSize * 2 + skillSlotSpacing; // Width of 2x2 grid (2 columns)
-	constexpr int skillGridHeight = SkillSlotSize * 2 + skillSlotSpacing; // Height of 2x2 grid (2 rows) = panel height
 
 	constexpr int durabilityIconHeight = 32;
 	constexpr int durabilityIconSpacing = 4;

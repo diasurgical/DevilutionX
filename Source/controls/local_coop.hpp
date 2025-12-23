@@ -357,6 +357,7 @@ inline int PlayerIdToLocalCoopIndex(uint8_t playerId)
 		return -1; // Player 1 is not a local co-op player
 	return static_cast<int>(playerId - 1);
 }
+#endif
 
 /**
  * @brief Check if a player is a local co-op player (player 2-4 in local co-op mode).
@@ -377,6 +378,7 @@ bool IsLocalCoopPlayer(const Player &player);
  */
 bool IsLocalPlayer(const Player &player);
 
+#ifndef USE_SDL1
 /**
  * @brief Process SDL event for local co-op players.
  *
