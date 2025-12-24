@@ -385,7 +385,22 @@ void LeftMouseDown(uint16_t modState)
 				stream_stop();
 			} else if (CharFlag && GetLeftPanel().contains(MousePosition)) {
 				CheckChrBtns();
-			} else if (invflag && GetRightPanel().contains(MousePosition)) {
+			} else if (invflag && (GetRightPanel().contains(MousePosition)
+#ifndef USE_SDL1
+			    || (IsLocalCoopEnabled() && [&]() {
+				    uint8_t beltOwnerPlayerId = 0;
+				    std::optional<inv_xy_slot> slot = FindLocalCoopBeltSlotUnderCursor(MousePosition, beltOwnerPlayerId);
+				    if (!slot.has_value()) return false;
+				    // Check if this player can interact with this belt
+				    Player *panelOwner = GetLocalCoopPanelOwnerPlayer();
+				    if (panelOwner != nullptr) {
+					    return panelOwner->getId() == beltOwnerPlayerId;
+				    } else {
+					    return beltOwnerPlayerId == MyPlayerId;
+				    }
+			    }())
+#endif
+			    )) {
 				if (!DropGoldFlag)
 					CheckInvItem(isShiftHeld, isCtrlHeld);
 			} else if (IsStashOpen && GetLeftPanel().contains(MousePosition)) {

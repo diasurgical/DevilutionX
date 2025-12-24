@@ -665,6 +665,22 @@ Point InvGetEquipSlotCoordFromInvSlot(const inv_xy_slot slot)
 Point GetSlotCoord(int slot)
 {
 	if (slot >= SLOTXY_BELT_FIRST && slot <= SLOTXY_BELT_LAST) {
+		// In local co-op mode, use the local co-op belt position
+		if (IsLocalCoopEnabled()) {
+			Player *panelOwner = GetLocalCoopPanelOwnerPlayer();
+			uint8_t targetPlayerId;
+			if (panelOwner != nullptr) {
+				// Panel owner is a local co-op player (not player 1)
+				targetPlayerId = panelOwner->getId();
+			} else {
+				// No explicit panel ownership - use Player 1's local belt
+				targetPlayerId = MyPlayerId;
+			}
+			std::optional<Point> localCoopBeltPos = GetLocalCoopBeltSlotPosition(targetPlayerId, slot);
+			if (localCoopBeltPos.has_value()) {
+				return localCoopBeltPos.value();
+			}
+		}
 		return GetPanelPosition(UiPanels::Main, InvRect[slot].Center());
 	}
 
@@ -839,11 +855,15 @@ Point FindClosestStashSlot(Point mousePos)
 
 void LiftInventoryItem()
 {
-	const int inventorySlot = (Slot >= 0) ? Slot : FindClosestInventorySlot(MousePosition, MyPlayer->HoldItem);
+	// In local co-op, use the panel owner player's HoldItem instead of MyPlayer's
+	Player *panelOwner = GetLocalCoopPanelOwnerPlayer();
+	Player &player = panelOwner != nullptr ? *panelOwner : *MyPlayer;
+
+	const int inventorySlot = (Slot >= 0) ? Slot : FindClosestInventorySlot(MousePosition, player.HoldItem);
 
 	int jumpSlot = inventorySlot; // If the cursor is over an inventory slot we may need to adjust it due to pasting items of different sizes over each other
 	if (inventorySlot >= SLOTXY_INV_FIRST && inventorySlot <= SLOTXY_INV_LAST) {
-		const Size cursorSizeInCells = MyPlayer->HoldItem.isEmpty() ? Size { 1, 1 } : GetInventorySize(MyPlayer->HoldItem);
+		const Size cursorSizeInCells = player.HoldItem.isEmpty() ? Size { 1, 1 } : GetInventorySize(player.HoldItem);
 
 		// Find any item occupying a slot that is currently under the cursor
 		const int8_t itemUnderCursor = [](int inventorySlot, Size cursorSizeInCells) {
@@ -871,7 +891,7 @@ void LiftInventoryItem()
 	if (inventorySlot >= SLOTXY_INV_FIRST && inventorySlot <= SLOTXY_INV_LAST) {
 		Point mousePos = GetSlotCoord(jumpSlot);
 		Slot = jumpSlot;
-		const Size newCursorSizeInCells = MyPlayer->HoldItem.isEmpty() ? GetItemSizeOnSlot(jumpSlot) : GetInventorySize(MyPlayer->HoldItem);
+		const Size newCursorSizeInCells = player.HoldItem.isEmpty() ? GetItemSizeOnSlot(jumpSlot) : GetInventorySize(player.HoldItem);
 		mousePos.x += ((newCursorSizeInCells.width - 1) * InventorySlotSizeInPixels.width) / 2;
 		mousePos.y += ((newCursorSizeInCells.height - 1) * InventorySlotSizeInPixels.height) / 2;
 		SetCursorPos(mousePos);
@@ -964,16 +984,21 @@ void InventoryMove(AxisDirection dir)
 				Slot = SLOTXY_HEAD;
 			} else if (Slot == SLOTXY_RING_RIGHT) {
 				Slot = SLOTXY_RING_LEFT;
-			} else if (Slot >= SLOTXY_INV_FIRST && Slot <= SLOTXY_BELT_LAST) {
+			} else if (Slot >= SLOTXY_BELT_FIRST && Slot <= SLOTXY_BELT_LAST) {
+				// Belt: allow left movement unless at first slot
+				if (Slot > SLOTXY_BELT_FIRST) {
+					Slot -= 1;
+				}
+			} else if (Slot >= SLOTXY_INV_FIRST && Slot <= SLOTXY_INV_LAST) {
 				const int8_t itemId = GetItemIdOnSlot(Slot);
 				if (itemId != 0) {
-					for (int i = 1; i < INV_ROW_SLOT_SIZE && !IsAnyOf(Slot - i + 1, SLOTXY_INV_ROW1_FIRST, SLOTXY_INV_ROW2_FIRST, SLOTXY_INV_ROW3_FIRST, SLOTXY_INV_ROW4_FIRST, SLOTXY_BELT_FIRST); i++) {
+					for (int i = 1; i < INV_ROW_SLOT_SIZE && !IsAnyOf(Slot - i + 1, SLOTXY_INV_ROW1_FIRST, SLOTXY_INV_ROW2_FIRST, SLOTXY_INV_ROW3_FIRST, SLOTXY_INV_ROW4_FIRST); i++) {
 						if (itemId != GetItemIdOnSlot(Slot - i)) {
 							Slot -= i;
 							break;
 						}
 					}
-				} else if (IsNoneOf(Slot, SLOTXY_INV_ROW1_FIRST, SLOTXY_INV_ROW2_FIRST, SLOTXY_INV_ROW3_FIRST, SLOTXY_INV_ROW4_FIRST, SLOTXY_BELT_FIRST)) {
+				} else if (IsNoneOf(Slot, SLOTXY_INV_ROW1_FIRST, SLOTXY_INV_ROW2_FIRST, SLOTXY_INV_ROW3_FIRST, SLOTXY_INV_ROW4_FIRST)) {
 					Slot -= 1;
 				}
 			}
@@ -998,16 +1023,21 @@ void InventoryMove(AxisDirection dir)
 				Slot = SLOTXY_HAND_RIGHT;
 			} else if (Slot == SLOTXY_HEAD) {
 				Slot = SLOTXY_AMULET;
-			} else if (Slot >= SLOTXY_INV_FIRST && Slot <= SLOTXY_BELT_LAST) {
+			} else if (Slot >= SLOTXY_BELT_FIRST && Slot <= SLOTXY_BELT_LAST) {
+				// Belt: allow right movement unless at last slot
+				if (Slot < SLOTXY_BELT_LAST) {
+					Slot += 1;
+				}
+			} else if (Slot >= SLOTXY_INV_FIRST && Slot <= SLOTXY_INV_LAST) {
 				const int8_t itemId = GetItemIdOnSlot(Slot);
 				if (itemId != 0) {
-					for (int i = 1; i < INV_ROW_SLOT_SIZE && !IsAnyOf(Slot + i - 1, SLOTXY_INV_ROW1_LAST, SLOTXY_INV_ROW2_LAST, SLOTXY_INV_ROW3_LAST, SLOTXY_INV_ROW4_LAST, SLOTXY_BELT_LAST); i++) {
+					for (int i = 1; i < INV_ROW_SLOT_SIZE && !IsAnyOf(Slot + i - 1, SLOTXY_INV_ROW1_LAST, SLOTXY_INV_ROW2_LAST, SLOTXY_INV_ROW3_LAST, SLOTXY_INV_ROW4_LAST); i++) {
 						if (itemId != GetItemIdOnSlot(Slot + i)) {
 							Slot += i;
 							break;
 						}
 					}
-				} else if (IsNoneOf(Slot, SLOTXY_INV_ROW1_LAST, SLOTXY_INV_ROW2_LAST, SLOTXY_INV_ROW3_LAST, SLOTXY_INV_ROW4_LAST, SLOTXY_BELT_LAST)) {
+				} else if (IsNoneOf(Slot, SLOTXY_INV_ROW1_LAST, SLOTXY_INV_ROW2_LAST, SLOTXY_INV_ROW3_LAST, SLOTXY_INV_ROW4_LAST)) {
 					Slot += 1;
 				}
 			}
@@ -1156,6 +1186,12 @@ void InventoryMove(AxisDirection dir)
 	}
 
 	SetCursorPos(mousePos);
+
+	// Update inventory highlight when cursor moves (for info box display)
+	// This is especially important for gamepad navigation and local coop belt items
+	if (invflag) {
+		pcursinvitem = CheckInvHLight();
+	}
 }
 
 /**

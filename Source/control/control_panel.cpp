@@ -120,7 +120,6 @@ const char *const PanBtnHotKey[8] = { "'c'", "'q'", N_("Tab"), N_("Esc"), "'i'",
 int TotalSpMainPanelButtons = 6;
 int TotalMpMainPanelButtons = 8;
 
-// Durability icons sprite list (defined here, declared in control.hpp)
 OptionalOwnedClxSpriteList pDurIcons;
 
 namespace {

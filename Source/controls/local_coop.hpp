@@ -8,6 +8,7 @@
 
 #include <array>
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -24,6 +25,7 @@
 #include "controls/controller_buttons.h"
 #include "engine/displacement.hpp"
 #include "engine/surface.hpp"
+#include "inv.h"
 
 namespace devilution {
 
@@ -643,6 +645,22 @@ bool AreLocalCoopPanelsOpen();
  * @return Pointer to the player who owns panels, or nullptr if player 1 owns them
  */
 Player *GetLocalCoopPanelOwnerPlayer();
+
+/**
+ * @brief Get the belt position for a specific player in local co-op mode.
+ * @param playerId The game player ID (0-3)
+ * @param beltSlot The belt slot index (SLOTXY_BELT_FIRST to SLOTXY_BELT_LAST)
+ * @return The screen position of the belt slot center, or nullopt if not in local coop or invalid player
+ */
+std::optional<Point> GetLocalCoopBeltSlotPosition(uint8_t playerId, int beltSlot);
+
+/**
+ * @brief Find which local co-op belt slot (if any) contains the given cursor position.
+ * @param cursorPosition The screen position to check
+ * @param outPlayerId Output parameter for which player's belt was clicked (0-3)
+ * @return The belt slot index (SLOTXY_BELT_FIRST to SLOTXY_BELT_LAST), or nullopt if not over any belt
+ */
+std::optional<inv_xy_slot> FindLocalCoopBeltSlotUnderCursor(Point cursorPosition, uint8_t &outPlayerId);
 
 /**
  * @brief Check if a monster/towner should be highlighted for any local coop player.

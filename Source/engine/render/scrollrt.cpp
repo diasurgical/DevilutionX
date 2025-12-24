@@ -1314,8 +1314,8 @@ void DrawGame(const Surface &fullOut, Point position, Displacement offset)
 	if (shouldExpandForWalk) {
 		switch (expandDir) {
 #else
-		if (MyPlayer->isWalking()) {
-			switch (MyPlayer->_pdir) {
+	if (MyPlayer->isWalking()) {
+		switch (MyPlayer->_pdir) {
 #endif
 		case Direction::NoDirection:
 			break;
@@ -1517,18 +1517,24 @@ void DrawView(const Surface &out, Point startPosition)
 	DrawPlrMsg(out);
 	gmenu_draw(out);
 	doom_draw(out);
-	DrawInfoBox(out);
-	UpdateLifeManaPercent(); // Update life/mana totals before rendering any portion of the flask.
+
 #ifndef USE_SDL1
-	// Hide flask tops only when local co-op has at least one other player initialized
-	// When only player 1, show the original UI with flask tops
-	if (!IsAnyLocalCoopPlayerInitialized()) {
+	// Hide info box and flask tops when local co-op is active (use floating info box instead)
+	const bool showMainPanelUI = !IsLocalCoopEnabled();
+	if (showMainPanelUI) {
+		DrawInfoBox(out);
+	}
+#else
+	DrawInfoBox(out);
+	const bool showMainPanelUI = true;
 #endif
+
+	UpdateLifeManaPercent(); // Update life/mana totals before rendering any portion of the flask.
+
+	if (showMainPanelUI) {
 		DrawLifeFlaskUpper(out);
 		DrawManaFlaskUpper(out);
-#ifndef USE_SDL1
 	}
-#endif
 }
 
 /**
@@ -1949,11 +1955,8 @@ void DrawAndBlit()
 	DrawView(out, ViewPosition);
 
 #ifndef USE_SDL1
-	// When local co-op is enabled AND at least one other player has spawned,
-	// hide the main panel UI and use corner HUDs instead.
-	// Player 1's corner HUD will show when local coop is enabled.
-	// But keep the main panel visible until other players have actually joined the game.
-	const bool hideMainPanelForLocalCoop = IsAnyLocalCoopPlayerInitialized();
+	// When local co-op is enabled (2+ gamepads), hide the main panel UI and use corner HUDs instead.
+	const bool hideMainPanelForLocalCoop = IsLocalCoopEnabled();
 #else
 	const bool hideMainPanelForLocalCoop = false;
 #endif
@@ -1988,14 +1991,11 @@ void DrawAndBlit()
 			DrawFlaskValues(out, { mainPanel.position.x + mainPanel.size.width - 138, mainPanel.position.y + 28 },
 			    (HasAnyOf(InspectPlayer->_pIFlags, ItemSpecialEffect::NoMana) || (MyPlayer->_pMana >> 6) <= 0) ? 0 : MyPlayer->_pMana >> 6,
 			    HasAnyOf(InspectPlayer->_pIFlags, ItemSpecialEffect::NoMana) ? 0 : MyPlayer->_pMaxMana >> 6);
+
+		if (*GetOptions().Gameplay.showMultiplayerPartyInfo && PartySidePanelOpen)
+			DrawPartyMemberInfoPanel(out);
 	}
 
-	// Draw floating info box (always draw when local co-op is active, otherwise check option)
-	if (hideMainPanelForLocalCoop || *GetOptions().Gameplay.floatingInfoBox)
-		DrawFloatingInfoBox(out);
-
-	if (*GetOptions().Gameplay.showMultiplayerPartyInfo && PartySidePanelOpen)
-		DrawPartyMemberInfoPanel(out);
 
 #ifndef USE_SDL1
 	// Draw local co-op character selection UI
@@ -2003,6 +2003,11 @@ void DrawAndBlit()
 	// Draw local co-op player HUD (text-only stats in corners)
 	DrawLocalCoopPlayerHUD(out);
 #endif
+
+	// Draw floating info box (always draw when local co-op is active, otherwise check option)
+	// Draw AFTER local coop panels so it appears on top
+	if (hideMainPanelForLocalCoop || *GetOptions().Gameplay.floatingInfoBox)
+		DrawFloatingInfoBox(out);
 
 	DrawCursor(out);
 

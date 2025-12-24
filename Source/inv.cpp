@@ -332,11 +332,35 @@ int FindTargetSlotUnderItemCursor(Point cursorPosition, Size itemSize)
 		}
 	}
 
-	panelOffset = Point { 0, 0 } - GetMainPanel().position;
-	for (int r = SLOTXY_BELT_FIRST; r <= SLOTXY_BELT_LAST; r++) {
-		if (InvRect[r].contains(cursorPosition + panelOffset))
-			return r;
+#ifndef USE_SDL1
+	// In local co-op mode, check local belt panels instead of main panel belt
+	if (IsLocalCoopEnabled()) {
+		uint8_t beltOwnerPlayerId = 0;
+		std::optional<inv_xy_slot> localCoopBeltSlot = FindLocalCoopBeltSlotUnderCursor(cursorPosition, beltOwnerPlayerId);
+		if (localCoopBeltSlot.has_value()) {
+			// Check panel ownership (same logic as FindSlotUnderCursor)
+			Player *panelOwner = GetLocalCoopPanelOwnerPlayer();
+			if (panelOwner != nullptr) {
+				if (panelOwner->getId() == beltOwnerPlayerId) {
+					return static_cast<int>(localCoopBeltSlot.value());
+				}
+			} else {
+				// No explicit panel ownership - allow Player 1 to interact with their own belt
+				if (beltOwnerPlayerId == MyPlayerId) {
+					return static_cast<int>(localCoopBeltSlot.value());
+				}
+			}
+		}
+	} else {
+#endif
+		panelOffset = Point { 0, 0 } - GetMainPanel().position;
+		for (int r = SLOTXY_BELT_FIRST; r <= SLOTXY_BELT_LAST; r++) {
+			if (InvRect[r].contains(cursorPosition + panelOffset))
+				return r;
+		}
+#ifndef USE_SDL1
 	}
+#endif
 	return NUM_XY_SLOTS;
 }
 
@@ -639,8 +663,26 @@ std::optional<inv_xy_slot> FindSlotUnderCursor(Point cursorPosition)
 	}
 
 #ifndef USE_SDL1
-	// Skip belt mouse events when local co-op is actually enabled (2+ controllers)
-	if (!IsLocalCoopEnabled()) {
+	// In local co-op mode, check if cursor is over any player's local belt panel
+	if (IsLocalCoopEnabled()) {
+		uint8_t beltOwnerPlayerId = 0;
+		std::optional<inv_xy_slot> localCoopBeltSlot = FindLocalCoopBeltSlotUnderCursor(cursorPosition, beltOwnerPlayerId);
+		if (localCoopBeltSlot.has_value()) {
+			// Check panel ownership
+			Player *panelOwner = GetLocalCoopPanelOwnerPlayer();
+			if (panelOwner != nullptr) {
+				// Someone has explicit panel ownership - only allow if they own this belt
+				if (panelOwner->getId() == beltOwnerPlayerId) {
+					return localCoopBeltSlot;
+				}
+			} else {
+				// No explicit panel ownership - allow Player 1 to interact with their own belt
+				if (beltOwnerPlayerId == MyPlayerId) {
+					return localCoopBeltSlot;
+				}
+			}
+		}
+	} else {
 #endif
 		testPosition = static_cast<Point>(cursorPosition - GetMainPanel().position);
 		for (std::underlying_type_t<inv_xy_slot> r = SLOTXY_BELT_FIRST; r != NUM_XY_SLOTS; r++) {
@@ -1686,6 +1728,29 @@ void CheckInvItem(bool isShiftHeld, bool isCtrlHeld)
 
 void CheckInvScrn(bool isShiftHeld, bool isCtrlHeld)
 {
+#ifndef USE_SDL1
+	// In local co-op mode, check for clicks on local co-op belt panels
+	if (IsLocalCoopEnabled()) {
+		uint8_t beltOwnerPlayerId = 0;
+		std::optional<inv_xy_slot> localCoopBeltSlot = FindLocalCoopBeltSlotUnderCursor(MousePosition, beltOwnerPlayerId);
+		if (localCoopBeltSlot.has_value()) {
+			// Check if this player can interact with this belt
+			Player *panelOwner = GetLocalCoopPanelOwnerPlayer();
+			if (panelOwner != nullptr) {
+				if (panelOwner->getId() == beltOwnerPlayerId) {
+					CheckInvItem(isShiftHeld, isCtrlHeld);
+					return;
+				}
+			} else {
+				if (beltOwnerPlayerId == MyPlayerId) {
+					CheckInvItem(isShiftHeld, isCtrlHeld);
+					return;
+				}
+			}
+		}
+	}
+#endif
+
 	const Point mainPanelPosition = GetMainPanel().position;
 	if (MousePosition.x > 190 + mainPanelPosition.x && MousePosition.x < 437 + mainPanelPosition.x
 	    && MousePosition.y > mainPanelPosition.y && MousePosition.y < 33 + mainPanelPosition.y) {
@@ -1946,38 +2011,72 @@ int SyncDropEar(Point position, uint16_t icreateinfo, uint32_t iseed, uint8_t cu
 
 int8_t CheckInvHLight()
 {
+	int8_t r = 0;
 #ifndef USE_SDL1
-	// Skip belt mouse events when local co-op is actually enabled (2+ controllers)
-	const bool skipBeltForLocalCoop = IsLocalCoopEnabled();
-#else
-	const bool skipBeltForLocalCoop = false;
+	uint8_t beltOwnerPlayerId = 0;
+	bool isLocalCoopBeltSlot = false;
 #endif
 
-	int8_t r = 0;
-	for (; r < NUM_XY_SLOTS; r++) {
-		// Skip belt slots when local co-op is enabled
-		if (skipBeltForLocalCoop && r >= SLOTXY_BELT_FIRST)
-			continue;
+#ifndef USE_SDL1
+	// In local co-op mode, check local belt panels instead of main panel belt
+	if (IsLocalCoopEnabled()) {
+		// First check equipment and inventory slots (not belt)
+		for (; r < SLOTXY_BELT_FIRST; r++) {
+			int xo = GetRightPanel().position.x;
+			int yo = GetRightPanel().position.y;
 
-		int xo = GetRightPanel().position.x;
-		int yo = GetRightPanel().position.y;
-		if (r >= SLOTXY_BELT_FIRST) {
-			xo = GetMainPanel().position.x;
-			yo = GetMainPanel().position.y;
+			if (InvRect[r].contains(MousePosition - Displacement(xo, yo))) {
+				break;
+			}
 		}
 
-		if (InvRect[r].contains(MousePosition - Displacement(xo, yo))) {
-			break;
+		// If we found a non-belt slot, use it
+		if (r < SLOTXY_BELT_FIRST) {
+			// Continue with normal logic below
+		} else {
+			// Check local co-op belt slots
+			std::optional<inv_xy_slot> localCoopBeltSlot = FindLocalCoopBeltSlotUnderCursor(MousePosition, beltOwnerPlayerId);
+			if (localCoopBeltSlot.has_value() && beltOwnerPlayerId < Players.size()) {
+				// Allow info boxes for all players' belt items (same logic for all players)
+				r = static_cast<int8_t>(localCoopBeltSlot.value());
+				isLocalCoopBeltSlot = true;
+			} else {
+				return -1;
+			}
 		}
+
+		if (r >= NUM_XY_SLOTS)
+			return -1;
+	} else {
+#endif
+		for (; r < NUM_XY_SLOTS; r++) {
+			int xo = GetRightPanel().position.x;
+			int yo = GetRightPanel().position.y;
+			if (r >= SLOTXY_BELT_FIRST) {
+				xo = GetMainPanel().position.x;
+				yo = GetMainPanel().position.y;
+			}
+
+			if (InvRect[r].contains(MousePosition - Displacement(xo, yo))) {
+				break;
+			}
+		}
+
+		if (r >= NUM_XY_SLOTS)
+			return -1;
+#ifndef USE_SDL1
 	}
-
-	if (r >= NUM_XY_SLOTS)
-		return -1;
+#endif
 
 	int8_t rv = -1;
 	InfoColor = UiFlags::ColorWhite;
 	Item *pi = nullptr;
+#ifndef USE_SDL1
+	// In local co-op mode, for belt items, use the belt owner's player instead of InspectPlayer
+	Player &myPlayer = (isLocalCoopBeltSlot && beltOwnerPlayerId < Players.size()) ? Players[beltOwnerPlayerId] : *InspectPlayer;
+#else
 	Player &myPlayer = *InspectPlayer;
+#endif
 
 	if (r == SLOTXY_HEAD) {
 		rv = INVLOC_HEAD;
