@@ -1809,11 +1809,9 @@ void DrawLocalCoopCharacterSelect(const Surface &out)
 	if (!gbIsMultiplayer || !g_LocalCoop.enabled)
 		return;
 
-	int yOffset = 10;
 	constexpr int boxWidth = 220;
 	constexpr int boxHeight = 55;
 	constexpr int padding = 10;
-	const int baseX = out.w() - boxWidth - padding;
 
 	// Start from index 1 (Player 2) since Player 1 never has character select
 	for (size_t i = 1; i < g_LocalCoop.players.size(); ++i) {
@@ -1824,8 +1822,28 @@ void DrawLocalCoopCharacterSelect(const Surface &out)
 		if (!coopPlayer.characterSelectActive)
 			continue;
 
-		const int x = baseX;
-		const int y = yOffset;
+		// Position each player's character selection in different corners:
+		// P2 (i=1): bottom right
+		// P3 (i=2): top left
+		// P4 (i=3): top right
+		int x, y;
+		if (i == 1) {
+			// Player 2: bottom right
+			x = out.w() - boxWidth - padding;
+			y = out.h() - boxHeight - padding;
+		} else if (i == 2) {
+			// Player 3: top left
+			x = padding;
+			y = padding;
+		} else if (i == 3) {
+			// Player 4: top right
+			x = out.w() - boxWidth - padding;
+			y = padding;
+		} else {
+			// Fallback (shouldn't happen, but just in case)
+			x = out.w() - boxWidth - padding;
+			y = padding;
+		}
 
 		// Draw title - i is unified index (1-3), display as Player 2-4
 		std::string title = StrCat(_("Player "), i + 1, " - ", _("Select Hero"));
@@ -1856,8 +1874,6 @@ void DrawLocalCoopCharacterSelect(const Surface &out)
 			DrawString(out, navHint, { { x, y + 44 }, { boxWidth, 0 } },
 			    { .flags = UiFlags::ColorGold | UiFlags::AlignCenter | UiFlags::FontSize12, .spacing = 1 });
 		}
-
-		yOffset += boxHeight + padding;
 	}
 }
 
