@@ -1888,6 +1888,10 @@ void ProcessGameAction(const GameAction &action)
 			SpellbookFlag = false;
 			SpellSelectFlag = false;
 			invflag = true;
+			// In local coop mode, reload inventory image when opening inventory
+			if (IsLocalCoopEnabled()) {
+				InitInv();
+			}
 			if (pcurs == CURSOR_DISARM)
 				NewCursor(CURSOR_HAND);
 			FocusOnInventory();
@@ -2305,4 +2309,3 @@ void QuickCast(size_t slot)
 }
 
 } // namespace devilution
-
