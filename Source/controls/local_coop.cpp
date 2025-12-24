@@ -3877,6 +3877,12 @@ void ProcessLocalCoopGameAction(int localIndex, uint8_t actionType)
 			MyPlayerId = playerId;
 			InspectPlayer = &Players[playerId];
 
+			// If opening inventory, reload inventory image for this player's class
+			// This ensures the inventory background matches the coop player's class
+			if (actionType == GameActionType_TOGGLE_INVENTORY && !invflag) {
+				InitInv();
+			}
+
 			ProcessGameAction(GameAction { static_cast<GameActionType>(actionType) });
 
 			// Recalculate player inventory stats when opening inventory panel
