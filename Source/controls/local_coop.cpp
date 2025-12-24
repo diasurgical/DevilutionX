@@ -67,6 +67,23 @@
 
 namespace devilution {
 
+/**
+ * @brief Reload available heroes for all other players who are still selecting.
+ * Called when a player changes their character selection to update other players' lists dynamically.
+ * @param excludeLocalIndex The local index (0-2) of the player whose selection changed
+ */
+void ReloadHeroesForOtherPlayers(int excludeLocalIndex)
+{
+	// Iterate over players 2-4 (unified indices 1-3, local indices 0-2)
+	for (size_t i = 1; i < g_LocalCoop.players.size(); ++i) {
+		// Skip the player whose selection changed: excludeLocalIndex is 0-2, unified index is excludeLocalIndex+1 (1-3)
+		if (static_cast<int>(i) != excludeLocalIndex + 1 && g_LocalCoop.players[i].active && g_LocalCoop.players[i].characterSelectActive) {
+			// Convert unified index (1-3) to local index (0-2)
+			LoadAvailableHeroesForLocalPlayer(static_cast<int>(i - 1));
+		}
+	}
+}
+
 // Local co-op HUD sprites
 namespace {
 OptionalOwnedClxSpriteList LocalCoopHealthBox;
@@ -395,6 +412,12 @@ void LoadHeroInfosForLocalCoop(std::vector<_uiheroinfo> &heroList, const std::ve
 	g_LocalCoopHeroList = &heroList;
 	g_LocalCoopExcludeSaves = &excludeSaves;
 
+	// Save player 1's current active state and other important flags before loading heroes
+	bool savedPlrActive = Players[0].plractive;
+	Point savedPosition = Players[0].position.tile;
+	int savedPlrLevel = Players[0].plrlevel;
+	bool savedPlrIsOnSetLevel = Players[0].plrIsOnSetLevel;
+
 	// This will modify Players[0] for each hero
 	// It uses gbIsMultiplayer to determine save directory (single_ vs multi_)
 	// so it will automatically show the correct characters based on the current game mode
@@ -406,6 +429,12 @@ void LoadHeroInfosForLocalCoop(std::vector<_uiheroinfo> &heroList, const std::ve
 		// pfile_read_player_from_save calls CalcPlrInv with loadgfx=false,
 		// so we need to recalculate to ensure graphics are properly set
 		CalcPlrInv(Players[0], true);
+
+		// Restore player 1's active state and position to prevent them from disappearing
+		Players[0].plractive = savedPlrActive;
+		Players[0].position.tile = savedPosition;
+		Players[0].plrlevel = savedPlrLevel;
+		Players[0].plrIsOnSetLevel = savedPlrIsOnSetLevel;
 	}
 
 	// Clear static variables
@@ -642,6 +671,8 @@ void ProcessLocalCoopButtonInput(int localIndex, const SDL_Event &event)
 					if (coopPlayer.selectedHeroIndex < 0) {
 						coopPlayer.selectedHeroIndex = static_cast<int>(coopPlayer.availableHeroes.size()) - 1;
 					}
+					// Reload heroes for other players so they see the updated selection
+					ReloadHeroesForOtherPlayers(localIndex);
 				}
 				coopPlayer.lastDpadPress = now;
 			}
@@ -652,6 +683,8 @@ void ProcessLocalCoopButtonInput(int localIndex, const SDL_Event &event)
 					if (coopPlayer.selectedHeroIndex >= static_cast<int>(coopPlayer.availableHeroes.size())) {
 						coopPlayer.selectedHeroIndex = 0;
 					}
+					// Reload heroes for other players so they see the updated selection
+					ReloadHeroesForOtherPlayers(localIndex);
 				}
 				coopPlayer.lastDpadPress = now;
 			}
@@ -1001,6 +1034,9 @@ void UpdateLocalCoopPlayerMovement(int localIndex)
 
 } // namespace
 
+// Forward declaration
+void ReloadHeroesForOtherPlayers(int excludeLocalIndex);
+
 void LocalCoopCursorState::Reset()
 {
 	pcursmonst = -1;
@@ -1294,9 +1330,11 @@ void LoadAvailableHeroesForAllLocalCoopPlayers()
 	if (!IsLocalCoopEnabled())
 		return;
 
-	for (size_t i = 0; i < g_LocalCoop.players.size(); ++i) {
+	// Iterate over players 2-4 (unified indices 1-3, local indices 0-2)
+	for (size_t i = 1; i < g_LocalCoop.players.size(); ++i) {
 		if (g_LocalCoop.players[i].active) {
-			LoadAvailableHeroesForLocalPlayer(static_cast<int>(i));
+			// Convert unified index (1-3) to local index (0-2)
+			LoadAvailableHeroesForLocalPlayer(static_cast<int>(i - 1));
 		}
 	}
 }
@@ -1598,6 +1636,13 @@ void LoadAvailableHeroesForLocalPlayer(int localIndex)
 
 	// localIndex is 0-2 for players 2-4, so add 1 to get unified array index (1-3)
 	LocalCoopPlayer &coopPlayer = g_LocalCoop.players[localIndex + 1];
+
+	// Save the currently selected hero's save number to try to preserve selection
+	uint32_t previouslySelectedSave = 0;
+	if (!coopPlayer.availableHeroes.empty() && coopPlayer.selectedHeroIndex >= 0 && coopPlayer.selectedHeroIndex < static_cast<int>(coopPlayer.availableHeroes.size())) {
+		previouslySelectedSave = coopPlayer.availableHeroes[coopPlayer.selectedHeroIndex].saveNumber;
+	}
+
 	coopPlayer.availableHeroes.clear();
 	coopPlayer.selectedHeroIndex = 0;
 
@@ -1609,19 +1654,36 @@ void LoadAvailableHeroesForLocalPlayer(int localIndex)
 
 	// Exclude heroes already selected by other local co-op players
 	for (size_t i = 0; i < g_LocalCoop.players.size(); ++i) {
-		if (static_cast<int>(i) == localIndex)
+		// Skip the current player: localIndex is 0-2, unified index is localIndex+1 (1-3)
+		if (static_cast<int>(i) == localIndex + 1)
 			continue;
 		const LocalCoopPlayer &other = g_LocalCoop.players[i];
-		if (other.active && !other.characterSelectActive && !other.availableHeroes.empty()) {
-			// This player has confirmed, exclude their hero
-			if (other.selectedHeroIndex >= 0 && other.selectedHeroIndex < static_cast<int>(other.availableHeroes.size())) {
+		if (other.active) {
+			// Exclude heroes currently selected by other players (even if not confirmed yet)
+			if (!other.availableHeroes.empty() && other.selectedHeroIndex >= 0 && other.selectedHeroIndex < static_cast<int>(other.availableHeroes.size())) {
 				excludeSaves.push_back(other.availableHeroes[other.selectedHeroIndex].saveNumber);
+			}
+			// Also exclude confirmed heroes using saveNumber (for players who have already confirmed)
+			// This handles the case where availableHeroes might have been cleared after confirmation
+			if (!other.characterSelectActive && other.saveNumber != 0) {
+				excludeSaves.push_back(other.saveNumber);
 			}
 		}
 	}
 
 	// Load hero info without corrupting Players array
 	LoadHeroInfosForLocalCoop(coopPlayer.availableHeroes, excludeSaves);
+
+	// Try to preserve the previously selected hero if it's still available
+	if (previouslySelectedSave != 0 && !coopPlayer.availableHeroes.empty()) {
+		for (size_t i = 0; i < coopPlayer.availableHeroes.size(); ++i) {
+			if (coopPlayer.availableHeroes[i].saveNumber == previouslySelectedSave) {
+				coopPlayer.selectedHeroIndex = static_cast<int>(i);
+				break;
+			}
+		}
+		// If we didn't find it, selectedHeroIndex remains 0 (first hero)
+	}
 
 	Log("Local co-op: Player {} has {} available heroes",
 	    localIndex + 2, coopPlayer.availableHeroes.size());
@@ -1738,11 +1800,7 @@ void ConfirmLocalCoopCharacter(int localIndex)
 	Log("Local co-op: Player {} spawned at ({}, {})", playerId + 1, spawnPos.x, spawnPos.y);
 
 	// Reload available heroes for remaining players who haven't selected yet
-	for (size_t i = 0; i < g_LocalCoop.players.size(); ++i) {
-		if (static_cast<int>(i) != localIndex && g_LocalCoop.players[i].active && g_LocalCoop.players[i].characterSelectActive) {
-			LoadAvailableHeroesForLocalPlayer(static_cast<int>(i));
-		}
-	}
+	ReloadHeroesForOtherPlayers(localIndex);
 }
 
 void DrawLocalCoopCharacterSelect(const Surface &out)
@@ -2782,8 +2840,11 @@ void HandleLocalCoopControllerConnect(SDL_JoystickID controllerId)
 			for (size_t i = 0; i < g_LocalCoop.players.size(); ++i) {
 				if (g_LocalCoop.players[i].active && g_LocalCoop.players[i].controllerId == controllerId) {
 					// This controller was assigned to a local co-op player during InitLocalCoop
-					// Load available heroes for character selection
-					LoadAvailableHeroesForLocalPlayer(static_cast<int>(i));
+					// Skip player 1 (index 0) - they don't need character selection
+					if (i > 0) {
+						// Convert unified index (1-3) to local index (0-2)
+						LoadAvailableHeroesForLocalPlayer(static_cast<int>(i - 1));
+					}
 					return;
 				}
 			}
@@ -2842,8 +2903,10 @@ void HandleLocalCoopControllerConnect(SDL_JoystickID controllerId)
 				}
 			}
 
-			// Load available heroes
-			LoadAvailableHeroesForLocalPlayer(static_cast<int>(i));
+			// Load available heroes (skip player 1, convert unified index to local index)
+			if (i > 0) {
+				LoadAvailableHeroesForLocalPlayer(static_cast<int>(i - 1));
+			}
 			break;
 		}
 	}
@@ -3158,7 +3221,11 @@ bool TryJoinLocalCoopMidGame(SDL_JoystickID controllerId)
 	Log("Local co-op: Player {} joined mid-game", playerId + 1);
 
 	// Load available heroes for selection
-	LoadAvailableHeroesForLocalPlayer(emptySlot);
+	// emptySlot is unified index (0-3), convert to local index (0-2) for players 2-4
+	// Player 1 (emptySlot == 0) shouldn't reach here, but check to be safe
+	if (emptySlot > 0) {
+		LoadAvailableHeroesForLocalPlayer(emptySlot - 1);
+	}
 
 	return true;
 }
