@@ -19,6 +19,9 @@
 #include <config.h>
 
 #include "DiabloUI/diabloui.h"
+#ifndef USE_SDL1
+#include "controls/local_coop.hpp"
+#endif
 #include "engine/assets.hpp"
 #include "engine/backbuffer_state.hpp"
 #include "engine/dx.h"
@@ -120,8 +123,19 @@ bool AreExtraFontsOutOfDate()
 void init_cleanup()
 {
 	if (gbIsMultiplayer && gbRunGame) {
+#ifndef USE_SDL1
+		// CRITICAL: Restore MyPlayer to Player 1 before saving
+		// If a local coop player has panels open, MyPlayer might point to them
+		if (IsLocalCoopEnabled())
+			RestorePlayer1ContextForSave();
+#endif
 		pfile_write_hero(/*writeGameData=*/false);
 		sfile_write_stash();
+#ifndef USE_SDL1
+		// Also save local co-op players to their respective save slots
+		if (IsLocalCoopEnabled())
+			SaveLocalCoopPlayers(/*writeGameData=*/false);
+#endif
 	}
 
 	MpqArchives.clear();

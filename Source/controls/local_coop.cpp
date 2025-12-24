@@ -2597,34 +2597,37 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 	constexpr int durabilityIconHeight = 32;
 	constexpr int durabilityIconSpacing = 4;
 
-	size_t totalPlayers = g_LocalCoop.GetTotalPlayerCount();
-
 	// In local coop mode (2+ gamepads), always show corner HUDs for all players
 	// The main panel is hidden and replaced with corner HUDs
+	// We check all player slots (up to MaxLocalPlayers) to see who should be drawn
 
-	for (size_t playerId = 0; playerId < totalPlayers && playerId < Players.size(); ++playerId) {
+	for (size_t playerId = 0; playerId < MaxLocalPlayers; ++playerId) {
+		// Ensure Players array has this slot
+		if (playerId >= Players.size())
+			continue;
+
 		const Player &player = Players[playerId];
+		const LocalCoopPlayer &coopPlayer = g_LocalCoop.players[playerId];
 
-		// For Player 1, always show corner HUD when local coop is enabled
+		// Determine if this player's HUD should be drawn
+		bool shouldDrawHUD = false;
+
 		if (playerId == 0) {
-			// Player 1 always has corner HUD in local coop mode (main panel hidden)
-			if (!player.plractive)
-				continue;
+			// Player 1: Always show HUD in local coop if player is active
+			shouldDrawHUD = player.plractive;
 		} else {
-			// For local co-op players (2-4), check their state
-			if (playerId >= g_LocalCoop.players.size())
-				continue;
-			const LocalCoopPlayer &coopPlayer = g_LocalCoop.players[playerId];
-			// Skip if this coop slot isn't active, still in character select, or not yet spawned
-			if (!coopPlayer.active || coopPlayer.characterSelectActive || !coopPlayer.initialized)
-				continue;
-			// Skip if the player in the game isn't active (shouldn't happen if initialized, but be safe)
-			if (!player.plractive)
-				continue;
+			// Players 2-4: Show HUD only if they're active, not in character select, and initialized
+			shouldDrawHUD = coopPlayer.active
+			    && !coopPlayer.characterSelectActive
+			    && coopPlayer.initialized
+			    && player.plractive;
 		}
 
-		// Get coopPlayer pointer - all players use the unified array now
-		const LocalCoopPlayer *coopPlayer = (playerId < g_LocalCoop.players.size()) ? &g_LocalCoop.players[playerId] : nullptr;
+		if (!shouldDrawHUD)
+			continue;
+
+		// At this point, we have a valid player to draw
+		const LocalCoopPlayer *coopPlayerPtr = &coopPlayer;
 
 		// Determine panel position based on player ID - with 1px edge padding
 		int panelX, panelY;
@@ -2721,12 +2724,12 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 		// Align skill column vertically with panel (top-aligned)
 		int skillY = panelY;
 		// Hide skill labels when either shoulder button is held (shows belt labels instead)
-		bool hideSkillLabels = (coopPlayer != nullptr && (coopPlayer->leftShoulderHeld || coopPlayer->rightShoulderHeld));
+		bool hideSkillLabels = (coopPlayerPtr != nullptr && (coopPlayerPtr->leftShoulderHeld || coopPlayerPtr->rightShoulderHeld));
 		DrawPlayerSkillSlots2x2Small(out, player, { skillX, skillY }, SkillSlotSize, hideSkillLabels);
 
 		// === BELT: Right after top row (moved up 4px) ===
-		bool leftShoulderHeld = (coopPlayer != nullptr && coopPlayer->leftShoulderHeld);
-		bool rightShoulderHeld = (coopPlayer != nullptr && coopPlayer->rightShoulderHeld);
+		bool leftShoulderHeld = (coopPlayerPtr != nullptr && coopPlayerPtr->leftShoulderHeld);
+		bool rightShoulderHeld = (coopPlayerPtr != nullptr && coopPlayerPtr->rightShoulderHeld);
 		DrawPlayerBelt(out, player, static_cast<uint8_t>(playerId), { contentX + barsExtraRightOffset, middleY - 3 }, false, leftShoulderHeld, rightShoulderHeld);
 
 		// Draw durability icons - above panel for bottom players, below panel for top players
@@ -3775,6 +3778,8 @@ void PerformLocalCoopSecondaryAction(int localIndex)
 
 	// Pick up item
 	if (cursor.pcursitem != -1) {
+		// For local coop players, always auto-pickup to inventory (CMD_GOTOAGETITEM)
+		// This makes items go directly to inventory if there's room, instead of to cursor
 		NetSendCmdLocParam1(true, CMD_GOTOAGETITEM, cursor.cursPosition, cursor.pcursitem);
 		return;
 	}
@@ -4153,6 +4158,39 @@ bool IsLocalCoopTargetMonster(int monsterId)
 	return false;
 }
 
+bool IsLocalCoopTargetItem(int8_t itemIndex)
+{
+	if (!g_LocalCoop.enabled || itemIndex < 0)
+		return false;
+
+	for (const LocalCoopPlayer &coopPlayer : g_LocalCoop.players) {
+		if (!coopPlayer.active || !coopPlayer.initialized)
+			continue;
+		if (coopPlayer.cursor.pcursitem == itemIndex)
+			return true;
+	}
+	return false;
+}
+
+void RestorePlayer1ContextForSave()
+{
+	if (!g_LocalCoop.enabled)
+		return;
+
+	// CRITICAL: Before saving, ensure MyPlayer points to Player 1
+	// If a local coop player has the panel open, MyPlayer might point to them,
+	// which would cause their data (including HoldItem) to be saved to Player 1's save file!
+	// Force release panel ownership to restore MyPlayer to Player 1
+	if (g_LocalCoop.panelOwnerPlayerId > 0) {
+		g_LocalCoop.panelOwnerPlayerId = -1;
+		if (Players.size() > 0) {
+			MyPlayer = &Players[0];
+			MyPlayerId = 0;
+			InspectPlayer = &Players[0];
+		}
+	}
+}
+
 void SaveLocalCoopPlayers(bool /*writeGameData*/)
 {
 	if (!g_LocalCoop.enabled)
@@ -4489,6 +4527,8 @@ void PerformLocalCoopSecondaryAction(int /*localIndex*/) { }
 bool AreLocalCoopPanelsOpen() { return false; }
 Player *GetLocalCoopPanelOwnerPlayer() { return nullptr; }
 bool IsLocalCoopTargetMonster(int /*monsterId*/) { return false; }
+bool IsLocalCoopTargetItem(int8_t /*itemIndex*/) { return false; }
+void RestorePlayer1ContextForSave() { }
 void SaveLocalCoopPlayers(bool /*writeGameData*/) { }
 void SetLocalCoopStoreOwner(int /*localIndex*/) { }
 void ClearLocalCoopStoreOwner() { }

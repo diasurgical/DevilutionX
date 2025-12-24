@@ -419,6 +419,18 @@ void LeftMouseDown(uint16_t modState)
 					}
 				}
 			} else {
+#ifndef USE_SDL1
+				// Don't call LeftMouseCmd if clicking on a local coop belt
+				// This prevents the assertion failure and avoids walking when clicking belts
+				if (IsLocalCoopEnabled()) {
+					uint8_t beltOwnerPlayerId = 0;
+					std::optional<inv_xy_slot> slot = FindLocalCoopBeltSlotUnderCursor(MousePosition, beltOwnerPlayerId);
+					if (slot.has_value()) {
+						// Clicked on a local coop belt, do nothing (belts are only interactive when inventory is open)
+						return;
+					}
+				}
+#endif
 				CheckLevelButton();
 				if (!LevelButtonDown)
 					LeftMouseCmd(isShiftHeld);
@@ -970,8 +982,19 @@ void RunGameLoop(interface_mode uMsg)
 	demo::NotifyGameLoopEnd();
 
 	if (gbIsMultiplayer) {
+#ifndef USE_SDL1
+		// CRITICAL: Restore MyPlayer to Player 1 before saving
+		// If a local coop player has panels open, MyPlayer might point to them
+		if (IsLocalCoopEnabled())
+			RestorePlayer1ContextForSave();
+#endif
 		pfile_write_hero(/*writeGameData=*/false);
 		sfile_write_stash();
+#ifndef USE_SDL1
+		// Also save local co-op players to their respective save slots
+		if (IsLocalCoopEnabled())
+			SaveLocalCoopPlayers(/*writeGameData=*/false);
+#endif
 	}
 
 	PaletteFadeOut(8);
