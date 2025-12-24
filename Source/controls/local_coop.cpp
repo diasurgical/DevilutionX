@@ -4033,9 +4033,10 @@ std::optional<Point> GetLocalCoopBeltSlotPosition(uint8_t playerId, int beltSlot
 	const int slotX = beltBaseX + (slotIndex * 29) + 5;
 	const int slotY = beltBaseY + 3;
 
-	// Return the center of the slot (adding half the slot size)
-	// The belt item drawing uses position - 2 for x, and position + InventorySlotSizeInPixels.height for y
-	// So to get the center we need to account for this offset and add half of 29px (the slot size)
+	// Return the center of the slot for cursor positioning (matches GetSlotCoord behavior)
+	// GetSlotCoord for regular inventory uses InvRect[slot].Center(), so we should return center too
+	// Belt item is drawn at { slotX - 2, slotY + INV_SLOT_SIZE_PX }
+	// Center would be at { slotX - 2 + INV_SLOT_SIZE_PX/2, slotY + INV_SLOT_SIZE_PX/2 }
 	return Point { slotX - 2 + INV_SLOT_SIZE_PX / 2, slotY + INV_SLOT_SIZE_PX / 2 };
 }
 
