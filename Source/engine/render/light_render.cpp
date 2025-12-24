@@ -558,9 +558,25 @@ Lightmap Lightmap::bleedUp(bool perPixelLighting, const Lightmap &source, Point 
 			memcpy(dst, dst + lightmapPitch, lightmapPitch);
 
 		// Copy data from the source lightmap between the top edge of the base diamond
-		assert(dst + lightOffset + lightLength <= lightmapBuffer.data() + TILE_WIDTH * TILE_HEIGHT);
-		assert(src + lightOffset + lightLength <= source.lightmapBuffer.data() + source.lightmapBuffer.size());
-		memcpy(dst + lightOffset, src + lightOffset, lightLength);
+		// Clamp the access to ensure we don't go beyond buffer bounds
+		if (lightLength > 0) {
+			const ptrdiff_t srcOffsetFromStart = src - source.lightmapBuffer.data();
+			const ptrdiff_t maxSafeBytes = static_cast<ptrdiff_t>(source.lightmapBuffer.size()) - srcOffsetFromStart;
+			const int safeLightOffset = std::min(static_cast<ptrdiff_t>(lightOffset), maxSafeBytes);
+			const int safeLightLength = std::min(static_cast<ptrdiff_t>(lightLength), maxSafeBytes - safeLightOffset);
+
+			if (safeLightLength > 0) {
+				const ptrdiff_t dstOffsetFromStart = dst - lightmapBuffer.data();
+				const ptrdiff_t maxSafeDstBytes = static_cast<ptrdiff_t>(TILE_WIDTH * TILE_HEIGHT) - dstOffsetFromStart;
+				const int finalLength = std::min(static_cast<ptrdiff_t>(safeLightLength), maxSafeDstBytes - safeLightOffset);
+
+				if (finalLength > 0) {
+					assert(dst + safeLightOffset + finalLength <= lightmapBuffer.data() + TILE_WIDTH * TILE_HEIGHT);
+					assert(src + safeLightOffset + finalLength <= source.lightmapBuffer.data() + source.lightmapBuffer.size());
+					memcpy(dst + safeLightOffset, src + safeLightOffset, finalLength);
+				}
+			}
+		}
 
 		src -= source.lightmapPitch;
 		dst -= lightmapPitch;

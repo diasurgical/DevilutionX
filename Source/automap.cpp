@@ -1861,7 +1861,6 @@ void DrawAutomap(const Surface &out)
 	}
 
 	for (const Player &player : Players) {
-		// Show local players (MyPlayer and local coop players) and other friendly players on the automap
 		if (player.isOnActiveLevel() && player.plractive && !player._pLvlChanging && (IsLocalPlayer(player) || player.friendlyMode)) {
 			DrawAutomapPlr(out, myPlayerOffset, player);
 		}

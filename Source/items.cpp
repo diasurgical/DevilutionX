@@ -1632,13 +1632,15 @@ void ItemDoppel()
 
 void AddItemInfoBoxString(const std::string_view str)
 {
-	const bool floatingInfoBoxEnabled = *GetOptions().Gameplay.floatingInfoBox;
+	// Use floating info box if the option is enabled OR if local coop is active
+	const bool floatingInfoBoxEnabled = *GetOptions().Gameplay.floatingInfoBox || IsLocalCoopEnabled();
 	AddInfoBoxString(str, floatingInfoBoxEnabled);
 }
 
 void AddItemInfoBoxString(std::string &&str)
 {
-	const bool floatingInfoBoxEnabled = *GetOptions().Gameplay.floatingInfoBox;
+	// Use floating info box if the option is enabled OR if local coop is active
+	const bool floatingInfoBoxEnabled = *GetOptions().Gameplay.floatingInfoBox || IsLocalCoopEnabled();
 	AddInfoBoxString(std::move(str), floatingInfoBoxEnabled);
 }
 

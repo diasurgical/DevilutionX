@@ -655,7 +655,7 @@ void ProcessLocalCoopButtonInput(int localIndex, const SDL_Event &event)
 				}
 				coopPlayer.lastDpadPress = now;
 			}
-		} else if (button == SDL_GAMEPAD_BUTTON_SOUTH) { // A button - confirm
+		} else if (button == SDL_GAMEPAD_BUTTON_SOUTH || button == SDL_GAMEPAD_BUTTON_START) { // A button or Start button - confirm
 			ConfirmLocalCoopCharacter(localIndex);
 		}
 		return;
@@ -2371,7 +2371,7 @@ void CastLocalCoopHotkeySpell(int localIndex, int slotIndex)
 	DrawItem(item, out, itemPos, sprite);
 }
 
-void DrawPlayerBelt(const Surface &out, const Player &player, Point basePosition, bool alignRight, bool leftShoulderHeld = false, bool rightShoulderHeld = false)
+void DrawPlayerBelt(const Surface &out, const Player &player, uint8_t playerId, Point basePosition, bool alignRight, bool leftShoulderHeld = false, bool rightShoulderHeld = false)
 {
 	// Draw golden border around the belt (same style as health/mana bars)
 	// Belt region increased by 4 pixels (right and bottom), width reduced by 1px
@@ -2402,6 +2402,16 @@ void DrawPlayerBelt(const Surface &out, const Player &player, Point basePosition
 		// Get item sprite
 		const int cursId = player.SpdList[i]._iCurs + CURSOR_FIRSTITEM;
 		const ClxSprite sprite = GetInvItemSprite(cursId);
+
+		// Draw highlight if this belt slot is under the cursor (when inventory is open)
+		// Check that the cursor is actually over THIS player's belt
+		if (invflag && pcursinvitem == i + INVITEM_BELT_FIRST) {
+			uint8_t cursorBeltOwner = 0;
+			std::optional<inv_xy_slot> cursorBeltSlot = FindLocalCoopBeltSlotUnderCursor(MousePosition, cursorBeltOwner);
+			if (cursorBeltSlot.has_value() && cursorBeltOwner == static_cast<uint8_t>(playerId)) {
+				ClxDrawOutline(out, GetOutlineColor(player.SpdList[i], true, &player), position, sprite);
+			}
+		}
 
 		// Draw the item
 		DrawItem(player.SpdList[i], out, position, sprite);
@@ -2561,8 +2571,8 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 	constexpr int skillColumnSpacing = 0; // Gap between panel and skill grid
 
 	// Belt dimensions - use actual sprite dimensions from main panel
-	constexpr int beltWidth = 232; // Full belt sprite width
-	constexpr int beltHeight = 28; // Belt sprite height from main panel
+	// Belt slots: 8 slots at 29px each starting at offset 5, last slot ends at 5 + 7*29 + 29 = 242
+	constexpr int beltActualWidth = 245; // Actual width needed for all 8 slots to be clickable
 
 	// Name field height
 	constexpr int nameFieldHeight = 20;
@@ -2570,7 +2580,7 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 	constexpr int playerNumSpacing = 1; // 1px spacing between P#/name/level
 
 	// Content area width (belt width) - skills are now outside the panel
-	const int contentWidth = beltWidth;
+	const int contentWidth = beltActualWidth;
 
 	// Panel dimensions with proper borders
 	// Layout: topBorder + nameTopOffset + [top row: P# + bars + Level] + spacing + [middle: belt | skills] + bottomBorder
@@ -2589,25 +2599,15 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 
 	size_t totalPlayers = g_LocalCoop.GetTotalPlayerCount();
 
-	// Check if any local co-op player has actually spawned (initialized)
-	// Start from index 1 (Player 2) - Player 1 is always initialized but shouldn't trigger HUD
-	bool anyCoopPlayerInitialized = false;
-	for (size_t i = 1; i < g_LocalCoop.players.size(); ++i) {
-		if (g_LocalCoop.players[i].active && g_LocalCoop.players[i].initialized) {
-			anyCoopPlayerInitialized = true;
-			break;
-		}
-	}
+	// In local coop mode (2+ gamepads), always show corner HUDs for all players
+	// The main panel is hidden and replaced with corner HUDs
 
 	for (size_t playerId = 0; playerId < totalPlayers && playerId < Players.size(); ++playerId) {
 		const Player &player = Players[playerId];
 
-		// For Player 1, show mini-HUD when any coop player has initialized (main panel hidden)
+		// For Player 1, always show corner HUD when local coop is enabled
 		if (playerId == 0) {
-			// Only show Player 1's corner HUD when main panel is hidden
-			if (!anyCoopPlayerInitialized)
-				continue;
-			// Player 1 (host) should always be active, but check just in case
+			// Player 1 always has corner HUD in local coop mode (main panel hidden)
 			if (!player.plractive)
 				continue;
 		} else {
@@ -2727,7 +2727,7 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 		// === BELT: Right after top row (moved up 4px) ===
 		bool leftShoulderHeld = (coopPlayer != nullptr && coopPlayer->leftShoulderHeld);
 		bool rightShoulderHeld = (coopPlayer != nullptr && coopPlayer->rightShoulderHeld);
-		DrawPlayerBelt(out, player, { contentX + barsExtraRightOffset, middleY - 3 }, false, leftShoulderHeld, rightShoulderHeld);
+		DrawPlayerBelt(out, player, static_cast<uint8_t>(playerId), { contentX + barsExtraRightOffset, middleY - 3 }, false, leftShoulderHeld, rightShoulderHeld);
 
 		// Draw durability icons - above panel for bottom players, below panel for top players
 		int durabilityY;
@@ -3708,10 +3708,12 @@ void PerformLocalCoopPrimaryAction(int localIndex)
 	// Temporarily swap player context so network commands use correct player ID
 	LocalCoopPlayerContext context(playerId);
 
-	// If this player owns panels and inventory is open, use the standard PerformPrimaryAction
-	// which handles inventory item interaction
+	// If this player owns panels and inventory is open, auto-move items like shift-click
+	// This moves belt items to inventory and inventory items to belt (like Player 1 does)
 	if (g_LocalCoop.panelOwnerPlayerId == playerId && invflag) {
-		PerformPrimaryAction();
+		// Use CheckInvItem with isShiftHeld=true to trigger auto-move behavior
+		// This moves belt items to inventory, and inventory items that can go in belt to belt
+		CheckInvItem(true, false);
 		return;
 	}
 
@@ -3956,6 +3958,184 @@ Player *GetLocalCoopPanelOwnerPlayer()
 	if (playerId < Players.size())
 		return &Players[playerId];
 	return nullptr;
+}
+
+std::optional<Point> GetLocalCoopBeltSlotPosition(uint8_t playerId, int beltSlot)
+{
+	if (!g_LocalCoop.enabled)
+		return std::nullopt;
+
+	if (playerId >= Players.size() || playerId >= g_LocalCoop.players.size())
+		return std::nullopt;
+
+	if (beltSlot < SLOTXY_BELT_FIRST || beltSlot > SLOTXY_BELT_LAST)
+		return std::nullopt;
+
+	// In local coop mode, use local panel positioning (main panel is hidden)
+
+	// Panel layout constants - must match DrawLocalCoopPlayerHUD
+	constexpr int topBorderPadding = 5;
+	constexpr int leftBorderPadding = 7;
+	constexpr int rightBorderPadding = 8;
+	constexpr int panelEdgePadding = 0;
+	constexpr int elementSpacing = 1;
+	constexpr int nameTopOffset = 4;
+	constexpr int barsExtraDownOffset = 1;
+	constexpr int barsExtraRightOffset = 0;
+
+	constexpr int barHeight = 14;
+	constexpr int barSpacing = 1;
+	constexpr int barsHeight = barHeight * 2 + barSpacing;
+
+	constexpr int beltActualWidth = 245;
+
+	constexpr int panelHeight = 87;
+	const int contentWidth = beltActualWidth;
+	const int panelContentWidth = contentWidth + 6;
+	const int panelWidth = leftBorderPadding + panelContentWidth + rightBorderPadding;
+
+	// Calculate panel position for this player (same logic as DrawLocalCoopPlayerHUD)
+	int panelX, panelY;
+	const int screenWidth = gnScreenWidth;
+	const int screenHeight = gnScreenHeight;
+
+	switch (playerId) {
+	case 0: // Player 1 - Bottom-left
+		panelX = panelEdgePadding;
+		panelY = screenHeight - panelHeight - panelEdgePadding;
+		break;
+	case 1: // Player 2 - Bottom-right
+		panelX = screenWidth - panelWidth - panelEdgePadding;
+		panelY = screenHeight - panelHeight - panelEdgePadding;
+		break;
+	case 2: // Player 3 - Top-left
+		panelX = panelEdgePadding;
+		panelY = panelEdgePadding;
+		break;
+	case 3: // Player 4 - Top-right
+		panelX = screenWidth - panelWidth - panelEdgePadding;
+		panelY = panelEdgePadding;
+		break;
+	default:
+		return std::nullopt;
+	}
+
+	// Calculate belt position (same as DrawPlayerBelt call in DrawLocalCoopPlayerHUD)
+	const int contentX = panelX + leftBorderPadding;
+	const int currentY = panelY + topBorderPadding + nameTopOffset + 4;
+	const int middleY = currentY + barsHeight + elementSpacing + barsExtraDownOffset;
+	const int beltBaseX = contentX + barsExtraRightOffset;
+	const int beltBaseY = middleY - 3;
+
+	// Belt slots are positioned at 29px spacing starting at x=207 relative to belt area (from DrawPlayerBelt)
+	// But we need to add the offset of 5px to the left (from slotX calculation in DrawPlayerBelt)
+	const int slotIndex = beltSlot - SLOTXY_BELT_FIRST;
+	const int slotX = beltBaseX + (slotIndex * 29) + 5;
+	const int slotY = beltBaseY + 3;
+
+	// Return the center of the slot (adding half the slot size)
+	// The belt item drawing uses position - 2 for x, and position + InventorySlotSizeInPixels.height for y
+	// So to get the center we need to account for this offset and add half of 29px (the slot size)
+	return Point { slotX - 2 + INV_SLOT_SIZE_PX / 2, slotY + INV_SLOT_SIZE_PX / 2 };
+}
+
+std::optional<inv_xy_slot> FindLocalCoopBeltSlotUnderCursor(Point cursorPosition, uint8_t &outPlayerId)
+{
+	if (!g_LocalCoop.enabled)
+		return std::nullopt;
+
+	// In local coop mode, check local belt panels (main panel is hidden)
+
+	// Panel layout constants - must match DrawLocalCoopPlayerHUD and GetLocalCoopBeltSlotPosition
+	constexpr int topBorderPadding = 5;
+	constexpr int leftBorderPadding = 7;
+	constexpr int rightBorderPadding = 8;
+	constexpr int panelEdgePadding = 0;
+	constexpr int elementSpacing = 1;
+	constexpr int nameTopOffset = 4;
+	constexpr int barsExtraDownOffset = 1;
+	constexpr int barsExtraRightOffset = 0;
+
+	constexpr int barHeight = 14;
+	constexpr int barSpacing = 1;
+	constexpr int barsHeight = barHeight * 2 + barSpacing;
+
+	constexpr int beltActualWidth = 245;
+
+	constexpr int panelHeight = 87;
+	const int contentWidth = beltActualWidth;
+	const int panelContentWidth = contentWidth + 6;
+	const int panelWidth = leftBorderPadding + panelContentWidth + rightBorderPadding;
+
+	const int screenWidth = gnScreenWidth;
+	const int screenHeight = gnScreenHeight;
+
+	// Check each player's belt area (up to 4 players in local co-op)
+	for (size_t playerId = 0; playerId < MaxLocalPlayers && playerId < Players.size(); ++playerId) {
+		const Player &player = Players[playerId];
+
+		// Check if this player should have a local panel
+		if (playerId == 0) {
+			// Player 1 always shows local panel in local coop mode
+			if (!player.plractive)
+				continue;
+		} else {
+			// For local co-op players (2-4), check their state
+			if (playerId >= g_LocalCoop.players.size())
+				continue;
+			const LocalCoopPlayer &coopPlayer = g_LocalCoop.players[playerId];
+			if (!coopPlayer.active || coopPlayer.characterSelectActive || !coopPlayer.initialized)
+				continue;
+			if (!player.plractive)
+				continue;
+		}
+
+		// Calculate panel position for this player
+		int panelX, panelY;
+		switch (playerId) {
+		case 0: // Player 1 - Bottom-left
+			panelX = panelEdgePadding;
+			panelY = screenHeight - panelHeight - panelEdgePadding;
+			break;
+		case 1: // Player 2 - Bottom-right
+			panelX = screenWidth - panelWidth - panelEdgePadding;
+			panelY = screenHeight - panelHeight - panelEdgePadding;
+			break;
+		case 2: // Player 3 - Top-left
+			panelX = panelEdgePadding;
+			panelY = panelEdgePadding;
+			break;
+		case 3: // Player 4 - Top-right
+			panelX = screenWidth - panelWidth - panelEdgePadding;
+			panelY = panelEdgePadding;
+			break;
+		default:
+			continue;
+		}
+
+		// Calculate belt position
+		const int contentX = panelX + leftBorderPadding;
+		const int currentY = panelY + topBorderPadding + nameTopOffset + 4;
+		const int middleY = currentY + barsHeight + elementSpacing + barsExtraDownOffset;
+		const int beltBaseX = contentX + barsExtraRightOffset;
+		const int beltBaseY = middleY - 3;
+
+		// Check each belt slot for this player
+		for (int slotIndex = 0; slotIndex < MaxBeltItems; ++slotIndex) {
+			const int slotX = beltBaseX + (slotIndex * 29) + 5;
+			const int slotY = beltBaseY + 3;
+
+			// Create a rectangle for this belt slot (29x29 pixels, matching InvRect belt slots)
+			const Rectangle slotRect = { { slotX - 2, slotY }, { INV_SLOT_SIZE_PX, INV_SLOT_SIZE_PX } };
+
+			if (slotRect.contains(cursorPosition)) {
+				outPlayerId = static_cast<uint8_t>(playerId);
+				return static_cast<inv_xy_slot>(SLOTXY_BELT_FIRST + slotIndex);
+			}
+		}
+	}
+
+	return std::nullopt;
 }
 
 bool IsLocalCoopTargetMonster(int monsterId)
