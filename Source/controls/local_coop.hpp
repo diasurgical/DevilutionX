@@ -674,6 +674,26 @@ std::optional<inv_xy_slot> FindLocalCoopBeltSlotUnderCursor(Point cursorPosition
 bool IsLocalCoopTargetMonster(int monsterId);
 
 /**
+ * @brief Check if an item should be highlighted for any local coop player.
+ *
+ * This is used by the rendering code to draw outlines around targeted items
+ * for local coop players in addition to player 1's global pcursitem.
+ *
+ * @param itemIndex The item index to check
+ * @return true if any local coop player is targeting this item
+ */
+bool IsLocalCoopTargetItem(int8_t itemIndex);
+
+/**
+ * @brief Restore MyPlayer to Player 1 before saving.
+ *
+ * CRITICAL: This must be called BEFORE pfile_write_hero to ensure that
+ * Player 1's save file gets Player 1's data, not a local coop player's data.
+ * If a local coop player has panels open, MyPlayer might point to them.
+ */
+void RestorePlayer1ContextForSave();
+
+/**
  * @brief Save all local co-op players to their respective save files.
  *
  * Called when the game saves. Each local co-op player is saved to the

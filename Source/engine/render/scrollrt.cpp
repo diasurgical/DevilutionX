@@ -701,7 +701,8 @@ void DrawItem(const Surface &out, int8_t itemIndex, Point targetBufferPosition, 
 	const Item &item = Items[itemIndex];
 	const ClxSprite sprite = item.AnimInfo.currentSprite();
 	const Point position = targetBufferPosition + item.getRenderingOffset(sprite);
-	if (!IsPlayerInStore() && (itemIndex == pcursitem || AutoMapShowItems)) {
+	// Highlight if player 1 or any local coop player is targeting this item
+	if (!IsPlayerInStore() && (itemIndex == pcursitem || IsLocalCoopTargetItem(itemIndex) || AutoMapShowItems)) {
 		ClxDrawOutlineSkipColorZero(out, GetOutlineColor(item, false), position, sprite);
 	}
 	ClxDrawLight(out, position, sprite, lightTableIndex);

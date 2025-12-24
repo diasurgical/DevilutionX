@@ -5,6 +5,9 @@
 
 #include "automap.h"
 #include "controls/control_mode.hpp"
+#ifndef USE_SDL1
+#include "controls/local_coop.hpp"
+#endif
 #include "controls/modifier_hints.h"
 #include "diablo_msg.hpp"
 #include "engine/backbuffer_state.hpp"
@@ -261,7 +264,16 @@ void CalculatePanelAreas()
 			LeftPanel.position.x = (gnScreenWidth - LeftPanel.size.width - RightPanel.size.width - MainPanel.size.width) / 2;
 		}
 	}
-	LeftPanel.position.y = (gnScreenHeight - LeftPanel.size.height - MainPanel.size.height) / 2;
+
+#ifndef USE_SDL1
+	// In local coop mode, the main panel is hidden, so center panels vertically without accounting for it
+	if (IsLocalCoopEnabled()) {
+		LeftPanel.position.y = (gnScreenHeight - LeftPanel.size.height) / 2;
+	} else
+#endif
+	{
+		LeftPanel.position.y = (gnScreenHeight - LeftPanel.size.height - MainPanel.size.height) / 2;
+	}
 
 	if (ControlMode == ControlTypes::VirtualGamepad) {
 		RightPanel.position.x = gnScreenWidth / 2;

@@ -1785,7 +1785,11 @@ void InvGetItem(Player &player, int ii)
 
 		// need to copy here instead of move so CleanupItems still has access to the position
 		player.HoldItem = item;
-		NewCursor(player.HoldItem);
+		// Only update cursor for MyPlayer (Player 1 or current panel owner)
+		// Local coop players manage their own cursor state
+		if (MyPlayer == &player) {
+			NewCursor(player.HoldItem);
+		}
 	}
 
 	// This potentially moves items in memory so must be done after we've made a copy
