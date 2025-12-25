@@ -835,10 +835,10 @@ void TalkToTowner(Player &player, int t)
 	// Handle store ownership for local co-op
 	// Player 0 is the main player (MyPlayer), players 1+ are local co-op players
 	if (IsLocalCoopEnabled()) {
-		int localIndex = PlayerIdToLocalCoopIndex(player.getId());
-		if (localIndex >= 0) {
+		uint8_t playerId = player.getId();
+		if (playerId > 0) {
 			// This is a coop player - set them as store owner
-			SetLocalCoopStoreOwner(localIndex);
+			SetLocalCoopStoreOwner(static_cast<int>(playerId));
 		} else if (IsLocalCoopStoreActive()) {
 			// Player 1 trying to talk while a coop player owns the store - don't allow
 			return;

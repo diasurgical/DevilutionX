@@ -318,27 +318,6 @@ bool IsPlayerShoulderHeld(uint8_t playerId, bool isLeft);
  */
 int GetPlayerBeltSlotFromButton(uint8_t playerId, ControllerButton button);
 
-/**
- * @brief Get the game player ID for a local co-op player index.
- * @param localIndex Local co-op player index (0-2)
- * @return Game player ID (1-3)
- */
-inline uint8_t LocalCoopIndexToPlayerId(int localIndex)
-{
-	return static_cast<uint8_t>(localIndex + 1);
-}
-
-/**
- * @brief Get the local co-op player index for a game player ID.
- * @param playerId Game player ID (0-3)
- * @return Local co-op player index (0-2), or -1 if it's player 1 (ID 0)
- */
-inline int PlayerIdToLocalCoopIndex(uint8_t playerId)
-{
-	if (playerId == 0)
-		return -1; // Player 1 is not a local co-op player
-	return static_cast<int>(playerId - 1);
-}
 
 #ifndef USE_SDL1
 /**
@@ -349,7 +328,7 @@ SDL_JoystickID GetControllerIdFromEvent(const SDL_Event &event);
 
 /**
  * @brief Check if an event belongs to a local co-op player (not player 1).
- * @return The local co-op player index (0-2), or -1 if it's player 1's controller.
+ * @return The game player ID (0-3), or -1 if it's not a local co-op player's controller.
  */
 int GetLocalCoopPlayerIndex(const SDL_Event &event);
 
@@ -471,25 +450,25 @@ void DrawPlayer1SkillSlots(const Surface &out);
  *
  * Called when a spell is selected from the quick spell menu while a local coop
  * player is assigning skills.
- * @param localIndex Local co-op player index (0-2)
+ * @param playerId Game player ID (0 = player 1, 1-3 = coop players)
  * @param slotIndex Skill slot to assign (0-3)
  * @deprecated Use AssignPlayerSpellToSlot with playerId instead
  */
-void AssignLocalCoopSpellToSlot(int localIndex, int slotIndex);
+void AssignLocalCoopSpellToSlot(uint8_t playerId, int slotIndex);
 
 /**
  * @brief Load available heroes for local co-op player selection.
  *
  * Excludes heroes already selected by other local players.
- * @param localIndex Local co-op player index (0-2)
+ * @param playerId Game player ID (0 = player 1, 1-3 = coop players)
  */
-void LoadAvailableHeroesForLocalPlayer(int localIndex);
+void LoadAvailableHeroesForLocalPlayer(uint8_t playerId);
 
 /**
  * @brief Confirm character selection and spawn a local co-op player.
- * @param localIndex Local co-op player index (0-2)
+ * @param playerId Game player ID (0 = player 1, 1-3 = coop players)
  */
-void ConfirmLocalCoopCharacter(int localIndex);
+void ConfirmLocalCoopCharacter(uint8_t playerId);
 
 /**
  * @brief Draw local co-op character selection UI.
@@ -589,9 +568,9 @@ void DrawLocalCoopPlayerHUD(const Surface &out);
  * and updates their cursor state accordingly. This is the local coop
  * equivalent of plrctrls_after_check_curs_move().
  *
- * @param localIndex Local co-op player index (0-2)
+ * @param playerId Game player ID (0 = player 1, 1-3 = coop players)
  */
-void UpdateLocalCoopTargetSelection(int localIndex);
+void UpdateLocalCoopTargetSelection(uint8_t playerId);
 
 /**
  * @brief Process a game action for a local co-op player.
@@ -599,10 +578,10 @@ void UpdateLocalCoopTargetSelection(int localIndex);
  * Handles panel toggles, primary/secondary actions, spells, etc.
  * When a panel is opened, that player gains panel ownership.
  *
- * @param localIndex Local co-op player index (0-2)
+ * @param playerId Game player ID (0 = player 1, 1-3 = coop players)
  * @param actionType The game action type to process
  */
-void ProcessLocalCoopGameAction(int localIndex, uint8_t actionType);
+void ProcessLocalCoopGameAction(uint8_t playerId, uint8_t actionType);
 
 /**
  * @brief Handle panel toggle actions for any player when local coop is enabled.
@@ -622,18 +601,18 @@ bool HandleLocalCoopPanelAction(uint8_t playerId, uint8_t actionType);
  * Attack monsters, talk to NPCs, interact with the world.
  * Uses the player's own cursor state for targeting.
  *
- * @param localIndex Local co-op player index (0-2)
+ * @param playerId Game player ID (0 = player 1, 1-3 = coop players)
  */
-void PerformLocalCoopPrimaryAction(int localIndex);
+void PerformLocalCoopPrimaryAction(uint8_t playerId);
 
 /**
  * @brief Perform secondary action for a local co-op player.
  *
  * Pick up items, open chests/doors, interact with objects.
  *
- * @param localIndex Local co-op player index (0-2)
+ * @param playerId Game player ID (0 = player 1, 1-3 = coop players)
  */
-void PerformLocalCoopSecondaryAction(int localIndex);
+void PerformLocalCoopSecondaryAction(uint8_t playerId);
 
 /**
  * @brief Check if panels are currently open and owned by anyone.
@@ -710,9 +689,9 @@ void SaveLocalCoopPlayers(bool writeGameData);
  * temporarily sets MyPlayer to their player so the store UI shows
  * the correct inventory/gold.
  *
- * @param localIndex Local co-op player index (0-2), or -1 to clear
+ * @param playerId Game player ID (0 = player 1, 1-3 = coop players), or -1 to clear
  */
-void SetLocalCoopStoreOwner(int localIndex);
+void SetLocalCoopStoreOwner(int playerId);
 
 /**
  * @brief Clear store ownership and restore MyPlayer.

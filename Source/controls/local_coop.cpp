@@ -70,16 +70,15 @@ namespace devilution {
 /**
  * @brief Reload available heroes for all other players who are still selecting.
  * Called when a player changes their character selection to update other players' lists dynamically.
- * @param excludeLocalIndex The local index (0-2) of the player whose selection changed
+ * @param excludePlayerId The player ID (0-3) of the player whose selection changed
  */
-void ReloadHeroesForOtherPlayers(int excludeLocalIndex)
+void ReloadHeroesForOtherPlayers(uint8_t excludePlayerId)
 {
-	// Iterate over players 2-4 (unified indices 1-3, local indices 0-2)
-	for (size_t i = 1; i < g_LocalCoop.players.size(); ++i) {
-		// Skip the player whose selection changed: excludeLocalIndex is 0-2, unified index is excludeLocalIndex+1 (1-3)
-		if (static_cast<int>(i) != excludeLocalIndex + 1 && g_LocalCoop.players[i].active && g_LocalCoop.players[i].characterSelectActive) {
-			// Convert unified index (1-3) to local index (0-2)
-			LoadAvailableHeroesForLocalPlayer(static_cast<int>(i - 1));
+	// Iterate over all players
+	for (size_t i = 0; i < g_LocalCoop.players.size(); ++i) {
+		// Skip the player whose selection changed
+		if (i != excludePlayerId && g_LocalCoop.players[i].active && g_LocalCoop.players[i].characterSelectActive) {
+			LoadAvailableHeroesForLocalPlayer(static_cast<uint8_t>(i));
 		}
 	}
 }
@@ -145,7 +144,7 @@ LocalCoopState g_LocalCoop;
 namespace {
 
 // Forward declarations
-void CastLocalCoopHotkeySpell(int localIndex, int slotIndex);
+void CastLocalCoopHotkeySpell(uint8_t playerId, int slotIndex);
 
 /**
  * @brief RAII helper to temporarily swap MyPlayer, MyPlayerId, and InspectPlayer for local co-op actions.
@@ -461,13 +460,12 @@ bool HasPlayer1PrimaryTarget()
 /**
  * @brief Check if there's a valid target for primary action (attack/talk/operate).
  */
-bool HasLocalCoopPrimaryTarget(int localIndex)
+bool HasLocalCoopPrimaryTarget(uint8_t playerId)
 {
-	if (localIndex < 0 || localIndex >= static_cast<int>(g_LocalCoop.players.size()) - 1)
+	if (playerId >= g_LocalCoop.players.size())
 		return false;
 
-	// localIndex is 0-2 for players 2-4, so add 1 to get unified array index (1-3)
-	LocalCoopPlayer &coopPlayer = g_LocalCoop.players[localIndex + 1];
+	LocalCoopPlayer &coopPlayer = g_LocalCoop.players[playerId];
 	LocalCoopCursorState &cursor = coopPlayer.cursor;
 
 	// Monster to attack or towner to talk to
@@ -484,13 +482,12 @@ bool HasLocalCoopPrimaryTarget(int localIndex)
 /**
  * @brief Check if there's a valid target for secondary action (pickup/operate/portal).
  */
-bool HasLocalCoopSecondaryTarget(int localIndex)
+bool HasLocalCoopSecondaryTarget(uint8_t playerId)
 {
-	if (localIndex < 0 || localIndex >= static_cast<int>(g_LocalCoop.players.size()) - 1)
+	if (playerId >= g_LocalCoop.players.size())
 		return false;
 
-	// localIndex is 0-2 for players 2-4, so add 1 to get unified array index (1-3)
-	LocalCoopPlayer &coopPlayer = g_LocalCoop.players[localIndex + 1];
+	LocalCoopPlayer &coopPlayer = g_LocalCoop.players[playerId];
 	LocalCoopCursorState &cursor = coopPlayer.cursor;
 
 	// Item to pick up
@@ -514,10 +511,12 @@ bool HasLocalCoopSecondaryTarget(int localIndex)
  * Also handles navigation in quick spell menu when assigning skills.
  * Also handles panel navigation (inventory, character, etc.) when this player owns the panels.
  */
-void ProcessLocalCoopDpadInput(int localIndex, const SDL_Event &event)
+void ProcessLocalCoopDpadInput(uint8_t playerId, const SDL_Event &event)
 {
-	// localIndex is 0-2 for players 2-4, so add 1 to get unified array index (1-3)
-	LocalCoopPlayer &coopPlayer = g_LocalCoop.players[localIndex + 1];
+	if (playerId >= g_LocalCoop.players.size())
+		return;
+
+	LocalCoopPlayer &coopPlayer = g_LocalCoop.players[playerId];
 
 	// Don't process D-pad for movement when in character selection
 	if (coopPlayer.characterSelectActive)
@@ -553,10 +552,9 @@ void ProcessLocalCoopDpadInput(int localIndex, const SDL_Event &event)
 		return; // Don't update movement when navigating spell menu
 	}
 
-	// If this coop player owns panels, use D-pad for panel navigation instead of movement
+	// If this player owns panels, use D-pad for panel navigation instead of movement
 	// Panels: inventory, character sheet, quest log, spellbook
-	const uint8_t playerId = LocalCoopIndexToPlayerId(localIndex);
-	if (g_LocalCoop.panelOwnerPlayerId == playerId && (invflag || CharFlag || QuestLogIsOpen || SpellbookFlag)) {
+	if (g_LocalCoop.panelOwnerPlayerId == static_cast<int>(playerId) && (invflag || CharFlag || QuestLogIsOpen || SpellbookFlag)) {
 		if (event.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN) {
 			const auto button = SDLC_EventGamepadButton(event).button;
 			AxisDirection dir = { AxisDirectionX_NONE, AxisDirectionY_NONE };
@@ -648,11 +646,12 @@ void ProcessLocalCoopDpadInput(int localIndex, const SDL_Event &event)
  * - Start: Toggle inventory
  * - D-pad: Movement
  */
-void ProcessLocalCoopButtonInput(int localIndex, const SDL_Event &event)
+void ProcessLocalCoopButtonInput(uint8_t playerId, const SDL_Event &event)
 {
-	// localIndex is 0-2 for players 2-4, so add 1 to get unified array index (1-3)
-	LocalCoopPlayer &coopPlayer = g_LocalCoop.players[localIndex + 1];
-	const uint8_t playerId = LocalCoopIndexToPlayerId(localIndex);
+	if (playerId >= g_LocalCoop.players.size())
+		return;
+
+	LocalCoopPlayer &coopPlayer = g_LocalCoop.players[playerId];
 
 	const bool isButtonDown = (event.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN);
 	const bool isButtonUp = (event.type == SDL_EVENT_GAMEPAD_BUTTON_UP);
@@ -677,7 +676,7 @@ void ProcessLocalCoopButtonInput(int localIndex, const SDL_Event &event)
 						coopPlayer.selectedHeroIndex = static_cast<int>(coopPlayer.availableHeroes.size()) - 1;
 					}
 					// Reload heroes for other players so they see the updated selection
-					ReloadHeroesForOtherPlayers(localIndex);
+					ReloadHeroesForOtherPlayers(playerId);
 				}
 				coopPlayer.lastDpadPress = now;
 			}
@@ -689,12 +688,12 @@ void ProcessLocalCoopButtonInput(int localIndex, const SDL_Event &event)
 						coopPlayer.selectedHeroIndex = 0;
 					}
 					// Reload heroes for other players so they see the updated selection
-					ReloadHeroesForOtherPlayers(localIndex);
+					ReloadHeroesForOtherPlayers(playerId);
 				}
 				coopPlayer.lastDpadPress = now;
 			}
 		} else if (button == SDL_GAMEPAD_BUTTON_SOUTH || button == SDL_GAMEPAD_BUTTON_START) { // A button or Start button - confirm
-			ConfirmLocalCoopCharacter(localIndex);
+			ConfirmLocalCoopCharacter(playerId);
 		}
 		return;
 	}
@@ -762,7 +761,7 @@ void ProcessLocalCoopButtonInput(int localIndex, const SDL_Event &event)
 
 			if (assignSlot >= 0) {
 				// Assign the currently selected spell to this slot
-				AssignLocalCoopSpellToSlot(localIndex, assignSlot);
+				AssignLocalCoopSpellToSlot(playerId, assignSlot);
 				coopPlayer.skillButtonHeld = -1;
 				coopPlayer.skillButtonPressTime = 0;
 				coopPlayer.skillMenuOpenedByHold = false;
@@ -788,17 +787,17 @@ void ProcessLocalCoopButtonInput(int localIndex, const SDL_Event &event)
 			if (TryUseBeltItem(playerId, 0, coopPlayer.leftShoulderHeld, coopPlayer.rightShoulderHeld))
 				return;
 			// If this player owns panels (inventory/character/etc.), always perform primary action for panel interaction
-			if (g_LocalCoop.panelOwnerPlayerId == playerId && (invflag || CharFlag || QuestLogIsOpen || SpellbookFlag)) {
+			if (g_LocalCoop.panelOwnerPlayerId == static_cast<int>(playerId) && (invflag || CharFlag || QuestLogIsOpen || SpellbookFlag)) {
 				coopPlayer.actionHeld = GameActionType_PRIMARY_ACTION;
-				ProcessLocalCoopGameAction(localIndex, GameActionType_PRIMARY_ACTION);
+				ProcessLocalCoopGameAction(playerId, GameActionType_PRIMARY_ACTION);
 			}
 			// If there's a target (monster/towner/object), perform primary action (attack/talk/operate)
 			// Otherwise, use skill slot 2 (consistent with Player 1's behavior)
-			else if (HasLocalCoopPrimaryTarget(localIndex)) {
+			else if (HasLocalCoopPrimaryTarget(playerId)) {
 				// Only perform action if player can change action (not already in an action)
 				if (player.CanChangeAction() && player.destAction == ACTION_NONE) {
 					coopPlayer.actionHeld = GameActionType_PRIMARY_ACTION;
-					ProcessLocalCoopGameAction(localIndex, GameActionType_PRIMARY_ACTION);
+					ProcessLocalCoopGameAction(playerId, GameActionType_PRIMARY_ACTION);
 				}
 			} else {
 				// No target - use skill slot 2 (A button slot)
@@ -825,14 +824,14 @@ void ProcessLocalCoopButtonInput(int localIndex, const SDL_Event &event)
 				}
 				if (pcursinvitem != -1 || isOverBeltSlot || !player.HoldItem.isEmpty()) {
 					coopPlayer.actionHeld = GameActionType_SECONDARY_ACTION;
-					ProcessLocalCoopGameAction(localIndex, GameActionType_SECONDARY_ACTION);
+					ProcessLocalCoopGameAction(playerId, GameActionType_SECONDARY_ACTION);
 					return;
 				}
-			} else if (HasLocalCoopSecondaryTarget(localIndex)) {
+			} else if (HasLocalCoopSecondaryTarget(playerId)) {
 				// Only perform action if player can change action
 				if (player.CanChangeAction() && player.destAction == ACTION_NONE) {
 					coopPlayer.actionHeld = GameActionType_SECONDARY_ACTION;
-					ProcessLocalCoopGameAction(localIndex, GameActionType_SECONDARY_ACTION);
+					ProcessLocalCoopGameAction(playerId, GameActionType_SECONDARY_ACTION);
 				}
 			} else {
 				// Start tracking hold for skill slot assignment (B = slot 3)
@@ -869,11 +868,11 @@ void ProcessLocalCoopButtonInput(int localIndex, const SDL_Event &event)
 			break;
 
 		case SDL_GAMEPAD_BUTTON_BACK: // Select/Back = Toggle character info
-			ProcessLocalCoopGameAction(localIndex, GameActionType_TOGGLE_CHARACTER_INFO);
+			ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_CHARACTER_INFO);
 			break;
 
 		case SDL_GAMEPAD_BUTTON_START: // Start = Toggle inventory
-			ProcessLocalCoopGameAction(localIndex, GameActionType_TOGGLE_INVENTORY);
+			ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_INVENTORY);
 			break;
 
 		default:
@@ -910,7 +909,7 @@ void ProcessLocalCoopButtonInput(int localIndex, const SDL_Event &event)
 		if (releasedSlot >= 0 && coopPlayer.skillButtonHeld == releasedSlot) {
 			// If the menu wasn't opened by this hold, it was a short press - cast the spell
 			if (!coopPlayer.skillMenuOpenedByHold) {
-				CastLocalCoopHotkeySpell(localIndex, releasedSlot);
+				CastLocalCoopHotkeySpell(playerId, releasedSlot);
 			}
 			// Reset hold tracking (but NOT skillMenuOpenedByHold if menu is open)
 			// It will be reset when the menu closes or a spell is assigned
@@ -937,13 +936,15 @@ void ProcessLocalCoopButtonInput(int localIndex, const SDL_Event &event)
  * @brief Process axis motion for a local co-op player.
  * Handles left stick for movement and triggers for inventory/character screen.
  */
-void ProcessLocalCoopAxisMotion(int localIndex, const SDL_Event &event)
+void ProcessLocalCoopAxisMotion(uint8_t playerId, const SDL_Event &event)
 {
 	if (event.type != SDL_EVENT_GAMEPAD_AXIS_MOTION)
 		return;
 
-	// localIndex is 0-2 for players 2-4, so add 1 to get unified array index (1-3)
-	LocalCoopPlayer &coopPlayer = g_LocalCoop.players[localIndex + 1];
+	if (playerId >= g_LocalCoop.players.size())
+		return;
+
+	LocalCoopPlayer &coopPlayer = g_LocalCoop.players[playerId];
 	const auto &axis = SDLC_EventGamepadAxis(event);
 
 	// Trigger threshold (same as player 1 - values are in range -32767 to 32767)
@@ -960,7 +961,7 @@ void ProcessLocalCoopAxisMotion(int localIndex, const SDL_Event &event)
 		// Left trigger = Character screen (like player 1)
 		bool nowPressed = axis.value > TriggerThreshold;
 		if (nowPressed && !coopPlayer.leftTriggerPressed) {
-			ProcessLocalCoopGameAction(localIndex, GameActionType_TOGGLE_CHARACTER_INFO);
+			ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_CHARACTER_INFO);
 		}
 		coopPlayer.leftTriggerPressed = nowPressed;
 		return;
@@ -969,7 +970,7 @@ void ProcessLocalCoopAxisMotion(int localIndex, const SDL_Event &event)
 		// Right trigger = Inventory (like player 1)
 		bool nowPressed = axis.value > TriggerThreshold;
 		if (nowPressed && !coopPlayer.rightTriggerPressed) {
-			ProcessLocalCoopGameAction(localIndex, GameActionType_TOGGLE_INVENTORY);
+			ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_INVENTORY);
 		}
 		coopPlayer.rightTriggerPressed = nowPressed;
 		return;
@@ -992,10 +993,12 @@ void ProcessLocalCoopAxisMotion(int localIndex, const SDL_Event &event)
  *
  * Supports both left analog stick and D-pad for movement.
  */
-void UpdateLocalCoopPlayerMovement(int localIndex)
+void UpdateLocalCoopPlayerMovement(uint8_t playerId)
 {
-	// localIndex is 0-2 for players 2-4, so add 1 to get unified array index (1-3)
-	LocalCoopPlayer &coopPlayer = g_LocalCoop.players[localIndex + 1];
+	if (playerId >= g_LocalCoop.players.size())
+		return;
+
+	LocalCoopPlayer &coopPlayer = g_LocalCoop.players[playerId];
 
 	if (!coopPlayer.active || !coopPlayer.initialized)
 		return;
@@ -1003,8 +1006,7 @@ void UpdateLocalCoopPlayerMovement(int localIndex)
 		return;
 
 	// Don't move when this player owns a panel or store
-	const uint8_t playerId = LocalCoopIndexToPlayerId(localIndex);
-	if (g_LocalCoop.panelOwnerPlayerId == playerId || g_LocalCoop.storeOwnerPlayerId == playerId)
+	if (g_LocalCoop.panelOwnerPlayerId == static_cast<int>(playerId) || g_LocalCoop.storeOwnerPlayerId == static_cast<int>(playerId))
 		return;
 
 	if (playerId >= Players.size())
@@ -1060,7 +1062,7 @@ void UpdateLocalCoopPlayerMovement(int localIndex)
 } // namespace
 
 // Forward declaration
-void ReloadHeroesForOtherPlayers(int excludeLocalIndex);
+void ReloadHeroesForOtherPlayers(uint8_t excludePlayerId);
 
 void LocalCoopCursorState::Reset()
 {
@@ -1355,11 +1357,10 @@ void LoadAvailableHeroesForAllLocalCoopPlayers()
 	if (!IsLocalCoopEnabled())
 		return;
 
-	// Iterate over players 2-4 (unified indices 1-3, local indices 0-2)
-	for (size_t i = 1; i < g_LocalCoop.players.size(); ++i) {
+	// Iterate over all players
+	for (size_t i = 0; i < g_LocalCoop.players.size(); ++i) {
 		if (g_LocalCoop.players[i].active) {
-			// Convert unified index (1-3) to local index (0-2)
-			LoadAvailableHeroesForLocalPlayer(static_cast<int>(i - 1));
+			LoadAvailableHeroesForLocalPlayer(static_cast<uint8_t>(i));
 		}
 	}
 }
@@ -1369,16 +1370,15 @@ void SyncLocalCoopPlayersToLevel(interface_mode fom, int lvl)
 	if (!IsLocalCoopEnabled())
 		return;
 
-	for (size_t localIdx = 0; localIdx < g_LocalCoop.players.size(); ++localIdx) {
-		const LocalCoopPlayer &coopPlayer = g_LocalCoop.players[localIdx];
+	for (size_t playerId = 0; playerId < g_LocalCoop.players.size(); ++playerId) {
+		const LocalCoopPlayer &coopPlayer = g_LocalCoop.players[playerId];
 		if (!coopPlayer.active || !coopPlayer.initialized)
 			continue;
 
-		const uint8_t coopPlayerId = LocalCoopIndexToPlayerId(static_cast<int>(localIdx));
-		if (coopPlayerId >= Players.size())
+		if (playerId >= Players.size())
 			continue;
 
-		Player &coopPlayerRef = Players[coopPlayerId];
+		Player &coopPlayerRef = Players[playerId];
 
 		// Sync level for local coop player
 		InitLevelChange(coopPlayerRef);
@@ -1422,12 +1422,11 @@ Player *FindLocalCoopPlayerOnTrigger(int &outTriggerIndex)
 	if (!IsLocalCoopEnabled())
 		return nullptr;
 
-	for (size_t localIdx = 0; localIdx < g_LocalCoop.players.size(); ++localIdx) {
-		const LocalCoopPlayer &coopPlayer = g_LocalCoop.players[localIdx];
+	for (size_t playerId = 0; playerId < g_LocalCoop.players.size(); ++playerId) {
+		const LocalCoopPlayer &coopPlayer = g_LocalCoop.players[playerId];
 		if (!coopPlayer.active || !coopPlayer.initialized)
 			continue;
 
-		const uint8_t playerId = LocalCoopIndexToPlayerId(static_cast<int>(localIdx));
 		if (playerId >= Players.size())
 			continue;
 
@@ -1582,14 +1581,13 @@ int GetLocalCoopPlayerIndex(const SDL_Event &event)
 	if (eventControllerId == static_cast<SDL_JoystickID>(-1))
 		return -1;
 
-	// Check players 2-4 (indices 1-3 in unified array)
-	// Returns localIndex (0-2) for backward compatibility with existing functions
-	for (size_t i = 1; i < g_LocalCoop.players.size(); ++i) {
+	// Check all players (indices 0-3 in unified array)
+	// Returns playerId (0-3) directly
+	for (size_t i = 0; i < g_LocalCoop.players.size(); ++i) {
 		if (g_LocalCoop.players[i].active && g_LocalCoop.players[i].controllerId == eventControllerId) {
-			int localIndex = static_cast<int>(i - 1);
-			LogVerbose("Local co-op: Event from controller {} matched to player {} (local index {})",
-			    eventControllerId, i + 1, localIndex);
-			return localIndex;
+			LogVerbose("Local co-op: Event from controller {} matched to player {} (playerId {})",
+			    eventControllerId, i + 1, i);
+			return static_cast<int>(i);
 		}
 	}
 
@@ -1621,20 +1619,24 @@ bool ProcessLocalCoopInput(const SDL_Event &event)
 	if (!g_LocalCoop.enabled)
 		return false;
 
-	int localIndex = GetLocalCoopPlayerIndex(event);
-	if (localIndex < 0)
+	int playerId = GetLocalCoopPlayerIndex(event);
+	if (playerId < 0)
 		return false;
 
-	// Process all input for this coop player
-	ProcessLocalCoopAxisMotion(localIndex, event);
-	ProcessLocalCoopDpadInput(localIndex, event);
-	ProcessLocalCoopButtonInput(localIndex, event);
+	// Player 1 (playerId 0) uses the normal input system, not local co-op
+	// Only process input for local co-op players (players 2-4, playerId 1-3)
+	if (playerId == 0)
+		return false;
 
-	// localIndex is 0-2 for players 2-4, so we need to add 1 to get the unified array index
-	LogVerbose("Local co-op: Processed input for player {} (local index {}), dpad={},{}",
-	    localIndex + 2, localIndex,
-	    g_LocalCoop.players[localIndex + 1].dpadX,
-	    g_LocalCoop.players[localIndex + 1].dpadY);
+	// Process all input for this player
+	ProcessLocalCoopAxisMotion(static_cast<uint8_t>(playerId), event);
+	ProcessLocalCoopDpadInput(static_cast<uint8_t>(playerId), event);
+	ProcessLocalCoopButtonInput(static_cast<uint8_t>(playerId), event);
+
+	LogVerbose("Local co-op: Processed input for player {} (playerId {}), dpad={},{}",
+	    playerId + 1, playerId,
+	    g_LocalCoop.players[playerId].dpadX,
+	    g_LocalCoop.players[playerId].dpadY);
 
 	return true;
 }
@@ -1652,23 +1654,24 @@ void UpdateLocalCoopMovement()
 		}
 	}
 
-	// Update movement and target selection for coop players (players 2-4)
-	// Player 1's movement is handled by the existing input system
-	for (size_t i = 1; i < g_LocalCoop.players.size(); ++i) {
-		// Convert to localIndex (i-1) for the old functions that expect 0-2
-		UpdateLocalCoopPlayerMovement(static_cast<int>(i - 1));
-		// Also update target selection for each player
-		UpdateLocalCoopTargetSelection(static_cast<int>(i - 1));
+	// Update movement and target selection for all players
+	// Player 1's movement is handled by the existing input system, but we still update target selection
+	for (size_t i = 0; i < g_LocalCoop.players.size(); ++i) {
+		// Update movement for coop players (players 2-4)
+		if (i > 0) {
+			UpdateLocalCoopPlayerMovement(static_cast<uint8_t>(i));
+		}
+		// Update target selection for all players
+		UpdateLocalCoopTargetSelection(static_cast<uint8_t>(i));
 	}
 }
 
-void LoadAvailableHeroesForLocalPlayer(int localIndex)
+void LoadAvailableHeroesForLocalPlayer(uint8_t playerId)
 {
-	if (localIndex < 0 || localIndex >= static_cast<int>(g_LocalCoop.players.size()) - 1)
+	if (playerId >= g_LocalCoop.players.size())
 		return;
 
-	// localIndex is 0-2 for players 2-4, so add 1 to get unified array index (1-3)
-	LocalCoopPlayer &coopPlayer = g_LocalCoop.players[localIndex + 1];
+	LocalCoopPlayer &coopPlayer = g_LocalCoop.players[playerId];
 
 	// Save the currently selected hero's save number to try to preserve selection
 	uint32_t previouslySelectedSave = 0;
@@ -1687,8 +1690,8 @@ void LoadAvailableHeroesForLocalPlayer(int localIndex)
 
 	// Exclude heroes already selected by other local co-op players
 	for (size_t i = 0; i < g_LocalCoop.players.size(); ++i) {
-		// Skip the current player: localIndex is 0-2, unified index is localIndex+1 (1-3)
-		if (static_cast<int>(i) == localIndex + 1)
+		// Skip the current player
+		if (i == playerId)
 			continue;
 		const LocalCoopPlayer &other = g_LocalCoop.players[i];
 		if (other.active) {
@@ -1719,29 +1722,27 @@ void LoadAvailableHeroesForLocalPlayer(int localIndex)
 	}
 
 	Log("Local co-op: Player {} has {} available heroes",
-	    localIndex + 2, coopPlayer.availableHeroes.size());
+	    playerId + 1, coopPlayer.availableHeroes.size());
 }
 
-void ConfirmLocalCoopCharacter(int localIndex)
+void ConfirmLocalCoopCharacter(uint8_t playerId)
 {
-	if (localIndex < 0 || localIndex >= static_cast<int>(g_LocalCoop.players.size()) - 1)
+	if (playerId >= g_LocalCoop.players.size())
 		return;
 
-	// localIndex is 0-2 for players 2-4, so add 1 to get unified array index (1-3)
-	LocalCoopPlayer &coopPlayer = g_LocalCoop.players[localIndex + 1];
+	LocalCoopPlayer &coopPlayer = g_LocalCoop.players[playerId];
 
 	if (coopPlayer.availableHeroes.empty()) {
-		Log("Local co-op: Player {} has no heroes available", localIndex + 2);
+		Log("Local co-op: Player {} has no heroes available", playerId + 1);
 		return;
 	}
 
 	if (coopPlayer.selectedHeroIndex < 0 || coopPlayer.selectedHeroIndex >= static_cast<int>(coopPlayer.availableHeroes.size())) {
-		Log("Local co-op: Player {} has invalid hero index", localIndex + 2);
+		Log("Local co-op: Player {} has invalid hero index", playerId + 1);
 		return;
 	}
 
 	const _uiheroinfo &selectedHero = coopPlayer.availableHeroes[coopPlayer.selectedHeroIndex];
-	const uint8_t playerId = LocalCoopIndexToPlayerId(localIndex);
 
 	Log("Local co-op: Player {} selected {} (Lv {} {})",
 	    playerId + 1,
@@ -1833,7 +1834,7 @@ void ConfirmLocalCoopCharacter(int localIndex)
 	Log("Local co-op: Player {} spawned at ({}, {})", playerId + 1, spawnPos.x, spawnPos.y);
 
 	// Reload available heroes for remaining players who haven't selected yet
-	ReloadHeroesForOtherPlayers(localIndex);
+	ReloadHeroesForOtherPlayers(playerId);
 }
 
 void DrawLocalCoopCharacterSelect(const Surface &out)
@@ -2368,20 +2369,18 @@ void DrawCoopPanelBackground(const Surface &out, Rectangle rect)
 /**
  * @brief Cast a spell from a specific hotkey slot for a local coop player.
  *
- * @param localIndex The local player index (0-2 for players 2-4)
+ * @param playerId The game player ID (0 = player 1, 1-3 = coop players)
  * @param slotIndex The hotkey slot index (0-3 corresponding to D-pad Up/Down/Left/Right)
  */
-void CastLocalCoopHotkeySpell(int localIndex, int slotIndex)
+void CastLocalCoopHotkeySpell(uint8_t playerId, int slotIndex)
 {
-	if (localIndex < 0 || localIndex >= static_cast<int>(g_LocalCoop.players.size()) - 1)
+	if (playerId >= g_LocalCoop.players.size())
 		return;
 
-	// localIndex is 0-2 for players 2-4, so add 1 to get unified array index (1-3)
-	LocalCoopPlayer &coopPlayer = g_LocalCoop.players[localIndex + 1];
+	LocalCoopPlayer &coopPlayer = g_LocalCoop.players[playerId];
 	if (!coopPlayer.active || !coopPlayer.initialized)
 		return;
 
-	const size_t playerId = static_cast<size_t>(localIndex) + 1;
 	if (playerId >= Players.size())
 		return;
 
@@ -2400,7 +2399,7 @@ void CastLocalCoopHotkeySpell(int localIndex, int slotIndex)
 	// If no spell assigned, perform a regular attack instead
 	if (spell == SpellID::Invalid || spellType == SpellType::Invalid) {
 		// Perform primary action (attack) just like pressing A button
-		PerformLocalCoopPrimaryAction(localIndex);
+		PerformLocalCoopPrimaryAction(playerId);
 		return;
 	}
 
@@ -2956,10 +2955,8 @@ void HandleLocalCoopControllerConnect(SDL_JoystickID controllerId)
 				}
 			}
 
-			// Load available heroes (skip player 1, convert unified index to local index)
-			if (i > 0) {
-				LoadAvailableHeroesForLocalPlayer(static_cast<int>(i - 1));
-			}
+			// Load available heroes
+			LoadAvailableHeroesForLocalPlayer(static_cast<uint8_t>(i));
 			break;
 		}
 	}
@@ -3353,11 +3350,12 @@ int GetLocalCoopRotaryDistance(const Player &player, Point destination)
 /**
  * @brief Find actors (monsters/towners/players) for a local coop player.
  */
-void FindLocalCoopActors(int localIndex)
+void FindLocalCoopActors(uint8_t playerId)
 {
-	// localIndex is 0-2 for players 2-4, so add 1 to get unified array index (1-3)
-	LocalCoopPlayer &coopPlayer = g_LocalCoop.players[localIndex + 1];
-	const uint8_t playerId = LocalCoopIndexToPlayerId(localIndex);
+	if (playerId >= g_LocalCoop.players.size())
+		return;
+
+	LocalCoopPlayer &coopPlayer = g_LocalCoop.players[playerId];
 
 	if (playerId >= Players.size())
 		return;
@@ -3440,11 +3438,12 @@ void FindLocalCoopActors(int localIndex)
 /**
  * @brief Find items and objects for a local coop player.
  */
-void FindLocalCoopItemsAndObjects(int localIndex)
+void FindLocalCoopItemsAndObjects(uint8_t playerId)
 {
-	// localIndex is 0-2 for players 2-4, so add 1 to get unified array index (1-3)
-	LocalCoopPlayer &coopPlayer = g_LocalCoop.players[localIndex + 1];
-	const uint8_t playerId = LocalCoopIndexToPlayerId(localIndex);
+	if (playerId >= g_LocalCoop.players.size())
+		return;
+
+	LocalCoopPlayer &coopPlayer = g_LocalCoop.players[playerId];
 
 	if (playerId >= Players.size())
 		return;
@@ -3495,11 +3494,12 @@ void FindLocalCoopItemsAndObjects(int localIndex)
 /**
  * @brief Find triggers (portals, level transitions) for a local coop player.
  */
-void FindLocalCoopTriggers(int localIndex)
+void FindLocalCoopTriggers(uint8_t playerId)
 {
-	// localIndex is 0-2 for players 2-4, so add 1 to get unified array index (1-3)
-	LocalCoopPlayer &coopPlayer = g_LocalCoop.players[localIndex + 1];
-	const uint8_t playerId = LocalCoopIndexToPlayerId(localIndex);
+	if (playerId >= g_LocalCoop.players.size())
+		return;
+
+	LocalCoopPlayer &coopPlayer = g_LocalCoop.players[playerId];
 
 	if (playerId >= Players.size())
 		return;
@@ -3550,22 +3550,20 @@ void FindLocalCoopTriggers(int localIndex)
 
 } // namespace
 
-void UpdateLocalCoopTargetSelection(int localIndex)
+void UpdateLocalCoopTargetSelection(uint8_t playerId)
 {
 	if (!g_LocalCoop.enabled)
 		return;
 
-	if (localIndex < 0 || localIndex >= static_cast<int>(g_LocalCoop.players.size()) - 1)
+	if (playerId >= g_LocalCoop.players.size())
 		return;
 
-	// localIndex is 0-2 for players 2-4, so add 1 to get unified array index (1-3)
-	LocalCoopPlayer &coopPlayer = g_LocalCoop.players[localIndex + 1];
+	LocalCoopPlayer &coopPlayer = g_LocalCoop.players[playerId];
 	if (!coopPlayer.active || !coopPlayer.initialized)
 		return;
 	if (coopPlayer.characterSelectActive)
 		return;
 
-	const uint8_t playerId = LocalCoopIndexToPlayerId(localIndex);
 	if (playerId >= Players.size())
 		return;
 
@@ -3591,25 +3589,23 @@ void UpdateLocalCoopTargetSelection(int localIndex)
 	coopPlayer.cursor.Reset();
 
 	// Find new targets
-	FindLocalCoopActors(localIndex);
-	FindLocalCoopItemsAndObjects(localIndex);
-	FindLocalCoopTriggers(localIndex);
+	FindLocalCoopActors(playerId);
+	FindLocalCoopItemsAndObjects(playerId);
+	FindLocalCoopTriggers(playerId);
 }
 
 /**
  * @brief Open quick spell menu for a local co-op player to assign a skill slot.
  */
-void OpenLocalCoopQuickSpellMenu(int localIndex, int slotIndex)
+void OpenLocalCoopQuickSpellMenu(uint8_t playerId, int slotIndex)
 {
-	if (localIndex < 0 || localIndex >= static_cast<int>(g_LocalCoop.players.size()) - 1)
+	if (playerId >= g_LocalCoop.players.size())
 		return;
 
-	// localIndex is 0-2 for players 2-4, so add 1 to get unified array index (1-3)
-	LocalCoopPlayer &coopPlayer = g_LocalCoop.players[localIndex + 1];
+	LocalCoopPlayer &coopPlayer = g_LocalCoop.players[playerId];
 	if (!coopPlayer.active || !coopPlayer.initialized)
 		return;
 
-	const uint8_t playerId = LocalCoopIndexToPlayerId(localIndex);
 	if (playerId >= Players.size())
 		return;
 
@@ -3678,8 +3674,8 @@ void UpdateLocalCoopSkillButtons()
 					DoSpeedBook();
 					player.skillMenuOpenedByHold = true;
 				} else {
-					// Coop player - need to convert to localIndex (i-1)
-					OpenLocalCoopQuickSpellMenu(static_cast<int>(i - 1), player.skillButtonHeld);
+					// Coop player
+					OpenLocalCoopQuickSpellMenu(static_cast<uint8_t>(i), player.skillButtonHeld);
 				}
 			}
 		}
@@ -3773,10 +3769,7 @@ void AssignPlayerSpellToSlot(uint8_t playerId, int slotIndex)
 		player->skillMenuOpenedByHold = false;
 	} else {
 		// Coop player - delegate to AssignLocalCoopSpellToSlot
-		int localIndex = PlayerIdToLocalCoopIndex(playerId);
-		if (localIndex >= 0) {
-			AssignLocalCoopSpellToSlot(localIndex, slotIndex);
-		}
+		AssignLocalCoopSpellToSlot(playerId, slotIndex);
 	}
 }
 
@@ -3793,17 +3786,15 @@ void DrawPlayer1SkillSlots(const Surface &out)
 	return;
 }
 
-void AssignLocalCoopSpellToSlot(int localIndex, int slotIndex)
+void AssignLocalCoopSpellToSlot(uint8_t playerId, int slotIndex)
 {
-	if (localIndex < 0 || localIndex >= static_cast<int>(g_LocalCoop.players.size()) - 1)
+	if (playerId >= g_LocalCoop.players.size())
 		return;
 
-	// localIndex is 0-2 for players 2-4, so add 1 to get unified array index (1-3)
-	LocalCoopPlayer &coopPlayer = g_LocalCoop.players[localIndex + 1];
+	LocalCoopPlayer &coopPlayer = g_LocalCoop.players[playerId];
 	if (!coopPlayer.active || !coopPlayer.initialized)
 		return;
 
-	const uint8_t playerId = LocalCoopIndexToPlayerId(localIndex);
 	if (playerId >= Players.size())
 		return;
 
@@ -3824,17 +3815,15 @@ void AssignLocalCoopSpellToSlot(int localIndex, int slotIndex)
 	coopPlayer.skillMenuOpenedByHold = false;
 }
 
-void PerformLocalCoopPrimaryAction(int localIndex)
+void PerformLocalCoopPrimaryAction(uint8_t playerId)
 {
-	if (localIndex < 0 || localIndex >= static_cast<int>(g_LocalCoop.players.size()) - 1)
+	if (playerId >= g_LocalCoop.players.size())
 		return;
 
-	// localIndex is 0-2 for players 2-4, so add 1 to get unified array index (1-3)
-	LocalCoopPlayer &coopPlayer = g_LocalCoop.players[localIndex + 1];
+	LocalCoopPlayer &coopPlayer = g_LocalCoop.players[playerId];
 	if (!coopPlayer.active || !coopPlayer.initialized)
 		return;
 
-	const uint8_t playerId = LocalCoopIndexToPlayerId(localIndex);
 	if (playerId >= Players.size())
 		return;
 
@@ -3888,17 +3877,15 @@ void PerformLocalCoopPrimaryAction(int localIndex)
 	}
 }
 
-void PerformLocalCoopSecondaryAction(int localIndex)
+void PerformLocalCoopSecondaryAction(uint8_t playerId)
 {
-	if (localIndex < 0 || localIndex >= static_cast<int>(g_LocalCoop.players.size()) - 1)
+	if (playerId >= g_LocalCoop.players.size())
 		return;
 
-	// localIndex is 0-2 for players 2-4, so add 1 to get unified array index (1-3)
-	LocalCoopPlayer &coopPlayer = g_LocalCoop.players[localIndex + 1];
+	LocalCoopPlayer &coopPlayer = g_LocalCoop.players[playerId];
 	if (!coopPlayer.active || !coopPlayer.initialized)
 		return;
 
-	const uint8_t playerId = LocalCoopIndexToPlayerId(localIndex);
 	if (playerId >= Players.size())
 		return;
 
@@ -3998,22 +3985,20 @@ void PerformLocalCoopSecondaryAction(int localIndex)
 	}
 }
 
-void ProcessLocalCoopGameAction(int localIndex, uint8_t actionType)
+void ProcessLocalCoopGameAction(uint8_t playerId, uint8_t actionType)
 {
 	if (!g_LocalCoop.enabled)
 		return;
 
-	if (localIndex < 0 || localIndex >= static_cast<int>(g_LocalCoop.players.size()) - 1)
+	if (playerId >= g_LocalCoop.players.size())
 		return;
 
-	// localIndex is 0-2 for players 2-4, so add 1 to get unified array index (1-3)
-	LocalCoopPlayer &coopPlayer = g_LocalCoop.players[localIndex + 1];
+	LocalCoopPlayer &coopPlayer = g_LocalCoop.players[playerId];
 	if (!coopPlayer.active || !coopPlayer.initialized)
 		return;
 	if (coopPlayer.characterSelectActive)
 		return;
 
-	const uint8_t playerId = LocalCoopIndexToPlayerId(localIndex);
 	if (playerId >= Players.size())
 		return;
 
@@ -4022,11 +4007,11 @@ void ProcessLocalCoopGameAction(int localIndex, uint8_t actionType)
 		break;
 
 	case GameActionType_PRIMARY_ACTION:
-		PerformLocalCoopPrimaryAction(localIndex);
+		PerformLocalCoopPrimaryAction(playerId);
 		break;
 
 	case GameActionType_SECONDARY_ACTION:
-		PerformLocalCoopSecondaryAction(localIndex);
+		PerformLocalCoopSecondaryAction(playerId);
 		break;
 
 	case GameActionType_USE_HEALTH_POTION:
@@ -4424,33 +4409,31 @@ void SaveLocalCoopPlayers(bool /*writeGameData*/)
 		if (coopPlayer.saveNumber == 0)
 			continue; // No valid save number assigned
 
-		const uint8_t playerId = LocalCoopIndexToPlayerId(static_cast<int>(i));
-		if (playerId >= Players.size())
+		if (i >= Players.size())
 			continue;
 
-		Player &player = Players[playerId];
+		Player &player = Players[i];
 
-		Log("Local co-op: Saving player {} (index {}) to save slot {}", playerId + 1, i, coopPlayer.saveNumber);
+		Log("Local co-op: Saving player {} (index {}) to save slot {}", i + 1, i, coopPlayer.saveNumber);
 
 		// Use the pfile function to save this player to their save slot
 		pfile_write_player_to_save(coopPlayer.saveNumber, player);
 	}
 }
 
-void SetLocalCoopStoreOwner(int localIndex)
+void SetLocalCoopStoreOwner(int playerId)
 {
 	if (!g_LocalCoop.enabled)
 		return;
 
-	if (localIndex < 0 || localIndex >= static_cast<int>(g_LocalCoop.players.size()))
+	if (playerId < 0 || playerId >= static_cast<int>(g_LocalCoop.players.size()))
 		return;
 
-	const LocalCoopPlayer &coopPlayer = g_LocalCoop.players[localIndex];
+	const LocalCoopPlayer &coopPlayer = g_LocalCoop.players[playerId];
 	if (!coopPlayer.active || !coopPlayer.initialized)
 		return;
 
-	const uint8_t playerId = LocalCoopIndexToPlayerId(localIndex);
-	g_LocalCoop.storeOwnerPlayerId = static_cast<int>(playerId);
+	g_LocalCoop.storeOwnerPlayerId = playerId;
 
 	Log("Local co-op: Setting store owner to player {}", playerId + 1);
 }
@@ -4705,10 +4688,8 @@ bool HandleLocalCoopButtonRelease(uint8_t playerId, ControllerButton button)
 						PerformSpellAction();
 					} else {
 						// Local coop player - use their own cursor state
-						int localIndex = PlayerIdToLocalCoopIndex(playerId);
-						if (localIndex >= 0) {
-							LocalCoopPlayer *coopPlayer = g_LocalCoop.GetPlayer(playerId);
-							if (coopPlayer != nullptr && coopPlayer->active && coopPlayer->initialized) {
+						LocalCoopPlayer *coopPlayer = g_LocalCoop.GetPlayer(playerId);
+						if (coopPlayer != nullptr && coopPlayer->active && coopPlayer->initialized) {
 								// Calculate target position using this player's cursor state
 								LocalCoopCursorState &cursor = coopPlayer->cursor;
 								Point spellTarget = targetPlayer.position.future + Displacement(targetPlayer._pdir);
@@ -4726,7 +4707,6 @@ bool HandleLocalCoopButtonRelease(uint8_t playerId, ControllerButton button)
 								NetSendCmdLocParam3(true, CMD_SPELLXY, spellTarget,
 								    static_cast<int16_t>(spell),
 								    static_cast<int8_t>(spellType), 0);
-							}
 						}
 					}
 				} else {
@@ -4734,10 +4714,7 @@ bool HandleLocalCoopButtonRelease(uint8_t playerId, ControllerButton button)
 					if (playerId == 0) {
 						PerformPrimaryAction();
 					} else {
-						int localIndex = PlayerIdToLocalCoopIndex(playerId);
-						if (localIndex >= 0) {
-							PerformLocalCoopPrimaryAction(localIndex);
-						}
+						PerformLocalCoopPrimaryAction(playerId);
 					}
 				}
 			}
@@ -4770,14 +4747,14 @@ bool HandlePlayerSkillButtonDown(uint8_t /*playerId*/, int /*slotIndex*/) { retu
 bool HandlePlayerSkillButtonUp(uint8_t /*playerId*/, int /*slotIndex*/) { return false; }
 void AssignPlayerSpellToSlot(uint8_t /*playerId*/, int /*slotIndex*/) { }
 void DrawPlayer1SkillSlots(const Surface & /*out*/) { }
-void AssignLocalCoopSpellToSlot(int /*localIndex*/, int /*slotIndex*/) { }
+void AssignLocalCoopSpellToSlot(uint8_t /*playerId*/, int /*slotIndex*/) { }
 void SetPlayerShoulderHeld(uint8_t /*playerId*/, bool /*isLeft*/, bool /*held*/) { }
 bool IsPlayerShoulderHeld(uint8_t /*playerId*/, bool /*isLeft*/) { return false; }
 int GetPlayerBeltSlotFromButton(uint8_t /*playerId*/, ControllerButton /*button*/) { return -1; }
 bool HandleLocalCoopButtonPress(uint8_t /*playerId*/, ControllerButton /*button*/) { return false; }
 bool HandleLocalCoopButtonRelease(uint8_t /*playerId*/, ControllerButton /*button*/) { return false; }
-void LoadAvailableHeroesForLocalPlayer(int /*localIndex*/) { }
-void ConfirmLocalCoopCharacter(int /*localIndex*/) { }
+void LoadAvailableHeroesForLocalPlayer(uint8_t /*playerId*/) { }
+void ConfirmLocalCoopCharacter(uint8_t /*playerId*/) { }
 void DrawLocalCoopCharacterSelect(const Surface & /*out*/) { }
 void DrawLocalCoopPlayerHUD(const Surface & /*out*/) { }
 void HandleLocalCoopControllerDisconnect(SDL_JoystickID /*controllerId*/) { }
@@ -4787,10 +4764,10 @@ void UpdateLocalCoopCamera() { }
 Displacement GetLocalCoopCameraOffset() { return {}; }
 bool IsLocalCoopPositionOnScreen(Point /*tilePos*/) { return true; }
 bool TryJoinLocalCoopMidGame(SDL_JoystickID /*controllerId*/) { return false; }
-void UpdateLocalCoopTargetSelection(int /*localIndex*/) { }
-void ProcessLocalCoopGameAction(int /*localIndex*/, uint8_t /*actionType*/) { }
-void PerformLocalCoopPrimaryAction(int /*localIndex*/) { }
-void PerformLocalCoopSecondaryAction(int /*localIndex*/) { }
+void UpdateLocalCoopTargetSelection(uint8_t /*playerId*/) { }
+void ProcessLocalCoopGameAction(uint8_t /*playerId*/, uint8_t /*actionType*/) { }
+void PerformLocalCoopPrimaryAction(uint8_t /*playerId*/) { }
+void PerformLocalCoopSecondaryAction(uint8_t /*playerId*/) { }
 bool AreLocalCoopPanelsOpen() { return false; }
 Player *GetLocalCoopPanelOwnerPlayer() { return nullptr; }
 std::optional<Point> GetLocalCoopBeltSlotPosition(uint8_t /*playerId*/, int /*beltSlot*/) { return std::nullopt; }
@@ -4799,7 +4776,7 @@ bool IsLocalCoopTargetMonster(int /*monsterId*/) { return false; }
 bool IsLocalCoopTargetItem(int8_t /*itemIndex*/) { return false; }
 void RestorePlayer1ContextForSave() { }
 void SaveLocalCoopPlayers(bool /*writeGameData*/) { }
-void SetLocalCoopStoreOwner(int /*localIndex*/) { }
+void SetLocalCoopStoreOwner(int /*playerId*/) { }
 void ClearLocalCoopStoreOwner() { }
 bool IsLocalCoopStoreActive() { return false; }
 uint8_t GetLocalCoopStoreOwnerPlayerId() { return 0; }
