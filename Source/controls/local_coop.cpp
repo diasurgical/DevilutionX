@@ -1388,8 +1388,9 @@ void LoadAvailableHeroesForAllLocalCoopPlayers()
 	if (!IsLocalCoopEnabled())
 		return;
 
-	// Iterate over all players
-	for (size_t i = 0; i < g_LocalCoop.players.size(); ++i) {
+	// Iterate over local coop players (skip Player 1 at index 0)
+	// Player 1 is not in character select, so we only load heroes for players 2-4
+	for (size_t i = 1; i < g_LocalCoop.players.size(); ++i) {
 		if (g_LocalCoop.players[i].active) {
 			LoadAvailableHeroesForLocalPlayer(static_cast<uint8_t>(i));
 		}
