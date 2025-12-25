@@ -17,6 +17,7 @@
 #include "controls/modifier_hints.h"
 #include "controls/plrctrls.h"
 #include "cursor.h"
+#include "diablo.h"
 #include "doom.h"
 #include "engine/load_clx.hpp"
 #include "engine/palette.h"
@@ -3810,6 +3811,15 @@ void PerformLocalCoopPrimaryAction(uint8_t playerId)
 
 	// If this player owns panels and inventory is open, handle inventory interactions
 	if (g_LocalCoop.panelOwnerPlayerId == playerId && invflag) {
+		// Check for spell cursors (Identify, Repair, Recharge, etc.) first
+		// These need to be handled before normal inventory interactions
+		if (pcurs > CURSOR_HAND && pcurs < CURSOR_FIRSTITEM) {
+			if (pcurs == CURSOR_HOURGLASS)
+				return;
+			TryIconCurs();
+			NewCursor(CURSOR_HAND);
+			return;
+		}
 		// Handle inventory interactions with auto-move behavior (isShiftHeld=true)
 		// Belt items will automatically move to inventory
 		// Inventory items will automatically move to belt (if possible)
