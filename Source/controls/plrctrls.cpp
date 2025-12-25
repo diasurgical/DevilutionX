@@ -2303,6 +2303,47 @@ void PerformSecondaryAction()
 			} else if (pcursinvitem != -1) {
 				TransferItemToStash(myPlayer, pcursinvitem);
 			}
+		} else if (pcursinvitem != -1) {
+			// If inventory item is highlighted (via D-Pad navigation), grab it to cursor
+			Item &item = GetInventoryItem(myPlayer, pcursinvitem);
+			if (!item.isEmpty() && myPlayer._pmode <= PM_WALK_SIDEWAYS && myPlayer.HoldItem.isEmpty()) {
+				CloseGoldDrop();
+
+				// Store the item location before removing
+				const int8_t itemLocation = pcursinvitem;
+
+				// Put item in HoldItem
+				myPlayer.HoldItem = item;
+				myPlayer.HoldItem._iStatFlag = myPlayer.CanUseItem(myPlayer.HoldItem);
+
+				// Remove item from inventory based on location
+				if (itemLocation < INVITEM_INV_FIRST) {
+					// Equipment slot
+					RemoveEquipment(myPlayer, static_cast<inv_body_loc>(itemLocation), false);
+					CalcPlrInv(myPlayer, true);
+				} else if (itemLocation <= INVITEM_INV_LAST) {
+					// Inventory grid
+					myPlayer.RemoveInvItem(itemLocation - INVITEM_INV_FIRST, false);
+				} else {
+					// Belt
+					myPlayer.RemoveSpdBarItem(itemLocation - INVITEM_BELT_FIRST);
+				}
+
+				// Handle gold separately
+				if (myPlayer.HoldItem._itype == ItemType::Gold) {
+					myPlayer._pGold = CalculateGold(myPlayer);
+				}
+
+				// Update cursor to show the item
+				NewCursor(myPlayer.HoldItem);
+				PlaySFX(SfxID::GrabItem);
+
+				// Clear pcursinvitem since item is no longer in inventory
+				pcursinvitem = -1;
+			} else {
+				// Fall back to using the item if we can't grab
+				CtrlUseInvItem();
+			}
 		} else {
 			CtrlUseInvItem();
 		}
