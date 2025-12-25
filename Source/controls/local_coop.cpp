@@ -773,10 +773,14 @@ void ProcessLocalCoopButtonInput(int localIndex, const SDL_Event &event)
 		switch (button) {
 		case SDL_GAMEPAD_BUTTON_LEFT_SHOULDER: // LB = Hold to show belt labels on slots 1-4
 			coopPlayer.leftShoulderHeld = true;
+			// Clear right shoulder when left is pressed
+			coopPlayer.rightShoulderHeld = false;
 			break;
 
 		case SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER: // RB = Hold to show belt labels on slots 5-8
 			coopPlayer.rightShoulderHeld = true;
+			// Clear left shoulder when right is pressed
+			coopPlayer.leftShoulderHeld = false;
 			break;
 
 		case SDL_GAMEPAD_BUTTON_SOUTH: // A button - Primary action or skill slot 2
@@ -1472,8 +1476,16 @@ void SetPlayerShoulderHeld(uint8_t playerId, bool isLeft, bool held)
 	if (player != nullptr) {
 		if (isLeft) {
 			player->leftShoulderHeld = held;
+			// Clear right shoulder when left is pressed
+			if (held) {
+				player->rightShoulderHeld = false;
+			}
 		} else {
 			player->rightShoulderHeld = held;
+			// Clear left shoulder when right is pressed
+			if (held) {
+				player->leftShoulderHeld = false;
+			}
 		}
 	}
 }
@@ -2819,7 +2831,11 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 		// Align skill column vertically with panel (top-aligned)
 		int skillY = panelY;
 		// Hide skill labels when either shoulder button is held (shows belt labels instead)
-		bool hideSkillLabels = (coopPlayerPtr != nullptr && (coopPlayerPtr->leftShoulderHeld || coopPlayerPtr->rightShoulderHeld));
+		// Show labels when both shoulders are released
+		bool hideSkillLabels = false;
+		if (coopPlayerPtr != nullptr) {
+			hideSkillLabels = coopPlayerPtr->leftShoulderHeld || coopPlayerPtr->rightShoulderHeld;
+		}
 		DrawPlayerSkillSlots2x2Small(out, player, { skillX, skillY }, SkillSlotSize, hideSkillLabels);
 
 		// === BELT: Right after top row (moved up 4px) ===
