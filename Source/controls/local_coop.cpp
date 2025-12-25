@@ -808,7 +808,11 @@ void ProcessLocalCoopButtonInput(int localIndex, const SDL_Event &event)
 			// Check if shoulder button is held - if so, use belt item
 			if (TryUseBeltItem(playerId, 1, coopPlayer.leftShoulderHeld, coopPlayer.rightShoulderHeld))
 				return;
-			if (HasLocalCoopSecondaryTarget(localIndex)) {
+			// If this player owns panels and inventory is open with highlighted item, perform secondary action for drop
+			if (g_LocalCoop.panelOwnerPlayerId == playerId && invflag && pcursinvitem != -1) {
+				coopPlayer.actionHeld = GameActionType_SECONDARY_ACTION;
+				ProcessLocalCoopGameAction(localIndex, GameActionType_SECONDARY_ACTION);
+			} else if (HasLocalCoopSecondaryTarget(localIndex)) {
 				// Only perform action if player can change action
 				if (player.CanChangeAction() && player.destAction == ACTION_NONE) {
 					coopPlayer.actionHeld = GameActionType_SECONDARY_ACTION;
@@ -3879,6 +3883,57 @@ void PerformLocalCoopSecondaryAction(int localIndex)
 
 	LocalCoopCursorState &cursor = coopPlayer.cursor;
 
+	// If this player owns panels and inventory is open, check if we should grab highlighted item
+	// Only process grab if cursor was moved via D-Pad (pcursinvitem is set) and secondary action is pressed
+	if (g_LocalCoop.panelOwnerPlayerId == playerId && invflag && pcursinvitem != -1) {
+		// Get the highlighted inventory item
+		Item &item = GetInventoryItem(player, pcursinvitem);
+		if (!item.isEmpty()) {
+			// Check if player can grab items (not in certain actions)
+			if (player._pmode <= PM_WALK_SIDEWAYS && player.HoldItem.isEmpty()) {
+				CloseGoldDrop();
+
+				// Store the item location before removing
+				const int8_t itemLocation = pcursinvitem;
+
+				// Put item in HoldItem
+				player.HoldItem = item;
+				player.HoldItem._iStatFlag = player.CanUseItem(player.HoldItem);
+
+				// Remove item from inventory based on location
+				if (itemLocation < INVITEM_INV_FIRST) {
+					// Equipment slot
+					RemoveEquipment(player, static_cast<inv_body_loc>(itemLocation), false);
+					CalcPlrInv(player, true);
+				} else if (itemLocation <= INVITEM_INV_LAST) {
+					// Inventory grid
+					player.RemoveInvItem(itemLocation - INVITEM_INV_FIRST, false);
+				} else {
+					// Belt
+					player.RemoveSpdBarItem(itemLocation - INVITEM_BELT_FIRST);
+				}
+
+				// Handle gold separately
+				if (player.HoldItem._itype == ItemType::Gold) {
+					player._pGold = CalculateGold(player);
+				}
+
+				// Update cursor to show the item (only for MyPlayer)
+				if (MyPlayer == &player) {
+					NewCursor(player.HoldItem);
+					PlaySFX(SfxID::GrabItem);
+				}
+
+				// Clear pcursinvitem since item is no longer in inventory
+				// This prevents info box from trying to display info for removed item
+				pcursinvitem = -1;
+
+				// Successfully grabbed, return early
+				return;
+			}
+		}
+	}
+
 	// Pick up item
 	if (cursor.pcursitem != -1) {
 		// For local coop players, always auto-pickup to inventory (CMD_GOTOAGETITEM)
@@ -3979,6 +4034,21 @@ void ProcessLocalCoopGameAction(int localIndex, uint8_t actionType)
 			MyPlayer = &Players[playerId];
 			MyPlayerId = playerId;
 			InspectPlayer = &Players[playerId];
+
+			// If closing inventory and player has item in HoldItem, drop it
+			// MyPlayer is already set to Players[playerId] above, so we can use it directly
+			if (actionType == GameActionType_TOGGLE_INVENTORY && invflag && !MyPlayer->HoldItem.isEmpty()) {
+				// Try to drop the item before closing inventory
+				std::optional<Point> itemTile = FindAdjacentPositionForItem(MyPlayer->position.future, MyPlayer->_pdir);
+				if (itemTile) {
+					NetSendCmdPItem(true, CMD_PUTITEM, *itemTile, MyPlayer->HoldItem);
+					MyPlayer->HoldItem.clear();
+					NewCursor(CURSOR_HAND);
+				} else {
+					// Can't find a place to drop, keep item in HoldItem
+					MyPlayer->Say(HeroSpeech::WhereWouldIPutThis);
+				}
+			}
 
 			// If opening inventory, reload inventory image for this player's class
 			// This ensures the inventory background matches the coop player's class
@@ -4454,6 +4524,22 @@ bool HandleLocalCoopButtonPress(uint8_t playerId, ControllerButton button)
 				}
 				return true;
 			}
+		}
+		// For player 1, check if B button is pressed with inventory open and highlighted item
+		// If so, perform secondary action to grab the item
+		if (playerId == 0 && button == ControllerButton_BUTTON_B) {
+			// If inventory is open and cursor is over an inventory item, grab it
+			if (invflag && pcursinvitem != -1) {
+				ProcessGameAction(GameAction { GameActionType_SECONDARY_ACTION });
+				return true;
+			}
+			// Otherwise, check if there's a secondary target (item on ground/object)
+			// PerformSecondaryAction will handle portals/triggers internally
+			if (pcursitem != -1 || ObjectUnderCursor != nullptr) {
+				ProcessGameAction(GameAction { GameActionType_SECONDARY_ACTION });
+				return true;
+			}
+			// If no target, fall through to skill button handling
 		}
 
 		// Handle skill button press - tracks hold state for long press

@@ -80,6 +80,10 @@ bool InGameMenu()
 	    || (MyPlayer != nullptr && MyPlayer->_pInvincible && MyPlayer->hasNoLife());
 }
 
+// Forward declarations for functions defined after anonymous namespace
+void QuestLogMove(AxisDirection moveDir);
+void HotSpellMove(AxisDirection dir);
+
 namespace {
 
 int Slot = SLOTXY_INV_FIRST;
@@ -540,7 +544,7 @@ void Interact()
 		return;
 	}
 
-	if (leveltype != DTYPE_TOWN && PlayerUnderCursor != nullptr && !PlayerUnderCursor->hasNoLife() && !myPlayer.friendlyMode) {
+	if (leveltype != DTYPE_TOWN && PlayerUnderCursor != nullptr && !myPlayer.friendlyMode) {
 		NetSendCmdParam1(true, myPlayer.UsesRangedWeapon() ? CMD_RATTACKPID : CMD_ATTACKPID, PlayerUnderCursor->getId());
 		LastPlayerAction = PlayerActionType::AttackPlayerTarget;
 		return;
@@ -661,6 +665,22 @@ Point InvGetEquipSlotCoordFromInvSlot(const inv_xy_slot slot)
 Point GetSlotCoord(int slot)
 {
 	if (slot >= SLOTXY_BELT_FIRST && slot <= SLOTXY_BELT_LAST) {
+		// In local co-op mode, use the local co-op belt position
+		if (IsLocalCoopEnabled()) {
+			Player *panelOwner = GetLocalCoopPanelOwnerPlayer();
+			uint8_t targetPlayerId;
+			if (panelOwner != nullptr) {
+				// Panel owner is a local co-op player (not player 1)
+				targetPlayerId = panelOwner->getId();
+			} else {
+				// No explicit panel ownership - use Player 1's local belt
+				targetPlayerId = MyPlayerId;
+			}
+			std::optional<Point> localCoopBeltPos = GetLocalCoopBeltSlotPosition(targetPlayerId, slot);
+			if (localCoopBeltPos.has_value()) {
+				return localCoopBeltPos.value();
+			}
+		}
 		return GetPanelPosition(UiPanels::Main, InvRect[slot].Center());
 	}
 
@@ -835,11 +855,15 @@ Point FindClosestStashSlot(Point mousePos)
 
 void LiftInventoryItem()
 {
-	const int inventorySlot = (Slot >= 0) ? Slot : FindClosestInventorySlot(MousePosition, MyPlayer->HoldItem);
+	// In local co-op, use the panel owner player's HoldItem instead of MyPlayer's
+	Player *panelOwner = GetLocalCoopPanelOwnerPlayer();
+	Player &player = panelOwner != nullptr ? *panelOwner : *MyPlayer;
+
+	const int inventorySlot = (Slot >= 0) ? Slot : FindClosestInventorySlot(MousePosition, player.HoldItem);
 
 	int jumpSlot = inventorySlot; // If the cursor is over an inventory slot we may need to adjust it due to pasting items of different sizes over each other
 	if (inventorySlot >= SLOTXY_INV_FIRST && inventorySlot <= SLOTXY_INV_LAST) {
-		const Size cursorSizeInCells = MyPlayer->HoldItem.isEmpty() ? Size { 1, 1 } : GetInventorySize(MyPlayer->HoldItem);
+		const Size cursorSizeInCells = player.HoldItem.isEmpty() ? Size { 1, 1 } : GetInventorySize(player.HoldItem);
 
 		// Find any item occupying a slot that is currently under the cursor
 		const int8_t itemUnderCursor = [](int inventorySlot, Size cursorSizeInCells) {
@@ -867,7 +891,7 @@ void LiftInventoryItem()
 	if (inventorySlot >= SLOTXY_INV_FIRST && inventorySlot <= SLOTXY_INV_LAST) {
 		Point mousePos = GetSlotCoord(jumpSlot);
 		Slot = jumpSlot;
-		const Size newCursorSizeInCells = MyPlayer->HoldItem.isEmpty() ? GetItemSizeOnSlot(jumpSlot) : GetInventorySize(MyPlayer->HoldItem);
+		const Size newCursorSizeInCells = player.HoldItem.isEmpty() ? GetItemSizeOnSlot(jumpSlot) : GetInventorySize(player.HoldItem);
 		mousePos.x += ((newCursorSizeInCells.width - 1) * InventorySlotSizeInPixels.width) / 2;
 		mousePos.y += ((newCursorSizeInCells.height - 1) * InventorySlotSizeInPixels.height) / 2;
 		SetCursorPos(mousePos);
@@ -960,16 +984,21 @@ void InventoryMove(AxisDirection dir)
 				Slot = SLOTXY_HEAD;
 			} else if (Slot == SLOTXY_RING_RIGHT) {
 				Slot = SLOTXY_RING_LEFT;
-			} else if (Slot >= SLOTXY_INV_FIRST && Slot <= SLOTXY_BELT_LAST) {
+			} else if (Slot >= SLOTXY_BELT_FIRST && Slot <= SLOTXY_BELT_LAST) {
+				// Belt: allow left movement unless at first slot
+				if (Slot > SLOTXY_BELT_FIRST) {
+					Slot -= 1;
+				}
+			} else if (Slot >= SLOTXY_INV_FIRST && Slot <= SLOTXY_INV_LAST) {
 				const int8_t itemId = GetItemIdOnSlot(Slot);
 				if (itemId != 0) {
-					for (int i = 1; i < INV_ROW_SLOT_SIZE && !IsAnyOf(Slot - i + 1, SLOTXY_INV_ROW1_FIRST, SLOTXY_INV_ROW2_FIRST, SLOTXY_INV_ROW3_FIRST, SLOTXY_INV_ROW4_FIRST, SLOTXY_BELT_FIRST); i++) {
+					for (int i = 1; i < INV_ROW_SLOT_SIZE && !IsAnyOf(Slot - i + 1, SLOTXY_INV_ROW1_FIRST, SLOTXY_INV_ROW2_FIRST, SLOTXY_INV_ROW3_FIRST, SLOTXY_INV_ROW4_FIRST); i++) {
 						if (itemId != GetItemIdOnSlot(Slot - i)) {
 							Slot -= i;
 							break;
 						}
 					}
-				} else if (IsNoneOf(Slot, SLOTXY_INV_ROW1_FIRST, SLOTXY_INV_ROW2_FIRST, SLOTXY_INV_ROW3_FIRST, SLOTXY_INV_ROW4_FIRST, SLOTXY_BELT_FIRST)) {
+				} else if (IsNoneOf(Slot, SLOTXY_INV_ROW1_FIRST, SLOTXY_INV_ROW2_FIRST, SLOTXY_INV_ROW3_FIRST, SLOTXY_INV_ROW4_FIRST)) {
 					Slot -= 1;
 				}
 			}
@@ -994,16 +1023,21 @@ void InventoryMove(AxisDirection dir)
 				Slot = SLOTXY_HAND_RIGHT;
 			} else if (Slot == SLOTXY_HEAD) {
 				Slot = SLOTXY_AMULET;
-			} else if (Slot >= SLOTXY_INV_FIRST && Slot <= SLOTXY_BELT_LAST) {
+			} else if (Slot >= SLOTXY_BELT_FIRST && Slot <= SLOTXY_BELT_LAST) {
+				// Belt: allow right movement unless at last slot
+				if (Slot < SLOTXY_BELT_LAST) {
+					Slot += 1;
+				}
+			} else if (Slot >= SLOTXY_INV_FIRST && Slot <= SLOTXY_INV_LAST) {
 				const int8_t itemId = GetItemIdOnSlot(Slot);
 				if (itemId != 0) {
-					for (int i = 1; i < INV_ROW_SLOT_SIZE && !IsAnyOf(Slot + i - 1, SLOTXY_INV_ROW1_LAST, SLOTXY_INV_ROW2_LAST, SLOTXY_INV_ROW3_LAST, SLOTXY_INV_ROW4_LAST, SLOTXY_BELT_LAST); i++) {
+					for (int i = 1; i < INV_ROW_SLOT_SIZE && !IsAnyOf(Slot + i - 1, SLOTXY_INV_ROW1_LAST, SLOTXY_INV_ROW2_LAST, SLOTXY_INV_ROW3_LAST, SLOTXY_INV_ROW4_LAST); i++) {
 						if (itemId != GetItemIdOnSlot(Slot + i)) {
 							Slot += i;
 							break;
 						}
 					}
-				} else if (IsNoneOf(Slot, SLOTXY_INV_ROW1_LAST, SLOTXY_INV_ROW2_LAST, SLOTXY_INV_ROW3_LAST, SLOTXY_INV_ROW4_LAST, SLOTXY_BELT_LAST)) {
+				} else if (IsNoneOf(Slot, SLOTXY_INV_ROW1_LAST, SLOTXY_INV_ROW2_LAST, SLOTXY_INV_ROW3_LAST, SLOTXY_INV_ROW4_LAST)) {
 					Slot += 1;
 				}
 			}
@@ -1152,6 +1186,12 @@ void InventoryMove(AxisDirection dir)
 	}
 
 	SetCursorPos(mousePos);
+
+	// Update inventory highlight when cursor moves (for info box display)
+	// This is especially important for gamepad navigation and local coop belt items
+	if (invflag) {
+		pcursinvitem = CheckInvHLight();
+	}
 }
 
 /**
@@ -1426,16 +1466,6 @@ void WalkInDir(Player &player, AxisDirection dir)
 	NetSendCmdLoc(player.getId(), true, CMD_WALKXY, delta);
 }
 
-void QuestLogMove(AxisDirection moveDir)
-{
-	static AxisDirectionRepeater repeater;
-	moveDir = repeater.Get(moveDir);
-	if (moveDir.y == AxisDirectionY_UP)
-		QuestlogUp();
-	else if (moveDir.y == AxisDirectionY_DOWN)
-		QuestlogDown();
-}
-
 void StoreMove(AxisDirection moveDir)
 {
 	static AxisDirectionRepeater repeater;
@@ -1684,6 +1714,16 @@ void LogGamepadChange(GamepadLayout newGamepad)
 #endif
 
 } // namespace
+
+void QuestLogMove(AxisDirection moveDir)
+{
+	static AxisDirectionRepeater repeater;
+	moveDir = repeater.Get(moveDir);
+	if (moveDir.y == AxisDirectionY_UP)
+		QuestlogUp();
+	else if (moveDir.y == AxisDirectionY_DOWN)
+		QuestlogDown();
+}
 
 void HotSpellMove(AxisDirection dir)
 {
@@ -2026,7 +2066,7 @@ void plrctrls_after_game_logic()
 
 	// Update local co-op player movement
 	UpdateLocalCoopMovement();
-	
+
 	// Update local co-op skill button holds (for quick spell menu)
 	UpdateLocalCoopSkillButtons();
 
@@ -2262,6 +2302,47 @@ void PerformSecondaryAction()
 				TransferItemToInventory(myPlayer, pcursstashitem);
 			} else if (pcursinvitem != -1) {
 				TransferItemToStash(myPlayer, pcursinvitem);
+			}
+		} else if (pcursinvitem != -1) {
+			// If inventory item is highlighted (via D-Pad navigation), grab it to cursor
+			Item &item = GetInventoryItem(myPlayer, pcursinvitem);
+			if (!item.isEmpty() && myPlayer._pmode <= PM_WALK_SIDEWAYS && myPlayer.HoldItem.isEmpty()) {
+				CloseGoldDrop();
+
+				// Store the item location before removing
+				const int8_t itemLocation = pcursinvitem;
+
+				// Put item in HoldItem
+				myPlayer.HoldItem = item;
+				myPlayer.HoldItem._iStatFlag = myPlayer.CanUseItem(myPlayer.HoldItem);
+
+				// Remove item from inventory based on location
+				if (itemLocation < INVITEM_INV_FIRST) {
+					// Equipment slot
+					RemoveEquipment(myPlayer, static_cast<inv_body_loc>(itemLocation), false);
+					CalcPlrInv(myPlayer, true);
+				} else if (itemLocation <= INVITEM_INV_LAST) {
+					// Inventory grid
+					myPlayer.RemoveInvItem(itemLocation - INVITEM_INV_FIRST, false);
+				} else {
+					// Belt
+					myPlayer.RemoveSpdBarItem(itemLocation - INVITEM_BELT_FIRST);
+				}
+
+				// Handle gold separately
+				if (myPlayer.HoldItem._itype == ItemType::Gold) {
+					myPlayer._pGold = CalculateGold(myPlayer);
+				}
+
+				// Update cursor to show the item
+				NewCursor(myPlayer.HoldItem);
+				PlaySFX(SfxID::GrabItem);
+
+				// Clear pcursinvitem since item is no longer in inventory
+				pcursinvitem = -1;
+			} else {
+				// Fall back to using the item if we can't grab
+				CtrlUseInvItem();
 			}
 		} else {
 			CtrlUseInvItem();
