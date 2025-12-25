@@ -459,7 +459,7 @@ uint32_t DoDrawString(const Surface &out, std::string_view text, Rectangle rect,
 		if (opts.cursorPosition == static_cast<int>(text.size() - remaining.size())) {
 			Point position = characterPosition;
 			MaybeWrap(position, 2, rightMargin, position.x, opts.lineHeight);
-			if (GetAnimationFrame(2, 500) != 0) {
+			if (GetAnimationFrame(2, 500) != 0 || opts.cursorStatic) {
 				FontStack baseFont = LoadFont(size, color, 0);
 				if (baseFont.has_value()) {
 					DrawFont(out, position, baseFont.glyph('|'), color, outline);
