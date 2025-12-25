@@ -2113,7 +2113,7 @@ void DrawCoopSmallBar(const Surface &out, Point position, int width, int height,
 			if (isXP) {
 				fillColor = PAL16_GRAY + 13; // White-ish for XP
 			} else if (isMana) {
-				fillColor = PAL16_BLUE + 12; // Bright blue
+				fillColor = PAL16_BLUE + 8;
 			} else if (hasManaShield) {
 				fillColor = PAL16_YELLOW + 8;
 			} else {
