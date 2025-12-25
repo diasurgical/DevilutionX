@@ -584,6 +584,11 @@ void ProcessLocalCoopDpadInput(int localIndex, const SDL_Event &event)
 					LocalCoopPlayerContext context(playerId);
 					// Navigate the panel using the navigation system
 					ProcessGamePanelNavigation(dir);
+					// Update pcursinvitem after navigation to ensure info box displays correctly
+					// This is especially important for belt items in local coop
+					if (invflag) {
+						pcursinvitem = CheckInvHLight();
+					}
 				}
 			}
 		}
@@ -3808,11 +3813,12 @@ void PerformLocalCoopPrimaryAction(int localIndex)
 	// Temporarily swap player context so network commands use correct player ID
 	LocalCoopPlayerContext context(playerId);
 
-	// If this player owns panels and inventory is open, auto-move items like shift-click
-	// This moves belt items to inventory and inventory items to belt (like Player 1 does)
+	// If this player owns panels and inventory is open, handle inventory interactions
 	if (g_LocalCoop.panelOwnerPlayerId == playerId && invflag) {
-		// Use CheckInvItem with isShiftHeld=true to trigger auto-move behavior
-		// This moves belt items to inventory, and inventory items that can go in belt to belt
+		// Handle inventory interactions with auto-move behavior (isShiftHeld=true)
+		// Belt items will automatically move to inventory
+		// Inventory items will automatically move to belt (if possible)
+		// CheckInvItem handles both cutting (when not holding item) and pasting (when holding item)
 		CheckInvItem(true, false);
 		return;
 	}
@@ -4428,6 +4434,12 @@ bool HandleLocalCoopButtonPress(uint8_t playerId, ControllerButton button)
 		// For player 1, check if A button is pressed with a target under cursor
 		// If so, perform primary action instead of using skill slot
 		if (playerId == 0 && button == ControllerButton_BUTTON_A) {
+			// If inventory is open and cursor is over an inventory item, move items
+			if (invflag && pcursinvitem != -1) {
+				CheckInvItem(true, false);
+				return true;
+			}
+			// Otherwise, check if there's a primary target (monster/object)
 			if (HasPlayer1PrimaryTarget()) {
 				// Track that we're performing primary action
 				if (playerId < Players.size()) {
