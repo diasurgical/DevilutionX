@@ -2517,6 +2517,16 @@ void AddIdentify(Missile &missile, AddMissileParameter & /*parameter*/)
 		if (SpellbookFlag)
 			SpellbookFlag = false;
 		if (!invflag) {
+			// In local coop mode, claim panel ownership and set player context
+			if (IsLocalCoopEnabled() && missile._misource >= 0 && static_cast<size_t>(missile._misource) < Players.size()) {
+				uint8_t playerId = static_cast<uint8_t>(missile._misource);
+				if (g_LocalCoop.TryClaimPanelOwnership(playerId)) {
+					MyPlayer = &Players[playerId];
+					MyPlayerId = playerId;
+					InspectPlayer = &Players[playerId];
+					InitInv();
+				}
+			}
 			invflag = true;
 			if (ControlMode != ControlTypes::KeyboardAndMouse)
 				FocusOnInventory();
@@ -2606,6 +2616,16 @@ void AddItemRepair(Missile &missile, AddMissileParameter & /*parameter*/)
 		if (SpellbookFlag)
 			SpellbookFlag = false;
 		if (!invflag) {
+			// In local coop mode, claim panel ownership and set player context
+			if (IsLocalCoopEnabled() && missile._misource >= 0 && static_cast<size_t>(missile._misource) < Players.size()) {
+				uint8_t playerId = static_cast<uint8_t>(missile._misource);
+				if (g_LocalCoop.TryClaimPanelOwnership(playerId)) {
+					MyPlayer = &Players[playerId];
+					MyPlayerId = playerId;
+					InspectPlayer = &Players[playerId];
+					InitInv();
+				}
+			}
 			invflag = true;
 			if (ControlMode != ControlTypes::KeyboardAndMouse)
 				FocusOnInventory();
@@ -2623,6 +2643,16 @@ void AddStaffRecharge(Missile &missile, AddMissileParameter & /*parameter*/)
 		if (SpellbookFlag)
 			SpellbookFlag = false;
 		if (!invflag) {
+			// In local coop mode, claim panel ownership and set player context
+			if (IsLocalCoopEnabled() && missile._misource >= 0 && static_cast<size_t>(missile._misource) < Players.size()) {
+				uint8_t playerId = static_cast<uint8_t>(missile._misource);
+				if (g_LocalCoop.TryClaimPanelOwnership(playerId)) {
+					MyPlayer = &Players[playerId];
+					MyPlayerId = playerId;
+					InspectPlayer = &Players[playerId];
+					InitInv();
+				}
+			}
 			invflag = true;
 			if (ControlMode != ControlTypes::KeyboardAndMouse)
 				FocusOnInventory();
