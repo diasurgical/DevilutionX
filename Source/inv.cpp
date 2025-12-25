@@ -2426,3 +2426,4 @@ Size GetInventorySize(const Item &item)
 }
 
 } // namespace devilution
+

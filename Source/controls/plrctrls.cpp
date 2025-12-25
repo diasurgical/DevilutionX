@@ -2303,6 +2303,9 @@ void PerformSecondaryAction()
 			} else if (pcursinvitem != -1) {
 				TransferItemToStash(myPlayer, pcursinvitem);
 			}
+		} else if (!myPlayer.HoldItem.isEmpty()) {
+			// If player is holding an item, try to place it
+			CheckInvItem(true, false);
 		} else if (pcursinvitem != -1) {
 			// If inventory item is highlighted (via D-Pad navigation), grab it to cursor
 			Item &item = GetInventoryItem(myPlayer, pcursinvitem);
