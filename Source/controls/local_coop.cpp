@@ -4663,23 +4663,23 @@ bool HandleLocalCoopButtonRelease(uint8_t playerId, ControllerButton button)
 						// Local coop player - use their own cursor state
 						LocalCoopPlayer *coopPlayer = g_LocalCoop.GetPlayer(playerId);
 						if (coopPlayer != nullptr && coopPlayer->active && coopPlayer->initialized) {
-								// Calculate target position using this player's cursor state
-								LocalCoopCursorState &cursor = coopPlayer->cursor;
-								Point spellTarget = targetPlayer.position.future + Displacement(targetPlayer._pdir);
+							// Calculate target position using this player's cursor state
+							LocalCoopCursorState &cursor = coopPlayer->cursor;
+							Point spellTarget = targetPlayer.position.future + Displacement(targetPlayer._pdir);
 
-								if (cursor.pcursmonst != -1) {
-									spellTarget = Monsters[cursor.pcursmonst].position.tile;
-								} else if (cursor.playerUnderCursor != nullptr && cursor.playerUnderCursor != &targetPlayer) {
-									spellTarget = cursor.playerUnderCursor->position.future;
-								}
+							if (cursor.pcursmonst != -1) {
+								spellTarget = Monsters[cursor.pcursmonst].position.tile;
+							} else if (cursor.playerUnderCursor != nullptr && cursor.playerUnderCursor != &targetPlayer) {
+								spellTarget = cursor.playerUnderCursor->position.future;
+							}
 
-								// Cast the spell - need to use LocalCoopPlayerContext so MyPlayerId is set correctly
-								// NetSendCmdLocParam3 uses MyPlayerId internally
-								// Last parameter is spellFrom (0 = regular cast, not from item)
-								LocalCoopPlayerContext context(playerId);
-								NetSendCmdLocParam3(true, CMD_SPELLXY, spellTarget,
-								    static_cast<int16_t>(spell),
-								    static_cast<int8_t>(spellType), 0);
+							// Cast the spell - need to use LocalCoopPlayerContext so MyPlayerId is set correctly
+							// NetSendCmdLocParam3 uses MyPlayerId internally
+							// Last parameter is spellFrom (0 = regular cast, not from item)
+							LocalCoopPlayerContext context(playerId);
+							NetSendCmdLocParam3(true, CMD_SPELLXY, spellTarget,
+							    static_cast<int16_t>(spell),
+							    static_cast<int8_t>(spellType), 0);
 						}
 					}
 				} else {
