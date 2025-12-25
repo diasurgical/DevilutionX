@@ -2937,15 +2937,20 @@ Point CalculateLocalCoopViewPosition()
 	int totalY = 0;
 	int activeCount = 0;
 
-	// Sum positions of all active players
-	size_t totalPlayers = g_LocalCoop.GetTotalPlayerCount();
-	for (size_t i = 0; i < totalPlayers && i < Players.size(); ++i) {
+	// Sum positions of all active players that have chosen a character (initialized)
+	// Iterate through all possible player slots to handle gaps (e.g., player 2 not chosen yet)
+	for (size_t i = 0; i < MaxLocalPlayers && i < Players.size(); ++i) {
 		const Player &player = Players[i];
-		if (player.plractive && !player.hasNoLife()) {
-			totalX += player.position.tile.x;
-			totalY += player.position.tile.y;
-			activeCount++;
-		}
+		// Check both that the Player is active AND that the LocalCoopPlayer state is initialized
+		// This ensures we only include players who have actually chosen a character
+		if (!player.plractive || player.hasNoLife())
+			continue;
+		if (i >= g_LocalCoop.players.size() || !g_LocalCoop.players[i].initialized)
+			continue;
+
+		totalX += player.position.tile.x;
+		totalY += player.position.tile.y;
+		activeCount++;
 	}
 
 	// If no active players, fall back to MyPlayer
@@ -2985,55 +2990,63 @@ void UpdateLocalCoopCamera()
 	if (!g_LocalCoop.enabled || !IsLocalCoopEnabled())
 		return;
 
-	// Only update camera if character selection is complete for all players
-	if (g_LocalCoop.IsAnyCharacterSelectActive())
-		return;
-
-	// Check if any local co-op player has been initialized (spawned)
-	bool anyInitialized = false;
-	for (const auto &player : g_LocalCoop.players) {
-		if (player.active && player.initialized) {
-			anyInitialized = true;
+	// Check if any local co-op player (excluding player 1) has been initialized (spawned)
+	// Only take over camera control when there are actually multiple players active
+	bool anyCoopPlayerInitialized = false;
+	for (size_t i = 1; i < g_LocalCoop.players.size(); ++i) {
+		if (g_LocalCoop.players[i].active && g_LocalCoop.players[i].initialized) {
+			anyCoopPlayerInitialized = true;
 			break;
 		}
 	}
 
-	// Don't take over camera control until at least one local co-op player has spawned
-	if (!anyInitialized)
+	// Don't take over camera control until at least one co-op player has spawned
+	// This allows normal single-player camera behavior when only player 1 is active
+	if (!anyCoopPlayerInitialized)
 		return;
 
 	// Calculate pixel-precise positions for all active players in screen space
 	// Screen coordinates: screenX = (tileY - tileX) * 32, screenY = (tileY + tileX) * -16
 	// We scale by 256 for precision before division
-	size_t totalPlayers = g_LocalCoop.GetTotalPlayerCount();
 	int activeCount = 0;
 
 	// Accumulate screen-space positions (scaled by 256 for precision)
 	int64_t totalScreenX = 0;
 	int64_t totalScreenY = 0;
 
-	for (size_t i = 0; i < totalPlayers && i < Players.size(); ++i) {
+	// Iterate through all possible player slots (not just GetTotalPlayerCount)
+	// This ensures we include all initialized players regardless of gaps
+	// e.g., if player 2 hasn't chosen yet, we still include players 1 and 3
+	for (size_t i = 0; i < MaxLocalPlayers && i < Players.size(); ++i) {
 		const Player &player = Players[i];
-		if (player.plractive && !player.hasNoLife()) {
-			// Convert tile position to screen space (scaled by 256)
-			// worldToScreen: screenX = (tileY - tileX) * 32, screenY = (tileY + tileX) * -16
-			int tileX = player.position.tile.x;
-			int tileY = player.position.tile.y;
-			int64_t screenX = static_cast<int64_t>(tileY - tileX) * 32 * 256;
-			int64_t screenY = static_cast<int64_t>(tileY + tileX) * -16 * 256;
+		// Check both that the Player is active AND that the LocalCoopPlayer state is initialized
+		// This double-check is necessary because:
+		// - player.plractive is false until character selection is confirmed
+		// - g_LocalCoop.players[i].initialized tracks whether they've chosen a character
+		// We need BOTH to be true to include a player in camera calculations
+		if (!player.plractive || player.hasNoLife())
+			continue;
+		if (i >= g_LocalCoop.players.size() || !g_LocalCoop.players[i].initialized)
+			continue;
 
-			// If player is walking, add their walking offset (already in screen pixels)
-			// Scale it up by 256 to match our precision
-			if (player.isWalking()) {
-				Displacement screenOffset = GetOffsetForWalking(player.AnimInfo, player._pdir, true);
-				screenX += static_cast<int64_t>(screenOffset.deltaX) * 256;
-				screenY += static_cast<int64_t>(screenOffset.deltaY) * 256;
-			}
+		// Convert tile position to screen space (scaled by 256)
+		// worldToScreen: screenX = (tileY - tileX) * 32, screenY = (tileY + tileX) * -16
+		int tileX = player.position.tile.x;
+		int tileY = player.position.tile.y;
+		int64_t screenX = static_cast<int64_t>(tileY - tileX) * 32 * 256;
+		int64_t screenY = static_cast<int64_t>(tileY + tileX) * -16 * 256;
 
-			totalScreenX += screenX;
-			totalScreenY += screenY;
-			activeCount++;
+		// If player is walking, add their walking offset (already in screen pixels)
+		// Scale it up by 256 to match our precision
+		if (player.isWalking()) {
+			Displacement screenOffset = GetOffsetForWalking(player.AnimInfo, player._pdir, true);
+			screenX += static_cast<int64_t>(screenOffset.deltaX) * 256;
+			screenY += static_cast<int64_t>(screenOffset.deltaY) * 256;
 		}
+
+		totalScreenX += screenX;
+		totalScreenY += screenY;
+		activeCount++;
 	}
 
 	// Need at least 1 active player
@@ -3136,17 +3149,18 @@ Displacement GetLocalCoopCameraOffset()
 	if (!g_LocalCoop.enabled || !IsLocalCoopEnabled())
 		return {};
 
-	// Check if any local co-op player has been initialized (spawned)
-	bool anyInitialized = false;
-	for (const auto &player : g_LocalCoop.players) {
-		if (player.active && player.initialized) {
-			anyInitialized = true;
+	// Check if any local co-op player (excluding player 1) has been initialized (spawned)
+	bool anyCoopPlayerInitialized = false;
+	for (size_t i = 1; i < g_LocalCoop.players.size(); ++i) {
+		if (g_LocalCoop.players[i].active && g_LocalCoop.players[i].initialized) {
+			anyCoopPlayerInitialized = true;
 			break;
 		}
 	}
 
-	// Don't provide camera offset until at least one local co-op player has spawned
-	if (!anyInitialized)
+	// Don't provide camera offset until at least one co-op player has spawned
+	// This allows normal single-player camera behavior when only player 1 is active
+	if (!anyCoopPlayerInitialized)
 		return {};
 
 	// Return the pre-calculated average offset from UpdateLocalCoopCamera
