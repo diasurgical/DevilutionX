@@ -4793,6 +4793,8 @@ void PerformLocalCoopPrimaryAction(int /*localIndex*/) { }
 void PerformLocalCoopSecondaryAction(int /*localIndex*/) { }
 bool AreLocalCoopPanelsOpen() { return false; }
 Player *GetLocalCoopPanelOwnerPlayer() { return nullptr; }
+std::optional<Point> GetLocalCoopBeltSlotPosition(uint8_t /*playerId*/, int /*beltSlot*/) { return std::nullopt; }
+std::optional<inv_xy_slot> FindLocalCoopBeltSlotUnderCursor(Point /*cursorPosition*/, uint8_t & /*outPlayerId*/) { return std::nullopt; }
 bool IsLocalCoopTargetMonster(int /*monsterId*/) { return false; }
 bool IsLocalCoopTargetItem(int8_t /*itemIndex*/) { return false; }
 void RestorePlayer1ContextForSave() { }
