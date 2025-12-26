@@ -682,6 +682,11 @@ void CheckLevelButtonUp()
 
 void DrawLevelButton(const Surface &out)
 {
+#ifndef USE_SDL1
+	// Hide level up button in local coop mode (attribute indicator is shown in local coop panel instead)
+	if (IsLocalCoopEnabled())
+		return;
+#endif
 	if (IsLevelUpButtonVisible()) {
 		const int nCel = LevelButtonDown ? 2 : 1;
 		DrawString(out, _("Level Up"), { GetMainPanel().position + Displacement { 0, LevelButtonRect.position.y - 23 }, { 120, 0 } },
