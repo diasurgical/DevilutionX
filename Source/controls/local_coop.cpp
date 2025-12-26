@@ -12,6 +12,7 @@
 
 #include "control/control.hpp"
 #include "controls/controller_motion.h"
+#include "controls/control_mode.hpp"
 #include "controls/devices/game_controller.h"
 #include "controls/game_controls.h"
 #include "controls/modifier_hints.h"
@@ -19,6 +20,7 @@
 #include "cursor.h"
 #include "diablo.h"
 #include "gamemenu.h"
+#include "gmenu.h"
 #include "doom.h"
 #include "engine/load_clx.hpp"
 #include "engine/palette.h"
@@ -735,6 +737,10 @@ void ProcessLocalCoopDpadInput(uint8_t playerId, const SDL_Event &event)
 	if (coopPlayer->characterSelectActive)
 		return;
 
+	// Don't process D-pad for movement when pad menu navigator is active
+	if (coopPlayer->padMenuNavigatorActive)
+		return;
+
 	// If quick spell menu is open for skill assignment, use D-pad for navigation
 	if (SpellSelectFlag && coopPlayer->skillMenuOpenedByHold) {
 		if (event.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN) {
@@ -1136,6 +1142,23 @@ void ProcessLocalCoopButtonInput(uint8_t playerId, const SDL_Event &event)
 			break;
 		}
 	} else if (isButtonUp) {
+		// Don't process button releases for menu navigation actions when pad menu is open
+		// (button presses are handled in the padMenuNavigatorActive block above)
+		if (coopPlayer->padMenuNavigatorActive) {
+			// Only handle start button release to deactivate menu navigator
+			if (button == SDL_GAMEPAD_BUTTON_START) {
+				// Deactivate menu navigator
+				coopPlayer->padMenuNavigatorActive = false;
+				// If it was a quick press (less than 200ms), also toggle inventory
+				uint32_t pressDuration = SDL_GetTicks() - coopPlayer->startButtonPressTime;
+				constexpr uint32_t QuickPressThreshold = 200;
+				if (pressDuration < QuickPressThreshold) {
+					ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_INVENTORY);
+				}
+			}
+			return;
+		}
+
 		// Handle skill button release - cast spell if it was a short press
 		// Use same slot mapping as player 1: A=2, B=3, X=0, Y=1
 		int releasedSlot = GetSkillSlotFromSDLButton(button);
@@ -1282,6 +1305,10 @@ void UpdateLocalCoopPlayerMovement(uint8_t playerId)
 	if (!coopPlayer->active || !coopPlayer->initialized)
 		return;
 	if (coopPlayer->characterSelectActive)
+		return;
+
+	// Don't move when pad menu navigator is active
+	if (coopPlayer->padMenuNavigatorActive)
 		return;
 
 	// Don't move when this player owns a panel or store
@@ -1892,6 +1919,100 @@ bool ProcessLocalCoopInput(const SDL_Event &event)
 	// Only process input for local co-op players (players 2-4, playerId 1-3)
 	if (playerId == 0)
 		return false;
+
+	// When the game menu is open, translate local coop controller input to keyboard keys
+	// for menu navigation, same as player 1
+	if (gmenu_is_active()) {
+		// Only handle button events for menu navigation
+		if (event.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN || event.type == SDL_EVENT_GAMEPAD_BUTTON_UP) {
+			const auto button = SDLC_EventGamepadButton(event).button;
+			ControllerButton controllerButton = ControllerButton_NONE;
+
+			// Convert SDL gamepad button to ControllerButton
+			switch (button) {
+			case SDL_GAMEPAD_BUTTON_SOUTH:
+				controllerButton = ControllerButton_BUTTON_A;
+				break;
+			case SDL_GAMEPAD_BUTTON_EAST:
+				controllerButton = ControllerButton_BUTTON_B;
+				break;
+			case SDL_GAMEPAD_BUTTON_WEST:
+				controllerButton = ControllerButton_BUTTON_X;
+				break;
+			case SDL_GAMEPAD_BUTTON_NORTH:
+				controllerButton = ControllerButton_BUTTON_Y;
+				break;
+			case SDL_GAMEPAD_BUTTON_BACK:
+				controllerButton = ControllerButton_BUTTON_BACK;
+				break;
+			case SDL_GAMEPAD_BUTTON_START:
+				controllerButton = ControllerButton_BUTTON_START;
+				break;
+			case SDL_GAMEPAD_BUTTON_LEFT_STICK:
+				controllerButton = ControllerButton_BUTTON_LEFTSTICK;
+				break;
+			case SDL_GAMEPAD_BUTTON_DPAD_UP:
+				controllerButton = ControllerButton_BUTTON_DPAD_UP;
+				break;
+			case SDL_GAMEPAD_BUTTON_DPAD_DOWN:
+				controllerButton = ControllerButton_BUTTON_DPAD_DOWN;
+				break;
+			case SDL_GAMEPAD_BUTTON_DPAD_LEFT:
+				controllerButton = ControllerButton_BUTTON_DPAD_LEFT;
+				break;
+			case SDL_GAMEPAD_BUTTON_DPAD_RIGHT:
+				controllerButton = ControllerButton_BUTTON_DPAD_RIGHT;
+				break;
+			default:
+				break;
+			}
+
+			// Translate ControllerButton to keyboard key for menu navigation
+			if (controllerButton != ControllerButton_NONE) {
+				SDL_Keycode key = SDLK_UNKNOWN;
+				// Use same translation logic as player 1
+				// For game menu, use TranslateControllerButtonToGameMenuKey logic
+				// but also include D-pad for navigation (like TranslateControllerButtonToMenuKey)
+				switch (TranslateTo(GamepadType, controllerButton)) {
+				case ControllerButton_BUTTON_A:
+				case ControllerButton_BUTTON_Y:
+					key = SDLK_RETURN;
+					break;
+				case ControllerButton_BUTTON_B:
+				case ControllerButton_BUTTON_BACK:
+				case ControllerButton_BUTTON_START:
+					key = SDLK_ESCAPE;
+					break;
+				case ControllerButton_BUTTON_LEFTSTICK:
+					key = SDLK_TAB; // Map
+					break;
+				case ControllerButton_BUTTON_DPAD_UP:
+					key = SDLK_UP;
+					break;
+				case ControllerButton_BUTTON_DPAD_DOWN:
+					key = SDLK_DOWN;
+					break;
+				case ControllerButton_BUTTON_DPAD_LEFT:
+					key = SDLK_LEFT;
+					break;
+				case ControllerButton_BUTTON_DPAD_RIGHT:
+					key = SDLK_RIGHT;
+					break;
+				default:
+					break;
+				}
+
+				// Send key to menu system (only on button down)
+				if (key != SDLK_UNKNOWN && event.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN) {
+					if (gmenu_presskeys(key)) {
+						return true;
+					}
+				}
+			}
+		}
+		// Don't process movement or other actions when menu is open
+		return true;
+	}
 
 	// Process all input for this player
 	ProcessLocalCoopAxisMotion(static_cast<uint8_t>(playerId), event);
