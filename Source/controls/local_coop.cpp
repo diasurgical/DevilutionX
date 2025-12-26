@@ -630,6 +630,19 @@ void LoadHeroInfosForLocalCoop(std::vector<_uiheroinfo> &heroList, const std::ve
 	int savedPlrLevel = Players[0].plrlevel;
 	bool savedPlrIsOnSetLevel = Players[0].plrIsOnSetLevel;
 
+	// Save player 1's runtime state that should be preserved (experience, level, stats, HP, mana, etc.)
+	uint32_t savedExperience = Players[0]._pExperience;
+	uint8_t savedLevel = Players[0].getCharacterLevel();
+	int savedStatPts = Players[0]._pStatPts;
+	int savedHitPoints = Players[0]._pHitPoints;
+	int savedMaxHP = Players[0]._pMaxHP;
+	int savedHPBase = Players[0]._pHPBase;
+	int savedMaxHPBase = Players[0]._pMaxHPBase;
+	int savedMana = Players[0]._pMana;
+	int savedMaxMana = Players[0]._pMaxMana;
+	int savedManaBase = Players[0]._pManaBase;
+	int savedMaxManaBase = Players[0]._pMaxManaBase;
+
 	// This will modify Players[0] for each hero
 	// It uses gbIsMultiplayer to determine save directory (single_ vs multi_)
 	// so it will automatically show the correct characters based on the current game mode
@@ -647,6 +660,20 @@ void LoadHeroInfosForLocalCoop(std::vector<_uiheroinfo> &heroList, const std::ve
 		Players[0].position.tile = savedPosition;
 		Players[0].plrlevel = savedPlrLevel;
 		Players[0].plrIsOnSetLevel = savedPlrIsOnSetLevel;
+
+		// Restore player 1's runtime state (experience, level, stats, HP, mana, etc.)
+		// This prevents the player from losing progress when another player changes character selection
+		Players[0]._pExperience = savedExperience;
+		Players[0].setCharacterLevel(savedLevel);
+		Players[0]._pStatPts = savedStatPts;
+		Players[0]._pHitPoints = savedHitPoints;
+		Players[0]._pMaxHP = savedMaxHP;
+		Players[0]._pHPBase = savedHPBase;
+		Players[0]._pMaxHPBase = savedMaxHPBase;
+		Players[0]._pMana = savedMana;
+		Players[0]._pMaxMana = savedMaxMana;
+		Players[0]._pManaBase = savedManaBase;
+		Players[0]._pMaxManaBase = savedMaxManaBase;
 	}
 
 	// Clear static variables
@@ -770,9 +797,9 @@ void ProcessLocalCoopDpadInput(uint8_t playerId, const SDL_Event &event)
 		return; // Don't update movement when navigating spell menu
 	}
 
-	// If this player owns panels, use D-pad for panel navigation instead of movement
+		// If this player owns panels, use D-pad for panel navigation instead of movement
 	// Panels: inventory, character sheet, quest log, spellbook
-	if (g_LocalCoop.panelOwnerPlayerId == static_cast<int>(playerId) && (invflag || CharFlag || QuestLogIsOpen || SpellbookFlag)) {
+	if (g_LocalCoop.DoesPlayerOwnPanels(playerId) && (invflag || CharFlag || QuestLogIsOpen || SpellbookFlag)) {
 		// Handle both button down and up events for panel navigation
 		// Button down: navigate the panel
 		// Button up: return early to prevent movement D-pad state from being updated
@@ -1053,7 +1080,7 @@ void ProcessLocalCoopButtonInput(uint8_t playerId, const SDL_Event &event)
 			if (TryUseBeltItem(playerId, 0, coopPlayer->leftShoulderHeld, coopPlayer->rightShoulderHeld))
 				return;
 			// If this player owns panels (inventory/character/etc.), always perform primary action for panel interaction
-			if (g_LocalCoop.panelOwnerPlayerId == static_cast<int>(playerId) && (invflag || CharFlag || QuestLogIsOpen || SpellbookFlag)) {
+			if (g_LocalCoop.DoesPlayerOwnPanels(playerId) && (invflag || CharFlag || QuestLogIsOpen || SpellbookFlag)) {
 				coopPlayer->actionHeld = GameActionType_PRIMARY_ACTION;
 				ProcessLocalCoopGameAction(playerId, GameActionType_PRIMARY_ACTION);
 			}
@@ -1078,7 +1105,7 @@ void ProcessLocalCoopButtonInput(uint8_t playerId, const SDL_Event &event)
 			if (TryUseBeltItem(playerId, 1, coopPlayer->leftShoulderHeld, coopPlayer->rightShoulderHeld))
 				return;
 			// If this player owns panels and inventory is open, perform secondary action for item interaction
-			if (g_LocalCoop.panelOwnerPlayerId == playerId && invflag) {
+			if (g_LocalCoop.DoesPlayerOwnPanels(playerId) && invflag) {
 				// Check if cursor is over an inventory item, belt slot, or player is holding an item
 				bool isOverBeltSlot = false;
 				if (IsLocalCoopEnabled()) {
@@ -1171,7 +1198,7 @@ void ProcessLocalCoopButtonInput(uint8_t playerId, const SDL_Event &event)
 				if (coopPlayer->actionHeld == GameActionType_PRIMARY_ACTION) {
 					// Check if character panel is open and a character button was active
 					// If so, release the character button to allocate the attribute
-					if (g_LocalCoop.panelOwnerPlayerId == static_cast<int>(playerId) && CharFlag && CharPanelButtonActive) {
+					if (g_LocalCoop.DoesPlayerOwnPanels(playerId) && CharFlag && CharPanelButtonActive) {
 						// Set player context so ReleaseChrBtns uses the correct player
 						LocalCoopPlayerContext context(playerId);
 						// Make sure pChrButtons is loaded before releasing buttons (prevents crash)
@@ -1196,7 +1223,7 @@ void ProcessLocalCoopButtonInput(uint8_t playerId, const SDL_Event &event)
 		// If we released a skill button that was being held
 		if (releasedSlot >= 0 && coopPlayer->skillButtonHeld == releasedSlot) {
 			// Don't cast spell if character panel button was active (attribute allocation takes priority)
-			if (!(g_LocalCoop.panelOwnerPlayerId == static_cast<int>(playerId) && CharFlag && CharPanelButtonActive)) {
+			if (!(g_LocalCoop.DoesPlayerOwnPanels(playerId) && CharFlag && CharPanelButtonActive)) {
 				// If the menu wasn't opened by this hold, it was a short press - cast the spell
 				if (!coopPlayer->skillMenuOpenedByHold) {
 					CastLocalCoopHotkeySpell(playerId, releasedSlot);
@@ -1307,7 +1334,7 @@ void UpdateLocalCoopPlayerMovement(uint8_t playerId)
 		return;
 
 	// Don't move when this player owns a panel or store
-	if (g_LocalCoop.panelOwnerPlayerId == static_cast<int>(playerId) || g_LocalCoop.storeOwnerPlayerId == static_cast<int>(playerId))
+	if (g_LocalCoop.DoesPlayerOwnPanels(playerId) || g_LocalCoop.storeOwnerPlayerId == static_cast<int>(playerId))
 		return;
 
 	// Skip if player is not on the same level as player 1
@@ -1479,6 +1506,14 @@ uint8_t LocalCoopState::GetPanelOwnerPlayerId() const
 	if (panelOwnerPlayerId < 0)
 		return 0; // Player 1
 	return static_cast<uint8_t>(panelOwnerPlayerId);
+}
+
+bool LocalCoopState::DoesPlayerOwnPanels(uint8_t playerId) const
+{
+	// If no explicit owner, Player 1 owns the panels by default
+	if (panelOwnerPlayerId < 0)
+		return playerId == 0;
+	return panelOwnerPlayerId == static_cast<int>(playerId);
 }
 
 bool LocalCoopState::TryClaimPanelOwnership(uint8_t playerId)
@@ -4241,7 +4276,7 @@ void PerformLocalCoopPrimaryAction(uint8_t playerId)
 	LocalCoopPlayerContext context(playerId);
 
 	// If this player owns panels and character panel is open, handle character panel button clicks
-	if (g_LocalCoop.panelOwnerPlayerId == playerId && CharFlag) {
+	if (g_LocalCoop.DoesPlayerOwnPanels(playerId) && CharFlag) {
 		// CheckChrBtns uses MyPlayer and MousePosition, so we need to ensure context is set
 		// Make sure pChrButtons is loaded before checking buttons (prevents crash)
 		if (pChrButtons.has_value()) {
@@ -4251,7 +4286,7 @@ void PerformLocalCoopPrimaryAction(uint8_t playerId)
 	}
 
 	// If this player owns panels and inventory is open, handle inventory interactions
-	if (g_LocalCoop.panelOwnerPlayerId == playerId && invflag) {
+	if (g_LocalCoop.DoesPlayerOwnPanels(playerId) && invflag) {
 		// Check for spell cursors (Identify, Repair, Recharge, etc.) first
 		// These need to be handled before normal inventory interactions
 		if (pcurs > CURSOR_HAND && pcurs < CURSOR_FIRSTITEM) {
@@ -4317,7 +4352,7 @@ void PerformLocalCoopSecondaryAction(uint8_t playerId)
 	LocalCoopCursorState &cursor = coopPlayer->cursor;
 
 	// If this player owns panels and inventory is open, handle inventory interactions
-	if (g_LocalCoop.panelOwnerPlayerId == playerId && invflag) {
+	if (g_LocalCoop.DoesPlayerOwnPanels(playerId) && invflag) {
 		// If player is holding an item, try to place it
 		if (!player->HoldItem.isEmpty()) {
 			// Handle inventory interactions with auto-move behavior (isShiftHeld=true)
@@ -4498,7 +4533,7 @@ void ProcessLocalCoopGameAction(uint8_t playerId, uint8_t actionType)
 			// CRITICAL: Restore context after ProcessGameAction
 			// ProcessGameAction might have reset MyPlayer/InspectPlayer, so we need to restore it
 			// This ensures the context persists while panels are open
-			if (g_LocalCoop.panelOwnerPlayerId == static_cast<int>(playerId)) {
+			if (g_LocalCoop.DoesPlayerOwnPanels(playerId)) {
 				MyPlayer = &Players[playerId];
 				MyPlayerId = playerId;
 				InspectPlayer = &Players[playerId];
@@ -4854,6 +4889,19 @@ bool HandleLocalCoopButtonPress(uint8_t playerId, ControllerButton button)
 		// For player 1, check if A button is pressed with a target under cursor
 		// If so, perform primary action instead of using skill slot
 		if (playerId == 0 && button == ControllerButton_BUTTON_A) {
+			// If character panel is open, check if cursor is over a character button
+			if (CharFlag && MyPlayer->_pStatPts > 0) {
+				// Check if cursor is over a character button
+				CheckChrBtns();
+				if (CharPanelButtonActive) {
+					// Track that we're performing primary action for character panel
+					LocalCoopPlayer *coopPlayer = g_LocalCoop.GetPlayer(playerId);
+					if (coopPlayer != nullptr) {
+						coopPlayer->actionHeld = GameActionType_PRIMARY_ACTION;
+					}
+					return true;
+				}
+			}
 			// If inventory is open, check if cursor is over a valid inventory/belt area
 			if (invflag) {
 				// Check if cursor is over an inventory item (pcursinvitem != -1)
@@ -4975,7 +5023,7 @@ bool HandleLocalCoopButtonRelease(uint8_t playerId, ControllerButton button)
 		if (coopPlayer != nullptr && coopPlayer->actionHeld == GameActionType_PRIMARY_ACTION) {
 			// Check if character panel is open and a character button was active
 			// If so, release the character button to allocate the attribute
-			if (g_LocalCoop.panelOwnerPlayerId == static_cast<int>(playerId) && CharFlag && CharPanelButtonActive) {
+			if (g_LocalCoop.DoesPlayerOwnPanels(playerId) && CharFlag && CharPanelButtonActive) {
 				// Set player context so ReleaseChrBtns uses the correct player
 				LocalCoopPlayerContext context(playerId);
 				// Make sure pChrButtons is loaded before releasing buttons (prevents crash)

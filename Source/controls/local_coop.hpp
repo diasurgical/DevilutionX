@@ -173,6 +173,10 @@ struct LocalCoopState {
 	/// Get the game player ID that owns panels (0 for player 1, 1-3 for local coop)
 	[[nodiscard]] uint8_t GetPanelOwnerPlayerId() const;
 
+	/// Check if a specific player owns the panels (handles default case where Player 1 owns when panelOwnerPlayerId is -1)
+	/// @param playerId Game player ID (0 = player 1, 1-3 = coop players)
+	[[nodiscard]] bool DoesPlayerOwnPanels(uint8_t playerId) const;
+
 	/// Try to claim panel ownership for a game player
 	/// @param playerId Game player ID (0 = player 1, 1-3 = coop players)
 	/// Returns true if ownership was granted
