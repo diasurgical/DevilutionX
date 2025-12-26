@@ -5626,7 +5626,7 @@ msgstr "Навец"
 
 #: Source/monster.cpp:4643
 msgid "Type: {:s}  Kills: {:d}"
-msgstr "Тып: {:s} Забітых: {:s}"
+msgstr "Тып: {:s} Забітых: {:d}"
 
 #: Source/monster.cpp:4645
 msgid "Total kills: {:d}"
