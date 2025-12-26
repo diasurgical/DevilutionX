@@ -23,6 +23,7 @@
 #include "gmenu.h"
 #include "doom.h"
 #include "engine/load_clx.hpp"
+#include "engine/load_pcx.hpp"
 #include "engine/palette.h"
 #include "engine/render/clx_render.hpp"
 #include "engine/render/primitive_render.hpp"
@@ -97,6 +98,11 @@ OptionalOwnedClxSpriteList LocalCoopBoxLeft;
 OptionalOwnedClxSpriteList LocalCoopBoxMiddle;
 OptionalOwnedClxSpriteList LocalCoopBoxRight;
 OptionalOwnedClxSpriteList LocalCoopCharBg;
+OptionalOwnedClxSpriteList LocalCoopBarSprite; // Grayscale bar sprite (list_gry.pcx)
+OptionalOwnedClxSpriteList LocalCoopBarSpriteRed; // Red transformed bar sprite
+OptionalOwnedClxSpriteList LocalCoopBarSpriteBlue; // Blue transformed bar sprite
+OptionalOwnedClxSpriteList LocalCoopBarSpriteYellow; // Yellow transformed bar sprite
+OptionalOwnedClxSpriteList LocalCoopBarSpriteWhite; // White transformed bar sprite
 bool LocalCoopHUDAssetsLoaded = false;
 } // namespace
 
@@ -129,11 +135,98 @@ void InitLocalCoopHUDAssets()
 	// Load character background for rock texture
 	LocalCoopCharBg = LoadOptionalClx("data\\charbg.clx");
 
+	// Load grayscale bar sprite and create colorized versions
+	LocalCoopBarSprite = LoadPcx("ui_art\\list_gry");
+	if (LocalCoopBarSprite) {
+		// Create TRN tables that map grayscale palette indices to colored ones
+		// The grayscale sprite may use various grayscale ranges, so we map:
+		// - PAL16_GRAY range (240-255) - main grayscale range
+		// - Also map any other potential grayscale indices that might be used
+
+		// Helper function to create a TRN that maps grayscale to a color range
+		// We map multiple potential grayscale ranges to ensure we catch all grayscale colors
+		// For stronger colors, we map to brighter shades (higher indices in each color range)
+		auto createColorTrn = [](uint8_t colorBase) {
+			std::array<uint8_t, 256> trn = {};
+			for (int i = 0; i < 256; i++) {
+				trn[i] = static_cast<uint8_t>(i);
+			}
+			// Map PAL16_GRAY range (240-255) to brighter shades of the target color
+			// Map darker grays to medium shades, brighter grays to bright shades
+			// This creates stronger, more vibrant colors
+			for (int i = 0; i < 16; i++) {
+				// Map to brighter shades: shift to use indices 4-15 (brighter colors)
+				// Darker grays (0-7) map to medium shades (4-11), brighter grays (8-15) map to bright shades (12-15)
+				int targetShade = std::min(15, 4 + i);
+				trn[PAL16_GRAY + i] = colorBase + targetShade;
+			}
+			// Also map common grayscale indices that might be used (like in health.clx: 234-236)
+			// Map a range around those indices to cover potential variations
+			for (int i = 230; i < 240; i++) {
+				// Map to brighter shades, preserving relative brightness but making colors stronger
+				int shade = i - 230; // 0-9
+				int targetShade = std::min(15, 4 + shade);
+				trn[i] = colorBase + targetShade;
+			}
+			return trn;
+		};
+
+		// Red bar TRN (for health) - maps grayscale to bright red
+		std::array<uint8_t, 256> redTrn = createColorTrn(PAL16_RED);
+
+		// Blue bar TRN (for mana) - maps grayscale to bright blue
+		std::array<uint8_t, 256> blueTrn = createColorTrn(PAL16_BLUE);
+
+		// Yellow bar TRN (for mana shield) - maps grayscale to bright yellow
+		std::array<uint8_t, 256> yellowTrn = createColorTrn(PAL16_YELLOW);
+
+		// White bar TRN (for XP) - map all grayscale indices to bright white/grayscale
+		// Ensure no grayscale colors get mapped to red or other colors
+		std::array<uint8_t, 256> whiteTrn = {};
+		for (int i = 0; i < 256; i++) {
+			whiteTrn[i] = static_cast<uint8_t>(i);
+		}
+		// Explicitly map all potential grayscale ranges to bright white/grayscale
+		// This ensures XP bar stays white and doesn't look reddish
+		// Map PAL16_GRAY range (240-255) to bright white, preserving brightness
+		for (int i = 0; i < 16; i++) {
+			// Map to bright white shades (8-15 for stronger white)
+			int whiteShade = std::min(15, 8 + i / 2);
+			whiteTrn[PAL16_GRAY + i] = PAL16_GRAY + whiteShade;
+		}
+		// Also map common grayscale indices (230-239) to bright white
+		for (int i = 230; i < 240; i++) {
+			int grayShade = i - 230; // 0-9
+			int whiteShade = std::min(15, 10 + grayShade); // Map to bright white (10-15)
+			whiteTrn[i] = PAL16_GRAY + whiteShade;
+		}
+
+		// Create transformed sprite copies - apply TRN to each sprite in the list
+		// OwnedClxSpriteList can be implicitly converted to ClxSpriteList
+		LocalCoopBarSpriteRed = LocalCoopBarSprite->clone();
+		ClxApplyTrans(*LocalCoopBarSpriteRed, redTrn.data());
+
+		LocalCoopBarSpriteBlue = LocalCoopBarSprite->clone();
+		ClxApplyTrans(*LocalCoopBarSpriteBlue, blueTrn.data());
+
+		LocalCoopBarSpriteYellow = LocalCoopBarSprite->clone();
+		ClxApplyTrans(*LocalCoopBarSpriteYellow, yellowTrn.data());
+
+		LocalCoopBarSpriteWhite = LocalCoopBarSprite->clone();
+		// White doesn't need transformation, but we'll apply identity for consistency
+		ClxApplyTrans(*LocalCoopBarSpriteWhite, whiteTrn.data());
+	}
+
 	LocalCoopHUDAssetsLoaded = true;
 }
 
 void FreeLocalCoopHUDAssets()
 {
+	LocalCoopBarSpriteWhite = std::nullopt;
+	LocalCoopBarSpriteYellow = std::nullopt;
+	LocalCoopBarSpriteBlue = std::nullopt;
+	LocalCoopBarSpriteRed = std::nullopt;
+	LocalCoopBarSprite = std::nullopt;
 	LocalCoopCharBg = std::nullopt;
 	LocalCoopBoxRight = std::nullopt;
 	LocalCoopBoxMiddle = std::nullopt;
@@ -2525,17 +2618,57 @@ void DrawCoopSmallBar(const Surface &out, Point position, int width, int height,
 		if (fillWidth > innerWidth) fillWidth = innerWidth;
 
 		if (fillWidth > 0) {
-			uint8_t fillColor;
+			// XP bar: simple white rectangle fill
 			if (isXP) {
-				fillColor = PAL16_GRAY + 15; // White for XP bar
-			} else if (isMana) {
-				fillColor = PAL16_BLUE + 8;
-			} else if (hasManaShield) {
-				fillColor = PAL16_YELLOW + 8;
+				FillRect(out, innerX, innerY, fillWidth, innerHeight, PAL16_GRAY + 15); // White fill
 			} else {
-				fillColor = PAL16_RED + 8;
+				// Other bars: use colorized sprite
+				// Select the appropriate colorized sprite
+				OptionalOwnedClxSpriteList *barSprite = nullptr;
+				if (isMana) {
+					barSprite = &LocalCoopBarSpriteBlue;
+				} else if (hasManaShield) {
+					barSprite = &LocalCoopBarSpriteYellow;
+				} else {
+					barSprite = &LocalCoopBarSpriteRed;
+				}
+
+				// Render tiled sprite to fill the bar area
+				if (barSprite && *barSprite && (*barSprite)->numSprites() > 0) {
+					ClxSprite sprite = (*barSprite)->operator[](0);
+					const int spriteWidth = sprite.width();
+					const int spriteHeight = sprite.height();
+
+					// Tile the sprite horizontally and vertically to fill the fill area
+					int spriteY = innerY;
+					int remainingHeight = innerHeight;
+					while (remainingHeight > 0) {
+						int chunkHeight = std::min(remainingHeight, spriteHeight);
+						int spriteX = innerX;
+						int remainingWidth = fillWidth;
+						while (remainingWidth > 0) {
+							int chunkWidth = std::min(remainingWidth, spriteWidth);
+							Surface region = out.subregion(spriteX, spriteY, chunkWidth, chunkHeight);
+							RenderClxSprite(region, sprite, { 0, 0 });
+							spriteX += chunkWidth;
+							remainingWidth -= chunkWidth;
+						}
+						spriteY += chunkHeight;
+						remainingHeight -= chunkHeight;
+					}
+				} else {
+					// Fallback to solid color if sprite is not available
+					uint8_t fillColor;
+					if (isMana) {
+						fillColor = PAL16_BLUE + 8;
+					} else if (hasManaShield) {
+						fillColor = PAL16_YELLOW + 8;
+					} else {
+						fillColor = PAL16_RED + 8;
+					}
+					FillRect(out, innerX, innerY, fillWidth, innerHeight, fillColor);
+				}
 			}
-			FillRect(out, innerX, innerY, fillWidth, innerHeight, fillColor);
 		}
 	}
 }
