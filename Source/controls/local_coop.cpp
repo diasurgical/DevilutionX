@@ -236,9 +236,6 @@ const Direction FaceDir[3][3] = {
 	{ Direction::South, Direction::SouthWest, Direction::SouthEast }, // AxisDirectionY_DOWN
 };
 
-/// Button to skill slot mapping: A=2, B=3, X=0, Y=1
-constexpr int ButtonToSkillSlot[] = { 2, 3, 0, 1 }; // South, East, West, North
-
 /// Button to belt slot offset mapping (when shoulder held): A=0, B=1, X=2, Y=3
 constexpr int ButtonToBeltOffset[] = { 0, 1, 2, 3 }; // South, East, West, North
 
@@ -390,15 +387,15 @@ struct BeltPosition {
  * @param panelX Panel X position
  * @param panelY Panel Y position
  * @param panelWidth Panel width in pixels (for centering belt)
+ * @param barsHeight Height of the health/mana bars area (defaults to 29 for compatibility)
  * @return BeltPosition with base coordinates and slot spacing
  */
-BeltPosition CalculateBeltPosition(int panelX, int panelY, int panelWidth)
+BeltPosition CalculateBeltPosition(int panelX, int panelY, int panelWidth, int barsHeight = 29)
 {
 	constexpr int topBorderPadding = 5;
 	constexpr int leftBorderPadding = 7;
 	constexpr int rightBorderPadding = 8;
 	constexpr int nameTopOffset = 4;
-	constexpr int barsHeight = 29;
 	constexpr int elementSpacing = 1;
 	constexpr int barsExtraDownOffset = 1;
 	constexpr int beltBorderWidth = 237; // Width of belt border from DrawPlayerBelt
@@ -1070,7 +1067,7 @@ void ProcessLocalCoopButtonInput(uint8_t playerId, const SDL_Event &event)
 				}
 			} else {
 				// No target - use skill slot 2 (A button slot)
-				coopPlayer->skillButtonHeld = ButtonToSkillSlot[0];
+				coopPlayer->skillButtonHeld = GetSkillSlotFromSDLButton(button);
 				coopPlayer->skillButtonPressTime = now;
 				coopPlayer->skillMenuOpenedByHold = false;
 			}
@@ -1104,7 +1101,7 @@ void ProcessLocalCoopButtonInput(uint8_t playerId, const SDL_Event &event)
 				}
 			} else {
 				// Start tracking hold for skill slot assignment (B = slot 3)
-				coopPlayer->skillButtonHeld = ButtonToSkillSlot[1];
+				coopPlayer->skillButtonHeld = GetSkillSlotFromSDLButton(button);
 				coopPlayer->skillButtonPressTime = now;
 				coopPlayer->skillMenuOpenedByHold = false;
 			}
@@ -1117,7 +1114,7 @@ void ProcessLocalCoopButtonInput(uint8_t playerId, const SDL_Event &event)
 			// Only allow spell casting if not already in an action
 			if (player.CanChangeAction() && player.destAction == ACTION_NONE) {
 				// Start tracking hold for skill slot assignment (X = slot 0)
-				coopPlayer->skillButtonHeld = ButtonToSkillSlot[2];
+				coopPlayer->skillButtonHeld = GetSkillSlotFromSDLButton(button);
 				coopPlayer->skillButtonPressTime = now;
 				coopPlayer->skillMenuOpenedByHold = false;
 			}
@@ -1130,7 +1127,7 @@ void ProcessLocalCoopButtonInput(uint8_t playerId, const SDL_Event &event)
 			// Only allow spell casting if not already in an action
 			if (player.CanChangeAction() && player.destAction == ACTION_NONE) {
 				// Start tracking hold for skill slot assignment (Y = slot 1)
-				coopPlayer->skillButtonHeld = ButtonToSkillSlot[3];
+				coopPlayer->skillButtonHeld = GetSkillSlotFromSDLButton(button);
 				coopPlayer->skillButtonPressTime = now;
 				coopPlayer->skillMenuOpenedByHold = false;
 			}
@@ -3078,7 +3075,6 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 	constexpr int elementSpacing = 1;       // Reduced spacing between elements
 	constexpr int nameTopOffset = 4;        // Reduced offset for top row
 	constexpr int nameLeftOffset = 0;       // No extra offset (elements shifted via leftBorderPadding)
-	constexpr int barsExtraDownOffset = 1;  // Reduced extra offset for belt
 
 	// Health/mana bar dimensions - adjust based on experience bar
 	// If experience bar is enabled, make bars shorter to fit XP bar below
@@ -3275,8 +3271,6 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 		// Move currentY down to account for the tallest element in the top row (bars)
 		currentY += barsHeight + elementSpacing;
 
-		int middleY = currentY + barsExtraDownOffset;
-
 		// Skill slots: OUTSIDE panel, 2x2 grid layout
 		// For P2/P4 (right side of screen), skills go on LEFT of panel
 		// Position updates dynamically with panel width
@@ -3297,12 +3291,11 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 		DrawPlayerSkillSlots2x2Small(out, player, { skillX, skillY }, SkillSlotSize, hideSkillLabels);
 
 		// === BELT: Centered horizontally within the panel ===
-		// Belt width is fixed at 237px (from DrawPlayerBelt), so center it within panel content area
-		constexpr int beltBorderWidth = 237; // Width of belt border from DrawPlayerBelt
-		const int beltX = contentX + (panelContentWidth - beltBorderWidth) / 2; // Center belt in panel
+		// Use CalculateBeltPosition helper to get belt position (handles centering and Y calculation)
+		BeltPosition beltPos = CalculateBeltPosition(panelX, panelY, panelWidth, barsHeight);
 		bool leftShoulderHeld = (coopPlayerPtr != nullptr && coopPlayerPtr->leftShoulderHeld);
 		bool rightShoulderHeld = (coopPlayerPtr != nullptr && coopPlayerPtr->rightShoulderHeld);
-		DrawPlayerBelt(out, player, static_cast<uint8_t>(playerId), { beltX, middleY - 3 }, false, leftShoulderHeld, rightShoulderHeld);
+		DrawPlayerBelt(out, player, static_cast<uint8_t>(playerId), { beltPos.baseX, beltPos.baseY }, false, leftShoulderHeld, rightShoulderHeld);
 
 		// Draw durability icons - above panel for bottom players, below panel for top players
 		int durabilityY;
