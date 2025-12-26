@@ -4061,7 +4061,7 @@ msgstr " {:d} Спрт"
 #. TRANSLATORS: {:s} will be a Character Name
 #: Source/items.cpp:3256 Source/player.cpp:3145
 msgid "Ear of {:s}"
-msgstr "Вуха  {:d}"
+msgstr "Вуха {:s}"
 
 #: Source/items.cpp:3552
 msgid "chance to hit: {:+d}%"
