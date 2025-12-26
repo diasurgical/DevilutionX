@@ -5630,7 +5630,7 @@ msgstr "Тып: {:s} Забітых: {:s}"
 
 #: Source/monster.cpp:4645
 msgid "Total kills: {:d}"
-msgstr "Усяго забітых: {:s}"
+msgstr "Усяго забітых: {:d}"
 
 #: Source/monster.cpp:4677
 msgid "Hit Points: {:d}-{:d}"
