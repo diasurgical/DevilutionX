@@ -30,6 +30,7 @@
 #include "engine/render/scrollrt.h"
 #include "engine/render/text_render.hpp"
 #include "game_mode.hpp"
+#include "headless_mode.hpp"
 #include "help.h"
 #include "init.hpp"
 #include "inv.h"
@@ -719,7 +720,10 @@ void LoadHeroInfosForLocalCoop(std::vector<_uiheroinfo> &heroList, const std::ve
 
 	// Save player 1's current active state and other important flags before loading heroes
 	bool savedPlrActive = Players[0].plractive;
-	Point savedPosition = Players[0].position.tile;
+	Point savedPositionTile = Players[0].position.tile;
+	Point savedPositionFuture = Players[0].position.future;
+	Point savedPositionLast = Players[0].position.last;
+	Point savedPositionOld = Players[0].position.old;
 	int savedPlrLevel = Players[0].plrlevel;
 	bool savedPlrIsOnSetLevel = Players[0].plrIsOnSetLevel;
 
@@ -736,6 +740,21 @@ void LoadHeroInfosForLocalCoop(std::vector<_uiheroinfo> &heroList, const std::ve
 	int savedManaBase = Players[0]._pManaBase;
 	int savedMaxManaBase = Players[0]._pMaxManaBase;
 
+	// Save player 1's movement and animation state
+	PLR_MODE savedPmode = Players[0]._pmode;
+	Direction savedPdir = Players[0]._pdir;
+	action_id savedDestAction = Players[0].destAction;
+	int savedDestParam1 = Players[0].destParam1;
+	int savedDestParam2 = Players[0].destParam2;
+	int savedDestParam3 = Players[0].destParam3;
+	int savedDestParam4 = Players[0].destParam4;
+	int savedLightId = Players[0].lightId;
+	AnimationInfo savedAnimInfo = Players[0].AnimInfo;
+	int8_t savedWalkpath[MaxPathLengthPlayer];
+	for (size_t i = 0; i < MaxPathLengthPlayer; ++i) {
+		savedWalkpath[i] = Players[0].walkpath[i];
+	}
+
 	// This will modify Players[0] for each hero
 	// It uses gbIsMultiplayer to determine save directory (single_ vs multi_)
 	// so it will automatically show the correct characters based on the current game mode
@@ -748,11 +767,70 @@ void LoadHeroInfosForLocalCoop(std::vector<_uiheroinfo> &heroList, const std::ve
 		// so we need to recalculate to ensure graphics are properly set
 		CalcPlrInv(Players[0], true);
 
-		// Restore player 1's active state and position to prevent them from disappearing
+		// Restore player 1's active state and level
 		Players[0].plractive = savedPlrActive;
-		Players[0].position.tile = savedPosition;
 		Players[0].plrlevel = savedPlrLevel;
 		Players[0].plrIsOnSetLevel = savedPlrIsOnSetLevel;
+
+		// Validate and restore position values to prevent out-of-bounds access
+		// If saved positions are invalid, try to find a valid position
+		Point validTile = savedPositionTile;
+		if (!InDungeonBounds(validTile) || !PosOkPlayer(Players[0], validTile)) {
+			// Try position from save file
+			validTile = Players[0].position.tile;
+			if (!InDungeonBounds(validTile) || !PosOkPlayer(Players[0], validTile)) {
+				// Try to find a valid position near the saved one
+				if (InDungeonBounds(savedPositionTile)) {
+					const WorldTileDisplacement offset[9] = { { 0, 0 }, { 1, 0 }, { 0, 1 }, { 1, 1 }, { 2, 0 }, { 0, 2 }, { 1, 2 }, { 2, 1 }, { 2, 2 } };
+					bool found = false;
+					for (int i = 0; i < 9; i++) {
+						Point testPos = savedPositionTile + offset[i];
+						if (InDungeonBounds(testPos) && PosOkPlayer(Players[0], testPos)) {
+							validTile = testPos;
+							found = true;
+							break;
+						}
+					}
+					if (!found) {
+						// Last resort: use ViewPosition if valid, otherwise (0, 0)
+						validTile = InDungeonBounds(ViewPosition) ? ViewPosition : Point { 0, 0 };
+					}
+				} else {
+					// Saved position is out of bounds, use ViewPosition if valid
+					validTile = InDungeonBounds(ViewPosition) ? ViewPosition : Point { 0, 0 };
+				}
+			}
+		}
+
+		Point validFuture = savedPositionFuture;
+		if (!InDungeonBounds(validFuture)) {
+			validFuture = validTile;
+		}
+
+		Point validLast = savedPositionLast;
+		if (!InDungeonBounds(validLast)) {
+			validLast = validTile;
+		}
+
+		Point validOld = savedPositionOld;
+		if (!InDungeonBounds(validOld)) {
+			validOld = validTile;
+		}
+
+		// Clear old walk tags before setting new position
+		if (Players[0].isOnActiveLevel()) {
+			FixPlrWalkTags(Players[0]);
+		}
+
+		Players[0].position.tile = validTile;
+		Players[0].position.future = validFuture;
+		Players[0].position.last = validLast;
+		Players[0].position.old = validOld;
+
+		// Update dPlayer array to reflect the new position
+		if (Players[0].isOnActiveLevel() && Players[0].plractive) {
+			Players[0].occupyTile(validTile, false);
+		}
 
 		// Restore player 1's runtime state (experience, level, stats, HP, mana, etc.)
 		// This prevents the player from losing progress when another player changes character selection
@@ -767,6 +845,69 @@ void LoadHeroInfosForLocalCoop(std::vector<_uiheroinfo> &heroList, const std::ve
 		Players[0]._pMaxMana = savedMaxMana;
 		Players[0]._pManaBase = savedManaBase;
 		Players[0]._pMaxManaBase = savedMaxManaBase;
+
+		// Restore player 1's movement and animation state
+		// Validate pmode to ensure it's a valid enum value
+		if (savedPmode <= PM_QUIT) {
+			Players[0]._pmode = savedPmode;
+		} else {
+			Players[0]._pmode = PM_STAND;
+		}
+		// Validate direction
+		if (savedPdir <= Direction::SouthWest) {
+			Players[0]._pdir = savedPdir;
+		} else {
+			Players[0]._pdir = Direction::South;
+		}
+		Players[0].destAction = savedDestAction;
+		Players[0].destParam1 = savedDestParam1;
+		Players[0].destParam2 = savedDestParam2;
+		Players[0].destParam3 = savedDestParam3;
+		Players[0].destParam4 = savedDestParam4;
+		// Validate lightId - if invalid, let the game logic handle it
+		if (savedLightId >= 0) {
+			Players[0].lightId = savedLightId;
+		}
+		// Restore AnimInfo but we'll reload sprites after to ensure they're valid
+		Players[0].AnimInfo = savedAnimInfo;
+		// Clear the sprites reference since we'll reload it
+		Players[0].AnimInfo.sprites = std::nullopt;
+		for (size_t i = 0; i < MaxPathLengthPlayer; ++i) {
+			Players[0].walkpath[i] = savedWalkpath[i];
+		}
+
+		// Reinitialize player animations to ensure frame counts are correct
+		SetPlrAnims(Players[0]);
+
+		// Ensure graphics are loaded for the current animation state
+		// This is critical to restore sprites after reloading
+		if (Players[0].isOnActiveLevel()) {
+			// Reset graphics first to ensure old sprites don't persist
+			// This is necessary because LoadPlrGFX returns early if graphics are already loaded
+			ResetPlayerGFX(Players[0]);
+
+			// Reload all graphics to ensure they match the current equipment
+			// This is similar to InitPlayerGFX but we only reload what's needed
+			if (!Players[0].hasNoLife()) {
+				// Load all graphics except Death (which is only loaded when dead)
+				for (size_t i = 0; i < enum_size<player_graphic>::value; i++) {
+					auto graphic = static_cast<player_graphic>(i);
+					if (graphic != player_graphic::Death) {
+						LoadPlrGFX(Players[0], graphic);
+					}
+				}
+			} else {
+				Players[0]._pgfxnum &= ~0xFU;
+				LoadPlrGFX(Players[0], player_graphic::Death);
+			}
+
+			// Restore AnimInfo.sprites from the reloaded AnimationData
+			// This ensures the sprites reference is valid after reloading
+			player_graphic currentGraphic = Players[0].getGraphic();
+			if (!HeadlessMode) {
+				Players[0].AnimInfo.sprites = Players[0].AnimationData[static_cast<size_t>(currentGraphic)].spritesForDirection(Players[0]._pdir);
+			}
+		}
 	}
 
 	// Clear static variables
@@ -4053,6 +4194,11 @@ void FindLocalCoopItemsAndObjects(uint8_t playerId)
 	for (int dx = -1; dx <= 1; dx++) {
 		for (int dy = -1; dy <= 1; dy++) {
 			Point targetPos = { futurePosition.x + dx, futurePosition.y + dy };
+
+			// Validate position before accessing arrays
+			if (!InDungeonBounds(targetPos)) {
+				continue;
+			}
 
 			// Check for items
 			const int8_t itemId = dItem[targetPos.x][targetPos.y] - 1;
