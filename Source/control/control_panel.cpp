@@ -296,17 +296,27 @@ void FocusOnCharInfo()
 	if (invflag || myPlayer._pStatPts <= 0)
 		return;
 
-	// Find the first incrementable stat.
+	// Always start at Strength (first button) if it's incrementable, otherwise find first incrementable stat
 	int stat = -1;
-	for (auto attribute : enum_values<CharacterAttribute>()) {
-		if (myPlayer.GetBaseAttributeValue(attribute) >= myPlayer.GetMaximumAttributeValue(attribute))
-			continue;
-		stat = static_cast<int>(attribute);
+	// First check if Strength is incrementable
+	if (myPlayer.GetBaseAttributeValue(CharacterAttribute::Strength) < myPlayer.GetMaximumAttributeValue(CharacterAttribute::Strength)) {
+		stat = static_cast<int>(CharacterAttribute::Strength);
+	} else {
+		// Find the first incrementable stat
+		for (auto attribute : enum_values<CharacterAttribute>()) {
+			if (myPlayer.GetBaseAttributeValue(attribute) >= myPlayer.GetMaximumAttributeValue(attribute))
+				continue;
+			stat = static_cast<int>(attribute);
+			break; // Stop at first incrementable stat
+		}
 	}
 	if (stat == -1)
 		return;
 
-	SetCursorPos(CharPanelButtonRect[stat].Center());
+	// Adjust button position for actual panel position (important in local coop mode where panel is centered)
+	Rectangle button = CharPanelButtonRect[stat];
+	button.position = GetPanelPosition(UiPanels::Character, button.position);
+	SetCursorPos(button.Center());
 }
 
 void OpenCharPanel()

@@ -1091,8 +1091,19 @@ void ProcessLocalCoopButtonInput(uint8_t playerId, const SDL_Event &event)
 		if (releasedSlot >= 0) {
 			switch (releasedSlot) {
 			case 2: // A button
-				if (coopPlayer->actionHeld == GameActionType_PRIMARY_ACTION)
+				if (coopPlayer->actionHeld == GameActionType_PRIMARY_ACTION) {
+					// Check if character panel is open and a character button was active
+					// If so, release the character button to allocate the attribute
+					if (g_LocalCoop.panelOwnerPlayerId == static_cast<int>(playerId) && CharFlag && CharPanelButtonActive) {
+						// Set player context so ReleaseChrBtns uses the correct player
+						LocalCoopPlayerContext context(playerId);
+						// Make sure pChrButtons is loaded before releasing buttons (prevents crash)
+						if (pChrButtons.has_value()) {
+							ReleaseChrBtns(false);
+						}
+					}
 					coopPlayer->actionHeld = GameActionType_NONE;
+				}
 				break;
 			case 3: // B button
 				if (coopPlayer->actionHeld == GameActionType_SECONDARY_ACTION)
@@ -1107,9 +1118,12 @@ void ProcessLocalCoopButtonInput(uint8_t playerId, const SDL_Event &event)
 
 		// If we released a skill button that was being held
 		if (releasedSlot >= 0 && coopPlayer->skillButtonHeld == releasedSlot) {
-			// If the menu wasn't opened by this hold, it was a short press - cast the spell
-			if (!coopPlayer->skillMenuOpenedByHold) {
-				CastLocalCoopHotkeySpell(playerId, releasedSlot);
+			// Don't cast spell if character panel button was active (attribute allocation takes priority)
+			if (!(g_LocalCoop.panelOwnerPlayerId == static_cast<int>(playerId) && CharFlag && CharPanelButtonActive)) {
+				// If the menu wasn't opened by this hold, it was a short press - cast the spell
+				if (!coopPlayer->skillMenuOpenedByHold) {
+					CastLocalCoopHotkeySpell(playerId, releasedSlot);
+				}
 			}
 			// Reset hold tracking (but NOT skillMenuOpenedByHold if menu is open)
 			// It will be reset when the menu closes or a spell is assigned
@@ -3968,6 +3982,16 @@ void PerformLocalCoopPrimaryAction(uint8_t playerId)
 	// Temporarily swap player context so network commands use correct player ID
 	LocalCoopPlayerContext context(playerId);
 
+	// If this player owns panels and character panel is open, handle character panel button clicks
+	if (g_LocalCoop.panelOwnerPlayerId == playerId && CharFlag) {
+		// CheckChrBtns uses MyPlayer and MousePosition, so we need to ensure context is set
+		// Make sure pChrButtons is loaded before checking buttons (prevents crash)
+		if (pChrButtons.has_value()) {
+			CheckChrBtns();
+		}
+		return;
+	}
+
 	// If this player owns panels and inventory is open, handle inventory interactions
 	if (g_LocalCoop.panelOwnerPlayerId == playerId && invflag) {
 		// Check for spell cursors (Identify, Repair, Recharge, etc.) first
@@ -4682,9 +4706,19 @@ bool HandleLocalCoopButtonRelease(uint8_t playerId, ControllerButton button)
 
 	if (slotIndex >= 0) {
 		// Check if this was a primary action (e.g., attacking a target)
-		// If so, just clear the action state and don't cast a spell
+		// If so, check if it was a character panel button press first
 		LocalCoopPlayer *coopPlayer = g_LocalCoop.GetPlayer(playerId);
 		if (coopPlayer != nullptr && coopPlayer->actionHeld == GameActionType_PRIMARY_ACTION) {
+			// Check if character panel is open and a character button was active
+			// If so, release the character button to allocate the attribute
+			if (g_LocalCoop.panelOwnerPlayerId == static_cast<int>(playerId) && CharFlag && CharPanelButtonActive) {
+				// Set player context so ReleaseChrBtns uses the correct player
+				LocalCoopPlayerContext context(playerId);
+				// Make sure pChrButtons is loaded before releasing buttons (prevents crash)
+				if (pChrButtons.has_value()) {
+					ReleaseChrBtns(false);
+				}
+			}
 			coopPlayer->actionHeld = GameActionType_NONE;
 			return true;
 		}
