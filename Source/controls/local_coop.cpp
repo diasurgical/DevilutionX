@@ -44,6 +44,7 @@
 #include "objects.h"
 #include "options.h"
 #include "pack.h"
+#include "panels/charpanel.hpp"
 #include "panels/spell_icons.hpp"
 #include "panels/spell_list.hpp"
 #include "pfile.h"
@@ -198,18 +199,6 @@ LocalCoopPlayer *GetValidLocalCoopPlayer(uint8_t playerId)
 	if (playerId >= g_LocalCoop.players.size())
 		return nullptr;
 	return &g_LocalCoop.players[playerId];
-}
-
-/**
- * @brief Get a valid Player pointer for the given player ID.
- * @param playerId Game player ID (0-3)
- * @return Pointer to Player if valid, nullptr otherwise
- */
-Player *GetValidPlayer(uint8_t playerId)
-{
-	if (playerId >= Players.size())
-		return nullptr;
-	return &Players[playerId];
 }
 
 /**
@@ -2951,6 +2940,30 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 		DrawString(out, levelStr,
 		    { { levelX + 2, currentY + 2 }, { playerNumWidth - 4, nameFieldHeight - 4 } },
 		    { .flags = UiFlags::AlignCenter | UiFlags::VerticalCenter | UiFlags::ColorWhite, .spacing = 0 });
+
+		// Draw attribute points available icon overlapping the level field
+		if (player._pStatPts > 0 && pChrButtons.has_value()) {
+			// Use Strength attribute button icon (frame 1) as a generic indicator
+			// Crop it to a square and center it on the level field
+			const ClxSprite &iconSprite = (*pChrButtons)[1];
+			const int iconWidth = iconSprite.width();
+			const int iconHeight = iconSprite.height();
+			const int squareSize = std::min(iconWidth, iconHeight); // Use smaller dimension for square
+
+			// Draw sprite to temporary surface to crop it
+			OwnedSurface tempSurface(iconWidth, iconHeight);
+			FillRect(tempSurface, 0, 0, iconWidth, iconHeight, 0);
+			RenderClxSprite(tempSurface, iconSprite, { 0, 0 });
+
+			// Crop to square (center horizontally if width > height)
+			const int cropX = (iconWidth - squareSize) / 2 + 1;
+			SDL_Rect cropRect = { cropX, 0, squareSize-2, squareSize };
+			Point iconPos = {
+				levelX + playerNumWidth / 2 - squareSize / 2 + 1,
+				currentY + nameFieldHeight / 2 - squareSize / 2 + 3
+			};
+			out.BlitFrom(tempSurface, cropRect, iconPos);
+		}
 
 		// Bars: Health, Mana (stacked vertically) - positioned between P# and Level
 		int barX = nameRowX + playerNumWidth + playerNumSpacing - extraOffset;
