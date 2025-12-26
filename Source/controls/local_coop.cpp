@@ -251,6 +251,177 @@ constexpr int ButtonToSkillSlot[] = { 2, 3, 0, 1 }; // South, East, West, North
 constexpr int ButtonToBeltOffset[] = { 0, 1, 2, 3 }; // South, East, West, North
 
 /**
+ * @brief Unified player validation result structure.
+ */
+struct ValidatedPlayer {
+	LocalCoopPlayer *coop;
+	Player *player;
+	bool isValid;
+};
+
+/**
+ * @brief Get validated player with common checks.
+ * @param playerId Game player ID (0-3)
+ * @param requireInitialized If true, requires player to be initialized
+ * @param requireAlive If true, requires player to be alive
+ * @return ValidatedPlayer structure with pointers and validation result
+ */
+ValidatedPlayer GetValidatedPlayer(uint8_t playerId, bool requireInitialized = true, bool requireAlive = true)
+{
+	ValidatedPlayer result = { nullptr, nullptr, false };
+
+	if (playerId >= g_LocalCoop.players.size() || playerId >= Players.size())
+		return result;
+
+	result.coop = &g_LocalCoop.players[playerId];
+	result.player = &Players[playerId];
+
+	if (!result.coop->active)
+		return result;
+	if (requireInitialized && !result.coop->initialized)
+		return result;
+	if (requireInitialized && result.coop->characterSelectActive)
+		return result;
+	if (requireAlive && result.player->_pHitPoints <= 0)
+		return result;
+
+	result.isValid = true;
+	return result;
+}
+
+/**
+ * @brief Get skill slot index from controller button.
+ * @param button The controller button
+ * @return Skill slot index (0-3), or -1 if not a skill button
+ */
+int GetSkillSlotFromControllerButton(ControllerButton button)
+{
+	switch (button) {
+	case ControllerButton_BUTTON_A:
+		return 2;
+	case ControllerButton_BUTTON_B:
+		return 3;
+	case ControllerButton_BUTTON_X:
+		return 0;
+	case ControllerButton_BUTTON_Y:
+		return 1;
+	default:
+		return -1;
+	}
+}
+
+/**
+ * @brief Get skill slot index from SDL gamepad button.
+ * @param button The SDL gamepad button
+ * @return Skill slot index (0-3), or -1 if not a skill button
+ */
+int GetSkillSlotFromSDLButton(uint8_t button)
+{
+	switch (button) {
+	case SDL_GAMEPAD_BUTTON_SOUTH:
+		return 2;
+	case SDL_GAMEPAD_BUTTON_EAST:
+		return 3;
+	case SDL_GAMEPAD_BUTTON_WEST:
+		return 0;
+	case SDL_GAMEPAD_BUTTON_NORTH:
+		return 1;
+	default:
+		return -1;
+	}
+}
+
+/**
+ * @brief Panel position structure for local coop HUD.
+ */
+struct PanelPosition {
+	int panelX;
+	int panelY;
+	bool isValid;
+};
+
+/**
+ * @brief Calculate panel position for a player in local coop mode.
+ * @param playerId Game player ID (0-3)
+ * @param screenWidth Screen width in pixels
+ * @param screenHeight Screen height in pixels
+ * @param panelWidth Panel width in pixels
+ * @return PanelPosition with coordinates and validity
+ */
+PanelPosition GetPlayerPanelPosition(uint8_t playerId, int screenWidth, int screenHeight, int panelWidth)
+{
+	PanelPosition pos = { 0, 0, false };
+
+	constexpr int panelHeight = 87;
+	constexpr int panelEdgePadding = 0;
+
+	switch (playerId) {
+	case 0: // Player 1 - Bottom-left
+		pos.panelX = panelEdgePadding;
+		pos.panelY = screenHeight - panelHeight - panelEdgePadding;
+		pos.isValid = true;
+		break;
+	case 1: // Player 2 - Bottom-right
+		pos.panelX = screenWidth - panelWidth - panelEdgePadding;
+		pos.panelY = screenHeight - panelHeight - panelEdgePadding;
+		pos.isValid = true;
+		break;
+	case 2: // Player 3 - Top-left
+		pos.panelX = panelEdgePadding;
+		pos.panelY = panelEdgePadding;
+		pos.isValid = true;
+		break;
+	case 3: // Player 4 - Top-right
+		pos.panelX = screenWidth - panelWidth - panelEdgePadding;
+		pos.panelY = panelEdgePadding;
+		pos.isValid = true;
+		break;
+	default:
+		pos.isValid = false;
+		break;
+	}
+
+	return pos;
+}
+
+/**
+ * @brief Belt position structure for local coop HUD.
+ */
+struct BeltPosition {
+	int baseX;
+	int baseY;
+	int slotSpacing;
+};
+
+/**
+ * @brief Calculate belt position for a player's panel.
+ * @param panelX Panel X position
+ * @param panelY Panel Y position
+ * @return BeltPosition with base coordinates and slot spacing
+ */
+BeltPosition CalculateBeltPosition(int panelX, int panelY)
+{
+	constexpr int topBorderPadding = 5;
+	constexpr int leftBorderPadding = 7;
+	constexpr int nameTopOffset = 4;
+	constexpr int barsHeight = 29;
+	constexpr int elementSpacing = 1;
+	constexpr int barsExtraDownOffset = 1;
+	constexpr int barsExtraRightOffset = 0;
+
+	const int contentX = panelX + leftBorderPadding;
+	const int currentY = panelY + topBorderPadding + nameTopOffset + 4;
+	const int middleY = currentY + barsHeight + elementSpacing + barsExtraDownOffset;
+
+	BeltPosition pos;
+	pos.baseX = contentX + barsExtraRightOffset;
+	pos.baseY = middleY - 3;
+	pos.slotSpacing = 29;
+
+	return pos;
+}
+
+/**
  * @brief Calculate belt slot index from button press and shoulder state.
  *
  * @param buttonIndex 0=South/A, 1=East/B, 2=West/X, 3=North/Y
@@ -797,14 +968,7 @@ void ProcessLocalCoopButtonInput(uint8_t playerId, const SDL_Event &event)
 		// If quick spell menu is open and this player opened it, handle spell assignment
 		// Use same slot mapping as player 1: A=2, B=3, X=0, Y=1
 		if (SpellSelectFlag && coopPlayer->skillMenuOpenedByHold) {
-			int assignSlot = -1;
-			switch (button) {
-			case SDL_GAMEPAD_BUTTON_SOUTH: assignSlot = 2; break; // A
-			case SDL_GAMEPAD_BUTTON_EAST: assignSlot = 3; break;  // B
-			case SDL_GAMEPAD_BUTTON_WEST: assignSlot = 0; break;  // X
-			case SDL_GAMEPAD_BUTTON_NORTH: assignSlot = 1; break; // Y
-			default: break;
-			}
+			int assignSlot = GetSkillSlotFromSDLButton(button);
 
 			if (assignSlot >= 0) {
 				// Assign the currently selected spell to this slot
@@ -928,28 +1092,24 @@ void ProcessLocalCoopButtonInput(uint8_t playerId, const SDL_Event &event)
 	} else if (isButtonUp) {
 		// Handle skill button release - cast spell if it was a short press
 		// Use same slot mapping as player 1: A=2, B=3, X=0, Y=1
-		int releasedSlot = -1;
-		switch (button) {
-		case SDL_GAMEPAD_BUTTON_SOUTH: // A = slot 2
-			if (coopPlayer->actionHeld == GameActionType_PRIMARY_ACTION)
-				coopPlayer->actionHeld = GameActionType_NONE;
-			releasedSlot = 2;
-			break;
-		case SDL_GAMEPAD_BUTTON_EAST: // B = slot 3
-			if (coopPlayer->actionHeld == GameActionType_SECONDARY_ACTION)
-				coopPlayer->actionHeld = GameActionType_NONE;
-			releasedSlot = 3;
-			break;
-		case SDL_GAMEPAD_BUTTON_WEST: // X = slot 0
-			if (coopPlayer->actionHeld == GameActionType_CAST_SPELL)
-				coopPlayer->actionHeld = GameActionType_NONE;
-			releasedSlot = 0;
-			break;
-		case SDL_GAMEPAD_BUTTON_NORTH: // Y = slot 1
-			releasedSlot = 1;
-			break;
-		default:
-			break;
+		int releasedSlot = GetSkillSlotFromSDLButton(button);
+
+		// Clear action held state based on button
+		if (releasedSlot >= 0) {
+			switch (releasedSlot) {
+			case 2: // A button
+				if (coopPlayer->actionHeld == GameActionType_PRIMARY_ACTION)
+					coopPlayer->actionHeld = GameActionType_NONE;
+				break;
+			case 3: // B button
+				if (coopPlayer->actionHeld == GameActionType_SECONDARY_ACTION)
+					coopPlayer->actionHeld = GameActionType_NONE;
+				break;
+			case 0: // X button
+				if (coopPlayer->actionHeld == GameActionType_CAST_SPELL)
+					coopPlayer->actionHeld = GameActionType_NONE;
+				break;
+			}
 		}
 
 		// If we released a skill button that was being held
@@ -2393,15 +2553,12 @@ void DrawCoopPanelBackground(const Surface &out, Rectangle rect)
  */
 void CastLocalCoopHotkeySpell(uint8_t playerId, int slotIndex)
 {
-	LocalCoopPlayer *coopPlayer = GetValidLocalCoopPlayer(playerId);
-	if (coopPlayer == nullptr || !coopPlayer->active || !coopPlayer->initialized)
+	auto validated = GetValidatedPlayer(playerId);
+	if (!validated.isValid)
 		return;
 
-	Player *player = GetValidPlayer(playerId);
-	if (player == nullptr)
-		return;
-	if (player->_pHitPoints <= 0)
-		return;
+	LocalCoopPlayer *coopPlayer = validated.coop;
+	Player *player = validated.player;
 
 	// Check if player is already performing an action - prevent duplicate casts
 	if (!player->CanChangeAction() || player->destAction != ACTION_NONE)
@@ -2671,7 +2828,6 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 	constexpr int topBorderPadding = 5;     // Top border in charbg.clx
 	constexpr int leftBorderPadding = 7;    // Left border (1px more to shift elements right)
 	constexpr int rightBorderPadding = 8;   // Right border (content padding, not visual border) - reduced by 1px
-	constexpr int panelEdgePadding = 0;     // No padding from screen edge - panels touch edges
 	constexpr int elementSpacing = 1;       // Reduced spacing between elements
 	constexpr int nameTopOffset = 4;        // Reduced offset for top row
 	constexpr int nameLeftOffset = 0;       // No extra offset (elements shifted via leftBorderPadding)
@@ -2751,34 +2907,14 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 		const LocalCoopPlayer *coopPlayerPtr = &coopPlayer;
 
 		// Determine panel position based on player ID - with 1px edge padding
-		int panelX, panelY;
-		bool atBottom = false;
-		bool skillsOnLeft = false; // For P2, skills go on left side
-
-		switch (playerId) {
-		case 0: // Player 1 - Bottom-left
-			panelX = panelEdgePadding;
-			panelY = out.h() - panelHeight - panelEdgePadding;
-			atBottom = true;
-			break;
-		case 1: // Player 2 - Bottom-right (skills on LEFT)
-			panelX = out.w() - panelWidth - panelEdgePadding;
-			panelY = out.h() - panelHeight - panelEdgePadding;
-			atBottom = true;
-			skillsOnLeft = true;
-			break;
-		case 2: // Player 3 - Top-left
-			panelX = panelEdgePadding;
-			panelY = panelEdgePadding;
-			break;
-		case 3: // Player 4 - Top-right (skills on LEFT)
-			panelX = out.w() - panelWidth - panelEdgePadding;
-			panelY = panelEdgePadding;
-			skillsOnLeft = true;
-			break;
-		default:
+		PanelPosition panelPos = GetPlayerPanelPosition(static_cast<uint8_t>(playerId), out.w(), out.h(), panelWidth);
+		if (!panelPos.isValid)
 			continue;
-		}
+
+		int panelX = panelPos.panelX;
+		int panelY = panelPos.panelY;
+		bool atBottom = (playerId == 0 || playerId == 1);
+		bool skillsOnLeft = (playerId == 1 || playerId == 3); // For P2/P4, skills go on left side
 
 		// Get player stats
 		int currentHP = player._pHitPoints >> 6;
@@ -3343,13 +3479,12 @@ int GetLocalCoopRotaryDistance(const Player &player, Point destination)
  */
 void FindLocalCoopActors(uint8_t playerId)
 {
-	LocalCoopPlayer *coopPlayer = GetValidLocalCoopPlayer(playerId);
-	if (coopPlayer == nullptr)
+	auto validated = GetValidatedPlayer(playerId, false, false);
+	if (!validated.isValid)
 		return;
 
-	const Player *player = GetValidPlayer(playerId);
-	if (player == nullptr)
-		return;
+	LocalCoopPlayer *coopPlayer = validated.coop;
+	const Player *player = validated.player;
 
 	LocalCoopCursorState &cursor = coopPlayer->cursor;
 
@@ -3430,13 +3565,12 @@ void FindLocalCoopActors(uint8_t playerId)
  */
 void FindLocalCoopItemsAndObjects(uint8_t playerId)
 {
-	LocalCoopPlayer *coopPlayer = GetValidLocalCoopPlayer(playerId);
-	if (coopPlayer == nullptr)
+	auto validated = GetValidatedPlayer(playerId, false, false);
+	if (!validated.isValid)
 		return;
 
-	const Player *player = GetValidPlayer(playerId);
-	if (player == nullptr)
-		return;
+	LocalCoopPlayer *coopPlayer = validated.coop;
+	const Player *player = validated.player;
 
 	LocalCoopCursorState &cursor = coopPlayer->cursor;
 	const Point futurePosition = player->position.future;
@@ -3485,13 +3619,12 @@ void FindLocalCoopItemsAndObjects(uint8_t playerId)
  */
 void FindLocalCoopTriggers(uint8_t playerId)
 {
-	LocalCoopPlayer *coopPlayer = GetValidLocalCoopPlayer(playerId);
-	if (coopPlayer == nullptr)
+	auto validated = GetValidatedPlayer(playerId, false, false);
+	if (!validated.isValid)
 		return;
 
-	const Player *player = GetValidPlayer(playerId);
-	if (player == nullptr)
-		return;
+	LocalCoopPlayer *coopPlayer = validated.coop;
+	const Player *player = validated.player;
 
 	LocalCoopCursorState &cursor = coopPlayer->cursor;
 
@@ -3543,14 +3676,13 @@ void UpdateLocalCoopTargetSelection(uint8_t playerId)
 	if (!g_LocalCoop.enabled)
 		return;
 
-	LocalCoopPlayer *coopPlayer = GetValidLocalCoopPlayer(playerId);
-	if (coopPlayer == nullptr || !coopPlayer->active || !coopPlayer->initialized)
-		return;
-	if (coopPlayer->characterSelectActive)
+	auto validated = GetValidatedPlayer(playerId, true, false); // Don't require alive for target selection
+	if (!validated.isValid)
 		return;
 
-	const Player *player = GetValidPlayer(playerId);
-	if (player == nullptr || player->_pInvincible || player->_pHitPoints <= 0)
+	LocalCoopPlayer *coopPlayer = validated.coop;
+	const Player *player = validated.player;
+	if (player->_pInvincible || player->_pHitPoints <= 0)
 		return;
 	if (DoomFlag)
 		return;
@@ -3581,12 +3713,11 @@ void UpdateLocalCoopTargetSelection(uint8_t playerId)
  */
 void OpenLocalCoopQuickSpellMenu(uint8_t playerId, int slotIndex)
 {
-	LocalCoopPlayer *coopPlayer = GetValidLocalCoopPlayer(playerId);
-	if (coopPlayer == nullptr || !coopPlayer->active || !coopPlayer->initialized)
+	auto validated = GetValidatedPlayer(playerId);
+	if (!validated.isValid)
 		return;
 
-	if (GetValidPlayer(playerId) == nullptr)
-		return;
+	LocalCoopPlayer *coopPlayer = validated.coop;
 
 	// Set spell menu owner - this player will own the menu until it closes
 	// We switch MyPlayer/InspectPlayer to this player and keep it that way
@@ -3769,12 +3900,11 @@ void DrawPlayer1SkillSlots(const Surface &out)
 
 void AssignLocalCoopSpellToSlot(uint8_t playerId, int slotIndex)
 {
-	LocalCoopPlayer *coopPlayer = GetValidLocalCoopPlayer(playerId);
-	if (coopPlayer == nullptr || !coopPlayer->active || !coopPlayer->initialized)
+	auto validated = GetValidatedPlayer(playerId);
+	if (!validated.isValid)
 		return;
 
-	if (GetValidPlayer(playerId) == nullptr)
-		return;
+	LocalCoopPlayer *coopPlayer = validated.coop;
 
 	// MyPlayer should already be set to the spell menu owner by OpenLocalCoopQuickSpellMenu
 	// Use the standard SetSpeedSpell function
@@ -3796,13 +3926,12 @@ void AssignLocalCoopSpellToSlot(uint8_t playerId, int slotIndex)
 
 void PerformLocalCoopPrimaryAction(uint8_t playerId)
 {
-	LocalCoopPlayer *coopPlayer = GetValidLocalCoopPlayer(playerId);
-	if (coopPlayer == nullptr || !coopPlayer->active || !coopPlayer->initialized)
+	auto validated = GetValidatedPlayer(playerId);
+	if (!validated.isValid)
 		return;
 
-	Player *player = GetValidPlayer(playerId);
-	if (player == nullptr || player->_pHitPoints <= 0)
-		return;
+	LocalCoopPlayer *coopPlayer = validated.coop;
+	Player *player = validated.player;
 
 	// Temporarily swap player context so network commands use correct player ID
 	LocalCoopPlayerContext context(playerId);
@@ -3861,13 +3990,12 @@ void PerformLocalCoopPrimaryAction(uint8_t playerId)
 
 void PerformLocalCoopSecondaryAction(uint8_t playerId)
 {
-	LocalCoopPlayer *coopPlayer = GetValidLocalCoopPlayer(playerId);
-	if (coopPlayer == nullptr || !coopPlayer->active || !coopPlayer->initialized)
+	auto validated = GetValidatedPlayer(playerId);
+	if (!validated.isValid)
 		return;
 
-	Player *player = GetValidPlayer(playerId);
-	if (player == nullptr || player->_pHitPoints <= 0)
-		return;
+	LocalCoopPlayer *coopPlayer = validated.coop;
+	Player *player = validated.player;
 
 	// Swap player context so network commands are sent for the correct player
 	LocalCoopPlayerContext context(playerId);
@@ -3966,14 +4094,11 @@ void ProcessLocalCoopGameAction(uint8_t playerId, uint8_t actionType)
 	if (!g_LocalCoop.enabled)
 		return;
 
-	LocalCoopPlayer *coopPlayer = GetValidLocalCoopPlayer(playerId);
-	if (coopPlayer == nullptr || !coopPlayer->active || !coopPlayer->initialized)
-		return;
-	if (coopPlayer->characterSelectActive)
+	auto validated = GetValidatedPlayer(playerId);
+	if (!validated.isValid)
 		return;
 
-	if (GetValidPlayer(playerId) == nullptr)
-		return;
+	LocalCoopPlayer *coopPlayer = validated.coop;
 
 	switch (actionType) {
 	case GameActionType_NONE:
@@ -4156,58 +4281,25 @@ std::optional<Point> GetLocalCoopBeltSlotPosition(uint8_t playerId, int beltSlot
 	// In local coop mode, use local panel positioning (main panel is hidden)
 
 	// Panel layout constants - must match DrawLocalCoopPlayerHUD
-	constexpr int topBorderPadding = 5;
 	constexpr int leftBorderPadding = 7;
 	constexpr int rightBorderPadding = 8;
-	constexpr int panelEdgePadding = 0;
-	constexpr int elementSpacing = 1;
-	constexpr int nameTopOffset = 4;
-	constexpr int barsExtraDownOffset = 1;
-	constexpr int barsExtraRightOffset = 0;
-
-	constexpr int barHeight = 14;
-	constexpr int barSpacing = 1;
-	constexpr int barsHeight = barHeight * 2 + barSpacing;
-
 	constexpr int beltActualWidth = 245;
-
-	constexpr int panelHeight = 87;
 	const int contentWidth = beltActualWidth;
 	const int panelContentWidth = contentWidth + 6;
 	const int panelWidth = leftBorderPadding + panelContentWidth + rightBorderPadding;
 
 	// Calculate panel position for this player (same logic as DrawLocalCoopPlayerHUD)
-	int panelX, panelY;
 	const int screenWidth = gnScreenWidth;
 	const int screenHeight = gnScreenHeight;
 
-	switch (playerId) {
-	case 0: // Player 1 - Bottom-left
-		panelX = panelEdgePadding;
-		panelY = screenHeight - panelHeight - panelEdgePadding;
-		break;
-	case 1: // Player 2 - Bottom-right
-		panelX = screenWidth - panelWidth - panelEdgePadding;
-		panelY = screenHeight - panelHeight - panelEdgePadding;
-		break;
-	case 2: // Player 3 - Top-left
-		panelX = panelEdgePadding;
-		panelY = panelEdgePadding;
-		break;
-	case 3: // Player 4 - Top-right
-		panelX = screenWidth - panelWidth - panelEdgePadding;
-		panelY = panelEdgePadding;
-		break;
-	default:
+	PanelPosition panelPos = GetPlayerPanelPosition(playerId, screenWidth, screenHeight, panelWidth);
+	if (!panelPos.isValid)
 		return std::nullopt;
-	}
 
 	// Calculate belt position (same as DrawPlayerBelt call in DrawLocalCoopPlayerHUD)
-	const int contentX = panelX + leftBorderPadding;
-	const int currentY = panelY + topBorderPadding + nameTopOffset + 4;
-	const int middleY = currentY + barsHeight + elementSpacing + barsExtraDownOffset;
-	const int beltBaseX = contentX + barsExtraRightOffset;
-	const int beltBaseY = middleY - 3;
+	BeltPosition beltPos = CalculateBeltPosition(panelPos.panelX, panelPos.panelY);
+	const int beltBaseX = beltPos.baseX;
+	const int beltBaseY = beltPos.baseY;
 
 	// Belt slots are positioned at 29px spacing starting at x=207 relative to belt area (from DrawPlayerBelt)
 	// But we need to add the offset of 5px to the left (from slotX calculation in DrawPlayerBelt)
@@ -4230,22 +4322,9 @@ std::optional<inv_xy_slot> FindLocalCoopBeltSlotUnderCursor(Point cursorPosition
 	// In local coop mode, check local belt panels (main panel is hidden)
 
 	// Panel layout constants - must match DrawLocalCoopPlayerHUD and GetLocalCoopBeltSlotPosition
-	constexpr int topBorderPadding = 5;
 	constexpr int leftBorderPadding = 7;
 	constexpr int rightBorderPadding = 8;
-	constexpr int panelEdgePadding = 0;
-	constexpr int elementSpacing = 1;
-	constexpr int nameTopOffset = 4;
-	constexpr int barsExtraDownOffset = 1;
-	constexpr int barsExtraRightOffset = 0;
-
-	constexpr int barHeight = 14;
-	constexpr int barSpacing = 1;
-	constexpr int barsHeight = barHeight * 2 + barSpacing;
-
 	constexpr int beltActualWidth = 245;
-
-	constexpr int panelHeight = 87;
 	const int contentWidth = beltActualWidth;
 	const int panelContentWidth = contentWidth + 6;
 	const int panelWidth = leftBorderPadding + panelContentWidth + rightBorderPadding;
@@ -4272,34 +4351,14 @@ std::optional<inv_xy_slot> FindLocalCoopBeltSlotUnderCursor(Point cursorPosition
 		}
 
 		// Calculate panel position for this player
-		int panelX, panelY;
-		switch (playerId) {
-		case 0: // Player 1 - Bottom-left
-			panelX = panelEdgePadding;
-			panelY = screenHeight - panelHeight - panelEdgePadding;
-			break;
-		case 1: // Player 2 - Bottom-right
-			panelX = screenWidth - panelWidth - panelEdgePadding;
-			panelY = screenHeight - panelHeight - panelEdgePadding;
-			break;
-		case 2: // Player 3 - Top-left
-			panelX = panelEdgePadding;
-			panelY = panelEdgePadding;
-			break;
-		case 3: // Player 4 - Top-right
-			panelX = screenWidth - panelWidth - panelEdgePadding;
-			panelY = panelEdgePadding;
-			break;
-		default:
+		PanelPosition panelPos = GetPlayerPanelPosition(static_cast<uint8_t>(playerId), screenWidth, screenHeight, panelWidth);
+		if (!panelPos.isValid)
 			continue;
-		}
 
 		// Calculate belt position
-		const int contentX = panelX + leftBorderPadding;
-		const int currentY = panelY + topBorderPadding + nameTopOffset + 4;
-		const int middleY = currentY + barsHeight + elementSpacing + barsExtraDownOffset;
-		const int beltBaseX = contentX + barsExtraRightOffset;
-		const int beltBaseY = middleY - 3;
+		BeltPosition beltPos = CalculateBeltPosition(panelPos.panelX, panelPos.panelY);
+		const int beltBaseX = beltPos.baseX;
+		const int beltBaseY = beltPos.baseY;
 
 		// Check each belt slot for this player
 		for (int slotIndex = 0; slotIndex < MaxBeltItems; ++slotIndex) {
@@ -4476,23 +4535,7 @@ bool HandleLocalCoopButtonPress(uint8_t playerId, ControllerButton button)
 	}
 
 	// Map button to skill slot: A=2, B=3, X=0, Y=1
-	int slotIndex = -1;
-	switch (button) {
-	case ControllerButton_BUTTON_A:
-		slotIndex = 2;
-		break;
-	case ControllerButton_BUTTON_B:
-		slotIndex = 3;
-		break;
-	case ControllerButton_BUTTON_X:
-		slotIndex = 0;
-		break;
-	case ControllerButton_BUTTON_Y:
-		slotIndex = 1;
-		break;
-	default:
-		break;
-	}
+	int slotIndex = GetSkillSlotFromControllerButton(button);
 
 	if (slotIndex >= 0) {
 		// For player 1, check if A button is pressed with a target under cursor
@@ -4613,23 +4656,7 @@ bool HandleLocalCoopButtonRelease(uint8_t playerId, ControllerButton button)
 	}
 
 	// Map button to skill slot: A=2, B=3, X=0, Y=1
-	int slotIndex = -1;
-	switch (button) {
-	case ControllerButton_BUTTON_A:
-		slotIndex = 2;
-		break;
-	case ControllerButton_BUTTON_B:
-		slotIndex = 3;
-		break;
-	case ControllerButton_BUTTON_X:
-		slotIndex = 0;
-		break;
-	case ControllerButton_BUTTON_Y:
-		slotIndex = 1;
-		break;
-	default:
-		break;
-	}
+	int slotIndex = GetSkillSlotFromControllerButton(button);
 
 	if (slotIndex >= 0) {
 		// Check if this was a primary action (e.g., attacking a target)
