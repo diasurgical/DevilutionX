@@ -203,7 +203,7 @@ TEST_F(VendorTest, PremiumQlvl1to5)
 
 	for (size_t i = 0; i < PremiumItems.size(); i++) {
 		constexpr int QLVLS[] = { 1, 1, 1, 1, 2, 3 };
-		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, QLVLS[i]) << "Index: " << i;
+		EXPECT_EQ(PremiumItems[i].getItemLevel(), QLVLS[i]) << "Index: " << i;
 		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatch(i), PremiumTypeMatch(i)));
 	}
 
@@ -214,7 +214,7 @@ TEST_F(VendorTest, PremiumQlvl1to5)
 
 	for (size_t i = 0; i < PremiumItems.size(); i++) {
 		constexpr int QLVLS[] = { 4, 4, 5, 5, 6, 7 };
-		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, QLVLS[i]) << "Index: " << i;
+		EXPECT_EQ(PremiumItems[i].getItemLevel(), QLVLS[i]) << "Index: " << i;
 		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatch(i), PremiumTypeMatch(i)));
 	}
 }
@@ -230,7 +230,7 @@ TEST_F(VendorTest, PremiumQlvl25)
 	EXPECT_EQ(PremiumItems.size(), NumSmithItems);
 
 	for (size_t i = 0; i < PremiumItems.size(); i++) {
-		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, QLVLS[i]) << "Index: " << i;
+		EXPECT_EQ(PremiumItems[i].getItemLevel(), QLVLS[i]) << "Index: " << i;
 		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatch(i), PremiumTypeMatch(i)));
 	}
 
@@ -241,7 +241,7 @@ TEST_F(VendorTest, PremiumQlvl25)
 	EXPECT_EQ(PremiumItems.size(), NumSmithItems);
 
 	for (size_t i = 0; i < PremiumItems.size(); i++) {
-		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, QLVLS[i]) << "Index: " << i;
+		EXPECT_EQ(PremiumItems[i].getItemLevel(), QLVLS[i]) << "Index: " << i;
 		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatch(i), PremiumTypeMatch(i)));
 	}
 }
@@ -257,7 +257,7 @@ TEST_F(VendorTest, PremiumQlvl30Plus)
 	EXPECT_EQ(PremiumItems.size(), NumSmithItems);
 
 	for (size_t i = 0; i < PremiumItems.size(); i++) {
-		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, QLVLS[i]) << "Index: " << i;
+		EXPECT_EQ(PremiumItems[i].getItemLevel(), QLVLS[i]) << "Index: " << i;
 		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatch(i), PremiumTypeMatch(i)));
 	}
 
@@ -268,7 +268,7 @@ TEST_F(VendorTest, PremiumQlvl30Plus)
 	EXPECT_EQ(PremiumItems.size(), NumSmithItems);
 
 	for (size_t i = 0; i < PremiumItems.size(); i++) {
-		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, QLVLS[i]) << "Index: " << i;
+		EXPECT_EQ(PremiumItems[i].getItemLevel(), QLVLS[i]) << "Index: " << i;
 		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatch(i), PremiumTypeMatch(i)));
 	}
 
@@ -278,7 +278,7 @@ TEST_F(VendorTest, PremiumQlvl30Plus)
 	EXPECT_EQ(PremiumItems.size(), NumSmithItems);
 
 	for (size_t i = 0; i < PremiumItems.size(); i++) {
-		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, QLVLS[i]) << "Index: " << i;
+		EXPECT_EQ(PremiumItems[i].getItemLevel(), QLVLS[i]) << "Index: " << i;
 		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatch(i), PremiumTypeMatch(i)));
 	}
 
@@ -289,7 +289,7 @@ TEST_F(VendorTest, PremiumQlvl30Plus)
 	EXPECT_EQ(PremiumItems.size(), NumSmithItems);
 
 	for (size_t i = 0; i < PremiumItems.size(); i++) {
-		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, QLVLS[i]) << "Index: " << i;
+		EXPECT_EQ(PremiumItems[i].getItemLevel(), QLVLS[i]) << "Index: " << i;
 		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatch(i), PremiumTypeMatch(i)));
 	}
 }
@@ -305,7 +305,7 @@ TEST_F(VendorTest, HfPremiumQlvl1to5)
 
 	for (size_t i = 0; i < PremiumItems.size(); i++) {
 		constexpr int QLVLS[] = { 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 4, 4 };
-		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, QLVLS[i]) << "Index: " << i;
+		EXPECT_EQ(PremiumItems[i].getItemLevel(), QLVLS[i]) << "Index: " << i;
 		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatchHf(i), PremiumTypeMatch(i)));
 	}
 
@@ -316,7 +316,7 @@ TEST_F(VendorTest, HfPremiumQlvl1to5)
 
 	for (size_t i = 0; i < PremiumItems.size(); i++) {
 		constexpr int QLVLS[] = { 3, 3, 4, 4, 4, 4, 5, 5, 5, 6, 6, 6, 7, 7, 8 };
-		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, QLVLS[i]) << "Index: " << i;
+		EXPECT_EQ(PremiumItems[i].getItemLevel(), QLVLS[i]) << "Index: " << i;
 		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatchHf(i), PremiumTypeMatch(i)));
 	}
 }
@@ -332,7 +332,7 @@ TEST_F(VendorTest, HfPremiumQlvl25)
 
 	for (size_t i = 0; i < PremiumItems.size(); i++) {
 		constexpr int QLVLS[] = { 23, 23, 23, 24, 24, 24, 25, 25, 25, 26, 26, 26, 27, 27, 28 };
-		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, QLVLS[i]) << "Index: " << i;
+		EXPECT_EQ(PremiumItems[i].getItemLevel(), QLVLS[i]) << "Index: " << i;
 		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatchHf(i), PremiumTypeMatch(i)));
 	}
 
@@ -344,7 +344,7 @@ TEST_F(VendorTest, HfPremiumQlvl25)
 
 	for (size_t i = 0; i < PremiumItems.size(); i++) {
 		constexpr int QLVLS[] = { 24, 23, 23, 24, 24, 24, 25, 26, 25, 26, 26, 26, 27, 27, 28 };
-		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, QLVLS[i]) << "Index: " << i;
+		EXPECT_EQ(PremiumItems[i].getItemLevel(), QLVLS[i]) << "Index: " << i;
 		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatchHf(i), PremiumTypeMatch(i)));
 	}
 }
@@ -360,7 +360,7 @@ TEST_F(VendorTest, HfPremiumQlvl30Plus)
 
 	for (size_t i = 0; i < PremiumItems.size(); i++) {
 		constexpr int QLVLS[] = { 29, 29, 29, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30 };
-		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, QLVLS[i]) << "Index: " << i;
+		EXPECT_EQ(PremiumItems[i].getItemLevel(), QLVLS[i]) << "Index: " << i;
 		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatchHf(i), PremiumTypeMatch(i)));
 	}
 
@@ -372,7 +372,7 @@ TEST_F(VendorTest, HfPremiumQlvl30Plus)
 
 	for (size_t i = 0; i < PremiumItems.size(); i++) {
 		constexpr int QLVLS[] = { 30, 29, 29, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30 };
-		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, QLVLS[i]) << "Index: " << i;
+		EXPECT_EQ(PremiumItems[i].getItemLevel(), QLVLS[i]) << "Index: " << i;
 		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatchHf(i), PremiumTypeMatch(i)));
 	}
 
@@ -384,7 +384,7 @@ TEST_F(VendorTest, HfPremiumQlvl30Plus)
 	EXPECT_EQ(PremiumItems.size(), NumSmithItemsHf);
 
 	for (size_t i = 0; i < PremiumItems.size(); i++) {
-		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, QLVLS[i]) << "Index: " << i;
+		EXPECT_EQ(PremiumItems[i].getItemLevel(), QLVLS[i]) << "Index: " << i;
 		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatchHf(i), PremiumTypeMatch(i)));
 	}
 
@@ -395,7 +395,7 @@ TEST_F(VendorTest, HfPremiumQlvl30Plus)
 	EXPECT_EQ(PremiumItems.size(), NumSmithItemsHf);
 
 	for (size_t i = 0; i < PremiumItems.size(); i++) {
-		EXPECT_EQ(PremiumItems[i]._iCreateInfo & CF_LEVEL, QLVLS[i]) << "Index: " << i;
+		EXPECT_EQ(PremiumItems[i].getItemLevel(), QLVLS[i]) << "Index: " << i;
 		EXPECT_THAT(PremiumItems[i]._itype, AnyOf(SmithTypeMatchHf(i), PremiumTypeMatch(i)));
 	}
 }

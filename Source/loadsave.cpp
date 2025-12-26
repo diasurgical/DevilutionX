@@ -268,7 +268,7 @@ struct LevelConversionData {
 [[nodiscard]] bool LoadItemData(LoadHelper &file, Item &item)
 {
 	item._iSeed = file.NextLE<uint32_t>();
-	item._iCreateInfo = file.NextLE<uint16_t>();
+	item.setAllCreationFlags(file.NextLE<uint16_t>());
 	file.Skip(2); // Alignment
 	item._itype = static_cast<ItemType>(file.NextLE<uint32_t>());
 	item.position.x = file.NextLE<int32_t>();
@@ -369,7 +369,7 @@ struct LevelConversionData {
 	const _item_indexes itemIndex = static_cast<_item_indexes>(findIt->second);
 	item.IDidx = itemIndex;
 
-	item.dwBuff = file.NextLE<uint32_t>();
+	item.setAllCreationFlags2(file.NextLE<uint32_t>());
 	if (gbIsHellfireSaveGame)
 		item._iDamAcFlags = static_cast<ItemSpecialEffectHf>(file.NextLE<uint32_t>());
 	else
@@ -1096,9 +1096,9 @@ void LoadMatchingItems(LoadHelper &file, const Player &player, const int n, Item
 		if (gbIsMultiplayer) {
 			// Ensure that the unpacked item was regenerated using the appropriate
 			// game's item generation logic before attempting to use it for validation
-			if ((heroItem.dwBuff & CF_HELLFIRE) != (unpackedItem.dwBuff & CF_HELLFIRE)) {
+			if (heroItem.hasCreationFlag2(CF_HELLFIRE) != unpackedItem.hasCreationFlag2(CF_HELLFIRE)) {
 				unpackedItem = {};
-				RecreateItem(player, unpackedItem, heroItem.IDidx, heroItem._iCreateInfo, heroItem._iSeed, heroItem._ivalue, heroItem.dwBuff);
+				RecreateItem(player, unpackedItem, heroItem.IDidx, heroItem.getAllCreationFlags(), heroItem._iSeed, heroItem._ivalue, heroItem.getAllCreationFlags2());
 				unpackedItem._iIdentified = heroItem._iIdentified;
 				unpackedItem._iMaxDur = heroItem._iMaxDur;
 				unpackedItem._iDurability = ClampDurability(unpackedItem, heroItem._iDurability);
@@ -1169,7 +1169,7 @@ void SaveItem(SaveHelper &file, const Item &item)
 	}
 
 	file.WriteLE<uint32_t>(item._iSeed);
-	file.WriteLE<int16_t>(item._iCreateInfo);
+	file.WriteLE<int16_t>(item.getAllCreationFlags());
 	file.Skip(2); // Alignment
 	file.WriteLE<int32_t>(static_cast<int32_t>(iType));
 	file.WriteLE<int32_t>(item.position.x);
@@ -1243,7 +1243,7 @@ void SaveItem(SaveHelper &file, const Item &item)
 	file.Skip(1); // Alignment
 	file.WriteLE<uint32_t>(item._iStatFlag ? 1 : 0);
 	file.WriteLE<int32_t>(idx);
-	file.WriteLE<uint32_t>(item.dwBuff);
+	file.WriteLE<uint32_t>(item.getAllCreationFlags2());
 	if (gbIsHellfire)
 		file.WriteLE<uint32_t>(static_cast<uint32_t>(item._iDamAcFlags));
 }
