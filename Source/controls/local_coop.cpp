@@ -386,24 +386,28 @@ struct BeltPosition {
  * @brief Calculate belt position for a player's panel.
  * @param panelX Panel X position
  * @param panelY Panel Y position
+ * @param panelWidth Panel width in pixels (for centering belt)
  * @return BeltPosition with base coordinates and slot spacing
  */
-BeltPosition CalculateBeltPosition(int panelX, int panelY)
+BeltPosition CalculateBeltPosition(int panelX, int panelY, int panelWidth)
 {
 	constexpr int topBorderPadding = 5;
 	constexpr int leftBorderPadding = 7;
+	constexpr int rightBorderPadding = 8;
 	constexpr int nameTopOffset = 4;
 	constexpr int barsHeight = 29;
 	constexpr int elementSpacing = 1;
 	constexpr int barsExtraDownOffset = 1;
-	constexpr int barsExtraRightOffset = 0;
+	constexpr int beltBorderWidth = 237; // Width of belt border from DrawPlayerBelt
 
 	const int contentX = panelX + leftBorderPadding;
+	const int panelContentWidth = panelWidth - leftBorderPadding - rightBorderPadding;
 	const int currentY = panelY + topBorderPadding + nameTopOffset + 4;
 	const int middleY = currentY + barsHeight + elementSpacing + barsExtraDownOffset;
 
 	BeltPosition pos;
-	pos.baseX = contentX + barsExtraRightOffset;
+	// Center belt horizontally within panel content area
+	pos.baseX = contentX + (panelContentWidth - beltBorderWidth) / 2;
 	pos.baseY = middleY - 3;
 	pos.slotSpacing = 29;
 
@@ -2800,6 +2804,25 @@ void DrawPlayerSkillSlots2x2(const Surface &out, const Player &player, Point bas
 
 bool LocalCoopHUDOpen = true;
 
+/**
+ * @brief Calculate the local coop panel width.
+ * @return Panel width in pixels
+ */
+int GetLocalCoopPanelWidth()
+{
+	constexpr int leftBorderPadding = 7;
+	constexpr int rightBorderPadding = 7;
+	constexpr int minBeltWidth = 245; // Minimum width needed for all 8 belt slots
+	constexpr int basePanelContentWidth = minBeltWidth - 7; // Base content width
+	constexpr int basePanelWidth = leftBorderPadding + basePanelContentWidth + rightBorderPadding; // Base panel width
+
+	// Dynamic panel width - can be adjusted here or made configurable
+	// For now, using base width but can be increased for wider panels
+	int targetPanelWidth = basePanelWidth; // Change this value to adjust panel width
+
+	return targetPanelWidth;
+}
+
 void DrawLocalCoopPlayerHUD(const Surface &out)
 {
 	// Show HUD only in multiplayer when local co-op is actually enabled (2+ controllers)
@@ -2821,7 +2844,6 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 	constexpr int nameTopOffset = 4;        // Reduced offset for top row
 	constexpr int nameLeftOffset = 0;       // No extra offset (elements shifted via leftBorderPadding)
 	constexpr int barsExtraDownOffset = 1;  // Reduced extra offset for belt
-	constexpr int barsExtraRightOffset = 0; // No extra offset - bars and belt aligned with left edge
 
 	// Health/mana bar dimensions - reduced size
 	constexpr int barHeight = 14; // Bar height (increased by 2px from 12px)
@@ -2836,26 +2858,19 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 	constexpr int skillSlotSpacing = 1;   // Spacing between slots in 2x2 grid
 	constexpr int skillColumnSpacing = 0; // Gap between panel and skill grid
 
-	// Belt dimensions - use actual sprite dimensions from main panel
-	// Belt slots: 8 slots at 29px each starting at offset 5, last slot ends at 5 + 7*29 + 29 = 242
-	constexpr int beltActualWidth = 245; // Actual width needed for all 8 slots to be clickable
+	// Get dynamic panel width (can be adjusted in GetLocalCoopPanelWidth)
+	const int panelWidth = GetLocalCoopPanelWidth();
+	const int panelContentWidth = panelWidth - leftBorderPadding - rightBorderPadding;
 
 	// Name field height
 	constexpr int nameFieldHeight = 20;
 	constexpr int playerNumWidth = 28;  // P# and level field width (increased by 3px)
-	constexpr int playerNumSpacing = 1; // 1px spacing between P#/name/level
+	constexpr int playerNumSpacing = 0; // spacing between P#/name/level
 
-	// Content area width (belt width) - skills are now outside the panel
-	const int contentWidth = beltActualWidth;
-
-	// Panel dimensions with proper borders
-	// Layout: topBorder + nameTopOffset + [top row: P# + bars + Level] + spacing + [middle: belt | skills] + bottomBorder
-	const int panelContentWidth = contentWidth + 6; // 6px wider (increased by 1px to compensate for reduced right padding)
-	// Bar width = space between P# and Level (reduced to fit in top row)
-	const int barsWidth = panelContentWidth - playerNumWidth - playerNumSpacing - playerNumWidth;
+	// Bar width = space between P# and Level (scales with panel width)
+	const int barsWidth = panelContentWidth - playerNumWidth - playerNumSpacing - playerNumWidth + 1;
 	// Reduced panel height: topBorder(5) + nameTopOffset(4) + barsHeight(29) + elementSpacing(1) + barsExtraDownOffset(1) + beltHeight(28) + bottomBorder(19) = 87px
 	constexpr int panelHeight = 87; // Adjusted to 87px (bars are now 14px each, 29px total)
-	const int panelWidth = leftBorderPadding + panelContentWidth + rightBorderPadding;
 	// Skill slot size: 2 slots height = panel height, so slotSize = (panelHeight - spacing) / 2
 	constexpr int SkillSlotSize = (panelHeight - skillSlotSpacing) / 2;  // = (87 - 1) / 2 = 43px
 	constexpr int skillGridWidth = SkillSlotSize * 2 + skillSlotSpacing; // Width of 2x2 grid (2 columns)
@@ -2933,7 +2948,7 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 		    { .flags = UiFlags::AlignCenter | UiFlags::VerticalCenter | UiFlags::ColorWhite, .spacing = 0 });
 
 		// Draw level field on the right (same size as P#)
-		int levelX = nameRowX + panelContentWidth - playerNumWidth - nameLeftOffset - extraOffset;
+		int levelX = nameRowX + panelContentWidth - playerNumWidth - nameLeftOffset - extraOffset + 1;
 		DrawCoopPanelField(out, { levelX, currentY }, playerNumWidth);
 		char levelStr[4];
 		snprintf(levelStr, sizeof(levelStr), "%d", player.getCharacterLevel());
@@ -2985,6 +3000,7 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 
 		// Skill slots: OUTSIDE panel, 2x2 grid layout
 		// For P2/P4 (right side of screen), skills go on LEFT of panel
+		// Position updates dynamically with panel width
 		int skillX;
 		if (skillsOnLeft) {
 			skillX = panelX - skillColumnSpacing - skillGridWidth - 2;
@@ -3001,10 +3017,13 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 		}
 		DrawPlayerSkillSlots2x2Small(out, player, { skillX, skillY }, SkillSlotSize, hideSkillLabels);
 
-		// === BELT: Right after top row (moved up 4px) ===
+		// === BELT: Centered horizontally within the panel ===
+		// Belt width is fixed at 237px (from DrawPlayerBelt), so center it within panel content area
+		constexpr int beltBorderWidth = 237; // Width of belt border from DrawPlayerBelt
+		const int beltX = contentX + (panelContentWidth - beltBorderWidth) / 2; // Center belt in panel
 		bool leftShoulderHeld = (coopPlayerPtr != nullptr && coopPlayerPtr->leftShoulderHeld);
 		bool rightShoulderHeld = (coopPlayerPtr != nullptr && coopPlayerPtr->rightShoulderHeld);
-		DrawPlayerBelt(out, player, static_cast<uint8_t>(playerId), { contentX + barsExtraRightOffset, middleY - 3 }, false, leftShoulderHeld, rightShoulderHeld);
+		DrawPlayerBelt(out, player, static_cast<uint8_t>(playerId), { beltX, middleY - 3 }, false, leftShoulderHeld, rightShoulderHeld);
 
 		// Draw durability icons - above panel for bottom players, below panel for top players
 		int durabilityY;
@@ -4293,13 +4312,8 @@ std::optional<Point> GetLocalCoopBeltSlotPosition(uint8_t playerId, int beltSlot
 
 	// In local coop mode, use local panel positioning (main panel is hidden)
 
-	// Panel layout constants - must match DrawLocalCoopPlayerHUD
-	constexpr int leftBorderPadding = 7;
-	constexpr int rightBorderPadding = 8;
-	constexpr int beltActualWidth = 245;
-	const int contentWidth = beltActualWidth;
-	const int panelContentWidth = contentWidth + 6;
-	const int panelWidth = leftBorderPadding + panelContentWidth + rightBorderPadding;
+	// Get dynamic panel width (must match DrawLocalCoopPlayerHUD)
+	const int panelWidth = GetLocalCoopPanelWidth();
 
 	// Calculate panel position for this player (same logic as DrawLocalCoopPlayerHUD)
 	const int screenWidth = gnScreenWidth;
@@ -4310,7 +4324,7 @@ std::optional<Point> GetLocalCoopBeltSlotPosition(uint8_t playerId, int beltSlot
 		return std::nullopt;
 
 	// Calculate belt position (same as DrawPlayerBelt call in DrawLocalCoopPlayerHUD)
-	BeltPosition beltPos = CalculateBeltPosition(panelPos.panelX, panelPos.panelY);
+	BeltPosition beltPos = CalculateBeltPosition(panelPos.panelX, panelPos.panelY, panelWidth);
 	const int beltBaseX = beltPos.baseX;
 	const int beltBaseY = beltPos.baseY;
 
@@ -4334,13 +4348,8 @@ std::optional<inv_xy_slot> FindLocalCoopBeltSlotUnderCursor(Point cursorPosition
 
 	// In local coop mode, check local belt panels (main panel is hidden)
 
-	// Panel layout constants - must match DrawLocalCoopPlayerHUD and GetLocalCoopBeltSlotPosition
-	constexpr int leftBorderPadding = 7;
-	constexpr int rightBorderPadding = 8;
-	constexpr int beltActualWidth = 245;
-	const int contentWidth = beltActualWidth;
-	const int panelContentWidth = contentWidth + 6;
-	const int panelWidth = leftBorderPadding + panelContentWidth + rightBorderPadding;
+	// Get dynamic panel width (must match DrawLocalCoopPlayerHUD)
+	const int panelWidth = GetLocalCoopPanelWidth();
 
 	const int screenWidth = gnScreenWidth;
 	const int screenHeight = gnScreenHeight;
@@ -4369,7 +4378,7 @@ std::optional<inv_xy_slot> FindLocalCoopBeltSlotUnderCursor(Point cursorPosition
 			continue;
 
 		// Calculate belt position
-		BeltPosition beltPos = CalculateBeltPosition(panelPos.panelX, panelPos.panelY);
+		BeltPosition beltPos = CalculateBeltPosition(panelPos.panelX, panelPos.panelY, panelWidth);
 		const int beltBaseX = beltPos.baseX;
 		const int beltBaseY = beltPos.baseY;
 
