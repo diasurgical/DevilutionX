@@ -140,9 +140,9 @@ void DrawSpellsCircleMenuHint(const Surface &out, const Point &origin)
 	}
 }
 
-void DrawGamepadMenuNavigator(const Surface &out)
+void DrawGamepadMenuNavigator(const Surface &out, bool forceDraw)
 {
-	if (!PadMenuNavigatorActive || SimulatingMouseWithPadmapper)
+	if ((!PadMenuNavigatorActive && !forceDraw) || SimulatingMouseWithPadmapper)
 		return;
 	static const CircleMenuHint DPad(/*top=*/HintIcon::IconMenu, /*right=*/HintIcon::IconInv, /*bottom=*/HintIcon::IconMap, /*left=*/HintIcon::IconChar);
 	static const CircleMenuHint Buttons(/*top=*/HintIcon::IconNull, /*right=*/HintIcon::IconNull, /*bottom=*/HintIcon::IconSpells, /*left=*/HintIcon::IconQuests);
@@ -178,12 +178,27 @@ void FreeModifierHints()
 
 void DrawControllerModifierHints(const Surface &out)
 {
-	// Skip drawing when local coop HUD is active - it has its own skill slot display
-	if (IsAnyLocalCoopPlayerInitialized())
-		return;
+	// Check if any local coop player has PadMenuNavigator active
+	bool anyPlayerHasMenuNavigator = false;
+	if (IsLocalCoopEnabled()) {
+		for (size_t i = 0; i < MaxLocalPlayers; ++i) {
+			const LocalCoopPlayer *player = g_LocalCoop.GetPlayer(static_cast<uint8_t>(i));
+			if (player != nullptr && player->active && player->padMenuNavigatorActive) {
+				anyPlayerHasMenuNavigator = true;
+				break;
+			}
+		}
+	}
 
-	DrawGamepadMenuNavigator(out);
-	DrawGamepadHotspellMenu(out);
+	// Draw menu navigator if active (either global or any local coop player)
+	if (PadMenuNavigatorActive || anyPlayerHasMenuNavigator) {
+		DrawGamepadMenuNavigator(out, anyPlayerHasMenuNavigator);
+	}
+
+	// Draw hotspell menu if active (only global, not per-player)
+	if (PadHotspellMenuActive) {
+		DrawGamepadHotspellMenu(out);
+	}
 }
 
 OptionalOwnedClxSpriteList &GetHintBoxSprite()
