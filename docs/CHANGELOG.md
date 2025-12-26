@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Bug Fixes
+
+#### Graphics / Audio
+
+- Music doesn't unmute when focus is lost on level transition with Auto Pause On Focus Lost disabled
+- Image ghosting visible on border of map in higher resolutions
+
 ## DevilutionX 1.5.2
 
 ### Bug Fixes

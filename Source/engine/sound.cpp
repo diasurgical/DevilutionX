@@ -171,7 +171,7 @@ int CapVolume(int volume)
 
 void OptionAudioChanged()
 {
-	effects_cleanup_sfx();
+	effects_cleanup_sfx(false);
 	music_stop();
 	snd_deinit();
 	snd_init();
@@ -348,8 +348,6 @@ void music_start(_music_id nTrack)
 	}
 
 	music.SetVolume(*GetOptions().Audio.musicVolume, VOLUME_MIN, VOLUME_MAX);
-	if (!diablo_is_focused())
-		music_mute();
 	if (!music.Play(/*numIterations=*/0)) {
 		LogError(LogCategory::Audio, "Aulib::Stream::play (from music_start): {}", SDL_GetError());
 		music_stop();

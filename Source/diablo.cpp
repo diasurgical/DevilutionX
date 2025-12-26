@@ -27,7 +27,7 @@
 #include "appfat.h"
 #include "automap.h"
 #include "capture.h"
-#include "control.h"
+#include "control/control.hpp"
 #include "cursor.h"
 #include "dead.h"
 #ifdef _DEBUG
@@ -917,6 +917,7 @@ void RunGameLoop(interface_mode uMsg)
 		if (!runGameLoop) {
 			if (processInput)
 				ProcessInput();
+			DvlNet_ProcessNetworkPackets();
 			if (!drawGame)
 				continue;
 			RedrawViewport();
@@ -924,7 +925,7 @@ void RunGameLoop(interface_mode uMsg)
 			continue;
 		}
 
-		multi_process_network_packets();
+		ProcessGameMessagePackets();
 		if (game_loop(gbGameLoopStartup))
 			diablo_color_cyc_logic();
 		gbGameLoopStartup = false;
@@ -1563,6 +1564,28 @@ void TimeoutCursor(bool bTimeout)
 			InfoString = StringOrView {};
 			AddInfoBoxString(_("-- Network timeout --"));
 			AddInfoBoxString(_("-- Waiting for players --"));
+			for (uint8_t i = 0; i < Players.size(); i++) {
+				bool isConnected = (player_state[i] & PS_CONNECTED) != 0;
+				bool isActive = (player_state[i] & PS_ACTIVE) != 0;
+				if (!(isConnected && !isActive)) continue;
+
+				DvlNetLatencies latencies = DvlNet_GetLatencies(i);
+
+				std::string ping = fmt::format(
+				    fmt::runtime(_(/* TRANSLATORS: {:s} means: Character Name */ "Player {:s} is timing out!")),
+				    Players[i].name());
+
+				StrAppend(ping, "\n  ", fmt::format(fmt::runtime(_(/* TRANSLATORS: Network connectivity statistics */ "Echo latency: {:d} ms")), latencies.echoLatency));
+
+				if (latencies.providerLatency) {
+					if (latencies.isRelayed && *latencies.isRelayed) {
+						StrAppend(ping, "\n  ", fmt::format(fmt::runtime(_(/* TRANSLATORS: Network connectivity statistics */ "Provider latency: {:d} ms (Relayed)")), *latencies.providerLatency));
+					} else {
+						StrAppend(ping, "\n  ", fmt::format(fmt::runtime(_(/* TRANSLATORS: Network connectivity statistics */ "Provider latency: {:d} ms")), *latencies.providerLatency));
+					}
+				}
+				EventPlrMsg(ping);
+			}
 			NewCursor(CURSOR_HOURGLASS);
 			RedrawEverything();
 		}
@@ -1767,7 +1790,7 @@ void OptionLanguageCodeChanged()
 	UnloadFonts();
 	LanguageInitialize();
 	LoadLanguageArchive();
-	effects_cleanup_sfx();
+	effects_cleanup_sfx(false);
 	if (gbRunGame)
 		sound_init();
 	else
@@ -2056,7 +2079,7 @@ void InitKeymapActions()
 	    'V',
 	    [] {
 		    EventPlrMsg(fmt::format(
-		                    fmt::runtime(_(/* TRANSLATORS: {:s} means: Character Name, Game Version, Game Difficulty. */ "{:s} {:s}")),
+		                    fmt::runtime(_(/* TRANSLATORS: {:s} means: Project Name, Game Version. */ "{:s} {:s}")),
 		                    PROJECT_NAME,
 		                    PROJECT_VERSION),
 		        UiFlags::ColorWhite);
@@ -2568,7 +2591,7 @@ void InitPadmapActions()
 	    ControllerButton_NONE,
 	    [] {
 		    EventPlrMsg(fmt::format(
-		                    fmt::runtime(_(/* TRANSLATORS: {:s} means: Character Name, Game Version, Game Difficulty. */ "{:s} {:s}")),
+		                    fmt::runtime(_(/* TRANSLATORS: {:s} means: Project Name, Game Version. */ "{:s} {:s}")),
 		                    PROJECT_NAME,
 		                    PROJECT_VERSION),
 		        UiFlags::ColorWhite);
@@ -3333,6 +3356,7 @@ tl::expected<void, std::string> LoadGameLevel(bool firstflag, lvl_entry lvldir)
 	LoadGameLevelStopMusic(neededTrack);
 	LoadGameLevelResetCursor();
 	SetRndSeedForDungeonLevel();
+	NaKrulTomeSequence = 0;
 
 	IncProgress();
 

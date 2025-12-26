@@ -21,7 +21,7 @@
 #include <fmt/format.h>
 
 #include "DiabloUI/diabloui.h"
-#include "control.h"
+#include "control/control.hpp"
 #include "controls/control_mode.hpp"
 #include "controls/plrctrls.h"
 #include "doom.h"
@@ -69,7 +69,7 @@ OptionalOwnedClxSpriteList *HalfSizeItemSpritesRed;
 
 bool IsValidMonsterForSelection(const Monster &monster)
 {
-	if (monster.hitPoints >> 6 <= 0)
+	if (monster.hasNoLife())
 		return false;
 	if ((monster.flags & MFLAG_HIDDEN) != 0)
 		return false;
@@ -130,7 +130,7 @@ bool TrySelectPlayer(bool flipflag, const Point tile)
 	if (!flipflag && tile.x + 1 < MAXDUNX && dPlayer[tile.x + 1][tile.y] != 0) {
 		const uint8_t playerId = std::abs(dPlayer[tile.x + 1][tile.y]) - 1;
 		Player &player = Players[playerId];
-		if (&player != MyPlayer && player._pHitPoints != 0) {
+		if (&player != MyPlayer && !player.hasNoLife()) {
 			cursPosition = tile + Displacement { 1, 0 };
 			PlayerUnderCursor = &player;
 		}
@@ -138,7 +138,7 @@ bool TrySelectPlayer(bool flipflag, const Point tile)
 	if (flipflag && tile.y + 1 < MAXDUNY && dPlayer[tile.x][tile.y + 1] != 0) {
 		const uint8_t playerId = std::abs(dPlayer[tile.x][tile.y + 1]) - 1;
 		Player &player = Players[playerId];
-		if (&player != MyPlayer && player._pHitPoints != 0) {
+		if (&player != MyPlayer && !player.hasNoLife()) {
 			cursPosition = tile + Displacement { 0, 1 };
 			PlayerUnderCursor = &player;
 		}
@@ -176,7 +176,7 @@ bool TrySelectPlayer(bool flipflag, const Point tile)
 	if (tile.x + 1 < MAXDUNX && tile.y + 1 < MAXDUNY && dPlayer[tile.x + 1][tile.y + 1] != 0) {
 		const uint8_t playerId = std::abs(dPlayer[tile.x + 1][tile.y + 1]) - 1;
 		const Player &player = Players[playerId];
-		if (&player != MyPlayer && player._pHitPoints != 0) {
+		if (&player != MyPlayer && !player.hasNoLife()) {
 			cursPosition = tile + Displacement { 1, 1 };
 			PlayerUnderCursor = &player;
 		}

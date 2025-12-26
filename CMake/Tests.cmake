@@ -35,6 +35,7 @@ set(tests
   stores_test
   tile_properties_test
   timedemo_test
+  townerdat_test
   writehero_test
   vendor_test
 )
@@ -142,6 +143,7 @@ if(DEVILUTIONX_SCREENSHOT_FORMAT STREQUAL DEVILUTIONX_SCREENSHOT_FORMAT_PNG AND 
     DevilutionX::SDL
     GTest::gmock
     GTest::gtest
+    fmt::fmt
     tl
     app_fatal_for_testing
     language_for_testing

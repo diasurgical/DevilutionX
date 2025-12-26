@@ -18,7 +18,7 @@
 #endif
 
 #include "automap.h"
-#include "control.h"
+#include "control/control.hpp"
 #include "controls/controller_motion.h"
 #ifndef USE_SDL1
 #include "controls/devices/game_controller.h"
@@ -76,7 +76,7 @@ bool InGameMenu()
 	    || qtextflag
 	    || gmenu_is_active()
 	    || PauseMode == 2
-	    || (MyPlayer != nullptr && MyPlayer->_pInvincible && MyPlayer->_pHitPoints == 0);
+	    || (MyPlayer != nullptr && MyPlayer->_pInvincible && MyPlayer->hasNoLife());
 }
 
 namespace {
@@ -221,13 +221,13 @@ void FindItemOrObject()
 
 void CheckTownersNearby()
 {
-	for (int i = 0; i < 16; i++) {
+	for (size_t i = 0; i < GetNumTowners(); i++) {
 		const int distance = GetDistance(Towners[i].position, 2);
 		if (distance == 0)
 			continue;
 		if (!IsTownerPresent(Towners[i]._ttype))
 			continue;
-		pcursmonst = i;
+		pcursmonst = static_cast<int>(i);
 	}
 }
 
@@ -248,7 +248,7 @@ bool CanTargetMonster(const Monster &monster)
 		return false;
 	if (monster.isPlayerMinion())
 		return false;
-	if (monster.hitPoints >> 6 <= 0) // dead
+	if (monster.hasNoLife()) // dead
 		return false;
 
 	if (!IsTileLit(monster.position.tile)) // not visible
@@ -395,7 +395,7 @@ void CheckPlayerNearby()
 		const int my = player.position.future.y;
 		if (dPlayer[mx][my] == 0
 		    || !IsTileLit(player.position.future)
-		    || (player._pHitPoints == 0 && spl != SpellID::Resurrect))
+		    || (player.hasNoLife() && spl != SpellID::Resurrect))
 			continue;
 
 		if (myPlayer.UsesRangedWeapon() || HasRangedSpell() || spl == SpellID::HealOther) {

@@ -17,7 +17,7 @@
 
 #include "automap.h"
 #include "codec.h"
-#include "control.h"
+#include "control/control.hpp"
 #include "cursor.h"
 #include "dead.h"
 #include "doom.h"
@@ -224,7 +224,10 @@ public:
 		if (!IsValid(len))
 			return;
 
-		memcpy(&m_buffer_[m_cur_], bytes, len);
+		const auto *src = static_cast<const std::byte *>(bytes);
+		for (size_t i = 0; i < len; ++i) {
+			m_buffer_[m_cur_ + i] = src[i];
+		}
 		m_cur_ += len;
 	}
 

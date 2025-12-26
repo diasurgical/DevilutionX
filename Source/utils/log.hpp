@@ -62,7 +62,7 @@ std::string format(std::string_view fmt, Args &&...args)
 		// with an `FMT_EXCEPTIONS` check.
 		std::string error = e.what();
 #else
-	FMT_CATCH(const fmt::format_error)
+	FMT_CATCH(const fmt::format_error &)
 	{
 		std::string error = "unknown (FMT_EXCEPTIONS disabled)";
 #endif

@@ -1015,34 +1015,31 @@ void OptionEntryLanguageCode::CheckLanguagesAreInitialized() const
 	const bool haveExtraFonts = HaveExtraFonts();
 
 	// Add well-known supported languages
-	languages.emplace_back("bg", "Български");
-	languages.emplace_back("cs", "Čeština");
 	languages.emplace_back("da", "Dansk");
 	languages.emplace_back("de", "Deutsch");
-	languages.emplace_back("el", "Ελληνικά");
+	languages.emplace_back("et", "Eesti");
 	languages.emplace_back("en", "English");
 	languages.emplace_back("es", "Español");
-	languages.emplace_back("et", "Eesti");
 	languages.emplace_back("fr", "Français");
 	languages.emplace_back("hr", "Hrvatski");
-	languages.emplace_back("hu", "Magyar");
 	languages.emplace_back("it", "Italiano");
+	languages.emplace_back("hu", "Magyar");
+	languages.emplace_back("pl", "Polski");
+	languages.emplace_back("pt_BR", "Português do Brasil");
+	languages.emplace_back("ro", "Română");
+	languages.emplace_back("fi", "Suomi");
+	languages.emplace_back("sv", "Svenska");
+	languages.emplace_back("tr", "Türkçe");
+	languages.emplace_back("cs", "Čeština");
+	languages.emplace_back("el", "Ελληνικά");
+	languages.emplace_back("be", "беларуская");
+	languages.emplace_back("bg", "Български");
+	languages.emplace_back("ru", "Русский");
+	languages.emplace_back("uk", "Українська");
 
 	if (haveExtraFonts) {
 		languages.emplace_back("ja", "日本語");
 		languages.emplace_back("ko", "한국어");
-	}
-
-	languages.emplace_back("pl", "Polski");
-	languages.emplace_back("pt_BR", "Português do Brasil");
-	languages.emplace_back("ro", "Română");
-	languages.emplace_back("ru", "Русский");
-	languages.emplace_back("fi", "Suomi");
-	languages.emplace_back("sv", "Svenska");
-	languages.emplace_back("tr", "Türkçe");
-	languages.emplace_back("uk", "Українська");
-
-	if (haveExtraFonts) {
 		languages.emplace_back("zh_CN", "汉语");
 		languages.emplace_back("zh_TW", "漢語");
 	}

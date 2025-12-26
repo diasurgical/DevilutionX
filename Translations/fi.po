@@ -1230,7 +1230,7 @@ msgstr "Kylän portaali"
 #: Source/cursor.cpp:622
 #, c++-format
 msgid "from {:s}"
-msgstr "lta {:s}"
+msgstr "käyttäjältä {:s}"
 
 #: Source/cursor.cpp:635
 msgid "Portal to"
@@ -3886,7 +3886,7 @@ msgstr "Tynnyri"
 
 #: Source/objects.cpp:4851
 msgid "Pod"
-msgstr "Lampi"
+msgstr "Kapseli"
 
 #: Source/objects.cpp:4854
 msgid "Urn"
@@ -5028,7 +5028,7 @@ msgstr "Puhu Griswoldille"
 
 #: Source/stores.cpp:391
 msgid "Buy basic items"
-msgstr "Osta perus tavaroita"
+msgstr "Osta perustavaroita"
 
 #: Source/stores.cpp:392
 msgid "Buy premium items"
@@ -5374,7 +5374,7 @@ msgstr "Musta Kuolema"
 #: Source/translation_dummy.cpp:21
 msgctxt "monster"
 msgid "Fallen One"
-msgstr "Pudonnut"
+msgstr "Langennut"
 
 #: Source/translation_dummy.cpp:22
 msgctxt "monster"
@@ -5384,7 +5384,7 @@ msgstr "Veistäjä"
 #: Source/translation_dummy.cpp:23
 msgctxt "monster"
 msgid "Devil Kin"
-msgstr "Paholaiset"
+msgstr "Pikku piru"
 
 #: Source/translation_dummy.cpp:24
 msgctxt "monster"
@@ -6712,7 +6712,7 @@ msgstr "Pimeänäön käärö"
 
 #: Source/translation_dummy.cpp:312
 msgid "Scroll of Phasing"
-msgstr "Vaiheitte"
+msgstr "Siirtymisen käärö"
 
 #: Source/translation_dummy.cpp:313
 msgid "Scroll of Mana Shield"
@@ -6752,7 +6752,7 @@ msgstr "Teleporttauksen käärö"
 
 #: Source/translation_dummy.cpp:322
 msgid "Scroll of Apocalypse"
-msgstr "Täydellisen tuhon käärö"
+msgstr "Täystuhon käärö"
 
 #: Source/translation_dummy.cpp:323
 msgid "Falchion"
@@ -6824,7 +6824,7 @@ msgstr "Rautanuija"
 
 #: Source/translation_dummy.cpp:340
 msgid "Morning Star"
-msgstr "Aamuntähti"
+msgstr "Aamutähti"
 
 #: Source/translation_dummy.cpp:341
 msgid "War Hammer"
@@ -6876,7 +6876,7 @@ msgstr "Lyhyt sotajousi"
 
 #: Source/translation_dummy.cpp:353
 msgid "Long War Bow"
-msgstr "Pitkä sota-jousi"
+msgstr "Pitkä sotajousi"
 
 #: Source/translation_dummy.cpp:355
 msgid "Long Staff"
@@ -6928,7 +6928,7 @@ msgstr "Kiven riimu"
 
 #: Source/translation_dummy.cpp:367
 msgid "Short Staff of Charged Bolt"
-msgstr "Ladatun pultin sauva"
+msgstr "Ladatun vasaman sauva"
 
 #: Source/translation_dummy.cpp:368
 msgid "Arena Potion"
@@ -7780,7 +7780,7 @@ msgstr "kettu"
 
 #: Source/translation_dummy.cpp:582
 msgid "the jaguar"
-msgstr "jakuaari"
+msgstr "jaguaari"
 
 #: Source/translation_dummy.cpp:583
 msgid "the eagle"
@@ -8029,7 +8029,7 @@ msgstr "Jerseyn Takki"
 #: Source/translation_dummy.cpp:648
 msgctxt "spell"
 msgid "Firebolt"
-msgstr "Tuli vasama"
+msgstr "Tulivasama"
 
 #: Source/translation_dummy.cpp:649
 msgctxt "spell"
@@ -8074,12 +8074,12 @@ msgstr "Pimeänäkö"
 #: Source/translation_dummy.cpp:657
 msgctxt "spell"
 msgid "Phasing"
-msgstr "Läpäisy"
+msgstr "Siirtymä"
 
 #: Source/translation_dummy.cpp:658
 msgctxt "spell"
 msgid "Mana Shield"
-msgstr "Mana Kilpi"
+msgstr "Manakilpi"
 
 #: Source/translation_dummy.cpp:659
 msgctxt "spell"
@@ -8174,12 +8174,12 @@ msgstr "Elementaalinen"
 #: Source/translation_dummy.cpp:677
 msgctxt "spell"
 msgid "Charged Bolt"
-msgstr "Ladattu vasama"
+msgstr "Sähköistetty vasama"
 
 #: Source/translation_dummy.cpp:678
 msgctxt "spell"
 msgid "Holy Bolt"
-msgstr "Pyhä vasama"
+msgstr "Pyhävasama"
 
 #: Source/translation_dummy.cpp:679
 msgctxt "spell"
@@ -8215,10 +8215,10 @@ msgid ""
 "men. Only the vilest powers of Hell could so utterly destroy a man from "
 "within..."
 msgstr ""
-" Ahh, tarina kuninkaastamme, vai? Leoricin traaginen kaatuminen oli kova "
+" Ahh, tarina kuninkaastamme, vai? Leoricin traaginen lankeaminen oli kova "
 "isku tälle maalle. Kansalaiset rakastivat aina kuningasta, ja nyt he elävät "
 "kuolemanpelossa häntä kohtaan. Kysymys, jota kysyn itseltäni yhä uudelleen, "
-"on se, kuinka hän saattoi kaatua niin kauas Valosta, sillä Leoric oli aina "
+"on se, kuinka hän saattoi langeta niin kauas Valosta, sillä Leoric oli aina "
 "ollut pyhin kaikista miehistä. Vain helvetin ilkeimmät voimat voisivat "
 "tuhota miehen niin täydellisesti sisältäpäin..."
 
@@ -8882,12 +8882,12 @@ msgid ""
 "festering with disease and even I found them almost impossible to treat. "
 "Beware if you plan to battle this fiend..."
 msgstr ""
-"By the Light, I know of this vile demon. There were many that bore the scars "
-"of his wrath upon their bodies when the few survivors of the charge led by "
-"Lazarus crawled from the Cathedral. I don't know what he used to slice open "
-"his victims, but it could not have been of this world. It left wounds "
-"festering with disease and even I found them almost impossible to treat. "
-"Beware if you plan to battle this fiend..."
+"Valon nimeen, tiedän tämän ilkeän demonin. Monien ruumiissa oli hänen vihan "
+"jälkiä, kun Lazaruksen johtaman hyökkäyksen harvat selviytyjät ryömivät ulos "
+"katedraalista. En tiedä, mitä hän käytti uhriensa viiltämiseen, mutta se ei "
+"voinut olla tästä maailmasta. Se jätti haavoihin märkiviä haavoja, joita "
+"jopa minä pidin lähes mahdottomina hoitaa. Ole varovainen, jos aiot "
+"taistella tätä hirviötä vastaan..."
 
 #: Source/translation_dummy.cpp:739
 msgid ""
@@ -9592,9 +9592,9 @@ msgstr ""
 "Odota hetki – minulla on sinulle mielenkiintoinen tarina. Karavaani, joka "
 "oli matkalla itäisiin kuningaskuntiin, kulki tästä ohi jonkin aikaa sitten. "
 "Sen mukana oli kuulemma pala taivaasta, joka oli pudonnut maahan! Karavaani "
-"joutui verhottujen ratsastajien väijytyksen uhriksi hieman pohjoiseen täältä "
-"erään tien varrella. Etsin romuista tätä \"Taivaskiveä\", mutta en löytänyt "
-"sitä mistään. Jos löydät sen, uskon voivani valmistaa siitä jotain "
+"joutui verhottujen ratsastajien väijytyksen uhriksi hieman pohjoiseen "
+"täältä, erään tien varrella. Etsin romuista tätä \"Taivaskiveä\", mutta en "
+"löytänyt sitä mistään. Jos löydät sen, uskon voivani valmistaa siitä jotain "
 "hyödyllistä."
 
 #: Source/translation_dummy.cpp:796

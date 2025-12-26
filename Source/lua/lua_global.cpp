@@ -10,6 +10,7 @@
 #include <config.h>
 
 #include "appfat.h"
+#include "effects.h"
 #include "engine/assets.hpp"
 #include "lua/modules/audio.hpp"
 #include "lua/modules/hellfire.hpp"
@@ -228,6 +229,13 @@ void LuaReloadActiveMods()
 	for (const tl::function_ref<void()> handler : IsModChangeHandlers) {
 		handler();
 	}
+
+	// Reload sound effects in case a mod archive overrides effects.tsv
+	effects_cleanup_sfx();
+	if (gbRunGame)
+		sound_init();
+	else
+		ui_sound_init();
 
 	// Reload game data (this can probably be done later in the process to avoid having to reload it)
 	LoadTextData();

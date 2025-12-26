@@ -23,7 +23,7 @@ jobs:
         fetch-depth: 0
 
     - name: Cache .ccache
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: .ccache
         key: ${{ github.workflow }}-v1-${{ github.sha }}

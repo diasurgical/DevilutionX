@@ -183,10 +183,10 @@ endif()
 
 # By default, devilutionx.mpq is built only if smpq is installed and MPQ support is enabled.
 if(SUPPORTS_MPQ AND NOT UNPACKED_MPQS)
-  if(NOT DEFINED BUILD_ASSETS_MPQ AND NOT SRC_DIST)
-    find_program(SMPQ smpq)
-  elseif(BUILD_ASSETS_MPQ)
+  if(BUILD_ASSETS_MPQ OR (CPACK STREQUAL "ON" AND (WIN32 OR CMAKE_SYSTEM_NAME STREQUAL "Linux")))
     find_program(SMPQ smpq REQUIRED)
+  elseif(NOT DEFINED BUILD_ASSETS_MPQ AND NOT SRC_DIST)
+    find_program(SMPQ smpq)
   endif()
   if(SMPQ)
     set(_has_smpq ON)

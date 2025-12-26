@@ -56,7 +56,7 @@ void LuaLogMessage(LogPriority priority, std::string_view fmt, sol::variadic_arg
 		// with an `FMT_EXCEPTIONS` check.
 		std::string error = e.what();
 #else
-	FMT_CATCH(const fmt::format_error)
+	FMT_CATCH(const fmt::format_error &)
 	{
 		std::string error = "unknown (FMT_EXCEPTIONS disabled)";
 #endif

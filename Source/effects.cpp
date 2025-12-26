@@ -246,9 +246,14 @@ void sound_update()
 	StreamUpdate();
 }
 
-void effects_cleanup_sfx()
+void effects_cleanup_sfx(bool fullUnload)
 {
 	sound_stop();
+
+	if (fullUnload) {
+		sgSFX.clear();
+		return;
+	}
 
 	for (auto &sfx : sgSFX)
 		sfx.pSnd = nullptr;

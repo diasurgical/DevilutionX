@@ -194,8 +194,6 @@ void GameController::Add(int joystickIndex)
 		SDL_ClearError();
 		return;
 	}
-	controllers_.push_back(result);
-
 #ifdef USE_SDL3
 	result.instance_id_ = joystickId;
 	const SDLUniquePtr<char> mapping { SDL_GetGamepadMappingForID(joystickId) };
@@ -205,6 +203,8 @@ void GameController::Add(int joystickIndex)
 	const SDL_JoystickGUID guid = SDL_JoystickGetGUID(sdlJoystick);
 	const SDLUniquePtr<char> mapping { SDL_GameControllerMappingForGUID(guid) };
 #endif
+	controllers_.push_back(result);
+
 	if (mapping) {
 		Log("Opened game controller with mapping:\n{}", mapping.get());
 	}

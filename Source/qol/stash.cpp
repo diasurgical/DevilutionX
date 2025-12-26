@@ -13,7 +13,7 @@
 #include <fmt/format.h>
 
 #include "DiabloUI/text_input.hpp"
-#include "control.h"
+#include "control/control.hpp"
 #include "controls/plrctrls.h"
 #include "cursor.h"
 #include "engine/clx_sprite.hpp"
@@ -402,10 +402,11 @@ void DrawStash(const Surface &out)
 
 	const Point position = GetPanelPosition(UiPanels::Stash);
 	const UiFlags style = UiFlags::VerticalCenter | UiFlags::ColorWhite;
+	const int textboxHeight = 13;
 
-	DrawString(out, StrCat(Stash.GetPage() + 1), { position + Displacement { 132, 0 }, { 57, 11 } },
+	DrawString(out, StrCat(Stash.GetPage() + 1), { position + Displacement { 132, 0 }, { 57, textboxHeight } },
 	    { .flags = UiFlags::AlignCenter | style });
-	DrawString(out, FormatInteger(Stash.gold), { position + Displacement { 122, 19 }, { 107, 13 } },
+	DrawString(out, FormatInteger(Stash.gold), { position + Displacement { 122, 19 }, { 107, textboxHeight } },
 	    { .flags = UiFlags::AlignRight | style });
 }
 
@@ -464,7 +465,7 @@ uint16_t CheckStashHLight(Point mousePosition)
 
 bool UseStashItem(uint16_t c)
 {
-	if (MyPlayer->_pInvincible && MyPlayer->_pHitPoints == 0)
+	if (MyPlayer->_pInvincible && MyPlayer->hasNoLife())
 		return true;
 	if (pcurs != CURSOR_HAND)
 		return true;
@@ -617,7 +618,7 @@ void WithdrawGoldKeyPress(SDL_Keycode vkey)
 {
 	Player &myPlayer = *MyPlayer;
 
-	if (myPlayer._pHitPoints >> 6 <= 0) {
+	if (myPlayer.hasNoLife()) {
 		CloseGoldWithdraw();
 		return;
 	}
