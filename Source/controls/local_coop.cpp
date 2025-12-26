@@ -678,11 +678,11 @@ bool HasPlayer1PrimaryTarget()
  */
 bool HasLocalCoopPrimaryTarget(uint8_t playerId)
 {
-	LocalCoopPlayer *coopPlayer = GetValidLocalCoopPlayer(playerId);
-	if (coopPlayer == nullptr)
+	auto validated = GetValidatedPlayer(playerId, false, false);
+	if (!validated.isValid)
 		return false;
 
-	LocalCoopCursorState &cursor = coopPlayer->cursor;
+	LocalCoopCursorState &cursor = validated.coop->cursor;
 
 	// Monster to attack or towner to talk to
 	if (cursor.pcursmonst != -1)
@@ -700,11 +700,11 @@ bool HasLocalCoopPrimaryTarget(uint8_t playerId)
  */
 bool HasLocalCoopSecondaryTarget(uint8_t playerId)
 {
-	LocalCoopPlayer *coopPlayer = GetValidLocalCoopPlayer(playerId);
-	if (coopPlayer == nullptr)
+	auto validated = GetValidatedPlayer(playerId, false, false);
+	if (!validated.isValid)
 		return false;
 
-	LocalCoopCursorState &cursor = coopPlayer->cursor;
+	LocalCoopCursorState &cursor = validated.coop->cursor;
 
 	// Item to pick up
 	if (cursor.pcursitem != -1)
@@ -729,9 +729,11 @@ bool HasLocalCoopSecondaryTarget(uint8_t playerId)
  */
 void ProcessLocalCoopDpadInput(uint8_t playerId, const SDL_Event &event)
 {
-	LocalCoopPlayer *coopPlayer = GetValidLocalCoopPlayer(playerId);
-	if (coopPlayer == nullptr)
+	auto validated = GetValidatedPlayer(playerId, false, false);
+	if (!validated.isValid)
 		return;
+
+	LocalCoopPlayer *coopPlayer = validated.coop;
 
 	// Don't process D-pad for movement when in character selection
 	if (coopPlayer->characterSelectActive)
@@ -774,6 +776,9 @@ void ProcessLocalCoopDpadInput(uint8_t playerId, const SDL_Event &event)
 	// If this player owns panels, use D-pad for panel navigation instead of movement
 	// Panels: inventory, character sheet, quest log, spellbook
 	if (g_LocalCoop.panelOwnerPlayerId == static_cast<int>(playerId) && (invflag || CharFlag || QuestLogIsOpen || SpellbookFlag)) {
+		// Handle both button down and up events for panel navigation
+		// Button down: navigate the panel
+		// Button up: return early to prevent movement D-pad state from being updated
 		if (event.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN) {
 			const auto button = SDLC_EventGamepadButton(event).button;
 			AxisDirection dir = { AxisDirectionX_NONE, AxisDirectionY_NONE };
@@ -792,7 +797,8 @@ void ProcessLocalCoopDpadInput(uint8_t playerId, const SDL_Event &event)
 				dir.x = AxisDirectionX_RIGHT;
 				break;
 			default:
-				break;
+				// Not a D-pad button, let it fall through to normal processing
+				return;
 			}
 
 			if (dir.x != AxisDirectionX_NONE || dir.y != AxisDirectionY_NONE) {
@@ -808,6 +814,16 @@ void ProcessLocalCoopDpadInput(uint8_t playerId, const SDL_Event &event)
 					}
 				}
 			}
+		} else if (event.type == SDL_EVENT_GAMEPAD_BUTTON_UP) {
+			// For button up events, check if it's a D-pad button
+			// If so, return early to prevent movement D-pad state from being updated
+			const auto button = SDLC_EventGamepadButton(event).button;
+			if (button == SDL_GAMEPAD_BUTTON_DPAD_UP || button == SDL_GAMEPAD_BUTTON_DPAD_DOWN
+			    || button == SDL_GAMEPAD_BUTTON_DPAD_LEFT || button == SDL_GAMEPAD_BUTTON_DPAD_RIGHT) {
+				// D-pad button released while navigating panels - don't update movement state
+				return;
+			}
+			// Not a D-pad button, let it fall through to normal processing
 		}
 		return; // Don't update movement when navigating panels
 	}
@@ -867,9 +883,12 @@ void ProcessLocalCoopDpadInput(uint8_t playerId, const SDL_Event &event)
  */
 void ProcessLocalCoopButtonInput(uint8_t playerId, const SDL_Event &event)
 {
-	LocalCoopPlayer *coopPlayer = GetValidLocalCoopPlayer(playerId);
-	if (coopPlayer == nullptr)
+	// First check if player is active (but not necessarily initialized, for character selection)
+	auto validated = GetValidatedPlayer(playerId, false, false);
+	if (!validated.isValid)
 		return;
+
+	LocalCoopPlayer *coopPlayer = validated.coop;
 
 	const bool isButtonDown = (event.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN);
 	const bool isButtonUp = (event.type == SDL_EVENT_GAMEPAD_BUTTON_UP);
@@ -916,14 +935,11 @@ void ProcessLocalCoopButtonInput(uint8_t playerId, const SDL_Event &event)
 		return;
 	}
 
-	// Gameplay mode
-	if (playerId >= Players.size())
+	// Gameplay mode - now require initialized and alive
+	if (!validated.coop->initialized || validated.player->_pHitPoints <= 0)
 		return;
 
-	Player &player = Players[playerId];
-
-	if (player._pHitPoints <= 0)
-		return;
+	Player &player = *validated.player;
 
 	// Store mode: this player owns the store
 	if (g_LocalCoop.storeOwnerPlayerId == playerId && IsPlayerInStore()) {
@@ -965,30 +981,24 @@ void ProcessLocalCoopButtonInput(uint8_t playerId, const SDL_Event &event)
 			case SDL_GAMEPAD_BUTTON_DPAD_DOWN:
 				CycleAutomapType();
 				return;
-			case SDL_GAMEPAD_BUTTON_DPAD_LEFT: {
-				LocalCoopPlayerContext context(playerId);
-				ProcessGameAction(GameAction { GameActionType_TOGGLE_CHARACTER_INFO });
+			case SDL_GAMEPAD_BUTTON_DPAD_LEFT:
+				// Use ProcessLocalCoopGameAction to properly claim panel ownership
+				ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_CHARACTER_INFO);
 				return;
-			}
-			case SDL_GAMEPAD_BUTTON_DPAD_RIGHT: {
-				LocalCoopPlayerContext context(playerId);
-				ProcessGameAction(GameAction { GameActionType_TOGGLE_INVENTORY });
+			case SDL_GAMEPAD_BUTTON_DPAD_RIGHT:
+				// Use ProcessLocalCoopGameAction to properly claim panel ownership
+				ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_INVENTORY);
 				return;
-			}
 			case SDL_GAMEPAD_BUTTON_SOUTH: // A button
-			{
-				LocalCoopPlayerContext context(playerId);
-				ProcessGameAction(GameAction { GameActionType_TOGGLE_SPELL_BOOK });
+				// Use ProcessLocalCoopGameAction to properly claim panel ownership
+				ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_SPELL_BOOK);
 				return;
-			}
 			case SDL_GAMEPAD_BUTTON_EAST: // B button
 				return; // No action for B button in menu navigator
 			case SDL_GAMEPAD_BUTTON_WEST: // X button
-			{
-				LocalCoopPlayerContext context(playerId);
-				ProcessGameAction(GameAction { GameActionType_TOGGLE_QUEST_LOG });
+				// Use ProcessLocalCoopGameAction to properly claim panel ownership
+				ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_QUEST_LOG);
 				return;
-			}
 			case SDL_GAMEPAD_BUTTON_NORTH: // Y button
 #ifdef __3DS__
 				GetOptions().Graphics.zoom.SetValue(!*GetOptions().Graphics.zoom);
@@ -1233,9 +1243,11 @@ void ProcessLocalCoopAxisMotion(uint8_t playerId, const SDL_Event &event)
 	if (event.type != SDL_EVENT_GAMEPAD_AXIS_MOTION)
 		return;
 
-	LocalCoopPlayer *coopPlayer = GetValidLocalCoopPlayer(playerId);
-	if (coopPlayer == nullptr)
+	auto validated = GetValidatedPlayer(playerId, false, false);
+	if (!validated.isValid)
 		return;
+
+	LocalCoopPlayer *coopPlayer = validated.coop;
 	const auto &axis = SDLC_EventGamepadAxis(event);
 
 	// Trigger threshold (same as player 1 - values are in range -32767 to 32767)
@@ -1286,14 +1298,12 @@ void ProcessLocalCoopAxisMotion(uint8_t playerId, const SDL_Event &event)
  */
 void UpdateLocalCoopPlayerMovement(uint8_t playerId)
 {
-	LocalCoopPlayer *coopPlayer = GetValidLocalCoopPlayer(playerId);
-	if (coopPlayer == nullptr)
+	auto validated = GetValidatedPlayer(playerId, true, true);
+	if (!validated.isValid)
 		return;
 
-	if (!coopPlayer->active || !coopPlayer->initialized)
-		return;
-	if (coopPlayer->characterSelectActive)
-		return;
+	LocalCoopPlayer *coopPlayer = validated.coop;
+	Player &player = *validated.player;
 
 	// Don't move when pad menu navigator is active
 	if (coopPlayer->padMenuNavigatorActive)
@@ -1303,15 +1313,8 @@ void UpdateLocalCoopPlayerMovement(uint8_t playerId)
 	if (g_LocalCoop.panelOwnerPlayerId == static_cast<int>(playerId) || g_LocalCoop.storeOwnerPlayerId == static_cast<int>(playerId))
 		return;
 
-	if (playerId >= Players.size())
-		return;
-
-	Player &player = Players[playerId];
-
-	// Skip if player is not on the same level as player 1 or is dead
+	// Skip if player is not on the same level as player 1
 	if (player.plrlevel != Players[0].plrlevel)
-		return;
-	if (player._pHitPoints <= 0)
 		return;
 
 	AxisDirection dir = coopPlayer->GetMoveDirection();
@@ -1507,6 +1510,33 @@ void LocalCoopState::ReleasePanelOwnership()
 	if (!IsLeftPanelOpen() && !IsRightPanelOpen()) {
 		panelOwnerPlayerId = -1;
 		// Restore MyPlayer and InspectPlayer to Player 1
+		if (Players.size() > 0) {
+			MyPlayer = &Players[0];
+			MyPlayerId = 0;
+			InspectPlayer = &Players[0];
+		}
+	}
+}
+
+/**
+ * @brief Restore panel owner's context before drawing panels.
+ * This ensures that when panels are drawn, they show the correct player's data.
+ * Should be called before drawing inventory/character panels.
+ */
+void RestorePanelOwnerContext()
+{
+	if (!g_LocalCoop.enabled)
+		return;
+
+	// If a player owns the panels, restore their context
+	// panelOwnerPlayerId can be 0 (Player 1), 1-3 (Players 2-4), or -1 (no owner)
+	if (g_LocalCoop.panelOwnerPlayerId >= 0 && g_LocalCoop.panelOwnerPlayerId < static_cast<int>(Players.size())) {
+		uint8_t ownerId = static_cast<uint8_t>(g_LocalCoop.panelOwnerPlayerId);
+		MyPlayer = &Players[ownerId];
+		MyPlayerId = ownerId;
+		InspectPlayer = &Players[ownerId];
+	} else if (g_LocalCoop.panelOwnerPlayerId < 0) {
+		// No explicit owner, ensure Player 1's context is set
 		if (Players.size() > 0) {
 			MyPlayer = &Players[0];
 			MyPlayerId = 0;
@@ -2008,12 +2038,12 @@ bool ProcessLocalCoopInput(const SDL_Event &event)
 	ProcessLocalCoopButtonInput(static_cast<uint8_t>(playerId), event);
 
 	// Log input state (if player is valid)
-	LocalCoopPlayer *coopPlayer = GetValidLocalCoopPlayer(static_cast<uint8_t>(playerId));
-	if (coopPlayer != nullptr) {
+	auto validated = GetValidatedPlayer(static_cast<uint8_t>(playerId), false, false);
+	if (validated.isValid) {
 		LogVerbose("Local co-op: Processed input for player {} (playerId {}), dpad={},{}",
 		    playerId + 1, playerId,
-		    coopPlayer->dpadX,
-		    coopPlayer->dpadY);
+		    validated.coop->dpadX,
+		    validated.coop->dpadY);
 	}
 
 	return true;
@@ -2046,9 +2076,11 @@ void UpdateLocalCoopMovement()
 
 void LoadAvailableHeroesForLocalPlayer(uint8_t playerId)
 {
-	LocalCoopPlayer *coopPlayer = GetValidLocalCoopPlayer(playerId);
-	if (coopPlayer == nullptr)
+	auto validated = GetValidatedPlayer(playerId, false, false);
+	if (!validated.isValid)
 		return;
+
+	LocalCoopPlayer *coopPlayer = validated.coop;
 
 	// Save the currently selected hero's save number to try to preserve selection
 	uint32_t previouslySelectedSave = 0;
@@ -2104,9 +2136,11 @@ void LoadAvailableHeroesForLocalPlayer(uint8_t playerId)
 
 void ConfirmLocalCoopCharacter(uint8_t playerId)
 {
-	LocalCoopPlayer *coopPlayer = GetValidLocalCoopPlayer(playerId);
-	if (coopPlayer == nullptr)
+	auto validated = GetValidatedPlayer(playerId, false, false);
+	if (!validated.isValid)
 		return;
+
+	LocalCoopPlayer *coopPlayer = validated.coop;
 
 	if (coopPlayer->availableHeroes.empty()) {
 		Log("Local co-op: Player {} has no heroes available", playerId + 1);
@@ -4468,6 +4502,15 @@ void ProcessLocalCoopGameAction(uint8_t playerId, uint8_t actionType)
 
 			ProcessGameAction(GameAction { static_cast<GameActionType>(actionType) });
 
+			// CRITICAL: Restore context after ProcessGameAction
+			// ProcessGameAction might have reset MyPlayer/InspectPlayer, so we need to restore it
+			// This ensures the context persists while panels are open
+			if (g_LocalCoop.panelOwnerPlayerId == static_cast<int>(playerId)) {
+				MyPlayer = &Players[playerId];
+				MyPlayerId = playerId;
+				InspectPlayer = &Players[playerId];
+			}
+
 			// Recalculate player inventory stats when opening inventory panel
 			// This ensures item tooltips show correct values for the coop player
 			if (actionType == GameActionType_TOGGLE_INVENTORY && invflag) {
@@ -4620,8 +4663,8 @@ std::optional<inv_xy_slot> FindLocalCoopBeltSlotUnderCursor(Point cursorPosition
 				continue;
 		} else {
 			// For local co-op players (2-4), check their state
-			const LocalCoopPlayer *coopPlayer = GetValidLocalCoopPlayer(static_cast<uint8_t>(playerId));
-			if (coopPlayer == nullptr || !coopPlayer->active || coopPlayer->characterSelectActive || !coopPlayer->initialized)
+			auto validated = GetValidatedPlayer(static_cast<uint8_t>(playerId), true, false);
+			if (!validated.isValid)
 				continue;
 			if (!player.plractive)
 				continue;
