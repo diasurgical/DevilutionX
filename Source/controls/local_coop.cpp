@@ -1130,7 +1130,7 @@ void ProcessLocalCoopButtonInput(uint8_t playerId, const SDL_Event &event)
 			ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_CHARACTER_INFO);
 			break;
 
-		case SDL_GAMEPAD_BUTTON_START: // Start = Hold for menu navigator, quick press toggles inventory
+		case SDL_GAMEPAD_BUTTON_START: // Start = Hold for menu navigator
 			if (isButtonDown) {
 				// Record press time and activate menu navigator
 				coopPlayer->startButtonPressTime = SDL_GetTicks();
@@ -1149,12 +1149,6 @@ void ProcessLocalCoopButtonInput(uint8_t playerId, const SDL_Event &event)
 			if (button == SDL_GAMEPAD_BUTTON_START) {
 				// Deactivate menu navigator
 				coopPlayer->padMenuNavigatorActive = false;
-				// If it was a quick press (less than 200ms), also toggle inventory
-				uint32_t pressDuration = SDL_GetTicks() - coopPlayer->startButtonPressTime;
-				constexpr uint32_t QuickPressThreshold = 200;
-				if (pressDuration < QuickPressThreshold) {
-					ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_INVENTORY);
-				}
 			}
 			return;
 		}
@@ -1212,12 +1206,6 @@ void ProcessLocalCoopButtonInput(uint8_t playerId, const SDL_Event &event)
 		if (button == SDL_GAMEPAD_BUTTON_START) {
 			// Deactivate menu navigator
 			coopPlayer->padMenuNavigatorActive = false;
-			// If it was a quick press (less than 200ms), also toggle inventory
-			uint32_t pressDuration = SDL_GetTicks() - coopPlayer->startButtonPressTime;
-			constexpr uint32_t QuickPressThreshold = 200;
-			if (pressDuration < QuickPressThreshold) {
-				ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_INVENTORY);
-			}
 			coopPlayer->startButtonPressTime = 0;
 			return;
 		}
