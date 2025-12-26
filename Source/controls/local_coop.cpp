@@ -1126,8 +1126,8 @@ void ProcessLocalCoopButtonInput(uint8_t playerId, const SDL_Event &event)
 			}
 			break;
 
-		case SDL_GAMEPAD_BUTTON_BACK: // Select/Back = Toggle character info
-			ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_CHARACTER_INFO);
+		case SDL_GAMEPAD_BUTTON_BACK: // Select/Back = Toggle quick spell menu (skill assignment)
+			ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_QUICK_SPELL_MENU);
 			break;
 
 		case SDL_GAMEPAD_BUTTON_START: // Start = Hold for menu navigator
@@ -4897,8 +4897,8 @@ bool HandleLocalCoopButtonPress(uint8_t playerId, ControllerButton button)
 	// So we only handle Back button here.
 	if (IsAnyLocalCoopPlayerInitialized()) {
 		if (button == ControllerButton_BUTTON_BACK) {
-			// Select/Back = Toggle character info
-			ProcessGameAction(GameAction { GameActionType_TOGGLE_CHARACTER_INFO });
+			// Select/Back = Toggle quick spell menu (skill assignment)
+			ProcessGameAction(GameAction { GameActionType_TOGGLE_QUICK_SPELL_MENU });
 			return true;
 		}
 	}
