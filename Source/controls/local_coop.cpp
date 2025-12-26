@@ -2333,7 +2333,13 @@ void DrawCoopSmallBar(const Surface &out, Point position, int width, int height,
 	int innerX = position.x + borderSize;
 	int innerY = position.y + borderSize;
 	int innerWidth = width - (borderSize * 2);
+	// For very thin bars (like XP bar), adjust the calculation to ensure innerHeight is at least 1
 	int innerHeight = height - borderSize - bottomBorderHeight + 1;
+	if (innerHeight < 1) {
+		// For thin bars, use a simpler calculation: just subtract top border
+		innerHeight = std::max(1, height - borderSize);
+		innerY = position.y + borderSize;
+	}
 
 	// Draw black/transparent background for the bar area
 	FillRect(out, innerX, innerY, innerWidth, innerHeight, 0); // Black fill
@@ -2346,7 +2352,7 @@ void DrawCoopSmallBar(const Surface &out, Point position, int width, int height,
 		if (fillWidth > 0) {
 			uint8_t fillColor;
 			if (isXP) {
-				fillColor = PAL16_GRAY + 13; // White-ish for XP
+				fillColor = PAL16_GRAY + 15; // White for XP bar
 			} else if (isMana) {
 				fillColor = PAL16_BLUE + 8;
 			} else if (hasManaShield) {
@@ -2919,6 +2925,9 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 	// Ensure HUD assets are loaded
 	InitLocalCoopHUDAssets();
 
+	// Check if experience bar is enabled
+	const bool experienceBarEnabled = *GetOptions().Gameplay.experienceBar;
+
 	// Panel layout constants - charbg sprite borders
 	constexpr int topBorderPadding = 5;     // Top border in charbg.clx
 	constexpr int leftBorderPadding = 7;    // Left border (1px more to shift elements right)
@@ -2928,11 +2937,16 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 	constexpr int nameLeftOffset = 0;       // No extra offset (elements shifted via leftBorderPadding)
 	constexpr int barsExtraDownOffset = 1;  // Reduced extra offset for belt
 
-	// Health/mana bar dimensions - reduced size
-	constexpr int barHeight = 14; // Bar height (increased by 2px from 12px)
+	// Health/mana bar dimensions - adjust based on experience bar
+	// If experience bar is enabled, make bars shorter to fit XP bar below
+	const int barHeight = experienceBarEnabled ? 11 : 14; // Reduced from 14px to 11px when XP bar is on
 	constexpr int barSpacing = 1; // Reduced spacing between bars
-	// Bars: health, mana (stacked vertically)
-	constexpr int barsHeight = barHeight * 2 + barSpacing; // = 14+14+1 = 29px
+	constexpr int xpBarHeight = 7; // Thin experience bar height
+	const int xpBarSpacing = experienceBarEnabled ? 0 : 1; // No spacing when XP bar is on to keep panel same height
+	// Bars: health, mana (stacked vertically), optionally XP bar below
+	const int barsHeight = experienceBarEnabled
+	    ? (barHeight * 2 + barSpacing + xpBarHeight + xpBarSpacing)
+	    : (barHeight * 2 + barSpacing);
 
 	// Skill slot dimensions - 2x2 grid OUTSIDE panel
 	// Skill slot size calculated so 2 slots height = panel height
@@ -2952,8 +2966,7 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 
 	// Bar width = space between P# and Level (scales with panel width)
 	const int barsWidth = panelContentWidth - playerNumWidth - playerNumSpacing - playerNumWidth + 1;
-	// Reduced panel height: topBorder(5) + nameTopOffset(4) + barsHeight(29) + elementSpacing(1) + barsExtraDownOffset(1) + beltHeight(28) + bottomBorder(19) = 87px
-	constexpr int panelHeight = 87; // Adjusted to 87px (bars are now 14px each, 29px total)
+	constexpr int panelHeight = 87;
 	// Skill slot size: 2 slots height = panel height, so slotSize = (panelHeight - spacing) / 2
 	constexpr int SkillSlotSize = (panelHeight - skillSlotSpacing) / 2;  // = (87 - 1) / 2 = 43px
 	constexpr int skillGridWidth = SkillSlotSize * 2 + skillSlotSpacing; // Width of 2x2 grid (2 columns)
@@ -3075,10 +3088,50 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 		DrawCoopSmallBar(out, { barX, barY - 2 }, barsWidth, barHeight, currentMana, maxMana, true, false);
 		barY += barHeight;
 
+		// Experience bar (if enabled) - thin bar below mana bar
+		if (experienceBarEnabled) {
+			barY += xpBarSpacing;
+			// Calculate XP bar fill - match xpbar.cpp logic exactly
+			// DrawCoopSmallBar calculates: fillWidth = (innerWidth * current) / max
+			// So we need to pass values where current/max represents the fill percentage
+			int xpCurrent = 0;
+			// Use a fixed scale for percentage calculation (10000 = 100%)
+			constexpr int xpMax = 10000;
+			
+			if (player.isMaxCharacterLevel()) {
+				// Max level: show full bar
+				xpCurrent = xpMax;
+			} else {
+				const uint8_t charLevel = player.getCharacterLevel();
+				const uint32_t prevXp = GetNextExperienceThresholdForLevel(charLevel - 1);
+				const uint32_t nextXp = GetNextExperienceThresholdForLevel(charLevel);
+				
+				// Only draw if player has at least the previous level's threshold (same as xpbar.cpp)
+				if (player._pExperience >= prevXp && nextXp > prevXp) {
+					const uint32_t prevXpDelta1 = player._pExperience - prevXp;
+					const uint32_t prevXpDelta = nextXp - prevXp;
+					
+					// Ensure we don't exceed the delta (player should have leveled up if they did)
+					const uint32_t clampedDelta1 = std::min(prevXpDelta1, prevXpDelta);
+					
+					// Calculate percentage: (clampedDelta1 / prevXpDelta) * xpMax
+					// Multiply first to maintain precision, then divide
+					xpCurrent = static_cast<int>((static_cast<uint64_t>(xpMax) * clampedDelta1) / prevXpDelta);
+					
+					// Clamp to valid range
+					if (xpCurrent > xpMax)
+						xpCurrent = xpMax;
+					if (xpCurrent < 0)
+						xpCurrent = 0;
+				}
+				// If player._pExperience < prevXp or prevXpDelta is 0, xpCurrent remains 0 (empty bar)
+			}
+			DrawCoopSmallBar(out, { barX, barY - 3 }, barsWidth, xpBarHeight, xpCurrent, xpMax, false, false, true);
+		}
+
 		// Move currentY down to account for the tallest element in the top row (bars)
 		currentY += barsHeight + elementSpacing;
 
-		// === MIDDLE ROW: Belt ===
 		int middleY = currentY + barsExtraDownOffset;
 
 		// Skill slots: OUTSIDE panel, 2x2 grid layout
