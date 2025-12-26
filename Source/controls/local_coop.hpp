@@ -668,6 +668,14 @@ bool IsLocalCoopTargetMonster(int monsterId);
 bool IsLocalCoopTargetItem(int8_t itemIndex);
 
 /**
+ * @brief Restore panel owner's context before drawing panels.
+ *
+ * This ensures that when panels are drawn, they show the correct player's data.
+ * Should be called before drawing inventory/character panels.
+ */
+void RestorePanelOwnerContext();
+
+/**
  * @brief Restore MyPlayer to Player 1 before saving.
  *
  * CRITICAL: This must be called BEFORE pfile_write_hero to ensure that

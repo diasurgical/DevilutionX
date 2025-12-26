@@ -1468,6 +1468,31 @@ void DrawView(const Surface &out, Point startPosition)
 
 	if (IsPlayerInStore() && !qtextflag)
 		DrawSText(out);
+#ifndef USE_SDL1
+	// Restore panel owner's context before drawing panels
+	// This ensures local coop players see their own data when panels are open
+	// Call it right before each panel to ensure context is correct
+	if (invflag) {
+		RestorePanelOwnerContext();
+		DrawInv(out);
+	} else if (SpellbookFlag) {
+		RestorePanelOwnerContext();
+		DrawSpellBook(out);
+	}
+
+	DrawDurIcon(out);
+
+	if (CharFlag) {
+		RestorePanelOwnerContext();
+		DrawChr(out);
+	} else if (QuestLogIsOpen) {
+		RestorePanelOwnerContext();
+		DrawQuestLog(out);
+	} else if (IsStashOpen) {
+		RestorePanelOwnerContext();
+		DrawStash(out);
+	}
+#else
 	if (invflag) {
 		DrawInv(out);
 	} else if (SpellbookFlag) {
@@ -1483,6 +1508,7 @@ void DrawView(const Surface &out, Point startPosition)
 	} else if (IsStashOpen) {
 		DrawStash(out);
 	}
+#endif
 	DrawLevelButton(out);
 	if (ShowUniqueItemInfoBox) {
 		DrawUniqueInfo(out);
