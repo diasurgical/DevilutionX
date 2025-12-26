@@ -1041,6 +1041,7 @@ void OptionEntryLanguageCode::CheckLanguagesAreInitialized() const
 	languages.emplace_back("sv", "Svenska");
 	languages.emplace_back("tr", "Türkçe");
 	languages.emplace_back("uk", "Українська");
+	languages.emplace_back("he", "עברית");
 
 	if (haveExtraFonts) {
 		languages.emplace_back("zh_CN", "汉语");
