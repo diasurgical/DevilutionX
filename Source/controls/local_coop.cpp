@@ -18,6 +18,7 @@
 #include "controls/plrctrls.h"
 #include "cursor.h"
 #include "diablo.h"
+#include "gamemenu.h"
 #include "doom.h"
 #include "engine/load_clx.hpp"
 #include "engine/palette.h"
@@ -945,6 +946,54 @@ void ProcessLocalCoopButtonInput(uint8_t playerId, const SDL_Event &event)
 	if (isButtonDown) {
 		uint32_t now = SDL_GetTicks();
 
+		// Handle PadMenuNavigator button presses (when start button is held)
+		if (coopPlayer->padMenuNavigatorActive) {
+			switch (button) {
+			case SDL_GAMEPAD_BUTTON_DPAD_UP:
+				PressEscKey();
+				LastPlayerAction = PlayerActionType::None;
+				PadHotspellMenuActive = false;
+				coopPlayer->padMenuNavigatorActive = false;
+				gamemenu_on();
+				return;
+			case SDL_GAMEPAD_BUTTON_DPAD_DOWN:
+				CycleAutomapType();
+				return;
+			case SDL_GAMEPAD_BUTTON_DPAD_LEFT: {
+				LocalCoopPlayerContext context(playerId);
+				ProcessGameAction(GameAction { GameActionType_TOGGLE_CHARACTER_INFO });
+				return;
+			}
+			case SDL_GAMEPAD_BUTTON_DPAD_RIGHT: {
+				LocalCoopPlayerContext context(playerId);
+				ProcessGameAction(GameAction { GameActionType_TOGGLE_INVENTORY });
+				return;
+			}
+			case SDL_GAMEPAD_BUTTON_SOUTH: // A button
+			{
+				LocalCoopPlayerContext context(playerId);
+				ProcessGameAction(GameAction { GameActionType_TOGGLE_SPELL_BOOK });
+				return;
+			}
+			case SDL_GAMEPAD_BUTTON_EAST: // B button
+				return; // No action for B button in menu navigator
+			case SDL_GAMEPAD_BUTTON_WEST: // X button
+			{
+				LocalCoopPlayerContext context(playerId);
+				ProcessGameAction(GameAction { GameActionType_TOGGLE_QUEST_LOG });
+				return;
+			}
+			case SDL_GAMEPAD_BUTTON_NORTH: // Y button
+#ifdef __3DS__
+				GetOptions().Graphics.zoom.SetValue(!*GetOptions().Graphics.zoom);
+				CalcViewportGeometry();
+#endif
+				return;
+			default:
+				break;
+			}
+		}
+
 		// Check if speech text is active - allow any player to exit it with B button
 		if (qtextflag && button == SDL_GAMEPAD_BUTTON_EAST) {
 			qtextflag = false;
@@ -1075,8 +1124,12 @@ void ProcessLocalCoopButtonInput(uint8_t playerId, const SDL_Event &event)
 			ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_CHARACTER_INFO);
 			break;
 
-		case SDL_GAMEPAD_BUTTON_START: // Start = Toggle inventory
-			ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_INVENTORY);
+		case SDL_GAMEPAD_BUTTON_START: // Start = Hold for menu navigator, quick press toggles inventory
+			if (isButtonDown) {
+				// Record press time and activate menu navigator
+				coopPlayer->startButtonPressTime = SDL_GetTicks();
+				coopPlayer->padMenuNavigatorActive = true;
+			}
 			break;
 
 		default:
@@ -1130,6 +1183,20 @@ void ProcessLocalCoopButtonInput(uint8_t playerId, const SDL_Event &event)
 			coopPlayer->skillButtonHeld = -1;
 			coopPlayer->skillButtonPressTime = 0;
 			// Keep skillMenuOpenedByHold true if the spell menu is still open
+		}
+
+		// Handle start button release
+		if (button == SDL_GAMEPAD_BUTTON_START) {
+			// Deactivate menu navigator
+			coopPlayer->padMenuNavigatorActive = false;
+			// If it was a quick press (less than 200ms), also toggle inventory
+			uint32_t pressDuration = SDL_GetTicks() - coopPlayer->startButtonPressTime;
+			constexpr uint32_t QuickPressThreshold = 200;
+			if (pressDuration < QuickPressThreshold) {
+				ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_INVENTORY);
+			}
+			coopPlayer->startButtonPressTime = 0;
+			return;
 		}
 
 		// Handle shoulder button release
@@ -1312,6 +1379,8 @@ void LocalCoopPlayer::Reset()
 	rightTriggerPressed = false;
 	leftShoulderHeld = false;
 	rightShoulderHeld = false;
+	padMenuNavigatorActive = false;
+	startButtonPressTime = 0;
 }
 
 AxisDirection LocalCoopPlayer::GetMoveDirection() const
@@ -4661,13 +4730,10 @@ bool HandleLocalCoopButtonPress(uint8_t playerId, ControllerButton button)
 	}
 
 	// When local coop is active with other players joined, all players use Start/Select
-	// for inventory/character panels
+	// for inventory/character panels. However, Start button is now handled in ProcessLocalCoopButtonInput
+	// to support PadMenuNavigator (hold for menu navigator, quick press for inventory).
+	// So we only handle Back button here.
 	if (IsAnyLocalCoopPlayerInitialized()) {
-		if (button == ControllerButton_BUTTON_START) {
-			// Start = Toggle inventory
-			ProcessGameAction(GameAction { GameActionType_TOGGLE_INVENTORY });
-			return true;
-		}
 		if (button == ControllerButton_BUTTON_BACK) {
 			// Select/Back = Toggle character info
 			ProcessGameAction(GameAction { GameActionType_TOGGLE_CHARACTER_INFO });
