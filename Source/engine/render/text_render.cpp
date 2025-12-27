@@ -541,6 +541,25 @@ uint32_t DoDrawString(const Surface &out, std::string_view text, Rectangle rect,
 	size_t lineStartPos = 0;
 	size_t lineEndPos = 0;
 
+	const auto drawLine = [&]() {
+		std::string_view lineText = text.substr(lineStartPos, lineEndPos - lineStartPos);
+		if (!lineText.empty()) {
+			DrawLine(
+			    out,
+			    lineText,
+			    characterPosition,
+			    rect,
+			    opts.flags,
+			    curSpacing,
+			    size,
+			    color,
+			    outline,
+			    opts,
+			    lineStartPos,
+			    lineWidth);
+		}
+	};
+
 	for (; !remaining.empty() && remaining[0] != '\0'
 	     && (next = DecodeFirstUtf8CodePoint(remaining, &cpLen)) != Utf8DecodeError;
 	     remaining.remove_prefix(cpLen)) {
@@ -559,22 +578,7 @@ uint32_t DoDrawString(const Surface &out, std::string_view text, Rectangle rect,
 		if (next == U'\n' || characterPosition.x + width > rightMargin) {
 			lineEndPos = text.size() - remaining.size();
 
-			std::string_view lineText = text.substr(lineStartPos, lineEndPos - lineStartPos);
-			if (!lineText.empty()) {
-				DrawLine(
-				    out,
-				    lineText,
-				    characterPosition,
-				    rect,
-				    opts.flags,
-				    curSpacing,
-				    size,
-				    color,
-				    outline,
-				    opts,
-				    lineStartPos,
-				    lineWidth);
-			}
+			drawLine();
 
 			const int nextLineY = characterPosition.y + opts.lineHeight;
 			if (nextLineY >= bottomMargin)
@@ -610,21 +614,7 @@ uint32_t DoDrawString(const Surface &out, std::string_view text, Rectangle rect,
 
 	// Draw any remaining characters in the last line
 	if (lineStartPos < lineEndPos) {
-		std::string_view lineText = text.substr(lineStartPos, lineEndPos - lineStartPos);
-
-		DrawLine(
-		    out,
-		    lineText,
-		    characterPosition,
-		    rect,
-		    opts.flags,
-		    curSpacing,
-		    size,
-		    color,
-		    outline,
-		    opts,
-		    lineStartPos,
-		    lineWidth);
+		drawLine();
 	}
 
 	return static_cast<uint32_t>(remaining.data() - text.data());
