@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <unordered_map>
 
-#include "controls/local_coop.hpp"
+#include "controls/local_coop/local_coop.hpp"
 #include "cursor.h"
 #include "engine/clx_sprite.hpp"
 #include "engine/load_cel.hpp"

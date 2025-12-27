@@ -6,7 +6,7 @@
 #include "automap.h"
 #include "controls/control_mode.hpp"
 #ifndef USE_SDL1
-#include "controls/local_coop.hpp"
+#include "controls/local_coop/local_coop.hpp"
 #endif
 #include "controls/modifier_hints.h"
 #include "diablo_msg.hpp"

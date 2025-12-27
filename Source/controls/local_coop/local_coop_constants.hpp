@@ -41,6 +41,7 @@ namespace HealthBar {
 	constexpr int Border = 3;
 	constexpr int Width = BoxWidth - (Border * 2) - 2;
 	constexpr int Height = BoxHeight - (Border * 2) - 2;
+	constexpr int HeightXpEnabled = 11; // Reduced height when XP bar is enabled
 	constexpr int Spacing = 1;
 }
 
@@ -48,6 +49,7 @@ namespace HealthBar {
 namespace ExperienceBar {
 	constexpr int Height = 7;
 	constexpr int Spacing = 1;
+	constexpr int MaxValue = 10000; // Used for percentage calculation (10000 = 100%)
 }
 
 /// Belt dimensions and layout

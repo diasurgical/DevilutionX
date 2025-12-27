@@ -31,7 +31,7 @@
 #include "control/control.hpp"
 #include "controls/control_mode.hpp"
 #include "controls/controller_buttons.h"
-#include "controls/local_coop.hpp"
+#include "controls/local_coop/local_coop.hpp"
 #include "cursor.h"
 #include "diablo.h"
 #include "doom.h"

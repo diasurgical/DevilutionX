@@ -18,7 +18,7 @@
 #include "automap.h"
 #include "codec.h"
 #include "control/control.hpp"
-#include "controls/local_coop.hpp"
+#include "controls/local_coop/local_coop.hpp"
 #include "cursor.h"
 #include "dead.h"
 #include "doom.h"

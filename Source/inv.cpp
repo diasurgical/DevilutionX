@@ -20,7 +20,7 @@
 
 #include "DiabloUI/ui_flags.hpp"
 #include "controls/control_mode.hpp"
-#include "controls/local_coop.hpp"
+#include "controls/local_coop/local_coop.hpp"
 #include "controls/plrctrls.h"
 #include "cursor.h"
 #include "engine/backbuffer_state.hpp"

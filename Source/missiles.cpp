@@ -21,7 +21,7 @@
 #include "appfat.h"
 #include "control/control.hpp"
 #include "controls/control_mode.hpp"
-#include "controls/local_coop.hpp"
+#include "controls/local_coop/local_coop.hpp"
 #include "controls/plrctrls.h"
 #include "crawl.hpp"
 #include "cursor.h"

@@ -5,7 +5,7 @@
  */
 #include "portal.h"
 
-#include "controls/local_coop.hpp"
+#include "controls/local_coop/local_coop.hpp"
 #include "lighting.h"
 #include "missiles.h"
 #include "multi.h"

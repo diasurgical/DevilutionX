@@ -22,7 +22,7 @@
 #include <fmt/format.h>
 
 #include "DiabloUI/diabloui.h"
-#include "controls/local_coop.hpp"
+#include "controls/local_coop/local_coop.hpp"
 #include "diablo.h"
 #include "engine/demomode.h"
 #include "engine/point.hpp"

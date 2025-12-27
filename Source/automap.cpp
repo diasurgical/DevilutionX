@@ -11,7 +11,7 @@
 #include <fmt/format.h>
 
 #include "control/control.hpp"
-#include "controls/local_coop.hpp"
+#include "controls/local_coop/local_coop.hpp"
 #include "engine/load_file.hpp"
 #include "engine/palette.h"
 #include "engine/render/automap_render.hpp"

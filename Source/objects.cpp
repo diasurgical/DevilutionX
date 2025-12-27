@@ -16,7 +16,7 @@
 
 #include "DiabloUI/ui_flags.hpp"
 #include "automap.h"
-#include "controls/local_coop.hpp"
+#include "controls/local_coop/local_coop.hpp"
 #include "cursor.h"
 #ifdef _DEBUG
 #include "debug.h"

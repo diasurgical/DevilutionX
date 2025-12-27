@@ -10,7 +10,7 @@
 
 #ifndef USE_SDL1
 #include "controls/devices/game_controller.h"
-#include "controls/local_coop.hpp"
+#include "controls/local_coop/local_coop.hpp"
 #endif
 #include "controls/devices/joystick.h"
 #include "controls/devices/kbcontroller.h"

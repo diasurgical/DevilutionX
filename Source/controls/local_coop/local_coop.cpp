@@ -3,8 +3,8 @@
  *
  * Implementation of local co-op multiplayer functionality.
  */
-#include "controls/local_coop.hpp"
-#include "controls/local_coop_constants.hpp"
+#include "controls/local_coop/local_coop.hpp"
+#include "controls/local_coop/local_coop_constants.hpp"
 
 #ifndef USE_SDL1
 
@@ -89,6 +89,26 @@ void ReloadHeroesForOtherPlayers(uint8_t excludePlayerId)
 		}
 	}
 }
+
+// HUD drawing helpers (Phase 2: broken down from DrawLocalCoopPlayerHUD)
+// Defined outside anonymous namespace so they can be used by public functions
+struct PlayerHUDLayout {
+	int panelWidth;
+	int panelContentWidth;
+	int barHeight;
+	int barsHeight;
+	int barsWidth;
+	int SkillSlotSize;
+	int skillGridWidth;
+	int nameFieldHeight;
+	int playerNumWidth;
+	int playerNumSpacing;
+	int xpBarHeight;
+	int xpBarSpacing;
+	int barSpacing;
+	int durabilityIconHeight;
+	int durabilityIconSpacing;
+};
 
 // Local co-op HUD sprites
 namespace {
@@ -187,6 +207,14 @@ namespace {
 
 // Forward declarations
 void CastLocalCoopHotkeySpell(uint8_t playerId, int slotIndex);
+
+// Button input handlers (Phase 2: broken down from ProcessLocalCoopButtonInput)
+void HandleCharacterSelectInput(uint8_t playerId, LocalCoopPlayer &coopPlayer, uint8_t button);
+void HandleStoreInput(uint8_t playerId, uint8_t button);
+void HandlePadMenuNavigatorInput(uint8_t playerId, LocalCoopPlayer &coopPlayer, uint8_t button);
+void HandleSpellMenuAssignment(uint8_t playerId, LocalCoopPlayer &coopPlayer, uint8_t button);
+void HandleGameplayButtonDown(uint8_t playerId, LocalCoopPlayer &coopPlayer, Player &player, uint8_t button, uint32_t now);
+void HandleGameplayButtonUp(uint8_t playerId, LocalCoopPlayer &coopPlayer, uint8_t button);
 
 /**
  * @brief RAII helper to temporarily swap MyPlayer, MyPlayerId, and InspectPlayer for local co-op actions.
@@ -1021,6 +1049,276 @@ void ProcessLocalCoopDpadInput(uint8_t playerId, const SDL_Event &event)
 }
 
 /**
+ * @brief Handle character selection input for a local co-op player.
+ */
+void HandleCharacterSelectInput(uint8_t playerId, LocalCoopPlayer &coopPlayer, uint8_t button)
+{
+	using namespace LocalCoopInput;
+	uint32_t now = SDL_GetTicks();
+
+	if (button == SDL_GAMEPAD_BUTTON_DPAD_LEFT) {
+		if (now - coopPlayer.lastDpadPress > DpadRepeatDelay) {
+			if (!coopPlayer.availableHeroes.empty()) {
+				coopPlayer.selectedHeroIndex--;
+				if (coopPlayer.selectedHeroIndex < 0) {
+					coopPlayer.selectedHeroIndex = static_cast<int>(coopPlayer.availableHeroes.size()) - 1;
+				}
+				ReloadHeroesForOtherPlayers(playerId);
+			}
+			coopPlayer.lastDpadPress = now;
+		}
+	} else if (button == SDL_GAMEPAD_BUTTON_DPAD_RIGHT) {
+		if (now - coopPlayer.lastDpadPress > DpadRepeatDelay) {
+			if (!coopPlayer.availableHeroes.empty()) {
+				coopPlayer.selectedHeroIndex++;
+				if (coopPlayer.selectedHeroIndex >= static_cast<int>(coopPlayer.availableHeroes.size())) {
+					coopPlayer.selectedHeroIndex = 0;
+				}
+				ReloadHeroesForOtherPlayers(playerId);
+			}
+			coopPlayer.lastDpadPress = now;
+		}
+	} else if (button == SDL_GAMEPAD_BUTTON_SOUTH || button == SDL_GAMEPAD_BUTTON_START) {
+		ConfirmLocalCoopCharacter(playerId);
+	}
+}
+
+/**
+ * @brief Handle store input for a local co-op player.
+ */
+void HandleStoreInput(uint8_t playerId, uint8_t button)
+{
+	switch (button) {
+	case SDL_GAMEPAD_BUTTON_SOUTH:
+		StoreEnter();
+		break;
+	case SDL_GAMEPAD_BUTTON_EAST:
+		StoreESC();
+		break;
+	case SDL_GAMEPAD_BUTTON_DPAD_UP:
+		StoreUp();
+		break;
+	case SDL_GAMEPAD_BUTTON_DPAD_DOWN:
+		StoreDown();
+		break;
+	default:
+		break;
+	}
+}
+
+/**
+ * @brief Handle pad menu navigator input (when Start button is held).
+ */
+void HandlePadMenuNavigatorInput(uint8_t playerId, LocalCoopPlayer &coopPlayer, uint8_t button)
+{
+	switch (button) {
+	case SDL_GAMEPAD_BUTTON_DPAD_UP:
+		PressEscKey();
+		LastPlayerAction = PlayerActionType::None;
+		PadHotspellMenuActive = false;
+		coopPlayer.padMenuNavigatorActive = false;
+		gamemenu_on();
+		break;
+	case SDL_GAMEPAD_BUTTON_DPAD_DOWN:
+		CycleAutomapType();
+		break;
+	case SDL_GAMEPAD_BUTTON_DPAD_LEFT:
+		ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_CHARACTER_INFO);
+		break;
+	case SDL_GAMEPAD_BUTTON_DPAD_RIGHT:
+		ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_INVENTORY);
+		break;
+	case SDL_GAMEPAD_BUTTON_SOUTH:
+		ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_SPELL_BOOK);
+		break;
+	case SDL_GAMEPAD_BUTTON_EAST:
+		// No action for B button in menu navigator
+		break;
+	case SDL_GAMEPAD_BUTTON_WEST:
+		ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_QUEST_LOG);
+		break;
+	case SDL_GAMEPAD_BUTTON_NORTH:
+#ifdef __3DS__
+		GetOptions().Graphics.zoom.SetValue(!*GetOptions().Graphics.zoom);
+		CalcViewportGeometry();
+#endif
+		break;
+	default:
+		break;
+	}
+}
+
+/**
+ * @brief Handle spell menu assignment when quick spell menu is open.
+ */
+void HandleSpellMenuAssignment(uint8_t playerId, LocalCoopPlayer &coopPlayer, uint8_t button)
+{
+	int assignSlot = GetSkillSlotFromSDLButton(button);
+	if (assignSlot >= 0) {
+		AssignLocalCoopSpellToSlot(playerId, assignSlot);
+		coopPlayer.skillButtonHeld = -1;
+		coopPlayer.skillButtonPressTime = 0;
+		coopPlayer.skillMenuOpenedByHold = false;
+	}
+}
+
+/**
+ * @brief Handle gameplay button press (button down events).
+ */
+void HandleGameplayButtonDown(uint8_t playerId, LocalCoopPlayer &coopPlayer, Player &player, uint8_t button, uint32_t now)
+{
+	switch (button) {
+	case SDL_GAMEPAD_BUTTON_LEFT_SHOULDER:
+		coopPlayer.leftShoulderHeld = true;
+		coopPlayer.rightShoulderHeld = false;
+		break;
+
+	case SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER:
+		coopPlayer.rightShoulderHeld = true;
+		coopPlayer.leftShoulderHeld = false;
+		break;
+
+	case SDL_GAMEPAD_BUTTON_SOUTH:
+		if (TryUseBeltItem(playerId, 0, coopPlayer.leftShoulderHeld, coopPlayer.rightShoulderHeld))
+			return;
+		if (g_LocalCoop.DoesPlayerOwnPanels(playerId) && (invflag || CharFlag || QuestLogIsOpen || SpellbookFlag)) {
+			coopPlayer.actionHeld = GameActionType_PRIMARY_ACTION;
+			ProcessLocalCoopGameAction(playerId, GameActionType_PRIMARY_ACTION);
+		} else if (HasLocalCoopPrimaryTarget(playerId)) {
+			if (player.CanChangeAction() && player.destAction == ACTION_NONE) {
+				coopPlayer.actionHeld = GameActionType_PRIMARY_ACTION;
+				ProcessLocalCoopGameAction(playerId, GameActionType_PRIMARY_ACTION);
+			}
+		} else {
+			coopPlayer.skillButtonHeld = GetSkillSlotFromSDLButton(button);
+			coopPlayer.skillButtonPressTime = now;
+			coopPlayer.skillMenuOpenedByHold = false;
+		}
+		break;
+
+	case SDL_GAMEPAD_BUTTON_EAST:
+		if (TryUseBeltItem(playerId, 1, coopPlayer.leftShoulderHeld, coopPlayer.rightShoulderHeld))
+			return;
+		if (g_LocalCoop.DoesPlayerOwnPanels(playerId) && invflag) {
+			bool isOverBeltSlot = false;
+			if (IsLocalCoopEnabled()) {
+				uint8_t beltOwnerPlayerId = 0;
+				std::optional<inv_xy_slot> beltSlot = FindLocalCoopBeltSlotUnderCursor(MousePosition, beltOwnerPlayerId);
+				if (beltSlot.has_value() && beltOwnerPlayerId == playerId) {
+					isOverBeltSlot = true;
+				}
+			}
+			if (pcursinvitem != -1 || isOverBeltSlot || !player.HoldItem.isEmpty()) {
+				coopPlayer.actionHeld = GameActionType_SECONDARY_ACTION;
+				ProcessLocalCoopGameAction(playerId, GameActionType_SECONDARY_ACTION);
+				return;
+			}
+		} else if (HasLocalCoopSecondaryTarget(playerId)) {
+			if (player.CanChangeAction() && player.destAction == ACTION_NONE) {
+				coopPlayer.actionHeld = GameActionType_SECONDARY_ACTION;
+				ProcessLocalCoopGameAction(playerId, GameActionType_SECONDARY_ACTION);
+			}
+		} else {
+			coopPlayer.skillButtonHeld = GetSkillSlotFromSDLButton(button);
+			coopPlayer.skillButtonPressTime = now;
+			coopPlayer.skillMenuOpenedByHold = false;
+		}
+		break;
+
+	case SDL_GAMEPAD_BUTTON_WEST:
+		if (TryUseBeltItem(playerId, 2, coopPlayer.leftShoulderHeld, coopPlayer.rightShoulderHeld))
+			return;
+		if (player.CanChangeAction() && player.destAction == ACTION_NONE) {
+			coopPlayer.skillButtonHeld = GetSkillSlotFromSDLButton(button);
+			coopPlayer.skillButtonPressTime = now;
+			coopPlayer.skillMenuOpenedByHold = false;
+		}
+		break;
+
+	case SDL_GAMEPAD_BUTTON_NORTH:
+		if (TryUseBeltItem(playerId, 3, coopPlayer.leftShoulderHeld, coopPlayer.rightShoulderHeld))
+			return;
+		if (player.CanChangeAction() && player.destAction == ACTION_NONE) {
+			coopPlayer.skillButtonHeld = GetSkillSlotFromSDLButton(button);
+			coopPlayer.skillButtonPressTime = now;
+			coopPlayer.skillMenuOpenedByHold = false;
+		}
+		break;
+
+	case SDL_GAMEPAD_BUTTON_BACK:
+		ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_QUICK_SPELL_MENU);
+		break;
+
+	case SDL_GAMEPAD_BUTTON_START:
+		coopPlayer.startButtonPressTime = SDL_GetTicks();
+		coopPlayer.padMenuNavigatorActive = true;
+		break;
+
+	default:
+		break;
+	}
+}
+
+/**
+ * @brief Handle gameplay button release (button up events).
+ */
+void HandleGameplayButtonUp(uint8_t playerId, LocalCoopPlayer &coopPlayer, uint8_t button)
+{
+	int releasedSlot = GetSkillSlotFromSDLButton(button);
+
+	if (releasedSlot >= 0) {
+		switch (releasedSlot) {
+		case 2:
+			if (coopPlayer.actionHeld == GameActionType_PRIMARY_ACTION) {
+				if (g_LocalCoop.DoesPlayerOwnPanels(playerId) && CharFlag && CharPanelButtonActive) {
+					LocalCoopPlayerContext context(playerId);
+					if (pChrButtons.has_value()) {
+						ReleaseChrBtns(false);
+					}
+				}
+				coopPlayer.actionHeld = GameActionType_NONE;
+			}
+			break;
+		case 3:
+			if (coopPlayer.actionHeld == GameActionType_SECONDARY_ACTION)
+				coopPlayer.actionHeld = GameActionType_NONE;
+			break;
+		case 0:
+			if (coopPlayer.actionHeld == GameActionType_CAST_SPELL)
+				coopPlayer.actionHeld = GameActionType_NONE;
+			break;
+		}
+	}
+
+	if (releasedSlot >= 0 && coopPlayer.skillButtonHeld == releasedSlot) {
+		if (!(g_LocalCoop.DoesPlayerOwnPanels(playerId) && CharFlag && CharPanelButtonActive)) {
+			if (!coopPlayer.skillMenuOpenedByHold) {
+				CastLocalCoopHotkeySpell(playerId, releasedSlot);
+			}
+		}
+		coopPlayer.skillButtonHeld = -1;
+		coopPlayer.skillButtonPressTime = 0;
+	}
+
+	if (button == SDL_GAMEPAD_BUTTON_START) {
+		coopPlayer.padMenuNavigatorActive = false;
+		coopPlayer.startButtonPressTime = 0;
+		return;
+	}
+
+	switch (button) {
+	case SDL_GAMEPAD_BUTTON_LEFT_SHOULDER:
+		coopPlayer.leftShoulderHeld = false;
+		break;
+	case SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER:
+		coopPlayer.rightShoulderHeld = false;
+		break;
+	default:
+		break;
+	}
+}
+
+/**
  * @brief Process button input for a local co-op player.
  *
  * Button mapping:
@@ -1040,7 +1338,7 @@ void ProcessLocalCoopButtonInput(uint8_t playerId, const SDL_Event &event)
 	if (!validated.isValid)
 		return;
 
-	LocalCoopPlayer *coopPlayer = validated.coop;
+	LocalCoopPlayer &coopPlayer = *validated.coop;
 
 	const bool isButtonDown = (event.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN);
 	const bool isButtonUp = (event.type == SDL_EVENT_GAMEPAD_BUTTON_UP);
@@ -1050,64 +1348,24 @@ void ProcessLocalCoopButtonInput(uint8_t playerId, const SDL_Event &event)
 
 	const auto button = SDLC_EventGamepadButton(event).button;
 
-	if (coopPlayer->characterSelectActive) {
-		if (!isButtonDown)
-			return;
-
-		using namespace LocalCoopInput;
-		uint32_t now = SDL_GetTicks();
-
-		if (button == SDL_GAMEPAD_BUTTON_DPAD_LEFT) {
-			if (now - coopPlayer->lastDpadPress > DpadRepeatDelay) {
-				if (!coopPlayer->availableHeroes.empty()) {
-					coopPlayer->selectedHeroIndex--;
-					if (coopPlayer->selectedHeroIndex < 0) {
-						coopPlayer->selectedHeroIndex = static_cast<int>(coopPlayer->availableHeroes.size()) - 1;
-					}
-					ReloadHeroesForOtherPlayers(playerId);
-				}
-				coopPlayer->lastDpadPress = now;
-			}
-		} else if (button == SDL_GAMEPAD_BUTTON_DPAD_RIGHT) {
-			if (now - coopPlayer->lastDpadPress > DpadRepeatDelay) {
-				if (!coopPlayer->availableHeroes.empty()) {
-					coopPlayer->selectedHeroIndex++;
-					if (coopPlayer->selectedHeroIndex >= static_cast<int>(coopPlayer->availableHeroes.size())) {
-						coopPlayer->selectedHeroIndex = 0;
-					}
-					ReloadHeroesForOtherPlayers(playerId);
-				}
-				coopPlayer->lastDpadPress = now;
-			}
-		} else if (button == SDL_GAMEPAD_BUTTON_SOUTH || button == SDL_GAMEPAD_BUTTON_START) {
-			ConfirmLocalCoopCharacter(playerId);
+	// Handle character selection
+	if (coopPlayer.characterSelectActive) {
+		if (isButtonDown) {
+			HandleCharacterSelectInput(playerId, coopPlayer, button);
 		}
 		return;
 	}
 
+	// Check if player is initialized and alive
 	if (!validated.coop->initialized || validated.player->_pHitPoints <= 0)
 		return;
 
 	Player &player = *validated.player;
 
+	// Handle store input
 	if (g_LocalCoop.storeOwnerPlayerId == playerId && IsPlayerInStore()) {
 		if (isButtonDown) {
-			switch (button) {
-			case SDL_GAMEPAD_BUTTON_SOUTH:
-				StoreEnter();
-				break;
-			case SDL_GAMEPAD_BUTTON_EAST:
-				StoreESC();
-				break;
-			case SDL_GAMEPAD_BUTTON_DPAD_UP:
-				StoreUp();
-				break;
-			case SDL_GAMEPAD_BUTTON_DPAD_DOWN:
-				StoreDown();
-				break;
-			default:
-				break;
-			}
+			HandleStoreInput(playerId, button);
 		}
 		return;
 	}
@@ -1115,47 +1373,13 @@ void ProcessLocalCoopButtonInput(uint8_t playerId, const SDL_Event &event)
 	if (isButtonDown) {
 		uint32_t now = SDL_GetTicks();
 
-		if (coopPlayer->padMenuNavigatorActive) {
-			switch (button) {
-			case SDL_GAMEPAD_BUTTON_DPAD_UP:
-				PressEscKey();
-				LastPlayerAction = PlayerActionType::None;
-				PadHotspellMenuActive = false;
-				coopPlayer->padMenuNavigatorActive = false;
-				gamemenu_on();
-				return;
-			case SDL_GAMEPAD_BUTTON_DPAD_DOWN:
-				CycleAutomapType();
-				return;
-			case SDL_GAMEPAD_BUTTON_DPAD_LEFT:
-				// Use ProcessLocalCoopGameAction to properly claim panel ownership
-				ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_CHARACTER_INFO);
-				return;
-			case SDL_GAMEPAD_BUTTON_DPAD_RIGHT:
-				// Use ProcessLocalCoopGameAction to properly claim panel ownership
-				ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_INVENTORY);
-				return;
-			case SDL_GAMEPAD_BUTTON_SOUTH: // A button
-				// Use ProcessLocalCoopGameAction to properly claim panel ownership
-				ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_SPELL_BOOK);
-				return;
-			case SDL_GAMEPAD_BUTTON_EAST: // B button
-				return;                   // No action for B button in menu navigator
-			case SDL_GAMEPAD_BUTTON_WEST: // X button
-				// Use ProcessLocalCoopGameAction to properly claim panel ownership
-				ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_QUEST_LOG);
-				return;
-			case SDL_GAMEPAD_BUTTON_NORTH: // Y button
-#ifdef __3DS__
-				GetOptions().Graphics.zoom.SetValue(!*GetOptions().Graphics.zoom);
-				CalcViewportGeometry();
-#endif
-				return;
-			default:
-				break;
-			}
+		// Handle pad menu navigator
+		if (coopPlayer.padMenuNavigatorActive) {
+			HandlePadMenuNavigatorInput(playerId, coopPlayer, button);
+			return;
 		}
 
+		// Handle quick text dismissal
 		if (qtextflag && button == SDL_GAMEPAD_BUTTON_EAST) {
 			qtextflag = false;
 			if (leveltype == DTYPE_TOWN)
@@ -1166,170 +1390,25 @@ void ProcessLocalCoopButtonInput(uint8_t playerId, const SDL_Event &event)
 			return;
 		}
 
-		if (SpellSelectFlag && coopPlayer->skillMenuOpenedByHold) {
-			int assignSlot = GetSkillSlotFromSDLButton(button);
-
-			if (assignSlot >= 0) {
-				AssignLocalCoopSpellToSlot(playerId, assignSlot);
-				coopPlayer->skillButtonHeld = -1;
-				coopPlayer->skillButtonPressTime = 0;
-				coopPlayer->skillMenuOpenedByHold = false;
-				return;
-			}
+		// Handle spell menu assignment
+		if (SpellSelectFlag && coopPlayer.skillMenuOpenedByHold) {
+			HandleSpellMenuAssignment(playerId, coopPlayer, button);
+			return;
 		}
 
-		switch (button) {
-		case SDL_GAMEPAD_BUTTON_LEFT_SHOULDER:
-			coopPlayer->leftShoulderHeld = true;
-			coopPlayer->rightShoulderHeld = false;
-			break;
-
-		case SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER:
-			coopPlayer->rightShoulderHeld = true;
-			coopPlayer->leftShoulderHeld = false;
-			break;
-
-		case SDL_GAMEPAD_BUTTON_SOUTH:
-			if (TryUseBeltItem(playerId, 0, coopPlayer->leftShoulderHeld, coopPlayer->rightShoulderHeld))
-				return;
-			if (g_LocalCoop.DoesPlayerOwnPanels(playerId) && (invflag || CharFlag || QuestLogIsOpen || SpellbookFlag)) {
-				coopPlayer->actionHeld = GameActionType_PRIMARY_ACTION;
-				ProcessLocalCoopGameAction(playerId, GameActionType_PRIMARY_ACTION);
-			} else if (HasLocalCoopPrimaryTarget(playerId)) {
-				if (player.CanChangeAction() && player.destAction == ACTION_NONE) {
-					coopPlayer->actionHeld = GameActionType_PRIMARY_ACTION;
-					ProcessLocalCoopGameAction(playerId, GameActionType_PRIMARY_ACTION);
-				}
-			} else {
-				coopPlayer->skillButtonHeld = GetSkillSlotFromSDLButton(button);
-				coopPlayer->skillButtonPressTime = now;
-				coopPlayer->skillMenuOpenedByHold = false;
-			}
-			break;
-
-		case SDL_GAMEPAD_BUTTON_EAST:
-			if (TryUseBeltItem(playerId, 1, coopPlayer->leftShoulderHeld, coopPlayer->rightShoulderHeld))
-				return;
-			if (g_LocalCoop.DoesPlayerOwnPanels(playerId) && invflag) {
-				bool isOverBeltSlot = false;
-				if (IsLocalCoopEnabled()) {
-					uint8_t beltOwnerPlayerId = 0;
-					std::optional<inv_xy_slot> beltSlot = FindLocalCoopBeltSlotUnderCursor(MousePosition, beltOwnerPlayerId);
-					if (beltSlot.has_value() && beltOwnerPlayerId == playerId) {
-						isOverBeltSlot = true;
-					}
-				}
-				if (pcursinvitem != -1 || isOverBeltSlot || !player.HoldItem.isEmpty()) {
-					coopPlayer->actionHeld = GameActionType_SECONDARY_ACTION;
-					ProcessLocalCoopGameAction(playerId, GameActionType_SECONDARY_ACTION);
-					return;
-				}
-			} else if (HasLocalCoopSecondaryTarget(playerId)) {
-				if (player.CanChangeAction() && player.destAction == ACTION_NONE) {
-					coopPlayer->actionHeld = GameActionType_SECONDARY_ACTION;
-					ProcessLocalCoopGameAction(playerId, GameActionType_SECONDARY_ACTION);
-				}
-			} else {
-				coopPlayer->skillButtonHeld = GetSkillSlotFromSDLButton(button);
-				coopPlayer->skillButtonPressTime = now;
-				coopPlayer->skillMenuOpenedByHold = false;
-			}
-			break;
-
-		case SDL_GAMEPAD_BUTTON_WEST:
-			if (TryUseBeltItem(playerId, 2, coopPlayer->leftShoulderHeld, coopPlayer->rightShoulderHeld))
-				return;
-			if (player.CanChangeAction() && player.destAction == ACTION_NONE) {
-				coopPlayer->skillButtonHeld = GetSkillSlotFromSDLButton(button);
-				coopPlayer->skillButtonPressTime = now;
-				coopPlayer->skillMenuOpenedByHold = false;
-			}
-			break;
-
-		case SDL_GAMEPAD_BUTTON_NORTH:
-			if (TryUseBeltItem(playerId, 3, coopPlayer->leftShoulderHeld, coopPlayer->rightShoulderHeld))
-				return;
-			if (player.CanChangeAction() && player.destAction == ACTION_NONE) {
-				coopPlayer->skillButtonHeld = GetSkillSlotFromSDLButton(button);
-				coopPlayer->skillButtonPressTime = now;
-				coopPlayer->skillMenuOpenedByHold = false;
-			}
-			break;
-
-		case SDL_GAMEPAD_BUTTON_BACK:
-			ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_QUICK_SPELL_MENU);
-			break;
-
-		case SDL_GAMEPAD_BUTTON_START:
-			if (isButtonDown) {
-				coopPlayer->startButtonPressTime = SDL_GetTicks();
-				coopPlayer->padMenuNavigatorActive = true;
-			}
-			break;
-
-		default:
-			break;
-		}
+		// Handle gameplay buttons
+		HandleGameplayButtonDown(playerId, coopPlayer, player, button, now);
 	} else if (isButtonUp) {
-		if (coopPlayer->padMenuNavigatorActive) {
+		// Handle pad menu navigator release
+		if (coopPlayer.padMenuNavigatorActive) {
 			if (button == SDL_GAMEPAD_BUTTON_START) {
-				coopPlayer->padMenuNavigatorActive = false;
+				coopPlayer.padMenuNavigatorActive = false;
 			}
 			return;
 		}
 
-		int releasedSlot = GetSkillSlotFromSDLButton(button);
-
-		if (releasedSlot >= 0) {
-			switch (releasedSlot) {
-			case 2:
-				if (coopPlayer->actionHeld == GameActionType_PRIMARY_ACTION) {
-					if (g_LocalCoop.DoesPlayerOwnPanels(playerId) && CharFlag && CharPanelButtonActive) {
-						LocalCoopPlayerContext context(playerId);
-						if (pChrButtons.has_value()) {
-							ReleaseChrBtns(false);
-						}
-					}
-					coopPlayer->actionHeld = GameActionType_NONE;
-				}
-				break;
-			case 3:
-				if (coopPlayer->actionHeld == GameActionType_SECONDARY_ACTION)
-					coopPlayer->actionHeld = GameActionType_NONE;
-				break;
-			case 0:
-				if (coopPlayer->actionHeld == GameActionType_CAST_SPELL)
-					coopPlayer->actionHeld = GameActionType_NONE;
-				break;
-			}
-		}
-
-		if (releasedSlot >= 0 && coopPlayer->skillButtonHeld == releasedSlot) {
-			if (!(g_LocalCoop.DoesPlayerOwnPanels(playerId) && CharFlag && CharPanelButtonActive)) {
-				if (!coopPlayer->skillMenuOpenedByHold) {
-					CastLocalCoopHotkeySpell(playerId, releasedSlot);
-				}
-			}
-			coopPlayer->skillButtonHeld = -1;
-			coopPlayer->skillButtonPressTime = 0;
-		}
-
-		if (button == SDL_GAMEPAD_BUTTON_START) {
-			coopPlayer->padMenuNavigatorActive = false;
-			coopPlayer->startButtonPressTime = 0;
-			return;
-		}
-
-		switch (button) {
-		case SDL_GAMEPAD_BUTTON_LEFT_SHOULDER:
-			coopPlayer->leftShoulderHeld = false;
-			break;
-		case SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER:
-			coopPlayer->rightShoulderHeld = false;
-			break;
-		default:
-			break;
-		}
+		// Handle button release
+		HandleGameplayButtonUp(playerId, coopPlayer, button);
 	}
 }
 
@@ -2653,11 +2732,11 @@ void DrawPlayerSkillSlotSmall(const Surface &out, const Player &player, int slot
 	const char *label = (!hideLabel && slotIndex < 4) ? ButtonLabels[slotIndex].data() : "";
 
 	// Original sprite sizes
-	constexpr int OriginalHintBoxSize = 39;
-	constexpr int OriginalIconSize = 37;
-	constexpr int OriginalIconHeight = 38;
+	constexpr int OriginalHintBoxSize = SkillSlot::OriginalHintBoxSize;
+	constexpr int OriginalIconSize = SkillSlot::OriginalIconSize;
+	constexpr int OriginalIconHeight = SkillSlot::OriginalIconHeight;
 
-	constexpr int IconBorderPadding = 2;
+	constexpr int IconBorderPadding = SkillSlot::IconBorderPadding;
 	// Scale everything to fit within slotSize (30px)
 	const int scaledHintBoxWidth = slotSize + 2;                                            // Reduced by 1px (was slotSize + 3)
 	const int scaledHintBoxHeight = slotSize;                                               // Reduced by 1px (was slotSize + 1)
@@ -2730,8 +2809,8 @@ void DrawPlayerSkillSlotSmall(const Surface &out, const Player &player, int slot
 	// Draw button label AFTER icon (bottom-right inside slot, scaled down)
 	// Match original positioning: 14px offset from bottom-right in 39px slot
 	// For scaled slots, use proportional offset: 14/39 ≈ 0.359 of slotSize
-	constexpr int OriginalLabelOffset = 14;
-	constexpr int OriginalLabelWidth = 12;
+	constexpr int OriginalLabelOffset = SkillSlot::OriginalLabelOffset;
+	constexpr int OriginalLabelWidth = SkillSlot::OriginalLabelWidth;
 	int labelOffset = (OriginalLabelOffset * slotSize + OriginalHintBoxSize / 2) / OriginalHintBoxSize;             // Round properly
 	int labelWidth = std::max(12, (OriginalLabelWidth * slotSize + OriginalHintBoxSize / 2) / OriginalHintBoxSize); // Increased minimum to 12px
 	// Position label at bottom-right of the slot (using actual slot position and size)
@@ -2751,8 +2830,9 @@ void DrawPlayerSkillSlotSmall(const Surface &out, const Player &player, int slot
  */
 void DrawPlayerSkillSlots2x2Small(const Surface &out, const Player &player, Point basePosition, int slotSize, bool hideLabels = false)
 {
-	constexpr int spacingX = 2; // Horizontal spacing between slots (width spacing)
-	constexpr int spacingY = 1; // Vertical spacing between slots
+	using namespace LocalCoopLayout;
+	constexpr int spacingX = SkillSlot::GridSpacingX; // Horizontal spacing between slots (width spacing)
+	constexpr int spacingY = SkillSlot::GridSpacingY; // Vertical spacing between slots
 	// Grid layout: A B / X Y  ->  indices 2,3 / 0,1
 	static constexpr int SlotGrid[2][2] = {
 		{ 2, 3 }, // Top row: A, B
@@ -3027,6 +3107,7 @@ void DrawPlayerBelt(const Surface &out, const Player &player, uint8_t playerId, 
 
 void DrawPlayerSkillSlot(const Surface &out, const Player &player, int slotIndex, Point position)
 {
+	using namespace LocalCoopLayout;
 	// Get spell from hotkey slot
 	SpellID spell = player._pSplHotKey[slotIndex];
 	SpellType spellType = player._pSplTHotKey[slotIndex];
@@ -3040,8 +3121,8 @@ void DrawPlayerSkillSlot(const Surface &out, const Player &player, int slotIndex
 	// RenderClxSprite uses TOP-LEFT position
 	// DrawSmallSpellIcon uses BOTTOM-LEFT position
 	// spellIconDisplacement converts from top-left border pos to bottom-left icon pos
-	constexpr int HintBoxSize = 39;
-	constexpr int IconSize = 37;
+	constexpr int HintBoxSize = SkillSlot::OriginalHintBoxSize;
+	constexpr int IconSize = SkillSlot::OriginalIconSize;
 
 	// Position is the TOP-LEFT of where we want the slot to appear
 	// borderPos is TOP-LEFT for RenderClxSprite (hintBox)
@@ -3064,7 +3145,9 @@ void DrawPlayerSkillSlot(const Surface &out, const Player &player, int slotIndex
 		SetSpellTrans(SpellType::Invalid);
 		DrawSmallSpellIcon(out, iconPos, SpellID::Null);
 		// Draw button label in bottom-right corner of slot
-		DrawString(out, label, { { position.x + HintBoxSize - 14, position.y + HintBoxSize - 14 }, { 12, 0 } },
+		constexpr int LabelOffset = SkillSlot::OriginalLabelOffset;
+		constexpr int LabelWidth = SkillSlot::OriginalLabelWidth;
+		DrawString(out, label, { { position.x + HintBoxSize - LabelOffset, position.y + HintBoxSize - LabelOffset }, { LabelWidth, 0 } },
 		    { .flags = UiFlags::ColorWhite | UiFlags::Outlined | UiFlags::FontSize12, .spacing = 0 });
 		return;
 	}
@@ -3090,7 +3173,9 @@ void DrawPlayerSkillSlot(const Surface &out, const Player &player, int slotIndex
 	DrawSmallSpellIcon(out, iconPos, spell);
 
 	// Draw button label in bottom-right corner (over the icon)
-	DrawString(out, label, { { position.x + HintBoxSize - 14, position.y + HintBoxSize - 14 }, { 12, 0 } },
+	constexpr int LabelOffset = SkillSlot::OriginalLabelOffset;
+	constexpr int LabelWidth = SkillSlot::OriginalLabelWidth;
+	DrawString(out, label, { { position.x + HintBoxSize - LabelOffset, position.y + HintBoxSize - LabelOffset }, { LabelWidth, 0 } },
 	    { .flags = UiFlags::ColorWhite | UiFlags::Outlined | UiFlags::FontSize12, .spacing = 0 });
 }
 
@@ -3125,17 +3210,167 @@ bool LocalCoopHUDOpen = true;
  */
 int GetLocalCoopPanelWidth()
 {
-	constexpr int leftBorderPadding = 7;
-	constexpr int rightBorderPadding = 7;
-	constexpr int minBeltWidth = 245;                                                              // Minimum width needed for all 8 belt slots
-	constexpr int basePanelContentWidth = minBeltWidth - 7;                                        // Base content width
-	constexpr int basePanelWidth = leftBorderPadding + basePanelContentWidth + rightBorderPadding; // Base panel width
-
+	using namespace LocalCoopLayout;
 	// Dynamic panel width - can be adjusted here or made configurable
 	// For now, using base width but can be increased for wider panels
-	int targetPanelWidth = basePanelWidth; // Change this value to adjust panel width
+	int targetPanelWidth = PanelWidth::BaseWidth; // Change this value to adjust panel width
 
 	return targetPanelWidth;
+}
+
+// HUD drawing helper functions (defined outside anonymous namespace to avoid ambiguity)
+// These are in the devilution namespace (which started at line 77)
+PlayerHUDLayout CalculatePlayerHUDLayout(bool experienceBarEnabled, int panelWidth)
+{
+	using namespace LocalCoopLayout;
+	PlayerHUDLayout layout;
+	layout.panelWidth = panelWidth;
+	layout.panelContentWidth = panelWidth - Panel::LeftBorderPadding - Panel::RightBorderPadding;
+
+	// Health/mana bar dimensions - adjust based on experience bar
+	const int barHeight = experienceBarEnabled ? HealthBar::HeightXpEnabled : HealthBar::Height;
+	const int barSpacing = HealthBar::Spacing;
+	const int xpBarHeight = ExperienceBar::Height;
+	const int xpBarSpacing = experienceBarEnabled ? 0 : ExperienceBar::Spacing;
+	layout.barsHeight = experienceBarEnabled
+	    ? (barHeight * 2 + barSpacing + xpBarHeight + xpBarSpacing)
+	    : (barHeight * 2 + barSpacing);
+
+	layout.barHeight = barHeight;
+	layout.barSpacing = barSpacing;
+	layout.xpBarHeight = xpBarHeight;
+	layout.xpBarSpacing = xpBarSpacing;
+
+	// Name field dimensions
+	layout.nameFieldHeight = PanelContent::FieldHeight;
+	layout.playerNumWidth = 28;
+	layout.playerNumSpacing = 0;
+
+	// Bar width = space between P# and Level
+	layout.barsWidth = layout.panelContentWidth - layout.playerNumWidth - layout.playerNumSpacing - layout.playerNumWidth + 1;
+
+	// Skill slot size: 2 slots height = panel height
+	constexpr int skillSlotSpacing = SkillSlot::GridSpacingY;
+	layout.SkillSlotSize = (Panel::Height - skillSlotSpacing) / 2;
+	layout.skillGridWidth = layout.SkillSlotSize * 2 + skillSlotSpacing;
+
+	// Durability icon dimensions
+	layout.durabilityIconHeight = DurabilityIcon::Height;
+	layout.durabilityIconSpacing = DurabilityIcon::Spacing;
+
+	return layout;
+}
+
+/**
+ * @brief Draw the top row of player HUD (player number, level, attribute icon).
+ */
+void DrawPlayerHUDTopRow(const Surface &out, const Player &player, size_t playerId, const PlayerHUDLayout &layout, int contentX, int currentY, int panelContentWidth)
+{
+	using namespace LocalCoopLayout;
+	constexpr int nameLeftOffset = 0;
+	int nameRowX = contentX + nameLeftOffset;
+	constexpr int extraOffset = 1;
+
+	// Draw player number field on the left
+	DrawCoopPanelField(out, { nameRowX, currentY }, layout.playerNumWidth - extraOffset);
+	char playerNumStr[4];
+	snprintf(playerNumStr, sizeof(playerNumStr), "P%zu", playerId + 1);
+	DrawString(out, playerNumStr,
+	    { { nameRowX + 2, currentY + 2 }, { layout.playerNumWidth - 4, layout.nameFieldHeight - 4 } },
+	    { .flags = UiFlags::AlignCenter | UiFlags::VerticalCenter | UiFlags::ColorWhite, .spacing = 0 });
+
+	// Draw level field on the right
+	int levelX = nameRowX + panelContentWidth - layout.playerNumWidth - nameLeftOffset - extraOffset + 1;
+	DrawCoopPanelField(out, { levelX, currentY }, layout.playerNumWidth);
+	char levelStr[4];
+	snprintf(levelStr, sizeof(levelStr), "%d", player.getCharacterLevel());
+	DrawString(out, levelStr,
+	    { { levelX + 2, currentY + 2 }, { layout.playerNumWidth - 4, layout.nameFieldHeight - 4 } },
+	    { .flags = UiFlags::AlignCenter | UiFlags::VerticalCenter | UiFlags::ColorWhite, .spacing = 0 });
+
+	// Draw attribute points available icon overlapping the level field
+	if (player._pStatPts > 0 && pChrButtons.has_value()) {
+		const ClxSprite &iconSprite = (*pChrButtons)[1];
+		const int iconWidth = iconSprite.width();
+		const int iconHeight = iconSprite.height();
+		const int squareSize = std::min(iconWidth, iconHeight);
+
+		OwnedSurface tempSurface(iconWidth, iconHeight);
+		FillRect(tempSurface, 0, 0, iconWidth, iconHeight, 0);
+		RenderClxSprite(tempSurface, iconSprite, { 0, 0 });
+
+		const int cropX = (iconWidth - squareSize) / 2 + 1;
+		SDL_Rect cropRect = { cropX, 0, squareSize - 2, squareSize };
+		Point iconPos = {
+			levelX + layout.playerNumWidth / 2 - squareSize / 2 + 1,
+			currentY + layout.nameFieldHeight / 2 - squareSize / 2 + 3
+		};
+		out.BlitFrom(tempSurface, cropRect, iconPos);
+	}
+}
+
+/**
+ * @brief Draw health, mana, and experience bars for a player.
+ */
+void DrawPlayerHUDBars(const Surface &out, const Player &player, const PlayerHUDLayout &layout, int barX, int barY, bool experienceBarEnabled)
+{
+	using namespace LocalCoopLayout;
+	int currentHP = player._pHitPoints >> 6;
+	int maxHP = player._pMaxHP >> 6;
+	int currentMana = player._pMana >> 6;
+	int maxMana = player._pMaxMana >> 6;
+	bool hasManaShield = player.pManaShield;
+
+	// Health bar
+	DrawCoopSmallBar(out, { barX, barY }, layout.barsWidth, layout.barHeight, currentHP, maxHP, false, hasManaShield);
+	barY += layout.barHeight + layout.barSpacing;
+
+	// Mana bar
+	DrawCoopSmallBar(out, { barX, barY - 2 }, layout.barsWidth, layout.barHeight, currentMana, maxMana, true, false);
+	barY += layout.barHeight;
+
+	// Experience bar (if enabled)
+	if (experienceBarEnabled) {
+		barY += layout.xpBarSpacing;
+		int xpCurrent = 0;
+		using namespace LocalCoopLayout;
+		constexpr int xpMax = ExperienceBar::MaxValue;
+
+		if (player.isMaxCharacterLevel()) {
+			xpCurrent = xpMax;
+		} else {
+			const uint8_t charLevel = player.getCharacterLevel();
+			const uint32_t prevXp = GetNextExperienceThresholdForLevel(charLevel - 1);
+			const uint32_t nextXp = GetNextExperienceThresholdForLevel(charLevel);
+
+			if (player._pExperience >= prevXp && nextXp > prevXp) {
+				const uint32_t prevXpDelta1 = player._pExperience - prevXp;
+				const uint32_t prevXpDelta = nextXp - prevXp;
+				const uint32_t clampedDelta1 = std::min(prevXpDelta1, prevXpDelta);
+				xpCurrent = static_cast<int>((static_cast<uint64_t>(xpMax) * clampedDelta1) / prevXpDelta);
+				xpCurrent = std::clamp(xpCurrent, 0, xpMax);
+			}
+		}
+		DrawCoopSmallBar(out, { barX, barY - 3 }, layout.barsWidth, layout.xpBarHeight, xpCurrent, xpMax, false, false, true);
+	}
+}
+
+/**
+ * @brief Draw skill slots for a player.
+ */
+void DrawPlayerHUDSkills(const Surface &out, const Player &player, const LocalCoopPlayer &coopPlayer, int panelX, int panelY, int panelWidth, const PlayerHUDLayout &layout, bool skillsOnLeft)
+{
+	using namespace LocalCoopLayout;
+	constexpr int skillColumnSpacing = 0;
+	int skillX;
+	if (skillsOnLeft) {
+		skillX = panelX - skillColumnSpacing - layout.skillGridWidth - 2;
+	} else {
+		skillX = panelX + panelWidth + skillColumnSpacing;
+	}
+	int skillY = panelY;
+	bool hideSkillLabels = coopPlayer.leftShoulderHeld || coopPlayer.rightShoulderHeld;
+	DrawPlayerSkillSlots2x2Small(out, player, { skillX, skillY }, layout.SkillSlotSize, hideSkillLabels);
 }
 
 void DrawLocalCoopPlayerHUD(const Surface &out)
@@ -3154,51 +3389,17 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 	// Check if experience bar is enabled
 	const bool experienceBarEnabled = *GetOptions().Gameplay.experienceBar;
 
-	// Panel layout constants - charbg sprite borders
+	// Calculate layout dimensions
+	const int panelWidth = GetLocalCoopPanelWidth();
+	PlayerHUDLayout layout = CalculatePlayerHUDLayout(experienceBarEnabled, panelWidth);
+
+	// Panel layout constants
 	using namespace LocalCoopLayout;
 	constexpr int topBorderPadding = Panel::TopBorderPadding;
 	constexpr int leftBorderPadding = Panel::LeftBorderPadding;
-	constexpr int rightBorderPadding = Panel::RightBorderPadding;
 	constexpr int elementSpacing = PanelContent::ElementSpacing;
 	constexpr int nameTopOffset = PanelContent::NameTopOffset;
-	constexpr int nameLeftOffset = 0;     // No extra offset (elements shifted via leftBorderPadding)
-
-	// Health/mana bar dimensions - adjust based on experience bar
-	// If experience bar is enabled, make bars shorter to fit XP bar below
-	const int barHeight = experienceBarEnabled ? 11 : HealthBar::Height;  // Reduced from 14px to 11px when XP bar is on
-	constexpr int barSpacing = HealthBar::Spacing;                          // Reduced spacing between bars
-	constexpr int xpBarHeight = ExperienceBar::Height;                         // Thin experience bar height
-	const int xpBarSpacing = experienceBarEnabled ? 0 : ExperienceBar::Spacing; // No spacing when XP bar is on to keep panel same height
-	// Bars: health, mana (stacked vertically), optionally XP bar below
-	const int barsHeight = experienceBarEnabled
-	    ? (barHeight * 2 + barSpacing + xpBarHeight + xpBarSpacing)
-	    : (barHeight * 2 + barSpacing);
-
-	// Skill slot dimensions - 2x2 grid OUTSIDE panel
-	// Skill slot size calculated so 2 slots height = panel height
-	// Formula: 2 * slotSize + spacing = panelHeight
-	// We'll calculate this after panelHeight is determined
-	constexpr int skillSlotSpacing = SkillSlot::GridSpacingY;   // Spacing between slots in 2x2 grid
-	constexpr int skillColumnSpacing = 0; // Gap between panel and skill grid
-
-	// Get dynamic panel width (can be adjusted in GetLocalCoopPanelWidth)
-	const int panelWidth = GetLocalCoopPanelWidth();
-	const int panelContentWidth = panelWidth - leftBorderPadding - rightBorderPadding;
-
-	// Name field height
-	constexpr int nameFieldHeight = PanelContent::FieldHeight;
-	constexpr int playerNumWidth = 28;  // P# and level field width (increased by 3px)
-	constexpr int playerNumSpacing = 0; // spacing between P#/name/level
-
-	// Bar width = space between P# and Level (scales with panel width)
-	const int barsWidth = panelContentWidth - playerNumWidth - playerNumSpacing - playerNumWidth + 1;
 	constexpr int panelHeight = Panel::Height;
-	// Skill slot size: 2 slots height = panel height, so slotSize = (panelHeight - spacing) / 2
-	constexpr int SkillSlotSize = (panelHeight - skillSlotSpacing) / 2;  // = (87 - 1) / 2 = 43px
-	constexpr int skillGridWidth = SkillSlotSize * 2 + skillSlotSpacing; // Width of 2x2 grid (2 columns)
-
-	constexpr int durabilityIconHeight = DurabilityIcon::Height;
-	constexpr int durabilityIconSpacing = DurabilityIcon::Spacing;
 
 	// In local coop mode (2+ gamepads), always show corner HUDs for all players
 	// The main panel is hidden and replaced with corner HUDs
@@ -3242,144 +3443,35 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 		bool atBottom = (playerId == 0 || playerId == 1);
 		bool skillsOnLeft = (playerId == 1 || playerId == 3); // For P2/P4, skills go on left side
 
-		// Get player stats
-		int currentHP = player._pHitPoints >> 6;
-		int maxHP = player._pMaxHP >> 6;
-		int currentMana = player._pMana >> 6;
-		int maxMana = player._pMaxMana >> 6;
-		bool hasManaShield = player.pManaShield;
-
 		// Draw panel background (charbg has built-in 5px golden border)
-		DrawCoopPanelBackground(out, { { panelX, panelY }, { panelWidth, panelHeight } });
+		DrawCoopPanelBackground(out, { { panelX, panelY }, { layout.panelWidth, panelHeight } });
 
 		// Content area starts after the border padding + nameTopOffset
 		int contentX = panelX + leftBorderPadding;
 		int currentY = panelY + topBorderPadding + nameTopOffset + 4; // Top row moved 3px down
 
-		// === TOP ROW: Player number + Health/Mana bars + Level ===
-		// Apply nameLeftOffset (1px extra right)
+		// Draw top row (player number, level, attribute icon)
+		DrawPlayerHUDTopRow(out, player, playerId, layout, contentX, currentY, layout.panelContentWidth);
+
+		// Calculate bar position
+		constexpr int nameLeftOffset = 0;
+		constexpr int extraOffset = 1;
 		int nameRowX = contentX + nameLeftOffset;
-		int extraOffset = 1;
-
-		// Draw player number field on the left
-		DrawCoopPanelField(out, { nameRowX, currentY }, playerNumWidth - extraOffset);
-		char playerNumStr[4];
-		snprintf(playerNumStr, sizeof(playerNumStr), "P%zu", playerId + 1);
-		DrawString(out, playerNumStr,
-		    { { nameRowX + 2, currentY + 2 }, { playerNumWidth - 4, nameFieldHeight - 4 } },
-		    { .flags = UiFlags::AlignCenter | UiFlags::VerticalCenter | UiFlags::ColorWhite, .spacing = 0 });
-
-		// Draw level field on the right (same size as P#)
-		int levelX = nameRowX + panelContentWidth - playerNumWidth - nameLeftOffset - extraOffset + 1;
-		DrawCoopPanelField(out, { levelX, currentY }, playerNumWidth);
-		char levelStr[4];
-		snprintf(levelStr, sizeof(levelStr), "%d", player.getCharacterLevel());
-		DrawString(out, levelStr,
-		    { { levelX + 2, currentY + 2 }, { playerNumWidth - 4, nameFieldHeight - 4 } },
-		    { .flags = UiFlags::AlignCenter | UiFlags::VerticalCenter | UiFlags::ColorWhite, .spacing = 0 });
-
-		// Draw attribute points available icon overlapping the level field
-		if (player._pStatPts > 0 && pChrButtons.has_value()) {
-			// Use Strength attribute button icon (frame 1) as a generic indicator
-			// Crop it to a square and center it on the level field
-			const ClxSprite &iconSprite = (*pChrButtons)[1];
-			const int iconWidth = iconSprite.width();
-			const int iconHeight = iconSprite.height();
-			const int squareSize = std::min(iconWidth, iconHeight); // Use smaller dimension for square
-
-			// Draw sprite to temporary surface to crop it
-			OwnedSurface tempSurface(iconWidth, iconHeight);
-			FillRect(tempSurface, 0, 0, iconWidth, iconHeight, 0);
-			RenderClxSprite(tempSurface, iconSprite, { 0, 0 });
-
-			// Crop to square (center horizontally if width > height)
-			const int cropX = (iconWidth - squareSize) / 2 + 1;
-			SDL_Rect cropRect = { cropX, 0, squareSize - 2, squareSize };
-			Point iconPos = {
-				levelX + playerNumWidth / 2 - squareSize / 2 + 1,
-				currentY + nameFieldHeight / 2 - squareSize / 2 + 3
-			};
-			out.BlitFrom(tempSurface, cropRect, iconPos);
-		}
-
-		// Bars: Health, Mana (stacked vertically) - positioned between P# and Level
-		int barX = nameRowX + playerNumWidth + playerNumSpacing - extraOffset;
+		int barX = nameRowX + layout.playerNumWidth + layout.playerNumSpacing - extraOffset;
 		int barY = currentY;
 
-		// Health bar
-		DrawCoopSmallBar(out, { barX, barY }, barsWidth, barHeight, currentHP, maxHP, false, hasManaShield);
-		barY += barHeight + barSpacing;
-
-		// Mana bar
-		DrawCoopSmallBar(out, { barX, barY - 2 }, barsWidth, barHeight, currentMana, maxMana, true, false);
-		barY += barHeight;
-
-		// Experience bar (if enabled) - thin bar below mana bar
-		if (experienceBarEnabled) {
-			barY += xpBarSpacing;
-			// Calculate XP bar fill - match xpbar.cpp logic exactly
-			// DrawCoopSmallBar calculates: fillWidth = (innerWidth * current) / max
-			// So we need to pass values where current/max represents the fill percentage
-			int xpCurrent = 0;
-			// Use a fixed scale for percentage calculation (10000 = 100%)
-			constexpr int xpMax = 10000;
-
-			if (player.isMaxCharacterLevel()) {
-				// Max level: show full bar
-				xpCurrent = xpMax;
-			} else {
-				const uint8_t charLevel = player.getCharacterLevel();
-				const uint32_t prevXp = GetNextExperienceThresholdForLevel(charLevel - 1);
-				const uint32_t nextXp = GetNextExperienceThresholdForLevel(charLevel);
-
-				// Only draw if player has at least the previous level's threshold (same as xpbar.cpp)
-				if (player._pExperience >= prevXp && nextXp > prevXp) {
-					const uint32_t prevXpDelta1 = player._pExperience - prevXp;
-					const uint32_t prevXpDelta = nextXp - prevXp;
-
-					// Ensure we don't exceed the delta (player should have leveled up if they did)
-					const uint32_t clampedDelta1 = std::min(prevXpDelta1, prevXpDelta);
-
-					// Calculate percentage: (clampedDelta1 / prevXpDelta) * xpMax
-					// Multiply first to maintain precision, then divide
-					xpCurrent = static_cast<int>((static_cast<uint64_t>(xpMax) * clampedDelta1) / prevXpDelta);
-
-					// Clamp to valid range
-					if (xpCurrent > xpMax)
-						xpCurrent = xpMax;
-					if (xpCurrent < 0)
-						xpCurrent = 0;
-				}
-				// If player._pExperience < prevXp or prevXpDelta is 0, xpCurrent remains 0 (empty bar)
-			}
-			DrawCoopSmallBar(out, { barX, barY - 3 }, barsWidth, xpBarHeight, xpCurrent, xpMax, false, false, true);
-		}
+		// Draw health, mana, and experience bars
+		DrawPlayerHUDBars(out, player, layout, barX, barY, experienceBarEnabled);
 
 		// Move currentY down to account for the tallest element in the top row (bars)
-		currentY += barsHeight + elementSpacing;
+		currentY += layout.barsHeight + elementSpacing;
 
-		// Skill slots: OUTSIDE panel, 2x2 grid layout
-		// For P2/P4 (right side of screen), skills go on LEFT of panel
-		// Position updates dynamically with panel width
-		int skillX;
-		if (skillsOnLeft) {
-			skillX = panelX - skillColumnSpacing - skillGridWidth - 2;
-		} else {
-			skillX = panelX + panelWidth + skillColumnSpacing;
-		}
-		// Align skill column vertically with panel (top-aligned)
-		int skillY = panelY;
-		// Hide skill labels when either shoulder button is held (shows belt labels instead)
-		// Show labels when both shoulders are released
-		bool hideSkillLabels = false;
-		if (coopPlayerPtr != nullptr) {
-			hideSkillLabels = coopPlayerPtr->leftShoulderHeld || coopPlayerPtr->rightShoulderHeld;
-		}
-		DrawPlayerSkillSlots2x2Small(out, player, { skillX, skillY }, SkillSlotSize, hideSkillLabels);
+		// Draw skill slots
+		DrawPlayerHUDSkills(out, player, coopPlayer, panelX, panelY, layout.panelWidth, layout, skillsOnLeft);
 
 		// === BELT: Centered horizontally within the panel ===
 		// Use CalculateBeltPosition helper to get belt position (handles centering and Y calculation)
-		BeltPosition beltPos = CalculateBeltPosition(panelX, panelY, panelWidth, barsHeight);
+		BeltPosition beltPos = CalculateBeltPosition(panelX, panelY, layout.panelWidth, layout.barsHeight);
 		bool leftShoulderHeld = (coopPlayerPtr != nullptr && coopPlayerPtr->leftShoulderHeld);
 		bool rightShoulderHeld = (coopPlayerPtr != nullptr && coopPlayerPtr->rightShoulderHeld);
 		DrawPlayerBelt(out, player, static_cast<uint8_t>(playerId), { beltPos.baseX, beltPos.baseY }, false, leftShoulderHeld, rightShoulderHeld);
@@ -3388,10 +3480,10 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 		int durabilityY;
 		if (atBottom) {
 			// For bottom players, draw icons ABOVE the panel
-			durabilityY = panelY - durabilityIconSpacing - durabilityIconHeight;
+			durabilityY = panelY - layout.durabilityIconSpacing - layout.durabilityIconHeight;
 		} else {
 			// For top players, draw icons BELOW the panel
-			durabilityY = panelY + panelHeight + durabilityIconSpacing;
+			durabilityY = panelY + panelHeight + layout.durabilityIconSpacing;
 		}
 		DrawPlayerDurabilityIcons(out, player, { panelX + leftBorderPadding, durabilityY }, false);
 	}
@@ -3402,7 +3494,7 @@ void HandleLocalCoopControllerDisconnect(SDL_JoystickID controllerId)
 	if (!g_LocalCoop.enabled)
 		return;
 
-		for (size_t i = 0; i < g_LocalCoop.players.size(); ++i) {
+	for (size_t i = 0; i < g_LocalCoop.players.size(); ++i) {
 		LocalCoopPlayer &coopPlayer = g_LocalCoop.players[i];
 		if (coopPlayer.active && coopPlayer.controllerId == controllerId) {
 			coopPlayer.leftStickX = 0;

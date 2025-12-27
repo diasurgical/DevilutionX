@@ -7,7 +7,7 @@
 
 #include <algorithm>
 
-#include "controls/local_coop.hpp"
+#include "controls/local_coop/local_coop.hpp"
 #include "inv_iterators.hpp"
 #include "options.h"
 #include "player.h"

@@ -10,7 +10,7 @@
 
 #include "controls/control_mode.hpp"
 #include "controls/controller_motion.h"
-#include "controls/local_coop.hpp"
+#include "controls/local_coop/local_coop.hpp"
 #ifndef USE_SDL1
 #include "controls/devices/game_controller.h"
 #endif
