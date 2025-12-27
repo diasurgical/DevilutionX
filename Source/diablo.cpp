@@ -121,6 +121,10 @@
 #include "controls/touch/renderers.h"
 #endif
 
+#ifdef DAPI_SERVER
+#include "dapi/Server.h"
+#endif
+
 #ifdef __vita__
 #include "platform/vita/touch.h"
 #endif
@@ -144,6 +148,10 @@ int PauseMode;
 clicktype sgbMouseDown;
 uint16_t gnTickDelay = 50;
 char gszProductName[64] = "DevilutionX vUnknown";
+
+#ifdef DAPI_SERVER
+DAPI::Server dapiServer;
+#endif
 
 #ifdef _DEBUG
 bool DebugDisableNetworkTimeout = false;
@@ -310,23 +318,6 @@ void LeftMouseCmd(bool bShift)
 		LastPlayerAction = PlayerActionType::Walk;
 		NetSendCmdLoc(MyPlayerId, true, CMD_WALKXY, cursPosition);
 	}
-}
-
-bool TryOpenDungeonWithMouse()
-{
-	if (leveltype != DTYPE_TOWN)
-		return false;
-
-	const Item &holdItem = MyPlayer->HoldItem;
-	if (holdItem.IDidx == IDI_RUNEBOMB && OpensHive(cursPosition))
-		OpenHive();
-	else if (holdItem.IDidx == IDI_MAPOFDOOM && OpensGrave(cursPosition))
-		OpenGrave();
-	else
-		return false;
-
-	NewCursor(CURSOR_HAND);
-	return true;
 }
 
 void LeftMouseDown(uint16_t modState)
@@ -1510,8 +1501,15 @@ void UpdateMonsterLights()
 void GameLogic()
 {
 	if (!ProcessInput()) {
+#ifdef DAPI_SERVER
+		if (gmenu_is_active())
+			dapiServer.update(); // For game menu commands
+#endif
 		return;
 	}
+#ifdef DAPI_SERVER
+	dapiServer.update();
+#endif
 	if (gbProcessPlayers) {
 		gGameLogicStep = GameLogicStep::ProcessPlayers;
 		ProcessPlayers();
@@ -3492,6 +3490,23 @@ bool IsDiabloAlive(bool playSFX)
 void PrintScreen(SDL_Keycode vkey)
 {
 	ReleaseKey(vkey);
+}
+
+bool TryOpenDungeonWithMouse()
+{
+	if (leveltype != DTYPE_TOWN)
+		return false;
+
+	const Item &holdItem = MyPlayer->HoldItem;
+	if (holdItem.IDidx == IDI_RUNEBOMB && OpensHive(cursPosition))
+		OpenHive();
+	else if (holdItem.IDidx == IDI_MAPOFDOOM && OpensGrave(cursPosition))
+		OpenGrave();
+	else
+		return false;
+
+	NewCursor(CURSOR_HAND);
+	return true;
 }
 
 } // namespace devilution
