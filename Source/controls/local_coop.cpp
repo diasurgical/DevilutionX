@@ -102,7 +102,6 @@ OptionalOwnedClxSpriteList LocalCoopBarSprite;       // Grayscale bar sprite (li
 OptionalOwnedClxSpriteList LocalCoopBarSpriteRed;    // Red transformed bar sprite
 OptionalOwnedClxSpriteList LocalCoopBarSpriteBlue;   // Blue transformed bar sprite
 OptionalOwnedClxSpriteList LocalCoopBarSpriteYellow; // Yellow transformed bar sprite
-OptionalOwnedClxSpriteList LocalCoopBarSpriteWhite;  // White transformed bar sprite
 bool LocalCoopHUDAssetsLoaded = false;
 } // namespace
 
@@ -152,19 +151,6 @@ void InitLocalCoopHUDAssets()
 		std::array<uint8_t, 256> blueTrn = createColorTrn(PAL16_BLUE);
 		std::array<uint8_t, 256> yellowTrn = createColorTrn(PAL16_YELLOW);
 
-		std::array<uint8_t, 256> whiteTrn = {};
-		for (int i = 0; i < 256; i++) {
-			whiteTrn[i] = static_cast<uint8_t>(i);
-		}
-		for (int i = 0; i < 16; i++) {
-			int whiteShade = std::min(15, 8 + i / 2);
-			whiteTrn[PAL16_GRAY + i] = PAL16_GRAY + whiteShade;
-		}
-		for (int i = 230; i < 240; i++) {
-			int grayShade = i - 230;
-			int whiteShade = std::min(15, 10 + grayShade);
-			whiteTrn[i] = PAL16_GRAY + whiteShade;
-		}
 		LocalCoopBarSpriteRed = LocalCoopBarSprite->clone();
 		ClxApplyTrans(*LocalCoopBarSpriteRed, redTrn.data());
 
@@ -173,9 +159,6 @@ void InitLocalCoopHUDAssets()
 
 		LocalCoopBarSpriteYellow = LocalCoopBarSprite->clone();
 		ClxApplyTrans(*LocalCoopBarSpriteYellow, yellowTrn.data());
-
-		LocalCoopBarSpriteWhite = LocalCoopBarSprite->clone();
-		ClxApplyTrans(*LocalCoopBarSpriteWhite, whiteTrn.data());
 	}
 
 	LocalCoopHUDAssetsLoaded = true;
@@ -183,7 +166,6 @@ void InitLocalCoopHUDAssets()
 
 void FreeLocalCoopHUDAssets()
 {
-	LocalCoopBarSpriteWhite = std::nullopt;
 	LocalCoopBarSpriteYellow = std::nullopt;
 	LocalCoopBarSpriteBlue = std::nullopt;
 	LocalCoopBarSpriteRed = std::nullopt;
