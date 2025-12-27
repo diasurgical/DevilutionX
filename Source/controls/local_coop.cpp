@@ -11,16 +11,14 @@
 #include <cmath>
 
 #include "control/control.hpp"
-#include "controls/controller_motion.h"
 #include "controls/control_mode.hpp"
+#include "controls/controller_motion.h"
 #include "controls/devices/game_controller.h"
 #include "controls/game_controls.h"
 #include "controls/modifier_hints.h"
 #include "controls/plrctrls.h"
 #include "cursor.h"
 #include "diablo.h"
-#include "gamemenu.h"
-#include "gmenu.h"
 #include "doom.h"
 #include "engine/load_clx.hpp"
 #include "engine/load_pcx.hpp"
@@ -30,6 +28,8 @@
 #include "engine/render/scrollrt.h"
 #include "engine/render/text_render.hpp"
 #include "game_mode.hpp"
+#include "gamemenu.h"
+#include "gmenu.h"
 #include "headless_mode.hpp"
 #include "help.h"
 #include "init.hpp"
@@ -45,7 +45,6 @@
 #include "missiles.h"
 #include "monster.h"
 #include "msg.h"
-#include "spells.h"
 #include "multi.h"
 #include "objects.h"
 #include "options.h"
@@ -58,6 +57,7 @@
 #include "playerdat.hpp"
 #include "qol/stash.h"
 #include "quests.h"
+#include "spells.h"
 #include "stores.h"
 #include "towners.h"
 #include "track.h"
@@ -100,11 +100,11 @@ OptionalOwnedClxSpriteList LocalCoopBoxLeft;
 OptionalOwnedClxSpriteList LocalCoopBoxMiddle;
 OptionalOwnedClxSpriteList LocalCoopBoxRight;
 OptionalOwnedClxSpriteList LocalCoopCharBg;
-OptionalOwnedClxSpriteList LocalCoopBarSprite; // Grayscale bar sprite (list_gry.pcx)
-OptionalOwnedClxSpriteList LocalCoopBarSpriteRed; // Red transformed bar sprite
-OptionalOwnedClxSpriteList LocalCoopBarSpriteBlue; // Blue transformed bar sprite
+OptionalOwnedClxSpriteList LocalCoopBarSprite;       // Grayscale bar sprite (list_gry.pcx)
+OptionalOwnedClxSpriteList LocalCoopBarSpriteRed;    // Red transformed bar sprite
+OptionalOwnedClxSpriteList LocalCoopBarSpriteBlue;   // Blue transformed bar sprite
 OptionalOwnedClxSpriteList LocalCoopBarSpriteYellow; // Yellow transformed bar sprite
-OptionalOwnedClxSpriteList LocalCoopBarSpriteWhite; // White transformed bar sprite
+OptionalOwnedClxSpriteList LocalCoopBarSpriteWhite;  // White transformed bar sprite
 bool LocalCoopHUDAssetsLoaded = false;
 } // namespace
 
@@ -198,7 +198,7 @@ void InitLocalCoopHUDAssets()
 		}
 		// Also map common grayscale indices (230-239) to bright white
 		for (int i = 230; i < 240; i++) {
-			int grayShade = i - 230; // 0-9
+			int grayShade = i - 230;                       // 0-9
 			int whiteShade = std::min(15, 10 + grayShade); // Map to bright white (10-15)
 			whiteTrn[i] = PAL16_GRAY + whiteShade;
 		}
@@ -1055,7 +1055,7 @@ void ProcessLocalCoopDpadInput(uint8_t playerId, const SDL_Event &event)
 		return; // Don't update movement when navigating spell menu
 	}
 
-		// If this player owns panels, use D-pad for panel navigation instead of movement
+	// If this player owns panels, use D-pad for panel navigation instead of movement
 	// Panels: inventory, character sheet, quest log, spellbook
 	if (g_LocalCoop.DoesPlayerOwnPanels(playerId) && (invflag || CharFlag || QuestLogIsOpen || SpellbookFlag)) {
 		// Handle both button down and up events for panel navigation
@@ -1276,7 +1276,7 @@ void ProcessLocalCoopButtonInput(uint8_t playerId, const SDL_Event &event)
 				ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_SPELL_BOOK);
 				return;
 			case SDL_GAMEPAD_BUTTON_EAST: // B button
-				return; // No action for B button in menu navigator
+				return;                   // No action for B button in menu navigator
 			case SDL_GAMEPAD_BUTTON_WEST: // X button
 				// Use ProcessLocalCoopGameAction to properly claim panel ownership
 				ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_QUEST_LOG);
@@ -3379,8 +3379,8 @@ int GetLocalCoopPanelWidth()
 {
 	constexpr int leftBorderPadding = 7;
 	constexpr int rightBorderPadding = 7;
-	constexpr int minBeltWidth = 245; // Minimum width needed for all 8 belt slots
-	constexpr int basePanelContentWidth = minBeltWidth - 7; // Base content width
+	constexpr int minBeltWidth = 245;                                                              // Minimum width needed for all 8 belt slots
+	constexpr int basePanelContentWidth = minBeltWidth - 7;                                        // Base content width
 	constexpr int basePanelWidth = leftBorderPadding + basePanelContentWidth + rightBorderPadding; // Base panel width
 
 	// Dynamic panel width - can be adjusted here or made configurable
@@ -3407,18 +3407,18 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 	const bool experienceBarEnabled = *GetOptions().Gameplay.experienceBar;
 
 	// Panel layout constants - charbg sprite borders
-	constexpr int topBorderPadding = 5;     // Top border in charbg.clx
-	constexpr int leftBorderPadding = 7;    // Left border (1px more to shift elements right)
-	constexpr int rightBorderPadding = 8;   // Right border (content padding, not visual border) - reduced by 1px
-	constexpr int elementSpacing = 1;       // Reduced spacing between elements
-	constexpr int nameTopOffset = 4;        // Reduced offset for top row
-	constexpr int nameLeftOffset = 0;       // No extra offset (elements shifted via leftBorderPadding)
+	constexpr int topBorderPadding = 5;   // Top border in charbg.clx
+	constexpr int leftBorderPadding = 7;  // Left border (1px more to shift elements right)
+	constexpr int rightBorderPadding = 8; // Right border (content padding, not visual border) - reduced by 1px
+	constexpr int elementSpacing = 1;     // Reduced spacing between elements
+	constexpr int nameTopOffset = 4;      // Reduced offset for top row
+	constexpr int nameLeftOffset = 0;     // No extra offset (elements shifted via leftBorderPadding)
 
 	// Health/mana bar dimensions - adjust based on experience bar
 	// If experience bar is enabled, make bars shorter to fit XP bar below
-	const int barHeight = experienceBarEnabled ? 11 : 14; // Reduced from 14px to 11px when XP bar is on
-	constexpr int barSpacing = 1; // Reduced spacing between bars
-	constexpr int xpBarHeight = 7; // Thin experience bar height
+	const int barHeight = experienceBarEnabled ? 11 : 14;  // Reduced from 14px to 11px when XP bar is on
+	constexpr int barSpacing = 1;                          // Reduced spacing between bars
+	constexpr int xpBarHeight = 7;                         // Thin experience bar height
 	const int xpBarSpacing = experienceBarEnabled ? 0 : 1; // No spacing when XP bar is on to keep panel same height
 	// Bars: health, mana (stacked vertically), optionally XP bar below
 	const int barsHeight = experienceBarEnabled
@@ -3545,7 +3545,7 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 
 			// Crop to square (center horizontally if width > height)
 			const int cropX = (iconWidth - squareSize) / 2 + 1;
-			SDL_Rect cropRect = { cropX, 0, squareSize-2, squareSize };
+			SDL_Rect cropRect = { cropX, 0, squareSize - 2, squareSize };
 			Point iconPos = {
 				levelX + playerNumWidth / 2 - squareSize / 2 + 1,
 				currentY + nameFieldHeight / 2 - squareSize / 2 + 3
@@ -3574,7 +3574,7 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 			int xpCurrent = 0;
 			// Use a fixed scale for percentage calculation (10000 = 100%)
 			constexpr int xpMax = 10000;
-			
+
 			if (player.isMaxCharacterLevel()) {
 				// Max level: show full bar
 				xpCurrent = xpMax;
@@ -3582,19 +3582,19 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 				const uint8_t charLevel = player.getCharacterLevel();
 				const uint32_t prevXp = GetNextExperienceThresholdForLevel(charLevel - 1);
 				const uint32_t nextXp = GetNextExperienceThresholdForLevel(charLevel);
-				
+
 				// Only draw if player has at least the previous level's threshold (same as xpbar.cpp)
 				if (player._pExperience >= prevXp && nextXp > prevXp) {
 					const uint32_t prevXpDelta1 = player._pExperience - prevXp;
 					const uint32_t prevXpDelta = nextXp - prevXp;
-					
+
 					// Ensure we don't exceed the delta (player should have leveled up if they did)
 					const uint32_t clampedDelta1 = std::min(prevXpDelta1, prevXpDelta);
-					
+
 					// Calculate percentage: (clampedDelta1 / prevXpDelta) * xpMax
 					// Multiply first to maintain precision, then divide
 					xpCurrent = static_cast<int>((static_cast<uint64_t>(xpMax) * clampedDelta1) / prevXpDelta);
-					
+
 					// Clamp to valid range
 					if (xpCurrent > xpMax)
 						xpCurrent = xpMax;

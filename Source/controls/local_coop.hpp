@@ -326,7 +326,6 @@ bool IsPlayerShoulderHeld(uint8_t playerId, bool isLeft);
  */
 int GetPlayerBeltSlotFromButton(uint8_t playerId, ControllerButton button);
 
-
 #ifndef USE_SDL1
 /**
  * @brief Get the controller ID from an SDL event.

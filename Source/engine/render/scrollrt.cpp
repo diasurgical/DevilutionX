@@ -2022,7 +2022,6 @@ void DrawAndBlit()
 			DrawPartyMemberInfoPanel(out);
 	}
 
-
 #ifndef USE_SDL1
 	// Draw local co-op character selection UI
 	DrawLocalCoopCharacterSelect(out);
