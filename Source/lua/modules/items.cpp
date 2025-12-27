@@ -485,6 +485,17 @@ sol::table LuaItemModule(sol::state_view &lua)
 	LuaSetDocFn(table, "addItemDataFromTsv", "(path: string, baseMappingId: number)", AddItemDataFromTsv);
 	LuaSetDocFn(table, "addUniqueItemDataFromTsv", "(path: string, baseMappingId: number)", AddUniqueItemDataFromTsv);
 
+	// Expose enums through the module table
+	table["ItemIndex"] = lua["ItemIndex"];
+	table["ItemType"] = lua["ItemType"];
+	table["ItemClass"] = lua["ItemClass"];
+	table["ItemEquipType"] = lua["ItemEquipType"];
+	table["ItemMiscID"] = lua["ItemMiscID"];
+	table["SpellID"] = lua["SpellID"];
+	table["ItemEffectType"] = lua["ItemEffectType"];
+	table["ItemSpecialEffect"] = lua["ItemSpecialEffect"];
+	table["ItemSpecialEffectHf"] = lua["ItemSpecialEffectHf"];
+
 	return table;
 }
 
