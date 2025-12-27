@@ -10,6 +10,7 @@
 
 #ifndef USE_SDL1
 #include "controls/devices/game_controller.h"
+#include "controls/local_coop/local_coop.hpp"
 #endif
 #include "controls/devices/joystick.h"
 #include "controls/devices/kbcontroller.h"
@@ -77,14 +78,30 @@ StaticVector<ControllerButtonEvent, 4> ToControllerButtonEvents(const SDL_Event 
 bool IsControllerButtonPressed(ControllerButton button)
 {
 #ifndef USE_SDL1
-	if (GameController::IsPressedOnAnyController(button))
-		return true;
+	SDL_JoystickID which;
+	if (GameController::IsPressedOnAnyController(button, &which)) {
+		// When local co-op is enabled, only exclude controllers assigned to coop players (players 2-4)
+		// Player 1's controller should still work normally
+		// IsLocalCoopControllerId returns true only for coop player controllers, not Player 1's
+		if (!IsLocalCoopControllerId(which))
+			return true;
+	}
 #endif
 #if HAS_KBCTRL == 1
 	if (!demo::IsRunning() && IsKbCtrlButtonPressed(button))
 		return true;
 #endif
-	return Joystick::IsPressedOnAnyJoystick(button);
+	SDL_JoystickID joystickWhich;
+	if (Joystick::IsPressedOnAnyJoystick(button, &joystickWhich)) {
+#ifndef USE_SDL1
+		// When local co-op is enabled, only exclude controllers assigned to coop players
+		if (!IsLocalCoopControllerId(joystickWhich))
+			return true;
+#else
+		return true;
+#endif
+	}
+	return false;
 }
 
 bool IsControllerButtonComboPressed(ControllerButtonCombo combo)
@@ -97,12 +114,18 @@ bool HandleControllerAddedOrRemovedEvent(const SDL_Event &event)
 {
 #ifndef USE_SDL1
 	switch (event.type) {
-	case SDL_EVENT_GAMEPAD_ADDED:
-		GameController::Add(SDLC_EventGamepadDevice(event).which);
+	case SDL_EVENT_GAMEPAD_ADDED: {
+		SDL_JoystickID controllerId = SDLC_EventGamepadDevice(event).which;
+		GameController::Add(controllerId);
+		HandleLocalCoopControllerConnect(controllerId);
 		break;
-	case SDL_EVENT_GAMEPAD_REMOVED:
-		GameController::Remove(SDLC_EventGamepadDevice(event).which);
+	}
+	case SDL_EVENT_GAMEPAD_REMOVED: {
+		SDL_JoystickID controllerId = SDLC_EventGamepadDevice(event).which;
+		GameController::Remove(controllerId);
+		HandleLocalCoopControllerDisconnect(controllerId);
 		break;
+	}
 	case SDL_EVENT_JOYSTICK_ADDED:
 		Joystick::Add(event.jdevice.which);
 		break;

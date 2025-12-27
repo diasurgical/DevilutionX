@@ -7,6 +7,7 @@
 #include "control/control.hpp"
 #include "controls/controller_motion.h"
 #include "controls/game_controls.h"
+#include "controls/local_coop/local_coop.hpp"
 #include "controls/plrctrls.h"
 #include "engine/clx_sprite.hpp"
 #include "engine/load_clx.hpp"
@@ -139,9 +140,9 @@ void DrawSpellsCircleMenuHint(const Surface &out, const Point &origin)
 	}
 }
 
-void DrawGamepadMenuNavigator(const Surface &out)
+void DrawGamepadMenuNavigator(const Surface &out, bool forceDraw)
 {
-	if (!PadMenuNavigatorActive || SimulatingMouseWithPadmapper)
+	if ((!PadMenuNavigatorActive && !forceDraw) || SimulatingMouseWithPadmapper)
 		return;
 	static const CircleMenuHint DPad(/*top=*/HintIcon::IconMenu, /*right=*/HintIcon::IconInv, /*bottom=*/HintIcon::IconMap, /*left=*/HintIcon::IconChar);
 	static const CircleMenuHint Buttons(/*top=*/HintIcon::IconNull, /*right=*/HintIcon::IconNull, /*bottom=*/HintIcon::IconSpells, /*left=*/HintIcon::IconQuests);
@@ -177,8 +178,37 @@ void FreeModifierHints()
 
 void DrawControllerModifierHints(const Surface &out)
 {
-	DrawGamepadMenuNavigator(out);
-	DrawGamepadHotspellMenu(out);
+	// Check if any local coop player has PadMenuNavigator active
+	bool anyPlayerHasMenuNavigator = false;
+	if (IsLocalCoopEnabled()) {
+		for (size_t i = 0; i < MaxLocalPlayers; ++i) {
+			const LocalCoopPlayer *player = g_LocalCoop.GetPlayer(static_cast<uint8_t>(i));
+			if (player != nullptr && player->active && player->padMenuNavigatorActive) {
+				anyPlayerHasMenuNavigator = true;
+				break;
+			}
+		}
+	}
+
+	// Draw menu navigator if active (either global or any local coop player)
+	if (PadMenuNavigatorActive || anyPlayerHasMenuNavigator) {
+		DrawGamepadMenuNavigator(out, anyPlayerHasMenuNavigator);
+	}
+
+	// Draw hotspell menu if active (only global, not per-player)
+	if (PadHotspellMenuActive) {
+		DrawGamepadHotspellMenu(out);
+	}
+}
+
+OptionalOwnedClxSpriteList &GetHintBoxSprite()
+{
+	return hintBox;
+}
+
+OptionalOwnedClxSpriteList &GetHintBoxBackgroundSprite()
+{
+	return hintBoxBackground;
 }
 
 } // namespace devilution
