@@ -1614,12 +1614,12 @@ size_t OnPutItem(const TCmdPItem &message, Player &player)
 				if (isSelf)
 					pfile_update(true);
 			}
-		} else {
-			PutItemRecord(dwSeed, wCI, wIndx);
-			DeltaPutItem(message, position, player);
-			if (isSelf)
-				pfile_update(true);
+			return sizeof(message);
 		}
+		PutItemRecord(dwSeed, wCI, wIndx);
+		DeltaPutItem(message, position, player);
+		if (isSelf)
+			pfile_update(true);
 	}
 
 	return sizeof(message);

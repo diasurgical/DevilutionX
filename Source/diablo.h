@@ -124,4 +124,6 @@ extern GameLogicStep gGameLogicStep;
 void setOnInitialized(void (*)());
 #endif
 
+bool TryDropItem(bool useCursorPosition = false);
+
 } // namespace devilution
