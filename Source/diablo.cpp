@@ -3510,4 +3510,3 @@ void PrintScreen(SDL_Keycode vkey)
 }
 
 } // namespace devilution
-

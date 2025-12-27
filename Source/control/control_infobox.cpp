@@ -169,34 +169,34 @@ Rectangle GetFloatingInfoRect(const int lineHeight, const int textSpacing)
 			if (i != itemIdx)
 				continue;
 
-		const Item &item = player.SpdList[i];
-		Point itemPosition = InvRect[i + SLOTXY_BELT_FIRST].position;
+			const Item &item = player.SpdList[i];
+			Point itemPosition = InvRect[i + SLOTXY_BELT_FIRST].position;
 
-		itemPosition.x += GetInventorySize(item).width * InventorySlotSizeInPixels.width / 2; // Align position to center of the item graphic
-		itemPosition.x -= maxW / 2;                                                           // Align position to the center of the floating item info box
+			itemPosition.x += GetInventorySize(item).width * InventorySlotSizeInPixels.width / 2; // Align position to center of the item graphic
+			itemPosition.x -= maxW / 2;                                                           // Align position to the center of the floating item info box
 
 #ifndef USE_SDL1
-		// In local co-op mode, use the actual belt slot position from the local co-op panel
-		if (isLocalCoopBeltItem) {
-			// Get the position for this belt slot in the local co-op panel
-			// GetLocalCoopBeltSlotPosition returns the CENTER of the slot (for cursor positioning)
-			std::optional<Point> localCoopBeltPos = GetLocalCoopBeltSlotPosition(beltOwnerPlayerId, SLOTXY_BELT_FIRST + itemIdx);
-			if (localCoopBeltPos.has_value()) {
-				// Convert from center to top (matching inventory behavior in InvRect.position)
-				// Center is at slotY + INV_SLOT_SIZE_PX/2, so top is at center - INV_SLOT_SIZE_PX/2
-				Point screen = localCoopBeltPos.value();
-				screen.y -= INV_SLOT_SIZE_PX / 2; // Convert from center to top of slot
-				screen.x -= maxW / 2;              // Align to center of info box horizontally
-				// Now screen.y is at the top of the slot, matching InvRect[].position behavior
-				return { { screen.x, screen.y }, { maxW, totalH } };
+			// In local co-op mode, use the actual belt slot position from the local co-op panel
+			if (isLocalCoopBeltItem) {
+				// Get the position for this belt slot in the local co-op panel
+				// GetLocalCoopBeltSlotPosition returns the CENTER of the slot (for cursor positioning)
+				std::optional<Point> localCoopBeltPos = GetLocalCoopBeltSlotPosition(beltOwnerPlayerId, SLOTXY_BELT_FIRST + itemIdx);
+				if (localCoopBeltPos.has_value()) {
+					// Convert from center to top (matching inventory behavior in InvRect.position)
+					// Center is at slotY + INV_SLOT_SIZE_PX/2, so top is at center - INV_SLOT_SIZE_PX/2
+					Point screen = localCoopBeltPos.value();
+					screen.y -= INV_SLOT_SIZE_PX / 2; // Convert from center to top of slot
+					screen.x -= maxW / 2;
+					// Now screen.y is at the top of the slot, matching InvRect[].position behavior
+					return { { screen.x, screen.y }, { maxW, totalH } };
+				}
 			}
-		}
 #endif
 
-		const Point screen = GetMainPanel().position + Displacement { itemPosition.x, itemPosition.y };
+			const Point screen = GetMainPanel().position + Displacement { itemPosition.x, itemPosition.y };
 
-		return { { screen.x, screen.y }, { maxW, totalH } };
-	}
+			return { { screen.x, screen.y }, { maxW, totalH } };
+		}
 	}
 
 	// 4) Stash (Rect position)

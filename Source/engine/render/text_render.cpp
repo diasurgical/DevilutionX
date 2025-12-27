@@ -562,8 +562,8 @@ uint32_t DoDrawString(const Surface &out, std::string_view text, Rectangle rect,
 	};
 
 	for (; !remaining.empty() && remaining[0] != '\0'
-	    && (next = DecodeFirstUtf8CodePoint(remaining, &cpLen)) != Utf8DecodeError;
-	    remaining.remove_prefix(cpLen)) {
+	     && (next = DecodeFirstUtf8CodePoint(remaining, &cpLen)) != Utf8DecodeError;
+	     remaining.remove_prefix(cpLen)) {
 		if (next == ZWSP)
 			continue;
 
