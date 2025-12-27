@@ -45,6 +45,7 @@
 #include "missiles.h"
 #include "monster.h"
 #include "msg.h"
+#include "spells.h"
 #include "multi.h"
 #include "objects.h"
 #include "options.h"
@@ -2519,6 +2520,11 @@ void ConfirmLocalCoopCharacter(uint8_t playerId)
 	coopPlayer->initialized = true;
 
 	Log("Local co-op: Player {} spawned at ({}, {})", playerId + 1, spawnPos.x, spawnPos.y);
+
+	// Spawn a light blue resurrect beam at the spawn position to indicate player join
+	if (player.isOnActiveLevel()) {
+		SpawnResurrectBeam(Players[0], player);
+	}
 
 	// Reload available heroes for remaining players who haven't selected yet
 	ReloadHeroesForOtherPlayers(playerId);
