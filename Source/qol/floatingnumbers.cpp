@@ -28,7 +28,7 @@ struct FloatingNumber {
 	uint32_t time;
 	uint32_t lastMerge;
 	UiFlags style;
-	DamageType type;
+	FloatingType type;
 	int value;
 	size_t index;
 	bool reverseDirection;
@@ -79,25 +79,29 @@ void UpdateFloatingData(FloatingNumber &num)
 	num.style |= GetFontSizeByDamage(num.value);
 
 	switch (num.type) {
-	case DamageType::Physical:
+	case FloatingType::Physical:
 		num.style |= UiFlags::ColorGold;
 		break;
-	case DamageType::Fire:
+	case FloatingType::Fire:
 		num.style |= UiFlags::ColorUiSilver; // UiSilver appears dark red ingame
 		break;
-	case DamageType::Lightning:
+	case FloatingType::Lightning:
 		num.style |= UiFlags::ColorBlue;
 		break;
-	case DamageType::Magic:
+	case FloatingType::Magic:
 		num.style |= UiFlags::ColorOrange;
 		break;
-	case DamageType::Acid:
+	case FloatingType::Acid:
 		num.style |= UiFlags::ColorYellow;
+		break;
+	case FloatingType::Exp:
+		num.style |= UiFlags::ColorWhite;
+		num.text = StrCat(num.text, " XP");
 		break;
 	}
 }
 
-void AddFloatingNumber(Point pos, Displacement offset, DamageType type, int value, size_t index, bool damageToPlayer)
+void AddFloatingNumber(Point pos, Displacement offset, FloatingType type, int value, size_t index, bool damageToPlayer)
 {
 	// 45 deg angles to avoid jitter caused by px alignment
 	const Displacement goodAngles[] = {
@@ -136,7 +140,7 @@ void AddFloatingNumber(Point pos, Displacement offset, DamageType type, int valu
 
 } // namespace
 
-void AddFloatingNumber(DamageType damageType, const Monster &monster, int damage)
+void AddFloatingNumber(FloatingType type, const Monster &monster, int value)
 {
 	if (*GetOptions().Gameplay.enableFloatingNumbers == FloatingNumbers::Off)
 		return;
@@ -156,10 +160,10 @@ void AddFloatingNumber(DamageType damageType, const Monster &monster, int damage
 		offset.deltaY -= sprite.height() / 2;
 	}
 
-	AddFloatingNumber(monster.position.tile, offset, damageType, damage, monster.getId(), false);
+	AddFloatingNumber(monster.position.tile, offset, type, value, monster.getId(), false);
 }
 
-void AddFloatingNumber(DamageType damageType, const Player &player, int damage)
+void AddFloatingNumber(FloatingType type, const Player &player, int value)
 {
 	if (*GetOptions().Gameplay.enableFloatingNumbers == FloatingNumbers::Off)
 		return;
@@ -175,7 +179,17 @@ void AddFloatingNumber(DamageType damageType, const Player &player, int damage)
 		}
 	}
 
-	AddFloatingNumber(player.position.tile, offset, damageType, damage, player.getId(), true);
+	AddFloatingNumber(player.position.tile, offset, type, value, player.getId(), true);
+}
+
+void AddFloatingNumber(DamageType damageType, const Monster &monster, int damage)
+{
+	AddFloatingNumber(static_cast<FloatingType>(damageType), monster, damage);
+}
+
+void AddFloatingNumber(DamageType damageType, const Player &player, int damage)
+{
+	AddFloatingNumber(static_cast<FloatingType>(damageType), player, damage);
 }
 
 void DrawFloatingNumbers(const Surface &out, Point viewPosition, Displacement offset)
