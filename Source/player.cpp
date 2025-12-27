@@ -2665,10 +2665,15 @@ void StartPlrHit(Player &player, int dam, bool forcehit)
 
 	NewPlrAnim(player, player_graphic::Hit, pd, AnimationDistributionFlags::None, skippedAnimationFrames);
 
+	WorldTilePosition pos = player.position.tile;
+	if (player.isOnArenaLevel() && player.isWalking() && IsAnyOf(player._pdir, Direction::SouthWest, Direction::South, Direction::SouthEast) && PosOkPlayer(player, pos + pd)) {
+		pos += pd;
+		player.position.tile = pos;
+	}
 	player._pmode = PM_GOTHIT;
 	FixPlayerLocation(player, pd);
 	FixPlrWalkTags(player);
-	player.occupyTile(player.position.tile, false);
+	player.occupyTile(pos, false);
 	SetPlayerOld(player);
 }
 
