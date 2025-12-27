@@ -724,8 +724,10 @@ void LoadHeroInfosForLocalCoop(std::vector<_uiheroinfo> &heroList, const std::ve
 	Point savedPositionFuture = Players[0].position.future;
 	Point savedPositionLast = Players[0].position.last;
 	Point savedPositionOld = Players[0].position.old;
+	Point savedPositionTemp = Players[0].position.temp;
 	int savedPlrLevel = Players[0].plrlevel;
 	bool savedPlrIsOnSetLevel = Players[0].plrIsOnSetLevel;
+	bool savedIsWalking = Players[0].isWalking();
 
 	// Save player 1's runtime state that should be preserved (experience, level, stats, HP, mana, etc.)
 	uint32_t savedExperience = Players[0]._pExperience;
@@ -742,7 +744,7 @@ void LoadHeroInfosForLocalCoop(std::vector<_uiheroinfo> &heroList, const std::ve
 
 	// Save player 1's movement and animation state
 	PLR_MODE savedPmode = Players[0]._pmode;
-	Direction savedPdir = Players[0]._pdir;
+	Direction savedTempDirection = Players[0].tempDirection;
 	action_id savedDestAction = Players[0].destAction;
 	int savedDestParam1 = Players[0].destParam1;
 	int savedDestParam2 = Players[0].destParam2;
@@ -802,9 +804,13 @@ void LoadHeroInfosForLocalCoop(std::vector<_uiheroinfo> &heroList, const std::ve
 			}
 		}
 
+		// Validate future position - if player was walking, ensure it's valid
 		Point validFuture = savedPositionFuture;
-		if (!InDungeonBounds(validFuture)) {
+		bool needToStopWalking = false;
+		if (!InDungeonBounds(validFuture) || (savedIsWalking && !PosOkPlayer(Players[0], validFuture))) {
+			// If player was walking but future position is invalid, stop walking
 			validFuture = validTile;
+			needToStopWalking = true;
 		}
 
 		Point validLast = savedPositionLast;
@@ -817,6 +823,12 @@ void LoadHeroInfosForLocalCoop(std::vector<_uiheroinfo> &heroList, const std::ve
 			validOld = validTile;
 		}
 
+		// Validate temp position (used during walking)
+		Point validTemp = savedPositionTemp;
+		if (!InDungeonBounds(validTemp)) {
+			validTemp = validTile;
+		}
+
 		// Clear old walk tags before setting new position
 		if (Players[0].isOnActiveLevel()) {
 			FixPlrWalkTags(Players[0]);
@@ -826,6 +838,17 @@ void LoadHeroInfosForLocalCoop(std::vector<_uiheroinfo> &heroList, const std::ve
 		Players[0].position.future = validFuture;
 		Players[0].position.last = validLast;
 		Players[0].position.old = validOld;
+		Players[0].position.temp = validTemp;
+
+		// If we had to fix the future position, stop walking to prevent crashes
+		if (needToStopWalking && savedIsWalking) {
+			Players[0].walkpath[0] = WALK_NONE;
+			Players[0].destAction = ACTION_NONE;
+			// Ensure pmode is set to standing
+			if (Players[0]._pmode == PM_WALK_NORTHWARDS || Players[0]._pmode == PM_WALK_SOUTHWARDS || Players[0]._pmode == PM_WALK_SIDEWAYS) {
+				Players[0]._pmode = PM_STAND;
+			}
+		}
 
 		// Update dPlayer array to reflect the new position
 		if (Players[0].isOnActiveLevel() && Players[0].plractive) {
@@ -853,11 +876,11 @@ void LoadHeroInfosForLocalCoop(std::vector<_uiheroinfo> &heroList, const std::ve
 		} else {
 			Players[0]._pmode = PM_STAND;
 		}
-		// Validate direction
-		if (savedPdir <= Direction::SouthWest) {
-			Players[0]._pdir = savedPdir;
+		// Restore tempDirection (used during walking)
+		if (savedTempDirection <= Direction::SouthWest) {
+			Players[0].tempDirection = savedTempDirection;
 		} else {
-			Players[0]._pdir = Direction::South;
+			Players[0].tempDirection = Direction::South;
 		}
 		Players[0].destAction = savedDestAction;
 		Players[0].destParam1 = savedDestParam1;
