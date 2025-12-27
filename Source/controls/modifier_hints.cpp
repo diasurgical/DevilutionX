@@ -7,7 +7,7 @@
 #include "control/control.hpp"
 #include "controls/controller_motion.h"
 #include "controls/game_controls.h"
-#include "controls/local_coop.hpp"
+#include "controls/local_coop/local_coop.hpp"
 #include "controls/plrctrls.h"
 #include "engine/clx_sprite.hpp"
 #include "engine/load_clx.hpp"

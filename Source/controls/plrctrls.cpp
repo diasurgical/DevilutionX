@@ -25,7 +25,7 @@
 #endif
 #include "controls/control_mode.hpp"
 #include "controls/game_controls.h"
-#include "controls/local_coop.hpp"
+#include "controls/local_coop/local_coop.hpp"
 #include "controls/touch/gamepad.h"
 #include "cursor.h"
 #include "doom.h"

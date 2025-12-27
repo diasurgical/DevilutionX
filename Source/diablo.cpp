@@ -36,7 +36,7 @@
 #include "DiabloUI/diabloui.h"
 #include "controls/control_mode.hpp"
 #include "controls/keymapper.hpp"
-#include "controls/local_coop.hpp"
+#include "controls/local_coop/local_coop.hpp"
 #include "controls/plrctrls.h"
 #include "controls/remap_keyboard.h"
 #include "diablo.h"

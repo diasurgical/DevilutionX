@@ -8,7 +8,7 @@
 #endif
 
 #include "control/control.hpp"
-#include "controls/local_coop.hpp"
+#include "controls/local_coop/local_coop.hpp"
 #include "controls/plrctrls.h"
 #include "cursor.h"
 #include "diablo.h"

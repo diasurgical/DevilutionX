@@ -14,7 +14,7 @@
 #include <expected.hpp>
 
 #include "automap.h"
-#include "controls/local_coop.hpp"
+#include "controls/local_coop/local_coop.hpp"
 #include "engine/displacement.hpp"
 #include "engine/lighting_defs.hpp"
 #include "engine/load_file.hpp"
