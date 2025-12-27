@@ -4,6 +4,7 @@
  * Implementation of local co-op multiplayer functionality.
  */
 #include "controls/local_coop.hpp"
+#include "controls/local_coop_constants.hpp"
 
 #ifndef USE_SDL1
 
@@ -225,8 +226,7 @@ private:
 	Player *savedInspectPlayer_;
 };
 
-/// Hold duration in milliseconds to open quick spell menu
-constexpr uint32_t SkillButtonHoldTime = 500;
+// SkillButtonHoldTime moved to LocalCoopInput namespace in local_coop_constants.hpp
 
 /**
  * @brief Get a valid LocalCoopPlayer pointer for the given player ID.
@@ -269,8 +269,7 @@ const Direction FaceDir[3][3] = {
 	{ Direction::South, Direction::SouthWest, Direction::SouthEast }, // AxisDirectionY_DOWN
 };
 
-/// Button to belt slot offset mapping (when shoulder held): A=0, B=1, X=2, Y=3
-constexpr int ButtonToBeltOffset[] = { 0, 1, 2, 3 }; // South, East, West, North
+// ButtonToBeltOffset moved to LocalCoopInput namespace in local_coop_constants.hpp
 
 /**
  * @brief Unified player validation result structure.
@@ -318,15 +317,16 @@ ValidatedPlayer GetValidatedPlayer(uint8_t playerId, bool requireInitialized = t
  */
 int GetSkillSlotFromControllerButton(ControllerButton button)
 {
+	using namespace LocalCoopInput;
 	switch (button) {
 	case ControllerButton_BUTTON_A:
-		return 2;
+		return ButtonToSkillSlot[0]; // A -> slot 2
 	case ControllerButton_BUTTON_B:
-		return 3;
+		return ButtonToSkillSlot[1]; // B -> slot 3
 	case ControllerButton_BUTTON_X:
-		return 0;
+		return ButtonToSkillSlot[2]; // X -> slot 0
 	case ControllerButton_BUTTON_Y:
-		return 1;
+		return ButtonToSkillSlot[3]; // Y -> slot 1
 	default:
 		return -1;
 	}
@@ -339,15 +339,16 @@ int GetSkillSlotFromControllerButton(ControllerButton button)
  */
 int GetSkillSlotFromSDLButton(uint8_t button)
 {
+	using namespace LocalCoopInput;
 	switch (button) {
 	case SDL_GAMEPAD_BUTTON_SOUTH:
-		return 2;
+		return ButtonToSkillSlot[0]; // A (South) -> slot 2
 	case SDL_GAMEPAD_BUTTON_EAST:
-		return 3;
+		return ButtonToSkillSlot[1]; // B (East) -> slot 3
 	case SDL_GAMEPAD_BUTTON_WEST:
-		return 0;
+		return ButtonToSkillSlot[2]; // X (West) -> slot 0
 	case SDL_GAMEPAD_BUTTON_NORTH:
-		return 1;
+		return ButtonToSkillSlot[3]; // Y (North) -> slot 1
 	default:
 		return -1;
 	}
@@ -372,10 +373,11 @@ struct PanelPosition {
  */
 PanelPosition GetPlayerPanelPosition(uint8_t playerId, int screenWidth, int screenHeight, int panelWidth)
 {
+	using namespace LocalCoopLayout;
 	PanelPosition pos = { 0, 0, false };
 
-	constexpr int panelHeight = 87;
-	constexpr int panelEdgePadding = 0;
+	constexpr int panelHeight = Panel::Height;
+	constexpr int panelEdgePadding = Panel::EdgePadding;
 
 	switch (playerId) {
 	case 0:
@@ -425,13 +427,14 @@ struct BeltPosition {
  */
 BeltPosition CalculateBeltPosition(int panelX, int panelY, int panelWidth, int barsHeight = 29)
 {
-	constexpr int topBorderPadding = 5;
-	constexpr int leftBorderPadding = 7;
-	constexpr int rightBorderPadding = 8;
-	constexpr int nameTopOffset = 4;
-	constexpr int elementSpacing = 1;
-	constexpr int barsExtraDownOffset = 1;
-	constexpr int beltBorderWidth = 237;
+	using namespace LocalCoopLayout;
+	constexpr int topBorderPadding = Panel::TopBorderPadding;
+	constexpr int leftBorderPadding = Panel::LeftBorderPadding;
+	constexpr int rightBorderPadding = Panel::RightBorderPadding;
+	constexpr int nameTopOffset = PanelContent::NameTopOffset;
+	constexpr int elementSpacing = PanelContent::ElementSpacing;
+	constexpr int barsExtraDownOffset = PanelContent::BarsExtraDownOffset;
+	constexpr int beltBorderWidth = Belt::BorderWidth;
 
 	const int contentX = panelX + leftBorderPadding;
 	const int panelContentWidth = panelWidth - leftBorderPadding - rightBorderPadding;
@@ -441,7 +444,7 @@ BeltPosition CalculateBeltPosition(int panelX, int panelY, int panelWidth, int b
 	BeltPosition pos;
 	pos.baseX = contentX + (panelContentWidth - beltBorderWidth) / 2;
 	pos.baseY = middleY - 3;
-	pos.slotSpacing = 29;
+	pos.slotSpacing = Belt::SlotSpacingPx;
 
 	return pos;
 }
@@ -456,6 +459,7 @@ BeltPosition CalculateBeltPosition(int panelX, int panelY, int panelWidth, int b
  */
 int GetBeltSlotFromButton(int buttonIndex, bool leftShoulderHeld, bool rightShoulderHeld)
 {
+	using namespace LocalCoopInput;
 	if (!leftShoulderHeld && !rightShoulderHeld)
 		return -1;
 
@@ -1050,10 +1054,11 @@ void ProcessLocalCoopButtonInput(uint8_t playerId, const SDL_Event &event)
 		if (!isButtonDown)
 			return;
 
+		using namespace LocalCoopInput;
 		uint32_t now = SDL_GetTicks();
 
 		if (button == SDL_GAMEPAD_BUTTON_DPAD_LEFT) {
-			if (now - coopPlayer->lastDpadPress > LocalCoopState::DpadRepeatDelay) {
+			if (now - coopPlayer->lastDpadPress > DpadRepeatDelay) {
 				if (!coopPlayer->availableHeroes.empty()) {
 					coopPlayer->selectedHeroIndex--;
 					if (coopPlayer->selectedHeroIndex < 0) {
@@ -1064,7 +1069,7 @@ void ProcessLocalCoopButtonInput(uint8_t playerId, const SDL_Event &event)
 				coopPlayer->lastDpadPress = now;
 			}
 		} else if (button == SDL_GAMEPAD_BUTTON_DPAD_RIGHT) {
-			if (now - coopPlayer->lastDpadPress > LocalCoopState::DpadRepeatDelay) {
+			if (now - coopPlayer->lastDpadPress > DpadRepeatDelay) {
 				if (!coopPlayer->availableHeroes.empty()) {
 					coopPlayer->selectedHeroIndex++;
 					if (coopPlayer->selectedHeroIndex >= static_cast<int>(coopPlayer->availableHeroes.size())) {
@@ -1345,7 +1350,7 @@ void ProcessLocalCoopAxisMotion(uint8_t playerId, const SDL_Event &event)
 	const auto &axis = SDLC_EventGamepadAxis(event);
 
 	// Trigger threshold (same as player 1 - values are in range -32767 to 32767)
-	constexpr int16_t TriggerThreshold = 8192;
+	using namespace LocalCoopInput;
 
 	switch (axis.axis) {
 	case SDL_GAMEPAD_AXIS_LEFTX:
@@ -1377,10 +1382,10 @@ void ProcessLocalCoopAxisMotion(uint8_t playerId, const SDL_Event &event)
 	}
 
 	// Apply deadzone scaling (values are in range -32767 to 32767)
+	using namespace LocalCoopInput;
 	coopPlayer->leftStickX = coopPlayer->leftStickXUnscaled;
 	coopPlayer->leftStickY = coopPlayer->leftStickYUnscaled;
-	constexpr float deadzone = 0.25f;
-	ScaleJoystickAxes(&coopPlayer->leftStickX, &coopPlayer->leftStickY, deadzone);
+	ScaleJoystickAxes(&coopPlayer->leftStickX, &coopPlayer->leftStickY, JoystickDeadzone);
 }
 
 /**
@@ -1501,7 +1506,8 @@ AxisDirection LocalCoopPlayer::GetMoveDirection() const
 	dir.x = AxisDirectionX_NONE;
 	dir.y = AxisDirectionY_NONE;
 
-	const float threshold = 0.5f;
+		using namespace LocalCoopInput;
+		const float threshold = MovementStickThreshold;
 
 	// Check left stick first
 	if (leftStickX <= -threshold)
@@ -2295,13 +2301,14 @@ void ConfirmLocalCoopCharacter(uint8_t playerId)
 
 void DrawLocalCoopCharacterSelect(const Surface &out)
 {
+	using namespace LocalCoopLayout;
 	// Only show character select in multiplayer with local coop enabled
 	if (!gbIsMultiplayer || !g_LocalCoop.enabled)
 		return;
 
-	constexpr int boxWidth = 220;
-	constexpr int boxHeight = 55;
-	constexpr int padding = 10;
+	constexpr int boxWidth = CharacterSelect::BoxWidth;
+	constexpr int boxHeight = CharacterSelect::BoxHeight;
+	constexpr int padding = CharacterSelect::Padding;
 
 	// Start from index 1 (Player 2) since Player 1 never has character select
 	for (size_t i = 1; i < g_LocalCoop.players.size(); ++i) {
@@ -2369,33 +2376,8 @@ void DrawLocalCoopCharacterSelect(const Surface &out)
 
 namespace {
 
-// Local coop HUD panel dimensions
-constexpr int CoopPanelPadding = 4; // Padding inside the panel
-constexpr int CoopPanelBorder = 2;  // Golden border width
-
-// Health/Mana bar dimensions (using healthbox.clx style)
-constexpr int HealthBoxWidth = 234; // Width of healthbox sprite
-constexpr int HealthBoxHeight = 12; // Height of healthbox sprite
-constexpr int HealthBarBorder = 3;  // Border inside health box
-constexpr int HealthBarWidth = HealthBoxWidth - (HealthBarBorder * 2) - 2;
-constexpr int HealthBarHeight = HealthBoxHeight - (HealthBarBorder * 2) - 2;
-
-constexpr int BeltSlotSize = 28; // Same as INV_SLOT_SIZE_PX
-constexpr int BeltSlotSpacing = 1;
-constexpr int BeltSlotsPerRow = 8; // Display belt as 8x1 grid (all slots side by side)
-
-// Belt slot position in the main panel sprite (from DrawInvBelt)
-// The belt area in the panel is at { 205, 21, 232, 28 }
-constexpr int BeltPanelX = 205;
-constexpr int BeltPanelY = 21; // Y position in the panel sprite (accounting for PanelPaddingHeight)
-
-// Skill slot constants
-constexpr int NumSkillSlots = 4; // Display first 4 hotkey slots
-
-// Panel field dimensions (for name display, similar to character panel)
-constexpr int PanelFieldHeight = 20;
-constexpr int PanelFieldPaddingTop = 2;
-constexpr int PanelFieldPaddingSide = 4;
+// Local coop HUD panel dimensions - moved to LocalCoopLayout namespace in local_coop_constants.hpp
+using namespace LocalCoopLayout;
 
 /**
  * @brief Draw a golden border around a rectangular area using box sprites
@@ -2420,7 +2402,8 @@ void DrawGoldenBorder(const Surface &out, Rectangle rect)
 	const ClxSprite right = (*LocalCoopBoxRight)[0];
 
 	// Sprites are 24px tall (PanelFieldHeight)
-	const int spriteHeight = left.height(); // Should be 24
+	using namespace LocalCoopLayout;
+	const int spriteHeight = left.height(); // Should be PanelContent::FieldHeight
 	const int width = rect.size.width;
 	const int height = rect.size.height;
 
@@ -2954,18 +2937,20 @@ void CastLocalCoopHotkeySpell(uint8_t playerId, int slotIndex)
 	if (item.isEmpty())
 		return;
 
+	using namespace LocalCoopLayout;
 	// Draw black background for the slot
-	FillRect(out, position.x, position.y, BeltSlotSize - 4, BeltSlotSize - 4, 0);
+	constexpr int slotSize = Belt::SlotSize;
+	FillRect(out, position.x, position.y, slotSize - 4, slotSize - 4, 0);
 
 	// Draw item quality background (colorizes the existing background)
-	InvDrawSlotBack(out, { position.x, position.y + BeltSlotSize - 4 }, { BeltSlotSize - 4, BeltSlotSize - 4 }, item._iMagical);
+	InvDrawSlotBack(out, { position.x, position.y + slotSize - 4 }, { slotSize - 4, slotSize - 4 }, item._iMagical);
 
 	// Get item sprite
 	const int cursId = item._iCurs + CURSOR_FIRSTITEM;
 	const ClxSprite sprite = GetInvItemSprite(cursId);
 
 	// Draw golden outline around the item (sprite-based border)
-	Point itemPos = { position.x, position.y + BeltSlotSize - 4 };
+	Point itemPos = { position.x, position.y + slotSize - 4 };
 	ClxDrawOutline(out, GetOutlineColor(item, true), itemPos, sprite);
 
 	// Draw the item (position needs to be at bottom-left of slot for ClxDraw)
@@ -3170,19 +3155,20 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 	const bool experienceBarEnabled = *GetOptions().Gameplay.experienceBar;
 
 	// Panel layout constants - charbg sprite borders
-	constexpr int topBorderPadding = 5;   // Top border in charbg.clx
-	constexpr int leftBorderPadding = 7;  // Left border (1px more to shift elements right)
-	constexpr int rightBorderPadding = 8; // Right border (content padding, not visual border) - reduced by 1px
-	constexpr int elementSpacing = 1;     // Reduced spacing between elements
-	constexpr int nameTopOffset = 4;      // Reduced offset for top row
+	using namespace LocalCoopLayout;
+	constexpr int topBorderPadding = Panel::TopBorderPadding;
+	constexpr int leftBorderPadding = Panel::LeftBorderPadding;
+	constexpr int rightBorderPadding = Panel::RightBorderPadding;
+	constexpr int elementSpacing = PanelContent::ElementSpacing;
+	constexpr int nameTopOffset = PanelContent::NameTopOffset;
 	constexpr int nameLeftOffset = 0;     // No extra offset (elements shifted via leftBorderPadding)
 
 	// Health/mana bar dimensions - adjust based on experience bar
 	// If experience bar is enabled, make bars shorter to fit XP bar below
-	const int barHeight = experienceBarEnabled ? 11 : 14;  // Reduced from 14px to 11px when XP bar is on
-	constexpr int barSpacing = 1;                          // Reduced spacing between bars
-	constexpr int xpBarHeight = 7;                         // Thin experience bar height
-	const int xpBarSpacing = experienceBarEnabled ? 0 : 1; // No spacing when XP bar is on to keep panel same height
+	const int barHeight = experienceBarEnabled ? 11 : HealthBar::Height;  // Reduced from 14px to 11px when XP bar is on
+	constexpr int barSpacing = HealthBar::Spacing;                          // Reduced spacing between bars
+	constexpr int xpBarHeight = ExperienceBar::Height;                         // Thin experience bar height
+	const int xpBarSpacing = experienceBarEnabled ? 0 : ExperienceBar::Spacing; // No spacing when XP bar is on to keep panel same height
 	// Bars: health, mana (stacked vertically), optionally XP bar below
 	const int barsHeight = experienceBarEnabled
 	    ? (barHeight * 2 + barSpacing + xpBarHeight + xpBarSpacing)
@@ -3192,7 +3178,7 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 	// Skill slot size calculated so 2 slots height = panel height
 	// Formula: 2 * slotSize + spacing = panelHeight
 	// We'll calculate this after panelHeight is determined
-	constexpr int skillSlotSpacing = 1;   // Spacing between slots in 2x2 grid
+	constexpr int skillSlotSpacing = SkillSlot::GridSpacingY;   // Spacing between slots in 2x2 grid
 	constexpr int skillColumnSpacing = 0; // Gap between panel and skill grid
 
 	// Get dynamic panel width (can be adjusted in GetLocalCoopPanelWidth)
@@ -3200,19 +3186,19 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 	const int panelContentWidth = panelWidth - leftBorderPadding - rightBorderPadding;
 
 	// Name field height
-	constexpr int nameFieldHeight = 20;
+	constexpr int nameFieldHeight = PanelContent::FieldHeight;
 	constexpr int playerNumWidth = 28;  // P# and level field width (increased by 3px)
 	constexpr int playerNumSpacing = 0; // spacing between P#/name/level
 
 	// Bar width = space between P# and Level (scales with panel width)
 	const int barsWidth = panelContentWidth - playerNumWidth - playerNumSpacing - playerNumWidth + 1;
-	constexpr int panelHeight = 87;
+	constexpr int panelHeight = Panel::Height;
 	// Skill slot size: 2 slots height = panel height, so slotSize = (panelHeight - spacing) / 2
 	constexpr int SkillSlotSize = (panelHeight - skillSlotSpacing) / 2;  // = (87 - 1) / 2 = 43px
 	constexpr int skillGridWidth = SkillSlotSize * 2 + skillSlotSpacing; // Width of 2x2 grid (2 columns)
 
-	constexpr int durabilityIconHeight = 32;
-	constexpr int durabilityIconSpacing = 4;
+	constexpr int durabilityIconHeight = DurabilityIcon::Height;
+	constexpr int durabilityIconSpacing = DurabilityIcon::Spacing;
 
 	// In local coop mode (2+ gamepads), always show corner HUDs for all players
 	// The main panel is hidden and replaced with corner HUDs
@@ -3626,7 +3612,8 @@ void UpdateLocalCoopCamera()
 
 	// Apply dead zone: only update camera target if average position moved outside the dead zone
 	// Dead zone is in screen pixels, so scale by 256 to match our precision
-	const int64_t deadZone256 = static_cast<int64_t>(LocalCoopState::CameraDeadZone) * 256;
+	using namespace LocalCoopCamera;
+	const int64_t deadZone256 = static_cast<int64_t>(DeadZone) * FixedPointScale;
 
 	if (!g_LocalCoop.cameraInitialized) {
 		// First time - initialize camera to current average position
@@ -3668,7 +3655,7 @@ void UpdateLocalCoopCamera()
 	// Apply smoothing: interpolate smoothed camera position towards target
 	// This prevents jerky camera movement by gradually moving towards the target
 	// Using fixed-point arithmetic: smoothFactor is represented as an integer out of 256
-	constexpr int64_t smoothFactor256 = static_cast<int64_t>(LocalCoopState::CameraSmoothFactor * 256);
+	constexpr int64_t smoothFactor256 = static_cast<int64_t>(SmoothFactor * FixedPointScale);
 
 	int64_t smoothDeltaX = g_LocalCoop.cameraTargetScreenX - g_LocalCoop.cameraSmoothScreenX;
 	int64_t smoothDeltaY = g_LocalCoop.cameraTargetScreenY - g_LocalCoop.cameraSmoothScreenY;
@@ -4174,6 +4161,7 @@ void UpdateLocalCoopSkillButtons()
 			continue;
 
 		// Check if a skill button is being held
+		using namespace LocalCoopInput;
 		if (player.skillButtonHeld >= 0 && !player.skillMenuOpenedByHold) {
 			uint32_t holdDuration = now - player.skillButtonPressTime;
 			if (holdDuration >= SkillButtonHoldTime) {
@@ -4197,7 +4185,8 @@ bool HandlePlayerSkillButtonDown(uint8_t playerId, int slotIndex)
 	if (!g_LocalCoop.enabled)
 		return false;
 
-	if (slotIndex < 0 || slotIndex >= NumSkillSlots)
+	using namespace LocalCoopLayout;
+	if (slotIndex < 0 || slotIndex >= SkillSlot::Count)
 		return false;
 
 	LocalCoopPlayer *player = g_LocalCoop.GetPlayer(playerId);
@@ -4227,7 +4216,8 @@ bool HandlePlayerSkillButtonUp(uint8_t playerId, int slotIndex)
 	if (!g_LocalCoop.enabled)
 		return false;
 
-	if (slotIndex < 0 || slotIndex >= NumSkillSlots)
+	using namespace LocalCoopLayout;
+	if (slotIndex < 0 || slotIndex >= SkillSlot::Count)
 		return false;
 
 	LocalCoopPlayer *player = g_LocalCoop.GetPlayer(playerId);
@@ -4256,7 +4246,8 @@ bool HandlePlayerSkillButtonUp(uint8_t playerId, int slotIndex)
 
 void AssignPlayerSpellToSlot(uint8_t playerId, int slotIndex)
 {
-	if (slotIndex < 0 || slotIndex >= NumSkillSlots)
+	using namespace LocalCoopLayout;
+	if (slotIndex < 0 || slotIndex >= SkillSlot::Count)
 		return;
 
 	LocalCoopPlayer *player = g_LocalCoop.GetPlayer(playerId);
