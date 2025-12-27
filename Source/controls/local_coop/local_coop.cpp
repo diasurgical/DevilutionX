@@ -1585,8 +1585,8 @@ AxisDirection LocalCoopPlayer::GetMoveDirection() const
 	dir.x = AxisDirectionX_NONE;
 	dir.y = AxisDirectionY_NONE;
 
-		using namespace LocalCoopInput;
-		const float threshold = MovementStickThreshold;
+	using namespace LocalCoopInput;
+	const float threshold = MovementStickThreshold;
 
 	// Check left stick first
 	if (leftStickX <= -threshold)
@@ -2281,7 +2281,6 @@ void LoadAvailableHeroesForLocalPlayer(uint8_t playerId)
 		}
 		// If we didn't find it, selectedHeroIndex remains 0 (first hero)
 	}
-
 }
 
 void ConfirmLocalCoopCharacter(uint8_t playerId)
@@ -3882,7 +3881,6 @@ bool TryJoinLocalCoopMidGame(SDL_JoystickID controllerId)
 	coopPlayer.controllerId = controllerId;
 	coopPlayer.characterSelectActive = true; // Start character selection
 
-
 	// Load available heroes for selection
 	// emptySlot is unified index (0-3), convert to local index (0-2) for players 2-4
 	// Player 1 (emptySlot == 0) shouldn't reach here, but check to be safe
@@ -4933,7 +4931,6 @@ void SaveLocalCoopPlayers(bool /*writeGameData*/)
 			continue;
 
 		Player &player = Players[i];
-
 
 		// Use the pfile function to save this player to their save slot
 		pfile_write_player_to_save(coopPlayer.saveNumber, player);

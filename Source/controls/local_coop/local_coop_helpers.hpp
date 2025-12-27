@@ -22,7 +22,7 @@ namespace local_coop {
 /**
  * @brief Helper function to check if player validation succeeded.
  * Reduces boilerplate when you just need to check validity.
- * 
+ *
  * @param playerId Game player ID (0-3)
  * @param requireInitialized If true, requires player to be initialized
  * @param requireAlive If true, requires player to be alive
@@ -37,4 +37,3 @@ inline bool IsPlayerValid(uint8_t playerId, bool requireInitialized = true, bool
 } // namespace local_coop
 
 } // namespace devilution
-
