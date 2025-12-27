@@ -471,7 +471,7 @@ BeltPosition CalculateBeltPosition(int panelX, int panelY, int panelWidth, int b
 
 	BeltPosition pos;
 	pos.baseX = contentX + (panelContentWidth - beltBorderWidth) / 2;
-	pos.baseY = middleY - 3;
+	pos.baseY = middleY - 4;
 	pos.slotSpacing = Belt::SlotSpacingPx;
 
 	return pos;
