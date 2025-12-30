@@ -2853,7 +2853,7 @@ bool TryIconCurs()
 			NetSendCmdLocParam4(true, CMD_SPELLXYD, cursPosition, static_cast<int8_t>(spellID), static_cast<uint8_t>(spellType), static_cast<uint16_t>(sd), spellFrom);
 		} else if (pcursmonst != -1 && leveltype != DTYPE_TOWN) {
 			NetSendCmdParam4(true, CMD_SPELLID, pcursmonst, static_cast<int8_t>(spellID), static_cast<uint8_t>(spellType), spellFrom);
-		} else if (PlayerUnderCursor != nullptr && (!PlayerUnderCursor->hasNoLife() || spellID == SpellID::Resurrect) && !myPlayer.friendlyMode) {
+		} else if (PlayerUnderCursor != nullptr && !PlayerUnderCursor->hasNoLife() && !myPlayer.friendlyMode) {
 			NetSendCmdParam4(true, CMD_SPELLPID, PlayerUnderCursor->getId(), static_cast<int8_t>(spellID), static_cast<uint8_t>(spellType), spellFrom);
 		} else {
 			NetSendCmdLocParam3(true, CMD_SPELLXY, cursPosition, static_cast<int8_t>(spellID), static_cast<uint8_t>(spellType), spellFrom);
