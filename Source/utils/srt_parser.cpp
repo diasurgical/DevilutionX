@@ -7,6 +7,7 @@
 #include <string>
 
 #include "engine/assets.hpp"
+#include "utils/language.h"
 
 namespace devilution {
 
@@ -85,7 +86,9 @@ std::string GetSubtitleAtTime(const std::vector<SubtitleEntry> &subtitles, uint6
 {
 	for (const auto &entry : subtitles) {
 		if (videoTimeMs >= entry.startTimeMs && videoTimeMs < entry.endTimeMs) {
-			return entry.text;
+			// Translate the subtitle text
+			std::string_view translated = LanguageTranslate(entry.text);
+			return std::string(translated);
 		}
 	}
 	return "";
