@@ -156,6 +156,7 @@ set(libdevilutionx_SRCS
 
   storm/storm_net.cpp
   storm/storm_svid.cpp
+  utils/srt_parser.cpp
   utils/display.cpp
   utils/language.cpp
   utils/sdl_bilinear_scale.cpp
