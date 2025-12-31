@@ -1,9 +1,12 @@
 #include "storm/storm_svid.h"
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <optional>
+#include <string>
+#include <vector>
 
 #ifdef USE_SDL3
 #include <SDL3/SDL_error.h>
@@ -30,11 +33,13 @@
 #include "engine/assets.hpp"
 #include "engine/dx.h"
 #include "engine/palette.h"
+#include "engine/render/text_render.hpp"
 #include "options.h"
 #include "utils/display.h"
 #include "utils/log.hpp"
 #include "utils/sdl_compat.h"
 #include "utils/sdl_wrap.h"
+#include "utils/srt_parser.hpp"
 
 namespace devilution {
 namespace {
@@ -77,6 +82,11 @@ SDLSurfaceUniquePtr SVidSurface;
 uint64_t SVidFrameEnd;
 // The length of a frame in SMK time units.
 uint32_t SVidFrameLength;
+// Video start time in SMK time units (when playback began).
+uint64_t SVidStartTime;
+
+// Subtitle entries for current video
+std::vector<SubtitleEntry> SVidSubtitles;
 
 bool IsLandscapeFit(unsigned long srcW, unsigned long srcH, unsigned long dstW, unsigned long dstH)
 {
@@ -294,6 +304,71 @@ bool BlitFrame()
 		}
 	}
 
+	// Render subtitles if available
+	if (!SVidSubtitles.empty()) {
+		const uint64_t currentTimeSmk = GetTicksSmk();
+		const uint64_t videoTimeMs = TimeSmkToMs(currentTimeSmk - SVidStartTime);
+		const std::string subtitleText = GetSubtitleAtTime(SVidSubtitles, videoTimeMs);
+
+		if (!subtitleText.empty()) {
+			SDL_Surface *outputSurface = GetOutputSurface();
+			SDL_Rect outputRect;
+#ifndef USE_SDL1
+			if (renderer != nullptr) {
+				// When using renderer, video fills the entire output surface
+				outputRect.w = outputSurface->w;
+				outputRect.h = outputSurface->h;
+				outputRect.x = 0;
+				outputRect.y = 0;
+			} else
+#endif
+			{
+				// Calculate video rect (same logic as above)
+#ifdef USE_SDL1
+				const bool isIndexedOutputFormat = SDLBackport_IsPixelFormatIndexed(outputSurface->format);
+#else
+#ifdef USE_SDL3
+				const SDL_PixelFormat wndFormat = SDL_GetWindowPixelFormat(ghMainWnd);
+#else
+				const Uint32 wndFormat = SDL_GetWindowPixelFormat(ghMainWnd);
+#endif
+				const bool isIndexedOutputFormat = SDL_ISPIXELFORMAT_INDEXED(wndFormat);
+#endif
+				if (isIndexedOutputFormat) {
+					outputRect.w = static_cast<int>(SVidWidth);
+					outputRect.h = static_cast<int>(SVidHeight);
+				} else if (IsLandscapeFit(SVidWidth, SVidHeight, outputSurface->w, outputSurface->h)) {
+					outputRect.w = outputSurface->w;
+					outputRect.h = SVidHeight * outputSurface->w / SVidWidth;
+				} else {
+					outputRect.w = SVidWidth * outputSurface->h / SVidHeight;
+					outputRect.h = outputSurface->h;
+				}
+				outputRect.x = (outputSurface->w - outputRect.w) / 2;
+				outputRect.y = (outputSurface->h - outputRect.h) / 2;
+			}
+
+			// Calculate subtitle position (bottom center, with some padding)
+			constexpr int SubtitlePadding = 20;
+			const int subtitleY = outputRect.y + outputRect.h - SubtitlePadding;
+			const int subtitleX = outputRect.x;
+			const int subtitleWidth = outputRect.w;
+
+			// Create a surface for rendering text
+			Surface outSurface(outputSurface);
+			// Allow enough height for multiple lines of text
+			constexpr int SubtitleMaxHeight = 120;
+			const int subtitleRectY = std::max(0, subtitleY - SubtitleMaxHeight);
+			Rectangle subtitleRect { { subtitleX, subtitleRectY }, { subtitleWidth, SubtitleMaxHeight } };
+
+			// Render subtitle with white text, centered, and outlined for visibility
+			TextRenderOptions opts;
+			opts.flags = UiFlags::AlignCenter | UiFlags::ColorWhite | UiFlags::Outlined;
+			opts.spacing = 1;
+			DrawString(outSurface, subtitleText, subtitleRect, opts);
+		}
+	}
+
 	RenderPresent();
 	return true;
 }
@@ -327,6 +402,20 @@ void SVidInitAudioStream(const SmackerAudioInfo &audioInfo)
 }
 #endif
 
+// Load subtitles for the given video filename
+void LoadSubtitles(const char *videoFilename)
+{
+	SVidSubtitles.clear();
+
+	// Generate subtitle filename by replacing .smk with .srt
+	std::string subtitlePath(videoFilename);
+	std::replace(subtitlePath.begin(), subtitlePath.end(), '\\', '/');
+	const size_t extPos = subtitlePath.rfind('.');
+	subtitlePath = (extPos != std::string::npos ? subtitlePath.substr(0, extPos) : subtitlePath) + ".srt";
+
+	SVidSubtitles = LoadSrtFile(subtitlePath);
+}
+
 } // namespace
 
 bool SVidPlayBegin(const char *filename, int flags)
@@ -344,6 +433,9 @@ bool SVidPlayBegin(const char *filename, int flags)
 	// 0x100000 // Disable video
 	// 0x800000 // Edge detection
 	// 0x200800 // Clear FB
+
+	// Load subtitles if available
+	LoadSubtitles(filename);
 
 	auto *videoStream = OpenAssetAsSdlRwOps(filename);
 	SVidHandle = Smacker_Open(videoStream);
@@ -449,6 +541,7 @@ bool SVidPlayBegin(const char *filename, int flags)
 	UpdatePalette();
 
 	SVidFrameEnd = GetTicksSmk() + SVidFrameLength;
+	SVidStartTime = GetTicksSmk();
 
 	return true;
 }
@@ -523,6 +616,7 @@ void SVidPlayEnd()
 	SVidPalette = nullptr;
 	SVidSurface = nullptr;
 	SVidFrameBuffer = nullptr;
+	SVidSubtitles.clear();
 
 #ifndef USE_SDL1
 	if (renderer != nullptr) {

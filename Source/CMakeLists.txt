@@ -164,6 +164,7 @@ set(libdevilutionx_SRCS
   utils/language.cpp
   utils/sdl_bilinear_scale.cpp
   utils/sdl_thread.cpp
+  utils/srt_parser.cpp
   utils/surface_to_clx.cpp
   utils/timer.cpp)
 
