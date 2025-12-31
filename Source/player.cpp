@@ -41,6 +41,7 @@
 #include "levels/trigs.h"
 #include "lighting.h"
 #include "loadsave.h"
+#include "lua/lua_global.hpp"
 #include "minitext.h"
 #include "missiles.h"
 #include "monster.h"
@@ -365,6 +366,9 @@ void DropHalfPlayersGold(Player &player)
 void InitLevelChange(Player &player)
 {
 	const Player &myPlayer = *MyPlayer;
+
+	if (&player == MyPlayer)
+		LuaEvent("LeavingLevel");
 
 	RemoveEnemyReferences(player);
 	RemovePlrMissiles(player);

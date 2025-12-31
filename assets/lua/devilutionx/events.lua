@@ -67,6 +67,14 @@ local events = {
   ---Called every frame at the end.
   GameDrawComplete = CreateEvent(),
   __doc_GameDrawComplete = "Called every frame at the end.",
+
+  ---Called before leaving the current level (before mana shield is cleared).
+  LeavingLevel = CreateEvent(),
+  __doc_LeavingLevel = "Called before leaving the current level (before mana shield is cleared).",
+
+  ---Called after entering a new level.
+  EnterLevel = CreateEvent(),
+  __doc_EnterLevel = "Called after entering a new level.",
 }
 
 ---Registers a custom event type with the given name.
