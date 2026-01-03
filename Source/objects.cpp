@@ -2524,24 +2524,24 @@ void OperateShrineCostOfWisdom(Player &player, SpellID spellId, diablo_message m
 		}
 	}
 
-	const uint32_t t = player._pMaxManaBase / 10;
-	const int v1 = player._pMana - player._pManaBase;
-	const int v2 = player._pMaxMana - player._pMaxManaBase;
-	player._pManaBase -= t;
-	player._pMana -= t;
-	player._pMaxMana -= t;
-	player._pMaxManaBase -= t;
-	if (player.hasNoMana()) {
-		player._pMana = v1;
-		player._pManaBase = 0;
-	}
-	if (player._pMaxMana >> 6 <= 0) {
-		player._pMaxMana = v2;
-		player._pMaxManaBase = 0;
-	}
+	const int manaDiff = player._pMana - player._pManaBase;
+	const int maxManaDiff = player._pMaxMana - player._pMaxManaBase;
+
+	const int penalty = std::max(0, player._pMaxManaBase / 10);
+
+	// Apply to bases
+	player._pManaBase = std::max(0, player._pManaBase - penalty);
+	player._pMaxManaBase = std::max(0, player._pMaxManaBase - penalty);
+
+	// Rebuild totals from preserved diffs
+	player._pMana = player._pManaBase + manaDiff;
+	player._pMaxMana = player._pMaxManaBase + maxManaDiff;
+
+	// Keep current <= max when max is non-negative
+	if (player._pMaxMana >= 0 && player._pMana > player._pMaxMana)
+		player._pMana = player._pMaxMana;
 
 	RedrawEverything();
-
 	InitDiabloMsg(message);
 }
 
