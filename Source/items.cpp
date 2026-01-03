@@ -31,6 +31,7 @@
 #include "control/control.hpp"
 #include "controls/control_mode.hpp"
 #include "controls/controller_buttons.h"
+#include "controls/local_coop/local_coop.hpp"
 #include "cursor.h"
 #include "diablo.h"
 #include "doom.h"
@@ -1631,13 +1632,15 @@ void ItemDoppel()
 
 void AddItemInfoBoxString(const std::string_view str)
 {
-	const bool floatingInfoBoxEnabled = *GetOptions().Gameplay.floatingInfoBox;
+	// Use floating info box if the option is enabled OR if local coop is active
+	const bool floatingInfoBoxEnabled = *GetOptions().Gameplay.floatingInfoBox || IsLocalCoopEnabled();
 	AddInfoBoxString(str, floatingInfoBoxEnabled);
 }
 
 void AddItemInfoBoxString(std::string &&str)
 {
-	const bool floatingInfoBoxEnabled = *GetOptions().Gameplay.floatingInfoBox;
+	// Use floating info box if the option is enabled OR if local coop is active
+	const bool floatingInfoBoxEnabled = *GetOptions().Gameplay.floatingInfoBox || IsLocalCoopEnabled();
 	AddInfoBoxString(std::move(str), floatingInfoBoxEnabled);
 }
 
@@ -2402,10 +2405,15 @@ bool IsItemAvailable(int i)
 	        *GetOptions().Gameplay.testBard && IsAnyOf(i, IDI_BARDSWORD, IDI_BARDDAGGER));
 }
 
-uint8_t GetOutlineColor(const Item &item, bool checkReq)
+uint8_t GetOutlineColor(const Item &item, bool checkReq, const Player *player)
 {
-	if (checkReq && !item._iStatFlag)
-		return ICOL_RED;
+	if (checkReq) {
+		// If a player is specified, check if that player can use the item.
+		// Otherwise, use the pre-computed _iStatFlag.
+		bool canUse = player != nullptr ? player->CanUseItem(item) : item._iStatFlag;
+		if (!canUse)
+			return ICOL_RED;
+	}
 	if (item._itype == ItemType::Gold)
 		return ICOL_YELLOW;
 	if (item._iMagical == ITEM_QUALITY_MAGIC)
@@ -2893,19 +2901,23 @@ void CalcPlrInv(Player &player, bool loadgfx)
 	CalcSelfItems(player);
 
 	// Determine the current item bonuses gained from usable equipped items
-	if (&player != MyPlayer && !player.isOnActiveLevel()) {
-		// Ensure we don't load graphics for players that aren't on our level
+	// For local players, we always want to load graphics
+	// For network multiplayer players not on our level, skip graphics loading
+	if (!IsLocalPlayer(player) && !player.isOnActiveLevel()) {
+		// Ensure we don't load graphics for remote network players that aren't on our level
 		loadgfx = false;
 	}
 	CalcPlrItemVals(player, loadgfx);
 
-	if (&player == MyPlayer) {
+	// For local players, update item stat flags for inventory/belt items
+	// This determines whether items show as usable (normal color) or unusable (red tint)
+	if (IsLocalPlayer(player)) {
 		// Now that stat gains from equipped items have been calculated, mark unusable scrolls etc
 		for (Item &item : InventoryAndBeltPlayerItemsRange { player }) {
 			item.updateRequiredStatsCacheForPlayer(player);
 		}
 		player.CalcScrolls();
-		if (IsStashOpen) {
+		if (&player == MyPlayer && IsStashOpen) {
 			// If stash is open, ensure the items are displayed correctly
 			Stash.RefreshItemStatFlags();
 		}

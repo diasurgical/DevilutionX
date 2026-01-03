@@ -690,8 +690,7 @@ int GetLineWidth(std::string_view fmt, DrawStringFormatArg *args, std::size_t ar
 		curFormatted = args[argsOffset - 1].GetFormatted().substr(*firstArgOffset);
 	}
 
-	for (; !(IsConsumed(curFormatted) && IsConsumed(remaining));
-	     str->remove_prefix(cpLen), prev = next) {
+	for (; !(IsConsumed(curFormatted) && IsConsumed(remaining)); str->remove_prefix(cpLen), prev = next) {
 		const bool isProcessingFormatArgValue = !IsConsumed(curFormatted);
 		str = isProcessingFormatArgValue ? &curFormatted : &remaining;
 		next = DecodeFirstUtf8CodePoint(*str, &cpLen);
@@ -930,8 +929,7 @@ void DrawStringWithColors(const Surface &out, std::string_view fmt, DrawStringFo
 	// The string that we're currently processing: either `remaining` or `curFormatted`.
 	std::string_view *str;
 
-	for (; !(IsConsumed(curFormatted) && IsConsumed(remaining));
-	     str->remove_prefix(cpLen), prev = next) {
+	for (; !(IsConsumed(curFormatted) && IsConsumed(remaining)); str->remove_prefix(cpLen), prev = next) {
 		const bool isProcessingFormatArgValue = !IsConsumed(curFormatted);
 		str = isProcessingFormatArgValue ? &curFormatted : &remaining;
 		next = DecodeFirstUtf8CodePoint(*str, &cpLen);
