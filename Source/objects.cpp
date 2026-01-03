@@ -2524,22 +2524,20 @@ void OperateShrineCostOfWisdom(Player &player, SpellID spellId, diablo_message m
 		}
 	}
 
-	const int manaDiff = player._pMana - player._pManaBase;
-	const int maxManaDiff = player._pMaxMana - player._pMaxManaBase;
+	int maxBase = player._pMaxManaBase;
 
-	const int penalty = std::max(0, player._pMaxManaBase / 10);
+	if (maxBase < 0) {
+		// Fix bugged state; do not turn this into a "negative penalty" mana boost.
+		player._pMaxManaBase = 0;
+		maxBase = 0;
+	}
 
-	// Apply to bases
-	player._pManaBase = std::max(0, player._pManaBase - penalty);
-	player._pMaxManaBase = std::max(0, player._pMaxManaBase - penalty);
+	const int penalty = maxBase / 10; // 10% of max base mana (>= 0)
 
-	// Rebuild totals from preserved diffs
-	player._pMana = player._pManaBase + manaDiff;
-	player._pMaxMana = player._pMaxManaBase + maxManaDiff;
-
-	// Keep current <= max when max is non-negative
-	if (player._pMaxMana >= 0 && player._pMana > player._pMaxMana)
-		player._pMana = player._pMaxMana;
+	player._pMaxManaBase -= penalty; // will remain >= 0
+	player._pManaBase -= penalty;    // may go negative, allowed
+	player._pMaxMana -= penalty;     // may go negative, allowed
+	player._pMana -= penalty;        // may go negative, allowed
 
 	RedrawEverything();
 	InitDiabloMsg(message);
