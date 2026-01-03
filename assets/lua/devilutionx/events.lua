@@ -25,9 +25,10 @@ local function CreateEvent()
     ---The arguments are forwarded to handlers.
     ---@param ... any
     trigger = function(...)
-      if arg ~= nil then
+      local args = {...}
+      if #args > 0 then
         for _, func in ipairs(functions) do
-          func(table.unpack(arg))
+          func(table.unpack(args))
         end
       else
         for _, func in ipairs(functions) do
@@ -67,6 +68,10 @@ local events = {
   ---Called every frame at the end.
   GameDrawComplete = CreateEvent(),
   __doc_GameDrawComplete = "Called every frame at the end.",
+
+  ---Called when opening a towner store. Passes the towner name as argument (e.g., "griswold", "adria", "pepin", "wirt", "cain").
+  StoreOpened = CreateEvent(),
+  __doc_StoreOpened = "Called when opening a towner store. Passes the towner name as argument.",
 }
 
 ---Registers a custom event type with the given name.

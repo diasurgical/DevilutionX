@@ -201,6 +201,9 @@ sol::environment CreateLuaSandbox()
 
 	sandbox["require"] = lua["requireGen"](sandbox, CurrentLuaState->commonPackages, LuaLoadScriptFromAssets);
 
+	// Expose commonly used enums globally for mods
+	sandbox["SfxID"] = lua["SfxID"];
+
 	return sandbox;
 }
 
@@ -318,6 +321,21 @@ void LuaEvent(std::string_view name)
 	}
 	const sol::protected_function fn = trigger->as<sol::protected_function>();
 	SafeCallResult(fn(), /*optional=*/true);
+}
+
+void LuaEvent(std::string_view name, std::string_view arg)
+{
+	if (!CurrentLuaState.has_value()) {
+		return;
+	}
+
+	const auto trigger = CurrentLuaState->events.traverse_get<std::optional<sol::object>>(name, "trigger");
+	if (!trigger.has_value() || !trigger->is<sol::protected_function>()) {
+		LogError("events.{}.trigger is not a function", name);
+		return;
+	}
+	const sol::protected_function fn = trigger->as<sol::protected_function>();
+	SafeCallResult(fn(arg), /*optional=*/true);
 }
 
 sol::state &GetLuaState()
