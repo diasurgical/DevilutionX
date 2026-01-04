@@ -312,21 +312,25 @@ void LeftMouseCmd(bool bShift)
 	}
 }
 
-bool TryOpenDungeonWithMouse()
+bool TryOpenDungeon(bool useCursorPosition)
 {
 	if (leveltype != DTYPE_TOWN)
 		return false;
 
-	const Item &holdItem = MyPlayer->HoldItem;
-	if (holdItem.IDidx == IDI_RUNEBOMB && OpensHive(cursPosition))
-		OpenHive();
-	else if (holdItem.IDidx == IDI_MAPOFDOOM && OpensGrave(cursPosition))
-		OpenGrave();
-	else
-		return false;
+	Item &holdItem = MyPlayer->HoldItem;
+	WorldTilePosition &position = MyPlayer->position.tile;
 
-	NewCursor(CURSOR_HAND);
-	return true;
+	if ((useCursorPosition && holdItem.IDidx == IDI_RUNEBOMB && OpensHive(cursPosition)) || (!useCursorPosition && UseItemOpensHive(holdItem, position))) {
+		OpenHive();
+		NewCursor(CURSOR_HAND);
+		return true;
+	}
+	if ((useCursorPosition && holdItem.IDidx == IDI_MAPOFDOOM && OpensGrave(cursPosition)) || (!useCursorPosition && UseItemOpensGrave(holdItem, position))) {
+		OpenGrave();
+		NewCursor(CURSOR_HAND);
+		return true;
+	}
+	return false;
 }
 
 void LeftMouseDown(uint16_t modState)
@@ -387,14 +391,7 @@ void LeftMouseDown(uint16_t modState)
 			} else if (SpellbookFlag && GetRightPanel().contains(MousePosition)) {
 				CheckSBook();
 			} else if (!MyPlayer->HoldItem.isEmpty()) {
-				if (!TryOpenDungeonWithMouse()) {
-					const Point currentPosition = MyPlayer->position.tile;
-					std::optional<Point> itemTile = FindAdjacentPositionForItem(currentPosition, GetDirection(currentPosition, cursPosition));
-					if (itemTile) {
-						NetSendCmdPItem(true, CMD_PUTITEM, *itemTile, MyPlayer->HoldItem);
-						NewCursor(CURSOR_HAND);
-					}
-				}
+				TryDropItem(true);
 			} else {
 				CheckLevelButton();
 				if (!LevelButtonDown)
@@ -3492,6 +3489,34 @@ bool IsDiabloAlive(bool playSFX)
 void PrintScreen(SDL_Keycode vkey)
 {
 	ReleaseKey(vkey);
+}
+
+/**
+ * @brief Try dropping item in all 9 possible places
+ */
+bool TryDropItem(bool useCursorPosition /*= false*/)
+{
+	Player &myPlayer = *MyPlayer;
+
+	if (myPlayer.HoldItem.isEmpty()) {
+		return false;
+	}
+
+	if (TryOpenDungeon(useCursorPosition))
+		return true;
+
+	Direction dir = useCursorPosition ? GetDirection(myPlayer.position.tile, cursPosition) : myPlayer._pdir;
+	std::optional<Point> availableTile = FindAdjacentPositionForItem(myPlayer.position.tile, dir);
+
+	if (!availableTile) {
+		myPlayer.Say(HeroSpeech::WhereWouldIPutThis);
+		return false;
+	}
+
+	NetSendCmdPItem(true, CMD_PUTITEM, *availableTile, myPlayer.HoldItem);
+	myPlayer.HoldItem.clear();
+	NewCursor(CURSOR_HAND);
+	return true;
 }
 
 } // namespace devilution
