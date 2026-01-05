@@ -12,7 +12,7 @@
 #include "levels/gendung.h"
 #include "monster.h"
 #include "multi.h"
-#include "objdat.h"
+#include "tables/objdat.h"
 #include "player.h"
 #include "utils/is_of.hpp"
 

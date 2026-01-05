@@ -8,9 +8,9 @@
 
 #include <cstdint>
 
-#include "objdat.h"
+#include "tables/objdat.h"
 #include "quests.h"
-#include "textdat.h"
+#include "tables/textdat.h"
 #include "utils/is_of.hpp"
 
 namespace devilution {

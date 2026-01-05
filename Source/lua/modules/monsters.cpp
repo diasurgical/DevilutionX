@@ -7,7 +7,7 @@
 
 #include "data/file.hpp"
 #include "lua/metadoc.hpp"
-#include "monstdat.h"
+#include "tables/monstdat.h"
 #include "utils/language.h"
 #include "utils/str_split.hpp"
 

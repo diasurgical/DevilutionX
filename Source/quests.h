@@ -12,9 +12,9 @@
 #include "engine/surface.hpp"
 #include "levels/gendung.h"
 #include "monster.h"
-#include "objdat.h"
+#include "tables/objdat.h"
 #include "panels/info_box.hpp"
-#include "textdat.h"
+#include "tables/textdat.h"
 #include "utils/attributes.h"
 
 namespace devilution {

@@ -4,7 +4,7 @@
  * Implementation of all player data.
  */
 
-#include "playerdat.hpp"
+#include "tables/playerdat.hpp"
 
 #include <algorithm>
 #include <array>
@@ -22,7 +22,7 @@
 #include "data/value_reader.hpp"
 #include "items.h"
 #include "player.h"
-#include "textdat.h"
+#include "tables/textdat.h"
 #include "utils/language.h"
 #include "utils/static_vector.hpp"
 #include "utils/str_cat.hpp"

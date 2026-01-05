@@ -20,7 +20,7 @@
 #include "panels/spell_icons.hpp"
 #include "panels/ui_panels.hpp"
 #include "player.h"
-#include "spelldat.h"
+#include "tables/spelldat.h"
 #include "utils/language.h"
 #include "utils/status_macros.hpp"
 

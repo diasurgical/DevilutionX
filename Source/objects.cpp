@@ -38,7 +38,7 @@
 #include "minitext.h"
 #include "missiles.h"
 #include "monster.h"
-#include "objdat.h"
+#include "tables/objdat.h"
 #include "options.h"
 #include "qol/stash.h"
 #include "stores.h"

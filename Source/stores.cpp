@@ -26,7 +26,7 @@
 #include "options.h"
 #include "panels/info_box.hpp"
 #include "qol/stash.h"
-#include "townerdat.hpp"
+#include "tables/townerdat.hpp"
 #include "towners.h"
 #include "utils/format_int.hpp"
 #include "utils/language.h"

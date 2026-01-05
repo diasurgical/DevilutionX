@@ -50,7 +50,7 @@
 #include "init.hpp"
 #include "options.h"
 #include "player.h"
-#include "playerdat.hpp"
+#include "tables/playerdat.hpp"
 #include "sound_effect_enums.h"
 #include "utils/algorithm/container.hpp"
 #include "utils/display.h"

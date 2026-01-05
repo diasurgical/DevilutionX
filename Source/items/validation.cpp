@@ -9,7 +9,7 @@
 #include <cstdint>
 
 #include "items.h"
-#include "monstdat.h"
+#include "tables/monstdat.h"
 #include "msg.h"
 #include "player.h"
 #include "spells.h"

@@ -10,7 +10,7 @@
 #include "levels/setmaps.h"
 #include "lighting.h"
 #include "monster.h"
-#include "objdat.h"
+#include "tables/objdat.h"
 #include "objects.h"
 #include "player.h"
 #include "quests.h"

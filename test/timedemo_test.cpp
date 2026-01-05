@@ -14,10 +14,10 @@
 #include "headless_mode.hpp"
 #include "init.hpp"
 #include "lua/lua_global.hpp"
-#include "monstdat.h"
+#include "tables/monstdat.h"
 #include "options.h"
 #include "pfile.h"
-#include "playerdat.hpp"
+#include "tables/playerdat.hpp"
 #include "utils/display.h"
 #include "utils/paths.h"
 

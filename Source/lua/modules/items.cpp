@@ -6,7 +6,7 @@
 #include <sol/sol.hpp>
 
 #include "data/file.hpp"
-#include "itemdat.h"
+#include "tables/itemdat.h"
 #include "items.h"
 #include "lua/metadoc.hpp"
 #include "player.h"

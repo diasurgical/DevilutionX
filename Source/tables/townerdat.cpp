@@ -3,7 +3,7 @@
  *
  * Implementation of towner data loading from TSV files.
  */
-#include "townerdat.hpp"
+#include "tables/townerdat.hpp"
 
 #include <charconv>
 #include <optional>

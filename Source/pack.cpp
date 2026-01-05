@@ -11,7 +11,7 @@
 #include "game_mode.hpp"
 #include "items/validation.h"
 #include "loadsave.h"
-#include "playerdat.hpp"
+#include "tables/playerdat.hpp"
 #include "plrmsg.h"
 #include "stores.h"
 #include "utils/endian_read.hpp"

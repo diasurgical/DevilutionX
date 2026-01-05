@@ -28,7 +28,7 @@
 #include "engine/render/text_render.hpp"
 #include "engine/size.hpp"
 #include "panels/ui_panels.hpp"
-#include "spelldat.h"
+#include "tables/spelldat.h"
 #include "spells.h"
 #include "utils/attributes.h"
 #include "utils/string_or_view.hpp"

@@ -11,7 +11,7 @@
 #include "levels/tile_properties.hpp"
 #include "lighting.h"
 #include "lua/metadoc.hpp"
-#include "monstdat.h"
+#include "tables/monstdat.h"
 #include "monster.h"
 #include "player.h"
 #include "utils/str_case.hpp"

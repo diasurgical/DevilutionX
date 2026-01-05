@@ -3,7 +3,7 @@
 
 #include "items.h"
 #include "player.h"
-#include "playerdat.hpp"
+#include "tables/playerdat.hpp"
 #include "stores.h"
 
 #include "engine/assets.hpp"

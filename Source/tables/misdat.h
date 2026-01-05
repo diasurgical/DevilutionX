@@ -14,7 +14,7 @@
 
 #include "effects.h"
 #include "engine/clx_sprite.hpp"
-#include "spelldat.h"
+#include "tables/spelldat.h"
 #include "utils/enum_traits.h"
 
 namespace devilution {

@@ -13,7 +13,7 @@
 #include "engine/animationinfo.h"
 #include "engine/point.hpp"
 #include "engine/surface.hpp"
-#include "itemdat.h"
+#include "tables/itemdat.h"
 #include "levels/dun_tile.hpp"
 #include "monster.h"
 #include "utils/is_of.hpp"

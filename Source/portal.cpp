@@ -6,7 +6,7 @@
 #include "portal.h"
 
 #include "lighting.h"
-#include "misdat.h"
+#include "tables/misdat.h"
 #include "missiles.h"
 #include "multi.h"
 #include "player.h"
