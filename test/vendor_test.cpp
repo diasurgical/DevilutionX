@@ -3,8 +3,8 @@
 
 #include "items.h"
 #include "player.h"
-#include "tables/playerdat.hpp"
 #include "stores.h"
+#include "tables/playerdat.hpp"
 
 #include "engine/assets.hpp"
 #include "engine/random.hpp"

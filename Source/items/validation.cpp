@@ -9,10 +9,10 @@
 #include <cstdint>
 
 #include "items.h"
-#include "tables/monstdat.h"
 #include "msg.h"
 #include "player.h"
 #include "spells.h"
+#include "tables/monstdat.h"
 #include "utils/endian_swap.hpp"
 #include "utils/is_of.hpp"
 

@@ -9,8 +9,8 @@
 #include <string_view>
 #include <vector>
 
-#include "DiabloUI/ui_flags.hpp"
 #include "control/control.hpp"
+#include "DiabloUI/ui_flags.hpp"
 #include "engine/clx_sprite.hpp"
 #include "engine/dx.h"
 #include "engine/load_cel.hpp"

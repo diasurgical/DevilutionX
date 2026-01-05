@@ -12,9 +12,9 @@
 #include "engine/displacement.hpp"
 #include "engine/point.hpp"
 #include "engine/world_tile.hpp"
-#include "tables/misdat.h"
 #include "monster.h"
 #include "player.h"
+#include "tables/misdat.h"
 #include "tables/spelldat.h"
 #include "utils/is_of.hpp"
 

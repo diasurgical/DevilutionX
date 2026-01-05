@@ -6,9 +6,9 @@
 #pragma once
 
 #include "engine/point.hpp"
-#include "tables/misdat.h"
 #include "monster.h"
 #include "player.h"
+#include "tables/misdat.h"
 
 namespace devilution {
 

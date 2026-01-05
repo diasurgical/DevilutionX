@@ -6,10 +6,10 @@
 #include <sol/sol.hpp>
 
 #include "data/file.hpp"
-#include "tables/itemdat.h"
 #include "items.h"
 #include "lua/metadoc.hpp"
 #include "player.h"
+#include "tables/itemdat.h"
 #include "utils/utf8.hpp"
 
 namespace devilution {

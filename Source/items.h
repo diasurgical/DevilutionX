@@ -8,14 +8,14 @@
 #include <cstdint>
 #include <optional>
 
-#include "DiabloUI/ui_flags.hpp"
 #include "cursor.h"
+#include "DiabloUI/ui_flags.hpp"
 #include "engine/animationinfo.h"
 #include "engine/point.hpp"
 #include "engine/surface.hpp"
-#include "tables/itemdat.h"
 #include "levels/dun_tile.hpp"
 #include "monster.h"
+#include "tables/itemdat.h"
 #include "utils/is_of.hpp"
 #include "utils/string_or_view.hpp"
 

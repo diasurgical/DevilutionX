@@ -14,9 +14,9 @@
 #include "levels/gendung.h"
 #include "levels/trigs.h"
 #include "msg.h"
-#include "tables/objdat.h"
 #include "objects.h"
 #include "quests.h"
+#include "tables/objdat.h"
 #include "utils/language.h"
 
 namespace devilution {

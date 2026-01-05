@@ -8,8 +8,8 @@
 
 #include <cstdint>
 
-#include "tables/objdat.h"
 #include "quests.h"
+#include "tables/objdat.h"
 #include "tables/textdat.h"
 #include "utils/is_of.hpp"
 
