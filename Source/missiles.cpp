@@ -715,7 +715,7 @@ bool GuardianTryFireAt(Missile &missile, Point target)
 {
 	const Point position = missile.position.tile;
 
-	if (!LineClearMissile(position, target))
+	if (!LineClearMovingMissile(position, target))
 		return false;
 	const int mid = dMonster[target.x][target.y] - 1;
 	if (mid < 0)
@@ -2525,7 +2525,7 @@ void AddWallControl(Missile &missile, AddMissileParameter &parameter)
 {
 	std::optional<Point> spreadPosition = FindClosestValidPosition(
 	    [start = missile.position.start](Point target) {
-		    return start != target && !TileHasAny(target, TileProperties::BlockMissile) && LineClearMissile(start, target);
+		    return start != target && !TileHasAny(target, TileProperties::BlockMissile) && LineClearMissile(start, target); // CODEFIX: LineClearMissile already checks for BlockMissile
 	    },
 	    parameter.dst, 0, 5);
 
