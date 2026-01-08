@@ -116,6 +116,7 @@ size_t ActiveMonsterCount;
 /** Tracks the total number of monsters killed per monster_id. */
 int MonsterKillCounts[NUM_MAX_MTYPES];
 bool sgbSaveSoundOn;
+int MonsterBaseToHit = 30;
 
 namespace {
 
@@ -1183,7 +1184,7 @@ void MonsterAttackPlayer(Monster &monster, Player &player, int hit, int minDam, 
 	if (HasAnyOf(player.pDamAcFlags, ItemSpecialEffectHf::ACAgainstUndead) && monster.data().monsterClass == MonsterClass::Undead)
 		ac += 20;
 	hit += 2 * (monster.level(sgGameInitInfo.nDifficulty) - player.getCharacterLevel())
-	    + 30
+	    + MonsterBaseToHit
 	    - ac;
 	const int minhit = GetMinHit();
 	hit = std::max(hit, minhit);

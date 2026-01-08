@@ -1092,7 +1092,7 @@ bool PlayerMHit(Player &player, Monster *monster, int dist, int mind, int maxd, 
 		if (monster != nullptr) {
 			hper = monster->toHit(sgGameInitInfo.nDifficulty)
 			    + ((monster->level(sgGameInitInfo.nDifficulty) - player.getCharacterLevel()) * 2)
-			    + 30
+			    + MonsterBaseToHit
 			    - (dist * 2) - tac;
 		} else {
 			hper = 100 - (tac / 2) - (dist * 2);
