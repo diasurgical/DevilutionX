@@ -69,6 +69,7 @@
 #include "levels/tile_properties.hpp"
 #include "levels/trigs.h"
 #include "lighting.h"
+#include "lua/lua_global.hpp"
 #include "minitext.h"
 #include "missiles.h"
 #include "movie.h"
@@ -77,7 +78,6 @@
 #include "objects.h"
 #include "options.h"
 #include "player.h"
-#include "qol/floatingnumbers.h"
 #include "quests.h"
 #include "sound_effect_enums.h"
 #include "storm/storm_net.hpp"
@@ -3778,7 +3778,7 @@ void AddDoppelganger(Monster &monster)
 
 void ApplyMonsterDamage(DamageType damageType, Monster &monster, int damage)
 {
-	AddFloatingNumber(damageType, monster, damage);
+	LuaEvent("OnMonsterTakeDamage", &monster, damage, static_cast<int>(damageType));
 
 	monster.hitPoints -= damage;
 

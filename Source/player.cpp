@@ -41,6 +41,7 @@
 #include "levels/trigs.h"
 #include "lighting.h"
 #include "loadsave.h"
+#include "lua/lua_global.hpp"
 #include "minitext.h"
 #include "missiles.h"
 #include "monster.h"
@@ -49,7 +50,6 @@
 #include "options.h"
 #include "player.h"
 #include "qol/autopickup.h"
-#include "qol/floatingnumbers.h"
 #include "qol/stash.h"
 #include "spells.h"
 #include "stores.h"
@@ -2442,6 +2442,8 @@ void Player::_addExperience(uint32_t experience, int levelDelta)
 		clampedExp = std::min<uint32_t>({ clampedExp, /* level 1-5: */ getNextExperienceThreshold() / 20U, /* level 6-50: */ 200U * getCharacterLevel() });
 	}
 
+	LuaEvent("OnPlayerGainExperience", this, clampedExp);
+
 	const uint32_t maxExperience = GetNextExperienceThresholdForLevel(getMaxCharacterLevel());
 
 	// ensure we only add enough experience to reach the max experience cap so we don't overflow
@@ -2822,7 +2824,7 @@ void ApplyPlrDamage(DamageType damageType, Player &player, int dam, int minHP /*
 {
 	int totalDamage = (dam << 6) + frac;
 	if (&player == MyPlayer && !player.hasNoLife()) {
-		AddFloatingNumber(damageType, player, totalDamage);
+		LuaEvent("OnPlayerTakeDamage", &player, totalDamage, static_cast<int>(damageType));
 	}
 	if (totalDamage > 0 && player.pManaShield && HasNoneOf(player._pIFlags, ItemSpecialEffect::NoMana)) {
 		const uint8_t manaShieldLevel = player._pSplLvl[static_cast<int8_t>(SpellID::ManaShield)];
