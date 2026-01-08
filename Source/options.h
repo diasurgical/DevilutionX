@@ -646,6 +646,8 @@ struct GameplayOptions : OptionCategoryBase {
 	OptionEntryInt<int> numFullRejuPotionPickup;
 	/** @brief Enable floating numbers. */
 	OptionEntryEnum<FloatingNumbers> enableFloatingNumbers;
+	/** @brief Enable local co-op mode (multiple controllers on same screen). */
+	OptionEntryBoolean enableLocalCoop;
 
 	/**
 	 * @brief If loading takes less than this value, skips displaying the loading screen.

@@ -36,6 +36,7 @@
 #include "DiabloUI/diabloui.h"
 #include "controls/control_mode.hpp"
 #include "controls/keymapper.hpp"
+#include "controls/local_coop/local_coop.hpp"
 #include "controls/plrctrls.h"
 #include "controls/remap_keyboard.h"
 #include "diablo.h"
@@ -368,7 +369,14 @@ void LeftMouseDown(uint16_t modState)
 	const bool isShiftHeld = (modState & SDL_KMOD_SHIFT) != 0;
 	const bool isCtrlHeld = (modState & SDL_KMOD_CTRL) != 0;
 
-	if (!GetMainPanel().contains(MousePosition)) {
+#ifndef USE_SDL1
+	// Skip main panel mouse handling only when the main panel is actually hidden for local co-op
+	const bool skipMainPanelForLocalCoop = IsLocalCoopEnabled() && IsAnyLocalCoopPlayerInitialized();
+#else
+	const bool skipMainPanelForLocalCoop = false;
+#endif
+
+	if (!GetMainPanel().contains(MousePosition) || skipMainPanelForLocalCoop) {
 		if (!gmenu_is_active() && !TryIconCurs()) {
 			if (QuestLogIsOpen && GetLeftPanel().contains(MousePosition)) {
 				QuestlogESC();
@@ -377,7 +385,22 @@ void LeftMouseDown(uint16_t modState)
 				stream_stop();
 			} else if (CharFlag && GetLeftPanel().contains(MousePosition)) {
 				CheckChrBtns();
-			} else if (invflag && GetRightPanel().contains(MousePosition)) {
+			} else if (invflag && (GetRightPanel().contains(MousePosition)
+#ifndef USE_SDL1
+			               || (IsLocalCoopEnabled() && [&]() {
+				                  uint8_t beltOwnerPlayerId = 0;
+				                  std::optional<inv_xy_slot> slot = FindLocalCoopBeltSlotUnderCursor(MousePosition, beltOwnerPlayerId);
+				                  if (!slot.has_value()) return false;
+				                  // Check if this player can interact with this belt
+				                  Player *panelOwner = GetLocalCoopPanelOwnerPlayer();
+				                  if (panelOwner != nullptr) {
+					                  return panelOwner->getId() == beltOwnerPlayerId;
+				                  } else {
+					                  return beltOwnerPlayerId == MyPlayerId;
+				                  }
+			                  }())
+#endif
+			                   )) {
 				if (!DropGoldFlag)
 					CheckInvItem(isShiftHeld, isCtrlHeld);
 			} else if (IsStashOpen && GetLeftPanel().contains(MousePosition)) {
@@ -396,6 +419,18 @@ void LeftMouseDown(uint16_t modState)
 					}
 				}
 			} else {
+#ifndef USE_SDL1
+				// Don't call LeftMouseCmd if clicking on a local coop belt
+				// This prevents the assertion failure and avoids walking when clicking belts
+				if (IsLocalCoopEnabled()) {
+					uint8_t beltOwnerPlayerId = 0;
+					std::optional<inv_xy_slot> slot = FindLocalCoopBeltSlotUnderCursor(MousePosition, beltOwnerPlayerId);
+					if (slot.has_value()) {
+						// Clicked on a local coop belt, do nothing (belts are only interactive when inventory is open)
+						return;
+					}
+				}
+#endif
 				CheckLevelButton();
 				if (!LevelButtonDown)
 					LeftMouseCmd(isShiftHeld);
@@ -727,6 +762,13 @@ void PrepareForFadeIn()
 
 void GameEventHandler(const SDL_Event &event, uint16_t modState)
 {
+#ifndef USE_SDL1
+	// Handle local co-op player input before Player 1's input
+	if (ProcessLocalCoopInput(event)) {
+		return;
+	}
+#endif
+
 	[[maybe_unused]] const Options &options = GetOptions();
 	StaticVector<ControllerButtonEvent, 4> ctrlEvents = ToControllerButtonEvents(event);
 	for (const ControllerButtonEvent ctrlEvent : ctrlEvents) {
@@ -940,8 +982,19 @@ void RunGameLoop(interface_mode uMsg)
 	demo::NotifyGameLoopEnd();
 
 	if (gbIsMultiplayer) {
+#ifndef USE_SDL1
+		// CRITICAL: Restore MyPlayer to Player 1 before saving
+		// If a local coop player has panels open, MyPlayer might point to them
+		if (IsLocalCoopEnabled())
+			RestorePlayer1ContextForSave();
+#endif
 		pfile_write_hero(/*writeGameData=*/false);
 		sfile_write_stash();
+#ifndef USE_SDL1
+		// Also save local co-op players to their respective save slots
+		if (IsLocalCoopEnabled())
+			SaveLocalCoopPlayers(/*writeGameData=*/false);
+#endif
 	}
 
 	PaletteFadeOut(8);
@@ -1790,7 +1843,7 @@ void OptionLanguageCodeChanged()
 	UnloadFonts();
 	LanguageInitialize();
 	LoadLanguageArchive();
-	effects_cleanup_sfx(false);
+	effects_cleanup_sfx();
 	if (gbRunGame)
 		sound_init();
 	else
@@ -3137,7 +3190,13 @@ tl::expected<void, std::string> LoadGameLevelDungeon(bool firstflag, lvl_entry l
 void LoadGameLevelSyncPlayerEntry(lvl_entry lvldir)
 {
 	for (Player &player : Players) {
-		if (player.plractive && player.isOnActiveLevel() && (!player._pLvlChanging || &player == MyPlayer)) {
+		if (!player.plractive || !player.isOnActiveLevel())
+			continue;
+
+		// Include player if:
+		// 1. They're not changing levels (normal case for remote multiplayer players)
+		// 2. OR they're a local player (MyPlayer or local coop players change levels together)
+		if (!player._pLvlChanging || IsLocalPlayer(player)) {
 			if (player._pHitPoints > 0) {
 				if (lvldir != ENTRY_LOAD)
 					SyncInitPlrPos(player);
@@ -3172,6 +3231,11 @@ void LoadGameLevelInitPlayers(bool firstflag, lvl_entry lvldir)
 			InitPlayerGFX(player);
 			if (lvldir != ENTRY_LOAD)
 				InitPlayer(player, firstflag);
+
+			// Clear level changing flag for local coop players
+			if (IsLocalCoopPlayer(player)) {
+				player._pLvlChanging = false;
+			}
 		}
 	}
 }

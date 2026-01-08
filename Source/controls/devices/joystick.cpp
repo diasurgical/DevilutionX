@@ -460,11 +460,14 @@ Joystick *Joystick::Get(const SDL_Event &event)
 	}
 }
 
-bool Joystick::IsPressedOnAnyJoystick(ControllerButton button)
+bool Joystick::IsPressedOnAnyJoystick(ControllerButton button, SDL_JoystickID *which)
 {
 	for (auto &joystick : joysticks_)
-		if (joystick.IsPressed(button))
+		if (joystick.IsPressed(button)) {
+			if (which != nullptr)
+				*which = joystick.instance_id_;
 			return true;
+		}
 	return false;
 }
 

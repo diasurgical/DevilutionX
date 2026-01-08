@@ -876,6 +876,7 @@ GameplayOptions::GameplayOptions()
               { FloatingNumbers::Random, N_("Random Angles") },
               { FloatingNumbers::Vertical, N_("Vertical Only") },
           })
+    , enableLocalCoop("Enable Local Co-op", OptionEntryFlags::CantChangeInGame, N_("Enable Local Co-op"), N_("Enable local co-op mode with multiple controllers. Each controller controls a different player on the same screen."), false)
     , skipLoadingScreenThresholdMs("Skip loading screen threshold, ms", OptionEntryFlags::Invisible, "", "", 0)
 {
 }
@@ -923,6 +924,7 @@ std::vector<OptionEntryBase *> GameplayOptions::GetEntries()
 		&adriaRefillsMana,
 		&grabInput,
 		&pauseOnFocusLoss,
+		&enableLocalCoop,
 		&skipLoadingScreenThresholdMs,
 	};
 }
