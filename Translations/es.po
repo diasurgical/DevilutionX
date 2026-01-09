@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: DevilutionX\n"
 "POT-Creation-Date: 2025-10-30 00:27+0100\n"
-"PO-Revision-Date: 2025-11-18 00:19+0100\n"
+"PO-Revision-Date: 2026-01-09 14:32+0100\n"
 "Last-Translator: Rodrigo Vegas Sánchez-Ferrero <rodrigo.vegas@gmail.com>\n"
 "Language-Team: Spanish\n"
 "Language: es\n"
@@ -169,7 +169,7 @@ msgstr "Contrainteligencia del control de calidad"
 #. TRANSLATORS: A group of people
 #: Source/DiabloUI/credits_lines.cpp:132
 msgid "Order of Network Information Services"
-msgstr "Orden de los servicios de Información de red"
+msgstr "Orden de los Servicios de Información de Red"
 
 #: Source/DiabloUI/credits_lines.cpp:136
 msgid "Customer Support"
@@ -370,7 +370,7 @@ msgid ""
 "Diablo. Visit https://www.gog.com/game/diablo to purchase."
 msgstr ""
 "El ladrón y el hechicero solo están disponibles en la versión comercial "
-"completa de Diablo. Visite https://www.gog.com/game/diablo para comprar."
+"completa de Diablo. Visita https://www.gog.com/game/diablo para adquirirlo."
 
 #: Source/DiabloUI/hero/selhero.cpp:309 Source/DiabloUI/hero/selhero.cpp:312
 msgid "Enter Name"
@@ -427,15 +427,15 @@ msgstr "Eliminar"
 
 #: Source/DiabloUI/hero/selhero.cpp:567
 msgid "Multi Player Characters"
-msgstr "Personajes Multijugador"
+msgstr "Personajes multijugador"
 
 #: Source/DiabloUI/hero/selhero.cpp:618
 msgid "Delete Multi Player Hero"
-msgstr "Eliminar Héroe Multijugador"
+msgstr "Eliminar héroe multijugador"
 
 #: Source/DiabloUI/hero/selhero.cpp:620
 msgid "Delete Single Player Hero"
-msgstr "Eliminar Héroe"
+msgstr "Eliminar héroe"
 
 #: Source/DiabloUI/hero/selhero.cpp:622
 #, c++-format
@@ -444,7 +444,7 @@ msgstr "¿Seguro que quieres eliminar el personaje \"{:s}\"?"
 
 #: Source/DiabloUI/mainmenu.cpp:53
 msgid "Single Player"
-msgstr "Un Jugador"
+msgstr "Un jugador"
 
 #: Source/DiabloUI/mainmenu.cpp:54
 msgid "Multi Player"
@@ -1049,7 +1049,7 @@ msgstr "¿Qué arena quieres visitar?"
 
 #: Source/control.cpp:675
 msgid "Invalid arena-number. Valid numbers are:"
-msgstr "Número de Arena inválido. Los números válidos son:"
+msgstr "Número de arena inválido. Los números válidos son:"
 
 #: Source/control.cpp:681
 msgid "To enter a arena, you need to be in town or another arena."
@@ -1201,7 +1201,7 @@ msgstr "Clic derecho para inspeccionar"
 
 #: Source/control.cpp:1587
 msgid "Level Up"
-msgstr "Subir Nivel"
+msgstr "Subir nivel"
 
 #: Source/control.cpp:1701
 msgid "You have died"
@@ -1213,7 +1213,7 @@ msgstr "ESC"
 
 #: Source/control.cpp:1715
 msgid "Menu Button"
-msgstr "Botón de Menú"
+msgstr "Botón de menú"
 
 #: Source/control.cpp:1723
 #, c++-format
@@ -2689,7 +2689,7 @@ msgstr "en el arma aumenta"
 
 #: Source/items.cpp:1649
 msgid "chance to hit"
-msgstr "probabilidad de acertar"
+msgstr "probabilidad de impacto"
 
 #: Source/items.cpp:1652
 msgid "greatly increases a"
@@ -2697,7 +2697,7 @@ msgstr "aumenta enormemente un"
 
 #: Source/items.cpp:1653
 msgid "weapon's chance to hit"
-msgstr "posibilidad de que el arma golpee"
+msgstr "probabilidad de impacto del arma"
 
 #: Source/items.cpp:1657
 msgid "damage potential"
@@ -2924,7 +2924,7 @@ msgstr "oreja de {:s}"
 #: Source/items.cpp:3879
 #, c++-format
 msgid "chance to hit: {:+d}%"
-msgstr "probabilidad de acertar: {:+d}%"
+msgstr "ataque: {:+d}%"
 
 #: Source/items.cpp:3882
 #, no-c-format, c++-format
@@ -2934,7 +2934,7 @@ msgstr "{:+d}% daño"
 #: Source/items.cpp:3885 Source/items.cpp:4067
 #, c++-format
 msgid "to hit: {:+d}%, {:+d}% damage"
-msgstr "al golpear: {:+d}%, {:+d}% daño"
+msgstr "ataque: {:+d}%, {:+d}% daño"
 
 #: Source/items.cpp:3888
 #, no-c-format, c++-format
@@ -3161,22 +3161,22 @@ msgstr "Toda la resistencia es igual a 0"
 #: Source/items.cpp:4001
 #, no-c-format
 msgid "hit steals 3% mana"
-msgstr "el golpe quita 3% de maná"
+msgstr "el impacto roba 3% de maná"
 
 #: Source/items.cpp:4003
 #, no-c-format
 msgid "hit steals 5% mana"
-msgstr "el golpe quita 5% de maná"
+msgstr "el impacto roba 5% de maná"
 
 #: Source/items.cpp:4007
 #, no-c-format
 msgid "hit steals 3% life"
-msgstr "el golpe quita 3% de vida"
+msgstr "el impacto roba 3% de vida"
 
 #: Source/items.cpp:4009
 #, no-c-format
 msgid "hit steals 5% life"
-msgstr "el golpe quita 5% de vida"
+msgstr "el impacto roba 5% de vida"
 
 #: Source/items.cpp:4012
 msgid "penetrates target's armor"
@@ -3205,18 +3205,18 @@ msgstr "Otra habilidad (NW)"
 
 #: Source/items.cpp:4025
 msgid "fast hit recovery"
-msgstr "recuperación rápida de golpes"
+msgstr "recuperación de impacto rápida"
 
 #: Source/items.cpp:4027
 msgid "faster hit recovery"
 msgstr ""
-"recuperación de golpes\n"
+"recuperación de impacto\n"
 "más rápida"
 
 #: Source/items.cpp:4029
 msgid "fastest hit recovery"
 msgstr ""
-"recuperación de golpes\n"
+"recuperación de impacto\n"
 "más rápida posible"
 
 #: Source/items.cpp:4032
@@ -3270,7 +3270,7 @@ msgstr "daño por rayo: {:d}-{:d}"
 
 #: Source/items.cpp:4055
 msgid "charged bolts on hits"
-msgstr "rayos por cada golpe"
+msgstr "rayos por cada impacto"
 
 #: Source/items.cpp:4057
 msgid "occasional triple damage"
@@ -3543,7 +3543,7 @@ msgstr "Muertes totales: {:d}"
 #: Source/monster.cpp:4447
 #, c++-format
 msgid "Hit Points: {:d}-{:d}"
-msgstr "Puntos de Golpe: {:d}-{:d}"
+msgstr "Puntos de impacto: {:d}-{:d}"
 
 #: Source/monster.cpp:4452
 msgid "No magic resistance"
@@ -3777,7 +3777,7 @@ msgstr "El Gran Conflicto"
 #. TRANSLATORS: Book Title
 #: Source/objects.cpp:216
 msgid "The Wages of Sin are War"
-msgstr "La Paga del Pecado es la Guerra"
+msgstr "El producto del pecado es la guerra"
 
 #. TRANSLATORS: Book Title
 #: Source/objects.cpp:217
@@ -5687,7 +5687,7 @@ msgstr "Provocador de escarcha"
 #: Source/translation_dummy.cpp:73
 msgctxt "monster"
 msgid "Obsidian Lord"
-msgstr "Señor de Obsidiana"
+msgstr "Señor de obsidiana"
 
 #: Source/translation_dummy.cpp:74
 msgctxt "monster"
@@ -6152,7 +6152,7 @@ msgstr "Piedra de sangre"
 #: Source/translation_dummy.cpp:166
 msgctxt "monster"
 msgid "Bronzefist Firestone"
-msgstr "Piedra de Fuego Puño de Bronce"
+msgstr "Piedra de fuego Puño de Bronce"
 
 #: Source/translation_dummy.cpp:167
 msgctxt "monster"
@@ -6445,7 +6445,7 @@ msgstr "Anillo de la verdad"
 
 #: Source/translation_dummy.cpp:228
 msgid "Tavern Sign"
-msgstr "Cartel de la taberna"
+msgstr "Letrero de la taberna"
 
 #: Source/translation_dummy.cpp:229
 msgid "Harlequin Crest"
@@ -6745,7 +6745,7 @@ msgstr "Pergamino de búsqueda"
 
 #: Source/translation_dummy.cpp:307
 msgid "Scroll of Lightning"
-msgstr "Pergamino del relámpago"
+msgstr "Pergamino de relámpago"
 
 #: Source/translation_dummy.cpp:308
 msgid "Scroll of Fire Wall"
@@ -6753,7 +6753,7 @@ msgstr "Pergamino de muro de fuego"
 
 #: Source/translation_dummy.cpp:309
 msgid "Scroll of Inferno"
-msgstr "Pergamino del infierno"
+msgstr "Pergamino de inferno"
 
 #: Source/translation_dummy.cpp:310
 msgid "Scroll of Flash"
@@ -6789,15 +6789,15 @@ msgstr "Pergamino de cadena de relámpagos"
 
 #: Source/translation_dummy.cpp:318
 msgid "Scroll of Guardian"
-msgstr "Pergamino del guardián"
+msgstr "Pergamino de guardián"
 
 #: Source/translation_dummy.cpp:319
 msgid "Scroll of Nova"
-msgstr "Pergamino de Nova"
+msgstr "Pergamino de nova"
 
 #: Source/translation_dummy.cpp:320
 msgid "Scroll of Golem"
-msgstr "Pergamino del golem"
+msgstr "Pergamino de golem"
 
 #: Source/translation_dummy.cpp:321
 msgid "Scroll of Teleport"
@@ -6805,7 +6805,7 @@ msgstr "Pergamino de teletransporte"
 
 #: Source/translation_dummy.cpp:322
 msgid "Scroll of Apocalypse"
-msgstr "Pergamino de Apocalipsis"
+msgstr "Pergamino de apocalipsis"
 
 #: Source/translation_dummy.cpp:323
 msgid "Falchion"
@@ -6993,7 +6993,7 @@ msgstr "El cuchillo del Carnicero"
 
 #: Source/translation_dummy.cpp:370
 msgid "Lightforge"
-msgstr "Forja de Luz"
+msgstr "Forja de luz"
 
 #: Source/translation_dummy.cpp:371
 msgid "The Rift Bow"
@@ -7077,7 +7077,7 @@ msgstr "Pico del mago"
 
 #: Source/translation_dummy.cpp:391
 msgid "Lightsabre"
-msgstr "Sable de Luz"
+msgstr "Sable de luz"
 
 #: Source/translation_dummy.cpp:392
 msgid "The Falcon's Talon"
@@ -7085,7 +7085,7 @@ msgstr "La garra del halcón"
 
 #: Source/translation_dummy.cpp:393
 msgid "Inferno"
-msgstr "Infierno"
+msgstr "Inferno"
 
 #: Source/translation_dummy.cpp:394
 msgid "Doombringer"
@@ -7117,7 +7117,7 @@ msgstr "El hacha celestial"
 
 #: Source/translation_dummy.cpp:401
 msgid "Wicked Axe"
-msgstr "Hacha Malvada"
+msgstr "Hacha malvada"
 
 #: Source/translation_dummy.cpp:402
 msgid "Stonecleaver"
@@ -7510,7 +7510,7 @@ msgstr "piadoso"
 # **
 #: Source/translation_dummy.cpp:496
 msgid "Red"
-msgstr "roja"
+msgstr "escarlata"
 
 #: Source/translation_dummy.cpp:497
 msgid "Crimson"
@@ -8051,7 +8051,7 @@ msgstr "El Carnicero"
 
 #: Source/translation_dummy.cpp:632
 msgid "Ogden's Sign"
-msgstr "El cartel de Ogden"
+msgstr "El letrero de Ogden"
 
 #: Source/translation_dummy.cpp:633
 msgid "Halls of the Blind"
@@ -8174,7 +8174,7 @@ msgstr "cadena de relámpagos"
 #: Source/translation_dummy.cpp:662
 msgctxt "spell"
 msgid "Flame Wave"
-msgstr "Ola de Llamas"
+msgstr "Ola de llamas"
 
 #: Source/translation_dummy.cpp:663
 msgctxt "spell"
@@ -8199,7 +8199,7 @@ msgstr "invisibilidad"
 #: Source/translation_dummy.cpp:667
 msgctxt "spell"
 msgid "Inferno"
-msgstr "infierno"
+msgstr "inferno"
 
 #: Source/translation_dummy.cpp:668
 msgctxt "spell"
@@ -8317,12 +8317,12 @@ msgid ""
 "levels beneath the Cathedral. Please, good master, put his soul at ease by "
 "destroying his now cursed form..."
 msgstr ""
-"¡El pueblo necesita su ayuda, mi señor! Hace algunos meses, el hijo del rey "
-"Leoric, el príncipe Albrecht, fue secuestrado. El rey enfureció y recorrió "
-"el pueblo en busca de su hijo desaparecido. Cada día que pasaba, Leoric "
-"parecía hundirse cada vez más en la locura. Comenzó a culpar a inocentes "
-"habitantes del pueblo de la desaparición del chico y acabó ejecutándolos "
-"brutalmente. Menos de la mitad sobrevivimos a su locura...\n"
+"¡El pueblo necesita tu ayuda, buen maestro! Hace algunos meses, el hijo del "
+"rey Leoric, el príncipe Albrecht, fue secuestrado. El rey enfureció y "
+"recorrió el pueblo en busca de su hijo desaparecido. Cada día que pasaba, "
+"Leoric parecía hundirse cada vez más en la locura. Comenzó a culpar a "
+"inocentes habitantes del pueblo de la desaparición del chico y acabó "
+"ejecutándolos brutalmente. Menos de la mitad sobrevivimos a su locura...\n"
 " \n"
 "Los caballeros y sacerdotes del rey intentaron pararlo, pero él se volvió "
 "contra ellos y, lamentablemente, se vieron obligados a matarlo. Con su "
@@ -8332,7 +8332,7 @@ msgstr ""
 "¡Aquí es donde las cosas se tornan aún más oscuras! Nuestro antiguo rey ha "
 "despertado de su sueño eterno y ahora dirige una legión de esbirros muertos "
 "vivientes dentro del laberinto. Su cuerpo fue enterrado en una tumba tres "
-"niveles bajo la catedral. Por favor, mi señor, ponga en paz su alma "
+"niveles bajo la catedral. Por favor, buen maestro, pon en paz su alma "
 "destruyendo su forma ahora maldita..."
 
 #: Source/translation_dummy.cpp:686
@@ -8341,9 +8341,9 @@ msgid ""
 "down there, waiting in the putrid darkness for his chance to destroy this "
 "land..."
 msgstr ""
-"Como ya le dije, mi señor, el rey fue sepultado tres niveles más abajo. Yace "
-"allí, esperando en la pútrida oscuridad su oportunidad de destruir esta "
-"tierra..."
+"Como indiqué, buen maestro, el rey fue sepultado tres niveles más abajo. "
+"Está allí abajo, esperando en la pútrida oscuridad su oportunidad para "
+"destruir esta tierra..."
 
 #: Source/translation_dummy.cpp:687
 msgid ""
@@ -8354,8 +8354,8 @@ msgid ""
 msgstr ""
 "La maldición de nuestro rey ha terminado, pero temo que solo es una parte de "
 "un mal mayor en acción. Quizá podamos salvarnos de la oscuridad que consume "
-"nuestra tierra. Su victoria es un buen augurio. Que la luz guíe su camino, "
-"mi señor."
+"nuestra tierra. Tu victoria es un buen augurio. Que la luz guíe tu camino, "
+"buen maestro."
 
 #: Source/translation_dummy.cpp:688
 msgid ""
@@ -8365,9 +8365,9 @@ msgid ""
 "spirit from his earthly prison, the curse would be lifted..."
 msgstr ""
 "La pérdida de su hijo fue demasiado para el rey Leoric. Hice lo que pude "
-"para aliviar su locura, pero al final le sobrepasó. Una maldición negra se "
-"cierne sobre este reino desde ese día, pero tal vez si libras su espíritu de "
-"su prisión terrenal, la maldición se levantaría..."
+"para aliviar su locura, pero al final esta pudo más que él. Una oscura "
+"maldición se cierne sobre este reino desde ese día. Si pudieras librar su "
+"espíritu de su prisión terrenal, tal vez la maldición se levantaría..."
 
 #: Source/translation_dummy.cpp:689
 msgid ""
@@ -8375,9 +8375,9 @@ msgid ""
 "the kind and just ruler that he was. His death was so sad and seemed very "
 "wrong, somehow."
 msgstr ""
-"No me gusta pensar en cómo murió el rey. Me gusta recordarlo como el "
-"gobernante amable y justo que era. Su muerte fue tan triste, parecía una "
-"equivocación, de alguna manera."
+"No me gusta pensar en cómo murió el rey. Prefiero recordarlo como el "
+"gobernante amable y justo que fue. Su muerte fue tan triste y de alguna "
+"forma tan equivocada."
 
 #: Source/translation_dummy.cpp:690
 msgid ""
@@ -8389,15 +8389,15 @@ msgstr ""
 "Hice muchas de las armas y la mayor parte de las armaduras que el rey Leoric "
 "usó para equipar a sus caballeros. Incluso le elaboré una enorme espada a "
 "dos manos del mejor mithril, así como una corona de campo a juego. Todavía "
-"no puedo creer cómo murió ¡Pero debe haber sido alguna fuerza siniestra lo "
-"que lo volvió loco!"
+"no puedo creer cómo murió. ¡Debe haber sido alguna fuerza siniestra que lo "
+"volvió loco!"
 
 #: Source/translation_dummy.cpp:691
 msgid ""
 "I don't care about that. Listen, no skeleton is gonna be MY king. Leoric is "
 "King. King, so you hear me? HAIL TO THE KING!"
 msgstr ""
-"Eso no me importa. Escucha, ningún esqueleto será MI rey. Leoric es el rey. "
+"Eso no me importa. Escucha, ningún esqueleto será mi rey. Leoric es el rey. "
 "Majestad. ¿Puede oírme? ¡VIVA EL REY!"
 
 #: Source/translation_dummy.cpp:692
@@ -8410,7 +8410,7 @@ msgstr ""
 "Los muertos que caminan entre los vivos siguen al rey maldito. Tiene el "
 "poder de crear aún más guerreros para un ejército de muertos vivientes en "
 "constante crecimiento. Si no detienes su reinado, seguramente marchará a "
-"través de esta tierra y matará a todos los que todavía viven aquí."
+"través de esta tierra y acabará con todos los que todavía viven aquí."
 
 #: Source/translation_dummy.cpp:693
 msgid ""
@@ -8419,9 +8419,9 @@ msgid ""
 "need something to use against this King of the undead, then I can help you "
 "out..."
 msgstr ""
-"Mira, tengo un negocio aquí. No vendo información, y no me importa un rey "
-"que lleva más tiempo muerto que yo vivo. Si necesitas algo contra ese rey de "
-"los muertos vivientes, entonces puedo ayudarte..."
+"Mira, tengo un negocio aquí. No vendo información y no me importa un rey que "
+"lleva más tiempo muerto que yo vivo. Si necesitas algo para luchar contra "
+"ese rey de los muertos vivientes, puedo ayudarte..."
 
 #: Source/translation_dummy.cpp:694
 msgid ""
@@ -8456,13 +8456,13 @@ msgid ""
 "the sign to my inn. I don't know why the demons would steal my sign but "
 "leave my family in peace... 'tis strange, no?"
 msgstr ""
-"Señor, tengo una experiencia extraña que contarle. Sé el gran conocimiento "
-"que  posee de esas monstruosidades que habitan el laberinto, y hay algo que "
-"no puedo terminar de entender... Me desperté durante la noche por el sonido "
-"de un roce que provenía de fuera de mi taberna. Cuando miré desde mi "
+"Maestro, tengo una experiencia extraña que contarte. Sé que posees un gran "
+"conocimiento de esas monstruosidades que habitan el laberinto, y hay algo "
+"que no puedo terminar de entender... Me desperté durante la noche por el "
+"sonido de un roce que provenía de fuera de mi taberna. Cuando miré desde mi "
 "habitación, vi las formas de pequeñas criaturas parecidas a demonios en el "
 "patio de la posada. Poco tiempo después, se fueron corriendo, no sin antes "
-"robar el cartel de mi posada. No sé por qué los demonios robarían mi cartel "
+"robar el letrero de mi posada. No sé por qué los demonios robarían mi cartel "
 "pero dejaron a mi familia en paz... es extraño, ¿verdad?"
 
 #: Source/translation_dummy.cpp:697
@@ -8473,11 +8473,11 @@ msgid ""
 "cap was left in one of the rooms by a magician who stayed here some time "
 "ago. Perhaps it may be of some value to you."
 msgstr ""
-"Oh, no tenía que molestarse en traer mi letrero, pero supongo que me ahorra "
-"el gasto de hacer otro. Bueno, déjeme ver, ¿Qué podría ofrecerle como pago "
+"Oh, no tenías que molestarte en traer mi letrero, pero supongo que me ahorra "
+"el gasto de hacer otro. Bueno, déjame ver, ¿Qué podría ofrecerte como pago "
 "por encontrarlo? Hmmm, qué tenemos aquí... ¡Ah, sí! Este gorro olvidado en "
 "una de las habitaciones por un mago que se hospedó aquí hace algún tiempo. "
-"Quizá pueda encontrarle algún valor."
+"Quizá pueda tener algún valor para ti."
 
 #: Source/translation_dummy.cpp:698
 msgid ""
@@ -8495,8 +8495,8 @@ msgid ""
 "right through the whole thing. Thank the Light that those monsters didn't "
 "attack the inn."
 msgstr ""
-"¡Oh Dios! ¿Ahí es donde fue a parar el letrero? Mi abuela y yo nos habremos "
-"quedado dormidos todo el rato. Gracias a la luz que esos monstruos no "
+"¡ahí va! ¿Así que ahí es donde fue a parar el letrero? Mi abuela y yo nos "
+"debimos quedar realmente dormidos. Gracias a la luz que esos monstruos no "
 "atacaron la posada."
 
 #: Source/translation_dummy.cpp:700
@@ -8509,7 +8509,7 @@ msgstr ""
 "¿Dices que los demonios robaron el letrero de Ogden? Eso no se parece mucho "
 "a las atrocidades de las que he oído, o visto. \n"
 " \n"
-"A los demonios les preocupa arrancarte el corazón, no tu letrero."
+"Los demonios buscan arrancarte el corazón, no tu letrero."
 
 #: Source/translation_dummy.cpp:701
 msgid ""
@@ -8518,10 +8518,10 @@ msgid ""
 "new sign with some pretty drawing on it. Maybe a nice mug of ale or a piece "
 "of cheese..."
 msgstr ""
-"¿Sabes lo que pienso? Alguien tomó ese letrero y querrán mucho dinero por "
-"él. Si yo fuera Ogden... y no lo soy, pero si lo fuera... compraría un nuevo "
-"cartel con un bonito dibujo. Quizás una buena jarra de cerveza o un trozo de "
-"queso..."
+"¿Sabes lo que pienso? Alguien arrebató ese letrero y pedirán mucho dinero "
+"por él. Si yo fuera Ogden... y no lo soy, pero si lo fuera... compraría un "
+"nuevo letrero con un bonito dibujo. Quizá una buena jarra de cerveza o un "
+"trozo de queso..."
 
 #: Source/translation_dummy.cpp:702
 msgid ""
@@ -8661,8 +8661,9 @@ msgid ""
 msgstr ""
 "Lazarus fue el arzobispo que condujo a muchos de los habitantes del pueblo "
 "al laberinto. Ese día perdí a bastantes buenos amigos y Lazarus nunca "
-"regresó. Supongo que lo mataron junto con la mayoría de los demás. Si quiere "
-"hacerme un favor, mi señor, no hable con Farnham sobre ese día, por favor."
+"regresó. Supongo que lo mataron junto con la mayoría de los demás. Si "
+"quieres hacerme un favor, buen maestro, no hables con Farnham sobre ese día, "
+"por favor."
 
 #: Source/translation_dummy.cpp:711
 msgid ""
@@ -8860,7 +8861,7 @@ msgid ""
 msgstr ""
 "¿Un libro que habla de una cámara de huesos humanos? Bueno, se menciona una "
 "cámara de los huesos en ciertos escritos arcaicos que estudié en las "
-"bibliotecas del Este. Estos tomos sugerían que cuando los señores del "
+"bibliotecas del este. Estos tomos sugerían que cuando los señores del "
 "inframundo necesitaban proteger grandes tesoros, creaban dominios donde "
 "aquellos que murieran en el intento de robar ese tesoro estarían obligados a "
 "defenderlo para siempre. Un final retorcido, pero extrañamente apropiado. "
@@ -8871,8 +8872,8 @@ msgid ""
 "I am afraid that I don't know anything about that, good master. Cain has "
 "many books that may be of some help."
 msgstr ""
-"Me temo que no sé nada de eso, mi señor. Caín tiene muchos libros que pueden "
-"resultar de ayuda."
+"Me temo que no sé nada de eso, buen maestro. Caín tiene muchos libros que "
+"pueden resultar de ayuda."
 
 #: Source/translation_dummy.cpp:730
 msgid ""
@@ -9445,7 +9446,7 @@ msgstr ""
 "La naturaleza de este tesoro está envuelta en especulaciones, amigo mío, "
 "pero se dice que el antiguo héroe Arkaine colocó la armadura sagrada Valor "
 "en una bóveda secreta. Arkaine fue el primer mortal en cambiar el rumbo de "
-"la guerra del pecado y enviar a las legiones de la oscuridad de regreso a "
+"la Guerra del Pecado y enviar a las legiones de la oscuridad de regreso a "
 "los infiernos ardientes.\n"
 " \n"
 "Justo antes de que Arkaine muriera, su armadura se escondía en una bóveda "
@@ -9554,8 +9555,8 @@ msgid ""
 "master. I hope that you do not have to fight him, for he sounds extremely "
 "dangerous."
 msgstr ""
-"Me temo que no he oído nada sobre un guerrero tan despiadado, mi señor. "
-"Espero que no tenga que luchar con él, porque parece extremadamente "
+"Me temo que no he oído nada sobre un guerrero tan despiadado, buen maestro. "
+"Espero que no tengas que luchar con él, porque parece extremadamente "
 "peligroso."
 
 #: Source/translation_dummy.cpp:784
@@ -9605,8 +9606,8 @@ msgid ""
 "I haven't ever dealt with this Warlord you speak of, but he sounds like he's "
 "going through a lot of swords. Wouldn't mind supplying his armies..."
 msgstr ""
-"Nunca he tratado con este Señor de la Guerra del que hablas, pero parece que "
-"necesita muchas espadas. No me importaría abastecer a sus ejércitos..."
+"Nunca he tratado con este señor de la guerra del que hablas, pero parece que "
+"necesita muchas espadas. No me importaría abastecer sus ejércitos..."
 
 #: Source/translation_dummy.cpp:790
 msgid ""
@@ -9738,9 +9739,9 @@ msgid ""
 "as I do about Red Herrings. Perhaps Pepin the Healer could tell you more, "
 "but this is something that cannot be found in any of my stories or books."
 msgstr ""
-"¿La bruja Adria busca un hongo negro? Sé tanto sobre Hongos Negros como "
-"sobre Arenques Rojos. Quizás Pepin el Curandero podría contarte más, pero "
-"esto es algo que no se puede encontrar en ninguna de mis historias o libros."
+"¿La bruja Adria busca un hongo negro? Sé tanto sobre hongos negros como "
+"sobre arenques rojos. Quizás Pepin el Curandero pueda contarte más, pero "
+"esto no es algo que se pueda encontrar en ninguna de mis historias o libros."
 
 #: Source/translation_dummy.cpp:802
 msgid ""
@@ -10613,13 +10614,13 @@ msgid ""
 "starved during that first year when the entire countryside was overrun by "
 "demons."
 msgstr ""
-"El Posadero tiene pocos negocios y ninguna forma real de obtener ganancias. "
-"Se las arregla para llegar a fin de mes proporcionando comida y alojamiento "
-"a aquellos que, de vez en cuando, deambulan por la aldea, pero es tan "
-"probable que se escapen por noche como que le paguen. Si no fuera por las "
-"reservas de cereales y carnes secas que guarda en su bodega, la mayoría de "
-"nosotros habríamos muerto de hambre durante ese primer año en que todo el "
-"campo fue invadido por demonios."
+"El posadero tiene poco trabajo y ninguna forma real de obtener ganancias. Se "
+"las arregla para llegar a fin de mes proporcionando comida y alojamiento a "
+"aquellos que, de vez en cuando, deambulan por la aldea, pero es tan probable "
+"que huyan por la noche como que le paguen. Si no fuera por las reservas de "
+"cereales y carnes secas que guarda en su bodega, la mayoría de nosotros "
+"habríamos muerto de hambre durante ese primer año en que todo el campo fue "
+"invadido por demonios."
 
 #: Source/translation_dummy.cpp:880
 msgid "Can't a fella drink in peace?"
@@ -10690,9 +10691,9 @@ msgid ""
 "spendin' more time with Ogden than most, but he's so good to me..."
 msgstr ""
 "Ogden es el mejor hombre del pueblo. No creo que yo le guste mucho a su "
-"esposa, pero mientras ella siga golpeando barriles, supongo que estará bien. "
-"Parece que he pasado más tiempo con Ogden que la mayoría, pero es tan bueno "
-"conmigo ..."
+"esposa, pero mientras ella siga sirviendo barriles, supongo que estará bien. "
+"Parece que he pasado más tiempo con Ogden que el resto, pero es que es tan "
+"bueno conmigo..."
 
 #: Source/translation_dummy.cpp:888
 msgid ""
@@ -10878,13 +10879,14 @@ msgid ""
 "found there, provide a glimpse of a life that the people here remember. It "
 "is that memory that continues to feed their hopes for your success."
 msgstr ""
-"Las paredes de tierra y el dosel de paja no crean una casa. El posadero "
-"Ogden tiene un mayor propósito en este pueblo de lo que muchos creen. "
-"Proporciona refugio para Gillian y su matriarca, mantiene la vida que le "
-"dejó Farnham y proporciona un ancla para todos los que quedan en el pueblo a "
-"lo que Tristram fue una vez. Su taberna, y los placeres sencillos que aún se "
-"pueden encontrar allí, dan una idea de una vida que la gente de aquí "
-"recuerda. Es ese recuerdo el que sigue alimentando sus esperanzas de éxito."
+"Unas paredes de barro y un techo de paja no crean un hogar. Ogden, el "
+"posadero, tiene una mayor influencia en este pueblo de lo que muchos creen. "
+"Proporciona refugio para Gillian y su matriarca, mantiene a Farnham en lo "
+"que este le ha permitido y proporciona un nexo para todos los que quedan en "
+"el pueblo, que una vez conformaron Tristram. Su taberna y los placeres "
+"sencillos que aún se pueden encontrar allí, dan una idea de una vida que la "
+"gente de aquí recuerda. Es ese recuerdo el que sigue alimentando sus "
+"esperanzas de éxito."
 
 #: Source/translation_dummy.cpp:904
 msgid "Pssst... over here..."
@@ -11004,10 +11006,10 @@ msgid ""
 "stupid tavern. I guess at the least he gives Gillian a place to work, and "
 "his wife Garda does make a superb Shepherd's pie..."
 msgstr ""
-"Ogden es un tonto por quedarse aquí. Podría sacarlo del pueblo por un precio "
-"muy razonable, pero él insiste en intentar salir adelante con esa estúpida "
-"taberna. Supongo que al menos le da a Gillian un lugar para trabajar, y su "
-"esposa Garda hace un excelente pastel de cordero..."
+"Ogden es tonto por quedarse aquí. Podría sacarlo del pueblo por un módico "
+"precio, pero él insiste en intentar salir adelante con esa estúpida taberna. "
+"Supongo que al menos le da a Gillian un lugar para trabajar, y su esposa "
+"Garda hace un excelente pastel de cordero..."
 
 #: Source/translation_dummy.cpp:915
 msgid ""
@@ -11015,9 +11017,9 @@ msgid ""
 "who would seek to steal the treasures secured within this room. So speaks "
 "the Lord of Terror, and so it is written."
 msgstr ""
-"Más allá del Salón de los Héroes se encuentra la Cámara de Hueso. La muerte "
-"eterna aguarda a cualquiera que busque robar los tesoros guardados dentro de "
-"esta habitación. Así habla el Señor del Terror, y así está escrito."
+"Más allá del salón de los héroes se encuentra la cámara de los huesos. La "
+"muerte eterna aguarda a cualquiera que busque robar los tesoros guardados "
+"dentro de esta sala. Así habla el Señor del Terror, y así está escrito."
 
 #: Source/translation_dummy.cpp:916
 msgid ""
@@ -11054,8 +11056,8 @@ msgid ""
 "fulfill his endless sacrifices to the Dark ones who scream for one thing - "
 "blood."
 msgstr ""
-"Las armerías del Infierno son el hogar del Señor de la Guerra de la Sangre. "
-"A su paso yacían los cuerpos mutilados de miles. Tanto los ángeles como los "
+"El arsenal del infierno es el hogar del Señor de la Guerra de la Sangre. A "
+"su paso yacían los cuerpos mutilados de miles. Tanto los ángeles como los "
 "hombres han sido cortados para cumplir con sus sacrificios interminables a "
 "los Oscuros que gritan por una cosa: sangre."
 
@@ -11072,10 +11074,10 @@ msgstr ""
 "Presta atención y da testimonio de las verdades que se encuentran aquí, "
 "porque son el último legado de los Horadrim. Hay una guerra que continúa "
 "incluso ahora, más allá de los campos que conocemos, entre los reinos "
-"utópicos de los Altos Cielos y los caóticos pozos de los Infiernos "
-"Ardientes. Esta guerra se conoce como el Gran Conflicto, y ha durado y "
+"utópicos de los altos cielos y los caóticos pozos de los infiernos "
+"ardientes. Esta guerra se conoce como el Gran Conflicto, y ha durado y "
 "ardido durante más tiempo que cualquiera de las estrellas del cielo. Ninguno "
-"de los bandos logrará dominar mientras las fuerzas de la Luz y la Oscuridad "
+"de los bandos logrará dominar mientras las fuerzas de la luz y la oscuridad "
 "compitan constantemente por el control de toda la creación."
 
 #: Source/translation_dummy.cpp:920
@@ -11117,27 +11119,25 @@ msgid ""
 "faith. If Diablo were to be released, he would seek a body that is easily "
 "controlled as he would be very weak - perhaps that of an old man or a child."
 msgstr ""
-"Presta atención y da testimonio de las verdades que se encuentran aquí, "
-"porque son el último legado de los Horadrim. Hace casi trescientos años, se "
-"supo que los Tres Malignos Principales de los Infiernos Ardientes habían "
-"llegado misteriosamente a nuestro mundo. Los Tres Hermanos asolaron las "
-"tierras del este durante décadas, mientras que la humanidad quedó temblando "
-"a su paso. Nuestra Orden, los Horadrim, fue fundada por un grupo de magos "
-"secretos para perseguir y capturar a los Tres Malignos de una vez por "
-"todas.\n"
+"Presta atención y da testimonio de las verdades que aquí se encuentran, "
+"porque son el último legado de los Horadrim. Hace unos trescientos años, se "
+"cuenta que los tres principales malignos de los infiernos ardientes llegaron "
+"misteriosamente a nuestro mundo. Los tres hermanos asolaron las tierras del "
+"este durante décadas, mientras que la humanidad quedó temblando a su paso. "
+"Nuestra orden, los Horadrim, fue fundada por un grupo secreto de magos para "
+"perseguir y capturar a los tres malignos de una vez por todas.\n"
 " \n"
-"El Horadrim original capturó a dos de los Tres dentro de poderosos "
-"artefactos conocidos como Piedras del Alma y los enterró profundamente bajo "
-"las desoladas arenas del este. El tercer Maligno escapó de la captura y huyó "
-"hacia el oeste con muchos de los Horadrim persiguiéndolo. El Tercer Mal, "
-"conocido como Diablo, el Señor del Terror, finalmente fue capturado, su "
-"esencia colocada en una Piedra del Alma y enterrada dentro de este "
-"Laberinto.\n"
+"El Horadrim primigenio capturó y encerró a dos de los tres dentro de "
+"poderosos artefactos conocidos como las piedras del alma, para después "
+"enterrarlos profundamente bajo las desoladas arenas del este. El tercer "
+"maligno pudo escapar y huyó hacia el oeste perseguido por muchos de los "
+"Horadrim. El tercer maligno, conocido como Diablo, Señor del Terror, "
+"finalmente fue capturado, se encerró su esencia en una piedra del alma y se "
+"enterró dentro de este laberinto.\n"
 " \n"
-"Se advierte que debe evitarse que la Piedra del Alma sea descubierta por "
-"aquellos que no son de la fe. Si Diablo fuera liberado, buscaría un cuerpo "
-"que fuera fácil de controlar, y que fuera muy débil, tal vez el de un "
-"anciano o un niño."
+"Se advierte que debe evitarse que la piedra del alma sea descubierta por "
+"aquellos que no tienen fe. Si Diablo fuera liberado, buscaría un cuerpo "
+"débil y fácil de controlar, tal vez el de un anciano o un niño."
 
 #: Source/translation_dummy.cpp:922
 msgid ""
@@ -11150,12 +11150,12 @@ msgid ""
 "continually battered upon the very Gates of Hell."
 msgstr ""
 "Así sucedió que hubo una gran revolución dentro de los Infiernos Ardientes "
-"conocida como El Exilio Oscuro. Los Malignos Menores derrocaron a los Tres "
-"Malignos Principales y desterraron sus formas espirituales al reino de los "
+"conocida como El Exilio Oscuro. Los malignos menores derrocaron a los tres "
+"malignos principales y desterraron sus formas espirituales al reino de los "
 "mortales. Los demonios Belial (el Señor de las Mentiras) y Azmodan (el Señor "
-"del Pecado) lucharon para reclamar el poder del Infierno durante la ausencia "
-"de los Tres Hermanos. Todo el Infierno se polarizó entre las facciones de "
-"Belial y Azmodan mientras las fuerzas de los Altos Cielos golpeaban "
+"del Pecado) lucharon para reclamar el poder del infierno durante la ausencia "
+"de los tres hermanos. Todo el Infierno se polarizó entre las facciones de "
+"Belial y Azmodan mientras las fuerzas de los altos cielos golpeaban "
 "continuamente las mismas Puertas del Infierno."
 
 #: Source/translation_dummy.cpp:923
@@ -11167,11 +11167,11 @@ msgid ""
 "at hunting demons. They also made many dark enemies in the underworlds."
 msgstr ""
 "Muchos demonios viajaron al reino de los mortales en busca de los Tres "
-"Hermanos. Estos demonios fueron seguidos al plano mortal por Ángeles que los "
-"cazaron por las vastas pueblos del Este. Los Ángeles se aliaron con una "
-"Orden secreta de magos mortales llamada Los Horadrim, quienes rápidamente se "
-"volvieron expertos en cazar demonios. Estos también se hicieron muchos "
-"enemigos oscuros en los inframundos."
+"Hermanos. Estos demonios fueron seguidos al plano mortal por ángeles que los "
+"cazaron por las vastos pueblos del este. Los ángeles se aliaron con una "
+"orden secreta de magi mortales llamada los Horadrim, quienes rápidamente se "
+"volvieron expertos en cazar demonios. Estos también hicieron muchos oscuros "
+"enemigos en el inframundo."
 
 #: Source/translation_dummy.cpp:924
 msgid ""
@@ -11202,7 +11202,7 @@ msgstr ""
 "del Terror duerme y espera el momento de su renacimiento. Sabed que buscará "
 "un cuerpo con juventud y fuerza que poseer. Uno que sea inocente y fácil de "
 "controlar. Entonces resurgirá para liberar a sus hermanos y avivar una vez "
-"más las llamas de la guerra del pecado..."
+"más las llamas de la Guerra del Pecado..."
 
 #: Source/translation_dummy.cpp:925
 msgid ""
@@ -11216,10 +11216,10 @@ msgstr ""
 "Todas las alabanzas a Diablo, Señor del Terror y superviviente del Exilio "
 "Oscuro. Cuando despertó de su largo letargo, mi amo y señor me habló de "
 "secretos que pocos mortales conocen. Me dijo que los reinos de los Altos "
-"Cielos y los pozos de los Infiernos Abrasadores se enzarzan en una guerra "
-"eterna. Él reveló los poderes que han traído esta discordia a los reinos del "
-"hombre. Mi señor ha llamado a la batalla por este mundo, y a todos los que "
-"existen aquí, la Guerra del Pecado."
+"Cielos y los pozos de los Infiernos Abrasadores están en una guerra eterna. "
+"Él reveló las fuerzas que han traído la discordia a los reinos del hombre. "
+"Mi señor ha llamado a luchar por este mundo, y por todos los que existen "
+"aquí en la Guerra del Pecado."
 
 #: Source/translation_dummy.cpp:926
 msgid ""
@@ -11230,11 +11230,11 @@ msgid ""
 "beneath the sands of the east. Once my Lord releases his Brothers, the Sin "
 "War will once again know the fury of the Three."
 msgstr ""
-"Gloria y Aprobación a Diablo, Señor del Terror y Líder de los Tres. Mi Señor "
+"Gloria y aprobación a Diablo, Señor del Terror y Líder de los Tres. Mi señor "
 "me habló de sus dos hermanos, Mefisto y Baal, que fueron desterrados a este "
-"mundo hace mucho tiempo. Mi Señor desea esperar el momento oportuno y "
+"mundo hace mucho tiempo. Mi señor desea esperar el momento oportuno y "
 "aprovechar su asombroso poder para liberar a sus hermanos cautivos de sus "
-"tumbas bajo las arenas del este. Una vez que mi Señor libere a sus Hermanos, "
+"tumbas bajo las arenas del este. Una vez que mi señor libere a sus hermanos, "
 "la Guerra del Pecado volverá a conocer la furia de los Tres."
 
 #: Source/translation_dummy.cpp:927
@@ -11254,7 +11254,7 @@ msgstr ""
 "Diablo intentó reclamar el cuerpo del rey Leoric, pero mi amo estaba "
 "demasiado débil por su encarcelamiento. Mi señor necesitaba un sostén simple "
 "e inocente a este mundo, y encontró que el niño Albrecht era perfecto para "
-"esa tarea. Mientras el buen rey Leoric estaba enloquecido por la posesión "
+"ese fin. Mientras el buen rey Leoric estaba enloquecido por la posesión "
 "infructuosa de Diablo, yo secuestré a su hijo Albrecht y lo llevé ante mi "
 "amo. Ahora espero la llamada de Diablo y rezo para ser recompensado cuando "
 "él finalmente emerja como el señor de este mundo."
@@ -11273,17 +11273,17 @@ msgid ""
 "Perhaps I can tell you more if we speak again. Good luck."
 msgstr ""
 "¡Gracias a Dios que has vuelto!\n"
-"Mucho ha cambiado desde que vivias aquí, amigo. Todo estaba en paz hasta que "
-"llegaron los jinetes oscuros y destruyeron nuestra aldea. Muchos fueron "
+"Mucho ha cambiado desde que vivías aquí, amigo mío. Todo estaba en paz hasta "
+"que llegaron los jinetes oscuros y destruyeron nuestra aldea. Muchos fueron "
 "asesinados donde se encontraban, y los que tomaron las armas fueron "
-"asesinados o apresados para convertirse en esclavos, o algo peor. La iglesia "
-"a las afueras del pueblo ha sido profanada y se utiliza para rituales "
-"oscuros. Los gritos que resuenan en la noche son inhumanos, pero es posible "
-"que algunos de nuestros habitantes hayan sobrevivido. Sigue el camino que se "
-"encuentra entre mi taberna y la herrería para encontrar la iglesia y salvar "
-"a quien puedas. \n"
+"asesinados o apresados y convertidos en esclavos, o algo peor. La iglesia a "
+"las afueras del pueblo ha sido profanada y se utiliza para rituales oscuros. "
+"Los gritos que resuenan en la noche son inhumanos, pero es posible que "
+"algunos de nuestros habitantes hayan sobrevivido. Sigue el camino que se "
+"encuentra entre mi taberna y la herrería para encontrar la iglesia y salva a "
+"quien puedas. \n"
 " \n"
-"Quizás pueda contarte más si volvemos a hablar. Buena suerte."
+"Quizá pueda contarte algo más si volvemos a hablar. Buena suerte."
 
 #: Source/translation_dummy.cpp:929
 msgid ""
@@ -11312,8 +11312,8 @@ msgid ""
 "I really don't have time to discuss some map you are looking for.  I have "
 "many sick people that require my help and yours as well."
 msgstr ""
-"Realmente no tengo tiempo para discutir sobre algún mapa que estás buscando. "
-"Tengo muchos enfermos que necesitan mi ayuda y la tuya también."
+"Realmente no tengo tiempo para discutir sobre cualquier mapa que estés "
+"buscando. Tengo muchos enfermos que necesitan mi ayuda y la tuya también."
 
 #: Source/translation_dummy.cpp:932
 msgid ""
@@ -11438,10 +11438,10 @@ msgid ""
 "those creatures you could come back... and spare a little time to help a "
 "poor farmer?"
 msgstr ""
-"Oh, qué problema tengo ... tal vez ... No, no podría imponértelo, con todos "
-"los otros problemas. Quizás, después de haber limpiado la iglesia de algunas "
-"de esas criaturas, ¿podrías regresar ... y dedicar un poco de tiempo para "
-"ayudar a un pobre agricultor?"
+"Oh, menudo problema tengo... podría... No, no podría traspasártelo, con "
+"todos los problemas que tienes. Quizá, tras limpiar la iglesia de algunas de "
+"esas criaturas... ¿Podrías regresar, dedicar una pizca de tiempo y ayudar a "
+"un pobre agricultor?"
 
 #: Source/translation_dummy.cpp:943
 msgid "Waaaah! (sniff) Waaaah! (sniff)"
@@ -11529,14 +11529,14 @@ msgid ""
 "within all things and beyond all things. Light and unity are the products of "
 "this holy foundation, a unity of purpose and a unity of possession."
 msgstr ""
-"Y en el año de la luz dorada, se decretó que se levantara una gran catedral. "
+"Y en el año de la Luz Dorada, se decretó que se levantara una gran catedral. "
 "La piedra angular de este lugar sagrado debía ser tallada en la piedra "
 "translúcida Antyrael, llamada así por el ángel que compartía su poder con "
 "los Horadrim.\n"
 " \n"
 "En el año designado a las Sombras, el suelo tembló y la catedral se hizo "
 "añicos y cayó. Cuando comenzó la construcción de catacumbas y castillos y el "
-"hombre se enfrentó a los estragos de la guerra del Pecado, se excavaron las "
+"hombre se enfrentó a los estragos de la Guerra del Pecado, se excavaron las "
 "ruinas en busca de sus piedras. Y así fue como la piedra angular desapareció "
 "de los ojos del hombre.\n"
 " \n"
@@ -11570,15 +11570,15 @@ msgid ""
 "my house, it's just south of the fork in the river... you know... the one "
 "with the overgrown vegetable garden."
 msgstr ""
-"Bien, bien. Realmente no soy una vaca. Normalmente no ando así; pero, estaba "
-"sentado en casa ocupándome de mis propios asuntos y, de repente, estos "
-"insectos, enredaderas, bulbos y cosas empezaron a salir del suelo ... ¡fue "
-"horrible! Si tan solo tuviera algo normal para ponerme, no estaría tan mal. "
-"¡Oye! ¿Podrías volver a mi casa y traerme mi traje? El marrón, no el gris, "
-"es para la noche. Lo haría yo mismo, pero no quiero que nadie me vea así. "
-"Ten, toma esto, puede que lo necesites ... para matar a esas cosas que han "
-"crecido demasiado. No puedes perderte, mi casa está justo al sur de la "
-"bifurcación del río ... ya sabes ... la del huerto descuidado."
+"De acuerdo, de acuerdo. Realmente no soy una vaca. No suelo andar así; pero, "
+"estaba sentado en casa ocupándome de mis propios asuntos y, de repente, "
+"estos insectos, enredaderas, bulbos y cosas empezaron a salir del suelo... "
+"¡Fue horrible! Si tan solo tuviera algo normal que ponerme, no estaría tan "
+"mal. ¡Oye! ¿Podrías volver a mi casa y traer mi traje? El marrón, no el "
+"gris, es para la noche. Lo haría yo mismo, pero no quiero que nadie me vea "
+"así. Ten, toma esto, puede que lo necesites... para acabar con esas cosas "
+"que han crecido tanto. No puedes perderte, mi casa está justo al sur de la "
+"bifurcación del río... ya sabes... la del huerto descuidado."
 
 #: Source/translation_dummy.cpp:956
 msgid ""
@@ -11593,8 +11593,8 @@ msgid ""
 "Hey, have you got my suit there?  Quick, pass it over!  These ears itch like "
 "you wouldn't believe!"
 msgstr ""
-"Oye, ¿tienes mi traje ahí? ¡Rápido, pásalo! ¡Estos oídos pican como no lo "
-"creerías!"
+"Oye, ¿tienes mi traje ahí? ¡Rápido, pásalo! ¡Estas orejas pican que no "
+"puedes imaginar!"
 
 #: Source/translation_dummy.cpp:958
 msgid ""
@@ -11602,9 +11602,9 @@ msgid ""
 "occasions!  I can't wear THIS.  What are you, some kind of weirdo?  I need "
 "the BROWN suit."
 msgstr ""
-"¡No no no no! ¡Este es mi traje GRIS! ¡Es para la noche! ¡Ocasiones "
-"formales! No puedo usar ESTO. ¿Qué eres, una especie de bicho raro? Necesito "
-"el traje MARRÓN."
+"¡No no no no!  ¡Este es mi traje GRIS!  ¡El traje de noche!  ¡Ocasiones "
+"formales!  No puedo usar ESTO.  ¿Qué eres, una especie de bicho raro?  "
+"Necesito el traje MARRÓN."
 
 #: Source/translation_dummy.cpp:959
 msgid ""
