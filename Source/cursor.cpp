@@ -63,6 +63,7 @@ namespace {
 /** Cursor images CEL */
 OptionalOwnedClxSpriteList pCursCels;
 OptionalOwnedClxSpriteList pCursCels2;
+OptionalOwnedClxSpriteList pCursCelsMod;
 
 OptionalOwnedClxSpriteList *HalfSizeItemSprites;
 OptionalOwnedClxSpriteList *HalfSizeItemSpritesRed;
@@ -441,11 +442,16 @@ void InitCursor()
 #ifdef UNPACKED_MPQS
 	pCursCels = LoadClx("data\\inv\\objcurs.clx");
 	pCursCels2 = LoadOptionalClx("data\\inv\\objcurs2.clx");
+	pCursCelsMod = LoadOptionalClx("data\\inv\\objcursmod.clx");
 #else
 	pCursCels = LoadCel("data\\inv\\objcurs", ReadWidths(FindAsset("data\\inv\\objcurs-widths.txt")).data());
 	AssetRef ref = FindAsset("data\\inv\\objcurs2-widths.txt");
 	if (ref.ok()) {
 		pCursCels2 = LoadOptionalCel("data\\inv\\objcurs2", ReadWidths(std::move(ref)).data());
+	}
+	ref = FindAsset("data\\inv\\objcursmod-widths.txt");
+	if (ref.ok()) {
+		pCursCelsMod = LoadOptionalCel("data\\inv\\objcursmod", ReadWidths(std::move(ref)).data());
 	}
 #endif
 	ClearCursor();
@@ -455,19 +461,31 @@ void FreeCursor()
 {
 	pCursCels = std::nullopt;
 	pCursCels2 = std::nullopt;
+	pCursCelsMod = std::nullopt;
 	ClearCursor();
 }
 
 ClxSprite GetInvItemSprite(int cursId)
 {
 	assert(cursId > 0);
-	const size_t numSprites = pCursCels->numSprites();
-	if (static_cast<size_t>(cursId) <= numSprites) {
-		return (*pCursCels)[cursId - 1];
+
+	const size_t n1 = pCursCels->numSprites();
+	size_t idx = static_cast<size_t>(cursId);
+	if (idx <= n1)
+		return (*pCursCels)[idx - 1];
+	idx -= n1;
+
+	if (pCursCels2.has_value()) {
+		const size_t n2 = pCursCels2->numSprites();
+		if (idx <= n2)
+			return (*pCursCels2)[idx - 1];
+		idx -= n2;
 	}
-	assert(pCursCels2.has_value());
-	assert(cursId - numSprites <= pCursCels2->numSprites());
-	return (*pCursCels2)[cursId - numSprites - 1];
+
+	assert(pCursCelsMod.has_value());
+	const size_t n3 = pCursCelsMod->numSprites();
+	assert(idx <= n3);
+	return (*pCursCelsMod)[idx - 1];
 }
 
 Size GetInvItemSize(int cursId)
@@ -490,8 +508,12 @@ void CreateHalfSizeItemSprites()
 {
 	if (HalfSizeItemSprites != nullptr)
 		return;
-	const uint32_t numInvItems = pCursCels->numSprites() - (static_cast<uint32_t>(CURSOR_FIRSTITEM) - 1)
-	    + (pCursCels2.has_value() ? pCursCels2->numSprites() : 0);
+
+	const uint32_t baseItemCount = pCursCels->numSprites() - (static_cast<uint32_t>(CURSOR_FIRSTITEM) - 1);
+	const uint32_t hfItemCount = pCursCels2.has_value() ? static_cast<uint32_t>(pCursCels2->numSprites()) : 0;
+	const uint32_t modItemCount = pCursCelsMod.has_value() ? static_cast<uint32_t>(pCursCelsMod->numSprites()) : 0;
+	const uint32_t numInvItems = baseItemCount + hfItemCount + modItemCount;
+
 	HalfSizeItemSprites = new OptionalOwnedClxSpriteList[numInvItems];
 	HalfSizeItemSpritesRed = new OptionalOwnedClxSpriteList[numInvItems];
 	const uint8_t *redTrn = GetInfravisionTRN();
@@ -526,14 +548,22 @@ void CreateHalfSizeItemSprites()
 	};
 
 	size_t outputIndex = 0;
-	for (size_t i = static_cast<int>(CURSOR_FIRSTITEM) - 1, n = pCursCels->numSprites(); i < n; ++i, ++outputIndex) {
+
+	for (size_t i = static_cast<size_t>(static_cast<int>(CURSOR_FIRSTITEM) - 1), n = pCursCels->numSprites(); i < n; ++i, ++outputIndex) {
 		createHalfSize((*pCursCels)[i], outputIndex);
 	}
+
 	if (pCursCels2.has_value()) {
-		for (size_t i = 0, n = pCursCels2->numSprites(); i < n; ++i, ++outputIndex) {
+		for (size_t i = 0, n = pCursCels2->numSprites(); i < n; ++i, ++outputIndex)
 			createHalfSize((*pCursCels2)[i], outputIndex);
-		}
 	}
+
+	if (pCursCelsMod.has_value()) {
+		for (size_t i = 0, n = pCursCelsMod->numSprites(); i < n; ++i, ++outputIndex)
+			createHalfSize((*pCursCelsMod)[i], outputIndex);
+	}
+
+	assert(outputIndex == numInvItems);
 }
 
 void FreeHalfSizeItemSprites()
