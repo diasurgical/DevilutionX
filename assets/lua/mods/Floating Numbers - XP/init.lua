@@ -22,6 +22,6 @@ events.OnPlayerGainExperience.add(function(_player, experience)
         entry.time = now
 
         local text = tostring(entry.experience) .. " XP"
-        floatingnumbers.add(text, _player.position, render.UiFlags.White, id, true)
+        floatingnumbers.add(text, _player.position, render.UiFlags.ColorWhite, id, true)
     end
 end)
