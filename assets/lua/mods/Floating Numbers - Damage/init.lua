@@ -17,19 +17,19 @@ local function get_damage_style(damage_val, damage_type)
     
     local v = damage_val
     if v >= 64 * 300 then
-        style = style | render.UiFlags.Large
+        style = style | render.UiFlags.FontSize30
     elseif v >= 64 * 100 then
-        style = style | render.UiFlags.Medium
+        style = style | render.UiFlags.FontSize24
     else
-        style = style | render.UiFlags.Small
+        style = style | render.UiFlags.FontSize12
     end
 
     local damage_type_styles = {
-        [DAMAGE_TYPE.PHYSICAL] = render.UiFlags.Gold,
-        [DAMAGE_TYPE.FIRE] = render.UiFlags.DarkRed,
-        [DAMAGE_TYPE.LIGHTNING] = render.UiFlags.Blue,
-        [DAMAGE_TYPE.MAGIC] = render.UiFlags.Orange,
-        [DAMAGE_TYPE.ACID] = render.UiFlags.Yellow,
+        [DAMAGE_TYPE.PHYSICAL] = render.UiFlags.ColorGold,
+        [DAMAGE_TYPE.FIRE] = render.UiFlags.ColorUiSilver, -- shows as DarkRed in game
+        [DAMAGE_TYPE.LIGHTNING] = render.UiFlags.ColorBlue,
+        [DAMAGE_TYPE.MAGIC] = render.UiFlags.ColorOrange,
+        [DAMAGE_TYPE.ACID] = render.UiFlags.ColorYellow,
     }
 
     local type_style = damage_type_styles[damage_type]
