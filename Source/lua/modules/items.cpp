@@ -23,7 +23,7 @@ void InitItemUserType(sol::state_view &lua)
 
 	// Member variables
 	LuaSetDocProperty(itemType, "seed", "number", "Randomly generated identifier", &Item::_iSeed);
-	LuaSetDocProperty(itemType, "createInfo", "number", "Creation flags", &Item::_iCreateInfo);
+	LuaSetDocProperty(itemType, "createInfo", "number", "Creation flags", &Item::getAllCreationFlags);
 	LuaSetDocProperty(itemType, "type", "ItemType", "Item type", &Item::_itype);
 	LuaSetDocProperty(itemType, "animFlag", "boolean", "Animation flag", &Item::_iAnimFlag);
 	LuaSetDocProperty(itemType, "position", "Point", "Item world position", &Item::position);
@@ -86,7 +86,7 @@ void InitItemUserType(sol::state_view &lua)
 	LuaSetDocProperty(itemType, "minDex", "number", "Minimum dexterity required", &Item::_iMinDex);
 	LuaSetDocProperty(itemType, "statFlag", "boolean", "Equippable flag", &Item::_iStatFlag);
 	LuaSetDocProperty(itemType, "damAcFlags", "ItemSpecialEffectHf", "Secondary special effect flags", &Item::_iDamAcFlags);
-	LuaSetDocProperty(itemType, "buff", "number", "Secondary creation flags", &Item::dwBuff);
+	LuaSetDocProperty(itemType, "buff", "number", "Secondary creation flags", &Item::getAllCreationFlags2);
 
 	// Member functions
 	LuaSetDocFn(itemType, "pop", "() -> Item", "Clears this item and returns the old value", &Item::pop);

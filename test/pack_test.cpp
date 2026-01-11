@@ -168,13 +168,13 @@ static void TestItemNameGeneration(const Item &item)
 
 		// Check that UpdateHellfireFlag ensures that dwBuff is updated to get the correct name
 		if (item._iMagical == ITEM_QUALITY_MAGIC) {
-			const bool isHellfireItem = (testItem.dwBuff & CF_HELLFIRE);
-			testItem.dwBuff = 0;
+			const bool isHellfireItem = testItem.hasCreationFlag2(CF_HELLFIRE);
+			testItem.setAllCreationFlags2(0);
 			UpdateHellfireFlag(testItem, testItem._iIName);
 
 			testItem._iIdentified = true;
 			ASSERT_STREQ(testItem.getName().str().data(), testItem._iIName) << "identified name with UpdateHellfireFlag";
-			ASSERT_TRUE(isHellfireItem || ((item.dwBuff & CF_HELLFIRE) != CF_HELLFIRE)) << "item was wrongly converted to hellfire";
+			ASSERT_TRUE(isHellfireItem || !item.hasCreationFlag2(CF_HELLFIRE)) << "item was wrongly converted to hellfire";
 		}
 	}
 }
@@ -1335,10 +1335,10 @@ TEST_F(NetPackTest, UnPackNetPlayer_invalid_pregenItemFlags)
 			continue;
 		if (IsAnyOf(item.IDidx, IDI_GOLD, IDI_EAR))
 			continue;
-		const uint16_t createInfo = item._iCreateInfo;
-		item._iCreateInfo |= CF_PREGEN;
+		const uint16_t createInfo = item.getAllCreationFlags();
+		item.setCreationFlag(CF_PREGEN);
 		ASSERT_FALSE(TestNetPackValidation());
-		item._iCreateInfo = createInfo;
+		item.setAllCreationFlags(createInfo);
 		count++;
 	}
 	ASSERT_GT(count, 0);
@@ -1353,12 +1353,12 @@ TEST_F(NetPackTest, UnPackNetPlayer_invalid_usefulItemFlags)
 			continue;
 		if (IsAnyOf(item.IDidx, IDI_GOLD, IDI_EAR))
 			continue;
-		if ((item._iCreateInfo & CF_USEFUL) != CF_USEFUL)
+		if (!item.matchesCreationFlags(CF_USEFUL, CF_USEFUL))
 			continue;
-		const uint16_t createInfo = item._iCreateInfo;
-		item._iCreateInfo |= CF_ONLYGOOD;
+		const uint16_t createInfo = item.getAllCreationFlags();
+		item.setCreationFlag(CF_ONLYGOOD);
 		ASSERT_FALSE(TestNetPackValidation());
-		item._iCreateInfo = createInfo;
+		item.setAllCreationFlags(createInfo);
 		count++;
 	}
 	ASSERT_GT(count, 0);
@@ -1373,12 +1373,12 @@ TEST_F(NetPackTest, UnPackNetPlayer_invalid_townItemFlags)
 			continue;
 		if (IsAnyOf(item.IDidx, IDI_GOLD, IDI_EAR))
 			continue;
-		if ((item._iCreateInfo & CF_TOWN) == 0)
+		if (!item.hasCreationFlag(CF_TOWN))
 			continue;
-		const uint16_t createInfo = item._iCreateInfo;
-		item._iCreateInfo |= CF_ONLYGOOD;
+		const uint16_t createInfo = item.getAllCreationFlags();
+		item.setCreationFlag(CF_ONLYGOOD);
 		ASSERT_FALSE(TestNetPackValidation());
-		item._iCreateInfo = createInfo;
+		item.setAllCreationFlags(createInfo);
 		count++;
 	}
 	ASSERT_GT(count, 0);
@@ -1394,14 +1394,14 @@ TEST_F(NetPackTest, UnPackNetPlayer_invalid_townItemLevel)
 			continue;
 		if (IsAnyOf(item.IDidx, IDI_GOLD, IDI_EAR))
 			continue;
-		if ((item._iCreateInfo & CF_TOWN) == 0)
+		if (!item.hasCreationFlag(CF_TOWN))
 			continue;
-		const uint16_t createInfo = item._iCreateInfo;
-		const bool BoyItem = (item._iCreateInfo & CF_BOY) != 0;
-		item._iCreateInfo &= ~CF_LEVEL;
-		item._iCreateInfo |= BoyItem ? MyPlayer->getMaxCharacterLevel() + 1 : 31;
+		const uint16_t createInfo = item.getAllCreationFlags();
+		const bool BoyItem = item.hasCreationFlag(CF_BOY);
+		item.clearCreationFlag(CF_LEVEL);
+		item.setCreationFlag(BoyItem ? MyPlayer->getMaxCharacterLevel() + 1 : 31);
 		ASSERT_FALSE(TestNetPackValidation());
-		item._iCreateInfo = createInfo;
+		item.setAllCreationFlags(createInfo);
 
 		size_t &count = BoyItem ? boyCount : otherCount;
 		count++;
@@ -1419,13 +1419,12 @@ TEST_F(NetPackTest, UnPackNetPlayer_invalid_uniqueMonsterItemLevel)
 			continue;
 		if (IsAnyOf(item.IDidx, IDI_GOLD, IDI_EAR))
 			continue;
-		if ((item._iCreateInfo & CF_USEFUL) != CF_UPER15)
+		if (!item.matchesCreationFlags(CF_USEFUL, CF_UPER15))
 			continue;
-		const uint16_t createInfo = item._iCreateInfo;
-		item._iCreateInfo &= ~CF_LEVEL;
-		item._iCreateInfo |= 31;
+		const uint16_t createInfo = item.getAllCreationFlags();
+		item.setItemLevel(31);
 		ASSERT_FALSE(TestNetPackValidation());
-		item._iCreateInfo = createInfo;
+		item.setAllCreationFlags(createInfo);
 		count++;
 	}
 	ASSERT_GT(count, 0);
@@ -1440,15 +1439,14 @@ TEST_F(NetPackTest, UnPackNetPlayer_invalid_monsterItemLevel)
 			continue;
 		if (IsAnyOf(item.IDidx, IDI_GOLD, IDI_EAR))
 			continue;
-		if ((item._iCreateInfo & CF_TOWN) != 0)
+		if (item.hasCreationFlag(CF_TOWN))
 			continue;
-		if ((item._iCreateInfo & CF_USEFUL) == CF_UPER15)
+		if (item.matchesCreationFlags(CF_USEFUL, CF_UPER15))
 			continue;
-		const uint16_t createInfo = item._iCreateInfo;
-		item._iCreateInfo &= ~CF_LEVEL;
-		item._iCreateInfo |= 31;
+		const uint16_t createInfo = item.getAllCreationFlags();
+		item.setItemLevel(31);
 		ASSERT_FALSE(TestNetPackValidation());
-		item._iCreateInfo = createInfo;
+		item.setAllCreationFlags(createInfo);
 		count++;
 	}
 	ASSERT_GT(count, 0);
