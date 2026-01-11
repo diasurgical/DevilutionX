@@ -2,6 +2,7 @@ local floatingnumbers = require("devilutionx.floatingnumbers")
 local events = require("devilutionx.events")
 local player = require("devilutionx.player")
 local system = require("devilutionx.system")
+local render = require("devilutionx.render")
 
 local accumulated_xp = {}
 local MERGE_WINDOW_MS = 100
@@ -21,6 +22,6 @@ events.OnPlayerGainExperience.add(function(_player, experience)
         entry.time = now
 
         local text = tostring(entry.experience) .. " XP"
-        floatingnumbers.add(text, _player.position, floatingnumbers.Flags.White, id, true)
+        floatingnumbers.add(text, _player.position, render.UiFlags.White, id, true)
     end
 end)

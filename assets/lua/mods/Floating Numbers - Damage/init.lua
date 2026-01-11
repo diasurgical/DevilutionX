@@ -2,6 +2,7 @@ local floatingnumbers = require("devilutionx.floatingnumbers")
 local events = require("devilutionx.events")
 local player = require("devilutionx.player")
 local system = require("devilutionx.system")
+local render = require("devilutionx.render")
 
 local DAMAGE_TYPE = {
     PHYSICAL = 0,
@@ -16,19 +17,19 @@ local function get_damage_style(damage_val, damage_type)
     
     local v = damage_val
     if v >= 64 * 300 then
-        style = style | floatingnumbers.Flags.Large
+        style = style | render.UiFlags.Large
     elseif v >= 64 * 100 then
-        style = style | floatingnumbers.Flags.Medium
+        style = style | render.UiFlags.Medium
     else
-        style = style | floatingnumbers.Flags.Small
+        style = style | render.UiFlags.Small
     end
 
     local damage_type_styles = {
-        [DAMAGE_TYPE.PHYSICAL] = floatingnumbers.Flags.Gold,
-        [DAMAGE_TYPE.FIRE] = floatingnumbers.Flags.DarkRed,
-        [DAMAGE_TYPE.LIGHTNING] = floatingnumbers.Flags.Blue,
-        [DAMAGE_TYPE.MAGIC] = floatingnumbers.Flags.Orange,
-        [DAMAGE_TYPE.ACID] = floatingnumbers.Flags.Yellow,
+        [DAMAGE_TYPE.PHYSICAL] = render.UiFlags.Gold,
+        [DAMAGE_TYPE.FIRE] = render.UiFlags.DarkRed,
+        [DAMAGE_TYPE.LIGHTNING] = render.UiFlags.Blue,
+        [DAMAGE_TYPE.MAGIC] = render.UiFlags.Orange,
+        [DAMAGE_TYPE.ACID] = render.UiFlags.Yellow,
     }
 
     local type_style = damage_type_styles[damage_type]
