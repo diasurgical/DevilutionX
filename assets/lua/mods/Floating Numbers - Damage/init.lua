@@ -1,6 +1,7 @@
 local floatingnumbers = require("devilutionx.floatingnumbers")
 local events = require("devilutionx.events")
 local player = require("devilutionx.player")
+local system = require("devilutionx.system")
 
 local DAMAGE_TYPE = {
     PHYSICAL = 0,
@@ -51,7 +52,7 @@ local MERGE_WINDOW_MS = 100
 
 events.OnMonsterTakeDamage.add(function(monster, damage, damage_type)
     local id = monster.id
-    local now = floatingnumbers.get_ticks()
+    local now = system.get_ticks()
     
     local entry = accumulated_damage[id]
     if entry and (now - entry.time) < MERGE_WINDOW_MS then
@@ -70,7 +71,7 @@ end)
 events.OnPlayerTakeDamage.add(function(_player, damage, damage_type)
     if _player == player.self() then
         local id = _player.id
-        local now = floatingnumbers.get_ticks()
+        local now = system.get_ticks()
         
         local entry = accumulated_damage[id]
         if entry and (now - entry.time) < MERGE_WINDOW_MS then

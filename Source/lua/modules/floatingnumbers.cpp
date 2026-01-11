@@ -2,12 +2,6 @@
 
 #include <sol/sol.hpp>
 
-#ifdef USE_SDL3
-#include <SDL3/SDL_timer.h>
-#else
-#include <SDL.h>
-#endif
-
 #include "DiabloUI/ui_flags.hpp"
 #include "engine/point.hpp"
 #include "lua/metadoc.hpp"
@@ -24,9 +18,6 @@ sol::table LuaFloatingNumbersModule(sol::state_view &lua)
 	    [](const std::string &text, Point pos, UiFlags style, std::optional<int> id, std::optional<bool> reverseDirection) {
 		    AddFloatingNumber(pos, { 0, 0 }, text, style, id.value_or(0), reverseDirection.value_or(false));
 	    });
-
-	LuaSetDocFn(table, "get_ticks", "() -> integer", "Returns the number of milliseconds since the game started.",
-	    []() { return static_cast<int>(SDL_GetTicks()); });
 
 	auto flags = lua.create_table();
 	flags["DarkRed"] = UiFlags::ColorUiSilver;
