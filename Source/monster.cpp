@@ -1205,7 +1205,8 @@ void MonsterAttackPlayer(Monster &monster, Player &player, int hit, int minDam, 
 		}
 		return;
 	}
-	if (monster.type().type == MT_YZOMBIE && &player == MyPlayer) {
+	if (LuaEventConsumable("OnMonsterAttackPlayer", monster, player)) {
+	} else if (monster.type().type == MT_YZOMBIE && &player == MyPlayer) {
 		if (player._pMaxHP > 64) {
 			if (player._pMaxHPBase > 64) {
 				player._pMaxHP -= 64;

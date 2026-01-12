@@ -42,6 +42,11 @@ void InitMonsterUserType(sol::state_view &lua)
 	    [](const Monster &monster) {
 		    return static_cast<int>(reinterpret_cast<uintptr_t>(&monster));
 	    });
+	LuaSetDocReadonlyProperty(monsterType, "name", "string",
+	    "Monster's name (readonly)",
+	    [](const Monster &monster) {
+		    return monster.name();
+	    });
 }
 
 } // namespace

@@ -32,6 +32,7 @@ void InitPlayerUserType(sol::state_view &lua)
 	    [](const Player &player) -> Point {
 		    return Point { player.position.tile };
 	    });
+	LuaSetDocProperty(playerType, "baseVitality", "integer", "Player's base vitality", [](const Player &player) { return player._pBaseVit; }, [](Player &player, int val) { SetPlrVit(player, val); });
 	LuaSetDocFn(playerType, "addExperience", "(experience: integer, monsterLevel: integer = nil)",
 	    "Adds experience to this player based on the current game mode",
 	    [](Player &player, uint32_t experience, std::optional<int> monsterLevel) {
@@ -104,6 +105,11 @@ void InitPlayerUserType(sol::state_view &lua)
 	    [](Player &player) {
 		    player._pMana = player._pMaxMana;
 		    player._pManaBase = player._pMaxManaBase;
+	    });
+	LuaSetDocFn(playerType, "modifyVitality", "(amount: integer)",
+	    "Modify player's vitality by the given amount",
+	    [](Player &player, int amount) {
+		    ModifyPlrVit(player, amount);
 	    });
 	LuaSetDocReadonlyProperty(playerType, "mana", "number",
 	    "Current mana (readonly)",

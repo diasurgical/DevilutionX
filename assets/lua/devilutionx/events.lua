@@ -36,6 +36,19 @@ local function CreateEvent()
         end
       end
     end,
+
+    ---Triggers an event and returns true if any handler returned true.
+    ---@param ... any
+    ---@return boolean
+    triggerConsumable = function(...)
+      local args = {...}
+      for _, func in ipairs(functions) do
+        if func(table.unpack(args)) then
+          return true
+        end
+      end
+      return false
+    end,
     __sig_trigger = "(...)",
   }
 end
@@ -84,6 +97,12 @@ local events = {
   ---Called when Player gains experience.
   OnPlayerGainExperience = CreateEvent(),
   __doc_OnPlayerGainExperience = "Called when Player gains experience.",
+
+  ---Called when a Monster attacks a Player.
+  ---
+  ---If a handler returns true, the event is considered consumed and the default behavior is skipped.
+  OnMonsterAttackPlayer = CreateEvent(),
+  __doc_OnMonsterAttackPlayer = "Called when a Monster attacks a Player.",
 }
 
 ---Registers a custom event type with the given name.

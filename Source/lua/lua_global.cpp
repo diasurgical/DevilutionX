@@ -365,6 +365,22 @@ void LuaEvent(std::string_view name, std::string_view arg)
 	SafeCallResult(fn(arg), /*optional=*/true);
 }
 
+bool LuaEventConsumable(std::string_view name, Monster &monster, Player &player)
+{
+	if (!CurrentLuaState.has_value()) {
+		return false;
+	}
+
+	const auto trigger = CurrentLuaState->events.traverse_get<std::optional<sol::object>>(name, "triggerConsumable");
+	if (!trigger.has_value() || !trigger->is<sol::protected_function>()) {
+		LogError("events.{}.triggerConsumable is not a function", name);
+		return false;
+	}
+	const sol::protected_function fn = trigger->as<sol::protected_function>();
+	const sol::object result = SafeCallResult(fn(&monster, &player), /*optional=*/true);
+	return result.is<bool>() && result.as<bool>();
+}
+
 sol::state &GetLuaState()
 {
 	return CurrentLuaState->sol;
