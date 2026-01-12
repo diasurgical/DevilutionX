@@ -680,6 +680,9 @@ void CheckChrBtns()
 {
 	const Player &myPlayer = *MyPlayer;
 
+	if (myPlayer._pmode == PM_DEATH)
+		return;
+
 	if (CharPanelButtonActive || myPlayer._pStatPts == 0)
 		return;
 
@@ -698,6 +701,11 @@ void CheckChrBtns()
 
 void ReleaseChrBtns(bool addAllStatPoints)
 {
+	const Player &myPlayer = *MyPlayer;
+
+	if (myPlayer._pmode == PM_DEATH)
+		return;
+
 	CharPanelButtonActive = false;
 	for (auto attribute : enum_values<CharacterAttribute>()) {
 		auto buttonId = static_cast<size_t>(attribute);

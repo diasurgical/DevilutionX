@@ -5,7 +5,7 @@ if(NOT DEFINED DEVILUTIONX_ASSETS_OUTPUT_DIRECTORY)
   set(DEVILUTIONX_ASSETS_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/assets")
 endif()
 
-set(devilutionx_langs bg cs da de el es et fi fr hr hu it ja ko pl pt_BR ro ru uk sv tr zh_CN zh_TW)
+set(devilutionx_langs be bg cs da de el es et fi fr hr hu it ja ko pl pt_BR ro ru uk sv tr zh_CN zh_TW)
 if(USE_GETTEXT_FROM_VCPKG)
   # vcpkg doesn't add its own tools directory to the search path
   list(APPEND Gettext_ROOT ${CMAKE_CURRENT_BINARY_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/tools/gettext/bin)
@@ -160,6 +160,8 @@ set(devilutionx_assets
   lua/inspect.lua
   lua/mods/adria_refills_mana/init.lua
   lua/mods/clock/init.lua
+  "lua/mods/Floating Numbers - Damage/init.lua"
+  "lua/mods/Floating Numbers - XP/init.lua"
   lua/repl_prelude.lua
   plrgfx/warrior/whu/whufm.trn
   plrgfx/warrior/whu/whulm.trn

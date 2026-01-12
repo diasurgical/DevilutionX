@@ -72,6 +72,18 @@ local events = {
   ---Called when opening a towner store. Passes the towner name as argument (e.g., "griswold", "adria", "pepin", "wirt", "cain").
   StoreOpened = CreateEvent(),
   __doc_StoreOpened = "Called when opening a towner store. Passes the towner name as argument.",
+
+  ---Called when a Monster takes damage.
+  OnMonsterTakeDamage = CreateEvent(),
+  __doc_OnMonsterTakeDamage = "Called when a Monster takes damage.",
+
+  ---Called when Player takes damage.
+  OnPlayerTakeDamage = CreateEvent(),
+  __doc_OnPlayerTakeDamage = "Called when Player takes damage.",
+
+  ---Called when Player gains experience.
+  OnPlayerGainExperience = CreateEvent(),
+  __doc_OnPlayerGainExperience = "Called when Player gains experience.",
 }
 
 ---Registers a custom event type with the given name.

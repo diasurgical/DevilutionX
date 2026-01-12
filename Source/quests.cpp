@@ -29,7 +29,7 @@
 #include "options.h"
 #include "panels/ui_panels.hpp"
 #include "stores.h"
-#include "townerdat.hpp"
+#include "tables/townerdat.hpp"
 #include "towners.h"
 #include "utils/endian_swap.hpp"
 #include "utils/is_of.hpp"

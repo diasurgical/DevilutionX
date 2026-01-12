@@ -3,7 +3,7 @@
  *
  * Implementation of all dialog texts.
  */
-#include "textdat.h"
+#include "tables/textdat.h"
 
 #include <ankerl/unordered_dense.h>
 #include <fmt/core.h>

@@ -4,7 +4,7 @@
  * Implementation of all item data.
  */
 
-#include "itemdat.h"
+#include "tables/itemdat.h"
 
 #include <string_view>
 #include <vector>
@@ -15,7 +15,7 @@
 #include "data/iterators.hpp"
 #include "data/record_reader.hpp"
 #include "lua/lua_global.hpp"
-#include "spelldat.h"
+#include "tables/spelldat.h"
 #include "utils/str_cat.hpp"
 
 namespace devilution {

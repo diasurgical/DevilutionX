@@ -22,6 +22,16 @@ void InitPlayerUserType(sol::state_view &lua)
 	LuaSetDocReadonlyProperty(playerType, "name", "string",
 	    "Player's name (readonly)",
 	    &Player::name);
+	LuaSetDocReadonlyProperty(playerType, "id", "integer",
+	    "Player's unique ID (readonly)",
+	    [](const Player &player) {
+		    return static_cast<int>(reinterpret_cast<uintptr_t>(&player));
+	    });
+	LuaSetDocReadonlyProperty(playerType, "position", "Point",
+	    "Player's current position (readonly)",
+	    [](const Player &player) -> Point {
+		    return Point { player.position.tile };
+	    });
 	LuaSetDocFn(playerType, "addExperience", "(experience: integer, monsterLevel: integer = nil)",
 	    "Adds experience to this player based on the current game mode",
 	    [](Player &player, uint32_t experience, std::optional<int> monsterLevel) {

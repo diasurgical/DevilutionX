@@ -14,7 +14,7 @@
 #include "loadsave.h"
 #include "pack.h"
 #include "pfile.h"
-#include "playerdat.hpp"
+#include "tables/playerdat.hpp"
 #include "utils/endian_swap.hpp"
 #include "utils/file_util.h"
 #include "utils/paths.h"

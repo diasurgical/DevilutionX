@@ -1481,24 +1481,26 @@ void DrawAutomapText(const Surface &out)
 	drawStringAndAdvanceLine(description);
 
 #ifdef _DEBUG
-	const TextRenderOptions disabled {
-		.flags = UiFlags::ColorBlack,
-	};
-	const TextRenderOptions enabled {
-		.flags = UiFlags::ColorOrange,
-	};
+	if (DebugGodMode || DebugInvisible || DisableLighting || DebugVision || DebugPath || DebugGrid || DebugScrollViewEnabled) {
+		const TextRenderOptions disabled {
+			.flags = UiFlags::ColorBlack,
+		};
+		const TextRenderOptions enabled {
+			.flags = UiFlags::ColorOrange,
+		};
 
-	advanceLine();
-	drawStringAndAdvanceLine("Debug toggles:");
-	drawStringAndAdvanceLine("Player:");
-	drawStringAndAdvanceLine("God Mode", DebugGodMode ? enabled : disabled);
-	drawStringAndAdvanceLine("Invisible", DebugInvisible ? enabled : disabled);
-	drawStringAndAdvanceLine("Display:");
-	drawStringAndAdvanceLine("Fullbright", DisableLighting ? enabled : disabled);
-	drawStringAndAdvanceLine("Draw Vision", DebugVision ? enabled : disabled);
-	drawStringAndAdvanceLine("Draw Path", DebugPath ? enabled : disabled);
-	drawStringAndAdvanceLine("Draw Grid", DebugGrid ? enabled : disabled);
-	drawStringAndAdvanceLine("Scroll View", DebugScrollViewEnabled ? enabled : disabled);
+		advanceLine();
+		drawStringAndAdvanceLine("Debug toggles:");
+		drawStringAndAdvanceLine("Player:");
+		drawStringAndAdvanceLine("God Mode", DebugGodMode ? enabled : disabled);
+		drawStringAndAdvanceLine("Invisible", DebugInvisible ? enabled : disabled);
+		drawStringAndAdvanceLine("Display:");
+		drawStringAndAdvanceLine("Fullbright", DisableLighting ? enabled : disabled);
+		drawStringAndAdvanceLine("Draw Vision", DebugVision ? enabled : disabled);
+		drawStringAndAdvanceLine("Draw Path", DebugPath ? enabled : disabled);
+		drawStringAndAdvanceLine("Draw Grid", DebugGrid ? enabled : disabled);
+		drawStringAndAdvanceLine("Scroll View", DebugScrollViewEnabled ? enabled : disabled);
+	}
 #endif
 }
 
