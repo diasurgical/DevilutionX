@@ -72,7 +72,7 @@ namespace {
 void DiscoverMods()
 {
 	// Add mods available by default:
-	std::unordered_set<std::string> modNames = { "clock", "adria_refills_mana", "Floating Numbers - Damage", "Floating Numbers - XP" };
+	std::unordered_set<std::string> modNames = { "adria_refills_mana", "Black Death - Vitality Loss", "clock", "Floating Numbers - Damage", "Floating Numbers - XP" };
 
 	if (HaveHellfire()) {
 		modNames.insert("Hellfire");

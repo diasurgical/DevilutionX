@@ -159,6 +159,7 @@ set(devilutionx_assets
   lua/devilutionx/events.lua
   lua/inspect.lua
   lua/mods/adria_refills_mana/init.lua
+  "lua/mods/Black Death - Vitality Loss/init.lua"
   lua/mods/clock/init.lua
   "lua/mods/Floating Numbers - Damage/init.lua"
   "lua/mods/Floating Numbers - XP/init.lua"
