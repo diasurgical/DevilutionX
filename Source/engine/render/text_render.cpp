@@ -516,6 +516,7 @@ void DrawLine(
 		currentPos += cpLen;
 		lineCopy.remove_prefix(cpLen);
 	}
+	assert(currentPos == text.size());
 	maybeDrawCursor();
 }
 
