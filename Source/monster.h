@@ -278,6 +278,7 @@ struct Monster { // note: missing field _mAFNum
 	uint8_t minDamageSpecial;
 	uint8_t maxDamageSpecial;
 	uint8_t armorClass;
+	uint8_t reducePlayerMaxHP;
 	uint8_t leader;
 	LeaderRelation leaderRelation;
 	uint8_t packSize;
@@ -522,6 +523,7 @@ void LoadDeltaSpawnedMonster(size_t typeIndex, size_t monsterId, uint32_t seed, 
 void InitializeSpawnedMonster(Point position, Direction dir, size_t typeIndex, size_t monsterId, uint32_t seed, uint8_t golemOwnerPlayerId, int16_t golemSpellLevel);
 void AddDoppelganger(Monster &monster);
 void ApplyMonsterDamage(DamageType damageType, Monster &monster, int damage);
+void MonsterReducePlayerAttribute(Monster &monster, Player &player);
 bool M_Talker(const Monster &monster);
 void M_StartStand(Monster &monster, Direction md);
 void M_ClearSquares(const Monster &monster);

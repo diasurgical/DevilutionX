@@ -127,6 +127,7 @@ struct MonsterData {
 	int8_t animFrameNumSpecial = 0;
 	uint8_t minDamageSpecial = 0;
 	uint8_t maxDamageSpecial = 0;
+	uint8_t reducePlayerMaxHP = 0;
 	uint8_t armorClass = 0;
 	MonsterClass monsterClass {};
 	/** Using monster_resistance as bitflags */

@@ -42,6 +42,7 @@
 #include "dvlnet/leaveinfo.hpp"
 #include "effects.h"
 #include "engine/animationinfo.h"
+#include "engine/backbuffer_state.hpp"
 #include "engine/clx_sprite.hpp"
 #include "engine/direction.hpp"
 #include "engine/lighting_defs.hpp"
@@ -232,6 +233,7 @@ void InitMonster(Monster &monster, Direction rd, size_t typeIndex, Point positio
 	monster.minDamageSpecial = monster.data().minDamageSpecial;
 	monster.maxDamageSpecial = monster.data().maxDamageSpecial;
 	monster.armorClass = monster.data().armorClass;
+	monster.reducePlayerMaxHP = monster.data().reducePlayerMaxHP;
 	monster.resistance = monster.data().resistance;
 	monster.leader = Monster::NoLeader;
 	monster.leaderRelation = LeaderRelation::None;
@@ -1205,16 +1207,9 @@ void MonsterAttackPlayer(Monster &monster, Player &player, int hit, int minDam, 
 		}
 		return;
 	}
-	if (monster.type().type == MT_YZOMBIE && &player == MyPlayer) {
-		if (player._pMaxHP > 64) {
-			if (player._pMaxHPBase > 64) {
-				player._pMaxHP -= 64;
-				player._pHitPoints = std::min(player._pHitPoints, player._pMaxHP);
-				player._pMaxHPBase -= 64;
-				player._pHPBase = std::min(player._pHPBase, player._pMaxHPBase);
-			}
-		}
-	}
+
+	MonsterReducePlayerAttribute(monster, player);
+
 	// New method fixes a bug which caused the maximum possible damage value to be 63/64ths too low.
 	int dam = RandomIntBetween(minDam << 6, maxDam << 6);
 	dam = std::max(dam + (player._pIGetHit << 6), 64);
@@ -3254,6 +3249,7 @@ tl::expected<void, std::string> PrepareUniqueMonst(Monster &monster, UniqueMonst
 	monster.maxDamage = uniqueMonsterData.mMaxDamage;
 	monster.minDamageSpecial = uniqueMonsterData.mMinDamage;
 	monster.maxDamageSpecial = uniqueMonsterData.mMaxDamage;
+	monster.reducePlayerMaxHP = uniqueMonsterData.reducePlayerMaxHP;
 	monster.resistance = uniqueMonsterData.mMagicRes;
 	monster.talkMsg = uniqueMonsterData.mtalkmsg;
 	if (monsterType == UniqueMonsterType::HorkDemon)
@@ -3790,6 +3786,22 @@ void ApplyMonsterDamage(DamageType damageType, Monster &monster, int damage)
 
 	delta_monster_hp(monster, *MyPlayer);
 	NetSendCmdMonDmg(false, static_cast<uint16_t>(monster.getId()), damage);
+}
+
+void MonsterReducePlayerAttribute(Monster &monster, Player &player)
+{
+	if (&player != MyPlayer)
+		return;
+
+	if (monster.reducePlayerMaxHP > 0) {
+		const int reduceAmount = monster.reducePlayerMaxHP * 64;
+		player._pMaxHP = std::max(64, player._pMaxHP - reduceAmount);
+		player._pHitPoints = std::min(player._pHitPoints, player._pMaxHP);
+		player._pMaxHPBase = std::max(64, player._pMaxHPBase - reduceAmount);
+		player._pHPBase = std::min(player._pHPBase, player._pMaxHPBase);
+
+		RedrawComponent(PanelDrawComponent::Health);
+	}
 }
 
 bool M_Talker(const Monster &monster)

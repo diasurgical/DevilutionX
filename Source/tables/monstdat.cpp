@@ -385,6 +385,7 @@ void LoadMonstDatFromFile(DataFile &dataFile, const std::string_view filename, b
 		reader.readInt("animFrameNumSpecial", monster.animFrameNumSpecial);
 		reader.readInt("minDamageSpecial", monster.minDamageSpecial);
 		reader.readInt("maxDamageSpecial", monster.maxDamageSpecial);
+		reader.readInt("reducePlayerMaxHP", monster.reducePlayerMaxHP);
 		reader.readInt("armorClass", monster.armorClass);
 		reader.read("monsterClass", monster.monsterClass, ParseMonsterClass);
 		reader.readEnumList("resistance", monster.resistance, ParseMonsterResistance);
