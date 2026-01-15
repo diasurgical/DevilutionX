@@ -278,7 +278,12 @@ struct Monster { // note: missing field _mAFNum
 	uint8_t minDamageSpecial;
 	uint8_t maxDamageSpecial;
 	uint8_t armorClass;
+	uint8_t reducePlayerStrength;
+	uint8_t reducePlayerMagic;
+	uint8_t reducePlayerDexterity;
+	uint8_t reducePlayerVitality;
 	uint8_t reducePlayerMaxHP;
+	uint8_t reducePlayerMaxMana;
 	uint8_t leader;
 	LeaderRelation leaderRelation;
 	uint8_t packSize;

@@ -233,7 +233,12 @@ void InitMonster(Monster &monster, Direction rd, size_t typeIndex, Point positio
 	monster.minDamageSpecial = monster.data().minDamageSpecial;
 	monster.maxDamageSpecial = monster.data().maxDamageSpecial;
 	monster.armorClass = monster.data().armorClass;
+	monster.reducePlayerStrength = monster.data().reducePlayerStrength;
+	monster.reducePlayerMagic = monster.data().reducePlayerMagic;
+	monster.reducePlayerDexterity = monster.data().reducePlayerDexterity;
+	monster.reducePlayerVitality = monster.data().reducePlayerVitality;
 	monster.reducePlayerMaxHP = monster.data().reducePlayerMaxHP;
+	monster.reducePlayerMaxMana = monster.data().reducePlayerMaxMana;
 	monster.resistance = monster.data().resistance;
 	monster.leader = Monster::NoLeader;
 	monster.leaderRelation = LeaderRelation::None;
@@ -3249,7 +3254,12 @@ tl::expected<void, std::string> PrepareUniqueMonst(Monster &monster, UniqueMonst
 	monster.maxDamage = uniqueMonsterData.mMaxDamage;
 	monster.minDamageSpecial = uniqueMonsterData.mMinDamage;
 	monster.maxDamageSpecial = uniqueMonsterData.mMaxDamage;
+	monster.reducePlayerStrength = uniqueMonsterData.reducePlayerStrength;
+	monster.reducePlayerMagic = uniqueMonsterData.reducePlayerMagic;
+	monster.reducePlayerDexterity = uniqueMonsterData.reducePlayerDexterity;
+	monster.reducePlayerVitality = uniqueMonsterData.reducePlayerVitality;
 	monster.reducePlayerMaxHP = uniqueMonsterData.reducePlayerMaxHP;
+	monster.reducePlayerMaxMana = uniqueMonsterData.reducePlayerMaxMana;
 	monster.resistance = uniqueMonsterData.mMagicRes;
 	monster.talkMsg = uniqueMonsterData.mtalkmsg;
 	if (monsterType == UniqueMonsterType::HorkDemon)
@@ -3793,6 +3803,18 @@ void MonsterReducePlayerAttribute(Monster &monster, Player &player)
 	if (&player != MyPlayer)
 		return;
 
+	if (monster.reducePlayerStrength > 0) {
+		ModifyPlrStr(player, -std::min(player._pBaseStr, static_cast<int>(monster.reducePlayerStrength)));
+	}
+	if (monster.reducePlayerMagic > 0) {
+		ModifyPlrMag(player, -std::min(player._pBaseMag, static_cast<int>(monster.reducePlayerMagic)));
+	}
+	if (monster.reducePlayerDexterity > 0) {
+		ModifyPlrDex(player, -std::min(player._pBaseDex, static_cast<int>(monster.reducePlayerDexterity)));
+	}
+	if (monster.reducePlayerVitality > 0) {
+		ModifyPlrVit(player, -std::min(player._pBaseVit, static_cast<int>(monster.reducePlayerVitality)));
+	}
 	if (monster.reducePlayerMaxHP > 0) {
 		const int reduceAmount = monster.reducePlayerMaxHP * 64;
 		player._pMaxHP = std::max(64, player._pMaxHP - reduceAmount);
@@ -3801,6 +3823,15 @@ void MonsterReducePlayerAttribute(Monster &monster, Player &player)
 		player._pHPBase = std::min(player._pHPBase, player._pMaxHPBase);
 
 		RedrawComponent(PanelDrawComponent::Health);
+	}
+	if (monster.reducePlayerMaxMana > 0) {
+		const int reduceAmount = monster.reducePlayerMaxMana * 64;
+		player._pMaxMana = std::max(64, player._pMaxMana - reduceAmount);
+		player._pMana = std::min(player._pMana, player._pMaxMana);
+		player._pMaxManaBase = std::max(64, player._pMaxManaBase - reduceAmount);
+		player._pManaBase = std::min(player._pManaBase, player._pMaxManaBase);
+
+		RedrawComponent(PanelDrawComponent::Mana);
 	}
 }
 

@@ -1190,6 +1190,10 @@ bool PlayerMHit(Player &player, Monster *monster, int dist, int mind, int maxd, 
 		return true;
 	}
 
+	if (monster != nullptr) {
+		MonsterReducePlayerAttribute(*monster, player);
+	}
+
 	if (&player == MyPlayer) {
 		ApplyPlrDamage(damageType, player, 0, 0, dam, deathReason);
 	}

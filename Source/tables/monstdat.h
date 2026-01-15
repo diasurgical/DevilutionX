@@ -127,7 +127,12 @@ struct MonsterData {
 	int8_t animFrameNumSpecial = 0;
 	uint8_t minDamageSpecial = 0;
 	uint8_t maxDamageSpecial = 0;
+	uint8_t reducePlayerStrength = 0;
+	uint8_t reducePlayerMagic = 0;
+	uint8_t reducePlayerDexterity = 0;
+	uint8_t reducePlayerVitality = 0;
 	uint8_t reducePlayerMaxHP = 0;
+	uint8_t reducePlayerMaxMana = 0;
 	uint8_t armorClass = 0;
 	MonsterClass monsterClass {};
 	/** Using monster_resistance as bitflags */
@@ -330,6 +335,12 @@ struct UniqueMonsterData {
 	 * @brief Defines if and how a group of monsters should be spawned with the unique monster
 	 */
 
+	uint8_t reducePlayerStrength;
+	uint8_t reducePlayerMagic;
+	uint8_t reducePlayerDexterity;
+	uint8_t reducePlayerVitality;
+	uint8_t reducePlayerMaxHP;
+	uint8_t reducePlayerMaxMana;
 	UniqueMonsterPack monsterPack;
 	uint8_t customToHit;
 	uint8_t customArmorClass;

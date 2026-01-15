@@ -385,7 +385,12 @@ void LoadMonstDatFromFile(DataFile &dataFile, const std::string_view filename, b
 		reader.readInt("animFrameNumSpecial", monster.animFrameNumSpecial);
 		reader.readInt("minDamageSpecial", monster.minDamageSpecial);
 		reader.readInt("maxDamageSpecial", monster.maxDamageSpecial);
+		reader.readInt("reducePlayerStrength", monster.reducePlayerStrength);
+		reader.readInt("reducePlayerMagic", monster.reducePlayerMagic);
+		reader.readInt("reducePlayerDexterity", monster.reducePlayerDexterity);
+		reader.readInt("reducePlayerVitality", monster.reducePlayerVitality);
 		reader.readInt("reducePlayerMaxHP", monster.reducePlayerMaxHP);
+		reader.readInt("reducePlayerMaxMana", monster.reducePlayerMaxMana);
 		reader.readInt("armorClass", monster.armorClass);
 		reader.read("monsterClass", monster.monsterClass, ParseMonsterClass);
 		reader.readEnumList("resistance", monster.resistance, ParseMonsterResistance);
@@ -433,6 +438,12 @@ void LoadUniqueMonstDatFromFile(DataFile &dataFile, std::string_view filename)
 		reader.readInt("intelligence", monster.mint);
 		reader.readInt("minDamage", monster.mMinDamage);
 		reader.readInt("maxDamage", monster.mMaxDamage);
+		reader.readInt("reducePlayerStrength", monster.reducePlayerStrength);
+		reader.readInt("reducePlayerMagic", monster.reducePlayerMagic);
+		reader.readInt("reducePlayerDexterity", monster.reducePlayerDexterity);
+		reader.readInt("reducePlayerVitality", monster.reducePlayerVitality);
+		reader.readInt("reducePlayerMaxHP", monster.reducePlayerMaxHP);
+		reader.readInt("reducePlayerMaxMana", monster.reducePlayerMaxMana);
 		reader.readEnumList("resistance", monster.mMagicRes, ParseMonsterResistance);
 		reader.read("monsterPack", monster.monsterPack, ParseUniqueMonsterPack);
 		reader.readInt("customToHit", monster.customToHit);
