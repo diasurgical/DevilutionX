@@ -65,6 +65,7 @@ set(devilutionx_assets
   data/resistance.clx
   data/stash.clx
   data/stashnavbtns.clx
+  data/store.clx
   data/talkbutton.clx
   data/xpbar.clx
   fonts/12-00.clx

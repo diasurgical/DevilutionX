@@ -367,11 +367,16 @@ void StartSmith()
 	AddSText(0, 3, _("Blacksmith's shop"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
 	AddSText(0, 7, _("Would you like to:"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
 	AddSText(0, 10, _("Talk to Griswold"), UiFlags::ColorBlue | UiFlags::AlignCenter, true);
-	AddSText(0, 12, _("Buy basic items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSText(0, 14, _("Buy premium items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSText(0, 16, _("Sell items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSText(0, 18, _("Repair items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSText(0, 20, _("Leave the shop"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+	if (*GetOptions().Gameplay.visualStoreUI) {
+		AddSText(0, 12, _("Trade / Repair"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+		AddSText(0, 14, _("Leave the shop"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+	} else {
+		AddSText(0, 12, _("Buy basic items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+		AddSText(0, 14, _("Buy premium items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+		AddSText(0, 16, _("Sell items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+		AddSText(0, 18, _("Repair items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+		AddSText(0, 20, _("Leave the shop"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+	}
 	AddSLine(5);
 	CurrentItemIndex = 20;
 }
@@ -386,11 +391,6 @@ uint32_t TotalPlayerGold()
 	return MyPlayer->_pGold + Stash.gold;
 }
 
-// TODO: Change `_iIvalue` to be unsigned instead of passing `int` here.
-bool PlayerCanAfford(int price)
-{
-	return TotalPlayerGold() >= static_cast<uint32_t>(price);
-}
 
 void StartSmithBuy()
 {
@@ -1254,6 +1254,25 @@ void StartDrunk()
 
 void SmithEnter()
 {
+	if (*GetOptions().Gameplay.visualStoreUI) {
+		switch (CurrentTextLine) {
+		case 10:
+			TownerId = TOWN_SMITH;
+			OldTextLine = 10;
+			OldActiveStore = TalkID::Smith;
+			StartStore(TalkID::Gossip);
+			break;
+		case 12:
+			ActiveStore = TalkID::None;
+			OpenVisualStore(VisualStoreVendor::Smith);
+			break;
+		case 14:
+			ActiveStore = TalkID::None;
+			break;
+		}
+		return;
+	}
+
 	switch (CurrentTextLine) {
 	case 10:
 		TownerId = TOWN_SMITH;
@@ -2760,6 +2779,12 @@ void ReleaseStoreBtn()
 bool IsPlayerInStore()
 {
 	return ActiveStore != TalkID::None;
+}
+
+// TODO: Change `_iIvalue` to be unsigned instead of passing `int` here.
+bool PlayerCanAfford(int price)
+{
+	return TotalPlayerGold() >= static_cast<uint32_t>(price);
 }
 
 } // namespace devilution

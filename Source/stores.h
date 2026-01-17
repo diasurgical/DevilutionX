@@ -13,6 +13,7 @@
 #include "engine/clx_sprite.hpp"
 #include "engine/surface.hpp"
 #include "game_mode.hpp"
+#include "items.h"
 #include "utils/attributes.h"
 #include "utils/static_vector.hpp"
 
@@ -126,5 +127,6 @@ bool IsPlayerInStore();
  * @return true if the item can be/was placed.
  */
 bool StoreAutoPlace(Item &item, bool persistItem);
+bool PlayerCanAfford(int price);
 
 } // namespace devilution
