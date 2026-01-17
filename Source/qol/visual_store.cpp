@@ -554,9 +554,9 @@ int16_t CheckVisualStoreHLight(Point mousePosition)
 
 				const int price = item._iIvalue;
 				const bool canAfford = PlayerCanAfford(price);
-				const std::string priceText = StrCat(" (", FormatInteger(price), ")");
 
-				FloatingInfoString = StrCat(item.getName(), priceText);
+				InfoString = item.getName();
+				FloatingInfoString = item.getName();
 				InfoColor = canAfford ? item.getTextColor() : UiFlags::ColorRed;
 
 				if (item._iIdentified) {
@@ -564,6 +564,9 @@ int16_t CheckVisualStoreHLight(Point mousePosition)
 				} else {
 					PrintItemDur(item);
 				}
+
+				AddInfoBoxString(StrCat("", FormatInteger(price), " Gold"));
+
 				return static_cast<int16_t>(itemIndex);
 			}
 		}
