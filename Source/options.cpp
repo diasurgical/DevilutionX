@@ -876,6 +876,7 @@ GameplayOptions::GameplayOptions()
               { FloatingNumbers::Random, N_("Random Angles") },
               { FloatingNumbers::Vertical, N_("Vertical Only") },
           })
+    , visualStoreUI("Visual Store UI", OptionEntryFlags::None, N_("Visual Store UI"), N_("Use visual grid-based store interface instead of text-based menus. Both store and inventory panels open together."), false)
     , skipLoadingScreenThresholdMs("Skip loading screen threshold, ms", OptionEntryFlags::Invisible, "", "", 0)
 {
 }
@@ -895,6 +896,7 @@ std::vector<OptionEntryBase *> GameplayOptions::GetEntries()
 		&testBarbarian,
 		&experienceBar,
 		&showItemGraphicsInStores,
+		&visualStoreUI,
 		&showHealthValues,
 		&showManaValues,
 		&showMultiplayerPartyInfo,

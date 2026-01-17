@@ -150,6 +150,7 @@ set(libdevilutionx_SRCS
   qol/itemlabels.cpp
   qol/monhealthbar.cpp
   qol/stash.cpp
+  qol/visual_store.cpp
   qol/xpbar.cpp
 
   quests/validation.cpp

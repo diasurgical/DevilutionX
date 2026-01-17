@@ -23,6 +23,7 @@
 #include "panels/spell_list.hpp"
 #include "pfile.h"
 #include "qol/stash.h"
+#include "qol/visual_store.h"
 #include "stores.h"
 #include "utils/sdl_compat.h"
 
@@ -59,7 +60,7 @@ const Rectangle &GetRightPanel()
 }
 bool IsLeftPanelOpen()
 {
-	return CharFlag || QuestLogIsOpen || IsStashOpen;
+	return CharFlag || QuestLogIsOpen || IsStashOpen || IsVisualStoreOpen;
 }
 bool IsRightPanelOpen()
 {
@@ -300,6 +301,7 @@ void OpenCharPanel()
 	QuestLogIsOpen = false;
 	CloseGoldWithdraw();
 	CloseStash();
+	CloseVisualStore();
 	CharFlag = true;
 }
 
@@ -565,6 +567,7 @@ void CheckMainPanelButtonUp()
 			CloseCharPanel();
 			CloseGoldWithdraw();
 			CloseStash();
+			CloseVisualStore();
 			if (!QuestLogIsOpen)
 				StartQuestlog();
 			else
@@ -595,6 +598,7 @@ void CheckMainPanelButtonUp()
 			SpellbookFlag = false;
 			CloseGoldWithdraw();
 			CloseStash();
+			CloseVisualStore();
 			invflag = !invflag;
 			CloseGoldDrop();
 			break;

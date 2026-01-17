@@ -26,6 +26,7 @@
 #include "options.h"
 #include "panels/info_box.hpp"
 #include "qol/stash.h"
+#include "qol/visual_store.h"
 #include "townerdat.hpp"
 #include "towners.h"
 #include "utils/format_int.hpp"
@@ -334,25 +335,6 @@ void PrintStoreItem(const Item &item, int l, UiFlags flags, bool cursIndent = fa
 			productLine.append(fmt::format(fmt::runtime(_(" {:d} Dex")), dex));
 	}
 	AddSText(40, l++, productLine, flags, false, -1, cursIndent);
-}
-
-bool StoreAutoPlace(Item &item, bool persistItem)
-{
-	Player &player = *MyPlayer;
-
-	if (AutoEquipEnabled(player, item) && AutoEquip(player, item, persistItem, true)) {
-		return true;
-	}
-
-	if (AutoPlaceItemInBelt(player, item, persistItem, true)) {
-		return true;
-	}
-
-	if (persistItem) {
-		return AutoPlaceItemInInventory(player, item, true);
-	}
-
-	return CanFitItemInInventory(player, item);
 }
 
 void ScrollVendorStore(std::span<Item> itemData, int storeLimit, int idx, int selling = true)
@@ -1280,13 +1262,30 @@ void SmithEnter()
 		StartStore(TalkID::Gossip);
 		break;
 	case 12:
-		StartStore(TalkID::SmithBuy);
+		if (*GetOptions().Gameplay.visualStoreUI) {
+			ActiveStore = TalkID::None;
+			OpenVisualStore(VisualStoreVendor::Smith);
+		} else {
+			StartStore(TalkID::SmithBuy);
+		}
 		break;
 	case 14:
-		StartStore(TalkID::SmithPremiumBuy);
+		if (*GetOptions().Gameplay.visualStoreUI) {
+			ActiveStore = TalkID::None;
+			OpenVisualStore(VisualStoreVendor::Smith);
+			SetVisualStoreTab(VisualStoreTab::Premium);
+		} else {
+			StartStore(TalkID::SmithPremiumBuy);
+		}
 		break;
 	case 16:
-		StartStore(TalkID::SmithSell);
+		if (*GetOptions().Gameplay.visualStoreUI) {
+			// Visual store handles both buying and selling
+			ActiveStore = TalkID::None;
+			OpenVisualStore(VisualStoreVendor::Smith);
+		} else {
+			StartStore(TalkID::SmithSell);
+		}
 		break;
 	case 18:
 		StartStore(TalkID::SmithRepair);
@@ -1507,10 +1506,20 @@ void WitchEnter()
 		StartStore(TalkID::Gossip);
 		break;
 	case 14:
-		StartStore(TalkID::WitchBuy);
+		if (*GetOptions().Gameplay.visualStoreUI) {
+			ActiveStore = TalkID::None;
+			OpenVisualStore(VisualStoreVendor::Witch);
+		} else {
+			StartStore(TalkID::WitchBuy);
+		}
 		break;
 	case 16:
-		StartStore(TalkID::WitchSell);
+		if (*GetOptions().Gameplay.visualStoreUI) {
+			ActiveStore = TalkID::None;
+			OpenVisualStore(VisualStoreVendor::Witch);
+		} else {
+			StartStore(TalkID::WitchSell);
+		}
 		break;
 	case 18:
 		StartStore(TalkID::WitchRecharge);
@@ -1648,7 +1657,12 @@ void BoyEnter()
 			StartStore(TalkID::NoMoney);
 		} else {
 			TakePlrsMoney(50);
-			StartStore(TalkID::BoyBuy);
+			if (*GetOptions().Gameplay.visualStoreUI) {
+				ActiveStore = TalkID::None;
+				OpenVisualStore(VisualStoreVendor::Boy);
+			} else {
+				StartStore(TalkID::BoyBuy);
+			}
 		}
 		return;
 	}
@@ -1825,7 +1839,12 @@ void HealerEnter()
 		StartStore(TalkID::Gossip);
 		break;
 	case 14:
-		StartStore(TalkID::HealerBuy);
+		if (*GetOptions().Gameplay.visualStoreUI) {
+			ActiveStore = TalkID::None;
+			OpenVisualStore(VisualStoreVendor::Healer);
+		} else {
+			StartStore(TalkID::HealerBuy);
+		}
 		break;
 	case 18:
 		ActiveStore = TalkID::None;
@@ -2035,6 +2054,25 @@ void DrawSelector(const Surface &out, const Rectangle &rect, std::string_view te
 }
 
 } // namespace
+
+bool StoreAutoPlace(Item &item, bool persistItem)
+{
+	Player &player = *MyPlayer;
+
+	if (AutoEquipEnabled(player, item) && AutoEquip(player, item, persistItem, true)) {
+		return true;
+	}
+
+	if (AutoPlaceItemInBelt(player, item, persistItem, true)) {
+		return true;
+	}
+
+	if (persistItem) {
+		return AutoPlaceItemInInventory(player, item, true);
+	}
+
+	return CanFitItemInInventory(player, item);
+}
 
 void AddStoreHoldRepair(Item *itm, int8_t i)
 {

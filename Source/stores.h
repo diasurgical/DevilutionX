@@ -119,4 +119,12 @@ void CheckStoreBtn();
 void ReleaseStoreBtn();
 bool IsPlayerInStore();
 
+/**
+ * @brief Places an item in the player's inventory, belt, or equipment.
+ * @param item The item to place.
+ * @param persistItem If true, actually place the item. If false, just check if it can be placed.
+ * @return true if the item can be/was placed.
+ */
+bool StoreAutoPlace(Item &item, bool persistItem);
+
 } // namespace devilution

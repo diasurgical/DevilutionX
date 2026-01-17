@@ -39,6 +39,7 @@
 #include "player.h"
 #include "plrmsg.h"
 #include "qol/stash.h"
+#include "qol/visual_store.h"
 #include "stores.h"
 #include "towners.h"
 #include "utils/display.h"
@@ -796,7 +797,12 @@ void CheckInvCut(Player &player, Point cursorPosition, bool automaticMove, bool 
 		if (iv >= 0) {
 			if (automaticMove) {
 				attemptedMove = true;
-				if (CanBePlacedOnBelt(player, player.InvList[iv])) {
+				// If visual store is open, shift-click sells the item
+				if (IsVisualStoreOpen && CanSellToCurrentVendor(player.InvList[iv])) {
+					SellItemToVisualStore(iv);
+					automaticallyMoved = true;
+					// Sound is played by SellItemToVisualStore
+				} else if (CanBePlacedOnBelt(player, player.InvList[iv])) {
 					automaticallyMoved = AutoPlaceItemInBelt(player, player.InvList[iv], true, &player == MyPlayer);
 					if (automaticallyMoved) {
 						successSound = SfxID::GrabItem;
@@ -2213,6 +2219,7 @@ void CloseInventory()
 {
 	CloseGoldWithdraw();
 	CloseStash();
+	CloseVisualStore();
 	invflag = false;
 }
 

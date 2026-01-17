@@ -6,6 +6,7 @@
 #include "levels/trigs.h"
 #include "panels/partypanel.hpp"
 #include "qol/stash.h"
+#include "qol/visual_store.h"
 #include "qol/xpbar.h"
 #include "towners.h"
 #include "utils/algorithm/container.hpp"
@@ -174,6 +175,26 @@ Rectangle GetFloatingInfoRect(const int lineHeight, const int textSpacing)
 		}
 	}
 
+	// 5) Visual Store (Rect position)
+	if (pcursstoreitem != -1) {
+		const VisualStorePage &page = VisualStore.pages[VisualStore.currentPage];
+		std::span<Item> allItems = GetVisualStoreItems();
+		for (const auto &vsItem : page.items) {
+			if (vsItem.index != pcursstoreitem)
+				continue;
+
+			const Item &item = allItems[vsItem.index];
+			Point itemPosition = GetVisualStoreSlotCoord(vsItem.position);
+			const Size itemGridSize = GetInventorySize(item);
+
+			itemPosition.y += itemGridSize.height * (InventorySlotSizeInPixels.height + 1) - 1; // Align position to bottom left of the item graphic
+			itemPosition.x += itemGridSize.width * InventorySlotSizeInPixels.width / 2;         // Align position to center of the item graphic
+			itemPosition.x -= maxW / 2;															// Align position to the center of the floating item info box
+
+			return { { itemPosition.x, itemPosition.y }, { maxW, totalH } };
+		}
+	}
+
 	return { { 0, 0 }, { 0, 0 } };
 }
 
@@ -200,6 +221,11 @@ int GetHoverSpriteHeight()
 	if (pcursstashitem != StashStruct::EmptyCell) {
 		auto &it = Stash.stashList[pcursstashitem];
 		return GetInventorySize(it).height * (InventorySlotSizeInPixels.height + 1);
+	}
+	if (pcursstoreitem != -1) {
+		std::span<Item> allItems = GetVisualStoreItems();
+		auto &it = allItems[pcursstoreitem];
+		return GetInventorySize(it).height * (INV_SLOT_SIZE_PX + 1);
 	}
 	return InventorySlotSizeInPixels.height;
 }
@@ -356,7 +382,7 @@ void CheckPanelInfo()
 void DrawInfoBox(const Surface &out)
 {
 	DrawPanelBox(out, MakeSdlRect(InfoBoxRect.position.x, InfoBoxRect.position.y + PanelPaddingHeight, InfoBoxRect.size.width, InfoBoxRect.size.height), GetMainPanel().position + Displacement { InfoBoxRect.position.x, InfoBoxRect.position.y });
-	if (!MainPanelFlag && !trigflag && pcursinvitem == -1 && pcursstashitem == StashStruct::EmptyCell && !SpellSelectFlag && pcurs != CURSOR_HOURGLASS) {
+	if (!MainPanelFlag && !trigflag && pcursinvitem == -1 && pcursstashitem == StashStruct::EmptyCell && pcursstoreitem == -1 && !SpellSelectFlag && pcurs != CURSOR_HOURGLASS) {
 		InfoString = StringOrView {};
 		InfoColor = UiFlags::ColorWhite;
 	}
@@ -413,7 +439,7 @@ void DrawInfoBox(const Surface &out)
 
 void DrawFloatingInfoBox(const Surface &out)
 {
-	if (pcursinvitem == -1 && pcursstashitem == StashStruct::EmptyCell) {
+	if (pcursinvitem == -1 && pcursstashitem == StashStruct::EmptyCell && pcursstoreitem == -1) {
 		FloatingInfoString = StringOrView {};
 		InfoColor = UiFlags::ColorWhite;
 	}

@@ -40,6 +40,7 @@
 #include "options.h"
 #include "qol/itemlabels.h"
 #include "qol/stash.h"
+#include "qol/visual_store.h"
 #include "towners.h"
 #include "track.h"
 #include "utils/attributes.h"
@@ -802,6 +803,7 @@ void ResetCursorInfo()
 	}
 	pcursinvitem = -1;
 	pcursstashitem = StashStruct::EmptyCell;
+	pcursstoreitem = -1;
 	PlayerUnderCursor = nullptr;
 	ShowUniqueItemInfoBox = false;
 	MainPanelFlag = false;
@@ -835,6 +837,9 @@ bool CheckPanelsAndFlags(Rectangle mainPanel)
 	}
 	if (IsStashOpen && GetLeftPanel().contains(MousePosition)) {
 		pcursstashitem = CheckStashHLight(MousePosition);
+	}
+	if (IsVisualStoreOpen && GetLeftPanel().contains(MousePosition)) {
+		pcursstoreitem = CheckVisualStoreHLight(MousePosition);
 	}
 	if (SpellbookFlag && GetRightPanel().contains(MousePosition)) {
 		return true;
