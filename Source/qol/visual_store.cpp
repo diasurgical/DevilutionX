@@ -21,7 +21,6 @@
 #include "game_mode.hpp"
 #include "headless_mode.hpp"
 #include "inv.h"
-#include "itemdat.h"
 #include "items.h"
 #include "minitext.h"
 #include "options.h"
