@@ -12,8 +12,8 @@
 
 #include "engine/direction.hpp"
 #include "levels/gendung.h"
-#include "objdat.h"
-#include "textdat.h"
+#include "tables/objdat.h"
+#include "tables/textdat.h"
 #include "towners.h"
 #include "utils/attributes.h"
 

@@ -38,8 +38,8 @@ jobs:
       uses: actions/cache@v5
       with:
         path: build
-        key: ${{ github.workflow }}-v3-${{ github.sha }}
-        restore-keys: ${{ github.workflow }}-v3-
+        key: ${{ github.workflow }}-v4-${{ github.sha }}
+        restore-keys: ${{ github.workflow }}-v4-
 
     - name: Clean previous DMG
       working-directory: ${{github.workspace}}

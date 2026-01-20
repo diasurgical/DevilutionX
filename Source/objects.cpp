@@ -38,10 +38,10 @@
 #include "minitext.h"
 #include "missiles.h"
 #include "monster.h"
-#include "objdat.h"
 #include "options.h"
 #include "qol/stash.h"
 #include "stores.h"
+#include "tables/objdat.h"
 #include "towners.h"
 #include "track.h"
 #include "utils/algorithm/container.hpp"
@@ -2524,24 +2524,22 @@ void OperateShrineCostOfWisdom(Player &player, SpellID spellId, diablo_message m
 		}
 	}
 
-	const uint32_t t = player._pMaxManaBase / 10;
-	const int v1 = player._pMana - player._pManaBase;
-	const int v2 = player._pMaxMana - player._pMaxManaBase;
-	player._pManaBase -= t;
-	player._pMana -= t;
-	player._pMaxMana -= t;
-	player._pMaxManaBase -= t;
-	if (player.hasNoMana()) {
-		player._pMana = v1;
-		player._pManaBase = 0;
-	}
-	if (player._pMaxMana >> 6 <= 0) {
-		player._pMaxMana = v2;
+	int maxBase = player._pMaxManaBase;
+
+	if (maxBase < 0) {
+		// Fix bugged state; do not turn this into a "negative penalty" mana boost.
 		player._pMaxManaBase = 0;
+		maxBase = 0;
 	}
+
+	const int penalty = maxBase / 10; // 10% of max base mana (>= 0)
+
+	player._pMaxManaBase -= penalty; // will remain >= 0
+	player._pManaBase -= penalty;    // may go negative, allowed
+	player._pMaxMana -= penalty;     // may go negative, allowed
+	player._pMana -= penalty;        // may go negative, allowed
 
 	RedrawEverything();
-
 	InitDiabloMsg(message);
 }
 

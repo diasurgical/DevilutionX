@@ -92,15 +92,6 @@ enum class Resampler : uint8_t {
 std::string_view ResamplerToString(Resampler resampler);
 std::optional<Resampler> ResamplerFromString(std::string_view resampler);
 
-enum class FloatingNumbers : uint8_t {
-	/** @brief Show no floating numbers. */
-	Off = 0,
-	/** @brief Show floating numbers at random angles. */
-	Random = 1,
-	/** @brief Show floating numbers vertically only. */
-	Vertical = 2,
-};
-
 enum class OptionEntryType : uint8_t {
 	Boolean,
 	List,
@@ -608,8 +599,6 @@ struct GameplayOptions : OptionCategoryBase {
 	OptionEntryBoolean autoOilPickup;
 	/** @brief Enable or Disable auto-pickup in town */
 	OptionEntryBoolean autoPickupInTown;
-	/** @brief Recover mana when talking to Adria. */
-	OptionEntryBoolean adriaRefillsMana;
 	/** @brief Automatically attempt to equip weapon-type items when picking them up. */
 	OptionEntryBoolean autoEquipWeapons;
 	/** @brief Automatically attempt to equip armor-type items when picking them up. */
@@ -644,8 +633,6 @@ struct GameplayOptions : OptionCategoryBase {
 	OptionEntryInt<int> numRejuPotionPickup;
 	/** @brief Number of Full Rejuvenating potions to pick up automatically */
 	OptionEntryInt<int> numFullRejuPotionPickup;
-	/** @brief Enable floating numbers. */
-	OptionEntryEnum<FloatingNumbers> enableFloatingNumbers;
 	/** @brief Use visual grid-based store UI instead of text-based menus. */
 	OptionEntryBoolean visualStoreUI;
 

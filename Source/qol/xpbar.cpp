@@ -18,7 +18,7 @@
 #include "engine/render/primitive_render.hpp"
 #include "game_mode.hpp"
 #include "options.h"
-#include "playerdat.hpp"
+#include "tables/playerdat.hpp"
 #include "utils/format_int.hpp"
 #include "utils/language.h"
 

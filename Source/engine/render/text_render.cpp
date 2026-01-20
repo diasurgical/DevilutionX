@@ -482,6 +482,7 @@ void DrawLine(
 		char32_t c = DecodeFirstUtf8CodePoint(lineCopy, &cpLen);
 		if (c == Utf8DecodeError) break;
 		if (c == ZWSP) {
+			currentPos += cpLen;
 			lineCopy.remove_prefix(cpLen);
 			continue;
 		}

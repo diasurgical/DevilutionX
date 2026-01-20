@@ -4,6 +4,8 @@
 
 #include <sol/sol.hpp>
 
+#include "effects.h"
+#include "engine/backbuffer_state.hpp"
 #include "engine/point.hpp"
 #include "engine/random.hpp"
 #include "inv.h"
@@ -20,6 +22,16 @@ void InitPlayerUserType(sol::state_view &lua)
 	LuaSetDocReadonlyProperty(playerType, "name", "string",
 	    "Player's name (readonly)",
 	    &Player::name);
+	LuaSetDocReadonlyProperty(playerType, "id", "integer",
+	    "Player's unique ID (readonly)",
+	    [](const Player &player) {
+		    return static_cast<int>(reinterpret_cast<uintptr_t>(&player));
+	    });
+	LuaSetDocReadonlyProperty(playerType, "position", "Point",
+	    "Player's current position (readonly)",
+	    [](const Player &player) -> Point {
+		    return Point { player.position.tile };
+	    });
 	LuaSetDocFn(playerType, "addExperience", "(experience: integer, monsterLevel: integer = nil)",
 	    "Adds experience to this player based on the current game mode",
 	    [](Player &player, uint32_t experience, std::optional<int> monsterLevel) {
@@ -93,6 +105,12 @@ void InitPlayerUserType(sol::state_view &lua)
 		    player._pMana = player._pMaxMana;
 		    player._pManaBase = player._pMaxManaBase;
 	    });
+	LuaSetDocReadonlyProperty(playerType, "mana", "number",
+	    "Current mana (readonly)",
+	    [](Player &player) { return player._pMana >> 6; });
+	LuaSetDocReadonlyProperty(playerType, "maxMana", "number",
+	    "Maximum mana (readonly)",
+	    [](Player &player) { return player._pMaxMana >> 6; });
 }
 } // namespace
 

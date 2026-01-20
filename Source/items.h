@@ -13,9 +13,9 @@
 #include "engine/animationinfo.h"
 #include "engine/point.hpp"
 #include "engine/surface.hpp"
-#include "itemdat.h"
 #include "levels/dun_tile.hpp"
 #include "monster.h"
+#include "tables/itemdat.h"
 #include "utils/is_of.hpp"
 #include "utils/string_or_view.hpp"
 

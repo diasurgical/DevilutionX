@@ -3,7 +3,7 @@
  *
  * Implementation of all spell data.
  */
-#include "spelldat.h"
+#include "tables/spelldat.h"
 
 #include <optional>
 #include <string_view>

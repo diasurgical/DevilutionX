@@ -72,7 +72,7 @@ namespace {
 void DiscoverMods()
 {
 	// Add mods available by default:
-	std::unordered_set<std::string> modNames = { "clock" };
+	std::unordered_set<std::string> modNames = { "clock", "adria_refills_mana", "Floating Numbers - Damage", "Floating Numbers - XP" };
 
 	if (HaveHellfire()) {
 		modNames.insert("Hellfire");
@@ -852,7 +852,6 @@ GameplayOptions::GameplayOptions()
     , autoElixirPickup("Auto Elixir Pickup", OptionEntryFlags::None, N_("Auto Elixir Pickup"), N_("Elixirs are automatically collected when in close proximity to the player."), false)
     , autoOilPickup("Auto Oil Pickup", OptionEntryFlags::OnlyHellfire, N_("Auto Oil Pickup"), N_("Oils are automatically collected when in close proximity to the player."), false)
     , autoPickupInTown("Auto Pickup in Town", OptionEntryFlags::None, N_("Auto Pickup in Town"), N_("Automatically pickup items in town."), false)
-    , adriaRefillsMana("Adria Refills Mana", OptionEntryFlags::None, N_("Adria Refills Mana"), N_("Adria will refill your mana when you visit her shop."), false)
     , autoEquipWeapons("Auto Equip Weapons", OptionEntryFlags::None, N_("Auto Equip Weapons"), N_("Weapons will be automatically equipped on pickup or purchase if enabled."), true)
     , autoEquipArmor("Auto Equip Armor", OptionEntryFlags::None, N_("Auto Equip Armor"), N_("Armor will be automatically equipped on pickup or purchase if enabled."), false)
     , autoEquipHelms("Auto Equip Helms", OptionEntryFlags::None, N_("Auto Equip Helms"), N_("Helms will be automatically equipped on pickup or purchase if enabled."), false)
@@ -870,12 +869,6 @@ GameplayOptions::GameplayOptions()
     , numFullManaPotionPickup("Full Mana Potion Pickup", OptionEntryFlags::None, N_("Full Mana Potion Pickup"), N_("Number of Full Mana potions to pick up automatically."), 0, { 0, 1, 2, 4, 8, 16 })
     , numRejuPotionPickup("Rejuvenation Potion Pickup", OptionEntryFlags::None, N_("Rejuvenation Potion Pickup"), N_("Number of Rejuvenation potions to pick up automatically."), 0, { 0, 1, 2, 4, 8, 16 })
     , numFullRejuPotionPickup("Full Rejuvenation Potion Pickup", OptionEntryFlags::None, N_("Full Rejuvenation Potion Pickup"), N_("Number of Full Rejuvenation potions to pick up automatically."), 0, { 0, 1, 2, 4, 8, 16 })
-    , enableFloatingNumbers("Enable floating numbers", OptionEntryFlags::None, N_("Enable floating numbers"), N_("Enables floating numbers on gaining XP / dealing damage etc."), FloatingNumbers::Off,
-          {
-              { FloatingNumbers::Off, N_("Off") },
-              { FloatingNumbers::Random, N_("Random Angles") },
-              { FloatingNumbers::Vertical, N_("Vertical Only") },
-          })
     , visualStoreUI("Visual Store UI", OptionEntryFlags::None, N_("Visual Store UI"), N_("Use visual grid-based store interface instead of text-based menus. Both store and inventory panels open together."), false)
     , skipLoadingScreenThresholdMs("Skip loading screen threshold, ms", OptionEntryFlags::Invisible, "", "", 0)
 {
@@ -904,7 +897,6 @@ std::vector<OptionEntryBase *> GameplayOptions::GetEntries()
 		&floatingInfoBox,
 		&showMonsterType,
 		&showItemLabels,
-		&enableFloatingNumbers,
 		&autoRefillBelt,
 		&autoEquipWeapons,
 		&autoEquipArmor,
@@ -922,7 +914,6 @@ std::vector<OptionEntryBase *> GameplayOptions::GetEntries()
 		&numFullRejuPotionPickup,
 		&autoPickupInTown,
 		&disableCripplingShrines,
-		&adriaRefillsMana,
 		&grabInput,
 		&pauseOnFocusLoss,
 		&skipLoadingScreenThresholdMs,
