@@ -658,11 +658,19 @@ void StartWitch()
 	AddSText(0, 2, _("Witch's shack"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
 	AddSText(0, 9, _("Would you like to:"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
 	AddSText(0, 12, _("Talk to Adria"), UiFlags::ColorBlue | UiFlags::AlignCenter, true);
-	AddSText(0, 14, _("Buy items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSText(0, 16, _("Sell items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSText(0, 18, _("Recharge staves"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSText(0, 20, _("Leave the shack"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSLine(5);
+	if (*GetOptions().Gameplay.visualStoreUI) {
+		AddSText(0, 14, _("Buy / Sell"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+		AddSText(0, 16, _("Recharge staves"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+		AddSText(0, 18, _("Leave the shack"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+		AddSLine(4);
+	} else {
+		AddSText(0, 14, _("Buy items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+		AddSText(0, 16, _("Sell items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+		AddSText(0, 18, _("Recharge staves"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+		AddSText(0, 20, _("Leave the shack"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+		AddSLine(5);
+	}
+	
 	CurrentItemIndex = 20;
 }
 
