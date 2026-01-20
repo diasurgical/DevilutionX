@@ -29,7 +29,7 @@ enum class VisualStoreTab : uint8_t {
 
 // Grid: 5x5 = 25 items per page (sufficient for all vendors)
 inline constexpr int VisualStoreGridWidth = 10;
-inline constexpr int VisualStoreGridHeight = 10;
+inline constexpr int VisualStoreGridHeight = 9;
 inline constexpr int VisualStoreItemsPerPage = VisualStoreGridWidth * VisualStoreGridHeight;
 
 struct VisualStoreItem {
@@ -52,6 +52,7 @@ struct VisualStoreState {
 extern bool IsVisualStoreOpen;
 extern VisualStoreState VisualStore;
 extern int16_t pcursstoreitem; // Currently highlighted store item index (-1 if none)
+extern int16_t pcursstorebtn; 
 
 /**
  * @brief Load visual store graphics.
@@ -164,5 +165,25 @@ int GetVisualStorePageCount();
  * @return The screen coordinates.
  */
 Point GetVisualStoreSlotCoord(Point slot);
+
+/**
+ * @brief Gets the point for a btn on the panel.
+ * @param slot Btn id.
+ * @return The screen coordinates.
+ */
+Rectangle GetVisualBtnCoord(int btnId);
+
+/**
+ * @brief Calculate the cost to repair an item.
+ * @param item The item to repair.
+ * @return The cost in gold.
+ */
+int GetRepairCost(const Item &item);
+
+/**
+ * @brief Repair a specific item from the player's inventory/body.
+ * @param invIndex The inventory index of the item.
+ */
+void VisualStoreRepairItem(int invIndex);
 
 } // namespace devilution

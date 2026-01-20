@@ -1987,7 +1987,21 @@ int8_t CheckInvHLight()
 	if (pi->isEmpty())
 		return -1;
 
-	if (pi->_itype == ItemType::Gold) {
+	if (IsVisualStoreOpen && pcurs == CURSOR_REPAIR) {
+		InfoColor = pi->getTextColor();
+		InfoString = pi->getName();
+		FloatingInfoString = pi->getName();
+		if (pi->_iIdentified) {
+			PrintItemDetails(*pi);
+		} else {
+			PrintItemDur(*pi);
+		}
+		int cost = GetRepairCost(*pi);
+		if (cost > 0)
+			AddInfoBoxString(StrCat(FormatInteger(cost), " Gold"));
+		else
+			AddInfoBoxString(_("Fully Repaired"));
+	} else if (pi->_itype == ItemType::Gold) {
 		const int nGold = pi->_ivalue;
 		InfoString = fmt::format(fmt::runtime(ngettext("{:s} gold piece", "{:s} gold pieces", nGold)), FormatInteger(nGold));
 		FloatingInfoString = fmt::format(fmt::runtime(ngettext("{:s} gold piece", "{:s} gold pieces", nGold)), FormatInteger(nGold));

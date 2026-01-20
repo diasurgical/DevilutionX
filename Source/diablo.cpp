@@ -2824,9 +2824,12 @@ bool TryIconCurs()
 	}
 
 	if (pcurs == CURSOR_REPAIR) {
-		if (pcursinvitem != -1 && !IsInspectingPlayer())
-			DoRepair(myPlayer, pcursinvitem);
-		else if (pcursstashitem != StashStruct::EmptyCell) {
+		if (pcursinvitem != -1 && !IsInspectingPlayer()) {
+			if (IsVisualStoreOpen)
+				VisualStoreRepairItem(pcursinvitem);
+			else
+				DoRepair(myPlayer, pcursinvitem);
+		} else if (pcursstashitem != StashStruct::EmptyCell) {
 			Item &item = Stash.stashList[pcursstashitem];
 			RepairItem(item, myPlayer.getCharacterLevel());
 		}

@@ -40,11 +40,14 @@ namespace devilution {
 bool IsVisualStoreOpen;
 VisualStoreState VisualStore;
 int16_t pcursstoreitem = -1;
+int16_t pcursstorebtn = -1;
 
 namespace {
 
 OptionalOwnedClxSpriteList VisualStorePanelArt;
 OptionalOwnedClxSpriteList VisualStoreNavButtonArt;
+OptionalOwnedClxSpriteList VisualStoreRepairAllButtonArt;
+OptionalOwnedClxSpriteList VisualStoreRepairButtonArt;
 
 int VisualStoreButtonPressed = -1;
 
@@ -60,7 +63,8 @@ constexpr Rectangle VisualStoreButtonRect[] = {
 	// Tab buttons (Smith only) - positioned below title
 	{ { 50, 18 }, { 60, 16 } },  // Regular tab
 	{ { 120, 18 }, { 60, 16 } },  // Premium tab
-	{ { 200, 320 }, { 60, 16 } }, // Repair All Btn
+	{ { 280, 313 }, { 32, 32 } }, // Repair All Btn
+	{ { 245, 313 }, { 32, 32 } }, // Repair Btn
 };
 
 //constexpr int NavButton10Left = 0;
@@ -70,6 +74,7 @@ constexpr Rectangle VisualStoreButtonRect[] = {
 constexpr int TabButtonRegular = 0;
 constexpr int TabButtonPremium = 1;
 constexpr int RepairAllBtn = 2;
+constexpr int RepairBtn = 3;
 
 /** @brief Get the items array for a specific vendor/tab combination. */
 std::span<Item> GetVendorItems(VisualStoreVendor vendor, VisualStoreTab tab)
@@ -276,6 +281,8 @@ void InitVisualStore()
 	// In the future, create dedicated visual store assets
 	VisualStorePanelArt = LoadClx("data\\store.clx");
 	VisualStoreNavButtonArt = LoadClx("data\\talkbutton.clx");
+	VisualStoreRepairAllButtonArt = LoadClx("data\\repairAllBtn.clx");
+	VisualStoreRepairButtonArt = LoadClx("data\\repairSingleBtn.clx");
 }
 
 void FreeVisualStoreGFX()
@@ -294,6 +301,7 @@ void OpenVisualStore(VisualStoreVendor vendor)
 	VisualStore.currentPage = 0;
 
 	pcursstoreitem = -1;
+	pcursstorebtn = -1;
 
 	// Refresh item stat flags for current player
 	std::span<Item> items = GetVisualStoreItems();
@@ -309,6 +317,7 @@ void CloseVisualStore()
 	IsVisualStoreOpen = false;
 	invflag = false;
 	pcursstoreitem = -1;
+	pcursstorebtn = -1;
 	VisualStoreButtonPressed = -1;
 	VisualStore.pages.clear();
 }
@@ -321,6 +330,7 @@ void SetVisualStoreTab(VisualStoreTab tab)
 	VisualStore.activeTab = tab;
 	VisualStore.currentPage = 0;
 	pcursstoreitem = -1;
+	pcursstorebtn = -1;
 
 	// Refresh item stat flags
 	std::span<Item> items = GetVisualStoreItems();
@@ -336,6 +346,7 @@ void VisualStoreNextPage()
 	if (VisualStore.currentPage + 1 < VisualStore.pages.size()) {
 		VisualStore.currentPage++;
 		pcursstoreitem = -1;
+		pcursstorebtn = -1;
 	}
 }
 
@@ -344,6 +355,20 @@ void VisualStorePreviousPage()
 	if (VisualStore.currentPage > 0) {
 		VisualStore.currentPage--;
 		pcursstoreitem = -1;
+		pcursstorebtn = -1;
+	}
+}
+
+int GetRepairCost(const Item &item)
+{
+	if (item.isEmpty() || item._iDurability == item._iMaxDur || item._iMaxDur == DUR_INDESTRUCTIBLE)
+		return 0;
+
+	const int due = item._iMaxDur - item._iDurability;
+	if (item._iMagical != ITEM_QUALITY_NORMAL && item._iIdentified) {
+		return 30 * item._iIvalue * due / (item._iMaxDur * 100 * 2);
+	} else {
+		return std::max(item._ivalue * due / (item._iMaxDur * 2), 1);
 	}
 }
 
@@ -352,26 +377,14 @@ void VisualStoreRepairAll()
 	Player &myPlayer = *MyPlayer;
 	int totalCost = 0;
 
-	auto calculateRepairCost = [](const Item &item) -> int {
-		if (item.isEmpty() || item._iDurability == item._iMaxDur || item._iMaxDur == DUR_INDESTRUCTIBLE)
-			return 0;
-
-		const int due = item._iMaxDur - item._iDurability;
-		if (item._iMagical != ITEM_QUALITY_NORMAL && item._iIdentified) {
-			return 30 * item._iIvalue * due / (item._iMaxDur * 100 * 2);
-		} else {
-			return std::max(item._ivalue * due / (item._iMaxDur * 2), 1);
-		}
-	};
-
 	// Check body items
 	for (auto &item : myPlayer.InvBody) {
-		totalCost += calculateRepairCost(item);
+		totalCost += GetRepairCost(item);
 	}
 
 	// Check inventory items
 	for (int i = 0; i < myPlayer._pNumInv; i++) {
-		totalCost += calculateRepairCost(myPlayer.InvList[i]);
+		totalCost += GetRepairCost(myPlayer.InvList[i]);
 	}
 
 	if (totalCost == 0)
@@ -400,13 +413,57 @@ void VisualStoreRepairAll()
 	CalcPlrInv(myPlayer, true);
 }
 
+void VisualStoreRepair()
+{
+	NewCursor(CURSOR_REPAIR);
+}
+
+void VisualStoreRepairItem(int invIndex)
+{
+	Player &myPlayer = *MyPlayer;
+	Item *item = nullptr;
+
+	if (invIndex < INVITEM_INV_FIRST) {
+		item = &myPlayer.InvBody[invIndex];
+	} else if (invIndex <= INVITEM_INV_LAST) {
+		item = &myPlayer.InvList[invIndex - INVITEM_INV_FIRST];
+	} else {
+		return; // Belt items don't have durability
+	}
+
+	if (item->isEmpty())
+		return;
+
+	int cost = GetRepairCost(*item);
+	if (cost <= 0)
+		return;
+
+	if (!PlayerCanAfford(cost)) {		
+		//PlaySFX(HeroSpeech::ICantUseThisYet); // Or some other error sound
+		return;
+	}
+
+	TakePlrsMoney(cost);
+	item->_iDurability = item->_iMaxDur;
+	PlaySFX(SfxID::ItemGold);
+	CalcPlrInv(myPlayer, true);
+}
+
 Point GetVisualStoreSlotCoord(Point slot)
 {
 	constexpr int SlotSpacing = INV_SLOT_SIZE_PX + 1;
 	// Grid starts below the header area
-	constexpr Displacement GridOffset { 17, 60 };
+	//constexpr Displacement GridOffset { 17, 60 + (INV_SLOT_SIZE_PX/2) };
 
-	return GetPanelPosition(UiPanels::Stash, slot * SlotSpacing + GridOffset);
+	return GetPanelPosition(UiPanels::Stash, slot * SlotSpacing + Displacement { 17, 44 });
+}
+
+Rectangle GetVisualBtnCoord(int btnId)
+{
+	const Point panelPos = GetPanelPosition(UiPanels::Stash);
+	const Rectangle regBtnPos = { panelPos + (VisualStoreButtonRect[btnId].position - Point { 0, 0 }), VisualStoreButtonRect[btnId].size };
+
+	return regBtnPos;
 }
 
 int GetVisualStoreItemCount()
@@ -481,7 +538,7 @@ void DrawVisualStore(const Surface &out)
 	const VisualStorePage &page = VisualStore.pages[VisualStore.currentPage];
 	std::span<Item> allItems = GetVisualStoreItems();
 
-	constexpr Displacement SlotOffset { 0, INV_SLOT_SIZE_PX - 16 };
+	constexpr Displacement offset { 0, INV_SLOT_SIZE_PX - 1 };
 
 	// First pass: draw item slot backgrounds
 	for (int y = 0; y < VisualStoreGridHeight; y++) {
@@ -491,7 +548,7 @@ void DrawVisualStore(const Surface &out)
 				continue;
 
 			const Item &item = allItems[itemPlusOne - 1];
-			Point position = GetVisualStoreSlotCoord({ x, y }) + SlotOffset;
+			Point position = GetVisualStoreSlotCoord({ x, y }) + offset;
 			InvDrawSlotBack(out, position, InventorySlotSizeInPixels, item._iMagical);
 		}
 	}
@@ -499,7 +556,7 @@ void DrawVisualStore(const Surface &out)
 	// Second pass: draw item sprites
 	for (const auto &vsItem : page.items) {
 		const Item &item = allItems[vsItem.index];
-		Point position = GetVisualStoreSlotCoord(vsItem.position) + SlotOffset;
+		Point position = GetVisualStoreSlotCoord(vsItem.position) + offset;
 
 		const int frame = item._iCurs + CURSOR_FIRSTITEM;
 		const ClxSprite sprite = GetInvItemSprite(frame);
@@ -520,13 +577,63 @@ void DrawVisualStore(const Surface &out)
 	    { .flags = styleWhite });
 
 	// Draw Repair All
-	const Rectangle repairAllBtnPos = { panelPos + (VisualStoreButtonRect[RepairAllBtn].position - Point { 0, 0 }), VisualStoreButtonRect[RepairAllBtn].size };
-	RenderClxSprite(out, (*VisualStoreNavButtonArt)[VisualStoreButtonPressed == RepairAllBtn], repairAllBtnPos.position);
-	DrawString(out, _("Repair All"), repairAllBtnPos, { .flags = UiFlags::AlignCenter | styleWhite });
+	if (VisualStore.vendor == VisualStoreVendor::Smith) {
+		const Rectangle repairAllBtnPos = { panelPos + (VisualStoreButtonRect[RepairAllBtn].position - Point { 0, 0 }), VisualStoreButtonRect[RepairAllBtn].size };
+		RenderClxSprite(out, (*VisualStoreRepairAllButtonArt)[VisualStoreButtonPressed == RepairAllBtn], repairAllBtnPos.position);
+		// DrawString(out, _("Repair All"), repairAllBtnPos, { .flags = UiFlags::AlignCenter | styleWhite
+
+		// Draw Repair
+		const Rectangle repairBtnPos = { panelPos + (VisualStoreButtonRect[RepairBtn].position - Point { 0, 0 }), VisualStoreButtonRect[RepairBtn].size };
+		RenderClxSprite(out, (*VisualStoreRepairButtonArt)[VisualStoreButtonPressed == RepairBtn], repairBtnPos.position);
+		// DrawString(out, _("Repair"), repairBtnPos, { .flags = UiFlags::AlignCenter | styleWhite });
+	}
 }
 
 int16_t CheckVisualStoreHLight(Point mousePosition)
 {
+	// Check buttons first
+	const Point panelPos = GetPanelPosition(UiPanels::Stash);
+	for (int i = 0; i < 4; i++) {
+		// Skip tab buttons if vendor doesn't have tabs
+		/*if (!VendorHasTabs() && (i == TabButtonRegular || i == TabButtonPremium))
+			continue;*/
+
+		Rectangle button = VisualStoreButtonRect[i];
+		button.position = panelPos + (button.position - Point { 0, 0 });
+
+		if (button.contains(mousePosition)) {
+			if (i == RepairAllBtn) {
+				int totalCost = 0;
+				Player &myPlayer = *MyPlayer;
+				for (auto &item : myPlayer.InvBody)
+					totalCost += GetRepairCost(item);
+				for (int j = 0; j < myPlayer._pNumInv; j++)
+					totalCost += GetRepairCost(myPlayer.InvList[j]);
+
+				InfoString = _("Repair All");
+				FloatingInfoString = _("Repair All");
+				if (totalCost > 0) {
+					AddInfoBoxString(StrCat(FormatInteger(totalCost), " Gold"));
+					AddInfoBoxString(StrCat(FormatInteger(totalCost), " Gold"), true);
+				} else {
+					AddInfoBoxString(_("Nothing to repair"));
+					AddInfoBoxString(_("Nothing to repair"), true);
+				}
+				InfoColor = UiFlags::ColorWhite;
+				pcursstorebtn = RepairAllBtn;
+				return -1;
+			} else if (i == RepairBtn) {
+				InfoString = _("Repair");
+				FloatingInfoString = _("Repair");
+				AddInfoBoxString(_("Repair a single item"));
+				AddInfoBoxString(_("Repair a single item"), true);
+				InfoColor = UiFlags::ColorWhite;
+				pcursstorebtn = RepairBtn;
+				return -1;
+			}
+		}
+	}
+
 	if (VisualStore.currentPage >= VisualStore.pages.size())
 		return -1;
 
@@ -712,13 +819,13 @@ void SellItemToVisualStore(int invIndex)
 
 void CheckVisualStoreButtonPress(Point mousePosition)
 {
-	for (int i = 0; i < 3; i++) {
+	for (int i = 0; i < 4; i++) {
 		Rectangle button = VisualStoreButtonRect[i];
 		button.position = GetPanelPosition(UiPanels::Stash, button.position);
 
 		// Skip tab buttons if vendor doesn't have tabs
-		if (!VendorHasTabs() && (i == TabButtonRegular || i == TabButtonPremium))
-			continue;
+		/*if (!VendorHasTabs() && (i == TabButtonRegular || i == TabButtonPremium))
+			continue;*/
 
 		if (button.contains(mousePosition)) {
 			VisualStoreButtonPressed = i;
@@ -761,6 +868,9 @@ void CheckVisualStoreButtonRelease(Point mousePosition)
 			break;
 		case RepairAllBtn:
 			VisualStoreRepairAll();
+			break;
+		case RepairBtn:
+			VisualStoreRepair();
 			break;
 		}
 	}
