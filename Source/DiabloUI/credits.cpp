@@ -187,8 +187,10 @@ bool TextDialog(const char *const *text, std::size_t textLines)
 
 bool UiCreditsDialog()
 {
-	play_movie("gendata\\diabend.smk", true);
-	return true;
+	ArtBackgroundWidescreen = LoadOptionalClx("ui_art\\creditsw.clx");
+	LoadBackgroundArt("ui_art\\credits");
+
+	return TextDialog(CreditLines, CreditLinesSize);
 }
 
 bool UiSupportDialog()
