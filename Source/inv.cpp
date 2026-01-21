@@ -802,6 +802,8 @@ void CheckInvCut(Player &player, Point cursorPosition, bool automaticMove, bool 
 					SellItemToVisualStore(iv);
 					automaticallyMoved = true;
 					// Sound is played by SellItemToVisualStore
+					// Return early to avoid accessing the removed item
+					return;
 				} else if (CanBePlacedOnBelt(player, player.InvList[iv])) {
 					automaticallyMoved = AutoPlaceItemInBelt(player, player.InvList[iv], true, &player == MyPlayer);
 					if (automaticallyMoved) {
