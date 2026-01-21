@@ -4,7 +4,7 @@ The Soulstone burns with hellfire as an eerie
 
 2
 00:00:04,520 --> 00:00:06,240
-red glow blurs your vision.
+red glow blurs your vision
 
 3
 00:00:06,980 --> 00:00:09,560
@@ -12,19 +12,19 @@ Fresh blood flows into your eyes and you
 
 4
 00:00:09,560 --> 00:00:11,840
-begin to hear the tormented whispers of the damned.
+begin to hear the tormented whispers of the damned
 
 5
 00:00:12,860 --> 00:00:14,440
-You have done what you knew must be done.
+You have done what you knew must be done
 
 6
 00:00:15,360 --> 00:00:17,460
-The essence of Diablo is contained.
+The essence of Diablo is contained
 
 7
 00:00:18,200 --> 00:00:18,860
-For now.
+For now...
 
 8
 00:00:19,980 --> 00:00:22,240
@@ -32,7 +32,7 @@ You pray that you have become strong enough
 
 9
 00:00:22,240 --> 00:00:24,820
-to contain the demon and keep him at bay.
+to contain the demon and keep him at bay
 
 10
 00:00:25,200 --> 00:00:28,260
@@ -44,7 +44,7 @@ you can still feel him, clawing his way
 
 12
 00:00:31,439 --> 00:00:33,980
-up from the dark recesses of your soul.
+up from the dark recesses of your soul
 
 13
 00:00:34,880 --> 00:00:38,040
@@ -52,7 +52,7 @@ Fighting to retain control, your thoughts turn toward
 
 14
 00:00:38,040 --> 00:00:40,760
-the ancient, mystic lands of the Far East.
+the ancient, mystic lands of the Far East
 
 15
 00:00:41,300 --> 00:00:45,100
@@ -60,8 +60,8 @@ Perhaps there, beyond the desolate wastes of Aranak,
 
 16
 00:00:45,340 --> 00:00:46,560
-you will find an answer.
+you will find an answer
 
 17
 00:00:47,140 --> 00:00:49,340
-Or perhaps, salvation.
+Or perhaps, salvation
