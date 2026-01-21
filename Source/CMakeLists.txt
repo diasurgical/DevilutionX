@@ -711,6 +711,16 @@ target_link_dependencies(libdevilutionx_text_render
   libdevilutionx_utf8
 )
 
+add_devilutionx_object_library(libdevilutionx_subtitle_renderer
+  engine/render/subtitle_renderer.cpp
+)
+target_link_dependencies(libdevilutionx_subtitle_renderer
+  PRIVATE
+  libdevilutionx_log
+  libdevilutionx_surface
+  libdevilutionx_text_render
+)
+
 add_devilutionx_object_library(libdevilutionx_ticks
   engine/ticks.cpp
 )
@@ -952,6 +962,7 @@ target_link_dependencies(libdevilutionx PUBLIC
   libdevilutionx_spells
   libdevilutionx_stores
   libdevilutionx_strings
+  libdevilutionx_subtitle_renderer
   libdevilutionx_text_render
   libdevilutionx_txtdata
   libdevilutionx_ticks
