@@ -27,6 +27,7 @@
 #include "engine/render/text_render.hpp"
 #include "engine/surface.hpp"
 #include "hwcursor.hpp"
+#include "movie.h"
 #include "utils/display.h"
 #include "utils/is_of.hpp"
 #include "utils/language.h"
@@ -186,10 +187,8 @@ bool TextDialog(const char *const *text, std::size_t textLines)
 
 bool UiCreditsDialog()
 {
-	ArtBackgroundWidescreen = LoadOptionalClx("ui_art\\creditsw.clx");
-	LoadBackgroundArt("ui_art\\credits");
-
-	return TextDialog(CreditLines, CreditLinesSize);
+	play_movie("gendata\\diabend.smk", true);
+	return true;
 }
 
 bool UiSupportDialog()

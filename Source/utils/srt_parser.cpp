@@ -8,6 +8,7 @@
 
 #include "engine/assets.hpp"
 #include "utils/language.h"
+#include "utils/log.hpp"
 
 namespace devilution {
 
@@ -27,8 +28,10 @@ std::vector<SubtitleEntry> LoadSrtFile(std::string_view subtitlePath)
 
 	std::string pathStr(subtitlePath);
 	auto assetData = LoadAsset(pathStr);
-	if (!assetData.has_value())
+	if (!assetData.has_value()) {
+		LogError("Subtitle file not found: {} ({})", subtitlePath, assetData.error());
 		return subtitles;
+	}
 
 	std::string content(assetData->data.get(), assetData->size);
 	std::istringstream stream(content);

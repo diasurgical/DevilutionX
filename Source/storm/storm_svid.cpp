@@ -42,7 +42,6 @@
 #include "utils/srt_parser.hpp"
 
 namespace devilution {
-namespace {
 
 #ifndef NOSOUND
 #ifdef USE_SDL3
@@ -87,6 +86,10 @@ uint64_t SVidStartTime;
 
 // Subtitle entries for current video
 std::vector<SubtitleEntry> SVidSubtitles;
+
+// Subtitle overlay surface and palette for rendering text
+SDLSurfaceUniquePtr SVidSubtitleSurface;
+SDLPaletteUniquePtr SVidSubtitlePalette;
 
 bool IsLandscapeFit(unsigned long srcW, unsigned long srcH, unsigned long dstW, unsigned long dstH)
 {
@@ -229,6 +232,115 @@ void UpdatePalette()
 
 bool BlitFrame()
 {
+	// Render subtitles if available - do this BEFORE blitting to output
+	if (!SVidSubtitles.empty()) {
+		const uint64_t currentTimeSmk = GetTicksSmk();
+		const uint64_t videoTimeMs = TimeSmkToMs(currentTimeSmk - SVidStartTime);
+		const std::string subtitleText = GetSubtitleAtTime(SVidSubtitles, videoTimeMs);
+
+		if (!subtitleText.empty()) {
+			LogVerbose(LogCategory::Video, "Rendering subtitle at {}ms: \"{}\"", videoTimeMs, subtitleText);
+
+			SDL_Surface *videoSurface = SVidSurface.get();
+
+			if (videoSurface != nullptr && SDLC_SURFACE_BITSPERPIXEL(videoSurface) == 8) {
+				const int videoWidth = static_cast<int>(SVidWidth);
+				const int videoHeight = static_cast<int>(SVidHeight);
+
+				// Create subtitle overlay surface if not already created
+				if (SVidSubtitleSurface == nullptr) {
+					constexpr int SubtitleMaxHeight = 100;
+					SVidSubtitleSurface = SDLWrap::CreateRGBSurface(
+						0, videoWidth, SubtitleMaxHeight, 8, 0, 0, 0, 0);
+
+					// Create and set up palette for subtitle surface - copy from video surface
+					SVidSubtitlePalette = SDLWrap::AllocPalette();
+#ifdef USE_SDL3
+					const SDL_Palette *videoPalette = SDL_GetSurfacePalette(videoSurface);
+#else
+					const SDL_Palette *videoPalette = videoSurface->format->palette;
+#endif
+					if (videoPalette != nullptr) {
+						// Copy the video surface's palette so text colors map correctly
+						SDL_Color *colors = SVidSubtitlePalette->colors;
+						for (int i = 0; i < 256 && i < videoPalette->ncolors; i++) {
+							colors[i] = videoPalette->colors[i];
+						}
+						// Ensure index 0 is black/transparent for color key
+						colors[0].r = 0;
+						colors[0].g = 0;
+						colors[0].b = 0;
+					} else {
+						// Fallback: initialize palette manually
+						SDL_Color *colors = SVidSubtitlePalette->colors;
+						colors[0].r = 0;
+						colors[0].g = 0;
+						colors[0].b = 0;
+						for (int i = 1; i < 256; i++) {
+							colors[i].r = 255;
+							colors[i].g = 255;
+							colors[i].b = 255;
+						}
+					}
+#ifndef USE_SDL1
+					for (int i = 0; i < 256; i++) {
+						SVidSubtitlePalette->colors[i].a = SDL_ALPHA_OPAQUE;
+					}
+#endif
+
+					if (!SDLC_SetSurfacePalette(SVidSubtitleSurface.get(), SVidSubtitlePalette.get())) {
+						Log("Failed to set subtitle overlay palette");
+					}
+
+					// Set color key for transparency (index 0 = transparent)
+#ifdef USE_SDL1
+					SDL_SetColorKey(SVidSubtitleSurface.get(), SDL_SRCCOLORKEY, 0);
+#else
+					if (!SDL_SetSurfaceColorKey(SVidSubtitleSurface.get(), true, 0)) {
+						Log("Failed to set color key: {}", SDL_GetError());
+					}
+#endif
+				}
+
+				// Clear the overlay surface (fill with transparent color)
+				SDL_FillSurfaceRect(SVidSubtitleSurface.get(), nullptr, 0);
+
+				// Render text to the overlay surface
+				Surface overlaySurface(SVidSubtitleSurface.get());
+				constexpr int SubtitleMaxHeight = 100;
+				constexpr int SubtitleBottomPadding = 12;
+				// Position text rectangle at bottom of overlay (FontSize12 has line height ~12)
+				// Position y so text appears near bottom of overlay
+				constexpr int TextLineHeight = 12;
+				const int textY = SubtitleMaxHeight - TextLineHeight - SubtitleBottomPadding;
+				Rectangle subtitleRect { { 10, textY }, { videoWidth - 20, TextLineHeight + SubtitleBottomPadding } };
+
+				TextRenderOptions opts;
+				opts.flags = UiFlags::AlignCenter | UiFlags::ColorWhite | UiFlags::FontSize12;
+				opts.spacing = 1;
+				DrawString(overlaySurface, subtitleText, subtitleRect, opts);
+
+				// Blit the overlay onto the video surface at the bottom
+				SDL_Rect dstRect;
+				dstRect.x = 0;
+				// Position overlay at the very bottom of the video, with small padding
+				dstRect.y = videoHeight - SubtitleMaxHeight - SubtitleBottomPadding;
+				dstRect.w = videoWidth;
+				dstRect.h = 100;
+
+#ifdef USE_SDL3
+				if (!SDL_BlitSurface(SVidSubtitleSurface.get(), nullptr, videoSurface, &dstRect)) {
+					Log("Failed to blit subtitle overlay: {}", SDL_GetError());
+				}
+#else
+				if (SDL_BlitSurface(SVidSubtitleSurface.get(), nullptr, videoSurface, &dstRect) < 0) {
+					Log("Failed to blit subtitle overlay: {}", SDL_GetError());
+				}
+#endif
+			}
+		}
+	}
+
 #ifndef USE_SDL1
 	if (renderer != nullptr) {
 		if (
@@ -304,71 +416,6 @@ bool BlitFrame()
 		}
 	}
 
-	// Render subtitles if available
-	if (!SVidSubtitles.empty()) {
-		const uint64_t currentTimeSmk = GetTicksSmk();
-		const uint64_t videoTimeMs = TimeSmkToMs(currentTimeSmk - SVidStartTime);
-		const std::string subtitleText = GetSubtitleAtTime(SVidSubtitles, videoTimeMs);
-
-		if (!subtitleText.empty()) {
-			SDL_Surface *outputSurface = GetOutputSurface();
-			SDL_Rect outputRect;
-#ifndef USE_SDL1
-			if (renderer != nullptr) {
-				// When using renderer, video fills the entire output surface
-				outputRect.w = outputSurface->w;
-				outputRect.h = outputSurface->h;
-				outputRect.x = 0;
-				outputRect.y = 0;
-			} else
-#endif
-			{
-				// Calculate video rect (same logic as above)
-#ifdef USE_SDL1
-				const bool isIndexedOutputFormat = SDLBackport_IsPixelFormatIndexed(outputSurface->format);
-#else
-#ifdef USE_SDL3
-				const SDL_PixelFormat wndFormat = SDL_GetWindowPixelFormat(ghMainWnd);
-#else
-				const Uint32 wndFormat = SDL_GetWindowPixelFormat(ghMainWnd);
-#endif
-				const bool isIndexedOutputFormat = SDL_ISPIXELFORMAT_INDEXED(wndFormat);
-#endif
-				if (isIndexedOutputFormat) {
-					outputRect.w = static_cast<int>(SVidWidth);
-					outputRect.h = static_cast<int>(SVidHeight);
-				} else if (IsLandscapeFit(SVidWidth, SVidHeight, outputSurface->w, outputSurface->h)) {
-					outputRect.w = outputSurface->w;
-					outputRect.h = SVidHeight * outputSurface->w / SVidWidth;
-				} else {
-					outputRect.w = SVidWidth * outputSurface->h / SVidHeight;
-					outputRect.h = outputSurface->h;
-				}
-				outputRect.x = (outputSurface->w - outputRect.w) / 2;
-				outputRect.y = (outputSurface->h - outputRect.h) / 2;
-			}
-
-			// Calculate subtitle position (bottom center, with some padding)
-			constexpr int SubtitlePadding = 20;
-			const int subtitleY = outputRect.y + outputRect.h - SubtitlePadding;
-			const int subtitleX = outputRect.x;
-			const int subtitleWidth = outputRect.w;
-
-			// Create a surface for rendering text
-			Surface outSurface(outputSurface);
-			// Allow enough height for multiple lines of text
-			constexpr int SubtitleMaxHeight = 120;
-			const int subtitleRectY = std::max(0, subtitleY - SubtitleMaxHeight);
-			Rectangle subtitleRect { { subtitleX, subtitleRectY }, { subtitleWidth, SubtitleMaxHeight } };
-
-			// Render subtitle with white text, centered, and outlined for visibility
-			TextRenderOptions opts;
-			opts.flags = UiFlags::AlignCenter | UiFlags::ColorWhite | UiFlags::Outlined;
-			opts.spacing = 1;
-			DrawString(outSurface, subtitleText, subtitleRect, opts);
-		}
-	}
-
 	RenderPresent();
 	return true;
 }
@@ -413,10 +460,16 @@ void LoadSubtitles(const char *videoFilename)
 	const size_t extPos = subtitlePath.rfind('.');
 	subtitlePath = (extPos != std::string::npos ? subtitlePath.substr(0, extPos) : subtitlePath) + ".srt";
 
+	Log("Loading subtitles from: {}", subtitlePath);
 	SVidSubtitles = LoadSrtFile(subtitlePath);
+	Log("Loaded {} subtitle entries", SVidSubtitles.size());
+	if (!SVidSubtitles.empty()) {
+		Log("First subtitle: {}ms-{}ms: \"{}\"", 
+		    SVidSubtitles[0].startTimeMs, 
+		    SVidSubtitles[0].endTimeMs, 
+		    SVidSubtitles[0].text);
+	}
 }
-
-} // namespace
 
 bool SVidPlayBegin(const char *filename, int flags)
 {
@@ -617,6 +670,8 @@ void SVidPlayEnd()
 	SVidSurface = nullptr;
 	SVidFrameBuffer = nullptr;
 	SVidSubtitles.clear();
+	SVidSubtitleSurface = nullptr;
+	SVidSubtitlePalette = nullptr;
 
 #ifndef USE_SDL1
 	if (renderer != nullptr) {
