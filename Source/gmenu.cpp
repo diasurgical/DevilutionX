@@ -33,8 +33,10 @@
 #include "options.h"
 #include "stores.h"
 #include "utils/language.h"
+#include "utils/screen_reader.hpp"
 #include "utils/sdl_compat.h"
 #include "utils/ui_fwd.h"
+#include "utils/str_cat.hpp"
 
 namespace devilution {
 
@@ -71,7 +73,24 @@ uint8_t LogoAnim_frame;
 void (*gmenu_current_option)();
 int sgCurrentMenuIdx;
 
-void GmenuUpDown(bool isDown)
+void AnnounceCurrentMenuItem(bool force = false)
+{
+	if (sgpCurrItem == nullptr || sgpCurrItem->pszStr == nullptr)
+		return;
+
+	const std::string_view label = _(sgpCurrItem->pszStr);
+	if (!sgpCurrItem->isSlider()) {
+		SpeakText(label, force);
+		return;
+	}
+
+	const uint16_t steps = std::max<uint16_t>(sgpCurrItem->sliderSteps(), 2);
+	const uint16_t step = std::min<uint16_t>(sgpCurrItem->sliderStep(), steps);
+	const int percent = (step * 100 + steps / 2) / steps;
+	SpeakText(StrCat(label, ": ", percent, "%"), force);
+}
+
+void GmenuUpDown(bool isDown, bool announce = true)
 {
 	if (sgpCurrItem == nullptr) {
 		return;
@@ -93,13 +112,15 @@ void GmenuUpDown(bool isDown)
 			if (sgpCurrItem->enabled()) {
 				if (i != 0)
 					PlaySFX(SfxID::MenuMove);
+				if (announce)
+					AnnounceCurrentMenuItem();
 				return;
 			}
 		}
 	}
 }
 
-void GmenuLeftRight(bool isRight)
+void GmenuLeftRight(bool isRight, bool announce = true)
 {
 	if (!sgpCurrItem->isSlider())
 		return;
@@ -116,6 +137,8 @@ void GmenuLeftRight(bool isRight)
 	}
 	sgpCurrItem->setSliderStep(step);
 	sgpCurrItem->fnMenu(false);
+	if (announce)
+		AnnounceCurrentMenuItem();
 }
 
 int GmenuGetLineWidth(TMenuItem *pItem)
@@ -242,7 +265,9 @@ void gmenu_set_items(TMenuItem *pItem, void (*gmFunc)())
 	}
 	// BUGFIX: OOB access when sgCurrentMenuIdx is 0; should be set to NULL instead. (fixed)
 	sgpCurrItem = sgCurrentMenuIdx > 0 ? &sgpCurrentMenu[sgCurrentMenuIdx - 1] : nullptr;
-	GmenuUpDown(true);
+	GmenuUpDown(true, /*announce=*/false);
+	if (sgpCurrentMenu != nullptr)
+		AnnounceCurrentMenuItem(/*force=*/true);
 	if (sgpCurrentMenu == nullptr && !demo::IsRunning()) {
 		SaveOptions();
 	}
@@ -287,6 +312,7 @@ bool gmenu_presskeys(SDL_Keycode vkey)
 		if (sgpCurrItem->enabled()) {
 			PlaySFX(SfxID::MenuMove);
 			sgpCurrItem->fnMenu(true);
+			AnnounceCurrentMenuItem();
 		}
 		break;
 	case SDLK_ESCAPE:
@@ -330,6 +356,7 @@ bool gmenu_left_mouse(bool isDown)
 	if (!isDown) {
 		if (isDraggingSlider) {
 			isDraggingSlider = false;
+			AnnounceCurrentMenuItem();
 			return true;
 		}
 		return false;
@@ -369,6 +396,7 @@ bool gmenu_left_mouse(bool isDown)
 	} else {
 		sgpCurrItem->fnMenu(true);
 	}
+	AnnounceCurrentMenuItem();
 	return true;
 }
 

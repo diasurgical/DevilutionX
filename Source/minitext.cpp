@@ -20,6 +20,7 @@
 #include "tables/playerdat.hpp"
 #include "tables/textdat.h"
 #include "utils/language.h"
+#include "utils/screen_reader.hpp"
 #include "utils/timer.hpp"
 
 namespace devilution {
@@ -163,7 +164,9 @@ void InitQTextMsg(_speech_id m)
 	}
 	if (Speeches[m].scrlltxt) {
 		QuestLogIsOpen = false;
-		LoadText(_(Speeches[m].txtstr));
+		const std::string_view text = _(Speeches[m].txtstr);
+		LoadText(text);
+		SpeakText(text, /*force=*/true);
 		qtextflag = true;
 		qtextSpd = CalculateTextSpeed(sfxnr);
 		ScrollStart = GetMillisecondsSinceStartup();

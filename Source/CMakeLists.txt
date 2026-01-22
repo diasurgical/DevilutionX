@@ -162,6 +162,7 @@ set(libdevilutionx_SRCS
 
   utils/display.cpp
   utils/language.cpp
+  utils/proximity_audio.cpp
   utils/sdl_bilinear_scale.cpp
   utils/sdl_thread.cpp
   utils/surface_to_clx.cpp

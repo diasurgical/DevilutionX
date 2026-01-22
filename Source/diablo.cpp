@@ -3,9 +3,12 @@
  *
  * Implementation of the main game initialization functions.
  */
+#include <algorithm>
 #include <array>
 #include <cstdint>
+#include <queue>
 #include <string_view>
+#include <vector>
 
 #ifdef USE_SDL3
 #include <SDL3/SDL_events.h>
@@ -50,6 +53,7 @@
 #include "engine/events.hpp"
 #include "engine/load_cel.hpp"
 #include "engine/load_file.hpp"
+#include "engine/path.h"
 #include "engine/random.hpp"
 #include "engine/render/clx_render.hpp"
 #include "engine/sound.h"
@@ -70,6 +74,7 @@
 #include "levels/themes.h"
 #include "levels/town.h"
 #include "levels/trigs.h"
+#include "levels/tile_properties.hpp"
 #include "lighting.h"
 #include "loadsave.h"
 #include "lua/lua_global.hpp"
@@ -83,10 +88,12 @@
 #include "options.h"
 #include "panels/console.hpp"
 #include "panels/info_box.hpp"
+#include "panels/charpanel.hpp"
 #include "panels/partypanel.hpp"
 #include "panels/spell_book.hpp"
 #include "panels/spell_list.hpp"
 #include "pfile.h"
+#include "portal.h"
 #include "plrmsg.h"
 #include "qol/chatlog.h"
 #include "qol/floatingnumbers.h"
@@ -109,6 +116,7 @@
 #include "utils/language.h"
 #include "utils/parse_int.hpp"
 #include "utils/paths.h"
+#include "utils/proximity_audio.hpp"
 #include "utils/screen_reader.hpp"
 #include "utils/sdl_compat.h"
 #include "utils/sdl_thread.h"
@@ -163,6 +171,16 @@ extern void plrctrls_after_game_logic();
 namespace {
 
 char gszVersionNumber[64] = "internal version unknown";
+
+ void SelectNextTownNpcKeyPressed();
+ void SelectPreviousTownNpcKeyPressed();
+ void UpdateAutoWalkTownNpc();
+ void UpdateAutoWalkTracker();
+ void SpeakSelectedSpeedbookSpell();
+ void SpellBookKeyPressed();
+ std::optional<std::vector<int8_t>> FindKeyboardWalkPathForSpeech(const Player &player, Point startPosition, Point destinationPosition);
+ void AppendKeyboardWalkPathForSpeech(std::string &message, const std::vector<int8_t> &path);
+ void AppendDirectionalFallback(std::string &message, const Displacement &delta);
 
 bool gbGameLoopStartup;
 bool forceSpawn;
@@ -598,10 +616,24 @@ void PressKey(SDL_Keycode vkey, uint16_t modState)
 		if ((modState & SDL_KMOD_ALT) != 0) {
 			options.Graphics.fullscreen.SetValue(!IsFullScreen());
 			if (!demo::IsRunning()) SaveOptions();
+		} else if (CharFlag) {
+			CharacterScreenActivateSelection((modState & SDL_KMOD_SHIFT) != 0);
 		} else if (IsPlayerInStore()) {
 			StoreEnter();
 		} else if (QuestLogIsOpen) {
 			QuestlogEnter();
+		} else if (SpellSelectFlag) {
+			SetSpell();
+		} else if (SpellbookFlag && MyPlayer != nullptr && !IsInspectingPlayer()) {
+			const Player &player = *MyPlayer;
+			if (IsValidSpell(player._pRSpell)) {
+				std::string msg;
+				StrAppend(msg, _("Selected: "), pgettext("spell", GetSpellData(player._pRSpell).sNameText));
+				SpeakText(msg, /*force=*/true);
+			} else {
+				SpeakText(_("No spell selected."), /*force=*/true);
+			}
+			SpellBookKeyPressed();
 		} else {
 			TypeChatMessage();
 		}
@@ -611,10 +643,28 @@ void PressKey(SDL_Keycode vkey, uint16_t modState)
 			StoreUp();
 		} else if (QuestLogIsOpen) {
 			QuestlogUp();
+		} else if (CharFlag) {
+			CharacterScreenMoveSelection(-1);
 		} else if (HelpFlag) {
 			HelpScrollUp();
 		} else if (ChatLogFlag) {
 			ChatLogScrollUp();
+		} else if (SpellSelectFlag) {
+			HotSpellMove({ AxisDirectionX_NONE, AxisDirectionY_UP });
+			SpeakSelectedSpeedbookSpell();
+		} else if (SpellbookFlag && MyPlayer != nullptr && !IsInspectingPlayer()) {
+			const std::optional<SpellID> next = GetSpellBookAdjacentAvailableSpell(SpellbookTab, *MyPlayer, MyPlayer->_pRSpell, -1);
+			if (next) {
+				MyPlayer->_pRSpell = *next;
+				MyPlayer->_pRSplType = (MyPlayer->_pAblSpells & GetSpellBitmask(*next)) != 0 ? SpellType::Skill
+				    : (MyPlayer->_pISpells & GetSpellBitmask(*next)) != 0       ? SpellType::Charges
+				                                                              : SpellType::Spell;
+				UpdateSpellTarget(*next);
+				RedrawEverything();
+				SpeakText(pgettext("spell", GetSpellData(*next).sNameText), /*force=*/true);
+			}
+		} else if (invflag) {
+			InventoryMoveFromKeyboard({ AxisDirectionX_NONE, AxisDirectionY_UP });
 		} else if (AutomapActive) {
 			AutomapUp();
 		} else if (IsStashOpen) {
@@ -626,10 +676,28 @@ void PressKey(SDL_Keycode vkey, uint16_t modState)
 			StoreDown();
 		} else if (QuestLogIsOpen) {
 			QuestlogDown();
+		} else if (CharFlag) {
+			CharacterScreenMoveSelection(+1);
 		} else if (HelpFlag) {
 			HelpScrollDown();
 		} else if (ChatLogFlag) {
 			ChatLogScrollDown();
+		} else if (SpellSelectFlag) {
+			HotSpellMove({ AxisDirectionX_NONE, AxisDirectionY_DOWN });
+			SpeakSelectedSpeedbookSpell();
+		} else if (SpellbookFlag && MyPlayer != nullptr && !IsInspectingPlayer()) {
+			const std::optional<SpellID> next = GetSpellBookAdjacentAvailableSpell(SpellbookTab, *MyPlayer, MyPlayer->_pRSpell, +1);
+			if (next) {
+				MyPlayer->_pRSpell = *next;
+				MyPlayer->_pRSplType = (MyPlayer->_pAblSpells & GetSpellBitmask(*next)) != 0 ? SpellType::Skill
+				    : (MyPlayer->_pISpells & GetSpellBitmask(*next)) != 0       ? SpellType::Charges
+				                                                              : SpellType::Spell;
+				UpdateSpellTarget(*next);
+				RedrawEverything();
+				SpeakText(pgettext("spell", GetSpellData(*next).sNameText), /*force=*/true);
+			}
+		} else if (invflag) {
+			InventoryMoveFromKeyboard({ AxisDirectionX_NONE, AxisDirectionY_DOWN });
 		} else if (AutomapActive) {
 			AutomapDown();
 		} else if (IsStashOpen) {
@@ -641,6 +709,10 @@ void PressKey(SDL_Keycode vkey, uint16_t modState)
 			StorePrior();
 		} else if (ChatLogFlag) {
 			ChatLogScrollTop();
+		} else {
+			const KeymapperOptions::Action *action = GetOptions().Keymapper.findAction(static_cast<uint32_t>(vkey));
+			if (action == nullptr || !action->isEnabled())
+				SelectPreviousTownNpcKeyPressed();
 		}
 		return;
 	case SDLK_PAGEDOWN:
@@ -648,15 +720,64 @@ void PressKey(SDL_Keycode vkey, uint16_t modState)
 			StoreNext();
 		} else if (ChatLogFlag) {
 			ChatLogScrollBottom();
+		} else {
+			const KeymapperOptions::Action *action = GetOptions().Keymapper.findAction(static_cast<uint32_t>(vkey));
+			if (action == nullptr || !action->isEnabled())
+				SelectNextTownNpcKeyPressed();
 		}
 		return;
 	case SDLK_LEFT:
-		if (AutomapActive && !ChatFlag)
+		if (CharFlag) {
+			CharacterScreenMoveSelection(-1);
+		} else if (SpellSelectFlag) {
+			HotSpellMove({ AxisDirectionX_LEFT, AxisDirectionY_NONE });
+			SpeakSelectedSpeedbookSpell();
+		} else if (SpellbookFlag && MyPlayer != nullptr && !IsInspectingPlayer()) {
+			if (SpellbookTab > 0) {
+				SpellbookTab--;
+				const std::optional<SpellID> first = GetSpellBookFirstAvailableSpell(SpellbookTab, *MyPlayer);
+				if (first) {
+					MyPlayer->_pRSpell = *first;
+					MyPlayer->_pRSplType = (MyPlayer->_pAblSpells & GetSpellBitmask(*first)) != 0 ? SpellType::Skill
+					    : (MyPlayer->_pISpells & GetSpellBitmask(*first)) != 0       ? SpellType::Charges
+					                                                              : SpellType::Spell;
+					UpdateSpellTarget(*first);
+					RedrawEverything();
+					SpeakText(pgettext("spell", GetSpellData(*first).sNameText), /*force=*/true);
+				}
+			}
+		} else if (invflag) {
+			InventoryMoveFromKeyboard({ AxisDirectionX_LEFT, AxisDirectionY_NONE });
+		} else if (AutomapActive && !ChatFlag) {
 			AutomapLeft();
+		}
 		return;
 	case SDLK_RIGHT:
-		if (AutomapActive && !ChatFlag)
+		if (CharFlag) {
+			CharacterScreenMoveSelection(+1);
+		} else if (SpellSelectFlag) {
+			HotSpellMove({ AxisDirectionX_RIGHT, AxisDirectionY_NONE });
+			SpeakSelectedSpeedbookSpell();
+		} else if (SpellbookFlag && MyPlayer != nullptr && !IsInspectingPlayer()) {
+			const int maxTab = gbIsHellfire ? 4 : 3;
+			if (SpellbookTab < maxTab) {
+				SpellbookTab++;
+				const std::optional<SpellID> first = GetSpellBookFirstAvailableSpell(SpellbookTab, *MyPlayer);
+				if (first) {
+					MyPlayer->_pRSpell = *first;
+					MyPlayer->_pRSplType = (MyPlayer->_pAblSpells & GetSpellBitmask(*first)) != 0 ? SpellType::Skill
+					    : (MyPlayer->_pISpells & GetSpellBitmask(*first)) != 0       ? SpellType::Charges
+					                                                              : SpellType::Spell;
+					UpdateSpellTarget(*first);
+					RedrawEverything();
+					SpeakText(pgettext("spell", GetSpellData(*first).sNameText), /*force=*/true);
+				}
+			}
+		} else if (invflag) {
+			InventoryMoveFromKeyboard({ AxisDirectionX_RIGHT, AxisDirectionY_NONE });
+		} else if (AutomapActive && !ChatFlag) {
 			AutomapRight();
+		}
 		return;
 	default:
 		break;
@@ -1515,6 +1636,8 @@ void GameLogic()
 	if (gbProcessPlayers) {
 		gGameLogicStep = GameLogicStep::ProcessPlayers;
 		ProcessPlayers();
+		UpdateAutoWalkTownNpc();
+		UpdateAutoWalkTracker();
 	}
 	if (leveltype != DTYPE_TOWN) {
 		gGameLogicStep = GameLogicStep::ProcessMonsters;
@@ -1530,6 +1653,7 @@ void GameLogic()
 		ProcessItems();
 		ProcessLightList();
 		ProcessVisionList();
+		UpdateProximityAudioCues();
 	} else {
 		gGameLogicStep = GameLogicStep::ProcessTowners;
 		ProcessTowners();
@@ -1628,6 +1752,1495 @@ void HelpKeyPressed()
 	}
 }
 
+bool CanPlayerTakeAction();
+
+std::vector<int> TownNpcOrder;
+int SelectedTownNpc = -1;
+int AutoWalkTownNpcTarget = -1;
+
+enum class TrackerTargetCategory : uint8_t {
+	Items,
+	Chests,
+	Monsters,
+};
+
+TrackerTargetCategory SelectedTrackerTargetCategory = TrackerTargetCategory::Items;
+TrackerTargetCategory AutoWalkTrackerTargetCategory = TrackerTargetCategory::Items;
+int AutoWalkTrackerTargetId = -1;
+
+Point NextPositionForWalkDirection(Point position, int8_t walkDir)
+{
+	switch (walkDir) {
+	case WALK_NE:
+		return { position.x, position.y - 1 };
+	case WALK_NW:
+		return { position.x - 1, position.y };
+	case WALK_SE:
+		return { position.x + 1, position.y };
+	case WALK_SW:
+		return { position.x, position.y + 1 };
+	case WALK_N:
+		return { position.x - 1, position.y - 1 };
+	case WALK_E:
+		return { position.x + 1, position.y - 1 };
+	case WALK_S:
+		return { position.x + 1, position.y + 1 };
+	case WALK_W:
+		return { position.x - 1, position.y + 1 };
+	default:
+		return position;
+	}
+}
+
+Point PositionAfterWalkPathSteps(Point start, const int8_t *path, int steps)
+{
+	Point position = start;
+	for (int i = 0; i < steps; ++i) {
+		position = NextPositionForWalkDirection(position, path[i]);
+	}
+	return position;
+}
+
+int8_t OppositeWalkDirection(int8_t walkDir)
+{
+	switch (walkDir) {
+	case WALK_NE:
+		return WALK_SW;
+	case WALK_SW:
+		return WALK_NE;
+	case WALK_NW:
+		return WALK_SE;
+	case WALK_SE:
+		return WALK_NW;
+	case WALK_N:
+		return WALK_S;
+	case WALK_S:
+		return WALK_N;
+	case WALK_E:
+		return WALK_W;
+	case WALK_W:
+		return WALK_E;
+	default:
+		return WALK_NONE;
+	}
+}
+
+bool IsTownNpcActionAllowed()
+{
+	return CanPlayerTakeAction()
+	    && leveltype == DTYPE_TOWN
+	    && !IsPlayerInStore()
+	    && !ChatLogFlag
+	    && !HelpFlag;
+}
+
+void ResetTownNpcSelection()
+{
+	TownNpcOrder.clear();
+	SelectedTownNpc = -1;
+}
+
+void RefreshTownNpcOrder(bool selectFirst = false)
+{
+	TownNpcOrder.clear();
+	if (leveltype != DTYPE_TOWN)
+		return;
+
+	const Point playerPosition = MyPlayer->position.future;
+
+	for (size_t i = 0; i < GetNumTowners(); ++i) {
+		const Towner &towner = Towners[i];
+		if (!IsTownerPresent(towner._ttype))
+			continue;
+		if (towner._ttype == TOWN_COW)
+			continue;
+		TownNpcOrder.push_back(static_cast<int>(i));
+	}
+
+	if (TownNpcOrder.empty()) {
+		SelectedTownNpc = -1;
+		return;
+	}
+
+	std::sort(TownNpcOrder.begin(), TownNpcOrder.end(), [&playerPosition](int a, int b) {
+		const Towner &townerA = Towners[a];
+		const Towner &townerB = Towners[b];
+		const int distanceA = playerPosition.WalkingDistance(townerA.position);
+		const int distanceB = playerPosition.WalkingDistance(townerB.position);
+		if (distanceA != distanceB)
+			return distanceA < distanceB;
+		return townerA.name < townerB.name;
+	});
+
+	if (selectFirst) {
+		SelectedTownNpc = TownNpcOrder.front();
+		return;
+	}
+
+	const auto it = std::find(TownNpcOrder.begin(), TownNpcOrder.end(), SelectedTownNpc);
+	if (it == TownNpcOrder.end())
+		SelectedTownNpc = TownNpcOrder.front();
+}
+
+void EnsureTownNpcOrder()
+{
+	if (leveltype != DTYPE_TOWN) {
+		ResetTownNpcSelection();
+		return;
+	}
+	if (TownNpcOrder.empty()) {
+		RefreshTownNpcOrder(true);
+		return;
+	}
+	if (SelectedTownNpc < 0 || SelectedTownNpc >= static_cast<int>(GetNumTowners())) {
+		RefreshTownNpcOrder(true);
+		return;
+	}
+	const auto it = std::find(TownNpcOrder.begin(), TownNpcOrder.end(), SelectedTownNpc);
+	if (it == TownNpcOrder.end())
+		SelectedTownNpc = TownNpcOrder.front();
+}
+
+void SpeakSelectedTownNpc()
+{
+	EnsureTownNpcOrder();
+
+	if (SelectedTownNpc < 0 || SelectedTownNpc >= static_cast<int>(GetNumTowners())) {
+		SpeakText(_("No NPC selected."), true);
+		return;
+	}
+
+	const Towner &towner = Towners[SelectedTownNpc];
+	const Point playerPosition = MyPlayer->position.future;
+	const int distance = playerPosition.WalkingDistance(towner.position);
+
+	std::string msg;
+	StrAppend(msg, _("Selected: "), towner.name);
+	StrAppend(msg, "\n", _("Distance: "), distance);
+	StrAppend(msg, "\n", _("Position: "), towner.position.x, ", ", towner.position.y);
+	SpeakText(msg, true);
+}
+
+void SelectTownNpcRelative(int delta)
+{
+	if (!IsTownNpcActionAllowed())
+		return;
+
+	EnsureTownNpcOrder();
+	if (TownNpcOrder.empty()) {
+		SpeakText(_("No town NPCs found."), true);
+		return;
+	}
+
+	auto it = std::find(TownNpcOrder.begin(), TownNpcOrder.end(), SelectedTownNpc);
+	int currentIndex = (it != TownNpcOrder.end()) ? static_cast<int>(it - TownNpcOrder.begin()) : 0;
+
+	const int size = static_cast<int>(TownNpcOrder.size());
+	int newIndex = (currentIndex + delta) % size;
+	if (newIndex < 0)
+		newIndex += size;
+	SelectedTownNpc = TownNpcOrder[static_cast<size_t>(newIndex)];
+	SpeakSelectedTownNpc();
+}
+
+void SelectNextTownNpcKeyPressed()
+{
+	SelectTownNpcRelative(+1);
+}
+
+void SelectPreviousTownNpcKeyPressed()
+{
+	SelectTownNpcRelative(-1);
+}
+
+void GoToSelectedTownNpcKeyPressed()
+{
+	if (!IsTownNpcActionAllowed())
+		return;
+
+	EnsureTownNpcOrder();
+	if (SelectedTownNpc < 0 || SelectedTownNpc >= static_cast<int>(GetNumTowners())) {
+		SpeakText(_("No NPC selected."), true);
+		return;
+	}
+
+	const Towner &towner = Towners[SelectedTownNpc];
+
+	std::string msg;
+	StrAppend(msg, _("Going to: "), towner.name);
+	SpeakText(msg, true);
+
+	AutoWalkTownNpcTarget = SelectedTownNpc;
+	UpdateAutoWalkTownNpc();
+}
+
+void UpdateAutoWalkTownNpc()
+{
+	if (AutoWalkTownNpcTarget < 0)
+		return;
+	if (leveltype != DTYPE_TOWN || IsPlayerInStore() || ChatLogFlag || HelpFlag) {
+		AutoWalkTownNpcTarget = -1;
+		return;
+	}
+	if (!CanPlayerTakeAction())
+		return;
+
+	if (MyPlayer->_pmode != PM_STAND)
+		return;
+	if (MyPlayer->walkpath[0] != WALK_NONE)
+		return;
+	if (MyPlayer->destAction != ACTION_NONE)
+		return;
+
+	if (AutoWalkTownNpcTarget >= static_cast<int>(GetNumTowners())) {
+		AutoWalkTownNpcTarget = -1;
+		SpeakText(_("No NPC selected."), true);
+		return;
+	}
+
+	const Towner &towner = Towners[AutoWalkTownNpcTarget];
+	if (!IsTownerPresent(towner._ttype) || towner._ttype == TOWN_COW) {
+		AutoWalkTownNpcTarget = -1;
+		SpeakText(_("No NPC selected."), true);
+		return;
+	}
+
+	Player &myPlayer = *MyPlayer;
+	const Point playerPosition = myPlayer.position.future;
+	if (playerPosition.WalkingDistance(towner.position) < 2) {
+		const int townerIdx = AutoWalkTownNpcTarget;
+		AutoWalkTownNpcTarget = -1;
+		NetSendCmdLocParam1(true, CMD_TALKXY, towner.position, static_cast<uint16_t>(townerIdx));
+		return;
+	}
+
+	constexpr size_t MaxAutoWalkPathLength = 512;
+	std::array<int8_t, MaxAutoWalkPathLength> path;
+	path.fill(WALK_NONE);
+
+	const int steps = FindPath(CanStep, [&myPlayer](Point position) { return PosOkPlayer(myPlayer, position); }, playerPosition, towner.position, path.data(), path.size());
+	if (steps == 0) {
+		AutoWalkTownNpcTarget = -1;
+		std::string error;
+		StrAppend(error, _("Can't find a path to: "), towner.name);
+		SpeakText(error, true);
+		return;
+	}
+
+	// FindPath returns 0 if the path length is equal to the maximum.
+	// The player walkpath buffer is MaxPathLengthPlayer, so keep segments strictly shorter.
+	if (steps < static_cast<int>(MaxPathLengthPlayer)) {
+		const int townerIdx = AutoWalkTownNpcTarget;
+		AutoWalkTownNpcTarget = -1;
+		NetSendCmdLocParam1(true, CMD_TALKXY, towner.position, static_cast<uint16_t>(townerIdx));
+		return;
+	}
+
+	const int segmentSteps = std::min(steps - 1, static_cast<int>(MaxPathLengthPlayer - 1));
+	const Point waypoint = PositionAfterWalkPathSteps(playerPosition, path.data(), segmentSteps);
+	NetSendCmdLoc(MyPlayerId, true, CMD_WALKXY, waypoint);
+}
+
+namespace {
+
+constexpr int TrackerInteractDistanceTiles = 1;
+
+int LockedTrackerItemId = -1;
+int LockedTrackerChestId = -1;
+int LockedTrackerMonsterId = -1;
+
+struct TrackerLevelKey {
+	dungeon_type levelType;
+	int currLevel;
+	bool isSetLevel;
+	int setLevelNum;
+};
+
+std::optional<TrackerLevelKey> LockedTrackerLevelKey;
+
+void ClearTrackerLocks()
+{
+	LockedTrackerItemId = -1;
+	LockedTrackerChestId = -1;
+	LockedTrackerMonsterId = -1;
+}
+
+void EnsureTrackerLocksMatchCurrentLevel()
+{
+	const TrackerLevelKey current {
+		.levelType = leveltype,
+		.currLevel = currlevel,
+		.isSetLevel = setlevel,
+		.setLevelNum = setlvlnum,
+	};
+
+	if (!LockedTrackerLevelKey || LockedTrackerLevelKey->levelType != current.levelType || LockedTrackerLevelKey->currLevel != current.currLevel
+	    || LockedTrackerLevelKey->isSetLevel != current.isSetLevel || LockedTrackerLevelKey->setLevelNum != current.setLevelNum) {
+		ClearTrackerLocks();
+		LockedTrackerLevelKey = current;
+	}
+}
+
+int &LockedTrackerTargetId(TrackerTargetCategory category)
+{
+	switch (category) {
+	case TrackerTargetCategory::Items:
+		return LockedTrackerItemId;
+	case TrackerTargetCategory::Chests:
+		return LockedTrackerChestId;
+	case TrackerTargetCategory::Monsters:
+	default:
+		return LockedTrackerMonsterId;
+	}
+}
+
+std::string_view TrackerTargetCategoryLabel(TrackerTargetCategory category)
+{
+	switch (category) {
+	case TrackerTargetCategory::Items:
+		return _("items");
+	case TrackerTargetCategory::Chests:
+		return _("chests");
+	case TrackerTargetCategory::Monsters:
+		return _("monsters");
+	default:
+		return _("items");
+	}
+}
+
+void SpeakTrackerTargetCategory()
+{
+	std::string message;
+	StrAppend(message, _("Tracker target: "), TrackerTargetCategoryLabel(SelectedTrackerTargetCategory));
+	SpeakText(message, true);
+}
+
+void CycleTrackerTargetKeyPressed()
+{
+	if (!CanPlayerTakeAction() || InGameMenu())
+		return;
+
+	AutoWalkTrackerTargetId = -1;
+
+	switch (SelectedTrackerTargetCategory) {
+	case TrackerTargetCategory::Items:
+		SelectedTrackerTargetCategory = TrackerTargetCategory::Chests;
+		break;
+	case TrackerTargetCategory::Chests:
+		SelectedTrackerTargetCategory = TrackerTargetCategory::Monsters;
+		break;
+	case TrackerTargetCategory::Monsters:
+	default:
+		SelectedTrackerTargetCategory = TrackerTargetCategory::Items;
+		break;
+	}
+
+	SpeakTrackerTargetCategory();
+}
+
+std::optional<int> FindNearestGroundItemId(Point playerPosition)
+{
+	if (ActiveItemCount == 0)
+		return std::nullopt;
+
+	std::optional<int> bestId;
+	int bestDistance = 0;
+
+	for (uint8_t i = 0; i < ActiveItemCount; i++) {
+		const int itemId = ActiveItems[i];
+		if (itemId < 0 || itemId > MAXITEMS)
+			continue;
+
+		const Item &item = Items[itemId];
+		if (item._iClass == ICLASS_NONE)
+			continue;
+
+		const int distance = playerPosition.WalkingDistance(item.position);
+		if (!bestId || distance < bestDistance) {
+			bestId = itemId;
+			bestDistance = distance;
+		}
+	}
+
+	return bestId;
+}
+
+[[nodiscard]] bool IsGroundItemPresent(int itemId)
+{
+	if (itemId < 0 || itemId > MAXITEMS)
+		return false;
+
+	for (uint8_t i = 0; i < ActiveItemCount; ++i) {
+		if (ActiveItems[i] == itemId)
+			return true;
+	}
+
+	return false;
+}
+
+std::optional<int> FindNearestUnopenedChestObjectId(Point playerPosition)
+{
+	if (ActiveObjectCount == 0)
+		return std::nullopt;
+
+	std::optional<int> bestId;
+	int bestDistance = 0;
+
+	for (int i = 0; i < ActiveObjectCount; i++) {
+		const int objectId = ActiveObjects[i];
+		if (objectId < 0 || objectId >= MAXOBJECTS)
+			continue;
+
+		const Object &object = Objects[objectId];
+		if (!object.canInteractWith())
+			continue;
+		if (!object.IsChest())
+			continue;
+
+		const int distance = playerPosition.WalkingDistance(object.position);
+		if (!bestId || distance < bestDistance) {
+			bestId = objectId;
+			bestDistance = distance;
+		}
+	}
+
+	return bestId;
+}
+
+std::optional<int> FindNearestMonsterId(Point playerPosition)
+{
+	if (ActiveMonsterCount == 0)
+		return std::nullopt;
+
+	std::optional<int> bestId;
+	int bestDistance = 0;
+
+	for (size_t i = 0; i < ActiveMonsterCount; i++) {
+		const int monsterId = static_cast<int>(ActiveMonsters[i]);
+		if (monsterId < 0 || monsterId >= static_cast<int>(MaxMonsters))
+			continue;
+
+		const Monster &monster = Monsters[monsterId];
+		if (monster.isInvalid)
+			continue;
+		if ((monster.flags & MFLAG_HIDDEN) != 0)
+			continue;
+		if (monster.hitPoints <= 0)
+			continue;
+
+		const Point monsterPosition { monster.position.tile };
+		const int distance = playerPosition.WalkingDistance(monsterPosition);
+		if (!bestId || distance < bestDistance) {
+			bestId = monsterId;
+			bestDistance = distance;
+		}
+	}
+
+	return bestId;
+}
+
+std::optional<Point> FindBestAdjacentApproachTile(const Player &player, Point playerPosition, Point targetPosition)
+{
+	std::optional<Point> best;
+	int bestDistance = 0;
+
+	for (int dy = -1; dy <= 1; ++dy) {
+		for (int dx = -1; dx <= 1; ++dx) {
+			if (dx == 0 && dy == 0)
+				continue;
+
+			const Point tile { targetPosition.x + dx, targetPosition.y + dy };
+			if (!PosOkPlayer(player, tile))
+				continue;
+
+			const int distance = playerPosition.WalkingDistance(tile);
+			if (!best || distance < bestDistance) {
+				best = tile;
+				bestDistance = distance;
+			}
+		}
+	}
+
+	return best;
+}
+
+bool PosOkPlayerIgnoreDoors(const Player &player, Point position)
+{
+	if (!InDungeonBounds(position))
+		return false;
+	if (!IsTileWalkable(position, /*ignoreDoors=*/true))
+		return false;
+
+	Player *otherPlayer = PlayerAtPosition(position);
+	if (otherPlayer != nullptr && otherPlayer != &player && !otherPlayer->hasNoLife())
+		return false;
+
+	if (dMonster[position.x][position.y] != 0) {
+		if (leveltype == DTYPE_TOWN)
+			return false;
+		if (dMonster[position.x][position.y] <= 0)
+			return false;
+		if (!Monsters[dMonster[position.x][position.y] - 1].hasNoLife())
+			return false;
+	}
+
+	return true;
+}
+
+struct DoorBlockInfo {
+	Point beforeDoor;
+	Point doorPosition;
+};
+
+std::optional<DoorBlockInfo> FindFirstClosedDoorOnWalkPath(Point startPosition, const int8_t *path, int steps)
+{
+	Point position = startPosition;
+	for (int i = 0; i < steps; ++i) {
+		const Point next = NextPositionForWalkDirection(position, path[i]);
+		Object *object = FindObjectAtPosition(next);
+		if (object != nullptr && object->isDoor() && object->_oSolidFlag) {
+			return DoorBlockInfo { .beforeDoor = position, .doorPosition = next };
+		}
+		position = next;
+	}
+	return std::nullopt;
+}
+
+void NavigateToTrackerTargetKeyPressed()
+{
+	if (!CanPlayerTakeAction() || InGameMenu())
+		return;
+	if (leveltype == DTYPE_TOWN) {
+		SpeakText(_("Not in a dungeon."), true);
+		return;
+	}
+	if (AutomapActive) {
+		SpeakText(_("Close the map first."), true);
+		return;
+	}
+	if (MyPlayer == nullptr)
+		return;
+
+	EnsureTrackerLocksMatchCurrentLevel();
+
+	const SDL_Keymod modState = SDL_GetModState();
+	const bool forceRetarget = (modState & SDL_KMOD_SHIFT) != 0;
+	const bool clearTarget = (modState & SDL_KMOD_CTRL) != 0;
+
+	const Point playerPosition = MyPlayer->position.future;
+	AutoWalkTrackerTargetId = -1;
+
+	int &lockedTargetId = LockedTrackerTargetId(SelectedTrackerTargetCategory);
+	if (clearTarget) {
+		lockedTargetId = -1;
+		SpeakText(_("Tracker target cleared."), true);
+		return;
+	}
+
+	std::optional<int> targetId;
+	std::optional<Point> targetPosition;
+
+	switch (SelectedTrackerTargetCategory) {
+	case TrackerTargetCategory::Items: {
+		if (!forceRetarget && IsGroundItemPresent(lockedTargetId)) {
+			targetId = lockedTargetId;
+		} else {
+			targetId = FindNearestGroundItemId(playerPosition);
+		}
+		if (!targetId) {
+			SpeakText(_("No items found."), true);
+			return;
+		}
+
+		if (!IsGroundItemPresent(*targetId)) {
+			lockedTargetId = -1;
+			SpeakText(_("No items found."), true);
+			return;
+		}
+
+		lockedTargetId = *targetId;
+		const Item &tracked = Items[*targetId];
+
+		targetPosition = tracked.position;
+		break;
+	}
+	case TrackerTargetCategory::Chests: {
+		if (!forceRetarget && lockedTargetId >= 0 && lockedTargetId < MAXOBJECTS) {
+			targetId = lockedTargetId;
+		} else {
+			targetId = FindNearestUnopenedChestObjectId(playerPosition);
+		}
+		if (!targetId) {
+			SpeakText(_("No chests found."), true);
+			return;
+		}
+
+		const Object &object = Objects[*targetId];
+		if (!object.IsChest() || !object.canInteractWith()) {
+			lockedTargetId = -1;
+			targetId = FindNearestUnopenedChestObjectId(playerPosition);
+			if (!targetId) {
+				SpeakText(_("No chests found."), true);
+				return;
+			}
+		}
+
+		lockedTargetId = *targetId;
+		const Object &tracked = Objects[*targetId];
+
+		targetPosition = FindBestAdjacentApproachTile(*MyPlayer, playerPosition, tracked.position);
+		if (!targetPosition) {
+			SpeakText(_("Can't find a nearby tile to walk to."), true);
+			return;
+		}
+		break;
+	}
+	case TrackerTargetCategory::Monsters:
+	default:
+		if (!forceRetarget && lockedTargetId >= 0 && lockedTargetId < static_cast<int>(MaxMonsters)) {
+			targetId = lockedTargetId;
+		} else {
+			targetId = FindNearestMonsterId(playerPosition);
+		}
+		if (!targetId) {
+			SpeakText(_("No monsters found."), true);
+			return;
+		}
+
+		const Monster &monster = Monsters[*targetId];
+		if (monster.isInvalid || (monster.flags & MFLAG_HIDDEN) != 0 || monster.hitPoints <= 0) {
+			lockedTargetId = -1;
+			targetId = FindNearestMonsterId(playerPosition);
+			if (!targetId) {
+				SpeakText(_("No monsters found."), true);
+				return;
+			}
+		}
+
+		lockedTargetId = *targetId;
+		const Monster &tracked = Monsters[*targetId];
+
+		const Point monsterPosition { tracked.position.tile };
+		targetPosition = FindBestAdjacentApproachTile(*MyPlayer, playerPosition, monsterPosition);
+		if (!targetPosition) {
+			SpeakText(_("Can't find a nearby tile to walk to."), true);
+			return;
+		}
+		break;
+	}
+
+	if (!targetPosition) {
+		SpeakText(_("Can't find a nearby tile to walk to."), true);
+		return;
+	}
+
+	const std::optional<std::vector<int8_t>> path = FindKeyboardWalkPathForSpeech(*MyPlayer, playerPosition, *targetPosition);
+	std::string message;
+	if (!path) {
+		AppendDirectionalFallback(message, *targetPosition - playerPosition);
+	} else {
+		AppendKeyboardWalkPathForSpeech(message, *path);
+	}
+
+	SpeakText(message, true);
+}
+
+} // namespace
+
+void UpdateAutoWalkTracker()
+{
+	if (AutoWalkTrackerTargetId < 0)
+		return;
+	if (leveltype == DTYPE_TOWN || IsPlayerInStore() || ChatLogFlag || HelpFlag) {
+		AutoWalkTrackerTargetId = -1;
+		return;
+	}
+	if (!CanPlayerTakeAction())
+		return;
+
+	if (MyPlayer == nullptr)
+		return;
+	if (MyPlayer->_pmode != PM_STAND)
+		return;
+	if (MyPlayer->walkpath[0] != WALK_NONE)
+		return;
+	if (MyPlayer->destAction != ACTION_NONE)
+		return;
+
+	Player &myPlayer = *MyPlayer;
+	const Point playerPosition = myPlayer.position.future;
+
+	std::optional<Point> destination;
+
+	switch (AutoWalkTrackerTargetCategory) {
+	case TrackerTargetCategory::Items: {
+		const int itemId = AutoWalkTrackerTargetId;
+		if (itemId < 0 || itemId > MAXITEMS) {
+			AutoWalkTrackerTargetId = -1;
+			return;
+		}
+		if (!IsGroundItemPresent(itemId)) {
+			AutoWalkTrackerTargetId = -1;
+			SpeakText(_("Target item is gone."), true);
+			return;
+		}
+		const Item &item = Items[itemId];
+		if (playerPosition.WalkingDistance(item.position) <= TrackerInteractDistanceTiles) {
+			AutoWalkTrackerTargetId = -1;
+			SpeakText(_("Item in range."), true);
+			return;
+		}
+		destination = item.position;
+		break;
+	}
+	case TrackerTargetCategory::Chests: {
+		const int objectId = AutoWalkTrackerTargetId;
+		if (objectId < 0 || objectId >= MAXOBJECTS) {
+			AutoWalkTrackerTargetId = -1;
+			return;
+		}
+		const Object &object = Objects[objectId];
+		if (!object.IsChest() || !object.canInteractWith()) {
+			AutoWalkTrackerTargetId = -1;
+			SpeakText(_("Target chest is gone."), true);
+			return;
+		}
+		if (playerPosition.WalkingDistance(object.position) <= TrackerInteractDistanceTiles) {
+			AutoWalkTrackerTargetId = -1;
+			SpeakText(_("Chest in range."), true);
+			return;
+		}
+		destination = FindBestAdjacentApproachTile(myPlayer, playerPosition, object.position);
+		break;
+	}
+	case TrackerTargetCategory::Monsters:
+	default: {
+		const int monsterId = AutoWalkTrackerTargetId;
+		if (monsterId < 0 || monsterId >= static_cast<int>(MaxMonsters)) {
+			AutoWalkTrackerTargetId = -1;
+			return;
+		}
+		const Monster &monster = Monsters[monsterId];
+		if (monster.isInvalid || (monster.flags & MFLAG_HIDDEN) != 0 || monster.hitPoints <= 0) {
+			AutoWalkTrackerTargetId = -1;
+			SpeakText(_("Target monster is gone."), true);
+			return;
+		}
+		const Point monsterPosition { monster.position.tile };
+		if (playerPosition.WalkingDistance(monsterPosition) <= TrackerInteractDistanceTiles) {
+			AutoWalkTrackerTargetId = -1;
+			SpeakText(_("Monster in range."), true);
+			return;
+		}
+		destination = FindBestAdjacentApproachTile(myPlayer, playerPosition, monsterPosition);
+		break;
+	}
+	}
+
+	if (!destination) {
+		AutoWalkTrackerTargetId = -1;
+		SpeakText(_("Can't find a nearby tile to walk to."), true);
+		return;
+	}
+
+	constexpr size_t MaxAutoWalkPathLength = 512;
+	std::array<int8_t, MaxAutoWalkPathLength> path;
+	path.fill(WALK_NONE);
+
+	int steps = FindPath(CanStep, [&myPlayer](Point position) { return PosOkPlayer(myPlayer, position); }, playerPosition, *destination, path.data(), path.size());
+	if (steps == 0) {
+		std::array<int8_t, MaxAutoWalkPathLength> ignoreDoorPath;
+		ignoreDoorPath.fill(WALK_NONE);
+
+		const int ignoreDoorSteps = FindPath(CanStep, [&myPlayer](Point position) { return PosOkPlayerIgnoreDoors(myPlayer, position); }, playerPosition, *destination, ignoreDoorPath.data(), ignoreDoorPath.size());
+		if (ignoreDoorSteps != 0) {
+			const std::optional<DoorBlockInfo> block = FindFirstClosedDoorOnWalkPath(playerPosition, ignoreDoorPath.data(), ignoreDoorSteps);
+			if (block) {
+				if (playerPosition.WalkingDistance(block->doorPosition) <= TrackerInteractDistanceTiles) {
+					AutoWalkTrackerTargetId = -1;
+					SpeakText(_("A door is blocking the path. Open it and try again."), true);
+					return;
+				}
+
+				*destination = block->beforeDoor;
+				path.fill(WALK_NONE);
+				steps = FindPath(CanStep, [&myPlayer](Point position) { return PosOkPlayer(myPlayer, position); }, playerPosition, *destination, path.data(), path.size());
+			}
+		}
+
+		if (steps == 0) {
+			AutoWalkTrackerTargetId = -1;
+			SpeakText(_("Can't find a path to the target."), true);
+			return;
+		}
+	}
+
+	if (steps < static_cast<int>(MaxPathLengthPlayer)) {
+		NetSendCmdLoc(MyPlayerId, true, CMD_WALKXY, *destination);
+		return;
+	}
+
+	const int segmentSteps = std::min(steps - 1, static_cast<int>(MaxPathLengthPlayer - 1));
+	const Point waypoint = PositionAfterWalkPathSteps(playerPosition, path.data(), segmentSteps);
+	NetSendCmdLoc(MyPlayerId, true, CMD_WALKXY, waypoint);
+}
+
+void ListTownNpcsKeyPressed()
+{
+	if (leveltype != DTYPE_TOWN) {
+		ResetTownNpcSelection();
+		SpeakText(_("Not in town."), true);
+		return;
+	}
+	if (IsPlayerInStore())
+		return;
+
+	std::vector<const Towner *> townNpcs;
+	std::vector<const Towner *> cows;
+
+	townNpcs.reserve(Towners.size());
+	cows.reserve(Towners.size());
+
+	const Point playerPosition = MyPlayer->position.future;
+
+	for (const Towner &towner : Towners) {
+		if (!IsTownerPresent(towner._ttype))
+			continue;
+
+		if (towner._ttype == TOWN_COW) {
+			cows.push_back(&towner);
+			continue;
+		}
+
+		townNpcs.push_back(&towner);
+	}
+
+	if (townNpcs.empty() && cows.empty()) {
+		ResetTownNpcSelection();
+		SpeakText(_("No town NPCs found."), true);
+		return;
+	}
+
+	std::sort(townNpcs.begin(), townNpcs.end(), [&playerPosition](const Towner *a, const Towner *b) {
+		const int distanceA = playerPosition.WalkingDistance(a->position);
+		const int distanceB = playerPosition.WalkingDistance(b->position);
+		if (distanceA != distanceB)
+			return distanceA < distanceB;
+		return a->name < b->name;
+	});
+
+	std::string output;
+	StrAppend(output, _("Town NPCs:"));
+	for (size_t i = 0; i < townNpcs.size(); ++i) {
+		StrAppend(output, "\n", i + 1, ". ", townNpcs[i]->name);
+	}
+	if (!cows.empty()) {
+		StrAppend(output, "\n", _("Cows: "), static_cast<int>(cows.size()));
+	}
+
+	RefreshTownNpcOrder(true);
+	if (SelectedTownNpc >= 0 && SelectedTownNpc < static_cast<int>(GetNumTowners())) {
+		const Towner &towner = Towners[SelectedTownNpc];
+		StrAppend(output, "\n", _("Selected: "), towner.name);
+		StrAppend(output, "\n", _("PageUp/PageDown: select. Home: go. End: repeat."));
+	}
+	const std::string_view exitKey = GetOptions().Keymapper.KeyNameForAction("SpeakNearestExit");
+	if (!exitKey.empty()) {
+		StrAppend(output, "\n", fmt::format(fmt::runtime(_("Cathedral entrance: press {:s}.")), exitKey));
+	}
+
+	SpeakText(output, true);
+}
+
+bool IsTileNavigableForSpeech(const Player &player, Point position)
+{
+	if (!InDungeonBounds(position))
+		return false;
+
+	if (!IsTileWalkable(position, /*ignoreDoors=*/true))
+		return false;
+
+	Player *otherPlayer = PlayerAtPosition(position);
+	if (otherPlayer != nullptr && otherPlayer != &player && !otherPlayer->hasNoLife())
+		return false;
+
+	if (leveltype == DTYPE_TOWN) {
+		// In town, treat NPCs as blocking.
+		if (dMonster[position.x][position.y] != 0)
+			return false;
+	}
+
+	return true;
+}
+
+std::optional<std::vector<int8_t>> FindKeyboardWalkPathForSpeech(const Player &player, Point startPosition, Point destinationPosition)
+{
+	if (!InDungeonBounds(startPosition) || !InDungeonBounds(destinationPosition))
+		return std::nullopt;
+
+	if (startPosition == destinationPosition)
+		return std::vector<int8_t> {};
+
+	std::array<bool, MAXDUNX * MAXDUNY> visited {};
+	std::array<int8_t, MAXDUNX * MAXDUNY> parentDir {};
+	parentDir.fill(WALK_NONE);
+
+	std::queue<Point> queue;
+
+	const auto indexOf = [](Point position) -> size_t {
+		return static_cast<size_t>(position.x) + static_cast<size_t>(position.y) * MAXDUNX;
+	};
+
+	const auto enqueue = [&](Point current, int8_t dir) {
+		const Point next = NextPositionForWalkDirection(current, dir);
+		if (!InDungeonBounds(next))
+			return;
+
+		const size_t idx = indexOf(next);
+		if (visited[idx])
+			return;
+
+		if (!IsTileNavigableForSpeech(player, next))
+			return;
+		if (!CanStep(current, next))
+			return;
+
+		visited[idx] = true;
+		parentDir[idx] = dir;
+		queue.push(next);
+	};
+
+	visited[indexOf(startPosition)] = true;
+	queue.push(startPosition);
+
+	const auto hasReachedDestination = [&]() -> bool {
+		return visited[indexOf(destinationPosition)];
+	};
+
+	constexpr std::array<int8_t, 4> WalkDirections = {
+		WALK_NE,
+		WALK_SW,
+		WALK_SE,
+		WALK_NW,
+	};
+
+	while (!queue.empty() && !hasReachedDestination()) {
+		const Point current = queue.front();
+		queue.pop();
+
+		const Displacement delta = destinationPosition - current;
+		const int deltaAbsX = delta.deltaX >= 0 ? delta.deltaX : -delta.deltaX;
+		const int deltaAbsY = delta.deltaY >= 0 ? delta.deltaY : -delta.deltaY;
+
+		std::array<int8_t, 4> prioritizedDirs;
+		size_t prioritizedCount = 0;
+
+		const auto addUniqueDir = [&](int8_t dir) {
+			if (dir == WALK_NONE)
+				return;
+			for (size_t i = 0; i < prioritizedCount; ++i) {
+				if (prioritizedDirs[i] == dir)
+					return;
+			}
+			prioritizedDirs[prioritizedCount++] = dir;
+		};
+
+		const int8_t xDir = delta.deltaX > 0 ? WALK_SE : (delta.deltaX < 0 ? WALK_NW : WALK_NONE);
+		const int8_t yDir = delta.deltaY > 0 ? WALK_SW : (delta.deltaY < 0 ? WALK_NE : WALK_NONE);
+
+		if (deltaAbsX >= deltaAbsY) {
+			addUniqueDir(xDir);
+			addUniqueDir(yDir);
+		} else {
+			addUniqueDir(yDir);
+			addUniqueDir(xDir);
+		}
+		for (const int8_t dir : WalkDirections) {
+			addUniqueDir(dir);
+		}
+
+		for (size_t i = 0; i < prioritizedCount; ++i) {
+			enqueue(current, prioritizedDirs[i]);
+		}
+	}
+
+	if (!hasReachedDestination())
+		return std::nullopt;
+
+	std::vector<int8_t> path;
+	Point position = destinationPosition;
+	while (position != startPosition) {
+		const int8_t dir = parentDir[indexOf(position)];
+		if (dir == WALK_NONE)
+			return std::nullopt;
+
+		path.push_back(dir);
+		position = NextPositionForWalkDirection(position, OppositeWalkDirection(dir));
+	}
+
+	std::reverse(path.begin(), path.end());
+	return path;
+}
+
+void AppendKeyboardWalkPathForSpeech(std::string &message, const std::vector<int8_t> &path)
+{
+	if (path.empty()) {
+		message.append(_("here"));
+		return;
+	}
+
+	bool any = false;
+	const auto appendPart = [&](std::string_view label, int distance) {
+		if (distance == 0)
+			return;
+		if (any)
+			message.append(", ");
+		StrAppend(message, label, " ", distance);
+		any = true;
+	};
+
+	const auto labelForWalkDirection = [](int8_t dir) -> std::string_view {
+		switch (dir) {
+		case WALK_NE:
+			return _("north");
+		case WALK_SW:
+			return _("south");
+		case WALK_SE:
+			return _("east");
+		case WALK_NW:
+			return _("west");
+		default:
+			return {};
+		}
+	};
+
+	int8_t currentDir = path.front();
+	int runLength = 1;
+	for (size_t i = 1; i < path.size(); ++i) {
+		if (path[i] == currentDir) {
+			++runLength;
+			continue;
+		}
+
+		const std::string_view label = labelForWalkDirection(currentDir);
+		if (!label.empty())
+			appendPart(label, runLength);
+
+		currentDir = path[i];
+		runLength = 1;
+	}
+
+	const std::string_view label = labelForWalkDirection(currentDir);
+	if (!label.empty())
+		appendPart(label, runLength);
+
+	if (!any)
+		message.append(_("here"));
+}
+
+void AppendDirectionalFallback(std::string &message, const Displacement &delta)
+{
+	bool any = false;
+	const auto appendPart = [&](std::string_view label, int distance) {
+		if (distance == 0)
+			return;
+		if (any)
+			message.append(", ");
+		StrAppend(message, label, " ", distance);
+		any = true;
+	};
+
+	if (delta.deltaY < 0)
+		appendPart(_("north"), -delta.deltaY);
+	else if (delta.deltaY > 0)
+		appendPart(_("south"), delta.deltaY);
+
+	if (delta.deltaX > 0)
+		appendPart(_("east"), delta.deltaX);
+	else if (delta.deltaX < 0)
+		appendPart(_("west"), -delta.deltaX);
+
+	if (!any)
+		message.append(_("here"));
+}
+
+std::optional<Point> FindNearestUnexploredTile(Point startPosition)
+{
+	if (!InDungeonBounds(startPosition))
+		return std::nullopt;
+
+	std::array<bool, MAXDUNX * MAXDUNY> visited {};
+	std::queue<Point> queue;
+
+	const auto enqueue = [&](Point position) {
+		if (!InDungeonBounds(position))
+			return;
+
+		const size_t index = static_cast<size_t>(position.x) + static_cast<size_t>(position.y) * MAXDUNX;
+		if (visited[index])
+			return;
+
+		if (!IsTileWalkable(position, /*ignoreDoors=*/true))
+			return;
+
+		visited[index] = true;
+		queue.push(position);
+	};
+
+	enqueue(startPosition);
+
+	constexpr std::array<Direction, 4> Neighbors = {
+		Direction::NorthEast,
+		Direction::SouthWest,
+		Direction::SouthEast,
+		Direction::NorthWest,
+	};
+
+	while (!queue.empty()) {
+		const Point position = queue.front();
+		queue.pop();
+
+		if (!HasAnyOf(dFlags[position.x][position.y], DungeonFlag::Explored))
+			return position;
+
+		for (const Direction dir : Neighbors) {
+			enqueue(position + dir);
+		}
+	}
+
+	return std::nullopt;
+}
+
+std::string TriggerLabelForSpeech(const TriggerStruct &trigger)
+{
+	switch (trigger._tmsg) {
+	case WM_DIABNEXTLVL:
+		if (leveltype == DTYPE_TOWN)
+			return std::string { _("Cathedral entrance") };
+		return std::string { _("Stairs down") };
+	case WM_DIABPREVLVL:
+		return std::string { _("Stairs up") };
+	case WM_DIABTOWNWARP:
+		switch (trigger._tlvl) {
+		case 5:
+			return fmt::format(fmt::runtime(_("Town warp to {:s}")), _("Catacombs"));
+		case 9:
+			return fmt::format(fmt::runtime(_("Town warp to {:s}")), _("Caves"));
+		case 13:
+			return fmt::format(fmt::runtime(_("Town warp to {:s}")), _("Hell"));
+		case 17:
+			return fmt::format(fmt::runtime(_("Town warp to {:s}")), _("Nest"));
+		case 21:
+			return fmt::format(fmt::runtime(_("Town warp to {:s}")), _("Crypt"));
+		default:
+			return fmt::format(fmt::runtime(_("Town warp to level {:d}")), trigger._tlvl);
+		}
+	case WM_DIABTWARPUP:
+		return std::string { _("Warp up") };
+	case WM_DIABRETOWN:
+		return std::string { _("Return to town") };
+	case WM_DIABWARPLVL:
+		return std::string { _("Warp") };
+	case WM_DIABSETLVL:
+		return std::string { _("Set level") };
+	case WM_DIABRTNLVL:
+		return std::string { _("Return level") };
+	default:
+		return std::string { _("Exit") };
+	}
+}
+
+std::optional<int> FindPreferredExitTriggerIndex()
+{
+	if (numtrigs <= 0)
+		return std::nullopt;
+
+	if (leveltype == DTYPE_TOWN && MyPlayer != nullptr) {
+		const Point playerPosition = MyPlayer->position.future;
+		std::optional<int> bestIndex;
+		int bestDistance = 0;
+
+		for (int i = 0; i < numtrigs; ++i) {
+			if (!IsAnyOf(trigs[i]._tmsg, WM_DIABNEXTLVL, WM_DIABTOWNWARP))
+				continue;
+
+			const Point triggerPosition { trigs[i].position.x, trigs[i].position.y };
+			const int distance = playerPosition.WalkingDistance(triggerPosition);
+			if (!bestIndex || distance < bestDistance) {
+				bestIndex = i;
+				bestDistance = distance;
+			}
+		}
+
+		if (bestIndex)
+			return bestIndex;
+	}
+
+	const Point playerPosition = MyPlayer->position.future;
+	std::optional<int> bestIndex;
+	int bestDistance = 0;
+
+	for (int i = 0; i < numtrigs; ++i) {
+		const Point triggerPosition { trigs[i].position.x, trigs[i].position.y };
+		const int distance = playerPosition.WalkingDistance(triggerPosition);
+		if (!bestIndex || distance < bestDistance) {
+			bestIndex = i;
+			bestDistance = distance;
+		}
+	}
+
+	return bestIndex;
+}
+
+std::optional<int> FindNearestTriggerIndexWithMessage(int message)
+{
+	if (numtrigs <= 0 || MyPlayer == nullptr)
+		return std::nullopt;
+
+	const Point playerPosition = MyPlayer->position.future;
+	std::optional<int> bestIndex;
+	int bestDistance = 0;
+
+	for (int i = 0; i < numtrigs; ++i) {
+		if (trigs[i]._tmsg != message)
+			continue;
+
+		const Point triggerPosition { trigs[i].position.x, trigs[i].position.y };
+		const int distance = playerPosition.WalkingDistance(triggerPosition);
+		if (!bestIndex || distance < bestDistance) {
+			bestIndex = i;
+			bestDistance = distance;
+		}
+	}
+
+	return bestIndex;
+}
+
+std::optional<Point> FindNearestTownPortalOnCurrentLevel()
+{
+	if (MyPlayer == nullptr || leveltype == DTYPE_TOWN)
+		return std::nullopt;
+
+	const Point playerPosition = MyPlayer->position.future;
+	const int currentLevel = setlevel ? static_cast<int>(setlvlnum) : currlevel;
+
+	std::optional<Point> bestPosition;
+	int bestDistance = 0;
+
+	for (int i = 0; i < MAXPORTAL; ++i) {
+		const Portal &portal = Portals[i];
+		if (!portal.open)
+			continue;
+		if (portal.setlvl != setlevel)
+			continue;
+		if (portal.level != currentLevel)
+			continue;
+
+		const int distance = playerPosition.WalkingDistance(portal.position);
+		if (!bestPosition || distance < bestDistance) {
+			bestPosition = portal.position;
+			bestDistance = distance;
+		}
+	}
+
+	return bestPosition;
+}
+
+void SpeakNearestExitKeyPressed()
+{
+	if (!CanPlayerTakeAction())
+		return;
+	if (AutomapActive) {
+		SpeakText(_("Close the map first."), true);
+		return;
+	}
+	if (MyPlayer == nullptr)
+		return;
+
+	const Point startPosition = MyPlayer->position.future;
+
+	if (leveltype != DTYPE_TOWN) {
+		if (const std::optional<Point> portalPosition = FindNearestTownPortalOnCurrentLevel(); portalPosition) {
+			const std::optional<std::vector<int8_t>> path = FindKeyboardWalkPathForSpeech(*MyPlayer, startPosition, *portalPosition);
+			std::string message { _("Return to town") };
+			message.append(": ");
+			if (!path)
+				AppendDirectionalFallback(message, *portalPosition - startPosition);
+			else
+				AppendKeyboardWalkPathForSpeech(message, *path);
+			SpeakText(message, true);
+			return;
+		}
+
+		const std::optional<int> triggerIndex = FindNearestTriggerIndexWithMessage(WM_DIABPREVLVL);
+		if (!triggerIndex) {
+			SpeakText(_("No exits found."), true);
+			return;
+		}
+
+		const TriggerStruct &trigger = trigs[*triggerIndex];
+		const Point targetPosition { trigger.position.x, trigger.position.y };
+		const std::optional<std::vector<int8_t>> path = FindKeyboardWalkPathForSpeech(*MyPlayer, startPosition, targetPosition);
+		std::string message = TriggerLabelForSpeech(trigger);
+		if (!message.empty())
+			message.append(": ");
+		if (!path)
+			AppendDirectionalFallback(message, targetPosition - startPosition);
+		else
+			AppendKeyboardWalkPathForSpeech(message, *path);
+		SpeakText(message, true);
+		return;
+	}
+
+	const std::optional<int> triggerIndex = FindPreferredExitTriggerIndex();
+	if (!triggerIndex) {
+		SpeakText(_("No exits found."), true);
+		return;
+	}
+
+	const TriggerStruct &trigger = trigs[*triggerIndex];
+	const Point targetPosition { trigger.position.x, trigger.position.y };
+
+	const std::optional<std::vector<int8_t>> path = FindKeyboardWalkPathForSpeech(*MyPlayer, startPosition, targetPosition);
+	std::string message = TriggerLabelForSpeech(trigger);
+	if (!message.empty())
+		message.append(": ");
+	if (!path)
+		AppendDirectionalFallback(message, targetPosition - startPosition);
+	else
+		AppendKeyboardWalkPathForSpeech(message, *path);
+
+	SpeakText(message, true);
+}
+
+void SpeakNearestStairsKeyPressed(int triggerMessage)
+{
+	if (!CanPlayerTakeAction())
+		return;
+	if (AutomapActive) {
+		SpeakText(_("Close the map first."), true);
+		return;
+	}
+	if (leveltype == DTYPE_TOWN) {
+		SpeakText(_("Not in a dungeon."), true);
+		return;
+	}
+	if (MyPlayer == nullptr)
+		return;
+
+	const std::optional<int> triggerIndex = FindNearestTriggerIndexWithMessage(triggerMessage);
+	if (!triggerIndex) {
+		SpeakText(_("No exits found."), true);
+		return;
+	}
+
+	const TriggerStruct &trigger = trigs[*triggerIndex];
+	const Point startPosition = MyPlayer->position.future;
+	const Point targetPosition { trigger.position.x, trigger.position.y };
+
+	std::string message;
+	const std::optional<std::vector<int8_t>> path = FindKeyboardWalkPathForSpeech(*MyPlayer, startPosition, targetPosition);
+	if (!path) {
+		AppendDirectionalFallback(message, targetPosition - startPosition);
+	} else {
+		AppendKeyboardWalkPathForSpeech(message, *path);
+	}
+
+	SpeakText(message, true);
+}
+
+void SpeakNearestStairsDownKeyPressed()
+{
+	SpeakNearestStairsKeyPressed(WM_DIABNEXTLVL);
+}
+
+void SpeakNearestStairsUpKeyPressed()
+{
+	SpeakNearestStairsKeyPressed(WM_DIABPREVLVL);
+}
+
+bool IsKeyboardWalkAllowed()
+{
+	return CanPlayerTakeAction()
+	    && !InGameMenu()
+	    && !IsPlayerInStore()
+	    && !QuestLogIsOpen
+	    && !HelpFlag
+	    && !ChatLogFlag
+	    && !ChatFlag
+	    && !DropGoldFlag
+	    && !IsStashOpen
+	    && !IsWithdrawGoldOpen
+	    && !AutomapActive
+	    && !invflag
+	    && !CharFlag
+	    && !SpellbookFlag
+	    && !SpellSelectFlag
+	    && !qtextflag;
+}
+
+void KeyboardWalkKeyPressed(Direction direction)
+{
+	if (!IsKeyboardWalkAllowed())
+		return;
+
+	if (MyPlayer == nullptr)
+		return;
+
+	NetSendCmdLoc(MyPlayerId, true, CMD_WALKXY, MyPlayer->position.future + direction);
+}
+
+void KeyboardWalkNorthKeyPressed()
+{
+	KeyboardWalkKeyPressed(Direction::NorthEast);
+}
+
+void KeyboardWalkSouthKeyPressed()
+{
+	KeyboardWalkKeyPressed(Direction::SouthWest);
+}
+
+void KeyboardWalkEastKeyPressed()
+{
+	KeyboardWalkKeyPressed(Direction::SouthEast);
+}
+
+void KeyboardWalkWestKeyPressed()
+{
+	KeyboardWalkKeyPressed(Direction::NorthWest);
+}
+
+void SpeakNearestUnexploredTileKeyPressed()
+{
+	if (!CanPlayerTakeAction())
+		return;
+	if (leveltype == DTYPE_TOWN) {
+		SpeakText(_("Not in a dungeon."), true);
+		return;
+	}
+	if (AutomapActive) {
+		SpeakText(_("Close the map first."), true);
+		return;
+	}
+	if (MyPlayer == nullptr)
+		return;
+
+	const Point startPosition = MyPlayer->position.future;
+	const std::optional<Point> target = FindNearestUnexploredTile(startPosition);
+	if (!target) {
+		SpeakText(_("No unexplored areas found."), true);
+		return;
+	}
+	const std::optional<std::vector<int8_t>> path = FindKeyboardWalkPathForSpeech(*MyPlayer, startPosition, *target);
+	std::string message;
+	if (!path)
+		AppendDirectionalFallback(message, *target - startPosition);
+	else
+		AppendKeyboardWalkPathForSpeech(message, *path);
+
+	SpeakText(message, true);
+}
+
 void InventoryKeyPressed()
 {
 	if (IsPlayerInStore())
@@ -1647,6 +3260,8 @@ void InventoryKeyPressed()
 	SpellbookFlag = false;
 	CloseGoldWithdraw();
 	CloseStash();
+	if (invflag)
+		FocusOnInventory();
 }
 
 void CharacterSheetKeyPressed()
@@ -1697,6 +3312,17 @@ void QuestLogKeyPressed()
 	CloseStash();
 }
 
+void SpeakSelectedSpeedbookSpell()
+{
+	for (const auto &spellListItem : GetSpellListItems()) {
+		if (spellListItem.isSelected) {
+			SpeakText(pgettext("spell", GetSpellData(spellListItem.id).sNameText), /*force=*/true);
+			return;
+		}
+	}
+	SpeakText(_("No spell selected."), /*force=*/true);
+}
+
 void DisplaySpellsKeyPressed()
 {
 	if (IsPlayerInStore())
@@ -1707,6 +3333,7 @@ void DisplaySpellsKeyPressed()
 	SpellbookFlag = false;
 	if (!SpellSelectFlag) {
 		DoSpeedBook();
+		SpeakSelectedSpeedbookSpell();
 	} else {
 		SpellSelectFlag = false;
 	}
@@ -1718,6 +3345,14 @@ void SpellBookKeyPressed()
 	if (IsPlayerInStore())
 		return;
 	SpellbookFlag = !SpellbookFlag;
+	if (SpellbookFlag && MyPlayer != nullptr) {
+		const Player &player = *MyPlayer;
+		if (IsValidSpell(player._pRSpell)) {
+			SpeakText(pgettext("spell", GetSpellData(player._pRSpell).sNameText), /*force=*/true);
+		} else {
+			SpeakText(_("No spell selected."), /*force=*/true);
+		}
+	}
 	if (!IsLeftPanelOpen() && CanPanelsCoverView()) {
 		if (!SpellbookFlag) { // We closed the inventory
 			if (MousePosition.x < 480 && MousePosition.y < GetMainPanel().position.y) {
@@ -1942,6 +3577,143 @@ void InitKeymapActions()
 	    CycleAutomapType,
 	    nullptr,
 	    IsGameRunning);
+
+	options.Keymapper.AddAction(
+	    "ListTownNpcs",
+	    N_("List town NPCs"),
+	    N_("Speaks a list of town NPCs."),
+	    SDLK_F4,
+	    ListTownNpcsKeyPressed,
+	    nullptr,
+	    CanPlayerTakeAction);
+	options.Keymapper.AddAction(
+	    "PreviousTownNpc",
+	    N_("Previous town NPC"),
+	    N_("Select previous town NPC (speaks)."),
+	    SDLK_PAGEUP,
+	    SelectPreviousTownNpcKeyPressed,
+	    nullptr,
+	    IsTownNpcActionAllowed);
+	options.Keymapper.AddAction(
+	    "NextTownNpc",
+	    N_("Next town NPC"),
+	    N_("Select next town NPC (speaks)."),
+	    SDLK_PAGEDOWN,
+	    SelectNextTownNpcKeyPressed,
+	    nullptr,
+	    IsTownNpcActionAllowed);
+	options.Keymapper.AddAction(
+	    "SpeakSelectedTownNpc",
+	    N_("Speak selected town NPC"),
+	    N_("Speaks the currently selected town NPC."),
+	    SDLK_END,
+	    SpeakSelectedTownNpc,
+	    nullptr,
+	    IsTownNpcActionAllowed);
+	options.Keymapper.AddAction(
+	    "GoToSelectedTownNpc",
+	    N_("Go to selected town NPC"),
+	    N_("Walks to the selected town NPC."),
+	    SDLK_HOME,
+	    GoToSelectedTownNpcKeyPressed,
+	    nullptr,
+	    IsTownNpcActionAllowed);
+	options.Keymapper.AddAction(
+	    "SpeakNearestUnexploredSpace",
+	    N_("Nearest unexplored space"),
+	    N_("Speaks the nearest unexplored space."),
+	    'H',
+	    SpeakNearestUnexploredTileKeyPressed,
+	    nullptr,
+	    CanPlayerTakeAction);
+	options.Keymapper.AddAction(
+	    "SpeakNearestExit",
+	    N_("Nearest exit"),
+	    N_("Speaks the nearest exit."),
+	    'E',
+	    SpeakNearestExitKeyPressed,
+	    nullptr,
+	    CanPlayerTakeAction);
+	options.Keymapper.AddAction(
+	    "SpeakNearestStairsDown",
+	    N_("Nearest stairs down"),
+	    N_("Speaks directions to the nearest stairs down."),
+	    '.',
+	    SpeakNearestStairsDownKeyPressed,
+	    nullptr,
+	    []() { return CanPlayerTakeAction() && leveltype != DTYPE_TOWN; });
+	options.Keymapper.AddAction(
+	    "SpeakNearestStairsUp",
+	    N_("Nearest stairs up"),
+	    N_("Speaks directions to the nearest stairs up."),
+	    ',',
+	    SpeakNearestStairsUpKeyPressed,
+	    nullptr,
+	    []() { return CanPlayerTakeAction() && leveltype != DTYPE_TOWN; });
+	options.Keymapper.AddAction(
+	    "CycleTrackerTarget",
+	    N_("Cycle tracker target"),
+	    N_("Cycles what the tracker looks for (items, chests, monsters)."),
+	    'T',
+	    CycleTrackerTargetKeyPressed,
+	    nullptr,
+	    []() { return CanPlayerTakeAction() && !InGameMenu(); });
+	options.Keymapper.AddAction(
+	    "NavigateToTrackerTarget",
+	    N_("Tracker directions"),
+	    N_("Speaks directions to a tracked target of the selected tracker category. Hold Shift to retarget; hold Ctrl to clear."),
+	    'N',
+	    NavigateToTrackerTargetKeyPressed,
+	    nullptr,
+	    []() { return CanPlayerTakeAction() && !InGameMenu(); });
+	options.Keymapper.AddAction(
+	    "KeyboardWalkNorth",
+	    N_("Walk north"),
+	    N_("Walk north (one tile)."),
+	    SDLK_UP,
+	    KeyboardWalkNorthKeyPressed);
+	options.Keymapper.AddAction(
+	    "KeyboardWalkSouth",
+	    N_("Walk south"),
+	    N_("Walk south (one tile)."),
+	    SDLK_DOWN,
+	    KeyboardWalkSouthKeyPressed);
+	options.Keymapper.AddAction(
+	    "KeyboardWalkEast",
+	    N_("Walk east"),
+	    N_("Walk east (one tile)."),
+	    SDLK_RIGHT,
+	    KeyboardWalkEastKeyPressed);
+	options.Keymapper.AddAction(
+	    "KeyboardWalkWest",
+	    N_("Walk west"),
+	    N_("Walk west (one tile)."),
+	    SDLK_LEFT,
+	    KeyboardWalkWestKeyPressed);
+	options.Keymapper.AddAction(
+	    "PrimaryAction",
+	    N_("Primary action"),
+	    N_("Attack monsters, talk to towners, lift and place inventory items."),
+	    'A',
+	    PerformPrimaryActionAutoTarget,
+	    nullptr,
+	    []() { return CanPlayerTakeAction() && !InGameMenu(); });
+	options.Keymapper.AddAction(
+	    "SecondaryAction",
+	    N_("Secondary action"),
+	    N_("Open chests, interact with doors, pick up items."),
+	    'D',
+	    PerformSecondaryActionAutoTarget,
+	    nullptr,
+	    []() { return CanPlayerTakeAction() && !InGameMenu(); });
+	options.Keymapper.AddAction(
+	    "SpellAction",
+	    N_("Spell action"),
+	    N_("Cast the active spell."),
+	    'W',
+	    PerformSpellActionAutoTarget,
+	    nullptr,
+	    []() { return CanPlayerTakeAction() && !InGameMenu(); });
 
 	options.Keymapper.AddAction(
 	    "Inventory",

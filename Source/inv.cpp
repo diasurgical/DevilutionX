@@ -29,6 +29,7 @@
 #include "engine/render/clx_render.hpp"
 #include "engine/render/text_render.hpp"
 #include "engine/size.hpp"
+#include "engine/sound.h"
 #include "hwcursor.hpp"
 #include "inv_iterators.hpp"
 #include "levels/tile_properties.hpp"
@@ -45,11 +46,59 @@
 #include "utils/format_int.hpp"
 #include "utils/is_of.hpp"
 #include "utils/language.h"
+#include "utils/screen_reader.hpp"
 #include "utils/sdl_geometry.h"
 #include "utils/str_cat.hpp"
 #include "utils/utf8.hpp"
 
 namespace devilution {
+
+namespace {
+
+TSnd *GetAccessibilityPickupSound()
+{
+#ifdef NOSOUND
+	return nullptr;
+#else
+	static std::unique_ptr<TSnd> snd;
+	static bool attempted = false;
+	if (attempted)
+		return snd.get();
+	attempted = true;
+
+	snd = std::make_unique<TSnd>();
+	snd->start_tc = SDL_GetTicks() - 80 - 1;
+	if (snd->DSB.SetChunkStream("audio\\player_pickedup_item.ogg", /*isMp3=*/false, /*logErrors=*/false) != 0
+	    && snd->DSB.SetChunkStream("..\\audio\\player_pickedup_item.ogg", /*isMp3=*/false, /*logErrors=*/false) != 0
+	    && snd->DSB.SetChunkStream("audio\\player_pickedup_item.mp3", /*isMp3=*/true, /*logErrors=*/false) != 0
+	    && snd->DSB.SetChunkStream("..\\audio\\player_pickedup_item.mp3", /*isMp3=*/true, /*logErrors=*/false) != 0
+	    && snd->DSB.SetChunkStream("audio\\player_pickedup_item.wav", /*isMp3=*/false, /*logErrors=*/false) != 0
+	    && snd->DSB.SetChunkStream("..\\audio\\player_pickedup_item.wav", /*isMp3=*/false, /*logErrors=*/false) != 0) {
+		snd = nullptr;
+	}
+
+	return snd.get();
+#endif
+}
+
+void PlayAccessibilityPickupFeedback()
+{
+	if (!gbSndInited || !gbSoundOn)
+		return;
+
+	TSnd *snd = GetAccessibilityPickupSound();
+	if (snd == nullptr)
+		return;
+
+	snd_play_snd(snd, /*lVolume=*/0, /*lPan=*/0);
+}
+
+void AnnouncePickedUpItem(const Item &item)
+{
+	SpeakText(item.getName(), /*force=*/true);
+}
+
+} // namespace
 
 bool invflag;
 
@@ -1678,6 +1727,8 @@ void InvGetItem(Player &player, int ii)
 			// Non-gold items (or gold when you have a full inventory) go to the hand then provide audible feedback on
 			//  paste. To give the same feedback for auto-placed gold we play the sound effect now.
 			PlaySFX(SfxID::ItemGold);
+			PlayAccessibilityPickupFeedback();
+			AnnouncePickedUpItem(item);
 		}
 	} else {
 		// The item needs to go into the players hand
@@ -1689,6 +1740,10 @@ void InvGetItem(Player &player, int ii)
 		// need to copy here instead of move so CleanupItems still has access to the position
 		player.HoldItem = item;
 		NewCursor(player.HoldItem);
+		if (MyPlayer == &player) {
+			PlayAccessibilityPickupFeedback();
+			AnnouncePickedUpItem(item);
+		}
 	}
 
 	// This potentially moves items in memory so must be done after we've made a copy
@@ -1767,6 +1822,10 @@ void AutoGetItem(Player &player, Item *itemPointer, int ii)
 	}
 
 	if (done) {
+		if (&player == MyPlayer) {
+			PlayAccessibilityPickupFeedback();
+			AnnouncePickedUpItem(item);
+		}
 		if (!autoEquipped && *GetOptions().Audio.itemPickupSound && &player == MyPlayer) {
 			PlaySFX(SfxID::GrabItem);
 		}

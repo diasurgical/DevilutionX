@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstdint>
 #include <list>
+#include <string>
 
 #ifdef USE_SDL3
 #include <SDL3/SDL_events.h>
@@ -16,6 +17,8 @@
 #include "utils/sdl2_to_1_2_backports.h"
 #endif
 #endif
+
+#include <fmt/format.h>
 
 #include "automap.h"
 #include "control/control.hpp"
@@ -49,8 +52,11 @@
 #include "stores.h"
 #include "towners.h"
 #include "track.h"
+#include "utils/format_int.hpp"
 #include "utils/is_of.hpp"
+#include "utils/language.h"
 #include "utils/log.hpp"
+#include "utils/screen_reader.hpp"
 #include "utils/sdl_compat.h"
 #include "utils/str_cat.hpp"
 
@@ -678,6 +684,92 @@ int GetItemIdOnSlot(int slot)
 	return 0;
 }
 
+StringOrView GetInventorySlotNameForSpeech(int slot)
+{
+	switch (slot) {
+	case SLOTXY_HEAD:
+		return _("Head");
+	case SLOTXY_RING_LEFT:
+		return _("Left ring");
+	case SLOTXY_RING_RIGHT:
+		return _("Right ring");
+	case SLOTXY_AMULET:
+		return _("Amulet");
+	case SLOTXY_HAND_LEFT:
+		return _("Left hand");
+	case SLOTXY_HAND_RIGHT:
+		return _("Right hand");
+	case SLOTXY_CHEST:
+		return _("Chest");
+	default:
+		break;
+	}
+
+	if (slot >= SLOTXY_BELT_FIRST && slot <= SLOTXY_BELT_LAST)
+		return StrCat(_("Belt"), " ", slot - SLOTXY_BELT_FIRST + 1);
+
+	return _("Inventory");
+}
+
+void SpeakInventorySlotForAccessibility()
+{
+	if (MyPlayer == nullptr)
+		return;
+
+	const Player &player = *MyPlayer;
+	const Item *item = nullptr;
+
+	if (Slot >= SLOTXY_BELT_FIRST && Slot <= SLOTXY_BELT_LAST) {
+		item = &player.SpdList[Slot - SLOTXY_BELT_FIRST];
+	} else if (Slot >= SLOTXY_INV_FIRST && Slot <= SLOTXY_INV_LAST) {
+		const int invId = GetItemIdOnSlot(Slot);
+		if (invId != 0)
+			item = &player.InvList[invId - 1];
+	} else {
+		switch (Slot) {
+		case SLOTXY_HEAD:
+			item = &player.InvBody[INVLOC_HEAD];
+			break;
+		case SLOTXY_RING_LEFT:
+			item = &player.InvBody[INVLOC_RING_LEFT];
+			break;
+		case SLOTXY_RING_RIGHT:
+			item = &player.InvBody[INVLOC_RING_RIGHT];
+			break;
+		case SLOTXY_AMULET:
+			item = &player.InvBody[INVLOC_AMULET];
+			break;
+		case SLOTXY_HAND_LEFT:
+			item = &player.InvBody[INVLOC_HAND_LEFT];
+			break;
+		case SLOTXY_HAND_RIGHT: {
+			const Item &left = player.InvBody[INVLOC_HAND_LEFT];
+			if (!left.isEmpty() && player.GetItemLocation(left) == ILOC_TWOHAND)
+				item = &left;
+			else
+				item = &player.InvBody[INVLOC_HAND_RIGHT];
+		} break;
+		case SLOTXY_CHEST:
+			item = &player.InvBody[INVLOC_CHEST];
+			break;
+		default:
+			break;
+		}
+	}
+
+	if (item != nullptr && !item->isEmpty()) {
+		if (item->_itype == ItemType::Gold) {
+			const int nGold = item->_ivalue;
+			SpeakText(fmt::format(fmt::runtime(ngettext("{:s} gold piece", "{:s} gold pieces", nGold)), FormatInteger(nGold)), /*force=*/true);
+		} else {
+			SpeakText(item->getName(), /*force=*/true);
+		}
+		return;
+	}
+
+	SpeakText(StrCat(GetInventorySlotNameForSpeech(Slot), ": ", _("empty")), /*force=*/true);
+}
+
 /**
  * Get item size (grid size) on the slot specified. Returns 1x1 if none exists.
  */
@@ -1147,10 +1239,12 @@ void InventoryMove(AxisDirection dir)
 	}
 
 	if (mousePos == MousePosition) {
+		SpeakInventorySlotForAccessibility();
 		return; // Avoid wobbling when scaled
 	}
 
 	SetCursorPos(mousePos);
+	SpeakInventorySlotForAccessibility();
 }
 
 /**
@@ -1349,7 +1443,7 @@ void StashMove(AxisDirection dir)
 	FocusOnInventory();
 }
 
-void HotSpellMove(AxisDirection dir)
+void HotSpellMoveInternal(AxisDirection dir)
 {
 	static AxisDirectionRepeater repeater;
 	dir = repeater.Get(dir);
@@ -1500,7 +1594,7 @@ using HandleLeftStickOrDPadFn = void (*)(devilution::AxisDirection);
 HandleLeftStickOrDPadFn GetLeftStickOrDPadGameUIHandler()
 {
 	if (SpellSelectFlag) {
-		return &HotSpellMove;
+		return &HotSpellMoveInternal;
 	}
 	if (IsStashOpen) {
 		return &StashMove;
@@ -1734,6 +1828,11 @@ void LogGamepadChange(GamepadLayout newGamepad)
 
 } // namespace
 
+void HotSpellMove(AxisDirection dir)
+{
+	HotSpellMoveInternal(dir);
+}
+
 void DetectInputMethod(const SDL_Event &event, const ControllerButtonEvent &gamepadEvent)
 {
 	ControlTypes inputType = GetInputTypeFromEvent(event);
@@ -1910,6 +2009,15 @@ void FocusOnInventory()
 {
 	Slot = SLOTXY_INV_FIRST;
 	ResetInvCursorPosition();
+	SpeakInventorySlotForAccessibility();
+}
+
+void InventoryMoveFromKeyboard(AxisDirection dir)
+{
+	if (!invflag)
+		return;
+
+	CheckInventoryMove(dir);
 }
 
 bool PointAndClickState = false;
@@ -1999,6 +2107,46 @@ void UseBeltItem(BeltItemType type)
 			break;
 		}
 	}
+}
+
+namespace {
+
+void UpdateTargetsForKeyboardAction()
+{
+	// Clear focus set by cursor.
+	PlayerUnderCursor = nullptr;
+	pcursmonst = -1;
+	pcursitem = -1;
+	ObjectUnderCursor = nullptr;
+
+	pcursmissile = nullptr;
+	pcurstrig = -1;
+	pcursquest = Q_INVALID;
+	cursPosition = { -1, -1 };
+
+	if (MyPlayer == nullptr)
+		return;
+	if (MyPlayer->_pInvincible)
+		return;
+	if (DoomFlag)
+		return;
+	if (invflag)
+		return;
+
+	InfoString = StringOrView {};
+	FindActor();
+	FindItemOrObject();
+	FindTrigger();
+}
+
+} // namespace
+
+void PerformPrimaryActionAutoTarget()
+{
+	if (ControlMode == ControlTypes::KeyboardAndMouse && !IsPointAndClick()) {
+		UpdateTargetsForKeyboardAction();
+	}
+	PerformPrimaryAction();
 }
 
 void PerformPrimaryAction()
@@ -2196,6 +2344,22 @@ void CtrlUseStashItem()
 		UseStashItem(pcursstashitem);
 	}
 	// Todo reset cursor position if item is moved
+}
+
+void PerformSecondaryActionAutoTarget()
+{
+	if (ControlMode == ControlTypes::KeyboardAndMouse && !IsPointAndClick()) {
+		UpdateTargetsForKeyboardAction();
+	}
+	PerformSecondaryAction();
+}
+
+void PerformSpellActionAutoTarget()
+{
+	if (ControlMode == ControlTypes::KeyboardAndMouse && !IsPointAndClick()) {
+		UpdateTargetsForKeyboardAction();
+	}
+	PerformSpellAction();
 }
 
 void PerformSecondaryAction()

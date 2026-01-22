@@ -11961,6 +11961,274 @@ msgstr "Runa Kamienia"
 msgid ","
 msgstr ","
 
+#: Source/diablo.cpp
+msgid "Town NPCs:"
+msgstr "NPC w mieście:"
+
+#: Source/diablo.cpp
+msgid "Cows: "
+msgstr "Krowy: "
+
+#: Source/diablo.cpp
+msgid "Selected: "
+msgstr "Wybrano: "
+
+#: Source/diablo.cpp
+msgid "PageUp/PageDown: select. Home: go. End: repeat."
+msgstr "PageUp/PageDown: wybór. Home: idź. End: powtórz."
+
+#: Source/diablo.cpp
+msgid "Not in a dungeon."
+msgstr "Nie jesteś w lochu."
+
+#: Source/diablo.cpp
+msgid "Close the map first."
+msgstr "Najpierw zamknij mapę."
+
+#: Source/diablo.cpp
+msgid "No exits found."
+msgstr "Nie znaleziono wyjść."
+
+#: Source/diablo.cpp
+msgid "Not in town."
+msgstr "Nie jesteś w mieście."
+
+#: Source/diablo.cpp
+msgid "Nearest stairs down"
+msgstr "Najbliższe schody w dół"
+
+#: Source/diablo.cpp
+msgid "Speaks directions to the nearest stairs down."
+msgstr "Podaje wskazówki dojścia do najbliższych schodów w dół."
+
+#: Source/diablo.cpp
+msgid "Nearest stairs up"
+msgstr "Najbliższe schody w górę"
+
+#: Source/diablo.cpp
+msgid "Speaks directions to the nearest stairs up."
+msgstr "Podaje wskazówki dojścia do najbliższych schodów w górę."
+
+#: Source/diablo.cpp
+msgid "Nearest exit: "
+msgstr "Najbliższe wyjście: "
+
+#: Source/diablo.cpp
+msgid "Cathedral entrance"
+msgstr "Wejście do Katedry"
+
+#: Source/diablo.cpp
+msgid "Cathedral entrance: press {:s}."
+msgstr "Wejście do Katedry: naciśnij {:s}."
+
+#: Source/diablo.cpp
+msgid "Stairs down"
+msgstr "Schody w dół"
+
+#: Source/diablo.cpp
+msgid "Stairs up"
+msgstr "Schody w górę"
+
+#: Source/diablo.cpp
+msgid "Town warp to level {:d}"
+msgstr "Portal miejski na poziom {:d}"
+
+#: Source/diablo.cpp
+msgid "Town warp to {:s}"
+msgstr "Portal miejski do {:s}"
+
+#: Source/diablo.cpp
+msgid "Warp up"
+msgstr "Portal w górę"
+
+#: Source/diablo.cpp
+msgid "Return to town"
+msgstr "Powrót do miasta"
+
+#: Source/diablo.cpp
+msgid "Warp"
+msgstr "Portal"
+
+#: Source/diablo.cpp
+msgid "Set level"
+msgstr "Poziom zadania"
+
+#: Source/diablo.cpp
+msgid "Return level"
+msgstr "Powrót do zadania"
+
+#: Source/diablo.cpp
+msgid "Exit"
+msgstr "Wyjście"
+
+#: Source/diablo.cpp
+msgid "north"
+msgstr "północ"
+
+#: Source/diablo.cpp
+msgid "south"
+msgstr "południe"
+
+#: Source/diablo.cpp
+msgid "east"
+msgstr "wschód"
+
+#: Source/diablo.cpp
+msgid "west"
+msgstr "zachód"
+
+#: Source/diablo.cpp
+msgid "here"
+msgstr "tutaj"
+
+#: Source/diablo.cpp
+msgid "No unexplored areas found."
+msgstr "Nie znaleziono nieodkrytych obszarów."
+
+#: Source/diablo.cpp
+msgid "Nearest unexplored space: "
+msgstr "Najbliższe nieodkryte miejsce: "
+
+#: Source/diablo.cpp
+msgid "Cycle tracker target"
+msgstr "Zmień cel trackera"
+
+#: Source/diablo.cpp
+msgid "Cycles what the tracker looks for (items, chests, monsters)."
+msgstr "Zmienia, czego szuka tracker (przedmioty, skrzynie, potwory)."
+
+#: Source/diablo.cpp
+msgid "Navigate to tracker target"
+msgstr "Nawiguj do celu trackera"
+
+#: Source/diablo.cpp
+msgid "Walks to the nearest target of the selected tracker category."
+msgstr "Prowadzi do najbliższego celu wybranej kategorii trackera."
+
+#: Source/diablo.cpp
+msgid "Tracker target: "
+msgstr "Śledzenie: "
+
+#: Source/diablo.cpp
+msgid "items"
+msgstr "przedmioty"
+
+#: Source/diablo.cpp
+msgid "chests"
+msgstr "skrzynie"
+
+#: Source/diablo.cpp
+msgid "monsters"
+msgstr "potwory"
+
+#: Source/diablo.cpp
+msgid "No items found."
+msgstr "Nie znaleziono żadnych przedmiotów."
+
+#: Source/diablo.cpp
+msgid "No chests found."
+msgstr "Nie znaleziono żadnych skrzyń."
+
+#: Source/diablo.cpp
+msgid "No monsters found."
+msgstr "Nie znaleziono żadnych potworów."
+
+#: Source/diablo.cpp
+msgid "Navigating to nearest item."
+msgstr "Nawiguję do najbliższego przedmiotu."
+
+#: Source/diablo.cpp
+msgid "Navigating to nearest chest."
+msgstr "Nawiguję do najbliższej skrzyni."
+
+#: Source/diablo.cpp
+msgid "Navigating to nearest monster."
+msgstr "Nawiguję do najbliższego potwora."
+
+#: Source/diablo.cpp
+msgid "Target item is gone."
+msgstr "Docelowy przedmiot zniknął."
+
+#: Source/diablo.cpp
+msgid "Item in range."
+msgstr "Przedmiot jest w zasięgu."
+
+#: Source/diablo.cpp
+msgid "Target chest is gone."
+msgstr "Docelowa skrzynia zniknęła."
+
+#: Source/diablo.cpp
+msgid "Chest in range."
+msgstr "Skrzynia jest w zasięgu."
+
+#: Source/diablo.cpp
+msgid "Target monster is gone."
+msgstr "Docelowy potwór zniknął."
+
+#: Source/diablo.cpp
+msgid "Monster in range."
+msgstr "Potwór jest w zasięgu."
+
+#: Source/diablo.cpp
+msgid "Can't find a nearby tile to walk to."
+msgstr "Nie mogę znaleźć pobliskiego pola, na które da się podejść."
+
+#: Source/diablo.cpp
+msgid "Can't find a path to the target."
+msgstr "Nie mogę znaleźć ścieżki do celu."
+
+#: Source/diablo.cpp
+msgid "A door is blocking the path. Open it and try again."
+msgstr "Drzwi blokują drogę. Otwórz je i spróbuj ponownie."
+
+#: Source/controls/plrctrls.cpp
+msgid "Head"
+msgstr "Głowa"
+
+#: Source/controls/plrctrls.cpp
+msgid "Left ring"
+msgstr "Lewy pierścień"
+
+#: Source/controls/plrctrls.cpp
+msgid "Right ring"
+msgstr "Prawy pierścień"
+
+#: Source/controls/plrctrls.cpp
+msgid "Amulet"
+msgstr "Amulet"
+
+#: Source/controls/plrctrls.cpp
+msgid "Left hand"
+msgstr "Lewa ręka"
+
+#: Source/controls/plrctrls.cpp
+msgid "Right hand"
+msgstr "Prawa ręka"
+
+#: Source/controls/plrctrls.cpp
+msgid "Chest"
+msgstr "Tułów"
+
+#: Source/controls/plrctrls.cpp
+msgid "Belt"
+msgstr "Pas"
+
+#: Source/controls/plrctrls.cpp
+msgid "Inventory"
+msgstr "Ekwipunek"
+
+#: Source/controls/plrctrls.cpp
+msgid "empty"
+msgstr "pusto"
+
+#: Source/options.cpp
+msgid "Unbound"
+msgstr "Brak przypisania"
+
+#: Source/diablo.cpp
+msgid "No spell selected."
+msgstr "Nie wybrano czaru."
+
 #~ msgid "Decrease Gamma"
 #~ msgstr "Zmniejsz jasność"
 

@@ -301,6 +301,7 @@ void OpenCharPanel()
 	CloseGoldWithdraw();
 	CloseStash();
 	CharFlag = true;
+	InitCharacterScreenSpeech();
 }
 
 void CloseCharPanel()

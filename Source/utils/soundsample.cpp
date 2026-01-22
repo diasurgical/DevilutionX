@@ -9,6 +9,7 @@
 #include <SDL3/SDL_error.h>
 #include <SDL3/SDL_iostream.h>
 #else
+#include <Aulib/Decoder.h>
 #include <Aulib/DecoderDrmp3.h>
 #include <Aulib/DecoderDrwav.h>
 #include <Aulib/Stream.h>
@@ -73,9 +74,100 @@ std::unique_ptr<Aulib::Decoder> CreateDecoder(bool isMp3)
 	return std::make_unique<Aulib::DecoderDrwav>();
 }
 
-std::unique_ptr<Aulib::Stream> CreateStream(SDL_IOStream *handle, bool isMp3)
+class PlaybackRateDecoder final : public Aulib::Decoder {
+public:
+	PlaybackRateDecoder(std::unique_ptr<Aulib::Decoder> inner, float playbackRate)
+	    : inner_(std::move(inner))
+	    , playbackRate_(playbackRate)
+	{
+	}
+
+	auto open(SDL_RWops *rwops) -> bool override
+	{
+		if (isOpen())
+			return true;
+		if (inner_ == nullptr)
+			return false;
+
+		if (!inner_->open(rwops))
+			return false;
+
+		setIsOpen(true);
+		return true;
+	}
+
+	auto getChannels() const -> int override
+	{
+		return inner_ != nullptr ? inner_->getChannels() : 0;
+	}
+
+	auto getRate() const -> int override
+	{
+		if (inner_ == nullptr)
+			return 0;
+
+		const int baseRate = inner_->getRate();
+		if (baseRate <= 0)
+			return baseRate;
+
+		const int adjustedRate = static_cast<int>(std::lround(static_cast<float>(baseRate) * playbackRate_));
+		return std::max(adjustedRate, 1);
+	}
+
+	auto rewind() -> bool override
+	{
+		return inner_ != nullptr && inner_->rewind();
+	}
+
+	auto duration() const -> std::chrono::microseconds override
+	{
+		if (inner_ == nullptr)
+			return {};
+
+		const auto base = inner_->duration();
+		if (playbackRate_ <= 0)
+			return base;
+
+		return std::chrono::duration_cast<std::chrono::microseconds>(base / playbackRate_);
+	}
+
+	auto seekToTime(std::chrono::microseconds pos) -> bool override
+	{
+		if (inner_ == nullptr)
+			return false;
+		if (playbackRate_ <= 0)
+			return inner_->seekToTime(pos);
+
+		return inner_->seekToTime(std::chrono::duration_cast<std::chrono::microseconds>(pos * playbackRate_));
+	}
+
+protected:
+	auto doDecoding(float buf[], int len, bool &callAgain) -> int override
+	{
+		return inner_ != nullptr ? inner_->decode(buf, len, callAgain) : 0;
+	}
+
+private:
+	std::unique_ptr<Aulib::Decoder> inner_;
+	float playbackRate_;
+};
+
+std::unique_ptr<Aulib::Stream> CreateStream(SDL_IOStream *handle, bool isMp3, float playbackRate)
 {
-	auto decoder = CreateDecoder(isMp3);
+	std::unique_ptr<Aulib::Decoder> decoder;
+	if (isMp3) {
+		decoder = std::make_unique<Aulib::DecoderDrmp3>();
+	} else {
+		const auto rwPos = SDL_RWtell(handle);
+		decoder = Aulib::Decoder::decoderFor(handle);
+		SDL_RWseek(handle, rwPos, RW_SEEK_SET);
+		if (decoder == nullptr)
+			decoder = std::make_unique<Aulib::DecoderDrwav>();
+	}
+
+	if (playbackRate != 1.0F)
+		decoder = std::make_unique<PlaybackRateDecoder>(std::move(decoder), playbackRate);
+
 	if (!decoder->open(handle)) // open for `getRate`
 		return nullptr;
 	auto resampler = CreateAulibResampler(decoder->getRate());
@@ -99,6 +191,11 @@ float VolumeLogToLinear(int logVolume, int logMin, int logMax)
 } // namespace
 
 ///// SoundSample /////
+
+SoundSample::SoundSample() = default;
+SoundSample::~SoundSample() = default;
+SoundSample::SoundSample(SoundSample &&) noexcept = default;
+SoundSample &SoundSample::operator=(SoundSample &&) noexcept = default;
 
 #ifndef USE_SDL3
 void SoundSample::SetFinishCallback(Aulib::Stream::Callback &&callback)
@@ -162,7 +259,7 @@ bool SoundSample::Play(int numIterations)
 #endif
 }
 
-int SoundSample::SetChunkStream(std::string filePath, bool isMp3, bool logErrors)
+int SoundSample::SetChunkStream(std::string filePath, bool isMp3, bool logErrors, float playbackRate)
 {
 #ifdef USE_SDL3
 	return 0;
@@ -175,7 +272,14 @@ int SoundSample::SetChunkStream(std::string filePath, bool isMp3, bool logErrors
 	}
 	file_path_ = std::move(filePath);
 	isMp3_ = isMp3;
-	stream_ = CreateStream(handle, isMp3);
+	playbackRate_ = playbackRate;
+	stream_ = CreateStream(handle, isMp3, playbackRate_);
+	if (!stream_) {
+		SDL_RWclose(handle);
+		if (logErrors)
+			LogError(LogCategory::Audio, "CreateStream failed (from SoundSample::SetChunkStream) for {}: {}", file_path_, SDL_GetError());
+		return -1;
+	}
 	if (!stream_->open()) {
 		stream_ = nullptr;
 		if (logErrors)
@@ -186,12 +290,13 @@ int SoundSample::SetChunkStream(std::string filePath, bool isMp3, bool logErrors
 #endif
 }
 
-int SoundSample::SetChunk(ArraySharedPtr<std::uint8_t> fileData, std::size_t dwBytes, bool isMp3)
+int SoundSample::SetChunk(ArraySharedPtr<std::uint8_t> fileData, std::size_t dwBytes, bool isMp3, float playbackRate)
 {
 #ifdef USE_SDL3
 	return 0;
 #else
 	isMp3_ = isMp3;
+	playbackRate_ = playbackRate;
 	file_data_ = std::move(fileData);
 	file_data_size_ = dwBytes;
 	SDL_IOStream *buf = SDL_IOFromConstMem(file_data_.get(), static_cast<int>(dwBytes));
@@ -199,7 +304,12 @@ int SoundSample::SetChunk(ArraySharedPtr<std::uint8_t> fileData, std::size_t dwB
 		return -1;
 	}
 
-	stream_ = CreateStream(buf, isMp3_);
+	stream_ = CreateStream(buf, isMp3_, playbackRate_);
+	if (!stream_) {
+		SDL_RWclose(buf);
+		file_data_ = nullptr;
+		return -1;
+	}
 	if (!stream_->open()) {
 		stream_ = nullptr;
 		file_data_ = nullptr;
