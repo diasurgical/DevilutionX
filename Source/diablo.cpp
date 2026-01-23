@@ -4391,8 +4391,8 @@ void InitPadmapActions()
 
 void SetCursorPos(Point position)
 {
+	MousePosition = position;
 	if (ControlDevice != ControlTypes::KeyboardAndMouse) {
-		MousePosition = position;
 		return;
 	}
 
