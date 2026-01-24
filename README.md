@@ -21,6 +21,31 @@ Upstream project: https://github.com/diasurgical/devilutionX
 
 For a full list of changes, see our [changelog](docs/CHANGELOG.md).
 
+# Features
+
+- Screen reader / TTS integration (Windows: NVDA/JAWS via Tolk; Linux: speech-dispatcher).
+- Proximity audio cues (items, monsters, doors/chests, interactable targets).
+- Spoken announcements for many UI elements and interactions.
+- Tracker navigation that speaks the tracked target and directions to reach it.
+- Low HP warning sound that starts at 50% HP and speeds up every 10% down to 0% (stops on death).
+
+# Keybinds (defaults)
+
+Keybinds are configurable, but these are the defaults most players will use:
+
+- `T` - cycle tracker target (items / chests / monsters).
+- `N` - tracker directions to the nearest target (speaks target name + directions).
+- `Shift`+`N` - retarget the tracker.
+- `Ctrl`+`N` - clear the tracker target.
+- `H` - speak nearest unexplored space.
+- `E` - speak nearest exit.
+- `,` - speak nearest stairs up.
+- `.` - speak nearest stairs down.
+- `F4` - list town NPCs.
+- `PageUp` / `PageDown` - select previous / next town NPC.
+- `End` - speak selected town NPC.
+- `Home` - walk to selected town NPC (town only).
+
 # How to Install
 
 Note: You'll need access to the data from the original game. If you don't have an original CD, you can [buy Diablo from GoG.com](https://www.gog.com/game/diablo) or Battle.net. Alternatively, you can use `spawn.mpq` from the [shareware](https://github.com/diasurgical/devilutionx-assets/releases/latest/download/spawn.mpq) [[2]](http://ftp.blizzard.com/pub/demos/diablosw.exe) version, in place of `DIABDAT.MPQ`, to play the shareware portion of the game.

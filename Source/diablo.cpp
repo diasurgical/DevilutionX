@@ -1628,6 +1628,121 @@ void UpdateMonsterLights()
 	}
 }
 
+#ifdef NOSOUND
+void UpdatePlayerLowHpWarningSound()
+{
+}
+#else
+namespace {
+
+std::unique_ptr<TSnd> PlayerLowHpWarningSound;
+bool TriedLoadingPlayerLowHpWarningSound = false;
+
+TSnd *GetPlayerLowHpWarningSound()
+{
+	if (TriedLoadingPlayerLowHpWarningSound)
+		return PlayerLowHpWarningSound.get();
+	TriedLoadingPlayerLowHpWarningSound = true;
+
+	if (!gbSndInited)
+		return nullptr;
+
+	PlayerLowHpWarningSound = std::make_unique<TSnd>();
+	PlayerLowHpWarningSound->start_tc = SDL_GetTicks() - 80 - 1;
+
+	// Support both the new "playerhaslowhp" name and the older underscore version.
+	if (PlayerLowHpWarningSound->DSB.SetChunkStream("audio\\playerhaslowhp.ogg", /*isMp3=*/false, /*logErrors=*/false) != 0
+	    && PlayerLowHpWarningSound->DSB.SetChunkStream("..\\audio\\playerhaslowhp.ogg", /*isMp3=*/false, /*logErrors=*/false) != 0
+	    && PlayerLowHpWarningSound->DSB.SetChunkStream("audio\\player_has_low_hp.ogg", /*isMp3=*/false, /*logErrors=*/false) != 0
+	    && PlayerLowHpWarningSound->DSB.SetChunkStream("..\\audio\\player_has_low_hp.ogg", /*isMp3=*/false, /*logErrors=*/false) != 0
+	    && PlayerLowHpWarningSound->DSB.SetChunkStream("audio\\playerhaslowhp.mp3", /*isMp3=*/true, /*logErrors=*/false) != 0
+	    && PlayerLowHpWarningSound->DSB.SetChunkStream("..\\audio\\playerhaslowhp.mp3", /*isMp3=*/true, /*logErrors=*/false) != 0
+	    && PlayerLowHpWarningSound->DSB.SetChunkStream("audio\\player_has_low_hp.mp3", /*isMp3=*/true, /*logErrors=*/false) != 0
+	    && PlayerLowHpWarningSound->DSB.SetChunkStream("..\\audio\\player_has_low_hp.mp3", /*isMp3=*/true, /*logErrors=*/false) != 0
+	    && PlayerLowHpWarningSound->DSB.SetChunkStream("audio\\playerhaslowhp.wav", /*isMp3=*/false, /*logErrors=*/false) != 0
+	    && PlayerLowHpWarningSound->DSB.SetChunkStream("..\\audio\\playerhaslowhp.wav", /*isMp3=*/false, /*logErrors=*/false) != 0
+	    && PlayerLowHpWarningSound->DSB.SetChunkStream("audio\\player_has_low_hp.wav", /*isMp3=*/false, /*logErrors=*/false) != 0
+	    && PlayerLowHpWarningSound->DSB.SetChunkStream("..\\audio\\player_has_low_hp.wav", /*isMp3=*/false, /*logErrors=*/false) != 0) {
+		PlayerLowHpWarningSound = nullptr;
+	}
+
+	return PlayerLowHpWarningSound.get();
+}
+
+void StopPlayerLowHpWarningSound()
+{
+	if (PlayerLowHpWarningSound != nullptr)
+		PlayerLowHpWarningSound->DSB.Stop();
+}
+
+[[nodiscard]] uint32_t LowHpIntervalMs(int hpPercent)
+{
+	// The sound starts at 50% HP (slow) and speeds up every 10% down to 0%.
+	if (hpPercent > 40)
+		return 1500;
+	if (hpPercent > 30)
+		return 1200;
+	if (hpPercent > 20)
+		return 900;
+	if (hpPercent > 10)
+		return 600;
+	return 300;
+}
+
+} // namespace
+
+void UpdatePlayerLowHpWarningSound()
+{
+	static uint32_t LastWarningStartMs = 0;
+
+	if (!gbSndInited || !gbSoundOn || MyPlayer == nullptr || InGameMenu()) {
+		StopPlayerLowHpWarningSound();
+		LastWarningStartMs = 0;
+		return;
+	}
+
+	// Stop immediately when dead.
+	if (MyPlayerIsDead || MyPlayer->_pmode == PM_DEATH || MyPlayer->hasNoLife()) {
+		StopPlayerLowHpWarningSound();
+		LastWarningStartMs = 0;
+		return;
+	}
+
+	const int maxHp = MyPlayer->_pMaxHP;
+	if (maxHp <= 0) {
+		StopPlayerLowHpWarningSound();
+		LastWarningStartMs = 0;
+		return;
+	}
+
+	const int hp = std::clamp(MyPlayer->_pHitPoints, 0, maxHp);
+	const int hpPercent = std::clamp(hp * 100 / maxHp, 0, 100);
+
+	// Only play below (or equal to) 50% and above 0%.
+	if (hpPercent > 50 || hpPercent <= 0) {
+		StopPlayerLowHpWarningSound();
+		LastWarningStartMs = 0;
+		return;
+	}
+
+	TSnd *snd = GetPlayerLowHpWarningSound();
+	if (snd == nullptr || !snd->DSB.IsLoaded())
+		return;
+
+	const uint32_t now = SDL_GetTicks();
+	const uint32_t intervalMs = LowHpIntervalMs(hpPercent);
+	if (LastWarningStartMs == 0)
+		LastWarningStartMs = now - intervalMs;
+	if (now - LastWarningStartMs < intervalMs)
+		return;
+
+	// Restart the cue even if it's already playing so the "tempo" is controlled by HP.
+	snd->DSB.Stop();
+	snd_play_snd(snd, /*lVolume=*/0, /*lPan=*/0);
+	LastWarningStartMs = now;
+}
+#endif // NOSOUND
+
 void GameLogic()
 {
 	if (!ProcessInput()) {
@@ -1662,6 +1777,9 @@ void GameLogic()
 		gGameLogicStep = GameLogicStep::ProcessMissilesTown;
 		ProcessMissiles();
 	}
+
+	UpdatePlayerLowHpWarningSound();
+
 	gGameLogicStep = GameLogicStep::None;
 
 #ifdef _DEBUG
@@ -2339,6 +2457,7 @@ void NavigateToTrackerTargetKeyPressed()
 
 	std::optional<int> targetId;
 	std::optional<Point> targetPosition;
+	StringOrView targetName;
 
 	switch (SelectedTrackerTargetCategory) {
 	case TrackerTargetCategory::Items: {
@@ -2361,6 +2480,7 @@ void NavigateToTrackerTargetKeyPressed()
 		lockedTargetId = *targetId;
 		const Item &tracked = Items[*targetId];
 
+		targetName = tracked.getName();
 		targetPosition = tracked.position;
 		break;
 	}
@@ -2388,6 +2508,7 @@ void NavigateToTrackerTargetKeyPressed()
 		lockedTargetId = *targetId;
 		const Object &tracked = Objects[*targetId];
 
+		targetName = tracked.name();
 		targetPosition = FindBestAdjacentApproachTile(*MyPlayer, playerPosition, tracked.position);
 		if (!targetPosition) {
 			SpeakText(_("Can't find a nearby tile to walk to."), true);
@@ -2420,6 +2541,7 @@ void NavigateToTrackerTargetKeyPressed()
 		lockedTargetId = *targetId;
 		const Monster &tracked = Monsters[*targetId];
 
+		targetName = tracked.name();
 		const Point monsterPosition { tracked.position.tile };
 		targetPosition = FindBestAdjacentApproachTile(*MyPlayer, playerPosition, monsterPosition);
 		if (!targetPosition) {
@@ -2436,6 +2558,8 @@ void NavigateToTrackerTargetKeyPressed()
 
 	const std::optional<std::vector<int8_t>> path = FindKeyboardWalkPathForSpeech(*MyPlayer, playerPosition, *targetPosition);
 	std::string message;
+	if (!targetName.empty())
+		StrAppend(message, targetName, "\n");
 	if (!path) {
 		AppendDirectionalFallback(message, *targetPosition - playerPosition);
 	} else {
