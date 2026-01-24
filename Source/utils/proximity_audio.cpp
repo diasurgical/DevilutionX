@@ -144,6 +144,40 @@ struct InteractTarget {
 	return static_cast<uint32_t>(std::lround(interval));
 }
 
+void StopCueSound(const CueSound &cue)
+{
+	for (const auto &variant : cue.variants) {
+		if (variant != nullptr && variant->DSB.IsLoaded())
+			variant->DSB.Stop();
+	}
+}
+
+void StopAllCuesExcept(const CueSound *cueToKeep)
+{
+	const auto stopIfOther = [cueToKeep](const std::optional<CueSound> &cue) {
+		if (cue && &*cue != cueToKeep)
+			StopCueSound(*cue);
+	};
+
+	stopIfOther(WeaponItemCue);
+	stopIfOther(ArmorItemCue);
+	stopIfOther(GoldItemCue);
+	stopIfOther(ChestCue);
+	stopIfOther(DoorCue);
+	stopIfOther(MonsterCue);
+	stopIfOther(InteractCue);
+}
+
+[[nodiscard]] bool IsAnyOtherCuePlaying(const CueSound *cueToIgnore)
+{
+	const auto isOtherPlaying = [cueToIgnore](const std::optional<CueSound> &cue) {
+		return cue && cue->IsAnyPlaying() && &*cue != cueToIgnore;
+	};
+
+	return isOtherPlaying(WeaponItemCue) || isOtherPlaying(ArmorItemCue) || isOtherPlaying(GoldItemCue) || isOtherPlaying(ChestCue) || isOtherPlaying(DoorCue)
+	    || isOtherPlaying(MonsterCue) || isOtherPlaying(InteractCue);
+}
+
 std::optional<CueSound> TryLoadCueSound(std::initializer_list<std::string_view> candidatePaths)
 {
 	if (!gbSndInited)
@@ -204,7 +238,20 @@ void EnsureCuesLoaded()
 
 	MonsterCue = TryLoadCueSound({ "audio\\monster.ogg", "..\\audio\\monster.ogg", "audio\\monster.wav", "..\\audio\\monster.wav", "audio\\monster.mp3", "..\\audio\\monster.mp3" });
 
-	InteractCue = TryLoadCueSound({ "audio\\interactispossible.ogg", "..\\audio\\interactispossible.ogg", "audio\\interactispossible.wav", "..\\audio\\interactispossible.wav", "audio\\interactispossible.mp3", "..\\audio\\interactispossible.mp3" });
+	InteractCue = TryLoadCueSound({
+	    "audio\\interactispossible.ogg",
+	    "audio\\interactionispossible.ogg",
+	    "..\\audio\\interactispossible.ogg",
+	    "..\\audio\\interactionispossible.ogg",
+	    "audio\\interactispossible.wav",
+	    "audio\\interactionispossible.wav",
+	    "..\\audio\\interactispossible.wav",
+	    "..\\audio\\interactionispossible.wav",
+	    "audio\\interactispossible.mp3",
+	    "audio\\interactionispossible.mp3",
+	    "..\\audio\\interactispossible.mp3",
+	    "..\\audio\\interactionispossible.mp3",
+	});
 
 	loaded = true;
 }
@@ -223,8 +270,8 @@ void EnsureCuesLoaded()
 	if (!gbSndInited || !gbSoundOn)
 		return false;
 
-	// Proximity cues are meant to guide the player; overlapping the same cue can create audio glitches/noise.
-	if (cue.IsAnyPlaying())
+	// Allow the same cue to restart (for tempo control), but don't overlap different cue types.
+	if (IsAnyOtherCuePlaying(&cue))
 		return false;
 
 	int logVolume = 0;
@@ -241,6 +288,15 @@ void EnsureCuesLoaded()
 	TSnd *snd = cue.variants[pitchLevel].get();
 	if (snd == nullptr || !snd->DSB.IsLoaded())
 		return false;
+
+	// Restart the cue if it's already playing so we can control tempo based on distance.
+	// Stop all variants to avoid overlaps when pitch levels are enabled.
+	if (cue.IsAnyPlaying()) {
+		for (const auto &variant : cue.variants) {
+			if (variant != nullptr && variant->DSB.IsLoaded())
+				variant->DSB.Stop();
+		}
+	}
 
 	snd_play_snd(snd, logVolume, logPan);
 	return true;
@@ -554,6 +610,13 @@ std::optional<InteractTarget> FindInteractTargetInRange(const Player &player, Po
 		}
 	}
 
+	// Make the interact cue reliably audible even when another proximity cue is playing.
+	// (The new distance-based tempo restarts cues frequently.)
+	StopAllCuesExcept(InteractCue ? &*InteractCue : nullptr);
+
+	if (!InteractCue || !InteractCue->IsLoaded())
+		return true;
+
 	if (!PlayCueAt(*InteractCue, target->position, /*distance=*/0, /*maxDistance=*/1))
 		return true;
 	(void)now;
@@ -577,10 +640,6 @@ void UpdateProximityAudioCues()
 
 	const uint32_t now = SDL_GetTicks();
 	const Point playerPosition { MyPlayer->position.future };
-
-	// Don't start another cue while one is playing (helps avoid overlap-related stutter/noise).
-	if (IsAnyCuePlaying())
-		return;
 
 	// Keep cues readable and reduce overlap/glitches by playing at most one per tick (priority order).
 	if (UpdateInteractCue(playerPosition, now))
