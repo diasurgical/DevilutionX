@@ -548,13 +548,16 @@ std::optional<InteractTarget> FindInteractTargetInRange(const Player &player, Po
 		if (monster.hitPoints <= 0)
 			continue;
 
-		const Point monsterPosition { monster.position.tile };
-		const int distance = playerPosition.ApproxDistance(monsterPosition);
+		// Use the future position for distance/tempo so cues react immediately when a monster starts moving
+		// towards or away from the player (tile position updates later).
+		const Point monsterSoundPosition { monster.position.tile };
+		const Point monsterDistancePosition { monster.position.future };
+		const int distance = playerPosition.ApproxDistance(monsterDistancePosition);
 		if (distance > MaxCueDistanceTiles)
 			continue;
 
 		if (!nearest || distance < nearest->first) {
-			nearest = { distance, monsterPosition };
+			nearest = { distance, monsterSoundPosition };
 		}
 	}
 
