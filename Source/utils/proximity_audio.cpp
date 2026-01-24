@@ -52,6 +52,9 @@ constexpr size_t PitchLevels = 1;
 
 constexpr uint32_t MinIntervalMs = 250;
 constexpr uint32_t MaxIntervalMs = 1000;
+// snd_play_snd has an internal 80ms throttle (TSnd::start_tc).
+constexpr uint32_t MinMonsterIntervalMs = 100;
+constexpr uint32_t MaxMonsterIntervalMs = 1000;
 
 // Extra attenuation applied on top of CalculateSoundPosition().
 // Kept at 0 because stronger attenuation makes distant proximity cues too quiet and feel "glitchy"/missing.
@@ -133,15 +136,20 @@ struct InteractTarget {
 	return 0;
 }
 
-[[nodiscard]] uint32_t IntervalMsForDistance(int distance, int maxDistance)
+[[nodiscard]] uint32_t IntervalMsForDistance(int distance, int maxDistance, uint32_t minIntervalMs, uint32_t maxIntervalMs)
 {
 	if (maxDistance <= 0)
-		return MinIntervalMs;
+		return minIntervalMs;
 
 	const float t = std::clamp(static_cast<float>(distance) / static_cast<float>(maxDistance), 0.0F, 1.0F);
 	const float closeness = 1.0F - t;
-	const float interval = static_cast<float>(MaxIntervalMs) - closeness * static_cast<float>(MaxIntervalMs - MinIntervalMs);
+	const float interval = static_cast<float>(maxIntervalMs) - closeness * static_cast<float>(maxIntervalMs - minIntervalMs);
 	return static_cast<uint32_t>(std::lround(interval));
+}
+
+[[nodiscard]] uint32_t IntervalMsForDistance(int distance, int maxDistance)
+{
+	return IntervalMsForDistance(distance, maxDistance, MinIntervalMs, MaxIntervalMs);
 }
 
 void StopCueSound(const CueSound &cue)
@@ -565,7 +573,7 @@ std::optional<InteractTarget> FindInteractTargetInRange(const Player &player, Po
 		return false;
 
 	const int distance = nearest->first;
-	const uint32_t intervalMs = IntervalMsForDistance(distance, MaxCueDistanceTiles);
+	const uint32_t intervalMs = IntervalMsForDistance(distance, MaxCueDistanceTiles, MinMonsterIntervalMs, MaxMonsterIntervalMs);
 	if (now - LastMonsterCueTimeMs < intervalMs)
 		return false;
 
