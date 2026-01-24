@@ -299,7 +299,9 @@ std::string_view LanguageParticularTranslate(std::string_view context, std::stri
 		return message;
 	}
 
-	return GetTranslation(it->second);
+	const std::string_view translated = GetTranslation(it->second);
+	// Treat empty translations as missing (prevents invisible UI entries / silent screen reader output).
+	return translated.empty() ? message : translated;
 }
 
 std::string_view LanguagePluralTranslate(const char *singular, std::string_view plural, int count)
@@ -313,7 +315,13 @@ std::string_view LanguagePluralTranslate(const char *singular, std::string_view 
 		return singular;
 	}
 
-	return GetTranslation(it->second);
+	const std::string_view translated = GetTranslation(it->second);
+	if (!translated.empty())
+		return translated;
+	// Treat empty translations as missing.
+	if (count != 1)
+		return plural;
+	return singular;
 }
 
 std::string_view LanguageTranslate(const char *key)
@@ -323,7 +331,9 @@ std::string_view LanguageTranslate(const char *key)
 		return key;
 	}
 
-	return GetTranslation(it->second);
+	const std::string_view translated = GetTranslation(it->second);
+	// Treat empty translations as missing.
+	return translated.empty() ? std::string_view(key) : translated;
 }
 
 bool HasTranslation(const std::string &locale)
