@@ -2033,7 +2033,7 @@ void SpeakSelectedTownNpc()
 	const int distance = playerPosition.WalkingDistance(towner.position);
 
 	std::string msg;
-	StrAppend(msg, _("Selected: "), towner.name);
+	StrAppend(msg, towner.name);
 	StrAppend(msg, "\n", _("Distance: "), distance);
 	StrAppend(msg, "\n", _("Position: "), towner.position.x, ", ", towner.position.y);
 	SpeakText(msg, true);
