@@ -4674,7 +4674,7 @@ msgstr "Ustawienia mapowania kontrolera"
 
 #: Source/options.cpp:1512
 msgid "Mods"
-msgstr ""
+msgstr "Mody"
 
 #: Source/options.cpp:1512
 #, fuzzy
