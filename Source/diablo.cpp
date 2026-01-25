@@ -3896,22 +3896,6 @@ void InitKeymapActions()
 	    nullptr,
 	    CanPlayerTakeAction);
 	options.Keymapper.AddAction(
-	    "SpeakPlayerHealthPercentage",
-	    N_("Health percentage"),
-	    N_("Speaks the player's health as a percentage."),
-	    'Z',
-	    SpeakPlayerHealthPercentageKeyPressed,
-	    nullptr,
-	    CanPlayerTakeAction);
-	options.Keymapper.AddAction(
-	    "SpeakExperienceToNextLevel",
-	    N_("Experience to level"),
-	    N_("Speaks how much experience remains to reach the next level."),
-	    'X',
-	    SpeakExperienceToNextLevelKeyPressed,
-	    nullptr,
-	    CanPlayerTakeAction);
-	options.Keymapper.AddAction(
 	    "Party",
 	    N_("Party"),
 	    N_("Open side Party panel."),
@@ -3979,6 +3963,22 @@ void InitKeymapActions()
 		    GetOptions().Graphics.zoom.SetValue(!*GetOptions().Graphics.zoom);
 		    CalcViewportGeometry();
 	    },
+	    nullptr,
+	    CanPlayerTakeAction);
+	options.Keymapper.AddAction(
+	    "SpeakPlayerHealthPercentage",
+	    N_("Health percentage"),
+	    N_("Speaks the player's health as a percentage."),
+	    'Z',
+	    SpeakPlayerHealthPercentageKeyPressed,
+	    nullptr,
+	    CanPlayerTakeAction);
+	options.Keymapper.AddAction(
+	    "SpeakExperienceToNextLevel",
+	    N_("Experience to level"),
+	    N_("Speaks how much experience remains to reach the next level."),
+	    'X',
+	    SpeakExperienceToNextLevelKeyPressed,
 	    nullptr,
 	    CanPlayerTakeAction);
 	options.Keymapper.AddAction(
