@@ -1205,30 +1205,30 @@ msgstr "Nowy Poziom"
 
 #: Source/control.cpp:1687
 msgid "You have died"
-msgstr ""
+msgstr "Zginąłeś"
 
 #: Source/control.cpp:1695
 msgid "ESC"
-msgstr ""
+msgstr "ESC"
 
 #: Source/control.cpp:1701
 msgid "Menu Button"
-msgstr ""
+msgstr "Przycisk menu"
 
 #: Source/control.cpp:1709
 #, c++-format
 msgid "Press {} to load last save."
-msgstr ""
+msgstr "Naciśnij {}, aby wczytać ostatni zapis."
 
 #: Source/control.cpp:1711
 #, c++-format
 msgid "Press {} to return to Main Menu."
-msgstr ""
+msgstr "Naciśnij {}, aby wrócić do menu głównego."
 
 #: Source/control.cpp:1714
 #, c++-format
 msgid "Press {} to restart in town."
-msgstr ""
+msgstr "Naciśnij {}, aby rozpocząć ponownie w mieście."
 
 #. TRANSLATORS: {:s} is a number with separators. Dialog is shown when splitting a stash of Gold.
 #: Source/control.cpp:1732
@@ -1348,7 +1348,7 @@ msgstr "Włącz szczegółowy log"
 #. TRANSLATORS: Commandline Option
 #: Source/diablo.cpp:999
 msgid "Log to a file instead of stderr"
-msgstr ""
+msgstr "Zapisuj log do pliku zamiast stderr"
 
 #. TRANSLATORS: Commandline Option
 #: Source/diablo.cpp:1002
@@ -1565,11 +1565,11 @@ msgstr "Wyświetla panel postaci."
 
 #: Source/diablo.cpp:1928
 msgid "Party"
-msgstr ""
+msgstr "Drużyna"
 
 #: Source/diablo.cpp:1929
 msgid "Open side Party panel."
-msgstr ""
+msgstr "Otwórz boczny panel drużyny."
 
 #: Source/diablo.cpp:1936 Source/diablo.cpp:2274
 msgid "Quest log"
@@ -1781,46 +1781,36 @@ msgid "Toggle whether the player moves."
 msgstr "Przełącza między staniem w miejscu a swobodnym ruchem gracza."
 
 #: Source/diablo.cpp:2310
-#, fuzzy
-#| msgid "Automap"
 msgid "Automap Move Up"
-msgstr "Automapa"
+msgstr "Przesuń automapę w górę"
 
 #: Source/diablo.cpp:2311
 msgid "Moves the automap up when active."
-msgstr ""
+msgstr "Przesuwa automapę w górę, gdy jest aktywna."
 
 #: Source/diablo.cpp:2316
-#, fuzzy
-#| msgid "Move down"
 msgid "Automap Move Down"
-msgstr "Ruch w dół"
+msgstr "Przesuń automapę w dół"
 
 #: Source/diablo.cpp:2317
 msgid "Moves the automap down when active."
-msgstr ""
+msgstr "Przesuwa automapę w dół, gdy jest aktywna."
 
 #: Source/diablo.cpp:2322
-#, fuzzy
-#| msgid "Move left"
 msgid "Automap Move Left"
-msgstr "Ruch w lewo"
+msgstr "Przesuń automapę w lewo"
 
 #: Source/diablo.cpp:2323
-#, fuzzy
-#| msgid "Moves the player character up."
 msgid "Moves the automap left when active."
-msgstr "Porusza postacią gracza do góry."
+msgstr "Przesuwa automapę w lewo, gdy jest aktywna."
 
 #: Source/diablo.cpp:2328
-#, fuzzy
-#| msgid "Move right"
 msgid "Automap Move Right"
-msgstr "Ruch w prawo"
+msgstr "Przesuń automapę w prawo"
 
 #: Source/diablo.cpp:2329
 msgid "Moves the automap right when active."
-msgstr ""
+msgstr "Przesuwa automapę w prawo, gdy jest aktywna."
 
 #: Source/diablo.cpp:2334
 msgid "Move mouse up"
@@ -3476,12 +3466,16 @@ msgid ""
 "Stash version invalid. If you attempt to access your stash, data will be "
 "overwritten!!"
 msgstr ""
+"Nieprawidłowa wersja skrytki. Jeśli spróbujesz uzyskać dostęp do skrytki, "
+"dane zostaną nadpisane!!"
 
 #: Source/loadsave.cpp:2443
 msgid ""
 "Stash size invalid. If you attempt to access your stash, data will be "
 "overwritten!!"
 msgstr ""
+"Nieprawidłowy rozmiar skrytki. Jeśli spróbujesz uzyskać dostęp do skrytki, "
+"dane zostaną nadpisane!!"
 
 #: Source/loadsave.cpp:2474
 msgid "Invalid save file"
@@ -3501,7 +3495,7 @@ msgstr "Nie można wyświetlić głównego menu"
 
 #: Source/monstdat.cpp:331 Source/monstdat.cpp:344
 msgid "Loading Monster Data Failed"
-msgstr ""
+msgstr "Nie udało się wczytać danych potworów"
 
 #: Source/monstdat.cpp:331
 #, c++-format
@@ -3509,11 +3503,13 @@ msgid ""
 "Could not add a monster, since the maximum monster type number of {} has "
 "already been reached."
 msgstr ""
+"Nie można dodać potwora, ponieważ osiągnięto już maksymalną liczbę typów "
+"potworów: {}."
 
 #: Source/monstdat.cpp:344
 #, c++-format
 msgid "A monster type already exists for ID \"{}\"."
-msgstr ""
+msgstr "Typ potwora o ID \"{}\" już istnieje."
 
 #: Source/monster.cpp:2990
 msgid "Animal"
@@ -4246,12 +4242,14 @@ msgstr "Skaluje obraz przy użyciu współczynnika liczby całkowitej pikseli."
 
 #: Source/options.cpp:721
 msgid "Frame Rate Control"
-msgstr ""
+msgstr "Kontrola liczby klatek"
 
 #: Source/options.cpp:722
 msgid ""
 "Manages frame rate to balance performance, reduce tearing, or save power."
 msgstr ""
+"Zarządza liczbą klatek, aby zbalansować wydajność, zmniejszyć rwanie obrazu "
+"lub oszczędzać energię."
 
 #: Source/options.cpp:732
 msgid "Vertical Sync"
@@ -4259,7 +4257,7 @@ msgstr "Synchronizacja pionowa"
 
 #: Source/options.cpp:734
 msgid "Limit FPS"
-msgstr ""
+msgstr "Limit FPS"
 
 #: Source/options.cpp:737
 msgid "Zoom on when enabled."
@@ -4273,7 +4271,7 @@ msgstr " Błyskawice"
 
 #: Source/options.cpp:738
 msgid "Subtile lighting for smoother light gradients."
-msgstr ""
+msgstr "Oświetlenie podkafelkowe dla gładszych gradientów światła."
 
 #: Source/options.cpp:739
 msgid "Color Cycling"
@@ -4446,15 +4444,15 @@ msgid "Displays current / max mana value on mana globe."
 msgstr "Wyświetla aktualną / maksymalną wartość many na kuli many."
 
 #: Source/options.cpp:797
-#, fuzzy
-#| msgid "Character Information"
 msgid "Show Party Information"
-msgstr "Informacje o postaci"
+msgstr "Pokaż informacje o drużynie"
 
 #: Source/options.cpp:797
 msgid ""
 "Displays the health and mana of all connected multiplayer party members."
 msgstr ""
+"Wyświetla zdrowie i manę wszystkich podłączonych członków drużyny w trybie "
+"wieloosobowym."
 
 #: Source/options.cpp:798
 msgid "Enemy Health Bar"
@@ -4466,11 +4464,13 @@ msgstr "Pasek zdrowia wroga zostanie wyświetlony w górnej części ekranu."
 
 #: Source/options.cpp:799
 msgid "Floating Item Info Box"
-msgstr ""
+msgstr "Pływające okno informacji o przedmiocie"
 
 #: Source/options.cpp:799
 msgid "Displays item info in a floating box when hovering over an item."
 msgstr ""
+"Wyświetla informacje o przedmiocie w pływającym oknie po najechaniu kursorem "
+"na przedmiot."
 
 #: Source/options.cpp:800
 msgid "Gold is automatically collected when in close proximity to the player."
@@ -4872,7 +4872,7 @@ msgstr "Nie udało się wczytać postaci"
 
 #: Source/playerdat.cpp:320
 msgid "Loading Class Data Failed"
-msgstr ""
+msgstr "Nie udało się wczytać danych klas"
 
 #: Source/playerdat.cpp:320
 #, c++-format
@@ -4880,6 +4880,7 @@ msgid ""
 "Could not add a class, since the maximum class number of {} has already been "
 "reached."
 msgstr ""
+"Nie można dodać klasy, ponieważ osiągnięto już maksymalną liczbę klas: {}."
 
 #: Source/plrmsg.cpp:79 Source/qol/chatlog.cpp:130
 #, c++-format
@@ -5313,12 +5314,12 @@ msgstr "Twoje złoto: {:s}"
 
 #: Source/textdat.cpp:72
 msgid "Loading Text Data Failed"
-msgstr ""
+msgstr "Nie udało się wczytać danych tekstowych"
 
 #: Source/textdat.cpp:72
 #, c++-format
 msgid "A text data entry already exists for ID \"{}\"."
-msgstr ""
+msgstr "Wpis danych tekstowych o ID \"{}\" już istnieje."
 
 #: Source/towners.cpp:269
 msgid "Slain Townsman"
@@ -6477,7 +6478,47 @@ msgstr "Mapa Katedry"
 
 #: Source/translation_dummy.cpp:239
 msgid "Ear"
-msgstr ""
+msgstr "Ucho"
+
+#: Source/diablo.cpp
+msgid "Health percentage"
+msgstr "Procent HP"
+
+#: Source/diablo.cpp
+msgid "Speaks the player's health as a percentage."
+msgstr "Czyta procentowy stan zdrowia gracza."
+
+#: Source/diablo.cpp
+msgid "Experience to level"
+msgstr "EXP do poziomu"
+
+#: Source/diablo.cpp
+msgid "Speaks how much experience remains to reach the next level."
+msgstr "Czyta, ile doświadczenia brakuje do następnego poziomu."
+
+#: Source/diablo.cpp
+msgid "Max level."
+msgstr "Maksymalny poziom."
+
+#: Source/diablo.cpp
+msgid "No next item."
+msgstr "Nie ma następnego przedmiotu."
+
+#: Source/diablo.cpp
+msgid "No next chest."
+msgstr "Nie ma następnej skrzyni."
+
+#: Source/diablo.cpp
+msgid "No next monster."
+msgstr "Nie ma następnego potwora."
+
+#: Source/diablo.cpp
+msgid "Tracker directions"
+msgstr "Kierunki do celu trackera"
+
+#: Source/diablo.cpp
+msgid "Speaks directions to a tracked target of the selected tracker category. Shift+N: cycle targets (speaks name only). Ctrl+N: clear target."
+msgstr "Czyta kierunki do śledzonego celu wybranej kategorii trackera. Shift+N: przełącz cele (mówi tylko nazwę). Ctrl+N: wyczyść cel."
 
 #: Source/translation_dummy.cpp:240
 msgid "Potion of Healing"

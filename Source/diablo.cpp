@@ -2690,10 +2690,12 @@ void NavigateToTrackerTargetKeyPressed()
 
 		targetName = tracked.name();
 		DecorateTrackerTargetNameWithOrdinalIfNeeded(*targetId, targetName, nearbyCandidates);
-		targetPosition = FindBestAdjacentApproachTile(*MyPlayer, playerPosition, tracked.position);
-		if (!targetPosition) {
-			SpeakText(_("Can't find a nearby tile to walk to."), true);
-			return;
+		if (!cycleTarget) {
+			targetPosition = FindBestAdjacentApproachTile(*MyPlayer, playerPosition, tracked.position);
+			if (!targetPosition) {
+				SpeakText(_("Can't find a nearby tile to walk to."), true);
+				return;
+			}
 		}
 		break;
 	}
@@ -2734,13 +2736,20 @@ void NavigateToTrackerTargetKeyPressed()
 
 		targetName = tracked.name();
 		DecorateTrackerTargetNameWithOrdinalIfNeeded(*targetId, targetName, nearbyCandidates);
-		const Point monsterPosition { tracked.position.tile };
-		targetPosition = FindBestAdjacentApproachTile(*MyPlayer, playerPosition, monsterPosition);
-		if (!targetPosition) {
-			SpeakText(_("Can't find a nearby tile to walk to."), true);
-			return;
+		if (!cycleTarget) {
+			const Point monsterPosition { tracked.position.tile };
+			targetPosition = FindBestAdjacentApproachTile(*MyPlayer, playerPosition, monsterPosition);
+			if (!targetPosition) {
+				SpeakText(_("Can't find a nearby tile to walk to."), true);
+				return;
+			}
 		}
 		break;
+	}
+
+	if (cycleTarget) {
+		SpeakText(targetName.str(), /*force=*/true);
+		return;
 	}
 
 	if (!targetPosition) {
@@ -4016,7 +4025,7 @@ void InitKeymapActions()
 	options.Keymapper.AddAction(
 	    "NavigateToTrackerTarget",
 	    N_("Tracker directions"),
-	    N_("Speaks directions to a tracked target of the selected tracker category. Hold Shift to cycle targets; hold Ctrl to clear."),
+	    N_("Speaks directions to a tracked target of the selected tracker category. Shift+N: cycle targets (speaks name only). Ctrl+N: clear target."),
 	    'N',
 	    NavigateToTrackerTargetKeyPressed,
 	    nullptr,
