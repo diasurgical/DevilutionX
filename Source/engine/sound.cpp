@@ -27,6 +27,7 @@
 
 #include "appfat.h"
 #include "engine/assets.hpp"
+#include "engine/sound_pool.hpp"
 #include "game_mode.hpp"
 #include "options.h"
 #include "utils/log.hpp"
@@ -284,6 +285,7 @@ void snd_init()
 void snd_deinit()
 {
 	if (gbSndInited) {
+		SoundPool::Get().Clear();
 #ifdef USE_SDL3
 		const AudioOptions &audioOptions = GetOptions().Audio;
 		SDL_CloseAudioDevice(audioOptions.device.id());

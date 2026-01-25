@@ -742,6 +742,7 @@ target_link_dependencies(libdevilutionx_utf8 PRIVATE
 if(NOSOUND)
   add_devilutionx_object_library(libdevilutionx_sound
     effects_stubs.cpp
+    engine/sound_pool_stubs.cpp
     engine/sound_stubs.cpp
   )
   target_link_dependencies(libdevilutionx_sound PUBLIC
@@ -757,6 +758,7 @@ if(NOSOUND)
 else()
   add_devilutionx_object_library(libdevilutionx_sound
     effects.cpp
+    engine/sound_pool.cpp
     engine/sound.cpp
     utils/soundsample.cpp
   )

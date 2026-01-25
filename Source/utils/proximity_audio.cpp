@@ -2,12 +2,11 @@
 
 #include <algorithm>
 #include <array>
-#include <cctype>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
-#include <memory>
 #include <optional>
-#include <string_view>
+#include <span>
 
 #ifdef USE_SDL3
 #include <SDL3/SDL_timer.h>
@@ -16,10 +15,9 @@
 #endif
 
 #include "controls/plrctrls.h"
-#include "engine/assets.hpp"
 #include "engine/path.h"
 #include "engine/sound.h"
-#include "engine/sound_position.hpp"
+#include "engine/sound_pool.hpp"
 #include "inv.h"
 #include "items.h"
 #include "levels/gendung.h"
@@ -27,10 +25,7 @@
 #include "monster.h"
 #include "objects.h"
 #include "player.h"
-#include "utils/is_of.hpp"
-#include "utils/math.h"
 #include "utils/screen_reader.hpp"
-#include "utils/stdcompat/shared_ptr_array.hpp"
 
 namespace devilution {
 
@@ -46,56 +41,15 @@ namespace {
 
 constexpr int MaxCueDistanceTiles = 12;
 constexpr int InteractDistanceTiles = 1;
-
-// Pitch shifting via resampling caused audible glitches on some setups; keep cues at normal pitch for stability.
-constexpr size_t PitchLevels = 1;
+constexpr size_t MaxEmitters = 3;
 
 constexpr uint32_t MinIntervalMs = 250;
 constexpr uint32_t MaxIntervalMs = 1000;
-// snd_play_snd has an internal 80ms throttle (TSnd::start_tc).
+// Monster movement already provides a lot of information; keep the tempo a bit faster.
 constexpr uint32_t MinMonsterIntervalMs = 100;
 constexpr uint32_t MaxMonsterIntervalMs = 1000;
 
-// Extra attenuation applied on top of CalculateSoundPosition().
-// Kept at 0 because stronger attenuation makes distant proximity cues too quiet and feel "glitchy"/missing.
-constexpr int ExtraAttenuationMax = 0;
-
-struct CueSound {
-	std::array<std::unique_ptr<TSnd>, PitchLevels> variants;
-
-	[[nodiscard]] bool IsLoaded() const
-	{
-		for (const auto &variant : variants) {
-			if (variant != nullptr && variant->DSB.IsLoaded())
-				return true;
-		}
-		return false;
-	}
-
-	[[nodiscard]] bool IsAnyPlaying() const
-	{
-		for (const auto &variant : variants) {
-			if (variant != nullptr && variant->DSB.IsLoaded() && variant->DSB.IsPlaying())
-				return true;
-		}
-		return false;
-	}
-};
-
-std::optional<CueSound> WeaponItemCue;
-std::optional<CueSound> ArmorItemCue;
-std::optional<CueSound> GoldItemCue;
-std::optional<CueSound> ChestCue;
-std::optional<CueSound> DoorCue;
-std::optional<CueSound> MonsterCue;
-std::optional<CueSound> InteractCue;
-
-std::array<uint32_t, MAXOBJECTS> LastObjectCueTimeMs {};
-uint32_t LastMonsterCueTimeMs = 0;
 std::optional<uint32_t> LastInteractableId;
-uint32_t LastWeaponItemCueTimeMs = 0;
-uint32_t LastArmorItemCueTimeMs = 0;
-uint32_t LastGoldItemCueTimeMs = 0;
 
 enum class InteractTargetType : uint8_t {
 	Item,
@@ -108,32 +62,15 @@ struct InteractTarget {
 	Point position;
 };
 
-[[nodiscard]] bool EndsWithCaseInsensitive(std::string_view str, std::string_view suffix)
-{
-	if (str.size() < suffix.size())
-		return false;
-	const std::string_view tail { str.data() + (str.size() - suffix.size()), suffix.size() };
-	return std::equal(tail.begin(), tail.end(), suffix.begin(), suffix.end(), [](char a, char b) {
-		return std::tolower(static_cast<unsigned char>(a)) == std::tolower(static_cast<unsigned char>(b));
-	});
-}
+enum class EmitterType : uint8_t {
+	Item = 1,
+	Object = 2,
+	Monster = 3,
+};
 
-[[nodiscard]] bool IsMp3Path(std::string_view path)
+[[nodiscard]] constexpr uint32_t MakeEmitterId(EmitterType type, uint32_t id)
 {
-	return EndsWithCaseInsensitive(path, ".mp3");
-}
-
-[[nodiscard]] float PlaybackRateForPitchLevel(size_t level)
-{
-	(void)level;
-	return 1.0F;
-}
-
-[[nodiscard]] size_t PitchLevelForDistance(int distance, int maxDistance)
-{
-	(void)distance;
-	(void)maxDistance;
-	return 0;
+	return (static_cast<uint32_t>(type) << 24) | (id & 0x00FFFFFF);
 }
 
 [[nodiscard]] uint32_t IntervalMsForDistance(int distance, int maxDistance, uint32_t minIntervalMs, uint32_t maxIntervalMs)
@@ -145,243 +82,6 @@ struct InteractTarget {
 	const float closeness = 1.0F - t;
 	const float interval = static_cast<float>(maxIntervalMs) - closeness * static_cast<float>(maxIntervalMs - minIntervalMs);
 	return static_cast<uint32_t>(std::lround(interval));
-}
-
-[[nodiscard]] uint32_t IntervalMsForDistance(int distance, int maxDistance)
-{
-	return IntervalMsForDistance(distance, maxDistance, MinIntervalMs, MaxIntervalMs);
-}
-
-void StopCueSound(const CueSound &cue)
-{
-	for (const auto &variant : cue.variants) {
-		if (variant != nullptr && variant->DSB.IsLoaded())
-			variant->DSB.Stop();
-	}
-}
-
-void StopAllCuesExcept(const CueSound *cueToKeep)
-{
-	const auto stopIfOther = [cueToKeep](const std::optional<CueSound> &cue) {
-		if (cue && &*cue != cueToKeep)
-			StopCueSound(*cue);
-	};
-
-	stopIfOther(WeaponItemCue);
-	stopIfOther(ArmorItemCue);
-	stopIfOther(GoldItemCue);
-	stopIfOther(ChestCue);
-	stopIfOther(DoorCue);
-	stopIfOther(MonsterCue);
-	stopIfOther(InteractCue);
-}
-
-[[nodiscard]] bool IsAnyOtherCuePlaying(const CueSound *cueToIgnore)
-{
-	const auto isOtherPlaying = [cueToIgnore](const std::optional<CueSound> &cue) {
-		return cue && cue->IsAnyPlaying() && &*cue != cueToIgnore;
-	};
-
-	return isOtherPlaying(WeaponItemCue) || isOtherPlaying(ArmorItemCue) || isOtherPlaying(GoldItemCue) || isOtherPlaying(ChestCue) || isOtherPlaying(DoorCue)
-	    || isOtherPlaying(MonsterCue) || isOtherPlaying(InteractCue);
-}
-
-std::optional<CueSound> TryLoadCueSound(std::initializer_list<std::string_view> candidatePaths)
-{
-	if (!gbSndInited)
-		return std::nullopt;
-
-	for (std::string_view path : candidatePaths) {
-		AssetRef ref = FindAsset(path);
-		if (!ref.ok())
-			continue;
-
-		const size_t size = ref.size();
-		if (size == 0)
-			continue;
-
-		AssetHandle handle = OpenAsset(std::move(ref), /*threadsafe=*/true);
-		if (!handle.ok())
-			continue;
-
-		auto fileData = MakeArraySharedPtr<std::uint8_t>(size);
-		if (!handle.read(fileData.get(), size))
-			continue;
-
-		CueSound cue {};
-		bool ok = true;
-
-		for (size_t i = 0; i < PitchLevels; ++i) {
-			auto snd = std::make_unique<TSnd>();
-			snd->start_tc = SDL_GetTicks() - 80 - 1;
-#ifndef NOSOUND
-			const bool isMp3 = IsMp3Path(path);
-			if (snd->DSB.SetChunk(fileData, size, isMp3, PlaybackRateForPitchLevel(i)) != 0) {
-				ok = false;
-				break;
-			}
-#endif
-			cue.variants[i] = std::move(snd);
-		}
-
-		if (ok)
-			return cue;
-	}
-
-	return std::nullopt;
-}
-
-void EnsureCuesLoaded()
-{
-	static bool loaded = false;
-	if (loaded)
-		return;
-
-	WeaponItemCue = TryLoadCueSound({ "audio\\weapon.ogg", "..\\audio\\weapon.ogg", "audio\\weapon.wav", "..\\audio\\weapon.wav", "audio\\weapon.mp3", "..\\audio\\weapon.mp3" });
-	ArmorItemCue = TryLoadCueSound({ "audio\\armor.ogg", "..\\audio\\armor.ogg", "audio\\armor.wav", "..\\audio\\armor.wav", "audio\\armor.mp3", "..\\audio\\armor.mp3" });
-	GoldItemCue = TryLoadCueSound({ "audio\\coin.ogg", "..\\audio\\coin.ogg", "audio\\coin.wav", "..\\audio\\coin.wav", "audio\\coin.mp3", "..\\audio\\coin.mp3" });
-
-	ChestCue = TryLoadCueSound({ "audio\\chest.ogg", "..\\audio\\chest.ogg", "audio\\chest.wav", "..\\audio\\chest.wav", "audio\\chest.mp3", "..\\audio\\chest.mp3" });
-	DoorCue = TryLoadCueSound({ "audio\\door.ogg", "..\\audio\\door.ogg", "audio\\door.wav", "..\\audio\\door.wav", "audio\\Door.wav", "..\\audio\\Door.wav", "audio\\door.mp3", "..\\audio\\door.mp3" });
-
-	MonsterCue = TryLoadCueSound({ "audio\\monster.ogg", "..\\audio\\monster.ogg", "audio\\monster.wav", "..\\audio\\monster.wav", "audio\\monster.mp3", "..\\audio\\monster.mp3" });
-
-	InteractCue = TryLoadCueSound({
-	    "audio\\interactispossible.ogg",
-	    "audio\\interactionispossible.ogg",
-	    "..\\audio\\interactispossible.ogg",
-	    "..\\audio\\interactionispossible.ogg",
-	    "audio\\interactispossible.wav",
-	    "audio\\interactionispossible.wav",
-	    "..\\audio\\interactispossible.wav",
-	    "..\\audio\\interactionispossible.wav",
-	    "audio\\interactispossible.mp3",
-	    "audio\\interactionispossible.mp3",
-	    "..\\audio\\interactispossible.mp3",
-	    "..\\audio\\interactionispossible.mp3",
-	});
-
-	loaded = true;
-}
-
-[[nodiscard]] bool IsAnyCuePlaying()
-{
-	const auto isAnyPlaying = [](const std::optional<CueSound> &cue) {
-		return cue && cue->IsAnyPlaying();
-	};
-	return isAnyPlaying(WeaponItemCue) || isAnyPlaying(ArmorItemCue) || isAnyPlaying(GoldItemCue) || isAnyPlaying(ChestCue) || isAnyPlaying(DoorCue)
-	    || isAnyPlaying(MonsterCue) || isAnyPlaying(InteractCue);
-}
-
-[[nodiscard]] bool PlayCueAt(const CueSound &cue, Point position, int distance, int maxDistance)
-{
-	if (!gbSndInited || !gbSoundOn)
-		return false;
-
-	// Allow the same cue to restart (for tempo control), but don't overlap different cue types.
-	if (IsAnyOtherCuePlaying(&cue))
-		return false;
-
-	int logVolume = 0;
-	int logPan = 0;
-	if (!CalculateSoundPosition(position, &logVolume, &logPan))
-		return false;
-
-	const int extraAttenuation = static_cast<int>(std::lround(math::Remap(0, maxDistance, 0, ExtraAttenuationMax, distance)));
-	logVolume = std::max(ATTENUATION_MIN, logVolume - extraAttenuation);
-	if (logVolume <= ATTENUATION_MIN)
-		return false;
-
-	const size_t pitchLevel = std::min(PitchLevels - 1, PitchLevelForDistance(distance, maxDistance));
-	TSnd *snd = cue.variants[pitchLevel].get();
-	if (snd == nullptr || !snd->DSB.IsLoaded())
-		return false;
-
-	// Restart the cue if it's already playing so we can control tempo based on distance.
-	// Stop all variants to avoid overlaps when pitch levels are enabled.
-	if (cue.IsAnyPlaying()) {
-		for (const auto &variant : cue.variants) {
-			if (variant != nullptr && variant->DSB.IsLoaded())
-				variant->DSB.Stop();
-		}
-	}
-
-	snd_play_snd(snd, logVolume, logPan);
-	return true;
-}
-
-[[nodiscard]] bool UpdateItemCues(const Point playerPosition, uint32_t now)
-{
-	struct Candidate {
-		item_class itemClass;
-		int distance;
-		Point position;
-	};
-
-	std::optional<Candidate> nearest;
-
-	for (uint8_t i = 0; i < ActiveItemCount; i++) {
-		const int itemId = ActiveItems[i];
-		const Item &item = Items[itemId];
-
-		switch (item._iClass) {
-		case ICLASS_WEAPON:
-			break;
-		case ICLASS_ARMOR:
-			break;
-		case ICLASS_GOLD:
-			break;
-		default:
-			continue;
-		}
-
-		const int distance = playerPosition.ApproxDistance(item.position);
-		if (distance > MaxCueDistanceTiles)
-			continue;
-
-		if (!nearest || distance < nearest->distance)
-			nearest = Candidate { item._iClass, distance, item.position };
-	}
-
-	if (!nearest)
-		return false;
-
-	const CueSound *cue = nullptr;
-	uint32_t *lastTimeMs = nullptr;
-	switch (nearest->itemClass) {
-	case ICLASS_WEAPON:
-		if (WeaponItemCue && WeaponItemCue->IsLoaded())
-			cue = &*WeaponItemCue;
-		lastTimeMs = &LastWeaponItemCueTimeMs;
-		break;
-	case ICLASS_ARMOR:
-		if (ArmorItemCue && ArmorItemCue->IsLoaded())
-			cue = &*ArmorItemCue;
-		lastTimeMs = &LastArmorItemCueTimeMs;
-		break;
-	case ICLASS_GOLD:
-		if (GoldItemCue && GoldItemCue->IsLoaded())
-			cue = &*GoldItemCue;
-		lastTimeMs = &LastGoldItemCueTimeMs;
-		break;
-	default:
-		return false;
-	}
-
-	if (cue == nullptr || lastTimeMs == nullptr)
-		return false;
-
-	const int distance = nearest->distance;
-	const uint32_t intervalMs = IntervalMsForDistance(distance, MaxCueDistanceTiles);
-	if (now - *lastTimeMs < intervalMs)
-		return false;
-
-	if (PlayCueAt(*cue, nearest->position, distance, MaxCueDistanceTiles)) {
-		*lastTimeMs = now;
-		return true;
-	}
-
-	return false;
 }
 
 [[nodiscard]] int GetRotaryDistanceForInteractTarget(const Player &player, Point destination)
@@ -483,112 +183,8 @@ std::optional<InteractTarget> FindInteractTargetInRange(const Player &player, Po
 	return best;
 }
 
-[[nodiscard]] bool UpdateObjectCues(const Point playerPosition, uint32_t now)
-{
-	struct Candidate {
-		int objectId;
-		int distance;
-		const CueSound *cue;
-	};
-
-	std::optional<Candidate> nearest;
-
-	for (int i = 0; i < ActiveObjectCount; i++) {
-		const int objectId = ActiveObjects[i];
-		const Object &object = Objects[objectId];
-		if (!object.canInteractWith())
-			continue;
-		if (!object.isDoor() && !object.IsChest())
-			continue;
-
-		const int distance = playerPosition.ApproxDistance(object.position);
-		if (distance > MaxCueDistanceTiles)
-			continue;
-
-		const CueSound *cue = nullptr;
-		if (object.IsChest()) {
-			if (ChestCue && ChestCue->IsLoaded())
-				cue = &*ChestCue;
-		} else if (object.isDoor()) {
-			if (DoorCue && DoorCue->IsLoaded())
-				cue = &*DoorCue;
-		}
-
-		if (cue == nullptr)
-			continue;
-
-		if (!nearest || distance < nearest->distance)
-			nearest = Candidate { objectId, distance, cue };
-	}
-
-	if (!nearest)
-		return false;
-
-	const int objectId = nearest->objectId;
-	const int distance = nearest->distance;
-	const uint32_t intervalMs = IntervalMsForDistance(distance, MaxCueDistanceTiles);
-	if (now - LastObjectCueTimeMs[objectId] < intervalMs)
-		return false;
-
-	if (PlayCueAt(*nearest->cue, Objects[objectId].position, distance, MaxCueDistanceTiles)) {
-		LastObjectCueTimeMs[objectId] = now;
-		return true;
-	}
-
-	return false;
-}
-
-[[nodiscard]] bool UpdateMonsterCue(const Point playerPosition, uint32_t now)
-{
-	if (!MonsterCue || !MonsterCue->IsLoaded())
-		return false;
-
-	std::optional<std::pair<int, Point>> nearest;
-
-	for (size_t i = 0; i < ActiveMonsterCount; i++) {
-		const int monsterId = static_cast<int>(ActiveMonsters[i]);
-		const Monster &monster = Monsters[monsterId];
-
-		if (monster.isInvalid)
-			continue;
-		if ((monster.flags & MFLAG_HIDDEN) != 0)
-			continue;
-		if (monster.hitPoints <= 0)
-			continue;
-
-		// Use the future position for distance/tempo so cues react immediately when a monster starts moving
-		// towards or away from the player (tile position updates later).
-		const Point monsterSoundPosition { monster.position.tile };
-		const Point monsterDistancePosition { monster.position.future };
-		const int distance = playerPosition.ApproxDistance(monsterDistancePosition);
-		if (distance > MaxCueDistanceTiles)
-			continue;
-
-		if (!nearest || distance < nearest->first) {
-			nearest = { distance, monsterSoundPosition };
-		}
-	}
-
-	if (!nearest)
-		return false;
-
-	const int distance = nearest->first;
-	const uint32_t intervalMs = IntervalMsForDistance(distance, MaxCueDistanceTiles, MinMonsterIntervalMs, MaxMonsterIntervalMs);
-	if (now - LastMonsterCueTimeMs < intervalMs)
-		return false;
-
-	if (!PlayCueAt(*MonsterCue, nearest->second, distance, MaxCueDistanceTiles))
-		return false;
-
-	LastMonsterCueTimeMs = now;
-	return true;
-}
-
 [[nodiscard]] bool UpdateInteractCue(const Point playerPosition, uint32_t now)
 {
-	if (!InteractCue || !InteractCue->IsLoaded())
-		return false;
-
 	if (MyPlayer == nullptr)
 		return false;
 
@@ -621,17 +217,65 @@ std::optional<InteractTarget> FindInteractTargetInRange(const Player &player, Po
 		}
 	}
 
-	// Make the interact cue reliably audible even when another proximity cue is playing.
-	// (The new distance-based tempo restarts cues frequently.)
-	StopAllCuesExcept(InteractCue ? &*InteractCue : nullptr);
+	SoundPool &pool = SoundPool::Get();
+	if (pool.IsLoaded(SoundPool::SoundId::Interact))
+		pool.PlayOneShot(SoundPool::SoundId::Interact, target->position, /*stopEmitters=*/true, now);
 
-	if (!InteractCue || !InteractCue->IsLoaded())
-		return true;
-
-	if (!PlayCueAt(*InteractCue, target->position, /*distance=*/0, /*maxDistance=*/1))
-		return true;
-	(void)now;
 	return true;
+}
+
+void EnsureNavigationSoundsLoaded(SoundPool &pool)
+{
+	(void)pool.EnsureLoaded(SoundPool::SoundId::WeaponItem, { "audio\\weapon.ogg", "..\\audio\\weapon.ogg", "audio\\weapon.wav", "..\\audio\\weapon.wav", "audio\\weapon.mp3", "..\\audio\\weapon.mp3" });
+	(void)pool.EnsureLoaded(SoundPool::SoundId::ArmorItem, { "audio\\armor.ogg", "..\\audio\\armor.ogg", "audio\\armor.wav", "..\\audio\\armor.wav", "audio\\armor.mp3", "..\\audio\\armor.mp3" });
+	(void)pool.EnsureLoaded(SoundPool::SoundId::GoldItem, { "audio\\coin.ogg", "..\\audio\\coin.ogg", "audio\\coin.wav", "..\\audio\\coin.wav", "audio\\coin.mp3", "..\\audio\\coin.mp3" });
+
+	(void)pool.EnsureLoaded(SoundPool::SoundId::Chest, { "audio\\chest.ogg", "..\\audio\\chest.ogg", "audio\\chest.wav", "..\\audio\\chest.wav", "audio\\chest.mp3", "..\\audio\\chest.mp3" });
+	(void)pool.EnsureLoaded(SoundPool::SoundId::Door, { "audio\\door.ogg", "..\\audio\\door.ogg", "audio\\door.wav", "..\\audio\\door.wav", "audio\\Door.wav", "..\\audio\\Door.wav", "audio\\door.mp3", "..\\audio\\door.mp3" });
+
+	(void)pool.EnsureLoaded(SoundPool::SoundId::Monster, { "audio\\monster.ogg", "..\\audio\\monster.ogg", "audio\\monster.wav", "..\\audio\\monster.wav", "audio\\monster.mp3", "..\\audio\\monster.mp3" });
+
+	(void)pool.EnsureLoaded(SoundPool::SoundId::Interact, {
+	                                            "audio\\interactispossible.ogg",
+	                                            "audio\\interactionispossible.ogg",
+	                                            "..\\audio\\interactispossible.ogg",
+	                                            "..\\audio\\interactionispossible.ogg",
+	                                            "audio\\interactispossible.wav",
+	                                            "audio\\interactionispossible.wav",
+	                                            "..\\audio\\interactispossible.wav",
+	                                            "..\\audio\\interactionispossible.wav",
+	                                            "audio\\interactispossible.mp3",
+	                                            "audio\\interactionispossible.mp3",
+	                                            "..\\audio\\interactispossible.mp3",
+	                                            "..\\audio\\interactionispossible.mp3",
+	                                        });
+}
+
+struct CandidateEmitter {
+	uint32_t emitterId;
+	SoundPool::SoundId sound;
+	Point position;
+	int distance;
+	uint32_t intervalMs;
+};
+
+[[nodiscard]] bool IsBetterCandidate(const CandidateEmitter &a, const CandidateEmitter &b)
+{
+	if (a.distance != b.distance)
+		return a.distance < b.distance;
+	return a.emitterId < b.emitterId;
+}
+
+void ConsiderCandidate(std::array<std::optional<CandidateEmitter>, MaxEmitters> &best, CandidateEmitter candidate)
+{
+	for (size_t i = 0; i < best.size(); ++i) {
+		if (!best[i] || IsBetterCandidate(candidate, *best[i])) {
+			for (size_t j = best.size() - 1; j > i; --j)
+				best[j] = best[j - 1];
+			best[i] = std::move(candidate);
+			return;
+		}
+	}
 }
 
 } // namespace
@@ -647,19 +291,129 @@ void UpdateProximityAudioCues()
 	if (InGameMenu())
 		return;
 
-	EnsureCuesLoaded();
+	SoundPool &pool = SoundPool::Get();
+	EnsureNavigationSoundsLoaded(pool);
 
 	const uint32_t now = SDL_GetTicks();
 	const Point playerPosition { MyPlayer->position.future };
 
-	// Keep cues readable and reduce overlap/glitches by playing at most one per tick (priority order).
+	// Interact cue is a one-shot that should be clearly audible and not counted in the 3-emitter limit.
 	if (UpdateInteractCue(playerPosition, now))
 		return;
-	if (UpdateMonsterCue(playerPosition, now))
-		return;
-	if (UpdateItemCues(playerPosition, now))
-		return;
-	(void)UpdateObjectCues(playerPosition, now);
+
+	std::array<std::optional<CandidateEmitter>, MaxEmitters> best;
+	best.fill(std::nullopt);
+
+	for (uint8_t i = 0; i < ActiveItemCount; i++) {
+		const int itemId = ActiveItems[i];
+		const Item &item = Items[itemId];
+
+		SoundPool::SoundId soundId;
+		switch (item._iClass) {
+		case ICLASS_WEAPON:
+			soundId = SoundPool::SoundId::WeaponItem;
+			break;
+		case ICLASS_ARMOR:
+			soundId = SoundPool::SoundId::ArmorItem;
+			break;
+		case ICLASS_GOLD:
+			soundId = SoundPool::SoundId::GoldItem;
+			break;
+		default:
+			continue;
+		}
+
+		if (!pool.IsLoaded(soundId))
+			continue;
+
+		const int distance = playerPosition.ApproxDistance(item.position);
+		if (distance > MaxCueDistanceTiles)
+			continue;
+
+		ConsiderCandidate(best, CandidateEmitter {
+		                        .emitterId = MakeEmitterId(EmitterType::Item, static_cast<uint32_t>(itemId)),
+		                        .sound = soundId,
+		                        .position = item.position,
+		                        .distance = distance,
+		                        .intervalMs = IntervalMsForDistance(distance, MaxCueDistanceTiles, MinIntervalMs, MaxIntervalMs),
+		                    });
+	}
+
+	for (int i = 0; i < ActiveObjectCount; i++) {
+		const int objectId = ActiveObjects[i];
+		const Object &object = Objects[objectId];
+		if (!object.canInteractWith())
+			continue;
+		if (!object.isDoor() && !object.IsChest())
+			continue;
+
+		SoundPool::SoundId soundId;
+		if (object.IsChest()) {
+			soundId = SoundPool::SoundId::Chest;
+		} else {
+			soundId = SoundPool::SoundId::Door;
+		}
+
+		if (!pool.IsLoaded(soundId))
+			continue;
+
+		const int distance = playerPosition.ApproxDistance(object.position);
+		if (distance > MaxCueDistanceTiles)
+			continue;
+
+		ConsiderCandidate(best, CandidateEmitter {
+		                        .emitterId = MakeEmitterId(EmitterType::Object, static_cast<uint32_t>(objectId)),
+		                        .sound = soundId,
+		                        .position = object.position,
+		                        .distance = distance,
+		                        .intervalMs = IntervalMsForDistance(distance, MaxCueDistanceTiles, MinIntervalMs, MaxIntervalMs),
+		                    });
+	}
+
+	for (size_t i = 0; i < ActiveMonsterCount; i++) {
+		const int monsterId = static_cast<int>(ActiveMonsters[i]);
+		const Monster &monster = Monsters[monsterId];
+
+		if (monster.isInvalid)
+			continue;
+		if ((monster.flags & MFLAG_HIDDEN) != 0)
+			continue;
+		if (monster.hitPoints <= 0)
+			continue;
+
+		if (!pool.IsLoaded(SoundPool::SoundId::Monster))
+			continue;
+
+		// Use the future position for distance/tempo so cues react immediately when a monster starts moving.
+		const Point monsterSoundPosition { monster.position.tile };
+		const Point monsterDistancePosition { monster.position.future };
+		const int distance = playerPosition.ApproxDistance(monsterDistancePosition);
+		if (distance > MaxCueDistanceTiles)
+			continue;
+
+		ConsiderCandidate(best, CandidateEmitter {
+		                        .emitterId = MakeEmitterId(EmitterType::Monster, static_cast<uint32_t>(monsterId)),
+		                        .sound = SoundPool::SoundId::Monster,
+		                        .position = monsterSoundPosition,
+		                        .distance = distance,
+		                        .intervalMs = IntervalMsForDistance(distance, MaxCueDistanceTiles, MinMonsterIntervalMs, MaxMonsterIntervalMs),
+		                    });
+	}
+
+	std::array<SoundPool::EmitterRequest, MaxEmitters> requests;
+	size_t requestCount = 0;
+	for (const auto &entry : best) {
+		if (!entry)
+			continue;
+		requests[requestCount++] = SoundPool::EmitterRequest {
+			.emitterId = entry->emitterId,
+			.sound = entry->sound,
+			.position = entry->position,
+			.intervalMs = entry->intervalMs,
+		};
+	}
+
+	pool.UpdateEmitters(std::span<const SoundPool::EmitterRequest>(requests.data(), requestCount), now);
 }
 
 #endif // NOSOUND
