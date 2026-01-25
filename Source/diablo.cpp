@@ -2163,6 +2163,7 @@ void UpdateAutoWalkTownNpc()
 namespace {
 
 constexpr int TrackerInteractDistanceTiles = 1;
+constexpr int TrackerCycleDistanceTiles = 12;
 
 int LockedTrackerItemId = -1;
 int LockedTrackerChestId = -1;
@@ -2282,6 +2283,163 @@ std::optional<int> FindNearestGroundItemId(Point playerPosition)
 	}
 
 	return bestId;
+}
+
+struct TrackerCandidate {
+	int id;
+	int distance;
+	StringOrView name;
+};
+
+[[nodiscard]] bool IsBetterTrackerCandidate(const TrackerCandidate &a, const TrackerCandidate &b)
+{
+	if (a.distance != b.distance)
+		return a.distance < b.distance;
+	return a.id < b.id;
+}
+
+[[nodiscard]] std::vector<TrackerCandidate> CollectNearbyItemTrackerCandidates(Point playerPosition, int maxDistance)
+{
+	std::vector<TrackerCandidate> result;
+	result.reserve(ActiveItemCount);
+
+	for (uint8_t i = 0; i < ActiveItemCount; i++) {
+		const int itemId = ActiveItems[i];
+		if (itemId < 0 || itemId > MAXITEMS)
+			continue;
+
+		const Item &item = Items[itemId];
+		if (item._iClass == ICLASS_NONE)
+			continue;
+
+		const int distance = playerPosition.WalkingDistance(item.position);
+		if (distance > maxDistance)
+			continue;
+
+		result.push_back(TrackerCandidate {
+		    .id = itemId,
+		    .distance = distance,
+		    .name = item.getName(),
+		});
+	}
+
+	std::sort(result.begin(), result.end(), [](const TrackerCandidate &a, const TrackerCandidate &b) { return IsBetterTrackerCandidate(a, b); });
+	return result;
+}
+
+[[nodiscard]] std::vector<TrackerCandidate> CollectNearbyChestTrackerCandidates(Point playerPosition, int maxDistance)
+{
+	std::vector<TrackerCandidate> result;
+	result.reserve(ActiveObjectCount);
+
+	for (int i = 0; i < ActiveObjectCount; i++) {
+		const int objectId = ActiveObjects[i];
+		if (objectId < 0 || objectId >= MAXOBJECTS)
+			continue;
+
+		const Object &object = Objects[objectId];
+		if (!object.canInteractWith() || !object.IsChest())
+			continue;
+
+		const int distance = playerPosition.WalkingDistance(object.position);
+		if (distance > maxDistance)
+			continue;
+
+		result.push_back(TrackerCandidate {
+		    .id = objectId,
+		    .distance = distance,
+		    .name = object.name(),
+		});
+	}
+
+	std::sort(result.begin(), result.end(), [](const TrackerCandidate &a, const TrackerCandidate &b) { return IsBetterTrackerCandidate(a, b); });
+	return result;
+}
+
+[[nodiscard]] std::vector<TrackerCandidate> CollectNearbyMonsterTrackerCandidates(Point playerPosition, int maxDistance)
+{
+	std::vector<TrackerCandidate> result;
+	result.reserve(ActiveMonsterCount);
+
+	for (size_t i = 0; i < ActiveMonsterCount; i++) {
+		const int monsterId = static_cast<int>(ActiveMonsters[i]);
+		if (monsterId < 0 || monsterId >= static_cast<int>(MaxMonsters))
+			continue;
+
+		const Monster &monster = Monsters[monsterId];
+		if (monster.isInvalid)
+			continue;
+		if ((monster.flags & MFLAG_HIDDEN) != 0)
+			continue;
+		if (monster.hitPoints <= 0)
+			continue;
+
+		const Point monsterPosition { monster.position.tile };
+		const int distance = playerPosition.WalkingDistance(monsterPosition);
+		if (distance > maxDistance)
+			continue;
+
+		result.push_back(TrackerCandidate {
+		    .id = monsterId,
+		    .distance = distance,
+		    .name = monster.name(),
+		});
+	}
+
+	std::sort(result.begin(), result.end(), [](const TrackerCandidate &a, const TrackerCandidate &b) { return IsBetterTrackerCandidate(a, b); });
+	return result;
+}
+
+[[nodiscard]] std::optional<int> FindNextTrackerCandidateId(const std::vector<TrackerCandidate> &candidates, int currentId)
+{
+	if (candidates.empty())
+		return std::nullopt;
+	if (currentId < 0)
+		return candidates.front().id;
+
+	const auto it = std::find_if(candidates.begin(), candidates.end(), [currentId](const TrackerCandidate &c) { return c.id == currentId; });
+	if (it == candidates.end())
+		return candidates.front().id;
+
+	if (candidates.size() <= 1)
+		return std::nullopt;
+
+	const size_t idx = static_cast<size_t>(it - candidates.begin());
+	const size_t nextIdx = (idx + 1) % candidates.size();
+	return candidates[nextIdx].id;
+}
+
+void DecorateTrackerTargetNameWithOrdinalIfNeeded(int targetId, StringOrView &targetName, const std::vector<TrackerCandidate> &candidates)
+{
+	if (targetName.empty())
+		return;
+
+	const std::string_view baseName = targetName.str();
+	int total = 0;
+	for (const TrackerCandidate &c : candidates) {
+		if (c.name.str() == baseName)
+			++total;
+	}
+	if (total <= 1)
+		return;
+
+	int ordinal = 0;
+	int seen = 0;
+	for (const TrackerCandidate &c : candidates) {
+		if (c.name.str() != baseName)
+			continue;
+		++seen;
+		if (c.id == targetId) {
+			ordinal = seen;
+			break;
+		}
+	}
+	if (ordinal <= 0)
+		return;
+
+	std::string decorated;
+	StrAppend(decorated, baseName, " ", ordinal);
+	targetName = std::move(decorated);
 }
 
 [[nodiscard]] bool IsGroundItemPresent(int itemId)
@@ -2443,7 +2601,7 @@ void NavigateToTrackerTargetKeyPressed()
 	EnsureTrackerLocksMatchCurrentLevel();
 
 	const SDL_Keymod modState = SDL_GetModState();
-	const bool forceRetarget = (modState & SDL_KMOD_SHIFT) != 0;
+	const bool cycleTarget = (modState & SDL_KMOD_SHIFT) != 0;
 	const bool clearTarget = (modState & SDL_KMOD_CTRL) != 0;
 
 	const Point playerPosition = MyPlayer->position.future;
@@ -2462,7 +2620,17 @@ void NavigateToTrackerTargetKeyPressed()
 
 	switch (SelectedTrackerTargetCategory) {
 	case TrackerTargetCategory::Items: {
-		if (!forceRetarget && IsGroundItemPresent(lockedTargetId)) {
+		const std::vector<TrackerCandidate> nearbyCandidates = CollectNearbyItemTrackerCandidates(playerPosition, TrackerCycleDistanceTiles);
+		if (cycleTarget) {
+			targetId = FindNextTrackerCandidateId(nearbyCandidates, lockedTargetId);
+			if (!targetId) {
+				if (nearbyCandidates.empty())
+					SpeakText(_("No items found."), true);
+				else
+					SpeakText(_("No next item."), true);
+				return;
+			}
+		} else if (IsGroundItemPresent(lockedTargetId)) {
 			targetId = lockedTargetId;
 		} else {
 			targetId = FindNearestGroundItemId(playerPosition);
@@ -2482,11 +2650,22 @@ void NavigateToTrackerTargetKeyPressed()
 		const Item &tracked = Items[*targetId];
 
 		targetName = tracked.getName();
+		DecorateTrackerTargetNameWithOrdinalIfNeeded(*targetId, targetName, nearbyCandidates);
 		targetPosition = tracked.position;
 		break;
 	}
 	case TrackerTargetCategory::Chests: {
-		if (!forceRetarget && lockedTargetId >= 0 && lockedTargetId < MAXOBJECTS) {
+		const std::vector<TrackerCandidate> nearbyCandidates = CollectNearbyChestTrackerCandidates(playerPosition, TrackerCycleDistanceTiles);
+		if (cycleTarget) {
+			targetId = FindNextTrackerCandidateId(nearbyCandidates, lockedTargetId);
+			if (!targetId) {
+				if (nearbyCandidates.empty())
+					SpeakText(_("No chests found."), true);
+				else
+					SpeakText(_("No next chest."), true);
+				return;
+			}
+		} else if (lockedTargetId >= 0 && lockedTargetId < MAXOBJECTS) {
 			targetId = lockedTargetId;
 		} else {
 			targetId = FindNearestUnopenedChestObjectId(playerPosition);
@@ -2510,6 +2689,7 @@ void NavigateToTrackerTargetKeyPressed()
 		const Object &tracked = Objects[*targetId];
 
 		targetName = tracked.name();
+		DecorateTrackerTargetNameWithOrdinalIfNeeded(*targetId, targetName, nearbyCandidates);
 		targetPosition = FindBestAdjacentApproachTile(*MyPlayer, playerPosition, tracked.position);
 		if (!targetPosition) {
 			SpeakText(_("Can't find a nearby tile to walk to."), true);
@@ -2519,7 +2699,17 @@ void NavigateToTrackerTargetKeyPressed()
 	}
 	case TrackerTargetCategory::Monsters:
 	default:
-		if (!forceRetarget && lockedTargetId >= 0 && lockedTargetId < static_cast<int>(MaxMonsters)) {
+		const std::vector<TrackerCandidate> nearbyCandidates = CollectNearbyMonsterTrackerCandidates(playerPosition, TrackerCycleDistanceTiles);
+		if (cycleTarget) {
+			targetId = FindNextTrackerCandidateId(nearbyCandidates, lockedTargetId);
+			if (!targetId) {
+				if (nearbyCandidates.empty())
+					SpeakText(_("No monsters found."), true);
+				else
+					SpeakText(_("No next monster."), true);
+				return;
+			}
+		} else if (lockedTargetId >= 0 && lockedTargetId < static_cast<int>(MaxMonsters)) {
 			targetId = lockedTargetId;
 		} else {
 			targetId = FindNearestMonsterId(playerPosition);
@@ -2543,6 +2733,7 @@ void NavigateToTrackerTargetKeyPressed()
 		const Monster &tracked = Monsters[*targetId];
 
 		targetName = tracked.name();
+		DecorateTrackerTargetNameWithOrdinalIfNeeded(*targetId, targetName, nearbyCandidates);
 		const Point monsterPosition { tracked.position.tile };
 		targetPosition = FindBestAdjacentApproachTile(*MyPlayer, playerPosition, monsterPosition);
 		if (!targetPosition) {
@@ -3825,7 +4016,7 @@ void InitKeymapActions()
 	options.Keymapper.AddAction(
 	    "NavigateToTrackerTarget",
 	    N_("Tracker directions"),
-	    N_("Speaks directions to a tracked target of the selected tracker category. Hold Shift to retarget; hold Ctrl to clear."),
+	    N_("Speaks directions to a tracked target of the selected tracker category. Hold Shift to cycle targets; hold Ctrl to clear."),
 	    'N',
 	    NavigateToTrackerTargetKeyPressed,
 	    nullptr,
