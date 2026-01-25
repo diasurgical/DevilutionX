@@ -5,6 +5,7 @@
  */
 #include <algorithm>
 #include <array>
+#include <cstdlib>
 #include <cstdint>
 #include <queue>
 #include <string_view>
@@ -2260,25 +2261,24 @@ void CycleTrackerTargetKeyPressed()
 
 std::optional<int> FindNearestGroundItemId(Point playerPosition)
 {
-	if (ActiveItemCount == 0)
-		return std::nullopt;
-
 	std::optional<int> bestId;
 	int bestDistance = 0;
 
-	for (uint8_t i = 0; i < ActiveItemCount; i++) {
-		const int itemId = ActiveItems[i];
-		if (itemId < 0 || itemId > MAXITEMS)
-			continue;
+	for (int y = 0; y < MAXDUNY; ++y) {
+		for (int x = 0; x < MAXDUNX; ++x) {
+			const int itemId = std::abs(dItem[x][y]) - 1;
+			if (itemId < 0 || itemId > MAXITEMS)
+				continue;
 
-		const Item &item = Items[itemId];
-		if (item._iClass == ICLASS_NONE)
-			continue;
+			const Item &item = Items[itemId];
+			if (item.isEmpty() || item._iClass == ICLASS_NONE)
+				continue;
 
-		const int distance = playerPosition.WalkingDistance(item.position);
-		if (!bestId || distance < bestDistance) {
-			bestId = itemId;
-			bestDistance = distance;
+			const int distance = playerPosition.WalkingDistance(Point { x, y });
+			if (!bestId || distance < bestDistance) {
+				bestId = itemId;
+				bestDistance = distance;
+			}
 		}
 	}
 
@@ -2303,24 +2303,36 @@ struct TrackerCandidate {
 	std::vector<TrackerCandidate> result;
 	result.reserve(ActiveItemCount);
 
-	for (uint8_t i = 0; i < ActiveItemCount; i++) {
-		const int itemId = ActiveItems[i];
-		if (itemId < 0 || itemId > MAXITEMS)
-			continue;
+	const int minX = std::max(0, playerPosition.x - maxDistance);
+	const int minY = std::max(0, playerPosition.y - maxDistance);
+	const int maxX = std::min(MAXDUNX - 1, playerPosition.x + maxDistance);
+	const int maxY = std::min(MAXDUNY - 1, playerPosition.y + maxDistance);
 
-		const Item &item = Items[itemId];
-		if (item._iClass == ICLASS_NONE)
-			continue;
+	std::array<bool, MAXITEMS + 1> seen {};
 
-		const int distance = playerPosition.WalkingDistance(item.position);
-		if (distance > maxDistance)
-			continue;
+	for (int y = minY; y <= maxY; ++y) {
+		for (int x = minX; x <= maxX; ++x) {
+			const int itemId = std::abs(dItem[x][y]) - 1;
+			if (itemId < 0 || itemId > MAXITEMS)
+				continue;
+			if (seen[itemId])
+				continue;
+			seen[itemId] = true;
 
-		result.push_back(TrackerCandidate {
-		    .id = itemId,
-		    .distance = distance,
-		    .name = item.getName(),
-		});
+			const Item &item = Items[itemId];
+			if (item.isEmpty() || item._iClass == ICLASS_NONE)
+				continue;
+
+			const int distance = playerPosition.WalkingDistance(Point { x, y });
+			if (distance > maxDistance)
+				continue;
+
+			result.push_back(TrackerCandidate {
+			    .id = itemId,
+			    .distance = distance,
+			    .name = item.getName(),
+			});
+		}
 	}
 
 	std::sort(result.begin(), result.end(), [](const TrackerCandidate &a, const TrackerCandidate &b) { return IsBetterTrackerCandidate(a, b); });
@@ -2361,29 +2373,41 @@ struct TrackerCandidate {
 	std::vector<TrackerCandidate> result;
 	result.reserve(ActiveMonsterCount);
 
-	for (size_t i = 0; i < ActiveMonsterCount; i++) {
-		const int monsterId = static_cast<int>(ActiveMonsters[i]);
-		if (monsterId < 0 || monsterId >= static_cast<int>(MaxMonsters))
-			continue;
+	const int minX = std::max(0, playerPosition.x - maxDistance);
+	const int minY = std::max(0, playerPosition.y - maxDistance);
+	const int maxX = std::min(MAXDUNX - 1, playerPosition.x + maxDistance);
+	const int maxY = std::min(MAXDUNY - 1, playerPosition.y + maxDistance);
 
-		const Monster &monster = Monsters[monsterId];
-		if (monster.isInvalid)
-			continue;
-		if ((monster.flags & MFLAG_HIDDEN) != 0)
-			continue;
-		if (monster.hitPoints <= 0)
-			continue;
+	std::array<bool, MaxMonsters> seen {};
 
-		const Point monsterPosition { monster.position.tile };
-		const int distance = playerPosition.WalkingDistance(monsterPosition);
-		if (distance > maxDistance)
-			continue;
+	for (int y = minY; y <= maxY; ++y) {
+		for (int x = minX; x <= maxX; ++x) {
+			const int monsterId = std::abs(dMonster[x][y]) - 1;
+			if (monsterId < 0 || monsterId >= static_cast<int>(MaxMonsters))
+				continue;
+			if (seen[monsterId])
+				continue;
+			seen[monsterId] = true;
 
-		result.push_back(TrackerCandidate {
-		    .id = monsterId,
-		    .distance = distance,
-		    .name = monster.name(),
-		});
+			const Monster &monster = Monsters[monsterId];
+			if (monster.isInvalid)
+				continue;
+			if ((monster.flags & MFLAG_HIDDEN) != 0)
+				continue;
+			if (monster.hitPoints <= 0)
+				continue;
+
+			const Point monsterPosition { monster.position.tile };
+			const int distance = playerPosition.WalkingDistance(monsterPosition);
+			if (distance > maxDistance)
+				continue;
+
+			result.push_back(TrackerCandidate {
+			    .id = monsterId,
+			    .distance = distance,
+			    .name = monster.name(),
+			});
+		}
 	}
 
 	std::sort(result.begin(), result.end(), [](const TrackerCandidate &a, const TrackerCandidate &b) { return IsBetterTrackerCandidate(a, b); });
@@ -2486,30 +2510,34 @@ std::optional<int> FindNearestUnopenedChestObjectId(Point playerPosition)
 
 std::optional<int> FindNearestMonsterId(Point playerPosition)
 {
-	if (ActiveMonsterCount == 0)
-		return std::nullopt;
-
 	std::optional<int> bestId;
 	int bestDistance = 0;
 
-	for (size_t i = 0; i < ActiveMonsterCount; i++) {
-		const int monsterId = static_cast<int>(ActiveMonsters[i]);
-		if (monsterId < 0 || monsterId >= static_cast<int>(MaxMonsters))
-			continue;
+	std::array<bool, MaxMonsters> seen {};
 
-		const Monster &monster = Monsters[monsterId];
-		if (monster.isInvalid)
-			continue;
-		if ((monster.flags & MFLAG_HIDDEN) != 0)
-			continue;
-		if (monster.hitPoints <= 0)
-			continue;
+	for (int y = 0; y < MAXDUNY; ++y) {
+		for (int x = 0; x < MAXDUNX; ++x) {
+			const int monsterId = std::abs(dMonster[x][y]) - 1;
+			if (monsterId < 0 || monsterId >= static_cast<int>(MaxMonsters))
+				continue;
+			if (seen[monsterId])
+				continue;
+			seen[monsterId] = true;
 
-		const Point monsterPosition { monster.position.tile };
-		const int distance = playerPosition.WalkingDistance(monsterPosition);
-		if (!bestId || distance < bestDistance) {
-			bestId = monsterId;
-			bestDistance = distance;
+			const Monster &monster = Monsters[monsterId];
+			if (monster.isInvalid)
+				continue;
+			if ((monster.flags & MFLAG_HIDDEN) != 0)
+				continue;
+			if (monster.hitPoints <= 0)
+				continue;
+
+			const Point monsterPosition { monster.position.tile };
+			const int distance = playerPosition.WalkingDistance(monsterPosition);
+			if (!bestId || distance < bestDistance) {
+				bestId = monsterId;
+				bestDistance = distance;
+			}
 		}
 	}
 
