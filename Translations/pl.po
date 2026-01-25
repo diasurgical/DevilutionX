@@ -12031,6 +12031,10 @@ msgid "No exits found."
 msgstr "Nie znaleziono wyjść."
 
 #: Source/diablo.cpp
+msgid "No quest entrances found."
+msgstr "Nie znaleziono wejść questowych."
+
+#: Source/diablo.cpp
 msgid "Not in town."
 msgstr "Nie jesteś w mieście."
 
@@ -12049,6 +12053,14 @@ msgstr "Najbliższe schody w górę"
 #: Source/diablo.cpp
 msgid "Speaks directions to the nearest stairs up."
 msgstr "Podaje wskazówki dojścia do najbliższych schodów w górę."
+
+#: Source/diablo.cpp
+msgid "Nearest exit"
+msgstr "Najbliższe wyjście"
+
+#: Source/diablo.cpp
+msgid "Speaks the nearest exit. Hold Shift for quest entrances."
+msgstr "Podaje wskazówki dojścia do najbliższego wyjścia. Przytrzymaj Shift, aby namierzyć wejścia questowe."
 
 #: Source/diablo.cpp
 msgid "Nearest exit: "

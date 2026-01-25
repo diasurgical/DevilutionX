@@ -3371,6 +3371,45 @@ std::optional<Point> FindNearestTownPortalOnCurrentLevel()
 	return bestPosition;
 }
 
+struct QuestSetLevelEntrance {
+	_setlevels questLevel;
+	Point entrancePosition;
+	int distance;
+};
+
+std::optional<QuestSetLevelEntrance> FindNearestQuestSetLevelEntranceOnCurrentLevel()
+{
+	if (MyPlayer == nullptr || setlevel)
+		return std::nullopt;
+
+	const Point playerPosition = MyPlayer->position.future;
+	std::optional<QuestSetLevelEntrance> best;
+	int bestDistance = 0;
+
+	for (const Quest &quest : Quests) {
+		if (quest._qslvl == SL_NONE)
+			continue;
+		if (quest._qactive == QUEST_NOTAVAIL)
+			continue;
+		if (quest._qlevel != currlevel)
+			continue;
+		if (!InDungeonBounds(quest.position))
+			continue;
+
+		const int distance = playerPosition.WalkingDistance(quest.position);
+		if (!best || distance < bestDistance) {
+			best = QuestSetLevelEntrance {
+				.questLevel = quest._qslvl,
+				.entrancePosition = quest.position,
+				.distance = distance,
+			};
+			bestDistance = distance;
+		}
+	}
+
+	return best;
+}
+
 void SpeakNearestExitKeyPressed()
 {
 	if (!CanPlayerTakeAction())
@@ -3383,6 +3422,28 @@ void SpeakNearestExitKeyPressed()
 		return;
 
 	const Point startPosition = MyPlayer->position.future;
+
+	const SDL_Keymod modState = SDL_GetModState();
+	const bool seekQuestEntrance = (modState & SDL_KMOD_SHIFT) != 0;
+
+	if (seekQuestEntrance) {
+		if (const std::optional<QuestSetLevelEntrance> entrance = FindNearestQuestSetLevelEntranceOnCurrentLevel(); entrance) {
+			const Point targetPosition = entrance->entrancePosition;
+			const std::optional<std::vector<int8_t>> path = FindKeyboardWalkPathForSpeech(*MyPlayer, startPosition, targetPosition);
+
+			std::string message { _(QuestLevelNames[entrance->questLevel]) };
+			message.append(": ");
+			if (!path)
+				AppendDirectionalFallback(message, targetPosition - startPosition);
+			else
+				AppendKeyboardWalkPathForSpeech(message, *path);
+			SpeakText(message, true);
+			return;
+		}
+
+		SpeakText(_("No quest entrances found."), true);
+		return;
+	}
 
 	if (leveltype != DTYPE_TOWN) {
 		if (const std::optional<Point> portalPosition = FindNearestTownPortalOnCurrentLevel(); portalPosition) {
@@ -3993,7 +4054,7 @@ void InitKeymapActions()
 	options.Keymapper.AddAction(
 	    "SpeakNearestExit",
 	    N_("Nearest exit"),
-	    N_("Speaks the nearest exit."),
+	    N_("Speaks the nearest exit. Hold Shift for quest entrances."),
 	    'E',
 	    SpeakNearestExitKeyPressed,
 	    nullptr,
