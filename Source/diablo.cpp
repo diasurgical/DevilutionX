@@ -112,6 +112,7 @@
 #include "track.h"
 #include "utils/console.h"
 #include "utils/display.h"
+#include "utils/format_int.hpp"
 #include "utils/is_of.hpp"
 #include "utils/language.h"
 #include "utils/parse_int.hpp"
@@ -3365,6 +3366,45 @@ void SpeakNearestUnexploredTileKeyPressed()
 	SpeakText(message, true);
 }
 
+void SpeakPlayerHealthPercentageKeyPressed()
+{
+	if (!CanPlayerTakeAction())
+		return;
+	if (MyPlayer == nullptr)
+		return;
+
+	const int maxHp = MyPlayer->_pMaxHP;
+	if (maxHp <= 0)
+		return;
+
+	const int currentHp = std::max(MyPlayer->_pHitPoints, 0);
+	int hpPercent = static_cast<int>((static_cast<int64_t>(currentHp) * 100 + maxHp / 2) / maxHp);
+	hpPercent = std::clamp(hpPercent, 0, 100);
+	SpeakText(fmt::format("{:d}%", hpPercent), /*force=*/true);
+}
+
+void SpeakExperienceToNextLevelKeyPressed()
+{
+	if (!CanPlayerTakeAction())
+		return;
+	if (MyPlayer == nullptr)
+		return;
+
+	const Player &myPlayer = *MyPlayer;
+	if (myPlayer.isMaxCharacterLevel()) {
+		SpeakText(_("Max level."), /*force=*/true);
+		return;
+	}
+
+	const uint32_t nextExperienceThreshold = myPlayer.getNextExperienceThreshold();
+	const uint32_t currentExperience = myPlayer._pExperience;
+	const uint32_t remainingExperience = currentExperience >= nextExperienceThreshold ? 0 : nextExperienceThreshold - currentExperience;
+	const int nextLevel = myPlayer.getCharacterLevel() + 1;
+	SpeakText(
+	    fmt::format(fmt::runtime(_("{:s} to Level {:d}")), FormatInteger(remainingExperience), nextLevel),
+	    /*force=*/true);
+}
+
 void InventoryKeyPressed()
 {
 	if (IsPlayerInStore())
@@ -3856,6 +3896,22 @@ void InitKeymapActions()
 	    nullptr,
 	    CanPlayerTakeAction);
 	options.Keymapper.AddAction(
+	    "SpeakPlayerHealthPercentage",
+	    N_("Health percentage"),
+	    N_("Speaks the player's health as a percentage."),
+	    'Z',
+	    SpeakPlayerHealthPercentageKeyPressed,
+	    nullptr,
+	    CanPlayerTakeAction);
+	options.Keymapper.AddAction(
+	    "SpeakExperienceToNextLevel",
+	    N_("Experience to level"),
+	    N_("Speaks how much experience remains to reach the next level."),
+	    'X',
+	    SpeakExperienceToNextLevelKeyPressed,
+	    nullptr,
+	    CanPlayerTakeAction);
+	options.Keymapper.AddAction(
 	    "Party",
 	    N_("Party"),
 	    N_("Open side Party panel."),
@@ -3918,7 +3974,7 @@ void InitKeymapActions()
 	    "Zoom",
 	    N_("Zoom"),
 	    N_("Zoom Game Screen."),
-	    'Z',
+	    SDLK_UNKNOWN,
 	    [] {
 		    GetOptions().Graphics.zoom.SetValue(!*GetOptions().Graphics.zoom);
 		    CalcViewportGeometry();
