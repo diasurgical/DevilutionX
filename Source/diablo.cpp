@@ -7,6 +7,7 @@
 #include <array>
 #include <cstdlib>
 #include <cstdint>
+#include <limits>
 #include <queue>
 #include <string_view>
 #include <vector>
@@ -1881,6 +1882,10 @@ int AutoWalkTownNpcTarget = -1;
 enum class TrackerTargetCategory : uint8_t {
 	Items,
 	Chests,
+	Doors,
+	Shrines,
+	Objects,
+	Breakables,
 	Monsters,
 };
 
@@ -2168,6 +2173,10 @@ constexpr int TrackerCycleDistanceTiles = 12;
 
 int LockedTrackerItemId = -1;
 int LockedTrackerChestId = -1;
+int LockedTrackerDoorId = -1;
+int LockedTrackerShrineId = -1;
+int LockedTrackerObjectId = -1;
+int LockedTrackerBreakableId = -1;
 int LockedTrackerMonsterId = -1;
 
 struct TrackerLevelKey {
@@ -2183,6 +2192,10 @@ void ClearTrackerLocks()
 {
 	LockedTrackerItemId = -1;
 	LockedTrackerChestId = -1;
+	LockedTrackerDoorId = -1;
+	LockedTrackerShrineId = -1;
+	LockedTrackerObjectId = -1;
+	LockedTrackerBreakableId = -1;
 	LockedTrackerMonsterId = -1;
 }
 
@@ -2209,6 +2222,14 @@ int &LockedTrackerTargetId(TrackerTargetCategory category)
 		return LockedTrackerItemId;
 	case TrackerTargetCategory::Chests:
 		return LockedTrackerChestId;
+	case TrackerTargetCategory::Doors:
+		return LockedTrackerDoorId;
+	case TrackerTargetCategory::Shrines:
+		return LockedTrackerShrineId;
+	case TrackerTargetCategory::Objects:
+		return LockedTrackerObjectId;
+	case TrackerTargetCategory::Breakables:
+		return LockedTrackerBreakableId;
 	case TrackerTargetCategory::Monsters:
 	default:
 		return LockedTrackerMonsterId;
@@ -2222,6 +2243,14 @@ std::string_view TrackerTargetCategoryLabel(TrackerTargetCategory category)
 		return _("items");
 	case TrackerTargetCategory::Chests:
 		return _("chests");
+	case TrackerTargetCategory::Doors:
+		return _("doors");
+	case TrackerTargetCategory::Shrines:
+		return _("shrines");
+	case TrackerTargetCategory::Objects:
+		return _("objects");
+	case TrackerTargetCategory::Breakables:
+		return _("breakables");
 	case TrackerTargetCategory::Monsters:
 		return _("monsters");
 	default:
@@ -2248,6 +2277,18 @@ void CycleTrackerTargetKeyPressed()
 		SelectedTrackerTargetCategory = TrackerTargetCategory::Chests;
 		break;
 	case TrackerTargetCategory::Chests:
+		SelectedTrackerTargetCategory = TrackerTargetCategory::Doors;
+		break;
+	case TrackerTargetCategory::Doors:
+		SelectedTrackerTargetCategory = TrackerTargetCategory::Shrines;
+		break;
+	case TrackerTargetCategory::Shrines:
+		SelectedTrackerTargetCategory = TrackerTargetCategory::Objects;
+		break;
+	case TrackerTargetCategory::Objects:
+		SelectedTrackerTargetCategory = TrackerTargetCategory::Breakables;
+		break;
+	case TrackerTargetCategory::Breakables:
 		SelectedTrackerTargetCategory = TrackerTargetCategory::Monsters;
 		break;
 	case TrackerTargetCategory::Monsters:
@@ -2339,24 +2380,87 @@ struct TrackerCandidate {
 	return result;
 }
 
-[[nodiscard]] std::vector<TrackerCandidate> CollectNearbyChestTrackerCandidates(Point playerPosition, int maxDistance)
+[[nodiscard]] constexpr bool IsTrackedChestObject(const Object &object)
+{
+	return object.canInteractWith() && (object.IsChest() || object._otype == _object_id::OBJ_SIGNCHEST);
+}
+
+[[nodiscard]] constexpr bool IsTrackedDoorObject(const Object &object)
+{
+	// Only closed doors (solid), because open doors are mostly just floor.
+	return object.isDoor() && object.canInteractWith() && object._oSolidFlag;
+}
+
+[[nodiscard]] constexpr bool IsShrineLikeObject(const Object &object)
+{
+	return object.canInteractWith()
+	    && (object.IsShrine()
+	        || IsAnyOf(object._otype, _object_id::OBJ_BLOODFTN, _object_id::OBJ_PURIFYINGFTN, _object_id::OBJ_GOATSHRINE, _object_id::OBJ_CAULDRON,
+	            _object_id::OBJ_MURKYFTN, _object_id::OBJ_TEARFTN));
+}
+
+[[nodiscard]] constexpr bool IsTrackedBreakableObject(const Object &object)
+{
+	return object.IsBreakable();
+}
+
+[[nodiscard]] constexpr bool IsTrackedMiscInteractableObject(const Object &object)
+{
+	if (!object.canInteractWith())
+		return false;
+	if (object.IsChest() || object._otype == _object_id::OBJ_SIGNCHEST)
+		return false;
+	if (object.isDoor())
+		return false;
+	if (IsShrineLikeObject(object))
+		return false;
+	if (object.IsBreakable())
+		return false;
+	return true;
+}
+
+template <typename Predicate>
+[[nodiscard]] std::vector<TrackerCandidate> CollectNearbyObjectTrackerCandidates(Point playerPosition, int maxDistance, Predicate predicate)
 {
 	std::vector<TrackerCandidate> result;
 	result.reserve(ActiveObjectCount);
 
-	for (int i = 0; i < ActiveObjectCount; i++) {
-		const int objectId = ActiveObjects[i];
-		if (objectId < 0 || objectId >= MAXOBJECTS)
+	const int minX = std::max(0, playerPosition.x - maxDistance);
+	const int minY = std::max(0, playerPosition.y - maxDistance);
+	const int maxX = std::min(MAXDUNX - 1, playerPosition.x + maxDistance);
+	const int maxY = std::min(MAXDUNY - 1, playerPosition.y + maxDistance);
+
+	std::array<int, MAXOBJECTS> bestDistanceById {};
+	bestDistanceById.fill(std::numeric_limits<int>::max());
+
+	for (int y = minY; y <= maxY; ++y) {
+		for (int x = minX; x <= maxX; ++x) {
+			const int objectId = std::abs(dObject[x][y]) - 1;
+			if (objectId < 0 || objectId >= MAXOBJECTS)
+				continue;
+
+			const Object &object = Objects[objectId];
+			if (object._otype == OBJ_NULL)
+				continue;
+			if (!predicate(object))
+				continue;
+
+			const int distance = playerPosition.WalkingDistance(Point { x, y });
+			if (distance > maxDistance)
+				continue;
+
+			int &bestDistance = bestDistanceById[objectId];
+			if (distance < bestDistance)
+				bestDistance = distance;
+		}
+	}
+
+	for (int objectId = 0; objectId < MAXOBJECTS; ++objectId) {
+		const int distance = bestDistanceById[objectId];
+		if (distance == std::numeric_limits<int>::max())
 			continue;
 
 		const Object &object = Objects[objectId];
-		if (!object.canInteractWith() || !object.IsChest())
-			continue;
-
-		const int distance = playerPosition.WalkingDistance(object.position);
-		if (distance > maxDistance)
-			continue;
-
 		result.push_back(TrackerCandidate {
 		    .id = objectId,
 		    .distance = distance,
@@ -2366,6 +2470,72 @@ struct TrackerCandidate {
 
 	std::sort(result.begin(), result.end(), [](const TrackerCandidate &a, const TrackerCandidate &b) { return IsBetterTrackerCandidate(a, b); });
 	return result;
+}
+
+template <typename Predicate>
+[[nodiscard]] std::optional<int> FindNearestObjectId(Point playerPosition, Predicate predicate)
+{
+	std::array<int, MAXOBJECTS> bestDistanceById {};
+	bestDistanceById.fill(std::numeric_limits<int>::max());
+
+	for (int y = 0; y < MAXDUNY; ++y) {
+		for (int x = 0; x < MAXDUNX; ++x) {
+			const int objectId = std::abs(dObject[x][y]) - 1;
+			if (objectId < 0 || objectId >= MAXOBJECTS)
+				continue;
+
+			const Object &object = Objects[objectId];
+			if (object._otype == OBJ_NULL)
+				continue;
+			if (!predicate(object))
+				continue;
+
+			const int distance = playerPosition.WalkingDistance(Point { x, y });
+			int &bestDistance = bestDistanceById[objectId];
+			if (distance < bestDistance)
+				bestDistance = distance;
+		}
+	}
+
+	std::optional<int> bestId;
+	int bestDistance = 0;
+	for (int objectId = 0; objectId < MAXOBJECTS; ++objectId) {
+		const int distance = bestDistanceById[objectId];
+		if (distance == std::numeric_limits<int>::max())
+			continue;
+
+		if (!bestId || distance < bestDistance) {
+			bestId = objectId;
+			bestDistance = distance;
+		}
+	}
+
+	return bestId;
+}
+
+[[nodiscard]] std::vector<TrackerCandidate> CollectNearbyChestTrackerCandidates(Point playerPosition, int maxDistance)
+{
+	return CollectNearbyObjectTrackerCandidates(playerPosition, maxDistance, IsTrackedChestObject);
+}
+
+[[nodiscard]] std::vector<TrackerCandidate> CollectNearbyDoorTrackerCandidates(Point playerPosition, int maxDistance)
+{
+	return CollectNearbyObjectTrackerCandidates(playerPosition, maxDistance, IsTrackedDoorObject);
+}
+
+[[nodiscard]] std::vector<TrackerCandidate> CollectNearbyShrineTrackerCandidates(Point playerPosition, int maxDistance)
+{
+	return CollectNearbyObjectTrackerCandidates(playerPosition, maxDistance, IsShrineLikeObject);
+}
+
+[[nodiscard]] std::vector<TrackerCandidate> CollectNearbyBreakableTrackerCandidates(Point playerPosition, int maxDistance)
+{
+	return CollectNearbyObjectTrackerCandidates(playerPosition, maxDistance, IsTrackedBreakableObject);
+}
+
+[[nodiscard]] std::vector<TrackerCandidate> CollectNearbyObjectInteractableTrackerCandidates(Point playerPosition, int maxDistance)
+{
+	return CollectNearbyObjectTrackerCandidates(playerPosition, maxDistance, IsTrackedMiscInteractableObject);
 }
 
 [[nodiscard]] std::vector<TrackerCandidate> CollectNearbyMonsterTrackerCandidates(Point playerPosition, int maxDistance)
@@ -2481,31 +2651,27 @@ void DecorateTrackerTargetNameWithOrdinalIfNeeded(int targetId, StringOrView &ta
 
 std::optional<int> FindNearestUnopenedChestObjectId(Point playerPosition)
 {
-	if (ActiveObjectCount == 0)
-		return std::nullopt;
+	return FindNearestObjectId(playerPosition, IsTrackedChestObject);
+}
 
-	std::optional<int> bestId;
-	int bestDistance = 0;
+std::optional<int> FindNearestClosedDoorObjectId(Point playerPosition)
+{
+	return FindNearestObjectId(playerPosition, IsTrackedDoorObject);
+}
 
-	for (int i = 0; i < ActiveObjectCount; i++) {
-		const int objectId = ActiveObjects[i];
-		if (objectId < 0 || objectId >= MAXOBJECTS)
-			continue;
+std::optional<int> FindNearestShrineObjectId(Point playerPosition)
+{
+	return FindNearestObjectId(playerPosition, IsShrineLikeObject);
+}
 
-		const Object &object = Objects[objectId];
-		if (!object.canInteractWith())
-			continue;
-		if (!object.IsChest())
-			continue;
+std::optional<int> FindNearestBreakableObjectId(Point playerPosition)
+{
+	return FindNearestObjectId(playerPosition, IsTrackedBreakableObject);
+}
 
-		const int distance = playerPosition.WalkingDistance(object.position);
-		if (!bestId || distance < bestDistance) {
-			bestId = objectId;
-			bestDistance = distance;
-		}
-	}
-
-	return bestId;
+std::optional<int> FindNearestMiscInteractableObjectId(Point playerPosition)
+{
+	return FindNearestObjectId(playerPosition, IsTrackedMiscInteractableObject);
 }
 
 std::optional<int> FindNearestMonsterId(Point playerPosition)
@@ -2567,6 +2733,15 @@ std::optional<Point> FindBestAdjacentApproachTile(const Player &player, Point pl
 	}
 
 	return best;
+}
+
+std::optional<Point> FindBestApproachTileForObject(const Player &player, Point playerPosition, const Object &object)
+{
+	// Some interactable objects are placed on a walkable tile (e.g. floor switches). Prefer stepping on the tile in that case.
+	if (!object._oSolidFlag && PosOkPlayer(player, object.position))
+		return object.position;
+
+	return FindBestAdjacentApproachTile(player, playerPosition, object.position);
 }
 
 bool PosOkPlayerIgnoreDoors(const Player &player, Point position)
@@ -2704,7 +2879,7 @@ void NavigateToTrackerTargetKeyPressed()
 		}
 
 		const Object &object = Objects[*targetId];
-		if (!object.IsChest() || !object.canInteractWith()) {
+		if (!IsTrackedChestObject(object)) {
 			lockedTargetId = -1;
 			targetId = FindNearestUnopenedChestObjectId(playerPosition);
 			if (!targetId) {
@@ -2719,7 +2894,187 @@ void NavigateToTrackerTargetKeyPressed()
 		targetName = tracked.name();
 		DecorateTrackerTargetNameWithOrdinalIfNeeded(*targetId, targetName, nearbyCandidates);
 		if (!cycleTarget) {
-			targetPosition = FindBestAdjacentApproachTile(*MyPlayer, playerPosition, tracked.position);
+			targetPosition = FindBestApproachTileForObject(*MyPlayer, playerPosition, tracked);
+			if (!targetPosition) {
+				SpeakText(_("Can't find a nearby tile to walk to."), true);
+				return;
+			}
+		}
+		break;
+	}
+	case TrackerTargetCategory::Doors: {
+		const std::vector<TrackerCandidate> nearbyCandidates = CollectNearbyDoorTrackerCandidates(playerPosition, TrackerCycleDistanceTiles);
+		if (cycleTarget) {
+			targetId = FindNextTrackerCandidateId(nearbyCandidates, lockedTargetId);
+			if (!targetId) {
+				if (nearbyCandidates.empty())
+					SpeakText(_("No doors found."), true);
+				else
+					SpeakText(_("No next door."), true);
+				return;
+			}
+		} else if (lockedTargetId >= 0 && lockedTargetId < MAXOBJECTS) {
+			targetId = lockedTargetId;
+		} else {
+			targetId = FindNearestClosedDoorObjectId(playerPosition);
+		}
+		if (!targetId) {
+			SpeakText(_("No doors found."), true);
+			return;
+		}
+
+		const Object &object = Objects[*targetId];
+		if (!IsTrackedDoorObject(object)) {
+			lockedTargetId = -1;
+			targetId = FindNearestClosedDoorObjectId(playerPosition);
+			if (!targetId) {
+				SpeakText(_("No doors found."), true);
+				return;
+			}
+		}
+
+		lockedTargetId = *targetId;
+		const Object &tracked = Objects[*targetId];
+
+		targetName = tracked.name();
+		DecorateTrackerTargetNameWithOrdinalIfNeeded(*targetId, targetName, nearbyCandidates);
+		if (!cycleTarget) {
+			targetPosition = FindBestApproachTileForObject(*MyPlayer, playerPosition, tracked);
+			if (!targetPosition) {
+				SpeakText(_("Can't find a nearby tile to walk to."), true);
+				return;
+			}
+		}
+		break;
+	}
+	case TrackerTargetCategory::Shrines: {
+		const std::vector<TrackerCandidate> nearbyCandidates = CollectNearbyShrineTrackerCandidates(playerPosition, TrackerCycleDistanceTiles);
+		if (cycleTarget) {
+			targetId = FindNextTrackerCandidateId(nearbyCandidates, lockedTargetId);
+			if (!targetId) {
+				if (nearbyCandidates.empty())
+					SpeakText(_("No shrines found."), true);
+				else
+					SpeakText(_("No next shrine."), true);
+				return;
+			}
+		} else if (lockedTargetId >= 0 && lockedTargetId < MAXOBJECTS) {
+			targetId = lockedTargetId;
+		} else {
+			targetId = FindNearestShrineObjectId(playerPosition);
+		}
+		if (!targetId) {
+			SpeakText(_("No shrines found."), true);
+			return;
+		}
+
+		const Object &object = Objects[*targetId];
+		if (!IsShrineLikeObject(object)) {
+			lockedTargetId = -1;
+			targetId = FindNearestShrineObjectId(playerPosition);
+			if (!targetId) {
+				SpeakText(_("No shrines found."), true);
+				return;
+			}
+		}
+
+		lockedTargetId = *targetId;
+		const Object &tracked = Objects[*targetId];
+
+		targetName = tracked.name();
+		DecorateTrackerTargetNameWithOrdinalIfNeeded(*targetId, targetName, nearbyCandidates);
+		if (!cycleTarget) {
+			targetPosition = FindBestApproachTileForObject(*MyPlayer, playerPosition, tracked);
+			if (!targetPosition) {
+				SpeakText(_("Can't find a nearby tile to walk to."), true);
+				return;
+			}
+		}
+		break;
+	}
+	case TrackerTargetCategory::Objects: {
+		const std::vector<TrackerCandidate> nearbyCandidates = CollectNearbyObjectInteractableTrackerCandidates(playerPosition, TrackerCycleDistanceTiles);
+		if (cycleTarget) {
+			targetId = FindNextTrackerCandidateId(nearbyCandidates, lockedTargetId);
+			if (!targetId) {
+				if (nearbyCandidates.empty())
+					SpeakText(_("No objects found."), true);
+				else
+					SpeakText(_("No next object."), true);
+				return;
+			}
+		} else if (lockedTargetId >= 0 && lockedTargetId < MAXOBJECTS) {
+			targetId = lockedTargetId;
+		} else {
+			targetId = FindNearestMiscInteractableObjectId(playerPosition);
+		}
+		if (!targetId) {
+			SpeakText(_("No objects found."), true);
+			return;
+		}
+
+		const Object &object = Objects[*targetId];
+		if (!IsTrackedMiscInteractableObject(object)) {
+			lockedTargetId = -1;
+			targetId = FindNearestMiscInteractableObjectId(playerPosition);
+			if (!targetId) {
+				SpeakText(_("No objects found."), true);
+				return;
+			}
+		}
+
+		lockedTargetId = *targetId;
+		const Object &tracked = Objects[*targetId];
+
+		targetName = tracked.name();
+		DecorateTrackerTargetNameWithOrdinalIfNeeded(*targetId, targetName, nearbyCandidates);
+		if (!cycleTarget) {
+			targetPosition = FindBestApproachTileForObject(*MyPlayer, playerPosition, tracked);
+			if (!targetPosition) {
+				SpeakText(_("Can't find a nearby tile to walk to."), true);
+				return;
+			}
+		}
+		break;
+	}
+	case TrackerTargetCategory::Breakables: {
+		const std::vector<TrackerCandidate> nearbyCandidates = CollectNearbyBreakableTrackerCandidates(playerPosition, TrackerCycleDistanceTiles);
+		if (cycleTarget) {
+			targetId = FindNextTrackerCandidateId(nearbyCandidates, lockedTargetId);
+			if (!targetId) {
+				if (nearbyCandidates.empty())
+					SpeakText(_("No breakables found."), true);
+				else
+					SpeakText(_("No next breakable."), true);
+				return;
+			}
+		} else if (lockedTargetId >= 0 && lockedTargetId < MAXOBJECTS) {
+			targetId = lockedTargetId;
+		} else {
+			targetId = FindNearestBreakableObjectId(playerPosition);
+		}
+		if (!targetId) {
+			SpeakText(_("No breakables found."), true);
+			return;
+		}
+
+		const Object &object = Objects[*targetId];
+		if (!IsTrackedBreakableObject(object)) {
+			lockedTargetId = -1;
+			targetId = FindNearestBreakableObjectId(playerPosition);
+			if (!targetId) {
+				SpeakText(_("No breakables found."), true);
+				return;
+			}
+		}
+
+		lockedTargetId = *targetId;
+		const Object &tracked = Objects[*targetId];
+
+		targetName = tracked.name();
+		DecorateTrackerTargetNameWithOrdinalIfNeeded(*targetId, targetName, nearbyCandidates);
+		if (!cycleTarget) {
+			targetPosition = FindBestApproachTileForObject(*MyPlayer, playerPosition, tracked);
 			if (!targetPosition) {
 				SpeakText(_("Can't find a nearby tile to walk to."), true);
 				return;
@@ -4106,7 +4461,7 @@ void InitKeymapActions()
 	options.Keymapper.AddAction(
 	    "CycleTrackerTarget",
 	    N_("Cycle tracker target"),
-	    N_("Cycles what the tracker looks for (items, chests, monsters)."),
+	    N_("Cycles what the tracker looks for (items, chests, doors, shrines, objects, breakables, monsters)."),
 	    'T',
 	    CycleTrackerTargetKeyPressed,
 	    nullptr,

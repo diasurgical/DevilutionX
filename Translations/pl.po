@@ -6509,6 +6509,22 @@ msgid "No next chest."
 msgstr "Nie ma następnej skrzyni."
 
 #: Source/diablo.cpp
+msgid "No next door."
+msgstr "Nie ma następnych drzwi."
+
+#: Source/diablo.cpp
+msgid "No next shrine."
+msgstr "Nie ma następnej kapliczki."
+
+#: Source/diablo.cpp
+msgid "No next object."
+msgstr "Nie ma następnego obiektu."
+
+#: Source/diablo.cpp
+msgid "No next breakable."
+msgstr "Nie ma następnego niszczalnego obiektu."
+
+#: Source/diablo.cpp
 msgid "No next monster."
 msgstr "Nie ma następnego potwora."
 
@@ -12147,8 +12163,8 @@ msgid "Cycle tracker target"
 msgstr "Zmień cel trackera"
 
 #: Source/diablo.cpp
-msgid "Cycles what the tracker looks for (items, chests, monsters)."
-msgstr "Zmienia, czego szuka tracker (przedmioty, skrzynie, potwory)."
+msgid "Cycles what the tracker looks for (items, chests, doors, shrines, objects, breakables, monsters)."
+msgstr "Zmienia, czego szuka tracker (przedmioty, skrzynie, drzwi, kapliczki, obiekty, niszczalne, potwory)."
 
 #: Source/diablo.cpp
 msgid "Navigate to tracker target"
@@ -12171,6 +12187,22 @@ msgid "chests"
 msgstr "skrzynie"
 
 #: Source/diablo.cpp
+msgid "doors"
+msgstr "drzwi"
+
+#: Source/diablo.cpp
+msgid "shrines"
+msgstr "kapliczki"
+
+#: Source/diablo.cpp
+msgid "objects"
+msgstr "obiekty"
+
+#: Source/diablo.cpp
+msgid "breakables"
+msgstr "niszczalne"
+
+#: Source/diablo.cpp
 msgid "monsters"
 msgstr "potwory"
 
@@ -12181,6 +12213,22 @@ msgstr "Nie znaleziono żadnych przedmiotów."
 #: Source/diablo.cpp
 msgid "No chests found."
 msgstr "Nie znaleziono żadnych skrzyń."
+
+#: Source/diablo.cpp
+msgid "No doors found."
+msgstr "Nie znaleziono żadnych drzwi."
+
+#: Source/diablo.cpp
+msgid "No shrines found."
+msgstr "Nie znaleziono żadnych kapliczek."
+
+#: Source/diablo.cpp
+msgid "No objects found."
+msgstr "Nie znaleziono żadnych obiektów."
+
+#: Source/diablo.cpp
+msgid "No breakables found."
+msgstr "Nie znaleziono żadnych niszczalnych obiektów."
 
 #: Source/diablo.cpp
 msgid "No monsters found."
