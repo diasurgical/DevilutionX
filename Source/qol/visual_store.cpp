@@ -60,17 +60,17 @@ constexpr Rectangle VisualStoreButtonRect[] = {
 	//{ { 242, 19 }, ButtonSize }, // 1 right
 	//{ { 279, 19 }, ButtonSize }, // 10 right
 	// Tab buttons (Smith only) - positioned below title
-	{ { 50, 18 }, { 60, 16 } },  // Regular tab
+	{ { 50, 18 }, { 60, 16 } },   // Basic tab
 	{ { 120, 18 }, { 60, 16 } },  // Premium tab
-	{ { 280, 313 }, { 32, 32 } }, // Repair All Btn
-	{ { 245, 313 }, { 32, 32 } }, // Repair Btn
+	{ { 222, 315 }, { 24, 24 } }, // Repair All Btn
+	{ { 250, 315 }, { 24, 24 } }, // Repair Btn
 };
 
 //constexpr int NavButton10Left = 0;
 //constexpr int NavButton1Left = 1;
 //constexpr int NavButton1Right = 2;
 //constexpr int NavButton10Right = 3;
-constexpr int TabButtonRegular = 0;
+constexpr int TabButtonBasic = 0;
 constexpr int TabButtonPremium = 1;
 constexpr int RepairAllBtn = 2;
 constexpr int RepairBtn = 3;
@@ -296,7 +296,7 @@ void OpenVisualStore(VisualStoreVendor vendor)
 	invflag = true; // Open inventory panel alongside
 
 	VisualStore.vendor = vendor;
-	VisualStore.activeTab = VisualStoreTab::Regular;
+	VisualStore.activeTab = VisualStoreTab::Basic;
 	VisualStore.currentPage = 0;
 
 	pcursstoreitem = -1;
@@ -323,8 +323,8 @@ void CloseVisualStore()
 
 void SetVisualStoreTab(VisualStoreTab tab)
 {
-	if (!VendorHasTabs())
-		return;
+	/*if (!VendorHasTabs())
+		return;*/
 
 	VisualStore.activeTab = tab;
 	VisualStore.currentPage = 0;
@@ -496,33 +496,42 @@ void DrawVisualStore(const Surface &out)
 
 	const Point panelPos = GetPanelPosition(UiPanels::Stash);
 	const UiFlags styleWhite = UiFlags::VerticalCenter | UiFlags::ColorWhite;
-	const UiFlags styleGold = UiFlags::VerticalCenter | UiFlags::ColorWhitegold;
+	const UiFlags styleTabPushed = UiFlags::VerticalCenter | UiFlags::ColorButtonpushed;
 	constexpr int TextHeight = 13;
 
 	// Draw store title
 	/*DrawString(out, GetVendorName(), { panelPos + Displacement { 0, 2 }, { 320, TextHeight } },
 	    { .flags = UiFlags::AlignCenter | styleGold });*/
 
-	// Draw tab buttons (Smith only)
-	if (VendorHasTabs()) {
-		UiFlags regularStyle = VisualStore.activeTab == VisualStoreTab::Regular ? styleGold : styleWhite;
-		UiFlags premiumStyle = VisualStore.activeTab == VisualStoreTab::Premium ? styleGold : styleWhite;
-
+	// Draw tab buttons
+	UiFlags basicStyle = VisualStore.activeTab == VisualStoreTab::Basic ? styleWhite : styleTabPushed;
+	UiFlags premiumStyle = VisualStore.activeTab == VisualStoreTab::Premium ? styleWhite : styleTabPushed;
+	switch (VisualStore.vendor) {
+	case VisualStoreVendor::Smith:
 		// Draw pressed button visual
 		/*if (VisualStoreButtonPressed >= 0 && VisualStoreButtonPressed <= NavButton10Right && VisualStoreNavButtonArt) {
-			const Point buttonPos = GetPanelPosition(UiPanels::Stash, VisualStoreButtonRect[VisualStoreButtonPressed].position);
-			RenderClxSprite(out, (*VisualStoreNavButtonArt)[VisualStoreButtonPressed], buttonPos);
+		    const Point buttonPos = GetPanelPosition(UiPanels::Stash, VisualStoreButtonRect[VisualStoreButtonPressed].position);
+		    RenderClxSprite(out, (*VisualStoreNavButtonArt)[VisualStoreButtonPressed], buttonPos);
 		}*/
 
-		const Rectangle regBtnPos = { panelPos + (VisualStoreButtonRect[TabButtonRegular].position - Point { 0, 0 }), VisualStoreButtonRect[TabButtonRegular].size };
-		RenderClxSprite(out, (*VisualStoreNavButtonArt)[VisualStoreButtonPressed == TabButtonRegular], regBtnPos.position);
-		DrawString(out, _("Regular"), regBtnPos,
-		    { .flags = UiFlags::AlignCenter | regularStyle });
+		const Rectangle regBtnPos = { panelPos + (VisualStoreButtonRect[TabButtonBasic].position - Point { 0, 0 }), VisualStoreButtonRect[TabButtonBasic].size };
+		RenderClxSprite(out, (*VisualStoreNavButtonArt)[VisualStoreButtonPressed == TabButtonBasic], regBtnPos.position);
+		DrawString(out, _("Basic"), regBtnPos, { .flags = UiFlags::AlignCenter | basicStyle });
 
 		const Rectangle premBtnPos = { panelPos + (VisualStoreButtonRect[TabButtonPremium].position - Point { 0, 0 }), VisualStoreButtonRect[TabButtonPremium].size };
 		RenderClxSprite(out, (*VisualStoreNavButtonArt)[VisualStoreButtonPressed == TabButtonPremium], premBtnPos.position);
-		DrawString(out, _("Premium"), premBtnPos,
-		    { .flags = UiFlags::AlignCenter | premiumStyle });
+		DrawString(out, _("Premium"), premBtnPos, { .flags = UiFlags::AlignCenter | premiumStyle });
+		break;
+	case VisualStoreVendor::Witch:
+	case VisualStoreVendor::Boy:
+	case VisualStoreVendor::Healer:
+		const Rectangle miscBtnPos = { panelPos + (VisualStoreButtonRect[TabButtonBasic].position - Point { 0, 0 }), VisualStoreButtonRect[TabButtonBasic].size };
+		RenderClxSprite(out, (*VisualStoreNavButtonArt)[VisualStoreButtonPressed == TabButtonBasic], miscBtnPos.position);
+		DrawString(out, _("Misc"), miscBtnPos, { .flags = UiFlags::AlignCenter | basicStyle });
+		break;
+
+	default:
+		break;
 	}
 
 	// Draw page number
@@ -594,7 +603,7 @@ int16_t CheckVisualStoreHLight(Point mousePosition)
 	const Point panelPos = GetPanelPosition(UiPanels::Stash);
 	for (int i = 0; i < 4; i++) {
 		// Skip tab buttons if vendor doesn't have tabs
-		/*if (!VendorHasTabs() && (i == TabButtonRegular || i == TabButtonPremium))
+		/*if (!VendorHasTabs() && (i == TabButtonBasic || i == TabButtonPremium))
 			continue;*/
 
 		Rectangle button = VisualStoreButtonRect[i];
@@ -681,7 +690,7 @@ int16_t CheckVisualStoreHLight(Point mousePosition)
 	return -1;
 }
 
-void CheckVisualStoreItem(Point mousePosition)
+void CheckVisualStoreItem(Point mousePosition, bool isCtrlHeld, bool isShiftHeld)
 {
 	// Check if clicking on an item to buy
 	int16_t itemIndex = CheckVisualStoreHLight(mousePosition);
@@ -823,7 +832,7 @@ void CheckVisualStoreButtonPress(Point mousePosition)
 		button.position = GetPanelPosition(UiPanels::Stash, button.position);
 
 		// Skip tab buttons if vendor doesn't have tabs
-		/*if (!VendorHasTabs() && (i == TabButtonRegular || i == TabButtonPremium))
+		/*if (!VendorHasTabs() && (i == TabButtonBasic || i == TabButtonPremium))
 			continue;*/
 
 		if (button.contains(mousePosition)) {
@@ -859,8 +868,8 @@ void CheckVisualStoreButtonRelease(Point mousePosition)
 		//	for (int i = 0; i < 10; i++)
 		//		VisualStoreNextPage();
 		//	break;
-		case TabButtonRegular:
-			SetVisualStoreTab(VisualStoreTab::Regular);
+		case TabButtonBasic:
+			SetVisualStoreTab(VisualStoreTab::Basic);
 			break;
 		case TabButtonPremium:
 			SetVisualStoreTab(VisualStoreTab::Premium);

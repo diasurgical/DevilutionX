@@ -390,7 +390,7 @@ void LeftMouseDown(uint16_t modState)
 				if (!MyPlayer->HoldItem.isEmpty()) {
 					CheckVisualStorePaste(MousePosition);
 				} else {
-					CheckVisualStoreItem(MousePosition);
+					CheckVisualStoreItem(MousePosition, isCtrlHeld, isShiftHeld);
 				}
 				CheckVisualStoreButtonPress(MousePosition);
 			} else if (SpellbookFlag && GetRightPanel().contains(MousePosition)) {

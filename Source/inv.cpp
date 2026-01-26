@@ -797,14 +797,7 @@ void CheckInvCut(Player &player, Point cursorPosition, bool automaticMove, bool 
 		if (iv >= 0) {
 			if (automaticMove) {
 				attemptedMove = true;
-				// If visual store is open, shift-click sells the item
-				if (IsVisualStoreOpen && CanSellToCurrentVendor(player.InvList[iv])) {
-					SellItemToVisualStore(iv);
-					automaticallyMoved = true;
-					// Sound is played by SellItemToVisualStore
-					// Return early to avoid accessing the removed item
-					return;
-				} else if (CanBePlacedOnBelt(player, player.InvList[iv])) {
+				if (CanBePlacedOnBelt(player, player.InvList[iv])) {
 					automaticallyMoved = AutoPlaceItemInBelt(player, player.InvList[iv], true, &player == MyPlayer);
 					if (automaticallyMoved) {
 						successSound = SfxID::GrabItem;
@@ -909,6 +902,13 @@ void CheckInvCut(Player &player, Point cursorPosition, bool automaticMove, bool 
 					}
 				}
 			} else {
+				// If visual store is open, ctrl-click sells the item
+				if (IsVisualStoreOpen && CanSellToCurrentVendor(player.InvList[iv]) && dropItem) {
+					SellItemToVisualStore(iv);
+					automaticallyMoved = true;
+					return; // Return early to avoid accessing the removed item
+				}
+
 				holdItem = player.InvList[iv];
 				player.RemoveInvItem(iv, false);
 			}

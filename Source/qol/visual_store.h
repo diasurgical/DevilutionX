@@ -23,7 +23,7 @@ enum class VisualStoreVendor : uint8_t {
 };
 
 enum class VisualStoreTab : uint8_t {
-	Regular = 0,
+	Basic = 0,
 	Premium = 1
 };
 
@@ -101,7 +101,7 @@ void DrawVisualStore(const Surface &out);
  * @brief Handle a click on the visual store panel.
  * @param mousePosition The mouse position.
  */
-void CheckVisualStoreItem(Point mousePosition);
+void CheckVisualStoreItem(Point mousePosition, bool isCtrlHeld, bool isShiftHeld);
 
 /**
  * @brief Handle dropping an item on the visual store to sell.
