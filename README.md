@@ -1,18 +1,3 @@
-<p align="center">
-  <img width="560" height="144" alt="image" src="https://github.com/user-attachments/assets/7ac73801-ef7b-4cc1-8442-a191a2a0a1ce" />
-</p>
-
----
-
-[![Discord Channel](https://img.shields.io/discord/518540764754608128?color=%237289DA&logo=discord&logoColor=%23FFFFFF)](https://discord.gg/devilutionx)
-[![Downloads](https://img.shields.io/github/downloads/mojsior/diablo-access/total.svg)](https://github.com/mojsior/diablo-access/releases/latest)
-
-<p align="center">
-<img width="853" height="480" alt="image" src="https://github.com/user-attachments/assets/ee902926-6382-4ee5-b1c2-7947e8b434e9" />
-</p>
-
-<sub>*(The health-bar and XP-bar are off by default but can be enabled in the [game settings](https://github.com/diasurgical/DevilutionX/wiki/Config-File). Widescreen can also be disabled if preferred.)*</sub>
-
 # What is Diablo Access
 
 Diablo Access is a DevilutionX-based mod focused on accessibility and quality-of-life improvements.
