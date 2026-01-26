@@ -3260,7 +3260,7 @@ msgstr "rappeutuminen {:+d}% vahinko"
 
 #: Source/items.cpp:4056
 msgid "2x dmg to monst, 1x to you"
-msgstr "2x vahinko monsterille, 1x sinulle"
+msgstr "2x vahinko hirviölle, 1x sinulle"
 
 #: Source/items.cpp:4058
 #, no-c-format
@@ -3370,7 +3370,7 @@ msgstr "Elämänkaaren areena"
 
 #: Source/levels/trigs.cpp:355
 msgid "Down to dungeon"
-msgstr "Linnakellariin"
+msgstr "Tyrmään"
 
 #: Source/levels/trigs.cpp:364
 msgid "Down to catacombs"
@@ -3483,7 +3483,7 @@ msgid ""
 "Could not add a monster, since the maximum monster type number of {} has "
 "already been reached."
 msgstr ""
-"Monsteria ei voitu lisätä, koska monsterityyppien enimmäismäärä {} on jo "
+"Hirviötä ei voitu lisätä, koska hirviötyyppien enimmäismäärä {} on jo "
 "saavutettu."
 
 #: Source/monstdat.cpp:344
@@ -4497,14 +4497,14 @@ msgstr "Valitse satunnaisesti käytettävissä olevat tehtävät uusille peleill
 
 #: Source/options.cpp:811
 msgid "Show Monster Type"
-msgstr "Näytä monsterityyppi"
+msgstr "Näytä hirviötyyppi"
 
 #: Source/options.cpp:811
 msgid ""
 "Hovering over a monster will display the type of monster in the description "
 "box in the UI."
 msgstr ""
-"Kun viet hiiren monsterin päälle, sen tyyppi näkyy käyttöliittymän "
+"Kun viet hiiren hirviön päälle, sen tyyppi näkyy käyttöliittymän "
 "kuvauskentässä."
 
 #: Source/options.cpp:812
@@ -6456,7 +6456,7 @@ msgstr "Kyläportaalin käärö"
 
 #: Source/translation_dummy.cpp:244
 msgid "Arkaine's Valor"
-msgstr "Valor haarniska"
+msgstr "Arkaineen Valor haarniska"
 
 #: Source/translation_dummy.cpp:245
 msgid "Potion of Full Healing"
@@ -9167,7 +9167,7 @@ msgstr ""
 "Olen kuullut kultaisesta eliksiiristä, joka voisi poistaa kirouksen ja antaa "
 "sielulleni rauhan, mutta en ole onnistunut löytämään sitä. Voimani ovat nyt "
 "hiipumassa, ja niiden mukana myös viimeisetkin ihmisyyteni rippeet. Auta "
-"minua ja etsi eliksiiri. Korvaan ponnistuksesi – vannon kunniasanallani."
+"minua ja etsi eliksiiri. Korvaan ponnistuksesi – vannon sen kunniasanallani."
 
 #: Source/translation_dummy.cpp:762
 msgid ""
