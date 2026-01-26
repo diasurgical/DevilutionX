@@ -60,8 +60,8 @@ constexpr Rectangle VisualStoreButtonRect[] = {
 	//{ { 242, 19 }, ButtonSize }, // 1 right
 	//{ { 279, 19 }, ButtonSize }, // 10 right
 	// Tab buttons (Smith only) - positioned below title
-	{ { 50, 18 }, { 60, 16 } },   // Basic tab
-	{ { 120, 18 }, { 60, 16 } },  // Premium tab
+	{ { 14, 21 }, { 72, 22 } },   // Basic tab
+	{ { 14 + 73, 21 }, { 72, 22 } }, // Premium tab
 	{ { 222, 315 }, { 24, 24 } }, // Repair All Btn
 	{ { 250, 315 }, { 24, 24 } }, // Repair Btn
 };
@@ -279,7 +279,7 @@ void InitVisualStore()
 	// For now, reuse the stash panel art as a placeholder
 	// In the future, create dedicated visual store assets
 	VisualStorePanelArt = LoadClx("data\\store.clx");
-	VisualStoreNavButtonArt = LoadClx("data\\talkbutton.clx");
+	VisualStoreNavButtonArt = LoadClx("data\\tabBtnUp.clx");
 	VisualStoreRepairAllButtonArt = LoadClx("data\\repairAllBtn.clx");
 	VisualStoreRepairButtonArt = LoadClx("data\\repairSingleBtn.clx");
 }
@@ -515,11 +515,11 @@ void DrawVisualStore(const Surface &out)
 		}*/
 
 		const Rectangle regBtnPos = { panelPos + (VisualStoreButtonRect[TabButtonBasic].position - Point { 0, 0 }), VisualStoreButtonRect[TabButtonBasic].size };
-		RenderClxSprite(out, (*VisualStoreNavButtonArt)[VisualStoreButtonPressed == TabButtonBasic], regBtnPos.position);
+		RenderClxSprite(out, (*VisualStoreNavButtonArt)[VisualStore.activeTab != VisualStoreTab::Basic], regBtnPos.position);
 		DrawString(out, _("Basic"), regBtnPos, { .flags = UiFlags::AlignCenter | basicStyle });
 
 		const Rectangle premBtnPos = { panelPos + (VisualStoreButtonRect[TabButtonPremium].position - Point { 0, 0 }), VisualStoreButtonRect[TabButtonPremium].size };
-		RenderClxSprite(out, (*VisualStoreNavButtonArt)[VisualStoreButtonPressed == TabButtonPremium], premBtnPos.position);
+		RenderClxSprite(out, (*VisualStoreNavButtonArt)[VisualStore.activeTab != VisualStoreTab::Premium], premBtnPos.position);
 		DrawString(out, _("Premium"), premBtnPos, { .flags = UiFlags::AlignCenter | premiumStyle });
 		break;
 	case VisualStoreVendor::Witch:
