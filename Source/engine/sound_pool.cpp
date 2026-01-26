@@ -116,7 +116,16 @@ struct SoundPool::Impl {
 		if (sample.IsPlaying())
 			sample.Stop();
 
-		return sample.PlayWithVolumeAndPan(logVolume, sound_get_or_set_sound_volume(/*volume=*/1), logPan);
+		const int soundVolume = sound_get_or_set_sound_volume(/*volume=*/1);
+		const int cuesVolume = sound_get_or_set_audio_cues_volume(/*volume=*/1);
+
+		const int range = VOLUME_MAX - VOLUME_MIN;
+		const int soundOffset = std::clamp(soundVolume - VOLUME_MIN, 0, range);
+		const int cuesOffset = std::clamp(cuesVolume - VOLUME_MIN, 0, range);
+		const int combinedOffset = (soundOffset * cuesOffset + range / 2) / range;
+		const int combinedVolume = VOLUME_MIN + combinedOffset;
+
+		return sample.PlayWithVolumeAndPan(logVolume, combinedVolume, logPan);
 	}
 };
 

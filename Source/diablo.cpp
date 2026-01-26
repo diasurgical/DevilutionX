@@ -1901,6 +1901,80 @@ void UpdateBossHealthAnnouncements()
 	}
 }
 
+void UpdateAttackableMonsterAnnouncements()
+{
+	static std::optional<int> LastAttackableMonsterId;
+
+	if (MyPlayer == nullptr) {
+		LastAttackableMonsterId = std::nullopt;
+		return;
+	}
+	if (leveltype == DTYPE_TOWN) {
+		LastAttackableMonsterId = std::nullopt;
+		return;
+	}
+	if (MyPlayerIsDead || MyPlayer->_pmode == PM_DEATH || MyPlayer->hasNoLife()) {
+		LastAttackableMonsterId = std::nullopt;
+		return;
+	}
+	if (InGameMenu() || invflag) {
+		LastAttackableMonsterId = std::nullopt;
+		return;
+	}
+
+	const Player &player = *MyPlayer;
+	const Point playerPosition = player.position.tile;
+
+	int bestRotations = 5;
+	std::optional<int> bestId;
+
+	for (size_t i = 0; i < ActiveMonsterCount; i++) {
+		const int monsterId = static_cast<int>(ActiveMonsters[i]);
+		const Monster &monster = Monsters[monsterId];
+
+		if (monster.isInvalid)
+			continue;
+		if ((monster.flags & MFLAG_HIDDEN) != 0)
+			continue;
+		if (monster.hitPoints <= 0)
+			continue;
+		if (monster.isPlayerMinion())
+			continue;
+		if (!monster.isPossibleToHit())
+			continue;
+
+		const Point monsterPosition = monster.position.tile;
+		if (playerPosition.WalkingDistance(monsterPosition) > 1)
+			continue;
+
+		const int d1 = static_cast<int>(player._pdir);
+		const int d2 = static_cast<int>(GetDirection(playerPosition, monsterPosition));
+
+		int rotations = std::abs(d1 - d2);
+		if (rotations > 4)
+			rotations = 4 - (rotations % 4);
+
+		if (!bestId || rotations < bestRotations || (rotations == bestRotations && monsterId < *bestId)) {
+			bestRotations = rotations;
+			bestId = monsterId;
+		}
+	}
+
+	if (!bestId) {
+		LastAttackableMonsterId = std::nullopt;
+		return;
+	}
+
+	if (LastAttackableMonsterId && *LastAttackableMonsterId == *bestId)
+		return;
+
+	LastAttackableMonsterId = *bestId;
+
+	const std::string_view name = Monsters[*bestId].name();
+	if (!name.empty())
+		SpeakText(name, /*force=*/true);
+}
+
 void GameLogic()
 {
 	if (!ProcessInput()) {
@@ -1929,6 +2003,7 @@ void GameLogic()
 		ProcessVisionList();
 		UpdateBossHealthAnnouncements();
 		UpdateProximityAudioCues();
+		UpdateAttackableMonsterAnnouncements();
 	} else {
 		gGameLogicStep = GameLogicStep::ProcessTowners;
 		ProcessTowners();

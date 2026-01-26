@@ -20,6 +20,7 @@ void music_start(_music_id nTrack) { }
 void sound_disable_music(bool disable) { }
 int sound_get_or_set_music_volume(int volume) { return 0; }
 int sound_get_or_set_sound_volume(int volume) { return 0; }
+int sound_get_or_set_audio_cues_volume(int volume) { return 0; }
 void music_mute() { }
 void music_unmute() { }
 _music_id GetLevelMusic(dungeon_type dungeonType) { return TMUSIC_TOWN; }

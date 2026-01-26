@@ -75,6 +75,7 @@ void music_start(_music_id nTrack);
 void sound_disable_music(bool disable);
 int sound_get_or_set_music_volume(int volume);
 int sound_get_or_set_sound_volume(int volume);
+int sound_get_or_set_audio_cues_volume(int volume);
 void music_mute();
 void music_unmute();
 
