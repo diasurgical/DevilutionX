@@ -33,14 +33,29 @@ For a full list of changes, see our [changelog](docs/CHANGELOG.md).
 
 Keybinds are configurable, but these are the defaults most players will use:
 
-- `T` - cycle tracker target (items / chests / monsters).
+## Navigation / tracking
+
+- `T` - cycle tracker target (items / chests / doors / shrines / objects / breakables / monsters).
 - `N` - tracker directions to the nearest target (speaks target name + directions).
-- `Shift`+`N` - retarget the tracker.
+- `Shift`+`N` - cycle to the next target in the current tracker category (speaks name only; duplicates get ordinal numbers).
 - `Ctrl`+`N` - clear the tracker target.
 - `H` - speak nearest unexplored space.
-- `E` - speak nearest exit.
+- `E` - speak nearest exit (hold `Shift` for quest entrances).
 - `,` - speak nearest stairs up.
 - `.` - speak nearest stairs down.
+- `L` - speak current dungeon + floor.
+- `Z` - speak player health percentage.
+- `X` - speak experience remaining to next level.
+
+## Keyboard controls
+
+- Arrow keys - walk one tile (north/south/east/west).
+- `A` - primary action (attack / talk / lift items).
+- `D` - secondary action (open chests / doors / pick up items).
+- `W` - spell action (cast active spell).
+
+## Town NPCs
+
 - `F4` - list town NPCs.
 - `PageUp` / `PageDown` - select previous / next town NPC.
 - `End` - speak selected town NPC.
