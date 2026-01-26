@@ -12163,6 +12163,22 @@ msgid "west"
 msgstr "zachód"
 
 #: Source/diablo.cpp
+msgid "northwest"
+msgstr "północny zachód"
+
+#: Source/diablo.cpp
+msgid "northeast"
+msgstr "północny wschód"
+
+#: Source/diablo.cpp
+msgid "southeast"
+msgstr "południowy wschód"
+
+#: Source/diablo.cpp
+msgid "southwest"
+msgstr "południowy zachód"
+
+#: Source/diablo.cpp
 msgid "here"
 msgstr "tutaj"
 
@@ -12297,6 +12313,14 @@ msgstr "Nie mogę znaleźć ścieżki do celu."
 #: Source/diablo.cpp
 msgid "A door is blocking the path. Open it and try again."
 msgstr "Drzwi blokują drogę. Otwórz je i spróbuj ponownie."
+
+#: Source/diablo.cpp
+msgid "A monster is blocking the path. Clear it and try again."
+msgstr "Potwór blokuje drogę. Pokonaj go i spróbuj ponownie."
+
+#: Source/diablo.cpp
+msgid "A breakable object is blocking the path. Destroy it and try again."
+msgstr "Niszczalny obiekt blokuje drogę. Zniszcz go i spróbuj ponownie."
 
 #: Source/controls/plrctrls.cpp
 msgid "Head"
