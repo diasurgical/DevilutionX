@@ -6497,6 +6497,22 @@ msgid "Speaks how much experience remains to reach the next level."
 msgstr "Czyta, ile doświadczenia brakuje do następnego poziomu."
 
 #: Source/diablo.cpp
+msgid "Location"
+msgstr "Lokalizacja"
+
+#: Source/diablo.cpp
+msgid "Speaks the current dungeon and floor."
+msgstr "Czyta nazwę lochu i numer poziomu."
+
+#: Source/diablo.cpp
+msgid "Low durability: {:s}"
+msgstr "Niska trwałość: {:s}"
+
+#: Source/diablo.cpp
+msgid "{:s} health: {:d}%"
+msgstr "{:s} zdrowie: {:d}%"
+
+#: Source/diablo.cpp
 msgid "Max level."
 msgstr "Maksymalny poziom."
 

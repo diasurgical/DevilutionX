@@ -1194,6 +1194,14 @@ void KeymapperOptions::Action::LoadFromIni(std::string_view category)
 
 	const std::string_view iniValue = iniValues.back().value;
 	if (iniValue.empty()) {
+		if (key == "SpeakCurrentLocation") {
+			const std::span<const Ini::Value> chatLogValues = ini->get(category, "ChatLog");
+			if (!chatLogValues.empty() && chatLogValues.back().value == "L") {
+				SetValue(defaultKey);
+				return;
+			}
+		}
+
 		// Migration: some actions were previously saved as unbound because their default
 		// keys were not supported by the keymapper. If we see an explicit empty mapping
 		// for these actions, treat it as "use default".
@@ -1210,6 +1218,11 @@ void KeymapperOptions::Action::LoadFromIni(std::string_view category)
 	if (keyIt == GetOptions().Keymapper.keyNameToKeyID.end()) {
 		// Use the default key if the key is unknown.
 		Log("Keymapper: unknown key '{}'", iniValue);
+		SetValue(defaultKey);
+		return;
+	}
+
+	if (key == "ChatLog" && iniValue == "L") {
 		SetValue(defaultKey);
 		return;
 	}

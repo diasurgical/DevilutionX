@@ -1746,6 +1746,156 @@ void UpdatePlayerLowHpWarningSound()
 }
 #endif // NOSOUND
 
+namespace {
+
+[[nodiscard]] bool IsBossMonsterForHpAnnouncement(const Monster &monster)
+{
+	return monster.isUnique() || monster.ai == MonsterAIID::Diablo;
+}
+
+} // namespace
+
+void UpdateLowDurabilityWarnings()
+{
+	static std::array<uint32_t, NUM_INVLOC> WarnedSeeds {};
+	static std::array<bool, NUM_INVLOC> HasWarned {};
+
+	if (MyPlayer == nullptr)
+		return;
+	if (MyPlayerIsDead || MyPlayer->_pmode == PM_DEATH || MyPlayer->hasNoLife())
+		return;
+
+	std::vector<std::string> newlyLow;
+	newlyLow.reserve(NUM_INVLOC);
+
+	for (int slot = 0; slot < NUM_INVLOC; ++slot) {
+		const Item &item = MyPlayer->InvBody[slot];
+		if (item.isEmpty() || item._iMaxDur <= 0 || item._iMaxDur == DUR_INDESTRUCTIBLE || item._iDurability == DUR_INDESTRUCTIBLE) {
+			HasWarned[slot] = false;
+			continue;
+		}
+
+		const int maxDur = item._iMaxDur;
+		const int durability = item._iDurability;
+		if (durability <= 0) {
+			HasWarned[slot] = false;
+			continue;
+		}
+
+		int threshold = std::max(2, maxDur / 10);
+		threshold = std::clamp(threshold, 1, maxDur);
+
+		const bool isLow = durability <= threshold;
+		if (!isLow) {
+			HasWarned[slot] = false;
+			continue;
+		}
+
+		if (HasWarned[slot] && WarnedSeeds[slot] == item._iSeed)
+			continue;
+
+		HasWarned[slot] = true;
+		WarnedSeeds[slot] = item._iSeed;
+
+		const StringOrView name = item.getName();
+		if (!name.empty())
+			newlyLow.emplace_back(name.str().data(), name.str().size());
+	}
+
+	if (newlyLow.empty())
+		return;
+
+	// Add ordinal numbers for duplicates (e.g. two rings with the same name).
+	for (size_t i = 0; i < newlyLow.size(); ++i) {
+		int total = 0;
+		for (size_t j = 0; j < newlyLow.size(); ++j) {
+			if (newlyLow[j] == newlyLow[i])
+				++total;
+		}
+		if (total <= 1)
+			continue;
+
+		int ordinal = 1;
+		for (size_t j = 0; j < i; ++j) {
+			if (newlyLow[j] == newlyLow[i])
+				++ordinal;
+		}
+		newlyLow[i] = fmt::format("{} {}", newlyLow[i], ordinal);
+	}
+
+	std::string joined;
+	for (size_t i = 0; i < newlyLow.size(); ++i) {
+		if (i != 0)
+			joined += ", ";
+		joined += newlyLow[i];
+	}
+
+	SpeakText(fmt::format(fmt::runtime(_("Low durability: {:s}")), joined), /*force=*/true);
+}
+
+void UpdateBossHealthAnnouncements()
+{
+	static dungeon_type LastLevelType = DTYPE_NONE;
+	static int LastCurrLevel = -1;
+	static bool LastSetLevel = false;
+	static _setlevels LastSetLevelNum = SL_NONE;
+	static std::array<int8_t, MaxMonsters> LastAnnouncedBucket {};
+
+	if (MyPlayer == nullptr)
+		return;
+	if (leveltype == DTYPE_TOWN)
+		return;
+
+	const bool levelChanged = LastLevelType != leveltype || LastCurrLevel != currlevel || LastSetLevel != setlevel || LastSetLevelNum != setlvlnum;
+	if (levelChanged) {
+		LastAnnouncedBucket.fill(-1);
+		LastLevelType = leveltype;
+		LastCurrLevel = currlevel;
+		LastSetLevel = setlevel;
+		LastSetLevelNum = setlvlnum;
+	}
+
+	for (size_t monsterId = 0; monsterId < MaxMonsters; ++monsterId) {
+		if (LastAnnouncedBucket[monsterId] < 0)
+			continue;
+
+		const Monster &monster = Monsters[monsterId];
+		if (monster.isInvalid || monster.hitPoints <= 0 || !IsBossMonsterForHpAnnouncement(monster))
+			LastAnnouncedBucket[monsterId] = -1;
+	}
+
+	for (size_t i = 0; i < ActiveMonsterCount; i++) {
+		const int monsterId = static_cast<int>(ActiveMonsters[i]);
+		const Monster &monster = Monsters[monsterId];
+
+		if (monster.isInvalid)
+			continue;
+		if ((monster.flags & MFLAG_HIDDEN) != 0)
+			continue;
+		if (!IsBossMonsterForHpAnnouncement(monster))
+			continue;
+		if (monster.hitPoints <= 0 || monster.maxHitPoints <= 0)
+			continue;
+
+		const int64_t hp = std::clamp<int64_t>(monster.hitPoints, 0, monster.maxHitPoints);
+		const int64_t maxHp = monster.maxHitPoints;
+		const int hpPercent = static_cast<int>(std::clamp<int64_t>(hp * 100 / maxHp, 0, 100));
+		const int bucket = ((hpPercent + 9) / 10) * 10;
+
+		int8_t &lastBucket = LastAnnouncedBucket[monsterId];
+		if (lastBucket < 0) {
+			lastBucket = static_cast<int8_t>(((hpPercent + 9) / 10) * 10);
+			continue;
+		}
+
+		if (bucket >= lastBucket)
+			continue;
+
+		lastBucket = static_cast<int8_t>(bucket);
+		SpeakText(fmt::format(fmt::runtime(_("{:s} health: {:d}%")), monster.name(), bucket), /*force=*/false);
+	}
+}
+
 void GameLogic()
 {
 	if (!ProcessInput()) {
@@ -1756,6 +1906,7 @@ void GameLogic()
 		ProcessPlayers();
 		UpdateAutoWalkTownNpc();
 		UpdateAutoWalkTracker();
+		UpdateLowDurabilityWarnings();
 	}
 	if (leveltype != DTYPE_TOWN) {
 		gGameLogicStep = GameLogicStep::ProcessMonsters;
@@ -1771,6 +1922,7 @@ void GameLogic()
 		ProcessItems();
 		ProcessLightList();
 		ProcessVisionList();
+		UpdateBossHealthAnnouncements();
 		UpdateProximityAudioCues();
 	} else {
 		gGameLogicStep = GameLogicStep::ProcessTowners;
@@ -4049,6 +4201,66 @@ void SpeakExperienceToNextLevelKeyPressed()
 	    /*force=*/true);
 }
 
+namespace {
+std::string BuildCurrentLocationForSpeech()
+{
+	// Quest Level Name
+	if (setlevel) {
+		const char *const questLevelName = QuestLevelNames[setlvlnum];
+		if (questLevelName == nullptr || questLevelName[0] == '\0')
+			return std::string { _("Set level") };
+
+		return fmt::format("{:s}: {:s}", _("Set level"), _(questLevelName));
+	}
+
+	// Dungeon Name
+	constexpr std::array<const char *, DTYPE_LAST + 1> DungeonStrs = {
+		N_("Town"),
+		N_("Cathedral"),
+		N_("Catacombs"),
+		N_("Caves"),
+		N_("Hell"),
+		N_("Nest"),
+		N_("Crypt"),
+	};
+	std::string dungeonStr;
+	if (leveltype >= DTYPE_TOWN && leveltype <= DTYPE_LAST) {
+		dungeonStr = _(DungeonStrs[static_cast<size_t>(leveltype)]);
+	} else {
+		dungeonStr = _(/* TRANSLATORS: type of dungeon (i.e. Cathedral, Caves)*/ "None");
+	}
+
+	if (leveltype == DTYPE_TOWN || currlevel <= 0)
+		return dungeonStr;
+
+	// Dungeon Level
+	int level = currlevel;
+	if (leveltype == DTYPE_CATACOMBS)
+		level -= 4;
+	else if (leveltype == DTYPE_CAVES)
+		level -= 8;
+	else if (leveltype == DTYPE_HELL)
+		level -= 12;
+	else if (leveltype == DTYPE_NEST)
+		level -= 16;
+	else if (leveltype == DTYPE_CRYPT)
+		level -= 20;
+
+	if (level <= 0)
+		return dungeonStr;
+
+	return fmt::format(fmt::runtime(_(/* TRANSLATORS: dungeon type and floor number i.e. "Cathedral 3"*/ "{} {}")), dungeonStr, level);
+}
+} // namespace
+
+void SpeakCurrentLocationKeyPressed()
+{
+	if (!CanPlayerTakeAction())
+		return;
+
+	SpeakText(BuildCurrentLocationForSpeech(), /*force=*/true);
+}
+
 void InventoryKeyPressed()
 {
 	if (IsPlayerInStore())
@@ -4686,10 +4898,18 @@ void InitKeymapActions()
 	    "ChatLog",
 	    N_("Chat Log"),
 	    N_("Displays chat log."),
-	    'L',
+	    SDLK_INSERT,
 	    [] {
 		    ToggleChatLog();
 	    });
+	options.Keymapper.AddAction(
+	    "SpeakCurrentLocation",
+	    N_("Location"),
+	    N_("Speaks the current dungeon and floor."),
+	    'L',
+	    SpeakCurrentLocationKeyPressed,
+	    nullptr,
+	    CanPlayerTakeAction);
 	options.Keymapper.AddAction(
 	    "SortInv",
 	    N_("Sort Inventory"),
@@ -6029,6 +6249,8 @@ tl::expected<void, std::string> LoadGameLevel(bool firstflag, lvl_entry lvldir)
 	CompleteProgress();
 
 	LoadGameLevelCalculateCursor();
+	if (leveltype != DTYPE_TOWN)
+		SpeakText(BuildCurrentLocationForSpeech(), /*force=*/true);
 	return {};
 }
 
