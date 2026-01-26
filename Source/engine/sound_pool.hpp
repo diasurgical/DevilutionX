@@ -16,8 +16,11 @@ public:
 		WeaponItem,
 		ArmorItem,
 		GoldItem,
+		PotionItem,
+		ScrollItem,
 		Chest,
 		Door,
+		Stairs,
 		Monster,
 		Interact,
 		COUNT,
@@ -55,4 +58,3 @@ private:
 };
 
 } // namespace devilution
-

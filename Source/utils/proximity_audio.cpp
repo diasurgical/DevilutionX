@@ -25,6 +25,8 @@
 #include "monster.h"
 #include "objects.h"
 #include "player.h"
+#include "levels/trigs.h"
+#include "utils/is_of.hpp"
 #include "utils/screen_reader.hpp"
 
 namespace devilution {
@@ -66,11 +68,38 @@ enum class EmitterType : uint8_t {
 	Item = 1,
 	Object = 2,
 	Monster = 3,
+	Trigger = 4,
 };
 
 [[nodiscard]] constexpr uint32_t MakeEmitterId(EmitterType type, uint32_t id)
 {
 	return (static_cast<uint32_t>(type) << 24) | (id & 0x00FFFFFF);
+}
+
+[[nodiscard]] constexpr bool IsPotion(const Item &item)
+{
+	switch (item._iMiscId) {
+	case IMISC_FULLHEAL:
+	case IMISC_HEAL:
+	case IMISC_MANA:
+	case IMISC_FULLMANA:
+	case IMISC_REJUV:
+	case IMISC_FULLREJUV:
+	case IMISC_ELIXSTR:
+	case IMISC_ELIXMAG:
+	case IMISC_ELIXDEX:
+	case IMISC_ELIXVIT:
+	case IMISC_SPECELIX:
+	case IMISC_ARENAPOT:
+		return true;
+	default:
+		return false;
+	}
+}
+
+[[nodiscard]] constexpr bool IsScroll(const Item &item)
+{
+	return item._iMiscId == IMISC_SCROLL || item._iMiscId == IMISC_SCROLLT;
 }
 
 [[nodiscard]] uint32_t IntervalMsForDistance(int distance, int maxDistance, uint32_t minIntervalMs, uint32_t maxIntervalMs)
@@ -229,9 +258,12 @@ void EnsureNavigationSoundsLoaded(SoundPool &pool)
 	(void)pool.EnsureLoaded(SoundPool::SoundId::WeaponItem, { "audio\\weapon.ogg", "..\\audio\\weapon.ogg", "audio\\weapon.wav", "..\\audio\\weapon.wav", "audio\\weapon.mp3", "..\\audio\\weapon.mp3" });
 	(void)pool.EnsureLoaded(SoundPool::SoundId::ArmorItem, { "audio\\armor.ogg", "..\\audio\\armor.ogg", "audio\\armor.wav", "..\\audio\\armor.wav", "audio\\armor.mp3", "..\\audio\\armor.mp3" });
 	(void)pool.EnsureLoaded(SoundPool::SoundId::GoldItem, { "audio\\coin.ogg", "..\\audio\\coin.ogg", "audio\\coin.wav", "..\\audio\\coin.wav", "audio\\coin.mp3", "..\\audio\\coin.mp3" });
+	(void)pool.EnsureLoaded(SoundPool::SoundId::PotionItem, { "audio\\potion.ogg", "..\\audio\\potion.ogg", "audio\\potion.wav", "..\\audio\\potion.wav", "audio\\Potion.wav", "..\\audio\\Potion.wav", "audio\\potion.mp3", "..\\audio\\potion.mp3" });
+	(void)pool.EnsureLoaded(SoundPool::SoundId::ScrollItem, { "audio\\scroll.ogg", "..\\audio\\scroll.ogg", "audio\\scroll.wav", "..\\audio\\scroll.wav", "audio\\Scroll.wav", "..\\audio\\Scroll.wav", "audio\\scroll.mp3", "..\\audio\\scroll.mp3" });
 
 	(void)pool.EnsureLoaded(SoundPool::SoundId::Chest, { "audio\\chest.ogg", "..\\audio\\chest.ogg", "audio\\chest.wav", "..\\audio\\chest.wav", "audio\\chest.mp3", "..\\audio\\chest.mp3" });
 	(void)pool.EnsureLoaded(SoundPool::SoundId::Door, { "audio\\door.ogg", "..\\audio\\door.ogg", "audio\\door.wav", "..\\audio\\door.wav", "audio\\Door.wav", "..\\audio\\Door.wav", "audio\\door.mp3", "..\\audio\\door.mp3" });
+	(void)pool.EnsureLoaded(SoundPool::SoundId::Stairs, { "audio\\stairs.ogg", "..\\audio\\stairs.ogg", "audio\\stairs.wav", "..\\audio\\stairs.wav", "audio\\Stairs.wav", "..\\audio\\Stairs.wav", "audio\\stairs.mp3", "..\\audio\\stairs.mp3" });
 
 	(void)pool.EnsureLoaded(SoundPool::SoundId::Monster, { "audio\\monster.ogg", "..\\audio\\monster.ogg", "audio\\monster.wav", "..\\audio\\monster.wav", "audio\\monster.mp3", "..\\audio\\monster.mp3" });
 
@@ -323,6 +355,15 @@ void UpdateProximityAudioCues()
 		case ICLASS_GOLD:
 			soundId = SoundPool::SoundId::GoldItem;
 			break;
+		case ICLASS_MISC:
+			if (IsPotion(item)) {
+				soundId = SoundPool::SoundId::PotionItem;
+			} else if (IsScroll(item)) {
+				soundId = SoundPool::SoundId::ScrollItem;
+			} else {
+				continue;
+			}
+			break;
 		default:
 			continue;
 		}
@@ -369,6 +410,27 @@ void UpdateProximityAudioCues()
 		                        .emitterId = MakeEmitterId(EmitterType::Object, static_cast<uint32_t>(objectId)),
 		                        .sound = soundId,
 		                        .position = object.position,
+		                        .distance = distance,
+		                        .intervalMs = IntervalMsForDistance(distance, MaxCueDistanceTiles, MinIntervalMs, MaxIntervalMs),
+		                    });
+	}
+
+	for (int i = 0; i < numtrigs; ++i) {
+		if (!IsAnyOf(trigs[i]._tmsg, WM_DIABNEXTLVL, WM_DIABPREVLVL))
+			continue;
+
+		if (!pool.IsLoaded(SoundPool::SoundId::Stairs))
+			continue;
+
+		const Point triggerPosition { trigs[i].position.x, trigs[i].position.y };
+		const int distance = playerPosition.ApproxDistance(triggerPosition);
+		if (distance > MaxCueDistanceTiles)
+			continue;
+
+		ConsiderCandidate(best, CandidateEmitter {
+		                        .emitterId = MakeEmitterId(EmitterType::Trigger, static_cast<uint32_t>(i)),
+		                        .sound = SoundPool::SoundId::Stairs,
+		                        .position = triggerPosition,
 		                        .distance = distance,
 		                        .intervalMs = IntervalMsForDistance(distance, MaxCueDistanceTiles, MinIntervalMs, MaxIntervalMs),
 		                    });
