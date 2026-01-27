@@ -12335,10 +12335,6 @@ msgid "Right ring"
 msgstr "Prawy pierścień"
 
 #: Source/controls/plrctrls.cpp
-msgid "Amulet"
-msgstr "Amulet"
-
-#: Source/controls/plrctrls.cpp
 msgid "Left hand"
 msgstr "Lewa ręka"
 
@@ -12347,16 +12343,8 @@ msgid "Right hand"
 msgstr "Prawa ręka"
 
 #: Source/controls/plrctrls.cpp
-msgid "Chest"
-msgstr "Tułów"
-
-#: Source/controls/plrctrls.cpp
 msgid "Belt"
 msgstr "Pas"
-
-#: Source/controls/plrctrls.cpp
-msgid "Inventory"
-msgstr "Ekwipunek"
 
 #: Source/controls/plrctrls.cpp
 msgid "empty"
