@@ -79,20 +79,24 @@ constexpr int RepairBtn = 3;
 std::span<Item> GetVendorItems(VisualStoreVendor vendor, VisualStoreTab tab)
 {
 	switch (vendor) {
-	case VisualStoreVendor::Smith:
+	case VisualStoreVendor::Smith: {
 		if (tab == VisualStoreTab::Premium) {
 			return { PremiumItems.data(), static_cast<size_t>(PremiumItems.size()) };
 		}
 		return { SmithItems.data(), static_cast<size_t>(SmithItems.size()) };
-	case VisualStoreVendor::Witch:
+	}
+	case VisualStoreVendor::Witch: {
 		return { WitchItems.data(), static_cast<size_t>(WitchItems.size()) };
-	case VisualStoreVendor::Healer:
+	}
+	case VisualStoreVendor::Healer: {
 		return { HealerItems.data(), static_cast<size_t>(HealerItems.size()) };
-	case VisualStoreVendor::Boy:
+	}
+	case VisualStoreVendor::Boy: {
 		if (BoyItem.isEmpty()) {
 			return {};
 		}
 		return { &BoyItem, 1 };
+	}
 	}
 	return {};
 }
@@ -108,11 +112,13 @@ bool VendorAcceptsSale()
 {
 	switch (VisualStore.vendor) {
 	case VisualStoreVendor::Smith:
-	case VisualStoreVendor::Witch:
+	case VisualStoreVendor::Witch: {
 		return true;
+	}
 	case VisualStoreVendor::Healer:
-	case VisualStoreVendor::Boy:
+	case VisualStoreVendor::Boy: {
 		return false;
+	}
 	}
 	return false;
 }
@@ -121,14 +127,18 @@ bool VendorAcceptsSale()
 const std::string_view GetVendorName()
 {
 	switch (VisualStore.vendor) {
-	case VisualStoreVendor::Smith:
+	case VisualStoreVendor::Smith: {
 		return _("Griswold's Shop");
-	case VisualStoreVendor::Witch:
+	}
+	case VisualStoreVendor::Witch: {
 		return _("Adria's Shop");
-	case VisualStoreVendor::Healer:
+	}
+	case VisualStoreVendor::Healer: {
 		return _("Pepin's Shop");
-	case VisualStoreVendor::Boy:
+	}
+	case VisualStoreVendor::Boy: {
 		return _("Wirt's Shop");
+	}
 	}
 	return "";
 }
@@ -507,7 +517,7 @@ void DrawVisualStore(const Surface &out)
 	UiFlags basicStyle = VisualStore.activeTab == VisualStoreTab::Basic ? styleWhite : styleTabPushed;
 	UiFlags premiumStyle = VisualStore.activeTab == VisualStoreTab::Premium ? styleWhite : styleTabPushed;
 	switch (VisualStore.vendor) {
-	case VisualStoreVendor::Smith:
+	case VisualStoreVendor::Smith: {
 		// Draw pressed button visual
 		/*if (VisualStoreButtonPressed >= 0 && VisualStoreButtonPressed <= NavButton10Right && VisualStoreNavButtonArt) {
 		    const Point buttonPos = GetPanelPosition(UiPanels::Stash, VisualStoreButtonRect[VisualStoreButtonPressed].position);
@@ -522,16 +532,18 @@ void DrawVisualStore(const Surface &out)
 		RenderClxSprite(out, (*VisualStoreNavButtonArt)[VisualStore.activeTab != VisualStoreTab::Premium], premBtnPos.position);
 		DrawString(out, _("Premium"), premBtnPos, { .flags = UiFlags::AlignCenter | premiumStyle });
 		break;
+	}
 	case VisualStoreVendor::Witch:
 	case VisualStoreVendor::Boy:
-	case VisualStoreVendor::Healer:
+	case VisualStoreVendor::Healer: {
 		const Rectangle miscBtnPos = { panelPos + (VisualStoreButtonRect[TabButtonBasic].position - Point { 0, 0 }), VisualStoreButtonRect[TabButtonBasic].size };
 		RenderClxSprite(out, (*VisualStoreNavButtonArt)[VisualStoreButtonPressed == TabButtonBasic], miscBtnPos.position);
 		DrawString(out, _("Misc"), miscBtnPos, { .flags = UiFlags::AlignCenter | basicStyle });
 		break;
-
-	default:
+	}
+	default: {
 		break;
+	}
 	}
 
 	// Draw page number
@@ -726,7 +738,7 @@ void CheckVisualStoreItem(Point mousePosition, bool isCtrlHeld, bool isShiftHeld
 
 	// Remove item from store (vendor-specific handling)
 	switch (VisualStore.vendor) {
-	case VisualStoreVendor::Smith:
+	case VisualStoreVendor::Smith: {
 		if (VisualStore.activeTab == VisualStoreTab::Premium) {
 			// Premium items get replaced
 			PremiumItems[itemIndex].clear();
@@ -736,21 +748,25 @@ void CheckVisualStoreItem(Point mousePosition, bool isCtrlHeld, bool isShiftHeld
 			SmithItems.erase(SmithItems.begin() + itemIndex);
 		}
 		break;
-	case VisualStoreVendor::Witch:
+	}
+	case VisualStoreVendor::Witch: {
 		// First 3 items are pinned, don't remove them
 		if (itemIndex >= 3) {
 			WitchItems.erase(WitchItems.begin() + itemIndex);
 		}
 		break;
-	case VisualStoreVendor::Healer:
+	}
+	case VisualStoreVendor::Healer: {
 		// First 2-3 items are pinned
 		if (itemIndex >= (gbIsMultiplayer ? 3 : 2)) {
 			HealerItems.erase(HealerItems.begin() + itemIndex);
 		}
 		break;
-	case VisualStoreVendor::Boy:
+	}
+	case VisualStoreVendor::Boy: {
 		BoyItem.clear();
 		break;
+	}
 	}
 
 	pcursstoreitem = -1;
@@ -790,13 +806,16 @@ bool CanSellToCurrentVendor(const Item &item)
 		return false;
 
 	switch (VisualStore.vendor) {
-	case VisualStoreVendor::Smith:
+	case VisualStoreVendor::Smith: {
 		return SmithWillBuy(item);
-	case VisualStoreVendor::Witch:
+	}
+	case VisualStoreVendor::Witch: {
 		return WitchWillBuy(item);
+	}
 	case VisualStoreVendor::Healer:
-	case VisualStoreVendor::Boy:
+	case VisualStoreVendor::Boy: {
 		return false;
+	}
 	}
 	return false;
 }
@@ -868,18 +887,22 @@ void CheckVisualStoreButtonRelease(Point mousePosition)
 		//	for (int i = 0; i < 10; i++)
 		//		VisualStoreNextPage();
 		//	break;
-		case TabButtonBasic:
+		case TabButtonBasic: {
 			SetVisualStoreTab(VisualStoreTab::Basic);
 			break;
-		case TabButtonPremium:
+		}
+		case TabButtonPremium: {
 			SetVisualStoreTab(VisualStoreTab::Premium);
 			break;
-		case RepairAllBtn:
+		}
+		case RepairAllBtn: {
 			VisualStoreRepairAll();
 			break;
-		case RepairBtn:
+		}
+		case RepairBtn: {
 			VisualStoreRepair();
 			break;
+		}
 		}
 	}
 
