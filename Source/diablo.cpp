@@ -4383,6 +4383,69 @@ std::string TriggerLabelForSpeech(const TriggerStruct &trigger)
 	}
 }
 
+std::optional<int> LockedTownDungeonTriggerIndex;
+
+std::vector<int> CollectTownDungeonTriggerIndices()
+{
+	std::vector<int> result;
+	result.reserve(static_cast<size_t>(std::max(0, numtrigs)));
+
+	for (int i = 0; i < numtrigs; ++i) {
+		if (IsAnyOf(trigs[i]._tmsg, WM_DIABNEXTLVL, WM_DIABTOWNWARP))
+			result.push_back(i);
+	}
+
+	std::sort(result.begin(), result.end(), [](int a, int b) {
+		const TriggerStruct &ta = trigs[a];
+		const TriggerStruct &tb = trigs[b];
+
+		const int kindA = ta._tmsg == WM_DIABNEXTLVL ? 0 : (ta._tmsg == WM_DIABTOWNWARP ? 1 : 2);
+		const int kindB = tb._tmsg == WM_DIABNEXTLVL ? 0 : (tb._tmsg == WM_DIABTOWNWARP ? 1 : 2);
+		if (kindA != kindB)
+			return kindA < kindB;
+
+		if (ta._tmsg == WM_DIABTOWNWARP && tb._tmsg == WM_DIABTOWNWARP && ta._tlvl != tb._tlvl)
+			return ta._tlvl < tb._tlvl;
+
+		return a < b;
+	});
+
+	return result;
+}
+
+std::optional<int> FindDefaultTownDungeonTriggerIndex(const std::vector<int> &candidates)
+{
+	for (const int index : candidates) {
+		if (trigs[index]._tmsg == WM_DIABNEXTLVL)
+			return index;
+	}
+	if (!candidates.empty())
+		return candidates.front();
+	return std::nullopt;
+}
+
+std::optional<int> FindLockedTownDungeonTriggerIndex(const std::vector<int> &candidates)
+{
+	if (!LockedTownDungeonTriggerIndex)
+		return std::nullopt;
+	if (std::find(candidates.begin(), candidates.end(), *LockedTownDungeonTriggerIndex) != candidates.end())
+		return *LockedTownDungeonTriggerIndex;
+	return std::nullopt;
+}
+
+std::optional<int> FindNextTownDungeonTriggerIndex(const std::vector<int> &candidates, int current)
+{
+	if (candidates.empty())
+		return std::nullopt;
+
+	const auto it = std::find(candidates.begin(), candidates.end(), current);
+	if (it == candidates.end())
+		return candidates.front();
+	if (std::next(it) == candidates.end())
+		return candidates.front();
+	return *std::next(it);
+}
+
 std::optional<int> FindPreferredExitTriggerIndex()
 {
 	if (numtrigs <= 0)
@@ -4533,6 +4596,7 @@ void SpeakNearestExitKeyPressed()
 
 	const SDL_Keymod modState = SDL_GetModState();
 	const bool seekQuestEntrance = (modState & SDL_KMOD_SHIFT) != 0;
+	const bool cycleTownDungeon = (modState & SDL_KMOD_CTRL) != 0;
 
 	if (seekQuestEntrance) {
 		if (const std::optional<QuestSetLevelEntrance> entrance = FindNearestQuestSetLevelEntranceOnCurrentLevel(); entrance) {
@@ -4550,6 +4614,53 @@ void SpeakNearestExitKeyPressed()
 		}
 
 		SpeakText(_("No quest entrances found."), true);
+		return;
+	}
+
+	if (leveltype == DTYPE_TOWN) {
+		const std::vector<int> dungeonCandidates = CollectTownDungeonTriggerIndices();
+		if (dungeonCandidates.empty()) {
+			SpeakText(_("No exits found."), true);
+			return;
+		}
+
+		if (cycleTownDungeon) {
+			if (dungeonCandidates.size() <= 1) {
+				SpeakText(_("No other dungeon entrances found."), true);
+				return;
+			}
+
+			const int current = LockedTownDungeonTriggerIndex.value_or(-1);
+			const std::optional<int> next = FindNextTownDungeonTriggerIndex(dungeonCandidates, current);
+			if (!next) {
+				SpeakText(_("No other dungeon entrances found."), true);
+				return;
+			}
+
+			LockedTownDungeonTriggerIndex = *next;
+			const std::string label = TriggerLabelForSpeech(trigs[*next]);
+			if (!label.empty())
+				SpeakText(label, true);
+			return;
+		}
+
+		const int triggerIndex = FindLockedTownDungeonTriggerIndex(dungeonCandidates)
+		    .value_or(FindDefaultTownDungeonTriggerIndex(dungeonCandidates).value_or(dungeonCandidates.front()));
+		LockedTownDungeonTriggerIndex = triggerIndex;
+
+		const TriggerStruct &trigger = trigs[triggerIndex];
+		const Point targetPosition { trigger.position.x, trigger.position.y };
+
+		const std::optional<std::vector<int8_t>> path = FindKeyboardWalkPathForSpeech(*MyPlayer, startPosition, targetPosition);
+		std::string message = TriggerLabelForSpeech(trigger);
+		if (!message.empty())
+			message.append(": ");
+		if (!path)
+			AppendDirectionalFallback(message, targetPosition - startPosition);
+		else
+			AppendKeyboardWalkPathForSpeech(message, *path);
+
+		SpeakText(message, true);
 		return;
 	}
 
@@ -5222,7 +5333,7 @@ void InitKeymapActions()
 	options.Keymapper.AddAction(
 	    "SpeakNearestExit",
 	    N_("Nearest exit"),
-	    N_("Speaks the nearest exit. Hold Shift for quest entrances."),
+	    N_("Speaks the nearest exit. Hold Shift for quest entrances. In town, press Ctrl+E to cycle dungeon entrances."),
 	    'E',
 	    SpeakNearestExitKeyPressed,
 	    nullptr,

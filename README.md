@@ -25,7 +25,7 @@ Keybinds are configurable, but these are the defaults most players will use:
 - `Shift`+`N` - cycle to the next target in the current tracker category (speaks name only; duplicates get ordinal numbers).
 - `Ctrl`+`N` - clear the tracker target.
 - `H` - speak nearest unexplored space.
-- `E` - speak nearest exit (hold `Shift` for quest entrances).
+- `E` - speak nearest exit (hold `Shift` for quest entrances; in town: `Ctrl`+`E` cycles dungeon entrances).
 - `,` - speak nearest stairs up.
 - `.` - speak nearest stairs down.
 - `L` - speak current dungeon + floor.
