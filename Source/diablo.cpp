@@ -4542,6 +4542,93 @@ std::optional<Point> FindNearestTownPortalOnCurrentLevel()
 	return bestPosition;
 }
 
+struct TownPortalInTown {
+	int portalIndex;
+	Point position;
+	int distance;
+};
+
+std::optional<TownPortalInTown> FindNearestTownPortalInTown()
+{
+	if (MyPlayer == nullptr || leveltype != DTYPE_TOWN)
+		return std::nullopt;
+
+	const Point playerPosition = MyPlayer->position.future;
+
+	std::optional<TownPortalInTown> best;
+	int bestDistance = 0;
+
+	for (const Missile &missile : Missiles) {
+		if (missile._mitype != MissileID::TownPortal)
+			continue;
+		if (missile._misource < 0 || missile._misource >= MAXPORTAL)
+			continue;
+		if (!Portals[missile._misource].open)
+			continue;
+
+		const Point portalPosition = missile.position.tile;
+		const int distance = playerPosition.WalkingDistance(portalPosition);
+		if (!best || distance < bestDistance) {
+			best = TownPortalInTown {
+				.portalIndex = missile._misource,
+				.position = portalPosition,
+				.distance = distance,
+			};
+			bestDistance = distance;
+		}
+	}
+
+	return best;
+}
+
+[[nodiscard]] std::string TownPortalLabelForSpeech(const Portal &portal)
+{
+	if (portal.level <= 0)
+		return std::string { _("Town portal") };
+
+	if (portal.setlvl) {
+		const auto questLevel = static_cast<_setlevels>(portal.level);
+		const char *questLevelName = QuestLevelNames[questLevel];
+		if (questLevelName == nullptr || questLevelName[0] == '\0')
+			return std::string { _("Town portal to set level") };
+
+		return fmt::format(fmt::runtime(_(/* TRANSLATORS: {:s} is a set/quest level name. */ "Town portal to {:s}")), _(questLevelName));
+	}
+
+	constexpr std::array<const char *, DTYPE_LAST + 1> DungeonStrs = {
+		N_("Town"),
+		N_("Cathedral"),
+		N_("Catacombs"),
+		N_("Caves"),
+		N_("Hell"),
+		N_("Nest"),
+		N_("Crypt"),
+	};
+	std::string dungeonStr;
+	if (portal.ltype >= DTYPE_TOWN && portal.ltype <= DTYPE_LAST) {
+		dungeonStr = _(DungeonStrs[static_cast<size_t>(portal.ltype)]);
+	} else {
+		dungeonStr = _(/* TRANSLATORS: type of dungeon (i.e. Cathedral, Caves)*/ "None");
+	}
+
+	int floor = portal.level;
+	if (portal.ltype == DTYPE_CATACOMBS)
+		floor -= 4;
+	else if (portal.ltype == DTYPE_CAVES)
+		floor -= 8;
+	else if (portal.ltype == DTYPE_HELL)
+		floor -= 12;
+	else if (portal.ltype == DTYPE_NEST)
+		floor -= 16;
+	else if (portal.ltype == DTYPE_CRYPT)
+		floor -= 20;
+
+	if (floor > 0)
+		return fmt::format(fmt::runtime(_(/* TRANSLATORS: {:s} is a dungeon name and {:d} is a floor number. */ "Town portal to {:s} {:d}")), dungeonStr, floor);
+
+	return fmt::format(fmt::runtime(_(/* TRANSLATORS: {:s} is a dungeon name. */ "Town portal to {:s}")), dungeonStr);
+}
+
 struct QuestSetLevelEntrance {
 	_setlevels questLevel;
 	Point entrancePosition;
@@ -4710,6 +4797,42 @@ void SpeakNearestExitKeyPressed()
 	std::string message = TriggerLabelForSpeech(trigger);
 	if (!message.empty())
 		message.append(": ");
+	if (!path)
+		AppendDirectionalFallback(message, targetPosition - startPosition);
+	else
+		AppendKeyboardWalkPathForSpeech(message, *path);
+
+	SpeakText(message, true);
+}
+
+void SpeakNearestTownPortalInTownKeyPressed()
+{
+	if (!CanPlayerTakeAction())
+		return;
+	if (AutomapActive) {
+		SpeakText(_("Close the map first."), true);
+		return;
+	}
+	if (leveltype != DTYPE_TOWN) {
+		SpeakText(_("Not in town."), true);
+		return;
+	}
+	if (MyPlayer == nullptr)
+		return;
+
+	const std::optional<TownPortalInTown> portal = FindNearestTownPortalInTown();
+	if (!portal) {
+		SpeakText(_("No town portals found."), true);
+		return;
+	}
+
+	const Point startPosition = MyPlayer->position.future;
+	const Point targetPosition = portal->position;
+
+	const std::optional<std::vector<int8_t>> path = FindKeyboardWalkPathForSpeech(*MyPlayer, startPosition, targetPosition);
+
+	std::string message = TownPortalLabelForSpeech(Portals[portal->portalIndex]);
+	message.append(": ");
 	if (!path)
 		AppendDirectionalFallback(message, targetPosition - startPosition);
 	else
@@ -5525,7 +5648,7 @@ void InitKeymapActions()
 	    "PauseGame",
 	    N_("Pause Game"),
 	    N_("Pauses the game."),
-	    'P',
+	    SDLK_UNKNOWN,
 	    diablo_pause_game);
 	options.Keymapper.AddAction(
 	    "PauseGameAlternate",
@@ -5618,6 +5741,14 @@ void InitKeymapActions()
 		    DebugToggle = !DebugToggle;
 	    });
 #endif
+	options.Keymapper.AddAction(
+	    "SpeakNearestTownPortal",
+	    N_("Nearest town portal"),
+	    N_("Speaks directions to the nearest open town portal in town."),
+	    'P',
+	    SpeakNearestTownPortalInTownKeyPressed,
+	    nullptr,
+	    []() { return CanPlayerTakeAction() && leveltype == DTYPE_TOWN; });
 	options.Keymapper.CommitActions();
 }
 
