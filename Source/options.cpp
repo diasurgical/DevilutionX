@@ -1204,6 +1204,14 @@ void KeymapperOptions::Action::LoadFromIni(std::string_view category)
 			}
 		}
 
+		// Migration: `SpeakNearestTownPortal` originally defaulted to `P` but could be
+		// saved as unbound due to key conflicts in earlier versions. Treat an explicit
+		// empty mapping as "use default" so existing configs start working again.
+		if (key == "SpeakNearestTownPortal") {
+			SetValue(defaultKey);
+			return;
+		}
+
 		// Migration: some actions were previously saved as unbound because their default
 		// keys were not supported by the keymapper. If we see an explicit empty mapping
 		// for these actions, treat it as "use default".

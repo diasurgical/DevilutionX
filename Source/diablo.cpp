@@ -4383,6 +4383,69 @@ std::string TriggerLabelForSpeech(const TriggerStruct &trigger)
 	}
 }
 
+std::optional<int> LockedTownDungeonTriggerIndex;
+
+std::vector<int> CollectTownDungeonTriggerIndices()
+{
+	std::vector<int> result;
+	result.reserve(static_cast<size_t>(std::max(0, numtrigs)));
+
+	for (int i = 0; i < numtrigs; ++i) {
+		if (IsAnyOf(trigs[i]._tmsg, WM_DIABNEXTLVL, WM_DIABTOWNWARP))
+			result.push_back(i);
+	}
+
+	std::sort(result.begin(), result.end(), [](int a, int b) {
+		const TriggerStruct &ta = trigs[a];
+		const TriggerStruct &tb = trigs[b];
+
+		const int kindA = ta._tmsg == WM_DIABNEXTLVL ? 0 : (ta._tmsg == WM_DIABTOWNWARP ? 1 : 2);
+		const int kindB = tb._tmsg == WM_DIABNEXTLVL ? 0 : (tb._tmsg == WM_DIABTOWNWARP ? 1 : 2);
+		if (kindA != kindB)
+			return kindA < kindB;
+
+		if (ta._tmsg == WM_DIABTOWNWARP && tb._tmsg == WM_DIABTOWNWARP && ta._tlvl != tb._tlvl)
+			return ta._tlvl < tb._tlvl;
+
+		return a < b;
+	});
+
+	return result;
+}
+
+std::optional<int> FindDefaultTownDungeonTriggerIndex(const std::vector<int> &candidates)
+{
+	for (const int index : candidates) {
+		if (trigs[index]._tmsg == WM_DIABNEXTLVL)
+			return index;
+	}
+	if (!candidates.empty())
+		return candidates.front();
+	return std::nullopt;
+}
+
+std::optional<int> FindLockedTownDungeonTriggerIndex(const std::vector<int> &candidates)
+{
+	if (!LockedTownDungeonTriggerIndex)
+		return std::nullopt;
+	if (std::find(candidates.begin(), candidates.end(), *LockedTownDungeonTriggerIndex) != candidates.end())
+		return *LockedTownDungeonTriggerIndex;
+	return std::nullopt;
+}
+
+std::optional<int> FindNextTownDungeonTriggerIndex(const std::vector<int> &candidates, int current)
+{
+	if (candidates.empty())
+		return std::nullopt;
+
+	const auto it = std::find(candidates.begin(), candidates.end(), current);
+	if (it == candidates.end())
+		return candidates.front();
+	if (std::next(it) == candidates.end())
+		return candidates.front();
+	return *std::next(it);
+}
+
 std::optional<int> FindPreferredExitTriggerIndex()
 {
 	if (numtrigs <= 0)
@@ -4479,6 +4542,93 @@ std::optional<Point> FindNearestTownPortalOnCurrentLevel()
 	return bestPosition;
 }
 
+struct TownPortalInTown {
+	int portalIndex;
+	Point position;
+	int distance;
+};
+
+std::optional<TownPortalInTown> FindNearestTownPortalInTown()
+{
+	if (MyPlayer == nullptr || leveltype != DTYPE_TOWN)
+		return std::nullopt;
+
+	const Point playerPosition = MyPlayer->position.future;
+
+	std::optional<TownPortalInTown> best;
+	int bestDistance = 0;
+
+	for (const Missile &missile : Missiles) {
+		if (missile._mitype != MissileID::TownPortal)
+			continue;
+		if (missile._misource < 0 || missile._misource >= MAXPORTAL)
+			continue;
+		if (!Portals[missile._misource].open)
+			continue;
+
+		const Point portalPosition = missile.position.tile;
+		const int distance = playerPosition.WalkingDistance(portalPosition);
+		if (!best || distance < bestDistance) {
+			best = TownPortalInTown {
+				.portalIndex = missile._misource,
+				.position = portalPosition,
+				.distance = distance,
+			};
+			bestDistance = distance;
+		}
+	}
+
+	return best;
+}
+
+[[nodiscard]] std::string TownPortalLabelForSpeech(const Portal &portal)
+{
+	if (portal.level <= 0)
+		return std::string { _("Town portal") };
+
+	if (portal.setlvl) {
+		const auto questLevel = static_cast<_setlevels>(portal.level);
+		const char *questLevelName = QuestLevelNames[questLevel];
+		if (questLevelName == nullptr || questLevelName[0] == '\0')
+			return std::string { _("Town portal to set level") };
+
+		return fmt::format(fmt::runtime(_(/* TRANSLATORS: {:s} is a set/quest level name. */ "Town portal to {:s}")), _(questLevelName));
+	}
+
+	constexpr std::array<const char *, DTYPE_LAST + 1> DungeonStrs = {
+		N_("Town"),
+		N_("Cathedral"),
+		N_("Catacombs"),
+		N_("Caves"),
+		N_("Hell"),
+		N_("Nest"),
+		N_("Crypt"),
+	};
+	std::string dungeonStr;
+	if (portal.ltype >= DTYPE_TOWN && portal.ltype <= DTYPE_LAST) {
+		dungeonStr = _(DungeonStrs[static_cast<size_t>(portal.ltype)]);
+	} else {
+		dungeonStr = _(/* TRANSLATORS: type of dungeon (i.e. Cathedral, Caves)*/ "None");
+	}
+
+	int floor = portal.level;
+	if (portal.ltype == DTYPE_CATACOMBS)
+		floor -= 4;
+	else if (portal.ltype == DTYPE_CAVES)
+		floor -= 8;
+	else if (portal.ltype == DTYPE_HELL)
+		floor -= 12;
+	else if (portal.ltype == DTYPE_NEST)
+		floor -= 16;
+	else if (portal.ltype == DTYPE_CRYPT)
+		floor -= 20;
+
+	if (floor > 0)
+		return fmt::format(fmt::runtime(_(/* TRANSLATORS: {:s} is a dungeon name and {:d} is a floor number. */ "Town portal to {:s} {:d}")), dungeonStr, floor);
+
+	return fmt::format(fmt::runtime(_(/* TRANSLATORS: {:s} is a dungeon name. */ "Town portal to {:s}")), dungeonStr);
+}
+
 struct QuestSetLevelEntrance {
 	_setlevels questLevel;
 	Point entrancePosition;
@@ -4533,6 +4683,7 @@ void SpeakNearestExitKeyPressed()
 
 	const SDL_Keymod modState = SDL_GetModState();
 	const bool seekQuestEntrance = (modState & SDL_KMOD_SHIFT) != 0;
+	const bool cycleTownDungeon = (modState & SDL_KMOD_CTRL) != 0;
 
 	if (seekQuestEntrance) {
 		if (const std::optional<QuestSetLevelEntrance> entrance = FindNearestQuestSetLevelEntranceOnCurrentLevel(); entrance) {
@@ -4550,6 +4701,53 @@ void SpeakNearestExitKeyPressed()
 		}
 
 		SpeakText(_("No quest entrances found."), true);
+		return;
+	}
+
+	if (leveltype == DTYPE_TOWN) {
+		const std::vector<int> dungeonCandidates = CollectTownDungeonTriggerIndices();
+		if (dungeonCandidates.empty()) {
+			SpeakText(_("No exits found."), true);
+			return;
+		}
+
+		if (cycleTownDungeon) {
+			if (dungeonCandidates.size() <= 1) {
+				SpeakText(_("No other dungeon entrances found."), true);
+				return;
+			}
+
+			const int current = LockedTownDungeonTriggerIndex.value_or(-1);
+			const std::optional<int> next = FindNextTownDungeonTriggerIndex(dungeonCandidates, current);
+			if (!next) {
+				SpeakText(_("No other dungeon entrances found."), true);
+				return;
+			}
+
+			LockedTownDungeonTriggerIndex = *next;
+			const std::string label = TriggerLabelForSpeech(trigs[*next]);
+			if (!label.empty())
+				SpeakText(label, true);
+			return;
+		}
+
+		const int triggerIndex = FindLockedTownDungeonTriggerIndex(dungeonCandidates)
+		    .value_or(FindDefaultTownDungeonTriggerIndex(dungeonCandidates).value_or(dungeonCandidates.front()));
+		LockedTownDungeonTriggerIndex = triggerIndex;
+
+		const TriggerStruct &trigger = trigs[triggerIndex];
+		const Point targetPosition { trigger.position.x, trigger.position.y };
+
+		const std::optional<std::vector<int8_t>> path = FindKeyboardWalkPathForSpeech(*MyPlayer, startPosition, targetPosition);
+		std::string message = TriggerLabelForSpeech(trigger);
+		if (!message.empty())
+			message.append(": ");
+		if (!path)
+			AppendDirectionalFallback(message, targetPosition - startPosition);
+		else
+			AppendKeyboardWalkPathForSpeech(message, *path);
+
+		SpeakText(message, true);
 		return;
 	}
 
@@ -4599,6 +4797,42 @@ void SpeakNearestExitKeyPressed()
 	std::string message = TriggerLabelForSpeech(trigger);
 	if (!message.empty())
 		message.append(": ");
+	if (!path)
+		AppendDirectionalFallback(message, targetPosition - startPosition);
+	else
+		AppendKeyboardWalkPathForSpeech(message, *path);
+
+	SpeakText(message, true);
+}
+
+void SpeakNearestTownPortalInTownKeyPressed()
+{
+	if (!CanPlayerTakeAction())
+		return;
+	if (AutomapActive) {
+		SpeakText(_("Close the map first."), true);
+		return;
+	}
+	if (leveltype != DTYPE_TOWN) {
+		SpeakText(_("Not in town."), true);
+		return;
+	}
+	if (MyPlayer == nullptr)
+		return;
+
+	const std::optional<TownPortalInTown> portal = FindNearestTownPortalInTown();
+	if (!portal) {
+		SpeakText(_("No town portals found."), true);
+		return;
+	}
+
+	const Point startPosition = MyPlayer->position.future;
+	const Point targetPosition = portal->position;
+
+	const std::optional<std::vector<int8_t>> path = FindKeyboardWalkPathForSpeech(*MyPlayer, startPosition, targetPosition);
+
+	std::string message = TownPortalLabelForSpeech(Portals[portal->portalIndex]);
+	message.append(": ");
 	if (!path)
 		AppendDirectionalFallback(message, targetPosition - startPosition);
 	else
@@ -5222,7 +5456,7 @@ void InitKeymapActions()
 	options.Keymapper.AddAction(
 	    "SpeakNearestExit",
 	    N_("Nearest exit"),
-	    N_("Speaks the nearest exit. Hold Shift for quest entrances."),
+	    N_("Speaks the nearest exit. Hold Shift for quest entrances. In town, press Ctrl+E to cycle dungeon entrances."),
 	    'E',
 	    SpeakNearestExitKeyPressed,
 	    nullptr,
@@ -5414,7 +5648,7 @@ void InitKeymapActions()
 	    "PauseGame",
 	    N_("Pause Game"),
 	    N_("Pauses the game."),
-	    'P',
+	    SDLK_UNKNOWN,
 	    diablo_pause_game);
 	options.Keymapper.AddAction(
 	    "PauseGameAlternate",
@@ -5507,6 +5741,14 @@ void InitKeymapActions()
 		    DebugToggle = !DebugToggle;
 	    });
 #endif
+	options.Keymapper.AddAction(
+	    "SpeakNearestTownPortal",
+	    N_("Nearest town portal"),
+	    N_("Speaks directions to the nearest open town portal in town."),
+	    'P',
+	    SpeakNearestTownPortalInTownKeyPressed,
+	    nullptr,
+	    []() { return CanPlayerTakeAction() && leveltype == DTYPE_TOWN; });
 	options.Keymapper.CommitActions();
 }
 
