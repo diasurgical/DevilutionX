@@ -542,6 +542,8 @@ void Server::updateGameData()
 					data->storeList.push_back(StoreOption::REPAIR);
 				else if (!strcmp(devilution::TextLine[i].text.c_str(), "Recharge staves"))
 					data->storeList.push_back(StoreOption::RECHARGE);
+				else if (!strcmp(devilution::TextLine[i].text.c_str(), "Access Storage"))
+					data->storeList.push_back(StoreOption::ACCESSSTORAGE);
 			}
 		}
 
@@ -917,6 +919,28 @@ void Server::updateGameData()
 		playerData->set__pispllvladd(data->playerList[i]._pISplLvlAdd);
 		playerData->set_pmanashield(data->playerList[i].pManaShield);
 	}
+
+	data->stashItems.clear();
+	for (auto &stashItem : devilution::Stash.stashList) {
+		if (stashItem.isEmpty()) {
+			continue;
+		}
+		size_t itemID = data->itemList.size();
+		for (size_t k = 0; k < data->itemList.size(); k++) {
+			if (data->itemList[k].compare(stashItem)) {
+				itemID = k;
+				break;
+			}
+		}
+		if (itemID == data->itemList.size())
+			data->itemList.push_back(ItemData {});
+		fullFillItemInfo(itemID, &stashItem);
+		data->stashItems.push_back(itemID);
+		update->add_stashitems(itemID);
+	}
+
+	data->stashGold = devilution::Stash.gold;
+	update->set_stashgold(devilution::Stash.gold);
 
 	auto emptyFillItemInfo = [&](int itemID, devilution::Item *item) {
 		itemsModified.push_back(itemID);
@@ -1433,7 +1457,7 @@ void Server::selectStoreOption(StoreOption option)
 		break;
 	case StoreOption::WIRTPEEK:
 		if (devilution::ActiveStore == devilution::TalkID::Boy) {
-			if (50 <= devilution::Players[devilution::MyPlayerId]._pGold) {
+			if (devilution::PlayerCanAfford(50)) {
 				devilution::TakePlrsMoney(50);
 				devilution::PlaySFX(devilution::SfxID::MenuSelect);
 				devilution::StartStore(devilution::TalkID::BoyBuy);
@@ -1471,6 +1495,14 @@ void Server::selectStoreOption(StoreOption option)
 		default:
 			break;
 		}
+		break;
+	case StoreOption::ACCESSSTORAGE:
+		if (devilution::ActiveStore != devilution::TalkID::Barmaid)
+			break;
+		devilution::ActiveStore = devilution::TalkID::None;
+		devilution::IsStashOpen = true;
+		devilution::Stash.RefreshItemStatFlags();
+		devilution::invflag = true;
 		break;
 	default:
 		break;
@@ -1904,6 +1936,7 @@ void Server::toggleCharacterScreen()
 		return;
 
 	devilution::CharFlag = !devilution::CharFlag;
+	devilution::IsStashOpen = false;
 }
 
 void Server::increaseStat(CommandType commandType)
@@ -2081,6 +2114,8 @@ void Server::toggleInventory()
 		return;
 
 	devilution::invflag = !devilution::invflag;
+	if (!devilution::invflag)
+		devilution::IsStashOpen = false;
 }
 
 void Server::putInCursor(size_t itemID)
@@ -2096,7 +2131,7 @@ void Server::putInCursor(size_t itemID)
 
 	mx = 0;
 	my = 0;
-	for (int i = 0; i < 55; i++) {
+	for (int i = 0; i < 105; i++) {
 		if (i < 7) {
 			if (item.compare(devilution::Players[devilution::MyPlayerId].InvBody[i]) && devilution::Players[devilution::MyPlayerId].InvBody[i]._itype != devilution::ItemType::None) {
 				if (!devilution::invflag)
@@ -2152,11 +2187,32 @@ void Server::putInCursor(size_t itemID)
 				}
 				break;
 			}
-		} else {
+		} else if (i < 55) {
 			if (item.compare(devilution::Players[devilution::MyPlayerId].SpdList[i - 47]) && devilution::Players[devilution::MyPlayerId].SpdList[i - 47]._itype != devilution::ItemType::None) {
 				mx = devilution::InvRect[i].position.x + 1 + devilution::GetMainPanel().position.x;
 				my = devilution::InvRect[i].position.y + 1 + devilution::GetMainPanel().position.y;
 				break;
+			}
+		} else {
+			int j = 55;
+			for (auto point : devilution::StashGridRange) {
+				if (j != i) {
+					continue;
+				}
+				const devilution::StashStruct::StashCell itemId = devilution::Stash.GetItemIdAtPosition(point);
+				if (itemId == devilution::StashStruct::EmptyCell) {
+					continue;
+				}
+				devilution::Item &stashItem = devilution::Stash.stashList[itemId];
+				if (stashItem.isEmpty()) {
+					continue;
+				}
+				if (item.compare(stashItem)) {
+					auto cursorPosition = devilution::GetStashSlotCoord(point);
+					devilution::CheckStashItem(point);
+					return;
+				}
+				j++;
 			}
 		}
 	}
@@ -2185,7 +2241,10 @@ void Server::putCursorItem(int location)
 	}
 	if (equipLocation < EquipSlot::BELT1) {
 		panelOffset = devilution::GetRightPanel().position - devilution::Point { 0, 0 };
-	} else {
+	} else if (EquipSlot::BELT8 < equipLocation) {
+		panelOffset = devilution::GetLeftPanel().position - devilution::Point { 0, 0 };
+	}
+	else {
 		panelOffset = devilution::GetMainPanel().position - devilution::Point { 0, 0 };
 	}
 	if (EquipSlot::INV1 <= equipLocation && equipLocation <= EquipSlot::INV40) {
@@ -2197,9 +2256,22 @@ void Server::putCursorItem(int location)
 	} else {
 		hotPixelCellOffset = devilution::Displacement { 1, 1 };
 	}
-
-	cursorPosition = devilution::InvRect[invRectIndex].position + panelOffset + hotPixelCellOffset;
-	devilution::CheckInvPaste(*devilution::MyPlayer, cursorPosition);
+	if (equipLocation < EquipSlot::STASH1) {
+		cursorPosition = devilution::InvRect[invRectIndex].position + panelOffset + hotPixelCellOffset;
+		devilution::CheckInvPaste(*devilution::MyPlayer, cursorPosition);
+	} else {
+		int i = static_cast<int>(EquipSlot::STASH1);
+		for (auto point : devilution::StashGridRange) {
+			if (static_cast<EquipSlot>(i) != equipLocation) {
+				i++;
+			} else {
+				cursorPosition = devilution::GetStashSlotCoord(point);
+				break;
+			}
+		}
+		devilution::CheckStashItem(cursorPosition);
+		//cursorPosition = devilution::StashGridRange[invRectIndex] + panelOffset + hotPixelCellOffset;
+	}
 }
 
 void Server::dropCursorItem()

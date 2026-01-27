@@ -21,7 +21,8 @@ enum struct StoreOption {
 	SELL,
 	REPAIR,
 	RECHARGE,
-	BACK
+	BACK,
+	ACCESSSTORAGE
 };
 
 struct GameData {
@@ -31,11 +32,13 @@ struct GameData {
 	bool invflag;
 	bool qtextflag;
 	int currlevel;
+	int stashGold;
 	size_t lastLogSize;
 
 	std::map<int, PlayerData> playerList;
 	std::vector<ItemData> itemList;
 	std::vector<int> groundItems;
+	std::vector<int> stashItems;
 	std::map<int, TownerData> townerList;
 	std::vector<StoreOption> storeList;
 	std::vector<int> storeItems;
