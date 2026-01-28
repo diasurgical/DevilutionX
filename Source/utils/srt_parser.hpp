@@ -36,4 +36,3 @@ std::vector<SubtitleEntry> LoadSrtFile(std::string_view subtitlePath);
 std::string GetSubtitleAtTime(const std::vector<SubtitleEntry> &subtitles, uint64_t videoTimeMs);
 
 } // namespace devilution
-

@@ -98,4 +98,3 @@ std::string GetSubtitleAtTime(const std::vector<SubtitleEntry> &subtitles, uint6
 }
 
 } // namespace devilution
-
