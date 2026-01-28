@@ -392,7 +392,6 @@ uint32_t TotalPlayerGold()
 	return MyPlayer->_pGold + Stash.gold;
 }
 
-
 void StartSmithBuy()
 {
 	IsTextFullSize = true;
@@ -655,7 +654,7 @@ void StartWitch()
 		AddSText(0, 20, _("Leave the shack"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
 		AddSLine(5);
 	}
-	
+
 	CurrentItemIndex = 20;
 }
 

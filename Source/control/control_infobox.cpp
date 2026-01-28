@@ -187,9 +187,9 @@ Rectangle GetFloatingInfoRect(const int lineHeight, const int textSpacing)
 			Point itemPosition = GetVisualStoreSlotCoord(vsItem.position);
 			const Size itemGridSize = GetInventorySize(item);
 
-			itemPosition.y += itemGridSize.height * (VisualStoreGridHeight + 1) - 1;            // Align position to bottom left of the item graphic
-			itemPosition.x += itemGridSize.width * VisualStoreGridWidth / 2;					// Align position to center of the item graphic
-			itemPosition.x -= maxW / 2;															// Align position to the center of the floating item info box
+			itemPosition.y += itemGridSize.height * (VisualStoreGridHeight + 1) - 1; // Align position to bottom left of the item graphic
+			itemPosition.x += itemGridSize.width * VisualStoreGridWidth / 2;         // Align position to center of the item graphic
+			itemPosition.x -= maxW / 2;                                              // Align position to the center of the floating item info box
 
 			return { { itemPosition.x, itemPosition.y }, { maxW, totalH } };
 		}

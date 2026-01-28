@@ -60,16 +60,16 @@ constexpr Rectangle VisualStoreButtonRect[] = {
 	//{ { 242, 19 }, ButtonSize }, // 1 right
 	//{ { 279, 19 }, ButtonSize }, // 10 right
 	// Tab buttons (Smith only) - positioned below title
-	{ { 14, 21 }, { 72, 22 } },   // Basic tab
+	{ { 14, 21 }, { 72, 22 } },      // Basic tab
 	{ { 14 + 73, 21 }, { 72, 22 } }, // Premium tab
-	{ { 222, 315 }, { 24, 24 } }, // Repair All Btn
-	{ { 250, 315 }, { 24, 24 } }, // Repair Btn
+	{ { 222, 315 }, { 24, 24 } },    // Repair All Btn
+	{ { 250, 315 }, { 24, 24 } },    // Repair Btn
 };
 
-//constexpr int NavButton10Left = 0;
-//constexpr int NavButton1Left = 1;
-//constexpr int NavButton1Right = 2;
-//constexpr int NavButton10Right = 3;
+// constexpr int NavButton10Left = 0;
+// constexpr int NavButton1Left = 1;
+// constexpr int NavButton1Right = 2;
+// constexpr int NavButton10Right = 3;
 constexpr int TabButtonBasic = 0;
 constexpr int TabButtonPremium = 1;
 constexpr int RepairAllBtn = 2;
@@ -334,7 +334,7 @@ void CloseVisualStore()
 void SetVisualStoreTab(VisualStoreTab tab)
 {
 	/*if (!VendorHasTabs())
-		return;*/
+	    return;*/
 
 	VisualStore.activeTab = tab;
 	VisualStore.currentPage = 0;
@@ -447,8 +447,8 @@ void VisualStoreRepairItem(int invIndex)
 	if (cost <= 0)
 		return;
 
-	if (!PlayerCanAfford(cost)) {		
-		//PlaySFX(HeroSpeech::ICantUseThisYet); // Or some other error sound
+	if (!PlayerCanAfford(cost)) {
+		// PlaySFX(HeroSpeech::ICantUseThisYet); // Or some other error sound
 		return;
 	}
 
@@ -462,7 +462,7 @@ Point GetVisualStoreSlotCoord(Point slot)
 {
 	constexpr int SlotSpacing = INV_SLOT_SIZE_PX + 1;
 	// Grid starts below the header area
-	//constexpr Displacement GridOffset { 17, 60 + (INV_SLOT_SIZE_PX/2) };
+	// constexpr Displacement GridOffset { 17, 60 + (INV_SLOT_SIZE_PX/2) };
 
 	return GetPanelPosition(UiPanels::Stash, slot * SlotSpacing + Displacement { 17, 44 });
 }
@@ -616,7 +616,7 @@ int16_t CheckVisualStoreHLight(Point mousePosition)
 	for (int i = 0; i < 4; i++) {
 		// Skip tab buttons if vendor doesn't have tabs
 		/*if (!VendorHasTabs() && (i == TabButtonBasic || i == TabButtonPremium))
-			continue;*/
+		    continue;*/
 
 		Rectangle button = VisualStoreButtonRect[i];
 		button.position = panelPos + (button.position - Point { 0, 0 });
@@ -721,13 +721,13 @@ void CheckVisualStoreItem(Point mousePosition, bool isCtrlHeld, bool isShiftHeld
 	int price = item._iIvalue;
 	uint32_t totalGold = MyPlayer->_pGold + Stash.gold;
 	if (totalGold < static_cast<uint32_t>(price)) {
-		//InitDiabloMsg(EMSG_NOT_ENOUGH_GOLD);
+		// InitDiabloMsg(EMSG_NOT_ENOUGH_GOLD);
 		return;
 	}
 
 	// Check if player has room for the item
 	if (!StoreAutoPlace(item, false)) {
-		//InitDiabloMsg(EMSG_INVENTORY_FULL);
+		// InitDiabloMsg(EMSG_INVENTORY_FULL);
 		return;
 	}
 
@@ -852,7 +852,7 @@ void CheckVisualStoreButtonPress(Point mousePosition)
 
 		// Skip tab buttons if vendor doesn't have tabs
 		/*if (!VendorHasTabs() && (i == TabButtonBasic || i == TabButtonPremium))
-			continue;*/
+		    continue;*/
 
 		if (button.contains(mousePosition)) {
 			VisualStoreButtonPressed = i;
@@ -873,17 +873,17 @@ void CheckVisualStoreButtonRelease(Point mousePosition)
 
 	if (button.contains(mousePosition)) {
 		switch (VisualStoreButtonPressed) {
-		//case NavButton10Left:
+		// case NavButton10Left:
 		//	for (int i = 0; i < 10 && VisualStore.currentPage > 0; i++)
 		//		VisualStorePreviousPage();
 		//	break;
-		//case NavButton1Left:
+		// case NavButton1Left:
 		//	VisualStorePreviousPage();
 		//	break;
-		//case NavButton1Right:
+		// case NavButton1Right:
 		//	VisualStoreNextPage();
 		//	break;
-		//case NavButton10Right:
+		// case NavButton10Right:
 		//	for (int i = 0; i < 10; i++)
 		//		VisualStoreNextPage();
 		//	break;
