@@ -52,7 +52,7 @@ struct VisualStoreState {
 extern bool IsVisualStoreOpen;
 extern VisualStoreState VisualStore;
 extern int16_t pcursstoreitem; // Currently highlighted store item index (-1 if none)
-extern int16_t pcursstorebtn; 
+extern int16_t pcursstorebtn;
 
 /**
  * @brief Load visual store graphics.
