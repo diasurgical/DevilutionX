@@ -3673,6 +3673,7 @@ void UpdateLocalCoopCamera()
 		if (i >= g_LocalCoop.players.size() || !g_LocalCoop.players[i].initialized)
 			continue;
 
+		// Start with the current tile position
 		// Convert tile position to screen space (scaled by 256)
 		// worldToScreen: screenX = (tileY - tileX) * 32, screenY = (tileY + tileX) * -16
 		int tileX = player.position.tile.x;
@@ -3701,10 +3702,10 @@ void UpdateLocalCoopCamera()
 	int64_t avgScreenX256 = totalScreenX / activeCount;
 	int64_t avgScreenY256 = totalScreenY / activeCount;
 
-	// Apply dead zone: only update camera target if average position moved outside the dead zone
-	// Dead zone is in screen pixels, so scale by 256 to match our precision
+	// Update camera target to follow average player position
+	// No dead zone - always track the average position for smoothest movement
+	// The smoothing layer (below) handles gradual camera movement
 	using namespace LocalCoopCamera;
-	const int64_t deadZone256 = static_cast<int64_t>(DeadZone) * FixedPointScale;
 
 	if (!g_LocalCoop.cameraInitialized) {
 		// First time - initialize camera to current average position
@@ -3714,33 +3715,10 @@ void UpdateLocalCoopCamera()
 		g_LocalCoop.cameraSmoothScreenY = avgScreenY256;
 		g_LocalCoop.cameraInitialized = true;
 	} else {
-		// Calculate distance from current camera target to new average position
-		int64_t deltaX = avgScreenX256 - g_LocalCoop.cameraTargetScreenX;
-		int64_t deltaY = avgScreenY256 - g_LocalCoop.cameraTargetScreenY;
-
-		// Check if we're outside the dead zone (using squared distance to avoid sqrt)
-		// If outside, move camera target to keep average position at edge of dead zone
-		int64_t distSq = deltaX * deltaX + deltaY * deltaY;
-		int64_t deadZoneSq = deadZone256 * deadZone256;
-
-		if (distSq > deadZoneSq) {
-			// Move camera target towards average position, keeping it at dead zone distance
-			// Using integer approximation: move by (delta - deadZone * delta/dist)
-			// Simplified: new_target = avg - deadZone * (delta / dist)
-			// We approximate dist using the larger of |deltaX| and |deltaY| + half the smaller
-			int64_t absDeltaX = deltaX >= 0 ? deltaX : -deltaX;
-			int64_t absDeltaY = deltaY >= 0 ? deltaY : -deltaY;
-			int64_t approxDist = (absDeltaX > absDeltaY)
-			    ? absDeltaX + absDeltaY / 2
-			    : absDeltaY + absDeltaX / 2;
-
-			if (approxDist > 0) {
-				// Move camera so that average position is at edge of dead zone
-				g_LocalCoop.cameraTargetScreenX = avgScreenX256 - (deltaX * deadZone256) / approxDist;
-				g_LocalCoop.cameraTargetScreenY = avgScreenY256 - (deltaY * deadZone256) / approxDist;
-			}
-		}
-		// If inside dead zone, don't move camera target
+		// Always update target to exactly match average position
+		// This eliminates oscillation caused by dead zone + double smoothing
+		g_LocalCoop.cameraTargetScreenX = avgScreenX256;
+		g_LocalCoop.cameraTargetScreenY = avgScreenY256;
 	}
 
 	// Apply smoothing: interpolate smoothed camera position towards target
@@ -3751,8 +3729,44 @@ void UpdateLocalCoopCamera()
 	int64_t smoothDeltaX = g_LocalCoop.cameraTargetScreenX - g_LocalCoop.cameraSmoothScreenX;
 	int64_t smoothDeltaY = g_LocalCoop.cameraTargetScreenY - g_LocalCoop.cameraSmoothScreenY;
 
-	g_LocalCoop.cameraSmoothScreenX += (smoothDeltaX * smoothFactor256) / 256;
-	g_LocalCoop.cameraSmoothScreenY += (smoothDeltaY * smoothFactor256) / 256;
+	// Calculate desired movement (smoothed)
+	int64_t moveX = (smoothDeltaX * smoothFactor256) / 256;
+	int64_t moveY = (smoothDeltaY * smoothFactor256) / 256;
+
+	// Cap the movement to MaxCameraVelocity if enabled (MaxCameraVelocity > 0)
+	if (MaxCameraVelocity > 0) {
+		int64_t moveDistSq = moveX * moveX + moveY * moveY;
+		constexpr int64_t maxVelSq = MaxCameraVelocity * MaxCameraVelocity;
+
+		if (moveDistSq > maxVelSq) {
+			// Scale down movement to max velocity
+			// Using integer approximation: scale = maxVel / moveDist
+			int64_t absMoveX = moveX >= 0 ? moveX : -moveX;
+			int64_t absMoveY = moveY >= 0 ? moveY : -moveY;
+			int64_t approxMoveDist = (absMoveX > absMoveY)
+			    ? absMoveX + absMoveY / 2
+			    : absMoveY + absMoveX / 2;
+
+			if (approxMoveDist > 0) {
+				moveX = (moveX * MaxCameraVelocity) / approxMoveDist;
+				moveY = (moveY * MaxCameraVelocity) / approxMoveDist;
+			}
+		}
+	}
+
+	// Apply minimum movement threshold if enabled (MinCameraMovement > 0)
+	if (MinCameraMovement > 0) {
+		int64_t absMoveX = moveX >= 0 ? moveX : -moveX;
+		int64_t absMoveY = moveY >= 0 ? moveY : -moveY;
+		if (absMoveX < MinCameraMovement && absMoveY < MinCameraMovement) {
+			// Movement too small, skip it
+			moveX = 0;
+			moveY = 0;
+		}
+	}
+
+	g_LocalCoop.cameraSmoothScreenX += moveX;
+	g_LocalCoop.cameraSmoothScreenY += moveY;
 
 	// Use smoothed camera position for rendering
 	int64_t cameraScreenX256 = g_LocalCoop.cameraSmoothScreenX;

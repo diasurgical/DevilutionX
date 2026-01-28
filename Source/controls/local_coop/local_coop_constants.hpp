@@ -136,14 +136,24 @@ constexpr int16_t TriggerThreshold = 8192;
 
 namespace LocalCoopCamera {
 
+/// Fixed-point scaling factor (256 = 1.0)
+constexpr int64_t FixedPointScale = 256;
+
 /// Dead zone radius in screen pixels
 constexpr int DeadZone = 32;
 
 /// Camera smoothing factor (0.0 = no smoothing, 1.0 = instant)
-constexpr float SmoothFactor = 0.25f;
+/// Set to 0.15 for very smooth, gradual camera movement
+/// Lower values create smoother motion but slightly more lag
+constexpr float SmoothFactor = 0.15f;
 
-/// Fixed-point scaling factor (256 = 1.0)
-constexpr int64_t FixedPointScale = 256;
+/// Maximum camera velocity in screen pixels per frame (scaled by 256)
+/// Set to 0 to disable velocity capping for smoothest possible movement
+constexpr int64_t MaxCameraVelocity = 0;
+
+/// Minimum camera movement threshold (scaled by 256)
+/// Set to 0 to allow all camera movements for maximum smoothness
+constexpr int64_t MinCameraMovement = 0;
 
 } // namespace LocalCoopCamera
 
