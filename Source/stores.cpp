@@ -671,21 +671,6 @@ void StartSmithRepair()
 	AddItemListBackButton();
 }
 
-void FillManaPlayer()
-{
-	if (!*GetOptions().Gameplay.adriaRefillsMana)
-		return;
-
-	Player &myPlayer = GetStorePlayer();
-
-	if (myPlayer._pMana != myPlayer._pMaxMana) {
-		PlaySFX(SfxID::CastHealing);
-	}
-	myPlayer._pMana = myPlayer._pMaxMana;
-	myPlayer._pManaBase = myPlayer._pMaxManaBase;
-	RedrawComponent(PanelDrawComponent::Mana);
-}
-
 void StartWitch()
 {
 	IsTextFullSize = false;

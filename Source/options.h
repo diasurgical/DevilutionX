@@ -92,6 +92,12 @@ enum class Resampler : uint8_t {
 std::string_view ResamplerToString(Resampler resampler);
 std::optional<Resampler> ResamplerFromString(std::string_view resampler);
 
+enum class FloatingNumbers : uint8_t {
+	Off = 0,
+	Random = 1,
+	Vertical = 2,
+};
+
 enum class OptionEntryType : uint8_t {
 	Boolean,
 	List,

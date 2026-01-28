@@ -55,7 +55,7 @@
 #include "panels/spell_list.hpp"
 #include "pfile.h"
 #include "player.h"
-#include "playerdat.hpp"
+#include "tables/playerdat.hpp"
 #include "qol/stash.h"
 #include "quests.h"
 #include "spells.h"
