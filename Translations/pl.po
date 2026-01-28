@@ -3860,6 +3860,22 @@ msgstr "Zamknięte Drzwi"
 msgid "Blocked Door"
 msgstr "Zablokowane Drzwi"
 
+#: Source/diablo.cpp:2754
+msgid "Open Grate Door"
+msgstr "Otwarta Krata"
+
+#: Source/diablo.cpp:2756
+msgid "Closed Grate Door"
+msgstr "Zamknięta Krata"
+
+#: Source/diablo.cpp:2758
+msgid "Blocked Grate Door"
+msgstr "Zablokowana Krata"
+
+#: Source/diablo.cpp:2759
+msgid "Grate Door"
+msgstr "Krata"
+
 #: Source/objects.cpp:4818
 msgid "Ancient Tome"
 msgstr "Starożytna Księga"
@@ -12067,6 +12083,10 @@ msgid "No quest entrances found."
 msgstr "Nie znaleziono wejść questowych."
 
 #: Source/diablo.cpp
+msgid "No quest exits found."
+msgstr "Nie znaleziono wyjść questowych."
+
+#: Source/diablo.cpp
 msgid "Not in town."
 msgstr "Nie jesteś w mieście."
 
@@ -12093,6 +12113,10 @@ msgstr "Najbliższe wyjście"
 #: Source/diablo.cpp
 msgid "Speaks the nearest exit. Hold Shift for quest entrances."
 msgstr "Podaje wskazówki dojścia do najbliższego wyjścia. Przytrzymaj Shift, aby namierzyć wejścia questowe."
+
+#: Source/diablo.cpp
+msgid "Speaks the nearest exit. Hold Shift for quest entrances (or to leave a quest level). In town, press Ctrl+E to cycle dungeon entrances."
+msgstr "Podaje wskazówki dojścia do najbliższego wyjścia. Przytrzymaj Shift, aby namierzyć wejścia questowe (lub opuścić lokację questową). W mieście naciśnij Ctrl+E, aby przełączać wejścia do lochów."
 
 #: Source/diablo.cpp
 msgid "Nearest exit: "
@@ -12197,6 +12221,10 @@ msgstr "Zmień cel trackera"
 #: Source/diablo.cpp
 msgid "Cycles what the tracker looks for (items, chests, doors, shrines, objects, breakables, monsters)."
 msgstr "Zmienia, czego szuka tracker (przedmioty, skrzynie, drzwi, kapliczki, obiekty, niszczalne, potwory)."
+
+#: Source/diablo.cpp
+msgid "Cycles what the tracker looks for (items, chests, doors, shrines, objects, breakables, monsters). Hold Shift to cycle backwards."
+msgstr "Zmienia, czego szuka tracker (przedmioty, skrzynie, drzwi, kapliczki, obiekty, niszczalne, potwory). Przytrzymaj Shift, aby przełączać wstecz."
 
 #: Source/diablo.cpp
 msgid "Navigate to tracker target"

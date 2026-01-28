@@ -21,11 +21,12 @@ Keybinds are configurable, but these are the defaults most players will use:
 ## Navigation / tracking
 
 - `T` - cycle tracker target (items / chests / doors / shrines / objects / breakables / monsters).
+- `Shift`+`T` - cycle tracker target backwards.
 - `N` - tracker directions to the nearest target (speaks target name + directions).
 - `Shift`+`N` - cycle to the next target in the current tracker category (speaks name only; duplicates get ordinal numbers).
 - `Ctrl`+`N` - clear the tracker target.
 - `H` - speak nearest unexplored space.
-- `E` - in town: speak directions to the selected dungeon entrance; in dungeons: speak nearest exit (hold `Shift` for quest entrances).
+- `E` - in town: speak directions to the selected dungeon entrance; in dungeons: speak nearest exit (hold `Shift` for quest entrances; in quest levels: hold `Shift` to leave).
 - `Ctrl`+`E` - in town: cycle dungeon entrance destination.
 - `P` - in town: speak directions to the nearest open town portal.
 - `,` - speak nearest stairs up.

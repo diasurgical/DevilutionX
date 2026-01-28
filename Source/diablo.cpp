@@ -1975,6 +1975,119 @@ void UpdateAttackableMonsterAnnouncements()
 		SpeakText(name, /*force=*/true);
 }
 
+[[nodiscard]] StringOrView DoorLabelForSpeech(const Object &door)
+{
+	if (!door.isDoor())
+		return door.name();
+
+	// Door state values are defined in `Source/objects.cpp` (DOOR_CLOSED=0, DOOR_OPEN=1, DOOR_BLOCKED=2).
+	constexpr int DoorClosed = 0;
+	constexpr int DoorOpen = 1;
+	constexpr int DoorBlocked = 2;
+
+	// Catacombs doors are grates, so differentiate them for the screen reader / tracker.
+	if (IsAnyOf(door._otype, _object_id::OBJ_L2LDOOR, _object_id::OBJ_L2RDOOR)) {
+		if (door._oVar4 == DoorOpen)
+			return _("Open Grate Door");
+		if (door._oVar4 == DoorClosed)
+			return _("Closed Grate Door");
+		if (door._oVar4 == DoorBlocked)
+			return _("Blocked Grate Door");
+		return _("Grate Door");
+	}
+
+	return door.name();
+}
+
+void UpdateInteractableDoorAnnouncements()
+{
+	static std::optional<int> LastInteractableDoorId;
+	static std::optional<int> LastInteractableDoorState;
+
+	if (MyPlayer == nullptr) {
+		LastInteractableDoorId = std::nullopt;
+		LastInteractableDoorState = std::nullopt;
+		return;
+	}
+	if (leveltype == DTYPE_TOWN) {
+		LastInteractableDoorId = std::nullopt;
+		LastInteractableDoorState = std::nullopt;
+		return;
+	}
+	if (MyPlayerIsDead || MyPlayer->_pmode == PM_DEATH || MyPlayer->hasNoLife()) {
+		LastInteractableDoorId = std::nullopt;
+		LastInteractableDoorState = std::nullopt;
+		return;
+	}
+	if (InGameMenu() || invflag) {
+		LastInteractableDoorId = std::nullopt;
+		LastInteractableDoorState = std::nullopt;
+		return;
+	}
+
+	const Player &player = *MyPlayer;
+	const Point playerPosition = player.position.tile;
+
+	std::optional<int> bestId;
+	int bestRotations = 5;
+	int bestDistance = 0;
+
+	for (int dy = -1; dy <= 1; ++dy) {
+		for (int dx = -1; dx <= 1; ++dx) {
+			if (dx == 0 && dy == 0)
+				continue;
+
+			const Point pos = playerPosition + Displacement { dx, dy };
+			if (!InDungeonBounds(pos))
+				continue;
+
+			const int objectId = std::abs(dObject[pos.x][pos.y]) - 1;
+			if (objectId < 0 || objectId >= MAXOBJECTS)
+				continue;
+
+			const Object &door = Objects[objectId];
+			if (!door.isDoor() || !door.canInteractWith())
+				continue;
+
+			const int distance = playerPosition.WalkingDistance(door.position);
+			if (distance > 1)
+				continue;
+
+			const int d1 = static_cast<int>(player._pdir);
+			const int d2 = static_cast<int>(GetDirection(playerPosition, door.position));
+
+			int rotations = std::abs(d1 - d2);
+			if (rotations > 4)
+				rotations = 4 - (rotations % 4);
+
+			if (!bestId || rotations < bestRotations || (rotations == bestRotations && distance < bestDistance)
+			    || (rotations == bestRotations && distance == bestDistance && objectId < *bestId)) {
+				bestRotations = rotations;
+				bestDistance = distance;
+				bestId = objectId;
+			}
+		}
+	}
+
+	if (!bestId) {
+		LastInteractableDoorId = std::nullopt;
+		LastInteractableDoorState = std::nullopt;
+		return;
+	}
+
+	const Object &door = Objects[*bestId];
+	const int state = door._oVar4;
+	if (LastInteractableDoorId && LastInteractableDoorState && *LastInteractableDoorId == *bestId && *LastInteractableDoorState == state)
+		return;
+
+	LastInteractableDoorId = *bestId;
+	LastInteractableDoorState = state;
+
+	const StringOrView label = DoorLabelForSpeech(door);
+	if (!label.empty())
+		SpeakText(label.str(), /*force=*/true);
+}
+
 void GameLogic()
 {
 	if (!ProcessInput()) {
@@ -2004,6 +2117,7 @@ void GameLogic()
 		UpdateBossHealthAnnouncements();
 		UpdateProximityAudioCues();
 		UpdateAttackableMonsterAnnouncements();
+		UpdateInteractableDoorAnnouncements();
 	} else {
 		gGameLogicStep = GameLogicStep::ProcessTowners;
 		ProcessTowners();
@@ -2504,29 +2618,59 @@ void CycleTrackerTargetKeyPressed()
 
 	AutoWalkTrackerTargetId = -1;
 
-	switch (SelectedTrackerTargetCategory) {
-	case TrackerTargetCategory::Items:
-		SelectedTrackerTargetCategory = TrackerTargetCategory::Chests;
-		break;
-	case TrackerTargetCategory::Chests:
-		SelectedTrackerTargetCategory = TrackerTargetCategory::Doors;
-		break;
-	case TrackerTargetCategory::Doors:
-		SelectedTrackerTargetCategory = TrackerTargetCategory::Shrines;
-		break;
-	case TrackerTargetCategory::Shrines:
-		SelectedTrackerTargetCategory = TrackerTargetCategory::Objects;
-		break;
-	case TrackerTargetCategory::Objects:
-		SelectedTrackerTargetCategory = TrackerTargetCategory::Breakables;
-		break;
-	case TrackerTargetCategory::Breakables:
-		SelectedTrackerTargetCategory = TrackerTargetCategory::Monsters;
-		break;
-	case TrackerTargetCategory::Monsters:
-	default:
-		SelectedTrackerTargetCategory = TrackerTargetCategory::Items;
-		break;
+	const SDL_Keymod modState = SDL_GetModState();
+	const bool cyclePrevious = (modState & SDL_KMOD_SHIFT) != 0;
+
+	if (cyclePrevious) {
+		switch (SelectedTrackerTargetCategory) {
+		case TrackerTargetCategory::Items:
+			SelectedTrackerTargetCategory = TrackerTargetCategory::Monsters;
+			break;
+		case TrackerTargetCategory::Chests:
+			SelectedTrackerTargetCategory = TrackerTargetCategory::Items;
+			break;
+		case TrackerTargetCategory::Doors:
+			SelectedTrackerTargetCategory = TrackerTargetCategory::Chests;
+			break;
+		case TrackerTargetCategory::Shrines:
+			SelectedTrackerTargetCategory = TrackerTargetCategory::Doors;
+			break;
+		case TrackerTargetCategory::Objects:
+			SelectedTrackerTargetCategory = TrackerTargetCategory::Shrines;
+			break;
+		case TrackerTargetCategory::Breakables:
+			SelectedTrackerTargetCategory = TrackerTargetCategory::Objects;
+			break;
+		case TrackerTargetCategory::Monsters:
+		default:
+			SelectedTrackerTargetCategory = TrackerTargetCategory::Breakables;
+			break;
+		}
+	} else {
+		switch (SelectedTrackerTargetCategory) {
+		case TrackerTargetCategory::Items:
+			SelectedTrackerTargetCategory = TrackerTargetCategory::Chests;
+			break;
+		case TrackerTargetCategory::Chests:
+			SelectedTrackerTargetCategory = TrackerTargetCategory::Doors;
+			break;
+		case TrackerTargetCategory::Doors:
+			SelectedTrackerTargetCategory = TrackerTargetCategory::Shrines;
+			break;
+		case TrackerTargetCategory::Shrines:
+			SelectedTrackerTargetCategory = TrackerTargetCategory::Objects;
+			break;
+		case TrackerTargetCategory::Objects:
+			SelectedTrackerTargetCategory = TrackerTargetCategory::Breakables;
+			break;
+		case TrackerTargetCategory::Breakables:
+			SelectedTrackerTargetCategory = TrackerTargetCategory::Monsters;
+			break;
+		case TrackerTargetCategory::Monsters:
+		default:
+			SelectedTrackerTargetCategory = TrackerTargetCategory::Items;
+			break;
+		}
 	}
 
 	SpeakTrackerTargetCategory();
@@ -3298,7 +3442,12 @@ void NavigateToTrackerTargetKeyPressed()
 		break;
 	}
 	case TrackerTargetCategory::Doors: {
-		const std::vector<TrackerCandidate> nearbyCandidates = CollectNearbyDoorTrackerCandidates(playerPosition, TrackerCycleDistanceTiles);
+		std::vector<TrackerCandidate> nearbyCandidates = CollectNearbyDoorTrackerCandidates(playerPosition, TrackerCycleDistanceTiles);
+		for (TrackerCandidate &c : nearbyCandidates) {
+			if (c.id < 0 || c.id >= MAXOBJECTS)
+				continue;
+			c.name = DoorLabelForSpeech(Objects[c.id]);
+		}
 		if (cycleTarget) {
 			targetId = FindNextTrackerCandidateId(nearbyCandidates, lockedTargetId);
 			if (!targetId) {
@@ -3331,7 +3480,7 @@ void NavigateToTrackerTargetKeyPressed()
 		lockedTargetId = *targetId;
 		const Object &tracked = Objects[*targetId];
 
-		targetName = tracked.name();
+		targetName = DoorLabelForSpeech(tracked);
 		DecorateTrackerTargetNameWithOrdinalIfNeeded(*targetId, targetName, nearbyCandidates);
 		if (!cycleTarget) {
 			targetPosition = tracked.position;
@@ -4686,6 +4835,27 @@ void SpeakNearestExitKeyPressed()
 	const bool cycleTownDungeon = (modState & SDL_KMOD_CTRL) != 0;
 
 	if (seekQuestEntrance) {
+		if (setlevel) {
+			const std::optional<int> triggerIndex = FindNearestTriggerIndexWithMessage(WM_DIABRTNLVL);
+			if (!triggerIndex) {
+				SpeakText(_("No quest exits found."), true);
+				return;
+			}
+
+			const TriggerStruct &trigger = trigs[*triggerIndex];
+			const Point targetPosition { trigger.position.x, trigger.position.y };
+			const std::optional<std::vector<int8_t>> path = FindKeyboardWalkPathForSpeech(*MyPlayer, startPosition, targetPosition);
+			std::string message = TriggerLabelForSpeech(trigger);
+			if (!message.empty())
+				message.append(": ");
+			if (!path)
+				AppendDirectionalFallback(message, targetPosition - startPosition);
+			else
+				AppendKeyboardWalkPathForSpeech(message, *path);
+			SpeakText(message, true);
+			return;
+		}
+
 		if (const std::optional<QuestSetLevelEntrance> entrance = FindNearestQuestSetLevelEntranceOnCurrentLevel(); entrance) {
 			const Point targetPosition = entrance->entrancePosition;
 			const std::optional<std::vector<int8_t>> path = FindKeyboardWalkPathForSpeech(*MyPlayer, startPosition, targetPosition);
@@ -5456,7 +5626,7 @@ void InitKeymapActions()
 	options.Keymapper.AddAction(
 	    "SpeakNearestExit",
 	    N_("Nearest exit"),
-	    N_("Speaks the nearest exit. Hold Shift for quest entrances. In town, press Ctrl+E to cycle dungeon entrances."),
+	    N_("Speaks the nearest exit. Hold Shift for quest entrances (or to leave a quest level). In town, press Ctrl+E to cycle dungeon entrances."),
 	    'E',
 	    SpeakNearestExitKeyPressed,
 	    nullptr,
@@ -5480,7 +5650,7 @@ void InitKeymapActions()
 	options.Keymapper.AddAction(
 	    "CycleTrackerTarget",
 	    N_("Cycle tracker target"),
-	    N_("Cycles what the tracker looks for (items, chests, doors, shrines, objects, breakables, monsters)."),
+	    N_("Cycles what the tracker looks for (items, chests, doors, shrines, objects, breakables, monsters). Hold Shift to cycle backwards."),
 	    'T',
 	    CycleTrackerTargetKeyPressed,
 	    nullptr,
