@@ -323,12 +323,14 @@ void OpenVisualStore(VisualStoreVendor vendor)
 
 void CloseVisualStore()
 {
-	IsVisualStoreOpen = false;
-	invflag = false;
-	pcursstoreitem = -1;
-	pcursstorebtn = -1;
-	VisualStoreButtonPressed = -1;
-	VisualStore.pages.clear();
+	if (IsVisualStoreOpen) {
+		IsVisualStoreOpen = false;
+		invflag = false;
+		pcursstoreitem = -1;
+		pcursstorebtn = -1;
+		VisualStoreButtonPressed = -1;
+		VisualStore.pages.clear();
+	}
 }
 
 void SetVisualStoreTab(VisualStoreTab tab)

@@ -596,10 +596,10 @@ void CheckMainPanelButtonUp()
 			break;
 		case PanelButtonInventory:
 			SpellbookFlag = false;
+			invflag = !invflag;
 			CloseGoldWithdraw();
 			CloseStash();
 			CloseVisualStore();
-			invflag = !invflag;
 			CloseGoldDrop();
 			break;
 		case PanelButtonSpellbook:
