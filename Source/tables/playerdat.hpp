@@ -9,8 +9,8 @@
 #include <cstdint>
 
 #include "effects.h"
-#include "itemdat.h"
-#include "spelldat.h"
+#include "tables/itemdat.h"
+#include "tables/spelldat.h"
 
 namespace devilution {
 

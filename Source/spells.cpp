@@ -5,7 +5,7 @@
  */
 #include "spells.h"
 
-#include "control.h"
+#include "control/control.hpp"
 #include "cursor.h"
 #ifdef _DEBUG
 #include "debug.h"
@@ -232,13 +232,21 @@ void CastSpell(Player &player, SpellID spl, WorldTilePosition src, WorldTilePosi
 	}
 }
 
-void DoResurrect(Player &player, Player &target)
+void SpawnResurrectBeam(Player &caster, Player &target)
 {
-	AddMissile(target.position.tile, target.position.tile, Direction::South, MissileID::ResurrectBeam, TARGET_MONSTERS, player, 0, 0);
+	AddMissile(
+	    target.position.tile,
+	    target.position.tile,
+	    Direction::South,
+	    MissileID::ResurrectBeam,
+	    TARGET_MONSTERS,
+	    caster.getId(),
+	    0,
+	    0);
+}
 
-	if (!target.hasNoLife())
-		return;
-
+void ApplyResurrect(Player &target)
+{
 	if (&target == MyPlayer) {
 		MyPlayerIsDead = false;
 		gamemenu_off();

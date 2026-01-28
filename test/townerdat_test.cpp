@@ -7,7 +7,7 @@
 #endif
 
 #include "engine/assets.hpp"
-#include "townerdat.hpp"
+#include "tables/townerdat.hpp"
 #include "towners.h"
 #include "utils/paths.h"
 

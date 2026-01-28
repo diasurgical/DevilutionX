@@ -32,7 +32,7 @@ jobs:
         sudo apt-get install -y cmake file g++ git libfmt-dev libsdl1.2-dev libsodium-dev libpng-dev libbz2-dev rpm smpq
 
     - name: Cache CMake build folder
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: build
         key: ${{ github.workflow }}-v3-${{ github.sha }}
@@ -54,7 +54,7 @@ jobs:
 
     - name: Upload-Package
       if: ${{ !env.ACT }}
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v6
       with:
         name: devilutionx_linux_x86_64_SDL1.tar.xz
         path: devilutionx.tar.xz

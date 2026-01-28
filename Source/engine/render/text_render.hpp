@@ -155,6 +155,8 @@ struct TextRenderOptions {
 
 	/** @brief If a cursor is rendered, the surface coordinates are saved here. */
 	std::optional<Point> *renderedCursorPositionOut = nullptr;
+
+	bool cursorStatic = false;
 };
 
 /**

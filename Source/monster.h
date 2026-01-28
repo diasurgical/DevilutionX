@@ -23,10 +23,10 @@
 #include "engine/world_tile.hpp"
 #include "game_mode.hpp"
 #include "levels/dun_tile.hpp"
-#include "misdat.h"
-#include "monstdat.h"
-#include "spelldat.h"
-#include "textdat.h"
+#include "tables/misdat.h"
+#include "tables/monstdat.h"
+#include "tables/spelldat.h"
+#include "tables/textdat.h"
 #include "utils/language.h"
 
 namespace devilution {

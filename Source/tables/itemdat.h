@@ -13,8 +13,8 @@
 #include <expected.hpp>
 #include <magic_enum/magic_enum.hpp>
 
-#include "objdat.h"
-#include "spelldat.h"
+#include "tables/objdat.h"
+#include "tables/spelldat.h"
 
 namespace devilution {
 

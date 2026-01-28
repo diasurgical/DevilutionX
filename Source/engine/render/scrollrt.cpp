@@ -928,10 +928,8 @@ void DrawFloor(const Surface &out, const Lightmap &lightmap, Point tilePosition,
 {
 	for (int i = 0; i < rows; i++) {
 		for (int j = 0; j < columns; j++, tilePosition += Direction::East, targetBufferPosition.x += TILE_WIDTH) {
-			if (!InDungeonBounds(tilePosition)) {
-				world_draw_black_tile(out, targetBufferPosition.x, targetBufferPosition.y);
+			if (!InDungeonBounds(tilePosition))
 				continue;
-			}
 			if (IsFloor(tilePosition)) {
 				DrawFloorTile(out, lightmap, tilePosition, targetBufferPosition);
 			}
@@ -999,6 +997,77 @@ void DrawTileContent(const Surface &out, const Lightmap &lightmap, Point tilePos
 			}
 			tilePosition += Direction::East;
 			targetBufferPosition.x += TILE_WIDTH;
+		}
+		// Return to start of row
+		tilePosition += Displacement(Direction::West) * columns;
+		targetBufferPosition.x -= columns * TILE_WIDTH;
+
+		// Jump to next row
+		targetBufferPosition.y += TILE_HEIGHT / 2;
+		if ((i & 1) != 0) {
+			tilePosition.x++;
+			columns--;
+			targetBufferPosition.x += TILE_WIDTH / 2;
+		} else {
+			tilePosition.y++;
+			columns++;
+			targetBufferPosition.x -= TILE_WIDTH / 2;
+		}
+	}
+}
+
+void DrawDirtTile(const Surface &out, const Lightmap &lightmap, Point tilePosition, Point targetBufferPosition)
+{
+	// This should be the *top-left* of the 2×2 dirt pattern in the actual dungeon.
+	// You might need to tweak these to where your dirt patch actually lives.
+	constexpr Point base { 0, 0 };
+
+	// Decide which of the 4 tiles of the 2×2 block to use,
+	// based on where this OOB tile is in the world grid.
+	const int ox = (tilePosition.x & 1); // 0 or 1
+	const int oy = (tilePosition.y & 1); // 0 or 1
+
+	Point sample {
+		base.x + ox,
+		base.y + oy,
+	};
+
+	// Safety: clamp in case tilePosition is wildly outside and base+offset ever escapes
+	sample.x = std::clamp(sample.x, 0, MAXDUNX - 1);
+	sample.y = std::clamp(sample.y, 0, MAXDUNY - 1);
+
+	if (!InDungeonBounds(sample) || dPiece[sample.x][sample.y] == 0) {
+		// Failsafe: if our sample somehow isn't valid, fall back to black
+		world_draw_black_tile(out, targetBufferPosition.x, targetBufferPosition.y);
+		return;
+	}
+
+	const int lightTableIndex = dLight[sample.x][sample.y];
+
+	// Let the normal dungeon tile renderer compose the full tile
+	DrawCell(out, lightmap, sample, targetBufferPosition, lightTableIndex);
+}
+
+/**
+ * @brief Render a row of tiles
+ * @param out Buffer to render to
+ * @param lightmap Per-pixel light buffer
+ * @param tilePosition dPiece coordinates
+ * @param targetBufferPosition Target buffer coordinates
+ * @param rows Number of rows
+ * @param columns Tile in a row
+ */
+void DrawOOB(const Surface &out, const Lightmap &lightmap, Point tilePosition, Point targetBufferPosition, int rows, int columns)
+{
+	for (int i = 0; i < rows + 5; i++) { // 5 extra rows needed to make sure everything gets rendered at the bottom half of the screen
+		for (int j = 0; j < columns; j++, tilePosition += Direction::East, targetBufferPosition.x += TILE_WIDTH) {
+			if (!InDungeonBounds(tilePosition)) {
+				if (leveltype == DTYPE_TOWN) {
+					world_draw_black_tile(out, targetBufferPosition.x, targetBufferPosition.y);
+				} else {
+					DrawDirtTile(out, lightmap, tilePosition, targetBufferPosition);
+				}
+			}
 		}
 		// Return to start of row
 		tilePosition += Displacement(Direction::West) * columns;
@@ -1183,6 +1252,7 @@ void DrawGame(const Surface &fullOut, Point position, Displacement offset)
 
 	DrawFloor(out, lightmap, position, Point {} + offset, rows, columns);
 	DrawTileContent(out, lightmap, position, Point {} + offset, rows, columns);
+	DrawOOB(out, lightmap, position, Point {} + offset, rows, columns);
 
 	if (*GetOptions().Graphics.zoom) {
 		Zoom(fullOut.subregionY(0, gnViewportHeight));
@@ -1746,7 +1816,7 @@ void DrawAndBlit()
 
 	const Rectangle &mainPanel = GetMainPanel();
 
-	if (gnScreenWidth > mainPanel.size.width || IsRedrawEverything() || *GetOptions().Gameplay.enableFloatingNumbers != FloatingNumbers::Off) {
+	if (gnScreenWidth > mainPanel.size.width || IsRedrawEverything()) {
 		drawHealth = true;
 		drawMana = true;
 		drawControlButtons = true;
