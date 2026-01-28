@@ -495,6 +495,8 @@ struct AudioOptions : OptionCategoryBase {
 	OptionEntryBoolean autoEquipSound;
 	/** @brief Picking up items emits the items pickup sound. */
 	OptionEntryBoolean itemPickupSound;
+	/** @brief Display subtitles during video cutscenes. */
+	OptionEntryBoolean showSubtitles;
 
 	/** @brief Output sample rate (Hz). */
 	OptionEntryInt<std::uint32_t> sampleRate;
