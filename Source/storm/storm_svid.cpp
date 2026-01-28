@@ -228,7 +228,7 @@ void UpdatePalette()
 bool BlitFrame()
 {
 	// Render subtitles if available and enabled - do this BEFORE blitting to output
-	if (GetOptions().Audio.showSubtitles.value && SVidSubtitleRenderer.HasSubtitles()) {
+	if (*GetOptions().Audio.showSubtitles && SVidSubtitleRenderer.HasSubtitles()) {
 		const uint64_t currentTimeSmk = GetTicksSmk();
 		const uint64_t videoTimeMs = TimeSmkToMs(currentTimeSmk - SVidStartTime);
 		SVidSubtitleRenderer.RenderSubtitles(SVidSurface.get(), SVidWidth, SVidHeight, videoTimeMs);
