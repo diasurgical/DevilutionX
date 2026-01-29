@@ -3,7 +3,7 @@
  *
  * Implementation of data related to missiles.
  */
-#include "misdat.h"
+#include "tables/misdat.h"
 
 #include <array>
 #include <cassert>
@@ -25,7 +25,7 @@
 #include "missiles.h"
 #include "mpq/mpq_common.hpp"
 #include "sound_effect_enums.h"
-#include "spelldat.h"
+#include "tables/spelldat.h"
 #include "utils/file_name_generator.hpp"
 #include "utils/status_macros.hpp"
 #include "utils/str_cat.hpp"

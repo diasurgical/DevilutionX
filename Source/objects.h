@@ -16,11 +16,11 @@
 #include "engine/point.hpp"
 #include "engine/rectangle.hpp"
 #include "engine/world_tile.hpp"
-#include "itemdat.h"
 #include "levels/dun_tile.hpp"
 #include "monster.h"
-#include "objdat.h"
-#include "textdat.h"
+#include "tables/itemdat.h"
+#include "tables/objdat.h"
+#include "tables/textdat.h"
 #include "utils/attributes.h"
 #include "utils/is_of.hpp"
 #include "utils/string_or_view.hpp"
@@ -287,6 +287,8 @@ extern int ActiveObjects[MAXOBJECTS];
 extern int ActiveObjectCount;
 /** @brief Indicates that objects are being loaded during gameplay and pre calculated data should be updated. */
 extern bool LoadingMapObjects;
+/** Tracks progress through the tome sequence that spawns Na-Krul (see OperateNakrulBook()) */
+extern int NaKrulTomeSequence;
 
 /**
  * @brief Find an object given a point in map coordinates

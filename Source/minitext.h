@@ -6,7 +6,7 @@
 #pragma once
 
 #include "engine/surface.hpp"
-#include "textdat.h"
+#include "tables/textdat.h"
 
 namespace devilution {
 

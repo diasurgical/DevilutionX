@@ -5,8 +5,8 @@
 
 #include "levels/dun_tile.hpp"
 #include "levels/gendung.h"
-#include "objdat.h"
 #include "objects.h"
+#include "tables/objdat.h"
 
 namespace devilution {
 namespace {

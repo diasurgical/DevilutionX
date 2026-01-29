@@ -38,10 +38,10 @@
 #include "minitext.h"
 #include "missiles.h"
 #include "monster.h"
-#include "objdat.h"
 #include "options.h"
 #include "qol/stash.h"
 #include "stores.h"
+#include "tables/objdat.h"
 #include "towners.h"
 #include "track.h"
 #include "utils/algorithm/container.hpp"
@@ -58,6 +58,7 @@ int AvailableObjects[MAXOBJECTS];
 int ActiveObjects[MAXOBJECTS];
 int ActiveObjectCount;
 bool LoadingMapObjects;
+int NaKrulTomeSequence;
 
 namespace {
 
@@ -114,9 +115,6 @@ object_graphic_id ObjFileList[40];
 /** Specifies the number of active objects. */
 int leverid;
 int numobjfiles;
-
-/** Tracks progress through the tome sequence that spawns Na-Krul (see OperateNakrulBook()) */
-int NaKrulTomeSequence;
 
 /** Specifies the X-coordinate delta between barrels. */
 int bxadd[8] = { -1, 0, 1, -1, 1, -1, 0, 1 };
@@ -2526,24 +2524,22 @@ void OperateShrineCostOfWisdom(Player &player, SpellID spellId, diablo_message m
 		}
 	}
 
-	const uint32_t t = player._pMaxManaBase / 10;
-	const int v1 = player._pMana - player._pManaBase;
-	const int v2 = player._pMaxMana - player._pMaxManaBase;
-	player._pManaBase -= t;
-	player._pMana -= t;
-	player._pMaxMana -= t;
-	player._pMaxManaBase -= t;
-	if (player.hasNoMana()) {
-		player._pMana = v1;
-		player._pManaBase = 0;
-	}
-	if (player._pMaxMana >> 6 <= 0) {
-		player._pMaxMana = v2;
+	int maxBase = player._pMaxManaBase;
+
+	if (maxBase < 0) {
+		// Fix bugged state; do not turn this into a "negative penalty" mana boost.
 		player._pMaxManaBase = 0;
+		maxBase = 0;
 	}
+
+	const int penalty = maxBase / 10; // 10% of max base mana (>= 0)
+
+	player._pMaxManaBase -= penalty; // will remain >= 0
+	player._pManaBase -= penalty;    // may go negative, allowed
+	player._pMaxMana -= penalty;     // may go negative, allowed
+	player._pMana -= penalty;        // may go negative, allowed
 
 	RedrawEverything();
-
 	InitDiabloMsg(message);
 }
 
@@ -3388,7 +3384,7 @@ void OperateStoryBook(Object &storyBook)
 			NetSendCmd(false, CMD_NAKRUL);
 			return;
 		}
-	} else if (leveltype == DTYPE_CRYPT) {
+	} else if (leveltype == DTYPE_CRYPT && Quests[Q_NAKRUL]._qactive != QUEST_DONE) {
 		Quests[Q_NAKRUL]._qactive = QUEST_ACTIVE;
 		Quests[Q_NAKRUL]._qlog = true;
 		Quests[Q_NAKRUL]._qmsg = msg;

@@ -9,7 +9,7 @@
 #include <SDL.h>
 #endif
 
-#include "control.h"
+#include "control/control.hpp"
 #include "controls/control_mode.hpp"
 #include "controls/controller.h"
 #ifndef USE_SDL1

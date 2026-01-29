@@ -70,10 +70,6 @@ enum _cmd_id : uint8_t {
 	// attempted loot item when inventory is full).
 	// body (TCmdPItem)
 	CMD_SPAWNITEM,
-	// Attack target location.
-	//
-	// body (TCmdLoc)
-	CMD_ATTACKXY,
 	// Range attack target location.
 	//
 	// body (TCmdLoc)
@@ -209,6 +205,10 @@ enum _cmd_id : uint8_t {
 	// body (TCmdParam1):
 	//    int16_t ear_flag
 	CMD_PLRDEAD,
+	// Player resurrection.
+	//
+	// body (TCmd)
+	CMD_PLRALIVE,
 	// Lift item to hand request.
 	//
 	// body (TCmdGItem)
