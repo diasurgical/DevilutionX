@@ -6561,6 +6561,10 @@ msgid "No next monster."
 msgstr "Nie ma następnego potwora."
 
 #: Source/diablo.cpp
+msgid "No next dead body."
+msgstr "Nie ma następnego martwego ciała."
+
+#: Source/diablo.cpp
 msgid "Tracker directions"
 msgstr "Kierunki do celu trackera"
 
@@ -12227,6 +12231,10 @@ msgid "Cycles what the tracker looks for (items, chests, doors, shrines, objects
 msgstr "Zmienia, czego szuka tracker (przedmioty, skrzynie, drzwi, kapliczki, obiekty, niszczalne, potwory). Przytrzymaj Shift, aby przełączać wstecz."
 
 #: Source/diablo.cpp
+msgid "Cycles what the tracker looks for (items, chests, doors, shrines, objects, breakables, monsters, dead bodies). Hold Shift to cycle backwards."
+msgstr "Zmienia, czego szuka tracker (przedmioty, skrzynie, drzwi, kapliczki, obiekty, niszczalne, potwory, martwe ciała). Przytrzymaj Shift, aby przełączać wstecz."
+
+#: Source/diablo.cpp
 msgid "Navigate to tracker target"
 msgstr "Nawiguj do celu trackera"
 
@@ -12267,6 +12275,10 @@ msgid "monsters"
 msgstr "potwory"
 
 #: Source/diablo.cpp
+msgid "dead bodies"
+msgstr "martwe ciała"
+
+#: Source/diablo.cpp
 msgid "No items found."
 msgstr "Nie znaleziono żadnych przedmiotów."
 
@@ -12293,6 +12305,10 @@ msgstr "Nie znaleziono żadnych niszczalnych obiektów."
 #: Source/diablo.cpp
 msgid "No monsters found."
 msgstr "Nie znaleziono żadnych potworów."
+
+#: Source/diablo.cpp
+msgid "No dead bodies found."
+msgstr "Nie znaleziono żadnych martwych ciał."
 
 #: Source/diablo.cpp
 msgid "Navigating to nearest item."
@@ -12329,6 +12345,18 @@ msgstr "Docelowy potwór zniknął."
 #: Source/diablo.cpp
 msgid "Monster in range."
 msgstr "Potwór jest w zasięgu."
+
+#: Source/diablo.cpp
+msgid "Dead body"
+msgstr "Martwe ciało"
+
+#: Source/diablo.cpp
+msgid "Target dead body is gone."
+msgstr "Docelowe martwe ciało zniknęło."
+
+#: Source/diablo.cpp
+msgid "Dead body in range."
+msgstr "Martwe ciało jest w zasięgu."
 
 #: Source/diablo.cpp
 msgid "Can't find a nearby tile to walk to."

@@ -2126,6 +2126,7 @@ void GameLogic()
 		ProcessItems();
 		gGameLogicStep = GameLogicStep::ProcessMissilesTown;
 		ProcessMissiles();
+		UpdateProximityAudioCues();
 	}
 
 	UpdatePlayerLowHpWarningSound();
@@ -2234,6 +2235,7 @@ enum class TrackerTargetCategory : uint8_t {
 	Objects,
 	Breakables,
 	Monsters,
+	DeadBodies,
 };
 
 TrackerTargetCategory SelectedTrackerTargetCategory = TrackerTargetCategory::Items;
@@ -2527,6 +2529,7 @@ int LockedTrackerShrineId = -1;
 int LockedTrackerObjectId = -1;
 int LockedTrackerBreakableId = -1;
 int LockedTrackerMonsterId = -1;
+int LockedTrackerDeadBodyId = -1;
 
 struct TrackerLevelKey {
 	dungeon_type levelType;
@@ -2546,6 +2549,7 @@ void ClearTrackerLocks()
 	LockedTrackerObjectId = -1;
 	LockedTrackerBreakableId = -1;
 	LockedTrackerMonsterId = -1;
+	LockedTrackerDeadBodyId = -1;
 }
 
 void EnsureTrackerLocksMatchCurrentLevel()
@@ -2581,6 +2585,8 @@ int &LockedTrackerTargetId(TrackerTargetCategory category)
 		return LockedTrackerBreakableId;
 	case TrackerTargetCategory::Monsters:
 		return LockedTrackerMonsterId;
+	case TrackerTargetCategory::DeadBodies:
+		return LockedTrackerDeadBodyId;
 	}
 	app_fatal("Invalid TrackerTargetCategory");
 }
@@ -2602,6 +2608,8 @@ std::string_view TrackerTargetCategoryLabel(TrackerTargetCategory category)
 		return _("breakables");
 	case TrackerTargetCategory::Monsters:
 		return _("monsters");
+	case TrackerTargetCategory::DeadBodies:
+		return _("dead bodies");
 	default:
 		return _("items");
 	}
@@ -2627,7 +2635,7 @@ void CycleTrackerTargetKeyPressed()
 	if (cyclePrevious) {
 		switch (SelectedTrackerTargetCategory) {
 		case TrackerTargetCategory::Items:
-			SelectedTrackerTargetCategory = TrackerTargetCategory::Monsters;
+			SelectedTrackerTargetCategory = TrackerTargetCategory::DeadBodies;
 			break;
 		case TrackerTargetCategory::Chests:
 			SelectedTrackerTargetCategory = TrackerTargetCategory::Items;
@@ -2646,6 +2654,10 @@ void CycleTrackerTargetKeyPressed()
 			break;
 		case TrackerTargetCategory::Monsters:
 			SelectedTrackerTargetCategory = TrackerTargetCategory::Breakables;
+			break;
+		case TrackerTargetCategory::DeadBodies:
+		default:
+			SelectedTrackerTargetCategory = TrackerTargetCategory::Monsters;
 			break;
 		}
 	} else {
@@ -2669,6 +2681,10 @@ void CycleTrackerTargetKeyPressed()
 			SelectedTrackerTargetCategory = TrackerTargetCategory::Monsters;
 			break;
 		case TrackerTargetCategory::Monsters:
+			SelectedTrackerTargetCategory = TrackerTargetCategory::DeadBodies;
+			break;
+		case TrackerTargetCategory::DeadBodies:
+		default:
 			SelectedTrackerTargetCategory = TrackerTargetCategory::Items;
 			break;
 		}
@@ -2695,6 +2711,38 @@ std::optional<int> FindNearestGroundItemId(Point playerPosition)
 			const int distance = playerPosition.WalkingDistance(Point { x, y });
 			if (!bestId || distance < bestDistance) {
 				bestId = itemId;
+				bestDistance = distance;
+			}
+		}
+	}
+
+	return bestId;
+}
+
+[[nodiscard]] constexpr int CorpseTrackerIdForPosition(Point position)
+{
+	return position.x + position.y * MAXDUNX;
+}
+
+[[nodiscard]] constexpr Point CorpsePositionForTrackerId(int corpseId)
+{
+	return { corpseId % MAXDUNX, corpseId / MAXDUNX };
+}
+
+std::optional<int> FindNearestCorpseId(Point playerPosition)
+{
+	std::optional<int> bestId;
+	int bestDistance = 0;
+
+	for (int y = 0; y < MAXDUNY; ++y) {
+		for (int x = 0; x < MAXDUNX; ++x) {
+			if (dCorpse[x][y] == 0)
+				continue;
+
+			const Point position { x, y };
+			const int distance = playerPosition.WalkingDistance(position);
+			if (!bestId || distance < bestDistance) {
+				bestId = CorpseTrackerIdForPosition(position);
 				bestDistance = distance;
 			}
 		}
@@ -2749,6 +2797,37 @@ struct TrackerCandidate {
 			    .id = itemId,
 			    .distance = distance,
 			    .name = item.getName(),
+			});
+		}
+	}
+
+	std::sort(result.begin(), result.end(), [](const TrackerCandidate &a, const TrackerCandidate &b) { return IsBetterTrackerCandidate(a, b); });
+	return result;
+}
+
+[[nodiscard]] std::vector<TrackerCandidate> CollectNearbyCorpseTrackerCandidates(Point playerPosition, int maxDistance)
+{
+	std::vector<TrackerCandidate> result;
+
+	const int minX = std::max(0, playerPosition.x - maxDistance);
+	const int minY = std::max(0, playerPosition.y - maxDistance);
+	const int maxX = std::min(MAXDUNX - 1, playerPosition.x + maxDistance);
+	const int maxY = std::min(MAXDUNY - 1, playerPosition.y + maxDistance);
+
+	for (int y = minY; y <= maxY; ++y) {
+		for (int x = minX; x <= maxX; ++x) {
+			if (dCorpse[x][y] == 0)
+				continue;
+
+			const Point position { x, y };
+			const int distance = playerPosition.WalkingDistance(position);
+			if (distance > maxDistance)
+				continue;
+
+			result.push_back(TrackerCandidate {
+			    .id = CorpseTrackerIdForPosition(position),
+			    .distance = distance,
+			    .name = _("Dead body"),
 			});
 		}
 	}
@@ -3017,6 +3096,15 @@ void DecorateTrackerTargetNameWithOrdinalIfNeeded(int targetId, StringOrView &ta
 	}
 
 	return false;
+}
+
+[[nodiscard]] bool IsCorpsePresent(int corpseId)
+{
+	if (corpseId < 0 || corpseId >= MAXDUNX * MAXDUNY)
+		return false;
+
+	const Point position = CorpsePositionForTrackerId(corpseId);
+	return InDungeonBounds(position) && dCorpse[position.x][position.y] != 0;
 }
 
 std::optional<int> FindNearestUnopenedChestObjectId(Point playerPosition)
@@ -3338,7 +3426,7 @@ void NavigateToTrackerTargetKeyPressed()
 {
 	if (!CanPlayerTakeAction() || InGameMenu())
 		return;
-	if (leveltype == DTYPE_TOWN) {
+	if (leveltype == DTYPE_TOWN && IsNoneOf(SelectedTrackerTargetCategory, TrackerTargetCategory::Items, TrackerTargetCategory::DeadBodies)) {
 		SpeakText(_("Not in a dungeon."), true);
 		return;
 	}
@@ -3667,6 +3755,41 @@ void NavigateToTrackerTargetKeyPressed()
 		}
 		break;
 	}
+	case TrackerTargetCategory::DeadBodies: {
+		const std::vector<TrackerCandidate> nearbyCandidates = CollectNearbyCorpseTrackerCandidates(playerPosition, TrackerCycleDistanceTiles);
+		if (cycleTarget) {
+			targetId = FindNextTrackerCandidateId(nearbyCandidates, lockedTargetId);
+			if (!targetId) {
+				if (nearbyCandidates.empty())
+					SpeakText(_("No dead bodies found."), true);
+				else
+					SpeakText(_("No next dead body."), true);
+				return;
+			}
+		} else if (IsCorpsePresent(lockedTargetId)) {
+			targetId = lockedTargetId;
+		} else {
+			targetId = FindNearestCorpseId(playerPosition);
+		}
+		if (!targetId) {
+			SpeakText(_("No dead bodies found."), true);
+			return;
+		}
+
+		if (!IsCorpsePresent(*targetId)) {
+			lockedTargetId = -1;
+			SpeakText(_("No dead bodies found."), true);
+			return;
+		}
+
+		lockedTargetId = *targetId;
+		targetName = _("Dead body");
+		DecorateTrackerTargetNameWithOrdinalIfNeeded(*targetId, targetName, nearbyCandidates);
+		if (!cycleTarget) {
+			targetPosition = CorpsePositionForTrackerId(*targetId);
+		}
+		break;
+	}
 	}
 
 	if (cycleTarget) {
@@ -3986,6 +4109,24 @@ void UpdateAutoWalkTracker()
 		destination = FindBestAdjacentApproachTile(myPlayer, playerPosition, monsterPosition);
 		break;
 	}
+	case TrackerTargetCategory::DeadBodies: {
+		const int corpseId = AutoWalkTrackerTargetId;
+		if (!IsCorpsePresent(corpseId)) {
+			AutoWalkTrackerTargetId = -1;
+			SpeakText(_("Target dead body is gone."), true);
+			return;
+		}
+
+		const Point corpsePosition = CorpsePositionForTrackerId(corpseId);
+		if (playerPosition.WalkingDistance(corpsePosition) <= TrackerInteractDistanceTiles) {
+			AutoWalkTrackerTargetId = -1;
+			SpeakText(_("Dead body in range."), true);
+			return;
+		}
+
+		destination = corpsePosition;
+		break;
+	}
 	}
 
 	if (!destination) {
@@ -4165,6 +4306,25 @@ void AutoWalkToTrackerTargetKeyPressed()
 		}
 		lockedTargetId = *targetId;
 		targetName = Monsters[*targetId].name();
+		break;
+	}
+	case TrackerTargetCategory::DeadBodies: {
+		if (IsCorpsePresent(lockedTargetId)) {
+			targetId = lockedTargetId;
+		} else {
+			targetId = FindNearestCorpseId(playerPosition);
+		}
+		if (!targetId) {
+			SpeakText(_("No dead bodies found."), true);
+			return;
+		}
+		if (!IsCorpsePresent(*targetId)) {
+			lockedTargetId = -1;
+			SpeakText(_("No dead bodies found."), true);
+			return;
+		}
+		lockedTargetId = *targetId;
+		targetName = _("Dead body");
 		break;
 	}
 	}
@@ -5905,7 +6065,7 @@ void InitKeymapActions()
 	options.Keymapper.AddAction(
 	    "CycleTrackerTarget",
 	    N_("Cycle tracker target"),
-	    N_("Cycles what the tracker looks for (items, chests, doors, shrines, objects, breakables, monsters). Hold Shift to cycle backwards."),
+	    N_("Cycles what the tracker looks for (items, chests, doors, shrines, objects, breakables, monsters, dead bodies). Hold Shift to cycle backwards."),
 	    'T',
 	    CycleTrackerTargetKeyPressed,
 	    nullptr,
