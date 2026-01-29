@@ -2,7 +2,7 @@ name: PR Preview Links
 
 on:
   workflow_run:
-    workflows: ["Windows MSVC x64", "Linux x86_64 (x86_64-linux-gnu)", "macOS x86_64"]
+    workflows: ["Windows MinGW x64", "Linux x86_64 (x86_64-linux-gnu)", "macOS x86_64"]
     types:
       - completed
 
