@@ -2330,7 +2330,11 @@ void UpdateLocalCoopPlayerRightStick(uint8_t playerId)
 	x = std::min(std::max(x, 0), gnScreenWidth - 1);
 	y = std::min(std::max(y, 0), gnScreenHeight - 1);
 
-	SetCursorPos({ x, y });
+	// Always set MousePosition so the game uses our cursor position for drawing/checks.
+	// SetCursorPos only sets MousePosition when ControlDevice != KeyboardAndMouse,
+	// so we must set it explicitly for coop players (who use gamepad).
+	MousePosition = { x, y };
+	SetCursorPos(MousePosition);
 
 	// Update inventory highlight when cursor moves
 	if (invflag) {
@@ -2371,6 +2375,35 @@ void ProcessLocalCoopRightStickCursor()
 	// Update right stick cursor for coop players (2-4) who own panels
 	for (size_t i = 1; i < g_LocalCoop.players.size(); ++i) {
 		UpdateLocalCoopPlayerRightStick(static_cast<uint8_t>(i));
+	}
+}
+
+void ProcessLocalCoopLeftStickPanelNavigation()
+{
+	if (!g_LocalCoop.enabled)
+		return;
+
+	// When a coop player owns panels, use their left stick for panel navigation (inventory slots, etc.)
+	// Same as player 1's ProcessLeftStickOrDPadGameUI() but using each coop player's left stick
+	for (size_t i = 1; i < g_LocalCoop.players.size(); ++i) {
+		const uint8_t playerId = static_cast<uint8_t>(i);
+		if (!g_LocalCoop.DoesPlayerOwnPanels(playerId))
+			continue;
+
+		LocalCoopPlayer *coopPlayer = g_LocalCoop.GetPlayer(playerId);
+		if (coopPlayer == nullptr || !coopPlayer->active)
+			continue;
+
+		AxisDirection dir = coopPlayer->GetMoveDirection();
+		if (dir.x == AxisDirectionX_NONE && dir.y == AxisDirectionY_NONE)
+			continue;
+
+		LocalCoopPlayerContext context(playerId);
+		ProcessGamePanelNavigation(dir);
+		if (invflag) {
+			ResetInvCursorPosition();
+			pcursinvitem = CheckInvHLight();
+		}
 	}
 }
 
@@ -5446,6 +5479,7 @@ bool IsLocalCoopPlayer(const Player & /*player*/) { return false; }
 bool IsLocalPlayer(const Player &player) { return &player == MyPlayer; }
 void UpdateLocalCoopMovement() { }
 void ProcessLocalCoopRightStickCursor() { }
+void ProcessLocalCoopLeftStickPanelNavigation() { }
 void UpdateLocalCoopSkillButtons() { }
 bool HandlePlayerSkillButtonDown(uint8_t /*playerId*/, int /*slotIndex*/) { return false; }
 bool HandlePlayerSkillButtonUp(uint8_t /*playerId*/, int /*slotIndex*/) { return false; }

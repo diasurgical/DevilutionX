@@ -392,6 +392,14 @@ void UpdateLocalCoopMovement();
 void ProcessLocalCoopRightStickCursor();
 
 /**
+ * @brief Update panel/inventory navigation from left stick for local co-op players who own panels.
+ *
+ * Should be called every frame so coop players can navigate inventory/character/quest/etc
+ * with the left stick, like player 1.
+ */
+void ProcessLocalCoopLeftStickPanelNavigation();
+
+/**
  * @brief Update skill button hold states for quick spell menu.
  *
  * Checks if any skill button has been held long enough to open quick spell menu.

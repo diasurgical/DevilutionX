@@ -238,6 +238,8 @@ bool ProcessInput()
 #endif
 		CheckCursMove();
 		plrctrls_after_check_curs_move();
+		ProcessLocalCoopRightStickCursor();
+		ProcessLocalCoopLeftStickPanelNavigation();
 		RepeatPlayerAction();
 	}
 
