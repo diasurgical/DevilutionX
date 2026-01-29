@@ -1594,9 +1594,11 @@ struct RightStickAccumulator {
 
 bool IsStickMovementSignificant()
 {
-	const float leftStickMagnitude = std::sqrt(leftStickX * leftStickX + leftStickY * leftStickY);
+	// avoid sqrt() by comparing squared magnitudes
+	const float leftStickMagnitudeSquared = leftStickX * leftStickX + leftStickY * leftStickY;
+	const float thresholdSquared = StickDirectionThreshold * StickDirectionThreshold;
 
-	return leftStickMagnitude >= StickDirectionThreshold
+	return leftStickMagnitudeSquared >= thresholdSquared
 	    || rightStickX != 0 || rightStickY != 0;
 }
 

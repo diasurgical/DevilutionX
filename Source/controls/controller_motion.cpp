@@ -209,15 +209,17 @@ void ProcessControllerMotion(const SDL_Event &event)
 
 AxisDirection GetAnalogStickDirection(float stickX, float stickY)
 {
-	const float magnitude = std::sqrt(stickX * stickX + stickY * stickY);
-	if (magnitude < StickDirectionThreshold)
+	// avoid sqrt() by comparing squared magnitudes
+	const float magnitudeSquared = stickX * stickX + stickY * stickY;
+	const float thresholdSquared = StickDirectionThreshold * StickDirectionThreshold;
+	if (magnitudeSquared < thresholdSquared)
 		return { AxisDirectionX_NONE, AxisDirectionY_NONE };
 
 	const float absX = std::fabs(stickX);
 	const float absY = std::fabs(stickY);
 	AxisDirection result { AxisDirectionX_NONE, AxisDirectionY_NONE };
 
-	// 8-way sectoring with 22.5° cutoffs.
+	// 8-way sectoring with 22.5° cutoffs
 	constexpr float DiagonalCutoff = 0.41421356F; // tan(22.5°)
 	if (absX == 0.0F) {
 		result.y = stickY > 0 ? AxisDirectionY_UP : AxisDirectionY_DOWN;
