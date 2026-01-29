@@ -3153,8 +3153,31 @@ tl::expected<void, std::string> LoadGameLevelDungeon(bool firstflag, lvl_entry l
 
 void LoadGameLevelSyncPlayerEntry(lvl_entry lvldir)
 {
+	// First pass: sync MyPlayer's position
+	Player &myPlayer = *MyPlayer;
+	if (myPlayer.plractive && myPlayer.isOnActiveLevel()) {
+		if (myPlayer._pHitPoints > 0) {
+			if (lvldir != ENTRY_LOAD)
+				SyncInitPlrPos(myPlayer);
+		} else {
+			dFlags[myPlayer.position.tile.x][myPlayer.position.tile.y] |= DungeonFlag::DeadPlayer;
+		}
+	}
+
+	// Second pass: sync local coop players, using MyPlayer's position as spawn point
 	for (Player &player : Players) {
-		if (player.plractive && player.isOnActiveLevel() && (!player._pLvlChanging || &player == MyPlayer)) {
+		if (&player == MyPlayer)
+			continue; // Already handled in first pass
+
+		if (player.plractive && player.isOnActiveLevel() && (!player._pLvlChanging || IsLocalPlayer(player))) {
+			// For local coop players entering a new level, set their position to MyPlayer's spawn point
+			// before calling SyncInitPlrPos so they spawn near Player 1
+			if (IsLocalCoopPlayer(player) && lvldir != ENTRY_LOAD) {
+				player.position.tile = myPlayer.position.tile;
+				player.position.future = myPlayer.position.tile;
+				player.position.old = myPlayer.position.tile;
+			}
+
 			if (player._pHitPoints > 0) {
 				if (lvldir != ENTRY_LOAD)
 					SyncInitPlrPos(player);
