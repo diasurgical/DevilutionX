@@ -60,6 +60,7 @@ void PerformSecondaryAction();
 void UpdateSpellTarget(SpellID spell);
 bool TryDropItem();
 void InvalidateInventorySlot();
+void ResetInvCursorPosition();
 void FocusOnInventory();
 void PerformSpellAction();
 void QuickCast(size_t slot);

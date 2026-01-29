@@ -207,11 +207,11 @@ namespace {
 
 // Forward declarations
 void CastLocalCoopHotkeySpell(uint8_t playerId, int slotIndex);
+bool IsStartButtonHeldForPlayer(uint8_t playerId);
 
 // Button input handlers (Phase 2: broken down from ProcessLocalCoopButtonInput)
 void HandleCharacterSelectInput(uint8_t playerId, LocalCoopPlayer &coopPlayer, uint8_t button);
 void HandleStoreInput(uint8_t playerId, uint8_t button);
-void HandlePadMenuNavigatorInput(uint8_t playerId, LocalCoopPlayer &coopPlayer, uint8_t button);
 void HandleSpellMenuAssignment(uint8_t playerId, LocalCoopPlayer &coopPlayer, uint8_t button);
 void HandleGameplayButtonDown(uint8_t playerId, LocalCoopPlayer &coopPlayer, Player &player, uint8_t button, uint32_t now);
 void HandleGameplayButtonUp(uint8_t playerId, LocalCoopPlayer &coopPlayer, uint8_t button);
@@ -927,7 +927,9 @@ void ProcessLocalCoopDpadInput(uint8_t playerId, const SDL_Event &event)
 	if (coopPlayer->characterSelectActive)
 		return;
 
-	if (coopPlayer->padMenuNavigatorActive)
+	// If Start is held, D-pad is used for panel shortcuts (not navigation)
+	// The shortcuts are handled in HandleGameplayButtonDown
+	if (IsStartButtonHeldForPlayer(playerId))
 		return;
 
 	if (SpellSelectFlag && coopPlayer->skillMenuOpenedByHold) {
@@ -988,9 +990,9 @@ void ProcessLocalCoopDpadInput(uint8_t playerId, const SDL_Event &event)
 					LocalCoopPlayerContext context(playerId);
 					// Navigate the panel using the navigation system
 					ProcessGamePanelNavigation(dir);
-					// Update pcursinvitem after navigation to ensure info box displays correctly
-					// This is especially important for belt items in local coop
+					// Sync cursor position to Slot so CheckInvHLight and item interaction work in all rows
 					if (invflag) {
+						ResetInvCursorPosition();
 						pcursinvitem = CheckInvHLight();
 					}
 				}
@@ -1107,48 +1109,6 @@ void HandleStoreInput(uint8_t playerId, uint8_t button)
 }
 
 /**
- * @brief Handle pad menu navigator input (when Start button is held).
- */
-void HandlePadMenuNavigatorInput(uint8_t playerId, LocalCoopPlayer &coopPlayer, uint8_t button)
-{
-	switch (button) {
-	case SDL_GAMEPAD_BUTTON_DPAD_UP:
-		PressEscKey();
-		LastPlayerAction = PlayerActionType::None;
-		PadHotspellMenuActive = false;
-		coopPlayer.padMenuNavigatorActive = false;
-		gamemenu_on();
-		break;
-	case SDL_GAMEPAD_BUTTON_DPAD_DOWN:
-		CycleAutomapType();
-		break;
-	case SDL_GAMEPAD_BUTTON_DPAD_LEFT:
-		ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_CHARACTER_INFO);
-		break;
-	case SDL_GAMEPAD_BUTTON_DPAD_RIGHT:
-		ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_INVENTORY);
-		break;
-	case SDL_GAMEPAD_BUTTON_SOUTH:
-		ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_SPELL_BOOK);
-		break;
-	case SDL_GAMEPAD_BUTTON_EAST:
-		// No action for B button in menu navigator
-		break;
-	case SDL_GAMEPAD_BUTTON_WEST:
-		ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_QUEST_LOG);
-		break;
-	case SDL_GAMEPAD_BUTTON_NORTH:
-#ifdef __3DS__
-		GetOptions().Graphics.zoom.SetValue(!*GetOptions().Graphics.zoom);
-		CalcViewportGeometry();
-#endif
-		break;
-	default:
-		break;
-	}
-}
-
-/**
  * @brief Handle spell menu assignment when quick spell menu is open.
  */
 void HandleSpellMenuAssignment(uint8_t playerId, LocalCoopPlayer &coopPlayer, uint8_t button)
@@ -1163,10 +1123,93 @@ void HandleSpellMenuAssignment(uint8_t playerId, LocalCoopPlayer &coopPlayer, ui
 }
 
 /**
+ * @brief Check if Start button is held on a local coop player's controller.
+ */
+bool IsStartButtonHeldForPlayer(uint8_t playerId)
+{
+	LocalCoopPlayer *coopPlayer = g_LocalCoop.GetPlayer(playerId);
+	if (coopPlayer == nullptr || !coopPlayer->active)
+		return false;
+
+#ifndef USE_SDL1
+	if (coopPlayer->controllerId == -1)
+		return false;
+
+	GameController *controller = GameController::Get(coopPlayer->controllerId);
+	if (controller == nullptr)
+		return false;
+
+	return controller->IsPressed(ControllerButton_BUTTON_START);
+#else
+	return false;
+#endif
+}
+
+/**
  * @brief Handle gameplay button press (button down events).
  */
 void HandleGameplayButtonDown(uint8_t playerId, LocalCoopPlayer &coopPlayer, Player &player, uint8_t button, uint32_t now)
 {
+	// When this player owns panels and panels are open, B or Back closes them (same as Player 1)
+	// Use the toggle path so BlurInventory, ReleasePanelOwnership, etc. run with correct player context
+	if (g_LocalCoop.DoesPlayerOwnPanels(playerId) && (invflag || CharFlag || QuestLogIsOpen || SpellbookFlag)) {
+		if (button == SDL_GAMEPAD_BUTTON_EAST || button == SDL_GAMEPAD_BUTTON_BACK) {
+			// Close each open panel by toggling (ensures HoldItem drop, ownership release, etc.)
+			if (invflag)
+				ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_INVENTORY);
+			if (CharFlag)
+				ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_CHARACTER_INFO);
+			if (QuestLogIsOpen)
+				ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_QUEST_LOG);
+			if (SpellbookFlag)
+				ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_SPELL_BOOK);
+			if (SpellSelectFlag) {
+				LocalCoopPlayerContext context(playerId);
+				ProcessGameAction(GameAction { GameActionType_TOGGLE_QUICK_SPELL_MENU });
+			}
+			return;
+		}
+	}
+
+	// Check if Start button is held for menu shortcuts (hold Start + press D-pad/button)
+	// These shortcuts toggle panels (open when closed, close when open)
+	const bool startHeld = IsStartButtonHeldForPlayer(playerId);
+
+	// Handle Start + D-pad/button combinations for panel toggle (works both to open and close)
+	if (startHeld) {
+		switch (button) {
+		case SDL_GAMEPAD_BUTTON_DPAD_UP:
+			PressEscKey();
+			LastPlayerAction = PlayerActionType::None;
+			PadHotspellMenuActive = false;
+			gamemenu_on();
+			return;
+		case SDL_GAMEPAD_BUTTON_DPAD_DOWN:
+			CycleAutomapType();
+			return;
+		case SDL_GAMEPAD_BUTTON_DPAD_LEFT:
+			ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_CHARACTER_INFO);
+			return;
+		case SDL_GAMEPAD_BUTTON_DPAD_RIGHT:
+			ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_INVENTORY);
+			return;
+		case SDL_GAMEPAD_BUTTON_SOUTH:
+			ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_SPELL_BOOK);
+			return;
+		case SDL_GAMEPAD_BUTTON_WEST:
+			ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_QUEST_LOG);
+			return;
+		case SDL_GAMEPAD_BUTTON_NORTH:
+#ifdef __3DS__
+			GetOptions().Graphics.zoom.SetValue(!*GetOptions().Graphics.zoom);
+			CalcViewportGeometry();
+#endif
+			return;
+		default:
+			break;
+		}
+	}
+
 	switch (button) {
 	case SDL_GAMEPAD_BUTTON_LEFT_SHOULDER:
 		coopPlayer.leftShoulderHeld = true;
@@ -1250,8 +1293,7 @@ void HandleGameplayButtonDown(uint8_t playerId, LocalCoopPlayer &coopPlayer, Pla
 		break;
 
 	case SDL_GAMEPAD_BUTTON_START:
-		coopPlayer.startButtonPressTime = SDL_GetTicks();
-		coopPlayer.padMenuNavigatorActive = true;
+		// Start button is used as a modifier - no action on press
 		break;
 
 	default:
@@ -1298,12 +1340,6 @@ void HandleGameplayButtonUp(uint8_t playerId, LocalCoopPlayer &coopPlayer, uint8
 		}
 		coopPlayer.skillButtonHeld = -1;
 		coopPlayer.skillButtonPressTime = 0;
-	}
-
-	if (button == SDL_GAMEPAD_BUTTON_START) {
-		coopPlayer.padMenuNavigatorActive = false;
-		coopPlayer.startButtonPressTime = 0;
-		return;
 	}
 
 	switch (button) {
@@ -1373,12 +1409,6 @@ void ProcessLocalCoopButtonInput(uint8_t playerId, const SDL_Event &event)
 	if (isButtonDown) {
 		uint32_t now = SDL_GetTicks();
 
-		// Handle pad menu navigator
-		if (coopPlayer.padMenuNavigatorActive) {
-			HandlePadMenuNavigatorInput(playerId, coopPlayer, button);
-			return;
-		}
-
 		// Handle quick text dismissal
 		if (qtextflag && button == SDL_GAMEPAD_BUTTON_EAST) {
 			qtextflag = false;
@@ -1399,14 +1429,6 @@ void ProcessLocalCoopButtonInput(uint8_t playerId, const SDL_Event &event)
 		// Handle gameplay buttons
 		HandleGameplayButtonDown(playerId, coopPlayer, player, button, now);
 	} else if (isButtonUp) {
-		// Handle pad menu navigator release
-		if (coopPlayer.padMenuNavigatorActive) {
-			if (button == SDL_GAMEPAD_BUTTON_START) {
-				coopPlayer.padMenuNavigatorActive = false;
-			}
-			return;
-		}
-
 		// Handle button release
 		HandleGameplayButtonUp(playerId, coopPlayer, button);
 	}
@@ -1482,10 +1504,6 @@ void UpdateLocalCoopPlayerMovement(uint8_t playerId)
 
 	LocalCoopPlayer *coopPlayer = validated.coop;
 	Player &player = *validated.player;
-
-	// Don't move when pad menu navigator is active
-	if (coopPlayer->padMenuNavigatorActive)
-		return;
 
 	// Don't move when this player owns a panel or store
 	if (g_LocalCoop.DoesPlayerOwnPanels(playerId) || g_LocalCoop.storeOwnerPlayerId == static_cast<int>(playerId))
@@ -1575,8 +1593,6 @@ void LocalCoopPlayer::Reset()
 	rightTriggerPressed = false;
 	leftShoulderHeld = false;
 	rightShoulderHeld = false;
-	padMenuNavigatorActive = false;
-	startButtonPressTime = 0;
 }
 
 AxisDirection LocalCoopPlayer::GetMoveDirection() const

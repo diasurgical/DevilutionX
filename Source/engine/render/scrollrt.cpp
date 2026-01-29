@@ -73,9 +73,8 @@
 #include "utils/sdl_compat.h"
 #include "utils/str_cat.hpp"
 
-#include "controls/local_coop/local_coop.hpp"
 #ifndef USE_SDL1
-#include "controls/local_coop.hpp"
+#include "controls/local_coop/local_coop.hpp"
 #include "controls/touch/renderers.h"
 #endif
 
@@ -1872,3 +1871,197 @@ void ScrollView()
 			}
 		} else {
 			ViewPosition.y++;
+			ViewPosition.x--;
+		}
+	}
+	if (MousePosition.x > gnScreenWidth - 20) {
+		if (dmaxPosition.x - 1 <= ViewPosition.x || dminPosition.y >= ViewPosition.y) {
+			if (dmaxPosition.x - 1 > ViewPosition.x) {
+				ViewPosition.x++;
+			}
+			if (dminPosition.y < ViewPosition.y) {
+				ViewPosition.y--;
+			}
+		} else {
+			ViewPosition.y--;
+			ViewPosition.x++;
+		}
+	}
+	if (MousePosition.y < 20) {
+		if (dminPosition.y >= ViewPosition.y || dminPosition.x >= ViewPosition.x) {
+			if (dminPosition.y < ViewPosition.y) {
+				ViewPosition.y--;
+			}
+			if (dminPosition.x < ViewPosition.x) {
+				ViewPosition.x--;
+			}
+		} else {
+			ViewPosition.x--;
+			ViewPosition.y--;
+		}
+	}
+	if (MousePosition.y > gnScreenHeight - 20) {
+		if (dmaxPosition.y - 1 <= ViewPosition.y || dmaxPosition.x - 1 <= ViewPosition.x) {
+			if (dmaxPosition.y - 1 > ViewPosition.y) {
+				ViewPosition.y++;
+			}
+			if (dmaxPosition.x - 1 > ViewPosition.x) {
+				ViewPosition.x++;
+			}
+		} else {
+			ViewPosition.x++;
+			ViewPosition.y++;
+		}
+	}
+}
+#endif
+
+void EnableFrameCount()
+{
+	frameflag = true;
+	lastFpsUpdateInMs = SDL_GetTicks();
+}
+
+void scrollrt_draw_game_screen()
+{
+	if (HeadlessMode)
+		return;
+
+	int hgt = 0;
+
+	if (IsRedrawEverything()) {
+		RedrawComplete();
+		hgt = gnScreenHeight;
+	}
+
+	const Surface &out = GlobalBackBuffer();
+	UndrawCursor(out);
+	DrawCursor(out);
+	DrawMain(hgt, false, false, false, false, false);
+
+	RenderPresent();
+}
+
+void DrawAndBlit()
+{
+	if (!gbRunGame || HeadlessMode) {
+		return;
+	}
+
+	int hgt = 0;
+	bool drawHealth = IsRedrawComponent(PanelDrawComponent::Health);
+	bool drawMana = IsRedrawComponent(PanelDrawComponent::Mana);
+	bool drawControlButtons = IsRedrawComponent(PanelDrawComponent::ControlButtons);
+	bool drawBelt = IsRedrawComponent(PanelDrawComponent::Belt);
+	const bool drawChatInput = ChatFlag;
+	bool drawInfoBox = false;
+	bool drawCtrlPan = false;
+
+	const Rectangle &mainPanel = GetMainPanel();
+
+	if (gnScreenWidth > mainPanel.size.width || IsRedrawEverything() || *GetOptions().Gameplay.enableFloatingNumbers != FloatingNumbers::Off) {
+		drawHealth = true;
+		drawMana = true;
+		drawControlButtons = true;
+		drawBelt = true;
+		drawInfoBox = false;
+		drawCtrlPan = true;
+		hgt = gnScreenHeight;
+	} else if (IsRedrawViewport()) {
+		drawInfoBox = true;
+		drawCtrlPan = false;
+		hgt = gnViewportHeight;
+	}
+
+	const Surface &out = GlobalBackBuffer();
+	UndrawCursor(out);
+
+	nthread_UpdateProgressToNextGameTick();
+
+	DrawView(out, ViewPosition);
+
+#ifndef USE_SDL1
+	// When local co-op is enabled AND at least one other player has spawned,
+	// hide the main panel UI and use corner HUDs instead.
+	// Player 1's corner HUD will show when local coop is enabled.
+	// But keep the main panel visible until other players have actually joined the game.
+	bool hideMainPanelForLocalCoop = false;
+	if (IsLocalCoopEnabled()) {
+		// Only hide main panel if at least one local co-op player has spawned
+		for (size_t i = 0; i < g_LocalCoop.players.size(); ++i) {
+			if (g_LocalCoop.players[i].active && g_LocalCoop.players[i].initialized) {
+				hideMainPanelForLocalCoop = true;
+				break;
+			}
+		}
+	}
+#else
+	const bool hideMainPanelForLocalCoop = false;
+#endif
+
+	if (!hideMainPanelForLocalCoop) {
+		if (drawCtrlPan) {
+			DrawMainPanel(out);
+		}
+		if (drawHealth) {
+			DrawLifeFlaskLower(out, !drawCtrlPan);
+		}
+		if (drawMana) {
+			DrawManaFlaskLower(out, !drawCtrlPan);
+			DrawSpell(out);
+		}
+		if (drawControlButtons) {
+			DrawMainPanelButtons(out);
+		}
+		if (drawBelt) {
+			DrawInvBelt(out);
+		}
+		if (drawChatInput) {
+			DrawChatBox(out);
+		}
+		DrawXPBar(out);
+		if (*GetOptions().Gameplay.showHealthValues)
+			DrawFlaskValues(out, { mainPanel.position.x + 134, mainPanel.position.y + 28 }, MyPlayer->_pHitPoints >> 6, MyPlayer->_pMaxHP >> 6);
+		if (*GetOptions().Gameplay.showManaValues)
+			DrawFlaskValues(out, { mainPanel.position.x + mainPanel.size.width - 138, mainPanel.position.y + 28 },
+			    (HasAnyOf(InspectPlayer->_pIFlags, ItemSpecialEffect::NoMana) || (MyPlayer->_pMana >> 6) <= 0) ? 0 : MyPlayer->_pMana >> 6,
+			    HasAnyOf(InspectPlayer->_pIFlags, ItemSpecialEffect::NoMana) ? 0 : MyPlayer->_pMaxMana >> 6);
+	}
+
+	// Draw floating info box (always draw when local co-op is active, otherwise check option)
+	if (hideMainPanelForLocalCoop || *GetOptions().Gameplay.floatingInfoBox)
+		DrawFloatingInfoBox(out);
+
+	if (*GetOptions().Gameplay.showMultiplayerPartyInfo && PartySidePanelOpen)
+		DrawPartyMemberInfoPanel(out);
+
+#ifndef USE_SDL1
+	// Draw local co-op character selection UI
+	DrawLocalCoopCharacterSelect(out);
+	// Draw local co-op player HUD (text-only stats in corners)
+	DrawLocalCoopPlayerHUD(out);
+#endif
+
+	DrawCursor(out);
+
+	DrawFPS(out);
+
+	LuaEvent("GameDrawComplete");
+
+	DrawMain(hgt, drawInfoBox, drawHealth, drawMana, drawBelt, drawControlButtons);
+
+#ifdef _DEBUG
+	DrawConsole(out);
+#endif
+
+	RedrawComplete();
+	for (const PanelDrawComponent component : enum_values<PanelDrawComponent>()) {
+		if (IsRedrawComponent(component)) {
+			RedrawComponentComplete(component);
+		}
+	}
+
+	RenderPresent();
+}
+
+} // namespace devilution

@@ -6,6 +6,7 @@
 #include "DiabloUI/ui_flags.hpp"
 #include "control/control.hpp"
 #include "controls/controller_motion.h"
+#include "controls/devices/game_controller.h"
 #include "controls/game_controls.h"
 #include "controls/local_coop/local_coop.hpp"
 #include "controls/plrctrls.h"
@@ -178,21 +179,26 @@ void FreeModifierHints()
 
 void DrawControllerModifierHints(const Surface &out)
 {
-	// Check if any local coop player has PadMenuNavigator active
-	bool anyPlayerHasMenuNavigator = false;
+	// Check if any local coop player has Start button held
+	bool anyPlayerHasStartHeld = false;
 	if (IsLocalCoopEnabled()) {
+#ifndef USE_SDL1
 		for (size_t i = 0; i < MaxLocalPlayers; ++i) {
 			const LocalCoopPlayer *player = g_LocalCoop.GetPlayer(static_cast<uint8_t>(i));
-			if (player != nullptr && player->active && player->padMenuNavigatorActive) {
-				anyPlayerHasMenuNavigator = true;
-				break;
+			if (player != nullptr && player->active && player->controllerId != -1) {
+				GameController *controller = GameController::Get(player->controllerId);
+				if (controller != nullptr && controller->IsPressed(ControllerButton_BUTTON_START)) {
+					anyPlayerHasStartHeld = true;
+					break;
+				}
 			}
 		}
+#endif
 	}
 
-	// Draw menu navigator if active (either global or any local coop player)
-	if (PadMenuNavigatorActive || anyPlayerHasMenuNavigator) {
-		DrawGamepadMenuNavigator(out, anyPlayerHasMenuNavigator);
+	// Draw menu navigator if Start is held (either global or any local coop player)
+	if (PadMenuNavigatorActive || anyPlayerHasStartHeld) {
+		DrawGamepadMenuNavigator(out, anyPlayerHasStartHeld);
 	}
 
 	// Draw hotspell menu if active (only global, not per-player)

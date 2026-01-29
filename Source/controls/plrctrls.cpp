@@ -764,8 +764,9 @@ Point FindFirstStashSlotOnItem(StashStruct::StashCell itemInvId)
 
 /**
  * Reset cursor position based on the current slot.
+ * (Implementation in anonymous namespace; public wrapper below.)
  */
-void ResetInvCursorPosition()
+void ResetInvCursorPositionImpl()
 {
 	Point mousePos {};
 	if (Slot >= SLOTXY_INV_FIRST && Slot <= SLOTXY_INV_LAST) {
@@ -1364,7 +1365,7 @@ void StashMove(AxisDirection dir)
 	}
 
 	if (Slot >= 0) {
-		ResetInvCursorPosition();
+		ResetInvCursorPositionImpl();
 		return;
 	}
 
@@ -1714,6 +1715,11 @@ void LogGamepadChange(GamepadLayout newGamepad)
 #endif
 
 } // namespace
+
+void ResetInvCursorPosition()
+{
+	ResetInvCursorPositionImpl();
+}
 
 void QuestLogMove(AxisDirection moveDir)
 {

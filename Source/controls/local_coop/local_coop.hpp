@@ -102,10 +102,6 @@ struct LocalCoopPlayer {
 	bool leftShoulderHeld = false;  // When held, shows A/B/X/Y labels on belt slots 1-4
 	bool rightShoulderHeld = false; // When held, shows A/B/X/Y labels on belt slots 5-8
 
-	// PadMenuNavigator state - when start button is held, shows menu navigation buttons
-	bool padMenuNavigatorActive = false;
-	uint32_t startButtonPressTime = 0; // Track when start button was pressed for hold detection
-
 	/// Reset player state
 	void Reset();
 
