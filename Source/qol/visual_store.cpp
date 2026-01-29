@@ -63,7 +63,7 @@ constexpr Rectangle VisualStoreButtonRect[] = {
 	{ { 14, 21 }, { 72, 22 } },      // Basic tab
 	{ { 14 + 73, 21 }, { 72, 22 } }, // Premium tab
 	{ { 222, 315 }, { 24, 24 } },    // Repair All Btn
-	{ { 250, 315 }, { 24, 24 } },    // Repair Btn
+	{ { 275, 315 }, { 24, 24 } },    // Repair Btn
 };
 
 // constexpr int NavButton10Left = 0;
