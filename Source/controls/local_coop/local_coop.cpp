@@ -1787,14 +1787,19 @@ void InitLocalCoop()
 
 	size_t numPlayers = std::min(controllers.size(), MaxLocalPlayers);
 
-	for (size_t i = 0; i < numPlayers; ++i) {
+	// Assign controllers to players
+	// Player 1 (index 0) uses the normal input system (padmapper), not local coop
+	// So we mark player 1 as active but don't assign a controller
+	// Players 2-4 (indices 1-3) get controllers 1-3 assigned
+	g_LocalCoop.players[0].active = true;
+	g_LocalCoop.players[0].controllerId = -1; // No controller - uses normal input system
+	g_LocalCoop.players[0].initialized = true;
+	g_LocalCoop.players[0].characterSelectActive = false;
+
+	for (size_t i = 1; i < numPlayers; ++i) {
 		g_LocalCoop.players[i].active = true;
 		g_LocalCoop.players[i].controllerId = controllers[i].GetInstanceId();
 	}
-
-	// Player 1 is always initialized (not in character select)
-	g_LocalCoop.players[0].initialized = true;
-	g_LocalCoop.players[0].characterSelectActive = false;
 
 	g_LocalCoop.enabled = true;
 
