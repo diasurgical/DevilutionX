@@ -1150,11 +1150,12 @@ bool IsStartButtonHeldForPlayer(uint8_t playerId)
  */
 void HandleGameplayButtonDown(uint8_t playerId, LocalCoopPlayer &coopPlayer, Player &player, uint8_t button, uint32_t now)
 {
-	// When this player owns panels and panels are open, B or Back closes them (same as Player 1)
-	// Use the toggle path so BlurInventory, ReleasePanelOwnership, etc. run with correct player context
+	// When this player owns panels and panels are open, B or Back can close them (same as Player 1).
+	// But B (EAST) in inventory should grab/place items when cursor is over item or holding item -
+	// only close when B would not perform an inventory action.
 	if (g_LocalCoop.DoesPlayerOwnPanels(playerId) && (invflag || CharFlag || QuestLogIsOpen || SpellbookFlag)) {
-		if (button == SDL_GAMEPAD_BUTTON_EAST || button == SDL_GAMEPAD_BUTTON_BACK) {
-			// Close each open panel by toggling (ensures HoldItem drop, ownership release, etc.)
+		if (button == SDL_GAMEPAD_BUTTON_BACK) {
+			// Back always closes panels
 			if (invflag)
 				ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_INVENTORY);
 			if (CharFlag)
@@ -1168,6 +1169,49 @@ void HandleGameplayButtonDown(uint8_t playerId, LocalCoopPlayer &coopPlayer, Pla
 				ProcessGameAction(GameAction { GameActionType_TOGGLE_QUICK_SPELL_MENU });
 			}
 			return;
+		}
+		if (button == SDL_GAMEPAD_BUTTON_EAST) {
+			// B (EAST) in inventory: only close if we're NOT doing a grab/place action
+			if (invflag) {
+				bool isOverBeltSlot = false;
+				if (IsLocalCoopEnabled()) {
+					uint8_t beltOwnerPlayerId = 0;
+					std::optional<inv_xy_slot> beltSlot = FindLocalCoopBeltSlotUnderCursor(MousePosition, beltOwnerPlayerId);
+					if (beltSlot.has_value() && beltOwnerPlayerId == playerId) {
+						isOverBeltSlot = true;
+					}
+				}
+				if (pcursinvitem != -1 || isOverBeltSlot || !player.HoldItem.isEmpty()) {
+					// B means grab/place - let the switch handle it below, don't close
+				} else {
+					// Nothing to interact with - B closes inventory
+					ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_INVENTORY);
+					if (CharFlag)
+						ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_CHARACTER_INFO);
+					if (QuestLogIsOpen)
+						ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_QUEST_LOG);
+					if (SpellbookFlag)
+						ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_SPELL_BOOK);
+					if (SpellSelectFlag) {
+						LocalCoopPlayerContext context(playerId);
+						ProcessGameAction(GameAction { GameActionType_TOGGLE_QUICK_SPELL_MENU });
+					}
+					return;
+				}
+			} else {
+				// Not in inventory - B closes other panels
+				if (CharFlag)
+					ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_CHARACTER_INFO);
+				if (QuestLogIsOpen)
+					ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_QUEST_LOG);
+				if (SpellbookFlag)
+					ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_SPELL_BOOK);
+				if (SpellSelectFlag) {
+					LocalCoopPlayerContext context(playerId);
+					ProcessGameAction(GameAction { GameActionType_TOGGLE_QUICK_SPELL_MENU });
+				}
+				return;
+			}
 		}
 	}
 
@@ -1456,9 +1500,31 @@ void ProcessLocalCoopAxisMotion(uint8_t playerId, const SDL_Event &event)
 	switch (axis.axis) {
 	case SDL_GAMEPAD_AXIS_LEFTX:
 		coopPlayer->leftStickXUnscaled = static_cast<float>(axis.value);
+		// Apply deadzone scaling
+		coopPlayer->leftStickX = coopPlayer->leftStickXUnscaled;
+		coopPlayer->leftStickY = coopPlayer->leftStickYUnscaled;
+		ScaleJoystickAxes(&coopPlayer->leftStickX, &coopPlayer->leftStickY, JoystickDeadzone);
 		break;
 	case SDL_GAMEPAD_AXIS_LEFTY:
 		coopPlayer->leftStickYUnscaled = static_cast<float>(-axis.value); // Invert Y axis
+		// Apply deadzone scaling
+		coopPlayer->leftStickX = coopPlayer->leftStickXUnscaled;
+		coopPlayer->leftStickY = coopPlayer->leftStickYUnscaled;
+		ScaleJoystickAxes(&coopPlayer->leftStickX, &coopPlayer->leftStickY, JoystickDeadzone);
+		break;
+	case SDL_GAMEPAD_AXIS_RIGHTX:
+		coopPlayer->rightStickXUnscaled = static_cast<float>(axis.value);
+		// Apply deadzone scaling
+		coopPlayer->rightStickX = coopPlayer->rightStickXUnscaled;
+		coopPlayer->rightStickY = coopPlayer->rightStickYUnscaled;
+		ScaleJoystickAxes(&coopPlayer->rightStickX, &coopPlayer->rightStickY, JoystickDeadzone);
+		break;
+	case SDL_GAMEPAD_AXIS_RIGHTY:
+		coopPlayer->rightStickYUnscaled = static_cast<float>(-axis.value); // Invert Y axis
+		// Apply deadzone scaling
+		coopPlayer->rightStickX = coopPlayer->rightStickXUnscaled;
+		coopPlayer->rightStickY = coopPlayer->rightStickYUnscaled;
+		ScaleJoystickAxes(&coopPlayer->rightStickX, &coopPlayer->rightStickY, JoystickDeadzone);
 		break;
 	case SDL_GAMEPAD_AXIS_LEFT_TRIGGER: {
 		// Left trigger = Character screen (like player 1)
@@ -1481,12 +1547,6 @@ void ProcessLocalCoopAxisMotion(uint8_t playerId, const SDL_Event &event)
 	default:
 		return;
 	}
-
-	// Apply deadzone scaling (values are in range -32767 to 32767)
-	using namespace LocalCoopInput;
-	coopPlayer->leftStickX = coopPlayer->leftStickXUnscaled;
-	coopPlayer->leftStickY = coopPlayer->leftStickYUnscaled;
-	ScaleJoystickAxes(&coopPlayer->leftStickX, &coopPlayer->leftStickY, JoystickDeadzone);
 }
 
 /**
@@ -1577,6 +1637,10 @@ void LocalCoopPlayer::Reset()
 	leftStickY = 0;
 	leftStickXUnscaled = 0;
 	leftStickYUnscaled = 0;
+	rightStickX = 0;
+	rightStickY = 0;
+	rightStickXUnscaled = 0;
+	rightStickYUnscaled = 0;
 	characterSelectActive = true;
 	availableHeroes.clear();
 	selectedHeroIndex = 0;
@@ -2229,6 +2293,51 @@ bool ProcessLocalCoopInput(const SDL_Event &event)
 	return true;
 }
 
+/**
+ * @brief Handle right stick cursor movement for a local coop player.
+ * Similar to HandleRightStickMotion() but for a specific player's right stick.
+ */
+void UpdateLocalCoopPlayerRightStick(uint8_t playerId)
+{
+	auto validated = GetValidatedPlayer(playerId, true, false);
+	if (!validated.isValid)
+		return;
+
+	LocalCoopPlayer *coopPlayer = validated.coop;
+
+	// Deadzone is already handled in ProcessLocalCoopAxisMotion
+	if (coopPlayer->rightStickX == 0 && coopPlayer->rightStickY == 0) {
+		return;
+	}
+
+	// Only move cursor when this player owns panels (inventory/character/etc)
+	if (!g_LocalCoop.DoesPlayerOwnPanels(playerId))
+		return;
+
+	// Set player context so cursor movement affects the right player
+	LocalCoopPlayerContext context(playerId);
+
+	// Move cursor (similar to HandleRightStickMotion but using player's stick values)
+	InvalidateInventorySlot();
+	int x = MousePosition.x;
+	int y = MousePosition.y;
+
+	// Apply stick motion to cursor (scaled by 2 for reasonable speed)
+	const int dtc = 16; // Approximate frame time in ms
+	x += static_cast<int>(coopPlayer->rightStickX * dtc / 2);
+	y -= static_cast<int>(coopPlayer->rightStickY * dtc / 2);
+
+	x = std::min(std::max(x, 0), gnScreenWidth - 1);
+	y = std::min(std::max(y, 0), gnScreenHeight - 1);
+
+	SetCursorPos({ x, y });
+
+	// Update inventory highlight when cursor moves
+	if (invflag) {
+		pcursinvitem = CheckInvHLight();
+	}
+}
+
 void UpdateLocalCoopMovement()
 {
 	if (!g_LocalCoop.enabled)
@@ -2248,9 +2357,20 @@ void UpdateLocalCoopMovement()
 		// Update movement for coop players (players 2-4)
 		if (i > 0) {
 			UpdateLocalCoopPlayerMovement(static_cast<uint8_t>(i));
-		}
+			}
 		// Update target selection for all players
 		UpdateLocalCoopTargetSelection(static_cast<uint8_t>(i));
+	}
+}
+
+void ProcessLocalCoopRightStickCursor()
+{
+	if (!g_LocalCoop.enabled)
+		return;
+
+	// Update right stick cursor for coop players (2-4) who own panels
+	for (size_t i = 1; i < g_LocalCoop.players.size(); ++i) {
+		UpdateLocalCoopPlayerRightStick(static_cast<uint8_t>(i));
 	}
 }
 
@@ -4468,6 +4588,7 @@ void PerformLocalCoopPrimaryAction(uint8_t playerId)
 	}
 
 	// If this player owns panels and inventory is open, handle inventory interactions
+	// Primary action in inventory should grab/place items, same as player 1's secondary action
 	if (g_LocalCoop.DoesPlayerOwnPanels(playerId) && invflag) {
 		// Check for spell cursors (Identify, Repair, Recharge, etc.) first
 		// These need to be handled before normal inventory interactions
@@ -4478,11 +4599,52 @@ void PerformLocalCoopPrimaryAction(uint8_t playerId)
 			NewCursor(CURSOR_HAND);
 			return;
 		}
-		// Handle inventory interactions with auto-move behavior (isShiftHeld=true)
-		// Belt items will automatically move to inventory
-		// Inventory items will automatically move to belt (if possible)
-		// CheckInvItem handles both cutting (when not holding item) and pasting (when holding item)
-		CheckInvItem(true, false);
+		// If player is holding an item, try to place it
+		if (!player->HoldItem.isEmpty()) {
+			CheckInvItem(true, false);
+			return;
+		}
+		// If inventory item is highlighted (via D-Pad navigation), grab it to cursor
+		if (pcursinvitem != -1) {
+			Item &item = GetInventoryItem(*player, pcursinvitem);
+			if (!item.isEmpty() && player->_pmode <= PM_WALK_SIDEWAYS && player->HoldItem.isEmpty()) {
+				CloseGoldDrop();
+
+				// Store the item location before removing
+				const int8_t itemLocation = pcursinvitem;
+
+				// Put item in HoldItem
+				player->HoldItem = item;
+				player->HoldItem._iStatFlag = player->CanUseItem(player->HoldItem);
+
+				// Remove item from inventory based on location
+				if (itemLocation < INVITEM_INV_FIRST) {
+					// Equipment slot
+					RemoveEquipment(*player, static_cast<inv_body_loc>(itemLocation), false);
+					CalcPlrInv(*player, true);
+				} else if (itemLocation <= INVITEM_INV_LAST) {
+					// Inventory grid
+					player->RemoveInvItem(itemLocation - INVITEM_INV_FIRST, false);
+				} else {
+					// Belt
+					player->RemoveSpdBarItem(itemLocation - INVITEM_BELT_FIRST);
+				}
+
+				// Handle gold separately
+				if (player->HoldItem._itype == ItemType::Gold) {
+					player->_pGold = CalculateGold(*player);
+				}
+
+				// Update cursor to show the item (only for MyPlayer)
+				if (MyPlayer == player) {
+					NewCursor(player->HoldItem);
+					PlaySFX(SfxID::GrabItem);
+				}
+
+				// Clear pcursinvitem since item is no longer in inventory
+				pcursinvitem = -1;
+			}
+		}
 		return;
 	}
 
@@ -5283,6 +5445,7 @@ bool IsAnyLocalCoopPlayerInitialized() { return false; }
 bool IsLocalCoopPlayer(const Player & /*player*/) { return false; }
 bool IsLocalPlayer(const Player &player) { return &player == MyPlayer; }
 void UpdateLocalCoopMovement() { }
+void ProcessLocalCoopRightStickCursor() { }
 void UpdateLocalCoopSkillButtons() { }
 bool HandlePlayerSkillButtonDown(uint8_t /*playerId*/, int /*slotIndex*/) { return false; }
 bool HandlePlayerSkillButtonUp(uint8_t /*playerId*/, int /*slotIndex*/) { return false; }

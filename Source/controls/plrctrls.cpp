@@ -2063,6 +2063,7 @@ void plrctrls_every_frame()
 {
 	ProcessLeftStickOrDPadGameUI();
 	HandleRightStickMotion();
+	ProcessLocalCoopRightStickCursor();
 	ProcessAutomapMovementGamepad();
 }
 

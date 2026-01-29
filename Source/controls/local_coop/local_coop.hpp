@@ -62,10 +62,14 @@ struct LocalCoopPlayer {
 	// Stick values (scaled with deadzone)
 	float leftStickX = 0;
 	float leftStickY = 0;
+	float rightStickX = 0;
+	float rightStickY = 0;
 
 	// Unscaled stick values for deadzone processing
 	float leftStickXUnscaled = 0;
 	float leftStickYUnscaled = 0;
+	float rightStickXUnscaled = 0;
+	float rightStickYUnscaled = 0;
 
 	// D-pad values for movement (-1, 0, or 1)
 	int dpadX = 0;
@@ -378,6 +382,14 @@ bool ProcessLocalCoopInput(const SDL_Event &event);
  * Should be called in the game loop after player 1's movement.
  */
 void UpdateLocalCoopMovement();
+
+/**
+ * @brief Update cursor position from right stick for local co-op players who own panels.
+ *
+ * Should be called every frame (e.g. from plrctrls_every_frame) so coop players
+ * can move the cursor in inventory/panels with the right stick, like player 1.
+ */
+void ProcessLocalCoopRightStickCursor();
 
 /**
  * @brief Update skill button hold states for quick spell menu.
