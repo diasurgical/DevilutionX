@@ -207,17 +207,50 @@ void ProcessControllerMotion(const SDL_Event &event)
 	}
 }
 
+AxisDirection GetAnalogStickDirection(float stickX, float stickY)
+{
+	const float magnitude = std::sqrt(stickX * stickX + stickY * stickY);
+	if (magnitude < StickDirectionThreshold)
+		return { AxisDirectionX_NONE, AxisDirectionY_NONE };
+
+	const float absX = std::fabs(stickX);
+	const float absY = std::fabs(stickY);
+	AxisDirection result { AxisDirectionX_NONE, AxisDirectionY_NONE };
+
+	// 8-way sectoring with 22.5° cutoffs.
+	constexpr float DiagonalCutoff = 0.41421356F; // tan(22.5°)
+	if (absX == 0.0F) {
+		result.y = stickY > 0 ? AxisDirectionY_UP : AxisDirectionY_DOWN;
+		return result;
+	}
+
+	const float ratio = absY / absX;
+	if (ratio <= DiagonalCutoff) {
+		result.x = stickX > 0 ? AxisDirectionX_RIGHT : AxisDirectionX_LEFT;
+		return result;
+	}
+	if (ratio >= 1.0F / DiagonalCutoff) {
+		result.y = stickY > 0 ? AxisDirectionY_UP : AxisDirectionY_DOWN;
+		return result;
+	}
+
+	result.x = stickX > 0 ? AxisDirectionX_RIGHT : AxisDirectionX_LEFT;
+	result.y = stickY > 0 ? AxisDirectionY_UP : AxisDirectionY_DOWN;
+	return result;
+}
+
 AxisDirection GetLeftStickOrDpadDirection(bool usePadmapper)
 {
 	const float stickX = leftStickX;
 	const float stickY = leftStickY;
 
 	AxisDirection result { AxisDirectionX_NONE, AxisDirectionY_NONE };
+	const AxisDirection analogDirection = GetAnalogStickDirection(stickX, stickY);
 
-	bool isUpPressed = stickY >= 0.5;
-	bool isDownPressed = stickY <= -0.5;
-	bool isLeftPressed = stickX <= -0.5;
-	bool isRightPressed = stickX >= 0.5;
+	bool isUpPressed = analogDirection.y == AxisDirectionY_UP;
+	bool isDownPressed = analogDirection.y == AxisDirectionY_DOWN;
+	bool isLeftPressed = analogDirection.x == AxisDirectionX_LEFT;
+	bool isRightPressed = analogDirection.x == AxisDirectionX_RIGHT;
 
 	if (usePadmapper) {
 		isUpPressed |= PadmapperIsActionActive("MoveUp");
