@@ -2931,18 +2931,20 @@ void SaveGame()
 {
 	gbValidSaveFile = true;
 #ifndef USE_SDL1
-	// CRITICAL: Restore MyPlayer to Player 1 before saving
-	// If a local coop player has panels open, MyPlayer might point to them
-	if (IsLocalCoopEnabled())
-		RestorePlayer1ContextForSave();
-#endif
-	pfile_write_hero(/*writeGameData=*/true);
-	sfile_write_stash();
-#ifndef USE_SDL1
-	// Also save local co-op players to their respective save slots
-	if (IsLocalCoopEnabled())
+	// Save with Player 1 context automatically restored
+	if (IsLocalCoopEnabled()) {
+		WithPlayer1Context([]() {
+			pfile_write_hero(/*writeGameData=*/true);
+		});
+		sfile_write_stash();
+		// Also save local co-op players to their respective save slots
 		SaveLocalCoopPlayers(/*writeGameData=*/false);
+	} else
 #endif
+	{
+		pfile_write_hero(/*writeGameData=*/true);
+		sfile_write_stash();
+	}
 }
 
 void SaveLevel(SaveWriter &saveWriter)

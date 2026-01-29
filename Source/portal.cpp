@@ -175,9 +175,8 @@ void GetPortalLvlPos()
 		}
 	}
 
-	// In local co-op mode with active players, UpdateLocalCoopCamera will handle
-	// the view position. We still set it here as a fallback for initial positioning.
-	ViewPosition = portalPos;
+	// Set view position (automatically handles local coop vs single player)
+	SetViewPosition(portalPos);
 }
 
 bool PosOkPortal(int lvl, Point position)

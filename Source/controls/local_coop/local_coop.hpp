@@ -256,6 +256,16 @@ bool IsLocalCoopEnabled();
 bool IsAnyLocalCoopPlayerInitialized();
 
 /**
+ * @brief Check if the main panel should be hidden for local co-op.
+ *
+ * Returns true when local co-op is enabled and at least one co-op player
+ * has spawned/initialized. Use this instead of directly checking g_LocalCoop state.
+ *
+ * @return true if main panel should be hidden, false otherwise
+ */
+bool ShouldHideMainPanelForLocalCoop();
+
+/**
  * @brief Get total player count including player 1.
  * @return Total number of players (1 + active local coop players)
  */
@@ -535,6 +545,34 @@ Point CalculateLocalCoopViewPosition();
 void UpdateLocalCoopCamera();
 
 /**
+ * @brief Set the view position, handling both single player and local co-op modes.
+ *
+ * In single player mode, directly sets ViewPosition.
+ * In local co-op mode with initialized players, the camera is managed by
+ * UpdateLocalCoopCamera instead, so this does nothing.
+ *
+ * Use this instead of directly setting ViewPosition to ensure proper behavior
+ * in both modes.
+ *
+ * @param position The desired view position
+ */
+void SetViewPosition(Point position);
+
+/**
+ * @brief Set the view position for a specific player.
+ *
+ * In single player mode or when no coop players are initialized, sets ViewPosition.
+ * In local co-op mode with initialized players, the camera is managed by
+ * UpdateLocalCoopCamera instead, so this does nothing.
+ *
+ * Use this instead of conditionally setting ViewPosition based on IsAnyLocalCoopPlayerInitialized.
+ *
+ * @param player The player whose position to use
+ * @param position The desired view position
+ */
+void SetViewPositionForPlayer(const Player &player, Point position);
+
+/**
  * @brief Calculate the camera offset for smooth scrolling in local co-op mode.
  *
  * Returns the average walking offset of all active players. This is used by the
@@ -543,6 +581,16 @@ void UpdateLocalCoopCamera();
  * @return The camera offset displacement in pixels, or zero if local co-op is not active.
  */
 Displacement GetLocalCoopCameraOffset();
+
+/**
+ * @brief Check if the camera has a non-zero offset (for render area expansion).
+ *
+ * Used by rendering code to determine if extra tiles need to be rendered
+ * to prevent gaps during smooth camera movement.
+ *
+ * @return true if camera has offset, false otherwise
+ */
+bool HasCameraOffset();
 
 /**
  * @brief Check if a tile position is within the visible screen boundaries.
@@ -691,8 +739,24 @@ bool IsLocalCoopTargetItem(int8_t itemIndex);
  *
  * This ensures that when panels are drawn, they show the correct player's data.
  * Should be called before drawing inventory/character panels.
+ * @deprecated Use DrawPanelWithContext instead
  */
 void RestorePanelOwnerContext();
+
+/**
+ * @brief Execute a function with the panel owner's context automatically restored.
+ *
+ * This is a helper that automatically calls RestorePanelOwnerContext before
+ * executing the provided function, ensuring the correct player context.
+ *
+ * @param func The function to execute with panel owner context
+ */
+template<typename Func>
+void WithPanelOwnerContext(Func func)
+{
+	RestorePanelOwnerContext();
+	func();
+}
 
 /**
  * @brief Restore MyPlayer to Player 1 before saving.
@@ -700,8 +764,24 @@ void RestorePanelOwnerContext();
  * CRITICAL: This must be called BEFORE pfile_write_hero to ensure that
  * Player 1's save file gets Player 1's data, not a local coop player's data.
  * If a local coop player has panels open, MyPlayer might point to them.
+ * @deprecated Use WithPlayer1Context instead
  */
 void RestorePlayer1ContextForSave();
+
+/**
+ * @brief Execute a function with Player 1's context automatically restored.
+ *
+ * This ensures that save operations always use Player 1's data, even if
+ * a local coop player currently owns panels.
+ *
+ * @param func The function to execute with Player 1 context
+ */
+template<typename Func>
+void WithPlayer1Context(Func func)
+{
+	RestorePlayer1ContextForSave();
+	func();
+}
 
 /**
  * @brief Save all local co-op players to their respective save files.
@@ -741,5 +821,14 @@ bool IsLocalCoopStoreActive();
  * @return Player ID (0-3), or 0 if player 1 owns it
  */
 uint8_t GetLocalCoopStoreOwnerPlayerId();
+
+/**
+ * @brief Close the active store and clear local co-op store ownership.
+ *
+ * This is a convenience function that combines setting ActiveStore to None
+ * and clearing local co-op store ownership. Use this instead of manually
+ * setting ActiveStore = TalkID::None followed by ClearLocalCoopStoreOwner().
+ */
+void CloseStore();
 
 } // namespace devilution

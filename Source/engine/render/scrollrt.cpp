@@ -1201,12 +1201,8 @@ void CalcFirstTilePosition(Point &position, Displacement &offset)
 #ifndef USE_SDL1
 	bool anyPlayerWalking = false;
 	Direction walkDir = Direction::South;
-	bool hasLocalCoopCameraOffset = false;
 	if (IsAnyLocalCoopPlayerInitialized()) {
-		// Check if camera has any offset (indicating it's interpolating)
-		if (localCoopOffset.deltaX != 0 || localCoopOffset.deltaY != 0) {
-			hasLocalCoopCameraOffset = true;
-		}
+		// Check if any player is walking
 		for (size_t i = 0; i < Players.size(); ++i) {
 			const Player &player = Players[i];
 			if (player.plractive && !player.hasNoLife() && player.isWalking()) {
@@ -1222,7 +1218,7 @@ void CalcFirstTilePosition(Point &position, Displacement &offset)
 
 	// In local co-op with camera offset, expand rendering in all directions
 	// This ensures no gaps appear when the camera is smoothly following players
-	if (hasLocalCoopCameraOffset) {
+	if (HasCameraOffset()) {
 		// Expand rendering area in all directions by one tile
 		offset.deltaX -= TILE_WIDTH / 2;
 		offset.deltaY -= TILE_HEIGHT / 2;
@@ -1297,8 +1293,7 @@ void DrawGame(const Surface &fullOut, Point position, Displacement offset)
 
 #ifndef USE_SDL1
 	// In local co-op mode with sub-tile camera offset, we need extra tiles to cover edges
-	Displacement localCoopOffset = GetLocalCoopCameraOffset();
-	if (localCoopOffset.deltaX != 0 || localCoopOffset.deltaY != 0) {
+	if (HasCameraOffset()) {
 		// Add extra tiles in all directions to ensure full coverage
 		// The offset can shift the view in any direction, so we add padding
 		columns += 2;
@@ -1469,28 +1464,21 @@ void DrawView(const Surface &out, Point startPosition)
 	if (IsPlayerInStore() && !qtextflag)
 		DrawSText(out);
 #ifndef USE_SDL1
-	// Restore panel owner's context before drawing panels
-	// This ensures local coop players see their own data when panels are open
-	// Call it right before each panel to ensure context is correct
+	// Draw panels with automatic context restoration for local coop
 	if (invflag) {
-		RestorePanelOwnerContext();
-		DrawInv(out);
+		WithPanelOwnerContext([&out]() { DrawInv(out); });
 	} else if (SpellbookFlag) {
-		RestorePanelOwnerContext();
-		DrawSpellBook(out);
+		WithPanelOwnerContext([&out]() { DrawSpellBook(out); });
 	}
 
 	DrawDurIcon(out);
 
 	if (CharFlag) {
-		RestorePanelOwnerContext();
-		DrawChr(out);
+		WithPanelOwnerContext([&out]() { DrawChr(out); });
 	} else if (QuestLogIsOpen) {
-		RestorePanelOwnerContext();
-		DrawQuestLog(out);
+		WithPanelOwnerContext([&out]() { DrawQuestLog(out); });
 	} else if (IsStashOpen) {
-		RestorePanelOwnerContext();
-		DrawStash(out);
+		WithPanelOwnerContext([&out]() { DrawStash(out); });
 	}
 #else
 	if (invflag) {
@@ -1980,24 +1968,9 @@ void DrawAndBlit()
 
 	DrawView(out, ViewPosition);
 
-#ifndef USE_SDL1
 	// When local co-op is enabled AND at least one other player has spawned,
 	// hide the main panel UI and use corner HUDs instead.
-	// Player 1's corner HUD will show when local coop is enabled.
-	// But keep the main panel visible until other players have actually joined the game.
-	bool hideMainPanelForLocalCoop = false;
-	if (IsLocalCoopEnabled()) {
-		// Only hide main panel if at least one local co-op player has spawned
-		for (size_t i = 0; i < g_LocalCoop.players.size(); ++i) {
-			if (g_LocalCoop.players[i].active && g_LocalCoop.players[i].initialized) {
-				hideMainPanelForLocalCoop = true;
-				break;
-			}
-		}
-	}
-#else
-	const bool hideMainPanelForLocalCoop = false;
-#endif
+	const bool hideMainPanelForLocalCoop = ShouldHideMainPanelForLocalCoop();
 
 	if (!hideMainPanelForLocalCoop) {
 		if (drawCtrlPan) {

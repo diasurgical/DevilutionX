@@ -1912,6 +1912,20 @@ size_t GetLocalCoopTotalPlayerCount()
 	return g_LocalCoop.GetTotalPlayerCount();
 }
 
+bool ShouldHideMainPanelForLocalCoop()
+{
+	if (!IsLocalCoopEnabled())
+		return false;
+
+	// Only hide main panel if at least one local co-op player has spawned
+	for (size_t i = 0; i < g_LocalCoop.players.size(); ++i) {
+		if (g_LocalCoop.players[i].active && g_LocalCoop.players[i].initialized) {
+			return true;
+		}
+	}
+	return false;
+}
+
 bool IsLocalCoopTargetObject(const Object *object)
 {
 	if (object == nullptr || !IsLocalCoopEnabled())
@@ -3810,6 +3824,30 @@ Point CalculateLocalCoopViewPosition()
  * By working in screen space, we can average player positions with sub-tile
  * precision and convert back to a tile position + pixel offset.
  */
+void SetViewPosition(Point position)
+{
+#ifndef USE_SDL1
+	// In local co-op mode with initialized players, camera is managed by UpdateLocalCoopCamera
+	if (IsAnyLocalCoopPlayerInitialized())
+		return;
+#endif
+	ViewPosition = position;
+}
+
+void SetViewPositionForPlayer(const Player &player, Point position)
+{
+	// Only set view position for locally controlled players
+	if (!IsLocalPlayer(player))
+		return;
+
+#ifndef USE_SDL1
+	// In local co-op mode with initialized players, camera is managed by UpdateLocalCoopCamera
+	if (IsAnyLocalCoopPlayerInitialized())
+		return;
+#endif
+	ViewPosition = position;
+}
+
 void UpdateLocalCoopCamera()
 {
 	if (!g_LocalCoop.enabled || !IsLocalCoopEnabled())
@@ -4005,6 +4043,12 @@ Displacement GetLocalCoopCameraOffset()
 
 	// Return the pre-calculated average offset from UpdateLocalCoopCamera
 	return { g_LocalCoop.cameraOffsetX, g_LocalCoop.cameraOffsetY };
+}
+
+bool HasCameraOffset()
+{
+	Displacement offset = GetLocalCoopCameraOffset();
+	return offset.deltaX != 0 || offset.deltaY != 0;
 }
 
 bool IsLocalCoopPositionOnScreen(Point tilePos)
@@ -5205,6 +5249,12 @@ void ClearLocalCoopStoreOwner()
 	g_LocalCoop.storeOwnerPlayerId = -1;
 }
 
+void CloseStore()
+{
+	ActiveStore = TalkID::None;
+	ClearLocalCoopStoreOwner();
+}
+
 bool IsLocalCoopStoreActive()
 {
 	return g_LocalCoop.enabled && g_LocalCoop.storeOwnerPlayerId > 0;
@@ -5475,6 +5525,7 @@ void ShutdownLocalCoop() { }
 bool IsLocalCoopAvailable() { return false; }
 bool IsLocalCoopEnabled() { return false; }
 bool IsAnyLocalCoopPlayerInitialized() { return false; }
+bool ShouldHideMainPanelForLocalCoop() { return false; }
 bool IsLocalCoopPlayer(const Player & /*player*/) { return false; }
 bool IsLocalPlayer(const Player &player) { return &player == MyPlayer; }
 void UpdateLocalCoopMovement() { }
@@ -5499,7 +5550,10 @@ void HandleLocalCoopControllerDisconnect(SDL_JoystickID /*controllerId*/) { }
 void HandleLocalCoopControllerConnect(SDL_JoystickID /*controllerId*/) { }
 Point CalculateLocalCoopViewPosition() { return {}; }
 void UpdateLocalCoopCamera() { }
+void SetViewPosition(Point position) { ViewPosition = position; }
+void SetViewPositionForPlayer(const Player &player, Point position) { if (&player == MyPlayer) ViewPosition = position; }
 Displacement GetLocalCoopCameraOffset() { return {}; }
+bool HasCameraOffset() { return false; }
 bool IsLocalCoopPositionOnScreen(Point /*tilePos*/) { return true; }
 bool TryJoinLocalCoopMidGame(SDL_JoystickID /*controllerId*/) { return false; }
 void UpdateLocalCoopTargetSelection(uint8_t /*playerId*/) { }
@@ -5516,6 +5570,7 @@ void RestorePlayer1ContextForSave() { }
 void SaveLocalCoopPlayers(bool /*writeGameData*/) { }
 void SetLocalCoopStoreOwner(int /*playerId*/) { }
 void ClearLocalCoopStoreOwner() { }
+void CloseStore() { ActiveStore = TalkID::None; }
 bool IsLocalCoopStoreActive() { return false; }
 uint8_t GetLocalCoopStoreOwnerPlayerId() { return 0; }
 bool HandleLocalCoopPanelAction(uint8_t /*playerId*/, uint8_t /*actionType*/) { return false; }

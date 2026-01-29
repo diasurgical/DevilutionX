@@ -1294,8 +1294,7 @@ void SmithEnter()
 		StartStore(TalkID::SmithRepair);
 		break;
 	case 20:
-		ActiveStore = TalkID::None;
-		ClearLocalCoopStoreOwner();
+		CloseStore();
 		break;
 	}
 }
@@ -1519,8 +1518,7 @@ void WitchEnter()
 		StartStore(TalkID::WitchRecharge);
 		break;
 	case 20:
-		ActiveStore = TalkID::None;
-		ClearLocalCoopStoreOwner();
+		CloseStore();
 		break;
 	}
 }
@@ -1658,8 +1656,7 @@ void BoyEnter()
 	}
 
 	if ((CurrentTextLine != 8 && !BoyItem.isEmpty()) || (CurrentTextLine != 12 && BoyItem.isEmpty())) {
-		ActiveStore = TalkID::None;
-		ClearLocalCoopStoreOwner();
+		CloseStore();
 		return;
 	}
 
@@ -1713,8 +1710,7 @@ void HealerBuyItem(Item &item)
 void BoyBuyEnter()
 {
 	if (CurrentTextLine != 10) {
-		ActiveStore = TalkID::None;
-		ClearLocalCoopStoreOwner();
+		CloseStore();
 		return;
 	}
 
@@ -1834,8 +1830,7 @@ void HealerEnter()
 		StartStore(TalkID::HealerBuy);
 		break;
 	case 18:
-		ActiveStore = TalkID::None;
-		ClearLocalCoopStoreOwner();
+		CloseStore();
 		break;
 	}
 }
@@ -1881,8 +1876,7 @@ void StorytellerEnter()
 		StartStore(TalkID::StorytellerIdentify);
 		break;
 	case 18:
-		ActiveStore = TalkID::None;
-		ClearLocalCoopStoreOwner();
+		CloseStore();
 		break;
 	}
 }
@@ -1958,8 +1952,7 @@ void TavernEnter()
 		StartStore(TalkID::Gossip);
 		break;
 	case 18:
-		ActiveStore = TalkID::None;
-		ClearLocalCoopStoreOwner();
+		CloseStore();
 		break;
 	}
 }
@@ -1974,8 +1967,7 @@ void BarmaidEnter()
 		StartStore(TalkID::Gossip);
 		break;
 	case 14:
-		ActiveStore = TalkID::None;
-		ClearLocalCoopStoreOwner();
+		CloseStore();
 		IsStashOpen = true;
 		Stash.RefreshItemStatFlags();
 		invflag = true;
@@ -1986,8 +1978,7 @@ void BarmaidEnter()
 		}
 		break;
 	case 18:
-		ActiveStore = TalkID::None;
-		ClearLocalCoopStoreOwner();
+		CloseStore();
 		break;
 	}
 }
@@ -2002,8 +1993,7 @@ void DrunkEnter()
 		StartStore(TalkID::Gossip);
 		break;
 	case 18:
-		ActiveStore = TalkID::None;
-		ClearLocalCoopStoreOwner();
+		CloseStore();
 		break;
 	}
 }
@@ -2074,8 +2064,7 @@ void AddStoreHoldRepair(Item *itm, int8_t i)
 void InitStores()
 {
 	ClearSText(0, NumStoreLines);
-	ActiveStore = TalkID::None;
-	ClearLocalCoopStoreOwner();
+	CloseStore();
 	IsTextFullSize = false;
 	HasScrollbar = false;
 	PremiumItemCount = 0;
@@ -2116,8 +2105,7 @@ void FreeStoreMem()
 	if (*GetOptions().Gameplay.showItemGraphicsInStores) {
 		FreeHalfSizeItemSprites();
 	}
-	ActiveStore = TalkID::None;
-	ClearLocalCoopStoreOwner();
+	CloseStore();
 	for (STextStruct &entry : TextLine) {
 		entry.text.clear();
 		entry.text.shrink_to_fit();
@@ -2425,9 +2413,7 @@ void StoreESC()
 	case TalkID::Tavern:
 	case TalkID::Drunk:
 	case TalkID::Barmaid:
-		ActiveStore = TalkID::None;
-		// Clear local co-op store owner when exiting store
-		ClearLocalCoopStoreOwner();
+		CloseStore();
 		break;
 	case TalkID::Gossip:
 		StartStore(OldActiveStore);

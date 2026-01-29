@@ -3729,13 +3729,7 @@ void ProcessTeleport(Missile &missile)
 		ChangeLightXY(player.lightId, player.position.tile);
 		ChangeVisionXY(player.getId(), player.position.tile);
 	}
-	if (IsLocalPlayer(player)) {
-		// In local co-op mode with spawned players, let UpdateLocalCoopCamera handle the ViewPosition
-		// to keep the camera centered between all players
-		if (!IsAnyLocalCoopPlayerInitialized()) {
-			ViewPosition = player.position.tile;
-		}
-	}
+	SetViewPositionForPlayer(player, player.position.tile);
 }
 
 void ProcessStoneCurse(Missile &missile)

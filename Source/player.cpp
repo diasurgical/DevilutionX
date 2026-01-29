@@ -2550,8 +2550,8 @@ void InitMultiView()
 {
 	assert(MyPlayer != nullptr);
 
+#ifndef USE_SDL1
 	// In local co-op mode with initialized players, center view on all players
-	// Otherwise just use MyPlayer's position
 	if (IsAnyLocalCoopPlayerInitialized()) {
 		// Calculate center position of all active local coop players
 		Point centerPos = CalculateLocalCoopViewPosition();
@@ -2559,9 +2559,11 @@ void InitMultiView()
 
 		// Reset camera smoothing to snap to new position
 		ResetLocalCoopCamera();
-	} else {
-		ViewPosition = MyPlayer->position.tile;
+		return;
 	}
+#endif
+	// Single player or no coop players initialized yet
+	ViewPosition = MyPlayer->position.tile;
 }
 
 void PlrClrTrans(Point position)
@@ -2598,13 +2600,7 @@ void FixPlayerLocation(Player &player, Direction bDir)
 {
 	player.position.future = player.position.tile;
 	player._pdir = bDir;
-	if (IsLocalPlayer(player)) {
-		// In local co-op mode with spawned players, let UpdateLocalCoopCamera handle ViewPosition
-		// to center the view between all players instead of just following Player 1
-		if (!IsAnyLocalCoopPlayerInitialized()) {
-			ViewPosition = player.position.tile;
-		}
-	}
+	SetViewPositionForPlayer(player, player.position.tile);
 	ChangeLightXY(player.lightId, player.position.tile);
 	ChangeVisionXY(player.getId(), player.position.tile);
 }
@@ -3335,14 +3331,7 @@ void SyncInitPlrPos(Player &player)
 	player.position.tile = position;
 	player.occupyTile(position, false);
 	player.position.future = position;
-
-	if (IsLocalPlayer(player)) {
-		// In local co-op mode with spawned players, let UpdateLocalCoopCamera handle ViewPosition
-		// to center the view between all players instead of just following Player 1
-		if (!IsAnyLocalCoopPlayerInitialized()) {
-			ViewPosition = position;
-		}
-	}
+	SetViewPositionForPlayer(player, position);
 }
 
 void SyncInitPlr(Player &player)
