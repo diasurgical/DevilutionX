@@ -1823,6 +1823,13 @@ bool IsLocalCoopAvailable()
 bool IsLocalCoopEnabled()
 {
 	// Must be in multiplayer mode for local coop to be active
+	// Also check if the option is enabled - if disabled, shut down local coop
+	if (!*GetOptions().Gameplay.enableLocalCoop) {
+		if (g_LocalCoop.enabled) {
+			ShutdownLocalCoop();
+		}
+		return false;
+	}
 	return gbIsMultiplayer && g_LocalCoop.enabled;
 }
 
