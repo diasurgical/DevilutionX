@@ -22,7 +22,7 @@ Keybinds are configurable, but these are the defaults most players will use:
 
 - `T` - cycle tracker target (items / chests / doors / shrines / objects / breakables / monsters / dead bodies).
 - `Shift`+`T` - cycle tracker target backwards.
-- `N` - tracker directions to the nearest target (speaks target name + directions; in town: items only).
+- `N` - tracker directions to the nearest target (speaks target name + directions; in town: items / dead bodies only).
 - `Shift`+`N` - cycle to the next target in the current tracker category (speaks name only; duplicates get ordinal numbers).
 - `Ctrl`+`N` - clear the tracker target.
 - `H` - speak nearest unexplored space.
