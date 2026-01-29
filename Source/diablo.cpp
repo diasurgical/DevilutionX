@@ -2237,8 +2237,8 @@ enum class TrackerTargetCategory : uint8_t {
 };
 
 TrackerTargetCategory SelectedTrackerTargetCategory = TrackerTargetCategory::Items;
-TrackerTargetCategory AutoWalkTrackerTargetCategory = TrackerTargetCategory::Items;
-int AutoWalkTrackerTargetId = -1;
+TrackerTargetCategory AutoWalkTrackerTargetCategory = TrackerTargetCategory::Items; ///< Category of the active auto-walk target.
+int AutoWalkTrackerTargetId = -1; ///< ID of the target being auto-walked to, or -1 if inactive.
 
 Point NextPositionForWalkDirection(Point position, int8_t walkDir)
 {
@@ -2515,6 +2515,8 @@ void UpdateAutoWalkTownNpc()
 
 namespace {
 
+/// Maximum Chebyshev distance (in tiles) at which the player is considered
+/// close enough to interact with a tracker target.
 constexpr int TrackerInteractDistanceTiles = 1;
 constexpr int TrackerCycleDistanceTiles = 12;
 
@@ -2578,9 +2580,9 @@ int &LockedTrackerTargetId(TrackerTargetCategory category)
 	case TrackerTargetCategory::Breakables:
 		return LockedTrackerBreakableId;
 	case TrackerTargetCategory::Monsters:
-	default:
 		return LockedTrackerMonsterId;
 	}
+	app_fatal("Invalid TrackerTargetCategory");
 }
 
 std::string_view TrackerTargetCategoryLabel(TrackerTargetCategory category)
@@ -2643,7 +2645,6 @@ void CycleTrackerTargetKeyPressed()
 			SelectedTrackerTargetCategory = TrackerTargetCategory::Objects;
 			break;
 		case TrackerTargetCategory::Monsters:
-		default:
 			SelectedTrackerTargetCategory = TrackerTargetCategory::Breakables;
 			break;
 		}
@@ -2668,7 +2669,6 @@ void CycleTrackerTargetKeyPressed()
 			SelectedTrackerTargetCategory = TrackerTargetCategory::Monsters;
 			break;
 		case TrackerTargetCategory::Monsters:
-		default:
 			SelectedTrackerTargetCategory = TrackerTargetCategory::Items;
 			break;
 		}
@@ -2794,6 +2794,13 @@ struct TrackerCandidate {
 	if (object.IsBreakable())
 		return false;
 	return true;
+}
+
+[[nodiscard]] bool IsTrackedMonster(const Monster &monster)
+{
+	return !monster.isInvalid
+	    && (monster.flags & MFLAG_HIDDEN) == 0
+	    && monster.hitPoints > 0;
 }
 
 template <typename Predicate>
@@ -3619,8 +3626,7 @@ void NavigateToTrackerTargetKeyPressed()
 		}
 		break;
 	}
-	case TrackerTargetCategory::Monsters:
-	default:
+	case TrackerTargetCategory::Monsters: {
 		const std::vector<TrackerCandidate> nearbyCandidates = CollectNearbyMonsterTrackerCandidates(playerPosition, TrackerCycleDistanceTiles);
 		if (cycleTarget) {
 			targetId = FindNextTrackerCandidateId(nearbyCandidates, lockedTargetId);
@@ -3642,7 +3648,7 @@ void NavigateToTrackerTargetKeyPressed()
 		}
 
 		const Monster &monster = Monsters[*targetId];
-		if (monster.isInvalid || (monster.flags & MFLAG_HIDDEN) != 0 || monster.hitPoints <= 0) {
+		if (!IsTrackedMonster(monster)) {
 			lockedTargetId = -1;
 			targetId = FindNearestMonsterId(playerPosition);
 			if (!targetId) {
@@ -3660,6 +3666,7 @@ void NavigateToTrackerTargetKeyPressed()
 			targetPosition = tracked.position.tile;
 		}
 		break;
+	}
 	}
 
 	if (cycleTarget) {
@@ -3800,19 +3807,108 @@ void NavigateToTrackerTargetKeyPressed()
 
 } // namespace
 
+/**
+ * Validates an object-category auto-walk target and computes the walk destination.
+ *
+ * Checks bounds, applies the validity predicate, tests interaction distance, and
+ * computes the approach tile.  On failure the walk is cancelled and a spoken
+ * message is emitted.
+ *
+ * @param[out] destination Set to the approach tile when the target is valid.
+ * @return true if the walk should continue (destination is set), false if cancelled.
+ */
+template <typename Predicate>
+bool ValidateAutoWalkObjectTarget(
+    const Player &myPlayer, Point playerPosition,
+    Predicate isValid, const char *goneMessage, const char *inRangeMessage,
+    std::optional<Point> &destination)
+{
+	const int objectId = AutoWalkTrackerTargetId;
+	if (objectId < 0 || objectId >= MAXOBJECTS) {
+		AutoWalkTrackerTargetId = -1;
+		SpeakText(_(goneMessage), true);
+		return false;
+	}
+	const Object &object = Objects[objectId];
+	if (!isValid(object)) {
+		AutoWalkTrackerTargetId = -1;
+		SpeakText(_(goneMessage), true);
+		return false;
+	}
+	if (playerPosition.WalkingDistance(object.position) <= TrackerInteractDistanceTiles) {
+		AutoWalkTrackerTargetId = -1;
+		SpeakText(_(inRangeMessage), true);
+		return false;
+	}
+	destination = FindBestAdjacentApproachTile(myPlayer, playerPosition, object.position);
+	return true;
+}
+
+/**
+ * Resolves which object to walk toward for the given tracker category.
+ *
+ * Uses the locked target if it is still valid, otherwise falls back to the
+ * nearest matching object.  On success, updates lockedTargetId and targetName.
+ *
+ * @return The resolved object ID, or nullopt if nothing was found (a spoken
+ *         message will already have been emitted).
+ */
+template <typename Predicate, typename FindNearest, typename GetName>
+std::optional<int> ResolveObjectTrackerTarget(
+    int &lockedTargetId, Point playerPosition,
+    Predicate isValid, FindNearest findNearest, GetName getName,
+    const char *notFoundMessage, StringOrView &targetName)
+{
+	std::optional<int> targetId;
+	if (lockedTargetId >= 0 && lockedTargetId < MAXOBJECTS) {
+		targetId = lockedTargetId;
+	} else {
+		targetId = findNearest(playerPosition);
+	}
+	if (!targetId) {
+		SpeakText(_(notFoundMessage), true);
+		return std::nullopt;
+	}
+	if (!isValid(Objects[*targetId])) {
+		lockedTargetId = -1;
+		targetId = findNearest(playerPosition);
+		if (!targetId) {
+			SpeakText(_(notFoundMessage), true);
+			return std::nullopt;
+		}
+		// findNearest guarantees the result passes isValid, but verify defensively.
+		if (!isValid(Objects[*targetId])) {
+			SpeakText(_(notFoundMessage), true);
+			return std::nullopt;
+		}
+	}
+	lockedTargetId = *targetId;
+	targetName = getName(*targetId);
+	return targetId;
+}
+
+/**
+ * Called each game tick to advance auto-walk toward the current tracker target.
+ * Does nothing if no target is active (AutoWalkTrackerTargetId < 0) or if the
+ * player is not idle. Validates the target still exists and is reachable, then
+ * computes a path. If a closed door blocks the path, reroutes to the tile
+ * before the door. Long paths are sent in segments.
+ */
 void UpdateAutoWalkTracker()
 {
 	if (AutoWalkTrackerTargetId < 0)
 		return;
-	if (leveltype == DTYPE_TOWN || IsPlayerInStore() || ChatLogFlag || HelpFlag) {
+	if (leveltype == DTYPE_TOWN || IsPlayerInStore() || ChatLogFlag || HelpFlag || InGameMenu()) {
 		AutoWalkTrackerTargetId = -1;
 		return;
 	}
 	if (!CanPlayerTakeAction())
 		return;
 
-	if (MyPlayer == nullptr)
+	if (MyPlayer == nullptr) {
+		SpeakText(_("Cannot walk right now."), true);
 		return;
+	}
 	if (MyPlayer->_pmode != PM_STAND)
 		return;
 	if (MyPlayer->walkpath[0] != WALK_NONE)
@@ -3830,6 +3926,7 @@ void UpdateAutoWalkTracker()
 		const int itemId = AutoWalkTrackerTargetId;
 		if (itemId < 0 || itemId > MAXITEMS) {
 			AutoWalkTrackerTargetId = -1;
+			SpeakText(_("Target item is gone."), true);
 			return;
 		}
 		if (!IsGroundItemPresent(itemId)) {
@@ -3846,115 +3943,36 @@ void UpdateAutoWalkTracker()
 		destination = item.position;
 		break;
 	}
-	case TrackerTargetCategory::Chests: {
-		const int objectId = AutoWalkTrackerTargetId;
-		if (objectId < 0 || objectId >= MAXOBJECTS) {
-			AutoWalkTrackerTargetId = -1;
+	case TrackerTargetCategory::Chests:
+		if (!ValidateAutoWalkObjectTarget(myPlayer, playerPosition,
+		        IsTrackedChestObject, N_("Target chest is gone."), N_("Chest in range."), destination))
 			return;
-		}
-		const Object &object = Objects[objectId];
-		if (!object.IsChest() || !object.canInteractWith()) {
-			AutoWalkTrackerTargetId = -1;
-			SpeakText(_("Target chest is gone."), true);
-			return;
-		}
-		if (playerPosition.WalkingDistance(object.position) <= TrackerInteractDistanceTiles) {
-			AutoWalkTrackerTargetId = -1;
-			SpeakText(_("Chest in range."), true);
-			return;
-		}
-		destination = FindBestAdjacentApproachTile(myPlayer, playerPosition, object.position);
 		break;
-	}
-	case TrackerTargetCategory::Doors: {
-		const int objectId = AutoWalkTrackerTargetId;
-		if (objectId < 0 || objectId >= MAXOBJECTS) {
-			AutoWalkTrackerTargetId = -1;
+	case TrackerTargetCategory::Doors:
+		if (!ValidateAutoWalkObjectTarget(myPlayer, playerPosition, IsTrackedDoorObject, N_("Target door is gone."), N_("Door in range."), destination))
 			return;
-		}
-		const Object &object = Objects[objectId];
-		if (!IsTrackedDoorObject(object)) {
-			AutoWalkTrackerTargetId = -1;
-			SpeakText(_("Target door is gone."), true);
-			return;
-		}
-		if (playerPosition.WalkingDistance(object.position) <= TrackerInteractDistanceTiles) {
-			AutoWalkTrackerTargetId = -1;
-			SpeakText(_("Door in range."), true);
-			return;
-		}
-		destination = FindBestAdjacentApproachTile(myPlayer, playerPosition, object.position);
 		break;
-	}
-	case TrackerTargetCategory::Shrines: {
-		const int objectId = AutoWalkTrackerTargetId;
-		if (objectId < 0 || objectId >= MAXOBJECTS) {
-			AutoWalkTrackerTargetId = -1;
+	case TrackerTargetCategory::Shrines:
+		if (!ValidateAutoWalkObjectTarget(myPlayer, playerPosition, IsShrineLikeObject, N_("Target shrine is gone."), N_("Shrine in range."), destination))
 			return;
-		}
-		const Object &object = Objects[objectId];
-		if (!IsShrineLikeObject(object)) {
-			AutoWalkTrackerTargetId = -1;
-			SpeakText(_("Target shrine is gone."), true);
-			return;
-		}
-		if (playerPosition.WalkingDistance(object.position) <= TrackerInteractDistanceTiles) {
-			AutoWalkTrackerTargetId = -1;
-			SpeakText(_("Shrine in range."), true);
-			return;
-		}
-		destination = FindBestAdjacentApproachTile(myPlayer, playerPosition, object.position);
 		break;
-	}
-	case TrackerTargetCategory::Objects: {
-		const int objectId = AutoWalkTrackerTargetId;
-		if (objectId < 0 || objectId >= MAXOBJECTS) {
-			AutoWalkTrackerTargetId = -1;
+	case TrackerTargetCategory::Objects:
+		if (!ValidateAutoWalkObjectTarget(myPlayer, playerPosition, IsTrackedMiscInteractableObject, N_("Target object is gone."), N_("Object in range."), destination))
 			return;
-		}
-		const Object &object = Objects[objectId];
-		if (!IsTrackedMiscInteractableObject(object)) {
-			AutoWalkTrackerTargetId = -1;
-			SpeakText(_("Target object is gone."), true);
-			return;
-		}
-		if (playerPosition.WalkingDistance(object.position) <= TrackerInteractDistanceTiles) {
-			AutoWalkTrackerTargetId = -1;
-			SpeakText(_("Object in range."), true);
-			return;
-		}
-		destination = FindBestAdjacentApproachTile(myPlayer, playerPosition, object.position);
 		break;
-	}
-	case TrackerTargetCategory::Breakables: {
-		const int objectId = AutoWalkTrackerTargetId;
-		if (objectId < 0 || objectId >= MAXOBJECTS) {
-			AutoWalkTrackerTargetId = -1;
+	case TrackerTargetCategory::Breakables:
+		if (!ValidateAutoWalkObjectTarget(myPlayer, playerPosition, IsTrackedBreakableObject, N_("Target breakable is gone."), N_("Breakable in range."), destination))
 			return;
-		}
-		const Object &object = Objects[objectId];
-		if (!IsTrackedBreakableObject(object)) {
-			AutoWalkTrackerTargetId = -1;
-			SpeakText(_("Target breakable is gone."), true);
-			return;
-		}
-		if (playerPosition.WalkingDistance(object.position) <= TrackerInteractDistanceTiles) {
-			AutoWalkTrackerTargetId = -1;
-			SpeakText(_("Breakable in range."), true);
-			return;
-		}
-		destination = FindBestAdjacentApproachTile(myPlayer, playerPosition, object.position);
 		break;
-	}
-	case TrackerTargetCategory::Monsters:
-	default: {
+	case TrackerTargetCategory::Monsters: {
 		const int monsterId = AutoWalkTrackerTargetId;
 		if (monsterId < 0 || monsterId >= static_cast<int>(MaxMonsters)) {
 			AutoWalkTrackerTargetId = -1;
+			SpeakText(_("Target monster is gone."), true);
 			return;
 		}
 		const Monster &monster = Monsters[monsterId];
-		if (monster.isInvalid || (monster.flags & MFLAG_HIDDEN) != 0 || monster.hitPoints <= 0) {
+		if (!IsTrackedMonster(monster)) {
 			AutoWalkTrackerTargetId = -1;
 			SpeakText(_("Target monster is gone."), true);
 			return;
@@ -3981,6 +3999,9 @@ void UpdateAutoWalkTracker()
 	path.fill(WALK_NONE);
 
 	int steps = FindPath(CanStep, [&myPlayer](Point position) { return PosOkPlayer(myPlayer, position); }, playerPosition, *destination, path.data(), path.size());
+	// If no direct path exists, try pathfinding that treats closed doors as walkable.
+	// If that finds a path, identify the first closed door along it and re-route the
+	// player to the tile just before that door, so they can open it and retry.
 	if (steps == 0) {
 		std::array<int8_t, MaxAutoWalkPathLength> ignoreDoorPath;
 		ignoreDoorPath.fill(WALK_NONE);
@@ -4008,6 +4029,8 @@ void UpdateAutoWalkTracker()
 		}
 	}
 
+	// FindPath returns 0 if the path length is equal to the maximum.
+	// The player walkpath buffer is MaxPathLengthPlayer, so keep segments strictly shorter.
 	if (steps < static_cast<int>(MaxPathLengthPlayer)) {
 		NetSendCmdLoc(MyPlayerId, true, CMD_WALKXY, *destination);
 		return;
@@ -4018,10 +4041,27 @@ void UpdateAutoWalkTracker()
 	NetSendCmdLoc(MyPlayerId, true, CMD_WALKXY, waypoint);
 }
 
+/**
+ * Initiates auto-walk toward the currently selected tracker target (M key).
+ * Resolves the target from the locked tracker target or the nearest of the
+ * selected category. Sets AutoWalkTrackerTargetId/Category, then calls
+ * UpdateAutoWalkTracker() to begin the first walk segment. Subsequent segments
+ * are issued per-tick. Press M again to cancel.
+ */
 void AutoWalkToTrackerTargetKeyPressed()
 {
+	// Defense-in-depth: keymapper canTrigger also checks these, but guard here
+	// in case the function is called from another code path.
 	if (!CanPlayerTakeAction() || InGameMenu())
 		return;
+
+	// Cancel in-progress auto-walk
+	if (AutoWalkTrackerTargetId >= 0) {
+		AutoWalkTrackerTargetId = -1;
+		SpeakText(_("Walk cancelled."), true);
+		return;
+	}
+
 	if (leveltype == DTYPE_TOWN) {
 		SpeakText(_("Not in a dungeon."), true);
 		return;
@@ -4030,8 +4070,10 @@ void AutoWalkToTrackerTargetKeyPressed()
 		SpeakText(_("Close the map first."), true);
 		return;
 	}
-	if (MyPlayer == nullptr)
+	if (MyPlayer == nullptr) {
+		SpeakText(_("Cannot walk right now."), true);
 		return;
+	}
 
 	EnsureTrackerLocksMatchCurrentLevel();
 
@@ -4061,118 +4103,47 @@ void AutoWalkToTrackerTargetKeyPressed()
 		targetName = Items[*targetId].getName();
 		break;
 	}
-	case TrackerTargetCategory::Chests: {
-		if (lockedTargetId >= 0 && lockedTargetId < MAXOBJECTS) {
-			targetId = lockedTargetId;
-		} else {
-			targetId = FindNearestUnopenedChestObjectId(playerPosition);
-		}
-		if (!targetId) {
-			SpeakText(_("No chests found."), true);
+	case TrackerTargetCategory::Chests:
+		targetId = ResolveObjectTrackerTarget(lockedTargetId, playerPosition,
+		    IsTrackedChestObject, FindNearestUnopenedChestObjectId,
+		    [](int id) -> StringOrView { return Objects[id].name(); },
+		    N_("No chests found."), targetName);
+		if (!targetId)
 			return;
-		}
-		if (!IsTrackedChestObject(Objects[*targetId])) {
-			lockedTargetId = -1;
-			targetId = FindNearestUnopenedChestObjectId(playerPosition);
-			if (!targetId) {
-				SpeakText(_("No chests found."), true);
-				return;
-			}
-		}
-		lockedTargetId = *targetId;
-		targetName = Objects[*targetId].name();
 		break;
-	}
-	case TrackerTargetCategory::Doors: {
-		if (lockedTargetId >= 0 && lockedTargetId < MAXOBJECTS) {
-			targetId = lockedTargetId;
-		} else {
-			targetId = FindNearestDoorObjectId(playerPosition);
-		}
-		if (!targetId) {
-			SpeakText(_("No doors found."), true);
+	case TrackerTargetCategory::Doors:
+		targetId = ResolveObjectTrackerTarget(lockedTargetId, playerPosition,
+		    IsTrackedDoorObject, FindNearestDoorObjectId,
+		    [](int id) -> StringOrView { return DoorLabelForSpeech(Objects[id]); },
+		    N_("No doors found."), targetName);
+		if (!targetId)
 			return;
-		}
-		if (!IsTrackedDoorObject(Objects[*targetId])) {
-			lockedTargetId = -1;
-			targetId = FindNearestDoorObjectId(playerPosition);
-			if (!targetId) {
-				SpeakText(_("No doors found."), true);
-				return;
-			}
-		}
-		lockedTargetId = *targetId;
-		targetName = DoorLabelForSpeech(Objects[*targetId]);
 		break;
-	}
-	case TrackerTargetCategory::Shrines: {
-		if (lockedTargetId >= 0 && lockedTargetId < MAXOBJECTS) {
-			targetId = lockedTargetId;
-		} else {
-			targetId = FindNearestShrineObjectId(playerPosition);
-		}
-		if (!targetId) {
-			SpeakText(_("No shrines found."), true);
+	case TrackerTargetCategory::Shrines:
+		targetId = ResolveObjectTrackerTarget(lockedTargetId, playerPosition,
+		    IsShrineLikeObject, FindNearestShrineObjectId,
+		    [](int id) -> StringOrView { return Objects[id].name(); },
+		    N_("No shrines found."), targetName);
+		if (!targetId)
 			return;
-		}
-		if (!IsShrineLikeObject(Objects[*targetId])) {
-			lockedTargetId = -1;
-			targetId = FindNearestShrineObjectId(playerPosition);
-			if (!targetId) {
-				SpeakText(_("No shrines found."), true);
-				return;
-			}
-		}
-		lockedTargetId = *targetId;
-		targetName = Objects[*targetId].name();
 		break;
-	}
-	case TrackerTargetCategory::Objects: {
-		if (lockedTargetId >= 0 && lockedTargetId < MAXOBJECTS) {
-			targetId = lockedTargetId;
-		} else {
-			targetId = FindNearestMiscInteractableObjectId(playerPosition);
-		}
-		if (!targetId) {
-			SpeakText(_("No objects found."), true);
+	case TrackerTargetCategory::Objects:
+		targetId = ResolveObjectTrackerTarget(lockedTargetId, playerPosition,
+		    IsTrackedMiscInteractableObject, FindNearestMiscInteractableObjectId,
+		    [](int id) -> StringOrView { return Objects[id].name(); },
+		    N_("No objects found."), targetName);
+		if (!targetId)
 			return;
-		}
-		if (!IsTrackedMiscInteractableObject(Objects[*targetId])) {
-			lockedTargetId = -1;
-			targetId = FindNearestMiscInteractableObjectId(playerPosition);
-			if (!targetId) {
-				SpeakText(_("No objects found."), true);
-				return;
-			}
-		}
-		lockedTargetId = *targetId;
-		targetName = Objects[*targetId].name();
 		break;
-	}
-	case TrackerTargetCategory::Breakables: {
-		if (lockedTargetId >= 0 && lockedTargetId < MAXOBJECTS) {
-			targetId = lockedTargetId;
-		} else {
-			targetId = FindNearestBreakableObjectId(playerPosition);
-		}
-		if (!targetId) {
-			SpeakText(_("No breakables found."), true);
+	case TrackerTargetCategory::Breakables:
+		targetId = ResolveObjectTrackerTarget(lockedTargetId, playerPosition,
+		    IsTrackedBreakableObject, FindNearestBreakableObjectId,
+		    [](int id) -> StringOrView { return Objects[id].name(); },
+		    N_("No breakables found."), targetName);
+		if (!targetId)
 			return;
-		}
-		if (!IsTrackedBreakableObject(Objects[*targetId])) {
-			lockedTargetId = -1;
-			targetId = FindNearestBreakableObjectId(playerPosition);
-			if (!targetId) {
-				SpeakText(_("No breakables found."), true);
-				return;
-			}
-		}
-		lockedTargetId = *targetId;
-		targetName = Objects[*targetId].name();
 		break;
-	}
-	case TrackerTargetCategory::Monsters:
-	default: {
+	case TrackerTargetCategory::Monsters: {
 		if (lockedTargetId >= 0 && lockedTargetId < static_cast<int>(MaxMonsters)) {
 			targetId = lockedTargetId;
 		} else {
@@ -4183,7 +4154,7 @@ void AutoWalkToTrackerTargetKeyPressed()
 			return;
 		}
 		const Monster &monster = Monsters[*targetId];
-		if (monster.isInvalid || (monster.flags & MFLAG_HIDDEN) != 0 || monster.hitPoints <= 0) {
+		if (!IsTrackedMonster(monster)) {
 			lockedTargetId = -1;
 			targetId = FindNearestMonsterId(playerPosition);
 			if (!targetId) {
@@ -5700,7 +5671,18 @@ void OptionLanguageCodeChanged()
 
 const auto OptionChangeHandlerLanguage = (GetOptions().Language.code.SetValueChangedCallback(OptionLanguageCodeChanged), true);
 
+void CancelAutoWalkInternal()
+{
+	AutoWalkTrackerTargetId = -1;
+	AutoWalkTownNpcTarget = -1;
+}
+
 } // namespace
+
+void CancelAutoWalk()
+{
+	CancelAutoWalkInternal();
+}
 
 void InitKeymapActions()
 {
@@ -5935,7 +5917,7 @@ void InitKeymapActions()
 	options.Keymapper.AddAction(
 	    "AutoWalkToTrackerTarget",
 	    N_("Walk to tracker target"),
-	    N_("Automatically walks to the currently selected tracker target."),
+	    N_("Automatically walks to the currently selected tracker target. Press again to cancel."),
 	    'M',
 	    AutoWalkToTrackerTargetKeyPressed,
 	    nullptr,
