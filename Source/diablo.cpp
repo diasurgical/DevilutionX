@@ -4050,17 +4050,18 @@ void UpdateAutoWalkTracker()
  */
 void AutoWalkToTrackerTargetKeyPressed()
 {
+	// Cancel in-progress auto-walk (must be checked before the action guard
+	// so that cancellation works even if the player is mid-walk).
+	if (AutoWalkTrackerTargetId >= 0) {
+		CancelAutoWalk();
+		SpeakText(_("Walk cancelled."), true);
+		return;
+	}
+
 	// Defense-in-depth: keymapper canTrigger also checks these, but guard here
 	// in case the function is called from another code path.
 	if (!CanPlayerTakeAction() || InGameMenu())
 		return;
-
-	// Cancel in-progress auto-walk
-	if (AutoWalkTrackerTargetId >= 0) {
-		AutoWalkTrackerTargetId = -1;
-		SpeakText(_("Walk cancelled."), true);
-		return;
-	}
 
 	if (leveltype == DTYPE_TOWN) {
 		SpeakText(_("Not in a dungeon."), true);
@@ -5319,6 +5320,7 @@ bool IsKeyboardWalkAllowed()
 
 void KeyboardWalkKeyPressed(Direction direction)
 {
+	CancelAutoWalk();
 	if (!IsKeyboardWalkAllowed())
 		return;
 
@@ -5682,6 +5684,8 @@ void CancelAutoWalkInternal()
 void CancelAutoWalk()
 {
 	CancelAutoWalkInternal();
+	if (MyPlayer != nullptr)
+		NetSendCmdLoc(MyPlayerId, true, CMD_WALKXY, MyPlayer->position.future);
 }
 
 void InitKeymapActions()

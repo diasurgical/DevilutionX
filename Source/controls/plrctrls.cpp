@@ -2350,6 +2350,7 @@ void CtrlUseStashItem()
 
 void PerformSecondaryActionAutoTarget()
 {
+	CancelAutoWalk();
 	if (ControlMode == ControlTypes::KeyboardAndMouse && !IsPointAndClick()) {
 		UpdateTargetsForKeyboardAction();
 	}
@@ -2358,6 +2359,7 @@ void PerformSecondaryActionAutoTarget()
 
 void PerformSpellActionAutoTarget()
 {
+	CancelAutoWalk();
 	if (ControlMode == ControlTypes::KeyboardAndMouse && !IsPointAndClick()) {
 		UpdateTargetsForKeyboardAction();
 	}
