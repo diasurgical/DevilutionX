@@ -78,9 +78,12 @@ void DiscoverMods()
 		modNames.insert("Hellfire");
 	}
 
-	// Check if the mods directory exists.
-	const std::string modsPath = StrCat(paths::PrefPath(), "mods");
-	if (DirectoryExists(modsPath.c_str())) {
+	for (const std::string &base : { paths::PrefPath(), paths::BasePath() }) {
+		// Check if the mods directory exists.
+		const std::string modsPath = StrCat(base, "mods");
+		if (!DirectoryExists(modsPath.c_str()))
+			continue;
+
 		// Find unpacked mods
 		for (const std::string &modFolder : ListDirectories(modsPath.c_str())) {
 			// Only consider this folder if the init.lua file exists.
