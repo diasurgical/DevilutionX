@@ -29,6 +29,17 @@ namespace devilution {
 
 #define MAXOBJECTS 127
 
+static_assert(MAXOBJECTS <= 127, "MAXOBJECTS must fit in int8_t for the dObject encoding scheme");
+
+/** Door state values stored in Object::_oVar4 for door-type objects. */
+enum {
+	// clang-format off
+	DOOR_CLOSED  = 0,
+	DOOR_OPEN    = 1,
+	DOOR_BLOCKED = 2,
+	// clang-format on
+};
+
 struct Object {
 	_object_id _otype = OBJ_NULL;
 	bool applyLighting = false;

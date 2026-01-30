@@ -67,7 +67,7 @@ TEST(TilePropertiesTest, DoorArchwaySolidTileBecomesWalkableWhenIgnoringDoors)
 	Objects[0]._otype = _object_id::OBJ_L1LDOOR;
 	Objects[0]._oSolidFlag = false;
 	dObject[5][5] = 1;
-	dObject[5][4] = -(static_cast<int8_t>(0) + 1); // archway tile (large object convention)
+	dObject[5][4] = -1; // Negative dObject value: extended area of Objects[0] (the door)
 	EXPECT_TRUE(IsTileWalkable({ 5, 4 }, true))
 	    << "Solid archway tile referencing a door becomes walkable when ignoring doors";
 	EXPECT_FALSE(IsTileWalkable({ 5, 4 }))
