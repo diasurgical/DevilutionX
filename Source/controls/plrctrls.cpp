@@ -46,6 +46,7 @@
 #include "panels/ui_panels.hpp"
 #include "qol/chatlog.h"
 #include "qol/stash.h"
+#include "qol/visual_store.h"
 #include "stores.h"
 #include "towners.h"
 #include "track.h"
@@ -83,6 +84,7 @@ namespace {
 
 int Slot = SLOTXY_INV_FIRST;
 Point ActiveStashSlot = InvalidStashPoint;
+Point VisualStoreSlot = { 0, 0 };
 int PreviousInventoryColumn = -1;
 bool BeltReturnsToStash = false;
 
@@ -906,6 +908,91 @@ void LiftStashItem()
 	SetCursorPos(mousePos);
 }
 
+void FocusOnVisualStore()
+{
+	VisualStoreSlot = { 0, 0 };
+	const Point slotPos = GetVisualStoreSlotCoord(VisualStoreSlot);
+	SetCursorPos(slotPos + Displacement { INV_SLOT_HALF_SIZE_PX, INV_SLOT_HALF_SIZE_PX });
+}
+
+void VisualStoreMove(AxisDirection dir)
+{
+	static AxisDirectionRepeater repeater(/*min_interval_ms=*/150);
+	dir = repeater.Get(dir);
+	if (dir.x == AxisDirectionX_NONE && dir.y == AxisDirectionY_NONE)
+		return;
+
+	if (dir.x == AxisDirectionX_RIGHT) {
+		if (VisualStoreSlot.y == -1) { // Tabs
+			if (VisualStoreSlot.x == 0 && VisualStore.vendor == VisualStoreVendor::Smith) {
+				VisualStoreSlot.x = 1;
+			} else {
+				FocusOnInventory();
+				return;
+			}
+		} else if (VisualStoreSlot.y == VisualStoreGridHeight) { // Repair buttons
+			if (VisualStoreSlot.x == 0) {
+				VisualStoreSlot.x = 1;
+			} else {
+				FocusOnInventory();
+				return;
+			}
+		} else { // Grid
+			if (VisualStoreSlot.x < VisualStoreGridWidth - 1) {
+				VisualStoreSlot.x++;
+			} else {
+				FocusOnInventory();
+				return;
+			}
+		}
+	} else if (dir.x == AxisDirectionX_LEFT) {
+		if (VisualStoreSlot.x > 0) {
+			VisualStoreSlot.x--;
+		}
+	}
+
+	if (dir.y == AxisDirectionY_UP) {
+		if (VisualStoreSlot.y > 0) {
+			VisualStoreSlot.y--;
+		} else if (VisualStoreSlot.y == 0) {
+			// Move to tabs
+			VisualStoreSlot.y = -1;
+			VisualStoreSlot.x = 0; // Default to first tab
+		}
+	} else if (dir.y == AxisDirectionY_DOWN) {
+		if (VisualStoreSlot.y < VisualStoreGridHeight - 1) {
+			VisualStoreSlot.y++;
+		} else if (VisualStoreSlot.y == VisualStoreGridHeight - 1) {
+			if (VisualStore.vendor == VisualStoreVendor::Smith) {
+				// Move to repair buttons
+				VisualStoreSlot.y = VisualStoreGridHeight;
+				VisualStoreSlot.x = 0; // Default to Repair All
+			}
+		}
+	}
+
+	// Calculate cursor position
+	Point mousePos;
+	if (VisualStoreSlot.y == -1) {
+		// Tabs
+		// 0: Basic, 1: Premium
+		// Map to button IDs: TabButtonBasic=0, TabButtonPremium=1
+		int btnId = VisualStoreSlot.x == 0 ? 0 : 1;
+		mousePos = GetVisualBtnCoord(btnId).Center();
+	} else if (VisualStoreSlot.y == VisualStoreGridHeight) {
+		// Repair buttons
+		// 0: Repair All, 1: Repair
+		// Map to button IDs: RepairAllBtn=2, RepairBtn=3
+		int btnId = VisualStoreSlot.x == 0 ? 2 : 3;
+		mousePos = GetVisualBtnCoord(btnId).Center();
+	} else {
+		// Grid
+		mousePos = GetVisualStoreSlotCoord(VisualStoreSlot) + Displacement { INV_SLOT_HALF_SIZE_PX, INV_SLOT_HALF_SIZE_PX };
+	}
+
+	SetCursorPos(mousePos);
+}
+
 /**
  * @brief Figures out where on the body to move when on the first row
  */
@@ -1243,10 +1330,16 @@ void StashMove(AxisDirection dir)
 		// If we're in the leftmost column (or hovering over an item on the left side of the inventory) or
 		//  left side of the body and we're moving left we need to move into the closest stash column
 		if (IsAnyOf(firstSlot, SLOTXY_HEAD, SLOTXY_HAND_LEFT, SLOTXY_RING_LEFT, SLOTXY_AMULET, SLOTXY_CHEST, SLOTXY_INV_ROW1_FIRST, SLOTXY_INV_ROW2_FIRST, SLOTXY_INV_ROW3_FIRST, SLOTXY_INV_ROW4_FIRST)) {
-			const Point slotCoord = GetSlotCoord(Slot);
-			InvalidateInventorySlot();
-			ActiveStashSlot = FindClosestStashSlot(slotCoord) - Displacement { itemSize.width - 1, 0 };
-			dir.x = AxisDirectionX_NONE;
+			if (IsVisualStoreOpen) {
+				InvalidateInventorySlot();
+				FocusOnVisualStore();
+				dir.x = AxisDirectionX_NONE;
+			} else {
+				const Point slotCoord = GetSlotCoord(Slot);
+				InvalidateInventorySlot();
+				ActiveStashSlot = FindClosestStashSlot(slotCoord) - Displacement { itemSize.width - 1, 0 };
+				dir.x = AxisDirectionX_NONE;
+			}
 		}
 	}
 
@@ -1506,6 +1599,8 @@ HandleLeftStickOrDPadFn GetLeftStickOrDPadGameUIHandler()
 		return &StashMove;
 	}
 	if (invflag) {
+		if (IsVisualStoreOpen && GetLeftPanel().contains(MousePosition))
+			return &VisualStoreMove;
 		return &CheckInventoryMove;
 	}
 	if (CharFlag && MyPlayer->_pStatPts > 0) {
@@ -2018,6 +2113,12 @@ void PerformPrimaryAction()
 			LiftInventoryItem();
 		} else if (IsStashOpen && GetLeftPanel().contains(MousePosition)) {
 			LiftStashItem();
+		} else if (IsVisualStoreOpen && GetLeftPanel().contains(MousePosition)) {
+			if (pcursstorebtn != -1) {
+				CheckVisualStoreButtonRelease(MousePosition);
+			} else {
+				CheckVisualStoreItem(MousePosition, false, false);
+			}
 		}
 		return;
 	}
@@ -2210,6 +2311,10 @@ void PerformSecondaryAction()
 				TransferItemToInventory(myPlayer, pcursstashitem);
 			} else if (pcursinvitem != -1) {
 				TransferItemToStash(myPlayer, pcursinvitem);
+			}
+		} else if (IsVisualStoreOpen) {
+			if (pcursinvitem >= INVITEM_INV_FIRST && pcursinvitem <= INVITEM_INV_LAST) {
+				SellItemToVisualStore(pcursinvitem - INVITEM_INV_FIRST);
 			}
 		} else {
 			CtrlUseInvItem();
