@@ -1,73 +1,69 @@
 name: PR Preview Links
 
 on:
-  workflow_run:
-    workflows: ["Windows MinGW x64", "Linux x86_64 (x86_64-linux-gnu)", "macOS x86_64"]
-    types:
-      - completed
-
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
 jobs:
   post-preview-links:
     runs-on: ubuntu-latest
-    # Only run if the triggering workflow was successful and part of a PR
-    if: ${{ github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success' }}
     steps:
-      - name: 'Manage Preview Links'
+      - name: 'Wait for Artifacts'
+        run: sleep 900 # Give the build jobs a head start to upload artifacts
+        
+      - name: 'Wait and Manage Preview Links'
         uses: actions/github-script@v6
         with:
           script: |
             const { owner, repo } = context.repo;
-            const run_id = context.payload.workflow_run.id;
-            const check_suite_id = context.payload.workflow_run.check_suite_id;
-            const prNumber = context.payload.workflow_run.pull_requests[0].number;
+            const prNumber = context.payload.pull_request.number;
+            const maxAttempts = 20; // Try for ~20 minutes
+            const delay = 60000; // 1 minute between checks
 
-            // 1. Fetch artifacts from the current successful run
-            const allArtifacts = await github.rest.actions.listWorkflowRunArtifacts({
-               owner,
-               repo,
-               run_id,
-            });
-            
-            if (allArtifacts.data.artifacts.length === 0) return;
-
-            // 2. Format the new links
-            const newLinks = allArtifacts.data.artifacts.map(artifact => {
-              return `* [${artifact.name}](https://github.com/${owner}/${repo}/suites/${check_suite_id}/artifacts/${artifact.id})`;
-            }).join('\n');
-
-            // 3. Find if we already posted a comment for this PR
-            const comments = await github.rest.issues.listComments({
-              owner,
-              repo,
-              issue_number: prNumber,
-            });
-
-            const botCommentHeader = "### 📦 CI Build Preview (Desktop)";
-            const existingComment = comments.data.find(c => c.body.startsWith(botCommentHeader));
-
-            if (existingComment) {
-              // Append logic: prevent duplicate links if the workflow was re-run
-              let updatedBody = existingComment.body;
-              allArtifacts.data.artifacts.forEach(artifact => {
-                if (!updatedBody.includes(artifact.name)) {
-                  updatedBody += `\n${newLinks}`;
-                }
-              });
-
-              await github.rest.issues.updateComment({
-                owner,
-                repo,
-                comment_id: existingComment.id,
-                body: updatedBody
-              });
-            } else {
-              // Create the initial comment
-              const body = `${botCommentHeader}\n\nBuilds for this PR are ready for QA! You can download the desktop binaries for testing below:\n\n${newLinks}\n\n*Note: You must be logged into GitHub to download these artifacts.*`;
+            for (let i = 0; i < maxAttempts; i++) {
+              console.log(`Attempt ${i + 1}: Fetching artifacts...`);
               
-              await github.rest.issues.createComment({
-                owner,
-                repo,
-                issue_number: prNumber,
-                body: body
+              const allArtifacts = await github.rest.actions.listWorkflowRunArtifacts({
+                 owner,
+                 repo,
+                 run_id: context.runId,
               });
+
+              if (allArtifacts.data.artifacts.length > 0) {
+                const newLinks = allArtifacts.data.artifacts.map(artifact => {
+                  return `* [${artifact.name}](https://github.com/${owner}/${repo}/suites/${context.payload.pull_request.head.sha}/artifacts/${artifact.id})`;
+                }).join('\n');
+
+                const comments = await github.rest.issues.listComments({
+                  owner,
+                  repo,
+                  issue_number: prNumber,
+                });
+
+                const botCommentHeader = "### 📦 CI Build Preview (Desktop)";
+                const existingComment = comments.data.find(c => c.body.startsWith(botCommentHeader));
+                const body = `${botCommentHeader}\n\nBuilds for this PR are ready for QA! You can download the desktop binaries for testing below:\n\n${newLinks}\n\n*Note: You must be logged into GitHub to download these artifacts.*`;
+
+                if (existingComment) {
+                  await github.rest.issues.updateComment({
+                    owner, repo, comment_id: existingComment.id, body: body
+                  });
+                } else {
+                  await github.rest.issues.createComment({
+                    owner, repo, issue_number: prNumber, body: body
+                  });
+                }
+                
+                // If we have at least 3 artifacts (Win, Linux, Mac), we can probably stop.
+                // Otherwise, it will keep checking and updating as more finish.
+                if (allArtifacts.data.artifacts.length >= 3) {
+                  console.log("All primary desktop artifacts found and posted.");
+                  return;
+                }
+              }
+
+              console.log(`Waiting ${delay/1000}s for more artifacts...`);
+              await new Promise(resolve => setTimeout(resolve, delay));
             }
