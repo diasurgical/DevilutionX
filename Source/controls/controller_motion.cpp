@@ -243,16 +243,12 @@ AxisDirection GetAnalogStickDirection(float stickX, float stickY)
 
 AxisDirection GetLeftStickOrDpadDirection(bool usePadmapper)
 {
-	const float stickX = leftStickX;
-	const float stickY = leftStickY;
+	AxisDirection result = GetAnalogStickDirection(leftStickX, leftStickY);
 
-	AxisDirection result { AxisDirectionX_NONE, AxisDirectionY_NONE };
-	const AxisDirection analogDirection = GetAnalogStickDirection(stickX, stickY);
-
-	bool isUpPressed = analogDirection.y == AxisDirectionY_UP;
-	bool isDownPressed = analogDirection.y == AxisDirectionY_DOWN;
-	bool isLeftPressed = analogDirection.x == AxisDirectionX_LEFT;
-	bool isRightPressed = analogDirection.x == AxisDirectionX_RIGHT;
+	bool isUpPressed = false;
+	bool isDownPressed = false;
+	bool isLeftPressed = false;
+	bool isRightPressed = false;
 
 	if (usePadmapper) {
 		isUpPressed |= PadmapperIsActionActive("MoveUp");
