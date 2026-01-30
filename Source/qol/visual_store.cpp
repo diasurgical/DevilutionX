@@ -62,7 +62,7 @@ constexpr Rectangle VisualStoreButtonRect[] = {
 	// Tab buttons (Smith only) - positioned below title
 	{ { 14, 21 }, { 72, 22 } },      // Basic tab
 	{ { 14 + 73, 21 }, { 72, 22 } }, // Premium tab
-	{ { 222, 315 }, { 24, 24 } },    // Repair All Btn
+	{ { 222, 315 }, { 48, 24 } },    // Repair All Btn
 	{ { 275, 315 }, { 24, 24 } },    // Repair Btn
 };
 
