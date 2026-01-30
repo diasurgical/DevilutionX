@@ -56,6 +56,29 @@ TEST(TilePropertiesTest, Walkable)
 	EXPECT_TRUE(IsTileWalkable({ 5, 5 }, true)) << "Solid tiles occupied by an open door become walkable when ignoring doors";
 }
 
+TEST(TilePropertiesTest, DoorArchwaySolidTileBecomesWalkableWhenIgnoringDoors)
+{
+	dPiece[5][4] = 0;
+	SOLData[0] = TileProperties::Solid;
+	dObject[5][4] = 0;
+	EXPECT_FALSE(IsTileWalkable({ 5, 4 }, true))
+	    << "Solid tile with no object is unwalkable even when ignoring doors";
+
+	Objects[0]._otype = _object_id::OBJ_L1LDOOR;
+	Objects[0]._oSolidFlag = false;
+	dObject[5][5] = 1;
+	dObject[5][4] = -(static_cast<int8_t>(0) + 1); // archway tile (large object convention)
+	EXPECT_TRUE(IsTileWalkable({ 5, 4 }, true))
+	    << "Solid archway tile referencing a door becomes walkable when ignoring doors";
+	EXPECT_FALSE(IsTileWalkable({ 5, 4 }))
+	    << "Solid archway tile referencing a door is still unwalkable normally";
+
+	// Cleanup
+	dObject[5][5] = 0;
+	dObject[5][4] = 0;
+	Objects[0] = {};
+}
+
 TEST(TilePropertiesTest, CanStepTest)
 {
 	dPiece[0][0] = 0;

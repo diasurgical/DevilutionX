@@ -1182,11 +1182,13 @@ void AddDoor(Object &door)
 	case OBJ_L5LDOOR:
 		door._oVar1 = dPiece[door.position.x][door.position.y] + 1;
 		door._oVar2 = dPiece[door.position.x][door.position.y - 1] + 1;
+		dObject[door.position.x][door.position.y - 1] = -(static_cast<int8_t>(door.GetId()) + 1);
 		break;
 	case OBJ_L1RDOOR:
 	case OBJ_L5RDOOR:
 		door._oVar1 = dPiece[door.position.x][door.position.y] + 1;
 		door._oVar2 = dPiece[door.position.x - 1][door.position.y] + 1;
+		dObject[door.position.x - 1][door.position.y] = -(static_cast<int8_t>(door.GetId()) + 1);
 		break;
 	default:
 		break;

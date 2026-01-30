@@ -1976,15 +1976,15 @@ void UpdateAttackableMonsterAnnouncements()
 		SpeakText(name, /*force=*/true);
 }
 
+// Door state values are defined in `Source/objects.cpp` (DOOR_CLOSED=0, DOOR_OPEN=1, DOOR_BLOCKED=2).
+constexpr int DoorClosed = 0;
+constexpr int DoorOpen = 1;
+constexpr int DoorBlocked = 2;
+
 [[nodiscard]] StringOrView DoorLabelForSpeech(const Object &door)
 {
 	if (!door.isDoor())
 		return door.name();
-
-	// Door state values are defined in `Source/objects.cpp` (DOOR_CLOSED=0, DOOR_OPEN=1, DOOR_BLOCKED=2).
-	constexpr int DoorClosed = 0;
-	constexpr int DoorOpen = 1;
-	constexpr int DoorBlocked = 2;
 
 	// Catacombs doors are grates, so differentiate them for the screen reader / tracker.
 	if (IsAnyOf(door._otype, _object_id::OBJ_L2LDOOR, _object_id::OBJ_L2RDOOR)) {
@@ -3353,7 +3353,7 @@ std::optional<DoorBlockInfo> FindFirstClosedDoorOnWalkPath(Point startPosition, 
 	for (int i = 0; i < steps; ++i) {
 		const Point next = NextPositionForWalkDirection(position, path[i]);
 		Object *object = FindObjectAtPosition(next);
-		if (object != nullptr && object->isDoor() && object->_oSolidFlag) {
+		if (object != nullptr && object->isDoor() && object->_oVar4 == DoorClosed) {
 			return DoorBlockInfo { .beforeDoor = position, .doorPosition = next };
 		}
 		position = next;
@@ -3385,7 +3385,7 @@ struct TrackerPathBlockInfo {
 		}
 
 		Object *object = FindObjectAtPosition(next);
-		if (considerDoors && object != nullptr && object->isDoor() && object->_oSolidFlag) {
+		if (considerDoors && object != nullptr && object->isDoor() && object->_oVar4 == DoorClosed) {
 			return TrackerPathBlockInfo {
 				.type = TrackerPathBlockType::Door,
 				.stepIndex = i,
