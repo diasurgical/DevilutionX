@@ -5,8 +5,8 @@
  */
 #include <algorithm>
 #include <array>
-#include <cstdlib>
 #include <cstdint>
+#include <cstdlib>
 #include <limits>
 #include <queue>
 #include <string_view>
@@ -74,9 +74,9 @@
 #include "levels/gendung.h"
 #include "levels/setmaps.h"
 #include "levels/themes.h"
+#include "levels/tile_properties.hpp"
 #include "levels/town.h"
 #include "levels/trigs.h"
-#include "levels/tile_properties.hpp"
 #include "lighting.h"
 #include "loadsave.h"
 #include "lua/lua_global.hpp"
@@ -88,15 +88,15 @@
 #include "nthread.h"
 #include "objects.h"
 #include "options.h"
+#include "panels/charpanel.hpp"
 #include "panels/console.hpp"
 #include "panels/info_box.hpp"
-#include "panels/charpanel.hpp"
 #include "panels/partypanel.hpp"
 #include "panels/spell_book.hpp"
 #include "panels/spell_list.hpp"
 #include "pfile.h"
-#include "portal.h"
 #include "plrmsg.h"
+#include "portal.h"
 #include "qol/chatlog.h"
 #include "qol/floatingnumbers.h"
 #include "qol/itemlabels.h"
@@ -175,13 +175,13 @@ namespace {
 
 char gszVersionNumber[64] = "internal version unknown";
 
- void SelectNextTownNpcKeyPressed();
- void SelectPreviousTownNpcKeyPressed();
- void UpdateAutoWalkTownNpc();
- void UpdateAutoWalkTracker();
- void AutoWalkToTrackerTargetKeyPressed();
- void SpeakSelectedSpeedbookSpell();
- void SpellBookKeyPressed();
+void SelectNextTownNpcKeyPressed();
+void SelectPreviousTownNpcKeyPressed();
+void UpdateAutoWalkTownNpc();
+void UpdateAutoWalkTracker();
+void AutoWalkToTrackerTargetKeyPressed();
+void SpeakSelectedSpeedbookSpell();
+void SpellBookKeyPressed();
 std::optional<std::vector<int8_t>> FindKeyboardWalkPathForSpeech(const Player &player, Point startPosition, Point destinationPosition, bool allowDestinationNonWalkable = false);
 std::optional<std::vector<int8_t>> FindKeyboardWalkPathForSpeechRespectingDoors(const Player &player, Point startPosition, Point destinationPosition, bool allowDestinationNonWalkable = false);
 std::optional<std::vector<int8_t>> FindKeyboardWalkPathForSpeechIgnoringMonsters(const Player &player, Point startPosition, Point destinationPosition, bool allowDestinationNonWalkable = false);
@@ -189,7 +189,7 @@ std::optional<std::vector<int8_t>> FindKeyboardWalkPathForSpeechRespectingDoorsI
 std::optional<std::vector<int8_t>> FindKeyboardWalkPathForSpeechLenient(const Player &player, Point startPosition, Point destinationPosition, bool allowDestinationNonWalkable = false);
 std::optional<std::vector<int8_t>> FindKeyboardWalkPathToClosestReachableForSpeech(const Player &player, Point startPosition, Point destinationPosition, Point &closestPosition);
 void AppendKeyboardWalkPathForSpeech(std::string &message, const std::vector<int8_t> &path);
- void AppendDirectionalFallback(std::string &message, const Displacement &delta);
+void AppendDirectionalFallback(std::string &message, const Displacement &delta);
 
 bool gbGameLoopStartup;
 bool forceSpawn;
@@ -666,8 +666,8 @@ void PressKey(SDL_Keycode vkey, uint16_t modState)
 			if (next) {
 				MyPlayer->_pRSpell = *next;
 				MyPlayer->_pRSplType = (MyPlayer->_pAblSpells & GetSpellBitmask(*next)) != 0 ? SpellType::Skill
-				    : (MyPlayer->_pISpells & GetSpellBitmask(*next)) != 0       ? SpellType::Charges
-				                                                              : SpellType::Spell;
+				    : (MyPlayer->_pISpells & GetSpellBitmask(*next)) != 0                    ? SpellType::Charges
+				                                                                             : SpellType::Spell;
 				UpdateSpellTarget(*next);
 				RedrawEverything();
 				SpeakText(pgettext("spell", GetSpellData(*next).sNameText), /*force=*/true);
@@ -699,8 +699,8 @@ void PressKey(SDL_Keycode vkey, uint16_t modState)
 			if (next) {
 				MyPlayer->_pRSpell = *next;
 				MyPlayer->_pRSplType = (MyPlayer->_pAblSpells & GetSpellBitmask(*next)) != 0 ? SpellType::Skill
-				    : (MyPlayer->_pISpells & GetSpellBitmask(*next)) != 0       ? SpellType::Charges
-				                                                              : SpellType::Spell;
+				    : (MyPlayer->_pISpells & GetSpellBitmask(*next)) != 0                    ? SpellType::Charges
+				                                                                             : SpellType::Spell;
 				UpdateSpellTarget(*next);
 				RedrawEverything();
 				SpeakText(pgettext("spell", GetSpellData(*next).sNameText), /*force=*/true);
@@ -748,8 +748,8 @@ void PressKey(SDL_Keycode vkey, uint16_t modState)
 				if (first) {
 					MyPlayer->_pRSpell = *first;
 					MyPlayer->_pRSplType = (MyPlayer->_pAblSpells & GetSpellBitmask(*first)) != 0 ? SpellType::Skill
-					    : (MyPlayer->_pISpells & GetSpellBitmask(*first)) != 0       ? SpellType::Charges
-					                                                              : SpellType::Spell;
+					    : (MyPlayer->_pISpells & GetSpellBitmask(*first)) != 0                    ? SpellType::Charges
+					                                                                              : SpellType::Spell;
 					UpdateSpellTarget(*first);
 					RedrawEverything();
 					SpeakText(pgettext("spell", GetSpellData(*first).sNameText), /*force=*/true);
@@ -775,8 +775,8 @@ void PressKey(SDL_Keycode vkey, uint16_t modState)
 				if (first) {
 					MyPlayer->_pRSpell = *first;
 					MyPlayer->_pRSplType = (MyPlayer->_pAblSpells & GetSpellBitmask(*first)) != 0 ? SpellType::Skill
-					    : (MyPlayer->_pISpells & GetSpellBitmask(*first)) != 0       ? SpellType::Charges
-					                                                              : SpellType::Spell;
+					    : (MyPlayer->_pISpells & GetSpellBitmask(*first)) != 0                    ? SpellType::Charges
+					                                                                              : SpellType::Spell;
 					UpdateSpellTarget(*first);
 					RedrawEverything();
 					SpeakText(pgettext("spell", GetSpellData(*first).sNameText), /*force=*/true);
@@ -1981,18 +1981,13 @@ void UpdateAttackableMonsterAnnouncements()
 	if (!door.isDoor())
 		return door.name();
 
-	// Door state values are defined in `Source/objects.cpp` (DOOR_CLOSED=0, DOOR_OPEN=1, DOOR_BLOCKED=2).
-	constexpr int DoorClosed = 0;
-	constexpr int DoorOpen = 1;
-	constexpr int DoorBlocked = 2;
-
 	// Catacombs doors are grates, so differentiate them for the screen reader / tracker.
 	if (IsAnyOf(door._otype, _object_id::OBJ_L2LDOOR, _object_id::OBJ_L2RDOOR)) {
-		if (door._oVar4 == DoorOpen)
+		if (door._oVar4 == DOOR_OPEN)
 			return _("Open Grate Door");
-		if (door._oVar4 == DoorClosed)
+		if (door._oVar4 == DOOR_CLOSED)
 			return _("Closed Grate Door");
-		if (door._oVar4 == DoorBlocked)
+		if (door._oVar4 == DOOR_BLOCKED)
 			return _("Blocked Grate Door");
 		return _("Grate Door");
 	}
@@ -2240,7 +2235,7 @@ enum class TrackerTargetCategory : uint8_t {
 
 TrackerTargetCategory SelectedTrackerTargetCategory = TrackerTargetCategory::Items;
 TrackerTargetCategory AutoWalkTrackerTargetCategory = TrackerTargetCategory::Items; ///< Category of the active auto-walk target.
-int AutoWalkTrackerTargetId = -1; ///< ID of the target being auto-walked to, or -1 if inactive.
+int AutoWalkTrackerTargetId = -1;                                                   ///< ID of the target being auto-walked to, or -1 if inactive.
 
 Point NextPositionForWalkDirection(Point position, int8_t walkDir)
 {
@@ -3353,8 +3348,9 @@ std::optional<DoorBlockInfo> FindFirstClosedDoorOnWalkPath(Point startPosition, 
 	for (int i = 0; i < steps; ++i) {
 		const Point next = NextPositionForWalkDirection(position, path[i]);
 		Object *object = FindObjectAtPosition(next);
-		if (object != nullptr && object->isDoor() && object->_oSolidFlag) {
-			return DoorBlockInfo { .beforeDoor = position, .doorPosition = next };
+		// Only closed doors block the path; blocked doors (DOOR_BLOCKED) are physically passable.
+		if (object != nullptr && object->isDoor() && object->_oVar4 == DOOR_CLOSED) {
+			return DoorBlockInfo { .beforeDoor = position, .doorPosition = object->position };
 		}
 		position = next;
 	}
@@ -3385,12 +3381,13 @@ struct TrackerPathBlockInfo {
 		}
 
 		Object *object = FindObjectAtPosition(next);
-		if (considerDoors && object != nullptr && object->isDoor() && object->_oSolidFlag) {
+		// Only closed doors block the path; blocked doors (DOOR_BLOCKED) are physically passable.
+		if (considerDoors && object != nullptr && object->isDoor() && object->_oVar4 == DOOR_CLOSED) {
 			return TrackerPathBlockInfo {
 				.type = TrackerPathBlockType::Door,
 				.stepIndex = i,
 				.beforeBlock = position,
-				.blockPosition = next,
+				.blockPosition = object->position,
 			};
 		}
 		if (considerBreakables && object != nullptr && object->_oSolidFlag && object->IsBreakable()) {
@@ -4246,42 +4243,27 @@ void AutoWalkToTrackerTargetKeyPressed()
 		break;
 	}
 	case TrackerTargetCategory::Chests:
-		targetId = ResolveObjectTrackerTarget(lockedTargetId, playerPosition,
-		    IsTrackedChestObject, FindNearestUnopenedChestObjectId,
-		    [](int id) -> StringOrView { return Objects[id].name(); },
-		    N_("No chests found."), targetName);
+		targetId = ResolveObjectTrackerTarget(lockedTargetId, playerPosition, IsTrackedChestObject, FindNearestUnopenedChestObjectId, [](int id) -> StringOrView { return Objects[id].name(); }, N_("No chests found."), targetName);
 		if (!targetId)
 			return;
 		break;
 	case TrackerTargetCategory::Doors:
-		targetId = ResolveObjectTrackerTarget(lockedTargetId, playerPosition,
-		    IsTrackedDoorObject, FindNearestDoorObjectId,
-		    [](int id) -> StringOrView { return DoorLabelForSpeech(Objects[id]); },
-		    N_("No doors found."), targetName);
+		targetId = ResolveObjectTrackerTarget(lockedTargetId, playerPosition, IsTrackedDoorObject, FindNearestDoorObjectId, [](int id) -> StringOrView { return DoorLabelForSpeech(Objects[id]); }, N_("No doors found."), targetName);
 		if (!targetId)
 			return;
 		break;
 	case TrackerTargetCategory::Shrines:
-		targetId = ResolveObjectTrackerTarget(lockedTargetId, playerPosition,
-		    IsShrineLikeObject, FindNearestShrineObjectId,
-		    [](int id) -> StringOrView { return Objects[id].name(); },
-		    N_("No shrines found."), targetName);
+		targetId = ResolveObjectTrackerTarget(lockedTargetId, playerPosition, IsShrineLikeObject, FindNearestShrineObjectId, [](int id) -> StringOrView { return Objects[id].name(); }, N_("No shrines found."), targetName);
 		if (!targetId)
 			return;
 		break;
 	case TrackerTargetCategory::Objects:
-		targetId = ResolveObjectTrackerTarget(lockedTargetId, playerPosition,
-		    IsTrackedMiscInteractableObject, FindNearestMiscInteractableObjectId,
-		    [](int id) -> StringOrView { return Objects[id].name(); },
-		    N_("No objects found."), targetName);
+		targetId = ResolveObjectTrackerTarget(lockedTargetId, playerPosition, IsTrackedMiscInteractableObject, FindNearestMiscInteractableObjectId, [](int id) -> StringOrView { return Objects[id].name(); }, N_("No objects found."), targetName);
 		if (!targetId)
 			return;
 		break;
 	case TrackerTargetCategory::Breakables:
-		targetId = ResolveObjectTrackerTarget(lockedTargetId, playerPosition,
-		    IsTrackedBreakableObject, FindNearestBreakableObjectId,
-		    [](int id) -> StringOrView { return Objects[id].name(); },
-		    N_("No breakables found."), targetName);
+		targetId = ResolveObjectTrackerTarget(lockedTargetId, playerPosition, IsTrackedBreakableObject, FindNearestBreakableObjectId, [](int id) -> StringOrView { return Objects[id].name(); }, N_("No breakables found."), targetName);
 		if (!targetId)
 			return;
 		break;
@@ -4483,8 +4465,7 @@ std::optional<std::vector<int8_t>> FindKeyboardWalkPathForSpeechBfs(const Player
 		const int8_t yDir = delta.deltaY > 0 ? WALK_SW : (delta.deltaY < 0 ? WALK_NE : WALK_NONE);
 
 		if (allowDiagonalSteps && delta.deltaX != 0 && delta.deltaY != 0) {
-			const int8_t diagDir =
-			    delta.deltaX > 0 ? (delta.deltaY > 0 ? WALK_S : WALK_E) : (delta.deltaY > 0 ? WALK_W : WALK_N);
+			const int8_t diagDir = delta.deltaX > 0 ? (delta.deltaY > 0 ? WALK_S : WALK_E) : (delta.deltaY > 0 ? WALK_W : WALK_N);
 			addUniqueDir(diagDir);
 		}
 
@@ -4667,8 +4648,7 @@ std::optional<std::vector<int8_t>> FindKeyboardWalkPathToClosestReachableForSpee
 		const int8_t yDir = delta.deltaY > 0 ? WALK_SW : (delta.deltaY < 0 ? WALK_NE : WALK_NONE);
 
 		if (allowDiagonalSteps && delta.deltaX != 0 && delta.deltaY != 0) {
-			const int8_t diagDir =
-			    delta.deltaX > 0 ? (delta.deltaY > 0 ? WALK_S : WALK_E) : (delta.deltaY > 0 ? WALK_W : WALK_N);
+			const int8_t diagDir = delta.deltaX > 0 ? (delta.deltaY > 0 ? WALK_S : WALK_E) : (delta.deltaY > 0 ? WALK_W : WALK_N);
 			addUniqueDir(diagDir);
 		}
 
@@ -5303,7 +5283,7 @@ void SpeakNearestExitKeyPressed()
 		}
 
 		const int triggerIndex = FindLockedTownDungeonTriggerIndex(dungeonCandidates)
-		    .value_or(FindDefaultTownDungeonTriggerIndex(dungeonCandidates).value_or(dungeonCandidates.front()));
+		                             .value_or(FindDefaultTownDungeonTriggerIndex(dungeonCandidates).value_or(dungeonCandidates.front()));
 		LockedTownDungeonTriggerIndex = triggerIndex;
 
 		const TriggerStruct &trigger = trigs[triggerIndex];
