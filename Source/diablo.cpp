@@ -169,7 +169,6 @@ bool forceSpawn;
 bool forceDiablo;
 int sgnTimeoutCurs;
 bool gbShowIntro = true;
-
 /** To know if these things have been done when we get to the diablo_deinit() function */
 bool was_archives_init = false;
 /** To know if surfaces have been initialized or not */
