@@ -3804,31 +3804,31 @@ void MonsterReducePlayerAttribute(Monster &monster, Player &player)
 		return;
 
 	if (monster.reducePlayerStrength > 0) {
-		ModifyPlrStr(player, -std::min(player._pBaseStr, static_cast<int>(monster.reducePlayerStrength)));
+		ModifyPlrStr(player, -static_cast<int>(monster.reducePlayerStrength));
 	}
 	if (monster.reducePlayerMagic > 0) {
-		ModifyPlrMag(player, -std::min(player._pBaseMag, static_cast<int>(monster.reducePlayerMagic)));
+		ModifyPlrMag(player, -static_cast<int>(monster.reducePlayerMagic));
 	}
 	if (monster.reducePlayerDexterity > 0) {
-		ModifyPlrDex(player, -std::min(player._pBaseDex, static_cast<int>(monster.reducePlayerDexterity)));
+		ModifyPlrDex(player, -static_cast<int>(monster.reducePlayerDexterity));
 	}
 	if (monster.reducePlayerVitality > 0) {
-		ModifyPlrVit(player, -std::min(player._pBaseVit, static_cast<int>(monster.reducePlayerVitality)));
+		ModifyPlrVit(player, -static_cast<int>(monster.reducePlayerVitality));
 	}
 	if (monster.reducePlayerMaxHP > 0) {
-		const int reduceAmount = monster.reducePlayerMaxHP * 64;
+		const int reduceAmount = std::min(player._pMaxHPBase - 64, monster.reducePlayerMaxHP * 64);
 		player._pMaxHP = std::max(64, player._pMaxHP - reduceAmount);
 		player._pHitPoints = std::min(player._pHitPoints, player._pMaxHP);
-		player._pMaxHPBase = std::max(64, player._pMaxHPBase - reduceAmount);
+		player._pMaxHPBase -= reduceAmount;
 		player._pHPBase = std::min(player._pHPBase, player._pMaxHPBase);
 
 		RedrawComponent(PanelDrawComponent::Health);
 	}
 	if (monster.reducePlayerMaxMana > 0) {
-		const int reduceAmount = monster.reducePlayerMaxMana * 64;
-		player._pMaxMana = std::max(64, player._pMaxMana - reduceAmount);
+		const int reduceAmount = std::min(player._pMaxManaBase, monster.reducePlayerMaxMana * 64);
+		player._pMaxMana = std::max(0, player._pMaxMana - reduceAmount);
 		player._pMana = std::min(player._pMana, player._pMaxMana);
-		player._pMaxManaBase = std::max(64, player._pMaxManaBase - reduceAmount);
+		player._pMaxManaBase -= reduceAmount;
 		player._pManaBase = std::min(player._pManaBase, player._pMaxManaBase);
 
 		RedrawComponent(PanelDrawComponent::Mana);
