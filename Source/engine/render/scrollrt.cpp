@@ -73,8 +73,8 @@
 #include "utils/sdl_compat.h"
 #include "utils/str_cat.hpp"
 
-#ifndef USE_SDL1
 #include "controls/local_coop/local_coop.hpp"
+#ifndef USE_SDL1
 #include "controls/touch/renderers.h"
 #endif
 
@@ -87,6 +87,16 @@
 #endif
 
 namespace devilution {
+
+enum OutlineColors : uint8_t {
+	OutlineColorsPlayer1 = (PAL16_ORANGE + 7),
+	OutlineColorsPlayer2 = (PAL16_YELLOW + 7),
+	OutlineColorsPlayer3 = (PAL16_RED + 7),
+	OutlineColorsPlayer4 = (PAL16_BLUE + 7),
+	OutlineColorsObject = (PAL16_YELLOW + 2),
+	OutlineColorsTowner = (PAL16_BEIGE + 6),
+	OutlineColorsMonster = (PAL16_RED + 9),
+};
 
 bool AutoMapShowItems;
 
@@ -432,6 +442,21 @@ void DrawPlayerIcons(const Surface &out, const Player &player, Point position, b
 		DrawPlayerIconHelper(out, MissileGraphicID::Reflect, position + Displacement { 0, 16 }, player, infraVision, lightTableIndex);
 }
 
+uint8_t GetPlayerOutlineColor(int id)
+{
+	static constexpr uint8_t PlayerOutlineColors[] = {
+		OutlineColorsPlayer1,
+		OutlineColorsPlayer2,
+		OutlineColorsPlayer3,
+		OutlineColorsPlayer4,
+	};
+
+	if (id < 0 || id >= static_cast<int>(SDL_arraysize(PlayerOutlineColors)))
+		return OutlineColorsPlayer1;
+
+	return PlayerOutlineColors[id];
+}
+
 /**
  * @brief Render a player sprite
  * @param out Output buffer
@@ -457,7 +482,7 @@ void DrawPlayer(const Surface &out, const Player &player, Point tilePosition, Po
 	const Point spriteBufferPosition = targetBufferPosition + player.getRenderingOffset(sprite);
 
 	if (&player == PlayerUnderCursor)
-		ClxDrawOutlineSkipColorZero(out, 165, spriteBufferPosition, sprite);
+		ClxDrawOutlineSkipColorZero(out, GetPlayerOutlineColor(player.getId()), spriteBufferPosition, sprite);
 
 	if (IsLocalPlayer(player) && IsNoneOf(leveltype, DTYPE_NEST, DTYPE_CRYPT)) {
 		ClxDraw(out, spriteBufferPosition, sprite);
@@ -513,7 +538,7 @@ void DrawObject(const Surface &out, const Object &objectToDraw, Point tilePositi
 	const bool isHighlighted = (&objectToDraw == ObjectUnderCursor) || IsLocalCoopTargetObject(&objectToDraw);
 
 	if (isHighlighted) {
-		ClxDrawOutlineSkipColorZero(out, 194, screenPosition, sprite);
+		ClxDrawOutlineSkipColorZero(out, OutlineColorsObject, screenPosition, sprite);
 	}
 	if (objectToDraw.applyLighting) {
 		ClxDrawLight(out, screenPosition, sprite, lightTableIndex);
@@ -727,7 +752,7 @@ void DrawMonsterHelper(const Surface &out, Point tilePosition, Point targetBuffe
 		const ClxSprite sprite = towner.currentSprite();
 		// Highlight if player 1 or any local coop player is targeting this towner
 		if (mi == pcursmonst || IsLocalCoopTargetMonster(mi)) {
-			ClxDrawOutlineSkipColorZero(out, 166, position, sprite);
+			ClxDrawOutlineSkipColorZero(out, OutlineColorsTowner, position, sprite);
 		}
 		ClxDraw(out, position, sprite);
 		return;
@@ -753,7 +778,7 @@ void DrawMonsterHelper(const Surface &out, Point tilePosition, Point targetBuffe
 	const Point monsterRenderPosition = targetBufferPosition + offset;
 	// Highlight if player 1 or any local coop player is targeting this monster
 	if (mi == pcursmonst || IsLocalCoopTargetMonster(mi)) {
-		ClxDrawOutlineSkipColorZero(out, 233, monsterRenderPosition, sprite);
+		ClxDrawOutlineSkipColorZero(out, OutlineColorsMonster, monsterRenderPosition, sprite);
 	}
 	DrawMonster(out, tilePosition, monsterRenderPosition, monster, lightTableIndex);
 }
@@ -1947,7 +1972,7 @@ void DrawAndBlit()
 
 	const Rectangle &mainPanel = GetMainPanel();
 
-	if (gnScreenWidth > mainPanel.size.width || IsRedrawEverything() || *GetOptions().Gameplay.enableFloatingNumbers != FloatingNumbers::Off) {
+	if (gnScreenWidth > mainPanel.size.width || IsRedrawEverything()) {
 		drawHealth = true;
 		drawMana = true;
 		drawControlButtons = true;
@@ -2001,19 +2026,20 @@ void DrawAndBlit()
 			    HasAnyOf(InspectPlayer->_pIFlags, ItemSpecialEffect::NoMana) ? 0 : MyPlayer->_pMaxMana >> 6);
 	}
 
+#ifndef USE_SDL1
+	// Draw local co-op player HUD BEFORE floating info box so info box appears on top
+	DrawLocalCoopPlayerHUD(out);
+	// Draw local co-op character selection UI
+	DrawLocalCoopCharacterSelect(out);
+#endif
+
 	// Draw floating info box (always draw when local co-op is active, otherwise check option)
+	// This must be drawn AFTER local coop HUD so it appears on top
 	if (hideMainPanelForLocalCoop || *GetOptions().Gameplay.floatingInfoBox)
 		DrawFloatingInfoBox(out);
 
 	if (*GetOptions().Gameplay.showMultiplayerPartyInfo && PartySidePanelOpen)
 		DrawPartyMemberInfoPanel(out);
-
-#ifndef USE_SDL1
-	// Draw local co-op character selection UI
-	DrawLocalCoopCharacterSelect(out);
-	// Draw local co-op player HUD (text-only stats in corners)
-	DrawLocalCoopPlayerHUD(out);
-#endif
 
 	DrawCursor(out);
 

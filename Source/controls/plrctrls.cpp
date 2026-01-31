@@ -1046,7 +1046,12 @@ void InventoryMove(AxisDirection dir)
 	}
 	if (dir.y == AxisDirectionY_UP) {
 		if (isHoldingItem) {
-			if (Slot >= SLOTXY_INV_ROW2_FIRST) { // general inventory
+			if (Slot >= SLOTXY_BELT_FIRST && Slot <= SLOTXY_BELT_LAST) {
+				// When holding item and in belt, move up to inventory row 4
+				// Map belt slot to corresponding inventory column
+				const int beltSlotOffset = Slot - SLOTXY_BELT_FIRST;
+				Slot = SLOTXY_INV_ROW4_FIRST + beltSlotOffset;
+			} else if (Slot >= SLOTXY_INV_ROW2_FIRST) { // general inventory
 				Slot -= INV_ROW_SLOT_SIZE;
 			} else if (Slot >= SLOTXY_INV_FIRST) {
 				if (heldItem._itype == ItemType::Ring) {

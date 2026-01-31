@@ -4,7 +4,10 @@
  * Implementation of local co-op multiplayer functionality.
  */
 #include "controls/local_coop/local_coop.hpp"
+#include "controls/local_coop/local_coop_assets.hpp"
+#include "controls/local_coop/local_coop_button_mapper.hpp"
 #include "controls/local_coop/local_coop_constants.hpp"
+#include "controls/local_coop/local_coop_player_context.hpp"
 
 #ifndef USE_SDL1
 
@@ -55,11 +58,11 @@
 #include "panels/spell_list.hpp"
 #include "pfile.h"
 #include "player.h"
-#include "tables/playerdat.hpp"
 #include "qol/stash.h"
 #include "quests.h"
 #include "spells.h"
 #include "stores.h"
+#include "tables/playerdat.hpp"
 #include "towners.h"
 #include "track.h"
 #include "utils/display.h"
@@ -110,95 +113,16 @@ struct PlayerHUDLayout {
 	int durabilityIconSpacing;
 };
 
-// Local co-op HUD sprites
-namespace {
-OptionalOwnedClxSpriteList LocalCoopHealthBox;
-OptionalOwnedClxSpriteList LocalCoopHealth;
-OptionalOwnedClxSpriteList LocalCoopHealthBlue; // For mana shield
-OptionalOwnedClxSpriteList LocalCoopBoxLeft;
-OptionalOwnedClxSpriteList LocalCoopBoxMiddle;
-OptionalOwnedClxSpriteList LocalCoopBoxRight;
-OptionalOwnedClxSpriteList LocalCoopCharBg;
-OptionalOwnedClxSpriteList LocalCoopBarSprite;       // Grayscale bar sprite (list_gry.pcx)
-OptionalOwnedClxSpriteList LocalCoopBarSpriteRed;    // Red transformed bar sprite
-OptionalOwnedClxSpriteList LocalCoopBarSpriteBlue;   // Blue transformed bar sprite
-OptionalOwnedClxSpriteList LocalCoopBarSpriteYellow; // Yellow transformed bar sprite
-bool LocalCoopHUDAssetsLoaded = false;
-} // namespace
+// Asset management moved to local_coop_assets.hpp/cpp
 
 void InitLocalCoopHUDAssets()
 {
-	if (LocalCoopHUDAssetsLoaded)
-		return;
-
-	LocalCoopHealthBox = LoadOptionalClx("data\\healthbox.clx");
-	LocalCoopHealth = LoadOptionalClx("data\\health.clx");
-	if (LocalCoopHealth) {
-		std::array<uint8_t, 256> healthBlueTrn = {};
-		for (int i = 0; i < 256; i++)
-			healthBlueTrn[i] = static_cast<uint8_t>(i);
-		healthBlueTrn[234] = PAL16_BLUE + 5;
-		healthBlueTrn[235] = PAL16_BLUE + 6;
-		healthBlueTrn[236] = PAL16_BLUE + 7;
-		LocalCoopHealthBlue = LocalCoopHealth->clone();
-		ClxApplyTrans(*LocalCoopHealthBlue, healthBlueTrn.data());
-	}
-
-	LocalCoopBoxLeft = LoadOptionalClx("data\\boxleftend.clx");
-	LocalCoopBoxMiddle = LoadOptionalClx("data\\boxmiddle.clx");
-	LocalCoopBoxRight = LoadOptionalClx("data\\boxrightend.clx");
-
-	LocalCoopCharBg = LoadOptionalClx("data\\charbg.clx");
-	LocalCoopBarSprite = LoadPcx("ui_art\\list_gry");
-	if (LocalCoopBarSprite) {
-		auto createColorTrn = [](uint8_t colorBase) {
-			std::array<uint8_t, 256> trn = {};
-			for (int i = 0; i < 256; i++) {
-				trn[i] = static_cast<uint8_t>(i);
-			}
-			for (int i = 0; i < 16; i++) {
-				int targetShade = std::min(15, 4 + i);
-				trn[PAL16_GRAY + i] = colorBase + targetShade;
-			}
-			for (int i = 230; i < 240; i++) {
-				int shade = i - 230;
-				int targetShade = std::min(15, 4 + shade);
-				trn[i] = colorBase + targetShade;
-			}
-			return trn;
-		};
-
-		std::array<uint8_t, 256> redTrn = createColorTrn(PAL16_RED);
-		std::array<uint8_t, 256> blueTrn = createColorTrn(PAL16_BLUE);
-		std::array<uint8_t, 256> yellowTrn = createColorTrn(PAL16_YELLOW);
-
-		LocalCoopBarSpriteRed = LocalCoopBarSprite->clone();
-		ClxApplyTrans(*LocalCoopBarSpriteRed, redTrn.data());
-
-		LocalCoopBarSpriteBlue = LocalCoopBarSprite->clone();
-		ClxApplyTrans(*LocalCoopBarSpriteBlue, blueTrn.data());
-
-		LocalCoopBarSpriteYellow = LocalCoopBarSprite->clone();
-		ClxApplyTrans(*LocalCoopBarSpriteYellow, yellowTrn.data());
-	}
-
-	LocalCoopHUDAssetsLoaded = true;
+	LocalCoopAssets::Init();
 }
 
 void FreeLocalCoopHUDAssets()
 {
-	LocalCoopBarSpriteYellow = std::nullopt;
-	LocalCoopBarSpriteBlue = std::nullopt;
-	LocalCoopBarSpriteRed = std::nullopt;
-	LocalCoopBarSprite = std::nullopt;
-	LocalCoopCharBg = std::nullopt;
-	LocalCoopBoxRight = std::nullopt;
-	LocalCoopBoxMiddle = std::nullopt;
-	LocalCoopBoxLeft = std::nullopt;
-	LocalCoopHealthBlue = std::nullopt;
-	LocalCoopHealth = std::nullopt;
-	LocalCoopHealthBox = std::nullopt;
-	LocalCoopHUDAssetsLoaded = false;
+	LocalCoopAssets::Free();
 }
 
 LocalCoopState g_LocalCoop;
@@ -216,44 +140,7 @@ void HandleSpellMenuAssignment(uint8_t playerId, LocalCoopPlayer &coopPlayer, ui
 void HandleGameplayButtonDown(uint8_t playerId, LocalCoopPlayer &coopPlayer, Player &player, uint8_t button, uint32_t now);
 void HandleGameplayButtonUp(uint8_t playerId, LocalCoopPlayer &coopPlayer, uint8_t button);
 
-/**
- * @brief RAII helper to temporarily swap MyPlayer, MyPlayerId, and InspectPlayer for local co-op actions.
- *
- * This ensures network commands are sent with the correct player ID and that
- * player-specific state is properly managed during action execution.
- * InspectPlayer is also swapped because UI elements like the spell menu use it.
- */
-class LocalCoopPlayerContext {
-public:
-	LocalCoopPlayerContext(uint8_t playerId)
-	    : savedMyPlayer_(MyPlayer)
-	    , savedMyPlayerId_(MyPlayerId)
-	    , savedInspectPlayer_(InspectPlayer)
-	{
-		if (playerId < Players.size()) {
-			MyPlayer = &Players[playerId];
-			MyPlayerId = playerId;
-			InspectPlayer = &Players[playerId];
-		}
-	}
-
-	~LocalCoopPlayerContext()
-	{
-		MyPlayer = savedMyPlayer_;
-		MyPlayerId = savedMyPlayerId_;
-		InspectPlayer = savedInspectPlayer_;
-	}
-
-	// Non-copyable
-	LocalCoopPlayerContext(const LocalCoopPlayerContext &) = delete;
-	LocalCoopPlayerContext &operator=(const LocalCoopPlayerContext &) = delete;
-
-private:
-	Player *savedMyPlayer_;
-	uint8_t savedMyPlayerId_;
-	Player *savedInspectPlayer_;
-};
-
+// LocalCoopPlayerContext moved to local_coop_player_context.hpp
 // SkillButtonHoldTime moved to LocalCoopInput namespace in local_coop_constants.hpp
 
 /**
@@ -338,49 +225,7 @@ ValidatedPlayer GetValidatedPlayer(uint8_t playerId, bool requireInitialized = t
 	return result;
 }
 
-/**
- * @brief Get skill slot index from controller button.
- * @param button The controller button
- * @return Skill slot index (0-3), or -1 if not a skill button
- */
-int GetSkillSlotFromControllerButton(ControllerButton button)
-{
-	using namespace LocalCoopInput;
-	switch (button) {
-	case ControllerButton_BUTTON_A:
-		return ButtonToSkillSlot[0]; // A -> slot 2
-	case ControllerButton_BUTTON_B:
-		return ButtonToSkillSlot[1]; // B -> slot 3
-	case ControllerButton_BUTTON_X:
-		return ButtonToSkillSlot[2]; // X -> slot 0
-	case ControllerButton_BUTTON_Y:
-		return ButtonToSkillSlot[3]; // Y -> slot 1
-	default:
-		return -1;
-	}
-}
-
-/**
- * @brief Get skill slot index from SDL gamepad button.
- * @param button The SDL gamepad button
- * @return Skill slot index (0-3), or -1 if not a skill button
- */
-int GetSkillSlotFromSDLButton(uint8_t button)
-{
-	using namespace LocalCoopInput;
-	switch (button) {
-	case SDL_GAMEPAD_BUTTON_SOUTH:
-		return ButtonToSkillSlot[0]; // A (South) -> slot 2
-	case SDL_GAMEPAD_BUTTON_EAST:
-		return ButtonToSkillSlot[1]; // B (East) -> slot 3
-	case SDL_GAMEPAD_BUTTON_WEST:
-		return ButtonToSkillSlot[2]; // X (West) -> slot 0
-	case SDL_GAMEPAD_BUTTON_NORTH:
-		return ButtonToSkillSlot[3]; // Y (North) -> slot 1
-	default:
-		return -1;
-	}
-}
+// Button mapping functions moved to LocalCoopButtonMapper class
 
 /**
  * @brief Panel position structure for local coop HUD.
@@ -477,23 +322,7 @@ BeltPosition CalculateBeltPosition(int panelX, int panelY, int panelWidth, int b
 	return pos;
 }
 
-/**
- * @brief Calculate belt slot index from button press and shoulder state.
- *
- * @param buttonIndex 0=South/A, 1=East/B, 2=West/X, 3=North/Y
- * @param leftShoulderHeld True if left shoulder is held (belt slots 0-3)
- * @param rightShoulderHeld True if right shoulder is held (belt slots 4-7)
- * @return Belt slot index (0-7), or -1 if no shoulder is held
- */
-int GetBeltSlotFromButton(int buttonIndex, bool leftShoulderHeld, bool rightShoulderHeld)
-{
-	using namespace LocalCoopInput;
-	if (!leftShoulderHeld && !rightShoulderHeld)
-		return -1;
-
-	int baseSlot = leftShoulderHeld ? 0 : 4;
-	return baseSlot + ButtonToBeltOffset[buttonIndex];
-}
+// GetBeltSlotFromButton moved to LocalCoopButtonMapper class
 
 /**
  * @brief Try to use a belt item for the given player based on button press.
@@ -506,7 +335,7 @@ int GetBeltSlotFromButton(int buttonIndex, bool leftShoulderHeld, bool rightShou
  */
 bool TryUseBeltItem(uint8_t playerId, int buttonIndex, bool leftShoulderHeld, bool rightShoulderHeld)
 {
-	int beltSlot = GetBeltSlotFromButton(buttonIndex, leftShoulderHeld, rightShoulderHeld);
+	const int beltSlot = LocalCoopButtonMapper::GetBeltSlot(buttonIndex, leftShoulderHeld, rightShoulderHeld);
 	if (beltSlot < 0 || beltSlot >= MaxBeltItems)
 		return false;
 
@@ -1113,7 +942,7 @@ void HandleStoreInput(uint8_t playerId, uint8_t button)
  */
 void HandleSpellMenuAssignment(uint8_t playerId, LocalCoopPlayer &coopPlayer, uint8_t button)
 {
-	int assignSlot = GetSkillSlotFromSDLButton(button);
+	const int assignSlot = LocalCoopButtonMapper::GetSkillSlot(button);
 	if (assignSlot >= 0) {
 		AssignLocalCoopSpellToSlot(playerId, assignSlot);
 		coopPlayer.skillButtonHeld = -1;
@@ -1277,7 +1106,7 @@ void HandleGameplayButtonDown(uint8_t playerId, LocalCoopPlayer &coopPlayer, Pla
 				ProcessLocalCoopGameAction(playerId, GameActionType_PRIMARY_ACTION);
 			}
 		} else {
-			coopPlayer.skillButtonHeld = GetSkillSlotFromSDLButton(button);
+			coopPlayer.skillButtonHeld = LocalCoopButtonMapper::GetSkillSlot(button);
 			coopPlayer.skillButtonPressTime = now;
 			coopPlayer.skillMenuOpenedByHold = false;
 		}
@@ -1306,7 +1135,7 @@ void HandleGameplayButtonDown(uint8_t playerId, LocalCoopPlayer &coopPlayer, Pla
 				ProcessLocalCoopGameAction(playerId, GameActionType_SECONDARY_ACTION);
 			}
 		} else {
-			coopPlayer.skillButtonHeld = GetSkillSlotFromSDLButton(button);
+			coopPlayer.skillButtonHeld = LocalCoopButtonMapper::GetSkillSlot(button);
 			coopPlayer.skillButtonPressTime = now;
 			coopPlayer.skillMenuOpenedByHold = false;
 		}
@@ -1316,7 +1145,7 @@ void HandleGameplayButtonDown(uint8_t playerId, LocalCoopPlayer &coopPlayer, Pla
 		if (TryUseBeltItem(playerId, 2, coopPlayer.leftShoulderHeld, coopPlayer.rightShoulderHeld))
 			return;
 		if (player.CanChangeAction() && player.destAction == ACTION_NONE) {
-			coopPlayer.skillButtonHeld = GetSkillSlotFromSDLButton(button);
+			coopPlayer.skillButtonHeld = LocalCoopButtonMapper::GetSkillSlot(button);
 			coopPlayer.skillButtonPressTime = now;
 			coopPlayer.skillMenuOpenedByHold = false;
 		}
@@ -1326,7 +1155,7 @@ void HandleGameplayButtonDown(uint8_t playerId, LocalCoopPlayer &coopPlayer, Pla
 		if (TryUseBeltItem(playerId, 3, coopPlayer.leftShoulderHeld, coopPlayer.rightShoulderHeld))
 			return;
 		if (player.CanChangeAction() && player.destAction == ACTION_NONE) {
-			coopPlayer.skillButtonHeld = GetSkillSlotFromSDLButton(button);
+			coopPlayer.skillButtonHeld = LocalCoopButtonMapper::GetSkillSlot(button);
 			coopPlayer.skillButtonPressTime = now;
 			coopPlayer.skillMenuOpenedByHold = false;
 		}
@@ -1350,7 +1179,7 @@ void HandleGameplayButtonDown(uint8_t playerId, LocalCoopPlayer &coopPlayer, Pla
  */
 void HandleGameplayButtonUp(uint8_t playerId, LocalCoopPlayer &coopPlayer, uint8_t button)
 {
-	int releasedSlot = GetSkillSlotFromSDLButton(button);
+	const int releasedSlot = LocalCoopButtonMapper::GetSkillSlot(button);
 
 	if (releasedSlot >= 0) {
 		switch (releasedSlot) {
@@ -2375,7 +2204,7 @@ void UpdateLocalCoopMovement()
 		// Update movement for coop players (players 2-4)
 		if (i > 0) {
 			UpdateLocalCoopPlayerMovement(static_cast<uint8_t>(i));
-			}
+		}
 		// Update target selection for all players
 		UpdateLocalCoopTargetSelection(static_cast<uint8_t>(i));
 	}
@@ -2660,7 +2489,7 @@ using namespace LocalCoopLayout;
  */
 void DrawGoldenBorder(const Surface &out, Rectangle rect)
 {
-	if (!LocalCoopBoxLeft || !LocalCoopBoxMiddle || !LocalCoopBoxRight) {
+	if (!LocalCoopAssets::GetBoxLeft() || !LocalCoopAssets::GetBoxMiddle() || !LocalCoopAssets::GetBoxRight()) {
 		// Fallback to FillRect if sprites not loaded
 		const uint8_t borderColor = PAL16_YELLOW + 2;
 		FillRect(out, rect.position.x, rect.position.y, rect.size.width, 1, borderColor);                        // Top
@@ -2670,9 +2499,9 @@ void DrawGoldenBorder(const Surface &out, Rectangle rect)
 		return;
 	}
 
-	const ClxSprite left = (*LocalCoopBoxLeft)[0];
-	const ClxSprite middle = (*LocalCoopBoxMiddle)[0];
-	const ClxSprite right = (*LocalCoopBoxRight)[0];
+	const ClxSprite left = (*LocalCoopAssets::GetBoxLeft())[0];
+	const ClxSprite middle = (*LocalCoopAssets::GetBoxMiddle())[0];
+	const ClxSprite right = (*LocalCoopAssets::GetBoxRight())[0];
 
 	// Sprites are 24px tall (PanelFieldHeight)
 	using namespace LocalCoopLayout;
@@ -2757,12 +2586,12 @@ void DrawGoldenBorder(const Surface &out, Rectangle rect)
  */
 void DrawCoopPanelField(const Surface &out, Point pos, int len)
 {
-	if (!LocalCoopBoxLeft || !LocalCoopBoxMiddle || !LocalCoopBoxRight)
+	if (!LocalCoopAssets::GetBoxLeft() || !LocalCoopAssets::GetBoxMiddle() || !LocalCoopAssets::GetBoxRight())
 		return;
 
-	const ClxSprite left = (*LocalCoopBoxLeft)[0];
-	const ClxSprite middle = (*LocalCoopBoxMiddle)[0];
-	const ClxSprite right = (*LocalCoopBoxRight)[0];
+	const ClxSprite left = (*LocalCoopAssets::GetBoxLeft())[0];
+	const ClxSprite middle = (*LocalCoopAssets::GetBoxMiddle())[0];
+	const ClxSprite right = (*LocalCoopAssets::GetBoxRight())[0];
 
 	RenderClxSprite(out, left, pos);
 	pos.x += left.width();
@@ -2813,13 +2642,13 @@ void DrawCoopSmallBar(const Surface &out, Point position, int width, int height,
 			} else {
 				// Other bars: use colorized sprite
 				// Select the appropriate colorized sprite
-				OptionalOwnedClxSpriteList *barSprite = nullptr;
+				const OptionalOwnedClxSpriteList *barSprite = nullptr;
 				if (isMana) {
-					barSprite = &LocalCoopBarSpriteBlue;
+					barSprite = &LocalCoopAssets::GetBarSpriteBlue();
 				} else if (hasManaShield) {
-					barSprite = &LocalCoopBarSpriteYellow;
+					barSprite = &LocalCoopAssets::GetBarSpriteYellow();
 				} else {
-					barSprite = &LocalCoopBarSpriteRed;
+					barSprite = &LocalCoopAssets::GetBarSpriteRed();
 				}
 
 				// Render tiled sprite to fill the bar area
@@ -2922,8 +2751,8 @@ void DrawPlayerSkillSlotSmall(const Surface &out, const Player &player, int slot
 	SpellType spellType = player._pSplTHotKey[slotIndex];
 
 	// Button labels - hide if hideLabel is true (when left shoulder is held)
-	static constexpr std::string_view ButtonLabels[] = { "X", "Y", "A", "B" };
-	const char *label = (!hideLabel && slotIndex < 4) ? ButtonLabels[slotIndex].data() : "";
+	const std::string_view labelView = (!hideLabel && slotIndex < 4) ? LocalCoopButtonMapper::GetSkillSlotLabel(slotIndex) : "";
+	const char *label = labelView.data();
 
 	// Original sprite sizes
 	constexpr int OriginalHintBoxSize = SkillSlot::OriginalHintBoxSize;
@@ -3068,8 +2897,8 @@ void DrawPlayerSkillSlots2x2Small(const Surface &out, const Player &player, Poin
 void DrawCoopPanelBackground(const Surface &out, Rectangle rect)
 {
 	// Use the charbg.clx sprite for panel background
-	if (LocalCoopCharBg) {
-		const ClxSprite bg = (*LocalCoopCharBg)[0];
+	if (LocalCoopAssets::GetCharBg()) {
+		const ClxSprite bg = (*LocalCoopAssets::GetCharBg())[0];
 		const int srcW = bg.width();
 		const int srcH = bg.height();
 
@@ -3241,9 +3070,6 @@ void DrawPlayerBelt(const Surface &out, const Player &player, uint8_t playerId, 
 	// Offset panel box by 2 pixels to the right and 2 pixels to the bottom
 	DrawPanelBox(out, { 205, 21, 232, 28 }, basePosition + Displacement { 3, 3 });
 
-	// Button labels for belt slots: A, B, X, Y
-	static constexpr std::string_view ButtonLabels[] = { "A", "B", "X", "Y" };
-
 	// Draw belt items using the same positioning as the main panel
 	for (int i = 0; i < MaxBeltItems; i++) {
 		if (player.SpdList[i].isEmpty()) {
@@ -3280,14 +3106,15 @@ void DrawPlayerBelt(const Surface &out, const Player &player, uint8_t playerId, 
 		// Left shoulder: slots 0-3 (A, B, X, Y)
 		// Right shoulder: slots 4-7 (A, B, X, Y)
 		// If both are held, prioritize right shoulder
-		const char *label = nullptr;
+		std::string_view labelView;
 		if (rightShoulderHeld && i >= 4 && i < 8) {
 			// Right shoulder takes priority if both are held
-			label = ButtonLabels[i - 4].data();
+			labelView = LocalCoopButtonMapper::GetBeltButtonLabel(i - 4);
 		} else if (leftShoulderHeld && i < 4) {
 			// Left shoulder only if right is not held
-			label = ButtonLabels[i].data();
+			labelView = LocalCoopButtonMapper::GetBeltButtonLabel(i);
 		}
+		const char *label = labelView.empty() ? nullptr : labelView.data();
 
 		if (label != nullptr) {
 			// Draw label above the belt slot (similar to main inventory belt labels)
@@ -3308,8 +3135,8 @@ void DrawPlayerSkillSlot(const Surface &out, const Player &player, int slotIndex
 
 	// Button labels for each slot
 	// Slots are mapped as: A=2, B=3, X=0, Y=1 (to match gamepad buttons)
-	static constexpr std::string_view ButtonLabels[] = { "X", "Y", "A", "B" };
-	const char *label = slotIndex < 4 ? ButtonLabels[slotIndex].data() : "";
+	const std::string_view labelView = (slotIndex < 4) ? LocalCoopButtonMapper::GetSkillSlotLabel(slotIndex) : "";
+	const char *label = labelView.data();
 
 	// HintBox sprite is 39x39, spell icon is 37x38
 	// RenderClxSprite uses TOP-LEFT position
@@ -3900,9 +3727,8 @@ void UpdateLocalCoopCamera()
 		int64_t screenX = static_cast<int64_t>(tileY - tileX) * 32 * 256;
 		int64_t screenY = static_cast<int64_t>(tileY + tileX) * -16 * 256;
 
-		// If player is walking, add their walking offset (already in screen pixels)
-		// Scale it up by 256 to match our precision
-		if (player.isWalking()) {
+		// If player is walking add their walking offset (already in screen pixels)
+		if (!player.hasNoLife() && player.isWalking()) {
 			Displacement screenOffset = GetOffsetForWalking(player.AnimInfo, player._pdir, true);
 			screenX += static_cast<int64_t>(screenOffset.deltaX) * 256;
 			screenY += static_cast<int64_t>(screenOffset.deltaY) * 256;
@@ -5303,7 +5129,7 @@ bool HandleLocalCoopButtonPress(uint8_t playerId, ControllerButton button)
 	}
 
 	// Map button to skill slot: A=2, B=3, X=0, Y=1
-	int slotIndex = GetSkillSlotFromControllerButton(button);
+	const int slotIndex = LocalCoopButtonMapper::GetSkillSlot(button);
 
 	if (slotIndex >= 0) {
 		// For player 1, check if A button is pressed with a target under cursor
@@ -5434,7 +5260,7 @@ bool HandleLocalCoopButtonRelease(uint8_t playerId, ControllerButton button)
 	}
 
 	// Map button to skill slot: A=2, B=3, X=0, Y=1
-	int slotIndex = GetSkillSlotFromControllerButton(button);
+	const int slotIndex = LocalCoopButtonMapper::GetSkillSlot(button);
 
 	if (slotIndex >= 0) {
 		// Check if this was a primary action (e.g., attacking a target)
@@ -5515,6 +5341,8 @@ bool HandleLocalCoopButtonRelease(uint8_t playerId, ControllerButton button)
 
 #else // USE_SDL1
 
+#include "stores.h"
+
 namespace devilution {
 
 LocalCoopState g_LocalCoop;
@@ -5551,7 +5379,10 @@ void HandleLocalCoopControllerConnect(SDL_JoystickID /*controllerId*/) { }
 Point CalculateLocalCoopViewPosition() { return {}; }
 void UpdateLocalCoopCamera() { }
 void SetViewPosition(Point position) { ViewPosition = position; }
-void SetViewPositionForPlayer(const Player &player, Point position) { if (&player == MyPlayer) ViewPosition = position; }
+void SetViewPositionForPlayer(const Player &player, Point position)
+{
+	if (&player == MyPlayer) ViewPosition = position;
+}
 Displacement GetLocalCoopCameraOffset() { return {}; }
 bool HasCameraOffset() { return false; }
 bool IsLocalCoopPositionOnScreen(Point /*tilePos*/) { return true; }

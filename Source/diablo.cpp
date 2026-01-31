@@ -3156,7 +3156,7 @@ void LoadGameLevelSyncPlayerEntry(lvl_entry lvldir)
 	// First pass: sync MyPlayer's position
 	Player &myPlayer = *MyPlayer;
 	if (myPlayer.plractive && myPlayer.isOnActiveLevel()) {
-		if (myPlayer._pHitPoints > 0) {
+		if (!myPlayer.hasNoLife()) {
 			if (lvldir != ENTRY_LOAD)
 				SyncInitPlrPos(myPlayer);
 		} else {
@@ -3178,7 +3178,7 @@ void LoadGameLevelSyncPlayerEntry(lvl_entry lvldir)
 				player.position.old = myPlayer.position.tile;
 			}
 
-			if (player._pHitPoints > 0) {
+			if (!player.hasNoLife()) {
 				if (lvldir != ENTRY_LOAD)
 					SyncInitPlrPos(player);
 			} else {
@@ -3535,4 +3535,3 @@ void PrintScreen(SDL_Keycode vkey)
 }
 
 } // namespace devilution
-

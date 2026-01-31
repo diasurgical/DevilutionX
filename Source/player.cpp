@@ -42,6 +42,7 @@
 #include "levels/trigs.h"
 #include "lighting.h"
 #include "loadsave.h"
+#include "lua/lua_global.hpp"
 #include "minitext.h"
 #include "missiles.h"
 #include "monster.h"
@@ -50,7 +51,6 @@
 #include "options.h"
 #include "player.h"
 #include "qol/autopickup.h"
-#include "qol/floatingnumbers.h"
 #include "qol/stash.h"
 #include "spells.h"
 #include "stores.h"
@@ -2844,42 +2844,7 @@ void ApplyPlrDamage(DamageType damageType, Player &player, int dam, int minHP /*
 {
 	int totalDamage = (dam << 6) + frac;
 	if (IsLocalPlayer(player) && player._pHitPoints > 0) {
-		// Format damage text
-		std::string damageText;
-		if (totalDamage > 0 && totalDamage < 64) {
-			damageText = fmt::format("{:.2f}", totalDamage / 64.0);
-		} else {
-			damageText = fmt::format("{}", totalDamage / 64);
-		}
-
-		// Determine style based on damage type and value
-		UiFlags style = UiFlags::FontSize12;
-		if (totalDamage >= 64 * 300) {
-			style = UiFlags::FontSize30;
-		} else if (totalDamage >= 64 * 100) {
-			style = UiFlags::FontSize24;
-		}
-
-		// Add color based on damage type
-		switch (damageType) {
-		case DamageType::Physical:
-			style |= UiFlags::ColorGold;
-			break;
-		case DamageType::Fire:
-			style |= UiFlags::ColorUiSilver; // Shows as DarkRed in game
-			break;
-		case DamageType::Lightning:
-			style |= UiFlags::ColorBlue;
-			break;
-		case DamageType::Magic:
-			style |= UiFlags::ColorOrange;
-			break;
-		case DamageType::Acid:
-			style |= UiFlags::ColorYellow;
-			break;
-		}
-
-		AddFloatingNumber(player.position.tile, { 0, 0 }, damageText, style, player.getId(), true);
+		LuaEvent("OnPlayerTakeDamage", &player, totalDamage, static_cast<int>(damageType));
 	}
 	if (totalDamage > 0 && player.pManaShield && HasNoneOf(player._pIFlags, ItemSpecialEffect::NoMana)) {
 		const uint8_t manaShieldLevel = player._pSplLvl[static_cast<int8_t>(SpellID::ManaShield)];

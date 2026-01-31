@@ -6,7 +6,9 @@
 #include "DiabloUI/ui_flags.hpp"
 #include "control/control.hpp"
 #include "controls/controller_motion.h"
+#ifndef USE_SDL1
 #include "controls/devices/game_controller.h"
+#endif
 #include "controls/game_controls.h"
 #include "controls/local_coop/local_coop.hpp"
 #include "controls/plrctrls.h"

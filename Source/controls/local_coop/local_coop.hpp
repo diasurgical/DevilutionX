@@ -751,7 +751,7 @@ void RestorePanelOwnerContext();
  *
  * @param func The function to execute with panel owner context
  */
-template<typename Func>
+template <typename Func>
 void WithPanelOwnerContext(Func func)
 {
 	RestorePanelOwnerContext();
@@ -776,7 +776,7 @@ void RestorePlayer1ContextForSave();
  *
  * @param func The function to execute with Player 1 context
  */
-template<typename Func>
+template <typename Func>
 void WithPlayer1Context(Func func)
 {
 	RestorePlayer1ContextForSave();
