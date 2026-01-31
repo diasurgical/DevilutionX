@@ -901,13 +901,11 @@ void CheckInvCut(Player &player, Point cursorPosition, bool automaticMove, bool 
 						player.InvBody[invloc] = holdItem.pop();
 					}
 				}
-			} else {
+			} else if (IsVisualStoreOpen && CanSellToCurrentVendor(player.InvList[iv]) && dropItem) {
 				// If visual store is open, ctrl-click sells the item
-				if (IsVisualStoreOpen && CanSellToCurrentVendor(player.InvList[iv]) && dropItem) {
-					SellItemToVisualStore(iv);
-					automaticallyMoved = true;
-					return; // Return early to avoid accessing the removed item
-				}
+				SellItemToVisualStore(iv);
+				automaticallyMoved = true;
+			} else {
 
 				holdItem = player.InvList[iv];
 				player.RemoveInvItem(iv, false);
