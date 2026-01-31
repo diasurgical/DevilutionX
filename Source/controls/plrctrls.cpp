@@ -91,7 +91,14 @@ namespace {
 int Slot = SLOTXY_INV_FIRST;
 Point ActiveStashSlot = InvalidStashPoint;
 int PreviousInventoryColumn = -1;
+int PreviousBeltColumn = -1;
 bool BeltReturnsToStash = false;
+
+/**
+ * Tracks the actual inventory slot we were on before entering the belt.
+ * This provides a more reliable way to return to the same position.
+ */
+int SlotBeforeBelt = -1;
 
 /**
  * Tracks the row offset within a multi-tile item when navigating horizontally.
@@ -1010,8 +1017,17 @@ int GetVerticalExitSlot(int currentSlot, bool movingDown)
 	}
 
 	// Check bounds
-	if (exitRow < 0 || exitRow >= 4)
+	if (exitRow < 0)
 		return -1;
+
+	// If exiting downward past row 4, try to go to belt
+	if (exitRow >= 4) {
+		if (movingDown && exitColumn >= 0 && exitColumn <= 7) {
+			// Belt only has 8 slots (columns 0-7)
+			return SLOTXY_BELT_FIRST + exitColumn;
+		}
+		return -1;
+	}
 
 	return GetSlotFromRowColumn(exitRow, exitColumn);
 }
@@ -1098,6 +1114,11 @@ int FindClosestInventorySlot(
 		}
 	}
 	for (int i = SLOTXY_INV_FIRST; i <= SLOTXY_INV_LAST; i++) {
+		checkCandidateSlot(i);
+	}
+
+	// Also check belt slots
+	for (int i = SLOTXY_BELT_FIRST; i <= SLOTXY_BELT_LAST; i++) {
 		checkCandidateSlot(i);
 	}
 
@@ -1247,7 +1268,13 @@ void InventoryMove(AxisDirection dir)
 				Slot = SLOTXY_HEAD;
 			} else if (Slot == SLOTXY_RING_RIGHT) {
 				Slot = SLOTXY_RING_LEFT;
-			} else if (Slot >= SLOTXY_INV_FIRST && Slot <= SLOTXY_BELT_LAST) {
+			} else if (Slot >= SLOTXY_BELT_FIRST && Slot <= SLOTXY_BELT_LAST) {
+				// Belt navigation - move left within belt only
+				if (Slot > SLOTXY_BELT_FIRST) {
+					Slot -= 1;
+				}
+				// At belt slot 1, don't move
+			} else if (Slot >= SLOTXY_INV_FIRST && Slot <= SLOTXY_INV_LAST) {
 				const int8_t itemId = GetItemIdOnSlot(Slot);
 				if (itemId != 0) {
 					// Use entry-point-aware exit to maintain the row we're on
@@ -1256,15 +1283,20 @@ void InventoryMove(AxisDirection dir)
 						Slot = exitSlot;
 					}
 					// If exitSlot is invalid (at left edge), don't move
-				} else if (IsNoneOf(Slot, SLOTXY_INV_ROW1_FIRST, SLOTXY_INV_ROW2_FIRST, SLOTXY_INV_ROW3_FIRST, SLOTXY_INV_ROW4_FIRST, SLOTXY_BELT_FIRST)) {
+				} else if (IsNoneOf(Slot, SLOTXY_INV_ROW1_FIRST, SLOTXY_INV_ROW2_FIRST, SLOTXY_INV_ROW3_FIRST, SLOTXY_INV_ROW4_FIRST)) {
 					Slot -= 1;
 				}
 			}
 		}
 	} else if (dir.x == AxisDirectionX_RIGHT) {
 		if (isHoldingItem) {
-			if (Slot >= SLOTXY_INV_FIRST && Slot <= SLOTXY_BELT_LAST) {
-				if (IsNoneOf(Slot + itemSize.width - 1, SLOTXY_INV_ROW1_LAST, SLOTXY_INV_ROW2_LAST, SLOTXY_INV_ROW3_LAST, SLOTXY_INV_ROW4_LAST, SLOTXY_BELT_LAST)) {
+			if (Slot >= SLOTXY_BELT_FIRST && Slot <= SLOTXY_BELT_LAST) {
+				// Belt navigation while holding item
+				if (Slot < SLOTXY_BELT_LAST) {
+					Slot += 1;
+				}
+			} else if (Slot >= SLOTXY_INV_FIRST && Slot <= SLOTXY_INV_LAST) {
+				if (IsNoneOf(Slot + itemSize.width - 1, SLOTXY_INV_ROW1_LAST, SLOTXY_INV_ROW2_LAST, SLOTXY_INV_ROW3_LAST, SLOTXY_INV_ROW4_LAST)) {
 					Slot += 1;
 				}
 			} else if (heldItem._itype == ItemType::Ring) {
@@ -1281,7 +1313,13 @@ void InventoryMove(AxisDirection dir)
 				Slot = SLOTXY_HAND_RIGHT;
 			} else if (Slot == SLOTXY_HEAD) {
 				Slot = SLOTXY_AMULET;
-			} else if (Slot >= SLOTXY_INV_FIRST && Slot <= SLOTXY_BELT_LAST) {
+			} else if (Slot >= SLOTXY_BELT_FIRST && Slot <= SLOTXY_BELT_LAST) {
+				// Belt navigation - move right within belt only
+				if (Slot < SLOTXY_BELT_LAST) {
+					Slot += 1;
+				}
+				// At belt slot 8, don't move
+			} else if (Slot >= SLOTXY_INV_FIRST && Slot <= SLOTXY_INV_LAST) {
 				const int8_t itemId = GetItemIdOnSlot(Slot);
 				if (itemId != 0) {
 					// Use entry-point-aware exit to maintain the row we're on
@@ -1290,7 +1328,7 @@ void InventoryMove(AxisDirection dir)
 						Slot = exitSlot;
 					}
 					// If exitSlot is invalid (at right edge), don't move
-				} else if (IsNoneOf(Slot, SLOTXY_INV_ROW1_LAST, SLOTXY_INV_ROW2_LAST, SLOTXY_INV_ROW3_LAST, SLOTXY_INV_ROW4_LAST, SLOTXY_BELT_LAST)) {
+				} else if (IsNoneOf(Slot, SLOTXY_INV_ROW1_LAST, SLOTXY_INV_ROW2_LAST, SLOTXY_INV_ROW3_LAST, SLOTXY_INV_ROW4_LAST)) {
 					Slot += 1;
 				}
 			}
@@ -1298,7 +1336,18 @@ void InventoryMove(AxisDirection dir)
 	}
 	if (dir.y == AxisDirectionY_UP) {
 		if (isHoldingItem) {
-			if (Slot >= SLOTXY_INV_ROW2_FIRST) { // general inventory
+			if (Slot >= SLOTXY_BELT_FIRST && Slot <= SLOTXY_BELT_LAST) {
+				// Going from belt back to inventory - restore saved slot
+				int targetSlot = -1;
+				if (SlotBeforeBelt >= SLOTXY_INV_FIRST && SlotBeforeBelt <= SLOTXY_INV_LAST) {
+					// Return to the exact slot we were on before entering the belt
+					targetSlot = SlotBeforeBelt;
+				} else {
+					// Fallback: go to row 4, column 1
+					targetSlot = SLOTXY_INV_ROW4_FIRST;
+				}
+				Slot = targetSlot;
+			} else if (Slot >= SLOTXY_INV_ROW2_FIRST) { // general inventory
 				Slot -= INV_ROW_SLOT_SIZE;
 			} else if (Slot >= SLOTXY_INV_FIRST) {
 				if (heldItem._itype == ItemType::Ring) {
@@ -1330,6 +1379,17 @@ void InventoryMove(AxisDirection dir)
 				Slot = SLOTXY_HAND_RIGHT;
 			} else if (Slot == SLOTXY_HAND_RIGHT) {
 				Slot = SLOTXY_AMULET;
+			} else if (Slot >= SLOTXY_BELT_FIRST && Slot <= SLOTXY_BELT_LAST) {
+				// Going from belt back to inventory - restore saved slot
+				int targetSlot = -1;
+				if (SlotBeforeBelt >= SLOTXY_INV_FIRST && SlotBeforeBelt <= SLOTXY_INV_LAST) {
+					// Return to the exact slot we were on before entering the belt
+					targetSlot = SlotBeforeBelt;
+				} else {
+					// Fallback: go to row 4, column 1
+					targetSlot = SLOTXY_INV_ROW4_FIRST;
+				}
+				Slot = targetSlot;
 			} else if (Slot >= SLOTXY_INV_ROW2_FIRST) {
 				const int8_t itemId = GetItemIdOnSlot(Slot);
 				if (itemId != 0) {
@@ -1361,9 +1421,10 @@ void InventoryMove(AxisDirection dir)
 				Slot = SLOTXY_INV_ROW1_LAST - 1;
 			} else if (Slot <= (SLOTXY_INV_ROW4_LAST - (itemSize.height * INV_ROW_SLOT_SIZE))) {
 				Slot += INV_ROW_SLOT_SIZE;
-			} else if (Slot <= SLOTXY_INV_LAST && heldItem._itype == ItemType::Misc && itemSize == Size { 1, 1 }) { // forcing only 1x1 misc items
-				if (Slot + INV_ROW_SLOT_SIZE <= SLOTXY_BELT_LAST)
-					Slot += INV_ROW_SLOT_SIZE;
+			} else if (Slot >= SLOTXY_INV_ROW4_FIRST && Slot <= SLOTXY_INV_ROW4_LAST && heldItem._itype == ItemType::Misc && itemSize == Size { 1, 1 }) { // forcing only 1x1 misc items
+				// Save current slot and go to belt slot 1
+				SlotBeforeBelt = Slot;
+				Slot = SLOTXY_BELT_FIRST;
 			}
 		} else {
 			if (Slot == SLOTXY_HEAD) {
@@ -1392,13 +1453,25 @@ void InventoryMove(AxisDirection dir)
 			} else if (Slot <= SLOTXY_INV_LAST) {
 				const int8_t itemId = GetItemIdOnSlot(Slot);
 				if (itemId != 0) {
-					// Use entry-point-aware exit to maintain the column we're on
+					// Check if this item extends to row 4 (can exit to belt)
 					int exitSlot = GetVerticalExitSlot(Slot, true);
-					if (exitSlot >= SLOTXY_INV_FIRST && exitSlot <= SLOTXY_BELT_LAST) {
+					if (exitSlot >= SLOTXY_BELT_FIRST && exitSlot <= SLOTXY_BELT_LAST) {
+						// Save the current slot for returning later
+						SlotBeforeBelt = Slot;
+						// Always go to belt slot 1 for accessibility
+						Slot = SLOTXY_BELT_FIRST;
+					} else if (exitSlot >= SLOTXY_INV_FIRST && exitSlot <= SLOTXY_INV_LAST) {
+						// Moving within inventory (not to belt)
 						Slot = exitSlot;
 					}
 					// If exitSlot is invalid (at bottom edge), don't move
-				} else if (Slot + INV_ROW_SLOT_SIZE <= SLOTXY_BELT_LAST) {
+				} else if (Slot >= SLOTXY_INV_ROW4_FIRST && Slot <= SLOTXY_INV_ROW4_LAST) {
+					// Empty slot in row 4 - can go to belt
+					SlotBeforeBelt = Slot;
+					// Always go to belt slot 1 for accessibility
+					Slot = SLOTXY_BELT_FIRST;
+				} else if (Slot >= SLOTXY_INV_FIRST && Slot < SLOTXY_INV_ROW4_FIRST) {
+					// Empty slot in rows 1-3 - move down one row
 					Slot += INV_ROW_SLOT_SIZE;
 				}
 			}
@@ -2202,6 +2275,7 @@ void InvalidateInventorySlot()
 {
 	Slot = -1;
 	ActiveStashSlot = InvalidStashPoint;
+	SlotBeforeBelt = -1;
 }
 
 /**
@@ -2210,6 +2284,7 @@ void InvalidateInventorySlot()
 void FocusOnInventory()
 {
 	Slot = SLOTXY_INV_FIRST;
+	SlotBeforeBelt = -1;
 	ResetInvCursorPosition();
 	SpeakInventorySlotForAccessibility();
 }
