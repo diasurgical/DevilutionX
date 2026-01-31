@@ -10,6 +10,7 @@
 #include <SDL.h>
 #endif
 
+#include "controls/axis_direction.h"
 #include "controls/controller.h"
 #include "controls/game_controls.h"
 #include "player.h"
@@ -57,10 +58,21 @@ void PerformPrimaryAction();
 
 // Open chests, doors, pickup items.
 void PerformSecondaryAction();
+
+// Like PerformPrimaryAction but auto-selects a nearby target for keyboard-only play.
+void PerformPrimaryActionAutoTarget();
+
+// Like PerformSecondaryAction but auto-selects a nearby target for keyboard-only play.
+void PerformSecondaryActionAutoTarget();
+
+// Like PerformSpellAction but auto-selects a nearby target for keyboard-only play.
+void PerformSpellActionAutoTarget();
 void UpdateSpellTarget(SpellID spell);
 bool TryDropItem();
 void InvalidateInventorySlot();
 void FocusOnInventory();
+void InventoryMoveFromKeyboard(AxisDirection dir);
+void HotSpellMove(AxisDirection dir);
 void PerformSpellAction();
 void QuickCast(size_t slot);
 

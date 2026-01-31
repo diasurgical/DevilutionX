@@ -31,6 +31,7 @@
 #include "towners.h"
 #include "utils/format_int.hpp"
 #include "utils/language.h"
+#include "utils/screen_reader.hpp"
 #include "utils/str_cat.hpp"
 #include "utils/utf8.hpp"
 
@@ -128,6 +129,11 @@ TalkID OldActiveStore;
 /** Temporary item used to hold the item being traded */
 Item TempItem;
 
+TalkID LastSpokenStore = TalkID::None;
+int LastSpokenTextLine = -1;
+int LastSpokenScrollPos = -1;
+bool LastSpokenHadScrollbar = false;
+
 /** Maps from towner IDs to NPC names. */
 const char *const TownerNames[] = {
 	N_("Griswold"),
@@ -153,6 +159,51 @@ constexpr int SmallTextHeight = 12;
 // We space out blank lines a bit more to give space to 3-line store items.
 constexpr int LargeLineHeight = SmallLineHeight + 1;
 constexpr int LargeTextHeight = 18;
+
+int BackButtonLine();
+
+void SpeakCurrentStoreSelection()
+{
+	if (CurrentTextLine < 0 || CurrentTextLine >= NumStoreLines)
+		return;
+
+	if (!TextLine[CurrentTextLine].hasText())
+		return;
+
+	if (!TextLine[CurrentTextLine].isSelectable() && CurrentTextLine != BackButtonLine())
+		return;
+
+	std::string speech = TextLine[CurrentTextLine].text;
+
+	const int price = TextLine[CurrentTextLine]._sval;
+	if (price > 0) {
+		speech = fmt::format("{:s} - {:s}", speech, FormatInteger(price));
+	}
+
+	// Add details below the selected store item (if any).
+	int addedDetailLines = 0;
+	for (int i = CurrentTextLine + 1; i < NumStoreLines && addedDetailLines < 3; ++i) {
+		if (TextLine[i].isSelectable() || TextLine[i].isDivider())
+			break;
+		if (!TextLine[i].hasText())
+			continue;
+		speech.append(". ");
+		speech.append(TextLine[i].text);
+		addedDetailLines++;
+	}
+
+	const bool selectionChanged = ActiveStore != LastSpokenStore
+	    || CurrentTextLine != LastSpokenTextLine
+	    || HasScrollbar != LastSpokenHadScrollbar
+	    || (HasScrollbar && ScrollPos != LastSpokenScrollPos);
+
+	SpeakText(speech, selectionChanged);
+
+	LastSpokenStore = ActiveStore;
+	LastSpokenTextLine = CurrentTextLine;
+	LastSpokenHadScrollbar = HasScrollbar;
+	LastSpokenScrollPos = HasScrollbar ? ScrollPos : -1;
+}
 
 /**
  * The line index with the Back / Leave button.
@@ -2375,6 +2426,8 @@ void DrawSText(const Surface &out)
 
 	if (HasScrollbar)
 		DrawSSlider(out, 4, 20);
+
+	SpeakCurrentStoreSelection();
 }
 
 void StoreESC()
@@ -2737,7 +2790,14 @@ void ReleaseStoreBtn()
 
 bool IsPlayerInStore()
 {
-	return ActiveStore != TalkID::None;
+	const bool inStore = ActiveStore != TalkID::None;
+	if (!inStore) {
+		LastSpokenStore = TalkID::None;
+		LastSpokenTextLine = -1;
+		LastSpokenScrollPos = -1;
+		LastSpokenHadScrollbar = false;
+	}
+	return inStore;
 }
 
 } // namespace devilution

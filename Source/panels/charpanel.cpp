@@ -14,6 +14,7 @@
 #include "engine/render/clx_render.hpp"
 #include "engine/render/text_render.hpp"
 #include "panels/ui_panels.hpp"
+#include "msg.h"
 #include "player.h"
 #include "tables/playerdat.hpp"
 #include "utils/algorithm/container.hpp"
@@ -23,6 +24,7 @@
 #include "utils/language.h"
 #include "utils/status_macros.hpp"
 #include "utils/str_cat.hpp"
+#include "utils/screen_reader.hpp"
 #include "utils/surface_to_clx.hpp"
 
 namespace devilution {
@@ -30,6 +32,50 @@ namespace devilution {
 OptionalOwnedClxSpriteList pChrButtons;
 
 namespace {
+
+enum class CharacterScreenField : uint8_t {
+	NameAndClass,
+	Level,
+	Experience,
+	NextLevel,
+	Strength,
+	Magic,
+	Dexterity,
+	Vitality,
+	PointsToDistribute,
+	Gold,
+	ArmorClass,
+	ChanceToHit,
+	Damage,
+	Life,
+	Mana,
+	ResistMagic,
+	ResistFire,
+	ResistLightning,
+};
+
+constexpr std::array<CharacterScreenField, 18> CharacterScreenFieldOrder = {
+	CharacterScreenField::NameAndClass,
+	CharacterScreenField::Level,
+	CharacterScreenField::Experience,
+	CharacterScreenField::NextLevel,
+	CharacterScreenField::Strength,
+	CharacterScreenField::Magic,
+	CharacterScreenField::Dexterity,
+	CharacterScreenField::Vitality,
+	CharacterScreenField::PointsToDistribute,
+	CharacterScreenField::Gold,
+	CharacterScreenField::ArmorClass,
+	CharacterScreenField::ChanceToHit,
+	CharacterScreenField::Damage,
+	CharacterScreenField::Life,
+	CharacterScreenField::Mana,
+	CharacterScreenField::ResistMagic,
+	CharacterScreenField::ResistFire,
+	CharacterScreenField::ResistLightning,
+};
+
+size_t SelectedCharacterScreenFieldIndex = 0;
 
 struct StyledText {
 	UiFlags style;
@@ -206,6 +252,131 @@ constexpr int PanelFieldPaddingBottom = 3;
 constexpr int PanelFieldPaddingSide = 5;
 constexpr int PanelFieldInnerHeight = PanelFieldHeight - PanelFieldPaddingTop - PanelFieldPaddingBottom;
 
+[[nodiscard]] std::string GetEntryValue(const PanelEntry &entry)
+{
+	if (!entry.statDisplayFunc)
+		return {};
+	const StyledText tmp = (*entry.statDisplayFunc)();
+	return tmp.text;
+}
+
+[[nodiscard]] std::string_view GetBaseLabelForSpeech()
+{
+	return LanguageTranslate(panelEntries[AttributeHeaderEntryIndices[0]].label);
+}
+
+[[nodiscard]] std::string_view GetNowLabelForSpeech()
+{
+	return LanguageTranslate(panelEntries[AttributeHeaderEntryIndices[1]].label);
+}
+
+[[nodiscard]] std::optional<CharacterAttribute> AttributeForField(CharacterScreenField field)
+{
+	switch (field) {
+	case CharacterScreenField::Strength:
+		return CharacterAttribute::Strength;
+	case CharacterScreenField::Magic:
+		return CharacterAttribute::Magic;
+	case CharacterScreenField::Dexterity:
+		return CharacterAttribute::Dexterity;
+	case CharacterScreenField::Vitality:
+		return CharacterAttribute::Vitality;
+	default:
+		return std::nullopt;
+	}
+}
+
+[[nodiscard]] std::string_view AttributeLabelForSpeech(CharacterAttribute attribute)
+{
+	switch (attribute) {
+	case CharacterAttribute::Strength:
+		return LanguageTranslate(panelEntries[7].label);
+	case CharacterAttribute::Magic:
+		return LanguageTranslate(panelEntries[9].label);
+	case CharacterAttribute::Dexterity:
+		return LanguageTranslate(panelEntries[11].label);
+	case CharacterAttribute::Vitality:
+		return LanguageTranslate(panelEntries[13].label);
+	default:
+		return {};
+	}
+}
+
+[[nodiscard]] int PointsToDistributeForSpeech()
+{
+	if (InspectPlayer == nullptr)
+		return 0;
+	return std::min(CalcStatDiff(*InspectPlayer), InspectPlayer->_pStatPts);
+}
+
+[[nodiscard]] std::string GetCharacterScreenFieldText(CharacterScreenField field)
+{
+	if (InspectPlayer == nullptr)
+		return {};
+
+	switch (field) {
+	case CharacterScreenField::NameAndClass: {
+		const std::string name = GetEntryValue(panelEntries[0]);
+		const std::string className = GetEntryValue(panelEntries[1]);
+		if (name.empty())
+			return className;
+		if (className.empty())
+			return name;
+		return StrCat(name, ", ", className);
+	}
+	case CharacterScreenField::Level:
+		return StrCat(LanguageTranslate(panelEntries[2].label), ": ", GetEntryValue(panelEntries[2]));
+	case CharacterScreenField::Experience:
+		return StrCat(LanguageTranslate(panelEntries[3].label), ": ", GetEntryValue(panelEntries[3]));
+	case CharacterScreenField::NextLevel:
+		return StrCat(LanguageTranslate(panelEntries[4].label), ": ", GetEntryValue(panelEntries[4]));
+	case CharacterScreenField::Strength:
+		return StrCat(LanguageTranslate(panelEntries[7].label), ": ", GetBaseLabelForSpeech(), " ", GetEntryValue(panelEntries[7]), ", ", GetNowLabelForSpeech(), " ", GetEntryValue(panelEntries[8]));
+	case CharacterScreenField::Magic:
+		return StrCat(LanguageTranslate(panelEntries[9].label), ": ", GetBaseLabelForSpeech(), " ", GetEntryValue(panelEntries[9]), ", ", GetNowLabelForSpeech(), " ", GetEntryValue(panelEntries[10]));
+	case CharacterScreenField::Dexterity:
+		return StrCat(LanguageTranslate(panelEntries[11].label), ": ", GetBaseLabelForSpeech(), " ", GetEntryValue(panelEntries[11]), ", ", GetNowLabelForSpeech(), " ", GetEntryValue(panelEntries[12]));
+	case CharacterScreenField::Vitality:
+		return StrCat(LanguageTranslate(panelEntries[13].label), ": ", GetBaseLabelForSpeech(), " ", GetEntryValue(panelEntries[13]), ", ", GetNowLabelForSpeech(), " ", GetEntryValue(panelEntries[14]));
+	case CharacterScreenField::PointsToDistribute:
+		return StrCat(LanguageTranslate(panelEntries[15].label), ": ", PointsToDistributeForSpeech());
+	case CharacterScreenField::Gold:
+		return StrCat(LanguageTranslate(panelEntries[16].label), ": ", GetEntryValue(panelEntries[17]));
+	case CharacterScreenField::ArmorClass:
+		return StrCat(LanguageTranslate(panelEntries[18].label), ": ", GetEntryValue(panelEntries[18]));
+	case CharacterScreenField::ChanceToHit:
+		return StrCat(LanguageTranslate(panelEntries[19].label), ": ", GetEntryValue(panelEntries[19]));
+	case CharacterScreenField::Damage:
+		return StrCat(LanguageTranslate(panelEntries[20].label), ": ", GetEntryValue(panelEntries[20]));
+	case CharacterScreenField::Life: {
+		const std::string maxValue = GetEntryValue(panelEntries[21]);
+		const std::string currentValue = GetEntryValue(panelEntries[22]);
+		return StrCat(LanguageTranslate(panelEntries[21].label), ": ", currentValue, "/", maxValue);
+	}
+	case CharacterScreenField::Mana: {
+		const std::string maxValue = GetEntryValue(panelEntries[23]);
+		const std::string currentValue = GetEntryValue(panelEntries[24]);
+		return StrCat(LanguageTranslate(panelEntries[23].label), ": ", currentValue, "/", maxValue);
+	}
+	case CharacterScreenField::ResistMagic:
+		return StrCat(LanguageTranslate(panelEntries[25].label), ": ", GetEntryValue(panelEntries[25]));
+	case CharacterScreenField::ResistFire:
+		return StrCat(LanguageTranslate(panelEntries[26].label), ": ", GetEntryValue(panelEntries[26]));
+	case CharacterScreenField::ResistLightning:
+		return StrCat(LanguageTranslate(panelEntries[27].label), ": ", GetEntryValue(panelEntries[27]));
+	default:
+		return {};
+	}
+}
+
+void SpeakCurrentCharacterScreenField()
+{
+	const CharacterScreenField field = CharacterScreenFieldOrder[SelectedCharacterScreenFieldIndex];
+	const std::string text = GetCharacterScreenFieldText(field);
+	if (!text.empty())
+		SpeakText(text, true);
+}
+
 void DrawPanelField(const Surface &out, Point pos, int len, ClxSprite left, ClxSprite middle, ClxSprite right)
 {
 	RenderClxSprite(out, left, pos);
@@ -321,6 +492,122 @@ void DrawChr(const Surface &out)
 		}
 	}
 	DrawStatButtons(out);
+}
+
+void InitCharacterScreenSpeech()
+{
+	if (InspectPlayer == nullptr) {
+		SpeakText(_("No player."), true);
+		return;
+	}
+
+	SelectedCharacterScreenFieldIndex = 0;
+	if (!IsInspectingPlayer() && PointsToDistributeForSpeech() > 0) {
+		for (auto attribute : enum_values<CharacterAttribute>()) {
+			if (InspectPlayer->GetBaseAttributeValue(attribute) >= InspectPlayer->GetMaximumAttributeValue(attribute))
+				continue;
+			switch (attribute) {
+			case CharacterAttribute::Strength:
+				SelectedCharacterScreenFieldIndex = 4;
+				break;
+			case CharacterAttribute::Magic:
+				SelectedCharacterScreenFieldIndex = 5;
+				break;
+			case CharacterAttribute::Dexterity:
+				SelectedCharacterScreenFieldIndex = 6;
+				break;
+			case CharacterAttribute::Vitality:
+				SelectedCharacterScreenFieldIndex = 7;
+				break;
+			}
+			break;
+		}
+	}
+
+	SpeakCurrentCharacterScreenField();
+}
+
+void CharacterScreenMoveSelection(int delta)
+{
+	if (CharFlag == false)
+		return;
+
+	const int size = static_cast<int>(CharacterScreenFieldOrder.size());
+	int idx = static_cast<int>(SelectedCharacterScreenFieldIndex);
+	idx = (idx + delta) % size;
+	if (idx < 0)
+		idx += size;
+
+	SelectedCharacterScreenFieldIndex = static_cast<size_t>(idx);
+	SpeakCurrentCharacterScreenField();
+}
+
+void CharacterScreenActivateSelection(bool addAllStatPoints)
+{
+	if (!CharFlag)
+		return;
+
+	if (InspectPlayer == nullptr)
+		return;
+
+	const CharacterScreenField field = CharacterScreenFieldOrder[SelectedCharacterScreenFieldIndex];
+	const std::optional<CharacterAttribute> attribute = AttributeForField(field);
+	if (!attribute) {
+		SpeakCurrentCharacterScreenField();
+		return;
+	}
+
+	if (IsInspectingPlayer()) {
+		SpeakText(_("Can't distribute stat points while inspecting players."), true);
+		return;
+	}
+
+	Player &player = *InspectPlayer;
+	const int pointsAvailable = PointsToDistributeForSpeech();
+	if (pointsAvailable <= 0) {
+		SpeakText(_("No stat points to distribute."), true);
+		return;
+	}
+
+	const int baseValue = player.GetBaseAttributeValue(*attribute);
+	const int maxValue = player.GetMaximumAttributeValue(*attribute);
+	if (baseValue >= maxValue) {
+		SpeakText(_("Stat is already at maximum."), true);
+		return;
+	}
+
+	const int pointsToReachCap = maxValue - baseValue;
+	const int pointsToAdd = addAllStatPoints ? std::min(pointsAvailable, pointsToReachCap) : 1;
+	if (pointsToAdd <= 0)
+		return;
+
+	switch (*attribute) {
+	case CharacterAttribute::Strength:
+		NetSendCmdParam1(true, CMD_ADDSTR, pointsToAdd);
+		player._pStatPts -= pointsToAdd;
+		break;
+	case CharacterAttribute::Magic:
+		NetSendCmdParam1(true, CMD_ADDMAG, pointsToAdd);
+		player._pStatPts -= pointsToAdd;
+		break;
+	case CharacterAttribute::Dexterity:
+		NetSendCmdParam1(true, CMD_ADDDEX, pointsToAdd);
+		player._pStatPts -= pointsToAdd;
+		break;
+	case CharacterAttribute::Vitality:
+		NetSendCmdParam1(true, CMD_ADDVIT, pointsToAdd);
+		player._pStatPts -= pointsToAdd;
+		break;
+	}
+
+	const int currentValue = player.GetCurrentAttributeValue(*attribute);
+	const std::string_view attributeLabel = AttributeLabelForSpeech(*attribute);
+	const int remaining = PointsToDistributeForSpeech();
+
+	std::string message;
+	StrAppend(message, attributeLabel, ": ", GetBaseLabelForSpeech(), " ", baseValue + pointsToAdd, ", ", GetNowLabelForSpeech(), " ", currentValue + pointsToAdd);
+	StrAppend(message, ". ", LanguageTranslate(panelEntries[15].label), ": ", remaining);
+	SpeakText(message, true);
 }
 
 } // namespace devilution

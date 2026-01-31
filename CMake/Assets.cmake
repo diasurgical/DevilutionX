@@ -41,6 +41,41 @@ if (Gettext_FOUND)
       list(APPEND VITA_TRANSLATIONS_LIST "FILE" "${_gmo_file}" "assets/${lang}.gmo")
     endif()
   endforeach()
+else()
+  # Fallback: compile translations using Python if gettext tools aren't available.
+  find_package(Python3 COMPONENTS Interpreter)
+  if(Python3_Interpreter_FOUND)
+    file(MAKE_DIRECTORY "${DEVILUTIONX_ASSETS_OUTPUT_DIRECTORY}")
+    foreach(lang ${devilutionx_langs})
+      set(_po_file "${CMAKE_CURRENT_SOURCE_DIR}/Translations/${lang}.po")
+      set(_gmo_file "${DEVILUTIONX_ASSETS_OUTPUT_DIRECTORY}/${lang}.gmo")
+      set(_lang_target devilutionx_lang_${lang})
+      add_custom_command(
+        COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/msgfmt.py" -o "${_gmo_file}" "${_po_file}"
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+        OUTPUT "${_gmo_file}"
+        MAIN_DEPENDENCY "${_po_file}"
+        DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tools/msgfmt.py"
+        VERBATIM
+      )
+      add_custom_target("${_lang_target}" DEPENDS "${_gmo_file}")
+      list(APPEND devilutionx_lang_targets "${_lang_target}")
+      list(APPEND devilutionx_lang_files "${_gmo_file}")
+
+      if(APPLE)
+        set_source_files_properties("${_gmo_file}" PROPERTIES
+          MACOSX_PACKAGE_LOCATION Resources
+          XCODE_EXPLICIT_FILE_TYPE compiled)
+        add_dependencies(libdevilutionx "${_lang_target}")
+        add_dependencies(${BIN_TARGET} "${_lang_target}")
+        target_sources(${BIN_TARGET} PRIVATE "${_gmo_file}")
+      endif()
+
+      if(VITA)
+        list(APPEND VITA_TRANSLATIONS_LIST "FILE" "${_gmo_file}" "assets/${lang}.gmo")
+      endif()
+    endforeach()
+  endif()
 endif()
 
 set(devilutionx_assets
@@ -252,7 +287,7 @@ else()
     OUTPUT_DIR "${DEVILUTIONX_ASSETS_OUTPUT_DIRECTORY}"
     OUTPUT_VARIABLE DEVILUTIONX_OUTPUT_ASSETS_FILES)
   set(DEVILUTIONX_MPQ_FILES ${devilutionx_assets})
-  if (Gettext_FOUND)
+  if(devilutionx_lang_targets)
     foreach(lang ${devilutionx_langs})
       list(APPEND DEVILUTIONX_MPQ_FILES "${lang}.gmo")
     endforeach()

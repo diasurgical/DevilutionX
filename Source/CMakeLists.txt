@@ -162,6 +162,7 @@ set(libdevilutionx_SRCS
 
   utils/display.cpp
   utils/language.cpp
+  utils/proximity_audio.cpp
   utils/sdl_bilinear_scale.cpp
   utils/sdl_thread.cpp
   utils/surface_to_clx.cpp
@@ -741,6 +742,7 @@ target_link_dependencies(libdevilutionx_utf8 PRIVATE
 if(NOSOUND)
   add_devilutionx_object_library(libdevilutionx_sound
     effects_stubs.cpp
+    engine/sound_pool_stubs.cpp
     engine/sound_stubs.cpp
   )
   target_link_dependencies(libdevilutionx_sound PUBLIC
@@ -756,6 +758,7 @@ if(NOSOUND)
 else()
   add_devilutionx_object_library(libdevilutionx_sound
     effects.cpp
+    engine/sound_pool.cpp
     engine/sound.cpp
     utils/soundsample.cpp
   )

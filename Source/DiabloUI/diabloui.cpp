@@ -21,6 +21,9 @@
 #include <SDL.h>
 #endif
 
+#include <fmt/args.h>
+#include <fmt/format.h>
+
 #include <function_ref.hpp>
 
 #include "DiabloUI/button.h"
@@ -126,6 +129,59 @@ struct ScrollBarState {
 	}
 } scrollBarState;
 
+std::string FormatSpokenText(const StringOrView &format, const std::vector<DrawStringFormatArg> &args)
+{
+	if (args.empty())
+		return std::string(format.str());
+
+	std::string formatted;
+	FMT_TRY
+	{
+		fmt::dynamic_format_arg_store<fmt::format_context> store;
+		for (const DrawStringFormatArg &arg : args) {
+			const DrawStringFormatArg::Value &value = arg.value();
+			if (std::holds_alternative<std::string_view>(value)) {
+				store.push_back(std::get<std::string_view>(value));
+			} else {
+				store.push_back(std::get<int>(value));
+			}
+		}
+		formatted = fmt::vformat(format.str(), store);
+	}
+	FMT_CATCH(const fmt::format_error &)
+	{
+		formatted = std::string(format.str());
+	}
+	return formatted;
+}
+
+void SpeakListItem(std::size_t index, bool force = false)
+{
+	if (gUiList == nullptr || index > SelectedItemMax)
+		return;
+
+	const UiListItem *pItem = gUiList->GetItem(index);
+	if (pItem == nullptr)
+		return;
+
+	std::string text = FormatSpokenText(pItem->m_text, pItem->args);
+
+	if (HasAnyOf(pItem->uiFlags, UiFlags::NeedsNextElement) && index < SelectedItemMax) {
+		const UiListItem *pNextItem = gUiList->GetItem(index + 1);
+		if (pNextItem != nullptr && pNextItem->m_value == pItem->m_value) {
+			const std::string nextText = FormatSpokenText(pNextItem->m_text, pNextItem->args);
+			if (!nextText.empty()) {
+				if (!text.empty())
+					text.append(" ");
+				text.append(nextText);
+			}
+		}
+	}
+
+	if (!text.empty())
+		SpeakText(text, force);
+}
+
 void AdjustListOffset(std::size_t itemIndex)
 {
 	if (itemIndex >= listOffset + ListViewportSize)
@@ -225,6 +281,8 @@ void UiInitList(void (*fnFocus)(size_t value), void (*fnSelect)(size_t value), v
 			    .cursor = &pItemUIEdit->m_cursor,
 			    .maxLength = pItemUIEdit->m_max_length,
 			});
+			if (!pItemUIEdit->m_hint.empty())
+				SpeakText(pItemUIEdit->m_hint, /*force=*/true);
 		} else if (item->IsType(UiType::List)) {
 			auto *uiList = static_cast<UiList *>(item.get());
 			SelectedItemMax = std::max(uiList->m_vecItems.size() - 1, static_cast<size_t>(0));
@@ -232,7 +290,7 @@ void UiInitList(void (*fnFocus)(size_t value), void (*fnSelect)(size_t value), v
 			gUiList = uiList;
 			if (selectedItem <= SelectedItemMax && HasAnyOf(uiList->GetItem(selectedItem)->uiFlags, UiFlags::NeedsNextElement))
 				AdjustListOffset(selectedItem + 1);
-			SpeakText(uiList->GetItem(selectedItem)->m_text);
+			SpeakListItem(selectedItem);
 		} else if (item->IsType(UiType::Scrollbar)) {
 			uiScrollbar = static_cast<UiScrollbar *>(item.get());
 		}
@@ -307,7 +365,7 @@ void UiFocus(std::size_t itemIndex, bool checkUp, bool ignoreItemsWraps = false)
 		}
 		pItem = gUiList->GetItem(itemIndex);
 	}
-	SpeakText(pItem->m_text);
+	SpeakListItem(itemIndex);
 
 	if (HasAnyOf(pItem->uiFlags, UiFlags::NeedsNextElement))
 		AdjustListOffset(itemIndex + 1);

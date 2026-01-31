@@ -57,6 +57,7 @@
 #include "utils/is_of.hpp"
 #include "utils/language.h"
 #include "utils/log.hpp"
+#include "utils/screen_reader.hpp"
 #include "utils/str_cat.hpp"
 #include "utils/utf8.hpp"
 
@@ -2419,8 +2420,13 @@ void NextPlrLevel(Player &player)
 		FocusOnCharInfo();
 
 	CalcPlrInv(player, true);
-	PlaySFX(SfxID::ItemArmor);
-	PlaySFX(SfxID::ItemSign);
+	PlaySFX(SfxID::QuestDone);
+
+	std::string message;
+	StrAppend(message, _("Level Up"), ": ", player.getCharacterLevel());
+	if (player._pStatPts > 0)
+		StrAppend(message, ". ", _("Points to distribute"), ": ", player._pStatPts);
+	SpeakText(message, true);
 }
 
 void Player::_addExperience(uint32_t experience, int levelDelta)

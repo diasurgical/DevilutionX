@@ -18,6 +18,7 @@
 #include "spells.h"
 #include "utils/algorithm/container.hpp"
 #include "utils/language.h"
+#include "utils/screen_reader.hpp"
 #include "utils/str_cat.hpp"
 #include "utils/utf8.hpp"
 
@@ -328,6 +329,7 @@ void ToggleSpell(size_t slot)
 		myPlayer._pRSpell = myPlayer._pSplHotKey[slot];
 		myPlayer._pRSplType = myPlayer._pSplTHotKey[slot];
 		RedrawEverything();
+		SpeakText(pgettext("spell", GetSpellData(myPlayer._pRSpell).sNameText), /*force=*/true);
 	}
 }
 

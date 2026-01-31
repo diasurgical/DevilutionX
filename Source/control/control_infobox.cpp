@@ -22,6 +22,30 @@ StringOrView FloatingInfoString;
 
 namespace {
 
+std::string LastSpokenInfoString;
+std::string LastSpokenFloatingInfoString;
+
+[[nodiscard]] bool ShouldSpeakInfoBox()
+{
+	// Suppress hover-based dungeon announcements; those are noisy for keyboard/screen-reader play.
+	return pcursitem == -1 && ObjectUnderCursor == nullptr && pcursmonst == -1 && PlayerUnderCursor == nullptr && PortraitIdUnderCursor == -1;
+}
+
+void SpeakIfChanged(const StringOrView &text, std::string &lastSpoken)
+{
+	if (text.empty()) {
+		lastSpoken.clear();
+		return;
+	}
+
+	const std::string_view current = text.str();
+	if (current == lastSpoken)
+		return;
+
+	lastSpoken.assign(current);
+	SpeakText(current, /*force=*/true);
+}
+
 void PrintInfo(const Surface &out)
 {
 	if (ChatFlag)
@@ -42,7 +66,8 @@ void PrintInfo(const Surface &out)
 	// which throws off the vertical centering
 	infoBox.position.y += spacing / 2;
 
-	SpeakText(InfoString);
+	if (ShouldSpeakInfoBox())
+		SpeakIfChanged(InfoString, LastSpokenInfoString);
 
 	DrawString(out, InfoString, infoBox,
 	    {
@@ -235,7 +260,7 @@ void PrintFloatingInfo(const Surface &out)
 	// Prevent the floating info box from going off-screen vertically
 	floatingInfoBox.position.y = ClampAboveOrBelow(anchorY, spriteH, floatingInfoBox.size.height, vPadding, verticalSpacing);
 
-	SpeakText(FloatingInfoString);
+	SpeakIfChanged(FloatingInfoString, LastSpokenFloatingInfoString);
 
 	for (int i = 0; i < 3; i++)
 		DrawHalfTransparentRectTo(out, floatingInfoBox.position.x - hPadding, floatingInfoBox.position.y - vPadding, floatingInfoBox.size.width + hPadding * 2, floatingInfoBox.size.height + vPadding * 2);
@@ -407,8 +432,11 @@ void DrawInfoBox(const Surface &out)
 			AddInfoBoxString(_("Right click to inspect"));
 		}
 	}
-	if (!InfoString.empty())
+	if (InfoString.empty()) {
+		LastSpokenInfoString.clear();
+	} else {
 		PrintInfo(out);
+	}
 }
 
 void DrawFloatingInfoBox(const Surface &out)
@@ -416,6 +444,7 @@ void DrawFloatingInfoBox(const Surface &out)
 	if (pcursinvitem == -1 && pcursstashitem == StashStruct::EmptyCell) {
 		FloatingInfoString = StringOrView {};
 		InfoColor = UiFlags::ColorWhite;
+		LastSpokenFloatingInfoString.clear();
 	}
 
 	if (!FloatingInfoString.empty())

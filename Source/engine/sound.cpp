@@ -27,6 +27,7 @@
 
 #include "appfat.h"
 #include "engine/assets.hpp"
+#include "engine/sound_pool.hpp"
 #include "game_mode.hpp"
 #include "options.h"
 #include "utils/log.hpp"
@@ -246,6 +247,7 @@ TSnd::~TSnd()
 void snd_init()
 {
 	GetOptions().Audio.soundVolume.SetValue(CapVolume(*GetOptions().Audio.soundVolume));
+	GetOptions().Audio.audioCuesVolume.SetValue(CapVolume(*GetOptions().Audio.audioCuesVolume));
 	gbSoundOn = *GetOptions().Audio.soundVolume > VOLUME_MIN;
 	sgbSaveSoundOn = gbSoundOn;
 
@@ -284,6 +286,7 @@ void snd_init()
 void snd_deinit()
 {
 	if (gbSndInited) {
+		SoundPool::Get().Clear();
 #ifdef USE_SDL3
 		const AudioOptions &audioOptions = GetOptions().Audio;
 		SDL_CloseAudioDevice(audioOptions.device.id());
@@ -387,6 +390,16 @@ int sound_get_or_set_sound_volume(int volume)
 	GetOptions().Audio.soundVolume.SetValue(volume);
 
 	return *GetOptions().Audio.soundVolume;
+}
+
+int sound_get_or_set_audio_cues_volume(int volume)
+{
+	if (volume == 1)
+		return *GetOptions().Audio.audioCuesVolume;
+
+	GetOptions().Audio.audioCuesVolume.SetValue(volume);
+
+	return *GetOptions().Audio.audioCuesVolume;
 }
 
 void music_mute()

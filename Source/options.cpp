@@ -511,6 +511,7 @@ std::vector<OptionEntryBase *> HellfireOptions::GetEntries()
 AudioOptions::AudioOptions()
     : OptionCategoryBase("Audio", N_("Audio"), N_("Audio Settings"))
     , soundVolume("Sound Volume", OptionEntryFlags::Invisible, "Sound Volume", "Movie and SFX volume.", VOLUME_MAX)
+    , audioCuesVolume("Audio Cues Volume", OptionEntryFlags::Invisible, "Audio Cues Volume", "Navigation audio cues volume.", VOLUME_MAX)
     , musicVolume("Music Volume", OptionEntryFlags::Invisible, "Music Volume", "Music Volume.", VOLUME_MAX)
     , walkingSound("Walking Sound", OptionEntryFlags::None, N_("Walking Sound"), N_("Player emits sound when walking."), true)
     , autoEquipSound("Auto Equip Sound", OptionEntryFlags::None, N_("Auto Equip Sound"), N_("Automatically equipping items on pickup emits the equipment sound."), false)
@@ -526,6 +527,7 @@ std::vector<OptionEntryBase *> AudioOptions::GetEntries()
 	// clang-format off
 	return {
 		&soundVolume,
+		&audioCuesVolume,
 		&musicVolume,
 		&walkingSound,
 		&autoEquipSound,
@@ -1135,6 +1137,12 @@ KeymapperOptions::KeymapperOptions()
 	keyIDToKeyName.emplace(SDLK_DELETE, "DELETE");
 	keyIDToKeyName.emplace(SDLK_HOME, "HOME");
 	keyIDToKeyName.emplace(SDLK_END, "END");
+	keyIDToKeyName.emplace(SDLK_PAGEUP, "PAGEUP");
+	keyIDToKeyName.emplace(SDLK_PAGEDOWN, "PAGEDOWN");
+	keyIDToKeyName.emplace(SDLK_UP, "UP");
+	keyIDToKeyName.emplace(SDLK_DOWN, "DOWN");
+	keyIDToKeyName.emplace(SDLK_LEFT, "LEFT");
+	keyIDToKeyName.emplace(SDLK_RIGHT, "RIGHT");
 
 	keyIDToKeyName.emplace(SDLK_KP_DIVIDE, "KEYPAD /");
 	keyIDToKeyName.emplace(SDLK_KP_MULTIPLY, "KEYPAD *");
@@ -1188,6 +1196,22 @@ void KeymapperOptions::Action::LoadFromIni(std::string_view category)
 
 	const std::string_view iniValue = iniValues.back().value;
 	if (iniValue.empty()) {
+		if (key == "SpeakCurrentLocation") {
+			const std::span<const Ini::Value> chatLogValues = ini->get(category, "ChatLog");
+			if (!chatLogValues.empty() && chatLogValues.back().value == "L") {
+				SetValue(defaultKey);
+				return;
+			}
+		}
+
+		// Migration: some actions were previously saved as unbound because their default
+		// keys were not supported by the keymapper. If we see an explicit empty mapping
+		// for these actions, treat it as "use default".
+		if (IsAnyOf(key, "PreviousTownNpc", "NextTownNpc", "KeyboardWalkNorth", "KeyboardWalkSouth", "KeyboardWalkEast", "KeyboardWalkWest")) {
+			SetValue(defaultKey);
+			return;
+		}
+
 		SetValue(SDLK_UNKNOWN);
 		return;
 	}
@@ -1196,6 +1220,11 @@ void KeymapperOptions::Action::LoadFromIni(std::string_view category)
 	if (keyIt == GetOptions().Keymapper.keyNameToKeyID.end()) {
 		// Use the default key if the key is unknown.
 		Log("Keymapper: unknown key '{}'", iniValue);
+		SetValue(defaultKey);
+		return;
+	}
+
+	if (key == "ChatLog" && iniValue == "L") {
 		SetValue(defaultKey);
 		return;
 	}
@@ -1222,7 +1251,7 @@ void KeymapperOptions::Action::SaveToIni(std::string_view category) const
 std::string_view KeymapperOptions::Action::GetValueDescription() const
 {
 	if (boundKey == SDLK_UNKNOWN)
-		return "";
+		return _("Unbound");
 	auto keyNameIt = GetOptions().Keymapper.keyIDToKeyName.find(boundKey);
 	if (keyNameIt == GetOptions().Keymapper.keyIDToKeyName.end()) {
 		return "";

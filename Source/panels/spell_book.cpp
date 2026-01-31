@@ -1,8 +1,10 @@
 #include "panels/spell_book.hpp"
 
+#include <algorithm>
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <vector>
 
 #include <expected.hpp>
 #include <fmt/format.h>
@@ -52,11 +54,11 @@ const SpellID SpellPages[SpellBookPages][SpellBookPageEntries] = {
 	{ SpellID::Invalid, SpellID::Invalid, SpellID::Invalid, SpellID::Invalid, SpellID::Invalid, SpellID::Invalid, SpellID::Invalid }
 };
 
-SpellID GetSpellFromSpellPage(size_t page, size_t entry)
+SpellID GetSpellFromSpellPage(const Player &player, size_t page, size_t entry)
 {
 	assert(page <= SpellBookPages && entry <= SpellBookPageEntries);
 	if (page == 0 && entry == 0)
-		return GetPlayerStartingLoadoutForClass(InspectPlayer->_pClass).skill;
+		return GetPlayerStartingLoadoutForClass(player._pClass).skill;
 	return SpellPages[page][entry];
 }
 
@@ -153,7 +155,7 @@ void DrawSpellBook(const Surface &out)
 	int yp = 12;
 	const int textPaddingTop = 7;
 	for (size_t pageEntry = 0; pageEntry < SpellBookPageEntries; pageEntry++) {
-		const SpellID sn = GetSpellFromSpellPage(SpellbookTab, pageEntry);
+		const SpellID sn = GetSpellFromSpellPage(player, SpellbookTab, pageEntry);
 		if (IsValidSpell(sn) && (spl & GetSpellBitmask(sn)) != 0) {
 			const SpellType st = GetSBookTrans(sn, true);
 			SetSpellTrans(st);
@@ -198,8 +200,8 @@ void CheckSBook()
 	// padding from the end of the area.
 	const Rectangle iconArea = { GetPanelPosition(UiPanels::Spell, { 11, 18 }), Size { 37, SpellBookDescription.height * 7 - 5 } };
 	if (iconArea.contains(MousePosition) && !IsInspectingPlayer()) {
-		const SpellID sn = GetSpellFromSpellPage(SpellbookTab, (MousePosition.y - iconArea.position.y) / SpellBookDescription.height);
 		Player &player = *InspectPlayer;
+		const SpellID sn = GetSpellFromSpellPage(player, SpellbookTab, (MousePosition.y - iconArea.position.y) / SpellBookDescription.height);
 		const uint64_t spl = player._pMemSpells | player._pISpells | player._pAblSpells;
 		if (IsValidSpell(sn) && (spl & GetSpellBitmask(sn)) != 0) {
 			SpellType st = SpellType::Spell;
@@ -231,6 +233,53 @@ void CheckSBook()
 		}
 		SpellbookTab = hitColumn / buttonWidth;
 	}
+}
+
+std::vector<SpellID> GetSpellBookAvailableSpells(int tab, const Player &player)
+{
+	std::vector<SpellID> spells;
+	const uint64_t spl = player._pMemSpells | player._pISpells | player._pAblSpells;
+	for (size_t pageEntry = 0; pageEntry < SpellBookPageEntries; pageEntry++) {
+		const SpellID sn = GetSpellFromSpellPage(player, tab, pageEntry);
+		if (IsValidSpell(sn) && (spl & GetSpellBitmask(sn)) != 0) {
+			spells.push_back(sn);
+		}
+	}
+	return spells;
+}
+
+std::optional<SpellID> GetSpellBookFirstAvailableSpell(int tab, const Player &player)
+{
+	std::vector<SpellID> spells = GetSpellBookAvailableSpells(tab, player);
+	if (spells.empty())
+		return std::nullopt;
+	return spells.front();
+}
+
+std::optional<SpellID> GetSpellBookAdjacentAvailableSpell(int tab, const Player &player, SpellID currentSpell, int delta)
+{
+	std::vector<SpellID> spells = GetSpellBookAvailableSpells(tab, player);
+	if (spells.empty())
+		return std::nullopt;
+
+	const auto it = std::find(spells.begin(), spells.end(), currentSpell);
+	if (it == spells.end()) {
+		return delta < 0 ? spells.back() : spells.front();
+	}
+
+	const size_t index = static_cast<size_t>(it - spells.begin());
+	if (delta < 0) {
+		if (index == 0)
+			return std::nullopt;
+		return spells[index - 1];
+	}
+	if (delta > 0) {
+		if (index + 1 >= spells.size())
+			return std::nullopt;
+		return spells[index + 1];
+	}
+
+	return spells[index];
 }
 
 } // namespace devilution

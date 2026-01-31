@@ -34,6 +34,8 @@
 #include "utils/endian_swap.hpp"
 #include "utils/is_of.hpp"
 #include "utils/language.h"
+#include "utils/screen_reader.hpp"
+#include "utils/str_cat.hpp"
 #include "utils/utf8.hpp"
 
 #ifdef _DEBUG
@@ -829,18 +831,45 @@ void StartQuestlog()
 
 	SelectedQuest = FirstFinishedQuest == 0 ? -1 : 0;
 	QuestLogIsOpen = true;
+
+	if (EncounteredQuestCount == 0) {
+		SpeakText(_("No quests found."), true);
+		return;
+	}
+
+	std::string speech;
+	if (FirstFinishedQuest > 0) {
+		StrAppend(speech, _("Active quests:"));
+		for (int i = 0; i < FirstFinishedQuest; ++i) {
+			StrAppend(speech, "\n", i + 1, ". ", _(QuestsData[EncounteredQuests[i]]._qlstr));
+		}
+	}
+
+	if (EncounteredQuestCount > FirstFinishedQuest) {
+		if (!speech.empty())
+			speech.append("\n");
+		StrAppend(speech, _("Completed quests:"));
+		for (int i = FirstFinishedQuest; i < EncounteredQuestCount; ++i) {
+			StrAppend(speech, "\n", (i - FirstFinishedQuest) + 1, ". ", _(QuestsData[EncounteredQuests[i]]._qlstr));
+		}
+	}
+
+	if (!speech.empty())
+		SpeakText(speech, true);
 }
 
 void QuestlogUp()
 {
 	if (FirstFinishedQuest == 0) {
 		SelectedQuest = -1;
+		SpeakText(_("No active quests."), true);
 	} else {
 		SelectedQuest--;
 		if (SelectedQuest < 0) {
 			SelectedQuest = FirstFinishedQuest - 1;
 		}
 		PlaySFX(SfxID::MenuMove);
+		SpeakText(_(QuestsData[EncounteredQuests[SelectedQuest]]._qlstr), true);
 	}
 }
 
@@ -848,12 +877,14 @@ void QuestlogDown()
 {
 	if (FirstFinishedQuest == 0) {
 		SelectedQuest = -1;
+		SpeakText(_("No active quests."), true);
 	} else {
 		SelectedQuest++;
 		if (SelectedQuest == FirstFinishedQuest) {
 			SelectedQuest = 0;
 		}
 		PlaySFX(SfxID::MenuMove);
+		SpeakText(_(QuestsData[EncounteredQuests[SelectedQuest]]._qlstr), true);
 	}
 }
 

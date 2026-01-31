@@ -1,34 +1,58 @@
-<p align="center">
-  <img width="560" height="144" alt="image" src="https://github.com/user-attachments/assets/7ac73801-ef7b-4cc1-8442-a191a2a0a1ce" />
-</p>
+# What is Diablo Access
 
----
+Diablo Access is a DevilutionX-based mod focused on accessibility and quality-of-life improvements.
 
-[![Discord Channel](https://img.shields.io/discord/518540764754608128?color=%237289DA&logo=discord&logoColor=%23FFFFFF)](https://discord.gg/devilutionx)
-[![Downloads](https://img.shields.io/github/downloads/diasurgical/devilutionX/total.svg)](https://github.com/diasurgical/devilutionX/releases/latest)
-[![Codecov](https://codecov.io/gh/diasurgical/devilutionX/branch/master/graph/badge.svg)](https://codecov.io/gh/diasurgical/devilutionX)
-
-<p align="center">
-<img width="853" height="480" alt="image" src="https://github.com/user-attachments/assets/ee902926-6382-4ee5-b1c2-7947e8b434e9" />
-</p>
-
-<sub>*(The health-bar and XP-bar are off by default but can be enabled in the [game settings](https://github.com/diasurgical/DevilutionX/wiki/Config-File). Widescreen can also be disabled if preferred.)*</sub>
-
-# What is DevilutionX
-
-DevilutionX is a port of Diablo and Hellfire that strives to make it simple to run the game while providing engine improvements, bug fixes, and some optional quality of life features.
-
-Check out the [manual](https://github.com/diasurgical/devilutionX/wiki) for available features and how to take advantage of them.
+Upstream project: https://github.com/diasurgical/devilutionX
 
 For a full list of changes, see our [changelog](docs/CHANGELOG.md).
+
+# Features
+
+- Screen reader / TTS integration (Windows: NVDA/JAWS via Tolk; Linux: speech-dispatcher).
+- Proximity audio cues (items, monsters, doors/chests, interactable targets).
+- Spoken announcements for many UI elements and interactions.
+- Tracker navigation that speaks the tracked target and directions to reach it.
+- Low HP warning sound that starts at 50% HP and speeds up every 10% down to 0% (stops on death).
+
+# Keybinds (defaults)
+
+Keybinds are configurable, but these are the defaults most players will use:
+
+## Navigation / tracking
+
+- `T` - cycle tracker target (items / chests / doors / shrines / objects / breakables / monsters).
+- `N` - tracker directions to the nearest target (speaks target name + directions).
+- `Shift`+`N` - cycle to the next target in the current tracker category (speaks name only; duplicates get ordinal numbers).
+- `Ctrl`+`N` - clear the tracker target.
+- `H` - speak nearest unexplored space.
+- `E` - speak nearest exit (hold `Shift` for quest entrances).
+- `,` - speak nearest stairs up.
+- `.` - speak nearest stairs down.
+- `L` - speak current dungeon + floor.
+- `Z` - speak player health percentage.
+- `X` - speak experience remaining to next level.
+
+## Keyboard controls
+
+- Arrow keys - walk one tile (north/south/east/west).
+- `A` - primary action (attack / talk / lift items).
+- `D` - secondary action (open chests / doors / pick up items).
+- `W` - spell action (cast active spell).
+
+## Town NPCs
+
+- `F4` - list town NPCs.
+- `PageUp` / `PageDown` - select previous / next town NPC.
+- `End` - speak selected town NPC.
+- `Home` - walk to selected town NPC (town only).
 
 # How to Install
 
 Note: You'll need access to the data from the original game. If you don't have an original CD, you can [buy Diablo from GoG.com](https://www.gog.com/game/diablo) or Battle.net. Alternatively, you can use `spawn.mpq` from the [shareware](https://github.com/diasurgical/devilutionx-assets/releases/latest/download/spawn.mpq) [[2]](http://ftp.blizzard.com/pub/demos/diablosw.exe) version, in place of `DIABDAT.MPQ`, to play the shareware portion of the game.
 
-Download the latest [DevilutionX release](https://github.com/diasurgical/devilutionX/releases/latest) and extract the contents to a location of your choosing or [build from source](#building-from-source).
+Download the latest [Diablo Access release](https://github.com/mojsior/diablo-access/releases/latest) and extract the contents to a location of your choosing or [build from source](#building-from-source).
 
-- Copy `DIABDAT.MPQ` from the CD or Diablo installation (or [extract it from the GoG installer](https://github.com/diasurgical/devilutionX/wiki/Extracting-MPQs-from-the-GoG-installer)) to the DevilutionX folder.
+- Copy `DIABDAT.MPQ` from the CD or Diablo installation (or [extract it from the GoG installer](https://github.com/diasurgical/devilutionX/wiki/Extracting-MPQs-from-the-GoG-installer)) to the Diablo Access folder.
 - To run the Diablo: Hellfire expansion, you will also need to copy `hellfire.mpq`, `hfmonk.mpq`, `hfmusic.mpq`, and `hfvoice.mpq`.
 
 For more detailed instructions: [Installation Instructions](./docs/installing.md).

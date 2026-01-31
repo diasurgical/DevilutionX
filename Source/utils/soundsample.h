@@ -21,9 +21,10 @@ namespace devilution {
 
 class SoundSample final {
 public:
-	SoundSample() = default;
-	SoundSample(SoundSample &&) noexcept = default;
-	SoundSample &operator=(SoundSample &&) noexcept = default;
+	SoundSample();
+	~SoundSample();
+	SoundSample(SoundSample &&) noexcept;
+	SoundSample &operator=(SoundSample &&) noexcept;
 
 	[[nodiscard]] bool IsLoaded() const
 	{
@@ -38,7 +39,7 @@ public:
 	bool IsPlaying();
 
 	// Returns 0 on success.
-	int SetChunkStream(std::string filePath, bool isMp3, bool logErrors = true);
+	int SetChunkStream(std::string filePath, bool isMp3, bool logErrors = true, float playbackRate = 1.0F);
 
 #ifndef USE_SDL3
 	void SetFinishCallback(std::function<void(Aulib::Stream &)> &&callback);
@@ -49,9 +50,10 @@ public:
 	 * @param fileData Buffer containing the data
 	 * @param dwBytes Length of buffer
 	 * @param isMp3 Whether the data is an MP3
+	 * @param playbackRate Playback speed/pitch multiplier (1.0 = normal, >1.0 faster+higher, <1.0 slower+lower)
 	 * @return 0 on success, -1 otherwise
 	 */
-	int SetChunk(ArraySharedPtr<std::uint8_t> fileData, std::size_t dwBytes, bool isMp3);
+	int SetChunk(ArraySharedPtr<std::uint8_t> fileData, std::size_t dwBytes, bool isMp3, float playbackRate = 1.0F);
 
 	[[nodiscard]] bool IsStreaming() const
 	{
@@ -61,8 +63,8 @@ public:
 	int DuplicateFrom(const SoundSample &other)
 	{
 		if (other.IsStreaming())
-			return SetChunkStream(other.file_path_, other.isMp3_);
-		return SetChunk(other.file_data_, other.file_data_size_, other.isMp3_);
+			return SetChunkStream(other.file_path_, other.isMp3_, /*logErrors=*/true, other.playbackRate_);
+		return SetChunk(other.file_data_, other.file_data_size_, other.isMp3_, other.playbackRate_);
 	}
 
 	/**
@@ -105,6 +107,7 @@ private:
 	std::string file_path_;
 
 	bool isMp3_;
+	float playbackRate_ = 1.0F;
 
 #ifndef USE_SDL3
 	std::unique_ptr<Aulib::Stream> stream_;

@@ -412,6 +412,48 @@ endif()
 include(functions/set_relative_file_macro)
 set_relative_file_macro(${BIN_TARGET})
 
+# Copy Windows builds to build/Release for convenience.
+if(WIN32 AND NOT ANDROID AND NOT UWP_LIB)
+  set(DEVILUTIONX_RELEASE_DIR "${PROJECT_SOURCE_DIR}/build/Release")
+  add_custom_command(TARGET ${BIN_TARGET} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${DEVILUTIONX_RELEASE_DIR}"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:${BIN_TARGET}>" "${DEVILUTIONX_RELEASE_DIR}/"
+  )
+  if(SCREEN_READER_INTEGRATION AND TARGET Tolk)
+    add_custom_command(TARGET ${BIN_TARGET} POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:Tolk>" "${DEVILUTIONX_RELEASE_DIR}/"
+    )
+    if(CMAKE_SIZEOF_VOID_P EQUAL 4)
+      set(_tolk_lib_dir "${Tolk_SOURCE_DIR}/libs/x86")
+      set(_tolk_extra_files SAAPI32.dll ZDSRAPI.dll ZDSRAPI.ini dolapi32.dll nvdaControllerClient32.dll)
+    else()
+      set(_tolk_lib_dir "${Tolk_SOURCE_DIR}/libs/x64")
+      set(_tolk_extra_files SAAPI64.dll ZDSRAPI_x64.dll ZDSRAPI.ini nvdaControllerClient64.dll)
+    endif()
+    foreach(_tolk_file IN LISTS _tolk_extra_files)
+      if(EXISTS "${_tolk_lib_dir}/${_tolk_file}")
+        add_custom_command(TARGET ${BIN_TARGET} POST_BUILD
+          COMMAND ${CMAKE_COMMAND} -E copy_if_different "${_tolk_lib_dir}/${_tolk_file}" "${DEVILUTIONX_RELEASE_DIR}/"
+        )
+      endif()
+    endforeach()
+  endif()
+  if(MINGW_CROSS)
+    if(CMAKE_SIZEOF_VOID_P EQUAL 4)
+      set(_mingw_bin "${CROSS_PREFIX}/i686-w64-mingw32/bin")
+    else()
+      set(_mingw_bin "${CROSS_PREFIX}/x86_64-w64-mingw32/bin")
+    endif()
+    foreach(_rt_dll libc++.dll libunwind.dll libstdc++-6.dll libgcc_s_seh-1.dll libgcc_s_dw2-1.dll libwinpthread-1.dll)
+      if(EXISTS "${_mingw_bin}/${_rt_dll}")
+        add_custom_command(TARGET ${BIN_TARGET} POST_BUILD
+          COMMAND ${CMAKE_COMMAND} -E copy_if_different "${_mingw_bin}/${_rt_dll}" "${DEVILUTIONX_RELEASE_DIR}/"
+        )
+      endif()
+    endforeach()
+  endif()
+endif()
+
 if(APPLE)
   set(MACOSX_BUNDLE_GUI_IDENTIFIER com.diasurgical.devilutionx)
   set(MACOSX_BUNDLE_COPYRIGHT Unlicense)
