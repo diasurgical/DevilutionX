@@ -33,7 +33,7 @@
 #include "levels/gendung.h"
 #include "options.h"
 #include "pfile.h"
-#include "playerdat.hpp"
+#include "tables/playerdat.hpp"
 #include "utils/enum_traits.h"
 #include "utils/language.h"
 #include "utils/sdl_geometry.h"

@@ -19,7 +19,7 @@
 #endif
 
 #ifdef _DEBUG
-#include "monstdat.h"
+#include "tables/monstdat.h"
 #endif
 #include "levels/gendung.h"
 #include "utils/attributes.h"

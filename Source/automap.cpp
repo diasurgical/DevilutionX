@@ -10,7 +10,7 @@
 
 #include <fmt/format.h>
 
-#include "control.h"
+#include "control/control.hpp"
 #include "engine/load_file.hpp"
 #include "engine/palette.h"
 #include "engine/render/automap_render.hpp"
@@ -38,7 +38,10 @@ Point Automap;
 
 enum MapColors : uint8_t {
 	/** color used to draw the player's arrow */
-	MapColorsPlayer = (PAL8_ORANGE + 1),
+	MapColorsPlayer1 = (PAL8_ORANGE + 1),
+	MapColorsPlayer2 = (PAL8_YELLOW + 1),
+	MapColorsPlayer3 = (PAL8_RED + 1),
+	MapColorsPlayer4 = (PAL8_BLUE + 1),
 	/** color for bright map lines (doors, stairs etc.) */
 	MapColorsBright = PAL8_YELLOW,
 	/** color for dim map lines/dots */
@@ -1318,12 +1321,27 @@ void SearchAutomapItem(const Surface &out, const Displacement &myPlayerOffset, i
 	}
 }
 
+uint8_t GetPlayerMapColor(int id)
+{
+	static constexpr uint8_t PlayerMapColors[] = {
+		MapColorsPlayer1,
+		MapColorsPlayer2,
+		MapColorsPlayer3,
+		MapColorsPlayer4,
+	};
+
+	if (id < 0 || id >= static_cast<int>(SDL_arraysize(PlayerMapColors)))
+		return MapColorsPlayer1;
+
+	return PlayerMapColors[id];
+}
+
 /**
  * @brief Renders an arrow on the automap, centered on and facing the direction of the player.
  */
 void DrawAutomapPlr(const Surface &out, const Displacement &myPlayerOffset, const Player &player)
 {
-	const uint8_t playerColor = MapColorsPlayer + (8 * player.getId()) % 128;
+	const uint8_t playerColor = GetPlayerMapColor(player.getId());
 
 	const Point tile = player.position.tile;
 
@@ -1411,54 +1429,59 @@ void DrawAutomapText(const Surface &out)
 {
 	Point linePosition { 8, 8 };
 
+	auto advanceLine = [&](int numLines = 1) {
+		linePosition.y += 15 * numLines;
+	};
+
+	auto drawStringAndAdvanceLine = [&](std::string_view text, TextRenderOptions opts = {}, int numLines = 1) {
+		DrawString(out, text, linePosition, opts);
+		advanceLine(numLines);
+	};
+
 	if (*GetOptions().Graphics.showFPS) {
-		linePosition.y += 15;
+		advanceLine();
 	}
 
 	if (gbIsMultiplayer) {
 		if (GameName != "0.0.0.0" && !IsLoopback) {
 			std::string description = std::string(_("Game: "));
 			description.append(GameName);
-			DrawString(out, description, linePosition);
-			linePosition.y += 15;
+			drawStringAndAdvanceLine(description);
 		}
 
 		std::string description;
 		if (IsLoopback) {
 			description = std::string(_("Offline Game"));
-		} else if (!PublicGame) {
+		} else if (PublicGame) {
+			description = std::string(_("Public Game"));
+		} else {
 			description = std::string(_("Password: "));
 			description.append(GamePassword);
-		} else {
-			description = std::string(_("Public Game"));
 		}
-		DrawString(out, description, linePosition);
-		linePosition.y += 15;
+		drawStringAndAdvanceLine(description);
 	}
 
 	if (setlevel) {
-		DrawString(out, _(QuestLevelNames[setlvlnum]), linePosition);
-		return;
+		drawStringAndAdvanceLine(_(QuestLevelNames[setlvlnum]));
+	} else {
+		std::string description;
+		switch (leveltype) {
+		case DTYPE_NEST:
+			description = fmt::format(fmt::runtime(_("Level: Nest {:d}")), currlevel - 16);
+			break;
+		case DTYPE_CRYPT:
+			description = fmt::format(fmt::runtime(_("Level: Crypt {:d}")), currlevel - 20);
+			break;
+		case DTYPE_TOWN:
+			description = std::string(_("Town"));
+			break;
+		default:
+			description = fmt::format(fmt::runtime(_("Level: {:d}")), currlevel);
+			break;
+		}
+		drawStringAndAdvanceLine(description);
 	}
 
-	std::string description;
-	switch (leveltype) {
-	case DTYPE_NEST:
-		description = fmt::format(fmt::runtime(_("Level: Nest {:d}")), currlevel - 16);
-		break;
-	case DTYPE_CRYPT:
-		description = fmt::format(fmt::runtime(_("Level: Crypt {:d}")), currlevel - 20);
-		break;
-	case DTYPE_TOWN:
-		description = std::string(_("Town"));
-		break;
-	default:
-		description = fmt::format(fmt::runtime(_("Level: {:d}")), currlevel);
-		break;
-	}
-
-	DrawString(out, description, linePosition);
-	linePosition.y += 15;
 	std::string_view difficulty;
 	switch (sgGameInitInfo.nDifficulty) {
 	case DIFF_NORMAL:
@@ -1472,41 +1495,29 @@ void DrawAutomapText(const Surface &out)
 		break;
 	}
 
-	const std::string difficultyString = fmt::format(fmt::runtime(_(/* TRANSLATORS: {:s} means: Game Difficulty. */ "Difficulty: {:s}")), difficulty);
-	DrawString(out, difficultyString, linePosition);
+	const std::string description = fmt::format(fmt::runtime(_(/* TRANSLATORS: {:s} means: Game Difficulty. */ "Difficulty: {:s}")), difficulty);
+	drawStringAndAdvanceLine(description);
 
 #ifdef _DEBUG
-	const TextRenderOptions debugTextOptions {
-		.flags = UiFlags::ColorOrange,
-	};
-	linePosition.y += 45;
-	if (DebugGodMode) {
-		linePosition.y += 15;
-		DrawString(out, "God Mode", linePosition, debugTextOptions);
-	}
-	if (DebugInvisible) {
-		linePosition.y += 15;
-		DrawString(out, "Invisible", linePosition, debugTextOptions);
-	}
-	if (DisableLighting) {
-		linePosition.y += 15;
-		DrawString(out, "Fullbright", linePosition, debugTextOptions);
-	}
-	if (DebugVision) {
-		linePosition.y += 15;
-		DrawString(out, "Draw Vision", linePosition, debugTextOptions);
-	}
-	if (DebugPath) {
-		linePosition.y += 15;
-		DrawString(out, "Draw Path", linePosition, debugTextOptions);
-	}
-	if (DebugGrid) {
-		linePosition.y += 15;
-		DrawString(out, "Draw Grid", linePosition, debugTextOptions);
-	}
-	if (DebugScrollViewEnabled) {
-		linePosition.y += 15;
-		DrawString(out, "Scroll View", linePosition, debugTextOptions);
+	if (DebugGodMode || DebugInvisible || DisableLighting || DebugVision || DebugPath || DebugGrid || DebugScrollViewEnabled) {
+		const TextRenderOptions disabled {
+			.flags = UiFlags::ColorBlack,
+		};
+		const TextRenderOptions enabled {
+			.flags = UiFlags::ColorOrange,
+		};
+
+		advanceLine();
+		drawStringAndAdvanceLine("Debug toggles:");
+		drawStringAndAdvanceLine("Player:");
+		drawStringAndAdvanceLine("God Mode", DebugGodMode ? enabled : disabled);
+		drawStringAndAdvanceLine("Invisible", DebugInvisible ? enabled : disabled);
+		drawStringAndAdvanceLine("Display:");
+		drawStringAndAdvanceLine("Fullbright", DisableLighting ? enabled : disabled);
+		drawStringAndAdvanceLine("Draw Vision", DebugVision ? enabled : disabled);
+		drawStringAndAdvanceLine("Draw Path", DebugPath ? enabled : disabled);
+		drawStringAndAdvanceLine("Draw Grid", DebugGrid ? enabled : disabled);
+		drawStringAndAdvanceLine("Scroll View", DebugScrollViewEnabled ? enabled : disabled);
 	}
 #endif
 }

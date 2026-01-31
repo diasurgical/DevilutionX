@@ -11,8 +11,8 @@
 #include "headless_mode.hpp"
 #include "levels/gendung.h"
 #include "lighting.h"
-#include "misdat.h"
 #include "monster.h"
+#include "tables/misdat.h"
 
 namespace devilution {
 

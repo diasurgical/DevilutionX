@@ -3,7 +3,7 @@
  *
  * Implementation of all monster data.
  */
-#include "monstdat.h"
+#include "tables/monstdat.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -26,7 +26,7 @@
 #include "items.h"
 #include "lua/lua_global.hpp"
 #include "monster.h"
-#include "textdat.h"
+#include "tables/textdat.h"
 #include "utils/language.h"
 
 namespace devilution {

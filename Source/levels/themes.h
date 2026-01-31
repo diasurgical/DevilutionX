@@ -8,7 +8,7 @@
 #include <cstdint>
 
 #include "levels/gendung.h"
-#include "objdat.h"
+#include "tables/objdat.h"
 
 namespace devilution {
 

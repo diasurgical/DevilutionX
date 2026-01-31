@@ -9,7 +9,7 @@
 #include <optional>
 
 #include "DiabloUI/ui_flags.hpp"
-#include "control.h"
+#include "control/control.hpp"
 #include "engine/clx_sprite.hpp"
 #include "engine/surface.hpp"
 #include "game_mode.hpp"

@@ -14,7 +14,7 @@
 #include "DiabloUI/ui_flags.hpp"
 #include "automap.h"
 #include "chatlog.h"
-#include "control.h"
+#include "control/control.hpp"
 #include "diablo_msg.hpp"
 #include "doom.h"
 #include "engine/render/text_render.hpp"

@@ -10,7 +10,7 @@
 
 #include <fmt/core.h>
 
-#include "control.h"
+#include "control/control.hpp"
 #include "engine/clx_sprite.hpp"
 #include "engine/load_clx.hpp"
 #include "engine/point.hpp"
@@ -18,7 +18,7 @@
 #include "engine/render/primitive_render.hpp"
 #include "game_mode.hpp"
 #include "options.h"
-#include "playerdat.hpp"
+#include "tables/playerdat.hpp"
 #include "utils/format_int.hpp"
 #include "utils/language.h"
 

@@ -6,7 +6,6 @@ set(libdevilutionx_SRCS
   appfat.cpp
   automap.cpp
   capture.cpp
-  control.cpp
   cursor.cpp
   dead.cpp
   debug.cpp
@@ -22,7 +21,6 @@ set(libdevilutionx_SRCS
   loadsave.cpp
   menu.cpp
   minitext.cpp
-  misdat.cpp
   missiles.cpp
   movie.cpp
   msg.cpp
@@ -32,11 +30,16 @@ set(libdevilutionx_SRCS
   portal.cpp
   restrict.cpp
   sync.cpp
-  textdat.cpp
   tmsg.cpp
-  townerdat.cpp
   towners.cpp
   track.cpp
+
+  control/control_chat.cpp
+  control/control_chat_commands.cpp
+  control/control_flasks.cpp
+  control/control_gold.cpp
+  control/control_infobox.cpp
+  control/control_panel.cpp
 
   controls/axis_direction.cpp
   controls/controller_motion.cpp
@@ -114,12 +117,14 @@ set(libdevilutionx_SRCS
   lua/modules/dev/quests.cpp
   lua/modules/dev/search.cpp
   lua/modules/dev/towners.cpp
+  lua/modules/floatingnumbers.cpp
   lua/modules/i18n.cpp
   lua/modules/items.cpp
   lua/modules/log.cpp
   lua/modules/monsters.cpp
   lua/modules/player.cpp
   lua/modules/render.cpp
+  lua/modules/system.cpp
   lua/modules/towners.cpp
   lua/repl.cpp
 
@@ -150,6 +155,11 @@ set(libdevilutionx_SRCS
 
   storm/storm_net.cpp
   storm/storm_svid.cpp
+
+  tables/misdat.cpp
+  tables/textdat.cpp
+  tables/townerdat.cpp
+
   utils/display.cpp
   utils/language.cpp
   utils/sdl_bilinear_scale.cpp
@@ -480,7 +490,7 @@ target_link_dependencies(libdevilutionx_logged_fstream PUBLIC
 )
 
 add_devilutionx_object_library(libdevilutionx_items
-  itemdat.cpp
+  tables/itemdat.cpp
   items.cpp
 )
 target_link_dependencies(libdevilutionx_items PUBLIC
@@ -517,7 +527,7 @@ target_link_libraries(libdevilutionx_log INTERFACE
 target_sources(libdevilutionx_log INTERFACE $<TARGET_OBJECTS:libdevilutionx_strings>)
 
 add_devilutionx_object_library(libdevilutionx_level_objects
-  objdat.cpp
+  tables/objdat.cpp
   objects.cpp
 )
 target_link_dependencies(libdevilutionx_level_objects PUBLIC
@@ -534,7 +544,7 @@ target_link_dependencies(libdevilutionx_level_objects PUBLIC
 )
 
 add_devilutionx_object_library(libdevilutionx_monster
-  monstdat.cpp
+  tables/monstdat.cpp
   monster.cpp
 )
 target_link_dependencies(libdevilutionx_monster
@@ -638,13 +648,14 @@ endif()
 
 add_devilutionx_object_library(libdevilutionx_player
   player.cpp
-  playerdat.cpp
+  tables/playerdat.cpp
 )
 target_link_dependencies(libdevilutionx_player
   PUBLIC
   DevilutionX::SDL
   fmt::fmt
   magic_enum::magic_enum
+  sol2::sol2
   tl
   unordered_dense::unordered_dense
   libdevilutionx_game_mode
@@ -670,7 +681,7 @@ add_devilutionx_object_library(libdevilutionx_quick_messages
 )
 
 add_devilutionx_object_library(libdevilutionx_spells
-  spelldat.cpp
+  tables/spelldat.cpp
   spells.cpp
 )
 target_link_dependencies(libdevilutionx_spells PUBLIC

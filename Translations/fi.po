@@ -1973,7 +1973,7 @@ msgstr "Sitä, mitä ei voi pitää, ei voi vahingoittaa"
 #. TRANSLATORS: Shrine Text. Keep atmospheric. :)
 #: Source/diablo_msg.cpp:86
 msgid "Crimson and Azure become as the sun"
-msgstr "Crimson ja Azure muuttuvat auringoksi"
+msgstr "Karmiininpunainen ja Taivaansininen muuttuvat auringoksi"
 
 #. TRANSLATORS: Shrine Text. Keep atmospheric. :)
 #: Source/diablo_msg.cpp:87
@@ -3260,7 +3260,7 @@ msgstr "rappeutuminen {:+d}% vahinko"
 
 #: Source/items.cpp:4056
 msgid "2x dmg to monst, 1x to you"
-msgstr "2x vahinko monsterille, 1x sinulle"
+msgstr "2x vahinko hirviölle, 1x sinulle"
 
 #: Source/items.cpp:4058
 #, no-c-format
@@ -3370,7 +3370,7 @@ msgstr "Elämänkaaren areena"
 
 #: Source/levels/trigs.cpp:355
 msgid "Down to dungeon"
-msgstr "Linnakellariin"
+msgstr "Tyrmään"
 
 #: Source/levels/trigs.cpp:364
 msgid "Down to catacombs"
@@ -3483,7 +3483,7 @@ msgid ""
 "Could not add a monster, since the maximum monster type number of {} has "
 "already been reached."
 msgstr ""
-"Monsteria ei voitu lisätä, koska monsterityyppien enimmäismäärä {} on jo "
+"Hirviötä ei voitu lisätä, koska hirviötyyppien enimmäismäärä {} on jo "
 "saavutettu."
 
 #: Source/monstdat.cpp:344
@@ -4497,14 +4497,14 @@ msgstr "Valitse satunnaisesti käytettävissä olevat tehtävät uusille peleill
 
 #: Source/options.cpp:811
 msgid "Show Monster Type"
-msgstr "Näytä monsterityyppi"
+msgstr "Näytä hirviötyyppi"
 
 #: Source/options.cpp:811
 msgid ""
 "Hovering over a monster will display the type of monster in the description "
 "box in the UI."
 msgstr ""
-"Kun viet hiiren monsterin päälle, sen tyyppi näkyy käyttöliittymän "
+"Kun viet hiiren hirviön päälle, sen tyyppi näkyy käyttöliittymän "
 "kuvauskentässä."
 
 #: Source/options.cpp:812
@@ -5864,7 +5864,7 @@ msgstr "Gharbad Heikko"
 #: Source/translation_dummy.cpp:119
 msgctxt "monster"
 msgid "Zhar the Mad"
-msgstr "Hirmuhullu Zhar"
+msgstr "Zhar Mielipuoli"
 
 #: Source/translation_dummy.cpp:120
 msgctxt "monster"
@@ -6468,7 +6468,7 @@ msgstr "Täyden manan juoma"
 
 #: Source/translation_dummy.cpp:247
 msgid "Griswold's Edge"
-msgstr "Griswoldin Reuna"
+msgstr "Griswoldin Terä"
 
 #: Source/translation_dummy.cpp:248
 msgid "Bovine Plate"
@@ -6588,11 +6588,11 @@ msgstr "Nastoitettu nahkahaarniska"
 
 #: Source/translation_dummy.cpp:279
 msgid "Ring Mail"
-msgstr "Rengasmail"
+msgstr "Rengashaarniska"
 
 #: Source/translation_dummy.cpp:280
 msgid "Mail"
-msgstr "Posti"
+msgstr "Haarniska"
 
 #: Source/translation_dummy.cpp:281
 msgid "Chain Mail"
@@ -6612,7 +6612,7 @@ msgstr "Panssari"
 
 #: Source/translation_dummy.cpp:285
 msgid "Splint Mail"
-msgstr "Lastahaarniska"
+msgstr "Liuskapanssari"
 
 #: Source/translation_dummy.cpp:286
 msgid "Plate Mail"
@@ -6844,7 +6844,7 @@ msgstr "Varsta"
 
 #: Source/translation_dummy.cpp:345
 msgid "Maul"
-msgstr "Raadella"
+msgstr "Moukari"
 
 #: Source/translation_dummy.cpp:346
 msgid "Bow"
@@ -7148,7 +7148,7 @@ msgstr "Najin pulmuri"
 
 #: Source/translation_dummy.cpp:422
 msgid "Mindcry"
-msgstr "Mindcry"
+msgstr "Mielenitku"
 
 #: Source/translation_dummy.cpp:423
 msgid "Rod of Onan"
@@ -7200,11 +7200,11 @@ msgstr "Viisauden kääre"
 
 #: Source/translation_dummy.cpp:435
 msgid "Sparking Mail"
-msgstr "Kipinöivä posti panssari"
+msgstr "Kipinöivä panssari"
 
 #: Source/translation_dummy.cpp:436
 msgid "Scavenger Carapace"
-msgstr "Keräilijä Karapassi"
+msgstr "Keräilijän Karapassi"
 
 #: Source/translation_dummy.cpp:437
 msgid "Nightscape"
@@ -9167,7 +9167,7 @@ msgstr ""
 "Olen kuullut kultaisesta eliksiiristä, joka voisi poistaa kirouksen ja antaa "
 "sielulleni rauhan, mutta en ole onnistunut löytämään sitä. Voimani ovat nyt "
 "hiipumassa, ja niiden mukana myös viimeisetkin ihmisyyteni rippeet. Auta "
-"minua ja etsi eliksiiri. Korvaan ponnistuksesi – vannon kunniasanallani."
+"minua ja etsi eliksiiri. Korvaan ponnistuksesi – vannon sen kunniasanallani."
 
 #: Source/translation_dummy.cpp:762
 msgid ""
@@ -11367,10 +11367,10 @@ msgid ""
 "but we snuck over there, and then suddenly this BUG came out!  We ran away "
 "but Theo fell down and the bug GRABBED him and took him away!"
 msgstr ""
-"Kadotin Teron! Kadotin parhaan ystäväni! Leikimme joen rannalla, ja Theo "
+"Kadotin Teron! Kadotin parhaan ystäväni! Leikimme joen rannalla, ja Tero "
 "sanoi haluavansa mennä katsomaan isoa vihreää juttua. Sanoin, että meidän ei "
 "pitäisi mennä, mutta hiivimme sinne, ja yhtäkkiä tämä HYÖNTEINEN ilmestyi! "
-"Juoksimme karkuun, mutta Theo kaatui, ja hyönteinen TARTTUI häneen ja vei "
+"Juoksimme karkuun, mutta Tero kaatui, ja hyönteinen TARTTUI häneen ja vei "
 "hänet pois!"
 
 #: Source/translation_dummy.cpp:945
@@ -11859,7 +11859,7 @@ msgstr "Jättiläisen Rystynen"
 
 #: Source/translation_dummy.cpp:1004
 msgid "Mercurial Ring"
-msgstr "Mercurial sormus"
+msgstr "Häilyvä sormus"
 
 #: Source/translation_dummy.cpp:1005
 msgid "Xorine's Ring"
@@ -12005,7 +12005,7 @@ msgstr "Tulen Sormus"
 #: Source/translation_dummy.cpp:1038
 msgctxt "spell"
 msgid "Search"
-msgstr "Paljasta"
+msgstr "Paljastus"
 
 #: Source/translation_dummy.cpp:1039
 msgctxt "spell"

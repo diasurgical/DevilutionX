@@ -28,7 +28,7 @@
 #include "DiabloUI/diabloui.h"
 #include "automap.h"
 #include "config.h"
-#include "control.h"
+#include "control/control.hpp"
 #include "dead.h"
 #include "engine/backbuffer_state.hpp"
 #include "engine/random.hpp"
@@ -1912,11 +1912,31 @@ size_t OnResurrect(const TCmdParam1 &message, Player &caster)
 
 	if (gbBufferMsgs == 1) {
 		BufferMessage(caster, &message, sizeof(message));
-	} else if (caster.isOnActiveLevel() && playerIdx < Players.size()) {
-		DoResurrect(caster, target);
-		if (&target == MyPlayer)
-			pfile_update(true);
+		return sizeof(message);
 	}
+
+	if (playerIdx >= Players.size() || !caster.isOnActiveLevel())
+		return sizeof(message);
+
+	Player &target = Players[playerIdx];
+
+	SpawnResurrectBeam(caster, target);
+
+	if (&target == MyPlayer && target._pHitPoints <= 0) {
+		NetSendCmd(true, CMD_PLRALIVE);
+	}
+
+	return sizeof(message);
+}
+
+size_t OnPlayerAlive(const TCmd &message, Player &target)
+{
+	if (gbBufferMsgs == 1) {
+		BufferMessage(target, &message, sizeof(message));
+		return sizeof(message);
+	}
+
+	ApplyResurrect(target);
 
 	return sizeof(message);
 }
@@ -3391,6 +3411,8 @@ size_t ParseCmd(uint8_t pnum, const TCmd *pCmd, size_t maxCmdSize)
 		return HandleCmd(OnMonstDamage, player, pCmd, maxCmdSize);
 	case CMD_PLRDEAD:
 		return HandleCmd(OnPlayerDeath, player, pCmd, maxCmdSize);
+	case CMD_PLRALIVE:
+		return HandleCmd(OnPlayerAlive, player, pCmd, maxCmdSize);
 	case CMD_PLRDAMAGE:
 		return HandleCmd(OnPlayerDamage, player, pCmd, maxCmdSize);
 	case CMD_OPENDOOR:

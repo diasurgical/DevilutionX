@@ -13,7 +13,7 @@
 #include <magic_enum/magic_enum.hpp>
 
 #include "cursor.h"
-#include "textdat.h"
+#include "tables/textdat.h"
 
 namespace devilution {
 

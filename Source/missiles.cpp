@@ -19,7 +19,7 @@
 #include <utility>
 
 #include "appfat.h"
-#include "control.h"
+#include "control/control.hpp"
 #include "controls/control_mode.hpp"
 #include "controls/plrctrls.h"
 #include "crawl.hpp"
@@ -37,19 +37,19 @@
 #include "engine/world_tile.hpp"
 #include "function_ref.hpp"
 #include "interfac.h"
-#include "itemdat.h"
 #include "items.h"
 #include "levels/gendung.h"
 #include "levels/gendung_defs.hpp"
-#include "misdat.h"
-#include "monstdat.h"
 #include "msg.h"
 #include "multi.h"
 #include "objects.h"
 #include "player.h"
-#include "playerdat.hpp"
 #include "sound_effect_enums.h"
-#include "spelldat.h"
+#include "tables/itemdat.h"
+#include "tables/misdat.h"
+#include "tables/monstdat.h"
+#include "tables/playerdat.hpp"
+#include "tables/spelldat.h"
 #include "utils/enum_traits.h"
 #ifdef _DEBUG
 #include "debug.h"
@@ -715,7 +715,7 @@ bool GuardianTryFireAt(Missile &missile, Point target)
 {
 	const Point position = missile.position.tile;
 
-	if (!LineClearMissile(position, target))
+	if (!LineClearMovingMissile(position, target))
 		return false;
 	const int mid = dMonster[target.x][target.y] - 1;
 	if (mid < 0)
