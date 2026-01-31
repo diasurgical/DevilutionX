@@ -1908,7 +1908,6 @@ size_t OnKnockback(const TCmdParam1 &message, Player &player)
 size_t OnResurrect(const TCmdParam1 &message, Player &caster)
 {
 	const uint16_t playerIdx = Swap16LE(message.wParam1);
-	Player &target = Players[playerIdx];
 
 	if (gbBufferMsgs == 1) {
 		BufferMessage(caster, &message, sizeof(message));
