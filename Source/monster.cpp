@@ -34,7 +34,7 @@
 #include <fmt/core.h>
 
 #include "automap.h"
-#include "control.h"
+#include "control/control.hpp"
 #include "crawl.hpp"
 #include "cursor.h"
 #include "dead.h"
@@ -59,7 +59,6 @@
 #include "game_mode.hpp"
 #include "headless_mode.hpp"
 #include "inv.h"
-#include "itemdat.h"
 #include "items.h"
 #include "levels/crypt.h"
 #include "levels/drlg_l4.h"
@@ -70,24 +69,25 @@
 #include "levels/tile_properties.hpp"
 #include "levels/trigs.h"
 #include "lighting.h"
+#include "lua/lua_global.hpp"
 #include "minitext.h"
-#include "misdat.h"
 #include "missiles.h"
-#include "monstdat.h"
 #include "movie.h"
 #include "msg.h"
 #include "multi.h"
-#include "objdat.h"
 #include "objects.h"
 #include "options.h"
 #include "player.h"
-#include "playerdat.hpp"
-#include "qol/floatingnumbers.h"
 #include "quests.h"
 #include "sound_effect_enums.h"
-#include "spelldat.h"
 #include "storm/storm_net.hpp"
-#include "textdat.h"
+#include "tables/itemdat.h"
+#include "tables/misdat.h"
+#include "tables/monstdat.h"
+#include "tables/objdat.h"
+#include "tables/playerdat.hpp"
+#include "tables/spelldat.h"
+#include "tables/textdat.h"
 #include "utils/algorithm/container.hpp"
 #include "utils/attributes.h"
 #include "utils/cl2_to_clx.hpp"
@@ -1593,6 +1593,80 @@ Monster *AddSkeleton(Point position, Direction dir, bool inMap)
 	return AddMonster(position, dir, *typeIndex, inMap);
 }
 
+bool LineClear(tl::function_ref<bool(Point)> clear, Point startPoint, Point endPoint)
+{
+	Point position = startPoint;
+
+	int dx = endPoint.x - position.x;
+	int dy = endPoint.y - position.y;
+	if (std::abs(dx) > std::abs(dy)) {
+		if (dx < 0) {
+			std::swap(position, endPoint);
+			dx = -dx;
+			dy = -dy;
+		}
+		int d;
+		int yincD;
+		int dincD;
+		int dincH;
+		if (dy > 0) {
+			d = 2 * dy - dx;
+			dincD = 2 * dy;
+			dincH = 2 * (dy - dx);
+			yincD = 1;
+		} else {
+			d = 2 * dy + dx;
+			dincD = 2 * dy;
+			dincH = 2 * (dx + dy);
+			yincD = -1;
+		}
+		bool done = false;
+		while (!done && position != endPoint) {
+			if ((d <= 0) ^ (yincD < 0)) {
+				d += dincD;
+			} else {
+				d += dincH;
+				position.y += yincD;
+			}
+			position.x++;
+			done = position != startPoint && !clear(position);
+		}
+	} else {
+		if (dy < 0) {
+			std::swap(position, endPoint);
+			dy = -dy;
+			dx = -dx;
+		}
+		int d;
+		int xincD;
+		int dincD;
+		int dincH;
+		if (dx > 0) {
+			d = 2 * dx - dy;
+			dincD = 2 * dx;
+			dincH = 2 * (dx - dy);
+			xincD = 1;
+		} else {
+			d = 2 * dx + dy;
+			dincD = 2 * dx;
+			dincH = 2 * (dy + dx);
+			xincD = -1;
+		}
+		bool done = false;
+		while (!done && position != endPoint) {
+			if ((d <= 0) ^ (xincD < 0)) {
+				d += dincD;
+			} else {
+				d += dincH;
+				position.x += xincD;
+			}
+			position.y++;
+			done = position != startPoint && !clear(position);
+		}
+	}
+	return position == endPoint;
+}
+
 bool IsLineNotSolid(Point startPoint, Point endPoint)
 {
 	return LineClear(IsTileNotSolid, startPoint, endPoint);
@@ -1918,7 +1992,7 @@ void AiRanged(Monster &monster)
 				RandomWalk(monster, Opposite(md));
 		}
 		if (monster.mode == MonsterMode::Stand) {
-			if (LineClearMissile(monster.position.tile, monster.enemyPosition)) {
+			if (LineClearMovingMissile(monster.position.tile, monster.enemyPosition)) {
 				const MissileID missileType = GetMissileType(monster.ai);
 				if (monster.ai == MonsterAIID::AcidUnique)
 					StartRangedSpecialAttack(monster, missileType, 0);
@@ -1961,7 +2035,7 @@ void AiRangedAvoidance(Monster &monster)
 			if (monster.goalVar1++ >= static_cast<int>(2 * distanceToEnemy) && DirOK(monster, md)) {
 				monster.goal = MonsterGoal::Normal;
 			} else if (v < (500 * (monster.intelligence + 1) >> lessmissiles)
-			    && (LineClearMissile(monster.position.tile, monster.enemyPosition))) {
+			    && (LineClearMovingMissile(monster.position.tile, monster.enemyPosition))) {
 				StartRangedSpecialAttack(monster, missileType, dam);
 			} else {
 				RoundWalk(monster, md, &monster.goalVar2);
@@ -1973,7 +2047,7 @@ void AiRangedAvoidance(Monster &monster)
 	if (monster.goal == MonsterGoal::Normal) {
 		if (((distanceToEnemy >= 3 && v < ((500 * (monster.intelligence + 2)) >> lessmissiles))
 		        || v < ((500 * (monster.intelligence + 1)) >> lessmissiles))
-		    && LineClearMissile(monster.position.tile, monster.enemyPosition)) {
+		    && LineClearMovingMissile(monster.position.tile, monster.enemyPosition)) {
 			StartRangedSpecialAttack(monster, missileType, dam);
 		} else if (distanceToEnemy >= 2) {
 			v = GenerateRnd(100);
@@ -2096,7 +2170,7 @@ void SkeletonBowAi(Monster &monster)
 
 	if (!walking) {
 		if (GenerateRnd(100) < 2 * monster.intelligence + 3) {
-			if (LineClearMissile(monster.position.tile, monster.enemyPosition))
+			if (LineClearMovingMissile(monster.position.tile, monster.enemyPosition))
 				StartRangedAttack(monster, MissileID::Arrow, 4);
 		}
 	}
@@ -2679,7 +2753,7 @@ void CounselorAi(Monster &monster)
 		}
 	} else if (monster.goal == MonsterGoal::Normal) {
 		if (distanceToEnemy >= 2) {
-			if (v < 5 * (monster.intelligence + 10) && LineClearMissile(monster.position.tile, monster.enemyPosition)) {
+			if (v < 5 * (monster.intelligence + 10) && LineClearMovingMissile(monster.position.tile, monster.enemyPosition)) {
 				constexpr MissileID MissileTypes[4] = { MissileID::Firebolt, MissileID::ChargedBolt, MissileID::LightningControl, MissileID::Fireball };
 				StartRangedAttack(monster, MissileTypes[monster.intelligence], RandomIntBetween(monster.minDamage, monster.maxDamage));
 			} else if (GenerateRnd(100) < 30) {
@@ -3199,6 +3273,16 @@ void InitGolem(devilution::Monster &monster, uint8_t golemOwnerPlayerId, int16_t
 	monster.minDamage = 2 * (golemSpellLevel + 4);
 	monster.maxDamage = 2 * (golemSpellLevel + 8);
 	UpdateEnemy(monster);
+}
+
+bool PosOkMissile(Point position)
+{
+	return !TileHasAny(position, TileProperties::BlockMissile);
+}
+
+bool PosOkMovingMissile(Point position)
+{
+	return !IsMissileBlockedByTile(position);
 }
 
 } // namespace
@@ -3778,7 +3862,7 @@ void AddDoppelganger(Monster &monster)
 
 void ApplyMonsterDamage(DamageType damageType, Monster &monster, int damage)
 {
-	AddFloatingNumber(damageType, monster, damage);
+	LuaEvent("OnMonsterTakeDamage", &monster, damage, static_cast<int>(damageType));
 
 	monster.hitPoints -= damage;
 
@@ -4254,88 +4338,14 @@ bool DirOK(const Monster &monster, Direction mdir)
 	return mcount == monster.packSize;
 }
 
-bool PosOkMissile(Point position)
-{
-	return !TileHasAny(position, TileProperties::BlockMissile);
-}
-
 bool LineClearMissile(Point startPoint, Point endPoint)
 {
 	return LineClear(PosOkMissile, startPoint, endPoint);
 }
 
-bool LineClear(tl::function_ref<bool(Point)> clear, Point startPoint, Point endPoint)
+bool LineClearMovingMissile(Point startPoint, Point endPoint)
 {
-	Point position = startPoint;
-
-	int dx = endPoint.x - position.x;
-	int dy = endPoint.y - position.y;
-	if (std::abs(dx) > std::abs(dy)) {
-		if (dx < 0) {
-			std::swap(position, endPoint);
-			dx = -dx;
-			dy = -dy;
-		}
-		int d;
-		int yincD;
-		int dincD;
-		int dincH;
-		if (dy > 0) {
-			d = 2 * dy - dx;
-			dincD = 2 * dy;
-			dincH = 2 * (dy - dx);
-			yincD = 1;
-		} else {
-			d = 2 * dy + dx;
-			dincD = 2 * dy;
-			dincH = 2 * (dx + dy);
-			yincD = -1;
-		}
-		bool done = false;
-		while (!done && position != endPoint) {
-			if ((d <= 0) ^ (yincD < 0)) {
-				d += dincD;
-			} else {
-				d += dincH;
-				position.y += yincD;
-			}
-			position.x++;
-			done = position != startPoint && !clear(position);
-		}
-	} else {
-		if (dy < 0) {
-			std::swap(position, endPoint);
-			dy = -dy;
-			dx = -dx;
-		}
-		int d;
-		int xincD;
-		int dincD;
-		int dincH;
-		if (dx > 0) {
-			d = 2 * dx - dy;
-			dincD = 2 * dx;
-			dincH = 2 * (dx - dy);
-			xincD = 1;
-		} else {
-			d = 2 * dx + dy;
-			dincD = 2 * dx;
-			dincH = 2 * (dy + dx);
-			xincD = -1;
-		}
-		bool done = false;
-		while (!done && position != endPoint) {
-			if ((d <= 0) ^ (xincD < 0)) {
-				d += dincD;
-			} else {
-				d += dincH;
-				position.x += xincD;
-			}
-			position.y++;
-			done = position != startPoint && !clear(position);
-		}
-	}
-	return position == endPoint;
+	return LineClear(PosOkMovingMissile, startPoint, endPoint);
 }
 
 tl::expected<void, std::string> SyncMonsterAnim(Monster &monster)

@@ -22,7 +22,7 @@
 
 #include <expected.hpp>
 
-#include "control.h"
+#include "control/control.hpp"
 #include "controls/input.h"
 #include "engine/clx_sprite.hpp"
 #include "engine/dx.h"

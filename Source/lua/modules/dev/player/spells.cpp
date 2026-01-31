@@ -8,8 +8,8 @@
 
 #include "lua/metadoc.hpp"
 #include "msg.h"
-#include "spelldat.h"
 #include "spells.h"
+#include "tables/spelldat.h"
 #include "utils/str_cat.hpp"
 
 namespace devilution {

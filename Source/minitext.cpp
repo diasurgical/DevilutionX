@@ -10,15 +10,15 @@
 #include <vector>
 
 #include "DiabloUI/ui_flags.hpp"
-#include "control.h"
+#include "control/control.hpp"
 #include "engine/clx_sprite.hpp"
 #include "engine/dx.h"
 #include "engine/load_cel.hpp"
 #include "engine/render/clx_render.hpp"
 #include "engine/render/primitive_render.hpp"
 #include "engine/render/text_render.hpp"
-#include "playerdat.hpp"
-#include "textdat.h"
+#include "tables/playerdat.hpp"
+#include "tables/textdat.h"
 #include "utils/language.h"
 #include "utils/timer.hpp"
 

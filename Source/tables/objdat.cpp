@@ -3,7 +3,7 @@
  *
  * Implementation of all object data.
  */
-#include "objdat.h"
+#include "tables/objdat.h"
 
 #include <string>
 #include <string_view>

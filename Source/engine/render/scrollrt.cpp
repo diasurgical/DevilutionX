@@ -87,6 +87,16 @@
 
 namespace devilution {
 
+enum OutlineColors : uint8_t {
+	OutlineColorsPlayer1 = (PAL16_ORANGE + 7),
+	OutlineColorsPlayer2 = (PAL16_YELLOW + 7),
+	OutlineColorsPlayer3 = (PAL16_RED + 7),
+	OutlineColorsPlayer4 = (PAL16_BLUE + 7),
+	OutlineColorsObject = (PAL16_YELLOW + 2),
+	OutlineColorsTowner = (PAL16_BEIGE + 6),
+	OutlineColorsMonster = (PAL16_RED + 9),
+};
+
 bool AutoMapShowItems;
 
 // DevilutionX extension.
@@ -430,6 +440,21 @@ void DrawPlayerIcons(const Surface &out, const Player &player, Point position, b
 		DrawPlayerIconHelper(out, MissileGraphicID::Reflect, position + Displacement { 0, 16 }, player, infraVision, lightTableIndex);
 }
 
+uint8_t GetPlayerOutlineColor(int id)
+{
+	static constexpr uint8_t PlayerOutlineColors[] = {
+		OutlineColorsPlayer1,
+		OutlineColorsPlayer2,
+		OutlineColorsPlayer3,
+		OutlineColorsPlayer4,
+	};
+
+	if (id < 0 || id >= static_cast<int>(SDL_arraysize(PlayerOutlineColors)))
+		return OutlineColorsPlayer1;
+
+	return PlayerOutlineColors[id];
+}
+
 /**
  * @brief Render a player sprite
  * @param out Output buffer
@@ -447,7 +472,7 @@ void DrawPlayer(const Surface &out, const Player &player, Point tilePosition, Po
 	const Point spriteBufferPosition = targetBufferPosition + player.getRenderingOffset(sprite);
 
 	if (&player == PlayerUnderCursor)
-		ClxDrawOutlineSkipColorZero(out, 165, spriteBufferPosition, sprite);
+		ClxDrawOutlineSkipColorZero(out, GetPlayerOutlineColor(player.getId()), spriteBufferPosition, sprite);
 
 	if (&player == MyPlayer && IsNoneOf(leveltype, DTYPE_NEST, DTYPE_CRYPT)) {
 		ClxDraw(out, spriteBufferPosition, sprite);
@@ -500,7 +525,7 @@ void DrawObject(const Surface &out, const Object &objectToDraw, Point tilePositi
 	const Point screenPosition = targetBufferPosition + objectToDraw.getRenderingOffset(sprite, tilePosition);
 
 	if (&objectToDraw == ObjectUnderCursor) {
-		ClxDrawOutlineSkipColorZero(out, 194, screenPosition, sprite);
+		ClxDrawOutlineSkipColorZero(out, OutlineColorsObject, screenPosition, sprite);
 	}
 	if (objectToDraw.applyLighting) {
 		ClxDrawLight(out, screenPosition, sprite, lightTableIndex);
@@ -713,7 +738,7 @@ void DrawMonsterHelper(const Surface &out, Point tilePosition, Point targetBuffe
 		const Point position = targetBufferPosition + towner.getRenderingOffset();
 		const ClxSprite sprite = towner.currentSprite();
 		if (mi == pcursmonst) {
-			ClxDrawOutlineSkipColorZero(out, 166, position, sprite);
+			ClxDrawOutlineSkipColorZero(out, OutlineColorsTowner, position, sprite);
 		}
 		ClxDraw(out, position, sprite);
 		return;
@@ -738,7 +763,7 @@ void DrawMonsterHelper(const Surface &out, Point tilePosition, Point targetBuffe
 
 	const Point monsterRenderPosition = targetBufferPosition + offset;
 	if (mi == pcursmonst) {
-		ClxDrawOutlineSkipColorZero(out, 233, monsterRenderPosition, sprite);
+		ClxDrawOutlineSkipColorZero(out, OutlineColorsMonster, monsterRenderPosition, sprite);
 	}
 	DrawMonster(out, tilePosition, monsterRenderPosition, monster, lightTableIndex);
 }
@@ -928,10 +953,8 @@ void DrawFloor(const Surface &out, const Lightmap &lightmap, Point tilePosition,
 {
 	for (int i = 0; i < rows; i++) {
 		for (int j = 0; j < columns; j++, tilePosition += Direction::East, targetBufferPosition.x += TILE_WIDTH) {
-			if (!InDungeonBounds(tilePosition)) {
-				world_draw_black_tile(out, targetBufferPosition.x, targetBufferPosition.y);
+			if (!InDungeonBounds(tilePosition))
 				continue;
-			}
 			if (IsFloor(tilePosition)) {
 				DrawFloorTile(out, lightmap, tilePosition, targetBufferPosition);
 			}
@@ -999,6 +1022,77 @@ void DrawTileContent(const Surface &out, const Lightmap &lightmap, Point tilePos
 			}
 			tilePosition += Direction::East;
 			targetBufferPosition.x += TILE_WIDTH;
+		}
+		// Return to start of row
+		tilePosition += Displacement(Direction::West) * columns;
+		targetBufferPosition.x -= columns * TILE_WIDTH;
+
+		// Jump to next row
+		targetBufferPosition.y += TILE_HEIGHT / 2;
+		if ((i & 1) != 0) {
+			tilePosition.x++;
+			columns--;
+			targetBufferPosition.x += TILE_WIDTH / 2;
+		} else {
+			tilePosition.y++;
+			columns++;
+			targetBufferPosition.x -= TILE_WIDTH / 2;
+		}
+	}
+}
+
+void DrawDirtTile(const Surface &out, const Lightmap &lightmap, Point tilePosition, Point targetBufferPosition)
+{
+	// This should be the *top-left* of the 2×2 dirt pattern in the actual dungeon.
+	// You might need to tweak these to where your dirt patch actually lives.
+	constexpr Point base { 0, 0 };
+
+	// Decide which of the 4 tiles of the 2×2 block to use,
+	// based on where this OOB tile is in the world grid.
+	const int ox = (tilePosition.x & 1); // 0 or 1
+	const int oy = (tilePosition.y & 1); // 0 or 1
+
+	Point sample {
+		base.x + ox,
+		base.y + oy,
+	};
+
+	// Safety: clamp in case tilePosition is wildly outside and base+offset ever escapes
+	sample.x = std::clamp(sample.x, 0, MAXDUNX - 1);
+	sample.y = std::clamp(sample.y, 0, MAXDUNY - 1);
+
+	if (!InDungeonBounds(sample) || dPiece[sample.x][sample.y] == 0) {
+		// Failsafe: if our sample somehow isn't valid, fall back to black
+		world_draw_black_tile(out, targetBufferPosition.x, targetBufferPosition.y);
+		return;
+	}
+
+	const int lightTableIndex = dLight[sample.x][sample.y];
+
+	// Let the normal dungeon tile renderer compose the full tile
+	DrawCell(out, lightmap, sample, targetBufferPosition, lightTableIndex);
+}
+
+/**
+ * @brief Render a row of tiles
+ * @param out Buffer to render to
+ * @param lightmap Per-pixel light buffer
+ * @param tilePosition dPiece coordinates
+ * @param targetBufferPosition Target buffer coordinates
+ * @param rows Number of rows
+ * @param columns Tile in a row
+ */
+void DrawOOB(const Surface &out, const Lightmap &lightmap, Point tilePosition, Point targetBufferPosition, int rows, int columns)
+{
+	for (int i = 0; i < rows + 5; i++) { // 5 extra rows needed to make sure everything gets rendered at the bottom half of the screen
+		for (int j = 0; j < columns; j++, tilePosition += Direction::East, targetBufferPosition.x += TILE_WIDTH) {
+			if (!InDungeonBounds(tilePosition)) {
+				if (leveltype == DTYPE_TOWN) {
+					world_draw_black_tile(out, targetBufferPosition.x, targetBufferPosition.y);
+				} else {
+					DrawDirtTile(out, lightmap, tilePosition, targetBufferPosition);
+				}
+			}
 		}
 		// Return to start of row
 		tilePosition += Displacement(Direction::West) * columns;
@@ -1183,6 +1277,7 @@ void DrawGame(const Surface &fullOut, Point position, Displacement offset)
 
 	DrawFloor(out, lightmap, position, Point {} + offset, rows, columns);
 	DrawTileContent(out, lightmap, position, Point {} + offset, rows, columns);
+	DrawOOB(out, lightmap, position, Point {} + offset, rows, columns);
 
 	if (*GetOptions().Graphics.zoom) {
 		Zoom(fullOut.subregionY(0, gnViewportHeight));
@@ -1746,7 +1841,7 @@ void DrawAndBlit()
 
 	const Rectangle &mainPanel = GetMainPanel();
 
-	if (gnScreenWidth > mainPanel.size.width || IsRedrawEverything() || *GetOptions().Gameplay.enableFloatingNumbers != FloatingNumbers::Off) {
+	if (gnScreenWidth > mainPanel.size.width || IsRedrawEverything()) {
 		drawHealth = true;
 		drawMana = true;
 		drawControlButtons = true;

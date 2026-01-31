@@ -7,8 +7,8 @@
 
 #include <cstdint>
 
-#include "objdat.h"
 #include "quests.h"
+#include "tables/objdat.h"
 
 namespace devilution {
 

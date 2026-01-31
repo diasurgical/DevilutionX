@@ -27,7 +27,7 @@
 #include "appfat.h"
 #include "automap.h"
 #include "capture.h"
-#include "control.h"
+#include "control/control.hpp"
 #include "cursor.h"
 #include "dead.h"
 #ifdef _DEBUG
@@ -76,7 +76,6 @@
 #include "menu.h"
 #include "minitext.h"
 #include "missiles.h"
-#include "monstdat.h"
 #include "movie.h"
 #include "multi.h"
 #include "nthread.h"
@@ -88,7 +87,6 @@
 #include "panels/spell_book.hpp"
 #include "panels/spell_list.hpp"
 #include "pfile.h"
-#include "playerdat.hpp"
 #include "plrmsg.h"
 #include "qol/chatlog.h"
 #include "qol/floatingnumbers.h"
@@ -101,6 +99,8 @@
 #include "stores.h"
 #include "storm/storm_net.hpp"
 #include "storm/storm_svid.h"
+#include "tables/monstdat.h"
+#include "tables/playerdat.hpp"
 #include "towners.h"
 #include "track.h"
 #include "utils/console.h"
@@ -282,7 +282,7 @@ void LeftMouseCmd(bool bShift)
 				LastPlayerAction = PlayerActionType::AttackMonsterTarget;
 				NetSendCmdParam1(true, CMD_RATTACKID, pcursmonst);
 			}
-		} else if (PlayerUnderCursor != nullptr && !myPlayer.friendlyMode) {
+		} else if (PlayerUnderCursor != nullptr && !PlayerUnderCursor->hasNoLife() && !myPlayer.friendlyMode) {
 			LastPlayerAction = PlayerActionType::AttackPlayerTarget;
 			NetSendCmdParam1(true, CMD_RATTACKPID, PlayerUnderCursor->getId());
 		}
@@ -302,7 +302,7 @@ void LeftMouseCmd(bool bShift)
 		} else if (pcursmonst != -1) {
 			LastPlayerAction = PlayerActionType::AttackMonsterTarget;
 			NetSendCmdParam1(true, CMD_ATTACKID, pcursmonst);
-		} else if (PlayerUnderCursor != nullptr && !myPlayer.friendlyMode) {
+		} else if (PlayerUnderCursor != nullptr && !PlayerUnderCursor->hasNoLife() && !myPlayer.friendlyMode) {
 			LastPlayerAction = PlayerActionType::AttackPlayerTarget;
 			NetSendCmdParam1(true, CMD_ATTACKPID, PlayerUnderCursor->getId());
 		}
@@ -2854,7 +2854,7 @@ bool TryIconCurs()
 			NetSendCmdLocParam4(true, CMD_SPELLXYD, cursPosition, static_cast<int8_t>(spellID), static_cast<uint8_t>(spellType), static_cast<uint16_t>(sd), spellFrom);
 		} else if (pcursmonst != -1 && leveltype != DTYPE_TOWN) {
 			NetSendCmdParam4(true, CMD_SPELLID, pcursmonst, static_cast<int8_t>(spellID), static_cast<uint8_t>(spellType), spellFrom);
-		} else if (PlayerUnderCursor != nullptr && !myPlayer.friendlyMode) {
+		} else if (PlayerUnderCursor != nullptr && !PlayerUnderCursor->hasNoLife() && !myPlayer.friendlyMode) {
 			NetSendCmdParam4(true, CMD_SPELLPID, PlayerUnderCursor->getId(), static_cast<int8_t>(spellID), static_cast<uint8_t>(spellType), spellFrom);
 		} else {
 			NetSendCmdLocParam3(true, CMD_SPELLXY, cursPosition, static_cast<int8_t>(spellID), static_cast<uint8_t>(spellType), spellFrom);

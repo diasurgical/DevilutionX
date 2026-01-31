@@ -21,12 +21,13 @@
 #include "engine/render/text_render.hpp"
 #include "engine/trn.hpp"
 #include "game_mode.hpp"
+#include "lua/lua_event.hpp"
 #include "minitext.h"
 #include "multi.h"
 #include "options.h"
 #include "panels/info_box.hpp"
 #include "qol/stash.h"
-#include "townerdat.hpp"
+#include "tables/townerdat.hpp"
 #include "towners.h"
 #include "utils/format_int.hpp"
 #include "utils/language.h"
@@ -653,24 +654,8 @@ void StartSmithRepair()
 	AddItemListBackButton();
 }
 
-void FillManaPlayer()
-{
-	if (!*GetOptions().Gameplay.adriaRefillsMana)
-		return;
-
-	Player &myPlayer = *MyPlayer;
-
-	if (myPlayer._pMana != myPlayer._pMaxMana) {
-		PlaySFX(SfxID::CastHealing);
-	}
-	myPlayer._pMana = myPlayer._pMaxMana;
-	myPlayer._pManaBase = myPlayer._pMaxManaBase;
-	RedrawComponent(PanelDrawComponent::Mana);
-}
-
 void StartWitch()
 {
-	FillManaPlayer();
 	IsTextFullSize = false;
 	HasScrollbar = false;
 	AddSText(0, 2, _("Witch's shack"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
@@ -2215,6 +2200,37 @@ void StartStore(TalkID s)
 	CloseGoldDrop();
 	ClearSText(0, NumStoreLines);
 	ReleaseStoreBtn();
+
+	// Fire StoreOpened Lua event for main store entries
+	switch (s) {
+	case TalkID::Smith:
+		LuaEvent("StoreOpened", "griswold");
+		break;
+	case TalkID::Witch:
+		LuaEvent("StoreOpened", "adria");
+		break;
+	case TalkID::Boy:
+		LuaEvent("StoreOpened", "wirt");
+		break;
+	case TalkID::Healer:
+		LuaEvent("StoreOpened", "pepin");
+		break;
+	case TalkID::Storyteller:
+		LuaEvent("StoreOpened", "cain");
+		break;
+	case TalkID::Tavern:
+		LuaEvent("StoreOpened", "ogden");
+		break;
+	case TalkID::Drunk:
+		LuaEvent("StoreOpened", "farnham");
+		break;
+	case TalkID::Barmaid:
+		LuaEvent("StoreOpened", "gillian");
+		break;
+	default:
+		break;
+	}
+
 	switch (s) {
 	case TalkID::Smith:
 		StartSmith();
