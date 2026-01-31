@@ -906,7 +906,6 @@ void CheckInvCut(Player &player, Point cursorPosition, bool automaticMove, bool 
 				SellItemToVisualStore(iv);
 				automaticallyMoved = true;
 			} else {
-
 				holdItem = player.InvList[iv];
 				player.RemoveInvItem(iv, false);
 			}
