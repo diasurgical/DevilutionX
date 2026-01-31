@@ -2525,7 +2525,7 @@ void AddWallControl(Missile &missile, AddMissileParameter &parameter)
 {
 	std::optional<Point> spreadPosition = FindClosestValidPosition(
 	    [start = missile.position.start](Point target) {
-		    return start != target && !TileHasAny(target, TileProperties::BlockMissile) && LineClearMissile(start, target); // CODEFIX: LineClearMissile already checks for BlockMissile
+		    return start != target && !TileHasAny(target, TileProperties::BlockMissile) && LineClearMissile(start, target);
 	    },
 	    parameter.dst, 0, 5);
 
