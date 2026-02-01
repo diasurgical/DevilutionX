@@ -80,6 +80,9 @@ bool InGameMenu()
 	    || (MyPlayer != nullptr && MyPlayer->_pInvincible && MyPlayer->hasNoLife());
 }
 
+// Forward declaration for use in anonymous namespace
+void FocusOnVisualStore();
+
 namespace {
 
 int Slot = SLOTXY_INV_FIRST;
@@ -87,6 +90,9 @@ Point ActiveStashSlot = InvalidStashPoint;
 Point VisualStoreSlot = { 0, 0 };
 int PreviousInventoryColumn = -1;
 bool BeltReturnsToStash = false;
+
+// Forward declaration for use in VisualStoreMove
+void InventoryMove(AxisDirection dir);
 
 const Direction FaceDir[3][3] = {
 	// NONE             UP                DOWN
@@ -908,13 +914,6 @@ void LiftStashItem()
 	SetCursorPos(mousePos);
 }
 
-void FocusOnVisualStore()
-{
-	VisualStoreSlot = { 0, 0 };
-	const Point slotPos = GetVisualStoreSlotCoord(VisualStoreSlot);
-	SetCursorPos(slotPos + Displacement { INV_SLOT_HALF_SIZE_PX, INV_SLOT_HALF_SIZE_PX });
-}
-
 void VisualStoreMove(AxisDirection dir)
 {
 	static AxisDirectionRepeater repeater(/*min_interval_ms=*/150);
@@ -922,11 +921,42 @@ void VisualStoreMove(AxisDirection dir)
 	if (dir.x == AxisDirectionX_NONE && dir.y == AxisDirectionY_NONE)
 		return;
 
+	// Check if we're currently in inventory mode (similar to StashMove)
+	if (Slot >= 0) {
+		// We're in inventory - check if we should transition back to visual store
+		if (dir.x == AxisDirectionX_LEFT) {
+			int firstSlot = Slot;
+			if (Slot >= SLOTXY_INV_FIRST && Slot <= SLOTXY_INV_LAST) {
+				if (MyPlayer->HoldItem.isEmpty()) {
+					const int8_t itemId = GetItemIdOnSlot(Slot);
+					if (itemId != 0) {
+						firstSlot = FindFirstSlotOnItem(itemId);
+					}
+				}
+			}
+
+			// If we're in the leftmost column or left side of body, move back to visual store
+			if (IsAnyOf(firstSlot, SLOTXY_HEAD, SLOTXY_HAND_LEFT, SLOTXY_RING_LEFT, SLOTXY_AMULET, SLOTXY_CHEST,
+			        SLOTXY_INV_ROW1_FIRST, SLOTXY_INV_ROW2_FIRST, SLOTXY_INV_ROW3_FIRST, SLOTXY_INV_ROW4_FIRST)) {
+				InvalidateInventorySlot();
+				FocusOnVisualStore();
+				return;
+			}
+		}
+
+		// Delegate all inventory movement to InventoryMove
+		InventoryMove(dir);
+		return;
+	}
+
+	// We're in visual store mode - handle visual store navigation
 	if (dir.x == AxisDirectionX_RIGHT) {
 		if (VisualStoreSlot.y == -1) { // Tabs
 			if (VisualStoreSlot.x == 0 && VisualStore.vendor == VisualStoreVendor::Smith) {
 				VisualStoreSlot.x = 1;
 			} else {
+				// Transition to inventory
+				VisualStoreSlot = { -1, -1 }; // Invalidate visual store slot
 				FocusOnInventory();
 				return;
 			}
@@ -934,6 +964,8 @@ void VisualStoreMove(AxisDirection dir)
 			if (VisualStoreSlot.x == 0) {
 				VisualStoreSlot.x = 1;
 			} else {
+				// Transition to inventory
+				VisualStoreSlot = { -1, -1 }; // Invalidate visual store slot
 				FocusOnInventory();
 				return;
 			}
@@ -941,6 +973,8 @@ void VisualStoreMove(AxisDirection dir)
 			if (VisualStoreSlot.x < VisualStoreGridWidth - 1) {
 				VisualStoreSlot.x++;
 			} else {
+				// Transition to inventory
+				VisualStoreSlot = { -1, -1 }; // Invalidate visual store slot
 				FocusOnInventory();
 				return;
 			}
@@ -1598,9 +1632,10 @@ HandleLeftStickOrDPadFn GetLeftStickOrDPadGameUIHandler()
 	if (IsStashOpen) {
 		return &StashMove;
 	}
-	if (invflag) {
-		if (IsVisualStoreOpen && GetLeftPanel().contains(MousePosition))
-			return &VisualStoreMove;
+	if (IsVisualStoreOpen) {
+		return &VisualStoreMove;
+	}
+	if (invflag) {	
 		return &CheckInventoryMove;
 	}
 	if (CharFlag && MyPlayer->_pStatPts > 0) {
@@ -1828,6 +1863,14 @@ void LogGamepadChange(GamepadLayout newGamepad)
 #endif
 
 } // namespace
+
+void FocusOnVisualStore()
+{
+	InvalidateInventorySlot(); // Clear inventory focus
+	VisualStoreSlot = { 0, 0 };
+	const Point slotPos = GetVisualStoreSlotCoord(VisualStoreSlot);
+	SetCursorPos(slotPos + Displacement { INV_SLOT_HALF_SIZE_PX, INV_SLOT_HALF_SIZE_PX });
+}
 
 void DetectInputMethod(const SDL_Event &event, const ControllerButtonEvent &gamepadEvent)
 {
@@ -2115,6 +2158,7 @@ void PerformPrimaryAction()
 			LiftStashItem();
 		} else if (IsVisualStoreOpen && GetLeftPanel().contains(MousePosition)) {
 			if (pcursstorebtn != -1) {
+				CheckVisualStoreButtonPress(MousePosition);
 				CheckVisualStoreButtonRelease(MousePosition);
 			} else {
 				CheckVisualStoreItem(MousePosition, false, false);

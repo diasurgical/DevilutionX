@@ -10,6 +10,7 @@
 #include <span>
 
 #include "control/control.hpp"
+#include "controls/plrctrls.h"
 #include "cursor.h"
 #include "engine/clx_sprite.hpp"
 #include "engine/load_clx.hpp"
@@ -319,6 +320,9 @@ void OpenVisualStore(VisualStoreVendor vendor)
 	}
 
 	RefreshVisualStoreLayout();
+
+	// Initialize controller focus to the visual store grid
+	FocusOnVisualStore();
 }
 
 void CloseVisualStore()
@@ -624,7 +628,23 @@ int16_t CheckVisualStoreHLight(Point mousePosition)
 		button.position = panelPos + (button.position - Point { 0, 0 });
 
 		if (button.contains(mousePosition)) {
-			if (i == RepairAllBtn) {
+			if (i == TabButtonBasic) {
+				InfoString = _("Basic");
+				FloatingInfoString = _("Basic");
+				AddInfoBoxString(_("Basic items"));
+				AddInfoBoxString(_("Basic items"), true);
+				InfoColor = UiFlags::ColorWhite;
+				pcursstorebtn = TabButtonBasic;
+				return -1;
+			} else if (i == TabButtonPremium) {
+				InfoString = _("Premium");
+				FloatingInfoString = _("Premium");
+				AddInfoBoxString(_("Premium items"));
+				AddInfoBoxString(_("Premium items"), true);
+				InfoColor = UiFlags::ColorWhite;
+				pcursstorebtn = TabButtonPremium;
+				return -1;
+			} else if (i == RepairAllBtn) {
 				int totalCost = 0;
 				Player &myPlayer = *MyPlayer;
 				for (auto &item : myPlayer.InvBody)

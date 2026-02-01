@@ -61,6 +61,7 @@ void UpdateSpellTarget(SpellID spell);
 bool TryDropItem();
 void InvalidateInventorySlot();
 void FocusOnInventory();
+void FocusOnVisualStore();
 void PerformSpellAction();
 void QuickCast(size_t slot);
 
