@@ -1635,7 +1635,7 @@ HandleLeftStickOrDPadFn GetLeftStickOrDPadGameUIHandler()
 	if (IsVisualStoreOpen) {
 		return &VisualStoreMove;
 	}
-	if (invflag) {	
+	if (invflag) {
 		return &CheckInventoryMove;
 	}
 	if (CharFlag && MyPlayer->_pStatPts > 0) {
