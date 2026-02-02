@@ -32,16 +32,23 @@
 #include "help.h"
 #include "items.h"
 #include "levels/gendung.h"
+#include "levels/setmaps.h"
 #include "levels/tile_properties.hpp"
+#include "levels/trigs.h"
+#include "missiles.h"
 #include "monster.h"
 #include "multi.h"
 #include "objects.h"
 #include "player.h"
+#include "portal.h"
 #include "qol/chatlog.h"
+#include "quests.h"
 #include "stores.h"
+#include "towners.h"
 #include "utils/accessibility_announcements.hpp"
 #include "utils/is_of.hpp"
 #include "utils/language.h"
+#include "utils/navigation_speech.hpp"
 #include "utils/screen_reader.hpp"
 #include "utils/sdl_compat.h"
 #include "utils/str_cat.hpp"
@@ -70,12 +77,28 @@ int LockedTrackerObjectId = -1;
 int LockedTrackerBreakableId = -1;
 int LockedTrackerMonsterId = -1;
 int LockedTrackerDeadBodyId = -1;
+int LockedTrackerNpcId = -1;
+int LockedTrackerPlayerId = -1;
+int LockedTrackerDungeonEntranceId = -1;
+int LockedTrackerStairsId = -1;
+int LockedTrackerQuestLocationId = -1;
+int LockedTrackerPortalId = -1;
 
 struct TrackerLevelKey {
 	dungeon_type levelType;
 	int currLevel;
 	bool isSetLevel;
 	int setLevelNum;
+
+	friend bool operator==(const TrackerLevelKey &lhs, const TrackerLevelKey &rhs)
+	{
+		return lhs.levelType == rhs.levelType && lhs.currLevel == rhs.currLevel
+		    && lhs.isSetLevel == rhs.isSetLevel && lhs.setLevelNum == rhs.setLevelNum;
+	}
+	friend bool operator!=(const TrackerLevelKey &lhs, const TrackerLevelKey &rhs)
+	{
+		return !(lhs == rhs);
+	}
 };
 
 std::optional<TrackerLevelKey> LockedTrackerLevelKey;
@@ -90,6 +113,12 @@ void ClearTrackerLocks()
 	LockedTrackerBreakableId = -1;
 	LockedTrackerMonsterId = -1;
 	LockedTrackerDeadBodyId = -1;
+	LockedTrackerNpcId = -1;
+	LockedTrackerPlayerId = -1;
+	LockedTrackerDungeonEntranceId = -1;
+	LockedTrackerStairsId = -1;
+	LockedTrackerQuestLocationId = -1;
+	LockedTrackerPortalId = -1;
 }
 
 void EnsureTrackerLocksMatchCurrentLevel()
@@ -101,8 +130,7 @@ void EnsureTrackerLocksMatchCurrentLevel()
 		.setLevelNum = setlvlnum,
 	};
 
-	if (!LockedTrackerLevelKey || LockedTrackerLevelKey->levelType != current.levelType || LockedTrackerLevelKey->currLevel != current.currLevel
-	    || LockedTrackerLevelKey->isSetLevel != current.isSetLevel || LockedTrackerLevelKey->setLevelNum != current.setLevelNum) {
+	if (!LockedTrackerLevelKey || *LockedTrackerLevelKey != current) {
 		ClearTrackerLocks();
 		LockedTrackerLevelKey = current;
 	}
@@ -127,6 +155,18 @@ int &LockedTrackerTargetId(TrackerTargetCategory category)
 		return LockedTrackerMonsterId;
 	case TrackerTargetCategory::DeadBodies:
 		return LockedTrackerDeadBodyId;
+	case TrackerTargetCategory::Npcs:
+		return LockedTrackerNpcId;
+	case TrackerTargetCategory::Players:
+		return LockedTrackerPlayerId;
+	case TrackerTargetCategory::DungeonEntrances:
+		return LockedTrackerDungeonEntranceId;
+	case TrackerTargetCategory::Stairs:
+		return LockedTrackerStairsId;
+	case TrackerTargetCategory::QuestLocations:
+		return LockedTrackerQuestLocationId;
+	case TrackerTargetCategory::Portals:
+		return LockedTrackerPortalId;
 	}
 	app_fatal("Invalid TrackerTargetCategory");
 }
@@ -150,16 +190,27 @@ std::string_view TrackerTargetCategoryLabel(TrackerTargetCategory category)
 		return _("monsters");
 	case TrackerTargetCategory::DeadBodies:
 		return _("dead bodies");
-	default:
-		return _("items");
+	case TrackerTargetCategory::Npcs:
+		return _("NPCs");
+	case TrackerTargetCategory::Players:
+		return _("players");
+	case TrackerTargetCategory::DungeonEntrances:
+		if (leveltype != DTYPE_TOWN)
+			return _("exits");
+		return _("dungeon entrances");
+	case TrackerTargetCategory::Stairs:
+		return _("stairs");
+	case TrackerTargetCategory::QuestLocations:
+		return _("quest locations");
+	case TrackerTargetCategory::Portals:
+		return _("portals");
 	}
+	app_fatal("Invalid TrackerTargetCategory");
 }
 
 void SpeakTrackerTargetCategory()
 {
-	std::string message;
-	StrAppend(message, _("Tracker target: "), TrackerTargetCategoryLabel(SelectedTrackerTargetCategory));
-	SpeakText(message, true);
+	SpeakText(TrackerTargetCategoryLabel(SelectedTrackerTargetCategory), true);
 }
 
 std::optional<int> FindNearestGroundItemId(Point playerPosition)
@@ -270,7 +321,7 @@ struct TrackerCandidate {
 		}
 	}
 
-	std::sort(result.begin(), result.end(), [](const TrackerCandidate &a, const TrackerCandidate &b) { return IsBetterTrackerCandidate(a, b); });
+	std::sort(result.begin(), result.end(), IsBetterTrackerCandidate);
 	return result;
 }
 
@@ -301,7 +352,7 @@ struct TrackerCandidate {
 		}
 	}
 
-	std::sort(result.begin(), result.end(), [](const TrackerCandidate &a, const TrackerCandidate &b) { return IsBetterTrackerCandidate(a, b); });
+	std::sort(result.begin(), result.end(), IsBetterTrackerCandidate);
 	return result;
 }
 
@@ -399,7 +450,7 @@ template <typename Predicate>
 		});
 	}
 
-	std::sort(result.begin(), result.end(), [](const TrackerCandidate &a, const TrackerCandidate &b) { return IsBetterTrackerCandidate(a, b); });
+	std::sort(result.begin(), result.end(), IsBetterTrackerCandidate);
 	return result;
 }
 
@@ -477,16 +528,10 @@ template <typename Predicate>
 	for (size_t i = 0; i < ActiveMonsterCount; ++i) {
 		const int monsterId = static_cast<int>(ActiveMonsters[i]);
 		const Monster &monster = Monsters[monsterId];
-
-		if (monster.isInvalid)
-			continue;
-		if ((monster.flags & MFLAG_HIDDEN) != 0)
-			continue;
-		if (monster.hitPoints <= 0)
+		if (!IsTrackedMonster(monster))
 			continue;
 
-		const Point monsterDistancePosition { monster.position.future };
-		const int distance = playerPosition.ApproxDistance(monsterDistancePosition);
+		const int distance = playerPosition.ApproxDistance(monster.position.future);
 		if (distance > maxDistance)
 			continue;
 
@@ -497,7 +542,280 @@ template <typename Predicate>
 		});
 	}
 
-	std::sort(result.begin(), result.end(), [](const TrackerCandidate &a, const TrackerCandidate &b) { return IsBetterTrackerCandidate(a, b); });
+	std::sort(result.begin(), result.end(), IsBetterTrackerCandidate);
+	return result;
+}
+
+[[nodiscard]] std::vector<TrackerCandidate> CollectNpcTrackerCandidates(Point playerPosition)
+{
+	std::vector<TrackerCandidate> result;
+	if (leveltype != DTYPE_TOWN)
+		return result;
+
+	result.reserve(GetNumTowners());
+	for (size_t i = 0; i < GetNumTowners(); ++i) {
+		const Towner &towner = Towners[i];
+		if (!IsTownerPresent(towner._ttype))
+			continue;
+
+		const int distance = playerPosition.WalkingDistance(towner.position);
+		result.push_back(TrackerCandidate {
+		    .id = static_cast<int>(i),
+		    .distance = distance,
+		    .name = towner.name,
+		});
+	}
+
+	std::sort(result.begin(), result.end(), [](const TrackerCandidate &a, const TrackerCandidate &b) {
+		if (a.distance != b.distance)
+			return a.distance < b.distance;
+		return a.name.str() < b.name.str();
+	});
+	return result;
+}
+
+[[nodiscard]] std::vector<TrackerCandidate> CollectPlayerTrackerCandidates(Point playerPosition)
+{
+	std::vector<TrackerCandidate> result;
+	if (!gbIsMultiplayer || MyPlayer == nullptr)
+		return result;
+
+	result.reserve(MAX_PLRS);
+
+	const uint8_t currentLevel = MyPlayer->plrlevel;
+	const bool currentIsSetLevel = setlevel;
+
+	for (int i = 0; i < MAX_PLRS; ++i) {
+		if (i == MyPlayerId)
+			continue;
+		const Player &player = Players[i];
+		if (!player.plractive)
+			continue;
+		if (player._pLvlChanging)
+			continue;
+		if (player.plrlevel != currentLevel)
+			continue;
+		if (player.plrIsOnSetLevel != currentIsSetLevel)
+			continue;
+
+		const Point otherPosition = player.position.future;
+		if (!InDungeonBounds(otherPosition))
+			continue;
+
+		const int distance = playerPosition.WalkingDistance(otherPosition);
+		result.push_back(TrackerCandidate {
+		    .id = i,
+		    .distance = distance,
+		    .name = player.name(),
+		});
+	}
+
+	std::sort(result.begin(), result.end(), IsBetterTrackerCandidate);
+	return result;
+}
+
+[[nodiscard]] std::vector<TrackerCandidate> CollectDungeonEntranceTrackerCandidates(Point playerPosition)
+{
+	std::vector<TrackerCandidate> result;
+	if (MyPlayer == nullptr)
+		return result;
+
+	if (leveltype == DTYPE_TOWN) {
+		const std::vector<int> candidates = CollectTownDungeonTriggerIndices();
+		result.reserve(candidates.size());
+
+		for (const int triggerIndex : candidates) {
+			if (triggerIndex < 0 || triggerIndex >= numtrigs)
+				continue;
+			const TriggerStruct &trigger = trigs[triggerIndex];
+			const Point triggerPosition { trigger.position.x, trigger.position.y };
+			const int distance = playerPosition.WalkingDistance(triggerPosition);
+			result.push_back(TrackerCandidate {
+			    .id = triggerIndex,
+			    .distance = distance,
+			    .name = TriggerLabelForSpeech(trigger),
+			});
+		}
+
+		std::sort(result.begin(), result.end(), IsBetterTrackerCandidate);
+		return result;
+	}
+
+	for (int i = 0; i < numtrigs; ++i) {
+		const TriggerStruct &trigger = trigs[i];
+		if (setlevel) {
+			if (trigger._tmsg != WM_DIABRTNLVL)
+				continue;
+		} else {
+			if (trigger._tmsg != WM_DIABPREVLVL)
+				continue;
+		}
+
+		const Point triggerPosition { trigger.position.x, trigger.position.y };
+		const int distance = playerPosition.WalkingDistance(triggerPosition);
+		result.push_back(TrackerCandidate {
+		    .id = i,
+		    .distance = distance,
+		    .name = TriggerLabelForSpeech(trigger),
+		});
+	}
+
+	std::sort(result.begin(), result.end(), IsBetterTrackerCandidate);
+	return result;
+}
+
+[[nodiscard]] std::optional<Point> FindTownPortalPositionInTownByPortalIndex(int portalIndex)
+{
+	if (portalIndex < 0 || portalIndex >= MAXPORTAL)
+		return std::nullopt;
+
+	for (const Missile &missile : Missiles) {
+		if (missile._mitype != MissileID::TownPortal)
+			continue;
+		if (missile._misource != portalIndex)
+			continue;
+		return missile.position.tile;
+	}
+
+	return std::nullopt;
+}
+
+[[nodiscard]] bool IsTownPortalOpenOnCurrentLevel(int portalIndex)
+{
+	if (portalIndex < 0 || portalIndex >= MAXPORTAL)
+		return false;
+	const Portal &portal = Portals[portalIndex];
+	if (!portal.open)
+		return false;
+	if (portal.setlvl != setlevel)
+		return false;
+	if (portal.level != currlevel)
+		return false;
+	if (portal.ltype != leveltype)
+		return false;
+	return InDungeonBounds(portal.position);
+}
+
+[[nodiscard]] std::vector<TrackerCandidate> CollectPortalTrackerCandidates(Point playerPosition)
+{
+	std::vector<TrackerCandidate> result;
+	if (MyPlayer == nullptr)
+		return result;
+
+	if (leveltype == DTYPE_TOWN) {
+		std::array<bool, MAXPORTAL> seen {};
+		for (const Missile &missile : Missiles) {
+			if (missile._mitype != MissileID::TownPortal)
+				continue;
+			const int portalIndex = missile._misource;
+			if (portalIndex < 0 || portalIndex >= MAXPORTAL)
+				continue;
+			if (seen[portalIndex])
+				continue;
+			seen[portalIndex] = true;
+
+			const Point portalPosition = missile.position.tile;
+			const int distance = playerPosition.WalkingDistance(portalPosition);
+			result.push_back(TrackerCandidate {
+			    .id = portalIndex,
+			    .distance = distance,
+			    .name = TownPortalLabelForSpeech(Portals[portalIndex]),
+			});
+		}
+		std::sort(result.begin(), result.end(), IsBetterTrackerCandidate);
+		return result;
+	}
+
+	for (int i = 0; i < MAXPORTAL; ++i) {
+		if (!IsTownPortalOpenOnCurrentLevel(i))
+			continue;
+		const Portal &portal = Portals[i];
+		const int distance = playerPosition.WalkingDistance(portal.position);
+		result.push_back(TrackerCandidate {
+		    .id = i,
+		    .distance = distance,
+		    .name = TownPortalLabelForSpeech(portal),
+		});
+	}
+	std::sort(result.begin(), result.end(), IsBetterTrackerCandidate);
+	return result;
+}
+
+[[nodiscard]] std::vector<TrackerCandidate> CollectStairsTrackerCandidates(Point playerPosition)
+{
+	std::vector<TrackerCandidate> result;
+	if (MyPlayer == nullptr || leveltype == DTYPE_TOWN)
+		return result;
+
+	for (int i = 0; i < numtrigs; ++i) {
+		const TriggerStruct &trigger = trigs[i];
+		if (!IsAnyOf(trigger._tmsg, WM_DIABNEXTLVL, WM_DIABPREVLVL))
+			continue;
+
+		const Point triggerPosition { trigger.position.x, trigger.position.y };
+		const int distance = playerPosition.WalkingDistance(triggerPosition);
+		result.push_back(TrackerCandidate {
+		    .id = i,
+		    .distance = distance,
+		    .name = TriggerLabelForSpeech(trigger),
+		});
+	}
+
+	std::sort(result.begin(), result.end(), IsBetterTrackerCandidate);
+	return result;
+}
+
+[[nodiscard]] std::vector<TrackerCandidate> CollectQuestLocationTrackerCandidates(Point playerPosition)
+{
+	std::vector<TrackerCandidate> result;
+	if (MyPlayer == nullptr || leveltype == DTYPE_TOWN)
+		return result;
+
+	if (setlevel) {
+		for (int i = 0; i < numtrigs; ++i) {
+			const TriggerStruct &trigger = trigs[i];
+			if (trigger._tmsg != WM_DIABRTNLVL)
+				continue;
+
+			const Point triggerPosition { trigger.position.x, trigger.position.y };
+			const int distance = playerPosition.WalkingDistance(triggerPosition);
+			result.push_back(TrackerCandidate {
+			    .id = i,
+			    .distance = distance,
+			    .name = TriggerLabelForSpeech(trigger),
+			});
+		}
+
+		std::sort(result.begin(), result.end(), IsBetterTrackerCandidate);
+		return result;
+	}
+
+	constexpr size_t NumQuests = sizeof(Quests) / sizeof(Quests[0]);
+	result.reserve(NumQuests);
+	for (size_t questIndex = 0; questIndex < NumQuests; ++questIndex) {
+		const Quest &quest = Quests[questIndex];
+		if (quest._qslvl == SL_NONE)
+			continue;
+		if (quest._qactive == QUEST_NOTAVAIL)
+			continue;
+		if (quest._qlevel != currlevel)
+			continue;
+		if (!InDungeonBounds(quest.position))
+			continue;
+
+		const char *questLevelName = QuestLevelNames[quest._qslvl];
+		if (questLevelName == nullptr || questLevelName[0] == '\0')
+			questLevelName = N_("Set level");
+
+		const int distance = playerPosition.WalkingDistance(quest.position);
+		result.push_back(TrackerCandidate {
+		    .id = static_cast<int>(questIndex),
+		    .distance = distance,
+		    .name = _(questLevelName),
+		});
+	}
+
+	std::sort(result.begin(), result.end(), IsBetterTrackerCandidate);
 	return result;
 }
 
@@ -518,6 +836,25 @@ template <typename Predicate>
 	const size_t idx = static_cast<size_t>(it - candidates.begin());
 	const size_t nextIdx = (idx + 1) % candidates.size();
 	return candidates[nextIdx].id;
+}
+
+[[nodiscard]] std::optional<int> FindPreviousTrackerCandidateId(const std::vector<TrackerCandidate> &candidates, int currentId)
+{
+	if (candidates.empty())
+		return std::nullopt;
+	if (currentId < 0)
+		return candidates.back().id;
+
+	const auto it = std::find_if(candidates.begin(), candidates.end(), [currentId](const TrackerCandidate &c) { return c.id == currentId; });
+	if (it == candidates.end())
+		return candidates.back().id;
+
+	if (candidates.size() <= 1)
+		return std::nullopt;
+
+	const size_t idx = static_cast<size_t>(it - candidates.begin());
+	const size_t prevIdx = (idx + candidates.size() - 1) % candidates.size();
+	return candidates[prevIdx].id;
 }
 
 void DecorateTrackerTargetNameWithOrdinalIfNeeded(int targetId, StringOrView &targetName, const std::vector<TrackerCandidate> &candidates)
@@ -608,16 +945,10 @@ std::optional<int> FindNearestMonsterId(Point playerPosition)
 	for (size_t i = 0; i < ActiveMonsterCount; ++i) {
 		const int monsterId = static_cast<int>(ActiveMonsters[i]);
 		const Monster &monster = Monsters[monsterId];
-
-		if (monster.isInvalid)
-			continue;
-		if ((monster.flags & MFLAG_HIDDEN) != 0)
-			continue;
-		if (monster.hitPoints <= 0)
+		if (!IsTrackedMonster(monster))
 			continue;
 
-		const Point monsterDistancePosition { monster.position.future };
-		const int distance = playerPosition.ApproxDistance(monsterDistancePosition);
+		const int distance = playerPosition.ApproxDistance(monster.position.future);
 		if (!bestId || distance < bestDistance) {
 			bestId = monsterId;
 			bestDistance = distance;
@@ -831,7 +1162,7 @@ bool ValidateAutoWalkObjectTarget(
 		SpeakText(_(inRangeMessage), true);
 		return false;
 	}
-	destination = FindBestAdjacentApproachTile(myPlayer, playerPosition, object.position);
+	destination = FindBestApproachTileForObject(myPlayer, playerPosition, object);
 	return true;
 }
 
@@ -871,84 +1202,286 @@ std::optional<int> ResolveObjectTrackerTarget(
 	return targetId;
 }
 
-} // namespace
+[[nodiscard]] std::vector<TrackerTargetCategory> TrackerTargetCategoriesForCurrentLevel()
+{
+	if (leveltype == DTYPE_TOWN) {
+		return {
+			TrackerTargetCategory::Items,
+			TrackerTargetCategory::DeadBodies,
+			TrackerTargetCategory::Npcs,
+			TrackerTargetCategory::Players,
+			TrackerTargetCategory::DungeonEntrances,
+			TrackerTargetCategory::Portals,
+		};
+	}
 
-void CycleTrackerTargetKeyPressed()
+	return {
+		TrackerTargetCategory::Items,
+		TrackerTargetCategory::Chests,
+		TrackerTargetCategory::Doors,
+		TrackerTargetCategory::Shrines,
+		TrackerTargetCategory::Objects,
+		TrackerTargetCategory::Breakables,
+		TrackerTargetCategory::Monsters,
+		TrackerTargetCategory::DeadBodies,
+		TrackerTargetCategory::DungeonEntrances,
+		TrackerTargetCategory::Stairs,
+		TrackerTargetCategory::QuestLocations,
+		TrackerTargetCategory::Players,
+		TrackerTargetCategory::Portals,
+	};
+}
+
+void SelectTrackerTargetCategoryRelative(int delta)
 {
 	if (!CanPlayerTakeAction() || InGameMenu())
 		return;
 
 	AutoWalkTrackerTargetId = -1;
 
-	const SDL_Keymod modState = SDL_GetModState();
-	const bool cyclePrevious = (modState & SDL_KMOD_SHIFT) != 0;
+	const std::vector<TrackerTargetCategory> categories = TrackerTargetCategoriesForCurrentLevel();
+	if (categories.empty())
+		return;
 
-	if (cyclePrevious) {
-		switch (SelectedTrackerTargetCategory) {
-		case TrackerTargetCategory::Items:
-			SelectedTrackerTargetCategory = TrackerTargetCategory::DeadBodies;
-			break;
-		case TrackerTargetCategory::Chests:
-			SelectedTrackerTargetCategory = TrackerTargetCategory::Items;
-			break;
-		case TrackerTargetCategory::Doors:
-			SelectedTrackerTargetCategory = TrackerTargetCategory::Chests;
-			break;
-		case TrackerTargetCategory::Shrines:
-			SelectedTrackerTargetCategory = TrackerTargetCategory::Doors;
-			break;
-		case TrackerTargetCategory::Objects:
-			SelectedTrackerTargetCategory = TrackerTargetCategory::Shrines;
-			break;
-		case TrackerTargetCategory::Breakables:
-			SelectedTrackerTargetCategory = TrackerTargetCategory::Objects;
-			break;
-		case TrackerTargetCategory::Monsters:
-			SelectedTrackerTargetCategory = TrackerTargetCategory::Breakables;
-			break;
-		case TrackerTargetCategory::DeadBodies:
-		default:
-			SelectedTrackerTargetCategory = TrackerTargetCategory::Monsters;
-			break;
-		}
+	auto it = std::find(categories.begin(), categories.end(), SelectedTrackerTargetCategory);
+	int currentIndex = 0;
+	if (it == categories.end()) {
+		currentIndex = delta > 0 ? -1 : 0;
 	} else {
-		switch (SelectedTrackerTargetCategory) {
-		case TrackerTargetCategory::Items:
-			SelectedTrackerTargetCategory = TrackerTargetCategory::Chests;
-			break;
-		case TrackerTargetCategory::Chests:
-			SelectedTrackerTargetCategory = TrackerTargetCategory::Doors;
-			break;
-		case TrackerTargetCategory::Doors:
-			SelectedTrackerTargetCategory = TrackerTargetCategory::Shrines;
-			break;
-		case TrackerTargetCategory::Shrines:
-			SelectedTrackerTargetCategory = TrackerTargetCategory::Objects;
-			break;
-		case TrackerTargetCategory::Objects:
-			SelectedTrackerTargetCategory = TrackerTargetCategory::Breakables;
-			break;
-		case TrackerTargetCategory::Breakables:
-			SelectedTrackerTargetCategory = TrackerTargetCategory::Monsters;
-			break;
-		case TrackerTargetCategory::Monsters:
-			SelectedTrackerTargetCategory = TrackerTargetCategory::DeadBodies;
-			break;
-		case TrackerTargetCategory::DeadBodies:
-		default:
-			SelectedTrackerTargetCategory = TrackerTargetCategory::Items;
-			break;
-		}
+		currentIndex = static_cast<int>(it - categories.begin());
 	}
 
+	const int count = static_cast<int>(categories.size());
+	int newIndex = (currentIndex + delta) % count;
+	if (newIndex < 0)
+		newIndex += count;
+
+	SelectedTrackerTargetCategory = categories[static_cast<size_t>(newIndex)];
 	SpeakTrackerTargetCategory();
 }
+
+[[nodiscard]] std::vector<TrackerCandidate> CollectTrackerCandidatesForSelection(TrackerTargetCategory category, Point playerPosition)
+{
+	switch (category) {
+	case TrackerTargetCategory::Items:
+		return CollectNearbyItemTrackerCandidates(playerPosition, TrackerCycleDistanceTiles);
+	case TrackerTargetCategory::Chests:
+		return CollectNearbyChestTrackerCandidates(playerPosition, TrackerCycleDistanceTiles);
+	case TrackerTargetCategory::Doors: {
+		std::vector<TrackerCandidate> candidates = CollectNearbyDoorTrackerCandidates(playerPosition, TrackerCycleDistanceTiles);
+		for (TrackerCandidate &c : candidates) {
+			if (c.id < 0 || c.id >= MAXOBJECTS)
+				continue;
+			c.name = DoorLabelForSpeech(Objects[c.id]);
+		}
+		return candidates;
+	}
+	case TrackerTargetCategory::Shrines:
+		return CollectNearbyShrineTrackerCandidates(playerPosition, TrackerCycleDistanceTiles);
+	case TrackerTargetCategory::Objects:
+		return CollectNearbyObjectInteractableTrackerCandidates(playerPosition, TrackerCycleDistanceTiles);
+	case TrackerTargetCategory::Breakables:
+		return CollectNearbyBreakableTrackerCandidates(playerPosition, TrackerCycleDistanceTiles);
+	case TrackerTargetCategory::Monsters:
+		return CollectNearbyMonsterTrackerCandidates(playerPosition, TrackerCycleDistanceTiles);
+	case TrackerTargetCategory::DeadBodies:
+		return CollectNearbyCorpseTrackerCandidates(playerPosition, TrackerCycleDistanceTiles);
+	case TrackerTargetCategory::Npcs:
+		return CollectNpcTrackerCandidates(playerPosition);
+	case TrackerTargetCategory::Players:
+		return CollectPlayerTrackerCandidates(playerPosition);
+	case TrackerTargetCategory::DungeonEntrances:
+		return CollectDungeonEntranceTrackerCandidates(playerPosition);
+	case TrackerTargetCategory::Stairs:
+		return CollectStairsTrackerCandidates(playerPosition);
+	case TrackerTargetCategory::QuestLocations:
+		return CollectQuestLocationTrackerCandidates(playerPosition);
+	case TrackerTargetCategory::Portals:
+		return CollectPortalTrackerCandidates(playerPosition);
+	}
+	app_fatal("Invalid TrackerTargetCategory");
+}
+
+[[nodiscard]] std::string_view TrackerCategoryNoCandidatesFoundMessage(TrackerTargetCategory category)
+{
+	switch (category) {
+	case TrackerTargetCategory::Items:
+		return _("No items found.");
+	case TrackerTargetCategory::Chests:
+		return _("No chests found.");
+	case TrackerTargetCategory::Doors:
+		return _("No doors found.");
+	case TrackerTargetCategory::Shrines:
+		return _("No shrines found.");
+	case TrackerTargetCategory::Objects:
+		return _("No objects found.");
+	case TrackerTargetCategory::Breakables:
+		return _("No breakables found.");
+	case TrackerTargetCategory::Monsters:
+		return _("No monsters found.");
+	case TrackerTargetCategory::DeadBodies:
+		return _("No dead bodies found.");
+	case TrackerTargetCategory::Npcs:
+		return _("No NPCs found.");
+	case TrackerTargetCategory::Players:
+		return _("No players found.");
+	case TrackerTargetCategory::DungeonEntrances:
+		if (leveltype != DTYPE_TOWN)
+			return _("No exits found.");
+		return _("No dungeon entrances found.");
+	case TrackerTargetCategory::Stairs:
+		return _("No stairs found.");
+	case TrackerTargetCategory::QuestLocations:
+		return _("No quest locations found.");
+	case TrackerTargetCategory::Portals:
+		return _("No portals found.");
+	}
+	app_fatal("Invalid TrackerTargetCategory");
+}
+
+[[nodiscard]] std::string_view TrackerCategoryNoNextMessage(TrackerTargetCategory category)
+{
+	switch (category) {
+	case TrackerTargetCategory::Items:
+		return _("No next item.");
+	case TrackerTargetCategory::Chests:
+		return _("No next chest.");
+	case TrackerTargetCategory::Doors:
+		return _("No next door.");
+	case TrackerTargetCategory::Shrines:
+		return _("No next shrine.");
+	case TrackerTargetCategory::Objects:
+		return _("No next object.");
+	case TrackerTargetCategory::Breakables:
+		return _("No next breakable.");
+	case TrackerTargetCategory::Monsters:
+		return _("No next monster.");
+	case TrackerTargetCategory::DeadBodies:
+		return _("No next dead body.");
+	case TrackerTargetCategory::Npcs:
+		return _("No next NPC.");
+	case TrackerTargetCategory::Players:
+		return _("No next player.");
+	case TrackerTargetCategory::DungeonEntrances:
+		return _("No next dungeon entrance.");
+	case TrackerTargetCategory::Stairs:
+		return _("No next stairs.");
+	case TrackerTargetCategory::QuestLocations:
+		return _("No next quest location.");
+	case TrackerTargetCategory::Portals:
+		return _("No next portal.");
+	}
+	app_fatal("Invalid TrackerTargetCategory");
+}
+
+[[nodiscard]] std::string_view TrackerCategoryNoPreviousMessage(TrackerTargetCategory category)
+{
+	switch (category) {
+	case TrackerTargetCategory::Items:
+		return _("No previous item.");
+	case TrackerTargetCategory::Chests:
+		return _("No previous chest.");
+	case TrackerTargetCategory::Doors:
+		return _("No previous door.");
+	case TrackerTargetCategory::Shrines:
+		return _("No previous shrine.");
+	case TrackerTargetCategory::Objects:
+		return _("No previous object.");
+	case TrackerTargetCategory::Breakables:
+		return _("No previous breakable.");
+	case TrackerTargetCategory::Monsters:
+		return _("No previous monster.");
+	case TrackerTargetCategory::DeadBodies:
+		return _("No previous dead body.");
+	case TrackerTargetCategory::Npcs:
+		return _("No previous NPC.");
+	case TrackerTargetCategory::Players:
+		return _("No previous player.");
+	case TrackerTargetCategory::DungeonEntrances:
+		return _("No previous dungeon entrance.");
+	case TrackerTargetCategory::Stairs:
+		return _("No previous stairs.");
+	case TrackerTargetCategory::QuestLocations:
+		return _("No previous quest location.");
+	case TrackerTargetCategory::Portals:
+		return _("No previous portal.");
+	}
+	app_fatal("Invalid TrackerTargetCategory");
+}
+
+/**
+ * Returns true if the given tracker category requires a dungeon (i.e. is not
+ * available in town).
+ */
+[[nodiscard]] bool IsDungeonOnlyTrackerCategory(TrackerTargetCategory category)
+{
+	return IsNoneOf(category, TrackerTargetCategory::Items, TrackerTargetCategory::DeadBodies,
+	    TrackerTargetCategory::Npcs, TrackerTargetCategory::Players,
+	    TrackerTargetCategory::DungeonEntrances, TrackerTargetCategory::Portals);
+}
+
+void SelectTrackerTargetRelative(int delta)
+{
+	if (!CanPlayerTakeAction() || InGameMenu())
+		return;
+	if (MyPlayer == nullptr)
+		return;
+
+	if (leveltype == DTYPE_TOWN && IsDungeonOnlyTrackerCategory(SelectedTrackerTargetCategory)) {
+		SpeakText(_("Not in a dungeon."), true);
+		return;
+	}
+	if (AutomapActive) {
+		SpeakText(_("Close the map first."), true);
+		return;
+	}
+
+	EnsureTrackerLocksMatchCurrentLevel();
+
+	const Point playerPosition = MyPlayer->position.future;
+	AutoWalkTrackerTargetId = -1;
+
+	const std::vector<TrackerCandidate> candidates = CollectTrackerCandidatesForSelection(SelectedTrackerTargetCategory, playerPosition);
+	if (candidates.empty()) {
+		LockedTrackerTargetId(SelectedTrackerTargetCategory) = -1;
+		SpeakText(TrackerCategoryNoCandidatesFoundMessage(SelectedTrackerTargetCategory), true);
+		return;
+	}
+
+	int &lockedTargetId = LockedTrackerTargetId(SelectedTrackerTargetCategory);
+	if (candidates.size() == 1) {
+		lockedTargetId = candidates.front().id;
+		SpeakText(candidates.front().name.str(), /*force=*/true);
+		return;
+	}
+	const std::optional<int> targetId = delta > 0 ? FindNextTrackerCandidateId(candidates, lockedTargetId) : FindPreviousTrackerCandidateId(candidates, lockedTargetId);
+	if (!targetId) {
+		SpeakText(delta > 0 ? TrackerCategoryNoNextMessage(SelectedTrackerTargetCategory) : TrackerCategoryNoPreviousMessage(SelectedTrackerTargetCategory), true);
+		return;
+	}
+
+	const auto it = std::find_if(candidates.begin(), candidates.end(), [id = *targetId](const TrackerCandidate &c) { return c.id == id; });
+	if (it == candidates.end()) {
+		lockedTargetId = -1;
+		SpeakText(TrackerCategoryNoCandidatesFoundMessage(SelectedTrackerTargetCategory), true);
+		return;
+	}
+
+	lockedTargetId = *targetId;
+	StringOrView targetName = it->name.str();
+	DecorateTrackerTargetNameWithOrdinalIfNeeded(*targetId, targetName, candidates);
+	SpeakText(targetName.str(), /*force=*/true);
+}
+
+} // namespace
+
+namespace {
 
 void NavigateToTrackerTargetKeyPressed()
 {
 	if (!CanPlayerTakeAction() || InGameMenu())
 		return;
-	if (leveltype == DTYPE_TOWN && IsNoneOf(SelectedTrackerTargetCategory, TrackerTargetCategory::Items, TrackerTargetCategory::DeadBodies)) {
+	if (leveltype == DTYPE_TOWN && IsDungeonOnlyTrackerCategory(SelectedTrackerTargetCategory)) {
 		SpeakText(_("Not in a dungeon."), true);
 		return;
 	}
@@ -1312,6 +1845,248 @@ void NavigateToTrackerTargetKeyPressed()
 		}
 		break;
 	}
+	case TrackerTargetCategory::Npcs: {
+		const std::vector<TrackerCandidate> nearbyCandidates = CollectNpcTrackerCandidates(playerPosition);
+		if (cycleTarget) {
+			targetId = FindNextTrackerCandidateId(nearbyCandidates, lockedTargetId);
+			if (!targetId) {
+				if (nearbyCandidates.empty())
+					SpeakText(_("No NPCs found."), true);
+				else
+					SpeakText(_("No next NPC."), true);
+				return;
+			}
+		} else if (lockedTargetId >= 0 && lockedTargetId < static_cast<int>(GetNumTowners())) {
+			targetId = lockedTargetId;
+		} else if (!nearbyCandidates.empty()) {
+			targetId = nearbyCandidates.front().id;
+		}
+		if (!targetId) {
+			SpeakText(_("No NPCs found."), true);
+			return;
+		}
+
+		const auto it = std::find_if(nearbyCandidates.begin(), nearbyCandidates.end(), [id = *targetId](const TrackerCandidate &c) { return c.id == id; });
+		if (it == nearbyCandidates.end()) {
+			lockedTargetId = -1;
+			SpeakText(_("No NPCs found."), true);
+			return;
+		}
+
+		lockedTargetId = *targetId;
+		targetName = Towners[*targetId].name;
+		DecorateTrackerTargetNameWithOrdinalIfNeeded(*targetId, targetName, nearbyCandidates);
+		if (!cycleTarget) {
+			targetPosition = Towners[*targetId].position;
+		}
+		break;
+	}
+	case TrackerTargetCategory::Players: {
+		const std::vector<TrackerCandidate> nearbyCandidates = CollectPlayerTrackerCandidates(playerPosition);
+		if (cycleTarget) {
+			targetId = FindNextTrackerCandidateId(nearbyCandidates, lockedTargetId);
+			if (!targetId) {
+				if (nearbyCandidates.empty())
+					SpeakText(_("No players found."), true);
+				else
+					SpeakText(_("No next player."), true);
+				return;
+			}
+		} else if (lockedTargetId >= 0 && lockedTargetId < MAX_PLRS) {
+			targetId = lockedTargetId;
+		} else if (!nearbyCandidates.empty()) {
+			targetId = nearbyCandidates.front().id;
+		}
+		if (!targetId) {
+			SpeakText(_("No players found."), true);
+			return;
+		}
+
+		const auto it = std::find_if(nearbyCandidates.begin(), nearbyCandidates.end(), [id = *targetId](const TrackerCandidate &c) { return c.id == id; });
+		if (it == nearbyCandidates.end()) {
+			lockedTargetId = -1;
+			SpeakText(_("No players found."), true);
+			return;
+		}
+
+		lockedTargetId = *targetId;
+		targetName = Players[*targetId].name();
+		DecorateTrackerTargetNameWithOrdinalIfNeeded(*targetId, targetName, nearbyCandidates);
+		if (!cycleTarget) {
+			targetPosition = Players[*targetId].position.future;
+		}
+		break;
+	}
+	case TrackerTargetCategory::DungeonEntrances: {
+		const std::vector<TrackerCandidate> nearbyCandidates = CollectDungeonEntranceTrackerCandidates(playerPosition);
+		if (cycleTarget) {
+			targetId = FindNextTrackerCandidateId(nearbyCandidates, lockedTargetId);
+			if (!targetId) {
+				if (nearbyCandidates.empty())
+					SpeakText(_("No dungeon entrances found."), true);
+				else
+					SpeakText(_("No next dungeon entrance."), true);
+				return;
+			}
+		} else if (lockedTargetId >= 0 && lockedTargetId < numtrigs) {
+			targetId = lockedTargetId;
+		} else if (!nearbyCandidates.empty()) {
+			targetId = nearbyCandidates.front().id;
+		}
+		if (!targetId) {
+			SpeakText(_("No dungeon entrances found."), true);
+			return;
+		}
+
+		const auto it = std::find_if(nearbyCandidates.begin(), nearbyCandidates.end(), [id = *targetId](const TrackerCandidate &c) { return c.id == id; });
+		if (it == nearbyCandidates.end()) {
+			lockedTargetId = -1;
+			SpeakText(_("No dungeon entrances found."), true);
+			return;
+		}
+
+		lockedTargetId = *targetId;
+		targetName = TriggerLabelForSpeech(trigs[*targetId]);
+		DecorateTrackerTargetNameWithOrdinalIfNeeded(*targetId, targetName, nearbyCandidates);
+		if (!cycleTarget) {
+			const TriggerStruct &trigger = trigs[*targetId];
+			targetPosition = Point { trigger.position.x, trigger.position.y };
+		}
+		break;
+	}
+	case TrackerTargetCategory::Stairs: {
+		const std::vector<TrackerCandidate> nearbyCandidates = CollectStairsTrackerCandidates(playerPosition);
+		if (cycleTarget) {
+			targetId = FindNextTrackerCandidateId(nearbyCandidates, lockedTargetId);
+			if (!targetId) {
+				if (nearbyCandidates.empty())
+					SpeakText(_("No stairs found."), true);
+				else
+					SpeakText(_("No next stairs."), true);
+				return;
+			}
+		} else if (lockedTargetId >= 0 && lockedTargetId < numtrigs) {
+			targetId = lockedTargetId;
+		} else if (!nearbyCandidates.empty()) {
+			targetId = nearbyCandidates.front().id;
+		}
+		if (!targetId) {
+			SpeakText(_("No stairs found."), true);
+			return;
+		}
+
+		const auto it = std::find_if(nearbyCandidates.begin(), nearbyCandidates.end(), [id = *targetId](const TrackerCandidate &c) { return c.id == id; });
+		if (it == nearbyCandidates.end()) {
+			lockedTargetId = -1;
+			SpeakText(_("No stairs found."), true);
+			return;
+		}
+
+		lockedTargetId = *targetId;
+		targetName = std::string(it->name.str());
+		DecorateTrackerTargetNameWithOrdinalIfNeeded(*targetId, targetName, nearbyCandidates);
+		if (!cycleTarget) {
+			const TriggerStruct &trigger = trigs[*targetId];
+			targetPosition = Point { trigger.position.x, trigger.position.y };
+		}
+		break;
+	}
+	case TrackerTargetCategory::QuestLocations: {
+		const std::vector<TrackerCandidate> nearbyCandidates = CollectQuestLocationTrackerCandidates(playerPosition);
+		if (cycleTarget) {
+			targetId = FindNextTrackerCandidateId(nearbyCandidates, lockedTargetId);
+			if (!targetId) {
+				if (nearbyCandidates.empty())
+					SpeakText(_("No quest locations found."), true);
+				else
+					SpeakText(_("No next quest location."), true);
+				return;
+			}
+		} else if ((setlevel && lockedTargetId >= 0 && lockedTargetId < numtrigs) || (!setlevel && lockedTargetId >= 0 && lockedTargetId < static_cast<int>(sizeof(Quests) / sizeof(Quests[0])))) {
+			targetId = lockedTargetId;
+		} else if (!nearbyCandidates.empty()) {
+			targetId = nearbyCandidates.front().id;
+		}
+		if (!targetId) {
+			SpeakText(_("No quest locations found."), true);
+			return;
+		}
+
+		const auto it = std::find_if(nearbyCandidates.begin(), nearbyCandidates.end(), [id = *targetId](const TrackerCandidate &c) { return c.id == id; });
+		if (it == nearbyCandidates.end()) {
+			lockedTargetId = -1;
+			SpeakText(_("No quest locations found."), true);
+			return;
+		}
+
+		lockedTargetId = *targetId;
+		targetName = std::string(it->name.str());
+		DecorateTrackerTargetNameWithOrdinalIfNeeded(*targetId, targetName, nearbyCandidates);
+		if (!cycleTarget) {
+			if (setlevel) {
+				const TriggerStruct &trigger = trigs[*targetId];
+				targetPosition = Point { trigger.position.x, trigger.position.y };
+			} else {
+				const Quest &quest = Quests[static_cast<size_t>(*targetId)];
+				targetPosition = quest.position;
+			}
+		}
+		break;
+	}
+	case TrackerTargetCategory::Portals: {
+		const std::vector<TrackerCandidate> nearbyCandidates = CollectPortalTrackerCandidates(playerPosition);
+		if (cycleTarget) {
+			targetId = FindNextTrackerCandidateId(nearbyCandidates, lockedTargetId);
+			if (!targetId) {
+				if (nearbyCandidates.empty())
+					SpeakText(_("No portals found."), true);
+				else
+					SpeakText(_("No next portal."), true);
+				return;
+			}
+		} else if (lockedTargetId >= 0 && lockedTargetId < MAXPORTAL) {
+			targetId = lockedTargetId;
+		} else if (!nearbyCandidates.empty()) {
+			targetId = nearbyCandidates.front().id;
+		}
+		if (!targetId) {
+			SpeakText(_("No portals found."), true);
+			return;
+		}
+
+		const auto it = std::find_if(nearbyCandidates.begin(), nearbyCandidates.end(), [id = *targetId](const TrackerCandidate &c) { return c.id == id; });
+		if (it == nearbyCandidates.end()) {
+			lockedTargetId = -1;
+			SpeakText(_("No portals found."), true);
+			return;
+		}
+
+		Point portalPosition;
+		if (leveltype == DTYPE_TOWN) {
+			const std::optional<Point> townPos = FindTownPortalPositionInTownByPortalIndex(*targetId);
+			if (!townPos) {
+				lockedTargetId = -1;
+				SpeakText(_("No portals found."), true);
+				return;
+			}
+			portalPosition = *townPos;
+		} else {
+			if (!IsTownPortalOpenOnCurrentLevel(*targetId)) {
+				lockedTargetId = -1;
+				SpeakText(_("No portals found."), true);
+				return;
+			}
+			portalPosition = Portals[*targetId].position;
+		}
+
+		lockedTargetId = *targetId;
+		targetName = TownPortalLabelForSpeech(Portals[*targetId]);
+		DecorateTrackerTargetNameWithOrdinalIfNeeded(*targetId, targetName, nearbyCandidates);
+		if (!cycleTarget) {
+			targetPosition = portalPosition;
+		}
+		break;
+	}
 	}
 
 	if (cycleTarget) {
@@ -1461,7 +2236,7 @@ void AutoWalkToTrackerTargetKeyPressed()
 	if (!CanPlayerTakeAction() || InGameMenu())
 		return;
 
-	if (leveltype == DTYPE_TOWN) {
+	if (leveltype == DTYPE_TOWN && IsDungeonOnlyTrackerCategory(SelectedTrackerTargetCategory)) {
 		SpeakText(_("Not in a dungeon."), true);
 		return;
 	}
@@ -1570,7 +2345,126 @@ void AutoWalkToTrackerTargetKeyPressed()
 		targetName = _("Dead body");
 		break;
 	}
+	case TrackerTargetCategory::Npcs: {
+		const std::vector<TrackerCandidate> candidates = CollectNpcTrackerCandidates(playerPosition);
+		if (candidates.empty()) {
+			SpeakText(_("No NPCs found."), true);
+			return;
+		}
+
+		if (lockedTargetId >= 0 && lockedTargetId < static_cast<int>(GetNumTowners())) {
+			const auto it = std::find_if(candidates.begin(), candidates.end(), [id = lockedTargetId](const TrackerCandidate &c) { return c.id == id; });
+			if (it != candidates.end())
+				targetId = lockedTargetId;
+		}
+		if (!targetId)
+			targetId = candidates.front().id;
+
+		lockedTargetId = *targetId;
+		targetName = Towners[*targetId].name;
+		break;
 	}
+	case TrackerTargetCategory::Players: {
+		const std::vector<TrackerCandidate> candidates = CollectPlayerTrackerCandidates(playerPosition);
+		if (candidates.empty()) {
+			SpeakText(_("No players found."), true);
+			return;
+		}
+
+		if (lockedTargetId >= 0 && lockedTargetId < MAX_PLRS) {
+			const auto it = std::find_if(candidates.begin(), candidates.end(), [id = lockedTargetId](const TrackerCandidate &c) { return c.id == id; });
+			if (it != candidates.end())
+				targetId = lockedTargetId;
+		}
+		if (!targetId)
+			targetId = candidates.front().id;
+
+		lockedTargetId = *targetId;
+		targetName = Players[*targetId].name();
+		break;
+	}
+	case TrackerTargetCategory::DungeonEntrances: {
+		const std::vector<TrackerCandidate> candidates = CollectDungeonEntranceTrackerCandidates(playerPosition);
+		if (candidates.empty()) {
+			SpeakText(_("No dungeon entrances found."), true);
+			return;
+		}
+
+		if (lockedTargetId >= 0 && lockedTargetId < numtrigs) {
+			const auto it = std::find_if(candidates.begin(), candidates.end(), [id = lockedTargetId](const TrackerCandidate &c) { return c.id == id; });
+			if (it != candidates.end())
+				targetId = lockedTargetId;
+		}
+		if (!targetId)
+			targetId = candidates.front().id;
+
+		lockedTargetId = *targetId;
+		targetName = TriggerLabelForSpeech(trigs[*targetId]);
+		break;
+	}
+	case TrackerTargetCategory::Stairs: {
+		const std::vector<TrackerCandidate> candidates = CollectStairsTrackerCandidates(playerPosition);
+		if (candidates.empty()) {
+			SpeakText(_("No stairs found."), true);
+			return;
+		}
+
+		if (lockedTargetId >= 0 && lockedTargetId < numtrigs) {
+			const auto it = std::find_if(candidates.begin(), candidates.end(), [id = lockedTargetId](const TrackerCandidate &c) { return c.id == id; });
+			if (it != candidates.end())
+				targetId = lockedTargetId;
+		}
+		if (!targetId)
+			targetId = candidates.front().id;
+
+		lockedTargetId = *targetId;
+		targetName = TriggerLabelForSpeech(trigs[*targetId]);
+		break;
+	}
+	case TrackerTargetCategory::QuestLocations: {
+		const std::vector<TrackerCandidate> candidates = CollectQuestLocationTrackerCandidates(playerPosition);
+		if (candidates.empty()) {
+			SpeakText(_("No quest locations found."), true);
+			return;
+		}
+
+		if ((setlevel && lockedTargetId >= 0 && lockedTargetId < numtrigs) || (!setlevel && lockedTargetId >= 0 && lockedTargetId < static_cast<int>(sizeof(Quests) / sizeof(Quests[0])))) {
+			const auto it = std::find_if(candidates.begin(), candidates.end(), [id = lockedTargetId](const TrackerCandidate &c) { return c.id == id; });
+			if (it != candidates.end())
+				targetId = lockedTargetId;
+		}
+		if (!targetId)
+			targetId = candidates.front().id;
+
+		lockedTargetId = *targetId;
+		targetName = std::string(candidates.front().name.str());
+		if (const auto it = std::find_if(candidates.begin(), candidates.end(), [id = *targetId](const TrackerCandidate &c) { return c.id == id; }); it != candidates.end())
+			targetName = std::string(it->name.str());
+		break;
+	}
+	case TrackerTargetCategory::Portals: {
+		const std::vector<TrackerCandidate> candidates = CollectPortalTrackerCandidates(playerPosition);
+		if (candidates.empty()) {
+			SpeakText(_("No portals found."), true);
+			return;
+		}
+
+		if (lockedTargetId >= 0 && lockedTargetId < MAXPORTAL) {
+			const auto it = std::find_if(candidates.begin(), candidates.end(), [id = lockedTargetId](const TrackerCandidate &c) { return c.id == id; });
+			if (it != candidates.end())
+				targetId = lockedTargetId;
+		}
+		if (!targetId)
+			targetId = candidates.front().id;
+
+		lockedTargetId = *targetId;
+		targetName = TownPortalLabelForSpeech(Portals[*targetId]);
+		break;
+	}
+	}
+
+	if (!targetId)
+		return;
 
 	std::string msg;
 	StrAppend(msg, _("Going to: "), targetName);
@@ -1581,11 +2475,18 @@ void AutoWalkToTrackerTargetKeyPressed()
 	UpdateAutoWalkTracker();
 }
 
+} // namespace
+
 void UpdateAutoWalkTracker()
 {
 	if (AutoWalkTrackerTargetId < 0)
 		return;
-	if (leveltype == DTYPE_TOWN || IsPlayerInStore() || ChatLogFlag || HelpFlag || InGameMenu()) {
+	if (IsPlayerInStore() || ChatLogFlag || HelpFlag || InGameMenu()) {
+		AutoWalkTrackerTargetId = -1;
+		return;
+	}
+	if (leveltype == DTYPE_TOWN
+	    && IsDungeonOnlyTrackerCategory(AutoWalkTrackerTargetCategory)) {
 		AutoWalkTrackerTargetId = -1;
 		return;
 	}
@@ -1692,6 +2593,167 @@ void UpdateAutoWalkTracker()
 		destination = corpsePosition;
 		break;
 	}
+	case TrackerTargetCategory::Npcs: {
+		const int npcId = AutoWalkTrackerTargetId;
+		if (leveltype != DTYPE_TOWN || npcId < 0 || npcId >= static_cast<int>(GetNumTowners())) {
+			AutoWalkTrackerTargetId = -1;
+			SpeakText(_("Target NPC is gone."), true);
+			return;
+		}
+		const Towner &towner = Towners[npcId];
+		if (!IsTownerPresent(towner._ttype)) {
+			AutoWalkTrackerTargetId = -1;
+			SpeakText(_("Target NPC is gone."), true);
+			return;
+		}
+		if (playerPosition.WalkingDistance(towner.position) <= TrackerInteractDistanceTiles) {
+			AutoWalkTrackerTargetId = -1;
+			SpeakText(_("NPC in range."), true);
+			return;
+		}
+		destination = FindBestAdjacentApproachTile(myPlayer, playerPosition, towner.position);
+		break;
+	}
+	case TrackerTargetCategory::Players: {
+		const int playerId = AutoWalkTrackerTargetId;
+		if (playerId < 0 || playerId >= MAX_PLRS) {
+			AutoWalkTrackerTargetId = -1;
+			SpeakText(_("Target player is gone."), true);
+			return;
+		}
+		const Player &player = Players[playerId];
+		if (!player.plractive || player._pLvlChanging || player.plrIsOnSetLevel != setlevel || player.plrlevel != MyPlayer->plrlevel) {
+			AutoWalkTrackerTargetId = -1;
+			SpeakText(_("Target player is gone."), true);
+			return;
+		}
+		const Point targetPosition = player.position.future;
+		if (!InDungeonBounds(targetPosition)) {
+			AutoWalkTrackerTargetId = -1;
+			SpeakText(_("Target player is gone."), true);
+			return;
+		}
+		if (playerPosition.WalkingDistance(targetPosition) <= TrackerInteractDistanceTiles) {
+			AutoWalkTrackerTargetId = -1;
+			SpeakText(_("Player in range."), true);
+			return;
+		}
+		destination = FindBestAdjacentApproachTile(myPlayer, playerPosition, targetPosition);
+		break;
+	}
+	case TrackerTargetCategory::DungeonEntrances: {
+		const int triggerIndex = AutoWalkTrackerTargetId;
+		if (triggerIndex < 0 || triggerIndex >= numtrigs) {
+			AutoWalkTrackerTargetId = -1;
+			SpeakText(_("Target entrance is gone."), true);
+			return;
+		}
+		const TriggerStruct &trigger = trigs[triggerIndex];
+		const bool valid = leveltype == DTYPE_TOWN
+		    ? IsAnyOf(trigger._tmsg, WM_DIABNEXTLVL, WM_DIABTOWNWARP)
+		    : (setlevel ? trigger._tmsg == WM_DIABRTNLVL : trigger._tmsg == WM_DIABPREVLVL);
+		if (!valid) {
+			AutoWalkTrackerTargetId = -1;
+			SpeakText(_("Target entrance is gone."), true);
+			return;
+		}
+		const Point triggerPosition { trigger.position.x, trigger.position.y };
+		if (playerPosition.WalkingDistance(triggerPosition) <= TrackerInteractDistanceTiles) {
+			AutoWalkTrackerTargetId = -1;
+			SpeakText(_("Entrance in range."), true);
+			return;
+		}
+		destination = triggerPosition;
+		break;
+	}
+	case TrackerTargetCategory::Stairs: {
+		const int triggerIndex = AutoWalkTrackerTargetId;
+		if (leveltype == DTYPE_TOWN || triggerIndex < 0 || triggerIndex >= numtrigs) {
+			AutoWalkTrackerTargetId = -1;
+			SpeakText(_("Target stairs are gone."), true);
+			return;
+		}
+		const TriggerStruct &trigger = trigs[triggerIndex];
+		if (!IsAnyOf(trigger._tmsg, WM_DIABNEXTLVL, WM_DIABPREVLVL)) {
+			AutoWalkTrackerTargetId = -1;
+			SpeakText(_("Target stairs are gone."), true);
+			return;
+		}
+		const Point triggerPosition { trigger.position.x, trigger.position.y };
+		if (playerPosition.WalkingDistance(triggerPosition) <= TrackerInteractDistanceTiles) {
+			AutoWalkTrackerTargetId = -1;
+			SpeakText(_("Stairs in range."), true);
+			return;
+		}
+		destination = triggerPosition;
+		break;
+	}
+	case TrackerTargetCategory::QuestLocations: {
+		if (setlevel) {
+			const int triggerIndex = AutoWalkTrackerTargetId;
+			if (leveltype == DTYPE_TOWN || triggerIndex < 0 || triggerIndex >= numtrigs) {
+				AutoWalkTrackerTargetId = -1;
+				SpeakText(_("Target quest location is gone."), true);
+				return;
+			}
+			const TriggerStruct &trigger = trigs[triggerIndex];
+			if (trigger._tmsg != WM_DIABRTNLVL) {
+				AutoWalkTrackerTargetId = -1;
+				SpeakText(_("Target quest location is gone."), true);
+				return;
+			}
+			const Point triggerPosition { trigger.position.x, trigger.position.y };
+			if (playerPosition.WalkingDistance(triggerPosition) <= TrackerInteractDistanceTiles) {
+				AutoWalkTrackerTargetId = -1;
+				SpeakText(_("Quest exit in range."), true);
+				return;
+			}
+			destination = triggerPosition;
+			break;
+		}
+
+		const int questIndex = AutoWalkTrackerTargetId;
+		if (questIndex < 0 || questIndex >= static_cast<int>(sizeof(Quests) / sizeof(Quests[0]))) {
+			AutoWalkTrackerTargetId = -1;
+			SpeakText(_("Target quest location is gone."), true);
+			return;
+		}
+		const Quest &quest = Quests[static_cast<size_t>(questIndex)];
+		if (quest._qslvl == SL_NONE || quest._qactive == QUEST_NOTAVAIL || quest._qlevel != currlevel || !InDungeonBounds(quest.position)) {
+			AutoWalkTrackerTargetId = -1;
+			SpeakText(_("Target quest location is gone."), true);
+			return;
+		}
+		if (playerPosition.WalkingDistance(quest.position) <= TrackerInteractDistanceTiles) {
+			AutoWalkTrackerTargetId = -1;
+			SpeakText(_("Quest entrance in range."), true);
+			return;
+		}
+		destination = quest.position;
+		break;
+	}
+	case TrackerTargetCategory::Portals: {
+		const int portalIndex = AutoWalkTrackerTargetId;
+		std::optional<Point> portalPosition;
+		if (leveltype == DTYPE_TOWN) {
+			portalPosition = FindTownPortalPositionInTownByPortalIndex(portalIndex);
+		} else if (IsTownPortalOpenOnCurrentLevel(portalIndex)) {
+			portalPosition = Portals[portalIndex].position;
+		}
+
+		if (!portalPosition) {
+			AutoWalkTrackerTargetId = -1;
+			SpeakText(_("Target portal is gone."), true);
+			return;
+		}
+		if (playerPosition.WalkingDistance(*portalPosition) <= TrackerInteractDistanceTiles) {
+			AutoWalkTrackerTargetId = -1;
+			SpeakText(_("Portal in range."), true);
+			return;
+		}
+		destination = *portalPosition;
+		break;
+	}
 	}
 
 	if (!destination) {
@@ -1740,6 +2802,53 @@ void UpdateAutoWalkTracker()
 	const int segmentSteps = std::min(steps - 1, static_cast<int>(MaxPathLengthPlayer - 1));
 	const Point waypoint = PositionAfterWalkPathSteps(playerPosition, path.data(), segmentSteps);
 	NetSendCmdLoc(MyPlayerId, true, CMD_WALKXY, waypoint);
+}
+
+void TrackerPageUpKeyPressed()
+{
+	const SDL_Keymod modState = SDL_GetModState();
+	const bool cycleCategory = (modState & SDL_KMOD_CTRL) != 0;
+
+	if (cycleCategory) {
+		SelectTrackerTargetCategoryRelative(-1);
+		if (MyPlayer != nullptr) {
+			const Point playerPosition = MyPlayer->position.future;
+			if (CollectTrackerCandidatesForSelection(SelectedTrackerTargetCategory, playerPosition).empty())
+				SpeakText(TrackerCategoryNoCandidatesFoundMessage(SelectedTrackerTargetCategory), true);
+		}
+		return;
+	}
+
+	SelectTrackerTargetRelative(-1);
+}
+
+void TrackerPageDownKeyPressed()
+{
+	const SDL_Keymod modState = SDL_GetModState();
+	const bool cycleCategory = (modState & SDL_KMOD_CTRL) != 0;
+
+	if (cycleCategory) {
+		SelectTrackerTargetCategoryRelative(+1);
+		if (MyPlayer != nullptr) {
+			const Point playerPosition = MyPlayer->position.future;
+			if (CollectTrackerCandidatesForSelection(SelectedTrackerTargetCategory, playerPosition).empty())
+				SpeakText(TrackerCategoryNoCandidatesFoundMessage(SelectedTrackerTargetCategory), true);
+		}
+		return;
+	}
+
+	SelectTrackerTargetRelative(+1);
+}
+
+void TrackerHomeKeyPressed()
+{
+	const SDL_Keymod modState = SDL_GetModState();
+	const bool autoWalk = (modState & SDL_KMOD_SHIFT) != 0;
+
+	if (autoWalk)
+		AutoWalkToTrackerTargetKeyPressed();
+	else
+		NavigateToTrackerTargetKeyPressed();
 }
 
 void ResetAutoWalkTracker()

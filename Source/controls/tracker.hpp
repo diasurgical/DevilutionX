@@ -18,11 +18,17 @@ enum class TrackerTargetCategory : uint8_t {
 	Breakables,
 	Monsters,
 	DeadBodies,
+	Npcs,
+	Players,
+	DungeonEntrances,
+	Stairs,
+	QuestLocations,
+	Portals,
 };
 
-void CycleTrackerTargetKeyPressed();
-void NavigateToTrackerTargetKeyPressed();
-void AutoWalkToTrackerTargetKeyPressed();
+void TrackerPageUpKeyPressed();
+void TrackerPageDownKeyPressed();
+void TrackerHomeKeyPressed();
 void UpdateAutoWalkTracker();
 void ResetAutoWalkTracker();
 
