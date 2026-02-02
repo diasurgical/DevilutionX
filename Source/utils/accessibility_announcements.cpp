@@ -33,6 +33,7 @@
 #include "player.h"
 #include "utils/is_of.hpp"
 #include "utils/language.h"
+#include "utils/log.hpp"
 #include "utils/screen_reader.hpp"
 #include "utils/str_cat.hpp"
 #include "utils/string_or_view.hpp"
@@ -74,6 +75,7 @@ TSnd *GetPlayerLowHpWarningSound()
 	    && PlayerLowHpWarningSound->DSB.SetChunkStream("..\\audio\\playerhaslowhp.wav", /*isMp3=*/false, /*logErrors=*/false) != 0
 	    && PlayerLowHpWarningSound->DSB.SetChunkStream("audio\\player_has_low_hp.wav", /*isMp3=*/false, /*logErrors=*/false) != 0
 	    && PlayerLowHpWarningSound->DSB.SetChunkStream("..\\audio\\player_has_low_hp.wav", /*isMp3=*/false, /*logErrors=*/false) != 0) {
+		LogWarn("Failed to load low HP warning sound from any of the expected paths.");
 		PlayerLowHpWarningSound = nullptr;
 	}
 
