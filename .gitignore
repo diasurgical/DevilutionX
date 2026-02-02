@@ -24,6 +24,7 @@ comparer-config.toml
 
 # Local release staging
 /_release_tmp/
+/out/
 
 *.appimage
 *.AppImage
