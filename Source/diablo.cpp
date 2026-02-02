@@ -1931,7 +1931,7 @@ void InitKeymapActions()
 	    "ListTownNpcs",
 	    N_("List town NPCs"),
 	    N_("Speaks a list of town NPCs."),
-	    SDLK_F4,
+	    SDLK_UNKNOWN,
 	    ListTownNpcsKeyPressed,
 	    nullptr,
 	    CanPlayerTakeAction);
@@ -1939,7 +1939,7 @@ void InitKeymapActions()
 	    "PreviousTownNpc",
 	    N_("Previous town NPC"),
 	    N_("Select previous town NPC (speaks)."),
-	    SDLK_PAGEUP,
+	    SDLK_UNKNOWN,
 	    SelectPreviousTownNpcKeyPressed,
 	    nullptr,
 	    IsTownNpcActionAllowed);
@@ -1947,7 +1947,7 @@ void InitKeymapActions()
 	    "NextTownNpc",
 	    N_("Next town NPC"),
 	    N_("Select next town NPC (speaks)."),
-	    SDLK_PAGEDOWN,
+	    SDLK_UNKNOWN,
 	    SelectNextTownNpcKeyPressed,
 	    nullptr,
 	    IsTownNpcActionAllowed);
@@ -1955,7 +1955,7 @@ void InitKeymapActions()
 	    "SpeakSelectedTownNpc",
 	    N_("Speak selected town NPC"),
 	    N_("Speaks the currently selected town NPC."),
-	    SDLK_END,
+	    SDLK_UNKNOWN,
 	    SpeakSelectedTownNpc,
 	    nullptr,
 	    IsTownNpcActionAllowed);
@@ -1963,7 +1963,7 @@ void InitKeymapActions()
 	    "GoToSelectedTownNpc",
 	    N_("Go to selected town NPC"),
 	    N_("Walks to the selected town NPC."),
-	    SDLK_HOME,
+	    SDLK_UNKNOWN,
 	    GoToSelectedTownNpcKeyPressed,
 	    nullptr,
 	    IsTownNpcActionAllowed);
@@ -1976,53 +1976,29 @@ void InitKeymapActions()
 	    nullptr,
 	    CanPlayerTakeAction);
 	options.Keymapper.AddAction(
-	    "SpeakNearestExit",
-	    N_("Nearest exit"),
-	    N_("Speaks the nearest exit. Hold Shift for quest entrances (or to leave a quest level). In town, press Ctrl+E to cycle dungeon entrances."),
-	    'E',
-	    SpeakNearestExitKeyPressed,
+	    "TrackerPrevious",
+	    N_("Tracker previous"),
+	    N_("PageUp: previous target. Ctrl+PageUp: previous category."),
+	    SDLK_PAGEUP,
+	    TrackerPageUpKeyPressed,
 	    nullptr,
-	    CanPlayerTakeAction);
+	    []() { return CanPlayerTakeAction() && !InGameMenu() && !IsPlayerInStore() && !ChatLogFlag; });
 	options.Keymapper.AddAction(
-	    "SpeakNearestStairsDown",
-	    N_("Nearest stairs down"),
-	    N_("Speaks directions to the nearest stairs down."),
-	    '.',
-	    SpeakNearestStairsDownKeyPressed,
+	    "TrackerNext",
+	    N_("Tracker next"),
+	    N_("PageDown: next target. Ctrl+PageDown: next category."),
+	    SDLK_PAGEDOWN,
+	    TrackerPageDownKeyPressed,
 	    nullptr,
-	    []() { return CanPlayerTakeAction() && leveltype != DTYPE_TOWN; });
+	    []() { return CanPlayerTakeAction() && !InGameMenu() && !IsPlayerInStore() && !ChatLogFlag; });
 	options.Keymapper.AddAction(
-	    "SpeakNearestStairsUp",
-	    N_("Nearest stairs up"),
-	    N_("Speaks directions to the nearest stairs up."),
-	    ',',
-	    SpeakNearestStairsUpKeyPressed,
+	    "TrackerGo",
+	    N_("Tracker go"),
+	    N_("Home: speak directions to the selected target. Shift+Home: auto-walk to the selected target (press again to cancel)."),
+	    SDLK_HOME,
+	    TrackerHomeKeyPressed,
 	    nullptr,
-	    []() { return CanPlayerTakeAction() && leveltype != DTYPE_TOWN; });
-	options.Keymapper.AddAction(
-	    "CycleTrackerTarget",
-	    N_("Cycle tracker target"),
-	    N_("Cycles what the tracker looks for (items, chests, doors, shrines, objects, breakables, monsters, dead bodies). Hold Shift to cycle backwards."),
-	    'T',
-	    CycleTrackerTargetKeyPressed,
-	    nullptr,
-	    []() { return CanPlayerTakeAction() && !InGameMenu(); });
-	options.Keymapper.AddAction(
-	    "NavigateToTrackerTarget",
-	    N_("Tracker directions"),
-	    N_("Speaks directions to a tracked target of the selected tracker category. Shift+N: cycle targets (speaks name only). Ctrl+N: clear target."),
-	    'N',
-	    NavigateToTrackerTargetKeyPressed,
-	    nullptr,
-	    []() { return CanPlayerTakeAction() && !InGameMenu(); });
-	options.Keymapper.AddAction(
-	    "AutoWalkToTrackerTarget",
-	    N_("Walk to tracker target"),
-	    N_("Automatically walks to the currently selected tracker target. Press again to cancel."),
-	    'M',
-	    AutoWalkToTrackerTargetKeyPressed,
-	    nullptr,
-	    []() { return CanPlayerTakeAction() && !InGameMenu(); });
+	    []() { return CanPlayerTakeAction() && !InGameMenu() && !IsPlayerInStore() && !ChatLogFlag; });
 	options.Keymapper.AddAction(
 	    "KeyboardWalkNorth",
 	    N_("Walk north"),
@@ -2161,7 +2137,7 @@ void InitKeymapActions()
 	options.Keymapper.AddAction(
 	    "SpeakPlayerHealthPercentage",
 	    N_("Health percentage"),
-	    N_("Speaks the player's health as a percentage."),
+	    N_("Speaks the player's health as a percentage. Hold Shift for mana."),
 	    'Z',
 	    SpeakPlayerHealthPercentageKeyPressed,
 	    nullptr,
@@ -2271,14 +2247,6 @@ void InitKeymapActions()
 		    DebugToggle = !DebugToggle;
 	    });
 #endif
-	options.Keymapper.AddAction(
-	    "SpeakNearestTownPortal",
-	    N_("Nearest town portal"),
-	    N_("Speaks directions to the nearest open town portal in town."),
-	    'P',
-	    SpeakNearestTownPortalInTownKeyPressed,
-	    nullptr,
-	    []() { return CanPlayerTakeAction() && leveltype == DTYPE_TOWN; });
 	options.Keymapper.CommitActions();
 }
 
