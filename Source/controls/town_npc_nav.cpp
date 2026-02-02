@@ -204,6 +204,10 @@ void UpdateAutoWalkTownNpc()
 	}
 	if (!CanPlayerTakeAction())
 		return;
+	if (MyPlayer == nullptr) {
+		AutoWalkTownNpcTarget = -1;
+		return;
+	}
 
 	if (MyPlayer->_pmode != PM_STAND)
 		return;
