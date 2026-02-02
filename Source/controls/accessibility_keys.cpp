@@ -13,7 +13,14 @@
 #include <fmt/format.h>
 
 #include "control/control.hpp"
+#ifdef USE_SDL3
+#include <SDL3/SDL_keycode.h>
+#else
+#include <SDL.h>
+#endif
+
 #include "controls/plrctrls.h"
+#include "utils/sdl_compat.h"
 #include "diablo.h"
 #include "gamemenu.h"
 #include "help.h"
@@ -38,6 +45,18 @@
 
 namespace devilution {
 
+namespace {
+
+/** Computes a rounded percentage (0--100) from a current and maximum value. */
+int ComputePercentage(int current, int maximum)
+{
+	const int clamped = std::max(current, 0);
+	int percent = static_cast<int>((static_cast<int64_t>(clamped) * 100 + maximum / 2) / maximum);
+	return std::clamp(percent, 0, 100);
+}
+
+} // namespace
+
 void SpeakPlayerHealthPercentageKeyPressed()
 {
 	if (!CanPlayerTakeAction())
@@ -45,14 +64,18 @@ void SpeakPlayerHealthPercentageKeyPressed()
 	if (MyPlayer == nullptr)
 		return;
 
-	const int maxHp = MyPlayer->_pMaxHP;
-	if (maxHp <= 0)
+	const SDL_Keymod modState = SDL_GetModState();
+	const bool speakMana = (modState & SDL_KMOD_SHIFT) != 0;
+	if (speakMana) {
+		if (MyPlayer->_pMaxMana <= 0)
+			return;
+		SpeakText(fmt::format("{:d}%", ComputePercentage(MyPlayer->_pMana, MyPlayer->_pMaxMana)), /*force=*/true);
 		return;
+	}
 
-	const int currentHp = std::max(MyPlayer->_pHitPoints, 0);
-	int hpPercent = static_cast<int>((static_cast<int64_t>(currentHp) * 100 + maxHp / 2) / maxHp);
-	hpPercent = std::clamp(hpPercent, 0, 100);
-	SpeakText(fmt::format("{:d}%", hpPercent), /*force=*/true);
+	if (MyPlayer->_pMaxHP <= 0)
+		return;
+	SpeakText(fmt::format("{:d}%", ComputePercentage(MyPlayer->_pHitPoints, MyPlayer->_pMaxHP)), /*force=*/true);
 }
 
 void SpeakExperienceToNextLevelKeyPressed()
