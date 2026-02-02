@@ -5,7 +5,17 @@
  */
 #pragma once
 
+#include <string>
+#include <vector>
+
 namespace devilution {
+
+struct TriggerStruct;
+struct Portal;
+
+std::string TriggerLabelForSpeech(const TriggerStruct &trigger);
+std::string TownPortalLabelForSpeech(const Portal &portal);
+std::vector<int> CollectTownDungeonTriggerIndices();
 
 void SpeakNearestExitKeyPressed();
 void SpeakNearestTownPortalInTownKeyPressed();

@@ -98,74 +98,7 @@ std::optional<Point> FindNearestUnexploredTile(Point startPosition)
 	return std::nullopt;
 }
 
-std::string TriggerLabelForSpeech(const TriggerStruct &trigger)
-{
-	switch (trigger._tmsg) {
-	case WM_DIABNEXTLVL:
-		if (leveltype == DTYPE_TOWN)
-			return std::string { _("Cathedral entrance") };
-		return std::string { _("Stairs down") };
-	case WM_DIABPREVLVL:
-		return std::string { _("Stairs up") };
-	case WM_DIABTOWNWARP:
-		switch (trigger._tlvl) {
-		case 5:
-			return fmt::format(fmt::runtime(_("Town warp to {:s}")), _("Catacombs"));
-		case 9:
-			return fmt::format(fmt::runtime(_("Town warp to {:s}")), _("Caves"));
-		case 13:
-			return fmt::format(fmt::runtime(_("Town warp to {:s}")), _("Hell"));
-		case 17:
-			return fmt::format(fmt::runtime(_("Town warp to {:s}")), _("Nest"));
-		case 21:
-			return fmt::format(fmt::runtime(_("Town warp to {:s}")), _("Crypt"));
-		default:
-			return fmt::format(fmt::runtime(_("Town warp to level {:d}")), trigger._tlvl);
-		}
-	case WM_DIABTWARPUP:
-		return std::string { _("Warp up") };
-	case WM_DIABRETOWN:
-		return std::string { _("Return to town") };
-	case WM_DIABWARPLVL:
-		return std::string { _("Warp") };
-	case WM_DIABSETLVL:
-		return std::string { _("Set level") };
-	case WM_DIABRTNLVL:
-		return std::string { _("Return level") };
-	default:
-		return std::string { _("Exit") };
-	}
-}
-
 std::optional<int> LockedTownDungeonTriggerIndex;
-
-std::vector<int> CollectTownDungeonTriggerIndices()
-{
-	std::vector<int> result;
-	result.reserve(static_cast<size_t>(std::max(0, numtrigs)));
-
-	for (int i = 0; i < numtrigs; ++i) {
-		if (IsAnyOf(trigs[i]._tmsg, WM_DIABNEXTLVL, WM_DIABTOWNWARP))
-			result.push_back(i);
-	}
-
-	std::sort(result.begin(), result.end(), [](int a, int b) {
-		const TriggerStruct &ta = trigs[a];
-		const TriggerStruct &tb = trigs[b];
-
-		const int kindA = ta._tmsg == WM_DIABNEXTLVL ? 0 : (ta._tmsg == WM_DIABTOWNWARP ? 1 : 2);
-		const int kindB = tb._tmsg == WM_DIABNEXTLVL ? 0 : (tb._tmsg == WM_DIABTOWNWARP ? 1 : 2);
-		if (kindA != kindB)
-			return kindA < kindB;
-
-		if (ta._tmsg == WM_DIABTOWNWARP && tb._tmsg == WM_DIABTOWNWARP && ta._tlvl != tb._tlvl)
-			return ta._tlvl < tb._tlvl;
-
-		return a < b;
-	});
-
-	return result;
-}
 
 std::optional<int> FindDefaultTownDungeonTriggerIndex(const std::vector<int> &candidates)
 {
@@ -293,54 +226,6 @@ std::optional<TownPortalInTown> FindNearestTownPortalInTown()
 	return best;
 }
 
-[[nodiscard]] std::string TownPortalLabelForSpeech(const Portal &portal)
-{
-	if (portal.level <= 0)
-		return std::string { _("Town portal") };
-
-	if (portal.setlvl) {
-		const auto questLevel = static_cast<_setlevels>(portal.level);
-		const char *questLevelName = QuestLevelNames[questLevel];
-		if (questLevelName == nullptr || questLevelName[0] == '\0')
-			return std::string { _("Town portal to set level") };
-
-		return fmt::format(fmt::runtime(_(/* TRANSLATORS: {:s} is a set/quest level name. */ "Town portal to {:s}")), _(questLevelName));
-	}
-
-	constexpr std::array<const char *, DTYPE_LAST + 1> DungeonStrs = {
-		N_("Town"),
-		N_("Cathedral"),
-		N_("Catacombs"),
-		N_("Caves"),
-		N_("Hell"),
-		N_("Nest"),
-		N_("Crypt"),
-	};
-	std::string dungeonStr;
-	if (portal.ltype >= DTYPE_TOWN && portal.ltype <= DTYPE_LAST) {
-		dungeonStr = _(DungeonStrs[static_cast<size_t>(portal.ltype)]);
-	} else {
-		dungeonStr = _(/* TRANSLATORS: type of dungeon (i.e. Cathedral, Caves)*/ "None");
-	}
-
-	int floor = portal.level;
-	if (portal.ltype == DTYPE_CATACOMBS)
-		floor -= 4;
-	else if (portal.ltype == DTYPE_CAVES)
-		floor -= 8;
-	else if (portal.ltype == DTYPE_HELL)
-		floor -= 12;
-	else if (portal.ltype == DTYPE_NEST)
-		floor -= 16;
-	else if (portal.ltype == DTYPE_CRYPT)
-		floor -= 20;
-
-	if (floor > 0)
-		return fmt::format(fmt::runtime(_(/* TRANSLATORS: {:s} is a dungeon name and {:d} is a floor number. */ "Town portal to {:s} {:d}")), dungeonStr, floor);
-
-	return fmt::format(fmt::runtime(_(/* TRANSLATORS: {:s} is a dungeon name. */ "Town portal to {:s}")), dungeonStr);
-}
-
 struct QuestSetLevelEntrance {
 	_setlevels questLevel;
 	Point entrancePosition;
@@ -429,6 +314,121 @@ void KeyboardWalkKeyPressed(Direction direction)
 }
 
 } // namespace
+
+std::string TriggerLabelForSpeech(const TriggerStruct &trigger)
+{
+	switch (trigger._tmsg) {
+	case WM_DIABNEXTLVL:
+		if (leveltype == DTYPE_TOWN)
+			return std::string { _("Cathedral entrance") };
+		return std::string { _("Stairs down") };
+	case WM_DIABPREVLVL:
+		return std::string { _("Stairs up") };
+	case WM_DIABTOWNWARP:
+		switch (trigger._tlvl) {
+		case 5:
+			return fmt::format(fmt::runtime(_("Town warp to {:s}")), _("Catacombs"));
+		case 9:
+			return fmt::format(fmt::runtime(_("Town warp to {:s}")), _("Caves"));
+		case 13:
+			return fmt::format(fmt::runtime(_("Town warp to {:s}")), _("Hell"));
+		case 17:
+			return fmt::format(fmt::runtime(_("Town warp to {:s}")), _("Nest"));
+		case 21:
+			return fmt::format(fmt::runtime(_("Town warp to {:s}")), _("Crypt"));
+		default:
+			return fmt::format(fmt::runtime(_("Town warp to level {:d}")), trigger._tlvl);
+		}
+	case WM_DIABTWARPUP:
+		return std::string { _("Warp up") };
+	case WM_DIABRETOWN:
+		return std::string { _("Return to town") };
+	case WM_DIABWARPLVL:
+		return std::string { _("Warp") };
+	case WM_DIABSETLVL:
+		return std::string { _("Set level") };
+	case WM_DIABRTNLVL:
+		return std::string { _("Return level") };
+	default:
+		return std::string { _("Exit") };
+	}
+}
+
+std::string TownPortalLabelForSpeech(const Portal &portal)
+{
+	if (portal.level <= 0)
+		return std::string { _("Town portal") };
+
+	if (portal.setlvl) {
+		const auto questLevel = static_cast<_setlevels>(portal.level);
+		const char *questLevelName = QuestLevelNames[questLevel];
+		if (questLevelName == nullptr || questLevelName[0] == '\0')
+			return std::string { _("Town portal to set level") };
+
+		return fmt::format(fmt::runtime(_(/* TRANSLATORS: {:s} is a set/quest level name. */ "Town portal to {:s}")), _(questLevelName));
+	}
+
+	constexpr std::array<const char *, DTYPE_LAST + 1> DungeonStrs = {
+		N_("Town"),
+		N_("Cathedral"),
+		N_("Catacombs"),
+		N_("Caves"),
+		N_("Hell"),
+		N_("Nest"),
+		N_("Crypt"),
+	};
+	std::string dungeonStr;
+	if (portal.ltype >= DTYPE_TOWN && portal.ltype <= DTYPE_LAST) {
+		dungeonStr = _(DungeonStrs[static_cast<size_t>(portal.ltype)]);
+	} else {
+		dungeonStr = _(/* TRANSLATORS: type of dungeon (i.e. Cathedral, Caves)*/ "None");
+	}
+
+	int floor = portal.level;
+	if (portal.ltype == DTYPE_CATACOMBS)
+		floor -= 4;
+	else if (portal.ltype == DTYPE_CAVES)
+		floor -= 8;
+	else if (portal.ltype == DTYPE_HELL)
+		floor -= 12;
+	else if (portal.ltype == DTYPE_NEST)
+		floor -= 16;
+	else if (portal.ltype == DTYPE_CRYPT)
+		floor -= 20;
+
+	if (floor > 0)
+		return fmt::format(fmt::runtime(_(/* TRANSLATORS: {:s} is a dungeon name and {:d} is a floor number. */ "Town portal to {:s} {:d}")), dungeonStr, floor);
+
+	return fmt::format(fmt::runtime(_(/* TRANSLATORS: {:s} is a dungeon name. */ "Town portal to {:s}")), dungeonStr);
+}
+
+std::vector<int> CollectTownDungeonTriggerIndices()
+{
+	std::vector<int> result;
+	result.reserve(static_cast<size_t>(std::max(0, numtrigs)));
+
+	for (int i = 0; i < numtrigs; ++i) {
+		if (IsAnyOf(trigs[i]._tmsg, WM_DIABNEXTLVL, WM_DIABTOWNWARP))
+			result.push_back(i);
+	}
+
+	std::sort(result.begin(), result.end(), [](int a, int b) {
+		const TriggerStruct &ta = trigs[a];
+		const TriggerStruct &tb = trigs[b];
+
+		const int kindA = ta._tmsg == WM_DIABNEXTLVL ? 0 : (ta._tmsg == WM_DIABTOWNWARP ? 1 : 2);
+		const int kindB = tb._tmsg == WM_DIABNEXTLVL ? 0 : (tb._tmsg == WM_DIABTOWNWARP ? 1 : 2);
+		if (kindA != kindB)
+			return kindA < kindB;
+
+		if (ta._tmsg == WM_DIABTOWNWARP && tb._tmsg == WM_DIABTOWNWARP && ta._tlvl != tb._tlvl)
+			return ta._tlvl < tb._tlvl;
+
+		return a < b;
+	});
+
+	return result;
+}
 
 void SpeakNearestExitKeyPressed()
 {
