@@ -1,12 +1,12 @@
 <#
 .SYNOPSIS
-  Builds a Windows Release package and writes it to build\Release.
+  Builds a Windows Release package and writes it to build\releases.
 
 .DESCRIPTION
   - Runs CMake configure (if needed) and builds the project in Release mode.
-  - Creates a portable "release" folder and a zip with the runtime files
-    (exe + required DLLs + assets/audio/mods + README.md).
-  - Output location (by default): build\Release
+  - Copies the built exe (and required runtime files) directly into build\releases
+    (no versioned subfolder).
+  - Also writes a versioned zip (diabloaccess-<tag>-windows-x64.zip) into build\releases.
 
 .EXAMPLE
   .\build_release.ps1
@@ -24,7 +24,13 @@ param(
 
 	# Where to write the packaged release (folder + zip).
 	# Default matches the typical CMake multi-config output dir on Windows.
-	[string]$OutputDir = ''
+	[string]$OutputDir = 'build\\releases',
+
+	# Layout:
+	# - Flat: write files directly into $OutputDir (exe is in $OutputDir\devilutionx.exe).
+	# - Versioned: create $OutputDir\<packageName>\... and zip it.
+	[ValidateSet('Flat', 'Versioned')]
+	[string]$Layout = 'Flat'
 )
 
 Set-StrictMode -Version Latest
@@ -50,10 +56,6 @@ function Resolve-Version {
 
 $repoRoot = (Resolve-Path $PSScriptRoot).Path
 $buildDirPath = Join-Path $repoRoot $BuildDir
-
-if ([string]::IsNullOrWhiteSpace($OutputDir)) {
-	$OutputDir = Join-Path $BuildDir $Config
-}
 $outputDirPath = Join-Path $repoRoot $OutputDir
 
 $cmakeCache = Join-Path $buildDirPath 'CMakeCache.txt'
@@ -72,17 +74,23 @@ if (-not (Test-Path $buildOutputDir)) {
 
 $version = Resolve-Version -RepoRoot $repoRoot
 $packageName = "diabloaccess-$version-windows-x64"
-$packageDir = Join-Path $outputDirPath $packageName
 $zipPath = Join-Path $outputDirPath "$packageName.zip"
 
-New-Item -ItemType Directory -Force $outputDirPath | Out-Null
-if (Test-Path $packageDir) {
-	Remove-Item -Recurse -Force $packageDir
+# Stage into a temp dir first, then (optionally) copy to output.
+$stagingDir = if ($Layout -eq 'Versioned') {
+	Join-Path $outputDirPath $packageName
+} else {
+	Join-Path $outputDirPath '_staging'
 }
 
-New-Item -ItemType Directory -Force $packageDir | Out-Null
+New-Item -ItemType Directory -Force $outputDirPath | Out-Null
+if (Test-Path $stagingDir) {
+	Remove-Item -Recurse -Force $stagingDir
+}
+
+New-Item -ItemType Directory -Force $stagingDir | Out-Null
 foreach ($d in @('assets', 'audio', 'mods')) {
-	New-Item -ItemType Directory -Force (Join-Path $packageDir $d) | Out-Null
+	New-Item -ItemType Directory -Force (Join-Path $stagingDir $d) | Out-Null
 }
 
 $runtimeFiles = @(
@@ -101,12 +109,12 @@ foreach ($file in $runtimeFiles) {
 	if (-not (Test-Path $src)) {
 		throw "Missing runtime file in build output: $src"
 	}
-	Copy-Item $src $packageDir -Force
+	Copy-Item $src $stagingDir -Force
 }
 
 $readmeSrc = Join-Path $repoRoot 'README.md'
 if (Test-Path $readmeSrc) {
-	Copy-Item $readmeSrc (Join-Path $packageDir 'README.md') -Force
+	Copy-Item $readmeSrc (Join-Path $stagingDir 'README.md') -Force
 } else {
 	Write-Warning "README.md not found at repo root; skipping."
 }
@@ -119,21 +127,40 @@ if (-not (Test-Path $assetsSrc)) {
 if (-not (Test-Path $assetsSrc)) {
 	throw "Assets directory not found (expected build\\assets or build\\$Config\\assets)."
 }
-Copy-Item (Join-Path $assetsSrc '*') (Join-Path $packageDir 'assets') -Recurse -Force
+Copy-Item (Join-Path $assetsSrc '*') (Join-Path $stagingDir 'assets') -Recurse -Force
 
 # Audio + mods are copied from build\<Config>\...
 $audioSrc = Join-Path $buildOutputDir 'audio'
 $modsSrc = Join-Path $buildOutputDir 'mods'
 if (-not (Test-Path $audioSrc)) { throw "Audio directory not found: $audioSrc" }
 if (-not (Test-Path $modsSrc)) { throw "Mods directory not found: $modsSrc" }
-Copy-Item (Join-Path $audioSrc '*') (Join-Path $packageDir 'audio') -Recurse -Force
-Copy-Item (Join-Path $modsSrc '*') (Join-Path $packageDir 'mods') -Recurse -Force
+Copy-Item (Join-Path $audioSrc '*') (Join-Path $stagingDir 'audio') -Recurse -Force
+Copy-Item (Join-Path $modsSrc '*') (Join-Path $stagingDir 'mods') -Recurse -Force
 
 if (Test-Path $zipPath) {
 	Remove-Item -Force $zipPath
 }
-Compress-Archive -Path (Join-Path $packageDir '*') -DestinationPath $zipPath -Force
+$tmpZip = Join-Path ([System.IO.Path]::GetTempPath()) "$packageName-$([System.Guid]::NewGuid().ToString('N')).zip"
+Compress-Archive -Path (Join-Path $stagingDir '*') -DestinationPath $tmpZip -Force
+Move-Item -Force $tmpZip $zipPath
 
-Write-Host "Release folder: $packageDir"
-Write-Host "Release zip:    $zipPath"
+if ($Layout -eq 'Flat') {
+	# Clean old release files (keep anything else the user may have in the folder).
+	$knownDirs = @('assets', 'audio', 'mods')
+	foreach ($d in $knownDirs) {
+		$dst = Join-Path $outputDirPath $d
+		if (Test-Path $dst) { Remove-Item -Recurse -Force $dst }
+	}
+	foreach ($file in $runtimeFiles + @('README.md')) {
+		$dst = Join-Path $outputDirPath $file
+		if (Test-Path $dst) { Remove-Item -Force $dst }
+	}
 
+	# Copy staged content directly into output dir (exe ends up in build\releases\devilutionx.exe).
+	Copy-Item (Join-Path $stagingDir '*') $outputDirPath -Recurse -Force
+	Remove-Item -Recurse -Force $stagingDir
+	Write-Host "Release folder (flat): $outputDirPath"
+} else {
+	Write-Host "Release folder: $stagingDir"
+}
+Write-Host "Release zip:           $zipPath"
