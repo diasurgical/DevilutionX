@@ -4,6 +4,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <string>
+#include <string_view>
 
 #ifdef USE_SDL3
 #include <SDL3/SDL_events.h>
@@ -112,6 +114,9 @@ void UiAddLogo(std::vector<std::unique_ptr<UiItemBase>> *vecDialog, int y = GetU
 void UiFocusNavigationSelect();
 void UiFocusNavigationEsc();
 void UiFocusNavigationYesNo();
+
+/** Overrides what the screen reader will speak for the next focused list item. */
+void UiSetSpokenTextOverride(std::string text);
 
 void UiInitList(void (*fnFocus)(size_t value), void (*fnSelect)(size_t value), void (*fnEsc)(), const std::vector<std::unique_ptr<UiItemBase>> &items, bool wraps = false, void (*fnFullscreen)() = nullptr, bool (*fnYesNo)() = nullptr, size_t selectedItem = 0);
 void UiRenderListItems();
