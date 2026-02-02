@@ -263,6 +263,8 @@ void SpellBookKeyPressed()
 
 void CycleSpellHotkeys(bool next)
 {
+	if (MyPlayer == nullptr)
+		return;
 	StaticVector<size_t, NumHotkeys> validHotKeyIndexes;
 	std::optional<size_t> currentIndex;
 	for (size_t slot = 0; slot < NumHotkeys; slot++) {
@@ -290,6 +292,8 @@ void CycleSpellHotkeys(bool next)
 
 bool IsPlayerDead()
 {
+	if (MyPlayer == nullptr)
+		return true;
 	return MyPlayer->_pmode == PM_DEATH || MyPlayerIsDead;
 }
 

@@ -50,6 +50,8 @@ void RefreshTownNpcOrder(bool selectFirst = false)
 	TownNpcOrder.clear();
 	if (leveltype != DTYPE_TOWN)
 		return;
+	if (MyPlayer == nullptr)
+		return;
 
 	const Point playerPosition = MyPlayer->position.future;
 
@@ -147,6 +149,8 @@ void SpeakSelectedTownNpc()
 		SpeakText(_("No NPC selected."), true);
 		return;
 	}
+	if (MyPlayer == nullptr)
+		return;
 
 	const Towner &towner = Towners[SelectedTownNpc];
 	const Point playerPosition = MyPlayer->position.future;
@@ -277,6 +281,8 @@ void ListTownNpcsKeyPressed()
 
 	townNpcs.reserve(Towners.size());
 	cows.reserve(Towners.size());
+	if (MyPlayer == nullptr)
+		return;
 
 	const Point playerPosition = MyPlayer->position.future;
 

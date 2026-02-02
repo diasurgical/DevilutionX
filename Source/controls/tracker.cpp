@@ -1470,6 +1470,7 @@ void AutoWalkToTrackerTargetKeyPressed()
 		return;
 	}
 	if (MyPlayer == nullptr) {
+		AutoWalkTrackerTargetId = -1;
 		SpeakText(_("Cannot walk right now."), true);
 		return;
 	}
@@ -1592,6 +1593,7 @@ void UpdateAutoWalkTracker()
 		return;
 
 	if (MyPlayer == nullptr) {
+		AutoWalkTrackerTargetId = -1;
 		SpeakText(_("Cannot walk right now."), true);
 		return;
 	}
