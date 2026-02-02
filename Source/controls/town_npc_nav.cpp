@@ -243,7 +243,7 @@ void UpdateAutoWalkTownNpc()
 		return;
 	}
 
-	// FindPath returns 0 if the path length is equal to the maximum.
+	// FindPath returns 0 when it fails to find a usable path.
 	// The player walkpath buffer is MaxPathLengthPlayer, so keep segments strictly shorter.
 	if (steps < static_cast<int>(MaxPathLengthPlayer)) {
 		const int townerIdx = AutoWalkTownNpcTarget;

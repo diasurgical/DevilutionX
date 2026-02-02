@@ -195,7 +195,7 @@ void QuestLogKeyPressed()
 			if (MousePosition.x > 160 && MousePosition.y < GetMainPanel().position.y) {
 				SetCursorPos(MousePosition - Displacement { 160, 0 });
 			}
-		} else if (!CharFlag) { // We opened the character quest log
+		} else if (!CharFlag) { // We opened the quest log
 			if (MousePosition.x < 480 && MousePosition.y < GetMainPanel().position.y) {
 				SetCursorPos(MousePosition + Displacement { 160, 0 });
 			}
@@ -248,11 +248,11 @@ void SpellBookKeyPressed()
 		}
 	}
 	if (!IsLeftPanelOpen() && CanPanelsCoverView()) {
-		if (!SpellbookFlag) { // We closed the inventory
+		if (!SpellbookFlag) { // We closed the spellbook
 			if (MousePosition.x < 480 && MousePosition.y < GetMainPanel().position.y) {
 				SetCursorPos(MousePosition + Displacement { 160, 0 });
 			}
-		} else if (!invflag) { // We opened the inventory
+		} else if (!invflag) { // We opened the spellbook
 			if (MousePosition.x > 160 && MousePosition.y < GetMainPanel().position.y) {
 				SetCursorPos(MousePosition - Displacement { 160, 0 });
 			}

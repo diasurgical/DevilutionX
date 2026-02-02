@@ -168,7 +168,7 @@ GameLogicStep gGameLogicStep = GameLogicStep::None;
 PlayerActionType LastPlayerAction = PlayerActionType::None;
 
 // Controller support: Actions to run after updating the cursor state.
-// Defined in SourceX/controls/plctrls.cpp.
+// Defined in Source/controls/plrctrls.cpp.
 extern void plrctrls_after_check_curs_move();
 extern void plrctrls_every_frame();
 extern void plrctrls_after_game_logic();
