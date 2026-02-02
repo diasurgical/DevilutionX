@@ -20,8 +20,6 @@ enum class TrackerTargetCategory : uint8_t {
 	DeadBodies,
 };
 
-extern TrackerTargetCategory SelectedTrackerTargetCategory;
-
 void CycleTrackerTargetKeyPressed();
 void NavigateToTrackerTargetKeyPressed();
 void AutoWalkToTrackerTargetKeyPressed();

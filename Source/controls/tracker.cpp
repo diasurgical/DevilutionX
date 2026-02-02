@@ -50,9 +50,9 @@
 
 namespace devilution {
 
-TrackerTargetCategory SelectedTrackerTargetCategory = TrackerTargetCategory::Items;
-
 namespace {
+
+TrackerTargetCategory SelectedTrackerTargetCategory = TrackerTargetCategory::Items;
 
 TrackerTargetCategory AutoWalkTrackerTargetCategory = TrackerTargetCategory::Items; ///< Category of the active auto-walk target.
 int AutoWalkTrackerTargetId = -1;                                                   ///< ID of the target being auto-walked to, or -1 if inactive.
