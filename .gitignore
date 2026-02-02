@@ -17,6 +17,7 @@ comparer-config.toml
 
 #ignore cmake cache
 /build-*/
+/build/releases/
 .vscode/tasks.json
 
 # Extra files in the source distribution (see make_src_dist.py)
@@ -24,6 +25,7 @@ comparer-config.toml
 
 # Local release staging
 /_release_tmp/
+/out/
 
 *.appimage
 *.AppImage

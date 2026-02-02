@@ -20,19 +20,14 @@ Keybinds are configurable, but these are the defaults most players will use:
 
 ## Navigation / tracking
 
-- `T` - cycle tracker target (items / chests / doors / shrines / objects / breakables / monsters / dead bodies).
-- `Shift`+`T` - cycle tracker target backwards.
-- `N` - tracker directions to the nearest target (speaks target name + directions; in town: items / dead bodies only).
-- `Shift`+`N` - cycle to the next target in the current tracker category (speaks name only; duplicates get ordinal numbers).
-- `Ctrl`+`N` - clear the tracker target.
+- `Ctrl`+`PageUp` / `Ctrl`+`PageDown` - previous / next tracker category.
+- `PageUp` / `PageDown` - select previous / next target in the current category (speaks name; duplicates get ordinal numbers).
+- `Home` - tracker directions to the selected target (speaks target name + directions).
+- `Ctrl`+`Home` - clear the selected tracker target.
+- `Shift`+`Home` - auto-walk to the selected target (press again to cancel).
 - `H` - speak nearest unexplored space.
-- `E` - in town: speak directions to the selected dungeon entrance; in dungeons: speak nearest exit (hold `Shift` for quest entrances; in quest levels: hold `Shift` to leave).
-- `Ctrl`+`E` - in town: cycle dungeon entrance destination.
-- `P` - in town: speak directions to the nearest open town portal.
-- `,` - speak nearest stairs up.
-- `.` - speak nearest stairs down.
 - `L` - speak current dungeon + floor.
-- `Z` - speak player health percentage.
+- `Z` - speak player health percentage (hold `Shift` for mana).
 - `X` - speak experience remaining to next level.
 
 ## Keyboard controls
@@ -44,10 +39,7 @@ Keybinds are configurable, but these are the defaults most players will use:
 
 ## Town NPCs
 
-- `F4` - list town NPCs.
-- `PageUp` / `PageDown` - select previous / next town NPC.
-- `End` - speak selected town NPC.
-- `Home` - walk to selected town NPC (town only).
+Town NPCs are available via the tracker category list.
 
 # How to Install
 
