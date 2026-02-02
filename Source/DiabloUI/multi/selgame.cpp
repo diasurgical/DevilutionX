@@ -411,21 +411,35 @@ void selgame_GameSelection_Esc()
 
 void selgame_Diff_Focus(size_t value)
 {
+	std::string_view tooltip;
 	switch (vecSelGameDlgItems[value]->m_value) {
 	case DIFF_NORMAL:
 		CopyUtf8(selgame_Label, _("Normal"), sizeof(selgame_Label));
-		CopyUtf8(selgame_Description, _("Normal Difficulty\nThis is where a starting character should begin the quest to defeat Diablo."), sizeof(selgame_Description));
+		tooltip = _("Normal Difficulty\nThis is where a starting character should begin the quest to defeat Diablo.");
+		CopyUtf8(selgame_Description, tooltip, sizeof(selgame_Description));
 		break;
 	case DIFF_NIGHTMARE:
 		CopyUtf8(selgame_Label, _("Nightmare"), sizeof(selgame_Label));
-		CopyUtf8(selgame_Description, _("Nightmare Difficulty\nThe denizens of the Labyrinth have been bolstered and will prove to be a greater challenge. This is recommended for experienced characters only."), sizeof(selgame_Description));
+		tooltip = _("Nightmare Difficulty\nThe denizens of the Labyrinth have been bolstered and will prove to be a greater challenge. This is recommended for experienced characters only.");
+		CopyUtf8(selgame_Description, tooltip, sizeof(selgame_Description));
 		break;
 	case DIFF_HELL:
 		CopyUtf8(selgame_Label, _("Hell"), sizeof(selgame_Label));
-		CopyUtf8(selgame_Description, _("Hell Difficulty\nThe most powerful of the underworld's creatures lurk at the gateway into Hell. Only the most experienced characters should venture in this realm."), sizeof(selgame_Description));
+		tooltip = _("Hell Difficulty\nThe most powerful of the underworld's creatures lurk at the gateway into Hell. Only the most experienced characters should venture in this realm.");
+		CopyUtf8(selgame_Description, tooltip, sizeof(selgame_Description));
 		break;
 	}
 	CopyUtf8(selgame_Description, WordWrapString(selgame_Description, DESCRIPTION_WIDTH), sizeof(selgame_Description));
+
+	std::string spoken = selgame_Label;
+	std::string_view spokenDescription = tooltip;
+	if (const size_t newlinePos = spokenDescription.find('\n'); newlinePos != std::string_view::npos)
+		spokenDescription = spokenDescription.substr(newlinePos + 1);
+	if (!spokenDescription.empty()) {
+		spoken.append("\n");
+		spoken.append(spokenDescription);
+	}
+	UiSetSpokenTextOverride(std::move(spoken));
 }
 
 bool IsDifficultyAllowed(int value)

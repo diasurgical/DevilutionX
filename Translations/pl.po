@@ -5409,6 +5409,30 @@ msgstr "Barda"
 msgid "Barbarian"
 msgstr "Barbarzyńca"
 
+#: Source/DiabloUI/hero/selhero.cpp:86
+msgid "A powerful fighter who excels in melee combat."
+msgstr "Potężny wojownik, który świetnie radzi sobie w walce wręcz."
+
+#: Source/DiabloUI/hero/selhero.cpp:88
+msgid "A nimble archer who excels at ranged combat."
+msgstr "Zwinna łuczniczka, która świetnie radzi sobie w walce na dystans."
+
+#: Source/DiabloUI/hero/selhero.cpp:90
+msgid "A master of arcane magic who casts powerful spells."
+msgstr "Mistrz magii tajemnej, który rzuca potężne zaklęcia."
+
+#: Source/DiabloUI/hero/selhero.cpp:92
+msgid "A holy warrior skilled in martial arts and staves."
+msgstr "Święty wojownik biegły w sztukach walki i władaniu kosturami."
+
+#: Source/DiabloUI/hero/selhero.cpp:94
+msgid "A versatile fighter who blends melee and archery."
+msgstr "Wszechstronna wojowniczka, która łączy walkę wręcz i łucznictwo."
+
+#: Source/DiabloUI/hero/selhero.cpp:96
+msgid "A fierce warrior who relies on brute strength."
+msgstr "Zaciekły wojownik, który polega na brutalnej sile."
+
 #: Source/translation_dummy.cpp:17
 msgctxt "monster"
 msgid "Zombie"
