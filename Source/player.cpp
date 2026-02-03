@@ -3374,6 +3374,25 @@ void ModifyPlrVit(Player &player, int l)
 	}
 }
 
+void ModifyPlrLifeCapacity(Player &player, int delta, bool shiftCurrent)
+{
+	constexpr int MinHPBase = 1 << 6;
+
+	const int newMaxBase = std::max(MinHPBase, player._pMaxHPBase + delta);
+	const int applied = newMaxBase - player._pMaxHPBase;
+
+	player._pMaxHPBase = newMaxBase;
+	player._pMaxHP += applied;
+
+	if (shiftCurrent) {
+		player._pHPBase += applied;
+		player._pHitPoints += applied;
+	} else {
+		player._pHPBase = std::min(player._pHPBase, player._pMaxHPBase);
+		player._pHitPoints = std::min(player._pHitPoints, player._pMaxHP);
+	}
+}
+
 void SetPlayerHitPoints(Player &player, int val)
 {
 	player._pHitPoints = val;
