@@ -41,6 +41,7 @@ set(libdevilutionx_SRCS
   control/control_infobox.cpp
   control/control_panel.cpp
 
+  controls/accessibility_keys.cpp
   controls/axis_direction.cpp
   controls/controller_motion.cpp
   controls/controller.cpp
@@ -51,6 +52,8 @@ set(libdevilutionx_SRCS
   controls/menu_controls.cpp
   controls/modifier_hints.cpp
   controls/plrctrls.cpp
+  controls/town_npc_nav.cpp
+  controls/tracker.cpp
 
   DiabloUI/button.cpp
   DiabloUI/credits.cpp
@@ -160,13 +163,16 @@ set(libdevilutionx_SRCS
   tables/textdat.cpp
   tables/townerdat.cpp
 
+  utils/accessibility_announcements.cpp
   utils/display.cpp
   utils/language.cpp
+  utils/navigation_speech.cpp
   utils/proximity_audio.cpp
   utils/sdl_bilinear_scale.cpp
   utils/sdl_thread.cpp
   utils/surface_to_clx.cpp
-  utils/timer.cpp)
+  utils/timer.cpp
+  utils/walk_path_speech.cpp)
 
 # These files are responsible for most of the runtime in Debug mode.
 # Apply some optimizations to them even in Debug mode to get reasonable performance.
