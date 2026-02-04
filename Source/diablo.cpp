@@ -43,7 +43,6 @@
 #include "controls/keymapper.hpp"
 #include "controls/plrctrls.h"
 #include "controls/remap_keyboard.h"
-#include "controls/town_npc_nav.hpp"
 #include "controls/tracker.hpp"
 #include "diablo.h"
 #include "diablo_msg.hpp"
@@ -704,10 +703,6 @@ void PressKey(SDL_Keycode vkey, uint16_t modState)
 			StorePrior();
 		} else if (ChatLogFlag) {
 			ChatLogScrollTop();
-		} else {
-			const KeymapperOptions::Action *action = GetOptions().Keymapper.findAction(static_cast<uint32_t>(vkey));
-			if (action == nullptr || !action->isEnabled())
-				SelectPreviousTownNpcKeyPressed();
 		}
 		return;
 	case SDLK_PAGEDOWN:
@@ -715,10 +710,6 @@ void PressKey(SDL_Keycode vkey, uint16_t modState)
 			StoreNext();
 		} else if (ChatLogFlag) {
 			ChatLogScrollBottom();
-		} else {
-			const KeymapperOptions::Action *action = GetOptions().Keymapper.findAction(static_cast<uint32_t>(vkey));
-			if (action == nullptr || !action->isEnabled())
-				SelectNextTownNpcKeyPressed();
 		}
 		return;
 	case SDLK_LEFT:
@@ -1632,7 +1623,6 @@ void GameLogic()
 	if (gbProcessPlayers) {
 		gGameLogicStep = GameLogicStep::ProcessPlayers;
 		ProcessPlayers();
-		UpdateAutoWalkTownNpc();
 		UpdateAutoWalkTracker();
 		UpdateLowDurabilityWarnings();
 	}
@@ -1773,7 +1763,6 @@ const auto OptionChangeHandlerLanguage = (GetOptions().Language.code.SetValueCha
 void CancelAutoWalkInternal()
 {
 	ResetAutoWalkTracker();
-	ResetAutoWalkTownNpc();
 }
 
 } // namespace
@@ -1927,46 +1916,6 @@ void InitKeymapActions()
 	    nullptr,
 	    IsGameRunning);
 
-	options.Keymapper.AddAction(
-	    "ListTownNpcs",
-	    N_("List town NPCs"),
-	    N_("Speaks a list of town NPCs."),
-	    SDLK_UNKNOWN,
-	    ListTownNpcsKeyPressed,
-	    nullptr,
-	    CanPlayerTakeAction);
-	options.Keymapper.AddAction(
-	    "PreviousTownNpc",
-	    N_("Previous town NPC"),
-	    N_("Select previous town NPC (speaks)."),
-	    SDLK_UNKNOWN,
-	    SelectPreviousTownNpcKeyPressed,
-	    nullptr,
-	    IsTownNpcActionAllowed);
-	options.Keymapper.AddAction(
-	    "NextTownNpc",
-	    N_("Next town NPC"),
-	    N_("Select next town NPC (speaks)."),
-	    SDLK_UNKNOWN,
-	    SelectNextTownNpcKeyPressed,
-	    nullptr,
-	    IsTownNpcActionAllowed);
-	options.Keymapper.AddAction(
-	    "SpeakSelectedTownNpc",
-	    N_("Speak selected town NPC"),
-	    N_("Speaks the currently selected town NPC."),
-	    SDLK_UNKNOWN,
-	    SpeakSelectedTownNpc,
-	    nullptr,
-	    IsTownNpcActionAllowed);
-	options.Keymapper.AddAction(
-	    "GoToSelectedTownNpc",
-	    N_("Go to selected town NPC"),
-	    N_("Walks to the selected town NPC."),
-	    SDLK_UNKNOWN,
-	    GoToSelectedTownNpcKeyPressed,
-	    nullptr,
-	    IsTownNpcActionAllowed);
 	options.Keymapper.AddAction(
 	    "SpeakNearestUnexploredSpace",
 	    N_("Nearest unexplored space"),

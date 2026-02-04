@@ -1215,7 +1215,7 @@ void KeymapperOptions::Action::LoadFromIni(std::string_view category)
 		// Migration: some actions were previously saved as unbound because their default
 		// keys were not supported by the keymapper. If we see an explicit empty mapping
 		// for these actions, treat it as "use default".
-		if (IsAnyOf(key, "PreviousTownNpc", "NextTownNpc", "KeyboardWalkNorth", "KeyboardWalkSouth", "KeyboardWalkEast", "KeyboardWalkWest")) {
+		if (IsAnyOf(key, "KeyboardWalkNorth", "KeyboardWalkSouth", "KeyboardWalkEast", "KeyboardWalkWest")) {
 			SetValue(defaultKey);
 			return;
 		}
