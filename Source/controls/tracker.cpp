@@ -67,7 +67,10 @@ int AutoWalkTrackerTargetId = -1;                                               
 /// Maximum Chebyshev distance (in tiles) at which the player is considered
 /// close enough to interact with a tracker target.
 constexpr int TrackerInteractDistanceTiles = 1;
-constexpr int TrackerCycleDistanceTiles = 20;
+// Selection list range for PageUp/PageDown. Use a value larger than the maximum
+// possible distance across the 112x112 dungeon grid so the list includes all
+// eligible targets on the current level.
+constexpr int TrackerCycleDistanceTiles = MAXDUNX + MAXDUNY;
 
 int LockedTrackerItemId = -1;
 int LockedTrackerChestId = -1;
