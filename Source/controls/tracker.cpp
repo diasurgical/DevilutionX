@@ -647,7 +647,7 @@ template <typename Predicate>
 			if (trigger._tmsg != WM_DIABRTNLVL)
 				continue;
 		} else {
-			if (trigger._tmsg != WM_DIABPREVLVL)
+			if (!IsAnyOf(trigger._tmsg, WM_DIABPREVLVL, WM_DIABTWARPUP))
 				continue;
 		}
 
@@ -749,7 +749,7 @@ template <typename Predicate>
 
 	for (int i = 0; i < numtrigs; ++i) {
 		const TriggerStruct &trigger = trigs[i];
-		if (!IsAnyOf(trigger._tmsg, WM_DIABNEXTLVL, WM_DIABPREVLVL))
+		if (!IsAnyOf(trigger._tmsg, WM_DIABNEXTLVL, WM_DIABPREVLVL, WM_DIABTWARPUP))
 			continue;
 
 		const Point triggerPosition { trigger.position.x, trigger.position.y };
@@ -2651,7 +2651,7 @@ void UpdateAutoWalkTracker()
 		const TriggerStruct &trigger = trigs[triggerIndex];
 		const bool valid = leveltype == DTYPE_TOWN
 		    ? IsAnyOf(trigger._tmsg, WM_DIABNEXTLVL, WM_DIABTOWNWARP)
-		    : (setlevel ? trigger._tmsg == WM_DIABRTNLVL : trigger._tmsg == WM_DIABPREVLVL);
+		    : (setlevel ? trigger._tmsg == WM_DIABRTNLVL : IsAnyOf(trigger._tmsg, WM_DIABPREVLVL, WM_DIABTWARPUP));
 		if (!valid) {
 			AutoWalkTrackerTargetId = -1;
 			SpeakText(_("Target entrance is gone."), true);
@@ -2674,7 +2674,7 @@ void UpdateAutoWalkTracker()
 			return;
 		}
 		const TriggerStruct &trigger = trigs[triggerIndex];
-		if (!IsAnyOf(trigger._tmsg, WM_DIABNEXTLVL, WM_DIABPREVLVL)) {
+		if (!IsAnyOf(trigger._tmsg, WM_DIABNEXTLVL, WM_DIABPREVLVL, WM_DIABTWARPUP)) {
 			AutoWalkTrackerTargetId = -1;
 			SpeakText(_("Target stairs are gone."), true);
 			return;
