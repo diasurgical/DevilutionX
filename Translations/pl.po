@@ -12306,33 +12306,65 @@ msgstr "martwe ciała"
 msgid "No items found."
 msgstr "Nie znaleziono żadnych przedmiotów."
 
+#: Source/controls/tracker.cpp
+msgid "No nearby items found."
+msgstr "Nie znaleziono żadnych pobliskich przedmiotów."
+
 #: Source/diablo.cpp
 msgid "No chests found."
 msgstr "Nie znaleziono żadnych skrzyń."
+
+#: Source/controls/tracker.cpp
+msgid "No nearby chests found."
+msgstr "Nie znaleziono żadnych pobliskich skrzyń."
 
 #: Source/diablo.cpp
 msgid "No doors found."
 msgstr "Nie znaleziono żadnych drzwi."
 
+#: Source/controls/tracker.cpp
+msgid "No nearby doors found."
+msgstr "Nie znaleziono żadnych pobliskich drzwi."
+
 #: Source/diablo.cpp
 msgid "No shrines found."
 msgstr "Nie znaleziono żadnych kapliczek."
+
+#: Source/controls/tracker.cpp
+msgid "No nearby shrines found."
+msgstr "Nie znaleziono żadnych pobliskich kapliczek."
 
 #: Source/diablo.cpp
 msgid "No objects found."
 msgstr "Nie znaleziono żadnych obiektów."
 
+#: Source/controls/tracker.cpp
+msgid "No nearby objects found."
+msgstr "Nie znaleziono żadnych pobliskich obiektów."
+
 #: Source/diablo.cpp
 msgid "No breakables found."
 msgstr "Nie znaleziono żadnych niszczalnych obiektów."
+
+#: Source/controls/tracker.cpp
+msgid "No nearby breakables found."
+msgstr "Nie znaleziono żadnych pobliskich niszczalnych obiektów."
 
 #: Source/diablo.cpp
 msgid "No monsters found."
 msgstr "Nie znaleziono żadnych potworów."
 
+#: Source/controls/tracker.cpp
+msgid "No nearby monsters found."
+msgstr "Nie znaleziono żadnych pobliskich potworów."
+
 #: Source/diablo.cpp
 msgid "No dead bodies found."
 msgstr "Nie znaleziono żadnych martwych ciał."
+
+#: Source/controls/tracker.cpp
+msgid "No nearby dead bodies found."
+msgstr "Nie znaleziono żadnych pobliskich martwych ciał."
 
 #: Source/diablo.cpp
 msgid "Navigating to nearest item."

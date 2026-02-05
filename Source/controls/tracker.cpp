@@ -67,7 +67,7 @@ int AutoWalkTrackerTargetId = -1;                                               
 /// Maximum Chebyshev distance (in tiles) at which the player is considered
 /// close enough to interact with a tracker target.
 constexpr int TrackerInteractDistanceTiles = 1;
-constexpr int TrackerCycleDistanceTiles = 12;
+constexpr int TrackerCycleDistanceTiles = 20;
 
 int LockedTrackerItemId = -1;
 int LockedTrackerChestId = -1;
@@ -1339,6 +1339,60 @@ void SelectTrackerTargetCategoryRelative(int delta)
 	app_fatal("Invalid TrackerTargetCategory");
 }
 
+[[nodiscard]] constexpr bool TrackerCategorySelectionIsProximityLimited(TrackerTargetCategory category)
+{
+	return IsAnyOf(category, TrackerTargetCategory::Items, TrackerTargetCategory::Chests, TrackerTargetCategory::Doors, TrackerTargetCategory::Shrines, TrackerTargetCategory::Objects,
+	    TrackerTargetCategory::Breakables, TrackerTargetCategory::Monsters, TrackerTargetCategory::DeadBodies);
+}
+
+[[nodiscard]] bool TrackerCategoryHasAnyTargets(TrackerTargetCategory category, Point playerPosition)
+{
+	switch (category) {
+	case TrackerTargetCategory::Items:
+		return FindNearestGroundItemId(playerPosition).has_value();
+	case TrackerTargetCategory::Chests:
+		return FindNearestUnopenedChestObjectId(playerPosition).has_value();
+	case TrackerTargetCategory::Doors:
+		return FindNearestDoorObjectId(playerPosition).has_value();
+	case TrackerTargetCategory::Shrines:
+		return FindNearestShrineObjectId(playerPosition).has_value();
+	case TrackerTargetCategory::Objects:
+		return FindNearestMiscInteractableObjectId(playerPosition).has_value();
+	case TrackerTargetCategory::Breakables:
+		return FindNearestBreakableObjectId(playerPosition).has_value();
+	case TrackerTargetCategory::Monsters:
+		return FindNearestMonsterId(playerPosition).has_value();
+	case TrackerTargetCategory::DeadBodies:
+		return FindNearestCorpseId(playerPosition).has_value();
+	default:
+		return false;
+	}
+}
+
+[[nodiscard]] std::string_view TrackerCategoryNoNearbyCandidatesFoundMessage(TrackerTargetCategory category)
+{
+	switch (category) {
+	case TrackerTargetCategory::Items:
+		return _("No nearby items found.");
+	case TrackerTargetCategory::Chests:
+		return _("No nearby chests found.");
+	case TrackerTargetCategory::Doors:
+		return _("No nearby doors found.");
+	case TrackerTargetCategory::Shrines:
+		return _("No nearby shrines found.");
+	case TrackerTargetCategory::Objects:
+		return _("No nearby objects found.");
+	case TrackerTargetCategory::Breakables:
+		return _("No nearby breakables found.");
+	case TrackerTargetCategory::Monsters:
+		return _("No nearby monsters found.");
+	case TrackerTargetCategory::DeadBodies:
+		return _("No nearby dead bodies found.");
+	default:
+		return TrackerCategoryNoCandidatesFoundMessage(category);
+	}
+}
+
 [[nodiscard]] std::string_view TrackerCategoryNoNextMessage(TrackerTargetCategory category)
 {
 	switch (category) {
@@ -1444,7 +1498,10 @@ void SelectTrackerTargetRelative(int delta)
 	const std::vector<TrackerCandidate> candidates = CollectTrackerCandidatesForSelection(SelectedTrackerTargetCategory, playerPosition);
 	if (candidates.empty()) {
 		LockedTrackerTargetId(SelectedTrackerTargetCategory) = -1;
-		SpeakText(TrackerCategoryNoCandidatesFoundMessage(SelectedTrackerTargetCategory), true);
+		if (TrackerCategorySelectionIsProximityLimited(SelectedTrackerTargetCategory) && TrackerCategoryHasAnyTargets(SelectedTrackerTargetCategory, playerPosition))
+			SpeakText(TrackerCategoryNoNearbyCandidatesFoundMessage(SelectedTrackerTargetCategory), true);
+		else
+			SpeakText(TrackerCategoryNoCandidatesFoundMessage(SelectedTrackerTargetCategory), true);
 		return;
 	}
 
@@ -2813,8 +2870,12 @@ void TrackerPageUpKeyPressed()
 		SelectTrackerTargetCategoryRelative(-1);
 		if (MyPlayer != nullptr) {
 			const Point playerPosition = MyPlayer->position.future;
-			if (CollectTrackerCandidatesForSelection(SelectedTrackerTargetCategory, playerPosition).empty())
-				SpeakText(TrackerCategoryNoCandidatesFoundMessage(SelectedTrackerTargetCategory), true);
+			if (CollectTrackerCandidatesForSelection(SelectedTrackerTargetCategory, playerPosition).empty()) {
+				if (TrackerCategorySelectionIsProximityLimited(SelectedTrackerTargetCategory) && TrackerCategoryHasAnyTargets(SelectedTrackerTargetCategory, playerPosition))
+					SpeakText(TrackerCategoryNoNearbyCandidatesFoundMessage(SelectedTrackerTargetCategory), true);
+				else
+					SpeakText(TrackerCategoryNoCandidatesFoundMessage(SelectedTrackerTargetCategory), true);
+			}
 		}
 		return;
 	}
@@ -2831,8 +2892,12 @@ void TrackerPageDownKeyPressed()
 		SelectTrackerTargetCategoryRelative(+1);
 		if (MyPlayer != nullptr) {
 			const Point playerPosition = MyPlayer->position.future;
-			if (CollectTrackerCandidatesForSelection(SelectedTrackerTargetCategory, playerPosition).empty())
-				SpeakText(TrackerCategoryNoCandidatesFoundMessage(SelectedTrackerTargetCategory), true);
+			if (CollectTrackerCandidatesForSelection(SelectedTrackerTargetCategory, playerPosition).empty()) {
+				if (TrackerCategorySelectionIsProximityLimited(SelectedTrackerTargetCategory) && TrackerCategoryHasAnyTargets(SelectedTrackerTargetCategory, playerPosition))
+					SpeakText(TrackerCategoryNoNearbyCandidatesFoundMessage(SelectedTrackerTargetCategory), true);
+				else
+					SpeakText(TrackerCategoryNoCandidatesFoundMessage(SelectedTrackerTargetCategory), true);
+			}
 		}
 		return;
 	}
