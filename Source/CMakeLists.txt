@@ -52,7 +52,6 @@ set(libdevilutionx_SRCS
   controls/menu_controls.cpp
   controls/modifier_hints.cpp
   controls/plrctrls.cpp
-  controls/town_npc_nav.cpp
   controls/tracker.cpp
 
   DiabloUI/button.cpp
