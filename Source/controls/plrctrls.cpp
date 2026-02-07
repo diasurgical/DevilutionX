@@ -1108,7 +1108,7 @@ void VisualStoreMove(AxisDirection dir)
 		// Grid
 		Size displayItemSize = { 1, 1 };
 		Point displayPos = VisualStoreSlot;
-		
+
 		// If hovering over an item (and not holding one), center on that item
 		if (!isHoldingItem) {
 			const int itemIdx = VisualStore.pages[VisualStore.currentPage].grid[VisualStoreSlot.x][VisualStoreSlot.y];
@@ -1117,7 +1117,7 @@ void VisualStoreMove(AxisDirection dir)
 				if (itemIdx - 1 < static_cast<int>(items.size())) {
 					const Item &item = items[itemIdx - 1];
 					displayItemSize = GetInventorySize(item);
-					
+
 					// Find the top-left of this item (which is stored in the VisualStorePage items list)
 					for (const auto &vsItem : VisualStore.pages[VisualStore.currentPage].items) {
 						if (vsItem.index == itemIdx - 1) {
@@ -1127,13 +1127,13 @@ void VisualStoreMove(AxisDirection dir)
 							break;
 						}
 					}
-					
+
 					// Sync the logical slot to the top-left of the item to ensure consistent navigation
 					VisualStoreSlot = displayPos;
 				}
 			}
 		}
-		
+
 		mousePos = GetVisualStoreSlotCoord(displayPos) + Displacement { (displayItemSize.width * INV_SLOT_HALF_SIZE_PX), (displayItemSize.height * INV_SLOT_HALF_SIZE_PX) };
 	}
 
