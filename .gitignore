@@ -469,3 +469,5 @@ uwp-project/Assets/ui_art
 # Temporary directory for prep scripts and other purposes.
 /tmp/
 /compile_commands.json
+CMakeUserPresets.json
+vcpkg_installed/

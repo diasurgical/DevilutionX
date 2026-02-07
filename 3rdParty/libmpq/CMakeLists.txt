@@ -1,8 +1,8 @@
-if(NOT TARGET ZLIB::ZLIB)
+if(NOT TARGET ZLIB::ZLIB AND NOT ZLIB_FOUND)
   find_package(ZLIB REQUIRED)
 endif()
 
-if(NOT TARGET BZip2::BZip2)
+if(NOT TARGET BZip2::BZip2 AND NOT BZip2_FOUND AND NOT BZIP2_FOUND)
   find_package(BZip2 REQUIRED)
 endif()
 

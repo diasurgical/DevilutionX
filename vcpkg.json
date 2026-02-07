@@ -3,12 +3,15 @@
 	"version-string": "1.6.0",
 	"dependencies": [
 		"fmt",
-		"bzip2",
 		"lua",
 		"magic-enum"
 	],
 	"builtin-baseline": "a62ce77d56ee07513b4b67de1ec2daeaebfae51a",
 	"features": {
+		"bzip2": {
+			"description": "Use vcpkg bzip2",
+			"dependencies": [ "bzip2" ]
+		},
 		"sdl1": {
 			"description": "Use SDL1.2 instead of SDL2",
 			"dependencies": [ "sdl1", "libpng" ]

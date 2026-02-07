@@ -285,15 +285,39 @@ If you need additional instructions for vcpkg you can find the documentation [he
 ### If you want to build the devilutionX.mpq File (optional)
 
 In order to build devilutionx.mpq, install smpq from https://launchpad.net/smpq/trunk/1.6/+download/SMPQ-1.6-x86_64.exe.
-The location of this tool will need to be [added to the system's PATH environment variable](https://www.architectryan.com/2018/03/17/add-to-the-path-on-windows-10/).
+The tool is automatically searched in `C:/Program Files/SMPQ`. If installed elsewhere, its location will need to be [added to the system's PATH environment variable](https://www.architectryan.com/2018/03/17/add-to-the-path-on-windows-10/).
 
 ### Compiling
+
+* **Through CMake Presets in Visual Studio (Recommended)**
+
+1. Go to `File -> Open -> Folder` and select the devilutionx root folder.
+2. Select a configuration from the configuration dropdown (e.g., `x64 Debug`).
+   * Note: You can create a `CMakeUserPresets.json` file in the root directory to specify local paths (like `vcpkg` or `SMPQ`) without modifying tracked files.
+   * Example `CMakeUserPresets.json`:
+     ```json
+     {
+       "version": 3,
+       "configurePresets": [
+         {
+           "name": "user-x64-debug",
+           "displayName": "x64 Debug (Local)",
+           "inherits": "x64-debug",
+           "cacheVariables": {
+             "CMAKE_TOOLCHAIN_FILE": "C:/vcpkg/scripts/buildsystems/vcpkg.cmake",
+             "SMPQ": "C:/Program Files/SMPQ/smpq.exe"
+           }
+         }
+       ]
+     }
+     ```
+3. Select `Build devilutionx` from the `Build` menu.
 
 * **Through Open->CMake in Visual Studio**
 
 1. Go to `File -> Open -> CMake`, select `CMakeLists.txt` from the project root.
 2. Select the `x64-Release` configuration (or `x86` for 32 bit builds, `-Debug` for debug builds).
-3. Select `Build devilution.exe` from the `Build` menu.
+3. Select `Build devilutionx` from the `Build` menu.
 
 * **Through GCC/WSL in Visual Studio**
 
