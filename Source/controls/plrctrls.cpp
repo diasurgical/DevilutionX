@@ -939,7 +939,10 @@ void VisualStoreMove(AxisDirection dir)
 			if (IsAnyOf(firstSlot, SLOTXY_HEAD, SLOTXY_HAND_LEFT, SLOTXY_RING_LEFT, SLOTXY_AMULET, SLOTXY_CHEST,
 			        SLOTXY_INV_ROW1_FIRST, SLOTXY_INV_ROW2_FIRST, SLOTXY_INV_ROW3_FIRST, SLOTXY_INV_ROW4_FIRST)) {
 				InvalidateInventorySlot();
-				FocusOnVisualStore();
+				// Focus on rightmost column of visual store (closest to inventory)
+				VisualStoreSlot = { VisualStoreGridWidth - 1, 0 };
+				const Point slotPos = GetVisualStoreSlotCoord(VisualStoreSlot);
+				SetCursorPos(slotPos + Displacement { INV_SLOT_HALF_SIZE_PX, INV_SLOT_HALF_SIZE_PX });
 				return;
 			}
 		}
@@ -2157,9 +2160,11 @@ void PerformPrimaryAction()
 		} else if (IsStashOpen && GetLeftPanel().contains(MousePosition)) {
 			LiftStashItem();
 		} else if (IsVisualStoreOpen && GetLeftPanel().contains(MousePosition)) {
-			if (pcursstorebtn != -1) {
+			if (!MyPlayer->HoldItem.isEmpty()) {
+				CheckVisualStorePaste(MousePosition);
+			} else if (pcursstorebtn != -1) {
+				// Only press the button, release will be called when button is released
 				CheckVisualStoreButtonPress(MousePosition);
-				CheckVisualStoreButtonRelease(MousePosition);
 			} else {
 				CheckVisualStoreItem(MousePosition, false, false);
 			}
@@ -2175,6 +2180,14 @@ void PerformPrimaryAction()
 	}
 
 	Interact();
+}
+
+void PerformPrimaryActionRelease()
+{
+	// Handle button release events for visual store buttons
+	if (IsVisualStoreOpen && GetLeftPanel().contains(MousePosition)) {
+		CheckVisualStoreButtonRelease(MousePosition);
+	}
 }
 
 bool SpellHasActorTarget()
@@ -2357,7 +2370,9 @@ void PerformSecondaryAction()
 				TransferItemToStash(myPlayer, pcursinvitem);
 			}
 		} else if (IsVisualStoreOpen) {
-			if (pcursinvitem >= INVITEM_INV_FIRST && pcursinvitem <= INVITEM_INV_LAST) {
+			if (!myPlayer.HoldItem.isEmpty() && GetLeftPanel().contains(MousePosition)) {
+				CheckVisualStorePaste(MousePosition);
+			} else if (pcursinvitem >= INVITEM_INV_FIRST && pcursinvitem <= INVITEM_INV_LAST) {
 				SellItemToVisualStore(pcursinvitem - INVITEM_INV_FIRST);
 			}
 		} else {
