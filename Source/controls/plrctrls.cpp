@@ -914,6 +914,57 @@ void LiftStashItem()
 	SetCursorPos(mousePos);
 }
 
+/**
+ * @brief Logic for moving within a grid (Stash or Visual Store) with item skipping.
+ * @return true if the move was successful within the grid, false if it hit a boundary.
+ */
+static bool GridMove(Point &pos, AxisDirection dir, Size gridSize, Size movingItemSize, bool isHoldingItem, const std::function<int(Point)> &getCellId)
+{
+	const int cellId = getCellId(pos);
+	if (dir.x == AxisDirectionX_LEFT) {
+		if (pos.x > 0) {
+			pos.x--;
+			if (!isHoldingItem && cellId != 0) {
+				while (pos.x > 0 && getCellId(pos) == cellId) {
+					pos.x--;
+				}
+			}
+			return true;
+		}
+	} else if (dir.x == AxisDirectionX_RIGHT) {
+		if (pos.x < gridSize.width - movingItemSize.width) {
+			pos.x++;
+			if (!isHoldingItem && cellId != 0) {
+				while (pos.x < gridSize.width - 1 && getCellId(pos) == cellId) {
+					pos.x++;
+				}
+			}
+			return true;
+		}
+	} else if (dir.y == AxisDirectionY_UP) {
+		if (pos.y > 0) {
+			pos.y--;
+			if (!isHoldingItem && cellId != 0) {
+				while (pos.y > 0 && getCellId(pos) == cellId) {
+					pos.y--;
+				}
+			}
+			return true;
+		}
+	} else if (dir.y == AxisDirectionY_DOWN) {
+		if (pos.y < gridSize.height - movingItemSize.height) {
+			pos.y++;
+			if (!isHoldingItem && cellId != 0) {
+				while (pos.y < gridSize.height - 1 && getCellId(pos) == cellId) {
+					pos.y++;
+				}
+			}
+			return true;
+		}
+	}
+	return false;
+}
+
 void VisualStoreMove(AxisDirection dir)
 {
 	static AxisDirectionRepeater repeater(/*min_interval_ms=*/150);
@@ -953,6 +1004,26 @@ void VisualStoreMove(AxisDirection dir)
 	}
 
 	// We're in visual store mode - handle visual store navigation
+	const Size gridSize { VisualStoreGridWidth, VisualStoreGridHeight };
+	const bool isHoldingItem = !MyPlayer->HoldItem.isEmpty();
+	Size movingItemSize = { 1, 1 };
+
+	if (isHoldingItem) {
+		movingItemSize = GetInventorySize(MyPlayer->HoldItem);
+	} else if (VisualStoreSlot.y != -1 && VisualStoreSlot.y != VisualStoreGridHeight) {
+		const int itemIdx = VisualStore.pages[VisualStore.currentPage].grid[VisualStoreSlot.x][VisualStoreSlot.y];
+		if (itemIdx > 0) {
+			std::span<Item> items = GetVisualStoreItems();
+			if (itemIdx - 1 < static_cast<int>(items.size())) {
+				movingItemSize = GetInventorySize(items[itemIdx - 1]);
+			}
+		}
+	}
+
+	auto getCellId = [&](Point p) -> int {
+		return VisualStore.pages[VisualStore.currentPage].grid[p.x][p.y];
+	};
+
 	if (dir.x == AxisDirectionX_RIGHT) {
 		if (VisualStoreSlot.y == -1) { // Tabs
 			if (VisualStoreSlot.x == 0 && VisualStore.vendor == VisualStoreVendor::Smith) {
@@ -973,9 +1044,7 @@ void VisualStoreMove(AxisDirection dir)
 				return;
 			}
 		} else { // Grid
-			if (VisualStoreSlot.x < VisualStoreGridWidth - 1) {
-				VisualStoreSlot.x++;
-			} else {
+			if (!GridMove(VisualStoreSlot, dir, gridSize, movingItemSize, isHoldingItem, getCellId)) {
 				// Transition to inventory
 				VisualStoreSlot = { -1, -1 }; // Invalidate visual store slot
 				FocusOnInventory();
@@ -983,27 +1052,40 @@ void VisualStoreMove(AxisDirection dir)
 			}
 		}
 	} else if (dir.x == AxisDirectionX_LEFT) {
-		if (VisualStoreSlot.x > 0) {
-			VisualStoreSlot.x--;
+		if (VisualStoreSlot.y == -1 || VisualStoreSlot.y == VisualStoreGridHeight) {
+			if (VisualStoreSlot.x > 0)
+				VisualStoreSlot.x--;
+		} else {
+			GridMove(VisualStoreSlot, dir, gridSize, movingItemSize, isHoldingItem, getCellId);
 		}
 	}
 
 	if (dir.y == AxisDirectionY_UP) {
-		if (VisualStoreSlot.y > 0) {
-			VisualStoreSlot.y--;
-		} else if (VisualStoreSlot.y == 0) {
-			// Move to tabs
-			VisualStoreSlot.y = -1;
-			VisualStoreSlot.x = 0; // Default to first tab
+		if (VisualStoreSlot.y == -1) {
+			// Already at tabs
+		} else if (VisualStoreSlot.y == VisualStoreGridHeight) {
+			// From repair buttons to grid
+			VisualStoreSlot.y = VisualStoreGridHeight - 1;
+		} else {
+			if (!GridMove(VisualStoreSlot, dir, gridSize, movingItemSize, isHoldingItem, getCellId)) {
+				// Move to tabs
+				VisualStoreSlot.y = -1;
+				VisualStoreSlot.x = 0; // Default to first tab
+			}
 		}
 	} else if (dir.y == AxisDirectionY_DOWN) {
-		if (VisualStoreSlot.y < VisualStoreGridHeight - 1) {
-			VisualStoreSlot.y++;
-		} else if (VisualStoreSlot.y == VisualStoreGridHeight - 1) {
-			if (VisualStore.vendor == VisualStoreVendor::Smith) {
-				// Move to repair buttons
-				VisualStoreSlot.y = VisualStoreGridHeight;
-				VisualStoreSlot.x = 0; // Default to Repair All
+		if (VisualStoreSlot.y == -1) {
+			// From tabs to grid
+			VisualStoreSlot.y = 0;
+		} else if (VisualStoreSlot.y == VisualStoreGridHeight) {
+			// Already at repair buttons
+		} else {
+			if (!GridMove(VisualStoreSlot, dir, gridSize, movingItemSize, isHoldingItem, getCellId)) {
+				if (VisualStore.vendor == VisualStoreVendor::Smith) {
+					// Move to repair buttons
+					VisualStoreSlot.y = VisualStoreGridHeight;
+					VisualStoreSlot.x = 0; // Default to Repair All
+				}
 			}
 		}
 	}
@@ -1024,7 +1106,35 @@ void VisualStoreMove(AxisDirection dir)
 		mousePos = GetVisualBtnCoord(btnId).Center();
 	} else {
 		// Grid
-		mousePos = GetVisualStoreSlotCoord(VisualStoreSlot) + Displacement { INV_SLOT_HALF_SIZE_PX, INV_SLOT_HALF_SIZE_PX };
+		Size displayItemSize = { 1, 1 };
+		Point displayPos = VisualStoreSlot;
+		
+		// If hovering over an item (and not holding one), center on that item
+		if (!isHoldingItem) {
+			const int itemIdx = VisualStore.pages[VisualStore.currentPage].grid[VisualStoreSlot.x][VisualStoreSlot.y];
+			if (itemIdx > 0) {
+				std::span<Item> items = GetVisualStoreItems();
+				if (itemIdx - 1 < static_cast<int>(items.size())) {
+					const Item &item = items[itemIdx - 1];
+					displayItemSize = GetInventorySize(item);
+					
+					// Find the top-left of this item (which is stored in the VisualStorePage items list)
+					for (const auto &vsItem : VisualStore.pages[VisualStore.currentPage].items) {
+						if (vsItem.index == itemIdx - 1) {
+							// Item positions in VisualStorePage are stored as bottom-left
+							// Convert to top-left for display/cursor calculation
+							displayPos = vsItem.position - Displacement { 0, displayItemSize.height - 1 };
+							break;
+						}
+					}
+					
+					// Sync the logical slot to the top-left of the item to ensure consistent navigation
+					VisualStoreSlot = displayPos;
+				}
+			}
+		}
+		
+		mousePos = GetVisualStoreSlotCoord(displayPos) + Displacement { (displayItemSize.width * INV_SLOT_HALF_SIZE_PX), (displayItemSize.height * INV_SLOT_HALF_SIZE_PX) };
 	}
 
 	SetCursorPos(mousePos);
@@ -1385,30 +1495,25 @@ void StashMove(AxisDirection dir)
 		return;
 	}
 
-	if (dir.x == AxisDirectionX_LEFT) {
-		if (ActiveStashSlot.x > 0) {
-			const StashStruct::StashCell itemIdAtActiveStashSlot = Stash.GetItemIdAtPosition(ActiveStashSlot);
-			ActiveStashSlot.x--;
-			if (holdItem.isEmpty() && itemIdAtActiveStashSlot != StashStruct::EmptyCell) {
-				while (ActiveStashSlot.x > 0 && itemIdAtActiveStashSlot == Stash.GetItemIdAtPosition(ActiveStashSlot)) {
-					ActiveStashSlot.x--;
-				}
-			}
+	const Size gridSize { 10, 10 };
+	const bool isHoldingItem = !holdItem.isEmpty();
+	Size movingItemSize = isHoldingItem ? GetInventorySize(holdItem) : Size { 1, 1 };
+
+	if (!isHoldingItem && ActiveStashSlot != InvalidStashPoint) {
+		const StashStruct::StashCell itemIdAtActiveStashSlot = Stash.GetItemIdAtPosition(ActiveStashSlot);
+		if (itemIdAtActiveStashSlot != StashStruct::EmptyCell) {
+			movingItemSize = GetInventorySize(Stash.stashList[itemIdAtActiveStashSlot]);
 		}
+	}
+
+	auto getCellId = [&](Point p) -> int {
+		return Stash.GetItemIdAtPosition(p);
+	};
+
+	if (dir.x == AxisDirectionX_LEFT) {
+		GridMove(ActiveStashSlot, dir, gridSize, movingItemSize, isHoldingItem, getCellId);
 	} else if (dir.x == AxisDirectionX_RIGHT) {
-		// If we're empty-handed and trying to move right while hovering over an item we may not
-		//  have a free stash column to move to. If the item we're hovering over occupies the last
-		//  column then we want to jump to the inventory instead of just moving one column over.
-		const Size itemUnderCursorSize = holdItem.isEmpty() ? GetItemSizeOnSlot(ActiveStashSlot) : itemSize;
-		if (ActiveStashSlot.x < 10 - itemUnderCursorSize.width) {
-			const StashStruct::StashCell itemIdAtActiveStashSlot = Stash.GetItemIdAtPosition(ActiveStashSlot);
-			ActiveStashSlot.x++;
-			if (holdItem.isEmpty() && itemIdAtActiveStashSlot != StashStruct::EmptyCell) {
-				while (ActiveStashSlot.x < 10 - itemSize.width && itemIdAtActiveStashSlot == Stash.GetItemIdAtPosition(ActiveStashSlot)) {
-					ActiveStashSlot.x++;
-				}
-			}
-		} else {
+		if (!GridMove(ActiveStashSlot, dir, gridSize, movingItemSize, isHoldingItem, getCellId)) {
 			const Point stashSlotCoord = GetStashSlotCoord(ActiveStashSlot);
 			const Point rightPanelCoord = { GetRightPanel().position.x, stashSlotCoord.y };
 			Slot = FindClosestInventorySlot(rightPanelCoord, holdItem, [](Point mousePos, int slot) {
@@ -1426,29 +1531,15 @@ void StashMove(AxisDirection dir)
 		}
 	}
 	if (dir.y == AxisDirectionY_UP) {
-		if (ActiveStashSlot.y > 0) {
-			const StashStruct::StashCell itemIdAtActiveStashSlot = Stash.GetItemIdAtPosition(ActiveStashSlot);
-			ActiveStashSlot.y--;
-			if (holdItem.isEmpty() && itemIdAtActiveStashSlot != StashStruct::EmptyCell) {
-				while (ActiveStashSlot.y > 0 && itemIdAtActiveStashSlot == Stash.GetItemIdAtPosition(ActiveStashSlot)) {
-					ActiveStashSlot.y--;
-				}
-			}
-		}
+		GridMove(ActiveStashSlot, dir, gridSize, movingItemSize, isHoldingItem, getCellId);
 	} else if (dir.y == AxisDirectionY_DOWN) {
-		if (ActiveStashSlot.y < 10 - itemSize.height) {
-			const StashStruct::StashCell itemIdAtActiveStashSlot = Stash.GetItemIdAtPosition(ActiveStashSlot);
-			ActiveStashSlot.y++;
-			if (holdItem.isEmpty() && itemIdAtActiveStashSlot != StashStruct::EmptyCell) {
-				while (ActiveStashSlot.y < 10 - itemSize.height && itemIdAtActiveStashSlot == Stash.GetItemIdAtPosition(ActiveStashSlot)) {
-					ActiveStashSlot.y++;
-				}
+		if (!GridMove(ActiveStashSlot, dir, gridSize, movingItemSize, isHoldingItem, getCellId)) {
+			if ((holdItem.isEmpty() || CanBePlacedOnBelt(*MyPlayer, holdItem)) && ActiveStashSlot.x > 1) {
+				const int beltSlot = ActiveStashSlot.x - 2;
+				Slot = SLOTXY_BELT_FIRST + beltSlot;
+				ActiveStashSlot = InvalidStashPoint;
+				BeltReturnsToStash = true;
 			}
-		} else if ((holdItem.isEmpty() || CanBePlacedOnBelt(*MyPlayer, holdItem)) && ActiveStashSlot.x > 1) {
-			const int beltSlot = ActiveStashSlot.x - 2;
-			Slot = SLOTXY_BELT_FIRST + beltSlot;
-			ActiveStashSlot = InvalidStashPoint;
-			BeltReturnsToStash = true;
 		}
 	}
 

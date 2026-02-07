@@ -15,7 +15,9 @@
           "value": "True",
           "type": "BOOL"
         }
-      ]
+      ],
+      "cmakeToolchain": "D:/vcpkg/scripts/buildsystems/vcpkg.cmake",
+      "cmakeCommandArgs": "-DDEVILUTIONX_SYSTEM_BZIP2=OFF"
     },
     {
       "name": "x64-Debug-Translations",
@@ -63,7 +65,7 @@
       "configurationType": "Release",
       "buildRoot": "${workspaceRoot}\\build\\${name}",
       "installRoot": "${env.USERPROFILE}\\CMakeBuilds\\${workspaceHash}\\install\\${name}",
-      "cmakeCommandArgs": "-DCPACK=ON",
+      "cmakeCommandArgs": "-DCPACK=ON -DDEVILUTIONX_SYSTEM_BZIP2=OFF",
       "inheritEnvironments": [ "msvc_x64" ],
       "intelliSenseMode": "windows-msvc-x64",
       "enableClangTidyCodeAnalysis": true,
@@ -72,8 +74,14 @@
           "name": "DISCORD_INTEGRATION",
           "value": "True",
           "type": "BOOL"
+        },
+        {
+          "name": "SMPQ",
+          "value": "C:/Program Files/SMPQ/smpq.exe",
+          "type": "FILEPATH"
         }
-      ]
+      ],
+      "cmakeToolchain": "D:/vcpkg/scripts/buildsystems/vcpkg.cmake"
     },
     {
       "name": "x64-RelWithDebInfo",
