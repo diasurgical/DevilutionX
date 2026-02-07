@@ -38,7 +38,10 @@ Point Automap;
 
 enum MapColors : uint8_t {
 	/** color used to draw the player's arrow */
-	MapColorsPlayer = (PAL8_ORANGE + 1),
+	MapColorsPlayer1 = (PAL8_ORANGE + 1),
+	MapColorsPlayer2 = (PAL8_YELLOW + 1),
+	MapColorsPlayer3 = (PAL8_RED + 1),
+	MapColorsPlayer4 = (PAL8_BLUE + 1),
 	/** color for bright map lines (doors, stairs etc.) */
 	MapColorsBright = PAL8_YELLOW,
 	/** color for dim map lines/dots */
@@ -1318,12 +1321,27 @@ void SearchAutomapItem(const Surface &out, const Displacement &myPlayerOffset, i
 	}
 }
 
+uint8_t GetPlayerMapColor(int id)
+{
+	static constexpr uint8_t PlayerMapColors[] = {
+		MapColorsPlayer1,
+		MapColorsPlayer2,
+		MapColorsPlayer3,
+		MapColorsPlayer4,
+	};
+
+	if (id < 0 || id >= static_cast<int>(SDL_arraysize(PlayerMapColors)))
+		return MapColorsPlayer1;
+
+	return PlayerMapColors[id];
+}
+
 /**
  * @brief Renders an arrow on the automap, centered on and facing the direction of the player.
  */
 void DrawAutomapPlr(const Surface &out, const Displacement &myPlayerOffset, const Player &player)
 {
-	const uint8_t playerColor = MapColorsPlayer + (8 * player.getId()) % 128;
+	const uint8_t playerColor = GetPlayerMapColor(player.getId());
 
 	const Point tile = player.position.tile;
 

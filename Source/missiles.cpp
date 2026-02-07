@@ -715,7 +715,7 @@ bool GuardianTryFireAt(Missile &missile, Point target)
 {
 	const Point position = missile.position.tile;
 
-	if (!LineClearMissile(position, target))
+	if (!LineClearMovingMissile(position, target))
 		return false;
 	const int mid = dMonster[target.x][target.y] - 1;
 	if (mid < 0)

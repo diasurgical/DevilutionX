@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Features
+
+#### Graphics / Audio
+- Better use of colors to differentiate players in multiplayer
+
 ### Bug Fixes
 
 #### Graphics / Audio

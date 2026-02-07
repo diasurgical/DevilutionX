@@ -335,6 +335,11 @@ void LuaEvent(std::string_view name)
 	CallLuaEvent(name);
 }
 
+void LuaEvent(std::string_view name, std::string_view arg)
+{
+	CallLuaEvent(name, arg);
+}
+
 void LuaEvent(std::string_view name, const Player *player, int arg1, int arg2)
 {
 	CallLuaEvent(name, player, arg1, arg2);
@@ -348,21 +353,6 @@ void LuaEvent(std::string_view name, const Monster *monster, int arg1, int arg2)
 void LuaEvent(std::string_view name, const Player *player, uint32_t arg1)
 {
 	CallLuaEvent(name, player, arg1);
-}
-
-void LuaEvent(std::string_view name, std::string_view arg)
-{
-	if (!CurrentLuaState.has_value()) {
-		return;
-	}
-
-	const auto trigger = CurrentLuaState->events.traverse_get<std::optional<sol::object>>(name, "trigger");
-	if (!trigger.has_value() || !trigger->is<sol::protected_function>()) {
-		LogError("events.{}.trigger is not a function", name);
-		return;
-	}
-	const sol::protected_function fn = trigger->as<sol::protected_function>();
-	SafeCallResult(fn(arg), /*optional=*/true);
 }
 
 sol::state &GetLuaState()

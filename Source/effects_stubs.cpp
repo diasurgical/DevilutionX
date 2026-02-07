@@ -44,7 +44,7 @@ void PlaySfxLoc(SfxID psfx, Point position, bool randomizeByCategory)
 }
 void sound_stop() { }
 void sound_update() { }
-void effects_cleanup_sfx() { }
+void effects_cleanup_sfx(bool fullUnload) { }
 void sound_init() { }
 void ui_sound_init() { }
 void effects_play_sound(SfxID id) { }

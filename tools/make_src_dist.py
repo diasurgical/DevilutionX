@@ -97,6 +97,7 @@ def main():
 		configure_args.append('-DDISCORD_INTEGRATION=ON')
 	cmake(*configure_args)
 	cmake('--build', _BUILD_DIR, '--target', 'devilutionx_mpq')
+	cmake('--build', _BUILD_DIR, '--target', 'hellfire_mpq')
 
 	if _ARCHIVE_DIR.exists():
 		shutil.rmtree(_ARCHIVE_DIR)
@@ -116,6 +117,9 @@ def main():
 	_LOGGER.info(f'Copying devilutionx.mpq...')
 	paths.dist_dir.mkdir(parents=True)
 	shutil.copy(_BUILD_DIR.joinpath('devilutionx.mpq'), paths.dist_dir)
+	_LOGGER.info(f'Copying Hellfire.mpq...')
+	paths.dist_dir.joinpath('mods').mkdir(exist_ok=True)
+	shutil.copy(_BUILD_DIR.joinpath('mods', 'Hellfire.mpq'), paths.dist_dir.joinpath('mods'))
 
 	for dep in _DEPS + (_DEPS_NOT_VENDORED_BY_DEFAULT if args.fully_vendored else []):
 		_LOGGER.info(f'Copying {dep}...')
@@ -183,8 +187,9 @@ def write_dist_cmakelists(paths: Paths, version: Version, fully_vendored: bool):
 			f.write(b'set(GIT_COMMIT_HASH "%s" PARENT_SCOPE)\n' % version.commit_sha.encode('utf-8'))
 
 		f.write(b'''
-# Pre-generated `devilutionx.mpq` is provided so that distributions do not have to depend on smpq.
+# Pre-generated `devilutionx.mpq` and `mods/Hellfire.mpq` are provided so that distributions do not have to depend on smpq.
 set(DEVILUTIONX_MPQ "${CMAKE_CURRENT_SOURCE_DIR}/devilutionx.mpq" PARENT_SCOPE)
+set(HELLFIRE_MPQ "${CMAKE_CURRENT_SOURCE_DIR}/mods/Hellfire.mpq" PARENT_SCOPE)
 
 # This would ensure that CMake does not attempt to connect to network.
 # We do not set this to allow for builds for Windows and Android, which do fetch some
