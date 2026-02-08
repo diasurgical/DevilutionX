@@ -67,7 +67,7 @@ If you want to help test the latest development version (make sure to back up yo
 
 # Building from Source
 
-Want to compile the program by yourself? Great! Simply follow the [build instructions](https://github.com/diasurgical/DevilutionX/wiki/Building-from-Source).
+Want to compile the program by yourself? Great! Simply follow the [build instructions](docs/building.md).
 
 # Credits
 
