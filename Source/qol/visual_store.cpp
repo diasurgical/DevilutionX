@@ -619,59 +619,68 @@ int16_t CheckVisualStoreHLight(Point mousePosition)
 {
 	// Check buttons first
 	const Point panelPos = GetPanelPosition(UiPanels::Stash);
-	for (int i = 0; i < 4; i++) {
-		// Skip tab buttons if vendor doesn't have tabs
-		/*if (!VendorHasTabs() && (i == TabButtonBasic || i == TabButtonPremium))
-		    continue;*/
+	if (MyPlayer->HoldItem.isEmpty()) {
+		for (int i = 0; i < 4; i++) {
+			// Skip tab buttons if vendor doesn't have tabs
+			if (!VendorHasTabs() && i != TabButtonBasic)
+				continue;
 
-		Rectangle button = VisualStoreButtonRect[i];
-		button.position = panelPos + (button.position - Point { 0, 0 });
+			Rectangle button = VisualStoreButtonRect[i];
+			button.position = panelPos + (button.position - Point { 0, 0 });
 
-		if (button.contains(mousePosition)) {
-			if (i == TabButtonBasic) {
-				InfoString = _("Basic");
-				FloatingInfoString = _("Basic");
-				AddInfoBoxString(_("Basic items"));
-				AddInfoBoxString(_("Basic items"), true);
-				InfoColor = UiFlags::ColorWhite;
-				pcursstorebtn = TabButtonBasic;
-				return -1;
-			} else if (i == TabButtonPremium) {
-				InfoString = _("Premium");
-				FloatingInfoString = _("Premium");
-				AddInfoBoxString(_("Premium items"));
-				AddInfoBoxString(_("Premium items"), true);
-				InfoColor = UiFlags::ColorWhite;
-				pcursstorebtn = TabButtonPremium;
-				return -1;
-			} else if (i == RepairAllBtn) {
-				int totalCost = 0;
-				Player &myPlayer = *MyPlayer;
-				for (auto &item : myPlayer.InvBody)
-					totalCost += GetRepairCost(item);
-				for (int j = 0; j < myPlayer._pNumInv; j++)
-					totalCost += GetRepairCost(myPlayer.InvList[j]);
+			if (button.contains(mousePosition)) {
+				if (i == TabButtonBasic) {
+					if (VendorHasTabs()) {
+						InfoString = _("Basic");
+						FloatingInfoString = _("Basic");
+						AddInfoBoxString(_("Basic items"));
+						AddInfoBoxString(_("Basic items"), true);
+					} else {
+						InfoString = _("Misc");
+						FloatingInfoString = _("Misc");
+						AddInfoBoxString(_("Miscellaneous items"));
+						AddInfoBoxString(_("Miscellaneous items"), true);
+					}
+					InfoColor = UiFlags::ColorWhite;
+					pcursstorebtn = TabButtonBasic;
+					return -1;
+				} else if (i == TabButtonPremium) {
+					InfoString = _("Premium");
+					FloatingInfoString = _("Premium");
+					AddInfoBoxString(_("Premium items"));
+					AddInfoBoxString(_("Premium items"), true);
+					InfoColor = UiFlags::ColorWhite;
+					pcursstorebtn = TabButtonPremium;
+					return -1;
+				} else if (i == RepairAllBtn) {
+					int totalCost = 0;
+					Player &myPlayer = *MyPlayer;
+					for (auto &item : myPlayer.InvBody)
+						totalCost += GetRepairCost(item);
+					for (int j = 0; j < myPlayer._pNumInv; j++)
+						totalCost += GetRepairCost(myPlayer.InvList[j]);
 
-				InfoString = _("Repair All");
-				FloatingInfoString = _("Repair All");
-				if (totalCost > 0) {
-					AddInfoBoxString(StrCat(FormatInteger(totalCost), " Gold"));
-					AddInfoBoxString(StrCat(FormatInteger(totalCost), " Gold"), true);
-				} else {
-					AddInfoBoxString(_("Nothing to repair"));
-					AddInfoBoxString(_("Nothing to repair"), true);
+					InfoString = _("Repair All");
+					FloatingInfoString = _("Repair All");
+					if (totalCost > 0) {
+						AddInfoBoxString(StrCat(FormatInteger(totalCost), " Gold"));
+						AddInfoBoxString(StrCat(FormatInteger(totalCost), " Gold"), true);
+					} else {
+						AddInfoBoxString(_("Nothing to repair"));
+						AddInfoBoxString(_("Nothing to repair"), true);
+					}
+					InfoColor = UiFlags::ColorWhite;
+					pcursstorebtn = RepairAllBtn;
+					return -1;
+				} else if (i == RepairBtn) {
+					InfoString = _("Repair");
+					FloatingInfoString = _("Repair");
+					AddInfoBoxString(_("Repair a single item"));
+					AddInfoBoxString(_("Repair a single item"), true);
+					InfoColor = UiFlags::ColorWhite;
+					pcursstorebtn = RepairBtn;
+					return -1;
 				}
-				InfoColor = UiFlags::ColorWhite;
-				pcursstorebtn = RepairAllBtn;
-				return -1;
-			} else if (i == RepairBtn) {
-				InfoString = _("Repair");
-				FloatingInfoString = _("Repair");
-				AddInfoBoxString(_("Repair a single item"));
-				AddInfoBoxString(_("Repair a single item"), true);
-				InfoColor = UiFlags::ColorWhite;
-				pcursstorebtn = RepairBtn;
-				return -1;
 			}
 		}
 	}
@@ -868,13 +877,16 @@ void SellItemToVisualStore(int invIndex)
 
 void CheckVisualStoreButtonPress(Point mousePosition)
 {
+	if (!MyPlayer->HoldItem.isEmpty())
+		return;
+
 	for (int i = 0; i < 4; i++) {
+		// Skip tab buttons if vendor doesn't have tabs
+		if (!VendorHasTabs() && i != TabButtonBasic)
+			continue;
+
 		Rectangle button = VisualStoreButtonRect[i];
 		button.position = GetPanelPosition(UiPanels::Stash, button.position);
-
-		// Skip tab buttons if vendor doesn't have tabs
-		/*if (!VendorHasTabs() && (i == TabButtonBasic || i == TabButtonPremium))
-		    continue;*/
 
 		if (button.contains(mousePosition)) {
 			VisualStoreButtonPressed = i;

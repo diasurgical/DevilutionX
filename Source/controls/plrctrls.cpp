@@ -1069,8 +1069,10 @@ void VisualStoreMove(AxisDirection dir)
 		} else {
 			if (!GridMove(VisualStoreSlot, dir, gridSize, movingItemSize, isHoldingItem, getCellId)) {
 				// Move to tabs
-				VisualStoreSlot.y = -1;
-				VisualStoreSlot.x = 0; // Default to first tab
+				if (!isHoldingItem) {
+					VisualStoreSlot.y = -1;
+					VisualStoreSlot.x = 0; // Default to first tab
+				}
 			}
 		}
 	} else if (dir.y == AxisDirectionY_DOWN) {
@@ -1081,7 +1083,7 @@ void VisualStoreMove(AxisDirection dir)
 			// Already at repair buttons
 		} else {
 			if (!GridMove(VisualStoreSlot, dir, gridSize, movingItemSize, isHoldingItem, getCellId)) {
-				if (VisualStore.vendor == VisualStoreVendor::Smith) {
+				if (!isHoldingItem && VisualStore.vendor == VisualStoreVendor::Smith) {
 					// Move to repair buttons
 					VisualStoreSlot.y = VisualStoreGridHeight;
 					VisualStoreSlot.x = 0; // Default to Repair All
