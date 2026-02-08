@@ -252,46 +252,48 @@ if (WIN32)
 endif()
 
 # create imported target
-if(sodium_USE_STATIC_LIBS)
-    set(_LIB_TYPE STATIC)
-else()
-    set(_LIB_TYPE SHARED)
-endif()
-add_library(sodium ${_LIB_TYPE} IMPORTED)
+if(sodium_FOUND AND NOT TARGET sodium)
+    if(sodium_USE_STATIC_LIBS)
+        set(_LIB_TYPE STATIC)
+    else()
+        set(_LIB_TYPE SHARED)
+    endif()
+    add_library(sodium ${_LIB_TYPE} IMPORTED)
 
-set_target_properties(sodium PROPERTIES
-    INTERFACE_INCLUDE_DIRECTORIES "${sodium_INCLUDE_DIR}"
-    IMPORTED_LINK_INTERFACE_LANGUAGES "C"
-)
-
-if (sodium_USE_STATIC_LIBS)
     set_target_properties(sodium PROPERTIES
-        INTERFACE_COMPILE_DEFINITIONS "SODIUM_STATIC"
-        IMPORTED_LOCATION "${sodium_LIBRARY_RELEASE}"
-        IMPORTED_LOCATION_DEBUG "${sodium_LIBRARY_DEBUG}"
+        INTERFACE_INCLUDE_DIRECTORIES "${sodium_INCLUDE_DIR}"
+        IMPORTED_LINK_INTERFACE_LANGUAGES "C"
     )
-else()
-    if (UNIX)
+
+    if (sodium_USE_STATIC_LIBS)
         set_target_properties(sodium PROPERTIES
+            INTERFACE_COMPILE_DEFINITIONS "SODIUM_STATIC"
             IMPORTED_LOCATION "${sodium_LIBRARY_RELEASE}"
             IMPORTED_LOCATION_DEBUG "${sodium_LIBRARY_DEBUG}"
         )
-    elseif (WIN32)
-        set_target_properties(sodium PROPERTIES
-            IMPORTED_IMPLIB "${sodium_LIBRARY_RELEASE}"
-            IMPORTED_IMPLIB_DEBUG "${sodium_LIBRARY_DEBUG}"
-        )
-        if (NOT (sodium_DLL_DEBUG MATCHES ".*-NOTFOUND"))
+    else()
+        if (UNIX)
             set_target_properties(sodium PROPERTIES
-                IMPORTED_LOCATION_DEBUG "${sodium_DLL_DEBUG}"
+                IMPORTED_LOCATION "${sodium_LIBRARY_RELEASE}"
+                IMPORTED_LOCATION_DEBUG "${sodium_LIBRARY_DEBUG}"
             )
-        endif()
-        if (NOT (sodium_DLL_RELEASE MATCHES ".*-NOTFOUND"))
+        elseif (WIN32)
             set_target_properties(sodium PROPERTIES
-                IMPORTED_LOCATION_RELWITHDEBINFO "${sodium_DLL_RELEASE}"
-                IMPORTED_LOCATION_MINSIZEREL "${sodium_DLL_RELEASE}"
-                IMPORTED_LOCATION_RELEASE "${sodium_DLL_RELEASE}"
+                IMPORTED_IMPLIB "${sodium_LIBRARY_RELEASE}"
+                IMPORTED_IMPLIB_DEBUG "${sodium_LIBRARY_DEBUG}"
             )
+            if (NOT (sodium_DLL_DEBUG MATCHES ".*-NOTFOUND"))
+                set_target_properties(sodium PROPERTIES
+                    IMPORTED_LOCATION_DEBUG "${sodium_DLL_DEBUG}"
+                )
+            endif()
+            if (NOT (sodium_DLL_RELEASE MATCHES ".*-NOTFOUND"))
+                set_target_properties(sodium PROPERTIES
+                    IMPORTED_LOCATION_RELWITHDEBINFO "${sodium_DLL_RELEASE}"
+                    IMPORTED_LOCATION_MINSIZEREL "${sodium_DLL_RELEASE}"
+                    IMPORTED_LOCATION_RELEASE "${sodium_DLL_RELEASE}"
+                )
+            endif()
         endif()
     endif()
 endif()
