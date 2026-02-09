@@ -906,3 +906,13 @@ NarratorHF9	Stream	sfx\hellfire\naratr9.wav
 NarratorHF4	Stream	sfx\hellfire\naratr4.wav
 CryptDoorOpen	Misc	sfx\items\cropen.wav
 CryptDoorClose	Misc	sfx\items\crclos.wav
+AccessibilityWeapon	Misc	sfx\accessibility\weapon.mp3
+AccessibilityArmor	Misc	sfx\accessibility\armor.mp3
+AccessibilityGold	Misc	sfx\accessibility\gold.mp3
+AccessibilityPotion	Misc	sfx\accessibility\potion.mp3
+AccessibilityScroll	Misc	sfx\accessibility\scroll.mp3
+AccessibilityChest	Misc	sfx\accessibility\chest.mp3
+AccessibilityDoor	Misc	sfx\accessibility\door.mp3
+AccessibilityStairs	Misc	sfx\accessibility\stairs.mp3
+AccessibilityMonster	Misc	sfx\accessibility\monster.mp3
+AccessibilityInteract	Misc	sfx\accessibility\interact.mp3

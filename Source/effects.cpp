@@ -92,8 +92,13 @@ void PlaySfxPriv(TSFX *pSFX, bool loc, Point position)
 	if (pSFX->pSnd == nullptr)
 		pSFX->pSnd = sound_file_load(pSFX->pszName.c_str());
 
-	if (pSFX->pSnd != nullptr && pSFX->pSnd->DSB.IsLoaded())
-		snd_play_snd(pSFX->pSnd.get(), lVolume, lPan);
+	if (pSFX->pSnd == nullptr || !pSFX->pSnd->DSB.IsLoaded())
+		return;
+
+	const auto id = static_cast<SfxID>(pSFX - sgSFX.data());
+	const bool useCuesVolume = (id >= SfxID::AccessibilityWeapon && id <= SfxID::AccessibilityInteract);
+	const auto userVolume = useCuesVolume ? std::make_optional(SoundGetOrSetAudioCuesVolume(1)) : std::nullopt;
+	snd_play_snd(pSFX->pSnd.get(), lVolume, lPan, userVolume);
 }
 
 SfxID RndSFX(SfxID psfx)

@@ -511,6 +511,7 @@ std::vector<OptionEntryBase *> HellfireOptions::GetEntries()
 AudioOptions::AudioOptions()
     : OptionCategoryBase("Audio", N_("Audio"), N_("Audio Settings"))
     , soundVolume("Sound Volume", OptionEntryFlags::Invisible, "Sound Volume", "Movie and SFX volume.", VOLUME_MAX)
+    , audioCuesVolume("Audio Cues Volume", OptionEntryFlags::Invisible, "Audio Cues Volume", "Navigation audio cues volume.", VOLUME_MAX)
     , musicVolume("Music Volume", OptionEntryFlags::Invisible, "Music Volume", "Music Volume.", VOLUME_MAX)
     , walkingSound("Walking Sound", OptionEntryFlags::None, N_("Walking Sound"), N_("Player emits sound when walking."), true)
     , autoEquipSound("Auto Equip Sound", OptionEntryFlags::None, N_("Auto Equip Sound"), N_("Automatically equipping items on pickup emits the equipment sound."), false)
@@ -526,6 +527,7 @@ std::vector<OptionEntryBase *> AudioOptions::GetEntries()
 	// clang-format off
 	return {
 		&soundVolume,
+		&audioCuesVolume,
 		&musicVolume,
 		&walkingSound,
 		&autoEquipSound,

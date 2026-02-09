@@ -487,6 +487,8 @@ struct AudioOptions : OptionCategoryBase {
 
 	/** @brief Movie and SFX volume. */
 	OptionEntryInt<int> soundVolume;
+	/** @brief Accessibility / navigation cues volume. */
+	OptionEntryInt<int> audioCuesVolume;
 	/** @brief Music volume. */
 	OptionEntryInt<int> musicVolume;
 	/** @brief Player emits sound when walking. */
