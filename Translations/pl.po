@@ -3357,6 +3357,39 @@ msgstr "unikat"
 msgid "magic item"
 msgstr "magiczny"
 
+#: Source/items.cpp
+msgid "One-handed weapon"
+msgstr "Broń jednoręczna"
+
+#: Source/items.cpp
+msgid "Two-handed weapon"
+msgstr "Broń dwuręczna"
+
+#: Source/items.cpp
+#, c++-format
+msgid "Attack speed: {:s} ({:d} frames)"
+msgstr "Szybkość ataku: {:s} ({:d} klatek)"
+
+#: Source/items.cpp
+msgid "Very fast"
+msgstr "Bardzo szybka"
+
+#: Source/items.cpp
+msgid "Fast"
+msgstr "Szybka"
+
+#: Source/items.cpp
+msgid "Normal"
+msgstr "Normalna"
+
+#: Source/items.cpp
+msgid "Slow"
+msgstr "Wolna"
+
+#: Source/items.cpp
+msgid "Very slow"
+msgstr "Bardzo wolna"
+
 #: Source/items.cpp:4167 Source/items.cpp:4175 Source/items.cpp:4181
 msgid "Not Identified"
 msgstr "Nie zidentyfikowano"
