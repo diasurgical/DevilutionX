@@ -1540,8 +1540,8 @@ msgid "Toggle automap"
 msgstr "Przełączanie automapy"
 
 #: Source/diablo.cpp:1896 Source/diablo.cpp:2305
-msgid "Toggles if automap is displayed."
-msgstr "Przełącza, czy wyświetlana jest automapa."
+msgid "Toggles if automap is displayed. While the stash is open, switches between inventory and stash."
+msgstr "Przełącza wyświetlanie automapy. Gdy skrytka jest otwarta, przełącza między ekwipunkiem a skrytką."
 
 #: Source/diablo.cpp:1903
 msgid "Toggle stash focus"

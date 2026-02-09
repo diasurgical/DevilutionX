@@ -1902,16 +1902,22 @@ void InitKeymapActions()
 	options.Keymapper.AddAction(
 	    "ToggleAutomap",
 	    N_("Toggle automap"),
-	    N_("Toggles if automap is displayed."),
+	    N_("Toggles if automap is displayed. While the stash is open, switches between inventory and stash."),
 	    SDLK_TAB,
-	    DoAutoMap,
+	    [] {
+		    if (IsStashOpen) {
+			    ToggleStashFocus();
+			    return;
+		    }
+		    DoAutoMap();
+	    },
 	    nullptr,
-	    []() { return IsGameRunning() && !IsStashOpen; });
+	    IsGameRunning);
 	options.Keymapper.AddAction(
 	    "ToggleStashFocus",
 	    N_("Toggle stash focus"),
 	    N_("Tab: switches between inventory and stash."),
-	    SDLK_TAB,
+	    SDLK_UNKNOWN,
 	    ToggleStashFocus,
 	    nullptr,
 	    []() { return IsStashOpen && !InGameMenu() && !ChatLogFlag; });
