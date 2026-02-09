@@ -91,6 +91,7 @@ struct PlayerNetPack {
 	uint8_t plrlevel;
 	uint8_t px;
 	uint8_t py;
+	uint8_t pdir;
 	char pName[PlayerNameLength];
 	uint8_t pClass;
 	uint8_t pBaseStr;
