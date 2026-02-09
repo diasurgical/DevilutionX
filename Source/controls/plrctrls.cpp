@@ -66,6 +66,7 @@ namespace devilution {
 GameActionType ControllerActionHeld = GameActionType_NONE;
 
 bool StandToggle = false;
+bool StandGroundHeld = false;
 
 int pcurstrig = -1;
 Missile *pcursmissile = nullptr;
@@ -521,15 +522,22 @@ void FindTrigger()
 
 bool IsStandingGround()
 {
+	if (StandToggle || StandGroundHeld)
+		return true;
+
 	if (ControlMode == ControlTypes::Gamepad) {
 		const ControllerButtonCombo standGroundCombo = GetOptions().Padmapper.ButtonComboForAction("StandGround");
-		return StandToggle || IsControllerButtonComboPressed(standGroundCombo);
+		return IsControllerButtonComboPressed(standGroundCombo);
 	}
 #ifndef USE_SDL1
 	if (ControlMode == ControlTypes::VirtualGamepad) {
 		return VirtualGamepadState.standButton.isHeld;
 	}
 #endif
+	if (ControlMode == ControlTypes::KeyboardAndMouse) {
+		// Match classic Diablo behavior: hold Shift to attack in place.
+		return (SDL_GetModState() & SDL_KMOD_SHIFT) != 0;
+	}
 	return false;
 }
 

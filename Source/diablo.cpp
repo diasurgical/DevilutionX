@@ -1981,6 +1981,22 @@ void InitKeymapActions()
 	    SDLK_LEFT,
 	    KeyboardWalkWestKeyPressed);
 	options.Keymapper.AddAction(
+	    "StandGround",
+	    N_("Stand ground"),
+	    N_("Hold to prevent the player from moving."),
+	    SDLK_LSHIFT,
+	    [] { StandGroundHeld = true; },
+	    [] { StandGroundHeld = false; },
+	    IsGameRunning);
+	options.Keymapper.AddAction(
+	    "ToggleStandGround",
+	    N_("Toggle stand ground"),
+	    N_("Toggle whether the player moves."),
+	    SDLK_UNKNOWN,
+	    [] { StandToggle = !StandToggle; },
+	    nullptr,
+	    CanPlayerTakeAction);
+	options.Keymapper.AddAction(
 	    "PrimaryAction",
 	    N_("Primary action"),
 	    N_("Attack monsters, talk to towners, lift and place inventory items."),

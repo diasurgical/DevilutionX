@@ -24,6 +24,7 @@ enum class BeltItemType : uint8_t {
 
 extern GameActionType ControllerActionHeld;
 extern bool StandToggle;
+extern bool StandGroundHeld;
 
 // Runs every frame.
 // Handles menu movement.
