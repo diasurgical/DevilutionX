@@ -1550,6 +1550,9 @@ msgstr "Przełącz fokus skrytki"
 msgid "Tab: switches between inventory and stash."
 msgstr "Tab: przełącza między ekwipunkiem a skrytką."
 
+msgid "Stash"
+msgstr "Skrytka"
+
 msgid "Cycle map type"
 msgstr "Przełącz typ mapy"
 
