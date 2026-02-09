@@ -375,9 +375,33 @@ void UpdateAttackableMonsterAnnouncements()
 
 	LastAttackableMonsterId = *bestId;
 
-	const std::string_view name = Monsters[*bestId].name();
-	if (!name.empty())
-		SpeakText(name, /*force=*/true);
+	const StringOrView label = MonsterLabelForSpeech(Monsters[*bestId]);
+	if (!label.empty())
+		SpeakText(label.str(), /*force=*/true);
+}
+
+StringOrView MonsterLabelForSpeech(const Monster &monster)
+{
+	const std::string_view name = monster.name();
+	if (name.empty())
+		return name;
+
+	std::string_view type;
+	switch (monster.data().monsterClass) {
+	case MonsterClass::Animal:
+		type = _("Animal");
+		break;
+	case MonsterClass::Demon:
+		type = _("Demon");
+		break;
+	case MonsterClass::Undead:
+		type = _("Undead");
+		break;
+	}
+
+	if (type.empty())
+		return name;
+	return StrCat(name, ", ", type);
 }
 
 StringOrView DoorLabelForSpeech(const Object &door)

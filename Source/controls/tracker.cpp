@@ -575,7 +575,7 @@ template <typename Predicate>
 		result.push_back(TrackerCandidate {
 		    .id = monsterId,
 		    .distance = distance,
-		    .name = monster.name(),
+		    .name = MonsterLabelForSpeech(monster),
 		});
 	}
 
@@ -1930,7 +1930,7 @@ void NavigateToTrackerTargetKeyPressed()
 		lockedTargetId = *targetId;
 		const Monster &tracked = Monsters[*targetId];
 
-		targetName = tracked.name();
+		targetName = MonsterLabelForSpeech(tracked);
 		DecorateTrackerTargetNameWithOrdinalIfNeeded(*targetId, targetName, nearbyCandidates);
 		if (!cycleTarget) {
 			targetPosition = tracked.position.tile;

@@ -10,12 +10,14 @@
 
 namespace devilution {
 
+struct Monster;
 struct Object;
 
 void UpdatePlayerLowHpWarningSound();
 void UpdateLowDurabilityWarnings();
 void UpdateBossHealthAnnouncements();
 void UpdateAttackableMonsterAnnouncements();
+StringOrView MonsterLabelForSpeech(const Monster &monster);
 StringOrView DoorLabelForSpeech(const Object &door);
 void UpdateInteractableDoorAnnouncements();
 
