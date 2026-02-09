@@ -1196,6 +1196,17 @@ void KeymapperOptions::Action::LoadFromIni(std::string_view category)
 
 	const std::string_view iniValue = iniValues.back().value;
 	if (iniValue.empty()) {
+		// Migration: `ToggleAutomap` could have been saved as unbound due to a key
+		// conflict when `ToggleStashFocus` was also bound to TAB. Restore the default
+		// key in that case so TAB works consistently.
+		if (key == "ToggleAutomap") {
+			const std::span<const Ini::Value> stashFocusValues = ini->get(category, "ToggleStashFocus");
+			if (!stashFocusValues.empty() && stashFocusValues.back().value == "TAB") {
+				SetValue(defaultKey);
+				return;
+			}
+		}
+
 		if (key == "SpeakCurrentLocation") {
 			const std::span<const Ini::Value> chatLogValues = ini->get(category, "ChatLog");
 			if (!chatLogValues.empty() && chatLogValues.back().value == "L") {
@@ -1221,6 +1232,14 @@ void KeymapperOptions::Action::LoadFromIni(std::string_view category)
 		}
 
 		SetValue(SDLK_UNKNOWN);
+		return;
+	}
+
+	// Migration: `ToggleStashFocus` previously defaulted to `TAB`, which conflicts
+	// with `ToggleAutomap` and can result in TAB doing nothing (e.g. when the action
+	// is disabled by a menu state). Unbind it when configured as TAB.
+	if (key == "ToggleStashFocus" && iniValue == "TAB") {
+		SetValue(defaultKey);
 		return;
 	}
 
