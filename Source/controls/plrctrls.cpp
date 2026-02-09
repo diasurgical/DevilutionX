@@ -2301,6 +2301,13 @@ void ToggleStashFocus()
 
 void InventoryMoveFromKeyboard(AxisDirection dir)
 {
+	// When the stash is open, arrow-key navigation should move within the stash/inventory
+	// combined UI. `StashMove` handles jumping between areas based on the current focus.
+	if (IsStashOpen) {
+		StashMove(dir);
+		return;
+	}
+
 	if (!invflag)
 		return;
 
