@@ -1619,7 +1619,7 @@ void StashMove(AxisDirection dir)
 	} else if (dir.x == AxisDirectionX_RIGHT) {
 		// If we're empty-handed and trying to move right while hovering over an item we may not
 		//  have a free stash column to move to. If the item we're hovering over occupies the last
-		//  column then we want to jump to the inventory instead of just moving one column over.
+		//  column then we want to stop instead of jumping to the inventory.
 		const Size itemUnderCursorSize = holdItem.isEmpty() ? GetItemSizeOnSlot(ActiveStashSlot) : itemSize;
 		if (ActiveStashSlot.x < 10 - itemUnderCursorSize.width) {
 			const StashStruct::StashCell itemIdAtActiveStashSlot = Stash.GetItemIdAtPosition(ActiveStashSlot);
@@ -1629,21 +1629,6 @@ void StashMove(AxisDirection dir)
 					ActiveStashSlot.x++;
 				}
 			}
-		} else {
-			const Point stashSlotCoord = GetStashSlotCoord(ActiveStashSlot);
-			const Point rightPanelCoord = { GetRightPanel().position.x, stashSlotCoord.y };
-			Slot = FindClosestInventorySlot(rightPanelCoord, holdItem, [](Point mousePos, int slot) {
-				const Point slotPos = GetSlotCoord(slot);
-				// Exaggerate the vertical difference so that moving from the top 6 rows of the
-				//  stash is more likely to land on a body slot. The value 3 was found by trial and
-				//  error, this allows moving from the top row of the stash to the head while
-				//  empty-handed while 4 causes the amulet to be preferenced (due to less vertical
-				//  distance) and 2 causes the left hand to be preferenced (due to less horizontal
-				//  distance).
-				return std::abs(mousePos.y - slotPos.y) * 3 + std::abs(mousePos.x - slotPos.x);
-			});
-			ActiveStashSlot = InvalidStashPoint;
-			BeltReturnsToStash = false;
 		}
 	}
 	if (dir.y == AxisDirectionY_UP) {
@@ -1665,11 +1650,6 @@ void StashMove(AxisDirection dir)
 					ActiveStashSlot.y++;
 				}
 			}
-		} else if ((holdItem.isEmpty() || CanBePlacedOnBelt(*MyPlayer, holdItem)) && ActiveStashSlot.x > 1) {
-			const int beltSlot = ActiveStashSlot.x - 2;
-			Slot = SLOTXY_BELT_FIRST + beltSlot;
-			ActiveStashSlot = InvalidStashPoint;
-			BeltReturnsToStash = true;
 		}
 	}
 
