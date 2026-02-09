@@ -4142,8 +4142,17 @@ void PrintItemDetails(const Item &item)
 	if (item._iSufPower != -1) {
 		AddItemInfoBoxString(PrintItemPower(item._iSufPower, item));
 	}
+	if (item._iMagical == ITEM_QUALITY_MAGIC) {
+		AddItemInfoBoxString(_("magic item"));
+	}
 	if (item._iMagical == ITEM_QUALITY_UNIQUE) {
 		AddItemInfoBoxString(_("unique item"));
+		const UniqueItem &uitem = UniqueItems[item._iUid];
+		for (const auto &power : uitem.powers) {
+			if (power.type == IPL_INVALID)
+				break;
+			AddItemInfoBoxString(PrintItemPower(power.type, item));
+		}
 		ShowUniqueItemInfoBox = true;
 		curruitem = item;
 	}

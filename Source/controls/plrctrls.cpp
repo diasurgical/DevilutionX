@@ -2261,6 +2261,36 @@ void FocusOnInventory()
 	SpeakInventorySlotForAccessibility();
 }
 
+void ToggleStashFocus()
+{
+	if (!IsStashOpen || MyPlayer == nullptr)
+		return;
+
+	const Item &holdItem = MyPlayer->HoldItem;
+
+	// If currently focused on inventory/belt, jump to stash. Otherwise jump back to inventory.
+	if (Slot >= 0) {
+		BeltReturnsToStash = false;
+		Slot = -1;
+		ActiveStashSlot = FindClosestStashSlot(MousePosition);
+		if (ActiveStashSlot == InvalidStashPoint)
+			ActiveStashSlot = { 0, 0 };
+
+		Point mousePos = GetStashSlotCoord(ActiveStashSlot);
+		Size itemSize = holdItem.isEmpty() ? Size { 1, 1 } : GetInventorySize(holdItem);
+		mousePos += Displacement { itemSize.width * INV_SLOT_HALF_SIZE_PX, itemSize.height * INV_SLOT_HALF_SIZE_PX };
+		SetCursorPos(mousePos);
+		SpeakText(_("Stash"), /*force=*/true);
+		return;
+	}
+
+	BeltReturnsToStash = false;
+	ActiveStashSlot = InvalidStashPoint;
+	Slot = FindClosestInventorySlot(MousePosition, holdItem);
+	ResetInvCursorPosition();
+	SpeakInventorySlotForAccessibility();
+}
+
 void InventoryMoveFromKeyboard(AxisDirection dir)
 {
 	if (!invflag)

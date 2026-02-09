@@ -287,6 +287,40 @@ struct TrackerCandidate {
 	return a.id < b.id;
 }
 
+[[nodiscard]] constexpr int RedPortalTrackerIdForPosition(Point position)
+{
+	// Encode tile position into a stable negative id.
+	// MAXDUNX/MAXDUNY are 112, so this easily fits in int.
+	return -((position.y * MAXDUNX) + position.x + 1);
+}
+
+[[nodiscard]] constexpr bool IsRedPortalTrackerId(int id)
+{
+	return id < 0;
+}
+
+[[nodiscard]] constexpr Point RedPortalPositionForTrackerId(int id)
+{
+	const int encoded = -id - 1;
+	return { encoded % MAXDUNX, encoded / MAXDUNX };
+}
+
+[[nodiscard]] StringOrView ItemLabelForSpeech(const Item &item)
+{
+	const StringOrView name = item.getName();
+	if (name.empty())
+		return name;
+
+	switch (item._iMagical) {
+	case ITEM_QUALITY_MAGIC:
+		return StrCat(name, ", ", _("magic item"));
+	case ITEM_QUALITY_UNIQUE:
+		return StrCat(name, ", ", _("unique item"));
+	default:
+		return name;
+	}
+}
+
 [[nodiscard]] std::vector<TrackerCandidate> CollectNearbyItemTrackerCandidates(Point playerPosition, int maxDistance)
 {
 	std::vector<TrackerCandidate> result;
@@ -319,7 +353,7 @@ struct TrackerCandidate {
 			result.push_back(TrackerCandidate {
 			    .id = itemId,
 			    .distance = distance,
-			    .name = item.getName(),
+			    .name = ItemLabelForSpeech(item),
 			});
 		}
 	}
@@ -659,8 +693,26 @@ template <typename Predicate>
 		result.push_back(TrackerCandidate {
 		    .id = i,
 		    .distance = distance,
-		    .name = TriggerLabelForSpeech(trigger),
-		});
+			    .name = TriggerLabelForSpeech(trigger),
+			});
+	}
+
+	// Lazarus' set level (SL_VILEBETRAYER) uses a RedPortal missile instead of a return trigger.
+	// Include it so the player can navigate out like other quest levels.
+	if (setlevel) {
+		for (const Missile &missile : Missiles) {
+			if (missile._mitype != MissileID::RedPortal)
+				continue;
+			const Point portalPosition = missile.position.tile;
+			if (!InDungeonBounds(portalPosition))
+				continue;
+			const int distance = playerPosition.WalkingDistance(portalPosition);
+			result.push_back(TrackerCandidate {
+			    .id = RedPortalTrackerIdForPosition(portalPosition),
+			    .distance = distance,
+			    .name = _("Red portal"),
+			});
+		}
 	}
 
 	std::sort(result.begin(), result.end(), IsBetterTrackerCandidate);
@@ -786,6 +838,21 @@ template <typename Predicate>
 			    .id = i,
 			    .distance = distance,
 			    .name = TriggerLabelForSpeech(trigger),
+			});
+		}
+
+		// Lazarus' set level (SL_VILEBETRAYER) uses a RedPortal missile instead of a return trigger.
+		for (const Missile &missile : Missiles) {
+			if (missile._mitype != MissileID::RedPortal)
+				continue;
+			const Point portalPosition = missile.position.tile;
+			if (!InDungeonBounds(portalPosition))
+				continue;
+			const int distance = playerPosition.WalkingDistance(portalPosition);
+			result.push_back(TrackerCandidate {
+			    .id = RedPortalTrackerIdForPosition(portalPosition),
+			    .distance = distance,
+			    .name = _("Red portal"),
 			});
 		}
 
@@ -1988,10 +2055,9 @@ void NavigateToTrackerTargetKeyPressed()
 					SpeakText(_("No next dungeon entrance."), true);
 				return;
 			}
-		} else if (lockedTargetId >= 0 && lockedTargetId < numtrigs) {
-			targetId = lockedTargetId;
 		} else if (!nearbyCandidates.empty()) {
-			targetId = nearbyCandidates.front().id;
+			const auto lockedIt = std::find_if(nearbyCandidates.begin(), nearbyCandidates.end(), [id = lockedTargetId](const TrackerCandidate &c) { return c.id == id; });
+			targetId = lockedIt != nearbyCandidates.end() ? lockedTargetId : nearbyCandidates.front().id;
 		}
 		if (!targetId) {
 			SpeakText(_("No dungeon entrances found."), true);
@@ -2006,11 +2072,15 @@ void NavigateToTrackerTargetKeyPressed()
 		}
 
 		lockedTargetId = *targetId;
-		targetName = TriggerLabelForSpeech(trigs[*targetId]);
+		targetName = std::string(it->name.str());
 		DecorateTrackerTargetNameWithOrdinalIfNeeded(*targetId, targetName, nearbyCandidates);
 		if (!cycleTarget) {
-			const TriggerStruct &trigger = trigs[*targetId];
-			targetPosition = Point { trigger.position.x, trigger.position.y };
+			if (IsRedPortalTrackerId(*targetId)) {
+				targetPosition = RedPortalPositionForTrackerId(*targetId);
+			} else {
+				const TriggerStruct &trigger = trigs[*targetId];
+				targetPosition = Point { trigger.position.x, trigger.position.y };
+			}
 		}
 		break;
 	}
@@ -2062,10 +2132,9 @@ void NavigateToTrackerTargetKeyPressed()
 					SpeakText(_("No next quest location."), true);
 				return;
 			}
-		} else if ((setlevel && lockedTargetId >= 0 && lockedTargetId < numtrigs) || (!setlevel && lockedTargetId >= 0 && lockedTargetId < static_cast<int>(sizeof(Quests) / sizeof(Quests[0])))) {
-			targetId = lockedTargetId;
 		} else if (!nearbyCandidates.empty()) {
-			targetId = nearbyCandidates.front().id;
+			const auto lockedIt = std::find_if(nearbyCandidates.begin(), nearbyCandidates.end(), [id = lockedTargetId](const TrackerCandidate &c) { return c.id == id; });
+			targetId = lockedIt != nearbyCandidates.end() ? lockedTargetId : nearbyCandidates.front().id;
 		}
 		if (!targetId) {
 			SpeakText(_("No quest locations found."), true);
@@ -2084,8 +2153,12 @@ void NavigateToTrackerTargetKeyPressed()
 		DecorateTrackerTargetNameWithOrdinalIfNeeded(*targetId, targetName, nearbyCandidates);
 		if (!cycleTarget) {
 			if (setlevel) {
-				const TriggerStruct &trigger = trigs[*targetId];
-				targetPosition = Point { trigger.position.x, trigger.position.y };
+				if (IsRedPortalTrackerId(*targetId)) {
+					targetPosition = RedPortalPositionForTrackerId(*targetId);
+				} else {
+					const TriggerStruct &trigger = trigs[*targetId];
+					targetPosition = Point { trigger.position.x, trigger.position.y };
+				}
 			} else {
 				const Quest &quest = Quests[static_cast<size_t>(*targetId)];
 				targetPosition = quest.position;

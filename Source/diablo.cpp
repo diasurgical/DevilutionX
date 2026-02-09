@@ -1906,7 +1906,15 @@ void InitKeymapActions()
 	    SDLK_TAB,
 	    DoAutoMap,
 	    nullptr,
-	    IsGameRunning);
+	    []() { return IsGameRunning() && !IsStashOpen; });
+	options.Keymapper.AddAction(
+	    "ToggleStashFocus",
+	    N_("Toggle stash focus"),
+	    N_("Tab: switches between inventory and stash."),
+	    SDLK_TAB,
+	    ToggleStashFocus,
+	    nullptr,
+	    []() { return IsStashOpen && !InGameMenu() && !ChatLogFlag; });
 	options.Keymapper.AddAction(
 	    "CycleAutomapType",
 	    N_("Cycle map type"),

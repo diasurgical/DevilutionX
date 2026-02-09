@@ -71,6 +71,7 @@ void UpdateSpellTarget(SpellID spell);
 bool TryDropItem();
 void InvalidateInventorySlot();
 void FocusOnInventory();
+void ToggleStashFocus();
 void InventoryMoveFromKeyboard(AxisDirection dir);
 void HotSpellMove(AxisDirection dir);
 void PerformSpellAction();

@@ -1544,6 +1544,12 @@ msgid "Toggles if automap is displayed."
 msgstr "Przełącza, czy wyświetlana jest automapa."
 
 #: Source/diablo.cpp:1903
+msgid "Toggle stash focus"
+msgstr "Przełącz fokus skrytki"
+
+msgid "Tab: switches between inventory and stash."
+msgstr "Tab: przełącza między ekwipunkiem a skrytką."
+
 msgid "Cycle map type"
 msgstr "Przełącz typ mapy"
 
@@ -3347,6 +3353,10 @@ msgstr "Ładunki: {:d}/{:d}"
 msgid "unique item"
 msgstr "unikat"
 
+#: Source/items.cpp:4146 Source/controls/tracker.cpp:316
+msgid "magic item"
+msgstr "magiczny"
+
 #: Source/items.cpp:4167 Source/items.cpp:4175 Source/items.cpp:4181
 msgid "Not Identified"
 msgstr "Nie zidentyfikowano"
@@ -3457,6 +3467,10 @@ msgstr "Do Krypty - poziom {:d}"
 msgid "Back to Level {:d}"
 msgstr "Wróć na poziom {:d}"
 
+#: Source/controls/tracker.cpp:713 Source/controls/tracker.cpp:855
+msgid "Red portal"
+msgstr "czerwony portal"
+
 #: Source/loadsave.cpp:2013 Source/loadsave.cpp:2470
 msgid "Unable to open save file archive"
 msgstr "Nie można otworzyć pliku zapisu"
@@ -3476,6 +3490,10 @@ msgid ""
 msgstr ""
 "Nieprawidłowy rozmiar skrytki. Jeśli spróbujesz uzyskać dostęp do skrytki, "
 "dane zostaną nadpisane!!"
+
+#: Source/controls/plrctrls.cpp:2283
+msgid "Stash"
+msgstr "skrytka"
 
 #: Source/loadsave.cpp:2474
 msgid "Invalid save file"
