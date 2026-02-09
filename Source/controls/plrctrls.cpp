@@ -2276,8 +2276,12 @@ void ToggleStashFocus()
 
 	const Item &holdItem = MyPlayer->HoldItem;
 
-	// If currently focused on inventory/belt, jump to stash. Otherwise jump back to inventory.
-	if (Slot >= 0) {
+	// Toggle based on cursor location rather than `Slot`, as `Slot` gets invalidated on mouse move in
+	// keyboard+mouse mode (which would otherwise prevent reaching the stash).
+	const bool cursorOnStash = GetLeftPanel().contains(MousePosition);
+
+	// If currently on inventory/belt (or elsewhere), jump to stash. Otherwise jump back to inventory.
+	if (!cursorOnStash) {
 		BeltReturnsToStash = false;
 		Slot = -1;
 		ActiveStashSlot = FindClosestStashSlot(MousePosition);
