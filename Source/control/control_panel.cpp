@@ -266,8 +266,9 @@ void CalculatePanelAreas()
 	}
 
 #ifndef USE_SDL1
-	// In local coop mode, the main panel is hidden, so center panels vertically without accounting for it
-	if (IsLocalCoopEnabled()) {
+	constexpr size_t MinPlayersForVerticalPanelAlignment = 3;
+	// In local coop with 3+ players, the main panel is hidden, so center panels vertically without accounting for it
+	if (IsLocalCoopEnabled() && GetLocalCoopTotalPlayerCount() >= MinPlayersForVerticalPanelAlignment) {
 		LeftPanel.position.y = (gnScreenHeight - LeftPanel.size.height) / 2;
 	} else
 #endif
