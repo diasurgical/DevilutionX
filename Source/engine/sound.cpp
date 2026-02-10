@@ -197,7 +197,7 @@ void ClearDuplicateSounds()
 	duplicateSounds.clear();
 }
 
-void snd_play_snd(TSnd *pSnd, int lVolume, int lPan, std::optional<int> logUserVolume)
+void snd_play_snd(TSnd *pSnd, int lVolume, int lPan, int userVolume)
 {
 	if (pSnd == nullptr || !gbSoundOn) {
 		return;
@@ -215,7 +215,6 @@ void snd_play_snd(TSnd *pSnd, int lVolume, int lPan, std::optional<int> logUserV
 			return;
 	}
 
-	const int userVolume = logUserVolume.value_or(*GetOptions().Audio.soundVolume);
 	sound->PlayWithVolumeAndPan(lVolume, userVolume, lPan);
 	pSnd->start_tc = tc;
 }

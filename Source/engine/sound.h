@@ -65,8 +65,7 @@ extern SDL_AudioDeviceID CurrentAudioDeviceId;
 extern _music_id sgnMusicTrack;
 
 void ClearDuplicateSounds();
-/** When omitted, uses the global sound volume; when set (e.g. for accessibility cues), uses that volume. */
-void snd_play_snd(TSnd *pSnd, int lVolume, int lPan, std::optional<int> logUserVolume = std::nullopt);
+void snd_play_snd(TSnd *pSnd, int lVolume, int lPan, int userVolume);
 std::unique_ptr<TSnd> sound_file_load(const char *path, bool stream = false);
 tl::expected<std::unique_ptr<TSnd>, std::string> SoundFileLoadWithStatus(const char *path, bool stream = false);
 void snd_init();

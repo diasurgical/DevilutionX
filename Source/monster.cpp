@@ -4531,7 +4531,7 @@ void PlayEffect(Monster &monster, MonsterSound mode)
 	if (!CalculateSoundPosition(monster.position.tile, &lVolume, &lPan))
 		return;
 
-	snd_play_snd(snd, lVolume, lPan);
+	snd_play_snd(snd, lVolume, lPan, *GetOptions().Audio.soundVolume);
 }
 
 void MissToMonst(Missile &missile, Point position)

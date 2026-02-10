@@ -19,6 +19,7 @@
 #include "engine/sound_defs.hpp"
 #include "engine/sound_position.hpp"
 #include "game_mode.hpp"
+#include "options.h"
 #include "player.h"
 #include "utils/is_of.hpp"
 
@@ -97,7 +98,7 @@ void PlaySfxPriv(TSFX *pSFX, bool loc, Point position)
 
 	const auto id = static_cast<SfxID>(pSFX - sgSFX.data());
 	const bool useCuesVolume = (id >= SfxID::AccessibilityWeapon && id <= SfxID::AccessibilityInteract);
-	const auto userVolume = useCuesVolume ? std::make_optional(SoundGetOrSetAudioCuesVolume(1)) : std::nullopt;
+	const int userVolume = useCuesVolume ? *GetOptions().Audio.audioCuesVolume : *GetOptions().Audio.soundVolume;
 	snd_play_snd(pSFX->pSnd.get(), lVolume, lPan, userVolume);
 }
 
@@ -315,7 +316,7 @@ void effects_play_sound(SfxID id)
 
 	TSFX &sfx = sgSFX[static_cast<int16_t>(id)];
 	if (sfx.pSnd != nullptr && !sfx.pSnd->isPlaying()) {
-		snd_play_snd(sfx.pSnd.get(), 0, 0);
+		snd_play_snd(sfx.pSnd.get(), 0, 0, *GetOptions().Audio.soundVolume);
 	}
 }
 

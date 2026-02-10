@@ -1,6 +1,4 @@
 // Stubbed implementations of sound functions for the NOSOUND mode.
-#include <optional>
-
 #include "engine/sound.h"
 
 namespace devilution {
@@ -11,7 +9,7 @@ bool gbSoundOn;
 _music_id sgnMusicTrack = NUM_MUSIC;
 
 void ClearDuplicateSounds() { }
-void snd_play_snd(TSnd *pSnd, int lVolume, int lPan, std::optional<int> logUserVolume) { }
+void snd_play_snd(TSnd *pSnd, int lVolume, int lPan, int userVolume) { }
 std::unique_ptr<TSnd> sound_file_load(const char *path, bool stream) { return nullptr; }
 tl::expected<std::unique_ptr<TSnd>, std::string> SoundFileLoadWithStatus(const char *path, bool stream) { return nullptr; }
 TSnd::~TSnd() { }
