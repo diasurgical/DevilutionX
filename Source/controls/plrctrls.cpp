@@ -1108,7 +1108,7 @@ void VisualStoreMove(AxisDirection dir)
 		mousePos = GetVisualBtnCoord(btnId).Center();
 	} else {
 		// Grid
-		Size displayItemSize = { 1, 1 };
+		Size itemSize = isHoldingItem ? GetInventorySize(MyPlayer->HoldItem) : Size { 1 };
 		Point displayPos = VisualStoreSlot;
 
 		// If hovering over an item (and not holding one), center on that item
@@ -1118,25 +1118,29 @@ void VisualStoreMove(AxisDirection dir)
 				std::span<Item> items = GetVisualStoreItems();
 				if (itemIdx - 1 < static_cast<int>(items.size())) {
 					const Item &item = items[itemIdx - 1];
-					displayItemSize = GetInventorySize(item);
+					itemSize = GetInventorySize(item);
 
 					// Find the top-left of this item (which is stored in the VisualStorePage items list)
 					for (const auto &vsItem : VisualStore.pages[VisualStore.currentPage].items) {
 						if (vsItem.index == itemIdx - 1) {
 							// Item positions in VisualStorePage are stored as bottom-left
 							// Convert to top-left for display/cursor calculation
-							displayPos = vsItem.position - Displacement { 0, displayItemSize.height - 1 };
+							displayPos = vsItem.position - Displacement { 0, itemSize.height - 1 };
 							break;
 						}
 					}
 
 					// Sync the logical slot to the top-left of the item to ensure consistent navigation
 					VisualStoreSlot = displayPos;
+
+					mousePos = GetVisualStoreSlotCoord(displayPos) + Displacement { (itemSize.width * INV_SLOT_HALF_SIZE_PX), (itemSize.height * INV_SLOT_HALF_SIZE_PX) };
 				}
 			}
 		}
 
-		mousePos = GetVisualStoreSlotCoord(displayPos) + Displacement { (displayItemSize.width * INV_SLOT_HALF_SIZE_PX), (displayItemSize.height * INV_SLOT_HALF_SIZE_PX) };
+		mousePos = GetVisualStoreSlotCoord(displayPos) + 
+			Displacement { (itemSize.width * INV_SLOT_HALF_SIZE_PX), (itemSize.height * INV_SLOT_HALF_SIZE_PX) };
+				
 	}
 
 	SetCursorPos(mousePos);
