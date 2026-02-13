@@ -193,8 +193,15 @@ const auto OptionChangeDevice = (GetOptions().Audio.device.SetValueChangedCallba
 
 void ClearDuplicateSounds()
 {
-	const std::lock_guard<SdlMutex> lock(*duplicateSoundsMutex);
-	duplicateSounds.clear();
+	// Move sound samples to a temporary list,
+	// avoiding a deadlock that involves SDL's
+	// mixer lock being taken by finalizers
+	std::list<std::unique_ptr<SoundSample>> drain;
+	{
+		const std::lock_guard<SdlMutex> lock(*duplicateSoundsMutex);
+		drain = std::move(duplicateSounds);
+		duplicateSounds.clear();
+	}
 }
 
 void snd_play_snd(TSnd *pSnd, int lVolume, int lPan, int userVolume)
