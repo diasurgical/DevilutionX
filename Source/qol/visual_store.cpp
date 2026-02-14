@@ -124,26 +124,6 @@ bool VendorAcceptsSale()
 	return false;
 }
 
-/** @brief Get the vendor name for display. */
-const std::string_view GetVendorName()
-{
-	switch (VisualStore.vendor) {
-	case VisualStoreVendor::Smith: {
-		return _("Griswold's Shop");
-	}
-	case VisualStoreVendor::Witch: {
-		return _("Adria's Shop");
-	}
-	case VisualStoreVendor::Healer: {
-		return _("Pepin's Shop");
-	}
-	case VisualStoreVendor::Boy: {
-		return _("Wirt's Shop");
-	}
-	}
-	return "";
-}
-
 /** @brief Calculate the sell price for an item (1/4 of value). */
 int GetSellPrice(const Item &item)
 {
