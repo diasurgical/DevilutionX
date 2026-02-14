@@ -2801,7 +2801,7 @@ void ReleaseStoreBtn()
 
 bool IsPlayerInStore()
 {
-	return ActiveStore != TalkID::None || IsVisualStoreOpen;
+	return ActiveStore != TalkID::None;
 }
 
 // TODO: Change `_iIvalue` to be unsigned instead of passing `int` here.
