@@ -20,7 +20,7 @@ fi
 
 STORMLIB_VERSION=e01d93cc8ae743cfe2da5450854c5d2e3a939265
 STORMLIB_SRC="/tmp/StormLib-$STORMLIB_VERSION"
-SMPQ_VERSION=1.6
+SMPQ_VERSION=1.7
 SMPQ_SRC="/tmp/smpq-$SMPQ_VERSION"
 
 # Download, build, and install the static version of StormLib, an SMPQ dependency, to the staging prefix.
