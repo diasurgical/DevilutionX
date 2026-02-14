@@ -991,9 +991,11 @@ void VisualStoreMove(AxisDirection dir)
 			        SLOTXY_INV_ROW1_FIRST, SLOTXY_INV_ROW2_FIRST, SLOTXY_INV_ROW3_FIRST, SLOTXY_INV_ROW4_FIRST)) {
 				InvalidateInventorySlot();
 				// Focus on rightmost column of visual store (closest to inventory)
-				VisualStoreSlot = { VisualStoreGridWidth - 1, 0 };
+				VisualStoreSlot = { VisualStoreGridWidth - 2, 0 };
 				const Point slotPos = GetVisualStoreSlotCoord(VisualStoreSlot);
-				SetCursorPos(slotPos + Displacement { INV_SLOT_HALF_SIZE_PX, INV_SLOT_HALF_SIZE_PX });
+				// Account for held item size when positioning cursor
+				Size itemSize = MyPlayer->HoldItem.isEmpty() ? Size { 1, 1 } : GetInventorySize(MyPlayer->HoldItem);
+				SetCursorPos(slotPos + Displacement { itemSize.width * INV_SLOT_HALF_SIZE_PX, itemSize.height * INV_SLOT_HALF_SIZE_PX });
 				return;
 			}
 		}
@@ -1969,7 +1971,9 @@ void FocusOnVisualStore()
 	InvalidateInventorySlot(); // Clear inventory focus
 	VisualStoreSlot = { 0, 0 };
 	const Point slotPos = GetVisualStoreSlotCoord(VisualStoreSlot);
-	SetCursorPos(slotPos + Displacement { INV_SLOT_HALF_SIZE_PX, INV_SLOT_HALF_SIZE_PX });
+	// Account for held item size when positioning cursor
+	Size itemSize = MyPlayer->HoldItem.isEmpty() ? Size { 1, 1 } : GetInventorySize(MyPlayer->HoldItem);
+	SetCursorPos(slotPos + Displacement { itemSize.width * INV_SLOT_HALF_SIZE_PX, itemSize.height * INV_SLOT_HALF_SIZE_PX });
 }
 
 void DetectInputMethod(const SDL_Event &event, const ControllerButtonEvent &gamepadEvent)
