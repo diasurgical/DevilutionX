@@ -2658,6 +2658,16 @@ tl::expected<void, std::string> LoadGame(bool firstflag)
 
 	AutomapActive = file.NextBool8();
 	AutoMapScale = file.NextBE<int32_t>();
+	if (file.IsValid(sizeof(uint8_t))) {
+		const auto automapType = file.NextLE<uint8_t>();
+		if (automapType <= static_cast<uint8_t>(AutomapType::LAST)) {
+			SetAutomapType(static_cast<AutomapType>(automapType));
+		} else {
+			SetAutomapType(AutomapType::Opaque);
+		}
+	} else {
+		SetAutomapType(AutomapType::Opaque);
+	}
 	AutomapZoomReset();
 	ResyncQuests();
 
@@ -2921,6 +2931,7 @@ void SaveGameData(SaveWriter &saveWriter)
 
 	file.WriteLE<uint8_t>(AutomapActive ? 1 : 0);
 	file.WriteBE<int32_t>(AutoMapScale);
+	file.WriteLE<uint8_t>(static_cast<uint8_t>(GetAutomapType()));
 
 	SaveAdditionalMissiles(saveWriter);
 	SaveLevelSeeds(saveWriter);

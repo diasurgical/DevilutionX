@@ -1257,7 +1257,7 @@ Displacement GetAutomapScreen()
 {
 	Displacement screen = {};
 
-	if (GetAutomapType() == AutomapType::Minimap) {
+	if (IsMinimapAutomapType()) {
 		screen = {
 			MinimapRect.position.x + MinimapRect.size.width / 2,
 			MinimapRect.position.y + MinimapRect.size.height / 2
@@ -1291,7 +1291,7 @@ void SearchAutomapItem(const Surface &out, const Displacement &myPlayerOffset, i
 	const int endY = std::clamp(tile.y + searchRadius, 0, MAXDUNY);
 
 	const AutomapType mapType = GetAutomapType();
-	const int scale = (mapType == AutomapType::Minimap) ? MinimapScale : AutoMapScale;
+	const int scale = IsMinimapAutomapType(mapType) ? MinimapScale : AutoMapScale;
 
 	for (int i = startX; i < endX; i++) {
 		for (int j = startY; j < endY; j++) {
@@ -1308,7 +1308,7 @@ void SearchAutomapItem(const Surface &out, const Displacement &myPlayerOffset, i
 
 			screen += GetAutomapScreen();
 
-			if (mapType != AutomapType::Minimap && CanPanelsCoverView()) {
+			if (!IsMinimapAutomapType(mapType) && CanPanelsCoverView()) {
 				if (IsRightPanelOpen())
 					screen.x -= gnScreenWidth / 4;
 				if (IsLeftPanelOpen())
@@ -1352,7 +1352,7 @@ void DrawAutomapPlr(const Surface &out, const Displacement &myPlayerOffset, cons
 	if (player.isWalking())
 		playerOffset = GetOffsetForWalking(player.AnimInfo, player._pdir);
 
-	const int scale = (GetAutomapType() == AutomapType::Minimap) ? MinimapScale : AutoMapScale;
+	const int scale = IsMinimapAutomapType() ? MinimapScale : AutoMapScale;
 
 	Point base = {
 		((playerOffset.deltaX + myPlayerOffset.deltaX) * scale / 100 / 2) + (px - py) * AmLine(AmLineLength::DoubleTile),
@@ -1732,7 +1732,7 @@ void AutomapRight()
 
 void AutomapZoomIn()
 {
-	int &scale = (GetAutomapType() == AutomapType::Minimap) ? MinimapScale : AutoMapScale;
+	int &scale = IsMinimapAutomapType() ? MinimapScale : AutoMapScale;
 
 	if (scale >= 200)
 		return;
@@ -1742,7 +1742,7 @@ void AutomapZoomIn()
 
 void AutomapZoomOut()
 {
-	int &scale = (GetAutomapType() == AutomapType::Minimap) ? MinimapScale : AutoMapScale;
+	int &scale = IsMinimapAutomapType() ? MinimapScale : AutoMapScale;
 
 	if (scale <= 25)
 		return;
@@ -1773,7 +1773,7 @@ void DrawAutomap(const Surface &out)
 	if (myPlayer.isWalking())
 		myPlayerOffset = GetOffsetForWalking(myPlayer.AnimInfo, myPlayer._pdir, true);
 
-	const int scale = (GetAutomapType() == AutomapType::Minimap) ? MinimapScale : AutoMapScale;
+	const int scale = IsMinimapAutomapType() ? MinimapScale : AutoMapScale;
 	const int d = (scale * 64) / 100;
 	int cells = 2 * (gnScreenWidth / 2 / d) + 1;
 	if (((gnScreenWidth / 2) % d) != 0)
@@ -1800,6 +1800,12 @@ void DrawAutomap(const Surface &out)
 		DrawHorizontalLine(out, MinimapRect.position + Displacement { -2, MinimapRect.size.height }, MinimapRect.size.width + 3, MapColorsDim);
 		DrawVerticalLine(out, MinimapRect.position + Displacement { -2, -1 }, MinimapRect.size.height + 1, MapColorsDim);
 		DrawVerticalLine(out, MinimapRect.position + Displacement { MinimapRect.size.width, -1 }, MinimapRect.size.height + 1, MapColorsDim);
+
+		if (AutoMapShowItems)
+			SearchAutomapItem(out, myPlayerOffset, 8, [](Point position) {
+				return dItem[position.x][position.y] != 0;
+			});
+	} else if (GetAutomapType() == AutomapType::MinimapBorderless) {
 
 		if (AutoMapShowItems)
 			SearchAutomapItem(out, myPlayerOffset, 8, [](Point position) {
