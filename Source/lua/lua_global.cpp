@@ -22,6 +22,7 @@
 #include "lua/modules/player.hpp"
 #include "lua/modules/render.hpp"
 #include "lua/modules/system.hpp"
+#include "lua/modules/infobox.hpp"
 #include "lua/modules/towners.hpp"
 #include "monster.h"
 #include "options.h"
@@ -291,6 +292,7 @@ void LuaInitialize()
 	    "devilutionx.towners", LuaTownersModule(lua),
 	    "devilutionx.hellfire", LuaHellfireModule(lua),
 	    "devilutionx.system", LuaSystemModule(lua),
+	    "devilutionx.infobox", LuaInfoBoxModule(lua),
 	    "devilutionx.floatingnumbers", LuaFloatingNumbersModule(lua),
 	    "devilutionx.message", [](std::string_view text) { EventPlrMsg(text, UiFlags::ColorRed); },
 	    // This package is loaded without a sandbox:
@@ -353,6 +355,36 @@ void LuaEvent(std::string_view name, const Monster *monster, int arg1, int arg2)
 void LuaEvent(std::string_view name, const Player *player, uint32_t arg1)
 {
 	CallLuaEvent(name, player, arg1);
+}
+
+void LuaEvent(std::string_view name, const Item *item)
+{
+	CallLuaEvent(name, item);
+}
+
+void LuaEvent(std::string_view name, const Item *item, bool arg1)
+{
+	CallLuaEvent(name, item, arg1);
+}
+
+bool LuaEventHasHandlers(std::string_view name)
+{
+	if (!CurrentLuaState.has_value()) {
+		return false;
+	}
+
+	const auto hasHandlers = CurrentLuaState->events.traverse_get<std::optional<sol::object>>(name, "hasHandlers");
+	if (!hasHandlers.has_value() || !hasHandlers->is<sol::protected_function>()) {
+		return false;
+	}
+
+	const sol::protected_function fn = hasHandlers->as<sol::protected_function>();
+	sol::object result = SafeCallResult(fn(), /*optional=*/true);
+	if (!result.valid() || result.get_type() != sol::type::boolean) {
+		return false;
+	}
+
+	return result.as<bool>();
 }
 
 sol::state &GetLuaState()

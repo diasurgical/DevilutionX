@@ -36,6 +36,10 @@ local function CreateEvent()
         end
       end
     end,
+    hasHandlers = function()
+      return #functions > 0
+    end,
+    __sig_hasHandlers = "() -> boolean",
     __sig_trigger = "(...)",
   }
 end
@@ -84,6 +88,18 @@ local events = {
   ---Called when Player gains experience.
   OnPlayerGainExperience = CreateEvent(),
   __doc_OnPlayerGainExperience = "Called when Player gains experience.",
+
+  ---Called before an info box is rendered. Passes hovered item (or nil) and whether it is floating.
+  InfoBoxPrepare = CreateEvent(),
+  __doc_InfoBoxPrepare = "Called before an info box is rendered. Passes hovered item (or nil) and whether it is floating.",
+
+  ---Called immediately after the floating info box has been drawn.
+  AfterFloatingInfoBoxDraw = CreateEvent(),
+  __doc_AfterFloatingInfoBoxDraw = "Called immediately after the floating info box has been drawn.",
+
+  ---Called immediately before drawing the unique item info box.
+  BeforeUniqueInfoBoxDraw = CreateEvent(),
+  __doc_BeforeUniqueInfoBoxDraw = "Called immediately before drawing the unique item info box.",
 }
 
 ---Registers a custom event type with the given name.

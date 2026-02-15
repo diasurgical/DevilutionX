@@ -32,6 +32,41 @@ void InitPlayerUserType(sol::state_view &lua)
 	    [](const Player &player) -> Point {
 		    return Point { player.position.tile };
 	    });
+	LuaSetDocReadonlyProperty(playerType, "headItem", "Item | nil",
+	    "Equipped head item (readonly)",
+	    [](const Player &player) -> const Item * {
+		    return player.InvBody[INVLOC_HEAD].isEmpty() ? nullptr : &player.InvBody[INVLOC_HEAD];
+	    });
+	LuaSetDocReadonlyProperty(playerType, "chestItem", "Item | nil",
+	    "Equipped chest item (readonly)",
+	    [](const Player &player) -> const Item * {
+		    return player.InvBody[INVLOC_CHEST].isEmpty() ? nullptr : &player.InvBody[INVLOC_CHEST];
+	    });
+	LuaSetDocReadonlyProperty(playerType, "amuletItem", "Item | nil",
+	    "Equipped amulet item (readonly)",
+	    [](const Player &player) -> const Item * {
+		    return player.InvBody[INVLOC_AMULET].isEmpty() ? nullptr : &player.InvBody[INVLOC_AMULET];
+	    });
+	LuaSetDocReadonlyProperty(playerType, "leftRingItem", "Item | nil",
+	    "Equipped left ring item (readonly)",
+	    [](const Player &player) -> const Item * {
+		    return player.InvBody[INVLOC_RING_LEFT].isEmpty() ? nullptr : &player.InvBody[INVLOC_RING_LEFT];
+	    });
+	LuaSetDocReadonlyProperty(playerType, "rightRingItem", "Item | nil",
+	    "Equipped right ring item (readonly)",
+	    [](const Player &player) -> const Item * {
+		    return player.InvBody[INVLOC_RING_RIGHT].isEmpty() ? nullptr : &player.InvBody[INVLOC_RING_RIGHT];
+	    });
+	LuaSetDocReadonlyProperty(playerType, "leftHandItem", "Item | nil",
+	    "Equipped left-hand item (readonly)",
+	    [](const Player &player) -> const Item * {
+		    return player.InvBody[INVLOC_HAND_LEFT].isEmpty() ? nullptr : &player.InvBody[INVLOC_HAND_LEFT];
+	    });
+	LuaSetDocReadonlyProperty(playerType, "rightHandItem", "Item | nil",
+	    "Equipped right-hand item (readonly)",
+	    [](const Player &player) -> const Item * {
+		    return player.InvBody[INVLOC_HAND_RIGHT].isEmpty() ? nullptr : &player.InvBody[INVLOC_HAND_RIGHT];
+	    });
 	LuaSetDocFn(playerType, "addExperience", "(experience: integer, monsterLevel: integer = nil)",
 	    "Adds experience to this player based on the current game mode",
 	    [](Player &player, uint32_t experience, std::optional<int> monsterLevel) {
