@@ -4,10 +4,15 @@ local items = require("devilutionx.items")
 local player = require("devilutionx.player")
 local render = require("devilutionx.render")
 local infobox = require("devilutionx.infobox")
+local gamepad = require("devilutionx.gamepad")
 
 
 local showActionHints = true
 local showComparisonInfoBox = true
+local COMPARE_ACTION_NAME = "TooltipCompare"
+local PRIMARY_ACTION_NAME = "PrimaryAction"
+local EQUIP_ACTION_NAME = "SecondaryAction"
+local DROP_ACTION_NAME = "SpellAction"
 
 
 
@@ -15,11 +20,17 @@ local ItemEffectType = items.ItemEffectType
 local ItemMiscID = items.ItemMiscID
 local ItemEquipType = items.ItemEquipType
 local lastFloatingHoveredItem = nil
+local gamepadCompareToggled = false
+local compareToggleButtonWasPressed = false
 
 local currentLanguageCode = nil
-local HINT_EQUIP = nil
-local HINT_COMPARE = nil
-local HINT_DROP = nil
+local HINT_EQUIP_KBM = nil
+local HINT_EQUIP_GAMEPAD_TEMPLATE = nil
+local HINT_COMPARE_KBM = nil
+local HINT_COMPARE_GAMEPAD_TEMPLATE = nil
+local HINT_DROP_KBM = nil
+local HINT_DROP_GAMEPAD_TEMPLATE = nil
+local HINT_DROP_GAMEPAD_COMBO_TEMPLATE = nil
 local COMPARISON_FOOTER = nil
 
 local LABEL_DURABILITY = nil
@@ -34,15 +45,19 @@ end
 
 local function refreshLocalizedStrings()
 	local languageCode = i18n.language_code()
-	if languageCode == currentLanguageCode and HINT_EQUIP ~= nil then
+	if languageCode == currentLanguageCode and HINT_EQUIP_KBM ~= nil then
 		return
 	end
 
 	currentLanguageCode = languageCode
 
-	HINT_EQUIP = i18n.translate("Shift + Left Click to Equip")
-	HINT_COMPARE = i18n.translate("Hold Shift to Compare")
-	HINT_DROP = i18n.translate("Ctrl + Left Click to Drop")
+	HINT_EQUIP_KBM = i18n.translate("Shift + Left Click to Equip")
+	HINT_EQUIP_GAMEPAD_TEMPLATE = i18n.translate("Press %s to Equip")
+	HINT_COMPARE_KBM = i18n.translate("Hold Shift to Compare")
+	HINT_COMPARE_GAMEPAD_TEMPLATE = i18n.translate("Press %s to Compare")
+	HINT_DROP_KBM = i18n.translate("Ctrl + Left Click to Drop")
+	HINT_DROP_GAMEPAD_TEMPLATE = i18n.translate("Press %s to Drop")
+	HINT_DROP_GAMEPAD_COMBO_TEMPLATE = i18n.translate("Press %s + %s to Drop")
 	COMPARISON_FOOTER = i18n.translate("Currently Equipped")
 
 	LABEL_DURABILITY = i18n.translate("Durability:")
@@ -52,6 +67,14 @@ local function refreshLocalizedStrings()
 	LABEL_NOT_IDENTIFIED = i18n.translate("Not Identified")
 end
 
+gamepad.registerAction(
+	COMPARE_ACTION_NAME,
+	i18n.translate("Toggle Tooltip Comparison"),
+	i18n.translate("Toggle comparison info box for hovered equipped items."),
+	nil,
+	gamepad.Button.BACK
+)
+
 local function appendUniquePowersToText(text, item)
 	local originalText = infobox.getInfoText()
 	infobox.setInfoText(text)
@@ -59,6 +82,45 @@ local function appendUniquePowersToText(text, item)
 	local transformed = infobox.getInfoText()
 	infobox.setInfoText(originalText)
 	return transformed
+end
+
+local function getCompareHintText()
+	if gamepad.isGamepadInUse() then
+		local bindingName = gamepad.getBindingName(COMPARE_ACTION_NAME, false)
+		if bindingName ~= nil and bindingName ~= "" then
+			return string.format(HINT_COMPARE_GAMEPAD_TEMPLATE, bindingName)
+		end
+	end
+
+	return HINT_COMPARE_KBM
+end
+
+local function getEquipHintText()
+	if gamepad.isGamepadInUse() then
+		local bindingName = gamepad.getBindingName(EQUIP_ACTION_NAME, false)
+		if bindingName ~= nil and bindingName ~= "" then
+			return string.format(HINT_EQUIP_GAMEPAD_TEMPLATE, bindingName)
+		end
+	end
+
+	return HINT_EQUIP_KBM
+end
+
+local function getDropHintText()
+	if gamepad.isGamepadInUse() then
+		local primaryBindingName = gamepad.getBindingName(PRIMARY_ACTION_NAME, false)
+		local bindingName = gamepad.getBindingName(DROP_ACTION_NAME, false)
+		if primaryBindingName ~= nil and primaryBindingName ~= ""
+			and bindingName ~= nil and bindingName ~= "" then
+			return string.format(HINT_DROP_GAMEPAD_COMBO_TEMPLATE, primaryBindingName, bindingName)
+		end
+
+		if bindingName ~= nil and bindingName ~= "" then
+			return string.format(HINT_DROP_GAMEPAD_TEMPLATE, bindingName)
+		end
+	end
+
+	return HINT_DROP_KBM
 end
 
 local function splitLines(text)
@@ -112,10 +174,13 @@ local function applyInfoBoxRules(item, floating, floatingInfoBoxEnabled, text, c
 	end
 
 	if includeHints and showActionHints and floating and floatingInfoBoxEnabled then
+		local equipHintText = getEquipHintText()
+		local compareHintText = getCompareHintText()
+		local dropHintText = getDropHintText()
 		local lines = splitLines(text)
-		local hasEquipHint = hasLine(lines, HINT_EQUIP)
-		local hasCompareHint = hasLine(lines, HINT_COMPARE)
-		local hasDropHint = hasLine(lines, HINT_DROP)
+		local hasEquipHint = hasLine(lines, equipHintText)
+		local hasCompareHint = hasLine(lines, compareHintText)
+		local hasDropHint = hasLine(lines, dropHintText)
 
 		local isBeltConsumable = item.miscId == ItemMiscID.Heal
 			or item.miscId == ItemMiscID.FullHeal
@@ -134,15 +199,15 @@ local function applyInfoBoxRules(item, floating, floatingInfoBoxEnabled, text, c
 			hintStartLine = #lines + 1
 			colors:addDividerBeforeLine(hintStartLine - 1)
 			if shouldAppendEquip then
-				table.insert(lines, HINT_EQUIP)
+				table.insert(lines, equipHintText)
 				hintLineCount = hintLineCount + 1
 			end
 			if shouldAppendDrop then
-				table.insert(lines, HINT_DROP)
+				table.insert(lines, dropHintText)
 				hintLineCount = hintLineCount + 1
 			end
 			if shouldAppendCompare then
-				table.insert(lines, HINT_COMPARE)
+				table.insert(lines, compareHintText)
 				hintLineCount = hintLineCount + 1
 			end
 
@@ -222,15 +287,18 @@ local function applyInfoBoxRules(item, floating, floatingInfoBoxEnabled, text, c
 				end
 			end
 		elseif visiblePowerLineCount > 0 then
+			local equipHintText = getEquipHintText()
+			local dropHintText = getDropHintText()
+			local compareHintText = getCompareHintText()
 			local eligibleLines = {}
 			for i = 2, lastContentLine do
 				local line = infoBoxLines[i]
 				if line ~= ""
 					and line ~= LABEL_NOT_IDENTIFIED
 					and line ~= LABEL_UNIQUE_ITEM
-					and line ~= HINT_EQUIP
-					and line ~= HINT_DROP
-					and line ~= HINT_COMPARE
+					and line ~= equipHintText
+					and line ~= dropHintText
+					and line ~= compareHintText
 					and line ~= COMPARISON_FOOTER then
 					table.insert(eligibleLines, i)
 				end
@@ -331,6 +399,19 @@ local function canCompareHoveredItem(hoveredItem)
 	return equippedItem ~= nil and not equippedItem:isEmpty() and not itemsMatch(equippedItem, hoveredItem)
 end
 
+local function updateGamepadCompareToggle()
+	local toggleButtonPressed = gamepad.isActionActive(COMPARE_ACTION_NAME)
+	if toggleButtonPressed and not compareToggleButtonWasPressed then
+		gamepadCompareToggled = not gamepadCompareToggled
+	end
+	compareToggleButtonWasPressed = toggleButtonPressed
+end
+
+local function isCompareActive()
+	updateGamepadCompareToggle()
+	return infobox.isShiftHeld() or gamepadCompareToggled
+end
+
 events.InfoBoxPrepare.add(function(item, floating)
 	infobox.lineColors:clear()
 	if floating then
@@ -364,7 +445,7 @@ events.BeforeUniqueInfoBoxDraw.add(function()
 end)
 
 events.AfterFloatingInfoBoxDraw.add(function()
-	if not showComparisonInfoBox or not infobox.isFloatingInfoBoxEnabled() or not infobox.isShiftHeld() then
+	if not showComparisonInfoBox or not infobox.isFloatingInfoBoxEnabled() or not isCompareActive() then
 		return
 	end
 

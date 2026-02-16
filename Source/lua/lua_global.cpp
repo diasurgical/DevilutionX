@@ -14,6 +14,7 @@
 #include "engine/assets.hpp"
 #include "lua/modules/audio.hpp"
 #include "lua/modules/floatingnumbers.hpp"
+#include "lua/modules/gamepad.hpp"
 #include "lua/modules/hellfire.hpp"
 #include "lua/modules/i18n.hpp"
 #include "lua/modules/items.hpp"
@@ -292,6 +293,7 @@ void LuaInitialize()
 	    "devilutionx.towners", LuaTownersModule(lua),
 	    "devilutionx.hellfire", LuaHellfireModule(lua),
 	    "devilutionx.system", LuaSystemModule(lua),
+	    "devilutionx.gamepad", LuaGamepadModule(lua),
 	    "devilutionx.infobox", LuaInfoBoxModule(lua),
 	    "devilutionx.floatingnumbers", LuaFloatingNumbersModule(lua),
 	    "devilutionx.message", [](std::string_view text) { EventPlrMsg(text, UiFlags::ColorRed); },
