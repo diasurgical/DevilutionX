@@ -413,7 +413,6 @@ local function isCompareActive()
 end
 
 events.InfoBoxPrepare.add(function(item, floating)
-	infobox.lineColors:clear()
 	if floating then
 		lastFloatingHoveredItem = item
 	end
@@ -469,7 +468,6 @@ events.AfterFloatingInfoBoxDraw.add(function()
 		return
 	end
 
-	infobox.secondaryLineColors:clear()
 	text = applyInfoBoxRules(equippedItem, true, true, text, infobox.secondaryLineColors, false, true, false)
 
 	local textSpacing = 2
