@@ -20,6 +20,7 @@ local ItemEffectType = items.ItemEffectType
 local ItemMiscID = items.ItemMiscID
 local ItemEquipType = items.ItemEquipType
 local lastFloatingHoveredItem = nil
+local lastFloatingComparisonItem = nil
 local gamepadCompareToggled = false
 local compareToggleButtonWasPressed = false
 
@@ -38,6 +39,7 @@ local LABEL_DUR_SHORT = nil
 local LABEL_REQUIRED = nil
 local LABEL_UNIQUE_ITEM = nil
 local LABEL_NOT_IDENTIFIED = nil
+local itemsMatch = nil
 
 local function startsWith(text, prefix)
 	return text:sub(1, #prefix) == prefix
@@ -125,8 +127,11 @@ end
 
 local function splitLines(text)
 	local lines = {}
-	for line in text:gmatch("[^\n]+") do
+	for line in (text .. "\n"):gmatch("(.-)\n") do
 		table.insert(lines, line)
+	end
+	if #lines > 0 and lines[#lines] == "" then
+		table.remove(lines)
 	end
 	return lines
 end
@@ -140,8 +145,17 @@ local function hasLine(lines, target)
 	return false
 end
 
+local function getHintTexts()
+	return getEquipHintText(), getDropHintText(), getCompareHintText()
+end
+
+local function isDifferentEquippedItem(hoveredItem, equippedItem)
+	return equippedItem ~= nil and not equippedItem:isEmpty() and not itemsMatch(equippedItem, hoveredItem)
+end
+
 local function applyInfoBoxRules(item, floating, floatingInfoBoxEnabled, text, colors, includeHints, includeComparisonFooter, includeCompareHint)
 	refreshLocalizedStrings()
+	colors:clear()
 
 	local hintStartLine = nil
 	local hintLineCount = 0
@@ -173,10 +187,12 @@ local function applyInfoBoxRules(item, floating, floatingInfoBoxEnabled, text, c
 		end
 	end
 
+	local equipHintText = nil
+	local dropHintText = nil
+	local compareHintText = nil
+
 	if includeHints and showActionHints and floating and floatingInfoBoxEnabled then
-		local equipHintText = getEquipHintText()
-		local compareHintText = getCompareHintText()
-		local dropHintText = getDropHintText()
+		equipHintText, dropHintText, compareHintText = getHintTexts()
 		local lines = splitLines(text)
 		local hasEquipHint = hasLine(lines, equipHintText)
 		local hasCompareHint = hasLine(lines, compareHintText)
@@ -287,9 +303,9 @@ local function applyInfoBoxRules(item, floating, floatingInfoBoxEnabled, text, c
 				end
 			end
 		elseif visiblePowerLineCount > 0 then
-			local equipHintText = getEquipHintText()
-			local dropHintText = getDropHintText()
-			local compareHintText = getCompareHintText()
+			if equipHintText == nil or dropHintText == nil or compareHintText == nil then
+				equipHintText, dropHintText, compareHintText = getHintTexts()
+			end
 			local eligibleLines = {}
 			for i = 2, lastContentLine do
 				local line = infoBoxLines[i]
@@ -327,7 +343,7 @@ local function applyInfoBoxRules(item, floating, floatingInfoBoxEnabled, text, c
 	return text
 end
 
-local function itemsMatch(a, b)
+itemsMatch = function(a, b)
 	if a == nil or b == nil then
 		return false
 	end
@@ -390,15 +406,6 @@ local function getEquippedComparisonItem(hoveredItem)
 	return nil
 end
 
-local function canCompareHoveredItem(hoveredItem)
-	if not showComparisonInfoBox or hoveredItem == nil then
-		return false
-	end
-
-	local equippedItem = getEquippedComparisonItem(hoveredItem)
-	return equippedItem ~= nil and not equippedItem:isEmpty() and not itemsMatch(equippedItem, hoveredItem)
-end
-
 local function updateGamepadCompareToggle()
 	local toggleButtonPressed = gamepad.isActionActive(COMPARE_ACTION_NAME)
 	if toggleButtonPressed and not compareToggleButtonWasPressed then
@@ -415,6 +422,9 @@ end
 events.InfoBoxPrepare.add(function(item, floating)
 	if floating then
 		lastFloatingHoveredItem = item
+		lastFloatingComparisonItem = getEquippedComparisonItem(item)
+	else
+		lastFloatingComparisonItem = nil
 	end
 
 	local floatingInfoBoxEnabled = infobox.isFloatingInfoBoxEnabled()
@@ -431,7 +441,7 @@ events.InfoBoxPrepare.add(function(item, floating)
 		end
 	end
 
-	local includeCompareHint = floating and canCompareHoveredItem(item)
+	local includeCompareHint = floating and isDifferentEquippedItem(item, lastFloatingComparisonItem)
 	local text = applyInfoBoxRules(item, floating, floatingInfoBoxEnabled, baseText, infobox.lineColors, true, false, includeCompareHint)
 	infobox.setInfoText(text)
 
@@ -453,8 +463,12 @@ events.AfterFloatingInfoBoxDraw.add(function()
 		return
 	end
 
-	local equippedItem = getEquippedComparisonItem(hoveredItem)
-	if equippedItem == nil or equippedItem:isEmpty() or itemsMatch(equippedItem, hoveredItem) then
+	local equippedItem = lastFloatingComparisonItem
+	if not isDifferentEquippedItem(hoveredItem, equippedItem) then
+		equippedItem = getEquippedComparisonItem(hoveredItem)
+	end
+
+	if not isDifferentEquippedItem(hoveredItem, equippedItem) then
 		return
 	end
 
