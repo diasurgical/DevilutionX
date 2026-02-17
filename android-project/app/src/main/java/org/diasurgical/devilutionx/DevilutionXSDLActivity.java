@@ -11,6 +11,7 @@ import android.view.SurfaceView;
 import android.view.ViewTreeObserver;
 import android.view.WindowInsets;
 import android.view.WindowManager;
+import android.view.accessibility.AccessibilityManager;
 
 import org.libsdl.app.SDLActivity;
 
@@ -36,6 +37,10 @@ public class DevilutionXSDLActivity extends SDLActivity {
 		migrateSaveGames();
 
 		super.onCreate(savedInstanceState);
+
+		// Initialize accessibility JNI - must be after super.onCreate()
+		// so that the native library is loaded first
+		nativeInitAccessibility();
 	}
 
 	/**
@@ -178,4 +183,34 @@ public class DevilutionXSDLActivity extends SDLActivity {
 	}
 
 	public static native boolean areFontsOutOfDate(String fonts_mpq);
+
+	/**
+	 * Native method to initialize accessibility JNI functions.
+	 * This caches the method IDs needed for accessibility features.
+	 */
+	public native void nativeInitAccessibility();
+
+	/**
+	 * Checks if the screen reader (TalkBack) is enabled on the device.
+	 * This follows the same pattern as RetroArch's accessibility implementation.
+	 *
+	 * @return true if TalkBack is enabled and touch exploration is active
+	 */
+	public boolean isScreenReaderEnabled() {
+		AccessibilityManager accessibilityManager = (AccessibilityManager) getSystemService(ACCESSIBILITY_SERVICE);
+		boolean isAccessibilityEnabled = accessibilityManager.isEnabled();
+		boolean isExploreByTouchEnabled = accessibilityManager.isTouchExplorationEnabled();
+		return isAccessibilityEnabled && isExploreByTouchEnabled;
+	}
+
+	/**
+	 * Speaks the given message using Android's accessibility API.
+	 * This integrates with TalkBack and other screen readers.
+	 * This follows the same pattern as RetroArch's accessibility implementation.
+	 *
+	 * @param message The text to speak
+	 */
+	public void accessibilitySpeak(String message) {
+		getWindow().getDecorView().announceForAccessibility(message);
+	}
 }

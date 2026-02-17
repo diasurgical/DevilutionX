@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git clone:*)",
+      "Bash(find:*)",
+      "Bash(bash:*)",
+      "Bash(dir:*)",
+      "Bash(gradlew.bat assembleDebug:*)",
+      "Bash(./gradlew.bat:*)"
+    ]
+  }
+}

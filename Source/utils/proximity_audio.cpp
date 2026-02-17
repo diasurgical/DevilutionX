@@ -316,8 +316,6 @@ void UpdateProximityAudioCues()
 {
 	if (!gbSndInited || !gbSoundOn)
 		return;
-	if (leveltype == DTYPE_TOWN)
-		return;
 	if (MyPlayer == nullptr || MyPlayerIsDead || MyPlayer->_pmode == PM_DEATH)
 		return;
 	if (InGameMenu())
@@ -384,86 +382,89 @@ void UpdateProximityAudioCues()
 		                    });
 	}
 
-	for (int i = 0; i < ActiveObjectCount; i++) {
-		const int objectId = ActiveObjects[i];
-		const Object &object = Objects[objectId];
-		if (!object.canInteractWith())
-			continue;
-		if (!object.isDoor() && !object.IsChest())
-			continue;
+	// Only enable non-item emitters inside dungeons for now.
+	if (leveltype != DTYPE_TOWN) {
+		for (int i = 0; i < ActiveObjectCount; i++) {
+			const int objectId = ActiveObjects[i];
+			const Object &object = Objects[objectId];
+			if (!object.canInteractWith())
+				continue;
+			if (!object.isDoor() && !object.IsChest())
+				continue;
 
-		SoundPool::SoundId soundId;
-		if (object.IsChest()) {
-			soundId = SoundPool::SoundId::Chest;
-		} else {
-			soundId = SoundPool::SoundId::Door;
+			SoundPool::SoundId soundId;
+			if (object.IsChest()) {
+				soundId = SoundPool::SoundId::Chest;
+			} else {
+				soundId = SoundPool::SoundId::Door;
+			}
+
+			if (!pool.IsLoaded(soundId))
+				continue;
+
+			const int distance = playerPosition.ApproxDistance(object.position);
+			if (distance > MaxCueDistanceTiles)
+				continue;
+
+			ConsiderCandidate(best, CandidateEmitter {
+			                        .emitterId = MakeEmitterId(EmitterType::Object, static_cast<uint32_t>(objectId)),
+			                        .sound = soundId,
+			                        .position = object.position,
+			                        .distance = distance,
+			                        .intervalMs = IntervalMsForDistance(distance, MaxCueDistanceTiles, MinIntervalMs, MaxIntervalMs),
+			                    });
 		}
 
-		if (!pool.IsLoaded(soundId))
-			continue;
+		for (int i = 0; i < numtrigs; ++i) {
+			if (!IsAnyOf(trigs[i]._tmsg, WM_DIABNEXTLVL, WM_DIABPREVLVL))
+				continue;
 
-		const int distance = playerPosition.ApproxDistance(object.position);
-		if (distance > MaxCueDistanceTiles)
-			continue;
+			if (!pool.IsLoaded(SoundPool::SoundId::Stairs))
+				continue;
 
-		ConsiderCandidate(best, CandidateEmitter {
-		                        .emitterId = MakeEmitterId(EmitterType::Object, static_cast<uint32_t>(objectId)),
-		                        .sound = soundId,
-		                        .position = object.position,
-		                        .distance = distance,
-		                        .intervalMs = IntervalMsForDistance(distance, MaxCueDistanceTiles, MinIntervalMs, MaxIntervalMs),
-		                    });
-	}
+			const Point triggerPosition { trigs[i].position.x, trigs[i].position.y };
+			const int distance = playerPosition.ApproxDistance(triggerPosition);
+			if (distance > MaxCueDistanceTiles)
+				continue;
 
-	for (int i = 0; i < numtrigs; ++i) {
-		if (!IsAnyOf(trigs[i]._tmsg, WM_DIABNEXTLVL, WM_DIABPREVLVL))
-			continue;
+			ConsiderCandidate(best, CandidateEmitter {
+			                        .emitterId = MakeEmitterId(EmitterType::Trigger, static_cast<uint32_t>(i)),
+			                        .sound = SoundPool::SoundId::Stairs,
+			                        .position = triggerPosition,
+			                        .distance = distance,
+			                        .intervalMs = IntervalMsForDistance(distance, MaxCueDistanceTiles, MinIntervalMs, MaxIntervalMs),
+			                    });
+		}
 
-		if (!pool.IsLoaded(SoundPool::SoundId::Stairs))
-			continue;
+		for (size_t i = 0; i < ActiveMonsterCount; i++) {
+			const int monsterId = static_cast<int>(ActiveMonsters[i]);
+			const Monster &monster = Monsters[monsterId];
 
-		const Point triggerPosition { trigs[i].position.x, trigs[i].position.y };
-		const int distance = playerPosition.ApproxDistance(triggerPosition);
-		if (distance > MaxCueDistanceTiles)
-			continue;
+			if (monster.isInvalid)
+				continue;
+			if ((monster.flags & MFLAG_HIDDEN) != 0)
+				continue;
+			if (monster.hitPoints <= 0)
+				continue;
 
-		ConsiderCandidate(best, CandidateEmitter {
-		                        .emitterId = MakeEmitterId(EmitterType::Trigger, static_cast<uint32_t>(i)),
-		                        .sound = SoundPool::SoundId::Stairs,
-		                        .position = triggerPosition,
-		                        .distance = distance,
-		                        .intervalMs = IntervalMsForDistance(distance, MaxCueDistanceTiles, MinIntervalMs, MaxIntervalMs),
-		                    });
-	}
+			if (!pool.IsLoaded(SoundPool::SoundId::Monster))
+				continue;
 
-	for (size_t i = 0; i < ActiveMonsterCount; i++) {
-		const int monsterId = static_cast<int>(ActiveMonsters[i]);
-		const Monster &monster = Monsters[monsterId];
+			// Use the future position for distance/tempo so cues react immediately when a monster starts moving.
+			const Point monsterSoundPosition { monster.position.tile };
+			const Point monsterDistancePosition { monster.position.future };
+			const int distance = playerPosition.ApproxDistance(monsterDistancePosition);
+			if (distance > MaxCueDistanceTiles)
+				continue;
 
-		if (monster.isInvalid)
-			continue;
-		if ((monster.flags & MFLAG_HIDDEN) != 0)
-			continue;
-		if (monster.hitPoints <= 0)
-			continue;
-
-		if (!pool.IsLoaded(SoundPool::SoundId::Monster))
-			continue;
-
-		// Use the future position for distance/tempo so cues react immediately when a monster starts moving.
-		const Point monsterSoundPosition { monster.position.tile };
-		const Point monsterDistancePosition { monster.position.future };
-		const int distance = playerPosition.ApproxDistance(monsterDistancePosition);
-		if (distance > MaxCueDistanceTiles)
-			continue;
-
-		ConsiderCandidate(best, CandidateEmitter {
-		                        .emitterId = MakeEmitterId(EmitterType::Monster, static_cast<uint32_t>(monsterId)),
-		                        .sound = SoundPool::SoundId::Monster,
-		                        .position = monsterSoundPosition,
-		                        .distance = distance,
-		                        .intervalMs = IntervalMsForDistance(distance, MaxCueDistanceTiles, MinMonsterIntervalMs, MaxMonsterIntervalMs),
-		                    });
+			ConsiderCandidate(best, CandidateEmitter {
+			                        .emitterId = MakeEmitterId(EmitterType::Monster, static_cast<uint32_t>(monsterId)),
+			                        .sound = SoundPool::SoundId::Monster,
+			                        .position = monsterSoundPosition,
+			                        .distance = distance,
+			                        .intervalMs = IntervalMsForDistance(distance, MaxCueDistanceTiles, MinMonsterIntervalMs, MaxMonsterIntervalMs),
+			                    });
+		}
 	}
 
 	std::array<SoundPool::EmitterRequest, MaxEmitters> requests;

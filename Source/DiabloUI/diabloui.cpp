@@ -114,6 +114,8 @@ bool UiItemsWraps;
 std::optional<TextInputState> UiTextInputState;
 bool allowEmptyTextInput = false;
 
+std::optional<std::string> UiSpokenTextOverride;
+
 constexpr Uint32 ListDoubleClickTimeMs = 500;
 std::size_t lastListClickIndex = static_cast<std::size_t>(-1);
 Uint32 lastListClickTicks = 0;
@@ -159,6 +161,12 @@ void SpeakListItem(std::size_t index, bool force = false)
 {
 	if (gUiList == nullptr || index > SelectedItemMax)
 		return;
+
+	if (UiSpokenTextOverride) {
+		SpeakText(*UiSpokenTextOverride, force);
+		UiSpokenTextOverride = std::nullopt;
+		return;
+	}
 
 	const UiListItem *pItem = gUiList->GetItem(index);
 	if (pItem == nullptr)
@@ -234,6 +242,11 @@ void UiUpdateFadePalette()
 }
 
 } // namespace
+
+void UiSetSpokenTextOverride(std::string text)
+{
+	UiSpokenTextOverride = std::move(text);
+}
 
 bool IsTextInputActive()
 {
@@ -365,8 +378,6 @@ void UiFocus(std::size_t itemIndex, bool checkUp, bool ignoreItemsWraps = false)
 		}
 		pItem = gUiList->GetItem(itemIndex);
 	}
-	SpeakListItem(itemIndex);
-
 	if (HasAnyOf(pItem->uiFlags, UiFlags::NeedsNextElement))
 		AdjustListOffset(itemIndex + 1);
 	AdjustListOffset(itemIndex);
@@ -377,6 +388,8 @@ void UiFocus(std::size_t itemIndex, bool checkUp, bool ignoreItemsWraps = false)
 
 	if (gfnListFocus != nullptr)
 		gfnListFocus(itemIndex);
+
+	SpeakListItem(itemIndex);
 }
 
 void UiFocusUp()

@@ -865,6 +865,7 @@ GameplayOptions::GameplayOptions()
     , autoRefillBelt("Auto Refill Belt", OptionEntryFlags::None, N_("Auto Refill Belt"), N_("Refill belt from inventory when belt item is consumed."), false)
     , disableCripplingShrines("Disable Crippling Shrines", OptionEntryFlags::None, N_("Disable Crippling Shrines"), N_("When enabled Cauldrons, Fascinating Shrines, Goat Shrines, Ornate Shrines, Sacred Shrines and Murphy's Shrines are not able to be clicked on and labeled as disabled."), false)
     , quickCast("Quick Cast", OptionEntryFlags::None, N_("Quick Cast"), N_("Spell hotkeys instantly cast the spell, rather than switching the readied spell."), false)
+    , speakNpcDialogText("Read NPC Dialog Text", OptionEntryFlags::None, N_("Read NPC Dialog Text"), N_("Read subtitle text aloud when NPC dialog is shown."), true)
     , numHealPotionPickup("Heal Potion Pickup", OptionEntryFlags::None, N_("Heal Potion Pickup"), N_("Number of Healing potions to pick up automatically."), 0, { 0, 1, 2, 4, 8, 16 })
     , numFullHealPotionPickup("Full Heal Potion Pickup", OptionEntryFlags::None, N_("Full Heal Potion Pickup"), N_("Number of Full Healing potions to pick up automatically."), 0, { 0, 1, 2, 4, 8, 16 })
     , numManaPotionPickup("Mana Potion Pickup", OptionEntryFlags::None, N_("Mana Potion Pickup"), N_("Number of Mana potions to pick up automatically."), 0, { 0, 1, 2, 4, 8, 16 })
@@ -903,6 +904,7 @@ std::vector<OptionEntryBase *> GameplayOptions::GetEntries()
 		&autoEquipHelms,
 		&autoEquipShields,
 		&autoEquipJewelry,
+		&speakNpcDialogText,
 		&autoGoldPickup,
 		&autoElixirPickup,
 		&autoOilPickup,
@@ -1196,6 +1198,17 @@ void KeymapperOptions::Action::LoadFromIni(std::string_view category)
 
 	const std::string_view iniValue = iniValues.back().value;
 	if (iniValue.empty()) {
+		// Migration: `ToggleAutomap` could have been saved as unbound due to a key
+		// conflict when `ToggleStashFocus` was also bound to TAB. Restore the default
+		// key in that case so TAB works consistently.
+		if (key == "ToggleAutomap") {
+			const std::span<const Ini::Value> stashFocusValues = ini->get(category, "ToggleStashFocus");
+			if (!stashFocusValues.empty() && stashFocusValues.back().value == "TAB") {
+				SetValue(defaultKey);
+				return;
+			}
+		}
+
 		if (key == "SpeakCurrentLocation") {
 			const std::span<const Ini::Value> chatLogValues = ini->get(category, "ChatLog");
 			if (!chatLogValues.empty() && chatLogValues.back().value == "L") {
@@ -1204,15 +1217,31 @@ void KeymapperOptions::Action::LoadFromIni(std::string_view category)
 			}
 		}
 
+		// Migration: `SpeakNearestTownPortal` originally defaulted to `P` but could be
+		// saved as unbound due to key conflicts in earlier versions. Treat an explicit
+		// empty mapping as "use default" so existing configs start working again.
+		if (key == "SpeakNearestTownPortal") {
+			SetValue(defaultKey);
+			return;
+		}
+
 		// Migration: some actions were previously saved as unbound because their default
 		// keys were not supported by the keymapper. If we see an explicit empty mapping
 		// for these actions, treat it as "use default".
-		if (IsAnyOf(key, "PreviousTownNpc", "NextTownNpc", "KeyboardWalkNorth", "KeyboardWalkSouth", "KeyboardWalkEast", "KeyboardWalkWest")) {
+		if (IsAnyOf(key, "KeyboardWalkNorth", "KeyboardWalkSouth", "KeyboardWalkEast", "KeyboardWalkWest")) {
 			SetValue(defaultKey);
 			return;
 		}
 
 		SetValue(SDLK_UNKNOWN);
+		return;
+	}
+
+	// Migration: `ToggleStashFocus` previously defaulted to `TAB`, which conflicts
+	// with `ToggleAutomap` and can result in TAB doing nothing (e.g. when the action
+	// is disabled by a menu state). Unbind it when configured as TAB.
+	if (key == "ToggleStashFocus" && iniValue == "TAB") {
+		SetValue(defaultKey);
 		return;
 	}
 
