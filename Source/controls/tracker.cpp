@@ -416,8 +416,31 @@ struct TrackerCandidate {
 	return object.IsBreakable();
 }
 
-[[nodiscard]] constexpr bool IsTrackedMiscInteractableObject(const Object &object)
+[[nodiscard]] bool IsLazarusMagicCircleObject(const Object &object)
 {
+	return setlevel && setlvlnum == SL_VILEBETRAYER && IsAnyOf(object._otype, _object_id::OBJ_MCIRCLE1, _object_id::OBJ_MCIRCLE2);
+}
+
+[[nodiscard]] int TrackerObjectInteractDistance(const Object &object)
+{
+	return IsLazarusMagicCircleObject(object) ? 0 : TrackerInteractDistanceTiles;
+}
+
+[[nodiscard]] StringOrView TrackerObjectLabelForSpeech(const Object &object)
+{
+	if (IsLazarusMagicCircleObject(object)) {
+		if (object._otype == _object_id::OBJ_MCIRCLE1)
+			return _("Central magic circle");
+		return _("Magic circle");
+	}
+
+	return object.name();
+}
+
+[[nodiscard]] bool IsTrackedMiscInteractableObject(const Object &object)
+{
+	if (IsLazarusMagicCircleObject(object))
+		return true;
 	if (!object.canInteractWith())
 		return false;
 	if (object.IsChest() || object._otype == _object_id::OBJ_SIGNCHEST)
@@ -483,7 +506,7 @@ template <typename Predicate>
 		result.push_back(TrackerCandidate {
 		    .id = objectId,
 		    .distance = distance,
-		    .name = object.name(),
+		    .name = TrackerObjectLabelForSpeech(object),
 		});
 	}
 
@@ -1227,7 +1250,7 @@ bool ValidateAutoWalkObjectTarget(
 		SpeakText(_(goneMessage), true);
 		return false;
 	}
-	if (playerPosition.WalkingDistance(object.position) <= TrackerInteractDistanceTiles) {
+	if (playerPosition.WalkingDistance(object.position) <= TrackerObjectInteractDistance(object)) {
 		AutoWalkTrackerTargetId = -1;
 		SpeakText(_(inRangeMessage), true);
 		return false;
@@ -1844,7 +1867,7 @@ void NavigateToTrackerTargetKeyPressed()
 		lockedTargetId = *targetId;
 		const Object &tracked = Objects[*targetId];
 
-		targetName = tracked.name();
+		targetName = TrackerObjectLabelForSpeech(tracked);
 		DecorateTrackerTargetNameWithOrdinalIfNeeded(*targetId, targetName, nearbyCandidates);
 		if (!cycleTarget) {
 			targetPosition = tracked.position;
@@ -2427,7 +2450,7 @@ void AutoWalkToTrackerTargetKeyPressed()
 			return;
 		break;
 	case TrackerTargetCategory::Objects:
-		targetId = ResolveObjectTrackerTarget(lockedTargetId, playerPosition, IsTrackedMiscInteractableObject, FindNearestMiscInteractableObjectId, [](int id) -> StringOrView { return Objects[id].name(); }, N_("No objects found."), targetName);
+		targetId = ResolveObjectTrackerTarget(lockedTargetId, playerPosition, IsTrackedMiscInteractableObject, FindNearestMiscInteractableObjectId, [](int id) -> StringOrView { return TrackerObjectLabelForSpeech(Objects[id]); }, N_("No objects found."), targetName);
 		if (!targetId)
 			return;
 		break;

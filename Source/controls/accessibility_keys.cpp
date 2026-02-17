@@ -22,6 +22,8 @@
 #include "controls/plrctrls.h"
 #include "utils/sdl_compat.h"
 #include "diablo.h"
+#include "engine/sound.h"
+#include "engine/sound_defs.hpp"
 #include "gamemenu.h"
 #include "help.h"
 #include "inv.h"
@@ -54,6 +56,8 @@ int ComputePercentage(int current, int maximum)
 	int percent = static_cast<int>((static_cast<int64_t>(clamped) * 100 + maximum / 2) / maximum);
 	return std::clamp(percent, 0, 100);
 }
+
+int PreviousAudioCuesVolume = VOLUME_MAX;
 
 } // namespace
 
@@ -156,6 +160,31 @@ void SpeakCurrentLocationKeyPressed()
 		return;
 
 	SpeakText(BuildCurrentLocationForSpeech(), /*force=*/true);
+}
+
+void ToggleAudioCuesKeyPressed()
+{
+	const int currentVolume = sound_get_or_set_audio_cues_volume(1);
+	if (currentVolume == VOLUME_MIN) {
+		int restoredVolume = PreviousAudioCuesVolume;
+		if (restoredVolume <= VOLUME_MIN || restoredVolume > VOLUME_MAX)
+			restoredVolume = VOLUME_MAX;
+		sound_get_or_set_audio_cues_volume(restoredVolume);
+		SpeakText(_("Audio cues enabled."), /*force=*/true);
+		return;
+	}
+
+	PreviousAudioCuesVolume = currentVolume;
+	sound_get_or_set_audio_cues_volume(VOLUME_MIN);
+	SpeakText(_("Audio cues disabled."), /*force=*/true);
+}
+
+void ToggleNpcDialogTextReadingKeyPressed()
+{
+	auto &speakNpcDialogText = GetOptions().Gameplay.speakNpcDialogText;
+	const bool enabled = !*speakNpcDialogText;
+	speakNpcDialogText.SetValue(enabled);
+	SpeakText(enabled ? _("NPC subtitle reading enabled.") : _("NPC subtitle reading disabled."), /*force=*/true);
 }
 
 void InventoryKeyPressed()

@@ -2203,6 +2203,22 @@ void InitKeymapActions()
 	    nullptr,
 	    CanPlayerTakeAction);
 	options.Keymapper.AddAction(
+	    "ToggleAudioCues",
+	    N_("Toggle Audio Cues"),
+	    N_("Enable/disable all navigation audio cues."),
+	    SDLK_SLASH,
+	    ToggleAudioCuesKeyPressed,
+	    nullptr,
+	    IsGameRunning);
+	options.Keymapper.AddAction(
+	    "ToggleNpcDialogTextReading",
+	    N_("Toggle NPC Subtitle Reading"),
+	    N_("Enable/disable reading subtitle text when NPCs speak."),
+	    SDLK_BACKSLASH,
+	    ToggleNpcDialogTextReadingKeyPressed,
+	    nullptr,
+	    IsGameRunning);
+	options.Keymapper.AddAction(
 	    "SortInv",
 	    N_("Sort Inventory"),
 	    N_("Sorts the inventory."),

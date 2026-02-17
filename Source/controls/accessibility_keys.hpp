@@ -13,6 +13,8 @@ void SpeakPlayerHealthPercentageKeyPressed();
 void SpeakExperienceToNextLevelKeyPressed();
 std::string BuildCurrentLocationForSpeech();
 void SpeakCurrentLocationKeyPressed();
+void ToggleAudioCuesKeyPressed();
+void ToggleNpcDialogTextReadingKeyPressed();
 void InventoryKeyPressed();
 void CharacterSheetKeyPressed();
 void PartyPanelSideToggleKeyPressed();
