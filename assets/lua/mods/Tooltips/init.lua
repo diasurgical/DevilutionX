@@ -416,7 +416,11 @@ end
 
 local function isCompareActive()
 	updateGamepadCompareToggle()
-	return infobox.isShiftHeld() or gamepadCompareToggled
+	if infobox.isShiftHeld() then
+		gamepadCompareToggled = false
+		return true
+	end
+	return gamepadCompareToggled
 end
 
 events.InfoBoxPrepare.add(function(item, floating)
