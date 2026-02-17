@@ -23,10 +23,6 @@ comparer-config.toml
 # Extra files in the source distribution (see make_src_dist.py)
 /dist/
 
-# Local release staging
-/_release_tmp/
-/out/
-
 *.appimage
 *.AppImage
 

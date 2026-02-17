@@ -663,6 +663,13 @@ msgstr "Tempo: Najszybsze"
 msgid "Players: "
 msgstr "Gracze: "
 
+#: Source/DiabloUI/multi/selgame.cpp:295
+#, fuzzy, c++-format
+#| msgctxt "spellbook"
+#| msgid "Mana: {:d}"
+msgid "Ping: {:d} ms"
+msgstr "Mana: {:d}"
+
 #: Source/DiabloUI/multi/selgame.cpp:341
 msgid "Select Difficulty"
 msgstr "Poziom Trudności"
@@ -1230,6 +1237,34 @@ msgstr "Naciśnij {}, aby wrócić do menu głównego."
 msgid "Press {} to restart in town."
 msgstr "Naciśnij {}, aby rozpocząć ponownie w mieście."
 
+#: Source/controls/plrctrls.cpp:691
+msgid "Head"
+msgstr "Głowa"
+
+#: Source/controls/plrctrls.cpp:693
+msgid "Left ring"
+msgstr "Lewy pierścień"
+
+#: Source/controls/plrctrls.cpp:695
+msgid "Right ring"
+msgstr "Prawy pierścień"
+
+#: Source/controls/plrctrls.cpp:699
+msgid "Left hand"
+msgstr "Lewa ręka"
+
+#: Source/controls/plrctrls.cpp:701
+msgid "Right hand"
+msgstr "Prawa ręka"
+
+#: Source/controls/plrctrls.cpp:709
+msgid "Belt"
+msgstr "Pas"
+
+#: Source/controls/plrctrls.cpp:770
+msgid "empty"
+msgstr "pusto"
+
 #. TRANSLATORS: {:s} is a number with separators. Dialog is shown when splitting a stash of Gold.
 #: Source/control.cpp:1732
 #, c++-format
@@ -1299,6 +1334,14 @@ msgstr "Wartość spoza zakresu {0} dla {1} w pliku {2}, rząd {3} kolumna {4}"
 #, c++-format
 msgid "Invalid value {0} for {1} in {2} at row {3} and column {4}"
 msgstr "Nieprawidłowa wartość {0} dla {1} w pliku {2}, rząd {3} kolumna {4}"
+
+#: Source/diablo.cpp:639 Source/diablo.cpp:3847
+msgid "Selected: "
+msgstr "Wybrano: "
+
+#: Source/diablo.cpp:642 Source/diablo.cpp:4916 Source/diablo.cpp:4946
+msgid "No spell selected."
+msgstr "Nie wybrano czaru."
 
 #. TRANSLATORS: Commandline Option
 #: Source/diablo.cpp:989
@@ -1413,6 +1456,16 @@ msgstr ""
 msgid "Please update fonts.mpq to the latest version"
 msgstr "Proszę zaktualizować fonts.mpq do najnowszej wersji"
 
+#: Source/diablo.cpp:1838
+#, c++-format
+msgid "Low durability: {:s}"
+msgstr "Niska trwałość: {:s}"
+
+#: Source/diablo.cpp:1900
+#, c++-format
+msgid "{:s} health: {:d}%"
+msgstr "{:s} zdrowie: {:d}%"
+
 #: Source/diablo.cpp:1551
 msgid "-- Network timeout --"
 msgstr "-- Przekroczono limit czasu oczekiwania --"
@@ -1421,6 +1474,13 @@ msgstr "-- Przekroczono limit czasu oczekiwania --"
 msgid "-- Waiting for players --"
 msgstr "-- Oczekiwanie na graczy --"
 
+#. TRANSLATORS: {:s} means: Character Name
+#: Source/diablo.cpp:2052
+#, fuzzy, c++-format
+#| msgid "Player '{:s}' dropped due to timeout"
+msgid "Player {:s} is timing out!"
+msgstr "Gracz '{:s}' opuścił grę z powodu limitu czasu"
+
 #: Source/diablo.cpp:1575
 msgid "No help available"
 msgstr "Pomoc niedostępna"
@@ -1428,6 +1488,293 @@ msgstr "Pomoc niedostępna"
 #: Source/diablo.cpp:1576
 msgid "while in stores"
 msgstr "podczas przebywania w sklepie"
+
+#: Source/diablo.cpp:2266 Source/diablo.cpp:2320 Source/diablo.cpp:2354
+#: Source/diablo.cpp:2361
+#, fuzzy
+#| msgid "No spell selected."
+msgid "No NPC selected."
+msgstr "Nie wybrano czaru."
+
+#: Source/diablo.cpp:2277
+#, fuzzy
+#| msgid "Description: "
+msgid "Position: "
+msgstr "Opis: "
+
+#: Source/diablo.cpp:2288 Source/diablo.cpp:3823
+#, fuzzy
+#| msgid "No exits found."
+msgid "No town NPCs found."
+msgstr "Nie znaleziono wyjść."
+
+#: Source/diablo.cpp:2475 Source/diablo.cpp:2489
+msgid "items"
+msgstr "przedmioty"
+
+#: Source/diablo.cpp:2477
+msgid "chests"
+msgstr "skrzynie"
+
+#: Source/diablo.cpp:2479
+msgid "doors"
+msgstr "drzwi"
+
+#: Source/diablo.cpp:2481
+msgid "shrines"
+msgstr "kapliczki"
+
+#: Source/diablo.cpp:2483
+msgid "objects"
+msgstr "obiekty"
+
+#: Source/diablo.cpp:2485
+msgid "breakables"
+msgstr "niszczalne"
+
+#: Source/diablo.cpp:2487
+msgid "monsters"
+msgstr "potwory"
+
+#: Source/diablo.cpp:2496
+msgid "Tracker target: "
+msgstr "Śledzenie: "
+
+#: Source/diablo.cpp:3190 Source/diablo.cpp:4619 Source/diablo.cpp:4712
+msgid "Not in a dungeon."
+msgstr "Nie jesteś w lochu."
+
+#: Source/diablo.cpp:3194 Source/diablo.cpp:4526 Source/diablo.cpp:4615
+#: Source/diablo.cpp:4716
+msgid "Close the map first."
+msgstr "Najpierw zamknij mapę."
+
+#: Source/diablo.cpp:3212
+#, fuzzy
+#| msgid "Tracker target: "
+msgid "Tracker target cleared."
+msgstr "Śledzenie: "
+
+#: Source/diablo.cpp:3228 Source/diablo.cpp:3239 Source/diablo.cpp:3245
+msgid "No items found."
+msgstr "Nie znaleziono żadnych przedmiotów."
+
+#: Source/diablo.cpp:3230
+msgid "No next item."
+msgstr "Nie ma następnego przedmiotu."
+
+#: Source/diablo.cpp:3263 Source/diablo.cpp:3274 Source/diablo.cpp:3283
+msgid "No chests found."
+msgstr "Nie znaleziono żadnych skrzyń."
+
+#: Source/diablo.cpp:3265
+msgid "No next chest."
+msgstr "Nie ma następnej skrzyni."
+
+#: Source/diablo.cpp:3306 Source/diablo.cpp:3317 Source/diablo.cpp:3326
+msgid "No doors found."
+msgstr "Nie znaleziono żadnych drzwi."
+
+#: Source/diablo.cpp:3308
+msgid "No next door."
+msgstr "Nie ma następnych drzwi."
+
+#: Source/diablo.cpp:3349 Source/diablo.cpp:3360 Source/diablo.cpp:3369
+msgid "No shrines found."
+msgstr "Nie znaleziono żadnych kapliczek."
+
+#: Source/diablo.cpp:3351
+msgid "No next shrine."
+msgstr "Nie ma następnej kapliczki."
+
+#: Source/diablo.cpp:3392 Source/diablo.cpp:3403 Source/diablo.cpp:3412
+msgid "No objects found."
+msgstr "Nie znaleziono żadnych obiektów."
+
+#: Source/diablo.cpp:3394
+msgid "No next object."
+msgstr "Nie ma następnego obiektu."
+
+#: Source/diablo.cpp:3435 Source/diablo.cpp:3446 Source/diablo.cpp:3455
+msgid "No breakables found."
+msgstr "Nie znaleziono żadnych niszczalnych obiektów."
+
+#: Source/diablo.cpp:3437
+msgid "No next breakable."
+msgstr "Nie ma następnego niszczalnego obiektu."
+
+#: Source/diablo.cpp:3479 Source/diablo.cpp:3490 Source/diablo.cpp:3499
+msgid "No monsters found."
+msgstr "Nie znaleziono żadnych potworów."
+
+#: Source/diablo.cpp:3481
+msgid "No next monster."
+msgstr "Nie ma następnego potwora."
+
+#: Source/diablo.cpp:3521 Source/diablo.cpp:3745
+msgid "Can't find a nearby tile to walk to."
+msgstr "Nie mogę znaleźć pobliskiego pola, na które da się podejść."
+
+#: Source/diablo.cpp:3620 Source/diablo.cpp:3764
+msgid "A door is blocking the path. Open it and try again."
+msgstr "Drzwi blokują drogę. Otwórz je i spróbuj ponownie."
+
+#: Source/diablo.cpp:3623
+msgid "A monster is blocking the path. Clear it and try again."
+msgstr "Potwór blokuje drogę. Pokonaj go i spróbuj ponownie."
+
+#: Source/diablo.cpp:3626
+msgid "A breakable object is blocking the path. Destroy it and try again."
+msgstr "Niszczalny obiekt blokuje drogę. Zniszcz go i spróbuj ponownie."
+
+#: Source/diablo.cpp:3639 Source/diablo.cpp:3776
+msgid "Can't find a path to the target."
+msgstr "Nie mogę znaleźć ścieżki do celu."
+
+#: Source/diablo.cpp:3687
+msgid "Target item is gone."
+msgstr "Docelowy przedmiot zniknął."
+
+#: Source/diablo.cpp:3693
+msgid "Item in range."
+msgstr "Przedmiot jest w zasięgu."
+
+#: Source/diablo.cpp:3708
+msgid "Target chest is gone."
+msgstr "Docelowa skrzynia zniknęła."
+
+#: Source/diablo.cpp:3713
+msgid "Chest in range."
+msgstr "Skrzynia jest w zasięgu."
+
+#: Source/diablo.cpp:3729
+msgid "Target monster is gone."
+msgstr "Docelowy potwór zniknął."
+
+#: Source/diablo.cpp:3735
+msgid "Monster in range."
+msgstr "Potwór jest w zasięgu."
+
+#: Source/diablo.cpp:3795
+msgid "Not in town."
+msgstr "Nie jesteś w mieście."
+
+#: Source/diablo.cpp:3836
+msgid "Town NPCs:"
+msgstr "NPC w mieście:"
+
+#: Source/diablo.cpp:3841
+msgid "Cows: "
+msgstr "Krowy: "
+
+#: Source/diablo.cpp:3848
+msgid "PageUp/PageDown: select. Home: go. End: repeat."
+msgstr "PageUp/PageDown: wybór. Home: idź. End: powtórz."
+
+#: Source/diablo.cpp:3852
+#, c++-format
+msgid "Cathedral entrance: press {:s}."
+msgstr "Wejście do Katedry: naciśnij {:s}."
+
+#: Source/diablo.cpp:4213 Source/diablo.cpp:4271 Source/diablo.cpp:4297
+msgid "here"
+msgstr "tutaj"
+
+#: Source/diablo.cpp:4230 Source/diablo.cpp:4287
+msgid "north"
+msgstr "północ"
+
+#: Source/diablo.cpp:4232 Source/diablo.cpp:4289
+msgid "south"
+msgstr "południe"
+
+#: Source/diablo.cpp:4234 Source/diablo.cpp:4292
+msgid "east"
+msgstr "wschód"
+
+#: Source/diablo.cpp:4236 Source/diablo.cpp:4294
+msgid "west"
+msgstr "zachód"
+
+#: Source/diablo.cpp:4238
+msgid "northwest"
+msgstr "północny zachód"
+
+#: Source/diablo.cpp:4240
+msgid "northeast"
+msgstr "północny wschód"
+
+#: Source/diablo.cpp:4242
+msgid "southeast"
+msgstr "południowy wschód"
+
+#: Source/diablo.cpp:4244
+msgid "southwest"
+msgstr "południowy zachód"
+
+#: Source/diablo.cpp:4352
+msgid "Cathedral entrance"
+msgstr "Wejście do Katedry"
+
+#: Source/diablo.cpp:4353
+msgid "Stairs down"
+msgstr "Schody w dół"
+
+#: Source/diablo.cpp:4355
+msgid "Stairs up"
+msgstr "Schody w górę"
+
+#: Source/diablo.cpp:4359 Source/diablo.cpp:4361 Source/diablo.cpp:4363
+#: Source/diablo.cpp:4365 Source/diablo.cpp:4367
+#, c++-format
+msgid "Town warp to {:s}"
+msgstr "Portal miejski do {:s}"
+
+
+#: Source/diablo.cpp:4369
+#, c++-format
+msgid "Town warp to level {:d}"
+msgstr "Portal miejski na poziom {:d}"
+
+#: Source/diablo.cpp:4372
+msgid "Warp up"
+msgstr "Portal w górę"
+
+#: Source/diablo.cpp:4374 Source/diablo.cpp:4559
+msgid "Return to town"
+msgstr "Powrót do miasta"
+
+#: Source/diablo.cpp:4376
+msgid "Warp"
+msgstr "Portal"
+
+#: Source/diablo.cpp:4378 Source/diablo.cpp:4784 Source/diablo.cpp:4786
+msgid "Set level"
+msgstr "Poziom zadania"
+
+#: Source/diablo.cpp:4380
+msgid "Return level"
+msgstr "Powrót do zadania"
+
+#: Source/diablo.cpp:4382
+msgid "Exit"
+msgstr "Wyjście"
+
+#: Source/diablo.cpp:4552
+msgid "No quest entrances found."
+msgstr "Nie znaleziono wejść questowych."
+
+#: Source/diablo.cpp:4571 Source/diablo.cpp:4591 Source/diablo.cpp:4627
+msgid "No exits found."
+msgstr "Nie znaleziono wyjść."
+
+#: Source/diablo.cpp:4725
+msgid "No unexplored areas found."
+msgstr "Nie znaleziono nieodkrytych obszarów."
+
+#: Source/diablo.cpp:4764
+msgid "Max level."
+msgstr "Maksymalny poziom."
 
 #: Source/diablo.cpp:1774 Source/diablo.cpp:2094
 #, c++-format
@@ -1621,6 +1968,22 @@ msgstr "Powiększenie"
 msgid "Zoom Game Screen."
 msgstr "Przybliżenie ekranu."
 
+#: Source/diablo.cpp:5399
+msgid "Health percentage"
+msgstr "Procent HP"
+
+#: Source/diablo.cpp:5400
+msgid "Speaks the player's health as a percentage."
+msgstr "Czyta procentowy stan zdrowia gracza."
+
+#: Source/diablo.cpp:5407
+msgid "Experience to level"
+msgstr "EXP do poziomu"
+
+#: Source/diablo.cpp:5408
+msgid "Speaks how much experience remains to reach the next level."
+msgstr "Czyta, ile doświadczenia brakuje do następnego poziomu."
+
 #: Source/diablo.cpp:1998 Source/diablo.cpp:2516
 msgid "Pause Game"
 msgstr "Wstrzymaj grę"
@@ -1691,6 +2054,14 @@ msgstr "Dziennik czatu"
 msgid "Displays chat log."
 msgstr "Wyświetla dziennik czatu."
 
+#: Source/diablo.cpp:5480
+msgid "Location"
+msgstr "Lokalizacja"
+
+#: Source/diablo.cpp:5481
+msgid "Speaks the current dungeon and floor."
+msgstr "Czyta nazwę lochu i numer poziomu."
+
 #: Source/diablo.cpp:2063 Source/diablo.cpp:2567
 msgid "Sort Inventory"
 msgstr "Sortuj ekwipunek"
@@ -1706,6 +2077,56 @@ msgstr "Konsola"
 #: Source/diablo.cpp:2073
 msgid "Opens Lua console."
 msgstr "Otwiera konsolę Lua."
+
+#: Source/diablo.cpp:5224
+msgid "Nearest exit"
+msgstr "Najbliższe wyjście"
+
+#: Source/diablo.cpp:5225
+msgid "Speaks the nearest exit. Hold Shift for quest entrances."
+msgstr ""
+"Podaje wskazówki dojścia do najbliższego wyjścia. Przytrzymaj Shift, aby "
+"namierzyć wejścia questowe."
+
+#: Source/diablo.cpp:5232
+msgid "Nearest stairs down"
+msgstr "Najbliższe schody w dół"
+
+#: Source/diablo.cpp:5233
+msgid "Speaks directions to the nearest stairs down."
+msgstr "Podaje wskazówki dojścia do najbliższych schodów w dół."
+
+#: Source/diablo.cpp:5240
+msgid "Nearest stairs up"
+msgstr "Najbliższe schody w górę"
+
+#: Source/diablo.cpp:5241
+msgid "Speaks directions to the nearest stairs up."
+msgstr "Podaje wskazówki dojścia do najbliższych schodów w górę."
+
+#: Source/diablo.cpp:5248
+msgid "Cycle tracker target"
+msgstr "Zmień cel trackera"
+
+#: Source/diablo.cpp:5249
+msgid ""
+"Cycles what the tracker looks for (items, chests, doors, shrines, objects, "
+"breakables, monsters)."
+msgstr ""
+"Zmienia, czego szuka tracker (przedmioty, skrzynie, drzwi, kapliczki, "
+"obiekty, niszczalne, potwory)."
+
+#: Source/diablo.cpp:5256
+msgid "Tracker directions"
+msgstr "Kierunki do celu trackera"
+
+#: Source/diablo.cpp:5257
+msgid ""
+"Speaks directions to a tracked target of the selected tracker category. "
+"Shift+N: cycle targets (speaks name only). Ctrl+N: clear target."
+msgstr ""
+"Czyta kierunki do śledzonego celu wybranej kategorii trackera. Shift+N: "
+"przełącz cele (mówi tylko nazwę). Ctrl+N: wyczyść cel."
 
 #: Source/diablo.cpp:2129
 msgid "Primary action"
@@ -4734,6 +5155,10 @@ msgstr "Mapowanie Klawiszy"
 msgid "Keymapping Settings"
 msgstr "Ustawienia mapowania klawiszy"
 
+#: Source/options.cpp:1254
+msgid "Unbound"
+msgstr "Brak przypisania"
+
 #: Source/options.cpp:1260
 msgid "Padmapping"
 msgstr "Mapowanie kontrolera"
@@ -6562,6 +6987,13 @@ msgstr "Atlas Grzybów"
 msgid "Spectral Elixir"
 msgstr "Widmowy Eliksir"
 
+#: Source/diablo.cpp
+msgid "No next dead body."
+msgstr "Nie ma następnego martwego ciała."
+
+#: Source/diablo.cpp
+msgid "Tracker directions"
+msgstr "Kierunki do celu trackera"
 #: Source/translation_dummy.cpp:237
 msgid "Blood Stone"
 msgstr "Kamień Krwi"
@@ -6573,82 +7005,6 @@ msgstr "Mapa Katedry"
 #: Source/translation_dummy.cpp:239
 msgid "Ear"
 msgstr "Ucho"
-
-#: Source/diablo.cpp
-msgid "Health percentage"
-msgstr "Procent HP"
-
-#: Source/diablo.cpp
-msgid "Speaks the player's health as a percentage."
-msgstr "Czyta procentowy stan zdrowia gracza."
-
-#: Source/diablo.cpp
-msgid "Experience to level"
-msgstr "EXP do poziomu"
-
-#: Source/diablo.cpp
-msgid "Speaks how much experience remains to reach the next level."
-msgstr "Czyta, ile doświadczenia brakuje do następnego poziomu."
-
-#: Source/diablo.cpp
-msgid "Location"
-msgstr "Lokalizacja"
-
-#: Source/diablo.cpp
-msgid "Speaks the current dungeon and floor."
-msgstr "Czyta nazwę lochu i numer poziomu."
-
-#: Source/diablo.cpp
-msgid "Low durability: {:s}"
-msgstr "Niska trwałość: {:s}"
-
-#: Source/diablo.cpp
-msgid "{:s} health: {:d}%"
-msgstr "{:s} zdrowie: {:d}%"
-
-#: Source/diablo.cpp
-msgid "Max level."
-msgstr "Maksymalny poziom."
-
-#: Source/diablo.cpp
-msgid "No next item."
-msgstr "Nie ma następnego przedmiotu."
-
-#: Source/diablo.cpp
-msgid "No next chest."
-msgstr "Nie ma następnej skrzyni."
-
-#: Source/diablo.cpp
-msgid "No next door."
-msgstr "Nie ma następnych drzwi."
-
-#: Source/diablo.cpp
-msgid "No next shrine."
-msgstr "Nie ma następnej kapliczki."
-
-#: Source/diablo.cpp
-msgid "No next object."
-msgstr "Nie ma następnego obiektu."
-
-#: Source/diablo.cpp
-msgid "No next breakable."
-msgstr "Nie ma następnego niszczalnego obiektu."
-
-#: Source/diablo.cpp
-msgid "No next monster."
-msgstr "Nie ma następnego potwora."
-
-#: Source/diablo.cpp
-msgid "No next dead body."
-msgstr "Nie ma następnego martwego ciała."
-
-#: Source/diablo.cpp
-msgid "Tracker directions"
-msgstr "Kierunki do celu trackera"
-
-#: Source/diablo.cpp
-msgid "Speaks directions to a tracked target of the selected tracker category. Shift+N: cycle targets (speaks name only). Ctrl+N: clear target."
-msgstr "Czyta kierunki do śledzonego celu wybranej kategorii trackera. Shift+N: przełącz cele (mówi tylko nazwę). Ctrl+N: wyczyść cel."
 
 #: Source/translation_dummy.cpp:240
 msgid "Potion of Healing"
