@@ -12,6 +12,7 @@
 #include "engine/surface.hpp"
 #include "levels/gendung.h"
 #include "utils/attributes.h"
+#include "utils/is_of.hpp"
 
 namespace devilution {
 
@@ -89,27 +90,11 @@ enum class AutomapType : uint8_t {
 	LAST = MinimapBorderless
 };
 
-extern DVL_API_FOR_TEST AutomapType CurrentAutomapType;
-
-/**
- * @brief Sets the map type. Does not change `AutomapActive`.
- */
-inline void SetAutomapType(AutomapType type)
-{
-	CurrentAutomapType = type;
-}
-
-/**
- * @brief Sets the map type. Does not change `AutomapActive`.
- */
-inline AutomapType GetAutomapType()
-{
-	return CurrentAutomapType;
-}
+AutomapType GetAutomapType();
 
 inline bool IsMinimapAutomapType(AutomapType type)
 {
-	return type == AutomapType::Minimap || type == AutomapType::MinimapBorderless;
+	return IsAnyOf(type, AutomapType::Minimap, AutomapType::MinimapBorderless);
 }
 
 inline bool IsMinimapAutomapType()

@@ -2930,8 +2930,6 @@ void SaveGameData(SaveWriter &saveWriter)
 
 void SaveGame()
 {
-	GetOptions().Gameplay.automapType.SetValue(GetAutomapType());
-	SaveOptions();
 	gbValidSaveFile = true;
 	pfile_write_hero(/*writeGameData=*/true);
 	sfile_write_stash();
