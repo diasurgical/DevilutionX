@@ -1557,6 +1557,7 @@ Rectangle MinimapRect {};
 void InitAutomapOnce()
 {
 	AutomapActive = false;
+	SetAutomapType(*GetOptions().Gameplay.automapType);
 	AutoMapScale = 50;
 
 	// Set the dimensions and screen position of the minimap relative to the screen dimensions
