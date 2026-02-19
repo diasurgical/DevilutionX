@@ -1815,12 +1815,6 @@ void DrawAutomap(const Surface &out)
 			SearchAutomapItem(out, myPlayerOffset, 8, [](Point position) {
 				return dItem[position.x][position.y] != 0;
 			});
-	} else if (GetAutomapType() == AutomapType::MinimapBorderless) {
-
-		if (AutoMapShowItems)
-			SearchAutomapItem(out, myPlayerOffset, 8, [](Point position) {
-				return dItem[position.x][position.y] != 0;
-			});
 	}
 
 	Point screen = {};
