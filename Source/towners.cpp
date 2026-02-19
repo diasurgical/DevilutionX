@@ -367,8 +367,9 @@ void TalkToWitch(Player &player, Towner & /*witch*/)
 				}
 			}
 			if (Quests[Q_MUSHROOM]._qvar1 >= QS_MUSHGIVEN) {
-				if (HasInventoryItemWithId(player, IDI_BRAIN)) {
+				if (HasInventoryItemWithId(player, IDI_BRAIN) && Quests[Q_MUSHROOM]._qvar1 != QS_ADRIATALKED) {
 					Quests[Q_MUSHROOM]._qmsg = TEXT_MUSH11;
+					Quests[Q_MUSHROOM]._qvar1 = QS_ADRIATALKED;
 					NetSendCmdQuest(true, Quests[Q_MUSHROOM]);
 					InitQTextMsg(TEXT_MUSH11);
 					return;
