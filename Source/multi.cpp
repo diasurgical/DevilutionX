@@ -734,7 +734,7 @@ void ProcessGameMessagePackets()
 					StartStand(player, newDir);
 				}
 			}
-			
+
 			if (!cond && player.plractive && !player.hasNoLife()) {
 				if (player.isOnActiveLevel() && !player._pLvlChanging) {
 					if (player.position.tile.WalkingDistance(syncPosition) > 3 && PosOkPlayer(player, syncPosition)) {
