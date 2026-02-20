@@ -94,12 +94,14 @@ bool IsGameCompatible(const GameData &data)
 	return (data.versionMajor == PROJECT_VERSION_MAJOR
 	    && data.versionMinor == PROJECT_VERSION_MINOR
 	    && data.versionPatch == PROJECT_VERSION_PATCH
-	    && data.programid == GAME_ID);
-	return false;
+	    && data.programid == GAME_ID
+	    && data.modHash == sgGameInitInfo.modHash);
 }
 
 static std::string GetErrorMessageIncompatibility(const GameData &data)
 {
+	if (data.modHash != sgGameInitInfo.modHash)
+		return std::string(_("The host is using a different set of mods."));
 	if (data.programid != GAME_ID) {
 		std::string_view gameMode;
 		switch (data.programid) {
