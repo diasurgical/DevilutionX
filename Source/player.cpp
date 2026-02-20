@@ -1733,10 +1733,43 @@ bool Player::isWalking() const
 	return IsAnyOf(_pmode, PM_WALK_NORTHWARDS, PM_WALK_SOUTHWARDS, PM_WALK_SIDEWAYS);
 }
 
-int Player::GetManaShieldDamageReduction()
+int Player::ApplyManaShieldToDamage(int totalDamage)
 {
-	constexpr uint8_t Max = 7;
-	return 24 - std::min(_pSplLvl[static_cast<int8_t>(SpellID::ManaShield)], Max) * 3;
+	if (totalDamage <= 0)
+		return totalDamage;
+
+	if (!pManaShield || HasAnyOf(_pIFlags, ItemSpecialEffect::NoMana))
+		return totalDamage;
+
+	const uint8_t slvl = _pSplLvl[static_cast<int8_t>(SpellID::ManaShield)];
+	if (slvl == 0)
+		return totalDamage;
+
+	constexpr uint8_t MaxLvl = 7;
+	constexpr int Step = 3;
+	const uint8_t lvl = std::min(slvl, MaxLvl);
+	const int R = Step * ((MaxLvl + 1) - lvl);
+
+	// Mana needed to fully negate HP damage.
+	const int manaNeeded = totalDamage - totalDamage / R;
+
+	if (_pMana >= manaNeeded) {
+		_pMana -= manaNeeded;
+		_pManaBase -= manaNeeded;
+		return 0;
+	}
+
+	// Not enough mana: spend all mana and convert remaining discounted shortfall back to raw damage.
+	const int manaSpent = _pMana;
+	_pMana = 0;
+	_pManaBase = _pMaxManaBase - _pMaxMana;
+
+	int shortfall = manaNeeded - manaSpent;
+
+	// Invert the discount with the same truncation behavior as the existing code
+	shortfall += shortfall / (R - 1);
+
+	return shortfall;
 }
 
 void Player::RestorePartialLife()
@@ -2823,28 +2856,27 @@ void StripTopGold(Player &player)
 void ApplyPlrDamage(DamageType damageType, Player &player, int dam, int minHP /*= 0*/, int frac /*= 0*/, DeathReason deathReason /*= DeathReason::MonsterOrTrap*/)
 {
 	int totalDamage = (dam << 6) + frac;
+
 	if (&player == MyPlayer && !player.hasNoLife()) {
 		LuaEvent("OnPlayerTakeDamage", &player, totalDamage, static_cast<int>(damageType));
 	}
-	if (totalDamage > 0 && player.pManaShield && HasNoneOf(player._pIFlags, ItemSpecialEffect::NoMana)) {
-		const uint8_t manaShieldLevel = player._pSplLvl[static_cast<int8_t>(SpellID::ManaShield)];
-		if (manaShieldLevel > 0) {
-			totalDamage += totalDamage / -player.GetManaShieldDamageReduction();
-		}
-		if (&player == MyPlayer)
+
+	const bool shieldEligible = totalDamage > 0
+	    && player.pManaShield
+	    && HasNoneOf(player._pIFlags, ItemSpecialEffect::NoMana)
+	    && player._pSplLvl[static_cast<int8_t>(SpellID::ManaShield)] > 0;
+
+	const int manaBefore = player._pMana;
+
+	if (shieldEligible) {
+		totalDamage = player.ApplyManaShieldToDamage(totalDamage);
+
+		if (&player == MyPlayer) {
 			RedrawComponent(PanelDrawComponent::Mana);
-		if (player._pMana >= totalDamage) {
-			player._pMana -= totalDamage;
-			player._pManaBase -= totalDamage;
-			totalDamage = 0;
-		} else {
-			totalDamage -= player._pMana;
-			if (manaShieldLevel > 0) {
-				totalDamage += totalDamage / (player.GetManaShieldDamageReduction() - 1);
-			}
-			player._pMana = 0;
-			player._pManaBase = player._pMaxManaBase - player._pMaxMana;
-			if (&player == MyPlayer)
+
+			// If effective mana hits zero (fixed-point), shield should end.
+			// Use a transition guard to avoid spamming the cmd.
+			if ((manaBefore >> 6) > 0 && (player._pMana >> 6) == 0)
 				NetSendCmd(true, CMD_REMSHIELD);
 		}
 	}
@@ -2853,16 +2885,20 @@ void ApplyPlrDamage(DamageType damageType, Player &player, int dam, int minHP /*
 		return;
 
 	RedrawComponent(PanelDrawComponent::Health);
+
 	player._pHitPoints -= totalDamage;
 	player._pHPBase -= totalDamage;
+
 	if (player._pHitPoints > player._pMaxHP) {
 		player._pHitPoints = player._pMaxHP;
 		player._pHPBase = player._pMaxHPBase;
 	}
+
 	const int minHitPoints = minHP << 6;
 	if (player._pHitPoints < minHitPoints) {
 		SetPlayerHitPoints(player, minHitPoints);
 	}
+
 	if (player.hasNoLife()) {
 		SyncPlrKill(player, deathReason);
 	}
