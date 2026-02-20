@@ -1669,7 +1669,7 @@ void InvGetItem(Player &player, int ii)
 	if (dItem[item.position.x][item.position.y] == 0)
 		return;
 
-	item._iCreateInfo &= ~CF_PREGEN;
+	item.clearCreationFlag(CF_PREGEN);
 	CheckQuestItem(player, item);
 	item.updateRequiredStatsCacheForPlayer(player);
 
@@ -1740,7 +1740,7 @@ void AutoGetItem(Player &player, Item *itemPointer, int ii)
 	if (dItem[item.position.x][item.position.y] == 0)
 		return;
 
-	item._iCreateInfo &= ~CF_PREGEN;
+	item.clearCreationFlag(CF_PREGEN);
 	CheckQuestItem(player, item);
 	item.updateRequiredStatsCacheForPlayer(player);
 

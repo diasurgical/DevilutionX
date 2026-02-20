@@ -468,7 +468,7 @@ void AddInitItems()
 
 		GetItemAttrs(item, PickRandomlyAmong({ IDI_MANA, IDI_HEAL }), curlv);
 
-		item._iCreateInfo = curlv | CF_PREGEN;
+		item.setAllCreationFlags(curlv | CF_PREGEN);
 		SetupItem(item);
 		item.AnimInfo.currentFrame = static_cast<int8_t>(item.AnimInfo.numberOfFrames - 1);
 		item._iAnimFlag = false;
@@ -1471,7 +1471,7 @@ void GetUniqueItem(const Player &player, Item &item, _unique_items uid)
 
 	item._iUid = uid;
 	item._iMagical = ITEM_QUALITY_UNIQUE;
-	item._iCreateInfo |= CF_UNIQUE;
+	item.setCreationFlag(CF_UNIQUE);
 }
 
 void ItemRndDur(Item &item)
@@ -1555,7 +1555,7 @@ void SetupAllUseful(Item &item, int iseed, int lvl)
 	}
 
 	GetItemAttrs(item, idx, lvl);
-	item._iCreateInfo = lvl | CF_USEFUL;
+	item.setAllCreationFlags(lvl | CF_USEFUL);
 	SetupItem(item);
 }
 
@@ -1604,7 +1604,7 @@ void SpawnRock()
 	item._iPostDraw = true;
 	item.AnimInfo.currentFrame = 10;
 	item._iAnimFlag = true;
-	item._iCreateInfo |= CF_PREGEN;
+	item.setCreationFlag(CF_PREGEN);
 
 	DeltaAddItem(ii);
 }
@@ -2004,7 +2004,7 @@ void SpawnOnePremium(Item &premiumItem, int plvl, const Player &player)
 			}
 		}
 	}
-	premiumItem._iCreateInfo = plvl | CF_SMITHPREMIUM;
+	premiumItem.setAllCreationFlags(plvl | CF_SMITHPREMIUM);
 	premiumItem._iIdentified = true;
 	premiumItem._iStatFlag = player.CanUseItem(premiumItem);
 }
@@ -2084,7 +2084,7 @@ void RecreateSmithItem(const Player &player, Item &item, int lvl, int iseed)
 	GetItemAttrs(item, itype, lvl);
 
 	item._iSeed = iseed;
-	item._iCreateInfo = lvl | CF_SMITH;
+	item.setAllCreationFlags(lvl | CF_SMITH);
 	item._iIdentified = true;
 }
 
@@ -2096,7 +2096,7 @@ void RecreatePremiumItem(const Player &player, Item &item, int plvl, int iseed)
 	GetItemBonus(player, item, plvl / 2, plvl, true, !gbIsHellfire);
 
 	item._iSeed = iseed;
-	item._iCreateInfo = plvl | CF_SMITHPREMIUM;
+	item.setAllCreationFlags(plvl | CF_SMITHPREMIUM);
 	item._iIdentified = true;
 }
 
@@ -2108,7 +2108,7 @@ void RecreateBoyItem(const Player &player, Item &item, int lvl, int iseed)
 	GetItemBonus(player, item, lvl, 2 * lvl, true, true);
 
 	item._iSeed = iseed;
-	item._iCreateInfo = lvl | CF_BOY;
+	item.setAllCreationFlags(lvl | CF_BOY);
 	item._iIdentified = true;
 }
 
@@ -2134,7 +2134,7 @@ void RecreateWitchItem(const Player &player, Item &item, _item_indexes idx, int 
 	}
 
 	item._iSeed = iseed;
-	item._iCreateInfo = lvl | CF_WITCH;
+	item.setAllCreationFlags(lvl | CF_WITCH);
 	item._iIdentified = true;
 }
 
@@ -2149,7 +2149,7 @@ void RecreateHealerItem(const Player &player, Item &item, _item_indexes idx, int
 	}
 
 	item._iSeed = iseed;
-	item._iCreateInfo = lvl | CF_HEALER;
+	item.setAllCreationFlags(lvl | CF_HEALER);
 	item._iIdentified = true;
 }
 
@@ -2214,7 +2214,7 @@ StringOrView GetTranslatedItemName(const Item &item)
 {
 	const auto &baseItemData = AllItemsList[static_cast<size_t>(item.IDidx)];
 
-	if (item._iCreateInfo == 0) {
+	if (item.getAllCreationFlags() == 0) {
 		return _(baseItemData.iName);
 	}
 	if (item._iMiscId == IMISC_BOOK) {
@@ -2243,23 +2243,23 @@ std::string GetTranslatedItemNameMagical(const Item &item, bool hellfireItem, bo
 	std::string identifiedName;
 	const auto &baseItemData = AllItemsList[static_cast<size_t>(item.IDidx)];
 
-	const int lvl = item._iCreateInfo & CF_LEVEL;
-	const bool onlygood = (item._iCreateInfo & (CF_ONLYGOOD | CF_SMITHPREMIUM | CF_BOY | CF_WITCH)) != 0;
+	const int lvl = item.getItemLevel();
+	const bool onlygood = item.hasCreationFlag(CF_ONLYGOOD | CF_SMITHPREMIUM | CF_BOY | CF_WITCH);
 
 	const uint32_t currentSeed = GetLCGEngineState();
 	SetRndSeed(item._iSeed);
 
 	int minlvl;
 	int maxlvl;
-	if ((item._iCreateInfo & CF_SMITHPREMIUM) != 0) {
+	if (item.hasCreationFlag(CF_SMITHPREMIUM)) {
 		DiscardRandomValues(2); // RndVendorItem and GetItemAttrs
 		minlvl = lvl / 2;
 		maxlvl = lvl;
-	} else if ((item._iCreateInfo & CF_BOY) != 0) {
+	} else if (item.hasCreationFlag(CF_BOY)) {
 		DiscardRandomValues(2); // RndVendorItem and GetItemAttrs
 		minlvl = lvl;
 		maxlvl = lvl * 2;
-	} else if ((item._iCreateInfo & CF_WITCH) != 0) {
+	} else if (item.hasCreationFlag(CF_WITCH)) {
 		DiscardRandomValues(2); // RndVendorItem and GetItemAttrs
 		int iblvl = -1;
 		if (GenerateRnd(100) <= 5)
@@ -2270,7 +2270,7 @@ std::string GetTranslatedItemNameMagical(const Item &item, bool hellfireItem, bo
 		maxlvl = iblvl;
 	} else {
 		DiscardRandomValues(1); // GetItemAttrs
-		const int iblvl = GetItemBLevel(lvl, item._iMiscId, onlygood, (item._iCreateInfo & CF_UPER15) != 0);
+		const int iblvl = GetItemBLevel(lvl, item._iMiscId, onlygood, item.hasCreationFlag(CF_UPER15));
 		minlvl = iblvl / 2;
 		maxlvl = iblvl;
 		DiscardRandomValues(1); // CheckUnique
@@ -2299,7 +2299,7 @@ std::string GetTranslatedItemNameMagical(const Item &item, bool hellfireItem, bo
 		affixItemType = AffixItemType::Armor;
 		break;
 	case ItemType::Staff: {
-		const bool allowspells = !hellfireItem || ((item._iCreateInfo & CF_SMITHPREMIUM) == 0);
+		const bool allowspells = !hellfireItem || !item.hasCreationFlag(CF_SMITHPREMIUM);
 
 		if (!allowspells)
 			affixItemType = AffixItemType::Staff;
@@ -2950,7 +2950,7 @@ void InitializeItem(Item &item, _item_indexes itemData)
 	item._iMagical = ITEM_QUALITY_NORMAL;
 	item.IDidx = itemData;
 	if (gbIsHellfire)
-		item.dwBuff |= CF_HELLFIRE;
+		item.setCreationFlag2(CF_HELLFIRE);
 }
 
 void GenerateNewSeed(Item &item)
@@ -3139,7 +3139,7 @@ void GetItemAttrs(Item &item, _item_indexes itemData, int lvl)
 	item._iMinDex = baseItemData.iMinDex;
 	item.IDidx = itemData;
 	if (gbIsHellfire)
-		item.dwBuff |= CF_HELLFIRE;
+		item.setCreationFlag2(CF_HELLFIRE);
 	item._iPrePower = IPL_INVALID;
 	item._iSufPower = IPL_INVALID;
 
@@ -3257,17 +3257,17 @@ void SetupAllItems(const Player &player, Item &item, _item_indexes idx, uint32_t
 	item._iSeed = iseed;
 	SetRndSeed(iseed);
 	GetItemAttrs(item, idx, lvl / 2);
-	item._iCreateInfo = lvl;
+	item.setAllCreationFlags(lvl);
 
 	if (pregen)
-		item._iCreateInfo |= CF_PREGEN;
+		item.setCreationFlag(CF_PREGEN);
 	if (onlygood)
-		item._iCreateInfo |= CF_ONLYGOOD;
+		item.setCreationFlag(CF_ONLYGOOD);
 
 	if (uper == 15)
-		item._iCreateInfo |= CF_UPER15;
+		item.setCreationFlag(CF_UPER15);
 	else if (uper == 1)
-		item._iCreateInfo |= CF_UPER1;
+		item.setCreationFlag(CF_UPER1);
 
 	if (item._iMiscId != IMISC_UNIQUE) {
 		const int iblvl = GetItemBLevel(lvl, item._iMiscId, onlygood, uper == 15);
@@ -3301,7 +3301,7 @@ void SetupAllItems(const Player &player, Item &item, _item_indexes idx, uint32_t
 void TryRandomUniqueItem(Item &item, _item_indexes idx, int8_t mLevel, int uper, bool onlygood, bool pregen)
 {
 	// If the item is a non-quest unique, find a random valid uid and force generate items to get an item with that uid.
-	if ((item._iCreateInfo & CF_UNIQUE) == 0 || item._iMiscId == IMISC_UNIQUE)
+	if (!item.hasCreationFlag(CF_UNIQUE) || item._iMiscId == IMISC_UNIQUE)
 		return;
 
 	SetRndSeed(item._iSeed);
@@ -3395,7 +3395,7 @@ void TryRandomUniqueItem(Item &item, _item_indexes idx, int8_t mLevel, int uper,
 		item = {}; // Reset item data
 		item.position = itemPos;
 		SetupAllItems(*MyPlayer, item, idx, seed, mLevel, uper, onlygood, pregen, uidOffset);
-		item.dwBuff |= (uidOffset << 1) & CF_UIDOFFSET;
+		item.setCreationFlag2((uidOffset << 1) & CF_UIDOFFSET);
 		assert(item._iUid == uid);
 	}
 
@@ -3504,13 +3504,13 @@ void CreateTypeItem(Point position, bool onlygood, ItemType itemType, int imisc,
 void RecreateItem(const Player &player, Item &item, _item_indexes idx, uint16_t icreateinfo, uint32_t iseed, int ivalue, uint32_t dwBuff)
 {
 	const bool tmpIsHellfire = gbIsHellfire;
-	item.dwBuff = dwBuff;
-	gbIsHellfire = (item.dwBuff & CF_HELLFIRE) != 0;
+	item.setAllCreationFlags2(dwBuff);
+	gbIsHellfire = item.hasCreationFlag2(CF_HELLFIRE);
 
 	if (idx == IDI_GOLD) {
 		InitializeItem(item, IDI_GOLD);
 		item._iSeed = iseed;
-		item._iCreateInfo = icreateinfo;
+		item.setAllCreationFlags(icreateinfo);
 		item._ivalue = ivalue;
 		SetPlrHandGoldCurs(item);
 		gbIsHellfire = tmpIsHellfire;
@@ -3549,7 +3549,7 @@ void RecreateItem(const Player &player, Item &item, _item_indexes idx, uint16_t 
 	const bool onlygood = (icreateinfo & CF_ONLYGOOD) != 0;
 	const bool forceNotUnique = (icreateinfo & CF_UNIQUE) == 0;
 	const bool pregen = (icreateinfo & CF_PREGEN) != 0;
-	auto uidOffset = static_cast<int>((item.dwBuff & CF_UIDOFFSET) >> 1);
+	auto uidOffset = static_cast<int>((item.getAllCreationFlags2() & CF_UIDOFFSET) >> 1);
 
 	SetupAllItems(player, item, idx, iseed, level, uper, onlygood, pregen, uidOffset, forceNotUnique);
 	SetupItem(item);
@@ -3567,7 +3567,7 @@ void RecreateEar(Item &item, uint16_t ic, uint32_t iseed, uint8_t bCursval, std:
 
 	item._iCurs = ((bCursval >> 6) & 3) + ICURS_EAR_SORCERER;
 	item._ivalue = bCursval & 0x3F;
-	item._iCreateInfo = ic;
+	item.setAllCreationFlags(ic);
 	item._iSeed = iseed;
 }
 
@@ -3577,7 +3577,7 @@ void CornerstoneSave()
 		return;
 	if (!CornerStone.item.isEmpty()) {
 		ItemPack id;
-		PackItem(id, CornerStone.item, (CornerStone.item.dwBuff & CF_HELLFIRE) != 0);
+		PackItem(id, CornerStone.item, CornerStone.item.hasCreationFlag2(CF_HELLFIRE));
 		const auto *buffer = reinterpret_cast<uint8_t *>(&id);
 		for (size_t i = 0; i < sizeof(ItemPack); i++) {
 			BufCopy(&GetOptions().Hellfire.szItem[i * 2], AsHexPad2(buffer[i], /*uppercase=*/true));
@@ -3674,7 +3674,7 @@ void SpawnQuestItem(_item_indexes itemid, Point position, int randarea, Selectio
 	if (sendmsg)
 		NetSendCmdPItem(true, CMD_SPAWNITEM, item.position, item);
 	else {
-		item._iCreateInfo |= CF_PREGEN;
+		item.setCreationFlag(CF_PREGEN);
 		DeltaAddItem(ii);
 	}
 }
@@ -4403,7 +4403,7 @@ void SpawnSmith(int lvl)
 			GetItemAttrs(newItem, itemData, lvl);
 		} while (newItem._iIvalue > maxValue);
 
-		newItem._iCreateInfo = lvl | CF_SMITH;
+		newItem.setAllCreationFlags(lvl | CF_SMITH);
 		newItem._iIdentified = true;
 
 		SmithItems.push_back(newItem);
@@ -4469,7 +4469,7 @@ void SpawnWitch(int lvl)
 		if (i < PinnedItemCount) {
 			item._iSeed = AdvanceRndSeed();
 			GetItemAttrs(item, PinnedItemTypes[i], 1);
-			item._iCreateInfo = lvl;
+			item.setAllCreationFlags(lvl);
 			item._iStatFlag = true;
 			WitchItems.push_back(item);
 			continue;
@@ -4483,7 +4483,7 @@ void SpawnWitch(int lvl)
 					SetRndSeed(item._iSeed);
 					DiscardRandomValues(1);
 					GetItemAttrs(item, bookType, lvl);
-					item._iCreateInfo = lvl | CF_WITCH;
+					item.setAllCreationFlags(lvl | CF_WITCH);
 					item._iIdentified = true;
 					bookCount++;
 					WitchItems.push_back(item);
@@ -4507,7 +4507,7 @@ void SpawnWitch(int lvl)
 				GetItemBonus(*MyPlayer, item, maxlvl / 2, maxlvl, true, true);
 		} while (item._iIvalue > maxValue);
 
-		item._iCreateInfo = lvl | CF_WITCH;
+		item.setAllCreationFlags(lvl | CF_WITCH);
 		item._iIdentified = true;
 
 		WitchItems.push_back(item);
@@ -4627,7 +4627,7 @@ void SpawnBoy(int lvl)
 	            || BoyItem._iMinDex > dexterity
 	            || BoyItem._iIvalue < ivalue)
 	        && count < 250));
-	BoyItem._iCreateInfo = lvl | CF_BOY;
+	BoyItem.setAllCreationFlags(lvl | CF_BOY);
 	BoyItem._iIdentified = true;
 	BoyItemLevel = lvl / 2;
 }
@@ -4645,14 +4645,14 @@ void SpawnHealer(int lvl)
 		if (i < PinnedItemCount || (gbIsMultiplayer && i < NumHealerPinnedItemsMp)) {
 			item._iSeed = AdvanceRndSeed();
 			GetItemAttrs(item, PinnedItemTypes[i], 1);
-			item._iCreateInfo = lvl;
+			item.setAllCreationFlags(lvl);
 			item._iStatFlag = true;
 		} else {
 			item._iSeed = AdvanceRndSeed();
 			SetRndSeed(item._iSeed);
 			const _item_indexes itype = RndHealerItem(*MyPlayer, lvl);
 			GetItemAttrs(item, itype, lvl);
-			item._iCreateInfo = lvl | CF_HEALER;
+			item.setAllCreationFlags(lvl | CF_HEALER);
 			item._iIdentified = true;
 		}
 
@@ -5030,7 +5030,7 @@ void UpdateHellfireFlag(Item &item, const char *identifiedItemName)
 	// But vanilla hellfire items don't have CF_HELLFIRE set in Item::dwBuff
 	// This functions tries to set this flag for vanilla hellfire items based on the item name
 	// This ensures that Item::getName() returns the correct translated item name
-	if ((item.dwBuff & CF_HELLFIRE) != 0U)
+	if (item.hasCreationFlag2(CF_HELLFIRE))
 		return; // Item is already a hellfire item
 	if (item._iMagical != ITEM_QUALITY_MAGIC)
 		return; // Only magic item's name can differ between diablo and hellfire
@@ -5047,7 +5047,7 @@ void UpdateHellfireFlag(Item &item, const char *identifiedItemName)
 	const std::string hellfireItemNameLong = GetTranslatedItemNameMagical(item, true, false, true);
 	if (hellfireItemNameShort == identifiedItemName || hellfireItemNameLong == identifiedItemName) {
 		// This item should be a vanilla hellfire item that has CF_HELLFIRE missing, cause only then the item name matches
-		item.dwBuff |= CF_HELLFIRE;
+		item.setCreationFlag2(CF_HELLFIRE);
 	}
 }
 

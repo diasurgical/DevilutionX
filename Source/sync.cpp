@@ -124,7 +124,7 @@ void SyncPlrInv(TSyncHeader *pHdr)
 			pHdr->wItemVal = Swap16LE((item._iIName[11] << 8) | ((item._iCurs - ICURS_EAR_SORCERER) << 6) | item._ivalue);
 			pHdr->dwItemBuff = Swap32LE((item._iIName[12] << 24) | (item._iIName[13] << 16) | (item._iIName[14] << 8) | item._iIName[15]);
 		} else {
-			pHdr->wItemCI = Swap16LE(item._iCreateInfo);
+			pHdr->wItemCI = Swap16LE(item.getAllCreationFlags());
 			pHdr->dwItemSeed = Swap32LE(item._iSeed);
 			pHdr->bItemId = item._iIdentified ? 1 : 0;
 			pHdr->bItemDur = item._iDurability;
@@ -143,7 +143,7 @@ void SyncPlrInv(TSyncHeader *pHdr)
 	if (!item.isEmpty()) {
 		pHdr->bPInvLoc = sgnSyncPInv;
 		pHdr->wPInvIndx = Swap16LE(item.IDidx);
-		pHdr->wPInvCI = Swap16LE(item._iCreateInfo);
+		pHdr->wPInvCI = Swap16LE(item.getAllCreationFlags());
 		pHdr->dwPInvSeed = Swap32LE(item._iSeed);
 		pHdr->bPInvId = item._iIdentified ? 1 : 0;
 	}

@@ -63,16 +63,15 @@ bool IsTownItemValid(uint16_t iCreateInfo, const Player &player)
 bool IsShopPriceValid(const Item &item)
 {
 	const int boyPriceLimit = MaxBoyValue;
-	if (!gbIsHellfire && (item._iCreateInfo & CF_BOY) != 0 && item._iIvalue > boyPriceLimit)
+	if (!gbIsHellfire && item.hasCreationFlag(CF_BOY) && item._iIvalue > boyPriceLimit)
 		return false;
 
 	const int premiumPriceLimit = MaxVendorValue;
-	if (!gbIsHellfire && (item._iCreateInfo & CF_SMITHPREMIUM) != 0 && item._iIvalue > premiumPriceLimit)
+	if (!gbIsHellfire && item.hasCreationFlag(CF_SMITHPREMIUM) && item._iIvalue > premiumPriceLimit)
 		return false;
 
-	const uint16_t smithOrWitch = CF_SMITH | CF_WITCH;
 	const int smithAndWitchPriceLimit = gbIsHellfire ? MaxVendorValueHf : MaxVendorValue;
-	if ((item._iCreateInfo & smithOrWitch) != 0 && item._iIvalue > smithAndWitchPriceLimit)
+	if ((item.hasCreationFlag(CF_SMITH) || item.hasCreationFlag(CF_WITCH)) && item._iIvalue > smithAndWitchPriceLimit)
 		return false;
 
 	return true;
@@ -150,12 +149,12 @@ bool IsHellfireSpellBookValid(const Item &spellBook)
 	// CreateSpellBook() adds 1 to the spell level for ilvl
 	spellBookLevel++;
 
-	if (spellBookLevel >= 1 && (spellBook._iCreateInfo & CF_LEVEL) == spellBookLevel * 2) {
+	if (spellBookLevel >= 1 && spellBook.getItemLevel() == spellBookLevel * 2) {
 		// The ilvl matches the result for a spell book drop, so we confirm the item is legitimate
 		return true;
 	}
 
-	return IsDungeonItemValid(spellBook._iCreateInfo, spellBook.dwBuff);
+	return IsDungeonItemValid(spellBook.getAllCreationFlags(), spellBook.getAllCreationFlags2());
 }
 
 bool IsItemValid(const Player &player, const Item &item)
@@ -165,16 +164,16 @@ bool IsItemValid(const Player &player, const Item &item)
 
 	if (item.IDidx == IDI_EAR)
 		return true;
-	if (item.IDidx != IDI_GOLD && !IsCreationFlagComboValid(item._iCreateInfo))
+	if (item.IDidx != IDI_GOLD && !IsCreationFlagComboValid(item.getAllCreationFlags()))
 		return false;
-	if ((item._iCreateInfo & CF_TOWN) != 0)
-		return IsTownItemValid(item._iCreateInfo, player) && IsShopPriceValid(item);
-	if ((item._iCreateInfo & CF_USEFUL) == CF_UPER15)
-		return IsUniqueMonsterItemValid(item._iCreateInfo, item.dwBuff);
-	if ((item.dwBuff & CF_HELLFIRE) != 0 && AllItemsList[item.IDidx].iMiscId == IMISC_BOOK)
+	if (item.hasCreationFlag(CF_TOWN))
+		return IsTownItemValid(item.getAllCreationFlags(), player) && IsShopPriceValid(item);
+	if (item.matchesCreationFlags(CF_USEFUL, CF_UPER15))
+		return IsUniqueMonsterItemValid(item.getAllCreationFlags(), item.getAllCreationFlags2());
+	if (item.hasCreationFlag2(CF_HELLFIRE) && AllItemsList[item.IDidx].iMiscId == IMISC_BOOK)
 		return IsHellfireSpellBookValid(item);
 
-	return IsDungeonItemValid(item._iCreateInfo, item.dwBuff);
+	return IsDungeonItemValid(item.getAllCreationFlags(), item.getAllCreationFlags2());
 }
 
 bool IsItemDeltaValid(const TCmdPItem &itemDelta)
