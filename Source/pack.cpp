@@ -490,7 +490,7 @@ bool UnPackNetPlayer(const PlayerNetPack &packed, Player &player)
 
 	ValidateField(packed._pNumInv, packed._pNumInv <= InventoryGridCells);
 
-	ValidateField(packed.pdir, packed.pdir <= static_cast<uint8_t>(Direction::NoDirection));
+	ValidateField(packed.pdir, packed.pdir <= static_cast<uint8_t>(Direction::SouthEast));
 	player.setCharacterLevel(packed.pLevel);
 	player.position.tile = position;
 	player.position.future = position;
