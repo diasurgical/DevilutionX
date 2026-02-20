@@ -66,7 +66,7 @@ void doVision()
 			// Copy visible object
 			vis[p.x][p.y] = env[p.x][p.y];
 	};
-	auto markTransparentFn = [](Point p) {};
+	auto markTransparentFn = [](Point p) { };
 	auto passesLightFn = [](Point p) {
 		return env[p.x][p.y] != '#';
 	};
