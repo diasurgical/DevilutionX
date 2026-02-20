@@ -49,6 +49,68 @@ replacement_table = str.maketrans(
 def create_identifier(value, prefix = '', suffix = ''):
     return prefix + value.upper().translate(replacement_table) + suffix
 
+def escape_cpp_string(s):
+    """Escape a string for use in a C++ string literal."""
+    return s.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n')
+
+def process_srt_file(srt_path, temp_source, prefix="SUBTITLE"):
+    """Parse an SRT file and extract subtitle text for translation."""
+    if not srt_path.exists():
+        return
+    try:
+        with open(srt_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+    except Exception:
+        return
+
+    lines = content.split('\n')
+    text = ""
+    subtitle_index = 0
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        # Remove \r if present (matching C++ parser behavior)
+        if line and line.endswith('\r'):
+            line = line[:-1]
+
+        # Skip empty lines (end of subtitle block)
+        if not line:
+            if text:
+                # Remove trailing newline from text
+                text = text.rstrip('\n')
+                if text:
+                    var_name = f'{prefix}_{subtitle_index}'
+                    escaped_text = escape_cpp_string(text)
+                    write_entry(temp_source, var_name, "subtitle", escaped_text, False)
+                    subtitle_index += 1
+                text = ""
+            i += 1
+            continue
+
+        # Check if line is a number (subtitle index) - skip it
+        if line.strip().isdigit():
+            i += 1
+            continue
+
+        # Check if line contains --> (timestamp line) - skip it
+        if '-->' in line:
+            i += 1
+            continue
+
+        # Otherwise it's subtitle text
+        if text:
+            text += "\n"
+        text += line
+        i += 1
+
+    # Handle last subtitle if file doesn't end with blank line
+    if text:
+        text = text.rstrip('\n')
+        if text:
+            var_name = f'{prefix}_{subtitle_index}'
+            escaped_text = escape_cpp_string(text)
+            write_entry(temp_source, var_name, "subtitle", escaped_text, False)
+
 def process_files(paths, temp_source):
     # Classes
     if "classdat" in paths:
@@ -139,5 +201,15 @@ with open(translation_dummy_path, 'w') as temp_source:
 
     process_files(base_paths, temp_source)
     process_files(hf_paths, temp_source)
+
+    # Process SRT subtitle files
+    srt_files = [
+        root.joinpath("assets/gendata/diabend.srt"),
+    ]
+    for srt_file in srt_files:
+        # Extract filename without extension and convert to uppercase for prefix
+        filename = srt_file.stem.upper()
+        prefix = f"SUBTITLE_{filename}"
+        process_srt_file(srt_file, temp_source, prefix)
 
     temp_source.write(f'\n}} // namespace\n')
