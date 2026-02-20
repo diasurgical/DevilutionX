@@ -385,6 +385,24 @@ inline bool RemoveInventoryOrBeltItemById(Player &player, _item_indexes id)
 }
 
 /**
+ * @brief Marks all Spectral Elixir items in the player's inventory as permanently usable
+ *        by setting the CF_USEFUL flag in the item's creation info.
+ *
+ * This ensures that Spectral Elixirs remain usable across game sessions, regardless of
+ * quest status, while maintaining reverse compatibility with the original game.
+ *
+ * @param player The player whose inventory is being updated.
+ */
+inline void SetSpectralUsable(Player &player)
+{
+	for (Item &item : player.InvList) {
+		if (item.IDidx == IDI_SPECELIX) {
+			item._iCreateInfo |= CF_ONLYGOOD; // Set the unused flag to mark as permanently usable
+		}
+	}
+}
+
+/**
  * @brief Removes the first inventory or belt scroll with the player's current spell.
  */
 void ConsumeScroll(Player &player);
