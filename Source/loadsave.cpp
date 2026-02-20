@@ -32,7 +32,6 @@
 #include "monster.h"
 #include "monsters/validation.hpp"
 #include "mpq/mpq_common.hpp"
-#include "options.h"
 #include "pfile.h"
 #include "plrmsg.h"
 #include "qol/stash.h"
@@ -2659,7 +2658,6 @@ tl::expected<void, std::string> LoadGame(bool firstflag)
 
 	AutomapActive = file.NextBool8();
 	AutoMapScale = file.NextBE<int32_t>();
-	SetAutomapType(*GetOptions().Gameplay.automapType);
 	AutomapZoomReset();
 	ResyncQuests();
 
