@@ -1077,23 +1077,24 @@ void VisualStoreMove(AxisDirection dir)
 				FocusOnInventory();
 				return;
 			}
-		} else { // Grid
-				if (!GridMove(VisualStoreSlot, dir, gridSize, movingItemSize, isHoldingItem, getCellId)) {
-					// Transition to inventory with smart positioning (similar to stash)
-					const Point vsSlotCoord = GetVisualStoreSlotCoord(VisualStoreSlot);
-					const Point rightPanelCoord = { GetRightPanel().position.x, vsSlotCoord.y };
-					Slot = FindClosestInventorySlot(rightPanelCoord, MyPlayer->HoldItem, [](Point mousePos, int slot) {
-						const Point slotPos = GetSlotCoord(slot);
-						// Exaggerate the vertical difference so that moving from the top rows of the
-						//  visual store is more likely to land on a body slot
-						return std::abs(mousePos.y - slotPos.y) * 3 + std::abs(mousePos.x - slotPos.x);
-					});
-					VisualStoreSlot = { -1, -1 }; // Invalidate visual store slot
-					BeltReturnsToVisualStore = false;
-					ResetInvCursorPosition();
-					return;
-				}
+		} else {
+			// Grid
+			if (!GridMove(VisualStoreSlot, dir, gridSize, movingItemSize, isHoldingItem, getCellId)) {
+				// Transition to inventory with smart positioning (similar to stash)
+				const Point vsSlotCoord = GetVisualStoreSlotCoord(VisualStoreSlot);
+				const Point rightPanelCoord = { GetRightPanel().position.x, vsSlotCoord.y };
+				Slot = FindClosestInventorySlot(rightPanelCoord, MyPlayer->HoldItem, [](Point mousePos, int slot) {
+					const Point slotPos = GetSlotCoord(slot);
+					// Exaggerate the vertical difference so that moving from the top rows of the
+					//  visual store is more likely to land on a body slot
+					return std::abs(mousePos.y - slotPos.y) * 3 + std::abs(mousePos.x - slotPos.x);
+				});
+				VisualStoreSlot = { -1, -1 }; // Invalidate visual store slot
+				BeltReturnsToVisualStore = false;
+				ResetInvCursorPosition();
+				return;
 			}
+		}
 	} else if (dir.x == AxisDirectionX_LEFT) {
 		if (VisualStoreSlot.y == -1 || VisualStoreSlot.y == VisualStoreGridHeight) {
 			if (VisualStoreSlot.x > 0)
@@ -1207,9 +1208,7 @@ void VisualStoreMove(AxisDirection dir)
 			}
 		}
 
-		mousePos = GetVisualStoreSlotCoord(displayPos) + 
-			Displacement { (itemSize.width * INV_SLOT_HALF_SIZE_PX), (itemSize.height * INV_SLOT_HALF_SIZE_PX) };
-				
+		mousePos = GetVisualStoreSlotCoord(displayPos) + Displacement { (itemSize.width * INV_SLOT_HALF_SIZE_PX), (itemSize.height * INV_SLOT_HALF_SIZE_PX) };
 	}
 
 	SetCursorPos(mousePos);
@@ -2035,7 +2034,7 @@ void LogGamepadChange(GamepadLayout newGamepad)
 
 void FocusOnVisualStore()
 {
-	InvalidateInventorySlot(); // Clear inventory focus
+	InvalidateInventorySlot();        // Clear inventory focus
 	BeltReturnsToVisualStore = false; // Reset belt return state
 	VisualStoreSlot = { 0, 0 };
 	const Point slotPos = GetVisualStoreSlotCoord(VisualStoreSlot);
