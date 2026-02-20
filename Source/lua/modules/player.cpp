@@ -12,6 +12,7 @@
 #include "items.h"
 #include "lua/metadoc.hpp"
 #include "player.h"
+#include "sound_effect_enums.h"
 
 namespace devilution {
 namespace {
@@ -111,13 +112,52 @@ void InitPlayerUserType(sol::state_view &lua)
 	LuaSetDocReadonlyProperty(playerType, "maxMana", "number",
 	    "Maximum mana (readonly)",
 	    [](Player &player) { return player._pMaxMana >> 6; });
+	LuaSetDocReadonlyProperty(playerType, "isMyPlayer", "boolean",
+	    "Whether this is the locally controlled player (readonly)",
+	    [](const Player &player) { return &player == MyPlayer; });
+	LuaSetDocReadonlyProperty(playerType, "level", "integer",
+	    "Current dungeon level the player is on (readonly)",
+	    [](const Player &player) { return static_cast<int>(player.plrlevel); });
+	LuaSetDocFn(playerType, "isOnLevel", "(level: integer) -> boolean",
+	    "Returns true if the player is on the given dungeon level",
+	    [](const Player &player, int level) {
+		    return player.isOnLevel(static_cast<uint8_t>(level));
+	    });
+	LuaSetDocFn(playerType, "say", "(speechId: HeroSpeech) -> void",
+	    "Makes the player character say the given speech line",
+	    [](Player &player, HeroSpeech speechId) {
+		    player.Say(speechId);
+	    });
+}
+
+void RegisterHeroSpeechEnum(sol::state_view &lua)
+{
+	lua.new_enum<HeroSpeech>("HeroSpeech",
+	    {
+	        { "ICantUseThisYet", HeroSpeech::ICantUseThisYet },
+	        { "ThatWontWorkHere", HeroSpeech::ThatWontWorkHere },
+	        { "ThatWontWork", HeroSpeech::ThatWontWork },
+	        { "VengeanceIsMine", HeroSpeech::VengeanceIsMine },
+	        { "JustWhatIWasLookingFor", HeroSpeech::JustWhatIWasLookingFor },
+	        { "ICantCarryAnymore", HeroSpeech::ICantCarryAnymore },
+	        { "IHaveNoRoom", HeroSpeech::IHaveNoRoom },
+	        { "ItsTooBig", HeroSpeech::ItsTooBig },
+	        { "ItsTooHeavy", HeroSpeech::ItsTooHeavy },
+	        { "No", HeroSpeech::No },
+	        { "Yes", HeroSpeech::Yes },
+	        { "Die", HeroSpeech::Die },
+	        { "TimeToDie", HeroSpeech::TimeToDie },
+	        { "OhTooEasy", HeroSpeech::OhTooEasy },
+	    });
 }
 } // namespace
 
 sol::table LuaPlayerModule(sol::state_view &lua)
 {
 	InitPlayerUserType(lua);
+	RegisterHeroSpeechEnum(lua);
 	sol::table table = lua.create_table();
+	table["HeroSpeech"] = lua["HeroSpeech"];
 	LuaSetDocFn(table, "self", "()",
 	    "The current player",
 	    []() {

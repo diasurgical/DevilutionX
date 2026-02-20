@@ -5,7 +5,9 @@
 #include <fmt/format.h>
 #include <sol/sol.hpp>
 
+#include "cursor.h"
 #include "data/file.hpp"
+#include "engine/point.hpp"
 #include "items.h"
 #include "lua/metadoc.hpp"
 #include "player.h"
@@ -465,6 +467,11 @@ void AddUniqueItemDataFromTsv(const std::string_view path, const int32_t baseMap
 	LoadUniqueItemDatFromFile(dataFile, path, baseMappingId);
 }
 
+void LuaSpawnQuestItem(int itemIdx, int x, int y, bool sendmsg)
+{
+	SpawnQuestItem(static_cast<_item_indexes>(itemIdx), Point { x, y }, 0, SelectionRegion::Bottom, sendmsg);
+}
+
 } // namespace
 
 sol::table LuaItemModule(sol::state_view &lua)
@@ -484,6 +491,10 @@ sol::table LuaItemModule(sol::state_view &lua)
 
 	LuaSetDocFn(table, "addItemDataFromTsv", "(path: string, baseMappingId: number)", AddItemDataFromTsv);
 	LuaSetDocFn(table, "addUniqueItemDataFromTsv", "(path: string, baseMappingId: number)", AddUniqueItemDataFromTsv);
+	LuaSetDocFn(table, "spawnQuestItem",
+	    "(itemIdx: ItemIndex, x: integer, y: integer, sendmsg: boolean = true)",
+	    "Spawns a quest item at the given world coordinates. Pass sendmsg=true to sync with other clients.",
+	    LuaSpawnQuestItem);
 
 	// Expose enums through the module table
 	table["ItemIndex"] = lua["ItemIndex"];
