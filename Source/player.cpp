@@ -2550,19 +2550,12 @@ void InitMultiView()
 {
 	assert(MyPlayer != nullptr);
 
-#ifndef USE_SDL1
-	// In local co-op mode with initialized players, center view on all players
 	if (IsAnyLocalCoopPlayerInitialized()) {
-		// Calculate center position of all active local coop players
 		Point centerPos = CalculateLocalCoopViewPosition();
 		ViewPosition = centerPos;
-
-		// Reset camera smoothing to snap to new position
 		ResetLocalCoopCamera();
 		return;
 	}
-#endif
-	// Single player or no coop players initialized yet
 	ViewPosition = MyPlayer->position.tile;
 }
 

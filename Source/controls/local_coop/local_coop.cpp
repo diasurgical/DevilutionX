@@ -7,7 +7,6 @@
 #include "controls/local_coop/local_coop_assets.hpp"
 #include "controls/local_coop/local_coop_button_mapper.hpp"
 #include "controls/local_coop/local_coop_constants.hpp"
-#include "controls/local_coop/local_coop_player_context.hpp"
 
 #ifndef USE_SDL1
 
@@ -127,6 +126,48 @@ void FreeLocalCoopHUDAssets()
 
 LocalCoopState g_LocalCoop;
 
+ValidatedPlayer GetValidatedPlayer(uint8_t playerId, bool requireInitialized, bool requireAlive)
+{
+	ValidatedPlayer result = { nullptr, nullptr, false };
+
+	if (playerId >= g_LocalCoop.players.size() || playerId >= Players.size())
+		return result;
+
+	result.coop = &g_LocalCoop.players[playerId];
+	result.player = &Players[playerId];
+
+	if (!result.coop->active)
+		return result;
+	if (requireInitialized && !result.coop->initialized)
+		return result;
+	if (requireInitialized && result.coop->characterSelectActive)
+		return result;
+	if (requireAlive && result.player->_pHitPoints <= 0)
+		return result;
+
+	result.isValid = true;
+	return result;
+}
+
+LocalCoopPlayerContext::LocalCoopPlayerContext(uint8_t playerId)
+    : savedMyPlayer_(MyPlayer)
+    , savedMyPlayerId_(MyPlayerId)
+    , savedInspectPlayer_(InspectPlayer)
+{
+	if (playerId < Players.size()) {
+		MyPlayer = &Players[playerId];
+		MyPlayerId = playerId;
+		InspectPlayer = &Players[playerId];
+	}
+}
+
+LocalCoopPlayerContext::~LocalCoopPlayerContext()
+{
+	MyPlayer = savedMyPlayer_;
+	MyPlayerId = savedMyPlayerId_;
+	InspectPlayer = savedInspectPlayer_;
+}
+
 namespace {
 
 // Forward declarations
@@ -140,7 +181,6 @@ void HandleSpellMenuAssignment(uint8_t playerId, LocalCoopPlayer &coopPlayer, ui
 void HandleGameplayButtonDown(uint8_t playerId, LocalCoopPlayer &coopPlayer, Player &player, uint8_t button, uint32_t now);
 void HandleGameplayButtonUp(uint8_t playerId, LocalCoopPlayer &coopPlayer, uint8_t button);
 
-// LocalCoopPlayerContext moved to local_coop_player_context.hpp
 // SkillButtonHoldTime moved to LocalCoopInput namespace in local_coop_constants.hpp
 
 /**
@@ -185,45 +225,6 @@ const Direction FaceDir[3][3] = {
 };
 
 // ButtonToBeltOffset moved to LocalCoopInput namespace in local_coop_constants.hpp
-
-/**
- * @brief Unified player validation result structure.
- */
-struct ValidatedPlayer {
-	LocalCoopPlayer *coop;
-	Player *player;
-	bool isValid;
-};
-
-/**
- * @brief Get validated player with common checks.
- * @param playerId Game player ID (0-3)
- * @param requireInitialized If true, requires player to be initialized
- * @param requireAlive If true, requires player to be alive
- * @return ValidatedPlayer structure with pointers and validation result
- */
-ValidatedPlayer GetValidatedPlayer(uint8_t playerId, bool requireInitialized = true, bool requireAlive = true)
-{
-	ValidatedPlayer result = { nullptr, nullptr, false };
-
-	if (playerId >= g_LocalCoop.players.size() || playerId >= Players.size())
-		return result;
-
-	result.coop = &g_LocalCoop.players[playerId];
-	result.player = &Players[playerId];
-
-	if (!result.coop->active)
-		return result;
-	if (requireInitialized && !result.coop->initialized)
-		return result;
-	if (requireInitialized && result.coop->characterSelectActive)
-		return result;
-	if (requireAlive && result.player->_pHitPoints <= 0)
-		return result;
-
-	result.isValid = true;
-	return result;
-}
 
 // Button mapping functions moved to LocalCoopButtonMapper class
 
@@ -1478,6 +1479,7 @@ void LocalCoopPlayer::Reset()
 	dpadY = 0;
 	cursor.Reset();
 	actionHeld = 0;
+	g_LocalCoop.UpdateAnyCoopPlayerInitializedCache();
 	saveNumber = 0;
 	skillButtonHeld = -1;
 	skillButtonPressTime = 0;
@@ -1542,6 +1544,17 @@ size_t LocalCoopState::GetInitializedPlayerCount() const
 			++count;
 	}
 	return count;
+}
+
+void LocalCoopState::UpdateAnyCoopPlayerInitializedCache()
+{
+	anyCoopPlayerInitializedCache = false;
+	for (size_t i = 1; i < players.size(); ++i) {
+		if (players[i].active && players[i].initialized) {
+			anyCoopPlayerInitializedCache = true;
+			break;
+		}
+	}
 }
 
 size_t LocalCoopState::GetTotalPlayerCount() const
@@ -1695,6 +1708,7 @@ void InitLocalCoop()
 	}
 
 	g_LocalCoop.enabled = true;
+	g_LocalCoop.UpdateAnyCoopPlayerInitializedCache();
 
 	// Make sure we have enough player slots
 	size_t totalPlayers = g_LocalCoop.GetTotalPlayerCount();
@@ -1730,8 +1744,7 @@ bool IsAnyLocalCoopPlayerInitialized()
 {
 	if (!IsLocalCoopEnabled())
 		return false;
-
-	return g_LocalCoop.GetInitializedPlayerCount() > 0;
+	return g_LocalCoop.anyCoopPlayerInitializedCache;
 }
 
 size_t GetLocalCoopTotalPlayerCount()
@@ -1745,14 +1758,7 @@ bool ShouldHideMainPanelForLocalCoop()
 {
 	if (!IsLocalCoopEnabled())
 		return false;
-
-	// Only hide main panel if at least one local co-op player has spawned
-	for (size_t i = 0; i < g_LocalCoop.players.size(); ++i) {
-		if (g_LocalCoop.players[i].active && g_LocalCoop.players[i].initialized) {
-			return true;
-		}
-	}
-	return false;
+	return g_LocalCoop.anyCoopPlayerInitializedCache;
 }
 
 bool IsLocalCoopTargetObject(const Object *object)
@@ -2393,6 +2399,7 @@ void ConfirmLocalCoopCharacter(uint8_t playerId)
 
 	coopPlayer->characterSelectActive = false;
 	coopPlayer->initialized = true;
+	g_LocalCoop.UpdateAnyCoopPlayerInitializedCache();
 	if (player.isOnActiveLevel()) {
 		SpawnResurrectBeam(Players[0], player);
 	}
@@ -3653,25 +3660,17 @@ Point CalculateLocalCoopViewPosition()
  */
 void SetViewPosition(Point position)
 {
-#ifndef USE_SDL1
-	// In local co-op mode with initialized players, camera is managed by UpdateLocalCoopCamera
 	if (IsAnyLocalCoopPlayerInitialized())
 		return;
-#endif
 	ViewPosition = position;
 }
 
 void SetViewPositionForPlayer(const Player &player, Point position)
 {
-	// Only set view position for locally controlled players
 	if (!IsLocalPlayer(player))
 		return;
-
-#ifndef USE_SDL1
-	// In local co-op mode with initialized players, camera is managed by UpdateLocalCoopCamera
 	if (IsAnyLocalCoopPlayerInitialized())
 		return;
-#endif
 	ViewPosition = position;
 }
 
@@ -3680,27 +3679,16 @@ void UpdateLocalCoopCamera()
 	if (!g_LocalCoop.enabled || !IsLocalCoopEnabled())
 		return;
 
-	// Check if any local co-op player (excluding player 1) has been initialized (spawned)
-	// Only take over camera control when there are actually multiple players active
-	bool anyCoopPlayerInitialized = false;
-	for (size_t i = 1; i < g_LocalCoop.players.size(); ++i) {
-		if (g_LocalCoop.players[i].active && g_LocalCoop.players[i].initialized) {
-			anyCoopPlayerInitialized = true;
-			break;
-		}
-	}
-
-	// Don't take over camera control until at least one co-op player has spawned
-	// This allows normal single-player camera behavior when only player 1 is active
-	if (!anyCoopPlayerInitialized)
+	if (!g_LocalCoop.anyCoopPlayerInitializedCache)
 		return;
 
 	// Calculate pixel-precise positions for all active players in screen space
 	// Screen coordinates: screenX = (tileY - tileX) * 32, screenY = (tileY + tileX) * -16
 	// We scale by 256 for precision before division
 	int activeCount = 0;
-
-	// Accumulate screen-space positions (scaled by 256 for precision)
+	int walkingCount = 0;
+	Direction firstWalkDir = Direction::South;
+	bool allWalkingSameDirection = true;
 	int64_t totalScreenX = 0;
 	int64_t totalScreenY = 0;
 
@@ -3718,6 +3706,15 @@ void UpdateLocalCoopCamera()
 			continue;
 		if (i >= g_LocalCoop.players.size() || !g_LocalCoop.players[i].initialized)
 			continue;
+
+		if (player.isWalking()) {
+			walkingCount++;
+			if (walkingCount == 1) {
+				firstWalkDir = player._pdir;
+			} else if (player._pdir != firstWalkDir) {
+				allWalkingSameDirection = false;
+			}
+		}
 
 		// Start with the current tile position
 		// Convert tile position to screen space (scaled by 256)
@@ -3761,57 +3758,49 @@ void UpdateLocalCoopCamera()
 		g_LocalCoop.cameraInitialized = true;
 	} else {
 		// Always update target to exactly match average position
-		// This eliminates oscillation caused by dead zone + double smoothing
 		g_LocalCoop.cameraTargetScreenX = avgScreenX256;
 		g_LocalCoop.cameraTargetScreenY = avgScreenY256;
 	}
 
-	// Apply smoothing: interpolate smoothed camera position towards target
-	// This prevents jerky camera movement by gradually moving towards the target
-	// Using fixed-point arithmetic: smoothFactor is represented as an integer out of 256
-	constexpr int64_t smoothFactor256 = static_cast<int64_t>(SmoothFactor * FixedPointScale);
+	// When all players walk in the same direction, bypass smoothing so the camera moves in lockstep (no jitter/lag).
+	const bool allWalkingSameDir = (activeCount >= 1 && walkingCount == activeCount && allWalkingSameDirection);
+	if (allWalkingSameDir) {
+		g_LocalCoop.cameraSmoothScreenX = avgScreenX256;
+		g_LocalCoop.cameraSmoothScreenY = avgScreenY256;
+	} else {
+		// Apply smoothing: interpolate smoothed camera position towards target
+		constexpr int64_t smoothFactor256 = static_cast<int64_t>(SmoothFactor * FixedPointScale);
+		int64_t smoothDeltaX = g_LocalCoop.cameraTargetScreenX - g_LocalCoop.cameraSmoothScreenX;
+		int64_t smoothDeltaY = g_LocalCoop.cameraTargetScreenY - g_LocalCoop.cameraSmoothScreenY;
+		int64_t moveX = (smoothDeltaX * smoothFactor256) / 256;
+		int64_t moveY = (smoothDeltaY * smoothFactor256) / 256;
 
-	int64_t smoothDeltaX = g_LocalCoop.cameraTargetScreenX - g_LocalCoop.cameraSmoothScreenX;
-	int64_t smoothDeltaY = g_LocalCoop.cameraTargetScreenY - g_LocalCoop.cameraSmoothScreenY;
-
-	// Calculate desired movement (smoothed)
-	int64_t moveX = (smoothDeltaX * smoothFactor256) / 256;
-	int64_t moveY = (smoothDeltaY * smoothFactor256) / 256;
-
-	// Cap the movement to MaxCameraVelocity if enabled (MaxCameraVelocity > 0)
-	if (MaxCameraVelocity > 0) {
-		int64_t moveDistSq = moveX * moveX + moveY * moveY;
-		constexpr int64_t maxVelSq = MaxCameraVelocity * MaxCameraVelocity;
-
-		if (moveDistSq > maxVelSq) {
-			// Scale down movement to max velocity
-			// Using integer approximation: scale = maxVel / moveDist
-			int64_t absMoveX = moveX >= 0 ? moveX : -moveX;
-			int64_t absMoveY = moveY >= 0 ? moveY : -moveY;
-			int64_t approxMoveDist = (absMoveX > absMoveY)
-			    ? absMoveX + absMoveY / 2
-			    : absMoveY + absMoveX / 2;
-
-			if (approxMoveDist > 0) {
-				moveX = (moveX * MaxCameraVelocity) / approxMoveDist;
-				moveY = (moveY * MaxCameraVelocity) / approxMoveDist;
+		if (MaxCameraVelocity > 0) {
+			int64_t moveDistSq = moveX * moveX + moveY * moveY;
+			constexpr int64_t maxVelSq = MaxCameraVelocity * MaxCameraVelocity;
+			if (moveDistSq > maxVelSq) {
+				int64_t absMoveX = moveX >= 0 ? moveX : -moveX;
+				int64_t absMoveY = moveY >= 0 ? moveY : -moveY;
+				int64_t approxMoveDist = (absMoveX > absMoveY)
+				    ? absMoveX + absMoveY / 2
+				    : absMoveY + absMoveX / 2;
+				if (approxMoveDist > 0) {
+					moveX = (moveX * MaxCameraVelocity) / approxMoveDist;
+					moveY = (moveY * MaxCameraVelocity) / approxMoveDist;
+				}
 			}
 		}
-	}
-
-	// Apply minimum movement threshold if enabled (MinCameraMovement > 0)
-	if (MinCameraMovement > 0) {
-		int64_t absMoveX = moveX >= 0 ? moveX : -moveX;
-		int64_t absMoveY = moveY >= 0 ? moveY : -moveY;
-		if (absMoveX < MinCameraMovement && absMoveY < MinCameraMovement) {
-			// Movement too small, skip it
-			moveX = 0;
-			moveY = 0;
+		if (MinCameraMovement > 0) {
+			int64_t absMoveX = moveX >= 0 ? moveX : -moveX;
+			int64_t absMoveY = moveY >= 0 ? moveY : -moveY;
+			if (absMoveX < MinCameraMovement && absMoveY < MinCameraMovement) {
+				moveX = 0;
+				moveY = 0;
+			}
 		}
+		g_LocalCoop.cameraSmoothScreenX += moveX;
+		g_LocalCoop.cameraSmoothScreenY += moveY;
 	}
-
-	g_LocalCoop.cameraSmoothScreenX += moveX;
-	g_LocalCoop.cameraSmoothScreenY += moveY;
 
 	// Use smoothed camera position for rendering
 	int64_t cameraScreenX256 = g_LocalCoop.cameraSmoothScreenX;
@@ -3852,22 +3841,8 @@ Displacement GetLocalCoopCameraOffset()
 {
 	if (!g_LocalCoop.enabled || !IsLocalCoopEnabled())
 		return {};
-
-	// Check if any local co-op player (excluding player 1) has been initialized (spawned)
-	bool anyCoopPlayerInitialized = false;
-	for (size_t i = 1; i < g_LocalCoop.players.size(); ++i) {
-		if (g_LocalCoop.players[i].active && g_LocalCoop.players[i].initialized) {
-			anyCoopPlayerInitialized = true;
-			break;
-		}
-	}
-
-	// Don't provide camera offset until at least one co-op player has spawned
-	// This allows normal single-player camera behavior when only player 1 is active
-	if (!anyCoopPlayerInitialized)
+	if (!g_LocalCoop.anyCoopPlayerInitializedCache)
 		return {};
-
-	// Return the pre-calculated average offset from UpdateLocalCoopCamera
 	return { g_LocalCoop.cameraOffsetX, g_LocalCoop.cameraOffsetY };
 }
 
@@ -3882,22 +3857,9 @@ bool IsLocalCoopPositionOnScreen(Point tilePos)
 	if (!g_LocalCoop.enabled || !IsLocalCoopEnabled())
 		return true; // No restriction if local co-op is not enabled
 
-	// If no local co-op players have joined yet, don't restrict movement
-	// This allows Player 1 to move freely until other players join
 	if (g_LocalCoop.GetActivePlayerCount() == 0)
 		return true;
-
-	// Check if any local co-op player has been initialized (spawned)
-	bool anyInitialized = false;
-	for (const auto &player : g_LocalCoop.players) {
-		if (player.active && player.initialized) {
-			anyInitialized = true;
-			break;
-		}
-	}
-
-	// If no local co-op players are initialized, don't restrict movement
-	if (!anyInitialized)
+	if (!g_LocalCoop.anyCoopPlayerInitializedCache)
 		return true;
 
 	// Check if this position keeps Player 1 within range of all other players
@@ -5415,9 +5377,22 @@ Player *FindLocalCoopPlayerOnTrigger(int & /*outTriggerIndex*/) { return nullptr
 
 void LocalCoopCursorState::Reset() { }
 void LocalCoopPlayer::Reset() { }
+LocalCoopPlayerContext::LocalCoopPlayerContext(uint8_t /*playerId*/)
+    : savedMyPlayer_(MyPlayer)
+    , savedMyPlayerId_(MyPlayerId)
+    , savedInspectPlayer_(InspectPlayer)
+{
+}
+LocalCoopPlayerContext::~LocalCoopPlayerContext()
+{
+	MyPlayer = savedMyPlayer_;
+	MyPlayerId = savedMyPlayerId_;
+	InspectPlayer = savedInspectPlayer_;
+}
 AxisDirection LocalCoopPlayer::GetMoveDirection() const { return { AxisDirectionX_NONE, AxisDirectionY_NONE }; }
 size_t LocalCoopState::GetActivePlayerCount() const { return 0; }
 size_t LocalCoopState::GetInitializedPlayerCount() const { return 0; }
+void LocalCoopState::UpdateAnyCoopPlayerInitializedCache() { anyCoopPlayerInitializedCache = false; }
 size_t LocalCoopState::GetTotalPlayerCount() const { return 1; }
 bool LocalCoopState::IsAnyCharacterSelectActive() const { return false; }
 uint8_t LocalCoopState::GetPanelOwnerPlayerId() const { return 0; }

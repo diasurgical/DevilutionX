@@ -193,6 +193,10 @@ struct LocalCoopState {
 	/// Use this to check if any co-op player has actually joined the game
 	[[nodiscard]] size_t GetInitializedPlayerCount() const;
 
+	/// Cached result of "any coop player (index >= 1) is initialized". Updated when players join/leave.
+	bool anyCoopPlayerInitializedCache = false;
+	void UpdateAnyCoopPlayerInitializedCache();
+
 	/// Get total number of players (including player 1)
 	[[nodiscard]] size_t GetTotalPlayerCount() const;
 
@@ -213,6 +217,40 @@ struct LocalCoopState {
 };
 
 extern LocalCoopState g_LocalCoop;
+
+struct ValidatedPlayer {
+	LocalCoopPlayer *coop;
+	Player *player;
+	bool isValid;
+};
+
+ValidatedPlayer GetValidatedPlayer(uint8_t playerId, bool requireInitialized = true, bool requireAlive = true);
+
+namespace local_coop {
+inline bool IsPlayerValid(uint8_t playerId, bool requireInitialized = true, bool requireAlive = true)
+{
+	auto validated = GetValidatedPlayer(playerId, requireInitialized, requireAlive);
+	return validated.isValid;
+}
+} // namespace local_coop
+
+/**
+ * @brief RAII helper to temporarily swap MyPlayer, MyPlayerId, and InspectPlayer for local co-op actions.
+ */
+class LocalCoopPlayerContext {
+public:
+	explicit LocalCoopPlayerContext(uint8_t playerId);
+	~LocalCoopPlayerContext();
+	LocalCoopPlayerContext(const LocalCoopPlayerContext &) = delete;
+	LocalCoopPlayerContext &operator=(const LocalCoopPlayerContext &) = delete;
+	LocalCoopPlayerContext(LocalCoopPlayerContext &&) = delete;
+	LocalCoopPlayerContext &operator=(LocalCoopPlayerContext &&) = delete;
+
+private:
+	Player *savedMyPlayer_;
+	uint8_t savedMyPlayerId_;
+	Player *savedInspectPlayer_;
+};
 
 /**
  * @brief Initialize local co-op system.

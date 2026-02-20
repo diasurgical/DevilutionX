@@ -1195,14 +1195,11 @@ void CalcFirstTilePosition(Point &position, Displacement &offset)
 	const Player &myPlayer = *MyPlayer;
 	offset = tileOffset;
 
-#ifndef USE_SDL1
-	// In local co-op mode, use the average walking offset of all players for smooth camera
-	Displacement localCoopOffset = GetLocalCoopCameraOffset();
-	if (localCoopOffset.deltaX != 0 || localCoopOffset.deltaY != 0) {
-		offset += localCoopOffset;
-	} else
-#endif
-	    if (myPlayer.isWalking()) {
+	// In local co-op mode, always use the coop camera offset when any coop player is initialized.
+	// When USE_SDL1, IsAnyLocalCoopPlayerInitialized() is a stub that returns false.
+	if (IsAnyLocalCoopPlayerInitialized()) {
+		offset += GetLocalCoopCameraOffset();
+	} else if (myPlayer.isWalking()) {
 		offset += GetOffsetForWalking(myPlayer.AnimInfo, myPlayer._pdir, true);
 	}
 
@@ -1222,12 +1219,9 @@ void CalcFirstTilePosition(Point &position, Displacement &offset)
 
 	// Draw areas moving in and out of the screen
 	// In local co-op, we need to expand the render area if any player is walking
-	// or if the camera has any offset (to ensure smooth scrolling doesn't leave gaps)
-#ifndef USE_SDL1
 	bool anyPlayerWalking = false;
 	Direction walkDir = Direction::South;
 	if (IsAnyLocalCoopPlayerInitialized()) {
-		// Check if any player is walking
 		for (size_t i = 0; i < Players.size(); ++i) {
 			const Player &player = Players[i];
 			if (player.plractive && !player.hasNoLife() && player.isWalking()) {
@@ -1241,10 +1235,7 @@ void CalcFirstTilePosition(Point &position, Displacement &offset)
 		walkDir = myPlayer._pdir;
 	}
 
-	// In local co-op with camera offset, expand rendering in all directions
-	// This ensures no gaps appear when the camera is smoothly following players
-	if (HasCameraOffset()) {
-		// Expand rendering area in all directions by one tile
+	if (IsAnyLocalCoopPlayerInitialized()) {
 		offset.deltaX -= TILE_WIDTH / 2;
 		offset.deltaY -= TILE_HEIGHT / 2;
 		position += Direction::NorthWest;
@@ -1268,29 +1259,6 @@ void CalcFirstTilePosition(Point &position, Displacement &offset)
 			break;
 		}
 	}
-#else
-	if (myPlayer.isWalking()) {
-		Direction walkDir = myPlayer._pdir;
-		switch (walkDir) {
-		case Direction::North:
-		case Direction::NorthEast:
-			offset.deltaY -= TILE_HEIGHT;
-			position += Direction::North;
-			break;
-		case Direction::SouthWest:
-		case Direction::West:
-			offset.deltaX -= TILE_WIDTH;
-			position += Direction::West;
-			break;
-		case Direction::NorthWest:
-			offset.deltaX -= TILE_WIDTH / 2;
-			offset.deltaY -= TILE_HEIGHT / 2;
-			position += Direction::NorthWest;
-		default:
-			break;
-		}
-	}
-#endif
 }
 
 /**
@@ -1316,27 +1284,15 @@ void DrawGame(const Surface &fullOut, Point position, Displacement offset)
 
 	UpdateMissilesRendererData();
 
-#ifndef USE_SDL1
-	// In local co-op mode with sub-tile camera offset, we need extra tiles to cover edges
-	if (HasCameraOffset()) {
-		// Add extra tiles in all directions to ensure full coverage
-		// The offset can shift the view in any direction, so we add padding
+	if (IsAnyLocalCoopPlayerInitialized()) {
 		columns += 2;
 		rows += 2;
 	}
-#endif
 
-	// Draw areas moving in and out of the screen
-	// In local co-op, check if any player is walking and expand render area accordingly
-#ifndef USE_SDL1
 	Direction expandDir = Direction::South;
 	const bool shouldExpandForWalk = IsAnyLocalPlayerWalking(expandDir);
 	if (shouldExpandForWalk) {
 		switch (expandDir) {
-#else
-	if (MyPlayer->isWalking()) {
-		switch (MyPlayer->_pdir) {
-#endif
 		case Direction::NoDirection:
 			break;
 		case Direction::North:
@@ -1488,8 +1444,6 @@ void DrawView(const Surface &out, Point startPosition)
 
 	if (IsPlayerInStore() && !qtextflag)
 		DrawSText(out);
-#ifndef USE_SDL1
-	// Draw panels with automatic context restoration for local coop
 	if (invflag) {
 		WithPanelOwnerContext([&out]() { DrawInv(out); });
 	} else if (SpellbookFlag) {
@@ -1505,23 +1459,6 @@ void DrawView(const Surface &out, Point startPosition)
 	} else if (IsStashOpen) {
 		WithPanelOwnerContext([&out]() { DrawStash(out); });
 	}
-#else
-	if (invflag) {
-		DrawInv(out);
-	} else if (SpellbookFlag) {
-		DrawSpellBook(out);
-	}
-
-	DrawDurIcon(out);
-
-	if (CharFlag) {
-		DrawChr(out);
-	} else if (QuestLogIsOpen) {
-		DrawQuestLog(out);
-	} else if (IsStashOpen) {
-		DrawStash(out);
-	}
-#endif
 	DrawLevelButton(out);
 	if (ShowUniqueItemInfoBox) {
 		DrawUniqueInfo(out);
@@ -1557,16 +1494,10 @@ void DrawView(const Surface &out, Point startPosition)
 	gmenu_draw(out);
 	doom_draw(out);
 
-#ifndef USE_SDL1
-	// Hide info box and flask tops when local co-op is active (use floating info box instead)
 	const bool showMainPanelUI = !IsLocalCoopEnabled();
 	if (showMainPanelUI) {
 		DrawInfoBox(out);
 	}
-#else
-	DrawInfoBox(out);
-	const bool showMainPanelUI = true;
-#endif
 
 	UpdateLifeManaPercent(); // Update life/mana totals before rendering any portion of the flask.
 
@@ -2026,12 +1957,8 @@ void DrawAndBlit()
 			    HasAnyOf(InspectPlayer->_pIFlags, ItemSpecialEffect::NoMana) ? 0 : MyPlayer->_pMaxMana >> 6);
 	}
 
-#ifndef USE_SDL1
-	// Draw local co-op player HUD BEFORE floating info box so info box appears on top
 	DrawLocalCoopPlayerHUD(out);
-	// Draw local co-op character selection UI
 	DrawLocalCoopCharacterSelect(out);
-#endif
 
 	// Draw floating info box (always draw when local co-op is active, otherwise check option)
 	// This must be drawn AFTER local coop HUD so it appears on top

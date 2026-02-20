@@ -371,12 +371,7 @@ void LeftMouseDown(uint16_t modState)
 	const bool isShiftHeld = (modState & SDL_KMOD_SHIFT) != 0;
 	const bool isCtrlHeld = (modState & SDL_KMOD_CTRL) != 0;
 
-#ifndef USE_SDL1
-	// Skip main panel mouse handling when local co-op is enabled
 	const bool skipMainPanelForLocalCoop = *GetOptions().Gameplay.enableLocalCoop;
-#else
-	const bool skipMainPanelForLocalCoop = false;
-#endif
 
 	if (!GetMainPanel().contains(MousePosition) || skipMainPanelForLocalCoop) {
 		if (!gmenu_is_active() && !TryIconCurs()) {
@@ -737,12 +732,9 @@ void PrepareForFadeIn()
 
 void GameEventHandler(const SDL_Event &event, uint16_t modState)
 {
-#ifndef USE_SDL1
-	// Handle local co-op player input before Player 1's input
 	if (ProcessLocalCoopInput(event)) {
 		return;
 	}
-#endif
 
 	[[maybe_unused]] const Options &options = GetOptions();
 	StaticVector<ControllerButtonEvent, 4> ctrlEvents = ToControllerButtonEvents(event);

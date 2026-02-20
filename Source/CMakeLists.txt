@@ -51,7 +51,6 @@ set(libdevilutionx_SRCS
   controls/local_coop/local_coop.cpp
   controls/local_coop/local_coop_assets.cpp
   controls/local_coop/local_coop_button_mapper.cpp
-  controls/local_coop/local_coop_player_context.cpp
   controls/menu_controls.cpp
   controls/modifier_hints.cpp
   controls/plrctrls.cpp
