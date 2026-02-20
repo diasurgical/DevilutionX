@@ -12,8 +12,10 @@
 #include "appfat.h"
 #include "effects.h"
 #include "engine/assets.hpp"
+#include "items.h"
 #include "lua/modules/audio.hpp"
 #include "lua/modules/floatingnumbers.hpp"
+#include "lua/modules/game.hpp"
 #include "lua/modules/hellfire.hpp"
 #include "lua/modules/i18n.hpp"
 #include "lua/modules/items.hpp"
@@ -281,6 +283,7 @@ void LuaInitialize()
 	    "devilutionx.dev", LuaDevModule(lua),
 #endif
 	    "devilutionx.version", PROJECT_VERSION,
+	    "devilutionx.game", LuaGameModule(lua),
 	    "devilutionx.i18n", LuaI18nModule(lua),
 	    "devilutionx.items", LuaItemModule(lua),
 	    "devilutionx.log", LuaLogModule(lua),
@@ -350,9 +353,38 @@ void LuaEvent(std::string_view name, const Monster *monster, int arg1, int arg2)
 	CallLuaEvent(name, monster, arg1, arg2);
 }
 
+void LuaEvent(std::string_view name, const Monster *monster, int arg1)
+{
+	CallLuaEvent(name, monster, arg1);
+}
+
 void LuaEvent(std::string_view name, const Player *player, uint32_t arg1)
 {
 	CallLuaEvent(name, player, arg1);
+}
+
+bool LuaEventCancellable(std::string_view name, const Player *player, const Item *item)
+{
+	if (!CurrentLuaState.has_value()) {
+		return false;
+	}
+
+	const auto trigger = CurrentLuaState->events.traverse_get<std::optional<sol::object>>(name, "trigger");
+	if (!trigger.has_value() || !trigger->is<sol::protected_function>()) {
+		LogError("events.{}.trigger is not a function", name);
+		return false;
+	}
+	const sol::protected_function fn = trigger->as<sol::protected_function>();
+	const sol::protected_function_result result = fn(player, item);
+	if (!result.valid()) {
+		const std::string error = result.get_type() == sol::type::string
+		    ? StrCat("Lua error: ", result.get<std::string>())
+		    : "Unknown Lua error";
+		LogError(error);
+		return false;
+	}
+	const sol::object retVal = result;
+	return retVal.is<bool>() && retVal.as<bool>();
 }
 
 sol::state &GetLuaState()

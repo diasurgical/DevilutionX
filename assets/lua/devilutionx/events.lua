@@ -40,6 +40,42 @@ local function CreateEvent()
   }
 end
 
+---Creates a cancellable event. If any handler returns true the trigger returns true.
+local function CreateCancellableEvent()
+  local functions = {}
+  return {
+    ---@param func function
+    add = function(func)
+      table.insert(functions, func)
+    end,
+
+    ---@param func function
+    remove = function(func)
+      for i, f in ipairs(functions) do
+        if f == func then
+          table.remove(functions, i)
+          break
+        end
+      end
+    end,
+
+    ---Triggers the event. Returns true if any handler cancelled the default behaviour.
+    ---@param ... any
+    ---@return boolean
+    trigger = function(...)
+      local cancelled = false
+      local args = {...}
+      for _, func in ipairs(functions) do
+        if func(table.unpack(args)) == true then
+          cancelled = true
+        end
+      end
+      return cancelled
+    end,
+    __sig_trigger = "(...) -> boolean",
+  }
+end
+
 local events = {
   ---Called after all mods have been loaded.
   LoadModsComplete = CreateEvent(),
@@ -84,6 +120,15 @@ local events = {
   ---Called when Player gains experience.
   OnPlayerGainExperience = CreateEvent(),
   __doc_OnPlayerGainExperience = "Called when Player gains experience.",
+
+  ---Called each frame of a monster's death animation. Arguments: monster, deathFrame (integer).
+  OnMonsterDeath = CreateEvent(),
+  __doc_OnMonsterDeath = "Called each frame of a monster's death animation. Arguments: monster, deathFrame.",
+
+  ---Called when a player is about to use an item. Arguments: player, item.
+  ---If any handler returns true the default item-use behaviour is cancelled.
+  OnItemUse = CreateCancellableEvent(),
+  __doc_OnItemUse = "Called when a player uses an item. Return true to cancel default behaviour.",
 }
 
 ---Registers a custom event type with the given name.
