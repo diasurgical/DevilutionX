@@ -732,9 +732,11 @@ void PrepareForFadeIn()
 
 void GameEventHandler(const SDL_Event &event, uint16_t modState)
 {
+#ifndef USE_SDL1
 	if (ProcessLocalCoopInput(event)) {
 		return;
 	}
+#endif
 
 	[[maybe_unused]] const Options &options = GetOptions();
 	StaticVector<ControllerButtonEvent, 4> ctrlEvents = ToControllerButtonEvents(event);
