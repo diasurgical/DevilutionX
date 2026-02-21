@@ -48,6 +48,9 @@ set(libdevilutionx_SRCS
   controls/devices/kbcontroller.cpp
   controls/game_controls.cpp
   controls/keymapper.cpp
+  controls/local_coop/local_coop.cpp
+  controls/local_coop/local_coop_assets.cpp
+  controls/local_coop/local_coop_button_mapper.cpp
   controls/menu_controls.cpp
   controls/modifier_hints.cpp
   controls/plrctrls.cpp

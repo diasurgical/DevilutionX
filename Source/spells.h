@@ -48,11 +48,16 @@ int GetSpellStaffLevel(SpellID s);
  *  - spell ID  1: 0000.0000.0000.0000.0000.0000.0000.0000.0000.0000.0000.0000.0000.0000.0000.0001
  *  - spell ID 43: 0000.0000.0000.0000.0000.0100.0000.0000.0000.0000.0000.0000.0000.0000.0000.0000
  * @param spellId The id of the spell to get a bitmask for.
- * @return A 64bit bitmask representation for the specified spell.
+ * @return A 64bit bitmask representation for the specified spell, or 0 if spellId is invalid.
  */
 constexpr uint64_t GetSpellBitmask(SpellID spellId)
 {
-	return 1ULL << (static_cast<int8_t>(spellId) - 1);
+	const int8_t spellValue = static_cast<int8_t>(spellId);
+	// Return 0 for invalid spell IDs (Invalid = -1, or any value that would result in negative shift)
+	if (spellValue <= 0) {
+		return 0;
+	}
+	return 1ULL << (spellValue - 1);
 }
 
 } // namespace devilution

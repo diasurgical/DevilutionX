@@ -46,6 +46,9 @@ public:
 
 	static GamepadLayout getLayout(const SDL_Event &event);
 
+	/// Get the joystick instance ID for this controller
+	[[nodiscard]] SDL_JoystickID GetInstanceId() const { return instance_id_; }
+
 private:
 #ifdef USE_SDL3
 	SDL_Gamepad *sdl_game_controller_ = nullptr;

@@ -73,6 +73,7 @@
 #include "utils/sdl_compat.h"
 #include "utils/str_cat.hpp"
 
+#include "controls/local_coop/local_coop.hpp"
 #ifndef USE_SDL1
 #include "controls/touch/renderers.h"
 #endif
@@ -403,7 +404,8 @@ void DrawMonster(const Surface &out, Point tilePosition, Point targetBufferPosit
  */
 void DrawPlayerIconHelper(const Surface &out, MissileGraphicID missileGraphicId, Point position, const Player &player, bool infraVision, int lightTableIndex)
 {
-	const bool lighting = &player != MyPlayer;
+	// Local players (MyPlayer and local coop players) don't have lighting applied to their icons
+	const bool lighting = !IsLocalPlayer(player);
 
 	if (player.isWalking())
 		position += GetOffsetForWalking(player.AnimInfo, player._pdir);
@@ -464,7 +466,15 @@ uint8_t GetPlayerOutlineColor(int id)
  */
 void DrawPlayer(const Surface &out, const Player &player, Point tilePosition, Point targetBufferPosition, int lightTableIndex)
 {
-	if (!IsTileLit(tilePosition) && !MyPlayer->_pInfraFlag && !MyPlayer->isOnArenaLevel() && leveltype != DTYPE_TOWN) {
+	// For local coop players, always render them (they have their own light source)
+	// This prevents them from disappearing when walking away from Player 1's lit area
+#ifndef USE_SDL1
+	const bool isLocalCoop = IsLocalCoopEnabled() && IsLocalCoopPlayer(player);
+#else
+	const bool isLocalCoop = false;
+#endif
+
+	if (!isLocalCoop && !IsTileLit(tilePosition) && !MyPlayer->_pInfraFlag && !MyPlayer->isOnArenaLevel() && leveltype != DTYPE_TOWN) {
 		return;
 	}
 
@@ -474,7 +484,7 @@ void DrawPlayer(const Surface &out, const Player &player, Point tilePosition, Po
 	if (&player == PlayerUnderCursor)
 		ClxDrawOutlineSkipColorZero(out, GetPlayerOutlineColor(player.getId()), spriteBufferPosition, sprite);
 
-	if (&player == MyPlayer && IsNoneOf(leveltype, DTYPE_NEST, DTYPE_CRYPT)) {
+	if (IsLocalPlayer(player) && IsNoneOf(leveltype, DTYPE_NEST, DTYPE_CRYPT)) {
 		ClxDraw(out, spriteBufferPosition, sprite);
 		DrawPlayerIcons(out, player, targetBufferPosition, /*infraVision=*/false, lightTableIndex);
 		return;
@@ -524,7 +534,10 @@ void DrawObject(const Surface &out, const Object &objectToDraw, Point tilePositi
 
 	const Point screenPosition = targetBufferPosition + objectToDraw.getRenderingOffset(sprite, tilePosition);
 
-	if (&objectToDraw == ObjectUnderCursor) {
+	// Check if this object is under any player's cursor (Player 1 or local coop players)
+	const bool isHighlighted = (&objectToDraw == ObjectUnderCursor) || IsLocalCoopTargetObject(&objectToDraw);
+
+	if (isHighlighted) {
 		ClxDrawOutlineSkipColorZero(out, OutlineColorsObject, screenPosition, sprite);
 	}
 	if (objectToDraw.applyLighting) {
@@ -713,7 +726,7 @@ void DrawItem(const Surface &out, int8_t itemIndex, Point targetBufferPosition, 
 	const Item &item = Items[itemIndex];
 	const ClxSprite sprite = item.AnimInfo.currentSprite();
 	const Point position = targetBufferPosition + item.getRenderingOffset(sprite);
-	if (!IsPlayerInStore() && (itemIndex == pcursitem || AutoMapShowItems)) {
+	if (!IsPlayerInStore() && (itemIndex == pcursitem || IsLocalCoopTargetItem(itemIndex) || AutoMapShowItems)) {
 		ClxDrawOutlineSkipColorZero(out, GetOutlineColor(item, false), position, sprite);
 	}
 	ClxDrawLight(out, position, sprite, lightTableIndex);
@@ -737,7 +750,8 @@ void DrawMonsterHelper(const Surface &out, Point tilePosition, Point targetBuffe
 		auto &towner = Towners[mi];
 		const Point position = targetBufferPosition + towner.getRenderingOffset();
 		const ClxSprite sprite = towner.currentSprite();
-		if (mi == pcursmonst) {
+		// Highlight if player 1 or any local coop player is targeting this towner
+		if (mi == pcursmonst || IsLocalCoopTargetMonster(mi)) {
 			ClxDrawOutlineSkipColorZero(out, OutlineColorsTowner, position, sprite);
 		}
 		ClxDraw(out, position, sprite);
@@ -762,7 +776,8 @@ void DrawMonsterHelper(const Surface &out, Point tilePosition, Point targetBuffe
 	const Displacement offset = monster.getRenderingOffset(sprite);
 
 	const Point monsterRenderPosition = targetBufferPosition + offset;
-	if (mi == pcursmonst) {
+	// Highlight if player 1 or any local coop player is targeting this monster
+	if (mi == pcursmonst || IsLocalCoopTargetMonster(mi)) {
 		ClxDrawOutlineSkipColorZero(out, OutlineColorsMonster, monsterRenderPosition, sprite);
 	}
 	DrawMonster(out, tilePosition, monsterRenderPosition, monster, lightTableIndex);
@@ -953,8 +968,10 @@ void DrawFloor(const Surface &out, const Lightmap &lightmap, Point tilePosition,
 {
 	for (int i = 0; i < rows; i++) {
 		for (int j = 0; j < columns; j++, tilePosition += Direction::East, targetBufferPosition.x += TILE_WIDTH) {
-			if (!InDungeonBounds(tilePosition))
+			if (!InDungeonBounds(tilePosition)) {
+				world_draw_black_tile(out, targetBufferPosition.x, targetBufferPosition.y);
 				continue;
+			}
 			if (IsFloor(tilePosition)) {
 				DrawFloorTile(out, lightmap, tilePosition, targetBufferPosition);
 			}
@@ -1177,8 +1194,14 @@ void CalcFirstTilePosition(Point &position, Displacement &offset)
 	// Adjust by player offset and tile grid alignment
 	const Player &myPlayer = *MyPlayer;
 	offset = tileOffset;
-	if (myPlayer.isWalking())
+
+	// In local co-op mode, always use the coop camera offset when any coop player is initialized.
+	// When USE_SDL1, IsAnyLocalCoopPlayerInitialized() is a stub that returns false.
+	if (IsAnyLocalCoopPlayerInitialized()) {
+		offset += GetLocalCoopCameraOffset();
+	} else if (myPlayer.isWalking()) {
 		offset += GetOffsetForWalking(myPlayer.AnimInfo, myPlayer._pdir, true);
+	}
 
 	position += tileShift;
 
@@ -1195,8 +1218,29 @@ void CalcFirstTilePosition(Point &position, Displacement &offset)
 	}
 
 	// Draw areas moving in and out of the screen
-	if (myPlayer.isWalking()) {
-		switch (myPlayer._pdir) {
+	// In local co-op, we need to expand the render area if any player is walking
+	bool anyPlayerWalking = false;
+	Direction walkDir = Direction::South;
+	if (IsAnyLocalCoopPlayerInitialized()) {
+		for (size_t i = 0; i < Players.size(); ++i) {
+			const Player &player = Players[i];
+			if (player.plractive && !player.hasNoLife() && player.isWalking()) {
+				anyPlayerWalking = true;
+				walkDir = player._pdir;
+				break;
+			}
+		}
+	} else {
+		anyPlayerWalking = myPlayer.isWalking();
+		walkDir = myPlayer._pdir;
+	}
+
+	if (IsAnyLocalCoopPlayerInitialized()) {
+		offset.deltaX -= TILE_WIDTH / 2;
+		offset.deltaY -= TILE_HEIGHT / 2;
+		position += Direction::NorthWest;
+	} else if (anyPlayerWalking) {
+		switch (walkDir) {
 		case Direction::North:
 		case Direction::NorthEast:
 			offset.deltaY -= TILE_HEIGHT;
@@ -1240,9 +1284,15 @@ void DrawGame(const Surface &fullOut, Point position, Displacement offset)
 
 	UpdateMissilesRendererData();
 
-	// Draw areas moving in and out of the screen
-	if (MyPlayer->isWalking()) {
-		switch (MyPlayer->_pdir) {
+	if (IsAnyLocalCoopPlayerInitialized()) {
+		columns += 2;
+		rows += 2;
+	}
+
+	Direction expandDir = Direction::South;
+	const bool shouldExpandForWalk = IsAnyLocalPlayerWalking(expandDir);
+	if (shouldExpandForWalk) {
+		switch (expandDir) {
 		case Direction::NoDirection:
 			break;
 		case Direction::North:
@@ -1301,6 +1351,8 @@ void DrawGame(const Surface &fullOut, Point position, Displacement offset)
 	}
 #endif
 }
+
+} // namespace
 
 /**
  * @brief Start rendering of screen, town variation
@@ -1393,19 +1445,19 @@ void DrawView(const Surface &out, Point startPosition)
 	if (IsPlayerInStore() && !qtextflag)
 		DrawSText(out);
 	if (invflag) {
-		DrawInv(out);
+		WithPanelOwnerContext([&out]() { DrawInv(out); });
 	} else if (SpellbookFlag) {
-		DrawSpellBook(out);
+		WithPanelOwnerContext([&out]() { DrawSpellBook(out); });
 	}
 
 	DrawDurIcon(out);
 
 	if (CharFlag) {
-		DrawChr(out);
+		WithPanelOwnerContext([&out]() { DrawChr(out); });
 	} else if (QuestLogIsOpen) {
-		DrawQuestLog(out);
+		WithPanelOwnerContext([&out]() { DrawQuestLog(out); });
 	} else if (IsStashOpen) {
-		DrawStash(out);
+		WithPanelOwnerContext([&out]() { DrawStash(out); });
 	}
 	DrawLevelButton(out);
 	if (ShowUniqueItemInfoBox) {
@@ -1441,10 +1493,18 @@ void DrawView(const Surface &out, Point startPosition)
 	DrawPlrMsg(out);
 	gmenu_draw(out);
 	doom_draw(out);
-	DrawInfoBox(out);
+
+	const bool showMainPanelUI = !IsLocalCoopEnabled();
+	if (showMainPanelUI) {
+		DrawInfoBox(out);
+	}
+
 	UpdateLifeManaPercent(); // Update life/mana totals before rendering any portion of the flask.
-	DrawLifeFlaskUpper(out);
-	DrawManaFlaskUpper(out);
+
+	if (showMainPanelUI) {
+		DrawLifeFlaskUpper(out);
+		DrawManaFlaskUpper(out);
+	}
 }
 
 /**
@@ -1553,6 +1613,8 @@ void DrawMain(int dwHgt, bool drawDesc, bool drawHp, bool drawMana, bool drawSba
 		}
 	}
 }
+
+namespace {
 
 void OptionShowFPSChanged()
 {
@@ -1861,34 +1923,46 @@ void DrawAndBlit()
 	nthread_UpdateProgressToNextGameTick();
 
 	DrawView(out, ViewPosition);
-	if (drawCtrlPan) {
-		DrawMainPanel(out);
-	}
-	if (drawHealth) {
-		DrawLifeFlaskLower(out, !drawCtrlPan);
-	}
-	if (drawMana) {
-		DrawManaFlaskLower(out, !drawCtrlPan);
 
-		DrawSpell(out);
+	// When local co-op is enabled AND at least one other player has spawned,
+	// hide the main panel UI and use corner HUDs instead.
+	const bool hideMainPanelForLocalCoop = ShouldHideMainPanelForLocalCoop();
+
+	if (!hideMainPanelForLocalCoop) {
+		if (drawCtrlPan) {
+			DrawMainPanel(out);
+		}
+		if (drawHealth) {
+			DrawLifeFlaskLower(out, !drawCtrlPan);
+		}
+		if (drawMana) {
+			DrawManaFlaskLower(out, !drawCtrlPan);
+			DrawSpell(out);
+		}
+		if (drawControlButtons) {
+			DrawMainPanelButtons(out);
+		}
+		if (drawBelt) {
+			DrawInvBelt(out);
+		}
+		if (drawChatInput) {
+			DrawChatBox(out);
+		}
+		DrawXPBar(out);
+		if (*GetOptions().Gameplay.showHealthValues)
+			DrawFlaskValues(out, { mainPanel.position.x + 134, mainPanel.position.y + 28 }, MyPlayer->_pHitPoints >> 6, MyPlayer->_pMaxHP >> 6);
+		if (*GetOptions().Gameplay.showManaValues)
+			DrawFlaskValues(out, { mainPanel.position.x + mainPanel.size.width - 138, mainPanel.position.y + 28 },
+			    (HasAnyOf(InspectPlayer->_pIFlags, ItemSpecialEffect::NoMana) || (MyPlayer->_pMana >> 6) <= 0) ? 0 : MyPlayer->_pMana >> 6,
+			    HasAnyOf(InspectPlayer->_pIFlags, ItemSpecialEffect::NoMana) ? 0 : MyPlayer->_pMaxMana >> 6);
 	}
-	if (drawControlButtons) {
-		DrawMainPanelButtons(out);
-	}
-	if (drawBelt) {
-		DrawInvBelt(out);
-	}
-	if (drawChatInput) {
-		DrawChatBox(out);
-	}
-	DrawXPBar(out);
-	if (*GetOptions().Gameplay.showHealthValues)
-		DrawFlaskValues(out, { mainPanel.position.x + 134, mainPanel.position.y + 28 }, MyPlayer->_pHitPoints >> 6, MyPlayer->_pMaxHP >> 6);
-	if (*GetOptions().Gameplay.showManaValues)
-		DrawFlaskValues(out, { mainPanel.position.x + mainPanel.size.width - 138, mainPanel.position.y + 28 },
-		    (HasAnyOf(InspectPlayer->_pIFlags, ItemSpecialEffect::NoMana) || MyPlayer->hasNoMana()) ? 0 : MyPlayer->_pMana >> 6,
-		    HasAnyOf(InspectPlayer->_pIFlags, ItemSpecialEffect::NoMana) ? 0 : MyPlayer->_pMaxMana >> 6);
-	if (*GetOptions().Gameplay.floatingInfoBox)
+
+	DrawLocalCoopPlayerHUD(out);
+	DrawLocalCoopCharacterSelect(out);
+
+	// Draw floating info box (always draw when local co-op is active, otherwise check option)
+	// This must be drawn AFTER local coop HUD so it appears on top
+	if (hideMainPanelForLocalCoop || *GetOptions().Gameplay.floatingInfoBox)
 		DrawFloatingInfoBox(out);
 
 	if (*GetOptions().Gameplay.showMultiplayerPartyInfo && PartySidePanelOpen)
