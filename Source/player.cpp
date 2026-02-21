@@ -961,45 +961,32 @@ bool DoBlock(Player &player)
 	return false;
 }
 
-void DamageArmor(Player &player)
+void DamageArmor(Player &player, int numDurLost)
 {
-	if (&player != MyPlayer) {
+	if (&player != MyPlayer)
 		return;
-	}
 
-	if (player.InvBody[INVLOC_CHEST].isEmpty() && player.InvBody[INVLOC_HEAD].isEmpty()) {
+	Item &armor = player.InvBody[INVLOC_CHEST];
+	Item &helmet = player.InvBody[INVLOC_HEAD];
+
+	if (armor.isEmpty() && helmet.isEmpty())
 		return;
-	}
 
-	bool targetHead = FlipCoin(3);
-	if (!player.InvBody[INVLOC_CHEST].isEmpty() && player.InvBody[INVLOC_HEAD].isEmpty()) {
-		targetHead = false;
-	}
-	if (player.InvBody[INVLOC_CHEST].isEmpty() && !player.InvBody[INVLOC_HEAD].isEmpty()) {
-		targetHead = true;
-	}
+	const bool coin = FlipCoin(3);
+	const bool targetHelmet = armor.isEmpty() ? true : helmet.isEmpty() ? false
+	                                                                    : coin;
+	int slot = targetHelmet ? INVLOC_HEAD : INVLOC_CHEST;
+	Item &item = player.InvBody[slot];
 
-	Item *pi;
-	if (targetHead) {
-		pi = &player.InvBody[INVLOC_HEAD];
-	} else {
-		pi = &player.InvBody[INVLOC_CHEST];
-	}
-	if (pi->_iDurability == DUR_INDESTRUCTIBLE) {
+	if (item._iMaxDur == DUR_INDESTRUCTIBLE)
 		return;
-	}
 
-	pi->_iDurability--;
-	if (pi->_iDurability != 0) {
-		return;
-	}
+	item._iDurability -= numDurLost;
 
-	if (targetHead) {
-		RemoveEquipment(player, INVLOC_HEAD, true);
-	} else {
-		RemoveEquipment(player, INVLOC_CHEST, true);
+	if (item._iDurability <= 0) {
+		RemoveEquipment(player, static_cast<inv_body_loc>(slot), true);
+		CalcPlrInv(player, true);
 	}
-	CalcPlrInv(player, true);
 }
 
 bool DoSpell(Player &player)
@@ -1032,7 +1019,7 @@ bool DoGotHit(Player &player)
 		StartStand(player, player._pdir);
 		ClearStateVariables(player);
 		if (!FlipCoin(4)) {
-			DamageArmor(player);
+			DamageArmor(player, 1);
 		}
 
 		return true;
