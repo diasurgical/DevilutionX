@@ -245,8 +245,6 @@ bool ProcessInput()
 
 void LeftMouseCmd(bool bShift)
 {
-	bool bNear;
-
 	assert(!GetMainPanel().contains(MousePosition));
 
 	if (leveltype == DTYPE_TOWN) {
@@ -264,17 +262,14 @@ void LeftMouseCmd(bool bShift)
 	}
 
 	const Player &myPlayer = *MyPlayer;
-	bNear = myPlayer.position.tile.WalkingDistance(cursPosition) < 2;
+	bool bNear = myPlayer.position.tile.WalkingDistance(cursPosition) < 2;
 	if (pcursitem != -1 && pcurs == CURSOR_HAND && !bShift) {
 		NetSendCmdLocParam1(true, invflag ? CMD_GOTOGETITEM : CMD_GOTOAGETITEM, cursPosition, pcursitem);
 	} else if (ObjectUnderCursor != nullptr && !ObjectUnderCursor->IsDisabled() && (!bShift || (bNear && ObjectUnderCursor->_oBreak == 1))) {
 		LastPlayerAction = PlayerActionType::OperateObject;
 		NetSendCmdLoc(MyPlayerId, true, pcurs == CURSOR_DISARM ? CMD_DISARMXY : CMD_OPOBJXY, cursPosition);
 	} else if (myPlayer.UsesRangedWeapon()) {
-		if (bShift) {
-			LastPlayerAction = PlayerActionType::Attack;
-			NetSendCmdLoc(MyPlayerId, true, CMD_RATTACKXY, cursPosition);
-		} else if (pcursmonst != -1) {
+		if (pcursmonst != -1) {
 			if (CanTalkToMonst(Monsters[pcursmonst])) {
 				NetSendCmdParam1(true, CMD_ATTACKID, pcursmonst);
 			} else {
@@ -284,20 +279,18 @@ void LeftMouseCmd(bool bShift)
 		} else if (PlayerUnderCursor != nullptr && !PlayerUnderCursor->hasNoLife() && !myPlayer.friendlyMode) {
 			LastPlayerAction = PlayerActionType::AttackPlayerTarget;
 			NetSendCmdParam1(true, CMD_RATTACKPID, PlayerUnderCursor->getId());
+		} else if (bShift) {
+			LastPlayerAction = PlayerActionType::Attack;
+			NetSendCmdLoc(MyPlayerId, true, CMD_RATTACKXY, cursPosition);
 		}
 	} else {
-		if (bShift) {
-			if (pcursmonst != -1) {
-				if (CanTalkToMonst(Monsters[pcursmonst])) {
-					NetSendCmdParam1(true, CMD_ATTACKID, pcursmonst);
-				} else {
-					LastPlayerAction = PlayerActionType::Attack;
-					NetSendCmdLoc(MyPlayerId, true, CMD_SATTACKXY, cursPosition);
-				}
-			} else {
-				LastPlayerAction = PlayerActionType::Attack;
-				NetSendCmdLoc(MyPlayerId, true, CMD_SATTACKXY, cursPosition);
+		if (bShift && !(bNear && (pcursmonst != -1 || PlayerUnderCursor != nullptr))) {
+			if (pcursmonst != -1 && CanTalkToMonst(Monsters[pcursmonst])) {
+				NetSendCmdParam1(true, CMD_ATTACKID, pcursmonst);
+				return;
 			}
+			LastPlayerAction = PlayerActionType::Attack;
+			NetSendCmdLoc(MyPlayerId, true, CMD_SATTACKXY, cursPosition);
 		} else if (pcursmonst != -1) {
 			LastPlayerAction = PlayerActionType::AttackMonsterTarget;
 			NetSendCmdParam1(true, CMD_ATTACKID, pcursmonst);
