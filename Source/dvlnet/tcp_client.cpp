@@ -214,6 +214,8 @@ void tcp_client::HandleTcpErrorCode()
 	PacketError::ErrorCode code = static_cast<PacketError::ErrorCode>(pktData[0]);
 	if (code == PacketError::ErrorCode::DecryptionFailed)
 		RaiseIoHandlerError(_("Server failed to decrypt your packet. Check if you typed the password correctly."));
+	else if (code == PacketError::ErrorCode::ModMismatch)
+		RaiseIoHandlerError(_("The host is using a different set of mods."));
 	else
 		RaiseIoHandlerError(fmt::format("Unknown error code received from server: {:#04x}", pktData[0]));
 }
