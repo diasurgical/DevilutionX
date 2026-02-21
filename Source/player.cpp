@@ -2890,11 +2890,7 @@ void RemovePlrMissiles(const Player &player)
 	}
 }
 
-#if defined(__clang__) || defined(__GNUC__)
-__attribute__((no_sanitize("shift-base")))
-#endif
-void
-StartNewLvl(Player &player, interface_mode fom, int lvl)
+void StartNewLvl(Player &player, interface_mode fom, int lvl)
 {
 	InitLevelChange(player);
 
@@ -2910,10 +2906,14 @@ StartNewLvl(Player &player, interface_mode fom, int lvl)
 			setlvlnum = (_setlevels)lvl;
 		player.setLevel(setlvlnum);
 		break;
-	case WM_DIABTWARPUP:
-		MyPlayer->pTownWarps |= 1 << (leveltype - 2);
+	case WM_DIABTWARPUP: {
+		assert(leveltype >= DTYPE_CATACOMBS && leveltype <= DTYPE_HELL);
+		const unsigned warpIndex = static_cast<unsigned>(leveltype - 2);
+		const uint8_t warpMask = static_cast<uint8_t>(1u << warpIndex);
+		MyPlayer->pTownWarps |= warpMask;
 		player.setLevel(lvl);
 		break;
+	}
 	case WM_DIABRETOWN:
 		break;
 	default:
