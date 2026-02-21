@@ -35,6 +35,7 @@
 #include "utils/language.h"
 #include "utils/log.hpp"
 #include "utils/str_cat.hpp"
+#include "utils/unicode-bidi.hpp"
 #include "utils/utf8.hpp"
 
 namespace devilution {
@@ -453,14 +454,16 @@ void DrawLine(
 {
 	CurrentFont currentFont;
 
-	std::string_view lineCopy = text;
+	std::string visualText = ConvertLogicalToVisual(text);
+	std::string_view lineCopy = visualText;
+	assert(visualText.size() == text.size());
 
-	size_t currentPos = 0;
+	size_t visualPos = 0;
 
 	size_t cpLen;
 
 	const auto maybeDrawCursor = [&]() {
-		const auto byteIndex = static_cast<int>(lineStartPos + currentPos);
+		const auto byteIndex = static_cast<int>(lineStartPos + visualPos);
 		Point position = characterPosition;
 		if (opts.cursorPosition == byteIndex) {
 			if (GetAnimationFrame(2, 500) != 0 || opts.cursorStatic) {
@@ -482,7 +485,7 @@ void DrawLine(
 		char32_t c = DecodeFirstUtf8CodePoint(lineCopy, &cpLen);
 		if (c == Utf8DecodeError) break;
 		if (c == ZWSP) {
-			currentPos += cpLen;
+			visualPos += cpLen;
 			lineCopy.remove_prefix(cpLen);
 			continue;
 		}
@@ -498,7 +501,9 @@ void DrawLine(
 		const ClxSprite glyph = currentFont.glyph(frame);
 		const int charWidth = glyph.width();
 
-		const auto byteIndex = static_cast<int>(lineStartPos + currentPos);
+		// Get the logical position for this character
+		int logicalPos = ConvertVisualToLogicalPosition(text, visualPos);
+		const auto byteIndex = static_cast<int>(lineStartPos + logicalPos);
 
 		// Draw highlight
 		if (byteIndex >= opts.highlightRange.begin && byteIndex < opts.highlightRange.end) {
@@ -513,10 +518,10 @@ void DrawLine(
 
 		// Move to the next position
 		characterPosition.x += charWidth + curSpacing;
-		currentPos += cpLen;
+		visualPos += cpLen;
 		lineCopy.remove_prefix(cpLen);
 	}
-	assert(currentPos == text.size());
+	assert(visualPos == visualText.size());
 	maybeDrawCursor();
 }
 

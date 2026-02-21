@@ -732,6 +732,7 @@ target_link_dependencies(libdevilutionx_txtdata PUBLIC
 )
 
 add_devilutionx_object_library(libdevilutionx_utf8
+  utils/unicode-bidi.cpp
   utils/utf8.cpp
 )
 target_link_dependencies(libdevilutionx_utf8 PRIVATE
