@@ -48,7 +48,7 @@
 #include "controls/touch/renderers.h"
 #endif
 
-#ifdef __DJGPP__
+#if defined(__DJGPP__) || defined(__EMSCRIPTEN__)
 #define LOAD_ON_MAIN_THREAD
 #endif
 
