@@ -1409,7 +1409,9 @@ void DrawView(const Surface &out, Point startPosition)
 	}
 	DrawLevelButton(out);
 	if (ShowUniqueItemInfoBox) {
-		DrawUniqueInfo(out);
+		LuaEvent("BeforeUniqueInfoBoxDraw");
+		if (ShowUniqueItemInfoBox)
+			DrawUniqueInfo(out);
 	}
 	if (qtextflag) {
 		DrawQText(out);
