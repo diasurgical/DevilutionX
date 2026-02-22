@@ -18,7 +18,7 @@ tcp_server::tcp_server(asio::io_context &ioc, const std::string &bindaddr,
     : ioc(ioc)
     , pktfty(pktfty)
 {
-	auto addr = asio::ip::address::from_string(bindaddr);
+	auto addr = asio::ip::make_address(bindaddr);
 	auto ep = asio::ip::tcp::endpoint(addr, port);
 	acceptor = std::make_unique<asio::ip::tcp::acceptor>(ioc, ep, true);
 	StartAccept();
