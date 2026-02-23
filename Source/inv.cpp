@@ -558,68 +558,6 @@ item_equip_type GetItemEquipType(const Player &player, int slot, item_equip_type
 	return ILOC_UNEQUIPABLE;
 }
 
-void CheckInvPaste(Player &player, Point cursorPosition)
-{
-	const Size itemSize = GetInventorySize(player.HoldItem);
-
-	const int slot = FindTargetSlotUnderItemCursor(cursorPosition, itemSize);
-	if (slot == NUM_XY_SLOTS)
-		return;
-
-	const item_equip_type desiredLocation = player.GetItemLocation(player.HoldItem);
-	const item_equip_type location = GetItemEquipType(player, slot, desiredLocation);
-
-	if (location == ILOC_BELT) {
-		if (!CanBePlacedOnBelt(player, player.HoldItem)) return;
-	} else if (location != ILOC_UNEQUIPABLE) {
-		if (desiredLocation != location) return;
-	}
-
-	if (IsNoneOf(location, ILOC_UNEQUIPABLE, ILOC_BELT)) {
-		if (!player.CanUseItem(player.HoldItem)) {
-			player.Say(HeroSpeech::ICantUseThisYet);
-			return;
-		}
-		if (player._pmode > PM_WALK_SIDEWAYS)
-			return;
-	}
-
-	if (&player == MyPlayer) {
-		PlaySFX(ItemInvSnds[ItemCAnimTbl[player.HoldItem._iCurs]]);
-	}
-
-	// Select the parameters that go into
-	// ChangeEquipment and add it to post switch
-	switch (location) {
-	case ILOC_HELM:
-	case ILOC_RING:
-	case ILOC_AMULET:
-	case ILOC_ARMOR:
-		ChangeBodyEquipment(player, slot, location);
-		break;
-	case ILOC_ONEHAND:
-		ChangeEquippedItem(player, slot);
-		break;
-	case ILOC_TWOHAND:
-		ChangeTwoHandItem(player);
-		break;
-	case ILOC_UNEQUIPABLE:
-		if (!ChangeInvItem(player, slot, itemSize)) return;
-		break;
-	case ILOC_BELT:
-		ChangeBeltItem(player, slot);
-		break;
-	case ILOC_NONE:
-	case ILOC_INVALID:
-		break;
-	}
-
-	CalcPlrInv(player, true);
-	if (&player == MyPlayer) {
-		NewCursor(player.HoldItem);
-	}
-}
-
 inv_body_loc MapSlotToInvBodyLoc(inv_xy_slot slot)
 {
 	assert(slot <= SLOTXY_CHEST);
@@ -744,215 +682,6 @@ std::optional<int> FindSlotForItem(const Player &player, const Size &itemSize, i
 bool CouldFitItemInInventory(const Player &player, const Item &item, int itemIndexToIgnore)
 {
 	return static_cast<bool>(FindSlotForItem(player, GetInventorySize(item), itemIndexToIgnore));
-}
-
-void CheckInvCut(Player &player, Point cursorPosition, bool automaticMove, bool dropItem)
-{
-	if (player._pmode > PM_WALK_SIDEWAYS) {
-		return;
-	}
-
-	CloseGoldDrop();
-
-	std::optional<inv_xy_slot> maybeSlot = FindSlotUnderCursor(cursorPosition);
-
-	if (!maybeSlot) {
-		// not on an inventory slot rectangle
-		return;
-	}
-
-	const inv_xy_slot r = *maybeSlot;
-
-	Item &holdItem = player.HoldItem;
-	holdItem.clear();
-
-	bool attemptedMove = false;
-	bool automaticallyMoved = false;
-	SfxID successSound = SfxID::None;
-	HeroSpeech failedSpeech = HeroSpeech::ICantDoThat; // Default message if the player attempts to automove an item that can't go anywhere else
-
-	if (r >= SLOTXY_HEAD && r <= SLOTXY_CHEST) {
-		const inv_body_loc invloc = MapSlotToInvBodyLoc(r);
-		if (!player.InvBody[invloc].isEmpty()) {
-			if (automaticMove) {
-				attemptedMove = true;
-				automaticallyMoved = AutoPlaceItemInInventory(player, player.InvBody[invloc]);
-				if (automaticallyMoved) {
-					successSound = ItemInvSnds[ItemCAnimTbl[player.InvBody[invloc]._iCurs]];
-					RemoveEquipment(player, invloc, false);
-				} else {
-					failedSpeech = HeroSpeech::IHaveNoRoom;
-				}
-			} else {
-				holdItem = player.InvBody[invloc];
-				RemoveEquipment(player, invloc, false);
-			}
-		}
-	}
-
-	if (r >= SLOTXY_INV_FIRST && r <= SLOTXY_INV_LAST) {
-		const unsigned ig = r - SLOTXY_INV_FIRST;
-		const int iv = std::abs(player.InvGrid[ig]) - 1;
-		if (iv >= 0) {
-			if (automaticMove) {
-				attemptedMove = true;
-				if (CanBePlacedOnBelt(player, player.InvList[iv])) {
-					automaticallyMoved = AutoPlaceItemInBelt(player, player.InvList[iv], true, &player == MyPlayer);
-					if (automaticallyMoved) {
-						successSound = SfxID::GrabItem;
-						player.RemoveInvItem(iv, false);
-					} else {
-						failedSpeech = HeroSpeech::IHaveNoRoom;
-					}
-				} else if (CanEquip(player.InvList[iv])) {
-					failedSpeech = HeroSpeech::IHaveNoRoom; // Default to saying "I have no room" if auto-equip fails
-
-					/*
-					 * If the player shift-clicks an item in the inventory we want to swap it with whatever item may be
-					 * equipped in the target slot. Lifting the item to the hand unconditionally would be ideal, except
-					 * we don't want to leave the item on the hand if the equip attempt failed. We would end up
-					 * generating wasteful network messages if we did the lift first. Instead we work out whatever slot
-					 * needs to be unequipped (if any):
-					 */
-					int invloc = NUM_INVLOC;
-					switch (player.GetItemLocation(player.InvList[iv])) {
-					case ILOC_ARMOR:
-						invloc = INVLOC_CHEST;
-						break;
-					case ILOC_HELM:
-						invloc = INVLOC_HEAD;
-						break;
-					case ILOC_AMULET:
-						invloc = INVLOC_AMULET;
-						break;
-					case ILOC_ONEHAND:
-						if (!player.InvBody[INVLOC_HAND_LEFT].isEmpty()
-						    && (player.InvList[iv]._iClass == player.InvBody[INVLOC_HAND_LEFT]._iClass
-						        || player.GetItemLocation(player.InvBody[INVLOC_HAND_LEFT]) == ILOC_TWOHAND)) {
-							// The left hand is not empty and we're either trying to equip the same type of item or
-							// it's holding a two handed weapon, so it must be unequipped
-							invloc = INVLOC_HAND_LEFT;
-						} else if (!player.InvBody[INVLOC_HAND_RIGHT].isEmpty() && player.InvList[iv]._iClass == player.InvBody[INVLOC_HAND_RIGHT]._iClass) {
-							// The right hand is not empty and we're trying to equip the same type of item, so we need
-							// to unequip that item
-							invloc = INVLOC_HAND_RIGHT;
-						}
-						// otherwise one hand is empty (and we can let the auto-equip code put the target item into
-						// that hand) or we're playing a bard with two swords equipped and we're trying to auto-equip
-						// a shield (in which case the attempt will fail).
-						break;
-					case ILOC_TWOHAND:
-						// Moving a two-hand item from inventory to InvBody requires emptying both hands.
-						if (player.InvBody[INVLOC_HAND_RIGHT].isEmpty()) {
-							// If the right hand is empty then we can simply try equipping this item in the left hand,
-							// we'll let the common code take care of unequipping anything held there.
-							invloc = INVLOC_HAND_LEFT;
-						} else if (player.InvBody[INVLOC_HAND_LEFT].isEmpty()) {
-							// We have an item in the right hand but nothing in the left, so let the common code
-							// take care of unequipping whatever is held in the right hand. The auto-equip code
-							// picks the most appropriate location for the item type (which in this case will be
-							// the left hand), invloc isn't used there.
-							invloc = INVLOC_HAND_RIGHT;
-						} else {
-							// Both hands are holding items, we must unequip one of the items and check that there's
-							// space for the other before trying to auto-equip
-							inv_body_loc mainHand = INVLOC_HAND_LEFT;
-							inv_body_loc offHand = INVLOC_HAND_RIGHT;
-							if (!AutoPlaceItemInInventory(player, player.InvBody[offHand])) {
-								// No space to move right hand item to inventory, can we move the left instead?
-								std::swap(mainHand, offHand);
-								if (!AutoPlaceItemInInventory(player, player.InvBody[offHand])) {
-									break;
-								}
-							}
-							if (!CouldFitItemInInventory(player, player.InvBody[mainHand], iv)) {
-								// No space for the main hand item. Move the other item back to the off hand and abort.
-								player.InvBody[offHand] = player.InvList[player._pNumInv - 1];
-								player.RemoveInvItem(player._pNumInv - 1, false);
-								break;
-							}
-							RemoveEquipment(player, offHand, false);
-							invloc = mainHand;
-						}
-						break;
-					default:
-						// If the player is trying to equip a ring we want to say "I can't do that" if they don't already have a ring slot free.
-						failedSpeech = HeroSpeech::ICantDoThat;
-						break;
-					}
-					// Then empty the identified InvBody slot (invloc) and hand over to AutoEquip
-					if (invloc != NUM_INVLOC
-					    && !player.InvBody[invloc].isEmpty()
-					    && CouldFitItemInInventory(player, player.InvBody[invloc], iv)) {
-						holdItem = player.InvBody[invloc].pop();
-					}
-					automaticallyMoved = AutoEquip(player, player.InvList[iv], true, &player == MyPlayer);
-					if (automaticallyMoved) {
-						successSound = ItemInvSnds[ItemCAnimTbl[player.InvList[iv]._iCurs]];
-						player.RemoveInvItem(iv, false);
-
-						// If we're holding an item at this point we just lifted it from a body slot to make room for the original item, so we need to put it into the inv
-						if (!holdItem.isEmpty() && AutoPlaceItemInInventory(player, holdItem)) {
-							holdItem.clear();
-						} // there should never be a situation where holdItem is not empty but we fail to place it into the inventory given the checks earlier... leave it on the hand in this case.
-					} else if (!holdItem.isEmpty()) {
-						// We somehow failed to equip the item in the slot we already checked should hold it? Better put this item back...
-						player.InvBody[invloc] = holdItem.pop();
-					}
-				}
-			} else {
-				holdItem = player.InvList[iv];
-				player.RemoveInvItem(iv, false);
-			}
-		}
-	}
-
-	if (r >= SLOTXY_BELT_FIRST) {
-		const Item &beltItem = player.SpdList[r - SLOTXY_BELT_FIRST];
-		if (!beltItem.isEmpty()) {
-			if (automaticMove) {
-				attemptedMove = true;
-				automaticallyMoved = AutoPlaceItemInInventory(player, beltItem);
-				if (automaticallyMoved) {
-					successSound = SfxID::GrabItem;
-					player.RemoveSpdBarItem(r - SLOTXY_BELT_FIRST);
-				} else {
-					failedSpeech = HeroSpeech::IHaveNoRoom;
-				}
-			} else {
-				holdItem = beltItem;
-				player.RemoveSpdBarItem(r - SLOTXY_BELT_FIRST);
-			}
-		}
-	}
-
-	if (!holdItem.isEmpty()) {
-		if (holdItem._itype == ItemType::Gold) {
-			player._pGold = CalculateGold(player);
-		}
-
-		CalcPlrInv(player, true);
-		holdItem._iStatFlag = player.CanUseItem(holdItem);
-
-		if (&player == MyPlayer) {
-			PlaySFX(SfxID::GrabItem);
-			NewCursor(holdItem);
-		}
-		if (dropItem) {
-			TryDropItem();
-		}
-	} else if (automaticMove) {
-		if (automaticallyMoved) {
-			CalcPlrInv(player, true);
-		}
-		if (attemptedMove && &player == MyPlayer) {
-			if (automaticallyMoved) {
-				PlaySFX(successSound);
-			} else {
-				player.SaySpecific(failedSpeech);
-			}
-		}
-	}
 }
 
 void TryCombineNaKrulNotes(Player &player, Item &noteItem)
@@ -2274,6 +2003,277 @@ Size GetInventorySize(const Item &item)
 	const Size size = GetInvItemSize(item._iCurs + CURSOR_FIRSTITEM);
 
 	return { size.width / InventorySlotSizeInPixels.width, size.height / InventorySlotSizeInPixels.height };
+}
+
+void CheckInvCut(Player &player, Point cursorPosition, bool automaticMove, bool dropItem)
+{
+	if (player._pmode > PM_WALK_SIDEWAYS) {
+		return;
+	}
+
+	CloseGoldDrop();
+
+	std::optional<inv_xy_slot> maybeSlot = FindSlotUnderCursor(cursorPosition);
+
+	if (!maybeSlot) {
+		// not on an inventory slot rectangle
+		return;
+	}
+
+	inv_xy_slot r = *maybeSlot;
+
+	Item &holdItem = player.HoldItem;
+	holdItem.clear();
+
+	bool attemptedMove = false;
+	bool automaticallyMoved = false;
+	SfxID successSound = SfxID::None;
+	HeroSpeech failedSpeech = HeroSpeech::ICantDoThat; // Default message if the player attempts to automove an item that can't go anywhere else
+
+	if (r >= SLOTXY_HEAD && r <= SLOTXY_CHEST) {
+		inv_body_loc invloc = MapSlotToInvBodyLoc(r);
+		if (!player.InvBody[invloc].isEmpty()) {
+			if (automaticMove) {
+				attemptedMove = true;
+				automaticallyMoved = AutoPlaceItemInInventory(player, player.InvBody[invloc]);
+				if (automaticallyMoved) {
+					successSound = ItemInvSnds[ItemCAnimTbl[player.InvBody[invloc]._iCurs]];
+					RemoveEquipment(player, invloc, false);
+				} else {
+					failedSpeech = HeroSpeech::IHaveNoRoom;
+				}
+			} else {
+				holdItem = player.InvBody[invloc];
+				RemoveEquipment(player, invloc, false);
+			}
+		}
+	}
+
+	if (r >= SLOTXY_INV_FIRST && r <= SLOTXY_INV_LAST) {
+		unsigned ig = r - SLOTXY_INV_FIRST;
+		int iv = std::abs(player.InvGrid[ig]) - 1;
+		if (iv >= 0) {
+			if (automaticMove) {
+				attemptedMove = true;
+				if (CanBePlacedOnBelt(player, player.InvList[iv])) {
+					automaticallyMoved = AutoPlaceItemInBelt(player, player.InvList[iv], true, &player == MyPlayer);
+					if (automaticallyMoved) {
+						successSound = SfxID::GrabItem;
+						player.RemoveInvItem(iv, false);
+					} else {
+						failedSpeech = HeroSpeech::IHaveNoRoom;
+					}
+				} else if (CanEquip(player.InvList[iv])) {
+					failedSpeech = HeroSpeech::IHaveNoRoom; // Default to saying "I have no room" if auto-equip fails
+
+					/*
+					 * If the player shift-clicks an item in the inventory we want to swap it with whatever item may be
+					 * equipped in the target slot. Lifting the item to the hand unconditionally would be ideal, except
+					 * we don't want to leave the item on the hand if the equip attempt failed. We would end up
+					 * generating wasteful network messages if we did the lift first. Instead we work out whatever slot
+					 * needs to be unequipped (if any):
+					 */
+					int invloc = NUM_INVLOC;
+					switch (player.GetItemLocation(player.InvList[iv])) {
+					case ILOC_ARMOR:
+						invloc = INVLOC_CHEST;
+						break;
+					case ILOC_HELM:
+						invloc = INVLOC_HEAD;
+						break;
+					case ILOC_AMULET:
+						invloc = INVLOC_AMULET;
+						break;
+					case ILOC_ONEHAND:
+						if (!player.InvBody[INVLOC_HAND_LEFT].isEmpty()
+						    && (player.InvList[iv]._iClass == player.InvBody[INVLOC_HAND_LEFT]._iClass
+						        || player.GetItemLocation(player.InvBody[INVLOC_HAND_LEFT]) == ILOC_TWOHAND)) {
+							// The left hand is not empty and we're either trying to equip the same type of item or
+							// it's holding a two handed weapon, so it must be unequipped
+							invloc = INVLOC_HAND_LEFT;
+						} else if (!player.InvBody[INVLOC_HAND_RIGHT].isEmpty() && player.InvList[iv]._iClass == player.InvBody[INVLOC_HAND_RIGHT]._iClass) {
+							// The right hand is not empty and we're trying to equip the same type of item, so we need
+							// to unequip that item
+							invloc = INVLOC_HAND_RIGHT;
+						}
+						// otherwise one hand is empty (and we can let the auto-equip code put the target item into
+						// that hand) or we're playing a bard with two swords equipped and we're trying to auto-equip
+						// a shield (in which case the attempt will fail).
+						break;
+					case ILOC_TWOHAND:
+						// Moving a two-hand item from inventory to InvBody requires emptying both hands.
+						if (player.InvBody[INVLOC_HAND_RIGHT].isEmpty()) {
+							// If the right hand is empty then we can simply try equipping this item in the left hand,
+							// we'll let the common code take care of unequipping anything held there.
+							invloc = INVLOC_HAND_LEFT;
+						} else if (player.InvBody[INVLOC_HAND_LEFT].isEmpty()) {
+							// We have an item in the right hand but nothing in the left, so let the common code
+							// take care of unequipping whatever is held in the right hand. The auto-equip code
+							// picks the most appropriate location for the item type (which in this case will be
+							// the left hand), invloc isn't used there.
+							invloc = INVLOC_HAND_RIGHT;
+						} else {
+							// Both hands are holding items, we must unequip one of the items and check that there's
+							// space for the other before trying to auto-equip
+							inv_body_loc mainHand = INVLOC_HAND_LEFT;
+							inv_body_loc offHand = INVLOC_HAND_RIGHT;
+							if (!AutoPlaceItemInInventory(player, player.InvBody[offHand])) {
+								// No space to move right hand item to inventory, can we move the left instead?
+								std::swap(mainHand, offHand);
+								if (!AutoPlaceItemInInventory(player, player.InvBody[offHand])) {
+									break;
+								}
+							}
+							if (!CouldFitItemInInventory(player, player.InvBody[mainHand], iv)) {
+								// No space for the main hand item. Move the other item back to the off hand and abort.
+								player.InvBody[offHand] = player.InvList[player._pNumInv - 1];
+								player.RemoveInvItem(player._pNumInv - 1, false);
+								break;
+							}
+							RemoveEquipment(player, offHand, false);
+							invloc = mainHand;
+						}
+						break;
+					default:
+						// If the player is trying to equip a ring we want to say "I can't do that" if they don't already have a ring slot free.
+						failedSpeech = HeroSpeech::ICantDoThat;
+						break;
+					}
+					// Then empty the identified InvBody slot (invloc) and hand over to AutoEquip
+					if (invloc != NUM_INVLOC
+					    && !player.InvBody[invloc].isEmpty()
+					    && CouldFitItemInInventory(player, player.InvBody[invloc], iv)) {
+						holdItem = player.InvBody[invloc].pop();
+					}
+					automaticallyMoved = AutoEquip(player, player.InvList[iv], true, &player == MyPlayer);
+					if (automaticallyMoved) {
+						successSound = ItemInvSnds[ItemCAnimTbl[player.InvList[iv]._iCurs]];
+						player.RemoveInvItem(iv, false);
+
+						// If we're holding an item at this point we just lifted it from a body slot to make room for the original item, so we need to put it into the inv
+						if (!holdItem.isEmpty() && AutoPlaceItemInInventory(player, holdItem)) {
+							holdItem.clear();
+						} // there should never be a situation where holdItem is not empty but we fail to place it into the inventory given the checks earlier... leave it on the hand in this case.
+					} else if (!holdItem.isEmpty()) {
+						// We somehow failed to equip the item in the slot we already checked should hold it? Better put this item back...
+						player.InvBody[invloc] = holdItem.pop();
+					}
+				}
+			} else {
+				holdItem = player.InvList[iv];
+				player.RemoveInvItem(iv, false);
+			}
+		}
+	}
+
+	if (r >= SLOTXY_BELT_FIRST) {
+		Item &beltItem = player.SpdList[r - SLOTXY_BELT_FIRST];
+		if (!beltItem.isEmpty()) {
+			if (automaticMove) {
+				attemptedMove = true;
+				automaticallyMoved = AutoPlaceItemInInventory(player, beltItem);
+				if (automaticallyMoved) {
+					successSound = SfxID::GrabItem;
+					player.RemoveSpdBarItem(r - SLOTXY_BELT_FIRST);
+				} else {
+					failedSpeech = HeroSpeech::IHaveNoRoom;
+				}
+			} else {
+				holdItem = beltItem;
+				player.RemoveSpdBarItem(r - SLOTXY_BELT_FIRST);
+			}
+		}
+	}
+
+	if (!holdItem.isEmpty()) {
+		if (holdItem._itype == ItemType::Gold) {
+			player._pGold = CalculateGold(player);
+		}
+
+		CalcPlrInv(player, true);
+		holdItem._iStatFlag = player.CanUseItem(holdItem);
+
+		if (&player == MyPlayer) {
+			PlaySFX(SfxID::GrabItem);
+			NewCursor(holdItem);
+		}
+		if (dropItem) {
+			TryDropItem();
+		}
+	} else if (automaticMove) {
+		if (automaticallyMoved) {
+			CalcPlrInv(player, true);
+		}
+		if (attemptedMove && &player == MyPlayer) {
+			if (automaticallyMoved) {
+				PlaySFX(successSound);
+			} else {
+				player.SaySpecific(failedSpeech);
+			}
+		}
+	}
+}
+
+void CheckInvPaste(Player &player, Point cursorPosition)
+{
+	const Size itemSize = GetInventorySize(player.HoldItem);
+
+	const int slot = FindTargetSlotUnderItemCursor(cursorPosition, itemSize);
+	if (slot == NUM_XY_SLOTS)
+		return;
+
+	const item_equip_type desiredLocation = player.GetItemLocation(player.HoldItem);
+	const item_equip_type location = GetItemEquipType(player, slot, desiredLocation);
+
+	if (location == ILOC_BELT) {
+		if (!CanBePlacedOnBelt(player, player.HoldItem)) return;
+	} else if (location != ILOC_UNEQUIPABLE) {
+		if (desiredLocation != location) return;
+	}
+
+	if (IsNoneOf(location, ILOC_UNEQUIPABLE, ILOC_BELT)) {
+		if (!player.CanUseItem(player.HoldItem)) {
+			player.Say(HeroSpeech::ICantUseThisYet);
+			return;
+		}
+		if (player._pmode > PM_WALK_SIDEWAYS)
+			return;
+	}
+
+	if (&player == MyPlayer) {
+		PlaySFX(ItemInvSnds[ItemCAnimTbl[player.HoldItem._iCurs]]);
+	}
+
+	// Select the parameters that go into
+	// ChangeEquipment and add it to post switch
+	switch (location) {
+	case ILOC_HELM:
+	case ILOC_RING:
+	case ILOC_AMULET:
+	case ILOC_ARMOR:
+		ChangeBodyEquipment(player, slot, location);
+		break;
+	case ILOC_ONEHAND:
+		ChangeEquippedItem(player, slot);
+		break;
+	case ILOC_TWOHAND:
+		ChangeTwoHandItem(player);
+		break;
+	case ILOC_UNEQUIPABLE:
+		if (!ChangeInvItem(player, slot, itemSize)) return;
+		break;
+	case ILOC_BELT:
+		ChangeBeltItem(player, slot);
+		break;
+	case ILOC_NONE:
+	case ILOC_INVALID:
+		break;
+	}
+
+	CalcPlrInv(player, true);
+	if (&player == MyPlayer) {
+		NewCursor(player.HoldItem);
+	}
 }
 
 } // namespace devilution

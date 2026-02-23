@@ -25,6 +25,8 @@ struct Portal {
 
 extern Portal Portals[MAXPORTAL];
 
+extern Point PortalTownPosition[MAXPORTAL];
+
 void InitPortals();
 void SetPortalStats(int i, bool o, Point position, int lvl, dungeon_type lvltype, bool isSetLevel);
 void AddPortalMissile(const Player &player, Point position, bool sync);
