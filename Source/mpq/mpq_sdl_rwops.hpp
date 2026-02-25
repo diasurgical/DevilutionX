@@ -1,20 +1,23 @@
 #pragma once
 
-#include <cstdint>
 #include <string_view>
-
-#ifdef USE_SDL3
-#include <SDL3/SDL_iostream.h>
-#else
-#include <SDL.h>
-
-#include "utils/sdl_compat.h"
-#endif
 
 #include "mpq/mpq_reader.hpp"
 
+// Forward-declare the SDL type for the active SDL version.
+#ifdef USE_SDL3
+struct SDL_IOStream;
+using SdlRwopsType = SDL_IOStream;
+#else
+struct SDL_RWops;
+using SdlRwopsType = SDL_RWops;
+#endif
+
 namespace devilution {
 
-SDL_IOStream *SDL_RWops_FromMpqFile(MpqArchive &mpqArchive, uint32_t fileNumber, std::string_view filename, bool threadsafe);
+SdlRwopsType *SDL_RWops_FromMpqFile(MpqArchive &archive,
+    uint32_t hashIndex,
+    std::string_view filename,
+    bool threadsafe);
 
 } // namespace devilution

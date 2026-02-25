@@ -65,13 +65,13 @@ SDL_IOStream *OpenOptionalRWops(const std::string &path)
 	return SDL_IOFromFile(path.c_str(), "rb");
 };
 
-bool FindMpqFile(std::string_view filename, MpqArchive **archive, uint32_t *fileNumber)
+bool FindMpqFile(std::string_view filename, MpqArchive **archive, uint32_t *hashIndex)
 {
-	const MpqFileHash fileHash = CalculateMpqFileHash(filename);
-
 	for (auto &[_, mpqArchive] : MpqArchives) {
-		if (mpqArchive.GetFileNumber(fileHash, *fileNumber)) {
+		uint32_t hash = mpqArchive.FindHash(filename);
+		if (hash != UINT32_MAX) {
 			*archive = &mpqArchive;
+			*hashIndex = hash;
 			return true;
 		}
 	}
@@ -155,7 +155,7 @@ AssetRef FindAsset(std::string_view filename)
 	}
 
 	// Look for the file in all the MPQ archives:
-	if (FindMpqFile(filename, &result.archive, &result.fileNumber)) {
+	if (FindMpqFile(filename, &result.archive, &result.hashIndex)) {
 		result.filename = filename;
 		return result;
 	}
@@ -185,7 +185,7 @@ AssetHandle OpenAsset(AssetRef &&ref, bool threadsafe)
 	return AssetHandle { OpenFile(ref.path, "rb") };
 #else
 	if (ref.archive != nullptr)
-		return AssetHandle { SDL_RWops_FromMpqFile(*ref.archive, ref.fileNumber, ref.filename, threadsafe) };
+		return AssetHandle { SDL_RWops_FromMpqFile(*ref.archive, ref.hashIndex, ref.filename, threadsafe) };
 	if (ref.directHandle != nullptr) {
 		// Transfer handle ownership:
 		auto *handle = ref.directHandle;
@@ -316,7 +316,7 @@ bool LoadMPQ(std::span<const std::string> paths, std::string_view mpqName, int p
 			return true;
 		}
 		if (error != 0) {
-			LogError("Error {}: {}", MpqArchive::ErrorMessage(error), mpqAbsPath);
+			LogError("Error {}: {}", MpqArchive::ErrorMessage(), mpqAbsPath);
 		}
 	}
 	if (error == 0) {
