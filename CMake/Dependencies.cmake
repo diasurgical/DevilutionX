@@ -13,7 +13,7 @@ else()
 endif()
 
 if(SUPPORTS_MPQ)
-  # bzip2 is a libmpq dependency.
+  # bzip2 is an mpqfs dependency.
   if(EMSCRIPTEN)
     emscripten_system_library("bzip2" BZip2::BZip2 USE_BZIP2=1)
   else()
@@ -248,7 +248,8 @@ if(WIN32 AND NOT UWP_LIB)
 endif()
 
 if(SUPPORTS_MPQ)
-  add_subdirectory(3rdParty/libmpq)
+  set(MPQFS_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+  add_subdirectory(3rdParty/mpqfs)
 endif()
 
 add_subdirectory(3rdParty/tl)
@@ -299,10 +300,6 @@ if(DEVILUTIONX_SYSTEM_MAGIC_ENUM)
   find_package(magic_enum REQUIRED)
 else()
   add_subdirectory(3rdParty/magic_enum)
-endif()
-
-if(SUPPORTS_MPQ OR NOT NONET)
-  add_subdirectory(3rdParty/PKWare)
 endif()
 
 if(NOT NONET AND NOT DISABLE_TCP)

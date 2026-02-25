@@ -1,16 +1,18 @@
 #include "mpq/mpq_sdl_rwops.hpp"
 
-#include <cstdint>
+#include <cstdlib>
 #include <cstring>
-#include <memory>
-#include <string_view>
-#include <vector>
+
+#include <mpqfs/mpqfs.h>
 
 #ifdef USE_SDL3
+#include <SDL3/SDL.h>
 #include <SDL3/SDL_iostream.h>
 #else
 #include <SDL.h>
-
+#ifndef USE_SDL1
+#include <SDL_rwops.h>
+#endif
 #include "utils/sdl_compat.h"
 #endif
 
@@ -18,35 +20,156 @@ namespace devilution {
 
 namespace {
 
-struct Data {
-	// File information:
-	std::optional<MpqArchive> ownedArchive;
-	MpqArchive *mpqArchive;
-	uint32_t fileNumber;
-	size_t blockSize;
-	size_t lastBlockSize;
-	uint32_t numBlocks;
-	size_t size;
+constexpr size_t MaxMpqPathSize = 256;
 
-	// State:
-	size_t position;
-	bool blockRead;
-	std::unique_ptr<uint8_t[]> blockData;
+/* -----------------------------------------------------------------------
+ * Context structure shared by both SDL2 and SDL3 implementations.
+ *
+ * Wraps an mpqfs_stream_t (sector-based, on-demand decompression) and,
+ * for the threadsafe variant, an independently cloned archive so that
+ * reads don't race with the main thread's archive FILE*.
+ * ----------------------------------------------------------------------- */
+
+struct MpqStreamCtx {
+	mpqfs_stream_t *stream;      /* Sector-based stream (owned)           */
+	mpqfs_archive_t *ownedClone; /* Non-null if we cloned for threadsafe  */
 };
 
-#ifdef USE_SDL3
-Data *GetData(void *userdata) { return reinterpret_cast<Data *>(userdata); }
-#else
-Data *GetData(struct SDL_RWops *context)
+static void DestroyCtx(MpqStreamCtx *ctx)
 {
-	return reinterpret_cast<Data *>(context->hidden.unknown.data1);
+	if (ctx == nullptr)
+		return;
+	mpqfs_stream_close(ctx->stream);
+	if (ctx->ownedClone != nullptr)
+		mpqfs_close(ctx->ownedClone);
+	delete ctx;
 }
 
-void SetData(struct SDL_RWops *context, Data *data)
+/* -----------------------------------------------------------------------
+ * Helper: create the MpqStreamCtx, optionally cloning the archive for
+ * thread-safety.  Tries hash-based open first, falls back to filename.
+ * ----------------------------------------------------------------------- */
+
+static MpqStreamCtx *CreateCtx(mpqfs_archive_t *archive,
+    uint32_t hashIndex,
+    const char *filename,
+    bool threadsafe)
 {
-	context->hidden.unknown.data1 = data;
+	mpqfs_archive_t *target = archive;
+	mpqfs_archive_t *clone = nullptr;
+
+	if (threadsafe) {
+		clone = mpqfs_clone(archive);
+		if (clone == nullptr)
+			return nullptr;
+		target = clone;
+	}
+
+	mpqfs_stream_t *stream = nullptr;
+
+	/* Try the fast hash-based path first (avoids re-hashing). */
+	if (hashIndex != UINT32_MAX)
+		stream = mpqfs_stream_open_from_hash(target, hashIndex);
+
+	/* Fall back to filename-based open (needed for encrypted files and
+	 * when hashIndex is not available). */
+	if (stream == nullptr)
+		stream = mpqfs_stream_open(target, filename);
+
+	if (stream == nullptr) {
+		if (clone != nullptr)
+			mpqfs_close(clone);
+		return nullptr;
+	}
+
+	auto *ctx = new (std::nothrow) MpqStreamCtx { stream, clone };
+	if (ctx == nullptr) {
+		mpqfs_stream_close(stream);
+		if (clone != nullptr)
+			mpqfs_close(clone);
+		return nullptr;
+	}
+
+	return ctx;
 }
-#endif
+
+/* =======================================================================
+ * SDL3 implementation
+ * ======================================================================= */
+
+#ifdef USE_SDL3
+
+static Sint64 SDLCALL MpqStream_Size(void *userdata)
+{
+	auto *ctx = static_cast<MpqStreamCtx *>(userdata);
+	return static_cast<Sint64>(mpqfs_stream_size(ctx->stream));
+}
+
+static Sint64 SDLCALL MpqStream_Seek(void *userdata, Sint64 offset, SDL_IOWhence whence)
+{
+	auto *ctx = static_cast<MpqStreamCtx *>(userdata);
+	int w;
+	switch (whence) {
+	case SDL_IO_SEEK_SET: w = SEEK_SET; break;
+	case SDL_IO_SEEK_CUR: w = SEEK_CUR; break;
+	case SDL_IO_SEEK_END: w = SEEK_END; break;
+	default:
+		SDL_SetError("MpqStream_Seek: unknown whence");
+		return -1;
+	}
+	int64_t pos = mpqfs_stream_seek(ctx->stream, offset, w);
+	if (pos < 0) {
+		SDL_SetError("MpqStream_Seek: seek failed");
+		return -1;
+	}
+	return static_cast<Sint64>(pos);
+}
+
+static size_t SDLCALL MpqStream_Read(void *userdata, void *ptr, size_t size, SDL_IOStatus *status)
+{
+	auto *ctx = static_cast<MpqStreamCtx *>(userdata);
+	size_t n = mpqfs_stream_read(ctx->stream, ptr, size);
+	if (n == static_cast<size_t>(-1)) {
+		if (status != nullptr)
+			*status = SDL_IO_STATUS_ERROR;
+		SDL_SetError("MpqStream_Read: read failed");
+		return 0;
+	}
+	if (n == 0 && size > 0) {
+		if (status != nullptr)
+			*status = SDL_IO_STATUS_EOF;
+	} else {
+		if (status != nullptr)
+			*status = SDL_IO_STATUS_READY;
+	}
+	return n;
+}
+
+static size_t SDLCALL MpqStream_Write(void * /*userdata*/, const void * /*ptr*/,
+    size_t /*size*/, SDL_IOStatus *status)
+{
+	if (status != nullptr)
+		*status = SDL_IO_STATUS_ERROR;
+	SDL_SetError("MpqStream_Write: read-only stream");
+	return 0;
+}
+
+static bool SDLCALL MpqStream_Close(void *userdata)
+{
+	auto *ctx = static_cast<MpqStreamCtx *>(userdata);
+	DestroyCtx(ctx);
+	return true;
+}
+
+#else /* SDL1 or SDL2 */
+
+/* =======================================================================
+ * SDL1 / SDL2 implementation
+ *
+ * SDL1 uses int for offsets and sizes; SDL2 uses Sint64 and size_t.
+ * SDL1 has no ->size callback and no SDL_RWOPS_UNKNOWN.
+ * SDL1's SDL_SetError returns void; SDL2's returns int.
+ * ======================================================================= */
 
 #ifndef USE_SDL1
 using OffsetType = Sint64;
@@ -56,240 +179,124 @@ using OffsetType = int;
 using SizeType = int;
 #endif
 
-extern "C" {
-
 #ifndef USE_SDL1
-static Sint64 MpqFileRwSize(
-#ifdef USE_SDL3
-    void *
-#else
-    struct SDL_RWops *
-#endif
-        context)
+static Sint64 SDLCALL MpqStream_Size(SDL_RWops *rw)
 {
-	return static_cast<Sint64>(GetData(context)->size);
+	auto *ctx = static_cast<MpqStreamCtx *>(rw->hidden.unknown.data1);
+	return static_cast<Sint64>(mpqfs_stream_size(ctx->stream));
 }
 #endif
 
-#ifdef USE_SDL3
-static Sint64 MpqFileRwSeek(void *context, Sint64 offset, SDL_IOWhence whence)
-#else
-static OffsetType MpqFileRwSeek(struct SDL_RWops *context, OffsetType offset, int whence)
-#endif
+static OffsetType SDLCALL MpqStream_Seek(SDL_RWops *rw, OffsetType offset, int whence)
 {
-	Data &data = *GetData(context);
-	OffsetType newPosition;
+	auto *ctx = static_cast<MpqStreamCtx *>(rw->hidden.unknown.data1);
+
+	int w;
 	switch (whence) {
-	case SDL_IO_SEEK_SET:
-		newPosition = offset;
-		break;
-	case SDL_IO_SEEK_CUR:
-		newPosition = static_cast<OffsetType>(data.position + offset);
-		break;
-	case SDL_IO_SEEK_END:
-		newPosition = static_cast<OffsetType>(data.size + offset);
-		break;
+	case SDL_IO_SEEK_SET: w = SEEK_SET; break;
+	case SDL_IO_SEEK_CUR: w = SEEK_CUR; break;
+	case SDL_IO_SEEK_END: w = SEEK_END; break;
 	default:
+		SDL_SetError("MpqStream_Seek: unknown whence");
 		return -1;
 	}
 
-	if (newPosition == static_cast<OffsetType>(data.position))
-		return newPosition;
-
-	if (newPosition > static_cast<OffsetType>(data.size)) {
-		SDL_SetError("MpqFileRwSeek beyond EOF (%d > %u)", static_cast<int>(newPosition), static_cast<unsigned>(data.size));
+	int64_t pos = mpqfs_stream_seek(ctx->stream, offset, w);
+	if (pos < 0) {
+		SDL_SetError("MpqStream_Seek: seek failed");
 		return -1;
 	}
 
-	if (newPosition < 0) {
-		SDL_SetError("MpqFileRwSeek beyond BOF (%d < 0)", static_cast<int>(newPosition));
-		return -1;
-	}
-
-	if (data.position / data.blockSize != static_cast<size_t>(newPosition) / data.blockSize)
-		data.blockRead = false;
-
-	data.position = static_cast<size_t>(newPosition);
-
-	return newPosition;
+	return static_cast<OffsetType>(pos);
 }
 
-#ifdef USE_SDL3
-static SizeType MpqFileRwRead(void *context, void *ptr, size_t size, SDL_IOStatus *status)
-#else
-static SizeType MpqFileRwRead(struct SDL_RWops *context, void *ptr, SizeType size, SizeType maxnum)
-#endif
+static SizeType SDLCALL MpqStream_Read(SDL_RWops *rw, void *ptr,
+    SizeType size, SizeType maxnum)
 {
-#ifdef USE_SDL3
-	const size_t maxnum = 1;
-#endif
-	Data &data = *GetData(context);
-	const size_t totalSize = size * maxnum;
-	size_t remainingSize = totalSize;
+	auto *ctx = static_cast<MpqStreamCtx *>(rw->hidden.unknown.data1);
 
-	auto *out = static_cast<uint8_t *>(ptr);
+	size_t totalBytes = static_cast<size_t>(size) * static_cast<size_t>(maxnum);
+	size_t n = mpqfs_stream_read(ctx->stream, ptr, totalBytes);
+	if (n == static_cast<size_t>(-1))
+		return 0;
 
-	if (data.blockData == nullptr) {
-		data.blockData = std::unique_ptr<uint8_t[]> { new uint8_t[data.blockSize] };
-	}
-
-	auto blockNumber = static_cast<uint32_t>(data.position / data.blockSize);
-	while (remainingSize > 0) {
-		if (data.position == data.size) {
-#ifdef USE_SDL3
-			*status = SDL_IO_STATUS_EOF;
-#endif
-			break;
-		}
-
-		const size_t currentBlockSize = blockNumber + 1 == data.numBlocks ? data.lastBlockSize : data.blockSize;
-
-		if (!data.blockRead) {
-			const int32_t error = data.mpqArchive->ReadBlock(data.fileNumber, blockNumber, data.blockData.get(), currentBlockSize);
-			if (error != 0) {
-				SDL_SetError("MpqFileRwRead ReadBlock: %s", MpqArchive::ErrorMessage(error));
-				return 0;
-			}
-			data.blockRead = true;
-		}
-
-		const size_t blockPosition = data.position - (blockNumber * data.blockSize);
-		const size_t remainingBlockSize = currentBlockSize - blockPosition;
-
-		if (remainingSize < remainingBlockSize) {
-			std::memcpy(out, data.blockData.get() + blockPosition, remainingSize);
-			data.position += remainingSize;
-#ifdef USE_SDL3
-			return size;
-#else
-			return maxnum;
-#endif
-		}
-
-		std::memcpy(out, data.blockData.get() + blockPosition, remainingBlockSize);
-		out += remainingBlockSize;
-		data.position += remainingBlockSize;
-		remainingSize -= remainingBlockSize;
-		++blockNumber;
-		data.blockRead = false;
-	}
-
-#ifdef USE_SDL3
-	return static_cast<SizeType>(totalSize - remainingSize);
-#else
-	return static_cast<SizeType>((totalSize - remainingSize) / size);
-#endif
+	/* Return number of whole objects read. */
+	return (size > 0) ? static_cast<SizeType>(n / static_cast<size_t>(size)) : 0;
 }
 
-#ifdef USE_SDL3
-static bool MpqFileRwClose(void *context)
-#else
-static int MpqFileRwClose(struct SDL_RWops *context)
-#endif
+static SizeType SDLCALL MpqStream_Write(SDL_RWops * /*rw*/, const void * /*ptr*/,
+    SizeType /*size*/, SizeType /*num*/)
 {
-	Data *data = GetData(context);
-	data->mpqArchive->CloseBlockOffsetTable(data->fileNumber);
-	delete data;
-#ifdef USE_SDL3
-	return true;
-#else
-	delete context;
+	SDL_SetError("MpqStream_Write: read-only stream");
 	return 0;
-#endif
 }
 
-} // extern "C"
+static int SDLCALL MpqStream_Close(SDL_RWops *rw)
+{
+	if (rw != nullptr) {
+		auto *ctx = static_cast<MpqStreamCtx *>(rw->hidden.unknown.data1);
+		DestroyCtx(ctx);
+		SDL_FreeRW(rw);
+	}
+	return 0;
+}
+
+#endif /* !USE_SDL3 */
 
 } // namespace
 
-SDL_IOStream *SDL_RWops_FromMpqFile(MpqArchive &mpqArchive, uint32_t fileNumber, std::string_view filename, bool threadsafe)
+SdlRwopsType *SDL_RWops_FromMpqFile(MpqArchive &archive,
+    uint32_t hashIndex,
+    std::string_view filename,
+    bool threadsafe)
 {
+	/* NUL-terminate the filename for the C API. */
+	char pathBuf[MaxMpqPathSize];
+	if (filename.size() >= sizeof(pathBuf))
+		return nullptr;
+	std::memcpy(pathBuf, filename.data(), filename.size());
+	pathBuf[filename.size()] = '\0';
+
+	MpqStreamCtx *ctx = CreateCtx(archive.handle(), hashIndex, pathBuf, threadsafe);
+	if (ctx == nullptr)
+		return nullptr;
+
 #ifdef USE_SDL3
-	SDL_IOStreamInterface interface;
-	SDL_INIT_INTERFACE(&interface);
-	SDL_IOStreamInterface *result = &interface;
+	SDL_IOStreamInterface iface = {};
+	iface.version = sizeof(iface);
+	iface.size = MpqStream_Size;
+	iface.seek = MpqStream_Seek;
+	iface.read = MpqStream_Read;
+	iface.write = MpqStream_Write;
+	iface.close = MpqStream_Close;
+
+	SdlRwopsType *rwops = SDL_OpenIO(&iface, ctx);
+	if (rwops == nullptr) {
+		DestroyCtx(ctx);
+		return nullptr;
+	}
+
+	return rwops;
 #else
-	auto result = std::make_unique<SDL_RWops>();
-	std::memset(result.get(), 0, sizeof(*result));
-#endif
+	SDL_RWops *rwops = SDL_AllocRW();
+	if (rwops == nullptr) {
+		DestroyCtx(ctx);
+		return nullptr;
+	}
 
 #ifndef USE_SDL1
-	result->size = &MpqFileRwSize;
-#ifndef USE_SDL3
-	result->type = SDL_RWOPS_UNKNOWN;
-#endif
+	rwops->type = SDL_RWOPS_UNKNOWN;
+	rwops->size = MpqStream_Size;
 #else
-	result->type = 0;
+	rwops->type = 0;
 #endif
+	rwops->seek = MpqStream_Seek;
+	rwops->read = MpqStream_Read;
+	rwops->write = MpqStream_Write;
+	rwops->close = MpqStream_Close;
+	rwops->hidden.unknown.data1 = ctx;
 
-	result->seek = &MpqFileRwSeek;
-	result->read = &MpqFileRwRead;
-	result->write = nullptr;
-	result->close = &MpqFileRwClose;
-#ifdef USE_SDL3
-	result->flush = nullptr;
-#endif
-
-	auto data = std::make_unique<Data>();
-	int32_t error = 0;
-
-	if (threadsafe) {
-		data->ownedArchive = mpqArchive.Clone(error);
-		if (error != 0) {
-			SDL_SetError("MpqFileRwRead Clone: %s", MpqArchive::ErrorMessage(error));
-			return nullptr;
-		}
-		data->mpqArchive = &*data->ownedArchive;
-	} else {
-		data->mpqArchive = &mpqArchive;
-	}
-	data->fileNumber = fileNumber;
-	MpqArchive &archive = *data->mpqArchive;
-
-	error = archive.OpenBlockOffsetTable(fileNumber, filename);
-	if (error != 0) {
-		SDL_SetError("MpqFileRwRead OpenBlockOffsetTable: %s", MpqArchive::ErrorMessage(error));
-		return nullptr;
-	}
-
-	data->size = archive.GetUnpackedFileSize(fileNumber, error);
-	if (error != 0) {
-		SDL_SetError("MpqFileRwRead GetUnpackedFileSize: %s", MpqArchive::ErrorMessage(error));
-		return nullptr;
-	}
-
-	const std::uint32_t numBlocks = archive.GetNumBlocks(fileNumber, error);
-	if (error != 0) {
-		SDL_SetError("MpqFileRwRead GetNumBlocks: %s", MpqArchive::ErrorMessage(error));
-		return nullptr;
-	}
-	data->numBlocks = numBlocks;
-
-	const size_t blockSize = archive.GetBlockSize(fileNumber, 0, error);
-	if (error != 0) {
-		SDL_SetError("MpqFileRwRead GetBlockSize: %s", MpqArchive::ErrorMessage(error));
-		return nullptr;
-	}
-	data->blockSize = blockSize;
-
-	if (numBlocks > 1) {
-		data->lastBlockSize = archive.GetBlockSize(fileNumber, numBlocks - 1, error);
-		if (error != 0) {
-			SDL_SetError("MpqFileRwRead GetBlockSize: %s", MpqArchive::ErrorMessage(error));
-			return nullptr;
-		}
-	} else {
-		data->lastBlockSize = blockSize;
-	}
-
-	data->position = 0;
-	data->blockRead = false;
-
-#ifdef USE_SDL3
-	return SDL_OpenIO(&interface, data.release());
-#else
-	SetData(result.get(), data.release());
-	return result.release();
+	return rwops;
 #endif
 }
 

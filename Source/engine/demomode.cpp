@@ -30,6 +30,7 @@
 #include "utils/console.h"
 #include "utils/display.h"
 #include "utils/endian_stream.hpp"
+#include "utils/file_util.h"
 #include "utils/is_of.hpp"
 #include "utils/paths.h"
 #include "utils/str_cat.hpp"

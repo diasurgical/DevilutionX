@@ -160,14 +160,14 @@ void EncodeHero(SaveWriter &saveWriter, const PlayerPack *pack)
 	saveWriter.WriteFile("hero", packed.get(), packedLen);
 }
 
-SaveWriter GetSaveWriter(uint32_t saveNum)
+SaveWriter GetSaveWriter(uint32_t saveNum, bool carryForward = true)
 {
-	return SaveWriter(GetSavePath(saveNum));
+	return SaveWriter(GetSavePath(saveNum), carryForward);
 }
 
 SaveWriter GetStashWriter()
 {
-	return SaveWriter(GetStashSavePath());
+	return SaveWriter(GetStashSavePath(), /*carryForward=*/false);
 }
 
 #ifndef DISABLE_DEMOMODE
@@ -625,7 +625,7 @@ const char *pfile_get_password()
 
 void pfile_write_hero(bool writeGameData)
 {
-	SaveWriter saveWriter = GetSaveWriter(gSaveNumber);
+	SaveWriter saveWriter = GetSaveWriter(gSaveNumber, /*carryForward=*/writeGameData);
 	pfile_write_hero(saveWriter, writeGameData);
 }
 
@@ -730,7 +730,7 @@ bool pfile_ui_save_create(_uiheroinfo *heroinfo)
 
 	giNumberOfLevels = gbIsHellfire ? 25 : 17;
 
-	SaveWriter saveWriter = GetSaveWriter(saveNum);
+	SaveWriter saveWriter = GetSaveWriter(saveNum, /*carryForward=*/false);
 	saveWriter.RemoveHashEntries(GetFileName);
 	CopyUtf8(hero_names[saveNum], heroinfo->name, sizeof(hero_names[saveNum]));
 
@@ -796,7 +796,7 @@ void pfile_remove_temp_files()
 	if (gbIsMultiplayer)
 		return;
 
-	SaveWriter saveWriter = GetSaveWriter(gSaveNumber);
+	SaveWriter saveWriter = GetSaveWriter(gSaveNumber, /*carryForward=*/true);
 	saveWriter.RemoveHashEntries(GetTempSaveNames);
 }
 
