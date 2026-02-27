@@ -2063,42 +2063,6 @@ void UpdateSpellTarget(SpellID spell)
 	cursPosition = myPlayer.position.future + Displacement(myPlayer._pdir) * range;
 }
 
-/**
- * @brief Try dropping item in all 9 possible places
- */
-bool TryDropItem()
-{
-	Player &myPlayer = *MyPlayer;
-
-	if (myPlayer.HoldItem.isEmpty()) {
-		return false;
-	}
-
-	if (leveltype == DTYPE_TOWN) {
-		if (UseItemOpensHive(myPlayer.HoldItem, myPlayer.position.tile)) {
-			OpenHive();
-			NewCursor(CURSOR_HAND);
-			return true;
-		}
-		if (UseItemOpensGrave(myPlayer.HoldItem, myPlayer.position.tile)) {
-			OpenGrave();
-			NewCursor(CURSOR_HAND);
-			return true;
-		}
-	}
-
-	std::optional<Point> itemTile = FindAdjacentPositionForItem(myPlayer.position.future, myPlayer._pdir);
-	if (!itemTile) {
-		myPlayer.Say(HeroSpeech::WhereWouldIPutThis);
-		return false;
-	}
-
-	NetSendCmdPItem(true, CMD_PUTITEM, *itemTile, myPlayer.HoldItem);
-	myPlayer.HoldItem.clear();
-	NewCursor(CURSOR_HAND);
-	return true;
-}
-
 void PerformSpellAction()
 {
 	if (SpellSelectFlag) {
