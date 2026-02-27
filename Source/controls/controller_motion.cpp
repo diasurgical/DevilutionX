@@ -28,7 +28,12 @@
 
 namespace devilution {
 
-bool SimulatingMouseWithPadmapper;
+static bool GamepadAimActive = false;
+
+bool IsGamepadAimActive()
+{
+	return GamepadAimActive;
+}
 
 namespace {
 
@@ -106,15 +111,18 @@ bool IsPressedForMovement(ControllerButton button)
 	    && !(SpellSelectFlag && TriggersQuickSpellAction(button));
 }
 
-void SetSimulatingMouseWithPadmapper(bool value)
+void SetGamepadAimActive(bool value)
 {
-	if (SimulatingMouseWithPadmapper == value)
+	if (GamepadAimActive == value)
 		return;
-	SimulatingMouseWithPadmapper = value;
+	GamepadAimActive = value;
 	if (value) {
-		LogVerbose("Control: begin simulating mouse with D-Pad");
+		LogVerbose("GamepadAim: begin aiming");
+		// Show cursor for aiming (if needed)
 	} else {
-		LogVerbose("Control: end simulating mouse with D-Pad");
+		LogVerbose("GamepadAim: end aiming");
+		// Hide/reset cursor when movement resumes
+		ResetCursor();
 	}
 }
 
@@ -196,14 +204,41 @@ void ProcessControllerMotion(const SDL_Event &event)
 	GameController *const controller = GameController::Get(event);
 	if (controller != nullptr && devilution::GameController::ProcessAxisMotion(event)) {
 		ScaleJoysticks();
-		SetSimulatingMouseWithPadmapper(false);
+		// End aiming and hide cursor only when left stick axis moved
+		if (event.type == SDL_CONTROLLERAXISMOTION) {
+			if (event.caxis.axis == SDL_CONTROLLER_AXIS_LEFTX || event.caxis.axis == SDL_CONTROLLER_AXIS_LEFTY) {
+				SetGamepadAimActive(false);
+			}
+		}
 		return;
 	}
 #endif
 	Joystick *const joystick = Joystick::Get(event);
 	if (joystick != nullptr && devilution::Joystick::ProcessAxisMotion(event)) {
 		ScaleJoysticks();
-		SetSimulatingMouseWithPadmapper(false);
+		if (event.type == SDL_JOYAXISMOTION) {
+#ifdef JOY_AXIS_LEFTX
+			if (event.jaxis.axis == JOY_AXIS_LEFTX)
+				SetGamepadAimActive(false);
+#endif
+#ifdef JOY_AXIS_LEFTY
+			if (event.jaxis.axis == JOY_AXIS_LEFTY)
+				SetGamepadAimActive(false);
+#endif
+		}
+	}
+
+	// D-pad movement detection (button events, not padmapper mouse simulation)
+	StaticVector<ControllerButtonEvent, 4> buttonEvents = ToControllerButtonEvents(event);
+	for (const auto &ctrlEvent : buttonEvents) {
+		if (!ctrlEvent.up && IsDPadButton(ctrlEvent.button)) {
+			// Only clear aim if this is NOT a padmapper mouse simulation combo
+			// (i.e., no modifier or not SELECT + D-pad)
+			ControllerButtonCombo combo(ctrlEvent.button);
+			if (combo.modifier == ControllerButton_NONE) {
+				SetGamepadAimActive(false);
+			}
+		}
 	}
 }
 
@@ -255,7 +290,7 @@ AxisDirection GetLeftStickOrDpadDirection(bool usePadmapper)
 		isDownPressed |= PadmapperIsActionActive("MoveDown");
 		isLeftPressed |= PadmapperIsActionActive("MoveLeft");
 		isRightPressed |= PadmapperIsActionActive("MoveRight");
-	} else if (!SimulatingMouseWithPadmapper) {
+	} else if (!IsGamepadAimActive()) {
 		isUpPressed |= IsPressedForMovement(ControllerButton_BUTTON_DPAD_UP);
 		isDownPressed |= IsPressedForMovement(ControllerButton_BUTTON_DPAD_DOWN);
 		isLeftPressed |= IsPressedForMovement(ControllerButton_BUTTON_DPAD_LEFT);
@@ -299,8 +334,6 @@ void SimulateRightStickWithPadmapper(ControllerButtonEvent ctrlEvent)
 	const bool leftTriggered = actionName == "MouseLeft";
 	const bool rightTriggered = actionName == "MouseRight";
 	if (!upTriggered && !downTriggered && !leftTriggered && !rightTriggered) {
-		if (rightStickX == 0 && rightStickY == 0)
-			SetSimulatingMouseWithPadmapper(false);
 		return;
 	}
 
@@ -319,7 +352,8 @@ void SimulateRightStickWithPadmapper(ControllerButtonEvent ctrlEvent)
 		rightStickX -= 1.F;
 	if (rightActive)
 		rightStickX += 1.F;
-	SetSimulatingMouseWithPadmapper(true);
+	// Begin aiming when any direction is active
+	SetGamepadAimActive(true);
 }
 
 } // namespace devilution

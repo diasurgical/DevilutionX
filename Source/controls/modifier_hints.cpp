@@ -141,7 +141,7 @@ void DrawSpellsCircleMenuHint(const Surface &out, const Point &origin)
 
 void DrawGamepadMenuNavigator(const Surface &out)
 {
-	if (!PadMenuNavigatorActive || SimulatingMouseWithPadmapper)
+	if (!PadMenuNavigatorActive || IsGamepadAimActive())
 		return;
 	static const CircleMenuHint DPad(/*top=*/HintIcon::IconMenu, /*right=*/HintIcon::IconInv, /*bottom=*/HintIcon::IconMap, /*left=*/HintIcon::IconChar);
 	static const CircleMenuHint Buttons(/*top=*/HintIcon::IconNull, /*right=*/HintIcon::IconNull, /*bottom=*/HintIcon::IconSpells, /*left=*/HintIcon::IconQuests);
@@ -152,7 +152,7 @@ void DrawGamepadMenuNavigator(const Surface &out)
 
 void DrawGamepadHotspellMenu(const Surface &out)
 {
-	if (!PadHotspellMenuActive || SimulatingMouseWithPadmapper)
+	if (!PadHotspellMenuActive || IsGamepadAimActive())
 		return;
 
 	const Rectangle &mainPanel = GetMainPanel();
