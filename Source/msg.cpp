@@ -1914,7 +1914,7 @@ size_t OnResurrect(const TCmdParam1 &message, Player &caster)
 		return sizeof(message);
 	}
 
-	if (playerIdx >= Players.size())
+	if (playerIdx >= Players.size() || !caster.isOnActiveLevel())
 		return sizeof(message);
 
 	Player &target = Players[playerIdx];

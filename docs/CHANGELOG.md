@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Bug Fixes
 
+#### Multiplayer
+
+- Resurrect beams appear on levels it wasn't cast on
+
 #### Graphics / Audio
 
 - Music doesn't unmute when focus is lost on level transition with Auto Pause On Focus Lost disabled
