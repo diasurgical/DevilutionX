@@ -22,6 +22,7 @@
 #include <fmt/format.h>
 
 #include "DiabloUI/diabloui.h"
+#include "controls/local_coop/local_coop.hpp"
 #include "diablo.h"
 #include "engine/demomode.h"
 #include "engine/point.hpp"
@@ -477,6 +478,8 @@ void UnregisterNetEventHandlers()
 
 bool InitSingle(GameData *gameData)
 {
+	// Local co-op is only available in multiplayer games
+	// Single player games use standard single player mode
 	Players.resize(1);
 
 	if (!SNetInitializeProvider(SELCONN_LOOPBACK, gameData)) {
@@ -497,12 +500,22 @@ bool InitSingle(GameData *gameData)
 
 	pfile_read_player_from_save(gSaveNumber, *MyPlayer);
 
+	// Load available heroes for local co-op players
+	LoadAvailableHeroesForAllLocalCoopPlayers();
+
 	return true;
 }
 
 bool InitMulti(GameData *gameData)
 {
-	Players.resize(MAX_PLRS);
+	// Check if local co-op is available (multiple controllers)
+	if (IsLocalCoopAvailable()) {
+		InitLocalCoop();
+		// Resize players array to accommodate all local players
+		Players.resize(GetLocalCoopTotalPlayerCount());
+	} else {
+		Players.resize(MAX_PLRS);
+	}
 
 	int playerId;
 
@@ -527,6 +540,9 @@ bool InitMulti(GameData *gameData)
 	gbIsMultiplayer = true;
 
 	pfile_read_player_from_save(gSaveNumber, *MyPlayer);
+
+	// Load available heroes for local co-op players
+	LoadAvailableHeroesForAllLocalCoopPlayers();
 
 	return true;
 }

@@ -492,7 +492,7 @@ extern bool ShowUniqueItemInfoBox;
 extern CornerStoneStruct CornerStone;
 extern DVL_API_FOR_TEST bool UniqueItemFlags[128];
 
-uint8_t GetOutlineColor(const Item &item, bool checkReq);
+uint8_t GetOutlineColor(const Item &item, bool checkReq, const Player *player = nullptr);
 bool IsItemAvailable(int i);
 void ClearUniqueItemFlags();
 void InitItemGFX();

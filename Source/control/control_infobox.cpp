@@ -15,6 +15,10 @@
 #include "utils/str_cat.hpp"
 #include "utils/str_split.hpp"
 
+#ifndef USE_SDL1
+#include "controls/local_coop/local_coop.hpp"
+#endif
+
 namespace devilution {
 
 StringOrView InfoString;
@@ -69,7 +73,31 @@ Rectangle GetFloatingInfoRect(const int lineHeight, const int textSpacing)
 	const auto lineCount = 1 + static_cast<int>(c_count(FloatingInfoString.str(), '\n'));
 	const int totalH = lineCount * lineHeight;
 
+#ifndef USE_SDL1
+	// In local co-op mode, determine the correct player from panel ownership or belt position
+	const Player *playerPtr = InspectPlayer;
+	uint8_t beltOwnerPlayerId = 0;
+	bool isLocalCoopBeltItem = false;
+	if (IsLocalCoopEnabled()) {
+		if (pcursinvitem >= INVITEM_BELT_FIRST && pcursinvitem < INVITEM_BELT_FIRST + MaxBeltItems) {
+			// For belt items, use the belt owner from cursor position
+			std::optional<inv_xy_slot> localCoopBeltSlot = FindLocalCoopBeltSlotUnderCursor(MousePosition, beltOwnerPlayerId);
+			if (localCoopBeltSlot.has_value() && beltOwnerPlayerId < Players.size()) {
+				playerPtr = &Players[beltOwnerPlayerId];
+				isLocalCoopBeltItem = true;
+			}
+		} else if (pcursinvitem != -1) {
+			// For inventory items, use the panel owner if available
+			Player *panelOwner = GetLocalCoopPanelOwnerPlayer();
+			if (panelOwner != nullptr) {
+				playerPtr = panelOwner;
+			}
+		}
+	}
+	const Player &player = *playerPtr;
+#else
 	const Player &player = *InspectPlayer;
+#endif
 
 	// 1) Equipment (Rect position)
 	if (pcursinvitem >= INVITEM_HEAD && pcursinvitem < INVITEM_INV_FIRST) {
@@ -147,6 +175,24 @@ Rectangle GetFloatingInfoRect(const int lineHeight, const int textSpacing)
 			itemPosition.x += GetInventorySize(item).width * InventorySlotSizeInPixels.width / 2; // Align position to center of the item graphic
 			itemPosition.x -= maxW / 2;                                                           // Align position to the center of the floating item info box
 
+#ifndef USE_SDL1
+			// In local co-op mode, use the actual belt slot position from the local co-op panel
+			if (isLocalCoopBeltItem) {
+				// Get the position for this belt slot in the local co-op panel
+				// GetLocalCoopBeltSlotPosition returns the CENTER of the slot (for cursor positioning)
+				std::optional<Point> localCoopBeltPos = GetLocalCoopBeltSlotPosition(beltOwnerPlayerId, SLOTXY_BELT_FIRST + itemIdx);
+				if (localCoopBeltPos.has_value()) {
+					// Convert from center to top (matching inventory behavior in InvRect.position)
+					// Center is at slotY + INV_SLOT_SIZE_PX/2, so top is at center - INV_SLOT_SIZE_PX/2
+					Point screen = localCoopBeltPos.value();
+					screen.y -= INV_SLOT_SIZE_PX / 2; // Convert from center to top of slot
+					screen.x -= maxW / 2;
+					// Now screen.y is at the top of the slot, matching InvRect[].position behavior
+					return { { screen.x, screen.y }, { maxW, totalH } };
+				}
+			}
+#endif
+
 			const Point screen = GetMainPanel().position + Displacement { itemPosition.x, itemPosition.y };
 
 			return { { screen.x, screen.y }, { maxW, totalH } };
@@ -179,21 +225,45 @@ Rectangle GetFloatingInfoRect(const int lineHeight, const int textSpacing)
 
 int GetHoverSpriteHeight()
 {
+#ifndef USE_SDL1
+	// In local co-op mode, use the panel owner player for inventory items, or belt owner for belt items
+	const Player *targetPlayer = InspectPlayer;
+	if (IsLocalCoopEnabled() && pcursinvitem != -1) {
+		if (pcursinvitem >= INVITEM_BELT_FIRST && pcursinvitem < INVITEM_BELT_FIRST + MaxBeltItems) {
+			// For belt items, use the belt owner from cursor position
+			uint8_t beltOwnerPlayerId = 0;
+			std::optional<inv_xy_slot> localCoopBeltSlot = FindLocalCoopBeltSlotUnderCursor(MousePosition, beltOwnerPlayerId);
+			if (localCoopBeltSlot.has_value() && beltOwnerPlayerId < Players.size()) {
+				targetPlayer = &Players[beltOwnerPlayerId];
+			}
+		} else {
+			// For inventory items, use the panel owner if available
+			Player *panelOwner = GetLocalCoopPanelOwnerPlayer();
+			if (panelOwner != nullptr) {
+				targetPlayer = panelOwner;
+			}
+		}
+	}
+	const Player &player = *targetPlayer;
+#else
+	const Player &player = *InspectPlayer;
+#endif
+
 	if (pcursinvitem >= INVITEM_HEAD && pcursinvitem < INVITEM_INV_FIRST) {
-		auto &it = (*InspectPlayer).InvBody[pcursinvitem - INVITEM_HEAD];
+		auto &it = player.InvBody[pcursinvitem - INVITEM_HEAD];
 		return GetInvItemSize(it._iCurs + CURSOR_FIRSTITEM).height + 1;
 	}
 	if (pcursinvitem >= INVITEM_INV_FIRST
 	    && pcursinvitem < INVITEM_INV_FIRST + InventoryGridCells) {
 		const int idx = pcursinvitem - INVITEM_INV_FIRST;
-		auto &it = (*InspectPlayer).InvList[idx];
+		auto &it = player.InvList[idx];
 		return GetInventorySize(it).height * (InventorySlotSizeInPixels.height + 1)
 		    - InventorySlotSizeInPixels.height;
 	}
 	if (pcursinvitem >= INVITEM_BELT_FIRST
 	    && pcursinvitem < INVITEM_BELT_FIRST + MaxBeltItems) {
 		const int idx = pcursinvitem - INVITEM_BELT_FIRST;
-		auto &it = (*InspectPlayer).SpdList[idx];
+		auto &it = player.SpdList[idx];
 		return GetInventorySize(it).height * (InventorySlotSizeInPixels.height + 1)
 		    - InventorySlotSizeInPixels.height - 1;
 	}
@@ -348,6 +418,17 @@ void CheckPanelInfo()
 
 	if (belt.contains(MousePosition))
 		pcursinvitem = CheckInvHLight();
+
+#ifndef USE_SDL1
+	// In local co-op mode, also check belt panels for highlighting
+	// Allow tooltips even when inventory is open (belt is always visible)
+	if (IsLocalCoopEnabled()) {
+		uint8_t beltOwnerPlayerId = 0;
+		if (FindLocalCoopBeltSlotUnderCursor(MousePosition, beltOwnerPlayerId).has_value()) {
+			pcursinvitem = CheckInvHLight();
+		}
+	}
+#endif
 
 	if (CheckXPBarInfo())
 		MainPanelFlag = true;

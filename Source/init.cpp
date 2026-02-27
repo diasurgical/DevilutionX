@@ -19,6 +19,7 @@
 #include <config.h>
 
 #include "DiabloUI/diabloui.h"
+#include "controls/local_coop/local_coop.hpp"
 #include "engine/assets.hpp"
 #include "engine/backbuffer_state.hpp"
 #include "engine/dx.h"
@@ -120,8 +121,16 @@ bool AreExtraFontsOutOfDate()
 void init_cleanup()
 {
 	if (gbIsMultiplayer && gbRunGame) {
-		pfile_write_hero(/*writeGameData=*/false);
-		sfile_write_stash();
+		if (IsLocalCoopEnabled()) {
+			WithPlayer1Context([]() {
+				pfile_write_hero(/*writeGameData=*/false);
+			});
+			sfile_write_stash();
+			SaveLocalCoopPlayers(/*writeGameData=*/false);
+		} else {
+			pfile_write_hero(/*writeGameData=*/false);
+			sfile_write_stash();
+		}
 	}
 
 	MpqArchives.clear();

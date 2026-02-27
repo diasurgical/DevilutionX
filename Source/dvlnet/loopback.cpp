@@ -24,9 +24,11 @@ bool loopback::SNetReceiveMessage(uint8_t *sender, void **data, size_t *size)
 {
 	if (message_queue.empty())
 		return false;
-	message_last = message_queue.front();
+	auto &front = message_queue.front();
+	message_last_sender = front.first;
+	message_last = std::move(front.second);
 	message_queue.pop();
-	*sender = plr_single;
+	*sender = message_last_sender;
 	*size = message_last.size();
 	*data = message_last.data();
 	return true;
@@ -34,10 +36,13 @@ bool loopback::SNetReceiveMessage(uint8_t *sender, void **data, size_t *size)
 
 bool loopback::SNetSendMessage(uint8_t dest, void *data, size_t size)
 {
-	if (dest == plr_single) {
+	// In local co-op mode, accept messages from any valid player
+	// In single player mode, only accept messages from player 0
+	// The dest parameter is the player ID sending the message
+	if (dest < Players.size()) {
 		auto *rawMessage = reinterpret_cast<unsigned char *>(data);
-		const buffer_t message(rawMessage, rawMessage + size);
-		message_queue.push(message);
+		buffer_t message(rawMessage, rawMessage + size);
+		message_queue.push(std::make_pair(dest, std::move(message)));
 	}
 	return true;
 }

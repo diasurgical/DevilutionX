@@ -58,6 +58,10 @@
 #include "utils/parse_int.hpp"
 #endif
 
+#ifndef USE_SDL1
+#include "controls/local_coop/local_coop.hpp"
+#endif
+
 namespace devilution {
 namespace {
 /** Cursor images CEL */
@@ -800,7 +804,11 @@ void ResetCursorInfo()
 	if (pcursinvitem != -1) {
 		RedrawComponent(PanelDrawComponent::Belt);
 	}
-	pcursinvitem = -1;
+	// Don't reset pcursinvitem when using gamepad navigation in inventory/panels
+	// The gamepad navigation (InventoryMove) has already set it correctly
+	if (ControlMode != ControlTypes::Gamepad || !IsMovementHandlerActive()) {
+		pcursinvitem = -1;
+	}
 	pcursstashitem = StashStruct::EmptyCell;
 	PlayerUnderCursor = nullptr;
 	ShowUniqueItemInfoBox = false;
@@ -822,6 +830,17 @@ bool CheckPlayerState(const Point currentTile, const Player &myPlayer)
 
 bool CheckPanelsAndFlags(Rectangle mainPanel)
 {
+#ifndef USE_SDL1
+	// In local co-op mode, check belt panels first (before main panel check)
+	// This ensures belt item info boxes work for all players with gamepad navigation
+	if (IsLocalCoopEnabled() && invflag) {
+		uint8_t beltOwnerPlayerId = 0;
+		if (FindLocalCoopBeltSlotUnderCursor(MousePosition, beltOwnerPlayerId).has_value()) {
+			pcursinvitem = CheckInvHLight();
+			return true;
+		}
+	}
+#endif
 	if (mainPanel.contains(MousePosition)) {
 		CheckPanelInfo();
 		return true;

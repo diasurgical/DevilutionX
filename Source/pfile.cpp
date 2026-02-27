@@ -672,6 +672,7 @@ bool pfile_ui_set_hero_infos(bool (*uiAddHeroInfo)(_uiheroinfo *))
 {
 	memset(hero_names, 0, sizeof(hero_names));
 
+	uint32_t originalSaveNumber = gSaveNumber;
 	for (uint32_t i = 0; i < MAX_CHARACTERS; i++) {
 		std::optional<SaveReader> archive = OpenSaveArchive(i);
 		if (archive) {
@@ -687,6 +688,9 @@ bool pfile_ui_set_hero_infos(bool (*uiAddHeroInfo)(_uiheroinfo *))
 				Player &player = Players[0];
 
 				UnPackPlayer(pkplr, player);
+				// Temporarily set gSaveNumber to the save we're reading from
+				// so that LoadHeroItems reads items from the correct save file
+				gSaveNumber = i;
 				LoadHeroItems(player);
 				RemoveAllInvalidItems(player);
 				CalcPlrInv(player, false);
@@ -696,6 +700,7 @@ bool pfile_ui_set_hero_infos(bool (*uiAddHeroInfo)(_uiheroinfo *))
 			}
 		}
 	}
+	gSaveNumber = originalSaveNumber;
 
 	return true;
 }
@@ -774,9 +779,30 @@ void pfile_read_player_from_save(uint32_t saveNum, Player &player)
 	}
 
 	UnPackPlayer(pkplr, player);
+
+	// Temporarily set gSaveNumber to the save we're reading from
+	// so that LoadHeroItems reads items from the correct save file
+	uint32_t originalSaveNumber = gSaveNumber;
+	gSaveNumber = saveNum;
 	LoadHeroItems(player);
+	gSaveNumber = originalSaveNumber;
+
 	RemoveAllInvalidItems(player);
 	CalcPlrInv(player, false);
+}
+
+void pfile_write_player_to_save(uint32_t saveNum, Player &player)
+{
+	SaveWriter saveWriter = GetSaveWriter(saveNum);
+
+	PlayerPack pkplr;
+	PackPlayer(pkplr, player);
+	EncodeHero(saveWriter, &pkplr);
+
+	if (!gbVanilla) {
+		SaveHotkeys(saveWriter, player);
+		SaveHeroItems(saveWriter, player);
+	}
 }
 
 void pfile_save_level()
