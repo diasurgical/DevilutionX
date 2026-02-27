@@ -25,6 +25,7 @@
 #include <ankerl/unordered_dense.h>
 #include <function_ref.hpp>
 
+#include "automap.h"
 #include "appfat.h"
 #include "controls/controller_buttons.h"
 #include "engine/size.hpp"
@@ -623,6 +624,8 @@ struct GameplayOptions : OptionCategoryBase {
 	OptionEntryBoolean disableCripplingShrines;
 	/** @brief Spell hotkeys instantly cast the spell. */
 	OptionEntryBoolean quickCast;
+	/** @brief Default automap type to use when loading a game. */
+	OptionEntryEnum<AutomapType> automapType;
 	/** @brief Number of Healing potions to pick up automatically */
 	OptionEntryInt<int> numHealPotionPickup;
 	/** @brief Number of Full Healing potions to pick up automatically */
