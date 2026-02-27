@@ -6,7 +6,9 @@
 #pragma once
 
 #include <cstdint>
+#include <span>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "dvlnet/leaveinfo.hpp"
@@ -39,6 +41,8 @@ struct GameData {
 	uint8_t fullQuests;
 	/** Used to initialise the seed table for dungeon levels so players in multiplayer games generate the same layout */
 	uint32_t gameSeed[4];
+	/** FNV-1a hash of active mod list for multiplayer compatibility check */
+	uint32_t modHash;
 
 	void swapLE();
 };
@@ -68,6 +72,7 @@ extern bool IsLoopback;
 
 DVL_API_FOR_TEST std::string DescribeLeaveReason(leaveinfo_t leaveReason);
 std::string FormatGameSeed(const uint32_t gameSeed[4]);
+uint32_t ComputeModListHash(std::span<const std::string_view> mods);
 
 void InitGameInfo();
 void NetSendLoPri(uint8_t playerId, const std::byte *data, size_t size);
