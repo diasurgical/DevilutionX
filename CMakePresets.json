@@ -1,0 +1,78 @@
+{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
+			"binaryDir": "${sourceDir}/build/${presetName}",
+			"cacheVariables": {
+				"CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+				"CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+				"DISCORD_INTEGRATION": "ON",
+				"DEVILUTIONX_SYSTEM_BZIP2": "OFF"
+			}
+    },
+    {
+      "name": "x64-debug",
+      "displayName": "x64 Debug",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "x64-release",
+      "displayName": "x64 Release",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CPACK": "ON"
+      }
+    },
+    {
+      "name": "x64-relwithdebinfo",
+      "displayName": "x64 RelWithDebInfo",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "CPACK": "ON"
+      }
+    },
+    {
+      "name": "x86-debug",
+      "displayName": "x86 Debug",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_GENERATOR_PLATFORM": "Win32"
+      }
+    },
+    {
+      "name": "x86-release",
+      "displayName": "x86 Release",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CPACK": "ON",
+        "CMAKE_GENERATOR_PLATFORM": "Win32"
+      }
+    },
+    {
+      "name": "x64-debug-translations",
+      "displayName": "x64 Debug (Translations)",
+      "inherits": "x64-debug",
+      "cacheVariables": {
+        "USE_GETTEXT_FROM_VCPKG": "ON"
+      }
+    },
+    {
+      "name": "x64-debug-sdl1",
+      "displayName": "x64 Debug (SDL1)",
+      "inherits": "x64-debug",
+      "cacheVariables": {
+        "USE_SDL1": "ON"
+      }
+    }
+  ]
+}
