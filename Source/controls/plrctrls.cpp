@@ -524,9 +524,13 @@ void Interact()
 			position = Monsters[pcursmonst].position.tile;
 		}
 
-		NetSendCmdLoc(MyPlayerId, true, myPlayer.UsesRangedWeapon() ? CMD_RATTACKXY : CMD_SATTACKXY, position);
-		LastPlayerAction = PlayerActionType::Attack;
-		return;
+		bool bNear = myPlayer.position.tile.WalkingDistance(position) < 2;
+
+		if (!(bNear && (pcursmonst != -1 || PlayerUnderCursor != nullptr))) {
+			NetSendCmdLoc(MyPlayerId, true, myPlayer.UsesRangedWeapon() ? CMD_RATTACKXY : CMD_SATTACKXY, position);
+			LastPlayerAction = PlayerActionType::Attack;
+			return;
+		}
 	}
 
 	if (pcursmonst != -1) {
