@@ -990,6 +990,7 @@ void ModifyPlrStr(Player &player, int l);
 void ModifyPlrMag(Player &player, int l);
 void ModifyPlrDex(Player &player, int l);
 void ModifyPlrVit(Player &player, int l);
+void ModifyPlrManaCapacity(Player &player, int delta, bool shiftCurrent);
 void SetPlayerHitPoints(Player &player, int val);
 void SetPlrStr(Player &player, int v);
 void SetPlrMag(Player &player, int v);
