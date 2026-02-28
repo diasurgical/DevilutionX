@@ -330,6 +330,16 @@ sol::object CallLuaEvent(std::string_view name, Args &&...args)
 	return SafeCallResult(fn(std::forward<Args>(args)...), /*optional=*/true);
 }
 
+template <typename Ret, typename... Args>
+std::optional<Ret> CallLuaEventReturn(std::string_view name, Args &&...args)
+{
+	sol::object result = CallLuaEvent(name, std::forward<Args>(args)...);
+	if (result.is<Ret>()) {
+		return result.as<Ret>();
+	}
+	return std::nullopt;
+}
+
 void LuaEvent(std::string_view name)
 {
 	CallLuaEvent(name);
@@ -357,11 +367,7 @@ void LuaEvent(std::string_view name, const Player *player, uint32_t arg1)
 
 bool LuaEvent(std::string_view name, const Player *player)
 {
-	sol::object result = CallLuaEvent(name, player);
-	if (result.is<bool>()) {
-		return result.as<bool>();
-	}
-	return false;
+	return CallLuaEventReturn<bool>(name, player).value_or(false);
 }
 
 sol::state &GetLuaState()
