@@ -355,6 +355,15 @@ void LuaEvent(std::string_view name, const Player *player, uint32_t arg1)
 	CallLuaEvent(name, player, arg1);
 }
 
+bool LuaEvent(std::string_view name, const Player *player)
+{
+	sol::object result = CallLuaEvent(name, player);
+	if (result.is<bool>()) {
+		return result.as<bool>();
+	}
+	return false;
+}
+
 sol::state &GetLuaState()
 {
 	return CurrentLuaState->sol;
