@@ -1,9 +1,12 @@
 #include "storm/storm_svid.h"
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <optional>
+#include <string>
+#include <vector>
 
 #ifdef USE_SDL3
 #include <SDL3/SDL_error.h>
@@ -30,6 +33,7 @@
 #include "engine/assets.hpp"
 #include "engine/dx.h"
 #include "engine/palette.h"
+#include "engine/render/subtitle_renderer.hpp"
 #include "options.h"
 #include "utils/display.h"
 #include "utils/log.hpp"
@@ -37,7 +41,6 @@
 #include "utils/sdl_wrap.h"
 
 namespace devilution {
-namespace {
 
 #ifndef NOSOUND
 #ifdef USE_SDL3
@@ -77,6 +80,11 @@ SDLSurfaceUniquePtr SVidSurface;
 uint64_t SVidFrameEnd;
 // The length of a frame in SMK time units.
 uint32_t SVidFrameLength;
+// Video start time in SMK time units (when playback began).
+uint64_t SVidStartTime;
+
+// Subtitle renderer for current video
+SubtitleRenderer SVidSubtitleRenderer;
 
 bool IsLandscapeFit(unsigned long srcW, unsigned long srcH, unsigned long dstW, unsigned long dstH)
 {
@@ -219,6 +227,13 @@ void UpdatePalette()
 
 bool BlitFrame()
 {
+	// Render subtitles if available and enabled - do this BEFORE blitting to output
+	if (*GetOptions().Audio.showSubtitles && SVidSubtitleRenderer.HasSubtitles()) {
+		const uint64_t currentTimeSmk = GetTicksSmk();
+		const uint64_t videoTimeMs = TimeSmkToMs(currentTimeSmk - SVidStartTime);
+		SVidSubtitleRenderer.RenderSubtitles(SVidSurface.get(), SVidWidth, SVidHeight, videoTimeMs);
+	}
+
 #ifndef USE_SDL1
 	if (renderer != nullptr) {
 		if (
@@ -327,8 +342,6 @@ void SVidInitAudioStream(const SmackerAudioInfo &audioInfo)
 }
 #endif
 
-} // namespace
-
 bool SVidPlayBegin(const char *filename, int flags)
 {
 	if ((flags & 0x10000) != 0 || (flags & 0x20000000) != 0) {
@@ -344,6 +357,9 @@ bool SVidPlayBegin(const char *filename, int flags)
 	// 0x100000 // Disable video
 	// 0x800000 // Edge detection
 	// 0x200800 // Clear FB
+
+	// Load subtitles if available
+	SVidSubtitleRenderer.LoadSubtitles(filename);
 
 	auto *videoStream = OpenAssetAsSdlRwOps(filename);
 	SVidHandle = Smacker_Open(videoStream);
@@ -449,6 +465,7 @@ bool SVidPlayBegin(const char *filename, int flags)
 	UpdatePalette();
 
 	SVidFrameEnd = GetTicksSmk() + SVidFrameLength;
+	SVidStartTime = GetTicksSmk();
 
 	return true;
 }
@@ -523,6 +540,7 @@ void SVidPlayEnd()
 	SVidPalette = nullptr;
 	SVidSurface = nullptr;
 	SVidFrameBuffer = nullptr;
+	SVidSubtitleRenderer.Clear();
 
 #ifndef USE_SDL1
 	if (renderer != nullptr) {
