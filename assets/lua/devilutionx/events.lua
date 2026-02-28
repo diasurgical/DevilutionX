@@ -88,6 +88,10 @@ local events = {
   ---Called when Player dies to determine if items should be dropped. Return true to prevent dropping.
   OnPlayerDeathDropItem = CreateEvent(),
   __doc_OnPlayerDeathDropItem = "Called when Player dies to determine if items should be dropped. Return true to prevent dropping.",
+
+  ---Called when Player dies to determine if ear should be dropped. Return true to prevent dropping.
+  OnPlayerDeathDropEar = CreateEvent(),
+  __doc_OnPlayerDeathDropEar = "Called when Player dies to determine if ear should be dropped. Return true to prevent dropping.",
 }
 
 ---Registers a custom event type with the given name.
