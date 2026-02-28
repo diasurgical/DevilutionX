@@ -625,11 +625,11 @@ public:
 	}
 
 	/**
-	 * @brief Return reciprocal of the factor for calculating damage reduction due to Mana Shield.
-	 *
-	 * Valid only for players with Mana Shield spell level greater than zero.
+	 * @brief Applies fractional damage to Mana if Mana Shield is present
+	 * @param totalDamage - full fractional damage value from damage source before reductions
+	 * @return Remaining fractional damage to apply to Player Life
 	 */
-	int GetManaShieldDamageReduction();
+	int ApplyManaShieldToDamage(int totalDamage);
 
 	/**
 	 * @brief Gets the effective spell level for the player, considering item bonuses
