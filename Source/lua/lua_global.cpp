@@ -367,7 +367,7 @@ void LuaEvent(std::string_view name, const Player *player, uint32_t arg1)
 
 bool LuaEvent(std::string_view name, const Player *player)
 {
-	return CallLuaEventReturn<bool>(name, player).value_or(false);
+	return CallLuaEventReturn<bool>(name, player).value_or(true);
 }
 
 sol::state &GetLuaState()

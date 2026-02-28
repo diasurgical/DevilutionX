@@ -2693,13 +2693,13 @@ StartPlayerKill(Player &player, DeathReason deathReason)
 	bool dropItems = dropGold && deathReason == DeathReason::MonsterOrTrap;
 	bool dropEar = dropGold && deathReason == DeathReason::Player;
 
-	if (dropGold && LuaEvent("OnPlayerDeathDropGold", &player)) {
+	if (dropGold && !LuaEvent("OnPlayerDeathDropGold", &player)) {
 		dropGold = false;
 	}
-	if (dropItems && LuaEvent("OnPlayerDeathDropItem", &player)) {
+	if (dropItems && !LuaEvent("OnPlayerDeathDropItem", &player)) {
 		dropItems = false;
 	}
-	if (dropEar && LuaEvent("OnPlayerDeathDropEar", &player)) {
+	if (dropEar && !LuaEvent("OnPlayerDeathDropEar", &player)) {
 		dropEar = false;
 	}
 
