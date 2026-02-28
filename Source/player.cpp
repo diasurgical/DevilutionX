@@ -449,6 +449,7 @@ bool WeaponDecay(Player &player, int ii)
 		if (player.InvBody[ii]._iPLDam <= -100) {
 			RemoveEquipment(player, static_cast<inv_body_loc>(ii), true);
 			CalcPlrInv(player, true);
+			PlaySfxLoc(SfxID::BrokeWeapon, player.position.tile);
 			return true;
 		}
 		CalcPlrInv(player, true);
@@ -480,6 +481,7 @@ bool DamageWeapon(Player &player, unsigned damageFrequency)
 		if (player.InvBody[INVLOC_HAND_LEFT]._iDurability <= 0) {
 			RemoveEquipment(player, INVLOC_HAND_LEFT, true);
 			CalcPlrInv(player, true);
+			PlaySfxLoc(SfxID::BrokeWeapon, player.position.tile);
 			return true;
 		}
 	}
@@ -493,6 +495,7 @@ bool DamageWeapon(Player &player, unsigned damageFrequency)
 		if (player.InvBody[INVLOC_HAND_RIGHT]._iDurability == 0) {
 			RemoveEquipment(player, INVLOC_HAND_RIGHT, true);
 			CalcPlrInv(player, true);
+			PlaySfxLoc(SfxID::BrokeWeapon, player.position.tile);
 			return true;
 		}
 	}
@@ -506,6 +509,7 @@ bool DamageWeapon(Player &player, unsigned damageFrequency)
 		if (player.InvBody[INVLOC_HAND_RIGHT]._iDurability == 0) {
 			RemoveEquipment(player, INVLOC_HAND_RIGHT, true);
 			CalcPlrInv(player, true);
+			PlaySfxLoc(SfxID::BrokeShield, player.position.tile);
 			return true;
 		}
 	}
@@ -519,6 +523,7 @@ bool DamageWeapon(Player &player, unsigned damageFrequency)
 		if (player.InvBody[INVLOC_HAND_LEFT]._iDurability == 0) {
 			RemoveEquipment(player, INVLOC_HAND_LEFT, true);
 			CalcPlrInv(player, true);
+			PlaySfxLoc(SfxID::BrokeShield, player.position.tile);
 			return true;
 		}
 	}
@@ -932,6 +937,7 @@ void DamageParryItem(Player &player)
 		if (player.InvBody[INVLOC_HAND_LEFT]._iDurability == 0) {
 			RemoveEquipment(player, INVLOC_HAND_LEFT, true);
 			CalcPlrInv(player, true);
+			PlaySfxLoc(SfxID::BrokeShield, player.position.tile);
 		}
 	}
 
@@ -941,6 +947,7 @@ void DamageParryItem(Player &player)
 			if (player.InvBody[INVLOC_HAND_RIGHT]._iDurability == 0) {
 				RemoveEquipment(player, INVLOC_HAND_RIGHT, true);
 				CalcPlrInv(player, true);
+				PlaySfxLoc(SfxID::BrokeShield, player.position.tile);
 			}
 		}
 	}
@@ -996,8 +1003,10 @@ void DamageArmor(Player &player)
 
 	if (targetHead) {
 		RemoveEquipment(player, INVLOC_HEAD, true);
+		PlaySfxLoc(SfxID::BrokeHelmet, player.position.tile);
 	} else {
 		RemoveEquipment(player, INVLOC_CHEST, true);
+		PlaySfxLoc(SfxID::BrokeArmor, player.position.tile);
 	}
 	CalcPlrInv(player, true);
 }
