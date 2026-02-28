@@ -315,19 +315,19 @@ void LuaShutdown()
 }
 
 template <typename... Args>
-void CallLuaEvent(std::string_view name, Args &&...args)
+sol::object CallLuaEvent(std::string_view name, Args &&...args)
 {
 	if (!CurrentLuaState.has_value()) {
-		return;
+		return sol::lua_nil;
 	}
 
 	const auto trigger = CurrentLuaState->events.traverse_get<std::optional<sol::object>>(name, "trigger");
 	if (!trigger.has_value() || !trigger->is<sol::protected_function>()) {
 		LogError("events.{}.trigger is not a function", name);
-		return;
+		return sol::lua_nil;
 	}
 	const sol::protected_function fn = trigger->as<sol::protected_function>();
-	SafeCallResult(fn(std::forward<Args>(args)...), /*optional=*/true);
+	return SafeCallResult(fn(std::forward<Args>(args)...), /*optional=*/true);
 }
 
 void LuaEvent(std::string_view name)
