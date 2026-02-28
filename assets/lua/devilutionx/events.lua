@@ -80,6 +80,10 @@ local events = {
   ---Called when Player gains experience.
   OnPlayerGainExperience = CreateEvent(),
   __doc_OnPlayerGainExperience = "Called when Player gains experience.",
+
+  ---Called when Player dies to determine if items should be dropped. Return true to prevent dropping.
+  OnPlayerDeathDropItem = CreateEvent(),
+  __doc_OnPlayerDeathDropItem = "Called when Player dies to determine if items should be dropped. Return true to prevent dropping.",
 }
 
 ---Registers a custom event type with the given name.

@@ -2690,8 +2690,12 @@ StartPlayerKill(Player &player, DeathReason deathReason)
 	}
 
 	const bool dropGold = !gbIsMultiplayer || !(player.isOnLevel(16) || player.isOnArenaLevel());
-	const bool dropItems = dropGold && deathReason == DeathReason::MonsterOrTrap;
+	bool dropItems = dropGold && deathReason == DeathReason::MonsterOrTrap;
 	const bool dropEar = dropGold && deathReason == DeathReason::Player;
+
+	if (dropItems && LuaEvent("OnPlayerDeathDropItem", &player)) {
+		dropItems = false;
+	}
 
 	player.Say(HeroSpeech::AuughUh);
 
