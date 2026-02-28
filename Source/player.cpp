@@ -2689,10 +2689,13 @@ StartPlayerKill(Player &player, DeathReason deathReason)
 		gamemenu_off();
 	}
 
-	const bool dropGold = !gbIsMultiplayer || !(player.isOnLevel(16) || player.isOnArenaLevel());
+	bool dropGold = !gbIsMultiplayer || !(player.isOnLevel(16) || player.isOnArenaLevel());
 	bool dropItems = dropGold && deathReason == DeathReason::MonsterOrTrap;
 	const bool dropEar = dropGold && deathReason == DeathReason::Player;
 
+	if (dropGold && LuaEvent("OnPlayerDeathDropGold", &player)) {
+		dropGold = false;
+	}
 	if (dropItems && LuaEvent("OnPlayerDeathDropItem", &player)) {
 		dropItems = false;
 	}
