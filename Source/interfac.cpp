@@ -24,6 +24,10 @@
 
 #include "control/control.hpp"
 #include "controls/input.h"
+#ifdef __DREAMCAST__
+#include "DiabloUI/diabloui.h"
+#include "engine/sound.h"
+#endif
 #include "engine/clx_sprite.hpp"
 #include "engine/dx.h"
 #include "engine/events.hpp"
@@ -663,6 +667,21 @@ void ShowProgress(interface_mode uMsg)
 			SetHardwareCursorVisible(false);
 
 		BlackPalette();
+
+#ifdef __DREAMCAST__
+		// Free ALL UI assets before heavy level loading to reclaim ~2-3MB RAM.
+		// Dreamcast only has 16MB and level loading needs every byte we can get.
+		music_stop();
+
+		ArtBackground = std::nullopt;
+		ArtBackgroundWidescreen = std::nullopt;
+		ArtLogo = std::nullopt;
+		ArtCursor = std::nullopt;
+		DifficultyIndicator = std::nullopt;
+		for (auto &focus : ArtFocus) {
+			focus = std::nullopt;
+		}
+#endif
 
 		// Always load the background (even if we end up skipping rendering it).
 		// This is because the MPQ archive can only be read by a single thread at a time.

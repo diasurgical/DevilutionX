@@ -346,6 +346,8 @@ Point GetPanelPosition(UiPanels panel, Point offset)
 
 void DrawPanelBox(const Surface &out, SDL_Rect srcRect, Point targetPosition)
 {
+	if (!BottomBuffer)
+		return;
 	out.BlitFrom(*BottomBuffer, srcRect, targetPosition);
 }
 
@@ -434,6 +436,9 @@ void DrawMainPanel(const Surface &out)
 
 void DrawMainPanelButtons(const Surface &out)
 {
+	if (!BottomBuffer)
+		return;
+
 	const Point mainPanelPosition = GetMainPanel().position;
 
 	for (int i = 0; i < TotalSpMainPanelButtons; i++) {

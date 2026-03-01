@@ -26,6 +26,9 @@
 #include "headless_mode.hpp"
 #include "hwcursor.hpp"
 #include "options.h"
+#ifdef __DREAMCAST__
+#include "platform/dreamcast/dc_video.h"
+#endif
 #include "utils/display.h"
 #include "utils/palette_blending.hpp"
 #include "utils/sdl_compat.h"
@@ -165,6 +168,10 @@ void SystemPaletteUpdated(int first, int ncolor)
 	if (!SDLC_SetSurfaceAndPaletteColors(PalSurface, Palette.get(), system_palette.data() + first, first, ncolor)) {
 		ErrSdl();
 	}
+#ifdef __DREAMCAST__
+	// Update Dreamcast RGB565 palette LUT for 8bpp->16bpp conversion
+	dc::UpdatePaletteRange(system_palette.data() + first, first, ncolor);
+#endif
 }
 
 void palette_init()

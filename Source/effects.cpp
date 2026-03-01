@@ -42,6 +42,38 @@ TSFX *sgpStreamSFX = nullptr;
 /** List of all sounds, except monsters and music */
 std::vector<TSFX> sgSFX;
 
+#ifdef __DREAMCAST__
+/**
+ * Evict non-playing sounds to free memory for new sound loading.
+ * @param exclude Sound to skip during eviction (the one being loaded)
+ * @param streamOnly If true, only count/evict sounds with sfx_STREAM flag
+ * @param maxLoaded If loaded count reaches this, start evicting
+ * @param targetLoaded Evict until loaded count drops below this
+ */
+void EvictSoundsIfNeeded(TSFX *exclude, bool streamOnly, int maxLoaded, int targetLoaded)
+{
+	int loaded = 0;
+	for (const auto &sfx : sgSFX) {
+		if (sfx.pSnd != nullptr && (!streamOnly || (sfx.bFlags & sfx_STREAM) != 0))
+			++loaded;
+	}
+	if (loaded < maxLoaded)
+		return;
+	for (auto &sfx : sgSFX) {
+		if (&sfx == exclude)
+			continue;
+		if (sfx.pSnd == nullptr || sfx.pSnd->isPlaying())
+			continue;
+		if (streamOnly && (sfx.bFlags & sfx_STREAM) == 0)
+			continue;
+		sfx.pSnd = nullptr;
+		--loaded;
+		if (loaded < targetLoaded)
+			break;
+	}
+}
+#endif
+
 void StreamPlay(TSFX *pSFX, int lVolume, int lPan)
 {
 	assert(pSFX);
@@ -51,10 +83,21 @@ void StreamPlay(TSFX *pSFX, int lVolume, int lPan)
 	if (lVolume >= VOLUME_MIN) {
 		if (lVolume > VOLUME_MAX)
 			lVolume = VOLUME_MAX;
+#ifdef __DREAMCAST__
+		if (pSFX->pSnd == nullptr) {
+			music_mute();
+			EvictSoundsIfNeeded(pSFX, /*streamOnly=*/true, /*maxLoaded=*/8, /*targetLoaded=*/4);
+			pSFX->pSnd = sound_file_load(pSFX->pszName.c_str(), AllowStreaming);
+			music_unmute();
+		}
+		if (pSFX->pSnd != nullptr && pSFX->pSnd->DSB.IsLoaded())
+			pSFX->pSnd->DSB.PlayWithVolumeAndPan(lVolume, sound_get_or_set_sound_volume(1), lPan);
+#else
 		if (pSFX->pSnd == nullptr)
 			pSFX->pSnd = sound_file_load(pSFX->pszName.c_str(), AllowStreaming);
 		if (pSFX->pSnd->DSB.IsLoaded())
 			pSFX->pSnd->DSB.PlayWithVolumeAndPan(lVolume, sound_get_or_set_sound_volume(1), lPan);
+#endif
 		sgpStreamSFX = pSFX;
 	}
 }
@@ -90,8 +133,23 @@ void PlaySfxPriv(TSFX *pSFX, bool loc, Point position)
 		return;
 	}
 
+#ifdef __DREAMCAST__
+	if (pSFX->pSnd == nullptr) {
+		music_mute();
+		EvictSoundsIfNeeded(pSFX, /*streamOnly=*/false, /*maxLoaded=*/20, /*targetLoaded=*/15);
+		pSFX->pSnd = sound_file_load(pSFX->pszName.c_str());
+		// If loading failed (OOM), evict ALL non-playing sounds and retry once.
+		if (pSFX->pSnd == nullptr) {
+			EvictSoundsIfNeeded(nullptr, /*streamOnly=*/false, /*maxLoaded=*/0, /*targetLoaded=*/0);
+			ClearDuplicateSounds();
+			pSFX->pSnd = sound_file_load(pSFX->pszName.c_str());
+		}
+		music_unmute();
+	}
+#else
 	if (pSFX->pSnd == nullptr)
 		pSFX->pSnd = sound_file_load(pSFX->pszName.c_str());
+#endif
 
 	if (pSFX->pSnd == nullptr || !pSFX->pSnd->DSB.IsLoaded())
 		return;
@@ -163,6 +221,19 @@ void PrivSoundInit(uint8_t bLoadMask)
 	}
 
 	if (sgSFX.empty()) LoadEffectsData();
+
+#ifdef __DREAMCAST__
+	// On Dreamcast (16MB RAM), skip preloading sounds to avoid OOM.
+	// Sounds load on-demand in PlaySfxPriv/StreamPlay when first played.
+	// Free all non-playing sounds to reclaim memory during level transitions.
+	for (auto &sfx : sgSFX) {
+		if (sfx.pSnd != nullptr && !sfx.pSnd->isPlaying()) {
+			sfx.pSnd = nullptr;
+		}
+	}
+	(void)bLoadMask;
+	return;
+#endif
 
 	for (auto &sfx : sgSFX) {
 		if (sfx.bFlags == 0 || sfx.pSnd != nullptr) {
@@ -323,9 +394,18 @@ void effects_play_sound(SfxID id)
 int GetSFXLength(SfxID nSFX)
 {
 	TSFX &sfx = sgSFX[static_cast<int16_t>(nSFX)];
-	if (sfx.pSnd == nullptr)
+	if (sfx.pSnd == nullptr) {
+#ifdef __DREAMCAST__
+		music_mute();
+#endif
 		sfx.pSnd = sound_file_load(sfx.pszName.c_str(),
 		    /*stream=*/AllowStreaming && (sfx.bFlags & sfx_STREAM) != 0);
+#ifdef __DREAMCAST__
+		music_unmute();
+#endif
+	}
+	if (sfx.pSnd == nullptr)
+		return 0;
 	return sfx.pSnd->DSB.GetLength();
 }
 

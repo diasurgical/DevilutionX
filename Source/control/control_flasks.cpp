@@ -47,7 +47,7 @@ void DrawFlaskUpper(const Surface &out, const Surface &sourceBuffer, int offset,
 	    GetMainPanel().position + Displacement { offset, -rect.size.height });
 
 	// Draw the filled part of the flask over the empty part
-	if (filledRows > 0) {
+	if (filledRows > 0 && BottomBuffer) {
 		DrawFlaskAbovePanel(out,
 		    BottomBuffer->subregion(offset, rect.position.y + emptyRows, rect.size.width, filledRows),
 		    GetMainPanel().position + Displacement { offset, -rect.size.height + emptyRows });
@@ -90,7 +90,7 @@ void DrawFlaskLower(const Surface &out, const Surface &sourceBuffer, int offset,
 	}
 
 	// Draw the filled part of the flask
-	if (drawFilledPortion && filledRows > 0) {
+	if (drawFilledPortion && filledRows > 0 && BottomBuffer) {
 		DrawFlaskOnPanel(out,
 		    BottomBuffer->subregion(offset, rect.position.y + emptyRows, rect.size.width, filledRows),
 		    GetMainPanel().position + Displacement { offset, emptyRows });

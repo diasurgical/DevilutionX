@@ -23,6 +23,9 @@
 #ifdef GPERF_HEAP_MAIN
 #include <gperftools/heap-profiler.h>
 #endif
+#ifdef __DREAMCAST__
+#include "platform/dreamcast/dc_init.hpp"
+#endif
 
 #include "diablo.h"
 
@@ -35,6 +38,11 @@ extern "C" const char *__asan_default_options() // NOLINT(bugprone-reserved-iden
 
 extern "C" int main(int argc, char **argv)
 {
+#ifdef __DREAMCAST__
+	if (!devilution::dc::InitDreamcast()) {
+		// Fall back to loose file loading
+	}
+#endif
 #ifdef __SWITCH__
 	switch_romfs_init();
 	switch_enable_network();
@@ -60,6 +68,9 @@ extern "C" int main(int argc, char **argv)
 	const int result = devilution::DiabloMain(argc, argv);
 #ifdef GPERF_HEAP_MAIN
 	HeapProfilerStop();
+#endif
+#ifdef __DREAMCAST__
+	devilution::dc::ShutdownDreamcast();
 #endif
 	return result;
 }

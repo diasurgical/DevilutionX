@@ -331,14 +331,19 @@ std::vector<std::string> GetMPQSearchPaths()
 {
 	std::vector<std::string> paths;
 	paths.push_back(paths::BasePath());
+#ifdef __DREAMCAST__
+	// On Dreamcast, PrefPath is /ram/ (for saves) - MPQs are only on /cd/
+	// Don't search /ram/ for MPQ files
+#else
 	paths.push_back(paths::PrefPath());
 	if (paths[0] == paths[1])
 		paths.pop_back();
 	paths.push_back(paths::ConfigPath());
 	if (paths[0] == paths[1] || (paths.size() == 3 && (paths[0] == paths[2] || paths[1] == paths[2])))
 		paths.pop_back();
+#endif
 
-#if (defined(__unix__) || defined(__APPLE__)) && !defined(__ANDROID__) && !defined(__DJGPP__)
+#if (defined(__unix__) || defined(__APPLE__)) && !defined(__ANDROID__) && !defined(__DJGPP__) && !defined(__DREAMCAST__)
 	// `XDG_DATA_HOME` is usually the root path of `paths::PrefPath()`, so we only
 	// add `XDG_DATA_DIRS`.
 	const char *xdgDataDirs = std::getenv("XDG_DATA_DIRS");
@@ -491,16 +496,22 @@ void LoadModArchives(std::span<const std::string_view> modnames)
 {
 	std::string targetPath;
 	for (const std::string_view modname : modnames) {
+#ifndef __DREAMCAST__
+		// On Dreamcast, PrefPath is /ram/ which is only for saves, not mod assets
 		targetPath = StrCat(paths::PrefPath(), "mods" DIRECTORY_SEPARATOR_STR, modname, DIRECTORY_SEPARATOR_STR);
 		if (FileExists(targetPath)) {
 			OverridePaths.emplace_back(targetPath);
 		}
+#endif
 		targetPath = StrCat(paths::BasePath(), "mods" DIRECTORY_SEPARATOR_STR, modname, DIRECTORY_SEPARATOR_STR);
 		if (FileExists(targetPath)) {
 			OverridePaths.emplace_back(targetPath);
 		}
 	}
+#ifndef __DREAMCAST__
+	// On Dreamcast, PrefPath is /ram/ which is only for saves - don't use for asset overrides
 	OverridePaths.emplace_back(paths::PrefPath());
+#endif
 
 	int priority = 10000;
 	auto paths = GetMPQSearchPaths();

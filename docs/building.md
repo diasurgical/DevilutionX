@@ -410,6 +410,34 @@ cmake --build build
 [PlayStation Vita manual](/docs/manual/platforms/vita.md)
 </details>
 
+<a id="dreamcast"></a>
+<details><summary>Dreamcast</summary>
+
+### Installing dependencies
+
+- [KallistiOS](http://gamedev.allusion.net/softprj/kos/) (KOS) with kos-ports (SDL1, zlib, bzip2)
+- [`mkdcdisc`](https://gitlab.com/simulant/mkdcdisc) for CDI disc image creation
+
+No external `fmt` patch is required. The build applies a bundled SH4 fix automatically.
+
+### Game data
+
+Copy `DIABDAT.MPQ` to `Packaging/dreamcast/cd_root/` before building.
+If needed, see [Extracting MPQs from the GoG installer](https://github.com/diasurgical/devilutionX/wiki/Extracting-MPQs-from-the-GoG-installer).
+
+### Compiling
+
+```bash
+./Packaging/dreamcast/build.sh
+```
+
+This builds the ELF, strips it, and packages a bootable CDI at `Packaging/dreamcast/devilutionx-playable.cdi`.
+
+Override tool paths with environment variables if needed: `KOS_BASE`, `KOS_ENV`, `MKDCDISC`.
+
+[Dreamcast manual](/docs/manual/platforms/dreamcast.md)
+</details>
+
 
 <details><summary>Haiku</summary>
 

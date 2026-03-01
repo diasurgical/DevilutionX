@@ -15,10 +15,23 @@ else()
   set(BUILD_SHARED_LIBS ON)
 endif()
 include(FetchContent)
-FetchContent_Declare_ExcludeFromAll(libfmt
-  URL https://github.com/fmtlib/fmt/releases/download/12.0.0/fmt-12.0.0.zip
-  URL_HASH SHA256=1c32293203449792bf8e94c7f6699c643887e826f2d66a80869b4f279fb07d25
-)
+if(DREAMCAST)
+  set(DREAMCAST_FMT_PATCH "${CMAKE_CURRENT_LIST_DIR}/fmt-12.0.0-sh4-long-double.patch")
+  if(NOT EXISTS "${DREAMCAST_FMT_PATCH}")
+    message(FATAL_ERROR "Dreamcast fmt patch not found: ${DREAMCAST_FMT_PATCH}")
+  endif()
+  find_program(DREAMCAST_PATCH_EXECUTABLE patch REQUIRED)
+  FetchContent_Declare_ExcludeFromAll(libfmt
+    URL https://github.com/fmtlib/fmt/releases/download/12.0.0/fmt-12.0.0.zip
+    URL_HASH SHA256=1c32293203449792bf8e94c7f6699c643887e826f2d66a80869b4f279fb07d25
+    PATCH_COMMAND "${DREAMCAST_PATCH_EXECUTABLE}" -p1 -N -i "${DREAMCAST_FMT_PATCH}"
+  )
+else()
+  FetchContent_Declare_ExcludeFromAll(libfmt
+    URL https://github.com/fmtlib/fmt/releases/download/12.0.0/fmt-12.0.0.zip
+    URL_HASH SHA256=1c32293203449792bf8e94c7f6699c643887e826f2d66a80869b4f279fb07d25
+  )
+endif()
 FetchContent_MakeAvailable_ExcludeFromAll(libfmt)
 
 # We do not use locale-specific features of libfmt and disabling them reduces the size.
