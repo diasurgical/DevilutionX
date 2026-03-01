@@ -5,11 +5,17 @@
  */
 #include "effects.h"
 
+#include <array>
 #include <cstdint>
 #include <string_view>
 
 #include <expected.hpp>
 #include <magic_enum/magic_enum.hpp>
+#ifdef USE_SDL3
+#include <SDL3/SDL_timer.h>
+#else
+#include <SDL.h>
+#endif
 
 #include "data/file.hpp"
 #include "data/iterators.hpp"
@@ -43,6 +49,73 @@ TSFX *sgpStreamSFX = nullptr;
 std::vector<TSFX> sgSFX;
 
 #ifdef __DREAMCAST__
+constexpr uint32_t DreamcastMissingLoadRetryMs = 2000;
+constexpr uint32_t DreamcastDeferredLoadRetryMs = 250;
+constexpr uint32_t DreamcastLateLoadThresholdMs = 20;
+constexpr uint32_t DreamcastRealtimeLoadIntervalMs = 500;
+
+std::array<uint32_t, static_cast<size_t>(SfxID::LAST) + 1> SfxLoadRetryAfterMs {};
+uint32_t NextDreamcastRealtimeLoadAtMs = 0;
+
+size_t GetSfxIndex(const TSFX *sfx)
+{
+	return static_cast<size_t>(sfx - sgSFX.data());
+}
+
+bool ShouldAttemptSfxLoadNow(const TSFX *sfx)
+{
+	const size_t index = GetSfxIndex(sfx);
+	return SDL_GetTicks() >= SfxLoadRetryAfterMs[index];
+}
+
+void DeferSfxLoad(const TSFX *sfx, uint32_t delayMs)
+{
+	const size_t index = GetSfxIndex(sfx);
+	SfxLoadRetryAfterMs[index] = SDL_GetTicks() + delayMs;
+}
+
+bool TryLoadSfxForPlayback(TSFX *sfx, bool stream, bool allowBlockingLoad, bool *loadedLate)
+{
+	if (loadedLate != nullptr)
+		*loadedLate = false;
+	if (sfx->pSnd != nullptr)
+		return true;
+	if (!ShouldAttemptSfxLoadNow(sfx))
+		return false;
+	if (!allowBlockingLoad) {
+		DeferSfxLoad(sfx, DreamcastDeferredLoadRetryMs);
+		return false;
+	}
+
+	const uint32_t startedAt = SDL_GetTicks();
+	sfx->pSnd = sound_file_load(sfx->pszName.c_str(), stream);
+	if (sfx->pSnd == nullptr) {
+		DeferSfxLoad(sfx, DreamcastMissingLoadRetryMs);
+		return false;
+	}
+
+	if (loadedLate != nullptr && SDL_GetTicks() - startedAt > DreamcastLateLoadThresholdMs)
+		*loadedLate = true;
+	return true;
+}
+
+void PreloadDreamcastSfx(SfxID id)
+{
+	const size_t index = static_cast<size_t>(id);
+	if (index >= sgSFX.size())
+		return;
+
+	TSFX &sfx = sgSFX[index];
+	if (sfx.pSnd != nullptr || (sfx.bFlags & sfx_STREAM) != 0)
+		return;
+	if (!ShouldAttemptSfxLoadNow(&sfx))
+		return;
+
+	sfx.pSnd = sound_file_load(sfx.pszName.c_str(), /*stream=*/false);
+	if (sfx.pSnd == nullptr)
+		DeferSfxLoad(&sfx, DreamcastMissingLoadRetryMs);
+}
+
 /**
  * Evict non-playing sounds to free memory for new sound loading.
  * @param exclude Sound to skip during eviction (the one being loaded)
@@ -87,8 +160,11 @@ void StreamPlay(TSFX *pSFX, int lVolume, int lPan)
 		if (pSFX->pSnd == nullptr) {
 			music_mute();
 			EvictSoundsIfNeeded(pSFX, /*streamOnly=*/true, /*maxLoaded=*/8, /*targetLoaded=*/4);
-			pSFX->pSnd = sound_file_load(pSFX->pszName.c_str(), AllowStreaming);
+			bool loadedLate = false;
+			const bool loaded = TryLoadSfxForPlayback(pSFX, AllowStreaming, /*allowBlockingLoad=*/true, &loadedLate);
 			music_unmute();
+			if (!loaded || loadedLate)
+				return;
 		}
 		if (pSFX->pSnd != nullptr && pSFX->pSnd->DSB.IsLoaded())
 			pSFX->pSnd->DSB.PlayWithVolumeAndPan(lVolume, sound_get_or_set_sound_volume(1), lPan);
@@ -137,14 +213,22 @@ void PlaySfxPriv(TSFX *pSFX, bool loc, Point position)
 	if (pSFX->pSnd == nullptr) {
 		music_mute();
 		EvictSoundsIfNeeded(pSFX, /*streamOnly=*/false, /*maxLoaded=*/20, /*targetLoaded=*/15);
-		pSFX->pSnd = sound_file_load(pSFX->pszName.c_str());
-		// If loading failed (OOM), evict ALL non-playing sounds and retry once.
-		if (pSFX->pSnd == nullptr) {
+		bool loadedLate = false;
+		const uint32_t now = SDL_GetTicks();
+		const bool canDoRealtimeLoad = !loc || now >= NextDreamcastRealtimeLoadAtMs;
+		bool loaded = TryLoadSfxForPlayback(pSFX, /*stream=*/false, /*allowBlockingLoad=*/canDoRealtimeLoad, &loadedLate);
+		if (loc && canDoRealtimeLoad)
+			NextDreamcastRealtimeLoadAtMs = SDL_GetTicks() + DreamcastRealtimeLoadIntervalMs;
+		// For non-positional (menu/UI) sounds, one eviction+retry is acceptable.
+		if (!loaded && !loc) {
 			EvictSoundsIfNeeded(nullptr, /*streamOnly=*/false, /*maxLoaded=*/0, /*targetLoaded=*/0);
 			ClearDuplicateSounds();
-			pSFX->pSnd = sound_file_load(pSFX->pszName.c_str());
+			DeferSfxLoad(pSFX, 0);
+			loaded = TryLoadSfxForPlayback(pSFX, /*stream=*/false, /*allowBlockingLoad=*/true, &loadedLate);
 		}
 		music_unmute();
+		if (!loaded || loadedLate)
+			return;
 	}
 #else
 	if (pSFX->pSnd == nullptr)
@@ -212,6 +296,9 @@ void LoadEffectsData()
 		reader.readString("path", item.pszName);
 	}
 	sgSFX.shrink_to_fit();
+#ifdef __DREAMCAST__
+	SfxLoadRetryAfterMs.fill(0);
+#endif
 }
 
 void PrivSoundInit(uint8_t bLoadMask)
@@ -223,13 +310,17 @@ void PrivSoundInit(uint8_t bLoadMask)
 	if (sgSFX.empty()) LoadEffectsData();
 
 #ifdef __DREAMCAST__
-	// On Dreamcast (16MB RAM), skip preloading sounds to avoid OOM.
-	// Sounds load on-demand in PlaySfxPriv/StreamPlay when first played.
-	// Free all non-playing sounds to reclaim memory during level transitions.
+	// Free non-playing sounds during level transitions to reclaim RAM.
 	for (auto &sfx : sgSFX) {
 		if (sfx.pSnd != nullptr && !sfx.pSnd->isPlaying()) {
 			sfx.pSnd = nullptr;
 		}
+	}
+	// Keep high-frequency sounds resident to avoid CD reads in combat.
+	for (const SfxID id : { SfxID::Walk, SfxID::Swing, SfxID::Swing2, SfxID::ShootBow, SfxID::CastSpell,
+	         SfxID::CastFire, SfxID::SpellFireHit, SfxID::ItemPotion, SfxID::ItemGold, SfxID::GrabItem,
+	         SfxID::DoorOpen, SfxID::DoorClose, SfxID::ChestOpen, SfxID::MenuMove, SfxID::MenuSelect }) {
+		PreloadDreamcastSfx(id);
 	}
 	(void)bLoadMask;
 	return;
@@ -329,6 +420,9 @@ void effects_cleanup_sfx(bool fullUnload)
 
 	if (fullUnload) {
 		sgSFX.clear();
+#ifdef __DREAMCAST__
+		SfxLoadRetryAfterMs.fill(0);
+#endif
 		return;
 	}
 
