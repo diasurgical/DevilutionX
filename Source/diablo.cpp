@@ -24,6 +24,10 @@
 #include <config.h>
 
 #include "DiabloUI/selstart.h"
+#include "accessibility/location_speech.hpp"
+#include "accessibility/speech.hpp"
+#include "accessibility/town_navigation.hpp"
+#include "accessibility/tracker.hpp"
 #include "appfat.h"
 #include "automap.h"
 #include "capture.h"
@@ -1769,7 +1773,7 @@ bool IsGameRunning()
 	return PauseMode != 2;
 }
 
-bool CanPlayerTakeAction()
+bool CanPlayerTakeActionImpl()
 {
 	return !IsPlayerDead() && IsGameRunning();
 }
@@ -1800,6 +1804,17 @@ void OptionLanguageCodeChanged()
 const auto OptionChangeHandlerLanguage = (GetOptions().Language.code.SetValueChangedCallback(OptionLanguageCodeChanged), true);
 
 } // namespace
+
+bool CanPlayerTakeAction()
+{
+	return CanPlayerTakeActionImpl();
+}
+
+void CancelAutoWalk()
+{
+	CancelTownNpcAutoWalk();
+	AutoWalkTrackerTargetId = -1;
+}
 
 void InitKeymapActions()
 {
