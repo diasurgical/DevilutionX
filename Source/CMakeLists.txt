@@ -3,6 +3,10 @@ include(functions/devilutionx_library)
 include(functions/genex)
 
 set(libdevilutionx_SRCS
+  accessibility/location_speech.cpp
+  accessibility/speech.cpp
+  accessibility/town_navigation.cpp
+  accessibility/tracker.cpp
   appfat.cpp
   automap.cpp
   capture.cpp
