@@ -331,10 +331,7 @@ std::vector<std::string> GetMPQSearchPaths()
 {
 	std::vector<std::string> paths;
 	paths.push_back(paths::BasePath());
-#ifdef __DREAMCAST__
-	// On Dreamcast, PrefPath is /ram/ (for saves) - MPQs are only on /cd/
-	// Don't search /ram/ for MPQ files
-#else
+#ifndef __DREAMCAST__
 	paths.push_back(paths::PrefPath());
 	if (paths[0] == paths[1])
 		paths.pop_back();
@@ -497,7 +494,6 @@ void LoadModArchives(std::span<const std::string_view> modnames)
 	std::string targetPath;
 	for (const std::string_view modname : modnames) {
 #ifndef __DREAMCAST__
-		// On Dreamcast, PrefPath is /ram/ which is only for saves, not mod assets
 		targetPath = StrCat(paths::PrefPath(), "mods" DIRECTORY_SEPARATOR_STR, modname, DIRECTORY_SEPARATOR_STR);
 		if (FileExists(targetPath)) {
 			OverridePaths.emplace_back(targetPath);
@@ -509,7 +505,6 @@ void LoadModArchives(std::span<const std::string_view> modnames)
 		}
 	}
 #ifndef __DREAMCAST__
-	// On Dreamcast, PrefPath is /ram/ which is only for saves - don't use for asset overrides
 	OverridePaths.emplace_back(paths::PrefPath());
 #endif
 
