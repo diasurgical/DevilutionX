@@ -19,7 +19,6 @@
 #endif
 
 #include <fmt/format.h>
-
 #include "controls/plrctrls.h"
 #include "engine/sound.h"
 #include "inv.h"

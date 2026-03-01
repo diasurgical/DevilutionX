@@ -1750,42 +1750,27 @@ void AutoWalkToTrackerTargetKeyPressed()
 		break;
 	}
 	case TrackerTargetCategory::Chests:
-		targetId = ResolveObjectTrackerTarget(lockedTargetId, playerPosition,
-		    IsTrackedChestObject, FindNearestUnopenedChestObjectId,
-		    [](int id) -> StringOrView { return Objects[id].name(); },
-		    N_("No chests found."), targetName);
+		targetId = ResolveObjectTrackerTarget(lockedTargetId, playerPosition, IsTrackedChestObject, FindNearestUnopenedChestObjectId, [](int id) -> StringOrView { return Objects[id].name(); }, N_("No chests found."), targetName);
 		if (!targetId)
 			return;
 		break;
 	case TrackerTargetCategory::Doors:
-		targetId = ResolveObjectTrackerTarget(lockedTargetId, playerPosition,
-		    IsTrackedDoorObject, FindNearestDoorObjectId,
-		    [](int id) -> StringOrView { return DoorLabelForSpeech(Objects[id]); },
-		    N_("No doors found."), targetName);
+		targetId = ResolveObjectTrackerTarget(lockedTargetId, playerPosition, IsTrackedDoorObject, FindNearestDoorObjectId, [](int id) -> StringOrView { return DoorLabelForSpeech(Objects[id]); }, N_("No doors found."), targetName);
 		if (!targetId)
 			return;
 		break;
 	case TrackerTargetCategory::Shrines:
-		targetId = ResolveObjectTrackerTarget(lockedTargetId, playerPosition,
-		    IsShrineLikeObject, FindNearestShrineObjectId,
-		    [](int id) -> StringOrView { return Objects[id].name(); },
-		    N_("No shrines found."), targetName);
+		targetId = ResolveObjectTrackerTarget(lockedTargetId, playerPosition, IsShrineLikeObject, FindNearestShrineObjectId, [](int id) -> StringOrView { return Objects[id].name(); }, N_("No shrines found."), targetName);
 		if (!targetId)
 			return;
 		break;
 	case TrackerTargetCategory::Objects:
-		targetId = ResolveObjectTrackerTarget(lockedTargetId, playerPosition,
-		    IsTrackedMiscInteractableObject, FindNearestMiscInteractableObjectId,
-		    [](int id) -> StringOrView { return Objects[id].name(); },
-		    N_("No objects found."), targetName);
+		targetId = ResolveObjectTrackerTarget(lockedTargetId, playerPosition, IsTrackedMiscInteractableObject, FindNearestMiscInteractableObjectId, [](int id) -> StringOrView { return Objects[id].name(); }, N_("No objects found."), targetName);
 		if (!targetId)
 			return;
 		break;
 	case TrackerTargetCategory::Breakables:
-		targetId = ResolveObjectTrackerTarget(lockedTargetId, playerPosition,
-		    IsTrackedBreakableObject, FindNearestBreakableObjectId,
-		    [](int id) -> StringOrView { return Objects[id].name(); },
-		    N_("No breakables found."), targetName);
+		targetId = ResolveObjectTrackerTarget(lockedTargetId, playerPosition, IsTrackedBreakableObject, FindNearestBreakableObjectId, [](int id) -> StringOrView { return Objects[id].name(); }, N_("No breakables found."), targetName);
 		if (!targetId)
 			return;
 		break;

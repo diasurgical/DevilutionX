@@ -175,8 +175,7 @@ std::optional<std::vector<int8_t>> FindKeyboardWalkPathForSpeechBfs(const Player
 		const int8_t yDir = delta.deltaY > 0 ? WALK_SW : (delta.deltaY < 0 ? WALK_NE : WALK_NONE);
 
 		if (allowDiagonalSteps && delta.deltaX != 0 && delta.deltaY != 0) {
-			const int8_t diagDir =
-			    delta.deltaX > 0 ? (delta.deltaY > 0 ? WALK_S : WALK_E) : (delta.deltaY > 0 ? WALK_W : WALK_N);
+			const int8_t diagDir = delta.deltaX > 0 ? (delta.deltaY > 0 ? WALK_S : WALK_E) : (delta.deltaY > 0 ? WALK_W : WALK_N);
 			addUniqueDir(diagDir);
 		}
 
@@ -330,8 +329,7 @@ std::optional<std::vector<int8_t>> FindKeyboardWalkPathToClosestReachableForSpee
 		const int8_t yDir = delta.deltaY > 0 ? WALK_SW : (delta.deltaY < 0 ? WALK_NE : WALK_NONE);
 
 		if (allowDiagonalSteps && delta.deltaX != 0 && delta.deltaY != 0) {
-			const int8_t diagDir =
-			    delta.deltaX > 0 ? (delta.deltaY > 0 ? WALK_S : WALK_E) : (delta.deltaY > 0 ? WALK_W : WALK_N);
+			const int8_t diagDir = delta.deltaX > 0 ? (delta.deltaY > 0 ? WALK_S : WALK_E) : (delta.deltaY > 0 ? WALK_W : WALK_N);
 			addUniqueDir(diagDir);
 		}
 
@@ -1155,7 +1153,7 @@ void SpeakNearestExitKeyPressed()
 		}
 
 		const int triggerIndex = FindLockedTownDungeonTriggerIndex(dungeonCandidates)
-		    .value_or(FindDefaultTownDungeonTriggerIndex(dungeonCandidates).value_or(dungeonCandidates.front()));
+		                             .value_or(FindDefaultTownDungeonTriggerIndex(dungeonCandidates).value_or(dungeonCandidates.front()));
 		LockedTownDungeonTriggerIndex = triggerIndex;
 
 		const TriggerStruct &trigger = trigs[triggerIndex];
