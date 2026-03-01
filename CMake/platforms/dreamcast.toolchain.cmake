@@ -15,10 +15,11 @@ set(DREAMCAST ON)
 
 # 3. Add our include paths
 # KOS ports often hide headers in subdirectories
+# GPF SDL installs to KOS_BASE/addons/include/dreamcast/SDL/
 list(APPEND CMAKE_INCLUDE_PATH
     "$ENV{KOS_PORTS}/include/zlib"
     "$ENV{KOS_PORTS}/include/bzlib"
-    "$ENV{KOS_PORTS}/include/SDL"
+    "$ENV{KOS_BASE}/addons/include/dreamcast/SDL"
 )
 
 # 4. Force libraries (The "Nuclear Option" for sub-projects)
@@ -28,9 +29,10 @@ set(ZLIB_LIBRARY "$ENV{KOS_PORTS}/lib/libz.a" CACHE FILEPATH "ZLIB Library" FORC
 set(BZIP2_INCLUDE_DIR "$ENV{KOS_PORTS}/include/bzlib" CACHE PATH "BZip2 Include Dir" FORCE)
 set(BZIP2_LIBRARIES "$ENV{KOS_PORTS}/lib/libbz2.a" CACHE FILEPATH "BZip2 Library" FORCE)
 
-# 5. Force SDL1 - MUST set SDL_LIBRARY without -lpthreads (KOS has built-in threading)
-set(SDL_INCLUDE_DIR "$ENV{KOS_PORTS}/include/SDL" CACHE PATH "SDL Include Dir" FORCE)
-set(SDL_LIBRARY "$ENV{KOS_PORTS}/lib/libSDL.a" CACHE FILEPATH "SDL Library" FORCE)
+# 5. Force SDL1 - GPF SDL (SDL-dreamhal--GLDC) for DMA video and hardware palette
+# GPF SDL installs via its Makefile.dc to KOS_BASE/addons/{lib,include}/dreamcast/
+set(SDL_INCLUDE_DIR "$ENV{KOS_BASE}/addons/include/dreamcast/SDL" CACHE PATH "SDL Include Dir" FORCE)
+set(SDL_LIBRARY "$ENV{KOS_BASE}/addons/lib/dreamcast/libSDL.a" CACHE FILEPATH "SDL Library" FORCE)
 
 # 6. Fix libfmt and magic_enum compilation
 # Disable long double support because sh4-gcc's long double (64-bit) confuses libfmt

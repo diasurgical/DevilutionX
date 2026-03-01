@@ -24,6 +24,12 @@ set(DEFAULT_AUDIO_RESAMPLING_QUALITY 0)
 set(DEFAULT_PER_PIXEL_LIGHTING 0)
 set(DEVILUTIONX_PALETTE_TRANSPARENCY_BLACK_16_LUT ON CACHE BOOL "" FORCE)
 
+# GPF SDL supports 8bpp with hardware palette - lets SDL handle the
+# palette-to-RGB conversion internally via PVR DMA, avoiding the
+# manual 8bpp->16bpp conversion in dc_video.cpp entirely.
+set(SDL1_VIDEO_MODE_BPP 8)
+set(SDL1_VIDEO_MODE_FLAGS SDL_DOUBLEBUF|SDL_HWSURFACE)
+
 set(DEFAULT_WIDTH 640)
 set(DEFAULT_HEIGHT 480)
 
@@ -32,11 +38,12 @@ set(UNPACKED_SAVES ON)
 
 set(DEVILUTIONX_GAMEPAD_TYPE Generic)
 
-set(JOY_BUTTON_A 0)
+# GPF SDL button IDs (from SDL_dreamcast.h SDL_DC_button enum)
+set(JOY_BUTTON_A 2)
 set(JOY_BUTTON_B 1)
-set(JOY_BUTTON_X 2)
-set(JOY_BUTTON_Y 3)
-set(JOY_BUTTON_START 4)
+set(JOY_BUTTON_X 5)
+set(JOY_BUTTON_Y 6)
+set(JOY_BUTTON_START 3)
 
 set(JOY_HAT_DPAD_UP_HAT 0)
 set(JOY_HAT_DPAD_DOWN_HAT 0)

@@ -30,6 +30,21 @@ if [ ! -x "${MKDCDISC}" ]; then
     exit 1
 fi
 
+GPF_SDL_DIR="${SCRIPT_DIR}/SDL-gpf"
+GPF_SDL_LIB="${KOS_BASE}/addons/lib/dreamcast/libSDL.a"
+
+if [ ! -f "${GPF_SDL_LIB}" ]; then
+    echo "Building GPF SDL (SDL-dreamhal--GLDC) for DMA video..."
+    if [ ! -d "${GPF_SDL_DIR}" ]; then
+        git clone --depth 1 -b SDL-dreamhal--GLDC \
+            https://github.com/GPF/SDL-1.2 "${GPF_SDL_DIR}"
+    fi
+    make -C "${GPF_SDL_DIR}" -f Makefile.dc -j"$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)"
+    echo "GPF SDL installed to ${GPF_SDL_LIB}"
+else
+    echo "GPF SDL already installed at ${GPF_SDL_LIB}"
+fi
+
 rm -rf "${BUILD_DIR}"
 mkdir -p "${BUILD_DIR}"
 

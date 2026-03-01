@@ -35,6 +35,9 @@ File[0-9]*.xxx
 File[0-9]*.gif
 File[0-9]*.smk
 
+# GPF SDL source (cloned by build.sh)
+SDL-gpf/
+
 # Build tool output
 *.o
 
