@@ -65,12 +65,16 @@ size_t GetSfxIndex(const TSFX *sfx)
 bool ShouldAttemptSfxLoadNow(const TSFX *sfx)
 {
 	const size_t index = GetSfxIndex(sfx);
+	if (index >= SfxLoadRetryAfterMs.size())
+		return true;
 	return SDL_GetTicks() >= SfxLoadRetryAfterMs[index];
 }
 
 void DeferSfxLoad(const TSFX *sfx, uint32_t delayMs)
 {
 	const size_t index = GetSfxIndex(sfx);
+	if (index >= SfxLoadRetryAfterMs.size())
+		return;
 	SfxLoadRetryAfterMs[index] = SDL_GetTicks() + delayMs;
 }
 
