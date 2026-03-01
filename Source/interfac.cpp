@@ -620,7 +620,15 @@ void IncProgress(uint32_t steps)
 		SDL_Event event;
 		CustomEventToSdlEvent(event, WM_PROGRESS);
 		if (!SDLC_PushEvent(&event)) {
+#ifdef __DREAMCAST__
+			static bool loggedDreamcastProgressPushFailure = false;
+			if (!loggedDreamcastProgressPushFailure) {
+				LogError("Failed to send WM_PROGRESS {}", SDL_GetError());
+				loggedDreamcastProgressPushFailure = true;
+			}
+#else
 			LogError("Failed to send WM_PROGRESS {}", SDL_GetError());
+#endif
 			SDL_ClearError();
 		}
 #ifdef LOAD_ON_MAIN_THREAD

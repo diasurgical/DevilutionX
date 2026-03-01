@@ -5,6 +5,7 @@
  */
 #include "pfile.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <string>
 #include <string_view>
@@ -64,6 +65,19 @@ namespace {
 
 /** List of character names for the character selection screen. */
 char hero_names[MAX_CHARACTERS][PlayerNameLength];
+
+#ifdef __DREAMCAST__
+constexpr uint32_t DreamcastMaxSaveSlots = 8;
+#endif
+
+uint32_t GetPlatformSaveSlotCount()
+{
+#ifdef __DREAMCAST__
+	return std::min<uint32_t>(MAX_CHARACTERS, DreamcastMaxSaveSlots);
+#else
+	return MAX_CHARACTERS;
+#endif
+}
 
 #ifdef __DREAMCAST__
 bool IsRamSavePath(std::string_view path)
@@ -890,7 +904,7 @@ bool pfile_ui_set_hero_infos(bool (*uiAddHeroInfo)(_uiheroinfo *))
 {
 	memset(hero_names, 0, sizeof(hero_names));
 
-	for (uint32_t i = 0; i < MAX_CHARACTERS; i++) {
+	for (uint32_t i = 0; i < GetPlatformSaveSlotCount(); i++) {
 		std::optional<SaveReader> archive = OpenSaveArchive(i);
 		if (archive) {
 			PlayerPack pkplr;
@@ -905,9 +919,11 @@ bool pfile_ui_set_hero_infos(bool (*uiAddHeroInfo)(_uiheroinfo *))
 				Player &player = Players[0];
 
 				UnPackPlayer(pkplr, player);
+#ifndef __DREAMCAST__
 				LoadHeroItems(player);
 				RemoveAllInvalidItems(player);
 				CalcPlrInv(player, false);
+#endif
 
 				Game2UiPlayer(player, &uihero, hasSaveGame);
 				uiAddHeroInfo(&uihero);
@@ -930,7 +946,8 @@ void pfile_ui_set_class_stats(HeroClass playerClass, _uidefaultstats *classStats
 uint32_t pfile_ui_get_first_unused_save_num()
 {
 	uint32_t saveNum;
-	for (saveNum = 0; saveNum < MAX_CHARACTERS; saveNum++) {
+	const uint32_t saveSlotCount = GetPlatformSaveSlotCount();
+	for (saveNum = 0; saveNum < saveSlotCount; saveNum++) {
 		if (hero_names[saveNum][0] == '\0')
 			break;
 	}
@@ -942,7 +959,7 @@ bool pfile_ui_save_create(_uiheroinfo *heroinfo)
 	PlayerPack pkplr;
 
 	const uint32_t saveNum = heroinfo->saveNumber;
-	if (saveNum >= MAX_CHARACTERS)
+	if (saveNum >= GetPlatformSaveSlotCount())
 		return false;
 	heroinfo->saveNumber = saveNum;
 
