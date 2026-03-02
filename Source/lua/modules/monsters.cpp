@@ -42,6 +42,16 @@ void InitMonsterUserType(sol::state_view &lua)
 	    [](const Monster &monster) {
 		    return static_cast<int>(reinterpret_cast<uintptr_t>(&monster));
 	    });
+	LuaSetDocReadonlyProperty(monsterType, "typeId", "integer",
+	    "Monster type ID matching monsters.MonsterID constants (readonly)",
+	    [](const Monster &monster) {
+		    return static_cast<int>(monster.type().type);
+	    });
+	LuaSetDocReadonlyProperty(monsterType, "name", "string",
+	    "Monster's display name (readonly)",
+	    [](const Monster &monster) -> std::string_view {
+		    return monster.name();
+	    });
 }
 
 } // namespace

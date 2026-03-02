@@ -33,6 +33,7 @@
 #include "inv_iterators.hpp"
 #include "levels/tile_properties.hpp"
 #include "levels/town.h"
+#include "lua/lua_global.hpp"
 #include "minitext.h"
 #include "options.h"
 #include "panels/ui_panels.hpp"
@@ -2175,6 +2176,10 @@ bool UseInvItem(int cii)
 
 	if (item->_iMiscId == IMISC_ARENAPOT && !player.isOnArenaLevel()) {
 		player.Say(HeroSpeech::ThatWontWorkHere);
+		return true;
+	}
+
+	if (LuaEventCancellable("OnItemUse", &player, item)) {
 		return true;
 	}
 
