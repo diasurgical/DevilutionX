@@ -20,3 +20,10 @@ set(CMAKE_THREAD_LIBS_INIT "-lpthread")
 set(CMAKE_HAVE_THREADS_LIBRARY 1)
 set(CMAKE_USE_WIN32_THREADS_INIT 0)
 set(CMAKE_USE_PTHREADS_INIT 1)
+
+# nxdk C++ compiler does not support [[noreturn]], leading to lots of warnings like this:
+#
+#   warning: non-void function does not return a value in all control paths
+#
+# Silence them.
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-return-type")
