@@ -33,7 +33,7 @@ public:
 	static Joystick *Get(SDL_JoystickID instanceId);
 	static Joystick *Get(const SDL_Event &event);
 	static const std::vector<Joystick> &All();
-	static bool IsPressedOnAnyJoystick(ControllerButton button);
+	static bool IsPressedOnAnyJoystick(ControllerButton button, SDL_JoystickID *which = nullptr);
 
 	// Must be called exactly once at the start of each SDL input event.
 	void UnlockHatState();

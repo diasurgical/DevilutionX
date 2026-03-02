@@ -10,6 +10,7 @@
 
 #include "controls/control_mode.hpp"
 #include "controls/controller_motion.h"
+#include "controls/local_coop/local_coop.hpp"
 #ifndef USE_SDL1
 #include "controls/devices/game_controller.h"
 #endif
@@ -17,6 +18,7 @@
 #include "controls/padmapper.hpp"
 #include "controls/plrctrls.h"
 #include "controls/touch/gamepad.h"
+#include "cursor.h"
 #include "doom.h"
 #include "gamemenu.h"
 #include "gmenu.h"
@@ -249,6 +251,13 @@ void PressControllerButton(ControllerButton button)
 		}
 	}
 
+	// Local coop unified button handling - handles Player 1 and all coop players the same way
+	if (IsLocalCoopEnabled()) {
+		if (HandleLocalCoopButtonPress(0, button)) {
+			return;
+		}
+	}
+
 	if (PadHotspellMenuActive) {
 		auto quickSpellAction = [](size_t slot) {
 			if (SpellSelectFlag) {
@@ -370,6 +379,13 @@ bool HandleControllerButtonEvent(const SDL_Event &event, const ControllerButtonE
 {
 	if (ctrlEvent.button == ControllerButton_IGNORE) {
 		return false;
+	}
+
+	// Handle player 1 button release in local coop mode - unified with coop players
+	if (IsLocalCoopEnabled() && ctrlEvent.up) {
+		if (HandleLocalCoopButtonRelease(0, ctrlEvent.button)) {
+			return true;
+		}
 	}
 
 	struct ButtonReleaser {

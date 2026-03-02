@@ -36,6 +36,7 @@
 #include "DiabloUI/diabloui.h"
 #include "controls/control_mode.hpp"
 #include "controls/keymapper.hpp"
+#include "controls/local_coop/local_coop.hpp"
 #include "controls/plrctrls.h"
 #include "controls/remap_keyboard.h"
 #include "diablo.h"
@@ -237,6 +238,8 @@ bool ProcessInput()
 #endif
 		CheckCursMove();
 		plrctrls_after_check_curs_move();
+		ProcessLocalCoopRightStickCursor();
+		ProcessLocalCoopLeftStickPanelNavigation();
 		RepeatPlayerAction();
 	}
 
@@ -368,7 +371,9 @@ void LeftMouseDown(uint16_t modState)
 	const bool isShiftHeld = (modState & SDL_KMOD_SHIFT) != 0;
 	const bool isCtrlHeld = (modState & SDL_KMOD_CTRL) != 0;
 
-	if (!GetMainPanel().contains(MousePosition)) {
+	const bool skipMainPanelForLocalCoop = *GetOptions().Gameplay.enableLocalCoop;
+
+	if (!GetMainPanel().contains(MousePosition) || skipMainPanelForLocalCoop) {
 		if (!gmenu_is_active() && !TryIconCurs()) {
 			if (QuestLogIsOpen && GetLeftPanel().contains(MousePosition)) {
 				QuestlogESC();
@@ -727,6 +732,12 @@ void PrepareForFadeIn()
 
 void GameEventHandler(const SDL_Event &event, uint16_t modState)
 {
+#ifndef USE_SDL1
+	if (ProcessLocalCoopInput(event)) {
+		return;
+	}
+#endif
+
 	[[maybe_unused]] const Options &options = GetOptions();
 	StaticVector<ControllerButtonEvent, 4> ctrlEvents = ToControllerButtonEvents(event);
 	for (const ControllerButtonEvent ctrlEvent : ctrlEvents) {
@@ -3136,9 +3147,32 @@ tl::expected<void, std::string> LoadGameLevelDungeon(bool firstflag, lvl_entry l
 
 void LoadGameLevelSyncPlayerEntry(lvl_entry lvldir)
 {
+	// First pass: sync MyPlayer's position
+	Player &myPlayer = *MyPlayer;
+	if (myPlayer.plractive && myPlayer.isOnActiveLevel()) {
+		if (!myPlayer.hasNoLife()) {
+			if (lvldir != ENTRY_LOAD)
+				SyncInitPlrPos(myPlayer);
+		} else {
+			dFlags[myPlayer.position.tile.x][myPlayer.position.tile.y] |= DungeonFlag::DeadPlayer;
+		}
+	}
+
+	// Second pass: sync local coop players, using MyPlayer's position as spawn point
 	for (Player &player : Players) {
-		if (player.plractive && player.isOnActiveLevel() && (!player._pLvlChanging || &player == MyPlayer)) {
-			if (player._pHitPoints > 0) {
+		if (&player == MyPlayer)
+			continue; // Already handled in first pass
+
+		if (player.plractive && player.isOnActiveLevel() && (!player._pLvlChanging || IsLocalPlayer(player))) {
+			// For local coop players entering a new level, set their position to MyPlayer's spawn point
+			// before calling SyncInitPlrPos so they spawn near Player 1
+			if (IsLocalCoopPlayer(player) && lvldir != ENTRY_LOAD) {
+				player.position.tile = myPlayer.position.tile;
+				player.position.future = myPlayer.position.tile;
+				player.position.old = myPlayer.position.tile;
+			}
+
+			if (!player.hasNoLife()) {
 				if (lvldir != ENTRY_LOAD)
 					SyncInitPlrPos(player);
 			} else {
