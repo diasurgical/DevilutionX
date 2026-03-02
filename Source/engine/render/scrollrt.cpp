@@ -48,7 +48,7 @@
 #include "levels/gendung.h"
 #include "levels/tile_properties.hpp"
 #include "lighting.h"
-#include "lua/lua_global.hpp"
+#include "lua/lua_event.hpp"
 #include "minitext.h"
 #include "missiles.h"
 #include "nthread.h"
@@ -1898,7 +1898,7 @@ void DrawAndBlit()
 
 	DrawFPS(out);
 
-	LuaEvent("GameDrawComplete");
+	lua::GameDrawComplete();
 
 	DrawMain(hgt, drawInfoBox, drawHealth, drawMana, drawBelt, drawControlButtons);
 

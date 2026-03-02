@@ -1,3 +1,4 @@
+#include "lua/lua_event.hpp"
 #include "lua/lua_global.hpp"
 
 #include <optional>
@@ -254,7 +255,7 @@ void LuaReloadActiveMods()
 	LoadObjectData();
 	LoadQuestData();
 
-	LuaEvent("LoadModsComplete");
+	lua::LoadModsComplete();
 }
 
 void LuaInitialize()
@@ -340,35 +341,79 @@ std::optional<Ret> CallLuaEventReturn(std::string_view name, Args &&...args)
 	return std::nullopt;
 }
 
-void LuaEvent(std::string_view name)
+namespace lua {
+
+void LoadModsComplete()
 {
-	CallLuaEvent(name);
+	CallLuaEvent("LoadModsComplete");
 }
 
-void LuaEvent(std::string_view name, std::string_view arg)
+void GameStart()
 {
-	CallLuaEvent(name, arg);
+	CallLuaEvent("GameStart");
 }
 
-void LuaEvent(std::string_view name, const Player *player, int arg1, int arg2)
+void GameDrawComplete()
 {
-	CallLuaEvent(name, player, arg1, arg2);
+	CallLuaEvent("GameDrawComplete");
 }
 
-void LuaEvent(std::string_view name, const Monster *monster, int arg1, int arg2)
+void ItemDataLoaded()
 {
-	CallLuaEvent(name, monster, arg1, arg2);
+	CallLuaEvent("ItemDataLoaded");
 }
 
-void LuaEvent(std::string_view name, const Player *player, uint32_t arg1)
+void UniqueItemDataLoaded()
 {
-	CallLuaEvent(name, player, arg1);
+	CallLuaEvent("UniqueItemDataLoaded");
 }
 
-bool LuaEvent(std::string_view name, const Player *player)
+void MonsterDataLoaded()
 {
-	return CallLuaEventReturn<bool>(name, player).value_or(true);
+	CallLuaEvent("MonsterDataLoaded");
 }
+
+void UniqueMonsterDataLoaded()
+{
+	CallLuaEvent("UniqueMonsterDataLoaded");
+}
+
+void StoreOpened(std::string_view name)
+{
+	CallLuaEvent("StoreOpened", name);
+}
+
+void OnPlayerGainExperience(const Player &player, uint32_t experience)
+{
+	CallLuaEvent("OnPlayerGainExperience", &player, experience);
+}
+
+void OnPlayerTakeDamage(const Player *player, int damage, int damageType)
+{
+	CallLuaEvent("OnPlayerTakeDamage", player, damage, damageType);
+}
+
+void OnMonsterTakeDamage(const Monster *monster, int damage, int damageType)
+{
+	CallLuaEvent("OnMonsterTakeDamage", monster, damage, damageType);
+}
+
+bool OnPlayerDeathDropGold(const Player *player)
+{
+	return CallLuaEventReturn<bool>("OnPlayerDeathDropGold", player).value_or(true);
+}
+
+bool OnPlayerDeathDropItem(const Player *player)
+{
+	return CallLuaEventReturn<bool>("OnPlayerDeathDropItem", player).value_or(true);
+}
+
+bool OnPlayerDeathDropEar(const Player *player)
+{
+	return CallLuaEventReturn<bool>("OnPlayerDeathDropEar", player).value_or(true);
+}
+
+} // namespace lua
 
 sol::state &GetLuaState()
 {
