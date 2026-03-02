@@ -27,6 +27,7 @@
 #include "options.h"
 #include "panels/info_box.hpp"
 #include "qol/stash.h"
+#include "qol/visual_store.h"
 #include "tables/townerdat.hpp"
 #include "towners.h"
 #include "utils/format_int.hpp"
@@ -337,25 +338,6 @@ void PrintStoreItem(const Item &item, int l, UiFlags flags, bool cursIndent = fa
 	AddSText(40, l++, productLine, flags, false, -1, cursIndent);
 }
 
-bool StoreAutoPlace(Item &item, bool persistItem)
-{
-	Player &player = *MyPlayer;
-
-	if (AutoEquipEnabled(player, item) && AutoEquip(player, item, persistItem, true)) {
-		return true;
-	}
-
-	if (AutoPlaceItemInBelt(player, item, persistItem, true)) {
-		return true;
-	}
-
-	if (persistItem) {
-		return AutoPlaceItemInInventory(player, item, true);
-	}
-
-	return CanFitItemInInventory(player, item);
-}
-
 void ScrollVendorStore(std::span<Item> itemData, int storeLimit, int idx, int selling = true)
 {
 	ClearSText(5, 21);
@@ -386,11 +368,16 @@ void StartSmith()
 	AddSText(0, 3, _("Blacksmith's shop"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
 	AddSText(0, 7, _("Would you like to:"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
 	AddSText(0, 10, _("Talk to Griswold"), UiFlags::ColorBlue | UiFlags::AlignCenter, true);
-	AddSText(0, 12, _("Buy basic items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSText(0, 14, _("Buy premium items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSText(0, 16, _("Sell items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSText(0, 18, _("Repair items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSText(0, 20, _("Leave the shop"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+	if (*GetOptions().Gameplay.visualStoreUI) {
+		AddSText(0, 12, _("Trade / Repair"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+		AddSText(0, 14, _("Leave the shop"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+	} else {
+		AddSText(0, 12, _("Buy basic items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+		AddSText(0, 14, _("Buy premium items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+		AddSText(0, 16, _("Sell items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+		AddSText(0, 18, _("Repair items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+		AddSText(0, 20, _("Leave the shop"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+	}
 	AddSLine(5);
 	CurrentItemIndex = 20;
 }
@@ -403,12 +390,6 @@ void ScrollSmithBuy(int idx)
 uint32_t TotalPlayerGold()
 {
 	return MyPlayer->_pGold + Stash.gold;
-}
-
-// TODO: Change `_iIvalue` to be unsigned instead of passing `int` here.
-bool PlayerCanAfford(int price)
-{
-	return TotalPlayerGold() >= static_cast<uint32_t>(price);
 }
 
 void StartSmithBuy()
@@ -661,11 +642,19 @@ void StartWitch()
 	AddSText(0, 2, _("Witch's shack"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
 	AddSText(0, 9, _("Would you like to:"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
 	AddSText(0, 12, _("Talk to Adria"), UiFlags::ColorBlue | UiFlags::AlignCenter, true);
-	AddSText(0, 14, _("Buy items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSText(0, 16, _("Sell items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSText(0, 18, _("Recharge staves"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSText(0, 20, _("Leave the shack"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSLine(5);
+	if (*GetOptions().Gameplay.visualStoreUI) {
+		AddSText(0, 14, _("Buy / Sell"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+		AddSText(0, 16, _("Recharge staves"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+		AddSText(0, 18, _("Leave the shack"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+		AddSLine(4);
+	} else {
+		AddSText(0, 14, _("Buy items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+		AddSText(0, 16, _("Sell items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+		AddSText(0, 18, _("Recharge staves"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+		AddSText(0, 20, _("Leave the shack"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+		AddSLine(5);
+	}
+
 	CurrentItemIndex = 20;
 }
 
@@ -1257,6 +1246,25 @@ void StartDrunk()
 
 void SmithEnter()
 {
+	if (*GetOptions().Gameplay.visualStoreUI) {
+		switch (CurrentTextLine) {
+		case 10:
+			TownerId = TOWN_SMITH;
+			OldTextLine = 10;
+			OldActiveStore = TalkID::Smith;
+			StartStore(TalkID::Gossip);
+			break;
+		case 12:
+			ActiveStore = TalkID::None;
+			OpenVisualStore(VisualStoreVendor::Smith);
+			break;
+		case 14:
+			ActiveStore = TalkID::None;
+			break;
+		}
+		return;
+	}
+
 	switch (CurrentTextLine) {
 	case 10:
 		TownerId = TOWN_SMITH;
@@ -1265,13 +1273,30 @@ void SmithEnter()
 		StartStore(TalkID::Gossip);
 		break;
 	case 12:
-		StartStore(TalkID::SmithBuy);
+		if (*GetOptions().Gameplay.visualStoreUI) {
+			ActiveStore = TalkID::None;
+			OpenVisualStore(VisualStoreVendor::Smith);
+		} else {
+			StartStore(TalkID::SmithBuy);
+		}
 		break;
 	case 14:
-		StartStore(TalkID::SmithPremiumBuy);
+		if (*GetOptions().Gameplay.visualStoreUI) {
+			ActiveStore = TalkID::None;
+			OpenVisualStore(VisualStoreVendor::Smith);
+			SetVisualStoreTab(VisualStoreTab::Premium);
+		} else {
+			StartStore(TalkID::SmithPremiumBuy);
+		}
 		break;
 	case 16:
-		StartStore(TalkID::SmithSell);
+		if (*GetOptions().Gameplay.visualStoreUI) {
+			// Visual store handles both buying and selling
+			ActiveStore = TalkID::None;
+			OpenVisualStore(VisualStoreVendor::Smith);
+		} else {
+			StartStore(TalkID::SmithSell);
+		}
 		break;
 	case 18:
 		StartStore(TalkID::SmithRepair);
@@ -1492,10 +1517,20 @@ void WitchEnter()
 		StartStore(TalkID::Gossip);
 		break;
 	case 14:
-		StartStore(TalkID::WitchBuy);
+		if (*GetOptions().Gameplay.visualStoreUI) {
+			ActiveStore = TalkID::None;
+			OpenVisualStore(VisualStoreVendor::Witch);
+		} else {
+			StartStore(TalkID::WitchBuy);
+		}
 		break;
 	case 16:
-		StartStore(TalkID::WitchSell);
+		if (*GetOptions().Gameplay.visualStoreUI) {
+			ActiveStore = TalkID::None;
+			OpenVisualStore(VisualStoreVendor::Witch);
+		} else {
+			StartStore(TalkID::WitchSell);
+		}
 		break;
 	case 18:
 		StartStore(TalkID::WitchRecharge);
@@ -1633,7 +1668,12 @@ void BoyEnter()
 			StartStore(TalkID::NoMoney);
 		} else {
 			TakePlrsMoney(50);
-			StartStore(TalkID::BoyBuy);
+			if (*GetOptions().Gameplay.visualStoreUI) {
+				ActiveStore = TalkID::None;
+				OpenVisualStore(VisualStoreVendor::Boy);
+			} else {
+				StartStore(TalkID::BoyBuy);
+			}
 		}
 		return;
 	}
@@ -1810,7 +1850,12 @@ void HealerEnter()
 		StartStore(TalkID::Gossip);
 		break;
 	case 14:
-		StartStore(TalkID::HealerBuy);
+		if (*GetOptions().Gameplay.visualStoreUI) {
+			ActiveStore = TalkID::None;
+			OpenVisualStore(VisualStoreVendor::Healer);
+		} else {
+			StartStore(TalkID::HealerBuy);
+		}
 		break;
 	case 18:
 		ActiveStore = TalkID::None;
@@ -2020,6 +2065,25 @@ void DrawSelector(const Surface &out, const Rectangle &rect, std::string_view te
 }
 
 } // namespace
+
+bool StoreAutoPlace(Item &item, bool persistItem)
+{
+	Player &player = *MyPlayer;
+
+	if (AutoEquipEnabled(player, item) && AutoEquip(player, item, persistItem, true)) {
+		return true;
+	}
+
+	if (AutoPlaceItemInBelt(player, item, persistItem, true)) {
+		return true;
+	}
+
+	if (persistItem) {
+		return AutoPlaceItemInInventory(player, item, true);
+	}
+
+	return CanFitItemInInventory(player, item);
+}
 
 void AddStoreHoldRepair(Item *itm, int8_t i)
 {
@@ -2738,6 +2802,12 @@ void ReleaseStoreBtn()
 bool IsPlayerInStore()
 {
 	return ActiveStore != TalkID::None;
+}
+
+// TODO: Change `_iIvalue` to be unsigned instead of passing `int` here.
+bool PlayerCanAfford(int price)
+{
+	return TotalPlayerGold() >= static_cast<uint32_t>(price);
 }
 
 } // namespace devilution

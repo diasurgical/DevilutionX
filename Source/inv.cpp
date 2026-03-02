@@ -39,6 +39,7 @@
 #include "player.h"
 #include "plrmsg.h"
 #include "qol/stash.h"
+#include "qol/visual_store.h"
 #include "stores.h"
 #include "towners.h"
 #include "utils/display.h"
@@ -900,6 +901,10 @@ void CheckInvCut(Player &player, Point cursorPosition, bool automaticMove, bool 
 						player.InvBody[invloc] = holdItem.pop();
 					}
 				}
+			} else if (IsVisualStoreOpen && CanSellToCurrentVendor(player.InvList[iv]) && dropItem) {
+				// If visual store is open, ctrl-click sells the item
+				SellItemToVisualStore(iv);
+				automaticallyMoved = true;
 			} else {
 				holdItem = player.InvList[iv];
 				player.RemoveInvItem(iv, false);
@@ -1981,7 +1986,21 @@ int8_t CheckInvHLight()
 	if (pi->isEmpty())
 		return -1;
 
-	if (pi->_itype == ItemType::Gold) {
+	if (IsVisualStoreOpen && pcurs == CURSOR_REPAIR) {
+		InfoColor = pi->getTextColor();
+		InfoString = pi->getName();
+		FloatingInfoString = pi->getName();
+		if (pi->_iIdentified) {
+			PrintItemDetails(*pi);
+		} else {
+			PrintItemDur(*pi);
+		}
+		int cost = GetRepairCost(*pi);
+		if (cost > 0)
+			AddInfoBoxString(StrCat(FormatInteger(cost), " Gold"));
+		else
+			AddInfoBoxString(_("Fully Repaired"));
+	} else if (pi->_itype == ItemType::Gold) {
 		const int nGold = pi->_ivalue;
 		InfoString = fmt::format(fmt::runtime(ngettext("{:s} gold piece", "{:s} gold pieces", nGold)), FormatInteger(nGold));
 		FloatingInfoString = fmt::format(fmt::runtime(ngettext("{:s} gold piece", "{:s} gold pieces", nGold)), FormatInteger(nGold));
@@ -2213,6 +2232,7 @@ void CloseInventory()
 {
 	CloseGoldWithdraw();
 	CloseStash();
+	CloseVisualStore();
 	invflag = false;
 }
 
