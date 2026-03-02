@@ -34,7 +34,7 @@
 #endif
 #endif
 
-#if _POSIX_C_SOURCE >= 200112L || defined(_BSD_SOURCE) || defined(__APPLE__) || defined(__DJGPP__)
+#if (_POSIX_C_SOURCE >= 200112L || defined(_BSD_SOURCE) || defined(__APPLE__) || defined(__DJGPP__)) && !defined(__DREAMCAST__)
 #define DVL_HAS_POSIX_2001
 #endif
 
@@ -165,9 +165,15 @@ bool DirectoryExists(const char *path)
 #elif defined(DVL_HAS_FILESYSTEM)
 	std::error_code error;
 	return std::filesystem::is_directory(reinterpret_cast<const char8_t *>(path), error);
-#elif (_POSIX_C_SOURCE >= 200112L || defined(_BSD_SOURCE) || defined(__APPLE__)) && !defined(__ANDROID__)
+#elif ((_POSIX_C_SOURCE >= 200112L || defined(_BSD_SOURCE) || defined(__APPLE__)) && !defined(__ANDROID__) && !defined(__DREAMCAST__))
 	struct ::stat statResult;
 	return ::stat(path, &statResult) == 0 && S_ISDIR(statResult.st_mode);
+#elif defined(__DREAMCAST__)
+	// Dreamcast VMU uses a flat file structure - no real directories.
+	// KOS filesystem paths like /cd/ and /ram/ are mount points, not user directories.
+	// Always return false since directory checks aren't meaningful on this platform.
+	(void)path;
+	return false;
 #endif
 }
 
@@ -240,7 +246,14 @@ bool GetFileSize(const char *path, std::uintmax_t *size)
 
 bool CreateDir(const char *path)
 {
-#ifdef DVL_HAS_FILESYSTEM
+#ifdef __DREAMCAST__
+	// Dreamcast VMU filesystem doesn't support directories.
+	// VMU uses a flat file structure: /vmu/a1/filename
+	// We pretend directory creation succeeded - saves will use flat file names.
+	// This is similar to how dca3-game (GTA III port) handles VMU saves.
+	(void)path;
+	return true;
+#elif defined(DVL_HAS_FILESYSTEM)
 	std::error_code error;
 	std::filesystem::create_directory(reinterpret_cast<const char8_t *>(path), error);
 	if (error) {
@@ -281,7 +294,11 @@ bool CreateDir(const char *path)
 
 void RecursivelyCreateDir(const char *path)
 {
-#ifdef DVL_HAS_FILESYSTEM
+#ifdef __DREAMCAST__
+	// Dreamcast VMU uses flat file structure - no directories needed.
+	// All save files are written directly to /vmu/a1/ with flat names.
+	(void)path;
+#elif defined(DVL_HAS_FILESYSTEM)
 	std::error_code error;
 	std::filesystem::create_directories(reinterpret_cast<const char8_t *>(path), error);
 	if (error) {
@@ -361,6 +378,11 @@ bool ResizeFile(const char *path, std::uintmax_t size)
 	return true;
 #elif defined(DVL_HAS_POSIX_2001)
 	return ::truncate(path, static_cast<off_t>(size)) == 0;
+#elif defined(__DREAMCAST__)
+	// KOS doesn't have truncate - return failure
+	// MPQ writer will handle this gracefully
+	LogError("ResizeFile: truncate not implemented for Dreamcast");
+	return false;
 #else
 	static_assert(false, "truncate not implemented for the current platform");
 #endif
@@ -508,7 +530,7 @@ std::vector<std::string> ListDirectories(const char *path)
 			dirs.push_back(folder);
 	} while (FindNextFileA(hFind, &findData));
 	FindClose(hFind);
-#elif (_POSIX_C_SOURCE >= 200112L || defined(_BSD_SOURCE) || defined(__APPLE__))
+#elif ((_POSIX_C_SOURCE >= 200112L || defined(_BSD_SOURCE) || defined(__APPLE__)) && !defined(__DREAMCAST__))
 	DIR *d = ::opendir(path);
 	if (d != nullptr) {
 		struct dirent *dir;
@@ -520,6 +542,9 @@ std::vector<std::string> ListDirectories(const char *path)
 		}
 		::closedir(d);
 	}
+#elif defined(__DREAMCAST__)
+	// KOS doesn't have opendir/readdir - return empty list
+	(void)path;
 #else
 	static_assert(false, "ListDirectories not implemented for the current platform");
 #endif
@@ -553,7 +578,7 @@ std::vector<std::string> ListFiles(const char *path)
 			files.push_back(file);
 	} while (FindNextFileA(hFind, &findData));
 	FindClose(hFind);
-#elif (_POSIX_C_SOURCE >= 200112L || defined(_BSD_SOURCE) || defined(__APPLE__))
+#elif ((_POSIX_C_SOURCE >= 200112L || defined(_BSD_SOURCE) || defined(__APPLE__)) && !defined(__DREAMCAST__))
 	DIR *d = ::opendir(path);
 	if (d != nullptr) {
 		struct dirent *dir;
@@ -565,6 +590,10 @@ std::vector<std::string> ListFiles(const char *path)
 		}
 		::closedir(d);
 	}
+#elif defined(__DREAMCAST__)
+	// KOS doesn't have opendir/readdir - return empty list
+	// Note: KOS has fs_dir functions but they use different types
+	(void)path;
 #else
 	static_assert(false, "ListFiles not implemented for the current platform");
 #endif

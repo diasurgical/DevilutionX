@@ -175,6 +175,17 @@ If you'd like to use this option, scan the QR code below.
 
 </details>
 
+<details><summary>Dreamcast</summary>
+
+- Build from source and package as a CDI image.
+- Copy MPQ files to `Packaging/dreamcast/cd_root/` before building:
+  - Required: `DIABDAT.MPQ`
+  - Optional: `spawn.mpq`
+- Follow [Dreamcast build instructions](building.md#dreamcast).
+- See [Dreamcast packaging readme](../Packaging/dreamcast/README.md).
+
+</details>
+
 <details><summary>ClockworkPi GameShell</summary>
 
 - Copy the `__init__.py` to a newly created folder under /home/cpi/apps/Menu and run it from the menu. The folder then symbolizes the devilutionX icon.

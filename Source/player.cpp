@@ -2188,12 +2188,24 @@ void InitPlayerGFX(Player &player)
 		return;
 	}
 
+#ifdef __DREAMCAST__
+	// On Dreamcast's limited 16MB RAM, only load essential animations.
+	// Other animations (spells, death, block) are loaded on-demand via LoadPlrGFX.
+	LoadPlrGFX(player, player_graphic::Stand);
+	LoadPlrGFX(player, player_graphic::Walk);
+	// In dungeons, also preload attack since it's immediately needed
+	if (leveltype != DTYPE_TOWN) {
+		LoadPlrGFX(player, player_graphic::Attack);
+		LoadPlrGFX(player, player_graphic::Hit);
+	}
+#else
 	for (size_t i = 0; i < enum_size<player_graphic>::value; i++) {
 		auto graphic = static_cast<player_graphic>(i);
 		if (graphic == player_graphic::Death)
 			continue;
 		LoadPlrGFX(player, graphic);
 	}
+#endif
 }
 
 void ResetPlayerGFX(Player &player)

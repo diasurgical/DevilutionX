@@ -250,8 +250,19 @@ void ReencodeDungeonCels(std::unique_ptr<std::byte[]> &dungeonCels, std::span<st
 	    FormatInteger(Swap32LE(srcOffsets[Swap32LE(srcOffsets[0]) + 1])));
 
 	const size_t outSize = GetReencodedSize(srcData, frames);
+
+#ifdef __DREAMCAST__
+	// Allocate destination buffer, process, then swap.
+	// outSize is smaller than the original, so we can fit both briefly.
+	std::byte *workBuffer = new (std::nothrow) std::byte[outSize];
+	if (!workBuffer) {
+		return;
+	}
+	auto *const resultPtr = reinterpret_cast<uint8_t *>(workBuffer);
+#else
 	std::unique_ptr<std::byte[]> result { new std::byte[outSize] };
 	auto *const resultPtr = reinterpret_cast<uint8_t *>(result.get());
+#endif
 	WriteLE32(resultPtr, static_cast<uint32_t>(frames.size()));
 	uint8_t *lookup = resultPtr + 4;
 	uint8_t *out = resultPtr + (2 + frames.size()) * 4; // number of frames, frame offsets, file size
@@ -299,7 +310,23 @@ void ReencodeDungeonCels(std::unique_ptr<std::byte[]> &dungeonCels, std::span<st
 	    FormatInteger(Swap32LE(dstOffsets[Swap32LE(dstOffsets[0]) + 1])),
 	    FormatInteger(numFoliage));
 
+#ifdef __DREAMCAST__
+	// Free the original buffer FIRST, then allocate the final result.
+	// This ensures we never have both old and new buffers in memory simultaneously.
+	dungeonCels.reset();
+
+	std::byte *finalBuf = new (std::nothrow) std::byte[outSize];
+	if (finalBuf == nullptr) {
+		// Restore dungeonCels from workBuffer so the renderer has something
+		dungeonCels.reset(workBuffer);
+		return;
+	}
+	std::memcpy(finalBuf, workBuffer, outSize);
+	dungeonCels.reset(finalBuf);
+	delete[] workBuffer;
+#else
 	dungeonCels = std::move(result);
+#endif
 }
 
 std::vector<std::pair<uint16_t, uint16_t>> ComputeCelBlockAdjustments(std::span<std::pair<uint16_t, DunFrameInfo>> frames)

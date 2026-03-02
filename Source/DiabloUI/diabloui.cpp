@@ -10,6 +10,10 @@
 #include <string_view>
 #include <vector>
 
+#ifdef __DREAMCAST__
+#include <unordered_map>
+#endif
+
 #ifdef USE_SDL3
 #include <SDL3/SDL_error.h>
 #include <SDL3/SDL_events.h>
@@ -88,6 +92,16 @@ OptionalOwnedClxSpriteList ArtBackground;
 OptionalOwnedClxSpriteList ArtCursor;
 
 std::size_t SelectedItem = 0;
+
+#ifdef __DREAMCAST__
+namespace {
+struct CachedBackground {
+	OwnedClxSpriteList sprites;
+	std::array<SDL_Color, 256> palette;
+};
+std::unordered_map<std::string, CachedBackground> bgArtCache;
+} // namespace
+#endif
 
 namespace {
 
@@ -691,6 +705,10 @@ void UiInitialize()
 void UiDestroy()
 {
 	UnloadFonts();
+#ifdef __DREAMCAST__
+	bgArtCache.clear();
+	bgArtCache.rehash(0);
+#endif
 	UnloadUiGFX();
 }
 
@@ -762,9 +780,27 @@ bool UiLoadBlackBackground()
 void LoadBackgroundArt(const char *pszFile, int frames)
 {
 	ArtBackground = std::nullopt;
+
+#ifdef __DREAMCAST__
+	// Cache backgrounds to avoid repeated slow CD reads on screen transitions.
+	std::string key(pszFile);
+	auto it = bgArtCache.find(key);
+	if (it != bgArtCache.end()) {
+		ArtBackground = it->second.sprites.clone();
+		logical_palette = it->second.palette;
+		UpdateSystemPalette(logical_palette);
+		UiOnBackgroundChange();
+		return;
+	}
+#endif
+
 	ArtBackground = LoadPcxSpriteList(pszFile, static_cast<uint16_t>(frames), /*transparentColor=*/std::nullopt, logical_palette.data());
 	if (!ArtBackground)
 		return;
+
+#ifdef __DREAMCAST__
+	bgArtCache.emplace(std::move(key), CachedBackground { ArtBackground->clone(), logical_palette });
+#endif
 
 	UpdateSystemPalette(logical_palette);
 	UiOnBackgroundChange();
