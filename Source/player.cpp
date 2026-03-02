@@ -41,7 +41,7 @@
 #include "levels/trigs.h"
 #include "lighting.h"
 #include "loadsave.h"
-#include "lua/lua_global.hpp"
+#include "lua/lua_event.hpp"
 #include "minitext.h"
 #include "missiles.h"
 #include "monster.h"
@@ -2442,7 +2442,7 @@ void Player::_addExperience(uint32_t experience, int levelDelta)
 		clampedExp = std::min<uint32_t>({ clampedExp, /* level 1-5: */ getNextExperienceThreshold() / 20U, /* level 6-50: */ 200U * getCharacterLevel() });
 	}
 
-	LuaEvent("OnPlayerGainExperience", this, clampedExp);
+	lua::OnPlayerGainExperience(*this, clampedExp);
 
 	const uint32_t maxExperience = GetNextExperienceThresholdForLevel(getMaxCharacterLevel());
 
@@ -2689,9 +2689,19 @@ StartPlayerKill(Player &player, DeathReason deathReason)
 		gamemenu_off();
 	}
 
-	const bool dropGold = !gbIsMultiplayer || !(player.isOnLevel(16) || player.isOnArenaLevel());
-	const bool dropItems = dropGold && deathReason == DeathReason::MonsterOrTrap;
-	const bool dropEar = dropGold && deathReason == DeathReason::Player;
+	bool dropGold = !gbIsMultiplayer || !(player.isOnLevel(16) || player.isOnArenaLevel());
+	bool dropItems = dropGold && deathReason == DeathReason::MonsterOrTrap;
+	bool dropEar = dropGold && deathReason == DeathReason::Player;
+
+	if (dropGold && !lua::OnPlayerDeathDropGold(&player)) {
+		dropGold = false;
+	}
+	if (dropItems && !lua::OnPlayerDeathDropItem(&player)) {
+		dropItems = false;
+	}
+	if (dropEar && !lua::OnPlayerDeathDropEar(&player)) {
+		dropEar = false;
+	}
 
 	player.Say(HeroSpeech::AuughUh);
 
@@ -2824,7 +2834,7 @@ void ApplyPlrDamage(DamageType damageType, Player &player, int dam, int minHP /*
 {
 	int totalDamage = (dam << 6) + frac;
 	if (&player == MyPlayer && !player.hasNoLife()) {
-		LuaEvent("OnPlayerTakeDamage", &player, totalDamage, static_cast<int>(damageType));
+		lua::OnPlayerTakeDamage(&player, totalDamage, static_cast<int>(damageType));
 	}
 	if (totalDamage > 0 && player.pManaShield && HasNoneOf(player._pIFlags, ItemSpecialEffect::NoMana)) {
 		const uint8_t manaShieldLevel = player._pSplLvl[static_cast<int8_t>(SpellID::ManaShield)];

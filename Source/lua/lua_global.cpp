@@ -1,3 +1,4 @@
+#include "lua/lua_event.hpp"
 #include "lua/lua_global.hpp"
 
 #include <optional>
@@ -254,7 +255,7 @@ void LuaReloadActiveMods()
 	LoadObjectData();
 	LoadQuestData();
 
-	LuaEvent("LoadModsComplete");
+	lua::LoadModsComplete();
 }
 
 void LuaInitialize()
@@ -315,45 +316,104 @@ void LuaShutdown()
 }
 
 template <typename... Args>
-void CallLuaEvent(std::string_view name, Args &&...args)
+sol::object CallLuaEvent(std::string_view name, Args &&...args)
 {
 	if (!CurrentLuaState.has_value()) {
-		return;
+		return sol::lua_nil;
 	}
 
 	const auto trigger = CurrentLuaState->events.traverse_get<std::optional<sol::object>>(name, "trigger");
 	if (!trigger.has_value() || !trigger->is<sol::protected_function>()) {
 		LogError("events.{}.trigger is not a function", name);
-		return;
+		return sol::lua_nil;
 	}
 	const sol::protected_function fn = trigger->as<sol::protected_function>();
-	SafeCallResult(fn(std::forward<Args>(args)...), /*optional=*/true);
+	return SafeCallResult(fn(std::forward<Args>(args)...), /*optional=*/true);
 }
 
-void LuaEvent(std::string_view name)
+template <typename Ret, typename... Args>
+std::optional<Ret> CallLuaEventReturn(std::string_view name, Args &&...args)
 {
-	CallLuaEvent(name);
+	sol::object result = CallLuaEvent(name, std::forward<Args>(args)...);
+	if (result.is<Ret>()) {
+		return result.as<Ret>();
+	}
+	return std::nullopt;
 }
 
-void LuaEvent(std::string_view name, std::string_view arg)
+namespace lua {
+
+void LoadModsComplete()
 {
-	CallLuaEvent(name, arg);
+	CallLuaEvent("LoadModsComplete");
 }
 
-void LuaEvent(std::string_view name, const Player *player, int arg1, int arg2)
+void GameStart()
 {
-	CallLuaEvent(name, player, arg1, arg2);
+	CallLuaEvent("GameStart");
 }
 
-void LuaEvent(std::string_view name, const Monster *monster, int arg1, int arg2)
+void GameDrawComplete()
 {
-	CallLuaEvent(name, monster, arg1, arg2);
+	CallLuaEvent("GameDrawComplete");
 }
 
-void LuaEvent(std::string_view name, const Player *player, uint32_t arg1)
+void ItemDataLoaded()
 {
-	CallLuaEvent(name, player, arg1);
+	CallLuaEvent("ItemDataLoaded");
 }
+
+void UniqueItemDataLoaded()
+{
+	CallLuaEvent("UniqueItemDataLoaded");
+}
+
+void MonsterDataLoaded()
+{
+	CallLuaEvent("MonsterDataLoaded");
+}
+
+void UniqueMonsterDataLoaded()
+{
+	CallLuaEvent("UniqueMonsterDataLoaded");
+}
+
+void StoreOpened(std::string_view name)
+{
+	CallLuaEvent("StoreOpened", name);
+}
+
+void OnPlayerGainExperience(const Player &player, uint32_t experience)
+{
+	CallLuaEvent("OnPlayerGainExperience", &player, experience);
+}
+
+void OnPlayerTakeDamage(const Player *player, int damage, int damageType)
+{
+	CallLuaEvent("OnPlayerTakeDamage", player, damage, damageType);
+}
+
+void OnMonsterTakeDamage(const Monster *monster, int damage, int damageType)
+{
+	CallLuaEvent("OnMonsterTakeDamage", monster, damage, damageType);
+}
+
+bool OnPlayerDeathDropGold(const Player *player)
+{
+	return CallLuaEventReturn<bool>("OnPlayerDeathDropGold", player).value_or(true);
+}
+
+bool OnPlayerDeathDropItem(const Player *player)
+{
+	return CallLuaEventReturn<bool>("OnPlayerDeathDropItem", player).value_or(true);
+}
+
+bool OnPlayerDeathDropEar(const Player *player)
+{
+	return CallLuaEventReturn<bool>("OnPlayerDeathDropEar", player).value_or(true);
+}
+
+} // namespace lua
 
 sol::state &GetLuaState()
 {

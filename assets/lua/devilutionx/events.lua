@@ -24,17 +24,13 @@ local function CreateEvent()
     ---
     ---The arguments are forwarded to handlers.
     ---@param ... any
+    ---@return any
     trigger = function(...)
-      local args = {...}
-      if #args > 0 then
-        for _, func in ipairs(functions) do
-          func(table.unpack(args))
-        end
-      else
-        for _, func in ipairs(functions) do
-          func()
-        end
+      local result
+      for _, func in ipairs(functions) do
+        result = func(...)
       end
+      return result
     end,
     __sig_trigger = "(...)",
   }
@@ -84,6 +80,18 @@ local events = {
   ---Called when Player gains experience.
   OnPlayerGainExperience = CreateEvent(),
   __doc_OnPlayerGainExperience = "Called when Player gains experience.",
+
+  ---Called when Player dies to determine if gold should be dropped. Return false to prevent dropping.
+  OnPlayerDeathDropGold = CreateEvent(),
+  __doc_OnPlayerDeathDropGold = "Called when Player dies to determine if gold should be dropped. Return false to prevent dropping.",
+
+  ---Called when Player dies to determine if items should be dropped. Return false to prevent dropping.
+  OnPlayerDeathDropItem = CreateEvent(),
+  __doc_OnPlayerDeathDropItem = "Called when Player dies to determine if items should be dropped. Return false to prevent dropping.",
+
+  ---Called when Player dies to determine if ear should be dropped. Return false to prevent dropping.
+  OnPlayerDeathDropEar = CreateEvent(),
+  __doc_OnPlayerDeathDropEar = "Called when Player dies to determine if ear should be dropped. Return false to prevent dropping.",
 }
 
 ---Registers a custom event type with the given name.
