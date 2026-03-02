@@ -118,6 +118,7 @@ set(libdevilutionx_SRCS
   lua/modules/dev/search.cpp
   lua/modules/dev/towners.cpp
   lua/modules/floatingnumbers.cpp
+  lua/modules/gamepad.cpp
   lua/modules/i18n.cpp
   lua/modules/items.cpp
   lua/modules/log.cpp
@@ -125,6 +126,7 @@ set(libdevilutionx_SRCS
   lua/modules/player.cpp
   lua/modules/render.cpp
   lua/modules/system.cpp
+  lua/modules/infobox.cpp
   lua/modules/towners.cpp
   lua/repl.cpp
 

@@ -4,6 +4,8 @@
 #include "engine/render/primitive_render.hpp"
 #include "inv.h"
 #include "levels/trigs.h"
+#include "lua/lua_global.hpp"
+#include "lua/modules/infobox.hpp"
 #include "panels/partypanel.hpp"
 #include "qol/stash.h"
 #include "qol/xpbar.h"
@@ -44,12 +46,14 @@ void PrintInfo(const Surface &out)
 
 	SpeakText(InfoString);
 
-	DrawString(out, InfoString, infoBox,
-	    {
-	        .flags = InfoColor | UiFlags::AlignCenter | UiFlags::VerticalCenter | UiFlags::KerningFitSpacing,
-	        .spacing = 2,
-	        .lineHeight = lineHeight,
-	    });
+	if (!DrawInfoBoxTextWithColors(out, InfoString, infoBox, UiFlags::AlignCenter | UiFlags::VerticalCenter | UiFlags::KerningFitSpacing, 2, lineHeight)) {
+		DrawString(out, InfoString, infoBox,
+		    {
+		        .flags = InfoColor | UiFlags::AlignCenter | UiFlags::VerticalCenter | UiFlags::KerningFitSpacing,
+		        .spacing = 2,
+		        .lineHeight = lineHeight,
+		    });
+	}
 }
 
 Rectangle GetFloatingInfoRect(const int lineHeight, const int textSpacing)
@@ -211,6 +215,26 @@ int ClampAboveOrBelow(int anchorY, int spriteH, int boxH, int pad, int linePad)
 	return (yAbove >= 0) ? yAbove : yBelow;
 }
 
+const Item *GetHoveredInventoryOrStashItem()
+{
+	if (pcursinvitem >= INVITEM_HEAD && pcursinvitem < INVITEM_INV_FIRST) {
+		const int slot = pcursinvitem - INVITEM_HEAD;
+		return &InspectPlayer->InvBody[slot];
+	}
+	if (pcursinvitem >= INVITEM_INV_FIRST && pcursinvitem < INVITEM_INV_FIRST + InventoryGridCells) {
+		const int itemIdx = pcursinvitem - INVITEM_INV_FIRST;
+		return &InspectPlayer->InvList[itemIdx];
+	}
+	if (pcursinvitem >= INVITEM_BELT_FIRST && pcursinvitem < INVITEM_BELT_FIRST + MaxBeltItems) {
+		const int itemIdx = pcursinvitem - INVITEM_BELT_FIRST;
+		return &InspectPlayer->SpdList[itemIdx];
+	}
+	if (pcursstashitem != StashStruct::EmptyCell) {
+		return &Stash.stashList[pcursstashitem];
+	}
+	return nullptr;
+}
+
 void PrintFloatingInfo(const Surface &out)
 {
 	if (ChatFlag)
@@ -234,6 +258,7 @@ void PrintFloatingInfo(const Surface &out)
 
 	// Prevent the floating info box from going off-screen vertically
 	floatingInfoBox.position.y = ClampAboveOrBelow(anchorY, spriteH, floatingInfoBox.size.height, vPadding, verticalSpacing);
+	SetLastFloatingInfoBoxRect(floatingInfoBox);
 
 	SpeakText(FloatingInfoString);
 
@@ -244,12 +269,16 @@ void PrintFloatingInfo(const Surface &out)
 	DrawHalfTransparentHorizontalLine(out, { floatingInfoBox.position.x - hPadding, floatingInfoBox.position.y - vPadding - 1 }, floatingInfoBox.size.width + (hPadding * 2), PAL16_GRAY + 10);
 	DrawHalfTransparentHorizontalLine(out, { floatingInfoBox.position.x - hPadding, floatingInfoBox.position.y + vPadding + floatingInfoBox.size.height }, floatingInfoBox.size.width + (hPadding * 2), PAL16_GRAY + 10);
 
-	DrawString(out, FloatingInfoString, floatingInfoBox,
-	    {
-	        .flags = InfoColor | UiFlags::AlignCenter | UiFlags::VerticalCenter,
-	        .spacing = textSpacing,
-	        .lineHeight = lineHeight,
-	    });
+	if (!DrawInfoBoxTextWithColors(out, FloatingInfoString, floatingInfoBox, UiFlags::AlignCenter | UiFlags::VerticalCenter, textSpacing, lineHeight)) {
+		DrawString(out, FloatingInfoString, floatingInfoBox,
+		    {
+		        .flags = InfoColor | UiFlags::AlignCenter | UiFlags::VerticalCenter,
+		        .spacing = textSpacing,
+		        .lineHeight = lineHeight,
+		    });
+	}
+
+	LuaEvent("AfterFloatingInfoBoxDraw");
 }
 
 } // namespace
@@ -355,6 +384,8 @@ void CheckPanelInfo()
 
 void DrawInfoBox(const Surface &out)
 {
+	const Item *infoBoxItem = nullptr;
+
 	DrawPanelBox(out, MakeSdlRect(InfoBoxRect.position.x, InfoBoxRect.position.y + PanelPaddingHeight, InfoBoxRect.size.width, InfoBoxRect.size.height), GetMainPanel().position + Displacement { InfoBoxRect.position.x, InfoBoxRect.position.y });
 	if (!MainPanelFlag && !trigflag && pcursinvitem == -1 && pcursstashitem == StashStruct::EmptyCell && !SpellSelectFlag && pcurs != CURSOR_HOURGLASS) {
 		InfoString = StringOrView {};
@@ -364,6 +395,7 @@ void DrawInfoBox(const Surface &out)
 	if (SpellSelectFlag || trigflag || pcurs == CURSOR_HOURGLASS) {
 		InfoColor = UiFlags::ColorWhite;
 	} else if (!myPlayer.HoldItem.isEmpty()) {
+		infoBoxItem = &myPlayer.HoldItem;
 		if (myPlayer.HoldItem._itype == ItemType::Gold) {
 			const int nGold = myPlayer.HoldItem._ivalue;
 			InfoString = fmt::format(fmt::runtime(ngettext("{:s} gold piece", "{:s} gold pieces", nGold)), FormatInteger(nGold));
@@ -374,8 +406,10 @@ void DrawInfoBox(const Surface &out)
 			InfoColor = myPlayer.HoldItem.getTextColor();
 		}
 	} else {
-		if (pcursitem != -1)
+		if (pcursitem != -1) {
 			GetItemStr(Items[pcursitem]);
+			infoBoxItem = &Items[pcursitem];
+		}
 		else if (ObjectUnderCursor != nullptr)
 			GetObjectStr(*ObjectUnderCursor);
 		if (pcursmonst != -1) {
@@ -407,6 +441,17 @@ void DrawInfoBox(const Surface &out)
 			AddInfoBoxString(_("Right click to inspect"));
 		}
 	}
+	if (infoBoxItem == nullptr)
+		infoBoxItem = GetHoveredInventoryOrStashItem();
+
+	if (infoBoxItem != nullptr) {
+		PrepareInfoBoxColors(infoBoxItem, false);
+		if (FloatingInfoBoxColors.hasCustomColors())
+			InfoColor = FloatingInfoBoxColors.getLineColor(0);
+	} else {
+		FloatingInfoBoxColors.clear();
+	}
+
 	if (!InfoString.empty())
 		PrintInfo(out);
 }
@@ -416,10 +461,18 @@ void DrawFloatingInfoBox(const Surface &out)
 	if (pcursinvitem == -1 && pcursstashitem == StashStruct::EmptyCell) {
 		FloatingInfoString = StringOrView {};
 		InfoColor = UiFlags::ColorWhite;
+		ClearLastFloatingInfoBoxRect();
 	}
 
-	if (!FloatingInfoString.empty())
+	if (!FloatingInfoString.empty()) {
+		const Item *hoveredItem = GetHoveredInventoryOrStashItem();
+		PrepareInfoBoxColors(hoveredItem, true);
+		if (FloatingInfoBoxColors.hasCustomColors())
+			InfoColor = FloatingInfoBoxColors.getLineColor(0);
 		PrintFloatingInfo(out);
+	} else {
+		ClearLastFloatingInfoBoxRect();
+	}
 }
 
 } // namespace devilution

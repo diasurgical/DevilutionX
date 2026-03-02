@@ -72,7 +72,7 @@ namespace {
 void DiscoverMods()
 {
 	// Add mods available by default:
-	std::unordered_set<std::string> modNames = { "clock", "adria_refills_mana", "Floating Numbers - Damage", "Floating Numbers - XP" };
+	std::unordered_set<std::string> modNames = { "clock", "adria_refills_mana", "Floating Numbers - Damage", "Floating Numbers - XP", "Tooltips" };
 
 	if (HaveHellfire()) {
 		modNames.insert("Hellfire");
@@ -1486,9 +1486,31 @@ bool PadmapperOptions::Action::SetValue(ControllerButtonCombo value)
 
 void PadmapperOptions::AddAction(std::string_view key, const char *name, const char *description, ControllerButtonCombo defaultInput, std::function<void()> actionPressed, std::function<void()> actionReleased, std::function<bool()> enable, unsigned index)
 {
-	if (committed)
+	const std::string resolvedKey = index == 0
+	    ? std::string(key)
+	    : fmt::format(fmt::runtime(std::string_view(key.data(), key.size())), index);
+
+	for (const Action &action : actions) {
+		if (action.key == resolvedKey)
+			return;
+	}
+
+	if (!committed) {
+		actions.emplace_front(key, name, description, defaultInput, std::move(actionPressed), std::move(actionReleased), std::move(enable), index);
 		return;
-	actions.emplace_front(key, name, description, defaultInput, std::move(actionPressed), std::move(actionReleased), std::move(enable), index);
+	}
+
+	auto prev = actions.before_begin();
+	for (auto it = actions.begin(); it != actions.end(); ++it) {
+		prev = it;
+	}
+
+	auto inserted = actions.emplace_after(prev, key, name, description, defaultInput, std::move(actionPressed), std::move(actionReleased), std::move(enable), index);
+	if (ini.has_value()) {
+		inserted->LoadFromIni(this->key);
+	} else {
+		inserted->SetValue(defaultInput);
+	}
 }
 
 void PadmapperOptions::CommitActions()
