@@ -7,6 +7,12 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/xbox_nxdk/finders")
 set(DEVILUTIONX_SYSTEM_BZIP2 OFF)
 set(DEVILUTIONX_SYSTEM_LIBFMT OFF)
 
+# Diablo/Hellfire MPQs only use PKWARE DCL implode, not zlib/bzip2.
+# Disable these in mpqfs to avoid pulling in zlib (which fails to build
+# from source on nxdk due to missing <sys/types.h>).
+set(MPQFS_USE_ZLIB OFF CACHE BOOL "" FORCE)
+set(MPQFS_USE_BZIP2 OFF CACHE BOOL "" FORCE)
+
 set(BUILD_ASSETS_MPQ OFF)
 set(DEVILUTIONX_ASSETS_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/pkg/assets")
 set(DEVILUTIONX_WINDOWS_NO_WCHAR ON)
