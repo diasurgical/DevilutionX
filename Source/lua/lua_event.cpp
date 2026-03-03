@@ -32,6 +32,26 @@ void CallLuaEvent(std::string_view name, Args &&...args)
 	SafeCallResult(fn(std::forward<Args>(args)...), /*optional=*/true);
 }
 
+template <typename T, typename... Args>
+T CallLuaEventReturn(T defaultValue, std::string_view name, Args &&...args)
+{
+	sol::table *events = GetLuaEvents();
+	if (events == nullptr) {
+		return defaultValue;
+	}
+
+	const auto trigger = events->traverse_get<std::optional<sol::object>>(name, "trigger");
+	if (!trigger.has_value() || !trigger->is<sol::protected_function>()) {
+		return defaultValue;
+	}
+	const sol::protected_function fn = trigger->as<sol::protected_function>();
+	sol::object result = SafeCallResult(fn(std::forward<Args>(args)...), /*optional=*/true);
+	if (result.is<T>()) {
+		return result.as<T>();
+	}
+	return defaultValue;
+}
+
 void MonsterDataLoaded()
 {
 	CallLuaEvent("MonsterDataLoaded");
