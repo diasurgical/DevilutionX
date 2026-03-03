@@ -1,14 +1,31 @@
 #pragma once
 
+#include <cstdint>
 #include <string_view>
 
 namespace devilution {
 
-/**
- * @brief Triggers a Lua event by name.
- * This is a minimal header for code that only needs to trigger events.
- */
-void LuaEvent(std::string_view name);
-void LuaEvent(std::string_view name, std::string_view arg);
+struct Player;
+struct Monster;
+
+namespace lua {
+
+void MonsterDataLoaded();
+void UniqueMonsterDataLoaded();
+void ItemDataLoaded();
+void UniqueItemDataLoaded();
+
+void StoreOpened(std::string_view name);
+
+void OnMonsterTakeDamage(const Monster *monster, int damage, int damageType);
+
+void OnPlayerGainExperience(const Player *player, uint32_t exp);
+void OnPlayerTakeDamage(const Player *player, int damage, int damageType);
+
+void LoadModsComplete();
+void GameDrawComplete();
+void GameStart();
+
+} // namespace lua
 
 } // namespace devilution

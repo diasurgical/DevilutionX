@@ -12,6 +12,7 @@
 #include "appfat.h"
 #include "effects.h"
 #include "engine/assets.hpp"
+#include "lua/lua_event.hpp"
 #include "lua/modules/audio.hpp"
 #include "lua/modules/floatingnumbers.hpp"
 #include "lua/modules/hellfire.hpp"
@@ -254,7 +255,7 @@ void LuaReloadActiveMods()
 	LoadObjectData();
 	LoadQuestData();
 
-	LuaEvent("LoadModsComplete");
+	lua::LoadModsComplete();
 }
 
 void LuaInitialize()
@@ -314,45 +315,9 @@ void LuaShutdown()
 	CurrentLuaState = std::nullopt;
 }
 
-template <typename... Args>
-void CallLuaEvent(std::string_view name, Args &&...args)
+sol::table *GetLuaEvents()
 {
-	if (!CurrentLuaState.has_value()) {
-		return;
-	}
-
-	const auto trigger = CurrentLuaState->events.traverse_get<std::optional<sol::object>>(name, "trigger");
-	if (!trigger.has_value() || !trigger->is<sol::protected_function>()) {
-		LogError("events.{}.trigger is not a function", name);
-		return;
-	}
-	const sol::protected_function fn = trigger->as<sol::protected_function>();
-	SafeCallResult(fn(std::forward<Args>(args)...), /*optional=*/true);
-}
-
-void LuaEvent(std::string_view name)
-{
-	CallLuaEvent(name);
-}
-
-void LuaEvent(std::string_view name, std::string_view arg)
-{
-	CallLuaEvent(name, arg);
-}
-
-void LuaEvent(std::string_view name, const Player *player, int arg1, int arg2)
-{
-	CallLuaEvent(name, player, arg1, arg2);
-}
-
-void LuaEvent(std::string_view name, const Monster *monster, int arg1, int arg2)
-{
-	CallLuaEvent(name, monster, arg1, arg2);
-}
-
-void LuaEvent(std::string_view name, const Player *player, uint32_t arg1)
-{
-	CallLuaEvent(name, player, arg1);
+	return CurrentLuaState ? &CurrentLuaState->events : nullptr;
 }
 
 sol::state &GetLuaState()

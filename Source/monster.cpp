@@ -70,7 +70,7 @@
 #include "levels/tile_properties.hpp"
 #include "levels/trigs.h"
 #include "lighting.h"
-#include "lua/lua_global.hpp"
+#include "lua/lua_event.hpp"
 #include "minitext.h"
 #include "missiles.h"
 #include "movie.h"
@@ -3868,7 +3868,7 @@ void AddDoppelganger(Monster &monster)
 
 void ApplyMonsterDamage(DamageType damageType, Monster &monster, int damage)
 {
-	LuaEvent("OnMonsterTakeDamage", &monster, damage, static_cast<int>(damageType));
+	lua::OnMonsterTakeDamage(&monster, damage, static_cast<int>(damageType));
 
 	monster.hitPoints -= damage;
 

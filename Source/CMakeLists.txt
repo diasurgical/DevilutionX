@@ -100,6 +100,7 @@ set(libdevilutionx_SRCS
   levels/trigs.cpp
 
   lua/autocomplete.cpp
+  lua/lua_event.cpp
   lua/lua_global.cpp
   lua/modules/audio.cpp
   lua/modules/hellfire.cpp

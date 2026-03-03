@@ -14,7 +14,7 @@
 #include "data/file.hpp"
 #include "data/iterators.hpp"
 #include "data/record_reader.hpp"
-#include "lua/lua_global.hpp"
+#include "lua/lua_event.hpp"
 #include "tables/spelldat.h"
 #include "utils/str_cat.hpp"
 
@@ -619,7 +619,7 @@ void LoadItemDat()
 	ItemMappingIdsToIndices.clear();
 	LoadItemDatFromFile(dataFile, filename, 0);
 
-	LuaEvent("ItemDataLoaded");
+	lua::ItemDataLoaded();
 }
 
 void ReadItemPower(RecordReader &reader, std::string_view fieldName, ItemPower &power)
@@ -676,7 +676,7 @@ void LoadUniqueItemDat()
 	UniqueItemMappingIdsToIndices.clear();
 	LoadUniqueItemDatFromFile(dataFile, filename, 0);
 
-	LuaEvent("UniqueItemDataLoaded");
+	lua::UniqueItemDataLoaded();
 }
 
 void LoadItemAffixesDat(std::string_view filename, std::vector<PLStruct> &out)
