@@ -415,9 +415,10 @@ cmake --build build
 
 ### Installing dependencies
 
-- [KallistiOS](http://gamedev.allusion.net/softprj/kos/) (KOS) with kos-ports (SDL1, zlib, bzip2)
+- [KallistiOS](https://kos-docs.dreamcast.wiki/) (KOS) with kos-ports (zlib, bzip2)
 - [`mkdcdisc`](https://gitlab.com/simulant/mkdcdisc) for CDI disc image creation
 
+SDL (GPF SDL with DMA video) and Lua are built from source automatically.
 No external `fmt` patch is required. The build applies a bundled SH4 fix automatically.
 
 ### Game data

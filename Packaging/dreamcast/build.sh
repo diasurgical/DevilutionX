@@ -32,8 +32,9 @@ fi
 
 GPF_SDL_DIR="${SCRIPT_DIR}/SDL-gpf"
 GPF_SDL_LIB="${KOS_BASE}/addons/lib/dreamcast/libSDL.a"
+GPF_SDL_HEADER="${KOS_BASE}/addons/include/dreamcast/SDL/SDL_dreamcast.h"
 
-if [ ! -f "${GPF_SDL_LIB}" ]; then
+if [ ! -f "${GPF_SDL_HEADER}" ]; then
     echo "Building GPF SDL (SDL-dreamhal--GLDC) for DMA video..."
     if [ ! -d "${GPF_SDL_DIR}" ]; then
         git clone --depth 1 -b SDL-dreamhal--GLDC \
@@ -52,6 +53,7 @@ cmake_args=(
     -S "${ROOT_DIR}"
     -B "${BUILD_DIR}"
     -DCMAKE_TOOLCHAIN_FILE="${ROOT_DIR}/CMake/platforms/dreamcast.toolchain.cmake"
+    -DDEVILUTIONX_SYSTEM_LUA=OFF
 )
 
 if command -v ninja >/dev/null 2>&1; then
