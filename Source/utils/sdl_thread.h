@@ -24,7 +24,7 @@ inline SDL_ThreadID get_id()
 inline SDL_threadID get_id()
 #endif
 {
-#if defined(__DJGPP__)
+#if defined(__DJGPP__) || defined(__EMSCRIPTEN__)
 	return 1;
 #else
 	return SDL_GetThreadID(nullptr);
@@ -32,7 +32,7 @@ inline SDL_threadID get_id()
 }
 } // namespace this_sdl_thread
 
-#if defined(__DJGPP__)
+#if defined(__DJGPP__) || defined(__EMSCRIPTEN__)
 class SdlThread final {
 public:
 	SdlThread(int(SDLCALL *handler)(void *), void *data)
