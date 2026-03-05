@@ -67,7 +67,8 @@ public:
 	enum class ErrorCode : uint8_t {
 		None,
 		EncryptionFailed,
-		DecryptionFailed
+		DecryptionFailed,
+		ModMismatch
 	};
 
 	PacketError()

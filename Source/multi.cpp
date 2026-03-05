@@ -8,6 +8,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <span>
 #include <string_view>
 
 #ifdef USE_SDL3
@@ -95,6 +96,7 @@ void GameData::swapLE()
 	gameSeed[1] = Swap32LE(gameSeed[1]);
 	gameSeed[2] = Swap32LE(gameSeed[2]);
 	gameSeed[3] = Swap32LE(gameSeed[3]);
+	modHash = Swap32LE(modHash);
 }
 
 namespace {
@@ -553,6 +555,22 @@ std::string FormatGameSeed(const uint32_t gameSeed[4])
 	    gameSeed[0], gameSeed[1], gameSeed[2], gameSeed[3]);
 }
 
+uint32_t ComputeModListHash(std::span<const std::string_view> mods)
+{
+	constexpr uint32_t FnvPrime = 16777619U;
+	constexpr uint32_t FnvOffsetBasis = 2166136261U;
+	uint32_t result = 0;
+	for (const std::string_view mod : mods) {
+		uint32_t hash = FnvOffsetBasis;
+		for (const char c : mod) {
+			hash ^= static_cast<uint8_t>(c);
+			hash *= FnvPrime;
+		}
+		result ^= hash;
+	}
+	return result;
+}
+
 void InitGameInfo()
 {
 	const xoshiro128plusplus gameGenerator = ReserveSeedSequence();
@@ -570,6 +588,8 @@ void InitGameInfo()
 	sgGameInitInfo.bCowQuest = *options.Gameplay.cowQuest ? 1 : 0;
 	sgGameInitInfo.bFriendlyFire = *options.Gameplay.friendlyFire ? 1 : 0;
 	sgGameInitInfo.fullQuests = (!gbIsMultiplayer || *options.Gameplay.multiplayerFullQuests) ? 1 : 0;
+	const std::vector<std::string_view> activeMods = GetOptions().Mods.GetActiveModList();
+	sgGameInitInfo.modHash = ComputeModListHash(activeMods);
 }
 
 void NetSendLoPri(uint8_t playerId, const std::byte *data, size_t size)
