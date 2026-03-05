@@ -180,6 +180,7 @@ void NetReceivePlayerData(TPkt *pkt)
 	pkt->hdr.bstr = myPlayer._pBaseStr;
 	pkt->hdr.bmag = myPlayer._pBaseMag;
 	pkt->hdr.bdex = myPlayer._pBaseDex;
+	pkt->hdr.pdir = static_cast<uint8_t>(myPlayer._pdir);
 }
 
 bool IsNetPlayerValid(const Player &player)
@@ -724,6 +725,16 @@ void ProcessGameMessagePackets()
 			player._pBaseStr = pkt->bstr;
 			player._pBaseMag = pkt->bmag;
 			player._pBaseDex = pkt->bdex;
+
+			const uint8_t rawDir = pkt->pdir;
+			if (rawDir <= static_cast<uint8_t>(Direction::SouthEast)) {
+				const Direction newDir = static_cast<Direction>(rawDir);
+				if (player._pdir != newDir && player._pmode == PM_STAND) {
+					player._pdir = newDir;
+					StartStand(player, newDir);
+				}
+			}
+
 			if (!cond && player.plractive && !player.hasNoLife()) {
 				if (player.isOnActiveLevel() && !player._pLvlChanging) {
 					if (player.position.tile.WalkingDistance(syncPosition) > 3 && PosOkPlayer(player, syncPosition)) {
@@ -949,13 +960,13 @@ void recv_plrinfo(Player &player, const TCmdPlrInfoHdr &header, bool recv)
 	}
 
 	if (!player.hasNoLife()) {
-		StartStand(player, Direction::South);
+		StartStand(player, player._pdir);
 		return;
 	}
 
 	player._pgfxnum &= ~0xFU;
 	player._pmode = PM_DEATH;
-	NewPlrAnim(player, player_graphic::Death, Direction::South);
+	NewPlrAnim(player, player_graphic::Death, player._pdir);
 	player.AnimInfo.currentFrame = player.AnimInfo.numberOfFrames - 2;
 	dFlags[player.position.tile.x][player.position.tile.y] |= DungeonFlag::DeadPlayer;
 }
