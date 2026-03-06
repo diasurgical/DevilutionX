@@ -5,6 +5,7 @@
  */
 #include "pfile.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <string>
 #include <string_view>
@@ -43,6 +44,10 @@
 
 #ifdef UNPACKED_SAVES
 #include "utils/file_util.h"
+#ifdef __DREAMCAST__
+#include "platform/dreamcast/dc_init.hpp"
+#include "platform/dreamcast/dc_save_codec.hpp"
+#endif
 #else
 #include "mpq/mpq_reader.hpp"
 #endif
@@ -61,8 +66,116 @@ namespace {
 /** List of character names for the character selection screen. */
 char hero_names[MAX_CHARACTERS][PlayerNameLength];
 
+#ifdef __DREAMCAST__
+constexpr uint32_t DreamcastMaxSaveSlots = 8;
+#endif
+
+uint32_t GetPlatformSaveSlotCount()
+{
+#ifdef __DREAMCAST__
+	return std::min<uint32_t>(MAX_CHARACTERS, DreamcastMaxSaveSlots);
+#else
+	return MAX_CHARACTERS;
+#endif
+}
+
+#ifdef __DREAMCAST__
+bool IsRamSavePath(std::string_view path)
+{
+	return path.size() >= 5 && path.substr(0, 5) == "/ram/";
+}
+
+uint64_t HashSaveEntryKey(std::string_view key)
+{
+	// FNV-1a 64-bit hash for deterministic, compact VMU file keys.
+	uint64_t hash = 14695981039346656037ULL;
+	for (const char ch : key) {
+		hash ^= static_cast<uint8_t>(ch);
+		hash *= 1099511628211ULL;
+	}
+	return hash;
+}
+
+std::string MakeMappedVmuFilename(std::string_view saveDir, std::string_view filename)
+{
+	constexpr char HexDigits[] = "0123456789abcdef";
+	const std::string key = StrCat(saveDir, "|", filename);
+	uint64_t hash = HashSaveEntryKey(key);
+
+	std::string mapped(12, '0');
+	for (int i = 11; i >= 0; --i) {
+		mapped[i] = HexDigits[hash & 0xF];
+		hash >>= 4;
+	}
+	return mapped;
+}
+
+std::string MakeLegacyVmuFilename(std::string_view saveDir, std::string_view filename)
+{
+	if (!IsRamSavePath(saveDir))
+		return {};
+	const std::string legacy = StrCat(saveDir.substr(5), filename);
+	if (legacy.size() > 12)
+		return {};
+	return legacy;
+}
+
+bool WriteBytesToPath(const std::string &path, const std::byte *data, size_t size)
+{
+	FILE *file = OpenFile(path.c_str(), "wb");
+	if (file == nullptr)
+		return false;
+	const bool ok = std::fwrite(data, size, 1, file) == 1;
+	std::fclose(file);
+	return ok;
+}
+
+bool RestoreRamFileFromVmu(const std::string &saveDir, const char *filename)
+{
+	if (!IsRamSavePath(saveDir) || !dc::IsVmuAvailable())
+		return false;
+
+	const std::string localPath = saveDir + filename;
+	const auto tryRestore = [&](const std::string &vmuFilename) {
+		if (vmuFilename.empty() || !dc::VmuFileExists(dc::GetVmuPath(), vmuFilename.c_str()))
+			return false;
+
+		size_t size = 0;
+		auto data = dc::ReadFromVmu(dc::GetVmuPath(), vmuFilename.c_str(), size);
+		if (!data || size == 0) {
+			LogError("[DC Save] VMU read failed for {}", vmuFilename);
+			return false;
+		}
+		if (!WriteBytesToPath(localPath, data.get(), size)) {
+			LogError("[DC Save] Cannot restore {} to {}", vmuFilename, localPath);
+			return false;
+		}
+
+		LogVerbose("[DC Save] Restored {} bytes from VMU {} to {}", size, vmuFilename, localPath);
+		return true;
+	};
+
+	if (tryRestore(MakeMappedVmuFilename(saveDir, filename)))
+		return true;
+
+	// Backward compatibility for old short VMU names (e.g. dvx_s0_hero).
+	return tryRestore(MakeLegacyVmuFilename(saveDir, filename));
+}
+#endif
+
 std::string GetSavePath(uint32_t saveNum, std::string_view savePrefix = {})
 {
+#ifdef __DREAMCAST__
+	// Dreamcast keeps active saves in /ram/ with flat file prefixes.
+	// VMU persistence uses mapped 12-char keys (see MakeMappedVmuFilename).
+	return StrCat(paths::PrefPath(), "dvx_", savePrefix,
+	    gbIsSpawn
+	        ? (gbIsMultiplayer ? "sh" : "sp") // share/spawn shortened for VMU
+	        : (gbIsMultiplayer ? "m" : "s"),  // multi/single shortened
+	    saveNum,
+	    gbIsHellfire ? "h_" : "_" // hellfire indicator + separator
+	);
+#else
 	return StrCat(paths::PrefPath(), savePrefix,
 	    gbIsSpawn
 	        ? (gbIsMultiplayer ? "share_" : "spawn_")
@@ -74,10 +187,17 @@ std::string GetSavePath(uint32_t saveNum, std::string_view savePrefix = {})
 	    gbIsHellfire ? ".hsv" : ".sv"
 #endif
 	);
+#endif
 }
 
 std::string GetStashSavePath()
 {
+#ifdef __DREAMCAST__
+	// Flat file for stash on Dreamcast
+	return StrCat(paths::PrefPath(), "dvx_",
+	    gbIsSpawn ? "stash_sp" : "stash",
+	    gbIsHellfire ? "h_" : "_");
+#else
 	return StrCat(paths::PrefPath(),
 	    gbIsSpawn ? "stash_spawn" : "stash",
 #ifdef UNPACKED_SAVES
@@ -86,6 +206,7 @@ std::string GetStashSavePath()
 	    gbIsHellfire ? ".hsv" : ".sv"
 #endif
 	);
+#endif
 }
 
 bool GetSaveNames(uint8_t index, std::string_view prefix, char *out)
@@ -243,8 +364,18 @@ bool ArchiveContainsGame(SaveReader &hsArchive)
 std::optional<SaveReader> CreateSaveReader(std::string &&path)
 {
 #ifdef UNPACKED_SAVES
+#ifdef __DREAMCAST__
+	if (path.empty())
+		return std::nullopt;
+	SaveReader reader(std::move(path));
+	if (!reader.HasFile("hero"))
+		return std::nullopt;
+	return reader;
+#else
+	// For other platforms, path is a directory
 	if (!FileExists(path))
 		return std::nullopt;
+#endif
 	return SaveReader(std::move(path));
 #else
 	std::int32_t error;
@@ -536,11 +667,76 @@ void RemoveAllInvalidItems(Player &player)
 } // namespace
 
 #ifdef UNPACKED_SAVES
+bool SaveReader::HasFile(const char *path)
+{
+	const std::string filePath = dir_ + path;
+#ifdef __DREAMCAST__
+	if (IsRamSavePath(dir_) && !FileExists(filePath.c_str()))
+		return RestoreRamFileFromVmu(dir_, path);
+#endif
+	return FileExists(filePath.c_str());
+}
+
 std::unique_ptr<std::byte[]> SaveReader::ReadFile(const char *filename, std::size_t &fileSize, int32_t &error)
 {
 	std::unique_ptr<std::byte[]> result;
 	error = 0;
 	const std::string path = dir_ + filename;
+
+#ifdef __DREAMCAST__
+	if (IsRamSavePath(dir_)) {
+		FILE *file = OpenFile(path.c_str(), "rb");
+		if (file == nullptr) {
+			if (!RestoreRamFileFromVmu(dir_, filename)) {
+				LogError("[DC Save] Cannot open {} for reading", path);
+				error = 1;
+				return nullptr;
+			}
+
+			file = OpenFile(path.c_str(), "rb");
+			if (file == nullptr) {
+				LogError("[DC Save] Cannot open {} after VMU restore", path);
+				error = 1;
+				return nullptr;
+			}
+		}
+		std::fseek(file, 0, SEEK_END);
+		long fileLen = std::ftell(file);
+		std::fseek(file, 0, SEEK_SET);
+		if (fileLen <= 0) {
+			LogError("[DC Save] Empty or invalid file {}: ftell={}", path, fileLen);
+			std::fclose(file);
+			error = 1;
+			return nullptr;
+		}
+		size_t size = static_cast<size_t>(fileLen);
+		fileSize = size;
+		result.reset(new (std::nothrow) std::byte[size]);
+		if (!result) {
+			LogError("[DC Save] Allocation failed for {} bytes from {}", size, path);
+			std::fclose(file);
+			error = 1;
+			return nullptr;
+		}
+		size_t bytesRead = std::fread(result.get(), 1, size, file);
+		std::fclose(file);
+		if (bytesRead != size) {
+			LogError("[DC Save] Short read {}: expected {} got {}", path, size, bytesRead);
+			error = 1;
+			return nullptr;
+		}
+		return result;
+	}
+	// VMU path - use zlib save containers
+	size_t decompressedSize = 0;
+	result = dc::ReadCompressedFile(path.c_str(), decompressedSize);
+	if (!result) {
+		error = 1;
+		return nullptr;
+	}
+	fileSize = decompressedSize;
+	return result;
+#else
 	uintmax_t size;
 	if (!GetFileSize(path.c_str(), &size)) {
 		error = 1;
@@ -560,11 +756,46 @@ std::unique_ptr<std::byte[]> SaveReader::ReadFile(const char *filename, std::siz
 	}
 	std::fclose(file);
 	return result;
+#endif
 }
 
 bool SaveWriter::WriteFile(const char *filename, const std::byte *data, size_t size)
 {
+#ifdef __DREAMCAST__
+	if (dir_.empty()) {
+		return false;
+	}
+#endif
 	const std::string path = dir_ + filename;
+
+#ifdef __DREAMCAST__
+	if (IsRamSavePath(dir_)) {
+		FILE *file = OpenFile(path.c_str(), "wb");
+		if (file == nullptr) {
+			LogError("[DC Save] WriteFile: cannot open {} for writing", path);
+			return false;
+		}
+		if (std::fwrite(data, size, 1, file) != 1) {
+			LogError("[DC Save] WriteFile: fwrite failed for {} ({} bytes)", path, size);
+			std::fclose(file);
+			return false;
+		}
+		std::fclose(file);
+		LogVerbose("[DC Save] WriteFile: wrote {} bytes to {}", size, path);
+
+		// Mirror RAM saves to VMU so saves survive emulator/console restarts.
+		if (dc::IsVmuAvailable()) {
+			const std::string vmuFilename = MakeMappedVmuFilename(dir_, filename);
+			if (!dc::WriteToVmu(dc::GetVmuPath(), vmuFilename.c_str(), data, size)) {
+				LogError("[DC Save] VMU persist failed for {} ({})", path, vmuFilename);
+				return false;
+			}
+		}
+		return true;
+	}
+	// VMU path - use zlib save containers
+	return dc::WriteCompressedFile(path.c_str(), data, size);
+#else
 	FILE *file = OpenFile(path.c_str(), "wb");
 	if (file == nullptr) {
 		return false;
@@ -575,6 +806,7 @@ bool SaveWriter::WriteFile(const char *filename, const std::byte *data, size_t s
 	}
 	std::fclose(file);
 	return true;
+#endif
 }
 
 void SaveWriter::RemoveHashEntries(bool (*fnGetName)(uint8_t, char *))
@@ -672,7 +904,7 @@ bool pfile_ui_set_hero_infos(bool (*uiAddHeroInfo)(_uiheroinfo *))
 {
 	memset(hero_names, 0, sizeof(hero_names));
 
-	for (uint32_t i = 0; i < MAX_CHARACTERS; i++) {
+	for (uint32_t i = 0; i < GetPlatformSaveSlotCount(); i++) {
 		std::optional<SaveReader> archive = OpenSaveArchive(i);
 		if (archive) {
 			PlayerPack pkplr;
@@ -687,9 +919,11 @@ bool pfile_ui_set_hero_infos(bool (*uiAddHeroInfo)(_uiheroinfo *))
 				Player &player = Players[0];
 
 				UnPackPlayer(pkplr, player);
+#ifndef __DREAMCAST__
 				LoadHeroItems(player);
 				RemoveAllInvalidItems(player);
 				CalcPlrInv(player, false);
+#endif
 
 				Game2UiPlayer(player, &uihero, hasSaveGame);
 				uiAddHeroInfo(&uihero);
@@ -712,7 +946,8 @@ void pfile_ui_set_class_stats(HeroClass playerClass, _uidefaultstats *classStats
 uint32_t pfile_ui_get_first_unused_save_num()
 {
 	uint32_t saveNum;
-	for (saveNum = 0; saveNum < MAX_CHARACTERS; saveNum++) {
+	const uint32_t saveSlotCount = GetPlatformSaveSlotCount();
+	for (saveNum = 0; saveNum < saveSlotCount; saveNum++) {
 		if (hero_names[saveNum][0] == '\0')
 			break;
 	}
@@ -724,7 +959,7 @@ bool pfile_ui_save_create(_uiheroinfo *heroinfo)
 	PlayerPack pkplr;
 
 	const uint32_t saveNum = heroinfo->saveNumber;
-	if (saveNum >= MAX_CHARACTERS)
+	if (saveNum >= GetPlatformSaveSlotCount())
 		return false;
 	heroinfo->saveNumber = saveNum;
 

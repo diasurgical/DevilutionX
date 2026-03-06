@@ -883,7 +883,6 @@ void RunGameLoop(interface_mode uMsg)
 #endif
 
 	while (gbRunGame) {
-
 #ifdef _DEBUG
 		if (!gbGameLoopStartup && !DebugCmdsFromCommandLine.empty()) {
 			InitConsole();
@@ -1303,6 +1302,12 @@ void DiabloSplash()
 {
 	if (!gbShowIntro)
 		return;
+
+#ifdef __DREAMCAST__
+	// Skip movies on Dreamcast (they render with wrong palette)
+	UiTitleDialog();
+	return;
+#endif
 
 	if (*GetOptions().StartUp.splash == StartUpSplash::LogoAndTitleDialog)
 		play_movie("gendata\\logo.smk", true);

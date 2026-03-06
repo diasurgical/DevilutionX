@@ -35,6 +35,10 @@
 #include <3ds.h>
 #endif
 
+#ifdef __DREAMCAST__
+#include "platform/dreamcast/dc_video.h"
+#endif
+
 namespace devilution {
 
 int refreshDelay;
@@ -124,6 +128,10 @@ void dx_cleanup()
 		SDL_HideWindow(ghMainWnd);
 #endif
 
+#ifdef __DREAMCAST__
+	dc::VideoShutdown();
+#endif
+
 	PalSurface = nullptr;
 	PinnedPalSurface = nullptr;
 	Palette = nullptr;
@@ -163,6 +171,14 @@ void CreateBackBuffer()
 	// In SDL1, `PalSurface` owns its palette and we must update it every
 	// time the global `palette` is changed. No need to do anything here as
 	// the global `palette` doesn't have any colors set yet.
+#endif
+
+#ifdef __DREAMCAST__
+	// Initialize Dreamcast 8bpp->16bpp video converter
+	// On DC, output is always 16bpp but we render to 8bpp PalSurface
+	if (!RenderDirectlyToOutputSurface) {
+		dc::VideoInit(gnScreenWidth, gnScreenHeight);
+	}
 #endif
 }
 
@@ -278,6 +294,12 @@ void RenderPresent()
 		LimitFrameRate();
 	}
 #else
+#ifdef __DREAMCAST__
+	// Dreamcast: Convert 8bpp PalSurface to 16bpp output surface before flip
+	if (!RenderDirectlyToOutputSurface && dc::IsInitialized()) {
+		dc::ConvertAndUpload(PalSurface, surface);
+	}
+#endif
 	if (SDL_Flip(surface) <= -1) {
 		ErrSdl();
 	}

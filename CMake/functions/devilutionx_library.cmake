@@ -46,8 +46,9 @@ function(add_devilutionx_library NAME)
     target_compile_options(${NAME} PUBLIC -Wall -Wextra -Wno-unused-parameter)
   endif()
 
-  if(NOT WIN32 AND NOT APPLE AND NOT ${CMAKE_SYSTEM_NAME} STREQUAL FreeBSD)
+  if(NOT WIN32 AND NOT APPLE AND NOT ${CMAKE_SYSTEM_NAME} STREQUAL FreeBSD AND NOT DREAMCAST)
     # Enable POSIX extensions such as `readlink` and `ftruncate`.
+    # Excluded for Dreamcast/KOS which doesn't have full POSIX support.
     add_definitions(-D_POSIX_C_SOURCE=200809L)
   endif()
 
