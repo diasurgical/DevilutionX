@@ -325,6 +325,13 @@ inline bool SDL_CursorVisible() { return SDL_ShowCursor(SDL_QUERY) == SDL_ENABLE
 inline bool SDLC_PointInRect(const SDL_Point *p, const SDL_Rect *r) { return SDL_PointInRect(p, r) == SDL_TRUE; }
 #endif
 
+#ifdef USE_SDL1
+inline bool SDLC_SetSurfacePalette(SDL_Surface *surface, SDL_Palette *palette)
+{
+	return SDL_SetPalette(surface, SDL_LOGPAL, palette->colors, 0, palette->ncolors) != 0;
+}
+#endif
+
 inline bool SDLC_ShowCursor() { return SDL_ShowCursor(SDL_ENABLE) >= 0; }
 inline bool SDLC_HideCursor() { return SDL_ShowCursor(SDL_DISABLE) >= 0; }
 

@@ -150,6 +150,7 @@ set(devilutionx_assets
   gendata/cutportrw.clx
   gendata/cutstartw.clx
   gendata/cutttw.clx
+  gendata/diabend.srt
   gendata/pause.trn
   levels/l1data/sklkngt.dun
   levels/l2data/bonechat.dun
