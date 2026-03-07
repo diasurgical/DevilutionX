@@ -68,6 +68,14 @@ enum class PlayerActionType : uint8_t {
 	OperateObject,
 };
 
+enum class AutoSaveReason : uint8_t {
+	None,
+	Timer,
+	TownEntry,
+	BossKill,
+	UniquePickup,
+};
+
 extern uint32_t DungeonSeeds[NUMLEVELS];
 extern DVL_API_FOR_TEST std::optional<uint32_t> LevelSeeds[NUMLEVELS];
 extern Point MousePosition;
@@ -101,6 +109,14 @@ bool PressEscKey();
 void DisableInputEventHandler(const SDL_Event &event, uint16_t modState);
 tl::expected<void, std::string> LoadGameLevel(bool firstflag, lvl_entry lvldir);
 bool IsDiabloAlive(bool playSFX);
+void MarkCombatActivity();
+bool IsAutoSaveSafe();
+int GetSecondsUntilNextAutoSave();
+bool HasPendingAutoSave();
+bool IsAutoSavePending();
+void RequestAutoSave(AutoSaveReason reason);
+void QueueAutoSave(AutoSaveReason reason);
+bool AttemptAutoSave(AutoSaveReason reason);
 void PrintScreen(SDL_Keycode vkey);
 
 /**

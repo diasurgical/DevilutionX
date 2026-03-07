@@ -22,6 +22,7 @@
 #include "controls/control_mode.hpp"
 #include "controls/plrctrls.h"
 #include "cursor.h"
+#include "diablo.h"
 #include "engine/backbuffer_state.hpp"
 #include "engine/clx_sprite.hpp"
 #include "engine/load_cel.hpp"
@@ -1691,8 +1692,12 @@ void InvGetItem(Player &player, int ii)
 		NewCursor(player.HoldItem);
 	}
 
+	const bool pickedUniqueItem = &player == MyPlayer && item._iMagical == ITEM_QUALITY_UNIQUE;
+
 	// This potentially moves items in memory so must be done after we've made a copy
 	CleanupItems(ii);
+	if (pickedUniqueItem)
+		RequestAutoSave(AutoSaveReason::UniquePickup);
 	pcursitem = -1;
 }
 
@@ -1771,7 +1776,10 @@ void AutoGetItem(Player &player, Item *itemPointer, int ii)
 			PlaySFX(SfxID::GrabItem);
 		}
 
+		const bool pickedUniqueItem = &player == MyPlayer && item._iMagical == ITEM_QUALITY_UNIQUE;
 		CleanupItems(ii);
+		if (pickedUniqueItem)
+			RequestAutoSave(AutoSaveReason::UniquePickup);
 		return;
 	}
 

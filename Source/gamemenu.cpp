@@ -5,11 +5,15 @@
  */
 #include "gamemenu.h"
 
+#include <fmt/format.h>
+#include <string>
+
 #ifdef USE_SDL3
 #include <SDL3/SDL_timer.h>
 #endif
 
 #include "cursor.h"
+#include "diablo.h"
 #include "diablo_msg.hpp"
 #include "engine/backbuffer_state.hpp"
 #include "engine/demomode.h"
@@ -89,6 +93,8 @@ const char *const SoundToggleNames[] = {
 	N_("Sound Disabled"),
 };
 
+std::string saveGameMenuLabel;
+
 void GamemenuUpdateSingle()
 {
 	sgSingleMenu[2].setEnabled(gbValidSaveFile);
@@ -96,6 +102,23 @@ void GamemenuUpdateSingle()
 	const bool enable = MyPlayer->_pmode != PM_DEATH && !MyPlayerIsDead;
 
 	sgSingleMenu[0].setEnabled(enable);
+}
+
+std::string_view GetSaveGameMenuLabel()
+{
+	if (HasPendingAutoSave()) {
+		saveGameMenuLabel = fmt::format(fmt::runtime(_("Save Game ({:s})")), _("ready"));
+		return saveGameMenuLabel;
+	}
+
+	const int seconds = GetSecondsUntilNextAutoSave();
+	if (seconds < 0) {
+		saveGameMenuLabel = _("Save Game");
+		return saveGameMenuLabel;
+	}
+
+	saveGameMenuLabel = fmt::format(fmt::runtime(_("Save Game ({:d})")), seconds);
+	return saveGameMenuLabel;
 }
 
 void GamemenuPrevious(bool /*bActivate*/)
@@ -361,6 +384,14 @@ void gamemenu_save_game(bool /*bActivate*/)
 	}
 	interface_msg_pump();
 	SetEventHandler(saveProc);
+}
+
+std::string_view GetGamemenuText(const TMenuItem &menuItem)
+{
+	if (menuItem.fnMenu == &gamemenu_save_game)
+		return GetSaveGameMenuLabel();
+
+	return _(menuItem.pszStr);
 }
 
 void gamemenu_on()
