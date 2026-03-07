@@ -2929,8 +2929,16 @@ void SaveGameData(SaveWriter &saveWriter)
 void SaveGame()
 {
 	gbValidSaveFile = true;
-	pfile_write_hero(/*writeGameData=*/true);
-	sfile_write_stash();
+	const bool heroSaved = pfile_write_hero_with_backup(/*writeGameData=*/true);
+	if (!heroSaved) {
+		gbValidSaveFile = false;
+		return;
+	}
+
+	if (!pfile_write_stash_with_backup()) {
+		gbValidSaveFile = false;
+		return;
+	}
 }
 
 void SaveLevel(SaveWriter &saveWriter)

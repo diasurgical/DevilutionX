@@ -76,9 +76,9 @@ std::string GetSavePath(uint32_t saveNum, std::string_view savePrefix = {})
 	);
 }
 
-std::string GetStashSavePath()
+std::string GetStashSavePath(std::string_view savePrefix = {})
 {
-	return StrCat(paths::PrefPath(),
+	return StrCat(paths::PrefPath(), savePrefix,
 	    gbIsSpawn ? "stash_spawn" : "stash",
 #ifdef UNPACKED_SAVES
 	    gbIsHellfire ? "_hsv" DIRECTORY_SEPARATOR_STR : "_sv" DIRECTORY_SEPARATOR_STR
@@ -170,10 +170,10 @@ SaveWriter GetStashWriter()
 	return SaveWriter(GetStashSavePath());
 }
 
-#ifndef DISABLE_DEMOMODE
 void CopySaveFile(uint32_t saveNum, std::string targetPath)
 {
 	const std::string savePath = GetSavePath(saveNum);
+
 #if defined(UNPACKED_SAVES)
 #ifdef DVL_NO_FILESYSTEM
 #error "UNPACKED_SAVES requires either DISABLE_DEMOMODE or C++17 <filesystem>"
@@ -182,13 +182,33 @@ void CopySaveFile(uint32_t saveNum, std::string targetPath)
 		CreateDir(targetPath.c_str());
 	}
 	for (const std::filesystem::directory_entry &entry : std::filesystem::directory_iterator(savePath)) {
-		CopyFileOverwrite(entry.path().string().c_str(), (targetPath + entry.path().filename().string()).c_str());
+		const std::filesystem::path targetFilePath = std::filesystem::path(targetPath) / entry.path().filename();
+		CopyFileOverwrite(entry.path().string().c_str(), targetFilePath.string().c_str());
 	}
 #else
 	CopyFileOverwrite(savePath.c_str(), targetPath.c_str());
 #endif
 }
+
+void RestoreSaveFile(const std::string &targetPath, const std::string &backupPath)
+{
+#if defined(UNPACKED_SAVES)
+#ifdef DVL_NO_FILESYSTEM
+#error "UNPACKED_SAVES requires either DISABLE_DEMOMODE or C++17 <filesystem>"
 #endif
+	if (DirectoryExists(targetPath.c_str())) {
+		for (const std::filesystem::directory_entry &entry : std::filesystem::directory_iterator(targetPath))
+			RemoveFile(entry.path().string().c_str());
+	}
+	CreateDir(targetPath.c_str());
+	for (const std::filesystem::directory_entry &entry : std::filesystem::directory_iterator(backupPath)) {
+		const std::filesystem::path restoredFilePath = std::filesystem::path(targetPath) / entry.path().filename();
+		CopyFileOverwrite(entry.path().string().c_str(), restoredFilePath.string().c_str());
+	}
+#else
+	CopyFileOverwrite(backupPath.c_str(), targetPath.c_str());
+#endif
+}
 
 void Game2UiPlayer(const Player &player, _uiheroinfo *heroinfo, bool bHasSaveFile)
 {
@@ -627,6 +647,65 @@ void pfile_write_hero(bool writeGameData)
 {
 	SaveWriter saveWriter = GetSaveWriter(gSaveNumber);
 	pfile_write_hero(saveWriter, writeGameData);
+}
+
+bool pfile_write_hero_with_backup(bool writeGameData)
+{
+	const std::string backupPrefix = "backup_";
+	const std::string backupPath = GetSavePath(gSaveNumber, backupPrefix);
+	const std::string savePath = GetSavePath(gSaveNumber);
+
+	if (FileExists(savePath) || DirectoryExists(savePath.c_str()))
+		CopySaveFile(gSaveNumber, backupPath);
+
+	pfile_write_hero(writeGameData);
+
+	auto archive = OpenSaveArchive(gSaveNumber);
+	const bool saveIsValid = archive && ArchiveContainsGame(*archive);
+	if (saveIsValid || !(FileExists(backupPath) || DirectoryExists(backupPath.c_str())))
+		return saveIsValid;
+
+	RestoreSaveFile(savePath, backupPath);
+
+	return false;
+}
+
+bool pfile_write_stash_with_backup()
+{
+	if (!Stash.dirty)
+		return true;
+
+	const std::string backupPrefix = "backup_";
+	const std::string backupPath = GetStashSavePath(backupPrefix);
+	const std::string stashPath = GetStashSavePath();
+
+	if (FileExists(stashPath) || DirectoryExists(stashPath.c_str())) {
+#if defined(UNPACKED_SAVES)
+		CreateDir(backupPath.c_str());
+		for (const std::filesystem::directory_entry &entry : std::filesystem::directory_iterator(stashPath)) {
+			const std::filesystem::path targetFilePath = std::filesystem::path(backupPath) / entry.path().filename();
+			CopyFileOverwrite(entry.path().string().c_str(), targetFilePath.string().c_str());
+		}
+#else
+		CopyFileOverwrite(stashPath.c_str(), backupPath.c_str());
+#endif
+	}
+
+	SaveWriter stashWriter = GetStashWriter();
+	SaveStash(stashWriter);
+
+	auto archive = OpenStashArchive();
+	const char *stashFileName = gbIsMultiplayer ? "mpstashitems" : "spstashitems";
+	const bool stashIsValid = archive && ReadArchive(*archive, stashFileName) != nullptr;
+	if (stashIsValid || !(FileExists(backupPath) || DirectoryExists(backupPath.c_str()))) {
+		if (stashIsValid)
+			Stash.dirty = false;
+		return stashIsValid;
+	}
+
+	RestoreSaveFile(stashPath, backupPath);
+
+	return false;
 }
 
 #ifndef DISABLE_DEMOMODE
