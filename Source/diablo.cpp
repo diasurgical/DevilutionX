@@ -2002,11 +2002,16 @@ bool AttemptAutoSave(AutoSaveReason reason)
 	const EventHandler saveProc = SetEventHandler(DisableInputEventHandler);
 	const uint32_t currentTime = SDL_GetTicks();
 	SaveGame();
-	autoSaveCooldownUntil = currentTime + AutoSaveCooldownMilliseconds;
+	const uint32_t afterSaveTime = SDL_GetTicks();
+
+	autoSaveCooldownUntil = afterSaveTime + AutoSaveCooldownMilliseconds;
 	if (gbValidSaveFile) {
-		autoSaveNextTimerDueAt = SDL_GetTicks() + GetAutoSaveIntervalMilliseconds();
-		if (reason != AutoSaveReason::Timer)
-			InitDiabloMsg(EMSG_GAME_SAVED, currentTime + 1000 - SDL_GetTicks());
+		autoSaveNextTimerDueAt = afterSaveTime + GetAutoSaveIntervalMilliseconds();
+		if (reason != AutoSaveReason::Timer) {
+			const int timeElapsed = static_cast<int>(afterSaveTime - currentTime);
+			const int displayTime = std::max(500, 1000 - timeElapsed);
+			InitDiabloMsg(EMSG_GAME_SAVED, displayTime);
+		}
 	}
 	SetEventHandler(saveProc);
 	return gbValidSaveFile;

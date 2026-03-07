@@ -104,21 +104,21 @@ void GamemenuUpdateSingle()
 	sgSingleMenu[0].setEnabled(enable);
 }
 
-const char *GetSaveGameMenuLabel()
+std::string_view GetSaveGameMenuLabel()
 {
 	if (HasPendingAutoSave()) {
 		saveGameMenuLabel = fmt::format(fmt::runtime(_("Save Game ({:s})")), _("ready"));
-		return saveGameMenuLabel.c_str();
+		return saveGameMenuLabel;
 	}
 
 	const int seconds = GetSecondsUntilNextAutoSave();
 	if (seconds < 0) {
 		saveGameMenuLabel = _("Save Game");
-		return saveGameMenuLabel.c_str();
+		return saveGameMenuLabel;
 	}
 
 	saveGameMenuLabel = fmt::format(fmt::runtime(_("Save Game ({:d})")), seconds);
-	return saveGameMenuLabel.c_str();
+	return saveGameMenuLabel;
 }
 
 void GamemenuPrevious(bool /*bActivate*/)
