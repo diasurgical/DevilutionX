@@ -106,7 +106,7 @@ void GamemenuUpdateSingle()
 
 const char *GetSaveGameMenuLabel()
 {
-	if (IsAutoSavePending()) {
+	if (HasPendingAutoSave()) {
 		saveGameMenuLabel = fmt::format(fmt::runtime(_("Save Game ({:s})")), _("ready"));
 		return saveGameMenuLabel.c_str();
 	}

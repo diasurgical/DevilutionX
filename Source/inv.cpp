@@ -1697,7 +1697,7 @@ void InvGetItem(Player &player, int ii)
 	// This potentially moves items in memory so must be done after we've made a copy
 	CleanupItems(ii);
 	if (pickedUniqueItem)
-		QueueAutoSave(AutoSaveReason::UniquePickup);
+		RequestAutoSave(AutoSaveReason::UniquePickup);
 	pcursitem = -1;
 }
 
@@ -1779,7 +1779,7 @@ void AutoGetItem(Player &player, Item *itemPointer, int ii)
 		const bool pickedUniqueItem = &player == MyPlayer && item._iMagical == ITEM_QUALITY_UNIQUE;
 		CleanupItems(ii);
 		if (pickedUniqueItem)
-			QueueAutoSave(AutoSaveReason::UniquePickup);
+			RequestAutoSave(AutoSaveReason::UniquePickup);
 		return;
 	}
 

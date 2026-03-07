@@ -1624,7 +1624,7 @@ void GameLogic()
 		pendingAutoSaveReason = AutoSaveReason::None;
 	}
 
-	if (pendingAutoSaveReason != AutoSaveReason::None && IsAutoSaveSafe()) {
+	if (HasPendingAutoSave() && IsAutoSaveSafe()) {
 		if (AttemptAutoSave(pendingAutoSaveReason)) {
 			pendingAutoSaveReason = AutoSaveReason::None;
 			autoSaveNextTimerDueAt = SDL_GetTicks() + GetAutoSaveIntervalMilliseconds();
@@ -1959,9 +1959,25 @@ int GetSecondsUntilNextAutoSave()
 	return static_cast<int>((remainingMilliseconds + 999) / 1000);
 }
 
-bool IsAutoSavePending()
+bool HasPendingAutoSave()
 {
 	return pendingAutoSaveReason != AutoSaveReason::None;
+}
+
+void RequestAutoSave(AutoSaveReason reason)
+{
+	if (!*GetOptions().Gameplay.autoSaveEnabled)
+		return;
+
+	if (gbIsMultiplayer)
+		return;
+
+	QueueAutoSave(reason);
+}
+
+bool IsAutoSavePending()
+{
+	return HasPendingAutoSave();
 }
 
 void QueueAutoSave(AutoSaveReason reason)
@@ -3629,7 +3645,7 @@ tl::expected<void, std::string> LoadGameLevel(bool firstflag, lvl_entry lvldir)
 
 	LoadGameLevelCalculateCursor();
 	if (leveltype == DTYPE_TOWN && lvldir != ENTRY_LOAD && !firstflag)
-		::devilution::QueueAutoSave(AutoSaveReason::TownEntry);
+		::devilution::RequestAutoSave(AutoSaveReason::TownEntry);
 	return {};
 }
 

@@ -4026,7 +4026,7 @@ void MonsterDeath(Monster &monster, Direction md, bool sendmsg)
 	monster.occupyTile(monster.position.tile, false);
 	CheckQuestKill(monster, sendmsg);
 	if (!gbIsMultiplayer && IsAnyOf(monster.type().type, MT_CLEAVER, MT_SKING, MT_DIABLO, MT_DEFILER, MT_NAKRUL))
-		QueueAutoSave(AutoSaveReason::BossKill);
+		RequestAutoSave(AutoSaveReason::BossKill);
 	M_FallenFear(monster.position.tile);
 	if (IsAnyOf(monster.type().type, MT_NACID, MT_RACID, MT_BACID, MT_XACID, MT_SPIDLORD))
 		AddMissile(monster.position.tile, { 0, 0 }, Direction::South, MissileID::AcidPuddle, TARGET_PLAYERS, monster, monster.intelligence + 1, 0);
