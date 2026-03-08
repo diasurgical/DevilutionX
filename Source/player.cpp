@@ -203,7 +203,6 @@ void StartAttack(Player &player, Direction d, bool includesFirstFrame)
 	if (player._pmode == PM_ATTACK)
 		animationFlags = static_cast<AnimationDistributionFlags>(animationFlags | AnimationDistributionFlags::RepeatedAction);
 	NewPlrAnim(player, player_graphic::Attack, d, animationFlags, skippedAnimationFrames, player._pAFNum);
-
 	player._pmode = PM_ATTACK;
 	FixPlayerLocation(player, d);
 	SetPlayerOld(player);
@@ -1531,10 +1530,10 @@ uint16_t GetPlayerSpriteWidth(HeroClass cls, player_graphic graphic, PlayerWeapo
 		if (weaponGraphic == PlayerWeaponGraphic::Bow)
 			return spriteData.bow;
 		return spriteData.attack;
+	case player_graphic::Hit:
+		return spriteData.swHit;		
 	case player_graphic::Block:
 		return spriteData.block;
-	case player_graphic::Hit:
-		return spriteData.swHit;
 	case player_graphic::Lightning:
 		return spriteData.lightning;
 	case player_graphic::Fire:
