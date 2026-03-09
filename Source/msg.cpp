@@ -2164,7 +2164,8 @@ size_t OnDeletePlayerItems(const TCmdDelItem &message, Player &player)
 
 size_t OnChangeInventoryItems(const TCmdChItem &message, Player &player)
 {
-	if (message.bLoc >= InventoryGridCells)
+	const uint8_t topLeft = message.bLoc;
+	if (topLeft >= InventoryGridCells)
 		return sizeof(message);
 
 	if (gbBufferMsgs == 1) {
@@ -2172,7 +2173,16 @@ size_t OnChangeInventoryItems(const TCmdChItem &message, Player &player)
 	} else if (&player != MyPlayer && IsItemAvailable(static_cast<_item_indexes>(Swap16LE(message.def.wIndx)))) {
 		Item item {};
 		RecreateItem(player, message, item);
-		CheckInvSwap(player, item, message.bLoc);
+
+		const Size itemSize = GetInventorySize(item);
+		const int invPitch = InventorySizeInSlots.width;
+		const int verticalShift = itemSize.width - 1;
+		const int horizontalShift = itemSize.height - 1;
+		const uint8_t bottomRight = static_cast<uint8_t>(topLeft + invPitch * verticalShift + horizontalShift);
+		if (bottomRight >= InventoryGridCells)
+			return sizeof(message);
+
+		CheckInvSwap(player, item, topLeft);
 	}
 
 	return sizeof(message);
@@ -3228,7 +3238,7 @@ void NetSyncInvItem(const Player &player, int invListIndex)
 		return;
 
 	for (int j = 0; j < InventoryGridCells; j++) {
-		if (player.InvGrid[j] == invListIndex + 1) {
+		if (std::abs(player.InvGrid[j]) == invListIndex + 1) {
 			NetSendCmdChInvItem(false, j);
 			break;
 		}
