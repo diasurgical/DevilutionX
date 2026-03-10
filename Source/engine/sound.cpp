@@ -239,7 +239,16 @@ tl::expected<std::unique_ptr<TSnd>, std::string> SoundFileLoadWithStatus(const c
 std::unique_ptr<TSnd> sound_file_load(const char *path, bool stream)
 {
 	tl::expected<std::unique_ptr<TSnd>, std::string> result = SoundFileLoadWithStatus(path, stream);
+#ifdef __DREAMCAST__
+	// On Dreamcast, sound loading failures are non-fatal.
+	// The 16MB RAM limit means some sounds may fail to load.
+	if (!result.has_value()) {
+		SDL_Log("sound_file_load: skipping %s (%s)", path, result.error().c_str());
+		return nullptr;
+	}
+#else
 	if (!result.has_value()) app_fatal(result.error());
+#endif
 	return std::move(result).value();
 }
 

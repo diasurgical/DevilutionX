@@ -51,6 +51,10 @@ if(NINTENDO_3DS)
   include(platforms/n3ds)
 endif()
 
+if(DREAMCAST)
+  include(platforms/dreamcast)
+endif()
+
 if(VITA)
   include("$ENV{VITASDK}/share/vita.cmake" REQUIRED)
   include(platforms/vita)

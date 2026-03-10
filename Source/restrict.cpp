@@ -22,6 +22,13 @@ namespace devilution {
 
 void ReadOnlyTest()
 {
+#ifdef __DREAMCAST__
+	// On Dreamcast, VMU filesystem has been verified in InitDreamcast().
+	// SDL_IOFromFile doesn't work reliably with KOS's /vmu/ paths,
+	// but direct file operations do work (as shown by "VMUFS: file written").
+	// Skip this test - saves will fail gracefully if VMU is unavailable.
+	return;
+#endif
 	const std::string path = paths::PrefPath() + "Diablo1ReadOnlyTest.foo";
 	SDL_IOStream *file = SDL_IOFromFile(path.c_str(), "w");
 	if (file == nullptr) {

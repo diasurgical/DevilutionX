@@ -759,7 +759,9 @@ void InitTowners()
 		TownerLongNames.try_emplace(entry.type, entry.name);
 	}
 
+#ifndef __DREAMCAST__
 	CowSprites.emplace(LoadCelSheet("towners\\animals\\cow", 128));
+#endif
 
 	Towners.clear();
 	Towners.reserve(TownersDataEntries.size());
@@ -767,6 +769,11 @@ void InitTowners()
 	for (const auto &entry : TownersDataEntries) {
 		if (!IsTownerPresent(entry.type))
 			continue;
+#ifdef __DREAMCAST__
+		// Cow sprites not loaded on Dreamcast to save memory
+		if (entry.type == TOWN_COW)
+			continue;
+#endif
 
 		auto behaviorIt = TownerBehaviors.find(entry.type);
 		if (behaviorIt == TownerBehaviors.end() || behaviorIt->second == nullptr)
