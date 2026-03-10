@@ -2,7 +2,7 @@
 
 #include <string_view>
 
-#include <libmpq/mpq.h>
+#include <mpqfs/mpqfs.h>
 
 namespace devilution {
 
@@ -10,7 +10,7 @@ namespace devilution {
 MpqFileHash CalculateMpqFileHash(std::string_view filename)
 {
 	MpqFileHash fileHash;
-	libmpq__file_hash_s(filename.data(), filename.size(), &fileHash[0], &fileHash[1], &fileHash[2]);
+	mpqfs_file_hash_s(filename.data(), filename.size(), &fileHash[0], &fileHash[1], &fileHash[2]);
 	return fileHash;
 }
 #endif

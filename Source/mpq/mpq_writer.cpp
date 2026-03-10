@@ -6,7 +6,7 @@
 #include <memory>
 #include <type_traits>
 
-#include <libmpq/mpq.h>
+#include <mpqfs/mpqfs.h>
 
 #include "appfat.h"
 #include "encrypt.h"
@@ -140,7 +140,7 @@ MpqWriter::MpqWriter(const char *path)
 				error = "Failed to read block table";
 				goto on_error;
 			}
-			libmpq__decrypt_block(reinterpret_cast<uint32_t *>(blockTable_.get()), fhdr.blockEntriesCount * sizeof(MpqBlockEntry), LIBMPQ_BLOCK_TABLE_HASH_KEY);
+			mpqfs_decrypt_block(reinterpret_cast<uint32_t *>(blockTable_.get()), fhdr.blockEntriesCount * sizeof(MpqBlockEntry) / sizeof(uint32_t), MPQFS_BLOCK_TABLE_KEY);
 		}
 		hashTable_ = std::make_unique<MpqHashEntry[]>(HashEntriesCount);
 
@@ -152,7 +152,7 @@ MpqWriter::MpqWriter(const char *path)
 				error = "Failed to read hash entries";
 				goto on_error;
 			}
-			libmpq__decrypt_block(reinterpret_cast<uint32_t *>(hashTable_.get()), fhdr.hashEntriesCount * sizeof(MpqHashEntry), LIBMPQ_HASH_TABLE_HASH_KEY);
+			mpqfs_decrypt_block(reinterpret_cast<uint32_t *>(hashTable_.get()), fhdr.hashEntriesCount * sizeof(MpqHashEntry) / sizeof(uint32_t), MPQFS_HASH_TABLE_KEY);
 		}
 
 #ifndef CAN_SEEKP_BEYOND_EOF
@@ -469,17 +469,17 @@ bool MpqWriter::WriteHeader()
 
 bool MpqWriter::WriteBlockTable()
 {
-	libmpq__encrypt_block(reinterpret_cast<uint32_t *>(blockTable_.get()), BlockEntrySize, LIBMPQ_BLOCK_TABLE_HASH_KEY);
+	mpqfs_encrypt_block(reinterpret_cast<uint32_t *>(blockTable_.get()), BlockEntrySize / sizeof(uint32_t), MPQFS_BLOCK_TABLE_KEY);
 	const bool success = stream_.Write(reinterpret_cast<const char *>(blockTable_.get()), BlockEntrySize);
-	libmpq__decrypt_block(reinterpret_cast<uint32_t *>(blockTable_.get()), BlockEntrySize, LIBMPQ_BLOCK_TABLE_HASH_KEY);
+	mpqfs_decrypt_block(reinterpret_cast<uint32_t *>(blockTable_.get()), BlockEntrySize / sizeof(uint32_t), MPQFS_BLOCK_TABLE_KEY);
 	return success;
 }
 
 bool MpqWriter::WriteHashTable()
 {
-	libmpq__encrypt_block(reinterpret_cast<uint32_t *>(hashTable_.get()), HashEntrySize, LIBMPQ_HASH_TABLE_HASH_KEY);
+	mpqfs_encrypt_block(reinterpret_cast<uint32_t *>(hashTable_.get()), HashEntrySize / sizeof(uint32_t), MPQFS_HASH_TABLE_KEY);
 	const bool success = stream_.Write(reinterpret_cast<const char *>(hashTable_.get()), HashEntrySize);
-	libmpq__decrypt_block(reinterpret_cast<uint32_t *>(hashTable_.get()), HashEntrySize, LIBMPQ_HASH_TABLE_HASH_KEY);
+	mpqfs_decrypt_block(reinterpret_cast<uint32_t *>(hashTable_.get()), HashEntrySize / sizeof(uint32_t), MPQFS_HASH_TABLE_KEY);
 	return success;
 }
 
