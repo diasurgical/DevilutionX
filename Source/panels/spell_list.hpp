@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <string>
 #include <vector>
 
 #include "engine/point.hpp"
@@ -16,6 +17,8 @@ struct SpellListItem {
 	bool isSelected;
 };
 
+struct Player;
+
 /**
  * @brief draws the current right mouse button spell.
  * @param out screen buffer representing the main UI panel
@@ -27,6 +30,7 @@ void SetSpell();
 void SetSpeedSpell(size_t slot);
 bool IsValidSpeedSpell(size_t slot);
 void ToggleSpell(size_t slot);
+std::string BuildSpellDetailsForSpeech(const Player &player, SpellID spellId, SpellType spellType);
 
 /**
  * Draws the "Speed Book": the rows of known spells for quick-setting a spell that

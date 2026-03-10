@@ -458,7 +458,8 @@ struct TrackerCandidate {
 {
 	return !monster.isInvalid
 	    && (monster.flags & MFLAG_HIDDEN) == 0
-	    && monster.hitPoints > 0;
+	    && monster.hitPoints > 0
+	    && !(monster.type().type == MT_GOLEM && monster.position.tile == GolemHoldingCell);
 }
 
 template <typename Predicate>

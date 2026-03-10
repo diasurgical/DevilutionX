@@ -850,21 +850,26 @@ void SpeakStashSlotForAccessibility()
 		return;
 	}
 
+	const int row = ActiveStashSlot.y + 1;
+	const int column = ActiveStashSlot.x + 1;
+	const int cell = ActiveStashSlot.y * StashGridSize.width + ActiveStashSlot.x + 1;
+	const std::string positionInfo = fmt::format("Row {}, Column {}, Cell {}: ", row, column, cell);
+
 	const StashStruct::StashCell itemId = Stash.GetItemIdAtPosition(ActiveStashSlot);
 	if (itemId != StashStruct::EmptyCell) {
 		const Item &item = Stash.stashList[itemId];
 		if (!item.isEmpty()) {
 			if (item._itype == ItemType::Gold) {
 				const int nGold = item._ivalue;
-				SpeakText(fmt::format(fmt::runtime(ngettext("{:s} gold piece", "{:s} gold pieces", nGold)), FormatInteger(nGold)), /*force=*/true);
+				SpeakText(StrCat(positionInfo, fmt::format(fmt::runtime(ngettext("{:s} gold piece", "{:s} gold pieces", nGold)), FormatInteger(nGold))), /*force=*/true);
 			} else {
-				SpeakText(item.getName(), /*force=*/true);
+				SpeakText(StrCat(positionInfo, item.getName()), /*force=*/true);
 			}
 			return;
 		}
 	}
 
-	SpeakText(_("empty"), /*force=*/true);
+	SpeakText(StrCat(positionInfo, _("empty")), /*force=*/true);
 }
 
 /**

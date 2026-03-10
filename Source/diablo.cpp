@@ -621,9 +621,7 @@ void PressKey(SDL_Keycode vkey, uint16_t modState)
 		} else if (SpellbookFlag && MyPlayer != nullptr && !IsInspectingPlayer()) {
 			const Player &player = *MyPlayer;
 			if (IsValidSpell(player._pRSpell)) {
-				std::string msg;
-				StrAppend(msg, _("Selected: "), pgettext("spell", GetSpellData(player._pRSpell).sNameText));
-				SpeakText(msg, /*force=*/true);
+				SpeakText(StrCat(_("Selected: "), BuildSpellDetailsForSpeech(player, player._pRSpell, player._pRSplType)), /*force=*/true);
 			} else {
 				SpeakText(_("No spell selected."), /*force=*/true);
 			}
@@ -655,7 +653,7 @@ void PressKey(SDL_Keycode vkey, uint16_t modState)
 				                                                                             : SpellType::Spell;
 				UpdateSpellTarget(*next);
 				RedrawEverything();
-				SpeakText(pgettext("spell", GetSpellData(*next).sNameText), /*force=*/true);
+				SpeakText(BuildSpellDetailsForSpeech(*MyPlayer, *next, MyPlayer->_pRSplType), /*force=*/true);
 			}
 		} else if (invflag) {
 			InventoryMoveFromKeyboard({ AxisDirectionX_NONE, AxisDirectionY_UP });
@@ -688,7 +686,7 @@ void PressKey(SDL_Keycode vkey, uint16_t modState)
 				                                                                             : SpellType::Spell;
 				UpdateSpellTarget(*next);
 				RedrawEverything();
-				SpeakText(pgettext("spell", GetSpellData(*next).sNameText), /*force=*/true);
+				SpeakText(BuildSpellDetailsForSpeech(*MyPlayer, *next, MyPlayer->_pRSplType), /*force=*/true);
 			}
 		} else if (invflag) {
 			InventoryMoveFromKeyboard({ AxisDirectionX_NONE, AxisDirectionY_DOWN });
@@ -729,7 +727,7 @@ void PressKey(SDL_Keycode vkey, uint16_t modState)
 					                                                                              : SpellType::Spell;
 					UpdateSpellTarget(*first);
 					RedrawEverything();
-					SpeakText(pgettext("spell", GetSpellData(*first).sNameText), /*force=*/true);
+					SpeakText(BuildSpellDetailsForSpeech(*MyPlayer, *first, MyPlayer->_pRSplType), /*force=*/true);
 				}
 			}
 		} else if (invflag) {
@@ -756,7 +754,7 @@ void PressKey(SDL_Keycode vkey, uint16_t modState)
 					                                                                              : SpellType::Spell;
 					UpdateSpellTarget(*first);
 					RedrawEverything();
-					SpeakText(pgettext("spell", GetSpellData(*first).sNameText), /*force=*/true);
+					SpeakText(BuildSpellDetailsForSpeech(*MyPlayer, *first, MyPlayer->_pRSplType), /*force=*/true);
 				}
 			}
 		} else if (invflag) {

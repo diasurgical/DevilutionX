@@ -260,9 +260,13 @@ void QuestLogKeyPressed()
 
 void SpeakSelectedSpeedbookSpell()
 {
+	if (MyPlayer == nullptr)
+		return;
+
+	const Player &player = *MyPlayer;
 	for (const auto &spellListItem : GetSpellListItems()) {
 		if (spellListItem.isSelected) {
-			SpeakText(pgettext("spell", GetSpellData(spellListItem.id).sNameText), /*force=*/true);
+			SpeakText(BuildSpellDetailsForSpeech(player, spellListItem.id, spellListItem.type), /*force=*/true);
 			return;
 		}
 	}
@@ -294,7 +298,7 @@ void SpellBookKeyPressed()
 	if (SpellbookFlag && MyPlayer != nullptr) {
 		const Player &player = *MyPlayer;
 		if (IsValidSpell(player._pRSpell)) {
-			SpeakText(pgettext("spell", GetSpellData(player._pRSpell).sNameText), /*force=*/true);
+			SpeakText(BuildSpellDetailsForSpeech(player, player._pRSpell, player._pRSplType), /*force=*/true);
 		} else {
 			SpeakText(_("No spell selected."), /*force=*/true);
 		}

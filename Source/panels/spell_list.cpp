@@ -1,6 +1,7 @@
 #include "panels/spell_list.hpp"
 
 #include <cstdint>
+#include <string>
 
 #include <fmt/format.h>
 
@@ -12,6 +13,7 @@
 #include "engine/render/primitive_render.hpp"
 #include "engine/render/text_render.hpp"
 #include "inv_iterators.hpp"
+#include "missiles.h"
 #include "options.h"
 #include "panels/spell_icons.hpp"
 #include "player.h"
@@ -81,7 +83,93 @@ std::optional<std::string_view> GetHotkeyName(SpellID spellId, SpellType spellTy
 	return {};
 }
 
+std::string GetSpellPowerTextForSpeech(SpellID spell, int spellLevel)
+{
+	if (spellLevel == 0) {
+		return {};
+	}
+	if (spell == SpellID::BoneSpirit) {
+		return std::string(_(/* TRANSLATORS: UI constraints, keep short please.*/ "Dmg: 1/3 target hp"));
+	}
+	const auto [min, max] = GetDamageAmt(spell, spellLevel);
+	if (min == -1) {
+		return {};
+	}
+	if (spell == SpellID::Healing || spell == SpellID::HealOther) {
+		return fmt::format(fmt::runtime(_(/* TRANSLATORS: UI constraints, keep short please.*/ "Heals: {:d} - {:d}")), min, max);
+	}
+	return fmt::format(fmt::runtime(_(/* TRANSLATORS: UI constraints, keep short please.*/ "Damage: {:d} - {:d}")), min, max);
+}
+
+void AppendSpellSpeechSegment(std::string &speech, std::string_view segment)
+{
+	if (segment.empty()) {
+		return;
+	}
+	if (!speech.empty()) {
+		StrAppend(speech, ", ");
+	}
+	StrAppend(speech, segment);
+}
+
 } // namespace
+
+std::string BuildSpellDetailsForSpeech(const Player &player, SpellID spellId, SpellType spellType)
+{
+	if (!IsValidSpell(spellId)) {
+		return std::string(_("No spell selected."));
+	}
+
+	if (spellId == GetPlayerStartingLoadoutForClass(player._pClass).skill) {
+		spellType = SpellType::Skill;
+	}
+
+	const std::string_view spellName = pgettext("spell", GetSpellData(spellId).sNameText);
+	std::string speech;
+
+	switch (spellType) {
+	case SpellType::Skill:
+		AppendSpellSpeechSegment(speech, fmt::format(fmt::runtime(_("{:s} Skill")), spellName));
+		break;
+	case SpellType::Spell: {
+		AppendSpellSpeechSegment(speech, fmt::format(fmt::runtime(_("{:s} Spell")), spellName));
+		if (spellId == SpellID::HolyBolt) {
+			AppendSpellSpeechSegment(speech, _("Damages undead only"));
+		}
+		const int spellLevel = player.GetSpellLevel(spellId);
+		AppendSpellSpeechSegment(speech,
+		    spellLevel == 0 ? std::string(_("Spell Level 0 - Unusable")) : fmt::format(fmt::runtime(_("Spell Level {:d}")), spellLevel));
+		if (spellLevel > 0) {
+			const std::string power = GetSpellPowerTextForSpeech(spellId, spellLevel);
+			if (!power.empty()) {
+				AppendSpellSpeechSegment(speech, power);
+			}
+			const int mana = GetManaAmount(player, spellId) >> 6;
+			AppendSpellSpeechSegment(speech, fmt::format(fmt::runtime(pgettext("spellbook", "Mana: {:d}")), mana));
+		}
+	} break;
+	case SpellType::Scroll: {
+		AppendSpellSpeechSegment(speech, fmt::format(fmt::runtime(_("Scroll of {:s}")), spellName));
+		const int scrollCount = c_count_if(InventoryAndBeltPlayerItemsRange { player }, [spellId](const Item &item) {
+			return item.isScrollOf(spellId);
+		});
+		AppendSpellSpeechSegment(speech, fmt::format(fmt::runtime(ngettext("{:d} Scroll", "{:d} Scrolls", scrollCount)), scrollCount));
+	} break;
+	case SpellType::Charges: {
+		AppendSpellSpeechSegment(speech, fmt::format(fmt::runtime(_("Staff of {:s}")), spellName));
+		const int charges = player.InvBody[INVLOC_HAND_LEFT]._iCharges;
+		AppendSpellSpeechSegment(speech, fmt::format(fmt::runtime(ngettext("{:d} Charge", "{:d} Charges", charges)), charges));
+	} break;
+	case SpellType::Invalid:
+		AppendSpellSpeechSegment(speech, spellName);
+		break;
+	}
+
+	if (speech.empty()) {
+		speech = spellName;
+	}
+	return speech;
+}
 
 void DrawSpell(const Surface &out)
 {
@@ -329,7 +417,7 @@ void ToggleSpell(size_t slot)
 		myPlayer._pRSpell = myPlayer._pSplHotKey[slot];
 		myPlayer._pRSplType = myPlayer._pSplTHotKey[slot];
 		RedrawEverything();
-		SpeakText(pgettext("spell", GetSpellData(myPlayer._pRSpell).sNameText), /*force=*/true);
+		SpeakText(BuildSpellDetailsForSpeech(myPlayer, myPlayer._pRSpell, myPlayer._pRSplType), /*force=*/true);
 	}
 }
 
