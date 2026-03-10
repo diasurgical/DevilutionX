@@ -953,6 +953,20 @@ void StoreConfirm(Item &item)
 	AddSText(0, 20, _("No"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
 }
 
+void RestoreStoreFromOldState()
+{
+	if (OldActiveStore == TalkID::StorytellerIdentifyAll) {
+		StartStore(TalkID::Storyteller);
+		CurrentTextLine = 16;
+		ScrollPos = 0;
+		return;
+	}
+
+	StartStore(OldActiveStore);
+	CurrentTextLine = OldTextLine;
+	ScrollPos = OldScrollPos;
+}
+
 void StartBoy()
 {
 	IsTextFullSize = false;
@@ -1811,6 +1825,12 @@ void ConfirmEnter(Item &item)
 	if (CurrentTextLine == BackButtonLine())
 		return;
 
+	if (OldActiveStore == TalkID::StorytellerIdentifyAll) {
+		CurrentTextLine = 16;
+		ScrollPos = 0;
+		return;
+	}
+
 	CurrentTextLine = OldTextLine;
 	ScrollPos = std::min(OldScrollPos, NumTextLines);
 
@@ -2485,9 +2505,7 @@ void StoreESC()
 	case TalkID::NoMoney:
 	case TalkID::NoRoom:
 	case TalkID::Confirm:
-		StartStore(OldActiveStore);
-		CurrentTextLine = OldTextLine;
-		ScrollPos = OldScrollPos;
+		RestoreStoreFromOldState();
 		break;
 	case TalkID::None:
 		break;
@@ -2651,9 +2669,7 @@ void StoreEnter()
 		break;
 	case TalkID::NoMoney:
 	case TalkID::NoRoom:
-		StartStore(OldActiveStore);
-		CurrentTextLine = OldTextLine;
-		ScrollPos = OldScrollPos;
+		RestoreStoreFromOldState();
 		break;
 	case TalkID::Confirm:
 		ConfirmEnter(TempItem);
