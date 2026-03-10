@@ -106,6 +106,9 @@ void GamemenuUpdateSingle()
 
 std::string_view GetSaveGameMenuLabel()
 {
+#ifndef _DEBUG
+	return _("Save Game");
+#else
 	if (HasPendingAutoSave()) {
 		saveGameMenuLabel = fmt::format(fmt::runtime(_("Save Game ({:s})")), _("ready"));
 		return saveGameMenuLabel;
@@ -119,6 +122,7 @@ std::string_view GetSaveGameMenuLabel()
 
 	saveGameMenuLabel = fmt::format(fmt::runtime(_("Save Game ({:d})")), seconds);
 	return saveGameMenuLabel;
+#endif
 }
 
 void GamemenuPrevious(bool /*bActivate*/)
