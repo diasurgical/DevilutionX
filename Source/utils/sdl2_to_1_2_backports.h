@@ -26,6 +26,7 @@
 #define SDL_floor floor
 
 #define SDL_MAX_UINT32 ((Uint32)0xFFFFFFFFu)
+#define SDL_TICKS_PASSED(A, B) ((Sint32)((B) - (A)) <= 0)
 
 //== Events handling
 
