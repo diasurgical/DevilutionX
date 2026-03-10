@@ -170,43 +170,41 @@ SaveWriter GetStashWriter()
 	return SaveWriter(GetStashSavePath());
 }
 
-void CopySaveFile(uint32_t saveNum, std::string targetPath)
+void CopySaveLocation(const std::string &sourceLocation, const std::string &targetLocation)
 {
-	const std::string savePath = GetSavePath(saveNum);
-
 #if defined(UNPACKED_SAVES)
 #ifdef DVL_NO_FILESYSTEM
 #error "UNPACKED_SAVES requires either DISABLE_DEMOMODE or C++17 <filesystem>"
 #endif
-	if (!targetPath.empty()) {
-		CreateDir(targetPath.c_str());
+	if (!targetLocation.empty()) {
+		CreateDir(targetLocation.c_str());
 	}
-	for (const std::filesystem::directory_entry &entry : std::filesystem::directory_iterator(savePath)) {
-		const std::filesystem::path targetFilePath = std::filesystem::path(targetPath) / entry.path().filename();
+	for (const std::filesystem::directory_entry &entry : std::filesystem::directory_iterator(sourceLocation)) {
+		const std::filesystem::path targetFilePath = std::filesystem::path(targetLocation) / entry.path().filename();
 		CopyFileOverwrite(entry.path().string().c_str(), targetFilePath.string().c_str());
 	}
 #else
-	CopyFileOverwrite(savePath.c_str(), targetPath.c_str());
+	CopyFileOverwrite(sourceLocation.c_str(), targetLocation.c_str());
 #endif
 }
 
-void RestoreSaveFile(const std::string &targetPath, const std::string &backupPath)
+void RestoreSaveLocation(const std::string &targetLocation, const std::string &backupLocation)
 {
 #if defined(UNPACKED_SAVES)
 #ifdef DVL_NO_FILESYSTEM
 #error "UNPACKED_SAVES requires either DISABLE_DEMOMODE or C++17 <filesystem>"
 #endif
-	if (DirectoryExists(targetPath.c_str())) {
-		for (const std::filesystem::directory_entry &entry : std::filesystem::directory_iterator(targetPath))
+	if (DirectoryExists(targetLocation.c_str())) {
+		for (const std::filesystem::directory_entry &entry : std::filesystem::directory_iterator(targetLocation))
 			RemoveFile(entry.path().string().c_str());
 	}
-	CreateDir(targetPath.c_str());
-	for (const std::filesystem::directory_entry &entry : std::filesystem::directory_iterator(backupPath)) {
-		const std::filesystem::path restoredFilePath = std::filesystem::path(targetPath) / entry.path().filename();
+	CreateDir(targetLocation.c_str());
+	for (const std::filesystem::directory_entry &entry : std::filesystem::directory_iterator(backupLocation)) {
+		const std::filesystem::path restoredFilePath = std::filesystem::path(targetLocation) / entry.path().filename();
 		CopyFileOverwrite(entry.path().string().c_str(), restoredFilePath.string().c_str());
 	}
 #else
-	CopyFileOverwrite(backupPath.c_str(), targetPath.c_str());
+	CopyFileOverwrite(backupLocation.c_str(), targetLocation.c_str());
 #endif
 }
 
@@ -652,20 +650,20 @@ void pfile_write_hero(bool writeGameData)
 bool pfile_write_hero_with_backup(bool writeGameData)
 {
 	const std::string backupPrefix = "backup_";
-	const std::string backupPath = GetSavePath(gSaveNumber, backupPrefix);
-	const std::string savePath = GetSavePath(gSaveNumber);
+	const std::string backupLocation = GetSavePath(gSaveNumber, backupPrefix);
+	const std::string saveLocation = GetSavePath(gSaveNumber);
 
-	if (FileExists(savePath) || DirectoryExists(savePath.c_str()))
-		CopySaveFile(gSaveNumber, backupPath);
+	if (FileExists(saveLocation) || DirectoryExists(saveLocation.c_str()))
+		CopySaveLocation(saveLocation, backupLocation);
 
 	pfile_write_hero(writeGameData);
 
 	auto archive = OpenSaveArchive(gSaveNumber);
 	const bool saveIsValid = archive && ArchiveContainsGame(*archive);
-	if (saveIsValid || !(FileExists(backupPath) || DirectoryExists(backupPath.c_str())))
+	if (saveIsValid || !(FileExists(backupLocation) || DirectoryExists(backupLocation.c_str())))
 		return saveIsValid;
 
-	RestoreSaveFile(savePath, backupPath);
+	RestoreSaveLocation(saveLocation, backupLocation);
 
 	return false;
 }
@@ -676,20 +674,11 @@ bool pfile_write_stash_with_backup()
 		return true;
 
 	const std::string backupPrefix = "backup_";
-	const std::string backupPath = GetStashSavePath(backupPrefix);
-	const std::string stashPath = GetStashSavePath();
+	const std::string backupLocation = GetStashSavePath(backupPrefix);
+	const std::string stashLocation = GetStashSavePath();
 
-	if (FileExists(stashPath) || DirectoryExists(stashPath.c_str())) {
-#if defined(UNPACKED_SAVES)
-		CreateDir(backupPath.c_str());
-		for (const std::filesystem::directory_entry &entry : std::filesystem::directory_iterator(stashPath)) {
-			const std::filesystem::path targetFilePath = std::filesystem::path(backupPath) / entry.path().filename();
-			CopyFileOverwrite(entry.path().string().c_str(), targetFilePath.string().c_str());
-		}
-#else
-		CopyFileOverwrite(stashPath.c_str(), backupPath.c_str());
-#endif
-	}
+	if (FileExists(stashLocation) || DirectoryExists(stashLocation.c_str()))
+		CopySaveLocation(stashLocation, backupLocation);
 
 	SaveWriter stashWriter = GetStashWriter();
 	SaveStash(stashWriter);
@@ -697,13 +686,13 @@ bool pfile_write_stash_with_backup()
 	auto archive = OpenStashArchive();
 	const char *stashFileName = gbIsMultiplayer ? "mpstashitems" : "spstashitems";
 	const bool stashIsValid = archive && ReadArchive(*archive, stashFileName) != nullptr;
-	if (stashIsValid || !(FileExists(backupPath) || DirectoryExists(backupPath.c_str()))) {
+	if (stashIsValid || !(FileExists(backupLocation) || DirectoryExists(backupLocation.c_str()))) {
 		if (stashIsValid)
 			Stash.dirty = false;
 		return stashIsValid;
 	}
 
-	RestoreSaveFile(stashPath, backupPath);
+	RestoreSaveLocation(stashLocation, backupLocation);
 
 	return false;
 }
@@ -711,9 +700,9 @@ bool pfile_write_stash_with_backup()
 #ifndef DISABLE_DEMOMODE
 void pfile_write_hero_demo(int demo)
 {
-	const std::string savePath = GetSavePath(gSaveNumber, StrCat("demo_", demo, "_reference_"));
-	CopySaveFile(gSaveNumber, savePath);
-	auto saveWriter = SaveWriter(savePath.c_str());
+	const std::string saveLocation = GetSavePath(gSaveNumber, StrCat("demo_", demo, "_reference_"));
+	CopySaveLocation(GetSavePath(gSaveNumber), saveLocation);
+	auto saveWriter = SaveWriter(saveLocation.c_str());
 	pfile_write_hero(saveWriter, true);
 }
 
@@ -726,7 +715,7 @@ HeroCompareResult pfile_compare_hero_demo(int demo, bool logDetails)
 
 	const std::string actualSavePath = GetSavePath(gSaveNumber, StrCat("demo_", demo, "_actual_"));
 	{
-		CopySaveFile(gSaveNumber, actualSavePath);
+		CopySaveLocation(GetSavePath(gSaveNumber), actualSavePath);
 		SaveWriter saveWriter(actualSavePath.c_str());
 		pfile_write_hero(saveWriter, true);
 	}
