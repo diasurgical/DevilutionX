@@ -2934,8 +2934,8 @@ void SaveGame()
 	pfile_write_hero(/*writeGameData=*/true);
 	sfile_write_stash();
 #else
-	const bool heroSaved = pfile_write_hero_with_backup(/*writeGameData=*/true);
-	if (!heroSaved) {
+	const bool gameSaved = pfile_write_game_with_backup();
+	if (!gameSaved) {
 		gbValidSaveFile = false;
 		return;
 	}

@@ -644,7 +644,7 @@ void pfile_write_hero(bool writeGameData)
 }
 
 #if !(defined(UNPACKED_SAVES) && defined(DVL_NO_FILESYSTEM))
-bool pfile_write_hero_with_backup(bool writeGameData)
+bool pfile_write_game_with_backup()
 {
 	const std::string backupPrefix = "backup_";
 	const std::string backupLocation = GetSavePath(gSaveNumber, backupPrefix);
@@ -653,7 +653,7 @@ bool pfile_write_hero_with_backup(bool writeGameData)
 	if (FileExists(saveLocation) || DirectoryExists(saveLocation.c_str()))
 		CopySaveLocation(saveLocation, backupLocation);
 
-	pfile_write_hero(writeGameData);
+	pfile_write_hero(/*writeGameData=*/true);
 
 	auto archive = OpenSaveArchive(gSaveNumber);
 	const bool saveIsValid = archive && ArchiveContainsGame(*archive);
