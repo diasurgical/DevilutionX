@@ -2929,6 +2929,11 @@ void SaveGameData(SaveWriter &saveWriter)
 void SaveGame()
 {
 	gbValidSaveFile = true;
+
+#if defined(UNPACKED_SAVES) && defined(DVL_NO_FILESYSTEM)
+	pfile_write_hero(/*writeGameData=*/true);
+	sfile_write_stash();
+#else
 	const bool heroSaved = pfile_write_hero_with_backup(/*writeGameData=*/true);
 	if (!heroSaved) {
 		gbValidSaveFile = false;
@@ -2939,6 +2944,7 @@ void SaveGame()
 		gbValidSaveFile = false;
 		return;
 	}
+#endif
 }
 
 void SaveLevel(SaveWriter &saveWriter)

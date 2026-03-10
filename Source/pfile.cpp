@@ -170,12 +170,10 @@ SaveWriter GetStashWriter()
 	return SaveWriter(GetStashSavePath());
 }
 
+#if !(defined(UNPACKED_SAVES) && defined(DVL_NO_FILESYSTEM))
 void CopySaveLocation(const std::string &sourceLocation, const std::string &targetLocation)
 {
 #if defined(UNPACKED_SAVES)
-#ifdef DVL_NO_FILESYSTEM
-#error "UNPACKED_SAVES requires either DISABLE_DEMOMODE or C++17 <filesystem>"
-#endif
 	if (!targetLocation.empty()) {
 		CreateDir(targetLocation.c_str());
 	}
@@ -191,9 +189,6 @@ void CopySaveLocation(const std::string &sourceLocation, const std::string &targ
 void RestoreSaveLocation(const std::string &targetLocation, const std::string &backupLocation)
 {
 #if defined(UNPACKED_SAVES)
-#ifdef DVL_NO_FILESYSTEM
-#error "UNPACKED_SAVES requires either DISABLE_DEMOMODE or C++17 <filesystem>"
-#endif
 	if (DirectoryExists(targetLocation.c_str())) {
 		for (const std::filesystem::directory_entry &entry : std::filesystem::directory_iterator(targetLocation))
 			RemoveFile(entry.path().string().c_str());
@@ -207,6 +202,7 @@ void RestoreSaveLocation(const std::string &targetLocation, const std::string &b
 	CopyFileOverwrite(backupLocation.c_str(), targetLocation.c_str());
 #endif
 }
+#endif
 
 void Game2UiPlayer(const Player &player, _uiheroinfo *heroinfo, bool bHasSaveFile)
 {
@@ -647,6 +643,7 @@ void pfile_write_hero(bool writeGameData)
 	pfile_write_hero(saveWriter, writeGameData);
 }
 
+#if !(defined(UNPACKED_SAVES) && defined(DVL_NO_FILESYSTEM))
 bool pfile_write_hero_with_backup(bool writeGameData)
 {
 	const std::string backupPrefix = "backup_";
@@ -696,8 +693,10 @@ bool pfile_write_stash_with_backup()
 
 	return false;
 }
+#endif
 
 #ifndef DISABLE_DEMOMODE
+#if !(defined(UNPACKED_SAVES) && defined(DVL_NO_FILESYSTEM))
 void pfile_write_hero_demo(int demo)
 {
 	const std::string saveLocation = GetSavePath(gSaveNumber, StrCat("demo_", demo, "_reference_"));
@@ -722,6 +721,20 @@ HeroCompareResult pfile_compare_hero_demo(int demo, bool logDetails)
 
 	return CompareSaves(actualSavePath, referenceSavePath, logDetails);
 }
+#else
+// Demo save comparison is unavailable on UNPACKED_SAVES targets without filesystem support.
+void pfile_write_hero_demo(int demo)
+{
+	(void)demo;
+}
+
+HeroCompareResult pfile_compare_hero_demo(int demo, bool logDetails)
+{
+	(void)demo;
+	(void)logDetails;
+	return { HeroCompareResult::ReferenceNotFound, {} };
+}
+#endif
 #endif
 
 void sfile_write_stash()
