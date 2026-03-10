@@ -442,7 +442,7 @@ bool ItemPlace(Point position)
 
 Point GetRandomAvailableItemPosition()
 {
-	Point position = {};
+	Point position = { };
 	do {
 		position = Point { GenerateRnd(80), GenerateRnd(80) } + Displacement { 16, 16 };
 	} while (!ItemPlace(position));
@@ -1950,7 +1950,7 @@ void SpawnOnePremium(Item &premiumItem, int plvl, const Player &player)
 	const int maxCount = 150;
 	const bool unlimited = !gbIsHellfire; // TODO: This could lead to an infinite loop if a suitable item can never be generated
 	for (int count = 0; unlimited || count < maxCount; count++) {
-		premiumItem = {};
+		premiumItem = { };
 		premiumItem._iSeed = AdvanceRndSeed();
 		SetRndSeed(premiumItem._iSeed);
 		const _item_indexes itemType = RndPremiumItem(player, plvl / 4, plvl);
@@ -2177,7 +2177,7 @@ void CreateMagicItem(Point position, int lvl, ItemType itemType, int imid, int i
 	_item_indexes idx = RndTypeItems(itemType, imid, lvl);
 
 	while (true) {
-		item = {};
+		item = { };
 		SetupAllItems(*MyPlayer, item, idx, AdvanceRndSeed(), 2 * lvl, 1, true, delta);
 		TryRandomUniqueItem(item, idx, 2 * lvl, 1, true, delta);
 		SetupItem(item);
@@ -2919,7 +2919,7 @@ void InitializeItem(Item &item, _item_indexes itemData)
 	auto &pAllItem = AllItemsList[static_cast<size_t>(itemData)];
 
 	// zero-initialize struct
-	item = {};
+	item = { };
 
 	item._itype = pAllItem.itype;
 	item._iCurs = pAllItem.iCurs;
@@ -3080,7 +3080,7 @@ int AllocateItem()
 	const int inum = ActiveItems[ActiveItemCount];
 	ActiveItemCount++;
 
-	Items[inum] = {};
+	Items[inum] = { };
 
 	return inum;
 }
@@ -3333,7 +3333,7 @@ void TryRandomUniqueItem(Item &item, _item_indexes idx, int8_t mLevel, int uper,
 		// Force generate a non-unique item.
 		DiabloGenerator itemGenerator(item._iSeed);
 		do {
-			item = {}; // Reset item data
+			item = { }; // Reset item data
 			item.position = itemPos;
 			SetupAllItems(*MyPlayer, item, idx, itemGenerator.advanceRndSeed(), mLevel, uper, onlygood, pregen);
 		} while (item._iMagical == ITEM_QUALITY_UNIQUE);
@@ -3384,7 +3384,7 @@ void TryRandomUniqueItem(Item &item, _item_indexes idx, int8_t mLevel, int uper,
 		// Force generate items until we find a uid match.
 		DiabloGenerator itemGenerator(item._iSeed);
 		do {
-			item = {}; // Reset item data
+			item = { }; // Reset item data
 			item.position = itemPos;
 			// Set onlygood = true, to always get the required item base level for the unique.
 			SetupAllItems(*MyPlayer, item, idx, itemGenerator.advanceRndSeed(), targetLvl, uper, true, pregen);
@@ -3392,7 +3392,7 @@ void TryRandomUniqueItem(Item &item, _item_indexes idx, int8_t mLevel, int uper,
 	} else {
 		// Recreate the item with new offset, this creates the desired unique item but is not reverse compatible.
 		const int seed = item._iSeed;
-		item = {}; // Reset item data
+		item = { }; // Reset item data
 		item.position = itemPos;
 		SetupAllItems(*MyPlayer, item, idx, seed, mLevel, uper, onlygood, pregen, uidOffset);
 		item.dwBuff |= (uidOffset << 1) & CF_UIDOFFSET;
@@ -4034,13 +4034,13 @@ bool DoOil(Player &player, int cii)
 			return _(/*xgettext:no-c-format*/ "hit steals 3% mana");
 		if (HasAnyOf(item._iFlags, ItemSpecialEffect::StealMana5))
 			return _(/*xgettext:no-c-format*/ "hit steals 5% mana");
-		return {};
+		return { };
 	case IPL_STEALLIFE:
 		if (HasAnyOf(item._iFlags, ItemSpecialEffect::StealLife3))
 			return _(/*xgettext:no-c-format*/ "hit steals 3% life");
 		if (HasAnyOf(item._iFlags, ItemSpecialEffect::StealLife5))
 			return _(/*xgettext:no-c-format*/ "hit steals 5% life");
-		return {};
+		return { };
 	case IPL_TARGAC:
 		return _("penetrates target's armor");
 	case IPL_FASTATTACK:
@@ -4427,7 +4427,7 @@ void SpawnSmith(int lvl)
 	while (SmithItems.size() < iCnt) {
 		Item newItem;
 		do {
-			newItem = {};
+			newItem = { };
 			newItem._iSeed = AdvanceRndSeed();
 			SetRndSeed(newItem._iSeed);
 			const _item_indexes itemData = RndSmithItem(*MyPlayer, lvl);
@@ -4457,7 +4457,7 @@ void SpawnPremium(const Player &player)
 
 	while (PremiumItems.size() < maxItems) {
 		int plvl = PremiumItemLevel + (gbIsHellfire ? itemLevelAddHf[PremiumItems.size()] : itemLevelAdd[PremiumItems.size()]);
-		Item item = {};
+		Item item = { };
 		SpawnOnePremium(item, plvl, player);
 		PremiumItems.push_back(item);
 	}
@@ -4495,7 +4495,7 @@ void SpawnWitch(int lvl)
 	WitchItems.clear();
 
 	for (int i = 0; i < itemCount; i++) {
-		Item item = {};
+		Item item = { };
 
 		if (i < PinnedItemCount) {
 			item._iSeed = AdvanceRndSeed();
@@ -4524,7 +4524,7 @@ void SpawnWitch(int lvl)
 		}
 
 		do {
-			item = {};
+			item = { };
 			item._iSeed = AdvanceRndSeed();
 			SetRndSeed(item._iSeed);
 			const _item_indexes itemData = RndWitchItem(*MyPlayer, lvl);
@@ -4567,7 +4567,7 @@ void SpawnBoy(int lvl)
 		return;
 	do {
 		keepgoing = false;
-		BoyItem = {};
+		BoyItem = { };
 		BoyItem._iSeed = AdvanceRndSeed();
 		SetRndSeed(BoyItem._iSeed);
 		const _item_indexes itype = RndBoyItem(*MyPlayer, lvl);
@@ -4671,7 +4671,7 @@ void SpawnHealer(int lvl)
 	HealerItems.clear();
 
 	for (size_t i = 0; i < itemCount; i++) {
-		Item item = {};
+		Item item = { };
 
 		if (i < PinnedItemCount || (gbIsMultiplayer && i < NumHealerPinnedItemsMp)) {
 			item._iSeed = AdvanceRndSeed();
@@ -4731,7 +4731,7 @@ void CreateSpellBook(Point position, SpellID ispell, bool sendmsg, bool delta)
 	auto &item = Items[ii];
 
 	while (true) {
-		item = {};
+		item = { };
 		SetupAllItems(*MyPlayer, item, idx, AdvanceRndSeed(), 2 * lvl, 1, true, delta);
 		SetupItem(item);
 		if (item._iMiscId == IMISC_BOOK && item._iSpell == ispell)

@@ -201,8 +201,8 @@ struct Item {
 	bool _iPostDraw = false;
 	bool _iIdentified = false;
 	item_quality _iMagical = ITEM_QUALITY_NORMAL;
-	char _iName[ItemNameLength] = {};
-	char _iIName[ItemNameLength] = {};
+	char _iName[ItemNameLength] = { };
+	char _iIName[ItemNameLength] = { };
 	item_equip_type _iLoc = ILOC_NONE;
 	item_class _iClass = ICLASS_NONE;
 	uint8_t _iCurs = 0;

@@ -308,7 +308,7 @@ std::optional<Point> GetRandomObjectPosition(Displacement standoff)
 		if (CanPlaceRandomObject(position, standoff))
 			return position;
 	}
-	return {};
+	return { };
 }
 
 void InitRndLocObj5x5(int min, int max, _object_id objtype)
@@ -325,7 +325,7 @@ void InitRndLocObj5x5(int min, int max, _object_id objtype)
 void ClrAllObjects()
 {
 	for (Object &object : Objects) {
-		object = {};
+		object = { };
 	}
 	ActiveObjectCount = 0;
 	for (int i = 0; i < MAXOBJECTS; i++) {
@@ -556,7 +556,7 @@ void AddChestTraps()
 	}
 }
 
-void LoadMapObjects(const char *path, Point start, WorldTileRectangle mapRange = {}, int leveridx = 0)
+void LoadMapObjects(const char *path, Point start, WorldTileRectangle mapRange = { }, int leveridx = 0)
 {
 	LoadingMapObjects = true;
 
@@ -1269,7 +1269,7 @@ void AddObjectLight(Object &object)
 		return;
 	}
 
-	DoLighting(object.position, radius, {});
+	DoLighting(object.position, radius, { });
 	if (LoadingMapObjects) {
 		DoUnLight(object.position, radius);
 		UpdateLighting = true;
@@ -1300,7 +1300,7 @@ void AddShrine(Object &shrine)
 	shrine._oPreFlag = true;
 
 	const int shrineCount = gbIsHellfire ? NumberOfShrineTypes : 26;
-	bool slist[NumberOfShrineTypes] = {};
+	bool slist[NumberOfShrineTypes] = { };
 
 	for (int i = 0; i < shrineCount; i++) {
 		bool isShrineAvailable = true;
@@ -1846,7 +1846,7 @@ void OperateBook(Player &player, Object &book, bool sendmsg)
 	}
 
 	if (setlevel && setlvlnum == SL_VILEBETRAYER) {
-		Point target {};
+		Point target { };
 		if (book.position == Point { 26, 45 }) {
 			target = { 27, 29 };
 		} else if (book.position == Point { 45, 46 }) {
@@ -3677,7 +3677,7 @@ bool IsItemBlockingObjectAtPosition(Point position)
 tl::expected<void, std::string> LoadLevelObjects(uint16_t filesWidths[65])
 {
 	if (HeadlessMode)
-		return {};
+		return { };
 
 	for (const ObjectData objectData : AllObjects) {
 		if (leveltype == objectData.olvltype) {
@@ -3696,12 +3696,12 @@ tl::expected<void, std::string> LoadLevelObjects(uint16_t filesWidths[65])
 		ASSIGN_OR_RETURN(pObjCels[numobjfiles], LoadCelWithStatus(filestr, filesWidths[i]));
 		numobjfiles++;
 	}
-	return {};
+	return { };
 }
 
 tl::expected<void, std::string> InitObjectGFX()
 {
-	uint16_t filesWidths[65] = {};
+	uint16_t filesWidths[65] = { };
 
 	if (IsAnyOf(currlevel, 4, 8, 12)) {
 		for (const auto id : { OBJ_STORYBOOK, OBJ_STORYCANDLE }) {
@@ -3964,7 +3964,7 @@ void InitObjects()
 
 void SetMapObjects(const uint16_t *dunData, int startx, int starty)
 {
-	uint16_t filesWidths[65] = {};
+	uint16_t filesWidths[65] = { };
 
 	ClrAllObjects();
 
