@@ -2674,11 +2674,7 @@ void StartPlrHit(Player &player, int dam, bool forcehit)
 	SetPlayerOld(player);
 }
 
-#if defined(__clang__) || defined(__GNUC__)
-__attribute__((no_sanitize("shift-base")))
-#endif
-void
-StartPlayerKill(Player &player, DeathReason deathReason)
+void StartPlayerKill(Player &player, DeathReason deathReason)
 {
 	if (player.hasNoLife() && player._pmode == PM_DEATH) {
 		return;
@@ -2764,8 +2760,20 @@ StartPlayerKill(Player &player, DeathReason deathReason)
 					break;
 				}
 
-				ear._iCreateInfo = player._pName[0] << 8 | player._pName[1];
-				ear._iSeed = player._pName[2] << 24 | player._pName[3] << 16 | player._pName[4] << 8 | player._pName[5];
+				auto to_u8 = [](char c) {
+					return static_cast<uint8_t>(c);
+				};
+
+				const uint32_t b0 = to_u8(player._pName[0]);
+				const uint32_t b1 = to_u8(player._pName[1]);
+				const uint32_t b2 = to_u8(player._pName[2]);
+				const uint32_t b3 = to_u8(player._pName[3]);
+				const uint32_t b4 = to_u8(player._pName[4]);
+				const uint32_t b5 = to_u8(player._pName[5]);
+
+				ear._iCreateInfo = (b0 << 8) | b1;
+				ear._iSeed = (b2 << 24) | (b3 << 16) | (b4 << 8) | b5;
+
 				ear._ivalue = player.getCharacterLevel();
 
 				if (FindGetItem(ear._iSeed, IDI_EAR, ear._iCreateInfo) == -1) {
