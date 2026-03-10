@@ -63,6 +63,7 @@
 #include "qol/itemlabels.h"
 #include "qol/monhealthbar.h"
 #include "qol/stash.h"
+#include "qol/visual_store.h"
 #include "qol/xpbar.h"
 #include "stores.h"
 #include "towners.h"
@@ -1400,14 +1401,18 @@ void DrawView(const Surface &out, Point startPosition)
 
 	DrawDurIcon(out);
 
+	DrawLevelButton(out);
+
 	if (CharFlag) {
 		DrawChr(out);
 	} else if (QuestLogIsOpen) {
 		DrawQuestLog(out);
 	} else if (IsStashOpen) {
 		DrawStash(out);
+	} else if (IsVisualStoreOpen) {
+		DrawVisualStore(out);
 	}
-	DrawLevelButton(out);
+
 	if (ShowUniqueItemInfoBox) {
 		DrawUniqueInfo(out);
 	}

@@ -181,6 +181,10 @@ bool GetGameAction(const SDL_Event &event, ControllerButtonEvent ctrlEvent, Game
 			if ((!VirtualGamepadState.primaryActionButton.isHeld && ControllerActionHeld == GameActionType_PRIMARY_ACTION)
 			    || (!VirtualGamepadState.secondaryActionButton.isHeld && ControllerActionHeld == GameActionType_SECONDARY_ACTION)
 			    || (!VirtualGamepadState.spellActionButton.isHeld && ControllerActionHeld == GameActionType_CAST_SPELL)) {
+				// Handle button release for visual store buttons
+				if (ControllerActionHeld == GameActionType_PRIMARY_ACTION) {
+					PerformPrimaryActionRelease();
+				}
 				ControllerActionHeld = GameActionType_NONE;
 				LastPlayerAction = PlayerActionType::None;
 			}
@@ -399,6 +403,13 @@ bool HandleControllerButtonEvent(const SDL_Event &event, const ControllerButtonE
 	if (ctrlEvent.up && !PadmapperActionNameTriggeredByButtonEvent(ctrlEvent).empty()) {
 		// Button press may have brought up a menu;
 		// don't confuse release of that button with intent to interact with the menu
+
+		// Handle visual store button release for physical gamepad
+		std::string_view actionName = PadmapperActionNameTriggeredByButtonEvent(ctrlEvent);
+		if (actionName == "PrimaryAction") {
+			PerformPrimaryActionRelease();
+		}
+
 		PadmapperRelease(ctrlEvent.button, /*invokeAction=*/true);
 		return true;
 	} else if (GetGameAction(event, ctrlEvent, &action)) {
