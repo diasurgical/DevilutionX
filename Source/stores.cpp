@@ -1163,7 +1163,11 @@ void StartStorytellerIdentify()
 		HasScrollbar = false;
 
 		RenderGold = true;
-		AddSText(20, 1, _("You have nothing to identify."), UiFlags::ColorWhitegold, false);
+		if (OldActiveStore == TalkID::StorytellerIdentifyAll) {
+			AddSText(20, 1, _("There are no items to identify."), UiFlags::ColorWhitegold, false);
+		} else {
+			AddSText(20, 1, _("You have nothing to identify."), UiFlags::ColorWhitegold, false);
+		}
 		AddSLine(3);
 		AddItemListBackButton(/*selectable=*/true);
 		return;
@@ -1923,7 +1927,7 @@ void StorytellerIdentifyEnter()
 {
 	if (CurrentTextLine == BackButtonLine()) {
 		StartStore(TalkID::Storyteller);
-		CurrentTextLine = 14;
+		CurrentTextLine = OldActiveStore == TalkID::StorytellerIdentifyAll ? 16 : 14;
 		return;
 	}
 
