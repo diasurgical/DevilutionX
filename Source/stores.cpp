@@ -903,6 +903,15 @@ void StoreConfirm(Item &item)
 	HasScrollbar = false;
 	ClearSText(5, 23);
 
+	if (OldActiveStore == TalkID::StorytellerIdentifyAll) {
+		AddSText(0, 10, _("Identify all items?"), UiFlags::ColorWhite | UiFlags::AlignCenter, false);
+		AddSText(0, 12, fmt::format(fmt::runtime(_("Cost: {:s} gold")), FormatInteger(item._iIvalue)), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
+		AddSText(0, 15, _("Are you sure you want to identify all items?"), UiFlags::ColorWhite | UiFlags::AlignCenter, false);
+		AddSText(0, 18, _("Yes"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+		AddSText(0, 20, _("No"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+		return;
+	}
+
 	const UiFlags itemColor = item.getTextColorWithStatCheck();
 	AddSText(20, 8, item.getName(), itemColor, false);
 	AddSTextVal(8, item._iIvalue);
@@ -916,6 +925,9 @@ void StoreConfirm(Item &item)
 		break;
 	case TalkID::StorytellerIdentify:
 		prompt = _("Are you sure you want to identify this item?");
+		break;
+	case TalkID::StorytellerIdentifyAll:
+		prompt = _("Are you sure you want to identify all items?");
 		break;
 	case TalkID::HealerBuy:
 	case TalkID::SmithPremiumBuy:
@@ -1050,19 +1062,14 @@ void StartStoryteller()
 	AddSText(0, 9, _("Would you like to:"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
 	AddSText(0, 12, _("Talk to Cain"), UiFlags::ColorBlue | UiFlags::AlignCenter, true);
 	AddSText(0, 14, _("Identify an item"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+	AddSText(0, 16, _("Identify all items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
 	AddSText(0, 18, _("Say goodbye"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
 	AddSLine(5);
 }
 
 bool IdItemOk(Item *i)
 {
-	if (i->isEmpty()) {
-		return false;
-	}
-	if (i->_iMagical == ITEM_QUALITY_NORMAL) {
-		return false;
-	}
-	return !i->_iIdentified;
+	return IsItemIdentifiableByStoryteller(*i);
 }
 
 void AddStoreHoldId(Item itm, int8_t i)
@@ -1172,6 +1179,13 @@ void StartStorytellerIdentifyShow(Item &item)
 	AddSText(20, 11, item.getName(), itemColor, false);
 	PrintStoreItem(item, 12, itemColor);
 	AddSText(0, 18, _("Done"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+}
+
+void StorytellerIdentifyAllItems()
+{
+	Player &myPlayer = *MyPlayer;
+	TakePlrsMoney(CountIdentifiablePlayerItems(myPlayer) * 100);
+	IdentifyPlayerItems(myPlayer);
 }
 
 void StartTalk()
@@ -1779,6 +1793,11 @@ void ConfirmEnter(Item &item)
 			StorytellerIdentifyItem(item);
 			StartStore(TalkID::StorytellerIdentifyShow);
 			return;
+		case TalkID::StorytellerIdentifyAll:
+			StorytellerIdentifyAllItems();
+			StartStore(TalkID::Storyteller);
+			CurrentTextLine = 16;
+			return;
 		case TalkID::SmithPremiumBuy:
 			SmithBuyPItem(item);
 			break;
@@ -1858,6 +1877,22 @@ void StorytellerEnter()
 	case 14:
 		StartStore(TalkID::StorytellerIdentify);
 		break;
+	case 16:
+		OldActiveStore = TalkID::StorytellerIdentifyAll;
+		OldTextLine = 16;
+		OldScrollPos = 0;
+		TempItem.clear();
+		TempItem._iIvalue = CountIdentifiablePlayerItems(*MyPlayer) * 100;
+		if (TempItem._iIvalue == 0) {
+			StartStore(TalkID::StorytellerIdentify);
+			return;
+		}
+		if (!PlayerCanAfford(TempItem._iIvalue)) {
+			StartStore(TalkID::NoMoney);
+			return;
+		}
+		StartStore(TalkID::Confirm);
+		return;
 	case 18:
 		ActiveStore = TalkID::None;
 		break;
@@ -2293,6 +2328,8 @@ void StartStore(TalkID s)
 	case TalkID::StorytellerIdentify:
 		StartStorytellerIdentify();
 		break;
+	case TalkID::StorytellerIdentifyAll:
+		break;
 	case TalkID::SmithPremiumBuy:
 		if (!StartSmithPremiumBuy())
 			return;
@@ -2437,6 +2474,10 @@ void StoreESC()
 	case TalkID::StorytellerIdentify:
 		StartStore(TalkID::Storyteller);
 		CurrentTextLine = 14;
+		break;
+	case TalkID::StorytellerIdentifyAll:
+		StartStore(TalkID::Storyteller);
+		CurrentTextLine = 16;
 		break;
 	case TalkID::StorytellerIdentifyShow:
 		StartStore(TalkID::StorytellerIdentify);
@@ -2634,6 +2675,9 @@ void StoreEnter()
 		break;
 	case TalkID::StorytellerIdentify:
 		StorytellerIdentifyEnter();
+		break;
+	case TalkID::StorytellerIdentifyAll:
+		StartStore(TalkID::Confirm);
 		break;
 	case TalkID::Gossip:
 		TalkEnter();
