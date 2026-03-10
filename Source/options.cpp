@@ -865,6 +865,13 @@ GameplayOptions::GameplayOptions()
     , autoRefillBelt("Auto Refill Belt", OptionEntryFlags::None, N_("Auto Refill Belt"), N_("Refill belt from inventory when belt item is consumed."), false)
     , disableCripplingShrines("Disable Crippling Shrines", OptionEntryFlags::None, N_("Disable Crippling Shrines"), N_("When enabled Cauldrons, Fascinating Shrines, Goat Shrines, Ornate Shrines, Sacred Shrines and Murphy's Shrines are not able to be clicked on and labeled as disabled."), false)
     , quickCast("Quick Cast", OptionEntryFlags::None, N_("Quick Cast"), N_("Spell hotkeys instantly cast the spell, rather than switching the readied spell."), false)
+	, automapType("Automap Type", OptionEntryFlags::None, N_("Automap Type"), N_("Default automap type used when loading a game."), AutomapType::Opaque,
+		  {
+			  { AutomapType::Opaque, N_("Opaque") },
+			  { AutomapType::Transparent, N_("Transparent") },
+			  { AutomapType::Minimap, N_("Minimap") },
+			  { AutomapType::MinimapBorderless, N_("Minimap Borderless") },
+		  })
     , numHealPotionPickup("Heal Potion Pickup", OptionEntryFlags::None, N_("Heal Potion Pickup"), N_("Number of Healing potions to pick up automatically."), 0, { 0, 1, 2, 4, 8, 16 })
     , numFullHealPotionPickup("Full Heal Potion Pickup", OptionEntryFlags::None, N_("Full Heal Potion Pickup"), N_("Number of Full Healing potions to pick up automatically."), 0, { 0, 1, 2, 4, 8, 16 })
     , numManaPotionPickup("Mana Potion Pickup", OptionEntryFlags::None, N_("Mana Potion Pickup"), N_("Number of Mana potions to pick up automatically."), 0, { 0, 1, 2, 4, 8, 16 })
@@ -916,6 +923,7 @@ std::vector<OptionEntryBase *> GameplayOptions::GetEntries()
 		&disableCripplingShrines,
 		&grabInput,
 		&pauseOnFocusLoss,
+		&automapType,
 		&skipLoadingScreenThresholdMs,
 	};
 }

@@ -1257,7 +1257,7 @@ Displacement GetAutomapScreen()
 {
 	Displacement screen = {};
 
-	if (GetAutomapType() == AutomapType::Minimap) {
+	if (IsMinimapAutomapType()) {
 		screen = {
 			MinimapRect.position.x + MinimapRect.size.width / 2,
 			MinimapRect.position.y + MinimapRect.size.height / 2
@@ -1291,7 +1291,7 @@ void SearchAutomapItem(const Surface &out, const Displacement &myPlayerOffset, i
 	const int endY = std::clamp(tile.y + searchRadius, 0, MAXDUNY);
 
 	const AutomapType mapType = GetAutomapType();
-	const int scale = (mapType == AutomapType::Minimap) ? MinimapScale : AutoMapScale;
+	const int scale = IsMinimapAutomapType(mapType) ? MinimapScale : AutoMapScale;
 
 	for (int i = startX; i < endX; i++) {
 		for (int j = startY; j < endY; j++) {
@@ -1308,7 +1308,7 @@ void SearchAutomapItem(const Surface &out, const Displacement &myPlayerOffset, i
 
 			screen += GetAutomapScreen();
 
-			if (mapType != AutomapType::Minimap && CanPanelsCoverView()) {
+			if (!IsMinimapAutomapType(mapType) && CanPanelsCoverView()) {
 				if (IsRightPanelOpen())
 					screen.x -= gnScreenWidth / 4;
 				if (IsLeftPanelOpen())
@@ -1352,7 +1352,7 @@ void DrawAutomapPlr(const Surface &out, const Displacement &myPlayerOffset, cons
 	if (player.isWalking())
 		playerOffset = GetOffsetForWalking(player.AnimInfo, player._pdir);
 
-	const int scale = (GetAutomapType() == AutomapType::Minimap) ? MinimapScale : AutoMapScale;
+	const int scale = IsMinimapAutomapType() ? MinimapScale : AutoMapScale;
 
 	Point base = {
 		((playerOffset.deltaX + myPlayerOffset.deltaX) * scale / 100 / 2) + (px - py) * AmLine(AmLineLength::DoubleTile),
@@ -1547,7 +1547,6 @@ std::unique_ptr<AutomapTile[]> LoadAutomapData(size_t &tileCount)
 } // namespace
 
 bool AutomapActive;
-AutomapType CurrentAutomapType = AutomapType::Opaque;
 uint8_t AutomapView[DMAXX][DMAXY];
 int AutoMapScale;
 int MinimapScale;
@@ -1557,6 +1556,7 @@ Rectangle MinimapRect {};
 void InitAutomapOnce()
 {
 	AutomapActive = false;
+	SetAutomapType(*GetOptions().Gameplay.automapType);
 	AutoMapScale = 50;
 
 	// Set the dimensions and screen position of the minimap relative to the screen dimensions
@@ -1575,6 +1575,16 @@ void InitAutomapOnce()
 	} else {
 		MinimapScale = scale * factor;
 	}
+}
+
+void SetAutomapType(AutomapType type)
+{
+	GetOptions().Gameplay.automapType.SetValue(type);
+}
+
+AutomapType GetAutomapType()
+{
+	return *GetOptions().Gameplay.automapType;
 }
 
 void InitAutomap()
@@ -1732,7 +1742,7 @@ void AutomapRight()
 
 void AutomapZoomIn()
 {
-	int &scale = (GetAutomapType() == AutomapType::Minimap) ? MinimapScale : AutoMapScale;
+	int &scale = IsMinimapAutomapType() ? MinimapScale : AutoMapScale;
 
 	if (scale >= 200)
 		return;
@@ -1742,7 +1752,7 @@ void AutomapZoomIn()
 
 void AutomapZoomOut()
 {
-	int &scale = (GetAutomapType() == AutomapType::Minimap) ? MinimapScale : AutoMapScale;
+	int &scale = IsMinimapAutomapType() ? MinimapScale : AutoMapScale;
 
 	if (scale <= 25)
 		return;
@@ -1773,7 +1783,7 @@ void DrawAutomap(const Surface &out)
 	if (myPlayer.isWalking())
 		myPlayerOffset = GetOffsetForWalking(myPlayer.AnimInfo, myPlayer._pdir, true);
 
-	const int scale = (GetAutomapType() == AutomapType::Minimap) ? MinimapScale : AutoMapScale;
+	const int scale = IsMinimapAutomapType() ? MinimapScale : AutoMapScale;
 	const int d = (scale * 64) / 100;
 	int cells = 2 * (gnScreenWidth / 2 / d) + 1;
 	if (((gnScreenWidth / 2) % d) != 0)

@@ -532,7 +532,7 @@ void CycleAutomapType()
 	}
 	const AutomapType newType { static_cast<std::underlying_type_t<AutomapType>>(
 		(static_cast<unsigned>(GetAutomapType()) + 1) % enum_size<AutomapType>::value) };
-	SetAutomapType(newType);
+	GetOptions().Gameplay.automapType.SetValue(newType);
 	if (newType == AutomapType::FIRST) {
 		AutomapActive = false;
 	}
