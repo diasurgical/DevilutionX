@@ -623,6 +623,8 @@ struct GameplayOptions : OptionCategoryBase {
 	OptionEntryBoolean disableCripplingShrines;
 	/** @brief Spell hotkeys instantly cast the spell. */
 	OptionEntryBoolean quickCast;
+	/** @brief Read subtitle text aloud when NPC dialog is shown. */
+	OptionEntryBoolean speakNpcDialogText;
 	/** @brief Number of Healing potions to pick up automatically */
 	OptionEntryInt<int> numHealPotionPickup;
 	/** @brief Number of Full Healing potions to pick up automatically */

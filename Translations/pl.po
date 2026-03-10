@@ -1887,10 +1887,19 @@ msgid "Toggle automap"
 msgstr "Przełączanie automapy"
 
 #: Source/diablo.cpp:1896 Source/diablo.cpp:2305
-msgid "Toggles if automap is displayed."
-msgstr "Przełącza, czy wyświetlana jest automapa."
+msgid "Toggles if automap is displayed. While the stash is open, switches between inventory and stash."
+msgstr "Przełącza wyświetlanie automapy. Gdy skrytka jest otwarta, przełącza między ekwipunkiem a skrytką."
 
 #: Source/diablo.cpp:1903
+msgid "Toggle stash focus"
+msgstr "Przełącz fokus skrytki"
+
+msgid "Tab: switches between inventory and stash."
+msgstr "Tab: przełącza między ekwipunkiem a skrytką."
+
+msgid "Stash"
+msgstr "Skrytka"
+
 msgid "Cycle map type"
 msgstr "Przełącz typ mapy"
 
@@ -3768,6 +3777,43 @@ msgstr "Ładunki: {:d}/{:d}"
 msgid "unique item"
 msgstr "unikat"
 
+#: Source/items.cpp:4146 Source/controls/tracker.cpp:316
+msgid "magic item"
+msgstr "magiczny"
+
+#: Source/items.cpp
+msgid "One-handed weapon"
+msgstr "Broń jednoręczna"
+
+#: Source/items.cpp
+msgid "Two-handed weapon"
+msgstr "Broń dwuręczna"
+
+#: Source/items.cpp
+#, c++-format
+msgid "Attack speed: {:s} ({:d} frames)"
+msgstr "Szybkość ataku: {:s} ({:d} klatek)"
+
+#: Source/items.cpp
+msgid "Very fast"
+msgstr "Bardzo szybka"
+
+#: Source/items.cpp
+msgid "Fast"
+msgstr "Szybka"
+
+#: Source/items.cpp
+msgid "Normal"
+msgstr "Normalna"
+
+#: Source/items.cpp
+msgid "Slow"
+msgstr "Wolna"
+
+#: Source/items.cpp
+msgid "Very slow"
+msgstr "Bardzo wolna"
+
 #: Source/items.cpp:4167 Source/items.cpp:4175 Source/items.cpp:4181
 msgid "Not Identified"
 msgstr "Nie zidentyfikowano"
@@ -3878,6 +3924,10 @@ msgstr "Do Krypty - poziom {:d}"
 msgid "Back to Level {:d}"
 msgstr "Wróć na poziom {:d}"
 
+#: Source/controls/tracker.cpp:713 Source/controls/tracker.cpp:855
+msgid "Red portal"
+msgstr "czerwony portal"
+
 #: Source/loadsave.cpp:2013 Source/loadsave.cpp:2470
 msgid "Unable to open save file archive"
 msgstr "Nie można otworzyć pliku zapisu"
@@ -3897,6 +3947,10 @@ msgid ""
 msgstr ""
 "Nieprawidłowy rozmiar skrytki. Jeśli spróbujesz uzyskać dostęp do skrytki, "
 "dane zostaną nadpisane!!"
+
+#: Source/controls/plrctrls.cpp:2283
+msgid "Stash"
+msgstr "skrytka"
 
 #: Source/loadsave.cpp:2474
 msgid "Invalid save file"
@@ -4280,6 +4334,22 @@ msgstr "Zamknięte Drzwi"
 #: Source/objects.cpp:4813
 msgid "Blocked Door"
 msgstr "Zablokowane Drzwi"
+
+#: Source/diablo.cpp:2754
+msgid "Open Grate Door"
+msgstr "Otwarta Krata"
+
+#: Source/diablo.cpp:2756
+msgid "Closed Grate Door"
+msgstr "Zamknięta Krata"
+
+#: Source/diablo.cpp:2758
+msgid "Blocked Grate Door"
+msgstr "Zablokowana Krata"
+
+#: Source/diablo.cpp:2759
+msgid "Grate Door"
+msgstr "Krata"
 
 #: Source/objects.cpp:4818
 msgid "Ancient Tome"
@@ -5818,6 +5888,30 @@ msgstr "Barda"
 msgid "Barbarian"
 msgstr "Barbarzyńca"
 
+#: Source/DiabloUI/hero/selhero.cpp:86
+msgid "A powerful fighter who excels in melee combat."
+msgstr "Potężny wojownik, który świetnie radzi sobie w walce wręcz."
+
+#: Source/DiabloUI/hero/selhero.cpp:88
+msgid "A nimble archer who excels at ranged combat."
+msgstr "Zwinna łuczniczka, która świetnie radzi sobie w walce na dystans."
+
+#: Source/DiabloUI/hero/selhero.cpp:90
+msgid "A master of arcane magic who casts powerful spells."
+msgstr "Mistrz magii tajemnej, który rzuca potężne zaklęcia."
+
+#: Source/DiabloUI/hero/selhero.cpp:92
+msgid "A holy warrior skilled in martial arts and staves."
+msgstr "Święty wojownik biegły w sztukach walki i władaniu kosturami."
+
+#: Source/DiabloUI/hero/selhero.cpp:94
+msgid "A versatile fighter who blends melee and archery."
+msgstr "Wszechstronna wojowniczka, która łączy walkę wręcz i łucznictwo."
+
+#: Source/DiabloUI/hero/selhero.cpp:96
+msgid "A fierce warrior who relies on brute strength."
+msgstr "Zaciekły wojownik, który polega na brutalnej sile."
+
 #: Source/translation_dummy.cpp:17
 msgctxt "monster"
 msgid "Zombie"
@@ -6893,6 +6987,13 @@ msgstr "Atlas Grzybów"
 msgid "Spectral Elixir"
 msgstr "Widmowy Eliksir"
 
+#: Source/diablo.cpp
+msgid "No next dead body."
+msgstr "Nie ma następnego martwego ciała."
+
+#: Source/diablo.cpp
+msgid "Tracker directions"
+msgstr "Kierunki do celu trackera"
 #: Source/translation_dummy.cpp:237
 msgid "Blood Stone"
 msgstr "Kamień Krwi"
@@ -12386,6 +12487,398 @@ msgstr "Runa Kamienia"
 #: Source/utils/format_int.cpp:28 Source/utils/format_int.cpp:64
 msgid ","
 msgstr ","
+
+#: Source/diablo.cpp
+msgid "Town NPCs:"
+msgstr "NPC w mieście:"
+
+#: Source/diablo.cpp
+msgid "Cows: "
+msgstr "Krowy: "
+
+#: Source/diablo.cpp
+msgid "Selected: "
+msgstr "Wybrano: "
+
+#: Source/diablo.cpp
+msgid "PageUp/PageDown: select. Home: go. End: repeat."
+msgstr "PageUp/PageDown: wybór. Home: idź. End: powtórz."
+
+#: Source/diablo.cpp
+msgid "Not in a dungeon."
+msgstr "Nie jesteś w lochu."
+
+#: Source/diablo.cpp
+msgid "Close the map first."
+msgstr "Najpierw zamknij mapę."
+
+#: Source/diablo.cpp
+msgid "No exits found."
+msgstr "Nie znaleziono wyjść."
+
+#: Source/diablo.cpp
+msgid "No quest entrances found."
+msgstr "Nie znaleziono wejść questowych."
+
+#: Source/diablo.cpp
+msgid "No quest exits found."
+msgstr "Nie znaleziono wyjść questowych."
+
+#: Source/diablo.cpp
+msgid "Not in town."
+msgstr "Nie jesteś w mieście."
+
+#: Source/diablo.cpp
+msgid "Nearest stairs down"
+msgstr "Najbliższe schody w dół"
+
+#: Source/diablo.cpp
+msgid "Speaks directions to the nearest stairs down."
+msgstr "Podaje wskazówki dojścia do najbliższych schodów w dół."
+
+#: Source/diablo.cpp
+msgid "Nearest stairs up"
+msgstr "Najbliższe schody w górę"
+
+#: Source/diablo.cpp
+msgid "Speaks directions to the nearest stairs up."
+msgstr "Podaje wskazówki dojścia do najbliższych schodów w górę."
+
+#: Source/diablo.cpp
+msgid "Nearest exit"
+msgstr "Najbliższe wyjście"
+
+#: Source/diablo.cpp
+msgid "Speaks the nearest exit. Hold Shift for quest entrances."
+msgstr "Podaje wskazówki dojścia do najbliższego wyjścia. Przytrzymaj Shift, aby namierzyć wejścia questowe."
+
+#: Source/diablo.cpp
+msgid "Speaks the nearest exit. Hold Shift for quest entrances (or to leave a quest level). In town, press Ctrl+E to cycle dungeon entrances."
+msgstr "Podaje wskazówki dojścia do najbliższego wyjścia. Przytrzymaj Shift, aby namierzyć wejścia questowe (lub opuścić lokację questową). W mieście naciśnij Ctrl+E, aby przełączać wejścia do lochów."
+
+#: Source/diablo.cpp
+msgid "Nearest exit: "
+msgstr "Najbliższe wyjście: "
+
+#: Source/diablo.cpp
+msgid "Cathedral entrance"
+msgstr "Wejście do Katedry"
+
+#: Source/diablo.cpp
+msgid "Cathedral entrance: press {:s}."
+msgstr "Wejście do Katedry: naciśnij {:s}."
+
+#: Source/diablo.cpp
+msgid "Stairs down"
+msgstr "Schody w dół"
+
+#: Source/diablo.cpp
+msgid "Stairs up"
+msgstr "Schody w górę"
+
+#: Source/diablo.cpp
+msgid "Town warp to level {:d}"
+msgstr "Portal miejski na poziom {:d}"
+
+#: Source/diablo.cpp
+msgid "Town warp to {:s}"
+msgstr "Portal miejski do {:s}"
+
+#: Source/diablo.cpp
+msgid "Warp up"
+msgstr "Portal w górę"
+
+#: Source/diablo.cpp
+msgid "Return to town"
+msgstr "Powrót do miasta"
+
+#: Source/diablo.cpp
+msgid "Warp"
+msgstr "Portal"
+
+#: Source/diablo.cpp
+msgid "Set level"
+msgstr "Poziom zadania"
+
+#: Source/diablo.cpp
+msgid "Return level"
+msgstr "Powrót do zadania"
+
+#: Source/diablo.cpp
+msgid "Exit"
+msgstr "Wyjście"
+
+#: Source/diablo.cpp
+msgid "north"
+msgstr "północ"
+
+#: Source/diablo.cpp
+msgid "south"
+msgstr "południe"
+
+#: Source/diablo.cpp
+msgid "east"
+msgstr "wschód"
+
+#: Source/diablo.cpp
+msgid "west"
+msgstr "zachód"
+
+#: Source/diablo.cpp
+msgid "northwest"
+msgstr "północny zachód"
+
+#: Source/diablo.cpp
+msgid "northeast"
+msgstr "północny wschód"
+
+#: Source/diablo.cpp
+msgid "southeast"
+msgstr "południowy wschód"
+
+#: Source/diablo.cpp
+msgid "southwest"
+msgstr "południowy zachód"
+
+#: Source/diablo.cpp
+msgid "here"
+msgstr "tutaj"
+
+#: Source/diablo.cpp
+msgid "No unexplored areas found."
+msgstr "Nie znaleziono nieodkrytych obszarów."
+
+#: Source/diablo.cpp
+msgid "Nearest unexplored space: "
+msgstr "Najbliższe nieodkryte miejsce: "
+
+#: Source/diablo.cpp
+msgid "Cycle tracker target"
+msgstr "Zmień cel trackera"
+
+#: Source/diablo.cpp
+msgid "Cycles what the tracker looks for (items, chests, doors, shrines, objects, breakables, monsters)."
+msgstr "Zmienia, czego szuka tracker (przedmioty, skrzynie, drzwi, kapliczki, obiekty, niszczalne, potwory)."
+
+#: Source/diablo.cpp
+msgid "Cycles what the tracker looks for (items, chests, doors, shrines, objects, breakables, monsters). Hold Shift to cycle backwards."
+msgstr "Zmienia, czego szuka tracker (przedmioty, skrzynie, drzwi, kapliczki, obiekty, niszczalne, potwory). Przytrzymaj Shift, aby przełączać wstecz."
+
+#: Source/diablo.cpp
+msgid "Cycles what the tracker looks for (items, chests, doors, shrines, objects, breakables, monsters, dead bodies). Hold Shift to cycle backwards."
+msgstr "Zmienia, czego szuka tracker (przedmioty, skrzynie, drzwi, kapliczki, obiekty, niszczalne, potwory, martwe ciała). Przytrzymaj Shift, aby przełączać wstecz."
+
+#: Source/diablo.cpp
+msgid "Navigate to tracker target"
+msgstr "Nawiguj do celu trackera"
+
+#: Source/diablo.cpp
+msgid "Walks to the nearest target of the selected tracker category."
+msgstr "Prowadzi do najbliższego celu wybranej kategorii trackera."
+
+#: Source/diablo.cpp
+msgid "Tracker target: "
+msgstr "Śledzenie: "
+
+#: Source/diablo.cpp
+msgid "items"
+msgstr "przedmioty"
+
+#: Source/diablo.cpp
+msgid "chests"
+msgstr "skrzynie"
+
+#: Source/diablo.cpp
+msgid "doors"
+msgstr "drzwi"
+
+#: Source/diablo.cpp
+msgid "shrines"
+msgstr "kapliczki"
+
+#: Source/diablo.cpp
+msgid "objects"
+msgstr "obiekty"
+
+#: Source/diablo.cpp
+msgid "breakables"
+msgstr "niszczalne"
+
+#: Source/diablo.cpp
+msgid "monsters"
+msgstr "potwory"
+
+#: Source/diablo.cpp
+msgid "dead bodies"
+msgstr "martwe ciała"
+
+#: Source/diablo.cpp
+msgid "No items found."
+msgstr "Nie znaleziono żadnych przedmiotów."
+
+#: Source/controls/tracker.cpp
+msgid "No nearby items found."
+msgstr "Nie znaleziono żadnych pobliskich przedmiotów."
+
+#: Source/diablo.cpp
+msgid "No chests found."
+msgstr "Nie znaleziono żadnych skrzyń."
+
+#: Source/controls/tracker.cpp
+msgid "No nearby chests found."
+msgstr "Nie znaleziono żadnych pobliskich skrzyń."
+
+#: Source/diablo.cpp
+msgid "No doors found."
+msgstr "Nie znaleziono żadnych drzwi."
+
+#: Source/controls/tracker.cpp
+msgid "No nearby doors found."
+msgstr "Nie znaleziono żadnych pobliskich drzwi."
+
+#: Source/diablo.cpp
+msgid "No shrines found."
+msgstr "Nie znaleziono żadnych kapliczek."
+
+#: Source/controls/tracker.cpp
+msgid "No nearby shrines found."
+msgstr "Nie znaleziono żadnych pobliskich kapliczek."
+
+#: Source/diablo.cpp
+msgid "No objects found."
+msgstr "Nie znaleziono żadnych obiektów."
+
+#: Source/controls/tracker.cpp
+msgid "No nearby objects found."
+msgstr "Nie znaleziono żadnych pobliskich obiektów."
+
+#: Source/diablo.cpp
+msgid "No breakables found."
+msgstr "Nie znaleziono żadnych niszczalnych obiektów."
+
+#: Source/controls/tracker.cpp
+msgid "No nearby breakables found."
+msgstr "Nie znaleziono żadnych pobliskich niszczalnych obiektów."
+
+#: Source/diablo.cpp
+msgid "No monsters found."
+msgstr "Nie znaleziono żadnych potworów."
+
+#: Source/controls/tracker.cpp
+msgid "No nearby monsters found."
+msgstr "Nie znaleziono żadnych pobliskich potworów."
+
+#: Source/diablo.cpp
+msgid "No dead bodies found."
+msgstr "Nie znaleziono żadnych martwych ciał."
+
+#: Source/controls/tracker.cpp
+msgid "No nearby dead bodies found."
+msgstr "Nie znaleziono żadnych pobliskich martwych ciał."
+
+#: Source/diablo.cpp
+msgid "Navigating to nearest item."
+msgstr "Nawiguję do najbliższego przedmiotu."
+
+#: Source/diablo.cpp
+msgid "Navigating to nearest chest."
+msgstr "Nawiguję do najbliższej skrzyni."
+
+#: Source/diablo.cpp
+msgid "Navigating to nearest monster."
+msgstr "Nawiguję do najbliższego potwora."
+
+#: Source/diablo.cpp
+msgid "Target item is gone."
+msgstr "Docelowy przedmiot zniknął."
+
+#: Source/diablo.cpp
+msgid "Item in range."
+msgstr "Przedmiot jest w zasięgu."
+
+#: Source/diablo.cpp
+msgid "Target chest is gone."
+msgstr "Docelowa skrzynia zniknęła."
+
+#: Source/diablo.cpp
+msgid "Chest in range."
+msgstr "Skrzynia jest w zasięgu."
+
+#: Source/diablo.cpp
+msgid "Target monster is gone."
+msgstr "Docelowy potwór zniknął."
+
+#: Source/diablo.cpp
+msgid "Monster in range."
+msgstr "Potwór jest w zasięgu."
+
+#: Source/diablo.cpp
+msgid "Dead body"
+msgstr "Martwe ciało"
+
+#: Source/diablo.cpp
+msgid "Target dead body is gone."
+msgstr "Docelowe martwe ciało zniknęło."
+
+#: Source/diablo.cpp
+msgid "Dead body in range."
+msgstr "Martwe ciało jest w zasięgu."
+
+#: Source/diablo.cpp
+msgid "Can't find a nearby tile to walk to."
+msgstr "Nie mogę znaleźć pobliskiego pola, na które da się podejść."
+
+#: Source/diablo.cpp
+msgid "Can't find a path to the target."
+msgstr "Nie mogę znaleźć ścieżki do celu."
+
+#: Source/diablo.cpp
+msgid "A door is blocking the path. Open it and try again."
+msgstr "Drzwi blokują drogę. Otwórz je i spróbuj ponownie."
+
+#: Source/diablo.cpp
+msgid "A monster is blocking the path. Clear it and try again."
+msgstr "Potwór blokuje drogę. Pokonaj go i spróbuj ponownie."
+
+#: Source/diablo.cpp
+msgid "A breakable object is blocking the path. Destroy it and try again."
+msgstr "Niszczalny obiekt blokuje drogę. Zniszcz go i spróbuj ponownie."
+
+#: Source/controls/plrctrls.cpp
+msgid "Head"
+msgstr "Głowa"
+
+#: Source/controls/plrctrls.cpp
+msgid "Left ring"
+msgstr "Lewy pierścień"
+
+#: Source/controls/plrctrls.cpp
+msgid "Right ring"
+msgstr "Prawy pierścień"
+
+#: Source/controls/plrctrls.cpp
+msgid "Left hand"
+msgstr "Lewa ręka"
+
+#: Source/controls/plrctrls.cpp
+msgid "Right hand"
+msgstr "Prawa ręka"
+
+#: Source/controls/plrctrls.cpp
+msgid "Belt"
+msgstr "Pas"
+
+#: Source/controls/plrctrls.cpp
+msgid "empty"
+msgstr "pusto"
+
+#: Source/options.cpp
+msgid "Unbound"
+msgstr "Brak przypisania"
+
+#: Source/diablo.cpp
+msgid "No spell selected."
+msgstr "Nie wybrano czaru."
 
 #~ msgid "Decrease Gamma"
 #~ msgstr "Zmniejsz jasność"

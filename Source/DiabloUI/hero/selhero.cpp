@@ -79,6 +79,26 @@ void SelheroClassSelectorSelect(size_t value);
 void SelheroClassSelectorEsc();
 const char *SelheroGenerateName(HeroClass heroClass);
 
+std::string_view HeroClassDescriptionForSpeech(HeroClass heroClass)
+{
+	switch (heroClass) {
+	case HeroClass::Warrior:
+		return _("A powerful fighter who excels in melee combat.");
+	case HeroClass::Rogue:
+		return _("A nimble archer who excels at ranged combat.");
+	case HeroClass::Sorcerer:
+		return _("A master of arcane magic who casts powerful spells.");
+	case HeroClass::Monk:
+		return _("A holy warrior skilled in martial arts and staves.");
+	case HeroClass::Bard:
+		return _("A versatile fighter who blends melee and archery.");
+	case HeroClass::Barbarian:
+		return _("A fierce warrior who relies on brute strength.");
+	default:
+		return {};
+	}
+}
+
 void SelheroUiFocusNavigationYesNo()
 {
 	if (selhero_isSavegame)
@@ -263,6 +283,15 @@ void SelheroClassSelectorFocus(size_t value)
 	selhero_heroInfo.vitality = defaults.vitality;
 
 	SelheroSetStats();
+
+	const PlayerData &playerData = GetPlayerDataForClass(heroClass);
+	const std::string_view description = HeroClassDescriptionForSpeech(heroClass);
+	std::string spoken = std::string(_(playerData.className));
+	if (!description.empty()) {
+		spoken.append("\n");
+		spoken.append(description);
+	}
+	UiSetSpokenTextOverride(std::move(spoken));
 }
 
 bool ShouldPrefillHeroName()

@@ -19,7 +19,7 @@ android {
 		versionName project.file('../../VERSION').text.trim()
 		externalNativeBuild {
 			cmake {
-				arguments "-DANDROID_STL=c++_static"
+				arguments "-DANDROID_STL=c++_static", "-DSCREEN_READER_INTEGRATION=ON"
 				abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
 			}
 		}

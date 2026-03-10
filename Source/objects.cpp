@@ -3,6 +3,7 @@
  *
  * Implementation of object functionality, interaction, spawning, loading, etc.
  */
+#include <cassert>
 #include <climits>
 #include <cmath>
 #include <cstdint>
@@ -98,14 +99,6 @@ enum shrine_type : uint8_t {
 	ShrineSolar,
 	ShrineMurphys,
 	NumberOfShrineTypes
-};
-
-enum {
-	// clang-format off
-	DOOR_CLOSED  =  0,
-	DOOR_OPEN    =  1,
-	DOOR_BLOCKED =  2,
-	// clang-format on
 };
 
 int trapid;
@@ -1182,11 +1175,19 @@ void AddDoor(Object &door)
 	case OBJ_L5LDOOR:
 		door._oVar1 = dPiece[door.position.x][door.position.y] + 1;
 		door._oVar2 = dPiece[door.position.x][door.position.y - 1] + 1;
+		// Register the archway tile so FindObjectAtPosition resolves it to this door,
+		// enabling auto-walk door detection and IsTileWalkable with ignoreDoors.
+		assert(door.position.y > 0);
+		dObject[door.position.x][door.position.y - 1] = -(static_cast<int8_t>(door.GetId()) + 1);
 		break;
 	case OBJ_L1RDOOR:
 	case OBJ_L5RDOOR:
 		door._oVar1 = dPiece[door.position.x][door.position.y] + 1;
 		door._oVar2 = dPiece[door.position.x - 1][door.position.y] + 1;
+		// Register the archway tile so FindObjectAtPosition resolves it to this door,
+		// enabling auto-walk door detection and IsTileWalkable with ignoreDoors.
+		assert(door.position.x > 0);
+		dObject[door.position.x - 1][door.position.y] = -(static_cast<int8_t>(door.GetId()) + 1);
 		break;
 	default:
 		break;
@@ -4303,7 +4304,7 @@ void MonstCheckDoors(const Monster &monster)
 			continue;
 
 		Object &door = *object;
-		// Doors use _oVar4 to track open/closed state, non-zero values indicate an open door
+		// Doors use _oVar4 to track state (DOOR_CLOSED, DOOR_OPEN, or DOOR_BLOCKED); skip non-closed doors
 		if (!door.isDoor() || door._oVar4 != DOOR_CLOSED)
 			continue;
 

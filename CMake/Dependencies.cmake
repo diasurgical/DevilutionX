@@ -51,6 +51,8 @@ add_subdirectory(3rdParty/sol2)
 if(SCREEN_READER_INTEGRATION)
   if(WIN32)
     add_subdirectory(3rdParty/tolk)
+  elseif(ANDROID)
+    # Android uses native accessibility API, no external dependency needed
   else()
     find_package(Speechd REQUIRED)
   endif()

@@ -24,6 +24,7 @@ enum class BeltItemType : uint8_t {
 
 extern GameActionType ControllerActionHeld;
 extern bool StandToggle;
+extern bool StandGroundHeld;
 
 // Runs every frame.
 // Handles menu movement.
@@ -71,6 +72,7 @@ void UpdateSpellTarget(SpellID spell);
 bool TryDropItem();
 void InvalidateInventorySlot();
 void FocusOnInventory();
+void ToggleStashFocus();
 void InventoryMoveFromKeyboard(AxisDirection dir);
 void HotSpellMove(AxisDirection dir);
 void PerformSpellAction();

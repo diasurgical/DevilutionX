@@ -17,6 +17,8 @@
 #include "engine/render/clx_render.hpp"
 #include "engine/render/primitive_render.hpp"
 #include "engine/render/text_render.hpp"
+#include "levels/gendung.h"
+#include "options.h"
 #include "tables/playerdat.hpp"
 #include "tables/textdat.h"
 #include "utils/language.h"
@@ -166,7 +168,8 @@ void InitQTextMsg(_speech_id m)
 		QuestLogIsOpen = false;
 		const std::string_view text = _(Speeches[m].txtstr);
 		LoadText(text);
-		SpeakText(text, /*force=*/true);
+		if (*GetOptions().Gameplay.speakNpcDialogText)
+			SpeakText(text, /*force=*/true);
 		qtextflag = true;
 		qtextSpd = CalculateTextSpeed(sfxnr);
 		ScrollStart = GetMillisecondsSinceStartup();

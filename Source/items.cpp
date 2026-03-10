@@ -1853,6 +1853,11 @@ void PrintItemMisc(const Item &item)
 void PrintItemInfo(const Item &item)
 {
 	PrintItemMisc(item);
+
+	const Player *player = InspectPlayer != nullptr ? InspectPlayer : MyPlayer;
+	if (player != nullptr && !player->CanUseItem(item))
+		AddItemInfoBoxString(_("Requirements not met"));
+
 	uint8_t str = item._iMinStr;
 	uint8_t dex = item._iMinDex;
 	uint8_t mag = item._iMinMag;
@@ -1867,6 +1872,72 @@ void PrintItemInfo(const Item &item)
 		AddItemInfoBoxString(text);
 	}
 }
+
+namespace {
+
+[[nodiscard]] item_equip_type WeaponHandednessForSpeech(const Item &item)
+{
+	const Player *player = InspectPlayer != nullptr ? InspectPlayer : MyPlayer;
+	if (player != nullptr)
+		return player->GetItemLocation(item);
+
+	return item._iLoc;
+}
+
+[[nodiscard]] std::optional<int8_t> WeaponBaseAttackFramesForSpeech(const Item &item)
+{
+	const Player *player = InspectPlayer != nullptr ? InspectPlayer : MyPlayer;
+	if (player == nullptr)
+		return std::nullopt;
+	if (item._iClass != ICLASS_WEAPON)
+		return std::nullopt;
+
+	const PlayerAnimData &animData = GetPlayerAnimDataForClass(player->_pClass);
+	switch (item._itype) {
+	case ItemType::Sword:
+		return animData.swordFrames;
+	case ItemType::Axe:
+		return animData.axeFrames;
+	case ItemType::Bow:
+		return animData.bowFrames;
+	case ItemType::Mace:
+		return animData.maceFrames;
+	case ItemType::Staff:
+		return animData.staffFrames;
+	default:
+		return std::nullopt;
+	}
+}
+
+[[nodiscard]] std::string_view AttackSpeedLabelForFrames(int frames)
+{
+	if (frames <= 13)
+		return _("Very fast");
+	if (frames <= 16)
+		return _("Fast");
+	if (frames <= 18)
+		return _("Normal");
+	if (frames <= 20)
+		return _("Slow");
+	return _("Very slow");
+}
+
+void PrintWeaponHandednessAndAttackSpeed(const Item &item)
+{
+	const item_equip_type handedness = WeaponHandednessForSpeech(item);
+	if (handedness == ILOC_ONEHAND)
+		AddItemInfoBoxString(_("One-handed weapon"));
+	else if (handedness == ILOC_TWOHAND)
+		AddItemInfoBoxString(_("Two-handed weapon"));
+
+	const std::optional<int8_t> frames = WeaponBaseAttackFramesForSpeech(item);
+	if (!frames)
+		return;
+
+	AddItemInfoBoxString(fmt::format(fmt::runtime(_("Attack speed: {:s} ({:d} frames)")), AttackSpeedLabelForFrames(*frames), *frames));
+}
+
+} // namespace
 
 bool SmithItemOk(const Player & /*player*/, const ItemData &item)
 {
@@ -4126,6 +4197,7 @@ void PrintItemDetails(const Item &item)
 			else
 				AddItemInfoBoxString(fmt::format(fmt::runtime(_(/* TRANSLATORS: Dur: is durability */ "damage: {:d}-{:d}  Dur: {:d}/{:d}")), item._iMinDam, item._iMaxDam, item._iDurability, item._iMaxDur));
 		}
+		PrintWeaponHandednessAndAttackSpeed(item);
 	}
 	if (item._iClass == ICLASS_ARMOR) {
 		if (item._iMaxDur == DUR_INDESTRUCTIBLE)
@@ -4142,8 +4214,17 @@ void PrintItemDetails(const Item &item)
 	if (item._iSufPower != -1) {
 		AddItemInfoBoxString(PrintItemPower(item._iSufPower, item));
 	}
+	if (item._iMagical == ITEM_QUALITY_MAGIC) {
+		AddItemInfoBoxString(_("magic item"));
+	}
 	if (item._iMagical == ITEM_QUALITY_UNIQUE) {
 		AddItemInfoBoxString(_("unique item"));
+		const UniqueItem &uitem = UniqueItems[item._iUid];
+		for (const auto &power : uitem.powers) {
+			if (power.type == IPL_INVALID)
+				break;
+			AddItemInfoBoxString(PrintItemPower(power.type, item));
+		}
 		ShowUniqueItemInfoBox = true;
 		curruitem = item;
 	}
@@ -4167,6 +4248,7 @@ void PrintItemDur(const Item &item)
 			else
 				AddItemInfoBoxString(fmt::format(fmt::runtime(_("damage: {:d}-{:d}  Dur: {:d}/{:d}")), item._iMinDam, item._iMaxDam, item._iDurability, item._iMaxDur));
 		}
+		PrintWeaponHandednessAndAttackSpeed(item);
 		if (item._iMiscId == IMISC_STAFF && item._iMaxCharges > 0) {
 			AddItemInfoBoxString(fmt::format(fmt::runtime(_("Charges: {:d}/{:d}")), item._iCharges, item._iMaxCharges));
 		}
