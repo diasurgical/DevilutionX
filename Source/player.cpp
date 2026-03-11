@@ -1410,6 +1410,8 @@ bool PlrDeathModeOK(Player &player)
 	return false;
 }
 
+} // namespace
+
 void ValidatePlayer()
 {
 	assert(MyPlayer != nullptr);
@@ -1466,6 +1468,8 @@ void ValidatePlayer()
 	myPlayer._pMemSpells &= msk;
 	myPlayer._pInfraFlag = false;
 }
+
+namespace {
 
 HeroClass GetPlayerSpriteClass(HeroClass cls)
 {
@@ -1529,11 +1533,6 @@ void GetPlayerGraphicsPath(std::string_view path, std::string_view prefix, std::
 }
 
 } // namespace
-
-void ValidatePlayerForLoad()
-{
-	ValidatePlayer();
-}
 
 void Player::CalcScrolls()
 {

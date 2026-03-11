@@ -12,6 +12,7 @@
 #include "game_mode.hpp"
 #include "init.hpp"
 #include "loadsave.h"
+#include "menu.h"
 #include "pack.h"
 #include "pfile.h"
 #include "spells.h"
@@ -21,6 +22,9 @@
 #include "utils/paths.h"
 
 namespace devilution {
+
+uint32_t gSaveNumber = 0;
+
 namespace {
 
 constexpr int SpellDatVanilla[] = {
@@ -534,6 +538,82 @@ TEST(Writehero, pfile_read_player_from_save_preserves_valid_spell_selections)
 	EXPECT_EQ(player._pSplTHotKey[0], SpellType::Spell);
 	EXPECT_EQ(player._pRSpell, SpellID::Healing);
 	EXPECT_EQ(player._pRSplType, SpellType::Spell);
+}
+
+TEST(Writehero, DiabloRewritePersistsSanitizedSpellSelectionsFromHellfireSave)
+{
+	LoadCoreArchives();
+	LoadGameArchives();
+
+	if (!HaveMainData()) {
+		GTEST_SKIP() << "MPQ assets (spawn.mpq or DIABDAT.MPQ) not found - skipping test";
+	}
+
+	const std::string savePath = paths::BasePath() + "multi_0.sv";
+	const std::string hellfireSavePath = paths::BasePath() + "multi_0.hsv";
+	paths::SetPrefPath(paths::BasePath());
+	RemoveFile(savePath.c_str());
+	RemoveFile(hellfireSavePath.c_str());
+
+	gbVanilla = false;
+	gbIsSpawn = false;
+	gbIsMultiplayer = true;
+	leveltype = DTYPE_TOWN;
+	currlevel = 0;
+	ViewPosition = {};
+	giNumberOfLevels = 25;
+	gbIsHellfire = true;
+	gbIsHellfireSaveGame = true;
+
+	Players.resize(1);
+	MyPlayerId = 0;
+	MyPlayer = &Players[MyPlayerId];
+
+	LoadSpellData();
+	LoadPlayerDataFiles();
+	LoadMonsterData();
+	LoadItemData();
+	_uiheroinfo info {};
+	info.heroclass = HeroClass::Rogue;
+	pfile_ui_save_create(&info);
+	gSaveNumber = info.saveNumber;
+
+	Player &player = *MyPlayer;
+	player._pMemSpells = GetSpellBitmask(SpellID::Healing) | GetSpellBitmask(SpellID::Apocalypse);
+	player._pSplLvl[static_cast<size_t>(SpellID::Healing)] = 1;
+	player._pSplLvl[static_cast<size_t>(SpellID::Apocalypse)] = 1;
+	player._pSplHotKey[0] = SpellID::Apocalypse;
+	player._pSplTHotKey[0] = SpellType::Spell;
+	player._pSplHotKey[1] = SpellID::Healing;
+	player._pSplTHotKey[1] = SpellType::Spell;
+	player._pRSpell = SpellID::Apocalypse;
+	player._pRSplType = SpellType::Spell;
+
+	pfile_write_hero(/*writeGameData=*/true);
+	RenameFile(hellfireSavePath.c_str(), savePath.c_str());
+
+	gbIsHellfire = false;
+	gbIsHellfireSaveGame = false;
+	giNumberOfLevels = 17;
+
+	pfile_read_player_from_save(info.saveNumber, player);
+	pfile_write_hero();
+
+	player._pSplHotKey[0] = SpellID::Apocalypse;
+	player._pSplTHotKey[0] = SpellType::Spell;
+	player._pSplHotKey[1] = SpellID::Invalid;
+	player._pSplTHotKey[1] = SpellType::Invalid;
+	player._pRSpell = SpellID::Apocalypse;
+	player._pRSplType = SpellType::Spell;
+
+	LoadHotkeys();
+
+	EXPECT_EQ(player._pSplHotKey[0], SpellID::Invalid);
+	EXPECT_EQ(player._pSplTHotKey[0], SpellType::Invalid);
+	EXPECT_EQ(player._pSplHotKey[1], SpellID::Healing);
+	EXPECT_EQ(player._pSplTHotKey[1], SpellType::Spell);
+	EXPECT_EQ(player._pRSpell, SpellID::Invalid);
+	EXPECT_EQ(player._pRSplType, SpellType::Invalid);
 }
 
 } // namespace

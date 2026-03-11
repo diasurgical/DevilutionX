@@ -50,8 +50,6 @@ namespace devilution {
 bool gbIsHellfireSaveGame;
 uint8_t giNumberOfLevels;
 
-void ValidatePlayerForLoad();
-
 namespace {
 
 constexpr size_t MaxMissilesForSaveGame = 125;
@@ -2521,7 +2519,7 @@ tl::expected<void, std::string> LoadGame(bool firstflag)
 	Player &myPlayer = *MyPlayer;
 
 	LoadPlayer(file, myPlayer);
-	ValidatePlayerForLoad();
+	ValidatePlayer();
 	CalcPlrInv(myPlayer, false);
 	SanitizePlayerSpellSelections(myPlayer);
 
