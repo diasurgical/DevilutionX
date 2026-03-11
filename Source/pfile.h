@@ -101,6 +101,10 @@ std::optional<SaveReader> OpenStashArchive();
 const char *pfile_get_password();
 std::unique_ptr<std::byte[]> ReadArchive(SaveReader &archive, const char *pszName, size_t *pdwLen = nullptr);
 void pfile_write_hero(bool writeGameData = false);
+bool pfile_write_manual_game_with_backup();
+bool pfile_write_auto_game();
+bool pfile_write_manual_stash_with_backup();
+bool pfile_write_auto_stash();
 
 #ifndef DISABLE_DEMOMODE
 /**

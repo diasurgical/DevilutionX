@@ -3,6 +3,7 @@
  *
  * Implementation of the main game initialization functions.
  */
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <string_view>
@@ -175,6 +176,72 @@ bool was_archives_init = false;
 /** To know if surfaces have been initialized or not */
 bool was_window_init = false;
 bool was_ui_init = false;
+using TickCount = decltype(SDL_GetTicks());
+
+TickCount autoSaveNextTimerDueAt = 0;
+AutoSaveReason pendingAutoSaveReason = AutoSaveReason::None;
+/** Prevent autosave from running immediately after session start before player interaction. */
+bool hasEnteredActiveGameplay = false;
+TickCount autoSaveCooldownUntil = 0;
+TickCount autoSaveCombatCooldownUntil = 0;
+bool wasAutoSaveEnabled = false;
+constexpr TickCount AutoSaveCooldownMilliseconds = 5000;
+constexpr TickCount AutoSaveCombatCooldownMilliseconds = 4000;
+
+bool HaveTicksPassed(TickCount now, TickCount due)
+{
+#ifdef USE_SDL3
+	return now >= due;
+#else
+	return SDL_TICKS_PASSED(now, due);
+#endif
+}
+
+bool HaveTicksPassed(TickCount due)
+{
+	return HaveTicksPassed(SDL_GetTicks(), due);
+}
+
+TickCount GetAutoSaveIntervalMilliseconds()
+{
+	return static_cast<TickCount>(std::max(1, *GetOptions().Gameplay.autoSaveIntervalSeconds)) * 1000;
+}
+
+int GetAutoSavePriority(AutoSaveReason reason)
+{
+	switch (reason) {
+	case AutoSaveReason::BossKill:
+		return 4;
+	case AutoSaveReason::TownEntry:
+		return 3;
+	case AutoSaveReason::UniquePickup:
+		return 2;
+	case AutoSaveReason::Timer:
+		return 1;
+	case AutoSaveReason::None:
+		return 0;
+	}
+
+	return 0;
+}
+
+const char *GetAutoSaveReasonName(AutoSaveReason reason)
+{
+	switch (reason) {
+	case AutoSaveReason::None:
+		return "None";
+	case AutoSaveReason::Timer:
+		return "Timer";
+	case AutoSaveReason::TownEntry:
+		return "TownEntry";
+	case AutoSaveReason::BossKill:
+		return "BossKill";
+	case AutoSaveReason::UniquePickup:
+		return "UniquePickup";
+	}
+
+	return "Unknown";
+}
 
 void StartGame(interface_mode uMsg)
 {
@@ -194,6 +261,12 @@ void StartGame(interface_mode uMsg)
 	sgnTimeoutCurs = CURSOR_NONE;
 	sgbMouseDown = CLICK_NONE;
 	LastPlayerAction = PlayerActionType::None;
+	hasEnteredActiveGameplay = false;
+	autoSaveCooldownUntil = 0;
+	autoSaveCombatCooldownUntil = 0;
+	pendingAutoSaveReason = AutoSaveReason::None;
+	autoSaveNextTimerDueAt = SDL_GetTicks() + GetAutoSaveIntervalMilliseconds();
+	wasAutoSaveEnabled = *GetOptions().Gameplay.autoSaveEnabled;
 }
 
 void FreeGame()
@@ -1553,6 +1626,32 @@ void GameLogic()
 	RedrawViewport();
 	pfile_update(false);
 
+	if (!hasEnteredActiveGameplay && LastPlayerAction != PlayerActionType::None)
+		hasEnteredActiveGameplay = true;
+
+	const bool autoSaveEnabled = *GetOptions().Gameplay.autoSaveEnabled;
+	if (autoSaveEnabled != wasAutoSaveEnabled) {
+		if (!autoSaveEnabled)
+			pendingAutoSaveReason = AutoSaveReason::None;
+
+		autoSaveNextTimerDueAt = SDL_GetTicks() + GetAutoSaveIntervalMilliseconds();
+		wasAutoSaveEnabled = autoSaveEnabled;
+	}
+
+	if (autoSaveEnabled) {
+		const TickCount now = SDL_GetTicks();
+		if (HaveTicksPassed(now, autoSaveNextTimerDueAt)) {
+			QueueAutoSave(AutoSaveReason::Timer);
+		}
+	}
+
+	if (HasPendingAutoSave() && IsAutoSaveSafe()) {
+		if (AttemptAutoSave(pendingAutoSaveReason)) {
+			pendingAutoSaveReason = AutoSaveReason::None;
+			autoSaveNextTimerDueAt = SDL_GetTicks() + GetAutoSaveIntervalMilliseconds();
+		}
+	}
+
 	plrctrls_after_game_logic();
 }
 
@@ -1801,6 +1900,127 @@ void OptionLanguageCodeChanged()
 const auto OptionChangeHandlerLanguage = (GetOptions().Language.code.SetValueChangedCallback(OptionLanguageCodeChanged), true);
 
 } // namespace
+
+bool HasActiveMonstersForAutoSave();
+
+bool IsAutoSaveSafe()
+{
+	if (gbIsMultiplayer || !gbRunGame)
+		return false;
+
+	if (!hasEnteredActiveGameplay)
+		return false;
+
+	if (!HaveTicksPassed(autoSaveCooldownUntil))
+		return false;
+
+	if (!HaveTicksPassed(autoSaveCombatCooldownUntil))
+		return false;
+
+	if (movie_playing || PauseMode != 0 || gmenu_is_active() || IsPlayerInStore())
+		return false;
+
+	if (MyPlayer == nullptr || IsPlayerDead() || MyPlayer->_pLvlChanging || LoadingMapObjects)
+		return false;
+
+	if (qtextflag || DropGoldFlag || IsWithdrawGoldOpen || pcurs != CURSOR_HAND)
+		return false;
+
+	if (leveltype != DTYPE_TOWN && HasActiveMonstersForAutoSave())
+		return false;
+
+	return true;
+}
+
+void MarkCombatActivity()
+{
+	autoSaveCombatCooldownUntil = SDL_GetTicks() + AutoSaveCombatCooldownMilliseconds;
+}
+
+bool HasActiveMonstersForAutoSave()
+{
+	for (const Monster &monster : Monsters) {
+		if (monster.hitPoints <= 0 || monster.mode == MonsterMode::Death || monster.mode == MonsterMode::Petrified)
+			continue;
+
+		if (monster.activeForTicks == 0)
+			continue;
+
+		return true;
+	}
+
+	return false;
+}
+
+int GetSecondsUntilNextAutoSave()
+{
+	if (!*GetOptions().Gameplay.autoSaveEnabled)
+		return -1;
+
+	if (HasPendingAutoSave())
+		return 0;
+
+	const TickCount now = SDL_GetTicks();
+	if (HaveTicksPassed(now, autoSaveNextTimerDueAt))
+		return 0;
+
+	const TickCount remainingMilliseconds = autoSaveNextTimerDueAt - now;
+	return static_cast<int>((remainingMilliseconds + 999) / 1000);
+}
+
+bool HasPendingAutoSave()
+{
+	return pendingAutoSaveReason != AutoSaveReason::None;
+}
+
+void RequestAutoSave(AutoSaveReason reason)
+{
+	if (!*GetOptions().Gameplay.autoSaveEnabled)
+		return;
+
+	if (gbIsMultiplayer)
+		return;
+
+	QueueAutoSave(reason);
+}
+
+void QueueAutoSave(AutoSaveReason reason)
+{
+	if (gbIsMultiplayer)
+		return;
+
+	if (!*GetOptions().Gameplay.autoSaveEnabled)
+		return;
+
+	if (GetAutoSavePriority(reason) > GetAutoSavePriority(pendingAutoSaveReason)) {
+		pendingAutoSaveReason = reason;
+		LogVerbose("Autosave queued: {}", GetAutoSaveReasonName(reason));
+	}
+}
+
+bool AttemptAutoSave(AutoSaveReason reason)
+{
+	if (!IsAutoSaveSafe())
+		return false;
+
+	const EventHandler saveProc = SetEventHandler(DisableInputEventHandler);
+	const TickCount currentTime = SDL_GetTicks();
+	const SaveResult saveResult = SaveGame(SaveKind::Auto);
+	const TickCount afterSaveTime = SDL_GetTicks();
+	const bool saveSucceeded = saveResult == SaveResult::Success;
+
+	autoSaveCooldownUntil = afterSaveTime + AutoSaveCooldownMilliseconds;
+	if (saveSucceeded) {
+		autoSaveNextTimerDueAt = afterSaveTime + GetAutoSaveIntervalMilliseconds();
+		if (reason != AutoSaveReason::Timer) {
+			const int timeElapsed = static_cast<int>(afterSaveTime - currentTime);
+			const int displayTime = std::max(500, 1000 - timeElapsed);
+			InitDiabloMsg(EMSG_GAME_SAVED, displayTime);
+		}
+	}
+	SetEventHandler(saveProc);
+	return saveSucceeded;
+}
 
 void InitKeymapActions()
 {
@@ -3434,6 +3654,8 @@ tl::expected<void, std::string> LoadGameLevel(bool firstflag, lvl_entry lvldir)
 	CompleteProgress();
 
 	LoadGameLevelCalculateCursor();
+	if (leveltype == DTYPE_TOWN && lvldir != ENTRY_LOAD && !firstflag)
+		::devilution::RequestAutoSave(AutoSaveReason::TownEntry);
 	return {};
 }
 
