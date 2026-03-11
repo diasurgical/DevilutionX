@@ -140,6 +140,71 @@ namespace {
 
 OptionalOwnedClxSpriteList pInvCels;
 
+bool IsTornNaKrulNote(_item_indexes id)
+{
+	return IsAnyOf(id, IDI_NOTE1, IDI_NOTE2, IDI_NOTE3);
+}
+
+bool PlayerHasAllTornNaKrulNotes(const Player &player)
+{
+	return HasInventoryItemWithId(player, IDI_NOTE1)
+	    && HasInventoryItemWithId(player, IDI_NOTE2)
+	    && HasInventoryItemWithId(player, IDI_NOTE3);
+}
+
+void ConvertItemToFullNote(Item &item)
+{
+	item = {};
+	GetItemAttrs(item, IDI_FULLNOTE, 16);
+	SetupItem(item);
+}
+
+int TryCombineInsertedNaKrulNote(Player &player, int insertedInvIndex)
+{
+	if (insertedInvIndex < 0 || insertedInvIndex >= player._pNumInv) {
+		return insertedInvIndex;
+	}
+
+	const _item_indexes insertedId = player.InvList[insertedInvIndex].IDidx;
+	if (!IsTornNaKrulNote(insertedId) || !PlayerHasAllTornNaKrulNotes(player)) {
+		return insertedInvIndex;
+	}
+
+	player.Say(HeroSpeech::JustWhatIWasLookingFor, 10);
+
+	std::array<int, 2> removedNoteIndices {};
+	size_t removeCount = 0;
+	for (const _item_indexes note : { IDI_NOTE1, IDI_NOTE2, IDI_NOTE3 }) {
+		if (note == insertedId) {
+			continue;
+		}
+
+		for (int i = 0; i < player._pNumInv; i++) {
+			if (player.InvList[i].IDidx == note) {
+				removedNoteIndices[removeCount++] = i;
+				break;
+			}
+		}
+	}
+
+	if (removeCount != removedNoteIndices.size()) {
+		return insertedInvIndex;
+	}
+
+	std::sort(removedNoteIndices.begin(), removedNoteIndices.end(), std::greater<int>());
+	for (const int removedNoteIndex : removedNoteIndices) {
+		player.RemoveInvItem(removedNoteIndex, false);
+		if (removedNoteIndex < insertedInvIndex) {
+			insertedInvIndex--;
+		}
+	}
+
+	Item &combinedNote = player.InvList[insertedInvIndex];
+	ConvertItemToFullNote(combinedNote);
+	combinedNote.updateRequiredStatsCacheForPlayer(player);
+	return insertedInvIndex;
+}
+
 /**
  * @brief Adds an item to a player's InvGrid array
  * @param player The player reference
@@ -498,7 +563,7 @@ bool ChangeInvItem(Player &player, int slot, Size itemSize)
 		if (prevItemId == 0) {
 			player.InvList[player._pNumInv] = player.HoldItem.pop();
 			player._pNumInv++;
-			prevItemId = CheckSpecialInventoryItem(player, player._pNumInv - 1) + 1;
+			prevItemId = TryCombineInsertedNaKrulNote(player, player._pNumInv - 1) + 1;
 		} else {
 			const int invIndex = prevItemId - 1;
 			if (player.HoldItem._itype == ItemType::Gold)
@@ -512,7 +577,7 @@ bool ChangeInvItem(Player &player, int slot, Size itemSize)
 				if (itemIndex == -prevItemId)
 					itemIndex = 0;
 			}
-			prevItemId = CheckSpecialInventoryItem(player, invIndex) + 1;
+			prevItemId = TryCombineInsertedNaKrulNote(player, invIndex) + 1;
 		}
 
 		itemSize = GetInventorySize(player.InvList[prevItemId - 1]);
@@ -960,31 +1025,25 @@ void CheckInvCut(Player &player, Point cursorPosition, bool automaticMove, bool 
 
 void TryCombineNaKrulNotes(Player &player, Item &noteItem)
 {
-	const int idx = noteItem.IDidx;
-	const _item_indexes notes[] = { IDI_NOTE1, IDI_NOTE2, IDI_NOTE3 };
-
-	if (IsNoneOf(idx, IDI_NOTE1, IDI_NOTE2, IDI_NOTE3)) {
+	const _item_indexes idx = noteItem.IDidx;
+	if (!IsTornNaKrulNote(idx)) {
 		return;
 	}
 
-	for (const _item_indexes note : notes) {
-		if (idx != note && !HasInventoryItemWithId(player, note)) {
-			return; // the player doesn't have all notes
-		}
+	if (!PlayerHasAllTornNaKrulNotes(player)) {
+		return; // the player doesn't have all notes
 	}
 
 	MyPlayer->Say(HeroSpeech::JustWhatIWasLookingFor, 10);
 
-	for (const _item_indexes note : notes) {
+	for (const _item_indexes note : { IDI_NOTE1, IDI_NOTE2, IDI_NOTE3 }) {
 		if (idx != note) {
 			RemoveInventoryItemById(player, note);
 		}
 	}
 
 	const Point position = noteItem.position; // copy the position to restore it after re-initialising the item
-	noteItem = {};
-	GetItemAttrs(noteItem, IDI_FULLNOTE, 16);
-	SetupItem(noteItem);
+	ConvertItemToFullNote(noteItem);
 	noteItem.position = position; // this ensures CleanupItem removes the entry in the dropped items lookup table
 }
 
@@ -1123,49 +1182,6 @@ int CreateGoldItemInInventorySlot(Player &player, int slotIndex, int value)
 }
 
 } // namespace
-
-int CheckSpecialInventoryItem(Player &player, int invIndex)
-{
-	if (invIndex < 0 || invIndex >= player._pNumInv) {
-		return invIndex;
-	}
-
-	const _item_indexes currentId = player.InvList[invIndex].IDidx;
-	const _item_indexes notes[] = { IDI_NOTE1, IDI_NOTE2, IDI_NOTE3 };
-
-	if (IsNoneOf(currentId, IDI_NOTE1, IDI_NOTE2, IDI_NOTE3)) {
-		return invIndex;
-	}
-
-	for (const _item_indexes note : notes) {
-		if (!HasInventoryItemWithId(player, note)) {
-			return invIndex;
-		}
-	}
-
-	player.Say(HeroSpeech::JustWhatIWasLookingFor, 10);
-
-	for (const _item_indexes note : notes) {
-		if (note != currentId) {
-			RemoveInventoryItemById(player, note);
-		}
-	}
-
-	for (int i = 0; i < player._pNumInv; i++) {
-		Item &noteItem = player.InvList[i];
-		if (noteItem.IDidx != currentId) {
-			continue;
-		}
-
-		noteItem = {};
-		GetItemAttrs(noteItem, IDI_FULLNOTE, 16);
-		SetupItem(noteItem);
-		noteItem.updateRequiredStatsCacheForPlayer(player);
-		return i;
-	}
-
-	return invIndex;
-}
 
 void InvDrawSlotBack(const Surface &out, Point targetPosition, Size size, item_quality itemQuality)
 {
@@ -1438,7 +1454,7 @@ bool CanFitItemInInventory(const Player &player, const Item &item)
 	return static_cast<bool>(FindSlotForItem(player, GetInventorySize(item)));
 }
 
-bool AutoPlaceItemInInventory(Player &player, const Item &item, bool sendNetworkMessage)
+bool AutoPlaceItemInInventory(Player &player, const Item &item, bool sendNetworkMessage, InventoryInsertSemantics semantics)
 {
 	const Size itemSize = GetInventorySize(item);
 	std::optional<int> targetSlot = FindSlotForItem(player, itemSize);
@@ -1446,7 +1462,10 @@ bool AutoPlaceItemInInventory(Player &player, const Item &item, bool sendNetwork
 	if (targetSlot) {
 		player.InvList[player._pNumInv] = item;
 		player._pNumInv++;
-		const int invIndex = CheckSpecialInventoryItem(player, player._pNumInv - 1);
+		int invIndex = player._pNumInv - 1;
+		if (semantics == InventoryInsertSemantics::PlayerAction) {
+			invIndex = TryCombineInsertedNaKrulNote(player, invIndex);
+		}
 
 		AddItemToInvGrid(player, *targetSlot, invIndex + 1, GetInventorySize(player.InvList[invIndex]), sendNetworkMessage);
 		player.CalcScrolls();
@@ -1506,7 +1525,7 @@ void ReorganizeInventory(Player &player)
 	bool reorganizationFailed = false;
 	for (const int index : sortedIndices) {
 		const Item &item = tempStorage[index];
-		if (!AutoPlaceItemInInventory(player, item, false)) {
+		if (!AutoPlaceItemInInventory(player, item, false, InventoryInsertSemantics::InternalRebuild)) {
 			reorganizationFailed = true;
 			break;
 		}

@@ -82,6 +82,11 @@ enum item_color : uint8_t {
 	// clang-format on
 };
 
+enum class InventoryInsertSemantics {
+	PlayerAction,
+	InternalRebuild,
+};
+
 extern bool invflag;
 extern const Rectangle InvRect[NUM_XY_SLOTS];
 
@@ -149,23 +154,15 @@ bool AutoEquip(Player &player, const Item &item, bool persistItem = true, bool s
 bool CanFitItemInInventory(const Player &player, const Item &item);
 
 /**
- * @brief Handles special item behavior after an item has been inserted into InvList.
- * @param player The player whose inventory was modified.
- * @param invIndex Index of the inserted item in InvList.
- * @return The item's current InvList index. This can change if handling the item
- * removes other inventory entries and the inventory gets compacted.
- */
-int CheckSpecialInventoryItem(Player &player, int invIndex);
-
-/**
  * @brief Attempts to place the given item in the specified player's inventory.
  * @param player The player whose inventory will be used.
  * @param item The item to be placed.
  * @param sendNetworkMessage Set to true if you want a network message to be generated if the item is persisted.
  * Should only be set if a local player is placing an item in a play session (not when creating a new game)
+ * @param semantics Distinguishes player-facing item insertion from internal inventory rebuilds.
  * @return 'True' if the item was placed on the player's inventory and 'False' otherwise.
  */
-bool AutoPlaceItemInInventory(Player &player, const Item &item, bool sendNetworkMessage = false);
+bool AutoPlaceItemInInventory(Player &player, const Item &item, bool sendNetworkMessage = false, InventoryInsertSemantics semantics = InventoryInsertSemantics::PlayerAction);
 
 /**
  * @brief Checks whether the given item can be placed on the specified player's belt. Returns 'True' when the item can be placed
