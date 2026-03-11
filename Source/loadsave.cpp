@@ -2332,8 +2332,10 @@ size_t HotkeysSize(size_t nHotkeys = NumHotkeys)
 void LoadHotkeys()
 {
 	LoadHelper file(OpenSaveArchive(gSaveNumber), "hotkeys");
-	if (!file.IsValid())
+	if (!file.IsValid()) {
+		SanitizePlayerSpellSelections(*MyPlayer);
 		return;
+	}
 
 	Player &myPlayer = *MyPlayer;
 	size_t nHotkeys = 4; // Defaults to old save format number
@@ -2369,6 +2371,7 @@ void LoadHotkeys()
 	// Load the selected spell last
 	myPlayer._pRSpell = static_cast<SpellID>(file.NextLE<int32_t>());
 	myPlayer._pRSplType = static_cast<SpellType>(file.NextLE<uint8_t>());
+	SanitizePlayerSpellSelections(myPlayer);
 }
 
 void SaveHotkeys(SaveWriter &saveWriter, const Player &player)
@@ -2521,7 +2524,9 @@ tl::expected<void, std::string> LoadGame(bool firstflag)
 	LoadPlayer(file, myPlayer);
 	ValidatePlayer();
 	CalcPlrInv(myPlayer, false);
-	SanitizePlayerSpellSelections(myPlayer);
+	LoadHotkeys();
+	myPlayer.queuedSpell.spellId = myPlayer._pRSpell;
+	myPlayer.queuedSpell.spellType = myPlayer._pRSplType;
 
 	if (sgGameInitInfo.nDifficulty < DIFF_NORMAL || sgGameInitInfo.nDifficulty > DIFF_HELL)
 		sgGameInitInfo.nDifficulty = DIFF_NORMAL;

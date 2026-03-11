@@ -779,7 +779,13 @@ void pfile_read_player_from_save(uint32_t saveNum, Player &player)
 	LoadHeroItems(player);
 	RemoveAllInvalidItems(player);
 	CalcPlrInv(player, false);
-	SanitizePlayerSpellSelections(player);
+	if (&player == MyPlayer) {
+		LoadHotkeys();
+		player.queuedSpell.spellId = player._pRSpell;
+		player.queuedSpell.spellType = player._pRSplType;
+	} else {
+		SanitizePlayerSpellSelections(player);
+	}
 }
 
 void pfile_save_level()
