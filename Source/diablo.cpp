@@ -185,7 +185,6 @@ uint32_t autoSaveCombatCooldownUntil = 0;
 bool wasAutoSaveEnabled = false;
 constexpr uint32_t AutoSaveCooldownMilliseconds = 5000;
 constexpr uint32_t AutoSaveCombatCooldownMilliseconds = 4000;
-constexpr int AutoSaveEnemyProximityTiles = 6;
 
 uint32_t GetAutoSaveIntervalMilliseconds()
 {
@@ -1886,7 +1885,7 @@ const auto OptionChangeHandlerLanguage = (GetOptions().Language.code.SetValueCha
 
 } // namespace
 
-bool IsEnemyTooCloseForAutoSave();
+bool HasActiveMonstersForAutoSave();
 
 bool IsAutoSaveSafe()
 {
@@ -1911,7 +1910,7 @@ bool IsAutoSaveSafe()
 	if (qtextflag || DropGoldFlag || IsWithdrawGoldOpen || pcurs != CURSOR_HAND)
 		return false;
 
-	if (leveltype != DTYPE_TOWN && IsEnemyTooCloseForAutoSave())
+	if (leveltype != DTYPE_TOWN && HasActiveMonstersForAutoSave())
 		return false;
 
 	return true;
@@ -1922,28 +1921,16 @@ void MarkCombatActivity()
 	autoSaveCombatCooldownUntil = SDL_GetTicks() + AutoSaveCombatCooldownMilliseconds;
 }
 
-bool IsEnemyTooCloseForAutoSave()
+bool HasActiveMonstersForAutoSave()
 {
-	if (MyPlayer == nullptr)
-		return false;
-
-	const Point playerPosition = MyPlayer->position.tile;
-	for (size_t i = 0; i < ActiveMonsterCount; i++) {
-		const Monster &monster = Monsters[ActiveMonsters[i]];
+	for (const Monster &monster : Monsters) {
 		if (monster.hitPoints <= 0 || monster.mode == MonsterMode::Death || monster.mode == MonsterMode::Petrified)
 			continue;
 
-		if (monster.type().type == MT_GOLEM)
+		if (monster.activeForTicks == 0)
 			continue;
 
-		if ((monster.flags & MFLAG_HIDDEN) != 0)
-			continue;
-
-		const int distance = std::max(
-		    std::abs(monster.position.tile.x - playerPosition.x),
-		    std::abs(monster.position.tile.y - playerPosition.y));
-		if (distance <= AutoSaveEnemyProximityTiles)
-			return true;
+		return true;
 	}
 
 	return false;

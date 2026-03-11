@@ -19,7 +19,6 @@
 #endif
 #endif
 
-
 #ifdef USE_SDL1
 #define SDL_Scancode Uint8
 #endif
