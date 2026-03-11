@@ -3816,6 +3816,37 @@ void GetItemStr(Item &item)
 	}
 }
 
+bool IsItemIdentifiableByStoryteller(const Item &item)
+{
+	if (item.isEmpty()) {
+		return false;
+	}
+	if (item._iMagical == ITEM_QUALITY_NORMAL) {
+		return false;
+	}
+	return !item._iIdentified;
+}
+
+int CountIdentifiablePlayerItems(const Player &player)
+{
+	return static_cast<int>(std::count_if(PlayerItemsRange { player }.begin(), PlayerItemsRange { player }.end(), [](const Item &item) {
+		return IsItemIdentifiableByStoryteller(item);
+	}));
+}
+
+int IdentifyPlayerItems(Player &player)
+{
+	const int identifiedItemCount = static_cast<int>(std::count_if(PlayerItemsRange { player }.begin(), PlayerItemsRange { player }.end(), [](Item &item) {
+		if (!IsItemIdentifiableByStoryteller(item)) {
+			return false;
+		}
+		item._iIdentified = true;
+		return true;
+	}));
+	CalcPlrInv(player, true);
+	return identifiedItemCount;
+}
+
 void CheckIdentify(Player &player, int cii)
 {
 	Item *pi;
