@@ -2702,7 +2702,7 @@ tl::expected<void, std::string> LoadGame(bool firstflag)
 	gbProcessPlayers = IsDiabloAlive(!firstflag);
 
 	if (gbIsHellfireSaveGame != gbIsHellfire) {
-		SaveGame(SaveKind::Manual);
+		SaveGame(SaveKind::System);
 	}
 
 	gbIsHellfireSaveGame = gbIsHellfire;

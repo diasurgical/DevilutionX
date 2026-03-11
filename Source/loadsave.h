@@ -21,6 +21,7 @@ extern DVL_API_FOR_TEST uint8_t giNumberOfLevels;
 enum class SaveKind : uint8_t {
 	Manual,
 	Auto,
+	System,
 };
 
 enum class SaveResult : uint8_t {
