@@ -904,11 +904,12 @@ void StoreConfirm(Item &item)
 	ClearSText(5, 23);
 
 	if (OldActiveStore == TalkID::StorytellerIdentifyAll) {
-		AddSText(0, 10, _("Identify all items?"), UiFlags::ColorWhite | UiFlags::AlignCenter, false);
-		AddSText(0, 12, fmt::format(fmt::runtime(_("Cost: {:s} gold")), FormatInteger(item._iIvalue)), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-		AddSText(0, 15, _("Are you sure you want to identify all items?"), UiFlags::ColorWhite | UiFlags::AlignCenter, false);
-		AddSText(0, 18, _("Yes"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-		AddSText(0, 20, _("No"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+		AddSText(0, 7, _("Identify all items?"), UiFlags::ColorWhite | UiFlags::AlignCenter, false);
+		AddSText(0, 9, fmt::format(fmt::runtime(_("Cost: {:s} gold")), FormatInteger(item._iIvalue)), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
+		AddSText(0, 12, _("Are you sure you want to"), UiFlags::ColorWhite | UiFlags::AlignCenter, false);
+		AddSText(0, 14, _("identify all items?"), UiFlags::ColorWhite | UiFlags::AlignCenter, false);
+		AddSText(0, 17, _("Yes"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+		AddSText(0, 19, _("No"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
 		return;
 	}
 
