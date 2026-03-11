@@ -176,19 +176,35 @@ bool was_archives_init = false;
 /** To know if surfaces have been initialized or not */
 bool was_window_init = false;
 bool was_ui_init = false;
-uint32_t autoSaveNextTimerDueAt = 0;
+using TickCount = decltype(SDL_GetTicks());
+
+TickCount autoSaveNextTimerDueAt = 0;
 AutoSaveReason pendingAutoSaveReason = AutoSaveReason::None;
 /** Prevent autosave from running immediately after session start before player interaction. */
 bool hasEnteredActiveGameplay = false;
-uint32_t autoSaveCooldownUntil = 0;
-uint32_t autoSaveCombatCooldownUntil = 0;
+TickCount autoSaveCooldownUntil = 0;
+TickCount autoSaveCombatCooldownUntil = 0;
 bool wasAutoSaveEnabled = false;
-constexpr uint32_t AutoSaveCooldownMilliseconds = 5000;
-constexpr uint32_t AutoSaveCombatCooldownMilliseconds = 4000;
+constexpr TickCount AutoSaveCooldownMilliseconds = 5000;
+constexpr TickCount AutoSaveCombatCooldownMilliseconds = 4000;
 
-uint32_t GetAutoSaveIntervalMilliseconds()
+bool HaveTicksPassed(TickCount now, TickCount due)
 {
-	return static_cast<uint32_t>(std::max(1, *GetOptions().Gameplay.autoSaveIntervalSeconds)) * 1000;
+#ifdef USE_SDL3
+	return now >= due;
+#else
+	return SDL_TICKS_PASSED(now, due);
+#endif
+}
+
+bool HaveTicksPassed(TickCount due)
+{
+	return HaveTicksPassed(SDL_GetTicks(), due);
+}
+
+TickCount GetAutoSaveIntervalMilliseconds()
+{
+	return static_cast<TickCount>(std::max(1, *GetOptions().Gameplay.autoSaveIntervalSeconds)) * 1000;
 }
 
 int GetAutoSavePriority(AutoSaveReason reason)
@@ -1623,8 +1639,8 @@ void GameLogic()
 	}
 
 	if (autoSaveEnabled) {
-		const uint32_t now = SDL_GetTicks();
-		if (SDL_TICKS_PASSED(now, autoSaveNextTimerDueAt)) {
+		const TickCount now = SDL_GetTicks();
+		if (HaveTicksPassed(now, autoSaveNextTimerDueAt)) {
 			QueueAutoSave(AutoSaveReason::Timer);
 		}
 	}
@@ -1895,10 +1911,10 @@ bool IsAutoSaveSafe()
 	if (!hasEnteredActiveGameplay)
 		return false;
 
-	if (!SDL_TICKS_PASSED(SDL_GetTicks(), autoSaveCooldownUntil))
+	if (!HaveTicksPassed(autoSaveCooldownUntil))
 		return false;
 
-	if (!SDL_TICKS_PASSED(SDL_GetTicks(), autoSaveCombatCooldownUntil))
+	if (!HaveTicksPassed(autoSaveCombatCooldownUntil))
 		return false;
 
 	if (movie_playing || PauseMode != 0 || gmenu_is_active() || IsPlayerInStore())
@@ -1944,11 +1960,11 @@ int GetSecondsUntilNextAutoSave()
 	if (HasPendingAutoSave())
 		return 0;
 
-	const uint32_t now = SDL_GetTicks();
-	if (SDL_TICKS_PASSED(now, autoSaveNextTimerDueAt))
+	const TickCount now = SDL_GetTicks();
+	if (HaveTicksPassed(now, autoSaveNextTimerDueAt))
 		return 0;
 
-	const uint32_t remainingMilliseconds = autoSaveNextTimerDueAt - now;
+	const TickCount remainingMilliseconds = autoSaveNextTimerDueAt - now;
 	return static_cast<int>((remainingMilliseconds + 999) / 1000);
 }
 
@@ -1988,9 +2004,9 @@ bool AttemptAutoSave(AutoSaveReason reason)
 		return false;
 
 	const EventHandler saveProc = SetEventHandler(DisableInputEventHandler);
-	const uint32_t currentTime = SDL_GetTicks();
+	const TickCount currentTime = SDL_GetTicks();
 	const SaveResult saveResult = SaveGame(SaveKind::Auto);
-	const uint32_t afterSaveTime = SDL_GetTicks();
+	const TickCount afterSaveTime = SDL_GetTicks();
 	const bool saveSucceeded = saveResult == SaveResult::Success;
 
 	autoSaveCooldownUntil = afterSaveTime + AutoSaveCooldownMilliseconds;
