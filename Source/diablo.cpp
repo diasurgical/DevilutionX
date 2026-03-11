@@ -182,6 +182,7 @@ AutoSaveReason pendingAutoSaveReason = AutoSaveReason::None;
 bool hasEnteredActiveGameplay = false;
 uint32_t autoSaveCooldownUntil = 0;
 uint32_t autoSaveCombatCooldownUntil = 0;
+bool wasAutoSaveEnabled = false;
 constexpr uint32_t AutoSaveCooldownMilliseconds = 5000;
 constexpr uint32_t AutoSaveCombatCooldownMilliseconds = 4000;
 constexpr int AutoSaveEnemyProximityTiles = 6;
@@ -250,6 +251,7 @@ void StartGame(interface_mode uMsg)
 	autoSaveCombatCooldownUntil = 0;
 	pendingAutoSaveReason = AutoSaveReason::None;
 	autoSaveNextTimerDueAt = SDL_GetTicks() + GetAutoSaveIntervalMilliseconds();
+	wasAutoSaveEnabled = *GetOptions().Gameplay.autoSaveEnabled;
 }
 
 void FreeGame()
@@ -1612,14 +1614,20 @@ void GameLogic()
 	if (!hasEnteredActiveGameplay && LastPlayerAction != PlayerActionType::None)
 		hasEnteredActiveGameplay = true;
 
-	if (*GetOptions().Gameplay.autoSaveEnabled) {
+	const bool autoSaveEnabled = *GetOptions().Gameplay.autoSaveEnabled;
+	if (autoSaveEnabled != wasAutoSaveEnabled) {
+		if (!autoSaveEnabled)
+			pendingAutoSaveReason = AutoSaveReason::None;
+
+		autoSaveNextTimerDueAt = SDL_GetTicks() + GetAutoSaveIntervalMilliseconds();
+		wasAutoSaveEnabled = autoSaveEnabled;
+	}
+
+	if (autoSaveEnabled) {
 		const uint32_t now = SDL_GetTicks();
 		if (SDL_TICKS_PASSED(now, autoSaveNextTimerDueAt)) {
 			QueueAutoSave(AutoSaveReason::Timer);
 		}
-	} else {
-		autoSaveNextTimerDueAt = SDL_GetTicks() + GetAutoSaveIntervalMilliseconds();
-		pendingAutoSaveReason = AutoSaveReason::None;
 	}
 
 	if (HasPendingAutoSave() && IsAutoSaveSafe()) {
