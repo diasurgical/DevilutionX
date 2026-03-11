@@ -113,7 +113,6 @@ void MarkCombatActivity();
 bool IsAutoSaveSafe();
 int GetSecondsUntilNextAutoSave();
 bool HasPendingAutoSave();
-bool IsAutoSavePending();
 void RequestAutoSave(AutoSaveReason reason);
 void QueueAutoSave(AutoSaveReason reason);
 bool AttemptAutoSave(AutoSaveReason reason);

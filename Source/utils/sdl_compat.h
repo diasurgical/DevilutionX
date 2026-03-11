@@ -19,9 +19,6 @@
 #endif
 #endif
 
-#ifndef SDL_TICKS_PASSED
-#define SDL_TICKS_PASSED(A, B) ((Sint32)((B) - (A)) <= 0)
-#endif
 
 #ifdef USE_SDL1
 #define SDL_Scancode Uint8

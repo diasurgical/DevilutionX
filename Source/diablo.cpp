@@ -831,11 +831,9 @@ void GameEventHandler(const SDL_Event &event, uint16_t modState)
 		ReleaseKey(SDLC_EventKey(event));
 		return;
 	case SDL_EVENT_MOUSE_MOTION:
-		if (ControlMode == ControlTypes::KeyboardAndMouse) {
-			if (invflag)
-				InvalidateInventorySlot();
-			MousePosition = { SDLC_EventMotionIntX(event), SDLC_EventMotionIntY(event) };
-		}
+		if (ControlMode == ControlTypes::KeyboardAndMouse && invflag)
+			InvalidateInventorySlot();
+		MousePosition = { SDLC_EventMotionIntX(event), SDLC_EventMotionIntY(event) };
 		gmenu_on_mouse_move();
 		return;
 	case SDL_EVENT_MOUSE_BUTTON_DOWN:
@@ -1948,7 +1946,7 @@ int GetSecondsUntilNextAutoSave()
 	if (!*GetOptions().Gameplay.autoSaveEnabled)
 		return -1;
 
-	if (IsAutoSavePending())
+	if (HasPendingAutoSave())
 		return 0;
 
 	const uint32_t now = SDL_GetTicks();
@@ -1975,10 +1973,6 @@ void RequestAutoSave(AutoSaveReason reason)
 	QueueAutoSave(reason);
 }
 
-bool IsAutoSavePending()
-{
-	return HasPendingAutoSave();
-}
 
 void QueueAutoSave(AutoSaveReason reason)
 {
