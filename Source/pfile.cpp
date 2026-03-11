@@ -713,17 +713,13 @@ bool pfile_write_auto_game()
 	return saveIsValid;
 }
 
-bool pfile_write_stash_with_backup()
+bool WriteStashAndRestoreOnFailure(std::string_view restorePrefix, bool deleteRestoreLocationOnSuccess)
 {
 	if (!Stash.dirty)
 		return true;
 
-	const std::string backupPrefix = "backup_";
-	const std::string backupLocation = GetStashSavePath(backupPrefix);
+	const std::string restoreLocation = GetStashSavePath(restorePrefix);
 	const std::string stashLocation = GetStashSavePath();
-
-	if (SaveLocationExists(stashLocation))
-		CopySaveLocation(stashLocation, backupLocation);
 
 	SaveWriter stashWriter = GetStashWriter();
 	SaveStash(stashWriter);
@@ -731,15 +727,45 @@ bool pfile_write_stash_with_backup()
 	auto archive = OpenStashArchive();
 	const char *stashFileName = gbIsMultiplayer ? "mpstashitems" : "spstashitems";
 	const bool stashIsValid = archive && ReadArchive(*archive, stashFileName) != nullptr;
-	if (stashIsValid || !SaveLocationExists(backupLocation)) {
-		if (stashIsValid)
-			Stash.dirty = false;
-		return stashIsValid;
+	if (stashIsValid) {
+		Stash.dirty = false;
+		if (deleteRestoreLocationOnSuccess)
+			DeleteSaveLocation(restoreLocation);
+		return true;
 	}
 
-	RestoreSaveLocation(stashLocation, backupLocation);
+	if (!SaveLocationExists(restoreLocation))
+		return false;
 
+	RestoreSaveLocation(stashLocation, restoreLocation);
 	return false;
+}
+
+bool pfile_write_manual_stash_with_backup()
+{
+	const std::string backupPrefix = "backup_";
+	const std::string backupLocation = GetStashSavePath(backupPrefix);
+	const std::string stashLocation = GetStashSavePath();
+
+	if (SaveLocationExists(stashLocation))
+		CopySaveLocation(stashLocation, backupLocation);
+
+	return WriteStashAndRestoreOnFailure(backupPrefix, false);
+}
+
+bool pfile_write_auto_stash()
+{
+	const std::string restorePrefix = "autosave_restore_";
+	const std::string restoreLocation = GetStashSavePath(restorePrefix);
+	const std::string stashLocation = GetStashSavePath();
+
+	if (SaveLocationExists(stashLocation))
+		CopySaveLocation(stashLocation, restoreLocation);
+
+	const bool stashIsValid = WriteStashAndRestoreOnFailure(restorePrefix, true);
+	if (!stashIsValid && SaveLocationExists(restoreLocation))
+		DeleteSaveLocation(restoreLocation);
+	return stashIsValid;
 }
 #endif
 

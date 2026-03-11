@@ -2956,15 +2956,22 @@ SaveResult SaveGame(SaveKind kind)
 	gbValidSaveFile = true;
 	return SaveResult::Success;
 #else
-	const bool gameSaved = kind == SaveKind::Manual
-	    ? pfile_write_manual_game_with_backup()
-	    : pfile_write_auto_game();
-	if (!gameSaved)
-		return GetSaveFailureResult();
+	if (kind == SaveKind::Manual) {
+		if (!pfile_write_manual_game_with_backup())
+			return GetSaveFailureResult();
+	} else {
+		if (!pfile_write_auto_game())
+			return GetSaveFailureResult();
+	}
 
 	gbValidSaveFile = true;
-	if (!pfile_write_stash_with_backup())
-		return GetSaveFailureResult();
+	if (kind == SaveKind::Manual) {
+		if (!pfile_write_manual_stash_with_backup())
+			return GetSaveFailureResult();
+	} else {
+		if (!pfile_write_auto_stash())
+			return GetSaveFailureResult();
+	}
 
 	return SaveResult::Success;
 #endif
