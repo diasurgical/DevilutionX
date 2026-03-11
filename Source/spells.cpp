@@ -32,21 +32,7 @@ namespace {
  */
 bool IsReadiedSpellValid(const Player &player)
 {
-	switch (player._pRSplType) {
-	case SpellType::Skill:
-	case SpellType::Spell:
-	case SpellType::Invalid:
-		return true;
-
-	case SpellType::Charges:
-		return (player._pISpells & GetSpellBitmask(player._pRSpell)) != 0;
-
-	case SpellType::Scroll:
-		return (player._pScrlSpells & GetSpellBitmask(player._pRSpell)) != 0;
-
-	default:
-		return false;
-	}
+	return IsPlayerSpellSelectionValid(player, player._pRSpell, player._pRSplType);
 }
 
 /**
@@ -83,6 +69,45 @@ bool IsValidSpellFrom(int spellFrom)
 	if (spellFrom >= INVITEM_BELT_FIRST && spellFrom <= INVITEM_BELT_LAST)
 		return true;
 	return false;
+}
+
+bool IsPlayerSpellSelectionValid(const Player &player, SpellID spellId, SpellType spellType)
+{
+	if (spellType == SpellType::Invalid) {
+		return spellId == SpellID::Invalid;
+	}
+
+	if (!IsValidSpell(spellId)) {
+		return false;
+	}
+
+	switch (spellType) {
+	case SpellType::Skill:
+		return (player._pAblSpells & GetSpellBitmask(spellId)) != 0;
+	case SpellType::Spell:
+		return (player._pMemSpells & GetSpellBitmask(spellId)) != 0 && player.GetSpellLevel(spellId) > 0;
+	case SpellType::Scroll:
+		return (player._pScrlSpells & GetSpellBitmask(spellId)) != 0;
+	case SpellType::Charges:
+		return (player._pISpells & GetSpellBitmask(spellId)) != 0;
+	default:
+		return false;
+	}
+}
+
+void SanitizePlayerSpellSelections(Player &player)
+{
+	for (size_t i = 0; i < NumHotkeys; ++i) {
+		if (!IsPlayerSpellSelectionValid(player, player._pSplHotKey[i], player._pSplTHotKey[i])) {
+			player._pSplHotKey[i] = SpellID::Invalid;
+			player._pSplTHotKey[i] = SpellType::Invalid;
+		}
+	}
+
+	if (!IsPlayerSpellSelectionValid(player, player._pRSpell, player._pRSplType)) {
+		player._pRSpell = SpellID::Invalid;
+		player._pRSplType = SpellType::Invalid;
+	}
 }
 
 bool IsWallSpell(SpellID spl)

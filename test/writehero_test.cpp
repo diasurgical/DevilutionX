@@ -14,6 +14,7 @@
 #include "loadsave.h"
 #include "pack.h"
 #include "pfile.h"
+#include "spells.h"
 #include "tables/playerdat.hpp"
 #include "utils/endian_swap.hpp"
 #include "utils/file_util.h"
@@ -414,6 +415,125 @@ TEST(Writehero, pfile_write_hero)
 	picosha2::hash256(data.get(), data.get() + size, s.begin(), s.end());
 	EXPECT_EQ(picosha2::bytes_to_hex_string(s.begin(), s.end()),
 	    "a79367caae6192d54703168d82e0316aa289b2a33251255fad8abe34889c1d3a");
+}
+
+TEST(Writehero, pfile_read_player_from_save_clears_invalid_spell_selections)
+{
+	LoadCoreArchives();
+	LoadGameArchives();
+
+	if (!HaveMainData()) {
+		GTEST_SKIP() << "MPQ assets (spawn.mpq or DIABDAT.MPQ) not found - skipping test";
+	}
+
+	const std::string savePath = paths::BasePath() + "multi_0.sv";
+	paths::SetPrefPath(paths::BasePath());
+	RemoveFile(savePath.c_str());
+
+	gbVanilla = false;
+	gbIsHellfire = false;
+	gbIsSpawn = false;
+	gbIsMultiplayer = true;
+	gbIsHellfireSaveGame = false;
+	leveltype = DTYPE_TOWN;
+	giNumberOfLevels = 17;
+
+	Players.resize(1);
+	MyPlayerId = 0;
+	MyPlayer = &Players[MyPlayerId];
+
+	LoadSpellData();
+	LoadPlayerDataFiles();
+	LoadMonsterData();
+	LoadItemData();
+	_uiheroinfo info {};
+	info.heroclass = HeroClass::Rogue;
+	pfile_ui_save_create(&info);
+
+	Player &player = *MyPlayer;
+	player._pMemSpells = GetSpellBitmask(SpellID::Healing);
+	player._pSplLvl[static_cast<size_t>(SpellID::Healing)] = 1;
+	player._pMemSpells |= GetSpellBitmask(SpellID::Apocalypse);
+	player._pSplHotKey[0] = SpellID::Apocalypse;
+	player._pSplTHotKey[0] = SpellType::Spell;
+	player._pSplHotKey[1] = SpellID::Healing;
+	player._pSplTHotKey[1] = SpellType::Spell;
+	player._pRSpell = SpellID::Apocalypse;
+	player._pRSplType = SpellType::Spell;
+
+	pfile_write_hero();
+
+	player._pSplHotKey[0] = SpellID::Invalid;
+	player._pSplTHotKey[0] = SpellType::Invalid;
+	player._pSplHotKey[1] = SpellID::Invalid;
+	player._pSplTHotKey[1] = SpellType::Invalid;
+	player._pRSpell = SpellID::Invalid;
+	player._pRSplType = SpellType::Invalid;
+
+	pfile_read_player_from_save(info.saveNumber, player);
+
+	EXPECT_EQ(player._pSplHotKey[0], SpellID::Invalid);
+	EXPECT_EQ(player._pSplTHotKey[0], SpellType::Invalid);
+	EXPECT_EQ(player._pSplHotKey[1], SpellID::Healing);
+	EXPECT_EQ(player._pSplTHotKey[1], SpellType::Spell);
+	EXPECT_EQ(player._pRSpell, SpellID::Invalid);
+	EXPECT_EQ(player._pRSplType, SpellType::Invalid);
+}
+
+TEST(Writehero, pfile_read_player_from_save_preserves_valid_spell_selections)
+{
+	LoadCoreArchives();
+	LoadGameArchives();
+
+	if (!HaveMainData()) {
+		GTEST_SKIP() << "MPQ assets (spawn.mpq or DIABDAT.MPQ) not found - skipping test";
+	}
+
+	const std::string savePath = paths::BasePath() + "multi_0.sv";
+	paths::SetPrefPath(paths::BasePath());
+	RemoveFile(savePath.c_str());
+
+	gbVanilla = false;
+	gbIsHellfire = false;
+	gbIsSpawn = false;
+	gbIsMultiplayer = true;
+	gbIsHellfireSaveGame = false;
+	leveltype = DTYPE_TOWN;
+	giNumberOfLevels = 17;
+
+	Players.resize(1);
+	MyPlayerId = 0;
+	MyPlayer = &Players[MyPlayerId];
+
+	LoadSpellData();
+	LoadPlayerDataFiles();
+	LoadMonsterData();
+	LoadItemData();
+	_uiheroinfo info {};
+	info.heroclass = HeroClass::Rogue;
+	pfile_ui_save_create(&info);
+
+	Player &player = *MyPlayer;
+	player._pMemSpells = GetSpellBitmask(SpellID::Healing);
+	player._pSplLvl[static_cast<size_t>(SpellID::Healing)] = 1;
+	player._pSplHotKey[0] = SpellID::Healing;
+	player._pSplTHotKey[0] = SpellType::Spell;
+	player._pRSpell = SpellID::Healing;
+	player._pRSplType = SpellType::Spell;
+
+	pfile_write_hero();
+
+	player._pSplHotKey[0] = SpellID::Invalid;
+	player._pSplTHotKey[0] = SpellType::Invalid;
+	player._pRSpell = SpellID::Invalid;
+	player._pRSplType = SpellType::Invalid;
+
+	pfile_read_player_from_save(info.saveNumber, player);
+
+	EXPECT_EQ(player._pSplHotKey[0], SpellID::Healing);
+	EXPECT_EQ(player._pSplTHotKey[0], SpellType::Spell);
+	EXPECT_EQ(player._pRSpell, SpellID::Healing);
+	EXPECT_EQ(player._pRSplType, SpellType::Spell);
 }
 
 } // namespace

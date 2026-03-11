@@ -35,6 +35,7 @@
 #include "pfile.h"
 #include "plrmsg.h"
 #include "qol/stash.h"
+#include "spells.h"
 #include "stores.h"
 #include "tables/playerdat.hpp"
 #include "utils/algorithm/container.hpp"
@@ -48,6 +49,8 @@ namespace devilution {
 
 bool gbIsHellfireSaveGame;
 uint8_t giNumberOfLevels;
+
+void ValidatePlayerForLoad();
 
 namespace {
 
@@ -636,7 +639,6 @@ void LoadPlayer(LoadHelper &file, Player &player)
 	sgGameInitInfo.nDifficulty = static_cast<_difficulty>(file.NextLE<uint32_t>());
 	player.pDamAcFlags = static_cast<ItemSpecialEffectHf>(file.NextLE<uint32_t>());
 	file.Skip(20); // Available bytes
-	CalcPlrInv(player, false);
 
 	player.executedSpell = player.queuedSpell; // Ensures backwards compatibility
 
@@ -2519,6 +2521,9 @@ tl::expected<void, std::string> LoadGame(bool firstflag)
 	Player &myPlayer = *MyPlayer;
 
 	LoadPlayer(file, myPlayer);
+	ValidatePlayerForLoad();
+	CalcPlrInv(myPlayer, false);
+	SanitizePlayerSpellSelections(myPlayer);
 
 	if (sgGameInitInfo.nDifficulty < DIFF_NORMAL || sgGameInitInfo.nDifficulty > DIFF_HELL)
 		sgGameInitInfo.nDifficulty = DIFF_NORMAL;

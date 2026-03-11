@@ -1530,6 +1530,11 @@ void GetPlayerGraphicsPath(std::string_view path, std::string_view prefix, std::
 
 } // namespace
 
+void ValidatePlayerForLoad()
+{
+	ValidatePlayer();
+}
+
 void Player::CalcScrolls()
 {
 	_pScrlSpells = 0;
