@@ -18,6 +18,17 @@ namespace devilution {
 extern DVL_API_FOR_TEST bool gbIsHellfireSaveGame;
 extern DVL_API_FOR_TEST uint8_t giNumberOfLevels;
 
+enum class SaveKind : uint8_t {
+	Manual,
+	Auto,
+};
+
+enum class SaveResult : uint8_t {
+	Success,
+	FailedButPreviousSavePreserved,
+	FailedNoValidSave,
+};
+
 void RemoveInvalidItem(Item &pItem);
 _item_indexes RemapItemIdxFromDiablo(_item_indexes i);
 _item_indexes RemapItemIdxToDiablo(_item_indexes i);
@@ -40,7 +51,7 @@ tl::expected<void, std::string> LoadGame(bool firstflag);
 void SaveHotkeys(SaveWriter &saveWriter, const Player &player);
 void SaveHeroItems(SaveWriter &saveWriter, Player &player);
 void SaveGameData(SaveWriter &saveWriter);
-void SaveGame();
+SaveResult SaveGame(SaveKind kind);
 void SaveLevel(SaveWriter &saveWriter);
 tl::expected<void, std::string> LoadLevel();
 tl::expected<void, std::string> ConvertLevels(SaveWriter &saveWriter);

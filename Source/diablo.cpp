@@ -1981,7 +1981,6 @@ void RequestAutoSave(AutoSaveReason reason)
 	QueueAutoSave(reason);
 }
 
-
 void QueueAutoSave(AutoSaveReason reason)
 {
 	if (gbIsMultiplayer)
@@ -2003,11 +2002,12 @@ bool AttemptAutoSave(AutoSaveReason reason)
 
 	const EventHandler saveProc = SetEventHandler(DisableInputEventHandler);
 	const uint32_t currentTime = SDL_GetTicks();
-	SaveGame();
+	const SaveResult saveResult = SaveGame(SaveKind::Auto);
 	const uint32_t afterSaveTime = SDL_GetTicks();
+	const bool saveSucceeded = saveResult == SaveResult::Success;
 
 	autoSaveCooldownUntil = afterSaveTime + AutoSaveCooldownMilliseconds;
-	if (gbValidSaveFile) {
+	if (saveSucceeded) {
 		autoSaveNextTimerDueAt = afterSaveTime + GetAutoSaveIntervalMilliseconds();
 		if (reason != AutoSaveReason::Timer) {
 			const int timeElapsed = static_cast<int>(afterSaveTime - currentTime);
@@ -2016,7 +2016,7 @@ bool AttemptAutoSave(AutoSaveReason reason)
 		}
 	}
 	SetEventHandler(saveProc);
-	return gbValidSaveFile;
+	return saveSucceeded;
 }
 
 void InitKeymapActions()

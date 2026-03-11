@@ -171,6 +171,11 @@ SaveWriter GetStashWriter()
 }
 
 #if !(defined(UNPACKED_SAVES) && defined(DVL_NO_FILESYSTEM))
+bool SaveLocationExists(const std::string &location)
+{
+	return FileExists(location.c_str()) || DirectoryExists(location.c_str());
+}
+
 void CopySaveLocation(const std::string &sourceLocation, const std::string &targetLocation)
 {
 #if defined(UNPACKED_SAVES)
@@ -200,6 +205,22 @@ void RestoreSaveLocation(const std::string &targetLocation, const std::string &b
 	}
 #else
 	CopyFileOverwrite(backupLocation.c_str(), targetLocation.c_str());
+#endif
+}
+
+void DeleteSaveLocation(const std::string &location)
+{
+#if defined(UNPACKED_SAVES)
+	if (!DirectoryExists(location.c_str()))
+		return;
+
+	for (const std::filesystem::directory_entry &entry : std::filesystem::directory_iterator(location))
+		RemoveFile(entry.path().string().c_str());
+
+	std::filesystem::remove(location);
+#else
+	if (FileExists(location.c_str()))
+		RemoveFile(location.c_str());
 #endif
 }
 #endif
@@ -644,25 +665,52 @@ void pfile_write_hero(bool writeGameData)
 }
 
 #if !(defined(UNPACKED_SAVES) && defined(DVL_NO_FILESYSTEM))
-bool pfile_write_game_with_backup()
+bool SaveWrittenGameIsValid()
+{
+	auto archive = OpenSaveArchive(gSaveNumber);
+	return archive && ArchiveContainsGame(*archive);
+}
+
+bool WriteGameAndRestoreOnFailure(const std::string &restoreLocation)
+{
+	const bool hasRestoreLocation = SaveLocationExists(restoreLocation);
+
+	pfile_write_hero(/*writeGameData=*/true);
+
+	if (SaveWrittenGameIsValid())
+		return true;
+
+	if (!hasRestoreLocation)
+		return false;
+
+	RestoreSaveLocation(GetSavePath(gSaveNumber), restoreLocation);
+	return false;
+}
+
+bool pfile_write_manual_game_with_backup()
 {
 	const std::string backupPrefix = "backup_";
 	const std::string backupLocation = GetSavePath(gSaveNumber, backupPrefix);
 	const std::string saveLocation = GetSavePath(gSaveNumber);
 
-	if (FileExists(saveLocation) || DirectoryExists(saveLocation.c_str()))
+	if (SaveLocationExists(saveLocation))
 		CopySaveLocation(saveLocation, backupLocation);
 
-	pfile_write_hero(/*writeGameData=*/true);
+	return WriteGameAndRestoreOnFailure(backupLocation);
+}
 
-	auto archive = OpenSaveArchive(gSaveNumber);
-	const bool saveIsValid = archive && ArchiveContainsGame(*archive);
-	if (saveIsValid || !(FileExists(backupLocation) || DirectoryExists(backupLocation.c_str())))
-		return saveIsValid;
+bool pfile_write_auto_game()
+{
+	const std::string restorePrefix = "autosave_restore_";
+	const std::string restoreLocation = GetSavePath(gSaveNumber, restorePrefix);
+	const std::string saveLocation = GetSavePath(gSaveNumber);
 
-	RestoreSaveLocation(saveLocation, backupLocation);
+	if (SaveLocationExists(saveLocation))
+		CopySaveLocation(saveLocation, restoreLocation);
 
-	return false;
+	const bool saveIsValid = WriteGameAndRestoreOnFailure(restoreLocation);
+	DeleteSaveLocation(restoreLocation);
+	return saveIsValid;
 }
 
 bool pfile_write_stash_with_backup()
@@ -674,7 +722,7 @@ bool pfile_write_stash_with_backup()
 	const std::string backupLocation = GetStashSavePath(backupPrefix);
 	const std::string stashLocation = GetStashSavePath();
 
-	if (FileExists(stashLocation) || DirectoryExists(stashLocation.c_str()))
+	if (SaveLocationExists(stashLocation))
 		CopySaveLocation(stashLocation, backupLocation);
 
 	SaveWriter stashWriter = GetStashWriter();
@@ -683,7 +731,7 @@ bool pfile_write_stash_with_backup()
 	auto archive = OpenStashArchive();
 	const char *stashFileName = gbIsMultiplayer ? "mpstashitems" : "spstashitems";
 	const bool stashIsValid = archive && ReadArchive(*archive, stashFileName) != nullptr;
-	if (stashIsValid || !(FileExists(backupLocation) || DirectoryExists(backupLocation.c_str()))) {
+	if (stashIsValid || !SaveLocationExists(backupLocation)) {
 		if (stashIsValid)
 			Stash.dirty = false;
 		return stashIsValid;

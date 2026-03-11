@@ -40,6 +40,9 @@ bool isGameMenuOpen = false;
 
 namespace {
 
+constexpr const char *SaveFailedPreservedMessage = N_("Save failed. The previous save is still available.");
+constexpr const char *SaveFailedNoValidMessage = N_("Save failed. No valid save is available.");
+
 // Forward-declare menu handlers, used by the global menu structs below.
 void GamemenuPrevious(bool bActivate);
 void GamemenuNewGame(bool bActivate);
@@ -377,12 +380,22 @@ void gamemenu_save_game(bool /*bActivate*/)
 	RedrawEverything();
 	DrawAndBlit();
 	const uint32_t currentTime = SDL_GetTicks();
-	SaveGame();
+	const SaveResult saveResult = SaveGame(SaveKind::Manual);
 	ClrDiabloMsg();
-	InitDiabloMsg(EMSG_GAME_SAVED, currentTime + 1000 - SDL_GetTicks());
+	switch (saveResult) {
+	case SaveResult::Success:
+		InitDiabloMsg(EMSG_GAME_SAVED, currentTime + 1000 - SDL_GetTicks());
+		break;
+	case SaveResult::FailedButPreviousSavePreserved:
+		InitDiabloMsg(_(SaveFailedPreservedMessage));
+		break;
+	case SaveResult::FailedNoValidSave:
+		InitDiabloMsg(_(SaveFailedNoValidMessage));
+		break;
+	}
 	RedrawEverything();
 	NewCursor(CURSOR_HAND);
-	if (CornerStone.activated) {
+	if (saveResult == SaveResult::Success && CornerStone.activated) {
 		CornerstoneSave();
 		if (!demo::IsRunning()) SaveOptions();
 	}

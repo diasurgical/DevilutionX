@@ -57,6 +57,28 @@ constexpr size_t PlayerWalkPathSizeForSaveGame = 25;
 uint8_t giNumberQuests;
 uint8_t giNumberOfSmithPremiumItems;
 
+bool ActiveSaveContainsGame()
+{
+	if (gbIsMultiplayer)
+		return false;
+
+	auto archive = OpenSaveArchive(gSaveNumber);
+	if (!archive)
+		return false;
+
+	auto gameData = ReadArchive(*archive, "game");
+	if (gameData == nullptr)
+		return false;
+
+	return IsHeaderValid(LoadLE32(gameData.get()));
+}
+
+SaveResult GetSaveFailureResult()
+{
+	gbValidSaveFile = ActiveSaveContainsGame();
+	return gbValidSaveFile ? SaveResult::FailedButPreviousSavePreserved : SaveResult::FailedNoValidSave;
+}
+
 template <class T>
 T SwapLE(T in)
 {
@@ -2680,7 +2702,7 @@ tl::expected<void, std::string> LoadGame(bool firstflag)
 	gbProcessPlayers = IsDiabloAlive(!firstflag);
 
 	if (gbIsHellfireSaveGame != gbIsHellfire) {
-		SaveGame();
+		SaveGame(SaveKind::Manual);
 	}
 
 	gbIsHellfireSaveGame = gbIsHellfire;
@@ -2926,24 +2948,25 @@ void SaveGameData(SaveWriter &saveWriter)
 	SaveLevelSeeds(saveWriter);
 }
 
-void SaveGame()
+SaveResult SaveGame(SaveKind kind)
 {
-	gbValidSaveFile = true;
-
 #if defined(UNPACKED_SAVES) && defined(DVL_NO_FILESYSTEM)
 	pfile_write_hero(/*writeGameData=*/true);
 	sfile_write_stash();
+	gbValidSaveFile = true;
+	return SaveResult::Success;
 #else
-	const bool gameSaved = pfile_write_game_with_backup();
-	if (!gameSaved) {
-		gbValidSaveFile = false;
-		return;
-	}
+	const bool gameSaved = kind == SaveKind::Manual
+	    ? pfile_write_manual_game_with_backup()
+	    : pfile_write_auto_game();
+	if (!gameSaved)
+		return GetSaveFailureResult();
 
-	if (!pfile_write_stash_with_backup()) {
-		gbValidSaveFile = false;
-		return;
-	}
+	gbValidSaveFile = true;
+	if (!pfile_write_stash_with_backup())
+		return GetSaveFailureResult();
+
+	return SaveResult::Success;
 #endif
 }
 
