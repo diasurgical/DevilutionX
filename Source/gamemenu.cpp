@@ -383,9 +383,13 @@ void gamemenu_save_game(bool /*bActivate*/)
 	const SaveResult saveResult = SaveGame(SaveKind::Manual);
 	ClrDiabloMsg();
 	switch (saveResult) {
-	case SaveResult::Success:
-		InitDiabloMsg(EMSG_GAME_SAVED, currentTime + 1000 - SDL_GetTicks());
+	case SaveResult::Success: {
+		const uint32_t afterSaveTime = SDL_GetTicks();
+		const int timeElapsed = static_cast<int>(afterSaveTime - currentTime);
+		const int displayTime = std::max(500, 1000 - timeElapsed);
+		InitDiabloMsg(EMSG_GAME_SAVED, displayTime);
 		break;
+	}
 	case SaveResult::FailedButPreviousSavePreserved:
 		InitDiabloMsg(_(SaveFailedPreservedMessage));
 		break;
