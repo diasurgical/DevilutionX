@@ -77,7 +77,7 @@ bool ActiveSaveContainsStash()
 {
 	auto archive = OpenStashArchive();
 	if (!archive)
-		return false;
+		return true;
 
 	const char *stashFileName = gbIsMultiplayer ? "mpstashitems" : "spstashitems";
 	return ReadArchive(*archive, stashFileName) != nullptr;
