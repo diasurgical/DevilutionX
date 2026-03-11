@@ -149,6 +149,15 @@ bool AutoEquip(Player &player, const Item &item, bool persistItem = true, bool s
 bool CanFitItemInInventory(const Player &player, const Item &item);
 
 /**
+ * @brief Handles special item behavior after an item has been inserted into InvList.
+ * @param player The player whose inventory was modified.
+ * @param invIndex Index of the inserted item in InvList.
+ * @return The item's current InvList index. This can change if handling the item
+ * removes other inventory entries and the inventory gets compacted.
+ */
+int CheckSpecialInventoryItem(Player &player, int invIndex);
+
+/**
  * @brief Attempts to place the given item in the specified player's inventory.
  * @param player The player whose inventory will be used.
  * @param item The item to be placed.

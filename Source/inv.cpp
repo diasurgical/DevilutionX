@@ -498,7 +498,7 @@ bool ChangeInvItem(Player &player, int slot, Size itemSize)
 		if (prevItemId == 0) {
 			player.InvList[player._pNumInv] = player.HoldItem.pop();
 			player._pNumInv++;
-			prevItemId = player._pNumInv;
+			prevItemId = CheckSpecialInventoryItem(player, player._pNumInv - 1) + 1;
 		} else {
 			const int invIndex = prevItemId - 1;
 			if (player.HoldItem._itype == ItemType::Gold)
@@ -512,7 +512,10 @@ bool ChangeInvItem(Player &player, int slot, Size itemSize)
 				if (itemIndex == -prevItemId)
 					itemIndex = 0;
 			}
+			prevItemId = CheckSpecialInventoryItem(player, invIndex) + 1;
 		}
+
+		itemSize = GetInventorySize(player.InvList[prevItemId - 1]);
 
 		AddItemToInvGrid(player, slot - SLOTXY_INV_FIRST, prevItemId, itemSize, &player == MyPlayer);
 	}
@@ -1121,6 +1124,49 @@ int CreateGoldItemInInventorySlot(Player &player, int slotIndex, int value)
 
 } // namespace
 
+int CheckSpecialInventoryItem(Player &player, int invIndex)
+{
+	if (invIndex < 0 || invIndex >= player._pNumInv) {
+		return invIndex;
+	}
+
+	const _item_indexes currentId = player.InvList[invIndex].IDidx;
+	const _item_indexes notes[] = { IDI_NOTE1, IDI_NOTE2, IDI_NOTE3 };
+
+	if (IsNoneOf(currentId, IDI_NOTE1, IDI_NOTE2, IDI_NOTE3)) {
+		return invIndex;
+	}
+
+	for (const _item_indexes note : notes) {
+		if (!HasInventoryItemWithId(player, note)) {
+			return invIndex;
+		}
+	}
+
+	player.Say(HeroSpeech::JustWhatIWasLookingFor, 10);
+
+	for (const _item_indexes note : notes) {
+		if (note != currentId) {
+			RemoveInventoryItemById(player, note);
+		}
+	}
+
+	for (int i = 0; i < player._pNumInv; i++) {
+		Item &noteItem = player.InvList[i];
+		if (noteItem.IDidx != currentId) {
+			continue;
+		}
+
+		noteItem = {};
+		GetItemAttrs(noteItem, IDI_FULLNOTE, 16);
+		SetupItem(noteItem);
+		noteItem.updateRequiredStatsCacheForPlayer(player);
+		return i;
+	}
+
+	return invIndex;
+}
+
 void InvDrawSlotBack(const Surface &out, Point targetPosition, Size size, item_quality itemQuality)
 {
 	SDL_Rect srcRect = MakeSdlRect(0, 0, size.width, size.height);
@@ -1400,8 +1446,9 @@ bool AutoPlaceItemInInventory(Player &player, const Item &item, bool sendNetwork
 	if (targetSlot) {
 		player.InvList[player._pNumInv] = item;
 		player._pNumInv++;
+		const int invIndex = CheckSpecialInventoryItem(player, player._pNumInv - 1);
 
-		AddItemToInvGrid(player, *targetSlot, player._pNumInv, itemSize, sendNetworkMessage);
+		AddItemToInvGrid(player, *targetSlot, invIndex + 1, GetInventorySize(player.InvList[invIndex]), sendNetworkMessage);
 		player.CalcScrolls();
 
 		return true;
