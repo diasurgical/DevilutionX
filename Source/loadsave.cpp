@@ -73,10 +73,23 @@ bool ActiveSaveContainsGame()
 	return IsHeaderValid(LoadLE32(gameData.get()));
 }
 
+bool ActiveSaveContainsStash()
+{
+	auto archive = OpenStashArchive();
+	if (!archive)
+		return false;
+
+	const char *stashFileName = gbIsMultiplayer ? "mpstashitems" : "spstashitems";
+	return ReadArchive(*archive, stashFileName) != nullptr;
+}
+
 SaveResult GetSaveFailureResult()
 {
-	gbValidSaveFile = ActiveSaveContainsGame();
-	return gbValidSaveFile ? SaveResult::FailedButPreviousSavePreserved : SaveResult::FailedNoValidSave;
+	const bool hasValidGame = ActiveSaveContainsGame();
+	const bool hasValidStash = ActiveSaveContainsStash();
+
+	gbValidSaveFile = hasValidGame;
+	return (hasValidGame && hasValidStash) ? SaveResult::FailedButPreviousSavePreserved : SaveResult::FailedNoValidSave;
 }
 
 template <class T>
@@ -2956,21 +2969,29 @@ SaveResult SaveGame(SaveKind kind)
 	gbValidSaveFile = true;
 	return SaveResult::Success;
 #else
-	if (kind == SaveKind::Manual) {
+	switch (kind) {
+	case SaveKind::Manual:
 		if (!pfile_write_manual_game_with_backup())
 			return GetSaveFailureResult();
-	} else {
+		break;
+	case SaveKind::Auto:
+	case SaveKind::System:
 		if (!pfile_write_auto_game())
 			return GetSaveFailureResult();
+		break;
 	}
 
 	gbValidSaveFile = true;
-	if (kind == SaveKind::Manual) {
+	switch (kind) {
+	case SaveKind::Manual:
 		if (!pfile_write_manual_stash_with_backup())
 			return GetSaveFailureResult();
-	} else {
+		break;
+	case SaveKind::Auto:
+	case SaveKind::System:
 		if (!pfile_write_auto_stash())
 			return GetSaveFailureResult();
+		break;
 	}
 
 	return SaveResult::Success;
