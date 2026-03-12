@@ -442,88 +442,50 @@ bool DoWalk(Player &player)
 	return true;
 }
 
-bool WeaponDecay(Player &player, int ii)
+bool DamageWeapon(Player &player, unsigned damageFrequency, int numDurLost)
 {
-	if (!player.InvBody[ii].isEmpty() && player.InvBody[ii]._iClass == ICLASS_WEAPON && HasAnyOf(player.InvBody[ii]._iDamAcFlags, ItemSpecialEffectHf::Decay)) {
-		player.InvBody[ii]._iPLDam -= 5;
-		if (player.InvBody[ii]._iPLDam <= -100) {
-			RemoveEquipment(player, static_cast<inv_body_loc>(ii), true);
-			CalcPlrInv(player, true);
-			return true;
-		}
-		CalcPlrInv(player, true);
-	}
-	return false;
-}
-
-bool DamageWeapon(Player &player, unsigned damageFrequency)
-{
-	if (&player != MyPlayer) {
+	if (&player != MyPlayer)
 		return false;
-	}
 
-	if (WeaponDecay(player, INVLOC_HAND_LEFT))
-		return true;
-	if (WeaponDecay(player, INVLOC_HAND_RIGHT))
-		return true;
+	const int minHandSlot = INVLOC_HAND_LEFT;
+	const int maxHandSlot = INVLOC_HAND_RIGHT;
 
-	if (!FlipCoin(damageFrequency)) {
-		return false;
-	}
+	bool removedAny = false;
+	const bool damageItem = FlipCoin(damageFrequency);
 
-	if (!player.InvBody[INVLOC_HAND_LEFT].isEmpty() && player.InvBody[INVLOC_HAND_LEFT]._iClass == ICLASS_WEAPON) {
-		if (player.InvBody[INVLOC_HAND_LEFT]._iDurability == DUR_INDESTRUCTIBLE) {
-			return false;
-		}
+	for (int slot = minHandSlot; slot <= maxHandSlot; slot++) {
+		Item &item = player.InvBody[slot];
 
-		player.InvBody[INVLOC_HAND_LEFT]._iDurability--;
-		if (player.InvBody[INVLOC_HAND_LEFT]._iDurability <= 0) {
-			RemoveEquipment(player, INVLOC_HAND_LEFT, true);
+		if (item.isEmpty())
+			continue;
+
+		const int otherSlot = (slot == minHandSlot) ? maxHandSlot : minHandSlot;
+		const Item &otherItem = player.InvBody[otherSlot];
+
+		// Do not damage shields when a weapon is equipped
+		if (item._itype == ItemType::Shield && !otherItem.isEmpty())
+			continue;
+
+		if (HasAnyOf(item._iDamAcFlags, ItemSpecialEffectHf::Decay)) { // Decay property reduces damage % bonus instead of durability
+			item._iPLDam -= 5;
+
+			if (item._iPLDam <= -100) {
+				RemoveEquipment(player, static_cast<inv_body_loc>(slot), true);
+				removedAny = true;
+			}
+
 			CalcPlrInv(player, true);
-			return true;
+		} else if (damageItem && item._iMaxDur != DUR_INDESTRUCTIBLE) { // Standard durability loss
+			item._iDurability -= numDurLost;
+
+			if (item._iDurability <= 0) {
+				RemoveEquipment(player, static_cast<inv_body_loc>(slot), true);
+				CalcPlrInv(player, true);
+				removedAny = true;
+			}
 		}
 	}
-
-	if (!player.InvBody[INVLOC_HAND_RIGHT].isEmpty() && player.InvBody[INVLOC_HAND_RIGHT]._iClass == ICLASS_WEAPON) {
-		if (player.InvBody[INVLOC_HAND_RIGHT]._iDurability == DUR_INDESTRUCTIBLE) {
-			return false;
-		}
-
-		player.InvBody[INVLOC_HAND_RIGHT]._iDurability--;
-		if (player.InvBody[INVLOC_HAND_RIGHT]._iDurability == 0) {
-			RemoveEquipment(player, INVLOC_HAND_RIGHT, true);
-			CalcPlrInv(player, true);
-			return true;
-		}
-	}
-
-	if (player.InvBody[INVLOC_HAND_LEFT].isEmpty() && player.InvBody[INVLOC_HAND_RIGHT]._itype == ItemType::Shield) {
-		if (player.InvBody[INVLOC_HAND_RIGHT]._iDurability == DUR_INDESTRUCTIBLE) {
-			return false;
-		}
-
-		player.InvBody[INVLOC_HAND_RIGHT]._iDurability--;
-		if (player.InvBody[INVLOC_HAND_RIGHT]._iDurability == 0) {
-			RemoveEquipment(player, INVLOC_HAND_RIGHT, true);
-			CalcPlrInv(player, true);
-			return true;
-		}
-	}
-
-	if (player.InvBody[INVLOC_HAND_RIGHT].isEmpty() && player.InvBody[INVLOC_HAND_LEFT]._itype == ItemType::Shield) {
-		if (player.InvBody[INVLOC_HAND_LEFT]._iDurability == DUR_INDESTRUCTIBLE) {
-			return false;
-		}
-
-		player.InvBody[INVLOC_HAND_LEFT]._iDurability--;
-		if (player.InvBody[INVLOC_HAND_LEFT]._iDurability == 0) {
-			RemoveEquipment(player, INVLOC_HAND_LEFT, true);
-			CalcPlrInv(player, true);
-			return true;
-		}
-	}
-
-	return false;
+	return removedAny;
 }
 
 bool PlrHitMonst(Player &player, Monster &monster, bool adjacentDamage = false)
@@ -834,7 +796,7 @@ bool DoAttack(Player &player)
 			}
 		}
 
-		if (didhit && DamageWeapon(player, 30)) {
+		if (didhit && DamageWeapon(player, 30, 1)) {
 			StartStand(player, player._pdir);
 			ClearStateVariables(player);
 			return true;
@@ -902,7 +864,7 @@ bool DoRangeAttack(Player &player)
 			PlaySfxLoc(arrows != 1 ? SfxID::ShootBow2 : SfxID::ShootBow, player.position.tile);
 		}
 
-		if (DamageWeapon(player, 40)) {
+		if (DamageWeapon(player, 40, 1)) {
 			StartStand(player, player._pdir);
 			ClearStateVariables(player);
 			return true;
