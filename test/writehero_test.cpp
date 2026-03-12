@@ -303,13 +303,13 @@ void WriteLegacyHotkeys(
 	decodedData.reserve(4 * sizeof(int32_t) + 4 * sizeof(uint8_t) + sizeof(int32_t) + sizeof(uint8_t));
 
 	for (SpellID spellId : hotkeySpells) {
-		AppendLE32(decodedData, static_cast<int8_t>(spellId));
+		AppendLE32(decodedData, static_cast<int32_t>(spellId));
 	}
 	for (SpellType spellType : hotkeyTypes) {
 		AppendU8(decodedData, static_cast<uint8_t>(spellType));
 	}
 
-	AppendLE32(decodedData, static_cast<int8_t>(selectedSpell));
+	AppendLE32(decodedData, static_cast<int32_t>(selectedSpell));
 	AppendU8(decodedData, static_cast<uint8_t>(selectedSpellType));
 
 	WriteEncodedArchiveEntry(savePath, "hotkeys", std::move(decodedData));
@@ -723,6 +723,68 @@ TEST(Writehero, LoadHotkeysLegacyFormatSanitizesInvalidSelections)
 	EXPECT_EQ(player.executedSpell.spellFrom, 0);
 	EXPECT_EQ(player.executedSpell.spellLevel, 0);
 	EXPECT_EQ(player.spellFrom, 0);
+}
+
+TEST(Writehero, LoadHotkeysLegacyFormatPreservesValidScrollAndFirstCastConsumesIt)
+{
+	LoadCoreArchives();
+	LoadGameArchives();
+
+	if (!HaveMainData()) {
+		GTEST_SKIP() << "MPQ assets (spawn.mpq or DIABDAT.MPQ) not found - skipping test";
+	}
+
+	const std::string savePath = paths::BasePath() + "multi_0.sv";
+	paths::SetPrefPath(paths::BasePath());
+	RemoveFile(savePath.c_str());
+
+	gbVanilla = false;
+	gbIsHellfire = false;
+	gbIsSpawn = false;
+	gbIsMultiplayer = true;
+	gbIsHellfireSaveGame = false;
+	leveltype = DTYPE_TOWN;
+	giNumberOfLevels = 17;
+
+	Players.resize(1);
+	MyPlayerId = 0;
+	MyPlayer = &Players[MyPlayerId];
+
+	LoadSpellData();
+	LoadPlayerDataFiles();
+	LoadMonsterData();
+	LoadItemData();
+	_uiheroinfo info {};
+	info.heroclass = HeroClass::Rogue;
+	pfile_ui_save_create(&info);
+
+	Player &player = *MyPlayer;
+	player._pNumInv = 1;
+	player.InvList[0] = {};
+	player.InvList[0].IDidx = ItemMiscIdIdx(IMISC_SCROLL);
+	player.InvList[0]._iMiscId = IMISC_SCROLL;
+	player.InvList[0]._iSpell = SpellID::Healing;
+	player.CalcScrolls();
+
+	WriteLegacyHotkeys(
+	    savePath,
+	    { SpellID::Healing, SpellID::Invalid, SpellID::Invalid, SpellID::Invalid },
+	    { SpellType::Scroll, SpellType::Invalid, SpellType::Invalid, SpellType::Invalid },
+	    SpellID::Healing,
+	    SpellType::Scroll);
+
+	LoadHotkeys(info.saveNumber, player);
+
+	EXPECT_EQ(player._pRSpell, SpellID::Healing);
+	EXPECT_EQ(player._pRSplType, SpellType::Scroll);
+	EXPECT_EQ(player.queuedSpell.spellId, SpellID::Healing);
+	EXPECT_EQ(player.queuedSpell.spellType, SpellType::Scroll);
+	EXPECT_EQ(player.queuedSpell.spellFrom, 0);
+
+	player.executedSpell = player.queuedSpell;
+	ConsumeScroll(player);
+
+	EXPECT_FALSE(CanUseScroll(player, SpellID::Healing));
 }
 
 TEST(Writehero, DiabloRewritePersistsSanitizedSpellSelectionsFromHellfireSave)
