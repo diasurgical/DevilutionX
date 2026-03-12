@@ -780,7 +780,7 @@ void pfile_read_player_from_save(uint32_t saveNum, Player &player)
 	RemoveAllInvalidItems(player);
 	CalcPlrInv(player, false);
 	if (&player == MyPlayer) {
-		LoadHotkeys();
+		LoadHotkeys(saveNum, player);
 		player.queuedSpell.spellId = player._pRSpell;
 		player.queuedSpell.spellType = player._pRSplType;
 	} else {

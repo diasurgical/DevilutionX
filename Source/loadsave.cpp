@@ -2331,13 +2331,20 @@ size_t HotkeysSize(size_t nHotkeys = NumHotkeys)
 
 void LoadHotkeys()
 {
-	LoadHelper file(OpenSaveArchive(gSaveNumber), "hotkeys");
+	if (MyPlayer == nullptr)
+		return;
+
+	LoadHotkeys(gSaveNumber, *MyPlayer);
+}
+
+void LoadHotkeys(uint32_t saveNum, Player &myPlayer)
+{
+	LoadHelper file(OpenSaveArchive(saveNum), "hotkeys");
 	if (!file.IsValid()) {
-		SanitizePlayerSpellSelections(*MyPlayer);
+		SanitizePlayerSpellSelections(myPlayer);
 		return;
 	}
 
-	Player &myPlayer = *MyPlayer;
 	size_t nHotkeys = 4; // Defaults to old save format number
 
 	// Refill the spell arrays with no selection
@@ -2524,7 +2531,7 @@ tl::expected<void, std::string> LoadGame(bool firstflag)
 	LoadPlayer(file, myPlayer);
 	ValidatePlayer();
 	CalcPlrInv(myPlayer, false);
-	LoadHotkeys();
+	LoadHotkeys(gSaveNumber, myPlayer);
 	myPlayer.queuedSpell.spellId = myPlayer._pRSpell;
 	myPlayer.queuedSpell.spellType = myPlayer._pRSplType;
 
