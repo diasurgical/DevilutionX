@@ -110,6 +110,16 @@ void SanitizePlayerSpellSelections(Player &player)
 	}
 }
 
+void SyncPlayerSpellStateFromSelections(Player &myPlayer)
+{
+	myPlayer.queuedSpell.spellId = myPlayer._pRSpell;
+	myPlayer.queuedSpell.spellType = myPlayer._pRSplType;
+	myPlayer.queuedSpell.spellFrom = 0;
+	myPlayer.queuedSpell.spellLevel = 0;
+	myPlayer.executedSpell = myPlayer.queuedSpell;
+	myPlayer.spellFrom = 0;
+}
+
 bool IsWallSpell(SpellID spl)
 {
 	return spl == SpellID::FireWall || spl == SpellID::LightningWall;

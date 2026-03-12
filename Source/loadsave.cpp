@@ -2342,6 +2342,7 @@ void LoadHotkeys(uint32_t saveNum, Player &myPlayer)
 	LoadHelper file(OpenSaveArchive(saveNum), "hotkeys");
 	if (!file.IsValid()) {
 		SanitizePlayerSpellSelections(myPlayer);
+		SyncPlayerSpellStateFromSelections(myPlayer);
 		return;
 	}
 
@@ -2379,6 +2380,7 @@ void LoadHotkeys(uint32_t saveNum, Player &myPlayer)
 	myPlayer._pRSpell = static_cast<SpellID>(file.NextLE<int32_t>());
 	myPlayer._pRSplType = static_cast<SpellType>(file.NextLE<uint8_t>());
 	SanitizePlayerSpellSelections(myPlayer);
+	SyncPlayerSpellStateFromSelections(myPlayer);
 }
 
 void SaveHotkeys(SaveWriter &saveWriter, const Player &player)
@@ -2532,8 +2534,6 @@ tl::expected<void, std::string> LoadGame(bool firstflag)
 	ValidatePlayer();
 	CalcPlrInv(myPlayer, false);
 	LoadHotkeys(gSaveNumber, myPlayer);
-	myPlayer.queuedSpell.spellId = myPlayer._pRSpell;
-	myPlayer.queuedSpell.spellType = myPlayer._pRSplType;
 
 	if (sgGameInitInfo.nDifficulty < DIFF_NORMAL || sgGameInitInfo.nDifficulty > DIFF_HELL)
 		sgGameInitInfo.nDifficulty = DIFF_NORMAL;
