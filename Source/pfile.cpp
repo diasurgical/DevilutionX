@@ -28,6 +28,7 @@
 #include "mpq/mpq_common.hpp"
 #include "pack.h"
 #include "qol/stash.h"
+#include "spells.h"
 #include "tables/playerdat.hpp"
 #include "utils/endian_read.hpp"
 #include "utils/endian_swap.hpp"
@@ -690,6 +691,7 @@ bool pfile_ui_set_hero_infos(bool (*uiAddHeroInfo)(_uiheroinfo *))
 				LoadHeroItems(player);
 				RemoveAllInvalidItems(player);
 				CalcPlrInv(player, false);
+				SanitizePlayerSpellSelections(player);
 
 				Game2UiPlayer(player, &uihero, hasSaveGame);
 				uiAddHeroInfo(&uihero);
@@ -777,6 +779,12 @@ void pfile_read_player_from_save(uint32_t saveNum, Player &player)
 	LoadHeroItems(player);
 	RemoveAllInvalidItems(player);
 	CalcPlrInv(player, false);
+	if (&player == MyPlayer) {
+		LoadHotkeys(saveNum, player);
+	} else {
+		SanitizePlayerSpellSelections(player);
+		SyncPlayerSpellStateFromSelections(player);
+	}
 }
 
 void pfile_save_level()
