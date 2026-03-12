@@ -145,21 +145,21 @@ bool IsTornNaKrulNote(_item_indexes id)
 	return IsAnyOf(id, IDI_NOTE1, IDI_NOTE2, IDI_NOTE3);
 }
 
-bool PlayerHasAllTornNaKrulNotes(const Player &player)
+bool HasAllTornNaKrulNotes(const Player &player)
 {
 	return HasInventoryItemWithId(player, IDI_NOTE1)
 	    && HasInventoryItemWithId(player, IDI_NOTE2)
 	    && HasInventoryItemWithId(player, IDI_NOTE3);
 }
 
-void ConvertItemToFullNote(Item &item)
+void ConvertToFullNaKrulNote(Item &item)
 {
 	item = {};
 	GetItemAttrs(item, IDI_FULLNOTE, 16);
 	SetupItem(item);
 }
 
-std::array<_item_indexes, 2> GetOtherNaKrulNotes(_item_indexes preservedNoteId)
+std::array<_item_indexes, 2> GetOtherTornNaKrulNotes(_item_indexes preservedNoteId)
 {
 	assert(IsTornNaKrulNote(preservedNoteId));
 
@@ -182,7 +182,7 @@ int TryCombineNaKrulNoteAfterInventoryInsert(Player &player, int insertedInvInde
 	}
 
 	const _item_indexes insertedId = player.InvList[insertedInvIndex].IDidx;
-	if (!IsTornNaKrulNote(insertedId) || !PlayerHasAllTornNaKrulNotes(player)) {
+	if (!IsTornNaKrulNote(insertedId) || !HasAllTornNaKrulNotes(player)) {
 		return insertedInvIndex;
 	}
 
@@ -190,7 +190,7 @@ int TryCombineNaKrulNoteAfterInventoryInsert(Player &player, int insertedInvInde
 
 	std::array<int, 2> removedNoteIndices {};
 	size_t removeCount = 0;
-	for (const _item_indexes note : GetOtherNaKrulNotes(insertedId)) {
+	for (const _item_indexes note : GetOtherTornNaKrulNotes(insertedId)) {
 		for (int i = 0; i < player._pNumInv; i++) {
 			if (player.InvList[i].IDidx == note) {
 				removedNoteIndices[removeCount++] = i;
@@ -212,7 +212,7 @@ int TryCombineNaKrulNoteAfterInventoryInsert(Player &player, int insertedInvInde
 	}
 
 	Item &combinedNote = player.InvList[insertedInvIndex];
-	ConvertItemToFullNote(combinedNote);
+	ConvertToFullNaKrulNote(combinedNote);
 	combinedNote.updateRequiredStatsCacheForPlayer(player);
 	return insertedInvIndex;
 }
@@ -1038,18 +1038,18 @@ void CheckInvCut(Player &player, Point cursorPosition, bool automaticMove, bool 
 void TryCombineNaKrulNotes(Player &player, Item &noteItem)
 {
 	const _item_indexes noteId = noteItem.IDidx;
-	if (!IsTornNaKrulNote(noteId) || !PlayerHasAllTornNaKrulNotes(player)) {
+	if (!IsTornNaKrulNote(noteId) || !HasAllTornNaKrulNotes(player)) {
 		return; // the player doesn't have all notes
 	}
 
 	MyPlayer->Say(HeroSpeech::JustWhatIWasLookingFor, 10);
 
-	for (const _item_indexes note : GetOtherNaKrulNotes(noteId)) {
+	for (const _item_indexes note : GetOtherTornNaKrulNotes(noteId)) {
 		RemoveInventoryItemById(player, note);
 	}
 
 	const Point position = noteItem.position; // copy the position to restore it after re-initialising the item
-	ConvertItemToFullNote(noteItem);
+	ConvertToFullNaKrulNote(noteItem);
 	noteItem.position = position; // this ensures CleanupItem removes the entry in the dropped items lookup table
 }
 
