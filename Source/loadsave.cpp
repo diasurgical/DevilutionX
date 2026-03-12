@@ -2357,10 +2357,26 @@ void LoadHotkeys(uint32_t saveNum, Player &myPlayer)
 	std::fill(myPlayer._pSplHotKey, myPlayer._pSplHotKey + NumHotkeys, SpellID::Invalid);
 	std::fill(myPlayer._pSplTHotKey, myPlayer._pSplTHotKey + NumHotkeys, SpellType::Invalid);
 
-	// Legacy hotkeys blobs store exactly 4 entries and do not include the leading count byte.
-	if (file.Size() != LegacyHotkeysSize()) {
-		// The file contains a header byte and at least 4 entries, so we can assume it's a new format save
+	const size_t fileSize = file.Size();
+
+	if (fileSize == LegacyHotkeysSize()) {
+		// Legacy format: exactly 4 hotkeys, no leading count byte.
+	} else {
+		if (!file.IsValid(sizeof(uint8_t))) {
+			SanitizePlayerSpellSelections(myPlayer);
+			SyncPlayerSpellStateFromSelections(myPlayer);
+			return;
+		}
+
 		nHotkeys = file.NextLE<uint8_t>();
+
+		const size_t payloadSize = (nHotkeys * sizeof(int32_t)) + (nHotkeys * sizeof(uint8_t)) + sizeof(int32_t) + sizeof(uint8_t);
+
+		if (!file.IsValid(payloadSize)) {
+			SanitizePlayerSpellSelections(myPlayer);
+			SyncPlayerSpellStateFromSelections(myPlayer);
+			return;
+		}
 	}
 
 	// Read all hotkeys in the file

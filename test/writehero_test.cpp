@@ -759,6 +759,10 @@ TEST(Writehero, LoadHotkeysLegacyFormatPreservesValidScrollAndFirstCastConsumesI
 	pfile_ui_save_create(&info);
 
 	Player &player = *MyPlayer;
+	player._pNumInv = 1;
+	InitializeItem(player.InvList[0], ItemMiscIdIdx(IMISC_SCROLL));
+	player.InvList[0]._iSpell = SpellID::Healing;
+	player.InvList[0]._iStatFlag = true;
 	player._pScrlSpells = GetSpellBitmask(SpellID::Healing);
 	ASSERT_TRUE((player._pScrlSpells & GetSpellBitmask(SpellID::Healing)) != 0);
 	ASSERT_TRUE(IsPlayerSpellSelectionValid(player, SpellID::Healing, SpellType::Scroll));
@@ -777,8 +781,11 @@ TEST(Writehero, LoadHotkeysLegacyFormatPreservesValidScrollAndFirstCastConsumesI
 	EXPECT_EQ(player.queuedSpell.spellId, SpellID::Healing);
 	EXPECT_EQ(player.queuedSpell.spellType, SpellType::Scroll);
 	EXPECT_EQ(player.queuedSpell.spellFrom, 0);
+	leveltype = DTYPE_CATHEDRAL;
 	EXPECT_TRUE(CanUseScroll(player, SpellID::Healing));
 
+	player.InvList[0].clear();
+	player._pNumInv = 0;
 	player._pScrlSpells = 0;
 
 	EXPECT_FALSE(CanUseScroll(player, SpellID::Healing));
