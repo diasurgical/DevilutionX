@@ -175,7 +175,7 @@ std::array<_item_indexes, 2> GetOtherNaKrulNotes(_item_indexes preservedNoteId)
 	}
 }
 
-int TryCombineInsertedNaKrulNote(Player &player, int insertedInvIndex)
+int TryCombineNaKrulNoteAfterInventoryInsert(Player &player, int insertedInvIndex)
 {
 	if (insertedInvIndex < 0 || insertedInvIndex >= player._pNumInv) {
 		return insertedInvIndex;
@@ -575,7 +575,7 @@ bool ChangeInvItem(Player &player, int slot, Size itemSize)
 		if (prevItemId == 0) {
 			player.InvList[player._pNumInv] = player.HoldItem.pop();
 			player._pNumInv++;
-			prevItemId = TryCombineInsertedNaKrulNote(player, player._pNumInv - 1) + 1;
+			prevItemId = TryCombineNaKrulNoteAfterInventoryInsert(player, player._pNumInv - 1) + 1;
 		} else {
 			const int invIndex = prevItemId - 1;
 			if (player.HoldItem._itype == ItemType::Gold)
@@ -589,7 +589,7 @@ bool ChangeInvItem(Player &player, int slot, Size itemSize)
 				if (itemIndex == -prevItemId)
 					itemIndex = 0;
 			}
-			prevItemId = TryCombineInsertedNaKrulNote(player, invIndex) + 1;
+			prevItemId = TryCombineNaKrulNoteAfterInventoryInsert(player, invIndex) + 1;
 		}
 
 		itemSize = GetInventorySize(player.InvList[prevItemId - 1]);
@@ -1470,7 +1470,7 @@ bool AutoPlaceItemInInventory(Player &player, const Item &item, bool sendNetwork
 		player._pNumInv++;
 		int invIndex = player._pNumInv - 1;
 		if (semantics == InventoryInsertSemantics::PlayerAction) {
-			invIndex = TryCombineInsertedNaKrulNote(player, invIndex);
+			invIndex = TryCombineNaKrulNoteAfterInventoryInsert(player, invIndex);
 		}
 
 		AddItemToInvGrid(player, *targetSlot, invIndex + 1, GetInventorySize(player.InvList[invIndex]), sendNetworkMessage);
