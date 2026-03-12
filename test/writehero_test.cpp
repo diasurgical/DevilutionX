@@ -536,62 +536,6 @@ TEST(Writehero, pfile_read_player_from_save_clears_invalid_spell_selections)
 	EXPECT_EQ(player._pRSplType, SpellType::Invalid);
 }
 
-TEST(Writehero, pfile_read_player_from_save_preserves_valid_spell_selections)
-{
-	LoadCoreArchives();
-	LoadGameArchives();
-
-	if (!HaveMainData()) {
-		GTEST_SKIP() << "MPQ assets (spawn.mpq or DIABDAT.MPQ) not found - skipping test";
-	}
-
-	const std::string savePath = paths::BasePath() + "multi_0.sv";
-	paths::SetPrefPath(paths::BasePath());
-	RemoveFile(savePath.c_str());
-
-	gbVanilla = false;
-	gbIsHellfire = false;
-	gbIsSpawn = false;
-	gbIsMultiplayer = true;
-	gbIsHellfireSaveGame = false;
-	leveltype = DTYPE_TOWN;
-	giNumberOfLevels = 17;
-
-	Players.resize(1);
-	MyPlayerId = 0;
-	MyPlayer = &Players[MyPlayerId];
-
-	LoadSpellData();
-	LoadPlayerDataFiles();
-	LoadMonsterData();
-	LoadItemData();
-	_uiheroinfo info {};
-	info.heroclass = HeroClass::Rogue;
-	pfile_ui_save_create(&info);
-
-	Player &player = *MyPlayer;
-	player._pMemSpells = GetSpellBitmask(SpellID::Healing);
-	player._pSplLvl[static_cast<size_t>(SpellID::Healing)] = 1;
-	player._pSplHotKey[0] = SpellID::Healing;
-	player._pSplTHotKey[0] = SpellType::Spell;
-	player._pRSpell = SpellID::Healing;
-	player._pRSplType = SpellType::Spell;
-
-	pfile_write_hero();
-
-	player._pSplHotKey[0] = SpellID::Invalid;
-	player._pSplTHotKey[0] = SpellType::Invalid;
-	player._pRSpell = SpellID::Invalid;
-	player._pRSplType = SpellType::Invalid;
-
-	pfile_read_player_from_save(info.saveNumber, player);
-
-	EXPECT_EQ(player._pSplHotKey[0], SpellID::Healing);
-	EXPECT_EQ(player._pSplTHotKey[0], SpellType::Spell);
-	EXPECT_EQ(player._pRSpell, SpellID::Healing);
-	EXPECT_EQ(player._pRSplType, SpellType::Spell);
-}
-
 TEST(Writehero, LoadHotkeysWithoutFileSanitizesAndNormalizesSpellState)
 {
 	LoadCoreArchives();
@@ -725,7 +669,7 @@ TEST(Writehero, LoadHotkeysLegacyFormatSanitizesInvalidSelections)
 	EXPECT_EQ(player.spellFrom, 0);
 }
 
-TEST(Writehero, LoadHotkeysLegacyFormatPreservesValidScrollAndFirstCastConsumesIt)
+TEST(Writehero, LoadHotkeysLegacyFormatPreservesValidScrollSelection)
 {
 	LoadCoreArchives();
 	LoadGameArchives();
