@@ -159,6 +159,22 @@ void ConvertItemToFullNote(Item &item)
 	SetupItem(item);
 }
 
+std::array<_item_indexes, 2> GetOtherNaKrulNotes(_item_indexes preservedNoteId)
+{
+	assert(IsTornNaKrulNote(preservedNoteId));
+
+	switch (preservedNoteId) {
+	case IDI_NOTE1:
+		return { IDI_NOTE2, IDI_NOTE3 };
+	case IDI_NOTE2:
+		return { IDI_NOTE1, IDI_NOTE3 };
+	case IDI_NOTE3:
+		return { IDI_NOTE1, IDI_NOTE2 };
+	default:
+		app_fatal("Unexpected Na-Krul note id");
+	}
+}
+
 int TryCombineInsertedNaKrulNote(Player &player, int insertedInvIndex)
 {
 	if (insertedInvIndex < 0 || insertedInvIndex >= player._pNumInv) {
@@ -174,11 +190,7 @@ int TryCombineInsertedNaKrulNote(Player &player, int insertedInvIndex)
 
 	std::array<int, 2> removedNoteIndices {};
 	size_t removeCount = 0;
-	for (const _item_indexes note : { IDI_NOTE1, IDI_NOTE2, IDI_NOTE3 }) {
-		if (note == insertedId) {
-			continue;
-		}
-
+	for (const _item_indexes note : GetOtherNaKrulNotes(insertedId)) {
 		for (int i = 0; i < player._pNumInv; i++) {
 			if (player.InvList[i].IDidx == note) {
 				removedNoteIndices[removeCount++] = i;
@@ -1025,21 +1037,15 @@ void CheckInvCut(Player &player, Point cursorPosition, bool automaticMove, bool 
 
 void TryCombineNaKrulNotes(Player &player, Item &noteItem)
 {
-	const _item_indexes idx = noteItem.IDidx;
-	if (!IsTornNaKrulNote(idx)) {
-		return;
-	}
-
-	if (!PlayerHasAllTornNaKrulNotes(player)) {
+	const _item_indexes noteId = noteItem.IDidx;
+	if (!IsTornNaKrulNote(noteId) || !PlayerHasAllTornNaKrulNotes(player)) {
 		return; // the player doesn't have all notes
 	}
 
 	MyPlayer->Say(HeroSpeech::JustWhatIWasLookingFor, 10);
 
-	for (const _item_indexes note : { IDI_NOTE1, IDI_NOTE2, IDI_NOTE3 }) {
-		if (idx != note) {
-			RemoveInventoryItemById(player, note);
-		}
+	for (const _item_indexes note : GetOtherNaKrulNotes(noteId)) {
+		RemoveInventoryItemById(player, note);
 	}
 
 	const Point position = noteItem.position; // copy the position to restore it after re-initialising the item
