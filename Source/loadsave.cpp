@@ -2329,6 +2329,11 @@ size_t HotkeysSize(size_t nHotkeys = NumHotkeys)
 	return sizeof(uint8_t) + (nHotkeys * sizeof(int32_t)) + (nHotkeys * sizeof(uint8_t)) + sizeof(int32_t) + sizeof(uint8_t);
 }
 
+size_t LegacyHotkeysSize()
+{
+	return HotkeysSize(4) - sizeof(uint8_t);
+}
+
 void LoadHotkeys()
 {
 	if (MyPlayer == nullptr)
@@ -2352,8 +2357,8 @@ void LoadHotkeys(uint32_t saveNum, Player &myPlayer)
 	std::fill(myPlayer._pSplHotKey, myPlayer._pSplHotKey + NumHotkeys, SpellID::Invalid);
 	std::fill(myPlayer._pSplTHotKey, myPlayer._pSplTHotKey + NumHotkeys, SpellType::Invalid);
 
-	// Checking if the save file has the old format with only 4 hotkeys and no header
-	if (file.IsValid(HotkeysSize(nHotkeys))) {
+	// Legacy hotkeys blobs store exactly 4 entries and do not include the leading count byte.
+	if (file.Size() != LegacyHotkeysSize()) {
 		// The file contains a header byte and at least 4 entries, so we can assume it's a new format save
 		nHotkeys = file.NextLE<uint8_t>();
 	}
