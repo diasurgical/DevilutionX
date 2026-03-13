@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <memory>
 #include <set>
 #include <string>
@@ -318,6 +319,12 @@ void base_protocol<P>::recv()
 template <class P>
 tl::expected<void, PacketError> base_protocol<P>::handle_join_request(packet &inPkt, endpoint_t sender)
 {
+	tl::expected<const buffer_t *, PacketError> pktInfo = inPkt.Info();
+	if (pktInfo.has_value() && (*pktInfo)->size() == sizeof(GameData) && game_init_info.size() == sizeof(GameData)) {
+		constexpr size_t ModHashOffset = offsetof(GameData, modHash);
+		if (LoadLE32((*pktInfo)->data() + ModHashOffset) != LoadLE32(game_init_info.data() + ModHashOffset))
+			return {};
+	}
 	plr_t i;
 	for (i = 0; i < Players.size(); ++i) {
 		Peer &peer = peers[i];
