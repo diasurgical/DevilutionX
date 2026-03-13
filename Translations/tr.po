@@ -11,7 +11,11 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
+<<<<<<< Updated upstream
 "X-Generator: Poedit 3.6\n"
+=======
+"X-Generator: Poedit 3.9\n"
+>>>>>>> Stashed changes
 "X-Poedit-SourceCharset: UTF-8\n"
 "X-Poedit-KeywordsList: _;N_;P_:1c,2\n"
 "X-Poedit-Basepath: ..\n"
@@ -1180,10 +1184,15 @@ msgid "Hit Points {:d} of {:d}"
 msgstr "Can {:d}/{:d}"
 
 #: Source/control.cpp:1525
+<<<<<<< Updated upstream
 #, fuzzy
 #| msgid "Right-click to use"
 msgid "Right click to inspect"
 msgstr "Kullanmak için sağ tıkla"
+=======
+msgid "Right click to inspect"
+msgstr "Göz atmak için sağ tıkla."
+>>>>>>> Stashed changes
 
 #: Source/control.cpp:1573
 msgid "Level Up"
@@ -1191,6 +1200,7 @@ msgstr "Seviyen Yükseldi"
 
 #: Source/control.cpp:1687
 msgid "You have died"
+<<<<<<< Updated upstream
 msgstr ""
 
 #: Source/control.cpp:1695
@@ -1200,21 +1210,44 @@ msgstr ""
 #: Source/control.cpp:1701
 msgid "Menu Button"
 msgstr ""
+=======
+msgstr "Öldün"
+
+#: Source/control.cpp:1695
+msgid "ESC"
+msgstr "ESC"
+
+#: Source/control.cpp:1701
+msgid "Menu Button"
+msgstr "Menü Tuşu"
+>>>>>>> Stashed changes
 
 #: Source/control.cpp:1709
 #, c++-format
 msgid "Press {} to load last save."
+<<<<<<< Updated upstream
 msgstr ""
+=======
+msgstr "Son kaydedilen yeri yüklemek için {} tuşuna bas."
+>>>>>>> Stashed changes
 
 #: Source/control.cpp:1711
 #, c++-format
 msgid "Press {} to return to Main Menu."
+<<<<<<< Updated upstream
 msgstr ""
+=======
+msgstr "Ana Menüye dönmek için {} tuşuna bas."
+>>>>>>> Stashed changes
 
 #: Source/control.cpp:1714
 #, c++-format
 msgid "Press {} to restart in town."
+<<<<<<< Updated upstream
 msgstr ""
+=======
+msgstr "Kasabada yeniden başlamak için {} tuşuna bas."
+>>>>>>> Stashed changes
 
 #. TRANSLATORS: {:s} is a number with separators. Dialog is shown when splitting a stash of Gold.
 #: Source/control.cpp:1732
@@ -1339,7 +1372,11 @@ msgstr "Ayrıntılı kayıtları etkinleştir"
 #. TRANSLATORS: Commandline Option
 #: Source/diablo.cpp:999
 msgid "Log to a file instead of stderr"
+<<<<<<< Updated upstream
 msgstr ""
+=======
+msgstr "stderr yerine başka bir dosyaya kaydet"
+>>>>>>> Stashed changes
 
 #. TRANSLATORS: Commandline Option
 #: Source/diablo.cpp:1002
@@ -1556,11 +1593,19 @@ msgstr "Karakter ekranını aç."
 
 #: Source/diablo.cpp:1928
 msgid "Party"
+<<<<<<< Updated upstream
 msgstr ""
 
 #: Source/diablo.cpp:1929
 msgid "Open side Party panel."
 msgstr ""
+=======
+msgstr "Grup"
+
+#: Source/diablo.cpp:1929
+msgid "Open side Party panel."
+msgstr "Yan Grup panelini aç."
+>>>>>>> Stashed changes
 
 #: Source/diablo.cpp:1936 Source/diablo.cpp:2274
 msgid "Quest log"
@@ -1616,20 +1661,30 @@ msgid "Pause Game (Alternate)"
 msgstr "Oyunu Duraklat (Alternatif)"
 
 #: Source/diablo.cpp:2010 Source/diablo.cpp:2522
+<<<<<<< Updated upstream
 #, fuzzy
 #| msgid "Increase screen brightness."
 msgid "Decrease Brightness"
 msgstr "Ekran parlaklığını yükseltir."
+=======
+msgid "Decrease Brightness"
+msgstr "Ekran Parlaklığını Düşür"
+>>>>>>> Stashed changes
 
 #: Source/diablo.cpp:2011 Source/diablo.cpp:2523
 msgid "Reduce screen brightness."
 msgstr "Ekran parlaklığını düşürür."
 
 #: Source/diablo.cpp:2018 Source/diablo.cpp:2530
+<<<<<<< Updated upstream
 #, fuzzy
 #| msgid "Increase screen brightness."
 msgid "Increase Brightness"
 msgstr "Ekran parlaklığını yükseltir."
+=======
+msgid "Increase Brightness"
+msgstr "Ekran Parlaklığını Yükselt"
+>>>>>>> Stashed changes
 
 #: Source/diablo.cpp:2019 Source/diablo.cpp:2531
 msgid "Increase screen brightness."
@@ -1772,6 +1827,7 @@ msgid "Toggle whether the player moves."
 msgstr "Oyuncu hareket edeceği zaman aktifleştir."
 
 #: Source/diablo.cpp:2310
+<<<<<<< Updated upstream
 #, fuzzy
 #| msgid "Automap"
 msgid "Automap Move Up"
@@ -1812,6 +1868,38 @@ msgstr "Sağa hareket et"
 #: Source/diablo.cpp:2329
 msgid "Moves the automap right when active."
 msgstr ""
+=======
+msgid "Automap Move Up"
+msgstr "Haritayı Yukarı Kaydır"
+
+#: Source/diablo.cpp:2311
+msgid "Moves the automap up when active."
+msgstr "Aktif olduğunda haritayı yukarı doğru hareket ettirir."
+
+#: Source/diablo.cpp:2316
+msgid "Automap Move Down"
+msgstr "Haritayı Aşağı Kaydır"
+
+#: Source/diablo.cpp:2317
+msgid "Moves the automap down when active."
+msgstr "Aktif olduğunda haritayı aşağı doğru hareket ettirir."
+
+#: Source/diablo.cpp:2322
+msgid "Automap Move Left"
+msgstr "Haritayı Sola Kaydır"
+
+#: Source/diablo.cpp:2323
+msgid "Moves the automap left when active."
+msgstr "Aktif olduğunda haritayı sola doğru hareket ettirir."
+
+#: Source/diablo.cpp:2328
+msgid "Automap Move Right"
+msgstr "Haritayı Sağa Kaydır"
+
+#: Source/diablo.cpp:2329
+msgid "Moves the automap right when active."
+msgstr "Aktif olduğunda haritayı sağa doğru hareket ettirir."
+>>>>>>> Stashed changes
 
 #: Source/diablo.cpp:2334
 msgid "Move mouse up"
@@ -2202,6 +2290,15 @@ msgid ""
 "\n"
 "The MPQ file(s) might be damaged. Please check the file integrity."
 msgstr ""
+<<<<<<< Updated upstream
+=======
+"Dosya açılamadı:\n"
+"{:s}\n"
+"\n"
+"{:s}\n"
+"\n"
+"MPQ dosyası bozulmuş olabilir. Lütfen kontrol edin."
+>>>>>>> Stashed changes
 
 #: Source/engine/assets.cpp:426
 msgid "diabdat.mpq or spawn.mpq"
@@ -2324,10 +2421,15 @@ msgid "Save Game"
 msgstr "Oyunu Kaydet"
 
 #: Source/gamemenu.cpp:51 Source/gamemenu.cpp:61
+<<<<<<< Updated upstream
 #, fuzzy
 #| msgid "Main Menu"
 msgid "Exit to Main Menu"
 msgstr "Ana Menü"
+=======
+msgid "Exit to Main Menu"
+msgstr "Ana Menü’ye Çık"
+>>>>>>> Stashed changes
 
 #: Source/gamemenu.cpp:52 Source/gamemenu.cpp:62
 msgid "Quit Game"
@@ -3459,12 +3561,22 @@ msgid ""
 "Stash version invalid. If you attempt to access your stash, data will be "
 "overwritten!!"
 msgstr ""
+<<<<<<< Updated upstream
+=======
+"Depo sürümü geçersiz. Eğer deponuza erişmeye çalışırsanız, önceki veriler "
+"silinecektir!!"
+>>>>>>> Stashed changes
 
 #: Source/loadsave.cpp:2443
 msgid ""
 "Stash size invalid. If you attempt to access your stash, data will be "
 "overwritten!!"
 msgstr ""
+<<<<<<< Updated upstream
+=======
+"Depo boyutu geçersiz. Eğer deponuza erişmeye çalışırsanız, önceki veriler "
+"silinecektir!!"
+>>>>>>> Stashed changes
 
 #: Source/loadsave.cpp:2474
 msgid "Invalid save file"
@@ -3484,19 +3596,31 @@ msgstr "Anamenü gösterilemiyor"
 
 #: Source/monstdat.cpp:331 Source/monstdat.cpp:344
 msgid "Loading Monster Data Failed"
+<<<<<<< Updated upstream
 msgstr ""
+=======
+msgstr "Canavar Verisi Yüklenemedi"
+>>>>>>> Stashed changes
 
 #: Source/monstdat.cpp:331
 #, c++-format
 msgid ""
 "Could not add a monster, since the maximum monster type number of {} has "
 "already been reached."
+<<<<<<< Updated upstream
 msgstr ""
+=======
+msgstr "Azami canavar sayısına({}) ulaşıldığı için, bu canavar eklenemedi."
+>>>>>>> Stashed changes
 
 #: Source/monstdat.cpp:344
 #, c++-format
 msgid "A monster type already exists for ID \"{}\"."
+<<<<<<< Updated upstream
 msgstr ""
+=======
+msgstr "Bu ID’de bir canavar tipi zaten bulunuyor: {}"
+>>>>>>> Stashed changes
 
 #: Source/monster.cpp:2990
 msgid "Animal"
@@ -3572,7 +3696,7 @@ msgstr "Bazı Büyülere Bağışıklı"
 
 #: Source/mpq/mpq_writer.cpp:174
 msgid "Failed to open archive for writing."
-msgstr "Yazmak için arşivi açma işlemi başarısız."
+msgstr "Arşivi yazma amaçlı açma işlemi başarısız."
 
 #: Source/msg.cpp:1701
 #, c++-format
@@ -4002,10 +4126,15 @@ msgid "Game Mode"
 msgstr "Oyun Modu"
 
 #: Source/options.cpp:422
+<<<<<<< Updated upstream
 #, fuzzy
 #| msgid "Gameplay Settings"
 msgid "Game Mode Settings"
 msgstr "Oynanış Ayarları"
+=======
+msgid "Game Mode Settings"
+msgstr "Oyun Modu Ayarları"
+>>>>>>> Stashed changes
 
 #: Source/options.cpp:423
 msgid "Play Diablo or Hellfire."
@@ -4124,11 +4253,14 @@ msgid "Resampling Quality"
 msgstr "Yeniden Örneklendirme Kalitesi"
 
 #: Source/options.cpp:510
+<<<<<<< Updated upstream
 #, fuzzy
 #| msgid "Quality of the resampler, from 0 (lowest) to 10 (highest)."
+=======
+>>>>>>> Stashed changes
 msgid "Quality of the resampler, from 0 (lowest) to 5 (highest)."
 msgstr ""
-"Yeniden örneklendiricinin kalitesi, en düşük 0’dan en yüksek 10’a kadar."
+"Yeniden örneklendiricinin kalitesi, en düşük 0’dan en yüksek 5’e kadar."
 
 #: Source/options.cpp:535
 msgid ""
@@ -4229,12 +4361,21 @@ msgstr "Görüntüyü tam sayı piksel oranlarını kullanarak ölçeklendirir."
 
 #: Source/options.cpp:721
 msgid "Frame Rate Control"
+<<<<<<< Updated upstream
 msgstr ""
+=======
+msgstr "Kare Hızı Kontrolü"
+>>>>>>> Stashed changes
 
 #: Source/options.cpp:722
 msgid ""
 "Manages frame rate to balance performance, reduce tearing, or save power."
 msgstr ""
+<<<<<<< Updated upstream
+=======
+"Performansı dengelemek, görüntüde yırtılmayı azaltmak veya güç tasarrufu "
+"için kare hızını ayarlar."
+>>>>>>> Stashed changes
 
 #: Source/options.cpp:732
 msgid "Vertical Sync"
@@ -4242,13 +4383,18 @@ msgstr "Dikey Senkronizasyon"
 
 #: Source/options.cpp:734
 msgid "Limit FPS"
+<<<<<<< Updated upstream
 msgstr ""
+=======
+msgstr "FPS’i Sınırla"
+>>>>>>> Stashed changes
 
 #: Source/options.cpp:737
 msgid "Zoom on when enabled."
 msgstr "Aktifleştirildiğinde zumlar."
 
 #: Source/options.cpp:738
+<<<<<<< Updated upstream
 #, fuzzy
 #| msgid " Lightning"
 msgid "Per-pixel Lighting"
@@ -4257,6 +4403,14 @@ msgstr " Şimşek"
 #: Source/options.cpp:738
 msgid "Subtile lighting for smoother light gradients."
 msgstr ""
+=======
+msgid "Per-pixel Lighting"
+msgstr "Piksel Başına Aydınlatma"
+
+#: Source/options.cpp:738
+msgid "Subtile lighting for smoother light gradients."
+msgstr "Daha yumuşak ışıklandırma geçişleri için aydınlatmayı yumuşatır."
+>>>>>>> Stashed changes
 
 #: Source/options.cpp:739
 msgid "Color Cycling"
@@ -4424,15 +4578,24 @@ msgid "Displays current / max mana value on mana globe."
 msgstr "Anlık ve maksimum mana değerlerini mana küresinin üzerinde gösterir."
 
 #: Source/options.cpp:797
+<<<<<<< Updated upstream
 #, fuzzy
 #| msgid "Character Information"
 msgid "Show Party Information"
 msgstr "Karakter Bilgileri"
+=======
+msgid "Show Party Information"
+msgstr "Grup Bilgilerini Göster"
+>>>>>>> Stashed changes
 
 #: Source/options.cpp:797
 msgid ""
 "Displays the health and mana of all connected multiplayer party members."
+<<<<<<< Updated upstream
 msgstr ""
+=======
+msgstr "Bağlı olan tüm grup üyelerinin can ve mana değerlerini gösterir."
+>>>>>>> Stashed changes
 
 #: Source/options.cpp:798
 msgid "Enemy Health Bar"
@@ -4444,11 +4607,19 @@ msgstr "Düşman can barı ekranın üstünde gösterilir."
 
 #: Source/options.cpp:799
 msgid "Floating Item Info Box"
+<<<<<<< Updated upstream
 msgstr ""
 
 #: Source/options.cpp:799
 msgid "Displays item info in a floating box when hovering over an item."
 msgstr ""
+=======
+msgstr "Eşya Bilgi Kutusu"
+
+#: Source/options.cpp:799
+msgid "Displays item info in a floating box when hovering over an item."
+msgstr "İmleç ile bir eşya üzerinde gezinirken eşya bilgisini gösterir"
+>>>>>>> Stashed changes
 
 #: Source/options.cpp:800
 msgid "Gold is automatically collected when in close proximity to the player."
@@ -4650,6 +4821,7 @@ msgstr "Kontrolcü Tuş Atama Ayarları"
 
 #: Source/options.cpp:1512
 msgid "Mods"
+<<<<<<< Updated upstream
 msgstr ""
 
 #: Source/options.cpp:1512
@@ -4657,6 +4829,13 @@ msgstr ""
 #| msgid "Settings"
 msgid "Mod Settings"
 msgstr "Ayarlar"
+=======
+msgstr "Modlar"
+
+#: Source/options.cpp:1512
+msgid "Mod Settings"
+msgstr "Mod Ayarları"
+>>>>>>> Stashed changes
 
 #: Source/panels/charpanel.cpp:133
 msgid "Level"
@@ -4707,10 +4886,15 @@ msgid "Armor class"
 msgstr "Zırh Sınıfı"
 
 #: Source/panels/charpanel.cpp:176
+<<<<<<< Updated upstream
 #, fuzzy
 #| msgid "chance to hit"
 msgid "Chance To Hit"
 msgstr "vuruş şansını artırır"
+=======
+msgid "Chance To Hit"
+msgstr "Vuruş Şansı"
+>>>>>>> Stashed changes
 
 #: Source/panels/charpanel.cpp:178
 msgid "Damage"
@@ -4847,14 +5031,22 @@ msgstr "Karakter yüklenemedi"
 
 #: Source/playerdat.cpp:320
 msgid "Loading Class Data Failed"
+<<<<<<< Updated upstream
 msgstr ""
+=======
+msgstr "Sınıf Verisi Yüklenemedi"
+>>>>>>> Stashed changes
 
 #: Source/playerdat.cpp:320
 #, c++-format
 msgid ""
 "Could not add a class, since the maximum class number of {} has already been "
 "reached."
+<<<<<<< Updated upstream
 msgstr ""
+=======
+msgstr "Azami sınıf sayısına({}) ulaşıldığı için, bu canavar eklenemedi."
+>>>>>>> Stashed changes
 
 #: Source/plrmsg.cpp:79 Source/qol/chatlog.cpp:130
 #, c++-format
@@ -5288,12 +5480,20 @@ msgstr "Altının: {:s}"
 
 #: Source/textdat.cpp:72
 msgid "Loading Text Data Failed"
+<<<<<<< Updated upstream
 msgstr ""
+=======
+msgstr "Metin Verisi Yüklenemedi"
+>>>>>>> Stashed changes
 
 #: Source/textdat.cpp:72
 #, c++-format
 msgid "A text data entry already exists for ID \"{}\"."
+<<<<<<< Updated upstream
 msgstr ""
+=======
+msgstr "\"{}\" ID’li bir metin datası zaten var."
+>>>>>>> Stashed changes
 
 #: Source/towners.cpp:269
 msgid "Slain Townsman"
@@ -6452,7 +6652,11 @@ msgstr "Katedral Haritası"
 
 #: Source/translation_dummy.cpp:239
 msgid "Ear"
+<<<<<<< Updated upstream
 msgstr ""
+=======
+msgstr "Kulak"
+>>>>>>> Stashed changes
 
 #: Source/translation_dummy.cpp:240
 msgid "Potion of Healing"
@@ -6952,6 +7156,7 @@ msgstr "Arena İksiri"
 
 #: Source/translation_dummy.cpp:369
 msgid "The Butcher's Cleaver"
+<<<<<<< Updated upstream
 msgstr "Kasapın Satırı"
 
 #: Source/translation_dummy.cpp:370
@@ -6959,6 +7164,13 @@ msgstr "Kasapın Satırı"
 #| msgid "Lightsabre"
 msgid "Lightforge"
 msgstr "Işıkkılıcı"
+=======
+msgstr "Kasap’ın Satırı"
+
+#: Source/translation_dummy.cpp:370
+msgid "Lightforge"
+msgstr "Işıkdöven"
+>>>>>>> Stashed changes
 
 #: Source/translation_dummy.cpp:371
 msgid "The Rift Bow"
@@ -11409,7 +11621,7 @@ msgstr "Möö."
 
 #: Source/translation_dummy.cpp:953
 msgid "I said, Moo."
-msgstr "Möö dedim."
+msgstr "Möö dedim ya."
 
 #: Source/translation_dummy.cpp:954
 msgid "Look I'm just a cow, OK?"
