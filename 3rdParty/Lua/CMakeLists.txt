@@ -26,6 +26,10 @@ if(CMAKE_SYSTEM_NAME MATCHES "Darwin" AND DARWIN_MAJOR_VERSION VERSION_EQUAL 8)
   # localtime_r gmtime_r
   find_package(MacportsLegacySupport REQUIRED)
   target_link_libraries(lua_static PRIVATE MacportsLegacySupport::MacportsLegacySupport)
+elseif(EMSCRIPTEN)
+  # Enable pthread support for Emscripten to match SDL2's USE_PTHREADS=1
+  target_compile_options(lua_static PUBLIC -pthread)
+  target_link_options(lua_static PUBLIC -pthread)
 elseif(TARGET_PLATFORM STREQUAL "dos")
   target_compile_definitions(lua_static PUBLIC -DLUA_USE_C89)
 elseif(ANDROID AND ("${ANDROID_ABI}" STREQUAL "armeabi-v7a" OR "${ANDROID_ABI}" STREQUAL "x86"))
