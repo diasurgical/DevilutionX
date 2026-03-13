@@ -389,6 +389,10 @@ inline bool RemoveInventoryOrBeltItemById(Player &player, _item_indexes id)
  */
 void ConsumeScroll(Player &player);
 
+void CheckInvCut(Player &player, Point cursorPosition, bool automaticMove, bool dropItem);
+
+void CheckInvPaste(Player &player, Point cursorPosition);
+
 /* data */
 
 } // namespace devilution
