@@ -36,6 +36,11 @@ jobs:
     - name: ccache
       uses: hendrikmuhs/ccache-action@v1.2
 
+    - name: Add ccache to path
+      # This is where ccache-action places `ccache.exe`, see:
+      # https://github.com/hendrikmuhs/ccache-action/blob/657bab9aeb32eb6d913c2e6882efad4bb7536d94/src/restore.ts#L74-L75
+      run: Add-Content $env:GITHUB_PATH "$($env:USERPROFILE)\.cargo\bin"
+
     - name: Install latest CMake
       uses: lukka/get-cmake@latest
 
