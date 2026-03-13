@@ -29,3 +29,10 @@ set(UBSAN OFF)
 
 # Disable in-game options to exit the game.
 set(NOEXIT ON)
+
+# NDK C++ compiler does not support [[noreturn]], leading to lots of warnings like this:
+#
+#   warning: non-void function does not return a value in all control paths
+#
+# Silence them.
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-return-type")
