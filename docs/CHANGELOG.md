@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Features
 
+#### Gameplay
+
+- Stand ground attacks nearby targets instead of nearby tiles to improve accuracy
+
 #### Graphics / Audio
 - Better use of colors to differentiate players in multiplayer
 
