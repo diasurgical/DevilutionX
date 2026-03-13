@@ -2764,11 +2764,12 @@ StartPlayerKill(Player &player, DeathReason deathReason)
 					break;
 				}
 
-				ear._iCreateInfo = player._pName[0] << 8 | player._pName[1];
+				// This is a hack that uses creation bits, seed, and value as characters for storing the name of the player.
+				ear.setAllCreationFlags(player._pName[0] << 8 | player._pName[1]);
 				ear._iSeed = player._pName[2] << 24 | player._pName[3] << 16 | player._pName[4] << 8 | player._pName[5];
 				ear._ivalue = player.getCharacterLevel();
 
-				if (FindGetItem(ear._iSeed, IDI_EAR, ear._iCreateInfo) == -1) {
+				if (FindGetItem(ear._iSeed, IDI_EAR, ear.getAllCreationFlags()) == -1) {
 					DeadItem(player, std::move(ear), { 0, 0 });
 				}
 			}

@@ -91,14 +91,14 @@ bool RecreateHellfireSpellBook(const Player &player, const TItem &packedItem, It
 	// CreateSpellBook() adds 1 to the spell level for ilvl
 	spellBookLevel++;
 
-	if (spellBookLevel >= 1 && (spellBook._iCreateInfo & CF_LEVEL) == spellBookLevel * 2) {
+	if (spellBookLevel >= 1 && spellBook.getItemLevel() == spellBookLevel * 2) {
 		// The ilvl matches the result for a spell book drop, so we confirm the item is legitimate
 		if (item != nullptr)
 			*item = spellBook;
 		return true;
 	}
 
-	ValidateFields(spellBook._iCreateInfo, spellBook.dwBuff, IsDungeonItemValid(spellBook._iCreateInfo, spellBook.dwBuff));
+	ValidateFields(spellBook.getAllCreationFlags(), spellBook.getAllCreationFlags2(), IsDungeonItemValid(spellBook.getAllCreationFlags(), spellBook.getAllCreationFlags2()));
 	if (item != nullptr)
 		*item = spellBook;
 	return true;
@@ -131,7 +131,7 @@ void PackItem(ItemPack &packedItem, const Item &item, bool isHellfire)
 			packedItem.dwBuff = Swap32LE(LoadBE32(&item._iIName[12]));
 		} else {
 			packedItem.iSeed = Swap32LE(item._iSeed);
-			packedItem.iCreateInfo = Swap16LE(item._iCreateInfo);
+			packedItem.iCreateInfo = Swap16LE(item.getAllCreationFlags());
 			packedItem.bId = (item._iMagical << 1) | (item._iIdentified ? 1 : 0);
 			if (item._iMaxDur > 255)
 				packedItem.bMDur = 254;
@@ -143,7 +143,7 @@ void PackItem(ItemPack &packedItem, const Item &item, bool isHellfire)
 			packedItem.bMCh = item._iMaxCharges;
 			if (item.IDidx == IDI_GOLD)
 				packedItem.wValue = Swap16LE(item._ivalue);
-			packedItem.dwBuff = item.dwBuff;
+			packedItem.dwBuff = item.getAllCreationFlags2();
 		}
 	}
 }
@@ -208,7 +208,7 @@ void PackNetItem(const Item &item, ItemNetPack &packedItem)
 		return;
 	}
 	packedItem.def.wIndx = static_cast<_item_indexes>(Swap16LE(item.IDidx));
-	packedItem.def.wCI = Swap16LE(item._iCreateInfo);
+	packedItem.def.wCI = Swap16LE(item.getAllCreationFlags());
 	packedItem.def.dwSeed = Swap32LE(item._iSeed);
 	if (item.IDidx != IDI_EAR)
 		PrepareItemForNetwork(item, packedItem.item);
