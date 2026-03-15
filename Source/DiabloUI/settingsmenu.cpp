@@ -107,6 +107,41 @@ bool NeedsTwoLinesToDisplayOption(std::vector<DrawStringFormatArg> &formatArgs)
 	return GetLineWidth("{}: {}", formatArgs.data(), formatArgs.size(), 0, GameFontTables::GameFont24, 1) >= (rectList.size.width - 90);
 }
 
+void AddSettingsSpacer()
+{
+	vecDialogItems.push_back(std::make_unique<UiListItem>(
+	    std::string_view {}, static_cast<int>(SpecialMenuEntry::None), UiFlags::ElementDisabled));
+}
+
+void AddSettingsSectionHeader(std::string_view text, bool addSpacer)
+{
+	if (addSpacer)
+		AddSettingsSpacer();
+	vecDialogItems.push_back(std::make_unique<UiListItem>(
+	    text, static_cast<int>(SpecialMenuEntry::None), UiFlags::ColorWhitegold | UiFlags::ElementDisabled));
+}
+
+void MaybeAddGameplaySectionHeader(OptionEntryBase *pEntry)
+{
+	if (selectedCategory != &GetOptions().Gameplay)
+		return;
+
+	const GameplayOptions &gameplay = GetOptions().Gameplay;
+
+	// Sections are intentionally lightweight: just labels/separators, no submenus and no changes to options model.
+	if (pEntry == &gameplay.friendlyFire) {
+		AddSettingsSectionHeader(_("Game Rules"), false);
+	} else if (pEntry == &gameplay.runInTown) {
+		AddSettingsSectionHeader(_("Controls"), true);
+	} else if (pEntry == &gameplay.experienceBar) {
+		AddSettingsSectionHeader(_("Interface"), true);
+	} else if (pEntry == &gameplay.autoRefillBelt) {
+		AddSettingsSectionHeader(_("Items & Auto Pickup"), true);
+	} else if (pEntry == &gameplay.disableCripplingShrines) {
+		AddSettingsSectionHeader(_("Safety & Focus"), true);
+	}
+}
+
 void CleanUpSettingsUI()
 {
 	UiInitList_clear();
@@ -419,11 +454,21 @@ void UiSettingsMenu()
 			}
 		} break;
 		case ShownMenuType::Settings: {
+			bool foundSelectedOption = false;
+			std::optional<size_t> firstSelectableItemIndex;
 			for (OptionEntryBase *pEntry : selectedCategory->GetEntries()) {
 				if (!IsValidEntry(pEntry))
 					continue;
-				if (selectedOption == pEntry)
+
+				MaybeAddGameplaySectionHeader(pEntry);
+
+				if (!firstSelectableItemIndex.has_value())
+					firstSelectableItemIndex = vecDialogItems.size();
+				if (selectedOption == pEntry) {
 					itemToSelect = vecDialogItems.size();
+					foundSelectedOption = true;
+				}
+
 				auto formatArgs = CreateDrawStringFormatArgForEntry(pEntry);
 				const int optionId = static_cast<int>(vecOptions.size());
 				if (NeedsTwoLinesToDisplayOption(formatArgs)) {
@@ -434,6 +479,10 @@ void UiSettingsMenu()
 				}
 				vecOptions.push_back(pEntry);
 			}
+			// If previously selected option doesn't exist (e.g., became invisible),
+			// set focus on first real option, not on header.
+			if (!foundSelectedOption && firstSelectableItemIndex.has_value())
+				itemToSelect = *firstSelectableItemIndex;
 		} break;
 		case ShownMenuType::ListOption: {
 			auto *pOptionList = static_cast<OptionEntryListBase *>(selectedOption);
