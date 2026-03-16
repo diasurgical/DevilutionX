@@ -2540,7 +2540,13 @@ void CalcPlrLightRadius(Player &player, int lrad)
 {
 	lrad = std::clamp(lrad, 2, 15);
 
-	if (player._pLightRad != lrad) {
+	const bool playerOnActiveLevel = player.isOnActiveLevel();
+	const bool visionRadiusOutOfSync = playerOnActiveLevel && VisionList[player.getId()].radius != lrad;
+	const bool lightRadiusOutOfSync = playerOnActiveLevel
+	    && player.lightId != NO_LIGHT
+	    && Lights[player.lightId].radius != lrad;
+
+	if (player._pLightRad != lrad || visionRadiusOutOfSync || lightRadiusOutOfSync) {
 		ChangeLightRadius(player.lightId, lrad);
 		ChangeVisionRadius(player.getId(), lrad);
 		player._pLightRad = lrad;
