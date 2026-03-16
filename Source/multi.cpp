@@ -28,6 +28,7 @@
 #include "engine/random.hpp"
 #include "engine/world_tile.hpp"
 #include "game_mode.hpp"
+#include "lighting.h"
 #include "menu.h"
 #include "monster.h"
 #include "msg.h"
@@ -958,6 +959,8 @@ void recv_plrinfo(Player &player, const TCmdPlrInfoHdr &header, bool recv)
 	if (!player.isOnActiveLevel()) {
 		return;
 	}
+
+	ActivateVision(player.position.tile, player._pLightRad, player.getId());
 
 	if (!player.hasNoLife()) {
 		StartStand(player, player._pdir);

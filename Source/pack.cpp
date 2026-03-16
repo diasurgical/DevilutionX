@@ -12,6 +12,7 @@
 #include "items/validation.h"
 #include "loadsave.h"
 #include "plrmsg.h"
+#include "spells.h"
 #include "stores.h"
 #include "tables/playerdat.hpp"
 #include "utils/endian_read.hpp"
@@ -505,8 +506,6 @@ bool UnPackNetPlayer(const PlayerNetPack &packed, Player &player)
 	ClrPlrPath(player);
 	player.destAction = ACTION_NONE;
 
-	InitPlayer(player, true);
-
 	player._pBaseStr = packed.pBaseStr;
 	player._pStrength = player._pBaseStr;
 	player._pBaseMag = packed.pBaseMag;
@@ -580,6 +579,8 @@ bool UnPackNetPlayer(const PlayerNetPack &packed, Player &player)
 	}
 
 	CalcPlrInv(player, false);
+	player._pAblSpells = GetSpellBitmask(GetPlayerStartingLoadoutForClass(player._pClass).skill);
+	player._pInvincible = false;
 	player._pGold = CalculateGold(player);
 
 	ValidateFields(player._pStrength, SwapSigned32LE(packed.pStrength), player._pStrength == SwapSigned32LE(packed.pStrength));
