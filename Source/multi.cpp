@@ -726,17 +726,16 @@ void ProcessGameMessagePackets()
 			player._pBaseMag = pkt->bmag;
 			player._pBaseDex = pkt->bdex;
 
-			const uint8_t rawDir = pkt->pdir;
-			if (rawDir <= static_cast<uint8_t>(Direction::SouthEast)) {
-				const Direction newDir = static_cast<Direction>(rawDir);
-				if (player._pdir != newDir && player._pmode == PM_STAND) {
-					player._pdir = newDir;
-					StartStand(player, newDir);
-				}
-			}
-
 			if (!cond && player.plractive && !player.hasNoLife()) {
 				if (player.isOnActiveLevel() && !player._pLvlChanging) {
+					const uint8_t rawDir = pkt->pdir;
+					if (rawDir <= static_cast<uint8_t>(Direction::SouthEast)) {
+						const Direction newDir = static_cast<Direction>(rawDir);
+						if (player._pdir != newDir && player._pmode == PM_STAND) {
+							player._pdir = newDir;
+							StartStand(player, newDir);
+						}
+					}
 					if (player.position.tile.WalkingDistance(syncPosition) > 3 && PosOkPlayer(player, syncPosition)) {
 						// got out of sync, clear the tiles around where we last thought the player was located
 						FixPlrWalkTags(player);
