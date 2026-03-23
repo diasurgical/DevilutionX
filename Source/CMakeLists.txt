@@ -142,6 +142,8 @@ set(libdevilutionx_SRCS
 
   platform/locale.cpp
 
+  players/validation.cpp
+
   portals/validation.cpp
 
   qol/autopickup.cpp

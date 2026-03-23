@@ -35,6 +35,7 @@
 #include "options.h"
 #include "pfile.h"
 #include "player.h"
+#include "players/validation.hpp"
 #include "plrmsg.h"
 #include "qol/chatlog.h"
 #include "storm/storm_net.hpp"
@@ -181,16 +182,6 @@ void NetReceivePlayerData(TPkt *pkt)
 	pkt->hdr.bmag = myPlayer._pBaseMag;
 	pkt->hdr.bdex = myPlayer._pBaseDex;
 	pkt->hdr.pdir = static_cast<uint8_t>(myPlayer._pdir);
-}
-
-bool IsNetPlayerValid(const Player &player)
-{
-	// we no longer check character level here, players with out-of-range clevels are not allowed to join the game and we don't observe change clevel messages that would set it out of range
-	// (there's no code path that would result in _pLevel containing an out of range value in the DevilutionX code)
-	return static_cast<uint8_t>(player._pClass) < GetNumPlayerClasses()
-	    && player.plrlevel < NUMLEVELS
-	    && InDungeonBounds(player.position.tile)
-	    && !std::string_view(player._pName).empty();
 }
 
 void CheckPlayerInfoTimeouts()
@@ -364,6 +355,60 @@ void BeginTimeout()
 	}
 
 	CheckDropPlayer();
+}
+
+void SyncPacketHeaderData(Player &player, const TPktHdr &pkt)
+{
+	const Point syncPosition = { pkt.px, pkt.py };
+	player.position.last = syncPosition;
+	if (&player != MyPlayer) {
+		assert(gbBufferMsgs != 2);
+		player._pHitPoints = Swap32LE(pkt.php);
+		player._pMaxHP = Swap32LE(pkt.pmhp);
+		player._pMana = Swap32LE(pkt.mana);
+		player._pMaxMana = Swap32LE(pkt.maxmana);
+		const bool cond = gbBufferMsgs == 1;
+		player._pBaseStr = pkt.bstr;
+		player._pBaseMag = pkt.bmag;
+		player._pBaseDex = pkt.bdex;
+
+		if (!cond && player.plractive && !player.hasNoLife()) {
+			if (player.isOnActiveLevel() && !player._pLvlChanging) {
+				const uint8_t rawDir = pkt.pdir;
+				if (rawDir <= static_cast<uint8_t>(Direction::SouthEast)) {
+					const auto newDir = static_cast<Direction>(rawDir);
+					if (player._pdir != newDir && player._pmode == PM_STAND) {
+						player._pdir = newDir;
+						StartStand(player, newDir);
+					}
+				}
+				if (player.position.tile.WalkingDistance(syncPosition) > 3 && PosOkPlayer(player, syncPosition)) {
+					// got out of sync, clear the tiles around where we last thought the player was located
+					FixPlrWalkTags(player);
+
+					player.position.old = player.position.tile;
+					// then just in case clear the tiles around the current position (probably unnecessary)
+					FixPlrWalkTags(player);
+					player.position.tile = syncPosition;
+					player.position.future = syncPosition;
+					if (player.isWalking())
+						player.position.temp = syncPosition;
+					SetPlayerOld(player);
+					player.occupyTile(player.position.tile, false);
+				}
+				if (player.position.future.WalkingDistance(player.position.tile) > 1) {
+					player.position.future = player.position.tile;
+				}
+				const Point target = { pkt.targx, pkt.targy };
+				if (target != Point {}) // does the client send a desired (future) position of remote player?
+					MakePlrPath(player, target, true);
+			} else {
+				player.position.tile = syncPosition;
+				player.position.future = syncPosition;
+				SetPlayerOld(player);
+			}
+		}
+	}
 }
 
 void HandleAllPackets(uint8_t pnum, const std::byte *data, size_t size)
@@ -692,78 +737,42 @@ void ProcessGameMessagePackets()
 
 	uint8_t playerId = std::numeric_limits<uint8_t>::max();
 	TPktHdr *pkt;
-	size_t dwMsgSize = 0;
-	while (SNetReceiveMessage(&playerId, (void **)&pkt, &dwMsgSize)) {
+	size_t totalPacketSize = 0;
+	while (SNetReceiveMessage(&playerId, (void **)&pkt, &totalPacketSize)) {
 		dwRecCount++;
 		ClearPlayerLeftState();
-		if (dwMsgSize < sizeof(TPktHdr))
+		if (totalPacketSize < sizeof(TPktHdr))
 			continue;
 		if (playerId >= Players.size())
 			continue;
 		if (pkt->wCheck != HeaderCheckVal)
 			continue;
-		if (Swap16LE(pkt->wLen) != dwMsgSize)
+		if (Swap16LE(pkt->wLen) != totalPacketSize)
 			continue;
+
+		// Distrust all messages until player info is received
 		Player &player = Players[playerId];
-		if (!IsNetPlayerValid(player)) {
-			const _cmd_id cmd = *(const _cmd_id *)(pkt + 1);
-			if (gbBufferMsgs == 0 && IsNoneOf(cmd, CMD_SEND_PLRINFO, CMD_ACK_PLRINFO)) {
-				// Distrust all messages until
-				// player info is received
+		const bool isTrustedPacket = IsNetPlayerValid(player);
+		if (isTrustedPacket) {
+			SyncPacketHeaderData(player, *pkt);
+		}
+
+		const bool isBufferingMessages = gbBufferMsgs != 0;
+		const std::byte *message = (const std::byte *)(pkt + 1);
+		const size_t messageSize = totalPacketSize - sizeof(TPktHdr);
+
+		// It's okay to buffer untrusted messages
+		// because the player will be validated again later
+		if (!isTrustedPacket && !isBufferingMessages) {
+			if (messageSize < 1)
 				continue;
-			}
-		}
-		const Point syncPosition = { pkt->px, pkt->py };
-		player.position.last = syncPosition;
-		if (&player != MyPlayer) {
-			assert(gbBufferMsgs != 2);
-			player._pHitPoints = Swap32LE(pkt->php);
-			player._pMaxHP = Swap32LE(pkt->pmhp);
-			player._pMana = Swap32LE(pkt->mana);
-			player._pMaxMana = Swap32LE(pkt->maxmana);
-			const bool cond = gbBufferMsgs == 1;
-			player._pBaseStr = pkt->bstr;
-			player._pBaseMag = pkt->bmag;
-			player._pBaseDex = pkt->bdex;
 
-			if (!cond && player.plractive && !player.hasNoLife()) {
-				if (player.isOnActiveLevel() && !player._pLvlChanging) {
-					const uint8_t rawDir = pkt->pdir;
-					if (rawDir <= static_cast<uint8_t>(Direction::SouthEast)) {
-						const auto newDir = static_cast<Direction>(rawDir);
-						if (player._pdir != newDir && player._pmode == PM_STAND) {
-							player._pdir = newDir;
-							StartStand(player, newDir);
-						}
-					}
-					if (player.position.tile.WalkingDistance(syncPosition) > 3 && PosOkPlayer(player, syncPosition)) {
-						// got out of sync, clear the tiles around where we last thought the player was located
-						FixPlrWalkTags(player);
-
-						player.position.old = player.position.tile;
-						// then just in case clear the tiles around the current position (probably unnecessary)
-						FixPlrWalkTags(player);
-						player.position.tile = syncPosition;
-						player.position.future = syncPosition;
-						if (player.isWalking())
-							player.position.temp = syncPosition;
-						SetPlayerOld(player);
-						player.occupyTile(player.position.tile, false);
-					}
-					if (player.position.future.WalkingDistance(player.position.tile) > 1) {
-						player.position.future = player.position.tile;
-					}
-					const Point target = { pkt->targx, pkt->targy };
-					if (target != Point {}) // does the client send a desired (future) position of remote player?
-						MakePlrPath(player, target, true);
-				} else {
-					player.position.tile = syncPosition;
-					player.position.future = syncPosition;
-					SetPlayerOld(player);
-				}
-			}
+			const _cmd_id cmd = static_cast<_cmd_id>(message[0]);
+			if (IsNoneOf(cmd, CMD_SEND_PLRINFO, CMD_ACK_PLRINFO))
+				continue;
 		}
-		HandleAllPackets(playerId, (const std::byte *)(pkt + 1), dwMsgSize - sizeof(TPktHdr));
+
+		HandleAllPackets(playerId, message, messageSize);
 	}
 	CheckPlayerInfoTimeouts();
 }

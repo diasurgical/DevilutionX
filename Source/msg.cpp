@@ -48,6 +48,7 @@
 #include "pack.h"
 #include "pfile.h"
 #include "player.h"
+#include "players/validation.hpp"
 #include "plrmsg.h"
 #include "portals/validation.hpp"
 #include "quests/validation.hpp"
@@ -449,6 +450,11 @@ void PrePacket()
 
 			if (playerId >= Players.size()) {
 				Log("Missing source of network message");
+				return;
+			}
+
+			if (!IsNetPlayerValid(playerId)) {
+				Log("Source of network message is no longer valid");
 				return;
 			}
 
