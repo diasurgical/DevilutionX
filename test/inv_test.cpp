@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include <gtest/gtest.h>
 
 #include "cursor.h"
@@ -62,6 +64,39 @@ void clear_inventory()
 		MyPlayer->InvGrid[i] = 0;
 	}
 	MyPlayer->_pNumInv = 0;
+}
+
+void place_inventory_item(int invIndex, int gridIndex, _item_indexes itemId)
+{
+	Item &item = MyPlayer->InvList[invIndex];
+	InitializeItem(item, itemId);
+	item.updateRequiredStatsCacheForPlayer(*MyPlayer);
+	MyPlayer->InvGrid[gridIndex] = invIndex + 1;
+	MyPlayer->_pNumInv = std::max(MyPlayer->_pNumInv, invIndex + 1);
+}
+
+int count_inventory_items_with_id(_item_indexes itemId)
+{
+	int count = 0;
+	for (int i = 0; i < MyPlayer->_pNumInv; i++) {
+		if (MyPlayer->InvList[i].IDidx == itemId) {
+			count++;
+		}
+	}
+
+	return count;
+}
+
+int count_positive_inv_grid_slots()
+{
+	int count = 0;
+	for (const int8_t cell : MyPlayer->InvGrid) {
+		if (cell > 0) {
+			count++;
+		}
+	}
+
+	return count;
 }
 
 // Test that the scroll is used in the inventory in correct conditions
@@ -383,6 +418,77 @@ TEST_F(InvTest, ItemSizeLastDiabloItem)
 	Item testItem {};
 	InitializeItem(testItem, IDI_SHORT_BATTLE_BOW);
 	EXPECT_EQ(GetInventorySize(testItem), Size(2, 3));
+}
+
+TEST_F(InvTest, AutoPlaceItemInInventoryCombinesInsertedNaKrulNote)
+{
+	if (!gbIsHellfire) return;
+	SNetInitializeProvider(SELCONN_LOOPBACK, nullptr);
+
+	clear_inventory();
+	place_inventory_item(0, 0, IDI_NOTE2);
+	place_inventory_item(1, 1, IDI_NOTE3);
+
+	Item insertedNote {};
+	InitializeItem(insertedNote, IDI_NOTE1);
+	insertedNote.updateRequiredStatsCacheForPlayer(*MyPlayer);
+
+	ASSERT_TRUE(AutoPlaceItemInInventory(*MyPlayer, insertedNote));
+	EXPECT_EQ(MyPlayer->_pNumInv, 1);
+	EXPECT_EQ(count_inventory_items_with_id(IDI_FULLNOTE), 1);
+	EXPECT_EQ(count_inventory_items_with_id(IDI_NOTE1), 0);
+	EXPECT_EQ(count_inventory_items_with_id(IDI_NOTE2), 0);
+	EXPECT_EQ(count_inventory_items_with_id(IDI_NOTE3), 0);
+	EXPECT_EQ(MyPlayer->InvGrid[0], 0);
+	EXPECT_EQ(MyPlayer->InvGrid[1], 0);
+	EXPECT_EQ(MyPlayer->InvGrid[2], 1);
+}
+
+TEST_F(InvTest, AutoPlaceItemInInventoryCombinesInsertedDuplicateNaKrulNote)
+{
+	if (!gbIsHellfire) return;
+	SNetInitializeProvider(SELCONN_LOOPBACK, nullptr);
+
+	clear_inventory();
+	place_inventory_item(0, 0, IDI_NOTE1);
+	place_inventory_item(1, 1, IDI_NOTE2);
+	place_inventory_item(2, 2, IDI_NOTE3);
+
+	Item insertedNote {};
+	InitializeItem(insertedNote, IDI_NOTE1);
+	insertedNote.updateRequiredStatsCacheForPlayer(*MyPlayer);
+
+	ASSERT_TRUE(AutoPlaceItemInInventory(*MyPlayer, insertedNote));
+	EXPECT_EQ(MyPlayer->_pNumInv, 2);
+	EXPECT_EQ(count_inventory_items_with_id(IDI_FULLNOTE), 1);
+	EXPECT_EQ(count_inventory_items_with_id(IDI_NOTE1), 1);
+	EXPECT_EQ(count_inventory_items_with_id(IDI_NOTE2), 0);
+	EXPECT_EQ(count_inventory_items_with_id(IDI_NOTE3), 0);
+	EXPECT_EQ(count_positive_inv_grid_slots(), 2);
+	EXPECT_EQ(MyPlayer->InvGrid[0], 1);
+	EXPECT_EQ(MyPlayer->InvGrid[3], 2);
+	EXPECT_EQ(MyPlayer->InvList[0].IDidx, IDI_NOTE1);
+	EXPECT_EQ(MyPlayer->InvList[1].IDidx, IDI_FULLNOTE);
+}
+
+TEST_F(InvTest, ReorganizeInventoryDoesNotCombineNaKrulNotes)
+{
+	if (!gbIsHellfire) return;
+	SNetInitializeProvider(SELCONN_LOOPBACK, nullptr);
+
+	clear_inventory();
+	place_inventory_item(0, 0, IDI_NOTE1);
+	place_inventory_item(1, 1, IDI_NOTE2);
+	place_inventory_item(2, 2, IDI_NOTE3);
+
+	ReorganizeInventory(*MyPlayer);
+
+	EXPECT_EQ(MyPlayer->_pNumInv, 3);
+	EXPECT_EQ(count_inventory_items_with_id(IDI_FULLNOTE), 0);
+	EXPECT_EQ(count_inventory_items_with_id(IDI_NOTE1), 1);
+	EXPECT_EQ(count_inventory_items_with_id(IDI_NOTE2), 1);
+	EXPECT_EQ(count_inventory_items_with_id(IDI_NOTE3), 1);
+	EXPECT_EQ(count_positive_inv_grid_slots(), 3);
 }
 
 } // namespace
