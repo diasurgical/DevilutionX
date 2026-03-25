@@ -5,11 +5,15 @@
  */
 #include "gamemenu.h"
 
+#include <fmt/format.h>
+#include <string>
+
 #ifdef USE_SDL3
 #include <SDL3/SDL_timer.h>
 #endif
 
 #include "cursor.h"
+#include "diablo.h"
 #include "diablo_msg.hpp"
 #include "engine/backbuffer_state.hpp"
 #include "engine/demomode.h"
@@ -35,6 +39,9 @@ namespace devilution {
 bool isGameMenuOpen = false;
 
 namespace {
+
+constexpr const char *SaveFailedPreservedMessage = N_("Save failed. The previous save is still available.");
+constexpr const char *SaveFailedNoValidMessage = N_("Save failed. No valid save is available.");
 
 // Forward-declare menu handlers, used by the global menu structs below.
 void GamemenuPrevious(bool bActivate);
@@ -89,6 +96,8 @@ const char *const SoundToggleNames[] = {
 	N_("Sound Disabled"),
 };
 
+std::string saveGameMenuLabel;
+
 void GamemenuUpdateSingle()
 {
 	sgSingleMenu[2].setEnabled(gbValidSaveFile);
@@ -96,6 +105,27 @@ void GamemenuUpdateSingle()
 	const bool enable = MyPlayer->_pmode != PM_DEATH && !MyPlayerIsDead;
 
 	sgSingleMenu[0].setEnabled(enable);
+}
+
+std::string_view GetSaveGameMenuLabel()
+{
+#ifndef _DEBUG
+	return _("Save Game");
+#else
+	if (HasPendingAutoSave()) {
+		saveGameMenuLabel = fmt::format(fmt::runtime(_("Save Game ({:s})")), _("ready"));
+		return saveGameMenuLabel;
+	}
+
+	const int seconds = GetSecondsUntilNextAutoSave();
+	if (seconds < 0) {
+		saveGameMenuLabel = _("Save Game");
+		return saveGameMenuLabel;
+	}
+
+	saveGameMenuLabel = fmt::format(fmt::runtime(_("Save Game ({:d})")), seconds);
+	return saveGameMenuLabel;
+#endif
 }
 
 void GamemenuPrevious(bool /*bActivate*/)
@@ -350,17 +380,39 @@ void gamemenu_save_game(bool /*bActivate*/)
 	RedrawEverything();
 	DrawAndBlit();
 	const uint32_t currentTime = SDL_GetTicks();
-	SaveGame();
+	const SaveResult saveResult = SaveGame(SaveKind::Manual);
 	ClrDiabloMsg();
-	InitDiabloMsg(EMSG_GAME_SAVED, currentTime + 1000 - SDL_GetTicks());
+	switch (saveResult) {
+	case SaveResult::Success: {
+		const uint32_t afterSaveTime = SDL_GetTicks();
+		const int timeElapsed = static_cast<int>(afterSaveTime - currentTime);
+		const int displayTime = std::max(500, 1000 - timeElapsed);
+		InitDiabloMsg(EMSG_GAME_SAVED, displayTime);
+		break;
+	}
+	case SaveResult::FailedButPreviousSavePreserved:
+		InitDiabloMsg(_(SaveFailedPreservedMessage));
+		break;
+	case SaveResult::FailedNoValidSave:
+		InitDiabloMsg(_(SaveFailedNoValidMessage));
+		break;
+	}
 	RedrawEverything();
 	NewCursor(CURSOR_HAND);
-	if (CornerStone.activated) {
+	if (saveResult == SaveResult::Success && CornerStone.activated) {
 		CornerstoneSave();
 		if (!demo::IsRunning()) SaveOptions();
 	}
 	interface_msg_pump();
 	SetEventHandler(saveProc);
+}
+
+std::string_view GetGamemenuText(const TMenuItem &menuItem)
+{
+	if (menuItem.fnMenu == &gamemenu_save_game)
+		return GetSaveGameMenuLabel();
+
+	return _(menuItem.pszStr);
 }
 
 void gamemenu_on()

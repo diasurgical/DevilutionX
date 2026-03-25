@@ -29,6 +29,7 @@
 #include "engine/render/clx_render.hpp"
 #include "engine/render/primitive_render.hpp"
 #include "engine/render/text_render.hpp"
+#include "gamemenu.h"
 #include "headless_mode.hpp"
 #include "options.h"
 #include "stores.h"
@@ -123,11 +124,12 @@ int GmenuGetLineWidth(TMenuItem *pItem)
 	if (pItem->isSlider())
 		return SliderItemWidth;
 
-	return GetLineWidth(_(pItem->pszStr), GameFont46, 2);
+	return GetLineWidth(GetGamemenuText(*pItem), GameFont46, 2);
 }
 
 void GmenuDrawMenuItem(const Surface &out, TMenuItem *pItem, int y)
 {
+	const std::string_view menuText = GetGamemenuText(*pItem);
 	const int w = GmenuGetLineWidth(pItem);
 	if (pItem->isSlider()) {
 		const int uiPositionX = GetUIRectangle().position.x;
@@ -142,7 +144,7 @@ void GmenuDrawMenuItem(const Surface &out, TMenuItem *pItem, int y)
 
 	const int x = (gnScreenWidth - w) / 2;
 	const UiFlags style = pItem->enabled() ? UiFlags::ColorGold : UiFlags::ColorBlack;
-	DrawString(out, _(pItem->pszStr), Point { x, y },
+	DrawString(out, menuText, Point { x, y },
 	    { .flags = style | UiFlags::FontSize46, .spacing = 2 });
 	if (pItem == sgpCurrItem) {
 		const ClxSprite sprite = (*PentSpin_cel)[PentSpn2Spin()];

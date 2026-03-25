@@ -7,6 +7,10 @@
 #define SDL_MAX_UINT32 ((Uint32)0xFFFFFFFFu)
 #endif
 
+#ifndef SDL_TICKS_PASSED
+#define SDL_TICKS_PASSED(A, B) ((Sint32)((B) - (A)) <= 0)
+#endif
+
 #if !SDL_VERSION_ATLEAST(2, 0, 4)
 inline SDL_bool SDL_PointInRect(const SDL_Point *p, const SDL_Rect *r)
 {

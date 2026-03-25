@@ -76,9 +76,9 @@ std::string GetSavePath(uint32_t saveNum, std::string_view savePrefix = {})
 	);
 }
 
-std::string GetStashSavePath()
+std::string GetStashSavePath(std::string_view savePrefix = {})
 {
-	return StrCat(paths::PrefPath(),
+	return StrCat(paths::PrefPath(), savePrefix,
 	    gbIsSpawn ? "stash_spawn" : "stash",
 #ifdef UNPACKED_SAVES
 	    gbIsHellfire ? "_hsv" DIRECTORY_SEPARATOR_STR : "_sv" DIRECTORY_SEPARATOR_STR
@@ -170,22 +170,57 @@ SaveWriter GetStashWriter()
 	return SaveWriter(GetStashSavePath());
 }
 
-#ifndef DISABLE_DEMOMODE
-void CopySaveFile(uint32_t saveNum, std::string targetPath)
+#if !(defined(UNPACKED_SAVES) && defined(DVL_NO_FILESYSTEM))
+bool SaveLocationExists(const std::string &location)
 {
-	const std::string savePath = GetSavePath(saveNum);
+	return FileExists(location.c_str()) || DirectoryExists(location.c_str());
+}
+
+void CopySaveLocation(const std::string &sourceLocation, const std::string &targetLocation)
+{
 #if defined(UNPACKED_SAVES)
-#ifdef DVL_NO_FILESYSTEM
-#error "UNPACKED_SAVES requires either DISABLE_DEMOMODE or C++17 <filesystem>"
-#endif
-	if (!targetPath.empty()) {
-		CreateDir(targetPath.c_str());
+	if (!targetLocation.empty()) {
+		CreateDir(targetLocation.c_str());
 	}
-	for (const std::filesystem::directory_entry &entry : std::filesystem::directory_iterator(savePath)) {
-		CopyFileOverwrite(entry.path().string().c_str(), (targetPath + entry.path().filename().string()).c_str());
+	for (const std::filesystem::directory_entry &entry : std::filesystem::directory_iterator(sourceLocation)) {
+		const std::filesystem::path targetFilePath = std::filesystem::path(targetLocation) / entry.path().filename();
+		CopyFileOverwrite(entry.path().string().c_str(), targetFilePath.string().c_str());
 	}
 #else
-	CopyFileOverwrite(savePath.c_str(), targetPath.c_str());
+	CopyFileOverwrite(sourceLocation.c_str(), targetLocation.c_str());
+#endif
+}
+
+void RestoreSaveLocation(const std::string &targetLocation, const std::string &backupLocation)
+{
+#if defined(UNPACKED_SAVES)
+	if (DirectoryExists(targetLocation.c_str())) {
+		for (const std::filesystem::directory_entry &entry : std::filesystem::directory_iterator(targetLocation))
+			RemoveFile(entry.path().string().c_str());
+	}
+	CreateDir(targetLocation.c_str());
+	for (const std::filesystem::directory_entry &entry : std::filesystem::directory_iterator(backupLocation)) {
+		const std::filesystem::path restoredFilePath = std::filesystem::path(targetLocation) / entry.path().filename();
+		CopyFileOverwrite(entry.path().string().c_str(), restoredFilePath.string().c_str());
+	}
+#else
+	CopyFileOverwrite(backupLocation.c_str(), targetLocation.c_str());
+#endif
+}
+
+void DeleteSaveLocation(const std::string &location)
+{
+#if defined(UNPACKED_SAVES)
+	if (!DirectoryExists(location.c_str()))
+		return;
+
+	for (const std::filesystem::directory_entry &entry : std::filesystem::directory_iterator(location))
+		RemoveFile(entry.path().string().c_str());
+
+	std::filesystem::remove(location);
+#else
+	if (FileExists(location.c_str()))
+		RemoveFile(location.c_str());
 #endif
 }
 #endif
@@ -629,12 +664,118 @@ void pfile_write_hero(bool writeGameData)
 	pfile_write_hero(saveWriter, writeGameData);
 }
 
+#if !(defined(UNPACKED_SAVES) && defined(DVL_NO_FILESYSTEM))
+bool SaveWrittenGameIsValid()
+{
+	auto archive = OpenSaveArchive(gSaveNumber);
+	return archive && ArchiveContainsGame(*archive);
+}
+
+bool WriteGameAndRestoreOnFailure(const std::string &restoreLocation)
+{
+	const bool hasRestoreLocation = SaveLocationExists(restoreLocation);
+
+	pfile_write_hero(/*writeGameData=*/true);
+
+	if (SaveWrittenGameIsValid())
+		return true;
+
+	if (!hasRestoreLocation)
+		return false;
+
+	RestoreSaveLocation(GetSavePath(gSaveNumber), restoreLocation);
+	return false;
+}
+
+bool pfile_write_manual_game_with_backup()
+{
+	const std::string backupPrefix = "backup_";
+	const std::string backupLocation = GetSavePath(gSaveNumber, backupPrefix);
+	const std::string saveLocation = GetSavePath(gSaveNumber);
+
+	if (SaveLocationExists(saveLocation))
+		CopySaveLocation(saveLocation, backupLocation);
+
+	return WriteGameAndRestoreOnFailure(backupLocation);
+}
+
+bool pfile_write_auto_game()
+{
+	const std::string restorePrefix = "autosave_restore_";
+	const std::string restoreLocation = GetSavePath(gSaveNumber, restorePrefix);
+	const std::string saveLocation = GetSavePath(gSaveNumber);
+
+	if (SaveLocationExists(saveLocation))
+		CopySaveLocation(saveLocation, restoreLocation);
+
+	const bool saveIsValid = WriteGameAndRestoreOnFailure(restoreLocation);
+	DeleteSaveLocation(restoreLocation);
+	return saveIsValid;
+}
+
+bool WriteStashAndRestoreOnFailure(std::string_view restorePrefix, bool deleteRestoreLocationOnSuccess)
+{
+	if (!Stash.dirty)
+		return true;
+
+	const std::string restoreLocation = GetStashSavePath(restorePrefix);
+	const std::string stashLocation = GetStashSavePath();
+
+	SaveWriter stashWriter = GetStashWriter();
+	SaveStash(stashWriter);
+
+	auto archive = OpenStashArchive();
+	const char *stashFileName = gbIsMultiplayer ? "mpstashitems" : "spstashitems";
+	const bool stashIsValid = archive && ReadArchive(*archive, stashFileName) != nullptr;
+	if (stashIsValid) {
+		Stash.dirty = false;
+		if (deleteRestoreLocationOnSuccess)
+			DeleteSaveLocation(restoreLocation);
+		return true;
+	}
+
+	if (!SaveLocationExists(restoreLocation))
+		return false;
+
+	RestoreSaveLocation(stashLocation, restoreLocation);
+	return false;
+}
+
+bool pfile_write_manual_stash_with_backup()
+{
+	const std::string backupPrefix = "backup_";
+	const std::string backupLocation = GetStashSavePath(backupPrefix);
+	const std::string stashLocation = GetStashSavePath();
+
+	if (SaveLocationExists(stashLocation))
+		CopySaveLocation(stashLocation, backupLocation);
+
+	return WriteStashAndRestoreOnFailure(backupPrefix, false);
+}
+
+bool pfile_write_auto_stash()
+{
+	const std::string restorePrefix = "autosave_restore_";
+	const std::string restoreLocation = GetStashSavePath(restorePrefix);
+	const std::string stashLocation = GetStashSavePath();
+
+	if (SaveLocationExists(stashLocation))
+		CopySaveLocation(stashLocation, restoreLocation);
+
+	const bool stashIsValid = WriteStashAndRestoreOnFailure(restorePrefix, true);
+	if (!stashIsValid && SaveLocationExists(restoreLocation))
+		DeleteSaveLocation(restoreLocation);
+	return stashIsValid;
+}
+#endif
+
 #ifndef DISABLE_DEMOMODE
+#if !(defined(UNPACKED_SAVES) && defined(DVL_NO_FILESYSTEM))
 void pfile_write_hero_demo(int demo)
 {
-	const std::string savePath = GetSavePath(gSaveNumber, StrCat("demo_", demo, "_reference_"));
-	CopySaveFile(gSaveNumber, savePath);
-	auto saveWriter = SaveWriter(savePath.c_str());
+	const std::string saveLocation = GetSavePath(gSaveNumber, StrCat("demo_", demo, "_reference_"));
+	CopySaveLocation(GetSavePath(gSaveNumber), saveLocation);
+	auto saveWriter = SaveWriter(saveLocation.c_str());
 	pfile_write_hero(saveWriter, true);
 }
 
@@ -647,13 +788,27 @@ HeroCompareResult pfile_compare_hero_demo(int demo, bool logDetails)
 
 	const std::string actualSavePath = GetSavePath(gSaveNumber, StrCat("demo_", demo, "_actual_"));
 	{
-		CopySaveFile(gSaveNumber, actualSavePath);
+		CopySaveLocation(GetSavePath(gSaveNumber), actualSavePath);
 		SaveWriter saveWriter(actualSavePath.c_str());
 		pfile_write_hero(saveWriter, true);
 	}
 
 	return CompareSaves(actualSavePath, referenceSavePath, logDetails);
 }
+#else
+// Demo save comparison is unavailable on UNPACKED_SAVES targets without filesystem support.
+void pfile_write_hero_demo(int demo)
+{
+	(void)demo;
+}
+
+HeroCompareResult pfile_compare_hero_demo(int demo, bool logDetails)
+{
+	(void)demo;
+	(void)logDetails;
+	return { HeroCompareResult::ReferenceNotFound, {} };
+}
+#endif
 #endif
 
 void sfile_write_stash()
