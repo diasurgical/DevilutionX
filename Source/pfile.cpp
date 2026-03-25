@@ -167,7 +167,7 @@ SaveWriter GetSaveWriter(uint32_t saveNum, bool carryForward = true)
 
 SaveWriter GetStashWriter()
 {
-	return SaveWriter(GetStashSavePath(), /*carryForward=*/false);
+	return SaveWriter(GetStashSavePath(), /*carryForward=*/true);
 }
 
 #ifndef DISABLE_DEMOMODE
