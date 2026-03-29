@@ -516,7 +516,6 @@ void DrawVisualStore(const Surface &out)
 int16_t CheckVisualStoreHLight(Point mousePosition)
 {
 	// Check buttons first
-	const Point panelPos = GetPanelPosition(UiPanels::Stash);
 	if (MyPlayer->HoldItem.isEmpty()) {
 		for (int i = 0; i < 4; i++) {
 			// Skip tab buttons if vendor doesn't have tabs
