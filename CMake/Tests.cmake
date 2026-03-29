@@ -38,6 +38,9 @@ set(tests
   townerdat_test
   writehero_test
   vendor_test
+  panel_state_test
+  store_transaction_test
+  visual_store_test
 )
 set(standalone_tests
   codec_test

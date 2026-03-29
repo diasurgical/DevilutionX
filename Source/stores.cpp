@@ -55,6 +55,19 @@ StaticVector<Item, NumWitchItemsHf> WitchItems;
 int BoyItemLevel;
 Item BoyItem;
 
+/** Remember currently selected text line from TextLine while displaying a dialog */
+int OldTextLine;
+/** Currently selected text line from TextLine */
+int CurrentTextLine;
+/** Remember last scroll position */
+int OldScrollPos;
+/** Scroll position */
+int ScrollPos;
+/** Remember current store while displaying a dialog */
+TalkID OldActiveStore;
+/** Temporary item used to hold the item being traded */
+Item TempItem;
+
 namespace {
 
 /** The current towner being interacted with */
@@ -65,10 +78,6 @@ bool IsTextFullSize;
 
 /** Number of text lines in the current dialog */
 int NumTextLines;
-/** Remember currently selected text line from TextLine while displaying a dialog */
-int OldTextLine;
-/** Currently selected text line from TextLine */
-int CurrentTextLine;
 
 struct STextStruct {
 	enum Type : uint8_t {
@@ -110,10 +119,6 @@ bool RenderGold;
 
 /** Does the current panel have a scrollbar */
 bool HasScrollbar;
-/** Remember last scroll position */
-int OldScrollPos;
-/** Scroll position */
-int ScrollPos;
 /** Next scroll position */
 int NextScrollPos;
 /** Previous scroll position */
@@ -122,12 +127,6 @@ int PreviousScrollPos;
 int8_t CountdownScrollUp;
 /** Countdown for the push state of the scroll down button */
 int8_t CountdownScrollDown;
-
-/** Remember current store while displaying a dialog */
-TalkID OldActiveStore;
-
-/** Temporary item used to hold the item being traded */
-Item TempItem;
 
 /** Maps from towner IDs to NPC names. */
 const char *const TownerNames[] = {

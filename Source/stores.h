@@ -93,6 +93,19 @@ extern int BoyItemLevel;
 /** Current item sold by Wirt */
 extern Item BoyItem;
 
+/** Currently selected text line from TextLine */
+extern DVL_API_FOR_TEST int CurrentTextLine;
+/** Remember currently selected text line from TextLine while displaying a dialog */
+extern DVL_API_FOR_TEST int OldTextLine;
+/** Scroll position */
+extern DVL_API_FOR_TEST int ScrollPos;
+/** Remember last scroll position */
+extern DVL_API_FOR_TEST int OldScrollPos;
+/** Remember current store while displaying a dialog */
+extern DVL_API_FOR_TEST TalkID OldActiveStore;
+/** Temporary item used to hold the item being traded */
+extern DVL_API_FOR_TEST Item TempItem;
+
 void AddStoreHoldRepair(Item *itm, int8_t i);
 
 /** Clears premium items sold by Griswold and Wirt. */
