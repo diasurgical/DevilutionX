@@ -542,7 +542,7 @@ void CheckMissileCol(Missile &missile, DamageType damageType, int minDamage, int
 	if (IsMissileBlockedByTile(position)) {
 		Object *object = FindObjectAtPosition(position);
 		if (object != nullptr && object->IsBreakable()) {
-			BreakObjectMissile(missile.sourcePlayer(), *object);
+			BreakObjectMissile(*object);
 		}
 
 		if (!dontDeleteOnCollision)
@@ -929,7 +929,7 @@ DamageRange GetDamageAmt(SpellID spell, int spellLevel)
 	case SpellID::FireWall:
 	case SpellID::LightningWall:
 	case SpellID::RingOfFire: {
-		const int min = 2 * myPlayer.getCharacterLevel() + 4;
+		const int min = (2 * myPlayer.getCharacterLevel()) + 4;
 		return { min, min + 36 };
 	}
 	case SpellID::Fireball:
@@ -973,15 +973,15 @@ DamageRange GetDamageAmt(SpellID spell, int spellLevel)
 	case SpellID::Elemental:
 		/// BUGFIX: Divide min and max by 2
 		return {
-			ScaleSpellEffect(2 * myPlayer.getCharacterLevel() + 4, spellLevel),
-			ScaleSpellEffect(2 * myPlayer.getCharacterLevel() + 40, spellLevel)
+			ScaleSpellEffect((2 * myPlayer.getCharacterLevel()) + 4, spellLevel),
+			ScaleSpellEffect((2 * myPlayer.getCharacterLevel()) + 40, spellLevel)
 		};
 	case SpellID::ChargedBolt:
 		return { 1, 1 + (myPlayer._pMagic / 4) };
 	case SpellID::HolyBolt:
 		return { myPlayer.getCharacterLevel() + 9, myPlayer.getCharacterLevel() + 18 };
 	case SpellID::BloodStar: {
-		const int min = (myPlayer._pMagic / 2) + 3 * spellLevel - (myPlayer._pMagic / 8);
+		const int min = (myPlayer._pMagic / 2) + (3 * spellLevel) - (myPlayer._pMagic / 8);
 		return { min, min };
 	}
 	default:
@@ -3809,8 +3809,8 @@ void ProcessWallControl(Missile &missile)
 
 	const Point leftPosition = { missile.var1, missile.var2 };
 	const Point rightPosition = { missile.var5, missile.var6 };
-	const Direction leftDirection = static_cast<Direction>(missile.var3);
-	const Direction rightDirection = static_cast<Direction>(missile.var4);
+	const auto leftDirection = static_cast<Direction>(missile.var3);
+	const auto rightDirection = static_cast<Direction>(missile.var4);
 
 	bool isStart = leftPosition == rightPosition;
 

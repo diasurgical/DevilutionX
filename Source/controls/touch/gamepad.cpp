@@ -29,24 +29,24 @@ int roundToInt(float value)
 constexpr bool PointsUp(float angle)
 {
 	constexpr float UpAngle = Pi / 2;
-	constexpr float MinAngle = UpAngle - 3 * Pi / 8;
-	constexpr float MaxAngle = UpAngle + 3 * Pi / 8;
+	constexpr float MinAngle = UpAngle - (3 * Pi / 8);
+	constexpr float MaxAngle = UpAngle + (3 * Pi / 8);
 	return MinAngle <= angle && angle <= MaxAngle;
 }
 
 constexpr bool PointsDown(float angle)
 {
 	constexpr float DownAngle = -Pi / 2;
-	constexpr float MinAngle = DownAngle - 3 * Pi / 8;
-	constexpr float MaxAngle = DownAngle + 3 * Pi / 8;
+	constexpr float MinAngle = DownAngle - (3 * Pi / 8);
+	constexpr float MaxAngle = DownAngle + (3 * Pi / 8);
 	return MinAngle <= angle && angle <= MaxAngle;
 }
 
 constexpr bool PointsLeft(float angle)
 {
-	constexpr float MaxAngle = Pi - 3 * Pi / 8;
-	constexpr float MinAngle = -Pi + 3 * Pi / 8;
-	return !(MinAngle < angle && angle < MaxAngle);
+	constexpr float MaxAngle = Pi - (3 * Pi / 8);
+	constexpr float MinAngle = -Pi + (3 * Pi / 8);
+	return MinAngle >= angle || angle >= MaxAngle;
 }
 
 constexpr bool PointsRight(float angle)
@@ -109,9 +109,9 @@ void InitializeVirtualGamepad()
 
 	const int padButtonAreaWidth = roundToInt(sqrt2 * (padButtonSize + padButtonSpacing));
 
-	const int padButtonRight = gnScreenWidth - inputMargin - padButtonSize / 2;
+	const int padButtonRight = gnScreenWidth - inputMargin - (padButtonSize / 2);
 	const int padButtonLeft = padButtonRight - padButtonAreaWidth;
-	const int padButtonBottom = gnScreenHeight - inputMargin - padButtonSize / 2;
+	const int padButtonBottom = gnScreenHeight - inputMargin - (padButtonSize / 2);
 	const int padButtonTop = padButtonBottom - padButtonAreaWidth;
 
 	Rectangle &charButtonArea = VirtualGamepadState.menuPanel.charButton.area;
@@ -151,7 +151,7 @@ void InitializeVirtualGamepad()
 	directionPadArea.radius = directionPadSize / 2;
 	directionPad.position = directionPadArea.position;
 
-	const int standButtonDiagonalOffset = directionPadArea.radius + padButtonSpacing / 2 + padButtonSize / 2;
+	const int standButtonDiagonalOffset = directionPadArea.radius + (padButtonSpacing / 2) + (padButtonSize / 2);
 	const int standButtonOffset = roundToInt(standButtonDiagonalOffset / sqrt2);
 	Circle &standButtonArea = VirtualGamepadState.standButton.area;
 	standButtonArea.position.x = directionPadArea.position.x - standButtonOffset;
@@ -245,7 +245,7 @@ void VirtualDirectionPad::UpdatePosition(Point touchCoordinates)
 	if (!area.contains(position)) {
 		int x = diff.deltaX;
 		int y = diff.deltaY;
-		const float dist = sqrtf(static_cast<float>(x * x + y * y));
+		const float dist = sqrtf(static_cast<float>((x * x) + (y * y)));
 		x = roundToInt(x * area.radius / dist);
 		y = roundToInt(y * area.radius / dist);
 		position.x = area.position.x + x;

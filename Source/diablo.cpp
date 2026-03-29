@@ -990,7 +990,7 @@ void PrintHelpOption(std::string_view flags, std::string_view description)
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 FILE *SdlLogFile = nullptr;
 
-extern "C" void SdlLogToFile(void *userdata, int category, SDL_LogPriority priority, const char *message)
+extern "C" void SdlLogToFile(void *userdata, int /*category*/, SDL_LogPriority priority, const char *message)
 {
 	FILE *file = reinterpret_cast<FILE *>(userdata);
 	static const char *const LogPriorityPrefixes[SDL_LOG_PRIORITY_COUNT] = {
@@ -1578,7 +1578,7 @@ void TimeoutCursor(bool bTimeout)
 			for (uint8_t i = 0; i < Players.size(); i++) {
 				bool isConnected = (player_state[i] & PS_CONNECTED) != 0;
 				bool isActive = (player_state[i] & PS_ACTIVE) != 0;
-				if (!(isConnected && !isActive)) continue;
+				if (!isConnected || isActive) continue;
 
 				DvlNetLatencies latencies = DvlNet_GetLatencies(i);
 
@@ -1791,12 +1791,9 @@ bool CanPlayerTakeAction()
 bool CanAutomapBeToggledOff()
 {
 	// check if every window is closed - if yes, automap can be toggled off
-	if (!QuestLogIsOpen && !IsWithdrawGoldOpen && !IsStashOpen && !IsVisualStoreOpen && !CharFlag
+	return !QuestLogIsOpen && !IsWithdrawGoldOpen && !IsStashOpen && !IsVisualStoreOpen && !CharFlag
 	    && !SpellbookFlag && !invflag && !isGameMenuOpen && !qtextflag && !SpellSelectFlag
-	    && !ChatLogFlag && !HelpFlag)
-		return true;
-
-	return false;
+	    && !ChatLogFlag && !HelpFlag;
 }
 
 void OptionLanguageCodeChanged()
@@ -3012,7 +3009,7 @@ bool PressEscKey()
 	return rv;
 }
 
-void DisableInputEventHandler(const SDL_Event &event, uint16_t modState)
+void DisableInputEventHandler(const SDL_Event &event, uint16_t /*modState*/)
 {
 	switch (event.type) {
 	case SDL_EVENT_MOUSE_MOTION:

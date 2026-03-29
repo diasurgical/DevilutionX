@@ -121,7 +121,7 @@ int DividerLineMarginY()
 
 int HeaderHeight()
 {
-	return PaddingTop + LineHeight() + 2 * BlankLineHeight() + DividerLineMarginY();
+	return PaddingTop + LineHeight() + (2 * BlankLineHeight()) + DividerLineMarginY();
 }
 
 int ContentPaddingY()
@@ -131,12 +131,12 @@ int ContentPaddingY()
 
 int ContentsTextHeight()
 {
-	return PanelHeight - HeaderHeight() - DividerLineMarginY() - 2 * ContentPaddingY() - BlankLineHeight();
+	return PanelHeight - HeaderHeight() - DividerLineMarginY() - (2 * ContentPaddingY()) - BlankLineHeight();
 }
 
 int NumVisibleLines()
 {
-	return (ContentsTextHeight() - 1) / LineHeight() + 1; // Ceil
+	return ((ContentsTextHeight() - 1) / LineHeight()) + 1; // Ceil
 }
 
 void DrawHelpSlider(const Surface &out)
@@ -227,7 +227,7 @@ void DrawHelp(const Surface &out)
 			style = UiFlags::ColorBlue;
 		}
 
-		DrawString(out, line.substr(offset), { { sx, contentY + i * lineHeight }, { ContentTextWidth, lineHeight } },
+		DrawString(out, line.substr(offset), { { sx, contentY + (i * lineHeight) }, { ContentTextWidth, lineHeight } },
 		    { .flags = style, .lineHeight = lineHeight });
 	}
 

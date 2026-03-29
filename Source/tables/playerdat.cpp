@@ -36,7 +36,7 @@ class ExperienceData {
 	std::vector<uint32_t> levelThresholds;
 
 public:
-	uint8_t getMaxLevel() const
+	[[nodiscard]] uint8_t getMaxLevel() const
 	{
 		return static_cast<uint8_t>(std::min<size_t>(levelThresholds.size(), std::numeric_limits<uint8_t>::max()));
 	}
@@ -383,7 +383,7 @@ void LoadPlayerDataFiles()
 
 SfxID GetHeroSound(HeroClass clazz, HeroSpeech speech)
 {
-	const size_t playerClassIndex = static_cast<size_t>(clazz);
+	const auto playerClassIndex = static_cast<size_t>(clazz);
 	assert(playerClassIndex < herosounds.size());
 	const auto findIt = herosounds[playerClassIndex].find(speech);
 	if (findIt != herosounds[playerClassIndex].end()) {
@@ -410,35 +410,35 @@ size_t GetNumPlayerClasses()
 
 const PlayerData &GetPlayerDataForClass(HeroClass playerClass)
 {
-	const size_t playerClassIndex = static_cast<size_t>(playerClass);
+	const auto playerClassIndex = static_cast<size_t>(playerClass);
 	assert(playerClassIndex < PlayersData.size());
 	return PlayersData[playerClassIndex];
 }
 
 const PlayerCombatData &GetPlayerCombatDataForClass(HeroClass pClass)
 {
-	const size_t playerClassIndex = static_cast<size_t>(pClass);
+	const auto playerClassIndex = static_cast<size_t>(pClass);
 	assert(playerClassIndex < PlayersCombatData.size());
 	return PlayersCombatData[playerClassIndex];
 }
 
 const PlayerStartingLoadoutData &GetPlayerStartingLoadoutForClass(HeroClass pClass)
 {
-	const size_t playerClassIndex = static_cast<size_t>(pClass);
+	const auto playerClassIndex = static_cast<size_t>(pClass);
 	assert(playerClassIndex < PlayersStartingLoadoutData.size());
 	return PlayersStartingLoadoutData[playerClassIndex];
 }
 
 const PlayerSpriteData &GetPlayerSpriteDataForClass(HeroClass pClass)
 {
-	const size_t playerClassIndex = static_cast<size_t>(pClass);
+	const auto playerClassIndex = static_cast<size_t>(pClass);
 	assert(playerClassIndex < PlayersSpriteData.size());
 	return PlayersSpriteData[playerClassIndex];
 }
 
 const PlayerAnimData &GetPlayerAnimDataForClass(HeroClass pClass)
 {
-	const size_t playerClassIndex = static_cast<size_t>(pClass);
+	const auto playerClassIndex = static_cast<size_t>(pClass);
 	assert(playerClassIndex < PlayersAnimData.size());
 	return PlayersAnimData[playerClassIndex];
 }

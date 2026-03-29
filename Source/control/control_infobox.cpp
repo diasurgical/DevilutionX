@@ -211,14 +211,14 @@ int GetHoverSpriteHeight()
 	    && pcursinvitem < INVITEM_INV_FIRST + InventoryGridCells) {
 		const int idx = pcursinvitem - INVITEM_INV_FIRST;
 		auto &it = (*InspectPlayer).InvList[idx];
-		return GetInventorySize(it).height * (InventorySlotSizeInPixels.height + 1)
+		return (GetInventorySize(it).height * (InventorySlotSizeInPixels.height + 1))
 		    - InventorySlotSizeInPixels.height;
 	}
 	if (pcursinvitem >= INVITEM_BELT_FIRST
 	    && pcursinvitem < INVITEM_BELT_FIRST + MaxBeltItems) {
 		const int idx = pcursinvitem - INVITEM_BELT_FIRST;
 		auto &it = (*InspectPlayer).SpdList[idx];
-		return GetInventorySize(it).height * (InventorySlotSizeInPixels.height + 1)
+		return (GetInventorySize(it).height * (InventorySlotSizeInPixels.height + 1))
 		    - InventorySlotSizeInPixels.height - 1;
 	}
 	if (pcursstashitem != StashStruct::EmptyCell) {
@@ -236,7 +236,7 @@ int GetHoverSpriteHeight()
 int ClampAboveOrBelow(int anchorY, int spriteH, int boxH, int pad, int linePad)
 {
 	const int yAbove = anchorY - spriteH - boxH - pad;
-	const int yBelow = anchorY + linePad / 2 + pad;
+	const int yBelow = anchorY + (linePad / 2) + pad;
 	return (yAbove >= 0) ? yAbove : yBelow;
 }
 
@@ -267,7 +267,7 @@ void PrintFloatingInfo(const Surface &out)
 	SpeakText(FloatingInfoString);
 
 	for (int i = 0; i < 3; i++)
-		DrawHalfTransparentRectTo(out, floatingInfoBox.position.x - hPadding, floatingInfoBox.position.y - vPadding, floatingInfoBox.size.width + hPadding * 2, floatingInfoBox.size.height + vPadding * 2);
+		DrawHalfTransparentRectTo(out, floatingInfoBox.position.x - hPadding, floatingInfoBox.position.y - vPadding, floatingInfoBox.size.width + (hPadding * 2), floatingInfoBox.size.height + (vPadding * 2));
 	DrawHalfTransparentVerticalLine(out, { floatingInfoBox.position.x - hPadding - 1, floatingInfoBox.position.y - vPadding - 1 }, floatingInfoBox.size.height + (vPadding * 2) + 2, PAL16_GRAY + 10);
 	DrawHalfTransparentVerticalLine(out, { floatingInfoBox.position.x + hPadding + floatingInfoBox.size.width, floatingInfoBox.position.y - vPadding - 1 }, floatingInfoBox.size.height + (vPadding * 2) + 2, PAL16_GRAY + 10);
 	DrawHalfTransparentHorizontalLine(out, { floatingInfoBox.position.x - hPadding, floatingInfoBox.position.y - vPadding - 1 }, floatingInfoBox.size.width + (hPadding * 2), PAL16_GRAY + 10);

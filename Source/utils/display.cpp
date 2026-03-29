@@ -216,9 +216,9 @@ void UpdateAvailableResolutions()
 		if (mode.w < mode.h) {
 			std::swap(mode.w, mode.h);
 		}
-		sizes.emplace_back(Size {
+		sizes.emplace_back(
 		    static_cast<int>(mode.w * scaleFactor),
-		    static_cast<int>(mode.h * scaleFactor) });
+		    static_cast<int>(mode.h * scaleFactor));
 	}
 	supportsAnyResolution = *GetOptions().Graphics.upscale;
 #else
@@ -246,9 +246,9 @@ void UpdateAvailableResolutions()
 		for (const int commonHeight : commonHeights) {
 			if (commonHeight > height)
 				break;
-			sizes.emplace_back(Size { commonHeight * 4 / 3, commonHeight });
+			sizes.emplace_back(commonHeight * 4 / 3, commonHeight);
 			if (commonHeight * width % height == 0)
-				sizes.emplace_back(Size { commonHeight * width / height, commonHeight });
+				sizes.emplace_back(commonHeight * width / height, commonHeight);
 		}
 	}
 
@@ -257,10 +257,10 @@ void UpdateAvailableResolutions()
 	// Ensures that the ini specified resolution is present in resolution list even if it doesn't match a monitor resolution (for example if played in window mode)
 	sizes.push_back(configuredSize);
 	// Ensures that the platform's preferred default resolution is always present
-	sizes.emplace_back(Size { DEFAULT_WIDTH, DEFAULT_HEIGHT });
+	sizes.emplace_back(DEFAULT_WIDTH, DEFAULT_HEIGHT);
 	// Ensures that the vanilla Diablo resolution is present on systems that would support it
 	if (supportsAnyResolution)
-		sizes.emplace_back(Size { 640, 480 });
+		sizes.emplace_back(640, 480);
 
 #ifndef USE_SDL1
 	if (*graphicsOptions.fitToScreen) {

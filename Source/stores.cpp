@@ -207,8 +207,8 @@ void DrawSTextBack(const Surface &out)
 void DrawSSlider(const Surface &out, int y1, int y2)
 {
 	const Point uiPosition = GetUIRectangle().position;
-	int yd1 = y1 * 12 + 44 + uiPosition.y;
-	const int yd2 = y2 * 12 + 44 + uiPosition.y;
+	int yd1 = (y1 * 12) + 44 + uiPosition.y;
+	const int yd2 = (y2 * 12) + 44 + uiPosition.y;
 	if (CountdownScrollUp != -1)
 		ClxDraw(out, { uiPosition.x + 601, yd1 }, (*pSTextSlidCels)[11]);
 	else
@@ -230,7 +230,7 @@ void DrawSSlider(const Surface &out, int y1, int y2)
 		yd3 = 1000 * (ScrollPos + ((yd3 - PreviousScrollPos) / 4)) / (CurrentItemIndex - 1) * (y2 * 12 - y1 * 12 - 24) / 1000;
 	else
 		yd3 = 0;
-	ClxDraw(out, { uiPosition.x + 601, (y1 + 1) * 12 + 44 + uiPosition.y + yd3 }, (*pSTextSlidCels)[12]);
+	ClxDraw(out, { uiPosition.x + 601, ((y1 + 1) * 12) + 44 + uiPosition.y + yd3 }, (*pSTextSlidCels)[12]);
 }
 
 void AddSLine(size_t y)
@@ -355,7 +355,7 @@ void ScrollVendorStore(std::span<Item> itemData, int storeLimit, int idx, int se
 		if (CurrentTextLine != -1 && !TextLine[CurrentTextLine].isSelectable() && CurrentTextLine != BackButtonLine())
 			CurrentTextLine = NextScrollPos;
 	} else {
-		NumTextLines = std::max(static_cast<int>(storeLimit) - 4, 0);
+		NumTextLines = std::max(storeLimit - 4, 0);
 	}
 }
 
@@ -2140,8 +2140,8 @@ void PrintSString(const Surface &out, int margin, int line, std::string_view tex
 		    ? (useRed ? GetHalfSizeItemSpriteRed(cursId) : GetHalfSizeItemSprite(cursId))
 		    : GetInvItemSprite(static_cast<int>(CURSOR_FIRSTITEM) + cursId);
 		const Point position {
-			rect.position.x + (HalfCursWidth - sprite.width()) / 2,
-			rect.position.y + (TextHeight() * 3 + sprite.height()) / 2
+			rect.position.x + ((HalfCursWidth - sprite.width()) / 2),
+			rect.position.y + ((TextHeight() * 3 + sprite.height()) / 2)
 		};
 		if (useHalfSize || !useRed) {
 			ClxDraw(out, position, sprite);
@@ -2379,7 +2379,7 @@ void DrawSText(const Surface &out)
 	const Point uiPosition = GetUIRectangle().position;
 	for (int i = 0; i < NumStoreLines; i++) {
 		if (TextLine[i].isDivider())
-			DrawSLine(out, uiPosition.y + PaddingTop + TextLine[i].y + TextHeight() / 2);
+			DrawSLine(out, uiPosition.y + PaddingTop + TextLine[i].y + (TextHeight() / 2));
 		else if (TextLine[i].hasText())
 			PrintSString(out, TextLine[i]._sx, i, TextLine[i].text, TextLine[i].flags, TextLine[i]._sval, TextLine[i].cursId, TextLine[i].cursIndent);
 	}

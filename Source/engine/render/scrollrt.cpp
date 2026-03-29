@@ -1002,7 +1002,7 @@ void DrawTileContent(const Surface &out, const Lightmap &lightmap, Point tilePos
 			if (InDungeonBounds(tilePosition)) {
 				bool skipNext = false;
 #ifdef _DEBUG
-				DebugCoordsMap[tilePosition.x + tilePosition.y * MAXDUNX] = targetBufferPosition;
+				DebugCoordsMap[tilePosition.x + (tilePosition.y * MAXDUNX)] = targetBufferPosition;
 #endif
 				if (tilePosition.x + 1 < MAXDUNX && tilePosition.y - 1 >= 0 && targetBufferPosition.x + TILE_WIDTH <= gnScreenWidth) {
 					// Render objects behind walls first to prevent sprites, that are moving
@@ -1707,7 +1707,7 @@ void CalcViewportGeometry()
 
 	// Location of the bottom-left corner of the bounding box around the
 	// tile from which to start rendering, relative to the viewport origin
-	tileOffset = { startPosition.x - TILE_WIDTH / 2, startPosition.y + TILE_HEIGHT / 2 - 1 };
+	tileOffset = { startPosition.x - (TILE_WIDTH / 2), startPosition.y + (TILE_HEIGHT / 2) - 1 };
 
 	// Compute the number of rows to be rendered as well as
 	// the number of columns to be rendered in the first row

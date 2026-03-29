@@ -99,13 +99,12 @@ void CloseGoldWithdraw();
 bool HandleGoldWithdrawTextInputEvent(const SDL_Event &event);
 
 /**
- * @brief Checks whether the given item can be placed on the specified player's stash.
+ * @brief Checks whether the given item can be placed on the stash.
  * If 'persistItem' is 'True', the item is also placed in the inventory.
- * @param player The player to check.
  * @param item The item to be checked.
  * @param persistItem Pass 'True' to actually place the item in the inventory. The default is 'False'.
  * @return 'True' in case the item can be placed on the player's inventory and 'False' otherwise.
  */
-bool AutoPlaceItemInStash(Player &player, const Item &item, bool persistItem);
+bool AutoPlaceItemInStash(const Item &item, bool persistItem);
 
 } // namespace devilution

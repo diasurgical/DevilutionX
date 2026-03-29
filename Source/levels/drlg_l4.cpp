@@ -227,10 +227,10 @@ void GenerateRoom(WorldTileRectangle area, bool verticalLayout)
 		room1.size = WorldTileSize(randomWidth, randomHeight);
 		room1.position = area.position;
 		if (verticalLayout) {
-			room1.position += WorldTileDisplacement(-room1.size.width, area.size.height / 2 - room1.size.height / 2);
+			room1.position += WorldTileDisplacement(-room1.size.width, (area.size.height / 2) - (room1.size.height / 2));
 			placeRoom1 = CheckRoom({ room1.position + WorldTileDisplacement { -1, -1 }, WorldTileSize(room1.size.height + 2, room1.size.width + 1) }); /// BUGFIX: swap height and width ({ room1.size.width + 1, room1.size.height + 2 }) (workaround applied below)
 		} else {
-			room1.position += WorldTileDisplacement(area.size.width / 2 - room1.size.width / 2, -room1.size.height);
+			room1.position += WorldTileDisplacement((area.size.width / 2) - (room1.size.width / 2), -room1.size.height);
 			placeRoom1 = CheckRoom({ room1.position + WorldTileDisplacement { -1, -1 }, WorldTileSize(room1.size.width + 2, room1.size.height + 1) });
 		}
 		if (placeRoom1)
@@ -274,9 +274,9 @@ void FirstRoom()
 	}
 
 	const int xmin = (DMAXX / 2 - room.size.width) / 2;
-	const int xmax = DMAXX / 2 - 1 - room.size.width;
+	const int xmax = (DMAXX / 2) - 1 - room.size.width;
 	const int ymin = (DMAXY / 2 - room.size.height) / 2;
-	const int ymax = DMAXY / 2 - 1 - room.size.height;
+	const int ymax = (DMAXY / 2) - 1 - room.size.height;
 	const int32_t randomX = GenerateRnd(xmax - xmin + 1) + xmin;
 	const int32_t randomY = GenerateRnd(ymax - ymin + 1) + ymin;
 	room.position = WorldTilePosition(randomX, randomY);
@@ -868,8 +868,8 @@ void Substitution()
  */
 void PrepareInnerBorders()
 {
-	for (int y = DMAXY / 2 - 1; y >= 0; y--) {
-		for (int x = DMAXX / 2 - 1; x >= 0; x--) {
+	for (int y = (DMAXY / 2) - 1; y >= 0; y--) {
+		for (int x = (DMAXX / 2) - 1; x >= 0; x--) {
 			if (!DungeonMask.test(x, y)) {
 				hallok[y] = false;
 			} else {
@@ -881,10 +881,10 @@ void PrepareInnerBorders()
 		}
 	}
 
-	int ry = GenerateRnd(DMAXY / 2 - 1) + 1;
+	int ry = GenerateRnd((DMAXY / 2) - 1) + 1;
 	do {
 		if (hallok[ry]) {
-			for (int x = DMAXX / 2 - 1; x >= 0; x--) {
+			for (int x = (DMAXX / 2) - 1; x >= 0; x--) {
 				if (DungeonMask.test(x, ry)) {
 					x = -1;
 					ry = 0;
@@ -901,8 +901,8 @@ void PrepareInnerBorders()
 		}
 	} while (ry != 0);
 
-	for (int x = DMAXX / 2 - 1; x >= 0; x--) {
-		for (int y = DMAXY / 2 - 1; y >= 0; y--) {
+	for (int x = (DMAXX / 2) - 1; x >= 0; x--) {
+		for (int y = (DMAXY / 2) - 1; y >= 0; y--) {
 			if (!DungeonMask.test(x, y)) {
 				hallok[x] = false;
 			} else {
@@ -914,10 +914,10 @@ void PrepareInnerBorders()
 		}
 	}
 
-	int rx = GenerateRnd(DMAXX / 2 - 1) + 1;
+	int rx = GenerateRnd((DMAXX / 2) - 1) + 1;
 	do {
 		if (hallok[rx]) {
-			for (int y = DMAXY / 2 - 1; y >= 0; y--) {
+			for (int y = (DMAXY / 2) - 1; y >= 0; y--) {
 				if (DungeonMask.test(rx, y)) {
 					y = -1;
 					rx = 0;

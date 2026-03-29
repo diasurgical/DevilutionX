@@ -89,7 +89,7 @@ protected:
 			for (int y = 0; y < 10; y++) {
 				Item item = MakeSmallItem();
 				Stash.SetPage(page);
-				ASSERT_TRUE(AutoPlaceItemInStash(*MyPlayer, item, true))
+				ASSERT_TRUE(AutoPlaceItemInStash(item, true))
 				    << "Failed to place item at logical position on page " << page;
 			}
 		}
@@ -104,7 +104,7 @@ TEST_F(StashTest, PlaceItem_EmptyStash)
 {
 	Item item = MakeSmallItem();
 
-	bool placed = AutoPlaceItemInStash(*MyPlayer, item, true);
+	bool placed = AutoPlaceItemInStash(item, true);
 
 	EXPECT_TRUE(placed);
 	EXPECT_FALSE(Stash.stashList.empty());
@@ -116,7 +116,7 @@ TEST_F(StashTest, PlaceItem_DryRunDoesNotMutate)
 {
 	Item item = MakeSmallItem();
 
-	bool canPlace = AutoPlaceItemInStash(*MyPlayer, item, false);
+	bool canPlace = AutoPlaceItemInStash(item, false);
 
 	EXPECT_TRUE(canPlace);
 	EXPECT_TRUE(Stash.stashList.empty()) << "Dry-run should not add item to stashList";
@@ -127,7 +127,7 @@ TEST_F(StashTest, PlaceItem_GridCellOccupied)
 {
 	Item item = MakeSmallItem();
 
-	ASSERT_TRUE(AutoPlaceItemInStash(*MyPlayer, item, true));
+	ASSERT_TRUE(AutoPlaceItemInStash(item, true));
 
 	// The item should occupy at least one cell on the current page.
 	const auto &grid = Stash.stashGrids[Stash.GetPage()];
@@ -140,9 +140,9 @@ TEST_F(StashTest, PlaceItem_MultipleItemsOnSamePage)
 	Item item2 = MakeSmallItem();
 	Item item3 = MakeSword();
 
-	EXPECT_TRUE(AutoPlaceItemInStash(*MyPlayer, item1, true));
-	EXPECT_TRUE(AutoPlaceItemInStash(*MyPlayer, item2, true));
-	EXPECT_TRUE(AutoPlaceItemInStash(*MyPlayer, item3, true));
+	EXPECT_TRUE(AutoPlaceItemInStash(item1, true));
+	EXPECT_TRUE(AutoPlaceItemInStash(item2, true));
+	EXPECT_TRUE(AutoPlaceItemInStash(item3, true));
 
 	EXPECT_EQ(Stash.stashList.size(), 3u);
 }
@@ -159,7 +159,7 @@ TEST_F(StashTest, PlaceItem_FullPageOverflowsToNextPage)
 	// Page 0 should be completely full now. Placing another item should go to page 1.
 	Item overflow = MakeSmallItem();
 	Stash.SetPage(0); // Reset to page 0 so AutoPlace starts searching from page 0.
-	EXPECT_TRUE(AutoPlaceItemInStash(*MyPlayer, overflow, true));
+	EXPECT_TRUE(AutoPlaceItemInStash(overflow, true));
 
 	EXPECT_EQ(Stash.stashList.size(), itemsAfterPage0 + 1);
 
@@ -178,7 +178,7 @@ TEST_F(StashTest, PlaceItem_SwordOccupiesCorrectArea)
 	Item sword = MakeSword();
 	const Size swordSize = GetInventorySize(sword);
 
-	ASSERT_TRUE(AutoPlaceItemInStash(*MyPlayer, sword, true));
+	ASSERT_TRUE(AutoPlaceItemInStash(sword, true));
 
 	const auto &grid = Stash.stashGrids[Stash.GetPage()];
 	int occupiedCells = CountOccupiedCells(grid);
@@ -194,7 +194,7 @@ TEST_F(StashTest, PlaceGold_AddsToStashGold)
 {
 	Item gold = MakeGold(5000);
 
-	EXPECT_TRUE(AutoPlaceItemInStash(*MyPlayer, gold, true));
+	EXPECT_TRUE(AutoPlaceItemInStash(gold, true));
 
 	EXPECT_EQ(Stash.gold, 5000);
 	EXPECT_TRUE(Stash.stashList.empty()) << "Gold should not be added to stashList";
@@ -205,7 +205,7 @@ TEST_F(StashTest, PlaceGold_DryRunDoesNotMutate)
 {
 	Item gold = MakeGold(3000);
 
-	EXPECT_TRUE(AutoPlaceItemInStash(*MyPlayer, gold, false));
+	EXPECT_TRUE(AutoPlaceItemInStash(gold, false));
 
 	EXPECT_EQ(Stash.gold, 0) << "Dry-run should not change stash gold";
 	EXPECT_FALSE(Stash.dirty);
@@ -216,8 +216,8 @@ TEST_F(StashTest, PlaceGold_AccumulatesMultipleDeposits)
 	Item gold1 = MakeGold(1000);
 	Item gold2 = MakeGold(2500);
 
-	ASSERT_TRUE(AutoPlaceItemInStash(*MyPlayer, gold1, true));
-	ASSERT_TRUE(AutoPlaceItemInStash(*MyPlayer, gold2, true));
+	ASSERT_TRUE(AutoPlaceItemInStash(gold1, true));
+	ASSERT_TRUE(AutoPlaceItemInStash(gold2, true));
 
 	EXPECT_EQ(Stash.gold, 3500);
 }
@@ -228,7 +228,7 @@ TEST_F(StashTest, PlaceGold_RejectsOverflow)
 
 	Item gold = MakeGold(200);
 
-	EXPECT_FALSE(AutoPlaceItemInStash(*MyPlayer, gold, true))
+	EXPECT_FALSE(AutoPlaceItemInStash(gold, true))
 	    << "Should reject gold that would cause integer overflow";
 	EXPECT_EQ(Stash.gold, std::numeric_limits<int>::max() - 100)
 	    << "Stash gold should be unchanged after rejected deposit";
@@ -241,7 +241,7 @@ TEST_F(StashTest, PlaceGold_RejectsOverflow)
 TEST_F(StashTest, RemoveItem_ClearsGridAndList)
 {
 	Item item = MakeSmallItem();
-	ASSERT_TRUE(AutoPlaceItemInStash(*MyPlayer, item, true));
+	ASSERT_TRUE(AutoPlaceItemInStash(item, true));
 	ASSERT_EQ(Stash.stashList.size(), 1u);
 
 	Stash.dirty = false;
@@ -260,8 +260,8 @@ TEST_F(StashTest, RemoveItem_LastItemSwap)
 	Item item1 = MakeSmallItem();
 	Item item2 = MakeSword();
 
-	ASSERT_TRUE(AutoPlaceItemInStash(*MyPlayer, item1, true));
-	ASSERT_TRUE(AutoPlaceItemInStash(*MyPlayer, item2, true));
+	ASSERT_TRUE(AutoPlaceItemInStash(item1, true));
+	ASSERT_TRUE(AutoPlaceItemInStash(item2, true));
 	ASSERT_EQ(Stash.stashList.size(), 2u);
 
 	// Remember the type of the second item.
@@ -295,9 +295,9 @@ TEST_F(StashTest, RemoveItem_MiddleOfThree)
 	Item item2 = MakeSmallItem();
 	Item item3 = MakeSmallItem();
 
-	ASSERT_TRUE(AutoPlaceItemInStash(*MyPlayer, item1, true));
-	ASSERT_TRUE(AutoPlaceItemInStash(*MyPlayer, item2, true));
-	ASSERT_TRUE(AutoPlaceItemInStash(*MyPlayer, item3, true));
+	ASSERT_TRUE(AutoPlaceItemInStash(item1, true));
+	ASSERT_TRUE(AutoPlaceItemInStash(item2, true));
+	ASSERT_TRUE(AutoPlaceItemInStash(item3, true));
 	ASSERT_EQ(Stash.stashList.size(), 3u);
 
 	Stash.RemoveStashItem(1);
@@ -423,7 +423,7 @@ TEST_F(StashTest, GetItemIdAtPosition_OccupiedCell)
 {
 	Item item = MakeSmallItem();
 	Stash.SetPage(0);
-	ASSERT_TRUE(AutoPlaceItemInStash(*MyPlayer, item, true));
+	ASSERT_TRUE(AutoPlaceItemInStash(item, true));
 
 	// The first item should be placed at (0,0) in an empty stash.
 	StashStruct::StashCell id = Stash.GetItemIdAtPosition({ 0, 0 });
@@ -435,7 +435,7 @@ TEST_F(StashTest, IsItemAtPosition_OccupiedCell)
 {
 	Item item = MakeSmallItem();
 	Stash.SetPage(0);
-	ASSERT_TRUE(AutoPlaceItemInStash(*MyPlayer, item, true));
+	ASSERT_TRUE(AutoPlaceItemInStash(item, true));
 
 	EXPECT_TRUE(Stash.IsItemAtPosition({ 0, 0 }));
 }
@@ -451,7 +451,7 @@ TEST_F(StashTest, TransferToInventory_Success)
 
 	Item item = MakeSmallItem();
 	Stash.SetPage(0);
-	ASSERT_TRUE(AutoPlaceItemInStash(*MyPlayer, item, true));
+	ASSERT_TRUE(AutoPlaceItemInStash(item, true));
 	ASSERT_EQ(Stash.stashList.size(), 1u);
 
 	TransferItemToInventory(*MyPlayer, 0);
@@ -493,7 +493,7 @@ TEST_F(StashTest, TransferToInventory_InventoryFull)
 
 	Item item = MakeSmallItem();
 	Stash.SetPage(0);
-	ASSERT_TRUE(AutoPlaceItemInStash(*MyPlayer, item, true));
+	ASSERT_TRUE(AutoPlaceItemInStash(item, true));
 	ASSERT_EQ(Stash.stashList.size(), 1u);
 
 	TransferItemToInventory(*MyPlayer, 0);
@@ -546,7 +546,7 @@ TEST_F(StashTest, DirtyFlag_SetOnPlaceItem)
 	Stash.dirty = false;
 
 	Item item = MakeSmallItem();
-	ASSERT_TRUE(AutoPlaceItemInStash(*MyPlayer, item, true));
+	ASSERT_TRUE(AutoPlaceItemInStash(item, true));
 
 	EXPECT_TRUE(Stash.dirty);
 }
@@ -556,7 +556,7 @@ TEST_F(StashTest, DirtyFlag_SetOnPlaceGold)
 	Stash.dirty = false;
 
 	Item gold = MakeGold(100);
-	ASSERT_TRUE(AutoPlaceItemInStash(*MyPlayer, gold, true));
+	ASSERT_TRUE(AutoPlaceItemInStash(gold, true));
 
 	EXPECT_TRUE(Stash.dirty);
 }
@@ -564,7 +564,7 @@ TEST_F(StashTest, DirtyFlag_SetOnPlaceGold)
 TEST_F(StashTest, DirtyFlag_SetOnRemoveItem)
 {
 	Item item = MakeSmallItem();
-	ASSERT_TRUE(AutoPlaceItemInStash(*MyPlayer, item, true));
+	ASSERT_TRUE(AutoPlaceItemInStash(item, true));
 	Stash.dirty = false;
 
 	Stash.RemoveStashItem(0);
@@ -586,7 +586,7 @@ TEST_F(StashTest, DirtyFlag_NotSetOnDryRun)
 	Stash.dirty = false;
 
 	Item item = MakeSmallItem();
-	AutoPlaceItemInStash(*MyPlayer, item, false);
+	AutoPlaceItemInStash(item, false);
 
 	EXPECT_FALSE(Stash.dirty);
 }
@@ -620,7 +620,7 @@ TEST_F(StashTest, PlaceItem_CurrentPagePreferred)
 	Stash.dirty = false;
 
 	Item item = MakeSmallItem();
-	ASSERT_TRUE(AutoPlaceItemInStash(*MyPlayer, item, true));
+	ASSERT_TRUE(AutoPlaceItemInStash(item, true));
 
 	EXPECT_TRUE(Stash.stashGrids.count(5) > 0)
 	    << "Item should be placed on the current page (5)";
@@ -636,7 +636,7 @@ TEST_F(StashTest, PlaceItem_WrapsAroundPages)
 
 	Item overflow = MakeSmallItem();
 	Stash.SetPage(99); // Reset to page 99 so search starts there.
-	EXPECT_TRUE(AutoPlaceItemInStash(*MyPlayer, overflow, true));
+	EXPECT_TRUE(AutoPlaceItemInStash(overflow, true));
 
 	// The item should have been placed on page 0 (wrapped around).
 	EXPECT_TRUE(Stash.stashGrids.count(0) > 0)
@@ -651,8 +651,8 @@ TEST_F(StashTest, MultipleItemTypes_CoexistOnSamePage)
 	Item potion = MakeSmallItem();
 	Item sword = MakeSword();
 
-	ASSERT_TRUE(AutoPlaceItemInStash(*MyPlayer, potion, true));
-	ASSERT_TRUE(AutoPlaceItemInStash(*MyPlayer, sword, true));
+	ASSERT_TRUE(AutoPlaceItemInStash(potion, true));
+	ASSERT_TRUE(AutoPlaceItemInStash(sword, true));
 
 	EXPECT_EQ(Stash.stashList.size(), 2u);
 
@@ -668,14 +668,14 @@ TEST_F(StashTest, RemoveItem_ThenPlaceNew)
 	// Place an item, remove it, then place a new one. The stash should
 	// reuse the slot correctly.
 	Item item1 = MakeSmallItem();
-	ASSERT_TRUE(AutoPlaceItemInStash(*MyPlayer, item1, true));
+	ASSERT_TRUE(AutoPlaceItemInStash(item1, true));
 	ASSERT_EQ(Stash.stashList.size(), 1u);
 
 	Stash.RemoveStashItem(0);
 	ASSERT_TRUE(Stash.stashList.empty());
 
 	Item item2 = MakeSword();
-	ASSERT_TRUE(AutoPlaceItemInStash(*MyPlayer, item2, true));
+	ASSERT_TRUE(AutoPlaceItemInStash(item2, true));
 	EXPECT_EQ(Stash.stashList.size(), 1u);
 }
 
@@ -685,10 +685,10 @@ TEST_F(StashTest, GoldStorageIndependentOfItems)
 	Stash.SetPage(0);
 
 	Item gold = MakeGold(5000);
-	ASSERT_TRUE(AutoPlaceItemInStash(*MyPlayer, gold, true));
+	ASSERT_TRUE(AutoPlaceItemInStash(gold, true));
 
 	Item item = MakeSmallItem();
-	ASSERT_TRUE(AutoPlaceItemInStash(*MyPlayer, item, true));
+	ASSERT_TRUE(AutoPlaceItemInStash(item, true));
 
 	EXPECT_EQ(Stash.gold, 5000) << "Gold should be tracked separately";
 	EXPECT_EQ(Stash.stashList.size(), 1u) << "Only the non-gold item should be in stashList";

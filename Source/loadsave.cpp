@@ -129,7 +129,7 @@ public:
 		    && m_size_ >= (m_cur_ + size);
 	}
 
-	size_t Size() const
+	[[nodiscard]] size_t Size() const
 	{
 		return m_size_;
 	}
@@ -324,7 +324,7 @@ struct LevelConversionData {
 	item._iRequest = file.NextBool8();
 	file.Skip(2); // Alignment
 
-	const int32_t uniqueMappingId = file.NextLE<int32_t>();
+	const auto uniqueMappingId = file.NextLE<int32_t>();
 	if (item._iMagical == ITEM_QUALITY_UNIQUE) {
 		const auto findIt = UniqueItemMappingIdsToIndices.find(uniqueMappingId);
 		if (findIt == UniqueItemMappingIdsToIndices.end()) {
@@ -355,7 +355,7 @@ struct LevelConversionData {
 	file.Skip(1); // Alignment
 	item._iStatFlag = file.NextBool32();
 
-	int32_t itemMappingId = file.NextLE<int32_t>();
+	auto itemMappingId = file.NextLE<int32_t>();
 	if (gbIsSpawn && itemMappingId < IDI_NUM_DEFAULT_ITEMS) {
 		itemMappingId = RemapItemIdxFromSpawn(static_cast<_item_indexes>(itemMappingId));
 	}
@@ -366,7 +366,7 @@ struct LevelConversionData {
 	if (findIt == ItemMappingIdsToIndices.end()) {
 		return false;
 	}
-	const _item_indexes itemIndex = static_cast<_item_indexes>(findIt->second);
+	const auto itemIndex = static_cast<_item_indexes>(findIt->second);
 	item.IDidx = itemIndex;
 
 	item.dwBuff = file.NextLE<uint32_t>();
@@ -523,8 +523,8 @@ void LoadPlayer(LoadHelper &file, Player &player)
 	player._pGold = file.NextLE<int32_t>();
 	player._pInfraFlag = file.NextBool32();
 
-	int32_t tempPositionX = file.NextLE<int32_t>();
-	int32_t tempPositionY = file.NextLE<int32_t>();
+	auto tempPositionX = file.NextLE<int32_t>();
+	auto tempPositionY = file.NextLE<int32_t>();
 	if (player._pmode == PM_WALK_NORTHWARDS) {
 		// These values are saved as offsets to remain consistent with old savefiles
 		tempPositionX += player.position.tile.x;
@@ -2115,9 +2115,9 @@ bool IsStashSizeValid(size_t stashSize, uint32_t pages, uint32_t itemCount)
 	const size_t expectedSize = sizeof(uint8_t)
 	    + sizeof(uint32_t)
 	    + sizeof(uint32_t)
-	    + (sizeof(uint32_t) + 10 * 10 * sizeof(uint16_t)) * pages
+	    + ((sizeof(uint32_t) + 10 * 10 * sizeof(uint16_t)) * pages)
 	    + sizeof(uint32_t)
-	    + itemSize * itemCount
+	    + (itemSize * itemCount)
 	    + sizeof(uint32_t);
 
 	return stashSize == expectedSize;
@@ -2690,7 +2690,7 @@ tl::expected<void, std::string> LoadGame(bool firstflag)
 void SaveHeroItems(SaveWriter &saveWriter, Player &player)
 {
 	const size_t itemCount = static_cast<size_t>(NUM_INVLOC) + InventoryGridCells + MaxBeltItems;
-	SaveHelper file(saveWriter, "heroitems", itemCount * (gbIsHellfire ? HellfireItemSaveSize : DiabloItemSaveSize) + sizeof(uint8_t));
+	SaveHelper file(saveWriter, "heroitems", (itemCount * (gbIsHellfire ? HellfireItemSaveSize : DiabloItemSaveSize)) + sizeof(uint8_t));
 
 	file.WriteLE<uint8_t>(gbIsHellfire ? 1 : 0);
 
@@ -2718,9 +2718,9 @@ void SaveStash(SaveWriter &stashWriter)
 	    sizeof(uint8_t)
 	        + sizeof(uint32_t)
 	        + sizeof(uint32_t)
-	        + (sizeof(uint32_t) + 10 * 10 * sizeof(uint16_t)) * Stash.stashGrids.size()
+	        + ((sizeof(uint32_t) + 10 * 10 * sizeof(uint16_t)) * Stash.stashGrids.size())
 	        + sizeof(uint32_t)
-	        + itemSize * Stash.stashList.size()
+	        + (itemSize * Stash.stashList.size())
 	        + sizeof(uint32_t));
 
 	file.WriteLE<uint8_t>(StashVersion);

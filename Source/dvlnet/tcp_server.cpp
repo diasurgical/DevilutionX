@@ -208,7 +208,7 @@ tl::expected<void, PacketError> tcp_server::StartSend(const scc &con, buffer_t p
 }
 
 void tcp_server::HandleSend(const scc &con, const asio::error_code &ec,
-    size_t bytesSent)
+    size_t /*bytesSent*/)
 {
 	if (ec) {
 		Log("Network error: {}", ec.message());

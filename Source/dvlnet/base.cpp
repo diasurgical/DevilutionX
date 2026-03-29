@@ -500,7 +500,7 @@ bool base::SNetLeaveGame(net::leaveinfo_t type)
 
 bool base::SNetDropPlayer(int playerid, net::leaveinfo_t flags)
 {
-	const plr_t plr = static_cast<plr_t>(playerid);
+	const auto plr = static_cast<plr_t>(playerid);
 	tl::expected<std::unique_ptr<packet>, PacketError> pkt
 	    = pktfty->make_packet<PT_DISCONNECT>(
 	        plr_self,

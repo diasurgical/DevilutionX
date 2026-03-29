@@ -264,7 +264,7 @@ struct CompareInfo {
 struct CompareCounter {
 	int reference;
 	int actual;
-	int max() const
+	[[nodiscard]] int max() const
 	{
 		return std::max(reference, actual);
 	}
@@ -295,7 +295,7 @@ void CreateDetailDiffs(std::string_view prefix, std::string_view memoryMapFile, 
 		return;
 	}
 
-	const size_t readBytes = static_cast<size_t>(SDL_GetIOSize(handle));
+	const auto readBytes = static_cast<size_t>(SDL_GetIOSize(handle));
 	const std::unique_ptr<std::byte[]> memoryMapFileData { new std::byte[readBytes] };
 	SDL_ReadIO(handle, memoryMapFileData.get(), readBytes);
 	SDL_CloseIO(handle);
@@ -392,7 +392,7 @@ void CreateDetailDiffs(std::string_view prefix, std::string_view memoryMapFile, 
 			const ParseIntResult<size_t> parsedBytes = ParseInt<size_t>(bitsAsString);
 			if (!parsedBytes.has_value())
 				app_fatal(StrCat("Failed to parse ", bitsAsString, " as size_t"));
-			const size_t bytes = static_cast<size_t>(parsedBytes.value() / 8);
+			const auto bytes = static_cast<size_t>(parsedBytes.value() / 8);
 
 			if (command == "LT") {
 				const int32_t valueReference = read32BitInt(compareInfoReference, false);
@@ -421,7 +421,7 @@ void CreateDetailDiffs(std::string_view prefix, std::string_view memoryMapFile, 
 			const ParseIntResult<size_t> parsedBytes = ParseInt<size_t>(bitsAsString);
 			if (!parsedBytes.has_value())
 				app_fatal(StrCat("Failed to parse ", bitsAsString, " as size_t"));
-			const size_t bytes = static_cast<size_t>(parsedBytes.value() / 8);
+			const auto bytes = static_cast<size_t>(parsedBytes.value() / 8);
 			for (int i = 0; i < count.max(); i++) {
 				count.checkIfDataExists(i, compareInfoReference, compareInfoActual);
 				if (!compareBytes(bytes)) {

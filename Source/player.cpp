@@ -1073,7 +1073,7 @@ void TryDisarm(const Player &player, Object &object)
 	if (!object._oTrapFlag) {
 		return;
 	}
-	const int trapdisper = 2 * player._pDexterity - 5 * currlevel;
+	const int trapdisper = (2 * player._pDexterity) - (5 * currlevel);
 	if (GenerateRnd(100) > trapdisper) {
 		return;
 	}
@@ -1455,7 +1455,7 @@ void ValidatePlayer()
 	}
 
 	uint64_t msk = 0;
-	for (size_t b = static_cast<size_t>(SpellID::Firebolt); b < SpellsData.size(); b++) {
+	for (auto b = static_cast<size_t>(SpellID::Firebolt); b < SpellsData.size(); b++) {
 		if (GetSpellBookLevel((SpellID)b) != -1) {
 			msk |= GetSpellBitmask(static_cast<SpellID>(b));
 			if (myPlayer._pSplLvl[b] > MaxSpellLevel)
@@ -1736,7 +1736,7 @@ bool Player::isWalking() const
 int Player::GetManaShieldDamageReduction()
 {
 	constexpr uint8_t Max = 7;
-	return 24 - std::min(_pSplLvl[static_cast<int8_t>(SpellID::ManaShield)], Max) * 3;
+	return 24 - (std::min(_pSplLvl[static_cast<int8_t>(SpellID::ManaShield)], Max) * 3);
 }
 
 void Player::RestorePartialLife()

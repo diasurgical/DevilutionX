@@ -851,7 +851,7 @@ void FillDiagonals()
 {
 	for (int j = 0; j < DMAXY - 1; j++) {
 		for (int i = 0; i < DMAXX - 1; i++) {
-			const int v = dungeon[i + 1][j + 1] + 2 * dungeon[i][j + 1] + 4 * dungeon[i + 1][j] + 8 * dungeon[i][j];
+			const int v = dungeon[i + 1][j + 1] + (2 * dungeon[i][j + 1]) + (4 * dungeon[i + 1][j]) + (8 * dungeon[i][j]);
 			if (v == 6) {
 				if (FlipCoin()) {
 					dungeon[i][j] = 1;
@@ -994,7 +994,7 @@ void MakeMegas()
 {
 	for (int j = 0; j < DMAXY - 1; j++) {
 		for (int i = 0; i < DMAXX - 1; i++) {
-			int v = dungeon[i + 1][j + 1] + 2 * dungeon[i][j + 1] + 4 * dungeon[i + 1][j] + 8 * dungeon[i][j];
+			int v = dungeon[i + 1][j + 1] + (2 * dungeon[i][j + 1]) + (4 * dungeon[i + 1][j]) + (8 * dungeon[i][j]);
 			if (v == 6) {
 				v = PickRandomlyAmong({ 12, 5 });
 			}
@@ -1376,14 +1376,10 @@ bool CanReplaceTile(uint8_t replace, Point tile)
 		    && (p2.x >= 0 && p2.x < DMAXX && p2.y >= 0 && p2.y < DMAXY)
 		    && (dungeon[p1.x][p1.y] >= 84 && dungeon[p2.x][p2.y] <= 100);
 	};
-	if (ComparisonWithBoundsCheck(tile + Direction::NorthWest, tile + Direction::NorthWest)
+	return !(ComparisonWithBoundsCheck(tile + Direction::NorthWest, tile + Direction::NorthWest)
 	    || ComparisonWithBoundsCheck(tile + Direction::SouthEast, tile + Direction::NorthWest)
 	    || ComparisonWithBoundsCheck(tile + Direction::SouthWest, tile + Direction::NorthWest)
-	    || ComparisonWithBoundsCheck(tile + Direction::NorthEast, tile + Direction::NorthWest)) {
-		return false;
-	}
-
-	return true;
+	    || ComparisonWithBoundsCheck(tile + Direction::NorthEast, tile + Direction::NorthWest));
 }
 
 /**

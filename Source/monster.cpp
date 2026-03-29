@@ -3765,7 +3765,7 @@ tl::expected<void, std::string> SetMapMonsters(const uint16_t *dunData, Point st
 
 	for (WorldTileCoord j = 0; j < size.height; j++) {
 		for (WorldTileCoord i = 0; i < size.width; i++) {
-			auto monsterId = static_cast<uint8_t>(Swap16LE(monsterLayer[j * size.width + i]));
+			auto monsterId = static_cast<uint8_t>(Swap16LE(monsterLayer[(j * size.width) + i]));
 			if (monsterId != 0) {
 				ASSIGN_OR_RETURN(const size_t typeIndex, AddMonsterType(MonstConvTbl[monsterId - 1], PLACE_SPECIAL));
 				PlaceMonster(ActiveMonsterCount++, typeIndex, startPosition + Displacement { i, j });

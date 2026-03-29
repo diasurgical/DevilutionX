@@ -22,8 +22,8 @@ std::vector<uint8_t> LightmapBuffer;
 
 void RenderFullTile(Point position, uint8_t lightLevel, uint8_t *lightmap, uint16_t pitch)
 {
-	uint8_t *top = lightmap + (position.y + 1) * pitch + position.x - TILE_WIDTH / 2;
-	uint8_t *bottom = top + (TILE_HEIGHT - 2) * pitch;
+	uint8_t *top = lightmap + ((position.y + 1) * pitch) + position.x - (TILE_WIDTH / 2);
+	uint8_t *bottom = top + ((TILE_HEIGHT - 2) * pitch);
 	for (int y = 0, w = 4; y < TILE_HEIGHT / 2 - 1; y++, w += 4) {
 		const int x = (TILE_WIDTH - w) / 2;
 		memset(top + x, lightLevel, w);
@@ -425,7 +425,7 @@ void BuildLightmap(Point tilePosition, Point targetBufferPosition, uint16_t view
 {
 	// Since light may need to bleed up to the top of wall tiles,
 	// expand the buffer space to include the full base diamond of the tallest tile graphics
-	const uint16_t bufferHeight = viewportHeight + TILE_HEIGHT * (microTileLen / 2 + 1);
+	const uint16_t bufferHeight = viewportHeight + (TILE_HEIGHT * (microTileLen / 2 + 1));
 	rows += microTileLen + 2;
 
 	const size_t totalPixels = static_cast<size_t>(viewportWidth) * bufferHeight;
@@ -539,13 +539,13 @@ Lightmap Lightmap::bleedUp(bool perPixelLighting, const Lightmap &source, Point 
 	const uint16_t lightmapHeight = TILE_HEIGHT - clipTop - clipBottom;
 
 	// Find the left edge of the last row in the tile
-	const int outOffset = std::max(0, (targetBufferPosition.y - clipBottom) * source.outPitch + targetBufferPosition.x + clipLeft);
+	const int outOffset = std::max(0, ((targetBufferPosition.y - clipBottom) * source.outPitch) + targetBufferPosition.x + clipLeft);
 	const uint8_t *outLoc = source.outBuffer + outOffset;
-	const uint8_t *outBuffer = outLoc - (lightmapHeight - 1) * source.outPitch;
+	const uint8_t *outBuffer = outLoc - ((lightmapHeight - 1) * source.outPitch);
 
 	// Start copying bytes from the bottom row of the tile
 	const uint8_t *src = source.getLightingAt(outLoc);
-	uint8_t *dst = lightmapBuffer.data() + (lightmapHeight - 1) * lightmapPitch;
+	uint8_t *dst = lightmapBuffer.data() + ((lightmapHeight - 1) * lightmapPitch);
 
 	int rowCount = clipBottom;
 	while (src >= source.lightmapBuffer.data() && dst >= lightmapBuffer.data()) {

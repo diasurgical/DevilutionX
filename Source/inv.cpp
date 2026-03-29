@@ -152,7 +152,7 @@ void AddItemToInvGrid(Player &player, int invGridIndex, int invListIndex, Size i
 {
 	const int pitch = 10;
 	for (int y = 0; y < itemSize.height; y++) {
-		const int rowGridIndex = invGridIndex + pitch * y;
+		const int rowGridIndex = invGridIndex + (pitch * y);
 		for (int x = 0; x < itemSize.width; x++) {
 			if (x == 0 && y == itemSize.height - 1)
 				player.InvGrid[rowGridIndex + x] = invListIndex;
@@ -328,7 +328,7 @@ int FindTargetSlotUnderItemCursor(Point cursorPosition, Size itemSize)
 			const int hotPixelCell = r - SLOTXY_INV_FIRST;
 			const int targetRow = std::clamp((hotPixelCell / InventorySizeInSlots.width) - hotPixelCellOffset.deltaY, 0, InventorySizeInSlots.height - itemSize.height);
 			const int targetColumn = std::clamp((hotPixelCell % InventorySizeInSlots.width) - hotPixelCellOffset.deltaX, 0, InventorySizeInSlots.width - itemSize.width);
-			return SLOTXY_INV_FIRST + targetRow * InventorySizeInSlots.width + targetColumn;
+			return SLOTXY_INV_FIRST + (targetRow * InventorySizeInSlots.width) + targetColumn;
 		}
 	}
 
@@ -421,7 +421,7 @@ void ChangeTwoHandItem(Player &player)
 int8_t CheckOverlappingItems(int slot, const Player &player, Size itemSize)
 {
 	// check that the item we're pasting only overlaps one other item (or is going into empty space)
-	const unsigned originCell = static_cast<unsigned>(slot - SLOTXY_INV_FIRST);
+	const auto originCell = static_cast<unsigned>(slot - SLOTXY_INV_FIRST);
 
 	int8_t overlappingId = 0;
 	for (unsigned rowOffset = 0; rowOffset < static_cast<unsigned>(itemSize.height * InventorySizeInSlots.width); rowOffset += InventorySizeInSlots.width) {
@@ -538,7 +538,7 @@ void ChangeBeltItem(Player &player, int slot)
 	RedrawComponent(PanelDrawComponent::Belt);
 }
 
-item_equip_type GetItemEquipType(const Player &player, int slot, item_equip_type desiredLocation)
+item_equip_type GetItemEquipType(int slot, item_equip_type desiredLocation)
 {
 	if (slot == SLOTXY_HEAD)
 		return ILOC_HELM;
@@ -568,7 +568,7 @@ void CheckInvPaste(Player &player, Point cursorPosition)
 		return;
 
 	const item_equip_type desiredLocation = player.GetItemLocation(player.HoldItem);
-	const item_equip_type location = GetItemEquipType(player, slot, desiredLocation);
+	const item_equip_type location = GetItemEquipType(slot, desiredLocation);
 
 	if (location == ILOC_BELT) {
 		if (!CanBePlacedOnBelt(player, player.HoldItem)) return;
@@ -630,7 +630,7 @@ inv_body_loc MapSlotToInvBodyLoc(inv_xy_slot slot)
 std::optional<inv_xy_slot> FindSlotUnderCursor(Point cursorPosition)
 {
 
-	Point testPosition = static_cast<Point>(cursorPosition - GetRightPanel().position);
+	auto testPosition = static_cast<Point>(cursorPosition - GetRightPanel().position);
 	for (std::underlying_type_t<inv_xy_slot> r = SLOTXY_EQUIPPED_FIRST; r != SLOTXY_BELT_FIRST; r++) {
 		// check which body/inventory rectangle the mouse is in, if any
 		if (InvRect[r].contains(testPosition)) {
@@ -667,7 +667,7 @@ bool CheckItemFitsInInventorySlot(const Player &player, int slotIndex, const Siz
 		}
 		int xx = (slotIndex > 0) ? (slotIndex % 10) : 0;
 		for (int i = 0; i < itemSize.width; i++) {
-			if (xx >= 10 || !(player.InvGrid[xx + yy] == 0 || std::abs(player.InvGrid[xx + yy]) - 1 == itemIndexToIgnore)) {
+			if (xx >= 10 || (player.InvGrid[xx + yy] != 0 && std::abs(player.InvGrid[xx + yy]) - 1 != itemIndexToIgnore)) {
 				// The item is too wide to fit in the specified column, or one of the cells is occupied (and not by the item we're planning on removing)
 				return false;
 			}
@@ -694,8 +694,8 @@ std::optional<int> FindSlotForItem(const Player &player, const Size &itemSize, i
 		}
 		for (int x = 9; x >= 0; x--) {
 			for (int y = 2; y >= 0; y--) {
-				if (CheckItemFitsInInventorySlot(player, 10 * y + x, itemSize, itemIndexToIgnore))
-					return 10 * y + x;
+				if (CheckItemFitsInInventorySlot(player, (10 * y) + x, itemSize, itemIndexToIgnore))
+					return (10 * y) + x;
 			}
 		}
 		return {};
@@ -704,8 +704,8 @@ std::optional<int> FindSlotForItem(const Player &player, const Size &itemSize, i
 	if (itemSize.height == 2) {
 		for (int x = 10 - itemSize.width; x >= 0; x--) {
 			for (int y = 0; y < 3; y++) {
-				if (CheckItemFitsInInventorySlot(player, 10 * y + x, itemSize, itemIndexToIgnore))
-					return 10 * y + x;
+				if (CheckItemFitsInInventorySlot(player, (10 * y) + x, itemSize, itemIndexToIgnore))
+					return (10 * y) + x;
 			}
 		}
 		return {};
@@ -1533,7 +1533,7 @@ int AddGoldToInventory(Player &player, int value)
 	// Remaining inventory in columns, bottom to top, right to left
 	for (int x = 9; x >= 0 && value > 0; x--) {
 		for (int y = 2; y >= 0 && value > 0; y--) {
-			value = CreateGoldItemInInventorySlot(player, 10 * y + x, value);
+			value = CreateGoldItemInInventorySlot(player, (10 * y) + x, value);
 		}
 	}
 
@@ -1577,7 +1577,7 @@ void CheckInvSwap(Player &player, const Item &item, int invGridIndex)
 	const int pitch = 10;
 	const int invListIndex = [&]() -> int {
 		for (int y = 0; y < itemSize.height; y++) {
-			const int rowGridIndex = invGridIndex + pitch * y;
+			const int rowGridIndex = invGridIndex + (pitch * y);
 			for (int x = 0; x < itemSize.width; x++) {
 				const int gridIndex = rowGridIndex + x;
 				if (player.InvGrid[gridIndex] != 0)
@@ -1600,7 +1600,7 @@ void CheckInvSwap(Player &player, const Item &item, int invGridIndex)
 	player.InvList[invListIndex - 1] = item;
 
 	for (int y = 0; y < itemSize.height; y++) {
-		const int rowGridIndex = invGridIndex + pitch * y;
+		const int rowGridIndex = invGridIndex + (pitch * y);
 		for (int x = 0; x < itemSize.width; x++) {
 			if (x == 0 && y == itemSize.height - 1)
 				player.InvGrid[rowGridIndex + x] = invListIndex;
@@ -1628,7 +1628,7 @@ void TransferItemToStash(Player &player, int location)
 	}
 
 	const Item &item = GetInventoryItem(player, location);
-	if (!AutoPlaceItemInStash(player, item, true)) {
+	if (!AutoPlaceItemInStash(item, true)) {
 		player.SaySpecific(HeroSpeech::WhereWouldIPutThis);
 		return;
 	}
@@ -2249,7 +2249,7 @@ void CloseStash()
 		} else {
 			if (!AutoPlaceItemInBelt(myPlayer, myPlayer.HoldItem, true, true)
 			    && !AutoPlaceItemInInventory(myPlayer, myPlayer.HoldItem, true)
-			    && !AutoPlaceItemInStash(myPlayer, myPlayer.HoldItem, true)) {
+			    && !AutoPlaceItemInStash(myPlayer.HoldItem, true)) {
 				// This can fail for max gold, arena potions and a stash that has been arranged
 				// to not have room for the item all 3 cases are extremely unlikely
 				app_fatal(_("No room for item"));

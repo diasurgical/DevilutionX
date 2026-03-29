@@ -370,7 +370,7 @@ tl::expected<unique_base_item, std::string> ParseOrAddUniqueBaseItem(std::string
 		return tl::make_unexpected(fmt::format("Could not define new unique base item \"{}\", since the maximum number of {} has already been reached.", value, static_cast<size_t>(NUM_MAX_UITYPES)));
 	}
 
-	const unique_base_item newUniqueBaseItem = static_cast<unique_base_item>(newUniqueBaseItemIndex);
+	const auto newUniqueBaseItem = static_cast<unique_base_item>(newUniqueBaseItemIndex);
 	AdditionalUniqueBaseItemStringsToIndices[std::string(value)] = newUniqueBaseItem;
 	return newUniqueBaseItem;
 }

@@ -118,7 +118,7 @@ int LuaPrint(lua_State *state)
 	return 0;
 }
 
-void LuaWarn(void *userData, const char *message, int continued)
+void LuaWarn(void * /*userData*/, const char *message, int continued)
 {
 	static std::string warnBuffer;
 	warnBuffer.append(message);

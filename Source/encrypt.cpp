@@ -18,10 +18,10 @@ uint32_t PkwareCompress(std::byte *srcData, uint32_t size)
 {
 	// Stack buffer covers typical network messages and MPQ sectors (≤ 4096).
 	// Falls back to heap for larger payloads.
-	constexpr size_t StackBufSize = 4096 * 2 + 64;
+	constexpr size_t StackBufSize = (4096 * 2) + 64;
 	uint8_t stackBuf[StackBufSize];
 
-	size_t dstCap = static_cast<size_t>(size) * 2 + 64;
+	size_t dstCap = (static_cast<size_t>(size) * 2) + 64;
 	uint8_t *dst;
 	std::unique_ptr<uint8_t[]> heapBuf;
 

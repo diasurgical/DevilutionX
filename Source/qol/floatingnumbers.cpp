@@ -97,7 +97,7 @@ void DrawFloatingNumbers(const Surface &out, Point viewPosition, Displacement of
 		const int lineWidth = GetLineWidth(floatingNum.text, GetGameFontSize(floatingNum.style));
 		screenPosition.x -= lineWidth / 2;
 		const uint32_t timeLeft = floatingNum.time - SDL_GetTicks();
-		const float mul = 1 - (timeLeft / 2500.0f);
+		const float mul = 1 - (timeLeft / 2500.0F);
 		screenPosition += floatingNum.endOffset * mul;
 
 		DrawString(out, floatingNum.text, Rectangle { screenPosition, { lineWidth, 0 } },

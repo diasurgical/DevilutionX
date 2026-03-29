@@ -47,7 +47,7 @@ void InitPlayerUserType(sol::state_view &lua)
 	LuaSetDocFn(playerType, "addItem", "(itemId: integer, count: integer = 1)",
 	    "Add an item to the player's inventory",
 	    [](Player &player, int itemId, std::optional<int> count) -> bool {
-		    const _item_indexes itemIndex = static_cast<_item_indexes>(itemId);
+		    const auto itemIndex = static_cast<_item_indexes>(itemId);
 		    const int itemCount = count.value_or(1);
 		    for (int i = 0; i < itemCount; i++) {
 			    Item tempItem {};
@@ -67,7 +67,7 @@ void InitPlayerUserType(sol::state_view &lua)
 	LuaSetDocFn(playerType, "removeItem", "(itemId: integer, count: integer = 1)",
 	    "Remove an item from the player's inventory",
 	    [](Player &player, int itemId, std::optional<int> count) -> int {
-		    const _item_indexes targetId = static_cast<_item_indexes>(itemId);
+		    const auto targetId = static_cast<_item_indexes>(itemId);
 		    const int itemCount = count.value_or(1);
 		    int removed = 0;
 

@@ -357,7 +357,7 @@ void LoadMonstDatFromFile(DataFile &dataFile, const std::string_view filename, b
 				monster.spriteId = static_cast<uint16_t>(findIt - MonsterSpritePaths.begin());
 			} else {
 				monster.spriteId = static_cast<uint16_t>(MonsterSpritePaths.size());
-				MonsterSpritePaths.push_back(std::string(assetsSuffix));
+				MonsterSpritePaths.emplace_back(assetsSuffix);
 			}
 		}
 		reader.readString("soundSuffix", monster.soundSuffix);

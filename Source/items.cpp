@@ -1396,9 +1396,7 @@ _item_indexes RndAllItems()
 
 	int itemMaxLevel = ItemsGetCurrlevel() * 2;
 	return GetItemIndexForDroppableItem(false, [&itemMaxLevel](const ItemData &item) {
-		if (itemMaxLevel < item.iMinMLvl)
-			return false;
-		return true;
+		return itemMaxLevel >= item.iMinMLvl;
 	});
 }
 
@@ -4637,7 +4635,7 @@ void SpawnHealer(int lvl)
 {
 	constexpr size_t PinnedItemCount = NumHealerPinnedItems;
 	constexpr std::array<_item_indexes, PinnedItemCount + 1> PinnedItemTypes = { IDI_HEAL, IDI_FULLHEAL, IDI_RESURRECT };
-	const size_t itemCount = static_cast<size_t>(RandomIntBetween(10, gbIsHellfire ? NumHealerItemsHf : NumHealerItems));
+	const auto itemCount = static_cast<size_t>(RandomIntBetween(10, gbIsHellfire ? NumHealerItemsHf : NumHealerItems));
 	HealerItems.clear();
 
 	for (size_t i = 0; i < itemCount; i++) {

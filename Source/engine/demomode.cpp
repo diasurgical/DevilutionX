@@ -541,7 +541,7 @@ std::optional<DemoMsg> ReadDemoMessage()
 	// to encode `progressToNextGameTick` inline.
 	if ((typeNum & 0b10000000) != 0) {
 		DemoModeLastTick = SDL_GetTicks();
-		return DemoMsg { DemoMsg::Rendering, static_cast<uint8_t>(typeNum & 0b01111111u), {} };
+		return DemoMsg { DemoMsg::Rendering, static_cast<uint8_t>(typeNum & 0b01111111U), {} };
 	}
 	const uint8_t progressToNextGameTick = ReadByte(DemoFile);
 
@@ -703,7 +703,7 @@ bool GetRunGameLoop(bool &drawGame, bool &processInput)
 		} else {
 			int32_t fraction = ticksElapsed * AnimationInfo::baseValueFraction / gnTickDelay;
 			fraction = std::clamp<int32_t>(fraction, 0, AnimationInfo::baseValueFraction);
-			const uint8_t progressToNextGameTick = static_cast<uint8_t>(fraction);
+			const auto progressToNextGameTick = static_cast<uint8_t>(fraction);
 			if (dmsg.type == DemoMsg::GameTick || dmsg.progressToNextGameTick > progressToNextGameTick) {
 				// we are ahead of the replay => add a additional rendering for smoothness
 				if (gbRunGame && PauseMode == 0 && (gbIsMultiplayer || !gmenu_is_active()) && gbProcessPlayers) // if game is not running or paused there is no next gametick in the near future

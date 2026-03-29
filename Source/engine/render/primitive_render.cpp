@@ -54,7 +54,7 @@ void DrawHalfTransparentBlendedRectTo(const Surface &out, unsigned sx, unsigned 
 
 	// First, draw the leading unaligned part.
 	if (sx % 4 != 0) {
-		const unsigned w = 4 - sx % 4;
+		const unsigned w = 4 - (sx % 4);
 		DrawHalfTransparentUnalignedBlendedRectTo(out, sx, sy, w, height, 0);
 		sx += w;
 		width -= w;
@@ -66,7 +66,7 @@ void DrawHalfTransparentBlendedRectTo(const Surface &out, unsigned sx, unsigned 
 	} else if (width % 4 != 0) {
 		// Draw the trailing unaligned part.
 		const unsigned w = width % 4;
-		DrawHalfTransparentUnalignedBlendedRectTo(out, sx + (width / 4) * 4, sy, w, height, 0);
+		DrawHalfTransparentUnalignedBlendedRectTo(out, sx + ((width / 4) * 4), sy, w, height, 0);
 		width -= w;
 	}
 

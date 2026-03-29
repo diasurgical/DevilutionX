@@ -198,7 +198,7 @@ std::vector<std::string> GetLocales()
 		do {
 			const size_t separatorPos = languages.find_first_of(":");
 			if (separatorPos != 0)
-				locales.emplace_back(std::string(languages.substr(0, separatorPos)));
+				locales.emplace_back(languages.substr(0, separatorPos));
 
 			if (separatorPos != languages.npos)
 				languages.remove_prefix(separatorPos + 1);

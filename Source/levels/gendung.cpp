@@ -599,12 +599,12 @@ void LoadTransparency(const uint16_t *dunData)
 {
 	WorldTileSize size = GetDunSize(dunData);
 
-	const int layer2Offset = 2 + size.width * size.height;
+	const int layer2Offset = 2 + (size.width * size.height);
 
 	// The rest of the layers are at dPiece scale
 	size *= static_cast<WorldTileCoord>(2);
 
-	const uint16_t *transparentLayer = &dunData[layer2Offset + size.width * size.height * 3];
+	const uint16_t *transparentLayer = &dunData[layer2Offset + (size.width * size.height * 3)];
 
 	for (WorldTileCoord j = 0; j < size.height; j++) {
 		for (WorldTileCoord i = 0; i < size.width; i++) {
@@ -695,7 +695,7 @@ void PlaceDunTiles(const uint16_t *dunData, Point position, int floorId)
 
 	for (WorldTileCoord j = 0; j < size.height; j++) {
 		for (WorldTileCoord i = 0; i < size.width; i++) {
-			auto tileId = static_cast<uint8_t>(Swap16LE(tileLayer[j * size.width + i]));
+			auto tileId = static_cast<uint8_t>(Swap16LE(tileLayer[(j * size.width) + i]));
 			if (tileId != 0) {
 				dungeon[position.x + i][position.y + j] = tileId;
 				Protected.set(position.x + i, position.y + j);
@@ -749,8 +749,8 @@ void DRLG_HoldThemeRooms()
 	for (int i = 0; i < themeCount; i++) {
 		for (int y = themeLoc[i].room.position.y; y < themeLoc[i].room.position.y + themeLoc[i].room.size.height - 1; y++) {
 			for (int x = themeLoc[i].room.position.x; x < themeLoc[i].room.position.x + themeLoc[i].room.size.width - 1; x++) {
-				const int xx = 2 * x + 16;
-				const int yy = 2 * y + 16;
+				const int xx = (2 * x) + 16;
+				const int yy = (2 * y) + 16;
 				dFlags[xx][yy] |= DungeonFlag::Populated;
 				dFlags[xx + 1][yy] |= DungeonFlag::Populated;
 				dFlags[xx][yy + 1] |= DungeonFlag::Populated;

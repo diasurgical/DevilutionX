@@ -437,7 +437,7 @@ void UnPackPlayer(const PlayerPack &packed, Player &player)
 bool UnPackNetItem(const Player &player, const ItemNetPack &packedItem, Item &item)
 {
 	item = {};
-	const _item_indexes idx = static_cast<_item_indexes>(Swap16LE(packedItem.def.wIndx));
+	const auto idx = static_cast<_item_indexes>(Swap16LE(packedItem.def.wIndx));
 	if (idx < 0 || idx >= static_cast<_item_indexes>(AllItemsList.size()))
 		return true;
 	if (idx == IDI_EAR) {
@@ -572,7 +572,7 @@ bool UnPackNetPlayer(const PlayerNetPack &packed, Player &player)
 		if (item.isEmpty())
 			continue;
 		const Size beltItemSize = GetInventorySize(item);
-		const int8_t beltItemType = static_cast<int8_t>(item._itype);
+		const auto beltItemType = static_cast<int8_t>(item._itype);
 		const bool beltItemUsable = item.isUsable();
 		ValidateFields(beltItemSize.width, beltItemSize.height, (beltItemSize == Size { 1, 1 }));
 		ValidateField(beltItemType, item._itype != ItemType::Gold);

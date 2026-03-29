@@ -265,10 +265,7 @@ bool CanTargetMonster(const Monster &monster)
 
 	const int mx = monster.position.tile.x;
 	const int my = monster.position.tile.y;
-	if (dMonster[mx][my] == 0)
-		return false;
-
-	return true;
+	return dMonster[mx][my] != 0;
 }
 
 void FindRangedTarget()
@@ -855,7 +852,7 @@ void LiftInventoryItem()
 				return 0;
 			for (int x = 0; x < cursorSizeInCells.width; x++) {
 				for (int y = 0; y < cursorSizeInCells.height; y++) {
-					const int slotUnderCursor = inventorySlot + x + y * INV_ROW_SLOT_SIZE;
+					const int slotUnderCursor = inventorySlot + x + (y * INV_ROW_SLOT_SIZE);
 					if (slotUnderCursor > SLOTXY_INV_LAST)
 						continue;
 					const int itemId = GetItemIdOnSlot(slotUnderCursor);
@@ -1087,7 +1084,7 @@ void VisualStoreMove(AxisDirection dir)
 					const Point slotPos = GetSlotCoord(slot);
 					// Exaggerate the vertical difference so that moving from the top rows of the
 					//  visual store is more likely to land on a body slot
-					return std::abs(mousePos.y - slotPos.y) * 3 + std::abs(mousePos.x - slotPos.x);
+					return (std::abs(mousePos.y - slotPos.y) * 3) + std::abs(mousePos.x - slotPos.x);
 				});
 				VisualStoreSlot = { -1, -1 }; // Invalidate visual store slot
 				BeltReturnsToVisualStore = false;
@@ -1355,10 +1352,10 @@ void InventoryMove(AxisDirection dir)
 				if (itemId != 0) {
 					for (int i = 1; i < 5; i++) {
 						if (Slot - i * INV_ROW_SLOT_SIZE < SLOTXY_INV_ROW1_FIRST) {
-							Slot = InventoryMoveToBody(Slot - (i - 1) * INV_ROW_SLOT_SIZE);
+							Slot = InventoryMoveToBody(Slot - ((i - 1) * INV_ROW_SLOT_SIZE));
 							break;
 						}
-						if (itemId != GetItemIdOnSlot(Slot - i * INV_ROW_SLOT_SIZE)) {
+						if (itemId != GetItemIdOnSlot(Slot - (i * INV_ROW_SLOT_SIZE))) {
 							Slot -= i * INV_ROW_SLOT_SIZE;
 							break;
 						}
@@ -1410,7 +1407,7 @@ void InventoryMove(AxisDirection dir)
 				const int8_t itemId = GetItemIdOnSlot(Slot);
 				if (itemId != 0) {
 					for (int i = 1; i < 5 && Slot + i * INV_ROW_SLOT_SIZE <= SLOTXY_BELT_LAST; i++) {
-						if (itemId != GetItemIdOnSlot(Slot + i * INV_ROW_SLOT_SIZE)) {
+						if (itemId != GetItemIdOnSlot(Slot + (i * INV_ROW_SLOT_SIZE))) {
 							Slot += i * INV_ROW_SLOT_SIZE;
 							break;
 						}
@@ -1598,7 +1595,7 @@ void StashMove(AxisDirection dir)
 				//  empty-handed while 4 causes the amulet to be preferenced (due to less vertical
 				//  distance) and 2 causes the left hand to be preferenced (due to less horizontal
 				//  distance).
-				return std::abs(mousePos.y - slotPos.y) * 3 + std::abs(mousePos.x - slotPos.x);
+				return (std::abs(mousePos.y - slotPos.y) * 3) + std::abs(mousePos.x - slotPos.x);
 			});
 			ActiveStashSlot = InvalidStashPoint;
 			BeltReturnsToStash = false;
@@ -1893,7 +1890,7 @@ struct RightStickAccumulator {
 bool IsStickMovementSignificant()
 {
 	// avoid sqrt() by comparing squared magnitudes
-	const float leftStickMagnitudeSquared = leftStickX * leftStickX + leftStickY * leftStickY;
+	const float leftStickMagnitudeSquared = (leftStickX * leftStickX) + (leftStickY * leftStickY);
 	const float thresholdSquared = StickDirectionThreshold * StickDirectionThreshold;
 
 	return leftStickMagnitudeSquared >= thresholdSquared

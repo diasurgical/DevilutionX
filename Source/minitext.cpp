@@ -84,7 +84,7 @@ int CalculateTextPosition()
 {
 	const uint32_t currTime = GetMillisecondsSinceStartup();
 
-	const int y = (currTime - ScrollStart) / qtextSpd - 260;
+	const int y = ((currTime - ScrollStart) / qtextSpd) - 260;
 
 	const auto textHeight = static_cast<int>(LineHeight * TextLines.size());
 	if (y >= textHeight)
@@ -116,7 +116,7 @@ void DrawQTextContent(const Surface &out)
 			continue;
 		}
 
-		DrawString(out, line, { { sx, sy + i * LineHeight }, { 543, LineHeight } },
+		DrawString(out, line, { { sx, sy + (i * LineHeight) }, { 543, LineHeight } },
 		    { .flags = UiFlags::FontSize30 | UiFlags::ColorGold });
 	}
 }

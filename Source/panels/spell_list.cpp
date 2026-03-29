@@ -32,7 +32,7 @@ void PrintSBookSpellType(const Surface &out, Point position, std::string_view te
 	DrawLargeSpellIconBorder(out, position, rectColorIndex);
 
 	// Align the spell type text with bottom of spell icon
-	position += Displacement { SPLICONLENGTH / 2 - GetLineWidth(text) / 2, (IsSmallFontTall() ? -19 : -15) };
+	position += Displacement { (SPLICONLENGTH / 2) - (GetLineWidth(text) / 2), (IsSmallFontTall() ? -19 : -15) };
 
 	// Then draw the text over the top
 	DrawString(out, text, position, { .flags = UiFlags::ColorWhite | UiFlags::Outlined });
@@ -203,7 +203,7 @@ std::vector<SpellListItem> GetSpellListItems()
 	uint64_t mask;
 	const Point mainPanelPosition = GetMainPanel().position;
 
-	int x = mainPanelPosition.x + 12 + SPLICONLENGTH * SPLROWICONLS;
+	int x = mainPanelPosition.x + 12 + (SPLICONLENGTH * SPLROWICONLS);
 	int y = mainPanelPosition.y - 17;
 
 	for (auto i : enum_values<SpellType>()) {
@@ -224,7 +224,7 @@ std::vector<SpellListItem> GetSpellListItems()
 		default:
 			continue;
 		}
-		int8_t j = static_cast<int8_t>(SpellID::Firebolt);
+		auto j = static_cast<int8_t>(SpellID::Firebolt);
 		for (uint64_t spl = 1; static_cast<size_t>(j) < SpellsData.size(); spl <<= 1, j++) {
 			if ((mask & spl) == 0)
 				continue;
@@ -335,10 +335,10 @@ void DoSpeedBook()
 {
 	SpellSelectFlag = true;
 	const Point mainPanelPosition = GetMainPanel().position;
-	int xo = mainPanelPosition.x + 12 + SPLICONLENGTH * 10;
+	int xo = mainPanelPosition.x + 12 + (SPLICONLENGTH * 10);
 	int yo = mainPanelPosition.y - 17;
-	int x = xo + SPLICONLENGTH / 2;
-	int y = yo - SPLICONLENGTH / 2;
+	int x = xo + (SPLICONLENGTH / 2);
+	int y = yo - (SPLICONLENGTH / 2);
 
 	const Player &myPlayer = *MyPlayer;
 

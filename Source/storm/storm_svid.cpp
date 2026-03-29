@@ -188,8 +188,8 @@ void UpdatePalette()
 	SDL_Color *colors = SVidPalette->colors;
 	for (unsigned i = 0; i < NumColors; ++i) {
 		colors[i].r = paletteData[i * 3];
-		colors[i].g = paletteData[i * 3 + 1];
-		colors[i].b = paletteData[i * 3 + 2];
+		colors[i].g = paletteData[(i * 3) + 1];
+		colors[i].b = paletteData[(i * 3) + 2];
 #ifndef USE_SDL1
 		colors[i].a = SDL_ALPHA_OPAQUE;
 #endif

@@ -174,7 +174,7 @@ bool SNetCreateGame(const char *pszGameName, const char *pszGamePassword, char *
 		std::transform(upperGameName.begin(), upperGameName.end(), upperGameName.begin(), ::toupper);
 		const char *privacy = GameIsPublic ? "public" : "private";
 		if (gameTemplateData != nullptr && gameTemplateSize >= static_cast<int>(sizeof(GameData))) {
-			const GameData *gameData = reinterpret_cast<const GameData *>(gameTemplateData);
+			const auto *gameData = reinterpret_cast<const GameData *>(gameTemplateData);
 			LogInfo("Created {} {} multiplayer game '{}' (player id: {}, seed: {})",
 			    privacy, ConnectionNames[provider], upperGameName, createdPlayerId,
 			    FormatGameSeed(gameData->gameSeed));

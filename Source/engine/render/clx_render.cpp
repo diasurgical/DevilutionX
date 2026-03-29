@@ -59,7 +59,7 @@ struct ClipX {
 DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT ClipX CalculateClipX(int_fast16_t x, std::size_t w, const Surface &out)
 {
 	ClipX clip;
-	clip.left = static_cast<int_fast16_t>(x < 0 ? -x : 0);
+	clip.left = (x < 0 ? -x : 0);
 	clip.right = static_cast<int_fast16_t>(static_cast<int_fast16_t>(x + w) > out.w() ? x + w - out.w() : 0);
 	clip.width = static_cast<int_fast16_t>(w - clip.left - clip.right);
 	return clip;
@@ -236,7 +236,7 @@ void DoRenderBackwards(
 constexpr size_t MaxOutlinePixels = 4096;
 constexpr size_t MaxOutlineSpriteWidth = 253;
 using OutlinePixels = StaticVector<PointOf<uint8_t>, MaxOutlinePixels>;
-using OutlineRowSolidRuns = StaticVector<std::pair<uint8_t, uint8_t>, MaxOutlineSpriteWidth / 2 + 1>;
+using OutlineRowSolidRuns = StaticVector<std::pair<uint8_t, uint8_t>, (MaxOutlineSpriteWidth / 2) + 1>;
 
 struct OutlinePixelsCacheEntry {
 	OutlinePixels outlinePixels;

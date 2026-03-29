@@ -440,7 +440,7 @@ void HandleEvents(_SNETEVENT *pEvt)
 			std::memcpy(&leftReasonRaw, pEvt->data, sizeof(leftReasonRaw));
 			leftReasonRaw = Swap32LE(leftReasonRaw);
 		}
-		leaveinfo_t leftReason = static_cast<leaveinfo_t>(leftReasonRaw);
+		auto leftReason = static_cast<leaveinfo_t>(leftReasonRaw);
 		sgdwPlayerLeftReasonTbl[playerId] = leftReason;
 		if (leftReason == leaveinfo_t::LEAVE_ENDING)
 			gbSomebodyWonGameKludge = true;
@@ -730,7 +730,7 @@ void ProcessGameMessagePackets()
 				if (player.isOnActiveLevel() && !player._pLvlChanging) {
 					const uint8_t rawDir = pkt->pdir;
 					if (rawDir <= static_cast<uint8_t>(Direction::SouthEast)) {
-						const Direction newDir = static_cast<Direction>(rawDir);
+						const auto newDir = static_cast<Direction>(rawDir);
 						if (player._pdir != newDir && player._pmode == PM_STAND) {
 							player._pdir = newDir;
 							StartStand(player, newDir);
