@@ -27,10 +27,9 @@ enum class VisualStoreTab : uint8_t {
 	Premium = 1
 };
 
-// Grid: 5x5 = 25 items per page (sufficient for all vendors)
+// Grid: 10x9 = 90 slots per page
 inline constexpr int VisualStoreGridWidth = 10;
 inline constexpr int VisualStoreGridHeight = 9;
-inline constexpr int VisualStoreItemsPerPage = VisualStoreGridWidth * VisualStoreGridHeight;
 
 struct VisualStoreItem {
 	uint16_t index; // Index in the vendor's item list

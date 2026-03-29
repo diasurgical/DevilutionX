@@ -1273,30 +1273,13 @@ void SmithEnter()
 		StartStore(TalkID::Gossip);
 		break;
 	case 12:
-		if (*GetOptions().Gameplay.visualStoreUI) {
-			ActiveStore = TalkID::None;
-			OpenVisualStore(VisualStoreVendor::Smith);
-		} else {
-			StartStore(TalkID::SmithBuy);
-		}
+		StartStore(TalkID::SmithBuy);
 		break;
 	case 14:
-		if (*GetOptions().Gameplay.visualStoreUI) {
-			ActiveStore = TalkID::None;
-			OpenVisualStore(VisualStoreVendor::Smith);
-			SetVisualStoreTab(VisualStoreTab::Premium);
-		} else {
-			StartStore(TalkID::SmithPremiumBuy);
-		}
+		StartStore(TalkID::SmithPremiumBuy);
 		break;
 	case 16:
-		if (*GetOptions().Gameplay.visualStoreUI) {
-			// Visual store handles both buying and selling
-			ActiveStore = TalkID::None;
-			OpenVisualStore(VisualStoreVendor::Smith);
-		} else {
-			StartStore(TalkID::SmithSell);
-		}
+		StartStore(TalkID::SmithSell);
 		break;
 	case 18:
 		StartStore(TalkID::SmithRepair);
