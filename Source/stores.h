@@ -89,7 +89,7 @@ extern DVL_API_FOR_TEST StaticVector<Item, NumHealerItemsHf> HealerItems;
 extern DVL_API_FOR_TEST StaticVector<Item, NumWitchItemsHf> WitchItems;
 
 /** Current level of the item sold by Wirt */
-extern int BoyItemLevel;
+extern DVL_API_FOR_TEST int BoyItemLevel;
 /** Current item sold by Wirt */
 extern DVL_API_FOR_TEST Item BoyItem;
 
