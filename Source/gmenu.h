@@ -7,6 +7,8 @@
 
 #include <cstdint>
 
+#include "utils/attributes.h"
+
 #ifdef USE_SDL3
 #include <SDL3/SDL_keycode.h>
 #else
@@ -76,7 +78,7 @@ struct TMenuItem {
 	}
 };
 
-extern TMenuItem *sgpCurrentMenu;
+extern DVL_API_FOR_TEST TMenuItem *sgpCurrentMenu;
 
 void gmenu_draw_pause(const Surface &out);
 void FreeGMenu();

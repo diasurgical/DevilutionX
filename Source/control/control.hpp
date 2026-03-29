@@ -40,8 +40,8 @@ constexpr Size SidePanelSize { 320, 352 };
 
 constexpr Rectangle InfoBoxRect = { { 177, 46 }, { 288, 64 } };
 
-extern bool CharPanelButton[4];
-extern bool CharPanelButtonActive;
+extern DVL_API_FOR_TEST bool CharPanelButton[4];
+extern DVL_API_FOR_TEST bool CharPanelButtonActive;
 
 extern int SpellbookTab;
 
@@ -51,7 +51,7 @@ extern StringOrView InfoString;
 extern StringOrView FloatingInfoString;
 
 extern Rectangle MainPanelButtonRect[8];
-extern Rectangle CharPanelButtonRect[4];
+extern DVL_API_FOR_TEST Rectangle CharPanelButtonRect[4];
 
 extern bool MainPanelButtonDown;
 extern bool LevelButtonDown;
@@ -145,7 +145,7 @@ void RedBack(const Surface &out);
 void DrawDeathText(const Surface &out);
 void DrawSpellBook(const Surface &out);
 
-extern Rectangle CharPanelButtonRect[4];
+extern DVL_API_FOR_TEST Rectangle CharPanelButtonRect[4];
 
 bool CheckKeypress(SDL_Keycode vkey);
 void DiabloHotkeyMsg(uint32_t dwMsg);
