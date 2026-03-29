@@ -106,7 +106,7 @@ struct QuestData {
 	std::string _qlstr;
 };
 
-extern bool QuestLogIsOpen;
+extern DVL_API_FOR_TEST bool QuestLogIsOpen;
 extern OptionalOwnedClxSpriteList pQLogCel;
 extern DVL_API_FOR_TEST Quest Quests[MAXQUESTS];
 extern Point ReturnLvlPosition;

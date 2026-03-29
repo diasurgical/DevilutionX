@@ -12,6 +12,7 @@
 #include "engine/point.hpp"
 #include "engine/surface.hpp"
 #include "items.h"
+#include "utils/attributes.h"
 
 namespace devilution {
 
@@ -48,10 +49,10 @@ struct VisualStoreState {
 	std::vector<VisualStorePage> pages;
 };
 
-extern bool IsVisualStoreOpen;
-extern VisualStoreState VisualStore;
-extern int16_t pcursstoreitem; // Currently highlighted store item index (-1 if none)
-extern int16_t pcursstorebtn;
+extern DVL_API_FOR_TEST bool IsVisualStoreOpen;
+extern DVL_API_FOR_TEST VisualStoreState VisualStore;
+extern DVL_API_FOR_TEST int16_t pcursstoreitem; // Currently highlighted store item index (-1 if none)
+extern DVL_API_FOR_TEST int16_t pcursstorebtn;
 
 /**
  * @brief Load visual store graphics.

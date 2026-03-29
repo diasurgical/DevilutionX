@@ -64,7 +64,7 @@ enum class TalkID : uint8_t {
 };
 
 /** Currently active store */
-extern TalkID ActiveStore;
+extern DVL_API_FOR_TEST TalkID ActiveStore;
 
 /** Current index into PlayerItemIndexes/PlayerItems */
 extern DVL_API_FOR_TEST int CurrentItemIndex;
@@ -91,7 +91,7 @@ extern DVL_API_FOR_TEST StaticVector<Item, NumWitchItemsHf> WitchItems;
 /** Current level of the item sold by Wirt */
 extern int BoyItemLevel;
 /** Current item sold by Wirt */
-extern Item BoyItem;
+extern DVL_API_FOR_TEST Item BoyItem;
 
 /** Currently selected text line from TextLine */
 extern DVL_API_FOR_TEST int CurrentTextLine;

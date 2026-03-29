@@ -13,6 +13,7 @@
 #include "engine/point.hpp"
 #include "engine/points_in_rectangle_range.hpp"
 #include "items.h"
+#include "utils/attributes.h"
 
 namespace devilution {
 
@@ -68,8 +69,8 @@ private:
 
 constexpr Point InvalidStashPoint { -1, -1 };
 
-extern bool IsStashOpen;
-extern StashStruct Stash;
+extern DVL_API_FOR_TEST bool IsStashOpen;
+extern DVL_API_FOR_TEST StashStruct Stash;
 
 extern bool IsWithdrawGoldOpen;
 extern int WithdrawGoldValue;

@@ -61,9 +61,9 @@ extern OptionalOwnedClxSpriteList GoldBoxBuffer;
 
 extern bool MainPanelFlag;
 extern bool ChatFlag;
-extern bool SpellbookFlag;
-extern bool CharFlag;
-extern bool SpellSelectFlag;
+extern DVL_API_FOR_TEST bool SpellbookFlag;
+extern DVL_API_FOR_TEST bool CharFlag;
+extern DVL_API_FOR_TEST bool SpellSelectFlag;
 
 [[nodiscard]] const Rectangle &GetMainPanel();
 [[nodiscard]] const Rectangle &GetLeftPanel();
