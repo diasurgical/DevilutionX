@@ -129,4 +129,18 @@ bool IsPlayerInStore();
 bool StoreAutoPlace(Item &item, bool persistItem);
 bool PlayerCanAfford(int price);
 
+/**
+ * @brief Check if Griswold will buy this item.
+ * @param item The item to check.
+ * @return true if the item can be sold to Griswold.
+ */
+bool SmithWillBuy(const Item &item);
+
+/**
+ * @brief Check if Adria will buy this item.
+ * @param item The item to check.
+ * @return true if the item can be sold to Adria.
+ */
+bool WitchWillBuy(const Item &item);
+
 } // namespace devilution

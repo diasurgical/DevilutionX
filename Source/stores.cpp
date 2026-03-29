@@ -455,7 +455,7 @@ bool StartSmithPremiumBuy()
 
 bool SmithSellOk(int i)
 {
-	Item *pI;
+	const Item *pI;
 
 	if (i >= 0) {
 		pI = &MyPlayer->InvList[i];
@@ -463,24 +463,7 @@ bool SmithSellOk(int i)
 		pI = &MyPlayer->SpdList[-(i + 1)];
 	}
 
-	if (pI->isEmpty())
-		return false;
-
-	if (pI->_iMiscId > IMISC_OILFIRST && pI->_iMiscId < IMISC_OILLAST)
-		return true;
-
-	if (pI->_itype == ItemType::Misc)
-		return false;
-	if (pI->_itype == ItemType::Gold)
-		return false;
-	if (pI->_itype == ItemType::Staff && (!gbIsHellfire || IsValidSpell(pI->_iSpell)))
-		return false;
-	if (pI->_iClass == ICLASS_QUEST)
-		return false;
-	if (pI->IDidx == IDI_LAZSTAFF)
-		return false;
-
-	return true;
+	return SmithWillBuy(*pI);
 }
 
 void ScrollSmithSell(int idx)
@@ -703,28 +686,14 @@ void StartWitchBuy()
 
 bool WitchSellOk(int i)
 {
-	Item *pI;
-
-	bool rv = false;
+	const Item *pI;
 
 	if (i >= 0)
 		pI = &MyPlayer->InvList[i];
 	else
 		pI = &MyPlayer->SpdList[-(i + 1)];
 
-	if (pI->_itype == ItemType::Misc)
-		rv = true;
-	if (pI->_iMiscId > 29 && pI->_iMiscId < 41)
-		rv = false;
-	if (pI->_iClass == ICLASS_QUEST)
-		rv = false;
-	if (pI->_itype == ItemType::Staff && (!gbIsHellfire || IsValidSpell(pI->_iSpell)))
-		rv = true;
-	if (pI->IDidx >= IDI_FIRSTQUEST && pI->IDidx <= IDI_LASTQUEST)
-		rv = false;
-	if (pI->IDidx == IDI_LAZSTAFF)
-		rv = false;
-	return rv;
+	return WitchWillBuy(*pI);
 }
 
 void StartWitchSell()
@@ -2791,6 +2760,51 @@ bool IsPlayerInStore()
 bool PlayerCanAfford(int price)
 {
 	return TotalPlayerGold() >= static_cast<uint32_t>(price);
+}
+
+bool SmithWillBuy(const Item &item)
+{
+	if (item.isEmpty())
+		return false;
+
+	if (item._iMiscId > IMISC_OILFIRST && item._iMiscId < IMISC_OILLAST)
+		return true;
+
+	if (item._itype == ItemType::Misc)
+		return false;
+	if (item._itype == ItemType::Gold)
+		return false;
+	if (item._itype == ItemType::Staff && (!gbIsHellfire || IsValidSpell(item._iSpell)))
+		return false;
+	if (item._iClass == ICLASS_QUEST)
+		return false;
+	if (item.IDidx == IDI_LAZSTAFF)
+		return false;
+
+	return true;
+}
+
+bool WitchWillBuy(const Item &item)
+{
+	if (item.isEmpty())
+		return false;
+
+	bool rv = false;
+
+	if (item._itype == ItemType::Misc)
+		rv = true;
+	if (item._iMiscId > 29 && item._iMiscId < 41)
+		rv = false;
+	if (item._iClass == ICLASS_QUEST)
+		rv = false;
+	if (item._itype == ItemType::Staff && (!gbIsHellfire || IsValidSpell(item._iSpell)))
+		rv = true;
+	if (item.IDidx >= IDI_FIRSTQUEST && item.IDidx <= IDI_LASTQUEST)
+		rv = false;
+	if (item.IDidx == IDI_LAZSTAFF)
+		rv = false;
+
+	return rv;
 }
 
 } // namespace devilution

@@ -124,56 +124,6 @@ int GetSellPrice(const Item &item)
 	return std::max(value / 4, 1);
 }
 
-/** @brief Check if Griswold will buy this item. */
-// TODO: Unify with SmithSellOk in stores.cpp
-bool SmithWillBuy(const Item &item)
-{
-	if (item.isEmpty())
-		return false;
-
-	// Oils are accepted
-	if (item._iMiscId > IMISC_OILFIRST && item._iMiscId < IMISC_OILLAST)
-		return true;
-
-	if (item._itype == ItemType::Misc)
-		return false;
-	if (item._itype == ItemType::Gold)
-		return false;
-	if (item._itype == ItemType::Staff && (!gbIsHellfire || IsValidSpell(item._iSpell)))
-		return false;
-	if (item._iClass == ICLASS_QUEST)
-		return false;
-	if (item.IDidx == IDI_LAZSTAFF)
-		return false;
-
-	return true;
-}
-
-/** @brief Check if Adria will buy this item. */
-// TODO: Unify with WitchSellOk in stores.cpp
-bool WitchWillBuy(const Item &item)
-{
-	if (item.isEmpty())
-		return false;
-
-	bool rv = false;
-
-	if (item._itype == ItemType::Misc)
-		rv = true;
-	if (item._iMiscId > 29 && item._iMiscId < 41)
-		rv = false;
-	if (item._iClass == ICLASS_QUEST)
-		rv = false;
-	if (item._itype == ItemType::Staff && (!gbIsHellfire || IsValidSpell(item._iSpell)))
-		rv = true;
-	if (item.IDidx >= IDI_FIRSTQUEST && item.IDidx <= IDI_LASTQUEST)
-		rv = false;
-	if (item.IDidx == IDI_LAZSTAFF)
-		rv = false;
-
-	return rv;
-}
-
 /** @brief Rebuild the grid layout for the current vendor/tab. */
 void RefreshVisualStoreLayout()
 {
@@ -446,10 +396,7 @@ Point GetVisualStoreSlotCoord(Point slot)
 
 Rectangle GetVisualBtnCoord(int btnId)
 {
-	const Point panelPos = GetPanelPosition(UiPanels::Stash);
-	const Rectangle regBtnPos = { panelPos + VisualStoreButtonRect[btnId].position, VisualStoreButtonRect[btnId].size };
-
-	return regBtnPos;
+	return { GetPanelPosition(UiPanels::Stash, VisualStoreButtonRect[btnId].position), VisualStoreButtonRect[btnId].size };
 }
 
 int GetVisualStoreItemCount()
@@ -490,11 +437,11 @@ void DrawVisualStore(const Surface &out)
 	UiFlags premiumStyle = VisualStore.activeTab == VisualStoreTab::Premium ? styleWhite : styleTabPushed;
 	switch (VisualStore.vendor) {
 	case VisualStoreVendor::Smith: {
-		const Rectangle regBtnPos = { panelPos + VisualStoreButtonRect[TabButtonBasic].position, VisualStoreButtonRect[TabButtonBasic].size };
+		const Rectangle regBtnPos = { GetPanelPosition(UiPanels::Stash, VisualStoreButtonRect[TabButtonBasic].position), VisualStoreButtonRect[TabButtonBasic].size };
 		RenderClxSprite(out, (*VisualStoreNavButtonArt)[VisualStore.activeTab != VisualStoreTab::Basic], regBtnPos.position);
 		DrawString(out, _("Basic"), regBtnPos, { .flags = UiFlags::AlignCenter | basicStyle });
 
-		const Rectangle premBtnPos = { panelPos + VisualStoreButtonRect[TabButtonPremium].position, VisualStoreButtonRect[TabButtonPremium].size };
+		const Rectangle premBtnPos = { GetPanelPosition(UiPanels::Stash, VisualStoreButtonRect[TabButtonPremium].position), VisualStoreButtonRect[TabButtonPremium].size };
 		RenderClxSprite(out, (*VisualStoreNavButtonArt)[VisualStore.activeTab != VisualStoreTab::Premium], premBtnPos.position);
 		DrawString(out, _("Premium"), premBtnPos, { .flags = UiFlags::AlignCenter | premiumStyle });
 		break;
@@ -502,7 +449,7 @@ void DrawVisualStore(const Surface &out)
 	case VisualStoreVendor::Witch:
 	case VisualStoreVendor::Boy:
 	case VisualStoreVendor::Healer: {
-		const Rectangle miscBtnPos = { panelPos + VisualStoreButtonRect[TabButtonBasic].position, VisualStoreButtonRect[TabButtonBasic].size };
+		const Rectangle miscBtnPos = { GetPanelPosition(UiPanels::Stash, VisualStoreButtonRect[TabButtonBasic].position), VisualStoreButtonRect[TabButtonBasic].size };
 		RenderClxSprite(out, (*VisualStoreNavButtonArt)[VisualStoreButtonPressed == TabButtonBasic], miscBtnPos.position);
 		DrawString(out, _("Misc"), miscBtnPos, { .flags = UiFlags::AlignCenter | basicStyle });
 		break;
@@ -510,7 +457,6 @@ void DrawVisualStore(const Surface &out)
 	default: {
 		break;
 	}
-
 	}
 
 	if (VisualStore.currentPage >= VisualStore.pages.size())
@@ -559,10 +505,10 @@ void DrawVisualStore(const Surface &out)
 
 	// Draw Repair All
 	if (VisualStore.vendor == VisualStoreVendor::Smith) {
-		const Rectangle repairAllBtnPos = { panelPos + VisualStoreButtonRect[RepairAllBtn].position, VisualStoreButtonRect[RepairAllBtn].size };
+		const Rectangle repairAllBtnPos = { GetPanelPosition(UiPanels::Stash, VisualStoreButtonRect[RepairAllBtn].position), VisualStoreButtonRect[RepairAllBtn].size };
 		RenderClxSprite(out, (*VisualStoreRepairAllButtonArt)[VisualStoreButtonPressed == RepairAllBtn], repairAllBtnPos.position);
 
-		const Rectangle repairBtnPos = { panelPos + VisualStoreButtonRect[RepairBtn].position, VisualStoreButtonRect[RepairBtn].size };
+		const Rectangle repairBtnPos = { GetPanelPosition(UiPanels::Stash, VisualStoreButtonRect[RepairBtn].position), VisualStoreButtonRect[RepairBtn].size };
 		RenderClxSprite(out, (*VisualStoreRepairButtonArt)[VisualStoreButtonPressed == RepairBtn], repairBtnPos.position);
 	}
 }
@@ -578,7 +524,7 @@ int16_t CheckVisualStoreHLight(Point mousePosition)
 				continue;
 
 			Rectangle button = VisualStoreButtonRect[i];
-			button.position = panelPos + button.position;
+			button.position = GetPanelPosition(UiPanels::Stash, button.position);
 
 			if (button.contains(mousePosition)) {
 				if (i == TabButtonBasic) {
