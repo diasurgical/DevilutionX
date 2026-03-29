@@ -13,6 +13,7 @@
 #include "items.h"
 #include "player.h"
 #include "utils/algorithm/container.hpp"
+#include "utils/attributes.h"
 
 namespace devilution {
 
