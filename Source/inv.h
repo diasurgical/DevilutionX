@@ -188,7 +188,7 @@ int AddGoldToInventory(Player &player, int value);
 bool GoldAutoPlace(Player &player, Item &goldStack);
 void CheckInvSwap(Player &player, inv_body_loc bLoc);
 void inv_update_rem_item(Player &player, inv_body_loc iv);
-void CheckInvSwap(Player &player, const Item &item, int invGridIndex);
+bool CheckInvSwap(Player &player, const Item &item, int invGridIndex);
 void CheckInvRemove(Player &player, int invGridIndex);
 void TransferItemToStash(Player &player, int location);
 void CheckInvItem(bool isShiftHeld = false, bool isCtrlHeld = false);

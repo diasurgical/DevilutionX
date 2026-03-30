@@ -1565,29 +1565,39 @@ void inv_update_rem_item(Player &player, inv_body_loc iv)
 	CalcPlrInv(player, player._pmode != PM_DEATH);
 }
 
-void CheckInvSwap(Player &player, const Item &item, int invGridIndex)
+bool CheckInvSwap(Player &player, const Item &item, int invGridIndex)
 {
 	Size itemSize = GetInventorySize(item);
 
 	const int pitch = 10;
-	const int invListIndex = [&]() -> int {
-		for (int y = 0; y < itemSize.height; y++) {
-			const int rowGridIndex = invGridIndex + pitch * y;
-			for (int x = 0; x < itemSize.width; x++) {
-				const int gridIndex = rowGridIndex + x;
-				if (player.InvGrid[gridIndex] != 0)
-					return std::abs(player.InvGrid[gridIndex]);
+	if (invGridIndex + itemSize.width - 1 + pitch * (itemSize.height - 1) >= InventoryGridCells)
+		return false;
+
+	int invListIndex = 0;
+	for (int y = 0; y < itemSize.height; y++) {
+		int rowGridIndex = invGridIndex + pitch * y;
+		for (int x = 0; x < itemSize.width; x++) {
+			int gridIndex = rowGridIndex + x;
+			if (player.InvGrid[gridIndex] != 0) {
+				int existingItem = std::abs(player.InvGrid[gridIndex]);
+				if (!invListIndex) {
+					invListIndex = existingItem;
+				} else if (invListIndex != existingItem) {
+					// More than one item exists where we want to place the new item
+					return false;
+				}
 			}
 		}
-		player._pNumInv++;
-		return player._pNumInv;
-	}();
+	}
 
-	if (invListIndex < player._pNumInv) {
-		for (int8_t &itemIndex : player.InvGrid) {
-			if (itemIndex == invListIndex)
-				itemIndex = 0;
-			if (itemIndex == -invListIndex)
+	if (!invListIndex) {
+		// The inventory is empty where we want to place the new item.  Allocate a new spot.
+		player._pNumInv++;
+		invListIndex = player._pNumInv;
+	} else {
+		// Remove the old location of the existing item
+		for (int8_t& itemIndex : player.InvGrid) {
+			if (std::abs(itemIndex) == invListIndex)
 				itemIndex = 0;
 		}
 	}
@@ -1605,6 +1615,7 @@ void CheckInvSwap(Player &player, const Item &item, int invGridIndex)
 	}
 
 	CalcPlrInv(player, true);
+	return true;
 }
 
 void CheckInvRemove(Player &player, int invGridIndex)

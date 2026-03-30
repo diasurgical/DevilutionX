@@ -2172,7 +2172,10 @@ size_t OnChangeInventoryItems(const TCmdChItem &message, Player &player)
 	} else if (&player != MyPlayer && IsItemAvailable(static_cast<_item_indexes>(Swap16LE(message.def.wIndx)))) {
 		Item item {};
 		RecreateItem(player, message, item);
-		CheckInvSwap(player, item, message.bLoc);
+		if (!CheckInvSwap(player, item, message.bLoc)) {
+			// item is larger than 1x1, and it occupies invalid inventory slots
+			return sizeof(message);
+		}
 	}
 
 	return sizeof(message);
