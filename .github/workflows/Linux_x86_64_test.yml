@@ -51,6 +51,6 @@ jobs:
       run: cd build && ctest --output-on-failure
 
     - name: Upload results
-      uses: codecov/codecov-action@v5
+      uses: codecov/codecov-action@v6
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
