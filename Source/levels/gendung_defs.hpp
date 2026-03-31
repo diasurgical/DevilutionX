@@ -34,6 +34,7 @@ enum lvl_entry : uint8_t {
 	ENTRY_WARPLVL,
 	ENTRY_TWARPDN,
 	ENTRY_TWARPUP,
+	ENTRY_TOWNSWITCH,
 };
 
 enum _difficulty : uint8_t {
