@@ -1,0 +1,151 @@
+#include "lua/modules/towns.hpp"
+
+#include <sol/sol.hpp>
+
+#include "interfac.h"
+#include "levels/town_data.h"
+#include "lua/metadoc.hpp"
+#include "msg.h"
+#include "player.h"
+#include "utils/log.hpp"
+
+namespace devilution {
+
+namespace {
+
+std::string LuaRegisterTown(std::string_view townId, const sol::table &config)
+{
+	TownConfig townConfig;
+	sol::optional<std::string> name = config["name"];
+	townConfig.name = name.has_value() ? *name : std::string(townId);
+	sol::optional<int> saveId = config["saveId"];
+	townConfig.saveId = saveId.has_value() ? static_cast<uint8_t>(*saveId) : 0;
+
+	if (sol::optional<sol::table> bounds = config["bounds"]) {
+		if (sol::optional<sol::table> min = (*bounds)["min"]) {
+			sol::optional<int> minX = (*min)["x"];
+			sol::optional<int> minY = (*min)["y"];
+			townConfig.dminPosition = { minX.value_or(10), minY.value_or(10) };
+		}
+		if (sol::optional<sol::table> max = (*bounds)["max"]) {
+			sol::optional<int> maxX = (*max)["x"];
+			sol::optional<int> maxY = (*max)["y"];
+			townConfig.dmaxPosition = { maxX.value_or(84), maxY.value_or(84) };
+		}
+	}
+
+	sol::optional<std::string> solFile = config["sol"];
+	townConfig.solFile = solFile.value_or("");
+
+	if (sol::optional<sol::table> sectors = config["sectors"]) {
+		for (const auto &kv : *sectors) {
+			sol::table sector = kv.second.as<sol::table>();
+			TownSector s;
+			sol::optional<std::string> path = sector["path"];
+			s.filePath = path.value_or("");
+			sol::optional<int> sx = sector["x"];
+			sol::optional<int> sy = sector["y"];
+			s.x = sx.value_or(0);
+			s.y = sy.value_or(0);
+			townConfig.sectors.push_back(s);
+		}
+	}
+
+	if (sol::optional<sol::table> entries = config["entries"]) {
+		for (const auto &kv : *entries) {
+			sol::table entry = kv.second.as<sol::table>();
+			TownEntryPoint ep;
+			sol::optional<std::string> typeStr = entry["type"];
+			std::string type = typeStr.value_or("main");
+			if (type == "prev") ep.entryType = ENTRY_PREV;
+			else if (type == "twarpdn") ep.entryType = ENTRY_TWARPDN;
+			else if (type == "twarpup") ep.entryType = ENTRY_TWARPUP;
+			else if (type == "townswitch") ep.entryType = ENTRY_TOWNSWITCH;
+			else ep.entryType = ENTRY_MAIN;
+			sol::optional<int> ex = entry["x"];
+			sol::optional<int> ey = entry["y"];
+			sol::optional<int> warpFrom = entry["warpFrom"];
+			ep.viewPosition = { ex.value_or(75), ey.value_or(68) };
+			ep.warpFromLevel = warpFrom.value_or(-1);
+			townConfig.entries.push_back(ep);
+		}
+	}
+
+	if (sol::optional<sol::table> towners = config["towners"]) {
+		for (const auto &kv : *towners) {
+			sol::table t = kv.second.as<sol::table>();
+			TownerPositionOverride override;
+			sol::optional<std::string> tName = t["name"];
+			override.shortName = tName.value_or("");
+			sol::optional<int> tx = t["x"];
+			sol::optional<int> ty = t["y"];
+			override.position = { tx.value_or(0), ty.value_or(0) };
+			townConfig.townerOverrides.push_back(override);
+		}
+	}
+
+	std::string townIdStr(townId);
+	GetTownRegistry().RegisterTown(townIdStr, townConfig);
+	return townIdStr;
+}
+
+void LuaTravelToTown(std::string_view townId)
+{
+	std::string townIdStr(townId);
+
+	if (!GetTownRegistry().HasTown(townIdStr)) {
+		LogError("Town '{}' not registered", townId);
+		return;
+	}
+
+	DestinationTownID = townIdStr;
+
+	if (gbIsMultiplayer) {
+		NetSendCmdTownTravel(0xFFFFFFFF, townIdStr.c_str());
+		return;
+	}
+
+	if (MyPlayer != nullptr) {
+		MyPlayer->_pInvincible = true;
+		SDL_Event event;
+		CustomEventToSdlEvent(event, WM_DIABTOWNSWITCH);
+		SDL_PushEvent(&event);
+	}
+}
+
+std::string LuaGetCurrentTown()
+{
+	return GetTownRegistry().GetCurrentTown();
+}
+
+bool LuaHasTown(std::string_view townId)
+{
+	return GetTownRegistry().HasTown(std::string(townId));
+}
+
+} // namespace
+
+sol::table LuaTownsModule(sol::state_view &lua)
+{
+	sol::table table = lua.create_table();
+
+	LuaSetDocFn(table, "register", "(townId: string, config: table) -> string",
+	    "Registers a new town from a config table. Returns town ID.",
+	    LuaRegisterTown);
+
+	LuaSetDocFn(table, "travel", "(townId: string)",
+	    "Travels to the specified town.",
+	    LuaTravelToTown);
+
+	LuaSetDocFn(table, "current", "() -> string",
+	    "Returns the current town ID.",
+	    LuaGetCurrentTown);
+
+	LuaSetDocFn(table, "exists", "(townId: string) -> boolean",
+	    "Checks if a town is registered.",
+	    LuaHasTown);
+
+	return table;
+}
+
+} // namespace devilution
