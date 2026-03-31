@@ -27,6 +27,7 @@
 #include "game_mode.hpp"
 #include "inv.h"
 #include "levels/dun_tile.hpp"
+#include "levels/town_data.h"
 #include "lighting.h"
 #include "menu.h"
 #include "missiles.h"
@@ -636,7 +637,9 @@ void LoadPlayer(LoadHelper &file, Player &player)
 	}
 	file.Skip(2); // Available bytes
 	player.wReflections = file.NextLE<uint16_t>();
-	file.Skip(14); // Available bytes
+	// Added for multi-town support
+	player._pCurrentTownId = file.NextLE<uint8_t>();
+	file.Skip(13); // Available bytes
 
 	player.pDiabloKillLevel = file.NextLE<uint32_t>();
 	sgGameInitInfo.nDifficulty = static_cast<_difficulty>(file.NextLE<uint32_t>());
@@ -1486,7 +1489,10 @@ void SavePlayer(SaveHelper &file, const Player &player)
 	file.WriteLE<uint8_t>(player.pOriginalCathedral ? 1 : 0);
 	file.Skip(2); // Available bytes
 	file.WriteLE<uint16_t>(player.wReflections);
-	file.Skip(14); // Available bytes
+
+	// Added for multi-town support
+	file.WriteLE<uint8_t>(player._pCurrentTownId);
+	file.Skip(13); // Available bytes
 
 	file.WriteLE<uint32_t>(player.pDiabloKillLevel);
 	file.WriteLE<uint32_t>(sgGameInitInfo.nDifficulty);
@@ -2525,6 +2531,15 @@ std::expected<void, std::string> LoadGame(bool firstflag)
 	Player &myPlayer = *MyPlayer;
 
 	LoadPlayer(file, myPlayer);
+
+	// Restore current town from player save data
+	std::string townId = GetTownRegistry().GetTownBySaveId(myPlayer._pCurrentTownId);
+	if (GetTownRegistry().HasTown(townId)) {
+		GetTownRegistry().SetCurrentTown(townId);
+	} else {
+		GetTownRegistry().SetCurrentTown("tristram");
+		myPlayer._pCurrentTownId = 0;
+	}
 
 	if (sgGameInitInfo.nDifficulty < DIFF_NORMAL || sgGameInitInfo.nDifficulty > DIFF_HELL)
 		sgGameInitInfo.nDifficulty = DIFF_NORMAL;

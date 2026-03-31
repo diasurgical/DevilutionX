@@ -361,6 +361,8 @@ public:
 	uint8_t pDungMsgs2;
 	bool pOriginalCathedral;
 	uint8_t pDiabloKillLevel;
+	/** @brief Current town ID as a hash/index (0 = Tristram, used for save compatibility) */
+	uint8_t _pCurrentTownId;
 	uint16_t wReflections;
 	ItemSpecialEffectHf pDamAcFlags;
 
