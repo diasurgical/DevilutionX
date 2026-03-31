@@ -77,16 +77,29 @@ std::vector<std::pair<std::string, std::vector<TownerDialogOption>>> ExtraTowner
 
 const char *TownerNameForTalkID(TalkID s)
 {
+	const auto lookup = [](const _talker_id id) -> const char * {
+		auto it = TownerShortNames.find(id);
+		return it != TownerShortNames.end() ? it->second : nullptr;
+	};
 	switch (s) {
-	case TalkID::Smith: return "griswold";
-	case TalkID::Witch: return "adria";
-	case TalkID::Boy: return "wirt";
-	case TalkID::Healer: return "pepin";
-	case TalkID::Storyteller: return "cain";
-	case TalkID::Tavern: return "ogden";
-	case TalkID::Drunk: return "farnham";
-	case TalkID::Barmaid: return "gillian";
-	default: return nullptr;
+	case TalkID::Smith:
+		return lookup(TOWN_SMITH);
+	case TalkID::Witch:
+		return lookup(TOWN_WITCH);
+	case TalkID::Boy:
+		return lookup(TOWN_PEGBOY);
+	case TalkID::Healer:
+		return lookup(TOWN_HEALER);
+	case TalkID::Storyteller:
+		return lookup(TOWN_STORY);
+	case TalkID::Tavern:
+		return lookup(TOWN_TAVERN);
+	case TalkID::Drunk:
+		return lookup(TOWN_DRUNK);
+	case TalkID::Barmaid:
+		return lookup(TOWN_BMAID);
+	default:
+		return nullptr;
 	}
 }
 
@@ -2298,6 +2311,8 @@ void StartStore(TalkID s)
 	ClearSText(0, NumStoreLines);
 	ReleaseStoreBtn();
 
+	ActiveStore = s;
+
 	// Fire StoreOpened Lua event for main store entries
 	if (const char *name = TownerNameForTalkID(s); name != nullptr)
 		lua::StoreOpened(name);
@@ -2424,8 +2439,6 @@ void StartStore(TalkID s)
 			break;
 		}
 	}
-
-	ActiveStore = s;
 }
 
 void DrawSText(const Surface &out)
