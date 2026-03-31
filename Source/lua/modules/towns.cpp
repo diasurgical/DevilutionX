@@ -57,11 +57,16 @@ std::string LuaRegisterTown(std::string_view townId, const sol::table &config)
 			TownEntryPoint ep;
 			sol::optional<std::string> typeStr = entry["type"];
 			std::string type = typeStr.value_or("main");
-			if (type == "prev") ep.entryType = ENTRY_PREV;
-			else if (type == "twarpdn") ep.entryType = ENTRY_TWARPDN;
-			else if (type == "twarpup") ep.entryType = ENTRY_TWARPUP;
-			else if (type == "townswitch") ep.entryType = ENTRY_TOWNSWITCH;
-			else ep.entryType = ENTRY_MAIN;
+			if (type == "prev")
+				ep.entryType = ENTRY_PREV;
+			else if (type == "twarpdn")
+				ep.entryType = ENTRY_TWARPDN;
+			else if (type == "twarpup")
+				ep.entryType = ENTRY_TWARPUP;
+			else if (type == "townswitch")
+				ep.entryType = ENTRY_TOWNSWITCH;
+			else
+				ep.entryType = ENTRY_MAIN;
 			sol::optional<int> ex = entry["x"];
 			sol::optional<int> ey = entry["y"];
 			sol::optional<int> warpFrom = entry["warpFrom"];

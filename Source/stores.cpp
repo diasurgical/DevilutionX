@@ -2311,8 +2311,6 @@ void StartStore(TalkID s)
 	ClearSText(0, NumStoreLines);
 	ReleaseStoreBtn();
 
-	ActiveStore = s;
-
 	// Fire StoreOpened Lua event for main store entries
 	if (const char *name = TownerNameForTalkID(s); name != nullptr)
 		lua::StoreOpened(name);
@@ -2439,6 +2437,8 @@ void StartStore(TalkID s)
 			break;
 		}
 	}
+
+	ActiveStore = s;
 }
 
 void DrawSText(const Surface &out)
