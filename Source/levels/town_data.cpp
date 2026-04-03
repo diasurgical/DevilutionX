@@ -98,6 +98,15 @@ void InitializeTristram()
 		{ ENTRY_TWARPUP, { 79, 62 }, 17 },
 		{ ENTRY_TOWNSWITCH, { 75, 68 }, -1 },
 	};
+	// Matches legacy InitTownTriggers (cathedral + gated town warps)
+	tristram.triggers = {
+		{ { 25, 29 }, WM_DIABNEXTLVL, 0, std::nullopt },
+		{ { 49, 21 }, WM_DIABTOWNWARP, 5, DTYPE_CATACOMBS },
+		{ { 17, 69 }, WM_DIABTOWNWARP, 9, DTYPE_CAVES },
+		{ { 41, 80 }, WM_DIABTOWNWARP, 13, DTYPE_HELL },
+		{ { 80, 62 }, WM_DIABTOWNWARP, 17, DTYPE_NEST },
+		{ { 36, 24 }, WM_DIABTOWNWARP, 21, DTYPE_CRYPT },
+	};
 	GetTownRegistry().RegisterTown("tristram", tristram);
 	GetTownRegistry().SetCurrentTown("tristram");
 }

@@ -3251,10 +3251,13 @@ std::expected<void, std::string> LoadGameLevelTown(bool firstflag, lvl_entry lvl
 
 	IncProgress();
 
-	if (!firstflag && lvldir != ENTRY_LOAD && myPlayer._pLvlVisited[currlevel] && !gbIsMultiplayer)
+	if (!firstflag && lvldir != ENTRY_LOAD && lvldir != ENTRY_TOWNSWITCH && myPlayer._pLvlVisited[currlevel] && !gbIsMultiplayer)
 		RETURN_IF_ERROR(LoadLevel());
 	if (gbIsMultiplayer)
 		DeltaLoadLevel();
+
+	if (lvldir == ENTRY_TOWNSWITCH)
+		InitTownTriggers();
 
 	IncProgress();
 

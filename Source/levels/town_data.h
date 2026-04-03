@@ -1,10 +1,12 @@
 #pragma once
 
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
 #include "engine/point.hpp"
+#include "interfac.h"
 #include "levels/gendung_defs.hpp"
 
 namespace devilution {
@@ -35,6 +37,18 @@ struct TownerPositionOverride {
 };
 
 /**
+ * @brief Dungeon entrance / town warp trigger (see InitTownTriggers)
+ */
+struct TownTrigger {
+	Point position;
+	interface_mode message;
+	/** For WM_DIABTOWNWARP; unused for other message types */
+	int targetLevel = 0;
+	/** If set, trigger is only active when IsWarpOpen(*warpGate) */
+	std::optional<dungeon_type> warpGate;
+};
+
+/**
  * @brief Complete configuration for a town
  */
 struct TownConfig {
@@ -45,6 +59,7 @@ struct TownConfig {
 	std::vector<TownSector> sectors;
 	std::string solFile;
 	std::vector<TownEntryPoint> entries;
+	std::vector<TownTrigger> triggers;
 	std::vector<TownerPositionOverride> townerOverrides;
 
 	/**

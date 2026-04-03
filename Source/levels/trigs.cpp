@@ -14,6 +14,7 @@
 #include "cursor.h"
 #include "diablo_msg.hpp"
 #include "game_mode.hpp"
+#include "levels/town_data.h"
 #include "multi.h"
 #include "utils/algorithm/container.hpp"
 #include "utils/format.hpp"
@@ -30,16 +31,6 @@ TriggerStruct trigs[MAXTRIGGERS];
 int TWarpFrom;
 
 namespace {
-
-/** Default Tristram trigger list; replaced per-town via SetTownTriggers(). */
-std::vector<TownTrigger> ActiveTownTriggers = {
-	{ { 25, 29 }, WM_DIABNEXTLVL, 0, std::nullopt },
-	{ { 49, 21 }, WM_DIABTOWNWARP, 5, DTYPE_CATACOMBS },
-	{ { 17, 69 }, WM_DIABTOWNWARP, 9, DTYPE_CAVES },
-	{ { 41, 80 }, WM_DIABTOWNWARP, 13, DTYPE_HELL },
-	{ { 80, 62 }, WM_DIABTOWNWARP, 17, DTYPE_NEST },
-	{ { 36, 24 }, WM_DIABTOWNWARP, 21, DTYPE_CRYPT },
-};
 
 /** Specifies the dungeon piece IDs which constitute stairways leading down to the cathedral from town. */
 const uint16_t TownDownList[] = { 715, 714, 718, 719, 720, 722, 723, 724, 725, 726 };
@@ -123,23 +114,25 @@ void InitTownTriggers()
 	numtrigs = 0;
 	trigflag = false;
 
-	for (const TownTrigger &trigger : ActiveTownTriggers) {
+	const std::string &townId = GetTownRegistry().GetCurrentTown();
+	if (!GetTownRegistry().HasTown(townId)) {
+		LogError("InitTownTriggers: current town '{}' not registered", townId);
+		return;
+	}
+
+	const TownConfig &town = GetTownRegistry().GetTown(townId);
+	for (const TownTrigger &trigger : town.triggers) {
 		if (trigger.warpGate.has_value() && !IsWarpOpen(*trigger.warpGate))
 			continue;
 		if (numtrigs >= MAXTRIGGERS) {
-			LogError("InitTownTriggers: more than MAXTRIGGERS ({})", MAXTRIGGERS);
+			LogError("InitTownTriggers: more than MAXTRIGGERS ({}) for town '{}'", MAXTRIGGERS, townId);
 			break;
 		}
 		trigs[numtrigs].position = trigger.position;
-		trigs[numtrigs]._tmsg = trigger.msg;
-		trigs[numtrigs]._tlvl = trigger.level;
+		trigs[numtrigs]._tmsg = trigger.message;
+		trigs[numtrigs]._tlvl = trigger.targetLevel;
 		numtrigs++;
 	}
-}
-
-void SetTownTriggers(std::vector<TownTrigger> triggers)
-{
-	ActiveTownTriggers = std::move(triggers);
 }
 
 void InitL1Triggers()

@@ -1,8 +1,13 @@
 #include "lua/modules/towns.hpp"
 
+#include <optional>
+#include <string>
+#include <string_view>
+
 #include <sol/sol.hpp>
 
 #include "interfac.h"
+#include "levels/gendung_defs.hpp"
 #include "levels/town_data.h"
 #include "lua/metadoc.hpp"
 #include "msg.h"
@@ -12,6 +17,21 @@
 namespace devilution {
 
 namespace {
+
+std::optional<dungeon_type> ParseWarpGateString(std::string_view w)
+{
+	if (w == "catacombs")
+		return DTYPE_CATACOMBS;
+	if (w == "caves")
+		return DTYPE_CAVES;
+	if (w == "hell")
+		return DTYPE_HELL;
+	if (w == "nest")
+		return DTYPE_NEST;
+	if (w == "crypt")
+		return DTYPE_CRYPT;
+	return std::nullopt;
+}
 
 std::string LuaRegisterTown(std::string_view townId, const sol::table &config)
 {
@@ -89,6 +109,39 @@ std::string LuaRegisterTown(std::string_view townId, const sol::table &config)
 		}
 	}
 
+	if (sol::optional<sol::table> triggerList = config["triggers"]) {
+		for (const auto &kv : *triggerList) {
+			sol::table t = kv.second.as<sol::table>();
+			TownTrigger tr;
+			sol::optional<int> tx = t["x"];
+			sol::optional<int> ty = t["y"];
+			tr.position = { tx.value_or(0), ty.value_or(0) };
+			sol::optional<std::string> kindStr = t["kind"];
+			const std::string kind = kindStr.value_or("nextlevel");
+			if (kind == "townwarp") {
+				tr.message = WM_DIABTOWNWARP;
+				sol::optional<int> lvl = t["level"];
+				tr.targetLevel = lvl.value_or(0);
+				sol::optional<std::string> warpStr = t["warp"];
+				if (warpStr.has_value() && !warpStr->empty()) {
+					std::optional<dungeon_type> gate = ParseWarpGateString(*warpStr);
+					if (!gate.has_value()) {
+						LogError("registerTown: unknown triggers[].warp '{}'", *warpStr);
+						continue;
+					}
+					tr.warpGate = gate;
+				}
+			} else if (kind == "nextlevel") {
+				tr.message = WM_DIABNEXTLVL;
+				tr.targetLevel = 0;
+			} else {
+				LogError("registerTown: unknown triggers[].kind '{}', expected nextlevel or townwarp", kind);
+				continue;
+			}
+			townConfig.triggers.push_back(tr);
+		}
+	}
+
 	std::string townIdStr(townId);
 	GetTownRegistry().RegisterTown(townIdStr, townConfig);
 	return townIdStr;
@@ -135,7 +188,9 @@ sol::table LuaTownsModule(sol::state_view &lua)
 	sol::table table = lua.create_table();
 
 	LuaSetDocFn(table, "register", "(townId: string, config: table) -> string",
-	    "Registers a new town from a config table. Returns town ID.",
+	    "Registers a new town from a config table. Returns town ID.\n"
+	    "Optional triggers: array of tables with x, y, kind (\"nextlevel\" or \"townwarp\").\n"
+	    "For townwarp, set level (dungeon level) and warp (\"catacombs\", \"caves\", \"hell\", \"nest\", \"crypt\") for IsWarpOpen gating.",
 	    LuaRegisterTown);
 
 	LuaSetDocFn(table, "travel", "(townId: string)",
