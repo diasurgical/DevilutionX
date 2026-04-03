@@ -3256,9 +3256,6 @@ std::expected<void, std::string> LoadGameLevelTown(bool firstflag, lvl_entry lvl
 	if (gbIsMultiplayer)
 		DeltaLoadLevel();
 
-	if (lvldir == ENTRY_TOWNSWITCH)
-		InitTownTriggers();
-
 	IncProgress();
 
 	for (int x = 0; x < DMAXX; x++)

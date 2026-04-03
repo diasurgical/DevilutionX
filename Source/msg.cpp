@@ -34,6 +34,7 @@
 #include "engine/random.hpp"
 #include "engine/world_tile.hpp"
 #include "gamemenu.h"
+#include "interfac.h"
 #include "items/validation.h"
 #include "levels/crypt.h"
 #include "levels/town.h"
@@ -2483,6 +2484,8 @@ size_t OnTownTravel(const TCmd &cmd, size_t maxCmdSize, Player & /*player*/)
 	const auto tokens = SplitByChar(str, '\0');
 	const std::string_view townId = *tokens.begin();
 
+	// gbBufferMsgs != 0 means we are buffering a game-state replay; skip the SDL
+	// event so we do not queue a second town switch while one is already in flight.
 	if (gbBufferMsgs == 0) {
 		// Process town travel on all clients
 		std::string townIdStr(townId);
@@ -2490,13 +2493,7 @@ size_t OnTownTravel(const TCmd &cmd, size_t maxCmdSize, Player & /*player*/)
 			DestinationTownID = townIdStr;
 			LogInfo("Network: Received town travel to '{}'", townId);
 
-			// Trigger town switch for this client
-			if (MyPlayer != nullptr) {
-				MyPlayer->_pInvincible = true;
-				SDL_Event event;
-				CustomEventToSdlEvent(event, WM_DIABTOWNSWITCH);
-				SDL_PushEvent(&event);
-			}
+			QueueTownSwitch();
 		} else {
 			LogError("Network: Unknown town ID '{}'", townId);
 		}

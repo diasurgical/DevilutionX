@@ -3,6 +3,7 @@
 #include <optional>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include "engine/point.hpp"
@@ -10,6 +11,9 @@
 #include "levels/gendung_defs.hpp"
 
 namespace devilution {
+
+/** @brief Canonical town registry id for vanilla Tristram (lowercase). */
+inline constexpr char TristramTownId[] = "tristram";
 
 /**
  * @brief Represents a town sector (map piece)
@@ -41,11 +45,36 @@ struct TownerPositionOverride {
  */
 struct TownTrigger {
 	Point position;
-	interface_mode message;
+	interface_mode msg;
 	/** For WM_DIABTOWNWARP; unused for other message types */
-	int targetLevel = 0;
+	int level = 0;
 	/** If set, trigger is only active when IsWarpOpen(*warpGate) */
 	std::optional<dungeon_type> warpGate;
+};
+
+struct TownWarpFillTile {
+	int x;
+	int y;
+	int tile;
+};
+
+/**
+ * @brief Fills random ground micros (1-4) for each x in [xStart, xEnd).
+ */
+struct TownWarpClosedRandomGroundStrip {
+	int xStart;
+	int xEndExclusive;
+	int y;
+};
+
+/**
+ * @brief Visual dungeon/dPiece patches when a town warp is still closed (see DrlgTPass3).
+ */
+struct TownWarpPatch {
+	dungeon_type requiredWarp;
+	std::vector<std::pair<Point, int>> dungeonCells;
+	std::vector<TownWarpFillTile> fillTiles;
+	std::optional<TownWarpClosedRandomGroundStrip> randomGroundStrip;
 };
 
 /**
@@ -57,9 +86,9 @@ struct TownConfig {
 	Point dminPosition = { 10, 10 };
 	Point dmaxPosition = { 84, 84 };
 	std::vector<TownSector> sectors;
-	std::string solFile;
 	std::vector<TownEntryPoint> entries;
 	std::vector<TownTrigger> triggers;
+	std::vector<TownWarpPatch> warpClosedPatches;
 	std::vector<TownerPositionOverride> townerOverrides;
 
 	/**
@@ -78,18 +107,24 @@ private:
 
 public:
 	void RegisterTown(const std::string &id, const TownConfig &config);
+	const TownConfig &GetTown(const std::string &id) const;
 	TownConfig &GetTown(const std::string &id);
 	bool HasTown(const std::string &id) const;
 	void SetCurrentTown(const std::string &id);
-	std::string GetCurrentTown() const;
+	const std::string &GetCurrentTown() const;
 	const std::unordered_map<std::string, TownConfig> &GetTowns() const { return towns; }
 
-	/** @brief Finds town string ID by its saveId. Returns "tristram" if not found. */
+	/** @brief Finds town string ID by its saveId. Returns TristramTownId if not found. */
 	std::string GetTownBySaveId(uint8_t saveId) const;
 };
 
 TownRegistry &GetTownRegistry();
 
+/**
+ * @brief Town ID to switch to, set before queuing WM_DIABTOWNSWITCH.
+ * Written by: towns Lua module, OnTownTravel (network), NetSendCmdTownTravel.
+ * Read by: WM_DIABTOWNSWITCH handler in interfac.cpp.
+ */
 extern std::string DestinationTownID;
 
 void InitializeTristram();

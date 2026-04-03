@@ -71,6 +71,9 @@ enum Cutscenes : uint8_t {
 	CutGate,
 };
 
+/** @brief Queues WM_DIABTOWNSWITCH for the local player (invincible until load completes). */
+void QueueTownSwitch();
+
 void interface_msg_pump();
 void IncProgress(uint32_t steps = 1);
 void CompleteProgress();

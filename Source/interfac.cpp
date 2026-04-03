@@ -473,6 +473,11 @@ void DoLoad(interface_mode uMsg)
 		}
 		IncProgress();
 		FreeGameMem();
+		if (!GetTownRegistry().HasTown(DestinationTownID)) {
+			LogError("WM_DIABTOWNSWITCH: unknown town '{}'", DestinationTownID);
+			loadResult = tl::make_unexpected<std::string>("Unknown destination town");
+			break;
+		}
 		GetTownRegistry().SetCurrentTown(DestinationTownID);
 
 		if (MyPlayer != nullptr) {
@@ -594,6 +599,19 @@ void ProgressEventHandler(const SDL_Event &event, uint16_t modState)
 }
 
 } // namespace
+
+void QueueTownSwitch()
+{
+	if (MyPlayer != nullptr) {
+		MyPlayer->_pInvincible = true;
+		SDL_Event event;
+		CustomEventToSdlEvent(event, WM_DIABTOWNSWITCH);
+		if (!SDLC_PushEvent(&event)) {
+			LogError("QueueTownSwitch: {}", SDL_GetError());
+			SDL_ClearError();
+		}
+	}
+}
 
 void RegisterCustomEvents()
 {

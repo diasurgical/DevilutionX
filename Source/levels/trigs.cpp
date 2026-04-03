@@ -129,8 +129,8 @@ void InitTownTriggers()
 			break;
 		}
 		trigs[numtrigs].position = trigger.position;
-		trigs[numtrigs]._tmsg = trigger.message;
-		trigs[numtrigs]._tlvl = trigger.targetLevel;
+		trigs[numtrigs]._tmsg = trigger.msg;
+		trigs[numtrigs]._tlvl = trigger.level;
 		numtrigs++;
 	}
 }

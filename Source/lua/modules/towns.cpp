@@ -54,9 +54,6 @@ std::string LuaRegisterTown(std::string_view townId, const sol::table &config)
 		}
 	}
 
-	sol::optional<std::string> solFile = config["sol"];
-	townConfig.solFile = solFile.value_or("");
-
 	if (sol::optional<sol::table> sectors = config["sectors"]) {
 		for (const auto &kv : *sectors) {
 			sol::table sector = kv.second.as<sol::table>();
@@ -119,9 +116,9 @@ std::string LuaRegisterTown(std::string_view townId, const sol::table &config)
 			sol::optional<std::string> kindStr = t["kind"];
 			const std::string kind = kindStr.value_or("nextlevel");
 			if (kind == "townwarp") {
-				tr.message = WM_DIABTOWNWARP;
+				tr.msg = WM_DIABTOWNWARP;
 				sol::optional<int> lvl = t["level"];
-				tr.targetLevel = lvl.value_or(0);
+				tr.level = lvl.value_or(0);
 				sol::optional<std::string> warpStr = t["warp"];
 				if (warpStr.has_value() && !warpStr->empty()) {
 					std::optional<dungeon_type> gate = ParseWarpGateString(*warpStr);
@@ -132,8 +129,8 @@ std::string LuaRegisterTown(std::string_view townId, const sol::table &config)
 					tr.warpGate = gate;
 				}
 			} else if (kind == "nextlevel") {
-				tr.message = WM_DIABNEXTLVL;
-				tr.targetLevel = 0;
+				tr.msg = WM_DIABNEXTLVL;
+				tr.level = 0;
 			} else {
 				LogError("registerTown: unknown triggers[].kind '{}', expected nextlevel or townwarp", kind);
 				continue;
@@ -163,12 +160,7 @@ void LuaTravelToTown(std::string_view townId)
 		return;
 	}
 
-	if (MyPlayer != nullptr) {
-		MyPlayer->_pInvincible = true;
-		SDL_Event event;
-		CustomEventToSdlEvent(event, WM_DIABTOWNSWITCH);
-		SDL_PushEvent(&event);
-	}
+	QueueTownSwitch();
 }
 
 std::string LuaGetCurrentTown()

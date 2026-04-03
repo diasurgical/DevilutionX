@@ -13,6 +13,7 @@
 #include "player.h"
 #include "quests.h"
 #include "utils/endian_swap.hpp"
+#include "utils/log.hpp"
 
 namespace devilution {
 
@@ -200,33 +201,35 @@ void DrlgTPass3()
 		}
 	}
 
-	const TownConfig &config = GetTownRegistry().GetTown(GetTownRegistry().GetCurrentTown());
+	const std::string &townId = GetTownRegistry().GetCurrentTown();
+	if (!GetTownRegistry().HasTown(townId)) {
+		LogError("DrlgTPass3: current town '{}' not registered", townId);
+		return;
+	}
+	const TownConfig &config = GetTownRegistry().GetTown(townId);
 	for (const auto &sector : config.sectors) {
 		FillSector(sector.filePath.c_str(), sector.x, sector.y);
 	}
 
-	if (GetTownRegistry().GetCurrentTown() == "tristram") {
+	for (const TownWarpPatch &patch : config.warpClosedPatches) {
+		if (IsWarpOpen(patch.requiredWarp))
+			continue;
+		for (const auto &[pos, cellVal] : patch.dungeonCells)
+			dungeon[pos.x][pos.y] = static_cast<uint8_t>(cellVal);
+		for (const TownWarpFillTile &ft : patch.fillTiles)
+			FillTile(ft.x, ft.y, ft.tile);
+		if (patch.randomGroundStrip.has_value()) {
+			const TownWarpClosedRandomGroundStrip &strip = *patch.randomGroundStrip;
+			for (int x = strip.xStart; x < strip.xEndExclusive; x++) {
+				FillTile(x, strip.y, PickRandomlyAmong({ 1, 2, 3, 4 }));
+			}
+		}
+	}
+
+	if (townId == TristramTownId) {
 		auto dunData = LoadFileInMem<uint16_t>("levels\\towndata\\automap.dun");
 		PlaceDunTiles(dunData.get(), { 0, 0 });
 
-		if (!IsWarpOpen(DTYPE_CATACOMBS)) {
-			dungeon[20][7] = 10;
-			dungeon[20][6] = 8;
-			FillTile(48, 20, 320);
-		}
-		if (!IsWarpOpen(DTYPE_CAVES)) {
-			dungeon[4][30] = 8;
-			FillTile(16, 68, 332);
-			FillTile(16, 70, 331);
-		}
-		if (!IsWarpOpen(DTYPE_HELL)) {
-			dungeon[15][35] = 7;
-			dungeon[16][35] = 7;
-			dungeon[17][35] = 7;
-			for (int x = 36; x < 46; x++) {
-				FillTile(x, 78, PickRandomlyAmong({ 1, 2, 3, 4 }));
-			}
-		}
 		if (gbIsHellfire) {
 			if (IsWarpOpen(DTYPE_NEST)) {
 				TownOpenHive();
@@ -363,7 +366,12 @@ void CleanTownFountain()
 
 void CreateTown(lvl_entry entry)
 {
-	const TownConfig &config = GetTownRegistry().GetTown(GetTownRegistry().GetCurrentTown());
+	const std::string &townId = GetTownRegistry().GetCurrentTown();
+	if (!GetTownRegistry().HasTown(townId)) {
+		LogError("CreateTown: current town '{}' not registered", townId);
+		return;
+	}
+	const TownConfig &config = GetTownRegistry().GetTown(townId);
 	dminPosition = config.dminPosition;
 	dmaxPosition = config.dmaxPosition;
 	ViewPosition = config.GetEntryPoint(entry, TWarpFrom);
