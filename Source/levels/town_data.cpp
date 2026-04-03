@@ -8,6 +8,9 @@ namespace {
 
 TownRegistry g_townRegistry;
 
+/** @brief Spawn used when no TownEntryPoint matches (matches legacy hard-coded default). */
+constexpr Point kDefaultTownEntryPoint = { 75, 68 };
+
 } // namespace
 
 std::string DestinationTownID;
@@ -71,6 +74,7 @@ Point TownConfig::GetEntryPoint(lvl_entry entry, int warpFrom) const
 				return ep.viewPosition;
 			}
 		}
+		return kDefaultTownEntryPoint;
 	}
 
 	// For other entry types, just match the type
@@ -81,7 +85,7 @@ Point TownConfig::GetEntryPoint(lvl_entry entry, int warpFrom) const
 	}
 
 	// Default fallback
-	return { 75, 68 };
+	return kDefaultTownEntryPoint;
 }
 
 void InitializeTristram()
@@ -121,9 +125,9 @@ void InitializeTristram()
 	tristram.warpClosedPatches = {
 		/*
 		if (!IsWarpOpen(DTYPE_CATACOMBS)) {
-	    	dungeon[20][7] = 10;
-			dungeon[20][6] = 8;
-			FillTile(48, 20, 320);
+		    dungeon[20][7] = 10;
+		    dungeon[20][6] = 8;
+		    FillTile(48, 20, 320);
 		}
 		*/
 		{
@@ -134,9 +138,9 @@ void InitializeTristram()
 		},
 		/*
 		if (!IsWarpOpen(DTYPE_CAVES)) {
-			dungeon[4][30] = 8;
-			FillTile(16, 68, 332);
-			FillTile(16, 70, 331);
+		    dungeon[4][30] = 8;
+		    FillTile(16, 68, 332);
+		    FillTile(16, 70, 331);
 		}
 		*/
 		{
@@ -147,12 +151,12 @@ void InitializeTristram()
 		},
 		/*
 		if (!IsWarpOpen(DTYPE_HELL)) {
-			dungeon[15][35] = 7;
-			dungeon[16][35] = 7;
-			dungeon[17][35] = 7;
-			for (int x = 36; x < 46; x++) {
-				FillTile(x, 78, PickRandomlyAmong({ 1, 2, 3, 4 }));
-			}
+		    dungeon[15][35] = 7;
+		    dungeon[16][35] = 7;
+		    dungeon[17][35] = 7;
+		    for (int x = 36; x < 46; x++) {
+		        FillTile(x, 78, PickRandomlyAmong({ 1, 2, 3, 4 }));
+		    }
 		}
 		*/
 		{
