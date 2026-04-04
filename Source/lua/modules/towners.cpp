@@ -46,7 +46,8 @@ sol::table LuaTownersModule(sol::state_view &lua)
 	    "Adds a dynamic dialog option to a towner's talk menu.\n"
 	    "getLabel() is called each time the dialog opens; return a non-empty string to show\n"
 	    "the option or an empty string/nil to hide it.\n"
-	    "onSelect() is called when the player chooses the option.",
+	    "onSelect() is called when the player chooses the option.\n"
+	    "All options are cleared when mods reload or Lua shuts down; register from mod init.",
 	    [](std::string_view townerName, const sol::function &getLabel, const sol::function &onSelect) {
 		    RegisterTownerDialogOption(
 		        townerName,

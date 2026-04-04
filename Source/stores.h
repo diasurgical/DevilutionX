@@ -136,6 +136,9 @@ void RegisterTownerDialogOption(std::string_view townerName,
     std::function<std::string()> getLabel,
     std::function<void()> onSelect);
 
+/** Clears all mod-registered towner dialog options (e.g. before mod reload / Lua shutdown). */
+void ClearTownerDialogOptions();
+
 void AddStoreHoldRepair(Item *itm, int8_t i);
 
 /** Clears premium items sold by Griswold and Wirt. */

@@ -99,10 +99,16 @@ void RegisterTownerDialogOption(std::string_view townerName,
 	ExtraTownerOptions[std::string(townerName)].push_back({ std::move(getLabel), std::move(onSelect) });
 }
 
-namespace {
-
 /** Maps dialog line number to ExtraTownerOptions index for options visible in the current dialog session */
-std::unordered_map<int, size_t> CurrentExtraOptionIndices;
+static std::unordered_map<int, size_t> CurrentExtraOptionIndices;
+
+void ClearTownerDialogOptions()
+{
+	ExtraTownerOptions.clear();
+	CurrentExtraOptionIndices.clear();
+}
+
+namespace {
 
 /** The current towner being interacted with */
 _talker_id TownerId;

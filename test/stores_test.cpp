@@ -74,76 +74,92 @@ TEST(Stores, AddStoreHoldRepair_normal)
 
 TEST(Stores, TownerNameForTalkID_knownTowners)
 {
-	EXPECT_STREQ(TownerNameForTalkID(TalkID::Smith),       "griswold");
-	EXPECT_STREQ(TownerNameForTalkID(TalkID::Witch),       "adria");
-	EXPECT_STREQ(TownerNameForTalkID(TalkID::Boy),         "wirt");
-	EXPECT_STREQ(TownerNameForTalkID(TalkID::Healer),      "pepin");
+	EXPECT_STREQ(TownerNameForTalkID(TalkID::Smith), "griswold");
+	EXPECT_STREQ(TownerNameForTalkID(TalkID::Witch), "adria");
+	EXPECT_STREQ(TownerNameForTalkID(TalkID::Boy), "wirt");
+	EXPECT_STREQ(TownerNameForTalkID(TalkID::Healer), "pepin");
 	EXPECT_STREQ(TownerNameForTalkID(TalkID::Storyteller), "cain");
-	EXPECT_STREQ(TownerNameForTalkID(TalkID::Tavern),      "ogden");
-	EXPECT_STREQ(TownerNameForTalkID(TalkID::Drunk),       "farnham");
-	EXPECT_STREQ(TownerNameForTalkID(TalkID::Barmaid),     "gillian");
+	EXPECT_STREQ(TownerNameForTalkID(TalkID::Tavern), "ogden");
+	EXPECT_STREQ(TownerNameForTalkID(TalkID::Drunk), "farnham");
+	EXPECT_STREQ(TownerNameForTalkID(TalkID::Barmaid), "gillian");
 }
 
 TEST(Stores, TownerNameForTalkID_subPagesReturnNull)
 {
 	// Sub-pages (buy/sell screens) should not fire StoreOpened
-	EXPECT_EQ(TownerNameForTalkID(TalkID::None),                    nullptr);
-	EXPECT_EQ(TownerNameForTalkID(TalkID::SmithBuy),                nullptr);
-	EXPECT_EQ(TownerNameForTalkID(TalkID::SmithSell),               nullptr);
-	EXPECT_EQ(TownerNameForTalkID(TalkID::SmithRepair),             nullptr);
-	EXPECT_EQ(TownerNameForTalkID(TalkID::WitchBuy),                nullptr);
-	EXPECT_EQ(TownerNameForTalkID(TalkID::Gossip),                  nullptr);
-	EXPECT_EQ(TownerNameForTalkID(TalkID::StorytellerIdentify),     nullptr);
+	EXPECT_EQ(TownerNameForTalkID(TalkID::None), nullptr);
+	EXPECT_EQ(TownerNameForTalkID(TalkID::SmithBuy), nullptr);
+	EXPECT_EQ(TownerNameForTalkID(TalkID::SmithSell), nullptr);
+	EXPECT_EQ(TownerNameForTalkID(TalkID::SmithRepair), nullptr);
+	EXPECT_EQ(TownerNameForTalkID(TalkID::WitchBuy), nullptr);
+	EXPECT_EQ(TownerNameForTalkID(TalkID::Gossip), nullptr);
+	EXPECT_EQ(TownerNameForTalkID(TalkID::StorytellerIdentify), nullptr);
 	EXPECT_EQ(TownerNameForTalkID(TalkID::StorytellerIdentifyShow), nullptr);
+}
+
+TEST(Stores, ClearTownerDialogOptions_removesRegistrations)
+{
+	RegisterTownerDialogOption("farnham", []() { return std::string("A"); }, []() {});
+	ASSERT_FALSE(ExtraTownerOptions.empty());
+
+	ClearTownerDialogOptions();
+
+	EXPECT_TRUE(ExtraTownerOptions.empty());
+}
+
+TEST(Stores, RegisterTownerDialogOption_afterClearDoesNotAccumulate)
+{
+	RegisterTownerDialogOption("farnham", []() { return std::string("First"); }, []() {});
+	ClearTownerDialogOptions();
+	RegisterTownerDialogOption("farnham", []() { return std::string("Second"); }, []() {});
+
+	ASSERT_EQ(ExtraTownerOptions.at("farnham").size(), 1u);
+	EXPECT_EQ(ExtraTownerOptions.at("farnham")[0].getLabel(), "Second");
+
+	ClearTownerDialogOptions();
 }
 
 TEST(Stores, RegisterTownerDialogOption_storesOption)
 {
-	ExtraTownerOptions.clear();
+	ClearTownerDialogOptions();
 
-	RegisterTownerDialogOption("farnham",
-	    []() { return std::string("Go to Tiny Town"); },
-	    []() {});
+	RegisterTownerDialogOption("farnham", []() { return std::string("Go to Tiny Town"); }, []() {});
 
 	ASSERT_EQ(ExtraTownerOptions.count("farnham"), 1u);
 	ASSERT_EQ(ExtraTownerOptions.at("farnham").size(), 1u);
 	EXPECT_EQ(ExtraTownerOptions.at("farnham")[0].getLabel(), "Go to Tiny Town");
 
-	ExtraTownerOptions.clear();
+	ClearTownerDialogOptions();
 }
 
 TEST(Stores, RegisterTownerDialogOption_callsOnSelect)
 {
-	ExtraTownerOptions.clear();
+	ClearTownerDialogOptions();
 
 	bool called = false;
-	RegisterTownerDialogOption("farnham",
-	    []() { return std::string("Travel"); },
-	    [&called]() { called = true; });
+	RegisterTownerDialogOption("farnham", []() { return std::string("Travel"); }, [&called]() { called = true; });
 
 	ExtraTownerOptions.at("farnham")[0].onSelect();
 	EXPECT_TRUE(called);
 
-	ExtraTownerOptions.clear();
+	ClearTownerDialogOptions();
 }
 
 TEST(Stores, RegisterTownerDialogOption_emptyLabelHidesOption)
 {
-	ExtraTownerOptions.clear();
+	ClearTownerDialogOptions();
 
-	RegisterTownerDialogOption("farnham",
-	    []() { return std::string(""); },
-	    []() {});
+	RegisterTownerDialogOption("farnham", []() { return std::string(""); }, []() {});
 
 	ASSERT_EQ(ExtraTownerOptions.at("farnham").size(), 1u);
 	EXPECT_TRUE(ExtraTownerOptions.at("farnham")[0].getLabel().empty());
 
-	ExtraTownerOptions.clear();
+	ClearTownerDialogOptions();
 }
 
 TEST(Stores, RegisterTownerDialogOption_multipleTowners)
 {
-	ExtraTownerOptions.clear();
+	ClearTownerDialogOptions();
 
 	RegisterTownerDialogOption("farnham", []() { return std::string("A"); }, []() {});
 	RegisterTownerDialogOption("griswold", []() { return std::string("B"); }, []() {});
@@ -153,7 +169,7 @@ TEST(Stores, RegisterTownerDialogOption_multipleTowners)
 	EXPECT_EQ(ExtraTownerOptions.at("farnham")[0].getLabel(), "A");
 	EXPECT_EQ(ExtraTownerOptions.at("griswold")[0].getLabel(), "B");
 
-	ExtraTownerOptions.clear();
+	ClearTownerDialogOptions();
 }
 
 } // namespace
