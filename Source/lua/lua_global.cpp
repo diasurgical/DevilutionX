@@ -1,21 +1,24 @@
 #include "lua/lua_global.hpp"
 
+#include <algorithm>
 #include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
 
 #include <ankerl/unordered_dense.h>
+#include <expected.hpp>
+#include <function_ref.hpp>
 #include <sol/bytecode.hpp>
 #include <sol/debug.hpp>
 #include <sol/environment.hpp>
+#include <sol/forward.hpp>
 #include <sol/function_types_templated.hpp>
-#include <sol/object.hpp>
-#include <sol/optional.hpp>
 #include <sol/protected_function.hpp>
-#include <sol/stack.hpp>
+#include <sol/stack_push.hpp>
 #include <sol/state.hpp>
 #include <sol/table.hpp>
+#include <sol/types.hpp>
 
 #include <config.h>
 
@@ -50,7 +53,7 @@ namespace devilution {
 
 namespace {
 
-void LuaPanic(const sol::optional<std::string> &message)
+void LuaPanic(const std::optional<std::string> &message)
 {
 	LogError("Lua is in a panic state and will now abort() the application:\n{}",
 	    message.value_or("unknown error"));
@@ -94,6 +97,9 @@ end
 
 sol::object LuaLoadScriptFromAssets(std::string_view packageName)
 {
+	if (!CurrentLuaState.has_value()) {
+		app_fatal("Lua state is not initialized");
+	}
 	LuaState &luaState = *CurrentLuaState;
 	constexpr std::string_view PathPrefix = "lua\\";
 	constexpr std::string_view PathSuffix = ".lua";
