@@ -43,6 +43,7 @@ enum _talker_id : uint8_t {
 
 // Runtime mappings built from TSV data
 extern DVL_API_FOR_TEST std::unordered_map<_talker_id, std::string> TownerLongNames; // Maps towner type enum to display name
+extern const std::unordered_map<_talker_id, const char *> TownerShortNames;          // Maps towner type enum to Lua/mod short name
 
 struct Towner {
 	OptionalOwnedClxSpriteList ownedAnim;

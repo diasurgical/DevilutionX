@@ -7,7 +7,10 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <string>
 #include <string_view>
+#include <unordered_map>
+#include <vector>
 
 #include <fmt/format.h>
 
@@ -68,7 +71,38 @@ TalkID OldActiveStore;
 /** Temporary item used to hold the item being traded */
 Item TempItem;
 
+std::unordered_map<std::string, std::vector<TownerDialogOption>> ExtraTownerOptions;
+
+const char *TownerNameForTalkID(TalkID s)
+{
+	const auto lookup = [](const _talker_id id) -> const char * {
+		auto it = TownerShortNames.find(id);
+		return it != TownerShortNames.end() ? it->second : nullptr;
+	};
+	switch (s) {
+	case TalkID::Smith:       return lookup(TOWN_SMITH);
+	case TalkID::Witch:       return lookup(TOWN_WITCH);
+	case TalkID::Boy:         return lookup(TOWN_PEGBOY);
+	case TalkID::Healer:      return lookup(TOWN_HEALER);
+	case TalkID::Storyteller: return lookup(TOWN_STORY);
+	case TalkID::Tavern:      return lookup(TOWN_TAVERN);
+	case TalkID::Drunk:       return lookup(TOWN_DRUNK);
+	case TalkID::Barmaid:     return lookup(TOWN_BMAID);
+	default:                  return nullptr;
+	}
+}
+
+void RegisterTownerDialogOption(std::string_view townerName,
+    std::function<std::string()> getLabel,
+    std::function<void()> onSelect)
+{
+	ExtraTownerOptions[std::string(townerName)].push_back({ std::move(getLabel), std::move(onSelect) });
+}
+
 namespace {
+
+/** Maps dialog line number to ExtraTownerOptions index for options visible in the current dialog session */
+std::unordered_map<int, size_t> CurrentExtraOptionIndices;
 
 /** The current towner being interacted with */
 _talker_id TownerId;
@@ -2216,35 +2250,11 @@ void StartStore(TalkID s)
 	ClearSText(0, NumStoreLines);
 	ReleaseStoreBtn();
 
+	ActiveStore = s;
+
 	// Fire StoreOpened Lua event for main store entries
-	switch (s) {
-	case TalkID::Smith:
-		lua::StoreOpened("griswold");
-		break;
-	case TalkID::Witch:
-		lua::StoreOpened("adria");
-		break;
-	case TalkID::Boy:
-		lua::StoreOpened("wirt");
-		break;
-	case TalkID::Healer:
-		lua::StoreOpened("pepin");
-		break;
-	case TalkID::Storyteller:
-		lua::StoreOpened("cain");
-		break;
-	case TalkID::Tavern:
-		lua::StoreOpened("ogden");
-		break;
-	case TalkID::Drunk:
-		lua::StoreOpened("farnham");
-		break;
-	case TalkID::Barmaid:
-		lua::StoreOpened("gillian");
-		break;
-	default:
-		break;
-	}
+	if (const char *name = TownerNameForTalkID(s); name != nullptr)
+		lua::StoreOpened(name);
 
 	switch (s) {
 	case TalkID::Smith:
@@ -2331,6 +2341,22 @@ void StartStore(TalkID s)
 		break;
 	}
 
+	CurrentExtraOptionIndices.clear();
+	if (const char *extraTownerName = TownerNameForTalkID(ActiveStore); extraTownerName != nullptr) {
+		if (auto extraIt = ExtraTownerOptions.find(extraTownerName); extraIt != ExtraTownerOptions.end()) {
+			size_t optIdx = 0;
+			for (int line = 14; line < 18 && optIdx < extraIt->second.size(); line += 2) {
+				if (TextLine[line].hasText()) break;
+				std::string label = extraIt->second[optIdx].getLabel();
+				if (!label.empty()) {
+					AddSText(0, line, label, UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+					CurrentExtraOptionIndices[line] = optIdx;
+				}
+				++optIdx;
+			}
+		}
+	}
+
 	CurrentTextLine = -1;
 	for (int i = 0; i < NumStoreLines; i++) {
 		if (TextLine[i].isSelectable()) {
@@ -2338,8 +2364,6 @@ void StartStore(TalkID s)
 			break;
 		}
 	}
-
-	ActiveStore = s;
 }
 
 void DrawSText(const Surface &out)
@@ -2595,6 +2619,17 @@ void StoreEnter()
 	}
 
 	PlaySFX(SfxID::MenuSelect);
+
+	if (auto extraOptIt = CurrentExtraOptionIndices.find(CurrentTextLine); extraOptIt != CurrentExtraOptionIndices.end()) {
+		if (const char *townerName = TownerNameForTalkID(ActiveStore); townerName != nullptr) {
+			if (auto it = ExtraTownerOptions.find(townerName); it != ExtraTownerOptions.end() && extraOptIt->second < it->second.size()) {
+				it->second[extraOptIt->second].onSelect();
+			}
+		}
+		ActiveStore = TalkID::None;
+		return;
+	}
+
 	switch (ActiveStore) {
 	case TalkID::Smith:
 		SmithEnter();

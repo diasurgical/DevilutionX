@@ -6,7 +6,12 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
 #include <optional>
+#include <string>
+#include <string_view>
+#include <unordered_map>
+#include <vector>
 
 #include "DiabloUI/ui_flags.hpp"
 #include "control/control.hpp"
@@ -105,6 +110,31 @@ extern DVL_API_FOR_TEST int OldScrollPos;
 extern DVL_API_FOR_TEST TalkID OldActiveStore;
 /** Temporary item used to hold the item being traded */
 extern DVL_API_FOR_TEST Item TempItem;
+
+struct TownerDialogOption {
+	std::function<std::string()> getLabel;
+	std::function<void()> onSelect;
+};
+
+/** Extra dialog options injected by mods, keyed by towner short name. */
+extern DVL_API_FOR_TEST std::unordered_map<std::string, std::vector<TownerDialogOption>> ExtraTownerOptions;
+
+/**
+ * @brief Returns the towner short name for a top-level TalkID, or nullptr if not a towner store.
+ */
+DVL_API_FOR_TEST const char *TownerNameForTalkID(TalkID s);
+
+/**
+ * @brief Registers a dynamic dialog option for a towner's talk menu.
+ *
+ * @param townerName   Short name of the towner (e.g. "farnham").
+ * @param getLabel     Called when the dialog is built; return a non-empty string to show the
+ *                     option, or an empty string to hide it.
+ * @param onSelect     Called when the player chooses this option.
+ */
+void RegisterTownerDialogOption(std::string_view townerName,
+    std::function<std::string()> getLabel,
+    std::function<void()> onSelect);
 
 void AddStoreHoldRepair(Item *itm, int8_t i);
 
