@@ -80,15 +80,15 @@ const char *TownerNameForTalkID(TalkID s)
 		return it != TownerShortNames.end() ? it->second : nullptr;
 	};
 	switch (s) {
-	case TalkID::Smith:       return lookup(TOWN_SMITH);
-	case TalkID::Witch:       return lookup(TOWN_WITCH);
-	case TalkID::Boy:         return lookup(TOWN_PEGBOY);
-	case TalkID::Healer:      return lookup(TOWN_HEALER);
+	case TalkID::Smith: return lookup(TOWN_SMITH);
+	case TalkID::Witch: return lookup(TOWN_WITCH);
+	case TalkID::Boy: return lookup(TOWN_PEGBOY);
+	case TalkID::Healer: return lookup(TOWN_HEALER);
 	case TalkID::Storyteller: return lookup(TOWN_STORY);
-	case TalkID::Tavern:      return lookup(TOWN_TAVERN);
-	case TalkID::Drunk:       return lookup(TOWN_DRUNK);
-	case TalkID::Barmaid:     return lookup(TOWN_BMAID);
-	default:                  return nullptr;
+	case TalkID::Tavern: return lookup(TOWN_TAVERN);
+	case TalkID::Drunk: return lookup(TOWN_DRUNK);
+	case TalkID::Barmaid: return lookup(TOWN_BMAID);
+	default: return nullptr;
 	}
 }
 
@@ -2250,8 +2250,6 @@ void StartStore(TalkID s)
 	ClearSText(0, NumStoreLines);
 	ReleaseStoreBtn();
 
-	ActiveStore = s;
-
 	// Fire StoreOpened Lua event for main store entries
 	if (const char *name = TownerNameForTalkID(s); name != nullptr)
 		lua::StoreOpened(name);
@@ -2342,7 +2340,7 @@ void StartStore(TalkID s)
 	}
 
 	CurrentExtraOptionIndices.clear();
-	if (const char *extraTownerName = TownerNameForTalkID(ActiveStore); extraTownerName != nullptr) {
+	if (const char *extraTownerName = TownerNameForTalkID(s); extraTownerName != nullptr) {
 		if (auto extraIt = ExtraTownerOptions.find(extraTownerName); extraIt != ExtraTownerOptions.end()) {
 			size_t optIdx = 0;
 			for (int line = 14; line < 18 && optIdx < extraIt->second.size(); line += 2) {
@@ -2364,6 +2362,8 @@ void StartStore(TalkID s)
 			break;
 		}
 	}
+
+	ActiveStore = s;
 }
 
 void DrawSText(const Surface &out)
