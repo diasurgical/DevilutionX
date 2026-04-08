@@ -2744,14 +2744,29 @@ void CalcPlrGraphics(Player &player, PlayerWeaponGraphic animWeaponId, PlayerArm
 		ResetPlayerGFX(player);
 		SetPlrAnims(player);
 		player.previewCelSprite = std::nullopt;
-		const player_graphic graphic = player.getGraphic();
+		player_graphic graphic = player.getGraphic();
 		int8_t numberOfFrames;
 		int8_t ticksPerFrame;
 		player.getAnimationFramesAndTicksPerFrame(graphic, numberOfFrames, ticksPerFrame);
 		LoadPlrGFX(player, graphic);
 		OptionalClxSpriteList sprites;
-		if (!HeadlessMode)
-			sprites = player.AnimationData[static_cast<size_t>(graphic)].spritesForDirection(player._pdir);
+		if (!HeadlessMode) {
+			auto &animData = player.AnimationData[static_cast<size_t>(graphic)];
+			if (animData.sprites.has_value()) {
+				sprites = animData.spritesForDirection(player._pdir);
+			} else {
+				// In multiplayer games, a remote player can unequip their shield while that player is blocking an attack on the host.
+				// This results in a nonexistent animation state on the host where the remote player must block with no shield equipped.
+				// ie, (graphic == player_graphic::Block && !player._pBlockFlag) requests warrior animation "whnbl"
+				// Attempting to load the nonexistent animation crashes the host.
+				// This could also happen when unequipping a weapon during an attack, etc.
+				// To avoid the crash, we can set the remote player into a standing animation before updating the items on their sprite.
+				graphic = player_graphic::Stand;
+				NewPlrAnim(player, graphic, player._pdir);
+				player.getAnimationFramesAndTicksPerFrame(graphic, numberOfFrames, ticksPerFrame);
+				sprites = player.AnimationData[static_cast<size_t>(graphic)].spritesForDirection(player._pdir);
+			}
+		}
 		player.AnimInfo.changeAnimationData(sprites, numberOfFrames, ticksPerFrame);
 	} else {
 		player._pgfxnum = gfxNum;
