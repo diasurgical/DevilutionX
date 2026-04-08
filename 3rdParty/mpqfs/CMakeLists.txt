@@ -4,7 +4,7 @@ include(FetchContent)
 
 FetchContent_Declare_ExcludeFromAll(mpqfs
     GIT_REPOSITORY https://github.com/diasurgical/mpqfs.git
-    GIT_TAG 8887bf1940d3ba74d73950d85bb79bb738b78896
+    GIT_TAG 952490b991887cd11584e0042a06787b242eeec7
 )
 FetchContent_MakeAvailable_ExcludeFromAll(mpqfs)
 
