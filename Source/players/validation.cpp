@@ -1,5 +1,5 @@
 /**
- * @file player/validation.cpp
+ * @file players/validation.cpp
  *
  * Implementation of functions for validation of player data.
  */
