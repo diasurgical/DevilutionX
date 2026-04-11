@@ -1041,5 +1041,22 @@ const char *SPELL_RUNE_OF_LIGHT_NAME = P_("spell", "Rune of Light");
 const char *SPELL_RUNE_OF_NOVA_NAME = P_("spell", "Rune of Nova");
 const char *SPELL_RUNE_OF_IMMOLATION_NAME = P_("spell", "Rune of Immolation");
 const char *SPELL_RUNE_OF_STONE_NAME = P_("spell", "Rune of Stone");
+const char *SUBTITLE_DIABEND_0 = N_("The Soulstone burns with hellfire as an eerie");
+const char *SUBTITLE_DIABEND_1 = N_("red glow blurs your vision.");
+const char *SUBTITLE_DIABEND_2 = N_("Fresh blood flows into your eyes and you");
+const char *SUBTITLE_DIABEND_3 = N_("begin to hear the tormented whispers of the damned.");
+const char *SUBTITLE_DIABEND_4 = N_("You have done what you knew must be done.");
+const char *SUBTITLE_DIABEND_5 = N_("The essence of Diablo is contained.");
+const char *SUBTITLE_DIABEND_6 = N_("For now.");
+const char *SUBTITLE_DIABEND_7 = N_("You pray that you have become strong enough");
+const char *SUBTITLE_DIABEND_8 = N_("to contain the demon and keep him at bay.");
+const char *SUBTITLE_DIABEND_9 = N_("Although you have been fortified by your quest,");
+const char *SUBTITLE_DIABEND_10 = N_("you can still feel him, clawing his way");
+const char *SUBTITLE_DIABEND_11 = N_("up from the dark recesses of your soul.");
+const char *SUBTITLE_DIABEND_12 = N_("Fighting to retain control, your thoughts turn toward");
+const char *SUBTITLE_DIABEND_13 = N_("the ancient, mystic lands of the Far East.");
+const char *SUBTITLE_DIABEND_14 = N_("Perhaps there, beyond the desolate wastes of Aranak,");
+const char *SUBTITLE_DIABEND_15 = N_("you will find an answer.");
+const char *SUBTITLE_DIABEND_16 = N_("Or perhaps, salvation.");
 
 } // namespace
