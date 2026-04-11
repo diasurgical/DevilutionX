@@ -15,6 +15,7 @@
 
 #ifndef NOSOUND
 #include <SDL3/SDL_audio.h>
+#include <SDL3_mixer/SDL_mixer.h>
 #endif
 #else
 #include <SDL.h>
@@ -30,6 +31,7 @@
 #include "engine/assets.hpp"
 #include "engine/dx.h"
 #include "engine/palette.h"
+#include "engine/sound.h"
 #include "options.h"
 #include "utils/display.h"
 #include "utils/log.hpp"
@@ -313,7 +315,9 @@ void SVidInitAudioStream(const SmackerAudioInfo &audioInfo)
 		SVidAudioStream = nullptr;
 		return;
 	}
-	if (!SDL_BindAudioStream(CurrentAudioDeviceId, SVidAudioStream)) {
+	const SDL_AudioDeviceID deviceId = static_cast<SDL_AudioDeviceID>(
+	    SDL_GetNumberProperty(MIX_GetMixerProperties(CurrentMixer), MIX_PROP_MIXER_DEVICE_NUMBER, 0));
+	if (!SDL_BindAudioStream(deviceId, SVidAudioStream)) {
 		LogError(LogCategory::Audio, "SDL_BindAudioStream (from SVidPlayBegin): {}", SDL_GetError());
 		SDL_ClearError();
 		SDL_DestroyAudioStream(SVidAudioStream);

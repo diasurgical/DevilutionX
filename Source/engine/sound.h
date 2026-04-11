@@ -17,7 +17,7 @@
 
 #ifndef NOSOUND
 #ifdef USE_SDL3
-#include <SDL3/SDL_audio.h>
+struct MIX_Mixer;
 #endif
 
 #include "utils/soundsample.h"
@@ -59,7 +59,7 @@ struct TSnd {
 
 extern bool gbSndInited;
 #ifdef USE_SDL3
-extern SDL_AudioDeviceID CurrentAudioDeviceId;
+extern MIX_Mixer *CurrentMixer;
 #endif
 
 extern _music_id sgnMusicTrack;
