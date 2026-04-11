@@ -334,6 +334,8 @@ void LuaShutdown()
 #ifdef _DEBUG
 	LuaReplShutdown();
 #endif
+	// Must clear before destroying the Lua state: registered callbacks
+	// capture sol::function handles that reference CurrentLuaState.
 	ClearTownerDialogOptions();
 	CurrentLuaState = std::nullopt;
 }

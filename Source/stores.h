@@ -10,7 +10,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
-#include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include "DiabloUI/ui_flags.hpp"
@@ -117,17 +117,29 @@ struct TownerDialogOption {
 };
 
 /** Extra dialog options injected by mods, keyed by towner short name. */
-extern DVL_API_FOR_TEST std::unordered_map<std::string, std::vector<TownerDialogOption>> ExtraTownerOptions;
+extern DVL_API_FOR_TEST std::vector<std::pair<std::string, std::vector<TownerDialogOption>>> ExtraTownerOptions;
 
 /**
  * @brief Returns the towner short name for a top-level TalkID, or nullptr if not a towner store.
+ *
+ * Only maps top-level store entries (Smith, Witch, Boy, Healer, Storyteller, Tavern, Drunk, Barmaid).
+ * Sub-pages (SmithBuy, WitchSell, etc.) return nullptr.
  */
 DVL_API_FOR_TEST const char *TownerNameForTalkID(TalkID s);
 
 /**
  * @brief Registers a dynamic dialog option for a towner's talk menu.
  *
- * @param townerName   Short name of the towner (e.g. "farnham").
+ * Options are inserted into empty even-numbered lines before the towner's "leave" option.
+ * If no empty lines are available the option is silently skipped for that dialog session
+ * and a warning is logged.
+ *
+ * When the player selects a mod option, onSelect() is called. By default the dialog is
+ * closed afterwards. If onSelect() sets ActiveStore to a value other than TalkID::None,
+ * that value is preserved (e.g. to open a sub-dialog).
+ *
+ * @param townerName   Short name of the towner (e.g. "farnham"). Must match one of the
+ *                     names in TownerShortNames; a warning is logged for unknown names.
  * @param getLabel     Called when the dialog is built; return a non-empty string to show the
  *                     option, or an empty string to hide it.
  * @param onSelect     Called when the player chooses this option.
@@ -136,7 +148,12 @@ void RegisterTownerDialogOption(std::string_view townerName,
     std::function<std::string()> getLabel,
     std::function<void()> onSelect);
 
-/** Clears all mod-registered towner dialog options (e.g. before mod reload / Lua shutdown). */
+/**
+ * @brief Clears all mod-registered towner dialog options.
+ *
+ * Must be called before the Lua state is destroyed, since registered callbacks
+ * capture sol::function handles that reference the Lua state.
+ */
 void ClearTownerDialogOptions();
 
 void AddStoreHoldRepair(Item *itm, int8_t i);

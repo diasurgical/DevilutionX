@@ -6,6 +6,16 @@ using namespace devilution;
 
 namespace {
 
+/** Helper to find the options vector for a towner by short name, or nullptr. */
+std::vector<TownerDialogOption> *FindOptions(std::string_view name)
+{
+	for (auto &[key, opts] : ExtraTownerOptions) {
+		if (key == name)
+			return &opts;
+	}
+	return nullptr;
+}
+
 TEST(Stores, AddStoreHoldRepair_magic)
 {
 	devilution::Item *item;
@@ -113,8 +123,10 @@ TEST(Stores, RegisterTownerDialogOption_afterClearDoesNotAccumulate)
 	ClearTownerDialogOptions();
 	RegisterTownerDialogOption("farnham", []() { return std::string("Second"); }, []() {});
 
-	ASSERT_EQ(ExtraTownerOptions.at("farnham").size(), 1u);
-	EXPECT_EQ(ExtraTownerOptions.at("farnham")[0].getLabel(), "Second");
+	auto *opts = FindOptions("farnham");
+	ASSERT_NE(opts, nullptr);
+	ASSERT_EQ(opts->size(), 1u);
+	EXPECT_EQ((*opts)[0].getLabel(), "Second");
 
 	ClearTownerDialogOptions();
 }
@@ -125,9 +137,10 @@ TEST(Stores, RegisterTownerDialogOption_storesOption)
 
 	RegisterTownerDialogOption("farnham", []() { return std::string("Go to Tiny Town"); }, []() {});
 
-	ASSERT_EQ(ExtraTownerOptions.count("farnham"), 1u);
-	ASSERT_EQ(ExtraTownerOptions.at("farnham").size(), 1u);
-	EXPECT_EQ(ExtraTownerOptions.at("farnham")[0].getLabel(), "Go to Tiny Town");
+	auto *opts = FindOptions("farnham");
+	ASSERT_NE(opts, nullptr);
+	ASSERT_EQ(opts->size(), 1u);
+	EXPECT_EQ((*opts)[0].getLabel(), "Go to Tiny Town");
 
 	ClearTownerDialogOptions();
 }
@@ -139,7 +152,10 @@ TEST(Stores, RegisterTownerDialogOption_callsOnSelect)
 	bool called = false;
 	RegisterTownerDialogOption("farnham", []() { return std::string("Travel"); }, [&called]() { called = true; });
 
-	ExtraTownerOptions.at("farnham")[0].onSelect();
+	auto *opts = FindOptions("farnham");
+	ASSERT_NE(opts, nullptr);
+	ASSERT_EQ(opts->size(), 1u);
+	(*opts)[0].onSelect();
 	EXPECT_TRUE(called);
 
 	ClearTownerDialogOptions();
@@ -151,8 +167,10 @@ TEST(Stores, RegisterTownerDialogOption_emptyLabelHidesOption)
 
 	RegisterTownerDialogOption("farnham", []() { return std::string(""); }, []() {});
 
-	ASSERT_EQ(ExtraTownerOptions.at("farnham").size(), 1u);
-	EXPECT_TRUE(ExtraTownerOptions.at("farnham")[0].getLabel().empty());
+	auto *opts = FindOptions("farnham");
+	ASSERT_NE(opts, nullptr);
+	ASSERT_EQ(opts->size(), 1u);
+	EXPECT_TRUE((*opts)[0].getLabel().empty());
 
 	ClearTownerDialogOptions();
 }
@@ -164,10 +182,14 @@ TEST(Stores, RegisterTownerDialogOption_multipleTowners)
 	RegisterTownerDialogOption("farnham", []() { return std::string("A"); }, []() {});
 	RegisterTownerDialogOption("griswold", []() { return std::string("B"); }, []() {});
 
-	EXPECT_EQ(ExtraTownerOptions.at("farnham").size(), 1u);
-	EXPECT_EQ(ExtraTownerOptions.at("griswold").size(), 1u);
-	EXPECT_EQ(ExtraTownerOptions.at("farnham")[0].getLabel(), "A");
-	EXPECT_EQ(ExtraTownerOptions.at("griswold")[0].getLabel(), "B");
+	auto *farnhamOpts = FindOptions("farnham");
+	auto *griswoldOpts = FindOptions("griswold");
+	ASSERT_NE(farnhamOpts, nullptr);
+	ASSERT_NE(griswoldOpts, nullptr);
+	EXPECT_EQ(farnhamOpts->size(), 1u);
+	EXPECT_EQ(griswoldOpts->size(), 1u);
+	EXPECT_EQ((*farnhamOpts)[0].getLabel(), "A");
+	EXPECT_EQ((*griswoldOpts)[0].getLabel(), "B");
 
 	ClearTownerDialogOptions();
 }
