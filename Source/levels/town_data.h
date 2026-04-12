@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -14,6 +15,22 @@ namespace devilution {
 
 /** @brief Canonical town registry id for vanilla Tristram (lowercase). */
 inline constexpr char TristramTownId[] = "tristram";
+
+/** @brief Town portal spell anchor slots; must match MAXPORTAL in portal.h. */
+inline constexpr size_t NumTownPortalSlots = 4;
+
+/** @brief Legacy positions for town portal missiles (one per player slot). */
+inline constexpr std::array<Point, NumTownPortalSlots> DefaultTristramPortalPositions = { {
+	Point { 57, 40 },
+	Point { 59, 40 },
+	Point { 61, 40 },
+	Point { 63, 40 },
+} };
+
+/**
+ * @brief World position for the town portal missile / portal entry for player slot `portalIndex`.
+ */
+Point GetPortalTownPosition(size_t portalIndex);
 
 /**
  * @brief Represents a town sector (map piece)
@@ -90,6 +107,7 @@ struct TownConfig {
 	std::vector<TownTrigger> triggers;
 	std::vector<TownWarpPatch> warpClosedPatches;
 	std::vector<TownerPositionOverride> townerOverrides;
+	std::array<Point, NumTownPortalSlots> portalPositions = DefaultTristramPortalPositions;
 
 	/**
 	 * @brief Gets the spawn point for a given entry type and warp source

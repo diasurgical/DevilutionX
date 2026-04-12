@@ -139,6 +139,21 @@ std::string LuaRegisterTown(std::string_view townId, const sol::table &config)
 		}
 	}
 
+	if (sol::optional<sol::table> portals = config["portals"]) {
+		size_t slot = 0;
+		for (const auto &kv : *portals) {
+			if (slot >= NumTownPortalSlots) {
+				LogWarn("registerTown: portals list has more than {} entries; ignoring extras", NumTownPortalSlots);
+				break;
+			}
+			sol::table t = kv.second.as<sol::table>();
+			sol::optional<int> px = t["x"];
+			sol::optional<int> py = t["y"];
+			townConfig.portalPositions[slot] = { px.value_or(0), py.value_or(0) };
+			++slot;
+		}
+	}
+
 	std::string townIdStr(townId);
 	GetTownRegistry().RegisterTown(townIdStr, townConfig);
 	return townIdStr;
@@ -182,7 +197,8 @@ sol::table LuaTownsModule(sol::state_view &lua)
 	LuaSetDocFn(table, "register", "(townId: string, config: table) -> string",
 	    "Registers a new town from a config table. Returns town ID.\n"
 	    "Optional triggers: array of tables with x, y, kind (\"nextlevel\" or \"townwarp\").\n"
-	    "For townwarp, set level (dungeon level) and warp (\"catacombs\", \"caves\", \"hell\", \"nest\", \"crypt\") for IsWarpOpen gating.",
+	    "For townwarp, set level (dungeon level) and warp (\"catacombs\", \"caves\", \"hell\", \"nest\", \"crypt\") for IsWarpOpen gating.\n"
+	    "Optional portals: up to four { x, y } tables for town portal spell positions (defaults match Tristram).",
 	    LuaRegisterTown);
 
 	LuaSetDocFn(table, "travel", "(townId: string)",

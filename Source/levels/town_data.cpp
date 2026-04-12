@@ -9,7 +9,7 @@ namespace {
 TownRegistry g_townRegistry;
 
 /** @brief Spawn used when no TownEntryPoint matches (matches legacy hard-coded default). */
-constexpr Point kDefaultTownEntryPoint = { 75, 68 };
+constexpr Point DefaultTownEntryPoint = { 75, 68 };
 
 } // namespace
 
@@ -65,6 +65,16 @@ std::string TownRegistry::GetTownBySaveId(uint8_t saveId) const
 	return { TristramTownId };
 }
 
+Point GetPortalTownPosition(size_t portalIndex)
+{
+	if (portalIndex >= NumTownPortalSlots)
+		return DefaultTristramPortalPositions[0];
+	const std::string &townId = GetTownRegistry().GetCurrentTown();
+	if (GetTownRegistry().HasTown(townId))
+		return GetTownRegistry().GetTown(townId).portalPositions[portalIndex];
+	return DefaultTristramPortalPositions[portalIndex];
+}
+
 Point TownConfig::GetEntryPoint(lvl_entry entry, int warpFrom) const
 {
 	// For ENTRY_TWARPUP, match both entry type and warpFromLevel
@@ -74,7 +84,7 @@ Point TownConfig::GetEntryPoint(lvl_entry entry, int warpFrom) const
 				return ep.viewPosition;
 			}
 		}
-		return kDefaultTownEntryPoint;
+		return DefaultTownEntryPoint;
 	}
 
 	// For other entry types, just match the type
@@ -85,7 +95,7 @@ Point TownConfig::GetEntryPoint(lvl_entry entry, int warpFrom) const
 	}
 
 	// Default fallback
-	return kDefaultTownEntryPoint;
+	return DefaultTownEntryPoint;
 }
 
 void InitializeTristram()
