@@ -5,6 +5,7 @@
  */
 #include "portal.h"
 
+#include "controls/local_coop/local_coop.hpp"
 #include "levels/town_data.h"
 #include "lighting.h"
 #include "missiles.h"
@@ -155,16 +156,20 @@ void GetPortalLevel()
 
 void GetPortalLvlPos()
 {
+	Point portalPos;
 	if (leveltype == DTYPE_TOWN) {
-		ViewPosition = GetPortalTownPosition(portalindex) + Displacement { 1, 1 };
+		portalPos = GetPortalTownPosition(portalindex) + Displacement { 1, 1 };
 	} else {
-		ViewPosition = Portals[portalindex].position;
+		portalPos = Portals[portalindex].position;
 
 		if (portalindex != MyPlayerId) {
-			ViewPosition.x++;
-			ViewPosition.y++;
+			portalPos.x++;
+			portalPos.y++;
 		}
 	}
+
+	// Set view position (automatically handles local coop vs single player)
+	SetViewPosition(portalPos);
 }
 
 bool PosOkPortal(int lvl, Point position)
