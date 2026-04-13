@@ -14,6 +14,7 @@
 
 #include "DiabloUI/ui_flags.hpp"
 #include "automap.h"
+#include "controls/local_coop/local_coop.hpp"
 #include "cursor.h"
 #include "cursor_defs.hpp"
 #ifdef _DEBUG
@@ -4502,7 +4503,8 @@ _item_indexes ItemMiscIdIdx(item_misc_id imiscid)
 
 void OperateObject(Player &player, Object &object)
 {
-	const bool sendmsg = &player == MyPlayer;
+	// Local players (MyPlayer and local coop players) send network messages
+	const bool sendmsg = IsLocalPlayer(player);
 
 	switch (object._otype) {
 	case OBJ_L1LDOOR:
