@@ -67,6 +67,7 @@
 #include "levels/setmaps.h"
 #include "levels/themes.h"
 #include "levels/town.h"
+#include "levels/town_data.h"
 #include "levels/trigs.h"
 #include "lighting.h"
 #include "loadsave.h"
@@ -110,6 +111,7 @@
 #include "utils/format.hpp"
 #include "utils/is_of.hpp"
 #include "utils/language.h"
+#include "utils/log.hpp"
 #include "utils/parse_int.hpp"
 #include "utils/paths.h"
 #include "utils/screen_reader.hpp"
@@ -1371,19 +1373,40 @@ std::expected<void, std::string> LoadLvlGFX()
 
 	switch (leveltype) {
 	case DTYPE_TOWN: {
-		auto cel = LoadFileInMemWithStatus("nlevels\\towndata\\town.cel");
+		const TownVisualAssets &active = GetActiveTownConfigForTileLoad().visualAssets;
+		const TownVisualAssets &tristramAssets = GetTownRegistry().GetTown(TristramTownId).visualAssets;
+		LogVerbose("LoadLvlGFX (town): cel {} | til {} | special {} | pal {}",
+		    active.dungeonCelPath, active.megaTilePath, active.specialCelsPath, active.palettePath);
+
+		// CEL: try mod/active primary, then Tristram chain on failure.
+		auto cel = LoadFileInMemWithStatus(active.dungeonCelPath.c_str());
 		if (!cel.has_value()) {
-			ASSIGN_OR_RETURN(pDungeonCels, LoadFileInMemWithStatus("levels\\towndata\\town.cel"));
+			if (active.dungeonCelPath != tristramAssets.dungeonCelPath)
+				cel = LoadFileInMemWithStatus(tristramAssets.dungeonCelPath.c_str());
+			if (!cel.has_value()) {
+				ASSIGN_OR_RETURN(pDungeonCels, LoadFileInMemWithStatus(TristramRetailTownPaths::DungeonCel));
+			} else {
+				pDungeonCels = std::move(*cel);
+			}
 		} else {
 			pDungeonCels = std::move(*cel);
 		}
-		auto til = LoadFileInMemWithStatus<MegaTile>("nlevels\\towndata\\town.til");
+
+		// TIL: same pattern.
+		auto til = LoadFileInMemWithStatus<MegaTile>(active.megaTilePath.c_str());
 		if (!til.has_value()) {
-			ASSIGN_OR_RETURN(pMegaTiles, LoadFileInMemWithStatus<MegaTile>("levels\\towndata\\town.til"));
+			if (active.megaTilePath != tristramAssets.megaTilePath)
+				til = LoadFileInMemWithStatus<MegaTile>(tristramAssets.megaTilePath.c_str());
+			if (!til.has_value()) {
+				ASSIGN_OR_RETURN(pMegaTiles, LoadFileInMemWithStatus<MegaTile>(TristramRetailTownPaths::MegaTile));
+			} else {
+				pMegaTiles = std::move(*til);
+			}
 		} else {
 			pMegaTiles = std::move(*til);
 		}
-		ASSIGN_OR_RETURN(pSpecialCels, LoadCelWithStatus("levels\\towndata\\towns", SpecialCelWidth));
+
+		ASSIGN_OR_RETURN(pSpecialCels, LoadCelWithStatus(active.specialCelsPath.c_str(), SpecialCelWidth));
 		return {};
 	}
 	case DTYPE_CATHEDRAL:

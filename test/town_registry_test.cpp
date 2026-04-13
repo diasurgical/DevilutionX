@@ -183,6 +183,22 @@ TEST_F(InitializeTristramTest, TristramPortalPositionsMatchLegacy)
 	}
 }
 
+TEST_F(InitializeTristramTest, TristramVisualAssetsMatchVanillaPaths)
+{
+	const TownVisualAssets &va = GetTownRegistry().GetTown(TristramTownId).visualAssets;
+	EXPECT_EQ(va.dungeonCelPath, R"(nlevels\towndata\town.cel)");
+	EXPECT_EQ(va.megaTilePath, R"(nlevels\towndata\town.til)");
+	EXPECT_EQ(va.pieceMinPath, R"(nlevels\towndata\town.min)");
+	EXPECT_EQ(va.specialCelsPath, R"(levels\towndata\towns)");
+	EXPECT_EQ(va.solPath, R"(nlevels\towndata\town.sol)");
+	EXPECT_EQ(va.palettePath, R"(levels\towndata\town.pal)");
+	EXPECT_EQ(va.microTileLen, static_cast<uint_fast8_t>(16));
+	EXPECT_STREQ(TristramRetailTownPaths::DungeonCel, R"(levels\towndata\town.cel)");
+	EXPECT_STREQ(TristramRetailTownPaths::MegaTile, R"(levels\towndata\town.til)");
+	EXPECT_STREQ(TristramRetailTownPaths::PieceMin, R"(levels\towndata\town.min)");
+	EXPECT_STREQ(TristramRetailTownPaths::Sol, R"(levels\towndata\town.sol)");
+}
+
 TEST_F(InitializeTristramTest, GetPortalTownPositionMatchesTristramWhenCurrent)
 {
 	for (size_t i = 0; i < NumTownPortalSlots; ++i) {

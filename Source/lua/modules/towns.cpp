@@ -41,6 +41,24 @@ std::string LuaRegisterTown(std::string_view townId, const sol::table &config)
 	sol::optional<int> saveId = config["saveId"];
 	townConfig.saveId = saveId.has_value() ? static_cast<uint8_t>(*saveId) : 0;
 
+	if (sol::optional<sol::table> assets = config["assets"]) {
+		sol::table t = *assets;
+		if (sol::optional<std::string> v = t["dungeonCel"])
+			townConfig.visualAssets.dungeonCelPath = *v;
+		if (sol::optional<std::string> v = t["megaTile"])
+			townConfig.visualAssets.megaTilePath = *v;
+		if (sol::optional<std::string> v = t["min"])
+			townConfig.visualAssets.pieceMinPath = *v;
+		if (sol::optional<std::string> v = t["specialCels"])
+			townConfig.visualAssets.specialCelsPath = *v;
+		if (sol::optional<std::string> v = t["sol"])
+			townConfig.visualAssets.solPath = *v;
+		if (sol::optional<std::string> v = t["palette"])
+			townConfig.visualAssets.palettePath = *v;
+		if (sol::optional<int> v = t["microTileLen"])
+			townConfig.visualAssets.microTileLen = static_cast<uint_fast8_t>(*v);
+	}
+
 	if (sol::optional<sol::table> bounds = config["bounds"]) {
 		if (sol::optional<sol::table> min = (*bounds)["min"]) {
 			sol::optional<int> minX = (*min)["x"];
@@ -196,6 +214,10 @@ sol::table LuaTownsModule(sol::state_view &lua)
 
 	LuaSetDocFn(table, "register", "(townId: string, config: table) -> string",
 	    "Registers a new town from a config table. Returns town ID.\n"
+	    "Optional assets: { dungeonCel, megaTile, min, specialCels, sol, palette, microTileLen } — paths for the tile gfx/palette.\n"
+	    "  microTileLen: sub-tile count per mega-tile (16 for town.cel, 10 for L1/L2/L3/L6 CEL, 12 for L4). Default: 16.\n"
+	    "  Omitted path keys keep the Tristram default. On load failure the engine falls back through Tristram's full path chain.\n"
+	    "  Omitting palette uses levels\\towndata\\town.pal regardless of other assets.\n"
 	    "Optional triggers: array of tables with x, y, kind (\"nextlevel\" or \"townwarp\").\n"
 	    "For townwarp, set level (dungeon level) and warp (\"catacombs\", \"caves\", \"hell\", \"nest\", \"crypt\") for IsWarpOpen gating.\n"
 	    "Optional portals: up to four { x, y } tables for town portal spell positions (defaults match Tristram).",

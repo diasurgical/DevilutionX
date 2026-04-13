@@ -20,6 +20,15 @@ TownRegistry &GetTownRegistry()
 	return g_townRegistry;
 }
 
+const TownConfig &GetActiveTownConfigForTileLoad()
+{
+	const TownRegistry &registry = GetTownRegistry();
+	const std::string &id = registry.GetCurrentTown();
+	if (!id.empty() && registry.HasTown(id))
+		return registry.GetTown(id);
+	return registry.GetTown(TristramTownId);
+}
+
 void TownRegistry::RegisterTown(const std::string &id, const TownConfig &config)
 {
 	if (HasTown(id))

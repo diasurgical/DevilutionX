@@ -95,6 +95,42 @@ struct TownWarpPatch {
 };
 
 /**
+ * Retail (DIABDAT.MPQ) town tile paths — used when Hellfire `nlevels\\towndata\\` assets are absent.
+ * Loaders try the active town’s primary paths, then Tristram’s primaries, then these (see LoadLvlGFX, etc.).
+ */
+namespace TristramRetailTownPaths {
+inline constexpr char DungeonCel[] = R"(levels\towndata\town.cel)";
+inline constexpr char MegaTile[] = R"(levels\towndata\town.til)";
+inline constexpr char PieceMin[] = R"(levels\towndata\town.min)";
+inline constexpr char Sol[] = R"(levels\towndata\town.sol)";
+} // namespace TristramRetailTownPaths
+
+/**
+ * @brief Paths for town tile graphics: dungeon CEL, mega TIL, special CELs, SOL, and palette.
+ *
+ * Defaults match Tristram (Hellfire `nlevels\\` where applicable). On load failure, the engine
+ * retries Tristram’s defaults, then `TristramRetailTownPaths`. Lua `assets` only sets these fields;
+ * the retail chain is not configurable.
+ *
+ * Omitting `palette` in Lua keeps the default `levels\\towndata\\town.pal`; set `assets.palette`
+ * to override.
+ */
+struct TownVisualAssets {
+	std::string dungeonCelPath = R"(nlevels\towndata\town.cel)";
+	std::string megaTilePath = R"(nlevels\towndata\town.til)";
+	/** @brief Piece/min data for SetDungeonMicros (mega-tile → micro CEL frames). */
+	std::string pieceMinPath = R"(nlevels\towndata\town.min)";
+	std::string specialCelsPath = R"(levels\towndata\towns)";
+	std::string solPath = R"(nlevels\towndata\town.sol)";
+	std::string palettePath = R"(levels\towndata\town.pal)";
+	/**
+	 * @brief Sub-tile count per mega-tile for SetDungeonMicros.
+	 * Must match the CEL and MIN format: 16 for town.cel/min, 10 for L1/l2/l3/l6, 12 for L4.
+	 */
+	uint_fast8_t microTileLen = 16;
+};
+
+/**
  * @brief Complete configuration for a town
  */
 struct TownConfig {
@@ -102,6 +138,7 @@ struct TownConfig {
 	uint8_t saveId = 0;
 	Point dminPosition = { 10, 10 };
 	Point dmaxPosition = { 84, 84 };
+	TownVisualAssets visualAssets;
 	std::vector<TownSector> sectors;
 	std::vector<TownEntryPoint> entries;
 	std::vector<TownTrigger> triggers;
@@ -137,6 +174,11 @@ public:
 };
 
 TownRegistry &GetTownRegistry();
+
+/**
+ * @brief Town used for DTYPE_TOWN tile loading (CEL/TIL/SOL/palette): current town if registered, else Tristram.
+ */
+const TownConfig &GetActiveTownConfigForTileLoad();
 
 /**
  * @brief Town ID to switch to, set before queuing WM_DIABTOWNSWITCH.
