@@ -9,6 +9,7 @@
 #include <cstdint>
 
 #include "control/control.hpp"
+#include "controls/local_coop/local_coop.hpp"
 #include "engine/load_file.hpp"
 #include "engine/palette.h"
 #include "engine/render/automap_render.hpp"
@@ -1859,7 +1860,7 @@ void DrawAutomap(const Surface &out)
 	}
 
 	for (const Player &player : Players) {
-		if (player.isOnActiveLevel() && player.plractive && !player._pLvlChanging && (&player == MyPlayer || player.friendlyMode)) {
+		if (player.isOnActiveLevel() && player.plractive && !player._pLvlChanging && (IsLocalPlayer(player) || player.friendlyMode)) {
 			DrawAutomapPlr(out, myPlayerOffset, player);
 		}
 	}
