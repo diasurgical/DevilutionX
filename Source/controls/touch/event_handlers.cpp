@@ -8,6 +8,7 @@
 #endif
 
 #include "control/control.hpp"
+#include "controls/local_coop/local_coop.hpp"
 #include "controls/plrctrls.h"
 #include "cursor.h"
 #include "diablo.h"
@@ -16,6 +17,7 @@
 #include "game_mode.hpp"
 #include "gmenu.h"
 #include "inv.h"
+#include "options.h"
 #include "panels/spell_book.hpp"
 #include "panels/spell_list.hpp"
 #include "qol/stash.h"
@@ -132,6 +134,12 @@ void HandleBottomPanelInteraction(const SDL_Event &event)
 {
 	if (!gbRunGame || !MyPlayer->HoldItem.isEmpty())
 		return;
+
+#ifndef USE_SDL1
+	// Skip main panel interactions when local co-op is actually enabled
+	if (IsLocalCoopEnabled())
+		return;
+#endif
 
 	ResetMainPanelButtons();
 
