@@ -214,7 +214,7 @@ By compiling the `package` target, the build will produce the `devilutionx.zip` 
 # and enable Discord integration
 cmake -S. -Bbuild -DCMAKE_TOOLCHAIN_FILE=../CMake/platforms/mingwcc.toolchain.cmake \
     -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF -DDEVILUTIONX_SYSTEM_BZIP2=OFF \
-    -DDEVILUTIONX_STATIC_LIBSODIUM=ON -DDISCORD_INTEGRATION=ON
+    -DDEVILUTIONX_STATIC_LIBSODIUM=ON -DDISCORD_INTEGRATION=ON -DCPACK=ON
 
 # Build the "package" target which produces devilutionx.zip
 # containing all the necessary dlls to run the game
@@ -251,7 +251,7 @@ Packaging/windows/mingw-prep64.sh
 # and enable Discord integration
 cmake -S. -Bbuild -DCMAKE_TOOLCHAIN_FILE=../CMake/platforms/mingwcc64.toolchain.cmake \
     -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF -DDEVILUTIONX_SYSTEM_BZIP2=OFF \
-    -DDEVILUTIONX_STATIC_LIBSODIUM=ON -DDISCORD_INTEGRATION=ON
+    -DDEVILUTIONX_STATIC_LIBSODIUM=ON -DDISCORD_INTEGRATION=ON -DCPACK=ON
 
 # Build the "package" target which produces devilutionx.zip
 # containing all the necessary dlls to run the game
