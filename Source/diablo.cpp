@@ -245,6 +245,11 @@ bool ProcessInput()
 	return true;
 }
 
+void ForceMove() {
+	LastPlayerAction = PlayerActionType::Walk;
+	NetSendCmdLoc(MyPlayerId, true, CMD_WALKXY, cursPosition);
+}
+
 void LeftMouseCmd(bool bShift)
 {
 	bool bNear;
@@ -1931,6 +1936,14 @@ void InitKeymapActions()
 	    SDLK_UNKNOWN,
 	    [] { gamemenu_quit_game(false); });
 #endif
+	options.Keymapper.AddAction(
+		"ForceMove",
+		N_("Force Move"),
+		N_("Moves your character to the location under the cursor."),
+		SDLK_UNKNOWN,
+		[] { ForceMove(); },
+		nullptr,
+		CanPlayerTakeAction);
 	options.Keymapper.AddAction(
 	    "StopHero",
 	    N_("Stop hero"),
