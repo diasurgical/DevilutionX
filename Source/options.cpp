@@ -872,6 +872,7 @@ GameplayOptions::GameplayOptions()
     , numRejuPotionPickup("Rejuvenation Potion Pickup", OptionEntryFlags::None, N_("Rejuvenation Potion Pickup"), N_("Number of Rejuvenation potions to pick up automatically."), 0, { 0, 1, 2, 4, 8, 16 })
     , numFullRejuPotionPickup("Full Rejuvenation Potion Pickup", OptionEntryFlags::None, N_("Full Rejuvenation Potion Pickup"), N_("Number of Full Rejuvenation potions to pick up automatically."), 0, { 0, 1, 2, 4, 8, 16 })
     , visualStoreUI("Visual Store UI", OptionEntryFlags::None, N_("Visual Store UI"), N_("Use visual grid-based store interface instead of text-based menus. Both store and inventory panels open together."), false)
+	, attackInPlace("Attack In Place", OptionEntryFlags::None, N_("Attack In Place"), N_("Attack in the direction of clicked terrain instead of moving there."), false)
     , skipLoadingScreenThresholdMs("Skip loading screen threshold, ms", OptionEntryFlags::Invisible, "", "", 0)
 {
 }
@@ -908,6 +909,7 @@ std::vector<OptionEntryBase *> GameplayOptions::GetEntries()
 		&autoGoldPickup,
 		&autoElixirPickup,
 		&autoOilPickup,
+		&attackInPlace,
 		&numHealPotionPickup,
 		&numFullHealPotionPickup,
 		&numManaPotionPickup,
