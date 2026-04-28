@@ -14,8 +14,9 @@
 #else
 #include <SDL.h>
 #endif
-
-#include "engine/surface.hpp"
+#ifdef USE_SDL1
+#include "utils/sdl2_to_1_2_backports.h"
+#endif
 
 namespace devilution {
 
@@ -80,12 +81,12 @@ struct TMenuItem {
 
 extern DVL_API_FOR_TEST TMenuItem *sgpCurrentMenu;
 
-void gmenu_draw_pause(const Surface &out);
+void gmenu_draw_pause();
 void FreeGMenu();
 void gmenu_init_menu();
 bool gmenu_is_active();
 void gmenu_set_items(TMenuItem *pItem, void (*gmFunc)());
-void gmenu_draw(const Surface &out);
+void gmenu_draw();
 bool gmenu_presskeys(SDL_Keycode vkey);
 bool gmenu_on_mouse_move();
 bool gmenu_left_mouse(bool isDown);

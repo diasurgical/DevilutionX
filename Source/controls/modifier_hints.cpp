@@ -1,6 +1,5 @@
 #include "controls/modifier_hints.h"
 
-#include <cstddef>
 #include <cstdint>
 
 #include "DiabloUI/ui_flags.hpp"
@@ -11,6 +10,7 @@
 #include "engine/clx_sprite.hpp"
 #include "engine/load_clx.hpp"
 #include "engine/render/clx_render.hpp"
+#include "engine/render/renderer.h"
 #include "engine/render/text_render.hpp"
 #include "options.h"
 #include "panels/spell_book.hpp"
@@ -71,7 +71,7 @@ struct CircleMenuHint {
  * @param hint Struct describing the icon to draw.
  * @param origin Top left corner of the layout (relative to the output buffer).
  */
-void DrawCircleMenuHint(const Surface &out, const CircleMenuHint &hint, const Point &origin)
+void DrawCircleMenuHint(const CircleMenuHint &hint, const Point &origin)
 {
 	const Displacement backgroundDisplacement = { ((HintBoxSize - IconSize) / 2) + 1, ((HintBoxSize - IconSize) / 2) - 1 };
 	const Point hintBoxPositions[4] = {
@@ -92,9 +92,11 @@ void DrawCircleMenuHint(const Surface &out, const CircleMenuHint &hint, const Po
 		if (iconIndices[slot] == HintIcon::IconNull)
 			continue;
 
-		RenderClxSprite(out, (*hintBoxBackground)[0], iconPositions[slot]);
-		RenderClxSprite(out.subregion(iconPositions[slot].x, iconPositions[slot].y, 37, 38), (*hintIcons)[iconIndices[slot]], { 0, 0 });
-		RenderClxSprite(out, (*hintBox)[0], hintBoxPositions[slot]);
+		GetRenderer().RenderClx(iconPositions[slot], (*hintBoxBackground)[0]);
+		GetRenderer().SetClipRegion(iconPositions[slot].x, iconPositions[slot].y, 37, 38);
+		GetRenderer().RenderClx({ iconPositions[slot].x, iconPositions[slot].y }, (*hintIcons)[iconIndices[slot]]);
+		GetRenderer().ClearClipRegion();
+		GetRenderer().RenderClx(hintBoxPositions[slot], (*hintBox)[0]);
 	}
 }
 
@@ -103,7 +105,7 @@ void DrawCircleMenuHint(const Surface &out, const CircleMenuHint &hint, const Po
  * @param out The output buffer to draw on.
  * @param origin Top left corner of the layout (relative to the output buffer).
  */
-void DrawSpellsCircleMenuHint(const Surface &out, const Point &origin)
+void DrawSpellsCircleMenuHint(const Point &origin)
 {
 	const Player &myPlayer = *MyPlayer;
 	const Displacement spellIconDisplacement = { ((HintBoxSize - IconSize) / 2) + 1, HintBoxSize - ((HintBoxSize - IconSize) / 2) - 1 };
@@ -134,29 +136,29 @@ void DrawSpellsCircleMenuHint(const Surface &out, const Point &origin)
 		}
 
 		SetSpellTrans(splType);
-		DrawSmallSpellIcon(out, spellIconPositions[slot], splId);
-		RenderClxSprite(out, (*hintBox)[0], hintBoxPositions[slot]);
+		DrawSmallSpellIcon(spellIconPositions[slot], splId);
+		GetRenderer().RenderClx(hintBoxPositions[slot], (*hintBox)[0]);
 	}
 }
 
-void DrawGamepadMenuNavigator(const Surface &out)
+void DrawGamepadMenuNavigator()
 {
 	if (!PadMenuNavigatorActive || SimulatingMouseWithPadmapper)
 		return;
 	static const CircleMenuHint DPad(/*top=*/HintIcon::IconMenu, /*right=*/HintIcon::IconInv, /*bottom=*/HintIcon::IconMap, /*left=*/HintIcon::IconChar);
 	static const CircleMenuHint Buttons(/*top=*/HintIcon::IconNull, /*right=*/HintIcon::IconNull, /*bottom=*/HintIcon::IconSpells, /*left=*/HintIcon::IconQuests);
 	const Rectangle &mainPanel = GetMainPanel();
-	DrawCircleMenuHint(out, DPad, { mainPanel.position.x + CircleMarginX, mainPanel.position.y - CircleTop });
-	DrawCircleMenuHint(out, Buttons, { mainPanel.position.x + mainPanel.size.width - (HintBoxSize * 3) - CircleMarginX - (HintBoxMargin * 2), mainPanel.position.y - CircleTop });
+	DrawCircleMenuHint(DPad, { mainPanel.position.x + CircleMarginX, mainPanel.position.y - CircleTop });
+	DrawCircleMenuHint(Buttons, { mainPanel.position.x + mainPanel.size.width - (HintBoxSize * 3) - CircleMarginX - (HintBoxMargin * 2), mainPanel.position.y - CircleTop });
 }
 
-void DrawGamepadHotspellMenu(const Surface &out)
+void DrawGamepadHotspellMenu()
 {
 	if (!PadHotspellMenuActive || SimulatingMouseWithPadmapper)
 		return;
 
 	const Rectangle &mainPanel = GetMainPanel();
-	DrawSpellsCircleMenuHint(out, { mainPanel.position.x + mainPanel.size.width - (HintBoxSize * 3) - CircleMarginX - (HintBoxMargin * 2), mainPanel.position.y - CircleTop });
+	DrawSpellsCircleMenuHint({ mainPanel.position.x + mainPanel.size.width - (HintBoxSize * 3) - CircleMarginX - (HintBoxMargin * 2), mainPanel.position.y - CircleTop });
 }
 
 } // namespace
@@ -175,10 +177,10 @@ void FreeModifierHints()
 	hintBox = std::nullopt;
 }
 
-void DrawControllerModifierHints(const Surface &out)
+void DrawControllerModifierHints()
 {
-	DrawGamepadMenuNavigator(out);
-	DrawGamepadHotspellMenu(out);
+	DrawGamepadMenuNavigator();
+	DrawGamepadHotspellMenu();
 }
 
 } // namespace devilution

@@ -12,12 +12,9 @@
 #include "DiabloUI/ui_flags.hpp"
 #include "control/control.hpp"
 #include "engine/clx_sprite.hpp"
-#include "engine/dx.h"
 #include "engine/load_cel.hpp"
-#include "engine/render/clx_render.hpp"
-#include "engine/render/primitive_render.hpp"
+#include "engine/render/renderer.h"
 #include "engine/render/text_render.hpp"
-#include "tables/playerdat.hpp"
 #include "tables/textdat.h"
 #include "utils/language.h"
 #include "utils/timer.hpp"
@@ -96,7 +93,7 @@ int CalculateTextPosition()
 /**
  * @brief Draw the current text in the quest dialog window
  */
-void DrawQTextContent(const Surface &out)
+void DrawQTextContent(int clipY, int clipH)
 {
 	const int y = CalculateTextPosition();
 
@@ -105,6 +102,7 @@ void DrawQTextContent(const Surface &out)
 
 	const unsigned int skipLines = y / LineHeight;
 
+	GetRenderer().SetClipRegion(0, clipY, gnScreenWidth, clipH);
 	for (int i = 0; i < 8; i++) {
 		const unsigned int lineNumber = skipLines + i;
 		if (lineNumber >= TextLines.size()) {
@@ -116,9 +114,10 @@ void DrawQTextContent(const Surface &out)
 			continue;
 		}
 
-		DrawString(out, line, { { sx, sy + (i * LineHeight) }, { 543, LineHeight } },
+		DrawString(line, { { sx, clipY + sy + (i * LineHeight) }, { 543, LineHeight } },
 		    { .flags = UiFlags::FontSize30 | UiFlags::ColorGold });
 	}
+	GetRenderer().ClearClipRegion();
 }
 
 } // namespace
@@ -171,17 +170,24 @@ void InitQTextMsg(_speech_id m)
 	PlaySFX(sfxnr);
 }
 
-void DrawQTextBack(const Surface &out)
+void DrawQTextBack()
 {
 	const Point uiPosition = GetUIRectangle().position;
-	ClxDraw(out, uiPosition + Displacement { 24, 327 }, (*pTextBoxCels)[0]);
-	DrawHalfTransparentRectTo(out, uiPosition.x + 27, uiPosition.y + 28, 585, 297);
+	GetRenderer().DrawClx(uiPosition + Displacement { 24, 327 }, (*pTextBoxCels)[0]);
+	GetRenderer().DrawBlendedRect(uiPosition.x + 27, uiPosition.y + 28, 585, 297);
 }
 
-void DrawQText(const Surface &out)
+ClxSprite GetQTextBoxSprite()
 {
-	DrawQTextBack(out);
-	DrawQTextContent(out.subregionY(GetUIRectangle().position.y + 49, 260));
+	return (*pTextBoxCels)[0];
+}
+
+void DrawQText()
+{
+	DrawQTextBack();
+	const int clipY = GetUIRectangle().position.y + 49;
+	constexpr int clipH = 260;
+	DrawQTextContent(clipY, clipH);
 }
 
 } // namespace devilution

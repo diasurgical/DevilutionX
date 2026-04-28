@@ -91,17 +91,17 @@ void ToggleCharPanel();
 
 void AddInfoBoxString(std::string_view str, bool floatingBox = false);
 void AddInfoBoxString(std::string &&str, bool floatingBox = false);
-void DrawPanelBox(const Surface &out, SDL_Rect srcRect, Point targetPosition);
+void DrawPanelBox(SDL_Rect srcRect, Point targetPosition);
 Point GetPanelPosition(UiPanels panel, Point offset = { 0, 0 });
 
 tl::expected<void, std::string> InitMainPanel();
-void DrawMainPanel(const Surface &out);
+void DrawMainPanel();
 
 /**
  * Draws the control panel buttons in their current state. If the button is in the default
  * state draw it from the panel cel(extract its sub-rect). Else draw it from the buttons cel.
  */
-void DrawMainPanelButtons(const Surface &out);
+void DrawMainPanelButtons();
 
 /**
  * Clears panel button flags.
@@ -133,23 +133,23 @@ void FreeControlPan();
 /**
  * Sets a string to be drawn in the info box and then draws it.
  */
-void DrawInfoBox(const Surface &out);
-void DrawFloatingInfoBox(const Surface &out);
+void DrawInfoBox();
+void DrawFloatingInfoBox();
 void CheckLevelButton();
 void CheckLevelButtonUp();
-void DrawLevelButton(const Surface &out);
+void DrawLevelButton();
 void CheckChrBtns();
 void ReleaseChrBtns(bool addAllStatPoints);
-void DrawDurIcon(const Surface &out);
-void RedBack(const Surface &out);
-void DrawDeathText(const Surface &out);
-void DrawSpellBook(const Surface &out);
+void DrawDurIcon();
+void RedBack();
+void DrawDeathText();
+void DrawSpellBook();
 
 extern DVL_API_FOR_TEST Rectangle CharPanelButtonRect[4];
 
 bool CheckKeypress(SDL_Keycode vkey);
 void DiabloHotkeyMsg(uint32_t dwMsg);
-void DrawChatBox(const Surface &out);
+void DrawChatBox();
 bool CheckMuteButton();
 void CheckMuteButtonUp();
 void TypeChatMessage();
@@ -163,31 +163,31 @@ bool HandleTalkTextInputEvent(const SDL_Event &event);
  * The empty flask cel is drawn from the top of the flask to the fill level (there is always a 2 pixel "air gap") and
  * the filled flask cel is drawn from that level to the top of the control panel if required.
  */
-void DrawLifeFlaskUpper(const Surface &out);
+void DrawLifeFlaskUpper();
 
 /**
  * Controls the drawing of the area of the life flask within the control panel.
  * First sets the fill amount then draws the empty flask cel portion then the filled
  * flask portion.
  */
-void DrawLifeFlaskLower(const Surface &out, bool drawFilledPortion);
+void DrawLifeFlaskLower(bool drawFilledPortion);
 
 /**
  * Draws the top dome of the mana flask (that part that protrudes out of the control panel).
  * The empty flask cel is drawn from the top of the flask to the fill level (there is always a 2 pixel "air gap") and
  * the filled flask cel is drawn from that level to the top of the control panel if required.
  */
-void DrawManaFlaskUpper(const Surface &out);
+void DrawManaFlaskUpper();
 
 /**
  * Controls the drawing of the area of the mana flask within the control panel.
  */
-void DrawManaFlaskLower(const Surface &out, bool drawFilledPortion);
+void DrawManaFlaskLower(bool drawFilledPortion);
 
 /**
  * Controls drawing of current / max values (health, mana) within the control panel.
  */
-void DrawFlaskValues(const Surface &out, Point pos, int currValue, int maxValue);
+void DrawFlaskValues(Point pos, int currValue, int maxValue);
 
 /**
  * @brief calls on the active player object to update HP/Mana percentage variables
@@ -200,7 +200,7 @@ void UpdateLifeManaPercent();
 
 extern bool DropGoldFlag;
 
-void DrawGoldSplit(const Surface &out);
+void DrawGoldSplit();
 void control_drop_gold(SDL_Keycode vkey);
 void OpenGoldDrop(int8_t invIndex, int max);
 void CloseGoldDrop();

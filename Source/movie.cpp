@@ -20,6 +20,8 @@
 #include "engine/backbuffer_state.hpp"
 #include "engine/demomode.h"
 #include "engine/events.hpp"
+#include "engine/palette.h"
+#include "engine/render/scrollrt.h"
 #include "engine/sound.h"
 #include "hwcursor.hpp"
 #include "storm/storm_svid.h"
@@ -123,12 +125,12 @@ void play_movie(const char *pszMovie, bool userCanClose)
 
 void PlayInGameMovie(const char *pszMovie)
 {
-	PaletteFadeOut(8);
+	PaletteFadeOut(8, logical_palette, RedrawGameScene);
 	play_movie(pszMovie, false);
 	ClearScreenBuffer();
 	RedrawEverything();
 	scrollrt_draw_game_screen();
-	PaletteFadeIn(8);
+	PaletteFadeIn(8, logical_palette, RedrawGameScene);
 	RedrawEverything();
 }
 

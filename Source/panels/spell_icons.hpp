@@ -7,7 +7,6 @@
 
 #include "engine/clx_sprite.hpp"
 #include "engine/point.hpp"
-#include "engine/surface.hpp"
 #include "tables/spelldat.h"
 
 #define SPLICONLENGTH 56
@@ -75,7 +74,7 @@ enum class SpellIcon : uint8_t {
  * @param position Buffer coordinates (bottom-left).
  * @param spell Spell ID.
  */
-void DrawLargeSpellIcon(const Surface &out, Point position, SpellID spell);
+void DrawLargeSpellIcon(Point position, SpellID spell);
 
 /**
  * Draw a small (37x38) spell icon onto the given buffer.
@@ -84,7 +83,7 @@ void DrawLargeSpellIcon(const Surface &out, Point position, SpellID spell);
  * @param position Buffer coordinates (bottom-left).
  * @param spell Spell ID.
  */
-void DrawSmallSpellIcon(const Surface &out, Point position, SpellID spell);
+void DrawSmallSpellIcon(Point position, SpellID spell);
 
 /**
  * Draw an inset 2px border for a large (56x56) spell icon.
@@ -93,7 +92,7 @@ void DrawSmallSpellIcon(const Surface &out, Point position, SpellID spell);
  * @param position Buffer coordinates (bottom-left).
  * @param spell Spell ID.
  */
-void DrawLargeSpellIconBorder(const Surface &out, Point position, uint8_t color);
+void DrawLargeSpellIconBorder(Point position, uint8_t color);
 
 /**
  * Draw an inset 2px border for a small (37x38) spell icon.
@@ -102,7 +101,7 @@ void DrawLargeSpellIconBorder(const Surface &out, Point position, uint8_t color)
  * @param position Buffer coordinates (bottom-left).
  * @param spell Spell ID.
  */
-void DrawSmallSpellIconBorder(const Surface &out, Point position);
+void DrawSmallSpellIconBorder(Point position);
 
 /**
  * @brief Set the color mapping for the `Draw(Small|Large)SpellIcon(Border)` calls.

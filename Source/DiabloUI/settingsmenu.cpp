@@ -1,11 +1,7 @@
-#include <algorithm>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
-#include <memory>
-#include <optional>
 #include <string>
-#include <vector>
 
 #ifdef USE_SDL3
 #include <SDL3/SDL_events.h>
@@ -28,11 +24,13 @@
 #include "controls/remap_keyboard.h"
 #include "engine/assets.hpp"
 #include "engine/rectangle.hpp"
+#include "engine/render/renderer.h"
 #include "engine/render/text_render.hpp"
 #include "game_mode.hpp"
 #include "hwcursor.hpp"
 #include "items.h"
 #include "options.h"
+#include "utils/display.h"
 #include "utils/enum_traits.h"
 #include "utils/is_of.hpp"
 #include "utils/language.h"
@@ -233,11 +231,20 @@ bool ChangeOptionValue(OptionEntryBase *pOption, size_t listIndex)
 	}
 
 	if (HasAnyOf(pOption->GetFlags(), OptionEntryFlags::RecreateUI)) {
+#ifdef DEVILUTIONX_GL1_RENDERER
+		if (pOption == &GetOptions().Graphics.renderer) {
+			SwitchRenderer();
+		}
+#endif
 		// Reinitialize UI with changed settings (for example game mode, language or resolution)
 		UiInitialize();
 		InitItemGFX();
 		SetHardwareCursor(CursorInfo::UnknownCursor());
 		return false;
+	}
+
+	if (pOption == &GetOptions().Graphics.lightingMode) {
+		GetRenderer().SetLightingMode(*GetOptions().Graphics.lightingMode);
 	}
 
 	return true;

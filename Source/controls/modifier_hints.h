@@ -1,10 +1,8 @@
 #pragma once
 
-#include "engine/surface.hpp"
-
 namespace devilution {
 
-void DrawControllerModifierHints(const Surface &out);
+void DrawControllerModifierHints();
 void InitModifierHints();
 void FreeModifierHints();
 

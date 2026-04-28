@@ -2,6 +2,7 @@
 #pragma once
 
 #ifdef USE_SDL3
+#include "utils/display.h"
 #include <SDL3/SDL_events.h>
 #include <SDL3/SDL_keyboard.h>
 #include <SDL3/SDL_keycode.h>
@@ -388,32 +389,6 @@ inline const Uint8 *SDLC_GetKeyState()
 #else
 	return SDL_GetKeyState(nullptr);
 #endif
-}
-
-// Convert events to renderer coordinates.
-// This is done automatically in SDL2 but not in SDL3 and SDL1.2.
-inline bool SDLC_ConvertEventToRenderCoordinates(
-#ifndef USE_SDL1
-    SDL_Renderer *renderer,
-#else
-    void *,
-#endif
-    SDL_Event *event)
-{
-#ifdef USE_SDL3
-	if (renderer != nullptr) {
-		return SDL_ConvertEventToRenderCoordinates(renderer, event);
-	}
-#elif !defined(USE_SDL1)
-	// No-op in SDL2.
-#else
-	if (event->type == SDL_MOUSEMOTION) {
-		devilution::OutputToLogical(&event->motion.x, &event->motion.y);
-	} else if (event->type == SDL_MOUSEBUTTONDOWN || event->type == SDL_MOUSEBUTTONUP) {
-		devilution::OutputToLogical(&event->button.x, &event->button.y);
-	}
-#endif
-	return true;
 }
 
 // Sets the palette's colors and:
