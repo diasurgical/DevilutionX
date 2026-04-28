@@ -5,7 +5,7 @@
  */
 #pragma once
 
-#include "engine/surface.hpp"
+#include "engine/clx_sprite.hpp"
 #include "tables/textdat.h"
 #include "utils/attributes.h"
 
@@ -33,11 +33,16 @@ void InitQTextMsg(_speech_id m);
 /**
  * @brief Draw the quest dialog window decoration and background.
  */
-void DrawQTextBack(const Surface &out);
+void DrawQTextBack();
+
+/**
+ * @brief Get the full-width quest text box sprite (591px wide).
+ */
+ClxSprite GetQTextBoxSprite();
 
 /**
  * @brief Draw the quest dialog window text.
  */
-void DrawQText(const Surface &out);
+void DrawQText();
 
 } // namespace devilution

@@ -13,6 +13,7 @@
 #include "engine/rectangle.hpp"
 #include "engine/render/clx_render.hpp"
 #include "engine/render/primitive_render.hpp"
+#include "engine/render/renderer.h"
 #include "engine/size.hpp"
 #include "inv.h"
 #include "options.h"
@@ -159,7 +160,7 @@ void FreePartyPanel()
 	PlayerTags = std::nullopt;
 }
 
-void DrawPartyMemberInfoPanel(const Surface &out)
+void DrawPartyMemberInfoPanel()
 {
 	// Don't draw based on these criteria
 	if (CharFlag || !gbIsMultiplayer || !MyPlayer->friendlyMode || IsPlayerInStore() || IsStashOpen) {
@@ -178,6 +179,8 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 	int currentLongestNameWidth = PortraitFrameSize.width;
 	bool portraitUnderCursor = false;
 
+	auto &renderer = GetRenderer();
+
 	for (Player &player : Players) {
 
 		if (!player.plractive || !player.friendlyMode)
@@ -190,17 +193,21 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 		// Get the rect of the portrait to use later
 		const Rectangle currentPortraitRect = { pos, PortraitFrameSize };
 
-		const Surface gameScreen = out.subregionY(0, gnViewportHeight);
+		// Clip to the viewport area
+		renderer.SetClipRegion(0, 0, gnScreenWidth, gnViewportHeight);
 
 		// Draw the characters frame
-		RenderClxSprite(gameScreen, (*PartyMemberFrame)[0], pos);
+		{
+			const ClxSprite frameSprite = (*PartyMemberFrame)[0];
+			renderer.DrawClx({ pos.x, pos.y + static_cast<int>(frameSprite.height()) - 1 }, frameSprite);
+		}
 
 		// Get the players remaining life
 		// If the player is using mana shield change the color
 		const int lifeTicks = ((player._pHitPoints * PortraitFrameSize.width) + (player._pMaxHP / 2)) / player._pMaxHP;
 		const uint8_t hpBarColor = (player.pManaShield) ? PAL8_YELLOW + 5 : PAL8_RED + 4;
 		// Now draw the characters remaining life
-		DrawBar(gameScreen, { pos, { lifeTicks, HealthBarHeight } }, hpBarColor);
+		renderer.FillRect(pos.x, pos.y, lifeTicks, HealthBarHeight, hpBarColor);
 
 		// Add to the position before continuing to the next item
 		pos.y += HealthBarHeight;
@@ -216,61 +223,59 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 
 		// Calculate the players portait position
 		const Point portraitPos = { ((-(playerPortraitSprite.width() / 2)) + (PortraitFrameSize.width / 2)) + offset.x, offset.y };
-		// Get a subregion of the surface so the portrait doesn't get drawn over the frame
-		const Surface frameSubregion = gameScreen.subregion(
-		    pos.x + FrameBorderSize,
-		    pos.y + FrameBorderSize,
-		    PortraitFrameSize.width - (FrameBorderSize * 2),
-		    PortraitFrameSize.height - (FrameBorderSize * 2));
+		// Clip to the frame subregion so the portrait doesn't get drawn over the frame
+		const int clipX = pos.x + FrameBorderSize;
+		const int clipY = pos.y + FrameBorderSize;
+		const int clipW = PortraitFrameSize.width - (FrameBorderSize * 2);
+		const int clipH = PortraitFrameSize.height - (FrameBorderSize * 2);
 
 		PortraitFrameRects[player.getId()] = {
-			{ frameSubregion.region.x, frameSubregion.region.y },
-			{ frameSubregion.region.w, frameSubregion.region.h }
+			{ clipX, clipY },
+			{ clipW, clipH }
 		};
 
 		// Draw the portrait sprite
-		RenderClxSprite(
-		    frameSubregion,
-		    playerPortraitSprite,
-		    portraitPos);
+		renderer.SetClipRegion(clipX, clipY, clipW, clipH);
+		renderer.DrawClx({ clipX + portraitPos.x, clipY + portraitPos.y + static_cast<int>(playerPortraitSprite.height()) - 1 }, playerPortraitSprite);
 
 		if ((player.getId() + 1U) < (*PlayerTags).numSprites()) {
 			// Draw the player tag
-			const int tagWidth = (*PlayerTags)[player.getId() + 1].width();
-			RenderClxSprite(
-			    frameSubregion,
-			    (*PlayerTags)[player.getId() + 1],
-			    { PortraitFrameSize.width - (tagWidth + (tagWidth / 2)), 0 });
+			const ClxSprite tagSprite = (*PlayerTags)[player.getId() + 1];
+			const int tagWidth = tagSprite.width();
+			const int tagX = PortraitFrameSize.width - (tagWidth + (tagWidth / 2));
+			renderer.DrawClx({ clipX + tagX, clipY + static_cast<int>(tagSprite.height()) - 1 }, tagSprite);
 		}
 
 		// Check to see if the player is dead and if so we draw a half transparent red rect over the portrait
 		if (player._pHitPoints <= 0) {
-			DrawHalfTransparentRectTo(
-			    frameSubregion,
-			    0, 0,
-			    PortraitFrameSize.width,
-			    PortraitFrameSize.height,
-			    PAL8_RED + 4);
+			renderer.TintRect(clipX, clipY, PortraitFrameSize.width, PortraitFrameSize.height, PAL8_RED + 4);
 		}
+
+		renderer.ClearClipRegion();
 
 		// Add to the position before continuing to the next item
 		pos.y += PortraitFrameSize.height;
+
+		// Clip to the viewport area for mana bar and name
+		renderer.SetClipRegion(0, 0, gnScreenWidth, gnViewportHeight);
 
 		// Get the players remaining mana
 		const int manaTicks = ((player._pMana * PortraitFrameSize.width) + (player._pMaxMana / 2)) / player._pMaxMana;
 		const uint8_t manaBarColor = PAL8_BLUE + 3;
 		// Now draw the characters remaining mana
-		DrawBar(gameScreen, { pos, { manaTicks, ManaBarHeight } }, manaBarColor);
+		renderer.FillRect(pos.x, pos.y, manaTicks, ManaBarHeight, manaBarColor);
 
 		// Add to the position before continuing to the next item
 		pos.y += ManaBarHeight;
 
 		// Draw the players name under the frame
 		DrawString(
-		    gameScreen,
 		    player._pName,
 		    pos,
+		    gnScreenWidth,
 		    { .flags = UiFlags::ColorGold | UiFlags::Outlined | UiFlags::FontSize12 });
+
+		renderer.ClearClipRegion();
 
 		// Add to the position before continuing onto the next player
 		pos.y += FrameGap + 5;

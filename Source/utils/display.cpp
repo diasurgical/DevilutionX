@@ -1,7 +1,6 @@
 #include "utils/display.h"
 
 #include <algorithm>
-#include <cmath>
 #include <cstdint>
 #include <utility>
 
@@ -19,6 +18,14 @@
 #else
 #include "utils/sdl2_backports.h"
 #endif
+#endif
+
+#include "engine/render/null_renderer.h"
+#include "engine/render/renderer.h"
+#include "engine/render/renderer_backend.h"
+#include "engine/render/software/software_renderer.h"
+#ifdef DEVILUTIONX_GL1_RENDERER
+#include "engine/render/gl1/gl1_renderer_impl.h"
 #endif
 
 #ifdef __vita__
@@ -41,11 +48,16 @@
 #include "controls/devices/game_controller.h"
 #endif
 #include "controls/devices/joystick.h"
+#ifndef USE_SDL1
+#include "controls/touch/renderers.h"
+#endif
 #include "controls/devices/kbcontroller.h"
 #include "controls/game_controls.h"
 #include "controls/touch/gamepad.h"
 #include "engine/backbuffer_state.hpp"
 #include "engine/dx.h"
+#include "engine/frame_limiter.h"
+#include "engine/palette.h"
 #include "headless_mode.hpp"
 #include "options.h"
 #include "utils/log.hpp"
@@ -65,7 +77,28 @@
 
 namespace devilution {
 
-extern SDLSurfaceUniquePtr RendererTextureSurface; /** defined in dx.cpp */
+namespace {
+
+void ValidateLightingMode()
+{
+	const LightingMode current = *GetOptions().Graphics.lightingMode;
+	if (GetRenderer().SupportsLightingMode(current)) {
+		GetRenderer().SetLightingMode(current);
+		return;
+	}
+
+	// Pick the first supported mode.
+	for (LightingMode mode : { LightingMode::Tile, LightingMode::TileSmooth, LightingMode::Vertex }) {
+		if (GetRenderer().SupportsLightingMode(mode)) {
+			GetOptions().Graphics.lightingMode.SetValue(mode);
+			GetRenderer().SetLightingMode(mode);
+			return;
+		}
+	}
+}
+
+} // namespace
+
 SDL_Window *ghMainWnd;
 
 Size forceResolution;
@@ -441,19 +474,17 @@ float GetDpiScalingFactor()
 	}
 	return dispScale;
 #elif !defined(USE_SDL1)
-	if (renderer == nullptr)
+	if (!GetRenderer().HasPresentationLayer())
 		return 1.0F;
 
-	int renderWidth;
-	int renderHeight;
-	SDL_GetRendererOutputSize(renderer, &renderWidth, &renderHeight);
+	const Size outputSize = GetRenderer().GetOutputSize();
 
 	int windowWidth;
 	int windowHeight;
 	SDL_GetWindowSize(ghMainWnd, &windowWidth, &windowHeight);
 
-	const float hfactor = static_cast<float>(renderWidth) / windowWidth;
-	const float vhfactor = static_cast<float>(renderHeight) / windowHeight;
+	const float hfactor = static_cast<float>(outputSize.width) / windowWidth;
+	const float vhfactor = static_cast<float>(outputSize.height) / windowHeight;
 
 	return std::min(hfactor, vhfactor);
 #else
@@ -487,8 +518,11 @@ void SetVideoModeToPrimary(bool fullscreen, int width, int height)
 	flags |= Get3DSScalingFlag(*GetOptions().Graphics.fitToScreen, width, height);
 #endif
 	SetVideoMode(width, height, SDL1_VIDEO_MODE_BPP, flags);
-	if (OutputRequiresScaling())
-		Log("Using software scaling");
+	{
+		SDL_Surface *surface = SDL_GetVideoSurface();
+		if (surface != nullptr && (gnScreenWidth != surface->w || gnScreenHeight != surface->h))
+			Log("Using software scaling");
+	}
 }
 #endif
 
@@ -592,11 +626,32 @@ bool SpawnWindow(const char *lpWindowName)
 #endif
 #endif
 
+	if (HeadlessMode) {
+		SetRenderer(std::make_unique<NullRenderer>());
+		return true;
+	}
+
 	Size windowSize = GetPreferredWindowSize();
 
 #ifdef USE_SDL1
 	SDL_WM_SetCaption(lpWindowName, WINDOW_ICON_NAME);
-	SetVideoModeToPrimary(*GetOptions().Graphics.fullscreen, windowSize.width, windowSize.height);
+#ifdef DEVILUTIONX_GL1_RENDERER
+	if (*GetOptions().Graphics.renderer != RendererBackend::Software) {
+		// For SDL1 + GL, use SDL_OPENGL flag and let SDL choose bpp.
+		int flags = SDL1_VIDEO_MODE_FLAGS | SDL_OPENGL;
+		if (*GetOptions().Graphics.fullscreen)
+			flags |= SDL_FULLSCREEN;
+		SetVideoMode(windowSize.width, windowSize.height, 0, flags);
+		if (ghMainWnd != nullptr) {
+			Gl1Init(ghMainWnd);
+		}
+	}
+	if (!IsGl1RendererActive()) {
+#endif
+		SetVideoModeToPrimary(*GetOptions().Graphics.fullscreen, windowSize.width, windowSize.height);
+#ifdef DEVILUTIONX_GL1_RENDERER
+	}
+#endif
 	if (*GetOptions().Gameplay.grabInput)
 		SDL_WM_GrabInput(SDL_GRAB_ON);
 	atexit(SDL_VideoQuit); // Without this video mode is not restored after fullscreen.
@@ -619,14 +674,37 @@ bool SpawnWindow(const char *lpWindowName)
 		flags |= SDL_WINDOW_FULLSCREEN;
 	}
 
+#ifdef DEVILUTIONX_GL1_RENDERER
+	// Try the GL1 backend unless the user explicitly chose software.
+	if (*GetOptions().Graphics.renderer != RendererBackend::Software) {
+		flags |= SDL_WINDOW_OPENGL;
+		ghMainWnd = SDL_CreateWindow(lpWindowName,
+#ifndef USE_SDL3
+		    SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+#endif
+		    windowSize.width, windowSize.height, flags);
+		if (ghMainWnd != nullptr) {
+			if (Gl1Init(ghMainWnd)) {
+				// GL1 renderer is active; no SDL_Renderer needed.
+			} else {
+				// GL init failed, fall back to software path.
+				SDL_DestroyWindow(ghMainWnd);
+				ghMainWnd = nullptr;
+			}
+		}
+	} // end of renderer != Software check
+	// If GL window creation failed or wasn't attempted, fall through to the normal path.
+	if (ghMainWnd == nullptr) {
+#endif // DEVILUTIONX_GL1_RENDERER
+
 #ifdef USE_SDL3
-	if (*GetOptions().Graphics.upscale) {
-		if (!SDL_CreateWindowAndRenderer(lpWindowName, windowSize.width, windowSize.height, flags, &ghMainWnd, &renderer)) ErrSdl();
-	} else {
 		ghMainWnd = SDL_CreateWindow(lpWindowName, windowSize.width, windowSize.height, flags);
-	}
 #else
 	ghMainWnd = SDL_CreateWindow(lpWindowName, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, windowSize.width, windowSize.height, flags);
+#endif
+
+#ifdef DEVILUTIONX_GL1_RENDERER
+	} // end of fallback if (ghMainWnd == nullptr)
 #endif
 
 #if defined(DEVILUTIONX_DISPLAY_PIXELFORMAT)
@@ -676,6 +754,16 @@ bool SpawnWindow(const char *lpWindowName)
 #endif
 	refreshDelay = 1000000 / refreshRate;
 
+#ifdef DEVILUTIONX_GL1_RENDERER
+	if (IsGl1RendererActive()) {
+		SetRenderer(std::make_unique<Gl1Renderer>());
+	} else
+#endif
+	{
+		SetRenderer(std::make_unique<SoftwareRenderer>());
+	}
+
+	ValidateLightingMode();
 	ReinitializeRenderer();
 
 	if (ghMainWnd != nullptr) {
@@ -689,26 +777,7 @@ bool SpawnWindow(const char *lpWindowName)
 #ifndef USE_SDL1
 void ReinitializeTexture()
 {
-	if (texture)
-		texture.reset();
-
-	if (renderer == nullptr)
-		return;
-
-#ifdef USE_SDL3
-	if (!SDL_SetDefaultTextureScaleMode(renderer,
-	        *GetOptions().Graphics.scaleQuality == ScalingQuality::NearestPixel
-	            ? SDL_SCALEMODE_PIXELART
-	            : SDL_SCALEMODE_LINEAR)) {
-		Log("SDL_SetDefaultTextureScaleMode: {}", SDL_GetError());
-		SDL_ClearError();
-	}
-	texture = SDLWrap::CreateTexture(renderer, DEVILUTIONX_DISPLAY_TEXTURE_FORMAT, SDL_TEXTUREACCESS_STREAMING, gnScreenWidth, gnScreenHeight);
-#else
-	auto quality = StrCat(static_cast<int>(*GetOptions().Graphics.scaleQuality));
-	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, quality.c_str());
-	texture = SDLWrap::CreateTexture(renderer, DEVILUTIONX_DISPLAY_TEXTURE_FORMAT, SDL_TEXTUREACCESS_STREAMING, gnScreenWidth, gnScreenHeight);
-#endif
+	GetRenderer().ReinitializeTexture();
 }
 
 void ReinitializeIntegerScale()
@@ -717,21 +786,7 @@ void ReinitializeIntegerScale()
 		ResizeWindow();
 		return;
 	}
-	if (renderer == nullptr) return;
-
-#ifdef USE_SDL3
-	int w, h;
-	SDL_RendererLogicalPresentation mode;
-	if (!SDL_GetRenderLogicalPresentation(renderer, &w, &h, &mode)) ErrSdl();
-	const SDL_RendererLogicalPresentation newMode = *GetOptions().Graphics.integerScaling
-	    ? SDL_LOGICAL_PRESENTATION_INTEGER_SCALE
-	    : SDL_LOGICAL_PRESENTATION_LETTERBOX;
-	if (mode != newMode) SDL_SetRenderLogicalPresentation(renderer, w, h, newMode);
-#else
-	if (SDL_RenderSetIntegerScale(renderer, *GetOptions().Graphics.integerScaling ? SDL_TRUE : SDL_FALSE) < 0) {
-		ErrSdl();
-	}
-#endif
+	GetRenderer().SetIntegerScale(*GetOptions().Graphics.integerScaling);
 }
 #endif
 
@@ -740,67 +795,211 @@ void ReinitializeRenderer()
 	if (ghMainWnd == nullptr)
 		return;
 
-#ifdef USE_SDL1
-	const SDL_Surface *surface = SDL_GetVideoSurface();
-	if (surface == nullptr) {
-		ErrSdl();
-	}
-	AdjustToScreenGeometry(Size(surface->w, surface->h));
-#else
+	Size windowSize = {};
+	SDL_GetWindowSize(ghMainWnd, &windowSize.width, &windowSize.height);
+	GetRenderer().HandleResize(windowSize.width, windowSize.height);
+}
 
-	if (*GetOptions().Graphics.upscale) {
-		// We don't recreate the renderer, because this can result in a freezing (not refreshing) rendering
-		if (renderer == nullptr) {
+#if !defined(USE_SDL1) && defined(DEVILUTIONX_GL1_RENDERER)
+void SwitchRenderer()
+{
+	if (ghMainWnd == nullptr)
+		return;
+
+	const RendererBackend requested = *GetOptions().Graphics.renderer;
+	const bool wantGl = (requested != RendererBackend::Software);
+	const bool haveGl = IsGl1RendererActive();
+
+	// Nothing to do if we're already on the right backend.
+	// Auto and OpenGL1 both resolve to GL when available.
+	if (wantGl == haveGl)
+		return;
+
+	// Save window geometry so we can recreate at the same position/size.
+	int wx, wy, ww, wh;
 #ifdef USE_SDL3
-			renderer = SDL_CreateRenderer(ghMainWnd, nullptr);
+	SDL_GetWindowPosition(ghMainWnd, &wx, &wy);
+	SDL_GetWindowSize(ghMainWnd, &ww, &wh);
+	const bool wasFullscreen = (SDL_GetWindowFlags(ghMainWnd) & SDL_WINDOW_FULLSCREEN) != 0;
+	const bool wasResizable = (SDL_GetWindowFlags(ghMainWnd) & SDL_WINDOW_RESIZABLE) != 0;
 #else
-			renderer = SDL_CreateRenderer(ghMainWnd, -1, 0);
+	SDL_GetWindowPosition(ghMainWnd, &wx, &wy);
+	SDL_GetWindowSize(ghMainWnd, &ww, &wh);
+	const bool wasFullscreen = (SDL_GetWindowFlags(ghMainWnd) & SDL_WINDOW_FULLSCREEN_DESKTOP) != 0
+	    || (SDL_GetWindowFlags(ghMainWnd) & SDL_WINDOW_FULLSCREEN) != 0;
+	const bool wasResizable = (SDL_GetWindowFlags(ghMainWnd) & SDL_WINDOW_RESIZABLE) != 0;
 #endif
-			if (renderer == nullptr) {
-				ErrSdl();
+
+	// --- Tear down current renderer and window ---
+	GetRenderer().Shutdown();
+
+	SDL_DestroyWindow(ghMainWnd);
+	ghMainWnd = nullptr;
+
+	// --- Recreate window with appropriate flags ---
+#ifdef USE_SDL3
+	SDL_WindowFlags flags = SDL_WINDOW_HIGH_PIXEL_DENSITY;
+#else
+	int flags = SDL_WINDOW_ALLOW_HIGHDPI;
+#endif
+	if (wasFullscreen) {
+#ifdef USE_SDL3
+		flags |= SDL_WINDOW_FULLSCREEN;
+#else
+		flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
+#endif
+	}
+	if (wasResizable)
+		flags |= SDL_WINDOW_RESIZABLE;
+
+	bool glSucceeded = false;
+	if (wantGl) {
+		flags |= SDL_WINDOW_OPENGL;
+#ifdef USE_SDL3
+		ghMainWnd = SDL_CreateWindow(PROJECT_NAME, ww, wh, flags);
+#else
+		ghMainWnd = SDL_CreateWindow(PROJECT_NAME, wx, wy, ww, wh, flags);
+#endif
+		if (ghMainWnd != nullptr) {
+			if (Gl1Init(ghMainWnd)) {
+				glSucceeded = true;
+			} else {
+				SDL_DestroyWindow(ghMainWnd);
+				ghMainWnd = nullptr;
 			}
 		}
-
-#ifdef USE_SDL3
-		SDL_SetRenderVSync(renderer, *GetOptions().Graphics.frameRateControl == FrameRateControl::VerticalSync ? 1 : 0);
-#elif SDL_VERSION_ATLEAST(2, 0, 18)
-		SDL_RenderSetVSync(renderer, *GetOptions().Graphics.frameRateControl == FrameRateControl::VerticalSync ? 1 : 0);
-#endif
-
-#ifdef USE_SDL3
-		if (!SDL_SetRenderLogicalPresentation(renderer, gnScreenWidth, gnScreenHeight,
-		        *GetOptions().Graphics.integerScaling
-		            ? SDL_LOGICAL_PRESENTATION_INTEGER_SCALE
-		            : SDL_LOGICAL_PRESENTATION_LETTERBOX)) {
-			ErrSdl();
+		if (!glSucceeded) {
+			// GL init failed — fall back to software.
+			LogError("SwitchRenderer: GL init failed, falling back to software");
+			flags &= ~SDL_WINDOW_OPENGL;
 		}
-#else
-		if (SDL_RenderSetIntegerScale(renderer, *GetOptions().Graphics.integerScaling ? SDL_TRUE : SDL_FALSE) < 0) {
-			ErrSdl();
-		}
-
-		if (SDL_RenderSetLogicalSize(renderer, gnScreenWidth, gnScreenHeight) <= -1) {
-			ErrSdl();
-		}
-#endif
-
-		ReinitializeTexture();
-
-#ifdef USE_SDL3
-		RendererTextureSurface = SDLSurfaceUniquePtr { SDL_CreateSurface(gnScreenWidth, gnScreenHeight, texture->format) };
-		if (RendererTextureSurface == nullptr) ErrSdl();
-#else
-		Uint32 format;
-		if (SDL_QueryTexture(texture.get(), &format, nullptr, nullptr, nullptr) < 0) ErrSdl();
-		RendererTextureSurface = SDLWrap::CreateRGBSurfaceWithFormat(0, gnScreenWidth, gnScreenHeight, SDL_BITSPERPIXEL(format), format);
-#endif
-	} else {
-		Size windowSize = {};
-		SDL_GetWindowSize(ghMainWnd, &windowSize.width, &windowSize.height);
-		AdjustToScreenGeometry(windowSize);
 	}
+
+	if (ghMainWnd == nullptr) {
+		// Software path (or GL fallback).
+#ifdef USE_SDL3
+		ghMainWnd = SDL_CreateWindow(PROJECT_NAME, ww, wh, flags);
+#else
+		ghMainWnd = SDL_CreateWindow(PROJECT_NAME, wx, wy, ww, wh, flags);
 #endif
+	}
+
+	if (ghMainWnd == nullptr)
+		ErrSdl();
+
+#ifndef USE_SDL3
+	// Restore window position (SDL3 doesn't take position in CreateWindow).
+	if (!wantGl || !glSucceeded)
+		SDL_SetWindowPosition(ghMainWnd, wx, wy);
+#endif
+
+	// --- Set up the new renderer ---
+	if (glSucceeded) {
+		SetRenderer(std::make_unique<Gl1Renderer>());
+	} else {
+		SetRenderer(std::make_unique<SoftwareRenderer>());
+	}
+	ValidateLightingMode();
+
+	// Re-derive refresh rate.
+	int refreshRate = 60;
+#ifdef USE_SDL3
+	const SDL_DisplayID displayId = SDL_GetDisplayForWindow(ghMainWnd);
+	if (displayId != 0) {
+		const SDL_DisplayMode *displayMode = SDL_GetCurrentDisplayMode(displayId);
+		if (displayMode != nullptr && displayMode->refresh_rate != 0.F)
+			refreshRate = static_cast<int>(displayMode->refresh_rate);
+	}
+#else
+	SDL_DisplayMode mode;
+	SDL_GetDisplayMode(0, 0, &mode);
+	if (mode.refresh_rate != 0)
+		refreshRate = mode.refresh_rate;
+#endif
+	refreshDelay = 1000000 / refreshRate;
+
+	// Initialize palette and backbuffer.
+	// Note: we do NOT call dx_init() because:
+	//   - For GL, Gl1Init() already ran above (we'd double-init).
+	//   - dx_init() calls GetRenderer().Init() which would re-run Gl1Init.
+	// Instead, do the steps explicitly.
+	GetRenderer().InitPalette();
+	palette_init();
+	GetRenderer().CreateBackBuffer();
+
+	// The software renderer needs HandleResize to create the SDL texture
+	// and RendererTextureSurface. The GL renderer computes its viewport
+	// per-frame so doesn't need this.
+	if (!glSucceeded) {
+		GetRenderer().HandleResize(ww, wh);
+	}
+
+	// Reload the current palette into the new renderer's state.
+	GetRenderer().NotifyPaletteChanged(0, 256);
+
+	RedrawEverything();
 }
+#elif defined(USE_SDL1) && defined(DEVILUTIONX_GL1_RENDERER)
+void SwitchRenderer()
+{
+	if (ghMainWnd == nullptr)
+		return;
+
+	const RendererBackend requested = *GetOptions().Graphics.renderer;
+	const bool wantGl = (requested != RendererBackend::Software);
+	const bool haveGl = IsGl1RendererActive();
+
+	if (wantGl == haveGl)
+		return;
+
+	// --- Tear down current renderer ---
+	GetRenderer().Shutdown();
+
+	// --- Set new video mode ---
+	const SDL_Surface *surface = SDL_GetVideoSurface();
+	const int w = surface != nullptr ? surface->w : static_cast<int>(gnScreenWidth);
+	const int h = surface != nullptr ? surface->h : static_cast<int>(gnScreenHeight);
+	const bool fullscreen = surface != nullptr && (surface->flags & SDL_FULLSCREEN) != 0;
+
+	bool glSucceeded = false;
+	if (wantGl) {
+		int flags = SDL1_VIDEO_MODE_FLAGS | SDL_OPENGL;
+		if (fullscreen)
+			flags |= SDL_FULLSCREEN;
+		SetVideoMode(w, h, 0, flags);
+		if (ghMainWnd != nullptr) {
+			if (Gl1Init(ghMainWnd)) {
+				glSucceeded = true;
+			}
+		}
+	}
+
+	if (!glSucceeded) {
+		SetVideoModeToPrimary(fullscreen, w, h);
+	}
+
+	// --- Set up the new renderer ---
+	if (glSucceeded) {
+		SetRenderer(std::make_unique<Gl1Renderer>());
+	} else {
+		SetRenderer(std::make_unique<SoftwareRenderer>());
+	}
+	ValidateLightingMode();
+
+	GetRenderer().InitPalette();
+	palette_init();
+	GetRenderer().CreateBackBuffer();
+
+	if (!glSucceeded) {
+		const SDL_Surface *newSurface = SDL_GetVideoSurface();
+		if (newSurface != nullptr)
+			AdjustToScreenGeometry(Size(newSurface->w, newSurface->h));
+	}
+
+	GetRenderer().NotifyPaletteChanged(0, 256);
+	RedrawEverything();
+}
+#endif // DEVILUTIONX_GL1_RENDERER
 
 void SetFullscreenMode()
 {
@@ -809,10 +1008,11 @@ void SetFullscreenMode()
 	if (*GetOptions().Graphics.fullscreen) {
 		flags |= SDL_FULLSCREEN;
 	}
-	ghMainWnd = SDL_SetVideoMode(0, 0, 0, flags);
+	ghMainWnd = SDL_SetVideoMode(gnScreenWidth, gnScreenHeight, 0, flags);
 	if (ghMainWnd == NULL) {
 		ErrSdl();
 	}
+	GetRenderer().OnVideoModeChanged();
 #else
 	// When switching from windowed to "true fullscreen",
 	// update the display mode of the window before changing the
@@ -843,7 +1043,7 @@ void SetFullscreenMode()
 		// Because "true fullscreen" is locked into specific resolutions based on the modes
 		// supported by the display, the resolution may have changed when fullscreen was toggled
 		ReinitializeRenderer();
-		CreateBackBuffer();
+		GetRenderer().CreateBackBuffer();
 	}
 	InitializeVirtualGamepad();
 #endif
@@ -871,8 +1071,11 @@ void ResizeWindow()
 #endif
 	}
 
-	// Handle switching between "fake fullscreen" and "true fullscreen" when upscale is toggled
-	const bool upscaleChanged = *GetOptions().Graphics.upscale != (renderer != nullptr);
+	// Handle switching between "fake fullscreen" and "true fullscreen" when upscale is toggled.
+	// The upscale option controls whether the software renderer creates an SDL_Renderer for
+	// presentation. The GL renderer always has a presentation layer, but its users also have
+	// upscale=true (the default), so this comparison is false — no spurious transition.
+	const bool upscaleChanged = *GetOptions().Graphics.upscale != GetRenderer().HasPresentationLayer();
 	if (upscaleChanged && *GetOptions().Graphics.fullscreen) {
 #ifdef USE_SDL3
 		if (!SDL_SetWindowFullscreen(ghMainWnd, *GetOptions().Graphics.fullscreen)) ErrSdl();
@@ -892,86 +1095,15 @@ void ResizeWindow()
 
 #ifndef USE_SDL1
 #ifdef USE_SDL3
-	SDL_SetWindowResizable(ghMainWnd, renderer != nullptr);
+	SDL_SetWindowResizable(ghMainWnd, GetRenderer().HasPresentationLayer());
 #else
-	SDL_SetWindowResizable(ghMainWnd, renderer != nullptr ? SDL_TRUE : SDL_FALSE);
+	SDL_SetWindowResizable(ghMainWnd, GetRenderer().HasPresentationLayer() ? SDL_TRUE : SDL_FALSE);
 #endif
 	InitializeVirtualGamepad();
 #endif
 
-	CreateBackBuffer();
+	GetRenderer().CreateBackBuffer();
 	RedrawEverything();
-}
-
-SDL_Surface *GetOutputSurface()
-{
-#ifdef USE_SDL1
-	SDL_Surface *ret = SDL_GetVideoSurface();
-	if (ret == nullptr)
-		ErrSdl();
-	return ret;
-#else
-	if (renderer != nullptr)
-		return RendererTextureSurface.get();
-	SDL_Surface *ret = SDL_GetWindowSurface(ghMainWnd);
-	if (ret == nullptr)
-		ErrSdl();
-	return ret;
-#endif
-}
-
-bool OutputRequiresScaling()
-{
-#ifdef USE_SDL1
-	if (HeadlessMode)
-		return false;
-	return gnScreenWidth != GetOutputSurface()->w || gnScreenHeight != GetOutputSurface()->h;
-#else // SDL2, scaling handled by renderer.
-	return false;
-#endif
-}
-
-void ScaleOutputRect(SDL_Rect *rect)
-{
-	if (!OutputRequiresScaling())
-		return;
-	const SDL_Surface *surface = GetOutputSurface();
-	rect->x = rect->x * surface->w / gnScreenWidth;
-	rect->y = rect->y * surface->h / gnScreenHeight;
-	rect->w = rect->w * surface->w / gnScreenWidth;
-	rect->h = rect->h * surface->h / gnScreenHeight;
-}
-
-#ifdef USE_SDL1
-namespace {
-
-SDLSurfaceUniquePtr CreateScaledSurface(SDL_Surface *src)
-{
-	SDL_Rect stretched_rect = MakeSdlRect(0, 0, src->w, src->h);
-	ScaleOutputRect(&stretched_rect);
-	SDLSurfaceUniquePtr stretched = SDLWrap::CreateRGBSurface(
-	    SDL_SWSURFACE, stretched_rect.w, stretched_rect.h, src->format->BitsPerPixel,
-	    src->format->Rmask, src->format->Gmask, src->format->Bmask, src->format->Amask);
-	if (SDL_HasColorKey(src)) {
-		SDL_SetColorKey(stretched.get(), SDL_SRCCOLORKEY, src->format->colorkey);
-		if (src->format->palette != NULL)
-			SDL_SetPalette(stretched.get(), SDL_LOGPAL, src->format->palette->colors, 0, src->format->palette->ncolors);
-	}
-	if (SDL_SoftStretch((src), NULL, stretched.get(), &stretched_rect) < 0)
-		ErrSdl();
-	return stretched;
-}
-
-} // namespace
-#endif // USE_SDL1
-
-SDLSurfaceUniquePtr ScaleSurfaceToOutput(SDLSurfaceUniquePtr surface)
-{
-#ifdef USE_SDL1
-	if (OutputRequiresScaling())
-		return CreateScaledSurface(surface.get());
-#endif
-	return surface;
 }
 
 } // namespace devilution

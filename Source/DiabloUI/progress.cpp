@@ -1,6 +1,4 @@
-#include <memory>
 #include <optional>
-#include <vector>
 
 #ifdef USE_SDL3
 #include <SDL3/SDL_events.h>
@@ -20,6 +18,7 @@
 #include "engine/load_pcx.hpp"
 #include "engine/point.hpp"
 #include "engine/render/clx_render.hpp"
+#include "engine/render/renderer.h"
 #include "engine/surface.hpp"
 #include "utils/display.h"
 #include "utils/is_of.hpp"
@@ -78,27 +77,32 @@ Point GetPosition()
 
 void ProgressRenderBackground()
 {
-	SDL_FillSurfaceRect(DiabloUiSurface(), nullptr, 0);
+	GetRenderer().ClearScreen();
 
-	const Surface &out = Surface(DiabloUiSurface());
 	const Point position = GetPosition();
-	RenderClxSprite(out.subregion(position.x, position.y, 280, 140), (*ArtPopupSm)[0], { 0, 0 });
-	RenderClxSprite(out.subregion(GetCenterOffset(227), 0, 227, out.h()), (*ArtProgBG)[0], { 0, position.y + 52 });
+	GetRenderer().SetClipRegion(position.x, position.y, 280, 140);
+	GetRenderer().RenderClx({ position.x, position.y }, (*ArtPopupSm)[0]);
+	GetRenderer().ClearClipRegion();
+	const int x = GetCenterOffset(227);
+	GetRenderer().SetClipRegion(x, 0, 227, gnScreenHeight);
+	GetRenderer().RenderClx({ x, position.y + 52 }, (*ArtProgBG)[0]);
+	GetRenderer().ClearClipRegion();
 }
 
 void ProgressRenderForeground(int progress)
 {
-	const Surface &out = Surface(DiabloUiSurface());
 	const Point position = GetPosition();
 	if (progress != 0) {
 		const int x = GetCenterOffset(227);
 		const int w = 227 * progress / 100;
-		RenderClxSprite(out.subregion(x, 0, w, out.h()), (*ProgFil)[0], { 0, position.y + 52 });
+		GetRenderer().SetClipRegion(x, 0, w, gnScreenHeight);
+		GetRenderer().RenderClx({ x, position.y + 52 }, (*ProgFil)[0]);
+		GetRenderer().ClearClipRegion();
 	}
 	// Not rendering an actual button, only the top 2 rows of its graphics.
-	RenderClxSprite(
-	    out.subregion(GetCenterOffset(110), position.y + 99, DialogButtonWidth, 2),
-	    ButtonSprite(/*pressed=*/false), { 0, 0 });
+	GetRenderer().SetClipRegion(GetCenterOffset(110), position.y + 99, DialogButtonWidth, 2);
+	GetRenderer().RenderClx({ GetCenterOffset(110), position.y + 99 }, ButtonSprite(/*pressed=*/false));
+	GetRenderer().ClearClipRegion();
 }
 
 } // namespace
@@ -110,15 +114,10 @@ bool UiProgressDialog(int (*fnfunc)())
 
 	ProgressRenderBackground();
 
-	if (RenderDirectlyToOutputSurface && PalSurface != nullptr) {
-		// Render into all the backbuffers if there are multiple.
-		const void *initialPixels = PalSurface->pixels;
+	GetRenderer().RenderToAllBackBuffers([&]() {
+		ProgressRenderBackground();
 		UiFadeIn();
-		while (PalSurface->pixels != initialPixels) {
-			ProgressRenderBackground();
-			UiFadeIn();
-		}
-	}
+	});
 
 	ProgressFreeBackground();
 

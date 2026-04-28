@@ -12,6 +12,7 @@
 #include "engine/backbuffer_state.hpp"
 #include "engine/load_cel.hpp"
 #include "engine/render/clx_render.hpp"
+#include "engine/render/renderer.h"
 #include "engine/trn.hpp"
 #include "gamemenu.h"
 #include "headless_mode.hpp"
@@ -163,7 +164,7 @@ int CapStatPointsToAdd(int remainingStatPoints, const Player &player, CharacterA
 	return std::min(remainingStatPoints, pointsToReachCap);
 }
 
-int DrawDurIcon4Item(const Surface &out, Item &pItem, int x, int c)
+int DrawDurIcon4Item(Item &pItem, int x, int c)
 {
 	const int durabilityThresholdGold = 5;
 	const int durabilityThresholdRed = 2;
@@ -207,12 +208,14 @@ int DrawDurIcon4Item(const Surface &out, Item &pItem, int x, int c)
 	// Draw icon
 	const int y = -17 + GetMainPanel().position.y;
 	if (partition > 0) {
-		const Surface stenciledBuffer = out.subregionY(y - partition, partition);
-		ClxDraw(stenciledBuffer, { x, partition }, (*pDurIcons)[c + 8]); // Gold icon
+		GetRenderer().SetClipRegion(0, y - partition, gnScreenWidth, partition);
+		GetRenderer().DrawClx({ x, partition + y - partition }, (*pDurIcons)[c + 8]);
+		GetRenderer().ClearClipRegion();
 	}
 	if (partition != height) {
-		const Surface stenciledBuffer = out.subregionY(y - height, height - partition);
-		ClxDraw(stenciledBuffer, { x, height }, (*pDurIcons)[c]); // Red icon
+		GetRenderer().SetClipRegion(0, y - height, gnScreenWidth, height - partition);
+		GetRenderer().DrawClx({ x, height + y - height }, (*pDurIcons)[c]);
+		GetRenderer().ClearClipRegion();
 	}
 
 	return x - (*pDurIcons)[c].height() - 8; // Add in spacing for the next durability icon
@@ -348,9 +351,9 @@ Point GetPanelPosition(UiPanels panel, Point offset)
 	}
 }
 
-void DrawPanelBox(const Surface &out, SDL_Rect srcRect, Point targetPosition)
+void DrawPanelBox(SDL_Rect srcRect, Point targetPosition)
 {
-	out.BlitFrom(*BottomBuffer, srcRect, targetPosition);
+	GetRenderer().BlitSurface(*BottomBuffer, srcRect, targetPosition);
 }
 
 tl::expected<void, std::string> InitMainPanel()
@@ -430,35 +433,35 @@ tl::expected<void, std::string> InitMainPanel()
 	return {};
 }
 
-void DrawMainPanel(const Surface &out)
+void DrawMainPanel()
 {
-	DrawPanelBox(out, MakeSdlRect(0, sgbPlrTalkTbl + PanelPaddingHeight, GetMainPanel().size.width, GetMainPanel().size.height), GetMainPanel().position);
-	DrawInfoBox(out);
+	DrawPanelBox(MakeSdlRect(0, sgbPlrTalkTbl + PanelPaddingHeight, GetMainPanel().size.width, GetMainPanel().size.height), GetMainPanel().position);
+	DrawInfoBox();
 }
 
-void DrawMainPanelButtons(const Surface &out)
+void DrawMainPanelButtons()
 {
 	const Point mainPanelPosition = GetMainPanel().position;
 
 	for (int i = 0; i < TotalSpMainPanelButtons; i++) {
 		if (!MainPanelButtons[i]) {
-			DrawPanelBox(out, MakeSdlRect(MainPanelButtonRect[i].position.x, MainPanelButtonRect[i].position.y + PanelPaddingHeight, MainPanelButtonRect[i].size.width, MainPanelButtonRect[i].size.height + 1), mainPanelPosition + Displacement { MainPanelButtonRect[i].position.x, MainPanelButtonRect[i].position.y });
+			DrawPanelBox(MakeSdlRect(MainPanelButtonRect[i].position.x, MainPanelButtonRect[i].position.y + PanelPaddingHeight, MainPanelButtonRect[i].size.width, MainPanelButtonRect[i].size.height + 1), mainPanelPosition + Displacement { MainPanelButtonRect[i].position.x, MainPanelButtonRect[i].position.y });
 		} else {
 			const Point position = mainPanelPosition + Displacement { MainPanelButtonRect[i].position.x, MainPanelButtonRect[i].position.y };
-			RenderClxSprite(out, (*pMainPanelButtons)[i], position);
-			RenderClxSprite(out, (*PanelButtonDown)[i], position + Displacement { 4, 0 });
+			GetRenderer().RenderClx(position, (*pMainPanelButtons)[i]);
+			GetRenderer().RenderClx(position + Displacement { 4, 0 }, (*PanelButtonDown)[i]);
 		}
 	}
 
 	if (IsChatAvailable()) {
-		RenderClxSprite(out, (*multiButtons)[MainPanelButtons[PanelButtonSendmsg] ? 1 : 0], mainPanelPosition + Displacement { MainPanelButtonRect[PanelButtonSendmsg].position.x, MainPanelButtonRect[PanelButtonSendmsg].position.y });
+		GetRenderer().RenderClx(mainPanelPosition + Displacement { MainPanelButtonRect[PanelButtonSendmsg].position.x, MainPanelButtonRect[PanelButtonSendmsg].position.y }, (*multiButtons)[MainPanelButtons[PanelButtonSendmsg] ? 1 : 0]);
 
 		const Point friendlyButtonPosition = mainPanelPosition + Displacement { MainPanelButtonRect[PanelButtonFriendly].position.x, MainPanelButtonRect[PanelButtonFriendly].position.y };
 
 		if (MyPlayer->friendlyMode)
-			RenderClxSprite(out, (*multiButtons)[MainPanelButtons[PanelButtonFriendly] ? 3 : 2], friendlyButtonPosition);
+			GetRenderer().RenderClx(friendlyButtonPosition, (*multiButtons)[MainPanelButtons[PanelButtonFriendly] ? 3 : 2]);
 		else
-			RenderClxSprite(out, (*multiButtons)[MainPanelButtons[PanelButtonFriendly] ? 5 : 4], friendlyButtonPosition);
+			GetRenderer().RenderClx(friendlyButtonPosition, (*multiButtons)[MainPanelButtons[PanelButtonFriendly] ? 5 : 4]);
 	}
 }
 
@@ -672,13 +675,13 @@ void CheckLevelButtonUp()
 	LevelButtonDown = false;
 }
 
-void DrawLevelButton(const Surface &out)
+void DrawLevelButton()
 {
 	if (IsLevelUpButtonVisible()) {
 		const int nCel = LevelButtonDown ? 2 : 1;
-		DrawString(out, _("Level Up"), { GetMainPanel().position + Displacement { 0, LevelButtonRect.position.y - 23 }, { 120, 0 } },
+		DrawString(_("Level Up"), { GetMainPanel().position + Displacement { 0, LevelButtonRect.position.y - 23 }, { 120, 0 } },
 		    { .flags = UiFlags::ColorWhite | UiFlags::AlignCenter | UiFlags::KerningFitSpacing });
-		RenderClxSprite(out, (*pChrButtons)[nCel], GetMainPanel().position + Displacement { LevelButtonRect.position.x, LevelButtonRect.position.y });
+		GetRenderer().RenderClx(GetMainPanel().position + Displacement { LevelButtonRect.position.x, LevelButtonRect.position.y }, (*pChrButtons)[nCel]);
 	}
 }
 
@@ -748,7 +751,7 @@ void ReleaseChrBtns(bool addAllStatPoints)
 	}
 }
 
-void DrawDurIcon(const Surface &out)
+void DrawDurIcon()
 {
 	const bool hasRoomBetweenPanels = RightPanel.position.x - (LeftPanel.position.x + LeftPanel.size.width) >= 16 + (32 + 8 + 32 + 8 + 32 + 8 + 32) + 16;
 	const bool hasRoomUnderPanels = MainPanel.position.y - (RightPanel.position.y + RightPanel.size.height) >= 16 + 32 + 16;
@@ -765,26 +768,20 @@ void DrawDurIcon(const Surface &out)
 	}
 
 	Player &myPlayer = *MyPlayer;
-	x = DrawDurIcon4Item(out, myPlayer.InvBody[INVLOC_HEAD], x, 3);
-	x = DrawDurIcon4Item(out, myPlayer.InvBody[INVLOC_CHEST], x, 2);
-	x = DrawDurIcon4Item(out, myPlayer.InvBody[INVLOC_HAND_LEFT], x, 0);
-	DrawDurIcon4Item(out, myPlayer.InvBody[INVLOC_HAND_RIGHT], x, 0);
+	x = DrawDurIcon4Item(myPlayer.InvBody[INVLOC_HEAD], x, 3);
+	x = DrawDurIcon4Item(myPlayer.InvBody[INVLOC_CHEST], x, 2);
+	x = DrawDurIcon4Item(myPlayer.InvBody[INVLOC_HAND_LEFT], x, 0);
+	DrawDurIcon4Item(myPlayer.InvBody[INVLOC_HAND_RIGHT], x, 0);
 }
 
-void RedBack(const Surface &out)
+void RedBack()
 {
-	uint8_t *dst = out.begin();
 	uint8_t *tbl = GetPauseTRN();
-	for (int h = gnViewportHeight; h != 0; h--, dst += out.pitch() - gnScreenWidth) {
-		for (int w = gnScreenWidth; w != 0; w--) {
-			if (leveltype != DTYPE_HELL || *dst >= 32)
-				*dst = tbl[*dst];
-			dst++;
-		}
-	}
+	GetRenderer().ApplyTRN(0, 0, gnScreenWidth, gnViewportHeight, tbl,
+	    leveltype == DTYPE_HELL ? 32 : 0);
 }
 
-void DrawDeathText(const Surface &out)
+void DrawDeathText()
 {
 	const TextRenderOptions largeTextOptions {
 		.flags = UiFlags::FontSize42 | UiFlags::ColorGold | UiFlags::AlignCenter | UiFlags::VerticalCenter,
@@ -799,7 +796,7 @@ void DrawDeathText(const Surface &out)
 	Point linePosition { 0, (gnScreenHeight / 2) - (verticalPadding * 2) };
 
 	text = _("You have died");
-	DrawString(out, text, linePosition, largeTextOptions);
+	DrawString(text, { linePosition, { gnScreenWidth - linePosition.x, 0 } }, largeTextOptions);
 	linePosition.y += verticalPadding;
 
 	std::string buttonText;
@@ -827,7 +824,7 @@ void DrawDeathText(const Surface &out)
 	} else {
 		text = fmt::format(fmt::runtime(_("Press {} to restart in town.")), buttonText);
 	}
-	DrawString(out, text, linePosition, smallTextOptions);
+	DrawString(text, { linePosition, { gnScreenWidth - linePosition.x, 0 } }, smallTextOptions);
 }
 
 void SetPanelObjectPosition(UiPanels panel, Rectangle &button)

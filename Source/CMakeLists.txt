@@ -75,6 +75,7 @@ set(libdevilutionx_SRCS
   engine/backbuffer_state.cpp
   engine/dx.cpp
   engine/events.cpp
+  engine/frame_limiter.cpp
   engine/palette.cpp
   engine/sound_position.cpp
   engine/trn.cpp
@@ -169,7 +170,9 @@ set(libdevilutionx_SRCS
 # They also perform better with -O2 rather than -O3 even in Release mode.
 set(_optimize_in_debug_srcs
   engine/render/clx_render.cpp
-  engine/render/dun_render.cpp
+  engine/render/software/dun_render.cpp
+  engine/render/software/light_render.cpp
+  engine/render/software/software_renderer.cpp
   engine/render/text_render.cpp
   utils/cel_to_clx.cpp
   utils/cl2_to_clx.cpp
@@ -217,14 +220,23 @@ target_link_dependencies(libdevilutionx_cl2_to_clx
   libdevilutionx_endian_write
 )
 
+add_devilutionx_object_library(libdevilutionx_renderer
+  engine/render/renderer.cpp
+  engine/render/fade_controller.cpp
+)
+target_link_dependencies(libdevilutionx_renderer PUBLIC
+  DevilutionX::SDL
+)
+
 add_devilutionx_object_library(libdevilutionx_clx_render
   engine/render/clx_render.cpp
 )
 target_link_dependencies(libdevilutionx_clx_render PUBLIC
   DevilutionX::SDL
   fmt::fmt
-  libdevilutionx_light_render
   libdevilutionx_palette_blending
+  libdevilutionx_primitive_render
+  libdevilutionx_renderer
   libdevilutionx_strings
 )
 
@@ -320,6 +332,7 @@ add_devilutionx_object_library(libdevilutionx_primitive_render
 target_link_dependencies(libdevilutionx_primitive_render
   PUBLIC
   libdevilutionx_palette_blending
+  libdevilutionx_renderer
   libdevilutionx_surface
 )
 
@@ -334,16 +347,27 @@ add_devilutionx_object_library(libdevilutionx_direction
   engine/direction.cpp
 )
 
-add_devilutionx_object_library(libdevilutionx_dun_render
-  engine/render/dun_render.cpp
+add_devilutionx_object_library(libdevilutionx_lightmap
+  engine/render/software/light_render.cpp
 )
-target_link_libraries(libdevilutionx_dun_render
+target_link_dependencies(libdevilutionx_lightmap PUBLIC
+  DevilutionX::SDL
+)
+
+add_devilutionx_object_library(libdevilutionx_software_renderer
+  engine/render/software/dun_render.cpp
+  engine/render/software/software_renderer.cpp
+)
+target_link_dependencies(libdevilutionx_software_renderer
   PUBLIC
   DevilutionX::SDL
-  libdevilutionx_light_render
+  libdevilutionx_lightmap
+  libdevilutionx_renderer
   libdevilutionx_surface
   PRIVATE
+  libdevilutionx_clx_render
   libdevilutionx_options
+  libdevilutionx_primitive_render
 )
 
 add_library(libdevilutionx_endian_write INTERFACE)
@@ -356,6 +380,7 @@ add_devilutionx_object_library(libdevilutionx_surface
 )
 target_link_dependencies(libdevilutionx_surface PUBLIC
   DevilutionX::SDL
+  libdevilutionx_renderer
 )
 
 add_devilutionx_object_library(libdevilutionx_file_util
@@ -487,10 +512,6 @@ else()
     libdevilutionx_load_clx
   )
 endif()
-
-add_devilutionx_object_library(libdevilutionx_light_render
-  engine/render/light_render.cpp
-)
 
 add_devilutionx_object_library(libdevilutionx_lighting
   lighting.cpp
@@ -655,6 +676,9 @@ target_link_dependencies(libdevilutionx_options PUBLIC
   libdevilutionx_strings
   libdevilutionx_ini
 )
+if(DEVILUTIONX_GL1_RENDERER)
+  target_compile_definitions(libdevilutionx_options PRIVATE DEVILUTIONX_GL1_RENDERER)
+endif()
 
 add_devilutionx_object_library(libdevilutionx_pathfinding
   engine/path.cpp
@@ -974,7 +998,7 @@ target_link_dependencies(libdevilutionx PUBLIC
   libdevilutionx_control_mode
   libdevilutionx_crawl
   libdevilutionx_direction
-  libdevilutionx_dun_render
+  libdevilutionx_software_renderer
   libdevilutionx_surface
   libdevilutionx_file_util
   libdevilutionx_format_int
@@ -985,7 +1009,6 @@ target_link_dependencies(libdevilutionx PUBLIC
   libdevilutionx_init
   libdevilutionx_items
   libdevilutionx_level_objects
-  libdevilutionx_light_render
   libdevilutionx_lighting
   libdevilutionx_monster
   libdevilutionx_mpq
@@ -998,6 +1021,7 @@ target_link_dependencies(libdevilutionx PUBLIC
   libdevilutionx_pkware_encrypt
   libdevilutionx_player
   libdevilutionx_primitive_render
+  libdevilutionx_renderer
   libdevilutionx_quests
   libdevilutionx_quick_messages
   libdevilutionx_random
@@ -1015,8 +1039,32 @@ target_link_dependencies(libdevilutionx PUBLIC
 if(NOT TARGET_PLATFORM STREQUAL "dos")
   target_link_dependencies(libdevilutionx PUBLIC Threads::Threads)
 endif()
+
+option(DEVILUTIONX_GL1_RENDERER "Build the OpenGL 1.x rendering backend" OFF)
+if(DEVILUTIONX_GL1_RENDERER)
+  find_package(OpenGL REQUIRED)
+  add_devilutionx_object_library(libdevilutionx_gl1_renderer
+    engine/render/gl1/gl1_renderer.cpp
+    engine/render/gl1/gl1_texture_cache.cpp
+    engine/render/renderer_backend.cpp
+  )
+  target_link_dependencies(libdevilutionx_gl1_renderer
+    PUBLIC
+    libdevilutionx_renderer
+    libdevilutionx_surface
+    PRIVATE
+    tl
+    libdevilutionx_options
+    libdevilutionx_lighting
+  )
+  target_link_libraries(libdevilutionx_gl1_renderer PUBLIC OpenGL::GL)
+  target_compile_definitions(libdevilutionx_gl1_renderer PUBLIC DEVILUTIONX_GL1_RENDERER)
+  target_link_dependencies(libdevilutionx PUBLIC libdevilutionx_gl1_renderer)
+  target_compile_definitions(libdevilutionx PUBLIC DEVILUTIONX_GL1_RENDERER)
+endif()
 if(DEVILUTIONX_SCREENSHOT_FORMAT STREQUAL DEVILUTIONX_SCREENSHOT_FORMAT_PNG)
   target_link_dependencies(libdevilutionx PUBLIC libdevilutionx_surface_to_png)
+  target_link_dependencies(libdevilutionx_software_renderer PRIVATE libdevilutionx_surface_to_png)
 endif()
 
 # Use file GENERATE instead of configure_file because configure_file

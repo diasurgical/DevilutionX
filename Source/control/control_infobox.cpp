@@ -3,7 +3,7 @@
 
 #include <fmt/format.h>
 
-#include "engine/render/primitive_render.hpp"
+#include "engine/render/renderer.h"
 #include "inv.h"
 #include "levels/trigs.h"
 #include "panels/partypanel.hpp"
@@ -25,7 +25,7 @@ StringOrView FloatingInfoString;
 
 namespace {
 
-void PrintInfo(const Surface &out)
+void PrintInfo()
 {
 	if (ChatFlag)
 		return;
@@ -47,7 +47,7 @@ void PrintInfo(const Surface &out)
 
 	SpeakText(InfoString);
 
-	DrawString(out, InfoString, infoBox,
+	DrawString(InfoString, infoBox,
 	    {
 	        .flags = InfoColor | UiFlags::AlignCenter | UiFlags::VerticalCenter | UiFlags::KerningFitSpacing,
 	        .spacing = 2,
@@ -242,7 +242,7 @@ int ClampAboveOrBelow(int anchorY, int spriteH, int boxH, int pad, int linePad)
 	return (yAbove >= 0) ? yAbove : yBelow;
 }
 
-void PrintFloatingInfo(const Surface &out)
+void PrintFloatingInfo()
 {
 	if (ChatFlag)
 		return;
@@ -269,13 +269,15 @@ void PrintFloatingInfo(const Surface &out)
 	SpeakText(FloatingInfoString);
 
 	for (int i = 0; i < 3; i++)
-		DrawHalfTransparentRectTo(out, floatingInfoBox.position.x - hPadding, floatingInfoBox.position.y - vPadding, floatingInfoBox.size.width + (hPadding * 2), floatingInfoBox.size.height + (vPadding * 2));
-	DrawHalfTransparentVerticalLine(out, { floatingInfoBox.position.x - hPadding - 1, floatingInfoBox.position.y - vPadding - 1 }, floatingInfoBox.size.height + (vPadding * 2) + 2, PAL16_GRAY + 10);
-	DrawHalfTransparentVerticalLine(out, { floatingInfoBox.position.x + hPadding + floatingInfoBox.size.width, floatingInfoBox.position.y - vPadding - 1 }, floatingInfoBox.size.height + (vPadding * 2) + 2, PAL16_GRAY + 10);
-	DrawHalfTransparentHorizontalLine(out, { floatingInfoBox.position.x - hPadding, floatingInfoBox.position.y - vPadding - 1 }, floatingInfoBox.size.width + (hPadding * 2), PAL16_GRAY + 10);
-	DrawHalfTransparentHorizontalLine(out, { floatingInfoBox.position.x - hPadding, floatingInfoBox.position.y + vPadding + floatingInfoBox.size.height }, floatingInfoBox.size.width + (hPadding * 2), PAL16_GRAY + 10);
+		GetRenderer().DrawBlendedRect(floatingInfoBox.position.x - hPadding, floatingInfoBox.position.y - vPadding, floatingInfoBox.size.width + (hPadding * 2), floatingInfoBox.size.height + (vPadding * 2));
+	const int borderHeight = floatingInfoBox.size.height + (vPadding * 2) + 2;
+	const int borderWidth = floatingInfoBox.size.width + (hPadding * 2);
+	GetRenderer().DrawBlendedVerticalLine({ floatingInfoBox.position.x - hPadding - 1, floatingInfoBox.position.y - vPadding - 1 }, borderHeight, PAL16_GRAY + 10);
+	GetRenderer().DrawBlendedVerticalLine({ floatingInfoBox.position.x + hPadding + floatingInfoBox.size.width, floatingInfoBox.position.y - vPadding - 1 }, borderHeight, PAL16_GRAY + 10);
+	GetRenderer().DrawBlendedHorizontalLine({ floatingInfoBox.position.x - hPadding, floatingInfoBox.position.y - vPadding - 1 }, borderWidth, PAL16_GRAY + 10);
+	GetRenderer().DrawBlendedHorizontalLine({ floatingInfoBox.position.x - hPadding, floatingInfoBox.position.y + vPadding + floatingInfoBox.size.height }, borderWidth, PAL16_GRAY + 10);
 
-	DrawString(out, FloatingInfoString, floatingInfoBox,
+	DrawString(FloatingInfoString, floatingInfoBox,
 	    {
 	        .flags = InfoColor | UiFlags::AlignCenter | UiFlags::VerticalCenter,
 	        .spacing = textSpacing,
@@ -384,9 +386,9 @@ void CheckPanelInfo()
 		MainPanelFlag = true;
 }
 
-void DrawInfoBox(const Surface &out)
+void DrawInfoBox()
 {
-	DrawPanelBox(out, MakeSdlRect(InfoBoxRect.position.x, InfoBoxRect.position.y + PanelPaddingHeight, InfoBoxRect.size.width, InfoBoxRect.size.height), GetMainPanel().position + Displacement { InfoBoxRect.position.x, InfoBoxRect.position.y });
+	DrawPanelBox(MakeSdlRect(InfoBoxRect.position.x, InfoBoxRect.position.y + PanelPaddingHeight, InfoBoxRect.size.width, InfoBoxRect.size.height), GetMainPanel().position + Displacement { InfoBoxRect.position.x, InfoBoxRect.position.y });
 	if (!MainPanelFlag && !trigflag && pcursinvitem == -1 && pcursstashitem == StashStruct::EmptyCell && pcursstoreitem == -1 && pcursstorebtn == -1 && !SpellSelectFlag && pcurs != CURSOR_HOURGLASS) {
 		InfoString = StringOrView {};
 		InfoColor = UiFlags::ColorWhite;
@@ -439,10 +441,10 @@ void DrawInfoBox(const Surface &out)
 		}
 	}
 	if (!InfoString.empty())
-		PrintInfo(out);
+		PrintInfo();
 }
 
-void DrawFloatingInfoBox(const Surface &out)
+void DrawFloatingInfoBox()
 {
 	if (pcursinvitem == -1 && pcursstashitem == StashStruct::EmptyCell && pcursstoreitem == -1 && pcursstorebtn == -1) {
 		FloatingInfoString = StringOrView {};
@@ -450,7 +452,7 @@ void DrawFloatingInfoBox(const Surface &out)
 	}
 
 	if (!FloatingInfoString.empty())
-		PrintFloatingInfo(out);
+		PrintFloatingInfo();
 }
 
 } // namespace devilution

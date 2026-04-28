@@ -3,7 +3,6 @@
  *
  * Implementation of the main game initialization functions.
  */
-#include <array>
 #include <cstdint>
 #include <string_view>
 
@@ -42,16 +41,17 @@
 #include "diablo_msg.hpp"
 #include "discord/discord.h"
 #include "doom.h"
-#include "encrypt.h"
 #include "engine/backbuffer_state.hpp"
-#include "engine/clx_sprite.hpp"
 #include "engine/demomode.h"
 #include "engine/dx.h"
 #include "engine/events.hpp"
 #include "engine/load_cel.hpp"
 #include "engine/load_file.hpp"
+#include "engine/palette.h"
 #include "engine/random.hpp"
 #include "engine/render/clx_render.hpp"
+#include "engine/render/lighting_mode.hpp"
+#include "engine/render/renderer.h"
 #include "engine/sound.h"
 #include "game_mode.hpp"
 #include "gamemenu.h"
@@ -61,10 +61,6 @@
 #include "hwcursor.hpp"
 #include "init.hpp"
 #include "inv.h"
-#include "levels/drlg_l1.h"
-#include "levels/drlg_l2.h"
-#include "levels/drlg_l3.h"
-#include "levels/drlg_l4.h"
 #include "levels/gendung.h"
 #include "levels/setmaps.h"
 #include "levels/themes.h"
@@ -113,10 +109,8 @@
 #include "utils/paths.h"
 #include "utils/screen_reader.hpp"
 #include "utils/sdl_compat.h"
-#include "utils/sdl_thread.h"
 #include "utils/status_macros.hpp"
 #include "utils/str_cat.hpp"
-#include "utils/utf8.hpp"
 
 #ifndef USE_SDL1
 #include "controls/touch/gamepad.h"
@@ -726,10 +720,11 @@ void HandleMouseButtonUp(Uint8 button, uint16_t modState)
 void PrepareForFadeIn()
 {
 	if (HeadlessMode) return;
-	BlackPalette();
 
-	// Render the game to the buffer(s) with a fully black palette.
-	// Palette fade-in will gradually make it visible.
+	GetRenderer().BlackOutScreen();
+
+	// Render the scene into the backbuffer so it's ready when the
+	// fade-in begins. The palette is set to black by the overlay.
 	RedrawEverything();
 	while (IsRedrawEverything()) {
 		DrawAndBlit();
@@ -848,14 +843,14 @@ void GameEventHandler(const SDL_Event &event, uint16_t modState)
 			if (gbIsMultiplayer)
 				pfile_write_hero();
 			nthread_ignore_mutex(true);
-			PaletteFadeOut(8);
+			PaletteFadeOut(8, logical_palette, RedrawGameScene);
 			sound_stop();
 			ShowProgress(GetCustomEvent(event));
 
 			PrepareForFadeIn();
 			LoadPWaterPalette();
 			if (gbRunGame)
-				PaletteFadeIn(8);
+				PaletteFadeIn(8, logical_palette, RedrawGameScene);
 			nthread_ignore_mutex(false);
 			gbGameLoopStartup = true;
 			return;
@@ -880,7 +875,7 @@ void RunGameLoop(interface_mode uMsg)
 
 	PrepareForFadeIn();
 	LoadPWaterPalette();
-	PaletteFadeIn(8);
+	PaletteFadeIn(8, logical_palette, RedrawGameScene);
 	InitBackbufferState();
 	RedrawEverything();
 	gbGameLoopStartup = true;
@@ -959,7 +954,7 @@ void RunGameLoop(interface_mode uMsg)
 		sfile_write_stash();
 	}
 
-	PaletteFadeOut(8);
+	PaletteFadeOut(8, logical_palette, RedrawGameScene);
 	NewCursor(CURSOR_NONE);
 	ClearScreenBuffer();
 	RedrawEverything();
@@ -3495,6 +3490,16 @@ void diablo_color_cyc_logic()
 		}
 	} else if (leveltype == DTYPE_HELL) {
 		lighting_color_cycling();
+		const LightingMode lm = *GetOptions().Graphics.lightingMode;
+		if (lm == LightingMode::Vertex) {
+			// Vertex lighting ignores light tables; cycle the palette
+			// so the animation is visible through palette color changes.
+			palette_update_caves();
+		} else {
+			// Notify the renderer that light tables changed so any cached
+			// textures referencing the rotated range are re-uploaded.
+			SystemPaletteUpdated(1, 31);
+		}
 	} else if (leveltype == DTYPE_NEST) {
 		palette_update_hive();
 	} else if (leveltype == DTYPE_CRYPT) {

@@ -6,10 +6,7 @@
 #include "engine/palette.h"
 
 #include <algorithm>
-#include <array>
 #include <cstdint>
-#include <cstring>
-#include <span>
 
 #ifdef USE_SDL3
 #include <SDL3/SDL_pixels.h>
@@ -18,17 +15,19 @@
 #include <SDL.h>
 #endif
 
+#include "appfat.h"
 #include "engine/backbuffer_state.hpp"
 #include "engine/demomode.h"
-#include "engine/dx.h"
 #include "engine/load_file.hpp"
 #include "engine/random.hpp"
+#include "engine/render/renderer.h"
 #include "headless_mode.hpp"
 #include "hwcursor.hpp"
 #include "options.h"
 #include "utils/display.h"
 #include "utils/palette_blending.hpp"
 #include "utils/sdl_compat.h"
+#include "utils/sdl_wrap.h"
 #include "utils/str_cat.hpp"
 
 namespace devilution {
@@ -161,10 +160,7 @@ void SystemPaletteUpdated(int first, int ncolor)
 	if (HeadlessMode)
 		return;
 
-	assert(Palette);
-	if (!SDLC_SetSurfaceAndPaletteColors(PalSurface, Palette.get(), system_palette.data() + first, first, ncolor)) {
-		ErrSdl();
-	}
+	GetRenderer().NotifyPaletteChanged(first, ncolor);
 }
 
 void palette_init()
@@ -183,6 +179,8 @@ void LoadPalette(const char *path)
 	for (unsigned i = 0; i < palData.size(); i++) {
 		logical_palette[i] = palData[i].toSDL();
 	}
+
+	GetRenderer().ClearTextureCache();
 }
 
 void LoadPaletteAndInitBlending(const char *path)
@@ -268,7 +266,7 @@ void BlackPalette()
 	SystemPaletteUpdated();
 }
 
-void PaletteFadeIn(int fr, const std::array<SDL_Color, 256> &srcPalette)
+void PaletteFadeIn(int fr, const std::array<SDL_Color, 256> &srcPalette, std::function<void()> redraw)
 {
 	if (HeadlessMode)
 		return;
@@ -285,77 +283,40 @@ void PaletteFadeIn(int fr, const std::array<SDL_Color, 256> &srcPalette)
 
 	ApplyGlobalBrightness(palette.data(), srcPalette.data());
 
-	if (fr > 0) {
-		const uint32_t tc = SDL_GetTicks();
-		fr *= 3;
-		uint32_t prevFadeValue = 255;
-		for (uint32_t i = 0; i < 256; i = fr * (SDL_GetTicks() - tc) / 50) {
-			if (i == prevFadeValue) {
-				SDL_Delay(1);
-				continue;
-			}
-			ApplyFadeLevel(i, system_palette.data(), palette.data());
-			SystemPaletteUpdated();
-
-			// We can skip hardware cursor update for fade level 0 (everything is black).
-			if (i != 0 && IsHardwareCursor()) {
-				ReinitializeHardwareCursor();
-			}
-
-			prevFadeValue = i;
-
-			BltFast(nullptr, nullptr);
-			RenderPresent();
-		}
-	}
+	// Set the final palette so the scene is rendered at full brightness.
+	// The renderer's overlay provides the black-to-visible transition.
 	system_palette = palette;
 	SystemPaletteUpdated();
 	RedrawEverything();
 	if (IsHardwareCursor()) ReinitializeHardwareCursor();
 
-	if (fr <= 0) {
-		BltFast(nullptr, nullptr);
-		RenderPresent();
+	GetRenderer().StartFadeIn(fr);
+	while (GetRenderer().IsFading()) {
+		if (redraw)
+			redraw();
+		GetRenderer().EndFrame();
 	}
 
 	sgbFadedIn = true;
 }
 
-void PaletteFadeOut(int fr, const std::array<SDL_Color, 256> &srcPalette)
+void PaletteFadeOut(int fr, const std::array<SDL_Color, 256> &srcPalette, std::function<void()> redraw)
 {
 	if (!sgbFadedIn || HeadlessMode)
 		return;
 	if (demo::IsRunning())
 		fr = 0;
 
-	if (fr > 0) {
-		SDL_Color palette[256];
-		ApplyGlobalBrightness(palette, srcPalette.data());
-
-		const uint32_t tc = SDL_GetTicks();
-		fr *= 3;
-		uint32_t prevFadeValue = 0;
-		for (uint32_t i = 0; i < 256; i = fr * (SDL_GetTicks() - tc) / 50) {
-			if (i == prevFadeValue) {
-				SDL_Delay(1);
-				continue;
-			}
-			ApplyFadeLevel(256 - i, system_palette.data(), palette);
-			SystemPaletteUpdated();
-			prevFadeValue = i;
-
-			BltFast(nullptr, nullptr);
-			RenderPresent();
-		}
+	GetRenderer().StartFadeOut(fr);
+	while (GetRenderer().IsFading()) {
+		if (redraw)
+			redraw();
+		GetRenderer().EndFrame();
 	}
 
+	// Overlay is now fully opaque (BlackOutScreen equivalent).
 	BlackPalette();
 	if (IsHardwareCursor()) ReinitializeHardwareCursor();
-
-	if (fr <= 0) {
-		BltFast(nullptr, nullptr);
-		RenderPresent();
-	}
 
 	sgbFadedIn = false;
 }
@@ -409,6 +370,23 @@ void SetLogicalPaletteColor(unsigned i, const SDL_Color &color)
 	ApplyGlobalBrightnessSingleColor(system_palette[i], logical_palette[i]);
 	SystemPaletteUpdated(i, 1);
 	UpdateBlendedLookupTableSingleColor(logical_palette.data(), i);
+}
+
+void ApplySystemPaletteToSurface(SDL_Surface *surface)
+{
+#ifdef USE_SDL1
+	// On SDL1, surfaces have their own palette in format->palette.
+	// SDLC_SetSurfaceAndPaletteColors sets colors via SDL_SetPalette directly.
+	if (!SDLC_SetSurfaceAndPaletteColors(surface, surface->format->palette, system_palette.data(), 0, 256)) {
+		ErrSdl();
+	}
+#else
+	SDLPaletteUniquePtr palette = SDLWrap::AllocPalette();
+	SDL_SetPaletteColors(palette.get(), system_palette.data(), 0, 256);
+	if (!SDLC_SetSurfacePalette(surface, palette.get())) {
+		ErrSdl();
+	}
+#endif
 }
 
 } // namespace devilution

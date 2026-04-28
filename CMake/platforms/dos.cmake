@@ -4,7 +4,7 @@ set(DIST ON)
 
 set(NONET ON)
 set(NOSOUND ON)
-set(DEFAULT_PER_PIXEL_LIGHTING false)
+set(DEFAULT_LIGHTING_MODE LightingMode::Tile)
 
 set(PREFILL_PLAYER_NAME ON)
 

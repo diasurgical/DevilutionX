@@ -9,6 +9,7 @@
 #include "control/control.hpp"
 #include "controls/touch/event_handlers.h"
 #include "controls/touch/gamepad.h"
+#include "engine/render/renderer.h"
 #include "quests.h"
 #include "utils/display.h"
 #include "utils/ui_fwd.h"
@@ -77,15 +78,10 @@ void InitializeVirtualGamepad()
 	float vdpi;
 	const int displayIndex = SDL_GetWindowDisplayIndex(ghMainWnd);
 	if (SDL_GetDisplayDPI(displayIndex, nullptr, &hdpi, &vdpi) == 0) {
-		int clientWidth;
-		int clientHeight;
-		if (renderer != nullptr)
-			SDL_GetRendererOutputSize(renderer, &clientWidth, &clientHeight);
-		else
-			SDL_GetWindowSize(ghMainWnd, &clientWidth, &clientHeight);
+		const Size outputSize = GetRenderer().GetOutputSize();
 
-		hdpi *= static_cast<float>(gnScreenWidth) / clientWidth;
-		vdpi *= static_cast<float>(gnScreenHeight) / clientHeight;
+		hdpi *= static_cast<float>(gnScreenWidth) / outputSize.width;
+		vdpi *= static_cast<float>(gnScreenHeight) / outputSize.height;
 
 		dpi = std::min(hdpi, vdpi);
 	}

@@ -28,10 +28,9 @@
 #include "engine/dx.h"
 #include "engine/palette.h"
 #include "engine/rectangle.hpp"
-#include "engine/render/primitive_render.hpp"
+#include "engine/render/renderer.h"
 #include "engine/render/text_render.hpp"
 #include "engine/size.hpp"
-#include "engine/surface.hpp"
 #include "lua/autocomplete.hpp"
 #include "lua/repl.hpp"
 #include "utils/algorithm/container.hpp"
@@ -172,9 +171,9 @@ void SendInput()
 	HistoryIndex = -1;
 }
 
-void DrawAutocompleteSuggestions(const Surface &out, const std::vector<LuaAutocompleteSuggestion> &suggestions, Point position)
+void DrawAutocompleteSuggestions(int screenWidth, const std::vector<LuaAutocompleteSuggestion> &suggestions, Point position)
 {
-	const int maxInnerWidth = out.w() - (TextPaddingX * 2);
+	const int maxInnerWidth = screenWidth - (TextPaddingX * 2);
 	if (AutocompleteSuggestionsMaxWidth == -1) {
 		int maxWidth = 0;
 		for (const LuaAutocompleteSuggestion &suggestion : suggestions) {
@@ -185,15 +184,15 @@ void DrawAutocompleteSuggestions(const Surface &out, const std::vector<LuaAutoco
 
 	const int outerWidth = AutocompleteSuggestionsMaxWidth + (TextPaddingX * 2);
 
-	if (position.x + outerWidth > out.w()) {
-		position.x = out.w() - outerWidth;
+	if (position.x + outerWidth > screenWidth) {
+		position.x = screenWidth - outerWidth;
 	}
 	const int height = (static_cast<int>(suggestions.size()) * LineHeight) + TextPaddingYBottom + TextPaddingYTop;
 
 	position.y -= height;
 	position.y = std::max(LineHeight, position.y);
 
-	FillRect(out, position.x, position.y, outerWidth, height, PAL16_BLUE + 14);
+	GetRenderer().FillRect(position.x, position.y, outerWidth, height, PAL16_BLUE + 14);
 	size_t i = 0;
 
 	Point textPosition { position.x + TextPaddingX, position.y + TextPaddingYTop };
@@ -201,16 +200,18 @@ void DrawAutocompleteSuggestions(const Surface &out, const std::vector<LuaAutoco
 		if (static_cast<int>(i) == AutocompleteSuggestionFocusIndex) {
 			const int extraTop = i == 0 ? TextPaddingYTop : 0;
 			const int extraHeight = extraTop + TextPaddingYBottom;
-			FillRect(out, position.x, textPosition.y - extraTop, outerWidth, LineHeight + extraHeight, PAL16_BLUE + 8);
+			GetRenderer().FillRect(position.x, textPosition.y - extraTop, outerWidth, LineHeight + extraHeight, PAL16_BLUE + 8);
 		}
 		const int textHeight = LineHeight + TextPaddingYBottom;
+		GetRenderer().SetClipRegion(textPosition.x, textPosition.y, maxInnerWidth, textHeight);
 		DrawString(
-		    out.subregion(textPosition.x, textPosition.y, maxInnerWidth, textHeight), suggestion.displayText,
-		    Rectangle { Point { 0, 0 }, Size { maxInnerWidth, textHeight } },
+		    suggestion.displayText,
+		    Rectangle { Point { textPosition.x, textPosition.y }, Size { maxInnerWidth, textHeight } },
 		    TextRenderOptions {
 		        .flags = AutocompleteSuggestionsTextUiFlags,
 		        .spacing = TextSpacing,
 		    });
+		GetRenderer().ClearClipRegion();
 		textPosition.y += LineHeight;
 		++i;
 	}
@@ -222,20 +223,22 @@ bool IsBreakStart(std::string_view str, size_t &breakLen)
 	return cp == U'\n' || IsBreakableWhitespace(cp);
 }
 
-void DrawInputText(const Surface &out,
+void DrawInputText(int screenWidth,
     Rectangle rect, std::string_view originalInputText, std::string_view wrappedInputText)
 {
 	int lineY = 0;
 	int numRendered = -static_cast<int>(Prompt.size());
 	bool prevIsOriginalWhitespace = false;
 
-	const Surface inputTextSurface = out.subregion(rect.position.x, rect.position.y, rect.size.width, rect.size.height);
+	const int absX = rect.position.x;
+	const int absY = rect.position.y;
+	GetRenderer().SetClipRegion(absX, absY, rect.size.width, rect.size.height);
 	std::optional<Point> renderedCursorPositionOut;
 	for (const std::string_view line : SplitByChar(wrappedInputText, '\n')) {
 		const int lineCursorPosition = static_cast<int>(ConsoleInputCursor.position) - numRendered;
 		const bool isCursorOnPrevLine = lineCursorPosition == 0 && !prevIsOriginalWhitespace && numRendered > 0;
 		DrawString(
-		    inputTextSurface, line, { 0, lineY },
+		    line, { absX, absY + lineY }, rect.size.width,
 		    TextRenderOptions {
 		        .flags = InputTextUiFlags,
 		        .spacing = TextSpacing,
@@ -257,18 +260,17 @@ void DrawInputText(const Surface &out,
 			numRendered += static_cast<int>(whitespaceLength);
 		}
 	}
+	GetRenderer().ClearClipRegion();
 
 	if (!AutocompleteSuggestions.empty() && renderedCursorPositionOut.has_value()) {
 		Point position = *renderedCursorPositionOut;
-		position.x += rect.position.x;
-		position.y += rect.position.y;
-		DrawAutocompleteSuggestions(out, AutocompleteSuggestions, position);
+		DrawAutocompleteSuggestions(screenWidth, AutocompleteSuggestions, position);
 	}
 }
 
-void DrawConsoleLines(const Surface &out)
+void DrawConsoleLines(const Rectangle &region)
 {
-	const int innerHeight = out.h() - 4; // Extra space for letters like g.
+	const int innerHeight = region.size.height - 4; // Extra space for letters like g.
 	if (PendingScrollPages) {
 		ScrollOffset += innerHeight * PendingScrollPages;
 		PendingScrollPages = 0;
@@ -285,6 +287,7 @@ void DrawConsoleLines(const Surface &out)
 	ScrollOffset = std::clamp(ScrollOffset, 0, std::max(0, ConsoleLinesTotalHeight - innerHeight));
 
 	int lineYEnd = innerHeight + ScrollOffset;
+	GetRenderer().SetClipRegion(region.position.x, region.position.y, region.size.width, region.size.height);
 	// NOLINTNEXTLINE(modernize-loop-convert)
 	for (auto it = ConsoleLines.rbegin(), itEnd = ConsoleLines.rend(); it != itEnd; ++it) {
 		ConsoleLine &consoleLine = *it;
@@ -300,20 +303,20 @@ void DrawConsoleLines(const Surface &out)
 			lineYEnd -= LineHeight;
 			switch (consoleLine.type) {
 			case ConsoleLine::Input:
-				DrawString(out, line, { 0, lineYEnd },
+				DrawString(line, { region.position.x + 0, region.position.y + lineYEnd }, region.size.width,
 				    TextRenderOptions { .flags = InputTextUiFlags, .spacing = TextSpacing });
 				break;
 			case ConsoleLine::Output:
 			case ConsoleLine::Help:
-				DrawString(out, line, { 0, lineYEnd },
+				DrawString(line, { region.position.x + 0, region.position.y + lineYEnd }, region.size.width,
 				    TextRenderOptions { .flags = OutputTextUiFlags, .spacing = TextSpacing });
 				break;
 			case ConsoleLine::Warning:
-				DrawString(out, line, { 0, lineYEnd },
+				DrawString(line, { region.position.x + 0, region.position.y + lineYEnd }, region.size.width,
 				    TextRenderOptions { .flags = WarningTextUiFlags, .spacing = TextSpacing });
 				break;
 			case ConsoleLine::Error:
-				DrawString(out, line, { 0, lineYEnd },
+				DrawString(line, { region.position.x + 0, region.position.y + lineYEnd }, region.size.width,
 				    TextRenderOptions { .flags = ErrorTextUiFlags, .spacing = TextSpacing });
 				break;
 			}
@@ -322,6 +325,7 @@ void DrawConsoleLines(const Surface &out)
 			end = begin - 1;
 		}
 	}
+	GetRenderer().ClearClipRegion();
 }
 
 const ConsoleLine &GetConsoleLineFromEnd(int index)
@@ -557,13 +561,14 @@ bool ConsoleHandleEvent(const SDL_Event &event)
 	return false;
 }
 
-void DrawConsole(const Surface &out)
+void DrawConsole()
 {
 	if (!IsConsoleVisible)
 		return;
 
+	const Size screenSize = GetRenderer().GetBackBufferSize();
 	OuterRect.position = { 0, 0 };
-	OuterRect.size = { out.w(), out.h() - GetMainPanel().size.height - 2 };
+	OuterRect.size = { screenSize.width, screenSize.height - GetMainPanel().size.height - 2 };
 
 	const std::string_view originalInputText = ConsoleInputState.value();
 	if (CurrentInputTextState != InputTextState::UpToDate) {
@@ -600,18 +605,17 @@ void DrawConsole(const Surface &out)
 	}
 
 	const Rectangle bgRect = OuterRect;
-	DrawHalfTransparentRectTo(out, bgRect.position.x, bgRect.position.y, bgRect.size.width, bgRect.size.height);
+	GetRenderer().DrawBlendedRect(bgRect.position.x, bgRect.position.y, bgRect.size.width, bgRect.size.height);
 
 	DrawConsoleLines(
-	    out.subregion(
-	        TextPaddingX,
-	        TextPaddingYTop,
-	        GetConsoleLinesInnerWidth(),
-	        OuterRect.size.height - inputTextRect.size.height - 8));
+	    Rectangle {
+	        { TextPaddingX, TextPaddingYTop },
+	        { GetConsoleLinesInnerWidth(), OuterRect.size.height - inputTextRect.size.height - 8 } });
 
-	DrawHorizontalLine(out, InputRect.position - Displacement { 0, 1 }, InputRect.size.width, BorderColor);
+	const Point lineFrom = InputRect.position - Displacement { 0, 1 };
+	GetRenderer().FillRect(lineFrom.x, lineFrom.y, InputRect.size.width, 1, BorderColor);
 	DrawInputText(
-	    out,
+	    screenSize.width,
 	    Rectangle(
 	        inputTextRect.position,
 	        Size {
@@ -621,9 +625,11 @@ void DrawConsole(const Surface &out)
 	            inputTextRect.size.height + TextPaddingYBottom }),
 	    originalInputText,
 	    WrappedInputText);
+}
 
-	SDL_Rect sdlRect = MakeSdlRect(OuterRect);
-	BltFast(&sdlRect, &sdlRect);
+Rectangle GetConsoleRect()
+{
+	return OuterRect;
 }
 
 void InitConsole()
