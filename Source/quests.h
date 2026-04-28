@@ -131,7 +131,7 @@ void LoadPWaterPalette();
 void UpdatePWaterPalette();
 void ResyncMPQuests();
 void ResyncQuests();
-void DrawQuestLog(const Surface &out);
+void DrawQuestLog();
 void StartQuestlog();
 void QuestlogUp();
 void QuestlogDown();

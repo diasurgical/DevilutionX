@@ -51,9 +51,9 @@ void DrawHalfTransparentVerticalLine(const Surface &out, Point from, int width, 
  * @param width Rectangle width
  * @param height Rectangle height
  */
-void DrawHalfTransparentRectTo(const Surface &out, int sx, int sy, int width, int height);
+void DrawBlendedRectTo(const Surface &out, int sx, int sy, int width, int height);
 
-void DrawHalfTransparentRectTo(const Surface &out, int sx, int sy, int width, int height, uint8_t color);
+void DrawBlendedRectTo(const Surface &out, int sx, int sy, int width, int height, uint8_t color);
 
 /**
  * Draws a half-transparent pixel
@@ -72,6 +72,6 @@ void SetHalfTransparentPixel(const Surface &out, Point position, uint8_t color);
  * @param rect The rectangle that border pixels are rendered inside of.
  * @param color Border color.
  */
-void UnsafeDrawBorder2px(const Surface &out, Rectangle rect, uint8_t color);
+void UnsafeDrawBorder2px(Rectangle rect, uint8_t color);
 
 } // namespace devilution

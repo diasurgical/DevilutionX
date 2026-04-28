@@ -15,7 +15,6 @@
 #include <optional>
 #include <string>
 #include <string_view>
-#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -30,18 +29,18 @@
 #include "controls/control_mode.hpp"
 #include "controls/controller_buttons.h"
 #include "cursor.h"
-#include "diablo.h"
 #include "doom.h"
 #include "effects.h"
 #include "engine/animationinfo.h"
 #include "engine/backbuffer_state.hpp"
 #include "engine/clx_sprite.hpp"
 #include "engine/load_cel.hpp"
-#include "engine/path.h"
+#include "engine/palette.h"
 #include "engine/point.hpp"
 #include "engine/random.hpp"
 #include "engine/render/clx_render.hpp"
 #include "engine/render/primitive_render.hpp"
+#include "engine/render/renderer.h"
 #include "engine/render/text_render.hpp"
 #include "engine/surface.hpp"
 #include "engine/world_tile.hpp"
@@ -49,7 +48,6 @@
 #include "game_mode.hpp"
 #include "headless_mode.hpp"
 #include "inv.h"
-#include "inv_iterators.hpp"
 #include "items/validation.h"
 #include "levels/gendung.h"
 #include "levels/gendung_defs.hpp"
@@ -64,7 +62,6 @@
 #include "options.h"
 #include "pack.h"
 #include "panels/info_box.hpp"
-#include "panels/ui_panels.hpp"
 #include "player.h"
 #include "qol/stash.h"
 #include "quests.h"
@@ -84,7 +81,6 @@
 #include "utils/language.h"
 #include "utils/log.hpp"
 #include "utils/math.h"
-#include "utils/sdl_geometry.h"
 #include "utils/static_vector.hpp"
 #include "utils/str_cat.hpp"
 #include "utils/str_split.hpp"
@@ -1730,16 +1726,16 @@ void PrintItemOil(char iDidx)
 	}
 }
 
-Point DrawUniqueInfoWindow(const Surface &out)
+Point DrawUniqueInfoWindow()
 {
 	const bool isInStash = IsStashOpen && GetLeftPanel().contains(MousePosition);
 	int panelX, panelY;
 	if (isInStash) {
-		ClxDraw(out, GetPanelPosition(UiPanels::Stash, { 24 + SidePanelSize.width, 327 }), (*pSTextBoxCels)[0]);
+		GetRenderer().DrawClx(GetPanelPosition(UiPanels::Stash, { 24 + SidePanelSize.width, 327 }), (*pSTextBoxCels)[0]);
 		panelX = GetLeftPanel().position.x + SidePanelSize.width + 27;
 		panelY = GetLeftPanel().position.y + 28;
 	} else {
-		ClxDraw(out, GetPanelPosition(UiPanels::Inventory, { 24 - SidePanelSize.width, 327 }), (*pSTextBoxCels)[0]);
+		GetRenderer().DrawClx(GetPanelPosition(UiPanels::Inventory, { 24 - SidePanelSize.width, 327 }), (*pSTextBoxCels)[0]);
 		panelX = GetRightPanel().position.x - SidePanelSize.width + 27;
 		panelY = GetRightPanel().position.y + 28;
 	}
@@ -1751,7 +1747,7 @@ Point DrawUniqueInfoWindow(const Surface &out)
 	const int fadeLevel = isInfoOverlapping ? 3 : 1;
 
 	for (int i = 0; i < fadeLevel; ++i) {
-		DrawHalfTransparentRectTo(out, panelX, panelY, 265, 297);
+		GetRenderer().DrawBlendedRect({ { panelX, panelY }, { 265, 297 } });
 	}
 
 	return isInStash ? leftInfoPos : rightInfoPos;
@@ -4093,16 +4089,20 @@ bool DoOil(Player &player, int cii)
 	}
 }
 
-void DrawUniqueInfo(const Surface &out)
+void DrawUniqueInfo()
 {
-	const Point position = DrawUniqueInfoWindow(out);
+	const Point position = DrawUniqueInfoWindow();
 
 	Rectangle rect { position + Displacement { 32, 56 }, { 257, 0 } };
 	const UniqueItem &uitem = UniqueItems[curruitem._iUid];
-	DrawString(out, _(uitem.UIName), rect, { .flags = UiFlags::AlignCenter });
+	DrawString(_(uitem.UIName), rect, { .flags = UiFlags::AlignCenter });
 
-	const Rectangle dividerLineRect { position + Displacement { 26, 25 }, { 267, 3 } };
-	out.BlitFrom(out, MakeSdlRect(dividerLineRect), dividerLineRect.position + Displacement { 0, (5 * 12) + 13 });
+	const Rectangle dividerLineRect { position + Displacement { 26, 25 }, { 267, TextBoxDividerHeight } };
+	{
+		const Surface &divider = GetSTextBoxDivider();
+		GetRenderer().BlitSurface(divider, MakeSdlRect(0, 0, divider.w(), divider.h()),
+		    dividerLineRect.position + Displacement { 0, (5 * 12) + 13 });
+	}
 
 	rect.position.y += (10 - uitem.UINumPL) * 12;
 	assert(uitem.UINumPL <= sizeof(uitem.powers) / sizeof(*uitem.powers));
@@ -4114,7 +4114,7 @@ void DrawUniqueInfo(const Surface &out)
 		rect.position.y += 2 * 12;
 		// Pre-wrap the string at spaces, otherwise DrawString would hard wrap in the middle of words.
 		const std::string wrapped = WordWrapString(PrintItemPower(power.type, curruitem), rect.size.width);
-		DrawString(out, wrapped, rect, textRenderOptions);
+		DrawString(wrapped, rect, textRenderOptions);
 		for (const std::string_view line : SplitByChar(wrapped, '\n')) {
 			if (line.data() + line.size() == wrapped.data() + wrapped.size()) break;
 			rect.position.y += GetLineHeight(line, fontSize);

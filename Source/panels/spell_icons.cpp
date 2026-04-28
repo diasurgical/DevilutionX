@@ -8,6 +8,7 @@
 #include "engine/palette.h"
 #include "engine/render/clx_render.hpp"
 #include "engine/render/primitive_render.hpp"
+#include "engine/render/renderer.h"
 #include "game_mode.hpp"
 
 namespace devilution {
@@ -135,34 +136,34 @@ uint8_t GetSpellIconFrame(SpellID spell)
 	return static_cast<uint8_t>(SpellITbl[static_cast<int8_t>(spell)]);
 }
 
-void DrawLargeSpellIcon(const Surface &out, Point position, SpellID spell)
+void DrawLargeSpellIcon(Point position, SpellID spell)
 {
 #ifdef UNPACKED_MPQS
-	ClxDrawTRN(out, position, (*LargeSpellIconsBackground)[0], SplTransTbl);
+	GetRenderer().DrawClxTRN(position, (*LargeSpellIconsBackground)[0], SplTransTbl);
 #endif
-	ClxDrawTRN(out, position, (*LargeSpellIcons)[GetSpellIconFrame(spell)], SplTransTbl);
+	GetRenderer().DrawClxTRN(position, (*LargeSpellIcons)[GetSpellIconFrame(spell)], SplTransTbl);
 }
 
-void DrawSmallSpellIcon(const Surface &out, Point position, SpellID spell)
+void DrawSmallSpellIcon(Point position, SpellID spell)
 {
 #ifdef UNPACKED_MPQS
-	ClxDrawTRN(out, position, (*SmallSpellIconsBackground)[0], SplTransTbl);
+	GetRenderer().DrawClxTRN(position, (*SmallSpellIconsBackground)[0], SplTransTbl);
 #endif
-	ClxDrawTRN(out, position, (*SmallSpellIcons)[GetSpellIconFrame(spell)], SplTransTbl);
+	GetRenderer().DrawClxTRN(position, (*SmallSpellIcons)[GetSpellIconFrame(spell)], SplTransTbl);
 }
 
-void DrawLargeSpellIconBorder(const Surface &out, Point position, uint8_t color)
+void DrawLargeSpellIconBorder(Point position, uint8_t color)
 {
 	const int width = (*LargeSpellIcons)[0].width();
 	const int height = (*LargeSpellIcons)[0].height();
-	UnsafeDrawBorder2px(out, Rectangle { Point { position.x, position.y - height + 1 }, Size { width, height } }, color);
+	UnsafeDrawBorder2px(Rectangle { Point { position.x, position.y - height + 1 }, Size { width, height } }, color);
 }
 
-void DrawSmallSpellIconBorder(const Surface &out, Point position)
+void DrawSmallSpellIconBorder(Point position)
 {
 	const int width = (*SmallSpellIcons)[0].width();
 	const int height = (*SmallSpellIcons)[0].height();
-	UnsafeDrawBorder2px(out, Rectangle { Point { position.x, position.y - height + 1 }, Size { width, height } }, SplTransTbl[PAL8_YELLOW + 2]);
+	UnsafeDrawBorder2px(Rectangle { Point { position.x, position.y - height + 1 }, Size { width, height } }, SplTransTbl[PAL8_YELLOW + 2]);
 }
 
 void SetSpellTrans(SpellType t)

@@ -29,6 +29,7 @@ set(tests
   math_test
   missiles_test
   multi_logging_test
+  options_test
   pack_test
   player_test
   quests_test
@@ -141,7 +142,7 @@ target_link_dependencies(format_int_test PRIVATE libdevilutionx_format_int langu
 target_link_dependencies(ini_test PRIVATE libdevilutionx_ini app_fatal_for_testing)
 target_link_dependencies(mod_identity_test PRIVATE libdevilutionx_mod_identity app_fatal_for_testing)
 target_include_directories(mod_identity_test PRIVATE "${PROJECT_SOURCE_DIR}/3rdParty/PicoSHA2")
-target_link_dependencies(light_render_benchmark PRIVATE libdevilutionx_light_render DevilutionX::SDL libdevilutionx_surface libdevilutionx_paths app_fatal_for_testing)
+target_link_dependencies(light_render_benchmark PRIVATE libdevilutionx_lightmap DevilutionX::SDL libdevilutionx_surface libdevilutionx_paths app_fatal_for_testing)
 target_link_dependencies(palette_blending_test PRIVATE libdevilutionx_palette_blending DevilutionX::SDL libdevilutionx_strings GTest::gmock app_fatal_for_testing)
 target_link_dependencies(palette_blending_benchmark
   PRIVATE
@@ -167,10 +168,12 @@ if(DEVILUTIONX_SCREENSHOT_FORMAT STREQUAL DEVILUTIONX_SCREENSHOT_FORMAT_PNG AND 
     app_fatal_for_testing
     language_for_testing
     libdevilutionx_primitive_render
+    libdevilutionx_renderer
     libdevilutionx_strings
     libdevilutionx_surface
     libdevilutionx_surface_to_png
     libdevilutionx_text_render
+    libdevilutionx_lightmap
   )
   copy_files(
     FILES

@@ -30,6 +30,7 @@ namespace devilution {
 struct Surface {
 	SDL_Surface *surface;
 	SDL_Rect region;
+	bool isScreenTarget = false;
 
 	Surface()
 	    : surface(nullptr)

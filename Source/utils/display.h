@@ -17,6 +17,7 @@
 #endif
 #endif
 
+#include "engine/render/renderer.h"
 #include "utils/attributes.h"
 #include "utils/log.hpp"
 #include "utils/sdl_ptrs.h"
@@ -24,16 +25,9 @@
 
 namespace devilution {
 
-extern int refreshDelay; // Screen refresh rate in nanoseconds
 extern SDL_Window *window;
 extern SDL_Window *ghMainWnd;
-extern SDL_Renderer *renderer;
-#ifndef USE_SDL1
-extern SDLTextureUniquePtr texture;
-#endif
 
-extern SDLPaletteUniquePtr Palette;
-extern SDL_Surface *PalSurface;
 extern DVL_API_FOR_TEST Size forceResolution;
 
 #ifdef USE_SDL1
@@ -43,21 +37,15 @@ void SetVideoModeToPrimary(bool fullscreen, int width, int height);
 
 bool IsFullScreen();
 
-// Returns:
-// SDL1: Video surface.
-// SDL2, no upscale: Window surface.
-// SDL2, upscale: Renderer texture surface.
-SDL_Surface *GetOutputSurface();
+#ifndef USE_SDL1
+void ReinitializeTexture();
+#endif
 
-// Whether the output surface requires software scaling.
-// Always returns false on SDL2.
-bool OutputRequiresScaling();
+void AdjustToScreenGeometry(Size windowSize);
 
-// Scales rect if necessary.
-void ScaleOutputRect(SDL_Rect *rect);
-
-// If the output requires software scaling, replaces the given surface with a scaled one.
-SDLSurfaceUniquePtr ScaleSurfaceToOutput(SDLSurfaceUniquePtr surface);
+#ifdef DEVILUTIONX_GL1_RENDERER
+void SwitchRenderer();
+#endif
 
 // Convert from output coordinates to logical (resolution-independent) coordinates.
 template <
@@ -65,36 +53,11 @@ template <
     typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type>
 void OutputToLogical(T *x, T *y)
 {
-#ifdef USE_SDL3
-	if (renderer == nullptr) return;
-	float outX, outY;
-	if (!SDL_RenderCoordinatesFromWindow(renderer, *x, *y, &outX, &outY)) {
-		LogError("SDL_RenderCoordinatesFromWindow: {}", SDL_GetError());
-		SDL_ClearError();
-		return;
-	}
-	*x = static_cast<T>(outX);
-	*y = static_cast<T>(outY);
-#elif !defined(USE_SDL1)
-	if (renderer == nullptr) return;
-	float scaleX;
-	SDL_RenderGetScale(renderer, &scaleX, nullptr);
-	float scaleDpi = GetDpiScalingFactor();
-	float scale = scaleX / scaleDpi;
-	*x = static_cast<T>(*x / scale);
-	*y = static_cast<T>(*y / scale);
-
-	SDL_Rect view;
-	SDL_RenderGetViewport(renderer, &view);
-	*x -= view.x;
-	*y -= view.y;
-#else
-	if (!OutputRequiresScaling())
-		return;
-	const SDL_Surface *surface = GetOutputSurface();
-	*x = *x * gnScreenWidth / surface->w;
-	*y = *y * gnScreenHeight / surface->h;
-#endif
+	int ix = static_cast<int>(*x);
+	int iy = static_cast<int>(*y);
+	GetRenderer().MapWindowToLogical(&ix, &iy);
+	*x = static_cast<T>(ix);
+	*y = static_cast<T>(iy);
 }
 
 template <
@@ -102,36 +65,11 @@ template <
     typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type>
 void LogicalToOutput(T *x, T *y)
 {
-#ifdef USE_SDL3
-	if (renderer == nullptr) return;
-	float outX, outY;
-	if (!SDL_RenderCoordinatesToWindow(renderer, *x, *y, &outX, &outY)) {
-		LogError("SDL_RenderCoordinatesFromWindow: {}", SDL_GetError());
-		SDL_ClearError();
-		return;
-	}
-	*x = static_cast<T>(outX);
-	*y = static_cast<T>(outY);
-#elif !defined(USE_SDL1)
-	if (renderer == nullptr) return;
-	SDL_Rect view;
-	SDL_RenderGetViewport(renderer, &view);
-	*x += view.x;
-	*y += view.y;
-
-	float scaleX;
-	SDL_RenderGetScale(renderer, &scaleX, nullptr);
-	float scaleDpi = GetDpiScalingFactor();
-	float scale = scaleX / scaleDpi;
-	*x = static_cast<T>(*x * scale);
-	*y = static_cast<T>(*y * scale);
-#else
-	if (!OutputRequiresScaling())
-		return;
-	const SDL_Surface *surface = GetOutputSurface();
-	*x = *x * surface->w / gnScreenWidth;
-	*y = *y * surface->h / gnScreenHeight;
-#endif
+	int ix = static_cast<int>(*x);
+	int iy = static_cast<int>(*y);
+	GetRenderer().MapLogicalToWindow(&ix, &iy);
+	*x = static_cast<T>(ix);
+	*y = static_cast<T>(iy);
 }
 
 #if SDL_VERSION_ATLEAST(2, 0, 0)

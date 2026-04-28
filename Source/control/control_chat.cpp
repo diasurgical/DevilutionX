@@ -5,6 +5,7 @@
 #include "control/control_chat_commands.hpp"
 #include "engine/backbuffer_state.hpp"
 #include "engine/render/clx_render.hpp"
+#include "engine/render/renderer.h"
 #include "options.h"
 #include "panels/console.hpp"
 #include "panels/mainpanel.hpp"
@@ -88,29 +89,29 @@ void ControlUpDown(int v)
 
 } // namespace
 
-void DrawChatBox(const Surface &out)
+void DrawChatBox()
 {
 	if (!ChatFlag)
 		return;
 
 	const Point mainPanelPosition = GetMainPanel().position;
 
-	DrawPanelBox(out, MakeSdlRect(175, sgbPlrTalkTbl + 20, 294, 5), mainPanelPosition + Displacement { 175, 4 });
+	DrawPanelBox(MakeSdlRect(175, sgbPlrTalkTbl + 20, 294, 5), mainPanelPosition + Displacement { 175, 4 });
 	int off = 0;
 	for (int i = 293; i > 283; off++, i--) {
-		DrawPanelBox(out, MakeSdlRect((off / 2) + 175, sgbPlrTalkTbl + off + 25, i, 1), mainPanelPosition + Displacement { (off / 2) + 175, off + 9 });
+		DrawPanelBox(MakeSdlRect((off / 2) + 175, sgbPlrTalkTbl + off + 25, i, 1), mainPanelPosition + Displacement { (off / 2) + 175, off + 9 });
 	}
-	DrawPanelBox(out, MakeSdlRect(185, sgbPlrTalkTbl + 35, 274, 30), mainPanelPosition + Displacement { 185, 19 });
-	DrawPanelBox(out, MakeSdlRect(180, sgbPlrTalkTbl + 65, 284, 5), mainPanelPosition + Displacement { 180, 49 });
+	DrawPanelBox(MakeSdlRect(185, sgbPlrTalkTbl + 35, 274, 30), mainPanelPosition + Displacement { 185, 19 });
+	DrawPanelBox(MakeSdlRect(180, sgbPlrTalkTbl + 65, 284, 5), mainPanelPosition + Displacement { 180, 49 });
 	for (int i = 0; i < 10; i++) {
-		DrawPanelBox(out, MakeSdlRect(180, sgbPlrTalkTbl + i + 70, i + 284, 1), mainPanelPosition + Displacement { 180, i + 54 });
+		DrawPanelBox(MakeSdlRect(180, sgbPlrTalkTbl + i + 70, i + 284, 1), mainPanelPosition + Displacement { 180, i + 54 });
 	}
-	DrawPanelBox(out, MakeSdlRect(170, sgbPlrTalkTbl + 80, 310, 55), mainPanelPosition + Displacement { 170, 64 });
+	DrawPanelBox(MakeSdlRect(170, sgbPlrTalkTbl + 80, 310, 55), mainPanelPosition + Displacement { 170, 64 });
 
 	int x = mainPanelPosition.x + 200;
 	const int y = mainPanelPosition.y + 10;
 
-	const uint32_t len = DrawString(out, TalkMessage, { { x, y }, { 250, 39 } },
+	const uint32_t len = DrawString(TalkMessage, { { x, y }, { 250, 39 } },
 	    {
 	        .flags = UiFlags::ColorWhite | UiFlags::PentaCursor,
 	        .lineHeight = 13,
@@ -132,24 +133,24 @@ void DrawChatBox(const Surface &out)
 			// the normal (unpressed) voice button is pre-rendered on the panel, only need to draw over it when the button is held
 			if (TalkButtonsDown[talkBtn]) {
 				const unsigned spriteIndex = talkBtn == 0 ? 2 : 3; // the first button sprite includes a tip from the devils wing so is different to the rest.
-				ClxDraw(out, talkPanPosition, (*talkButtons)[spriteIndex]);
+				GetRenderer().DrawClx(talkPanPosition, (*talkButtons)[spriteIndex]);
 
 				// Draw the translated string over the top of the default (english) button. This graphic is inset to avoid overlapping the wingtip, letting
 				// the first button be treated the same as the other two further down the panel.
-				RenderClxSprite(out, (*TalkButton)[2], talkPanPosition + Displacement { 4, -15 });
+				GetRenderer().RenderClx(talkPanPosition + Displacement { 4, -15 }, (*TalkButton)[2]);
 			}
 		} else {
 			unsigned spriteIndex = talkBtn == 0 ? 0 : 1; // the first button sprite includes a tip from the devils wing so is different to the rest.
 			if (TalkButtonsDown[talkBtn])
 				spriteIndex += 4; // held button sprites are at index 4 and 5 (with and without wingtip respectively)
-			ClxDraw(out, talkPanPosition, (*talkButtons)[spriteIndex]);
+			GetRenderer().DrawClx(talkPanPosition, (*talkButtons)[spriteIndex]);
 
 			// Draw the translated string over the top of the default (english) button. This graphic is inset to avoid overlapping the wingtip, letting
 			// the first button be treated the same as the other two further down the panel.
-			RenderClxSprite(out, (*TalkButton)[TalkButtonsDown[talkBtn] ? 1 : 0], talkPanPosition + Displacement { 4, -15 });
+			GetRenderer().RenderClx(talkPanPosition + Displacement { 4, -15 }, (*TalkButton)[TalkButtonsDown[talkBtn] ? 1 : 0]);
 		}
 		if (player.plractive) {
-			DrawString(out, player._pName, { { x, y + 60 + (talkBtn * 18) }, { 204, 0 } }, { .flags = color });
+			DrawString(player._pName, { { x, y + 60 + (talkBtn * 18) }, { 204, 0 } }, { .flags = color });
 		}
 
 		talkBtn++;

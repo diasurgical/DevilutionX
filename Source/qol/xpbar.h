@@ -7,12 +7,10 @@
 
 namespace devilution {
 
-struct Surface;
-
 void InitXPBar();
 void FreeXPBar();
 
-void DrawXPBar(const Surface &out);
+void DrawXPBar();
 bool CheckXPBarInfo();
 
 } // namespace devilution

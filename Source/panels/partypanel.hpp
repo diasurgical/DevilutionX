@@ -4,7 +4,6 @@
 #include <string>
 
 #include "engine/clx_sprite.hpp"
-#include "engine/surface.hpp"
 
 namespace devilution {
 
@@ -14,7 +13,7 @@ extern int PortraitIdUnderCursor;
 
 std::expected<void, std::string> LoadPartyPanel();
 void FreePartyPanel();
-void DrawPartyMemberInfoPanel(const Surface &out);
+void DrawPartyMemberInfoPanel();
 bool DidRightClickPartyPortrait();
 
 } // namespace devilution

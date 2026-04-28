@@ -16,7 +16,6 @@
 #include "DiabloUI/ui_flags.hpp"
 #include "control/control.hpp"
 #include "engine/clx_sprite.hpp"
-#include "engine/surface.hpp"
 #include "game_mode.hpp"
 #include "items.h"
 #include "utils/attributes.h"
@@ -166,12 +165,12 @@ void SetupTownStores();
 
 void FreeStoreMem();
 
-void PrintSString(const Surface &out, int margin, int line, std::string_view text, UiFlags flags, int price = 0, int cursId = -1, bool cursIndent = false);
-void DrawSLine(const Surface &out, int sy);
+void PrintSString(int margin, int line, std::string_view text, UiFlags flags, int price = 0, int cursId = -1, bool cursIndent = false);
+void DrawSLine(int sy);
 void DrawSTextHelp();
 void ClearSText(int s, int e);
 void StartStore(TalkID s);
-void DrawSText(const Surface &out);
+void DrawSText();
 void StoreESC();
 void StoreUp();
 void StoreDown();

@@ -3,7 +3,6 @@
 #include <sol/sol.hpp>
 
 #include "DiabloUI/ui_flags.hpp"
-#include "engine/dx.h"
 #include "engine/render/text_render.hpp"
 #include "lua/metadoc.hpp"
 #include "utils/display.h"
@@ -15,7 +14,7 @@ sol::table LuaRenderModule(sol::state_view &lua)
 	sol::table table = lua.create_table();
 	LuaSetDocFn(table, "string", "(text: string, x: integer, y: integer)",
 	    "Renders a string at the given coordinates",
-	    [](std::string_view text, int x, int y) { DrawString(GlobalBackBuffer(), text, { x, y }); });
+	    [](std::string_view text, int x, int y) { DrawString(text, { x, y }, gnScreenWidth); });
 	LuaSetDocFn(table, "screen_width", "()",
 	    "Returns the screen width", []() { return gnScreenWidth; });
 	LuaSetDocFn(table, "screen_height", "()",

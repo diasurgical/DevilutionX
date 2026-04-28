@@ -85,7 +85,7 @@ void TransferItemToInventory(Player &player, uint16_t itemId);
 /**
  * @brief Render the inventory panel to the given buffer.
  */
-void DrawStash(const Surface &out);
+void DrawStash();
 void CheckStashItem(Point mousePosition, bool isShiftHeld = false, bool isCtrlHeld = false);
 bool UseStashItem(uint16_t cii);
 uint16_t CheckStashHLight(Point mousePosition);
@@ -94,7 +94,7 @@ void CheckStashButtonPress(Point mousePosition);
 
 void StartGoldWithdraw();
 void WithdrawGoldKeyPress(SDL_Keycode vkey);
-void DrawGoldWithdraw(const Surface &out);
+void DrawGoldWithdraw();
 void CloseGoldWithdraw();
 bool HandleGoldWithdrawTextInputEvent(const SDL_Event &event);
 

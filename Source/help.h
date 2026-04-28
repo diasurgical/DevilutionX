@@ -5,14 +5,12 @@
  */
 #pragma once
 
-#include "engine/surface.hpp"
-
 namespace devilution {
 
 extern bool HelpFlag;
 
 void InitHelp();
-void DrawHelp(const Surface &out);
+void DrawHelp();
 void DisplayHelp();
 void HelpScrollUp();
 void HelpScrollDown();

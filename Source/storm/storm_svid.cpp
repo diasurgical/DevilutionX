@@ -31,6 +31,8 @@
 #include "engine/assets.hpp"
 #include "engine/dx.h"
 #include "engine/palette.h"
+#include "engine/render/renderer.h"
+#include "engine/render/renderer_backend.h"
 #include "engine/sound.h"
 #include "options.h"
 #include "utils/display.h"
@@ -81,12 +83,12 @@ uint64_t SVidFrameEnd;
 // The length of a frame in SMK time units.
 uint32_t SVidFrameLength;
 
+#ifdef USE_SDL1
 bool IsLandscapeFit(unsigned long srcW, unsigned long srcH, unsigned long dstW, unsigned long dstH)
 {
 	return srcW * dstH > dstW * srcH;
 }
 
-#ifdef USE_SDL1
 // Whether we've changed the video mode temporarily for SVid.
 // If true, we must restore it once the video has finished playing.
 bool IsSVidVideoMode = false;
@@ -211,94 +213,13 @@ void UpdatePalette()
 		ErrSdl();
 	}
 
-	const SDL_Surface *surface = GetOutputSurface();
-	if (SDLC_SURFACE_BITSPERPIXEL(surface) == 8) {
-		if (!SDLC_SetSurfacePalette(GetOutputSurface(), SVidPalette.get())) {
-			ErrSdl();
-		}
-	}
+	GetRenderer().NotifyVideoPaletteChanged(SVidPalette.get());
 #endif
 }
 
 bool BlitFrame()
 {
-#ifndef USE_SDL1
-	if (renderer != nullptr) {
-		if (
-#ifdef USE_SDL3
-		    !SDL_BlitSurface(SVidSurface.get(), nullptr, GetOutputSurface(), nullptr)
-#else
-		    SDL_BlitSurface(SVidSurface.get(), nullptr, GetOutputSurface(), nullptr) <= -1
-#endif
-		) {
-			Log("{}", SDL_GetError());
-			return false;
-		}
-	} else
-#endif
-	{
-		SDL_Surface *outputSurface = GetOutputSurface();
-#ifdef USE_SDL1
-		const bool isIndexedOutputFormat = SDLBackport_IsPixelFormatIndexed(outputSurface->format);
-#else
-
-#ifdef USE_SDL3
-		const SDL_PixelFormat wndFormat = SDL_GetWindowPixelFormat(ghMainWnd);
-#else
-		const Uint32 wndFormat = SDL_GetWindowPixelFormat(ghMainWnd);
-#endif
-		const bool isIndexedOutputFormat = SDL_ISPIXELFORMAT_INDEXED(wndFormat);
-#endif
-		SDL_Rect outputRect;
-		if (isIndexedOutputFormat) {
-			// Cannot scale if the output format is indexed (8-bit palette).
-			outputRect.w = static_cast<int>(SVidWidth);
-			outputRect.h = static_cast<int>(SVidHeight);
-		} else if (IsLandscapeFit(SVidWidth, SVidHeight, outputSurface->w, outputSurface->h)) {
-			outputRect.w = outputSurface->w;
-			outputRect.h = SVidHeight * outputSurface->w / SVidWidth;
-		} else {
-			outputRect.w = SVidWidth * outputSurface->h / SVidHeight;
-			outputRect.h = outputSurface->h;
-		}
-		outputRect.x = (outputSurface->w - outputRect.w) / 2;
-		outputRect.y = (outputSurface->h - outputRect.h) / 2;
-
-		if (isIndexedOutputFormat
-		    || outputSurface->w == static_cast<int>(SVidWidth)
-		    || outputSurface->h == static_cast<int>(SVidHeight)) {
-			if (
-#ifdef USE_SDL3
-			    !SDL_BlitSurface(SVidSurface.get(), nullptr, outputSurface, &outputRect)
-#else
-			    SDL_BlitSurface(SVidSurface.get(), nullptr, outputSurface, &outputRect) <= -1
-#endif
-			) {
-				ErrSdl();
-			}
-		} else {
-			// The source surface is always 8-bit, and the output surface is never 8-bit in this branch.
-			// We must convert to the output format before calling SDL_BlitScaled.
-#ifdef USE_SDL1
-			SDLSurfaceUniquePtr converted = SDLWrap::ConvertSurface(SVidSurface.get(), ghMainWnd->format, 0);
-#else
-			SDLSurfaceUniquePtr converted = SDLWrap::ConvertSurfaceFormat(SVidSurface.get(), wndFormat, 0);
-#endif
-			if (
-#ifdef USE_SDL3
-			    SDL_BlitSurfaceScaled(converted.get(), nullptr, outputSurface, &outputRect, SDL_SCALEMODE_LINEAR)
-#else
-			    SDL_BlitScaled(converted.get(), nullptr, outputSurface, &outputRect) <= -1
-#endif
-			) {
-				Log("{}", SDL_GetError());
-				return false;
-			}
-		}
-	}
-
-	RenderPresent();
-	return true;
+	return GetRenderer().DrawVideoFrame(SVidSurface.get(), SVidWidth, SVidHeight);
 }
 
 #if defined(USE_SDL3) && !defined(NOSOUND)
@@ -410,23 +331,9 @@ bool SVidPlayBegin(const char *filename, int flags)
 	Smacker_GetFrameSize(SVidHandle, SVidWidth, SVidHeight);
 
 #ifndef USE_SDL1
-	if (renderer != nullptr) {
-		const int renderWidth = static_cast<int>(SVidWidth);
-		const int renderHeight = static_cast<int>(SVidHeight);
-		texture = SDLWrap::CreateTexture(renderer, DEVILUTIONX_DISPLAY_TEXTURE_FORMAT, SDL_TEXTUREACCESS_STREAMING, renderWidth, renderHeight);
-		if (
-#ifdef USE_SDL3
-		    !SDL_SetRenderLogicalPresentation(renderer, renderWidth, renderHeight,
-		        *GetOptions().Graphics.integerScaling ? SDL_LOGICAL_PRESENTATION_INTEGER_SCALE : SDL_LOGICAL_PRESENTATION_STRETCH)
-#else
-		    SDL_RenderSetLogicalSize(renderer, renderWidth, renderHeight) <= -1
-#endif
-		) {
-			ErrSdl();
-		}
-	}
+	GetRenderer().PrepareVideoPlayback(SVidWidth, SVidHeight);
 #if defined(DEVILUTIONX_DISPLAY_PIXELFORMAT) && DEVILUTIONX_DISPLAY_PIXELFORMAT == SDL_PIXELFORMAT_INDEX8
-	else {
+	if (!GetRenderer().HasPresentationLayer()) {
 		const Size windowSize = { static_cast<int>(SVidWidth), static_cast<int>(SVidHeight) };
 		SDL_DisplayMode nearestDisplayMode = GetNearestDisplayMode(windowSize, DEVILUTIONX_DISPLAY_PIXELFORMAT);
 #ifdef USE_SDL3
@@ -439,11 +346,12 @@ bool SVidPlayBegin(const char *filename, int flags)
 	}
 #endif
 #else
-	TrySetVideoModeToSVidForSDL1();
+	GetRenderer().PrepareVideoPlayback(SVidWidth, SVidHeight);
+#ifdef DEVILUTIONX_GL1_RENDERER
+	if (!IsGl1RendererActive())
 #endif
-
-	// Set the background to black.
-	SDL_FillSurfaceRect(GetOutputSurface(), nullptr, 0x000000);
+		TrySetVideoModeToSVidForSDL1();
+#endif
 
 	// The buffer for the frame. It is not the same as the SDL surface because the SDL surface also has pitch padding.
 	SVidFrameBuffer = std::unique_ptr<uint8_t[]> { new uint8_t[static_cast<size_t>(SVidWidth * SVidHeight)] };
@@ -547,21 +455,9 @@ void SVidPlayEnd()
 	SVidFrameBuffer = nullptr;
 
 #ifndef USE_SDL1
-	if (renderer != nullptr) {
-		texture = SDLWrap::CreateTexture(renderer, DEVILUTIONX_DISPLAY_TEXTURE_FORMAT, SDL_TEXTUREACCESS_STREAMING, gnScreenWidth, gnScreenHeight);
-		if (
-#ifdef USE_SDL3
-		    !SDL_SetRenderLogicalPresentation(renderer, gnScreenWidth, gnScreenHeight,
-		        *GetOptions().Graphics.integerScaling ? SDL_LOGICAL_PRESENTATION_INTEGER_SCALE : SDL_LOGICAL_PRESENTATION_STRETCH)
-#else
-		    SDL_RenderSetLogicalSize(renderer, gnScreenWidth, gnScreenHeight) <= -1
-#endif
-		) {
-			ErrSdl();
-		}
-	}
+	GetRenderer().FinishVideoPlayback();
 #if defined(DEVILUTIONX_DISPLAY_PIXELFORMAT) && DEVILUTIONX_DISPLAY_PIXELFORMAT == SDL_PIXELFORMAT_INDEX8
-	else {
+	if (!GetRenderer().HasPresentationLayer()) {
 		const Size windowSize = { static_cast<int>(gnScreenWidth), static_cast<int>(gnScreenHeight) };
 		SDL_DisplayMode nearestDisplayMode = GetNearestDisplayMode(windowSize, DEVILUTIONX_DISPLAY_PIXELFORMAT);
 #ifdef USE_SDL3
@@ -574,7 +470,11 @@ void SVidPlayEnd()
 	}
 #endif
 #else
+	GetRenderer().FinishVideoPlayback();
 	if (IsSVidVideoMode) {
+#ifdef DEVILUTIONX_GL1_RENDERER
+		assert(!IsGl1RendererActive());
+#endif
 		SetVideoModeToPrimary(IsFullScreen(), gnScreenWidth, gnScreenHeight);
 		IsSVidVideoMode = false;
 	}

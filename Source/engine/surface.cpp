@@ -3,6 +3,9 @@
 #include <cstdint>
 #include <cstring>
 
+#include "engine/render/renderer.h"
+#include "utils/sdl_geometry.h"
+
 namespace devilution {
 
 namespace {
@@ -43,11 +46,25 @@ void SurfaceBlit(const Surface &src, SDL_Rect srcRect, const Surface &dst, Point
 
 void Surface::BlitFrom(const Surface &src, SDL_Rect srcRect, Point targetPosition) const
 {
+	if (GetRenderer().NeedsFullRedraw() && isScreenTarget) {
+		auto &renderer = GetRenderer();
+		renderer.SetClipRegion(MakeRectangle(region));
+		renderer.BlitSurface(src, srcRect, { targetPosition.x + region.x, targetPosition.y + region.y });
+		renderer.ClearClipRegion();
+		return;
+	}
 	SurfaceBlit</*SkipColorIndexZero=*/false>(src, srcRect, *this, targetPosition);
 }
 
 void Surface::BlitFromSkipColorIndexZero(const Surface &src, SDL_Rect srcRect, Point targetPosition) const
 {
+	if (GetRenderer().NeedsFullRedraw() && isScreenTarget) {
+		auto &renderer = GetRenderer();
+		renderer.SetClipRegion(MakeRectangle(region));
+		renderer.BlitSurfaceSkipColorIndexZero(src, srcRect, { targetPosition.x + region.x, targetPosition.y + region.y });
+		renderer.ClearClipRegion();
+		return;
+	}
 	SurfaceBlit</*SkipColorIndexZero=*/true>(src, srcRect, *this, targetPosition);
 }
 

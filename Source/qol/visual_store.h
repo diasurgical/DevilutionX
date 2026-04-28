@@ -95,7 +95,7 @@ void VisualStorePreviousPage();
 /**
  * @brief Render the visual store panel to the given buffer.
  */
-void DrawVisualStore(const Surface &out);
+void DrawVisualStore();
 
 /**
  * @brief Handle a click on the visual store panel.

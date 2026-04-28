@@ -16,15 +16,12 @@
 #endif
 
 #include "control/control.hpp"
-#include "engine/render/primitive_render.hpp"
+#include "engine/render/renderer.h"
 #include "engine/render/text_render.hpp"
-#include "inv.h"
 #include "qol/chatlog.h"
-#include "qol/stash.h"
 #include "utils/algorithm/container.hpp"
 #include "utils/format.hpp"
 #include "utils/language.h"
-#include "utils/utf8.hpp"
 
 namespace devilution {
 
@@ -96,7 +93,7 @@ void InitPlrMsg()
 	Messages = {};
 }
 
-void DrawPlrMsg(const Surface &out)
+void DrawPlrMsg()
 {
 	if (ChatLogFlag)
 		return;
@@ -127,13 +124,13 @@ void DrawPlrMsg(const Surface &out)
 		const int chatlines = CountLinesOfText(text);
 		y -= message.lineHeight * chatlines;
 
-		DrawHalfTransparentRectTo(out, x - 3, y, width + 6, message.lineHeight * chatlines);
+		GetRenderer().DrawBlendedRect({ { x - 3, y }, { width + 6, message.lineHeight * chatlines } });
 
 		std::array<DrawStringFormatArg, 2> args {
 			DrawStringFormatArg { std::string_view(text.data(), message.prefixLength), UiFlags::ColorWhitegold },
 			DrawStringFormatArg { std::string_view(text.data() + message.prefixLength, text.size() - message.prefixLength), message.style }
 		};
-		DrawStringWithColors(out, "{:s}{:s}", args.data(), args.size(), { { x, y }, { width, 0 } },
+		DrawStringWithColors("{:s}{:s}", args.data(), args.size(), { { x, y }, { width, 0 } },
 		    { .flags = UiFlags::None, .lineHeight = message.lineHeight });
 	}
 }

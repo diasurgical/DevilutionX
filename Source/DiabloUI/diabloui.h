@@ -1,9 +1,7 @@
 #pragma once
 
-#include <array>
 #include <cstddef>
 #include <cstdint>
-#include <optional>
 
 #ifdef USE_SDL3
 #include <SDL3/SDL_events.h>
@@ -17,6 +15,7 @@
 #include "DiabloUI/ui_item.h"
 #include "engine/clx_sprite.hpp"
 #include "engine/load_pcx.hpp" // IWYU pragma: export
+#include "engine/render/renderer.h"
 #include "player.h"
 #include "utils/display.h"
 
@@ -79,11 +78,6 @@ extern OptionalOwnedClxSpriteList ArtBackground;
 extern OptionalOwnedClxSpriteList ArtCursor;
 
 extern bool (*gfnHeroInfo)(bool (*fninfofunc)(_uiheroinfo *));
-
-inline SDL_Surface *DiabloUiSurface()
-{
-	return PalSurface;
-}
 
 void UiDestroy();
 void UiTitleDialog();

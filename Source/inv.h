@@ -86,7 +86,7 @@ enum item_color : uint8_t {
 extern DVL_API_FOR_TEST bool invflag;
 extern const Rectangle InvRect[NUM_XY_SLOTS];
 
-void InvDrawSlotBack(const Surface &out, Point targetPosition, Size size, item_quality itemQuality);
+void InvDrawSlotBack(Point targetPosition, Size size, item_quality itemQuality);
 /**
  * @brief Checks whether the given item can be placed on the belt. Takes item size as well as characteristics into account. Items
  * that cannot be placed on the belt have to be placed in the inventory instead.
@@ -108,9 +108,9 @@ void InitInv();
 /**
  * @brief Render the inventory panel to the given buffer.
  */
-void DrawInv(const Surface &out);
+void DrawInv();
 
-void DrawInvBelt(const Surface &out);
+void DrawInvBelt();
 
 /**
  * @brief Removes equipment from the specified location on the player's body.
