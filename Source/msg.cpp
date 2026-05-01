@@ -453,9 +453,11 @@ void PrePacket()
 				return;
 			}
 
-			if (!IsNetPlayerValid(playerId)) {
-				Log("Source of network message is no longer valid");
-				return;
+			if (IsNoneOf(cmdId, CMD_SEND_PLRINFO, CMD_ACK_PLRINFO)) {
+				if (!IsNetPlayerValid(playerId)) {
+					Log("Source of network message is no longer valid");
+					return;
+				}
 			}
 
 			const size_t size = ParseCmd(playerId, reinterpret_cast<TCmd *>(data), remainingBytes);
