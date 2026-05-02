@@ -77,30 +77,20 @@ std::vector<std::pair<std::string, std::vector<TownerDialogOption>>> ExtraTowner
 
 const char *TownerNameForTalkID(TalkID s)
 {
-	const auto lookup = [](const _talker_id id) -> const char * {
-		auto it = TownerShortNames.find(id);
-		return it != TownerShortNames.end() ? it->second : nullptr;
-	};
+	_talker_id townerId;
 	switch (s) {
-	case TalkID::Smith:
-		return lookup(TOWN_SMITH);
-	case TalkID::Witch:
-		return lookup(TOWN_WITCH);
-	case TalkID::Boy:
-		return lookup(TOWN_PEGBOY);
-	case TalkID::Healer:
-		return lookup(TOWN_HEALER);
-	case TalkID::Storyteller:
-		return lookup(TOWN_STORY);
-	case TalkID::Tavern:
-		return lookup(TOWN_TAVERN);
-	case TalkID::Drunk:
-		return lookup(TOWN_DRUNK);
-	case TalkID::Barmaid:
-		return lookup(TOWN_BMAID);
-	default:
-		return nullptr;
+	case TalkID::Smith: townerId = TOWN_SMITH; break;
+	case TalkID::Witch: townerId = TOWN_WITCH; break;
+	case TalkID::Boy: townerId = TOWN_PEGBOY; break;
+	case TalkID::Healer: townerId = TOWN_HEALER; break;
+	case TalkID::Storyteller: townerId = TOWN_STORY; break;
+	case TalkID::Tavern: townerId = TOWN_TAVERN; break;
+	case TalkID::Drunk: townerId = TOWN_DRUNK; break;
+	case TalkID::Barmaid: townerId = TOWN_BMAID; break;
+	default: return nullptr;
 	}
+	const auto it = TownerShortNames.find(townerId);
+	return it != TownerShortNames.end() ? it->second : nullptr;
 }
 
 /** Finds the entry for a towner in ExtraTownerOptions, or nullptr if none. */

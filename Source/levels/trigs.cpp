@@ -114,18 +114,17 @@ void InitTownTriggers()
 	numtrigs = 0;
 	trigflag = false;
 
-	const std::string &townId = GetTownRegistry().GetCurrentTown();
-	if (!GetTownRegistry().HasTown(townId)) {
-		LogError("InitTownTriggers: current town '{}' not registered", townId);
+	const TownConfig *config = GetCurrentTownConfig();
+	if (config == nullptr) {
+		LogError("InitTownTriggers: current town not registered");
 		return;
 	}
 
-	const TownConfig &town = GetTownRegistry().GetTown(townId);
-	for (const TownTrigger &trigger : town.triggers) {
+	for (const TownTrigger &trigger : config->triggers) {
 		if (trigger.warpGate.has_value() && !IsWarpOpen(*trigger.warpGate))
 			continue;
 		if (numtrigs >= MAXTRIGGERS) {
-			LogError("InitTownTriggers: more than MAXTRIGGERS ({}) for town '{}'", MAXTRIGGERS, townId);
+			LogError("InitTownTriggers: more than MAXTRIGGERS ({})", MAXTRIGGERS);
 			break;
 		}
 		trigs[numtrigs].position = trigger.position;

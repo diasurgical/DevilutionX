@@ -491,6 +491,7 @@ void DoLoad(interface_mode uMsg)
 		IncProgress();
 		loadResult = LoadGameLevel(false, ENTRY_TOWNSWITCH);
 		if (loadResult.has_value()) IncProgress();
+
 		break;
 	default:
 		loadResult = std::unexpected<std::string>("Unknown progress mode");

@@ -76,16 +76,13 @@ std::unique_ptr<uint16_t[]> LoadMinData(size_t &tileCount)
 	switch (leveltype) {
 	case DTYPE_TOWN: {
 		const TownVisualAssets &active = GetActiveTownConfigForTileLoad().visualAssets;
-		const TownVisualAssets &tristramAssets = GetTownRegistry().GetTown(TristramTownId).visualAssets;
+		const TownVisualAssets &tristram = GetTownRegistry().GetTown(TristramTownId).visualAssets;
 		LogVerbose("LoadMinData (town): {}", active.pieceMinPath);
-		auto min = LoadFileInMemWithStatus<uint16_t>(active.pieceMinPath.c_str(), &tileCount);
-		if (!min.has_value()) {
-			if (active.pieceMinPath != tristramAssets.pieceMinPath)
-				min = LoadFileInMemWithStatus<uint16_t>(tristramAssets.pieceMinPath.c_str(), &tileCount);
-			if (!min.has_value())
-				return LoadFileInMem<uint16_t>(TristramRetailTownPaths::PieceMin, &tileCount);
-			return std::move(*min);
-		}
+		auto min = LoadTownAssetWithFallback(
+		    active.pieceMinPath, tristram.pieceMinPath.c_str(), TownVisualAssets::RetailPieceMin,
+		    [&tileCount](const char *p) { return LoadFileInMemWithStatus<uint16_t>(p, &tileCount); });
+		if (!min.has_value())
+			app_fatal("LoadMinData");
 		return std::move(*min);
 	}
 	case DTYPE_CATHEDRAL:
@@ -112,16 +109,11 @@ std::expected<void, std::string> LoadLevelSOLData()
 	switch (leveltype) {
 	case DTYPE_TOWN: {
 		const TownVisualAssets &active = GetActiveTownConfigForTileLoad().visualAssets;
-		const TownVisualAssets &tristramAssets = GetTownRegistry().GetTown(TristramTownId).visualAssets;
+		const TownVisualAssets &tristram = GetTownRegistry().GetTown(TristramTownId).visualAssets;
 		LogVerbose("LoadLevelSOLData (town): {}", active.solPath);
-		if (!LoadIntegralFileInMemWithStatus(active.solPath.c_str(), SOLData).has_value()) {
-			// Try Tristram primary (skip if same path to avoid a redundant attempt).
-			bool loaded = active.solPath != tristramAssets.solPath
-			    && LoadIntegralFileInMemWithStatus(tristramAssets.solPath.c_str(), SOLData).has_value();
-			if (!loaded) {
-				RETURN_IF_ERROR(LoadIntegralFileInMemWithStatus(TristramRetailTownPaths::Sol, SOLData));
-			}
-		}
+		RETURN_IF_ERROR(LoadTownAssetWithFallback(
+		    active.solPath, tristram.solPath.c_str(), TownVisualAssets::RetailSol,
+		    [](const char *p) { return LoadIntegralFileInMemWithStatus(p, SOLData); }));
 		break;
 	}
 	case DTYPE_CATHEDRAL:

@@ -1374,39 +1374,16 @@ std::expected<void, std::string> LoadLvlGFX()
 	switch (leveltype) {
 	case DTYPE_TOWN: {
 		const TownVisualAssets &active = GetActiveTownConfigForTileLoad().visualAssets;
-		const TownVisualAssets &tristramAssets = GetTownRegistry().GetTown(TristramTownId).visualAssets;
+		const TownVisualAssets &tristram = GetTownRegistry().GetTown(TristramTownId).visualAssets;
 		LogVerbose("LoadLvlGFX (town): cel {} | til {} | special {} | pal {}",
 		    active.dungeonCelPath, active.megaTilePath, active.specialCelsPath, active.palettePath);
 
-		// CEL: try mod/active primary, then Tristram chain on failure.
-		auto cel = LoadFileInMemWithStatus(active.dungeonCelPath.c_str());
-		if (!cel.has_value()) {
-			if (active.dungeonCelPath != tristramAssets.dungeonCelPath)
-				cel = LoadFileInMemWithStatus(tristramAssets.dungeonCelPath.c_str());
-			if (!cel.has_value()) {
-				ASSIGN_OR_RETURN(pDungeonCels, LoadFileInMemWithStatus(TristramRetailTownPaths::DungeonCel));
-			} else {
-				pDungeonCels = std::move(*cel);
-			}
-		} else {
-			pDungeonCels = std::move(*cel);
-		}
+		ASSIGN_OR_RETURN(pDungeonCels, LoadTownAssetWithFallback(active.dungeonCelPath, tristram.dungeonCelPath.c_str(), TownVisualAssets::RetailDungeonCel, [](const char *p) { return LoadFileInMemWithStatus(p); }));
 
-		// TIL: same pattern.
-		auto til = LoadFileInMemWithStatus<MegaTile>(active.megaTilePath.c_str());
-		if (!til.has_value()) {
-			if (active.megaTilePath != tristramAssets.megaTilePath)
-				til = LoadFileInMemWithStatus<MegaTile>(tristramAssets.megaTilePath.c_str());
-			if (!til.has_value()) {
-				ASSIGN_OR_RETURN(pMegaTiles, LoadFileInMemWithStatus<MegaTile>(TristramRetailTownPaths::MegaTile));
-			} else {
-				pMegaTiles = std::move(*til);
-			}
-		} else {
-			pMegaTiles = std::move(*til);
-		}
+		ASSIGN_OR_RETURN(pMegaTiles, LoadTownAssetWithFallback(active.megaTilePath, tristram.megaTilePath.c_str(), TownVisualAssets::RetailMegaTile, [](const char *p) { return LoadFileInMemWithStatus<MegaTile>(p); }));
 
-		ASSIGN_OR_RETURN(pSpecialCels, LoadCelWithStatus(active.specialCelsPath.c_str(), SpecialCelWidth));
+		ASSIGN_OR_RETURN(pSpecialCels, LoadTownAssetWithFallback(active.specialCelsPath, tristram.specialCelsPath.c_str(), nullptr, [](const char *p) { return LoadCelWithStatus(p, SpecialCelWidth); }));
+
 		return {};
 	}
 	case DTYPE_CATHEDRAL:

@@ -20,13 +20,21 @@ TownRegistry &GetTownRegistry()
 	return g_townRegistry;
 }
 
-const TownConfig &GetActiveTownConfigForTileLoad()
+const TownConfig *GetCurrentTownConfig()
 {
 	const TownRegistry &registry = GetTownRegistry();
 	const std::string &id = registry.GetCurrentTown();
 	if (!id.empty() && registry.HasTown(id))
-		return registry.GetTown(id);
-	return registry.GetTown(TristramTownId);
+		return &registry.GetTown(id);
+	return nullptr;
+}
+
+const TownConfig &GetActiveTownConfigForTileLoad()
+{
+	const TownConfig *config = GetCurrentTownConfig();
+	if (config != nullptr)
+		return *config;
+	return GetTownRegistry().GetTown(TristramTownId);
 }
 
 void TownRegistry::RegisterTown(const std::string &id, const TownConfig &config)
@@ -78,9 +86,9 @@ Point GetPortalTownPosition(size_t portalIndex)
 {
 	if (portalIndex >= NumTownPortalSlots)
 		return DefaultTristramPortalPositions[0];
-	const std::string &townId = GetTownRegistry().GetCurrentTown();
-	if (GetTownRegistry().HasTown(townId))
-		return GetTownRegistry().GetTown(townId).portalPositions[portalIndex];
+	const TownConfig *config = GetCurrentTownConfig();
+	if (config != nullptr)
+		return config->portalPositions[portalIndex];
 	return DefaultTristramPortalPositions[portalIndex];
 }
 
@@ -111,9 +119,6 @@ void InitializeTristram()
 {
 	TownConfig tristram;
 	tristram.name = "Tristram";
-	tristram.saveId = 0;
-	tristram.dminPosition = { 10, 10 };
-	tristram.dmaxPosition = { 84, 84 };
 	tristram.sectors = {
 		{ "levels\\towndata\\sector1s.dun", 46, 46 },
 		{ "levels\\towndata\\sector2s.dun", 46, 0 },
@@ -141,52 +146,11 @@ void InitializeTristram()
 		{ { 80, 62 }, WM_DIABTOWNWARP, 17, DTYPE_NEST },
 		{ { 36, 24 }, WM_DIABTOWNWARP, 21, DTYPE_CRYPT },
 	};
-	tristram.warpClosedPatches = {
-		/*
-		if (!IsWarpOpen(DTYPE_CATACOMBS)) {
-		    dungeon[20][7] = 10;
-		    dungeon[20][6] = 8;
-		    FillTile(48, 20, 320);
-		}
-		*/
-		{
-		    DTYPE_CATACOMBS,
-		    { { { 20, 7 }, 10 }, { { 20, 6 }, 8 } },
-		    { { 48, 20, 320 } },
-		    std::nullopt,
-		},
-		/*
-		if (!IsWarpOpen(DTYPE_CAVES)) {
-		    dungeon[4][30] = 8;
-		    FillTile(16, 68, 332);
-		    FillTile(16, 70, 331);
-		}
-		*/
-		{
-		    DTYPE_CAVES,
-		    { { { 4, 30 }, 8 } },
-		    { { 16, 68, 332 }, { 16, 70, 331 } },
-		    std::nullopt,
-		},
-		/*
-		if (!IsWarpOpen(DTYPE_HELL)) {
-		    dungeon[15][35] = 7;
-		    dungeon[16][35] = 7;
-		    dungeon[17][35] = 7;
-		    for (int x = 36; x < 46; x++) {
-		        FillTile(x, 78, PickRandomlyAmong({ 1, 2, 3, 4 }));
-		    }
-		}
-		*/
-		{
-		    DTYPE_HELL,
-		    { { { 15, 35 }, 7 }, { { 16, 35 }, 7 }, { { 17, 35 }, 7 } },
-		    {},
-		    TownWarpClosedRandomGroundStrip { 36, 46, 78 },
-		},
-	};
-	GetTownRegistry().RegisterTown(TristramTownId, tristram);
-	GetTownRegistry().SetCurrentTown(TristramTownId);
+	TownRegistry &registry = GetTownRegistry();
+	registry.RegisterTown(TristramTownId, tristram);
+	const std::string &current = registry.GetCurrentTown();
+	if (current.empty() || !registry.HasTown(current))
+		registry.SetCurrentTown(TristramTownId);
 }
 
 } // namespace devilution

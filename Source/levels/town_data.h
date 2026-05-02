@@ -4,7 +4,6 @@
 #include <optional>
 #include <string>
 #include <unordered_map>
-#include <utility>
 #include <vector>
 
 #include "engine/point.hpp"
@@ -69,51 +68,13 @@ struct TownTrigger {
 	std::optional<dungeon_type> warpGate;
 };
 
-struct TownWarpFillTile {
-	int x;
-	int y;
-	int tile;
-};
-
-/**
- * @brief Fills random ground micros (1-4) for each x in [xStart, xEnd).
- */
-struct TownWarpClosedRandomGroundStrip {
-	int xStart;
-	int xEndExclusive;
-	int y;
-};
-
-/**
- * @brief Visual dungeon/dPiece patches when a town warp is still closed (see DrlgTPass3).
- */
-struct TownWarpPatch {
-	dungeon_type requiredWarp;
-	std::vector<std::pair<Point, int>> dungeonCells;
-	std::vector<TownWarpFillTile> fillTiles;
-	std::optional<TownWarpClosedRandomGroundStrip> randomGroundStrip;
-};
-
-/**
- * Retail (DIABDAT.MPQ) town tile paths — used when Hellfire `nlevels\\towndata\\` assets are absent.
- * Loaders try the active town’s primary paths, then Tristram’s primaries, then these (see LoadLvlGFX, etc.).
- */
-namespace TristramRetailTownPaths {
-inline constexpr char DungeonCel[] = R"(levels\towndata\town.cel)";
-inline constexpr char MegaTile[] = R"(levels\towndata\town.til)";
-inline constexpr char PieceMin[] = R"(levels\towndata\town.min)";
-inline constexpr char Sol[] = R"(levels\towndata\town.sol)";
-} // namespace TristramRetailTownPaths
-
 /**
  * @brief Paths for town tile graphics: dungeon CEL, mega TIL, special CELs, SOL, and palette.
  *
  * Defaults match Tristram (Hellfire `nlevels\\` where applicable). On load failure, the engine
- * retries Tristram’s defaults, then `TristramRetailTownPaths`. Lua `assets` only sets these fields;
- * the retail chain is not configurable.
- *
- * Omitting `palette` in Lua keeps the default `levels\\towndata\\town.pal`; set `assets.palette`
- * to override.
+ * retries Tristram’s defaults, then the retail (vanilla Diablo) fallbacks via
+ * LoadTownAssetWithFallback. Lua `assets` only sets the instance fields; the retail
+ * chain is not configurable.
  */
 struct TownVisualAssets {
 	std::string dungeonCelPath = R"(nlevels\towndata\town.cel)";
@@ -128,7 +89,39 @@ struct TownVisualAssets {
 	 * Must match the CEL and MIN format: 16 for town.cel/min, 10 for L1/l2/l3/l6, 12 for L4.
 	 */
 	uint_fast8_t microTileLen = 16;
+
+	/** @brief Retail (DIABDAT.MPQ) fallback paths for vanilla Diablo (no Hellfire nlevels). */
+	static constexpr char RetailDungeonCel[] = R"(levels\towndata\town.cel)";
+	static constexpr char RetailMegaTile[] = R"(levels\towndata\town.til)";
+	static constexpr char RetailPieceMin[] = R"(levels\towndata\town.min)";
+	static constexpr char RetailSol[] = R"(levels\towndata\town.sol)";
 };
+
+/**
+ * @brief Loads a town asset with a 3-tier fallback: activePath → hellfireFallback → retailFallback.
+ *
+ * Skips hellfireFallback if it matches activePath. Skips retailFallback if nullptr.
+ * The `load` callable must accept `const char*` and return a type with `.has_value()`.
+ */
+template <typename LoadFn>
+auto LoadTownAssetWithFallback(
+    const std::string &activePath,
+    const char *hellfireFallback,
+    const char *retailFallback,
+    LoadFn &&load) -> decltype(load(static_cast<const char *>(nullptr)))
+{
+	auto result = load(activePath.c_str());
+	if (result.has_value())
+		return result;
+	if (activePath != hellfireFallback) {
+		result = load(hellfireFallback);
+		if (result.has_value())
+			return result;
+	}
+	if (retailFallback != nullptr)
+		return load(retailFallback);
+	return result;
+}
 
 /**
  * @brief Complete configuration for a town
@@ -142,7 +135,6 @@ struct TownConfig {
 	std::vector<TownSector> sectors;
 	std::vector<TownEntryPoint> entries;
 	std::vector<TownTrigger> triggers;
-	std::vector<TownWarpPatch> warpClosedPatches;
 	std::vector<TownerPositionOverride> townerOverrides;
 	std::array<Point, NumTownPortalSlots> portalPositions = DefaultTristramPortalPositions;
 
@@ -174,6 +166,11 @@ public:
 };
 
 TownRegistry &GetTownRegistry();
+
+/**
+ * @brief Returns the current town config, or nullptr if no town is set / registered.
+ */
+const TownConfig *GetCurrentTownConfig();
 
 /**
  * @brief Town used for DTYPE_TOWN tile loading (CEL/TIL/SOL/palette): current town if registered, else Tristram.

@@ -28,7 +28,6 @@
 #include "levels/town_data.h"
 #include "options.h"
 #include "utils/display.h"
-#include "utils/log.hpp"
 #include "utils/palette_blending.hpp"
 #include "utils/sdl_compat.h"
 #include "utils/str_cat.hpp"
@@ -207,9 +206,7 @@ void LoadRndLvlPal(dungeon_type l)
 		return;
 
 	if (l == DTYPE_TOWN) {
-		const char *palPath = GetActiveTownConfigForTileLoad().visualAssets.palettePath.c_str();
-		LogVerbose("LoadRndLvlPal (town): {}", palPath);
-		LoadPaletteAndInitBlending(palPath);
+		LoadPaletteAndInitBlending(GetActiveTownConfigForTileLoad().visualAssets.palettePath.c_str());
 		return;
 	}
 

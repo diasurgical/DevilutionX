@@ -2480,6 +2480,11 @@ std::expected<void, std::string> LoadGame(bool firstflag)
 {
 	FreeGameMem();
 
+	// Ensure Tristram is always registered before any level asset loading.
+	// For new games this is done by InitLevels() before RunGameLoop, but the
+	// load-game path skips that block, so we must initialize here.
+	InitializeTristram();
+
 	LoadHelper file(OpenSaveArchive(gSaveNumber), "game");
 	if (!file.IsValid()) {
 		return std::unexpected(std::string(_("Unable to open save file archive")));

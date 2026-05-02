@@ -15,7 +15,6 @@ using namespace devilution;
 namespace {
 
 constexpr size_t TristramTriggerCount = 6;
-constexpr size_t TristramWarpClosedPatchCount = 3;
 constexpr size_t TristramEntryPointCount = 8;
 
 constexpr Point TristramCathedralTrigPosition = { 25, 29 };
@@ -163,12 +162,6 @@ TEST_F(InitializeTristramTest, TristramFirstTriggerIsCathedralStairs)
 	EXPECT_EQ(first.msg, WM_DIABNEXTLVL);
 }
 
-TEST_F(InitializeTristramTest, TristramWarpClosedPatchCount)
-{
-	const TownConfig &tristram = GetTownRegistry().GetTown(TristramTownId);
-	EXPECT_EQ(tristram.warpClosedPatches.size(), TristramWarpClosedPatchCount);
-}
-
 TEST_F(InitializeTristramTest, TristramEntryPointCount)
 {
 	const TownConfig &tristram = GetTownRegistry().GetTown(TristramTownId);
@@ -193,10 +186,10 @@ TEST_F(InitializeTristramTest, TristramVisualAssetsMatchVanillaPaths)
 	EXPECT_EQ(va.solPath, R"(nlevels\towndata\town.sol)");
 	EXPECT_EQ(va.palettePath, R"(levels\towndata\town.pal)");
 	EXPECT_EQ(va.microTileLen, static_cast<uint_fast8_t>(16));
-	EXPECT_STREQ(TristramRetailTownPaths::DungeonCel, R"(levels\towndata\town.cel)");
-	EXPECT_STREQ(TristramRetailTownPaths::MegaTile, R"(levels\towndata\town.til)");
-	EXPECT_STREQ(TristramRetailTownPaths::PieceMin, R"(levels\towndata\town.min)");
-	EXPECT_STREQ(TristramRetailTownPaths::Sol, R"(levels\towndata\town.sol)");
+	EXPECT_STREQ(TownVisualAssets::RetailDungeonCel, R"(levels\towndata\town.cel)");
+	EXPECT_STREQ(TownVisualAssets::RetailMegaTile, R"(levels\towndata\town.til)");
+	EXPECT_STREQ(TownVisualAssets::RetailPieceMin, R"(levels\towndata\town.min)");
+	EXPECT_STREQ(TownVisualAssets::RetailSol, R"(levels\towndata\town.sol)");
 }
 
 TEST_F(InitializeTristramTest, GetPortalTownPositionMatchesTristramWhenCurrent)
@@ -218,6 +211,22 @@ TEST_F(InitializeTristramTest, GetPortalTownPositionUsesTownOverrides)
 	EXPECT_EQ(GetPortalTownPosition(0), Point(99, 88));
 	EXPECT_EQ(GetPortalTownPosition(1), DefaultTristramPortalPositions[1]);
 	GetTownRegistry().SetCurrentTown(TristramTownId);
+}
+
+TEST(InitializeTristram, PreservesValidCurrentTownOnRepeatCall)
+{
+	InitializeTristram();
+	TownConfig modTown;
+	modTown.name = "Mod";
+	modTown.saveId = 3;
+	TownRegistry &reg = GetTownRegistry();
+	reg.RegisterTown("modtown", modTown);
+	reg.SetCurrentTown("modtown");
+
+	InitializeTristram();
+
+	EXPECT_EQ(reg.GetCurrentTown(), "modtown");
+	reg.SetCurrentTown(TristramTownId);
 }
 
 } // namespace
