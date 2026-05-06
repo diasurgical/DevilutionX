@@ -661,14 +661,12 @@ msgstr "Гравці: "
 #: Source/DiabloUI/multi/selgame.cpp:293
 #, c++-format
 msgid "Ping: {:d} ms (RELAYED)"
-msgstr ""
+msgstr "Пінг: {:d} мс (РЕТРАНСЛЯЦІЯ)"
 
 #: Source/DiabloUI/multi/selgame.cpp:295
-#, fuzzy, c++-format
-#| msgctxt "spellbook"
-#| msgid "Mana: {:d}"
+#, c++-format
 msgid "Ping: {:d} ms"
-msgstr "Мана: {:d}"
+msgstr "Пінг: {:d} мс"
 
 #: Source/DiabloUI/multi/selgame.cpp:353
 msgid "Select Difficulty"
@@ -1041,25 +1039,25 @@ msgstr "Огляд гравця: "
 #: Source/control/control_chat_commands.cpp:233
 #, c++-format
 msgid "Latency statistics for {:s}:"
-msgstr ""
+msgstr "Статистика затримки для {:s}:"
 
 #. TRANSLATORS: Network connectivity statistics
 #: Source/control/control_chat_commands.cpp:235 Source/diablo.cpp:1589
 #, c++-format
 msgid "Echo latency: {:d} ms"
-msgstr ""
+msgstr "Затримка відлуння: {:d} мс"
 
 #. TRANSLATORS: Network connectivity statistics
 #: Source/control/control_chat_commands.cpp:239 Source/diablo.cpp:1593
 #, c++-format
 msgid "Provider latency: {:d} ms (Relayed)"
-msgstr ""
+msgstr "Затримка провайдера: {:d} мс (ретрансляція)"
 
 #. TRANSLATORS: Network connectivity statistics
 #: Source/control/control_chat_commands.cpp:241 Source/diablo.cpp:1595
 #, c++-format
 msgid "Provider latency: {:d} ms"
-msgstr ""
+msgstr "Затримка провайдера: {:d} мс"
 
 #: Source/control/control_chat_commands.cpp:249
 msgid "Prints help overview or help for a specific command."
@@ -1099,10 +1097,8 @@ msgid "Show seed infos for current level."
 msgstr "Показати інформацію про початкові значення ГВЧ для поточного рівня."
 
 #: Source/control/control_chat_commands.cpp:254
-#, fuzzy
-#| msgid "Inspects stats and equipment of another player."
 msgid "Show latency statistics for another player."
-msgstr "Оглядає статистику та спорядження іншого гравця."
+msgstr "Показати статистику затримки для іншого гравця."
 
 #. TRANSLATORS: {:s} is a number with separators. Dialog is shown when splitting a stash of Gold.
 #: Source/control/control_gold.cpp:60
@@ -1462,10 +1458,9 @@ msgstr "-- Чекаємо гравців --"
 
 #. TRANSLATORS: {:s} means: Character Name
 #: Source/diablo.cpp:1586
-#, fuzzy, c++-format
-#| msgid "Player '{:s}' dropped due to timeout"
+#, c++-format
 msgid "Player {:s} is timing out!"
-msgstr "Гравець '{:s}' відключився через таймаут"
+msgstr "Гравець '{:s}' відключається через таймаут!"
 
 #: Source/diablo.cpp:1622
 msgid "No help available"
@@ -2238,6 +2233,8 @@ msgid ""
 "Server failed to decrypt your packet. Check if you typed the password "
 "correctly."
 msgstr ""
+"Сервер не зміг розшифрувати ваш пакет. Перевірте, чи правильно ви ввели "
+"пароль."
 
 #: Source/engine/assets.cpp:252
 #, c++-format
@@ -2646,7 +2643,7 @@ msgstr "Неможливо створити головне вікно"
 
 #: Source/inv.cpp:2002
 msgid "Fully Repaired"
-msgstr ""
+msgstr "Повністю відремонтовано"
 
 #: Source/inv.cpp:2255
 msgid "No room for item"
@@ -4598,13 +4595,15 @@ msgstr "Кількість Зілля Повного Омолодження що
 
 #: Source/options.cpp:874
 msgid "Visual Store UI"
-msgstr ""
+msgstr "Візуальний інтерфейс магазину"
 
 #: Source/options.cpp:874
 msgid ""
 "Use visual grid-based store interface instead of text-based menus. Both "
 "store and inventory panels open together."
 msgstr ""
+"Використовувати візуальний інтерфейс магазину на основі сітки замість "
+"текстових меню. Панелі магазину та запасів відкриваються одночасно."
 
 #: Source/options.cpp:926
 msgid "Controller"
@@ -4874,66 +4873,49 @@ msgstr "Скільки золотих монет ти хочеш забрати?
 #: Source/qol/visual_store.cpp:442 Source/qol/visual_store.cpp:531
 #: Source/qol/visual_store.cpp:532
 msgid "Basic"
-msgstr ""
+msgstr "Базові"
 
 #: Source/qol/visual_store.cpp:446 Source/qol/visual_store.cpp:545
 #: Source/qol/visual_store.cpp:546
 msgid "Premium"
-msgstr ""
+msgstr "Преміум"
 
 #: Source/qol/visual_store.cpp:454 Source/qol/visual_store.cpp:536
 #: Source/qol/visual_store.cpp:537
 msgid "Misc"
-msgstr ""
+msgstr "Різне"
 
 #: Source/qol/visual_store.cpp:502
-#, fuzzy
-#| msgid "$Gold:"
 msgid "Gold: "
-msgstr "$Золото:"
+msgstr "Золото: "
 
 #: Source/qol/visual_store.cpp:533 Source/qol/visual_store.cpp:534
-#, fuzzy
-#| msgid "Buy basic items"
 msgid "Basic items"
-msgstr "Купити прості предмети"
+msgstr "Прості предмети"
 
 #: Source/qol/visual_store.cpp:538 Source/qol/visual_store.cpp:539
-#, fuzzy
-#| msgid "increases an item's"
 msgid "Miscellaneous items"
-msgstr "підвищує у предмета"
+msgstr "Різні предмети"
 
 #: Source/qol/visual_store.cpp:547 Source/qol/visual_store.cpp:548
-#, fuzzy
-#| msgid "Buy premium items"
 msgid "Premium items"
-msgstr "Купити преміальні предмети"
+msgstr "Преміум-предмети"
 
 #: Source/qol/visual_store.cpp:560 Source/qol/visual_store.cpp:561
-#, fuzzy
-#| msgid "Repair items"
 msgid "Repair All"
-msgstr "Відремонтувати предмети"
+msgstr "Відремонтувати все"
 
 #: Source/qol/visual_store.cpp:566 Source/qol/visual_store.cpp:567
-#, fuzzy
-#| msgid "You have nothing to repair."
 msgid "Nothing to repair"
-msgstr "Немає чого ремонтувати."
+msgstr "Немає чого ремонтувати"
 
 #: Source/qol/visual_store.cpp:573 Source/qol/visual_store.cpp:574
-#, fuzzy
-#| msgctxt "spell"
-#| msgid "Item Repair"
 msgid "Repair"
-msgstr "Ремонт Предмету"
+msgstr "Відремонтувати"
 
 #: Source/qol/visual_store.cpp:575 Source/qol/visual_store.cpp:576
-#, fuzzy
-#| msgid "Repair items"
 msgid "Repair a single item"
-msgstr "Відремонтувати предмети"
+msgstr "Відремонтувати один предмет"
 
 #: Source/qol/xpbar.cpp:139
 #, c++-format
@@ -5103,11 +5085,8 @@ msgid "Talk to Griswold"
 msgstr "Поговорити з Грізвольдом"
 
 #: Source/stores.cpp:441
-#, fuzzy
-#| msgctxt "spell"
-#| msgid "Item Repair"
 msgid "Trade / Repair"
-msgstr "Ремонт Предмету"
+msgstr "Торгівля / Ремонт"
 
 #: Source/stores.cpp:442 Source/stores.cpp:448
 msgid "Leave the shop"
@@ -5163,7 +5142,7 @@ msgstr "Поговорити з Адрією"
 
 #: Source/stores.cpp:698
 msgid "Buy / Sell"
-msgstr ""
+msgstr "Купити / Продати"
 
 #: Source/stores.cpp:699 Source/stores.cpp:705
 msgid "Recharge staves"
