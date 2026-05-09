@@ -5,6 +5,7 @@
  */
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <string>
@@ -13,12 +14,12 @@
 #include <variant>
 #include <vector>
 
-#include <SDL.h>
-
 #include "DiabloUI/ui_flags.hpp"
 #include "engine/clx_sprite.hpp"
 #include "engine/palette.h"
+#include "engine/point.hpp"
 #include "engine/rectangle.hpp"
+#include "engine/surface.hpp"
 #include "utils/enum_traits.h"
 
 namespace devilution {
@@ -154,6 +155,8 @@ struct TextRenderOptions {
 
 	/** @brief If a cursor is rendered, the surface coordinates are saved here. */
 	std::optional<Point> *renderedCursorPositionOut = nullptr;
+
+	bool cursorStatic = false;
 };
 
 /**
@@ -184,9 +187,11 @@ int GetLineWidth(std::string_view text, GameFontTables size = GameFont12, int sp
  * @param size Font size to use
  * @param spacing Extra spacing to add per character
  * @param charactersInLine Receives characters read until newline or terminator
+ * @param firstArgOffset If given, starts counting at `args[argsOffset - 1].GetFormatted().substr(*firstArgOffset)`.
  * @return Line width in pixels
  */
-int GetLineWidth(std::string_view fmt, DrawStringFormatArg *args, size_t argsLen, size_t argsOffset, GameFontTables size, int spacing, int *charactersInLine = nullptr);
+int GetLineWidth(std::string_view fmt, DrawStringFormatArg *args, size_t argsLen, size_t argsOffset, GameFontTables size, int spacing, int *charactersInLine = nullptr,
+    std::optional<size_t> firstArgOffset = std::nullopt);
 
 int GetLineHeight(std::string_view text, GameFontTables fontIndex);
 

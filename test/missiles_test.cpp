@@ -29,9 +29,9 @@ void TestAnimatedMissileRotatesUniformly(Missile &missile, int startingDir, int 
 {
 	ankerl::unordered_dense::map<int, unsigned> observed {};
 	for (auto i = 0; i < 100; i++) {
-		missile._mimfnum = startingDir;
+		missile.setFrameGroupRaw(startingDir);
 		TestRotateBlockedMissile(missile);
-		observed[missile._mimfnum]++;
+		observed[missile.getFrameGroupRaw()]++;
 	}
 
 	EXPECT_THAT(observed, UnorderedElementsAre(Pair(leftDir, AllOf(Gt(30U), Lt(70U))), Pair(rightDir, AllOf(Gt(30U), Lt(70U))))) << "Animated missiles should rotate either direction roughly 50% of the time";
@@ -45,7 +45,7 @@ TEST(Missiles, RotateBlockedMissileArrow)
 	*MyPlayer = {};
 	LoadMissileData();
 
-	devilution::Player &player = Players[0];
+	const devilution::Player &player = Players[0];
 	// missile can be a copy or a reference, there's no nullptr check and the functions that use it don't expect the instance to be part of a global structure so it doesn't really matter for this use.
 	Missile missile = *AddMissile({ 0, 0 }, { 0, 0 }, Direction::South, MissileID::Arrow, TARGET_MONSTERS, player, 0, 0);
 
@@ -58,7 +58,7 @@ TEST(Missiles, RotateBlockedMissileArrow)
 
 	// All other missiles use the number of 0-indexed sprites defined in MissileSpriteData
 	missile = *AddMissile({ 0, 0 }, { 0, 0 }, Direction::South, MissileID::Firebolt, TARGET_MONSTERS, player, 0, 0);
-	EXPECT_EQ(missile._mimfnum, 0);
+	EXPECT_EQ(missile.getFrameGroupRaw(), 0);
 	TestAnimatedMissileRotatesUniformly(missile, 5, 4, 6);
 	TestAnimatedMissileRotatesUniformly(missile, 0, 15, 1);
 	TestAnimatedMissileRotatesUniformly(missile, 15, 14, 0);

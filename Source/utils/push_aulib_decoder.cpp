@@ -44,7 +44,7 @@ void PushAulibDecoder::DiscardPendingSamples() noexcept
 	queue_ = std::queue<AudioQueueItem>();
 }
 
-bool PushAulibDecoder::open([[maybe_unused]] SDL_RWops *rwops)
+bool PushAulibDecoder::open([[maybe_unused]] SDL_IOStream *rwops)
 {
 	assert(rwops == nullptr);
 	return true;
@@ -78,7 +78,7 @@ int PushAulibDecoder::doDecoding(float buf[], int len, bool &callAgain)
 		const auto lock = std::lock_guard(queue_mutex_);
 		AudioQueueItem *item;
 		while ((item = Next()) != nullptr) {
-			if (static_cast<unsigned>(remaining) <= item->len) {
+			if (remaining <= item->len) {
 				WriteFloats(*item, buf, remaining);
 				item->pos += remaining;
 				item->len -= remaining;

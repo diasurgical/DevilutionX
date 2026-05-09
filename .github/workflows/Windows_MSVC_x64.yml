@@ -29,7 +29,7 @@ jobs:
     runs-on: windows-latest
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         fetch-depth: 0
 
@@ -40,9 +40,9 @@ jobs:
       uses: lukka/get-cmake@latest
 
     - name: Restore or setup vcpkg
-      uses: lukka/run-vcpkg@v11.5
+      uses: lukka/run-vcpkg@v11.6
       with:
-        vcpkgGitCommitId: '74ec888e385d189b42d6b398d0bbaa6f1b1d3b0e'
+        vcpkgGitCommitId: 'a62ce77d56ee07513b4b67de1ec2daeaebfae51a'
 
     - name: Fetch test data
       run: |
@@ -61,7 +61,7 @@ jobs:
 
     - name: Upload-Package
       if: ${{ !env.ACT }}
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: devilutionx.exe
         path: |

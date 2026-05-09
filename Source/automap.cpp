@@ -10,13 +10,14 @@
 
 #include <fmt/format.h>
 
-#include "control.h"
+#include "control/control.hpp"
 #include "engine/load_file.hpp"
 #include "engine/palette.h"
 #include "engine/render/automap_render.hpp"
 #include "engine/render/primitive_render.hpp"
 #include "levels/gendung.h"
 #include "levels/setmaps.h"
+#include "options.h"
 #include "player.h"
 #include "utils/attributes.h"
 #include "utils/enum_traits.h"
@@ -37,7 +38,10 @@ Point Automap;
 
 enum MapColors : uint8_t {
 	/** color used to draw the player's arrow */
-	MapColorsPlayer = (PAL8_ORANGE + 1),
+	MapColorsPlayer1 = (PAL8_ORANGE + 1),
+	MapColorsPlayer2 = (PAL8_YELLOW + 1),
+	MapColorsPlayer3 = (PAL8_RED + 1),
+	MapColorsPlayer4 = (PAL8_BLUE + 1),
 	/** color for bright map lines (doors, stairs etc.) */
 	MapColorsBright = PAL8_YELLOW,
 	/** color for dim map lines/dots */
@@ -145,10 +149,10 @@ struct AutomapTile {
 	}
 
 	template <typename... Args>
-	[[nodiscard]] DVL_ALWAYS_INLINE constexpr bool hasAnyFlag(Flags flag, Args... flags)
+	[[nodiscard]] DVL_ALWAYS_INLINE constexpr bool hasAnyFlag(Flags flag, Args... testFlags)
 	{
 		return (static_cast<uint8_t>(this->flags)
-		           & (static_cast<uint8_t>(flag) | ... | static_cast<uint8_t>(flags)))
+		           & (static_cast<uint8_t>(flag) | ... | static_cast<uint8_t>(testFlags)))
 		    != 0;
 	}
 };
@@ -212,7 +216,7 @@ void DrawMapVerticalDoor(const Surface &out, Point center, AutomapTile neTile, u
 	default:
 		app_fatal("Invalid leveltype");
 	}
-	if (!(neTile.hasFlag(AutomapTile::Flags::VerticalPassage) && leveltype == DTYPE_CATHEDRAL))
+	if (!neTile.hasFlag(AutomapTile::Flags::VerticalPassage) || leveltype != DTYPE_CATHEDRAL)
 		DrawMapLineNE(out, center + AmOffset(lWidthOffset, lHeightOffset), AmLine(length), colorDim);
 	DrawDiamond(out, center + AmOffset(dWidthOffset, dHeightOffset), colorBright);
 }
@@ -261,7 +265,7 @@ void DrawMapHorizontalDoor(const Surface &out, Point center, AutomapTile nwTile,
 	default:
 		app_fatal("Invalid leveltype");
 	}
-	if (!(nwTile.hasFlag(AutomapTile::Flags::HorizontalPassage) && leveltype == DTYPE_CATHEDRAL))
+	if (!nwTile.hasFlag(AutomapTile::Flags::HorizontalPassage) || leveltype != DTYPE_CATHEDRAL)
 		DrawMapLineSE(out, center + AmOffset(lWidthOffset, lHeightOffset), AmLine(length), colorDim);
 	DrawDiamond(out, center + AmOffset(dWidthOffset, dHeightOffset), colorBright);
 }
@@ -630,9 +634,9 @@ void DrawWallConnections(const Surface &out, Point center, AutomapTile tile, Aut
  */
 void DrawMapVerticalGrate(const Surface &out, Point center, uint8_t colorDim)
 {
-	Point pos1 = center + AmOffset(AmWidthOffset::HalfTileLeft, AmHeightOffset::None) + AmOffset(AmWidthOffset::EighthTileRight, AmHeightOffset::EighthTileUp);
-	Point pos2 = center + AmOffset(AmWidthOffset::HalfTileLeft, AmHeightOffset::None);
-	Point pos3 = center + AmOffset(AmWidthOffset::HalfTileLeft, AmHeightOffset::None) + AmOffset(AmWidthOffset::EighthTileLeft, AmHeightOffset::EighthTileDown);
+	const Point pos1 = center + AmOffset(AmWidthOffset::HalfTileLeft, AmHeightOffset::None) + AmOffset(AmWidthOffset::EighthTileRight, AmHeightOffset::EighthTileUp);
+	const Point pos2 = center + AmOffset(AmWidthOffset::HalfTileLeft, AmHeightOffset::None);
+	const Point pos3 = center + AmOffset(AmWidthOffset::HalfTileLeft, AmHeightOffset::None) + AmOffset(AmWidthOffset::EighthTileLeft, AmHeightOffset::EighthTileDown);
 
 	SetMapPixel(out, pos1 + Displacement { 0, 1 }, 0);
 	SetMapPixel(out, pos2 + Displacement { 0, 1 }, 0);
@@ -647,9 +651,9 @@ void DrawMapVerticalGrate(const Surface &out, Point center, uint8_t colorDim)
  */
 void DrawMapHorizontalGrate(const Surface &out, Point center, uint8_t colorDim)
 {
-	Point pos1 = center + AmOffset(AmWidthOffset::HalfTileRight, AmHeightOffset::None) + AmOffset(AmWidthOffset::EighthTileLeft, AmHeightOffset::EighthTileUp);
-	Point pos2 = center + AmOffset(AmWidthOffset::HalfTileRight, AmHeightOffset::None);
-	Point pos3 = center + AmOffset(AmWidthOffset::HalfTileRight, AmHeightOffset::None) + AmOffset(AmWidthOffset::EighthTileRight, AmHeightOffset::EighthTileDown);
+	const Point pos1 = center + AmOffset(AmWidthOffset::HalfTileRight, AmHeightOffset::None) + AmOffset(AmWidthOffset::EighthTileLeft, AmHeightOffset::EighthTileUp);
+	const Point pos2 = center + AmOffset(AmWidthOffset::HalfTileRight, AmHeightOffset::None);
+	const Point pos3 = center + AmOffset(AmWidthOffset::HalfTileRight, AmHeightOffset::None) + AmOffset(AmWidthOffset::EighthTileRight, AmHeightOffset::EighthTileDown);
 
 	SetMapPixel(out, pos1 + Displacement { 0, 1 }, 0);
 	SetMapPixel(out, pos2 + Displacement { 0, 1 }, 0);
@@ -743,7 +747,7 @@ void DrawVertical(const Surface &out, Point center, AutomapTile tile, AutomapTil
  * @brief Draw half-tile length lines to connect walls to any walls to the south-west and/or south-east
  * (For caves the horizontal/vertical flags are swapped)
  */
-void DrawCaveWallConnections(const Surface &out, Point center, AutomapTile sTile, AutomapTile swTile, AutomapTile seTile, uint8_t colorDim)
+void DrawCaveWallConnections(const Surface &out, Point center, AutomapTile swTile, AutomapTile seTile, uint8_t colorDim)
 {
 	if (IsAnyOf(swTile.type, AutomapTile::Types::CaveVerticalWallLava, AutomapTile::Types::CaveVertical, AutomapTile::Types::CaveVerticalWood, AutomapTile::Types::CaveCross, AutomapTile::Types::CaveWoodCross, AutomapTile::Types::CaveRightWoodCross, AutomapTile::Types::CaveLeftWoodCross, AutomapTile::Types::CaveRightCorner)) {
 		DrawMapLineNE(out, center + AmOffset(AmWidthOffset::QuarterTileLeft, AmHeightOffset::ThreeQuartersTileDown), AmLine(AmLineLength::HalfTile), colorDim);
@@ -846,7 +850,7 @@ void DrawMapEllipse(const Surface &out, Point from, int radius, uint8_t colorInd
 	SetMapPixel(out, { from.x, from.y - b }, colorIndex);
 
 	// Initialize the parameters
-	int p1 = (b * b) - (a * a * b) + (a * a) / 4;
+	int p1 = (b * b) - (a * a * b) + ((a * a) / 4);
 
 	// Region 1
 	while ((b * b * x) < (a * a * y)) {
@@ -978,7 +982,7 @@ void DrawAutomapTile(const Surface &out, Point center, Point map)
 {
 	uint8_t colorBright = MapColorsBright;
 	uint8_t colorDim = MapColorsDim;
-	MapExplorationType explorationType = static_cast<MapExplorationType>(AutomapView[std::clamp(map.x, 0, DMAXX - 1)][std::clamp(map.y, 0, DMAXY - 1)]);
+	const MapExplorationType explorationType = static_cast<MapExplorationType>(AutomapView[std::clamp(map.x, 0, DMAXX - 1)][std::clamp(map.y, 0, DMAXY - 1)]);
 
 	switch (explorationType) {
 	case MAP_EXP_SHRINE:
@@ -1052,7 +1056,7 @@ void DrawAutomapTile(const Surface &out, Point center, Point map)
 
 	if (!noConnect) {
 		if (IsAnyOf(leveltype, DTYPE_TOWN, DTYPE_CAVES, DTYPE_NEST)) {
-			DrawCaveWallConnections(out, center, sTile, swTile, seTile, colorDim);
+			DrawCaveWallConnections(out, center, swTile, seTile, colorDim);
 		}
 		DrawWallConnections(out, center, tile, nwTile, neTile, colorBright, colorDim);
 	}
@@ -1255,8 +1259,8 @@ Displacement GetAutomapScreen()
 
 	if (GetAutomapType() == AutomapType::Minimap) {
 		screen = {
-			MinimapRect.position.x + MinimapRect.size.width / 2,
-			MinimapRect.position.y + MinimapRect.size.height / 2
+			MinimapRect.position.x + (MinimapRect.size.width / 2),
+			MinimapRect.position.y + (MinimapRect.size.height / 2)
 		};
 	} else {
 		screen = {
@@ -1283,35 +1287,53 @@ void SearchAutomapItem(const Surface &out, const Displacement &myPlayerOffset, i
 
 	const int startX = std::clamp(tile.x - searchRadius, 0, MAXDUNX);
 	const int startY = std::clamp(tile.y - searchRadius, 0, MAXDUNY);
-
 	const int endX = std::clamp(tile.x + searchRadius, 0, MAXDUNX);
 	const int endY = std::clamp(tile.y + searchRadius, 0, MAXDUNY);
 
-	int scale = (GetAutomapType() == AutomapType::Minimap) ? MinimapScale : AutoMapScale;
+	const AutomapType mapType = GetAutomapType();
+	const int scale = (mapType == AutomapType::Minimap) ? MinimapScale : AutoMapScale;
 
 	for (int i = startX; i < endX; i++) {
 		for (int j = startY; j < endY; j++) {
 			if (!highlightTile({ i, j }))
 				continue;
 
-			int px = i - 2 * AutomapOffset.deltaX - ViewPosition.x;
-			int py = j - 2 * AutomapOffset.deltaY - ViewPosition.y;
+			const int px = i - (2 * AutomapOffset.deltaX) - ViewPosition.x;
+			const int py = j - (2 * AutomapOffset.deltaY) - ViewPosition.y;
 
 			Point screen = {
-				(myPlayerOffset.deltaX * scale / 100 / 2) + (px - py) * AmLine(AmLineLength::DoubleTile) + gnScreenWidth / 2,
-				(myPlayerOffset.deltaY * scale / 100 / 2) + (px + py) * AmLine(AmLineLength::FullTile) + (gnScreenHeight - GetMainPanel().size.height) / 2
+				(myPlayerOffset.deltaX * scale / 100 / 2) + ((px - py) * AmLine(AmLineLength::DoubleTile)),
+				(myPlayerOffset.deltaY * scale / 100 / 2) + ((px + py) * AmLine(AmLineLength::FullTile)),
 			};
 
-			if (CanPanelsCoverView()) {
+			screen += GetAutomapScreen();
+
+			if (mapType != AutomapType::Minimap && CanPanelsCoverView()) {
 				if (IsRightPanelOpen())
-					screen.x -= 160;
+					screen.x -= gnScreenWidth / 4;
 				if (IsLeftPanelOpen())
-					screen.x += 160;
+					screen.x += gnScreenWidth / 4;
 			}
+
 			screen.y -= AmLine(AmLineLength::FullTile);
 			DrawDiamond(out, screen, MapColorsItem);
 		}
 	}
+}
+
+uint8_t GetPlayerMapColor(int id)
+{
+	static constexpr uint8_t PlayerMapColors[] = {
+		MapColorsPlayer1,
+		MapColorsPlayer2,
+		MapColorsPlayer3,
+		MapColorsPlayer4,
+	};
+
+	if (id < 0 || id >= static_cast<int>(SDL_arraysize(PlayerMapColors)))
+		return MapColorsPlayer1;
+
+	return PlayerMapColors[id];
 }
 
 /**
@@ -1319,22 +1341,22 @@ void SearchAutomapItem(const Surface &out, const Displacement &myPlayerOffset, i
  */
 void DrawAutomapPlr(const Surface &out, const Displacement &myPlayerOffset, const Player &player)
 {
-	const uint8_t playerColor = MapColorsPlayer + (8 * player.getId()) % 128;
+	const uint8_t playerColor = GetPlayerMapColor(player.getId());
 
-	Point tile = player.position.tile;
+	const Point tile = player.position.tile;
 
-	int px = tile.x - 2 * AutomapOffset.deltaX - ViewPosition.x;
-	int py = tile.y - 2 * AutomapOffset.deltaY - ViewPosition.y;
+	const int px = tile.x - (2 * AutomapOffset.deltaX) - ViewPosition.x;
+	const int py = tile.y - (2 * AutomapOffset.deltaY) - ViewPosition.y;
 
 	Displacement playerOffset = {};
 	if (player.isWalking())
 		playerOffset = GetOffsetForWalking(player.AnimInfo, player._pdir);
 
-	int scale = (GetAutomapType() == AutomapType::Minimap) ? MinimapScale : AutoMapScale;
+	const int scale = (GetAutomapType() == AutomapType::Minimap) ? MinimapScale : AutoMapScale;
 
 	Point base = {
-		((playerOffset.deltaX + myPlayerOffset.deltaX) * scale / 100 / 2) + (px - py) * AmLine(AmLineLength::DoubleTile),
-		((playerOffset.deltaY + myPlayerOffset.deltaY) * scale / 100 / 2) + (px + py) * AmLine(AmLineLength::FullTile) + AmOffset(AmWidthOffset::None, AmHeightOffset::FullTileDown).deltaY
+		((playerOffset.deltaX + myPlayerOffset.deltaX) * scale / 100 / 2) + ((px - py) * AmLine(AmLineLength::DoubleTile)),
+		((playerOffset.deltaY + myPlayerOffset.deltaY) * scale / 100 / 2) + ((px + py) * AmLine(AmLineLength::FullTile)) + AmOffset(AmWidthOffset::None, AmHeightOffset::HalfTileUp).deltaY
 	};
 
 	base += GetAutomapScreen();
@@ -1345,7 +1367,6 @@ void DrawAutomapPlr(const Surface &out, const Displacement &myPlayerOffset, cons
 		if (IsLeftPanelOpen())
 			base.x += gnScreenWidth / 4;
 	}
-	base.y -= AmLine(AmLineLength::DoubleTile);
 
 	switch (player._pdir) {
 	case Direction::North: {
@@ -1408,50 +1429,59 @@ void DrawAutomapText(const Surface &out)
 {
 	Point linePosition { 8, 8 };
 
+	auto advanceLine = [&](int numLines = 1) {
+		linePosition.y += 15 * numLines;
+	};
+
+	auto drawStringAndAdvanceLine = [&](std::string_view text, TextRenderOptions opts = {}, int numLines = 1) {
+		DrawString(out, text, linePosition, opts);
+		advanceLine(numLines);
+	};
+
+	if (*GetOptions().Graphics.showFPS) {
+		advanceLine();
+	}
+
 	if (gbIsMultiplayer) {
 		if (GameName != "0.0.0.0" && !IsLoopback) {
 			std::string description = std::string(_("Game: "));
 			description.append(GameName);
-			DrawString(out, description, linePosition);
-			linePosition.y += 15;
+			drawStringAndAdvanceLine(description);
 		}
 
 		std::string description;
 		if (IsLoopback) {
 			description = std::string(_("Offline Game"));
-		} else if (!PublicGame) {
+		} else if (PublicGame) {
+			description = std::string(_("Public Game"));
+		} else {
 			description = std::string(_("Password: "));
 			description.append(GamePassword);
-		} else {
-			description = std::string(_("Public Game"));
 		}
-		DrawString(out, description, linePosition);
-		linePosition.y += 15;
+		drawStringAndAdvanceLine(description);
 	}
 
 	if (setlevel) {
-		DrawString(out, _(QuestLevelNames[setlvlnum]), linePosition);
-		return;
+		drawStringAndAdvanceLine(_(QuestLevelNames[setlvlnum]));
+	} else {
+		std::string description;
+		switch (leveltype) {
+		case DTYPE_NEST:
+			description = fmt::format(fmt::runtime(_("Level: Nest {:d}")), currlevel - 16);
+			break;
+		case DTYPE_CRYPT:
+			description = fmt::format(fmt::runtime(_("Level: Crypt {:d}")), currlevel - 20);
+			break;
+		case DTYPE_TOWN:
+			description = std::string(_("Town"));
+			break;
+		default:
+			description = fmt::format(fmt::runtime(_("Level: {:d}")), currlevel);
+			break;
+		}
+		drawStringAndAdvanceLine(description);
 	}
 
-	std::string description;
-	switch (leveltype) {
-	case DTYPE_NEST:
-		description = fmt::format(fmt::runtime(_("Level: Nest {:d}")), currlevel - 16);
-		break;
-	case DTYPE_CRYPT:
-		description = fmt::format(fmt::runtime(_("Level: Crypt {:d}")), currlevel - 20);
-		break;
-	case DTYPE_TOWN:
-		description = std::string(_("Town"));
-		break;
-	default:
-		description = fmt::format(fmt::runtime(_("Level: {:d}")), currlevel);
-		break;
-	}
-
-	DrawString(out, description, linePosition);
-	linePosition.y += 15;
 	std::string_view difficulty;
 	switch (sgGameInitInfo.nDifficulty) {
 	case DIFF_NORMAL:
@@ -1465,41 +1495,29 @@ void DrawAutomapText(const Surface &out)
 		break;
 	}
 
-	std::string difficultyString = fmt::format(fmt::runtime(_(/* TRANSLATORS: {:s} means: Game Difficulty. */ "Difficulty: {:s}")), difficulty);
-	DrawString(out, difficultyString, linePosition);
+	const std::string description = fmt::format(fmt::runtime(_(/* TRANSLATORS: {:s} means: Game Difficulty. */ "Difficulty: {:s}")), difficulty);
+	drawStringAndAdvanceLine(description);
 
 #ifdef _DEBUG
-	const TextRenderOptions debugTextOptions {
-		.flags = UiFlags::ColorOrange,
-	};
-	linePosition.y += 45;
-	if (DebugGodMode) {
-		linePosition.y += 15;
-		DrawString(out, "God Mode", linePosition, debugTextOptions);
-	}
-	if (DebugInvisible) {
-		linePosition.y += 15;
-		DrawString(out, "Invisible", linePosition, debugTextOptions);
-	}
-	if (DisableLighting) {
-		linePosition.y += 15;
-		DrawString(out, "Fullbright", linePosition, debugTextOptions);
-	}
-	if (DebugVision) {
-		linePosition.y += 15;
-		DrawString(out, "Draw Vision", linePosition, debugTextOptions);
-	}
-	if (DebugPath) {
-		linePosition.y += 15;
-		DrawString(out, "Draw Path", linePosition, debugTextOptions);
-	}
-	if (DebugGrid) {
-		linePosition.y += 15;
-		DrawString(out, "Draw Grid", linePosition, debugTextOptions);
-	}
-	if (DebugScrollViewEnabled) {
-		linePosition.y += 15;
-		DrawString(out, "Scroll View", linePosition, debugTextOptions);
+	if (DebugGodMode || DebugInvisible || DisableLighting || DebugVision || DebugPath || DebugGrid || DebugScrollViewEnabled) {
+		const TextRenderOptions disabled {
+			.flags = UiFlags::ColorBlack,
+		};
+		const TextRenderOptions enabled {
+			.flags = UiFlags::ColorOrange,
+		};
+
+		advanceLine();
+		drawStringAndAdvanceLine("Debug toggles:");
+		drawStringAndAdvanceLine("Player:");
+		drawStringAndAdvanceLine("God Mode", DebugGodMode ? enabled : disabled);
+		drawStringAndAdvanceLine("Invisible", DebugInvisible ? enabled : disabled);
+		drawStringAndAdvanceLine("Display:");
+		drawStringAndAdvanceLine("Fullbright", DisableLighting ? enabled : disabled);
+		drawStringAndAdvanceLine("Draw Vision", DebugVision ? enabled : disabled);
+		drawStringAndAdvanceLine("Draw Path", DebugPath ? enabled : disabled);
+		drawStringAndAdvanceLine("Draw Grid", DebugGrid ? enabled : disabled);
+		drawStringAndAdvanceLine("Scroll View", DebugScrollViewEnabled ? enabled : disabled);
 	}
 #endif
 }
@@ -1542,15 +1560,15 @@ void InitAutomapOnce()
 	AutoMapScale = 50;
 
 	// Set the dimensions and screen position of the minimap relative to the screen dimensions
-	int minimapWidth = gnScreenWidth / 4;
-	Size minimapSize { minimapWidth, minimapWidth / 2 };
-	int minimapPadding = gnScreenWidth / 128;
+	const int minimapWidth = gnScreenWidth / 4;
+	const Size minimapSize { minimapWidth, minimapWidth / 2 };
+	const int minimapPadding = gnScreenWidth / 128;
 	MinimapRect = Rectangle { { gnScreenWidth - minimapPadding - minimapSize.width, minimapPadding }, minimapSize };
 
 	// Set minimap scale
-	int height = 480;
-	int scale = 25;
-	int factor = gnScreenHeight / height;
+	const int height = 480;
+	const int scale = 25;
+	const int factor = gnScreenHeight / height;
 
 	if (factor >= 8) {
 		MinimapScale = scale * 8;
@@ -1562,7 +1580,7 @@ void InitAutomapOnce()
 void InitAutomap()
 {
 	size_t tileCount = 0;
-	std::unique_ptr<AutomapTile[]> tileTypes = LoadAutomapData(tileCount);
+	const std::unique_ptr<AutomapTile[]> tileTypes = LoadAutomapData(tileCount);
 
 	switch (leveltype) {
 	case DTYPE_CATACOMBS:
@@ -1755,9 +1773,9 @@ void DrawAutomap(const Surface &out)
 	if (myPlayer.isWalking())
 		myPlayerOffset = GetOffsetForWalking(myPlayer.AnimInfo, myPlayer._pdir, true);
 
-	int scale = (GetAutomapType() == AutomapType::Minimap) ? MinimapScale : AutoMapScale;
-	int d = (scale * 64) / 100;
-	int cells = 2 * (gnScreenWidth / 2 / d) + 1;
+	const int scale = (GetAutomapType() == AutomapType::Minimap) ? MinimapScale : AutoMapScale;
+	const int d = (scale * 64) / 100;
+	int cells = (2 * (gnScreenWidth / 2 / d)) + 1;
 	if (((gnScreenWidth / 2) % d) != 0)
 		cells++;
 	if (((gnScreenWidth / 2) % d) >= (scale * 32) / 100)
@@ -1769,7 +1787,7 @@ void DrawAutomap(const Surface &out)
 		// Background fill
 		DrawHalfTransparentRectTo(out, MinimapRect.position.x, MinimapRect.position.y, MinimapRect.size.width, MinimapRect.size.height);
 
-		uint8_t frameShadowColor = PAL16_YELLOW + 12;
+		const uint8_t frameShadowColor = PAL16_YELLOW + 12;
 
 		// Shadow
 		DrawHorizontalLine(out, MinimapRect.position + Displacement { -1, -1 }, MinimapRect.size.width + 1, frameShadowColor);
@@ -1782,6 +1800,11 @@ void DrawAutomap(const Surface &out)
 		DrawHorizontalLine(out, MinimapRect.position + Displacement { -2, MinimapRect.size.height }, MinimapRect.size.width + 3, MapColorsDim);
 		DrawVerticalLine(out, MinimapRect.position + Displacement { -2, -1 }, MinimapRect.size.height + 1, MapColorsDim);
 		DrawVerticalLine(out, MinimapRect.position + Displacement { MinimapRect.size.width, -1 }, MinimapRect.size.height + 1, MapColorsDim);
+
+		if (AutoMapShowItems)
+			SearchAutomapItem(out, myPlayerOffset, 8, [](Point position) {
+				return dItem[position.x][position.y] != 0;
+			});
 	}
 
 	Point screen = {};
@@ -1868,8 +1891,8 @@ void SetAutomapView(Point position, MapExplorationType explorer)
 
 	UpdateAutomapExplorer(map, explorer);
 
-	AutomapTile tile = GetAutomapTileType(map);
-	bool solid = tile.hasFlag(AutomapTile::Flags::Dirt);
+	const AutomapTile tile = GetAutomapTileType(map);
+	const bool solid = tile.hasFlag(AutomapTile::Flags::Dirt);
 
 	switch (tile.type) {
 	case AutomapTile::Types::Vertical:

@@ -6,6 +6,13 @@
 
 #include <cstdint>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_events.h>
+#include <SDL3/SDL_keycode.h>
+#else
+#include <SDL.h>
+#endif
+
 #include "controls/control_mode.hpp"
 #include "controls/plrctrls.h"
 #include "diablo.h"
@@ -17,6 +24,7 @@
 #include "hwcursor.hpp"
 #include "storm/storm_svid.h"
 #include "utils/display.h"
+#include "utils/sdl_compat.h"
 
 namespace devilution {
 
@@ -45,7 +53,7 @@ void play_movie(const char *pszMovie, bool userCanClose)
 		while (movie_playing) {
 			while (movie_playing && FetchMessage(&event, &modState)) {
 				if (userCanClose) {
-					for (ControllerButtonEvent ctrlEvent : ToControllerButtonEvents(event)) {
+					for (const ControllerButtonEvent ctrlEvent : ToControllerButtonEvents(event)) {
 						if (!SkipsMovie(ctrlEvent))
 							continue;
 						movie_playing = false;
@@ -53,12 +61,19 @@ void play_movie(const char *pszMovie, bool userCanClose)
 					}
 				}
 				switch (event.type) {
-				case SDL_KEYDOWN:
-				case SDL_MOUSEBUTTONUP:
-					if (userCanClose || (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE))
+				case SDL_EVENT_KEY_DOWN:
+				case SDL_EVENT_MOUSE_BUTTON_UP:
+					if (userCanClose || (event.type == SDL_EVENT_KEY_DOWN && SDLC_EventKey(event) == SDLK_ESCAPE))
 						movie_playing = false;
 					break;
-#ifndef USE_SDL1
+#ifdef USE_SDL3
+				case SDL_EVENT_WINDOW_FOCUS_LOST:
+					if (*GetOptions().Gameplay.pauseOnFocusLoss) diablo_focus_pause();
+					break;
+				case SDL_EVENT_WINDOW_FOCUS_GAINED:
+					if (*GetOptions().Gameplay.pauseOnFocusLoss) diablo_focus_unpause();
+					break;
+#elif !defined(USE_SDL1)
 				case SDL_WINDOWEVENT:
 					if (*GetOptions().Gameplay.pauseOnFocusLoss) {
 						if (event.window.event == SDL_WINDOWEVENT_FOCUS_LOST)
@@ -77,9 +92,11 @@ void play_movie(const char *pszMovie, bool userCanClose)
 					}
 					break;
 #endif
-				case SDL_QUIT:
+				case SDL_EVENT_QUIT:
 					SVidPlayEnd();
 					diablo_quit(0);
+				default:
+					break;
 				}
 			}
 			if (!SVidPlayContinue())
@@ -92,7 +109,14 @@ void play_movie(const char *pszMovie, bool userCanClose)
 
 	movie_playing = false;
 
+#ifdef USE_SDL3
+	float x, y;
+	SDL_GetMouseState(&x, &y);
+	MousePosition.x = static_cast<int>(x);
+	MousePosition.y = static_cast<int>(y);
+#else
 	SDL_GetMouseState(&MousePosition.x, &MousePosition.y);
+#endif
 	OutputToLogical(&MousePosition.x, &MousePosition.y);
 	InitBackbufferState();
 }

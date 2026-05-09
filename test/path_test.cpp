@@ -155,7 +155,7 @@ TEST(PathTest, LongPaths)
 	CheckPath({ 56, 56 }, { 0, 0 }, {});
 
 	// Longest possible path used to be 24 steps meaning tiles 24 units away are reachable
-	Point startingPosition { 56, 56 };
+	const Point startingPosition { 56, 56 };
 	CheckPath(startingPosition, startingPosition + Displacement { 24, 24 }, std::vector<std::string>(24, "↘"));
 
 	// But trying to navigate 25 units fails
@@ -167,7 +167,7 @@ TEST(PathTest, FindClosest)
 	{
 		std::array<std::array<int, 101>, 101> searchedTiles {};
 
-		std::optional<Point> nearPosition = FindClosestValidPosition(
+		const std::optional<Point> nearPosition = FindClosestValidPosition(
 		    [&searchedTiles](Point testPosition) {
 			    searchedTiles[testPosition.x][testPosition.y]++;
 			    return false;
@@ -189,7 +189,7 @@ TEST(PathTest, FindClosest)
 	{
 		std::array<std::array<int, 5>, 5> searchedTiles {};
 
-		std::optional<Point> nearPosition = FindClosestValidPosition(
+		const std::optional<Point> nearPosition = FindClosestValidPosition(
 		    [&searchedTiles](Point testPosition) {
 			    searchedTiles[testPosition.x][testPosition.y]++;
 			    return false;
@@ -213,7 +213,7 @@ TEST(PathTest, FindClosest)
 	{
 		std::array<std::array<int, 3>, 3> searchedTiles {};
 
-		std::optional<Point> nearPosition = FindClosestValidPosition(
+		const std::optional<Point> nearPosition = FindClosestValidPosition(
 		    [&searchedTiles](Point testPosition) {
 			    searchedTiles[testPosition.x][testPosition.y]++;
 			    return false;
@@ -236,7 +236,7 @@ TEST(PathTest, FindClosest)
 	{
 		std::array<std::array<int, 7>, 7> searchedTiles {};
 
-		std::optional<Point> nearPosition = FindClosestValidPosition(
+		const std::optional<Point> nearPosition = FindClosestValidPosition(
 		    [&searchedTiles](Point testPosition) {
 			    searchedTiles[testPosition.x][testPosition.y]++;
 			    return false;

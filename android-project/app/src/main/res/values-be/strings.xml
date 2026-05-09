@@ -1,0 +1,25 @@
+<resources>
+	<string name="app_name" translatable="false">DevilutionX</string>
+	<!-- Strings used for fragments for navigation -->
+
+	<string name="guide_full_installation">Каб гуляць у поўную версію трэба памясціць DIABDAT.MPQ з арыгінальнай гульні ў Android/data/org.diasurgical.devilutionx/files.<br/>\n<br/>\nКалі не маеце арыгінальнай гульні, то можаце купіць Д\'ябла на <a href="https://www.gog.com/game/diablo">GOG.com.</a></string>
+	<string name="guide_shareware">Або можаце спампаваць spawn-версію і пагуляць у дэма.</string>
+	<string name="faq_link">Для больш дэталяў <a href="https://github.com/diasurgical/devilutionX/blob/master/docs/installing.md#installing">глядзіце Інструкцыі</a> па ўсталяванні.</string>
+	<string name="game_data_retry">Пераправерыць</string>
+	<string name="title_activity_data">Даныя гульні</string>
+	<string name="download_spawn">Спампаваць даныя дэма</string>
+	<string name="missing_game_data">Не хапае даных гульні</string>
+	<string name="download_started">Спампоўка пачалася</string>
+	<string name="shareware_data">Даныя дэма Diablo</string>
+	<string name="import_short_label">Імпартаваць даныя</string>
+	<string name="gamepad_tv_text">Для гульні трэба геймпад</string>
+	<string name="no_file_browser">Калі ласка, усталюйце праваднік каб выбраць файлы, якія хочаце імпартаваць.</string>
+	<string name="recommended_file_browser">Для Android TV рэкамендуем %1$s.</string>
+	<string name="import_data_info">На наступным экране выберыце файлы якія імпартуюцца ў:\n\n%1$s</string>
+	<string name="overwrite_query">Наступныя файлы перазапішуцца. Добра?\n\n%1$s</string>
+	<string name="ok_button">OK</string>
+	<string name="continue_button">Працягнуць</string>
+	<string name="cancel_button">Адмяніць</string>
+</resources>
+
+

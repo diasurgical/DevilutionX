@@ -11,7 +11,7 @@
 namespace devilution {
 auto LoadDataFile(std::string_view file)
 {
-	std::string unitTestFolderCompletePath = paths::BasePath() + "/test/fixtures/";
+	const std::string unitTestFolderCompletePath = paths::BasePath() + "/test/fixtures/";
 	paths::SetAssetsPath(unitTestFolderCompletePath);
 	return DataFile::load(file);
 }
@@ -59,10 +59,10 @@ TEST(DataFileTest, LoadCRFile)
 	auto result = LoadDataFile("txtdata\\cr.tsv");
 	ASSERT_TRUE(result.has_value()) << "Unable to load cr.tsv";
 
-	DataFile &dataFile = result.value();
+	const DataFile &dataFile = result.value();
 	EXPECT_EQ(dataFile.size(), 33) << "File size should be reported in code units";
 
-	std::vector<std::vector<std::string_view>> expectedFields {
+	const std::vector<std::vector<std::string_view>> expectedFields {
 		{ "Test", "Empty", "Values" },
 		{ "", "2", "3" },
 		{ "1", "2", "" },
@@ -77,10 +77,10 @@ TEST(DataFileTest, LoadWindowsFile)
 	auto result = LoadDataFile("txtdata\\crlf.tsv");
 	ASSERT_TRUE(result.has_value()) << "Unable to load crlf.tsv";
 
-	DataFile &dataFile = result.value();
+	const DataFile &dataFile = result.value();
 	EXPECT_EQ(dataFile.size(), 37) << "File size should be reported in code units";
 
-	std::vector<std::vector<std::string_view>> expectedFields {
+	const std::vector<std::vector<std::string_view>> expectedFields {
 		{ "Test", "Empty", "Values" },
 		{ "", "2", "3" },
 		{ "1", "2", "" },
@@ -95,10 +95,10 @@ TEST(DataFileTest, LoadTypicalFile)
 	auto result = LoadDataFile("txtdata\\lf.tsv");
 	ASSERT_TRUE(result.has_value()) << "Unable to load lf.tsv";
 
-	DataFile &dataFile = result.value();
+	const DataFile &dataFile = result.value();
 	EXPECT_EQ(dataFile.size(), 33) << "File size should be reported in code units";
 
-	std::vector<std::vector<std::string_view>> expectedFields {
+	const std::vector<std::vector<std::string_view>> expectedFields {
 		{ "Test", "Empty", "Values" },
 		{ "", "2", "3" },
 		{ "1", "2", "" },
@@ -113,10 +113,10 @@ TEST(DataFileTest, LoadFileWithNoTrailingNewline)
 	auto result = LoadDataFile("txtdata\\lf_no_trail.tsv");
 	ASSERT_TRUE(result.has_value()) << "Unable to load lf_no_trail.tsv";
 
-	DataFile &dataFile = result.value();
+	const DataFile &dataFile = result.value();
 	EXPECT_EQ(dataFile.size(), 32) << "File size should be reported in code units";
 
-	std::vector<std::vector<std::string_view>> expectedFields {
+	const std::vector<std::vector<std::string_view>> expectedFields {
 		{ "Test", "Empty", "Values" },
 		{ "", "2", "3" },
 		{ "1", "2", "" },
@@ -147,10 +147,10 @@ TEST(DataFileTest, LoadEmptyFile)
 		FAIL() << "Unable to load empty.tsv, error: " << mapError(result.error());
 	}
 
-	DataFile &dataFile = result.value();
+	const DataFile &dataFile = result.value();
 	EXPECT_EQ(dataFile.size(), 0) << "File size should be reported in code units";
 
-	std::vector<std::vector<std::string_view>> expectedFields {
+	const std::vector<std::vector<std::string_view>> expectedFields {
 		{ "" },
 	};
 
@@ -164,10 +164,10 @@ TEST(DataFileTest, LoadEmptyFileWithBOM)
 		FAIL() << "Unable to load empty_with_utf8_bom.tsv, error: " << mapError(result.error());
 	}
 
-	DataFile &dataFile = result.value();
+	const DataFile &dataFile = result.value();
 	EXPECT_EQ(dataFile.size(), 0) << "Loading a file containing a UTF8 byte order marker should strip that prefix";
 
-	std::vector<std::vector<std::string_view>> expectedFields {
+	const std::vector<std::vector<std::string_view>> expectedFields {
 		{ "" },
 	};
 
@@ -179,10 +179,10 @@ TEST(DataFileTest, LoadUtf8WithBOM)
 	auto result = LoadDataFile("txtdata\\utf8_bom.tsv");
 	ASSERT_TRUE(result.has_value()) << "Unable to load utf8_bom.tsv";
 
-	DataFile &dataFile = result.value();
+	const DataFile &dataFile = result.value();
 	EXPECT_EQ(dataFile.size(), 33) << "Loading a file containing a UTF8 byte order marker should strip that prefix";
 
-	std::vector<std::vector<std::string_view>> expectedFields {
+	const std::vector<std::vector<std::string_view>> expectedFields {
 		{ "Test", "Empty", "Values" },
 		{ "", "2", "3" },
 		{ "1", "2", "" },
@@ -295,7 +295,7 @@ TEST(DataFileTest, IterateOverRecords)
 	auto result = LoadDataFile("txtdata\\lf.tsv");
 	ASSERT_TRUE(result.has_value()) << "Unable to load lf.tsv";
 
-	DataFile &dataFile = result.value();
+	const DataFile &dataFile = result.value();
 
 	std::vector<std::vector<std::string_view>> expectedFields {
 		{ "Test", "Empty", "Values" },
@@ -362,7 +362,7 @@ TEST(DataFileTest, DiscardAllAfterFirstField)
 	auto loadDataResult = LoadDataFile("txtdata\\lf.tsv");
 	ASSERT_TRUE(loadDataResult.has_value()) << "Unable to load lf.tsv";
 
-	DataFile &dataFile = loadDataResult.value();
+	const DataFile &dataFile = loadDataResult.value();
 
 	std::vector<std::vector<std::string_view>> expectedFields {
 		{ "Test", "Empty", "Values" },
@@ -394,7 +394,7 @@ TEST(DataFileTest, DiscardAllAfterFirstFieldIterator)
 	auto result = LoadDataFile("txtdata\\lf.tsv");
 	ASSERT_TRUE(result.has_value()) << "Unable to load lf.tsv";
 
-	DataFile &dataFile = result.value();
+	const DataFile &dataFile = result.value();
 
 	std::vector<std::vector<std::string_view>> expectedFields {
 		{ "Test", "Empty", "Values" },
@@ -419,7 +419,7 @@ TEST(DataFileTest, DiscardAllUpToLastField)
 	auto loadDataResult = LoadDataFile("txtdata\\lf.tsv");
 	ASSERT_TRUE(loadDataResult.has_value()) << "Unable to load lf.tsv";
 
-	DataFile &dataFile = loadDataResult.value();
+	const DataFile &dataFile = loadDataResult.value();
 
 	std::vector<std::vector<std::string_view>> expectedFields {
 		{ "Test", "Empty", "Values" },
@@ -456,7 +456,7 @@ TEST(DataFileTest, SkipFieldIterator)
 	auto loadDataResult = LoadDataFile("txtdata\\lf.tsv");
 	ASSERT_TRUE(loadDataResult.has_value()) << "Unable to load lf.tsv";
 
-	DataFile &dataFile = loadDataResult.value();
+	const DataFile &dataFile = loadDataResult.value();
 
 	std::vector<std::vector<std::string_view>> expectedFields {
 		{ "Test", "Empty", "Values" },
@@ -496,7 +496,7 @@ TEST(DataFileTest, SkipRowIterator)
 	auto loadDataResult = LoadDataFile("txtdata\\lf.tsv");
 	ASSERT_TRUE(loadDataResult.has_value()) << "Unable to load lf.tsv";
 
-	DataFile &dataFile = loadDataResult.value();
+	const DataFile &dataFile = loadDataResult.value();
 
 	std::vector<std::vector<std::string_view>> expectedFields {
 		{ "Test", "Empty", "Values" },

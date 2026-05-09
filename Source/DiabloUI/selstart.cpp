@@ -1,11 +1,18 @@
 #include "selstart.h"
 
+#include <cstddef>
+#include <memory>
+#include <optional>
+#include <vector>
+
 #include "DiabloUI/diabloui.h"
-#include "control.h"
+#include "DiabloUI/ui_flags.hpp"
+#include "DiabloUI/ui_item.h"
 #include "engine/load_clx.hpp"
+#include "engine/point.hpp"
 #include "options.h"
 #include "utils/language.h"
-#include "utils/sdl_geometry.h"
+#include "utils/ui_fwd.h"
 
 namespace devilution {
 namespace {
@@ -19,6 +26,7 @@ void ItemSelected(size_t value)
 {
 	auto option = static_cast<StartUpGameMode>(vecDialogItems[value]->m_value);
 	GetOptions().GameMode.gameMode.SetValue(option);
+	GetOptions().Mods.SetHellfireEnabled(option == StartUpGameMode::Hellfire);
 	SaveOptions();
 	endMenu = true;
 }

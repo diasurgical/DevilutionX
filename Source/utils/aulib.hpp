@@ -5,6 +5,8 @@
 
 #include <Aulib/Stream.h>
 
+#include "engine/sound_defs.hpp" // for DVL_AULIB_SUPPORTS_SDL_RESAMPLER
+
 #ifdef DEVILUTIONX_RESAMPLER_SPEEX
 #include <Aulib/ResamplerSpeex.h>
 #endif

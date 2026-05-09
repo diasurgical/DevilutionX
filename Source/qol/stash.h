@@ -11,7 +11,9 @@
 #include <ankerl/unordered_dense.h>
 
 #include "engine/point.hpp"
+#include "engine/points_in_rectangle_range.hpp"
 #include "items.h"
+#include "utils/attributes.h"
 
 namespace devilution {
 
@@ -67,11 +69,14 @@ private:
 
 constexpr Point InvalidStashPoint { -1, -1 };
 
-extern bool IsStashOpen;
-extern StashStruct Stash;
+extern DVL_API_FOR_TEST bool IsStashOpen;
+extern DVL_API_FOR_TEST StashStruct Stash;
 
 extern bool IsWithdrawGoldOpen;
 extern int WithdrawGoldValue;
+
+inline constexpr Size StashGridSize { 10, 10 };
+inline constexpr PointsInRectangle<int> StashGridRange { { { 0, 0 }, StashGridSize } };
 
 Point GetStashSlotCoord(Point slot);
 void InitStash();
@@ -94,13 +99,12 @@ void CloseGoldWithdraw();
 bool HandleGoldWithdrawTextInputEvent(const SDL_Event &event);
 
 /**
- * @brief Checks whether the given item can be placed on the specified player's stash.
+ * @brief Checks whether the given item can be placed on the stash.
  * If 'persistItem' is 'True', the item is also placed in the inventory.
- * @param player The player to check.
  * @param item The item to be checked.
  * @param persistItem Pass 'True' to actually place the item in the inventory. The default is 'False'.
  * @return 'True' in case the item can be placed on the player's inventory and 'False' otherwise.
  */
-bool AutoPlaceItemInStash(Player &player, const Item &item, bool persistItem);
+bool AutoPlaceItemInStash(const Item &item, bool persistItem);
 
 } // namespace devilution

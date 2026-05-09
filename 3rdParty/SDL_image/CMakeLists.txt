@@ -35,7 +35,7 @@ target_include_directories(SDL_image PRIVATE ${sdl_image_SOURCE_DIR})
 target_compile_definitions(SDL_image PRIVATE LOAD_PNG SDL_IMAGE_USE_COMMON_BACKEND)
 target_link_libraries(SDL_image PNG::PNG)
 
-if(TARGET SDL2::SDL2)
+if(TARGET SDL2::SDL2 AND NOT (DEVILUTIONX_STATIC_SDL2 AND TARGET SDL2::SDL2-static))
   target_link_libraries(SDL_image SDL2::SDL2)
   add_library(SDL2::SDL2_image ALIAS SDL_image)
 elseif(TARGET SDL2::SDL2-static)

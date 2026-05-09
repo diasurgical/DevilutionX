@@ -5,11 +5,14 @@
 #include <cstdint>
 #include <cstring>
 #include <limits>
-#include <string>
-#include <string_view>
-#include <vector>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_iostream.h>
+#else
 #include <SDL.h>
+
+#include "utils/sdl_compat.h"
+#endif
 
 #include "utils/log.hpp"
 #include "utils/stdcompat/filesystem.hpp"
@@ -31,9 +34,17 @@
 #endif
 #endif
 
-#if (_POSIX_C_SOURCE >= 200112L || defined(_BSD_SOURCE) || defined(__APPLE__)) && !defined(DEVILUTIONX_WINDOWS_NO_WCHAR)
+#if _POSIX_C_SOURCE >= 200112L || defined(_BSD_SOURCE) || defined(__APPLE__) || defined(__DJGPP__)
+#define DVL_HAS_POSIX_2001
+#endif
+
+#if defined(DVL_HAS_POSIX_2001) && !defined(DEVILUTIONX_WINDOWS_NO_WCHAR)
 #include <sys/stat.h>
 #include <unistd.h>
+
+#ifndef DVL_HAS_FILESYSTEM
+#include <dirent.h>
+#endif
 #endif
 
 #if defined(__APPLE__) && DARWIN_MAJOR_VERSION >= 9
@@ -76,46 +87,6 @@ std::string_view Dirname(std::string_view path)
 	return std::string_view { path.data(), sep };
 }
 
-bool FileExists(const char *path)
-{
-#ifdef _WIN32
-#ifdef DEVILUTIONX_WINDOWS_NO_WCHAR
-	const bool exists = ::GetFileAttributesA(path) != INVALID_FILE_ATTRIBUTES;
-#else
-	const auto pathUtf16 = ToWideChar(path);
-	if (pathUtf16 == nullptr) {
-		LogError("UTF-8 -> UTF-16 conversion error code {}", ::GetLastError());
-		return false;
-	}
-	const bool exists = ::PathFileExistsW(&pathUtf16[0]);
-#endif
-	if (!exists) {
-		if (::GetLastError() == ERROR_FILE_NOT_FOUND || ::GetLastError() == ERROR_PATH_NOT_FOUND) {
-			::SetLastError(ERROR_SUCCESS);
-		} else {
-#ifdef DEVILUTIONX_WINDOWS_NO_WCHAR
-			LogError("GetFileAttributesA({}): error code {}", path, ::GetLastError());
-#else
-			LogError("PathFileExistsW({}): error code {}", path, ::GetLastError());
-#endif
-		}
-		return false;
-	}
-	return true;
-#elif (_POSIX_C_SOURCE >= 200112L || defined(_BSD_SOURCE) || defined(__APPLE__)) && !defined(__ANDROID__)
-	return ::access(path, F_OK) == 0;
-#elif defined(DVL_HAS_FILESYSTEM)
-	std::error_code ec;
-	return std::filesystem::exists(reinterpret_cast<const char8_t *>(path), ec);
-#else
-	SDL_RWops *file = SDL_RWFromFile(path, "r+b");
-	if (file == nullptr)
-		return false;
-	SDL_RWclose(file);
-	return true;
-#endif
-}
-
 #ifdef _WIN32
 namespace {
 DWORD WindowsGetFileAttributes(const char *path)
@@ -143,9 +114,73 @@ DWORD WindowsGetFileAttributes(const char *path)
 	}
 	return attr;
 }
-} // namespace
 
+#ifdef DEVILUTIONX_WINDOWS_NO_WCHAR
+bool WindowsFindFile(const char *path)
+#else
+bool WindowsFindFile(const wchar_t *path)
 #endif
+{
+#ifdef DEVILUTIONX_WINDOWS_NO_WCHAR
+	WIN32_FIND_DATAA findFileData;
+	HANDLE hFind = FindFirstFileA(path, &findFileData);
+#else
+	WIN32_FIND_DATAW findFileData;
+	HANDLE hFind = FindFirstFileW(path, &findFileData);
+#endif
+	if (hFind == INVALID_HANDLE_VALUE) {
+		return false;
+	}
+	FindClose(hFind);
+	return true;
+}
+
+bool WindowsFileExists(const char *path)
+{
+#ifdef DEVILUTIONX_WINDOWS_NO_WCHAR
+	const bool exists = ::GetFileAttributesA(path) != INVALID_FILE_ATTRIBUTES;
+#else
+	const auto pathUtf16 = ToWideChar(path);
+	if (pathUtf16 == nullptr) {
+		LogError("UTF-8 -> UTF-16 conversion error code {}", ::GetLastError());
+		return false;
+	}
+	const bool exists = ::PathFileExistsW(&pathUtf16[0]);
+#endif
+	if (exists) {
+		return true;
+	}
+	if (::GetLastError() == ERROR_FILE_NOT_FOUND || ::GetLastError() == ERROR_PATH_NOT_FOUND) {
+		::SetLastError(ERROR_SUCCESS);
+		return false;
+	}
+#ifdef DEVILUTIONX_WINDOWS_NO_WCHAR
+	LogError("GetFileAttributesA({}): error code {}", path, ::GetLastError());
+	return WindowsFindFile(path);
+#else
+	LogError("PathFileExistsW({}): error code {}", path, ::GetLastError());
+	return WindowsFindFile(pathUtf16.get());
+#endif
+}
+} // namespace
+#endif
+
+bool FileExists(const char *path)
+{
+#ifdef _WIN32
+	return WindowsFileExists(path);
+#elif defined(DVL_HAS_POSIX_2001) && !defined(__ANDROID__) && !defined(_WIN32)
+	return ::access(path, F_OK) == 0;
+#elif defined(DVL_HAS_FILESYSTEM) && !defined(_WIN32)
+	std::error_code ec;
+	return std::filesystem::exists(reinterpret_cast<const char8_t *>(path), ec);
+#else
+	SDL_IOStream *file = SDL_IOFromFile(path, "rb");
+	if (file == nullptr) return false;
+	SDL_CloseIO(file);
+	return true;
+#endif
+}
 
 bool DirectoryExists(const char *path)
 {
@@ -166,15 +201,14 @@ bool FileExistsAndIsWriteable(const char *path)
 #ifdef _WIN32
 	const DWORD attr = WindowsGetFileAttributes(path);
 	return attr != INVALID_FILE_ATTRIBUTES && (attr & FILE_ATTRIBUTE_READONLY) == 0;
-#elif (_POSIX_C_SOURCE >= 200112L || defined(_BSD_SOURCE) || defined(__APPLE__)) && !defined(__ANDROID__)
+#elif defined(DVL_HAS_POSIX_2001) && !defined(__ANDROID__)
 	return ::access(path, W_OK) == 0;
 #else
 	if (!FileExists(path))
 		return false;
-	SDL_RWops *file = SDL_RWFromFile(path, "a+b");
-	if (file == nullptr)
-		return false;
-	SDL_RWclose(file);
+	SDL_IOStream *file = SDL_IOFromFile(path, "ab");
+	if (file == nullptr) return false;
+	SDL_CloseIO(file);
 	return true;
 #endif
 }
@@ -350,7 +384,7 @@ bool ResizeFile(const char *path, std::uintmax_t size)
 	}
 	::CloseHandle(file);
 	return true;
-#elif _POSIX_C_SOURCE >= 200112L || defined(_BSD_SOURCE) || defined(__APPLE__)
+#elif defined(DVL_HAS_POSIX_2001)
 	return ::truncate(path, static_cast<off_t>(size)) == 0;
 #else
 	static_assert(false, "truncate not implemented for the current platform");
@@ -470,6 +504,96 @@ FILE *OpenFile(const char *path, const char *mode)
 #else
 	return std::fopen(path, mode);
 #endif
+}
+
+std::vector<std::string> ListDirectories(const char *path)
+{
+	std::vector<std::string> dirs;
+#ifdef DVL_HAS_FILESYSTEM
+	std::error_code ec;
+	for (const auto &entry : std::filesystem::directory_iterator(reinterpret_cast<const char8_t *>(path), ec)) {
+		if (!entry.is_directory())
+			continue;
+		std::u8string filename = entry.path().filename().u8string();
+		dirs.emplace_back(filename.begin(), filename.end());
+	}
+#elif defined(_WIN32)
+	WIN32_FIND_DATAA findData;
+	// Construct the search path by appending the directory separator and wildcard.
+	std::string searchPath = std::string(path) + DIRECTORY_SEPARATOR_STR + "*";
+	HANDLE hFind = FindFirstFileA(searchPath.c_str(), &findData);
+	if (hFind == INVALID_HANDLE_VALUE)
+		return dirs;
+	do {
+		std::string folder = findData.cFileName;
+		// Skip the special entries "." and ".."
+		if (folder == "." || folder == "..")
+			continue;
+		if (findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+			dirs.push_back(folder);
+	} while (FindNextFileA(hFind, &findData));
+	FindClose(hFind);
+#elif (_POSIX_C_SOURCE >= 200112L || defined(_BSD_SOURCE) || defined(__APPLE__))
+	DIR *d = ::opendir(path);
+	if (d != nullptr) {
+		struct dirent *dir;
+		while ((dir = ::readdir(d)) != nullptr) {
+			if (dir->d_type != DT_DIR) continue;
+			const std::string_view name = dir->d_name;
+			if (name == "." || name == "..") continue;
+			dirs.emplace_back(name);
+		}
+		::closedir(d);
+	}
+#else
+	static_assert(false, "ListDirectories not implemented for the current platform");
+#endif
+	return dirs;
+}
+
+std::vector<std::string> ListFiles(const char *path)
+{
+	std::vector<std::string> files;
+#ifdef DVL_HAS_FILESYSTEM
+	std::error_code ec;
+	for (const auto &entry : std::filesystem::directory_iterator(reinterpret_cast<const char8_t *>(path), ec)) {
+		if (!entry.is_regular_file())
+			continue;
+		std::u8string filename = entry.path().filename().u8string();
+		files.emplace_back(filename.begin(), filename.end());
+	}
+#elif defined(_WIN32)
+	WIN32_FIND_DATAA findData;
+	// Construct the search path by appending the directory separator and wildcard.
+	std::string searchPath = std::string(path) + DIRECTORY_SEPARATOR_STR + "*";
+	HANDLE hFind = FindFirstFileA(searchPath.c_str(), &findData);
+	if (hFind == INVALID_HANDLE_VALUE)
+		return files;
+	do {
+		std::string file = findData.cFileName;
+		// Skip the special entries "." and ".."
+		if (file == "." || file == "..")
+			continue;
+		if (!(findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+			files.push_back(file);
+	} while (FindNextFileA(hFind, &findData));
+	FindClose(hFind);
+#elif (_POSIX_C_SOURCE >= 200112L || defined(_BSD_SOURCE) || defined(__APPLE__))
+	DIR *d = ::opendir(path);
+	if (d != nullptr) {
+		struct dirent *dir;
+		while ((dir = ::readdir(d)) != nullptr) {
+			if (dir->d_type != DT_REG) continue;
+			const std::string_view name = dir->d_name;
+			if (name == "." || name == "..") continue;
+			files.emplace_back(name);
+		}
+		::closedir(d);
+	}
+#else
+	static_assert(false, "ListFiles not implemented for the current platform");
+#endif
+	return files;
 }
 
 } // namespace devilution

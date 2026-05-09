@@ -205,7 +205,7 @@ TEST(Drlg_l1, CreateL5Dungeon_crypt_1_2122696790)
 {
 	LoadExpectedLevelData("hellfire/21-2122696790.dun");
 
-	TestInitGame();
+	TestInitGame(true, true, true);
 
 	TestCreateDungeon(21, 2122696790, ENTRY_TWARPDN);
 	EXPECT_EQ(ViewPosition, Point(61, 81));
@@ -217,7 +217,7 @@ TEST(Drlg_l1, CreateL5Dungeon_crypt_2_1191662129)
 {
 	LoadExpectedLevelData("hellfire/22-1191662129.dun");
 
-	TestInitGame();
+	TestInitGame(true, true, true);
 	Quests[Q_PWATER]._qactive = QUEST_NOTAVAIL;
 	Quests[Q_BUTCHER]._qactive = QUEST_NOTAVAIL;
 
@@ -231,7 +231,7 @@ TEST(Drlg_l1, CreateL5Dungeon_crypt_3_97055268)
 {
 	LoadExpectedLevelData("hellfire/23-97055268.dun");
 
-	TestInitGame();
+	TestInitGame(true, true, true);
 
 	TestCreateDungeon(23, 97055268, ENTRY_MAIN);
 	EXPECT_EQ(ViewPosition, Point(71, 57));
@@ -243,7 +243,7 @@ TEST(Drlg_l1, CreateL5Dungeon_crypt_4_1324803725)
 {
 	LoadExpectedLevelData("hellfire/24-1324803725.dun");
 
-	TestInitGame();
+	TestInitGame(true, true, true);
 
 	TestCreateDungeon(24, 1324803725, ENTRY_MAIN);
 	EXPECT_EQ(ViewPosition, Point(79, 47));

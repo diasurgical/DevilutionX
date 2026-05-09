@@ -59,7 +59,7 @@ struct ClipX {
 DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT ClipX CalculateClipX(int_fast16_t x, std::size_t w, const Surface &out)
 {
 	ClipX clip;
-	clip.left = static_cast<int_fast16_t>(x < 0 ? -x : 0);
+	clip.left = (x < 0 ? -x : 0);
 	clip.right = static_cast<int_fast16_t>(static_cast<int_fast16_t>(x + w) > out.w() ? x + w - out.w() : 0);
 	clip.width = static_cast<int_fast16_t>(w - clip.left - clip.right);
 	return clip;
@@ -223,7 +223,7 @@ void DoRenderBackwards(
 	const ClipX clipX = CalculateClipX(position.x, srcWidth, out);
 	if (clipX.width <= 0)
 		return;
-	RenderSrc srcForBackwards { src, src + srcSize, static_cast<uint_fast16_t>(srcWidth) };
+	const RenderSrc srcForBackwards { src, src + srcSize, static_cast<uint_fast16_t>(srcWidth) };
 	if (static_cast<std::size_t>(clipX.width) == srcWidth) {
 		DoRenderBackwardsClipY(
 		    out, position, srcForBackwards, std::forward<BlitFn>(blitFn));
@@ -236,7 +236,7 @@ void DoRenderBackwards(
 constexpr size_t MaxOutlinePixels = 4096;
 constexpr size_t MaxOutlineSpriteWidth = 253;
 using OutlinePixels = StaticVector<PointOf<uint8_t>, MaxOutlinePixels>;
-using OutlineRowSolidRuns = StaticVector<std::pair<uint8_t, uint8_t>, MaxOutlineSpriteWidth / 2 + 1>;
+using OutlineRowSolidRuns = StaticVector<std::pair<uint8_t, uint8_t>, (MaxOutlineSpriteWidth / 2) + 1>;
 
 struct OutlinePixelsCacheEntry {
 	OutlinePixels outlinePixels;
@@ -448,14 +448,14 @@ void ClxApplyTrans(ClxSprite sprite, const uint8_t *trn)
 
 void ClxApplyTrans(ClxSpriteList list, const uint8_t *trn)
 {
-	for (ClxSprite sprite : list) {
+	for (const ClxSprite sprite : list) {
 		ClxApplyTrans(sprite, trn);
 	}
 }
 
 void ClxApplyTrans(ClxSpriteSheet sheet, const uint8_t *trn)
 {
-	for (ClxSpriteList list : sheet) {
+	for (const ClxSpriteList list : sheet) {
 		ClxApplyTrans(list, trn);
 	}
 }
@@ -492,14 +492,14 @@ bool IsPointWithinClx(Point position, ClxSprite clx)
 
 			if (IsClxOpaqueFill(val)) {
 				val = GetClxOpaqueFillWidth(val);
-				uint8_t color = *src++;
+				const uint8_t color = *src++;
 				if (xCur <= position.x && position.x < xCur + val)
 					return color != 0; // ignore shadows
 				xCur += val;
 			} else {
 				val = GetClxOpaquePixelsWidth(val);
 				for (uint8_t pixel = 0; pixel < val; pixel++) {
-					uint8_t color = *src++;
+					const uint8_t color = *src++;
 					if (xCur == position.x)
 						return color != 0; // ignore shadows
 					xCur++;
@@ -588,6 +588,11 @@ void ClxDrawTRN(const Surface &out, Point position, ClxSprite clx, const uint8_t
 	DoRenderBackwards(out, position, clx.pixelData(), clx.pixelDataSize(), clx.width(), clx.height(), BlitWithMap { trn });
 }
 
+void ClxDrawWithLightmap(const Surface &out, Point position, ClxSprite clx, const Lightmap &lightmap)
+{
+	DoRenderBackwards(out, position, clx.pixelData(), clx.pixelDataSize(), clx.width(), clx.height(), BlitWithLightmap { lightmap });
+}
+
 void ClxDrawBlended(const Surface &out, Point position, ClxSprite clx)
 {
 	DoRenderBackwards(out, position, clx.pixelData(), clx.pixelDataSize(), clx.width(), clx.height(), BlitBlended {});
@@ -596,6 +601,11 @@ void ClxDrawBlended(const Surface &out, Point position, ClxSprite clx)
 void ClxDrawBlendedTRN(const Surface &out, Point position, ClxSprite clx, const uint8_t *trn)
 {
 	DoRenderBackwards(out, position, clx.pixelData(), clx.pixelDataSize(), clx.width(), clx.height(), BlitBlendedWithMap { trn });
+}
+
+void ClxDrawBlendedWithLightmap(const Surface &out, Point position, ClxSprite clx, const Lightmap &lightmap)
+{
+	DoRenderBackwards(out, position, clx.pixelData(), clx.pixelDataSize(), clx.width(), clx.height(), BlitBlendedWithLightmap { lightmap });
 }
 
 void ClxDrawOutline(const Surface &out, uint8_t col, Point position, ClxSprite clx)

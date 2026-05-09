@@ -2,8 +2,21 @@
 
 #include <cstddef>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_error.h>
+#include <SDL3/SDL_events.h>
+#include <SDL3/SDL_joystick.h>
+#else
+#include <SDL.h>
+
+#ifdef USE_SDL1
+#include "utils/sdl2_to_1_2_backports.h"
+#endif
+#endif
+
 #include "controls/controller_motion.h"
 #include "utils/log.hpp"
+#include "utils/sdl_compat.h"
 #include "utils/stubs.h"
 
 namespace devilution {
@@ -13,9 +26,13 @@ std::vector<Joystick> Joystick::joysticks_;
 StaticVector<ControllerButtonEvent, 4> Joystick::ToControllerButtonEvents(const SDL_Event &event)
 {
 	switch (event.type) {
-	case SDL_JOYBUTTONDOWN:
-	case SDL_JOYBUTTONUP: {
-		bool up = (event.jbutton.state == SDL_RELEASED);
+	case SDL_EVENT_JOYSTICK_BUTTON_DOWN:
+	case SDL_EVENT_JOYSTICK_BUTTON_UP: {
+#ifdef USE_SDL3
+		const bool up = !event.jbutton.down;
+#else
+		const bool up = (event.jbutton.state == SDL_RELEASED);
+#endif
 #if defined(JOY_BUTTON_A) || defined(JOY_BUTTON_B) || defined(JOY_BUTTON_X) || defined(JOY_BUTTON_Y)                                            \
     || defined(JOY_BUTTON_LEFTSTICK) || defined(JOY_BUTTON_RIGHTSTICK) || defined(JOY_BUTTON_LEFTSHOULDER) || defined(JOY_BUTTON_RIGHTSHOULDER) \
     || defined(JOY_BUTTON_TRIGGERLEFT) || defined(JOY_BUTTON_TRIGGERRIGHT) || defined(JOY_BUTTON_START) || defined(JOY_BUTTON_BACK)             \
@@ -92,15 +109,25 @@ StaticVector<ControllerButtonEvent, 4> Joystick::ToControllerButtonEvents(const 
 		return { ControllerButtonEvent { ControllerButton_IGNORE, up } };
 #endif
 	}
-	case SDL_JOYHATMOTION: {
+#ifdef USE_SDL3
+	case SDL_EVENT_JOYSTICK_HAT_MOTION:
+#else
+	case SDL_JOYHATMOTION:
+#endif
+	{
 		Joystick *joystick = Get(event);
 		if (joystick == nullptr)
 			return { ControllerButtonEvent { ControllerButton_IGNORE, false } };
 		joystick->UpdateHatState(event.jhat);
 		return joystick->GetHatEvents();
 	}
+#ifdef USE_SDL3
+	case SDL_EVENT_JOYSTICK_AXIS_MOTION:
+	case SDL_EVENT_JOYSTICK_BALL_MOTION:
+#else
 	case SDL_JOYAXISMOTION:
 	case SDL_JOYBALLMOTION:
+#endif
 		// ProcessAxisMotion() requires a ControllerButtonEvent parameter
 		// so provide one here using ControllerButton_NONE
 		return { ControllerButtonEvent { ControllerButton_NONE, false } };
@@ -288,14 +315,18 @@ bool Joystick::IsPressed(ControllerButton button) const
 	const int joyButton = ToSdlJoyButton(button);
 	if (joyButton == -1)
 		return false;
+#ifdef USE_SDL3
+	const int numButtons = SDL_GetNumJoystickButtons(sdl_joystick_);
+	return joyButton < numButtons && SDL_GetJoystickButton(sdl_joystick_, joyButton);
+#else
 	const int numButtons = SDL_JoystickNumButtons(sdl_joystick_);
 	return joyButton < numButtons && SDL_JoystickGetButton(sdl_joystick_, joyButton) != 0;
+#endif
 }
 
 bool Joystick::ProcessAxisMotion(const SDL_Event &event)
 {
-	if (event.type != SDL_JOYAXISMOTION)
-		return false;
+	if (event.type != SDL_EVENT_JOYSTICK_AXIS_MOTION) return false;
 
 #if defined(JOY_AXIS_LEFTX) || defined(JOY_AXIS_LEFTY) || defined(JOY_AXIS_RIGHTX) || defined(JOY_AXIS_RIGHTY)
 	switch (event.jaxis.axis) {
@@ -331,6 +362,27 @@ bool Joystick::ProcessAxisMotion(const SDL_Event &event)
 #endif
 }
 
+#ifdef USE_SDL3
+void Joystick::Add(SDL_JoystickID id)
+{
+	Joystick result;
+	const char *name = SDL_GetJoystickNameForID(id);
+	if (name == nullptr) {
+		LogWarn("Error getting name for joystick {}", id, SDL_GetError());
+		SDL_ClearError();
+	} else {
+		Log("Adding joystick {}: {}", id, name);
+	}
+	result.sdl_joystick_ = SDL_OpenJoystick(id);
+	if (result.sdl_joystick_ == nullptr) {
+		LogError("{}", SDL_GetError());
+		SDL_ClearError();
+		return;
+	}
+	result.instance_id_ = id;
+	joysticks_.push_back(result);
+}
+#else
 void Joystick::Add(int deviceIndex)
 {
 	if (SDL_NumJoysticks() <= deviceIndex)
@@ -340,7 +392,7 @@ void Joystick::Add(int deviceIndex)
 	    SDL_JoystickNameForIndex(deviceIndex));
 	result.sdl_joystick_ = SDL_JoystickOpen(deviceIndex);
 	if (result.sdl_joystick_ == nullptr) {
-		Log("{}", SDL_GetError());
+		LogError("{}", SDL_GetError());
 		SDL_ClearError();
 		return;
 	}
@@ -349,6 +401,7 @@ void Joystick::Add(int deviceIndex)
 #endif
 	joysticks_.push_back(result);
 }
+#endif
 
 void Joystick::Remove(SDL_JoystickID instanceId)
 {
@@ -383,14 +436,14 @@ Joystick *Joystick::Get(const SDL_Event &event)
 {
 	switch (event.type) {
 #ifndef USE_SDL1
-	case SDL_JOYAXISMOTION:
+	case SDL_EVENT_JOYSTICK_AXIS_MOTION:
 		return Get(event.jaxis.which);
-	case SDL_JOYBALLMOTION:
+	case SDL_EVENT_JOYSTICK_BALL_MOTION:
 		return Get(event.jball.which);
-	case SDL_JOYHATMOTION:
+	case SDL_EVENT_JOYSTICK_HAT_MOTION:
 		return Get(event.jhat.which);
-	case SDL_JOYBUTTONDOWN:
-	case SDL_JOYBUTTONUP:
+	case SDL_EVENT_JOYSTICK_BUTTON_DOWN:
+	case SDL_EVENT_JOYSTICK_BUTTON_UP:
 		return Get(event.jbutton.which);
 	default:
 		return nullptr;

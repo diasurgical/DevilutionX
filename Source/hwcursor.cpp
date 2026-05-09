@@ -3,10 +3,20 @@
 #include <cstdint>
 #include <tuple>
 
-#if SDL_VERSION_ATLEAST(2, 0, 0)
+#ifdef USE_SDL3
+#include <SDL3/SDL_error.h>
+#include <SDL3/SDL_mouse.h>
+#include <SDL3/SDL_render.h>
+#include <SDL3/SDL_surface.h>
+#include <SDL3/SDL_version.h>
+#else
+#include <SDL_version.h>
+
+#ifndef USE_SDL1
 #include <SDL_mouse.h>
 #include <SDL_render.h>
 #include <SDL_surface.h>
+#endif
 #endif
 
 #include "DiabloUI/diabloui.h"
@@ -18,6 +28,7 @@
 #include "engine/surface.hpp"
 #include "utils/display.h"
 #include "utils/sdl_bilinear_scale.hpp"
+#include "utils/sdl_compat.h"
 #include "utils/sdl_wrap.h"
 
 namespace devilution {
@@ -35,11 +46,40 @@ enum class HotpointPosition : uint8_t {
 Size ScaledSize(Size size)
 {
 	if (renderer != nullptr) {
-		float scaleX;
-		float scaleY;
-		SDL_RenderGetScale(renderer, &scaleX, &scaleY);
+#ifdef USE_SDL3
+		SDL_FRect logicalDstRect;
+		int logicalWidth;
+		int logicalHeight;
+		if (!SDL_GetRenderLogicalPresentation(renderer, &logicalWidth, &logicalHeight, /*mode=*/nullptr)) {
+			LogError("SDL_GetRenderOutputSize: {}", SDL_GetError());
+			SDL_ClearError();
+			return size;
+		}
+		if (!SDL_GetRenderLogicalPresentationRect(renderer, &logicalDstRect)) {
+			LogError("SDL_GetRenderLogicalPresentationRect: {}", SDL_GetError());
+			SDL_ClearError();
+			return size;
+		}
+		const float dispScale = SDL_GetWindowDisplayScale(ghMainWnd);
+		if (dispScale == 0.0F) {
+			LogError("SDL_GetWindowDisplayScale: {}", SDL_GetError());
+			SDL_ClearError();
+			return size;
+		}
+		const float scaleX = logicalDstRect.w / static_cast<float>(logicalWidth);
+		const float scaleY = logicalDstRect.h / static_cast<float>(logicalHeight);
+		size.width = static_cast<int>(static_cast<float>(size.width) * scaleX / dispScale);
+		size.height = static_cast<int>(static_cast<float>(size.height) * scaleY / dispScale);
+#else
+		float scaleX = 1.0F;
+		float scaleY = 1.0F;
+		if (!SDL_GetRenderScale(renderer, &scaleX, &scaleY)) {
+			LogError("SDL_GetRenderScale: {}", SDL_GetError());
+			SDL_ClearError();
+		}
 		size.width = static_cast<int>(size.width * scaleX);
 		size.height = static_cast<int>(size.height * scaleY);
+#endif
 	}
 	return size;
 }
@@ -83,9 +123,15 @@ bool SetHardwareCursorFromSurface(SDL_Surface *surface, HotpointPosition hotpoin
 		newCursor = SDLCursorUniquePtr { SDL_CreateColorCursor(surface, hotpoint.x, hotpoint.y) };
 	} else {
 		// SDL does not support BlitScaled from 8-bit to RGBA.
-		SDLSurfaceUniquePtr converted { SDL_ConvertSurfaceFormat(surface, SDL_PIXELFORMAT_ARGB8888, 0) };
+		const SDLSurfaceUniquePtr converted {
+#ifdef USE_SDL3
+			SDL_ConvertSurface(surface, SDL_PIXELFORMAT_ARGB8888)
+#else
+			SDL_ConvertSurfaceFormat(surface, SDL_PIXELFORMAT_ARGB8888, 0)
+#endif
+		};
 
-		SDLSurfaceUniquePtr scaledSurface = SDLWrap::CreateRGBSurfaceWithFormat(0, scaledSize.width, scaledSize.height, 32, SDL_PIXELFORMAT_ARGB8888);
+		const SDLSurfaceUniquePtr scaledSurface = SDLWrap::CreateRGBSurfaceWithFormat(0, scaledSize.width, scaledSize.height, 32, SDL_PIXELFORMAT_ARGB8888);
 		if (ShouldUseBilinearScaling()) {
 #if LOG_HWCURSOR
 			Log("hwcursor: SetHardwareCursorFromSurface {}x{} scaled to {}x{} using bilinear scaling",
@@ -97,7 +143,11 @@ bool SetHardwareCursorFromSurface(SDL_Surface *surface, HotpointPosition hotpoin
 			Log("hwcursor: SetHardwareCursorFromSurface {}x{} scaled to {}x{} using nearest neighbour scaling",
 			    size.width, size.height, scaledSize.width, scaledSize.height);
 #endif
+#ifdef USE_SDL3
+			SDL_BlitSurfaceScaled(converted.get(), nullptr, scaledSurface.get(), nullptr, SDL_SCALEMODE_PIXELART);
+#else
 			SDL_BlitScaled(converted.get(), nullptr, scaledSurface.get(), nullptr);
+#endif
 		}
 		const Point hotpoint = GetHotpointPosition(*scaledSurface, hotpointPosition);
 		newCursor = SDLCursorUniquePtr { SDL_CreateColorCursor(scaledSurface.get(), hotpoint.x, hotpoint.y) };
@@ -107,16 +157,32 @@ bool SetHardwareCursorFromSurface(SDL_Surface *surface, HotpointPosition hotpoin
 		SDL_ClearError();
 		return false;
 	}
+#ifdef USE_SDL3
+	if (!SDL_SetCursor(newCursor.get())) {
+		LogError("SDL_SetCursor: {}", SDL_GetError());
+		SDL_ClearError();
+		return false;
+	}
+#else
 	SDL_SetCursor(newCursor.get());
+#endif
 	CurrentCursor = std::move(newCursor);
 	return true;
 }
 
 bool SetHardwareCursorFromClxSprite(ClxSprite sprite, HotpointPosition hotpointPosition)
 {
-	OwnedSurface surface { sprite.width(), sprite.height() };
-	SDL_SetSurfacePalette(surface.surface, Palette.get());
-	SDL_SetColorKey(surface.surface, SDL_TRUE, 0);
+	const OwnedSurface surface { sprite.width(), sprite.height() };
+	if (!SDLC_SetSurfacePalette(surface.surface, Palette.get())) {
+		LogError("SDL_SetSurfacePalette: {}", SDL_GetError());
+		SDL_ClearError();
+		return false;
+	}
+	if (!SDL_SetSurfaceColorKey(surface.surface, true, 0)) {
+		LogError("SDL_SetSurfaceColorKey: {}", SDL_GetError());
+		SDL_ClearError();
+		return false;
+	}
 	RenderClxSprite(surface, sprite, { 0, 0 });
 	return SetHardwareCursorFromSurface(surface.surface, hotpointPosition);
 }
@@ -136,14 +202,22 @@ bool SetHardwareCursorFromSprite(int pcurs)
 	if (!IsCursorSizeAllowed(size))
 		return false;
 
-	OwnedSurface out { size };
+	const OwnedSurface out { size };
 	SDL_SetSurfacePalette(out.surface, Palette.get());
 
 	// Transparent color must not be used in the sprite itself.
 	// Colors 1-127 are outside of the UI palette so are safe to use.
 	constexpr std::uint8_t TransparentColor = 1;
-	SDL_FillRect(out.surface, nullptr, TransparentColor);
-	SDL_SetColorKey(out.surface, 1, TransparentColor);
+	if (!SDL_FillSurfaceRect(out.surface, nullptr, TransparentColor)) {
+		LogError("SDL_FillSurfaceRect: {}", SDL_GetError());
+		SDL_ClearError();
+		return false;
+	}
+	if (!SDL_SetSurfaceColorKey(out.surface, true, TransparentColor)) {
+		LogError("SDL_SetSurfaceColorKey: {}", SDL_GetError());
+		SDL_ClearError();
+		return false;
+	}
 	DrawSoftwareCursor(out, { outlineWidth, size.height - outlineWidth - 1 }, pcurs);
 
 	const bool result = SetHardwareCursorFromSurface(

@@ -1,4 +1,4 @@
-#include "init.h"
+#include "init.hpp"
 #include "mpq/mpq_reader.hpp"
 
 #include <jni.h>

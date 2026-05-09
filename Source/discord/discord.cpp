@@ -17,23 +17,23 @@
 #include <fmt/format.h>
 
 #include "config.h"
-#include "game_mode.hpp"
 #include "levels/gendung.h"
 #include "levels/setmaps.h"
+#include "lua/lua_global.hpp"
 #include "multi.h"
 #include "panels/charpanel.hpp"
 #include "player.h"
-#include "playerdat.hpp"
+#include "tables/playerdat.hpp"
 #include "utils/language.h"
 #include "utils/str_cat.hpp"
 
 namespace devilution {
 namespace {
-void IsHellfireChanged()
+void ModChanged()
 {
 	discord_manager::UpdateMenu(true);
 }
-const auto IsHellfireChangedHandler = (AddIsHellfireChangeHandler(IsHellfireChanged), true);
+const auto ModChangedHandler = (AddModsChangedHandler(ModChanged), true);
 } // namespace
 
 namespace discord_manager {
@@ -124,7 +124,7 @@ std::string GetTooltipString()
 std::string GetPlayerAssetString()
 {
 	char chars[5] {
-		CharChar[static_cast<int>(MyPlayer->_pClass)],
+		GetPlayerSpriteDataForClass(MyPlayer->_pClass).classChar,
 		ArmourChar[tracked_data.playerGfx >> 4],
 		WepChar[tracked_data.playerGfx & 0xF],
 		'a',

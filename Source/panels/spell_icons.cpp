@@ -86,21 +86,19 @@ const SpellIcon SpellITbl[] = {
 
 tl::expected<void, std::string> LoadLargeSpellIcons()
 {
-	if (!gbIsHellfire) {
 #ifdef UNPACKED_MPQS
+	LargeSpellIcons = LoadOptionalClx("data\\spelicon_fg.clx");
+	LargeSpellIconsBackground = LoadOptionalClx("data\\spelicon_bg.clx");
+	if (!LargeSpellIcons.has_value() || !LargeSpellIconsBackground.has_value()) {
 		ASSIGN_OR_RETURN(LargeSpellIcons, LoadClxWithStatus("ctrlpan\\spelicon_fg.clx"));
 		ASSIGN_OR_RETURN(LargeSpellIconsBackground, LoadClxWithStatus("ctrlpan\\spelicon_bg.clx"));
-#else
-		ASSIGN_OR_RETURN(LargeSpellIcons, LoadCelWithStatus("ctrlpan\\spelicon", SPLICONLENGTH));
-#endif
-	} else {
-#ifdef UNPACKED_MPQS
-		ASSIGN_OR_RETURN(LargeSpellIcons, LoadClxWithStatus("data\\spelicon_fg.clx"));
-		ASSIGN_OR_RETURN(LargeSpellIconsBackground, LoadClxWithStatus("data\\spelicon_bg.clx"));
-#else
-		ASSIGN_OR_RETURN(LargeSpellIcons, LoadCelWithStatus("data\\spelicon", SPLICONLENGTH));
-#endif
 	}
+#else
+	LargeSpellIcons = LoadOptionalCel("data\\spelicon", SPLICONLENGTH);
+	if (!LargeSpellIcons.has_value()) {
+		ASSIGN_OR_RETURN(LargeSpellIcons, LoadCelWithStatus("ctrlpan\\spelicon", SPLICONLENGTH));
+	}
+#endif
 	SetSpellTrans(SpellType::Skill);
 	return {};
 }

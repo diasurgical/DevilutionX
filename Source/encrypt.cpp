@@ -3,99 +3,75 @@
  *
  * Implementation of functions for compression and decompressing MPQ data.
  */
-#include <array>
-#include <cctype>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <memory>
 
-#include <SDL.h>
-#include <pkware.h>
+#include <mpqfs/mpqfs.h>
 
 #include "encrypt.h"
 
 namespace devilution {
 
-namespace {
-
-struct TDataInfo {
-	std::byte *srcData;
-	uint32_t srcOffset;
-	std::byte *destData;
-	uint32_t destOffset;
-	uint32_t size;
-};
-
-unsigned int PkwareBufferRead(char *buf, unsigned int *size, void *param) // NOLINT(readability-non-const-parameter)
-{
-	auto *pInfo = reinterpret_cast<TDataInfo *>(param);
-
-	uint32_t sSize;
-	if (*size >= pInfo->size - pInfo->srcOffset) {
-		sSize = pInfo->size - pInfo->srcOffset;
-	} else {
-		sSize = *size;
-	}
-
-	memcpy(buf, pInfo->srcData + pInfo->srcOffset, sSize);
-	pInfo->srcOffset += sSize;
-
-	return sSize;
-}
-
-void PkwareBufferWrite(char *buf, unsigned int *size, void *param) // NOLINT(readability-non-const-parameter)
-{
-	auto *pInfo = reinterpret_cast<TDataInfo *>(param);
-
-	memcpy(pInfo->destData + pInfo->destOffset, buf, *size);
-	pInfo->destOffset += *size;
-}
-
-} // namespace
-
 uint32_t PkwareCompress(std::byte *srcData, uint32_t size)
 {
-	std::unique_ptr<char[]> ptr = std::make_unique<char[]>(CMP_BUFFER_SIZE);
+	// Stack buffer covers typical network messages and MPQ sectors (≤ 4096).
+	// Falls back to heap for larger payloads.
+	constexpr size_t StackBufSize = (4096 * 2) + 64;
+	uint8_t stackBuf[StackBufSize];
 
-	unsigned destSize = 2 * size;
-	if (destSize < 2 * 4096)
-		destSize = 2 * 4096;
+	size_t dstCap = (static_cast<size_t>(size) * 2) + 64;
+	uint8_t *dst;
+	std::unique_ptr<uint8_t[]> heapBuf;
 
-	std::unique_ptr<std::byte[]> destData { new std::byte[destSize] };
-
-	TDataInfo param;
-	param.srcData = srcData;
-	param.srcOffset = 0;
-	param.destData = destData.get();
-	param.destOffset = 0;
-	param.size = size;
-
-	unsigned type = 0;
-	unsigned dsize = 4096;
-	implode(PkwareBufferRead, PkwareBufferWrite, ptr.get(), &param, &type, &dsize);
-
-	if (param.destOffset < size) {
-		memcpy(srcData, destData.get(), param.destOffset);
-		size = param.destOffset;
+	if (dstCap <= StackBufSize) {
+		dst = stackBuf;
+	} else {
+		heapBuf = std::make_unique<uint8_t[]>(dstCap);
+		dst = heapBuf.get();
 	}
 
+	size_t dstSize = dstCap;
+	int rc = mpqfs_pk_implode(
+	    reinterpret_cast<const uint8_t *>(srcData), size,
+	    dst, &dstSize, /*dict_bits=*/6);
+
+	if (rc == 0 && dstSize < size) {
+		std::memcpy(srcData, dst, dstSize);
+		return static_cast<uint32_t>(dstSize);
+	}
+
+	// Compression didn't help — return original size.
 	return size;
 }
 
-void PkwareDecompress(std::byte *inBuff, uint32_t recvSize, int maxBytes)
+uint32_t PkwareDecompress(std::byte *inBuff, uint32_t recvSize, size_t maxBytes)
 {
-	std::unique_ptr<char[]> ptr = std::make_unique<char[]>(CMP_BUFFER_SIZE);
-	std::unique_ptr<std::byte[]> outBuff { new std::byte[maxBytes] };
+	// Stack buffer covers most decompressed network payloads.
+	// Falls back to heap for larger buffers.
+	constexpr size_t StackBufSize = 8192;
+	uint8_t stackBuf[StackBufSize];
 
-	TDataInfo info;
-	info.srcData = inBuff;
-	info.srcOffset = 0;
-	info.destData = outBuff.get();
-	info.destOffset = 0;
-	info.size = recvSize;
+	uint8_t *out;
+	std::unique_ptr<uint8_t[]> heapBuf;
 
-	explode(PkwareBufferRead, PkwareBufferWrite, ptr.get(), &info);
-	memcpy(inBuff, outBuff.get(), info.destOffset);
+	if (maxBytes <= StackBufSize) {
+		out = stackBuf;
+	} else {
+		heapBuf = std::make_unique<uint8_t[]>(maxBytes);
+		out = heapBuf.get();
+	}
+
+	size_t outSize = maxBytes;
+	int rc = mpqfs_pk_explode(
+	    reinterpret_cast<const uint8_t *>(inBuff), recvSize,
+	    out, &outSize);
+	if (rc != 0)
+		return 0;
+
+	std::memcpy(inBuff, out, outSize);
+	return static_cast<uint32_t>(outSize);
 }
 
 } // namespace devilution

@@ -121,7 +121,7 @@ int DividerLineMarginY()
 
 int HeaderHeight()
 {
-	return PaddingTop + LineHeight() + 2 * BlankLineHeight() + DividerLineMarginY();
+	return PaddingTop + LineHeight() + (2 * BlankLineHeight()) + DividerLineMarginY();
 }
 
 int ContentPaddingY()
@@ -131,12 +131,12 @@ int ContentPaddingY()
 
 int ContentsTextHeight()
 {
-	return PanelHeight - HeaderHeight() - DividerLineMarginY() - 2 * ContentPaddingY() - BlankLineHeight();
+	return PanelHeight - HeaderHeight() - DividerLineMarginY() - (2 * ContentPaddingY()) - BlankLineHeight();
 }
 
 int NumVisibleLines()
 {
-	return (ContentsTextHeight() - 1) / LineHeight() + 1; // Ceil
+	return ((ContentsTextHeight() - 1) / LineHeight()) + 1; // Ceil
 }
 
 void DrawHelpSlider(const Surface &out)
@@ -144,7 +144,7 @@ void DrawHelpSlider(const Surface &out)
 	const Point uiPosition = GetUIRectangle().position;
 	const int sliderXPos = ContentTextWidth + uiPosition.x + 36;
 	int sliderStart = uiPosition.y + HeaderHeight() + LineHeight() + 3;
-	int sliderEnd = uiPosition.y + PaddingTop + PanelHeight - 12;
+	const int sliderEnd = uiPosition.y + PaddingTop + PanelHeight - 12;
 	ClxDraw(out, { sliderXPos, sliderStart }, (*pSTextSlidCels)[11]);
 	sliderStart += 12;
 	int sliderCurrent = sliderStart;
@@ -176,7 +176,7 @@ void InitHelp()
 
 		size_t previous = 0;
 		while (true) {
-			size_t next = paragraph.find('\n', previous);
+			const size_t next = paragraph.find('\n', previous);
 			HelpTextLines.emplace_back(paragraph.substr(previous, next - previous));
 			if (next == std::string::npos)
 				break;
@@ -227,7 +227,7 @@ void DrawHelp(const Surface &out)
 			style = UiFlags::ColorBlue;
 		}
 
-		DrawString(out, line.substr(offset), { { sx, contentY + i * lineHeight }, { ContentTextWidth, lineHeight } },
+		DrawString(out, line.substr(offset), { { sx, contentY + (i * lineHeight) }, { ContentTextWidth, lineHeight } },
 		    { .flags = style, .lineHeight = lineHeight });
 	}
 

@@ -1,0 +1,52 @@
+id	name	soundId	bookCost10	staffCost10	manaCost	flags	bookLevel	staffLevel	minIntelligence	missiles	manaMultiplier	minMana	staffMin	staffMax
+Firebolt	Firebolt	CastFire	100	5	6	Fire,Targeted	1	1	15	Firebolt	1	3	40	80
+Healing	Healing	CastHealing	100	5	5	Magic,AllowedInTown	1	1	17	Healing	3	1	20	40
+Lightning	Lightning	CastLightning	300	15	10	Lightning,Targeted	4	3	20	LightningControl	1	6	20	60
+Flash	Flash	CastLightning	750	50	30	Lightning	5	4	33	FlashBottom,FlashTop	2	16	20	40
+Identify	Identify	CastSkill	0	10	13	Magic,AllowedInTown	-1	-1	23	Identify	2	1	8	12
+FireWall	Fire Wall	CastFire	600	40	28	Fire,Targeted	3	2	27	FireWallControl	2	16	8	16
+TownPortal	Town Portal	CastSkill	300	20	35	Magic,Targeted	3	3	20	TownPortal	3	18	8	12
+StoneCurse	Stone Curse	CastFire	1200	80	60	Magic,Targeted	6	5	51	StoneCurse	3	40	8	16
+Infravision	Infravision	CastHealing	0	60	40	Magic	-1	-1	36	Infravision	5	20	0	0
+Phasing	Phasing	CastFire	350	20	12	Magic	7	6	39	Phasing	2	4	40	80
+ManaShield	Mana Shield	CastFire	1600	120	33	Magic	6	5	25	ManaShield	0	33	4	10
+Fireball	Fireball	CastFire	800	30	16	Fire,Targeted	8	7	48	Fireball	1	10	40	80
+Guardian	Guardian	CastFire	1400	95	50	Fire,Targeted	9	8	61	Guardian	2	30	16	32
+ChainLightning	Chain Lightning	CastFire	1100	75	30	Lightning	8	7	54	ChainLightning	1	18	20	60
+FlameWave	Flame Wave	CastFire	1000	65	35	Fire,Targeted	9	8	54	FlameWaveControl	3	20	20	40
+DoomSerpents	Doom Serpents	CastFire	0	0	0	Lightning	-1	-1	0		0	0	40	80
+BloodRitual	Blood Ritual	CastFire	0	0	0	Magic	-1	-1	0		0	0	40	80
+Nova	Nova	CastLightning	2100	130	60	Magic	14	10	87	Nova	3	35	16	32
+Invisibility	Invisibility	CastFire	0	0	0	Magic	-1	-1	0		0	0	40	80
+Inferno	Inferno	CastFire	200	10	11	Fire,Targeted	3	2	20	InfernoControl	1	6	20	40
+Golem	Golem	CastFire	1800	110	100	Fire,Targeted	11	9	81	Golem	6	60	16	32
+Rage	Rage	CastHealing	0	0	15	Magic	-1	-1	0	Rage	1	1	0	0
+Teleport	Teleport	CastSkill	2000	125	35	Magic,Targeted	14	12	105	Teleport	3	15	16	32
+Apocalypse	Apocalypse	CastFire	3000	200	150	Fire	19	15	149	Apocalypse	6	90	8	12
+Etherealize	Etherealize	CastFire	2600	160	100	Magic	-1	-1	93	Etherealize	0	100	2	6
+ItemRepair	Item Repair	CastSkill	0	0	0	Magic,AllowedInTown	-1	-1	255	ItemRepair	0	0	40	80
+StaffRecharge	Staff Recharge	CastSkill	0	0	0	Magic,AllowedInTown	-1	-1	255	StaffRecharge	0	0	40	80
+TrapDisarm	Trap Disarm	CastSkill	0	0	0	Magic	-1	-1	255	TrapDisarm	0	0	40	80
+Elemental	Elemental	CastFire	1050	70	35	Fire	8	6	68	Elemental	2	20	20	60
+ChargedBolt	Charged Bolt	CastFire	100	5	6	Lightning,Targeted	1	1	25	ChargedBolt	1	6	40	80
+HolyBolt	Holy Bolt	CastFire	100	5	7	Magic,Targeted	1	1	20	HolyBolt	1	3	40	80
+Resurrect	Resurrect	CastHealing	400	25	20	Magic,AllowedInTown	-1	5	30	Resurrect	0	20	4	10
+Telekinesis	Telekinesis	CastFire	250	20	15	Magic	2	2	33	Telekinesis	2	8	20	40
+HealOther	Heal Other	CastHealing	100	5	5	Magic,AllowedInTown	1	1	17	HealOther	3	1	20	40
+BloodStar	Blood Star	CastFire	2750	180	25	Magic	14	13	70	BloodStar	2	14	20	60
+BoneSpirit	Bone Spirit	CastFire	1150	80	24	Magic	9	7	34	BoneSpirit	1	12	20	60
+Mana	Mana	CastHealing	100	5	255	Magic,AllowedInTown	-1	5	17	Mana	3	1	12	24
+Magi	the Magi	CastHealing	10000	20	255	Magic,AllowedInTown	-1	20	45	Magi	3	1	15	30
+Jester	the Jester	CastHealing	10000	20	255	Magic,Targeted	-1	4	30	Jester	3	1	15	30
+LightningWall	Lightning Wall	CastLightning	600	40	28	Lightning,Targeted	3	2	27	LightningWallControl	2	16	8	16
+Immolation	Immolation	CastFire	2100	130	60	Fire	14	10	87	Immolation	3	35	16	32
+Warp	Warp	CastSkill	300	20	35	Magic	3	3	25	Warp	3	18	8	12
+Reflect	Reflect	CastSkill	300	20	35	Magic	3	3	25	Reflect	3	15	8	12
+Berserk	Berserk	CastSkill	300	20	35	Magic,Targeted	3	3	35	Berserk	3	15	8	12
+RingOfFire	Ring of Fire	CastFire	600	40	28	Fire	5	5	27	RingOfFire	2	16	8	16
+Search	Search	CastSkill	300	20	15	Magic	1	3	25	Search	1	1	8	12
+RuneOfFire	Rune of Fire	CastHealing	800	30	255	Magic,Targeted	-1	-1	48	RuneOfFire	1	10	40	80
+RuneOfLight	Rune of Light	CastHealing	800	30	255	Magic,Targeted	-1	-1	48	RuneOfLight	1	10	40	80
+RuneOfNova	Rune of Nova	CastHealing	800	30	255	Magic,Targeted	-1	-1	48	RuneOfNova	1	10	40	80
+RuneOfImmolation	Rune of Immolation	CastHealing	800	30	255	Magic,Targeted	-1	-1	48	RuneOfImmolation	1	10	40	80
+RuneOfStone	Rune of Stone	CastHealing	800	30	255	Magic,Targeted	-1	-1	48	RuneOfStone	1	10	40	80

@@ -36,12 +36,8 @@ SpellCheckResult CheckSpell(const Player &player, SpellID sn, SpellType st, bool
  */
 void EnsureValidReadiedSpell(Player &player);
 void CastSpell(Player &player, SpellID spl, WorldTilePosition src, WorldTilePosition dst, int spllvl);
-
-/**
- * @param pnum player index
- * @param rid target player index
- */
-void DoResurrect(Player &player, Player &target);
+void SpawnResurrectBeam(Player &caster, Player &target);
+void ApplyResurrect(Player &target);
 void DoHealOther(const Player &caster, Player &target);
 int GetSpellBookLevel(SpellID s);
 int GetSpellStaffLevel(SpellID s);

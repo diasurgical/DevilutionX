@@ -12,7 +12,6 @@ set(DEVILUTIONX_SYSTEM_LIBSODIUM OFF)
 set(DEVILUTIONX_SYSTEM_LIBPNG OFF)
 set(DEVILUTIONX_SYSTEM_LIBFMT OFF)
 
-set(DISABLE_ZERO_TIER ON)
 set(NOEXIT ON)
 
 # Disable sanitizers. They're not supported out-of-the-box.

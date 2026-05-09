@@ -6,13 +6,19 @@
 
 #include <array>
 #include <memory>
+#include <optional>
 #include <vector>
 
-#include <SDL_endian.h>
+#ifdef USE_SDL3
+#include <SDL3/SDL_pixels.h>
+#else
+#include <SDL.h>
+#endif
 
 #include "appfat.h"
 #include "utils/clx_encode.hpp"
 #include "utils/endian_read.hpp"
+#include "utils/endian_swap.hpp"
 #include "utils/endian_write.hpp"
 #include "utils/pcx.hpp"
 
@@ -46,8 +52,8 @@ bool LoadPcxMeta(AssetHandle &handle, int &width, int &height, uint8_t &bpp)
 	if (!handle.read(&pcxhdr, PcxHeaderSize)) {
 		return false;
 	}
-	width = SDL_SwapLE16(pcxhdr.Xmax) - SDL_SwapLE16(pcxhdr.Xmin) + 1;
-	height = SDL_SwapLE16(pcxhdr.Ymax) - SDL_SwapLE16(pcxhdr.Ymin) + 1;
+	width = Swap16LE(pcxhdr.Xmax) - Swap16LE(pcxhdr.Xmin) + 1;
+	height = Swap16LE(pcxhdr.Ymax) - Swap16LE(pcxhdr.Ymin) + 1;
 	bpp = pcxhdr.BitsPerPixel;
 	return true;
 }

@@ -7,6 +7,7 @@
 
 #include <cstdint>
 
+#include "dvlnet/leaveinfo.hpp"
 #include "engine/point.hpp"
 #include "items.h"
 #include "monster.h"
@@ -15,6 +16,8 @@
 #include "quests.h"
 
 namespace devilution {
+
+using net::leaveinfo_t;
 
 #define MAX_SEND_STR_LEN 80
 
@@ -67,10 +70,6 @@ enum _cmd_id : uint8_t {
 	// attempted loot item when inventory is full).
 	// body (TCmdPItem)
 	CMD_SPAWNITEM,
-	// Attack target location.
-	//
-	// body (TCmdLoc)
-	CMD_ATTACKXY,
 	// Range attack target location.
 	//
 	// body (TCmdLoc)
@@ -206,6 +205,10 @@ enum _cmd_id : uint8_t {
 	// body (TCmdParam1):
 	//    int16_t ear_flag
 	CMD_PLRDEAD,
+	// Player resurrection.
+	//
+	// body (TCmd)
+	CMD_PLRALIVE,
 	// Lift item to hand request.
 	//
 	// body (TCmdGItem)
@@ -389,21 +392,14 @@ enum _cmd_id : uint8_t {
 	//
 	// body (TCmdPItem)
 	CMD_SYNCPUTITEM,
-	// Golem death at location.
-	//
-	// body (TCmdLocParam1):
-	//    int8_t x
-	//    int8_t y
-	//    int16_t dlvl
-	CMD_KILLGOLEM,
 	// Synchronize quest state.
 	//
 	// body (TCmdQuest)
 	CMD_SYNCQUEST,
-	// Spawn golem at target location.
+	// Request to spawn a golem at target location.
 	//
-	// body (TCmdGolem)
-	CMD_AWAKEGOLEM,
+	// body (TCmdLocParam1)
+	CMD_REQUESTSPAWNGOLEM,
 	// Enable mana shield of player (render).
 	//
 	// body (TCmd)
@@ -507,16 +503,6 @@ struct TCmdParam4 {
 	uint16_t wParam4;
 };
 
-struct TCmdGolem {
-	_cmd_id bCmd;
-	uint8_t _mx;
-	uint8_t _my;
-	Direction _mdir;
-	int8_t _menemy;
-	int32_t _mhitpoints;
-	uint8_t _currlevel;
-};
-
 struct TCmdSpawnMonster {
 	_cmd_id bCmd;
 	uint8_t x;
@@ -525,6 +511,8 @@ struct TCmdSpawnMonster {
 	uint16_t typeIndex;
 	uint16_t monsterId;
 	uint32_t seed;
+	uint8_t golemOwnerPlayerId;
+	uint8_t golemSpellLevel;
 };
 
 struct TCmdQuest {
@@ -715,6 +703,7 @@ struct TPktHdr {
 	uint8_t bstr;
 	uint8_t bmag;
 	uint8_t bdex;
+	uint8_t pdir;
 	uint16_t wCheck;
 	uint16_t wLen;
 };
@@ -731,7 +720,7 @@ extern int dwRecCount;
 void PrepareItemForNetwork(const Item &item, TItem &messageItem);
 void PrepareEarForNetwork(const Item &item, TEar &ear);
 void RecreateItem(const Player &player, const TItem &messageItem, Item &item);
-void msg_send_drop_pkt(uint8_t pnum, int reason);
+void msg_send_drop_pkt(uint8_t pnum, leaveinfo_t reason);
 bool msg_wait_resync();
 void run_delta_info();
 void DeltaExportData(uint8_t pnum);
@@ -750,8 +739,7 @@ void DeltaLoadLevel();
 /** @brief Clears last sent player command for the local player. This is used when a game tick changes. */
 void ClearLastSentPlayerCmd();
 void NetSendCmd(bool bHiPri, _cmd_id bCmd);
-void NetSendCmdGolem(uint8_t mx, uint8_t my, Direction dir, uint8_t menemy, int hp, uint8_t cl);
-void NetSendCmdSpawnMonster(Point position, Direction dir, uint16_t typeIndex, uint16_t monsterId, uint32_t seed);
+void NetSendCmdSpawnMonster(Point position, Direction dir, uint16_t typeIndex, uint16_t monsterId, uint32_t seed, uint8_t golemOwnerPlayerId, uint8_t golemSpellLevel);
 void NetSendCmdLoc(uint8_t playerId, bool bHiPri, _cmd_id bCmd, Point position);
 void NetSendCmdLocParam1(bool bHiPri, _cmd_id bCmd, Point position, uint16_t wParam1);
 void NetSendCmdLocParam2(bool bHiPri, _cmd_id bCmd, Point position, uint16_t wParam1, uint16_t wParam2);
@@ -767,11 +755,12 @@ void NetSyncInvItem(const Player &player, int invListIndex);
 void NetSendCmdChItem(bool bHiPri, uint8_t bLoc, bool forceSpellChange = false);
 void NetSendCmdDelItem(bool bHiPri, uint8_t bLoc);
 void NetSendCmdChInvItem(bool bHiPri, int invGridIndex);
-void NetSendCmdChBeltItem(bool bHiPri, int invGridIndex);
+void NetSendCmdChBeltItem(bool bHiPri, int beltIndex);
 void NetSendCmdDamage(bool bHiPri, const Player &player, uint32_t dwDam, DamageType damageType);
 void NetSendCmdMonDmg(bool bHiPri, uint16_t wMon, uint32_t dwDam);
 void NetSendCmdString(uint32_t pmask, const char *pszStr);
 void delta_close_portal(const Player &player);
-size_t ParseCmd(uint8_t pnum, const TCmd *pCmd);
+bool ValidateCmdSize(size_t requiredCmdSize, size_t maxCmdSize, size_t playerId);
+size_t ParseCmd(uint8_t pnum, const TCmd *pCmd, size_t maxCmdSize);
 
 } // namespace devilution

@@ -3,6 +3,10 @@
 #include <cstddef>
 #include <cstdint>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_rect.h>
+#include <SDL3/SDL_surface.h>
+#else
 #include <SDL_version.h>
 
 #if SDL_VERSION_ATLEAST(2, 0, 0)
@@ -11,6 +15,7 @@
 #else
 #include "utils/sdl2_to_1_2_backports.h"
 #include <SDL_video.h>
+#endif
 #endif
 
 #include "engine/point.hpp"

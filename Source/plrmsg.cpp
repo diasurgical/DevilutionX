@@ -6,11 +6,18 @@
 #include "plrmsg.h"
 
 #include <algorithm>
+#include <array>
 #include <cstdint>
+
+#ifdef USE_SDL3
+#include <SDL3/SDL_timer.h>
+#else
+#include <SDL.h>
+#endif
 
 #include <fmt/format.h>
 
-#include "control.h"
+#include "control/control.hpp"
 #include "engine/render/primitive_render.hpp"
 #include "engine/render/text_render.hpp"
 #include "inv.h"
@@ -26,7 +33,7 @@ namespace {
 
 struct PlayerMessage {
 	/** Time message was received */
-	Uint32 time;
+	uint32_t time;
 	/** The default text color */
 	UiFlags style;
 	/** The text message to display on screen */
@@ -75,7 +82,7 @@ void SendPlrMsg(Player &player, std::string_view text)
 {
 	PlayerMessage &message = GetNextMessage();
 
-	std::string from = fmt::format(fmt::runtime(_("{:s} (lvl {:d}): ")), player._pName, player.getCharacterLevel());
+	const std::string from = fmt::format(fmt::runtime(_("{:s} (lvl {:d}): ")), player._pName, player.getCharacterLevel());
 
 	message.style = UiFlags::ColorWhite;
 	message.time = SDL_GetTicks();
@@ -111,23 +118,23 @@ void DrawPlrMsg(const Surface &out)
 
 	width = std::min(540, width);
 
-	for (PlayerMessage &message : Messages) {
+	for (const PlayerMessage &message : Messages) {
 		if (message.text.empty())
 			break;
 		if (!ChatFlag && SDL_GetTicks() - message.time >= 10000)
 			break;
 
 		std::string text = WordWrapString(message.text, width);
-		int chatlines = CountLinesOfText(text);
+		const int chatlines = CountLinesOfText(text);
 		y -= message.lineHeight * chatlines;
 
 		DrawHalfTransparentRectTo(out, x - 3, y, width + 6, message.lineHeight * chatlines);
 
-		std::vector<DrawStringFormatArg> args {
-			{ std::string_view(text.data(), message.prefixLength), UiFlags::ColorWhitegold },
-			{ std::string_view(text.data() + message.prefixLength, text.size() - message.prefixLength), message.style }
+		std::array<DrawStringFormatArg, 2> args {
+			DrawStringFormatArg { std::string_view(text.data(), message.prefixLength), UiFlags::ColorWhitegold },
+			DrawStringFormatArg { std::string_view(text.data() + message.prefixLength, text.size() - message.prefixLength), message.style }
 		};
-		DrawStringWithColors(out, "{:s}{:s}", args, { { x, y }, { width, 0 } },
+		DrawStringWithColors(out, "{:s}{:s}", args.data(), args.size(), { { x, y }, { width, 0 } },
 		    { .flags = UiFlags::None, .lineHeight = message.lineHeight });
 	}
 }

@@ -231,14 +231,17 @@ tl::expected<void, PacketError> packet_in::Decrypt(buffer_t buf)
 	    - crypto_secretbox_NONCEBYTES
 	    - crypto_secretbox_MACBYTES);
 	decrypted_buffer.resize(pktlen);
-	int status = crypto_secretbox_open_easy(
+	const int status = crypto_secretbox_open_easy(
 	    decrypted_buffer.data(),
 	    encrypted_buffer.data() + crypto_secretbox_NONCEBYTES,
 	    encrypted_buffer.size() - crypto_secretbox_NONCEBYTES,
 	    encrypted_buffer.data(),
 	    key.data());
-	if (status != 0)
-		return tl::make_unexpected(PacketError());
+	if (status != 0) {
+		auto code = PacketError::ErrorCode::DecryptionFailed;
+		std::string_view message = "Failed to decrypt packet data";
+		return tl::make_unexpected(PacketError(code, message));
+	}
 
 	have_decrypted = true;
 	return {};
@@ -246,12 +249,12 @@ tl::expected<void, PacketError> packet_in::Decrypt(buffer_t buf)
 #endif
 
 #ifdef PACKET_ENCRYPTION
-void packet_out::Encrypt()
+tl::expected<void, PacketError> packet_out::Encrypt()
 {
 	assert(have_decrypted);
 
 	if (have_encrypted)
-		return;
+		return {};
 
 	auto lenCleartext = decrypted_buffer.size();
 	encrypted_buffer.insert(encrypted_buffer.begin(),
@@ -259,16 +262,20 @@ void packet_out::Encrypt()
 	encrypted_buffer.insert(encrypted_buffer.end(),
 	    crypto_secretbox_MACBYTES + lenCleartext, 0);
 	randombytes_buf(encrypted_buffer.data(), crypto_secretbox_NONCEBYTES);
-	int status = crypto_secretbox_easy(
+	const int status = crypto_secretbox_easy(
 	    encrypted_buffer.data() + crypto_secretbox_NONCEBYTES,
 	    decrypted_buffer.data(),
 	    lenCleartext,
 	    encrypted_buffer.data(),
 	    key.data());
-	if (status != 0)
-		ABORT();
+	if (status != 0) {
+		auto code = PacketError::ErrorCode::EncryptionFailed;
+		std::string_view message = "Failed to encrypt packet data";
+		return tl::make_unexpected(PacketError(code, message));
+	}
 
 	have_encrypted = true;
+	return {};
 }
 #endif
 
@@ -288,7 +295,7 @@ packet_factory::packet_factory(std::string pw)
 	pw.resize(std::max<std::size_t>(pw.size(), crypto_pwhash_argon2id_PASSWD_MIN), 0);
 	std::string salt("W9bE9dQgVaeybwr2");
 	salt.resize(crypto_pwhash_argon2id_SALTBYTES, 0);
-	int status = crypto_pwhash(
+	const int status = crypto_pwhash(
 	    key.data(),
 	    crypto_secretbox_KEYBYTES,
 	    pw.data(),

@@ -3,6 +3,7 @@
 
 #include <gtest/gtest.h>
 
+#include "engine/assets.hpp"
 #include "engine/random.hpp"
 #include "game_mode.hpp"
 #include "items.h"
@@ -35,32 +36,34 @@ public:
 void GenerateAllUniques(bool hellfire, const size_t expectedUniques)
 {
 	gbIsHellfire = hellfire;
+	UnloadModArchives();
+	if (hellfire) {
+		LoadModArchives({ { "Hellfire" } });
+	}
+	LoadItemData();
 
 	std::mt19937 betterRng;
-	std::uniform_int_distribution<uint32_t> dist(0, std::numeric_limits<uint32_t>::max());
+	const std::uniform_int_distribution<uint32_t> dist(0, std::numeric_limits<uint32_t>::max());
 
 	// Get seed for test run from time. If a test run fails, remember the seed and hardcode it here.
-	uint32_t testRunSeed = static_cast<uint32_t>(time(nullptr));
+	const uint32_t testRunSeed = static_cast<uint32_t>(time(nullptr));
 	betterRng.seed(testRunSeed);
 
 	std::set<int> foundUniques;
 
 	constexpr int max_iterations = 1000000;
 	int iteration = 0;
+	int uniqueIndex = -1;
 
-	for (int uniqueIndex = 0, n = static_cast<int>(UniqueItems.size()); uniqueIndex < n; ++uniqueIndex) {
-
-		if (!IsUniqueAvailable(uniqueIndex))
-			continue;
+	for (auto &uniqueItem : UniqueItems) {
+		++uniqueIndex;
 
 		if (foundUniques.contains(uniqueIndex))
 			continue;
 
-		auto &uniqueItem = UniqueItems[uniqueIndex];
-
 		_item_indexes uniqueBaseIndex = IDI_GOLD;
-		for (std::underlying_type_t<_item_indexes> j = IDI_GOLD; j <= IDI_LAST; j++) {
-			if (!IsItemAvailable(j))
+		for (size_t j = 0; j < AllItemsList.size(); j++) {
+			if (!IsItemAvailable(static_cast<int>(j)))
 				continue;
 			if (AllItemsList[j].iItemId != uniqueItem.UIItemId)
 				continue;

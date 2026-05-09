@@ -9,9 +9,17 @@
 #include <cstring>
 #include <ctime>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_error.h>
+#include <SDL3/SDL_iostream.h>
+#include <SDL3/SDL_timer.h>
+#else
 #include <SDL.h>
+
+#include "utils/sdl_compat.h"
+#endif
+
 #include <expected.hpp>
-#include <fmt/format.h>
 
 #define DEVILUTIONX_SCREENSHOT_FORMAT_PCX 0
 #define DEVILUTIONX_SCREENSHOT_FORMAT_PNG 1
@@ -26,6 +34,7 @@
 #include "engine/backbuffer_state.hpp"
 #include "engine/dx.h"
 #include "engine/palette.h"
+#include "engine/render/scrollrt.h"
 #include "utils/file_util.h"
 #include "utils/log.hpp"
 #include "utils/paths.h"
@@ -34,7 +43,7 @@
 namespace devilution {
 namespace {
 
-SDL_RWops *CaptureFile(std::string *dstPath)
+SDL_IOStream *CaptureFile(std::string *dstPath)
 {
 	const char *ext =
 #if DEVILUTIONX_SCREENSHOT_FORMAT == DEVILUTIONX_SCREENSHOT_FORMAT_PCX
@@ -45,8 +54,9 @@ SDL_RWops *CaptureFile(std::string *dstPath)
 	const std::time_t tt = std::time(nullptr);
 	const std::tm *tm = std::localtime(&tt);
 	const std::string filename = tm != nullptr
-	    ? fmt::format("Screenshot from {:04}-{:02}-{:02} {:02}-{:02}-{:02}",
-	          tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday, tm->tm_hour, tm->tm_min, tm->tm_sec)
+	    ? StrCat("Screenshot from ",
+	          LeftPad(tm->tm_year + 1900, 4, '0'), "-", LeftPad(tm->tm_mon + 1, 2, '0'), "-", LeftPad(tm->tm_mday, 2, '0'), "-",
+	          LeftPad(tm->tm_hour, 2, '0'), "-", LeftPad(tm->tm_min, 2, '0'), "-", LeftPad(tm->tm_sec, 2, '0'))
 	    : "Screenshot";
 	*dstPath = StrCat(paths::PrefPath(), filename, ext);
 	int i = 0;
@@ -54,7 +64,7 @@ SDL_RWops *CaptureFile(std::string *dstPath)
 		i++;
 		*dstPath = StrCat(paths::PrefPath(), filename, "-", i, ext);
 	}
-	return SDL_RWFromFile(dstPath->c_str(), "wb");
+	return SDL_IOFromFile(dstPath->c_str(), "wb");
 }
 
 /**
@@ -66,7 +76,7 @@ void RedPalette()
 		system_palette[i].g = 0;
 		system_palette[i].b = 0;
 	}
-	palette_update();
+	SystemPaletteUpdated();
 	BltFast(nullptr, nullptr);
 	RenderPresent();
 }
@@ -75,23 +85,22 @@ void RedPalette()
 
 void CaptureScreen()
 {
-	SDL_Color palette[256];
 	std::string fileName;
 	const uint32_t startTime = SDL_GetTicks();
 
-	SDL_RWops *outStream = CaptureFile(&fileName);
+	auto *outStream = CaptureFile(&fileName);
 	if (outStream == nullptr) {
 		LogError("Failed to open {} for writing: {}", fileName, SDL_GetError());
 		SDL_ClearError();
 		return;
 	}
 	DrawAndBlit();
-	PaletteGetEntries(256, palette);
+
+	const std::array<SDL_Color, 256> origSystemPalette = system_palette;
 	RedPalette();
-	for (int i = 0; i < 256; i++) {
-		system_palette[i] = palette[i];
-	}
-	palette_update();
+
+	system_palette = origSystemPalette;
+	SystemPaletteUpdated();
 
 	const tl::expected<void, std::string> result =
 #if DEVILUTIONX_SCREENSHOT_FORMAT == DEVILUTIONX_SCREENSHOT_FORMAT_PCX

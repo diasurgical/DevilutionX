@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <array>
+#include <string_view>
 
 #include "diablo.h"
 #include "engine/actor_position.hpp"
@@ -25,8 +26,8 @@
 #include "levels/dun_tile.hpp"
 #include "levels/gendung.h"
 #include "multi.h"
-#include "playerdat.hpp"
-#include "spelldat.h"
+#include "tables/playerdat.hpp"
+#include "tables/spelldat.h"
 #include "utils/attributes.h"
 #include "utils/enum_traits.h"
 #include "utils/is_of.hpp"
@@ -182,16 +183,6 @@ constexpr std::array<char, 9> WepChar = {
 	't', // staff
 };
 
-/** Maps from player class to letter used in graphic files. */
-constexpr std::array<char, 6> CharChar = {
-	'w', // warrior
-	'r', // rogue
-	's', // sorcerer
-	'm', // monk
-	'b',
-	'c',
-};
-
 /**
  * @brief Contains Data (CelSprites) for a player graphic (player_graphic)
  */
@@ -292,6 +283,8 @@ struct Player {
 	 * @brief Contains Data (Sprites) for the different Animations
 	 */
 	std::array<PlayerAnimationData, enum_size<player_graphic>::value> AnimationData;
+	std::array<OptionalOwnedClxSpriteSheet, 2> PartyInfoSprites;
+	std::array<std::string, 2> PartyInfoSpriteLocations;
 	int8_t _pNFrames;
 	int8_t _pWFrames;
 	int8_t _pAFrames;
@@ -368,6 +361,11 @@ public:
 	uint8_t pDiabloKillLevel;
 	uint16_t wReflections;
 	ItemSpecialEffectHf pDamAcFlags;
+
+	[[nodiscard]] std::string_view name() const
+	{
+		return _pName;
+	}
 
 	/**
 	 * @brief Convenience function to get the base stats/bonuses for this player's class
@@ -902,6 +900,16 @@ public:
 
 		return (type == leftHandItem._itype && leftHandItem._iStatFlag) || (type == rightHandItem._itype && rightHandItem._iStatFlag);
 	}
+
+	bool hasNoLife() const
+	{
+		return leveltype == DTYPE_TOWN ? false : _pHitPoints >> 6 <= 0;
+	}
+
+	bool hasNoMana() const
+	{
+		return _pMana >> 6 <= 0;
+	}
 };
 
 extern DVL_API_FOR_TEST uint8_t MyPlayerId;
@@ -917,6 +925,13 @@ inline bool IsInspectingPlayer()
 extern bool MyPlayerIsDead;
 
 Player *PlayerAtPosition(Point position, bool ignoreMovingPlayers = false);
+
+/**
+ * @brief Get the players current portrait sprite which is used for the party panel.
+ * @param player
+ */
+ClxSprite GetPlayerPortraitSprite(Player &player);
+bool IsPlayerUnarmed(Player &player);
 
 void LoadPlrGFX(Player &player, player_graphic graphic);
 void InitPlayerGFX(Player &player);
@@ -966,7 +981,6 @@ void ProcessPlayers();
 void ClrPlrPath(Player &player);
 bool PosOkPlayer(const Player &player, Point position);
 void MakePlrPath(Player &player, Point targetPosition, bool endspace);
-void CalcPlrStaff(Player &player);
 void CheckPlrSpell(bool isShiftHeld, SpellID spellID = MyPlayer->_pRSpell, SpellType spellType = MyPlayer->_pRSplType);
 void SyncPlrAnim(Player &player);
 void SyncInitPlrPos(Player &player);

@@ -14,6 +14,8 @@
 
 namespace devilution {
 
+#define MAX_SPELLS 52
+
 #pragma pack(push, 1)
 struct ItemPack {
 	uint32_t iSeed;
@@ -89,6 +91,7 @@ struct PlayerNetPack {
 	uint8_t plrlevel;
 	uint8_t px;
 	uint8_t py;
+	uint8_t pdir;
 	char pName[PlayerNameLength];
 	uint8_t pClass;
 	uint8_t pBaseStr;

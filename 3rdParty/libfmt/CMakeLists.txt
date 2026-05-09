@@ -16,8 +16,8 @@ else()
 endif()
 include(FetchContent)
 FetchContent_Declare_ExcludeFromAll(libfmt
-  URL https://github.com/fmtlib/fmt/archive/02537548f3a9efb5f3b83755acf50c8a16ba58c8.tar.gz
-  URL_HASH MD5=6901c6945cd311117d96baaa6d067380
+  URL https://github.com/fmtlib/fmt/releases/download/12.0.0/fmt-12.0.0.zip
+  URL_HASH SHA256=1c32293203449792bf8e94c7f6699c643887e826f2d66a80869b4f279fb07d25
 )
 FetchContent_MakeAvailable_ExcludeFromAll(libfmt)
 

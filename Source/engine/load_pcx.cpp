@@ -10,7 +10,11 @@
 #include <iostream>
 #endif
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_pixels.h>
+#else
 #include <SDL.h>
+#endif
 
 #include "mpq/mpq_common.hpp"
 #include "utils/log.hpp"

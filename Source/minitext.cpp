@@ -10,15 +10,15 @@
 #include <vector>
 
 #include "DiabloUI/ui_flags.hpp"
-#include "control.h"
+#include "control/control.hpp"
 #include "engine/clx_sprite.hpp"
 #include "engine/dx.h"
 #include "engine/load_cel.hpp"
 #include "engine/render/clx_render.hpp"
 #include "engine/render/primitive_render.hpp"
 #include "engine/render/text_render.hpp"
-#include "playerdat.hpp"
-#include "textdat.h"
+#include "tables/playerdat.hpp"
+#include "tables/textdat.h"
 #include "utils/language.h"
 #include "utils/timer.hpp"
 
@@ -48,7 +48,7 @@ void LoadText(std::string_view text)
 
 	size_t previous = 0;
 	while (true) {
-		size_t next = paragraphs.find('\n', previous);
+		const size_t next = paragraphs.find('\n', previous);
 		TextLines.emplace_back(paragraphs.substr(previous, next - previous));
 		if (next == std::string::npos)
 			break;
@@ -84,7 +84,7 @@ int CalculateTextPosition()
 {
 	const uint32_t currTime = GetMillisecondsSinceStartup();
 
-	const int y = (currTime - ScrollStart) / qtextSpd - 260;
+	const int y = ((currTime - ScrollStart) / qtextSpd) - 260;
 
 	const auto textHeight = static_cast<int>(LineHeight * TextLines.size());
 	if (y >= textHeight)
@@ -98,7 +98,7 @@ int CalculateTextPosition()
  */
 void DrawQTextContent(const Surface &out)
 {
-	int y = CalculateTextPosition();
+	const int y = CalculateTextPosition();
 
 	const int sx = GetUIRectangle().position.x + 48;
 	const int sy = 0 - (y % LineHeight);
@@ -116,7 +116,7 @@ void DrawQTextContent(const Surface &out)
 			continue;
 		}
 
-		DrawString(out, line, { { sx, sy + i * LineHeight }, { 543, LineHeight } },
+		DrawString(out, line, { { sx, sy + (i * LineHeight) }, { 543, LineHeight } },
 		    { .flags = UiFlags::FontSize30 | UiFlags::ColorGold });
 	}
 }
@@ -136,28 +136,27 @@ void InitQuestText()
 void InitQTextMsg(_speech_id m)
 {
 	SfxID sfxnr = Speeches[m].sfxnr;
-	const SfxID *classSounds = herosounds[static_cast<size_t>(MyPlayer->_pClass)];
 	switch (sfxnr) {
 	case SfxID::Warrior1:
-		sfxnr = classSounds[static_cast<size_t>(HeroSpeech::ChamberOfBoneLore)];
+		sfxnr = GetHeroSound(MyPlayer->_pClass, HeroSpeech::ChamberOfBoneLore);
 		break;
 	case SfxID::Warrior10:
-		sfxnr = classSounds[static_cast<size_t>(HeroSpeech::ValorLore)];
+		sfxnr = GetHeroSound(MyPlayer->_pClass, HeroSpeech::ValorLore);
 		break;
 	case SfxID::Warrior11:
-		sfxnr = classSounds[static_cast<size_t>(HeroSpeech::HallsOfTheBlindLore)];
+		sfxnr = GetHeroSound(MyPlayer->_pClass, HeroSpeech::HallsOfTheBlindLore);
 		break;
 	case SfxID::Warrior12:
-		sfxnr = classSounds[static_cast<size_t>(HeroSpeech::WarlordOfBloodLore)];
+		sfxnr = GetHeroSound(MyPlayer->_pClass, HeroSpeech::WarlordOfBloodLore);
 		break;
 	case SfxID::Warrior54:
-		sfxnr = classSounds[static_cast<size_t>(HeroSpeech::InSpirituSanctum)];
+		sfxnr = GetHeroSound(MyPlayer->_pClass, HeroSpeech::InSpirituSanctum);
 		break;
 	case SfxID::Warrior55:
-		sfxnr = classSounds[static_cast<size_t>(HeroSpeech::PraedictumOtium)];
+		sfxnr = GetHeroSound(MyPlayer->_pClass, HeroSpeech::PraedictumOtium);
 		break;
 	case SfxID::Warrior56:
-		sfxnr = classSounds[static_cast<size_t>(HeroSpeech::EfficioObitusUtInimicus)];
+		sfxnr = GetHeroSound(MyPlayer->_pClass, HeroSpeech::EfficioObitusUtInimicus);
 		break;
 	default:
 		break;

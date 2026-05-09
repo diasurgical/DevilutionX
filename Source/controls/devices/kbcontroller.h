@@ -6,12 +6,17 @@
 #endif
 
 #if HAS_KBCTRL == 1
-#include "controls/controller_buttons.h"
+#ifdef USE_SDL3
+#include <SDL3/SDL_events.h>
+#else
 #include <SDL.h>
 
 #ifdef USE_SDL1
 #include "utils/sdl2_to_1_2_backports.h"
 #endif
+#endif
+
+#include "controls/controller_buttons.h"
 
 namespace devilution {
 

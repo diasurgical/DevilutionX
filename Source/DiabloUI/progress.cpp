@@ -1,19 +1,31 @@
+#include <memory>
+#include <optional>
+#include <vector>
+
+#ifdef USE_SDL3
+#include <SDL3/SDL_events.h>
+#include <SDL3/SDL_rect.h>
+#include <SDL3/SDL_surface.h>
+#else
 #include <SDL.h>
+#endif
 
 #include "DiabloUI/button.h"
 #include "DiabloUI/diabloui.h"
-#include "control.h"
+#include "DiabloUI/ui_item.h"
 #include "controls/input.h"
 #include "controls/menu_controls.h"
 #include "engine/clx_sprite.hpp"
 #include "engine/dx.h"
 #include "engine/load_pcx.hpp"
-#include "engine/palette.h"
+#include "engine/point.hpp"
 #include "engine/render/clx_render.hpp"
-#include "hwcursor.hpp"
+#include "engine/surface.hpp"
 #include "utils/display.h"
 #include "utils/is_of.hpp"
 #include "utils/language.h"
+#include "utils/sdl_compat.h"
+#include "utils/ui_fwd.h"
 
 namespace devilution {
 namespace {
@@ -41,7 +53,7 @@ void ProgressLoadForeground()
 	ProgFil = LoadPcx("ui_art\\prog_fil");
 
 	const Point uiPosition = GetUIRectangle().position;
-	SDL_Rect rect3 = { (Sint16)(uiPosition.x + 265), (Sint16)(uiPosition.y + 267), DialogButtonWidth, DialogButtonHeight };
+	const SDL_Rect rect3 = { (Sint16)(uiPosition.x + 265), (Sint16)(uiPosition.y + 267), DialogButtonWidth, DialogButtonHeight };
 	vecProgress.push_back(std::make_unique<UiButton>(_("Cancel"), &DialogActionCancel, rect3));
 }
 
@@ -66,7 +78,7 @@ Point GetPosition()
 
 void ProgressRenderBackground()
 {
-	SDL_FillRect(DiabloUiSurface(), nullptr, 0x000000);
+	SDL_FillSurfaceRect(DiabloUiSurface(), nullptr, 0);
 
 	const Surface &out = Surface(DiabloUiSurface());
 	const Point position = GetPosition();
@@ -93,8 +105,6 @@ void ProgressRenderForeground(int progress)
 
 bool UiProgressDialog(int (*fnfunc)())
 {
-	SetFadeLevel(256);
-
 	// Blit the background once and then free it.
 	ProgressLoadBackground();
 
@@ -125,22 +135,28 @@ bool UiProgressDialog(int (*fnfunc)())
 		DrawMouse();
 		UiFadeIn();
 
-		while (PollEvent(&event) != 0) {
+		while (PollEvent(&event)) {
 			switch (event.type) {
-			case SDL_MOUSEBUTTONDOWN:
-			case SDL_MOUSEBUTTONUP:
+			case SDL_EVENT_MOUSE_BUTTON_DOWN:
+			case SDL_EVENT_MOUSE_BUTTON_UP:
 				UiItemMouseEvents(&event, vecProgress);
 				break;
+			case SDL_EVENT_KEY_DOWN:
+				switch (SDLC_EventKey(event)) {
 #ifndef USE_SDL1
-			case SDLK_KP_ENTER:
+				case SDLK_KP_ENTER:
 #endif
-			case SDLK_ESCAPE:
-			case SDLK_RETURN:
-			case SDLK_SPACE:
-				endMenu = true;
+				case SDLK_ESCAPE:
+				case SDLK_RETURN:
+				case SDLK_SPACE:
+					endMenu = true;
+					break;
+				default:
+					break;
+				}
 				break;
 			default:
-				for (MenuAction menuAction : GetMenuActions(event)) {
+				for (const MenuAction menuAction : GetMenuActions(event)) {
 					if (IsNoneOf(menuAction, MenuAction_BACK, MenuAction_SELECT))
 						continue;
 					endMenu = true;

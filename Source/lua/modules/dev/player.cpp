@@ -81,11 +81,11 @@ std::string DebugSetPlayerTrn(std::string_view path)
 sol::table LuaDevPlayerTrnModule(sol::state_view &lua)
 {
 	sol::table table = lua.create_table();
-	SetDocumented(table, "mon", "(name: string)", "Set player TRN to monsters\\${name}.trn",
+	LuaSetDocFn(table, "mon", "(name: string)", "Set player TRN to monsters\\${name}.trn",
 	    [](std::string_view name) { return DebugSetPlayerTrn(StrCat("monsters\\", name, ".trn")); });
-	SetDocumented(table, "plr", "(name: string)", "Set player TRN to plrgfx\\${name}.trn",
+	LuaSetDocFn(table, "plr", "(name: string)", "Set player TRN to plrgfx\\${name}.trn",
 	    [](std::string_view name) { return DebugSetPlayerTrn(StrCat("plrgfx\\", name, ".trn")); });
-	SetDocumented(table, "clear", "()", "Unset player TRN",
+	LuaSetDocFn(table, "clear", "()", "Unset player TRN",
 	    []() { return DebugSetPlayerTrn(""); });
 	return table;
 }
@@ -101,14 +101,14 @@ std::string DebugCmdInvisible(std::optional<bool> on)
 sol::table LuaDevPlayerModule(sol::state_view &lua)
 {
 	sol::table table = lua.create_table();
-	SetDocumented(table, "arrow", "(effect: 'normal'|'fire'|'lightning'|'explosion')", "Set arrow effect.", &DebugCmdArrow);
-	SetDocumented(table, "god", "(on: boolean = nil)", "Toggle god mode.", &DebugCmdGodMode);
-	SetDocumented(table, "gold", "", "Adjust player gold.", LuaDevPlayerGoldModule(lua));
-	SetDocumented(table, "info", "(id: number = 0)", "Show player info.", &DebugCmdPlayerInfo);
-	SetDocumented(table, "spells", "", "Adjust player spells.", LuaDevPlayerSpellsModule(lua));
-	SetDocumented(table, "stats", "", "Adjust player stats (Strength, HP, etc).", LuaDevPlayerStatsModule(lua));
-	SetDocumented(table, "trn", "", "Set player TRN to '${name}.trn'", LuaDevPlayerTrnModule(lua));
-	SetDocumented(table, "invisible", "(on: boolean = nil)", "Toggle invisibility.", &DebugCmdInvisible);
+	LuaSetDocFn(table, "arrow", "(effect: 'normal'|'fire'|'lightning'|'explosion')", "Set arrow effect.", &DebugCmdArrow);
+	LuaSetDocFn(table, "god", "(on: boolean = nil)", "Toggle god mode.", &DebugCmdGodMode);
+	LuaSetDoc(table, "gold", "", "Adjust player gold.", LuaDevPlayerGoldModule(lua));
+	LuaSetDocFn(table, "info", "(id: number = 0)", "Show player info.", &DebugCmdPlayerInfo);
+	LuaSetDoc(table, "spells", "", "Adjust player spells.", LuaDevPlayerSpellsModule(lua));
+	LuaSetDoc(table, "stats", "", "Adjust player stats (Strength, HP, etc).", LuaDevPlayerStatsModule(lua));
+	LuaSetDoc(table, "trn", "", "Set player TRN to '${name}.trn'", LuaDevPlayerTrnModule(lua));
+	LuaSetDocFn(table, "invisible", "(on: boolean = nil)", "Toggle invisibility.", &DebugCmdInvisible);
 	return table;
 }
 

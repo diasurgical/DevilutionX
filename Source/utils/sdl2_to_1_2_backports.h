@@ -17,6 +17,7 @@
 #endif
 
 #define WINDOW_ICON_NAME 0
+#define SDL_Window SDL_Surface
 
 //== Utility
 
@@ -112,6 +113,21 @@ inline void SDL_SetTextInputRect(const SDL_Rect *r)
 {
 }
 
+inline bool SDLC_StartTextInput(SDL_Window *)
+{
+	SDL_StartTextInput();
+	return true;
+}
+inline bool SDLC_StopTextInput(SDL_Window *)
+{
+	SDL_StopTextInput();
+	return true;
+}
+inline bool SDL_SetTextInputArea(SDL_Window *, const SDL_Rect *, int)
+{
+	return true;
+}
+
 //== Graphics helpers
 
 typedef struct SDL_Point {
@@ -123,6 +139,8 @@ inline SDL_bool SDL_PointInRect(const SDL_Point *p, const SDL_Rect *r)
 {
 	return ((p->x >= r->x) && (p->x < (r->x + r->w)) && (p->y >= r->y) && (p->y < (r->y + r->h))) ? SDL_TRUE : SDL_FALSE;
 }
+
+inline bool SDLC_PointInRect(const SDL_Point *p, const SDL_Rect *r) { return SDL_PointInRect(p, r) == SDL_TRUE; }
 
 //= Messagebox (simply logged to stderr for now)
 
@@ -152,8 +170,6 @@ inline int SDL_ShowSimpleMessageBox(Uint32 flags,
 #endif
 
 //= Window handling
-
-#define SDL_Window SDL_Surface
 
 inline void SDL_GetWindowPosition(SDL_Window *window, int *x, int *y)
 {

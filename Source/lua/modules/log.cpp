@@ -1,6 +1,10 @@
 #include "lua/modules/log.hpp"
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_log.h>
+#else
 #include <SDL.h>
+#endif
 
 #include <fmt/args.h>
 #include <fmt/format.h>
@@ -45,15 +49,20 @@ void LuaLogMessage(LogPriority priority, std::string_view fmt, sol::variadic_arg
 		}
 		formatted = fmt::vformat(fmt, store);
 	}
+#if FMT_EXCEPTIONS
 	FMT_CATCH(const fmt::format_error &e)
 	{
-#if FMT_EXCEPTIONS
-		// e.what() is undefined if exceptions are disabled, so we wrap the whole block
+		// e.what() is undefined if exceptions are disabled, so we wrap it
 		// with an `FMT_EXCEPTIONS` check.
-		std::string error = StrCat("Format error, fmt: ", fmt, " error: ", e.what());
-		SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "%s", error.c_str());
-		return;
+		std::string error = e.what();
+#else
+	FMT_CATCH(const fmt::format_error &)
+	{
+		std::string error = "unknown (FMT_EXCEPTIONS disabled)";
 #endif
+		std::string fullError = StrCat("Format error, fmt: ", fmt, " error: ", error);
+		SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "%s", fullError.c_str());
+		return;
 	}
 	SDL_LogMessage(SDL_LOG_CATEGORY_APPLICATION, static_cast<SDL_LogPriority>(priority), "%s", formatted.c_str());
 }

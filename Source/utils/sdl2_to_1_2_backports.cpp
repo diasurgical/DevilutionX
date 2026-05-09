@@ -15,9 +15,8 @@
 #include <windows.h>
 #endif
 
-#include <fmt/format.h>
-
 #include "utils/console.h"
+#include "utils/str_cat.hpp"
 
 #define DEFAULT_PRIORITY SDL_LOG_PRIORITY_CRITICAL
 #define DEFAULT_ASSERT_PRIORITY SDL_LOG_PRIORITY_WARN
@@ -230,7 +229,7 @@ int SDL_SoftStretch(SDL_Surface *src, const SDL_Rect *srcrect,
 	int pos, inc;
 	int dst_maxrow;
 	int src_row, dst_row;
-	Uint8 *srcp = NULL;
+	Uint8 *srcp = nullptr;
 	Uint8 *dstp;
 	SDL_Rect full_src;
 	SDL_Rect full_dst;
@@ -358,7 +357,7 @@ int SDL_BlitScaled(SDL_Surface *src, SDL_Rect *srcrect,
 		return -1;
 	}
 
-	if (NULL == srcrect) {
+	if (nullptr == srcrect) {
 		src_w = src->w;
 		src_h = src->h;
 	} else {
@@ -366,7 +365,7 @@ int SDL_BlitScaled(SDL_Surface *src, SDL_Rect *srcrect,
 		src_h = srcrect->h;
 	}
 
-	if (NULL == dstrect) {
+	if (nullptr == dstrect) {
 		dst_w = dst->w;
 		dst_h = dst->h;
 	} else {
@@ -382,11 +381,11 @@ int SDL_BlitScaled(SDL_Surface *src, SDL_Rect *srcrect,
 	scaling_w = (float)dst_w / src_w;
 	scaling_h = (float)dst_h / src_h;
 
-	if (NULL == dstrect) {
+	if (nullptr == dstrect) {
 		dst_x0 = 0;
 		dst_y0 = 0;
-		dst_x1 = dst_w - 1;
-		dst_y1 = dst_h - 1;
+		dst_x1 = static_cast<float>(dst_w - 1);
+		dst_y1 = static_cast<float>(dst_h - 1);
 	} else {
 		dst_x0 = dstrect->x;
 		dst_y0 = dstrect->y;
@@ -394,11 +393,11 @@ int SDL_BlitScaled(SDL_Surface *src, SDL_Rect *srcrect,
 		dst_y1 = dst_y0 + dst_h - 1;
 	}
 
-	if (NULL == srcrect) {
+	if (nullptr == srcrect) {
 		src_x0 = 0;
 		src_y0 = 0;
-		src_x1 = src_w - 1;
-		src_y1 = src_h - 1;
+		src_x1 = static_cast<float>(src_w - 1);
+		src_y1 = static_cast<float>(src_h - 1);
 	} else {
 		src_x0 = srcrect->x;
 		src_y0 = srcrect->y;
@@ -414,7 +413,7 @@ int SDL_BlitScaled(SDL_Surface *src, SDL_Rect *srcrect,
 
 		if (src_x1 >= src->w) {
 			dst_x1 -= (src_x1 - src->w + 1) * scaling_w;
-			src_x1 = src->w - 1;
+			src_x1 = static_cast<float>(src->w - 1);
 		}
 
 		if (src_y0 < 0) {
@@ -424,7 +423,7 @@ int SDL_BlitScaled(SDL_Surface *src, SDL_Rect *srcrect,
 
 		if (src_y1 >= src->h) {
 			dst_y1 -= (src_y1 - src->h + 1) * scaling_h;
-			src_y1 = src->h - 1;
+			src_y1 = static_cast<float>(src->h - 1);
 		}
 	}
 
@@ -443,7 +442,7 @@ int SDL_BlitScaled(SDL_Surface *src, SDL_Rect *srcrect,
 
 	if (dst_x1 >= dst->clip_rect.w) {
 		src_x1 -= (dst_x1 - dst->clip_rect.w + 1) / scaling_w;
-		dst_x1 = dst->clip_rect.w - 1;
+		dst_x1 = static_cast<float>(dst->clip_rect.w - 1);
 	}
 
 	if (dst_y0 < 0) {
@@ -453,7 +452,7 @@ int SDL_BlitScaled(SDL_Surface *src, SDL_Rect *srcrect,
 
 	if (dst_y1 >= dst->clip_rect.h) {
 		src_y1 -= (dst_y1 - dst->clip_rect.h + 1) / scaling_h;
-		dst_y1 = dst->clip_rect.h - 1;
+		dst_y1 = static_cast<float>(dst->clip_rect.h - 1);
 	}
 
 	/* Translate back to surface coordinates */
@@ -707,13 +706,13 @@ namespace {
 char *readSymLink(const char *path)
 {
 	// From sdl2-2.0.9/src/filesystem/unix/SDL_sysfilesystem.c
-	char *retval = NULL;
+	char *retval = nullptr;
 	ssize_t len = 64;
 	ssize_t rc = -1;
 
 	while (1) {
 		char *ptr = (char *)SDL_realloc(retval, (size_t)len);
-		if (ptr == NULL) {
+		if (ptr == nullptr) {
 			SDL_OutOfMemory();
 			break;
 		}
@@ -732,7 +731,7 @@ char *readSymLink(const char *path)
 	}
 
 	SDL_free(retval);
-	return NULL;
+	return nullptr;
 }
 #endif
 } // namespace
@@ -741,11 +740,11 @@ extern "C" char *SDL_GetBasePath()
 {
 	// From sdl2-2.0.9/src/filesystem/unix/SDL_sysfilesystem.c
 
-	char *retval = NULL;
+	char *retval = nullptr;
 
 #if defined(WINVER) && WINVER <= 0x0500 && (!defined(_WIN32_WINNT) || _WIN32_WINNT == 0)
 	TCHAR buffer[MAX_PATH] = { 0 };
-	GetModuleFileName(NULL, buffer, MAX_PATH);
+	GetModuleFileName(nullptr, buffer, MAX_PATH);
 	size_t len = std::string_view(buffer).size();
 	while (len > 0) {
 		if (buffer[len - 1] == '\\') {
@@ -813,10 +812,10 @@ extern "C" char *SDL_GetBasePath()
 #elif defined(__NETBSD__)
 		retval = readSymLink("/proc/curproc/exe");
 #elif defined(__QNXNTO__)
-		retval = SDL_LoadFile("/proc/self/exefile", NULL);
+		retval = SDL_LoadFile("/proc/self/exefile", nullptr);
 #else
 		retval = readSymLink("/proc/self/exe"); /* linux. */
-		if (retval == NULL) {
+		if (retval == nullptr) {
 			/* older kernels don't have /proc/self ... try PID version... */
 			char path[64];
 			const int rc = (int)SDL_snprintf(path, sizeof(path),
@@ -832,20 +831,20 @@ extern "C" char *SDL_GetBasePath()
 	/* If we had access to argv[0] here, we could check it for a path,
 	    or troll through $PATH looking for it, too. */
 
-	if (retval != NULL) { /* chop off filename. */
+	if (retval != nullptr) { /* chop off filename. */
 		char *ptr = SDL_strrchr(retval, '/');
-		if (ptr != NULL) {
+		if (ptr != nullptr) {
 			*(ptr + 1) = '\0';
 		} else { /* shouldn't happen, but just in case... */
 			SDL_free(retval);
-			retval = NULL;
+			retval = nullptr;
 		}
 	}
 
-	if (retval != NULL) {
+	if (retval != nullptr) {
 		/* try to shrink buffer... */
 		char *ptr = (char *)SDL_realloc(retval, strlen(retval) + 1);
-		if (ptr != NULL)
+		if (ptr != nullptr)
 			retval = ptr; /* oh well if it failed. */
 	}
 #endif
@@ -862,7 +861,7 @@ extern "C" char *SDL_GetPrefPath(const char *org, const char *app)
 	 *
 	 * https://standards.freedesktop.org/basedir-spec/basedir-spec-latest.html
 	 */
-#if defined(WINVER) && WINVER <= 0x0500 && (!defined(_WIN32_WINNT) || _WIN32_WINNT == 0)
+#if (defined(WINVER) && WINVER <= 0x0500 && (!defined(_WIN32_WINNT) || _WIN32_WINNT == 0)) || defined(__DJGPP__)
 	// On Windows9x there is no such thing as PrefPath. Simply use the current directory.
 	char *result = (char *)SDL_malloc(1);
 	*result = '\0';
@@ -870,8 +869,8 @@ extern "C" char *SDL_GetPrefPath(const char *org, const char *app)
 #else
 	const char *envr = SDL_getenv("XDG_DATA_HOME");
 	const char *append;
-	char *retval = NULL;
-	char *ptr = NULL;
+	char *retval = nullptr;
+	char *ptr = nullptr;
 	size_t len = 0;
 
 #if defined(__3DS__)
@@ -884,7 +883,7 @@ extern "C" char *SDL_GetPrefPath(const char *org, const char *app)
 
 	if (!app) {
 		SDL_InvalidParamError("app");
-		return NULL;
+		return nullptr;
 	}
 	if (!org) {
 		org = "";
@@ -896,7 +895,7 @@ extern "C" char *SDL_GetPrefPath(const char *org, const char *app)
 		if (!envr) {
 			/* we could take heroic measures with /etc/passwd, but oh well. */
 			SDL_SetError("neither XDG_DATA_HOME nor HOME environment is set");
-			return NULL;
+			return nullptr;
 		}
 #if defined(__unix__) || defined(__unix)
 		append = "/.local/share/";
@@ -915,13 +914,13 @@ extern "C" char *SDL_GetPrefPath(const char *org, const char *app)
 	retval = (char *)SDL_malloc(len);
 	if (!retval) {
 		SDL_OutOfMemory();
-		return NULL;
+		return nullptr;
 	}
 
 	if (*org) {
-		*fmt::format_to_n(retval, len - 1, "{}{}{}/{}", envr, append, org, app).out = '\0';
+		*devilution::BufCopy(retval, envr, append, org, "/", app) = '\0';
 	} else {
-		*fmt::format_to_n(retval, len - 1, "{}{}{}", envr, append, app).out = '\0';
+		*devilution::BufCopy(retval, envr, append, app) = '\0';
 	}
 
 	for (ptr = retval + 1; *ptr; ptr++) {
@@ -936,7 +935,7 @@ extern "C" char *SDL_GetPrefPath(const char *org, const char *app)
 	error:
 		SDL_SetError("Couldn't create directory '%s': '%s'", retval, strerror(errno));
 		SDL_free(retval);
-		return NULL;
+		return nullptr;
 	}
 
 	// Append trailing /

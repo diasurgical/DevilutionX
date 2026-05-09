@@ -63,10 +63,10 @@ std::string DebugCmdQuestsInfo()
 sol::table LuaDevQuestsModule(sol::state_view &lua)
 {
 	sol::table table = lua.create_table();
-	SetDocumented(table, "activate", "(id: number)", "Activate the given quest.", &DebugCmdEnableQuest);
-	SetDocumented(table, "activateAll", "()", "Activate all available quests.", &DebugCmdEnableQuests);
-	SetDocumented(table, "all", "()", "Information on all available quest.", &DebugCmdQuestsInfo);
-	SetDocumented(table, "info", "(id: number)", "Information on the given quest.", &DebugCmdQuestInfo);
+	LuaSetDocFn(table, "activate", "(id: number)", "Activate the given quest.", &DebugCmdEnableQuest);
+	LuaSetDocFn(table, "activateAll", "()", "Activate all available quests.", &DebugCmdEnableQuests);
+	LuaSetDocFn(table, "all", "()", "Information on all available quest.", &DebugCmdQuestsInfo);
+	LuaSetDocFn(table, "info", "(id: number)", "Information on the given quest.", &DebugCmdQuestInfo);
 	return table;
 }
 

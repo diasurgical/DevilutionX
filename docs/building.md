@@ -148,13 +148,13 @@ cmake --build build -j $(sysctl -n hw.ncpuonline)
 
 <details><summary>Installing Windows Subsystem for Linux</summary>
 
-Note: We currently recommend using Ubuntu 22.04 for the MinGW build. The following instructions will install the recommended version of Ubuntu on WSL.
+Note: We currently recommend using Ubuntu 24.04 for the MinGW build. The following instructions will install the recommended version of Ubuntu on WSL.
 
 If you are building on Windows and do not have WSL already setup this will install WSL and Ubuntu (Requires Windows 10 2004 or higher or Windows 11)
 
 In an Administrator Command Prompt or Powershell
 
-```wsl --install -d Ubuntu-22.04```
+```wsl --install -d Ubuntu-24.04```
 
 Reboot
 
@@ -167,56 +167,46 @@ You can launch WSL anytime by typing wsl or ubuntu in a Command Prompt or Powers
 In a WSL terminal run these commands to get the source code for DevilutionX
 
 ```
-sudo apt install git
+sudo apt-get install git
 git clone https://github.com/diasurgical/devilutionx
 cd devilutionx
 ```
+
 </details>
 
 ### Installing dependencies on WSL, Debian and Ubuntu
 
-### 32-bit
-
-In addition to the 32-bit MinGW build tools, the build process depends on the 32-bit MinGW Development Libraries for [SDL2](https://www.libsdl.org/download-2.0.php) and [libsodium](https://github.com/jedisct1/libsodium/releases) as well as headers for [zlib](https://zlib.net/zlib-1.2.12.tar.gz). These dependencies will need to be placed in the appropriate subfolders under `/usr/i686-w64-mingw32`. This can be done automatically by running [`Packaging/windows/mingw-prep.sh`](/Packaging/windows/mingw-prep.sh).
+#### MinGW build tools
 
 ```bash
-# Install the 32-bit MinGW build tools
-sudo apt install cmake gcc-mingw-w64-i686 g++-mingw-w64-i686 pkg-config-mingw-w64-i686 libz-mingw-w64-dev
+# Install MinGW build tools
+sudo apt-get update
+sudo apt-get install cmake git libz-mingw-w64-dev mingw-w64 mingw-w64-tools smpq wget
+```
 
+<details><summary>MinGW 32-bit</summary>
+
+The 32-bit build depends on the 32-bit MinGW Development Libraries for [SDL2](https://www.libsdl.org/download-2.0.php) and [libsodium](https://github.com/jedisct1/libsodium/releases) as well as headers for [zlib](https://zlib.net/zlib-1.2.12.tar.gz). These dependencies will need to be placed in the appropriate subfolders under `/usr/i686-w64-mingw32`.
+
+When linking zlib, libpng will always prefer dynamically linking with `libz.dll.a` if it can be found. We recommend renaming or deleting `libz.dll.a` to force libpng to use static linkage. This will prevent errors about missing dlls when you attempt to run the game.
+
+These can be done automatically by running [`Packaging/windows/mingw-prep.sh`](/Packaging/windows/mingw-prep.sh).
+
+Note: If your `i686-w64-mingw32` directory is not in `/usr` (e.g. when on
+Debian), the mingw-prep scripts and the CMake command won't work. You need
+adjust the mingw-prep scripts and pass `-DCROSS_PREFIX=/path` to CMake to set
+the path to the parent of the `i686-w64-mingw32` directory.
+
+```bash
 # Download the 32-bit development libraries for SDL2 and libsodium
 # as well as the headers for zlib and place them in subfolders under
 # /usr/i686-w64-mingw32
 Packaging/windows/mingw-prep.sh
 ```
 
-### 64-bit
-
-In addition to the 64-bit MinGW build tools, the build process depends on the 64-bit MinGW Development Libraries of [SDL2](https://www.libsdl.org/download-2.0.php) and [libsodium](https://github.com/jedisct1/libsodium/releases) as well as headers for [zlib](https://zlib.net/zlib-1.2.12.tar.gz). These dependencies will need to be placed in the appropriate subfolders under `/usr/x86_64-w64-mingw32`. This can be done automatically by running [`Packaging/windows/mingw-prep64.sh`](/Packaging/windows/mingw-prep64.sh).
-
-```bash
-# Install the 64-bit MinGW build tools
-sudo apt install cmake gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 pkg-config-mingw-w64-x86-64 libz-mingw-w64-dev
-
-# Download the 64-bit development libraries for SDL2 and libsodium
-# as well as the headers for zlib and place them in subfolders under
-# /usr/x86_64-w64-mingw32
-Packaging/windows/mingw-prep64.sh
-```
-
-### Before compiling
-
-When linking zlib, libpng will always prefer dynamically linking with `libz.dll.a` if it can be found. We recommend renaming or deleting `libz.dll.a` to force libpng to use static linkage. This will prevent errors about missing dlls when you attempt to run the game.
-
-```bash
-sudo mv /usr/i686-w64-mingw32/lib/libz.dll.a /usr/i686-w64-mingw32/lib/libz.dll.a.bak
-sudo mv /usr/x86_64-w64-mingw32/lib/libz.dll.a /usr/x86_64-w64-mingw32/lib/libz.dll.a.bak
-```
-
 ### Compiling
 
 By compiling the `package` target, the build will produce the `devilutionx.zip` archive which should contain all the dlls necessary to run the game. If you encounter any errors suggesting a dll is missing, try extracting the dlls from the zip archive.
-
-### 32-bit
 
 ```bash
 # Configure the project to disable unit tests,
@@ -224,14 +214,36 @@ By compiling the `package` target, the build will produce the `devilutionx.zip` 
 # and enable Discord integration
 cmake -S. -Bbuild -DCMAKE_TOOLCHAIN_FILE=../CMake/platforms/mingwcc.toolchain.cmake \
     -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF -DDEVILUTIONX_SYSTEM_BZIP2=OFF \
-    -DDEVILUTIONX_STATIC_LIBSODIUM=ON -DDISCORD_INTEGRATION=ON
+    -DDEVILUTIONX_STATIC_LIBSODIUM=ON -DDISCORD_INTEGRATION=ON -DCPACK=ON
 
 # Build the "package" target which produces devilutionx.zip
 # containing all the necessary dlls to run the game
 cmake --build build -j $(getconf _NPROCESSORS_ONLN) --target package
 ```
 
-### 64-bit
+</details>
+
+<details open><summary>MinGW 64-bit</summary>
+
+The 64-bit build depends on the 64-bit MinGW Development Libraries of [SDL2](https://www.libsdl.org/download-2.0.php) and [libsodium](https://github.com/jedisct1/libsodium/releases) as well as headers for [zlib](https://zlib.net/zlib-1.2.12.tar.gz). These dependencies will need to be placed in the appropriate subfolders under `/usr/x86_64-w64-mingw32`.
+
+When linking zlib, libpng will always prefer dynamically linking with `libz.dll.a` if it can be found. We recommend renaming or deleting `libz.dll.a` to force libpng to use static linkage. This will prevent errors about missing dlls when you attempt to run the game.
+
+These can be done automatically by running [`Packaging/windows/mingw-prep64.sh`](/Packaging/windows/mingw-prep64.sh).
+
+Note: If your `x86_64-w64-mingw32` directory is not in `/usr` (e.g. when
+on Debian), the mingw-prep scripts and the CMake command won't work. You need
+adjust the mingw-prep scripts and pass `-DCROSS_PREFIX=/path` to CMake to set
+the path to the parent of the `x86_64-w64-mingw32` directory.
+
+```bash
+# Download the 64-bit development libraries for SDL2 and libsodium
+# as well as the headers for zlib and place them in subfolders under
+# /usr/x86_64-w64-mingw32
+Packaging/windows/mingw-prep64.sh
+```
+
+### Compiling
 
 ```bash
 # Configure the project to disable unit tests,
@@ -239,17 +251,17 @@ cmake --build build -j $(getconf _NPROCESSORS_ONLN) --target package
 # and enable Discord integration
 cmake -S. -Bbuild -DCMAKE_TOOLCHAIN_FILE=../CMake/platforms/mingwcc64.toolchain.cmake \
     -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF -DDEVILUTIONX_SYSTEM_BZIP2=OFF \
-    -DDEVILUTIONX_STATIC_LIBSODIUM=ON -DDISCORD_INTEGRATION=ON
+    -DDEVILUTIONX_STATIC_LIBSODIUM=ON -DDISCORD_INTEGRATION=ON -DCPACK=ON
 
 # Build the "package" target which produces devilutionx.zip
 # containing all the necessary dlls to run the game
 cmake --build build -j $(getconf _NPROCESSORS_ONLN) --target package
 ```
 
-Note: If your `(i686|x86_64)-w64-mingw32` directory is not in `/usr` (e.g. when on Debian), the mingw-prep scripts and the CMake
-command won't work. You need adjust the mingw-prep scripts and pass `-DCROSS_PREFIX=/path` to CMake to set the path to the parent
-of the `(i686|x86_64)-w64-mingw32` directory.
 </details>
+
+</details>
+
 <details><summary>Windows via Visual Studio</summary>
 
 ### Installing dependencies
@@ -272,7 +284,7 @@ If you need additional instructions for vcpkg you can find the documentation [he
 
 ### If you want to build the devilutionX.mpq File (optional)
 
-In order to build devilutionx.mpq, install smpq from https://launchpad.net/smpq/trunk/1.6/+download/SMPQ-1.6-x86_64.exe.
+In order to build devilutionx.mpq, install smpq from https://launchpad.net/smpq/trunk/1.7/+download/SMPQ-1.7-x86_64.exe.
 The location of this tool will need to be [added to the system's PATH environment variable](https://www.architectryan.com/2018/03/17/add-to-the-path-on-windows-10/).
 
 ### Compiling
@@ -539,8 +551,7 @@ emrun index.html
 * Git
 * Visual Studio 2022 with the following packages installed:
     * C++ (v143) Universal Windows Platform tools
-    * Windows 11 SDK (10.0.22000.0)
-    * Windows 10 SDK (10.0.18362.0)
+    * Windows 11 SDK (10.0.26100.0)
     * MSVC v143 - VS 2022 C++ x64/x86 build tools
 
 _Note: Visual Studio Community Edition can be used._
@@ -608,6 +619,26 @@ To run tools from the `tools/` directory (only needed for development), you also
 sudo port install python312
 sudo port select --set python python312
 sudo port select --set python3 python312
+~~~
+
+</details>
+
+<details><summary>DOS</summary>
+
+You can build for DOS from Linux using DJGPP.
+
+First, install / compile the dependencies (only needs to be done once):
+
+~~~ bash
+Packaging/windows/dos-prep.sh
+~~~
+
+Then, build DevilutionX:
+
+~~~ bash
+cmake -S. -Bbuild-dos -DCMAKE_TOOLCHAIN_FILE=CMake/platforms/djcpp.toolchain.cmake -DTARGET_PLATFORM="dos" \
+  -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
+cmake --build build-dos -j $(getconf _NPROCESSORS_ONLN)
 ~~~
 
 </details>

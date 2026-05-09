@@ -8,15 +8,15 @@
 
 #include "lua/metadoc.hpp"
 #include "msg.h"
-#include "spelldat.h"
 #include "spells.h"
+#include "tables/spelldat.h"
 #include "utils/str_cat.hpp"
 
 namespace devilution {
 namespace {
 std::string DebugCmdSetSpellsLevel(uint8_t level)
 {
-	for (uint8_t i = static_cast<uint8_t>(SpellID::Firebolt); i < MAX_SPELLS; i++) {
+	for (auto i = static_cast<uint8_t>(SpellID::Firebolt); i < SpellsData.size(); i++) {
 		if (GetSpellBookLevel(static_cast<SpellID>(i)) != -1) {
 			NetSendCmdParam2(true, CMD_CHANGE_SPELL_LEVEL, i, level);
 		}
@@ -31,7 +31,7 @@ std::string DebugCmdSetSpellsLevel(uint8_t level)
 sol::table LuaDevPlayerSpellsModule(sol::state_view &lua)
 {
 	sol::table table = lua.create_table();
-	SetDocumented(table, "setLevel", "(level: number)", "Set spell level for all spells.", &DebugCmdSetSpellsLevel);
+	LuaSetDocFn(table, "setLevel", "(level: number)", "Set spell level for all spells.", &DebugCmdSetSpellsLevel);
 	return table;
 }
 

@@ -10,3 +10,4 @@ UseTab: ForIndentation
 SortIncludes: true
 NamespaceIndentation: None
 FixNamespaceComments: true
+QualifierAlignment: Left

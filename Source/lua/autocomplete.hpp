@@ -26,7 +26,7 @@ struct LuaAutocompleteSuggestion {
 };
 
 void GetLuaAutocompleteSuggestions(
-    std::string_view text, const sol::environment &lua,
+    std::string_view text, size_t cursorPos, const sol::environment &lua,
     size_t maxSuggestions, std::vector<LuaAutocompleteSuggestion> &out);
 
 } // namespace devilution

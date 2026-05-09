@@ -4,6 +4,8 @@
 #include <memory>
 #include <utility>
 
+#include <expected.hpp>
+
 #include "mpq/mpq_common.hpp"
 #include "utils/status_macros.hpp"
 #include "utils/str_cat.hpp"

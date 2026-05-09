@@ -13,9 +13,9 @@
 #include "engine/animationinfo.h"
 #include "engine/point.hpp"
 #include "engine/surface.hpp"
-#include "itemdat.h"
 #include "levels/dun_tile.hpp"
 #include "monster.h"
+#include "tables/itemdat.h"
 #include "utils/is_of.hpp"
 #include "utils/string_or_view.hpp"
 
@@ -31,6 +31,7 @@ namespace devilution {
 // Item indestructible durability
 #define DUR_INDESTRUCTIBLE 255
 
+constexpr int ItemNameLength = 64;
 constexpr int MaxVendorValue = 140000;
 constexpr int MaxVendorValueHf = 200000;
 constexpr int MaxBoyValue = 90000;
@@ -42,7 +43,7 @@ enum item_quality : uint8_t {
 	ITEM_QUALITY_UNIQUE,
 };
 
-enum _unique_items : int8_t {
+enum _unique_items : int32_t {
 	UITEM_CLEAVER,
 	UITEM_SKCROWN,
 	UITEM_INFRARING,
@@ -200,8 +201,8 @@ struct Item {
 	bool _iPostDraw = false;
 	bool _iIdentified = false;
 	item_quality _iMagical = ITEM_QUALITY_NORMAL;
-	char _iName[64] = {};
-	char _iIName[64] = {};
+	char _iName[ItemNameLength] = {};
+	char _iIName[ItemNameLength] = {};
 	item_equip_type _iLoc = ILOC_NONE;
 	item_class _iClass = ICLASS_NONE;
 	uint8_t _iCurs = 0;
@@ -493,14 +494,13 @@ extern DVL_API_FOR_TEST bool UniqueItemFlags[128];
 
 uint8_t GetOutlineColor(const Item &item, bool checkReq);
 bool IsItemAvailable(int i);
-bool IsUniqueAvailable(int i);
 void ClearUniqueItemFlags();
 void InitItemGFX();
 void InitItems();
 void CalcPlrItemVals(Player &player, bool Loadgfx);
 void CalcPlrInv(Player &player, bool Loadgfx);
 void InitializeItem(Item &item, _item_indexes itemData);
-void GenerateNewSeed(Item &h);
+void GenerateNewSeed(Item &item);
 int GetGoldCursor(int value);
 
 /**
@@ -530,7 +530,7 @@ void SpawnItem(Monster &monster, Point position, bool sendmsg, bool spawn = fals
 void CreateRndItem(Point position, bool onlygood, bool sendmsg, bool delta);
 void CreateRndUseful(Point position, bool sendmsg);
 void CreateTypeItem(Point position, bool onlygood, ItemType itemType, int imisc, bool sendmsg, bool delta, bool spawn = false);
-void RecreateItem(const Player &player, Item &item, _item_indexes idx, uint16_t icreateinfo, uint32_t iseed, int ivalue, bool isHellfire);
+void RecreateItem(const Player &player, Item &item, _item_indexes idx, uint16_t icreateinfo, uint32_t iseed, int ivalue, uint32_t dwBuff);
 void RecreateEar(Item &item, uint16_t ic, uint32_t iseed, uint8_t bCursval, std::string_view heroName);
 void CornerstoneSave();
 void CornerstoneLoad(Point position);
@@ -557,6 +557,7 @@ void UseItem(Player &player, item_misc_id Mid, SpellID spellID, int spellFrom);
 bool UseItemOpensHive(const Item &item, Point position);
 bool UseItemOpensGrave(const Item &item, Point position);
 void SpawnSmith(int lvl);
+void ReplacePremium(const Player &player, int idx);
 void SpawnPremium(const Player &player);
 void SpawnWitch(int lvl);
 void SpawnBoy(int lvl);

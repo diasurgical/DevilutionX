@@ -27,16 +27,14 @@ jobs:
     container: devkitpro/devkitarm:latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Install dependencies
         run: |
-          apt-get update
-          apt-get install -y \
-            ffmpeg \
-            gettext
+          apt-get update && apt-get install -y --no-install-recommends --no-install-suggests \
+            ffmpeg
 
       - name: Get external dependencies
         run: |
@@ -60,14 +58,14 @@ jobs:
 
       - name: Upload 3dsx Package
         if: ${{ !env.ACT }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: devilutionx.3dsx
           path: ./build/devilutionx.3dsx
 
       - name: Upload cia Package
         if: ${{ !env.ACT }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: devilutionx.cia
           path: ./build/devilutionx.cia
@@ -87,4 +85,3 @@ jobs:
           asset_name: devilutionx-3ds.cia
           file: ./build/devilutionx.cia
           overwrite: true
-...

@@ -17,6 +17,7 @@ typedef uint32_t framesize_t;
 
 class frame_queue {
 public:
+	constexpr static framesize_t frame_size_mask = 0xFFFF;
 	constexpr static framesize_t max_frame_size = 0xFFFF;
 
 private:
@@ -29,10 +30,11 @@ private:
 
 public:
 	tl::expected<bool, PacketError> PacketReady();
+	uint16_t ReadPacketFlags();
 	tl::expected<buffer_t, PacketError> ReadPacket();
 	void Write(buffer_t buf);
 
-	static tl::expected<buffer_t, PacketError> MakeFrame(buffer_t packetbuf);
+	static tl::expected<buffer_t, PacketError> MakeFrame(buffer_t packetbuf, uint16_t flags = 0);
 };
 
 } // namespace net

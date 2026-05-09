@@ -9,8 +9,6 @@
 #include <string>
 #include <string_view>
 
-#include <SDL.h>
-
 #include "DiabloUI/ui_flags.hpp"
 #include "engine/surface.hpp"
 #include "player.h"

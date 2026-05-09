@@ -1,26 +1,43 @@
 #include "DiabloUI/dialogs.h"
 
 #include <cstdint>
+#include <memory>
+#include <optional>
+#include <string>
 #include <string_view>
-#include <utility>
+#include <vector>
+
+#ifdef USE_SDL3
+#include <SDL3/SDL_error.h>
+#include <SDL3/SDL_events.h>
+#include <SDL3/SDL_messagebox.h>
+#include <SDL3/SDL_mouse.h>
+#include <SDL3/SDL_rect.h>
+#include <SDL3/SDL_surface.h>
+#else
+#include <SDL.h>
+#endif
 
 #include "DiabloUI/button.h"
 #include "DiabloUI/diabloui.h"
-#include "control.h"
+#include "DiabloUI/ui_flags.hpp"
+#include "DiabloUI/ui_item.h"
 #include "controls/input.h"
 #include "controls/menu_controls.h"
 #include "engine/clx_sprite.hpp"
-#include "engine/dx.h"
 #include "engine/load_clx.hpp"
 #include "engine/load_pcx.hpp"
-#include "engine/palette.h"
+#include "engine/point.hpp"
+#include "engine/render/text_render.hpp"
 #include "headless_mode.hpp"
 #include "hwcursor.hpp"
-#include "init.h"
-#include "utils/display.h"
+#include "init.hpp"
 #include "utils/is_of.hpp"
 #include "utils/language.h"
 #include "utils/log.hpp"
+#include "utils/sdl_compat.h"
+#include "utils/sdl_geometry.h"
+#include "utils/ui_fwd.h"
 
 namespace devilution {
 
@@ -61,8 +78,9 @@ bool Init(std::string_view caption, std::string_view text, bool error, bool rend
 {
 	if (!renderBehind) {
 		if (!UiLoadBlackBackground()) {
-			if (SDL_ShowCursor(SDL_ENABLE) <= -1)
+			if (!SDLC_ShowCursor()) {
 				LogError("{}", SDL_GetError());
+			}
 		}
 	}
 	if (!IsHardwareCursor() && !ArtCursor) {
@@ -81,24 +99,24 @@ bool Init(std::string_view caption, std::string_view text, bool error, bool rend
 
 	const Point uiPosition = GetUIRectangle().position;
 	if (caption.empty()) {
-		SDL_Rect rect1 = MakeSdlRect(uiPosition.x + 180, uiPosition.y + 168, dialogSprite->width(), dialogSprite->height());
+		const SDL_Rect rect1 = MakeSdlRect(uiPosition.x + 180, uiPosition.y + 168, dialogSprite->width(), dialogSprite->height());
 		vecOkDialog.push_back(std::make_unique<UiImageClx>(*dialogSprite, rect1));
-		SDL_Rect rect2 = MakeSdlRect(uiPosition.x + 200, uiPosition.y + 211, textWidth, 80);
+		const SDL_Rect rect2 = MakeSdlRect(uiPosition.x + 200, uiPosition.y + 211, textWidth, 80);
 		vecOkDialog.push_back(std::make_unique<UiText>(wrappedText, rect2, UiFlags::AlignCenter | UiFlags::ColorDialogWhite));
 
-		SDL_Rect rect3 = MakeSdlRect(uiPosition.x + 265, uiPosition.y + 265, DialogButtonWidth, DialogButtonHeight);
+		const SDL_Rect rect3 = MakeSdlRect(uiPosition.x + 265, uiPosition.y + 265, DialogButtonWidth, DialogButtonHeight);
 		vecOkDialog.push_back(std::make_unique<UiButton>(_("OK"), &DialogActionOK, rect3));
 	} else {
-		SDL_Rect rect1 = MakeSdlRect(uiPosition.x + 127, uiPosition.y + 100, dialogSprite->width(), dialogSprite->height());
+		const SDL_Rect rect1 = MakeSdlRect(uiPosition.x + 127, uiPosition.y + 100, dialogSprite->width(), dialogSprite->height());
 		vecOkDialog.push_back(std::make_unique<UiImageClx>(*dialogSprite, rect1));
 
-		SDL_Rect rect2 = MakeSdlRect(uiPosition.x + 147, uiPosition.y + 110, textWidth, 20);
+		const SDL_Rect rect2 = MakeSdlRect(uiPosition.x + 147, uiPosition.y + 110, textWidth, 20);
 		vecOkDialog.push_back(std::make_unique<UiText>(caption, rect2, UiFlags::AlignCenter | UiFlags::ColorYellow));
 
-		SDL_Rect rect3 = MakeSdlRect(uiPosition.x + 147, uiPosition.y + 141, textWidth, 190);
+		const SDL_Rect rect3 = MakeSdlRect(uiPosition.x + 147, uiPosition.y + 141, textWidth, 190);
 		vecOkDialog.push_back(std::make_unique<UiText>(wrappedText, rect3, UiFlags::AlignCenter | UiFlags::ColorDialogWhite));
 
-		SDL_Rect rect4 = MakeSdlRect(uiPosition.x + 264, uiPosition.y + 335, DialogButtonWidth, DialogButtonHeight);
+		const SDL_Rect rect4 = MakeSdlRect(uiPosition.x + 264, uiPosition.y + 335, DialogButtonWidth, DialogButtonHeight);
 		vecOkDialog.push_back(std::make_unique<UiButton>(_("OK"), &DialogActionOK, rect4));
 	}
 	return true;
@@ -116,14 +134,14 @@ void DialogLoop(const std::vector<std::unique_ptr<UiItemBase>> &items, const std
 	SDL_Event event;
 	dialogEnd = false;
 	do {
-		while (PollEvent(&event) != 0) {
+		while (PollEvent(&event)) {
 			switch (event.type) {
-			case SDL_MOUSEBUTTONDOWN:
-			case SDL_MOUSEBUTTONUP:
+			case SDL_EVENT_MOUSE_BUTTON_DOWN:
+			case SDL_EVENT_MOUSE_BUTTON_UP:
 				UiItemMouseEvents(&event, items);
 				break;
 			default:
-				for (MenuAction menuAction : GetMenuActions(event)) {
+				for (const MenuAction menuAction : GetMenuActions(event)) {
 					if (IsNoneOf(menuAction, MenuAction_BACK, MenuAction_SELECT))
 						continue;
 					dialogEnd = true;
@@ -155,11 +173,12 @@ void UiOkDialog(std::string_view caption, std::string_view text, bool error, con
 
 	if (!gbActive || inDialog) {
 		if (!HeadlessMode) {
-			if (SDL_ShowCursor(SDL_ENABLE) <= -1)
+			if (!SDLC_ShowCursor()) {
 				LogError("{}", SDL_GetError());
-			std::string captionStr = std::string(caption);
-			std::string textStr = std::string(text);
-			if (SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, captionStr.c_str(), textStr.c_str(), nullptr) <= -1) {
+			}
+			const std::string captionStr = std::string(caption);
+			const std::string textStr = std::string(text);
+			if (!SDLC_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, captionStr.c_str(), textStr.c_str(), nullptr)) {
 				LogError("{}", SDL_GetError());
 			}
 		}
@@ -167,21 +186,22 @@ void UiOkDialog(std::string_view caption, std::string_view text, bool error, con
 	}
 
 	if (IsHardwareCursor()) {
-		if (SDL_ShowCursor(SDL_ENABLE) <= -1)
+		if (!SDLC_ShowCursor()) {
 			LogError("{}", SDL_GetError());
+		}
 	}
 
 	if (!Init(caption, text, error, !renderBehind.empty())) {
 		LogError("{}\n{}", caption, text);
-		std::string captionStr = std::string(caption);
-		std::string textStr = std::string(text);
-		if (SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, captionStr.c_str(), textStr.c_str(), nullptr) <= -1) {
+		const std::string captionStr = std::string(caption);
+		const std::string textStr = std::string(text);
+		if (!SDLC_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, captionStr.c_str(), textStr.c_str(), nullptr)) {
 			LogError("{}", SDL_GetError());
 		}
 	}
 
 	inDialog = true;
-	SDL_SetClipRect(DiabloUiSurface(), nullptr);
+	SDL_SetSurfaceClipRect(DiabloUiSurface(), nullptr);
 	DialogLoop(vecOkDialog, renderBehind);
 	Deinit();
 	inDialog = false;

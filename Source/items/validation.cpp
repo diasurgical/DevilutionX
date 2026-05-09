@@ -9,9 +9,11 @@
 #include <cstdint>
 
 #include "items.h"
-#include "monstdat.h"
+#include "msg.h"
 #include "player.h"
 #include "spells.h"
+#include "tables/monstdat.h"
+#include "utils/endian_swap.hpp"
 #include "utils/is_of.hpp"
 
 namespace devilution {
@@ -70,24 +72,21 @@ bool IsShopPriceValid(const Item &item)
 
 	const uint16_t smithOrWitch = CF_SMITH | CF_WITCH;
 	const int smithAndWitchPriceLimit = gbIsHellfire ? MaxVendorValueHf : MaxVendorValue;
-	if ((item._iCreateInfo & smithOrWitch) != 0 && item._iIvalue > smithAndWitchPriceLimit)
-		return false;
-
-	return true;
+	return !((item._iCreateInfo & smithOrWitch) != 0 && item._iIvalue > smithAndWitchPriceLimit);
 }
 
-bool IsUniqueMonsterItemValid(uint16_t iCreateInfo, uint32_t dwBuff)
+bool IsUniqueMonsterItemValid(uint16_t iCreateInfo, uint32_t /*dwBuff*/)
 {
 	const uint8_t level = iCreateInfo & CF_LEVEL;
 
 	// Check all unique monster levels to see if they match the item level
 	for (const UniqueMonsterData &uniqueMonsterData : UniqueMonstersData) {
-		const auto &uniqueMonsterLevel = static_cast<uint8_t>(MonstersData[uniqueMonsterData.mtype].level);
-
 		if (IsAnyOf(uniqueMonsterData.mtype, MT_DEFILER, MT_NAKRUL, MT_HORKDMN)) {
 			// These monsters don't use their mlvl for item generation
 			continue;
 		}
+
+		const auto &uniqueMonsterLevel = static_cast<uint8_t>(MonstersData[uniqueMonsterData.mtype].level);
 
 		if (level == uniqueMonsterLevel) {
 			// If the ilvl matches the mlvl, we confirm the item is legitimate
@@ -104,18 +103,19 @@ bool IsDungeonItemValid(uint16_t iCreateInfo, uint32_t dwBuff)
 	const bool isHellfireItem = (dwBuff & CF_HELLFIRE) != 0;
 
 	// Check all monster levels to see if they match the item level
-	for (int16_t i = 0; i < static_cast<int16_t>(NUM_MTYPES); i++) {
-		const auto &monsterData = MonstersData[i];
+	int type = -1;
+	for (const MonsterData &monsterData : MonstersData) {
+		type++;
 		auto monsterLevel = static_cast<uint8_t>(monsterData.level);
 
-		if (i != MT_DIABLO && monsterData.availability == MonsterAvailability::Never) {
+		if (type != MT_DIABLO && monsterData.availability == MonsterAvailability::Never) {
 			// Skip monsters that are unable to appear in the game
 			continue;
 		}
 
-		if (i == MT_DIABLO && !isHellfireItem) {
-			// Adjust The Dark Lord's mlvl if the item isn't a Hellfire item to match the Diablo mlvl
-			monsterLevel -= 15;
+		if (type == MT_DIABLO && isHellfireItem) {
+			// Adjust The Dark Lord's mlvl if the item is a Hellfire item to match the Diablo mlvl
+			monsterLevel += 15;
 		}
 
 		if (level == monsterLevel) {
@@ -172,6 +172,24 @@ bool IsItemValid(const Player &player, const Item &item)
 		return IsHellfireSpellBookValid(item);
 
 	return IsDungeonItemValid(item._iCreateInfo, item.dwBuff);
+}
+
+bool IsItemDeltaValid(const TCmdPItem &itemDelta)
+{
+	if (itemDelta.bCmd == CMD_INVALID)
+		return true;
+	if (IsNoneOf(itemDelta.bCmd, TCmdPItem::FloorItem, TCmdPItem::PickedUpItem, TCmdPItem::DroppedItem))
+		return false;
+	if (!InDungeonBounds({ itemDelta.x, itemDelta.y }))
+		return false;
+	const auto idx = static_cast<_item_indexes>(Swap16LE(itemDelta.def.wIndx));
+	if (idx == IDI_EAR)
+		return true;
+	if (!IsItemAvailable(idx))
+		return false;
+	Item item = {};
+	RecreateItem(*MyPlayer, itemDelta.item, item);
+	return IsItemValid(*MyPlayer, item);
 }
 
 } // namespace devilution

@@ -3,7 +3,11 @@
 #include <cstdint>
 #include <optional>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_pixels.h>
+#else
 #include <SDL.h>
+#endif
 
 #include "engine/clx_sprite.hpp"
 

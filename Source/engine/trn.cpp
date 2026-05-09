@@ -9,6 +9,7 @@
 #endif
 #include "engine/load_file.hpp"
 #include "lighting.h"
+#include "utils/str_cat.hpp"
 
 namespace devilution {
 
@@ -30,32 +31,14 @@ uint8_t *GetPauseTRN()
 std::optional<std::array<uint8_t, 256>> GetClassTRN(Player &player)
 {
 	std::array<uint8_t, 256> trn;
-	const char *path;
+	char path[64];
 
-	switch (player._pClass) {
-	case HeroClass::Warrior:
-		path = "plrgfx\\warrior.trn";
-		break;
-	case HeroClass::Rogue:
-		path = "plrgfx\\rogue.trn";
-		break;
-	case HeroClass::Sorcerer:
-		path = "plrgfx\\sorcerer.trn";
-		break;
-	case HeroClass::Monk:
-		path = "plrgfx\\monk.trn";
-		break;
-	case HeroClass::Bard:
-		path = "plrgfx\\bard.trn";
-		break;
-	case HeroClass::Barbarian:
-		path = "plrgfx\\barbarian.trn";
-		break;
-	}
+	const PlayerSpriteData &spriteData = GetPlayerSpriteDataForClass(player._pClass);
+	*BufCopy(path, "plrgfx\\", spriteData.trn, ".trn") = '\0';
 
 #ifdef _DEBUG
 	if (!debugTRN.empty()) {
-		path = debugTRN.c_str();
+		*BufCopy(path, debugTRN.c_str()) = '\0';
 	}
 #endif
 	if (LoadOptionalFileInMem(path, &trn[0], 256)) {

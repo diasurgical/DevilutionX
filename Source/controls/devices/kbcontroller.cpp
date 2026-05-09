@@ -1,6 +1,16 @@
 #include "controls/devices/kbcontroller.h"
 
 #if HAS_KBCTRL == 1
+#ifdef USE_SDL3
+#include <SDL3/SDL_events.h>
+#include <SDL3/SDL_keyboard.h>
+#else
+#include <SDL.h>
+
+#ifdef USE_SDL1
+#include "utils/sdl2_to_1_2_backports.h"
+#endif
+#endif
 
 #include "controls/controller_motion.h"
 #include "utils/sdl_compat.h"
@@ -11,9 +21,16 @@ namespace devilution {
 ControllerButton KbCtrlToControllerButton(const SDL_Event &event)
 {
 	switch (event.type) {
+#ifdef USE_SDL3
+	case SDL_EVENT_KEY_DOWN:
+	case SDL_EVENT_KEY_DOWN:
+		switch (event.key.key)
+#else
 	case SDL_KEYDOWN:
 	case SDL_KEYUP:
-		switch (event.key.keysym.sym) {
+		switch (event.key.keysym.sym)
+#endif
+		{
 #ifdef KBCTRL_IGNORE_1
 		case KBCTRL_IGNORE_1:
 			return ControllerButton_IGNORE;
@@ -167,10 +184,12 @@ bool IsKbCtrlButtonPressed(ControllerButton button)
 	SDL_Keycode key_code = ControllerButtonToKbCtrlKeyCode(button);
 	if (key_code == SDLK_UNKNOWN)
 		return false;
-#ifndef USE_SDL1
-	return SDL_GetKeyboardState(NULL)[SDL_GetScancodeFromKey(key_code)];
+#ifdef USE_SDL3
+	return SDL_GetKeyboardState(nullptr)[SDL_GetScancodeFromKey(key_code, nullptr)];
+#elif !defined(USE_SDL1)
+	return SDL_GetKeyboardState(nullptr)[SDL_GetScancodeFromKey(key_code)];
 #else
-	return SDL_GetKeyState(NULL)[key_code];
+	return SDL_GetKeyState(nullptr)[key_code];
 #endif
 }
 

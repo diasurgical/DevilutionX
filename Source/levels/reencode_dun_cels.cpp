@@ -3,15 +3,16 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <limits>
 #include <memory>
 #include <span>
 #include <utility>
-
-#include <SDL_endian.h>
+#include <vector>
 
 #include "levels/dun_tile.hpp"
 #include "utils/attributes.h"
 #include "utils/endian_read.hpp"
+#include "utils/endian_swap.hpp"
 #include "utils/endian_write.hpp"
 #include "utils/format_int.hpp"
 #include "utils/log.hpp"
@@ -206,7 +207,7 @@ size_t GetReencodedSize(const uint8_t *dungeonCels, std::span<std::pair<uint16_t
 		size_t frameSize;
 		switch (info.type) {
 		case TileType::TransparentSquare: {
-			const uint32_t srcFrameBegin = SDL_SwapLE32(srcOffsets[frame]);
+			const uint32_t srcFrameBegin = Swap32LE(srcOffsets[frame]);
 			if (info.isFloor()) {
 				uint8_t out[1024];
 				uint8_t *outIt = out;
@@ -215,7 +216,7 @@ size_t GetReencodedSize(const uint8_t *dungeonCels, std::span<std::pair<uint16_t
 				ReencodeFloorWithFoliage(outIt, src, newType);
 				frameSize = outIt - out;
 			} else {
-				const uint32_t srcFrameEnd = SDL_SwapLE32(srcOffsets[frame + 1]);
+				const uint32_t srcFrameEnd = Swap32LE(srcOffsets[frame + 1]);
 				frameSize = srcFrameEnd - srcFrameBegin;
 			}
 		} break;
@@ -245,17 +246,19 @@ void ReencodeDungeonCels(std::unique_ptr<std::byte[]> &dungeonCels, std::span<st
 
 	int numFoliage = 0;
 	LogVerbose("Re-encoding dungeon CELs: {} frames, {} bytes",
-	    FormatInteger(SDL_SwapLE32(srcOffsets[0])),
-	    FormatInteger(SDL_SwapLE32(srcOffsets[SDL_SwapLE32(srcOffsets[0]) + 1])));
+	    FormatInteger(Swap32LE(srcOffsets[0])),
+	    FormatInteger(Swap32LE(srcOffsets[Swap32LE(srcOffsets[0]) + 1])));
 
 	const size_t outSize = GetReencodedSize(srcData, frames);
 	std::unique_ptr<std::byte[]> result { new std::byte[outSize] };
 	auto *const resultPtr = reinterpret_cast<uint8_t *>(result.get());
 	WriteLE32(resultPtr, static_cast<uint32_t>(frames.size()));
-	uint8_t *out = resultPtr + (2 + frames.size()) * 4; // number of frames, frame offsets, file size
+	uint8_t *lookup = resultPtr + 4;
+	uint8_t *out = resultPtr + ((2 + frames.size()) * 4); // number of frames, frame offsets, file size
 	for (const auto &[frame, info] : frames) {
-		WriteLE32(&resultPtr[static_cast<size_t>(frame * 4)], static_cast<uint32_t>(out - resultPtr));
-		const uint32_t srcFrameBegin = SDL_SwapLE32(srcOffsets[frame]);
+		WriteLE32(lookup, static_cast<uint32_t>(out - resultPtr));
+		lookup += 4;
+		const uint32_t srcFrameBegin = Swap32LE(srcOffsets[frame]);
 		const uint8_t *src = &srcData[srcFrameBegin];
 		switch (info.type) {
 		case TileType::TransparentSquare: {
@@ -264,7 +267,7 @@ void ReencodeDungeonCels(std::unique_ptr<std::byte[]> &dungeonCels, std::span<st
 				ReencodeFloorWithFoliage(out, src, newType);
 				++numFoliage;
 			} else {
-				const uint32_t srcFrameEnd = SDL_SwapLE32(srcOffsets[frame + 1]);
+				const uint32_t srcFrameEnd = Swap32LE(srcOffsets[frame + 1]);
 				const uint32_t size = srcFrameEnd - srcFrameBegin;
 				std::memcpy(out, src, size);
 				out += size;
@@ -288,15 +291,32 @@ void ReencodeDungeonCels(std::unique_ptr<std::byte[]> &dungeonCels, std::span<st
 			break;
 		}
 	}
-	WriteLE32(&resultPtr[(1 + frames.size()) * 4], static_cast<uint32_t>(outSize));
+	WriteLE32(lookup, static_cast<uint32_t>(outSize));
 
 	const auto *dstOffsets = reinterpret_cast<const uint32_t *>(resultPtr);
 	LogVerbose(" Re-encoded dungeon CELs: {} frames, {} bytes. Extracted {} foliage tiles.",
-	    FormatInteger(SDL_SwapLE32(dstOffsets[0])),
-	    FormatInteger(SDL_SwapLE32(dstOffsets[SDL_SwapLE32(dstOffsets[0]) + 1])),
+	    FormatInteger(Swap32LE(dstOffsets[0])),
+	    FormatInteger(Swap32LE(dstOffsets[Swap32LE(dstOffsets[0]) + 1])),
 	    FormatInteger(numFoliage));
 
 	dungeonCels = std::move(result);
+}
+
+std::vector<std::pair<uint16_t, uint16_t>> ComputeCelBlockAdjustments(std::span<std::pair<uint16_t, DunFrameInfo>> frames)
+{
+	std::vector<std::pair<uint16_t, uint16_t>> celBlockAdjustments;
+	uint16_t lastFrameIndex = 0;
+	uint16_t adjustment = 0;
+	for (auto &[frame, info] : frames) {
+		const uint16_t diff = frame - lastFrameIndex - 1;
+		if (diff > 0) celBlockAdjustments.emplace_back(frame, adjustment);
+		adjustment += diff;
+		lastFrameIndex = frame;
+	}
+	if (adjustment > 0) {
+		celBlockAdjustments.emplace_back(std::numeric_limits<uint16_t>::max(), adjustment);
+	}
+	return celBlockAdjustments;
 }
 
 } // namespace devilution

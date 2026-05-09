@@ -38,7 +38,7 @@ void SHA1ProcessMessageBlock(SHA1Context *context)
 	std::uint32_t e = context->state[4];
 
 	for (int i = 0; i < 20; i++) {
-		std::uint32_t temp = SHA1CircularShift(a, 5) + ((b & c) | ((~b) & d)) + e + w[i] + 0x5A827999;
+		const std::uint32_t temp = SHA1CircularShift(a, 5) + ((b & c) | ((~b) & d)) + e + w[i] + 0x5A827999;
 		e = d;
 		d = c;
 		c = SHA1CircularShift(b, 30);
@@ -47,7 +47,7 @@ void SHA1ProcessMessageBlock(SHA1Context *context)
 	}
 
 	for (int i = 20; i < 40; i++) {
-		std::uint32_t temp = SHA1CircularShift(a, 5) + (b ^ c ^ d) + e + w[i] + 0x6ED9EBA1;
+		const std::uint32_t temp = SHA1CircularShift(a, 5) + (b ^ c ^ d) + e + w[i] + 0x6ED9EBA1;
 		e = d;
 		d = c;
 		c = SHA1CircularShift(b, 30);
@@ -56,7 +56,7 @@ void SHA1ProcessMessageBlock(SHA1Context *context)
 	}
 
 	for (int i = 40; i < 60; i++) {
-		std::uint32_t temp = SHA1CircularShift(a, 5) + ((b & c) | (b & d) | (c & d)) + e + w[i] + 0x8F1BBCDC;
+		const std::uint32_t temp = SHA1CircularShift(a, 5) + ((b & c) | (b & d) | (c & d)) + e + w[i] + 0x8F1BBCDC;
 		e = d;
 		d = c;
 		c = SHA1CircularShift(b, 30);
@@ -65,7 +65,7 @@ void SHA1ProcessMessageBlock(SHA1Context *context)
 	}
 
 	for (int i = 60; i < 80; i++) {
-		std::uint32_t temp = SHA1CircularShift(a, 5) + (b ^ c ^ d) + e + w[i] + 0xCA62C1D6;
+		const std::uint32_t temp = SHA1CircularShift(a, 5) + (b ^ c ^ d) + e + w[i] + 0xCA62C1D6;
 		e = d;
 		d = c;
 		c = SHA1CircularShift(b, 30);

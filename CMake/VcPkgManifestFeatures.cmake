@@ -1,6 +1,8 @@
 # See https://vcpkg.readthedocs.io/en/latest/users/manifests/
 if(USE_SDL1)
   list(APPEND VCPKG_MANIFEST_FEATURES "sdl1")
+elseif(USE_SDL3)
+  list(APPEND VCPKG_MANIFEST_FEATURES "sdl3")
 else()
   list(APPEND VCPKG_MANIFEST_FEATURES "sdl2")
 endif()

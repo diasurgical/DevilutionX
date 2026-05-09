@@ -6,11 +6,19 @@
 
 #include <cstdint>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_surface.h>
+#include <SDL3/SDL_timer.h>
+#else
+#include <SDL.h>
+#endif
+
 #include "DiabloUI/diabloui.h"
 #include "DiabloUI/settingsmenu.h"
+#include "engine/assets.hpp"
 #include "engine/demomode.h"
 #include "game_mode.hpp"
-#include "init.h"
+#include "init.hpp"
 #include "movie.h"
 #include "options.h"
 #include "pfile.h"
@@ -136,7 +144,7 @@ bool mainmenu_select_hero_dialog(GameData *gameData)
 
 void mainmenu_wait_for_button_sound()
 {
-	SDL_FillRect(DiabloUiSurface(), nullptr, 0x000000);
+	SDL_FillSurfaceRect(DiabloUiSurface(), nullptr, 0);
 	UiFadeIn();
 	SDL_Delay(350); // delay to let button pressed sound finish playing
 }
@@ -167,7 +175,7 @@ void mainmenu_loop()
 				done = true;
 			break;
 		case MAINMENU_ATTRACT_MODE:
-			if (gbIsSpawn && !HaveDiabdat())
+			if (gbIsSpawn && !HaveIntro())
 				done = false;
 			else if (gbActive)
 				PlayIntro();

@@ -1,0 +1,33 @@
+<resources>
+<string name="app_name" translatable="false">DevilutionX</string>
+<!--  Strings used for fragments for navigation  -->
+<string name="guide_full_installation">
+Voidaksesi pelata kokoversiota, sinun on siirettävä alkuperäisen pelin DIABDAT.MPQ-tiedosto kansioon Android/data/org.diasurgical.devilutionx/files.
+<br/>
+\n
+<br/>
+\nJos sinulla ei ole alkuperäistä peliä, voit ostaa Diablon osoitteesta
+<a href="https://www.gog.com/game/diablo">GOG.com.</a>
+</string>
+<string name="guide_shareware">Vaihtoehtoisesti voit ladata spawn-version, jotta voit pelata pelin demoversiota.</string>
+<string name="faq_link">
+Katso
+<a href="https://github.com/diasurgical/devilutionX/blob/master/docs/installing.md#installing">Asennusohjeet</a>
+lisätietoja varten.
+</string>
+<string name="game_data_retry">Tarkista uudelleen</string>
+<string name="title_activity_data">Pelitiedot</string>
+<string name="download_spawn">Lataa demotiedot</string>
+<string name="missing_game_data">Pelitiedot puuttuvat</string>
+<string name="download_started">Lataus aloitettu</string>
+<string name="shareware_data">Diablo-demotiedot</string>
+<string name="import_short_label">Tuo tiedot</string>
+<string name="gamepad_tv_text">Tämän pelin pelaamiseen tarvitaan peliohjain.</string>
+<string name="no_file_browser">Asenna tiedostoselain, jotta voit valita tuontiin haluamasi tiedostot.</string>
+<string name="recommended_file_browser">Android TV:lle suosittelemme %1$s.</string>
+<string name="import_data_info">Valitse seuraavalla näytöllä tiedostot, jotka haluat tuoda:\n\n%1$s</string>
+<string name="overwrite_query">Seuraavat tiedostot korvataan. Onko tämä ok?\n\n%1$s</string>
+<string name="ok_button">OK</string>
+<string name="continue_button">Jatka</string>
+<string name="cancel_button">Peruuta</string>
+</resources>

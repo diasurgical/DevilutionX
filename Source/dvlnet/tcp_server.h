@@ -28,6 +28,8 @@
 
 namespace devilution::net {
 
+constexpr uint16_t TcpErrorCodeFlags = 0x8000;
+
 inline PacketError ServerError()
 {
 	return PacketError("Invalid player ID");
@@ -82,6 +84,8 @@ private:
 	tl::expected<void, PacketError> HandleReceivePacket(packet &pkt);
 	tl::expected<void, PacketError> SendPacket(packet &pkt);
 	tl::expected<void, PacketError> StartSend(const scc &con, packet &pkt);
+	tl::expected<void, PacketError> StartSend(const scc &con, PacketError::ErrorCode errorCode);
+	tl::expected<void, PacketError> StartSend(const scc &con, buffer_t pktData, uint16_t flags);
 	void HandleSend(const scc &con, const asio::error_code &ec, size_t bytesSent);
 	void StartTimeout(const scc &con);
 	void HandleTimeout(const scc &con, const asio::error_code &ec);

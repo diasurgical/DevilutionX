@@ -6,6 +6,7 @@
 #include "appfat.h"
 #include "sha.h"
 #include "utils/endian_read.hpp"
+#include "utils/endian_swap.hpp"
 #include "utils/log.hpp"
 
 namespace devilution {
@@ -77,7 +78,7 @@ void SetCodecSignature(std::byte *dst, CodecSignature sig)
 void ByteSwapBlock(uint32_t *data)
 {
 	for (size_t i = 0; i < BlockSize; ++i)
-		data[i] = SDL_SwapLE32(data[i]);
+		data[i] = Swap32LE(data[i]);
 }
 
 void XorBlock(const uint32_t *shaResult, uint32_t *out)

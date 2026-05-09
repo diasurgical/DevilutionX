@@ -10,7 +10,7 @@
 #include <sol/sol.hpp>
 #include <sol/utility/to_string.hpp>
 
-#include "lua/lua.hpp"
+#include "lua/lua_global.hpp"
 #include "panels/console.hpp"
 #include "utils/str_cat.hpp"
 
@@ -20,7 +20,7 @@ namespace {
 
 std::optional<sol::environment> replEnv;
 
-void LuaConsoleWarn(void *userData, const char *message, int continued)
+void LuaConsoleWarn(void * /*userData*/, const char *message, int continued)
 {
 	static std::string warnBuffer;
 	warnBuffer.append(message);

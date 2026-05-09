@@ -5,17 +5,23 @@
  */
 #include "nthread.h"
 
+#include <cstddef>
 #include <cstdint>
 
-#include <fmt/core.h>
+#ifdef USE_SDL3
+#include <SDL3/SDL_timer.h>
+#else
+#include <SDL.h>
+#endif
 
 #include "diablo.h"
+#include "engine/animationinfo.h"
 #include "engine/demomode.h"
+#include "game_mode.hpp"
 #include "gmenu.h"
 #include "storm/storm_net.hpp"
 #include "utils/sdl_mutex.h"
 #include "utils/sdl_thread.h"
-#include "utils/str_cat.hpp"
 
 namespace devilution {
 
@@ -80,7 +86,7 @@ uint32_t nthread_send_and_recv_turn(uint32_t curTurn, int turnDelta)
 	}
 	while (curTurnsInTransit++ < gdwTurnsInTransit) {
 
-		uint32_t turnTmp = turn_upper_bit | (curTurn & 0x7FFFFFFF);
+		const uint32_t turnTmp = turn_upper_bit | (curTurn & 0x7FFFFFFF);
 		turn_upper_bit = 0;
 		uint32_t turn = turnTmp;
 
@@ -207,7 +213,7 @@ void nthread_ignore_mutex(bool bStart)
 
 bool nthread_has_500ms_passed(bool *drawGame /*= nullptr*/)
 {
-	int currentTickCount = SDL_GetTicks();
+	const int currentTickCount = SDL_GetTicks();
 	int ticksElapsed = currentTickCount - last_tick;
 	// Check if we missed multiple game ticks (> 10)
 	if (ticksElapsed > gnTickDelay * 10) {
@@ -241,13 +247,13 @@ void nthread_UpdateProgressToNextGameTick()
 {
 	if (!gbRunGame || PauseMode != 0 || (!gbIsMultiplayer && gmenu_is_active()) || !gbProcessPlayers || demo::IsRunning()) // if game is not running or paused there is no next gametick in the near future
 		return;
-	int currentTickCount = SDL_GetTicks();
-	int ticksMissing = last_tick - currentTickCount;
+	const int currentTickCount = SDL_GetTicks();
+	const int ticksMissing = last_tick - currentTickCount;
 	if (ticksMissing <= 0) {
 		ProgressToNextGameTick = AnimationInfo::baseValueFraction; // game tick is due
 		return;
 	}
-	int ticksAdvanced = gnTickDelay - ticksMissing;
+	const int ticksAdvanced = gnTickDelay - ticksMissing;
 	int32_t fraction = ticksAdvanced * AnimationInfo::baseValueFraction / gnTickDelay;
 	fraction = std::clamp<int32_t>(fraction, 0, AnimationInfo::baseValueFraction);
 	ProgressToNextGameTick = static_cast<uint8_t>(fraction);

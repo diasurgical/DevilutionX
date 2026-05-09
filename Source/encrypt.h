@@ -11,6 +11,6 @@
 namespace devilution {
 
 uint32_t PkwareCompress(std::byte *srcData, uint32_t size);
-void PkwareDecompress(std::byte *inBuff, uint32_t recvSize, int maxBytes);
+uint32_t PkwareDecompress(std::byte *inBuff, uint32_t recvSize, size_t maxBytes);
 
 } // namespace devilution

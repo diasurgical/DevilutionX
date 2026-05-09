@@ -4,7 +4,11 @@
 #include <cstddef>
 #include <cstdint>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_events.h>
+#else
 #include <SDL.h>
+#endif
 
 #include "controls/controller.h"
 #include "controls/game_controls.h"
@@ -51,12 +55,16 @@ void UseBeltItem(BeltItemType type);
 // Talk to towners, click on inv items, attack, etc.
 void PerformPrimaryAction();
 
+// Handle button releases for primary action (e.g., visual store buttons)
+void PerformPrimaryActionRelease();
+
 // Open chests, doors, pickup items.
 void PerformSecondaryAction();
 void UpdateSpellTarget(SpellID spell);
 bool TryDropItem();
 void InvalidateInventorySlot();
 void FocusOnInventory();
+void FocusOnVisualStore();
 void PerformSpellAction();
 void QuickCast(size_t slot);
 

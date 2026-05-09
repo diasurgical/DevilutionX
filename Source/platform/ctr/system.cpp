@@ -114,9 +114,11 @@ void ctr_sys_init()
 	n3ds_socInit();
 	atexit([]() { n3ds_socExit(); });
 
+#ifdef PACKET_ENCRYPTION
 	randombytes_ctrrandom_init();
 	atexit([]() {
 		if (psGetSessionHandle())
 			psExit();
 	});
+#endif
 }

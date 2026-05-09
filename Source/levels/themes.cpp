@@ -49,7 +49,7 @@ bool TFit_Shrine(int i)
 	size_t found = 0;
 
 	while (found == 0) {
-		Point testPosition = position;
+		const Point testPosition = position;
 		if (dTransVal[position.x][position.y] == themes[i].ttval) {
 			if (TileHasAny(position + Direction::NorthEast, TileProperties::Trap)
 			    && IsTileNotSolid(testPosition + Direction::NorthWest)
@@ -113,7 +113,7 @@ bool TFit_Obj5(int t)
 	}
 
 	int candidatesFound = 0;
-	for (Point tile : PointsInRectangle(Rectangle { { 0, 0 }, { MAXDUNX, MAXDUNY } })) {
+	for (const Point tile : PointsInRectangle(Rectangle { { 0, 0 }, { MAXDUNX, MAXDUNY } })) {
 		if (dTransVal[tile.x][tile.y] == themes[t].ttval && IsTileNotSolid(tile) && CheckThemeObj5(tile, themes[t].ttval)) {
 			// Use themex/y to keep track of the last candidate area found, in case we end up with fewer candidates than the target
 			themex = tile.x;
@@ -358,7 +358,7 @@ void PlaceThemeMonsts(int t, int f)
 			numscattypes++;
 		}
 	}
-	size_t mtype = scattertypes[GenerateRnd(numscattypes)];
+	const size_t mtype = scattertypes[GenerateRnd(numscattypes)];
 	for (int yp = 0; yp < MAXDUNY; yp++) {
 		for (int xp = 0; xp < MAXDUNX; xp++) {
 			if (dTransVal[xp][yp] == themes[t].ttval && IsTileNotSolid({ xp, yp }) && dItem[xp][yp] == 0 && !IsObjectAtPosition({ xp, yp })) {
@@ -377,14 +377,14 @@ void PlaceThemeMonsts(int t, int f)
  */
 void Theme_Barrel(int t)
 {
-	int barrnd[4] = { 2, 6, 4, 8 };
-	int monstrnd[4] = { 5, 7, 3, 9 };
+	const int barrnd[4] = { 2, 6, 4, 8 };
+	const int monstrnd[4] = { 5, 7, 3, 9 };
 
 	for (int yp = 0; yp < MAXDUNY; yp++) {
 		for (int xp = 0; xp < MAXDUNX; xp++) {
 			if (dTransVal[xp][yp] == themes[t].ttval && IsTileNotSolid({ xp, yp })) {
 				if (FlipCoin(barrnd[leveltype - 1])) {
-					_object_id r = FlipCoin(barrnd[leveltype - 1]) ? OBJ_BARREL : OBJ_BARRELEX;
+					const _object_id r = FlipCoin(barrnd[leveltype - 1]) ? OBJ_BARREL : OBJ_BARRELEX;
 					AddObject(r, { xp, yp });
 				}
 			}
@@ -400,7 +400,7 @@ void Theme_Barrel(int t)
  */
 void Theme_Shrine(int t)
 {
-	int monstrnd[4] = { 6, 6, 3, 9 };
+	const int monstrnd[4] = { 6, 6, 3, 9 };
 
 	TFit_Shrine(t);
 	if (themeVar1 == 1) {
@@ -422,7 +422,7 @@ void Theme_Shrine(int t)
  */
 void Theme_MonstPit(int t)
 {
-	int monstrnd[4] = { 6, 7, 3, 9 };
+	const int monstrnd[4] = { 6, 7, 3, 9 };
 
 	int r = GenerateRnd(100) + 1;
 	int ixp = 0;
@@ -469,8 +469,8 @@ void Theme_SkelRoom(int t)
 
 	TFit_SkelRoom(t);
 
-	int xp = themex;
-	int yp = themey;
+	const int xp = themex;
+	const int yp = themey;
 
 	AddObject(OBJ_SKFIRE, { xp, yp });
 
@@ -513,15 +513,15 @@ void Theme_SkelRoom(int t)
  */
 void Theme_Treasure(int t)
 {
-	int treasrnd[4] = { 4, 9, 7, 10 };
-	int monstrnd[4] = { 6, 8, 3, 7 };
+	const int treasrnd[4] = { 4, 9, 7, 10 };
+	const int monstrnd[4] = { 6, 8, 3, 7 };
 
 	DiscardRandomValues(1);
 	for (int yp = 0; yp < MAXDUNY; yp++) {
 		for (int xp = 0; xp < MAXDUNX; xp++) {
 			if (dTransVal[xp][yp] == themes[t].ttval && IsTileNotSolid({ xp, yp })) {
-				int8_t treasureType = treasrnd[leveltype - 1];
-				int rv = GenerateRnd(treasureType);
+				const int8_t treasureType = treasrnd[leveltype - 1];
+				const int rv = GenerateRnd(treasureType);
 				// BUGFIX: this used to be `2*GenerateRnd(treasureType) == 0` however 2*0 has no effect, should probably be `FlipCoin(2*treasureType)`
 				if (FlipCoin(treasureType)) {
 					CreateTypeItem({ xp, yp }, false, ItemType::Gold, IMISC_NONE, false, true);
@@ -555,7 +555,7 @@ void Theme_Treasure(int t)
 void Theme_Library(int t)
 {
 	constexpr unsigned librnd[4] = { 1, 2, 2, 5 };
-	int monstrnd[4] = { 5, 7, 3, 9 };
+	const int monstrnd[4] = { 5, 7, 3, 9 };
 
 	TFit_Shrine(t);
 
@@ -597,7 +597,7 @@ void Theme_Library(int t)
 void Theme_Torture(int t)
 {
 	constexpr unsigned tortrnd[4] = { 6, 8, 3, 8 };
-	int monstrnd[4] = { 6, 8, 3, 9 };
+	const int monstrnd[4] = { 6, 8, 3, 9 };
 
 	for (int yp = 1; yp < MAXDUNY - 1; yp++) {
 		for (int xp = 1; xp < MAXDUNX - 1; xp++) {
@@ -619,7 +619,7 @@ void Theme_Torture(int t)
  */
 void Theme_BloodFountain(int t)
 {
-	int monstrnd[4] = { 6, 8, 3, 9 };
+	const int monstrnd[4] = { 6, 8, 3, 9 };
 
 	TFit_Obj5(t);
 	AddObject(OBJ_BLOODFTN, { themex, themey });
@@ -634,7 +634,7 @@ void Theme_BloodFountain(int t)
 void Theme_Decap(int t)
 {
 	constexpr unsigned decaprnd[4] = { 6, 8, 3, 8 };
-	int monstrnd[4] = { 6, 8, 3, 9 };
+	const int monstrnd[4] = { 6, 8, 3, 9 };
 
 	for (int yp = 1; yp < MAXDUNY - 1; yp++) {
 		for (int xp = 1; xp < MAXDUNX - 1; xp++) {
@@ -657,7 +657,7 @@ void Theme_Decap(int t)
  */
 void Theme_PurifyingFountain(int t)
 {
-	int monstrnd[4] = { 6, 7, 3, 9 };
+	const int monstrnd[4] = { 6, 7, 3, 9 };
 
 	TFit_Obj5(t);
 	AddObject(OBJ_PURIFYINGFTN, { themex, themey });
@@ -672,7 +672,7 @@ void Theme_PurifyingFountain(int t)
 void Theme_ArmorStand(int t)
 {
 	constexpr unsigned armorrnd[4] = { 6, 8, 3, 8 };
-	int monstrnd[4] = { 6, 7, 3, 9 };
+	const int monstrnd[4] = { 6, 7, 3, 9 };
 
 	if (armorFlag) {
 		TFit_Obj3(themes[t].ttval);
@@ -718,7 +718,7 @@ void Theme_GoatShrine(int t)
  */
 void Theme_Cauldron(int t)
 {
-	int monstrnd[4] = { 6, 7, 3, 9 };
+	const int monstrnd[4] = { 6, 7, 3, 9 };
 
 	TFit_Obj5(t);
 	AddObject(OBJ_CAULDRON, { themex, themey });
@@ -732,7 +732,7 @@ void Theme_Cauldron(int t)
  */
 void Theme_MurkyFountain(int t)
 {
-	int monstrnd[4] = { 6, 7, 3, 9 };
+	const int monstrnd[4] = { 6, 7, 3, 9 };
 
 	TFit_Obj5(t);
 	AddObject(OBJ_MURKYFTN, { themex, themey });
@@ -746,7 +746,7 @@ void Theme_MurkyFountain(int t)
  */
 void Theme_TearFountain(int t)
 {
-	int monstrnd[4] = { 6, 7, 3, 9 };
+	const int monstrnd[4] = { 6, 7, 3, 9 };
 
 	TFit_Obj5(t);
 	AddObject(OBJ_TEARFTN, { themex, themey });
@@ -760,8 +760,8 @@ void Theme_TearFountain(int t)
  */
 void Theme_BrnCross(int t)
 {
-	int8_t regionId = themes[t].ttval;
-	int monstrnd[4] = { 6, 8, 3, 9 };
+	const int8_t regionId = themes[t].ttval;
+	const int monstrnd[4] = { 6, 8, 3, 9 };
 	constexpr unsigned bcrossrnd[4] = { 5, 7, 3, 8 };
 
 	for (int yp = 0; yp < MAXDUNY; yp++) {
@@ -785,9 +785,9 @@ void Theme_BrnCross(int t)
  */
 void Theme_WeaponRack(int t)
 {
-	int8_t regionId = themes[t].ttval;
+	const int8_t regionId = themes[t].ttval;
 	constexpr unsigned weaponrnd[4] = { 6, 8, 5, 8 };
-	int monstrnd[4] = { 6, 7, 3, 9 };
+	const int monstrnd[4] = { 6, 7, 3, 9 };
 
 	if (weaponFlag) {
 		TFit_Obj3(regionId);
@@ -900,7 +900,7 @@ void HoldThemeRooms()
 	}
 
 	for (int i = 0; i < numthemes; i++) {
-		int8_t v = themes[i].ttval;
+		const int8_t v = themes[i].ttval;
 		for (int y = 0; y < MAXDUNY; y++) {
 			for (int x = 0; x < MAXDUNX; x++) {
 				if (dTransVal[x][y] == v) {

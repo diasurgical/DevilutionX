@@ -24,16 +24,13 @@ local function CreateEvent()
     ---
     ---The arguments are forwarded to handlers.
     ---@param ... any
+    ---@return any
     trigger = function(...)
-      if arg ~= nil then
-        for _, func in ipairs(functions) do
-          func(table.unpack(arg))
-        end
-      else
-        for _, func in ipairs(functions) do
-          func()
-        end
+      local result
+      for _, func in ipairs(functions) do
+        result = func(...)
       end
+      return result
     end,
     __sig_trigger = "(...)",
   }
@@ -44,6 +41,22 @@ local events = {
   LoadModsComplete = CreateEvent(),
   __doc_LoadModsComplete = "Called after all mods have been loaded.",
 
+  ---Called after the item data TSV file has been loaded.
+  ItemDataLoaded = CreateEvent(),
+  __doc_ItemDataLoaded = "Called after the item data TSV file has been loaded.",
+
+  ---Called after the unique item data TSV file has been loaded.
+  UniqueItemDataLoaded = CreateEvent(),
+  __doc_UniqueItemDataLoaded = "Called after the unique item data TSV file has been loaded.",
+
+  ---Called after the monster data TSV file has been loaded.
+  MonsterDataLoaded = CreateEvent(),
+  __doc_MonsterDataLoaded = "Called after the monster data TSV file has been loaded.",
+
+  ---Called after the unique monster data TSV file has been loaded.
+  UniqueMonsterDataLoaded = CreateEvent(),
+  __doc_UniqueMonsterDataLoaded = "Called after the unique monster data TSV file has been loaded.",
+
   ---Called every time a new game is started.
   GameStart = CreateEvent(),
   __doc_GameStart = "Called every time a new game is started.",
@@ -51,6 +64,22 @@ local events = {
   ---Called every frame at the end.
   GameDrawComplete = CreateEvent(),
   __doc_GameDrawComplete = "Called every frame at the end.",
+
+  ---Called when opening a towner store. Passes the towner name as argument (e.g., "griswold", "adria", "pepin", "wirt", "cain").
+  StoreOpened = CreateEvent(),
+  __doc_StoreOpened = "Called when opening a towner store. Passes the towner name as argument.",
+
+  ---Called when a Monster takes damage.
+  OnMonsterTakeDamage = CreateEvent(),
+  __doc_OnMonsterTakeDamage = "Called when a Monster takes damage.",
+
+  ---Called when Player takes damage.
+  OnPlayerTakeDamage = CreateEvent(),
+  __doc_OnPlayerTakeDamage = "Called when Player takes damage.",
+
+  ---Called when Player gains experience.
+  OnPlayerGainExperience = CreateEvent(),
+  __doc_OnPlayerGainExperience = "Called when Player gains experience.",
 }
 
 ---Registers a custom event type with the given name.

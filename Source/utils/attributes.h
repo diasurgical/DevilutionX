@@ -72,8 +72,10 @@
 #endif
 
 #if ((defined(__GNUC__) || defined(__clang__)) && !defined(__EXCEPTIONS)) || defined(_MSC_VER) && !_HAS_EXCEPTIONS
+// NOLINTNEXTLINE(modernize-macro-to-enum)
 #define DVL_EXCEPTIONS 0
 #else
+// NOLINTNEXTLINE(modernize-macro-to-enum)
 #define DVL_EXCEPTIONS 1
 #endif
 

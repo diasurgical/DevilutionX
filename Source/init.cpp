@@ -3,13 +3,19 @@
  *
  * Implementation of routines for initializing the environment, disable screen saver, load MPQ.
  */
-#include "init.h"
+#include "init.hpp"
 
 #include <cstdint>
 #include <string>
 #include <vector>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_events.h>
+#include <SDL3/SDL_video.h>
+#else
 #include <SDL.h>
+#endif
+
 #include <config.h>
 
 #include "DiabloUI/diabloui.h"
@@ -31,7 +37,6 @@
 #include "utils/utf8.hpp"
 
 #ifndef UNPACKED_MPQS
-#include "mpq/mpq_common.hpp"
 #include "mpq/mpq_reader.hpp"
 #endif
 
@@ -54,7 +59,7 @@ bool AssetContentsEq(AssetRef &&ref, std::string_view expected)
 	const size_t size = ref.size();
 	AssetHandle handle = OpenAsset(std::move(ref), false);
 	if (!handle.ok()) return false;
-	std::unique_ptr<char[]> contents { new char[size] };
+	const std::unique_ptr<char[]> contents { new char[size] };
 	if (!handle.read(contents.get(), size)) return false;
 	return std::string_view { contents.get(), size } == expected;
 }
@@ -71,26 +76,18 @@ bool CheckExtraFontsVersion(AssetRef &&ref)
 
 } // namespace
 
-#ifndef UNPACKED_MPQS
-bool IsDevilutionXMpqOutOfDate(MpqArchive &archive)
+bool IsDevilutionXMpqOutOfDate()
 {
-	const char filename[] = "ASSETS_VERSION";
-	const MpqFileHash fileHash = CalculateMpqFileHash(filename);
-	uint32_t fileNumber;
-	if (!archive.GetFileNumber(fileHash, fileNumber))
+	AssetRef ref = FindAsset("ASSETS_VERSION");
+	if (!ref.ok())
 		return true;
-	AssetRef ref;
-	ref.archive = &archive;
-	ref.fileNumber = fileNumber;
-	ref.filename = filename;
 	return CheckDevilutionXMpqVersion(std::move(ref));
 }
-#endif
 
 #ifdef UNPACKED_MPQS
-bool AreExtraFontsOutOfDate(const std::string &path)
+bool AreExtraFontsOutOfDate(std::string_view path)
 {
-	const std::string versionPath = path + "fonts" DIRECTORY_SEPARATOR_STR "VERSION";
+	const std::string versionPath = StrCat(path, "fonts" DIRECTORY_SEPARATOR_STR "VERSION");
 	if (versionPath.size() + 1 > AssetRef::PathBufSize)
 		app_fatal("Path too long");
 	AssetRef ref;
@@ -101,17 +98,20 @@ bool AreExtraFontsOutOfDate(const std::string &path)
 bool AreExtraFontsOutOfDate(MpqArchive &archive)
 {
 	const char filename[] = "fonts\\VERSION";
-	const MpqFileHash fileHash = CalculateMpqFileHash(filename);
-	uint32_t fileNumber;
-	if (!archive.GetFileNumber(fileHash, fileNumber))
+	if (!archive.HasFile(filename))
 		return true;
 	AssetRef ref;
 	ref.archive = &archive;
-	ref.fileNumber = fileNumber;
 	ref.filename = filename;
 	return CheckExtraFontsVersion(std::move(ref));
 }
 #endif
+
+bool AreExtraFontsOutOfDate()
+{
+	const auto it = MpqArchives.find(FontMpqPriority);
+	return it != MpqArchives.end() && AreExtraFontsOutOfDate(it->second);
+}
 
 void init_cleanup()
 {
@@ -120,25 +120,8 @@ void init_cleanup()
 		sfile_write_stash();
 	}
 
-#ifdef UNPACKED_MPQS
-	lang_data_path = std::nullopt;
-	font_data_path = std::nullopt;
-	hellfire_data_path = std::nullopt;
-	diabdat_data_path = std::nullopt;
-	spawn_data_path = std::nullopt;
-#else
-	spawn_mpq = std::nullopt;
-	diabdat_mpq = std::nullopt;
-	hellfire_mpq = std::nullopt;
-	hfmonk_mpq = std::nullopt;
-	hfbard_mpq = std::nullopt;
-	hfbarb_mpq = std::nullopt;
-	hfmusic_mpq = std::nullopt;
-	hfvoice_mpq = std::nullopt;
-	lang_mpq = std::nullopt;
-	font_mpq = std::nullopt;
-	devilutionx_mpq = std::nullopt;
-#endif
+	MpqArchives.clear();
+	HasHellfireMpq = false;
 
 	NetClose();
 }
@@ -157,38 +140,77 @@ void init_create_window()
 void MainWndProc(const SDL_Event &event)
 {
 #ifndef USE_SDL1
-	if (event.type != SDL_WINDOWEVENT)
-		return;
-	switch (event.window.event) {
+#ifdef USE_SDL3
+	switch (event.type)
+#else
+	if (event.type != SDL_WINDOWEVENT) return;
+	switch (event.window.event)
+#endif
+	{
+#ifdef USE_SDL3
+	case SDL_EVENT_WINDOW_HIDDEN:
+	case SDL_EVENT_WINDOW_MINIMIZED:
+#else
 	case SDL_WINDOWEVENT_HIDDEN:
 	case SDL_WINDOWEVENT_MINIMIZED:
+#endif
 		gbActive = false;
 		break;
+#ifdef USE_SDL3
+	case SDL_EVENT_WINDOW_SHOWN:
+	case SDL_EVENT_WINDOW_EXPOSED:
+	case SDL_EVENT_WINDOW_RESTORED:
+#else
 	case SDL_WINDOWEVENT_SHOWN:
 	case SDL_WINDOWEVENT_EXPOSED:
 	case SDL_WINDOWEVENT_RESTORED:
+#endif
 		gbActive = true;
 		RedrawEverything();
 		break;
+#ifdef USE_SDL3
+	case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
+#else
 	case SDL_WINDOWEVENT_SIZE_CHANGED:
+#endif
 		ReinitializeHardwareCursor();
 		break;
+#ifdef USE_SDL3
+	case SDL_EVENT_WINDOW_MOUSE_LEAVE:
+#else
 	case SDL_WINDOWEVENT_LEAVE:
+#endif
 		sgbMouseDown = CLICK_NONE;
-		LastMouseButtonAction = MouseActionType::None;
+		LastPlayerAction = PlayerActionType::None;
 		RedrawEverything();
 		break;
+#ifdef USE_SDL3
+	case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
+#else
 	case SDL_WINDOWEVENT_CLOSE:
+#endif
 		diablo_quit(0);
 		break;
+#ifdef USE_SDL3
+	case SDL_EVENT_WINDOW_FOCUS_LOST:
+#else
 	case SDL_WINDOWEVENT_FOCUS_LOST:
+#endif
 		if (*GetOptions().Gameplay.pauseOnFocusLoss)
 			diablo_focus_pause();
 		break;
+#ifdef USE_SDL3
+	case SDL_EVENT_WINDOW_FOCUS_GAINED:
+#else
 	case SDL_WINDOWEVENT_FOCUS_GAINED:
+#endif
 		if (*GetOptions().Gameplay.pauseOnFocusLoss)
 			diablo_focus_unpause();
 		break;
+#ifdef USE_SDL3
+	default:
+		break;
+#else
 	case SDL_WINDOWEVENT_MOVED:
 	case SDL_WINDOWEVENT_RESIZED:
 	case SDL_WINDOWEVENT_MAXIMIZED:
@@ -198,6 +220,7 @@ void MainWndProc(const SDL_Event &event)
 	default:
 		LogVerbose("Unhandled SDL_WINDOWEVENT event: {:d}", event.window.event);
 		break;
+#endif
 	}
 #else
 	if (event.type != SDL_ACTIVEEVENT)

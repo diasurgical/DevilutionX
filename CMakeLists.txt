@@ -1,6 +1,6 @@
-cmake_minimum_required(VERSION 3.15)
+cmake_minimum_required(VERSION 3.22)
 
-foreach(_policy CMP0111 CMP0126 CMP0135 CMP0141)
+foreach(_policy CMP0135 CMP0141)
   if(POLICY ${_policy})
     cmake_policy(SET ${_policy} NEW)
     set(CMAKE_POLICY_DEFAULT_${_policy} NEW)
@@ -31,6 +31,7 @@ include(functions/genex)
 
 # Options required by `VcPkgManifestFeatures`, which must be included before the `project` call.
 option(USE_SDL1 "Use SDL1.2 instead of SDL2" OFF)
+option(USE_SDL3 "Use SDL3 instead of SDL2" OFF)
 option(NONET "Disable network support" OFF)
 cmake_dependent_option(PACKET_ENCRYPTION "Encrypt network packets" ON "NOT NONET" OFF)
 # The gettext[tools] package takes a very long time to install
@@ -105,9 +106,18 @@ option(WIN_NSIS "Generate an NSIS installer" OFF)
 cmake_dependent_option(DISABLE_TCP "Disable TCP multiplayer option" OFF "NOT NONET" ON)
 cmake_dependent_option(DISABLE_ZERO_TIER "Disable ZeroTier multiplayer option" OFF "NOT NONET" ON)
 
+if(USE_SDL1 AND USE_SDL3)
+  message(FATAL_ERROR "USE_SDL1 and USE_SDL3 cannot be set at the same time")
+endif()
+
 # Graphics options
 if(NOT USE_SDL1)
-  set(DEVILUTIONX_DISPLAY_TEXTURE_FORMAT "SDL_PIXELFORMAT_RGB888" CACHE STRING "Texture format for DevilutionX textures when using the GPU renderer")
+if(USE_SDL3)
+  set(_texture_format_default "SDL_PIXELFORMAT_XRGB8888")
+else()
+  set(_texture_format_default "SDL_PIXELFORMAT_RGB888")
+endif()
+  set(DEVILUTIONX_DISPLAY_TEXTURE_FORMAT "${_texture_format_default}" CACHE STRING "Texture format for DevilutionX textures when using the GPU renderer")
   mark_as_advanced(DEVILUTIONX_DISPLAY_TEXTURE_FORMAT)
 endif()
 
@@ -171,19 +181,19 @@ else()
   set(SUPPORTS_MPQ ON)
 endif()
 
-# By default, devilutionx.mpq is built only if smpq is installed and MPQ support is enabled.
+# By default, devilutionx.mpq and mods/Hellfire.mpq are built only if smpq is installed and MPQ support is enabled.
 if(SUPPORTS_MPQ AND NOT UNPACKED_MPQS)
-  if(NOT DEFINED BUILD_ASSETS_MPQ AND NOT SRC_DIST)
-    find_program(SMPQ smpq)
-  elseif(BUILD_ASSETS_MPQ)
+  if(BUILD_ASSETS_MPQ OR (CPACK STREQUAL "ON" AND (WIN32 OR CMAKE_SYSTEM_NAME STREQUAL "Linux")))
     find_program(SMPQ smpq REQUIRED)
+  elseif(NOT DEFINED BUILD_ASSETS_MPQ AND NOT SRC_DIST)
+    find_program(SMPQ smpq)
   endif()
   if(SMPQ)
     set(_has_smpq ON)
   else()
     set(_has_smpq OFF)
   endif()
-  option(BUILD_ASSETS_MPQ "If true, assets are packaged into devilutionx.mpq." ${_has_smpq})
+  option(BUILD_ASSETS_MPQ "If true, assets are packaged into devilutionx.mpq and mods/Hellfire to Hellfire.mpq." ${_has_smpq})
 else()
   set(BUILD_ASSETS_MPQS OFF)
 endif()
@@ -320,12 +330,19 @@ if(GPERF)
 endif()
 
 set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_EXTENSIONS OFF)
+
+# On some platforms, such as DJGPP,
+# `-std=c++20` defines `__STRICT_ANSI__` which disables
+# all POSIX extensions, so we need to use `-std=gnu++20` instead.
+set(CMAKE_CXX_EXTENSIONS ON)
+
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON) # for clang-tidy
 set(CMAKE_THREAD_PREFER_PTHREAD ON)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
-find_package(Threads REQUIRED)
+if(NOT TARGET_PLATFORM STREQUAL "dos")
+  find_package(Threads REQUIRED)
+endif()
 
 # Dependencies must be included after Platforms.
 include(Dependencies)
@@ -335,6 +352,8 @@ add_subdirectory(Source)
 set(BIN_TARGET devilutionx)
 if(NINTENDO_3DS)
   set(BIN_TARGET ${BIN_TARGET}.elf)
+elseif(TARGET_PLATFORM STREQUAL "dos")
+  set(BIN_TARGET devx)
 endif()
 
 if(ANDROID)
@@ -353,10 +372,17 @@ else()
     if(CMAKE_STRIP AND NOT DEVILUTIONX_DISABLE_STRIP)
       add_custom_command(
         TARGET ${BIN_TARGET} POST_BUILD
-        DEPENDS ${BIN_TARGET}
         COMMAND $<$<OR:$<CONFIG:Release>,$<CONFIG:MinSizeRel>>:${CMAKE_STRIP}>
         ARGS $<TARGET_FILE:${BIN_TARGET}>)
     endif()
+endif()
+
+if(TARGET_PLATFORM STREQUAL "dos")
+    # Allow multiple definitions for math stubs in DJGPP
+    set_target_properties(${BIN_TARGET} PROPERTIES
+        LINK_FLAGS "-Wl,--allow-multiple-definition -static"
+    )
+    target_link_libraries(${BIN_TARGET} PRIVATE m)
 endif()
 
 if(NOT UWP_LIB)
@@ -369,6 +395,7 @@ endif()
 
 # Must be included after `BIN_TARGET` and `libdevilutionx` are defined.
 include(Assets)
+include(Mods)
 
 if(EMSCRIPTEN)
   target_link_options(${BIN_TARGET} PRIVATE --preload-file assets)
@@ -379,7 +406,7 @@ if(NOT USE_SDL1 AND NOT UWP_LIB)
 endif()
 
 if(BUILD_TESTING)
-  add_subdirectory(test)
+  include(Tests)
 endif()
 
 include(functions/set_relative_file_macro)
@@ -461,6 +488,7 @@ if(VITA)
       NAME ${VITA_APP_NAME}
       FILE Packaging/vita/sce_sys sce_sys
       FILE ${DEVILUTIONX_MPQ} devilutionx.mpq
+      FILE ${HELLFIRE_MPQ} mods/Hellfire.mpq
     )
   else()
     vita_create_vpk(devilutionx.vpk ${VITA_TITLEID} devilutionx.self
@@ -478,6 +506,10 @@ if(PS4)
   add_custom_command(
     TARGET devilutionx_mpq POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy ${DEVILUTIONX_MPQ} "${PROJECT_SOURCE_DIR}/Packaging/ps4/")
+  add_custom_command(
+    TARGET hellfire_mpq POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${PROJECT_SOURCE_DIR}/Packaging/ps4/mods"
+    COMMAND ${CMAKE_COMMAND} -E copy ${HELLFIRE_MPQ} "${PROJECT_SOURCE_DIR}/Packaging/ps4/mods/")
   add_self(${BIN_TARGET})
   add_pkg(${BIN_TARGET} "${PROJECT_SOURCE_DIR}/Packaging/ps4"
     "DVLX00001" "DevilutionX" "${PROJECT_VERSION}")
@@ -566,6 +598,9 @@ if(CPACK AND (APPLE OR BUILD_ASSETS_MPQ OR SRC_DIST))
     install(FILES "${DEVILUTIONX_MPQ}"
       DESTINATION "."
     )
+    install(FILES "${HELLFIRE_MPQ}"
+      DESTINATION "mods"
+    )
 
     foreach(_SDL2_WIN32_DLL_PATH ${SDL2_WIN32_ALL_DLLS} ${WIN32_INSTALL_DLLS})
       install(FILES "${_SDL2_WIN32_DLL_PATH}"
@@ -621,7 +656,10 @@ if(CPACK AND (APPLE OR BUILD_ASSETS_MPQ OR SRC_DIST))
     install(FILES "${DEVILUTIONX_MPQ}"
       DESTINATION "share/diasurgical/${project_name}"
     )
-    install(FILES "${PROJECT_SOURCE_DIR}/Packaging/resources/icon.png"
+    install(FILES "${HELLFIRE_MPQ}"
+      DESTINATION "share/diasurgical/${project_name}/mods"
+    )
+    install(FILES "${PROJECT_SOURCE_DIR}/Packaging/resources/icon_flat.png"
       DESTINATION "share/icons/hicolor/512x512/apps"
       RENAME "${project_name}.png"
     )

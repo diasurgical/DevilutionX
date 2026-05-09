@@ -3,7 +3,7 @@
 
 #include "quests.h"
 
-#include "objdat.h" // For quest IDs
+#include "tables/objdat.h" // For quest IDs
 
 namespace devilution {
 void ResetQuests()

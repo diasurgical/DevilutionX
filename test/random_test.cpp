@@ -274,7 +274,7 @@ TEST(RandomTest, NegativeReturnValues)
 	SetRndSeed(1457187811);
 	EXPECT_EQ(GenerateRnd(31), -1) << "Unexpected return value for a limit of 31";
 
-	for (int i : { 9, 10, 12, 13, 14, 15, 18, 20, 21, 24, 26, 28, 30 }) {
+	for (const int i : { 9, 10, 12, 13, 14, 15, 18, 20, 21, 24, 26, 28, 30 }) {
 		SetRndSeed(1457187811);
 		EXPECT_EQ(GenerateRnd(i), -8) << "Unexpected return value for a limit of " << i;
 	}

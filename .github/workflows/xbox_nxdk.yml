@@ -24,7 +24,6 @@ concurrency:
 
 jobs:
   xbox:
-    # `ubuntu-latest` is currently 20.04 but we require a newer clang.
     runs-on: ubuntu-22.04
     env:
       NXDK_DIR: /opt/nxdk
@@ -41,7 +40,7 @@ jobs:
       run: PATH="${NXDK_DIR}/bin:$PATH" make -j $(nproc) -C "$NXDK_DIR" NXDK_ONLY=1 CFLAGS=-O2 CXXFLAGS=-O2 all cxbe
 
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         fetch-depth: 0
 
@@ -58,7 +57,7 @@ jobs:
 
     - name: Upload-Package
       if: ${{ !env.ACT }}
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: devilutionx-xbox
         path: build-xbox/pkg/

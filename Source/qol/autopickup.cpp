@@ -17,7 +17,7 @@ namespace {
 
 bool HasRoomForGold()
 {
-	for (int idx : MyPlayer->InvGrid) {
+	for (const int idx : MyPlayer->InvGrid) {
 		// Secondary item cell. No need to check those as we'll go through the main item cells anyway.
 		if (idx < 0)
 			continue;
@@ -98,9 +98,9 @@ void AutoPickup(const Player &player)
 		return;
 
 	for (auto pathDir : PathDirs) {
-		Point tile = player.position.tile + pathDir;
+		const Point tile = player.position.tile + pathDir;
 		if (dItem[tile.x][tile.y] != 0) {
-			int itemIndex = dItem[tile.x][tile.y] - 1;
+			const int itemIndex = dItem[tile.x][tile.y] - 1;
 			auto &item = Items[itemIndex];
 			if (DoPickup(item)) {
 				NetSendCmdGItem(true, CMD_REQUESTAGITEM, player, itemIndex);

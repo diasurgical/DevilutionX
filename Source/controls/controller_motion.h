@@ -2,10 +2,14 @@
 
 // Processes and stores mouse and joystick motion.
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_events.h>
+#else
 #include <SDL.h>
+#endif
 
-#include "./axis_direction.h"
-#include "./controller.h"
+#include "controls/axis_direction.h"
+#include "controls/controller.h"
 
 namespace devilution {
 
@@ -20,6 +24,9 @@ extern float leftStickX, leftStickY, rightStickX, rightStickY;
 
 // Whether stick positions have been updated and need rescaling.
 extern bool leftStickNeedsScaling, rightStickNeedsScaling;
+
+// Minimum scaled stick magnitude to register a direction.
+constexpr float StickDirectionThreshold = 0.4F;
 
 // Updates motion state for mouse and joystick sticks.
 void ProcessControllerMotion(const SDL_Event &event);

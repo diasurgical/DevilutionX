@@ -7,18 +7,26 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <cstring>
 #include <numeric>
 #include <string>
 
 #include <expected.hpp>
 
 #include "automap.h"
+#include "engine/displacement.hpp"
+#include "engine/lighting_defs.hpp"
 #include "engine/load_file.hpp"
+#include "engine/point.hpp"
 #include "engine/points_in_rectangle_range.hpp"
+#include "engine/world_tile.hpp"
+#include "levels/tile_properties.hpp"
+#include "objects.h"
 #include "player.h"
 #include "utils/attributes.h"
 #include "utils/is_of.hpp"
 #include "utils/status_macros.hpp"
+#include "vision.hpp"
 
 namespace devilution {
 
@@ -27,7 +35,7 @@ Light VisionList[MAXVISION];
 Light Lights[MAXLIGHTS];
 std::array<uint8_t, MAXLIGHTS> ActiveLights;
 int ActiveLightCount;
-std::array<std::array<uint8_t, 256>, NumLightingLevels> LightTables;
+std::array<std::array<uint8_t, LightTableSize>, NumLightingLevels> LightTables;
 uint8_t *FullyLitLightTable = nullptr;
 uint8_t *FullyDarkLightTable = nullptr;
 std::array<uint8_t, 256> InfravisionTable;
@@ -40,38 +48,6 @@ bool UpdateLighting;
 
 namespace {
 
-/*
- * X- Y-coordinate offsets of lighting visions.
- * The last entry-pair is only for alignment.
- */
-const DisplacementOf<int8_t> VisionCrawlTable[23][15] = {
-	// clang-format off
-	{ { 1, 0 }, { 2, 0 }, { 3, 0 }, { 4, 0 }, { 5, 0 }, { 6, 0 }, { 7, 0 }, { 8, 0 }, { 9, 0 }, { 10,  0 }, { 11,  0 }, { 12,  0 }, { 13,  0 }, { 14,  0 }, { 15,  0 } },
-	{ { 1, 0 }, { 2, 0 }, { 3, 0 }, { 4, 0 }, { 5, 0 }, { 6, 0 }, { 7, 0 }, { 8, 1 }, { 9, 1 }, { 10,  1 }, { 11,  1 }, { 12,  1 }, { 13,  1 }, { 14,  1 }, { 15,  1 } },
-	{ { 1, 0 }, { 2, 0 }, { 3, 0 }, { 4, 1 }, { 5, 1 }, { 6, 1 }, { 7, 1 }, { 8, 1 }, { 9, 1 }, { 10,  1 }, { 11,  1 }, { 12,  2 }, { 13,  2 }, { 14,  2 }, { 15,  2 } },
-	{ { 1, 0 }, { 2, 0 }, { 3, 1 }, { 4, 1 }, { 5, 1 }, { 6, 1 }, { 7, 1 }, { 8, 2 }, { 9, 2 }, { 10,  2 }, { 11,  2 }, { 12,  2 }, { 13,  3 }, { 14,  3 }, { 15,  3 } },
-	{ { 1, 0 }, { 2, 1 }, { 3, 1 }, { 4, 1 }, { 5, 1 }, { 6, 2 }, { 7, 2 }, { 8, 2 }, { 9, 3 }, { 10,  3 }, { 11,  3 }, { 12,  3 }, { 13,  4 }, { 14,  4 }, {  0,  0 } },
-	{ { 1, 0 }, { 2, 1 }, { 3, 1 }, { 4, 1 }, { 5, 2 }, { 6, 2 }, { 7, 3 }, { 8, 3 }, { 9, 3 }, { 10,  4 }, { 11,  4 }, { 12,  4 }, { 13,  5 }, { 14,  5 }, {  0,  0 } },
-	{ { 1, 0 }, { 2, 1 }, { 3, 1 }, { 4, 2 }, { 5, 2 }, { 6, 3 }, { 7, 3 }, { 8, 3 }, { 9, 4 }, { 10,  4 }, { 11,  5 }, { 12,  5 }, { 13,  6 }, { 14,  6 }, {  0,  0 } },
-	{ { 1, 1 }, { 2, 1 }, { 3, 2 }, { 4, 2 }, { 5, 3 }, { 6, 3 }, { 7, 4 }, { 8, 4 }, { 9, 5 }, { 10,  5 }, { 11,  6 }, { 12,  6 }, { 13,  7 }, {  0,  0 }, {  0,  0 } },
-	{ { 1, 1 }, { 2, 1 }, { 3, 2 }, { 4, 2 }, { 5, 3 }, { 6, 4 }, { 7, 4 }, { 8, 5 }, { 9, 6 }, { 10,  6 }, { 11,  7 }, { 12,  7 }, { 12,  8 }, { 13,  8 }, {  0,  0 } },
-	{ { 1, 1 }, { 2, 2 }, { 3, 2 }, { 4, 3 }, { 5, 4 }, { 6, 5 }, { 7, 5 }, { 8, 6 }, { 9, 7 }, { 10,  7 }, { 10,  8 }, { 11,  8 }, { 12,  9 }, {  0,  0 }, {  0,  0 } },
-	{ { 1, 1 }, { 2, 2 }, { 3, 3 }, { 4, 4 }, { 5, 5 }, { 6, 5 }, { 7, 6 }, { 8, 7 }, { 9, 8 }, { 10,  9 }, { 11,  9 }, { 11, 10 }, {  0,  0 }, {  0,  0 }, {  0,  0 } },
-	{ { 1, 1 }, { 2, 2 }, { 3, 3 }, { 4, 4 }, { 5, 5 }, { 6, 6 }, { 7, 7 }, { 8, 8 }, { 9, 9 }, { 10, 10 }, { 11, 11 }, {  0,  0 }, {  0,  0 }, {  0,  0 }, {  0,  0 } },
-	{ { 1, 1 }, { 2, 2 }, { 3, 3 }, { 4, 4 }, { 5, 5 }, { 5, 6 }, { 6, 7 }, { 7, 8 }, { 8, 9 }, {  9, 10 }, {  9, 11 }, { 10, 11 }, {  0,  0 }, {  0,  0 }, {  0,  0 } },
-	{ { 1, 1 }, { 2, 2 }, { 2, 3 }, { 3, 4 }, { 4, 5 }, { 5, 6 }, { 5, 7 }, { 6, 8 }, { 7, 9 }, {  7, 10 }, {  8, 10 }, {  8, 11 }, {  9, 12 }, {  0,  0 }, {  0,  0 } },
-	{ { 1, 1 }, { 1, 2 }, { 2, 3 }, { 2, 4 }, { 3, 5 }, { 4, 6 }, { 4, 7 }, { 5, 8 }, { 6, 9 }, {  6, 10 }, {  7, 11 }, {  7, 12 }, {  8, 12 }, {  8, 13 }, {  0,  0 } },
-	{ { 1, 1 }, { 1, 2 }, { 2, 3 }, { 2, 4 }, { 3, 5 }, { 3, 6 }, { 4, 7 }, { 4, 8 }, { 5, 9 }, {  5, 10 }, {  6, 11 }, {  6, 12 }, {  7, 13 }, {  0,  0 }, {  0,  0 } },
-	{ { 0, 1 }, { 1, 2 }, { 1, 3 }, { 2, 4 }, { 2, 5 }, { 3, 6 }, { 3, 7 }, { 3, 8 }, { 4, 9 }, {  4, 10 }, {  5, 11 }, {  5, 12 }, {  6, 13 }, {  6, 14 }, {  0,  0 } },
-	{ { 0, 1 }, { 1, 2 }, { 1, 3 }, { 1, 4 }, { 2, 5 }, { 2, 6 }, { 3, 7 }, { 3, 8 }, { 3, 9 }, {  4, 10 }, {  4, 11 }, {  4, 12 }, {  5, 13 }, {  5, 14 }, {  0,  0 } },
-	{ { 0, 1 }, { 1, 2 }, { 1, 3 }, { 1, 4 }, { 1, 5 }, { 2, 6 }, { 2, 7 }, { 2, 8 }, { 3, 9 }, {  3, 10 }, {  3, 11 }, {  3, 12 }, {  4, 13 }, {  4, 14 }, {  0,  0 } },
-	{ { 0, 1 }, { 0, 2 }, { 1, 3 }, { 1, 4 }, { 1, 5 }, { 1, 6 }, { 1, 7 }, { 2, 8 }, { 2, 9 }, {  2, 10 }, {  2, 11 }, {  2, 12 }, {  3, 13 }, {  3, 14 }, {  3, 15 } },
-	{ { 0, 1 }, { 0, 2 }, { 0, 3 }, { 1, 4 }, { 1, 5 }, { 1, 6 }, { 1, 7 }, { 1, 8 }, { 1, 9 }, {  1, 10 }, {  1, 11 }, {  2, 12 }, {  2, 13 }, {  2, 14 }, {  2, 15 } },
-	{ { 0, 1 }, { 0, 2 }, { 0, 3 }, { 0, 4 }, { 0, 5 }, { 0, 6 }, { 0, 7 }, { 1, 8 }, { 1, 9 }, {  1, 10 }, {  1, 11 }, {  1, 12 }, {  1, 13 }, {  1, 14 }, {  1, 15 } },
-	{ { 0, 1 }, { 0, 2 }, { 0, 3 }, { 0, 4 }, { 0, 5 }, { 0, 6 }, { 0, 7 }, { 0, 8 }, { 0, 9 }, {  0, 10 }, {  0, 11 }, {  0, 12 }, {  0, 13 }, {  0, 14 }, {  0, 15 } },
-	// clang-format on
-};
-
 /** @brief Number of supported light radiuses (first radius starts with 0) */
 constexpr size_t NumLightRadiuses = 16;
 /** Falloff tables for the light cone */
@@ -79,9 +55,6 @@ uint8_t LightFalloffs[NumLightRadiuses][128];
 bool UpdateVision;
 /** interpolations of a 32x32 (16x16 mirrored) light circle moving between tiles in steps of 1/8 of a tile */
 uint8_t LightConeInterpolations[8][8][16][16];
-
-/** RadiusAdj maps from VisionCrawlTable index to lighting vision radius adjustment. */
-const uint8_t RadiusAdj[23] = { 0, 0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 4, 3, 2, 2, 2, 1, 1, 1, 0, 0, 0, 0 };
 
 void RotateRadius(DisplacementOf<int8_t> &offset, DisplacementOf<int8_t> &dist, DisplacementOf<int8_t> &light, DisplacementOf<int8_t> &block)
 {
@@ -145,7 +118,7 @@ void DoUnLight(Point position, uint8_t radius)
 
 	auto searchArea = PointsInRectangle(WorldTileRectangle { position, radius });
 
-	for (WorldTilePosition targetPosition : searchArea) {
+	for (const WorldTilePosition targetPosition : searchArea) {
 		if (InDungeonBounds(targetPosition))
 			dLight[targetPosition.x][targetPosition.y] = dPreLight[targetPosition.x][targetPosition.y];
 	}
@@ -196,15 +169,15 @@ void DoLighting(Point position, uint8_t radius, DisplacementOf<int8_t> offset)
 	}
 
 	for (int i = 0; i < 4; i++) {
-		int yBound = i > 0 && i < 3 ? maxY : minY;
-		int xBound = i < 2 ? maxX : minX;
+		const int yBound = i > 0 && i < 3 ? maxY : minY;
+		const int xBound = i < 2 ? maxX : minX;
 		for (int y = 0; y < yBound; y++) {
 			for (int x = 1; x < xBound; x++) {
-				int linearDistance = LightConeInterpolations[offset.deltaX][offset.deltaY][x + block.deltaX][y + block.deltaY];
+				const int linearDistance = LightConeInterpolations[offset.deltaX][offset.deltaY][x + block.deltaX][y + block.deltaY];
 				if (linearDistance >= 128)
 					continue;
-				Point temp = position + (Displacement { x, y }).Rotate(-i);
-				uint8_t v = LightFalloffs[radius][linearDistance];
+				const Point temp = position + (Displacement { x, y }).Rotate(-i);
+				const uint8_t v = LightFalloffs[radius][linearDistance];
 				if (!InDungeonBounds(temp))
 					continue;
 				if (v < GetLight(temp))
@@ -222,7 +195,7 @@ void DoUnVision(Point position, uint8_t radius)
 
 	auto searchArea = PointsInRectangle(WorldTileRectangle { position, radius });
 
-	for (WorldTilePosition targetPosition : searchArea) {
+	for (const WorldTilePosition targetPosition : searchArea) {
 		if (InDungeonBounds(targetPosition))
 			dFlags[targetPosition.x][targetPosition.y] &= ~(DungeonFlag::Visible | DungeonFlag::Lit);
 	}
@@ -230,38 +203,22 @@ void DoUnVision(Point position, uint8_t radius)
 
 void DoVision(Point position, uint8_t radius, MapExplorationType doAutomap, bool visible)
 {
-	DoVisionFlags(position, doAutomap, visible);
+	auto markVisibleFn = [doAutomap, visible](Point rayPoint) {
+		DoVisionFlags(rayPoint, doAutomap, visible);
+	};
+	auto markTransparentFn = [](Point rayPoint) {
+		const int8_t trans = dTransVal[rayPoint.x][rayPoint.y];
+		if (trans != 0)
+			TransList[trans] = true;
+	};
+	auto passesLightFn = [](Point rayPoint) {
+		return TileAllowsLight(rayPoint);
+	};
+	auto inBoundsFn = [](Point rayPoint) {
+		return InDungeonBounds(rayPoint);
+	};
 
-	static const Displacement factors[] = { { 1, 1 }, { -1, 1 }, { 1, -1 }, { -1, -1 } };
-	for (auto factor : factors) {
-		for (int j = 0; j < 23; j++) {
-			int lineLen = radius - RadiusAdj[j];
-			for (int k = 0; k < lineLen; k++) {
-				Point crawl = position + VisionCrawlTable[j][k] * factor;
-				if (!InDungeonBounds(crawl))
-					break;
-				bool blockerFlag = TileHasAny(crawl, TileProperties::BlockLight);
-				bool tileOK = !blockerFlag;
-
-				if (VisionCrawlTable[j][k].deltaX > 0 && VisionCrawlTable[j][k].deltaY > 0) {
-					tileOK = tileOK || TileAllowsLight(crawl + Displacement { -factor.deltaX, 0 });
-					tileOK = tileOK || TileAllowsLight(crawl + Displacement { 0, -factor.deltaY });
-				}
-
-				if (!tileOK)
-					break;
-
-				DoVisionFlags(crawl, doAutomap, visible);
-
-				if (blockerFlag)
-					break;
-
-				int8_t trans = dTransVal[crawl.x][crawl.y];
-				if (trans != 0)
-					TransList[trans] = true;
-			}
-		}
-	}
+	DoVision(position, radius, markVisibleFn, markTransparentFn, passesLightFn, inBoundsFn);
 }
 
 tl::expected<void, std::string> LoadTrns()
@@ -279,7 +236,7 @@ void MakeLightTable()
 	constexpr uint8_t White = 255;
 	for (auto &lightTable : LightTables) {
 		uint8_t colorIndex = 0;
-		for (uint8_t steps : { 16, 16, 16, 16, 16, 16, 16, 16, 8, 8, 8, 8, 16, 16, 16, 16, 16, 16 }) {
+		for (const uint8_t steps : { 16, 16, 16, 16, 16, 16, 16, 16, 8, 8, 8, 8, 16, 16, 16, 16, 16, 16 }) {
 			const uint8_t shading = shade * steps / 16;
 			const uint8_t shadeStart = colorIndex;
 			const uint8_t shadeEnd = shadeStart + steps - 1;
@@ -361,9 +318,9 @@ void MakeLightTable()
 		for (int offsetX = 0; offsetX < 8; offsetX++) {
 			for (int y = 0; y < 16; y++) {
 				for (int x = 0; x < 16; x++) {
-					int a = (8 * x - offsetY);
-					int b = (8 * y - offsetX);
-					LightConeInterpolations[offsetX][offsetY][x][y] = static_cast<uint8_t>(sqrt(a * a + b * b));
+					const int a = ((8 * x) - offsetX);
+					const int b = ((8 * y) - offsetY);
+					LightConeInterpolations[offsetX][offsetY][x][y] = static_cast<uint8_t>(sqrt((a * a) + (b * b)));
 				}
 			}
 		}
@@ -412,7 +369,7 @@ int AddLight(Point position, uint8_t radius)
 	if (ActiveLightCount >= MAXLIGHTS)
 		return NO_LIGHT;
 
-	int lid = ActiveLights[ActiveLightCount++];
+	const int lid = ActiveLights[ActiveLightCount++];
 	Light &light = Lights[lid];
 	light.position.tile = position;
 	light.radius = radius;
@@ -612,7 +569,7 @@ void ProcessVisionList()
 		const size_t id = player.getId();
 		if (!VisionActive[id])
 			continue;
-		Light &vision = VisionList[id];
+		const Light &vision = VisionList[id];
 		MapExplorationType doautomap = MAP_EXP_SELF;
 		if (&player != MyPlayer)
 			doautomap = player.friendlyMode ? MAP_EXP_OTHERS : MAP_EXP_NONE;

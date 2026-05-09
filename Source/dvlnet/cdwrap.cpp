@@ -30,6 +30,11 @@ int cdwrap::join(std::string_view addrstr)
 	return dvlnet_wrap->join(addrstr);
 }
 
+void cdwrap::process_network_packets()
+{
+	dvlnet_wrap->process_network_packets();
+}
+
 void cdwrap::setup_gameinfo(buffer_t info)
 {
 	game_init_info = std::move(info);
@@ -78,12 +83,12 @@ bool cdwrap::SNetRegisterEventHandler(event_type evtype, SEVTHANDLER func)
 	return true;
 }
 
-bool cdwrap::SNetLeaveGame(int type)
+bool cdwrap::SNetLeaveGame(net::leaveinfo_t type)
 {
 	return dvlnet_wrap->SNetLeaveGame(type);
 }
 
-bool cdwrap::SNetDropPlayer(int playerid, uint32_t flags)
+bool cdwrap::SNetDropPlayer(int playerid, net::leaveinfo_t flags)
 {
 	return dvlnet_wrap->SNetDropPlayer(playerid, flags);
 }
@@ -128,6 +133,11 @@ void cdwrap::clear_password()
 {
 	game_pw = std::nullopt;
 	return dvlnet_wrap->clear_password();
+}
+
+DvlNetLatencies cdwrap::get_latencies(uint8_t playerid)
+{
+	return dvlnet_wrap->get_latencies(playerid);
 }
 
 } // namespace devilution::net

@@ -17,6 +17,7 @@ comparer-config.toml
 
 #ignore cmake cache
 /build-*/
+/build_*/
 .vscode/tasks.json
 
 # Extra files in the source distribution (see make_src_dist.py)
@@ -465,3 +466,8 @@ uwp-project/Assets/gendata
 uwp-project/Assets/ui_art
 !uwp-project/devilutionX_TemporaryKey.pfx
 /.s390x-ccache/
+
+# Temporary directory for prep scripts and other purposes.
+/tmp/
+/compile_commands.json
+/tools/tmp

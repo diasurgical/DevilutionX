@@ -5,7 +5,12 @@
  */
 #pragma once
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_rect.h>
+#include <SDL3/SDL_surface.h>
+#else
 #include <SDL.h>
+#endif
 
 #include "engine/surface.hpp"
 
@@ -21,10 +26,8 @@ Surface GlobalBackBuffer();
 void dx_init();
 void dx_cleanup();
 void CreateBackBuffer();
-void InitPalette();
 void BltFast(SDL_Rect *srcRect, SDL_Rect *dstRect);
 void Blit(SDL_Surface *src, SDL_Rect *srcRect, SDL_Rect *dstRect);
 void RenderPresent();
-void PaletteGetEntries(int dwNumEntries, SDL_Color *lpEntries);
 
 } // namespace devilution

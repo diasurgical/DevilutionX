@@ -2,7 +2,14 @@
 
 #include <cmath>
 
-#include "control.h"
+#ifdef USE_SDL3
+#include <SDL3/SDL_events.h>
+#include <SDL3/SDL_gamepad.h>
+#else
+#include <SDL.h>
+#endif
+
+#include "control/control.hpp"
 #include "controls/control_mode.hpp"
 #include "controls/controller.h"
 #ifndef USE_SDL1
@@ -17,6 +24,7 @@
 #include "options.h"
 #include "utils/is_of.hpp"
 #include "utils/log.hpp"
+#include "utils/sdl_compat.h"
 
 namespace devilution {
 
@@ -42,19 +50,19 @@ void ScaleJoystickAxes(float *x, float *y, float deadzone)
 	const float maximum = 32767.0;
 	float analogX = *x;
 	float analogY = *y;
-	float deadZone = deadzone * maximum;
+	const float deadZone = deadzone * maximum;
 
-	float magnitude = std::sqrt(analogX * analogX + analogY * analogY);
+	const float magnitude = std::sqrt((analogX * analogX) + (analogY * analogY));
 	if (magnitude >= deadZone) {
 		// find scaled axis values with magnitudes between zero and maximum
-		float scalingFactor = 1.F / magnitude * (magnitude - deadZone) / (maximum - deadZone);
+		const float scalingFactor = 1.F / magnitude * (magnitude - deadZone) / (maximum - deadZone);
 		analogX = (analogX * scalingFactor);
 		analogY = (analogY * scalingFactor);
 
 		// std::clamp to ensure results will never exceed the max_axis value
 		float clampingFactor = 1.F;
-		float absAnalogX = std::fabs(analogX);
-		float absAnalogY = std::fabs(analogY);
+		const float absAnalogX = std::fabs(analogX);
+		const float absAnalogY = std::fabs(analogY);
 		if (absAnalogX > 1.0 || absAnalogY > 1.0) {
 			if (absAnalogX > absAnalogY) {
 				clampingFactor = 1.F / absAnalogX;
@@ -72,21 +80,21 @@ void ScaleJoystickAxes(float *x, float *y, float deadzone)
 
 bool IsMovementOverriddenByPadmapper(ControllerButton button)
 {
-	ControllerButtonEvent releaseEvent { button, true };
-	std::string_view actionName = PadmapperActionNameTriggeredByButtonEvent(releaseEvent);
-	ControllerButtonCombo buttonCombo = GetOptions().Padmapper.ButtonComboForAction(actionName);
+	const ControllerButtonEvent releaseEvent { button, true };
+	const std::string_view actionName = PadmapperActionNameTriggeredByButtonEvent(releaseEvent);
+	const ControllerButtonCombo buttonCombo = GetOptions().Padmapper.ButtonComboForAction(actionName);
 	return buttonCombo.modifier != ControllerButton_NONE;
 }
 
 bool TriggersQuickSpellAction(ControllerButton button)
 {
-	ControllerButtonEvent releaseEvent { button, true };
-	std::string_view actionName = PadmapperActionNameTriggeredByButtonEvent(releaseEvent);
+	const ControllerButtonEvent releaseEvent { button, true };
+	const std::string_view actionName = PadmapperActionNameTriggeredByButtonEvent(releaseEvent);
 
-	std::string_view prefix { "QuickSpell" };
+	const std::string_view prefix { "QuickSpell" };
 	if (actionName.size() < prefix.size())
 		return false;
-	std::string_view truncatedActionName { actionName.data(), prefix.size() };
+	const std::string_view truncatedActionName { actionName.data(), prefix.size() };
 	return truncatedActionName == prefix;
 }
 
@@ -144,17 +152,17 @@ void ScaleJoysticks()
 bool IsControllerMotion(const SDL_Event &event)
 {
 #ifndef USE_SDL1
-	if (event.type == SDL_CONTROLLERAXISMOTION) {
-		return IsAnyOf(event.caxis.axis,
-		    SDL_CONTROLLER_AXIS_LEFTX,
-		    SDL_CONTROLLER_AXIS_LEFTY,
-		    SDL_CONTROLLER_AXIS_RIGHTX,
-		    SDL_CONTROLLER_AXIS_RIGHTY);
+	if (event.type == SDL_EVENT_GAMEPAD_AXIS_MOTION) {
+		return IsAnyOf(SDLC_EventGamepadAxis(event).axis,
+		    SDL_GAMEPAD_AXIS_LEFTX,
+		    SDL_GAMEPAD_AXIS_LEFTY,
+		    SDL_GAMEPAD_AXIS_RIGHTX,
+		    SDL_GAMEPAD_AXIS_RIGHTY);
 	}
 #endif
 
 #if defined(JOY_AXIS_LEFTX) || defined(JOY_AXIS_LEFTY) || defined(JOY_AXIS_RIGHTX) || defined(JOY_AXIS_RIGHTY)
-	if (event.type == SDL_JOYAXISMOTION) {
+	if (event.type == SDL_EVENT_JOYSTICK_AXIS_MOTION) {
 		switch (event.jaxis.axis) {
 #ifdef JOY_AXIS_LEFTX
 		case JOY_AXIS_LEFTX:
@@ -199,17 +207,48 @@ void ProcessControllerMotion(const SDL_Event &event)
 	}
 }
 
-AxisDirection GetLeftStickOrDpadDirection(bool usePadmapper)
+AxisDirection GetAnalogStickDirection(float stickX, float stickY)
 {
-	const float stickX = leftStickX;
-	const float stickY = leftStickY;
+	// avoid sqrt() by comparing squared magnitudes
+	const float magnitudeSquared = (stickX * stickX) + (stickY * stickY);
+	const float thresholdSquared = StickDirectionThreshold * StickDirectionThreshold;
+	if (magnitudeSquared < thresholdSquared)
+		return { AxisDirectionX_NONE, AxisDirectionY_NONE };
 
+	const float absX = std::fabs(stickX);
+	const float absY = std::fabs(stickY);
 	AxisDirection result { AxisDirectionX_NONE, AxisDirectionY_NONE };
 
-	bool isUpPressed = stickY >= 0.5;
-	bool isDownPressed = stickY <= -0.5;
-	bool isLeftPressed = stickX <= -0.5;
-	bool isRightPressed = stickX >= 0.5;
+	// 8-way sectoring with 22.5° cutoffs
+	constexpr float DiagonalCutoff = 0.41421356F; // tan(22.5°)
+	if (absX == 0.0F) {
+		result.y = stickY > 0 ? AxisDirectionY_UP : AxisDirectionY_DOWN;
+		return result;
+	}
+
+	const float ratio = absY / absX;
+	if (ratio <= DiagonalCutoff) {
+		result.x = stickX > 0 ? AxisDirectionX_RIGHT : AxisDirectionX_LEFT;
+		return result;
+	}
+	if (ratio >= 1.0F / DiagonalCutoff) {
+		result.y = stickY > 0 ? AxisDirectionY_UP : AxisDirectionY_DOWN;
+		return result;
+	}
+
+	result.x = stickX > 0 ? AxisDirectionX_RIGHT : AxisDirectionX_LEFT;
+	result.y = stickY > 0 ? AxisDirectionY_UP : AxisDirectionY_DOWN;
+	return result;
+}
+
+AxisDirection GetLeftStickOrDpadDirection(bool usePadmapper)
+{
+	AxisDirection result = GetAnalogStickDirection(leftStickX, leftStickY);
+
+	bool isUpPressed = false;
+	bool isDownPressed = false;
+	bool isLeftPressed = false;
+	bool isRightPressed = false;
 
 	if (usePadmapper) {
 		isUpPressed |= PadmapperIsActionActive("MoveUp");
@@ -254,21 +293,21 @@ void SimulateRightStickWithPadmapper(ControllerButtonEvent ctrlEvent)
 	if (!ctrlEvent.up && ctrlEvent.button == SuppressedButton)
 		return;
 
-	std::string_view actionName = PadmapperActionNameTriggeredByButtonEvent(ctrlEvent);
-	bool upTriggered = actionName == "MouseUp";
-	bool downTriggered = actionName == "MouseDown";
-	bool leftTriggered = actionName == "MouseLeft";
-	bool rightTriggered = actionName == "MouseRight";
+	const std::string_view actionName = PadmapperActionNameTriggeredByButtonEvent(ctrlEvent);
+	const bool upTriggered = actionName == "MouseUp";
+	const bool downTriggered = actionName == "MouseDown";
+	const bool leftTriggered = actionName == "MouseLeft";
+	const bool rightTriggered = actionName == "MouseRight";
 	if (!upTriggered && !downTriggered && !leftTriggered && !rightTriggered) {
 		if (rightStickX == 0 && rightStickY == 0)
 			SetSimulatingMouseWithPadmapper(false);
 		return;
 	}
 
-	bool upActive = (upTriggered && !ctrlEvent.up) || (!upTriggered && PadmapperIsActionActive("MouseUp"));
-	bool downActive = (downTriggered && !ctrlEvent.up) || (!downTriggered && PadmapperIsActionActive("MouseDown"));
-	bool leftActive = (leftTriggered && !ctrlEvent.up) || (!leftTriggered && PadmapperIsActionActive("MouseLeft"));
-	bool rightActive = (rightTriggered && !ctrlEvent.up) || (!rightTriggered && PadmapperIsActionActive("MouseRight"));
+	const bool upActive = (upTriggered && !ctrlEvent.up) || (!upTriggered && PadmapperIsActionActive("MouseUp"));
+	const bool downActive = (downTriggered && !ctrlEvent.up) || (!downTriggered && PadmapperIsActionActive("MouseDown"));
+	const bool leftActive = (leftTriggered && !ctrlEvent.up) || (!leftTriggered && PadmapperIsActionActive("MouseLeft"));
+	const bool rightActive = (rightTriggered && !ctrlEvent.up) || (!rightTriggered && PadmapperIsActionActive("MouseRight"));
 
 	rightStickX = 0;
 	rightStickY = 0;

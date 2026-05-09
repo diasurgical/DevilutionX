@@ -1,12 +1,13 @@
 {
 	"name": "devilutionx",
-	"version-string": "1.4.0",
+	"version-string": "1.6.0",
 	"dependencies": [
 		"fmt",
 		"bzip2",
-		"lua"
+		"lua",
+		"magic-enum"
 	],
-	"builtin-baseline": "74ec888e385d189b42d6b398d0bbaa6f1b1d3b0e",
+	"builtin-baseline": "a62ce77d56ee07513b4b67de1ec2daeaebfae51a",
 	"features": {
 		"sdl1": {
 			"description": "Use SDL1.2 instead of SDL2",

@@ -9,13 +9,13 @@
 #include <fmt/format.h>
 #include <function_ref.hpp>
 
-#include "control.h"
+#include "control/control.hpp"
 #include "engine/load_clx.hpp"
 #include "engine/render/clx_render.hpp"
 #include "engine/render/text_render.hpp"
 #include "panels/ui_panels.hpp"
 #include "player.h"
-#include "playerdat.hpp"
+#include "tables/playerdat.hpp"
 #include "utils/algorithm/container.hpp"
 #include "utils/display.h"
 #include "utils/enum_traits.h"
@@ -56,8 +56,8 @@ UiFlags GetBaseStatColor(CharacterAttribute attr)
 UiFlags GetCurrentStatColor(CharacterAttribute attr)
 {
 	UiFlags style = UiFlags::ColorWhite;
-	int current = InspectPlayer->GetCurrentAttributeValue(attr);
-	int base = InspectPlayer->GetBaseAttributeValue(attr);
+	const int current = InspectPlayer->GetCurrentAttributeValue(attr);
+	const int base = InspectPlayer->GetBaseAttributeValue(attr);
 	if (current > base)
 		style = UiFlags::ColorBlue;
 	if (current < base)
@@ -95,8 +95,8 @@ std::pair<int, int> GetDamage()
 	} else {
 		damageMod += InspectPlayer->_pDamageMod;
 	}
-	int mindam = InspectPlayer->_pIMinDam + InspectPlayer->_pIBonusDam * InspectPlayer->_pIMinDam / 100 + damageMod;
-	int maxdam = InspectPlayer->_pIMaxDam + InspectPlayer->_pIBonusDam * InspectPlayer->_pIMaxDam / 100 + damageMod;
+	const int mindam = InspectPlayer->_pIMinDam + (InspectPlayer->_pIBonusDam * InspectPlayer->_pIMinDam / 100) + damageMod;
+	const int maxdam = InspectPlayer->_pIMaxDam + (InspectPlayer->_pIBonusDam * InspectPlayer->_pIMaxDam / 100) + damageMod;
 	return { mindam, maxdam };
 }
 
@@ -134,17 +134,15 @@ PanelEntry panelEntries[] = {
 	    []() { return StyledText { UiFlags::ColorWhite, StrCat(InspectPlayer->getCharacterLevel()) }; } },
 	{ N_("Experience"), { TopRightLabelX, 52 }, 99, 91,
 	    []() {
-	        int spacing = ((InspectPlayer->_pExperience >= 1000000000) ? 0 : 1);
-	        return StyledText { UiFlags::ColorWhite, FormatInteger(InspectPlayer->_pExperience), spacing };
+	        return StyledText { UiFlags::ColorWhite, FormatInteger(InspectPlayer->_pExperience) };
 	    } },
 	{ N_("Next level"), { TopRightLabelX, 80 }, 99, 198,
 	    []() {
 	        if (InspectPlayer->isMaxCharacterLevel()) {
 		        return StyledText { UiFlags::ColorWhitegold, std::string(_("None")) };
 	        }
-	        uint32_t nextExperienceThreshold = InspectPlayer->getNextExperienceThreshold();
-	        int spacing = ((nextExperienceThreshold >= 1000000000) ? 0 : 1);
-	        return StyledText { UiFlags::ColorWhite, FormatInteger(nextExperienceThreshold), spacing };
+	        const uint32_t nextExperienceThreshold = InspectPlayer->getNextExperienceThreshold();
+	        return StyledText { UiFlags::ColorWhite, FormatInteger(nextExperienceThreshold) };
 	    } },
 
 	{ N_("Base"), { LeftColumnLabelX, /* set dynamically */ 0 }, 0, 44, {} },
@@ -174,14 +172,13 @@ PanelEntry panelEntries[] = {
 	    []() { return StyledText { UiFlags::ColorWhite, FormatInteger(InspectPlayer->_pGold) }; } },
 
 	{ N_("Armor class"), { RightColumnLabelX, 163 }, 57, RightColumnLabelWidth,
-	    []() { return StyledText { GetValueColor(InspectPlayer->_pIBonusAC), StrCat(InspectPlayer->GetArmor() + InspectPlayer->getCharacterLevel() * 2) }; } },
-	{ N_("To hit"), { RightColumnLabelX, 191 }, 57, RightColumnLabelWidth,
+	    []() { return StyledText { GetValueColor(InspectPlayer->_pIBonusAC), StrCat(InspectPlayer->GetArmor() + (InspectPlayer->getCharacterLevel() * 2)) }; } },
+	{ N_("Chance To Hit"), { RightColumnLabelX, 191 }, 57, RightColumnLabelWidth,
 	    []() { return StyledText { GetValueColor(InspectPlayer->_pIBonusToHit), StrCat(InspectPlayer->InvBody[INVLOC_HAND_LEFT]._itype == ItemType::Bow ? InspectPlayer->GetRangedToHit() : InspectPlayer->GetMeleeToHit(), "%") }; } },
 	{ N_("Damage"), { RightColumnLabelX, 219 }, 57, RightColumnLabelWidth,
 	    []() {
 	        const auto [dmgMin, dmgMax] = GetDamage();
-	        int spacing = ((dmgMin >= 100) ? -1 : 1);
-	        return StyledText { GetValueColor(InspectPlayer->_pIBonusDam), StrCat(dmgMin, "-", dmgMax), spacing };
+	        return StyledText { GetValueColor(InspectPlayer->_pIBonusDam), StrCat(dmgMin, "-", dmgMax) };
 	    } },
 
 	{ N_("Life"), { LeftColumnLabelX, 284 }, 45, LeftColumnLabelWidth,
@@ -191,7 +188,7 @@ PanelEntry panelEntries[] = {
 	{ N_("Mana"), { LeftColumnLabelX, 312 }, 45, LeftColumnLabelWidth,
 	    []() { return StyledText { GetMaxManaColor(), StrCat(HasAnyOf(InspectPlayer->_pIFlags, ItemSpecialEffect::NoMana) ? 0 : InspectPlayer->_pMaxMana >> 6) }; } },
 	{ "", { 135, 312 }, 45, 0,
-	    []() { return StyledText { (InspectPlayer->_pMana != InspectPlayer->_pMaxMana ? UiFlags::ColorRed : GetMaxManaColor()), StrCat((HasAnyOf(InspectPlayer->_pIFlags, ItemSpecialEffect::NoMana) || (InspectPlayer->_pMana >> 6) <= 0) ? 0 : InspectPlayer->_pMana >> 6) }; } },
+	    []() { return StyledText { (InspectPlayer->_pMana != InspectPlayer->_pMaxMana ? UiFlags::ColorRed : GetMaxManaColor()), StrCat((HasAnyOf(InspectPlayer->_pIFlags, ItemSpecialEffect::NoMana) || InspectPlayer->hasNoMana()) ? 0 : InspectPlayer->_pMana >> 6) }; } },
 
 	{ N_("Resist magic"), { RightColumnLabelX, 256 }, 57, RightColumnLabelWidth,
 	    []() { return GetResistInfo(InspectPlayer->_pMagResist); } },
@@ -206,6 +203,7 @@ OptionalOwnedClxSpriteList Panel;
 constexpr int PanelFieldHeight = 24;
 constexpr int PanelFieldPaddingTop = 3;
 constexpr int PanelFieldPaddingBottom = 3;
+constexpr int PanelFieldPaddingSide = 5;
 constexpr int PanelFieldInnerHeight = PanelFieldHeight - PanelFieldPaddingTop - PanelFieldPaddingBottom;
 
 void DrawPanelField(const Surface &out, Point pos, int len, ClxSprite left, ClxSprite middle, ClxSprite right)
@@ -275,7 +273,7 @@ void DrawStatButtons(const Surface &out)
 tl::expected<void, std::string> LoadCharPanel()
 {
 	ASSIGN_OR_RETURN(OptionalOwnedClxSpriteList background, LoadClxWithStatus("data\\charbg.clx"));
-	OwnedSurface out((*background)[0].width(), (*background)[0].height());
+	const OwnedSurface out((*background)[0].width(), (*background)[0].height());
 	RenderClxSprite(out, (*background)[0], { 0, 0 });
 	background = std::nullopt;
 
@@ -286,7 +284,7 @@ tl::expected<void, std::string> LoadCharPanel()
 
 		const bool isSmallFontTall = IsSmallFontTall();
 		const int attributeHeadersY = isSmallFontTall ? 112 : 114;
-		for (unsigned i : AttributeHeaderEntryIndices) {
+		for (const unsigned i : AttributeHeaderEntryIndices) {
 			panelEntries[i].position.y = attributeHeadersY;
 		}
 		panelEntries[GoldHeaderEntryIndex].position.y = isSmallFontTall ? 105 : 106;
@@ -310,16 +308,16 @@ void FreeCharPanel()
 
 void DrawChr(const Surface &out)
 {
-	Point pos = GetPanelPosition(UiPanels::Character, { 0, 0 });
+	const Point pos = GetPanelPosition(UiPanels::Character, { 0, 0 });
 	RenderClxSprite(out, (*Panel)[0], pos);
 	for (auto &entry : panelEntries) {
 		if (entry.statDisplayFunc) {
-			StyledText tmp = (*entry.statDisplayFunc)();
+			const StyledText tmp = (*entry.statDisplayFunc)();
 			DrawString(
 			    out,
 			    tmp.text,
-			    { entry.position + Displacement { pos.x, pos.y + PanelFieldPaddingTop }, { entry.length, PanelFieldInnerHeight } },
-			    { .flags = UiFlags::AlignCenter | UiFlags::VerticalCenter | tmp.style, .spacing = tmp.spacing });
+			    { entry.position + Displacement { pos.x + PanelFieldPaddingSide, pos.y + PanelFieldPaddingTop }, { entry.length - (PanelFieldPaddingSide * 2), PanelFieldInnerHeight } },
+			    { .flags = UiFlags::KerningFitSpacing | UiFlags::AlignCenter | UiFlags::VerticalCenter | tmp.style });
 		}
 	}
 	DrawStatButtons(out);

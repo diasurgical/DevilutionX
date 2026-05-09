@@ -2,7 +2,11 @@
 
 #include <cstdint>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_timer.h>
+#else
 #include <SDL.h>
+#endif
 
 namespace devilution {
 

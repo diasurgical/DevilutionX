@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <string>
 
 #ifdef DEBUG_CEL_TO_CL2_SIZE

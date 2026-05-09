@@ -1,6 +1,10 @@
 #pragma once
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_version.h>
+#else
 #include <SDL_version.h>
+#endif
 
 #define VOLUME_MIN -1600
 #define VOLUME_MAX 0

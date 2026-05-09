@@ -1,9 +1,15 @@
 #pragma once
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_iostream.h>
+#include <SDL3_image/SDL_image.h>
+#else
 #include <SDL.h>
+#endif
 
 #include "engine/assets.hpp"
 
+#ifndef USE_SDL3
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -26,9 +32,11 @@ inline SDL_Surface *IMG_LoadPNG(const char *file)
 #ifdef __cplusplus
 }
 #endif
+#endif
 
 namespace devilution {
 
+#ifndef USE_SDL3
 inline int InitPNG()
 {
 	return IMG_Init(IMG_INIT_PNG);
@@ -38,12 +46,18 @@ inline void QuitPNG()
 {
 	IMG_Quit();
 }
+#endif
 
 inline SDL_Surface *LoadPNG(const char *file)
 {
-	SDL_RWops *rwops = OpenAssetAsSdlRwOps(file);
+	auto *rwops = OpenAssetAsSdlRwOps(file);
+#ifdef USE_SDL3
+	SDL_Surface *surface = IMG_LoadPNG_IO(rwops);
+	SDL_CloseIO(rwops);
+#else
 	SDL_Surface *surface = IMG_LoadPNG_RW(rwops);
 	SDL_RWclose(rwops);
+#endif
 	return surface;
 }
 

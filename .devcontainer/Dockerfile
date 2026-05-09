@@ -6,10 +6,12 @@ USER root
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get -y install tar curl zip unzip bash-completion build-essential ripgrep htop \
     ninja-build ccache g++ mold gdb clang-format clang-tidy \
-    rpm pkg-config cmake git smpq gettext libsdl2-dev libsdl2-image-dev libsodium-dev \
+    rpm pkg-config cmake git gettext libsdl2-dev libsdl2-image-dev libsodium-dev \
     libpng-dev libbz2-dev libfmt-dev libgtest-dev libgmock-dev libbenchmark-dev zsh \
     qtbase5-dev qt6-base-dev ristretto \
     && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+
+RUN --mount=type=bind,source=tools/build_and_install_smpq.sh,target=/tmp/build_and_install_smpq.sh sh /tmp/build_and_install_smpq.sh
 
 # Install devilutionx-graphics-tools
 RUN git clone https://github.com/diasurgical/devilutionx-graphics-tools.git /tmp/devilutionx-graphics-tools && \
@@ -28,9 +30,12 @@ RUN git clone https://github.com/diasurgical/devilutionx-mpq-tools.git /tmp/devi
     rm -rf /tmp/devilutionx-mpq-tools
 
 # Install d1-graphics-tool
-RUN curl -O -L https://github.com/diasurgical/d1-graphics-tool/releases/download/1.1.0/D1GraphicsTool-Linux-x64.deb && \
-    dpkg -i D1GraphicsTool-Linux-x64.deb && \
-    rm D1GraphicsTool-Linux-x64.deb
+RUN git clone https://github.com/diasurgical/d1-graphics-tool.git /tmp/d1-graphics-tool && \
+    cd /tmp/d1-graphics-tool && \
+    cmake -S. -Bbuild-rel -G Ninja -DCMAKE_BUILD_TYPE=Release && \
+    cmake --build build-rel -j $(getconf _NPROCESSORS_ONLN) && \
+    cmake --install build-rel && \
+    rm -rf /tmp/d1-graphics-tool
 
 # Download spawn.mpq and fonts.mpq
 RUN curl --create-dirs -O -L --output-dir /usr/local/share/diasurgical/devilutionx/ \
@@ -40,4 +45,4 @@ RUN curl --create-dirs -O -L --output-dir /usr/local/share/diasurgical/devilutio
     chown -R vscode: /usr/local/share/diasurgical/
 
 # Desktop environment configuration
-COPY fluxbox /home/vscode/.fluxbox/
+COPY .devcontainer/fluxbox /home/vscode/.fluxbox/

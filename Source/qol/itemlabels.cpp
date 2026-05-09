@@ -9,7 +9,7 @@
 
 #include <fmt/format.h>
 
-#include "control.h"
+#include "control/control.hpp"
 #include "cursor.h"
 #include "engine/point.hpp"
 #include "engine/render/clx_render.hpp"
@@ -99,7 +99,7 @@ void ResetItemlabelHighlighted()
 
 bool IsHighlightingLabelsEnabled()
 {
-	return ActiveStore == TalkID::None && highlightKeyPressed != *GetOptions().Gameplay.showItemLabels;
+	return !IsPlayerInStore() && highlightKeyPressed != *GetOptions().Gameplay.showItemLabels;
 }
 
 void AddItemToLabelQueue(int id, Point position)
@@ -117,7 +117,7 @@ void AddItemToLabelQueue(int id, Point position)
 
 	int nameWidth = GetLineWidth(textOnGround);
 	nameWidth += MarginX * 2;
-	int index = ItemCAnimTbl[item._iCurs];
+	const int index = ItemCAnimTbl[item._iCurs];
 	if (!labelCenterOffsets[index]) {
 		const auto [xBegin, xEnd] = ClxMeasureSolidHorizontalBounds((*item.AnimInfo.sprites)[item.AnimInfo.currentFrame]);
 		labelCenterOffsets[index].emplace((xBegin + xEnd) / 2);
@@ -163,10 +163,10 @@ void DrawItemNameLabels(const Surface &out)
 			canShow = true;
 			for (unsigned j = 0; j < i; ++j) {
 				ItemLabel &a = labelQueue[i];
-				ItemLabel &b = labelQueue[j];
+				const ItemLabel &b = labelQueue[j];
 				if (std::abs(b.pos.y - a.pos.y) < labelHeight + BorderY) {
-					const int widthA = a.width + BorderX + MarginX * 2;
-					const int widthB = b.width + BorderX + MarginX * 2;
+					const int widthA = a.width + BorderX + (MarginX * 2);
+					const int widthB = b.width + BorderX + (MarginX * 2);
 					int newpos = b.pos.x;
 					if (b.pos.x >= a.pos.x && b.pos.x - a.pos.x < widthA) {
 						newpos -= widthA;
@@ -187,22 +187,22 @@ void DrawItemNameLabels(const Surface &out)
 	}
 
 	for (const ItemLabel &label : labelQueue) {
-		Item &item = Items[label.id];
+		const Item &item = Items[label.id];
 
 		if (MousePosition.x >= label.pos.x && MousePosition.x < label.pos.x + label.width
 		    && MousePosition.y >= label.pos.y && MousePosition.y < label.pos.y + labelHeight) {
 			if (!gmenu_is_active()
 			    && PauseMode == 0
 			    && !MyPlayerIsDead
-			    && ActiveStore == TalkID::None
+			    && !IsPlayerInStore()
 			    && IsMouseOverGameArea()
-			    && LastMouseButtonAction == MouseActionType::None) {
+			    && LastPlayerAction == PlayerActionType::None) {
 				isLabelHighlighted = true;
 				cursPosition = item.position;
 				pcursitem = label.id;
 			}
 		}
-		if (pcursitem == label.id && ActiveStore == TalkID::None)
+		if (pcursitem == label.id && !IsPlayerInStore())
 			FillRect(clippedOut, label.pos.x, label.pos.y, label.width, labelHeight, PAL8_BLUE + 6);
 		else
 			DrawHalfTransparentRectTo(clippedOut, label.pos.x, label.pos.y, label.width, labelHeight);
