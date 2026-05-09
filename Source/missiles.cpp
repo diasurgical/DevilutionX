@@ -1630,11 +1630,12 @@ void AddSearch(Missile &missile, AddMissileParameter & /*parameter*/)
 		lvl = player.getCharacterLevel() * 2;
 	missile.duration = lvl + 10 * missile._mispllvl + 245;
 
+	// Casting again increase spell duration
 	for (auto &other : Missiles) {
 		if (&other != &missile && missile.isSameSource(other) && other._mitype == MissileID::Search) {
 			int r1 = missile.duration;
 			int r2 = other.duration;
-			if (r2 < INT_MAX - r1)
+			if (r2 <= INT_MAX - r1)
 				other.duration = r1 + r2;
 			missile._miDelFlag = true;
 			break;
