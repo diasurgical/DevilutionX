@@ -2184,8 +2184,8 @@ size_t OnChangeInventoryItems(const TCmdChItem &message, Player &player)
 
 		const Size itemSize = GetInventorySize(item);
 		const int invPitch = InventorySizeInSlots.width;
-		const int verticalShift = itemSize.width - 1;
-		const int horizontalShift = itemSize.height - 1;
+		const int verticalShift = itemSize.height - 1;
+		const int horizontalShift = itemSize.width - 1;
 		const uint8_t bottomRight = static_cast<uint8_t>(topLeft + invPitch * verticalShift + horizontalShift);
 		if (bottomRight >= InventoryGridCells)
 			return sizeof(message);

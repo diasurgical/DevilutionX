@@ -1,5 +1,7 @@
 brew "cmake"
 brew "fmt"
+brew "gettext"
+brew "sdl2_image"
 brew "sdl2"
 brew "libsodium"
 brew "pkg-config"

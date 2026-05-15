@@ -3050,7 +3050,7 @@ void CreatePlrItems(Player &player)
 		MakeGoldStack(goldItem, loadout.gold);
 
 		player._pNumInv++;
-		player.InvGrid[30] = player._pNumInv;
+		player.InvGrid[InventoryGridCells - InventorySizeInSlots.width] = player._pNumInv;
 
 		player._pGold = goldItem._ivalue;
 	}

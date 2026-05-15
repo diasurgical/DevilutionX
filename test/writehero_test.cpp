@@ -204,7 +204,7 @@ int PrepareInvSlot(PlayerPack *pPack, int pos, int size, int start = 0)
 
 void PackPlayerTest(PlayerPack *pPack)
 {
-	memset(pPack, 0, 0x4F2);
+	memset(pPack, 0, sizeof(*pPack));
 	pPack->destAction = -1;
 	pPack->destParam1 = 0;
 	pPack->destParam2 = 0;
@@ -218,7 +218,7 @@ void PackPlayerTest(PlayerPack *pPack)
 	pPack->pGold = 0;
 	pPack->pStatPts = 0;
 	pPack->pDiabloKillLevel = 3;
-	for (auto i = 0; i < 40; i++)
+	for (auto i = 0; i < InventoryGridCells; i++)
 		pPack->InvList[i].idx = -1;
 	for (auto i = 0; i < 7; i++)
 		pPack->InvBody[i].idx = -1;
@@ -418,7 +418,7 @@ TEST(Writehero, pfile_write_hero)
 	// only the binary representation differs.
 	// To regenerate: run this test, let it fail, and update the hash below.
 	EXPECT_EQ(picosha2::bytes_to_hex_string(s.begin(), s.end()),
-	    "b52885393aedc22c856c7c315975c9be89a034b64a2067e22d5387a51998a51b");
+	    "5089886affe07d5e9b4abd547c3891c2e292a8c5dd47ec5aa729eea13b25c7a2");
 }
 
 } // namespace

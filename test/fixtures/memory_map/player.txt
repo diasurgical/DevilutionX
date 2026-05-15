@@ -137,9 +137,9 @@ M 8 32 _pBAnim
 R 32 _pBFrames
 R 32 _pBWidth
 C 7 item
-C 40 item
+C 80 item
 R 32 _pNumInv
-M 40 8 InvGrid
+M 80 8 InvGrid
 C 8 item
 C 1 item
 R 32 _pIMinDam
