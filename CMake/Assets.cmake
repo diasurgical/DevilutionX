@@ -10,6 +10,20 @@ if(USE_GETTEXT_FROM_VCPKG)
   # vcpkg doesn't add its own tools directory to the search path
   list(APPEND Gettext_ROOT ${CMAKE_CURRENT_BINARY_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/tools/gettext/bin)
 endif()
+if(APPLE)
+  find_program(HOMEBREW_EXECUTABLE brew)
+  if(HOMEBREW_EXECUTABLE)
+    execute_process(
+      COMMAND "${HOMEBREW_EXECUTABLE}" --prefix gettext
+      OUTPUT_VARIABLE HOMEBREW_GETTEXT_PREFIX
+      ERROR_QUIET
+      OUTPUT_STRIP_TRAILING_WHITESPACE)
+    if(HOMEBREW_GETTEXT_PREFIX)
+      list(APPEND Gettext_ROOT "${HOMEBREW_GETTEXT_PREFIX}")
+      list(APPEND CMAKE_PROGRAM_PATH "${HOMEBREW_GETTEXT_PREFIX}/bin")
+    endif()
+  endif()
+endif()
 find_package(Gettext)
 if (Gettext_FOUND)
   file(MAKE_DIRECTORY "${DEVILUTIONX_ASSETS_OUTPUT_DIRECTORY}")
@@ -246,6 +260,16 @@ if(APPLE)
       XCODE_EXPLICIT_FILE_TYPE compiled)
     target_sources(${BIN_TARGET} PRIVATE "${src}")
   endforeach()
+
+  if(BUILD_TESTING)
+    copy_files(
+      FILES ${devilutionx_assets}
+      SRC_PREFIX "assets/"
+      OUTPUT_DIR "${DEVILUTIONX_ASSETS_OUTPUT_DIRECTORY}"
+      OUTPUT_VARIABLE DEVILUTIONX_OUTPUT_ASSETS_FILES)
+    add_custom_target(devilutionx_copied_assets DEPENDS ${DEVILUTIONX_OUTPUT_ASSETS_FILES} ${devilutionx_lang_targets})
+    add_dependencies(libdevilutionx devilutionx_copied_assets)
+  endif()
 else()
   # Copy assets to the build assets subdirectory. This serves two purposes:
   # - If smpq is installed, devilutionx.mpq is built from these files.
