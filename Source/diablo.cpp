@@ -371,6 +371,12 @@ void LeftMouseDown(uint16_t modState)
 	const bool isShiftHeld = (modState & SDL_KMOD_SHIFT) != 0;
 	const bool isCtrlHeld = (modState & SDL_KMOD_CTRL) != 0;
 
+	if (invflag && IsInventoryPanelPoint(MousePosition)) {
+		if (!DropGoldFlag)
+			CheckInvItem(isShiftHeld, isCtrlHeld);
+		return;
+	}
+
 	if (!GetMainPanel().contains(MousePosition)) {
 		if (!gmenu_is_active() && !TryIconCurs()) {
 			if (QuestLogIsOpen && GetLeftPanel().contains(MousePosition)) {
@@ -380,9 +386,6 @@ void LeftMouseDown(uint16_t modState)
 				stream_stop();
 			} else if (CharFlag && GetLeftPanel().contains(MousePosition)) {
 				CheckChrBtns();
-			} else if (invflag && GetRightPanel().contains(MousePosition)) {
-				if (!DropGoldFlag)
-					CheckInvItem(isShiftHeld, isCtrlHeld);
 			} else if (IsStashOpen && GetLeftPanel().contains(MousePosition)) {
 				if (!IsWithdrawGoldOpen)
 					CheckStashItem(MousePosition, isShiftHeld, isCtrlHeld);

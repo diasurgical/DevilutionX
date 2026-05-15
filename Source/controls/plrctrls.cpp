@@ -95,6 +95,20 @@ bool BeltReturnsToVisualStore = false;
 // Forward declaration for use in VisualStoreMove
 void InventoryMove(AxisDirection dir);
 
+bool IsInventoryRowFirstSlot(int slot)
+{
+	return slot >= SLOTXY_INV_FIRST
+	    && slot <= SLOTXY_INV_LAST
+	    && (slot - SLOTXY_INV_FIRST) % INV_ROW_SLOT_SIZE == 0;
+}
+
+bool IsInventoryRowLastSlot(int slot)
+{
+	return slot >= SLOTXY_INV_FIRST
+	    && slot <= SLOTXY_INV_LAST
+	    && (slot - SLOTXY_INV_FIRST) % INV_ROW_SLOT_SIZE == INV_ROW_SLOT_SIZE - 1;
+}
+
 const Direction FaceDir[3][3] = {
 	// NONE             UP                DOWN
 	{ Direction::South, Direction::North, Direction::South },        // NONE
@@ -1011,8 +1025,7 @@ void VisualStoreMove(AxisDirection dir)
 			}
 
 			// If we're in the leftmost column or left side of body, move back to visual store
-			if (IsAnyOf(firstSlot, SLOTXY_HEAD, SLOTXY_HAND_LEFT, SLOTXY_RING_LEFT, SLOTXY_AMULET, SLOTXY_CHEST,
-			        SLOTXY_INV_ROW1_FIRST, SLOTXY_INV_ROW2_FIRST, SLOTXY_INV_ROW3_FIRST, SLOTXY_INV_ROW4_FIRST)) {
+			if (IsAnyOf(firstSlot, SLOTXY_HEAD, SLOTXY_HAND_LEFT, SLOTXY_RING_LEFT, SLOTXY_AMULET, SLOTXY_CHEST) || IsInventoryRowFirstSlot(firstSlot)) {
 				InvalidateInventorySlot();
 				// Focus on rightmost column of visual store (closest to inventory)
 				// Preserve vertical position based on inventory slot (similar to stash behavior)
@@ -1247,7 +1260,7 @@ void InventoryMove(AxisDirection dir)
 	if (dir.x == AxisDirectionX_LEFT) {
 		if (isHoldingItem) {
 			if (Slot >= SLOTXY_INV_FIRST && Slot <= SLOTXY_BELT_LAST) {
-				if (IsNoneOf(Slot, SLOTXY_INV_ROW1_FIRST, SLOTXY_INV_ROW2_FIRST, SLOTXY_INV_ROW3_FIRST, SLOTXY_INV_ROW4_FIRST, SLOTXY_BELT_FIRST)) {
+				if (!IsInventoryRowFirstSlot(Slot) && Slot != SLOTXY_BELT_FIRST) {
 					Slot -= 1;
 				}
 			} else if (heldItem._itype == ItemType::Ring) {
@@ -1267,13 +1280,13 @@ void InventoryMove(AxisDirection dir)
 			} else if (Slot >= SLOTXY_INV_FIRST && Slot <= SLOTXY_BELT_LAST) {
 				const int8_t itemId = GetItemIdOnSlot(Slot);
 				if (itemId != 0) {
-					for (int i = 1; i < INV_ROW_SLOT_SIZE && !IsAnyOf(Slot - i + 1, SLOTXY_INV_ROW1_FIRST, SLOTXY_INV_ROW2_FIRST, SLOTXY_INV_ROW3_FIRST, SLOTXY_INV_ROW4_FIRST, SLOTXY_BELT_FIRST); i++) {
+					for (int i = 1; i < INV_ROW_SLOT_SIZE && !IsInventoryRowFirstSlot(Slot - i + 1) && Slot - i + 1 != SLOTXY_BELT_FIRST; i++) {
 						if (itemId != GetItemIdOnSlot(Slot - i)) {
 							Slot -= i;
 							break;
 						}
 					}
-				} else if (IsNoneOf(Slot, SLOTXY_INV_ROW1_FIRST, SLOTXY_INV_ROW2_FIRST, SLOTXY_INV_ROW3_FIRST, SLOTXY_INV_ROW4_FIRST, SLOTXY_BELT_FIRST)) {
+				} else if (!IsInventoryRowFirstSlot(Slot) && Slot != SLOTXY_BELT_FIRST) {
 					Slot -= 1;
 				}
 			}
@@ -1281,7 +1294,7 @@ void InventoryMove(AxisDirection dir)
 	} else if (dir.x == AxisDirectionX_RIGHT) {
 		if (isHoldingItem) {
 			if (Slot >= SLOTXY_INV_FIRST && Slot <= SLOTXY_BELT_LAST) {
-				if (IsNoneOf(Slot + itemSize.width - 1, SLOTXY_INV_ROW1_LAST, SLOTXY_INV_ROW2_LAST, SLOTXY_INV_ROW3_LAST, SLOTXY_INV_ROW4_LAST, SLOTXY_BELT_LAST)) {
+				if (!IsInventoryRowLastSlot(Slot + itemSize.width - 1) && Slot + itemSize.width - 1 != SLOTXY_BELT_LAST) {
 					Slot += 1;
 				}
 			} else if (heldItem._itype == ItemType::Ring) {
@@ -1301,13 +1314,13 @@ void InventoryMove(AxisDirection dir)
 			} else if (Slot >= SLOTXY_INV_FIRST && Slot <= SLOTXY_BELT_LAST) {
 				const int8_t itemId = GetItemIdOnSlot(Slot);
 				if (itemId != 0) {
-					for (int i = 1; i < INV_ROW_SLOT_SIZE && !IsAnyOf(Slot + i - 1, SLOTXY_INV_ROW1_LAST, SLOTXY_INV_ROW2_LAST, SLOTXY_INV_ROW3_LAST, SLOTXY_INV_ROW4_LAST, SLOTXY_BELT_LAST); i++) {
+					for (int i = 1; i < INV_ROW_SLOT_SIZE && !IsInventoryRowLastSlot(Slot + i - 1) && Slot + i - 1 != SLOTXY_BELT_LAST; i++) {
 						if (itemId != GetItemIdOnSlot(Slot + i)) {
 							Slot += i;
 							break;
 						}
 					}
-				} else if (IsNoneOf(Slot, SLOTXY_INV_ROW1_LAST, SLOTXY_INV_ROW2_LAST, SLOTXY_INV_ROW3_LAST, SLOTXY_INV_ROW4_LAST, SLOTXY_BELT_LAST)) {
+				} else if (!IsInventoryRowLastSlot(Slot) && Slot != SLOTXY_BELT_LAST) {
 					Slot += 1;
 				}
 			}
@@ -1350,7 +1363,7 @@ void InventoryMove(AxisDirection dir)
 			} else if (Slot >= SLOTXY_INV_ROW2_FIRST) {
 				const int8_t itemId = GetItemIdOnSlot(Slot);
 				if (itemId != 0) {
-					for (int i = 1; i < 5; i++) {
+					for (int i = 1; i <= InventorySizeInSlots.height; i++) {
 						if (Slot - i * INV_ROW_SLOT_SIZE < SLOTXY_INV_ROW1_FIRST) {
 							Slot = InventoryMoveToBody(Slot - ((i - 1) * INV_ROW_SLOT_SIZE));
 							break;
@@ -1373,7 +1386,7 @@ void InventoryMove(AxisDirection dir)
 				Slot = SLOTXY_INV_ROW1_FIRST + (itemSize.width > 1 ? 0 : 1);
 			} else if (Slot == SLOTXY_RING_RIGHT || Slot == SLOTXY_HAND_RIGHT || Slot == SLOTXY_AMULET) {
 				Slot = SLOTXY_INV_ROW1_LAST - 1;
-			} else if (Slot <= (SLOTXY_INV_ROW4_LAST - (itemSize.height * INV_ROW_SLOT_SIZE))) {
+			} else if (Slot <= (SLOTXY_INV_LAST - (itemSize.height * INV_ROW_SLOT_SIZE))) {
 				Slot += INV_ROW_SLOT_SIZE;
 			} else if (Slot <= SLOTXY_INV_LAST && heldItem._itype == ItemType::Misc && itemSize == Size { 1, 1 }) { // forcing only 1x1 misc items
 				if (Slot + INV_ROW_SLOT_SIZE <= SLOTXY_BELT_LAST)
@@ -1406,7 +1419,7 @@ void InventoryMove(AxisDirection dir)
 			} else if (Slot <= SLOTXY_INV_LAST) {
 				const int8_t itemId = GetItemIdOnSlot(Slot);
 				if (itemId != 0) {
-					for (int i = 1; i < 5 && Slot + i * INV_ROW_SLOT_SIZE <= SLOTXY_BELT_LAST; i++) {
+					for (int i = 1; i <= InventorySizeInSlots.height && Slot + i * INV_ROW_SLOT_SIZE <= SLOTXY_BELT_LAST; i++) {
 						if (itemId != GetItemIdOnSlot(Slot + (i * INV_ROW_SLOT_SIZE))) {
 							Slot += i * INV_ROW_SLOT_SIZE;
 							break;
@@ -1547,7 +1560,7 @@ void StashMove(AxisDirection dir)
 
 		// If we're in the leftmost column (or hovering over an item on the left side of the inventory) or
 		//  left side of the body and we're moving left we need to move into the closest stash column
-		if (IsAnyOf(firstSlot, SLOTXY_HEAD, SLOTXY_HAND_LEFT, SLOTXY_RING_LEFT, SLOTXY_AMULET, SLOTXY_CHEST, SLOTXY_INV_ROW1_FIRST, SLOTXY_INV_ROW2_FIRST, SLOTXY_INV_ROW3_FIRST, SLOTXY_INV_ROW4_FIRST)) {
+		if (IsAnyOf(firstSlot, SLOTXY_HEAD, SLOTXY_HAND_LEFT, SLOTXY_RING_LEFT, SLOTXY_AMULET, SLOTXY_CHEST) || IsInventoryRowFirstSlot(firstSlot)) {
 			if (IsVisualStoreOpen) {
 				InvalidateInventorySlot();
 				FocusOnVisualStore();

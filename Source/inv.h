@@ -19,7 +19,7 @@ namespace devilution {
 
 #define INV_SLOT_SIZE_PX 28
 #define INV_SLOT_HALF_SIZE_PX (INV_SLOT_SIZE_PX / 2)
-constexpr Size InventorySizeInSlots { 10, 4 };
+constexpr Size InventorySizeInSlots { 10, 8 };
 #define INV_ROW_SLOT_SIZE InventorySizeInSlots.width
 constexpr Size InventorySlotSizeInPixels { INV_SLOT_SIZE_PX };
 
@@ -33,9 +33,9 @@ enum inv_item : int8_t {
 	INVITEM_HAND_RIGHT = 5,
 	INVITEM_CHEST      = 6,
 	INVITEM_INV_FIRST  = 7,
-	INVITEM_INV_LAST   = 46,
-	INVITEM_BELT_FIRST = 47,
-	INVITEM_BELT_LAST  = 54,
+	INVITEM_INV_LAST   = 86,
+	INVITEM_BELT_FIRST = 87,
+	INVITEM_BELT_LAST  = 94,
 	// clang-format on
 };
 
@@ -65,12 +65,20 @@ enum inv_xy_slot : uint8_t {
 	SLOTXY_INV_ROW3_LAST  = 36,
 	SLOTXY_INV_ROW4_FIRST = 37,
 	SLOTXY_INV_ROW4_LAST  = 46,
-	SLOTXY_INV_LAST       = SLOTXY_INV_ROW4_LAST,
+	SLOTXY_INV_ROW5_FIRST = 47,
+	SLOTXY_INV_ROW5_LAST  = 56,
+	SLOTXY_INV_ROW6_FIRST = 57,
+	SLOTXY_INV_ROW6_LAST  = 66,
+	SLOTXY_INV_ROW7_FIRST = 67,
+	SLOTXY_INV_ROW7_LAST  = 76,
+	SLOTXY_INV_ROW8_FIRST = 77,
+	SLOTXY_INV_ROW8_LAST  = 86,
+	SLOTXY_INV_LAST       = SLOTXY_INV_ROW8_LAST,
 
 	// belt items
-	SLOTXY_BELT_FIRST     = 47,
-	SLOTXY_BELT_LAST      = 54,
-	NUM_XY_SLOTS          = 55
+	SLOTXY_BELT_FIRST     = 87,
+	SLOTXY_BELT_LAST      = 94,
+	NUM_XY_SLOTS          = 95
 	// clang-format on
 };
 
@@ -111,6 +119,8 @@ void InitInv();
 void DrawInv(const Surface &out);
 
 void DrawInvBelt(const Surface &out);
+
+bool IsInventoryPanelPoint(Point screenPosition);
 
 /**
  * @brief Removes equipment from the specified location on the player's body.

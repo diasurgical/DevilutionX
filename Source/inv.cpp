@@ -24,9 +24,9 @@
 #include "cursor.h"
 #include "engine/backbuffer_state.hpp"
 #include "engine/clx_sprite.hpp"
-#include "engine/load_cel.hpp"
 #include "engine/palette.h"
 #include "engine/render/clx_render.hpp"
+#include "engine/render/primitive_render.hpp"
 #include "engine/render/text_render.hpp"
 #include "engine/size.hpp"
 #include "hwcursor.hpp"
@@ -72,8 +72,12 @@ bool invflag;
  *              17 18 19 20 21 22 23 24 25 26
  *              27 28 29 30 31 32 33 34 35 36
  *              37 38 39 40 41 42 43 44 45 46
+ *              47 48 49 50 51 52 53 54 55 56
+ *              57 58 59 60 61 62 63 64 65 66
+ *              67 68 69 70 71 72 73 74 75 76
+ *              77 78 79 80 81 82 83 84 85 86
  *
- * 47 48 49 50 51 52 53 54
+ * 87 88 89 90 91 92 93 94
  * @endcode
  */
 const Rectangle InvRect[] = {
@@ -126,6 +130,46 @@ const Rectangle InvRect[] = {
 	{ { 220, 309 }, { 29, 29 } }, // inv row 4
 	{ { 249, 309 }, { 29, 29 } }, // inv row 4
 	{ { 278, 309 }, { 29, 29 } }, // inv row 4
+	{ {  17, 338 }, { 29, 29 } }, // inv row 5
+	{ {  46, 338 }, { 29, 29 } }, // inv row 5
+	{ {  75, 338 }, { 29, 29 } }, // inv row 5
+	{ { 104, 338 }, { 29, 29 } }, // inv row 5
+	{ { 133, 338 }, { 29, 29 } }, // inv row 5
+	{ { 162, 338 }, { 29, 29 } }, // inv row 5
+	{ { 191, 338 }, { 29, 29 } }, // inv row 5
+	{ { 220, 338 }, { 29, 29 } }, // inv row 5
+	{ { 249, 338 }, { 29, 29 } }, // inv row 5
+	{ { 278, 338 }, { 29, 29 } }, // inv row 5
+	{ {  17, 367 }, { 29, 29 } }, // inv row 6
+	{ {  46, 367 }, { 29, 29 } }, // inv row 6
+	{ {  75, 367 }, { 29, 29 } }, // inv row 6
+	{ { 104, 367 }, { 29, 29 } }, // inv row 6
+	{ { 133, 367 }, { 29, 29 } }, // inv row 6
+	{ { 162, 367 }, { 29, 29 } }, // inv row 6
+	{ { 191, 367 }, { 29, 29 } }, // inv row 6
+	{ { 220, 367 }, { 29, 29 } }, // inv row 6
+	{ { 249, 367 }, { 29, 29 } }, // inv row 6
+	{ { 278, 367 }, { 29, 29 } }, // inv row 6
+	{ {  17, 396 }, { 29, 29 } }, // inv row 7
+	{ {  46, 396 }, { 29, 29 } }, // inv row 7
+	{ {  75, 396 }, { 29, 29 } }, // inv row 7
+	{ { 104, 396 }, { 29, 29 } }, // inv row 7
+	{ { 133, 396 }, { 29, 29 } }, // inv row 7
+	{ { 162, 396 }, { 29, 29 } }, // inv row 7
+	{ { 191, 396 }, { 29, 29 } }, // inv row 7
+	{ { 220, 396 }, { 29, 29 } }, // inv row 7
+	{ { 249, 396 }, { 29, 29 } }, // inv row 7
+	{ { 278, 396 }, { 29, 29 } }, // inv row 7
+	{ {  17, 425 }, { 29, 29 } }, // inv row 8
+	{ {  46, 425 }, { 29, 29 } }, // inv row 8
+	{ {  75, 425 }, { 29, 29 } }, // inv row 8
+	{ { 104, 425 }, { 29, 29 } }, // inv row 8
+	{ { 133, 425 }, { 29, 29 } }, // inv row 8
+	{ { 162, 425 }, { 29, 29 } }, // inv row 8
+	{ { 191, 425 }, { 29, 29 } }, // inv row 8
+	{ { 220, 425 }, { 29, 29 } }, // inv row 8
+	{ { 249, 425 }, { 29, 29 } }, // inv row 8
+	{ { 278, 425 }, { 29, 29 } }, // inv row 8
 	{ { 205,   5 }, { 29, 29 } }, // belt
 	{ { 234,   5 }, { 29, 29 } }, // belt
 	{ { 263,   5 }, { 29, 29 } }, // belt
@@ -139,7 +183,98 @@ const Rectangle InvRect[] = {
 
 namespace {
 
-OptionalOwnedClxSpriteList pInvCels;
+void DrawPlaceholderFrame(const Surface &out, Point position, Size size)
+{
+	const uint8_t highlight = PAL16_BEIGE + 12;
+	const uint8_t shadow = PAL16_BLUE + 14;
+
+	DrawHorizontalLine(out, position, size.width, highlight);
+	DrawVerticalLine(out, position, size.height, highlight);
+	DrawHorizontalLine(out, position + Displacement { 0, size.height - 1 }, size.width, shadow);
+	DrawVerticalLine(out, position + Displacement { size.width - 1, 0 }, size.height, shadow);
+}
+
+void DrawPlaceholderSlot(const Surface &out, Rectangle slot)
+{
+	const Point position = GetPanelPosition(UiPanels::Inventory, slot.position);
+	const uint8_t fill = PAL16_BLUE + 15;
+
+	FillRect(out, position.x, position.y, slot.size.width, slot.size.height, fill);
+	DrawPlaceholderFrame(out, position, slot.size);
+}
+
+Rectangle GetPlaceholderInventoryPanelRect()
+{
+	return {
+		GetPanelPosition(UiPanels::Inventory, { 0, 0 }),
+		{
+			SidePanelSize.width,
+			InvRect[SLOTXY_INV_LAST].position.y + InvRect[SLOTXY_INV_LAST].size.height + 12,
+		},
+	};
+}
+
+void DrawPlaceholderInventoryPanel(const Surface &out)
+{
+	const Rectangle panel = GetPlaceholderInventoryPanelRect();
+	const uint8_t panelFill = PAL16_BLUE + 15;
+	const uint8_t innerFill = PAL16_GRAY + 14;
+
+	FillRect(out, panel.position.x, panel.position.y, panel.size.width, panel.size.height, panelFill);
+	FillRect(out, panel.position.x + 8, panel.position.y + 8, panel.size.width - 16, panel.size.height - 16, innerFill);
+	DrawPlaceholderFrame(out, panel.position, panel.size);
+
+	for (std::underlying_type_t<inv_xy_slot> slot = SLOTXY_EQUIPPED_FIRST; slot <= SLOTXY_EQUIPPED_LAST; slot++) {
+		DrawPlaceholderSlot(out, InvRect[slot]);
+	}
+}
+
+void DrawExpandedInventoryGrid(const Surface &out)
+{
+	const Point gridPosition = GetPanelPosition(UiPanels::Inventory, InvRect[SLOTXY_INV_FIRST].position);
+	const Size gridSize {
+		InventorySizeInSlots.width * (InventorySlotSizeInPixels.width + 1) + 1,
+		InventorySizeInSlots.height * (InventorySlotSizeInPixels.height + 1) + 1,
+	};
+	const uint8_t shadow = PAL16_BLUE + 13;
+	const uint8_t highlight = PAL16_BEIGE + 12;
+
+	FillRect(out, gridPosition.x, gridPosition.y, gridSize.width, gridSize.height, PAL16_BLUE + 15);
+
+	for (int column = 0; column <= InventorySizeInSlots.width; column++) {
+		const int x = gridPosition.x + column * (InventorySlotSizeInPixels.width + 1);
+		DrawHalfTransparentVerticalLine(out, { x, gridPosition.y }, gridSize.height, shadow);
+	}
+	for (int row = 0; row <= InventorySizeInSlots.height; row++) {
+		const int y = gridPosition.y + row * (InventorySlotSizeInPixels.height + 1);
+		DrawHalfTransparentHorizontalLine(out, { gridPosition.x, y }, gridSize.width, shadow);
+	}
+
+	DrawHorizontalLine(out, gridPosition, gridSize.width, highlight);
+	DrawHorizontalLine(out, gridPosition + Displacement { 0, gridSize.height - 1 }, gridSize.width, shadow);
+	DrawVerticalLine(out, gridPosition, gridSize.height, highlight);
+	DrawVerticalLine(out, gridPosition + Displacement { gridSize.width - 1, 0 }, gridSize.height, shadow);
+}
+
+bool ContainsInventoryPanelSlot(Point screenPosition)
+{
+	if (GetPlaceholderInventoryPanelRect().contains(screenPosition))
+		return true;
+
+	const Point rightPanelPoint = static_cast<Point>(screenPosition - GetRightPanel().position);
+	for (std::underlying_type_t<inv_xy_slot> slot = SLOTXY_EQUIPPED_FIRST; slot <= SLOTXY_INV_LAST; slot++) {
+		if (InvRect[slot].contains(rightPanelPoint))
+			return true;
+	}
+
+	const Point mainPanelPoint = static_cast<Point>(screenPosition - GetMainPanel().position);
+	for (std::underlying_type_t<inv_xy_slot> slot = SLOTXY_BELT_FIRST; slot <= SLOTXY_BELT_LAST; slot++) {
+		if (InvRect[slot].contains(mainPanelPoint))
+			return true;
+	}
+
+	return false;
+}
 
 /**
  * @brief Adds an item to a player's InvGrid array
@@ -150,7 +285,7 @@ OptionalOwnedClxSpriteList pInvCels;
  */
 void AddItemToInvGrid(Player &player, int invGridIndex, int invListIndex, Size itemSize, bool sendNetworkMessage)
 {
-	const int pitch = 10;
+	const int pitch = InventorySizeInSlots.width;
 	for (int y = 0; y < itemSize.height; y++) {
 		const int rowGridIndex = invGridIndex + (pitch * y);
 		for (int x = 0; x < itemSize.width; x++) {
@@ -659,21 +794,21 @@ std::optional<inv_xy_slot> FindSlotUnderCursor(Point cursorPosition)
  */
 bool CheckItemFitsInInventorySlot(const Player &player, int slotIndex, const Size &itemSize, int itemIndexToIgnore)
 {
-	int yy = (slotIndex > 0) ? (10 * (slotIndex / 10)) : 0;
+	int yy = (slotIndex > 0) ? (InventorySizeInSlots.width * (slotIndex / InventorySizeInSlots.width)) : 0;
 
 	for (int j = 0; j < itemSize.height; j++) {
 		if (yy >= InventoryGridCells) {
 			return false;
 		}
-		int xx = (slotIndex > 0) ? (slotIndex % 10) : 0;
+		int xx = (slotIndex > 0) ? (slotIndex % InventorySizeInSlots.width) : 0;
 		for (int i = 0; i < itemSize.width; i++) {
-			if (xx >= 10 || (player.InvGrid[xx + yy] != 0 && std::abs(player.InvGrid[xx + yy]) - 1 != itemIndexToIgnore)) {
+			if (xx >= InventorySizeInSlots.width || (player.InvGrid[xx + yy] != 0 && std::abs(player.InvGrid[xx + yy]) - 1 != itemIndexToIgnore)) {
 				// The item is too wide to fit in the specified column, or one of the cells is occupied (and not by the item we're planning on removing)
 				return false;
 			}
 			xx++;
 		}
-		yy += 10;
+		yy += InventorySizeInSlots.width;
 	}
 	return true;
 }
@@ -688,46 +823,49 @@ bool CheckItemFitsInInventorySlot(const Player &player, int slotIndex, const Siz
 std::optional<int> FindSlotForItem(const Player &player, const Size &itemSize, int itemIndexToIgnore = -1)
 {
 	if (itemSize.height == 1) {
-		for (int i = 30; i <= 39; i++) {
+		for (int i = InventoryGridCells - InventorySizeInSlots.width; i < InventoryGridCells; i++) {
 			if (CheckItemFitsInInventorySlot(player, i, itemSize, itemIndexToIgnore))
 				return i;
 		}
-		for (int x = 9; x >= 0; x--) {
-			for (int y = 2; y >= 0; y--) {
-				if (CheckItemFitsInInventorySlot(player, (10 * y) + x, itemSize, itemIndexToIgnore))
-					return (10 * y) + x;
+		for (int x = InventorySizeInSlots.width - itemSize.width; x >= 0; x--) {
+			for (int y = InventorySizeInSlots.height - 2; y >= 0; y--) {
+				const int slot = (InventorySizeInSlots.width * y) + x;
+				if (CheckItemFitsInInventorySlot(player, slot, itemSize, itemIndexToIgnore))
+					return slot;
 			}
 		}
 		return {};
 	}
 
 	if (itemSize.height == 2) {
-		for (int x = 10 - itemSize.width; x >= 0; x--) {
-			for (int y = 0; y < 3; y++) {
-				if (CheckItemFitsInInventorySlot(player, (10 * y) + x, itemSize, itemIndexToIgnore))
-					return (10 * y) + x;
+		for (int x = InventorySizeInSlots.width - itemSize.width; x >= 0; x--) {
+			for (int y = 0; y <= InventorySizeInSlots.height - itemSize.height; y++) {
+				const int slot = (InventorySizeInSlots.width * y) + x;
+				if (CheckItemFitsInInventorySlot(player, slot, itemSize, itemIndexToIgnore))
+					return slot;
 			}
 		}
 		return {};
 	}
 
 	if (itemSize == Size { 1, 3 }) {
-		for (int i = 0; i < 20; i++) {
-			if (CheckItemFitsInInventorySlot(player, i, itemSize, itemIndexToIgnore))
-				return i;
+		for (int y = 0; y <= InventorySizeInSlots.height - itemSize.height; y++) {
+			for (int x = 0; x < InventorySizeInSlots.width; x++) {
+				const int slot = (InventorySizeInSlots.width * y) + x;
+				if (CheckItemFitsInInventorySlot(player, slot, itemSize, itemIndexToIgnore))
+					return slot;
+			}
 		}
 		return {};
 	}
 
 	if (itemSize == Size { 2, 3 }) {
-		for (int i = 0; i < 9; i++) {
-			if (CheckItemFitsInInventorySlot(player, i, itemSize, itemIndexToIgnore))
-				return i;
-		}
-
-		for (int i = 10; i < 19; i++) {
-			if (CheckItemFitsInInventorySlot(player, i, itemSize, itemIndexToIgnore))
-				return i;
+		for (int y = 0; y <= InventorySizeInSlots.height - itemSize.height; y++) {
+			for (int x = 0; x <= InventorySizeInSlots.width - itemSize.width; x++) {
+				const int slot = (InventorySizeInSlots.width * y) + x;
+				if (CheckItemFitsInInventorySlot(player, slot, itemSize, itemIndexToIgnore))
+					return slot;
+			}
 		}
 		return {};
 	}
@@ -1168,22 +1306,21 @@ bool CanBePlacedOnBelt(const Player &player, const Item &item)
 
 void FreeInvGFX()
 {
-	pInvCels = std::nullopt;
 }
 
 void InitInv()
 {
-	const PlayerData &playerClassData = GetPlayerDataForClass(MyPlayer->_pClass);
-	const char *invName = playerClassData.inv.c_str();
-	if (gbIsSpawn && (playerClassData.inv == "inv_rog" || playerClassData.inv == "inv_sor")) {
-		invName = "inv";
-	}
-	pInvCels = LoadCel(StrCat("data\\inv\\", invName).c_str(), static_cast<uint16_t>(SidePanelSize.width));
+}
+
+bool IsInventoryPanelPoint(Point screenPosition)
+{
+	return ContainsInventoryPanelSlot(screenPosition);
 }
 
 void DrawInv(const Surface &out)
 {
-	ClxDraw(out, GetPanelPosition(UiPanels::Inventory, { 0, 351 }), (*pInvCels)[0]);
+	DrawPlaceholderInventoryPanel(out);
+	DrawExpandedInventoryGrid(out);
 
 	const Size slotSize[] = {
 		{ 2, 2 }, // head
@@ -1449,7 +1586,7 @@ void ReorganizeInventory(Player &player)
 
 	// Temporary storage for items and a copy of InvGrid
 	std::vector<Item> tempStorage(player._pNumInv);
-	std::array<int8_t, 40> originalInvGrid;                                                       // Declare an array for InvGrid copy
+	std::array<int8_t, InventoryGridCells> originalInvGrid;                                       // Declare an array for InvGrid copy
 	std::copy(std::begin(player.InvGrid), std::end(player.InvGrid), std::begin(originalInvGrid)); // Copy InvGrid to originalInvGrid
 
 	// Move items to temporary storage and clear inventory slots
@@ -1526,14 +1663,14 @@ int AddGoldToInventory(Player &player, int value)
 	}
 
 	// Last row right to left
-	for (int i = 39; i >= 30 && value > 0; i--) {
+	for (int i = InventoryGridCells - 1; i >= InventoryGridCells - InventorySizeInSlots.width && value > 0; i--) {
 		value = CreateGoldItemInInventorySlot(player, i, value);
 	}
 
 	// Remaining inventory in columns, bottom to top, right to left
-	for (int x = 9; x >= 0 && value > 0; x--) {
-		for (int y = 2; y >= 0 && value > 0; y--) {
-			value = CreateGoldItemInInventorySlot(player, (10 * y) + x, value);
+	for (int x = InventorySizeInSlots.width - 1; x >= 0 && value > 0; x--) {
+		for (int y = InventorySizeInSlots.height - 2; y >= 0 && value > 0; y--) {
+			value = CreateGoldItemInInventorySlot(player, (InventorySizeInSlots.width * y) + x, value);
 		}
 	}
 

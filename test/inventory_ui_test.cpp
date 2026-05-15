@@ -68,7 +68,7 @@ protected:
 	/**
 	 * @brief Fill the entire inventory grid with 1×1 healing potions.
 	 *
-	 * After this call every one of the 40 inventory cells is occupied.
+	 * After this call every inventory cell is occupied.
 	 */
 	void FillInventory()
 	{
@@ -173,6 +173,38 @@ TEST_F(InventoryUITest, AutoPlaceItem_EmptyInventory)
 		}
 	}
 	EXPECT_TRUE(gridSet) << "At least one InvGrid cell should be non-zero";
+}
+
+TEST_F(InventoryUITest, AutoPlaceItem_UsesExpandedInventoryRows)
+{
+	constexpr int OriginalInventoryGridCells = 40;
+
+	for (int i = 0; i < OriginalInventoryGridCells; i++) {
+		MyPlayer->InvList[i] = MakePotion();
+		MyPlayer->InvGrid[i] = static_cast<int8_t>(i + 1);
+	}
+	MyPlayer->_pNumInv = OriginalInventoryGridCells;
+
+	Item expandedRowStaff = MakeStaff();
+
+	EXPECT_TRUE(AutoPlaceItemInInventory(*MyPlayer, expandedRowStaff))
+	    << "Should place an item after the original 9x4 inventory area is full";
+	ASSERT_EQ(MyPlayer->_pNumInv, OriginalInventoryGridCells + 1);
+	EXPECT_EQ(MyPlayer->InvList[OriginalInventoryGridCells].IDidx, expandedRowStaff.IDidx)
+	    << "The expanded-row inventory list entry should contain the placed item";
+
+	int topLeftCell = -1;
+	for (int i = 0; i < InventoryGridCells; i++) {
+		if (MyPlayer->InvGrid[i] == MyPlayer->_pNumInv) {
+			topLeftCell = i;
+			break;
+		}
+	}
+
+	ASSERT_NE(topLeftCell, -1) << "The placed item should have a top-left grid cell";
+	EXPECT_GE(topLeftCell, OriginalInventoryGridCells)
+	    << "The placed item should start outside the original inventory grid";
+	EXPECT_LT(topLeftCell, InventoryGridCells);
 }
 
 TEST_F(InventoryUITest, AutoPlaceItem_FullInventory)

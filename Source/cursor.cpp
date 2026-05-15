@@ -825,15 +825,15 @@ bool CheckPlayerState(const Point currentTile, const Player &myPlayer)
 
 bool CheckPanelsAndFlags(Rectangle mainPanel)
 {
+	if (invflag && IsInventoryPanelPoint(MousePosition)) {
+		pcursinvitem = CheckInvHLight();
+		return true;
+	}
 	if (mainPanel.contains(MousePosition)) {
 		CheckPanelInfo();
 		return true;
 	}
 	if (DoomFlag) {
-		return true;
-	}
-	if (invflag && GetRightPanel().contains(MousePosition)) {
-		pcursinvitem = CheckInvHLight();
 		return true;
 	}
 	if (IsStashOpen && GetLeftPanel().contains(MousePosition)) {
