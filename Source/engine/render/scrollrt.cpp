@@ -1303,6 +1303,25 @@ void DrawGame(const Surface &fullOut, Point position, Displacement offset)
 #endif
 }
 
+void DrawCombatIndicator(const Surface &out)
+{
+	if (MyPlayer == nullptr || !PlayerIsInCombat(*MyPlayer))
+		return;
+
+	constexpr Size indicatorSize { 160, 15 };
+	constexpr Displacement margin { 8, 8 };
+	const Rectangle indicatorRect {
+		{ out.w() - indicatorSize.width - margin.deltaX, margin.deltaY },
+		indicatorSize
+	};
+	constexpr TextRenderOptions opts {
+		.flags = UiFlags::ColorRed | UiFlags::Outlined | UiFlags::AlignRight,
+	};
+
+	DrawString(out, "IN COMBAT", indicatorRect, opts);
+	DrawString(out, "IN COMBAT", { indicatorRect.position - Displacement { 1, 0 }, indicatorSize }, opts);
+}
+
 /**
  * @brief Start rendering of screen, town variation
  * @param out Buffer to render to
@@ -1319,6 +1338,7 @@ void DrawView(const Surface &out, Point startPosition)
 	if (AutomapActive) {
 		DrawAutomap(out.subregionY(0, gnViewportHeight));
 	}
+	DrawCombatIndicator(out.subregionY(0, gnViewportHeight));
 #ifdef _DEBUG
 	bool debugGridTextNeeded = IsDebugGridTextNeeded();
 	if (debugGridTextNeeded || DebugGrid) {

@@ -5,12 +5,17 @@
 #include "cursor.h"
 #include "engine/assets.hpp"
 #include "init.hpp"
+#include "levels/gendung.h"
+#include "monster.h"
+#include "multi.h"
 #include "tables/playerdat.hpp"
 
 using namespace devilution;
 
 namespace devilution {
 extern bool TestPlayerDoGotHit(Player &player);
+extern bool TestPlayerCanUseFastWalk(const Player &player);
+extern void TestUpdatePlayerCombatCooldown(Player &player);
 }
 
 int RunBlockTest(int frames, ItemSpecialEffect flags)
@@ -142,6 +147,7 @@ static void AssertPlayer(devilution::Player &player)
 	ASSERT_EQ(player.pDiabloKillLevel, 0);
 	ASSERT_EQ(player.pManaShield, 0);
 	ASSERT_EQ(player.pDamAcFlags, ItemSpecialEffectHf::None);
+	ASSERT_EQ(player.outOfCombatSpeedCooldownTicks, 0);
 
 	ASSERT_EQ(player._pmode, 0);
 	ASSERT_EQ(Count8(player.walkpath, MaxPathLengthPlayer), 0);
@@ -203,4 +209,113 @@ TEST(Player, CreatePlayer)
 	Players.resize(1);
 	CreatePlayer(Players[0], HeroClass::Rogue);
 	AssertPlayer(Players[0]);
+}
+
+static Player &ResetCombatTestPlayer()
+{
+	Players.resize(1);
+	Player &player = Players[0];
+	player = {};
+	MyPlayer = &player;
+	player.plractive = true;
+	player.plrlevel = currlevel;
+	player._pmode = PM_STAND;
+	player.destAction = ACTION_NONE;
+	player.outOfCombatSpeedCooldownTicks = 0;
+	ActiveMonsterCount = 0;
+	leveltype = DTYPE_CATHEDRAL;
+	sgGameInitInfo.nTickRate = 20;
+	sgGameInitInfo.bRunInTown = 1;
+	return player;
+}
+
+TEST(Player, FastWalkOnlyWhenEnabledAndOutOfCombat)
+{
+	Player &player = ResetCombatTestPlayer();
+
+	EXPECT_TRUE(TestPlayerCanUseFastWalk(player));
+
+	sgGameInitInfo.bRunInTown = 0;
+	EXPECT_FALSE(TestPlayerCanUseFastWalk(player));
+
+	sgGameInitInfo.bRunInTown = 1;
+	player.outOfCombatSpeedCooldownTicks = 1;
+	EXPECT_FALSE(TestPlayerCanUseFastWalk(player));
+
+	player.outOfCombatSpeedCooldownTicks = 0;
+	player._pmode = PM_ATTACK;
+	EXPECT_FALSE(TestPlayerCanUseFastWalk(player));
+
+	player._pmode = PM_STAND;
+	player.destAction = ACTION_SPELLMON;
+	EXPECT_FALSE(TestPlayerCanUseFastWalk(player));
+
+	player.destAction = ACTION_SPELL;
+	player.queuedSpell.spellId = SpellID::Healing;
+	EXPECT_TRUE(TestPlayerCanUseFastWalk(player));
+
+	player.queuedSpell.spellId = SpellID::Fireball;
+	EXPECT_FALSE(TestPlayerCanUseFastWalk(player));
+
+	player.destAction = ACTION_NONE;
+	player._pmode = PM_SPELL;
+	player.executedSpell.spellId = SpellID::Healing;
+	EXPECT_TRUE(TestPlayerCanUseFastWalk(player));
+
+	player.executedSpell.spellId = SpellID::Fireball;
+	EXPECT_FALSE(TestPlayerCanUseFastWalk(player));
+}
+
+TEST(Player, CombatCooldownRefreshesAndDecrements)
+{
+	Player &player = ResetCombatTestPlayer();
+
+	player.outOfCombatSpeedCooldownTicks = 3;
+	TestUpdatePlayerCombatCooldown(player);
+	EXPECT_EQ(player.outOfCombatSpeedCooldownTicks, 2);
+
+	player.outOfCombatSpeedCooldownTicks = 0;
+	player.destAction = ACTION_ATTACKMON;
+	TestUpdatePlayerCombatCooldown(player);
+	EXPECT_EQ(player.outOfCombatSpeedCooldownTicks, 40);
+
+	player.destAction = ACTION_NONE;
+	TestUpdatePlayerCombatCooldown(player);
+	EXPECT_EQ(player.outOfCombatSpeedCooldownTicks, 39);
+}
+
+TEST(Player, DamageRefreshesCombatCooldown)
+{
+	Player &player = ResetCombatTestPlayer();
+	MyPlayer = nullptr;
+	player._pHitPoints = 128;
+	player._pHPBase = 128;
+	player._pMaxHP = 128;
+	player._pMaxHPBase = 128;
+
+	ApplyPlrDamage(DamageType::Physical, player, 1, 1);
+
+	EXPECT_EQ(player.outOfCombatSpeedCooldownTicks, 40);
+}
+
+TEST(Player, MonsterTargetingPlayerCountsAsCombat)
+{
+	Player &player = ResetCombatTestPlayer();
+
+	EXPECT_FALSE(PlayerIsInCombat(player));
+
+	ActiveMonsterCount = 1;
+	ActiveMonsters[0] = 0;
+	Monsters[0] = {};
+	Monsters[0].hitPoints = 64;
+	Monsters[0].activeForTicks = 1;
+	Monsters[0].enemy = player.getId();
+	EXPECT_TRUE(PlayerIsInCombat(player));
+
+	Monsters[0].flags = MFLAG_TARGETS_MONSTER;
+	EXPECT_FALSE(PlayerIsInCombat(player));
+
+	Monsters[0].flags = 0;
+	leveltype = DTYPE_TOWN;
+	EXPECT_FALSE(PlayerIsInCombat(player));
 }

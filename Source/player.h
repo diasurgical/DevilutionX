@@ -263,6 +263,7 @@ struct Player {
 	int destParam2;
 	int destParam3;
 	int destParam4;
+	uint16_t outOfCombatSpeedCooldownTicks;
 	int _pGold;
 
 	/**
@@ -962,6 +963,7 @@ void InitMultiView();
 void PlrClrTrans(Point position);
 void PlrDoTrans(Point position);
 void SetPlayerOld(Player &player);
+bool PlayerIsInCombat(const Player &player);
 void FixPlayerLocation(Player &player, Direction bDir);
 void StartStand(Player &player, Direction dir);
 void StartPlrBlock(Player &player, Direction dir);

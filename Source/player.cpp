@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <limits>
 
 #ifdef USE_SDL3
 #include <SDL3/SDL_events.h>
@@ -69,6 +70,92 @@ Player *InspectPlayer;
 bool MyPlayerIsDead;
 
 namespace {
+
+uint16_t GetOutOfCombatSpeedCooldownDuration()
+{
+	return static_cast<uint16_t>(std::clamp(2 * sgGameInitInfo.nTickRate, 1, static_cast<int>(std::numeric_limits<uint16_t>::max())));
+}
+
+bool IsCombatSpell(SpellID spellId)
+{
+	return IsAnyOf(spellId,
+	    SpellID::Firebolt,
+	    SpellID::Lightning,
+	    SpellID::Flash,
+	    SpellID::FireWall,
+	    SpellID::StoneCurse,
+	    SpellID::Fireball,
+	    SpellID::Guardian,
+	    SpellID::ChainLightning,
+	    SpellID::FlameWave,
+	    SpellID::DoomSerpents,
+	    SpellID::BloodRitual,
+	    SpellID::Nova,
+	    SpellID::Inferno,
+	    SpellID::Golem,
+	    SpellID::Rage,
+	    SpellID::Apocalypse,
+	    SpellID::Elemental,
+	    SpellID::ChargedBolt,
+	    SpellID::HolyBolt,
+	    SpellID::BloodStar,
+	    SpellID::BoneSpirit,
+	    SpellID::LightningWall,
+	    SpellID::Immolation,
+	    SpellID::Berserk,
+	    SpellID::RingOfFire,
+	    SpellID::RuneOfFire,
+	    SpellID::RuneOfNova,
+	    SpellID::RuneOfImmolation,
+	    SpellID::RuneOfStone);
+}
+
+bool IsCombatAction(const Player &player)
+{
+	switch (player.destAction) {
+	case ACTION_ATTACK:
+	case ACTION_ATTACKMON:
+	case ACTION_ATTACKPLR:
+	case ACTION_RATTACK:
+	case ACTION_RATTACKMON:
+	case ACTION_RATTACKPLR:
+	case ACTION_SPELLMON:
+	case ACTION_SPELLWALL:
+		return true;
+	case ACTION_SPELL:
+	case ACTION_SPELLPLR:
+		return IsCombatSpell(player.queuedSpell.spellId);
+	default:
+		return false;
+	}
+}
+
+bool IsCombatMode(const Player &player)
+{
+	if (player._pmode == PM_SPELL)
+		return IsCombatSpell(player.executedSpell.spellId);
+
+	return IsAnyOf(player._pmode, PM_ATTACK, PM_RATTACK, PM_BLOCK, PM_GOTHIT);
+}
+
+bool IsPlayerTargetedByActiveMonster(const Player &player)
+{
+	if (leveltype == DTYPE_TOWN)
+		return false;
+
+	const uint8_t playerId = player.getId();
+	for (size_t i = 0; i < ActiveMonsterCount; i++) {
+		const Monster &monster = Monsters[ActiveMonsters[i]];
+		if (monster.isInvalid || monster.hasNoLife() || monster.activeForTicks == 0)
+			continue;
+		if ((monster.flags & MFLAG_TARGETS_MONSTER) != 0)
+			continue;
+		if (monster.enemy == playerId)
+			return true;
+	}
+
+	return false;
+}
 
 struct DirectionSettings {
 	Direction dir;
@@ -141,10 +228,39 @@ void HandleWalkMode(Player &player, Direction dir)
 	player._pmode = dirModeParams.walkMode;
 }
 
+bool PlayerCanUseFastWalk(const Player &player)
+{
+	return sgGameInitInfo.bRunInTown != 0 && !PlayerIsInCombat(player);
+}
+
+void RefreshPlayerCombatCooldown(Player &player)
+{
+	player.outOfCombatSpeedCooldownTicks = GetOutOfCombatSpeedCooldownDuration();
+}
+
+void DecrementPlayerCombatCooldown(Player &player)
+{
+	if (player.outOfCombatSpeedCooldownTicks > 0)
+		player.outOfCombatSpeedCooldownTicks--;
+}
+
+bool PlayerIsActivelyInCombat(const Player &player)
+{
+	return IsCombatMode(player) || IsCombatAction(player) || IsPlayerTargetedByActiveMonster(player);
+}
+
+void UpdatePlayerCombatCooldown(Player &player)
+{
+	if (PlayerIsActivelyInCombat(player))
+		RefreshPlayerCombatCooldown(player);
+	else
+		DecrementPlayerCombatCooldown(player);
+}
+
 void StartWalkAnimation(Player &player, Direction dir, bool pmWillBeCalled)
 {
 	int8_t skippedFrames = -2;
-	if (leveltype == DTYPE_TOWN && sgGameInitInfo.bRunInTown != 0)
+	if (PlayerCanUseFastWalk(player))
 		skippedFrames = 2;
 	if (pmWillBeCalled)
 		skippedFrames += 1;
@@ -170,6 +286,7 @@ void ClearStateVariables(Player &player)
 	player.position.temp = { 0, 0 };
 	player.tempDirection = Direction::South;
 	player.queuedSpell.spellLevel = 0;
+	player.outOfCombatSpeedCooldownTicks = 0;
 }
 
 void StartAttack(Player &player, Direction d, bool includesFirstFrame)
@@ -178,6 +295,7 @@ void StartAttack(Player &player, Direction d, bool includesFirstFrame)
 		SyncPlrKill(player, DeathReason::Unknown);
 		return;
 	}
+	RefreshPlayerCombatCooldown(player);
 
 	int8_t skippedAnimationFrames = 0;
 	const auto flags = player._pIFlags;
@@ -210,6 +328,7 @@ void StartRangeAttack(Player &player, Direction d, WorldTileCoord cx, WorldTileC
 		SyncPlrKill(player, DeathReason::Unknown);
 		return;
 	}
+	RefreshPlayerCombatCooldown(player);
 
 	int8_t skippedAnimationFrames = 0;
 	const auto flags = player._pIFlags;
@@ -271,6 +390,8 @@ void StartSpell(Player &player, Direction d, WorldTileCoord cx, WorldTileCoord c
 	}
 	if (!isValid)
 		return;
+	if (IsCombatAction(player))
+		RefreshPlayerCombatCooldown(player);
 
 	auto animationFlags = AnimationDistributionFlags::ProcessAnimationPending;
 	if (player._pmode == PM_SPELL)
@@ -2585,6 +2706,11 @@ void FixPlayerLocation(Player &player, Direction bDir)
 	ChangeVisionXY(player.getId(), player.position.tile);
 }
 
+bool PlayerIsInCombat(const Player &player)
+{
+	return player.outOfCombatSpeedCooldownTicks > 0 || PlayerIsActivelyInCombat(player);
+}
+
 void StartStand(Player &player, Direction dir)
 {
 	if (player._pInvincible && player.hasNoLife() && &player == MyPlayer) {
@@ -2606,6 +2732,7 @@ void StartPlrBlock(Player &player, Direction dir)
 		SyncPlrKill(player, DeathReason::Unknown);
 		return;
 	}
+	RefreshPlayerCombatCooldown(player);
 
 	PlaySfxLoc(SfxID::ItemSword, player.position.tile);
 
@@ -2640,6 +2767,7 @@ void StartPlrHit(Player &player, int dam, bool forcehit)
 		SyncPlrKill(player, DeathReason::Unknown);
 		return;
 	}
+	RefreshPlayerCombatCooldown(player);
 
 	player.Say(HeroSpeech::ArghClang);
 
@@ -2826,6 +2954,9 @@ void ApplyPlrDamage(DamageType damageType, Player &player, int dam, int minHP /*
 	if (&player == MyPlayer && !player.hasNoLife()) {
 		lua::OnPlayerTakeDamage(&player, totalDamage, static_cast<int>(damageType));
 	}
+	if (totalDamage > 0) {
+		RefreshPlayerCombatCooldown(player);
+	}
 	if (totalDamage > 0 && player.pManaShield && HasNoneOf(player._pIFlags, ItemSpecialEffect::NoMana)) {
 		const uint8_t manaShieldLevel = player._pSplLvl[static_cast<int8_t>(SpellID::ManaShield)];
 		if (manaShieldLevel > 0) {
@@ -2897,6 +3028,7 @@ void
 StartNewLvl(Player &player, interface_mode fom, int lvl)
 {
 	InitLevelChange(player);
+	player.outOfCombatSpeedCooldownTicks = 0;
 
 	switch (fom) {
 	case WM_DIABNEXTLVL:
@@ -2935,6 +3067,7 @@ StartNewLvl(Player &player, interface_mode fom, int lvl)
 void RestartTownLvl(Player &player)
 {
 	InitLevelChange(player);
+	player.outOfCombatSpeedCooldownTicks = 0;
 
 	player.setLevel(0);
 	player._pInvincible = false;
@@ -3016,6 +3149,8 @@ void ProcessPlayers()
 	for (size_t pnum = 0; pnum < Players.size(); pnum++) {
 		Player &player = Players[pnum];
 		if (player.plractive && player.isOnActiveLevel() && (&player == MyPlayer || !player._pLvlChanging)) {
+			UpdatePlayerCombatCooldown(player);
+
 			if (!PlrDeathModeOK(player) && player.hasNoLife()) {
 				SyncPlrKill(player, DeathReason::Unknown);
 			}
@@ -3490,6 +3625,16 @@ void PlayDungMsgs()
 bool TestPlayerDoGotHit(Player &player)
 {
 	return DoGotHit(player);
+}
+
+bool TestPlayerCanUseFastWalk(const Player &player)
+{
+	return PlayerCanUseFastWalk(player);
+}
+
+void TestUpdatePlayerCombatCooldown(Player &player)
+{
+	UpdatePlayerCombatCooldown(player);
 }
 #endif
 

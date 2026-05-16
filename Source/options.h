@@ -561,7 +561,7 @@ struct GameplayOptions : OptionCategoryBase {
 
 	/** @brief Gameplay ticks per second. */
 	OptionEntryInt<int> tickRate;
-	/** @brief Enable double walk speed when in town. */
+	/** @brief Enable double walk speed when out of combat. */
 	OptionEntryBoolean runInTown;
 	/** @brief Do not let the mouse leave the application window. */
 	OptionEntryBoolean grabInput;
