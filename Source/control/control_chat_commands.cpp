@@ -173,7 +173,7 @@ bool IsQuestEnabled(const Quest &quest)
 	}
 }
 
-std::string TextCmdLevelSeed(const std::string_view parameter)
+std::string TextCmdLevelSeed(const std::string_view /*parameter*/)
 {
 	const std::string_view levelType = setlevel ? "set level" : "dungeon level";
 

@@ -42,6 +42,7 @@
 #include "dvlnet/leaveinfo.hpp"
 #include "effects.h"
 #include "engine/animationinfo.h"
+#include "engine/backbuffer_state.hpp"
 #include "engine/clx_sprite.hpp"
 #include "engine/direction.hpp"
 #include "engine/lighting_defs.hpp"
@@ -69,7 +70,7 @@
 #include "levels/tile_properties.hpp"
 #include "levels/trigs.h"
 #include "lighting.h"
-#include "lua/lua_global.hpp"
+#include "lua/lua_event.hpp"
 #include "minitext.h"
 #include "missiles.h"
 #include "movie.h"
@@ -232,6 +233,12 @@ void InitMonster(Monster &monster, Direction rd, size_t typeIndex, Point positio
 	monster.minDamageSpecial = monster.data().minDamageSpecial;
 	monster.maxDamageSpecial = monster.data().maxDamageSpecial;
 	monster.armorClass = monster.data().armorClass;
+	monster.reducePlayerStrength = monster.data().reducePlayerStrength;
+	monster.reducePlayerMagic = monster.data().reducePlayerMagic;
+	monster.reducePlayerDexterity = monster.data().reducePlayerDexterity;
+	monster.reducePlayerVitality = monster.data().reducePlayerVitality;
+	monster.reducePlayerMaxHP = monster.data().reducePlayerMaxHP;
+	monster.reducePlayerMaxMana = monster.data().reducePlayerMaxMana;
 	monster.resistance = monster.data().resistance;
 	monster.leader = Monster::NoLeader;
 	monster.leaderRelation = LeaderRelation::None;
@@ -1205,16 +1212,9 @@ void MonsterAttackPlayer(Monster &monster, Player &player, int hit, int minDam, 
 		}
 		return;
 	}
-	if (monster.type().type == MT_YZOMBIE && &player == MyPlayer) {
-		if (player._pMaxHP > 64) {
-			if (player._pMaxHPBase > 64) {
-				player._pMaxHP -= 64;
-				player._pHitPoints = std::min(player._pHitPoints, player._pMaxHP);
-				player._pMaxHPBase -= 64;
-				player._pHPBase = std::min(player._pHPBase, player._pMaxHPBase);
-			}
-		}
-	}
+
+	MonsterReducePlayerAttribute(monster, player);
+
 	// New method fixes a bug which caused the maximum possible damage value to be 63/64ths too low.
 	int dam = RandomIntBetween(minDam << 6, maxDam << 6);
 	dam = std::max(dam + (player._pIGetHit << 6), 64);
@@ -3338,6 +3338,12 @@ tl::expected<void, std::string> PrepareUniqueMonst(Monster &monster, UniqueMonst
 	monster.maxDamage = uniqueMonsterData.mMaxDamage;
 	monster.minDamageSpecial = uniqueMonsterData.mMinDamage;
 	monster.maxDamageSpecial = uniqueMonsterData.mMaxDamage;
+	monster.reducePlayerStrength = uniqueMonsterData.reducePlayerStrength;
+	monster.reducePlayerMagic = uniqueMonsterData.reducePlayerMagic;
+	monster.reducePlayerDexterity = uniqueMonsterData.reducePlayerDexterity;
+	monster.reducePlayerVitality = uniqueMonsterData.reducePlayerVitality;
+	monster.reducePlayerMaxHP = uniqueMonsterData.reducePlayerMaxHP;
+	monster.reducePlayerMaxMana = uniqueMonsterData.reducePlayerMaxMana;
 	monster.resistance = uniqueMonsterData.mMagicRes;
 	monster.talkMsg = uniqueMonsterData.mtalkmsg;
 	if (monsterType == UniqueMonsterType::HorkDemon)
@@ -3759,7 +3765,7 @@ tl::expected<void, std::string> SetMapMonsters(const uint16_t *dunData, Point st
 
 	for (WorldTileCoord j = 0; j < size.height; j++) {
 		for (WorldTileCoord i = 0; i < size.width; i++) {
-			auto monsterId = static_cast<uint8_t>(Swap16LE(monsterLayer[j * size.width + i]));
+			auto monsterId = static_cast<uint8_t>(Swap16LE(monsterLayer[(j * size.width) + i]));
 			if (monsterId != 0) {
 				ASSIGN_OR_RETURN(const size_t typeIndex, AddMonsterType(MonstConvTbl[monsterId - 1], PLACE_SPECIAL));
 				PlaceMonster(ActiveMonsterCount++, typeIndex, startPosition + Displacement { i, j });
@@ -3862,7 +3868,7 @@ void AddDoppelganger(Monster &monster)
 
 void ApplyMonsterDamage(DamageType damageType, Monster &monster, int damage)
 {
-	LuaEvent("OnMonsterTakeDamage", &monster, damage, static_cast<int>(damageType));
+	lua::OnMonsterTakeDamage(&monster, damage, static_cast<int>(damageType));
 
 	monster.hitPoints -= damage;
 
@@ -3874,6 +3880,43 @@ void ApplyMonsterDamage(DamageType damageType, Monster &monster, int damage)
 
 	delta_monster_hp(monster, *MyPlayer);
 	NetSendCmdMonDmg(false, static_cast<uint16_t>(monster.getId()), damage);
+}
+
+void MonsterReducePlayerAttribute(Monster &monster, Player &player)
+{
+	if (&player != MyPlayer)
+		return;
+
+	if (monster.reducePlayerStrength > 0) {
+		ModifyPlrStr(player, -static_cast<int>(monster.reducePlayerStrength));
+	}
+	if (monster.reducePlayerMagic > 0) {
+		ModifyPlrMag(player, -static_cast<int>(monster.reducePlayerMagic));
+	}
+	if (monster.reducePlayerDexterity > 0) {
+		ModifyPlrDex(player, -static_cast<int>(monster.reducePlayerDexterity));
+	}
+	if (monster.reducePlayerVitality > 0) {
+		ModifyPlrVit(player, -static_cast<int>(monster.reducePlayerVitality));
+	}
+	if (monster.reducePlayerMaxHP > 0) {
+		const int reduceAmount = std::min(player._pMaxHPBase - 64, monster.reducePlayerMaxHP * 64);
+		player._pMaxHP = std::max(64, player._pMaxHP - reduceAmount);
+		player._pHitPoints = std::min(player._pHitPoints, player._pMaxHP);
+		player._pMaxHPBase -= reduceAmount;
+		player._pHPBase = std::min(player._pHPBase, player._pMaxHPBase);
+
+		RedrawComponent(PanelDrawComponent::Health);
+	}
+	if (monster.reducePlayerMaxMana > 0) {
+		const int reduceAmount = std::min(player._pMaxManaBase, monster.reducePlayerMaxMana * 64);
+		player._pMaxMana = std::max(0, player._pMaxMana - reduceAmount);
+		player._pMana = std::min(player._pMana, player._pMaxMana);
+		player._pMaxManaBase -= reduceAmount;
+		player._pManaBase = std::min(player._pManaBase, player._pMaxManaBase);
+
+		RedrawComponent(PanelDrawComponent::Mana);
+	}
 }
 
 bool M_Talker(const Monster &monster)
@@ -4531,7 +4574,7 @@ void PlayEffect(Monster &monster, MonsterSound mode)
 	if (!CalculateSoundPosition(monster.position.tile, &lVolume, &lPan))
 		return;
 
-	snd_play_snd(snd, lVolume, lPan);
+	snd_play_snd(snd, lVolume, lPan, *GetOptions().Audio.soundVolume);
 }
 
 void MissToMonst(Missile &missile, Point position)

@@ -23,6 +23,7 @@
 #include "panels/spell_list.hpp"
 #include "pfile.h"
 #include "qol/stash.h"
+#include "qol/visual_store.h"
 #include "stores.h"
 #include "utils/sdl_compat.h"
 
@@ -59,7 +60,7 @@ const Rectangle &GetRightPanel()
 }
 bool IsLeftPanelOpen()
 {
-	return CharFlag || QuestLogIsOpen || IsStashOpen;
+	return CharFlag || QuestLogIsOpen || IsStashOpen || IsVisualStoreOpen;
 }
 bool IsRightPanelOpen()
 {
@@ -223,7 +224,7 @@ bool IsLevelUpButtonVisible()
 	if (ControlMode == ControlTypes::VirtualGamepad) {
 		return false;
 	}
-	if (IsPlayerInStore() || IsStashOpen) {
+	if (IsPlayerInStore() || IsStashOpen || IsVisualStoreOpen) {
 		return false;
 	}
 	if (QuestLogIsOpen && GetLeftPanel().contains(GetMainPanel().position + Displacement { 0, -74 })) {
@@ -300,6 +301,7 @@ void OpenCharPanel()
 	QuestLogIsOpen = false;
 	CloseGoldWithdraw();
 	CloseStash();
+	CloseVisualStore();
 	CharFlag = true;
 }
 
@@ -376,7 +378,7 @@ tl::expected<void, std::string> InitMainPanel()
 		if (!HeadlessMode) {
 			{
 				ASSIGN_OR_RETURN(const OwnedClxSpriteList sprite, LoadCelWithStatus("ctrlpan\\talkpanl", GetMainPanel().size.width));
-				ClxDraw(*BottomBuffer, { 0, (GetMainPanel().size.height + PanelPaddingHeight) * 2 - 1 }, sprite[0]);
+				ClxDraw(*BottomBuffer, { 0, ((GetMainPanel().size.height + PanelPaddingHeight) * 2) - 1 }, sprite[0]);
 			}
 			multiButtons = LoadCel("ctrlpan\\p8but2", 33);
 			talkButtons = LoadCel("ctrlpan\\talkbutt", 61);
@@ -565,6 +567,7 @@ void CheckMainPanelButtonUp()
 			CloseCharPanel();
 			CloseGoldWithdraw();
 			CloseStash();
+			CloseVisualStore();
 			if (!QuestLogIsOpen)
 				StartQuestlog();
 			else
@@ -593,9 +596,10 @@ void CheckMainPanelButtonUp()
 			break;
 		case PanelButtonInventory:
 			SpellbookFlag = false;
+			invflag = !invflag;
 			CloseGoldWithdraw();
 			CloseStash();
-			invflag = !invflag;
+			CloseVisualStore();
 			CloseGoldDrop();
 			break;
 		case PanelButtonSpellbook:
@@ -790,7 +794,7 @@ void DrawDeathText(const Surface &out)
 	};
 	std::string text;
 	const int verticalPadding = 42;
-	Point linePosition { 0, gnScreenHeight / 2 - (verticalPadding * 2) };
+	Point linePosition { 0, (gnScreenHeight / 2) - (verticalPadding * 2) };
 
 	text = _("You have died");
 	DrawString(out, text, linePosition, largeTextOptions);

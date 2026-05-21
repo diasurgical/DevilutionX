@@ -24,7 +24,7 @@
 #include "data/iterators.hpp"
 #include "data/record_reader.hpp"
 #include "items.h"
-#include "lua/lua_global.hpp"
+#include "lua/lua_event.hpp"
 #include "monster.h"
 #include "tables/textdat.h"
 #include "utils/language.h"
@@ -357,7 +357,7 @@ void LoadMonstDatFromFile(DataFile &dataFile, const std::string_view filename, b
 				monster.spriteId = static_cast<uint16_t>(findIt - MonsterSpritePaths.begin());
 			} else {
 				monster.spriteId = static_cast<uint16_t>(MonsterSpritePaths.size());
-				MonsterSpritePaths.push_back(std::string(assetsSuffix));
+				MonsterSpritePaths.emplace_back(assetsSuffix);
 			}
 		}
 		reader.readString("soundSuffix", monster.soundSuffix);
@@ -385,6 +385,12 @@ void LoadMonstDatFromFile(DataFile &dataFile, const std::string_view filename, b
 		reader.readInt("animFrameNumSpecial", monster.animFrameNumSpecial);
 		reader.readInt("minDamageSpecial", monster.minDamageSpecial);
 		reader.readInt("maxDamageSpecial", monster.maxDamageSpecial);
+		reader.readInt("reducePlayerStrength", monster.reducePlayerStrength);
+		reader.readInt("reducePlayerMagic", monster.reducePlayerMagic);
+		reader.readInt("reducePlayerDexterity", monster.reducePlayerDexterity);
+		reader.readInt("reducePlayerVitality", monster.reducePlayerVitality);
+		reader.readInt("reducePlayerMaxHP", monster.reducePlayerMaxHP);
+		reader.readInt("reducePlayerMaxMana", monster.reducePlayerMaxMana);
 		reader.readInt("armorClass", monster.armorClass);
 		reader.read("monsterClass", monster.monsterClass, ParseMonsterClass);
 		reader.readEnumList("resistance", monster.resistance, ParseMonsterResistance);
@@ -407,7 +413,7 @@ void LoadMonstDat()
 	MonstersData.resize(NUM_DEFAULT_MTYPES); // ensure the hardcoded monster type slots are filled
 	LoadMonstDatFromFile(dataFile, filename, false);
 
-	LuaEvent("MonsterDataLoaded");
+	lua::MonsterDataLoaded();
 
 	MonstersData.shrink_to_fit();
 }
@@ -432,6 +438,12 @@ void LoadUniqueMonstDatFromFile(DataFile &dataFile, std::string_view filename)
 		reader.readInt("intelligence", monster.mint);
 		reader.readInt("minDamage", monster.mMinDamage);
 		reader.readInt("maxDamage", monster.mMaxDamage);
+		reader.readInt("reducePlayerStrength", monster.reducePlayerStrength);
+		reader.readInt("reducePlayerMagic", monster.reducePlayerMagic);
+		reader.readInt("reducePlayerDexterity", monster.reducePlayerDexterity);
+		reader.readInt("reducePlayerVitality", monster.reducePlayerVitality);
+		reader.readInt("reducePlayerMaxHP", monster.reducePlayerMaxHP);
+		reader.readInt("reducePlayerMaxMana", monster.reducePlayerMaxMana);
 		reader.readEnumList("resistance", monster.mMagicRes, ParseMonsterResistance);
 		reader.read("monsterPack", monster.monsterPack, ParseUniqueMonsterPack);
 		reader.readInt("customToHit", monster.customToHit);
@@ -450,7 +462,7 @@ void LoadUniqueMonstDat()
 	UniqueMonstersData.clear();
 	LoadUniqueMonstDatFromFile(dataFile, filename);
 
-	LuaEvent("UniqueMonsterDataLoaded");
+	lua::UniqueMonsterDataLoaded();
 
 	UniqueMonstersData.shrink_to_fit();
 }

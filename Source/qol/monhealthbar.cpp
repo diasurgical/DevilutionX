@@ -165,7 +165,7 @@ void DrawMonsterHealthBar(const Surface &out)
 		int resOffset = 5;
 		for (size_t i = 0; i < 3; i++) {
 			if ((monster.resistance & immunes[i]) != 0) {
-				RenderClxSprite(out, (*resistance)[i * 2 + 1], position + Displacement { resOffset, height - 6 });
+				RenderClxSprite(out, (*resistance)[(i * 2) + 1], position + Displacement { resOffset, height - 6 });
 				resOffset += (*resistance)[0].width() + 2;
 			} else if ((monster.resistance & resists[i]) != 0) {
 				RenderClxSprite(out, (*resistance)[i * 2], position + Displacement { resOffset, height - 6 });

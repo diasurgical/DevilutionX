@@ -149,7 +149,7 @@ void CloseConsole()
 
 int GetConsoleLinesInnerWidth()
 {
-	return OuterRect.size.width - 2 * TextPaddingX;
+	return OuterRect.size.width - (2 * TextPaddingX);
 }
 
 void PrepareForRender(ConsoleLine &consoleLine)
@@ -174,7 +174,7 @@ void SendInput()
 
 void DrawAutocompleteSuggestions(const Surface &out, const std::vector<LuaAutocompleteSuggestion> &suggestions, Point position)
 {
-	const int maxInnerWidth = out.w() - TextPaddingX * 2;
+	const int maxInnerWidth = out.w() - (TextPaddingX * 2);
 	if (AutocompleteSuggestionsMaxWidth == -1) {
 		int maxWidth = 0;
 		for (const LuaAutocompleteSuggestion &suggestion : suggestions) {
@@ -183,12 +183,12 @@ void DrawAutocompleteSuggestions(const Surface &out, const std::vector<LuaAutoco
 		AutocompleteSuggestionsMaxWidth = std::min(maxWidth, maxInnerWidth);
 	}
 
-	const int outerWidth = AutocompleteSuggestionsMaxWidth + TextPaddingX * 2;
+	const int outerWidth = AutocompleteSuggestionsMaxWidth + (TextPaddingX * 2);
 
 	if (position.x + outerWidth > out.w()) {
 		position.x = out.w() - outerWidth;
 	}
-	const int height = static_cast<int>(suggestions.size()) * LineHeight + TextPaddingYBottom + TextPaddingYTop;
+	const int height = (static_cast<int>(suggestions.size()) * LineHeight) + TextPaddingYBottom + TextPaddingYTop;
 
 	position.y -= height;
 	position.y = std::max(LineHeight, position.y);
@@ -288,7 +288,7 @@ void DrawConsoleLines(const Surface &out)
 	// NOLINTNEXTLINE(modernize-loop-convert)
 	for (auto it = ConsoleLines.rbegin(), itEnd = ConsoleLines.rend(); it != itEnd; ++it) {
 		ConsoleLine &consoleLine = *it;
-		const int linesYBegin = lineYEnd - LineHeight * consoleLine.numLines;
+		const int linesYBegin = lineYEnd - (LineHeight * consoleLine.numLines);
 		if (linesYBegin > innerHeight) {
 			lineYEnd = linesYBegin;
 			continue;
@@ -567,7 +567,7 @@ void DrawConsole(const Surface &out)
 
 	const std::string_view originalInputText = ConsoleInputState.value();
 	if (CurrentInputTextState != InputTextState::UpToDate) {
-		WrappedInputText = WordWrapString(StrCat(Prompt, originalInputText), OuterRect.size.width - 2 * TextPaddingX, TextFontSize, TextSpacing);
+		WrappedInputText = WordWrapString(StrCat(Prompt, originalInputText), OuterRect.size.width - (2 * TextPaddingX), TextFontSize, TextSpacing);
 		if (CurrentInputTextState == InputTextState::RestoredFromHistory) {
 			AutocompleteSuggestions.clear();
 		} else {
@@ -579,14 +579,14 @@ void DrawConsole(const Surface &out)
 	}
 
 	const int numLines = static_cast<int>(c_count(WrappedInputText, '\n')) + 1;
-	InputRectHeight = std::min(OuterRect.size.height, numLines * LineHeight + TextPaddingYTop + TextPaddingYBottom);
+	InputRectHeight = std::min(OuterRect.size.height, (numLines * LineHeight) + TextPaddingYTop + TextPaddingYBottom);
 	const int inputTextHeight = InputRectHeight - (TextPaddingYTop + TextPaddingYBottom);
 
 	InputRect.position = { 0, OuterRect.size.height - InputRectHeight };
 	InputRect.size = { OuterRect.size.width, InputRectHeight };
 	const Rectangle inputTextRect {
 		{ InputRect.position.x + TextPaddingX, InputRect.position.y + TextPaddingYTop },
-		{ InputRect.size.width - 2 * TextPaddingX, inputTextHeight }
+		{ InputRect.size.width - (2 * TextPaddingX), inputTextHeight }
 	};
 
 	if (FirstRender) {

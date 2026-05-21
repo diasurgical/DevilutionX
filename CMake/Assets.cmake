@@ -62,9 +62,13 @@ set(devilutionx_assets
   data/monstertags.clx
   data/panel8buc.clx
   data/panel8bucp.clx
+  data/repairAllBtn.clx
+  data/repairSingleBtn.clx
   data/resistance.clx
   data/stash.clx
   data/stashnavbtns.clx
+  data/store.clx
+  data/tabBtnUp.clx
   data/talkbutton.clx
   data/xpbar.clx
   fonts/12-00.clx

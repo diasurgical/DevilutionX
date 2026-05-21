@@ -52,7 +52,7 @@ void ScaleJoystickAxes(float *x, float *y, float deadzone)
 	float analogY = *y;
 	const float deadZone = deadzone * maximum;
 
-	const float magnitude = std::sqrt(analogX * analogX + analogY * analogY);
+	const float magnitude = std::sqrt((analogX * analogX) + (analogY * analogY));
 	if (magnitude >= deadZone) {
 		// find scaled axis values with magnitudes between zero and maximum
 		const float scalingFactor = 1.F / magnitude * (magnitude - deadZone) / (maximum - deadZone);
@@ -207,17 +207,48 @@ void ProcessControllerMotion(const SDL_Event &event)
 	}
 }
 
-AxisDirection GetLeftStickOrDpadDirection(bool usePadmapper)
+AxisDirection GetAnalogStickDirection(float stickX, float stickY)
 {
-	const float stickX = leftStickX;
-	const float stickY = leftStickY;
+	// avoid sqrt() by comparing squared magnitudes
+	const float magnitudeSquared = (stickX * stickX) + (stickY * stickY);
+	const float thresholdSquared = StickDirectionThreshold * StickDirectionThreshold;
+	if (magnitudeSquared < thresholdSquared)
+		return { AxisDirectionX_NONE, AxisDirectionY_NONE };
 
+	const float absX = std::fabs(stickX);
+	const float absY = std::fabs(stickY);
 	AxisDirection result { AxisDirectionX_NONE, AxisDirectionY_NONE };
 
-	bool isUpPressed = stickY >= 0.5;
-	bool isDownPressed = stickY <= -0.5;
-	bool isLeftPressed = stickX <= -0.5;
-	bool isRightPressed = stickX >= 0.5;
+	// 8-way sectoring with 22.5° cutoffs
+	constexpr float DiagonalCutoff = 0.41421356F; // tan(22.5°)
+	if (absX == 0.0F) {
+		result.y = stickY > 0 ? AxisDirectionY_UP : AxisDirectionY_DOWN;
+		return result;
+	}
+
+	const float ratio = absY / absX;
+	if (ratio <= DiagonalCutoff) {
+		result.x = stickX > 0 ? AxisDirectionX_RIGHT : AxisDirectionX_LEFT;
+		return result;
+	}
+	if (ratio >= 1.0F / DiagonalCutoff) {
+		result.y = stickY > 0 ? AxisDirectionY_UP : AxisDirectionY_DOWN;
+		return result;
+	}
+
+	result.x = stickX > 0 ? AxisDirectionX_RIGHT : AxisDirectionX_LEFT;
+	result.y = stickY > 0 ? AxisDirectionY_UP : AxisDirectionY_DOWN;
+	return result;
+}
+
+AxisDirection GetLeftStickOrDpadDirection(bool usePadmapper)
+{
+	AxisDirection result = GetAnalogStickDirection(leftStickX, leftStickY);
+
+	bool isUpPressed = false;
+	bool isDownPressed = false;
+	bool isLeftPressed = false;
+	bool isRightPressed = false;
 
 	if (usePadmapper) {
 		isUpPressed |= PadmapperIsActionActive("MoveUp");

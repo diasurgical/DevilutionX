@@ -100,6 +100,7 @@ set(libdevilutionx_SRCS
   levels/trigs.cpp
 
   lua/autocomplete.cpp
+  lua/lua_event.cpp
   lua/lua_global.cpp
   lua/modules/audio.cpp
   lua/modules/hellfire.cpp
@@ -141,6 +142,8 @@ set(libdevilutionx_SRCS
 
   platform/locale.cpp
 
+  players/validation.cpp
+
   portals/validation.cpp
 
   qol/autopickup.cpp
@@ -149,6 +152,7 @@ set(libdevilutionx_SRCS
   qol/itemlabels.cpp
   qol/monhealthbar.cpp
   qol/stash.cpp
+  qol/visual_store.cpp
   qol/xpbar.cpp
 
   quests/validation.cpp
@@ -588,12 +592,8 @@ if(SUPPORTS_MPQ)
   target_link_dependencies(libdevilutionx_mpq PUBLIC
     DevilutionX::SDL
     fmt::fmt
-    tl
-    libmpq
+    mpqfs::mpqfs
     libdevilutionx_file_util
-    libdevilutionx_logged_fstream
-    libdevilutionx_pkware_encrypt
-    libdevilutionx_strings
   )
 else()
   add_library(libdevilutionx_mpq INTERFACE)
@@ -640,7 +640,7 @@ if(SUPPORTS_MPQ OR NOT NONET)
   )
   target_link_dependencies(libdevilutionx_pkware_encrypt PUBLIC
     DevilutionX::SDL
-    PKWare
+    mpqfs::mpqfs
   )
 else()
   add_library(libdevilutionx_pkware_encrypt INTERFACE)

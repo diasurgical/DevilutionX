@@ -14,7 +14,7 @@
 #include "data/file.hpp"
 #include "data/iterators.hpp"
 #include "data/record_reader.hpp"
-#include "lua/lua_global.hpp"
+#include "lua/lua_event.hpp"
 #include "tables/spelldat.h"
 #include "utils/str_cat.hpp"
 
@@ -370,7 +370,7 @@ tl::expected<unique_base_item, std::string> ParseOrAddUniqueBaseItem(std::string
 		return tl::make_unexpected(fmt::format("Could not define new unique base item \"{}\", since the maximum number of {} has already been reached.", value, static_cast<size_t>(NUM_MAX_UITYPES)));
 	}
 
-	const unique_base_item newUniqueBaseItem = static_cast<unique_base_item>(newUniqueBaseItemIndex);
+	const auto newUniqueBaseItem = static_cast<unique_base_item>(newUniqueBaseItemIndex);
 	AdditionalUniqueBaseItemStringsToIndices[std::string(value)] = newUniqueBaseItem;
 	return newUniqueBaseItem;
 }
@@ -619,7 +619,7 @@ void LoadItemDat()
 	ItemMappingIdsToIndices.clear();
 	LoadItemDatFromFile(dataFile, filename, 0);
 
-	LuaEvent("ItemDataLoaded");
+	lua::ItemDataLoaded();
 }
 
 void ReadItemPower(RecordReader &reader, std::string_view fieldName, ItemPower &power)
@@ -676,7 +676,7 @@ void LoadUniqueItemDat()
 	UniqueItemMappingIdsToIndices.clear();
 	LoadUniqueItemDatFromFile(dataFile, filename, 0);
 
-	LuaEvent("UniqueItemDataLoaded");
+	lua::UniqueItemDataLoaded();
 }
 
 void LoadItemAffixesDat(std::string_view filename, std::vector<PLStruct> &out)

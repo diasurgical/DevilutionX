@@ -18,7 +18,7 @@ tcp_server::tcp_server(asio::io_context &ioc, const std::string &bindaddr,
     : ioc(ioc)
     , pktfty(pktfty)
 {
-	auto addr = asio::ip::address::from_string(bindaddr);
+	auto addr = asio::ip::make_address(bindaddr);
 	auto ep = asio::ip::tcp::endpoint(addr, port);
 	acceptor = std::make_unique<asio::ip::tcp::acceptor>(ioc, ep, true);
 	StartAccept();
@@ -208,7 +208,7 @@ tl::expected<void, PacketError> tcp_server::StartSend(const scc &con, buffer_t p
 }
 
 void tcp_server::HandleSend(const scc &con, const asio::error_code &ec,
-    size_t bytesSent)
+    size_t /*bytesSent*/)
 {
 	if (ec) {
 		Log("Network error: {}", ec.message());

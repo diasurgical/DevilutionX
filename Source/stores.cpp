@@ -7,7 +7,11 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <optional>
+#include <string>
 #include <string_view>
+#include <utility>
+#include <vector>
 
 #include <fmt/format.h>
 
@@ -27,10 +31,12 @@
 #include "options.h"
 #include "panels/info_box.hpp"
 #include "qol/stash.h"
+#include "qol/visual_store.h"
 #include "tables/townerdat.hpp"
 #include "towners.h"
 #include "utils/format_int.hpp"
 #include "utils/language.h"
+#include "utils/log.hpp"
 #include "utils/str_cat.hpp"
 #include "utils/utf8.hpp"
 
@@ -54,6 +60,84 @@ StaticVector<Item, NumWitchItemsHf> WitchItems;
 int BoyItemLevel;
 Item BoyItem;
 
+/** Remember currently selected text line from TextLine while displaying a dialog */
+int OldTextLine;
+/** Currently selected text line from TextLine */
+int CurrentTextLine;
+/** Remember last scroll position */
+int OldScrollPos;
+/** Scroll position */
+int ScrollPos;
+/** Remember current store while displaying a dialog */
+TalkID OldActiveStore;
+/** Temporary item used to hold the item being traded */
+Item TempItem;
+
+std::vector<std::pair<std::string, std::vector<TownerDialogOption>>> ExtraTownerOptions;
+
+const char *TownerNameForTalkID(TalkID s)
+{
+	switch (s) {
+	case TalkID::Smith: return "griswold";
+	case TalkID::Witch: return "adria";
+	case TalkID::Boy: return "wirt";
+	case TalkID::Healer: return "pepin";
+	case TalkID::Storyteller: return "cain";
+	case TalkID::Tavern: return "ogden";
+	case TalkID::Drunk: return "farnham";
+	case TalkID::Barmaid: return "gillian";
+	default: return nullptr;
+	}
+}
+
+/** Finds the entry for a towner in ExtraTownerOptions, or nullptr if none. */
+static std::vector<TownerDialogOption> *FindExtraTownerOptions(std::string_view townerName)
+{
+	for (auto &[name, opts] : ExtraTownerOptions) {
+		if (name == townerName)
+			return &opts;
+	}
+	return nullptr;
+}
+
+void RegisterTownerDialogOption(std::string_view townerName,
+    std::function<std::string()> getLabel,
+    std::function<void()> onSelect)
+{
+	// Validate that the towner name is known.
+	bool found = false;
+	for (const auto &[id, shortName] : TownerShortNames) {
+		if (shortName == townerName) {
+			found = true;
+			break;
+		}
+	}
+	if (!found) {
+		LogWarn("RegisterTownerDialogOption: unknown towner name \"{}\"", townerName);
+	}
+
+	if (auto *opts = FindExtraTownerOptions(townerName); opts != nullptr) {
+		opts->push_back({ std::move(getLabel), std::move(onSelect) });
+	} else {
+		std::vector<TownerDialogOption> newOpts;
+		newOpts.push_back({ std::move(getLabel), std::move(onSelect) });
+		ExtraTownerOptions.emplace_back(std::string(townerName), std::move(newOpts));
+	}
+}
+
+/**
+ * Maps dialog line number to ExtraTownerOptions vector index for
+ * options visible in the current dialog session.
+ * Indexed by text line number (0..NumStoreLines-1).
+ */
+static std::optional<size_t> CurrentExtraOptionIndices[NumStoreLines];
+
+void ClearTownerDialogOptions()
+{
+	ExtraTownerOptions.clear();
+	std::fill(std::begin(CurrentExtraOptionIndices), std::end(CurrentExtraOptionIndices), std::nullopt);
+}
+
 namespace {
 
 /** The current towner being interacted with */
@@ -64,10 +148,6 @@ bool IsTextFullSize;
 
 /** Number of text lines in the current dialog */
 int NumTextLines;
-/** Remember currently selected text line from TextLine while displaying a dialog */
-int OldTextLine;
-/** Currently selected text line from TextLine */
-int CurrentTextLine;
 
 struct STextStruct {
 	enum Type : uint8_t {
@@ -109,10 +189,6 @@ bool RenderGold;
 
 /** Does the current panel have a scrollbar */
 bool HasScrollbar;
-/** Remember last scroll position */
-int OldScrollPos;
-/** Scroll position */
-int ScrollPos;
 /** Next scroll position */
 int NextScrollPos;
 /** Previous scroll position */
@@ -121,12 +197,6 @@ int PreviousScrollPos;
 int8_t CountdownScrollUp;
 /** Countdown for the push state of the scroll down button */
 int8_t CountdownScrollDown;
-
-/** Remember current store while displaying a dialog */
-TalkID OldActiveStore;
-
-/** Temporary item used to hold the item being traded */
-Item TempItem;
 
 /** Maps from towner IDs to NPC names. */
 const char *const TownerNames[] = {
@@ -207,8 +277,8 @@ void DrawSTextBack(const Surface &out)
 void DrawSSlider(const Surface &out, int y1, int y2)
 {
 	const Point uiPosition = GetUIRectangle().position;
-	int yd1 = y1 * 12 + 44 + uiPosition.y;
-	const int yd2 = y2 * 12 + 44 + uiPosition.y;
+	int yd1 = (y1 * 12) + 44 + uiPosition.y;
+	const int yd2 = (y2 * 12) + 44 + uiPosition.y;
 	if (CountdownScrollUp != -1)
 		ClxDraw(out, { uiPosition.x + 601, yd1 }, (*pSTextSlidCels)[11]);
 	else
@@ -230,7 +300,7 @@ void DrawSSlider(const Surface &out, int y1, int y2)
 		yd3 = 1000 * (ScrollPos + ((yd3 - PreviousScrollPos) / 4)) / (CurrentItemIndex - 1) * (y2 * 12 - y1 * 12 - 24) / 1000;
 	else
 		yd3 = 0;
-	ClxDraw(out, { uiPosition.x + 601, (y1 + 1) * 12 + 44 + uiPosition.y + yd3 }, (*pSTextSlidCels)[12]);
+	ClxDraw(out, { uiPosition.x + 601, ((y1 + 1) * 12) + 44 + uiPosition.y + yd3 }, (*pSTextSlidCels)[12]);
 }
 
 void AddSLine(size_t y)
@@ -337,25 +407,6 @@ void PrintStoreItem(const Item &item, int l, UiFlags flags, bool cursIndent = fa
 	AddSText(40, l++, productLine, flags, false, -1, cursIndent);
 }
 
-bool StoreAutoPlace(Item &item, bool persistItem)
-{
-	Player &player = *MyPlayer;
-
-	if (AutoEquipEnabled(player, item) && AutoEquip(player, item, persistItem, true)) {
-		return true;
-	}
-
-	if (AutoPlaceItemInBelt(player, item, persistItem, true)) {
-		return true;
-	}
-
-	if (persistItem) {
-		return AutoPlaceItemInInventory(player, item, true);
-	}
-
-	return CanFitItemInInventory(player, item);
-}
-
 void ScrollVendorStore(std::span<Item> itemData, int storeLimit, int idx, int selling = true)
 {
 	ClearSText(5, 21);
@@ -374,7 +425,7 @@ void ScrollVendorStore(std::span<Item> itemData, int storeLimit, int idx, int se
 		if (CurrentTextLine != -1 && !TextLine[CurrentTextLine].isSelectable() && CurrentTextLine != BackButtonLine())
 			CurrentTextLine = NextScrollPos;
 	} else {
-		NumTextLines = std::max(static_cast<int>(storeLimit) - 4, 0);
+		NumTextLines = std::max(storeLimit - 4, 0);
 	}
 }
 
@@ -386,11 +437,16 @@ void StartSmith()
 	AddSText(0, 3, _("Blacksmith's shop"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
 	AddSText(0, 7, _("Would you like to:"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
 	AddSText(0, 10, _("Talk to Griswold"), UiFlags::ColorBlue | UiFlags::AlignCenter, true);
-	AddSText(0, 12, _("Buy basic items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSText(0, 14, _("Buy premium items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSText(0, 16, _("Sell items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSText(0, 18, _("Repair items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSText(0, 20, _("Leave the shop"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+	if (*GetOptions().Gameplay.visualStoreUI) {
+		AddSText(0, 12, _("Trade / Repair"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+		AddSText(0, 14, _("Leave the shop"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+	} else {
+		AddSText(0, 12, _("Buy basic items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+		AddSText(0, 14, _("Buy premium items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+		AddSText(0, 16, _("Sell items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+		AddSText(0, 18, _("Repair items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+		AddSText(0, 20, _("Leave the shop"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+	}
 	AddSLine(5);
 	CurrentItemIndex = 20;
 }
@@ -403,12 +459,6 @@ void ScrollSmithBuy(int idx)
 uint32_t TotalPlayerGold()
 {
 	return MyPlayer->_pGold + Stash.gold;
-}
-
-// TODO: Change `_iIvalue` to be unsigned instead of passing `int` here.
-bool PlayerCanAfford(int price)
-{
-	return TotalPlayerGold() >= static_cast<uint32_t>(price);
 }
 
 void StartSmithBuy()
@@ -474,7 +524,7 @@ bool StartSmithPremiumBuy()
 
 bool SmithSellOk(int i)
 {
-	Item *pI;
+	const Item *pI;
 
 	if (i >= 0) {
 		pI = &MyPlayer->InvList[i];
@@ -482,24 +532,7 @@ bool SmithSellOk(int i)
 		pI = &MyPlayer->SpdList[-(i + 1)];
 	}
 
-	if (pI->isEmpty())
-		return false;
-
-	if (pI->_iMiscId > IMISC_OILFIRST && pI->_iMiscId < IMISC_OILLAST)
-		return true;
-
-	if (pI->_itype == ItemType::Misc)
-		return false;
-	if (pI->_itype == ItemType::Gold)
-		return false;
-	if (pI->_itype == ItemType::Staff && (!gbIsHellfire || IsValidSpell(pI->_iSpell)))
-		return false;
-	if (pI->_iClass == ICLASS_QUEST)
-		return false;
-	if (pI->IDidx == IDI_LAZSTAFF)
-		return false;
-
-	return true;
+	return SmithWillBuy(*pI);
 }
 
 void ScrollSmithSell(int idx)
@@ -661,11 +694,19 @@ void StartWitch()
 	AddSText(0, 2, _("Witch's shack"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
 	AddSText(0, 9, _("Would you like to:"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
 	AddSText(0, 12, _("Talk to Adria"), UiFlags::ColorBlue | UiFlags::AlignCenter, true);
-	AddSText(0, 14, _("Buy items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSText(0, 16, _("Sell items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSText(0, 18, _("Recharge staves"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSText(0, 20, _("Leave the shack"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSLine(5);
+	if (*GetOptions().Gameplay.visualStoreUI) {
+		AddSText(0, 14, _("Buy / Sell"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+		AddSText(0, 16, _("Recharge staves"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+		AddSText(0, 18, _("Leave the shack"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+		AddSLine(4);
+	} else {
+		AddSText(0, 14, _("Buy items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+		AddSText(0, 16, _("Sell items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+		AddSText(0, 18, _("Recharge staves"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+		AddSText(0, 20, _("Leave the shack"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+		AddSLine(5);
+	}
+
 	CurrentItemIndex = 20;
 }
 
@@ -714,28 +755,14 @@ void StartWitchBuy()
 
 bool WitchSellOk(int i)
 {
-	Item *pI;
-
-	bool rv = false;
+	const Item *pI;
 
 	if (i >= 0)
 		pI = &MyPlayer->InvList[i];
 	else
 		pI = &MyPlayer->SpdList[-(i + 1)];
 
-	if (pI->_itype == ItemType::Misc)
-		rv = true;
-	if (pI->_iMiscId > 29 && pI->_iMiscId < 41)
-		rv = false;
-	if (pI->_iClass == ICLASS_QUEST)
-		rv = false;
-	if (pI->_itype == ItemType::Staff && (!gbIsHellfire || IsValidSpell(pI->_iSpell)))
-		rv = true;
-	if (pI->IDidx >= IDI_FIRSTQUEST && pI->IDidx <= IDI_LASTQUEST)
-		rv = false;
-	if (pI->IDidx == IDI_LAZSTAFF)
-		rv = false;
-	return rv;
+	return WitchWillBuy(*pI);
 }
 
 void StartWitchSell()
@@ -1257,6 +1284,25 @@ void StartDrunk()
 
 void SmithEnter()
 {
+	if (*GetOptions().Gameplay.visualStoreUI) {
+		switch (CurrentTextLine) {
+		case 10:
+			TownerId = TOWN_SMITH;
+			OldTextLine = 10;
+			OldActiveStore = TalkID::Smith;
+			StartStore(TalkID::Gossip);
+			break;
+		case 12:
+			ActiveStore = TalkID::None;
+			OpenVisualStore(VisualStoreVendor::Smith);
+			break;
+		case 14:
+			ActiveStore = TalkID::None;
+			break;
+		}
+		return;
+	}
+
 	switch (CurrentTextLine) {
 	case 10:
 		TownerId = TOWN_SMITH;
@@ -1484,6 +1530,28 @@ void SmithRepairEnter()
 
 void WitchEnter()
 {
+	if (*GetOptions().Gameplay.visualStoreUI) {
+		switch (CurrentTextLine) {
+		case 12:
+			OldTextLine = 12;
+			TownerId = TOWN_WITCH;
+			OldActiveStore = TalkID::Witch;
+			StartStore(TalkID::Gossip);
+			break;
+		case 14:
+			ActiveStore = TalkID::None;
+			OpenVisualStore(VisualStoreVendor::Witch);
+			break;
+		case 16:
+			StartStore(TalkID::WitchRecharge);
+			break;
+		case 18:
+			ActiveStore = TalkID::None;
+			break;
+		}
+		return;
+	}
+
 	switch (CurrentTextLine) {
 	case 12:
 		OldTextLine = 12;
@@ -1604,7 +1672,7 @@ void WitchRechargeEnter()
 {
 	if (CurrentTextLine == BackButtonLine()) {
 		StartStore(TalkID::Witch);
-		CurrentTextLine = 18;
+		CurrentTextLine = *GetOptions().Gameplay.visualStoreUI ? 16 : 18;
 		return;
 	}
 
@@ -1633,7 +1701,12 @@ void BoyEnter()
 			StartStore(TalkID::NoMoney);
 		} else {
 			TakePlrsMoney(50);
-			StartStore(TalkID::BoyBuy);
+			if (*GetOptions().Gameplay.visualStoreUI) {
+				ActiveStore = TalkID::None;
+				OpenVisualStore(VisualStoreVendor::Boy);
+			} else {
+				StartStore(TalkID::BoyBuy);
+			}
 		}
 		return;
 	}
@@ -1810,7 +1883,12 @@ void HealerEnter()
 		StartStore(TalkID::Gossip);
 		break;
 	case 14:
-		StartStore(TalkID::HealerBuy);
+		if (*GetOptions().Gameplay.visualStoreUI) {
+			ActiveStore = TalkID::None;
+			OpenVisualStore(VisualStoreVendor::Healer);
+		} else {
+			StartStore(TalkID::HealerBuy);
+		}
 		break;
 	case 18:
 		ActiveStore = TalkID::None;
@@ -2021,6 +2099,25 @@ void DrawSelector(const Surface &out, const Rectangle &rect, std::string_view te
 
 } // namespace
 
+bool StoreAutoPlace(Item &item, bool persistItem)
+{
+	Player &player = *MyPlayer;
+
+	if (AutoEquipEnabled(player, item) && AutoEquip(player, item, persistItem, true)) {
+		return true;
+	}
+
+	if (AutoPlaceItemInBelt(player, item, persistItem, true)) {
+		return true;
+	}
+
+	if (persistItem) {
+		return AutoPlaceItemInInventory(player, item, true);
+	}
+
+	return CanFitItemInInventory(player, item);
+}
+
 void AddStoreHoldRepair(Item *itm, int8_t i)
 {
 	Item *item;
@@ -2125,8 +2222,8 @@ void PrintSString(const Surface &out, int margin, int line, std::string_view tex
 		    ? (useRed ? GetHalfSizeItemSpriteRed(cursId) : GetHalfSizeItemSprite(cursId))
 		    : GetInvItemSprite(static_cast<int>(CURSOR_FIRSTITEM) + cursId);
 		const Point position {
-			rect.position.x + (HalfCursWidth - sprite.width()) / 2,
-			rect.position.y + (TextHeight() * 3 + sprite.height()) / 2
+			rect.position.x + ((HalfCursWidth - sprite.width()) / 2),
+			rect.position.y + ((TextHeight() * 3 + sprite.height()) / 2)
 		};
 		if (useHalfSize || !useRed) {
 			ClxDraw(out, position, sprite);
@@ -2202,34 +2299,8 @@ void StartStore(TalkID s)
 	ReleaseStoreBtn();
 
 	// Fire StoreOpened Lua event for main store entries
-	switch (s) {
-	case TalkID::Smith:
-		LuaEvent("StoreOpened", "griswold");
-		break;
-	case TalkID::Witch:
-		LuaEvent("StoreOpened", "adria");
-		break;
-	case TalkID::Boy:
-		LuaEvent("StoreOpened", "wirt");
-		break;
-	case TalkID::Healer:
-		LuaEvent("StoreOpened", "pepin");
-		break;
-	case TalkID::Storyteller:
-		LuaEvent("StoreOpened", "cain");
-		break;
-	case TalkID::Tavern:
-		LuaEvent("StoreOpened", "ogden");
-		break;
-	case TalkID::Drunk:
-		LuaEvent("StoreOpened", "farnham");
-		break;
-	case TalkID::Barmaid:
-		LuaEvent("StoreOpened", "gillian");
-		break;
-	default:
-		break;
-	}
+	if (const char *name = TownerNameForTalkID(s); name != nullptr)
+		lua::StoreOpened(name);
 
 	switch (s) {
 	case TalkID::Smith:
@@ -2316,6 +2387,36 @@ void StartStore(TalkID s)
 		break;
 	}
 
+	std::fill(std::begin(CurrentExtraOptionIndices), std::end(CurrentExtraOptionIndices), std::nullopt);
+	if (const char *extraTownerName = TownerNameForTalkID(s); extraTownerName != nullptr) {
+		if (auto *extraOpts = FindExtraTownerOptions(extraTownerName); extraOpts != nullptr) {
+			// Find the last selectable line (the "leave"/"say goodbye" option).
+			int lastSelectableLine = -1;
+			for (int i = NumStoreLines - 1; i >= 0; --i) {
+				if (TextLine[i].isSelectable()) {
+					lastSelectableLine = i;
+					break;
+				}
+			}
+
+			// Insert extra options into empty even-numbered lines before the leave option.
+			size_t optIdx = 0;
+			for (int line = 10; line < lastSelectableLine && optIdx < extraOpts->size(); line += 2) {
+				if (TextLine[line].hasText()) continue;
+				std::string label = (*extraOpts)[optIdx].getLabel();
+				if (!label.empty()) {
+					AddSText(0, line, label, UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+					CurrentExtraOptionIndices[line] = optIdx;
+				}
+				++optIdx;
+			}
+			if (optIdx < extraOpts->size()) {
+				LogWarn("Towner \"{}\" dialog: {} extra option(s) could not be placed (no empty lines)",
+				    extraTownerName, extraOpts->size() - optIdx);
+			}
+		}
+	}
+
 	CurrentTextLine = -1;
 	for (int i = 0; i < NumStoreLines; i++) {
 		if (TextLine[i].isSelectable()) {
@@ -2364,7 +2465,7 @@ void DrawSText(const Surface &out)
 	const Point uiPosition = GetUIRectangle().position;
 	for (int i = 0; i < NumStoreLines; i++) {
 		if (TextLine[i].isDivider())
-			DrawSLine(out, uiPosition.y + PaddingTop + TextLine[i].y + TextHeight() / 2);
+			DrawSLine(out, uiPosition.y + PaddingTop + TextLine[i].y + (TextHeight() / 2));
 		else if (TextLine[i].hasText())
 			PrintSString(out, TextLine[i]._sx, i, TextLine[i].text, TextLine[i].flags, TextLine[i]._sval, TextLine[i].cursId, TextLine[i].cursIndent);
 	}
@@ -2428,7 +2529,7 @@ void StoreESC()
 		break;
 	case TalkID::WitchRecharge:
 		StartStore(TalkID::Witch);
-		CurrentTextLine = 18;
+		CurrentTextLine = *GetOptions().Gameplay.visualStoreUI ? 16 : 18;
 		break;
 	case TalkID::HealerBuy:
 		StartStore(TalkID::Healer);
@@ -2580,6 +2681,22 @@ void StoreEnter()
 	}
 
 	PlaySFX(SfxID::MenuSelect);
+
+	if (CurrentTextLine >= 0 && CurrentTextLine < NumStoreLines && CurrentExtraOptionIndices[CurrentTextLine].has_value()) {
+		size_t optIdx = *CurrentExtraOptionIndices[CurrentTextLine];
+		if (const char *townerName = TownerNameForTalkID(ActiveStore); townerName != nullptr) {
+			if (auto *extraOpts = FindExtraTownerOptions(townerName); extraOpts != nullptr && optIdx < extraOpts->size()) {
+				ActiveStore = TalkID::None;
+				(*extraOpts)[optIdx].onSelect();
+				// If onSelect() set ActiveStore (e.g. to open a sub-dialog), preserve it.
+				// Otherwise it stays TalkID::None (dialog closed).
+				return;
+			}
+		}
+		ActiveStore = TalkID::None;
+		return;
+	}
+
 	switch (ActiveStore) {
 	case TalkID::Smith:
 		SmithEnter();
@@ -2738,6 +2855,57 @@ void ReleaseStoreBtn()
 bool IsPlayerInStore()
 {
 	return ActiveStore != TalkID::None;
+}
+
+// TODO: Change `_iIvalue` to be unsigned instead of passing `int` here.
+bool PlayerCanAfford(int price)
+{
+	return TotalPlayerGold() >= static_cast<uint32_t>(price);
+}
+
+bool SmithWillBuy(const Item &item)
+{
+	if (item.isEmpty())
+		return false;
+
+	if (item._iMiscId > IMISC_OILFIRST && item._iMiscId < IMISC_OILLAST)
+		return true;
+
+	if (item._itype == ItemType::Misc)
+		return false;
+	if (item._itype == ItemType::Gold)
+		return false;
+	if (item._itype == ItemType::Staff && (!gbIsHellfire || IsValidSpell(item._iSpell)))
+		return false;
+	if (item._iClass == ICLASS_QUEST)
+		return false;
+	if (item.IDidx == IDI_LAZSTAFF)
+		return false;
+
+	return true;
+}
+
+bool WitchWillBuy(const Item &item)
+{
+	if (item.isEmpty())
+		return false;
+
+	bool rv = false;
+
+	if (item._itype == ItemType::Misc)
+		rv = true;
+	if (item._iMiscId > 29 && item._iMiscId < 41)
+		rv = false;
+	if (item._iClass == ICLASS_QUEST)
+		rv = false;
+	if (item._itype == ItemType::Staff && (!gbIsHellfire || IsValidSpell(item._iSpell)))
+		rv = true;
+	if (item.IDidx >= IDI_FIRSTQUEST && item.IDidx <= IDI_LASTQUEST)
+		rv = false;
+	if (item.IDidx == IDI_LAZSTAFF)
+		rv = false;
+
+	return rv;
 }
 
 } // namespace devilution

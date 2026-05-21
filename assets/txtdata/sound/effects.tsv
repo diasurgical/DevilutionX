@@ -803,3 +803,13 @@ Warlord	Stream	sfx\monsters\warlrd01.wav
 Zhar1	Stream	sfx\monsters\zhar01.wav
 Zhar2	Stream	sfx\monsters\zhar02.wav
 DiabloDeath	Stream	sfx\monsters\diablod.wav
+AccessibilityWeapon	Misc	sfx\items\titlemov.wav
+AccessibilityArmor	Misc	sfx\items\titlemov.wav
+AccessibilityGold	Misc	sfx\items\titlemov.wav
+AccessibilityPotion	Misc	sfx\items\titlemov.wav
+AccessibilityScroll	Misc	sfx\items\titlemov.wav
+AccessibilityChest	Misc	sfx\items\titlemov.wav
+AccessibilityDoor	Misc	sfx\items\titlemov.wav
+AccessibilityStairs	Misc	sfx\items\titlemov.wav
+AccessibilityMonster	Misc	sfx\items\titlemov.wav
+AccessibilityInteract	Misc	sfx\items\titlemov.wav

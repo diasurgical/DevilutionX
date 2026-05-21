@@ -216,7 +216,7 @@ void DrawMapVerticalDoor(const Surface &out, Point center, AutomapTile neTile, u
 	default:
 		app_fatal("Invalid leveltype");
 	}
-	if (!(neTile.hasFlag(AutomapTile::Flags::VerticalPassage) && leveltype == DTYPE_CATHEDRAL))
+	if (!neTile.hasFlag(AutomapTile::Flags::VerticalPassage) || leveltype != DTYPE_CATHEDRAL)
 		DrawMapLineNE(out, center + AmOffset(lWidthOffset, lHeightOffset), AmLine(length), colorDim);
 	DrawDiamond(out, center + AmOffset(dWidthOffset, dHeightOffset), colorBright);
 }
@@ -265,7 +265,7 @@ void DrawMapHorizontalDoor(const Surface &out, Point center, AutomapTile nwTile,
 	default:
 		app_fatal("Invalid leveltype");
 	}
-	if (!(nwTile.hasFlag(AutomapTile::Flags::HorizontalPassage) && leveltype == DTYPE_CATHEDRAL))
+	if (!nwTile.hasFlag(AutomapTile::Flags::HorizontalPassage) || leveltype != DTYPE_CATHEDRAL)
 		DrawMapLineSE(out, center + AmOffset(lWidthOffset, lHeightOffset), AmLine(length), colorDim);
 	DrawDiamond(out, center + AmOffset(dWidthOffset, dHeightOffset), colorBright);
 }
@@ -747,7 +747,7 @@ void DrawVertical(const Surface &out, Point center, AutomapTile tile, AutomapTil
  * @brief Draw half-tile length lines to connect walls to any walls to the south-west and/or south-east
  * (For caves the horizontal/vertical flags are swapped)
  */
-void DrawCaveWallConnections(const Surface &out, Point center, AutomapTile sTile, AutomapTile swTile, AutomapTile seTile, uint8_t colorDim)
+void DrawCaveWallConnections(const Surface &out, Point center, AutomapTile swTile, AutomapTile seTile, uint8_t colorDim)
 {
 	if (IsAnyOf(swTile.type, AutomapTile::Types::CaveVerticalWallLava, AutomapTile::Types::CaveVertical, AutomapTile::Types::CaveVerticalWood, AutomapTile::Types::CaveCross, AutomapTile::Types::CaveWoodCross, AutomapTile::Types::CaveRightWoodCross, AutomapTile::Types::CaveLeftWoodCross, AutomapTile::Types::CaveRightCorner)) {
 		DrawMapLineNE(out, center + AmOffset(AmWidthOffset::QuarterTileLeft, AmHeightOffset::ThreeQuartersTileDown), AmLine(AmLineLength::HalfTile), colorDim);
@@ -850,7 +850,7 @@ void DrawMapEllipse(const Surface &out, Point from, int radius, uint8_t colorInd
 	SetMapPixel(out, { from.x, from.y - b }, colorIndex);
 
 	// Initialize the parameters
-	int p1 = (b * b) - (a * a * b) + (a * a) / 4;
+	int p1 = (b * b) - (a * a * b) + ((a * a) / 4);
 
 	// Region 1
 	while ((b * b * x) < (a * a * y)) {
@@ -1056,7 +1056,7 @@ void DrawAutomapTile(const Surface &out, Point center, Point map)
 
 	if (!noConnect) {
 		if (IsAnyOf(leveltype, DTYPE_TOWN, DTYPE_CAVES, DTYPE_NEST)) {
-			DrawCaveWallConnections(out, center, sTile, swTile, seTile, colorDim);
+			DrawCaveWallConnections(out, center, swTile, seTile, colorDim);
 		}
 		DrawWallConnections(out, center, tile, nwTile, neTile, colorBright, colorDim);
 	}
@@ -1259,8 +1259,8 @@ Displacement GetAutomapScreen()
 
 	if (GetAutomapType() == AutomapType::Minimap) {
 		screen = {
-			MinimapRect.position.x + MinimapRect.size.width / 2,
-			MinimapRect.position.y + MinimapRect.size.height / 2
+			MinimapRect.position.x + (MinimapRect.size.width / 2),
+			MinimapRect.position.y + (MinimapRect.size.height / 2)
 		};
 	} else {
 		screen = {
@@ -1298,12 +1298,12 @@ void SearchAutomapItem(const Surface &out, const Displacement &myPlayerOffset, i
 			if (!highlightTile({ i, j }))
 				continue;
 
-			const int px = i - 2 * AutomapOffset.deltaX - ViewPosition.x;
-			const int py = j - 2 * AutomapOffset.deltaY - ViewPosition.y;
+			const int px = i - (2 * AutomapOffset.deltaX) - ViewPosition.x;
+			const int py = j - (2 * AutomapOffset.deltaY) - ViewPosition.y;
 
 			Point screen = {
-				(myPlayerOffset.deltaX * scale / 100 / 2) + (px - py) * AmLine(AmLineLength::DoubleTile),
-				(myPlayerOffset.deltaY * scale / 100 / 2) + (px + py) * AmLine(AmLineLength::FullTile),
+				(myPlayerOffset.deltaX * scale / 100 / 2) + ((px - py) * AmLine(AmLineLength::DoubleTile)),
+				(myPlayerOffset.deltaY * scale / 100 / 2) + ((px + py) * AmLine(AmLineLength::FullTile)),
 			};
 
 			screen += GetAutomapScreen();
@@ -1345,8 +1345,8 @@ void DrawAutomapPlr(const Surface &out, const Displacement &myPlayerOffset, cons
 
 	const Point tile = player.position.tile;
 
-	const int px = tile.x - 2 * AutomapOffset.deltaX - ViewPosition.x;
-	const int py = tile.y - 2 * AutomapOffset.deltaY - ViewPosition.y;
+	const int px = tile.x - (2 * AutomapOffset.deltaX) - ViewPosition.x;
+	const int py = tile.y - (2 * AutomapOffset.deltaY) - ViewPosition.y;
 
 	Displacement playerOffset = {};
 	if (player.isWalking())
@@ -1355,8 +1355,8 @@ void DrawAutomapPlr(const Surface &out, const Displacement &myPlayerOffset, cons
 	const int scale = (GetAutomapType() == AutomapType::Minimap) ? MinimapScale : AutoMapScale;
 
 	Point base = {
-		((playerOffset.deltaX + myPlayerOffset.deltaX) * scale / 100 / 2) + (px - py) * AmLine(AmLineLength::DoubleTile),
-		((playerOffset.deltaY + myPlayerOffset.deltaY) * scale / 100 / 2) + (px + py) * AmLine(AmLineLength::FullTile) + AmOffset(AmWidthOffset::None, AmHeightOffset::HalfTileUp).deltaY
+		((playerOffset.deltaX + myPlayerOffset.deltaX) * scale / 100 / 2) + ((px - py) * AmLine(AmLineLength::DoubleTile)),
+		((playerOffset.deltaY + myPlayerOffset.deltaY) * scale / 100 / 2) + ((px + py) * AmLine(AmLineLength::FullTile)) + AmOffset(AmWidthOffset::None, AmHeightOffset::HalfTileUp).deltaY
 	};
 
 	base += GetAutomapScreen();
@@ -1775,7 +1775,7 @@ void DrawAutomap(const Surface &out)
 
 	const int scale = (GetAutomapType() == AutomapType::Minimap) ? MinimapScale : AutoMapScale;
 	const int d = (scale * 64) / 100;
-	int cells = 2 * (gnScreenWidth / 2 / d) + 1;
+	int cells = (2 * (gnScreenWidth / 2 / d)) + 1;
 	if (((gnScreenWidth / 2) % d) != 0)
 		cells++;
 	if (((gnScreenWidth / 2) % d) >= (scale * 32) / 100)

@@ -34,18 +34,19 @@ void ShutDownScreenReader()
 #endif
 }
 
-void SpeakText(std::string_view text)
+void SpeakText(std::string_view text, bool force)
 {
 	static std::string SpokenText;
 
-	if (SpokenText == text)
+	if (!force && SpokenText == text)
 		return;
 
 	SpokenText = text;
 
 #ifdef _WIN32
 	const auto textUtf16 = ToWideChar(SpokenText);
-	Tolk_Output(&textUtf16[0], true);
+	if (textUtf16 != nullptr)
+		Tolk_Output(textUtf16.get(), true);
 #else
 	spd_say(Speechd, SPD_TEXT, SpokenText.c_str());
 #endif

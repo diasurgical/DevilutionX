@@ -487,6 +487,8 @@ struct AudioOptions : OptionCategoryBase {
 
 	/** @brief Movie and SFX volume. */
 	OptionEntryInt<int> soundVolume;
+	/** @brief Accessibility / navigation cues volume. */
+	OptionEntryInt<int> audioCuesVolume;
 	/** @brief Music volume. */
 	OptionEntryInt<int> musicVolume;
 	/** @brief Player emits sound when walking. */
@@ -633,6 +635,8 @@ struct GameplayOptions : OptionCategoryBase {
 	OptionEntryInt<int> numRejuPotionPickup;
 	/** @brief Number of Full Rejuvenating potions to pick up automatically */
 	OptionEntryInt<int> numFullRejuPotionPickup;
+	/** @brief Use visual grid-based store UI instead of text-based menus. */
+	OptionEntryBoolean visualStoreUI;
 
 	/**
 	 * @brief If loading takes less than this value, skips displaying the loading screen.

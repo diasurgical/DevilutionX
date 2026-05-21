@@ -140,7 +140,7 @@ void DrawSpellBook(const Surface &out)
 	ClxDraw(out, GetPanelPosition(UiPanels::Spell, { 0, 351 }), (*spellBookBackground)[0]);
 	const int buttonX = gbIsHellfire && SpellbookTab < 5
 	    ? SpellBookButtonWidthHellfire * SpellbookTab
-	    : SpellBookButtonWidthDiablo * SpellbookTab
+	    : (SpellBookButtonWidthDiablo * SpellbookTab)
 	        // BUGFIX: rendering of page 3 and page 4 buttons are both off-by-one pixel (fixed).
 	        + (SpellbookTab == 2 || SpellbookTab == 3 ? 1 : 0);
 
@@ -196,7 +196,7 @@ void CheckSBook()
 	// Spell icons/buttons are 37x38 pixels, laid out from 11,18 with a 5 pixel margin between each icon. This is close
 	// enough to the height of the space given to spell descriptions that we can reuse that value and subtract the
 	// padding from the end of the area.
-	const Rectangle iconArea = { GetPanelPosition(UiPanels::Spell, { 11, 18 }), Size { 37, SpellBookDescription.height * 7 - 5 } };
+	const Rectangle iconArea = { GetPanelPosition(UiPanels::Spell, { 11, 18 }), Size { 37, (SpellBookDescription.height * 7) - 5 } };
 	if (iconArea.contains(MousePosition) && !IsInspectingPlayer()) {
 		const SpellID sn = GetSpellFromSpellPage(SpellbookTab, (MousePosition.y - iconArea.position.y) / SpellBookDescription.height);
 		Player &player = *InspectPlayer;

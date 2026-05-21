@@ -118,7 +118,7 @@ struct AssetHandle {
 struct AssetRef {
 	// An MPQ file reference:
 	MpqArchive *archive = nullptr;
-	uint32_t fileNumber;
+	uint32_t hashIndex = UINT32_MAX;
 	std::string_view filename;
 
 	// Alternatively, a direct SDL_IOStream handle:
@@ -128,7 +128,7 @@ struct AssetRef {
 
 	AssetRef(AssetRef &&other) noexcept
 	    : archive(other.archive)
-	    , fileNumber(other.fileNumber)
+	    , hashIndex(other.hashIndex)
 	    , filename(other.filename)
 	    , directHandle(other.directHandle)
 	{
@@ -139,7 +139,7 @@ struct AssetRef {
 	{
 		closeDirectHandle();
 		archive = other.archive;
-		fileNumber = other.fileNumber;
+		hashIndex = other.hashIndex;
 		filename = other.filename;
 		directHandle = other.directHandle;
 		other.directHandle = nullptr;
@@ -165,8 +165,9 @@ struct AssetRef {
 	[[nodiscard]] size_t size() const
 	{
 		if (archive != nullptr) {
-			int32_t error;
-			return archive->GetUnpackedFileSize(fileNumber, error);
+			if (hashIndex != UINT32_MAX)
+				return archive->GetFileSizeFromHash(hashIndex);
+			return archive->GetFileSize(filename);
 		}
 		return static_cast<size_t>(SDL_GetIOSize(directHandle));
 	}

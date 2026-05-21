@@ -5,6 +5,8 @@
  */
 #pragma once
 
+#include "utils/attributes.h"
+
 namespace devilution {
 
 void gamemenu_on();
@@ -15,6 +17,6 @@ void gamemenu_quit_game(bool bActivate);
 void gamemenu_load_game(bool bActivate);
 void gamemenu_save_game(bool bActivate);
 
-extern bool isGameMenuOpen;
+extern DVL_API_FOR_TEST bool isGameMenuOpen;
 
 } // namespace devilution

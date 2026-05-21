@@ -704,6 +704,22 @@ std::vector<Towner> Towners;
 
 std::unordered_map<_talker_id, std::string> TownerLongNames;
 
+const std::unordered_map<_talker_id, const char *> TownerShortNames = {
+	{ TOWN_SMITH, "griswold" },
+	{ TOWN_HEALER, "pepin" },
+	{ TOWN_DEADGUY, "deadguy" },
+	{ TOWN_TAVERN, "ogden" },
+	{ TOWN_STORY, "cain" },
+	{ TOWN_DRUNK, "farnham" },
+	{ TOWN_WITCH, "adria" },
+	{ TOWN_BMAID, "gillian" },
+	{ TOWN_PEGBOY, "wirt" },
+	{ TOWN_COW, "cow" },
+	{ TOWN_FARMER, "lester" },
+	{ TOWN_GIRL, "celia" },
+	{ TOWN_COWFARM, "nut" },
+};
+
 size_t GetNumTownerTypes()
 {
 	return TownerLongNames.size();

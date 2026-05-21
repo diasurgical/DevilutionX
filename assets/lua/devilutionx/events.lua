@@ -24,17 +24,13 @@ local function CreateEvent()
     ---
     ---The arguments are forwarded to handlers.
     ---@param ... any
+    ---@return any
     trigger = function(...)
-      local args = {...}
-      if #args > 0 then
-        for _, func in ipairs(functions) do
-          func(table.unpack(args))
-        end
-      else
-        for _, func in ipairs(functions) do
-          func()
-        end
+      local result
+      for _, func in ipairs(functions) do
+        result = func(...)
       end
+      return result
     end,
     __sig_trigger = "(...)",
   }

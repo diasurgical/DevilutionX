@@ -221,6 +221,7 @@ void PackNetPlayer(PlayerNetPack &packed, const Player &player)
 	packed.plrlevel = player.plrlevel;
 	packed.px = player.position.tile.x;
 	packed.py = player.position.tile.y;
+	packed.pdir = static_cast<uint8_t>(player._pdir);
 	CopyUtf8(packed.pName, player._pName, sizeof(packed.pName));
 	packed.pClass = static_cast<uint8_t>(player._pClass);
 	packed.pBaseStr = player._pBaseStr;
@@ -436,7 +437,7 @@ void UnPackPlayer(const PlayerPack &packed, Player &player)
 bool UnPackNetItem(const Player &player, const ItemNetPack &packedItem, Item &item)
 {
 	item = {};
-	const _item_indexes idx = static_cast<_item_indexes>(Swap16LE(packedItem.def.wIndx));
+	const auto idx = static_cast<_item_indexes>(Swap16LE(packedItem.def.wIndx));
 	if (idx < 0 || idx >= static_cast<_item_indexes>(AllItemsList.size()))
 		return true;
 	if (idx == IDI_EAR) {
@@ -489,9 +490,11 @@ bool UnPackNetPlayer(const PlayerNetPack &packed, Player &player)
 
 	ValidateField(packed._pNumInv, packed._pNumInv <= InventoryGridCells);
 
+	ValidateField(packed.pdir, packed.pdir <= static_cast<uint8_t>(Direction::SouthEast));
 	player.setCharacterLevel(packed.pLevel);
 	player.position.tile = position;
 	player.position.future = position;
+	player._pdir = static_cast<Direction>(packed.pdir);
 	player.plrlevel = packed.plrlevel;
 	player.plrIsOnSetLevel = packed.isOnSetLevel != 0;
 	player._pMaxHPBase = baseHpMax;
@@ -569,7 +572,7 @@ bool UnPackNetPlayer(const PlayerNetPack &packed, Player &player)
 		if (item.isEmpty())
 			continue;
 		const Size beltItemSize = GetInventorySize(item);
-		const int8_t beltItemType = static_cast<int8_t>(item._itype);
+		const auto beltItemType = static_cast<int8_t>(item._itype);
 		const bool beltItemUsable = item.isUsable();
 		ValidateFields(beltItemSize.width, beltItemSize.height, (beltItemSize == Size { 1, 1 }));
 		ValidateField(beltItemType, item._itype != ItemType::Gold);

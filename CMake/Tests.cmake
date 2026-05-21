@@ -38,6 +38,14 @@ set(tests
   townerdat_test
   writehero_test
   vendor_test
+  panel_state_test
+  store_transaction_test
+  visual_store_test
+  stash_test
+  inventory_ui_test
+  spell_ui_test
+  char_panel_test
+  game_menu_test
 )
 set(standalone_tests
   codec_test

@@ -191,7 +191,7 @@ void tcp_client::StartReceive()
 	    std::bind(&tcp_client::HandleReceive, this, std::placeholders::_1, std::placeholders::_2));
 }
 
-void tcp_client::HandleSend(const asio::error_code &error, size_t bytesSent)
+void tcp_client::HandleSend(const asio::error_code &error, size_t /*bytesSent*/)
 {
 	if (error)
 		RaiseIoHandlerError(error.message());
@@ -211,7 +211,7 @@ void tcp_client::HandleTcpErrorCode()
 		return;
 	}
 
-	PacketError::ErrorCode code = static_cast<PacketError::ErrorCode>(pktData[0]);
+	auto code = static_cast<PacketError::ErrorCode>(pktData[0]);
 	if (code == PacketError::ErrorCode::DecryptionFailed)
 		RaiseIoHandlerError(_("Server failed to decrypt your packet. Check if you typed the password correctly."));
 	else

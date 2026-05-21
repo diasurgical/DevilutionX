@@ -357,12 +357,12 @@ void UiFocusPageUp()
 
 void UiFocusPageDown()
 {
-	if (listOffset + ListViewportSize > static_cast<std::size_t>(SelectedItemMax)) {
+	if (listOffset + ListViewportSize > SelectedItemMax) {
 		UiFocus(SelectedItemMax, false, true);
 	} else {
 		const std::size_t relpos = SelectedItem - listOffset;
 		std::size_t nextPageEnd = SelectedItem + (ListViewportSize - relpos - 1);
-		if (nextPageEnd + ListViewportSize <= static_cast<std::size_t>(SelectedItemMax))
+		if (nextPageEnd + ListViewportSize <= SelectedItemMax)
 			nextPageEnd += ListViewportSize;
 		else
 			nextPageEnd = SelectedItemMax;

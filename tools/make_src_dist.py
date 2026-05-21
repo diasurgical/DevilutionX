@@ -37,7 +37,7 @@ import sys
 # 2. Require devilutionx forks (all others).
 _DEPS = [
     "asio",
-    "libmpq",
+    "mpqfs",
     "libsmackerdec",
     "libzt",
     "magic_enum",
@@ -45,7 +45,7 @@ _DEPS = [
     "sheenbidi",
     "unordered_dense",
 ]
-_ALWAYS_VENDORED_DEPS = ['asio', 'libmpq', 'libsmackerdec', 'libzt']
+_ALWAYS_VENDORED_DEPS = ['asio', 'mpqfs', 'libsmackerdec', 'libzt']
 
 # These dependencies are not vendored by default.
 # Run with `--fully_vendored` to include them.

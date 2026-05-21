@@ -214,7 +214,7 @@ By compiling the `package` target, the build will produce the `devilutionx.zip` 
 # and enable Discord integration
 cmake -S. -Bbuild -DCMAKE_TOOLCHAIN_FILE=../CMake/platforms/mingwcc.toolchain.cmake \
     -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF -DDEVILUTIONX_SYSTEM_BZIP2=OFF \
-    -DDEVILUTIONX_STATIC_LIBSODIUM=ON -DDISCORD_INTEGRATION=ON
+    -DDEVILUTIONX_STATIC_LIBSODIUM=ON -DDISCORD_INTEGRATION=ON -DCPACK=ON
 
 # Build the "package" target which produces devilutionx.zip
 # containing all the necessary dlls to run the game
@@ -251,7 +251,7 @@ Packaging/windows/mingw-prep64.sh
 # and enable Discord integration
 cmake -S. -Bbuild -DCMAKE_TOOLCHAIN_FILE=../CMake/platforms/mingwcc64.toolchain.cmake \
     -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF -DDEVILUTIONX_SYSTEM_BZIP2=OFF \
-    -DDEVILUTIONX_STATIC_LIBSODIUM=ON -DDISCORD_INTEGRATION=ON
+    -DDEVILUTIONX_STATIC_LIBSODIUM=ON -DDISCORD_INTEGRATION=ON -DCPACK=ON
 
 # Build the "package" target which produces devilutionx.zip
 # containing all the necessary dlls to run the game
@@ -284,7 +284,7 @@ If you need additional instructions for vcpkg you can find the documentation [he
 
 ### If you want to build the devilutionX.mpq File (optional)
 
-In order to build devilutionx.mpq, install smpq from https://launchpad.net/smpq/trunk/1.6/+download/SMPQ-1.6-x86_64.exe.
+In order to build devilutionx.mpq, install smpq from https://launchpad.net/smpq/trunk/1.7/+download/SMPQ-1.7-x86_64.exe.
 The location of this tool will need to be [added to the system's PATH environment variable](https://www.architectryan.com/2018/03/17/add-to-the-path-on-windows-10/).
 
 ### Compiling

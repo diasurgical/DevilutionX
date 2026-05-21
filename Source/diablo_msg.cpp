@@ -176,10 +176,10 @@ void DrawDiabloMsg(const Surface &out)
 	const int borderThickness = 3;
 
 	const int outerHeight = std::min<int>(out.h(), OuterHeight);
-	const int outerWidth = std::min<int>(out.w(), LineWidth + 2 * borderThickness + textPaddingX);
-	const int innerWidth = outerWidth - 2 * borderThickness;
+	const int outerWidth = std::min<int>(out.w(), LineWidth + (2 * borderThickness) + textPaddingX);
+	const int innerWidth = outerWidth - (2 * borderThickness);
 	const int lineWidth = innerWidth - textPaddingX;
-	const int innerHeight = outerHeight - 2 * borderThickness;
+	const int innerHeight = outerHeight - (2 * borderThickness);
 
 	const Point topLeft { (out.w() - outerWidth) / 2, (out.h() - outerHeight) / 2 };
 
@@ -209,7 +209,7 @@ void DrawDiabloMsg(const Surface &out)
 	DrawHalfTransparentRectTo(out, innerXBegin, innerYBegin, innerWidth, innerHeight);
 
 	const int textX = innerXBegin + textPaddingX;
-	int textY = innerYBegin + (innerHeight - LineHeight * static_cast<int>(TextLines.size())) / 2;
+	int textY = innerYBegin + ((innerHeight - LineHeight * static_cast<int>(TextLines.size())) / 2);
 	for (const std::string &line : TextLines) {
 		DrawString(out, line, { { textX, textY }, { lineWidth, LineHeight } },
 		    { .flags = UiFlags::AlignCenter, .lineHeight = LineHeight });

@@ -72,6 +72,7 @@
 #include "levels/trigs.h"
 #include "lighting.h"
 #include "loadsave.h"
+#include "lua/lua_event.hpp"
 #include "lua/lua_global.hpp"
 #include "menu.h"
 #include "minitext.h"
@@ -93,6 +94,7 @@
 #include "qol/itemlabels.h"
 #include "qol/monhealthbar.h"
 #include "qol/stash.h"
+#include "qol/visual_store.h"
 #include "qol/xpbar.h"
 #include "quick_messages.hpp"
 #include "restrict.h"
@@ -252,6 +254,7 @@ void LeftMouseCmd(bool bShift)
 	if (leveltype == DTYPE_TOWN) {
 		CloseGoldWithdraw();
 		CloseStash();
+		CloseVisualStore();
 		if (pcursitem != -1 && pcurs == CURSOR_HAND)
 			NetSendCmdLocParam1(true, invflag ? CMD_GOTOGETITEM : CMD_GOTOAGETITEM, cursPosition, pcursitem);
 		if (pcursmonst != -1)
@@ -384,6 +387,13 @@ void LeftMouseDown(uint16_t modState)
 				if (!IsWithdrawGoldOpen)
 					CheckStashItem(MousePosition, isShiftHeld, isCtrlHeld);
 				CheckStashButtonPress(MousePosition);
+			} else if (IsVisualStoreOpen && GetLeftPanel().contains(MousePosition)) {
+				if (!MyPlayer->HoldItem.isEmpty()) {
+					CheckVisualStorePaste(MousePosition);
+				} else {
+					CheckVisualStoreItem(MousePosition, isCtrlHeld, isShiftHeld);
+				}
+				CheckVisualStoreButtonPress(MousePosition);
 			} else if (SpellbookFlag && GetRightPanel().contains(MousePosition)) {
 				CheckSBook();
 			} else if (!MyPlayer->HoldItem.isEmpty()) {
@@ -418,6 +428,7 @@ void LeftMouseUp(uint16_t modState)
 	if (MainPanelButtonDown)
 		CheckMainPanelButtonUp();
 	CheckStashButtonRelease(MousePosition);
+	CheckVisualStoreButtonRelease(MousePosition);
 	if (CharPanelButtonActive) {
 		const bool isShiftHeld = (modState & SDL_KMOD_SHIFT) != 0;
 		ReleaseChrBtns(isShiftHeld);
@@ -876,7 +887,7 @@ void RunGameLoop(interface_mode uMsg)
 	nthread_ignore_mutex(false);
 
 	discord_manager::StartGame();
-	LuaEvent("GameStart");
+	lua::GameStart();
 #ifdef GPERF_HEAP_FIRST_GAME_ITERATION
 	unsigned run_game_iteration = 0;
 #endif
@@ -979,7 +990,7 @@ void PrintHelpOption(std::string_view flags, std::string_view description)
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 FILE *SdlLogFile = nullptr;
 
-extern "C" void SdlLogToFile(void *userdata, int category, SDL_LogPriority priority, const char *message)
+extern "C" void SdlLogToFile(void *userdata, int /*category*/, SDL_LogPriority priority, const char *message)
 {
 	FILE *file = reinterpret_cast<FILE *>(userdata);
 	static const char *const LogPriorityPrefixes[SDL_LOG_PRIORITY_COUNT] = {
@@ -1567,7 +1578,7 @@ void TimeoutCursor(bool bTimeout)
 			for (uint8_t i = 0; i < Players.size(); i++) {
 				bool isConnected = (player_state[i] & PS_CONNECTED) != 0;
 				bool isActive = (player_state[i] & PS_ACTIVE) != 0;
-				if (!(isConnected && !isActive)) continue;
+				if (!isConnected || isActive) continue;
 
 				DvlNetLatencies latencies = DvlNet_GetLatencies(i);
 
@@ -1647,6 +1658,7 @@ void InventoryKeyPressed()
 	SpellbookFlag = false;
 	CloseGoldWithdraw();
 	CloseStash();
+	CloseVisualStore();
 }
 
 void CharacterSheetKeyPressed()
@@ -1695,6 +1707,7 @@ void QuestLogKeyPressed()
 	CloseCharPanel();
 	CloseGoldWithdraw();
 	CloseStash();
+	CloseVisualStore();
 }
 
 void DisplaySpellsKeyPressed()
@@ -1730,6 +1743,7 @@ void SpellBookKeyPressed()
 		}
 	}
 	CloseInventory();
+	CloseVisualStore();
 }
 
 void CycleSpellHotkeys(bool next)
@@ -1777,12 +1791,9 @@ bool CanPlayerTakeAction()
 bool CanAutomapBeToggledOff()
 {
 	// check if every window is closed - if yes, automap can be toggled off
-	if (!QuestLogIsOpen && !IsWithdrawGoldOpen && !IsStashOpen && !CharFlag
+	return !QuestLogIsOpen && !IsWithdrawGoldOpen && !IsStashOpen && !IsVisualStoreOpen && !CharFlag
 	    && !SpellbookFlag && !invflag && !isGameMenuOpen && !qtextflag && !SpellSelectFlag
-	    && !ChatLogFlag && !HelpFlag)
-		return true;
-
-	return false;
+	    && !ChatLogFlag && !HelpFlag;
 }
 
 void OptionLanguageCodeChanged()
@@ -2640,6 +2651,7 @@ void FreeGameMem()
 	FreeObjectGFX();
 	FreeTownerGFX();
 	FreeStashGFX();
+	FreeVisualStoreGFX();
 #ifndef USE_SDL1
 	DeactivateVirtualGamepad();
 	FreeVirtualGamepadGFX();
@@ -2810,9 +2822,12 @@ bool TryIconCurs()
 	}
 
 	if (pcurs == CURSOR_REPAIR) {
-		if (pcursinvitem != -1 && !IsInspectingPlayer())
-			DoRepair(myPlayer, pcursinvitem);
-		else if (pcursstashitem != StashStruct::EmptyCell) {
+		if (pcursinvitem != -1 && !IsInspectingPlayer()) {
+			if (IsVisualStoreOpen)
+				VisualStoreRepairItem(pcursinvitem);
+			else
+				DoRepair(myPlayer, pcursinvitem);
+		} else if (pcursstashitem != StashStruct::EmptyCell) {
 			Item &item = Stash.stashList[pcursstashitem];
 			RepairItem(item, myPlayer.getCharacterLevel());
 		}
@@ -2994,7 +3009,7 @@ bool PressEscKey()
 	return rv;
 }
 
-void DisableInputEventHandler(const SDL_Event &event, uint16_t modState)
+void DisableInputEventHandler(const SDL_Event &event, uint16_t /*modState*/)
 {
 	switch (event.type) {
 	case SDL_EVENT_MOUSE_MOTION:
@@ -3195,6 +3210,7 @@ tl::expected<void, std::string> LoadGameLevelTown(bool firstflag, lvl_entry lvld
 
 	InitTowners();
 	InitStash();
+	InitVisualStore();
 	InitItems();
 	InitMissiles();
 

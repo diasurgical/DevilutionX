@@ -349,7 +349,7 @@ public:
 		return result;
 	}
 
-	size_t offset() const
+	[[nodiscard]] size_t offset() const
 	{
 		return next_;
 	}
@@ -430,7 +430,7 @@ void MaybeWrap(Point &characterPosition, int characterWidth, int rightMargin, in
 int GetLineStartX(UiFlags flags, const Rectangle &rect, int lineWidth)
 {
 	if (HasAnyOf(flags, UiFlags::AlignCenter)) {
-		return std::max(rect.position.x, rect.position.x + (rect.size.width - lineWidth) / 2);
+		return std::max(rect.position.x, rect.position.x + ((rect.size.width - lineWidth) / 2));
 	}
 	if (HasAnyOf(flags, UiFlags::AlignRight))
 		return rect.position.x + rect.size.width - lineWidth;
