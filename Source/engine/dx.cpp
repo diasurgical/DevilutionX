@@ -269,7 +269,8 @@ void RenderPresent()
 		SDL_RenderPresent(renderer);
 
 #ifdef __EMSCRIPTEN__
-		// Yield to browser to allow rendering
+		// TODO: Refactor to use emscripten_set_main_loop or requestAnimationFrame instead.
+		// For now, yield to browser to allow rendering via ASYNCIFY sleep.
 		emscripten_sleep(1);
 #endif
 

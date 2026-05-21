@@ -44,10 +44,6 @@
 #include "utils/language.h"
 #include "utils/status_macros.hpp"
 
-#ifdef __EMSCRIPTEN__
-#include <emscripten.h>
-#endif
-
 namespace devilution {
 
 bool gbIsHellfireSaveGame;
@@ -2935,11 +2931,6 @@ void SaveGame()
 	gbValidSaveFile = true;
 	pfile_write_hero(/*writeGameData=*/true);
 	sfile_write_stash();
-
-#ifdef __EMSCRIPTEN__
-	// Persist saves to IndexedDB for browser storage
-	emscripten_run_script("if (typeof Module !== 'undefined' && Module.saveToIndexedDB) Module.saveToIndexedDB();");
-#endif
 }
 
 void SaveLevel(SaveWriter &saveWriter)

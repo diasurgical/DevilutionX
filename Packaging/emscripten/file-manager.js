@@ -142,17 +142,32 @@
 				return;
 			}
 
-			mpqFilesList.innerHTML = mpqFiles.map(filename => {
+			mpqFilesList.innerHTML = '';
+			mpqFiles.forEach(filename => {
 				const path = '/libsdl/diasurgical/devilution/' + filename;
 				const stat = FS.stat(path);
-				return `
-					<div class="file-item">
-						<span class="file-item-name">${filename}</span>
-						<span class="file-item-size">${formatBytes(stat.size)}</span>
-						<button class="btn btn-delete" onclick="deleteFile('${filename}')">Delete</button>
-					</div>
-				`;
-			}).join('');
+
+				const item = document.createElement('div');
+				item.className = 'file-item';
+
+				const nameSpan = document.createElement('span');
+				nameSpan.className = 'file-item-name';
+				nameSpan.textContent = filename;
+
+				const sizeSpan = document.createElement('span');
+				sizeSpan.className = 'file-item-size';
+				sizeSpan.textContent = formatBytes(stat.size);
+
+				const deleteBtn = document.createElement('button');
+				deleteBtn.className = 'btn btn-delete';
+				deleteBtn.textContent = 'Delete';
+				deleteBtn.addEventListener('click', () => window.deleteFile(filename));
+
+				item.appendChild(nameSpan);
+				item.appendChild(sizeSpan);
+				item.appendChild(deleteBtn);
+				mpqFilesList.appendChild(item);
+			});
 		} catch (err) {
 			console.error('Error reading files:', err);
 			mpqFilesList.innerHTML = '<p class="info-text">Error reading files.</p>';

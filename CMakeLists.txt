@@ -272,6 +272,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang" AND NOT PS4)
     add_link_options("$<$<NOT:$<CONFIG:Debug>>:LINKER:-dead_strip>")
   else()
     add_link_options("$<$<NOT:$<CONFIG:Debug>>:LINKER:--gc-sections>")
+    # Emscripten's linker (wasm-ld) does not support --as-needed.
     if(NOT EMSCRIPTEN)
       add_link_options("$<$<NOT:$<CONFIG:Debug>>:LINKER:--as-needed>")
     endif()
@@ -411,8 +412,6 @@ if(EMSCRIPTEN)
   )
   # Add JavaScript to load MPQ files from the server directory at runtime
   target_link_options(${BIN_TARGET} PRIVATE --pre-js ${CMAKE_CURRENT_SOURCE_DIR}/Packaging/emscripten/emscripten_pre.js)
-  # Disable fullscreen by default
-  target_compile_definitions(${BIN_TARGET} PRIVATE EMSCRIPTEN_NO_FULLSCREEN)
 endif()
 
 if(NOT USE_SDL1 AND NOT UWP_LIB)
