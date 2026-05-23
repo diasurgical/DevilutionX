@@ -35,6 +35,7 @@
 #include "utils/language.h"
 #include "utils/log.hpp"
 #include "utils/str_cat.hpp"
+#include "utils/unicode-bidi.hpp"
 #include "utils/utf8.hpp"
 
 namespace devilution {
@@ -453,19 +454,29 @@ void DrawLine(
 {
 	CurrentFont currentFont;
 
-	std::string_view lineCopy = text;
+	const BidiText bidi(text);
+	std::string_view lineCopy = bidi.visual();
+	assert(lineCopy.size() == text.size() + 3); // Added 3 for the ZWSP added by BiDi.
 
-	size_t currentPos = 0;
+	// Compute visual cursor offset for this line (relative to line start) from the logical cursor position
+	int visualCursorRel = -1;
+	if (opts.cursorPosition >= static_cast<int>(lineStartPos) && opts.cursorPosition <= static_cast<int>(lineStartPos + text.size())) {
+		const int logicalRel = opts.cursorPosition - static_cast<int>(lineStartPos);
+		visualCursorRel = bidi.logicalToVisual(logicalRel);
+	}
+
+	size_t visualPos = 0;
 
 	size_t cpLen;
 
-	const auto maybeDrawCursor = [&]() {
-		const auto byteIndex = static_cast<int>(lineStartPos + currentPos);
+	const auto maybeDrawCursor = [&](int shift = 0) {
 		Point position = characterPosition;
-		if (opts.cursorPosition == byteIndex) {
+		if (visualCursorRel >= 0 && static_cast<int>(visualPos) == visualCursorRel) {
 			if (GetAnimationFrame(2, 500) != 0 || opts.cursorStatic) {
 				FontStack baseFont = LoadFont(size, color, 0);
 				if (baseFont.has_value()) {
+					if (bidi.isVisualPositionRTL(visualPos))
+						position.x += shift - baseFont.glyph('|').width();
 					DrawFont(out, position, baseFont.glyph('|'), color, outline);
 				}
 			}
@@ -482,7 +493,8 @@ void DrawLine(
 		char32_t c = DecodeFirstUtf8CodePoint(lineCopy, &cpLen);
 		if (c == Utf8DecodeError) break;
 		if (c == ZWSP) {
-			currentPos += cpLen;
+			maybeDrawCursor();
+			visualPos += cpLen;
 			lineCopy.remove_prefix(cpLen);
 			continue;
 		}
@@ -498,7 +510,9 @@ void DrawLine(
 		const ClxSprite glyph = currentFont.glyph(frame);
 		const int charWidth = glyph.width();
 
-		const auto byteIndex = static_cast<int>(lineStartPos + currentPos);
+		// Get the logical position for this character
+		int logicalPos = static_cast<int>(bidi.visualToLogical(visualPos));
+		const auto byteIndex = static_cast<int>(lineStartPos + logicalPos);
 
 		// Draw highlight
 		if (byteIndex >= opts.highlightRange.begin && byteIndex < opts.highlightRange.end) {
@@ -509,14 +523,14 @@ void DrawLine(
 		}
 
 		DrawFont(out, characterPosition, glyph, color, outline);
-		maybeDrawCursor();
+		maybeDrawCursor(charWidth);
 
 		// Move to the next position
 		characterPosition.x += charWidth + curSpacing;
-		currentPos += cpLen;
+		visualPos += cpLen;
 		lineCopy.remove_prefix(cpLen);
 	}
-	assert(currentPos == text.size());
+	assert(visualPos == bidi.visual().size());
 	maybeDrawCursor();
 }
 

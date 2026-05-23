@@ -12,6 +12,7 @@
 #include <SDL.h>
 #endif
 
+#include "utils/unicode-bidi.hpp"
 #include "utils/utf8.hpp"
 
 namespace devilution {
@@ -263,17 +264,18 @@ public:
 	void moveCursorLeft(bool word)
 	{
 		cursor_->selection.clear();
-		if (cursor_->position == 0)
-			return;
-		const size_t newPosition = prevPosition(word);
-		cursor_->position = newPosition;
+		BidiText bidi(value());
+		size_t visualPos = bidi.logicalToVisual(cursor_->position);
+		visualPos = prevPosition(bidi.visual(), visualPos, word);
+		cursor_->position = bidi.visualToLogical(visualPos);
 	}
 
 	void moveSelectCursorLeft(bool word)
 	{
-		if (cursor_->position == 0)
-			return;
-		const size_t newPosition = prevPosition(word);
+		BidiText bidi(value());
+		size_t visualPos = bidi.logicalToVisual(cursor_->position);
+		visualPos = prevPosition(bidi.visual(), visualPos, word);
+		const size_t newPosition = bidi.visualToLogical(visualPos);
 		if (cursor_->selection.empty()) {
 			cursor_->selection.begin = newPosition;
 			cursor_->selection.end = cursor_->position;
@@ -282,23 +284,30 @@ public:
 		} else {
 			cursor_->selection.begin = newPosition;
 		}
+		if (cursor_->selection.begin > cursor_->selection.end)
+			std::swap(cursor_->selection.begin, cursor_->selection.end);
 		cursor_->position = newPosition;
 	}
 
 	void moveCursorRight(bool word)
 	{
 		cursor_->selection.clear();
-		if (cursor_->position == value_.size())
+		BidiText bidi(value());
+		size_t visualPos = bidi.logicalToVisual(cursor_->position);
+		visualPos = nextPosition(bidi.visual(), visualPos, word);
+		if (visualPos >= bidi.visual().size())
 			return;
-		const size_t newPosition = nextPosition(word);
-		cursor_->position = newPosition;
+		cursor_->position = bidi.visualToLogical(visualPos);
 	}
 
 	void moveSelectCursorRight(bool word)
 	{
-		if (cursor_->position == value_.size())
+		BidiText bidi(value());
+		size_t visualPos = bidi.logicalToVisual(cursor_->position);
+		visualPos = nextPosition(bidi.visual(), visualPos, word);
+		if (visualPos >= bidi.visual().size())
 			return;
-		const size_t newPosition = nextPosition(word);
+		const size_t newPosition = bidi.visualToLogical(visualPos);
 		if (cursor_->selection.empty()) {
 			cursor_->selection.begin = cursor_->position;
 			cursor_->selection.end = newPosition;
@@ -307,6 +316,8 @@ public:
 		} else {
 			cursor_->selection.end = newPosition;
 		}
+		if (cursor_->selection.begin > cursor_->selection.end)
+			std::swap(cursor_->selection.begin, cursor_->selection.end);
 		cursor_->position = newPosition;
 	}
 
@@ -320,7 +331,17 @@ private:
 
 	[[nodiscard]] size_t prevPosition(bool word) const
 	{
-		const std::string_view str = beforeCursor();
+		return prevPosition(value(), cursor_->position, word);
+	}
+
+	[[nodiscard]] size_t nextPosition(bool word) const
+	{
+		return nextPosition(value(), cursor_->position, word);
+	}
+
+	[[nodiscard]] static size_t prevPosition(std::string_view text, size_t cursorPos, bool word)
+	{
+		const std::string_view str = text.substr(0, cursorPos);
 		size_t pos = FindLastUtf8Symbols(str);
 		if (!word)
 			return pos;
@@ -336,12 +357,12 @@ private:
 		return pos;
 	}
 
-	[[nodiscard]] size_t nextPosition(bool word) const
+	[[nodiscard]] static size_t nextPosition(std::string_view text, size_t cursorPos, bool word)
 	{
-		const std::string_view str = afterCursor();
+		const std::string_view str = text.substr(cursorPos);
 		size_t pos = Utf8CodePointLen(str.data());
 		if (!word)
-			return cursor_->position + pos;
+			return cursorPos + pos;
 		while (pos < str.size() && isWordSeparator(str[pos])) {
 			pos += Utf8CodePointLen(str.data() + pos);
 		}
@@ -350,7 +371,7 @@ private:
 			if (isWordSeparator(str[pos]))
 				break;
 		}
-		return cursor_->position + pos;
+		return cursorPos + pos;
 	}
 
 	[[nodiscard]] std::string_view beforeCursor() const
