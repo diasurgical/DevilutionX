@@ -454,21 +454,29 @@ void DrawLine(
 {
 	CurrentFont currentFont;
 
-	std::string visualText = ConvertLogicalToVisual(text);
-	std::string_view lineCopy = visualText;
-	assert(visualText.size() == text.size());
+	const BidiText bidi(text);
+	std::string_view lineCopy = bidi.visual();
+	assert(lineCopy.size() == text.size() + 3); // Added 3 for the ZWSP added by BiDi.
+
+	// Compute visual cursor offset for this line (relative to line start) from the logical cursor position
+	int visualCursorRel = -1;
+	if (opts.cursorPosition >= static_cast<int>(lineStartPos) && opts.cursorPosition <= static_cast<int>(lineStartPos + text.size())) {
+		const int logicalRel = opts.cursorPosition - static_cast<int>(lineStartPos);
+		visualCursorRel = bidi.logicalToVisual(logicalRel);
+	}
 
 	size_t visualPos = 0;
 
 	size_t cpLen;
 
-	const auto maybeDrawCursor = [&]() {
-		const auto byteIndex = static_cast<int>(lineStartPos + visualPos);
+	const auto maybeDrawCursor = [&](int shift = 0) {
 		Point position = characterPosition;
-		if (opts.cursorPosition == byteIndex) {
+		if (visualCursorRel >= 0 && static_cast<int>(visualPos) == visualCursorRel) {
 			if (GetAnimationFrame(2, 500) != 0 || opts.cursorStatic) {
 				FontStack baseFont = LoadFont(size, color, 0);
 				if (baseFont.has_value()) {
+					if (bidi.isVisualPositionRTL(visualPos))
+						position.x += shift - baseFont.glyph('|').width();
 					DrawFont(out, position, baseFont.glyph('|'), color, outline);
 				}
 			}
@@ -485,6 +493,7 @@ void DrawLine(
 		char32_t c = DecodeFirstUtf8CodePoint(lineCopy, &cpLen);
 		if (c == Utf8DecodeError) break;
 		if (c == ZWSP) {
+			maybeDrawCursor();
 			visualPos += cpLen;
 			lineCopy.remove_prefix(cpLen);
 			continue;
@@ -502,7 +511,7 @@ void DrawLine(
 		const int charWidth = glyph.width();
 
 		// Get the logical position for this character
-		int logicalPos = ConvertVisualToLogicalPosition(text, visualPos);
+		int logicalPos = static_cast<int>(bidi.visualToLogical(visualPos));
 		const auto byteIndex = static_cast<int>(lineStartPos + logicalPos);
 
 		// Draw highlight
@@ -514,14 +523,14 @@ void DrawLine(
 		}
 
 		DrawFont(out, characterPosition, glyph, color, outline);
-		maybeDrawCursor();
+		maybeDrawCursor(charWidth);
 
 		// Move to the next position
 		characterPosition.x += charWidth + curSpacing;
 		visualPos += cpLen;
 		lineCopy.remove_prefix(cpLen);
 	}
-	assert(visualPos == visualText.size());
+	assert(visualPos == bidi.visual().size());
 	maybeDrawCursor();
 }
 
