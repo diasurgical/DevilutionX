@@ -508,6 +508,13 @@ target_link_dependencies(libdevilutionx_items PUBLIC
   libdevilutionx_strings
 )
 
+add_library(libdevilutionx_sheen_bidi INTERFACE)
+target_include_directories(libdevilutionx_sheen_bidi INTERFACE
+  ${PROJECT_SOURCE_DIR}/Source)
+target_link_dependencies(libdevilutionx_sheen_bidi INTERFACE
+  SheenBidi::SheenBidi
+)
+
 add_devilutionx_object_library(libdevilutionx_ini
   utils/ini.cpp
 )
@@ -735,7 +742,7 @@ add_devilutionx_object_library(libdevilutionx_utf8
   utils/utf8.cpp
 )
 target_link_dependencies(libdevilutionx_utf8 PRIVATE
-  SheenBidi::SheenBidi
+  libdevilutionx_sheen_bidi
 )
 
 if(NOSOUND)
