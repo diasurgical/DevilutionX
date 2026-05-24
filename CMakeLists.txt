@@ -351,6 +351,14 @@ endif()
 # Dependencies must be included after Platforms.
 include(Dependencies)
 
+# If a C++ library is linked dynamically, it will load libstdc++.so at runtime.
+# Mixing `-static-libstdc++` with a dynamic C++ dependency causes both copies
+# to initialize, which is UB and can cause crashes, e.g. in
+# `std::ios_base_library_init()`.
+if(NOT DEVILUTIONX_STATIC_LIBFMT)
+  set(DEVILUTIONX_STATIC_CXX_STDLIB OFF)
+endif()
+
 add_subdirectory(Source)
 
 set(BIN_TARGET devilutionx)
