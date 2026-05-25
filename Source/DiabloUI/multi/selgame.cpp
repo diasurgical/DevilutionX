@@ -674,7 +674,7 @@ void selgame_Password_Select(size_t /*value*/)
 	m_game_data->bCowQuest = *GetOptions().Gameplay.cowQuest ? 1 : 0;
 
 	GameData gameInitInfo = *m_game_data;
-	gameInitInfo.swapLE();
+	SwapGameDataLE(gameInitInfo);
 	if (SNetCreateGame(nullptr, gamePassword, reinterpret_cast<char *>(&gameInitInfo), sizeof(gameInitInfo), gdwPlayerId)) {
 		UiInitList_clear();
 		selgame_endMenu = true;

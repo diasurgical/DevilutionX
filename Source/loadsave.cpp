@@ -19,6 +19,7 @@
 #include "codec.h"
 #include "control/control.hpp"
 #include "cursor.h"
+#include "cursor_defs.hpp"
 #include "dead.h"
 #include "doom.h"
 #include "engine/point.hpp"

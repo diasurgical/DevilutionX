@@ -86,6 +86,7 @@
 #include "panels/console.hpp"
 #include "panels/info_box.hpp"
 #include "panels/partypanel.hpp"
+#include "panels/quest_log.hpp"
 #include "panels/spell_book.hpp"
 #include "panels/spell_list.hpp"
 #include "pfile.h"
@@ -134,8 +135,6 @@
 
 namespace devilution {
 
-uint32_t DungeonSeeds[NUMLEVELS];
-std::optional<uint32_t> LevelSeeds[NUMLEVELS];
 Point MousePosition;
 bool gbRunGameResult;
 bool ReturnToMainMenu;
