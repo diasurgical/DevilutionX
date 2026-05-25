@@ -20,6 +20,7 @@
 #include "help.h"
 #include "inv.h"
 #include "minitext.h"
+#include "panels/quest_log.hpp"
 #include "stores.h"
 #include "utils/format.hpp"
 #include "utils/language.h"

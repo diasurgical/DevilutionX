@@ -22,6 +22,7 @@
 #include "items.h"
 #include "minitext.h"
 #include "options.h"
+#include "panels/quest_log.hpp"
 #include "player.h"
 #include "qol/stash.h"
 #include "qol/visual_store.h"

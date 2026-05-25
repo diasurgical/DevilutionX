@@ -10,6 +10,9 @@
 #include <string_view>
 #include <vector>
 
+#include <magic_enum/magic_enum.hpp>
+
+#include "appfat.h"
 #include "data/file.hpp"
 #include "data/iterators.hpp"
 #include "data/record_reader.hpp"

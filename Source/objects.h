@@ -11,6 +11,7 @@
 #include <string>
 
 #include "cursor.h"
+#include "cursor_defs.hpp"
 #include "engine/clx_sprite.hpp"
 #include "engine/point.hpp"
 #include "engine/rectangle.hpp"

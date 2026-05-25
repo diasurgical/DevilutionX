@@ -379,7 +379,7 @@ std::expected<void, PacketError> base_protocol<P>::recv_decrypted(packet &pkt, e
 			return {};
 		GameData gameData;
 		std::memcpy(&gameData, infoBuffer.data(), sizeof(GameData));
-		gameData.swapLE();
+		SwapGameDataLE(gameData);
 		if (gameData.size != sizeof(GameData))
 			return {};
 		std::vector<std::string> playerNames;

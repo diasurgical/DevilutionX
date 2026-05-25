@@ -16,9 +16,9 @@ namespace devilution {
 #undef assert
 
 #ifndef _DEBUG
-#define assert(exp)
+#define assert(exp) ((void)0)
 #else
-#define assert(exp) (void)((exp) || (assert_fail(__LINE__, __FILE__, #exp), 0))
+#define assert(exp) (void)((exp) || (::devilution::assert_fail(__LINE__, __FILE__, #exp), 0))
 #endif
 
 /**

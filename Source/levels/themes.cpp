@@ -7,6 +7,7 @@
 
 #include <cstdint>
 
+#include "cursor_defs.hpp"
 #include "engine/path.h"
 #include "engine/points_in_rectangle_range.hpp"
 #include "engine/random.hpp"

@@ -5,6 +5,7 @@
 #include <unordered_map>
 
 #include "cursor.h"
+#include "cursor_defs.hpp"
 #include "engine/clx_sprite.hpp"
 #include "engine/load_cel.hpp"
 #include "engine/load_file.hpp"

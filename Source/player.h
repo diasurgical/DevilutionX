@@ -19,6 +19,7 @@
 #include "engine/displacement.hpp"
 #include "engine/path.h"
 #include "engine/point.hpp"
+#include "engine/render/scrollrt.h"
 #include "game_mode.hpp"
 #include "interfac.h"
 #include "items.h"

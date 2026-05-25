@@ -40,8 +40,6 @@ constexpr uint32_t GameIdGenericMod = LoadBE32("DXMD"); // DevilutionX + mod
  */
 [[nodiscard]] uint32_t GetGameId();
 
-#define NUMLEVELS 25
-
 enum clicktype : int8_t {
 	CLICK_NONE,
 	CLICK_LEFT,
@@ -75,8 +73,6 @@ enum class PlayerActionType : uint8_t {
 	OperateObject,
 };
 
-extern uint32_t DungeonSeeds[NUMLEVELS];
-extern DVL_API_FOR_TEST std::optional<uint32_t> LevelSeeds[NUMLEVELS];
 extern DVL_API_FOR_TEST Point MousePosition;
 
 extern bool gbRunGameResult;

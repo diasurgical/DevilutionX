@@ -10,6 +10,7 @@
 
 #include "DiabloUI/ui_flags.hpp"
 #include "cursor.h"
+#include "cursor_defs.hpp"
 #include "engine/animationinfo.h"
 #include "engine/point.hpp"
 #include "engine/surface.hpp"

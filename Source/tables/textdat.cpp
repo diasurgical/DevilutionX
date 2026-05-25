@@ -8,9 +8,10 @@
 #include <ankerl/unordered_dense.h>
 #include <magic_enum/magic_enum.hpp>
 
+#include "appfat.h"
 #include "data/file.hpp"
 #include "data/record_reader.hpp"
-#include "effects.h"
+#include "parse_sfx_id.hpp"
 #include "utils/format.hpp"
 #include "utils/language.h"
 

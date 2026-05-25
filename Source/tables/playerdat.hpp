@@ -8,7 +8,9 @@
 #include <array>
 #include <cstdint>
 
-#include "effects.h"
+#include <magic_enum/magic_enum.hpp>
+
+#include "sound_effect_enums.h"
 #include "tables/itemdat.h"
 #include "tables/spelldat.h"
 

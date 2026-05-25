@@ -21,6 +21,7 @@
 #include "data/value_reader.hpp"
 #include "items.h"
 #include "player.h"
+#include "sound_effect_enums.h"
 #include "tables/textdat.h"
 #include "utils/format.hpp"
 #include "utils/language.h"

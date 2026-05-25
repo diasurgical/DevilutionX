@@ -19,6 +19,7 @@
 #include "engine/animationinfo.h"
 #include "engine/clx_sprite.hpp"
 #include "engine/point.hpp"
+#include "engine/render/scrollrt.h"
 #include "engine/sound.h"
 #include "engine/world_tile.hpp"
 #include "game_mode.hpp"
