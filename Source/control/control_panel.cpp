@@ -18,6 +18,7 @@
 #include "panels/charpanel.hpp"
 #include "panels/mainpanel.hpp"
 #include "panels/partypanel.hpp"
+#include "panels/quest_log.hpp"
 #include "panels/spell_book.hpp"
 #include "panels/spell_icons.hpp"
 #include "panels/spell_list.hpp"

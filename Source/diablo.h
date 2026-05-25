@@ -33,8 +33,6 @@ constexpr uint32_t GameIdHellfireFull = LoadBE32("HRTL");
 constexpr uint32_t GameIdHellfireSpawn = LoadBE32("HSHR");
 #define GAME_ID (gbIsHellfire ? (gbIsSpawn ? GameIdHellfireSpawn : GameIdHellfireFull) : (gbIsSpawn ? GameIdDiabloSpawn : GameIdDiabloFull))
 
-#define NUMLEVELS 25
-
 enum clicktype : int8_t {
 	CLICK_NONE,
 	CLICK_LEFT,
@@ -68,8 +66,6 @@ enum class PlayerActionType : uint8_t {
 	OperateObject,
 };
 
-extern uint32_t DungeonSeeds[NUMLEVELS];
-extern DVL_API_FOR_TEST std::optional<uint32_t> LevelSeeds[NUMLEVELS];
 extern DVL_API_FOR_TEST Point MousePosition;
 
 extern bool gbRunGameResult;

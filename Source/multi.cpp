@@ -58,16 +58,10 @@ bool shareNextHighPriorityMessage;
 uint8_t gbActivePlayers;
 bool gbGameDestroyed;
 bool sgbSendDeltaTbl[MAX_PLRS];
-GameData sgGameInitInfo;
 bool gbSelectProvider;
 int sglTimeoutStart;
 leaveinfo_t sgdwPlayerLeftReasonTbl[MAX_PLRS];
 uint32_t sgdwGameLoops;
-/**
- * Specifies the maximum number of players in a game, where 1
- * represents a single player game and 4 represents a multi player game.
- */
-bool gbIsMultiplayer;
 bool sgbTimeout;
 std::string GameName;
 std::string GamePassword;
@@ -88,14 +82,14 @@ const event_type EventTypes[3] = {
 	EVENT_TYPE_PLAYER_MESSAGE
 };
 
-void GameData::swapLE()
+void SwapGameDataLE(GameData &gameData)
 {
-	size = Swap32LE(size);
-	programid = Swap32LE(programid);
-	gameSeed[0] = Swap32LE(gameSeed[0]);
-	gameSeed[1] = Swap32LE(gameSeed[1]);
-	gameSeed[2] = Swap32LE(gameSeed[2]);
-	gameSeed[3] = Swap32LE(gameSeed[3]);
+	gameData.size = Swap32LE(gameData.size);
+	gameData.programid = Swap32LE(gameData.programid);
+	gameData.gameSeed[0] = Swap32LE(gameData.gameSeed[0]);
+	gameData.gameSeed[1] = Swap32LE(gameData.gameSeed[1]);
+	gameData.gameSeed[2] = Swap32LE(gameData.gameSeed[2]);
+	gameData.gameSeed[3] = Swap32LE(gameData.gameSeed[3]);
 }
 
 namespace {
@@ -470,7 +464,7 @@ void HandleEvents(_SNETEVENT *pEvt)
 		if (pEvt->databytes < sizeof(GameData))
 			app_fatal(StrCat("Invalid packet size (<sizeof(GameData)): ", pEvt->databytes));
 		std::memcpy(&gameData, pEvt->data, sizeof(gameData));
-		gameData.swapLE();
+		SwapGameDataLE(gameData);
 		if (gameData.size != sizeof(GameData))
 			app_fatal(StrCat("Invalid size of game data: ", gameData.size));
 		sgGameInitInfo = gameData;
@@ -531,7 +525,7 @@ bool InitSingle(GameData *gameData)
 
 	int unused = 0;
 	GameData gameInitInfo = sgGameInitInfo;
-	gameInitInfo.swapLE();
+	SwapGameDataLE(gameInitInfo);
 	if (!SNetCreateGame("local", "local", reinterpret_cast<char *>(&gameInitInfo), sizeof(gameInitInfo), &unused)) {
 		app_fatal(StrCat("SNetCreateGame1:\n", SDL_GetError()));
 	}

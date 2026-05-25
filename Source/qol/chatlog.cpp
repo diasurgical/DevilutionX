@@ -22,6 +22,7 @@
 #include "help.h"
 #include "inv.h"
 #include "minitext.h"
+#include "panels/quest_log.hpp"
 #include "stores.h"
 #include "utils/language.h"
 #include "utils/str_cat.hpp"

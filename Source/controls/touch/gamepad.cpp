@@ -9,7 +9,7 @@
 #include "control/control.hpp"
 #include "controls/touch/event_handlers.h"
 #include "controls/touch/gamepad.h"
-#include "quests.h"
+#include "panels/quest_log.hpp"
 #include "utils/display.h"
 #include "utils/ui_fwd.h"
 

@@ -12,6 +12,7 @@
 #include <expected.hpp>
 
 #include "engine/sound.h"
+#include "parse_sfx_id.hpp"
 #include "sound_effect_enums.h"
 
 namespace devilution {
@@ -38,6 +39,5 @@ void effects_play_sound(SfxID);
 int GetSFXLength(SfxID nSFX);
 
 tl::expected<HeroSpeech, std::string> ParseHeroSpeech(std::string_view value);
-tl::expected<SfxID, std::string> ParseSfxId(std::string_view value);
 
 } // namespace devilution

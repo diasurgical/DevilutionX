@@ -17,6 +17,7 @@
 #include "engine/render/clx_render.hpp"
 #include "engine/render/primitive_render.hpp"
 #include "engine/render/text_render.hpp"
+#include "panels/quest_log.hpp"
 #include "tables/playerdat.hpp"
 #include "tables/textdat.h"
 #include "utils/language.h"

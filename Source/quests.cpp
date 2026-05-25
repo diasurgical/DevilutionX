@@ -9,32 +9,24 @@
 
 #include <fmt/format.h>
 
-#include "DiabloUI/ui_flags.hpp"
 #include "control/control.hpp"
 #include "cursor.h"
-#include "data/file.hpp"
-#include "data/record_reader.hpp"
+#include "cursor_defs.hpp"
 #include "engine/load_file.hpp"
 #include "engine/random.hpp"
-#include "engine/render/clx_render.hpp"
-#include "engine/render/text_render.hpp"
 #include "engine/world_tile.hpp"
 #include "game_mode.hpp"
+#include "levels/dun_tile_data.hpp"
 #include "levels/gendung.h"
 #include "levels/town.h"
 #include "levels/trigs.h"
-#include "minitext.h"
 #include "missiles.h"
 #include "monster.h"
 #include "options.h"
-#include "panels/ui_panels.hpp"
-#include "stores.h"
 #include "tables/townerdat.hpp"
 #include "towners.h"
-#include "utils/endian_swap.hpp"
 #include "utils/is_of.hpp"
 #include "utils/language.h"
-#include "utils/utf8.hpp"
 
 #ifdef _DEBUG
 #include "debug.h"
@@ -42,37 +34,9 @@
 
 namespace devilution {
 
-bool QuestLogIsOpen;
-OptionalOwnedClxSpriteList pQLogCel;
-/** Contains the quests of the current game. */
-Quest Quests[MAXQUESTS];
-Point ReturnLvlPosition;
-dungeon_type ReturnLevelType;
-int ReturnLevel;
-
-/** Contains the data related to each quest_id. */
-std::vector<QuestData> QuestsData;
-
 namespace {
 
 int WaterDone;
-
-/** Indices of quests to display in quest log window. `FirstFinishedQuest` are active quests the rest are completed */
-quest_id EncounteredQuests[MAXQUESTS];
-/** Overall number of EncounteredQuests entries */
-int EncounteredQuestCount;
-/** First (nonselectable) finished quest in list */
-int FirstFinishedQuest;
-/** Currently selected quest list item */
-int SelectedQuest;
-
-constexpr Rectangle InnerPanel { { 32, 26 }, { 280, 300 } };
-constexpr int LineHeight = 12;
-constexpr int MaxSpacing = LineHeight * 2;
-int ListYOffset;
-int LineSpacing;
-/** The number of pixels to move finished quest, to separate them from the active ones */
-int FinishedQuestOffset;
 
 const char *const QuestTriggerNames[5] = {
 	N_(/* TRANSLATORS: Quest Map*/ "King Leoric's Tomb"),
@@ -81,108 +45,6 @@ const char *const QuestTriggerNames[5] = {
 	N_(/* TRANSLATORS: Quest Map*/ "A Dark Passage"),
 	N_(/* TRANSLATORS: Quest Map*/ "Unholy Altar")
 };
-
-/**
- * @brief There is no reason to run this, the room has already had a proper sector assigned
- */
-void DrawButcher()
-{
-	const Point position = SetPiece.position.megaToWorld() + Displacement { 3, 3 };
-	DRLG_RectTrans({ position, { 7, 7 } });
-}
-
-void DrawSkelKing(quest_id q, Point position)
-{
-	Quests[q].position = position.megaToWorld() + Displacement { 12, 7 };
-}
-
-void DrawWarLord(Point position)
-{
-	auto dunData = LoadFileInMem<uint16_t>("levels\\l4data\\warlord2.dun");
-
-	SetPiece = { position, GetDunSize(dunData.get()) };
-
-	PlaceDunTiles(dunData.get(), position, 6);
-}
-
-void DrawSChamber(quest_id q, Point position)
-{
-	auto dunData = LoadFileInMem<uint16_t>("levels\\l2data\\bonestr1.dun");
-
-	SetPiece = { position, GetDunSize(dunData.get()) };
-
-	PlaceDunTiles(dunData.get(), position, 3);
-
-	Quests[q].position = position.megaToWorld() + Displacement { 6, 7 };
-}
-
-void DrawLTBanner(Point position)
-{
-	auto dunData = LoadFileInMem<uint16_t>("levels\\l1data\\banner1.dun");
-
-	const WorldTileSize size = GetDunSize(dunData.get());
-
-	SetPiece = { position, size };
-
-	const uint16_t *tileLayer = &dunData[2];
-
-	for (WorldTileCoord j = 0; j < size.height; j++) {
-		for (WorldTileCoord i = 0; i < size.width; i++) {
-			auto tileId = static_cast<uint8_t>(Swap16LE(tileLayer[(j * size.width) + i]));
-			if (tileId != 0) {
-				pdungeon[position.x + i][position.y + j] = tileId;
-			}
-		}
-	}
-}
-
-/**
- * Close outer wall
- */
-void DrawBlind(Point position)
-{
-	dungeon[position.x][position.y + 1] = 154;
-	dungeon[position.x + 10][position.y + 8] = 154;
-}
-
-void DrawBlood(Point position)
-{
-	auto dunData = LoadFileInMem<uint16_t>("levels\\l2data\\blood2.dun");
-
-	SetPiece = { position, GetDunSize(dunData.get()) };
-
-	PlaceDunTiles(dunData.get(), position, 0);
-}
-
-int QuestLogMouseToEntry()
-{
-	Rectangle innerArea = InnerPanel;
-	innerArea.position += Displacement(GetLeftPanel().position.x, GetLeftPanel().position.y);
-	if (!innerArea.contains(MousePosition) || (EncounteredQuestCount == 0))
-		return -1;
-	const int y = MousePosition.y - innerArea.position.y;
-	for (int i = 0; i < FirstFinishedQuest; i++) {
-		if ((y >= ListYOffset + i * LineSpacing)
-		    && (y < ListYOffset + i * LineSpacing + LineHeight)) {
-			return i;
-		}
-	}
-	return -1;
-}
-
-void PrintQLString(const Surface &out, int x, int y, std::string_view str, bool marked, bool disabled = false)
-{
-	const int width = GetLineWidth(str);
-	x += std::max((257 - width) / 2, 0);
-	if (marked) {
-		ClxDraw(out, GetPanelPosition(UiPanels::Quest, { x - 20, y + 13 }), (*pSPentSpn2Cels)[PentSpn2Spin()]);
-	}
-	DrawString(out, str, { GetPanelPosition(UiPanels::Quest, { x, y }), { 257, 0 } },
-	    { .flags = disabled ? UiFlags::ColorWhitegold : UiFlags::ColorWhite });
-	if (marked) {
-		ClxDraw(out, GetPanelPosition(UiPanels::Quest, { x + width + 7, y + 13 }), (*pSPentSpn2Cels)[PentSpn2Spin()]);
-	}
-}
 
 std::array<Color, 32> PureWaterPalette;
 
@@ -201,7 +63,6 @@ void InitQuests()
 	SetTownerQuestDialog(TOWN_HEALER, Q_MUSHROOM, TEXT_NONE);
 	SetTownerQuestDialog(TOWN_WITCH, Q_MUSHROOM, TEXT_MUSH9);
 
-	QuestLogIsOpen = false;
 	WaterDone = 0;
 
 	int q = 0;
@@ -423,39 +284,6 @@ void CheckQuestKill(const Monster &monster, bool sendmsg)
 		Quests[Q_WARLORD]._qactive = QUEST_DONE;
 		NetSendCmdQuest(true, Quests[Q_WARLORD]);
 		myPlayer.Say(HeroSpeech::YourReignOfPainHasEnded, 30);
-	}
-}
-
-void DRLG_CheckQuests(Point position)
-{
-	for (auto &quest : Quests) {
-		if (quest.IsAvailable()) {
-			switch (quest._qidx) {
-			case Q_BUTCHER:
-				DrawButcher();
-				break;
-			case Q_LTBANNER:
-				DrawLTBanner(position);
-				break;
-			case Q_BLIND:
-				DrawBlind(position);
-				break;
-			case Q_BLOOD:
-				DrawBlood(position);
-				break;
-			case Q_WARLORD:
-				DrawWarLord(position);
-				break;
-			case Q_SKELKING:
-				DrawSkelKing(quest._qidx, position);
-				break;
-			case Q_SCHAMB:
-				DrawSChamber(quest._qidx, position);
-				break;
-			default:
-				break;
-			}
-		}
 	}
 }
 
@@ -761,118 +589,6 @@ void ResyncQuests()
 	LoadingMapObjects = false;
 }
 
-void DrawQuestLog(const Surface &out)
-{
-	const int l = QuestLogMouseToEntry();
-	if (l >= 0) {
-		SelectedQuest = l;
-	}
-	const auto x = InnerPanel.position.x;
-	ClxDraw(out, GetPanelPosition(UiPanels::Quest, { 0, 351 }), (*pQLogCel)[0]);
-	int y = InnerPanel.position.y + ListYOffset;
-	for (int i = 0; i < EncounteredQuestCount; i++) {
-		if (i == FirstFinishedQuest) {
-			y += FinishedQuestOffset;
-		}
-		PrintQLString(out, x, y, _(QuestsData[EncounteredQuests[i]]._qlstr), i == SelectedQuest, i >= FirstFinishedQuest);
-		y += LineSpacing;
-	}
-}
-
-void StartQuestlog()
-{
-
-	auto sortQuestIdx = [](int a, int b) {
-		return QuestsData[a].questBookOrder < QuestsData[b].questBookOrder;
-	};
-
-	EncounteredQuestCount = 0;
-	for (auto &quest : Quests) {
-		if (quest._qactive == QUEST_ACTIVE && quest._qlog) {
-			EncounteredQuests[EncounteredQuestCount] = quest._qidx;
-			EncounteredQuestCount++;
-		}
-	}
-	FirstFinishedQuest = EncounteredQuestCount;
-	for (auto &quest : Quests) {
-		if (quest._qactive == QUEST_DONE || quest._qactive == QUEST_HIVE_DONE) {
-			EncounteredQuests[EncounteredQuestCount] = quest._qidx;
-			EncounteredQuestCount++;
-		}
-	}
-
-	std::sort(&EncounteredQuests[0], &EncounteredQuests[FirstFinishedQuest], sortQuestIdx);
-	std::sort(&EncounteredQuests[FirstFinishedQuest], &EncounteredQuests[EncounteredQuestCount], sortQuestIdx);
-
-	const bool twoBlocks = FirstFinishedQuest != 0 && FirstFinishedQuest < EncounteredQuestCount;
-
-	ListYOffset = 0;
-	FinishedQuestOffset = !twoBlocks ? 0 : LineHeight / 2;
-
-	const int overallMinHeight = (EncounteredQuestCount * LineHeight) + FinishedQuestOffset;
-	const int space = InnerPanel.size.height;
-
-	if (EncounteredQuestCount > 0) {
-		const int additionalSpace = space - overallMinHeight;
-		int addLineSpacing = additionalSpace / EncounteredQuestCount;
-		addLineSpacing = std::min(MaxSpacing - LineHeight, addLineSpacing);
-		LineSpacing = LineHeight + addLineSpacing;
-		if (twoBlocks) {
-			int additionalSepSpace = additionalSpace - (addLineSpacing * EncounteredQuestCount);
-			additionalSepSpace = std::min(LineHeight, additionalSepSpace);
-			FinishedQuestOffset = std::max(4, additionalSepSpace);
-		}
-
-		const int overallHeight = (EncounteredQuestCount * LineSpacing) + FinishedQuestOffset;
-		ListYOffset += (space - overallHeight) / 2;
-	}
-
-	SelectedQuest = FirstFinishedQuest == 0 ? -1 : 0;
-	QuestLogIsOpen = true;
-}
-
-void QuestlogUp()
-{
-	if (FirstFinishedQuest == 0) {
-		SelectedQuest = -1;
-	} else {
-		SelectedQuest--;
-		if (SelectedQuest < 0) {
-			SelectedQuest = FirstFinishedQuest - 1;
-		}
-		PlaySFX(SfxID::MenuMove);
-	}
-}
-
-void QuestlogDown()
-{
-	if (FirstFinishedQuest == 0) {
-		SelectedQuest = -1;
-	} else {
-		SelectedQuest++;
-		if (SelectedQuest == FirstFinishedQuest) {
-			SelectedQuest = 0;
-		}
-		PlaySFX(SfxID::MenuMove);
-	}
-}
-
-void QuestlogEnter()
-{
-	PlaySFX(SfxID::MenuSelect);
-	if (EncounteredQuestCount != 0 && SelectedQuest >= 0 && SelectedQuest < FirstFinishedQuest)
-		InitQTextMsg(Quests[EncounteredQuests[SelectedQuest]]._qmsg);
-	QuestLogIsOpen = false;
-}
-
-void QuestlogESC()
-{
-	const int l = QuestLogMouseToEntry();
-	if (l != -1) {
-		QuestlogEnter();
-	}
-}
-
 void SetMultiQuest(int q, quest_state s, bool log, int v1, int v2, int16_t qmsg)
 {
 	if (gbIsSpawn)
@@ -903,61 +619,6 @@ void SetMultiQuest(int q, quest_state s, bool log, int v1, int v2, int16_t qmsg)
 		if (quest._qidx == Q_JERSEY && questGotCompleted && MyPlayer->isOnLevel(0))
 			UpdateCowFarmerAnimAfterQuestComplete();
 	}
-}
-
-bool UseMultiplayerQuests()
-{
-	return sgGameInitInfo.fullQuests == 0;
-}
-
-bool Quest::IsAvailable() const
-{
-	if (setlevel)
-		return false;
-	if (currlevel != _qlevel)
-		return false;
-	if (_qactive == QUEST_NOTAVAIL)
-		return false;
-	if (QuestsData[_qidx].isSinglePlayerOnly && UseMultiplayerQuests())
-		return false;
-
-	return true;
-}
-
-namespace {
-
-void LoadQuestDatFromFile(DataFile &dataFile, std::string_view filename)
-{
-	dataFile.skipHeaderOrDie(filename);
-
-	QuestsData.reserve(QuestsData.size() + dataFile.numRecords());
-
-	for (DataFileRecord record : dataFile) {
-		RecordReader reader { record, filename };
-		QuestData &quest = QuestsData.emplace_back();
-		reader.readInt("qdlvl", quest._qdlvl);
-		reader.readInt("qdmultlvl", quest._qdmultlvl);
-		reader.read("qlvlt", quest._qlvlt, ParseDungeonType);
-		reader.readInt("bookOrder", quest.questBookOrder);
-		reader.readInt("qdrnd", quest._qdrnd);
-		reader.read("qslvl", quest._qslvl, ParseSetLevel);
-		reader.readBool("isSinglePlayerOnly", quest.isSinglePlayerOnly);
-		reader.read("qdmsg", quest._qdmsg, ParseSpeechId);
-		reader.readString("qlstr", quest._qlstr);
-	}
-}
-
-} // namespace
-
-void LoadQuestData()
-{
-	const std::string_view filename = "txtdata\\quests\\questdat.tsv";
-	DataFile dataFile = DataFile::loadOrDie(filename);
-
-	QuestsData.clear();
-	LoadQuestDatFromFile(dataFile, filename);
-
-	QuestsData.shrink_to_fit();
 }
 
 } // namespace devilution

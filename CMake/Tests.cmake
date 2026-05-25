@@ -126,7 +126,18 @@ target_link_dependencies(clx_render_benchmark
 target_link_dependencies(crawl_test PRIVATE libdevilutionx_crawl)
 target_link_dependencies(crawl_benchmark PRIVATE libdevilutionx_crawl)
 target_link_dependencies(data_file_test PRIVATE libdevilutionx_txtdata app_fatal_for_testing language_for_testing)
-target_link_dependencies(dun_render_benchmark PRIVATE libdevilutionx_so)
+target_link_dependencies(dun_render_benchmark
+  PRIVATE
+  libdevilutionx_assets
+  libdevilutionx_dun_tile_data
+  libdevilutionx_light_tables
+  libdevilutionx_dun_render
+  libdevilutionx_options
+  app_fatal_for_testing
+  language_for_testing
+  tl
+  unordered_dense::unordered_dense
+)
 target_link_dependencies(file_util_test PRIVATE libdevilutionx_file_util app_fatal_for_testing)
 target_link_dependencies(format_int_test PRIVATE libdevilutionx_format_int language_for_testing)
 target_link_dependencies(ini_test PRIVATE libdevilutionx_ini app_fatal_for_testing)
