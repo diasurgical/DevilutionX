@@ -2689,9 +2689,19 @@ StartPlayerKill(Player &player, DeathReason deathReason)
 		gamemenu_off();
 	}
 
-	const bool dropGold = !gbIsMultiplayer || !(player.isOnLevel(16) || player.isOnArenaLevel());
-	const bool dropItems = dropGold && deathReason == DeathReason::MonsterOrTrap;
-	const bool dropEar = dropGold && deathReason == DeathReason::Player;
+	bool dropGold = !gbIsMultiplayer || !(player.isOnLevel(16) || player.isOnArenaLevel());
+	bool dropItems = dropGold && deathReason == DeathReason::MonsterOrTrap;
+	bool dropEar = dropGold && deathReason == DeathReason::Player;
+
+	if (dropGold && !lua::OnPlayerDeathDropGold(&player)) {
+		dropGold = false;
+	}
+	if (dropItems && !lua::OnPlayerDeathDropItem(&player)) {
+		dropItems = false;
+	}
+	if (dropEar && !lua::OnPlayerDeathDropEar(&player)) {
+		dropEar = false;
+	}
 
 	player.Say(HeroSpeech::AuughUh);
 
