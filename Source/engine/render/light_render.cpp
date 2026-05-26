@@ -1,16 +1,15 @@
 #include "engine/render/light_render.hpp"
 
 #include <algorithm>
-#include <cassert>
 #include <cstddef>
 #include <cstdint>
-#include <cstring>
 #include <span>
 #include <vector>
 
 #include "engine/displacement.hpp"
 #include "engine/lighting_defs.hpp"
 #include "engine/point.hpp"
+#include "engine/render/overlapped_memset.hpp"
 #include "levels/dun_tile.hpp"
 #include "levels/gendung_defs.hpp"
 #include "utils/attributes.h"
@@ -20,110 +19,6 @@ namespace devilution {
 namespace {
 
 std::vector<uint8_t> LightmapBuffer;
-
-/**
- * @brief Fills a block of memory with a specified byte value without invoking memset.
- *
- * This function provides an ultra-fast, branch-optimized alternative to standard
- * memset for small buffers. By leveraging fixed-size, constant-expression memcpy
- * calls, it forces the compiler to emit inline, architectural store instructions
- * (e.g., movq, movl) directly, bypassing PLT/library overhead entirely.
- *
- * To minimize branching and completely eliminate loops, it utilizes an
- * "overlapping store" strategy (writing identical data from both ends of the buffer).
- *
- * @note CRITICAL: This function is strictly optimized and mathematically bounded
- * for buffers between 0 and 64 bytes. Passing a size greater than 64 will
- * leave an uninitialized memory gap in the middle of the destination buffer.
- *
- * @param dst   Pointer to the destination memory block.
- * @param n     The number of bytes to fill (Must be between 0 and 64 inclusive).
- * @param value The byte value to broadcast across the memory block.
- */
-DVL_ALWAYS_INLINE void FillBytesUpTo64(uint8_t *dst, int n, uint8_t value)
-{
-	assert(n > 0);
-	assert(n <= 64);
-	if constexpr (sizeof(void *) == 8) {
-		const uint64_t fill64 = static_cast<uint64_t>(value) * 0x0101010101010101ULL;
-		if (n >= 32) {
-			memcpy(dst, &fill64, 8);
-			memcpy(dst + 8, &fill64, 8);
-			memcpy(dst + 16, &fill64, 8);
-			memcpy(dst + 24, &fill64, 8);
-			memcpy(dst + n - 32, &fill64, 8);
-			memcpy(dst + n - 24, &fill64, 8);
-			memcpy(dst + n - 16, &fill64, 8);
-			memcpy(dst + n - 8, &fill64, 8);
-			return;
-		}
-		if (n >= 16) {
-			memcpy(dst, &fill64, 8);
-			memcpy(dst + 8, &fill64, 8);
-			memcpy(dst + n - 16, &fill64, 8);
-			memcpy(dst + n - 8, &fill64, 8);
-			return;
-		}
-		if (n >= 8) {
-			memcpy(dst, &fill64, 8);
-			memcpy(dst + n - 8, &fill64, 8);
-			return;
-		}
-	} else {
-		const uint32_t fill32 = static_cast<uint32_t>(value) * 0x01010101U;
-		if (n >= 32) {
-			memcpy(dst, &fill32, 4);
-			memcpy(dst + 4, &fill32, 4);
-			memcpy(dst + 8, &fill32, 4);
-			memcpy(dst + 12, &fill32, 4);
-			memcpy(dst + 16, &fill32, 4);
-			memcpy(dst + 20, &fill32, 4);
-			memcpy(dst + 24, &fill32, 4);
-			memcpy(dst + 28, &fill32, 4);
-			memcpy(dst + n - 32, &fill32, 4);
-			memcpy(dst + n - 28, &fill32, 4);
-			memcpy(dst + n - 24, &fill32, 4);
-			memcpy(dst + n - 20, &fill32, 4);
-			memcpy(dst + n - 16, &fill32, 4);
-			memcpy(dst + n - 12, &fill32, 4);
-			memcpy(dst + n - 8, &fill32, 4);
-			memcpy(dst + n - 4, &fill32, 4);
-			return;
-		}
-		if (n >= 16) {
-			memcpy(dst, &fill32, 4);
-			memcpy(dst + 4, &fill32, 4);
-			memcpy(dst + 8, &fill32, 4);
-			memcpy(dst + 12, &fill32, 4);
-			memcpy(dst + n - 16, &fill32, 4);
-			memcpy(dst + n - 12, &fill32, 4);
-			memcpy(dst + n - 8, &fill32, 4);
-			memcpy(dst + n - 4, &fill32, 4);
-			return;
-		}
-		if (n >= 8) {
-			memcpy(dst, &fill32, 4);
-			memcpy(dst + 4, &fill32, 4);
-			memcpy(dst + n - 8, &fill32, 4);
-			memcpy(dst + n - 4, &fill32, 4);
-			return;
-		}
-	}
-
-	const uint32_t fill32 = static_cast<uint32_t>(value) * 0x01010101U;
-
-	if (n >= 4) {
-		memcpy(dst, &fill32, 4);
-		memcpy(dst + n - 4, &fill32, 4);
-		return;
-	}
-
-	dst[0] = value;
-	if (n >= 2) {
-		const uint16_t fill16 = static_cast<uint16_t>(value) * 0x0101U;
-		memcpy(dst + n - 2, &fill16, 2);
-	}
-}
 
 void RenderFullTile(Point position, uint8_t lightLevel, uint8_t *lightmap, uint16_t pitch)
 {
