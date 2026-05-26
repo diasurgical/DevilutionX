@@ -13,6 +13,7 @@
 #include "engine/point.hpp"
 #include "levels/dun_tile.hpp"
 #include "levels/gendung_defs.hpp"
+#include "utils/attributes.h"
 
 namespace devilution {
 
@@ -20,23 +21,127 @@ namespace {
 
 std::vector<uint8_t> LightmapBuffer;
 
+/**
+ * @brief Fills a block of memory with a specified byte value without invoking memset.
+ *
+ * This function provides an ultra-fast, branch-optimized alternative to standard
+ * memset for small buffers. By leveraging fixed-size, constant-expression memcpy
+ * calls, it forces the compiler to emit inline, architectural store instructions
+ * (e.g., movq, movl) directly, bypassing PLT/library overhead entirely.
+ *
+ * To minimize branching and completely eliminate loops, it utilizes an
+ * "overlapping store" strategy (writing identical data from both ends of the buffer).
+ *
+ * @note CRITICAL: This function is strictly optimized and mathematically bounded
+ * for buffers between 0 and 64 bytes. Passing a size greater than 64 will
+ * leave an uninitialized memory gap in the middle of the destination buffer.
+ *
+ * @param dst   Pointer to the destination memory block.
+ * @param n     The number of bytes to fill (Must be between 0 and 64 inclusive).
+ * @param value The byte value to broadcast across the memory block.
+ */
+DVL_ALWAYS_INLINE void FillBytesUpTo64(uint8_t *dst, int n, uint8_t value)
+{
+	assert(n > 0);
+	assert(n <= 64);
+	if constexpr (sizeof(void *) == 8) {
+		const uint64_t fill64 = static_cast<uint64_t>(value) * 0x0101010101010101ULL;
+		if (n >= 32) {
+			memcpy(dst, &fill64, 8);
+			memcpy(dst + 8, &fill64, 8);
+			memcpy(dst + 16, &fill64, 8);
+			memcpy(dst + 24, &fill64, 8);
+			memcpy(dst + n - 32, &fill64, 8);
+			memcpy(dst + n - 24, &fill64, 8);
+			memcpy(dst + n - 16, &fill64, 8);
+			memcpy(dst + n - 8, &fill64, 8);
+			return;
+		}
+		if (n >= 16) {
+			memcpy(dst, &fill64, 8);
+			memcpy(dst + 8, &fill64, 8);
+			memcpy(dst + n - 16, &fill64, 8);
+			memcpy(dst + n - 8, &fill64, 8);
+			return;
+		}
+		if (n >= 8) {
+			memcpy(dst, &fill64, 8);
+			memcpy(dst + n - 8, &fill64, 8);
+			return;
+		}
+	} else {
+		const uint32_t fill32 = static_cast<uint32_t>(value) * 0x01010101U;
+		if (n >= 32) {
+			memcpy(dst, &fill32, 4);
+			memcpy(dst + 4, &fill32, 4);
+			memcpy(dst + 8, &fill32, 4);
+			memcpy(dst + 12, &fill32, 4);
+			memcpy(dst + 16, &fill32, 4);
+			memcpy(dst + 20, &fill32, 4);
+			memcpy(dst + 24, &fill32, 4);
+			memcpy(dst + 28, &fill32, 4);
+			memcpy(dst + n - 32, &fill32, 4);
+			memcpy(dst + n - 28, &fill32, 4);
+			memcpy(dst + n - 24, &fill32, 4);
+			memcpy(dst + n - 20, &fill32, 4);
+			memcpy(dst + n - 16, &fill32, 4);
+			memcpy(dst + n - 12, &fill32, 4);
+			memcpy(dst + n - 8, &fill32, 4);
+			memcpy(dst + n - 4, &fill32, 4);
+			return;
+		}
+		if (n >= 16) {
+			memcpy(dst, &fill32, 4);
+			memcpy(dst + 4, &fill32, 4);
+			memcpy(dst + 8, &fill32, 4);
+			memcpy(dst + 12, &fill32, 4);
+			memcpy(dst + n - 16, &fill32, 4);
+			memcpy(dst + n - 12, &fill32, 4);
+			memcpy(dst + n - 8, &fill32, 4);
+			memcpy(dst + n - 4, &fill32, 4);
+			return;
+		}
+		if (n >= 8) {
+			memcpy(dst, &fill32, 4);
+			memcpy(dst + 4, &fill32, 4);
+			memcpy(dst + n - 8, &fill32, 4);
+			memcpy(dst + n - 4, &fill32, 4);
+			return;
+		}
+	}
+
+	const uint32_t fill32 = static_cast<uint32_t>(value) * 0x01010101U;
+
+	if (n >= 4) {
+		memcpy(dst, &fill32, 4);
+		memcpy(dst + n - 4, &fill32, 4);
+		return;
+	}
+
+	dst[0] = value;
+	if (n >= 2) {
+		const uint16_t fill16 = static_cast<uint16_t>(value) * 0x0101U;
+		memcpy(dst + n - 2, &fill16, 2);
+	}
+}
+
 void RenderFullTile(Point position, uint8_t lightLevel, uint8_t *lightmap, uint16_t pitch)
 {
 	uint8_t *top = lightmap + ((position.y + 1) * pitch) + position.x - (TILE_WIDTH / 2);
 	uint8_t *bottom = top + ((TILE_HEIGHT - 2) * pitch);
 	for (int y = 0, w = 4; y < TILE_HEIGHT / 2 - 1; y++, w += 4) {
 		const int x = (TILE_WIDTH - w) / 2;
-		memset(top + x, lightLevel, w);
-		memset(bottom + x, lightLevel, w);
+		FillBytesUpTo64(top + x, w, lightLevel);
+		FillBytesUpTo64(bottom + x, w, lightLevel);
 		top += pitch;
 		bottom -= pitch;
 	}
-	memset(top, lightLevel, TILE_WIDTH);
+	FillBytesUpTo64(top, TILE_WIDTH, lightLevel);
 }
 
 int DecrementTowardZero(int num)
 {
-	return num > 0 ? num - 1 : num + 1;
+	return num - ((num >> 31) | 1);
 }
 
 // Half-space method for drawing triangles
@@ -121,7 +226,7 @@ void RenderTriangle(Point p1, Point p2, Point p3, uint8_t lightLevel, uint8_t *l
 		                 });
 
 		if (startx < endx)
-			memset(&dst[startx], lightLevel, endx - startx);
+			FillBytesUpTo64(&dst[startx], endx - startx, lightLevel);
 
 		cy1 += fdx12;
 		cy2 += fdx23;
@@ -138,13 +243,20 @@ uint8_t GetLightLevel(const uint8_t tileLights[MAXDUNX][MAXDUNY], Point tile)
 	return tileLights[x][y];
 }
 
+// InterpTable[n][d] = ((n << 4) + 8) / d
+// n = lightLevel - q1, d = q2 - q1, both in [0, 15].
+// Constraint n < d is always guaranteed by the caller (q1 <= lightLevel < q2).
+constexpr auto InterpTable = []() constexpr {
+	std::array<std::array<uint8_t, 16>, 15> t = {};
+	for (int n = 0; n < 15; ++n)
+		for (int d = 1; d < 16; ++d)
+			t[n][d] = static_cast<uint8_t>((n * 16 + 8) / d);
+	return t;
+}();
+
 uint8_t Interpolate(int q1, int q2, int lightLevel)
 {
-	// Result will be 28.4 fixed-point
-	const int numerator = (lightLevel - q1) << 4;
-	const int result = (numerator + 0x8) / (q2 - q1);
-	assert(result >= 0);
-	return static_cast<uint8_t>(result);
+	return InterpTable[lightLevel - q1][q2 - q1];
 }
 
 void RenderCell(uint8_t quad[4], Point position, uint8_t lightLevel, uint8_t *lightmap, uint16_t pitch, uint16_t scanLines)
@@ -441,32 +553,31 @@ void BuildLightmap(Point tilePosition, Point targetBufferPosition, uint16_t view
 	uint8_t *lightmap = LightmapBuffer.data();
 	memset(lightmap, LightsMax, totalPixels);
 	for (int i = 0; i < rows; i++) {
+		// Seed q3 for the first cell; subsequent cells reuse the previous q1 as q3.
+		// (Moving East by {+1,-1} shifts the quad: only the old NE corner (q1) is shared as the new SW corner (q3).)
+		uint8_t q3 = GetLightLevel(tileLights, tilePosition + Displacement { 0, 1 });
 		for (int j = 0; j < columns; j++, tilePosition += Direction::East, targetBufferPosition.x += TILE_WIDTH) {
 			const Point center0 = targetBufferPosition + Displacement { TILE_WIDTH / 2, -TILE_HEIGHT / 2 };
 
-			const Point tile0 = tilePosition;
-			const Point tile1 = tilePosition + Displacement { 1, 0 };
-			const Point tile2 = tilePosition + Displacement { 1, 1 };
-			const Point tile3 = tilePosition + Displacement { 0, 1 };
-
-			uint8_t quad[] = {
-				GetLightLevel(tileLights, tile0),
-				GetLightLevel(tileLights, tile1),
-				GetLightLevel(tileLights, tile2),
-				GetLightLevel(tileLights, tile3)
-			};
+			const uint8_t q0 = GetLightLevel(tileLights, tilePosition);
+			const uint8_t q1 = GetLightLevel(tileLights, tilePosition + Displacement { 1, 0 });
+			const uint8_t q2 = GetLightLevel(tileLights, tilePosition + Displacement { 1, 1 });
+			uint8_t quad[] = { q0, q1, q2, q3 };
 
 			const uint8_t maxLight = std::max({ quad[0], quad[1], quad[2], quad[3] });
 			const uint8_t minLight = std::min({ quad[0], quad[1], quad[2], quad[3] });
 
-			for (uint8_t i = 0; i < LightsMax; i++) {
-				const uint8_t lightLevel = LightsMax - i - 1;
-				if (lightLevel > maxLight)
-					continue;
-				if (lightLevel < minLight)
-					break;
-				RenderCell(quad, center0, lightLevel, lightmap, viewportWidth, bufferHeight);
+			// The buffer is pre-filled with LightsMax, so skip cells that are entirely at max darkness.
+			// Also cap startLevel to LightsMax-1 to avoid writing a value equal to the initial fill.
+			if (minLight < static_cast<uint8_t>(LightsMax)) {
+				const uint8_t startLevel = std::min(maxLight, static_cast<uint8_t>(LightsMax - 1));
+				for (uint8_t lightLevel = startLevel;; --lightLevel) {
+					RenderCell(quad, center0, lightLevel, lightmap, viewportWidth, bufferHeight);
+					if (lightLevel == minLight) break;
+				}
 			}
+
+			q3 = q1;
 		}
 
 		// Return to start of row
