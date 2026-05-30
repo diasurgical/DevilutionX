@@ -985,6 +985,7 @@ void CheckPlrSpell(bool isShiftHeld, SpellID spellID = MyPlayer->_pRSpell, Spell
 void SyncPlrAnim(Player &player);
 void SyncInitPlrPos(Player &player);
 void SyncInitPlr(Player &player);
+void ValidatePlayer();
 void CheckStats(Player &player);
 void ModifyPlrStr(Player &player, int l);
 void ModifyPlrMag(Player &player, int l);
