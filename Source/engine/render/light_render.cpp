@@ -267,10 +267,11 @@ void RenderCell(uint8_t quad[4], Point position, uint8_t lightLevel, uint8_t *li
 	const Point center3 = position + Displacement { -TILE_WIDTH / 2, TILE_HEIGHT / 2 };
 
 	// 28.4 fixed-point coordinates
-	const Point fpCenter0 = center0 * (1 << 4);
-	const Point fpCenter1 = center1 * (1 << 4);
-	const Point fpCenter2 = center2 * (1 << 4);
-	const Point fpCenter3 = center3 * (1 << 4);
+	constexpr int fpOne = 1 << 4;
+	const Point fpCenter0 = center0 * fpOne;
+	const Point fpCenter1 = center1 * fpOne;
+	const Point fpCenter2 = center2 * fpOne;
+	const Point fpCenter3 = center3 * fpOne;
 
 	// Marching squares
 	// https://en.wikipedia.org/wiki/Marching_squares
@@ -347,8 +348,8 @@ void RenderCell(uint8_t quad[4], Point position, uint8_t lightLevel, uint8_t *li
 		const Point p6 = fpCenter3 + (center0 - center3) * leftFactor;
 
 		if (cell <= lightLevel) {
-			const uint8_t midFactor0 = Interpolate(cell, quad[0], lightLevel);
-			const uint8_t midFactor2 = Interpolate(cell, quad[2], lightLevel);
+			const uint8_t midFactor0 = static_cast<uint8_t>(fpOne - Interpolate(cell, quad[0], lightLevel));
+			const uint8_t midFactor2 = static_cast<uint8_t>(fpOne - Interpolate(cell, quad[2], lightLevel));
 			const Point p7 = fpCenter0 + (center2 - center0) / 2 * midFactor0;
 			const Point p8 = fpCenter2 + (center0 - center2) / 2 * midFactor2;
 			RenderTriangle(p1, p7, p2, lightLevel, lightmap, pitch, scanLines);
@@ -438,8 +439,8 @@ void RenderCell(uint8_t quad[4], Point position, uint8_t lightLevel, uint8_t *li
 		const Point p6 = fpCenter0 + (center3 - center0) * leftFactor;
 
 		if (cell <= lightLevel) {
-			const uint8_t midFactor1 = Interpolate(cell, quad[1], lightLevel);
-			const uint8_t midFactor3 = Interpolate(cell, quad[3], lightLevel);
+			const uint8_t midFactor1 = static_cast<uint8_t>(fpOne - Interpolate(cell, quad[1], lightLevel));
+			const uint8_t midFactor3 = static_cast<uint8_t>(fpOne - Interpolate(cell, quad[3], lightLevel));
 			const Point p7 = fpCenter1 + (center3 - center1) / 2 * midFactor1;
 			const Point p8 = fpCenter3 + (center1 - center3) / 2 * midFactor3;
 			RenderTriangle(p1, p7, p2, lightLevel, lightmap, pitch, scanLines);
