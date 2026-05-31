@@ -347,8 +347,8 @@ void RenderCell(uint8_t quad[4], Point position, uint8_t lightLevel, uint8_t *li
 		const Point p6 = fpCenter3 + (center0 - center3) * leftFactor;
 
 		if (cell <= lightLevel) {
-			const uint8_t midFactor0 = Interpolate(quad[0], cell, lightLevel);
-			const uint8_t midFactor2 = Interpolate(quad[2], cell, lightLevel);
+			const uint8_t midFactor0 = Interpolate(cell, quad[0], lightLevel);
+			const uint8_t midFactor2 = Interpolate(cell, quad[2], lightLevel);
 			const Point p7 = fpCenter0 + (center2 - center0) / 2 * midFactor0;
 			const Point p8 = fpCenter2 + (center0 - center2) / 2 * midFactor2;
 			RenderTriangle(p1, p7, p2, lightLevel, lightmap, pitch, scanLines);
@@ -438,8 +438,8 @@ void RenderCell(uint8_t quad[4], Point position, uint8_t lightLevel, uint8_t *li
 		const Point p6 = fpCenter0 + (center3 - center0) * leftFactor;
 
 		if (cell <= lightLevel) {
-			const uint8_t midFactor1 = Interpolate(quad[1], cell, lightLevel);
-			const uint8_t midFactor3 = Interpolate(quad[3], cell, lightLevel);
+			const uint8_t midFactor1 = Interpolate(cell, quad[1], lightLevel);
+			const uint8_t midFactor3 = Interpolate(cell, quad[3], lightLevel);
 			const Point p7 = fpCenter1 + (center3 - center1) / 2 * midFactor1;
 			const Point p8 = fpCenter3 + (center1 - center3) / 2 * midFactor3;
 			RenderTriangle(p1, p7, p2, lightLevel, lightmap, pitch, scanLines);
