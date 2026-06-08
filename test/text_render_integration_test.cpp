@@ -321,6 +321,116 @@ const TestFixture Fixtures[] {
 	        .highlightColor = PAL8_BLUE,
 	    },
 	},
+	TestFixture {
+	    .name = "rtl_cursor-start",
+	    .width = 120,
+	    .height = 15,
+	    .fmt = "שלום עולם",
+	    .opts = {
+	        .flags = UiFlags::ColorUiGold,
+	        .cursorPosition = 0, // Cursor at start (on the right)
+	        .cursorStatic = true,
+	    },
+	},
+	TestFixture {
+	    .name = "rtl_cursor-middle",
+	    .width = 120,
+	    .height = 15,
+	    .fmt = "שלום עולם",
+	    .opts = {
+	        .flags = UiFlags::ColorUiGold,
+	        .cursorPosition = 4,  // Cursor between ל and ו
+	        .cursorStatic = true,
+	    },
+	},
+	TestFixture {
+	    .name = "rtl_cursor-end",
+	    .width = 120,
+	    .height = 15,
+	    .fmt = "שלום עולם",
+	    .opts = {
+	        .flags = UiFlags::ColorUiGold,
+	        .cursorPosition = 17, // Cursor at end (on the left)
+	        .cursorStatic = true,
+	    },
+	},
+	TestFixture {
+	    .name = "rtl_multiline_cursor-end_first_line",
+	    .width = 100,
+	    .height = 50,
+	    .fmt = "שלום\nכיתה א",
+	    .opts = {
+	        .flags = UiFlags::ColorUiGold,
+	        .cursorPosition = 8, // Cursor at end of first line (on the left)
+	        .cursorStatic = true,
+	    },
+	},
+	TestFixture {
+	    .name = "rtl_multiline_cursor-start_second_line",
+	    .width = 100,
+	    .height = 50,
+	    .fmt = "שלום\nכיתה א",
+	    .opts = {
+	        .flags = UiFlags::ColorUiGold,
+	        .cursorPosition = 9, // Cursor at start of second line (on the right)
+	        .cursorStatic = true,
+	    },
+	},
+	TestFixture {
+	    .name = "rtl_multiline_cursor-middle_second_line",
+	    .width = 100,
+	    .height = 50,
+	    .fmt = "שלום\nכיתה א",
+	    .opts = {
+	        .flags = UiFlags::ColorUiGold,
+	        .cursorPosition = 13, // Cursor between י and ת in second line
+	        .cursorStatic = true,
+	    },
+	},
+	TestFixture {
+	    .name = "rtl_multiline_cursor-end_second_line",
+	    .width = 100,
+	    .height = 50,
+	    .fmt = "שלום\nכיתה א",
+	    .opts = {
+	        .flags = UiFlags::ColorUiGold,
+	        .cursorPosition = 20, // Cursor at end of second line (on the left)
+	        .cursorStatic = true,
+	    },
+	},
+	TestFixture {
+	    .name = "bidi_cursor-end",
+	    .width = 100,
+	    .height = 50,
+	    .fmt = "שלום World כיתה א Hello",
+	    .opts = {
+	        .flags = UiFlags::ColorUiGold,
+	        .cursorPosition = 32, // Cursor at end of text (on the right of "Hello")
+	        .cursorStatic = true,
+	    },
+	},
+	TestFixture {
+	    .name = "rtl_highlight-full",
+	    .width = 120,
+	    .height = 15,
+	    .fmt = "שלום עולם",
+	    .opts = {
+	        .flags = UiFlags::ColorUiGold,
+	        .highlightRange = { 0, 17 },
+	        .highlightColor = PAL8_BLUE,
+	    },
+	},
+	TestFixture {
+	    .name = "rtl_highlight-partial",
+	    .width = 120,
+	    .height = 15,
+	    .fmt = "שלום עולם",
+	    .opts = {
+	        .flags = UiFlags::ColorUiGold,
+	        .highlightRange = { 2, 6 },
+	        .highlightColor = PAL8_BLUE,
+	    },
+	},
 };
 
 SDLPaletteUniquePtr LoadPalette()
