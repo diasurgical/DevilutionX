@@ -546,13 +546,13 @@ emrun index.html
 
 ### Dependencies
 
-* Windows 10
+* Windows 10+
 * CMake
 * Git
-* Visual Studio 2022 with the following packages installed:
-    * C++ (v143) Universal Windows Platform tools
+* Visual Studio 2026 with the following packages installed:
+    * C++ (v145) Universal Windows Platform tools
     * Windows 11 SDK (10.0.26100.0)
-    * MSVC v143 - VS 2022 C++ x64/x86 build tools
+    * MSVC v145 - VS 2026 C++ x64/x86 build tools
 
 _Note: Visual Studio Community Edition can be used._
 
