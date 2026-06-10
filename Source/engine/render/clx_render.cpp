@@ -126,6 +126,7 @@ void DoRenderBackwardsClipY(
 					src.begin += v;
 				}
 			}
+			DVL_ASSUME(v >= 1); // All runs (transparent, fill, pixel) are at least 1px wide
 			dst += v;
 			remainingWidth -= v;
 		}

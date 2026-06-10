@@ -15,7 +15,9 @@ namespace devilution {
 
 [[nodiscard]] constexpr uint8_t GetClxOpaquePixelsWidth(uint8_t control)
 {
-	return -static_cast<int8_t>(control);
+	const uint8_t width = -static_cast<int8_t>(control);
+	DVL_ASSUME(width >= 1 && width <= 65);
+	return width;
 }
 
 [[nodiscard]] constexpr bool IsClxOpaqueFill(uint8_t control)
@@ -27,7 +29,9 @@ namespace devilution {
 [[nodiscard]] constexpr uint8_t GetClxOpaqueFillWidth(uint8_t control)
 {
 	constexpr uint8_t ClxFillEnd = 0xBF;
-	return ClxFillEnd - control;
+	const uint8_t width = ClxFillEnd - control;
+	DVL_ASSUME(width >= 1 && width <= 63);
+	return width;
 }
 
 struct SkipSize {

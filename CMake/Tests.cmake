@@ -111,6 +111,13 @@ add_library(language_for_testing OBJECT test/language_for_testing.cpp)
 target_sources(language_for_testing INTERFACE $<TARGET_OBJECTS:language_for_testing>)
 
 target_link_dependencies(codec_test PRIVATE libdevilutionx_codec app_fatal_for_testing)
+
+add_custom_target(clx_render_benchmark_resources
+  DEPENDS
+  "${DEVILUTIONX_ASSETS_OUTPUT_DIRECTORY}/data/resistance.clx"
+  "${DEVILUTIONX_ASSETS_OUTPUT_DIRECTORY}/ui_art/dvl_lrpopup.clx"
+)
+add_dependencies(clx_render_benchmark clx_render_benchmark_resources)
 target_link_dependencies(clx_render_benchmark
   PRIVATE
   DevilutionX::SDL
