@@ -1460,16 +1460,10 @@ void PadmapperOptions::Action::UpdateValueDescription() const
 
 std::string_view PadmapperOptions::Action::Shorten(std::string_view buttonName) const
 {
-	size_t index = 0;
-	size_t chars = 0;
-	while (index < buttonName.size()) {
-		if (!IsTrailUtf8CodeUnit(buttonName[index]))
-			chars++;
-		if (chars == 3)
-			break;
-		index++;
-	}
-	return std::string_view(buttonName.data(), index);
+	auto it = Utf8CodePoints(buttonName).begin();
+	const auto end = Utf8CodePoints(buttonName).end();
+	for (int i = 0; i < 3 && it != end; ++i, ++it) { }
+	return { buttonName.data(), static_cast<size_t>(it.data() - buttonName.data()) };
 }
 
 std::string_view PadmapperOptions::Action::GetValueDescription() const

@@ -2816,6 +2816,7 @@ bool TryIconCurs()
 		else if (pcursstashitem != StashStruct::EmptyCell) {
 			Item &item = Stash.stashList[pcursstashitem];
 			item._iIdentified = true;
+			Stash.dirty = true;
 		}
 		NewCursor(CURSOR_HAND);
 		return true;
@@ -2830,6 +2831,7 @@ bool TryIconCurs()
 		} else if (pcursstashitem != StashStruct::EmptyCell) {
 			Item &item = Stash.stashList[pcursstashitem];
 			RepairItem(item, myPlayer.getCharacterLevel());
+			Stash.dirty = true;
 		}
 		NewCursor(CURSOR_HAND);
 		return true;
@@ -2841,6 +2843,7 @@ bool TryIconCurs()
 		else if (pcursstashitem != StashStruct::EmptyCell) {
 			Item &item = Stash.stashList[pcursstashitem];
 			RechargeItem(item, myPlayer);
+			Stash.dirty = true;
 		}
 		NewCursor(CURSOR_HAND);
 		return true;
@@ -2853,6 +2856,7 @@ bool TryIconCurs()
 		else if (pcursstashitem != StashStruct::EmptyCell) {
 			Item &item = Stash.stashList[pcursstashitem];
 			changeCursor = ApplyOilToItem(item, myPlayer);
+			Stash.dirty = true;
 		}
 		if (changeCursor)
 			NewCursor(CURSOR_HAND);

@@ -5,15 +5,14 @@
 #include <cstring>
 #include <string_view>
 
-#include <SheenBidi/SheenBidi.h>
+#include "utils/sheen_bidi.hpp"
 
 namespace devilution {
 
 char32_t DecodeFirstUtf8CodePoint(std::string_view input, std::size_t *len)
 {
 	SBUInteger index = 0;
-	const SBCodepoint result = SBCodepointDecodeNextFromUTF8(
-	    reinterpret_cast<const SBUInt8 *>(input.data()), static_cast<SBUInteger>(input.size()), &index);
+	const SBCodepoint result = sb::CodepointDecodeNext(input, index);
 	*len = index;
 	return result;
 }

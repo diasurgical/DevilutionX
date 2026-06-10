@@ -1,4 +1,5 @@
 include(functions/devilutionx_library)
+include(functions/object_libraries)
 
 add_devilutionx_object_library(libdevilutionx_ctr
   system.cpp
@@ -14,17 +15,21 @@ add_devilutionx_object_library(libdevilutionx_ctr
 
 if(NOT NONET)
   if(NOT DISABLE_TCP)
-    target_link_libraries(libdevilutionx_ctr PUBLIC asio)
+    target_link_dependencies(libdevilutionx_ctr PUBLIC asio)
   endif()
   if(PACKET_ENCRYPTION)
     target_sources(libdevilutionx_ctr PRIVATE random.cpp)
-    target_link_libraries(libdevilutionx_ctr PUBLIC sodium)
+    target_link_dependencies(libdevilutionx_ctr PUBLIC sodium)
   endif()
 endif()
 
-target_link_libraries(libdevilutionx_ctr PUBLIC
+target_link_dependencies(libdevilutionx_ctr
+  PUBLIC
   DevilutionX::SDL
   fmt::fmt
   3ds::citro3d
   3ds::ctrulib
+  PRIVATE
+  libdevilutionx_utf8
+  libdevilutionx_strings
 )

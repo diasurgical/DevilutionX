@@ -60,6 +60,7 @@ set(standalone_tests
   vision_test
   random_test
   rectangle_test
+  sheen_bidi_test
   static_vector_test
   str_cat_test
   utf8_test
@@ -204,6 +205,7 @@ if(DEVILUTIONX_SCREENSHOT_FORMAT STREQUAL DEVILUTIONX_SCREENSHOT_FORMAT_PNG AND 
   )
   add_dependencies(text_render_integration_test text_render_integration_test_resources)
 endif()
+target_link_dependencies(sheen_bidi_test PRIVATE libdevilutionx_sheen_bidi)
 target_link_dependencies(utf8_test PRIVATE libdevilutionx_utf8)
 
 target_include_directories(writehero_test PRIVATE 3rdParty/PicoSHA2)
