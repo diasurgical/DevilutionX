@@ -66,10 +66,13 @@ prepare_onion_skeleton() {
 package_onion() {
 	prepare_onion_skeleton
 	build_custom_sdl
-	# copy assets mpq
-	cp -f $BUILD_DIR/devilutionx.mpq "$BUILD_DIR/OnionOS/Roms/PORTS/Games/Diablo (DevilutionX)/devilutionx.mpq"
+	# copy asset mpqs
+	local -r out="${BUILD_DIR}/OnionOS/Roms/PORTS/Games/Diablo (DevilutionX)"
+	cp -f $BUILD_DIR/devilutionx.mpq "${out}/devilutionx.mpq"
+	mkdir -p "${out}/mods"
+	cp -f $BUILD_DIR/mods/Hellfire.mpq "${out}/mods/Hellfire.mpq"
 	# copy executable
-	cp -f $BUILD_DIR/devilutionx "$BUILD_DIR/OnionOS/Roms/PORTS/Games/Diablo (DevilutionX)/devilutionx"
+	cp -f $BUILD_DIR/devilutionx "${out}/devilutionx"
 
 	rm -f $BUILD_DIR/onion.zip
 

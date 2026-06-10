@@ -23,6 +23,8 @@ fi
 
 cp "${BUILD_DIR}/devilutionx" "${BUILD_DIR}/package/devilutionx"
 cp "${BUILD_DIR}/devilutionx.mpq" "${BUILD_DIR}/package/devilutionx.mpq"
+mkdir -p "${BUILD_DIR}/package/mods"
+cp "${BUILD_DIR}/mods/Hellfire.mpq" "${BUILD_DIR}/package/mods/Hellfire.mpq"
 
 if which dpkg 2>/dev/null; then
 	cp "${BUILD_DIR}/"devilutionx*.deb "${BUILD_DIR}/package/devilutionx.deb"
@@ -34,4 +36,4 @@ fi
 cp ./Packaging/nix/README.txt "${BUILD_DIR}/package/README.txt"
 cp ./Packaging/resources/LICENSE.CC-BY.txt "${BUILD_DIR}/package/LICENSE.CC-BY.txt"
 cp ./Packaging/resources/LICENSE.OFL.txt "${BUILD_DIR}/package/LICENSE.OFL.txt"
-cd "${BUILD_DIR}/package/" && tar -cavf ../../devilutionx.tar.xz *
+cd "${BUILD_DIR}/package/" && find -type f | xargs tar -cavf ../../devilutionx.tar.xz
