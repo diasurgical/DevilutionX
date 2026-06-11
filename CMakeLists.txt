@@ -419,9 +419,8 @@ if(EMSCRIPTEN)
     -lidbfs.js
     --shell-file ${CMAKE_CURRENT_SOURCE_DIR}/Packaging/emscripten/index.html
   )
-  if(TARGET hellfire_copied_assets)
-    add_dependencies(${BIN_TARGET} hellfire_copied_assets)
-  endif()
+  
+  add_dependencies(${BIN_TARGET} hellfire_copied_assets)
   # Add JavaScript to load MPQ files from the server directory at runtime
   target_link_options(${BIN_TARGET} PRIVATE --pre-js ${CMAKE_CURRENT_SOURCE_DIR}/Packaging/emscripten/emscripten_pre.js)
 endif()
