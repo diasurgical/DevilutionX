@@ -1,0 +1,50 @@
+# Build artifacts
+*.iso
+*.cdi
+*.bin
+
+# Disc staging directories
+cd_root/
+flycast_disc/
+romdisk/
+objects/
+towners/
+items/
+levels/
+monsters/
+music/
+nlevels/
+plrgfx/
+sfx/
+speech/
+ui_art/
+data/
+fonts/
+gendata/
+arena/
+
+# Extracted game data (copyrighted)
+diabdat/
+DIABDAT.MPQ
+spawn.mpq
+
+# Extracted file dumps (from MPQ tools)
+File[0-9]*.pcx
+File[0-9]*.wav
+File[0-9]*.xxx
+File[0-9]*.gif
+File[0-9]*.smk
+
+# GPF SDL source (cloned by build.sh)
+SDL-gpf/
+
+# Build tool output
+*.o
+
+# Listfiles (generated)
+*_listfile*.txt
+
+# Python / IDE
+.venv/
+.qodo/
+__pycache__/

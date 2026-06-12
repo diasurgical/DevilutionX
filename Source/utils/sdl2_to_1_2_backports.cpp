@@ -5,6 +5,10 @@
 #include <cstring>
 #include <string_view>
 
+#ifdef __DREAMCAST__
+#include <kos/fs.h>
+#endif
+
 #if defined(_WIN32)
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX 1
@@ -800,6 +804,19 @@ extern "C" char *SDL_GetBasePath()
 	retval = SDL_strdup("file:sdmc:/3ds/devilutionx/");
 #elif defined(__amigaos__)
 	retval = SDL_strdup("PROGDIR:");
+#elif defined(__DREAMCAST__)
+	/* Dreamcast: base path is the CD root when disc is mounted,
+	   otherwise use current directory (for direct ELF loading in emulator) */
+	{
+		file_t fd = fs_open("/cd/", O_DIR | O_RDONLY);
+		if (fd != FILEHND_INVALID) {
+			fs_close(fd);
+			retval = SDL_strdup("/cd/");
+		} else {
+			/* No disc mounted - use current directory (Flycast ELF loading) */
+			retval = SDL_strdup("./");
+		}
+	}
 #else
 
 	/* is a Linux-style /proc filesystem available? */
@@ -878,6 +895,23 @@ extern "C" char *SDL_GetPrefPath(const char *org, const char *app)
 	return retval;
 #elif defined(__amigaos__)
 	retval = SDL_strdup("PROGDIR:");
+	return retval;
+#elif defined(__DREAMCAST__)
+	/* Dreamcast: prefer VMU (/vmu/a1/) for persistent saves.
+	 * InitDreamcast() may later override this path depending on VMU availability.
+	 * If no VMU is present yet, fall back to /ram/ so runtime save operations
+	 * can still work during the current session.
+	 */
+	{
+		/* Check for VMU at first port */
+		file_t fd = fs_open("/vmu/a1/", O_DIR | O_RDONLY);
+		if (fd != FILEHND_INVALID) {
+			fs_close(fd);
+			retval = SDL_strdup("/vmu/a1/");
+		} else {
+			retval = SDL_strdup("/ram/");
+		}
+	}
 	return retval;
 #endif
 

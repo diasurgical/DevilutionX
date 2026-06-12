@@ -37,6 +37,11 @@ void play_movie(const char *pszMovie, bool userCanClose)
 {
 	if (demo::IsRunning())
 		return;
+#ifdef __DREAMCAST__
+	// Dreamcast has no SMK video decoder and the mode switch to
+	// 320x240 causes a visible flicker. Skip all movie playback.
+	return;
+#endif
 
 	movie_playing = true;
 

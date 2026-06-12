@@ -152,6 +152,11 @@ const std::string &AssetsPath()
 		assetsPath.emplace("D:\\assets\\");
 #elif defined(__3DS__) || defined(__SWITCH__)
 		assetsPath.emplace("romfs:/");
+#elif defined(__DREAMCAST__)
+		// On Dreamcast, assets are on the CD root when disc is mounted.
+		// For direct ELF loading (no disc), use current directory.
+		// With UNPACKED_MPQS, we look for directories like devilutionx/, diabdat/, etc.
+		assetsPath.emplace(BasePath());
 #elif defined(__APPLE__) && defined(USE_SDL1)
 		// In `Info.plist` we have
 		//
