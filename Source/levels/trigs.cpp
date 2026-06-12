@@ -20,6 +20,7 @@
 #include "utils/algorithm/container.hpp"
 #include "utils/is_of.hpp"
 #include "utils/language.h"
+#include "utils/log.hpp"
 #include "utils/utf8.hpp"
 
 namespace devilution {
@@ -30,6 +31,17 @@ TriggerStruct trigs[MAXTRIGGERS];
 int TWarpFrom;
 
 namespace {
+
+/** Default Tristram trigger list; replaced per-town via SetTownTriggers(). */
+std::vector<TownTrigger> ActiveTownTriggers = {
+	{ { 25, 29 }, WM_DIABNEXTLVL, 0, std::nullopt },
+	{ { 49, 21 }, WM_DIABTOWNWARP, 5, DTYPE_CATACOMBS },
+	{ { 17, 69 }, WM_DIABTOWNWARP, 9, DTYPE_CAVES },
+	{ { 41, 80 }, WM_DIABTOWNWARP, 13, DTYPE_HELL },
+	{ { 80, 62 }, WM_DIABTOWNWARP, 17, DTYPE_NEST },
+	{ { 36, 24 }, WM_DIABTOWNWARP, 21, DTYPE_CRYPT },
+};
+
 /** Specifies the dungeon piece IDs which constitute stairways leading down to the cathedral from town. */
 const uint16_t TownDownList[] = { 715, 714, 718, 719, 720, 722, 723, 724, 725, 726 };
 /** Specifies the dungeon piece IDs which constitute stairways leading down to the catacombs from town. */
@@ -110,44 +122,25 @@ bool IsWarpOpen(dungeon_type type)
 void InitTownTriggers()
 {
 	numtrigs = 0;
-
-	// Cathedral
-	trigs[numtrigs].position = { 25, 29 };
-	trigs[numtrigs]._tmsg = WM_DIABNEXTLVL;
-	numtrigs++;
-
-	if (IsWarpOpen(DTYPE_CATACOMBS)) {
-		trigs[numtrigs].position = { 49, 21 };
-		trigs[numtrigs]._tmsg = WM_DIABTOWNWARP;
-		trigs[numtrigs]._tlvl = 5;
-		numtrigs++;
-	}
-	if (IsWarpOpen(DTYPE_CAVES)) {
-		trigs[numtrigs].position = { 17, 69 };
-		trigs[numtrigs]._tmsg = WM_DIABTOWNWARP;
-		trigs[numtrigs]._tlvl = 9;
-		numtrigs++;
-	}
-	if (IsWarpOpen(DTYPE_HELL)) {
-		trigs[numtrigs].position = { 41, 80 };
-		trigs[numtrigs]._tmsg = WM_DIABTOWNWARP;
-		trigs[numtrigs]._tlvl = 13;
-		numtrigs++;
-	}
-	if (IsWarpOpen(DTYPE_NEST)) {
-		trigs[numtrigs].position = { 80, 62 };
-		trigs[numtrigs]._tmsg = WM_DIABTOWNWARP;
-		trigs[numtrigs]._tlvl = 17;
-		numtrigs++;
-	}
-	if (IsWarpOpen(DTYPE_CRYPT)) {
-		trigs[numtrigs].position = { 36, 24 };
-		trigs[numtrigs]._tmsg = WM_DIABTOWNWARP;
-		trigs[numtrigs]._tlvl = 21;
-		numtrigs++;
-	}
-
 	trigflag = false;
+
+	for (const TownTrigger &trigger : ActiveTownTriggers) {
+		if (trigger.warpGate.has_value() && !IsWarpOpen(*trigger.warpGate))
+			continue;
+		if (numtrigs >= MAXTRIGGERS) {
+			LogError("InitTownTriggers: more than MAXTRIGGERS ({})", MAXTRIGGERS);
+			break;
+		}
+		trigs[numtrigs].position = trigger.position;
+		trigs[numtrigs]._tmsg = trigger.msg;
+		trigs[numtrigs]._tlvl = trigger.level;
+		numtrigs++;
+	}
+}
+
+void SetTownTriggers(std::vector<TownTrigger> triggers)
+{
+	ActiveTownTriggers = std::move(triggers);
 }
 
 void InitL1Triggers()
