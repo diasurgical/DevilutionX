@@ -11,6 +11,8 @@
 #include "engine/random.hpp"
 #include "game_mode.hpp"
 #include "inv.h"
+#include "levels/town_data.h"
+#include "lua/lua_event.hpp"
 #include "minitext.h"
 #include "stores.h"
 #include "tables/textdat.h"
@@ -795,6 +797,21 @@ void InitTowners()
 		Towners.emplace_back();
 		InitTownerInfo(Towners.back(), *behaviorIt->second, entry);
 		i++;
+	}
+
+	// Apply towner position overrides from the active town config
+	const TownConfig *config = GetCurrentTownConfig();
+	if (config != nullptr) {
+		for (const auto &override : config->townerOverrides) {
+			for (auto &towner : Towners) {
+				auto shortNameIt = TownerShortNames.find(towner._ttype);
+				if (shortNameIt != TownerShortNames.end() && shortNameIt->second == override.shortName) {
+					dMonster[towner.position.x][towner.position.y] = 0;
+					towner.position = override.position;
+					dMonster[towner.position.x][towner.position.y] = static_cast<int16_t>(&towner - Towners.data() + 1);
+				}
+			}
+		}
 	}
 }
 

@@ -25,6 +25,7 @@
 #include "engine/random.hpp"
 #include "headless_mode.hpp"
 #include "hwcursor.hpp"
+#include "levels/town_data.h"
 #include "options.h"
 #include "utils/display.h"
 #include "utils/palette_blending.hpp"
@@ -205,7 +206,7 @@ void LoadRndLvlPal(dungeon_type l)
 		return;
 
 	if (l == DTYPE_TOWN) {
-		LoadPaletteAndInitBlending("levels\\towndata\\town.pal");
+		LoadPaletteAndInitBlending(GetActiveTownConfigForTileLoad().visualAssets.palettePath.c_str());
 		return;
 	}
 

@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <memory>
 #include <stack>
 #include <string>
@@ -24,6 +25,7 @@
 #include "levels/drlg_l4.h"
 #include "levels/reencode_dun_cels.hpp"
 #include "levels/town.h"
+#include "levels/town_data.h"
 #include "lighting.h"
 #include "monster.h"
 #include "objects.h"
@@ -77,12 +79,15 @@ std::unique_ptr<uint16_t[]> LoadMinData(size_t &tileCount)
 {
 	switch (leveltype) {
 	case DTYPE_TOWN: {
-		auto min = LoadFileInMemWithStatus<uint16_t>("nlevels\\towndata\\town.min", &tileCount);
-		if (!min.has_value()) {
-			return LoadFileInMem<uint16_t>("levels\\towndata\\town.min", &tileCount);
-		} else {
-			return std::move(*min);
-		}
+		const TownVisualAssets &active = GetActiveTownConfigForTileLoad().visualAssets;
+		const TownVisualAssets &tristram = GetTownRegistry().GetTown(TristramTownId).visualAssets;
+		LogVerbose("LoadMinData (town): {}", active.pieceMinPath);
+		auto min = LoadTownAssetWithFallback(
+		    active.pieceMinPath, tristram.pieceMinPath.c_str(), TownVisualAssets::RetailPieceMin,
+		    [&tileCount](const char *p) { return LoadFileInMemWithStatus<uint16_t>(p, &tileCount); });
+		if (!min.has_value())
+			app_fatal("LoadMinData");
+		return std::move(*min);
 	}
 	case DTYPE_CATHEDRAL:
 		return LoadFileInMem<uint16_t>("levels\\l1data\\l1.min", &tileCount);
@@ -442,11 +447,15 @@ void CreateDungeon(uint32_t rseed, lvl_entry entry)
 tl::expected<void, std::string> LoadLevelSOLData()
 {
 	switch (leveltype) {
-	case DTYPE_TOWN:
-		if (!LoadFileInMemWithStatus("nlevels\\towndata\\town.sol", SOLData).has_value()) {
-			RETURN_IF_ERROR(LoadFileInMemWithStatus("levels\\towndata\\town.sol", SOLData));
-		}
+	case DTYPE_TOWN: {
+		const TownVisualAssets &active = GetActiveTownConfigForTileLoad().visualAssets;
+		const TownVisualAssets &tristram = GetTownRegistry().GetTown(TristramTownId).visualAssets;
+		LogVerbose("LoadLevelSOLData (town): {}", active.solPath);
+		RETURN_IF_ERROR(LoadTownAssetWithFallback(
+		    active.solPath, tristram.solPath.c_str(), TownVisualAssets::RetailSol,
+		    [](const char *p) { return LoadFileInMemWithStatus(p, SOLData); }));
 		break;
+	}
 	case DTYPE_CATHEDRAL:
 		RETURN_IF_ERROR(LoadFileInMemWithStatus("levels\\l1data\\l1.sol", SOLData));
 		// Fix incorrectly marked arched tiles
@@ -508,12 +517,15 @@ tl::expected<void, std::string> LoadLevelSOLData()
 
 void SetDungeonMicros(std::unique_ptr<std::byte[]> &dungeonCels, uint_fast8_t &microTileLen)
 {
+	// Clear the DPieceMicros array so if other towns have less tiles, they don't break with segfault
+	std::memset(DPieceMicros, 0, sizeof(DPieceMicros));
+
 	microTileLen = 10;
 	size_t blocks = 10;
 
 	if (leveltype == DTYPE_TOWN) {
-		microTileLen = 16;
-		blocks = 16;
+		microTileLen = GetActiveTownConfigForTileLoad().visualAssets.microTileLen;
+		blocks = microTileLen;
 	} else if (leveltype == DTYPE_HELL) {
 		microTileLen = 12;
 		blocks = 16;
@@ -522,9 +534,14 @@ void SetDungeonMicros(std::unique_ptr<std::byte[]> &dungeonCels, uint_fast8_t &m
 	size_t tileCount;
 	const std::unique_ptr<uint16_t[]> levelPieces = LoadMinData(tileCount);
 
+	const size_t pieceCount = tileCount / blocks;
+	if (pieceCount > MAXTILES) {
+		LogWarn("Tileset has {} level pieces but the engine supports at most {}; extra pieces will be ignored.",
+		    pieceCount, MAXTILES);
+	}
 	ankerl::unordered_dense::map<uint16_t, DunFrameInfo> frameToTypeMap;
 	frameToTypeMap.reserve(4096);
-	for (size_t levelPieceId = 0; levelPieceId < tileCount / blocks; levelPieceId++) {
+	for (size_t levelPieceId = 0; levelPieceId < std::min(pieceCount, static_cast<size_t>(MAXTILES)); levelPieceId++) {
 		uint16_t *pieces = &levelPieces[blocks * levelPieceId];
 		for (uint32_t block = 0; block < blocks; block++) {
 			const LevelCelBlock levelCelBlock { Swap16LE(pieces[blocks - 2 + (block & 1) - (block & 0xE)]) };
@@ -545,7 +562,7 @@ void SetDungeonMicros(std::unique_ptr<std::byte[]> &dungeonCels, uint_fast8_t &m
 
 	std::vector<std::pair<uint16_t, uint16_t>> celBlockAdjustments = ComputeCelBlockAdjustments(frameToTypeList);
 	if (celBlockAdjustments.size() == 0) return;
-	for (size_t levelPieceId = 0; levelPieceId < tileCount / blocks; levelPieceId++) {
+	for (size_t levelPieceId = 0; levelPieceId < std::min(pieceCount, static_cast<size_t>(MAXTILES)); levelPieceId++) {
 		for (uint32_t block = 0; block < blocks; block++) {
 			LevelCelBlock &levelCelBlock = DPieceMicros[levelPieceId].mt[block];
 			const uint16_t frame = levelCelBlock.frame();
@@ -812,6 +829,12 @@ bool IsNearThemeRoom(WorldTilePosition testPosition)
 
 void InitLevels()
 {
+	// Note: InitializeTristram overwrites any existing "tristram" registration.
+	// Lua mods that called towns.register("tristram", ...) before InitLevels will
+	// have their config replaced. There is intentionally no registry Reset() here;
+	// mod-registered towns persist across new games and are re-populated by the
+	// Lua runtime at mod load time.
+	InitializeTristram();
 	currlevel = 0;
 	leveltype = DTYPE_TOWN;
 	setlevel = false;

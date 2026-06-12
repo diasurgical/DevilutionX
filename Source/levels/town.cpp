@@ -7,11 +7,13 @@
 #include "engine/world_tile.hpp"
 #include "game_mode.hpp"
 #include "levels/drlg_l1.h"
+#include "levels/town_data.h"
 #include "levels/trigs.h"
 #include "multi.h"
 #include "player.h"
 #include "quests.h"
 #include "utils/endian_swap.hpp"
+#include "utils/log.hpp"
 
 namespace devilution {
 
@@ -199,48 +201,55 @@ void DrlgTPass3()
 		}
 	}
 
-	FillSector("levels\\towndata\\sector1s.dun", 46, 46);
-	FillSector("levels\\towndata\\sector2s.dun", 46, 0);
-	FillSector("levels\\towndata\\sector3s.dun", 0, 46);
-	FillSector("levels\\towndata\\sector4s.dun", 0, 0);
-
-	auto dunData = LoadFileInMem<uint16_t>("levels\\towndata\\automap.dun");
-	PlaceDunTiles(dunData.get(), { 0, 0 });
-
-	if (!IsWarpOpen(DTYPE_CATACOMBS)) {
-		dungeon[20][7] = 10;
-		dungeon[20][6] = 8;
-		FillTile(48, 20, 320);
+	const TownConfig *config = GetCurrentTownConfig();
+	if (config == nullptr) {
+		LogError("DrlgTPass3: current town not registered");
+		return;
 	}
-	if (!IsWarpOpen(DTYPE_CAVES)) {
-		dungeon[4][30] = 8;
-		FillTile(16, 68, 332);
-		FillTile(16, 70, 331);
+	for (const auto &sector : config->sectors) {
+		FillSector(sector.filePath.c_str(), sector.x, sector.y);
 	}
-	if (!IsWarpOpen(DTYPE_HELL)) {
-		dungeon[15][35] = 7;
-		dungeon[16][35] = 7;
-		dungeon[17][35] = 7;
-		for (int x = 36; x < 46; x++) {
-			FillTile(x, 78, PickRandomlyAmong({ 1, 2, 3, 4 }));
+
+	if (GetTownRegistry().GetCurrentTown() == TristramTownId) {
+		auto dunData = LoadFileInMem<uint16_t>("levels\\towndata\\automap.dun");
+		PlaceDunTiles(dunData.get(), { 0, 0 });
+
+		if (!IsWarpOpen(DTYPE_CATACOMBS)) {
+			dungeon[20][7] = 10;
+			dungeon[20][6] = 8;
+			FillTile(48, 20, 320);
 		}
-	}
-	if (gbIsHellfire) {
-		if (IsWarpOpen(DTYPE_NEST)) {
-			TownOpenHive();
+		if (!IsWarpOpen(DTYPE_CAVES)) {
+			dungeon[4][30] = 8;
+			FillTile(16, 68, 332);
+			FillTile(16, 70, 331);
+		}
+		if (!IsWarpOpen(DTYPE_HELL)) {
+			dungeon[15][35] = 7;
+			dungeon[16][35] = 7;
+			dungeon[17][35] = 7;
+			for (int x = 36; x < 46; x++) {
+				FillTile(x, 78, PickRandomlyAmong({ 1, 2, 3, 4 }));
+			}
+		}
+
+		if (gbIsHellfire) {
+			if (IsWarpOpen(DTYPE_NEST)) {
+				TownOpenHive();
+			} else {
+				TownCloseHive();
+			}
+			if (IsWarpOpen(DTYPE_CRYPT))
+				TownOpenGrave();
+			else
+				TownCloseGrave();
+		}
+
+		if (Quests[Q_PWATER]._qactive != QUEST_DONE && Quests[Q_PWATER]._qactive != QUEST_NOTAVAIL) {
+			FillTile(60, 70, 342);
 		} else {
-			TownCloseHive();
+			FillTile(60, 70, 71);
 		}
-		if (IsWarpOpen(DTYPE_CRYPT))
-			TownOpenGrave();
-		else
-			TownCloseGrave();
-	}
-
-	if (Quests[Q_PWATER]._qactive != QUEST_DONE && Quests[Q_PWATER]._qactive != QUEST_NOTAVAIL) {
-		FillTile(60, 70, 342);
-	} else {
-		FillTile(60, 70, 71);
 	}
 
 	InitTownPieces();
@@ -358,30 +367,14 @@ void CleanTownFountain()
 
 void CreateTown(lvl_entry entry)
 {
-	dminPosition = { 10, 10 };
-	dmaxPosition = { 84, 84 };
-
-	if (entry == ENTRY_MAIN) { // New game
-		ViewPosition = { 75, 68 };
-	} else if (entry == ENTRY_PREV) { // Cathedral
-		ViewPosition = { 25, 31 };
-	} else if (entry == ENTRY_TWARPUP) {
-		if (TWarpFrom == 5) {
-			ViewPosition = { 49, 22 };
-		}
-		if (TWarpFrom == 9) {
-			ViewPosition = { 18, 69 };
-		}
-		if (TWarpFrom == 13) {
-			ViewPosition = { 41, 81 };
-		}
-		if (TWarpFrom == 21) {
-			ViewPosition = { 36, 25 };
-		}
-		if (TWarpFrom == 17) {
-			ViewPosition = { 79, 62 };
-		}
+	const TownConfig *config = GetCurrentTownConfig();
+	if (config == nullptr) {
+		LogError("CreateTown: current town not registered");
+		return;
 	}
+	dminPosition = config->dminPosition;
+	dmaxPosition = config->dmaxPosition;
+	ViewPosition = config->GetEntryPoint(entry, TWarpFrom);
 
 	DrlgTPass3();
 }

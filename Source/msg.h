@@ -371,6 +371,10 @@ enum _cmd_id : uint8_t {
 	//
 	// body (TCmd)
 	CMD_RETOWN,
+	// Travel to a different town (multi-town system).
+	//
+	// body (TCmdString): townId (null-terminated string, max 32 chars)
+	CMD_TOWNTRAVEL,
 	// Cast spell with direction at target location (e.g. firewall).
 	//
 	// body (TCmdLocParam5):
@@ -759,6 +763,7 @@ void NetSendCmdChBeltItem(bool bHiPri, int beltIndex);
 void NetSendCmdDamage(bool bHiPri, const Player &player, uint32_t dwDam, DamageType damageType);
 void NetSendCmdMonDmg(bool bHiPri, uint16_t wMon, uint32_t dwDam);
 void NetSendCmdString(uint32_t pmask, const char *pszStr);
+void NetSendCmdTownTravel(uint32_t pmask, const char *townId);
 void delta_close_portal(const Player &player);
 bool ValidateCmdSize(size_t requiredCmdSize, size_t maxCmdSize, size_t playerId);
 size_t ParseCmd(uint8_t pnum, const TCmd *pCmd, size_t maxCmdSize);
