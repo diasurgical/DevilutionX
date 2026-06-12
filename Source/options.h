@@ -637,6 +637,8 @@ struct GameplayOptions : OptionCategoryBase {
 	OptionEntryInt<int> numFullRejuPotionPickup;
 	/** @brief Use visual grid-based store UI instead of text-based menus. */
 	OptionEntryBoolean visualStoreUI;
+	/** @brief Enable local co-op mode (multiple controllers on same screen). */
+	OptionEntryBoolean enableLocalCoop;
 
 	/**
 	 * @brief If loading takes less than this value, skips displaying the loading screen.

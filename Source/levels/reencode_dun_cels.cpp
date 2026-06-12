@@ -204,7 +204,7 @@ size_t GetReencodedSize(const uint8_t *dungeonCels, std::span<std::pair<uint16_t
 	size_t result = (2 + frames.size()) * 4;
 	const auto *srcOffsets = reinterpret_cast<const uint32_t *>(dungeonCels);
 	for (const auto &[frame, info] : frames) {
-		size_t frameSize;
+		size_t frameSize = 0;
 		switch (info.type) {
 		case TileType::TransparentSquare: {
 			const uint32_t srcFrameBegin = Swap32LE(srcOffsets[frame]);

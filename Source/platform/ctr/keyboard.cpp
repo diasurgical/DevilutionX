@@ -5,6 +5,7 @@
 #include "utils/utf8.hpp"
 
 constexpr size_t MAX_TEXT_LENGTH = 255;
+constexpr size_t VkbdEventQueueCapacity = 16;
 
 struct vkbdEvent {
 	std::string_view hintText;
@@ -13,12 +14,12 @@ struct vkbdEvent {
 	size_t maxLength;
 };
 
-static vkbdEvent events[16];
-static int eventCount = 0;
+static vkbdEvent events[VkbdEventQueueCapacity];
+static size_t eventCount = 0;
 
 void ctr_vkbdInput(std::string_view hintText, std::string_view inText, char *outText, size_t maxLength)
 {
-	if (eventCount >= sizeof(events))
+	if (eventCount >= VkbdEventQueueCapacity)
 		return;
 
 	vkbdEvent &event = events[eventCount];
@@ -31,7 +32,7 @@ void ctr_vkbdInput(std::string_view hintText, std::string_view inText, char *out
 
 void ctr_vkbdFlush()
 {
-	for (int i = 0; i < eventCount; i++) {
+	for (size_t i = 0; i < eventCount; i++) {
 		vkbdEvent &event = events[i];
 		SwkbdState swkbd;
 

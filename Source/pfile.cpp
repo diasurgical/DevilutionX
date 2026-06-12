@@ -6,6 +6,7 @@
 #include "pfile.h"
 
 #include <cstdint>
+#include <functional>
 #include <string>
 #include <string_view>
 
@@ -677,36 +678,58 @@ void sfile_write_stash()
 	Stash.dirty = false;
 }
 
-bool pfile_ui_set_hero_infos(bool (*uiAddHeroInfo)(_uiheroinfo *))
+namespace {
+
+template <typename Fn>
+bool pfile_ui_set_hero_infos_impl(Fn &&fn)
 {
 	memset(hero_names, 0, sizeof(hero_names));
 
+	uint32_t originalSaveNumber = gSaveNumber;
 	for (uint32_t i = 0; i < MAX_CHARACTERS; i++) {
 		std::optional<SaveReader> archive = OpenSaveArchive(i);
-		if (archive) {
-			PlayerPack pkplr;
-			if (ReadHero(*archive, &pkplr)) {
-				_uiheroinfo uihero;
-				uihero.saveNumber = i;
-				strcpy(hero_names[i], pkplr.pName);
-				const bool hasSaveGame = ArchiveContainsGame(*archive);
-				if (hasSaveGame)
-					pkplr.bIsHellfire = gbIsHellfireSaveGame ? 1 : 0;
+		if (!archive)
+			continue;
+		PlayerPack pkplr;
+		if (!ReadHero(*archive, &pkplr))
+			continue;
+		_uiheroinfo uihero;
+		uihero.saveNumber = i;
+		strcpy(hero_names[i], pkplr.pName);
+		const bool hasSaveGame = ArchiveContainsGame(*archive);
+		if (hasSaveGame)
+			pkplr.bIsHellfire = gbIsHellfireSaveGame ? 1 : 0;
 
-				Player &player = Players[0];
+		// Must unpack into Players[0]: InitPlayer/UnPackPlayer use Player::getId() (distance
+		// from &Players[0]) for vision/lighting; a stack Player yields an invalid index.
+		Player &player = Players[0];
 
-				UnPackPlayer(pkplr, player);
-				LoadHeroItems(player);
-				RemoveAllInvalidItems(player);
-				CalcPlrInv(player, false);
+		UnPackPlayer(pkplr, player);
+		// Temporarily set gSaveNumber to the save we're reading from
+		// so that LoadHeroItems reads items from the correct save file
+		gSaveNumber = i;
+		LoadHeroItems(player);
+		RemoveAllInvalidItems(player);
+		CalcPlrInv(player, false);
 
-				Game2UiPlayer(player, &uihero, hasSaveGame);
-				uiAddHeroInfo(&uihero);
-			}
-		}
+		Game2UiPlayer(player, &uihero, hasSaveGame);
+		fn(&uihero);
 	}
+	gSaveNumber = originalSaveNumber;
 
 	return true;
+}
+
+} // namespace
+
+bool pfile_ui_set_hero_infos(bool (*uiAddHeroInfo)(_uiheroinfo *))
+{
+	return pfile_ui_set_hero_infos_impl([uiAddHeroInfo](_uiheroinfo *h) { return uiAddHeroInfo(h); });
+}
+
+bool pfile_ui_set_hero_infos(std::function<bool(_uiheroinfo *)> uiAddHeroInfo)
+{
+	return pfile_ui_set_hero_infos_impl(std::move(uiAddHeroInfo));
 }
 
 void pfile_ui_set_class_stats(HeroClass playerClass, _uidefaultstats *classStats)
@@ -783,9 +806,30 @@ void pfile_read_player_from_save(uint32_t saveNum, Player &player)
 	}
 
 	UnPackPlayer(pkplr, player);
+
+	// Temporarily set gSaveNumber to the save we're reading from
+	// so that LoadHeroItems reads items from the correct save file
+	uint32_t originalSaveNumber = gSaveNumber;
+	gSaveNumber = saveNum;
 	LoadHeroItems(player);
+	gSaveNumber = originalSaveNumber;
+
 	RemoveAllInvalidItems(player);
 	CalcPlrInv(player, false);
+}
+
+void pfile_write_player_to_save(uint32_t saveNum, Player &player)
+{
+	SaveWriter saveWriter = GetSaveWriter(saveNum);
+
+	PlayerPack pkplr;
+	PackPlayer(pkplr, player);
+	EncodeHero(saveWriter, &pkplr);
+
+	if (!gbVanilla) {
+		SaveHotkeys(saveWriter, player);
+		SaveHeroItems(saveWriter, player);
+	}
 }
 
 void pfile_save_level()

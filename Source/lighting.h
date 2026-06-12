@@ -19,6 +19,9 @@
 
 namespace devilution {
 
+struct Player;
+bool IsLocalPlayer(const Player &player);
+
 struct LightPosition {
 	WorldTilePosition tile;
 	/** Pixel offset from tile. */
