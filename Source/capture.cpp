@@ -32,8 +32,8 @@
 #endif
 
 #include "engine/backbuffer_state.hpp"
-#include "engine/dx.h"
 #include "engine/palette.h"
+#include "engine/render/renderer.h"
 #include "engine/render/scrollrt.h"
 #include "utils/file_util.h"
 #include "utils/log.hpp"
@@ -77,8 +77,7 @@ void RedPalette()
 		system_palette[i].b = 0;
 	}
 	SystemPaletteUpdated();
-	BltFast(nullptr, nullptr);
-	RenderPresent();
+	GetRenderer().EndFrame();
 }
 
 } // namespace
@@ -102,11 +101,28 @@ void CaptureScreen()
 	system_palette = origSystemPalette;
 	SystemPaletteUpdated();
 
+	SDLSurfaceUniquePtr capturedSurface = GetRenderer().CaptureScreen();
+	if (capturedSurface == nullptr) {
+		LogError("Failed to capture screen for screenshot");
+		SDL_CloseIO(outStream);
+		RemoveFile(fileName.c_str());
+		return;
+	}
+#if DEVILUTIONX_SCREENSHOT_FORMAT == DEVILUTIONX_SCREENSHOT_FORMAT_PCX
+	if (capturedSurface->format->palette == nullptr) {
+		LogError("PCX screenshots require an indexed surface; GPU renderer not supported");
+		SDL_CloseIO(outStream);
+		RemoveFile(fileName.c_str());
+		return;
+	}
+#endif
+	const Surface buf(capturedSurface.get());
+
 	const tl::expected<void, std::string> result =
 #if DEVILUTIONX_SCREENSHOT_FORMAT == DEVILUTIONX_SCREENSHOT_FORMAT_PCX
-	    WriteSurfaceToFilePcx(GlobalBackBuffer(), outStream);
+	    WriteSurfaceToFilePcx(buf, outStream);
 #elif DEVILUTIONX_SCREENSHOT_FORMAT == DEVILUTIONX_SCREENSHOT_FORMAT_PNG
-	    WriteSurfaceToFilePng(GlobalBackBuffer(), outStream);
+	    WriteSurfaceToFilePng(buf, outStream);
 #endif
 
 	if (!result.has_value()) {

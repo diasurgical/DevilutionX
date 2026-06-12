@@ -152,10 +152,10 @@ void AddMessageToChatLog(std::string_view message, Player *player, UiFlags flags
 	}
 }
 
-void DrawChatLog(const Surface &out)
+void DrawChatLog()
 {
 	DrawSTextHelp();
-	DrawQTextBack(out);
+	DrawQTextBack();
 
 	if (SkipLines == 0) {
 		UnreadFlag = false;
@@ -167,7 +167,7 @@ void DrawChatLog(const Surface &out)
 	const int sx = uiPosition.x + PaddingLeft;
 	const int sy = uiPosition.y;
 
-	DrawString(out, fmt::format(fmt::runtime(_("Chat History (Messages: {:d})")), MessageCounter),
+	DrawString(fmt::format(fmt::runtime(_("Chat History (Messages: {:d})")), MessageCounter),
 	    { { sx, sy + PaddingTop + blankLineHeight }, { ContentTextWidth, lineHeight } },
 	    { .flags = (UnreadFlag ? UiFlags::ColorRed : UiFlags::ColorWhitegold) | UiFlags::AlignCenter });
 
@@ -176,12 +176,12 @@ void DrawChatLog(const Surface &out)
 	if (localtimeResult != nullptr) {
 		const std::string timestamp = StrCat(
 		    LeftPad(localtimeResult->tm_hour, 2, '0'), ":", LeftPad(localtimeResult->tm_min, 2, '0'), ":", LeftPad(localtimeResult->tm_sec, 2, '0'));
-		DrawString(out, timestamp, { { sx, sy + PaddingTop + blankLineHeight }, { ContentTextWidth, lineHeight } },
+		DrawString(timestamp, { { sx, sy + PaddingTop + blankLineHeight }, { ContentTextWidth, lineHeight } },
 		    { .flags = UiFlags::ColorWhitegold });
 	}
 
 	const int titleBottom = sy + HeaderHeight();
-	DrawSLine(out, titleBottom);
+	DrawSLine(titleBottom);
 
 	const int numLines = NumVisibleLines();
 	const int contentY = titleBottom + DividerLineMarginY() + ContentPaddingY();
@@ -195,11 +195,11 @@ void DrawChatLog(const Surface &out)
 		for (auto &x : text.colors) {
 			args.emplace_back(x.text, x.color);
 		}
-		DrawStringWithColors(out, line, args, { { sx, contentY + (i * lineHeight) }, { ContentTextWidth, lineHeight } },
+		DrawStringWithColors(line, args, { { sx, contentY + (i * lineHeight) }, { ContentTextWidth, lineHeight } },
 		    { .flags = UiFlags::ColorWhite, .lineHeight = lineHeight });
 	}
 
-	DrawString(out, _("Press ESC to end or the arrow keys to scroll."),
+	DrawString(_("Press ESC to end or the arrow keys to scroll."),
 	    { { sx, contentY + ContentsTextHeight() + ContentPaddingY() + blankLineHeight }, { ContentTextWidth, lineHeight } },
 	    { .flags = UiFlags::ColorWhitegold | UiFlags::AlignCenter });
 }

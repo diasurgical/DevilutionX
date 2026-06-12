@@ -5,6 +5,7 @@
 #include <cstring>
 
 #include "engine/point.hpp"
+#include "engine/render/renderer.h"
 #include "engine/size.hpp"
 #include "engine/surface.hpp"
 #include "utils/palette_blending.hpp"
@@ -156,7 +157,7 @@ void DrawHalfTransparentVerticalLine(const Surface &out, Point from, int height,
 	}
 }
 
-void DrawHalfTransparentRectTo(const Surface &out, int sx, int sy, int width, int height)
+void DrawBlendedRectTo(const Surface &out, int sx, int sy, int width, int height)
 {
 	if (sx + width < 0)
 		return;
@@ -184,7 +185,7 @@ void DrawHalfTransparentRectTo(const Surface &out, int sx, int sy, int width, in
 	DrawHalfTransparentBlendedRectTo(out, sx, sy, width, height);
 }
 
-void DrawHalfTransparentRectTo(const Surface &out, int sx, int sy, int width, int height, uint8_t color)
+void DrawBlendedRectTo(const Surface &out, int sx, int sy, int width, int height, uint8_t color)
 {
 	if (sx + width < 0)
 		return;
@@ -221,23 +222,14 @@ void SetHalfTransparentPixel(const Surface &out, Point position, uint8_t color)
 	}
 }
 
-void UnsafeDrawBorder2px(const Surface &out, Rectangle rect, uint8_t color)
+void UnsafeDrawBorder2px(Rectangle rect, uint8_t color)
 {
 	const size_t width = rect.size.width;
 	const size_t height = rect.size.height;
-	uint8_t *buf = &out[rect.position];
-	std::memset(buf, color, width);
-	buf += out.pitch();
-	std::memset(buf, color, width);
-	buf += out.pitch();
-	for (size_t i = 4; i < height; ++i) {
-		buf[0] = buf[1] = color;
-		buf[width - 2] = buf[width - 1] = color;
-		buf += out.pitch();
-	}
-	std::memset(buf, color, width);
-	buf += out.pitch();
-	std::memset(buf, color, width);
+	GetRenderer().FillRect(rect.position.x, rect.position.y, static_cast<int>(width), 2, color);
+	GetRenderer().FillRect(rect.position.x, rect.position.y + static_cast<int>(height) - 2, static_cast<int>(width), 2, color);
+	GetRenderer().FillRect(rect.position.x, rect.position.y + 2, 2, static_cast<int>(height) - 4, color);
+	GetRenderer().FillRect(rect.position.x + static_cast<int>(width) - 2, rect.position.y + 2, 2, static_cast<int>(height) - 4, color);
 }
 
 } // namespace devilution

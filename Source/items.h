@@ -550,7 +550,7 @@ void DoRepair(Player &player, int cii);
 void DoRecharge(Player &player, int cii);
 bool DoOil(Player &player, int cii);
 [[nodiscard]] StringOrView PrintItemPower(char plidx, const Item &item);
-void DrawUniqueInfo(const Surface &out);
+void DrawUniqueInfo();
 void PrintItemDetails(const Item &item);
 void PrintItemDur(const Item &item);
 void UseItem(Player &player, item_misc_id Mid, SpellID spellID, int spellFrom);

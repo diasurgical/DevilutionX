@@ -7,7 +7,6 @@
 #include <cstdint>
 #include <optional>
 #include <string>
-#include <utility>
 
 #ifdef USE_SDL3
 #include <SDL3/SDL_error.h>
@@ -22,16 +21,13 @@
 
 #include <expected.hpp>
 
-#include "control/control.hpp"
 #include "controls/input.h"
 #include "engine/clx_sprite.hpp"
-#include "engine/dx.h"
 #include "engine/events.hpp"
 #include "engine/load_cel.hpp"
 #include "engine/load_clx.hpp"
 #include "engine/palette.h"
-#include "engine/render/clx_render.hpp"
-#include "engine/render/primitive_render.hpp"
+#include "engine/render/renderer.h"
 #include "game_mode.hpp"
 #include "headless_mode.hpp"
 #include "hwcursor.hpp"
@@ -41,7 +37,6 @@
 #include "plrmsg.h"
 #include "utils/log.hpp"
 #include "utils/sdl_compat.h"
-#include "utils/sdl_geometry.h"
 #include "utils/sdl_thread.h"
 
 #ifndef USE_SDL1
@@ -226,30 +221,31 @@ void FreeCutsceneBackground()
 void DrawCutsceneBackground()
 {
 	const Rectangle &uiRectangle = GetUIRectangle();
-	const Surface &out = GlobalBackBuffer();
-	SDL_FillSurfaceRect(out.surface, nullptr, 0);
+	GetRenderer().FillRect(0, 0, gnScreenWidth, gnScreenHeight, 0);
 	if (ArtCutsceneWidescreen) {
 		const ClxSprite sprite = (*ArtCutsceneWidescreen)[0];
-		RenderClxSprite(out, sprite, { uiRectangle.position.x - ((sprite.width() - uiRectangle.size.width) / 2), uiRectangle.position.y });
+		GetRenderer().RenderClx({ uiRectangle.position.x - ((sprite.width() - uiRectangle.size.width) / 2), uiRectangle.position.y }, sprite);
 	}
-	ClxDraw(out, { uiRectangle.position.x, 480 - 1 + uiRectangle.position.y }, (*sgpBackCel)[0]);
+	if (sgpBackCel)
+		GetRenderer().DrawClx({ uiRectangle.position.x, 480 - 1 + uiRectangle.position.y }, (*sgpBackCel)[0]);
 }
 
 void DrawCutsceneForeground()
 {
 	const Rectangle &uiRectangle = GetUIRectangle();
-	const Surface &out = GlobalBackBuffer();
 	constexpr int ProgressHeight = 22;
 	SDL_Rect rect = MakeSdlRect(
-	    out.region.x + BarPos[progress_id][0] + uiRectangle.position.x,
-	    out.region.y + BarPos[progress_id][1] + uiRectangle.position.y,
+	    BarPos[progress_id][0] + uiRectangle.position.x,
+	    BarPos[progress_id][1] + uiRectangle.position.y,
 	    sgdwProgress,
 	    ProgressHeight);
-	SDL_FillSurfaceRect(out.surface, &rect, BarColor[progress_id]);
+	GetRenderer().FillRect(rect.x, rect.y, rect.w, rect.h, BarColor[progress_id]);
+}
 
-	if (DiabloUiSurface() == PalSurface)
-		BltFast(&rect, &rect);
-	RenderPresent();
+void DrawCutsceneWithProgress()
+{
+	DrawCutsceneBackground();
+	DrawCutsceneForeground();
 }
 
 struct {
@@ -265,24 +261,25 @@ void InitRendering()
 {
 	// Blit the background once and then free it.
 	DrawCutsceneBackground();
-	if (RenderDirectlyToOutputSurface && PalSurface != nullptr) {
-		// Render into all the backbuffers if there are multiple.
-		const void *initialPixels = PalSurface->pixels;
-		if (DiabloUiSurface() == PalSurface)
-			BltFast(nullptr, nullptr);
-		RenderPresent();
-		while (PalSurface->pixels != initialPixels) {
-			DrawCutsceneBackground();
-			if (DiabloUiSurface() == PalSurface)
-				BltFast(nullptr, nullptr);
-			RenderPresent();
-		}
-	}
-	FreeCutsceneBackground();
+	GetRenderer().RenderToAllBackBuffers([&]() {
+		DrawCutsceneBackground();
+		GetRenderer().EndFrame();
+	});
 
 	// The loading thread sets `logical_palette`, so we make sure to use
 	// our own palette for the fade-in.
-	PaletteFadeIn(8, ProgressEventHandlerState.palette);
+	if (!GetRenderer().NeedsFullRedraw()) {
+		// Software renderer: the back buffer retains the background pixels
+		// across EndFrame() calls, so we can free the art now.
+		FreeCutsceneBackground();
+	}
+
+	// The loading thread sets `logical_palette`, so we make sure to use
+	// our own palette for the fade-in.
+	// Only pass the redraw callback for renderers that need full redraws each frame
+	// (e.g. GL). The software renderer retains back buffer pixels across frames.
+	PaletteFadeIn(8, ProgressEventHandlerState.palette,
+	    GetRenderer().NeedsFullRedraw() ? DrawCutsceneBackground : std::function<void()> {});
 }
 
 void CheckShouldSkipRendering()
@@ -502,7 +499,10 @@ void ProgressEventHandler(const SDL_Event &event, uint16_t modState)
 	switch (customEvent) {
 	case WM_PROGRESS:
 		if (!HeadlessMode && ProgressEventHandlerState.drawnProgress != sgdwProgress && !ProgressEventHandlerState.skipRendering) {
+			if (GetRenderer().NeedsFullRedraw())
+				DrawCutsceneBackground();
 			DrawCutsceneForeground();
+			GetRenderer().EndFrame();
 			ProgressEventHandlerState.drawnProgress = sgdwProgress;
 		}
 		break;
@@ -521,23 +521,24 @@ void ProgressEventHandler(const SDL_Event &event, uint16_t modState)
 				UpdateSystemPalette(ProgressEventHandlerState.palette);
 
 				// Ensure that all back buffers have the full progress bar.
-				const void *initialPixels = PalSurface->pixels;
-				do {
+				GetRenderer().RenderToAllBackBuffers([&]() {
+					if (GetRenderer().NeedsFullRedraw())
+						DrawCutsceneBackground();
 					DrawCutsceneForeground();
-					if (DiabloUiSurface() == PalSurface)
-						BltFast(nullptr, nullptr);
-					RenderPresent();
-				} while (PalSurface->pixels != initialPixels);
+					GetRenderer().EndFrame();
+				});
 
 				// The loading thread sets `logical_palette`, so we make sure to use
 				// our own palette for the fade-out.
-				PaletteFadeOut(8, ProgressEventHandlerState.palette);
+				PaletteFadeOut(8, ProgressEventHandlerState.palette,
+				    GetRenderer().NeedsFullRedraw() ? DrawCutsceneWithProgress : std::function<void()> {});
 
 				// Once the fade-out is done, restore the system palette.
 				UpdateSystemPalette(logical_palette);
 			}
 		}
 
+		FreeCutsceneBackground();
 		[[maybe_unused]] EventHandler prevHandler = SetEventHandler(ProgressEventHandlerState.prevHandler);
 		assert(prevHandler == ProgressEventHandler);
 		ProgressEventHandlerState.prevHandler = nullptr;
@@ -555,9 +556,7 @@ void ProgressEventHandler(const SDL_Event &event, uint16_t modState)
 		ProgressEventHandlerState.done = true;
 
 #if !defined(USE_SDL1) && !defined(__vita__)
-		if (renderer != nullptr) {
-			InitVirtualGamepadTextures(*renderer);
-		}
+		GetRenderer().ReinitVirtualGamepad();
 #endif
 	} break;
 	default:
@@ -657,11 +656,14 @@ void ShowProgress(interface_mode uMsg)
 		assert(ghMainWnd);
 
 		interface_msg_pump();
+		GetRenderer().BlackOutScreen();
 		ClearScreenBuffer();
 		scrollrt_draw_game_screen();
 
 		if (IsHardwareCursor())
 			SetHardwareCursorVisible(false);
+		else
+			GetRenderer().SetCursorVisible(false);
 
 		BlackPalette();
 

@@ -2,7 +2,6 @@
 
 #include <cstdint>
 #include <optional>
-#include <string>
 
 #include <expected.hpp>
 #include <fmt/format.h>
@@ -14,6 +13,7 @@
 #include "engine/load_clx.hpp"
 #include "engine/rectangle.hpp"
 #include "engine/render/clx_render.hpp"
+#include "engine/render/renderer.h"
 #include "engine/render/text_render.hpp"
 #include "game_mode.hpp"
 #include "missiles.h"
@@ -63,9 +63,9 @@ SpellID GetSpellFromSpellPage(size_t page, size_t entry)
 constexpr Size SpellBookDescription { 250, 43 };
 constexpr int SpellBookDescriptionPaddingHorizontal = 2;
 
-void PrintSBookStr(const Surface &out, Point position, std::string_view text, UiFlags flags = UiFlags::None)
+void PrintSBookStr(Point position, std::string_view text, UiFlags flags = UiFlags::None)
 {
-	DrawString(out, text,
+	DrawString(text,
 	    Rectangle(GetPanelPosition(UiPanels::Spell, position + Displacement { SPLICONLENGTH, 0 }),
 	        SpellBookDescription)
 	        .inset({ SpellBookDescriptionPaddingHorizontal, 0 }),
@@ -133,18 +133,18 @@ void FreeSpellBook()
 	spellBookBackground = std::nullopt;
 }
 
-void DrawSpellBook(const Surface &out)
+void DrawSpellBook()
 {
 	constexpr int SpellBookButtonX = 7;
 	constexpr int SpellBookButtonY = 348;
-	ClxDraw(out, GetPanelPosition(UiPanels::Spell, { 0, 351 }), (*spellBookBackground)[0]);
+	GetRenderer().DrawClx(GetPanelPosition(UiPanels::Spell, { 0, 351 }), (*spellBookBackground)[0]);
 	const int buttonX = gbIsHellfire && SpellbookTab < 5
 	    ? SpellBookButtonWidthHellfire * SpellbookTab
 	    : (SpellBookButtonWidthDiablo * SpellbookTab)
 	        // BUGFIX: rendering of page 3 and page 4 buttons are both off-by-one pixel (fixed).
 	        + (SpellbookTab == 2 || SpellbookTab == 3 ? 1 : 0);
 
-	ClxDraw(out, GetPanelPosition(UiPanels::Spell, { SpellBookButtonX + buttonX, SpellBookButtonY }), (*spellBookButtons)[SpellbookTab]);
+	GetRenderer().DrawClx(GetPanelPosition(UiPanels::Spell, { SpellBookButtonX + buttonX, SpellBookButtonY }), (*spellBookButtons)[SpellbookTab]);
 	const Player &player = *InspectPlayer;
 	const uint64_t spl = player._pMemSpells | player._pISpells | player._pAblSpells;
 
@@ -158,31 +158,31 @@ void DrawSpellBook(const Surface &out)
 			const SpellType st = GetSBookTrans(sn, true);
 			SetSpellTrans(st);
 			const Point spellCellPosition = GetPanelPosition(UiPanels::Spell, { 11, yp + SpellBookDescription.height });
-			DrawSmallSpellIcon(out, spellCellPosition, sn);
+			DrawSmallSpellIcon(spellCellPosition, sn);
 			if (sn == player._pRSpell && st == player._pRSplType && !IsInspectingPlayer()) {
 				SetSpellTrans(SpellType::Skill);
-				DrawSmallSpellIconBorder(out, spellCellPosition);
+				DrawSmallSpellIconBorder(spellCellPosition);
 			}
 
 			const Point line0 { 0, yp + textPaddingTop };
 			const Point line1 { 0, yp + textPaddingTop + lineHeight };
-			PrintSBookStr(out, line0, pgettext("spell", GetSpellData(sn).sNameText));
+			PrintSBookStr(line0, pgettext("spell", GetSpellData(sn).sNameText));
 			switch (GetSBookTrans(sn, false)) {
 			case SpellType::Skill:
-				PrintSBookStr(out, line1, _("Skill"));
+				PrintSBookStr(line1, _("Skill"));
 				break;
 			case SpellType::Charges: {
 				const int charges = player.InvBody[INVLOC_HAND_LEFT]._iCharges;
-				PrintSBookStr(out, line1, fmt::format(fmt::runtime(ngettext("Staff ({:d} charge)", "Staff ({:d} charges)", charges)), charges));
+				PrintSBookStr(line1, fmt::format(fmt::runtime(ngettext("Staff ({:d} charge)", "Staff ({:d} charges)", charges)), charges));
 			} break;
 			default: {
 				const int mana = GetManaAmount(player, sn) >> 6;
 				const int lvl = player.GetSpellLevel(sn);
-				PrintSBookStr(out, line0, fmt::format(fmt::runtime(pgettext(/* TRANSLATORS: UI constraints, keep short please.*/ "spellbook", "Level {:d}")), lvl), UiFlags::AlignRight);
+				PrintSBookStr(line0, fmt::format(fmt::runtime(pgettext(/* TRANSLATORS: UI constraints, keep short please.*/ "spellbook", "Level {:d}")), lvl), UiFlags::AlignRight);
 				if (const StringOrView text = GetSpellPowerText(sn, lvl); !text.empty()) {
-					PrintSBookStr(out, line1, text, UiFlags::AlignRight);
+					PrintSBookStr(line1, text, UiFlags::AlignRight);
 				}
-				PrintSBookStr(out, line1, fmt::format(fmt::runtime(pgettext(/* TRANSLATORS: UI constraints, keep short please.*/ "spellbook", "Mana: {:d}")), mana));
+				PrintSBookStr(line1, fmt::format(fmt::runtime(pgettext(/* TRANSLATORS: UI constraints, keep short please.*/ "spellbook", "Mana: {:d}")), mana));
 			} break;
 			}
 		}

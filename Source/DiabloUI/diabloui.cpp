@@ -1,13 +1,11 @@
 #include "DiabloUI/diabloui.h"
 
-#include <algorithm>
-#include <array>
 #include <cstddef>
 #include <cstdint>
-#include <memory>
 #include <optional>
 #include <string>
-#include <string_view>
+
+#include "engine/render/renderer.h"
 #include <vector>
 
 #ifdef USE_SDL3
@@ -37,7 +35,6 @@
 #include "discord/discord.h"
 #include "effects.h"
 #include "engine/clx_sprite.hpp"
-#include "engine/dx.h"
 #include "engine/load_pcx.hpp"
 #include "engine/palette.h"
 #include "engine/render/clx_render.hpp"
@@ -134,47 +131,22 @@ void AdjustListOffset(std::size_t itemIndex)
 		listOffset = itemIndex;
 }
 
-uint32_t fadeTc;
 int fadeValue;
 
 void StartUiFadeIn()
 {
 	fadeValue = 0;
-	fadeTc = 0;
+	GetRenderer().BlackOutScreen();
+	GetRenderer().StartFadeIn(8);
 }
 
 void UiUpdateFadePalette()
 {
-	if (fadeValue == 256) return;
-	if (fadeValue == 0 && fadeTc == 0) {
-		// Start the fade-in.
-		fadeTc = SDL_GetTicks();
-		fadeValue = 0;
-		BlackPalette();
-		// We can skip hardware cursor update for fade level 0 (everything is black).
-		return;
-	}
-
-	const int prevFadeValue = fadeValue;
-	fadeValue = static_cast<int>((SDL_GetTicks() - fadeTc) / 2.083); // 32 frames @ 60hz
-	if (fadeValue == prevFadeValue) return;
-
-	if (fadeValue >= 256) {
-		// Finish the fade-in:
-		fadeValue = 256;
-		fadeTc = 0;
-		ApplyGlobalBrightness(system_palette.data(), logical_palette.data());
-		SystemPaletteUpdated();
-		if (IsHardwareCursor()) ReinitializeHardwareCursor();
-		return;
-	}
-
-	SDL_Color palette[256];
-	ApplyGlobalBrightness(palette, logical_palette.data());
-	ApplyFadeLevel(fadeValue, system_palette.data(), palette);
-
-	SystemPaletteUpdated();
-	if (IsHardwareCursor()) ReinitializeHardwareCursor();
+	// The renderer manages the fade overlay automatically.
+	// Sync fadeValue so callers (e.g. hardware cursor visibility)
+	// can query progress. Overlay opacity is 0=transparent..256=opaque,
+	// but fadeValue is 0=black..256=visible, so invert.
+	fadeValue = 256 - GetRenderer().GetFadeLevel();
 }
 
 } // namespace
@@ -415,10 +387,8 @@ void UiOnBackgroundChange()
 	// of single-player characters.
 	//
 	// Black out the screen immediately to make it appear more smooth.
-	SDL_FillSurfaceRect(DiabloUiSurface(), nullptr, 0);
-	if (DiabloUiSurface() == PalSurface)
-		BltFast(nullptr, nullptr);
-	RenderPresent();
+	GetRenderer().ClearScreen();
+	GetRenderer().EndFrame();
 }
 
 void UiFocusNavigation(SDL_Event *event)
@@ -791,10 +761,7 @@ void UiFadeIn()
 {
 	if (HeadlessMode) return;
 	UiUpdateFadePalette();
-	if (DiabloUiSurface() == PalSurface) {
-		BltFast(nullptr, nullptr);
-	}
-	RenderPresent();
+	GetRenderer().EndFrame();
 }
 
 namespace {
@@ -820,15 +787,14 @@ void DrawSelector(const SDL_Rect &rect)
 	// TODO FOCUS_MED appears higher than the box
 	const int y = rect.y + ((rect.h - static_cast<int>(sprite.height())) / 2);
 
-	const Surface &out = Surface(DiabloUiSurface());
-	RenderClxSprite(out, sprite, { rect.x, y });
-	RenderClxSprite(out, sprite, { rect.x + rect.w - sprite.width(), y });
+	GetRenderer().RenderClx({ rect.x, y }, sprite);
+	GetRenderer().RenderClx({ rect.x + rect.w - sprite.width(), y }, sprite);
 }
 
 void UiClearScreen()
 {
 	if (!ArtBackground || gnScreenWidth > (*ArtBackground)[0].width() || gnScreenHeight > (*ArtBackground)[0].height()) {
-		SDL_FillSurfaceRect(DiabloUiSurface(), nullptr, 0);
+		GetRenderer().ClearScreen();
 	}
 }
 
@@ -838,10 +804,7 @@ void UiPollAndRender(std::optional<tl::function_ref<bool(SDL_Event &)>> eventHan
 	while (PollEvent(&event)) {
 		if (eventHandler && (*eventHandler)(event))
 			continue;
-		if (!SDLC_ConvertEventToRenderCoordinates(renderer, &event)) {
-			LogWarn(LogCategory::Application, "SDL_ConvertEventToRenderCoordinates: {}", SDL_GetError());
-			SDL_ClearError();
-		}
+		GetRenderer().ConvertEventCoordinates(event);
 		UiFocusNavigation(&event);
 		UiHandleEvents(&event);
 	}
@@ -868,15 +831,13 @@ namespace {
 
 void Render(const UiText &uiText)
 {
-	const Surface &out = Surface(DiabloUiSurface());
-	DrawString(out, uiText.GetText(), MakeRectangle(uiText.m_rect),
+	DrawString(uiText.GetText(), MakeRectangle(uiText.m_rect),
 	    { .flags = uiText.GetFlags() | UiFlags::FontSizeDialog });
 }
 
 void Render(const UiArtText &uiArtText)
 {
-	const Surface &out = Surface(DiabloUiSurface());
-	DrawString(out, uiArtText.GetText(), MakeRectangle(uiArtText.m_rect),
+	DrawString(uiArtText.GetText(), MakeRectangle(uiArtText.m_rect),
 	    { .flags = uiArtText.GetFlags(), .spacing = uiArtText.GetSpacing(), .lineHeight = uiArtText.GetLineHeight() });
 }
 
@@ -887,7 +848,7 @@ void Render(const UiImageClx &uiImage)
 	if (uiImage.isCentered()) {
 		x += GetCenterOffset(sprite.width(), uiImage.m_rect.w);
 	}
-	RenderClxSprite(Surface(DiabloUiSurface()), sprite, { x, uiImage.m_rect.y });
+	GetRenderer().RenderClx({ x, uiImage.m_rect.y }, sprite);
 }
 
 void Render(const UiImageAnimatedClx &uiImage)
@@ -897,19 +858,16 @@ void Render(const UiImageAnimatedClx &uiImage)
 	if (uiImage.isCentered()) {
 		x += GetCenterOffset(sprite.width(), uiImage.m_rect.w);
 	}
-	RenderClxSprite(Surface(DiabloUiSurface()), sprite, { x, uiImage.m_rect.y });
+	GetRenderer().RenderClx({ x, uiImage.m_rect.y }, sprite);
 }
 
 void Render(const UiArtTextButton &uiButton)
 {
-	const Surface &out = Surface(DiabloUiSurface());
-	DrawString(out, uiButton.GetText(), MakeRectangle(uiButton.m_rect), { .flags = uiButton.GetFlags() });
+	DrawString(uiButton.GetText(), MakeRectangle(uiButton.m_rect), { .flags = uiButton.GetFlags() });
 }
 
 void Render(const UiList &uiList)
 {
-	const Surface &out = Surface(DiabloUiSurface());
-
 	for (std::size_t i = listOffset; i < uiList.m_vecItems.size() && (i - listOffset) < ListViewportSize; ++i) {
 		const SDL_Rect rect = uiList.itemRect(static_cast<int>(i - listOffset));
 		const UiListItem &item = *uiList.GetItem(i);
@@ -927,45 +885,48 @@ void Render(const UiList &uiList)
 		}
 
 		if (item.args.empty()) {
-			DrawString(out, text, rectangle, { .flags = uiFlags, .spacing = uiList.GetSpacing() });
+			DrawString(text, rectangle, { .flags = uiFlags, .spacing = uiList.GetSpacing() });
 		} else {
-			DrawStringWithColors(out, text, item.args, rectangle, { .flags = uiFlags, .spacing = uiList.GetSpacing() });
+			DrawStringWithColors(text, item.args, rectangle, { .flags = uiFlags, .spacing = uiList.GetSpacing() });
 		}
 	}
 }
 
 void Render(const UiScrollbar &uiSb)
 {
-	const Surface out = Surface(DiabloUiSurface());
-
 	// Bar background (tiled):
 	{
 		const int bgY = uiSb.m_rect.y + uiSb.m_arrow[0].height();
 		const int bgH = DownArrowRect(uiSb).y - bgY;
-		const Surface backgroundOut = out.subregion(uiSb.m_rect.x, bgY, ScrollBarBgWidth, bgH);
+		GetRenderer().SetClipRegion(uiSb.m_rect.x, bgY, ScrollBarBgWidth, bgH);
 		int y = 0;
 		while (y < bgH) {
-			RenderClxSprite(backgroundOut, uiSb.m_bg, { 0, y });
+			GetRenderer().RenderClx({ uiSb.m_rect.x, bgY + y }, uiSb.m_bg);
 			y += uiSb.m_bg.height();
 		}
+		GetRenderer().ClearClipRegion();
 	}
 
 	// Arrows:
 	{
 		const SDL_Rect rect = UpArrowRect(uiSb);
 		const auto frame = static_cast<uint16_t>(scrollBarState.upArrowPressed ? ScrollBarArrowFrame_UP_ACTIVE : ScrollBarArrowFrame_UP);
-		RenderClxSprite(out.subregion(rect.x, 0, ScrollBarArrowWidth, out.h()), uiSb.m_arrow[frame], { 0, rect.y });
+		GetRenderer().SetClipRegion(rect.x, 0, ScrollBarArrowWidth, gnScreenHeight);
+		GetRenderer().RenderClx({ rect.x, rect.y }, uiSb.m_arrow[frame]);
+		GetRenderer().ClearClipRegion();
 	}
 	{
 		const SDL_Rect rect = DownArrowRect(uiSb);
 		const auto frame = static_cast<uint16_t>(scrollBarState.downArrowPressed ? ScrollBarArrowFrame_DOWN_ACTIVE : ScrollBarArrowFrame_DOWN);
-		RenderClxSprite(out.subregion(rect.x, 0, ScrollBarArrowWidth, out.h()), uiSb.m_arrow[frame], { 0, rect.y });
+		GetRenderer().SetClipRegion(rect.x, 0, ScrollBarArrowWidth, gnScreenHeight);
+		GetRenderer().RenderClx({ rect.x, rect.y }, uiSb.m_arrow[frame]);
+		GetRenderer().ClearClipRegion();
 	}
 
 	// Thumb:
 	if (SelectedItemMax > 0) {
 		const SDL_Rect rect = ThumbRect(uiSb, SelectedItem, SelectedItemMax + 1);
-		RenderClxSprite(out, uiSb.m_thumb, { rect.x, rect.y });
+		GetRenderer().RenderClx({ rect.x, rect.y }, uiSb.m_thumb);
 	}
 }
 
@@ -976,8 +937,7 @@ void Render(const UiEdit &uiEdit)
 	// To simulate padding we inset the region used to draw text in an edit control
 	const Rectangle rect = MakeRectangle(uiEdit.m_rect).inset({ 43, 1 });
 
-	const Surface &out = Surface(DiabloUiSurface());
-	DrawString(out, uiEdit.m_value, rect,
+	DrawString(uiEdit.m_value, rect,
 	    {
 	        .flags = uiEdit.GetFlags(),
 	        .cursorPosition = static_cast<int>(uiEdit.m_cursor.position),
@@ -1208,6 +1168,6 @@ void DrawMouse()
 {
 	if (ControlDevice != ControlTypes::KeyboardAndMouse || IsHardwareCursor() || !ArtCursor)
 		return;
-	RenderClxSprite(Surface(DiabloUiSurface()), (*ArtCursor)[0], MousePosition);
+	GetRenderer().RenderClx(MousePosition, (*ArtCursor)[0]);
 }
 } // namespace devilution

@@ -10,6 +10,7 @@
 
 #include "engine/point.hpp"
 #include "engine/render/blit_impl.hpp"
+#include "engine/render/renderer.h"
 #include "engine/surface.hpp"
 #include "utils/attributes.h"
 #include "utils/clx_decode.hpp"
@@ -622,6 +623,7 @@ void ClxDrawOutlineSkipColorZero(const Surface &out, uint8_t col, Point position
 void ClearClxDrawCache()
 {
 	OutlinePixelsCache.spriteData = nullptr;
+	GetRenderer().ClearTextureCache();
 }
 
 } // namespace devilution

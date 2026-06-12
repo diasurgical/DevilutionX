@@ -11,12 +11,15 @@
 #include "engine/displacement.hpp"
 #include "engine/lighting_defs.hpp"
 #include "engine/load_file.hpp"
-#include "engine/render/dun_render.hpp"
+#include "engine/render/null_renderer.h"
+#include "engine/render/renderer.h"
+#include "engine/render/software/dun_render_internal.hpp"
 #include "engine/surface.hpp"
 #include "levels/dun_tile.hpp"
 #include "levels/gendung.h"
 #include "lighting.h"
 #include "options.h"
+#include "utils/display.h"
 #include "utils/log.hpp"
 #include "utils/sdl_wrap.h"
 
@@ -50,6 +53,20 @@ void InitOnce()
 			exit(1);
 		}
 
+		// Set up a minimal renderer for GetBackBufferSize().
+		class BenchmarkRenderer final : public NullRenderer {
+		public:
+			SDL_Surface *surface = nullptr;
+			Size GetBackBufferSize() const override { return { surface->w, surface->h }; }
+		};
+		auto renderer = std::make_unique<BenchmarkRenderer>();
+		renderer->surface = SdlSurface.get();
+		SetRenderer(std::move(renderer));
+
+		gnScreenWidth = 640;
+		gnScreenHeight = 480;
+		gnViewportHeight = 480;
+
 		for (size_t i = 0; i < 700; ++i) {
 			for (size_t j = 0; j < 10; ++j) {
 				if (const LevelCelBlock levelCelBlock = DPieceMicros[i].mt[j]; levelCelBlock.hasValue()) {
@@ -62,7 +79,7 @@ void InitOnce()
 				}
 			}
 		}
-		GetOptions().Graphics.perPixelLighting.SetValue(false);
+		GetOptions().Graphics.lightingMode.SetValue(LightingMode::Tile);
 		return true;
 	}();
 }
@@ -75,7 +92,7 @@ void RunForTileMaskLight(benchmark::State &state, TileType tileType, MaskType ma
 	const std::span<const LevelCelBlock> tiles = Tiles[tileType];
 	for (auto _ : state) {
 		for (const LevelCelBlock &levelCelBlock : tiles) {
-			RenderTile(out, lightmap, Point { 320, 240 }, BmDunCelData.get(), levelCelBlock, maskType, lightTable);
+			RenderTile(SdlSurface.get(), lightmap, Point { 320, 240 }, BmDunCelData.get(), levelCelBlock, maskType, lightTable);
 			uint8_t color = out[Point { 310, 200 }];
 			benchmark::DoNotOptimize(color);
 		}
@@ -127,7 +144,7 @@ void BM_RenderBlackTile(benchmark::State &state)
 	InitOnce();
 	const Surface out = Surface(SdlSurface.get());
 	for (auto _ : state) {
-		world_draw_black_tile(out, 320, 240);
+		GetRenderer().DrawBlackTile(320, 240);
 		uint8_t color = out[Point { 310, 200 }];
 		benchmark::DoNotOptimize(color);
 	}

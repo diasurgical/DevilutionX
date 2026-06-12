@@ -6,6 +6,7 @@
 #pragma once
 
 #include <cstdint>
+#include <memory>
 
 #include "engine/clx_sprite.hpp"
 #include "engine/point.hpp"
@@ -70,9 +71,20 @@ void CheckRportal();
 void CheckTown();
 void CheckCursMove();
 
+/**
+ * @brief Create an 8-bit indexed surface containing the cursor sprite.
+ *
+ * For item cursors, includes a 1px outline. The surface uses system_palette
+ * with color key 1 (transparent). The hotpoint is returned via @p outHotpoint.
+ *
+ * @return The created surface, or nullptr if the cursor should not be shown.
+ */
+std::unique_ptr<OwnedSurface> CreateSoftwareCursorSurface(int cursId, Point &outHotpoint);
+
 void DrawSoftwareCursor(const Surface &out, Point position, int cursId);
 
 void DrawItem(const Item &item, const Surface &out, Point position, ClxSprite clx);
+void DrawItemOnScreen(const Item &item, Point position, ClxSprite clx);
 
 /** Returns the sprite for the given inventory index. */
 ClxSprite GetInvItemSprite(int cursId);

@@ -1,10 +1,11 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
-#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
+
+#include "engine/render/renderer.h"
 
 #ifdef USE_SDL3
 #include <SDL3/SDL_events.h>
@@ -106,15 +107,15 @@ private:
 void CreditsRenderer::Render()
 {
 	const int offsetY = -VIEWPORT.h + ((SDL_GetTicks() - ticks_begin_) / 40);
-	if (offsetY == prev_offset_y_)
+	if (offsetY == prev_offset_y_ && !GetRenderer().NeedsFullRedraw())
 		return;
 	prev_offset_y_ = offsetY;
 
-	SDL_FillSurfaceRect(DiabloUiSurface(), nullptr, 0);
+	GetRenderer().ClearScreen();
 	const Point uiPosition = GetUIRectangle().position;
 	if (ArtBackgroundWidescreen)
-		RenderClxSprite(Surface(DiabloUiSurface()), (*ArtBackgroundWidescreen)[0], uiPosition - Displacement { 320, 0 });
-	RenderClxSprite(Surface(DiabloUiSurface()), (*ArtBackground)[0], uiPosition);
+		GetRenderer().RenderClx(uiPosition - Displacement { 320, 0 }, (*ArtBackgroundWidescreen)[0]);
+	GetRenderer().RenderClx(uiPosition, (*ArtBackground)[0]);
 
 	const std::size_t linesBegin = std::max(offsetY / LINE_H, 0);
 	const std::size_t linesEnd = std::min(linesBegin + MAX_VISIBLE_LINES, linesToRender.size());
@@ -125,27 +126,18 @@ void CreditsRenderer::Render()
 		return;
 	}
 
-	SDL_Rect viewport = VIEWPORT;
-	viewport.x += uiPosition.x;
-	viewport.y += uiPosition.y;
-	ScaleOutputRect(&viewport);
-
 	// We use unscaled coordinates for calculation throughout.
 	auto destY = static_cast<Sint16>(uiPosition.y + VIEWPORT.y - (offsetY - linesBegin * LINE_H));
+	GetRenderer().SetClipRegion(uiPosition.x + VIEWPORT.x, uiPosition.y + VIEWPORT.y, VIEWPORT.w, VIEWPORT.h);
 	for (std::size_t i = linesBegin; i < linesEnd; ++i, destY += LINE_H) {
 		const Sint16 destX = uiPosition.x + VIEWPORT.x + 31;
 
 		auto &lineContent = linesToRender[i];
 
-		SDL_Rect dstRect = MakeSdlRect(destX + lineContent.offset, destY, 0, 0);
-		ScaleOutputRect(&dstRect);
-		dstRect.x -= viewport.x;
-		dstRect.y -= viewport.y;
-
-		const Surface &out = Surface(DiabloUiSurface(), viewport);
-		DrawString(out, lineContent.text, Point { dstRect.x, dstRect.y },
+		DrawString(lineContent.text, Point { destX + lineContent.offset, destY }, gnScreenWidth,
 		    { .flags = UiFlags::FontSizeDialog | UiFlags::ColorDialogWhite, .spacing = -1 });
 	}
+	GetRenderer().ClearClipRegion();
 }
 
 bool TextDialog(const char *const *text, std::size_t textLines)

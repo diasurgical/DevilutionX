@@ -5,13 +5,11 @@
  */
 #pragma once
 
-#include "engine/surface.hpp"
-
 namespace devilution {
 
 extern bool DoomFlag;
 void doom_init();
 void doom_close();
-void doom_draw(const Surface &out);
+void doom_draw();
 
 } // namespace devilution

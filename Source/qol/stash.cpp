@@ -20,6 +20,7 @@
 #include "engine/load_clx.hpp"
 #include "engine/rectangle.hpp"
 #include "engine/render/clx_render.hpp"
+#include "engine/render/renderer.h"
 #include "engine/render/text_render.hpp"
 #include "engine/size.hpp"
 #include "headless_mode.hpp"
@@ -356,13 +357,13 @@ void CheckStashButtonPress(Point mousePosition)
 	StashButtonPressed = -1;
 }
 
-void DrawStash(const Surface &out)
+void DrawStash()
 {
-	RenderClxSprite(out, (*StashPanelArt)[0], GetPanelPosition(UiPanels::Stash));
+	GetRenderer().RenderClx(GetPanelPosition(UiPanels::Stash), (*StashPanelArt)[0]);
 
 	if (StashButtonPressed != -1) {
 		const Point stashButton = GetPanelPosition(UiPanels::Stash, StashButtonRect[StashButtonPressed].position);
-		RenderClxSprite(out, (*StashNavButtonArt)[StashButtonPressed], stashButton);
+		GetRenderer().RenderClx(stashButton, (*StashNavButtonArt)[StashButtonPressed]);
 	}
 
 	constexpr Displacement offset { 0, INV_SLOT_SIZE_PX - 1 };
@@ -373,7 +374,7 @@ void DrawStash(const Surface &out)
 			continue; // No item in the given slot
 		}
 		const Item &item = Stash.stashList[itemId];
-		InvDrawSlotBack(out, GetStashSlotCoord(slot) + offset, InventorySlotSizeInPixels, item._iMagical);
+		InvDrawSlotBack(GetStashSlotCoord(slot) + offset, InventorySlotSizeInPixels, item._iMagical);
 	}
 
 	for (auto slot : StashGridRange) {
@@ -394,19 +395,19 @@ void DrawStash(const Surface &out)
 
 		if (pcursstashitem == itemId) {
 			const uint8_t color = GetOutlineColor(item, true);
-			ClxDrawOutline(out, color, position, sprite);
+			GetRenderer().DrawClxOutline(color, position, sprite, false);
 		}
 
-		DrawItem(item, out, position, sprite);
+		DrawItemOnScreen(item, position, sprite);
 	}
 
 	const Point position = GetPanelPosition(UiPanels::Stash);
 	const UiFlags style = UiFlags::VerticalCenter | UiFlags::ColorWhite;
 	const int textboxHeight = 13;
 
-	DrawString(out, StrCat(Stash.GetPage() + 1), { position + Displacement { 132, 0 }, { 57, textboxHeight } },
+	DrawString(StrCat(Stash.GetPage() + 1), { position + Displacement { 132, 0 }, { 57, textboxHeight } },
 	    { .flags = UiFlags::AlignCenter | style });
-	DrawString(out, FormatInteger(Stash.gold), { position + Displacement { 122, 19 }, { 107, textboxHeight } },
+	DrawString(FormatInteger(Stash.gold), { position + Displacement { 122, 19 }, { 107, textboxHeight } },
 	    { .flags = UiFlags::AlignRight | style });
 }
 
@@ -640,7 +641,7 @@ void WithdrawGoldKeyPress(SDL_Keycode vkey)
 	}
 }
 
-void DrawGoldWithdraw(const Surface &out)
+void DrawGoldWithdraw()
 {
 	if (!IsWithdrawGoldOpen) {
 		return;
@@ -651,7 +652,7 @@ void DrawGoldWithdraw(const Surface &out)
 
 	const int dialogX = 30;
 
-	ClxDraw(out, GetPanelPosition(UiPanels::Stash, { dialogX, 178 }), (*GoldBoxBuffer)[0]);
+	GetRenderer().DrawClx(GetPanelPosition(UiPanels::Stash, { dialogX, 178 }), (*GoldBoxBuffer)[0]);
 
 	// Pre-wrap the string at spaces, otherwise DrawString would hard wrap in the middle of words
 	const std::string wrapped = WordWrapString(_("How many gold pieces do you want to withdraw?"), 200);
@@ -659,12 +660,12 @@ void DrawGoldWithdraw(const Surface &out)
 	// The split gold dialog is roughly 4 lines high, but we need at least one line for the player to input an amount.
 	// Using a clipping region 50 units high (approx 3 lines with a lineheight of 17) to ensure there is enough room left
 	//  for the text entered by the player.
-	DrawString(out, wrapped, { GetPanelPosition(UiPanels::Stash, { dialogX + 31, 75 }), { 200, 50 } },
+	DrawString(wrapped, { GetPanelPosition(UiPanels::Stash, { dialogX + 31, 75 }), { 200, 50 } },
 	    { .flags = UiFlags::ColorWhitegold | UiFlags::AlignCenter, .lineHeight = 17 });
 
 	// Even a ten digit amount of gold only takes up about half a line. There's no need to wrap or clip text here so we
 	// use the Point form of DrawString.
-	DrawString(out, amountText, GetPanelPosition(UiPanels::Stash, { dialogX + 37, 128 }),
+	DrawString(amountText, GetPanelPosition(UiPanels::Stash, { dialogX + 37, 128 }), gnScreenWidth,
 	    {
 	        .flags = UiFlags::ColorWhite | UiFlags::PentaCursor,
 	        .cursorPosition = static_cast<int>(cursor.position),

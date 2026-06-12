@@ -5,7 +5,8 @@
 #include <benchmark/benchmark.h>
 
 #include "engine/lighting_defs.hpp"
-#include "engine/render/light_render.hpp"
+#include "engine/render/lighting_mode.hpp"
+#include "engine/render/software/light_render_internal.hpp"
 #include "engine/surface.hpp"
 #include "levels/gendung_defs.hpp"
 #include "utils/log.hpp"
@@ -47,7 +48,7 @@ void BM_BuildLightmap(benchmark::State &state)
 	const uint16_t outPitch = out.pitch();
 
 	for (auto _ : state) {
-		const Lightmap lightmap = Lightmap::build(/*perPixelLighting=*/true,
+		const Lightmap lightmap = LightmapBuild(/*lightingMode=*/LightingMode::TileSmooth,
 		    tilePosition, targetBufferPosition,
 		    viewportWidth, viewportHeight, rows, columns,
 		    outBuffer, outPitch, lightTables, lightTables[0].data(), lightTables.back().data(),

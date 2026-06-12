@@ -11,7 +11,6 @@
 #include <cstdint>
 #include <optional>
 #include <string_view>
-#include <utility>
 #include <variant>
 
 #include <ankerl/unordered_dense.h>
@@ -27,6 +26,7 @@
 #include "engine/rectangle.hpp"
 #include "engine/render/clx_render.hpp"
 #include "engine/render/primitive_render.hpp"
+#include "engine/render/renderer.h"
 #include "engine/surface.hpp"
 #include "engine/ticks.hpp"
 #include "game_mode.hpp"
@@ -266,15 +266,29 @@ private:
 	uint32_t currentUnicodeRow_ = 0;
 };
 
-void DrawFont(const Surface &out, Point position, ClxSprite glyph, text_color color, bool outline)
+void DrawFont(const Surface &out, Point position, ClxSprite glyph, text_color color, bool outline, bool onScreen)
 {
-	if (outline) {
-		ClxDrawOutlineSkipColorZero(out, 0, { position.x, position.y + glyph.height() - 1 }, glyph);
-	}
-	if (ColorTranslationsData[color]) {
-		RenderClxSpriteWithTRN(out, glyph, position, ColorTranslationsData[color]->data());
+	if (onScreen) {
+		// On-screen: route through the renderer, accounting for the surface's region offset.
+		const Point bottomLeft { position.x + out.region.x, position.y + out.region.y + static_cast<int>(glyph.height()) - 1 };
+		if (outline) {
+			GetRenderer().DrawClxOutline(0, bottomLeft, glyph, true);
+		}
+		if (ColorTranslationsData[color]) {
+			GetRenderer().DrawClxTRN(bottomLeft, glyph, ColorTranslationsData[color]->data());
+		} else {
+			GetRenderer().DrawClx(bottomLeft, glyph);
+		}
 	} else {
-		RenderClxSprite(out, glyph, position);
+		// Off-screen: use free blitter functions.
+		if (outline) {
+			ClxDrawOutlineSkipColorZero(out, 0, { position.x, position.y + glyph.height() - 1 }, glyph);
+		}
+		if (ColorTranslationsData[color]) {
+			ClxDrawTRN(out, { position.x, position.y + static_cast<int>(glyph.height()) - 1 }, glyph, ColorTranslationsData[color]->data());
+		} else {
+			ClxDraw(out, { position.x, position.y + static_cast<int>(glyph.height()) - 1 }, glyph);
+		}
 	}
 }
 
@@ -448,7 +462,8 @@ void DrawLine(
     bool outline,
     const TextRenderOptions &opts,
     size_t lineStartPos,
-    int totalWidth)
+    int totalWidth,
+    bool onScreen)
 {
 	CurrentFont currentFont;
 
@@ -461,7 +476,7 @@ void DrawLine(
 			if (GetAnimationFrame(2, 500) != 0 || opts.cursorStatic) {
 				FontStack baseFont = LoadFont(size, color, 0);
 				if (baseFont.has_value()) {
-					DrawFont(out, position, baseFont.glyph('|'), color, outline);
+					DrawFont(out, position, baseFont.glyph('|'), color, outline, onScreen);
 				}
 			}
 			if (opts.renderedCursorPositionOut != nullptr) {
@@ -499,12 +514,15 @@ void DrawLine(
 		// Draw highlight
 		if (byteIndex >= opts.highlightRange.begin && byteIndex < opts.highlightRange.end) {
 			const bool lastInRange = static_cast<int>(byteIndex + cpLen) == opts.highlightRange.end;
-			FillRect(out, characterPosition.x, characterPosition.y,
-			    glyph.width() + (lastInRange ? 0 : curSpacing), glyph.height(),
-			    opts.highlightColor);
+			const int fillWidth = glyph.width() + (lastInRange ? 0 : curSpacing);
+			if (onScreen) {
+				GetRenderer().FillRect(characterPosition.x + out.region.x, characterPosition.y + out.region.y, fillWidth, glyph.height(), opts.highlightColor);
+			} else {
+				devilution::FillRect(out, characterPosition.x, characterPosition.y, fillWidth, glyph.height(), opts.highlightColor);
+			}
 		}
 
-		DrawFont(out, characterPosition, glyph, color, outline);
+		DrawFont(out, characterPosition, glyph, color, outline, onScreen);
 		maybeDrawCursor();
 
 		// Move to the next position
@@ -517,7 +535,7 @@ void DrawLine(
 
 uint32_t DoDrawString(const Surface &out, std::string_view text, Rectangle rect, Point &characterPosition,
     int lineWidth, int charactersInLine, int rightMargin, int bottomMargin, GameFontTables size, text_color color, bool outline,
-    TextRenderOptions &opts)
+    TextRenderOptions &opts, bool onScreen)
 {
 	CurrentFont currentFont;
 	int curSpacing = opts.spacing;
@@ -552,7 +570,8 @@ uint32_t DoDrawString(const Surface &out, std::string_view text, Rectangle rect,
 			    outline,
 			    opts,
 			    lineStartPos,
-			    lineWidth);
+			    lineWidth,
+			    onScreen);
 		}
 	};
 
@@ -824,7 +843,21 @@ std::string WordWrapString(std::string_view text, unsigned width, GameFontTables
 /**
  * @todo replace Rectangle with cropped Surface
  */
+uint32_t DrawStringImpl(const Surface &out, std::string_view text, const Rectangle &rect, TextRenderOptions opts, bool onScreen);
+
 uint32_t DrawString(const Surface &out, std::string_view text, const Rectangle &rect, TextRenderOptions opts)
+{
+	return DrawStringImpl(out, text, rect, opts, /*onScreen=*/false);
+}
+
+uint32_t DrawString(std::string_view text, const Rectangle &rect, TextRenderOptions opts)
+{
+	const Size screenSize = GetRenderer().GetBackBufferSize();
+	Surface out(nullptr, MakeSdlRect(0, 0, screenSize.width, screenSize.height));
+	return DrawStringImpl(out, text, rect, opts, /*onScreen=*/true);
+}
+
+uint32_t DrawStringImpl(const Surface &out, std::string_view text, const Rectangle &rect, TextRenderOptions opts, bool onScreen)
 {
 	const GameFontTables size = GetFontSizeFromUiFlags(opts.flags);
 	const text_color color = GetColorFromFlags(opts.flags);
@@ -860,18 +893,35 @@ uint32_t DrawString(const Surface &out, std::string_view text, const Rectangle &
 	}
 
 	const uint32_t bytesDrawn = DoDrawString(clippedOut, text, rect, characterPosition,
-	    lineWidth, charactersInLine, rightMargin, bottomMargin, size, color, outlined, opts);
+	    lineWidth, charactersInLine, rightMargin, bottomMargin, size, color, outlined, opts, onScreen);
 
 	if (HasAnyOf(opts.flags, UiFlags::PentaCursor)) {
 		const ClxSprite sprite = (*pSPentSpn2Cels)[PentSpn2Spin()];
 		MaybeWrap(characterPosition, sprite.width(), rightMargin, initialX, opts.lineHeight);
-		ClxDraw(clippedOut, characterPosition + Displacement { 0, opts.lineHeight - BaseLineOffset[size] }, sprite);
+		const Point pentPos = characterPosition + Displacement { 0, opts.lineHeight - BaseLineOffset[size] };
+		GetRenderer().SetClipRegion(clippedOut.region.x, clippedOut.region.y, clippedOut.region.w, clippedOut.region.h);
+		GetRenderer().DrawClx({ pentPos.x + clippedOut.region.x, pentPos.y + clippedOut.region.y }, sprite);
+		GetRenderer().ClearClipRegion();
 	}
 
 	return bytesDrawn;
 }
 
+void DrawStringWithColorsImpl(const Surface &out, std::string_view fmt, DrawStringFormatArg *args, std::size_t argsLen, const Rectangle &rect, TextRenderOptions opts, bool onScreen);
+
 void DrawStringWithColors(const Surface &out, std::string_view fmt, DrawStringFormatArg *args, std::size_t argsLen, const Rectangle &rect, TextRenderOptions opts)
+{
+	DrawStringWithColorsImpl(out, fmt, args, argsLen, rect, opts, /*onScreen=*/false);
+}
+
+void DrawStringWithColors(std::string_view fmt, DrawStringFormatArg *args, std::size_t argsLen, const Rectangle &rect, TextRenderOptions opts)
+{
+	const Size screenSize = GetRenderer().GetBackBufferSize();
+	Surface out(nullptr, MakeSdlRect(0, 0, screenSize.width, screenSize.height));
+	DrawStringWithColorsImpl(out, fmt, args, argsLen, rect, opts, /*onScreen=*/true);
+}
+
+void DrawStringWithColorsImpl(const Surface &out, std::string_view fmt, DrawStringFormatArg *args, std::size_t argsLen, const Rectangle &rect, TextRenderOptions opts, bool onScreen)
 {
 	const GameFontTables size = GetFontSizeFromUiFlags(opts.flags);
 	const text_color color = GetColorFromFlags(opts.flags);
@@ -993,14 +1043,17 @@ void DrawStringWithColors(const Surface &out, std::string_view fmt, DrawStringFo
 				continue;
 		}
 
-		DrawFont(clippedOut, characterPosition, currentFont.glyph(frame), curColor, outlined);
+		DrawFont(clippedOut, characterPosition, currentFont.glyph(frame), curColor, outlined, onScreen);
 		characterPosition.x += width + opts.spacing;
 	}
 
 	if (HasAnyOf(opts.flags, UiFlags::PentaCursor)) {
 		const ClxSprite sprite = (*pSPentSpn2Cels)[PentSpn2Spin()];
 		MaybeWrap(characterPosition, sprite.width(), rightMargin, initialX, opts.lineHeight);
-		ClxDraw(clippedOut, characterPosition + Displacement { 0, opts.lineHeight - BaseLineOffset[size] }, sprite);
+		const Point pentPos = characterPosition + Displacement { 0, opts.lineHeight - BaseLineOffset[size] };
+		GetRenderer().SetClipRegion(clippedOut.region.x, clippedOut.region.y, clippedOut.region.w, clippedOut.region.h);
+		GetRenderer().DrawClx({ pentPos.x + clippedOut.region.x, pentPos.y + clippedOut.region.y }, sprite);
+		GetRenderer().ClearClipRegion();
 	}
 }
 
