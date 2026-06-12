@@ -1,6 +1,7 @@
 #include "dvlnet/tcp_server.h"
 
 #include <chrono>
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <utility>
@@ -126,11 +127,20 @@ tl::expected<void, PacketError> tcp_server::HandleReceiveNewPlayer(const scc &co
 	if (newplr == PLR_BROADCAST)
 		return tl::make_unexpected(ServerError());
 
+	tl::expected<const buffer_t *, PacketError> pktInfo = inPkt.Info();
+	if (!pktInfo.has_value())
+		return tl::make_unexpected(pktInfo.error());
+	const buffer_t &joinerInfo = **pktInfo;
+
 	if (Empty()) {
-		tl::expected<const buffer_t *, PacketError> pktInfo = inPkt.Info();
-		if (!pktInfo.has_value())
-			return tl::make_unexpected(pktInfo.error());
-		game_init_info = **pktInfo;
+		game_init_info = joinerInfo;
+	} else if (joinerInfo.size() == sizeof(GameData) && game_init_info.size() == sizeof(GameData)) {
+		constexpr size_t ModHashOffset = offsetof(GameData, modHash);
+		if (LoadLE32(joinerInfo.data() + ModHashOffset) != LoadLE32(game_init_info.data() + ModHashOffset)) {
+			StartSend(con, PacketError::ErrorCode::ModMismatch);
+			DropConnection(con);
+			return {};
+		}
 	}
 
 	for (plr_t player = 0; player < Players.size(); player++) {
