@@ -1948,7 +1948,7 @@ void InitKeymapActions()
 	options.Keymapper.AddAction(
 	    "CycleAutomapType",
 	    N_("Cycle map type"),
-	    N_("Opaque -> Transparent -> Minimap -> None"),
+	    N_("Opaque -> Transparent -> Minimap -> Borderless Minimap -> None"),
 	    SDLK_M,
 	    CycleAutomapType,
 	    nullptr,
