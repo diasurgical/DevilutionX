@@ -1259,6 +1259,46 @@ void MonsterAttackPlayer(Monster &monster, Player &player, int hit, int minDam, 
 	}
 }
 
+struct MeleeAttackWindow {
+	int frame;
+	int toHitDelta;
+	int minDamageDelta;
+	int maxDamageDelta;
+	bool playAttackSound;
+};
+
+struct MeleeAttackWindowsView {
+	const MeleeAttackWindow *data;
+	size_t size;
+};
+
+MeleeAttackWindowsView GetExtraMeleeAttackWindows(const Monster &monster)
+{
+	static constexpr MeleeAttackWindow MagmaAttackWindows[] = {
+		{ 8, 10, -2, -2, true },
+	};
+
+	static constexpr MeleeAttackWindow StormAttackWindows[] = {
+		{ 12, -20, 4, 4, true },
+	};
+
+	switch (monster.type().type) {
+	case MT_NMAGMA:
+	case MT_YMAGMA:
+	case MT_BMAGMA:
+	case MT_WMAGMA:
+		return { MagmaAttackWindows, std::size(MagmaAttackWindows) };
+
+	case MT_STORM:
+	case MT_RSTORM:
+	case MT_STORML:
+	case MT_MAEL:
+		return { StormAttackWindows, std::size(StormAttackWindows) };
+	}
+
+	return { nullptr, 0 };
+}
+
 void MonsterAttackEnemy(Monster &monster, int hit, int minDam, int maxDam)
 {
 	if ((monster.flags & MFLAG_NO_ENEMY) == 0) {
@@ -1271,22 +1311,32 @@ void MonsterAttackEnemy(Monster &monster, int hit, int minDam, int maxDam)
 
 bool MonsterAttack(Monster &monster)
 {
-	if (monster.animInfo.currentFrame == monster.data().animFrameNum - 1) {
-		MonsterAttackEnemy(monster, monster.toHit(sgGameInitInfo.nDifficulty), monster.minDamage, monster.maxDamage);
+	const int currentFrame = monster.animInfo.currentFrame;
+	const int baseToHit = monster.toHit(sgGameInitInfo.nDifficulty);
+
+	if (currentFrame == monster.data().animFrameNum - 1) {
+		MonsterAttackEnemy(monster, baseToHit, monster.minDamage, monster.maxDamage);
 		if (monster.ai != MonsterAIID::Snake)
 			PlayEffect(monster, MonsterSound::Attack);
 	}
-	if (IsAnyOf(monster.type().type, MT_NMAGMA, MT_YMAGMA, MT_BMAGMA, MT_WMAGMA) && monster.animInfo.currentFrame == 8) {
-		MonsterAttackEnemy(monster, monster.toHit(sgGameInitInfo.nDifficulty) + 10, monster.minDamage - 2, monster.maxDamage - 2);
 
-		PlayEffect(monster, MonsterSound::Attack);
-	}
-	if (IsAnyOf(monster.type().type, MT_STORM, MT_RSTORM, MT_STORML, MT_MAEL) && monster.animInfo.currentFrame == 12) {
-		MonsterAttackEnemy(monster, monster.toHit(sgGameInitInfo.nDifficulty) - 20, monster.minDamage + 4, monster.maxDamage + 4);
+	const MeleeAttackWindowsView extraAttackWindows = GetExtraMeleeAttackWindows(monster);
+	for (size_t i = 0; i < extraAttackWindows.size; ++i) {
+		const MeleeAttackWindow &window = extraAttackWindows.data[i];
+		if (currentFrame != window.frame)
+			continue;
 
-		PlayEffect(monster, MonsterSound::Attack);
+		MonsterAttackEnemy(
+		    monster,
+		    baseToHit + window.toHitDelta,
+		    monster.minDamage + window.minDamageDelta,
+		    monster.maxDamage + window.maxDamageDelta);
+
+		if (window.playAttackSound)
+			PlayEffect(monster, MonsterSound::Attack);
 	}
-	if (monster.ai == MonsterAIID::Snake && monster.animInfo.currentFrame == 0)
+
+	if (monster.ai == MonsterAIID::Snake && currentFrame == 0)
 		PlayEffect(monster, MonsterSound::Attack);
 	if (monster.animInfo.isLastFrame()) {
 		M_StartStand(monster, monster.direction);
