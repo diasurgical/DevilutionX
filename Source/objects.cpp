@@ -17,6 +17,7 @@
 #include "DiabloUI/ui_flags.hpp"
 #include "automap.h"
 #include "cursor.h"
+#include "cursor_defs.hpp"
 #ifdef _DEBUG
 #include "debug.h"
 #endif

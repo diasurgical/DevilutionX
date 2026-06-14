@@ -32,6 +32,7 @@
 #include "controls/control_mode.hpp"
 #include "controls/controller_buttons.h"
 #include "cursor.h"
+#include "cursor_defs.hpp"
 #include "diablo.h"
 #include "doom.h"
 #include "effects.h"

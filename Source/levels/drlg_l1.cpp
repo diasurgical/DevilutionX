@@ -6,10 +6,11 @@
 #include "engine/point.hpp"
 #include "engine/random.hpp"
 #include "engine/rectangle.hpp"
+#include "gendung_defs.hpp"
 #include "levels/crypt.h"
+#include "levels/drlg_quests.hpp"
 #include "levels/gendung.h"
 #include "player.h"
-#include "quests.h"
 #include "utils/bitset2d.hpp"
 #include "utils/is_of.hpp"
 

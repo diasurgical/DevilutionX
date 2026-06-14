@@ -4,16 +4,15 @@
 #include <cstdint>
 
 #include "engine/load_file.hpp"
+#include "engine/point.hpp"
 #include "engine/points_in_rectangle_range.hpp"
 #include "engine/random.hpp"
+#include "levels/dun_tile_data.hpp"
 #include "levels/gendung.h"
-#include "levels/setmaps.h"
+#include "levels/gendung_defs.hpp"
 #include "lighting.h"
-#include "monster.h"
 #include "objects.h"
-#include "player.h"
-#include "quests.h"
-#include "tables/objdat.h"
+#include "tables/questdat.hpp"
 #include "utils/is_of.hpp"
 
 namespace devilution {

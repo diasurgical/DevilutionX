@@ -12,6 +12,7 @@
 #include "engine/render/text_render.hpp"
 #include "game_mode.hpp"
 #include "minitext.h"
+#include "panels/info_box.hpp"
 #include "qol/chatlog.h"
 #include "stores.h"
 #include "utils/language.h"

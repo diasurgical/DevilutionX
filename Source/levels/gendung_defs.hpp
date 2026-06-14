@@ -8,6 +8,8 @@
 #define MAXDUNX (16 + DMAXX * 2 + 16)
 #define MAXDUNY (16 + DMAXY * 2 + 16)
 
+#define NUMLEVELS 25
+
 namespace devilution {
 
 enum dungeon_type : int8_t {
@@ -33,5 +35,41 @@ enum lvl_entry : uint8_t {
 	ENTRY_TWARPDN,
 	ENTRY_TWARPUP,
 };
+
+enum _difficulty : uint8_t {
+	DIFF_NORMAL,
+	DIFF_NIGHTMARE,
+	DIFF_HELL,
+
+	DIFF_LAST = DIFF_HELL,
+};
+
+enum _setlevels : int8_t {
+	SL_NONE,
+	SL_SKELKING,
+	SL_BONECHAMB,
+	SL_MAZE,
+	SL_POISONWATER,
+	SL_VILEBETRAYER,
+
+	SL_ARENA_CHURCH,
+	SL_ARENA_HELL,
+	SL_ARENA_CIRCLE_OF_LIFE,
+
+	SL_FIRST_ARENA = SL_ARENA_CHURCH,
+	SL_LAST = SL_ARENA_CIRCLE_OF_LIFE,
+};
+
+inline bool IsArenaLevel(_setlevels setLevel)
+{
+	switch (setLevel) {
+	case SL_ARENA_CHURCH:
+	case SL_ARENA_HELL:
+	case SL_ARENA_CIRCLE_OF_LIFE:
+		return true;
+	default:
+		return false;
+	}
+}
 
 } // namespace devilution

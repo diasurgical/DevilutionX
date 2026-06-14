@@ -22,6 +22,7 @@
 #include "controls/control_mode.hpp"
 #include "controls/plrctrls.h"
 #include "cursor.h"
+#include "cursor_defs.hpp"
 #include "engine/backbuffer_state.hpp"
 #include "engine/clx_sprite.hpp"
 #include "engine/load_cel.hpp"
