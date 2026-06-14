@@ -3374,6 +3374,25 @@ void ModifyPlrVit(Player &player, int l)
 	}
 }
 
+void ModifyPlrManaCapacity(Player &player, int delta, bool shiftCurrent)
+{
+	constexpr int MinManaBase = 0;
+
+	const int newMaxBase = std::max(MinManaBase, player._pMaxManaBase + delta);
+	const int applied = newMaxBase - player._pMaxManaBase;
+
+	player._pMaxManaBase = newMaxBase;
+	player._pMaxMana += applied;
+
+	if (shiftCurrent) {
+		player._pManaBase += applied;
+		player._pMana += applied;
+	} else {
+		player._pManaBase = std::min(player._pManaBase, player._pMaxManaBase);
+		player._pMana = std::min(player._pMana, player._pMaxMana);
+	}
+}
+
 void SetPlayerHitPoints(Player &player, int val)
 {
 	player._pHitPoints = val;
