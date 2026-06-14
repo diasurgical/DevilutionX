@@ -917,29 +917,31 @@ bool DoRangeAttack(Player &player)
 	return false;
 }
 
-void DamageParryItem(Player &player)
+void DamageParryItem(Player &player, unsigned damageFrequency, int numDurLost)
 {
-	if (&player != MyPlayer) {
+	if (&player != MyPlayer)
 		return;
-	}
 
-	if (player.InvBody[INVLOC_HAND_LEFT]._itype == ItemType::Shield || player.InvBody[INVLOC_HAND_LEFT]._itype == ItemType::Staff) {
-		if (player.InvBody[INVLOC_HAND_LEFT]._iDurability == DUR_INDESTRUCTIBLE) {
-			return;
-		}
+	if (!FlipCoin(damageFrequency))
+		return;
 
-		player.InvBody[INVLOC_HAND_LEFT]._iDurability--;
-		if (player.InvBody[INVLOC_HAND_LEFT]._iDurability == 0) {
-			RemoveEquipment(player, INVLOC_HAND_LEFT, true);
-			CalcPlrInv(player, true);
-		}
-	}
+	const int minHandSlot = INVLOC_HAND_LEFT;
+	const int maxHandSlot = INVLOC_HAND_RIGHT;
 
-	if (player.InvBody[INVLOC_HAND_RIGHT]._itype == ItemType::Shield) {
-		if (player.InvBody[INVLOC_HAND_RIGHT]._iDurability != DUR_INDESTRUCTIBLE) {
-			player.InvBody[INVLOC_HAND_RIGHT]._iDurability--;
-			if (player.InvBody[INVLOC_HAND_RIGHT]._iDurability == 0) {
-				RemoveEquipment(player, INVLOC_HAND_RIGHT, true);
+	for (int slot = minHandSlot; slot <= maxHandSlot; slot++) {
+		Item &item = player.InvBody[slot];
+
+		if (item.isEmpty())
+			continue;
+
+		if (IsNoneOf(item._itype, ItemType::Shield, ItemType::Staff))
+			continue;
+
+		if (item._iMaxDur != DUR_INDESTRUCTIBLE) {
+			item._iDurability -= numDurLost;
+
+			if (item._iDurability <= 0) {
+				RemoveEquipment(player, static_cast<inv_body_loc>(slot), true);
 				CalcPlrInv(player, true);
 			}
 		}
@@ -951,10 +953,7 @@ bool DoBlock(Player &player)
 	if (player.AnimInfo.isLastFrame()) {
 		StartStand(player, player._pdir);
 		ClearStateVariables(player);
-
-		if (FlipCoin(10)) {
-			DamageParryItem(player);
-		}
+		DamageParryItem(player, 10, 1);
 		return true;
 	}
 
