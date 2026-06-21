@@ -69,6 +69,7 @@
 #include "levels/setmaps.h"
 #include "levels/themes.h"
 #include "levels/town.h"
+#include "levels/town_data.h"
 #include "levels/trigs.h"
 #include "lighting.h"
 #include "loadsave.h"
@@ -109,6 +110,7 @@
 #include "utils/display.h"
 #include "utils/is_of.hpp"
 #include "utils/language.h"
+#include "utils/log.hpp"
 #include "utils/parse_int.hpp"
 #include "utils/paths.h"
 #include "utils/screen_reader.hpp"
@@ -1369,19 +1371,17 @@ tl::expected<void, std::string> LoadLvlGFX()
 
 	switch (leveltype) {
 	case DTYPE_TOWN: {
-		auto cel = LoadFileInMemWithStatus("nlevels\\towndata\\town.cel");
-		if (!cel.has_value()) {
-			ASSIGN_OR_RETURN(pDungeonCels, LoadFileInMemWithStatus("levels\\towndata\\town.cel"));
-		} else {
-			pDungeonCels = std::move(*cel);
-		}
-		auto til = LoadFileInMemWithStatus<MegaTile>("nlevels\\towndata\\town.til");
-		if (!til.has_value()) {
-			ASSIGN_OR_RETURN(pMegaTiles, LoadFileInMemWithStatus<MegaTile>("levels\\towndata\\town.til"));
-		} else {
-			pMegaTiles = std::move(*til);
-		}
-		ASSIGN_OR_RETURN(pSpecialCels, LoadCelWithStatus("levels\\towndata\\towns", SpecialCelWidth));
+		const TownVisualAssets &active = GetActiveTownConfigForTileLoad().visualAssets;
+		const TownVisualAssets &tristram = GetTownRegistry().GetTown(TristramTownId).visualAssets;
+		LogVerbose("LoadLvlGFX (town): cel {} | til {} | special {} | pal {}",
+		    active.dungeonCelPath, active.megaTilePath, active.specialCelsPath, active.palettePath);
+
+		ASSIGN_OR_RETURN(pDungeonCels, LoadTownAssetWithFallback(active.dungeonCelPath, tristram.dungeonCelPath.c_str(), TownVisualAssets::RetailDungeonCel, [](const char *p) { return LoadFileInMemWithStatus(p); }));
+
+		ASSIGN_OR_RETURN(pMegaTiles, LoadTownAssetWithFallback(active.megaTilePath, tristram.megaTilePath.c_str(), TownVisualAssets::RetailMegaTile, [](const char *p) { return LoadFileInMemWithStatus<MegaTile>(p); }));
+
+		ASSIGN_OR_RETURN(pSpecialCels, LoadTownAssetWithFallback(active.specialCelsPath, tristram.specialCelsPath.c_str(), nullptr, [](const char *p) { return LoadCelWithStatus(p, SpecialCelWidth); }));
+
 		return {};
 	}
 	case DTYPE_CATHEDRAL:
@@ -3220,7 +3220,7 @@ tl::expected<void, std::string> LoadGameLevelTown(bool firstflag, lvl_entry lvld
 
 	IncProgress();
 
-	if (!firstflag && lvldir != ENTRY_LOAD && myPlayer._pLvlVisited[currlevel] && !gbIsMultiplayer)
+	if (!firstflag && lvldir != ENTRY_LOAD && lvldir != ENTRY_TOWNSWITCH && myPlayer._pLvlVisited[currlevel] && !gbIsMultiplayer)
 		RETURN_IF_ERROR(LoadLevel());
 	if (gbIsMultiplayer)
 		DeltaLoadLevel();

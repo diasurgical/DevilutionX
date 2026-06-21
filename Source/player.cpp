@@ -38,6 +38,7 @@
 #include "help.h"
 #include "inv_iterators.hpp"
 #include "levels/tile_properties.hpp"
+#include "levels/town_data.h"
 #include "levels/trigs.h"
 #include "lighting.h"
 #include "loadsave.h"
@@ -2363,6 +2364,11 @@ void CreatePlayer(Player &player, HeroClass c)
 	player.pManaShield = false;
 	player.pDamAcFlags = ItemSpecialEffectHf::None;
 	player.wReflections = 0;
+
+	if (const TownConfig *townCfg = GetCurrentTownConfig())
+		player._pCurrentTownId = townCfg->saveId;
+	else
+		player._pCurrentTownId = 0;
 
 	InitDungMsgs(player);
 	CreatePlrItems(player);

@@ -77,17 +77,20 @@ std::vector<std::pair<std::string, std::vector<TownerDialogOption>>> ExtraTowner
 
 const char *TownerNameForTalkID(TalkID s)
 {
+	_talker_id townerId;
 	switch (s) {
-	case TalkID::Smith: return "griswold";
-	case TalkID::Witch: return "adria";
-	case TalkID::Boy: return "wirt";
-	case TalkID::Healer: return "pepin";
-	case TalkID::Storyteller: return "cain";
-	case TalkID::Tavern: return "ogden";
-	case TalkID::Drunk: return "farnham";
-	case TalkID::Barmaid: return "gillian";
+	case TalkID::Smith: townerId = TOWN_SMITH; break;
+	case TalkID::Witch: townerId = TOWN_WITCH; break;
+	case TalkID::Boy: townerId = TOWN_PEGBOY; break;
+	case TalkID::Healer: townerId = TOWN_HEALER; break;
+	case TalkID::Storyteller: townerId = TOWN_STORY; break;
+	case TalkID::Tavern: townerId = TOWN_TAVERN; break;
+	case TalkID::Drunk: townerId = TOWN_DRUNK; break;
+	case TalkID::Barmaid: townerId = TOWN_BMAID; break;
 	default: return nullptr;
 	}
+	const auto it = TownerShortNames.find(townerId);
+	return it != TownerShortNames.end() ? it->second : nullptr;
 }
 
 /** Finds the entry for a towner in ExtraTownerOptions, or nullptr if none. */

@@ -547,6 +547,7 @@ static void DrawDungeon(const Surface & /*out*/, const Lightmap & /*lightmap*/, 
 void DrawCell(const Surface &out, const Lightmap lightmap, Point tilePosition, Point targetBufferPosition, int lightTableIndex)
 {
 	const uint16_t levelPieceId = dPiece[tilePosition.x][tilePosition.y];
+	if (levelPieceId >= MAXTILES) return;
 	const MICROS *pMap = &DPieceMicros[levelPieceId];
 
 	const uint8_t *tbl = LightTables[lightTableIndex].data();
@@ -686,6 +687,7 @@ void DrawFloorTile(const Surface &out, const Lightmap &lightmap, Point tilePosit
 #endif
 
 	const uint16_t levelPieceId = dPiece[tilePosition.x][tilePosition.y];
+	if (levelPieceId >= MAXTILES) return;
 	{
 		const LevelCelBlock levelCelBlock { DPieceMicros[levelPieceId].mt[0] };
 		if (levelCelBlock.hasValue()) {
