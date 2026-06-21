@@ -443,12 +443,12 @@ tl::expected<void, std::string> LoadLevelSOLData()
 {
 	switch (leveltype) {
 	case DTYPE_TOWN:
-		if (!LoadFileInMemWithStatus("nlevels\\towndata\\town.sol", SOLData).has_value()) {
-			RETURN_IF_ERROR(LoadFileInMemWithStatus("levels\\towndata\\town.sol", SOLData));
+		if (!LoadIntegralFileInMemWithStatus("nlevels\\towndata\\town.sol", SOLData).has_value()) {
+			RETURN_IF_ERROR(LoadIntegralFileInMemWithStatus("levels\\towndata\\town.sol", SOLData));
 		}
 		break;
 	case DTYPE_CATHEDRAL:
-		RETURN_IF_ERROR(LoadFileInMemWithStatus("levels\\l1data\\l1.sol", SOLData));
+		RETURN_IF_ERROR(LoadIntegralFileInMemWithStatus("levels\\l1data\\l1.sol", SOLData));
 		// Fix incorrectly marked arched tiles
 		SOLData[9] |= TileProperties::BlockLight | TileProperties::BlockMissile;
 		SOLData[15] |= TileProperties::BlockLight | TileProperties::BlockMissile;
@@ -476,10 +476,10 @@ tl::expected<void, std::string> LoadLevelSOLData()
 		SOLData[450] |= TileProperties::BlockLight | TileProperties::BlockMissile;
 		break;
 	case DTYPE_CATACOMBS:
-		RETURN_IF_ERROR(LoadFileInMemWithStatus("levels\\l2data\\l2.sol", SOLData));
+		RETURN_IF_ERROR(LoadIntegralFileInMemWithStatus("levels\\l2data\\l2.sol", SOLData));
 		break;
 	case DTYPE_CAVES:
-		RETURN_IF_ERROR(LoadFileInMemWithStatus("levels\\l3data\\l3.sol", SOLData));
+		RETURN_IF_ERROR(LoadIntegralFileInMemWithStatus("levels\\l3data\\l3.sol", SOLData));
 		// The graphics for tile 48 sub-tile 171 frame 461 are partly incorrect, as they
 		// have a few pixels that should belong to the solid tile 49 instead.
 		// Marks the sub-tile as "BlockMissile" to avoid treating it as a floor during rendering.
@@ -490,14 +490,14 @@ tl::expected<void, std::string> LoadLevelSOLData()
 		SOLData[487] |= TileProperties::Solid;
 		break;
 	case DTYPE_HELL:
-		RETURN_IF_ERROR(LoadFileInMemWithStatus("levels\\l4data\\l4.sol", SOLData));
+		RETURN_IF_ERROR(LoadIntegralFileInMemWithStatus("levels\\l4data\\l4.sol", SOLData));
 		SOLData[210] = TileProperties::None; // Tile is incorrectly marked as being solid
 		break;
 	case DTYPE_NEST:
-		RETURN_IF_ERROR(LoadFileInMemWithStatus("nlevels\\l6data\\l6.sol", SOLData));
+		RETURN_IF_ERROR(LoadIntegralFileInMemWithStatus("nlevels\\l6data\\l6.sol", SOLData));
 		break;
 	case DTYPE_CRYPT:
-		RETURN_IF_ERROR(LoadFileInMemWithStatus("nlevels\\l5data\\l5.sol", SOLData));
+		RETURN_IF_ERROR(LoadIntegralFileInMemWithStatus("nlevels\\l5data\\l5.sol", SOLData));
 		SOLData[142] = TileProperties::None; // Tile is incorrectly marked as being solid
 		break;
 	default:

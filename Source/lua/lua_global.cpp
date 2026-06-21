@@ -113,7 +113,7 @@ sol::object LuaLoadScriptFromAssets(std::string_view packageName)
 		return luaState.sol.load(iter->second.as_string_view(), path, sol::load_mode::binary);
 	}
 
-	tl::expected<AssetData, std::string> assetData = LoadAsset(path);
+	tl::expected<AssetData, std::string> assetData = LoadIntegralAsset(path);
 	if (!assetData.has_value()) {
 		sol::stack::push(luaState.sol.lua_state(), assetData.error());
 		return sol::stack_object(luaState.sol.lua_state(), -1);

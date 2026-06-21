@@ -120,6 +120,7 @@ struct AssetRef {
 	MpqArchive *archive = nullptr;
 	uint32_t hashIndex = UINT32_MAX;
 	std::string_view filename;
+	bool isOverridden = false;
 
 	// Alternatively, a direct SDL_IOStream handle:
 	SDL_IOStream *directHandle = nullptr;
@@ -279,6 +280,9 @@ AssetRef FindAsset(std::string_view filename);
 AssetHandle OpenAsset(AssetRef &&ref, bool threadsafe = false);
 AssetHandle OpenAsset(std::string_view filename, bool threadsafe = false);
 AssetHandle OpenAsset(std::string_view filename, size_t &fileSize, bool threadsafe = false);
+AssetHandle OpenIntegralAsset(AssetRef &&ref, bool threadsafe = false);
+AssetHandle OpenIntegralAsset(std::string_view filename, bool threadsafe = false);
+AssetHandle OpenIntegralAsset(std::string_view filename, size_t &fileSize, bool threadsafe = false);
 
 SDL_IOStream *OpenAssetAsSdlRwOps(std::string_view filename, bool threadsafe = false);
 
@@ -293,6 +297,7 @@ struct AssetData {
 };
 
 tl::expected<AssetData, std::string> LoadAsset(std::string_view path);
+tl::expected<AssetData, std::string> LoadIntegralAsset(std::string_view path);
 
 #ifdef UNPACKED_MPQS
 using MpqArchiveT = std::string;
@@ -306,6 +311,7 @@ constexpr int DevilutionXMpqPriority = 9000;
 constexpr int LangMpqPriority = 9100;
 constexpr int FontMpqPriority = 9200;
 extern bool HasHellfireMpq;
+extern bool IsAssetIntegrityViolated;
 
 void LoadCoreArchives();
 void LoadLanguageArchive();

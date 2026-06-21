@@ -35,6 +35,7 @@ namespace devilution {
 std::vector<std::string> OverridePaths;
 std::map<int, MpqArchiveT, std::greater<>> MpqArchives;
 bool HasHellfireMpq;
+bool IsAssetIntegrityViolated = false;
 
 namespace {
 
@@ -149,6 +150,7 @@ AssetRef FindAsset(std::string_view filename)
 			result.directHandle = OpenOptionalRWops(path);
 			if (result.directHandle != nullptr) {
 				LogVerbose("Loaded MPQ file override: {}", path);
+				result.isOverridden = true;
 				return result;
 			}
 		}
@@ -181,7 +183,7 @@ AssetRef FindAsset(std::string_view filename)
 
 AssetHandle OpenAsset(AssetRef &&ref, bool threadsafe)
 {
-#if UNPACKED_MPQS
+#ifdef UNPACKED_MPQS
 	return AssetHandle { OpenFile(ref.path, "rb") };
 #else
 	if (ref.archive != nullptr)
@@ -213,6 +215,32 @@ AssetHandle OpenAsset(std::string_view filename, size_t &fileSize, bool threadsa
 	return OpenAsset(std::move(ref), threadsafe);
 }
 
+AssetHandle OpenIntegralAsset(AssetRef &&ref, bool threadsafe)
+{
+#ifndef UNPACKED_MPQS
+	if (ref.isOverridden)
+		IsAssetIntegrityViolated = true;
+#endif
+	return OpenAsset(std::move(ref), threadsafe);
+}
+
+AssetHandle OpenIntegralAsset(std::string_view filename, bool threadsafe)
+{
+	AssetRef ref = FindAsset(filename);
+	if (!ref.ok())
+		return AssetHandle {};
+	return OpenIntegralAsset(std::move(ref), threadsafe);
+}
+
+AssetHandle OpenIntegralAsset(std::string_view filename, size_t &fileSize, bool threadsafe)
+{
+	AssetRef ref = FindAsset(filename);
+	if (!ref.ok())
+		return AssetHandle {};
+	fileSize = ref.size();
+	return OpenIntegralAsset(std::move(ref), threadsafe);
+}
+
 SDL_IOStream *OpenAssetAsSdlRwOps(std::string_view filename, bool threadsafe)
 {
 #ifdef UNPACKED_MPQS
@@ -236,6 +264,28 @@ tl::expected<AssetData, std::string> LoadAsset(std::string_view path)
 	std::unique_ptr<char[]> data { new char[size] };
 
 	AssetHandle handle = OpenAsset(std::move(ref));
+	if (!handle.ok()) {
+		return tl::make_unexpected(StrCat("Failed to open asset: ", path, "\n", handle.error()));
+	}
+
+	if (size > 0 && !handle.read(data.get(), size)) {
+		return tl::make_unexpected(StrCat("Read failed: ", path, "\n", handle.error()));
+	}
+
+	return AssetData { std::move(data), size };
+}
+
+tl::expected<AssetData, std::string> LoadIntegralAsset(std::string_view path)
+{
+	AssetRef ref = FindAsset(path);
+	if (!ref.ok()) {
+		return tl::make_unexpected(StrCat("Asset not found: ", path));
+	}
+
+	const size_t size = ref.size();
+	std::unique_ptr<char[]> data { new char[size] };
+
+	AssetHandle handle = OpenIntegralAsset(std::move(ref));
 	if (!handle.ok()) {
 		return tl::make_unexpected(StrCat("Failed to open asset: ", path, "\n", handle.error()));
 	}
