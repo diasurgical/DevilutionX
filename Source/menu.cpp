@@ -14,6 +14,7 @@
 #endif
 
 #include "DiabloUI/diabloui.h"
+#include "DiabloUI/selok.h"
 #include "DiabloUI/settingsmenu.h"
 #include "engine/assets.hpp"
 #include "engine/demomode.h"
@@ -80,6 +81,12 @@ bool InitSinglePlayerMenu()
 
 bool InitMultiPlayerMenu()
 {
+#ifndef _DEBUG
+	if (IsAssetIntegrityViolated) {
+		UiSelOkDialog(_("Multi Player Game").data(), _("Cannot play Multiplayer with overridden *.lua, *.tsv, or *.sol assets.").data(), false);
+		return true;
+	}
+#endif
 	gbIsMultiplayer = true;
 	return InitMenu(SELHERO_CONNECT);
 }
