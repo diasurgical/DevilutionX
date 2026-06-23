@@ -41,7 +41,7 @@ jobs:
             -B build \
             -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
-            -DM68K_COMMON="-s -fbbb=- -ffast-math" \
+            -DM68K_COMMON="-s -ffast-math" \
             -DM68K_CPU=68040 \
             -DM68K_FPU=hard
 
