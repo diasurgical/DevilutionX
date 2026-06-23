@@ -902,6 +902,10 @@ void RunGameLoop(interface_mode uMsg)
 			}
 			DebugCmdsFromCommandLine.clear();
 		}
+#else
+		if (gbIsMultiplayer && IsAssetIntegrityViolated) {
+			app_fatal(_("Cannot play Multiplayer with overridden *.lua, *.tsv, or *.sol assets."));
+		}
 #endif
 
 		SDL_Event event;
