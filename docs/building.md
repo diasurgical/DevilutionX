@@ -289,11 +289,12 @@ The location of this tool will need to be [added to the system's PATH environmen
 
 ### Compiling
 
-* **Through Open->CMake in Visual Studio**
+* **Through CMake Presets in Visual Studio (Recommended)**
 
-1. Go to `File -> Open -> CMake`, select `CMakeLists.txt` from the project root.
-2. Select the `x64-Release` configuration (or `x86` for 32 bit builds, `-Debug` for debug builds).
-3. Select `Build devilution.exe` from the `Build` menu.
+1. Go to `File -> Open -> Folder` and select the devilutionx root folder. CMake will automatically detect the project and load the CMakePresets.json file. This may take several minutes.
+2. Select a configuration from the configuration dropdown (e.g., `x64 Debug`).
+3. Select `devilutionx.exe` from the Startup Item dropdown.
+4. Select `Build devilutionx.exe` from the `Build` menu.
 
 * **Through GCC/WSL in Visual Studio**
 
