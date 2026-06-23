@@ -1102,6 +1102,9 @@ void CheckNewPath(Player &player, bool pmWillBeCalled)
 	const int targetId = player.destParam1;
 
 	switch (player.destAction) {
+	case ACTION_WALK:
+		MakePlrPath(player, { player.destParam1, player.destParam2 }, true);
+		break;
 	case ACTION_ATTACKMON:
 	case ACTION_RATTACKMON:
 	case ACTION_SPELLMON:
