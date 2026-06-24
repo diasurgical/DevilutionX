@@ -582,10 +582,10 @@ void OptionEntryResolution::SetActiveListIndex(size_t index)
 
 OptionEntryResampler::OptionEntryResampler()
     : OptionEntryListBase("Resampler", OptionEntryFlags::CantChangeInGame
-              // When there are exactly 2 options there is no submenu, so we need to recreate the UI
-              // to reflect the change in the "Resampling quality" setting visibility.
-              | (NumResamplers == 2 ? OptionEntryFlags::RecreateUI : OptionEntryFlags::None),
-          N_("Resampler"), N_("Audio resampler"))
+            // When there are exactly 2 options there is no submenu, so we need to recreate the UI
+            // to reflect the change in the "Resampling quality" setting visibility.
+            | (NumResamplers == 2 ? OptionEntryFlags::RecreateUI : OptionEntryFlags::None),
+        N_("Resampler"), N_("Audio resampler"))
 {
 }
 void OptionEntryResampler::LoadFromIni(std::string_view category)
@@ -941,12 +941,16 @@ std::vector<OptionEntryBase *> ControllerOptions::GetEntries()
 NetworkOptions::NetworkOptions()
     : OptionCategoryBase("Network", N_("Network"), N_("Network Settings"))
     , port("Port", OptionEntryFlags::Invisible, "Port", "What network port to use.", 6112)
+    , hideSensitiveInfo("Hide Sensitive Info", OptionEntryFlags::None,
+          N_("Hide sensitive info on automap"),
+          N_("Hides the game name, password, and any IP-derived text on the automap."),
+          false)
 {
 }
 std::vector<OptionEntryBase *> NetworkOptions::GetEntries()
 {
 	return {
-		&port,
+		&port, &hideSensitiveInfo
 	};
 }
 

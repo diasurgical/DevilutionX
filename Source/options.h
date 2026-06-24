@@ -672,6 +672,8 @@ struct NetworkOptions : OptionCategoryBase {
 	char szPreviousHost[129];
 	/** @brief What network port to use. */
 	OptionEntryInt<uint16_t> port;
+	/** @brief Hide game name, password, and IP-derived text on the automap overlay. */
+	OptionEntryBoolean hideSensitiveInfo;
 };
 
 struct ChatOptions : OptionCategoryBase {
