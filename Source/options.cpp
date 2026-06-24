@@ -943,7 +943,7 @@ NetworkOptions::NetworkOptions()
     , port("Port", OptionEntryFlags::Invisible, "Port", "What network port to use.", 6112)
     , hideSensitiveInfo("Hide Sensitive Info", OptionEntryFlags::None,
           N_("Hide sensitive info on automap"),
-          N_("Hides the game name, password, and any IP-derived text on the automap. Useful for streamers and screen-sharers."),
+          N_("Hides IP-derived game names and passwords on the automap overlay. ZeroTier game names are always shown."),
           false)
 {
 }
