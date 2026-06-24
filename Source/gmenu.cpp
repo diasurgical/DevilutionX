@@ -19,21 +19,17 @@
 #endif
 
 #include "DiabloUI/ui_flags.hpp"
-#include "appfat.h"
 #include "control/control.hpp"
 #include "controls/axis_direction.h"
 #include "controls/controller_motion.h"
 #include "engine/clx_sprite.hpp"
 #include "engine/demomode.h"
 #include "engine/load_cel.hpp"
-#include "engine/render/clx_render.hpp"
-#include "engine/render/primitive_render.hpp"
+#include "engine/render/renderer.h"
 #include "engine/render/text_render.hpp"
 #include "headless_mode.hpp"
 #include "options.h"
-#include "stores.h"
 #include "utils/language.h"
-#include "utils/sdl_compat.h"
 #include "utils/ui_fwd.h"
 
 namespace devilution {
@@ -126,28 +122,28 @@ int GmenuGetLineWidth(TMenuItem *pItem)
 	return GetLineWidth(_(pItem->pszStr), GameFont46, 2);
 }
 
-void GmenuDrawMenuItem(const Surface &out, TMenuItem *pItem, int y)
+void GmenuDrawMenuItem(TMenuItem *pItem, int y)
 {
 	const int w = GmenuGetLineWidth(pItem);
 	if (pItem->isSlider()) {
 		const int uiPositionX = GetUIRectangle().position.x;
-		ClxDraw(out, { SliderValueBoxLeft + uiPositionX, y + 40 }, (*optbar_cel)[0]);
+		GetRenderer().DrawClx({ SliderValueBoxLeft + uiPositionX, y + 40 }, (*optbar_cel)[0]);
 		const uint16_t step = pItem->dwFlags & 0xFFF;
 		const uint16_t steps = std::max<uint16_t>(pItem->sliderSteps(), 2);
 		const uint16_t pos = SliderFillMin + (step * (SliderFillMax - SliderFillMin) / steps);
 		SDL_Rect rect = MakeSdlRect(SliderValueLeft + uiPositionX, y + SliderValuePaddingTop, pos, SliderValueHeight);
-		SDL_FillSurfaceRect(out.surface, &rect, 205);
-		ClxDraw(out, { SliderValueLeft + pos - (SliderMarkerWidth / 2) + uiPositionX, y + SliderValuePaddingTop + SliderValueHeight - 1 }, (*option_cel)[0]);
+		GetRenderer().FillRect(rect.x, rect.y, rect.w, rect.h, 205);
+		GetRenderer().DrawClx({ SliderValueLeft + pos - (SliderMarkerWidth / 2) + uiPositionX, y + SliderValuePaddingTop + SliderValueHeight - 1 }, (*option_cel)[0]);
 	}
 
 	const int x = (gnScreenWidth - w) / 2;
 	const UiFlags style = pItem->enabled() ? UiFlags::ColorGold : UiFlags::ColorBlack;
-	DrawString(out, _(pItem->pszStr), Point { x, y },
+	DrawString(_(pItem->pszStr), { Point { x, y }, { gnScreenWidth - x, 0 } },
 	    { .flags = style | UiFlags::FontSize46, .spacing = 2 });
 	if (pItem == sgpCurrItem) {
 		const ClxSprite sprite = (*PentSpin_cel)[PentSpn2Spin()];
-		ClxDraw(out, { x - 54, y + 51 }, sprite);
-		ClxDraw(out, { x + 4 + w, y + 51 }, sprite);
+		GetRenderer().DrawClx({ x - 54, y + 51 }, sprite);
+		GetRenderer().DrawClx({ x + 4 + w, y + 51 }, sprite);
 	}
 }
 
@@ -182,12 +178,12 @@ int GmenuGetSliderFill()
 
 TMenuItem *sgpCurrentMenu;
 
-void gmenu_draw_pause(const Surface &out)
+void gmenu_draw_pause()
 {
 	if (leveltype != DTYPE_TOWN)
-		RedBack(out);
+		RedBack();
 	if (sgpCurrentMenu == nullptr) {
-		DrawString(out, _("Pause"), { { 0, 0 }, { gnScreenWidth, GetMainPanel().position.y } },
+		DrawString(_("Pause"), { { 0, 0 }, { gnScreenWidth, GetMainPanel().position.y } },
 		    { .flags = UiFlags::FontSize46 | UiFlags::ColorGold | UiFlags::AlignCenter | UiFlags::VerticalCenter, .spacing = 2 });
 	}
 }
@@ -248,7 +244,7 @@ void gmenu_set_items(TMenuItem *pItem, void (*gmFunc)())
 	}
 }
 
-void gmenu_draw(const Surface &out)
+void gmenu_draw()
 {
 	if (sgpCurrentMenu != nullptr) {
 		GameMenuMove();
@@ -264,12 +260,12 @@ void gmenu_draw(const Surface &out)
 		}
 		const int uiPositionY = GetUIRectangle().position.y;
 		const ClxSprite sprite = (*sgpLogo)[LogoAnim_frame];
-		ClxDraw(out, { (gnScreenWidth - sprite.width()) / 2, 102 + uiPositionY }, sprite);
+		GetRenderer().DrawClx({ (gnScreenWidth - sprite.width()) / 2, 102 + uiPositionY }, sprite);
 		int y = 110 + uiPositionY;
 		TMenuItem *i = sgpCurrentMenu;
 		if (sgpCurrentMenu->fnMenu != nullptr) {
 			while (i->fnMenu != nullptr) {
-				GmenuDrawMenuItem(out, i, y);
+				GmenuDrawMenuItem(i, y);
 				i++;
 				y += GMenuItemHeight;
 			}

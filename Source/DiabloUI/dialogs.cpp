@@ -201,7 +201,7 @@ void UiOkDialog(std::string_view caption, std::string_view text, bool error, con
 	}
 
 	inDialog = true;
-	SDL_SetSurfaceClipRect(DiabloUiSurface(), nullptr);
+	GetRenderer().ClearClipRegion();
 	DialogLoop(vecOkDialog, renderBehind);
 	Deinit();
 	inDialog = false;

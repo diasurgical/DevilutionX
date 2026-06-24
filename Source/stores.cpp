@@ -19,9 +19,11 @@
 #include "controls/plrctrls.h"
 #include "cursor.h"
 #include "engine/backbuffer_state.hpp"
+#include "engine/palette.h"
 #include "engine/random.hpp"
 #include "engine/render/clx_render.hpp"
 #include "engine/render/primitive_render.hpp"
+#include "engine/render/renderer.h"
 #include "engine/render/text_render.hpp"
 #include "engine/trn.hpp"
 #include "game_mode.hpp"
@@ -38,7 +40,6 @@
 #include "utils/language.h"
 #include "utils/log.hpp"
 #include "utils/str_cat.hpp"
-#include "utils/utf8.hpp"
 
 namespace devilution {
 
@@ -267,30 +268,30 @@ void CalculateLineHeights()
 	}
 }
 
-void DrawSTextBack(const Surface &out)
+void DrawSTextBack()
 {
 	const Point uiPosition = GetUIRectangle().position;
-	ClxDraw(out, { uiPosition.x + 320 + 24, 327 + uiPosition.y }, (*pSTextBoxCels)[0]);
-	DrawHalfTransparentRectTo(out, uiPosition.x + 347, uiPosition.y + 28, 265, 297);
+	GetRenderer().DrawClx({ uiPosition.x + 320 + 24, 327 + uiPosition.y }, (*pSTextBoxCels)[0]);
+	GetRenderer().DrawBlendedRect(uiPosition.x + 347, uiPosition.y + 28, 265, 297);
 }
 
-void DrawSSlider(const Surface &out, int y1, int y2)
+void DrawSSlider(int y1, int y2)
 {
 	const Point uiPosition = GetUIRectangle().position;
 	int yd1 = (y1 * 12) + 44 + uiPosition.y;
 	const int yd2 = (y2 * 12) + 44 + uiPosition.y;
 	if (CountdownScrollUp != -1)
-		ClxDraw(out, { uiPosition.x + 601, yd1 }, (*pSTextSlidCels)[11]);
+		GetRenderer().DrawClx({ uiPosition.x + 601, yd1 }, (*pSTextSlidCels)[11]);
 	else
-		ClxDraw(out, { uiPosition.x + 601, yd1 }, (*pSTextSlidCels)[9]);
+		GetRenderer().DrawClx({ uiPosition.x + 601, yd1 }, (*pSTextSlidCels)[9]);
 	if (CountdownScrollDown != -1)
-		ClxDraw(out, { uiPosition.x + 601, yd2 }, (*pSTextSlidCels)[10]);
+		GetRenderer().DrawClx({ uiPosition.x + 601, yd2 }, (*pSTextSlidCels)[10]);
 	else
-		ClxDraw(out, { uiPosition.x + 601, yd2 }, (*pSTextSlidCels)[8]);
+		GetRenderer().DrawClx({ uiPosition.x + 601, yd2 }, (*pSTextSlidCels)[8]);
 	yd1 += 12;
 	int yd3 = yd1;
 	for (; yd3 < yd2; yd3 += 12) {
-		ClxDraw(out, { uiPosition.x + 601, yd3 }, (*pSTextSlidCels)[13]);
+		GetRenderer().DrawClx({ uiPosition.x + 601, yd3 }, (*pSTextSlidCels)[13]);
 	}
 	if (CurrentTextLine == BackButtonLine())
 		yd3 = OldTextLine;
@@ -300,7 +301,7 @@ void DrawSSlider(const Surface &out, int y1, int y2)
 		yd3 = 1000 * (ScrollPos + ((yd3 - PreviousScrollPos) / 4)) / (CurrentItemIndex - 1) * (y2 * 12 - y1 * 12 - 24) / 1000;
 	else
 		yd3 = 0;
-	ClxDraw(out, { uiPosition.x + 601, ((y1 + 1) * 12) + 44 + uiPosition.y + yd3 }, (*pSTextSlidCels)[12]);
+	GetRenderer().DrawClx({ uiPosition.x + 601, ((y1 + 1) * 12) + 44 + uiPosition.y + yd3 }, (*pSTextSlidCels)[12]);
 }
 
 void AddSLine(size_t y)
@@ -2080,7 +2081,7 @@ int TakeGold(Player &player, int cost, bool skipMaxPiles)
 	return cost;
 }
 
-void DrawSelector(const Surface &out, const Rectangle &rect, std::string_view text, UiFlags flags)
+void DrawSelector(const Rectangle &rect, std::string_view text, UiFlags flags)
 {
 	const int lineWidth = GetLineWidth(text);
 
@@ -2088,13 +2089,13 @@ void DrawSelector(const Surface &out, const Rectangle &rect, std::string_view te
 	if (HasAnyOf(flags, UiFlags::AlignCenter))
 		x1 += (rect.size.width - lineWidth) / 2;
 
-	ClxDraw(out, { x1, rect.position.y + 13 }, (*pSPentSpn2Cels)[PentSpn2Spin()]);
+	GetRenderer().DrawClx({ x1, rect.position.y + 13 }, (*pSPentSpn2Cels)[PentSpn2Spin()]);
 
 	int x2 = rect.position.x + rect.size.width + 5;
 	if (HasAnyOf(flags, UiFlags::AlignCenter))
 		x2 = rect.position.x + (rect.size.width - lineWidth) / 2 + lineWidth + 5;
 
-	ClxDraw(out, { x2, rect.position.y + 13 }, (*pSPentSpn2Cels)[PentSpn2Spin()]);
+	GetRenderer().DrawClx({ x2, rect.position.y + 13 }, (*pSPentSpn2Cels)[PentSpn2Spin()]);
 }
 
 } // namespace
@@ -2192,7 +2193,7 @@ void FreeStoreMem()
 	}
 }
 
-void PrintSString(const Surface &out, int margin, int line, std::string_view text, UiFlags flags, int price, int cursId, bool cursIndent)
+void PrintSString(int margin, int line, std::string_view text, UiFlags flags, int price, int cursId, bool cursIndent)
 {
 	const Point uiPosition = GetUIRectangle().position;
 	int sx = uiPosition.x + 32 + margin;
@@ -2226,28 +2227,28 @@ void PrintSString(const Surface &out, int margin, int line, std::string_view tex
 			rect.position.y + ((TextHeight() * 3 + sprite.height()) / 2)
 		};
 		if (useHalfSize || !useRed) {
-			ClxDraw(out, position, sprite);
+			GetRenderer().DrawClx(position, sprite);
 		} else {
-			ClxDrawTRN(out, position, sprite, GetInfravisionTRN());
+			GetRenderer().DrawClxTRN(position, sprite, GetInfravisionTRN());
 		}
 	}
 
 	if (*GetOptions().Gameplay.showItemGraphicsInStores && cursIndent) {
 		const Rectangle textRect { { rect.position.x + HalfCursWidth + 8, rect.position.y }, { rect.size.width - HalfCursWidth + 8, rect.size.height } };
-		DrawString(out, text, textRect, { .flags = flags });
+		DrawString(text, textRect, { .flags = flags });
 	} else {
-		DrawString(out, text, rect, { .flags = flags });
+		DrawString(text, rect, { .flags = flags });
 	}
 
 	if (price > 0)
-		DrawString(out, FormatInteger(price), rect, { .flags = flags | UiFlags::AlignRight });
+		DrawString(FormatInteger(price), rect, { .flags = flags | UiFlags::AlignRight });
 
 	if (CurrentTextLine == line) {
-		DrawSelector(out, rect, text, flags);
+		DrawSelector(rect, text, flags);
 	}
 }
 
-void DrawSLine(const Surface &out, int sy)
+void DrawSLine(int sy)
 {
 	const Point uiPosition = GetUIRectangle().position;
 	int sx = 26;
@@ -2258,11 +2259,19 @@ void DrawSLine(const Surface &out, int sy)
 		width -= SidePanelSize.width;
 	}
 
-	uint8_t *src = out.at(uiPosition.x + sx, uiPosition.y + 25);
-	uint8_t *dst = out.at(uiPosition.x + sx, sy);
-
-	for (int i = 0; i < 3; i++, src += out.pitch(), dst += out.pitch())
-		memcpy(dst, src, width);
+	// Copy the 3px-high divider strip from the text box sprite to the destination Y.
+	// Use the full-width sprite (pTextBoxCels, drawn at X=24) when full-size,
+	// or the narrow sprite (pSTextBoxCels, drawn at X=320+24) when not.
+	const ClxSprite sprite = IsTextFullSize ? GetQTextBoxSprite() : (*pSTextBoxCels)[0];
+	const int spriteX = IsTextFullSize ? 24 : (320 + 24);
+	const int tempW = 640;
+	const int tempH = 328;
+	OwnedSurface tmp(tempW, tempH);
+	ApplySystemPaletteToSurface(tmp.surface);
+	FillRect(tmp, 0, 0, tempW, tempH, 0);
+	ClxDraw(tmp, { spriteX, 327 }, sprite);
+	const SDL_Rect srcRect = MakeSdlRect(sx, 25, width, 3);
+	GetRenderer().BlitSurface(tmp, srcRect, { uiPosition.x + sx, sy });
 }
 
 void DrawSTextHelp()
@@ -2428,12 +2437,12 @@ void StartStore(TalkID s)
 	ActiveStore = s;
 }
 
-void DrawSText(const Surface &out)
+void DrawSText()
 {
 	if (!IsTextFullSize)
-		DrawSTextBack(out);
+		DrawSTextBack();
 	else
-		DrawQTextBack(out);
+		DrawQTextBack();
 
 	if (HasScrollbar) {
 		switch (ActiveStore) {
@@ -2465,17 +2474,17 @@ void DrawSText(const Surface &out)
 	const Point uiPosition = GetUIRectangle().position;
 	for (int i = 0; i < NumStoreLines; i++) {
 		if (TextLine[i].isDivider())
-			DrawSLine(out, uiPosition.y + PaddingTop + TextLine[i].y + (TextHeight() / 2));
+			DrawSLine(uiPosition.y + PaddingTop + TextLine[i].y + (TextHeight() / 2));
 		else if (TextLine[i].hasText())
-			PrintSString(out, TextLine[i]._sx, i, TextLine[i].text, TextLine[i].flags, TextLine[i]._sval, TextLine[i].cursId, TextLine[i].cursIndent);
+			PrintSString(TextLine[i]._sx, i, TextLine[i].text, TextLine[i].flags, TextLine[i]._sval, TextLine[i].cursId, TextLine[i].cursIndent);
 	}
 
 	if (RenderGold) {
-		PrintSString(out, 28, 1, fmt::format(fmt::runtime(_("Your gold: {:s}")), FormatInteger(TotalPlayerGold())).c_str(), UiFlags::ColorWhitegold | UiFlags::AlignRight);
+		PrintSString(28, 1, fmt::format(fmt::runtime(_("Your gold: {:s}")), FormatInteger(TotalPlayerGold())).c_str(), UiFlags::ColorWhitegold | UiFlags::AlignRight);
 	}
 
 	if (HasScrollbar)
-		DrawSSlider(out, 4, 20);
+		DrawSSlider(4, 20);
 }
 
 void StoreESC()

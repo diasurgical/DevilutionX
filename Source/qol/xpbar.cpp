@@ -5,7 +5,6 @@
  */
 #include "xpbar.h"
 
-#include <array>
 #include <cstdint>
 
 #include <fmt/core.h>
@@ -14,8 +13,7 @@
 #include "engine/clx_sprite.hpp"
 #include "engine/load_clx.hpp"
 #include "engine/point.hpp"
-#include "engine/render/clx_render.hpp"
-#include "engine/render/primitive_render.hpp"
+#include "engine/render/renderer.h"
 #include "game_mode.hpp"
 #include "options.h"
 #include "tables/playerdat.hpp"
@@ -37,18 +35,23 @@ constexpr int BackHeight = 9;
 
 OptionalOwnedClxSpriteList xpbarArt;
 
-void DrawBar(const Surface &out, Point screenPosition, int width, const ColorGradient &gradient)
+void DrawBar(Point screenPosition, int width, const ColorGradient &gradient)
 {
-	UnsafeDrawHorizontalLine(out, screenPosition + Displacement { 0, 1 }, width, gradient[(gradient.size() * 3 / 4) - 1]);
-	UnsafeDrawHorizontalLine(out, screenPosition + Displacement { 0, 2 }, width, gradient[gradient.size() - 1]);
-	UnsafeDrawHorizontalLine(out, screenPosition + Displacement { 0, 3 }, width, gradient[(gradient.size() / 2) - 1]);
+	Renderer &renderer = GetRenderer();
+	const Point p1 = screenPosition + Displacement { 0, 1 };
+	const Point p2 = screenPosition + Displacement { 0, 2 };
+	const Point p3 = screenPosition + Displacement { 0, 3 };
+	renderer.DrawHorizontalLine(p1, width, gradient[(gradient.size() * 3 / 4) - 1]);
+	renderer.DrawHorizontalLine(p2, width, gradient[gradient.size() - 1]);
+	renderer.DrawHorizontalLine(p3, width, gradient[(gradient.size() / 2) - 1]);
 }
 
-void DrawEndCap(const Surface &out, Point point, int idx, const ColorGradient &gradient)
+void DrawEndCap(Point point, int idx, const ColorGradient &gradient)
 {
-	out.SetPixel({ point.x, point.y + 1 }, gradient[idx * 3 / 4]);
-	out.SetPixel({ point.x, point.y + 2 }, gradient[idx]);
-	out.SetPixel({ point.x, point.y + 3 }, gradient[idx / 2]);
+	Renderer &renderer = GetRenderer();
+	renderer.DrawPixel({ point.x, point.y + 1 }, gradient[idx * 3 / 4]);
+	renderer.DrawPixel({ point.x, point.y + 2 }, gradient[idx]);
+	renderer.DrawPixel({ point.x, point.y + 3 }, gradient[idx / 2]);
 }
 
 void OptionExperienceBarChanged()
@@ -77,7 +80,7 @@ void FreeXPBar()
 	xpbarArt = std::nullopt;
 }
 
-void DrawXPBar(const Surface &out)
+void DrawXPBar()
 {
 	if (!*GetOptions().Gameplay.experienceBar || ChatFlag)
 		return;
@@ -88,11 +91,11 @@ void DrawXPBar(const Surface &out)
 	const Point back = { mainPanel.position.x + (mainPanel.size.width / 2) - 155, mainPanel.position.y + mainPanel.size.height - 11 };
 	const Point position = back + Displacement { 3, 2 };
 
-	RenderClxSprite(out, (*xpbarArt)[0], back);
+	GetRenderer().RenderClx(back, (*xpbarArt)[0]);
 
 	if (player.isMaxCharacterLevel()) {
 		// Draw a nice golden bar for max level characters.
-		DrawBar(out, position, BarWidth, GoldGradient);
+		DrawBar(position, BarWidth, GoldGradient);
 
 		return;
 	}
@@ -114,10 +117,10 @@ void DrawXPBar(const Surface &out)
 	const uint64_t fade = (prevXpDelta1 - lastFullPx) * (SilverGradient.size() - 1) / onePx;
 
 	// Draw beginning of bar full brightness
-	DrawBar(out, position, static_cast<int>(fullBar), SilverGradient);
+	DrawBar(position, static_cast<int>(fullBar), SilverGradient);
 
 	// End pixels appear gradually
-	DrawEndCap(out, position + Displacement { static_cast<int>(fullBar), 0 }, static_cast<int>(fade), SilverGradient);
+	DrawEndCap(position + Displacement { static_cast<int>(fullBar), 0 }, static_cast<int>(fade), SilverGradient);
 }
 
 bool CheckXPBarInfo()

@@ -33,8 +33,86 @@
 #include "utils/str_cat.hpp"
 #include "utils/surface_to_png.hpp"
 
+#include "engine/render/clx_render.hpp"
+#include "engine/render/null_renderer.h"
+#include "engine/render/renderer.h"
+
 // Invoke with --update_expected to update the expected files with actual results.
 static bool UpdateExpected;
+
+namespace devilution {
+
+/**
+ * A test renderer that actually draws pixels to its palSurface_ via the free functions.
+ * This allows tests to exercise the renderer code path without needing an SDL window.
+ */
+class DrawingTestRenderer final : public NullRenderer {
+public:
+	void SetTargetSurface(SDL_Surface *surface) { palSurface_ = surface; }
+	SDL_Surface *GetPalSurface() const { return palSurface_; }
+	Size GetBackBufferSize() const override { return palSurface_ ? Size { palSurface_->w, palSurface_->h } : Size { 640, 480 }; }
+	void DrawClx(Point position, ClxSprite clx) override
+	{
+		Surface out = MakeTarget();
+		devilution::ClxDraw(out, ToRel(position), clx);
+	}
+
+	void DrawClxTRN(Point position, ClxSprite clx, const uint8_t *trn) override
+	{
+		Surface out = MakeTarget();
+		devilution::ClxDrawTRN(out, ToRel(position), clx, trn);
+	}
+
+	void DrawClxOutline(uint8_t col, Point position, ClxSprite clx, bool skipColorIndexZero) override
+	{
+		Surface out = MakeTarget();
+		if (skipColorIndexZero) {
+			devilution::ClxDrawOutlineSkipColorZero(out, col, ToRel(position), clx);
+		} else {
+			devilution::ClxDrawOutline(out, col, ToRel(position), clx);
+		}
+	}
+
+	void FillRect(int x, int y, int w, int h, uint8_t colorIndex) override
+	{
+		Surface out = MakeTarget();
+		Point rel = ToRel({ x, y });
+		devilution::FillRect(out, rel.x, rel.y, w, h, colorIndex);
+	}
+
+	void SetClipRegion(int x, int y, int w, int h) override
+	{
+		hasClip_ = true;
+		clipRect_ = { x, y, w, h };
+	}
+
+	void ClearClipRegion() override
+	{
+		hasClip_ = false;
+	}
+
+private:
+	SDL_Surface *palSurface_ = nullptr;
+
+	Surface MakeTarget() const
+	{
+		if (hasClip_)
+			return Surface(palSurface_, clipRect_);
+		return Surface(palSurface_);
+	}
+
+	Point ToRel(Point position) const
+	{
+		if (hasClip_)
+			return { position.x - clipRect_.x, position.y - clipRect_.y };
+		return position;
+	}
+
+	SDL_Rect clipRect_ {};
+	bool hasClip_ = false;
+};
+
+} // namespace devilution
 
 namespace devilution {
 namespace {
@@ -384,6 +462,9 @@ TEST_P(TextRenderIntegrationTest, RenderAndCompareTest)
 	SDL_SetSurfacePalette(out.surface, palette.get());
 	ASSERT_NE(out.surface, nullptr);
 
+	auto *renderer = static_cast<DrawingTestRenderer *>(&GetRenderer());
+	renderer->SetTargetSurface(out.surface);
+
 	DrawWithBorder(out, Rectangle { Point { 10, 10 }, Size { fixture.width, fixture.height } }, [&](const Rectangle &rect) {
 		if (fixture.args.empty()) {
 			DrawString(out, fixture.fmt, rect, fixture.opts);
@@ -441,6 +522,7 @@ INSTANTIATE_TEST_SUITE_P(GoldenTests, TextRenderIntegrationTest,
 
 int main(int argc, char **argv)
 {
+	devilution::SetRenderer(std::make_unique<devilution::DrawingTestRenderer>());
 	::testing::InitGoogleTest(&argc, argv);
 	if (argc >= 2) {
 		for (int i = 1; i < argc; ++i) {

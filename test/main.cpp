@@ -4,6 +4,8 @@
 #include <string>
 #include <unordered_map>
 
+#include "engine/render/null_renderer.h"
+#include "engine/render/renderer.h"
 #include "headless_mode.hpp"
 #include "options.h"
 #include "utils/paths.h"
@@ -82,6 +84,7 @@ int main(int argc, char **argv)
 {
 	// Disable error dialogs.
 	devilution::HeadlessMode = true;
+	devilution::SetRenderer(std::make_unique<devilution::NullRenderer>());
 
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 	// Disable hardware cursor while testing.

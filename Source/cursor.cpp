@@ -8,8 +8,8 @@
 #include <cmath>
 #include <cstdint>
 #include <limits>
+#include <memory>
 #include <string_view>
-#include <vector>
 
 #ifdef USE_SDL3
 #include <SDL3/SDL_rect.h>
@@ -28,9 +28,8 @@
 #include "engine/backbuffer_state.hpp"
 #include "engine/demomode.h"
 #include "engine/point.hpp"
-#include "engine/points_in_rectangle_range.hpp"
 #include "engine/render/clx_render.hpp"
-#include "engine/render/primitive_render.hpp"
+#include "engine/render/renderer.h"
 #include "engine/trn.hpp"
 #include "headless_mode.hpp"
 #include "hwcursor.hpp"
@@ -43,13 +42,12 @@
 #include "qol/visual_store.h"
 #include "towners.h"
 #include "track.h"
-#include "utils/attributes.h"
 #include "utils/is_of.hpp"
 #include "utils/language.h"
 #include "utils/palette_blending.hpp"
 #include "utils/sdl_bilinear_scale.hpp"
+#include "utils/sdl_compat.h"
 #include "utils/surface_to_clx.hpp"
-#include "utils/utf8.hpp"
 
 #ifdef UNPACKED_MPQS
 #include "engine/load_clx.hpp"
@@ -67,6 +65,53 @@ OptionalOwnedClxSpriteList pCursCels2;
 
 OptionalOwnedClxSpriteList *HalfSizeItemSprites;
 OptionalOwnedClxSpriteList *HalfSizeItemSpritesRed;
+
+/** Surface holding the pre-rendered software cursor image. */
+std::unique_ptr<OwnedSurface> SoftwareCursorSurface;
+/** Hotpoint of the current software cursor surface. */
+Point SoftwareCursorHotpoint;
+
+} // namespace
+
+std::unique_ptr<OwnedSurface> CreateSoftwareCursorSurface(int cursId, Point &outHotpoint)
+{
+	if (cursId <= CURSOR_NONE)
+		return nullptr;
+
+	// Cursor sprites may not be loaded yet (e.g. during early init or tests).
+	if (!pCursCels)
+		return nullptr;
+
+	const bool isItem = cursId >= CURSOR_FIRSTITEM && MyPlayer != nullptr && !MyPlayer->HoldItem.isEmpty();
+	const int outlineWidth = isItem ? 1 : 0;
+
+	auto size = GetInvItemSize(cursId);
+	size.width += 2 * outlineWidth;
+	size.height += 2 * outlineWidth;
+
+	auto surface = std::make_unique<OwnedSurface>(size);
+
+	// Set palette to system_palette so the surface matches palSurface_.
+	SDLPaletteUniquePtr cursorPalette = SDLWrap::AllocPalette();
+	SDLC_SetSurfaceAndPaletteColors(surface->surface, cursorPalette.get(), system_palette.data(), 0, 256);
+
+	// Use color index 1 as transparent (not used in UI sprites).
+	constexpr uint8_t TransparentColor = 1;
+	SDL_FillSurfaceRect(surface->surface, nullptr, TransparentColor);
+	SDL_SetSurfaceColorKey(surface->surface, true, TransparentColor);
+
+	DrawSoftwareCursor(*surface, { outlineWidth, size.height - outlineWidth - 1 }, cursId);
+
+	if (isItem) {
+		outHotpoint = { size.width / 2, size.height / 2 };
+	} else {
+		outHotpoint = { 0, 0 };
+	}
+
+	return surface;
+}
+
+namespace {
 
 bool IsValidMonsterForSelection(const Monster &monster)
 {
@@ -449,14 +494,12 @@ void InitCursor()
 		pCursCels2 = LoadOptionalCel("data\\inv\\objcurs2", ReadWidths(std::move(ref)).data());
 	}
 #endif
-	ClearCursor();
 }
 
 void FreeCursor()
 {
 	pCursCels = std::nullopt;
 	pCursCels2 = std::nullopt;
-	ClearCursor();
 }
 
 ClxSprite GetInvItemSprite(int cursId)
@@ -547,6 +590,16 @@ void FreeHalfSizeItemSprites()
 	}
 }
 
+void DrawItemOnScreen(const Item &item, Point position, ClxSprite clx)
+{
+	const bool usable = !IsInspectingPlayer() ? item._iStatFlag : InspectPlayer->CanUseItem(item);
+	if (usable) {
+		GetRenderer().DrawClx(position, clx);
+	} else {
+		GetRenderer().DrawClxTRN(position, clx, GetInfravisionTRN());
+	}
+}
+
 void DrawItem(const Item &item, const Surface &out, Point position, ClxSprite clx)
 {
 	const bool usable = !IsInspectingPlayer() ? item._iStatFlag : InspectPlayer->CanUseItem(item);
@@ -593,6 +646,14 @@ void NewCursor(int cursId)
 		    : CursorInfo::GameCursor(cursId);
 		if (newCursor != GetCurrentCursorInfo())
 			SetHardwareCursor(newCursor);
+	} else if (!IsHardwareCursor()) {
+		// Software cursor path: create a surface and feed it to the renderer.
+		Point hotpoint;
+		SoftwareCursorSurface = CreateSoftwareCursorSurface(cursId, hotpoint);
+		SoftwareCursorHotpoint = hotpoint;
+		GetRenderer().SetCursor(
+		    SoftwareCursorSurface ? SoftwareCursorSurface->surface : nullptr,
+		    hotpoint);
 	}
 }
 
@@ -618,7 +679,6 @@ void InitLevelCursor()
 	pcursitem = -1;
 	pcursstashitem = StashStruct::EmptyCell;
 	PlayerUnderCursor = nullptr;
-	ClearCursor();
 }
 
 void CheckTown()

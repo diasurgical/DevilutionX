@@ -2,7 +2,6 @@
 
 #include <cstdint>
 
-#include "engine/rectangle.hpp"
 #include "engine/surface.hpp"
 
 namespace devilution {
@@ -17,11 +16,6 @@ enum class PanelDrawComponent {
 	LAST = Belt
 };
 
-struct DrawnCursor {
-	Rectangle rect;
-	uint8_t behindBuffer[8192];
-};
-
 void InitBackbufferState();
 
 void RedrawEverything();
@@ -33,7 +27,5 @@ void RedrawComplete();
 void RedrawComponent(PanelDrawComponent component);
 bool IsRedrawComponent(PanelDrawComponent component);
 void RedrawComponentComplete(PanelDrawComponent component);
-
-DrawnCursor &GetDrawnCursor();
 
 } // namespace devilution

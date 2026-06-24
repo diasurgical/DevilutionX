@@ -10,8 +10,7 @@
 #include "control/control.hpp"
 #include "engine/clx_sprite.hpp"
 #include "engine/load_cel.hpp"
-#include "engine/render/clx_render.hpp"
-#include "engine/render/primitive_render.hpp"
+#include "engine/render/renderer.h"
 
 namespace devilution {
 namespace {
@@ -32,13 +31,13 @@ void doom_close()
 	DoomSprite = std::nullopt;
 }
 
-void doom_draw(const Surface &out)
+void doom_draw()
 {
 	if (!DoomFlag) {
 		return;
 	}
 
-	ClxDraw(out, GetUIRectangle().position + Displacement { 0, 352 }, (*DoomSprite)[0]);
+	GetRenderer().DrawClx(GetUIRectangle().position + Displacement { 0, 352 }, (*DoomSprite)[0]);
 }
 
 } // namespace devilution

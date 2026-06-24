@@ -25,11 +25,6 @@ extern bool frameflag;
 Displacement GetOffsetForWalking(const AnimationInfo &animationInfo, Direction dir, bool cameraMode = false);
 
 /**
- * @brief Clear cursor state
- */
-void ClearCursor();
-
-/**
  * @brief Shifting the view area along the logical grid
  *        Note: this won't allow you to shift between even and odd rows
  * @param horizontal Shift the screen left or right
@@ -79,6 +74,15 @@ void ScrollView();
  * @brief Initialize the FPS meter
  */
 void EnableFrameCount();
+
+/**
+ * @brief Draw the full game scene without presenting.
+ *
+ * Used as a redraw callback during palette fades so the GL renderer
+ * (which does not retain framebuffer contents across swaps) can
+ * repaint the scene each fade step.
+ */
+void RedrawGameScene();
 
 /**
  * @brief Redraw screen

@@ -3,6 +3,7 @@
 
 #include "DiabloUI/text_input.hpp"
 #include "engine/render/clx_render.hpp"
+#include "engine/render/renderer.h"
 #include "inv.h"
 #include "utils/display.h"
 #include "utils/format_int.hpp"
@@ -44,11 +45,11 @@ int GetGoldDropMax()
 
 } // namespace
 
-void DrawGoldSplit(const Surface &out)
+void DrawGoldSplit()
 {
 	const int dialogX = 30;
 
-	ClxDraw(out, GetPanelPosition(UiPanels::Inventory, { dialogX, 178 }), (*GoldBoxBuffer)[0]);
+	GetRenderer().DrawClx(GetPanelPosition(UiPanels::Inventory, { dialogX, 178 }), (*GoldBoxBuffer)[0]);
 
 	const std::string_view amountText = GoldDropText;
 	const TextInputCursorState &cursor = GoldDropCursor;
@@ -68,12 +69,13 @@ void DrawGoldSplit(const Surface &out)
 	// The split gold dialog is roughly 4 lines high, but we need at least one line for the player to input an amount.
 	// Using a clipping region 50 units high (approx 3 lines with a lineheight of 17) to ensure there is enough room left
 	//  for the text entered by the player.
-	DrawString(out, wrapped, { GetPanelPosition(UiPanels::Inventory, { dialogX + 31, 75 }), { 200, 50 } },
+	DrawString(wrapped, { GetPanelPosition(UiPanels::Inventory, { dialogX + 31, 75 }), { 200, 50 } },
 	    { .flags = UiFlags::ColorWhitegold | UiFlags::AlignCenter, .lineHeight = 17 });
 
 	// Even a ten digit amount of gold only takes up about half a line. There's no need to wrap or clip text here so we
 	// use the Point form of DrawString.
-	DrawString(out, amountText, GetPanelPosition(UiPanels::Inventory, { dialogX + 37, 128 }),
+	const Point goldPos = GetPanelPosition(UiPanels::Inventory, { dialogX + 37, 128 });
+	DrawString(amountText, { goldPos, { gnScreenWidth - goldPos.x, 0 } },
 	    {
 	        .flags = UiFlags::ColorWhite | UiFlags::PentaCursor,
 	        .cursorPosition = static_cast<int>(cursor.position),

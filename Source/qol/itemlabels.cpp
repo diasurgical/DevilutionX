@@ -2,9 +2,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <limits>
-#include <string>
-#include <string_view>
 #include <vector>
 
 #include <fmt/format.h>
@@ -13,7 +10,8 @@
 #include "cursor.h"
 #include "engine/point.hpp"
 #include "engine/render/clx_render.hpp"
-#include "engine/render/primitive_render.hpp"
+#include "engine/render/renderer.h"
+#include "engine/render/text_render.hpp"
 #include "gmenu.h"
 #include "inv.h"
 #include "options.h"
@@ -22,6 +20,7 @@
 #include "utils/algorithm/container.hpp"
 #include "utils/format_int.hpp"
 #include "utils/language.h"
+#include "utils/ui_fwd.h"
 
 namespace devilution {
 
@@ -145,12 +144,12 @@ bool IsMouseOverGameArea()
 	return true;
 }
 
-void DrawItemNameLabels(const Surface &out)
+void DrawItemNameLabels()
 {
-	const Surface clippedOut = out.subregionY(0, gnViewportHeight);
 	isLabelHighlighted = false;
 	if (labelQueue.empty())
 		return;
+	GetRenderer().SetClipRegion(0, 0, gnScreenWidth, gnViewportHeight);
 	UsedX usedX;
 	const int labelHeight = LabelHeight();
 	const int labelMarginTop = TextMarginTop();
@@ -203,12 +202,13 @@ void DrawItemNameLabels(const Surface &out)
 			}
 		}
 		if (pcursitem == label.id && !IsPlayerInStore())
-			FillRect(clippedOut, label.pos.x, label.pos.y, label.width, labelHeight, PAL8_BLUE + 6);
+			GetRenderer().FillRect(label.pos.x, label.pos.y, label.width, labelHeight, PAL8_BLUE + 6);
 		else
-			DrawHalfTransparentRectTo(clippedOut, label.pos.x, label.pos.y, label.width, labelHeight);
-		DrawString(clippedOut, label.text, { { label.pos.x + MarginX, label.pos.y + labelMarginTop }, { label.width, labelHeight } },
+			GetRenderer().DrawBlendedRect(label.pos.x, label.pos.y, label.width, labelHeight);
+		DrawString(label.text, { { label.pos.x + MarginX, label.pos.y + labelMarginTop }, { label.width, labelHeight } },
 		    { .flags = item.getTextColor() });
 	}
+	GetRenderer().ClearClipRegion();
 	labelQueue.clear();
 }
 

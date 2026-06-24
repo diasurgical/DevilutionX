@@ -11,6 +11,7 @@
 // #define DEBUG_RENDER_OFFSET_Y 5
 
 #include "engine/render/dun_render.hpp"
+#include "engine/render/software/dun_render_internal.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -22,6 +23,7 @@
 #include "levels/dun_tile.hpp"
 #include "options.h"
 #include "utils/attributes.h"
+#include "utils/ui_fwd.h"
 #ifdef DEBUG_STR
 #include "engine/render/text_render.hpp"
 #endif
@@ -962,7 +964,7 @@ DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderRightTrapezoidOrTransparentSquare
 template <MaskType Mask>
 DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLeftTrapezoidOrTransparentSquareDispatch(TileType tile, uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, const Lightmap &lightmap, Clip clip)
 {
-	if (*GetOptions().Graphics.perPixelLighting) {
+	if (lightmap.isPerPixel()) {
 		RenderLeftTrapezoidOrTransparentSquare<LightType::PerPixel, Mask>(tile, dst, dstPitch, src, tbl, lightmap, clip);
 	} else if (lightmap.isFullyDarkLightTable(tbl)) {
 		RenderLeftTrapezoidOrTransparentSquare<LightType::FullyDark, Mask>(tile, dst, dstPitch, src, tbl, lightmap, clip);
@@ -976,7 +978,7 @@ DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLeftTrapezoidOrTransparentSquareD
 template <MaskType Mask>
 DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderRightTrapezoidOrTransparentSquareDispatch(TileType tile, uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, const Lightmap &lightmap, Clip clip)
 {
-	if (*GetOptions().Graphics.perPixelLighting) {
+	if (lightmap.isPerPixel()) {
 		RenderRightTrapezoidOrTransparentSquare<LightType::PerPixel, Mask>(tile, dst, dstPitch, src, tbl, lightmap, clip);
 	} else if (lightmap.isFullyDarkLightTable(tbl)) {
 		RenderRightTrapezoidOrTransparentSquare<LightType::FullyDark, Mask>(tile, dst, dstPitch, src, tbl, lightmap, clip);
@@ -990,7 +992,7 @@ DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderRightTrapezoidOrTransparentSquare
 template <bool Transparent>
 DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderTileDispatch(TileType tile, uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, const Lightmap &lightmap, Clip clip)
 {
-	if (*GetOptions().Graphics.perPixelLighting) {
+	if (lightmap.isPerPixel()) {
 		RenderTileType<LightType::PerPixel, Transparent>(tile, dst, dstPitch, src, tbl, lightmap, clip);
 	} else if (lightmap.isFullyDarkLightTable(tbl)) {
 		RenderTileType<LightType::FullyDark, Transparent>(tile, dst, dstPitch, src, tbl, lightmap, clip);
@@ -1037,9 +1039,11 @@ std::string_view MaskTypeToString(MaskType maskType)
 }
 #endif
 
-DVL_ATTRIBUTE_HOT void RenderTileFrame(const Surface &out, const Lightmap &lightmap, const Point &position, TileType tile, const uint8_t *src, int_fast16_t height,
+DVL_ATTRIBUTE_HOT void RenderTileFrame(SDL_Surface *palSurface, const Lightmap &lightmap, const Point &position, TileType tile, const uint8_t *src, int_fast16_t height,
     MaskType maskType, const uint8_t *tbl)
 {
+	const int viewportH = !*GetOptions().Graphics.zoom ? static_cast<int>(gnViewportHeight) : (static_cast<int>(gnViewportHeight) + 1) / 2;
+	Surface out(palSurface, SDL_Rect { 0, 0, static_cast<int>(gnScreenWidth), viewportH });
 #ifdef DEBUG_RENDER_OFFSET_X
 	position.x += DEBUG_RENDER_OFFSET_X;
 #endif
@@ -1073,37 +1077,8 @@ DVL_ATTRIBUTE_HOT void RenderTileFrame(const Surface &out, const Lightmap &light
 
 #ifdef DEBUG_STR
 	const auto [debugStr, flags] = GetTileDebugStr(tile);
-	DrawString(out, debugStr, Rectangle { Point { position.x + 2, position.y - 29 }, Size { 28, 28 } }, { .flags = flags });
+	DrawString(debugStr, Rectangle { Point { position.x + 2, position.y - 29 }, Size { 28, 28 } }, { .flags = flags });
 #endif
-}
-
-void world_draw_black_tile(const Surface &out, int sx, int sy)
-{
-#ifdef DEBUG_RENDER_OFFSET_X
-	sx += DEBUG_RENDER_OFFSET_X;
-#endif
-#ifdef DEBUG_RENDER_OFFSET_Y
-	sy += DEBUG_RENDER_OFFSET_Y;
-#endif
-	const Clip clipLeft = CalculateClip(sx, sy, Width, TriangleHeight, out);
-	if (clipLeft.height <= 0) return;
-	Clip clipRight;
-	clipRight.top = clipLeft.top;
-	clipRight.bottom = clipLeft.bottom;
-	clipRight.left = (sx + Width) < 0 ? -(sx + Width) : 0;
-	clipRight.right = sx + Width + Width > out.w() ? sx + Width + Width - out.w() : 0;
-	clipRight.width = Width - clipRight.left - clipRight.right;
-	clipRight.height = clipLeft.height;
-
-	const uint16_t dstPitch = out.pitch();
-	if (clipLeft.width > 0) {
-		uint8_t *dst = out.at(static_cast<int>(sx + clipLeft.left), static_cast<int>(sy - clipLeft.bottom));
-		RenderLeftTriangle<LightType::FullyDark, /*Transparent=*/false>(dst, dstPitch, nullptr, nullptr, nullptr, clipLeft);
-	}
-	if (clipRight.width > 0) {
-		uint8_t *dst = out.at(static_cast<int>(sx + Width + clipRight.left), static_cast<int>(sy - clipRight.bottom));
-		RenderRightTriangle<LightType::FullyDark, /*Transparent=*/false>(dst, dstPitch, nullptr, nullptr, nullptr, clipRight);
-	}
 }
 
 } // namespace devilution
