@@ -1444,9 +1444,13 @@ void DrawAutomapText(const Surface &out)
 
 	if (gbIsMultiplayer) {
 		if (GameName != "0.0.0.0" && !IsLoopback) {
-			std::string description = std::string(_("Game: "));
-			description.append(GameName);
-			drawStringAndAdvanceLine(description);
+			if (*GetOptions().Network.hideSensitiveInfo) {
+				drawStringAndAdvanceLine(_("(game name hidden)"));
+			} else {
+				std::string description = std::string(_("Game: "));
+				description.append(GameName);
+				drawStringAndAdvanceLine(description);
+			}
 		}
 
 		std::string description;
@@ -1454,6 +1458,8 @@ void DrawAutomapText(const Surface &out)
 			description = std::string(_("Offline Game"));
 		} else if (PublicGame) {
 			description = std::string(_("Public Game"));
+		} else if (*GetOptions().Network.hideSensitiveInfo) {
+			description = std::string(_("(password hidden)"));
 		} else {
 			description = std::string(_("Password: "));
 			description.append(GamePassword);

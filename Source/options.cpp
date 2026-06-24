@@ -941,12 +941,17 @@ std::vector<OptionEntryBase *> ControllerOptions::GetEntries()
 NetworkOptions::NetworkOptions()
     : OptionCategoryBase("Network", N_("Network"), N_("Network Settings"))
     , port("Port", OptionEntryFlags::Invisible, "Port", "What network port to use.", 6112)
+	, hideSensitiveInfo("Hide Sensitive Info", OptionEntryFlags::None,
+      N_("Hide sensitive info on automap"),
+      N_("Hides the game name, password, and any IP-derived text on the automap."),
+      false)
 {
 }
 std::vector<OptionEntryBase *> NetworkOptions::GetEntries()
 {
-	return {
-		&port,
+	return { 
+		&port
+		, &hideSensitiveInfo 
 	};
 }
 
