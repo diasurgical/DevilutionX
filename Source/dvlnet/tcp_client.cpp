@@ -15,6 +15,7 @@
 
 #include <asio/connect.hpp>
 #include <expected.hpp>
+#include <fmt/format.h>
 
 #include "options.h"
 #include "utils/language.h"

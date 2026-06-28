@@ -32,6 +32,7 @@
 
 #include <expected.hpp>
 #include <fmt/core.h>
+#include <fmt/format.h>
 
 #include "automap.h"
 #include "control/control.hpp"

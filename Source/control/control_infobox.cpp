@@ -1,6 +1,8 @@
 #include "control.hpp"
 #include "control_panel.hpp"
 
+#include <fmt/format.h>
+
 #include "engine/render/primitive_render.hpp"
 #include "inv.h"
 #include "levels/trigs.h"

@@ -26,6 +26,7 @@
 #endif
 
 #include <fmt/core.h>
+#include <fmt/format.h>
 
 #include "DiabloUI/ui_flags.hpp"
 #include "control/control.hpp"

@@ -13,6 +13,7 @@
 
 #include <expected.hpp>
 #include <fmt/core.h>
+#include <fmt/format.h>
 
 #include "DiabloUI/ui_flags.hpp"
 #include "automap.h"

@@ -7,6 +7,8 @@
 
 #include <cstdint>
 
+#include <fmt/format.h>
+
 #include "engine/random.hpp"
 #include "game_mode.hpp"
 #include "items/validation.h"

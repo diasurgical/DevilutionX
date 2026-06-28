@@ -16,6 +16,7 @@
 
 #include <ankerl/unordered_dense.h>
 #include <fmt/core.h>
+#include <fmt/format.h>
 
 #include "DiabloUI/ui_flags.hpp"
 #include "engine/clx_sprite.hpp"

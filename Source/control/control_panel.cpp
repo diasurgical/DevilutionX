@@ -3,6 +3,8 @@
 #include "control_chat.hpp"
 #include "control_flasks.hpp"
 
+#include <fmt/format.h>
+
 #include "automap.h"
 #include "controls/control_mode.hpp"
 #include "controls/modifier_hints.h"

@@ -14,6 +14,8 @@
 #include <variant>
 #include <vector>
 
+#include <fmt/format.h>
+
 #include "DiabloUI/ui_flags.hpp"
 #include "engine/clx_sprite.hpp"
 #include "engine/palette.h"

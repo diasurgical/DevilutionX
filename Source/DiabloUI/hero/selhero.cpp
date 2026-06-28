@@ -17,6 +17,7 @@
 #endif
 
 #include <fmt/core.h>
+#include <fmt/format.h>
 
 #include "DiabloUI/diabloui.h"
 #include "DiabloUI/dialogs.h"

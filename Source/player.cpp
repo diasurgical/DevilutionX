@@ -15,6 +15,7 @@
 #endif
 
 #include <fmt/core.h>
+#include <fmt/format.h>
 
 #include "control/control.hpp"
 #include "controls/control_mode.hpp"
