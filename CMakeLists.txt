@@ -368,7 +368,7 @@ elseif(TARGET_PLATFORM STREQUAL "dos")
   set(BIN_TARGET devx)
 endif()
 
-if(ANDROID)
+if(ANDROID AND NOT TERMUX)
   add_library(${BIN_TARGET} SHARED Source/main.cpp)
 elseif(UWP_LIB)
   set(BIN_TARGET libdevilutionx)
@@ -419,7 +419,7 @@ if(EMSCRIPTEN)
     -lidbfs.js
     --shell-file ${CMAKE_CURRENT_SOURCE_DIR}/Packaging/emscripten/index.html
   )
-  
+
   add_dependencies(${BIN_TARGET} hellfire_copied_assets)
   # Add JavaScript to load MPQ files from the server directory at runtime
   target_link_options(${BIN_TARGET} PRIVATE --pre-js ${CMAKE_CURRENT_SOURCE_DIR}/Packaging/emscripten/emscripten_pre.js)

@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <string_view>
 
-#ifdef __ANDROID__
+#if defined(__ANDROID__) && !defined(TERMUX)
 #include <SDL.h>
 #include <jni.h>
 #elif defined(__vita__)
@@ -61,7 +61,7 @@ std::string IetfToPosix(std::string_view langCode)
 std::vector<std::string> GetLocales()
 {
 	std::vector<std::string> locales {};
-#ifdef __ANDROID__
+#if defined(__ANDROID__) && !defined(TERMUX)
 	JNIEnv *env = (JNIEnv *)SDL_AndroidGetJNIEnv();
 	jobject activity = (jobject)SDL_AndroidGetActivity();
 	jclass clazz(env->GetObjectClass(activity));

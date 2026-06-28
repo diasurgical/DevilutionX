@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <cstring>
 #include <functional>
+#include <string_view>
 #include <vector>
 
 #ifdef USE_SDL3
@@ -167,7 +168,7 @@ AssetRef FindAsset(std::string_view filename)
 	if (result.directHandle != nullptr)
 		return result;
 
-#if defined(__ANDROID__) || defined(__APPLE__)
+#if (defined(__ANDROID__) && !defined(TERMUX)) || defined(__APPLE__)
 	// Fall back to the bundled assets on supported systems.
 	// This is handled by SDL when we pass a relative path.
 	if (!paths::AssetsPath().empty()) {
@@ -404,6 +405,12 @@ std::vector<std::string> GetMPQSearchPaths()
 		paths.emplace_back("/usr/local/share/diasurgical/devilutionx/");
 		paths.emplace_back("/usr/share/diasurgical/devilutionx/");
 	}
+#elif defined(TERMUX)
+#ifdef CMAKE_INSTALL_PREFIX
+	paths.emplace_back(CMAKE_INSTALL_PREFIX "/share/diasurgical/devilutionx/");
+#else
+	paths.emplace_back("/usr/share/diasurgical/devilutionx/");
+#endif
 #elif defined(NXDK)
 	paths.emplace_back("D:\\");
 #elif defined(_WIN32) && !defined(__UWP__) && !defined(DEVILUTIONX_WINDOWS_NO_WCHAR)
@@ -439,7 +446,7 @@ void LoadCoreArchives()
 {
 	auto paths = GetMPQSearchPaths();
 
-#if !defined(__ANDROID__) && !defined(__APPLE__) && !defined(__3DS__) && !defined(__SWITCH__)
+#if !(defined(__ANDROID__) && !defined(TERMUX)) && !defined(__APPLE__) && !defined(__3DS__) && !defined(__SWITCH__)
 	// Load devilutionx.mpq first to get the font file for error messages
 #ifdef __DJGPP__
 	LoadMPQ(paths, "devx", DevilutionXMpqPriority);

@@ -118,7 +118,7 @@ void DiscoverMods()
 
 std::optional<Ini> ini;
 
-#if defined(__ANDROID__) || (defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE == 1)
+#if (defined(__ANDROID__) && !defined(TERMUX)) || (defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE == 1)
 constexpr OptionEntryFlags OnlyIfSupportsWindowed = OptionEntryFlags::Invisible;
 #else
 constexpr OptionEntryFlags OnlyIfSupportsWindowed = OptionEntryFlags::None;

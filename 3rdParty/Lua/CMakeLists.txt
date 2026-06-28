@@ -11,6 +11,16 @@ else()
   set(LUA_ENABLE_SHARED ON)
 endif()
 
+if(ANDROID AND NOT CMAKE_CROSSCOMPILING)
+  # Compiling on an Android device itself, e.g. via Termux.
+  # Lua CMake does `find_library(LIBM m)` but it cannot find it there on Android.
+  if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+    set(LIBM /system/lib64/libm.so)
+  else()
+    set(LIBM /system/lib/libm.so)
+  endif()
+endif()
+
 include(FetchContent)
 FetchContent_Declare_ExcludeFromAll(Lua
     URL https://github.com/walterschell/Lua/archive/3ed55a56eaa05c9221f40b3c07d0e908eb1067b0.tar.gz
