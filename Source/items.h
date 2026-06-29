@@ -585,11 +585,36 @@ bool ApplyOilToItem(Item &item, Player &player);
  */
 void UpdateHellfireFlag(Item &item, const char *identifiedItemName);
 
+/** Registers a custom floor drop animation and returns its ID. numFrames must be 1..127 (int8_t) and not exceed the sprite's frame count. */
+int RegisterCustomDropAnim(OwnedClxSpriteList sprites, int numFrames);
+
+/** Associates a custom cursor graphic ID with a custom drop animation ID. */
+void SetCustomDropAnim(int iCurs, int dropAnimId);
+
+/** Frees all custom drop animations. */
+void FreeCustomItemData();
+
+/** Registers custom inventory and drop sounds for a cursor graphic ID. */
+void SetCustomItemSounds(int iCurs, SfxID invSound, SfxID dropSound);
+
+/** Returns the default in-memory item animation index for a logical item type (see ITEMTYPES). */
+int8_t DefaultDropAnimForItemType(ItemType type);
+
+/** Returns the animation type index for an item, safe for custom cursor graphics. */
+int8_t GetItemAnimType(const Item &item);
+
+/** Returns the inventory placement sound for an item. */
+SfxID GetItemInvSnd(const Item &item);
+
+/** Returns the floor drop sound for an item. */
+SfxID GetItemDropSnd(const Item &item);
+
 /* data */
 
 extern int MaxGold;
 
-extern int8_t ItemCAnimTbl[];
+extern DVL_API_FOR_TEST int8_t ItemCAnimTbl[];
+extern DVL_API_FOR_TEST const int ItemCAnimTblSize;
 extern SfxID ItemInvSnds[];
 
 } // namespace devilution

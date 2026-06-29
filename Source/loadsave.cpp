@@ -1085,7 +1085,14 @@ void LoadMatchingItems(LoadHelper &file, const Player &player, const int n, Item
 		const bool success = LoadItemData(file, heroItem);
 		if (!success) {
 			heroItem.clear();
-			unpackedItem = Item();
+			// Do not clear unpackedItem: if the hero pack recreated it, keep it.
+		}
+		// If heroitems has valid data but the hero pack could not recreate
+		// the item (e.g. a custom mod item not in the drop tables), use
+		// heroitems as the primary source.
+		if (unpackedItem.isEmpty() && !heroItem.isEmpty()) {
+			unpackedItem = heroItem;
+			continue;
 		}
 		if (unpackedItem.isEmpty() || heroItem.isEmpty())
 			continue;
