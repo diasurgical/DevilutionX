@@ -35,6 +35,7 @@
 #include "pfile.h"
 #include "plrmsg.h"
 #include "qol/stash.h"
+#include "spells.h"
 #include "stores.h"
 #include "tables/playerdat.hpp"
 #include "utils/algorithm/container.hpp"
@@ -636,7 +637,6 @@ void LoadPlayer(LoadHelper &file, Player &player)
 	sgGameInitInfo.nDifficulty = static_cast<_difficulty>(file.NextLE<uint32_t>());
 	player.pDamAcFlags = static_cast<ItemSpecialEffectHf>(file.NextLE<uint32_t>());
 	file.Skip(20); // Available bytes
-	CalcPlrInv(player, false);
 
 	player.executedSpell = player.queuedSpell; // Ensures backwards compatibility
 
@@ -2329,23 +2329,54 @@ size_t HotkeysSize(size_t nHotkeys = NumHotkeys)
 	return sizeof(uint8_t) + (nHotkeys * sizeof(int32_t)) + (nHotkeys * sizeof(uint8_t)) + sizeof(int32_t) + sizeof(uint8_t);
 }
 
+size_t LegacyHotkeysSize()
+{
+	return HotkeysSize(4) - sizeof(uint8_t);
+}
+
 void LoadHotkeys()
 {
-	LoadHelper file(OpenSaveArchive(gSaveNumber), "hotkeys");
-	if (!file.IsValid())
+	if (MyPlayer == nullptr)
 		return;
 
-	Player &myPlayer = *MyPlayer;
+	LoadHotkeys(gSaveNumber, *MyPlayer);
+}
+
+void LoadHotkeys(uint32_t saveNum, Player &myPlayer)
+{
+	LoadHelper file(OpenSaveArchive(saveNum), "hotkeys");
+	if (!file.IsValid()) {
+		SanitizePlayerSpellSelections(myPlayer);
+		SyncPlayerSpellStateFromSelections(myPlayer);
+		return;
+	}
+
 	size_t nHotkeys = 4; // Defaults to old save format number
 
 	// Refill the spell arrays with no selection
 	std::fill(myPlayer._pSplHotKey, myPlayer._pSplHotKey + NumHotkeys, SpellID::Invalid);
 	std::fill(myPlayer._pSplTHotKey, myPlayer._pSplTHotKey + NumHotkeys, SpellType::Invalid);
 
-	// Checking if the save file has the old format with only 4 hotkeys and no header
-	if (file.IsValid(HotkeysSize(nHotkeys))) {
-		// The file contains a header byte and at least 4 entries, so we can assume it's a new format save
+	const size_t fileSize = file.Size();
+
+	if (fileSize == LegacyHotkeysSize()) {
+		// Legacy format: exactly 4 hotkeys, no leading count byte.
+	} else {
+		if (!file.IsValid(sizeof(uint8_t))) {
+			SanitizePlayerSpellSelections(myPlayer);
+			SyncPlayerSpellStateFromSelections(myPlayer);
+			return;
+		}
+
 		nHotkeys = file.NextLE<uint8_t>();
+
+		const size_t payloadSize = (nHotkeys * sizeof(int32_t)) + (nHotkeys * sizeof(uint8_t)) + sizeof(int32_t) + sizeof(uint8_t);
+
+		if (!file.IsValid(payloadSize)) {
+			SanitizePlayerSpellSelections(myPlayer);
+			SyncPlayerSpellStateFromSelections(myPlayer);
+			return;
+		}
 	}
 
 	// Read all hotkeys in the file
@@ -2369,6 +2400,8 @@ void LoadHotkeys()
 	// Load the selected spell last
 	myPlayer._pRSpell = static_cast<SpellID>(file.NextLE<int32_t>());
 	myPlayer._pRSplType = static_cast<SpellType>(file.NextLE<uint8_t>());
+	SanitizePlayerSpellSelections(myPlayer);
+	SyncPlayerSpellStateFromSelections(myPlayer);
 }
 
 void SaveHotkeys(SaveWriter &saveWriter, const Player &player)
@@ -2519,6 +2552,9 @@ tl::expected<void, std::string> LoadGame(bool firstflag)
 	Player &myPlayer = *MyPlayer;
 
 	LoadPlayer(file, myPlayer);
+	ValidatePlayer();
+	CalcPlrInv(myPlayer, false);
+	LoadHotkeys(gSaveNumber, myPlayer);
 
 	if (sgGameInitInfo.nDifficulty < DIFF_NORMAL || sgGameInitInfo.nDifficulty > DIFF_HELL)
 		sgGameInitInfo.nDifficulty = DIFF_NORMAL;

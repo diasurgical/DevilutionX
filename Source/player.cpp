@@ -1410,6 +1410,8 @@ bool PlrDeathModeOK(Player &player)
 	return false;
 }
 
+} // namespace
+
 void ValidatePlayer()
 {
 	assert(MyPlayer != nullptr);
@@ -1466,6 +1468,8 @@ void ValidatePlayer()
 	myPlayer._pMemSpells &= msk;
 	myPlayer._pInfraFlag = false;
 }
+
+namespace {
 
 HeroClass GetPlayerSpriteClass(HeroClass cls)
 {
@@ -2483,8 +2487,6 @@ void InitPlayer(Player &player, bool firstTime)
 	if (firstTime) {
 		player._pRSplType = SpellType::Invalid;
 		player._pRSpell = SpellID::Invalid;
-		if (&player == MyPlayer)
-			LoadHotkeys();
 		player._pSBkSpell = SpellID::Invalid;
 		player.queuedSpell.spellId = player._pRSpell;
 		player.queuedSpell.spellType = player._pRSplType;
