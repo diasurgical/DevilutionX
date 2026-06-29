@@ -40,10 +40,7 @@ struct SaveReader {
 
 	std::unique_ptr<std::byte[]> ReadFile(const char *filename, std::size_t &fileSize, int32_t &error);
 
-	bool HasFile(const char *path)
-	{
-		return ::devilution::FileExists((dir_ + path).c_str());
-	}
+	bool HasFile(const char *path);
 
 private:
 	std::string dir_;

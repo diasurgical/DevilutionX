@@ -1,0 +1,31 @@
+From: KOS Dreamcast Port
+Subject: Fix libfmt 12.0.0 long double support on SH4
+
+On SH4 with -m4-single, long double is IEEE 754 binary64 (same as double)
+but std::numeric_limits<long double>::digits == 53, which doesn't match
+fmt's expected values of 64 or 113 for extended precision types.
+
+This causes the float_info<long double> template to be incomplete,
+resulting in compilation errors:
+  error: invalid use of incomplete type 'struct float_info<long double>'
+
+This patch adds an explicit specialization for long double when it has
+binary64 characteristics (53 mantissa bits, 8 bytes).
+
+--- a/include/fmt/format.h
++++ b/include/fmt/format.h
+@@ -1462,6 +1462,14 @@ template <> struct float_info<double> {
+   static const int shorter_interval_tie_lower_threshold = -77;
+   static const int shorter_interval_tie_upper_threshold = -77;
+ };
++
++// SH4/Dreamcast fix: long double is IEEE 754 binary64 on this platform.
++// Provide explicit specialization when long double has 53 mantissa bits.
++#if defined(__LDBL_MANT_DIG__) && (__LDBL_MANT_DIG__ == 53) && \
++    defined(__SIZEOF_LONG_DOUBLE__) && (__SIZEOF_LONG_DOUBLE__ == 8)
++template <>
++struct float_info<long double> : float_info<double> {};
++#endif
+ 
+ // An 80- or 128-bit floating point number.
+ template <typename T>

@@ -2,8 +2,13 @@
 
 #include <cstdint>
 #include <cstring>
+// Dreamcast's cross-compiler (sh-elf-g++) was built with _PSTL_PAR_BACKEND_TBB
+// enabled, so <execution> pulls in host TBB headers that fail to compile.
+// Execution policies are not useful on the single-core SH4 anyway.
+#ifndef __DREAMCAST__
 #include <execution>
 #include <version>
+#endif
 
 #include "engine/render/light_render.hpp"
 #include "utils/attributes.h"
@@ -11,7 +16,7 @@
 
 namespace devilution {
 
-#if __cpp_lib_execution >= 201902L
+#if !defined(__DREAMCAST__) && __cpp_lib_execution >= 201902L
 #define DEVILUTIONX_BLIT_EXECUTION_POLICY std::execution::unseq,
 #else
 #define DEVILUTIONX_BLIT_EXECUTION_POLICY

@@ -63,6 +63,10 @@
 #endif
 #endif
 
+#ifdef __DREAMCAST__
+#include <SDL_dreamcast.h>
+#endif
+
 namespace devilution {
 
 extern SDLSurfaceUniquePtr RendererTextureSurface; /** defined in dx.cpp */
@@ -485,6 +489,13 @@ void SetVideoModeToPrimary(bool fullscreen, int width, int height)
 #ifdef __3DS__
 	flags &= ~SDL_FULLSCREEN;
 	flags |= Get3DSScalingFlag(*GetOptions().Graphics.fitToScreen, width, height);
+#endif
+#ifdef __DREAMCAST__
+	SDL_DC_SetVideoDriver(SDL_DC_DMA_VIDEO);
+	SDL_DC_VerticalWait(SDL_FALSE);
+	SDL_DC_ShowAskHz(SDL_FALSE);
+	SDL_DC_EmulateKeyboard(SDL_FALSE);
+	SDL_DC_EmulateMouse(SDL_FALSE);
 #endif
 	SetVideoMode(width, height, SDL1_VIDEO_MODE_BPP, flags);
 	if (OutputRequiresScaling())
