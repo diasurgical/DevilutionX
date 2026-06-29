@@ -245,9 +245,15 @@ bool ProcessInput()
 	return true;
 }
 
+void ForceMove() {
+	LastPlayerAction = PlayerActionType::Walk;
+	NetSendCmdLoc(MyPlayerId, true, CMD_WALKXY, cursPosition);
+}
+
 void LeftMouseCmd(bool bShift)
 {
 	bool bNear;
+	Options &options = GetOptions();
 
 	assert(!GetMainPanel().contains(MousePosition));
 
@@ -302,16 +308,31 @@ void LeftMouseCmd(bool bShift)
 				NetSendCmdLoc(MyPlayerId, true, CMD_SATTACKXY, cursPosition);
 			}
 		} else if (pcursmonst != -1) {
-			LastPlayerAction = PlayerActionType::AttackMonsterTarget;
-			NetSendCmdParam1(true, CMD_ATTACKID, pcursmonst);
+			if (*options.Gameplay.attackInPlace) {
+				LastPlayerAction = PlayerActionType::Attack;
+				NetSendCmdLoc(MyPlayerId, true, CMD_SATTACKXY, cursPosition);
+			} else {
+				LastPlayerAction = PlayerActionType::AttackMonsterTarget;
+				NetSendCmdParam1(true, CMD_ATTACKID, pcursmonst);
+			}
 		} else if (PlayerUnderCursor != nullptr && !PlayerUnderCursor->hasNoLife() && !myPlayer.friendlyMode) {
-			LastPlayerAction = PlayerActionType::AttackPlayerTarget;
-			NetSendCmdParam1(true, CMD_ATTACKPID, PlayerUnderCursor->getId());
+			if (*options.Gameplay.attackInPlace) {
+				LastPlayerAction = PlayerActionType::Attack;
+				NetSendCmdLoc(MyPlayerId, true, CMD_SATTACKXY, cursPosition);
+			} else {
+				LastPlayerAction = PlayerActionType::AttackPlayerTarget;
+				NetSendCmdParam1(true, CMD_ATTACKPID, PlayerUnderCursor->getId());
+			}
 		}
 	}
 	if (!bShift && pcursitem == -1 && ObjectUnderCursor == nullptr && pcursmonst == -1 && PlayerUnderCursor == nullptr) {
-		LastPlayerAction = PlayerActionType::Walk;
-		NetSendCmdLoc(MyPlayerId, true, CMD_WALKXY, cursPosition);
+		if (*options.Gameplay.attackInPlace) {
+			LastPlayerAction = PlayerActionType::Attack;
+			NetSendCmdLoc(MyPlayerId, true, myPlayer.UsesRangedWeapon() ? CMD_RATTACKXY : CMD_SATTACKXY, cursPosition);
+		} else {
+			LastPlayerAction = PlayerActionType::Walk;
+			NetSendCmdLoc(MyPlayerId, true, CMD_WALKXY, cursPosition);
+		}
 	}
 }
 
@@ -1919,6 +1940,14 @@ void InitKeymapActions()
 	    SDLK_UNKNOWN,
 	    [] { gamemenu_quit_game(false); });
 #endif
+	options.Keymapper.AddAction(
+		"ForceMove",
+		N_("Force Move"),
+		N_("Moves your character to the location under the cursor."),
+		SDLK_UNKNOWN,
+		[] { ForceMove(); },
+		nullptr,
+		CanPlayerTakeAction);
 	options.Keymapper.AddAction(
 	    "StopHero",
 	    N_("Stop hero"),
