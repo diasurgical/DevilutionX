@@ -36,6 +36,7 @@
 #include "DiabloUI/diabloui.h"
 #include "controls/control_mode.hpp"
 #include "controls/keymapper.hpp"
+#include "controls/local_coop/local_coop.hpp"
 #include "controls/plrctrls.h"
 #include "controls/remap_keyboard.h"
 #include "diablo.h"
@@ -239,6 +240,8 @@ bool ProcessInput()
 #endif
 		CheckCursMove();
 		plrctrls_after_check_curs_move();
+		ProcessLocalCoopRightStickCursor();
+		ProcessLocalCoopLeftStickPanelNavigation();
 		RepeatPlayerAction();
 	}
 
@@ -254,7 +257,6 @@ void LeftMouseCmd(bool bShift)
 	if (leveltype == DTYPE_TOWN) {
 		CloseGoldWithdraw();
 		CloseStash();
-		CloseVisualStore();
 		if (pcursitem != -1 && pcurs == CURSOR_HAND)
 			NetSendCmdLocParam1(true, invflag ? CMD_GOTOGETITEM : CMD_GOTOAGETITEM, cursPosition, pcursitem);
 		if (pcursmonst != -1)
@@ -371,7 +373,9 @@ void LeftMouseDown(uint16_t modState)
 	const bool isShiftHeld = (modState & SDL_KMOD_SHIFT) != 0;
 	const bool isCtrlHeld = (modState & SDL_KMOD_CTRL) != 0;
 
-	if (!GetMainPanel().contains(MousePosition)) {
+	const bool skipMainPanelForLocalCoop = *GetOptions().Gameplay.enableLocalCoop;
+
+	if (!GetMainPanel().contains(MousePosition) || skipMainPanelForLocalCoop) {
 		if (!gmenu_is_active() && !TryIconCurs()) {
 			if (QuestLogIsOpen && GetLeftPanel().contains(MousePosition)) {
 				QuestlogESC();
@@ -387,13 +391,6 @@ void LeftMouseDown(uint16_t modState)
 				if (!IsWithdrawGoldOpen)
 					CheckStashItem(MousePosition, isShiftHeld, isCtrlHeld);
 				CheckStashButtonPress(MousePosition);
-			} else if (IsVisualStoreOpen && GetLeftPanel().contains(MousePosition)) {
-				if (!MyPlayer->HoldItem.isEmpty()) {
-					CheckVisualStorePaste(MousePosition);
-				} else {
-					CheckVisualStoreItem(MousePosition, isCtrlHeld, isShiftHeld);
-				}
-				CheckVisualStoreButtonPress(MousePosition);
 			} else if (SpellbookFlag && GetRightPanel().contains(MousePosition)) {
 				CheckSBook();
 			} else if (!MyPlayer->HoldItem.isEmpty()) {
@@ -428,7 +425,6 @@ void LeftMouseUp(uint16_t modState)
 	if (MainPanelButtonDown)
 		CheckMainPanelButtonUp();
 	CheckStashButtonRelease(MousePosition);
-	CheckVisualStoreButtonRelease(MousePosition);
 	if (CharPanelButtonActive) {
 		const bool isShiftHeld = (modState & SDL_KMOD_SHIFT) != 0;
 		ReleaseChrBtns(isShiftHeld);
@@ -738,6 +734,12 @@ void PrepareForFadeIn()
 
 void GameEventHandler(const SDL_Event &event, uint16_t modState)
 {
+#ifndef USE_SDL1
+	if (ProcessLocalCoopInput(event)) {
+		return;
+	}
+#endif
+
 	[[maybe_unused]] const Options &options = GetOptions();
 	StaticVector<ControllerButtonEvent, 4> ctrlEvents = ToControllerButtonEvents(event);
 	for (const ControllerButtonEvent ctrlEvent : ctrlEvents) {
@@ -994,7 +996,7 @@ void PrintHelpOption(std::string_view flags, std::string_view description)
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 FILE *SdlLogFile = nullptr;
 
-extern "C" void SdlLogToFile(void *userdata, int /*category*/, SDL_LogPriority priority, const char *message)
+extern "C" void SdlLogToFile(void *userdata, int category, SDL_LogPriority priority, const char *message)
 {
 	FILE *file = reinterpret_cast<FILE *>(userdata);
 	static const char *const LogPriorityPrefixes[SDL_LOG_PRIORITY_COUNT] = {
@@ -1582,7 +1584,7 @@ void TimeoutCursor(bool bTimeout)
 			for (uint8_t i = 0; i < Players.size(); i++) {
 				bool isConnected = (player_state[i] & PS_CONNECTED) != 0;
 				bool isActive = (player_state[i] & PS_ACTIVE) != 0;
-				if (!isConnected || isActive) continue;
+				if (!(isConnected && !isActive)) continue;
 
 				DvlNetLatencies latencies = DvlNet_GetLatencies(i);
 
@@ -1662,7 +1664,6 @@ void InventoryKeyPressed()
 	SpellbookFlag = false;
 	CloseGoldWithdraw();
 	CloseStash();
-	CloseVisualStore();
 }
 
 void CharacterSheetKeyPressed()
@@ -1728,6 +1729,7 @@ void DisplaySpellsKeyPressed()
 		SpellSelectFlag = false;
 	}
 	LastPlayerAction = PlayerActionType::None;
+	CloseVisualStore();
 }
 
 void SpellBookKeyPressed()
@@ -1747,7 +1749,6 @@ void SpellBookKeyPressed()
 		}
 	}
 	CloseInventory();
-	CloseVisualStore();
 }
 
 void CycleSpellHotkeys(bool next)
@@ -1795,9 +1796,12 @@ bool CanPlayerTakeAction()
 bool CanAutomapBeToggledOff()
 {
 	// check if every window is closed - if yes, automap can be toggled off
-	return !QuestLogIsOpen && !IsWithdrawGoldOpen && !IsStashOpen && !IsVisualStoreOpen && !CharFlag
+	if (!QuestLogIsOpen && !IsWithdrawGoldOpen && !IsStashOpen && !CharFlag
 	    && !SpellbookFlag && !invflag && !isGameMenuOpen && !qtextflag && !SpellSelectFlag
-	    && !ChatLogFlag && !HelpFlag;
+	    && !ChatLogFlag && !HelpFlag)
+		return true;
+
+	return false;
 }
 
 void OptionLanguageCodeChanged()
@@ -2655,7 +2659,6 @@ void FreeGameMem()
 	FreeObjectGFX();
 	FreeTownerGFX();
 	FreeStashGFX();
-	FreeVisualStoreGFX();
 #ifndef USE_SDL1
 	DeactivateVirtualGamepad();
 	FreeVirtualGamepadGFX();
@@ -2827,12 +2830,9 @@ bool TryIconCurs()
 	}
 
 	if (pcurs == CURSOR_REPAIR) {
-		if (pcursinvitem != -1 && !IsInspectingPlayer()) {
-			if (IsVisualStoreOpen)
-				VisualStoreRepairItem(pcursinvitem);
-			else
-				DoRepair(myPlayer, pcursinvitem);
-		} else if (pcursstashitem != StashStruct::EmptyCell) {
+		if (pcursinvitem != -1 && !IsInspectingPlayer())
+			DoRepair(myPlayer, pcursinvitem);
+		else if (pcursstashitem != StashStruct::EmptyCell) {
 			Item &item = Stash.stashList[pcursstashitem];
 			RepairItem(item, myPlayer.getCharacterLevel());
 			Stash.dirty = true;
@@ -3017,7 +3017,7 @@ bool PressEscKey()
 	return rv;
 }
 
-void DisableInputEventHandler(const SDL_Event &event, uint16_t /*modState*/)
+void DisableInputEventHandler(const SDL_Event &event, uint16_t modState)
 {
 	switch (event.type) {
 	case SDL_EVENT_MOUSE_MOTION:
@@ -3097,6 +3097,7 @@ void LoadGameLevelFirstFlagEntry()
 void LoadGameLevelStores()
 {
 	if (leveltype == DTYPE_TOWN) {
+		InitVisualStore();
 		SetupTownStores();
 	} else {
 		FreeStoreMem();
@@ -3159,9 +3160,32 @@ tl::expected<void, std::string> LoadGameLevelDungeon(bool firstflag, lvl_entry l
 
 void LoadGameLevelSyncPlayerEntry(lvl_entry lvldir)
 {
+	// First pass: sync MyPlayer's position
+	Player &myPlayer = *MyPlayer;
+	if (myPlayer.plractive && myPlayer.isOnActiveLevel()) {
+		if (!myPlayer.hasNoLife()) {
+			if (lvldir != ENTRY_LOAD)
+				SyncInitPlrPos(myPlayer);
+		} else {
+			dFlags[myPlayer.position.tile.x][myPlayer.position.tile.y] |= DungeonFlag::DeadPlayer;
+		}
+	}
+
+	// Second pass: sync local coop players, using MyPlayer's position as spawn point
 	for (Player &player : Players) {
-		if (player.plractive && player.isOnActiveLevel() && (!player._pLvlChanging || &player == MyPlayer)) {
-			if (player._pHitPoints > 0) {
+		if (&player == MyPlayer)
+			continue; // Already handled in first pass
+
+		if (player.plractive && player.isOnActiveLevel() && (!player._pLvlChanging || IsLocalPlayer(player))) {
+			// For local coop players entering a new level, set their position to MyPlayer's spawn point
+			// before calling SyncInitPlrPos so they spawn near Player 1
+			if (IsLocalCoopPlayer(player) && lvldir != ENTRY_LOAD) {
+				player.position.tile = myPlayer.position.tile;
+				player.position.future = myPlayer.position.tile;
+				player.position.old = myPlayer.position.tile;
+			}
+
+			if (!player.hasNoLife()) {
 				if (lvldir != ENTRY_LOAD)
 					SyncInitPlrPos(player);
 			} else {
@@ -3218,7 +3242,6 @@ tl::expected<void, std::string> LoadGameLevelTown(bool firstflag, lvl_entry lvld
 
 	InitTowners();
 	InitStash();
-	InitVisualStore();
 	InitItems();
 	InitMissiles();
 

@@ -18,6 +18,7 @@
 #include "automap.h"
 #include "codec.h"
 #include "control/control.hpp"
+#include "controls/local_coop/local_coop.hpp"
 #include "cursor.h"
 #include "dead.h"
 #include "doom.h"
@@ -2929,8 +2930,21 @@ void SaveGameData(SaveWriter &saveWriter)
 void SaveGame()
 {
 	gbValidSaveFile = true;
-	pfile_write_hero(/*writeGameData=*/true);
-	sfile_write_stash();
+#ifndef USE_SDL1
+	// Save with Player 1 context automatically restored
+	if (IsLocalCoopEnabled()) {
+		WithPlayer1Context([]() {
+			pfile_write_hero(/*writeGameData=*/true);
+		});
+		sfile_write_stash();
+		// Also save local co-op players to their respective save slots
+		SaveLocalCoopPlayers(/*writeGameData=*/false);
+	} else
+#endif
+	{
+		pfile_write_hero(/*writeGameData=*/true);
+		sfile_write_stash();
+	}
 }
 
 void SaveLevel(SaveWriter &saveWriter)

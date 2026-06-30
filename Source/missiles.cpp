@@ -21,6 +21,7 @@
 #include "appfat.h"
 #include "control/control.hpp"
 #include "controls/control_mode.hpp"
+#include "controls/local_coop/local_coop.hpp"
 #include "controls/plrctrls.h"
 #include "crawl.hpp"
 #include "cursor.h"
@@ -327,7 +328,8 @@ bool MonsterMHit(const Player &player, Monster &monster, int mindam, int maxdam,
 	if (resist)
 		dam >>= 2;
 
-	if (&player == MyPlayer)
+	// Local players (MyPlayer and local coop players) apply damage locally
+	if (IsLocalPlayer(player))
 		ApplyMonsterDamage(damageType, monster, dam);
 
 	if (monster.hasNoLife()) {
@@ -434,7 +436,7 @@ bool Plr2PlrMHit(const Player &player, Player &target, int mindam, int maxdam, i
 		dam /= 2;
 	if (resper > 0) {
 		dam -= (dam * resper) / 100;
-		if (&player == MyPlayer)
+		if (IsLocalPlayer(player))
 			NetSendCmdDamage(true, target, dam, damageType);
 		target.Say(HeroSpeech::ArghClang);
 		return true;
@@ -444,7 +446,7 @@ bool Plr2PlrMHit(const Player &player, Player &target, int mindam, int maxdam, i
 		StartPlrBlock(target, GetDirection(target.position.tile, player.position.tile));
 		*blocked = true;
 	} else {
-		if (&player == MyPlayer)
+		if (IsLocalPlayer(player))
 			NetSendCmdDamage(true, target, dam, damageType);
 		StartPlrHit(target, dam, false);
 	}
@@ -1184,7 +1186,8 @@ bool PlayerMHit(Player &player, Monster *monster, int dist, int mind, int maxd, 
 
 	if (resper > 0) {
 		dam -= dam * resper / 100;
-		if (&player == MyPlayer) {
+		// Local players (MyPlayer and local coop players) apply damage locally
+		if (IsLocalPlayer(player)) {
 			ApplyPlrDamage(damageType, player, 0, 0, dam, deathReason);
 		}
 
@@ -1194,7 +1197,8 @@ bool PlayerMHit(Player &player, Monster *monster, int dist, int mind, int maxd, 
 		return true;
 	}
 
-	if (&player == MyPlayer) {
+	// Local players (MyPlayer and local coop players) apply damage locally
+	if (IsLocalPlayer(player)) {
 		ApplyPlrDamage(damageType, player, 0, 0, dam, deathReason);
 	}
 
@@ -1292,7 +1296,7 @@ void AddReflect(Missile &missile, AddMissileParameter & /*parameter*/)
 	if (player.wReflections + add >= std::numeric_limits<uint16_t>::max())
 		add = 0;
 	player.wReflections += add;
-	if (&player == MyPlayer)
+	if (IsLocalPlayer(player))
 		NetSendCmdParam1(true, CMD_SETREFLECT, player.wReflections);
 }
 
@@ -1700,7 +1704,7 @@ void AddSearch(Missile &missile, AddMissileParameter & /*parameter*/)
 {
 	Player &player = Players[missile._misource];
 
-	if (&player == MyPlayer)
+	if (IsLocalPlayer(player))
 		AutoMapShowItems = true;
 	int lvl = 2;
 	if (missile._misource >= 0)
@@ -2163,7 +2167,7 @@ void AddManaShield(Missile &missile, AddMissileParameter &parameter)
 	}
 
 	player.pManaShield = true;
-	if (&player == MyPlayer)
+	if (IsLocalPlayer(player))
 		NetSendCmd(true, CMD_SETSHIELD);
 }
 
@@ -2479,7 +2483,7 @@ void AddHealOther(Missile &missile, AddMissileParameter & /*parameter*/)
 	Player &player = Players[missile._misource];
 
 	missile._miDelFlag = true;
-	if (&player == MyPlayer) {
+	if (IsLocalPlayer(player)) {
 		NewCursor(CURSOR_HEALOTHER);
 		if (ControlMode != ControlTypes::KeyboardAndMouse)
 			TryIconCurs();
@@ -2513,10 +2517,20 @@ void AddIdentify(Missile &missile, AddMissileParameter & /*parameter*/)
 	Player &player = Players[missile._misource];
 
 	missile._miDelFlag = true;
-	if (&player == MyPlayer) {
+	if (IsLocalPlayer(player)) {
 		if (SpellbookFlag)
 			SpellbookFlag = false;
 		if (!invflag) {
+			// In local coop mode, claim panel ownership and set player context
+			if (IsLocalCoopEnabled() && missile._misource >= 0 && static_cast<size_t>(missile._misource) < Players.size()) {
+				uint8_t playerId = static_cast<uint8_t>(missile._misource);
+				if (g_LocalCoop.TryClaimPanelOwnership(playerId)) {
+					MyPlayer = &Players[playerId];
+					MyPlayerId = playerId;
+					InspectPlayer = &Players[playerId];
+					InitInv();
+				}
+			}
 			invflag = true;
 			if (ControlMode != ControlTypes::KeyboardAndMouse)
 				FocusOnInventory();
@@ -2602,10 +2616,20 @@ void AddItemRepair(Missile &missile, AddMissileParameter & /*parameter*/)
 	Player &player = Players[missile._misource];
 
 	missile._miDelFlag = true;
-	if (&player == MyPlayer) {
+	if (IsLocalPlayer(player)) {
 		if (SpellbookFlag)
 			SpellbookFlag = false;
 		if (!invflag) {
+			// In local coop mode, claim panel ownership and set player context
+			if (IsLocalCoopEnabled() && missile._misource >= 0 && static_cast<size_t>(missile._misource) < Players.size()) {
+				uint8_t playerId = static_cast<uint8_t>(missile._misource);
+				if (g_LocalCoop.TryClaimPanelOwnership(playerId)) {
+					MyPlayer = &Players[playerId];
+					MyPlayerId = playerId;
+					InspectPlayer = &Players[playerId];
+					InitInv();
+				}
+			}
 			invflag = true;
 			if (ControlMode != ControlTypes::KeyboardAndMouse)
 				FocusOnInventory();
@@ -2619,10 +2643,20 @@ void AddStaffRecharge(Missile &missile, AddMissileParameter & /*parameter*/)
 	Player &player = Players[missile._misource];
 
 	missile._miDelFlag = true;
-	if (&player == MyPlayer) {
+	if (IsLocalPlayer(player)) {
 		if (SpellbookFlag)
 			SpellbookFlag = false;
 		if (!invflag) {
+			// In local coop mode, claim panel ownership and set player context
+			if (IsLocalCoopEnabled() && missile._misource >= 0 && static_cast<size_t>(missile._misource) < Players.size()) {
+				uint8_t playerId = static_cast<uint8_t>(missile._misource);
+				if (g_LocalCoop.TryClaimPanelOwnership(playerId)) {
+					MyPlayer = &Players[playerId];
+					MyPlayerId = playerId;
+					InspectPlayer = &Players[playerId];
+					InitInv();
+				}
+			}
 			invflag = true;
 			if (ControlMode != ControlTypes::KeyboardAndMouse)
 				FocusOnInventory();
@@ -2636,7 +2670,7 @@ void AddTrapDisarm(Missile &missile, AddMissileParameter & /*parameter*/)
 	Player &player = Players[missile._misource];
 
 	missile._miDelFlag = true;
-	if (&player == MyPlayer) {
+	if (IsLocalPlayer(player)) {
 		NewCursor(CURSOR_DISARM);
 		if (ControlMode != ControlTypes::KeyboardAndMouse) {
 			if (ObjectUnderCursor != nullptr)
@@ -2736,7 +2770,7 @@ void AddResurrect(Missile &missile, AddMissileParameter & /*parameter*/)
 {
 	Player &player = Players[missile._misource];
 
-	if (&player == MyPlayer) {
+	if (IsLocalPlayer(player)) {
 		NewCursor(CURSOR_RESURRECT);
 		if (ControlMode != ControlTypes::KeyboardAndMouse)
 			TryIconCurs();
@@ -2756,7 +2790,7 @@ void AddTelekinesis(Missile &missile, AddMissileParameter & /*parameter*/)
 	Player &player = Players[missile._misource];
 
 	missile._miDelFlag = true;
-	if (&player == MyPlayer)
+	if (IsLocalPlayer(player))
 		NewCursor(CURSOR_TELEKINESIS);
 }
 
@@ -3271,7 +3305,7 @@ void ProcessSearch(Missile &missile)
 
 	missile._miDelFlag = true;
 	PlaySfxLoc(SfxID::SpellEnd, player.position.tile);
-	if (&player == MyPlayer)
+	if (IsLocalPlayer(player))
 		AutoMapShowItems = false;
 }
 
@@ -3401,7 +3435,7 @@ void ProcessTownPortal(Missile &missile)
 	for (Player &player : Players) {
 		if (player.plractive && player.isOnActiveLevel() && !player._pLvlChanging && player._pmode == PM_STAND && player.position.tile == missile.position.tile) {
 			ClrPlrPath(player);
-			if (&player == MyPlayer) {
+			if (IsLocalPlayer(player)) {
 				NetSendCmdParam1(true, CMD_WARP, missile._misource);
 				player._pmode = PM_NEWLVL;
 			}
@@ -3699,9 +3733,7 @@ void ProcessTeleport(Missile &missile)
 		ChangeLightXY(player.lightId, player.position.tile);
 		ChangeVisionXY(player.getId(), player.position.tile);
 	}
-	if (&player == MyPlayer) {
-		ViewPosition = player.position.tile;
-	}
+	SetViewPositionForPlayer(player, player.position.tile);
 }
 
 void ProcessStoneCurse(Missile &missile)
