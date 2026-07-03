@@ -5,7 +5,9 @@
  */
 #include "pfile.h"
 
+#include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <string_view>
 
@@ -19,6 +21,7 @@
 #include <SDL.h>
 #endif
 
+#include "appfat.h"
 #include "codec.h"
 #include "engine/load_file.hpp"
 #include "engine/render/primitive_render.hpp"
@@ -251,8 +254,9 @@ std::optional<SaveReader> CreateSaveReader(std::string &&path)
 		return std::nullopt;
 	return SaveReader(std::move(path));
 #else
-	std::int32_t error;
-	return MpqArchive::Open(path.c_str(), error);
+	tl::expected<MpqArchive, std::string> opened = MpqArchive::Open(path.c_str());
+	if (!opened.has_value()) return std::nullopt;
+	return std::move(*opened);
 #endif
 }
 

@@ -59,8 +59,7 @@ static MpqStreamCtx *CreateCtx(mpqfs_archive_t *archive,
 	mpqfs_archive_t *clone = nullptr;
 
 	if (threadsafe) {
-		clone = mpqfs_clone(archive);
-		if (clone == nullptr)
+		if (mpqfs_clone(archive, &clone) != MPQFS_OK)
 			return nullptr;
 		target = clone;
 	}
@@ -69,12 +68,12 @@ static MpqStreamCtx *CreateCtx(mpqfs_archive_t *archive,
 
 	/* Try the fast hash-based path first (avoids re-hashing). */
 	if (hashIndex != UINT32_MAX)
-		stream = mpqfs_stream_open_from_hash(target, hashIndex);
+		(void)mpqfs_stream_open_from_hash(target, hashIndex, &stream);
 
 	/* Fall back to filename-based open (needed for encrypted files and
 	 * when hashIndex is not available). */
 	if (stream == nullptr)
-		stream = mpqfs_stream_open(target, filename);
+		(void)mpqfs_stream_open(target, filename, &stream);
 
 	if (stream == nullptr) {
 		if (clone != nullptr)
@@ -102,7 +101,13 @@ static MpqStreamCtx *CreateCtx(mpqfs_archive_t *archive,
 static Sint64 SDLCALL MpqStream_Size(void *userdata)
 {
 	auto *ctx = static_cast<MpqStreamCtx *>(userdata);
-	return static_cast<Sint64>(mpqfs_stream_size(ctx->stream));
+	size_t size = 0;
+	const mpqfs_error_code code = mpqfs_stream_size(ctx->stream, &size);
+	if (code != MPQFS_OK) {
+		SDL_SetError("%s", mpqfs_error_message(code));
+		return -1;
+	}
+	return static_cast<Sint64>(size);
 }
 
 static Sint64 SDLCALL MpqStream_Seek(void *userdata, Sint64 offset, SDL_IOWhence whence)
@@ -117,9 +122,10 @@ static Sint64 SDLCALL MpqStream_Seek(void *userdata, Sint64 offset, SDL_IOWhence
 		SDL_SetError("MpqStream_Seek: unknown whence");
 		return -1;
 	}
-	int64_t pos = mpqfs_stream_seek(ctx->stream, offset, w);
-	if (pos < 0) {
-		SDL_SetError("MpqStream_Seek: seek failed");
+	int64_t pos = 0;
+	const mpqfs_error_code code = mpqfs_stream_seek(ctx->stream, offset, w, &pos);
+	if (code != MPQFS_OK) {
+		SDL_SetError("%s", mpqfs_error_message(code));
 		return -1;
 	}
 	return static_cast<Sint64>(pos);
@@ -128,11 +134,12 @@ static Sint64 SDLCALL MpqStream_Seek(void *userdata, Sint64 offset, SDL_IOWhence
 static size_t SDLCALL MpqStream_Read(void *userdata, void *ptr, size_t size, SDL_IOStatus *status)
 {
 	auto *ctx = static_cast<MpqStreamCtx *>(userdata);
-	size_t n = mpqfs_stream_read(ctx->stream, ptr, size);
-	if (n == static_cast<size_t>(-1)) {
+	size_t n = 0;
+	const mpqfs_error_code code = mpqfs_stream_read(ctx->stream, ptr, size, &n);
+	if (code != MPQFS_OK) {
 		if (status != nullptr)
 			*status = SDL_IO_STATUS_ERROR;
-		SDL_SetError("MpqStream_Read: read failed");
+		SDL_SetError("%s", mpqfs_error_message(code));
 		return 0;
 	}
 	if (n == 0 && size > 0) {
@@ -149,7 +156,7 @@ static size_t SDLCALL MpqStream_Write(void * /*userdata*/, const void * /*ptr*/,
     size_t /*size*/, SDL_IOStatus *status)
 {
 	if (status != nullptr)
-		*status = SDL_IO_STATUS_ERROR;
+		*status = SDL_IO_STATUS_READONLY;
 	SDL_SetError("MpqStream_Write: read-only stream");
 	return 0;
 }
@@ -183,7 +190,13 @@ using SizeType = int;
 static Sint64 SDLCALL MpqStream_Size(SDL_RWops *rw)
 {
 	auto *ctx = static_cast<MpqStreamCtx *>(rw->hidden.unknown.data1);
-	return static_cast<Sint64>(mpqfs_stream_size(ctx->stream));
+	size_t size = 0;
+	const mpqfs_error_code code = mpqfs_stream_size(ctx->stream, &size);
+	if (code != MPQFS_OK) {
+		SDL_SetError("%s", mpqfs_error_message(code));
+		return -1;
+	}
+	return static_cast<Sint64>(size);
 }
 #endif
 
@@ -201,9 +214,10 @@ static OffsetType SDLCALL MpqStream_Seek(SDL_RWops *rw, OffsetType offset, int w
 		return -1;
 	}
 
-	int64_t pos = mpqfs_stream_seek(ctx->stream, offset, w);
-	if (pos < 0) {
-		SDL_SetError("MpqStream_Seek: seek failed");
+	int64_t pos = 0;
+	const mpqfs_error_code code = mpqfs_stream_seek(ctx->stream, offset, w, &pos);
+	if (code != MPQFS_OK) {
+		SDL_SetError("%s", mpqfs_error_message(code));
 		return -1;
 	}
 
@@ -216,9 +230,12 @@ static SizeType SDLCALL MpqStream_Read(SDL_RWops *rw, void *ptr,
 	auto *ctx = static_cast<MpqStreamCtx *>(rw->hidden.unknown.data1);
 
 	size_t totalBytes = static_cast<size_t>(size) * static_cast<size_t>(maxnum);
-	size_t n = mpqfs_stream_read(ctx->stream, ptr, totalBytes);
-	if (n == static_cast<size_t>(-1))
+	size_t n = 0;
+	const mpqfs_error_code code = mpqfs_stream_read(ctx->stream, ptr, totalBytes, &n);
+	if (code != MPQFS_OK) {
+		SDL_SetError("%s", mpqfs_error_message(code));
 		return 0;
+	}
 
 	/* Return number of whole objects read. */
 	return (size > 0) ? static_cast<SizeType>(n / static_cast<size_t>(size)) : 0;

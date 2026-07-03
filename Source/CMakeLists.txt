@@ -623,6 +623,7 @@ if(SUPPORTS_MPQ)
     DevilutionX::SDL
     fmt::fmt
     mpqfs::mpqfs
+    tl
     libdevilutionx_file_util
   )
 else()

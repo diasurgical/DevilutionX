@@ -354,25 +354,26 @@ bool FindMPQ(std::span<const std::string> paths, std::string_view mpqName)
 
 bool LoadMPQ(std::span<const std::string> paths, std::string_view mpqName, int priority, std::string_view ext = ".mpq")
 {
-	std::optional<MpqArchive> archive;
 	std::string mpqAbsPath;
-	std::int32_t error = 0;
+	bool foundButFailed = false;
 	for (const auto &path : paths) {
 		mpqAbsPath = StrCat(path, mpqName, ext);
-		archive = MpqArchive::Open(mpqAbsPath.c_str(), error);
-		if (archive.has_value()) {
-			LogVerbose("  Found: {} in {}", mpqName, path);
-			auto [it, inserted] = MpqArchives.emplace(priority, *std::move(archive));
-			if (!inserted) {
-				LogError("MPQ with priority {} is already registered, skipping {}", priority, mpqName);
-			}
-			return true;
+		if (!FileExists(mpqAbsPath))
+			continue;
+		tl::expected<MpqArchive, std::string> archive = MpqArchive::Open(mpqAbsPath.c_str());
+		if (!archive.has_value()) {
+			foundButFailed = true;
+			LogError("Error {}: {}", archive.error(), mpqAbsPath);
+			continue;
 		}
-		if (error != 0) {
-			LogError("Error {}: {}", MpqArchive::ErrorMessage(), mpqAbsPath);
+		LogVerbose("  Found: {} in {}", mpqName, path);
+		auto [it, inserted] = MpqArchives.emplace(priority, *std::move(archive));
+		if (!inserted) {
+			LogError("MPQ with priority {} is already registered, skipping {}", priority, mpqName);
 		}
+		return true;
 	}
-	if (error == 0) {
+	if (!foundButFailed) {
 		LogVerbose("Missing: {}", mpqName);
 	}
 
