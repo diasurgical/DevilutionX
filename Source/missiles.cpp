@@ -731,7 +731,7 @@ bool GuardianTryFireAt(Missile &missile, Point target)
 	dmg = ScaleSpellEffect(dmg, missile._mispllvl);
 
 	const Direction dir = GetDirection(position, target);
-	AddMissile(position, target, dir, MissileID::Firebolt, TARGET_MONSTERS, missile._misource, missile._midam, missile.sourcePlayer()->GetSpellLevel(SpellID::Guardian), &missile);
+	AddMissile(position, target, dir, MissileID::Firebolt, TARGET_MONSTERS, missile._misource, dmg, missile.sourcePlayer()->GetSpellLevel(SpellID::Guardian), &missile);
 	missile.setFrameGroup<GuardianFrame>(GuardianFrame::Attack);
 	missile.var2 = 3;
 
