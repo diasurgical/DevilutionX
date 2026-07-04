@@ -59,7 +59,22 @@ protocol_zt::protocol_zt()
 
 void protocol_zt::set_nonblock(int fd)
 {
+#ifndef __ANDROID__
+	// This assert guards against O_NONBLOCK silently resolving to the host's real value
+	// instead of lwip's internal compat value of 1 (see the `#ifndef` guard around its
+	// definition in lwip/sockets.h), which would corrupt the flags passed to lwip_fcntl().
+	//
+	// It's skipped on Android because it doesn't hold there, yet the code is still correct.
+	// lwip/arch.h unconditionally includes <stdio.h>, which on bionic transitively includes
+	// the real <fcntl.h> before lwip/sockets.h's own guard is reached - in every translation
+	// unit that includes lwip headers, including lwip's own sockets.c. So on Android,
+	// O_NONBLOCK consistently resolves to bionic's real value on both sides of the
+	// lwip_fcntl() call below, rather than mismatching. That's also why it's harmless that
+	// this differs from lwip's usual compat value of 1: lwip's netconn_set_nonblocking()
+	// (lwip/api.h) only branches on whether the flag is nonzero and then stores a fixed,
+	// unrelated bit, so it doesn't matter which nonzero value O_NONBLOCK actually is.
 	static_assert(O_NONBLOCK == 1, "O_NONBLOCK == 1 not satisfied");
+#endif
 	auto mode = lwip_fcntl(fd, F_GETFL, 0);
 	mode |= O_NONBLOCK;
 	lwip_fcntl(fd, F_SETFL, mode);
