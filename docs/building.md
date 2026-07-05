@@ -346,7 +346,7 @@ NOSUDO=1 tools/build_and_install_smpq.sh
 ### Compiling
 
 ```bash
-cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$PREFIX" -DDEVILUTIONX_SYSTEM_BENCHMARK=OFF -DDISABLE_ZERO_TIER=ON
+cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=Release -DDEVILUTIONX_SYSTEM_BENCHMARK=OFF
 cmake --build build -j $(nproc)
 ```
 </details>
