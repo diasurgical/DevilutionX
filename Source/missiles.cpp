@@ -117,9 +117,7 @@ int AddClassHealingBonus(int hp, HeroClass heroClass, SpellID spellId)
 	case HeroClass::Bard:
 		return hp + (hp / 2);
 	case HeroClass::Monk:
-		return spellId == SpellID::HealOther
-			? hp * 3
-			: hp * 2;
+		return spellId == SpellID::HealOther ? hp * 3 : hp * 2;
 	default:
 		return hp;
 	}
