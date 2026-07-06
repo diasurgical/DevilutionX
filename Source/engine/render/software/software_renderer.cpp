@@ -1184,31 +1184,35 @@ void SoftwareRenderer::DrawBlackTile(int sx, int sy)
 
 void SoftwareRenderer::FillRect(int x, int y, int w, int h, uint8_t colorIndex)
 {
-	Surface out(palSurface_);
-	devilution::FillRect(out, x, y, w, h, colorIndex);
+	Surface out = MakeTargetSurface(palSurface_, hasClip_, clipRect_);
+	const Point rel = ToRelative({ x, y }, hasClip_, clipRect_);
+	devilution::FillRect(out, rel.x, rel.y, w, h, colorIndex);
 }
 
 void SoftwareRenderer::DrawBlendedRect(int x, int y, int w, int h)
 {
-	Surface out(palSurface_);
-	devilution::DrawBlendedRectTo(out, x, y, w, h);
+	Surface out = MakeTargetSurface(palSurface_, hasClip_, clipRect_);
+	const Point rel = ToRelative({ x, y }, hasClip_, clipRect_);
+	devilution::DrawBlendedRectTo(out, rel.x, rel.y, w, h);
 }
 
 void SoftwareRenderer::DrawPixel(Point position, uint8_t colorIndex)
 {
-	Surface out(palSurface_);
-	out.SetPixel(position, colorIndex);
+	Surface out = MakeTargetSurface(palSurface_, hasClip_, clipRect_);
+	out.SetPixel(ToRelative(position, hasClip_, clipRect_), colorIndex);
 }
 
 void SoftwareRenderer::DrawBlendedPixel(Point position, uint8_t colorIndex)
 {
-	Surface out(palSurface_);
-	SetHalfTransparentPixel(out, position, colorIndex);
+	Surface out = MakeTargetSurface(palSurface_, hasClip_, clipRect_);
+	SetHalfTransparentPixel(out, ToRelative(position, hasClip_, clipRect_), colorIndex);
 }
 
 void SoftwareRenderer::DrawLine(Point from, Point to, uint8_t colorIndex)
 {
-	Surface out(palSurface_);
+	Surface out = MakeTargetSurface(palSurface_, hasClip_, clipRect_);
+	from = ToRelative(from, hasClip_, clipRect_);
+	to = ToRelative(to, hasClip_, clipRect_);
 	// Bresenham's line algorithm
 	int dx = std::abs(to.x - from.x);
 	int dy = std::abs(to.y - from.y);
@@ -1233,37 +1237,42 @@ void SoftwareRenderer::DrawLine(Point from, Point to, uint8_t colorIndex)
 
 void SoftwareRenderer::DrawHorizontalLine(Point from, int width, uint8_t colorIndex)
 {
-	Surface out(palSurface_);
-	devilution::DrawHorizontalLine(out, from, width, colorIndex);
+	Surface out = MakeTargetSurface(palSurface_, hasClip_, clipRect_);
+	devilution::DrawHorizontalLine(out, ToRelative(from, hasClip_, clipRect_), width, colorIndex);
 }
 
 void SoftwareRenderer::DrawVerticalLine(Point from, int height, uint8_t colorIndex)
 {
-	Surface out(palSurface_);
-	devilution::DrawVerticalLine(out, from, height, colorIndex);
+	Surface out = MakeTargetSurface(palSurface_, hasClip_, clipRect_);
+	devilution::DrawVerticalLine(out, ToRelative(from, hasClip_, clipRect_), height, colorIndex);
 }
 
 void SoftwareRenderer::DrawBlendedHorizontalLine(Point from, int width, uint8_t colorIndex)
 {
-	Surface out(palSurface_);
-	DrawHalfTransparentHorizontalLine(out, from, width, colorIndex);
+	Surface out = MakeTargetSurface(palSurface_, hasClip_, clipRect_);
+	DrawHalfTransparentHorizontalLine(out, ToRelative(from, hasClip_, clipRect_), width, colorIndex);
 }
 
 void SoftwareRenderer::DrawBlendedVerticalLine(Point from, int height, uint8_t colorIndex)
 {
-	Surface out(palSurface_);
-	DrawHalfTransparentVerticalLine(out, from, height, colorIndex);
+	Surface out = MakeTargetSurface(palSurface_, hasClip_, clipRect_);
+	DrawHalfTransparentVerticalLine(out, ToRelative(from, hasClip_, clipRect_), height, colorIndex);
 }
 
 void SoftwareRenderer::BlitSurface(const Surface &src, SDL_Rect srcRect, Point targetPosition)
 {
-	Surface out(palSurface_);
-	out.BlitFrom(src, srcRect, targetPosition);
+	Surface out = MakeTargetSurface(palSurface_, hasClip_, clipRect_);
+	out.BlitFrom(src, srcRect, ToRelative(targetPosition, hasClip_, clipRect_));
 }
 
 void SoftwareRenderer::ApplyTRN(int x, int y, int w, int h, const uint8_t *trn, uint8_t skipColorIndicesBelow)
 {
-	Surface out(palSurface_);
+	Surface out = MakeTargetSurface(palSurface_, hasClip_, clipRect_);
+	{
+		const Point rel = ToRelative({ x, y }, hasClip_, clipRect_);
+		x = rel.x;
+		y = rel.y;
+	}
 	if (x < 0) {
 		w += x;
 		x = 0;
@@ -1293,7 +1302,12 @@ void SoftwareRenderer::TintRect(int x, int y, int w, int h, uint8_t colorIndex)
 	// get shifted to a colored ramp (blue/yellow/beige/orange).
 	// colorIndex is the target ramp base + 4 (e.g. PAL16_BLUE + 4).
 	// The shift moves pixels from PAL16_GRAY range into the target range.
-	Surface out(palSurface_);
+	Surface out = MakeTargetSurface(palSurface_, hasClip_, clipRect_);
+	{
+		const Point rel = ToRelative({ x, y }, hasClip_, clipRect_);
+		x = rel.x;
+		y = rel.y;
+	}
 
 	// Clip to surface bounds.
 	if (x < 0) {
@@ -1328,8 +1342,8 @@ void SoftwareRenderer::TintRect(int x, int y, int w, int h, uint8_t colorIndex)
 
 void SoftwareRenderer::BlitSurfaceSkipColorIndexZero(const Surface &src, SDL_Rect srcRect, Point targetPosition)
 {
-	Surface out(palSurface_);
-	out.BlitFromSkipColorIndexZero(src, srcRect, targetPosition);
+	Surface out = MakeTargetSurface(palSurface_, hasClip_, clipRect_);
+	out.BlitFromSkipColorIndexZero(src, srcRect, ToRelative(targetPosition, hasClip_, clipRect_));
 }
 
 void SoftwareRenderer::PrepareVideoPlayback(unsigned width, unsigned height)

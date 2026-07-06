@@ -990,10 +990,19 @@ void DrawGame(Point position, Displacement offset)
 	GetRenderer().BeginScene(position, Point {} + offset, rows, columns);
 	GetRenderer().BeginViewportZoom();
 
+	// Limit rendering to the view area. Without this, sprites near the bottom
+	// of the viewport bleed into the main panel, which is not redrawn every
+	// frame when the panel spans the full screen width (e.g. 640x480).
+	// In zoom mode the scene is drawn at half scale (top-left quadrant) and
+	// doubled by EndViewportZoom, so the clip height is halved to match.
+	const int clipHeight = *GetOptions().Graphics.zoom ? (gnViewportHeight + 1) / 2 : gnViewportHeight;
+	GetRenderer().SetClipRegion(0, 0, gnScreenWidth, clipHeight);
+
 	DrawFloor(position, Point {} + offset, rows, columns);
 	DrawTileContent(position, Point {} + offset, rows, columns);
 	DrawOOB(position, Point {} + offset, rows, columns);
 
+	GetRenderer().ClearClipRegion();
 	GetRenderer().EndViewportZoom(gnViewportHeight);
 	GetRenderer().EndScene();
 
@@ -1030,7 +1039,11 @@ void DrawView(Point startPosition)
 	CalcFirstTilePosition(startPosition, offset);
 	DrawGame(startPosition, offset);
 	if (AutomapActive) {
+		// Limit the automap to the view area so it doesn't draw over the
+		// main panel (not redrawn every frame at full-panel-width resolutions).
+		GetRenderer().SetClipRegion(0, 0, gnScreenWidth, gnViewportHeight);
 		DrawAutomap();
+		GetRenderer().ClearClipRegion();
 	}
 #ifdef _DEBUG
 	bool debugGridTextNeeded = IsDebugGridTextNeeded();
@@ -1535,7 +1548,9 @@ void DrawAndBlit()
 
 	const Rectangle &mainPanel = GetMainPanel();
 
-	if (gnScreenWidth > mainPanel.size.width || IsRedrawEverything()) {
+	// Renderers that clear the whole frame each present (e.g. GL) cannot keep a
+	// persistent panel across frames, so they must redraw every component.
+	if (gnScreenWidth > mainPanel.size.width || IsRedrawEverything() || GetRenderer().NeedsFullRedraw()) {
 		drawHealth = true;
 		drawMana = true;
 		drawControlButtons = true;
