@@ -861,6 +861,15 @@ void ResetCursorInfo()
 	if (pcursinvitem != -1) {
 		RedrawComponent(PanelDrawComponent::Belt);
 	}
+	// The floating item info box is drawn on top of the panels and can cover
+	// any part of them. When the hovered item clears or changes, the panels
+	// must be redrawn so the box's previous location is repainted (the panels
+	// are not refreshed every frame at panel-width resolutions).
+	if (*GetOptions().Gameplay.floatingInfoBox
+	    && (pcursinvitem != -1 || pcursstashitem != StashStruct::EmptyCell
+	        || pcursstoreitem != -1 || pcursstorebtn != -1)) {
+		RedrawEverything();
+	}
 	pcursinvitem = -1;
 	pcursstashitem = StashStruct::EmptyCell;
 	pcursstoreitem = -1;
