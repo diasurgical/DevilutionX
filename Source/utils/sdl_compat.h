@@ -351,7 +351,7 @@ inline bool SDL_CloseIO(SDL_IOStream *iostr)
 	return SDL_RWclose(iostr) == 0;
 }
 
-#define SDLC_ShowSimpleMessageBox(flags, title, message, window) SDL_ShowSimpleMessageBox(flags, title, message, window) == 0
+#define SDLC_ShowSimpleMessageBox(flags, title, message, window) (SDL_ShowSimpleMessageBox(flags, title, message, window) == 0)
 #endif
 
 #ifndef USE_SDL1
