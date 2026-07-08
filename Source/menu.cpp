@@ -82,7 +82,7 @@ bool InitSinglePlayerMenu()
 bool InitMultiPlayerMenu()
 {
 #ifndef _DEBUG
-	if (IsAssetIntegrityViolated) {
+	if (IsAssetIntegrityViolated || HasLooseLogicAssets()) {
 		UiSelOkDialog(_("Multi Player Game").data(), _("Cannot play Multiplayer with overridden *.lua, *.tsv, or *.sol assets.").data(), false);
 		return true;
 	}

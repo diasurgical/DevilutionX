@@ -8,6 +8,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #ifdef USE_SDL3
 #include <SDL3/SDL_error.h>
@@ -306,12 +307,22 @@ using MpqArchiveT = MpqArchive;
 #endif
 
 extern DVL_API_FOR_TEST std::map<int, MpqArchiveT, std::greater<>> MpqArchives;
+extern DVL_API_FOR_TEST std::vector<std::string> OverridePaths;
 constexpr int MainMpqPriority = 1000;
 constexpr int DevilutionXMpqPriority = 9000;
 constexpr int LangMpqPriority = 9100;
 constexpr int FontMpqPriority = 9200;
 extern bool HasHellfireMpq;
 extern bool IsAssetIntegrityViolated;
+
+/**
+ * @brief Returns true if any loose-file override root contains logic assets (*.lua, *.tsv, *.sol).
+ *
+ * Unlike `IsAssetIntegrityViolated`, which is only set once an overridden logic asset has actually
+ * been loaded, this scans the override directories directly. This catches lazily loaded assets
+ * (e.g. the towner TSVs) before entering multiplayer instead of hitting the in-game backstop.
+ */
+[[nodiscard]] bool HasLooseLogicAssets();
 
 void LoadCoreArchives();
 void LoadLanguageArchive();

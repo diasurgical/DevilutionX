@@ -22,6 +22,7 @@
 #include "utils/log.hpp"
 #include "utils/paths.h"
 #include "utils/sdl_compat.h"
+#include "utils/str_case.hpp"
 #include "utils/str_cat.hpp"
 #include "utils/str_split.hpp"
 
@@ -80,6 +81,31 @@ bool FindMpqFile(std::string_view filename, MpqArchive **archive, uint32_t *hash
 		}
 	}
 
+	return false;
+}
+
+bool HasLogicAssetExtension(std::string_view filename)
+{
+	if (filename.size() < 4)
+		return false;
+	// Case-insensitive so that overrides on case-insensitive filesystems are caught.
+	const std::string extension = AsciiStrToLower(filename.substr(filename.size() - 4));
+	return extension == ".lua" || extension == ".tsv" || extension == ".sol";
+}
+
+bool ContainsLogicAssets(const std::string &dirPath, unsigned depth)
+{
+	constexpr unsigned MaxScanDepth = 16;
+	if (depth > MaxScanDepth)
+		return false;
+	for (const std::string &filename : ListFiles(dirPath.c_str())) {
+		if (HasLogicAssetExtension(filename))
+			return true;
+	}
+	for (const std::string &subdirName : ListDirectories(dirPath.c_str())) {
+		if (ContainsLogicAssets(StrCat(dirPath, subdirName, DIRECTORY_SEPARATOR_STR), depth + 1))
+			return true;
+	}
 	return false;
 }
 
@@ -568,6 +594,32 @@ void LoadModArchives(std::span<const std::string_view> modnames)
 		LoadMPQ(paths, StrCat("mods" DIRECTORY_SEPARATOR_STR, modname), priority);
 		priority++;
 	}
+}
+
+bool HasLooseLogicAssets()
+{
+#ifdef UNPACKED_MPQS
+	// Unpacked builds do not consult `OverridePaths` and have no override integrity tracking.
+	return false;
+#else
+	for (const std::string &overridePath : OverridePaths) {
+		for (const std::string &filename : ListFiles(overridePath.c_str())) {
+			if (HasLogicAssetExtension(filename))
+				return true;
+		}
+		const bool isPrefPath = overridePath == paths::PrefPath();
+		for (const std::string &subdirName : ListDirectories(overridePath.c_str())) {
+			// `mods` under the pref path holds mod archives and inactive loose mods, which `FindAsset`
+			// never consults directly. Active loose mods are separate `OverridePaths` entries and are
+			// scanned via their own roots.
+			if (isPrefPath && subdirName == "mods")
+				continue;
+			if (ContainsLogicAssets(StrCat(overridePath, subdirName, DIRECTORY_SEPARATOR_STR), 1))
+				return true;
+		}
+	}
+	return false;
+#endif
 }
 
 } // namespace devilution

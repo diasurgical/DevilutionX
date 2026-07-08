@@ -13,6 +13,7 @@ target_link_dependencies(test_main PUBLIC libdevilutionx_so GTest::gtest GTest::
 set(tests
   animationinfo_test
   appfat_test
+  assets_test
   automap_test
   cursor_test
   dead_test
