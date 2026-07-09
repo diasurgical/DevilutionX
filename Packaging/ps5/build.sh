@@ -31,7 +31,7 @@ cp -r "${SCRIPTDIR}/sce_sys" build-ps5/DevilutionX/
 cp "${SCRIPTDIR}/homebrew.js" build-ps5/DevilutionX/
 cp "${SCRIPTDIR}/README.md" build-ps5/DevilutionX/
 cp build-ps5/devilutionx.mpq build-ps5/DevilutionX/
-cp build-ps5/mods/Hellfire.mpq build-ps5/DevilutionX/mods/Hellfire.mpq
+cp build-ps5/mods/hf.mpq build-ps5/DevilutionX/mods/hf.mpq
 cp build-ps5/devilutionx build-ps5/DevilutionX/devilutionx.elf
 
 # Let github actions do this?

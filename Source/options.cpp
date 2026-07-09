@@ -75,7 +75,7 @@ void DiscoverMods()
 	std::unordered_set<std::string> modNames = { "clock", "adria_refills_mana", "Floating Numbers - Damage", "Floating Numbers - XP" };
 
 	if (HaveHellfire()) {
-		modNames.insert("Hellfire");
+		modNames.insert("hf");
 	}
 
 	// Check if the mods directory exists.
@@ -1608,7 +1608,7 @@ void ModOptions::RemoveModEntry(const std::string &modName)
 void ModOptions::SetHellfireEnabled(bool enableHellfire)
 {
 	for (auto &modEntry : GetModEntries()) {
-		if (modEntry.name == "Hellfire") {
+		if (modEntry.name == "hf") {
 			modEntry.enabled.SetValue(enableHellfire);
 			break;
 		}
@@ -1630,9 +1630,35 @@ std::forward_list<ModOptions::ModEntry> &ModOptions::GetModEntries()
 	return newModEntries;
 }
 
+namespace {
+// The description shown in the mod settings panel. Prefer the manifest's own description;
+// otherwise synthesise one from whatever metadata the manifest provides (version, author).
+std::string BuildModDescription(const ModManifest &manifest)
+{
+	if (!manifest.description.empty())
+		return manifest.description;
+	const bool hasVersion = !manifest.version.empty();
+	const bool hasAuthor = !manifest.author.empty();
+	if (hasVersion && hasAuthor)
+		return fmt::format(fmt::runtime(_("Version {:s} by {:s}")), manifest.version, manifest.author);
+	if (hasVersion)
+		return fmt::format(fmt::runtime(_("Version {:s}")), manifest.version);
+	if (hasAuthor)
+		return fmt::format(fmt::runtime(_("By {:s}")), manifest.author);
+	return {};
+}
+} // namespace
+
 ModOptions::ModEntry::ModEntry(std::string_view name)
+    : ModEntry(name, ReadModManifestByName(name))
+{
+}
+
+ModOptions::ModEntry::ModEntry(std::string_view name, const ModManifest &manifest)
     : name(name)
-    , enabled(this->name, OptionEntryFlags::RecreateUI, this->name.c_str(), "", false)
+    , displayName(manifest.name.empty() ? std::string(name) : manifest.name)
+    , description(BuildModDescription(manifest))
+    , enabled(this->name, OptionEntryFlags::RecreateUI, this->displayName.c_str(), this->description.c_str(), false)
 {
 }
 

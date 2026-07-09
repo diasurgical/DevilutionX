@@ -77,6 +77,7 @@
 #include "menu.h"
 #include "minitext.h"
 #include "missiles.h"
+#include "mods/mod_identity.h"
 #include "movie.h"
 #include "multi.h"
 #include "nthread.h"
@@ -1815,6 +1816,27 @@ void OptionLanguageCodeChanged()
 const auto OptionChangeHandlerLanguage = (GetOptions().Language.code.SetValueChangedCallback(OptionLanguageCodeChanged), true);
 
 } // namespace
+
+uint32_t GetGameId()
+{
+	uint32_t declared = 0;
+	bool hasDeclared = false;
+	bool hasUnrecognisedMod = false;
+	for (const ModIdentifier &mod : ActiveModIdentifiers) {
+		const std::string &programId = mod.manifest.programId;
+		if (programId.size() == 4) {
+			declared = LoadBE32(programId.data()); // last active mod that declares one wins
+			hasDeclared = true;
+		} else if (!mod.whitelisted) {
+			hasUnrecognisedMod = true;
+		}
+	}
+	if (hasDeclared)
+		return declared;
+	if (hasUnrecognisedMod)
+		return GameIdGenericMod;
+	return gbIsSpawn ? GameIdDiabloSpawn : GameIdDiabloFull;
+}
 
 void InitKeymapActions()
 {

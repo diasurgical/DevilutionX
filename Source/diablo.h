@@ -27,11 +27,23 @@
 
 namespace devilution {
 
+// Base game branding ids. The Hellfire ids used to live here too; Hellfire is now a mod and
+// declares its own `programId` (`HRTL`) in its manifest.
 constexpr uint32_t GameIdDiabloFull = LoadBE32("DRTL");
 constexpr uint32_t GameIdDiabloSpawn = LoadBE32("DSHR");
-constexpr uint32_t GameIdHellfireFull = LoadBE32("HRTL");
-constexpr uint32_t GameIdHellfireSpawn = LoadBE32("HSHR");
-#define GAME_ID (gbIsHellfire ? (gbIsSpawn ? GameIdHellfireSpawn : GameIdHellfireFull) : (gbIsSpawn ? GameIdDiabloSpawn : GameIdDiabloFull))
+/** Generic branding used when an unrecognised (non-whitelisted) mod is active but declares no `programId`. */
+constexpr uint32_t GameIdGenericMod = LoadBE32("DXMD");
+
+/**
+ * @brief The multiplayer program id for the current configuration.
+ *
+ * This is a cosmetic branding identifier (shown in the game browser / chat), NOT a
+ * compatibility check — see `IsGameCompatible`, which uses edition + version + mod config.
+ * Base is Diablo (`DRTL`/`DSHR` by shareware state). An active mod may override it via its
+ * manifest `programId` (last one in load order wins); Hellfire declares `HRTL`. If an
+ * unrecognised mod is active but none declares a `programId`, this returns `DXMD`.
+ */
+[[nodiscard]] uint32_t GetGameId();
 
 #define NUMLEVELS 25
 

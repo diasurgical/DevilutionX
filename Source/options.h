@@ -29,6 +29,7 @@
 #include "controls/controller_buttons.h"
 #include "engine/size.hpp"
 #include "engine/sound_defs.hpp"
+#include "mods/mod_identity.h"
 #include "pack.h"
 #include "quick_messages.hpp"
 #include "utils/enum_traits.h"
@@ -850,8 +851,16 @@ private:
 		ModEntry(const ModEntry &) = delete;
 
 		ModEntry(std::string_view name);
+		// `name` is the mod id (MPQ filename stem / INI key). `displayName` and `description`
+		// come from the mod's `manifest.ini` (falling back to `name` and empty), and are what
+		// the settings UI shows via `enabled`.
 		std::string name;
+		std::string displayName;
+		std::string description;
 		OptionEntryBoolean enabled;
+
+	private:
+		ModEntry(std::string_view name, const ModManifest &manifest);
 	};
 
 	std::forward_list<ModEntry> &GetModEntries();

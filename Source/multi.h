@@ -25,7 +25,18 @@ struct Player;
 
 struct GameData {
 	int32_t size;
-	uint8_t reserved[4];
+	/**
+	 * Whether this is the shareware (spawn) edition. Part of the join-compatibility identity
+	 * (edition + version + mod config), unlike `programid` which is now purely cosmetic branding.
+	 * Occupies the first of the previously-reserved bytes, so `sizeof(GameData)` is unchanged and
+	 * the size-gated wire protocol stays compatible with same-version peers.
+	 */
+	uint8_t isSpawn;
+	uint8_t reserved[3];
+	/**
+	 * Cosmetic branding id (e.g. "DRTL"/"HRTL"/"DXMD") for display only — see `GetGameId()`. Not
+	 * used to decide join compatibility (a mod may change it via its manifest `programId`).
+	 */
 	uint32_t programid;
 	uint8_t versionMajor;
 	uint8_t versionMinor;

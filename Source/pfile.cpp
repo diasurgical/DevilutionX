@@ -28,6 +28,7 @@
 #include "game_mode.hpp"
 #include "loadsave.h"
 #include "menu.h"
+#include "mods/mod_identity.h"
 #include "mpq/mpq_common.hpp"
 #include "pack.h"
 #include "qol/stash.h"
@@ -68,29 +69,40 @@ namespace {
 /** List of character names for the character selection screen. */
 char hero_names[MAX_CHARACTERS][PlayerNameLength];
 
+// Effective save-file extension token (no leading dot). Defaults to "sv"; an active mod may
+// override the save namespace by declaring `saveExtension` in its manifest (e.g. Hellfire's
+// "hsv"). This replaces the former hardcoded `gbIsHellfire ? "hsv" : "sv"` toggle.
+std::string_view GetSaveExtension()
+{
+	const std::string_view modExtension = GetActiveModSaveExtension();
+	return modExtension.empty() ? std::string_view("sv") : modExtension;
+}
+
 std::string GetSavePath(uint32_t saveNum, std::string_view savePrefix = {})
 {
+	const std::string_view ext = GetSaveExtension();
 	return StrCat(paths::PrefPath(), savePrefix,
 	    gbIsSpawn
 	        ? (gbIsMultiplayer ? "share_" : "spawn_")
 	        : (gbIsMultiplayer ? "multi_" : "single_"),
 	    saveNum,
 #ifdef UNPACKED_SAVES
-	    gbIsHellfire ? "_hsv" DIRECTORY_SEPARATOR_STR : "_sv" DIRECTORY_SEPARATOR_STR
+	    "_", ext, DIRECTORY_SEPARATOR_STR
 #else
-	    gbIsHellfire ? ".hsv" : ".sv"
+	    ".", ext
 #endif
 	);
 }
 
 std::string GetStashSavePath()
 {
+	const std::string_view ext = GetSaveExtension();
 	return StrCat(paths::PrefPath(),
 	    gbIsSpawn ? "stash_spawn" : "stash",
 #ifdef UNPACKED_SAVES
-	    gbIsHellfire ? "_hsv" DIRECTORY_SEPARATOR_STR : "_sv" DIRECTORY_SEPARATOR_STR
+	    "_", ext, DIRECTORY_SEPARATOR_STR
 #else
-	    gbIsHellfire ? ".hsv" : ".sv"
+	    ".", ext
 #endif
 	);
 }

@@ -92,37 +92,21 @@ void selgame_Free()
 
 bool IsGameCompatible(const GameData &data)
 {
-	return (data.versionMajor == PROJECT_VERSION_MAJOR
+	// Compatibility is the game edition (full vs. shareware) plus the exact version. `programid`
+	// is intentionally NOT checked — it is cosmetic branding (see GetGameId), and Diablo-vs-Hellfire
+	// and other mod differences are gated by the mod-config digest (todo/mod-check.md Phase 4).
+	return data.versionMajor == PROJECT_VERSION_MAJOR
 	    && data.versionMinor == PROJECT_VERSION_MINOR
 	    && data.versionPatch == PROJECT_VERSION_PATCH
-	    && data.programid == GAME_ID);
-	return false;
+	    && data.isSpawn == (gbIsSpawn ? 1 : 0);
 }
 
 static std::string GetErrorMessageIncompatibility(const GameData &data)
 {
-	if (data.programid != GAME_ID) {
-		std::string_view gameMode;
-		switch (data.programid) {
-		case GameIdDiabloFull:
-			gameMode = _("Diablo");
-			break;
-		case GameIdDiabloSpawn:
-			gameMode = _("Diablo Shareware");
-			break;
-		case GameIdHellfireFull:
-			gameMode = _("Hellfire");
-			break;
-		case GameIdHellfireSpawn:
-			gameMode = _("Hellfire Shareware");
-			break;
-		default:
-			return std::string(_("The host is running a different game than you."));
-		}
-		return fmt::format(fmt::runtime(_("The host is running a different game mode ({:s}) than you.")), gameMode);
-	} else {
-		return fmt::format(fmt::runtime(_(/* TRANSLATORS: Error message when somebody tries to join a game running another version. */ "Your version {:s} does not match the host {:d}.{:d}.{:d}.")), PROJECT_VERSION, data.versionMajor, data.versionMinor, data.versionPatch);
+	if (data.isSpawn != (gbIsSpawn ? 1 : 0)) {
+		return std::string(_("The host is running a different edition (full vs. shareware) than you."));
 	}
+	return fmt::format(fmt::runtime(_(/* TRANSLATORS: Error message when somebody tries to join a game running another version. */ "Your version {:s} does not match the host {:d}.{:d}.{:d}.")), PROJECT_VERSION, data.versionMajor, data.versionMinor, data.versionPatch);
 }
 
 void UiInitGameSelectionList(std::string_view search)

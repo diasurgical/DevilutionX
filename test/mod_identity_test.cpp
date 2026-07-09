@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <array>
 #include <cctype>
 #include <cstdint>
@@ -212,6 +213,86 @@ TEST(ModIdentity, RegisterAndClear)
 
 	ClearModIdentifiers();
 	EXPECT_TRUE(ActiveModIdentifiers.empty());
+}
+
+TEST(ModIdentity, ActiveModSaveExtensionOptInLastWins)
+{
+	ClearModIdentifiers();
+	// No active mods: no override (callers default to "sv").
+	EXPECT_TRUE(GetActiveModSaveExtension().empty());
+
+	// A cosmetic mod that declares no saveExtension leaves the namespace untouched.
+	ModIdentifier cosmetic;
+	cosmetic.name = "clock";
+	ActiveModIdentifiers.push_back(cosmetic);
+	EXPECT_TRUE(GetActiveModSaveExtension().empty());
+
+	// A mod that opts in overrides it; a leading dot is stripped.
+	ModIdentifier hf;
+	hf.name = "hf";
+	hf.manifest.saveExtension = ".hsv";
+	ActiveModIdentifiers.push_back(hf);
+	EXPECT_EQ(GetActiveModSaveExtension(), "hsv");
+
+	// The last active mod that declares one wins.
+	ModIdentifier other;
+	other.name = "other";
+	other.manifest.saveExtension = "msv";
+	ActiveModIdentifiers.push_back(other);
+	EXPECT_EQ(GetActiveModSaveExtension(), "msv");
+
+	ClearModIdentifiers();
+}
+
+TEST(ModIdentity, OrderModsDependenciesFirst)
+{
+	const std::vector<ModDependency> mods = {
+		{ "app", { "lib" } },
+		{ "lib", {} },
+	};
+	const std::vector<std::string> ordered = OrderModsByDependencies(mods);
+	ASSERT_EQ(ordered.size(), 2u);
+	EXPECT_EQ(ordered[0], "lib");
+	EXPECT_EQ(ordered[1], "app");
+}
+
+TEST(ModIdentity, OrderModsStableWithoutDependencies)
+{
+	const std::vector<ModDependency> mods = { { "a", {} }, { "b", {} }, { "c", {} } };
+	const std::vector<std::string> ordered = OrderModsByDependencies(mods);
+	EXPECT_EQ(ordered, (std::vector<std::string> { "a", "b", "c" }));
+}
+
+TEST(ModIdentity, OrderModsTransitiveChain)
+{
+	const std::vector<ModDependency> mods = {
+		{ "c", { "b" } },
+		{ "b", { "a" } },
+		{ "a", {} },
+	};
+	const std::vector<std::string> ordered = OrderModsByDependencies(mods);
+	ASSERT_EQ(ordered.size(), 3u);
+	EXPECT_EQ(ordered[0], "a");
+	EXPECT_EQ(ordered[1], "b");
+	EXPECT_EQ(ordered[2], "c");
+}
+
+TEST(ModIdentity, OrderModsMissingDependencyKeepsMod)
+{
+	// The required mod is not part of the active set: "app" is still emitted (best-effort).
+	const std::vector<ModDependency> mods = { { "app", { "missing" } } };
+	const std::vector<std::string> ordered = OrderModsByDependencies(mods);
+	ASSERT_EQ(ordered.size(), 1u);
+	EXPECT_EQ(ordered[0], "app");
+}
+
+TEST(ModIdentity, OrderModsCycleKeepsAllMods)
+{
+	const std::vector<ModDependency> mods = { { "a", { "b" } }, { "b", { "a" } } };
+	const std::vector<std::string> ordered = OrderModsByDependencies(mods);
+	ASSERT_EQ(ordered.size(), 2u);
+	EXPECT_NE(std::find(ordered.begin(), ordered.end(), "a"), ordered.end());
+	EXPECT_NE(std::find(ordered.begin(), ordered.end(), "b"), ordered.end());
 }
 
 } // namespace
