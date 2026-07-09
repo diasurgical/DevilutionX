@@ -18,6 +18,7 @@
 
 #include "appfat.h"
 #include "game_mode.hpp"
+#include "mods/mod_identity.h"
 #include "utils/file_util.h"
 #include "utils/log.hpp"
 #include "utils/paths.h"
@@ -404,7 +405,7 @@ bool FindMPQ(std::span<const std::string> paths, std::string_view mpqName)
 	return false;
 }
 
-bool LoadMPQ(std::span<const std::string> paths, std::string_view mpqName, int priority, std::string_view ext = ".mpq")
+bool LoadMPQ(std::span<const std::string> paths, std::string_view mpqName, int priority, std::string_view ext = ".mpq", std::string *loadedPath = nullptr)
 {
 	std::string mpqAbsPath;
 	bool foundButFailed = false;
@@ -423,6 +424,8 @@ bool LoadMPQ(std::span<const std::string> paths, std::string_view mpqName, int p
 		if (!inserted) {
 			LogError("MPQ with priority {} is already registered, skipping {}", priority, mpqName);
 		}
+		if (loadedPath != nullptr)
+			*loadedPath = mpqAbsPath;
 		return true;
 	}
 	if (!foundButFailed) {
@@ -601,23 +604,53 @@ void UnloadModArchives()
 
 void LoadModArchives(std::span<const std::string_view> modnames)
 {
+	ClearModIdentifiers();
+
+#ifndef UNPACKED_MPQS
+	// Tracks, per active mod, whether a loose override directory was found. Such mods carry no
+	// identifier (they are gated by the loose-asset integrity check) and are not built-in.
+	std::vector<bool> hasLooseOverride(modnames.size(), false);
+#endif
+
 	std::string targetPath;
-	for (const std::string_view modname : modnames) {
+	for (size_t i = 0; i < modnames.size(); ++i) {
+		const std::string_view modname = modnames[i];
 		targetPath = StrCat(paths::PrefPath(), "mods" DIRECTORY_SEPARATOR_STR, modname, DIRECTORY_SEPARATOR_STR);
 		if (FileExists(targetPath)) {
 			OverridePaths.emplace_back(targetPath);
+#ifndef UNPACKED_MPQS
+			hasLooseOverride[i] = true;
+#endif
 		}
 		targetPath = StrCat(paths::BasePath(), "mods" DIRECTORY_SEPARATOR_STR, modname, DIRECTORY_SEPARATOR_STR);
 		if (FileExists(targetPath)) {
 			OverridePaths.emplace_back(targetPath);
+#ifndef UNPACKED_MPQS
+			hasLooseOverride[i] = true;
+#endif
 		}
 	}
 	OverridePaths.emplace_back(paths::PrefPath());
 
 	int priority = 10000;
 	auto paths = GetMPQSearchPaths();
-	for (const std::string_view modname : modnames) {
-		LoadMPQ(paths, StrCat("mods" DIRECTORY_SEPARATOR_STR, modname), priority);
+	for (size_t i = 0; i < modnames.size(); ++i) {
+		const std::string_view modname = modnames[i];
+		const std::string mpqName = StrCat("mods" DIRECTORY_SEPARATOR_STR, modname);
+#ifdef UNPACKED_MPQS
+		LoadMPQ(paths, mpqName, priority);
+#else
+		std::string loadedPath;
+		if (LoadMPQ(paths, mpqName, priority, ".mpq", &loadedPath)) {
+			// A packed mod: identify it by the hash of its MPQ bytes. A local packed mod
+			// deliberately shadows any built-in of the same name, so it is treated as external.
+			RegisterPackedModIdentifier(modname, loadedPath.c_str());
+		} else if (!hasLooseOverride[i]) {
+			// Neither a packed MPQ nor a loose override directory: this mod resolves purely
+			// from core archives (a built-in), so it is provenance-whitelisted.
+			RegisterBuiltinModIdentifier(modname);
+		}
+#endif
 		priority++;
 	}
 }

@@ -185,6 +185,15 @@ endif()
 # requires targets to exist when calling `target_link_dependencies`
 # (see object_libraries.cmake).
 
+add_devilutionx_object_library(libdevilutionx_mod_identity
+  mods/mod_identity.cpp
+)
+target_include_directories(libdevilutionx_mod_identity PRIVATE ${PROJECT_SOURCE_DIR}/3rdParty/PicoSHA2)
+target_link_dependencies(libdevilutionx_mod_identity PUBLIC
+  libdevilutionx_file_util
+  libdevilutionx_log
+)
+
 add_devilutionx_object_library(libdevilutionx_assets
   engine/assets.cpp
 )
@@ -194,6 +203,7 @@ target_link_dependencies(libdevilutionx_assets PUBLIC
   tl
   libdevilutionx_headless_mode
   libdevilutionx_game_mode
+  libdevilutionx_mod_identity
   libdevilutionx_mpq
   libdevilutionx_paths
   libdevilutionx_sdl2_to_1_2_backports
