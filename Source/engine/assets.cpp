@@ -93,17 +93,43 @@ bool HasLogicAssetExtension(std::string_view filename)
 	return extension == ".lua" || extension == ".tsv" || extension == ".sol";
 }
 
-bool ContainsLogicAssets(const std::string &dirPath, unsigned depth)
+/**
+ * @brief Returns true if a logic-asset request could resolve to a loose file at `relativePath`.
+ */
+bool IsLoadableLogicAssetPath(std::string relativePath)
+{
+	// Asset requests use `\` as the separator.
+	std::replace(relativePath.begin(), relativePath.end(), DirectorySeparator, '\\');
+	AsciiStrToLower(relativePath);
+
+	// Lua modules are requested by module name under `lua\` (see `LoadPackageData`), including
+	// mod entry points such as `lua\mods\<name>\init.lua` that have no archive counterpart.
+	if (relativePath.starts_with("lua\\") && relativePath.ends_with(".lua"))
+		return true;
+
+	// TSV and SOL requests use fixed canonical paths.
+	MpqArchive *archive;
+	uint32_t hashIndex;
+	if (FindMpqFile(relativePath, &archive, &hashIndex))
+		return true;
+
+	std::string assetsDirPath = relativePath;
+	std::replace(assetsDirPath.begin(), assetsDirPath.end(), '\\', DirectorySeparator);
+	return FileExists((paths::AssetsPath() + assetsDirPath).c_str());
+}
+
+bool ContainsLogicAssets(const std::string &rootPath, const std::string &relativeDir, unsigned depth)
 {
 	constexpr unsigned MaxScanDepth = 16;
 	if (depth > MaxScanDepth)
 		return false;
+	const std::string dirPath = rootPath + relativeDir;
 	for (const std::string &filename : ListFiles(dirPath.c_str())) {
-		if (HasLogicAssetExtension(filename))
+		if (HasLogicAssetExtension(filename) && IsLoadableLogicAssetPath(relativeDir + filename))
 			return true;
 	}
 	for (const std::string &subdirName : ListDirectories(dirPath.c_str())) {
-		if (ContainsLogicAssets(StrCat(dirPath, subdirName, DIRECTORY_SEPARATOR_STR), depth + 1))
+		if (ContainsLogicAssets(rootPath, StrCat(relativeDir, subdirName, DIRECTORY_SEPARATOR_STR), depth + 1))
 			return true;
 	}
 	return false;
@@ -603,20 +629,8 @@ bool HasLooseLogicAssets()
 	return false;
 #else
 	for (const std::string &overridePath : OverridePaths) {
-		for (const std::string &filename : ListFiles(overridePath.c_str())) {
-			if (HasLogicAssetExtension(filename))
-				return true;
-		}
-		const bool isPrefPath = overridePath == paths::PrefPath();
-		for (const std::string &subdirName : ListDirectories(overridePath.c_str())) {
-			// `mods` under the pref path holds mod archives and inactive loose mods, which `FindAsset`
-			// never consults directly. Active loose mods are separate `OverridePaths` entries and are
-			// scanned via their own roots.
-			if (isPrefPath && subdirName == "mods")
-				continue;
-			if (ContainsLogicAssets(StrCat(overridePath, subdirName, DIRECTORY_SEPARATOR_STR), 1))
-				return true;
-		}
+		if (ContainsLogicAssets(overridePath, /*relativeDir=*/ {}, /*depth=*/0))
+			return true;
 	}
 	return false;
 #endif

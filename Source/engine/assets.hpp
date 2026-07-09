@@ -316,7 +316,7 @@ extern bool HasHellfireMpq;
 extern bool IsAssetIntegrityViolated;
 
 /**
- * @brief Returns true if any loose-file override root contains logic assets (*.lua, *.tsv, *.sol).
+ * @brief Returns true if any loose-file override root contains loadable logic assets (*.lua, *.tsv, *.sol).
  *
  * Unlike `IsAssetIntegrityViolated`, which is only set once an overridden logic asset has actually
  * been loaded, this scans the override directories directly. This catches lazily loaded assets
