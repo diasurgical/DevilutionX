@@ -181,7 +181,7 @@ else()
   set(SUPPORTS_MPQ ON)
 endif()
 
-# By default, devilutionx.mpq and mods/Hellfire.mpq are built only if smpq is installed and MPQ support is enabled.
+# By default, devilutionx.mpq and mods/hf.mpq are built only if smpq is installed and MPQ support is enabled.
 if(SUPPORTS_MPQ AND NOT UNPACKED_MPQS)
   if(BUILD_ASSETS_MPQ OR (CPACK STREQUAL "ON" AND (WIN32 OR CMAKE_SYSTEM_NAME STREQUAL "Linux")))
     find_program(SMPQ smpq REQUIRED)
@@ -193,7 +193,7 @@ if(SUPPORTS_MPQ AND NOT UNPACKED_MPQS)
   else()
     set(_has_smpq OFF)
   endif()
-  option(BUILD_ASSETS_MPQ "If true, assets are packaged into devilutionx.mpq and mods/Hellfire to Hellfire.mpq." ${_has_smpq})
+  option(BUILD_ASSETS_MPQ "If true, assets are packaged into devilutionx.mpq and mods/hf to hf.mpq." ${_has_smpq})
 else()
   set(BUILD_ASSETS_MPQS OFF)
 endif()
@@ -512,7 +512,7 @@ if(VITA)
       NAME ${VITA_APP_NAME}
       FILE Packaging/vita/sce_sys sce_sys
       FILE ${DEVILUTIONX_MPQ} devilutionx.mpq
-      FILE ${HELLFIRE_MPQ} mods/Hellfire.mpq
+      FILE ${HELLFIRE_MPQ} mods/hf.mpq
     )
   else()
     vita_create_vpk(devilutionx.vpk ${VITA_TITLEID} devilutionx.self

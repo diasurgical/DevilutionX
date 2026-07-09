@@ -24,7 +24,7 @@ fi
 cp "${BUILD_DIR}/devilutionx" "${BUILD_DIR}/package/devilutionx"
 cp "${BUILD_DIR}/devilutionx.mpq" "${BUILD_DIR}/package/devilutionx.mpq"
 mkdir -p "${BUILD_DIR}/package/mods"
-cp "${BUILD_DIR}/mods/Hellfire.mpq" "${BUILD_DIR}/package/mods/Hellfire.mpq"
+cp "${BUILD_DIR}/mods/hf.mpq" "${BUILD_DIR}/package/mods/hf.mpq"
 
 if which dpkg 2>/dev/null; then
 	cp "${BUILD_DIR}/"devilutionx*.deb "${BUILD_DIR}/package/devilutionx.deb"

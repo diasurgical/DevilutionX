@@ -628,21 +628,109 @@ void ReadModManifest(ModIdentifier &mod, int priority)
 	}
 	mod.manifest = ParseModManifest(std::string_view(reinterpret_cast<const char *>(data.get()), fileSize));
 }
+
+// Reads the `requires` list from a packed mod's manifest without registering the archive, so
+// it can inform load ordering before the real load pass assigns priorities. Returns empty if
+// the mod has no packed archive, no manifest, or an unreadable one.
+std::vector<std::string> ReadPackedModRequiredMods(std::span<const std::string> paths, std::string_view modname)
+{
+	const std::string mpqName = StrCat("mods" DIRECTORY_SEPARATOR_STR, modname);
+	std::string mpqAbsPath;
+	for (const std::string &path : paths) {
+		mpqAbsPath = StrCat(path, mpqName, ".mpq");
+		if (!FileExists(mpqAbsPath))
+			continue;
+		tl::expected<MpqArchive, std::string> archive = MpqArchive::Open(mpqAbsPath.c_str());
+		if (!archive.has_value())
+			return {};
+		constexpr std::string_view ManifestName = "manifest.ini";
+		if (!archive->HasFile(ManifestName))
+			return {};
+		size_t fileSize = 0;
+		int32_t error = 0;
+		std::unique_ptr<std::byte[]> data = archive->ReadFile(ManifestName, fileSize, error);
+		if (data == nullptr)
+			return {};
+		ModManifest manifest = ParseModManifest(std::string_view(reinterpret_cast<const char *>(data.get()), fileSize));
+		return std::move(manifest.requiredMods);
+	}
+	return {};
+}
 #endif
+
+ModManifest ReadModManifestByName(std::string_view name)
+{
+	const std::vector<std::string> searchPaths = GetMPQSearchPaths();
+	constexpr std::string_view ManifestName = "manifest.ini";
+
+	// Loose mod directory (also how UNPACKED_MPQS builds ship their mods).
+	for (const std::string &path : searchPaths) {
+		const std::string manifestPath = StrCat(path, "mods" DIRECTORY_SEPARATOR_STR, name, DIRECTORY_SEPARATOR_STR, ManifestName);
+		FILE *file = OpenFile(manifestPath.c_str(), "rb");
+		if (file == nullptr)
+			continue;
+		uintmax_t size = 0;
+		std::string contents;
+		if (GetFileSize(manifestPath.c_str(), &size) && size > 0) {
+			contents.resize(static_cast<size_t>(size));
+			if (std::fread(contents.data(), 1, contents.size(), file) != contents.size())
+				contents.clear();
+		}
+		std::fclose(file);
+		if (!contents.empty())
+			return ParseModManifest(contents);
+	}
+
+#ifndef UNPACKED_MPQS
+	// Packed mod archive.
+	for (const std::string &path : searchPaths) {
+		const std::string mpqAbsPath = StrCat(path, "mods" DIRECTORY_SEPARATOR_STR, name, ".mpq");
+		if (!FileExists(mpqAbsPath))
+			continue;
+		tl::expected<MpqArchive, std::string> archive = MpqArchive::Open(mpqAbsPath.c_str());
+		if (!archive.has_value())
+			return {};
+		if (!archive->HasFile(ManifestName))
+			return {};
+		size_t fileSize = 0;
+		int32_t error = 0;
+		std::unique_ptr<std::byte[]> data = archive->ReadFile(ManifestName, fileSize, error);
+		if (data == nullptr)
+			return {};
+		return ParseModManifest(std::string_view(reinterpret_cast<const char *>(data.get()), fileSize));
+	}
+#endif
+
+	return {};
+}
 
 void LoadModArchives(std::span<const std::string_view> modnames)
 {
 	ClearModIdentifiers();
 
-#ifndef UNPACKED_MPQS
+#ifdef UNPACKED_MPQS
+	const std::vector<std::string_view> activeMods(modnames.begin(), modnames.end());
+#else
+	// Order the active mods so every mod's declared requiredMods load first: a dependency gets a
+	// lower priority (loaded earlier, forms the base) and its dependents get higher priorities
+	// (loaded later, override it). `requires` is read from each packed mod's manifest in a
+	// pre-pass, because the real load below fixes priorities in iteration order.
+	const std::vector<std::string> searchPaths = GetMPQSearchPaths();
+	std::vector<ModDependency> deps;
+	deps.reserve(modnames.size());
+	for (const std::string_view modname : modnames)
+		deps.push_back(ModDependency { std::string(modname), ReadPackedModRequiredMods(searchPaths, modname) });
+	const std::vector<std::string> orderedNames = OrderModsByDependencies(deps);
+	const std::vector<std::string_view> activeMods(orderedNames.begin(), orderedNames.end());
+
 	// Tracks, per active mod, whether a loose override directory was found. Such mods carry no
 	// identifier (they are gated by the loose-asset integrity check) and are not built-in.
-	std::vector<bool> hasLooseOverride(modnames.size(), false);
+	std::vector<bool> hasLooseOverride(activeMods.size(), false);
 #endif
 
 	std::string targetPath;
-	for (size_t i = 0; i < modnames.size(); ++i) {
-		const std::string_view modname = modnames[i];
+	for (size_t i = 0; i < activeMods.size(); ++i) {
+		const std::string_view modname = activeMods[i];
 		targetPath = StrCat(paths::PrefPath(), "mods" DIRECTORY_SEPARATOR_STR, modname, DIRECTORY_SEPARATOR_STR);
 		if (FileExists(targetPath)) {
 			OverridePaths.emplace_back(targetPath);
@@ -662,8 +750,8 @@ void LoadModArchives(std::span<const std::string_view> modnames)
 
 	int priority = 10000;
 	auto paths = GetMPQSearchPaths();
-	for (size_t i = 0; i < modnames.size(); ++i) {
-		const std::string_view modname = modnames[i];
+	for (size_t i = 0; i < activeMods.size(); ++i) {
+		const std::string_view modname = activeMods[i];
 		const std::string mpqName = StrCat("mods" DIRECTORY_SEPARATOR_STR, modname);
 #ifdef UNPACKED_MPQS
 		LoadMPQ(paths, mpqName, priority);

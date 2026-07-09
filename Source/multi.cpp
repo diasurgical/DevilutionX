@@ -605,7 +605,8 @@ void InitGameInfo()
 	gameGenerator.save(sgGameInitInfo.gameSeed);
 
 	sgGameInitInfo.size = sizeof(sgGameInitInfo);
-	sgGameInitInfo.programid = GAME_ID;
+	sgGameInitInfo.isSpawn = gbIsSpawn ? 1 : 0;
+	sgGameInitInfo.programid = GetGameId();
 	sgGameInitInfo.versionMajor = PROJECT_VERSION_MAJOR;
 	sgGameInitInfo.versionMinor = PROJECT_VERSION_MINOR;
 	sgGameInitInfo.versionPatch = PROJECT_VERSION_PATCH;

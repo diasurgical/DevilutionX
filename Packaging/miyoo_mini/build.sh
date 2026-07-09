@@ -70,7 +70,7 @@ package_onion() {
 	local -r out="${BUILD_DIR}/OnionOS/Roms/PORTS/Games/Diablo (DevilutionX)"
 	cp -f $BUILD_DIR/devilutionx.mpq "${out}/devilutionx.mpq"
 	mkdir -p "${out}/mods"
-	cp -f $BUILD_DIR/mods/Hellfire.mpq "${out}/mods/Hellfire.mpq"
+	cp -f $BUILD_DIR/mods/hf.mpq "${out}/mods/hf.mpq"
 	# copy executable
 	cp -f $BUILD_DIR/devilutionx "${out}/devilutionx"
 

@@ -92,37 +92,22 @@ void selgame_Free()
 
 bool IsGameCompatible(const GameData &data)
 {
-	return (data.versionMajor == PROJECT_VERSION_MAJOR
+	// TODO GetGameId is now only used cosmetic (gamelist icon), we need to check the enabled mods in addition to the below check
+	return data.versionMajor == PROJECT_VERSION_MAJOR
 	    && data.versionMinor == PROJECT_VERSION_MINOR
 	    && data.versionPatch == PROJECT_VERSION_PATCH
-	    && data.programid == GAME_ID);
-	return false;
+	    && data.isSpawn == (gbIsSpawn ? 1 : 0);
 }
 
 static std::string GetErrorMessageIncompatibility(const GameData &data)
 {
-	if (data.programid != GAME_ID) {
-		std::string_view gameMode;
-		switch (data.programid) {
-		case GameIdDiabloFull:
-			gameMode = _("Diablo");
-			break;
-		case GameIdDiabloSpawn:
-			gameMode = _("Diablo Shareware");
-			break;
-		case GameIdHellfireFull:
-			gameMode = _("Hellfire");
-			break;
-		case GameIdHellfireSpawn:
-			gameMode = _("Hellfire Shareware");
-			break;
-		default:
-			return std::string(_("The host is running a different game than you."));
-		}
-		return fmt::format(fmt::runtime(_("The host is running a different game mode ({:s}) than you.")), gameMode);
-	} else {
-		return fmt::format(fmt::runtime(_(/* TRANSLATORS: Error message when somebody tries to join a game running another version. */ "Your version {:s} does not match the host {:d}.{:d}.{:d}.")), PROJECT_VERSION, data.versionMajor, data.versionMinor, data.versionPatch);
+	if (data.isSpawn != (gbIsSpawn ? 1 : 0)) {
+		if (data.isSpawn)
+			return std::string(_("The host is running the shareware edition."));
+		else
+			return std::string(_("You need to full version of the game to join this game."));
 	}
+	return fmt::format(fmt::runtime(_(/* TRANSLATORS: Error message when somebody tries to join a game running another version. */ "Your version {:s} does not match the host {:d}.{:d}.{:d}.")), PROJECT_VERSION, data.versionMajor, data.versionMinor, data.versionPatch);
 }
 
 void UiInitGameSelectionList(std::string_view search)

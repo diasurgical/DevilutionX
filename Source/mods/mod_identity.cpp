@@ -7,6 +7,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <unordered_set>
 #include <vector>
 
 #include <picosha2.h>
@@ -22,12 +23,7 @@ std::vector<ModIdentifier> ActiveModIdentifiers;
 namespace {
 
 /**
- * @brief Hardcoded list of approved third-party mod hashes (design §7).
- *
- * Whitelisting is by hash only. A whitelisted mod's *update* needs a new entry per
- * release, because the hash covers the whole archive (identifiers are per-release by
- * construction). Never whitelist by name — a local `mods/<name>.mpq` can shadow a
- * built-in, so name matching would be trivially spoofable.
+ * @brief Hardcoded list of approved third-party mod hashes.
  */
 constexpr std::array<std::array<uint8_t, 32>, 0> ApprovedModHashes = {};
 
@@ -162,6 +158,81 @@ bool IsHashWhitelisted(std::span<const uint8_t, 32> hash)
 			return true;
 	}
 	return false;
+}
+
+std::string_view GetActiveModSaveExtension()
+{
+	std::string_view result;
+	for (const ModIdentifier &mod : ActiveModIdentifiers) {
+		std::string_view ext = mod.manifest.saveExtension;
+		if (ext.empty())
+			continue;
+		if (ext.front() == '.')
+			ext.remove_prefix(1);
+		if (!ext.empty())
+			result = ext; // last active mod that declares one wins
+	}
+	return result;
+}
+
+std::vector<std::string> OrderModsByDependencies(const std::vector<ModDependency> &mods)
+{
+	std::vector<std::string> ordered;
+	ordered.reserve(mods.size());
+
+	// A mod is emitted once all of its (present) required mods have been emitted. We repeat
+	// passes over the not-yet-emitted mods until a full pass emits nothing new: the remainder
+	// is then unsatisfiable (a cycle, or a required mod missing from the active set).
+	std::vector<bool> emitted(mods.size(), false);
+	std::unordered_set<std::string_view> emittedNames;
+	std::unordered_set<std::string_view> presentNames;
+	for (const ModDependency &mod : mods)
+		presentNames.insert(mod.name);
+
+	bool progress = true;
+	while (progress) {
+		progress = false;
+		for (size_t i = 0; i < mods.size(); ++i) {
+			if (emitted[i])
+				continue;
+			bool ready = true;
+			for (const std::string &required : mods[i].requiredMods) {
+				if (emittedNames.find(required) != emittedNames.end())
+					continue;
+				// A required mod that is not part of the active set can never be satisfied;
+				// don't block on it here (it is reported once the loop stalls below).
+				if (presentNames.find(required) != presentNames.end()) {
+					ready = false;
+					break;
+				}
+			}
+			if (!ready)
+				continue;
+			ordered.push_back(mods[i].name);
+			emittedNames.insert(mods[i].name);
+			emitted[i] = true;
+			progress = true;
+		}
+	}
+
+	// Anything still unemitted is part of a cycle. Report it and append in original order so
+	// the mod is still loaded (best-effort) rather than silently dropped.
+	for (size_t i = 0; i < mods.size(); ++i) {
+		if (emitted[i])
+			continue;
+		LogError("Mod '{}' has an unsatisfiable required-mod dependency (cycle); loading anyway.", mods[i].name);
+		ordered.push_back(mods[i].name);
+	}
+
+	// Report any required mods that are missing from the active set.
+	for (const ModDependency &mod : mods) {
+		for (const std::string &required : mod.requiredMods) {
+			if (presentNames.find(required) == presentNames.end())
+				LogError("Mod '{}' requires '{}', which is not enabled.", mod.name, required);
+		}
+	}
+
+	return ordered;
 }
 
 } // namespace devilution

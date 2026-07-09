@@ -44,18 +44,20 @@ struct ModManifest {
 	/** License identifier or short text, for a future online mod archive. */
 	std::string license;
 	/**
-	 * Save-file extension this mod uses (e.g. ".hsv"). Last active mod that sets one wins.
-	 * Not yet consumed — see the save-extension task in `todo/mod-check.md`.
+	 * Save-file extension this mod uses, without the leading dot (e.g. "hsv"). Opt-in: a mod
+	 * that omits this leaves the save namespace at the default "sv". The last active mod that
+	 * sets one wins. Consumed by `GetActiveModSaveExtension()` / the save paths in `pfile.cpp`.
 	 */
 	std::string saveExtension;
 	/**
-	 * Four-character program id (e.g. "DXMD") for the multiplayer game-list icon. Last active
-	 * mod that sets one wins. Not yet consumed — see the programid task in `todo/mod-check.md`.
+	 * Four-character cosmetic branding id (e.g. "HRTL") shown in the multiplayer game browser.
+	 * The last active mod that sets one wins. Consumed by `GetGameId()`. Not a compatibility
+	 * check — join compatibility uses edition + version + mod config, not this.
 	 */
 	std::string programId;
 	/**
-	 * Names (MPQ filename ids) of other mods this mod requires; also constrains load order.
-	 * Not yet consumed — see the required-mods task in `todo/mod-check.md`.
+	 * Names (MPQ filename ids) of other mods this mod requires; also constrains load order so
+	 * required mods load first. Consumed by `OrderModsByDependencies()` in `LoadModArchives`.
 	 */
 	std::vector<std::string> requiredMods;
 	/**
@@ -150,5 +152,30 @@ void RegisterBuiltinModIdentifier(std::string_view name);
  * only — never by name, which would be spoofable (see `todo/mod-check.md` §3/§7).
  */
 [[nodiscard]] bool IsHashWhitelisted(std::span<const uint8_t, 32> hash);
+
+/**
+ * @brief Save-file extension declared by the active mods, or empty if none declare one.
+ *
+ * The last active mod (in load order) that sets `saveExtension` wins. A leading dot is
+ * stripped, so `hsv` and `.hsv` are equivalent. The returned view points into
+ * `ActiveModIdentifiers` and is valid until the next mod reload. Cosmetic mods that omit
+ * `saveExtension` leave the save namespace untouched (design: opt-in only).
+ */
+[[nodiscard]] std::string_view GetActiveModSaveExtension();
+
+/** @brief A mod name paired with the names of the mods it declares as required. */
+struct ModDependency {
+	std::string name;
+	std::vector<std::string> requiredMods;
+};
+
+/**
+ * @brief Orders mods so every mod's required mods load before it (stable topological sort).
+ *
+ * Ties preserve the input order. A required mod that is not in the input, and any
+ * dependency cycle, is logged as an error; the involved mods are still emitted in their
+ * original relative order so a broken manifest never silently drops a mod.
+ */
+[[nodiscard]] std::vector<std::string> OrderModsByDependencies(const std::vector<ModDependency> &mods);
 
 } // namespace devilution

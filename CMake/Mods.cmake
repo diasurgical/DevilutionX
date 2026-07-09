@@ -6,7 +6,8 @@ if(NOT DEFINED DEVILUTIONX_MODS_OUTPUT_DIRECTORY)
 endif()
 
 set(hellfire_mod
-  lua/mods/Hellfire/init.lua
+  manifest.ini
+  lua/mods/hf/init.lua
   nlevels/cutl5w.clx
   nlevels/cutl6w.clx
   nlevels/l5data/cornerstone.dun
@@ -35,32 +36,32 @@ endif()
 
 if(APPLE)
   foreach(asset_file ${hellfire_mod})
-    set(src "${CMAKE_CURRENT_SOURCE_DIR}/mods/Hellfire/${asset_file}")
+    set(src "${CMAKE_CURRENT_SOURCE_DIR}/mods/hf/${asset_file}")
     get_filename_component(_asset_dir "${asset_file}" DIRECTORY)
     set_source_files_properties("${src}" PROPERTIES
-      MACOSX_PACKAGE_LOCATION "Resources/mods/Hellfire/${_asset_dir}"
+      MACOSX_PACKAGE_LOCATION "Resources/mods/hf/${_asset_dir}"
       XCODE_EXPLICIT_FILE_TYPE compiled)
     target_sources(${BIN_TARGET} PRIVATE "${src}")
   endforeach()
 else()
   copy_files(
     FILES ${hellfire_mod}
-    SRC_PREFIX "mods/Hellfire/"
-    OUTPUT_DIR "${DEVILUTIONX_MODS_OUTPUT_DIRECTORY}/Hellfire"
+    SRC_PREFIX "mods/hf/"
+    OUTPUT_DIR "${DEVILUTIONX_MODS_OUTPUT_DIRECTORY}/hf"
     OUTPUT_VARIABLE HELLFIRE_OUTPUT_FILES)
   set(HELLFIRE_MPQ_FILES ${hellfire_mod})
   add_trim_target(hellfire_trim_assets
-    ROOT_FOLDER "${DEVILUTIONX_MODS_OUTPUT_DIRECTORY}/Hellfire"
+    ROOT_FOLDER "${DEVILUTIONX_MODS_OUTPUT_DIRECTORY}/hf"
     CURRENT_FILES ${HELLFIRE_MPQ_FILES})
 
   if(BUILD_ASSETS_MPQ)
-    set(HELLFIRE_MPQ "${DEVILUTIONX_MODS_OUTPUT_DIRECTORY}/Hellfire.mpq")
+    set(HELLFIRE_MPQ "${DEVILUTIONX_MODS_OUTPUT_DIRECTORY}/hf.mpq")
     add_custom_command(
-      COMMENT "Building Hellfire.mpq"
+      COMMENT "Building hf.mpq"
       OUTPUT "${HELLFIRE_MPQ}"
       COMMAND ${CMAKE_COMMAND} -E remove -f "${HELLFIRE_MPQ}"
       COMMAND ${SMPQ} -A -M 1 -C BZIP2 -c "${HELLFIRE_MPQ}" ${HELLFIRE_MPQ_FILES}
-      WORKING_DIRECTORY "${DEVILUTIONX_MODS_OUTPUT_DIRECTORY}/Hellfire"
+      WORKING_DIRECTORY "${DEVILUTIONX_MODS_OUTPUT_DIRECTORY}/hf"
       DEPENDS ${TRIM_COMMAND_BYPRODUCT} ${HELLFIRE_OUTPUT_FILES}
       VERBATIM)
     add_custom_target(hellfire_mpq DEPENDS "${HELLFIRE_MPQ}")

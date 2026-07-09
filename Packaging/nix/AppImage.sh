@@ -6,7 +6,7 @@ BUILD_DIR="${1-build}"
 cmake --install "$BUILD_DIR" --prefix "${BUILD_DIR}/AppDir/usr"
 mkdir -p "${BUILD_DIR}/AppDir/usr/bin/mods"
 mv "$BUILD_DIR"/AppDir/usr/share/diasurgical/devilutionx/devilutionx.mpq "$BUILD_DIR"/AppDir/usr/bin/devilutionx.mpq
-mv "$BUILD_DIR"/AppDir/usr/share/diasurgical/devilutionx/mods/Hellfire.mpq "$BUILD_DIR"/AppDir/usr/bin/mods/Hellfire.mpq
+mv "$BUILD_DIR"/AppDir/usr/share/diasurgical/devilutionx/mods/hf.mpq "$BUILD_DIR"/AppDir/usr/bin/mods/hf.mpq
 
 APPIMAGE_BUILDER="${APPIMAGE_BUILDER:-linuxdeploy-x86_64.AppImage}"
 if ! which "$APPIMAGE_BUILDER"; then
