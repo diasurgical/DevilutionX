@@ -1,9 +1,11 @@
 #include "engine/assets.hpp"
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <functional>
+#include <memory>
 #include <string_view>
 #include <vector>
 
@@ -602,6 +604,32 @@ void UnloadModArchives()
 #endif
 }
 
+#ifndef UNPACKED_MPQS
+// Reads the mod's `manifest.ini` from its own archive (registered at `priority`) and
+// attaches the parsed metadata. Deliberately bypasses the override-capable `FindAsset`
+// pipeline so the manifest is exactly the one covered by the mod's identifying hash.
+void ReadModManifest(ModIdentifier &mod, int priority)
+{
+	auto it = MpqArchives.find(priority);
+	if (it == MpqArchives.end())
+		return;
+	MpqArchive &archive = it->second;
+
+	constexpr std::string_view ManifestName = "manifest.ini";
+	if (!archive.HasFile(ManifestName))
+		return;
+
+	size_t fileSize = 0;
+	int32_t error = 0;
+	std::unique_ptr<std::byte[]> data = archive.ReadFile(ManifestName, fileSize, error);
+	if (data == nullptr) {
+		LogError("Failed to read {} from mod {}: error {}", ManifestName, mod.name, error);
+		return;
+	}
+	mod.manifest = ParseModManifest(std::string_view(reinterpret_cast<const char *>(data.get()), fileSize));
+}
+#endif
+
 void LoadModArchives(std::span<const std::string_view> modnames)
 {
 	ClearModIdentifiers();
@@ -644,7 +672,8 @@ void LoadModArchives(std::span<const std::string_view> modnames)
 		if (LoadMPQ(paths, mpqName, priority, ".mpq", &loadedPath)) {
 			// A packed mod: identify it by the hash of its MPQ bytes. A local packed mod
 			// deliberately shadows any built-in of the same name, so it is treated as external.
-			RegisterPackedModIdentifier(modname, loadedPath.c_str());
+			ModIdentifier &mod = RegisterPackedModIdentifier(modname, loadedPath.c_str());
+			ReadModManifest(mod, priority);
 		} else if (!hasLooseOverride[i]) {
 			// Neither a packed MPQ nor a loose override directory: this mod resolves purely
 			// from core archives (a built-in), so it is provenance-whitelisted.

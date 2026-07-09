@@ -19,15 +19,65 @@
 namespace devilution {
 
 /**
+ * @brief Declarative metadata a mod may ship as a `manifest.ini` at the root of its MPQ.
+ *
+ * The manifest is read directly from the mod's own archive (never through the
+ * override-capable `FindAsset` pipeline), so it is covered by the same SHA-256 that
+ * identifies the mod — a release can only ever vouch for its own past, never re-scope
+ * an old identifier (see `todo/mod-check.md` §2).
+ *
+ * Only `compatibleWith` is consumed today (Phase 2). The remaining fields define the
+ * schema up front so later phases can wire them in without a file rename or a second
+ * parse pass; each has an outstanding task in `todo/mod-check.md`.
+ */
+struct ModManifest {
+	/** Human-readable name shown in the mod menu. Display only — the canonical mod id remains the MPQ filename. */
+	std::string name;
+	/** One-line description shown in the mod menu. */
+	std::string description;
+	/** Free-form version string (e.g. "1.2.0"), shown in the mod menu. */
+	std::string version;
+	/** Author / attribution, for a future online mod archive. */
+	std::string author;
+	/** Homepage or project URL, for a future online mod archive. */
+	std::string homepage;
+	/** License identifier or short text, for a future online mod archive. */
+	std::string license;
+	/**
+	 * Save-file extension this mod uses (e.g. ".hsv"). Last active mod that sets one wins.
+	 * Not yet consumed — see the save-extension task in `todo/mod-check.md`.
+	 */
+	std::string saveExtension;
+	/**
+	 * Four-character program id (e.g. "DXMD") for the multiplayer game-list icon. Last active
+	 * mod that sets one wins. Not yet consumed — see the programid task in `todo/mod-check.md`.
+	 */
+	std::string programId;
+	/**
+	 * Names (MPQ filename ids) of other mods this mod requires; also constrains load order.
+	 * Not yet consumed — see the required-mods task in `todo/mod-check.md`.
+	 */
+	std::vector<std::string> requiredMods;
+	/**
+	 * SHA-256 identifiers of previous releases whose saves this version can load (design §2).
+	 * A required identifier `X` is satisfied by this mod iff its own hash equals `X` or `X`
+	 * appears in this list.
+	 */
+	std::vector<std::array<uint8_t, 32>> compatibleWith;
+};
+
+/**
  * @brief Identity of an active mod, used for multiplayer save/join compatibility checks.
  */
 struct ModIdentifier {
-	/** Mod name as listed in the active mod list (for error messages only). */
+	/** Mod name as listed in the active mod list (the MPQ filename id; for error messages and lookup). */
 	std::string name;
 	/** SHA-256 of the raw mod MPQ bytes, or all-zero for provenance-whitelisted built-ins. */
 	std::array<uint8_t, 32> hash;
 	/** True if this mod is exempt from compatibility checks (provenance or hash whitelist). */
 	bool whitelisted;
+	/** Parsed `manifest.ini` from the mod's own archive; default-constructed when absent. */
+	ModManifest manifest;
 };
 
 /**
@@ -56,8 +106,33 @@ bool ComputeFileSha256(const char *path, std::array<uint8_t, 32> &hashOut);
  * The entry is marked whitelisted iff its hash is in the hardcoded approved list.
  * If the file cannot be hashed the mod is still recorded (with a zero hash) so the
  * active list stays positionally aligned with the mod load order.
+ *
+ * @return reference to the just-appended entry (valid until the next mutation of
+ * `ActiveModIdentifiers`), so the caller can attach a parsed manifest to it.
  */
-void RegisterPackedModIdentifier(std::string_view name, const char *mpqPath);
+ModIdentifier &RegisterPackedModIdentifier(std::string_view name, const char *mpqPath);
+
+/**
+ * @brief Parses a mod `manifest.ini` (INI text read from the mod's own MPQ).
+ *
+ * All fields are optional; unknown keys are ignored and a malformed file yields an
+ * empty manifest. `compatible` identifiers that are not 64 hex characters are skipped.
+ */
+[[nodiscard]] ModManifest ParseModManifest(std::string_view manifestIni);
+
+/**
+ * @brief Decodes a lowercase/uppercase 64-character hex string into a 32-byte hash.
+ * @return true on success; false if the input is not exactly 64 hex digits.
+ */
+bool HexToModHash(std::string_view hex, std::array<uint8_t, 32> &out);
+
+/**
+ * @brief Whether a mod satisfies a required save identifier per the compat rule (design §2).
+ *
+ * True iff the mod's own hash equals `required`, or `required` appears in the mod's
+ * manifest `compatibleWith` list.
+ */
+[[nodiscard]] bool SatisfiesRequiredIdentifier(const ModIdentifier &mod, std::span<const uint8_t, 32> required);
 
 /**
  * @brief Records a built-in mod (one that resolves purely from core archives) as

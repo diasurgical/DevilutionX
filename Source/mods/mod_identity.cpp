@@ -12,6 +12,7 @@
 #include <picosha2.h>
 
 #include "utils/file_util.h"
+#include "utils/ini.hpp"
 #include "utils/log.hpp"
 
 namespace devilution {
@@ -59,7 +60,7 @@ bool ComputeFileSha256(const char *path, std::array<uint8_t, 32> &hashOut)
 	return true;
 }
 
-void RegisterPackedModIdentifier(std::string_view name, const char *mpqPath)
+ModIdentifier &RegisterPackedModIdentifier(std::string_view name, const char *mpqPath)
 {
 	ModIdentifier identifier;
 	identifier.name = std::string(name);
@@ -69,6 +70,75 @@ void RegisterPackedModIdentifier(std::string_view name, const char *mpqPath)
 	}
 	identifier.whitelisted = IsHashWhitelisted(identifier.hash);
 	ActiveModIdentifiers.push_back(std::move(identifier));
+	return ActiveModIdentifiers.back();
+}
+
+bool HexToModHash(std::string_view hex, std::array<uint8_t, 32> &out)
+{
+	if (hex.size() != 2 * out.size())
+		return false;
+	const auto nibble = [](char c) -> int {
+		if (c >= '0' && c <= '9')
+			return c - '0';
+		if (c >= 'a' && c <= 'f')
+			return c - 'a' + 10;
+		if (c >= 'A' && c <= 'F')
+			return c - 'A' + 10;
+		return -1;
+	};
+	for (size_t i = 0; i < out.size(); ++i) {
+		const int hi = nibble(hex[i * 2]);
+		const int lo = nibble(hex[i * 2 + 1]);
+		if (hi < 0 || lo < 0)
+			return false;
+		out[i] = static_cast<uint8_t>((hi << 4) | lo);
+	}
+	return true;
+}
+
+ModManifest ParseModManifest(std::string_view manifestIni)
+{
+	ModManifest manifest;
+	tl::expected<Ini, std::string> ini = Ini::parse(manifestIni);
+	if (!ini.has_value()) {
+		LogError("Failed to parse mod manifest: {}", ini.error());
+		return manifest;
+	}
+
+	constexpr std::string_view Section = "mod";
+	manifest.name = std::string(ini->getString(Section, "name"));
+	manifest.description = std::string(ini->getString(Section, "description"));
+	manifest.version = std::string(ini->getString(Section, "version"));
+	manifest.author = std::string(ini->getString(Section, "author"));
+	manifest.homepage = std::string(ini->getString(Section, "homepage"));
+	manifest.license = std::string(ini->getString(Section, "license"));
+	manifest.saveExtension = std::string(ini->getString(Section, "saveExtension"));
+	manifest.programId = std::string(ini->getString(Section, "programId"));
+
+	for (const Ini::Value &value : ini->get(Section, "requires")) {
+		if (!value.value.empty())
+			manifest.requiredMods.push_back(value.value);
+	}
+	for (const Ini::Value &value : ini->get(Section, "compatible")) {
+		std::array<uint8_t, 32> hash;
+		if (HexToModHash(value.value, hash)) {
+			manifest.compatibleWith.push_back(hash);
+		} else {
+			LogError("Ignoring invalid compatible identifier in mod manifest: {}", value.value);
+		}
+	}
+	return manifest;
+}
+
+bool SatisfiesRequiredIdentifier(const ModIdentifier &mod, std::span<const uint8_t, 32> required)
+{
+	if (std::equal(mod.hash.begin(), mod.hash.end(), required.begin()))
+		return true;
+	for (const std::array<uint8_t, 32> &compatible : mod.manifest.compatibleWith) {
+		if (std::equal(compatible.begin(), compatible.end(), required.begin()))
+			return true;
+	}
+	return false;
 }
 
 void RegisterBuiltinModIdentifier(std::string_view name)

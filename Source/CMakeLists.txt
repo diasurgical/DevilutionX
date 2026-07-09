@@ -191,6 +191,7 @@ add_devilutionx_object_library(libdevilutionx_mod_identity
 target_include_directories(libdevilutionx_mod_identity PRIVATE ${PROJECT_SOURCE_DIR}/3rdParty/PicoSHA2)
 target_link_dependencies(libdevilutionx_mod_identity PUBLIC
   libdevilutionx_file_util
+  libdevilutionx_ini
   libdevilutionx_log
 )
 

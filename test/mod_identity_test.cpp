@@ -1,9 +1,11 @@
 #include <gtest/gtest.h>
 
 #include <array>
+#include <cctype>
 #include <cstdint>
 #include <cstdio>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include <picosha2.h>
@@ -78,6 +80,111 @@ TEST(ModIdentity, EmptyWhitelistRejectsEverything)
 	EXPECT_FALSE(IsHashWhitelisted(hash));
 	hash[0] = 0xAB;
 	EXPECT_FALSE(IsHashWhitelisted(hash));
+}
+
+TEST(ModIdentity, HexToModHashRoundTrip)
+{
+	std::array<uint8_t, 32> hash;
+	for (size_t i = 0; i < hash.size(); ++i)
+		hash[i] = static_cast<uint8_t>(i * 7 + 1);
+	const std::string hex = ModHashToHex(hash);
+
+	std::array<uint8_t, 32> decoded;
+	ASSERT_TRUE(HexToModHash(hex, decoded));
+	EXPECT_EQ(decoded, hash);
+
+	// Uppercase is accepted too.
+	std::string upper = hex;
+	for (char &c : upper)
+		c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
+	ASSERT_TRUE(HexToModHash(upper, decoded));
+	EXPECT_EQ(decoded, hash);
+}
+
+TEST(ModIdentity, HexToModHashRejectsMalformed)
+{
+	std::array<uint8_t, 32> decoded;
+	EXPECT_FALSE(HexToModHash("", decoded));                   // too short
+	EXPECT_FALSE(HexToModHash(std::string(63, 'a'), decoded)); // 63 digits
+	EXPECT_FALSE(HexToModHash(std::string(65, 'a'), decoded)); // 65 digits
+	EXPECT_FALSE(HexToModHash(std::string(64, 'g'), decoded)); // non-hex digit
+}
+
+TEST(ModIdentity, ParsesManifestFields)
+{
+	const std::string_view manifest = "[mod]\n"
+	                                  "name=Viking Total Conversion\n"
+	                                  "description=A total conversion mod\n"
+	                                  "version=2.1.0\n"
+	                                  "author=Someone\n"
+	                                  "homepage=https://example.com\n"
+	                                  "license=GPL-3.0\n"
+	                                  "saveExtension=.vsv\n"
+	                                  "programId=DXVK\n"
+	                                  "requires=clock\n"
+	                                  "requires=adria_refills_mana\n"
+	                                  "compatible=ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad\n"
+	                                  "compatible=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\n";
+
+	const ModManifest parsed = ParseModManifest(manifest);
+	EXPECT_EQ(parsed.name, "Viking Total Conversion");
+	EXPECT_EQ(parsed.description, "A total conversion mod");
+	EXPECT_EQ(parsed.version, "2.1.0");
+	EXPECT_EQ(parsed.author, "Someone");
+	EXPECT_EQ(parsed.homepage, "https://example.com");
+	EXPECT_EQ(parsed.license, "GPL-3.0");
+	EXPECT_EQ(parsed.saveExtension, ".vsv");
+	EXPECT_EQ(parsed.programId, "DXVK");
+	ASSERT_EQ(parsed.requiredMods.size(), 2u);
+	EXPECT_EQ(parsed.requiredMods[0], "clock");
+	EXPECT_EQ(parsed.requiredMods[1], "adria_refills_mana");
+	ASSERT_EQ(parsed.compatibleWith.size(), 2u);
+	EXPECT_EQ(ModHashToHex(parsed.compatibleWith[0]), "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+	EXPECT_EQ(ModHashToHex(parsed.compatibleWith[1]), "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+}
+
+TEST(ModIdentity, ManifestIgnoresInvalidCompatibleAndMissingFields)
+{
+	const std::string_view manifest = "[mod]\n"
+	                                  "name=Minimal\n"
+	                                  "compatible=not-a-hash\n"
+	                                  "compatible=ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad\n";
+
+	const ModManifest parsed = ParseModManifest(manifest);
+	EXPECT_EQ(parsed.name, "Minimal");
+	EXPECT_TRUE(parsed.version.empty());
+	EXPECT_TRUE(parsed.requiredMods.empty());
+	// Only the valid identifier is kept.
+	ASSERT_EQ(parsed.compatibleWith.size(), 1u);
+	EXPECT_EQ(ModHashToHex(parsed.compatibleWith[0]), "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+}
+
+TEST(ModIdentity, EmptyManifestYieldsEmptyFields)
+{
+	const ModManifest parsed = ParseModManifest("");
+	EXPECT_TRUE(parsed.name.empty());
+	EXPECT_TRUE(parsed.compatibleWith.empty());
+	EXPECT_TRUE(parsed.requiredMods.empty());
+}
+
+TEST(ModIdentity, SatisfiesRequiredIdentifier)
+{
+	ModIdentifier mod;
+	mod.name = "example";
+	ASSERT_TRUE(HexToModHash("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad", mod.hash));
+
+	std::array<uint8_t, 32> compat;
+	ASSERT_TRUE(HexToModHash("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", compat));
+	mod.manifest.compatibleWith.push_back(compat);
+
+	// Exact hash match.
+	EXPECT_TRUE(SatisfiesRequiredIdentifier(mod, mod.hash));
+	// Listed in the compat list.
+	EXPECT_TRUE(SatisfiesRequiredIdentifier(mod, compat));
+	// Neither.
+	std::array<uint8_t, 32> other = {};
+	other[0] = 0x01;
+	EXPECT_FALSE(SatisfiesRequiredIdentifier(mod, other));
 }
 
 TEST(ModIdentity, RegisterAndClear)
