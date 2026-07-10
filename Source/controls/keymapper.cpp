@@ -12,7 +12,7 @@
 #endif
 #endif
 
-#include "control.h"
+#include "control/control.hpp"
 #include "options.h"
 #include "utils/is_of.hpp"
 

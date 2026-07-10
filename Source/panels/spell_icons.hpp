@@ -8,7 +8,7 @@
 #include "engine/clx_sprite.hpp"
 #include "engine/point.hpp"
 #include "engine/surface.hpp"
-#include "spelldat.h"
+#include "tables/spelldat.h"
 
 #define SPLICONLENGTH 56
 

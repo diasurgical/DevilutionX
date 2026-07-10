@@ -10,15 +10,15 @@
 #include <vector>
 
 #include "DiabloUI/ui_flags.hpp"
-#include "control.h"
+#include "control/control.hpp"
 #include "engine/clx_sprite.hpp"
 #include "engine/dx.h"
 #include "engine/load_cel.hpp"
 #include "engine/render/clx_render.hpp"
 #include "engine/render/primitive_render.hpp"
 #include "engine/render/text_render.hpp"
-#include "playerdat.hpp"
-#include "textdat.h"
+#include "tables/playerdat.hpp"
+#include "tables/textdat.h"
 #include "utils/language.h"
 #include "utils/timer.hpp"
 
@@ -84,7 +84,7 @@ int CalculateTextPosition()
 {
 	const uint32_t currTime = GetMillisecondsSinceStartup();
 
-	const int y = (currTime - ScrollStart) / qtextSpd - 260;
+	const int y = ((currTime - ScrollStart) / qtextSpd) - 260;
 
 	const auto textHeight = static_cast<int>(LineHeight * TextLines.size());
 	if (y >= textHeight)
@@ -116,7 +116,7 @@ void DrawQTextContent(const Surface &out)
 			continue;
 		}
 
-		DrawString(out, line, { { sx, sy + i * LineHeight }, { 543, LineHeight } },
+		DrawString(out, line, { { sx, sy + (i * LineHeight) }, { 543, LineHeight } },
 		    { .flags = UiFlags::FontSize30 | UiFlags::ColorGold });
 	}
 }

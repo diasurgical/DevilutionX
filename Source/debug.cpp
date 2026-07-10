@@ -183,8 +183,7 @@ bool GetDebugGridText(Point dungeonCoords, std::string &debugGridText)
 			case TileType::RightTrapezoid: StrAppend(debugGridText, "/"); break;
 			}
 		}
-		if (debugGridText.empty()) return false;
-		return true;
+		return !debugGridText.empty();
 	} break;
 	case DebugGridTextItem::dPiece:
 		info = dPiece[dungeonCoords.x][dungeonCoords.y];
@@ -216,8 +215,7 @@ bool GetDebugGridText(Point dungeonCoords, std::string &debugGridText)
 				debugGridText.append(std::to_string((int)missile._mitype));
 			}
 		}
-		if (debugGridText.empty()) return false;
-		return true;
+		return !debugGridText.empty();
 	} break;
 	case DebugGridTextItem::dCorpse:
 		info = dCorpse[dungeonCoords.x][dungeonCoords.y];

@@ -311,46 +311,53 @@ public:
 	}
 
 private:
-	[[nodiscard]] static bool isWordSeparator(unsigned char c)
+	[[nodiscard]] static bool isWordSeparator(char32_t c)
 	{
-		const bool isAsciiWordChar = (c >= '0' && c <= '9')
-		    || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c == '_';
-		return c <= '\x7E' && !isAsciiWordChar;
+		const bool isAsciiWordChar = (c >= U'0' && c <= U'9')
+		    || (c >= U'A' && c <= U'Z') || (c >= U'a' && c <= U'z') || c == U'_';
+		return c <= U'\x7E' && !isAsciiWordChar;
 	}
 
 	[[nodiscard]] size_t prevPosition(bool word) const
 	{
 		const std::string_view str = beforeCursor();
-		size_t pos = FindLastUtf8Symbols(str);
+		if (str.empty()) return 0;
+
+		auto it = Utf8CodePoints(str).rbegin();
+		const auto end = Utf8CodePoints(str).rend();
 		if (!word)
-			return pos;
-		while (pos > 0 && isWordSeparator(str[pos])) {
-			pos = FindLastUtf8Symbols({ str.data(), pos });
+			return static_cast<size_t>(std::prev(it.base()).data() - str.data());
+
+		while (it != end && isWordSeparator(*it)) {
+			++it;
 		}
-		while (pos > 0) {
-			const size_t prevPos = FindLastUtf8Symbols({ str.data(), pos });
-			if (isWordSeparator(str[prevPos]))
-				break;
-			pos = prevPos;
+		while (it != end && !isWordSeparator(*it)) {
+			++it;
 		}
-		return pos;
+		if (it == end) return 0;
+
+		return static_cast<size_t>(it.base().data() - str.data());
 	}
 
 	[[nodiscard]] size_t nextPosition(bool word) const
 	{
 		const std::string_view str = afterCursor();
-		size_t pos = Utf8CodePointLen(str.data());
-		if (!word)
-			return cursor_->position + pos;
-		while (pos < str.size() && isWordSeparator(str[pos])) {
-			pos += Utf8CodePointLen(str.data() + pos);
+		if (str.empty()) return cursor_->position;
+
+		auto it = Utf8CodePoints(str).begin();
+		const auto end = Utf8CodePoints(str).end();
+		if (!word) return cursor_->position + it.size();
+
+		++it;
+		while (it != end && isWordSeparator(*it)) {
+			++it;
 		}
-		while (pos < str.size()) {
-			pos += Utf8CodePointLen(str.data() + pos);
-			if (isWordSeparator(str[pos]))
-				break;
+		while (it != end && !isWordSeparator(*it)) {
+			++it;
 		}
-		return cursor_->position + pos;
+		if (it == end) return cursor_->position + str.size();
+
+		return cursor_->position + static_cast<size_t>(it.data() - str.data());
 	}
 
 	[[nodiscard]] std::string_view beforeCursor() const

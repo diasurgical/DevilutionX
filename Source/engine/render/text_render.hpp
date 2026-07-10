@@ -14,6 +14,8 @@
 #include <variant>
 #include <vector>
 
+#include <fmt/format.h>
+
 #include "DiabloUI/ui_flags.hpp"
 #include "engine/clx_sprite.hpp"
 #include "engine/palette.h"
@@ -155,6 +157,8 @@ struct TextRenderOptions {
 
 	/** @brief If a cursor is rendered, the surface coordinates are saved here. */
 	std::optional<Point> *renderedCursorPositionOut = nullptr;
+
+	bool cursorStatic = false;
 };
 
 /**

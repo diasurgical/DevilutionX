@@ -205,6 +205,10 @@ enum _cmd_id : uint8_t {
 	// body (TCmdParam1):
 	//    int16_t ear_flag
 	CMD_PLRDEAD,
+	// Player resurrection.
+	//
+	// body (TCmd)
+	CMD_PLRALIVE,
 	// Lift item to hand request.
 	//
 	// body (TCmdGItem)
@@ -699,6 +703,7 @@ struct TPktHdr {
 	uint8_t bstr;
 	uint8_t bmag;
 	uint8_t bdex;
+	uint8_t pdir;
 	uint16_t wCheck;
 	uint16_t wLen;
 };

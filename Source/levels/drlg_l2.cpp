@@ -1608,8 +1608,8 @@ void PlaceMiniSetRandom(const Miniset &miniset, int rndper)
 			if (!miniset.matches({ sx, sy }))
 				continue;
 			bool found = true;
-			for (int yy = std::max(sy - sh, 0); yy < std::min(sy + 2 * sh, DMAXY) && found; yy++) {
-				for (int xx = std::max(sx - sw, 0); xx < std::min(sx + 2 * sw, DMAXX); xx++) {
+			for (int yy = std::max(sy - sh, 0); yy < std::min(sy + (2 * sh), DMAXY) && found; yy++) {
+				for (int xx = std::max(sx - sw, 0); xx < std::min(sx + (2 * sw), DMAXX); xx++) {
 					if (dungeon[xx][yy] == miniset.replace[0][0]) {
 						found = false;
 						break;

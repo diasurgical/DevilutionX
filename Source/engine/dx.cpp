@@ -17,6 +17,10 @@
 #include <SDL.h>
 #endif
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+
 #include "controls/control_mode.hpp"
 #include "controls/plrctrls.h"
 #include "engine/render/primitive_render.hpp"
@@ -93,7 +97,7 @@ void LimitFrameRate()
 	uint32_t v = 0;
 	if (frameDeadline > tc) {
 		v = tc % refreshDelay;
-		SDL_Delay(v / 1000 + 1); // ceil
+		SDL_Delay((v / 1000) + 1); // ceil
 	}
 	frameDeadline = tc + v + refreshDelay;
 }
@@ -236,7 +240,12 @@ void RenderPresent()
 	SDL_Surface *surface = GetOutputSurface();
 
 	if (!gbActive) {
+#ifdef __EMSCRIPTEN__
+		// Just yield to browser when inactive instead of blocking
+		emscripten_sleep(1);
+#else
 		LimitFrameRate();
+#endif
 		return;
 	}
 
@@ -258,6 +267,12 @@ void RenderPresent()
 			RenderVirtualGamepad(renderer);
 		}
 		SDL_RenderPresent(renderer);
+
+#ifdef __EMSCRIPTEN__
+		// TODO: Refactor to use emscripten_set_main_loop or requestAnimationFrame instead.
+		// For now, yield to browser to allow rendering via ASYNCIFY sleep.
+		emscripten_sleep(1);
+#endif
 
 		if (*GetOptions().Graphics.frameRateControl != FrameRateControl::VerticalSync) {
 			LimitFrameRate();

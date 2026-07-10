@@ -20,7 +20,7 @@ namespace {
 
 std::optional<sol::environment> replEnv;
 
-void LuaConsoleWarn(void *userData, const char *message, int continued)
+void LuaConsoleWarn(void * /*userData*/, const char *message, int continued)
 {
 	static std::string warnBuffer;
 	warnBuffer.append(message);

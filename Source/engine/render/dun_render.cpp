@@ -18,6 +18,7 @@
 #include "appfat.h"
 #include "engine/point.hpp"
 #include "engine/render/blit_impl.hpp"
+#include "engine/render/overlapped_memset.hpp"
 #include "levels/dun_tile.hpp"
 #include "options.h"
 #include "utils/attributes.h"
@@ -42,7 +43,7 @@ constexpr int_fast16_t Height = DunFrameHeight;
 constexpr int_fast16_t LowerHeight = DunFrameHeight / 2;
 
 /** Height of the upper triangle of a triangular tile. */
-constexpr int_fast16_t TriangleUpperHeight = DunFrameHeight / 2 - 1;
+constexpr int_fast16_t TriangleUpperHeight = (DunFrameHeight / 2) - 1;
 
 /** Height of the upper rectangle of a trapezoid tile. */
 constexpr int_fast16_t TrapezoidUpperHeight = DunFrameHeight / 2;
@@ -121,14 +122,14 @@ DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLineOpaque(uint8_t *DVL_RESTRICT 
 template <>
 DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLineOpaque<LightType::FullyDark>(uint8_t *DVL_RESTRICT dst, [[maybe_unused]] const uint8_t *DVL_RESTRICT src, uint_fast8_t n, [[maybe_unused]] const uint8_t *DVL_RESTRICT tbl, [[maybe_unused]] const Lightmap *lightmap)
 {
-	BlitFillDirect(dst, n, 0);
+	FillBytesUpTo32(dst, n, 0);
 }
 
 template <>
 DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLineOpaque<LightType::FullyLit>(uint8_t *DVL_RESTRICT dst, const uint8_t *DVL_RESTRICT src, uint_fast8_t n, [[maybe_unused]] const uint8_t *DVL_RESTRICT tbl, [[maybe_unused]] const Lightmap *lightmap)
 {
 #ifndef DEBUG_RENDER_COLOR
-	BlitPixelsDirect(dst, src, n);
+	CopyBytesUpTo32(dst, src, n);
 #else
 	BlitFillDirect(dst, n, DBGCOLOR);
 #endif
@@ -201,6 +202,20 @@ DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLineTransparentOrOpaque(uint8_t *
 	}
 }
 
+// Overload for statically-known pixel counts. For FullyDark+opaque, uses
+// BlitFillDirect with a compile-time constant instead of FillBytesUpTo32.
+template <LightType Light, bool Transparent, uint_fast8_t N>
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLineTransparentOrOpaqueN(uint8_t *DVL_RESTRICT dst, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap)
+{
+	if constexpr (!Transparent && Light == LightType::FullyDark) {
+		BlitFillDirect(dst, N, 0);
+	} else if constexpr (!Transparent && Light == LightType::FullyLit) {
+		BlitPixelsDirect(dst, src, N);
+	} else {
+		RenderLineTransparentOrOpaque<Light, Transparent>(dst, src, N, tbl, lightmap);
+	}
+}
+
 template <LightType Light, bool OpaqueFirst>
 DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLineTransparentAndOpaque(uint8_t *DVL_RESTRICT dst, const uint8_t *DVL_RESTRICT src, uint_fast8_t prefixWidth, uint_fast8_t width, const uint8_t *DVL_RESTRICT tbl, const Lightmap &lightmap)
 {
@@ -261,7 +276,7 @@ template <LightType Light, bool Transparent>
 DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderSquareFull(uint8_t *DVL_RESTRICT dst, uint16_t dstPitch, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, const Lightmap &lightmap)
 {
 	for (auto i = 0; i < Height; ++i, dst -= dstPitch) {
-		RenderLineTransparentOrOpaque<Light, Transparent>(dst, src, Width, tbl, &lightmap);
+		RenderLineTransparentOrOpaqueN<Light, Transparent, Width>(dst, src, tbl, &lightmap);
 		src += Width;
 	}
 }
@@ -436,73 +451,50 @@ DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT std::size_t CalculateTriangleSourceSkipLower
 
 DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT std::size_t CalculateTriangleSourceSkipUpperBottom(int_fast16_t numLines)
 {
-	return 2 * TriangleUpperHeight * numLines - numLines * (numLines - 1);
+	return (2 * TriangleUpperHeight * numLines) - (numLines * (numLines - 1));
 }
 
 template <LightType Light, bool Transparent>
 DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderTriangleLower(uint8_t *DVL_RESTRICT &dst, ptrdiff_t dstLineOffset, const uint8_t *DVL_RESTRICT &src, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap)
 {
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 0 * dstLineOffset, src + 0, 2, tbl, lightmap);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 1 * dstLineOffset, src + 2, 4, tbl, lightmap);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 2 * dstLineOffset, src + 6, 6, tbl, lightmap);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 3 * dstLineOffset, src + 12, 8, tbl, lightmap);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 4 * dstLineOffset, src + 20, 10, tbl, lightmap);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 5 * dstLineOffset, src + 30, 12, tbl, lightmap);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 6 * dstLineOffset, src + 42, 14, tbl, lightmap);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 7 * dstLineOffset, src + 56, 16, tbl, lightmap);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 8 * dstLineOffset, src + 72, 18, tbl, lightmap);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 9 * dstLineOffset, src + 90, 20, tbl, lightmap);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 10 * dstLineOffset, src + 110, 22, tbl, lightmap);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 11 * dstLineOffset, src + 132, 24, tbl, lightmap);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 12 * dstLineOffset, src + 156, 26, tbl, lightmap);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 13 * dstLineOffset, src + 182, 28, tbl, lightmap);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 14 * dstLineOffset, src + 210, 30, tbl, lightmap);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 15 * dstLineOffset, src + 240, 32, tbl, lightmap);
+	RenderLineTransparentOrOpaqueN<Light, Transparent, 2>(dst - (0 * dstLineOffset), src + 0, tbl, lightmap);
+	RenderLineTransparentOrOpaqueN<Light, Transparent, 4>(dst - (1 * dstLineOffset), src + 2, tbl, lightmap);
+	RenderLineTransparentOrOpaqueN<Light, Transparent, 6>(dst - (2 * dstLineOffset), src + 6, tbl, lightmap);
+	RenderLineTransparentOrOpaqueN<Light, Transparent, 8>(dst - (3 * dstLineOffset), src + 12, tbl, lightmap);
+	RenderLineTransparentOrOpaqueN<Light, Transparent, 10>(dst - (4 * dstLineOffset), src + 20, tbl, lightmap);
+	RenderLineTransparentOrOpaqueN<Light, Transparent, 12>(dst - (5 * dstLineOffset), src + 30, tbl, lightmap);
+	RenderLineTransparentOrOpaqueN<Light, Transparent, 14>(dst - (6 * dstLineOffset), src + 42, tbl, lightmap);
+	RenderLineTransparentOrOpaqueN<Light, Transparent, 16>(dst - (7 * dstLineOffset), src + 56, tbl, lightmap);
+	RenderLineTransparentOrOpaqueN<Light, Transparent, 18>(dst - (8 * dstLineOffset), src + 72, tbl, lightmap);
+	RenderLineTransparentOrOpaqueN<Light, Transparent, 20>(dst - (9 * dstLineOffset), src + 90, tbl, lightmap);
+	RenderLineTransparentOrOpaqueN<Light, Transparent, 22>(dst - (10 * dstLineOffset), src + 110, tbl, lightmap);
+	RenderLineTransparentOrOpaqueN<Light, Transparent, 24>(dst - (11 * dstLineOffset), src + 132, tbl, lightmap);
+	RenderLineTransparentOrOpaqueN<Light, Transparent, 26>(dst - (12 * dstLineOffset), src + 156, tbl, lightmap);
+	RenderLineTransparentOrOpaqueN<Light, Transparent, 28>(dst - (13 * dstLineOffset), src + 182, tbl, lightmap);
+	RenderLineTransparentOrOpaqueN<Light, Transparent, 30>(dst - (14 * dstLineOffset), src + 210, tbl, lightmap);
+	RenderLineTransparentOrOpaqueN<Light, Transparent, 32>(dst - (15 * dstLineOffset), src + 240, tbl, lightmap);
 	src += 272;
 	dst -= 16 * dstLineOffset;
-}
-
-template <>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderTriangleLower<LightType::FullyDark, /*Transparent=*/false>(uint8_t *DVL_RESTRICT &dst, ptrdiff_t dstLineOffset, const uint8_t *DVL_RESTRICT &src, [[maybe_unused]] const uint8_t *DVL_RESTRICT tbl, [[maybe_unused]] const Lightmap *lightmap)
-{
-	unsigned width = XStep;
-	for (unsigned i = 0; i < LowerHeight; ++i) {
-		BlitFillDirect(dst, width, 0);
-		dst -= dstLineOffset;
-		width += XStep;
-	}
-	src += 272;
 }
 
 template <LightType Light, bool Transparent>
 DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderTriangleUpper(uint8_t *DVL_RESTRICT dst, ptrdiff_t dstLineOffset, const uint8_t *DVL_RESTRICT src, const uint8_t *DVL_RESTRICT tbl, const Lightmap *lightmap)
 {
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 0 * dstLineOffset, src + 0, 30, tbl, lightmap);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 1 * dstLineOffset, src + 30, 28, tbl, lightmap);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 2 * dstLineOffset, src + 58, 26, tbl, lightmap);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 3 * dstLineOffset, src + 84, 24, tbl, lightmap);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 4 * dstLineOffset, src + 108, 22, tbl, lightmap);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 5 * dstLineOffset, src + 130, 20, tbl, lightmap);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 6 * dstLineOffset, src + 150, 18, tbl, lightmap);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 7 * dstLineOffset, src + 168, 16, tbl, lightmap);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 8 * dstLineOffset, src + 184, 14, tbl, lightmap);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 9 * dstLineOffset, src + 198, 12, tbl, lightmap);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 10 * dstLineOffset, src + 210, 10, tbl, lightmap);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 11 * dstLineOffset, src + 220, 8, tbl, lightmap);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 12 * dstLineOffset, src + 228, 6, tbl, lightmap);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 13 * dstLineOffset, src + 234, 4, tbl, lightmap);
-	RenderLineTransparentOrOpaque<Light, Transparent>(dst - 14 * dstLineOffset, src + 238, 2, tbl, lightmap);
-}
-
-template <>
-DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderTriangleUpper<LightType::FullyDark, /*Transparent=*/false>(uint8_t *DVL_RESTRICT dst, ptrdiff_t dstLineOffset, [[maybe_unused]] const uint8_t *DVL_RESTRICT src, [[maybe_unused]] const uint8_t *DVL_RESTRICT tbl, [[maybe_unused]] const Lightmap *lightmap)
-{
-	unsigned width = Width - XStep;
-	for (unsigned i = 0; i < TriangleUpperHeight; ++i) {
-		BlitFillDirect(dst, width, 0);
-		dst -= dstLineOffset;
-		width -= XStep;
-	}
+	RenderLineTransparentOrOpaqueN<Light, Transparent, 30>(dst - (0 * dstLineOffset), src + 0, tbl, lightmap);
+	RenderLineTransparentOrOpaqueN<Light, Transparent, 28>(dst - (1 * dstLineOffset), src + 30, tbl, lightmap);
+	RenderLineTransparentOrOpaqueN<Light, Transparent, 26>(dst - (2 * dstLineOffset), src + 58, tbl, lightmap);
+	RenderLineTransparentOrOpaqueN<Light, Transparent, 24>(dst - (3 * dstLineOffset), src + 84, tbl, lightmap);
+	RenderLineTransparentOrOpaqueN<Light, Transparent, 22>(dst - (4 * dstLineOffset), src + 108, tbl, lightmap);
+	RenderLineTransparentOrOpaqueN<Light, Transparent, 20>(dst - (5 * dstLineOffset), src + 130, tbl, lightmap);
+	RenderLineTransparentOrOpaqueN<Light, Transparent, 18>(dst - (6 * dstLineOffset), src + 150, tbl, lightmap);
+	RenderLineTransparentOrOpaqueN<Light, Transparent, 16>(dst - (7 * dstLineOffset), src + 168, tbl, lightmap);
+	RenderLineTransparentOrOpaqueN<Light, Transparent, 14>(dst - (8 * dstLineOffset), src + 184, tbl, lightmap);
+	RenderLineTransparentOrOpaqueN<Light, Transparent, 12>(dst - (9 * dstLineOffset), src + 198, tbl, lightmap);
+	RenderLineTransparentOrOpaqueN<Light, Transparent, 10>(dst - (10 * dstLineOffset), src + 210, tbl, lightmap);
+	RenderLineTransparentOrOpaqueN<Light, Transparent, 8>(dst - (11 * dstLineOffset), src + 220, tbl, lightmap);
+	RenderLineTransparentOrOpaqueN<Light, Transparent, 6>(dst - (12 * dstLineOffset), src + 228, tbl, lightmap);
+	RenderLineTransparentOrOpaqueN<Light, Transparent, 4>(dst - (13 * dstLineOffset), src + 234, tbl, lightmap);
+	RenderLineTransparentOrOpaqueN<Light, Transparent, 2>(dst - (14 * dstLineOffset), src + 238, tbl, lightmap);
 }
 
 template <LightType Light, bool Transparent>
@@ -533,7 +525,7 @@ DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLeftTriangleLowerClipLeftAndVerti
 	const auto lowerMax = LowerHeight - clipY.lowerTop;
 	for (auto i = 1 + clipY.lowerBottom; i <= lowerMax; ++i, dst -= dstPitch + XStep) {
 		const auto width = XStep * i;
-		const auto startX = Width - XStep * i;
+		const auto startX = Width - (XStep * i);
 		const auto skip = startX < clipLeft ? clipLeft - startX : 0;
 		if (width > skip)
 			RenderLineTransparentOrOpaque<Light, Transparent>(dst + skip, src + skip, width - skip, tbl, lightmap);
@@ -572,7 +564,7 @@ DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLeftTriangleClipVertical(uint8_t 
 	dst += 2 * XStep + XStep * clipY.upperBottom;
 	const auto upperMax = TriangleUpperHeight - clipY.upperTop;
 	for (auto i = 1 + clipY.upperBottom; i <= upperMax; ++i, dst -= dstPitch - XStep) {
-		const auto width = Width - XStep * i;
+		const auto width = Width - (XStep * i);
 		RenderLineTransparentOrOpaque<Light, Transparent>(dst, src, width, tbl, lightmap);
 		src += width;
 	}
@@ -588,7 +580,7 @@ DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLeftTriangleClipLeftAndVertical(u
 	dst += 2 * XStep + XStep * clipY.upperBottom;
 	const auto upperMax = TriangleUpperHeight - clipY.upperTop;
 	for (auto i = 1 + clipY.upperBottom; i <= upperMax; ++i, dst -= dstPitch - XStep) {
-		const auto width = Width - XStep * i;
+		const auto width = Width - (XStep * i);
 		const auto startX = XStep * i;
 		const auto skip = startX < clipLeft ? clipLeft - startX : 0;
 		RenderLineTransparentOrOpaque<Light, Transparent>(dst + skip, src + skip, width > skip ? width - skip : 0, tbl, lightmap);
@@ -606,7 +598,7 @@ DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderLeftTriangleClipRightAndVertical(
 	dst += 2 * XStep + XStep * clipY.upperBottom;
 	const auto upperMax = TriangleUpperHeight - clipY.upperTop;
 	for (auto i = 1 + clipY.upperBottom; i <= upperMax; ++i, dst -= dstPitch - XStep) {
-		const auto width = Width - XStep * i;
+		const auto width = Width - (XStep * i);
 		if (width <= clipRight)
 			break;
 		RenderLineTransparentOrOpaque<Light, Transparent>(dst, src, width - clipRight, tbl, lightmap);
@@ -690,7 +682,7 @@ DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderRightTriangleClipVertical(uint8_t
 	src += CalculateTriangleSourceSkipUpperBottom(clipY.upperBottom);
 	const auto upperMax = TriangleUpperHeight - clipY.upperTop;
 	for (auto i = 1 + clipY.upperBottom; i <= upperMax; ++i, dst -= dstPitch) {
-		const auto width = Width - XStep * i;
+		const auto width = Width - (XStep * i);
 		RenderLineTransparentOrOpaque<Light, Transparent>(dst, src, width, tbl, lightmap);
 		src += width;
 	}
@@ -705,7 +697,7 @@ DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderRightTriangleClipLeftAndVertical(
 	src += CalculateTriangleSourceSkipUpperBottom(clipY.upperBottom);
 	const auto upperMax = TriangleUpperHeight - clipY.upperTop;
 	for (auto i = 1 + clipY.upperBottom; i <= upperMax; ++i, dst -= dstPitch) {
-		const auto width = Width - XStep * i;
+		const auto width = Width - (XStep * i);
 		if (width <= clipLeft)
 			break;
 		RenderLineTransparentOrOpaque<Light, Transparent>(dst, src + clipLeft, width - clipLeft, tbl, lightmap);
@@ -722,7 +714,7 @@ DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderRightTriangleClipRightAndVertical
 	src += CalculateTriangleSourceSkipUpperBottom(clipY.upperBottom);
 	const auto upperMax = TriangleUpperHeight - clipY.upperTop;
 	for (auto i = 1 + clipY.upperBottom; i <= upperMax; ++i, dst -= dstPitch) {
-		const auto width = Width - XStep * i;
+		const auto width = Width - (XStep * i);
 		const auto skip = Width - width < clipRight ? clipRight - (Width - width) : 0;
 		RenderLineTransparentOrOpaque<Light, Transparent>(dst, src, width > skip ? width - skip : 0, tbl, lightmap);
 		src += width;
@@ -751,8 +743,8 @@ DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderTrapezoidUpperHalf(uint8_t *DVL_R
 	if constexpr (Mask == MaskType::Left || Mask == MaskType::Right) {
 		// The first line is always fully opaque.
 		// We handle it specially to avoid calling the blitter with width=0.
-		const uint8_t *srcEnd = src + Width * TrapezoidUpperHeight;
-		RenderLineOpaque<Light>(dst, src, Width, tbl, &lightmap);
+		const uint8_t *srcEnd = src + (Width * TrapezoidUpperHeight);
+		RenderLineTransparentOrOpaqueN<Light, false, Width>(dst, src, tbl, &lightmap);
 		src += Width;
 		dst -= dstPitch;
 		uint8_t prefixWidth = (PrefixIncrement<Mask> < 0 ? 32 : 0) + PrefixIncrement<Mask>;
@@ -763,9 +755,9 @@ DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void RenderTrapezoidUpperHalf(uint8_t *DVL_R
 			dst -= dstPitch;
 		} while (src != srcEnd);
 	} else { // Mask == MaskType::Solid || Mask == MaskType::Transparent
-		const uint8_t *srcEnd = src + Width * TrapezoidUpperHeight;
+		const uint8_t *srcEnd = src + (Width * TrapezoidUpperHeight);
 		do {
-			RenderLineTransparentOrOpaque<Light, /*Transparent=*/Mask == MaskType::Transparent>(dst, src, Width, tbl, &lightmap);
+			RenderLineTransparentOrOpaqueN<Light, /*Transparent=*/Mask == MaskType::Transparent, Width>(dst, src, tbl, &lightmap);
 			src += Width;
 			dst -= dstPitch;
 		} while (src != srcEnd);

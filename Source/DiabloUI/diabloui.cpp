@@ -50,8 +50,8 @@
 #include "init.hpp"
 #include "options.h"
 #include "player.h"
-#include "playerdat.hpp"
 #include "sound_effect_enums.h"
+#include "tables/playerdat.hpp"
 #include "utils/algorithm/container.hpp"
 #include "utils/display.h"
 #include "utils/enum_traits.h"
@@ -357,12 +357,12 @@ void UiFocusPageUp()
 
 void UiFocusPageDown()
 {
-	if (listOffset + ListViewportSize > static_cast<std::size_t>(SelectedItemMax)) {
+	if (listOffset + ListViewportSize > SelectedItemMax) {
 		UiFocus(SelectedItemMax, false, true);
 	} else {
 		const std::size_t relpos = SelectedItem - listOffset;
 		std::size_t nextPageEnd = SelectedItem + (ListViewportSize - relpos - 1);
-		if (nextPageEnd + ListViewportSize <= static_cast<std::size_t>(SelectedItemMax))
+		if (nextPageEnd + ListViewportSize <= SelectedItemMax)
 			nextPageEnd += ListViewportSize;
 		else
 			nextPageEnd = SelectedItemMax;

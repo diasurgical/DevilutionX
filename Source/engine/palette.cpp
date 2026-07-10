@@ -45,7 +45,7 @@ void LoadBrightness()
 {
 	int brightnessValue = *GetOptions().Graphics.brightness;
 	brightnessValue = std::clamp(brightnessValue, 0, 100);
-	GetOptions().Graphics.brightness.SetValue(brightnessValue - brightnessValue % 5);
+	GetOptions().Graphics.brightness.SetValue(brightnessValue - (brightnessValue % 5));
 }
 
 /**
@@ -96,15 +96,15 @@ constexpr float CalculateToneMappingParameter(int brightness)
 {
 	// Maximum adjustment factor (tweak this constant to change the effect strength)
 	constexpr float MaxAdjustment = 2.0F;
-	return -(brightness / 100.0f) * MaxAdjustment;
+	return -(brightness / 100.0F) * MaxAdjustment;
 }
 
 constexpr uint8_t MapTone(float a, uint8_t color)
 {
-	const auto x = static_cast<float>(color / 255.0f);
+	const auto x = static_cast<float>(color / 255.0F);
 	// Our quadratic tone mapping: f(x) = a*x^2 + (1-a)*x.
-	const float y = std::clamp(a * x * x + (1.0f - a) * x, 0.0f, 1.0f);
-	return static_cast<uint8_t>(y * 255.0f + 0.5f);
+	const float y = std::clamp((a * x * x) + ((1.0F - a) * x), 0.0F, 1.0F);
+	return static_cast<uint8_t>((y * 255.0F) + 0.5F);
 }
 
 void ApplyGlobalBrightnessSingleColor(SDL_Color &dst, const SDL_Color &src)

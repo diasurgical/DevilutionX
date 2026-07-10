@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "control.h"
+#include "control/control.hpp"
 #include "diablo.h"
 #include "engine/render/scrollrt.h"
 #include "options.h"

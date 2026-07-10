@@ -26,9 +26,10 @@
 #endif
 
 #include <fmt/core.h>
+#include <fmt/format.h>
 
 #include "DiabloUI/ui_flags.hpp"
-#include "control.h"
+#include "control/control.hpp"
 #include "controls/control_mode.hpp"
 #include "controls/controller_buttons.h"
 #include "cursor.h"
@@ -52,7 +53,6 @@
 #include "headless_mode.hpp"
 #include "inv.h"
 #include "inv_iterators.hpp"
-#include "itemdat.h"
 #include "items/validation.h"
 #include "levels/gendung.h"
 #include "levels/gendung_defs.hpp"
@@ -60,25 +60,26 @@
 #include "levels/town.h"
 #include "lighting.h"
 #include "minitext.h"
-#include "monstdat.h"
 #include "monster.h"
 #include "msg.h"
 #include "multi.h"
-#include "objdat.h"
 #include "objects.h"
 #include "options.h"
 #include "pack.h"
 #include "panels/info_box.hpp"
 #include "panels/ui_panels.hpp"
 #include "player.h"
-#include "playerdat.hpp"
 #include "qol/stash.h"
 #include "quests.h"
 #include "sound_effect_enums.h"
-#include "spelldat.h"
 #include "spells.h"
 #include "stores.h"
-#include "textdat.h"
+#include "tables/itemdat.h"
+#include "tables/monstdat.h"
+#include "tables/objdat.h"
+#include "tables/playerdat.hpp"
+#include "tables/spelldat.h"
+#include "tables/textdat.h"
 #include "utils/enum_traits.h"
 #include "utils/format_int.hpp"
 #include "utils/is_of.hpp"
@@ -1396,9 +1397,7 @@ _item_indexes RndAllItems()
 
 	int itemMaxLevel = ItemsGetCurrlevel() * 2;
 	return GetItemIndexForDroppableItem(false, [&itemMaxLevel](const ItemData &item) {
-		if (itemMaxLevel < item.iMinMLvl)
-			return false;
-		return true;
+		return itemMaxLevel >= item.iMinMLvl;
 	});
 }
 
@@ -2536,13 +2535,14 @@ void CalcPlrPrimaryStats(Player &player, int strength, int &magic, int dexterity
 }
 
 void CalcPlrLightRadius(Player &player, int lrad)
-
 {
 	lrad = std::clamp(lrad, 2, 15);
 
 	if (player._pLightRad != lrad) {
-		ChangeLightRadius(player.lightId, lrad);
-		ChangeVisionRadius(player.getId(), lrad);
+		if (player.isOnActiveLevel()) {
+			ChangeLightRadius(player.lightId, lrad);
+			ChangeVisionRadius(player.getId(), lrad);
+		}
 		player._pLightRad = lrad;
 	}
 }
@@ -2745,14 +2745,29 @@ void CalcPlrGraphics(Player &player, PlayerWeaponGraphic animWeaponId, PlayerArm
 		ResetPlayerGFX(player);
 		SetPlrAnims(player);
 		player.previewCelSprite = std::nullopt;
-		const player_graphic graphic = player.getGraphic();
+		player_graphic graphic = player.getGraphic();
 		int8_t numberOfFrames;
 		int8_t ticksPerFrame;
 		player.getAnimationFramesAndTicksPerFrame(graphic, numberOfFrames, ticksPerFrame);
 		LoadPlrGFX(player, graphic);
 		OptionalClxSpriteList sprites;
-		if (!HeadlessMode)
-			sprites = player.AnimationData[static_cast<size_t>(graphic)].spritesForDirection(player._pdir);
+		if (!HeadlessMode) {
+			auto &animData = player.AnimationData[static_cast<size_t>(graphic)];
+			if (animData.sprites.has_value()) {
+				sprites = animData.spritesForDirection(player._pdir);
+			} else {
+				// In multiplayer games, a remote player can unequip their shield while that player is blocking an attack on the host.
+				// This results in a nonexistent animation state on the host where the remote player must block with no shield equipped.
+				// ie, (graphic == player_graphic::Block && !player._pBlockFlag) requests warrior animation "whnbl"
+				// Attempting to load the nonexistent animation crashes the host.
+				// This could also happen when unequipping a weapon during an attack, etc.
+				// To avoid the crash, we can set the remote player into a standing animation before updating the items on their sprite.
+				graphic = player_graphic::Stand;
+				NewPlrAnim(player, graphic, player._pdir);
+				player.getAnimationFramesAndTicksPerFrame(graphic, numberOfFrames, ticksPerFrame);
+				sprites = player.AnimationData[static_cast<size_t>(graphic)].spritesForDirection(player._pdir);
+			}
+		}
 		player.AnimInfo.changeAnimationData(sprites, numberOfFrames, ticksPerFrame);
 	} else {
 		player._pgfxnum = gfxNum;
@@ -4636,7 +4651,7 @@ void SpawnHealer(int lvl)
 {
 	constexpr size_t PinnedItemCount = NumHealerPinnedItems;
 	constexpr std::array<_item_indexes, PinnedItemCount + 1> PinnedItemTypes = { IDI_HEAL, IDI_FULLHEAL, IDI_RESURRECT };
-	const size_t itemCount = static_cast<size_t>(RandomIntBetween(10, gbIsHellfire ? NumHealerItemsHf : NumHealerItems));
+	const auto itemCount = static_cast<size_t>(RandomIntBetween(10, gbIsHellfire ? NumHealerItemsHf : NumHealerItems));
 	HealerItems.clear();
 
 	for (size_t i = 0; i < itemCount; i++) {

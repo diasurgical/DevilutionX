@@ -11,6 +11,16 @@ else()
   set(LUA_ENABLE_SHARED ON)
 endif()
 
+if(ANDROID AND NOT CMAKE_CROSSCOMPILING)
+  # Compiling on an Android device itself, e.g. via Termux.
+  # Lua CMake does `find_library(LIBM m)` but it cannot find it there on Android.
+  if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+    set(LIBM /system/lib64/libm.so)
+  else()
+    set(LIBM /system/lib/libm.so)
+  endif()
+endif()
+
 include(FetchContent)
 FetchContent_Declare_ExcludeFromAll(Lua
     URL https://github.com/walterschell/Lua/archive/3ed55a56eaa05c9221f40b3c07d0e908eb1067b0.tar.gz
@@ -26,6 +36,10 @@ if(CMAKE_SYSTEM_NAME MATCHES "Darwin" AND DARWIN_MAJOR_VERSION VERSION_EQUAL 8)
   # localtime_r gmtime_r
   find_package(MacportsLegacySupport REQUIRED)
   target_link_libraries(lua_static PRIVATE MacportsLegacySupport::MacportsLegacySupport)
+elseif(EMSCRIPTEN)
+  # Enable pthread support for Emscripten to match SDL2's USE_PTHREADS=1
+  target_compile_options(lua_static PUBLIC -pthread)
+  target_link_options(lua_static PUBLIC -pthread)
 elseif(TARGET_PLATFORM STREQUAL "dos")
   target_compile_definitions(lua_static PUBLIC -DLUA_USE_C89)
 elseif(ANDROID AND ("${ANDROID_ABI}" STREQUAL "armeabi-v7a" OR "${ANDROID_ABI}" STREQUAL "x86"))

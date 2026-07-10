@@ -167,7 +167,7 @@ void UpdatePadEntryTimerText()
 		StopPadEntryTimer();
 		return;
 	}
-	padEntryTimerText = StrCat(_("Press gamepad buttons to change."), " ", 10 - elapsed / 1000);
+	padEntryTimerText = StrCat(_("Press gamepad buttons to change."), " ", 10 - (elapsed / 1000));
 	vecDialogItems[IndexPadTimerText]->m_text = padEntryTimerText;
 }
 

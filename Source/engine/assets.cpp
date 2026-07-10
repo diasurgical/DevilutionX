@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <cstring>
 #include <functional>
+#include <string_view>
 #include <vector>
 
 #ifdef USE_SDL3
@@ -13,12 +14,15 @@
 #include <SDL.h>
 #endif
 
+#include <fmt/format.h>
+
 #include "appfat.h"
 #include "game_mode.hpp"
 #include "utils/file_util.h"
 #include "utils/log.hpp"
 #include "utils/paths.h"
 #include "utils/sdl_compat.h"
+#include "utils/str_case.hpp"
 #include "utils/str_cat.hpp"
 #include "utils/str_split.hpp"
 
@@ -35,6 +39,7 @@ namespace devilution {
 std::vector<std::string> OverridePaths;
 std::map<int, MpqArchiveT, std::greater<>> MpqArchives;
 bool HasHellfireMpq;
+bool IsAssetIntegrityViolated = false;
 
 namespace {
 
@@ -65,17 +70,42 @@ SDL_IOStream *OpenOptionalRWops(const std::string &path)
 	return SDL_IOFromFile(path.c_str(), "rb");
 };
 
-bool FindMpqFile(std::string_view filename, MpqArchive **archive, uint32_t *fileNumber)
+bool FindMpqFile(std::string_view filename, MpqArchive **archive, uint32_t *hashIndex)
 {
-	const MpqFileHash fileHash = CalculateMpqFileHash(filename);
-
 	for (auto &[_, mpqArchive] : MpqArchives) {
-		if (mpqArchive.GetFileNumber(fileHash, *fileNumber)) {
+		uint32_t hash = mpqArchive.FindHash(filename);
+		if (hash != UINT32_MAX) {
 			*archive = &mpqArchive;
+			*hashIndex = hash;
 			return true;
 		}
 	}
 
+	return false;
+}
+
+bool HasLogicAssetExtension(std::string_view filename)
+{
+	if (filename.size() < 4)
+		return false;
+	// Case-insensitive so that overrides on case-insensitive filesystems are caught.
+	const std::string extension = AsciiStrToLower(filename.substr(filename.size() - 4));
+	return extension == ".lua" || extension == ".tsv" || extension == ".sol";
+}
+
+bool ContainsLogicAssets(const std::string &dirPath, unsigned depth)
+{
+	constexpr unsigned MaxScanDepth = 16;
+	if (depth > MaxScanDepth)
+		return false;
+	for (const std::string &filename : ListFiles(dirPath.c_str())) {
+		if (HasLogicAssetExtension(filename))
+			return true;
+	}
+	for (const std::string &subdirName : ListDirectories(dirPath.c_str())) {
+		if (ContainsLogicAssets(StrCat(dirPath, subdirName, DIRECTORY_SEPARATOR_STR), depth + 1))
+			return true;
+	}
 	return false;
 }
 
@@ -149,13 +179,14 @@ AssetRef FindAsset(std::string_view filename)
 			result.directHandle = OpenOptionalRWops(path);
 			if (result.directHandle != nullptr) {
 				LogVerbose("Loaded MPQ file override: {}", path);
+				result.isOverridden = true;
 				return result;
 			}
 		}
 	}
 
 	// Look for the file in all the MPQ archives:
-	if (FindMpqFile(filename, &result.archive, &result.fileNumber)) {
+	if (FindMpqFile(filename, &result.archive, &result.hashIndex)) {
 		result.filename = filename;
 		return result;
 	}
@@ -165,7 +196,7 @@ AssetRef FindAsset(std::string_view filename)
 	if (result.directHandle != nullptr)
 		return result;
 
-#if defined(__ANDROID__) || defined(__APPLE__)
+#if (defined(__ANDROID__) && !defined(TERMUX)) || defined(__APPLE__)
 	// Fall back to the bundled assets on supported systems.
 	// This is handled by SDL when we pass a relative path.
 	if (!paths::AssetsPath().empty()) {
@@ -181,11 +212,11 @@ AssetRef FindAsset(std::string_view filename)
 
 AssetHandle OpenAsset(AssetRef &&ref, bool threadsafe)
 {
-#if UNPACKED_MPQS
+#ifdef UNPACKED_MPQS
 	return AssetHandle { OpenFile(ref.path, "rb") };
 #else
 	if (ref.archive != nullptr)
-		return AssetHandle { SDL_RWops_FromMpqFile(*ref.archive, ref.fileNumber, ref.filename, threadsafe) };
+		return AssetHandle { SDL_RWops_FromMpqFile(*ref.archive, ref.hashIndex, ref.filename, threadsafe) };
 	if (ref.directHandle != nullptr) {
 		// Transfer handle ownership:
 		auto *handle = ref.directHandle;
@@ -213,6 +244,32 @@ AssetHandle OpenAsset(std::string_view filename, size_t &fileSize, bool threadsa
 	return OpenAsset(std::move(ref), threadsafe);
 }
 
+AssetHandle OpenIntegralAsset(AssetRef &&ref, bool threadsafe)
+{
+#ifndef UNPACKED_MPQS
+	if (ref.isOverridden)
+		IsAssetIntegrityViolated = true;
+#endif
+	return OpenAsset(std::move(ref), threadsafe);
+}
+
+AssetHandle OpenIntegralAsset(std::string_view filename, bool threadsafe)
+{
+	AssetRef ref = FindAsset(filename);
+	if (!ref.ok())
+		return AssetHandle {};
+	return OpenIntegralAsset(std::move(ref), threadsafe);
+}
+
+AssetHandle OpenIntegralAsset(std::string_view filename, size_t &fileSize, bool threadsafe)
+{
+	AssetRef ref = FindAsset(filename);
+	if (!ref.ok())
+		return AssetHandle {};
+	fileSize = ref.size();
+	return OpenIntegralAsset(std::move(ref), threadsafe);
+}
+
 SDL_IOStream *OpenAssetAsSdlRwOps(std::string_view filename, bool threadsafe)
 {
 #ifdef UNPACKED_MPQS
@@ -236,6 +293,28 @@ tl::expected<AssetData, std::string> LoadAsset(std::string_view path)
 	std::unique_ptr<char[]> data { new char[size] };
 
 	AssetHandle handle = OpenAsset(std::move(ref));
+	if (!handle.ok()) {
+		return tl::make_unexpected(StrCat("Failed to open asset: ", path, "\n", handle.error()));
+	}
+
+	if (size > 0 && !handle.read(data.get(), size)) {
+		return tl::make_unexpected(StrCat("Read failed: ", path, "\n", handle.error()));
+	}
+
+	return AssetData { std::move(data), size };
+}
+
+tl::expected<AssetData, std::string> LoadIntegralAsset(std::string_view path)
+{
+	AssetRef ref = FindAsset(path);
+	if (!ref.ok()) {
+		return tl::make_unexpected(StrCat("Asset not found: ", path));
+	}
+
+	const size_t size = ref.size();
+	std::unique_ptr<char[]> data { new char[size] };
+
+	AssetHandle handle = OpenIntegralAsset(std::move(ref));
 	if (!handle.ok()) {
 		return tl::make_unexpected(StrCat("Failed to open asset: ", path, "\n", handle.error()));
 	}
@@ -301,25 +380,26 @@ bool FindMPQ(std::span<const std::string> paths, std::string_view mpqName)
 
 bool LoadMPQ(std::span<const std::string> paths, std::string_view mpqName, int priority, std::string_view ext = ".mpq")
 {
-	std::optional<MpqArchive> archive;
 	std::string mpqAbsPath;
-	std::int32_t error = 0;
+	bool foundButFailed = false;
 	for (const auto &path : paths) {
 		mpqAbsPath = StrCat(path, mpqName, ext);
-		archive = MpqArchive::Open(mpqAbsPath.c_str(), error);
-		if (archive.has_value()) {
-			LogVerbose("  Found: {} in {}", mpqName, path);
-			auto [it, inserted] = MpqArchives.emplace(priority, *std::move(archive));
-			if (!inserted) {
-				LogError("MPQ with priority {} is already registered, skipping {}", priority, mpqName);
-			}
-			return true;
+		if (!FileExists(mpqAbsPath))
+			continue;
+		tl::expected<MpqArchive, std::string> archive = MpqArchive::Open(mpqAbsPath.c_str());
+		if (!archive.has_value()) {
+			foundButFailed = true;
+			LogError("Error {}: {}", archive.error(), mpqAbsPath);
+			continue;
 		}
-		if (error != 0) {
-			LogError("Error {}: {}", MpqArchive::ErrorMessage(error), mpqAbsPath);
+		LogVerbose("  Found: {} in {}", mpqName, path);
+		auto [it, inserted] = MpqArchives.emplace(priority, *std::move(archive));
+		if (!inserted) {
+			LogError("MPQ with priority {} is already registered, skipping {}", priority, mpqName);
 		}
+		return true;
 	}
-	if (error == 0) {
+	if (!foundButFailed) {
 		LogVerbose("Missing: {}", mpqName);
 	}
 
@@ -354,6 +434,12 @@ std::vector<std::string> GetMPQSearchPaths()
 		paths.emplace_back("/usr/local/share/diasurgical/devilutionx/");
 		paths.emplace_back("/usr/share/diasurgical/devilutionx/");
 	}
+#elif defined(TERMUX)
+#ifdef CMAKE_INSTALL_PREFIX
+	paths.emplace_back(CMAKE_INSTALL_PREFIX "/share/diasurgical/devilutionx/");
+#else
+	paths.emplace_back("/usr/share/diasurgical/devilutionx/");
+#endif
 #elif defined(NXDK)
 	paths.emplace_back("D:\\");
 #elif defined(_WIN32) && !defined(__UWP__) && !defined(DEVILUTIONX_WINDOWS_NO_WCHAR)
@@ -389,7 +475,7 @@ void LoadCoreArchives()
 {
 	auto paths = GetMPQSearchPaths();
 
-#if !defined(__ANDROID__) && !defined(__APPLE__) && !defined(__3DS__) && !defined(__SWITCH__)
+#if !(defined(__ANDROID__) && !defined(TERMUX)) && !defined(__APPLE__) && !defined(__3DS__) && !defined(__SWITCH__)
 	// Load devilutionx.mpq first to get the font file for error messages
 #ifdef __DJGPP__
 	LoadMPQ(paths, "devx", DevilutionXMpqPriority);
@@ -508,6 +594,32 @@ void LoadModArchives(std::span<const std::string_view> modnames)
 		LoadMPQ(paths, StrCat("mods" DIRECTORY_SEPARATOR_STR, modname), priority);
 		priority++;
 	}
+}
+
+bool HasLooseLogicAssets()
+{
+#ifdef UNPACKED_MPQS
+	// Unpacked builds do not consult `OverridePaths` and have no override integrity tracking.
+	return false;
+#else
+	for (const std::string &overridePath : OverridePaths) {
+		for (const std::string &filename : ListFiles(overridePath.c_str())) {
+			if (HasLogicAssetExtension(filename))
+				return true;
+		}
+		const bool isPrefPath = overridePath == paths::PrefPath();
+		for (const std::string &subdirName : ListDirectories(overridePath.c_str())) {
+			// `mods` under the pref path holds mod archives and inactive loose mods, which `FindAsset`
+			// never consults directly. Active loose mods are separate `OverridePaths` entries and are
+			// scanned via their own roots.
+			if (isPrefPath && subdirName == "mods")
+				continue;
+			if (ContainsLogicAssets(StrCat(overridePath, subdirName, DIRECTORY_SEPARATOR_STR), 1))
+				return true;
+		}
+	}
+	return false;
+#endif
 }
 
 } // namespace devilution

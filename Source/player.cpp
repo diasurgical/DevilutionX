@@ -15,8 +15,9 @@
 #endif
 
 #include <fmt/core.h>
+#include <fmt/format.h>
 
-#include "control.h"
+#include "control/control.hpp"
 #include "controls/control_mode.hpp"
 #include "controls/plrctrls.h"
 #include "cursor.h"
@@ -41,6 +42,7 @@
 #include "levels/trigs.h"
 #include "lighting.h"
 #include "loadsave.h"
+#include "lua/lua_event.hpp"
 #include "minitext.h"
 #include "missiles.h"
 #include "monster.h"
@@ -49,7 +51,6 @@
 #include "options.h"
 #include "player.h"
 #include "qol/autopickup.h"
-#include "qol/floatingnumbers.h"
 #include "qol/stash.h"
 #include "spells.h"
 #include "stores.h"
@@ -1073,7 +1074,7 @@ void TryDisarm(const Player &player, Object &object)
 	if (!object._oTrapFlag) {
 		return;
 	}
-	const int trapdisper = 2 * player._pDexterity - 5 * currlevel;
+	const int trapdisper = (2 * player._pDexterity) - (5 * currlevel);
 	if (GenerateRnd(100) > trapdisper) {
 		return;
 	}
@@ -1117,7 +1118,7 @@ void CheckNewPath(Player &player, bool pmWillBeCalled)
 	case ACTION_RATTACKPLR:
 	case ACTION_SPELLPLR:
 		target = &Players[targetId];
-		if (!target->hasNoLife()) {
+		if (target->hasNoLife()) {
 			player.Stop();
 			return;
 		}
@@ -1455,7 +1456,7 @@ void ValidatePlayer()
 	}
 
 	uint64_t msk = 0;
-	for (size_t b = static_cast<size_t>(SpellID::Firebolt); b < SpellsData.size(); b++) {
+	for (auto b = static_cast<size_t>(SpellID::Firebolt); b < SpellsData.size(); b++) {
 		if (GetSpellBookLevel((SpellID)b) != -1) {
 			msk |= GetSpellBitmask(static_cast<SpellID>(b));
 			if (myPlayer._pSplLvl[b] > MaxSpellLevel)
@@ -1736,7 +1737,7 @@ bool Player::isWalking() const
 int Player::GetManaShieldDamageReduction()
 {
 	constexpr uint8_t Max = 7;
-	return 24 - std::min(_pSplLvl[static_cast<int8_t>(SpellID::ManaShield)], Max) * 3;
+	return 24 - (std::min(_pSplLvl[static_cast<int8_t>(SpellID::ManaShield)], Max) * 3);
 }
 
 void Player::RestorePartialLife()
@@ -2108,7 +2109,7 @@ void LoadPlrGFX(Player &player, player_graphic graphic)
 		return;
 
 	const HeroClass cls = GetPlayerSpriteClass(player._pClass);
-	const PlayerWeaponGraphic animWeaponId = GetPlayerWeaponGraphic(graphic, static_cast<PlayerWeaponGraphic>(player._pgfxnum & 0xF));
+	PlayerWeaponGraphic animWeaponId = GetPlayerWeaponGraphic(graphic, static_cast<PlayerWeaponGraphic>(player._pgfxnum & 0xF));
 
 	const PlayerSpriteData &spriteData = GetPlayerSpriteDataForClass(cls);
 	const char *path = spriteData.classPath.c_str();
@@ -2145,8 +2146,8 @@ void LoadPlrGFX(Player &player, player_graphic graphic)
 		szCel = "qm";
 		break;
 	case player_graphic::Death:
-		if (animWeaponId != PlayerWeaponGraphic::Unarmed)
-			return;
+		// Only one Death animation exists, for unarmed characters
+		animWeaponId = PlayerWeaponGraphic::Unarmed;
 		szCel = "dt";
 		break;
 	case player_graphic::Block:
@@ -2442,6 +2443,8 @@ void Player::_addExperience(uint32_t experience, int levelDelta)
 		clampedExp = std::min<uint32_t>({ clampedExp, /* level 1-5: */ getNextExperienceThreshold() / 20U, /* level 6-50: */ 200U * getCharacterLevel() });
 	}
 
+	lua::OnPlayerGainExperience(this, clampedExp);
+
 	const uint32_t maxExperience = GetNextExperienceThresholdForLevel(getMaxCharacterLevel());
 
 	// ensure we only add enough experience to reach the max experience cap so we don't overflow
@@ -2490,6 +2493,8 @@ void InitPlayer(Player &player, bool firstTime)
 		player.wReflections = 0;
 	}
 
+	player.lightId = NO_LIGHT;
+
 	if (player.isOnActiveLevel()) {
 
 		SetPlrAnims(player);
@@ -2521,8 +2526,6 @@ void InitPlayer(Player &player, bool firstTime)
 		if (&player == MyPlayer) {
 			player.lightId = AddLight(player.position.tile, player._pLightRad);
 			ChangeLightXY(player.lightId, player.position.tile); // fix for a bug where old light is still visible at the entrance after reentering level
-		} else {
-			player.lightId = NO_LIGHT;
 		}
 		ActivateVision(player.position.tile, player._pLightRad, player.getId());
 	}
@@ -2822,7 +2825,7 @@ void ApplyPlrDamage(DamageType damageType, Player &player, int dam, int minHP /*
 {
 	int totalDamage = (dam << 6) + frac;
 	if (&player == MyPlayer && !player.hasNoLife()) {
-		AddFloatingNumber(damageType, player, totalDamage);
+		lua::OnPlayerTakeDamage(&player, totalDamage, static_cast<int>(damageType));
 	}
 	if (totalDamage > 0 && player.pManaShield && HasNoneOf(player._pIFlags, ItemSpecialEffect::NoMana)) {
 		const uint8_t manaShieldLevel = player._pSplLvl[static_cast<int8_t>(SpellID::ManaShield)];
@@ -3206,7 +3209,7 @@ void CheckPlrSpell(bool isShiftHeld, SpellID spellID, SpellType spellType)
 	} else if (pcursmonst != -1 && !isShiftHeld) {
 		LastPlayerAction = PlayerActionType::SpellMonsterTarget;
 		NetSendCmdParam4(true, CMD_SPELLID, pcursmonst, static_cast<int8_t>(spellID), static_cast<uint8_t>(spellType), spellFrom);
-	} else if (PlayerUnderCursor != nullptr && !isShiftHeld && !myPlayer.friendlyMode) {
+	} else if (PlayerUnderCursor != nullptr && !PlayerUnderCursor->hasNoLife() && !isShiftHeld && !myPlayer.friendlyMode) {
 		LastPlayerAction = PlayerActionType::SpellPlayerTarget;
 		NetSendCmdParam4(true, CMD_SPELLPID, PlayerUnderCursor->getId(), static_cast<int8_t>(spellID), static_cast<uint8_t>(spellType), spellFrom);
 	} else {

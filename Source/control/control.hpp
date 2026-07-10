@@ -1,0 +1,209 @@
+#pragma once
+
+#include <cstddef>
+#include <cstdint>
+#include <optional>
+#include <string>
+#include <string_view>
+
+#ifdef USE_SDL3
+#include <SDL3/SDL_events.h>
+#include <SDL3/SDL_keycode.h>
+#include <SDL3/SDL_rect.h>
+#else
+#include <SDL.h>
+
+#ifdef USE_SDL1
+#include "utils/sdl2_to_1_2_backports.h"
+#endif
+#endif
+
+#include <expected.hpp>
+
+#include "DiabloUI/text_input.hpp"
+#include "DiabloUI/ui_flags.hpp"
+#include "engine/displacement.hpp"
+#include "engine/point.hpp"
+#include "engine/rectangle.hpp"
+#include "engine/render/text_render.hpp"
+#include "engine/size.hpp"
+#include "panels/ui_panels.hpp"
+#include "spells.h"
+#include "tables/spelldat.h"
+#include "utils/attributes.h"
+#include "utils/string_or_view.hpp"
+#include "utils/ui_fwd.h"
+
+namespace devilution {
+
+constexpr Size SidePanelSize { 320, 352 };
+
+constexpr Rectangle InfoBoxRect = { { 177, 46 }, { 288, 64 } };
+
+extern DVL_API_FOR_TEST bool CharPanelButton[4];
+extern DVL_API_FOR_TEST bool CharPanelButtonActive;
+
+extern int SpellbookTab;
+
+extern UiFlags InfoColor;
+
+extern StringOrView InfoString;
+extern StringOrView FloatingInfoString;
+
+extern Rectangle MainPanelButtonRect[8];
+extern DVL_API_FOR_TEST Rectangle CharPanelButtonRect[4];
+
+extern bool MainPanelButtonDown;
+extern bool LevelButtonDown;
+
+extern std::optional<OwnedSurface> BottomBuffer;
+extern OptionalOwnedClxSpriteList GoldBoxBuffer;
+
+extern bool MainPanelFlag;
+extern bool ChatFlag;
+extern DVL_API_FOR_TEST bool SpellbookFlag;
+extern DVL_API_FOR_TEST bool CharFlag;
+extern DVL_API_FOR_TEST bool SpellSelectFlag;
+
+[[nodiscard]] const Rectangle &GetMainPanel();
+[[nodiscard]] const Rectangle &GetLeftPanel();
+[[nodiscard]] const Rectangle &GetRightPanel();
+bool IsLeftPanelOpen();
+bool IsRightPanelOpen();
+void CalculatePanelAreas();
+
+/**
+ * @brief Moves the mouse to the first attribute "+" button.
+ */
+void FocusOnCharInfo();
+void OpenCharPanel();
+void CloseCharPanel();
+void ToggleCharPanel();
+
+/**
+ * @brief Check if the UI can cover the game area entirely
+ */
+[[nodiscard]] inline bool CanPanelsCoverView()
+{
+	const Rectangle &mainPanel = GetMainPanel();
+	return GetScreenWidth() <= mainPanel.size.width && GetScreenHeight() <= SidePanelSize.height + mainPanel.size.height;
+}
+
+void AddInfoBoxString(std::string_view str, bool floatingBox = false);
+void AddInfoBoxString(std::string &&str, bool floatingBox = false);
+void DrawPanelBox(const Surface &out, SDL_Rect srcRect, Point targetPosition);
+Point GetPanelPosition(UiPanels panel, Point offset = { 0, 0 });
+
+tl::expected<void, std::string> InitMainPanel();
+void DrawMainPanel(const Surface &out);
+
+/**
+ * Draws the control panel buttons in their current state. If the button is in the default
+ * state draw it from the panel cel(extract its sub-rect). Else draw it from the buttons cel.
+ */
+void DrawMainPanelButtons(const Surface &out);
+
+/**
+ * Clears panel button flags.
+ */
+void ResetMainPanelButtons();
+
+/**
+ * Checks if the mouse cursor is within any of the panel buttons and flag it if so.
+ */
+void CheckMainPanelButton();
+
+void CheckMainPanelButtonDead();
+void DoAutoMap();
+void CycleAutomapType();
+
+/**
+ * Checks the mouse cursor position within the control panel and sets information
+ * strings if needed.
+ */
+void CheckPanelInfo();
+
+/**
+ * Check if the mouse is within a control panel button that's flagged.
+ * Takes appropriate action if so.
+ */
+void CheckMainPanelButtonUp();
+void FreeControlPan();
+
+/**
+ * Sets a string to be drawn in the info box and then draws it.
+ */
+void DrawInfoBox(const Surface &out);
+void DrawFloatingInfoBox(const Surface &out);
+void CheckLevelButton();
+void CheckLevelButtonUp();
+void DrawLevelButton(const Surface &out);
+void CheckChrBtns();
+void ReleaseChrBtns(bool addAllStatPoints);
+void DrawDurIcon(const Surface &out);
+void RedBack(const Surface &out);
+void DrawDeathText(const Surface &out);
+void DrawSpellBook(const Surface &out);
+
+extern DVL_API_FOR_TEST Rectangle CharPanelButtonRect[4];
+
+bool CheckKeypress(SDL_Keycode vkey);
+void DiabloHotkeyMsg(uint32_t dwMsg);
+void DrawChatBox(const Surface &out);
+bool CheckMuteButton();
+void CheckMuteButtonUp();
+void TypeChatMessage();
+void ResetChat();
+bool IsChatActive();
+bool IsChatAvailable();
+bool HandleTalkTextInputEvent(const SDL_Event &event);
+
+/**
+ * Draws the top dome of the life flask (that part that protrudes out of the control panel).
+ * The empty flask cel is drawn from the top of the flask to the fill level (there is always a 2 pixel "air gap") and
+ * the filled flask cel is drawn from that level to the top of the control panel if required.
+ */
+void DrawLifeFlaskUpper(const Surface &out);
+
+/**
+ * Controls the drawing of the area of the life flask within the control panel.
+ * First sets the fill amount then draws the empty flask cel portion then the filled
+ * flask portion.
+ */
+void DrawLifeFlaskLower(const Surface &out, bool drawFilledPortion);
+
+/**
+ * Draws the top dome of the mana flask (that part that protrudes out of the control panel).
+ * The empty flask cel is drawn from the top of the flask to the fill level (there is always a 2 pixel "air gap") and
+ * the filled flask cel is drawn from that level to the top of the control panel if required.
+ */
+void DrawManaFlaskUpper(const Surface &out);
+
+/**
+ * Controls the drawing of the area of the mana flask within the control panel.
+ */
+void DrawManaFlaskLower(const Surface &out, bool drawFilledPortion);
+
+/**
+ * Controls drawing of current / max values (health, mana) within the control panel.
+ */
+void DrawFlaskValues(const Surface &out, Point pos, int currValue, int maxValue);
+
+/**
+ * @brief calls on the active player object to update HP/Mana percentage variables
+ *
+ * This is used to ensure that DrawFlaskAbovePanel routines display an accurate representation of the players health/mana
+ *
+ * @see Player::UpdateHitPointPercentage() and Player::UpdateManaPercentage()
+ */
+void UpdateLifeManaPercent();
+
+extern bool DropGoldFlag;
+
+void DrawGoldSplit(const Surface &out);
+void control_drop_gold(SDL_Keycode vkey);
+void OpenGoldDrop(int8_t invIndex, int max);
+void CloseGoldDrop();
+bool HandleGoldDropTextInputEvent(const SDL_Event &event);
+
+} // namespace devilution

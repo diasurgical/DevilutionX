@@ -3,7 +3,7 @@ include(functions/FetchContent_ExcludeFromAll_backport)
 include(FetchContent)
 
 FetchContent_Declare_ExcludeFromAll(bzip2
-    GIT_REPOSITORY https://sourceware.org/git/bzip2
+    GIT_REPOSITORY https://gitlab.com/bzip2/bzip2
     GIT_TAG bzip2-1.0.8
 )
 FetchContent_MakeAvailable_ExcludeFromAll(bzip2)

@@ -13,6 +13,7 @@ target_link_dependencies(test_main PUBLIC libdevilutionx_so GTest::gtest GTest::
 set(tests
   animationinfo_test
   appfat_test
+  assets_test
   automap_test
   cursor_test
   dead_test
@@ -38,6 +39,14 @@ set(tests
   townerdat_test
   writehero_test
   vendor_test
+  panel_state_test
+  store_transaction_test
+  visual_store_test
+  stash_test
+  inventory_ui_test
+  spell_ui_test
+  char_panel_test
+  game_menu_test
 )
 set(standalone_tests
   codec_test
@@ -52,6 +61,7 @@ set(standalone_tests
   vision_test
   random_test
   rectangle_test
+  sheen_bidi_test
   static_vector_test
   str_cat_test
   utf8_test
@@ -103,6 +113,13 @@ add_library(language_for_testing OBJECT test/language_for_testing.cpp)
 target_sources(language_for_testing INTERFACE $<TARGET_OBJECTS:language_for_testing>)
 
 target_link_dependencies(codec_test PRIVATE libdevilutionx_codec app_fatal_for_testing)
+
+add_custom_target(clx_render_benchmark_resources
+  DEPENDS
+  "${DEVILUTIONX_ASSETS_OUTPUT_DIRECTORY}/data/resistance.clx"
+  "${DEVILUTIONX_ASSETS_OUTPUT_DIRECTORY}/ui_art/dvl_lrpopup.clx"
+)
+add_dependencies(clx_render_benchmark clx_render_benchmark_resources)
 target_link_dependencies(clx_render_benchmark
   PRIVATE
   DevilutionX::SDL
@@ -170,6 +187,16 @@ if(DEVILUTIONX_SCREENSHOT_FORMAT STREQUAL DEVILUTIONX_SCREENSHOT_FORMAT_PNG AND 
       kerning_fit_spacing__align_right.png
       vertical_overflow.png
       vertical_overflow-colors.png
+      cursor-start.png
+      cursor-middle.png
+      cursor-end.png
+      multiline_cursor-end_first_line.png
+      multiline_cursor-start_second_line.png
+      multiline_cursor-middle_second_line.png
+      multiline_cursor-end_second_line.png
+      highlight-partial.png
+      highlight-full.png
+      multiline_highlight.png
     SRC_PREFIX test/fixtures/text_render_integration_test/
     OUTPUT_DIR "${DEVILUTIONX_TEST_FIXTURES_OUTPUT_DIRECTORY}/text_render_integration_test"
     OUTPUT_VARIABLE _text_render_integration_test_fixtures
@@ -186,6 +213,7 @@ if(DEVILUTIONX_SCREENSHOT_FORMAT STREQUAL DEVILUTIONX_SCREENSHOT_FORMAT_PNG AND 
   )
   add_dependencies(text_render_integration_test text_render_integration_test_resources)
 endif()
+target_link_dependencies(sheen_bidi_test PRIVATE libdevilutionx_sheen_bidi)
 target_link_dependencies(utf8_test PRIVATE libdevilutionx_utf8)
 
 target_include_directories(writehero_test PRIVATE 3rdParty/PicoSHA2)

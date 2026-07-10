@@ -54,7 +54,7 @@ uint8_t tmsg_get(std::unique_ptr<std::byte[]> *msg)
 
 void tmsg_add(const std::byte *msg, uint8_t len)
 {
-	const uint32_t time = SDL_GetTicks() + gnTickDelay * 10;
+	const uint32_t time = SDL_GetTicks() + (gnTickDelay * 10);
 	TimedMsgList.emplace_back(time, msg, len);
 }
 

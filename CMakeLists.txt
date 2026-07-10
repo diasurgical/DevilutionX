@@ -183,7 +183,7 @@ else()
   set(SUPPORTS_MPQ ON)
 endif()
 
-# By default, devilutionx.mpq is built only if smpq is installed and MPQ support is enabled.
+# By default, devilutionx.mpq and mods/Hellfire.mpq are built only if smpq is installed and MPQ support is enabled.
 if(SUPPORTS_MPQ AND NOT UNPACKED_MPQS)
   if(BUILD_ASSETS_MPQ OR (CPACK STREQUAL "ON" AND (WIN32 OR CMAKE_SYSTEM_NAME STREQUAL "Linux")))
     find_program(SMPQ smpq REQUIRED)
@@ -195,7 +195,7 @@ if(SUPPORTS_MPQ AND NOT UNPACKED_MPQS)
   else()
     set(_has_smpq OFF)
   endif()
-  option(BUILD_ASSETS_MPQ "If true, assets are packaged into devilutionx.mpq." ${_has_smpq})
+  option(BUILD_ASSETS_MPQ "If true, assets are packaged into devilutionx.mpq and mods/Hellfire to Hellfire.mpq." ${_has_smpq})
 else()
   set(BUILD_ASSETS_MPQS OFF)
 endif()
@@ -273,7 +273,11 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang" AND NOT PS4)
   if(APPLE)
     add_link_options("$<$<NOT:$<CONFIG:Debug>>:LINKER:-dead_strip>")
   else()
-    add_link_options("$<$<NOT:$<CONFIG:Debug>>:LINKER:--gc-sections,--as-needed>")
+    add_link_options("$<$<NOT:$<CONFIG:Debug>>:LINKER:--gc-sections>")
+    # Emscripten's linker (wasm-ld) does not support --as-needed.
+    if(NOT EMSCRIPTEN)
+      add_link_options("$<$<NOT:$<CONFIG:Debug>>:LINKER:--as-needed>")
+    endif()
   endif()
 endif()
 
@@ -303,7 +307,7 @@ endif()
 
 # Not a genexp because CMake doesn't support it
 # https://gitlab.kitware.com/cmake/cmake/-/issues/20546
-if(NOT DISABLE_LTO)
+if(NOT DISABLE_LTO AND NOT EMSCRIPTEN)
   # LTO if supported:
   include(CheckIPOSupported)
   check_ipo_supported(RESULT is_ipo_supported OUTPUT lto_error)
@@ -349,6 +353,14 @@ endif()
 # Dependencies must be included after Platforms.
 include(Dependencies)
 
+# If a C++ library is linked dynamically, it will load libstdc++.so at runtime.
+# Mixing `-static-libstdc++` with a dynamic C++ dependency causes both copies
+# to initialize, which is UB and can cause crashes, e.g. in
+# `std::ios_base_library_init()`.
+if(NOT DEVILUTIONX_STATIC_LIBFMT)
+  set(DEVILUTIONX_STATIC_CXX_STDLIB OFF)
+endif()
+
 add_subdirectory(Source)
 
 set(BIN_TARGET devilutionx)
@@ -358,7 +370,7 @@ elseif(TARGET_PLATFORM STREQUAL "dos")
   set(BIN_TARGET devx)
 endif()
 
-if(ANDROID)
+if(ANDROID AND NOT TERMUX)
   add_library(${BIN_TARGET} SHARED Source/main.cpp)
 elseif(UWP_LIB)
   set(BIN_TARGET libdevilutionx)
@@ -371,7 +383,7 @@ else()
     Packaging/windows/devilutionx.rc
     Packaging/apple/LaunchScreen.storyboard)
 
-    if(CMAKE_STRIP AND NOT DEVILUTIONX_DISABLE_STRIP)
+    if(CMAKE_STRIP AND NOT DEVILUTIONX_DISABLE_STRIP AND NOT EMSCRIPTEN)
       add_custom_command(
         TARGET ${BIN_TARGET} POST_BUILD
         COMMAND $<$<OR:$<CONFIG:Release>,$<CONFIG:MinSizeRel>>:${CMAKE_STRIP}>
@@ -400,7 +412,19 @@ include(Assets)
 include(Mods)
 
 if(EMSCRIPTEN)
-  target_link_options(${BIN_TARGET} PRIVATE --preload-file assets)
+  target_link_options(${BIN_TARGET} PRIVATE
+    "SHELL:--preload-file assets"
+    "SHELL:--preload-file mods"
+    -sFORCE_FILESYSTEM=1
+    -sALLOW_MEMORY_GROWTH=1
+    -sASYNCIFY
+    -lidbfs.js
+    --shell-file ${CMAKE_CURRENT_SOURCE_DIR}/Packaging/emscripten/index.html
+  )
+
+  add_dependencies(${BIN_TARGET} hellfire_copied_assets)
+  # Add JavaScript to load MPQ files from the server directory at runtime
+  target_link_options(${BIN_TARGET} PRIVATE --pre-js ${CMAKE_CURRENT_SOURCE_DIR}/Packaging/emscripten/emscripten_pre.js)
 endif()
 
 if(NOT USE_SDL1 AND NOT UWP_LIB)
@@ -490,6 +514,7 @@ if(VITA)
       NAME ${VITA_APP_NAME}
       FILE Packaging/vita/sce_sys sce_sys
       FILE ${DEVILUTIONX_MPQ} devilutionx.mpq
+      FILE ${HELLFIRE_MPQ} mods/Hellfire.mpq
     )
   else()
     vita_create_vpk(devilutionx.vpk ${VITA_TITLEID} devilutionx.self
@@ -507,6 +532,10 @@ if(PS4)
   add_custom_command(
     TARGET devilutionx_mpq POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy ${DEVILUTIONX_MPQ} "${PROJECT_SOURCE_DIR}/Packaging/ps4/")
+  add_custom_command(
+    TARGET hellfire_mpq POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${PROJECT_SOURCE_DIR}/Packaging/ps4/mods"
+    COMMAND ${CMAKE_COMMAND} -E copy ${HELLFIRE_MPQ} "${PROJECT_SOURCE_DIR}/Packaging/ps4/mods/")
   add_self(${BIN_TARGET})
   add_pkg(${BIN_TARGET} "${PROJECT_SOURCE_DIR}/Packaging/ps4"
     "DVLX00001" "DevilutionX" "${PROJECT_VERSION}")
@@ -595,6 +624,9 @@ if(CPACK AND (APPLE OR BUILD_ASSETS_MPQ OR SRC_DIST))
     install(FILES "${DEVILUTIONX_MPQ}"
       DESTINATION "."
     )
+    install(FILES "${HELLFIRE_MPQ}"
+      DESTINATION "mods"
+    )
 
     foreach(_SDL2_WIN32_DLL_PATH ${SDL2_WIN32_ALL_DLLS} ${WIN32_INSTALL_DLLS})
       install(FILES "${_SDL2_WIN32_DLL_PATH}"
@@ -649,6 +681,9 @@ if(CPACK AND (APPLE OR BUILD_ASSETS_MPQ OR SRC_DIST))
     )
     install(FILES "${DEVILUTIONX_MPQ}"
       DESTINATION "share/diasurgical/${project_name}"
+    )
+    install(FILES "${HELLFIRE_MPQ}"
+      DESTINATION "share/diasurgical/${project_name}/mods"
     )
     install(FILES "${PROJECT_SOURCE_DIR}/Packaging/resources/icon_flat.png"
       DESTINATION "share/icons/hicolor/512x512/apps"

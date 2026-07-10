@@ -155,6 +155,10 @@ tl::expected<void, PacketError> base::HandleDisconnect(packet &pkt)
 
 tl::expected<void, PacketError> base::HandleEchoRequest(packet &pkt)
 {
+	// If we have already left the game,
+	// there is no need to respond to echoes
+	if (plr_self == PLR_BROADCAST) return {};
+
 	return pkt.Time()
 	    .and_then([&](cookie_t &&pktTime) {
 		    return pktfty->make_packet<PT_ECHO_REPLY>(plr_self, pkt.Source(), pktTime);
@@ -168,6 +172,7 @@ tl::expected<void, PacketError> base::HandleEchoReply(packet &pkt)
 {
 	const uint32_t now = SDL_GetTicks();
 	plr_t src = pkt.Source();
+	if (src >= MAX_PLRS) return {};
 	return pkt.Time().transform([&](cookie_t &&pktTime) {
 		PlayerState &playerState = playerStateTable_[src];
 		playerState.roundTripLatency = now - pktTime;
@@ -495,7 +500,7 @@ bool base::SNetLeaveGame(net::leaveinfo_t type)
 
 bool base::SNetDropPlayer(int playerid, net::leaveinfo_t flags)
 {
-	const plr_t plr = static_cast<plr_t>(playerid);
+	const auto plr = static_cast<plr_t>(playerid);
 	tl::expected<std::unique_ptr<packet>, PacketError> pkt
 	    = pktfty->make_packet<PT_DISCONNECT>(
 	        plr_self,

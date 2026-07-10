@@ -61,7 +61,13 @@ if(PS4)
 endif()
 
 if(ANDROID)
-  include(platforms/android)
+  if (CMAKE_HOST_SYSTEM_NAME STREQUAL "Android")
+    # Natively compiling on Android, e.g. Termux.
+    include(platforms/android_termux)
+  else()
+    # Cross-compiling for Android.
+    include(platforms/android)
+  endif()
 endif()
 
 if(IOS)

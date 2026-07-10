@@ -13,7 +13,7 @@
 #include <fmt/format.h>
 
 #include "DiabloUI/text_input.hpp"
-#include "control.h"
+#include "control/control.hpp"
 #include "controls/plrctrls.h"
 #include "cursor.h"
 #include "engine/clx_sprite.hpp"
@@ -538,7 +538,7 @@ void StashStruct::RemoveStashItem(StashStruct::StashCell iv)
 	}
 
 	// If the item at the end of stash array isn't the one we removed, we need to swap its position in the array with the removed item
-	const StashStruct::StashCell lastItemIndex = static_cast<StashStruct::StashCell>(stashList.size() - 1);
+	const auto lastItemIndex = static_cast<StashStruct::StashCell>(stashList.size() - 1);
 	if (lastItemIndex != iv) {
 		stashList[iv] = stashList[lastItemIndex];
 
@@ -686,7 +686,7 @@ bool HandleGoldWithdrawTextInputEvent(const SDL_Event &event)
 	return HandleNumberInputEvent(event, *GoldWithdrawInputState);
 }
 
-bool AutoPlaceItemInStash(Player &player, const Item &item, bool persistItem)
+bool AutoPlaceItemInStash(const Item &item, bool persistItem)
 {
 	if (!IsItemAllowedInStash(item))
 		return false;
@@ -724,7 +724,7 @@ bool AutoPlaceItemInStash(Player &player, const Item &item, bool persistItem)
 				continue;
 			if (persistItem) {
 				Stash.stashList.push_back(item);
-				const uint16_t stashIndex = static_cast<uint16_t>(Stash.stashList.size() - 1);
+				const auto stashIndex = static_cast<uint16_t>(Stash.stashList.size() - 1);
 				Stash.stashList[stashIndex].position = stashPosition + Displacement { 0, itemSize.height - 1 };
 				AddItemToStashGrid(pageIndex, stashPosition, stashIndex, itemSize);
 				Stash.dirty = true;

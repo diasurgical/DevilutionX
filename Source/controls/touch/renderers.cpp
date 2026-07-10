@@ -6,7 +6,7 @@
 #include <SDL.h>
 #endif
 
-#include "control.h"
+#include "control/control.hpp"
 #include "cursor.h"
 #include "diablo.h"
 #include "doom.h"

@@ -8,9 +8,8 @@ namespace {
 
 bool AreExtraFontsOutOfDateForMpqPath(const char *mpqPath)
 {
-	int32_t error = 0;
-	std::optional<MpqArchive> archive = MpqArchive::Open(mpqPath, error);
-	return error == 0 && archive && AreExtraFontsOutOfDate(*archive);
+	tl::expected<MpqArchive, std::string> archive = MpqArchive::Open(mpqPath);
+	return archive.has_value() && AreExtraFontsOutOfDate(*archive);
 }
 
 } // namespace

@@ -1023,8 +1023,18 @@ enum class SfxID : int16_t {
 	NarratorHF4,
 	CryptDoorOpen,
 	CryptDoorClose,
+	AccessibilityWeapon,
+	AccessibilityArmor,
+	AccessibilityGold,
+	AccessibilityPotion,
+	AccessibilityScroll,
+	AccessibilityChest,
+	AccessibilityDoor,
+	AccessibilityStairs,
+	AccessibilityMonster,
+	AccessibilityInteract,
 
-	LAST = CryptDoorClose,
+	LAST = AccessibilityInteract,
 	None = -1,
 };
 

@@ -7,7 +7,7 @@
 
 #include <optional>
 
-#include "control.h"
+#include "control/control.hpp"
 #include "engine/clx_sprite.hpp"
 #include "engine/load_cel.hpp"
 #include "engine/render/clx_render.hpp"

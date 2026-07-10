@@ -22,7 +22,7 @@
 
 #include <expected.hpp>
 
-#include "control.h"
+#include "control/control.hpp"
 #include "controls/input.h"
 #include "engine/clx_sprite.hpp"
 #include "engine/dx.h"
@@ -48,7 +48,8 @@
 #include "controls/touch/renderers.h"
 #endif
 
-#ifdef __DJGPP__
+// Emscripten: ASYNCIFY does not support unwinding across threads, so loading must happen on the main thread.
+#if defined(__DJGPP__) || defined(__EMSCRIPTEN__)
 #define LOAD_ON_MAIN_THREAD
 #endif
 
@@ -229,7 +230,7 @@ void DrawCutsceneBackground()
 	SDL_FillSurfaceRect(out.surface, nullptr, 0);
 	if (ArtCutsceneWidescreen) {
 		const ClxSprite sprite = (*ArtCutsceneWidescreen)[0];
-		RenderClxSprite(out, sprite, { uiRectangle.position.x - (sprite.width() - uiRectangle.size.width) / 2, uiRectangle.position.y });
+		RenderClxSprite(out, sprite, { uiRectangle.position.x - ((sprite.width() - uiRectangle.size.width) / 2), uiRectangle.position.y });
 	}
 	ClxDraw(out, { uiRectangle.position.x, 480 - 1 + uiRectangle.position.y }, (*sgpBackCel)[0]);
 }

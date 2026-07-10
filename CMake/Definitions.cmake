@@ -23,6 +23,7 @@ foreach(
   UNPACKED_MPQS
   UNPACKED_SAVES
   DEVILUTIONX_WINDOWS_NO_WCHAR
+  TERMUX
 )
   if(${def_name})
     list(APPEND DEVILUTIONX_DEFINITIONS ${def_name})
@@ -102,5 +103,15 @@ foreach(
 )
   if(DEFINED ${def_name} AND NOT ${def_name} STREQUAL "")
     list(APPEND DEVILUTIONX_DEFINITIONS ${def_name}=${${def_name}})
+  endif()
+endforeach(def_name)
+
+# Defines with string value
+foreach(
+  def_name
+  CMAKE_INSTALL_PREFIX
+)
+  if(DEFINED ${def_name} AND NOT ${def_name} STREQUAL "")
+    list(APPEND DEVILUTIONX_DEFINITIONS "${def_name}=\"${${def_name}}\"")
   endif()
 endforeach(def_name)

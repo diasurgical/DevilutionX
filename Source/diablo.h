@@ -19,7 +19,7 @@
 #endif
 
 #ifdef _DEBUG
-#include "monstdat.h"
+#include "tables/monstdat.h"
 #endif
 #include "levels/gendung.h"
 #include "utils/attributes.h"
@@ -70,7 +70,7 @@ enum class PlayerActionType : uint8_t {
 
 extern uint32_t DungeonSeeds[NUMLEVELS];
 extern DVL_API_FOR_TEST std::optional<uint32_t> LevelSeeds[NUMLEVELS];
-extern Point MousePosition;
+extern DVL_API_FOR_TEST Point MousePosition;
 
 extern bool gbRunGameResult;
 extern bool ReturnToMainMenu;

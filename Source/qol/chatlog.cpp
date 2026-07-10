@@ -14,7 +14,7 @@
 #include "DiabloUI/ui_flags.hpp"
 #include "automap.h"
 #include "chatlog.h"
-#include "control.h"
+#include "control/control.hpp"
 #include "diablo_msg.hpp"
 #include "doom.h"
 #include "engine/render/text_render.hpp"
@@ -59,7 +59,7 @@ int DividerLineMarginY()
 
 int HeaderHeight()
 {
-	return PaddingTop + LineHeight() + 2 * BlankLineHeight() + DividerLineMarginY();
+	return PaddingTop + LineHeight() + (2 * BlankLineHeight()) + DividerLineMarginY();
 }
 
 int ContentPaddingY()
@@ -69,12 +69,12 @@ int ContentPaddingY()
 
 int ContentsTextHeight()
 {
-	return PanelHeight - HeaderHeight() - DividerLineMarginY() - 2 * ContentPaddingY() - BlankLineHeight();
+	return PanelHeight - HeaderHeight() - DividerLineMarginY() - (2 * ContentPaddingY()) - BlankLineHeight();
 }
 
 int NumVisibleLines()
 {
-	return (ContentsTextHeight() - 1) / LineHeight() + 1; // Ceil
+	return ((ContentsTextHeight() - 1) / LineHeight()) + 1; // Ceil
 }
 
 } // namespace
@@ -183,9 +183,9 @@ void DrawChatLog(const Surface &out)
 
 		std::vector<DrawStringFormatArg> args;
 		for (auto &x : text.colors) {
-			args.emplace_back(DrawStringFormatArg { x.text, x.color });
+			args.emplace_back(x.text, x.color);
 		}
-		DrawStringWithColors(out, line, args, { { sx, contentY + i * lineHeight }, { ContentTextWidth, lineHeight } },
+		DrawStringWithColors(out, line, args, { { sx, contentY + (i * lineHeight) }, { ContentTextWidth, lineHeight } },
 		    { .flags = UiFlags::ColorWhite, .lineHeight = lineHeight });
 	}
 

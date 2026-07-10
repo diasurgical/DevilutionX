@@ -39,6 +39,7 @@
 #include "player.h"
 #include "plrmsg.h"
 #include "qol/stash.h"
+#include "qol/visual_store.h"
 #include "stores.h"
 #include "towners.h"
 #include "utils/display.h"
@@ -151,7 +152,7 @@ void AddItemToInvGrid(Player &player, int invGridIndex, int invListIndex, Size i
 {
 	const int pitch = 10;
 	for (int y = 0; y < itemSize.height; y++) {
-		const int rowGridIndex = invGridIndex + pitch * y;
+		const int rowGridIndex = invGridIndex + (pitch * y);
 		for (int x = 0; x < itemSize.width; x++) {
 			if (x == 0 && y == itemSize.height - 1)
 				player.InvGrid[rowGridIndex + x] = invListIndex;
@@ -327,7 +328,7 @@ int FindTargetSlotUnderItemCursor(Point cursorPosition, Size itemSize)
 			const int hotPixelCell = r - SLOTXY_INV_FIRST;
 			const int targetRow = std::clamp((hotPixelCell / InventorySizeInSlots.width) - hotPixelCellOffset.deltaY, 0, InventorySizeInSlots.height - itemSize.height);
 			const int targetColumn = std::clamp((hotPixelCell % InventorySizeInSlots.width) - hotPixelCellOffset.deltaX, 0, InventorySizeInSlots.width - itemSize.width);
-			return SLOTXY_INV_FIRST + targetRow * InventorySizeInSlots.width + targetColumn;
+			return SLOTXY_INV_FIRST + (targetRow * InventorySizeInSlots.width) + targetColumn;
 		}
 	}
 
@@ -420,7 +421,7 @@ void ChangeTwoHandItem(Player &player)
 int8_t CheckOverlappingItems(int slot, const Player &player, Size itemSize)
 {
 	// check that the item we're pasting only overlaps one other item (or is going into empty space)
-	const unsigned originCell = static_cast<unsigned>(slot - SLOTXY_INV_FIRST);
+	const auto originCell = static_cast<unsigned>(slot - SLOTXY_INV_FIRST);
 
 	int8_t overlappingId = 0;
 	for (unsigned rowOffset = 0; rowOffset < static_cast<unsigned>(itemSize.height * InventorySizeInSlots.width); rowOffset += InventorySizeInSlots.width) {
@@ -537,7 +538,7 @@ void ChangeBeltItem(Player &player, int slot)
 	RedrawComponent(PanelDrawComponent::Belt);
 }
 
-item_equip_type GetItemEquipType(const Player &player, int slot, item_equip_type desiredLocation)
+item_equip_type GetItemEquipType(int slot, item_equip_type desiredLocation)
 {
 	if (slot == SLOTXY_HEAD)
 		return ILOC_HELM;
@@ -567,7 +568,7 @@ inv_body_loc MapSlotToInvBodyLoc(inv_xy_slot slot)
 std::optional<inv_xy_slot> FindSlotUnderCursor(Point cursorPosition)
 {
 
-	Point testPosition = static_cast<Point>(cursorPosition - GetRightPanel().position);
+	auto testPosition = static_cast<Point>(cursorPosition - GetRightPanel().position);
 	for (std::underlying_type_t<inv_xy_slot> r = SLOTXY_EQUIPPED_FIRST; r != SLOTXY_BELT_FIRST; r++) {
 		// check which body/inventory rectangle the mouse is in, if any
 		if (InvRect[r].contains(testPosition)) {
@@ -604,7 +605,7 @@ bool CheckItemFitsInInventorySlot(const Player &player, int slotIndex, const Siz
 		}
 		int xx = (slotIndex > 0) ? (slotIndex % 10) : 0;
 		for (int i = 0; i < itemSize.width; i++) {
-			if (xx >= 10 || !(player.InvGrid[xx + yy] == 0 || std::abs(player.InvGrid[xx + yy]) - 1 == itemIndexToIgnore)) {
+			if (xx >= 10 || (player.InvGrid[xx + yy] != 0 && std::abs(player.InvGrid[xx + yy]) - 1 != itemIndexToIgnore)) {
 				// The item is too wide to fit in the specified column, or one of the cells is occupied (and not by the item we're planning on removing)
 				return false;
 			}
@@ -631,8 +632,8 @@ std::optional<int> FindSlotForItem(const Player &player, const Size &itemSize, i
 		}
 		for (int x = 9; x >= 0; x--) {
 			for (int y = 2; y >= 0; y--) {
-				if (CheckItemFitsInInventorySlot(player, 10 * y + x, itemSize, itemIndexToIgnore))
-					return 10 * y + x;
+				if (CheckItemFitsInInventorySlot(player, (10 * y) + x, itemSize, itemIndexToIgnore))
+					return (10 * y) + x;
 			}
 		}
 		return {};
@@ -641,8 +642,8 @@ std::optional<int> FindSlotForItem(const Player &player, const Size &itemSize, i
 	if (itemSize.height == 2) {
 		for (int x = 10 - itemSize.width; x >= 0; x--) {
 			for (int y = 0; y < 3; y++) {
-				if (CheckItemFitsInInventorySlot(player, 10 * y + x, itemSize, itemIndexToIgnore))
-					return 10 * y + x;
+				if (CheckItemFitsInInventorySlot(player, (10 * y) + x, itemSize, itemIndexToIgnore))
+					return (10 * y) + x;
 			}
 		}
 		return {};
@@ -1257,7 +1258,7 @@ int AddGoldToInventory(Player &player, int value)
 	// Remaining inventory in columns, bottom to top, right to left
 	for (int x = 9; x >= 0 && value > 0; x--) {
 		for (int y = 2; y >= 0 && value > 0; y--) {
-			value = CreateGoldItemInInventorySlot(player, 10 * y + x, value);
+			value = CreateGoldItemInInventorySlot(player, (10 * y) + x, value);
 		}
 	}
 
@@ -1301,7 +1302,7 @@ void CheckInvSwap(Player &player, const Item &item, int invGridIndex)
 	const int pitch = 10;
 	const int invListIndex = [&]() -> int {
 		for (int y = 0; y < itemSize.height; y++) {
-			const int rowGridIndex = invGridIndex + pitch * y;
+			const int rowGridIndex = invGridIndex + (pitch * y);
 			for (int x = 0; x < itemSize.width; x++) {
 				const int gridIndex = rowGridIndex + x;
 				if (player.InvGrid[gridIndex] != 0)
@@ -1324,7 +1325,7 @@ void CheckInvSwap(Player &player, const Item &item, int invGridIndex)
 	player.InvList[invListIndex - 1] = item;
 
 	for (int y = 0; y < itemSize.height; y++) {
-		const int rowGridIndex = invGridIndex + pitch * y;
+		const int rowGridIndex = invGridIndex + (pitch * y);
 		for (int x = 0; x < itemSize.width; x++) {
 			if (x == 0 && y == itemSize.height - 1)
 				player.InvGrid[rowGridIndex + x] = invListIndex;
@@ -1352,7 +1353,7 @@ void TransferItemToStash(Player &player, int location)
 	}
 
 	const Item &item = GetInventoryItem(player, location);
-	if (!AutoPlaceItemInStash(player, item, true)) {
+	if (!AutoPlaceItemInStash(item, true)) {
 		player.SaySpecific(HeroSpeech::WhereWouldIPutThis);
 		return;
 	}
@@ -1710,7 +1711,21 @@ int8_t CheckInvHLight()
 	if (pi->isEmpty())
 		return -1;
 
-	if (pi->_itype == ItemType::Gold) {
+	if (IsVisualStoreOpen && pcurs == CURSOR_REPAIR) {
+		InfoColor = pi->getTextColor();
+		InfoString = pi->getName();
+		FloatingInfoString = pi->getName();
+		if (pi->_iIdentified) {
+			PrintItemDetails(*pi);
+		} else {
+			PrintItemDur(*pi);
+		}
+		int cost = GetRepairCost(*pi);
+		if (cost > 0)
+			AddInfoBoxString(StrCat(FormatInteger(cost), " Gold"));
+		else
+			AddInfoBoxString(_("Fully Repaired"));
+	} else if (pi->_itype == ItemType::Gold) {
 		const int nGold = pi->_ivalue;
 		InfoString = fmt::format(fmt::runtime(ngettext("{:s} gold piece", "{:s} gold pieces", nGold)), FormatInteger(nGold));
 		FloatingInfoString = fmt::format(fmt::runtime(ngettext("{:s} gold piece", "{:s} gold pieces", nGold)), FormatInteger(nGold));
@@ -1942,6 +1957,7 @@ void CloseInventory()
 {
 	CloseGoldWithdraw();
 	CloseStash();
+	CloseVisualStore();
 	invflag = false;
 }
 
@@ -1958,7 +1974,7 @@ void CloseStash()
 		} else {
 			if (!AutoPlaceItemInBelt(myPlayer, myPlayer.HoldItem, true, true)
 			    && !AutoPlaceItemInInventory(myPlayer, myPlayer.HoldItem, true)
-			    && !AutoPlaceItemInStash(myPlayer, myPlayer.HoldItem, true)) {
+			    && !AutoPlaceItemInStash(myPlayer.HoldItem, true)) {
 				// This can fail for max gold, arena potions and a stash that has been arranged
 				// to not have room for the item all 3 cases are extremely unlikely
 				app_fatal(_("No room for item"));
@@ -2005,7 +2021,7 @@ Size GetInventorySize(const Item &item)
 	return { size.width / InventorySlotSizeInPixels.width, size.height / InventorySlotSizeInPixels.height };
 }
 
-void CheckInvCut(Player &player, Point cursorPosition, bool automaticMove, bool dropItem)
+void CheckInvCut(Player& player, Point cursorPosition, bool automaticMove, bool dropItem)
 {
 	if (player._pmode > PM_WALK_SIDEWAYS) {
 		return;
@@ -2020,9 +2036,9 @@ void CheckInvCut(Player &player, Point cursorPosition, bool automaticMove, bool 
 		return;
 	}
 
-	inv_xy_slot r = *maybeSlot;
+	const inv_xy_slot r = *maybeSlot;
 
-	Item &holdItem = player.HoldItem;
+	Item& holdItem = player.HoldItem;
 	holdItem.clear();
 
 	bool attemptedMove = false;
@@ -2031,7 +2047,7 @@ void CheckInvCut(Player &player, Point cursorPosition, bool automaticMove, bool 
 	HeroSpeech failedSpeech = HeroSpeech::ICantDoThat; // Default message if the player attempts to automove an item that can't go anywhere else
 
 	if (r >= SLOTXY_HEAD && r <= SLOTXY_CHEST) {
-		inv_body_loc invloc = MapSlotToInvBodyLoc(r);
+		const inv_body_loc invloc = MapSlotToInvBodyLoc(r);
 		if (!player.InvBody[invloc].isEmpty()) {
 			if (automaticMove) {
 				attemptedMove = true;
@@ -2039,10 +2055,12 @@ void CheckInvCut(Player &player, Point cursorPosition, bool automaticMove, bool 
 				if (automaticallyMoved) {
 					successSound = ItemInvSnds[ItemCAnimTbl[player.InvBody[invloc]._iCurs]];
 					RemoveEquipment(player, invloc, false);
-				} else {
+				}
+				else {
 					failedSpeech = HeroSpeech::IHaveNoRoom;
 				}
-			} else {
+			}
+			else {
 				holdItem = player.InvBody[invloc];
 				RemoveEquipment(player, invloc, false);
 			}
@@ -2050,8 +2068,8 @@ void CheckInvCut(Player &player, Point cursorPosition, bool automaticMove, bool 
 	}
 
 	if (r >= SLOTXY_INV_FIRST && r <= SLOTXY_INV_LAST) {
-		unsigned ig = r - SLOTXY_INV_FIRST;
-		int iv = std::abs(player.InvGrid[ig]) - 1;
+		const unsigned ig = r - SLOTXY_INV_FIRST;
+		const int iv = std::abs(player.InvGrid[ig]) - 1;
 		if (iv >= 0) {
 			if (automaticMove) {
 				attemptedMove = true;
@@ -2060,10 +2078,12 @@ void CheckInvCut(Player &player, Point cursorPosition, bool automaticMove, bool 
 					if (automaticallyMoved) {
 						successSound = SfxID::GrabItem;
 						player.RemoveInvItem(iv, false);
-					} else {
+					}
+					else {
 						failedSpeech = HeroSpeech::IHaveNoRoom;
 					}
-				} else if (CanEquip(player.InvList[iv])) {
+				}
+				else if (CanEquip(player.InvList[iv])) {
 					failedSpeech = HeroSpeech::IHaveNoRoom; // Default to saying "I have no room" if auto-equip fails
 
 					/*
@@ -2086,12 +2106,13 @@ void CheckInvCut(Player &player, Point cursorPosition, bool automaticMove, bool 
 						break;
 					case ILOC_ONEHAND:
 						if (!player.InvBody[INVLOC_HAND_LEFT].isEmpty()
-						    && (player.InvList[iv]._iClass == player.InvBody[INVLOC_HAND_LEFT]._iClass
-						        || player.GetItemLocation(player.InvBody[INVLOC_HAND_LEFT]) == ILOC_TWOHAND)) {
+							&& (player.InvList[iv]._iClass == player.InvBody[INVLOC_HAND_LEFT]._iClass
+								|| player.GetItemLocation(player.InvBody[INVLOC_HAND_LEFT]) == ILOC_TWOHAND)) {
 							// The left hand is not empty and we're either trying to equip the same type of item or
 							// it's holding a two handed weapon, so it must be unequipped
 							invloc = INVLOC_HAND_LEFT;
-						} else if (!player.InvBody[INVLOC_HAND_RIGHT].isEmpty() && player.InvList[iv]._iClass == player.InvBody[INVLOC_HAND_RIGHT]._iClass) {
+						}
+						else if (!player.InvBody[INVLOC_HAND_RIGHT].isEmpty() && player.InvList[iv]._iClass == player.InvBody[INVLOC_HAND_RIGHT]._iClass) {
 							// The right hand is not empty and we're trying to equip the same type of item, so we need
 							// to unequip that item
 							invloc = INVLOC_HAND_RIGHT;
@@ -2106,13 +2127,15 @@ void CheckInvCut(Player &player, Point cursorPosition, bool automaticMove, bool 
 							// If the right hand is empty then we can simply try equipping this item in the left hand,
 							// we'll let the common code take care of unequipping anything held there.
 							invloc = INVLOC_HAND_LEFT;
-						} else if (player.InvBody[INVLOC_HAND_LEFT].isEmpty()) {
+						}
+						else if (player.InvBody[INVLOC_HAND_LEFT].isEmpty()) {
 							// We have an item in the right hand but nothing in the left, so let the common code
 							// take care of unequipping whatever is held in the right hand. The auto-equip code
 							// picks the most appropriate location for the item type (which in this case will be
 							// the left hand), invloc isn't used there.
 							invloc = INVLOC_HAND_RIGHT;
-						} else {
+						}
+						else {
 							// Both hands are holding items, we must unequip one of the items and check that there's
 							// space for the other before trying to auto-equip
 							inv_body_loc mainHand = INVLOC_HAND_LEFT;
@@ -2141,8 +2164,8 @@ void CheckInvCut(Player &player, Point cursorPosition, bool automaticMove, bool 
 					}
 					// Then empty the identified InvBody slot (invloc) and hand over to AutoEquip
 					if (invloc != NUM_INVLOC
-					    && !player.InvBody[invloc].isEmpty()
-					    && CouldFitItemInInventory(player, player.InvBody[invloc], iv)) {
+						&& !player.InvBody[invloc].isEmpty()
+						&& CouldFitItemInInventory(player, player.InvBody[invloc], iv)) {
 						holdItem = player.InvBody[invloc].pop();
 					}
 					automaticallyMoved = AutoEquip(player, player.InvList[iv], true, &player == MyPlayer);
@@ -2154,12 +2177,19 @@ void CheckInvCut(Player &player, Point cursorPosition, bool automaticMove, bool 
 						if (!holdItem.isEmpty() && AutoPlaceItemInInventory(player, holdItem)) {
 							holdItem.clear();
 						} // there should never be a situation where holdItem is not empty but we fail to place it into the inventory given the checks earlier... leave it on the hand in this case.
-					} else if (!holdItem.isEmpty()) {
+					}
+					else if (!holdItem.isEmpty()) {
 						// We somehow failed to equip the item in the slot we already checked should hold it? Better put this item back...
 						player.InvBody[invloc] = holdItem.pop();
 					}
 				}
-			} else {
+			}
+			else if (IsVisualStoreOpen && CanSellToCurrentVendor(player.InvList[iv]) && dropItem) {
+				// If visual store is open, ctrl-click sells the item
+				SellItemToVisualStore(iv);
+				automaticallyMoved = true;
+			}
+			else {
 				holdItem = player.InvList[iv];
 				player.RemoveInvItem(iv, false);
 			}
@@ -2167,7 +2197,7 @@ void CheckInvCut(Player &player, Point cursorPosition, bool automaticMove, bool 
 	}
 
 	if (r >= SLOTXY_BELT_FIRST) {
-		Item &beltItem = player.SpdList[r - SLOTXY_BELT_FIRST];
+		const Item& beltItem = player.SpdList[r - SLOTXY_BELT_FIRST];
 		if (!beltItem.isEmpty()) {
 			if (automaticMove) {
 				attemptedMove = true;
@@ -2175,10 +2205,12 @@ void CheckInvCut(Player &player, Point cursorPosition, bool automaticMove, bool 
 				if (automaticallyMoved) {
 					successSound = SfxID::GrabItem;
 					player.RemoveSpdBarItem(r - SLOTXY_BELT_FIRST);
-				} else {
+				}
+				else {
 					failedSpeech = HeroSpeech::IHaveNoRoom;
 				}
-			} else {
+			}
+			else {
 				holdItem = beltItem;
 				player.RemoveSpdBarItem(r - SLOTXY_BELT_FIRST);
 			}
@@ -2200,21 +2232,23 @@ void CheckInvCut(Player &player, Point cursorPosition, bool automaticMove, bool 
 		if (dropItem) {
 			TryDropItem();
 		}
-	} else if (automaticMove) {
+	}
+	else if (automaticMove) {
 		if (automaticallyMoved) {
 			CalcPlrInv(player, true);
 		}
 		if (attemptedMove && &player == MyPlayer) {
 			if (automaticallyMoved) {
 				PlaySFX(successSound);
-			} else {
+			}
+			else {
 				player.SaySpecific(failedSpeech);
 			}
 		}
 	}
 }
 
-void CheckInvPaste(Player &player, Point cursorPosition)
+void CheckInvPaste(Player& player, Point cursorPosition)
 {
 	const Size itemSize = GetInventorySize(player.HoldItem);
 
@@ -2223,11 +2257,12 @@ void CheckInvPaste(Player &player, Point cursorPosition)
 		return;
 
 	const item_equip_type desiredLocation = player.GetItemLocation(player.HoldItem);
-	const item_equip_type location = GetItemEquipType(player, slot, desiredLocation);
+	const item_equip_type location = GetItemEquipType(slot, desiredLocation);
 
 	if (location == ILOC_BELT) {
 		if (!CanBePlacedOnBelt(player, player.HoldItem)) return;
-	} else if (location != ILOC_UNEQUIPABLE) {
+	}
+	else if (location != ILOC_UNEQUIPABLE) {
 		if (desiredLocation != location) return;
 	}
 

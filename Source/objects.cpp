@@ -13,6 +13,7 @@
 
 #include <expected.hpp>
 #include <fmt/core.h>
+#include <fmt/format.h>
 
 #include "DiabloUI/ui_flags.hpp"
 #include "automap.h"
@@ -38,10 +39,10 @@
 #include "minitext.h"
 #include "missiles.h"
 #include "monster.h"
-#include "objdat.h"
 #include "options.h"
 #include "qol/stash.h"
 #include "stores.h"
+#include "tables/objdat.h"
 #include "towners.h"
 #include "track.h"
 #include "utils/algorithm/container.hpp"
@@ -58,6 +59,7 @@ int AvailableObjects[MAXOBJECTS];
 int ActiveObjects[MAXOBJECTS];
 int ActiveObjectCount;
 bool LoadingMapObjects;
+int NaKrulTomeSequence;
 
 namespace {
 
@@ -114,9 +116,6 @@ object_graphic_id ObjFileList[40];
 /** Specifies the number of active objects. */
 int leverid;
 int numobjfiles;
-
-/** Tracks progress through the tome sequence that spawns Na-Krul (see OperateNakrulBook()) */
-int NaKrulTomeSequence;
 
 /** Specifies the X-coordinate delta between barrels. */
 int bxadd[8] = { -1, 0, 1, -1, 1, -1, 0, 1 };
@@ -300,7 +299,7 @@ void InitRndLocBigObj(int min, int max, _object_id objtype)
 bool CanPlaceRandomObject(Point position, Displacement standoff)
 {
 	return IsAreaOk(Rectangle { position - standoff,
-	    Size { standoff.deltaX * 2 + 1, standoff.deltaY * 2 + 1 } });
+	    Size { (standoff.deltaX * 2) + 1, (standoff.deltaY * 2) + 1 } });
 }
 
 std::optional<Point> GetRandomObjectPosition(Displacement standoff)
@@ -566,16 +565,16 @@ void LoadMapObjects(const char *path, Point start, WorldTileRectangle mapRange =
 
 	WorldTileSize size = GetDunSize(dunData.get());
 
-	const int layer2Offset = 2 + size.width * size.height;
+	const int layer2Offset = 2 + (size.width * size.height);
 
 	// The rest of the layers are at dPiece scale
 	size *= static_cast<WorldTileCoord>(2);
 
-	const uint16_t *objectLayer = &dunData[layer2Offset + size.width * size.height * 2];
+	const uint16_t *objectLayer = &dunData[layer2Offset + (size.width * size.height * 2)];
 
 	for (WorldTileCoord j = 0; j < size.height; j++) {
 		for (WorldTileCoord i = 0; i < size.width; i++) {
-			auto objectId = static_cast<uint8_t>(Swap16LE(objectLayer[j * size.width + i]));
+			auto objectId = static_cast<uint8_t>(Swap16LE(objectLayer[(j * size.width) + i]));
 			if (objectId != 0) {
 				const Point mapPos = start + Displacement { i, j };
 				Object *mapObject = AddObject(ObjTypeConv[objectId], mapPos);
@@ -826,9 +825,9 @@ void AddStoryBooks()
 void AddHookedBodies(int freq)
 {
 	for (WorldTileCoord j = 0; j < DMAXY; j++) {
-		const WorldTileCoord jj = 16 + j * 2;
+		const WorldTileCoord jj = 16 + (j * 2);
 		for (WorldTileCoord i = 0; i < DMAXX; i++) {
-			const WorldTileCoord ii = 16 + i * 2;
+			const WorldTileCoord ii = 16 + (i * 2);
 			if (dungeon[i][j] != 1 && dungeon[i][j] != 2)
 				continue;
 			if (!FlipCoin(freq))
@@ -1234,7 +1233,7 @@ void AddTrap(Object &trap)
 	else if (leveltype == DTYPE_CRYPT)
 		effectiveLevel -= 8;
 
-	const int missileType = GenerateRnd(effectiveLevel / 3 + 1);
+	const int missileType = GenerateRnd((effectiveLevel / 3) + 1);
 	if (missileType == 0)
 		trap._oVar3 = static_cast<int8_t>(MissileID::Arrow);
 	if (missileType == 1)
@@ -2458,9 +2457,9 @@ void OperateShrineEnchanted(DiabloGenerator &rng, Player &player)
 		} while ((player._pMemSpells & GetSpellBitmask(static_cast<SpellID>(spellToReduce))) == 0);
 
 		spell = 1;
-		for (uint8_t j = static_cast<uint8_t>(SpellID::Firebolt); j < SpellsData.size(); j++) {
+		for (auto j = static_cast<uint8_t>(SpellID::Firebolt); j < SpellsData.size(); j++) {
 			if ((player._pMemSpells & spell) != 0 && player._pSplLvl[j] < MaxSpellLevel && j != spellToReduce) {
-				const uint8_t newSpellLevel = static_cast<uint8_t>(player._pSplLvl[j] + 1);
+				const auto newSpellLevel = static_cast<uint8_t>(player._pSplLvl[j] + 1);
 				player._pSplLvl[j] = newSpellLevel;
 				NetSendCmdParam2(true, CMD_CHANGE_SPELL_LEVEL, j, newSpellLevel);
 			}
@@ -2468,7 +2467,7 @@ void OperateShrineEnchanted(DiabloGenerator &rng, Player &player)
 		}
 
 		if (player._pSplLvl[spellToReduce] > 0) {
-			const uint8_t newSpellLevel = static_cast<uint8_t>(player._pSplLvl[spellToReduce] - 1);
+			const auto newSpellLevel = static_cast<uint8_t>(player._pSplLvl[spellToReduce] - 1);
 			player._pSplLvl[spellToReduce] = newSpellLevel;
 			NetSendCmdParam2(true, CMD_CHANGE_SPELL_LEVEL, spellToReduce, newSpellLevel);
 		}
@@ -2526,24 +2525,22 @@ void OperateShrineCostOfWisdom(Player &player, SpellID spellId, diablo_message m
 		}
 	}
 
-	const uint32_t t = player._pMaxManaBase / 10;
-	const int v1 = player._pMana - player._pManaBase;
-	const int v2 = player._pMaxMana - player._pMaxManaBase;
-	player._pManaBase -= t;
-	player._pMana -= t;
-	player._pMaxMana -= t;
-	player._pMaxManaBase -= t;
-	if (player.hasNoMana()) {
-		player._pMana = v1;
-		player._pManaBase = 0;
-	}
-	if (player._pMaxMana >> 6 <= 0) {
-		player._pMaxMana = v2;
+	int maxBase = player._pMaxManaBase;
+
+	if (maxBase < 0) {
+		// Fix bugged state; do not turn this into a "negative penalty" mana boost.
 		player._pMaxManaBase = 0;
+		maxBase = 0;
 	}
+
+	const int penalty = maxBase / 10; // 10% of max base mana (>= 0)
+
+	player._pMaxManaBase -= penalty; // will remain >= 0
+	player._pManaBase -= penalty;    // may go negative, allowed
+	player._pMaxMana -= penalty;     // may go negative, allowed
+	player._pMana -= penalty;        // may go negative, allowed
 
 	RedrawEverything();
-
 	InitDiabloMsg(message);
 }
 
@@ -2663,7 +2660,7 @@ void OperateShrineSpiritual(DiabloGenerator &rng, Player &player)
 	for (int8_t &itemIndex : player.InvGrid) {
 		if (itemIndex == 0) {
 			Item &goldItem = player.InvList[player._pNumInv];
-			MakeGoldStack(goldItem, 5 * leveltype + rng.generateRnd(10 * leveltype));
+			MakeGoldStack(goldItem, (5 * leveltype) + rng.generateRnd(10 * leveltype));
 			player._pNumInv++;
 			itemIndex = player._pNumInv;
 
@@ -2836,7 +2833,7 @@ void OperateShrineOily(Player &player, Point spawnPosition)
 	    MissileID::FireWall,
 	    TARGET_PLAYERS,
 	    -1,
-	    2 * currlevel + 2,
+	    (2 * currlevel) + 2,
 	    0);
 
 	InitDiabloMsg(EMSG_SHRINE_OILY);
@@ -2895,7 +2892,7 @@ void OperateShrineSparkling(Player &player, Point spawnPosition)
 	    MissileID::FlashBottom,
 	    TARGET_PLAYERS,
 	    -1,
-	    3 * currlevel + 2,
+	    (3 * currlevel) + 2,
 	    0);
 
 	RedrawEverything();
@@ -3388,7 +3385,7 @@ void OperateStoryBook(Object &storyBook)
 			NetSendCmd(false, CMD_NAKRUL);
 			return;
 		}
-	} else if (leveltype == DTYPE_CRYPT) {
+	} else if (leveltype == DTYPE_CRYPT && Quests[Q_NAKRUL]._qactive != QUEST_DONE) {
 		Quests[Q_NAKRUL]._qactive = QUEST_ACTIVE;
 		Quests[Q_NAKRUL]._qlog = true;
 		Quests[Q_NAKRUL]._qmsg = msg;
@@ -3980,16 +3977,16 @@ void SetMapObjects(const uint16_t *dunData, int startx, int starty)
 
 	WorldTileSize size = GetDunSize(dunData);
 
-	const int layer2Offset = 2 + size.width * size.height;
+	const int layer2Offset = 2 + (size.width * size.height);
 
 	// The rest of the layers are at dPiece scale
 	size *= static_cast<WorldTileCoord>(2);
 
-	const uint16_t *objectLayer = &dunData[layer2Offset + size.width * size.height * 2];
+	const uint16_t *objectLayer = &dunData[layer2Offset + (size.width * size.height * 2)];
 
 	for (WorldTileCoord j = 0; j < size.height; j++) {
 		for (WorldTileCoord i = 0; i < size.width; i++) {
-			auto objectId = static_cast<uint8_t>(Swap16LE(objectLayer[j * size.width + i]));
+			auto objectId = static_cast<uint8_t>(Swap16LE(objectLayer[(j * size.width) + i]));
 			if (objectId != 0) {
 				const ObjectData &objectData = AllObjects[ObjTypeConv[objectId]];
 				filesWidths[objectData.ofindex] = objectData.animWidth;
@@ -4001,7 +3998,7 @@ void SetMapObjects(const uint16_t *dunData, int startx, int starty)
 
 	for (WorldTileCoord j = 0; j < size.height; j++) {
 		for (WorldTileCoord i = 0; i < size.width; i++) {
-			auto objectId = static_cast<uint8_t>(Swap16LE(objectLayer[j * size.width + i]));
+			auto objectId = static_cast<uint8_t>(Swap16LE(objectLayer[(j * size.width) + i]));
 			if (objectId != 0) {
 				AddObject(ObjTypeConv[objectId], { startx + 16 + i, starty + 16 + j });
 			}
@@ -4690,7 +4687,7 @@ void SyncOpObject(Player &player, int cmd, Object &object)
 	}
 }
 
-void BreakObjectMissile(const Player *player, Object &object)
+void BreakObjectMissile(Object &object)
 {
 	if (object.IsCrux())
 		BreakCrux(object, true);

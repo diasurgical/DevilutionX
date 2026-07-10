@@ -7,7 +7,7 @@
 #include <SDL.h>
 #endif
 
-#include "control.h"
+#include "control/control.hpp"
 #include "controls/plrctrls.h"
 #include "cursor.h"
 #include "diablo.h"

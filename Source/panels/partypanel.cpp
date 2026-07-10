@@ -4,7 +4,7 @@
 #include <optional>
 
 #include "automap.h"
-#include "control.h"
+#include "control/control.hpp"
 #include "engine/backbuffer_state.hpp"
 #include "engine/clx_sprite.hpp"
 #include "engine/load_cel.hpp"
@@ -17,10 +17,10 @@
 #include "inv.h"
 #include "options.h"
 #include "pfile.h"
-#include "playerdat.hpp"
 #include "qol/monhealthbar.h"
 #include "qol/stash.h"
 #include "stores.h"
+#include "tables/playerdat.hpp"
 #include "utils/status_macros.hpp"
 #include "utils/surface_to_clx.hpp"
 

@@ -211,6 +211,116 @@ const TestFixture Fixtures[] {
 	        { "Two", UiFlags::ColorUiSilverDark },
 	    },
 	},
+	TestFixture {
+	    .name = "cursor-start",
+	    .width = 120,
+	    .height = 15,
+	    .fmt = "Hello World",
+	    .opts = {
+	        .flags = UiFlags::ColorUiGold,
+	        .cursorPosition = 0, // Cursor at start
+	        .cursorStatic = true,
+	    },
+	},
+	TestFixture {
+	    .name = "cursor-middle",
+	    .width = 120,
+	    .height = 15,
+	    .fmt = "Hello World",
+	    .opts = {
+	        .flags = UiFlags::ColorUiGold,
+	        .cursorPosition = 5, // Cursor after "Hello",
+	        .cursorStatic = true,
+	    },
+	},
+	TestFixture {
+	    .name = "cursor-end",
+	    .width = 120,
+	    .height = 15,
+	    .fmt = "Hello World",
+	    .opts = {
+	        .flags = UiFlags::ColorUiGold,
+	        .cursorPosition = 11, // Cursor at end
+	        .cursorStatic = true,
+	    },
+	},
+	TestFixture {
+	    .name = "multiline_cursor-end_first_line",
+	    .width = 100,
+	    .height = 50,
+	    .fmt = "First line\nSecond line",
+	    .opts = {
+	        .flags = UiFlags::ColorUiGold,
+	        .cursorPosition = 10, // Cursor at end of first line
+	        .cursorStatic = true,
+	    },
+	},
+	TestFixture {
+	    .name = "multiline_cursor-start_second_line",
+	    .width = 100,
+	    .height = 50,
+	    .fmt = "First line\nSecond line",
+	    .opts = {
+	        .flags = UiFlags::ColorUiGold,
+	        .cursorPosition = 11, // Cursor at start of second line
+	        .cursorStatic = true,
+	    },
+	},
+	TestFixture {
+	    .name = "multiline_cursor-middle_second_line",
+	    .width = 100,
+	    .height = 50,
+	    .fmt = "First line\nSecond line",
+	    .opts = {
+	        .flags = UiFlags::ColorUiGold,
+	        .cursorPosition = 14, // Cursor at second line, at the 'o' of "Second"
+	        .cursorStatic = true,
+	    },
+	},
+	TestFixture {
+	    .name = "multiline_cursor-end_second_line",
+	    .width = 100,
+	    .height = 50,
+	    .fmt = "First line\nSecond line",
+	    .opts = {
+	        .flags = UiFlags::ColorUiGold,
+	        .cursorPosition = 22, // Cursor at start of second line
+	        .cursorStatic = true,
+	    },
+	},
+	TestFixture {
+	    .name = "highlight-partial",
+	    .width = 120,
+	    .height = 15,
+	    .fmt = "Hello World",
+	    .opts = {
+	        .flags = UiFlags::ColorUiGold,
+	        .highlightRange = { 5, 10 }, // Highlight " Worl"
+	        .highlightColor = PAL8_BLUE,
+	    },
+	},
+	TestFixture {
+	    .name = "highlight-full",
+	    .width = 120,
+	    .height = 15,
+	    .fmt = "Hello World",
+	    .opts = {
+	        .flags = UiFlags::ColorUiGold,
+	        .highlightRange = { 0, 11 }, // Highlight entire text
+	        .highlightColor = PAL8_BLUE,
+	    },
+	},
+	TestFixture {
+	    .name = "multiline_highlight",
+	    .width = 70,
+	    .height = 50,
+	    .fmt = "Hello\nWorld",
+	    .opts = {
+	        .flags = UiFlags::ColorUiGold,
+	        .highlightRange = { 3, 8 }, // Highlight "lo\nWo"
+	        .highlightColor = PAL8_BLUE,
+	    },
+	},
 };
 
 SDLPaletteUniquePtr LoadPalette()

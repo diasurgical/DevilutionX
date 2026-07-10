@@ -36,6 +36,24 @@ tl::expected<void, std::string> LoadFileInMemWithStatus(const char *path, T *dat
 }
 
 template <typename T>
+tl::expected<void, std::string> LoadIntegralFileInMemWithStatus(const char *path, T *data)
+{
+	size_t size;
+	AssetHandle handle = OpenIntegralAsset(path, size);
+	if (!handle.ok()) {
+		if (HeadlessMode) return {};
+		return tl::make_unexpected(FailedToOpenFileErrorMessage(path, handle.error()));
+	}
+	if ((size % sizeof(T)) != 0) {
+		return tl::make_unexpected(StrCat("File size does not align with type\n", path));
+	}
+	if (!handle.read(data, size)) {
+		return tl::make_unexpected("handle.read failed");
+	}
+	return {};
+}
+
+template <typename T>
 void LoadFileInMem(const char *path, T *data)
 {
 	const tl::expected<void, std::string> result = LoadFileInMemWithStatus<T>(path, data);
