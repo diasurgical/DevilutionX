@@ -128,6 +128,9 @@ void ClearTownerDialogOptions()
 	std::fill(std::begin(CurrentExtraOptionIndices), std::end(CurrentExtraOptionIndices), std::nullopt);
 }
 
+/** Text lines */
+STextStruct TextLine[NumStoreLines];
+
 /** The current towner being interacted with */
 _talker_id TownerId;
 

@@ -23,7 +23,6 @@
 #include "player.h"
 #include "portal.h"
 #include "qol/chatlog.h"
-#include "spelldat.h"
 #include "stores.h"
 #include "towners.h"
 
