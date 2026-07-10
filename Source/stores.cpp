@@ -60,16 +60,6 @@ StaticVector<Item, NumWitchItemsHf> WitchItems;
 int BoyItemLevel;
 Item BoyItem;
 
-/** Remember currently selected text line from TextLine while displaying a dialog */
-int OldTextLine;
-/** Currently selected text line from TextLine */
-int CurrentTextLine;
-/** Remember last scroll position */
-int OldScrollPos;
-/** Scroll position */
-int ScrollPos;
-/** Remember current store while displaying a dialog */
-TalkID OldActiveStore;
 /** Temporary item used to hold the item being traded */
 Item TempItem;
 
@@ -137,8 +127,6 @@ void ClearTownerDialogOptions()
 	ExtraTownerOptions.clear();
 	std::fill(std::begin(CurrentExtraOptionIndices), std::end(CurrentExtraOptionIndices), std::nullopt);
 }
-
-namespace {
 
 /** The current towner being interacted with */
 _talker_id TownerId;
@@ -2828,25 +2816,6 @@ uint32_t TotalPlayerGold()
 bool PlayerCanAfford(int price)
 {
 	return TotalPlayerGold() >= static_cast<uint32_t>(price);
-}
-
-bool StoreAutoPlace(Item& item, bool persistItem)
-{
-	Player& player = *MyPlayer;
-
-	if (AutoEquipEnabled(player, item) && AutoEquip(player, item, persistItem, true)) {
-		return true;
-	}
-
-	if (AutoPlaceItemInBelt(player, item, persistItem, true)) {
-		return true;
-	}
-
-	if (persistItem) {
-		return AutoPlaceItemInInventory(player, item, true);
-	}
-
-	return CanFitItemInInventory(player, item);
 }
 
 bool StoreGoldFit(Item& item)
