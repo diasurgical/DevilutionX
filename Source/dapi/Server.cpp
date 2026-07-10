@@ -707,7 +707,6 @@ void Server::updateGameData()
 				partialFillItemInfo(itemID, &devilution::Players[i].HoldItem);
 				data->playerList[i].HoldItem = itemID;
 			}
-
 			data->playerList[i]._pIMinDam = devilution::Players[i]._pIMinDam;
 			data->playerList[i]._pIMaxDam = devilution::Players[i]._pIMaxDam;
 			data->playerList[i]._pIBonusDam = devilution::Players[i]._pIBonusDam;
@@ -2249,10 +2248,13 @@ void Server::putCursorItem(int location)
 	}
 	if (EquipSlot::INV1 <= equipLocation && equipLocation <= EquipSlot::INV40) {
 		const devilution::Size itemSize = devilution::GetInventorySize(devilution::MyPlayer->HoldItem);
+		hotPixelCellOffset = { itemSize.width * 14, itemSize.height * 14 };
+		/*
 		if (itemSize.height <= 1 && itemSize.width <= 1) {
 			hotPixelCellOffset = devilution::Displacement { 1, 1 };
 		}
-		hotPixelCellOffset = { (itemSize.width - 1) / 2 + 19, (itemSize.height - 1) / 2 + 19 };
+		else
+			hotPixelCellOffset = { (itemSize.width - 1) / 2 + 19, (itemSize.height - 1) / 2 + 19 };*/
 	} else {
 		hotPixelCellOffset = devilution::Displacement { 1, 1 };
 	}
