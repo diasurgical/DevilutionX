@@ -605,34 +605,24 @@ void UnloadModArchives()
 }
 
 #ifndef UNPACKED_MPQS
-// Reads the mod's `manifest.ini` from its own archive (registered at `priority`) and
-// attaches the parsed metadata. Deliberately bypasses the override-capable `FindAsset`
-// pipeline so the manifest is exactly the one covered by the mod's identifying hash.
-void ReadModManifest(ModIdentifier &mod, int priority)
-{
-	auto it = MpqArchives.find(priority);
-	if (it == MpqArchives.end())
-		return;
-	MpqArchive &archive = it->second;
+namespace {
 
+tl::expected<ModManifest, int32_t> ReadPackedModManifestFrom(MpqArchive &archive)
+{
 	constexpr std::string_view ManifestName = "manifest.ini";
 	if (!archive.HasFile(ManifestName))
-		return;
+		return tl::make_unexpected(0);
 
 	size_t fileSize = 0;
 	int32_t error = 0;
 	std::unique_ptr<std::byte[]> data = archive.ReadFile(ManifestName, fileSize, error);
-	if (data == nullptr) {
-		LogError("Failed to read {} from mod {}: error {}", ManifestName, mod.name, error);
-		return;
-	}
-	mod.manifest = ParseModManifest(std::string_view(reinterpret_cast<const char *>(data.get()), fileSize));
+	if (data == nullptr)
+		return tl::make_unexpected(error);
+
+	return ParseModManifest(std::string_view(reinterpret_cast<const char *>(data.get()), fileSize));
 }
 
-// Reads the `requires` list from a packed mod's manifest without registering the archive, so
-// it can inform load ordering before the real load pass assigns priorities. Returns empty if
-// the mod has no packed archive, no manifest, or an unreadable one.
-std::vector<std::string> ReadPackedModRequiredMods(std::span<const std::string> paths, std::string_view modname)
+tl::expected<ModManifest, int32_t> ReadPackedModManifest(std::span<const std::string> paths, std::string_view modname)
 {
 	const std::string mpqName = StrCat("mods" DIRECTORY_SEPARATOR_STR, modname);
 	std::string mpqAbsPath;
@@ -642,20 +632,40 @@ std::vector<std::string> ReadPackedModRequiredMods(std::span<const std::string> 
 			continue;
 		tl::expected<MpqArchive, std::string> archive = MpqArchive::Open(mpqAbsPath.c_str());
 		if (!archive.has_value())
-			return {};
-		constexpr std::string_view ManifestName = "manifest.ini";
-		if (!archive->HasFile(ManifestName))
-			return {};
-		size_t fileSize = 0;
-		int32_t error = 0;
-		std::unique_ptr<std::byte[]> data = archive->ReadFile(ManifestName, fileSize, error);
-		if (data == nullptr)
-			return {};
-		ModManifest manifest = ParseModManifest(std::string_view(reinterpret_cast<const char *>(data.get()), fileSize));
-		return std::move(manifest.requiredMods);
+			return tl::make_unexpected(0);
+		return ReadPackedModManifestFrom(*archive);
 	}
-	return {};
+	return tl::make_unexpected(0);
 }
+
+// Reads the mod's `manifest.ini` from its own archive (registered at `priority`) and
+// attaches the parsed metadata. Deliberately bypasses the override-capable `FindAsset`
+// pipeline so the manifest is exactly the one covered by the mod's identifying hash.
+void ReadLoadedModManifest(ModIdentifier &mod, int priority)
+{
+	auto it = MpqArchives.find(priority);
+	if (it == MpqArchives.end())
+		return;
+	MpqArchive &archive = it->second;
+	tl::expected<ModManifest, int32_t> manifest = ReadPackedModManifestFrom(archive);
+	if (manifest.has_value())
+		mod.manifest = std::move(*manifest);
+	else if (manifest.error() != 0)
+		LogError("Failed to read manifest from mod {}: error {}", mod.name, manifest.error());
+}
+
+// Reads the `requires` list from a packed mod's manifest without registering the archive, so
+// it can inform load ordering before the real load pass assigns priorities. Returns empty if
+// the mod has no packed archive, no manifest, or an unreadable one.
+std::vector<std::string> ReadPackedModRequiredMods(std::span<const std::string> paths, std::string_view modname)
+{
+	tl::expected<ModManifest, int32_t> manifest = ReadPackedModManifest(paths, modname);
+	if (!manifest.has_value())
+		return {};
+	return std::move(manifest->requiredMods);
+}
+
+} // namespace
 #endif
 
 ModManifest ReadModManifestByName(std::string_view name)
@@ -683,22 +693,9 @@ ModManifest ReadModManifestByName(std::string_view name)
 
 #ifndef UNPACKED_MPQS
 	// Packed mod archive.
-	for (const std::string &path : searchPaths) {
-		const std::string mpqAbsPath = StrCat(path, "mods" DIRECTORY_SEPARATOR_STR, name, ".mpq");
-		if (!FileExists(mpqAbsPath))
-			continue;
-		tl::expected<MpqArchive, std::string> archive = MpqArchive::Open(mpqAbsPath.c_str());
-		if (!archive.has_value())
-			return {};
-		if (!archive->HasFile(ManifestName))
-			return {};
-		size_t fileSize = 0;
-		int32_t error = 0;
-		std::unique_ptr<std::byte[]> data = archive->ReadFile(ManifestName, fileSize, error);
-		if (data == nullptr)
-			return {};
-		return ParseModManifest(std::string_view(reinterpret_cast<const char *>(data.get()), fileSize));
-	}
+	tl::expected<ModManifest, int32_t> manifest = ReadPackedModManifest(searchPaths, name);
+	if (manifest.has_value())
+		return std::move(*manifest);
 #endif
 
 	return {};
@@ -761,7 +758,7 @@ void LoadModArchives(std::span<const std::string_view> modnames)
 			// A packed mod: identify it by the hash of its MPQ bytes. A local packed mod
 			// deliberately shadows any built-in of the same name, so it is treated as external.
 			ModIdentifier &mod = RegisterPackedModIdentifier(modname, loadedPath.c_str());
-			ReadModManifest(mod, priority);
+			ReadLoadedModManifest(mod, priority);
 		} else if (!hasLooseOverride[i]) {
 			// Neither a packed MPQ nor a loose override directory: this mod resolves purely
 			// from core archives (a built-in), so it is provenance-whitelisted.
