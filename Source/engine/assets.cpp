@@ -578,11 +578,11 @@ void LoadModArchives(std::span<const std::string_view> modnames)
 	std::string targetPath;
 	for (const std::string_view modname : modnames) {
 		targetPath = StrCat(paths::PrefPath(), "mods" DIRECTORY_SEPARATOR_STR, modname, DIRECTORY_SEPARATOR_STR);
-		if (FileExists(targetPath)) {
+		if (DirectoryExists(targetPath)) {
 			OverridePaths.emplace_back(targetPath);
 		}
 		targetPath = StrCat(paths::BasePath(), "mods" DIRECTORY_SEPARATOR_STR, modname, DIRECTORY_SEPARATOR_STR);
-		if (FileExists(targetPath)) {
+		if (DirectoryExists(targetPath)) {
 			OverridePaths.emplace_back(targetPath);
 		}
 	}
