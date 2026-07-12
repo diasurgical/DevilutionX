@@ -333,11 +333,11 @@ if(GPERF)
   endif()
 endif()
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 
 # On some platforms, such as DJGPP,
-# `-std=c++20` defines `__STRICT_ANSI__` which disables
-# all POSIX extensions, so we need to use `-std=gnu++20` instead.
+# `-std=c++23` defines `__STRICT_ANSI__` which disables
+# all POSIX extensions, so we need to use `-std=gnu++23` instead.
 set(CMAKE_CXX_EXTENSIONS ON)
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
