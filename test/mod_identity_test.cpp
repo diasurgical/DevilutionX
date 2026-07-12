@@ -221,15 +221,17 @@ TEST(ModIdentity, ActiveModSaveExtensionOptInLastWins)
 	// No active mods: no override (callers default to "sv").
 	EXPECT_TRUE(GetActiveModSaveExtension().empty());
 
-	// A cosmetic mod that declares no saveExtension leaves the namespace untouched.
+	// A whitelisted cosmetic mod that declares no saveExtension leaves the namespace untouched.
 	ModIdentifier cosmetic;
 	cosmetic.name = "clock";
+	cosmetic.whitelisted = true;
 	ActiveModIdentifiers.push_back(cosmetic);
 	EXPECT_TRUE(GetActiveModSaveExtension().empty());
 
 	// A mod that opts in overrides it; a leading dot is stripped.
 	ModIdentifier hf;
 	hf.name = "hf";
+	hf.whitelisted = true;
 	hf.manifest.saveExtension = ".hsv";
 	ActiveModIdentifiers.push_back(hf);
 	EXPECT_EQ(GetActiveModSaveExtension(), "hsv");
@@ -237,9 +239,28 @@ TEST(ModIdentity, ActiveModSaveExtensionOptInLastWins)
 	// The last active mod that declares one wins.
 	ModIdentifier other;
 	other.name = "other";
+	other.whitelisted = true;
 	other.manifest.saveExtension = "msv";
 	ActiveModIdentifiers.push_back(other);
 	EXPECT_EQ(GetActiveModSaveExtension(), "msv");
+
+	ClearModIdentifiers();
+
+	// An untrusted (non-whitelisted) mod forces the sandboxed "msv" namespace even when it
+	// declares no saveExtension, so its saves never collide with the vanilla "sv" ones.
+	ModIdentifier untrusted;
+	untrusted.name = "community";
+	untrusted.whitelisted = false;
+	ActiveModIdentifiers.push_back(untrusted);
+	EXPECT_EQ(GetActiveModSaveExtension(), "msv");
+
+	// A whitelisted mod's declared extension still overrides that floor (last-wins).
+	ModIdentifier branded;
+	branded.name = "hf";
+	branded.whitelisted = true;
+	branded.manifest.saveExtension = "hsv";
+	ActiveModIdentifiers.push_back(branded);
+	EXPECT_EQ(GetActiveModSaveExtension(), "hsv");
 
 	ClearModIdentifiers();
 }

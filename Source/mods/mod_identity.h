@@ -21,23 +21,17 @@ namespace devilution {
 /**
  * @brief Declarative metadata a mod may ship as a `manifest.ini` at the root of its MPQ.
  *
- * The manifest is read directly from the mod's own archive (never through the
- * override-capable `FindAsset` pipeline), so it is covered by the same SHA-256 that
- * identifies the mod — a release can only ever vouch for its own past, never re-scope
- * an old identifier (see `todo/mod-check.md` §2).
- *
- * Only `compatibleWith` is consumed today (Phase 2). The remaining fields define the
- * schema up front so later phases can wire them in without a file rename or a second
- * parse pass; each has an outstanding task in `todo/mod-check.md`.
+ * The manifest is read directly from the mod's own archive, so is it self part of the
+ * identifie, a release can only ever vouch for its past releases.
  */
 struct ModManifest {
-	/** Human-readable name shown in the mod menu. Display only — the canonical mod id remains the MPQ filename. */
+	/** Human-readable name shown in the mod menu. */
 	std::string name;
-	/** One-line description shown in the mod menu. */
+	/** Description shown in the mod menu. */
 	std::string description;
-	/** Free-form version string (e.g. "1.2.0"), shown in the mod menu. */
+	/** Free-form version string (e.g. "1.2.0"). */
 	std::string version;
-	/** Author / attribution, for a future online mod archive. */
+	/** Author / attribution. */
 	std::string author;
 	/** Homepage or project URL, for a future online mod archive. */
 	std::string homepage;
@@ -45,24 +39,22 @@ struct ModManifest {
 	std::string license;
 	/**
 	 * Save-file extension this mod uses, without the leading dot (e.g. "hsv"). Opt-in: a mod
-	 * that omits this leaves the save namespace at the default "sv". The last active mod that
-	 * sets one wins. Consumed by `GetActiveModSaveExtension()` / the save paths in `pfile.cpp`.
+	 * that omits this will default to "msv". The last active mod that sets one wins.
 	 */
 	std::string saveExtension;
 	/**
 	 * Four-character cosmetic branding id (e.g. "HRTL") shown in the multiplayer game browser.
-	 * The last active mod that sets one wins. Consumed by `GetGameId()`. Not a compatibility
-	 * check — join compatibility uses edition + version + mod config, not this.
+	 * The last active mod that sets one wins.
 	 */
 	std::string programId;
 	/**
 	 * Names (MPQ filename ids) of other mods this mod requires; also constrains load order so
-	 * required mods load first. Consumed by `OrderModsByDependencies()` in `LoadModArchives`.
+	 * required mods load first.
 	 */
 	std::vector<std::string> requiredMods;
 	/**
-	 * SHA-256 identifiers of previous releases whose saves this version can load (design §2).
-	 * A required identifier `X` is satisfied by this mod iff its own hash equals `X` or `X`
+	 * SHA-256 identifiers of previous releases whose saves this version can load.
+	 * A required identifier `X` is satisfied by this mod if its own hash equals `X` or `X`
 	 * appears in this list.
 	 */
 	std::vector<std::array<uint8_t, 32>> compatibleWith;
@@ -85,9 +77,8 @@ struct ModIdentifier {
 /**
  * @brief Active packed/built-in mod identifiers, in mod load order.
  *
- * Rebuilt from scratch on every mod reload (`LuaReloadActiveMods` -> `LoadModArchives`),
- * so it is never stale. Loose-dir-only mods are intentionally absent — they carry no
- * identifier and are gated by the loose-asset integrity check.
+ * Loose-dir-only mods are intentionally absentthey, they are instead
+ * gated by the loose-asset integrity check.
  */
 extern DVL_API_FOR_TEST std::vector<ModIdentifier> ActiveModIdentifiers;
 
@@ -105,7 +96,7 @@ bool ComputeFileSha256(const char *path, std::array<uint8_t, 32> &hashOut);
 /**
  * @brief Records a packed mod's identifier, hashing its MPQ file bytes.
  *
- * The entry is marked whitelisted iff its hash is in the hardcoded approved list.
+ * The entry is marked whitelisted if its hash is in the hardcoded approved list.
  * If the file cannot be hashed the mod is still recorded (with a zero hash) so the
  * active list stays positionally aligned with the mod load order.
  *
@@ -129,9 +120,9 @@ ModIdentifier &RegisterPackedModIdentifier(std::string_view name, const char *mp
 bool HexToModHash(std::string_view hex, std::array<uint8_t, 32> &out);
 
 /**
- * @brief Whether a mod satisfies a required save identifier per the compat rule (design §2).
+ * @brief Whether a mod satisfies a required save identifier per the compat rule.
  *
- * True iff the mod's own hash equals `required`, or `required` appears in the mod's
+ * True if the mod's own hash equals `required`, or `required` appears in the mod's
  * manifest `compatibleWith` list.
  */
 [[nodiscard]] bool SatisfiesRequiredIdentifier(const ModIdentifier &mod, std::span<const uint8_t, 32> required);
@@ -149,12 +140,11 @@ void RegisterBuiltinModIdentifier(std::string_view name);
 [[nodiscard]] bool IsHashWhitelisted(std::span<const uint8_t, 32> hash);
 
 /**
- * @brief Save-file extension declared by the active mods, or empty if none declare one.
+ * @brief Save-file extension declared by the active mods, or empty if mods are active.
  *
- * The last active mod (in load order) that sets `saveExtension` wins. A leading dot is
- * stripped, so `hsv` and `.hsv` are equivalent. The returned view points into
- * `ActiveModIdentifiers` and is valid until the next mod reload. Cosmetic mods that omit
- * `saveExtension` leave the save namespace untouched (design: opt-in only).
+ * The last active mod (in load order) that sets `saveExtension` wins.
+ * The returned view points into `ActiveModIdentifiers` and is valid until the next
+ * mod reload.
  */
 [[nodiscard]] std::string_view GetActiveModSaveExtension();
 

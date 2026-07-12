@@ -1824,8 +1824,10 @@ uint32_t GetGameId()
 	bool hasUnrecognisedMod = false;
 	for (const ModIdentifier &mod : ActiveModIdentifiers) {
 		const std::string &programId = mod.manifest.programId;
-		if (programId.size() == 4) {
-			declared = LoadBE32(programId.data()); // last active mod that declares one wins
+		const uint32_t candidate = programId.size() == 4 ? LoadBE32(programId.data()) : 0;
+		// A mod may not brand itself as DRTL/DSHR
+		if (candidate != 0 && candidate != GameIdDiabloFull && candidate != GameIdDiabloSpawn) {
+			declared = candidate; // last active mod that declares one wins
 			hasDeclared = true;
 		} else if (!mod.whitelisted) {
 			hasUnrecognisedMod = true;

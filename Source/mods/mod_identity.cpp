@@ -164,11 +164,19 @@ std::string_view GetActiveModSaveExtension()
 {
 	std::string_view result;
 	for (const ModIdentifier &mod : ActiveModIdentifiers) {
+		if (!mod.whitelisted) {
+			result = "msv";
+			break;
+		}
+	}
+	for (const ModIdentifier &mod : ActiveModIdentifiers) {
 		std::string_view ext = mod.manifest.saveExtension;
 		if (ext.empty())
 			continue;
 		if (ext.front() == '.')
 			ext.remove_prefix(1);
+		if (ext == "sv")
+			continue;
 		if (!ext.empty())
 			result = ext; // last active mod that declares one wins
 	}
