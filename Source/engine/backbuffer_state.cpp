@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "engine/dx.h"
+#include "engine/render/renderer.h"
 #include "utils/enum_traits.h"
 
 namespace devilution {
@@ -20,7 +21,6 @@ struct RedrawState {
 
 struct BackbufferState {
 	RedrawState redrawState;
-	DrawnCursor cursor;
 };
 
 struct BackbufferPtrAndState {
@@ -32,8 +32,7 @@ std::vector<BackbufferPtrAndState> States;
 
 BackbufferState &GetBackbufferState()
 {
-	// `PalSurface` is null in headless mode.
-	void *ptr = PalSurface != nullptr ? PalSurface->pixels : nullptr;
+	void *ptr = GetRenderer().GetBackBufferKey();
 	for (BackbufferPtrAndState &ptrAndState : States) {
 		if (ptrAndState.ptr == ptr)
 			return ptrAndState.state;
@@ -99,11 +98,6 @@ bool IsRedrawComponent(PanelDrawComponent component)
 void RedrawComponentComplete(PanelDrawComponent component)
 {
 	GetBackbufferState().redrawState.redrawComponents[static_cast<size_t>(component)] = false;
-}
-
-DrawnCursor &GetDrawnCursor()
-{
-	return GetBackbufferState().cursor;
 }
 
 } // namespace devilution

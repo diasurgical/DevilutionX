@@ -1,17 +1,16 @@
 #include "panels/charpanel.hpp"
 
-#include <cstdint>
-
 #include <algorithm>
-#include <string>
-
+#include <cstdint>
 #include <expected.hpp>
 #include <fmt/format.h>
 #include <function_ref.hpp>
+#include <string>
 
 #include "control/control.hpp"
 #include "engine/load_clx.hpp"
 #include "engine/render/clx_render.hpp"
+#include "engine/render/renderer.h"
 #include "engine/render/text_render.hpp"
 #include "panels/ui_panels.hpp"
 #include "player.h"
@@ -254,17 +253,17 @@ void DrawShadowString(const Surface &out, const PanelEntry &entry)
 	    { .flags = style | UiFlags::ColorWhite, .spacing = Spacing });
 }
 
-void DrawStatButtons(const Surface &out)
+void DrawStatButtons()
 {
 	if (InspectPlayer->_pStatPts > 0 && !IsInspectingPlayer()) {
 		if (InspectPlayer->_pBaseStr < InspectPlayer->GetMaximumAttributeValue(CharacterAttribute::Strength))
-			ClxDraw(out, GetPanelPosition(UiPanels::Character, { 137, 157 }), (*pChrButtons)[CharPanelButton[static_cast<size_t>(CharacterAttribute::Strength)] ? 2 : 1]);
+			GetRenderer().DrawClx(GetPanelPosition(UiPanels::Character, { 137, 157 }), (*pChrButtons)[CharPanelButton[static_cast<size_t>(CharacterAttribute::Strength)] ? 2 : 1]);
 		if (InspectPlayer->_pBaseMag < InspectPlayer->GetMaximumAttributeValue(CharacterAttribute::Magic))
-			ClxDraw(out, GetPanelPosition(UiPanels::Character, { 137, 185 }), (*pChrButtons)[CharPanelButton[static_cast<size_t>(CharacterAttribute::Magic)] ? 4 : 3]);
+			GetRenderer().DrawClx(GetPanelPosition(UiPanels::Character, { 137, 185 }), (*pChrButtons)[CharPanelButton[static_cast<size_t>(CharacterAttribute::Magic)] ? 4 : 3]);
 		if (InspectPlayer->_pBaseDex < InspectPlayer->GetMaximumAttributeValue(CharacterAttribute::Dexterity))
-			ClxDraw(out, GetPanelPosition(UiPanels::Character, { 137, 214 }), (*pChrButtons)[CharPanelButton[static_cast<size_t>(CharacterAttribute::Dexterity)] ? 6 : 5]);
+			GetRenderer().DrawClx(GetPanelPosition(UiPanels::Character, { 137, 214 }), (*pChrButtons)[CharPanelButton[static_cast<size_t>(CharacterAttribute::Dexterity)] ? 6 : 5]);
 		if (InspectPlayer->_pBaseVit < InspectPlayer->GetMaximumAttributeValue(CharacterAttribute::Vitality))
-			ClxDraw(out, GetPanelPosition(UiPanels::Character, { 137, 242 }), (*pChrButtons)[CharPanelButton[static_cast<size_t>(CharacterAttribute::Vitality)] ? 8 : 7]);
+			GetRenderer().DrawClx(GetPanelPosition(UiPanels::Character, { 137, 242 }), (*pChrButtons)[CharPanelButton[static_cast<size_t>(CharacterAttribute::Vitality)] ? 8 : 7]);
 	}
 }
 
@@ -306,21 +305,20 @@ void FreeCharPanel()
 	Panel = std::nullopt;
 }
 
-void DrawChr(const Surface &out)
+void DrawChr()
 {
 	const Point pos = GetPanelPosition(UiPanels::Character, { 0, 0 });
-	RenderClxSprite(out, (*Panel)[0], pos);
+	GetRenderer().RenderClx(pos, (*Panel)[0]);
 	for (auto &entry : panelEntries) {
 		if (entry.statDisplayFunc) {
 			const StyledText tmp = (*entry.statDisplayFunc)();
 			DrawString(
-			    out,
 			    tmp.text,
 			    { entry.position + Displacement { pos.x + PanelFieldPaddingSide, pos.y + PanelFieldPaddingTop }, { entry.length - (PanelFieldPaddingSide * 2), PanelFieldInnerHeight } },
 			    { .flags = UiFlags::KerningFitSpacing | UiFlags::AlignCenter | UiFlags::VerticalCenter | tmp.style });
 		}
 	}
-	DrawStatButtons(out);
+	DrawStatButtons();
 }
 
 } // namespace devilution

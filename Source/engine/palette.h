@@ -5,12 +5,15 @@
  */
 #pragma once
 
+#include <functional>
+
 #include <array>
 #include <cstdint>
 #include <span>
 
 #ifdef USE_SDL3
 #include <SDL3/SDL_pixels.h>
+#include <SDL3/SDL_surface.h>
 #else
 #include <SDL.h>
 #endif
@@ -103,14 +106,20 @@ void UpdateSystemPalette(std::span<const SDL_Color, 256> src);
 /**
  * @brief Fade screen from black
  * @param fr Steps per 50ms
+ * @param redraw Optional callback invoked each fade step to redraw the scene.
+ *               The GL renderer clears the framebuffer every frame, so callers
+ *               that normally rely on PalSurface retaining its pixels must
+ *               pass a redraw callback to re-render the scene each step.
+ *               The software renderer can pass nullptr (the default).
  */
-void PaletteFadeIn(int fr, const std::array<SDL_Color, 256> &srcPalette = logical_palette);
+void PaletteFadeIn(int fr, const std::array<SDL_Color, 256> &srcPalette = logical_palette, std::function<void()> redraw = nullptr);
 
 /**
  * @brief Fade screen to black
  * @param fr Steps per 50ms
+ * @param redraw Optional callback invoked each fade step to redraw the scene.
  */
-void PaletteFadeOut(int fr, const std::array<SDL_Color, 256> &srcPalette = logical_palette);
+void PaletteFadeOut(int fr, const std::array<SDL_Color, 256> &srcPalette = logical_palette, std::function<void()> redraw = nullptr);
 
 /**
  * @brief Applies global brightness setting to `src` and writes the result to `dst`.
@@ -142,5 +151,15 @@ void BlackPalette();
 void palette_update_caves();
 void palette_update_crypt();
 void palette_update_hive();
+
+/**
+ * @brief Apply `system_palette` to a temporary off-screen surface.
+ *
+ * Use this instead of `GetRenderer().SetSurfacePalette()` when compositing
+ * indexed sprites onto a transient surface that will be immediately blitted
+ * to screen. Allocates a one-shot SDL_Palette, fills it with the current
+ * system_palette entries, and attaches it to the surface.
+ */
+void ApplySystemPaletteToSurface(SDL_Surface *surface);
 
 } // namespace devilution

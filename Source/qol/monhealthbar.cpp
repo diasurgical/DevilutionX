@@ -14,7 +14,7 @@
 #include "engine/clx_sprite.hpp"
 #include "engine/load_clx.hpp"
 #include "engine/render/clx_render.hpp"
-#include "engine/render/primitive_render.hpp"
+#include "engine/render/renderer.h"
 #include "game_mode.hpp"
 #include "options.h"
 #include "utils/language.h"
@@ -70,7 +70,7 @@ void FreeMonsterHealthBar()
 	healthBox = std::nullopt;
 }
 
-void DrawMonsterHealthBar(const Surface &out)
+void DrawMonsterHealthBar()
 {
 	if (!*GetOptions().Gameplay.enemyHealthBar)
 		return;
@@ -108,13 +108,13 @@ void DrawMonsterHealthBar(const Surface &out)
 		}
 	}
 
-	RenderClxSprite(out, (*healthBox)[0], position);
-	DrawHalfTransparentRectTo(out, position.x + border, position.y + border, width - (border * 2), height - (border * 2));
+	GetRenderer().RenderClx(position, (*healthBox)[0]);
+	GetRenderer().DrawBlendedRect(position.x + border, position.y + border, width - (border * 2), height - (border * 2));
 	const int barProgress = (barWidth * currLife) / monster.maxHitPoints;
 	if (barProgress != 0) {
-		RenderClxSprite(
-		    out.subregion(position.x + border + 1, position.y + border + 1, barProgress, height - (border * 2) - 2),
-		    (*(multiplier > 0 ? healthBlue : health))[0], { 0, 0 });
+		GetRenderer().SetClipRegion(position.x + border + 1, position.y + border + 1, barProgress, height - (border * 2) - 2);
+		GetRenderer().RenderClx({ position.x + border + 1, position.y + border + 1 }, (*(multiplier > 0 ? healthBlue : health))[0]);
+		GetRenderer().ClearClipRegion();
 	}
 
 	constexpr auto GetBorderColor = [](MonsterClass monsterClass) {
@@ -136,15 +136,15 @@ void DrawMonsterHealthBar(const Surface &out)
 	if (*GetOptions().Gameplay.showMonsterType) {
 		const Uint8 borderColor = GetBorderColor(monster.data().monsterClass);
 		const int borderWidth = width - (border * 2);
-		UnsafeDrawHorizontalLine(out, { position.x + border, position.y + border }, borderWidth, borderColor);
-		UnsafeDrawHorizontalLine(out, { position.x + border, position.y + height - border - 1 }, borderWidth, borderColor);
+		GetRenderer().DrawHorizontalLine({ position.x + border, position.y + border }, borderWidth, borderColor);
+		GetRenderer().DrawHorizontalLine({ position.x + border, position.y + height - border - 1 }, borderWidth, borderColor);
 		const int borderHeight = height - (border * 2) - 2;
-		UnsafeDrawVerticalLine(out, { position.x + border, position.y + border + 1 }, borderHeight, borderColor);
-		UnsafeDrawVerticalLine(out, { position.x + width - border - 1, position.y + border + 1 }, borderHeight, borderColor);
+		GetRenderer().DrawVerticalLine({ position.x + border, position.y + border + 1 }, borderHeight, borderColor);
+		GetRenderer().DrawVerticalLine({ position.x + width - border - 1, position.y + border + 1 }, borderHeight, borderColor);
 	}
 
 	UiFlags style = UiFlags::AlignCenter | UiFlags::VerticalCenter;
-	DrawString(out, monster.name(), { position + Displacement { -1, 1 }, { width, height } },
+	DrawString(monster.name(), { position + Displacement { -1, 1 }, { width, height } },
 	    { .flags = style | UiFlags::ColorBlack });
 	if (monster.isUnique())
 		style |= UiFlags::ColorWhitegold;
@@ -152,11 +152,11 @@ void DrawMonsterHealthBar(const Surface &out)
 		style |= UiFlags::ColorBlue;
 	else
 		style |= UiFlags::ColorWhite;
-	DrawString(out, monster.name(), { position, { width, height } },
+	DrawString(monster.name(), { position, { width, height } },
 	    { .flags = style });
 
 	if (multiplier > 0)
-		DrawString(out, StrCat("x", multiplier), { position, { width - 2, height } },
+		DrawString(StrCat("x", multiplier), { position, { width - 2, height } },
 		    { .flags = UiFlags::ColorWhite | UiFlags::AlignRight | UiFlags::VerticalCenter });
 	if (monster.isUnique() || MonsterKillCounts[monster.type().type] >= 15) {
 		const monster_resistance immunes[] = { IMMUNE_MAGIC, IMMUNE_FIRE, IMMUNE_LIGHTNING };
@@ -165,10 +165,10 @@ void DrawMonsterHealthBar(const Surface &out)
 		int resOffset = 5;
 		for (size_t i = 0; i < 3; i++) {
 			if ((monster.resistance & immunes[i]) != 0) {
-				RenderClxSprite(out, (*resistance)[(i * 2) + 1], position + Displacement { resOffset, height - 6 });
+				GetRenderer().RenderClx(position + Displacement { resOffset, height - 6 }, (*resistance)[(i * 2) + 1]);
 				resOffset += (*resistance)[0].width() + 2;
 			} else if ((monster.resistance & resists[i]) != 0) {
-				RenderClxSprite(out, (*resistance)[i * 2], position + Displacement { resOffset, height - 6 });
+				GetRenderer().RenderClx(position + Displacement { resOffset, height - 6 }, (*resistance)[i * 2]);
 				resOffset += (*resistance)[0].width() + 2;
 			}
 		}
@@ -178,9 +178,9 @@ void DrawMonsterHealthBar(const Surface &out)
 		int tagOffset = 5;
 		for (size_t i = 0; i < Players.size(); i++) {
 			if (((1U << i) & monster.whoHit) != 0) {
-				RenderClxSprite(out, (*playerExpTags)[i + 1], position + Displacement { tagOffset, height - 31 });
+				GetRenderer().RenderClx(position + Displacement { tagOffset, height - 31 }, (*playerExpTags)[i + 1]);
 			} else if (Players[i].plractive) {
-				RenderClxSprite(out, (*playerExpTags)[0], position + Displacement { tagOffset, height - 31 });
+				GetRenderer().RenderClx(position + Displacement { tagOffset, height - 31 }, (*playerExpTags)[0]);
 			}
 			tagOffset += (*playerExpTags)[0].width();
 		}

@@ -27,6 +27,8 @@
 
 #include "appfat.h"
 #include "controls/controller_buttons.h"
+#include "engine/render/lighting_mode.hpp"
+#include "engine/render/renderer_backend.h"
 #include "engine/size.hpp"
 #include "engine/sound_defs.hpp"
 #include "pack.h"
@@ -516,6 +518,8 @@ struct GraphicsOptions : OptionCategoryBase {
 	GraphicsOptions();
 	std::vector<OptionEntryBase *> GetEntries() override;
 
+	/** @brief Rendering backend: "software", "gl1", or "auto". */
+	OptionEntryEnum<RendererBackend> renderer;
 	OptionEntryResolution resolution;
 	/** @brief Run in fullscreen or windowed mode. */
 	OptionEntryBoolean fullscreen;
@@ -537,8 +541,8 @@ struct GraphicsOptions : OptionCategoryBase {
 	OptionEntryInt<int> brightness;
 	/** @brief Zoom on start. */
 	OptionEntryBoolean zoom;
-	/** @brief Subtile lighting for smoother light gradients. */
-	OptionEntryBoolean perPixelLighting;
+	/** @brief Lighting quality mode. */
+	OptionEntryEnum<LightingMode> lightingMode;
 	/** @brief Enable color cycling animations. */
 	OptionEntryBoolean colorCycling;
 	/** @brief Use alternate nest palette. */

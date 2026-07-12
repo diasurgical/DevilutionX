@@ -16,11 +16,9 @@
 
 #include "diablo_msg.hpp"
 
-#include "DiabloUI/ui_flags.hpp"
+#include "control/control.hpp"
 #include "engine/clx_sprite.hpp"
-#include "engine/render/clx_render.hpp"
-#include "engine/render/primitive_render.hpp"
-#include "engine/render/text_render.hpp"
+#include "engine/render/renderer.h"
 #include "panels/info_box.hpp"
 #include "utils/algorithm/container.hpp"
 #include "utils/language.h"
@@ -157,7 +155,7 @@ void ClrDiabloMsg()
 	DiabloMessages.clear();
 }
 
-void DrawDiabloMsg(const Surface &out)
+void DrawDiabloMsg()
 {
 	const ClxSpriteList sprites = *pSTextSlidCels;
 	const ClxSprite borderCornerTopLeftSprite = sprites[0];
@@ -175,13 +173,17 @@ void DrawDiabloMsg(const Surface &out)
 	const int textPaddingX = 5;
 	const int borderThickness = 3;
 
-	const int outerHeight = std::min<int>(out.h(), OuterHeight);
-	const int outerWidth = std::min<int>(out.w(), LineWidth + (2 * borderThickness) + textPaddingX);
+	const Size backBufferSize = GetRenderer().GetBackBufferSize();
+	const int viewportW = backBufferSize.width;
+	const int viewportH = backBufferSize.height - GetMainPanel().size.height;
+
+	const int outerHeight = std::min<int>(viewportH, OuterHeight);
+	const int outerWidth = std::min<int>(viewportW, LineWidth + (2 * borderThickness) + textPaddingX);
 	const int innerWidth = outerWidth - (2 * borderThickness);
 	const int lineWidth = innerWidth - textPaddingX;
 	const int innerHeight = outerHeight - (2 * borderThickness);
 
-	const Point topLeft { (out.w() - outerWidth) / 2, (out.h() - outerHeight) / 2 };
+	const Point topLeft { (viewportW - outerWidth) / 2, (viewportH - outerHeight) / 2 };
 
 	const int innerXBegin = topLeft.x + borderThickness;
 	const int innerXEnd = innerXBegin + innerWidth;
@@ -190,28 +192,30 @@ void DrawDiabloMsg(const Surface &out)
 	const int borderRightX = innerXEnd - (borderPartWidth - borderThickness);
 	const int borderBottomY = innerYEnd - (borderPartHeight - borderThickness);
 
-	RenderClxSprite(out, borderCornerTopLeftSprite, topLeft);
-	RenderClxSprite(out, borderCornerBottomLeftSprite, { topLeft.x, borderBottomY });
-	RenderClxSprite(out, borderCornerBottomRightSprite, { borderRightX, borderBottomY });
-	RenderClxSprite(out, borderCornerTopRightSprite, { borderRightX, topLeft.y });
+	GetRenderer().RenderClx(topLeft, borderCornerTopLeftSprite);
+	GetRenderer().RenderClx({ topLeft.x, borderBottomY }, borderCornerBottomLeftSprite);
+	GetRenderer().RenderClx({ borderRightX, borderBottomY }, borderCornerBottomRightSprite);
+	GetRenderer().RenderClx({ borderRightX, topLeft.y }, borderCornerTopRightSprite);
 
-	const Surface horizontalBorderOut = out.subregionX(topLeft.x, outerWidth - borderPartWidth);
-	for (int x = borderPartWidth; x < horizontalBorderOut.w(); x += borderPartWidth) {
-		RenderClxSprite(horizontalBorderOut, borderTopSprite, { x, topLeft.y });
-		RenderClxSprite(horizontalBorderOut, borderBottomSprite, { x, borderBottomY });
+	GetRenderer().SetClipRegion(topLeft.x, 0, outerWidth - borderPartWidth, viewportH);
+	for (int x = borderPartWidth; x < outerWidth - borderPartWidth; x += borderPartWidth) {
+		GetRenderer().RenderClx({ x + topLeft.x, topLeft.y }, borderTopSprite);
+		GetRenderer().RenderClx({ x + topLeft.x, borderBottomY }, borderBottomSprite);
 	}
+	GetRenderer().ClearClipRegion();
 
-	const Surface verticalBorderOut = out.subregionY(topLeft.y, outerHeight - borderPartHeight);
-	for (int y = borderPartHeight; y < verticalBorderOut.h(); y += borderPartHeight) {
-		RenderClxSprite(verticalBorderOut, borderLeftSprite, { topLeft.x, y });
-		RenderClxSprite(verticalBorderOut, borderRightSprite, { borderRightX, y });
+	GetRenderer().SetClipRegion(0, topLeft.y, viewportW, outerHeight - borderPartHeight);
+	for (int y = borderPartHeight; y < outerHeight - borderPartHeight; y += borderPartHeight) {
+		GetRenderer().RenderClx({ topLeft.x, y + topLeft.y }, borderLeftSprite);
+		GetRenderer().RenderClx({ borderRightX, y + topLeft.y }, borderRightSprite);
 	}
-	DrawHalfTransparentRectTo(out, innerXBegin, innerYBegin, innerWidth, innerHeight);
+	GetRenderer().ClearClipRegion();
+	GetRenderer().DrawBlendedRect(innerXBegin, innerYBegin, innerWidth, innerHeight);
 
 	const int textX = innerXBegin + textPaddingX;
 	int textY = innerYBegin + ((innerHeight - LineHeight * static_cast<int>(TextLines.size())) / 2);
 	for (const std::string &line : TextLines) {
-		DrawString(out, line, { { textX, textY }, { lineWidth, LineHeight } },
+		DrawString(line, { { textX, textY }, { lineWidth, LineHeight } },
 		    { .flags = UiFlags::AlignCenter, .lineHeight = LineHeight });
 		textY += LineHeight;
 	}
