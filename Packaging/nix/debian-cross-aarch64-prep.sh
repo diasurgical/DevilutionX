@@ -5,17 +5,17 @@ set -x
 FLAVOR="$(lsb_release -sc)"
 
 if dpkg-vendor --derives-from Ubuntu; then
-	sudo tee /etc/apt/sources.list.d/arm64.list <<LIST
-deb [arch=arm64] http://ports.ubuntu.com/ ${FLAVOR} main restricted
-deb [arch=arm64] http://ports.ubuntu.com/ ${FLAVOR}-updates main restricted
-deb [arch=arm64] http://ports.ubuntu.com/ ${FLAVOR} universe
-deb [arch=arm64] http://ports.ubuntu.com/ ${FLAVOR}-updates universe
-deb [arch=arm64] http://ports.ubuntu.com/ ${FLAVOR} multiverse
-deb [arch=arm64] http://ports.ubuntu.com/ ${FLAVOR}-updates multiverse
-deb [arch=arm64] http://ports.ubuntu.com/ ${FLAVOR}-backports main restricted universe multiverse
+	if ! grep -q '^Architectures:' /etc/apt/sources.list.d/ubuntu.sources; then
+		sudo sed -i '/^Suites:/a Architectures: amd64' /etc/apt/sources.list.d/ubuntu.sources
+	fi
+	sudo tee /etc/apt/sources.list.d/arm64.sources <<LIST
+Types: deb deb-src
+URIs: http://ports.ubuntu.com/
+Suites: ${FLAVOR} ${FLAVOR}-updates ${FLAVOR}-backports
+Architectures: arm64
+Components: main restricted universe multiverse
+Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
 LIST
-	sudo sed -E -i 's/deb (http|file|mirror)/deb [arch=amd64,i386] \1/' /etc/apt/sources.list
-	cat /etc/apt/sources.list
 fi
 
 
@@ -33,4 +33,8 @@ fi
 
 sudo dpkg --add-architecture arm64
 sudo apt-get update
+if [[ $FLAVOR == "noble" ]]; then
+	# https://github.com/actions/runner-images/issues/12091#issuecomment-2844588977
+	sudo apt-mark hold grub-common grub-efi-amd64-bin python3 python3-apt shim-signed
+fi
 sudo apt-get install -y "${PACKAGES[@]}"
