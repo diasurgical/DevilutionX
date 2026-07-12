@@ -145,12 +145,7 @@ void RegisterBuiltinModIdentifier(std::string_view name);
 /** @brief Returns the lowercase hex string of a 32-byte hash. */
 [[nodiscard]] std::string ModHashToHex(std::span<const uint8_t, 32> hash);
 
-/**
- * @brief Returns true if `hash` is in the hardcoded approved (whitelisted) list.
- *
- * The approved list is populated per design §7 (whitelist). Whitelisting is by hash
- * only — never by name, which would be spoofable (see `todo/mod-check.md` §3/§7).
- */
+/** @brief Returns true if `hash` is in the hardcoded approved mod whitelisted. */
 [[nodiscard]] bool IsHashWhitelisted(std::span<const uint8_t, 32> hash);
 
 /**

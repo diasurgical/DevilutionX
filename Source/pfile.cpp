@@ -70,8 +70,7 @@ namespace {
 char hero_names[MAX_CHARACTERS][PlayerNameLength];
 
 // Effective save-file extension token (no leading dot). Defaults to "sv"; an active mod may
-// override the save namespace by declaring `saveExtension` in its manifest (e.g. Hellfire's
-// "hsv"). This replaces the former hardcoded `gbIsHellfire ? "hsv" : "sv"` toggle.
+// override the save namespace by declaring `saveExtension` in its manifest.
 std::string_view GetSaveExtension()
 {
 	const std::string_view modExtension = GetActiveModSaveExtension();
