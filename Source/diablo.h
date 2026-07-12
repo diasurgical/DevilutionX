@@ -28,7 +28,7 @@
 namespace devilution {
 
 // Base game branding ids.
-constexpr uint32_t GameIdDiabloFull = LoadBE32("DRTL"); // Diablo Retail (full game)
+constexpr uint32_t GameIdDiabloFull = LoadBE32("DRTL");  // Diablo Retail (full game)
 constexpr uint32_t GameIdDiabloSpawn = LoadBE32("DSHR"); // Diablo Shareware (spawn)
 /** Generic ID for mods that do not set there own. */
 constexpr uint32_t GameIdGenericMod = LoadBE32("DXMD"); // DevilutionX + mod
