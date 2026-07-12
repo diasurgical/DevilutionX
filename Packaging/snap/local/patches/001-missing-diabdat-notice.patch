@@ -1,0 +1,14 @@
+--- Source/appfat.cpp
++++ Source/appfat.cpp
+@@ -139,7 +139,10 @@ void InsertCDDlg(const char *fileName)
+ 	    1024,
+ 	    "Unable to open %s.\n"
+ 	    "\n"
+-	    "Make sure that it is in the game folder and that the file name is in all lowercase.",
++	    "Make sure that it is in the game folder and that the file name is in all lowercase.\n"
++		"\n"
++		"Please copy the file diabdat.mpq from your Diablo game disc or from the GOG \n"
++		"installer to the directory ~/snap/devilutionx/common/",
+ 	    fileName);
+ 
+ 	UiErrorOkDialog("Data File Error", text);
