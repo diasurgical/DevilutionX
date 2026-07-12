@@ -1,6 +1,6 @@
 #include "panels/partypanel.hpp"
 
-#include <expected.hpp>
+#include <expected>
 #include <optional>
 
 #include "automap.h"
@@ -135,7 +135,7 @@ bool PartySidePanelOpen = true;
 bool InspectingFromPartyPanel;
 int PortraitIdUnderCursor = -1;
 
-tl::expected<void, std::string> LoadPartyPanel()
+std::expected<void, std::string> LoadPartyPanel()
 {
 	ASSIGN_OR_RETURN(OwnedClxSpriteList frame, LoadCelWithStatus("data\\textslid", FrameSpriteSize));
 	ASSIGN_OR_RETURN(PlayerTags, LoadClxWithStatus("data\\monstertags.clx"));

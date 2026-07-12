@@ -30,8 +30,8 @@ public:
 	bool SNetGetOwnerTurnsWaiting(uint32_t *turns) override;
 	bool SNetGetTurnsInTransit(uint32_t *turns) override;
 
-	virtual tl::expected<void, PacketError> poll() = 0;
-	virtual tl::expected<void, PacketError> send(packet &pkt) = 0;
+	virtual std::expected<void, PacketError> poll() = 0;
+	virtual std::expected<void, PacketError> send(packet &pkt) = 0;
 	virtual void DisconnectNet(plr_t plr);
 
 	void process_network_packets() override;
@@ -81,10 +81,10 @@ protected:
 
 	std::unique_ptr<packet_factory> pktfty;
 
-	tl::expected<void, PacketError> Connect(plr_t player);
-	tl::expected<void, PacketError> RecvLocal(packet &pkt);
+	std::expected<void, PacketError> Connect(plr_t player);
+	std::expected<void, PacketError> RecvLocal(packet &pkt);
 	void RunEventHandler(_SNETEVENT &ev);
-	tl::expected<void, PacketError> SendEchoRequest(plr_t player);
+	std::expected<void, PacketError> SendEchoRequest(plr_t player);
 
 	[[nodiscard]] bool IsConnected(plr_t player) const;
 	virtual bool IsGameHost() = 0;
@@ -96,17 +96,17 @@ private:
 
 	plr_t GetOwner();
 	bool AllTurnsArrived();
-	tl::expected<void, PacketError> MakeReady(seq_t sequenceNumber);
-	tl::expected<void, PacketError> SendTurnIfReady(turn_t turn);
-	tl::expected<void, PacketError> SendFirstTurnIfReady(plr_t player);
+	std::expected<void, PacketError> MakeReady(seq_t sequenceNumber);
+	std::expected<void, PacketError> SendTurnIfReady(turn_t turn);
+	std::expected<void, PacketError> SendFirstTurnIfReady(plr_t player);
 	void ClearMsg(plr_t plr);
 
-	tl::expected<void, PacketError> HandleAccept(packet &pkt);
-	tl::expected<void, PacketError> HandleConnect(packet &pkt);
-	tl::expected<void, PacketError> HandleTurn(packet &pkt);
-	tl::expected<void, PacketError> HandleDisconnect(packet &pkt);
-	tl::expected<void, PacketError> HandleEchoRequest(packet &pkt);
-	tl::expected<void, PacketError> HandleEchoReply(packet &pkt);
+	std::expected<void, PacketError> HandleAccept(packet &pkt);
+	std::expected<void, PacketError> HandleConnect(packet &pkt);
+	std::expected<void, PacketError> HandleTurn(packet &pkt);
+	std::expected<void, PacketError> HandleDisconnect(packet &pkt);
+	std::expected<void, PacketError> HandleEchoRequest(packet &pkt);
+	std::expected<void, PacketError> HandleEchoReply(packet &pkt);
 };
 
 } // namespace net

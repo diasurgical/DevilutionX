@@ -200,7 +200,7 @@ TEST(DataFileTest, ParseInt)
 	}
 
 	DataFile &dataFile = result.value();
-	auto unused = dataFile.parseHeader(nullptr, nullptr, [](std::string_view) -> tl::expected<uint8_t, ColumnDefinition::Error> { return tl::unexpected { ColumnDefinition::Error::UnknownColumn }; });
+	auto unused = dataFile.parseHeader(nullptr, nullptr, [](std::string_view) -> std::expected<uint8_t, ColumnDefinition::Error> { return std::unexpected { ColumnDefinition::Error::UnknownColumn }; });
 
 	EXPECT_TRUE(unused.has_value()) << "Should be able to parse and discard the header from the sample.tsv file";
 
@@ -334,7 +334,7 @@ TEST(DataFileTest, ParseHeaderThenIterateOverRecords)
 		{ "1", "", "3" },
 	};
 
-	auto parseHeaderResult = dataFile.parseHeader(nullptr, nullptr, [](std::string_view) -> tl::expected<uint8_t, ColumnDefinition::Error> { return tl::unexpected { ColumnDefinition::Error::UnknownColumn }; });
+	auto parseHeaderResult = dataFile.parseHeader(nullptr, nullptr, [](std::string_view) -> std::expected<uint8_t, ColumnDefinition::Error> { return std::unexpected { ColumnDefinition::Error::UnknownColumn }; });
 	EXPECT_TRUE(parseHeaderResult.has_value()) << "Expected to be able to parse and discard the header record";
 
 	unsigned row = 0;

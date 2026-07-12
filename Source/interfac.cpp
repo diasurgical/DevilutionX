@@ -5,6 +5,7 @@
  */
 
 #include <cstdint>
+#include <expected>
 #include <optional>
 #include <string>
 #include <utility>
@@ -19,8 +20,6 @@
 #else
 #include <SDL.h>
 #endif
-
-#include <expected.hpp>
 
 #include "control/control.hpp"
 #include "controls/input.h"
@@ -317,7 +316,7 @@ void DoLoad(interface_mode uMsg)
 	IncProgress();
 
 	Player &myPlayer = *MyPlayer;
-	tl::expected<void, std::string> loadResult;
+	std::expected<void, std::string> loadResult;
 	switch (uMsg) {
 	case WM_DIABLOADGAME:
 		IncProgress(2);
@@ -464,7 +463,7 @@ void DoLoad(interface_mode uMsg)
 		if (loadResult.has_value()) IncProgress();
 		break;
 	default:
-		loadResult = tl::make_unexpected<std::string>("Unknown progress mode");
+		loadResult = std::unexpected<std::string>("Unknown progress mode");
 		break;
 	}
 

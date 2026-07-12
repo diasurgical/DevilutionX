@@ -2,10 +2,9 @@
 
 #include <charconv>
 #include <cstdint>
+#include <expected>
 #include <string_view>
 #include <system_error>
-
-#include <expected.hpp>
 
 namespace devilution {
 
@@ -15,7 +14,7 @@ enum class ParseIntError {
 };
 
 template <typename IntT>
-using ParseIntResult = tl::expected<IntT, ParseIntError>;
+using ParseIntResult = std::expected<IntT, ParseIntError>;
 
 template <typename IntT>
 ParseIntResult<IntT> ParseInt(
@@ -28,11 +27,11 @@ ParseIntResult<IntT> ParseInt(
 		*endOfParse = result.ptr;
 	}
 	if (result.ec == std::errc::invalid_argument)
-		return tl::unexpected(ParseIntError::ParseError);
+		return std::unexpected(ParseIntError::ParseError);
 	if (result.ec == std::errc::result_out_of_range || value < min || value > max)
-		return tl::unexpected(ParseIntError::OutOfRange);
+		return std::unexpected(ParseIntError::OutOfRange);
 	if (result.ec != std::errc())
-		return tl::unexpected(ParseIntError::ParseError);
+		return std::unexpected(ParseIntError::ParseError);
 	return value;
 }
 
@@ -53,7 +52,7 @@ ParseIntResult<IntT> ParseFixed6(std::string_view str, const char **endOfParse =
 	}
 
 	if (str.empty()) {
-		return tl::unexpected { ParseIntError::ParseError };
+		return std::unexpected { ParseIntError::ParseError };
 	}
 
 	constexpr IntT minIntegerValue = std::numeric_limits<IntT>::min() >> 6;
@@ -82,7 +81,7 @@ ParseIntResult<IntT> ParseFixed6(std::string_view str, const char **endOfParse =
 
 	if (!haveDigits) {
 		// early return in case we got a string like "-.abc", don't want to set the end pointer in this case
-		return tl::unexpected { ParseIntError::ParseError };
+		return std::unexpected { ParseIntError::ParseError };
 	}
 
 	if (endOfParse != nullptr) {
@@ -100,7 +99,7 @@ ParseIntResult<IntT> ParseFixed6(std::string_view str, const char **endOfParse =
 
 	// rounding could give us a value of 64 for the fraction part (e.g. 0.993 rounds to 1.0) so we need to ensure this doesn't overflow
 	if (fractionPart >= 64 && (integerPart >= maxIntegerValue || (std::is_signed_v<IntT> && integerPart <= minIntegerValue))) {
-		return tl::unexpected { ParseIntError::OutOfRange };
+		return std::unexpected { ParseIntError::OutOfRange };
 	} else {
 		IntT fixedValue = integerPart << 6;
 		if (isNegative) {

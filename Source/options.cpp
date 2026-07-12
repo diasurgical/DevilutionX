@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <expected>
 #include <functional>
 #include <iterator>
 #include <optional>
@@ -26,7 +27,6 @@
 #include <SDL_version.h>
 #endif
 
-#include <expected.hpp>
 #include <fmt/format.h>
 #include <function_ref.hpp>
 
@@ -157,7 +157,7 @@ void LoadIni()
 		}
 		std::fclose(file);
 	}
-	tl::expected<Ini, std::string> result = Ini::parse(std::string_view(buffer.data(), buffer.size()));
+	std::expected<Ini, std::string> result = Ini::parse(std::string_view(buffer.data(), buffer.size()));
 	if (!result.has_value()) app_fatal(result.error());
 	ini.emplace(std::move(result).value());
 }

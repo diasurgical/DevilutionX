@@ -3,10 +3,10 @@
 #include <bitset>
 #include <cstddef>
 #include <cstdint>
+#include <expected>
 #include <limits>
 #include <memory>
 
-#include <expected.hpp>
 #include <fmt/format.h>
 
 #include "engine/assets.hpp"
@@ -14,27 +14,27 @@
 #include "utils/language.h"
 
 namespace devilution {
-tl::expected<DataFile, DataFile::Error> DataFile::load(std::string_view path)
+std::expected<DataFile, DataFile::Error> DataFile::load(std::string_view path)
 {
 	AssetRef ref = FindAsset(path);
 	if (!ref.ok())
-		return tl::unexpected { Error::NotFound };
+		return std::unexpected { Error::NotFound };
 	const size_t size = ref.size();
 	// TODO: It should be possible to stream the data file contents instead of copying the whole thing into memory
 	std::unique_ptr<char[]> data { new char[size] };
 	{
 		AssetHandle handle = OpenIntegralAsset(std::move(ref));
 		if (!handle.ok())
-			return tl::unexpected { Error::OpenFailed };
+			return std::unexpected { Error::OpenFailed };
 		if (size > 0 && !handle.read(data.get(), size))
-			return tl::unexpected { Error::BadRead };
+			return std::unexpected { Error::BadRead };
 	}
 	return DataFile { std::move(data), size };
 }
 
 DataFile DataFile::loadOrDie(std::string_view path)
 {
-	tl::expected<DataFile, DataFile::Error> dataFileResult = DataFile::load(path);
+	std::expected<DataFile, DataFile::Error> dataFileResult = DataFile::load(path);
 	if (!dataFileResult.has_value()) {
 		DataFile::reportFatalError(dataFileResult.error(), path);
 	}
@@ -92,7 +92,7 @@ void DataFile::reportFatalFieldError(DataFileField::Error code, std::string_view
 	}
 }
 
-tl::expected<void, DataFile::Error> DataFile::parseHeader(ColumnDefinition *begin, ColumnDefinition *end, tl::function_ref<tl::expected<uint8_t, ColumnDefinition::Error>(std::string_view)> mapper)
+std::expected<void, DataFile::Error> DataFile::parseHeader(ColumnDefinition *begin, ColumnDefinition *end, tl::function_ref<std::expected<uint8_t, ColumnDefinition::Error>(std::string_view)> mapper)
 {
 	std::bitset<std::numeric_limits<uint8_t>::max()> seenColumns;
 	unsigned lastColumn = 0;
@@ -129,23 +129,23 @@ tl::expected<void, DataFile::Error> DataFile::parseHeader(ColumnDefinition *begi
 	// Incrementing the iterator causes it to read to the end of the record in case we broke early (maybe there were extra columns)
 	++firstRecord;
 	if (firstRecord == this->end()) {
-		return tl::unexpected { Error::NoContent };
+		return std::unexpected { Error::NoContent };
 	}
 
 	body_ = firstRecord.data();
 
 	if (begin != end) {
-		return tl::unexpected { Error::NotEnoughColumns };
+		return std::unexpected { Error::NotEnoughColumns };
 	}
 	return {};
 }
 
-tl::expected<void, DataFile::Error> DataFile::skipHeader()
+std::expected<void, DataFile::Error> DataFile::skipHeader()
 {
 	RecordIterator it { data(), data() + size(), false };
 	++it;
 	if (it == this->end()) {
-		return tl::unexpected { Error::NoContent };
+		return std::unexpected { Error::NoContent };
 	}
 	body_ = it.data();
 	return {};
@@ -153,7 +153,7 @@ tl::expected<void, DataFile::Error> DataFile::skipHeader()
 
 void DataFile::skipHeaderOrDie(std::string_view path)
 {
-	if (tl::expected<void, DataFile::Error> result = skipHeader(); !result.has_value()) {
+	if (std::expected<void, DataFile::Error> result = skipHeader(); !result.has_value()) {
 		DataFile::reportFatalError(result.error(), path);
 	}
 }

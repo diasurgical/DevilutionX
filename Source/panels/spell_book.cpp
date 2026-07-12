@@ -1,10 +1,10 @@
 #include "panels/spell_book.hpp"
 
 #include <cstdint>
+#include <expected>
 #include <optional>
 #include <string>
 
-#include <expected.hpp>
 #include <fmt/format.h>
 
 #include "control/control.hpp"
@@ -119,7 +119,7 @@ StringOrView GetSpellPowerText(SpellID spell, int spellLevel)
 
 } // namespace
 
-tl::expected<void, std::string> InitSpellBook()
+std::expected<void, std::string> InitSpellBook()
 {
 	ASSIGN_OR_RETURN(spellBookBackground, LoadCelWithStatus("data\\spellbk", static_cast<uint16_t>(SidePanelSize.width)));
 	ASSIGN_OR_RETURN(spellBookButtons, LoadCelWithStatus("data\\spellbkb", SpellBookButtonWidth()));

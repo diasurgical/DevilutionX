@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <expected>
 #include <span>
 #include <string>
 #include <string_view>
@@ -15,7 +16,6 @@
 #include <vector>
 
 #include <ankerl/unordered_dense.h>
-#include <expected.hpp>
 #include <fmt/core.h>
 #include <fmt/format.h>
 
@@ -122,7 +122,7 @@ void Ini::Values::append(const Ini::Value &value)
 	std::get<std::vector<Value>>(rep_).push_back(value);
 }
 
-tl::expected<Ini, std::string> Ini::parse(std::string_view buffer)
+std::expected<Ini, std::string> Ini::parse(std::string_view buffer)
 {
 	Ini::FileData fileData;
 	ankerl::unordered_dense::map<std::string, ValuesData, StringViewHash, StringViewEquals> *sectionEntries = nullptr;
@@ -160,10 +160,10 @@ tl::expected<Ini, std::string> Ini::parse(std::string_view buffer)
 				++keyEnd;
 			}
 			if (keyEnd == lineEnd) {
-				return tl::make_unexpected(fmt::format("line {}: unclosed section name {}", lineNum, std::string_view(keyBegin, keyEnd - keyBegin)));
+				return std::unexpected(fmt::format("line {}: unclosed section name {}", lineNum, std::string_view(keyBegin, keyEnd - keyBegin)));
 			}
 			if (const char *after = SkipTrailingWhitespace(keyEnd + 1, lineEnd); after != lineEnd) {
-				return tl::make_unexpected(fmt::format("line {}: content after section [{}]: {}", lineNum, std::string_view(keyBegin, keyEnd - keyBegin), std::string_view(after, lineEnd - after)));
+				return std::unexpected(fmt::format("line {}: content after section [{}]: {}", lineNum, std::string_view(keyBegin, keyEnd - keyBegin), std::string_view(after, lineEnd - after)));
 			}
 			const std::string_view sectionName = std::string_view(keyBegin, keyEnd - keyBegin);
 			auto it = fileData.sections.find(sectionName);
@@ -180,10 +180,10 @@ tl::expected<Ini, std::string> Ini::parse(std::string_view buffer)
 			continue;
 		}
 
-		if (sectionEntries == nullptr) return tl::unexpected(fmt::format("line {}: key not in any section", lineNum));
+		if (sectionEntries == nullptr) return std::unexpected(fmt::format("line {}: key not in any section", lineNum));
 		const char *eqPos = static_cast<const char *>(memchr(keyBegin, '=', lineEnd - keyBegin));
 		if (eqPos == nullptr) {
-			return tl::make_unexpected(fmt::format("line {}: key {} has no value", lineNum, std::string_view(keyBegin, lineEnd - keyBegin)));
+			return std::unexpected(fmt::format("line {}: key {} has no value", lineNum, std::string_view(keyBegin, lineEnd - keyBegin)));
 		}
 		const char *keyEnd = SkipTrailingWhitespace(keyBegin, eqPos);
 		const std::string_view key = std::string_view(keyBegin, keyEnd - keyBegin);

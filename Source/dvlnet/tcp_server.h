@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <expected>
 #include <memory>
 #include <string>
 
@@ -12,8 +13,6 @@
 // 3DS uses some custom ASIO code that transitively includes
 // the 3DS SDK.
 #include <fmt/core.h>
-
-#include <expected.hpp>
 
 #include <asio/ts/buffer.hpp>
 #include <asio/ts/internet.hpp>
@@ -40,7 +39,7 @@ public:
 	tcp_server(asio::io_context &ioc, const std::string &bindaddr,
 	    unsigned short port, packet_factory &pktfty);
 	std::string LocalhostSelf();
-	tl::expected<void, PacketError> CheckIoHandlerError();
+	std::expected<void, PacketError> CheckIoHandlerError();
 	void DisconnectNet(plr_t plr);
 	void Close();
 	virtual ~tcp_server();
@@ -80,12 +79,12 @@ private:
 	void HandleAccept(const scc &con, const asio::error_code &ec);
 	void StartReceive(const scc &con);
 	void HandleReceive(const scc &con, const asio::error_code &ec, size_t bytesRead);
-	tl::expected<void, PacketError> HandleReceiveNewPlayer(const scc &con, packet &pkt);
-	tl::expected<void, PacketError> HandleReceivePacket(packet &pkt);
-	tl::expected<void, PacketError> SendPacket(packet &pkt);
-	tl::expected<void, PacketError> StartSend(const scc &con, packet &pkt);
-	tl::expected<void, PacketError> StartSend(const scc &con, PacketError::ErrorCode errorCode);
-	tl::expected<void, PacketError> StartSend(const scc &con, buffer_t pktData, uint16_t flags);
+	std::expected<void, PacketError> HandleReceiveNewPlayer(const scc &con, packet &pkt);
+	std::expected<void, PacketError> HandleReceivePacket(packet &pkt);
+	std::expected<void, PacketError> SendPacket(packet &pkt);
+	std::expected<void, PacketError> StartSend(const scc &con, packet &pkt);
+	std::expected<void, PacketError> StartSend(const scc &con, PacketError::ErrorCode errorCode);
+	std::expected<void, PacketError> StartSend(const scc &con, buffer_t pktData, uint16_t flags);
 	void HandleSend(const scc &con, const asio::error_code &ec, size_t bytesSent);
 	void StartTimeout(const scc &con);
 	void HandleTimeout(const scc &con, const asio::error_code &ec);

@@ -6,10 +6,9 @@
 #pragma once
 
 #include <cstdint>
+#include <expected>
 #include <memory>
 #include <string>
-
-#include <expected.hpp>
 
 #include "engine/sound.h"
 #include "sound_effect_enums.h"
@@ -37,7 +36,7 @@ void ui_sound_init();
 void effects_play_sound(SfxID);
 int GetSFXLength(SfxID nSFX);
 
-tl::expected<HeroSpeech, std::string> ParseHeroSpeech(std::string_view value);
-tl::expected<SfxID, std::string> ParseSfxId(std::string_view value);
+std::expected<HeroSpeech, std::string> ParseHeroSpeech(std::string_view value);
+std::expected<SfxID, std::string> ParseSfxId(std::string_view value);
 
 } // namespace devilution

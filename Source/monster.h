@@ -7,12 +7,12 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <expected>
 
 #include <array>
 #include <functional>
 #include <string>
 
-#include <expected.hpp>
 #include <function_ref.hpp>
 
 #include "engine/actor_position.hpp"
@@ -496,21 +496,21 @@ extern size_t ActiveMonsterCount;
 extern int MonsterKillCounts[NUM_MAX_MTYPES];
 extern bool sgbSaveSoundOn;
 
-tl::expected<void, std::string> PrepareUniqueMonst(Monster &monster, UniqueMonsterType monsterType, size_t miniontype, int bosspacksize, const UniqueMonsterData &uniqueMonsterData);
+std::expected<void, std::string> PrepareUniqueMonst(Monster &monster, UniqueMonsterType monsterType, size_t miniontype, int bosspacksize, const UniqueMonsterData &uniqueMonsterData);
 void InitLevelMonsters();
-tl::expected<void, std::string> GetLevelMTypes();
-tl::expected<size_t, std::string> AddMonsterType(_monster_id type, placeflag placeflag);
-inline tl::expected<size_t, std::string> AddMonsterType(UniqueMonsterType uniqueType, placeflag placeflag)
+std::expected<void, std::string> GetLevelMTypes();
+std::expected<size_t, std::string> AddMonsterType(_monster_id type, placeflag placeflag);
+inline std::expected<size_t, std::string> AddMonsterType(UniqueMonsterType uniqueType, placeflag placeflag)
 {
 	return AddMonsterType(UniqueMonstersData[static_cast<size_t>(uniqueType)].mtype, placeflag);
 }
-tl::expected<void, std::string> InitMonsterSND(CMonster &monsterType);
-tl::expected<void, std::string> InitMonsterGFX(CMonster &monsterType, MonsterSpritesData &&spritesData = {});
-tl::expected<void, std::string> InitAllMonsterGFX();
+std::expected<void, std::string> InitMonsterSND(CMonster &monsterType);
+std::expected<void, std::string> InitMonsterGFX(CMonster &monsterType, MonsterSpritesData &&spritesData = {});
+std::expected<void, std::string> InitAllMonsterGFX();
 void WeakenNaKrul();
 void InitGolems();
-tl::expected<void, std::string> InitMonsters();
-tl::expected<void, std::string> SetMapMonsters(const uint16_t *dunData, Point startPosition);
+std::expected<void, std::string> InitMonsters();
+std::expected<void, std::string> SetMapMonsters(const uint16_t *dunData, Point startPosition);
 Monster *AddMonster(Point position, Direction dir, size_t typeIndex, bool inMap);
 /**
  * @brief Spawns a new monsters (dynamically/not on level load).
@@ -555,7 +555,7 @@ bool LineClearMissile(Point startPoint, Point endPoint);
  * @brief Checks for same missile obstructions as CheckMissileCol() for missiles that move along a path between two points
  */
 bool LineClearMovingMissile(Point startPoint, Point endPoint);
-tl::expected<void, std::string> SyncMonsterAnim(Monster &monster);
+std::expected<void, std::string> SyncMonsterAnim(Monster &monster);
 void M_FallenFear(Point position);
 void PrintMonstHistory(int mt);
 void PrintUniqueHistory();

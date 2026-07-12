@@ -1,11 +1,11 @@
 #pragma once
 
 #include <cstddef>
+#include <expected>
 #include <limits>
 #include <memory>
 #include <string_view>
 
-#include <expected.hpp>
 #include <function_ref.hpp>
 
 #include "iterators.hpp"
@@ -74,7 +74,7 @@ public:
 	 * @return an object containing an owned pointer to an in-memory copy of the file
 	 *         or an error code describing the reason for failure.
 	 */
-	static tl::expected<DataFile, Error> load(std::string_view path);
+	static std::expected<DataFile, Error> load(std::string_view path);
 
 	static DataFile loadOrDie(std::string_view path);
 
@@ -95,7 +95,7 @@ public:
 	 * @param mapper Function that maps from a string_view to a unique numeric identifier for the column
 	 * @return If the file ends after the header or not enough columns were defined this function returns an error code describing the failure.
 	 */
-	[[nodiscard]] tl::expected<void, DataFile::Error> parseHeader(ColumnDefinition *begin, ColumnDefinition *end, tl::function_ref<tl::expected<uint8_t, ColumnDefinition::Error>(std::string_view)> mapper);
+	[[nodiscard]] std::expected<void, DataFile::Error> parseHeader(ColumnDefinition *begin, ColumnDefinition *end, tl::function_ref<std::expected<uint8_t, ColumnDefinition::Error>(std::string_view)> mapper);
 
 	/**
 	 * @brief Templated version of parseHeader(uint8_t) to allow using directly with enum definitions of columns
@@ -106,12 +106,12 @@ public:
 	 * @return A void success result or an error code as described above
 	 */
 	template <typename T>
-	[[nodiscard]] tl::expected<void, DataFile::Error> parseHeader(ColumnDefinition *begin, ColumnDefinition *end, std::function<tl::expected<T, ColumnDefinition::Error>(std::string_view)> typedMapper)
+	[[nodiscard]] std::expected<void, DataFile::Error> parseHeader(ColumnDefinition *begin, ColumnDefinition *end, std::function<std::expected<T, ColumnDefinition::Error>(std::string_view)> typedMapper)
 	{
 		return parseHeader(begin, end, [typedMapper](std::string_view label) { return typedMapper(label).transform([](T value) { return static_cast<uint8_t>(value); }); });
 	}
 
-	[[nodiscard]] tl::expected<void, DataFile::Error> skipHeader();
+	[[nodiscard]] std::expected<void, DataFile::Error> skipHeader();
 
 	void skipHeaderOrDie(std::string_view path);
 

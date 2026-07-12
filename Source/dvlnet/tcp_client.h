@@ -30,8 +30,8 @@ public:
 	int create(std::string_view addrstr) override;
 	int join(std::string_view addrstr) override;
 
-	tl::expected<void, PacketError> poll() override;
-	tl::expected<void, PacketError> send(packet &pkt) override;
+	std::expected<void, PacketError> poll() override;
+	std::expected<void, PacketError> send(packet &pkt) override;
 	void DisconnectNet(plr_t plr) override;
 
 	bool SNetLeaveGame(net::leaveinfo_t type) override;

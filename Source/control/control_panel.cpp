@@ -353,7 +353,7 @@ void DrawPanelBox(const Surface &out, SDL_Rect srcRect, Point targetPosition)
 	out.BlitFrom(*BottomBuffer, srcRect, targetPosition);
 }
 
-tl::expected<void, std::string> InitMainPanel()
+std::expected<void, std::string> InitMainPanel()
 {
 	if (!HeadlessMode) {
 		BottomBuffer.emplace(GetMainPanel().size.width, (GetMainPanel().size.height + PanelPaddingHeight) * (IsChatAvailable() ? 2 : 1));

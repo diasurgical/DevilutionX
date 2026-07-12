@@ -7,12 +7,11 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <expected>
 #include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
-
-#include <expected.hpp>
 
 #include "engine/clx_sprite.hpp"
 #include "engine/point.hpp"
@@ -58,8 +57,8 @@ inline bool IsArenaLevel(_setlevels setLevel)
 	}
 }
 
-tl::expected<dungeon_type, std::string> ParseDungeonType(std::string_view value);
-tl::expected<_setlevels, std::string> ParseSetLevel(std::string_view value);
+std::expected<dungeon_type, std::string> ParseDungeonType(std::string_view value);
+std::expected<_setlevels, std::string> ParseSetLevel(std::string_view value);
 
 enum class DungeonFlag : uint8_t {
 	// clang-format off
@@ -298,7 +297,7 @@ struct Miniset {
 	return HasAnyOf(SOLData[dPiece[coords.x][coords.y]], property);
 }
 
-tl::expected<void, std::string> LoadLevelSOLData();
+std::expected<void, std::string> LoadLevelSOLData();
 void SetDungeonMicros(std::unique_ptr<std::byte[]> &dungeonCels, uint_fast8_t &microTileLen);
 void DRLG_InitTrans();
 void DRLG_MRectTrans(WorldTilePosition origin, WorldTilePosition extent);

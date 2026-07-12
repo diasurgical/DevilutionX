@@ -41,18 +41,18 @@ std::vector<PLStruct> ItemPrefixes;
 /** Contains the data related to each item suffix. */
 std::vector<PLStruct> ItemSuffixes;
 
-tl::expected<_item_indexes, std::string> ParseItemId(std::string_view value)
+std::expected<_item_indexes, std::string> ParseItemId(std::string_view value)
 {
 	const std::optional<_item_indexes> enumValueOpt = magic_enum::enum_cast<_item_indexes>(value);
 	if (enumValueOpt.has_value()) {
 		return enumValueOpt.value();
 	}
-	return tl::make_unexpected("Unknown enum value");
+	return std::unexpected("Unknown enum value");
 }
 
 namespace {
 
-tl::expected<item_class, std::string> ParseItemClass(std::string_view value)
+std::expected<item_class, std::string> ParseItemClass(std::string_view value)
 {
 	if (value == "None") return ICLASS_NONE;
 	if (value == "Weapon") return ICLASS_WEAPON;
@@ -60,10 +60,10 @@ tl::expected<item_class, std::string> ParseItemClass(std::string_view value)
 	if (value == "Misc") return ICLASS_MISC;
 	if (value == "Gold") return ICLASS_GOLD;
 	if (value == "Quest") return ICLASS_QUEST;
-	return tl::make_unexpected("Unknown enum value");
+	return std::unexpected("Unknown enum value");
 }
 
-tl::expected<item_equip_type, std::string> ParseItemEquipType(std::string_view value)
+std::expected<item_equip_type, std::string> ParseItemEquipType(std::string_view value)
 {
 	if (value == "None") return ILOC_NONE;
 	if (value == "One-handed") return ILOC_ONEHAND;
@@ -74,10 +74,10 @@ tl::expected<item_equip_type, std::string> ParseItemEquipType(std::string_view v
 	if (value == "Amulet") return ILOC_AMULET;
 	if (value == "Unequippable") return ILOC_UNEQUIPABLE;
 	if (value == "Belt") return ILOC_BELT;
-	return tl::make_unexpected("Unknown enum value");
+	return std::unexpected("Unknown enum value");
 }
 
-tl::expected<item_cursor_graphic, std::string> ParseItemCursorGraphic(std::string_view value)
+std::expected<item_cursor_graphic, std::string> ParseItemCursorGraphic(std::string_view value)
 {
 	if (value == "POTION_OF_FULL_MANA") return ICURS_POTION_OF_FULL_MANA;
 	if (value == "SCROLL_OF") return ICURS_SCROLL_OF;
@@ -253,11 +253,11 @@ tl::expected<item_cursor_graphic, std::string> ParseItemCursorGraphic(std::strin
 
 	// also support providing the item cursor icon frame number directly
 	return ParseInt<uint8_t>(value)
-	    .map([](auto numericalValue) { return static_cast<item_cursor_graphic>(numericalValue); })
-	    .map_error([](auto) { return std::string("Unknown enum value"); });
+	    .transform([](auto numericalValue) { return static_cast<item_cursor_graphic>(numericalValue); })
+	    .transform_error([](auto) { return std::string("Unknown enum value"); });
 }
 
-tl::expected<ItemType, std::string> ParseItemType(std::string_view value)
+std::expected<ItemType, std::string> ParseItemType(std::string_view value)
 {
 	if (value == "Misc") return ItemType::Misc;
 	if (value == "Sword") return ItemType::Sword;
@@ -274,10 +274,10 @@ tl::expected<ItemType, std::string> ParseItemType(std::string_view value)
 	if (value == "Ring") return ItemType::Ring;
 	if (value == "Amulet") return ItemType::Amulet;
 	if (value == "None") return ItemType::None;
-	return tl::make_unexpected("Unknown enum value");
+	return std::unexpected("Unknown enum value");
 }
 
-tl::expected<unique_base_item, std::string> ParseUniqueBaseItem(std::string_view value)
+std::expected<unique_base_item, std::string> ParseUniqueBaseItem(std::string_view value)
 {
 	if (value == "NONE") return UITYPE_NONE;
 	if (value == "SHORTBOW") return UITYPE_SHORTBOW;
@@ -354,10 +354,10 @@ tl::expected<unique_base_item, std::string> ParseUniqueBaseItem(std::string_view
 		return static_cast<unique_base_item>(findIt->second);
 	}
 
-	return tl::make_unexpected("Unknown enum value");
+	return std::unexpected("Unknown enum value");
 }
 
-tl::expected<unique_base_item, std::string> ParseOrAddUniqueBaseItem(std::string_view value)
+std::expected<unique_base_item, std::string> ParseOrAddUniqueBaseItem(std::string_view value)
 {
 	const auto parseResult = ParseUniqueBaseItem(value);
 	if (parseResult.has_value()) {
@@ -367,7 +367,7 @@ tl::expected<unique_base_item, std::string> ParseOrAddUniqueBaseItem(std::string
 	const size_t newUniqueBaseItemIndex = static_cast<size_t>(NUM_DEFAULT_UITYPES) + AdditionalUniqueBaseItemStringsToIndices.size();
 
 	if (newUniqueBaseItemIndex >= static_cast<size_t>(NUM_MAX_UITYPES)) {
-		return tl::make_unexpected(fmt::format("Could not define new unique base item \"{}\", since the maximum number of {} has already been reached.", value, static_cast<size_t>(NUM_MAX_UITYPES)));
+		return std::unexpected(fmt::format("Could not define new unique base item \"{}\", since the maximum number of {} has already been reached.", value, static_cast<size_t>(NUM_MAX_UITYPES)));
 	}
 
 	const auto newUniqueBaseItem = static_cast<unique_base_item>(newUniqueBaseItemIndex);
@@ -375,7 +375,7 @@ tl::expected<unique_base_item, std::string> ParseOrAddUniqueBaseItem(std::string
 	return newUniqueBaseItem;
 }
 
-tl::expected<ItemSpecialEffect, std::string> ParseItemSpecialEffect(std::string_view value)
+std::expected<ItemSpecialEffect, std::string> ParseItemSpecialEffect(std::string_view value)
 {
 	if (value == "RandomStealLife") return ItemSpecialEffect::RandomStealLife;
 	if (value == "RandomArrowVelocity") return ItemSpecialEffect::RandomArrowVelocity;
@@ -403,10 +403,10 @@ tl::expected<ItemSpecialEffect, std::string> ParseItemSpecialEffect(std::string_
 	if (value == "HalfTrapDamage") return ItemSpecialEffect::HalfTrapDamage;
 	if (value == "TripleDemonDamage") return ItemSpecialEffect::TripleDemonDamage;
 	if (value == "ZeroResistance") return ItemSpecialEffect::ZeroResistance;
-	return tl::make_unexpected("Unknown enum value");
+	return std::unexpected("Unknown enum value");
 }
 
-tl::expected<item_misc_id, std::string> ParseItemMiscId(std::string_view value)
+std::expected<item_misc_id, std::string> ParseItemMiscId(std::string_view value)
 {
 	if (value == "NONE") return IMISC_NONE;
 	if (value == "USEFIRST") return IMISC_USEFIRST;
@@ -454,10 +454,10 @@ tl::expected<item_misc_id, std::string> ParseItemMiscId(std::string_view value)
 	if (value == "AURIC") return IMISC_AURIC;
 	if (value == "NOTE") return IMISC_NOTE;
 	if (value == "ARENAPOT") return IMISC_ARENAPOT;
-	return tl::make_unexpected("Unknown enum value");
+	return std::unexpected("Unknown enum value");
 }
 
-tl::expected<item_effect_type, std::string> ParseItemEffectType(std::string_view value)
+std::expected<item_effect_type, std::string> ParseItemEffectType(std::string_view value)
 {
 	if (value == "TOHIT") return IPL_TOHIT;
 	if (value == "TOHIT_CURSE") return IPL_TOHIT_CURSE;
@@ -539,10 +539,10 @@ tl::expected<item_effect_type, std::string> ParseItemEffectType(std::string_view
 	if (value == "ACUNDEAD") return IPL_ACUNDEAD;
 	if (value == "MANATOLIFE") return IPL_MANATOLIFE;
 	if (value == "LIFETOMANA") return IPL_LIFETOMANA;
-	return tl::make_unexpected("Unknown enum value");
+	return std::unexpected("Unknown enum value");
 }
 
-tl::expected<AffixItemType, std::string> ParseAffixItemType(std::string_view value)
+std::expected<AffixItemType, std::string> ParseAffixItemType(std::string_view value)
 {
 	if (value == "Misc") return AffixItemType::Misc;
 	if (value == "Bow") return AffixItemType::Bow;
@@ -550,15 +550,15 @@ tl::expected<AffixItemType, std::string> ParseAffixItemType(std::string_view val
 	if (value == "Weapon") return AffixItemType::Weapon;
 	if (value == "Shield") return AffixItemType::Shield;
 	if (value == "Armor") return AffixItemType::Armor;
-	return tl::make_unexpected("Unknown enum value");
+	return std::unexpected("Unknown enum value");
 }
 
-tl::expected<goodorevil, std::string> ParseAffixAlignment(std::string_view value)
+std::expected<goodorevil, std::string> ParseAffixAlignment(std::string_view value)
 {
 	if (value == "Any") return GOE_ANY;
 	if (value == "Evil") return GOE_EVIL;
 	if (value == "Good") return GOE_GOOD;
-	return tl::make_unexpected("Unknown enum value");
+	return std::unexpected("Unknown enum value");
 }
 
 } // namespace

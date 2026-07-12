@@ -1,13 +1,13 @@
 #include "lua/lua_global.hpp"
 
 #include <algorithm>
+#include <expected>
 #include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
 
 #include <ankerl/unordered_dense.h>
-#include <expected.hpp>
 #include <function_ref.hpp>
 #include <sol/bytecode.hpp>
 #include <sol/debug.hpp>
@@ -113,7 +113,7 @@ sol::object LuaLoadScriptFromAssets(std::string_view packageName)
 		return luaState.sol.load(iter->second.as_string_view(), path, sol::load_mode::binary);
 	}
 
-	tl::expected<AssetData, std::string> assetData = LoadIntegralAsset(path);
+	std::expected<AssetData, std::string> assetData = LoadIntegralAsset(path);
 	if (!assetData.has_value()) {
 		sol::stack::push(luaState.sol.lua_state(), assetData.error());
 		return sol::stack_object(luaState.sol.lua_state(), -1);
