@@ -18,6 +18,9 @@ comparer-config.toml
 #ignore cmake cache
 /build-*/
 /build_*/
+
+# Work directory of Packaging/windows/mingw9x-prep.sh
+/tmp-mingw9x-prep/
 .vscode/tasks.json
 
 # Extra files in the source distribution (see make_src_dist.py)
