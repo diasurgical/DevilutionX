@@ -1,10 +1,9 @@
 #include "panels/mainpanel.hpp"
 
 #include <cstdint>
+#include <expected>
 #include <optional>
 #include <string>
-
-#include <expected.hpp>
 
 #include "control/control.hpp"
 #include "engine/clx_sprite.hpp"
@@ -70,7 +69,7 @@ void RenderMainButton(const Surface &out, int buttonId, std::string_view text, i
 
 } // namespace
 
-tl::expected<void, std::string> LoadMainPanel()
+std::expected<void, std::string> LoadMainPanel()
 {
 	std::optional<OwnedSurface> out;
 	constexpr uint16_t NumButtonSprites = 6;

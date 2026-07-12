@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <expected>
 #include <functional>
 #include <memory>
 #include <string_view>
@@ -311,11 +312,11 @@ SDL_IOStream *OpenAssetAsSdlRwOps(std::string_view filename, bool threadsafe)
 #endif
 }
 
-tl::expected<AssetData, std::string> LoadAsset(std::string_view path)
+std::expected<AssetData, std::string> LoadAsset(std::string_view path)
 {
 	AssetRef ref = FindAsset(path);
 	if (!ref.ok()) {
-		return tl::make_unexpected(StrCat("Asset not found: ", path));
+		return std::unexpected(StrCat("Asset not found: ", path));
 	}
 
 	const size_t size = ref.size();
@@ -323,21 +324,21 @@ tl::expected<AssetData, std::string> LoadAsset(std::string_view path)
 
 	AssetHandle handle = OpenAsset(std::move(ref));
 	if (!handle.ok()) {
-		return tl::make_unexpected(StrCat("Failed to open asset: ", path, "\n", handle.error()));
+		return std::unexpected(StrCat("Failed to open asset: ", path, "\n", handle.error()));
 	}
 
 	if (size > 0 && !handle.read(data.get(), size)) {
-		return tl::make_unexpected(StrCat("Read failed: ", path, "\n", handle.error()));
+		return std::unexpected(StrCat("Read failed: ", path, "\n", handle.error()));
 	}
 
 	return AssetData { std::move(data), size };
 }
 
-tl::expected<AssetData, std::string> LoadIntegralAsset(std::string_view path)
+std::expected<AssetData, std::string> LoadIntegralAsset(std::string_view path)
 {
 	AssetRef ref = FindAsset(path);
 	if (!ref.ok()) {
-		return tl::make_unexpected(StrCat("Asset not found: ", path));
+		return std::unexpected(StrCat("Asset not found: ", path));
 	}
 
 	const size_t size = ref.size();
@@ -345,11 +346,11 @@ tl::expected<AssetData, std::string> LoadIntegralAsset(std::string_view path)
 
 	AssetHandle handle = OpenIntegralAsset(std::move(ref));
 	if (!handle.ok()) {
-		return tl::make_unexpected(StrCat("Failed to open asset: ", path, "\n", handle.error()));
+		return std::unexpected(StrCat("Failed to open asset: ", path, "\n", handle.error()));
 	}
 
 	if (size > 0 && !handle.read(data.get(), size)) {
-		return tl::make_unexpected(StrCat("Read failed: ", path, "\n", handle.error()));
+		return std::unexpected(StrCat("Read failed: ", path, "\n", handle.error()));
 	}
 
 	return AssetData { std::move(data), size };
@@ -415,7 +416,7 @@ bool LoadMPQ(std::span<const std::string> paths, std::string_view mpqName, int p
 		mpqAbsPath = StrCat(path, mpqName, ext);
 		if (!FileExists(mpqAbsPath))
 			continue;
-		tl::expected<MpqArchive, std::string> archive = MpqArchive::Open(mpqAbsPath.c_str());
+		std::expected<MpqArchive, std::string> archive = MpqArchive::Open(mpqAbsPath.c_str());
 		if (!archive.has_value()) {
 			foundButFailed = true;
 			LogError("Error {}: {}", archive.error(), mpqAbsPath);
@@ -607,22 +608,22 @@ void UnloadModArchives()
 #ifndef UNPACKED_MPQS
 namespace {
 
-tl::expected<ModManifest, int32_t> ReadPackedModManifestFrom(MpqArchive &archive)
+std::expected<ModManifest, int32_t> ReadPackedModManifestFrom(MpqArchive &archive)
 {
 	constexpr std::string_view ManifestName = "manifest.ini";
 	if (!archive.HasFile(ManifestName))
-		return tl::make_unexpected(0);
+		return std::unexpected(0);
 
 	size_t fileSize = 0;
 	int32_t error = 0;
 	std::unique_ptr<std::byte[]> data = archive.ReadFile(ManifestName, fileSize, error);
 	if (data == nullptr)
-		return tl::make_unexpected(error);
+		return std::unexpected(error);
 
 	return ParseModManifest(std::string_view(reinterpret_cast<const char *>(data.get()), fileSize));
 }
 
-tl::expected<ModManifest, int32_t> ReadPackedModManifest(std::span<const std::string> paths, std::string_view modname)
+std::expected<ModManifest, int32_t> ReadPackedModManifest(std::span<const std::string> paths, std::string_view modname)
 {
 	const std::string mpqName = StrCat("mods" DIRECTORY_SEPARATOR_STR, modname);
 	std::string mpqAbsPath;
@@ -630,12 +631,12 @@ tl::expected<ModManifest, int32_t> ReadPackedModManifest(std::span<const std::st
 		mpqAbsPath = StrCat(path, mpqName, ".mpq");
 		if (!FileExists(mpqAbsPath))
 			continue;
-		tl::expected<MpqArchive, std::string> archive = MpqArchive::Open(mpqAbsPath.c_str());
+		std::expected<MpqArchive, std::string> archive = MpqArchive::Open(mpqAbsPath.c_str());
 		if (!archive.has_value())
-			return tl::make_unexpected(0);
+			return std::unexpected(0);
 		return ReadPackedModManifestFrom(*archive);
 	}
-	return tl::make_unexpected(0);
+	return std::unexpected(0);
 }
 
 // Reads the mod's `manifest.ini` from its own archive (registered at `priority`) and
@@ -647,7 +648,7 @@ void ReadLoadedModManifest(ModIdentifier &mod, int priority)
 	if (it == MpqArchives.end())
 		return;
 	MpqArchive &archive = it->second;
-	tl::expected<ModManifest, int32_t> manifest = ReadPackedModManifestFrom(archive);
+	std::expected<ModManifest, int32_t> manifest = ReadPackedModManifestFrom(archive);
 	if (manifest.has_value())
 		mod.manifest = std::move(*manifest);
 	else if (manifest.error() != 0)
@@ -659,7 +660,7 @@ void ReadLoadedModManifest(ModIdentifier &mod, int priority)
 // the mod has no packed archive, no manifest, or an unreadable one.
 std::vector<std::string> ReadPackedModRequiredMods(std::span<const std::string> paths, std::string_view modname)
 {
-	tl::expected<ModManifest, int32_t> manifest = ReadPackedModManifest(paths, modname);
+	std::expected<ModManifest, int32_t> manifest = ReadPackedModManifest(paths, modname);
 	if (!manifest.has_value())
 		return {};
 	return std::move(manifest->requiredMods);
@@ -693,7 +694,7 @@ ModManifest ReadModManifestByName(std::string_view name)
 
 #ifndef UNPACKED_MPQS
 	// Packed mod archive.
-	tl::expected<ModManifest, int32_t> manifest = ReadPackedModManifest(searchPaths, name);
+	std::expected<ModManifest, int32_t> manifest = ReadPackedModManifest(searchPaths, name);
 	if (manifest.has_value())
 		return std::move(*manifest);
 #endif

@@ -1,8 +1,7 @@
 #pragma once
 
+#include <expected>
 #include <string>
-
-#include <expected.hpp>
 
 #include "clx_sprite.hpp"
 #include "utils/status_macros.hpp"
@@ -11,14 +10,14 @@ namespace devilution {
 
 OwnedClxSpriteListOrSheet LoadClxListOrSheet(const char *path);
 
-tl::expected<OwnedClxSpriteListOrSheet, std::string> LoadClxListOrSheetWithStatus(const char *path);
+std::expected<OwnedClxSpriteListOrSheet, std::string> LoadClxListOrSheetWithStatus(const char *path);
 
 inline OwnedClxSpriteList LoadClx(const char *path)
 {
 	return LoadClxListOrSheet(path).list();
 }
 
-inline tl::expected<OwnedClxSpriteList, std::string> LoadClxWithStatus(const char *path)
+inline std::expected<OwnedClxSpriteList, std::string> LoadClxWithStatus(const char *path)
 {
 	ASSIGN_OR_RETURN(OwnedClxSpriteListOrSheet result, LoadClxListOrSheetWithStatus(path));
 	return std::move(result).list();

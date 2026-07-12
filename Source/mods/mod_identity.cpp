@@ -4,6 +4,7 @@
 #include <array>
 #include <cstdint>
 #include <cstdio>
+#include <expected>
 #include <span>
 #include <string>
 #include <string_view>
@@ -95,7 +96,7 @@ bool HexToModHash(std::string_view hex, std::array<uint8_t, 32> &out)
 ModManifest ParseModManifest(std::string_view manifestIni)
 {
 	ModManifest manifest;
-	tl::expected<Ini, std::string> ini = Ini::parse(manifestIni);
+	std::expected<Ini, std::string> ini = Ini::parse(manifestIni);
 	if (!ini.has_value()) {
 		LogError("Failed to parse mod manifest: {}", ini.error());
 		return manifest;

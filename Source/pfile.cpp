@@ -7,12 +7,12 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <expected>
 #include <optional>
 #include <string>
 #include <string_view>
 
 #include <ankerl/unordered_dense.h>
-#include <expected.hpp>
 
 #ifdef USE_SDL3
 #include <SDL3/SDL_iostream.h>
@@ -265,7 +265,7 @@ std::optional<SaveReader> CreateSaveReader(std::string &&path)
 		return std::nullopt;
 	return SaveReader(std::move(path));
 #else
-	tl::expected<MpqArchive, std::string> opened = MpqArchive::Open(path.c_str());
+	std::expected<MpqArchive, std::string> opened = MpqArchive::Open(path.c_str());
 	if (!opened.has_value()) return std::nullopt;
 	return std::move(*opened);
 #endif
@@ -809,7 +809,7 @@ void pfile_save_level()
 	SaveLevel(saveWriter);
 }
 
-tl::expected<void, std::string> pfile_convert_levels()
+std::expected<void, std::string> pfile_convert_levels()
 {
 	SaveWriter saveWriter = GetSaveWriter(gSaveNumber);
 	return ConvertLevels(saveWriter);

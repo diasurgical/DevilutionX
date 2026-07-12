@@ -1360,12 +1360,12 @@ void DiabloDeinit()
 		SDL_Quit();
 }
 
-tl::expected<void, std::string> LoadLvlGFX()
+std::expected<void, std::string> LoadLvlGFX()
 {
 	assert(pDungeonCels == nullptr);
 	constexpr int SpecialCelWidth = 64;
 
-	const auto loadAll = [](const char *cel, const char *til, const char *special) -> tl::expected<void, std::string> {
+	const auto loadAll = [](const char *cel, const char *til, const char *special) -> std::expected<void, std::string> {
 		ASSIGN_OR_RETURN(pDungeonCels, LoadFileInMemWithStatus(cel));
 		ASSIGN_OR_RETURN(pMegaTiles, LoadFileInMemWithStatus<MegaTile>(til));
 		ASSIGN_OR_RETURN(pSpecialCels, LoadCelWithStatus(special, SpecialCelWidth));
@@ -1420,11 +1420,11 @@ tl::expected<void, std::string> LoadLvlGFX()
 		    "nlevels\\l5data\\l5.til",
 		    "nlevels\\l5data\\l5s");
 	default:
-		return tl::make_unexpected("LoadLvlGFX");
+		return std::unexpected("LoadLvlGFX");
 	}
 }
 
-tl::expected<void, std::string> LoadAllGFX()
+std::expected<void, std::string> LoadAllGFX()
 {
 	IncProgress();
 #if !defined(USE_SDL1) && !defined(__vita__)
@@ -3136,7 +3136,7 @@ void LoadGameLevelStash()
 	gbIsHellfireSaveGame = isHellfireSaveGame;
 }
 
-tl::expected<void, std::string> LoadGameLevelDungeon(bool firstflag, lvl_entry lvldir, const Player &myPlayer)
+std::expected<void, std::string> LoadGameLevelDungeon(bool firstflag, lvl_entry lvldir, const Player &myPlayer)
 {
 	if (firstflag || lvldir == ENTRY_LOAD || !myPlayer._pLvlVisited[currlevel] || gbIsMultiplayer) {
 		HoldThemeRooms();
@@ -3232,7 +3232,7 @@ void LoadGameLevelSetVisited()
 	}
 }
 
-tl::expected<void, std::string> LoadGameLevelTown(bool firstflag, lvl_entry lvldir, const Player &myPlayer)
+std::expected<void, std::string> LoadGameLevelTown(bool firstflag, lvl_entry lvldir, const Player &myPlayer)
 {
 	for (int i = 0; i < MAXDUNX; i++) { // NOLINT(modernize-loop-convert)
 		for (int j = 0; j < MAXDUNY; j++) {
@@ -3261,7 +3261,7 @@ tl::expected<void, std::string> LoadGameLevelTown(bool firstflag, lvl_entry lvld
 	return {};
 }
 
-tl::expected<void, std::string> LoadGameLevelSetLevel(bool firstflag, lvl_entry lvldir, const Player &myPlayer)
+std::expected<void, std::string> LoadGameLevelSetLevel(bool firstflag, lvl_entry lvldir, const Player &myPlayer)
 {
 	LoadSetMap();
 	IncProgress();
@@ -3313,7 +3313,7 @@ tl::expected<void, std::string> LoadGameLevelSetLevel(bool firstflag, lvl_entry 
 	return {};
 }
 
-tl::expected<void, std::string> LoadGameLevelStandardLevel(bool firstflag, lvl_entry lvldir, const Player &myPlayer)
+std::expected<void, std::string> LoadGameLevelStandardLevel(bool firstflag, lvl_entry lvldir, const Player &myPlayer)
 {
 	CreateLevel(lvldir);
 
@@ -3396,7 +3396,7 @@ void LoadGameLevelCalculateCursor()
 	CheckCursMove();
 }
 
-tl::expected<void, std::string> LoadGameLevel(bool firstflag, lvl_entry lvldir)
+std::expected<void, std::string> LoadGameLevel(bool firstflag, lvl_entry lvldir)
 {
 	const _music_id neededTrack = GetLevelMusic(leveltype);
 

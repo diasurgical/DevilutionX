@@ -7,11 +7,11 @@
 #include <cmath>
 #include <cstdint>
 #include <ctime>
+#include <expected>
 #include <string>
 
 #include <algorithm>
 
-#include <expected.hpp>
 #include <fmt/core.h>
 #include <fmt/format.h>
 
@@ -3681,7 +3681,7 @@ bool IsItemBlockingObjectAtPosition(Point position)
 	return false;
 }
 
-tl::expected<void, std::string> LoadLevelObjects(uint16_t filesWidths[65])
+std::expected<void, std::string> LoadLevelObjects(uint16_t filesWidths[65])
 {
 	if (HeadlessMode)
 		return {};
@@ -3706,7 +3706,7 @@ tl::expected<void, std::string> LoadLevelObjects(uint16_t filesWidths[65])
 	return {};
 }
 
-tl::expected<void, std::string> InitObjectGFX()
+std::expected<void, std::string> InitObjectGFX()
 {
 	uint16_t filesWidths[65] = {};
 

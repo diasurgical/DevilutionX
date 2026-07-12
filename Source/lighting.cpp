@@ -8,10 +8,9 @@
 #include <algorithm>
 #include <cstdint>
 #include <cstring>
+#include <expected>
 #include <numeric>
 #include <string>
-
-#include <expected.hpp>
 
 #include "automap.h"
 #include "engine/displacement.hpp"
@@ -221,7 +220,7 @@ void DoVision(Point position, uint8_t radius, MapExplorationType doAutomap, bool
 	DoVision(position, radius, markVisibleFn, markTransparentFn, passesLightFn, inBoundsFn);
 }
 
-tl::expected<void, std::string> LoadTrns()
+std::expected<void, std::string> LoadTrns()
 {
 	RETURN_IF_ERROR(LoadFileInMemWithStatus("plrgfx\\infra.trn", InfravisionTable));
 	RETURN_IF_ERROR(LoadFileInMemWithStatus("plrgfx\\stone.trn", StoneTable));

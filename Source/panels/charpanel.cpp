@@ -1,11 +1,11 @@
 #include "panels/charpanel.hpp"
 
 #include <cstdint>
+#include <expected>
 
 #include <algorithm>
 #include <string>
 
-#include <expected.hpp>
 #include <fmt/format.h>
 #include <function_ref.hpp>
 
@@ -270,7 +270,7 @@ void DrawStatButtons(const Surface &out)
 
 } // namespace
 
-tl::expected<void, std::string> LoadCharPanel()
+std::expected<void, std::string> LoadCharPanel()
 {
 	ASSIGN_OR_RETURN(OptionalOwnedClxSpriteList background, LoadClxWithStatus("data\\charbg.clx"));
 	const OwnedSurface out((*background)[0].width(), (*background)[0].height());

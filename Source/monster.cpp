@@ -14,6 +14,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <expected>
 #include <iterator>
 #include <limits>
 #include <memory>
@@ -30,7 +31,6 @@
 #include <SDL.h>
 #endif
 
-#include <expected.hpp>
 #include <fmt/core.h>
 #include <fmt/format.h>
 
@@ -462,7 +462,7 @@ Point GetUniqueMonstPosition(UniqueMonsterType uniqindex)
 	return position;
 }
 
-tl::expected<void, std::string> PlaceUniqueMonst(UniqueMonsterType uniqindex, size_t minionType, int bosspacksize)
+std::expected<void, std::string> PlaceUniqueMonst(UniqueMonsterType uniqindex, size_t minionType, int bosspacksize)
 {
 	const auto &uniqueMonsterData = UniqueMonstersData[static_cast<size_t>(uniqindex)];
 	const size_t typeIndex = GetMonsterTypeIndex(uniqueMonsterData.mtype);
@@ -503,7 +503,7 @@ void ClrAllMonsters()
 	}
 }
 
-tl::expected<void, std::string> PlaceUniqueMonsters()
+std::expected<void, std::string> PlaceUniqueMonsters()
 {
 	for (size_t u = 0; u < UniqueMonstersData.size(); ++u) {
 		if (UniqueMonstersData[u].mlevel != currlevel)
@@ -530,7 +530,7 @@ tl::expected<void, std::string> PlaceUniqueMonsters()
 	return {};
 }
 
-tl::expected<void, std::string> PlaceQuestMonsters()
+std::expected<void, std::string> PlaceQuestMonsters()
 {
 	if (!setlevel) {
 		if (Quests[Q_BUTCHER].IsAvailable()) {
@@ -612,7 +612,7 @@ tl::expected<void, std::string> PlaceQuestMonsters()
 	return {};
 }
 
-tl::expected<void, std::string> LoadDiabMonsts()
+std::expected<void, std::string> LoadDiabMonsts()
 {
 	{
 		ASSIGN_OR_RETURN(auto dunData, LoadFileInMemWithStatus<uint16_t>("levels\\l4data\\diab1.dun"));
@@ -3288,7 +3288,7 @@ bool PosOkMovingMissile(Point position)
 
 } // namespace
 
-tl::expected<size_t, std::string> AddMonsterType(_monster_id type, placeflag placeflag)
+std::expected<size_t, std::string> AddMonsterType(_monster_id type, placeflag placeflag)
 {
 	const size_t typeIndex = GetMonsterTypeIndex(type);
 	CMonster &monsterType = LevelMonsterTypes[typeIndex];
@@ -3316,7 +3316,7 @@ tl::expected<size_t, std::string> AddMonsterType(_monster_id type, placeflag pla
 	return typeIndex;
 }
 
-tl::expected<void, std::string> InitTRNForUniqueMonster(Monster &monster)
+std::expected<void, std::string> InitTRNForUniqueMonster(Monster &monster)
 {
 	char filestr[64];
 	*BufCopy(filestr, R"(monsters\monsters\)", UniqueMonstersData[static_cast<size_t>(monster.uniqueType)].mTrnName, ".trn") = '\0';
@@ -3324,7 +3324,7 @@ tl::expected<void, std::string> InitTRNForUniqueMonster(Monster &monster)
 	return {};
 }
 
-tl::expected<void, std::string> PrepareUniqueMonst(Monster &monster, UniqueMonsterType monsterType, size_t minionType, int bosspacksize, const UniqueMonsterData &uniqueMonsterData)
+std::expected<void, std::string> PrepareUniqueMonst(Monster &monster, UniqueMonsterType monsterType, size_t minionType, int bosspacksize, const UniqueMonsterData &uniqueMonsterData)
 {
 	monster.uniqueType = monsterType;
 	monster.maxHitPoints = uniqueMonsterData.mmaxhp << 6;
@@ -3431,7 +3431,7 @@ void InitLevelMonsters()
 	uniquetrans = 0;
 }
 
-tl::expected<void, std::string> GetLevelMTypes()
+std::expected<void, std::string> GetLevelMTypes()
 {
 	RETURN_IF_ERROR(AddMonsterType(MT_GOLEM, PLACE_SPECIAL));
 	if (currlevel == 16) {
@@ -3517,7 +3517,7 @@ tl::expected<void, std::string> GetLevelMTypes()
 	return {};
 }
 
-tl::expected<void, std::string> InitMonsterSND(CMonster &monsterType)
+std::expected<void, std::string> InitMonsterSND(CMonster &monsterType)
 {
 	if (!gbSndInited)
 		return {};
@@ -3546,7 +3546,7 @@ tl::expected<void, std::string> InitMonsterSND(CMonster &monsterType)
 	return {};
 }
 
-tl::expected<void, std::string> InitMonsterGFX(CMonster &monsterType, MonsterSpritesData &&spritesData)
+std::expected<void, std::string> InitMonsterGFX(CMonster &monsterType, MonsterSpritesData &&spritesData)
 {
 	if (HeadlessMode)
 		return {};
@@ -3620,7 +3620,7 @@ tl::expected<void, std::string> InitMonsterGFX(CMonster &monsterType, MonsterSpr
 	return {};
 }
 
-tl::expected<void, std::string> InitAllMonsterGFX()
+std::expected<void, std::string> InitAllMonsterGFX()
 {
 	if (HeadlessMode)
 		return {};
@@ -3685,7 +3685,7 @@ void InitGolems()
 	}
 }
 
-tl::expected<void, std::string> InitMonsters()
+std::expected<void, std::string> InitMonsters()
 {
 	if (!gbIsSpawn && !setlevel && currlevel == 16)
 		LoadDiabMonsts();
@@ -3748,7 +3748,7 @@ tl::expected<void, std::string> InitMonsters()
 	return InitAllMonsterGFX();
 }
 
-tl::expected<void, std::string> SetMapMonsters(const uint16_t *dunData, Point startPosition)
+std::expected<void, std::string> SetMapMonsters(const uint16_t *dunData, Point startPosition)
 {
 	RETURN_IF_ERROR(AddMonsterType(MT_GOLEM, PLACE_SPECIAL));
 	if (setlevel)
@@ -4392,7 +4392,7 @@ bool LineClearMovingMissile(Point startPoint, Point endPoint)
 	return LineClear(PosOkMovingMissile, startPoint, endPoint);
 }
 
-tl::expected<void, std::string> SyncMonsterAnim(Monster &monster)
+std::expected<void, std::string> SyncMonsterAnim(Monster &monster)
 {
 #ifdef _DEBUG
 	// fix for saves with debug monsters having type originally not on the level

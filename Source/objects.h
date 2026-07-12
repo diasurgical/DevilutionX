@@ -7,9 +7,8 @@
 
 #include <cmath>
 #include <cstdint>
+#include <expected>
 #include <string>
-
-#include <expected.hpp>
 
 #include "cursor.h"
 #include "engine/clx_sprite.hpp"
@@ -329,7 +328,7 @@ inline Object &ObjectAtPosition(Point position)
  */
 bool IsItemBlockingObjectAtPosition(Point position);
 
-tl::expected<void, std::string> InitObjectGFX();
+std::expected<void, std::string> InitObjectGFX();
 void FreeObjectGFX();
 void AddL1Objs(int x1, int y1, int x2, int y2);
 void AddL2Objs(int x1, int y1, int x2, int y2);

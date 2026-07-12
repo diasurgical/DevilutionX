@@ -1,10 +1,10 @@
 #pragma once
 
 #include <array>
+#include <expected>
 #include <string_view>
 #include <type_traits>
 
-#include <expected.hpp>
 #include <function_ref.hpp>
 
 #include "data/file.hpp"
@@ -86,7 +86,7 @@ public:
 	void read(std::string_view name, T &out, F &&parseFn)
 	{
 		DataFileField field = nextField();
-		tl::expected<T, std::string> result = parseFn(field.value());
+		std::expected<T, std::string> result = parseFn(field.value());
 		failOnError(result, name, field, DataFileField::Error::InvalidValue);
 		out = *std::move(result);
 	}
@@ -116,7 +116,7 @@ public:
 
 private:
 	template <typename T>
-	void failOnError(const tl::expected<T, DataFileField::Error> &result, std::string_view name, const DataFileField &field)
+	void failOnError(const std::expected<T, DataFileField::Error> &result, std::string_view name, const DataFileField &field)
 	{
 		if (!result.has_value()) {
 			DataFile::reportFatalFieldError(result.error(), filename_, name, field);
@@ -124,7 +124,7 @@ private:
 	}
 
 	template <typename T>
-	void failOnError(const tl::expected<T, std::string> &result, std::string_view name, const DataFileField &field, DataFileField::Error error)
+	void failOnError(const std::expected<T, std::string> &result, std::string_view name, const DataFileField &field, DataFileField::Error error)
 	{
 		if (!result.has_value()) {
 			DataFile::reportFatalFieldError(error, filename_, name, field, result.error());

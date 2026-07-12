@@ -32,7 +32,7 @@ std::string ReplaceNewlines(std::string_view s)
 
 TEST(IniTest, BasicTest)
 {
-	tl::expected<Ini, std::string> result = Ini::parse(R"(
+	std::expected<Ini, std::string> result = Ini::parse(R"(
 ; Section A comment
 [sectionA]
 key1 = value1

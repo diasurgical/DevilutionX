@@ -106,7 +106,7 @@ void diablo_focus_pause();
 void diablo_focus_unpause();
 bool PressEscKey();
 void DisableInputEventHandler(const SDL_Event &event, uint16_t modState);
-tl::expected<void, std::string> LoadGameLevel(bool firstflag, lvl_entry lvldir);
+std::expected<void, std::string> LoadGameLevel(bool firstflag, lvl_entry lvldir);
 bool IsDiabloAlive(bool playSFX);
 void PrintScreen(SDL_Keycode vkey);
 

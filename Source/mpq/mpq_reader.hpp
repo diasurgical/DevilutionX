@@ -2,11 +2,10 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <expected>
 #include <memory>
 #include <string>
 #include <string_view>
-
-#include <expected.hpp>
 
 // Forward-declare so that we can avoid exposing mpqfs.h to all consumers.
 struct mpqfs_archive;
@@ -16,8 +15,8 @@ namespace devilution {
 
 class MpqArchive {
 public:
-	static tl::expected<MpqArchive, std::string> Open(const char *path);
-	tl::expected<MpqArchive, std::string> Clone();
+	static std::expected<MpqArchive, std::string> Open(const char *path);
+	std::expected<MpqArchive, std::string> Clone();
 
 	MpqArchive(MpqArchive &&other) noexcept;
 	MpqArchive &operator=(MpqArchive &&other) noexcept;
