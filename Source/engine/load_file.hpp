@@ -10,7 +10,6 @@
 
 #include "appfat.h"
 #include "engine/assets.hpp"
-#include "headless_mode.hpp"
 #include "mpq/mpq_common.hpp"
 #include "utils/static_vector.hpp"
 #include "utils/str_cat.hpp"
@@ -23,7 +22,6 @@ tl::expected<void, std::string> LoadFileInMemWithStatus(const char *path, T *dat
 	size_t size;
 	AssetHandle handle = OpenAsset(path, size);
 	if (!handle.ok()) {
-		if (HeadlessMode) return {};
 		return tl::make_unexpected(FailedToOpenFileErrorMessage(path, handle.error()));
 	}
 	if ((size % sizeof(T)) != 0) {
@@ -41,7 +39,6 @@ tl::expected<void, std::string> LoadIntegralFileInMemWithStatus(const char *path
 	size_t size;
 	AssetHandle handle = OpenIntegralAsset(path, size);
 	if (!handle.ok()) {
-		if (HeadlessMode) return {};
 		return tl::make_unexpected(FailedToOpenFileErrorMessage(path, handle.error()));
 	}
 	if ((size % sizeof(T)) != 0) {
@@ -65,7 +62,6 @@ tl::expected<void, std::string> LoadFileInMemWithStatus(const char *path, T *dat
 {
 	AssetHandle handle = OpenAsset(path);
 	if (!handle.ok()) {
-		if (HeadlessMode) return {};
 		return tl::make_unexpected(FailedToOpenFileErrorMessage(path, handle.error()));
 	}
 	if (!handle.read(data, count * sizeof(T))) {
@@ -106,7 +102,6 @@ tl::expected<std::unique_ptr<T[]>, std::string> LoadFileInMemWithStatus(const ch
 	size_t size;
 	AssetHandle handle = OpenAsset(path, size);
 	if (!handle.ok()) {
-		if (HeadlessMode) return {};
 		return tl::make_unexpected(FailedToOpenFileErrorMessage(path, handle.error()));
 	}
 	if ((size % sizeof(T)) != 0) {
