@@ -2,7 +2,6 @@
 
 #include <string_view>
 
-#include <fmt/format.h>
 #include <sol/sol.hpp>
 
 #include "data/file.hpp"

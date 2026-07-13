@@ -8,6 +8,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <format>
 #include <string_view>
 
 #ifdef USE_SDL3
@@ -19,7 +20,6 @@
 #endif
 
 #include <config.h>
-#include <fmt/format.h>
 
 #include "DiabloUI/diabloui.h"
 #include "diablo.h"
@@ -43,6 +43,7 @@
 #include "tmsg.h"
 #include "utils/endian_read.hpp"
 #include "utils/endian_swap.hpp"
+#include "utils/format.hpp"
 #include "utils/is_of.hpp"
 #include "utils/language.h"
 #include "utils/log.hpp"
@@ -302,7 +303,7 @@ void PlayerLeftMsg(Player &player, bool left)
 			else
 				LogInfo("Player left the {} game ({}, {}/{} players)", ConnectionNames[provider], reasonDescription, remainingPlayers, MAX_PLRS);
 		}
-		EventPlrMsg(fmt::format(fmt::runtime(pszFmt), player._pName));
+		EventPlrMsg(FormatRuntime(pszFmt, player._pName));
 	}
 	player.plractive = false;
 	player._pName[0] = '\0';
@@ -589,13 +590,13 @@ DVL_API_FOR_TEST std::string DescribeLeaveReason(leaveinfo_t leaveReason)
 	case leaveinfo_t::LEAVE_DROP:
 		return "connection timeout";
 	default:
-		return fmt::format("code 0x{:08X}", static_cast<uint32_t>(leaveReason));
+		return std::format("code 0x{:08X}", static_cast<uint32_t>(leaveReason));
 	}
 }
 
 std::string FormatGameSeed(const uint32_t gameSeed[4])
 {
-	return fmt::format("{:08X}{:08X}{:08X}{:08X}",
+	return std::format("{:08X}{:08X}{:08X}{:08X}",
 	    gameSeed[0], gameSeed[1], gameSeed[2], gameSeed[3]);
 }
 
@@ -894,7 +895,7 @@ bool NetInit(bool bSinglePlayer)
 	Player &myPlayer = *MyPlayer;
 	// separator for marking messages from a different game
 	AddMessageToChatLog(_("New Game"), nullptr, UiFlags::ColorRed);
-	AddMessageToChatLog(fmt::format(fmt::runtime(_("Player '{:s}' (level {:d}) just joined the game")), myPlayer._pName, myPlayer.getCharacterLevel()));
+	AddMessageToChatLog(FormatRuntime(_("Player '{:s}' (level {:d}) just joined the game"), myPlayer._pName, myPlayer.getCharacterLevel()));
 
 	// Log join message with seed for joining players (creator already logged it in SNetCreateGame)
 	if (gbIsMultiplayer && !IsLoopback && MyPlayerId != 0) {
@@ -960,7 +961,7 @@ void recv_plrinfo(Player &player, const TCmdPlrInfoHdr &header, bool recv)
 	} else {
 		szEvent = _("Player '{:s}' (level {:d}) is already in the game");
 	}
-	EventPlrMsg(fmt::format(fmt::runtime(szEvent), player._pName, player.getCharacterLevel()));
+	EventPlrMsg(FormatRuntime(szEvent, player._pName, player.getCharacterLevel()));
 
 	SyncInitPlr(player);
 

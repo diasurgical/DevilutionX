@@ -6,10 +6,9 @@
 
 #include "tables/itemdat.h"
 
+#include <format>
 #include <string_view>
 #include <vector>
-
-#include <fmt/format.h>
 
 #include "data/file.hpp"
 #include "data/iterators.hpp"
@@ -367,7 +366,7 @@ std::expected<unique_base_item, std::string> ParseOrAddUniqueBaseItem(std::strin
 	const size_t newUniqueBaseItemIndex = static_cast<size_t>(NUM_DEFAULT_UITYPES) + AdditionalUniqueBaseItemStringsToIndices.size();
 
 	if (newUniqueBaseItemIndex >= static_cast<size_t>(NUM_MAX_UITYPES)) {
-		return std::unexpected(fmt::format("Could not define new unique base item \"{}\", since the maximum number of {} has already been reached.", value, static_cast<size_t>(NUM_MAX_UITYPES)));
+		return std::unexpected(std::format("Could not define new unique base item \"{}\", since the maximum number of {} has already been reached.", value, static_cast<size_t>(NUM_MAX_UITYPES)));
 	}
 
 	const auto newUniqueBaseItem = static_cast<unique_base_item>(newUniqueBaseItemIndex);
@@ -599,7 +598,7 @@ void LoadItemDatFromFile(DataFile &dataFile, std::string_view filename, int32_t 
 		item.iMappingId = currentMappingId;
 		const auto [it, inserted] = ItemMappingIdsToIndices.emplace(item.iMappingId, static_cast<int16_t>(AllItemsList.size()) - 1);
 		if (!inserted) {
-			DisplayFatalErrorAndExit("Adding Item Failed", fmt::format("An item already exists for mapping ID {}.", item.iMappingId));
+			DisplayFatalErrorAndExit("Adding Item Failed", std::format("An item already exists for mapping ID {}.", item.iMappingId));
 		}
 
 		++currentMappingId;
@@ -657,7 +656,7 @@ void LoadUniqueItemDatFromFile(DataFile &dataFile, std::string_view filename, in
 		item.mappingId = currentMappingId;
 		const auto [it, inserted] = UniqueItemMappingIdsToIndices.emplace(item.mappingId, static_cast<int32_t>(UniqueItems.size()) - 1);
 		if (!inserted) {
-			DisplayFatalErrorAndExit("Adding Unique Item Failed", fmt::format("A unique item already exists for mapping ID {}.", item.mappingId));
+			DisplayFatalErrorAndExit("Adding Unique Item Failed", std::format("A unique item already exists for mapping ID {}.", item.mappingId));
 		}
 
 		++currentMappingId;

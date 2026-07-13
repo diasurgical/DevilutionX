@@ -1,4 +1,3 @@
-#include <fmt/format.h>
 #include <gtest/gtest.h>
 
 #include "drlg_test.hpp"

@@ -15,8 +15,6 @@
 #include <vector>
 
 #include <ankerl/unordered_dense.h>
-#include <fmt/core.h>
-#include <fmt/format.h>
 #include <magic_enum/magic_enum.hpp>
 
 #include "appfat.h"
@@ -28,6 +26,7 @@
 #include "lua/lua_event.hpp"
 #include "monster.h"
 #include "tables/textdat.h"
+#include "utils/format.hpp"
 #include "utils/language.h"
 
 namespace devilution {
@@ -329,7 +328,7 @@ void LoadMonstDatFromFile(DataFile &dataFile, const std::string_view filename, b
 
 	for (DataFileRecord record : dataFile) {
 		if (MonstersData.size() >= static_cast<size_t>(NUM_MAX_MTYPES)) {
-			DisplayFatalErrorAndExit(_("Loading Monster Data Failed"), fmt::format(fmt::runtime(_("Could not add a monster, since the maximum monster type number of {} has already been reached.")), static_cast<size_t>(NUM_MAX_MTYPES)));
+			DisplayFatalErrorAndExit(_("Loading Monster Data Failed"), FormatRuntime(_("Could not add a monster, since the maximum monster type number of {} has already been reached."), static_cast<size_t>(NUM_MAX_MTYPES)));
 		}
 
 		RecordReader reader { record, filename };
@@ -342,7 +341,7 @@ void LoadMonstDatFromFile(DataFile &dataFile, const std::string_view filename, b
 			const size_t monsterIndex = MonstersData.size();
 			const auto [it, inserted] = AdditionalMonsterIdStringsToIndices.emplace(monsterId, static_cast<int16_t>(monsterIndex));
 			if (!inserted) {
-				DisplayFatalErrorAndExit(_("Loading Monster Data Failed"), fmt::format(fmt::runtime(_("A monster type already exists for ID \"{}\".")), monsterId));
+				DisplayFatalErrorAndExit(_("Loading Monster Data Failed"), FormatRuntime(_("A monster type already exists for ID \"{}\"."), monsterId));
 			}
 		}
 

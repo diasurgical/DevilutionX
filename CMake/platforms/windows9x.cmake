@@ -6,7 +6,6 @@ set(NONET ON)
 set(DISABLE_ZERO_TIER ON)
 set(USE_SDL1 ON)
 set(DEVILUTIONX_SYSTEM_BZIP2 OFF)
-set(DEVILUTIONX_SYSTEM_LIBFMT OFF)
 set(DEVILUTIONX_STATIC_LIBSODIUM OFF)
 
 # Compatibility with Windows 9x 8-bit mode and improved performance

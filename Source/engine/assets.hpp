@@ -18,8 +18,6 @@
 #include <SDL.h>
 #endif
 
-#include <fmt/format.h>
-
 #include "appfat.h"
 #include "game_mode.hpp"
 #include "headless_mode.hpp"

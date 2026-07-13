@@ -5,8 +5,6 @@
 #include <optional>
 #include <string>
 
-#include <fmt/format.h>
-
 #include "control/control.hpp"
 #include "engine/backbuffer_state.hpp"
 #include "engine/clx_sprite.hpp"
@@ -21,6 +19,7 @@
 #include "panels/ui_panels.hpp"
 #include "player.h"
 #include "tables/spelldat.h"
+#include "utils/format.hpp"
 #include "utils/language.h"
 #include "utils/status_macros.hpp"
 
@@ -112,9 +111,9 @@ StringOrView GetSpellPowerText(SpellID spell, int spellLevel)
 		return StringOrView {};
 	}
 	if (spell == SpellID::Healing || spell == SpellID::HealOther) {
-		return fmt::format(fmt::runtime(_(/* TRANSLATORS: UI constraints, keep short please.*/ "Heals: {:d} - {:d}")), min, max);
+		return FormatRuntime(_(/* TRANSLATORS: UI constraints, keep short please.*/ "Heals: {:d} - {:d}"), min, max);
 	}
-	return fmt::format(fmt::runtime(_(/* TRANSLATORS: UI constraints, keep short please.*/ "Damage: {:d} - {:d}")), min, max);
+	return FormatRuntime(_(/* TRANSLATORS: UI constraints, keep short please.*/ "Damage: {:d} - {:d}"), min, max);
 }
 
 } // namespace
@@ -173,16 +172,16 @@ void DrawSpellBook(const Surface &out)
 				break;
 			case SpellType::Charges: {
 				const int charges = player.InvBody[INVLOC_HAND_LEFT]._iCharges;
-				PrintSBookStr(out, line1, fmt::format(fmt::runtime(ngettext("Staff ({:d} charge)", "Staff ({:d} charges)", charges)), charges));
+				PrintSBookStr(out, line1, FormatRuntime(ngettext("Staff ({:d} charge)", "Staff ({:d} charges)", charges), charges));
 			} break;
 			default: {
 				const int mana = GetManaAmount(player, sn) >> 6;
 				const int lvl = player.GetSpellLevel(sn);
-				PrintSBookStr(out, line0, fmt::format(fmt::runtime(pgettext(/* TRANSLATORS: UI constraints, keep short please.*/ "spellbook", "Level {:d}")), lvl), UiFlags::AlignRight);
+				PrintSBookStr(out, line0, FormatRuntime(pgettext(/* TRANSLATORS: UI constraints, keep short please.*/ "spellbook", "Level {:d}"), lvl), UiFlags::AlignRight);
 				if (const StringOrView text = GetSpellPowerText(sn, lvl); !text.empty()) {
 					PrintSBookStr(out, line1, text, UiFlags::AlignRight);
 				}
-				PrintSBookStr(out, line1, fmt::format(fmt::runtime(pgettext(/* TRANSLATORS: UI constraints, keep short please.*/ "spellbook", "Mana: {:d}")), mana));
+				PrintSBookStr(out, line1, FormatRuntime(pgettext(/* TRANSLATORS: UI constraints, keep short please.*/ "spellbook", "Mana: {:d}"), mana));
 			} break;
 			}
 		}

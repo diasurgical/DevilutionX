@@ -12,7 +12,7 @@ Note that ```pkg-config``` is an optional dependency for finding libsodium, alth
 ### Installing dependencies on Debian and Ubuntu
 
 ```
-sudo apt-get install cmake g++ libsdl2-dev libsodium-dev libpng-dev libbz2-dev libgtest-dev libgmock-dev libbenchmark-dev libsdl2-image-dev libfmt-dev
+sudo apt-get install cmake g++ libsdl2-dev libsodium-dev libpng-dev libbz2-dev libgtest-dev libgmock-dev libbenchmark-dev libsdl2-image-dev
 ```
 
 ### If you want to build the translations (optional)
@@ -30,7 +30,7 @@ sudo apt-get install smpq
 ### Installing dependencies on Fedora
 
 ```
-sudo dnf install cmake gcc-c++ glibc-devel libstdc++-static SDL2-devel SDL2_image-devel libsodium-devel libpng-devel bzip2-devel gmock-devel gtest-devel google-benchmark-devel libasan libubsan fmt-devel libpfm-devel
+sudo dnf install cmake gcc-c++ glibc-devel libstdc++-static SDL2-devel SDL2_image-devel libsodium-devel libpng-devel bzip2-devel gmock-devel gtest-devel google-benchmark-devel libasan libubsan libpfm-devel
 ```
 
 ### Compiling
@@ -54,7 +54,6 @@ Then, build DevilutionX using the cross-compilation CMake toolchain file:
 cmake -S. -Bbuild-aarch64-rel \
   -DCMAKE_TOOLCHAIN_FILE=../CMake/platforms/aarch64-linux-gnu.toolchain.cmake \
   -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr -DCPACK=ON \
-  -DDEVILUTIONX_SYSTEM_LIBFMT=OFF
 cmake --build build-aarch64-rel -j $(getconf _NPROCESSORS_ONLN) --target package
 ```
 
@@ -334,7 +333,7 @@ You can find the compiled APK in `/android-project/app/build/outputs/apk/`
 ### Installing dependencies on Debian and Ubuntu
 
 ```
-pkg i which getconf cmake gettext libsodium sdl2 sdl2-image zlib bzip2 fmt
+pkg i which getconf cmake gettext libsodium sdl2 sdl2-image zlib bzip2
 ```
 
 ### If you want to build the devilutionX.mpq File (optional)
@@ -622,8 +621,7 @@ sudo port install curl curl-ca-bundle gcc14 cmake \
 sudo port select --set gcc mp-gcc14
 ~~~
 
-<!-- The following packages have issues so we use the vendored versions:
-     libfmt11 google-benchmark gtest -->
+<!-- The following packages have issues so we use the vendored versions: google-benchmark gtest -->
 
 Then, build DevilutionX:
 

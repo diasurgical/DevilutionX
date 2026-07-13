@@ -7,7 +7,7 @@ RUN wget -nv -nc https://github.com/diasurgical/devilutionx-assets/releases/down
 # We also need to install GCC because it provides crtbeginS.o:
 # https://pkgs.alpinelinux.org/contents?file=crtbeginS.o&path=&name=gcc&branch=edge&repo=main&arch=s390x
 RUN apk add --no-cache \
-	clang15 gcc binutils musl-dev ninja cmake ccache sdl2-dev sdl2_image-dev fmt-dev \
+	clang15 gcc binutils musl-dev ninja cmake ccache sdl2-dev sdl2_image-dev \
 	libpng-dev bzip2-dev gtest-dev
 
 ENV CC=/usr/bin/clang CXX=/usr/bin/clang++

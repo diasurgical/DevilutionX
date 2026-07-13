@@ -73,6 +73,14 @@ if(NOT VERSION_SUFFIX)
   endif()
 endif()
 
+# The iOS toolchain file reads DEPLOYMENT_TARGET when it is processed by
+# `project()`, so the default must be set before that.
+# libc++'s <format> requires the floating-point std::to_chars symbols,
+# which are only available in the iOS 16.3+ system libc++.
+if(CMAKE_TOOLCHAIN_FILE MATCHES "ios\\.toolchain\\.cmake" AND NOT DEFINED DEPLOYMENT_TARGET)
+  set(DEPLOYMENT_TARGET "16.3")
+endif()
+
 project(DevilutionX
   VERSION ${VERSION_NUM}
   LANGUAGES C CXX)
@@ -355,7 +363,7 @@ include(Dependencies)
 # Mixing `-static-libstdc++` with a dynamic C++ dependency causes both copies
 # to initialize, which is UB and can cause crashes, e.g. in
 # `std::ios_base_library_init()`.
-if(NOT DEVILUTIONX_STATIC_LIBFMT)
+if(NOT NOSOUND AND NOT DEVILUTIONX_STATIC_SDL_AUDIOLIB)
   set(DEVILUTIONX_STATIC_CXX_STDLIB OFF)
 endif()
 
@@ -448,10 +456,14 @@ if(APPLE)
   if(IOS)
     set(MACOSX_BUNDLE_REQUIRED_PLATFORM IPhoneOS)
     set_target_properties(${BIN_TARGET} PROPERTIES XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "1,2")
-    set(CMAKE_OSX_DEPLOYMENT_TARGET "9.0")
+    # libc++'s <format> requires the floating-point std::to_chars symbols,
+    # which are only available in the iOS 16.3+ system libc++.
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "16.3")
   elseif(DARWIN_MAJOR_VERSION GREATER_EQUAL 17)
     set(MACOSX_BUNDLE_REQUIRED_PLATFORM Carbon)
-    set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13.0")
+    # libc++'s <format> requires the floating-point std::to_chars symbols,
+    # which are only available in the macOS 13.3+ system libc++.
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "13.3")
   endif()
   if(DARWIN_MAJOR_VERSION VERSION_LESS 9)
     # Finder on OSX Tiger can only handle icns files with up to 128x128 icons.

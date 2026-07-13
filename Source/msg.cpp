@@ -8,6 +8,7 @@
 #include <climits>
 #include <cmath>
 #include <cstdint>
+#include <format>
 #include <list>
 #include <memory>
 
@@ -18,7 +19,6 @@
 #endif
 
 #include <ankerl/unordered_dense.h>
-#include <fmt/format.h>
 
 #if !defined(UNPACKED_MPQS) || !defined(UNPACKED_SAVES) || !defined(NONET)
 #define USE_PKWARE
@@ -58,6 +58,7 @@
 #include "tmsg.h"
 #include "towners.h"
 #include "utils/endian_swap.hpp"
+#include "utils/format.hpp"
 #include "utils/is_of.hpp"
 #include "utils/language.h"
 #include "utils/str_cat.hpp"
@@ -86,7 +87,7 @@ namespace devilution {
 
 void EventFailedPacket(const char *playerName)
 {
-	const std::string message = fmt::format("Player '{}' sent an invalid packet.", playerName);
+	const std::string message = std::format("Player '{}' sent an invalid packet.", playerName);
 	EventPlrMsg(message);
 }
 
@@ -2313,7 +2314,7 @@ size_t OnPlayerJoinLevel(const TCmdLocParam2 &message, Player &player)
 		ResetPlayerGFX(player);
 		player.plractive = true;
 		gbActivePlayers++;
-		EventPlrMsg(fmt::format(fmt::runtime(_("Player '{:s}' (level {:d}) just joined the game")), player._pName, player.getCharacterLevel()));
+		EventPlrMsg(FormatRuntime(_("Player '{:s}' (level {:d}) just joined the game"), player._pName, player.getCharacterLevel()));
 	}
 
 	if (player.plractive && &player != MyPlayer) {

@@ -17,9 +17,6 @@
 #include <SDL.h>
 #endif
 
-#include <fmt/core.h>
-#include <fmt/format.h>
-
 #include "DiabloUI/diabloui.h"
 #include "DiabloUI/hero/selhero.h"
 #include "DiabloUI/scrollbar.h"
@@ -35,6 +32,7 @@
 #include "multi.h"
 #include "options.h"
 #include "storm/storm_net.hpp"
+#include "utils/format.hpp"
 #include "utils/language.h"
 #include "utils/str_cat.hpp"
 #include "utils/ui_fwd.h"
@@ -107,7 +105,7 @@ static std::string GetErrorMessageIncompatibility(const GameData &data)
 		else
 			return std::string(_("You need to full version of the game to join this game."));
 	}
-	return fmt::format(fmt::runtime(_(/* TRANSLATORS: Error message when somebody tries to join a game running another version. */ "Your version {:s} does not match the host {:d}.{:d}.{:d}.")), PROJECT_VERSION, data.versionMajor, data.versionMinor, data.versionPatch);
+	return FormatRuntime(_(/* TRANSLATORS: Error message when somebody tries to join a game running another version. */ "Your version {:s} does not match the host {:d}.{:d}.{:d}."), PROJECT_VERSION, data.versionMajor, data.versionMinor, data.versionPatch);
 }
 
 void UiInitGameSelectionList(std::string_view search)
@@ -248,7 +246,7 @@ void selgame_GameSelection_Focus(size_t value)
 				difficulty = _("Hell");
 				break;
 			}
-			infoString.append(fmt::format(fmt::runtime(_(/* TRANSLATORS: {:s} means: Game Difficulty. */ "Difficulty: {:s}")), difficulty));
+			infoString.append(FormatRuntime(_(/* TRANSLATORS: {:s} means: Game Difficulty. */ "Difficulty: {:s}"), difficulty));
 			infoString += '\n';
 			switch (gameInfo.gameData.nTickRate) {
 			case 20:
@@ -276,9 +274,9 @@ void selgame_GameSelection_Focus(size_t value)
 			}
 			infoString += '\n';
 			if (gameInfo.peerIsRelayed.value_or(false))
-				infoString.append(fmt::format(fmt::runtime(_("Ping: {:d} ms (RELAYED)")), gameInfo.latency.value_or(0)));
+				infoString.append(FormatRuntime(_("Ping: {:d} ms (RELAYED)"), gameInfo.latency.value_or(0)));
 			else
-				infoString.append(fmt::format(fmt::runtime(_("Ping: {:d} ms")), gameInfo.latency.value_or(0)));
+				infoString.append(FormatRuntime(_("Ping: {:d} ms"), gameInfo.latency.value_or(0)));
 		} else {
 			infoString.append(GetErrorMessageIncompatibility(gameInfo.gameData));
 		}
@@ -354,7 +352,7 @@ void selgame_GameSelection_Select(size_t value)
 		break;
 	}
 	case 2: {
-		selgame_Title = fmt::format(fmt::runtime(_("Join {:s} Games")), _(ConnectionNames[provider]));
+		selgame_Title = FormatRuntime(_("Join {:s} Games"), _(ConnectionNames[provider]));
 		title = selgame_Title.c_str();
 
 		const char *inputHint;

@@ -1,12 +1,11 @@
 #include "control.hpp"
 #include "control_chat.hpp"
 
-#include <fmt/format.h>
-
 #include "DiabloUI/text_input.hpp"
 #include "engine/render/clx_render.hpp"
 #include "inv.h"
 #include "utils/display.h"
+#include "utils/format.hpp"
 #include "utils/format_int.hpp"
 #include "utils/log.hpp"
 #include "utils/sdl_compat.h"
@@ -56,12 +55,12 @@ void DrawGoldSplit(const Surface &out)
 	const TextInputCursorState &cursor = GoldDropCursor;
 	const int max = GetGoldDropMax();
 
-	const std::string description = fmt::format(
-	    fmt::runtime(ngettext(
+	const std::string description = FormatRuntime(
+	    ngettext(
 	        /* TRANSLATORS: {:s} is a number with separators. Dialog is shown when splitting a stash of Gold.*/
 	        "You have {:s} gold piece. How many do you want to remove?",
 	        "You have {:s} gold pieces. How many do you want to remove?",
-	        max)),
+	        max),
 	    FormatInteger(max));
 
 	// Pre-wrap the string at spaces, otherwise DrawString would hard wrap in the middle of words

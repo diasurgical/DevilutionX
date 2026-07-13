@@ -12,9 +12,6 @@
 
 #include <algorithm>
 
-#include <fmt/core.h>
-#include <fmt/format.h>
-
 #include "DiabloUI/ui_flags.hpp"
 #include "automap.h"
 #include "cursor.h"
@@ -47,6 +44,7 @@
 #include "track.h"
 #include "utils/algorithm/container.hpp"
 #include "utils/endian_swap.hpp"
+#include "utils/format.hpp"
 #include "utils/is_of.hpp"
 #include "utils/language.h"
 #include "utils/log.hpp"
@@ -4853,7 +4851,7 @@ StringOrView Object::name() const
 		return _("Urn");
 	case OBJ_SHRINEL:
 	case OBJ_SHRINER:
-		return fmt::format(fmt::runtime(_(/* TRANSLATORS: {:s} will be a name from the Shrine block above */ "{:s} Shrine")), _(ShrineNames[_oVar1]));
+		return FormatRuntime(_(/* TRANSLATORS: {:s} will be a name from the Shrine block above */ "{:s} Shrine"), _(ShrineNames[_oVar1]));
 	case OBJ_SKELBOOK:
 		return _("Skeleton Tome");
 	case OBJ_BOOKSTAND:
@@ -4908,12 +4906,12 @@ void GetObjectStr(const Object &object)
 	const ClassAttributes &classAttributes = GetClassAttributes(MyPlayer->_pClass);
 	if (HasAnyOf(classAttributes.classFlags, PlayerClassFlag::TrapSense)) {
 		if (object._oTrapFlag) {
-			InfoString = fmt::format(fmt::runtime(_(/* TRANSLATORS: {:s} will either be a chest or a door */ "Trapped {:s}")), InfoString.str());
+			InfoString = FormatRuntime(_(/* TRANSLATORS: {:s} will either be a chest or a door */ "Trapped {:s}"), InfoString.str());
 			InfoColor = UiFlags::ColorRed;
 		}
 	}
 	if (object.IsDisabled()) {
-		InfoString = fmt::format(fmt::runtime(_(/* TRANSLATORS: If user enabled diablo.ini setting "Disable Crippling Shrines" is set to 1; also used for Na-Kruls lever */ "{:s} (disabled)")), InfoString.str());
+		InfoString = FormatRuntime(_(/* TRANSLATORS: If user enabled diablo.ini setting "Disable Crippling Shrines" is set to 1; also used for Na-Kruls lever */ "{:s} (disabled)"), InfoString.str());
 		InfoColor = UiFlags::ColorRed;
 	}
 }

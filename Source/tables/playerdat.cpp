@@ -14,7 +14,6 @@
 #include <expected>
 #include <vector>
 
-#include <fmt/format.h>
 #include <magic_enum/magic_enum_utility.hpp>
 
 #include "data/file.hpp"
@@ -23,6 +22,7 @@
 #include "items.h"
 #include "player.h"
 #include "tables/textdat.h"
+#include "utils/format.hpp"
 #include "utils/language.h"
 #include "utils/static_vector.hpp"
 #include "utils/str_cat.hpp"
@@ -317,7 +317,7 @@ void LoadClassDatFromFile(DataFile &dataFile, const std::string_view filename)
 
 	for (DataFileRecord record : dataFile) {
 		if (PlayersData.size() >= static_cast<size_t>(HeroClass::NUM_MAX_CLASSES)) {
-			DisplayFatalErrorAndExit(_("Loading Class Data Failed"), fmt::format(fmt::runtime(_("Could not add a class, since the maximum class number of {} has already been reached.")), static_cast<size_t>(HeroClass::NUM_MAX_CLASSES)));
+			DisplayFatalErrorAndExit(_("Loading Class Data Failed"), FormatRuntime(_("Could not add a class, since the maximum class number of {} has already been reached."), static_cast<size_t>(HeroClass::NUM_MAX_CLASSES)));
 		}
 
 		RecordReader reader { record, filename };

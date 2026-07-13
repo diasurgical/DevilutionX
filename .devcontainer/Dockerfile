@@ -7,7 +7,7 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get -y install tar curl zip unzip bash-completion build-essential ripgrep htop \
     ninja-build ccache g++ mold gdb clang-format clang-tidy \
     rpm pkg-config cmake git gettext libsdl2-dev libsdl2-image-dev libsodium-dev \
-    libpng-dev libbz2-dev libfmt-dev libgtest-dev libgmock-dev libbenchmark-dev zsh \
+    libpng-dev libbz2-dev libgtest-dev libgmock-dev libbenchmark-dev zsh \
     qtbase5-dev qt6-base-dev ristretto \
     && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 

@@ -16,9 +16,6 @@
 #include <SDL.h>
 #endif
 
-#include <fmt/core.h>
-#include <fmt/format.h>
-
 #include "DiabloUI/diabloui.h"
 #include "DiabloUI/dialogs.h"
 #include "DiabloUI/multi/selgame.h"
@@ -36,6 +33,7 @@
 #include "pfile.h"
 #include "tables/playerdat.hpp"
 #include "utils/enum_traits.h"
+#include "utils/format.hpp"
 #include "utils/language.h"
 #include "utils/sdl_geometry.h"
 #include "utils/str_cat.hpp"
@@ -620,7 +618,7 @@ static void UiSelHeroDialog(
 			} else {
 				CopyUtf8(dialogTitle, _("Delete Single Player Hero"), sizeof(dialogTitle));
 			}
-			strcpy(dialogText, fmt::format(fmt::runtime(_("Are you sure you want to delete the character \"{:s}\"?")), selhero_heroInfo.name).c_str());
+			strcpy(dialogText, FormatRuntime(_("Are you sure you want to delete the character \"{:s}\"?"), selhero_heroInfo.name).c_str());
 
 			if (UiSelHeroYesNoDialog(dialogTitle, dialogText))
 				fnremove(&selhero_heroInfo);

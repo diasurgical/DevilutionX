@@ -200,7 +200,6 @@ add_devilutionx_object_library(libdevilutionx_assets
 )
 target_link_dependencies(libdevilutionx_assets PUBLIC
   DevilutionX::SDL
-  fmt::fmt
   tl
   libdevilutionx_headless_mode
   libdevilutionx_game_mode
@@ -233,7 +232,6 @@ add_devilutionx_object_library(libdevilutionx_clx_render
 )
 target_link_dependencies(libdevilutionx_clx_render PUBLIC
   DevilutionX::SDL
-  fmt::fmt
   libdevilutionx_light_render
   libdevilutionx_palette_blending
   libdevilutionx_strings
@@ -262,7 +260,6 @@ target_link_dependencies(libdevilutionx_control
   tl
   libdevilutionx_text_input
   PRIVATE
-  fmt::fmt
   libdevilutionx_clx_render
   libdevilutionx_control_mode
   libdevilutionx_format_int
@@ -404,7 +401,6 @@ add_devilutionx_object_library(libdevilutionx_gendung
 )
 target_link_dependencies(libdevilutionx_gendung PUBLIC
   DevilutionX::SDL
-  fmt::fmt
   tl
   libdevilutionx_assets
   libdevilutionx_items
@@ -508,7 +504,6 @@ add_devilutionx_object_library(libdevilutionx_lighting
 )
 target_link_dependencies(libdevilutionx_lighting PUBLIC
   DevilutionX::SDL
-  fmt::fmt
   magic_enum::magic_enum
   tl
   unordered_dense::unordered_dense
@@ -552,7 +547,6 @@ add_devilutionx_object_library(libdevilutionx_ini
   utils/ini.cpp
 )
 target_link_dependencies(libdevilutionx_ini PUBLIC
-  fmt::fmt
   tl
   unordered_dense::unordered_dense
   libdevilutionx_strings
@@ -566,7 +560,6 @@ target_include_directories(libdevilutionx_log INTERFACE
   ${PROJECT_SOURCE_DIR}/Source)
 target_link_libraries(libdevilutionx_log INTERFACE
   DevilutionX::SDL
-  fmt::fmt
 )
 target_sources(libdevilutionx_log INTERFACE $<TARGET_OBJECTS:libdevilutionx_strings>)
 
@@ -632,7 +625,6 @@ if(SUPPORTS_MPQ)
   )
   target_link_dependencies(libdevilutionx_mpq PUBLIC
     DevilutionX::SDL
-    fmt::fmt
     mpqfs::mpqfs
     tl
     libdevilutionx_file_util
@@ -655,7 +647,6 @@ add_devilutionx_object_library(libdevilutionx_options
 )
 target_link_dependencies(libdevilutionx_options PUBLIC
   DevilutionX::SDL
-  fmt::fmt
   magic_enum::magic_enum
   tl
   unordered_dense::unordered_dense
@@ -695,7 +686,6 @@ add_devilutionx_object_library(libdevilutionx_player
 target_link_dependencies(libdevilutionx_player
   PUBLIC
   DevilutionX::SDL
-  fmt::fmt
   magic_enum::magic_enum
   sol2::sol2
   tl
@@ -760,7 +750,6 @@ target_link_dependencies(libdevilutionx_text_render
   PUBLIC
   libdevilutionx_surface
   PRIVATE
-  fmt::fmt
   unordered_dense::unordered_dense
   libdevilutionx_clx_render
   libdevilutionx_game_mode
@@ -787,7 +776,6 @@ add_devilutionx_object_library(libdevilutionx_txtdata
   data/value_reader.cpp
 )
 target_link_dependencies(libdevilutionx_txtdata PUBLIC
-  fmt::fmt
   tl
   libdevilutionx_assets
   libdevilutionx_parse_int
@@ -808,7 +796,6 @@ if(NOSOUND)
   )
   target_link_dependencies(libdevilutionx_sound PUBLIC
     DevilutionX::SDL
-    fmt::fmt
     magic_enum::magic_enum
     tl
     unordered_dense::unordered_dense
@@ -835,7 +822,6 @@ else()
   endif()
   target_link_dependencies(libdevilutionx_sound PUBLIC
     DevilutionX::SDL
-    fmt::fmt
     magic_enum::magic_enum
     tl
     unordered_dense::unordered_dense
@@ -850,7 +836,6 @@ add_devilutionx_object_library(libdevilutionx_stores
 )
 target_link_dependencies(libdevilutionx_stores PUBLIC
   DevilutionX::SDL
-  fmt::fmt
   tl
   libdevilutionx_clx_render
   libdevilutionx_control
@@ -863,8 +848,7 @@ add_devilutionx_object_library(libdevilutionx_strings
   utils/str_cat.cpp
   utils/str_case.cpp
 )
-target_link_dependencies(libdevilutionx_strings PRIVATE
-  fmt::fmt)
+target_link_dependencies(libdevilutionx_strings PRIVATE)
 
 add_devilutionx_object_library(libdevilutionx_utils_console
   utils/console.cpp
@@ -901,6 +885,11 @@ endif()
 
 if(IOS)
   list(APPEND libdevilutionx_SRCS platform/ios/ios_paths.m)
+endif()
+
+if(AMIGA AND NOT WARPOS)
+  # Works around a missing `__cmpdf2` in the hard-float libgcc multilib.
+  list(APPEND libdevilutionx_SRCS platform/amiga/cmpdf2.c)
 endif()
 
 if(NOT DISABLE_DEMOMODE)
@@ -969,7 +958,6 @@ add_devilutionx_object_library(libdevilutionx ${libdevilutionx_SRCS})
 target_include_directories(libdevilutionx PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 target_link_dependencies(libdevilutionx PUBLIC
   DevilutionX::SDL
-  fmt::fmt
   libsmackerdec
   ${LUA_LIBRARIES}
   magic_enum::magic_enum

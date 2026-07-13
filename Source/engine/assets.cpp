@@ -17,12 +17,11 @@
 #include <SDL.h>
 #endif
 
-#include <fmt/format.h>
-
 #include "appfat.h"
 #include "game_mode.hpp"
 #include "mods/mod_identity.h"
 #include "utils/file_util.h"
+#include "utils/format.hpp"
 #include "utils/log.hpp"
 #include "utils/paths.h"
 #include "utils/sdl_compat.h"
@@ -358,7 +357,7 @@ std::expected<AssetData, std::string> LoadIntegralAsset(std::string_view path)
 
 std::string FailedToOpenFileErrorMessage(std::string_view path, std::string_view error)
 {
-	return fmt::format(fmt::runtime(_("Failed to open file:\n{:s}\n\n{:s}\n\nThe MPQ file(s) might be damaged. Please check the file integrity.")), path, error);
+	return FormatRuntime(_("Failed to open file:\n{:s}\n\n{:s}\n\nThe MPQ file(s) might be damaged. Please check the file integrity."), path, error);
 }
 
 namespace {

@@ -2,6 +2,7 @@
 
 #include <exception>
 #include <expected>
+#include <format>
 #include <functional>
 #include <memory>
 #include <stdexcept>
@@ -15,7 +16,6 @@
 #endif
 
 #include <asio/connect.hpp>
-#include <fmt/format.h>
 
 #include "options.h"
 #include "utils/language.h"
@@ -216,7 +216,7 @@ void tcp_client::HandleTcpErrorCode()
 	if (code == PacketError::ErrorCode::DecryptionFailed)
 		RaiseIoHandlerError(_("Server failed to decrypt your packet. Check if you typed the password correctly."));
 	else
-		RaiseIoHandlerError(fmt::format("Unknown error code received from server: {:#04x}", pktData[0]));
+		RaiseIoHandlerError(std::format("Unknown error code received from server: {:#04x}", pktData[0]));
 }
 
 std::expected<void, PacketError> tcp_client::send(packet &pkt)

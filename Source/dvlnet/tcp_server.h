@@ -5,15 +5,6 @@
 #include <memory>
 #include <string>
 
-// This header must be included before any 3DS code
-// because 3DS SDK defines a macro with the same name
-// as an fmt template parameter in some versions of fmt.
-// See https://github.com/fmtlib/fmt/issues/3632
-//
-// 3DS uses some custom ASIO code that transitively includes
-// the 3DS SDK.
-#include <fmt/core.h>
-
 #include <asio/ts/buffer.hpp>
 #include <asio/ts/internet.hpp>
 #include <asio/ts/io_context.hpp>

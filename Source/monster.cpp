@@ -31,9 +31,6 @@
 #include <SDL.h>
 #endif
 
-#include <fmt/core.h>
-#include <fmt/format.h>
-
 #include "automap.h"
 #include "control/control.hpp"
 #include "crawl.hpp"
@@ -96,6 +93,7 @@
 #include "utils/endian_swap.hpp"
 #include "utils/enum_traits.h"
 #include "utils/file_name_generator.hpp"
+#include "utils/format.hpp"
 #include "utils/is_of.hpp"
 #include "utils/language.h"
 #include "utils/log.hpp"
@@ -4472,9 +4470,9 @@ void M_FallenFear(Point position)
 void PrintMonstHistory(int mt)
 {
 	if (*GetOptions().Gameplay.showMonsterType) {
-		AddInfoBoxString(fmt::format(fmt::runtime(_("Type: {:s}  Kills: {:d}")), GetMonsterTypeText(MonstersData[mt]), MonsterKillCounts[mt]));
+		AddInfoBoxString(FormatRuntime(_("Type: {:s}  Kills: {:d}"), GetMonsterTypeText(MonstersData[mt]), MonsterKillCounts[mt]));
 	} else {
-		AddInfoBoxString(fmt::format(fmt::runtime(_("Total kills: {:d}")), MonsterKillCounts[mt]));
+		AddInfoBoxString(FormatRuntime(_("Total kills: {:d}"), MonsterKillCounts[mt]));
 	}
 
 	if (MonsterKillCounts[mt] >= 30) {
@@ -4500,7 +4498,7 @@ void PrintMonstHistory(int mt)
 			minHP = 4 * minHP + hpBonusHell;
 			maxHP = 4 * maxHP + hpBonusHell;
 		}
-		AddInfoBoxString(fmt::format(fmt::runtime(_("Hit Points: {:d}-{:d}")), minHP, maxHP));
+		AddInfoBoxString(FormatRuntime(_("Hit Points: {:d}-{:d}"), minHP, maxHP));
 	}
 	if (MonsterKillCounts[mt] >= 15) {
 		const int res = (sgGameInitInfo.nDifficulty != DIFF_HELL) ? MonstersData[mt].resistance : MonstersData[mt].resistanceHell;
@@ -4535,7 +4533,7 @@ void PrintUniqueHistory()
 {
 	const Monster &monster = Monsters[pcursmonst];
 	if (*GetOptions().Gameplay.showMonsterType) {
-		AddInfoBoxString(fmt::format(fmt::runtime(_("Type: {:s}")), GetMonsterTypeText(monster.data())));
+		AddInfoBoxString(FormatRuntime(_("Type: {:s}"), GetMonsterTypeText(monster.data())));
 	}
 
 	const int res = monster.resistance & (RESIST_MAGIC | RESIST_FIRE | RESIST_LIGHTNING | IMMUNE_MAGIC | IMMUNE_FIRE | IMMUNE_LIGHTNING);

@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <format>
 
 #include "engine/point.hpp"
 #include "engine/render/blit_impl.hpp"
@@ -16,7 +17,6 @@
 #include "utils/static_vector.hpp"
 
 #ifdef DEBUG_CLX
-#include <fmt/format.h>
 
 #include "utils/str_cat.hpp"
 #endif
@@ -564,15 +564,20 @@ std::string ClxDescribe(ClxSprite clx)
 		if (IsClxOpaque(control)) {
 			if (IsClxOpaqueFill(control)) {
 				const uint8_t length = GetClxOpaqueFillWidth(control);
-				out.append(fmt::format("Fill    | {:>5} | {:>5} | {}\n", length, 2, src[1]));
+				out.append(std::format("Fill    | {:>5} | {:>5} | {}\n", length, 2, src[1]));
 				++src;
 			} else {
 				const uint8_t length = GetClxOpaquePixelsWidth(control);
-				out.append(fmt::format("Pixels  | {:>5} | {:>5} | {}\n", length, length + 1, fmt::join(src + 1, src + 1 + length, " ")));
+				std::string pixels;
+				for (const uint8_t *it = src + 1, *pixelsEnd = src + 1 + length; it != pixelsEnd; ++it) {
+					if (!pixels.empty()) pixels += ' ';
+					StrAppend(pixels, *it);
+				}
+				out.append(std::format("Pixels  | {:>5} | {:>5} | {}\n", length, length + 1, pixels));
 				src += length;
 			}
 		} else {
-			out.append(fmt::format("Transp. | {:>5} | {:>5} |\n", control, 1));
+			out.append(std::format("Transp. | {:>5} | {:>5} |\n", control, 1));
 		}
 	}
 	return out;

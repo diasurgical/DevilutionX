@@ -36,7 +36,7 @@ jobs:
       run: >
         docker run --platform linux/s390x --rm --interactive --mount type=bind,source=$(pwd),target=/host s390x/alpine sh -c
         "
-        apk add --update-cache g++ ninja cmake ccache sdl2-dev sdl2_image-dev fmt-dev libpng-dev jpeg-dev bzip2-dev gtest-dev wget &&
+        apk add --update-cache g++ ninja cmake ccache sdl2-dev sdl2_image-dev libpng-dev jpeg-dev bzip2-dev gtest-dev wget &&
         cd /host &&
         export CCACHE_DIR=/host/.ccache &&
         cmake -S. -Bbuild -G Ninja -DNONET=ON -DNOSOUND=ON &&

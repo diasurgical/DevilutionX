@@ -3,8 +3,6 @@
 #include "control_chat.hpp"
 #include "control_flasks.hpp"
 
-#include <fmt/format.h>
-
 #include "automap.h"
 #include "controls/control_mode.hpp"
 #include "controls/modifier_hints.h"
@@ -27,6 +25,7 @@
 #include "qol/stash.h"
 #include "qol/visual_store.h"
 #include "stores.h"
+#include "utils/format.hpp"
 #include "utils/sdl_compat.h"
 
 namespace devilution {
@@ -820,12 +819,12 @@ void DrawDeathText(const Surface &out)
 
 	if (!gbIsMultiplayer) {
 		if (gbValidSaveFile)
-			text = fmt::format(fmt::runtime(_("Press {} to load last save.")), buttonText);
+			text = FormatRuntime(_("Press {} to load last save."), buttonText);
 		else
-			text = fmt::format(fmt::runtime(_("Press {} to return to Main Menu.")), buttonText);
+			text = FormatRuntime(_("Press {} to return to Main Menu."), buttonText);
 
 	} else {
-		text = fmt::format(fmt::runtime(_("Press {} to restart in town.")), buttonText);
+		text = FormatRuntime(_("Press {} to restart in town."), buttonText);
 	}
 	DrawString(out, text, linePosition, smallTextOptions);
 }

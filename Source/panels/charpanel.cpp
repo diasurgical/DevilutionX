@@ -6,7 +6,6 @@
 #include <algorithm>
 #include <string>
 
-#include <fmt/format.h>
 #include <function_ref.hpp>
 
 #include "control/control.hpp"

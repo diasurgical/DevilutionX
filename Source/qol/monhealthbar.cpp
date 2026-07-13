@@ -7,8 +7,6 @@
 
 #include <cstdint>
 
-#include <fmt/format.h>
-
 #include "control/control.hpp"
 #include "cursor.h"
 #include "engine/clx_sprite.hpp"

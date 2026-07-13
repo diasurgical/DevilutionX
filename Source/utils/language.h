@@ -3,6 +3,16 @@
 #include <string>
 #include <string_view>
 
+// libstdc++'s <locale> (which <format> includes in GCC 13) includes
+// <libintl.h>, which declares `ngettext`. Include it before defining the
+// `ngettext` macro below, so that the declaration is not rewritten into a
+// conflicting `LanguagePluralTranslate` overload that is never defined.
+#if __has_include(<libintl.h>)
+#include <libintl.h>
+// GNU libintl.h may define `ngettext` as a macro itself.
+#undef ngettext
+#endif
+
 #define _(x) LanguageTranslate(x)
 #define ngettext(x, y, z) LanguagePluralTranslate(x, y, z)
 #define pgettext(context, x) LanguageParticularTranslate(context, x)

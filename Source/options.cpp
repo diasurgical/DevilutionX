@@ -27,7 +27,6 @@
 #include <SDL_version.h>
 #endif
 
-#include <fmt/format.h>
 #include <function_ref.hpp>
 
 #include "appfat.h"
@@ -39,6 +38,7 @@
 #include "quick_messages.hpp"
 #include "utils/algorithm/container.hpp"
 #include "utils/file_util.h"
+#include "utils/format.hpp"
 #include "utils/ini.hpp"
 #include "utils/language.h"
 #include "utils/log.hpp"
@@ -994,7 +994,14 @@ void OptionEntryLanguageCode::LoadFromIni(std::string_view category)
 		}
 	}
 
-	LogVerbose("Found user preferred locales: {}", fmt::join(locales, ", "));
+	if (IsLogLevel(defaultCategory, SDL_LOG_PRIORITY_VERBOSE)) {
+		std::string joinedLocales;
+		for (const std::string &locale : locales) {
+			if (!joinedLocales.empty()) joinedLocales.append(", ");
+			joinedLocales.append(locale);
+		}
+		LogVerbose("Found user preferred locales: {}", joinedLocales);
+	}
 
 	for (const auto &locale : locales) {
 		LogVerbose("Trying to load translation: {}", locale);
@@ -1180,7 +1187,7 @@ KeymapperOptions::Action::Action(std::string_view key, const char *name, const c
     , dynamicIndex(index)
 {
 	if (index != 0) {
-		dynamicKey = fmt::format(fmt::runtime(std::string_view(key.data(), key.size())), index);
+		dynamicKey = FormatRuntime(std::string_view(key.data(), key.size()), index);
 		this->key = dynamicKey;
 	}
 }
@@ -1189,7 +1196,7 @@ std::string_view KeymapperOptions::Action::GetName() const
 {
 	if (dynamicIndex == 0)
 		return _(name);
-	dynamicName = fmt::format(fmt::runtime(_(name)), dynamicIndex);
+	dynamicName = FormatRuntime(_(name), dynamicIndex);
 	return dynamicName;
 }
 
@@ -1358,7 +1365,7 @@ PadmapperOptions::Action::Action(std::string_view key, const char *name, const c
     , dynamicIndex(index)
 {
 	if (index != 0) {
-		dynamicKey = fmt::format(fmt::runtime(std::string_view(key.data(), key.size())), index);
+		dynamicKey = FormatRuntime(std::string_view(key.data(), key.size()), index);
 		this->key = dynamicKey;
 	}
 }
@@ -1367,7 +1374,7 @@ std::string_view PadmapperOptions::Action::GetName() const
 {
 	if (dynamicIndex == 0)
 		return _(name);
-	dynamicName = fmt::format(fmt::runtime(_(name)), dynamicIndex);
+	dynamicName = FormatRuntime(_(name), dynamicIndex);
 	return dynamicName;
 }
 
@@ -1643,11 +1650,11 @@ std::string BuildModDescription(const ModManifest &manifest)
 	const bool hasVersion = !manifest.version.empty();
 	const bool hasAuthor = !manifest.author.empty();
 	if (hasVersion && hasAuthor)
-		return fmt::format(fmt::runtime(_("Version {:s} by {:s}")), manifest.version, manifest.author);
+		return FormatRuntime(_("Version {:s} by {:s}"), manifest.version, manifest.author);
 	if (hasVersion)
-		return fmt::format(fmt::runtime(_("Version {:s}")), manifest.version);
+		return FormatRuntime(_("Version {:s}"), manifest.version);
 	if (hasAuthor)
-		return fmt::format(fmt::runtime(_("By {:s}")), manifest.author);
+		return FormatRuntime(_("By {:s}"), manifest.author);
 	return {};
 }
 } // namespace

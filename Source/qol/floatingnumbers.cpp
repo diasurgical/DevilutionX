@@ -3,7 +3,6 @@
 #include <cstdint>
 #include <ctime>
 #include <deque>
-#include <fmt/format.h>
 #include <string>
 
 #ifdef USE_SDL3

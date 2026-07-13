@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <expected>
+#include <format>
 #include <span>
 #include <string>
 #include <string_view>
@@ -16,8 +17,6 @@
 #include <vector>
 
 #include <ankerl/unordered_dense.h>
-#include <fmt/core.h>
-#include <fmt/format.h>
 
 #include "utils/algorithm/container.hpp"
 #include "utils/str_cat.hpp"
@@ -160,10 +159,10 @@ std::expected<Ini, std::string> Ini::parse(std::string_view buffer)
 				++keyEnd;
 			}
 			if (keyEnd == lineEnd) {
-				return std::unexpected(fmt::format("line {}: unclosed section name {}", lineNum, std::string_view(keyBegin, keyEnd - keyBegin)));
+				return std::unexpected(std::format("line {}: unclosed section name {}", lineNum, std::string_view(keyBegin, keyEnd - keyBegin)));
 			}
 			if (const char *after = SkipTrailingWhitespace(keyEnd + 1, lineEnd); after != lineEnd) {
-				return std::unexpected(fmt::format("line {}: content after section [{}]: {}", lineNum, std::string_view(keyBegin, keyEnd - keyBegin), std::string_view(after, lineEnd - after)));
+				return std::unexpected(std::format("line {}: content after section [{}]: {}", lineNum, std::string_view(keyBegin, keyEnd - keyBegin), std::string_view(after, lineEnd - after)));
 			}
 			const std::string_view sectionName = std::string_view(keyBegin, keyEnd - keyBegin);
 			auto it = fileData.sections.find(sectionName);
@@ -180,10 +179,10 @@ std::expected<Ini, std::string> Ini::parse(std::string_view buffer)
 			continue;
 		}
 
-		if (sectionEntries == nullptr) return std::unexpected(fmt::format("line {}: key not in any section", lineNum));
+		if (sectionEntries == nullptr) return std::unexpected(std::format("line {}: key not in any section", lineNum));
 		const char *eqPos = static_cast<const char *>(memchr(keyBegin, '=', lineEnd - keyBegin));
 		if (eqPos == nullptr) {
-			return std::unexpected(fmt::format("line {}: key {} has no value", lineNum, std::string_view(keyBegin, lineEnd - keyBegin)));
+			return std::unexpected(std::format("line {}: key {} has no value", lineNum, std::string_view(keyBegin, lineEnd - keyBegin)));
 		}
 		const char *keyEnd = SkipTrailingWhitespace(keyBegin, eqPos);
 		const std::string_view key = std::string_view(keyBegin, keyEnd - keyBegin);
@@ -230,7 +229,7 @@ int Ini::getInt(std::string_view section, std::string_view key, int defaultValue
 	int value;
 	const std::from_chars_result result = std::from_chars(str.data(), str.data() + str.size(), value);
 	if (result.ec != std::errc()) {
-		app_fatal(fmt::format("ini: Failed to parse {}.{}={} as int", section, key, str));
+		app_fatal(std::format("ini: Failed to parse {}.{}={} as int", section, key, str));
 		return defaultValue;
 	}
 	return value;
@@ -243,7 +242,7 @@ bool Ini::getBool(std::string_view section, std::string_view key, bool defaultVa
 	const std::string_view str = xs.back().value;
 	if (str == "0") return false;
 	if (str == "1") return true;
-	app_fatal(fmt::format("ini: Failed to parse {}.{}={} as bool", section, key, str));
+	app_fatal(std::format("ini: Failed to parse {}.{}={} as bool", section, key, str));
 }
 
 float Ini::getFloat(std::string_view section, std::string_view key, float defaultValue) const
@@ -256,7 +255,7 @@ float Ini::getFloat(std::string_view section, std::string_view key, float defaul
 	float value;
 	const std::from_chars_result result = std::from_chars(str.data(), str.data() + str.size(), value);
 	if (result.ec != std::errc()) {
-		app_fatal(fmt::format("ini: Failed to parse {}.{}={} as float", section, key, str));
+		app_fatal(std::format("ini: Failed to parse {}.{}={} as float", section, key, str));
 		return defaultValue;
 	}
 	return value;
@@ -375,7 +374,6 @@ void Ini::set(std::string_view section, std::string_view key, bool value)
 
 void Ini::set(std::string_view section, std::string_view key, float value)
 {
-#if __cpp_lib_to_chars >= 201611L
 	constexpr size_t BufSize = 64;
 	char buf[BufSize] {};
 	const std::to_chars_result result = std::to_chars(buf, buf + BufSize, value);
@@ -383,9 +381,6 @@ void Ini::set(std::string_view section, std::string_view key, float value)
 		app_fatal("float->string failed"); // should never happen
 	}
 	set(section, key, std::string_view(buf, result.ptr - buf));
-#else
-	set(section, key, fmt::format("{}", value));
-#endif
 }
 
 namespace {

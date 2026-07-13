@@ -1,14 +1,13 @@
 #include "control_chat_commands.hpp"
 #include "control.hpp"
 
-#include <fmt/format.h>
-
 #include "diablo_msg.hpp"
 #include "engine/backbuffer_state.hpp"
 #include "inv.h"
 #include "levels/setmaps.h"
 #include "storm/storm_net.hpp"
 #include "utils/algorithm/container.hpp"
+#include "utils/format.hpp"
 #include "utils/log.hpp"
 #include "utils/parse_int.hpp"
 #include "utils/str_case.hpp"
@@ -232,15 +231,15 @@ std::string TextCmdPing(const std::string_view parameter)
 	Player &player = *it;
 	DvlNetLatencies latencies = DvlNet_GetLatencies(player.getId());
 
-	StrAppend(ret, fmt::format(fmt::runtime(_(/* TRANSLATORS: {:s} means: Character Name */ "Latency statistics for {:s}:")), player.name()));
+	StrAppend(ret, FormatRuntime(_(/* TRANSLATORS: {:s} means: Character Name */ "Latency statistics for {:s}:"), player.name()));
 
-	StrAppend(ret, "\n", fmt::format(fmt::runtime(_(/* TRANSLATORS: Network connectivity statistics */ "Echo latency: {:d} ms")), latencies.echoLatency));
+	StrAppend(ret, "\n", FormatRuntime(_(/* TRANSLATORS: Network connectivity statistics */ "Echo latency: {:d} ms"), latencies.echoLatency));
 
 	if (latencies.providerLatency) {
 		if (latencies.isRelayed && *latencies.isRelayed) {
-			StrAppend(ret, "\n", fmt::format(fmt::runtime(_(/* TRANSLATORS: Network connectivity statistics */ "Provider latency: {:d} ms (Relayed)")), *latencies.providerLatency));
+			StrAppend(ret, "\n", FormatRuntime(_(/* TRANSLATORS: Network connectivity statistics */ "Provider latency: {:d} ms (Relayed)"), *latencies.providerLatency));
 		} else {
-			StrAppend(ret, "\n", fmt::format(fmt::runtime(_(/* TRANSLATORS: Network connectivity statistics */ "Provider latency: {:d} ms")), *latencies.providerLatency));
+			StrAppend(ret, "\n", FormatRuntime(_(/* TRANSLATORS: Network connectivity statistics */ "Provider latency: {:d} ms"), *latencies.providerLatency));
 		}
 	}
 

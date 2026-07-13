@@ -8,10 +8,10 @@
 #include <SDL.h>
 #endif
 
-#include <fmt/core.h>
-#include <fmt/format.h>
-#include <fmt/ranges.h>
+#include <format>
+#include <string>
 
+#include "utils/attributes.h"
 #include "utils/str_cat.hpp"
 
 #ifdef USE_SDL1
@@ -51,25 +51,18 @@ namespace detail {
 template <typename... Args>
 std::string format(std::string_view fmt, Args &&...args)
 {
-	FMT_TRY
-	{
-		return fmt::format(fmt::runtime(fmt), std::forward<Args>(args)...);
+#if DVL_EXCEPTIONS
+	try {
+		return std::vformat(fmt, std::make_format_args(args...));
+	} catch (const std::format_error &e) {
+		const std::string fullError = StrCat("Format error, fmt: ", fmt, " error: ", e.what());
+		SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "%s", fullError.c_str());
+		app_fatal(fullError);
 	}
-#if FMT_EXCEPTIONS
-	FMT_CATCH(const fmt::format_error &e)
-	{
-		// e.what() is undefined if exceptions are disabled, so we wrap it
-		// with an `FMT_EXCEPTIONS` check.
-		std::string error = e.what();
 #else
-	FMT_CATCH(const fmt::format_error &)
-	{
-		std::string error = "unknown (FMT_EXCEPTIONS disabled)";
+	// `std::vformat` terminates the program on error when exceptions are disabled.
+	return std::vformat(fmt, std::make_format_args(args...));
 #endif
-		std::string fullError = StrCat("Format error, fmt: ", fmt, " error: ", error);
-		SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "%s", error.c_str());
-		app_fatal(error);
-	}
 }
 
 } // namespace detail

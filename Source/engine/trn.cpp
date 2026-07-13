@@ -2,8 +2,6 @@
 
 #include <cstdint>
 
-#include <fmt/format.h>
-
 #ifdef _DEBUG
 #include "debug.h"
 #endif
