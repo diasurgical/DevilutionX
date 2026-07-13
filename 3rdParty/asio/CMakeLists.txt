@@ -2,8 +2,8 @@ include(functions/FetchContent_ExcludeFromAll_backport)
 
 include(FetchContent)
 FetchContent_Declare_ExcludeFromAll(asio
-    URL https://github.com/diasurgical/asio/archive/2300b7a0684cf8c390b78ca67368242985f502f6.tar.gz
-    URL_HASH MD5=8d868bb241e96f7eb078e695f177098c
+    URL https://github.com/diasurgical/asio/archive/112f011842f4ae713b158a0fc57009f95c761a21.tar.gz
+    URL_HASH MD5=fb5a399c09bceac6431758f5f772db34
 )
 FetchContent_MakeAvailable_ExcludeFromAll(asio)
 
