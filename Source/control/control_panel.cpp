@@ -417,7 +417,7 @@ std::expected<void, std::string> InitMainPanel()
 	SpellbookFlag = false;
 
 	if (!HeadlessMode) {
-		InitSpellBook();
+		RETURN_IF_ERROR(InitSpellBook());
 		ASSIGN_OR_RETURN(pQLogCel, LoadCelWithStatus("data\\quest", static_cast<uint16_t>(SidePanelSize.width)));
 		ASSIGN_OR_RETURN(GoldBoxBuffer, LoadCelWithStatus("ctrlpan\\golddrop", 261));
 	}

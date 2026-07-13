@@ -3687,8 +3687,9 @@ void InitGolems()
 
 std::expected<void, std::string> InitMonsters()
 {
-	if (!gbIsSpawn && !setlevel && currlevel == 16)
-		LoadDiabMonsts();
+	if (!gbIsSpawn && !setlevel && currlevel == 16) {
+		RETURN_IF_ERROR(LoadDiabMonsts());
+	}
 
 	int nt = numtrigs;
 	if (currlevel == 15)

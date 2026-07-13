@@ -1,6 +1,7 @@
 #include "levels/setmaps.h"
 
 #include <cstdint>
+#include <expected>
 
 #ifdef _DEBUG
 #include "debug.h"
@@ -18,6 +19,7 @@
 #include "quests.h"
 #include "tables/objdat.h"
 #include "utils/language.h"
+#include "utils/status_macros.hpp"
 
 namespace devilution {
 
@@ -70,42 +72,44 @@ void SetMapTransparency(const char *path)
 	LoadTransparency(dunData.get());
 }
 
-void LoadCustomMap(const char *path, Point viewPosition)
+std::expected<void, std::string> LoadCustomMap(const char *path, Point viewPosition)
 {
 	switch (setlvltype) {
 	case DTYPE_CATHEDRAL:
 	case DTYPE_CRYPT:
-		LoadL1Dungeon(path, viewPosition);
+		RETURN_IF_ERROR(LoadL1Dungeon(path, viewPosition));
 		break;
 	case DTYPE_CATACOMBS:
-		LoadL2Dungeon(path, viewPosition);
+		RETURN_IF_ERROR(LoadL2Dungeon(path, viewPosition));
 		break;
 	case DTYPE_CAVES:
 	case DTYPE_NEST:
-		LoadL3Dungeon(path, viewPosition);
+		RETURN_IF_ERROR(LoadL3Dungeon(path, viewPosition));
 		break;
 	case DTYPE_HELL:
-		LoadL4Dungeon(path, viewPosition);
+		RETURN_IF_ERROR(LoadL4Dungeon(path, viewPosition));
 		break;
 	case DTYPE_TOWN:
 	case DTYPE_NONE:
 		break;
 	}
 	LoadRndLvlPal(setlvltype);
+	return {};
 }
 
-void LoadArenaMap(const char *path, Point viewPosition, Point exitTrigger)
+std::expected<void, std::string> LoadArenaMap(const char *path, Point viewPosition, Point exitTrigger)
 {
-	LoadCustomMap(path, viewPosition);
+	RETURN_IF_ERROR(LoadCustomMap(path, viewPosition));
 	trigflag = false;
 	numtrigs = 1;
 	trigs[0].position = exitTrigger;
 	trigs[0]._tmsg = WM_DIABRTNLVL;
+	return {};
 }
 
 } // namespace
 
-void LoadSetMap()
+std::expected<void, std::string> LoadSetMap()
 {
 	switch (setlvlnum) {
 	case SL_SKELKING:
@@ -115,7 +119,7 @@ void LoadSetMap()
 			NetSendCmdQuest(true, Quests[Q_SKELKING]);
 		}
 		LoadPreL1Dungeon("levels\\l1data\\sklkng1.dun");
-		LoadL1Dungeon("levels\\l1data\\sklkng2.dun", { 83, 44 });
+		RETURN_IF_ERROR(LoadL1Dungeon("levels\\l1data\\sklkng2.dun", { 83, 44 }));
 		SetMapTransparency("levels\\l1data\\sklkngt.dun");
 		LoadPaletteAndInitBlending("levels\\l1data\\l1_2.pal");
 		AddSKingObjs();
@@ -123,7 +127,7 @@ void LoadSetMap()
 		break;
 	case SL_BONECHAMB:
 		LoadPreL2Dungeon("levels\\l2data\\bonecha2.dun");
-		LoadL2Dungeon("levels\\l2data\\bonecha1.dun", { 70, 40 });
+		RETURN_IF_ERROR(LoadL2Dungeon("levels\\l2data\\bonecha1.dun", { 70, 40 }));
 		SetMapTransparency("levels\\l2data\\bonechat.dun");
 		LoadPaletteAndInitBlending("levels\\l2data\\l2_2.pal");
 		AddSChamObjs();
@@ -134,7 +138,7 @@ void LoadSetMap()
 	case SL_POISONWATER:
 		if (Quests[Q_PWATER]._qactive == QUEST_INIT)
 			Quests[Q_PWATER]._qactive = QUEST_ACTIVE;
-		LoadL3Dungeon("levels\\l3data\\foulwatr.dun", { 31, 83 });
+		RETURN_IF_ERROR(LoadL3Dungeon("levels\\l3data\\foulwatr.dun", { 31, 83 }));
 		LoadPaletteAndInitBlending("levels\\l3data\\l3pfoul.pal");
 		InitPWaterTriggers();
 		break;
@@ -145,28 +149,29 @@ void LoadSetMap()
 			Quests[Q_BETRAYER]._qvar2 = 3;
 		}
 		LoadPreL1Dungeon("levels\\l1data\\vile1.dun");
-		LoadL1Dungeon("levels\\l1data\\vile2.dun", { 35, 36 });
+		RETURN_IF_ERROR(LoadL1Dungeon("levels\\l1data\\vile2.dun", { 35, 36 }));
 		SetMapTransparency("levels\\l1data\\vile1.dun");
 		LoadPaletteAndInitBlending("levels\\l1data\\l1_2.pal");
 		AddVileObjs();
 		InitNoTriggers();
 		break;
 	case SL_ARENA_CHURCH:
-		LoadArenaMap("arena\\church.dun", { 29, 22 }, { 28, 20 });
+		RETURN_IF_ERROR(LoadArenaMap("arena\\church.dun", { 29, 22 }, { 28, 20 }));
 		break;
 	case SL_ARENA_HELL:
-		LoadArenaMap("arena\\hell.dun", { 34, 26 }, { 33, 26 });
+		RETURN_IF_ERROR(LoadArenaMap("arena\\hell.dun", { 34, 26 }, { 33, 26 }));
 		break;
 	case SL_ARENA_CIRCLE_OF_LIFE:
-		LoadArenaMap("arena\\circle_of_death.dun", { 30, 26 }, { 29, 26 });
+		RETURN_IF_ERROR(LoadArenaMap("arena\\circle_of_death.dun", { 30, 26 }, { 29, 26 }));
 		break;
 	case SL_NONE:
 #ifdef _DEBUG
-		LoadCustomMap(TestMapPath.c_str(), ViewPosition);
+		RETURN_IF_ERROR(LoadCustomMap(TestMapPath.c_str(), ViewPosition));
 		InitNoTriggers();
 #endif
 		break;
 	}
+	return {};
 }
 
 } // namespace devilution

@@ -3969,7 +3969,7 @@ void InitObjects()
 	}
 }
 
-void SetMapObjects(const uint16_t *dunData, int startx, int starty)
+std::expected<void, std::string> SetMapObjects(const uint16_t *dunData, int startx, int starty)
 {
 	uint16_t filesWidths[65] = {};
 
@@ -3994,7 +3994,7 @@ void SetMapObjects(const uint16_t *dunData, int startx, int starty)
 		}
 	}
 
-	LoadLevelObjects(filesWidths);
+	RETURN_IF_ERROR(LoadLevelObjects(filesWidths));
 
 	for (WorldTileCoord j = 0; j < size.height; j++) {
 		for (WorldTileCoord i = 0; i < size.width; i++) {
@@ -4004,6 +4004,7 @@ void SetMapObjects(const uint16_t *dunData, int startx, int starty)
 			}
 		}
 	}
+	return {};
 }
 
 Object *AddObject(_object_id objType, Point objPos)

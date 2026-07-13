@@ -614,7 +614,7 @@ void LoadTransparency(const uint16_t *dunData)
 	}
 }
 
-void LoadDungeonBase(const char *path, Point spawn, int floorId, int dirtId)
+std::expected<void, std::string> LoadDungeonBase(const char *path, Point spawn, int floorId, int dirtId)
 {
 	ViewPosition = spawn;
 
@@ -626,9 +626,9 @@ void LoadDungeonBase(const char *path, Point spawn, int floorId, int dirtId)
 	PlaceDunTiles(dunData.get(), { 0, 0 }, floorId);
 	LoadTransparency(dunData.get());
 
-	SetMapMonsters(dunData.get(), Point(0, 0).megaToWorld());
-	InitAllMonsterGFX();
-	SetMapObjects(dunData.get(), 0, 0);
+	RETURN_IF_ERROR(SetMapMonsters(dunData.get(), Point(0, 0).megaToWorld()));
+	RETURN_IF_ERROR(InitAllMonsterGFX());
+	return SetMapObjects(dunData.get(), 0, 0);
 }
 
 void Make_SetPC(WorldTileRectangle area)
