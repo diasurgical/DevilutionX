@@ -39,7 +39,7 @@ jobs:
 
     - name: Cache mingw9x toolchain
       id: cache-mingw9x
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: /opt/mingw9x
         key: mingw9x-toolchain-${{ hashFiles('Packaging/windows/mingw9x-prep.sh', 'Packaging/windows/mingw9x-gcc.patch') }}
