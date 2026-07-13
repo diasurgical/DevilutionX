@@ -5,6 +5,8 @@
  */
 #pragma once
 
+#include <expected>
+
 #include "levels/gendung.h"
 
 namespace devilution {
@@ -28,7 +30,7 @@ inline dungeon_type GetArenaLevelType(_setlevels arenaLevel)
 /**
  * @brief Load a quest map, the given map is specified via the global setlvlnum
  */
-void LoadSetMap();
+std::expected<void, std::string> LoadSetMap();
 
 /* rdata */
 extern const char *const QuestLevelNames[];

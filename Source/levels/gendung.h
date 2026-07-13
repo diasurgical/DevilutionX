@@ -305,7 +305,7 @@ void DRLG_MRectTrans(WorldTileRectangle area);
 void DRLG_RectTrans(WorldTileRectangle area);
 void DRLG_CopyTrans(int sx, int sy, int dx, int dy);
 void LoadTransparency(const uint16_t *dunData);
-void LoadDungeonBase(const char *path, Point spawn, int floorId, int dirtId);
+std::expected<void, std::string> LoadDungeonBase(const char *path, Point spawn, int floorId, int dirtId);
 void Make_SetPC(WorldTileRectangle area);
 /**
  * @param miniset The miniset to place

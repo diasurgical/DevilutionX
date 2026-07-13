@@ -335,7 +335,7 @@ void AddL2Objs(int x1, int y1, int x2, int y2);
 void AddL3Objs(int x1, int y1, int x2, int y2);
 void AddCryptObjects(int x1, int y1, int x2, int y2);
 void InitObjects();
-void SetMapObjects(const uint16_t *dunData, int startx, int starty);
+std::expected<void, std::string> SetMapObjects(const uint16_t *dunData, int startx, int starty);
 /**
  * @brief Spawns an object of the given type at the map coordinates provided
  * @param objType Type specifier

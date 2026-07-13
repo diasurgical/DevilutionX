@@ -3263,7 +3263,7 @@ std::expected<void, std::string> LoadGameLevelTown(bool firstflag, lvl_entry lvl
 
 std::expected<void, std::string> LoadGameLevelSetLevel(bool firstflag, lvl_entry lvldir, const Player &myPlayer)
 {
-	LoadSetMap();
+	RETURN_IF_ERROR(LoadSetMap());
 	IncProgress();
 	RETURN_IF_ERROR(GetLevelMTypes());
 	IncProgress();
@@ -3362,9 +3362,9 @@ std::expected<void, std::string> LoadGameLevelStandardLevel(bool firstflag, lvl_
 	SetRndSeedForDungeonLevel();
 
 	if (leveltype == DTYPE_TOWN) {
-		LoadGameLevelTown(firstflag, lvldir, myPlayer);
+		RETURN_IF_ERROR(LoadGameLevelTown(firstflag, lvldir, myPlayer));
 	} else {
-		LoadGameLevelDungeon(firstflag, lvldir, myPlayer);
+		RETURN_IF_ERROR(LoadGameLevelDungeon(firstflag, lvldir, myPlayer));
 	}
 
 	PlayDungMsgs();
