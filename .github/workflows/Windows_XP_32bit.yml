@@ -1,6 +1,17 @@
 name: Windows XP MinGW
 
 on:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
+  pull_request:
+    types: [ opened, synchronize ]
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
   release:
     types: [published]
     paths-ignore:
@@ -23,15 +34,24 @@ jobs:
 
     - name: Create Build Environment
       run: >
-        sudo apt update &&
-        sudo apt install -y cmake gcc-mingw-w64-i686 g++-mingw-w64-i686 pkg-config-mingw-w64-i686 libz-mingw-w64-dev gettext dpkg-dev wget git sudo smpq &&
-        sudo rm /usr/i686-w64-mingw32/lib/libz.dll.a &&
-        sudo Packaging/windows/mingw-prep.sh
+        sudo apt-get update &&
+        sudo apt-get install -y cmake build-essential flex bison pkg-config patch gettext dpkg-dev curl xz-utils bzip2 git smpq
+
+    - name: Cache mingwxp toolchain
+      id: cache-mingwxp
+      uses: actions/cache@v6
+      with:
+        path: /opt/mingwxp
+        key: mingwxp-toolchain-${{ hashFiles('Packaging/windows/mingwxp-prep.sh', 'Packaging/windows/mingw-pre-vista-gcc.patch') }}
+
+    - name: Build mingwxp toolchain
+      if: steps.cache-mingwxp.outputs.cache-hit != 'true'
+      run: sudo Packaging/windows/mingwxp-prep.sh
 
     - name: Configure CMake
       shell: bash
       working-directory: ${{github.workspace}}
-      run: cmake -S. -Bbuild-windowsxp -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF -DCPACK=ON -DCMAKE_TOOLCHAIN_FILE=../CMake/platforms/mingwcc.toolchain.cmake  -DTARGET_PLATFORM=windowsXP
+      run: cmake -S. -Bbuild-windowsxp -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF -DCPACK=ON -DCMAKE_TOOLCHAIN_FILE=../CMake/platforms/mingwxp.toolchain.cmake -DTARGET_PLATFORM=windowsXP
 
     - name: Build
       working-directory: ${{github.workspace}}

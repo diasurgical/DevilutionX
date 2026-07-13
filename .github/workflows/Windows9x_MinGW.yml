@@ -42,7 +42,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: /opt/mingw9x
-        key: mingw9x-toolchain-${{ hashFiles('Packaging/windows/mingw9x-prep.sh', 'Packaging/windows/mingw9x-gcc.patch') }}
+        key: mingw9x-toolchain-${{ hashFiles('Packaging/windows/mingw9x-prep.sh', 'Packaging/windows/mingw-pre-vista-gcc.patch') }}
 
     - name: Build mingw9x toolchain
       if: steps.cache-mingw9x.outputs.cache-hit != 'true'
