@@ -127,8 +127,4 @@ extern bool DebugDisableNetworkTimeout;
  */
 extern GameLogicStep gGameLogicStep;
 
-#ifdef __UWP__
-void setOnInitialized(void (*)());
-#endif
-
 } // namespace devilution
