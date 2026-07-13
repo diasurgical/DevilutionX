@@ -140,7 +140,7 @@ public:
 	 *      SBLevelDefaultLTR nor SBLevelDefaultRTL.
 	 * @return A reference to a paragraph object.
 	 */
-	[[nodiscard]] Paragraph createParagraph(SBUInteger start, SBUInteger length, SBUInteger level) const;
+	[[nodiscard]] Paragraph createParagraph(SBUInteger start, SBUInteger length, SBLevel level) const;
 };
 
 class Line;
@@ -176,7 +176,7 @@ public:
 	[[nodiscard]] Line createLine(SBUInteger start, SBUInteger length) const;
 };
 
-inline Paragraph Algorithm::createParagraph(SBUInteger start, SBUInteger length, SBUInteger level) const
+inline Paragraph Algorithm::createParagraph(SBUInteger start, SBUInteger length, SBLevel level) const
 {
 	return Paragraph::create(get(), start, length, level);
 }
