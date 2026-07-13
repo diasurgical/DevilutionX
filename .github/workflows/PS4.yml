@@ -1,22 +1,24 @@
 name: PS4
 
+# Disabled until https://github.com/OpenOrbis/OpenOrbis-PS4-Toolchain/issues/262 is resolved.
 on:
-  push:
-    branches:
-      - master
-    paths-ignore:
-      - '*.md'
-      - 'docs/**'
-  pull_request:
-    types: [opened, synchronize]
-    paths-ignore:
-      - '*.md'
-      - 'docs/**'
-  release:
-    types: [published]
-    paths-ignore:
-      - '*.md'
-      - 'docs/**'
+  # push:
+  #   branches:
+  #     - master
+  #   paths-ignore:
+  #     - '*.md'
+  #     - 'docs/**'
+  # pull_request:
+  #   types: [opened, synchronize]
+  #   paths-ignore:
+  #     - '*.md'
+  #     - 'docs/**'
+  # release:
+  #   types: [published]
+  #   paths-ignore:
+  #     - '*.md'
+  #     - 'docs/**'
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
