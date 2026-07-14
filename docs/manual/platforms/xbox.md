@@ -31,5 +31,5 @@ Note that Confirm and Cancel are swapped.
 
 ## Resources
 
-* Discord: https://discord.gg/devilutionx
+* Discord: https://discord.gg/devilutionx-518540764754608128
 * GitHub: https://github.com/diasurgical/devilutionX

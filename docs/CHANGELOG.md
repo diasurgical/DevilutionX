@@ -63,7 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Move hp/mana display and item graphics to gameplay options
 - Validate properties when reloading items
 - Demomode: Improve replay stability
-- Update [Discord link](https://discord.gg/devilutionx)
+- Update [Discord link](https://discord.gg/devilutionx-518540764754608128)
 - Display save game confirmation
 - Reduce ram usage
 
