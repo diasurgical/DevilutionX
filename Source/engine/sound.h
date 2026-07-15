@@ -58,8 +58,10 @@ struct TSnd {
 };
 
 extern bool gbSndInited;
+#ifndef NOSOUND
 #ifdef USE_SDL3
 extern MIX_Mixer *CurrentMixer;
+#endif
 #endif
 
 extern _music_id sgnMusicTrack;

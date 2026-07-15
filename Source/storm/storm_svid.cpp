@@ -44,6 +44,7 @@ namespace {
 #ifndef NOSOUND
 #ifdef USE_SDL3
 SDL_AudioStream *SVidAudioStream;
+SDL_AudioDeviceID SVidAudioDevice;
 bool SVidAutoStreamEnabled;
 #else
 std::optional<Aulib::Stream> SVidAudioStream;
@@ -268,7 +269,7 @@ bool BlitFrame()
 		    || outputSurface->h == static_cast<int>(SVidHeight)) {
 			if (
 #ifdef USE_SDL3
-			    SDL_BlitSurface(SVidSurface.get(), nullptr, outputSurface, &outputRect)
+			    !SDL_BlitSurface(SVidSurface.get(), nullptr, outputSurface, &outputRect)
 #else
 			    SDL_BlitSurface(SVidSurface.get(), nullptr, outputSurface, &outputRect) <= -1
 #endif
@@ -315,11 +316,20 @@ void SVidInitAudioStream(const SmackerAudioInfo &audioInfo)
 		SVidAudioStream = nullptr;
 		return;
 	}
-	const SDL_AudioDeviceID deviceId = static_cast<SDL_AudioDeviceID>(
-	    SDL_GetNumberProperty(MIX_GetMixerProperties(CurrentMixer), MIX_PROP_MIXER_DEVICE_NUMBER, 0));
-	if (!SDL_BindAudioStream(deviceId, SVidAudioStream)) {
+	// We open our own audio device since the one created by SDL3_mixer isn't sufficient.
+	SVidAudioDevice = SDL_OpenAudioDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, nullptr);
+	if (SVidAudioDevice == 0) {
+		LogError(LogCategory::Audio, "SDL_OpenAudioDevice (from SVidPlayBegin): {}", SDL_GetError());
+		SDL_ClearError();
+		SDL_DestroyAudioStream(SVidAudioStream);
+		SVidAudioStream = nullptr;
+		return;
+	}
+	if (!SDL_BindAudioStream(SVidAudioDevice, SVidAudioStream)) {
 		LogError(LogCategory::Audio, "SDL_BindAudioStream (from SVidPlayBegin): {}", SDL_GetError());
 		SDL_ClearError();
+		SDL_CloseAudioDevice(SVidAudioDevice);
+		SVidAudioDevice = 0;
 		SDL_DestroyAudioStream(SVidAudioStream);
 		SVidAudioStream = nullptr;
 		return;
@@ -419,7 +429,11 @@ bool SVidPlayBegin(const char *filename, int flags)
 	else {
 		const Size windowSize = { static_cast<int>(SVidWidth), static_cast<int>(SVidHeight) };
 		SDL_DisplayMode nearestDisplayMode = GetNearestDisplayMode(windowSize, DEVILUTIONX_DISPLAY_PIXELFORMAT);
+#ifdef USE_SDL3
+		if (!SDL_SetWindowFullscreenMode(ghMainWnd, &nearestDisplayMode)) {
+#else
 		if (SDL_SetWindowDisplayMode(ghMainWnd, &nearestDisplayMode) != 0) {
+#endif
 			ErrSdl();
 		}
 	}
@@ -513,6 +527,10 @@ void SVidPlayEnd()
 #ifdef USE_SDL3
 		SDL_DestroyAudioStream(SVidAudioStream);
 		SVidAudioStream = nullptr;
+		if (SVidAudioDevice != 0) {
+			SDL_CloseAudioDevice(SVidAudioDevice);
+			SVidAudioDevice = 0;
+		}
 #else
 		SVidAudioStream = std::nullopt;
 		SVidAudioDecoder = nullptr;
@@ -546,7 +564,11 @@ void SVidPlayEnd()
 	else {
 		const Size windowSize = { static_cast<int>(gnScreenWidth), static_cast<int>(gnScreenHeight) };
 		SDL_DisplayMode nearestDisplayMode = GetNearestDisplayMode(windowSize, DEVILUTIONX_DISPLAY_PIXELFORMAT);
+#ifdef USE_SDL3
+		if (!SDL_SetWindowFullscreenMode(ghMainWnd, &nearestDisplayMode)) {
+#else
 		if (SDL_SetWindowDisplayMode(ghMainWnd, &nearestDisplayMode) != 0) {
+#endif
 			ErrSdl();
 		}
 	}

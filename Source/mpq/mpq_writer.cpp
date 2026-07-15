@@ -44,7 +44,14 @@ MpqWriter::MpqWriter(const char *path, bool carryForward)
 	std::string tmpPath;
 	mpqfs_archive_t *oldArchive = nullptr;
 	if (carryForward && FileExists(path)) {
-		tmpPath = std::string(path) + ".tmp";
+		// Replace the extension with .tmp rather than appending it to stay 8.3 compliant.
+		tmpPath = std::string(path);
+		const size_t sep = tmpPath.find_last_of("/\\");
+		const size_t dot = tmpPath.find_last_of('.');
+		if (dot != std::string::npos && (sep == std::string::npos || dot > sep)) {
+			tmpPath.resize(dot);
+		}
+		tmpPath += ".tmp";
 		// Remove any stale temp file, then rename old → tmp.
 		::devilution::RemoveFile(tmpPath.c_str());
 		::devilution::RenameFile(path, tmpPath.c_str());

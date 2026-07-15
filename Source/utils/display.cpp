@@ -285,6 +285,11 @@ void UpdateAvailableResolutions()
 	}
 #endif
 
+#ifndef __3DS__
+	// Only display compatible resolutions.
+	std::erase_if(sizes, [](const Size &s) { return s.width < 640 || s.height < 480; });
+#endif
+
 	// Sort by width then by height
 	c_sort(sizes, [](const Size &x, const Size &y) -> bool {
 		if (x.width == y.width)
@@ -819,7 +824,11 @@ void SetFullscreenMode()
 	// fullscreen mode so that the display mode only has to change once
 	if (*GetOptions().Graphics.fullscreen && !*GetOptions().Graphics.upscale) {
 		const Size windowSize = GetPreferredWindowSize();
+#if defined(DEVILUTIONX_DISPLAY_PIXELFORMAT)
+		const SDL_DisplayMode displayMode = GetNearestDisplayMode(windowSize, DEVILUTIONX_DISPLAY_PIXELFORMAT);
+#else
 		const SDL_DisplayMode displayMode = GetNearestDisplayMode(windowSize);
+#endif
 #ifdef USE_SDL3
 		if (!SDL_SetWindowFullscreenMode(ghMainWnd, &displayMode)) ErrSdl();
 #else
@@ -863,7 +872,11 @@ void ResizeWindow()
 	// For "true fullscreen" windows, the window resizes automatically based on the display mode
 	const bool trueFullscreen = *GetOptions().Graphics.fullscreen && !*GetOptions().Graphics.upscale;
 	if (trueFullscreen) {
+#if defined(DEVILUTIONX_DISPLAY_PIXELFORMAT)
+		const SDL_DisplayMode displayMode = GetNearestDisplayMode(windowSize, DEVILUTIONX_DISPLAY_PIXELFORMAT);
+#else
 		const SDL_DisplayMode displayMode = GetNearestDisplayMode(windowSize);
+#endif
 #ifdef USE_SDL3
 		if (!SDL_SetWindowFullscreenMode(ghMainWnd, &displayMode)) ErrSdl();
 #else

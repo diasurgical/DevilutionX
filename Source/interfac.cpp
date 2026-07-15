@@ -49,7 +49,7 @@
 #endif
 
 // Emscripten: ASYNCIFY does not support unwinding across threads, so loading must happen on the main thread.
-#if defined(__DJGPP__) || defined(__EMSCRIPTEN__)
+#if defined(__EMSCRIPTEN__)
 #define LOAD_ON_MAIN_THREAD
 #endif
 
@@ -620,6 +620,11 @@ void IncProgress(uint32_t steps)
 			LogError("Failed to send WM_PROGRESS {}", SDL_GetError());
 			SDL_ClearError();
 		}
+#ifdef __DJGPP__
+		// On DOS, threading is cooperative, normally the event loop yeilds
+		// but we need to do so manually during loading.
+		SDL_Delay(15);
+#endif
 #ifdef LOAD_ON_MAIN_THREAD
 		HandleProgressBarUpdate();
 #endif
