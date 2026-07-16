@@ -49,7 +49,7 @@ protected:
 		SetRndSeed(42);
 
 		// Enable the visual store UI for these tests.
-		GetOptions().Gameplay.visualStoreUI.SetValue(true);
+		GetOptions().Gameplay.storeUi.SetValue(StoreUi::VisualGrid);
 	}
 
 	void TearDown() override

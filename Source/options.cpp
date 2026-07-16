@@ -851,7 +851,6 @@ GameplayOptions::GameplayOptions()
     , testBard("Test Bard", OptionEntryFlags::CantChangeInGame | OptionEntryFlags::OnlyHellfire, N_("Test Bard"), N_("Force the Bard character type to appear in the hero selection menu."), false)
     , testBarbarian("Test Barbarian", OptionEntryFlags::CantChangeInGame | OptionEntryFlags::OnlyHellfire, N_("Test Barbarian"), N_("Force the Barbarian character type to appear in the hero selection menu."), false)
     , experienceBar("Experience Bar", OptionEntryFlags::None, N_("Experience Bar"), N_("Experience Bar is added to the UI at the bottom of the screen."), false)
-    , showItemGraphicsInStores("Show Item Graphics in Stores", OptionEntryFlags::None, N_("Show Item Graphics in Stores"), N_("Show item graphics to the left of item descriptions in store menus."), false)
     , showHealthValues("Show health values", OptionEntryFlags::None, N_("Show health values"), N_("Displays current / max health value on health globe."), false)
     , showManaValues("Show mana values", OptionEntryFlags::None, N_("Show mana values"), N_("Displays current / max mana value on mana globe."), false)
     , showMultiplayerPartyInfo("Show Multiplayer Party Information", OptionEntryFlags::CantChangeInMultiPlayer, N_("Show Party Information"), N_("Displays the health and mana of all connected multiplayer party members."), false)
@@ -878,7 +877,12 @@ GameplayOptions::GameplayOptions()
     , numFullManaPotionPickup("Full Mana Potion Pickup", OptionEntryFlags::None, N_("Full Mana Potion Pickup"), N_("Number of Full Mana potions to pick up automatically."), 0, { 0, 1, 2, 4, 8, 16 })
     , numRejuPotionPickup("Rejuvenation Potion Pickup", OptionEntryFlags::None, N_("Rejuvenation Potion Pickup"), N_("Number of Rejuvenation potions to pick up automatically."), 0, { 0, 1, 2, 4, 8, 16 })
     , numFullRejuPotionPickup("Full Rejuvenation Potion Pickup", OptionEntryFlags::None, N_("Full Rejuvenation Potion Pickup"), N_("Number of Full Rejuvenation potions to pick up automatically."), 0, { 0, 1, 2, 4, 8, 16 })
-    , visualStoreUI("Visual Store UI", OptionEntryFlags::None, N_("Visual Store UI"), N_("Use visual grid-based store interface instead of text-based menus. Both store and inventory panels open together."), false)
+    , storeUi("Store UI", OptionEntryFlags::None, N_("Store UI"), N_("User interface for stores"), StoreUi::Text,
+          {
+              { StoreUi::Text, N_("Text-only list") },
+              { StoreUi::ListWithItemGraphics, N_("List with item graphics") },
+              { StoreUi::VisualGrid, N_("Visual grid") },
+          })
     , skipLoadingScreenThresholdMs("Skip loading screen threshold, ms", OptionEntryFlags::Invisible, "", "", 0)
 {
 }
@@ -897,13 +901,12 @@ std::vector<OptionEntryBase *> GameplayOptions::GetEntries()
 		&testBard,
 		&testBarbarian,
 		&experienceBar,
-		&showItemGraphicsInStores,
-		&visualStoreUI,
+		&floatingInfoBox,
+		&storeUi,
 		&showHealthValues,
 		&showManaValues,
 		&showMultiplayerPartyInfo,
 		&enemyHealthBar,
-		&floatingInfoBox,
 		&showMonsterType,
 		&showItemLabels,
 		&autoRefillBelt,

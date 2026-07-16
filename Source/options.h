@@ -90,6 +90,15 @@ enum class Resampler : uint8_t {
 #endif
 };
 
+enum class StoreUi : uint8_t {
+	/** @brief Vanilla Diablo UI. */
+	Text = 0,
+	/** @brief Show item graphics to the left of item descriptions in store menus. */
+	ListWithItemGraphics = 1,
+	/** @brief Use visual grid-based store UI instead of text-based menus. */
+	VisualGrid = 2,
+};
+
 std::string_view ResamplerToString(Resampler resampler);
 std::optional<Resampler> ResamplerFromString(std::string_view resampler);
 
@@ -582,8 +591,6 @@ struct GameplayOptions : OptionCategoryBase {
 	OptionEntryBoolean testBarbarian;
 	/** @brief Show the current level progress. */
 	OptionEntryBoolean experienceBar;
-	/** @brief Show item graphics to the left of item descriptions in store menus. */
-	OptionEntryBoolean showItemGraphicsInStores;
 	/** @brief Display current/max health values on health globe. */
 	OptionEntryBoolean showHealthValues;
 	/** @brief Display current/max mana values on mana globe. */
@@ -636,8 +643,8 @@ struct GameplayOptions : OptionCategoryBase {
 	OptionEntryInt<int> numRejuPotionPickup;
 	/** @brief Number of Full Rejuvenating potions to pick up automatically */
 	OptionEntryInt<int> numFullRejuPotionPickup;
-	/** @brief Use visual grid-based store UI instead of text-based menus. */
-	OptionEntryBoolean visualStoreUI;
+	/** @brief Store user interface. */
+	OptionEntryEnum<StoreUi> storeUi;
 
 	/**
 	 * @brief If loading takes less than this value, skips displaying the loading screen.

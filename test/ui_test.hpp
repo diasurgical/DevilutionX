@@ -47,7 +47,7 @@ constexpr const char UITestMissingMpqMsg[] = "MPQ assets (spawn.mpq or DIABDAT.M
  *  - A single-player game with one Warrior at character level 25 and 100 000 gold.
  *  - ControlMode pinned to KeyboardAndMouse (tests are deterministic regardless of host input).
  *  - All panels / stores / overlays closed before and after each test.
- *  - visualStoreUI option disabled so we always exercise the text-based store path.
+ *  - Always exercise the text-based store path.
  *  - A loopback network provider (needed by functions that send net commands).
  */
 class UITest : public ::testing::Test {
@@ -105,8 +105,7 @@ protected:
 		ControlMode = ControlTypes::KeyboardAndMouse;
 
 		// Always use the text-based store path so we can drive its state machine.
-		GetOptions().Gameplay.visualStoreUI.SetValue(false);
-		GetOptions().Gameplay.showItemGraphicsInStores.SetValue(false);
+		GetOptions().Gameplay.storeUi.SetValue(StoreUi::Text);
 
 		// Close everything that might be open.
 		CloseAllPanels();
