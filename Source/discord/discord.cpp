@@ -23,7 +23,7 @@
 #include "multi.h"
 #include "panels/charpanel.hpp"
 #include "player.h"
-#include "playerdat.hpp"
+#include "tables/playerdat.hpp"
 #include "utils/language.h"
 #include "utils/str_cat.hpp"
 

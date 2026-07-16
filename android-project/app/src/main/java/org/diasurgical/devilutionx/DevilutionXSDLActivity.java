@@ -1,12 +1,15 @@
 package org.diasurgical.devilutionx;
 
 import android.content.Intent;
+import android.graphics.Insets;
 import android.graphics.Rect;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.DisplayMetrics;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.ViewTreeObserver;
+import android.view.WindowInsets;
 import android.view.WindowManager;
 
 import org.libsdl.app.SDLActivity;
@@ -65,14 +68,46 @@ public class DevilutionXSDLActivity extends SDLActivity {
 		this.getWindow().getDecorView().getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
 			@Override
 			public void onGlobalLayout() {
+				SurfaceView surface = mSurface;
+				SurfaceHolder holder = surface.getHolder();
+
+				if (!isIMEVisible()) {
+					holder.setSizeFromLayout();
+					return;
+				}
+
 				// Software keyboard may encroach on the app's visible space so
 				// force the drawing surface to fit in the visible display frame
 				Rect visibleSpace = new Rect();
-				getWindow().getDecorView().getWindowVisibleDisplayFrame(visibleSpace);
-
-				SurfaceView surface = mSurface;
-				SurfaceHolder holder = surface.getHolder();
+				getVisibleSpaceAroundIME(visibleSpace);
 				holder.setFixedSize(visibleSpace.width(), visibleSpace.height());
+			}
+
+			private boolean isIMEVisible() {
+				// Window insets are not available before Android 11 so
+				// we must always assume the software keyboard is visible
+				if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R)
+					return true;
+
+				WindowInsets rootInsets = getWindow().getDecorView().getRootWindowInsets();
+				return rootInsets.isVisible(WindowInsets.Type.ime());
+			}
+
+			private void getVisibleSpaceAroundIME(Rect visibleSpace) {
+				if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+					getWindow().getDecorView().getWindowVisibleDisplayFrame(visibleSpace);
+					return;
+				}
+
+				WindowInsets rootInsets = getWindow().getDecorView().getRootWindowInsets();
+				Insets imeInsets = rootInsets.getInsets(WindowInsets.Type.ime());
+				DisplayMetrics realMetrics = new DisplayMetrics();
+				getDisplay().getRealMetrics(realMetrics);
+
+				visibleSpace.top = imeInsets.top;
+				visibleSpace.left = imeInsets.left;
+				visibleSpace.right = realMetrics.widthPixels - imeInsets.right;
+				visibleSpace.bottom = realMetrics.heightPixels - imeInsets.bottom;
 			}
 		});
 	}

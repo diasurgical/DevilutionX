@@ -12,9 +12,9 @@
 #include "engine/surface.hpp"
 #include "levels/gendung.h"
 #include "monster.h"
-#include "objdat.h"
 #include "panels/info_box.hpp"
-#include "textdat.h"
+#include "tables/objdat.h"
+#include "tables/textdat.h"
 #include "utils/attributes.h"
 
 namespace devilution {
@@ -106,7 +106,7 @@ struct QuestData {
 	std::string _qlstr;
 };
 
-extern bool QuestLogIsOpen;
+extern DVL_API_FOR_TEST bool QuestLogIsOpen;
 extern OptionalOwnedClxSpriteList pQLogCel;
 extern DVL_API_FOR_TEST Quest Quests[MAXQUESTS];
 extern Point ReturnLvlPosition;

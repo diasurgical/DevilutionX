@@ -23,7 +23,7 @@ tl::expected<DataFile, DataFile::Error> DataFile::load(std::string_view path)
 	// TODO: It should be possible to stream the data file contents instead of copying the whole thing into memory
 	std::unique_ptr<char[]> data { new char[size] };
 	{
-		AssetHandle handle = OpenAsset(std::move(ref));
+		AssetHandle handle = OpenIntegralAsset(std::move(ref));
 		if (!handle.ok())
 			return tl::unexpected { Error::OpenFailed };
 		if (size > 0 && !handle.read(data.get(), size))

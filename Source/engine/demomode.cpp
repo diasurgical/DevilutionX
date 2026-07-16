@@ -30,6 +30,7 @@
 #include "utils/console.h"
 #include "utils/display.h"
 #include "utils/endian_stream.hpp"
+#include "utils/file_util.h"
 #include "utils/is_of.hpp"
 #include "utils/paths.h"
 #include "utils/str_cat.hpp"
@@ -127,7 +128,6 @@ struct {
 	bool autoElixirPickup = false;
 	bool autoOilPickup = false;
 	bool autoPickupInTown = false;
-	bool adriaRefillsMana = false;
 	bool autoEquipWeapons = false;
 	bool autoEquipArmor = false;
 	bool autoEquipHelms = false;
@@ -166,7 +166,7 @@ void ReadSettings(FILE *in, uint8_t version) // NOLINT(readability-identifier-le
 		DemoSettings.autoElixirPickup = ReadByte(in) != 0;
 		DemoSettings.autoOilPickup = ReadByte(in) != 0;
 		DemoSettings.autoPickupInTown = ReadByte(in) != 0;
-		DemoSettings.adriaRefillsMana = ReadByte(in) != 0;
+		(void)ReadByte(in); // adriaRefillsMana (removed feature, kept for backward compatibility)
 		DemoSettings.autoEquipWeapons = ReadByte(in) != 0;
 		DemoSettings.autoEquipArmor = ReadByte(in) != 0;
 		DemoSettings.autoEquipHelms = ReadByte(in) != 0;
@@ -195,7 +195,6 @@ void ReadSettings(FILE *in, uint8_t version) // NOLINT(readability-identifier-le
 	         { _("Auto Elixir Pickup"), DemoSettings.autoGoldPickup },
 	         { _("Auto Oil Pickup"), DemoSettings.autoOilPickup },
 	         { _("Auto Pickup in Town"), DemoSettings.autoPickupInTown },
-	         { _("Adria Refills Mana"), DemoSettings.adriaRefillsMana },
 	         { _("Auto Equip Weapons"), DemoSettings.autoEquipWeapons },
 	         { _("Auto Equip Armor"), DemoSettings.autoEquipArmor },
 	         { _("Auto Equip Helms"), DemoSettings.autoEquipHelms },
@@ -231,7 +230,7 @@ void WriteSettings(FILE *out)
 	WriteByte(out, static_cast<uint8_t>(*options.Gameplay.autoElixirPickup));
 	WriteByte(out, static_cast<uint8_t>(*options.Gameplay.autoOilPickup));
 	WriteByte(out, static_cast<uint8_t>(*options.Gameplay.autoPickupInTown));
-	WriteByte(out, static_cast<uint8_t>(*options.Gameplay.adriaRefillsMana));
+	WriteByte(out, 0); // adriaRefillsMana (removed feature, kept for backward compatibility)
 	WriteByte(out, static_cast<uint8_t>(*options.Gameplay.autoEquipWeapons));
 	WriteByte(out, static_cast<uint8_t>(*options.Gameplay.autoEquipArmor));
 	WriteByte(out, static_cast<uint8_t>(*options.Gameplay.autoEquipHelms));
@@ -542,7 +541,7 @@ std::optional<DemoMsg> ReadDemoMessage()
 	// to encode `progressToNextGameTick` inline.
 	if ((typeNum & 0b10000000) != 0) {
 		DemoModeLastTick = SDL_GetTicks();
-		return DemoMsg { DemoMsg::Rendering, static_cast<uint8_t>(typeNum & 0b01111111u), {} };
+		return DemoMsg { DemoMsg::Rendering, static_cast<uint8_t>(typeNum & 0b01111111U), {} };
 	}
 	const uint8_t progressToNextGameTick = ReadByte(DemoFile);
 
@@ -650,7 +649,6 @@ void OverrideOptions()
 	options.Gameplay.autoElixirPickup.SetValue(DemoSettings.autoElixirPickup);
 	options.Gameplay.autoOilPickup.SetValue(DemoSettings.autoOilPickup);
 	options.Gameplay.autoPickupInTown.SetValue(DemoSettings.autoPickupInTown);
-	options.Gameplay.adriaRefillsMana.SetValue(DemoSettings.adriaRefillsMana);
 	options.Gameplay.autoEquipWeapons.SetValue(DemoSettings.autoEquipWeapons);
 	options.Gameplay.autoEquipArmor.SetValue(DemoSettings.autoEquipArmor);
 	options.Gameplay.autoEquipHelms.SetValue(DemoSettings.autoEquipHelms);
@@ -705,7 +703,7 @@ bool GetRunGameLoop(bool &drawGame, bool &processInput)
 		} else {
 			int32_t fraction = ticksElapsed * AnimationInfo::baseValueFraction / gnTickDelay;
 			fraction = std::clamp<int32_t>(fraction, 0, AnimationInfo::baseValueFraction);
-			const uint8_t progressToNextGameTick = static_cast<uint8_t>(fraction);
+			const auto progressToNextGameTick = static_cast<uint8_t>(fraction);
 			if (dmsg.type == DemoMsg::GameTick || dmsg.progressToNextGameTick > progressToNextGameTick) {
 				// we are ahead of the replay => add a additional rendering for smoothness
 				if (gbRunGame && PauseMode == 0 && (gbIsMultiplayer || !gmenu_is_active()) && gbProcessPlayers) // if game is not running or paused there is no next gametick in the near future

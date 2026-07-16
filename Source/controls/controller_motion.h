@@ -25,6 +25,9 @@ extern float leftStickX, leftStickY, rightStickX, rightStickY;
 // Whether stick positions have been updated and need rescaling.
 extern bool leftStickNeedsScaling, rightStickNeedsScaling;
 
+// Minimum scaled stick magnitude to register a direction.
+constexpr float StickDirectionThreshold = 0.4F;
+
 // Updates motion state for mouse and joystick sticks.
 void ProcessControllerMotion(const SDL_Event &event);
 

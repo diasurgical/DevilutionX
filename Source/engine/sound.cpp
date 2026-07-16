@@ -16,9 +16,9 @@
 #include <utility>
 
 #ifdef USE_SDL3
-#include <SDL3/SDL_audio.h>
 #include <SDL3/SDL_error.h>
 #include <SDL3/SDL_timer.h>
+#include <SDL3_mixer/SDL_mixer.h>
 #else
 #include <Aulib/Stream.h>
 #include <SDL.h>
@@ -42,7 +42,7 @@ namespace devilution {
 bool gbSndInited;
 
 #ifdef USE_SDL3
-SDL_AudioDeviceID CurrentAudioDeviceId;
+MIX_Mixer *CurrentMixer;
 #endif
 
 /** The active background music track id. */
@@ -133,9 +133,6 @@ std::optional<SdlMutex> duplicateSoundsMutex;
 
 SoundSample *DuplicateSound(const SoundSample &sound)
 {
-#ifdef USE_SDL3
-	return nullptr;
-#else
 	auto duplicate = std::make_unique<SoundSample>();
 	if (duplicate->DuplicateFrom(sound) != 0)
 		return nullptr;
@@ -154,7 +151,6 @@ SoundSample *DuplicateSound(const SoundSample &sound)
 	});
 #endif
 	return result;
-#endif
 }
 
 /** Maps from track ID to track name in spawn. */
@@ -209,11 +205,18 @@ const auto OptionChangeDevice = (GetOptions().Audio.device.SetValueChangedCallba
 
 void ClearDuplicateSounds()
 {
-	const std::lock_guard<SdlMutex> lock(*duplicateSoundsMutex);
-	duplicateSounds.clear();
+	// Move sound samples to a temporary list,
+	// avoiding a deadlock that involves SDL's
+	// mixer lock being taken by finalizers
+	std::list<std::unique_ptr<SoundSample>> drain;
+	{
+		const std::lock_guard<SdlMutex> lock(*duplicateSoundsMutex);
+		drain = std::move(duplicateSounds);
+		duplicateSounds.clear();
+	}
 }
 
-void snd_play_snd(TSnd *pSnd, int lVolume, int lPan)
+void snd_play_snd(TSnd *pSnd, int lVolume, int lPan, int userVolume)
 {
 	if (pSnd == nullptr || !gbSoundOn) {
 		return;
@@ -231,7 +234,7 @@ void snd_play_snd(TSnd *pSnd, int lVolume, int lPan)
 			return;
 	}
 
-	sound->PlayWithVolumeAndPan(lVolume, *GetOptions().Audio.soundVolume, lPan);
+	sound->PlayWithVolumeAndPan(lVolume, userVolume, lPan);
 	pSnd->start_tc = tc;
 }
 
@@ -282,18 +285,22 @@ void snd_init()
 	// 22kHz, the audio format to 16-bit signed, use 2 output channels
 	// (stereo), and a 2KiB output buffer.
 #ifdef USE_SDL3
+	if (!MIX_Init()) {
+		LogError(LogCategory::Audio, "Failed to initialize SDL_mixer: {}", SDL_GetError());
+		return;
+	}
 	const AudioOptions &audioOptions = GetOptions().Audio;
 	SDL_AudioSpec specHint = {};
 	specHint.format = SDL_AUDIO_S16LE;
 	specHint.channels = *audioOptions.channels;
 	specHint.freq = static_cast<int>(*audioOptions.sampleRate);
-	const SDL_AudioDeviceID resolvedId = SDL_OpenAudioDevice(audioOptions.device.id(), &specHint);
-	if (resolvedId == 0) {
-		LogError(LogCategory::Audio, "Failed to open audio device: {}", SDL_GetError());
+	CurrentMixer = MIX_CreateMixerDevice(audioOptions.device.id(), &specHint);
+	if (CurrentMixer == nullptr) {
+		LogError(LogCategory::Audio, "Failed to create mixer device: {}", SDL_GetError());
 		SDL_ClearError();
+		MIX_Quit();
 		return;
 	}
-	CurrentAudioDeviceId = resolvedId;
 #else
 	if (!Aulib::init(*GetOptions().Audio.sampleRate, AUDIO_S16, *GetOptions().Audio.channels, *GetOptions().Audio.bufferSize, *GetOptions().Audio.device)) {
 		LogError(LogCategory::Audio, "Failed to initialize audio (Aulib::init): {}", SDL_GetError());
@@ -313,8 +320,9 @@ void snd_deinit()
 	if (gbSndInited) {
 #ifndef PS2
 #ifdef USE_SDL3
-		const AudioOptions &audioOptions = GetOptions().Audio;
-		SDL_CloseAudioDevice(audioOptions.device.id());
+		MIX_DestroyMixer(CurrentMixer);
+		CurrentMixer = nullptr;
+		MIX_Quit();
 #else
 		Aulib::quit();
 #endif
@@ -416,6 +424,16 @@ int sound_get_or_set_sound_volume(int volume)
 	GetOptions().Audio.soundVolume.SetValue(volume);
 
 	return *GetOptions().Audio.soundVolume;
+}
+
+int SoundGetOrSetAudioCuesVolume(int volume)
+{
+	if (volume == 1)
+		return *GetOptions().Audio.audioCuesVolume;
+
+	GetOptions().Audio.audioCuesVolume.SetValue(volume);
+
+	return *GetOptions().Audio.audioCuesVolume;
 }
 
 void music_mute()

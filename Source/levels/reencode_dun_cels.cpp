@@ -254,7 +254,7 @@ void ReencodeDungeonCels(std::unique_ptr<std::byte[]> &dungeonCels, std::span<st
 	auto *const resultPtr = reinterpret_cast<uint8_t *>(result.get());
 	WriteLE32(resultPtr, static_cast<uint32_t>(frames.size()));
 	uint8_t *lookup = resultPtr + 4;
-	uint8_t *out = resultPtr + (2 + frames.size()) * 4; // number of frames, frame offsets, file size
+	uint8_t *out = resultPtr + ((2 + frames.size()) * 4); // number of frames, frame offsets, file size
 	for (const auto &[frame, info] : frames) {
 		WriteLE32(lookup, static_cast<uint32_t>(out - resultPtr));
 		lookup += 4;

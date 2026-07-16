@@ -21,7 +21,6 @@ set(libdevilutionx_SRCS
   loadsave.cpp
   menu.cpp
   minitext.cpp
-  misdat.cpp
   missiles.cpp
   movie.cpp
   msg.cpp
@@ -31,18 +30,9 @@ set(libdevilutionx_SRCS
   portal.cpp
   restrict.cpp
   sync.cpp
-  textdat.cpp
   tmsg.cpp
-  townerdat.cpp
   towners.cpp
   track.cpp
-
-  control/control_chat.cpp
-  control/control_chat_commands.cpp
-  control/control_flasks.cpp
-  control/control_gold.cpp
-  control/control_infobox.cpp
-  control/control_panel.cpp
 
   controls/axis_direction.cpp
   controls/controller_motion.cpp
@@ -72,7 +62,6 @@ set(libdevilutionx_SRCS
   DiabloUI/settingsmenu.cpp
   DiabloUI/support_lines.cpp
   DiabloUI/title.cpp
-  DiabloUI/text_input.cpp
 
   dvlnet/abstract_net.cpp
   dvlnet/base.cpp
@@ -103,6 +92,7 @@ set(libdevilutionx_SRCS
   levels/trigs.cpp
 
   lua/autocomplete.cpp
+  lua/lua_event.cpp
   lua/lua_global.cpp
   lua/modules/audio.cpp
   lua/modules/hellfire.cpp
@@ -120,12 +110,14 @@ set(libdevilutionx_SRCS
   lua/modules/dev/quests.cpp
   lua/modules/dev/search.cpp
   lua/modules/dev/towners.cpp
+  lua/modules/floatingnumbers.cpp
   lua/modules/i18n.cpp
   lua/modules/items.cpp
   lua/modules/log.cpp
   lua/modules/monsters.cpp
   lua/modules/player.cpp
   lua/modules/render.cpp
+  lua/modules/system.cpp
   lua/modules/towners.cpp
   lua/repl.cpp
 
@@ -142,6 +134,8 @@ set(libdevilutionx_SRCS
 
   platform/locale.cpp
 
+  players/validation.cpp
+
   portals/validation.cpp
 
   qol/autopickup.cpp
@@ -150,12 +144,18 @@ set(libdevilutionx_SRCS
   qol/itemlabels.cpp
   qol/monhealthbar.cpp
   qol/stash.cpp
+  qol/visual_store.cpp
   qol/xpbar.cpp
 
   quests/validation.cpp
 
   storm/storm_net.cpp
   storm/storm_svid.cpp
+
+  tables/misdat.cpp
+  tables/textdat.cpp
+  tables/townerdat.cpp
+
   utils/display.cpp
   utils/language.cpp
   utils/sdl_bilinear_scale.cpp
@@ -185,6 +185,16 @@ endif()
 # requires targets to exist when calling `target_link_dependencies`
 # (see object_libraries.cmake).
 
+add_devilutionx_object_library(libdevilutionx_mod_identity
+  mods/mod_identity.cpp
+)
+target_include_directories(libdevilutionx_mod_identity PRIVATE ${PROJECT_SOURCE_DIR}/3rdParty/PicoSHA2)
+target_link_dependencies(libdevilutionx_mod_identity PUBLIC
+  libdevilutionx_file_util
+  libdevilutionx_ini
+  libdevilutionx_log
+)
+
 add_devilutionx_object_library(libdevilutionx_assets
   engine/assets.cpp
 )
@@ -194,6 +204,7 @@ target_link_dependencies(libdevilutionx_assets PUBLIC
   tl
   libdevilutionx_headless_mode
   libdevilutionx_game_mode
+  libdevilutionx_mod_identity
   libdevilutionx_mpq
   libdevilutionx_paths
   libdevilutionx_sdl2_to_1_2_backports
@@ -235,6 +246,33 @@ add_devilutionx_object_library(libdevilutionx_codec
 target_link_dependencies(libdevilutionx_codec PRIVATE
   DevilutionX::SDL
   libdevilutionx_log
+)
+
+add_devilutionx_object_library(libdevilutionx_control
+  control/control_chat.cpp
+  control/control_chat_commands.cpp
+  control/control_flasks.cpp
+  control/control_gold.cpp
+  control/control_infobox.cpp
+  control/control_panel.cpp
+)
+target_link_dependencies(libdevilutionx_control
+  PUBLIC
+  DevilutionX::SDL
+  tl
+  libdevilutionx_text_input
+  PRIVATE
+  fmt::fmt
+  libdevilutionx_clx_render
+  libdevilutionx_control_mode
+  libdevilutionx_format_int
+  libdevilutionx_load_cel
+  libdevilutionx_log
+  libdevilutionx_options
+  libdevilutionx_parse_int
+  libdevilutionx_primitive_render
+  libdevilutionx_quick_messages
+  libdevilutionx_strings
 )
 
 add_devilutionx_object_library(libdevilutionx_controller_buttons
@@ -486,10 +524,11 @@ target_link_dependencies(libdevilutionx_logged_fstream PUBLIC
 )
 
 add_devilutionx_object_library(libdevilutionx_items
-  itemdat.cpp
+  tables/itemdat.cpp
   items.cpp
 )
-target_link_dependencies(libdevilutionx_items PUBLIC
+target_link_dependencies(libdevilutionx_items
+  PUBLIC
   DevilutionX::SDL
   sol2::sol2
   tl
@@ -498,6 +537,15 @@ target_link_dependencies(libdevilutionx_items PUBLIC
   libdevilutionx_spells
   libdevilutionx_stores
   libdevilutionx_strings
+  PRIVATE
+  libdevilutionx_control
+)
+
+add_library(libdevilutionx_sheen_bidi INTERFACE)
+target_include_directories(libdevilutionx_sheen_bidi INTERFACE
+  ${PROJECT_SOURCE_DIR}/Source)
+target_link_dependencies(libdevilutionx_sheen_bidi INTERFACE
+  SheenBidi::SheenBidi
 )
 
 add_devilutionx_object_library(libdevilutionx_ini
@@ -523,7 +571,7 @@ target_link_libraries(libdevilutionx_log INTERFACE
 target_sources(libdevilutionx_log INTERFACE $<TARGET_OBJECTS:libdevilutionx_strings>)
 
 add_devilutionx_object_library(libdevilutionx_level_objects
-  objdat.cpp
+  tables/objdat.cpp
   objects.cpp
 )
 target_link_dependencies(libdevilutionx_level_objects PUBLIC
@@ -540,7 +588,7 @@ target_link_dependencies(libdevilutionx_level_objects PUBLIC
 )
 
 add_devilutionx_object_library(libdevilutionx_monster
-  monstdat.cpp
+  tables/monstdat.cpp
   monster.cpp
 )
 target_link_dependencies(libdevilutionx_monster
@@ -556,6 +604,7 @@ target_link_dependencies(libdevilutionx_monster
   libdevilutionx_txtdata
   PRIVATE
   libdevilutionx_cl2_to_clx
+  libdevilutionx_control
 )
 
 add_devilutionx_object_library(libdevilutionx_palette_blending
@@ -584,12 +633,9 @@ if(SUPPORTS_MPQ)
   target_link_dependencies(libdevilutionx_mpq PUBLIC
     DevilutionX::SDL
     fmt::fmt
+    mpqfs::mpqfs
     tl
-    libmpq
     libdevilutionx_file_util
-    libdevilutionx_logged_fstream
-    libdevilutionx_pkware_encrypt
-    libdevilutionx_strings
   )
 else()
   add_library(libdevilutionx_mpq INTERFACE)
@@ -636,7 +682,7 @@ if(SUPPORTS_MPQ OR NOT NONET)
   )
   target_link_dependencies(libdevilutionx_pkware_encrypt PUBLIC
     DevilutionX::SDL
-    PKWare
+    mpqfs::mpqfs
   )
 else()
   add_library(libdevilutionx_pkware_encrypt INTERFACE)
@@ -644,17 +690,19 @@ endif()
 
 add_devilutionx_object_library(libdevilutionx_player
   player.cpp
-  playerdat.cpp
+  tables/playerdat.cpp
 )
 target_link_dependencies(libdevilutionx_player
   PUBLIC
   DevilutionX::SDL
   fmt::fmt
   magic_enum::magic_enum
+  sol2::sol2
   tl
   unordered_dense::unordered_dense
   libdevilutionx_game_mode
   PRIVATE
+  libdevilutionx_control
   libdevilutionx_load_cl2
   libdevilutionx_strings
 )
@@ -662,9 +710,12 @@ target_link_dependencies(libdevilutionx_player
 add_devilutionx_object_library(libdevilutionx_quests
   quests.cpp
 )
-target_link_dependencies(libdevilutionx_quests PUBLIC
+target_link_dependencies(libdevilutionx_quests
+  PUBLIC
   libdevilutionx_surface
   libdevilutionx_gendung
+  PRIVATE
+  libdevilutionx_control
 )
 
 add_devilutionx_object_library(libdevilutionx_random
@@ -676,13 +727,30 @@ add_devilutionx_object_library(libdevilutionx_quick_messages
 )
 
 add_devilutionx_object_library(libdevilutionx_spells
-  spelldat.cpp
+  tables/spelldat.cpp
   spells.cpp
 )
-target_link_dependencies(libdevilutionx_spells PUBLIC
+target_link_dependencies(libdevilutionx_spells
+  PUBLIC
   tl
   libdevilutionx_player
   libdevilutionx_txtdata
+  PRIVATE
+  libdevilutionx_control
+)
+
+add_devilutionx_object_library(libdevilutionx_text_input
+  DiabloUI/text_input.cpp
+)
+target_link_dependencies(libdevilutionx_text_input
+  PUBLIC
+  DevilutionX::SDL
+  libdevilutionx_utf8
+  PRIVATE
+  tl
+  libdevilutionx_log
+  libdevilutionx_parse_int
+  libdevilutionx_strings
 )
 
 add_devilutionx_object_library(libdevilutionx_text_render
@@ -729,8 +797,8 @@ target_link_dependencies(libdevilutionx_txtdata PUBLIC
 add_devilutionx_object_library(libdevilutionx_utf8
   utils/utf8.cpp
 )
-target_link_dependencies(libdevilutionx_utf8 PRIVATE
-  SheenBidi::SheenBidi
+target_link_dependencies(libdevilutionx_utf8 PUBLIC
+  libdevilutionx_sheen_bidi
 )
 
 if(NOSOUND)
@@ -800,6 +868,7 @@ target_link_dependencies(libdevilutionx_stores PUBLIC
   fmt::fmt
   tl
   libdevilutionx_clx_render
+  libdevilutionx_control
   libdevilutionx_options
   libdevilutionx_sound
   libdevilutionx_strings
@@ -926,6 +995,7 @@ target_link_dependencies(libdevilutionx PUBLIC
   libdevilutionx_clx_render
   libdevilutionx_codec
   libdevilutionx_config
+  libdevilutionx_control
   libdevilutionx_controller_buttons
   libdevilutionx_control_mode
   libdevilutionx_crawl
@@ -961,6 +1031,7 @@ target_link_dependencies(libdevilutionx PUBLIC
   libdevilutionx_spells
   libdevilutionx_stores
   libdevilutionx_strings
+  libdevilutionx_text_input
   libdevilutionx_text_render
   libdevilutionx_txtdata
   libdevilutionx_ticks

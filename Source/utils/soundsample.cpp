@@ -8,6 +8,7 @@
 #ifdef USE_SDL3
 #include <SDL3/SDL_error.h>
 #include <SDL3/SDL_iostream.h>
+#include <SDL3_mixer/SDL_mixer.h>
 #else
 #ifndef PS2
 #include <Aulib/DecoderDrmp3.h>
@@ -27,6 +28,9 @@
 #endif
 
 #include "engine/assets.hpp"
+#ifdef USE_SDL3
+#include "engine/sound.h" // for CurrentMixer
+#endif
 #include "options.h"
 #include "utils/log.hpp"
 #include "utils/math.h"
@@ -59,7 +63,50 @@ constexpr float MillibelMax = 0.F;
  */
 constexpr float StereoSeparation = 6000.F;
 
-#ifndef USE_SDL3
+/**
+ * @brief Converts log volume passed in into linear volume.
+ * @param logVolume Logarithmic volume in the range [logMin..logMax]
+ * @param logMin Volume range minimum (usually ATTENUATION_MIN for game sounds and VOLUME_MIN for volume sliders)
+ * @param logMax Volume range maximum (usually 0)
+ * @return Linear volume in the range [0..1]
+ */
+float VolumeLogToLinear(int logVolume, int logMin, int logMax)
+{
+	const auto logScaled = math::Remap(static_cast<float>(logMin), static_cast<float>(logMax), MillibelMin, MillibelMax, static_cast<float>(logVolume));
+	return std::pow(LogBase, logScaled / VolumeScale); // linVolume
+}
+
+#ifdef USE_SDL3
+
+/**
+ * @brief Converts a log pan value to left/right linear gain factors.
+ * @param logPan Pan value in the range [PAN_MIN..PAN_MAX]. Negative = left, positive = right.
+ * @param[out] leftGain Linear gain for the left channel [0..1]
+ * @param[out] rightGain Linear gain for the right channel [0..1]
+ */
+void PanLogToLeftRight(int logPan, float &leftGain, float &rightGain)
+{
+	if (logPan == 0) {
+		leftGain = 1.0f;
+		rightGain = 1.0f;
+		return;
+	}
+
+	auto factor = std::pow(LogBase, static_cast<float>(-std::abs(logPan)) / StereoSeparation);
+
+	if (logPan < 0) {
+		// Sound is to the left: attenuate right channel
+		leftGain = 1.0f;
+		rightGain = factor;
+	} else {
+		// Sound is to the right: attenuate left channel
+		leftGain = factor;
+		rightGain = 1.0f;
+	}
+}
+
+#else  // !USE_SDL3
+
 float PanLogToLinear(int logPan)
 {
 	if (logPan == 0)
@@ -86,27 +133,68 @@ std::unique_ptr<Aulib::Stream> CreateStream(SDL_IOStream *handle, bool isMp3)
 	auto resampler = CreateAulibResampler(decoder->getRate());
 	return std::make_unique<Aulib::Stream>(handle, std::move(decoder), std::move(resampler), /*closeRw=*/true);
 }
-#endif
-
-/**
- * @brief Converts log volume passed in into linear volume.
- * @param logVolume Logarithmic volume in the range [logMin..logMax]
- * @param logMin Volume range minimum (usually ATTENUATION_MIN for game sounds and VOLUME_MIN for volume sliders)
- * @param logMax Volume range maximum (usually 0)
- * @return Linear volume in the range [0..1]
- */
-float VolumeLogToLinear(int logVolume, int logMin, int logMax)
-{
-	const auto logScaled = math::Remap(static_cast<float>(logMin), static_cast<float>(logMax), MillibelMin, MillibelMax, static_cast<float>(logVolume));
-	return std::pow(LogBase, logScaled / VolumeScale); // linVolume
-}
-#endif
+#endif // USE_SDL3
 
 } // namespace
 
 ///// SoundSample /////
 
-#if !defined(USE_SDL3) && !defined(PS2)
+SoundSample::SoundSample(SoundSample &&other) noexcept
+    : file_data_(std::move(other.file_data_))
+    , file_data_size_(other.file_data_size_)
+    , file_path_(std::move(other.file_path_))
+    , isMp3_(other.isMp3_)
+#ifdef USE_SDL3
+    , audio_(other.audio_)
+    , track_(other.track_)
+    , gain_(other.gain_)
+    , muteGain_(other.muteGain_)
+    , hasStereoGains_(other.hasStereoGains_)
+    , leftGain_(other.leftGain_)
+    , rightGain_(other.rightGain_)
+#else
+    , stream_(std::move(other.stream_))
+#endif
+{
+#ifdef USE_SDL3
+	other.audio_ = nullptr;
+	other.track_ = nullptr;
+#endif
+	other.file_data_size_ = 0;
+}
+
+SoundSample &SoundSample::operator=(SoundSample &&other) noexcept
+{
+	if (this != &other) {
+		Release();
+		file_data_ = std::move(other.file_data_);
+		file_data_size_ = other.file_data_size_;
+		file_path_ = std::move(other.file_path_);
+		isMp3_ = other.isMp3_;
+#ifdef USE_SDL3
+		audio_ = other.audio_;
+		track_ = other.track_;
+		gain_ = other.gain_;
+		muteGain_ = other.muteGain_;
+		hasStereoGains_ = other.hasStereoGains_;
+		leftGain_ = other.leftGain_;
+		rightGain_ = other.rightGain_;
+		other.audio_ = nullptr;
+		other.track_ = nullptr;
+#else
+		stream_ = std::move(other.stream_);
+#endif
+		other.file_data_size_ = 0;
+	}
+	return *this;
+}
+
+SoundSample::~SoundSample()
+{
+	Release();
+}
+
+#ifndef USE_SDL3
 void SoundSample::SetFinishCallback(Aulib::Stream::Callback &&callback)
 {
 	stream_->setFinishCallback(std::forward<Aulib::Stream::Callback>(callback));
@@ -120,9 +208,12 @@ void SoundSample::Stop()
 	if (channel_ != -1)
 		audsrv_adpcm_set_volume_and_pan(channel_, 0, pan_);
 #else
-#ifndef USE_SDL3
+#ifdef USE_SDL3
+	if (track_ != nullptr) {
+		MIX_StopTrack(track_, 0);
+	}
+#else
 	stream_->stop();
-#endif
 #endif
 }
 
@@ -132,7 +223,12 @@ void SoundSample::Mute()
 	if (channel_ != -1)
 		audsrv_adpcm_set_volume_and_pan(channel_, 0, pan_);
 #else
-#ifndef USE_SDL3
+#ifdef USE_SDL3
+	muteGain_ = 0.0f;
+	if (track_ != nullptr) {
+		MIX_SetTrackGain(track_, 0.0f);
+	}
+#else
 	stream_->mute();
 #endif
 #endif
@@ -144,7 +240,12 @@ void SoundSample::Unmute()
 	if (channel_ != -1)
 		audsrv_adpcm_set_volume_and_pan(channel_, volume_, pan_);
 #else
-#ifndef USE_SDL3
+#ifdef USE_SDL3
+	muteGain_ = 1.0f;
+	if (track_ != nullptr) {
+		MIX_SetTrackGain(track_, gain_);
+	}
+#else
 	stream_->unmute();
 #endif
 #endif
@@ -157,7 +258,16 @@ void SoundSample::Release()
 		audsrv_free_adpcm(sampleId_);
 	sampleId_ = nullptr;
 #else
-#ifndef USE_SDL3
+#ifdef USE_SDL3
+	if (track_ != nullptr) {
+		MIX_DestroyTrack(track_);
+		track_ = nullptr;
+	}
+	if (audio_ != nullptr) {
+		MIX_DestroyAudio(audio_);
+		audio_ = nullptr;
+	}
+#else
 	stream_ = nullptr;
 #endif
 	file_data_ = nullptr;
@@ -175,7 +285,8 @@ bool SoundSample::IsPlaying()
 		return false;
 	return audsrv_is_adpcm_playing(channel_, sampleId_) != 0;
 #elif defined(USE_SDL3)
-	return false;
+	if (track_ == nullptr) return false;
+	return MIX_TrackPlaying(track_);
 #else
 	return stream_ && stream_->isPlaying();
 #endif
@@ -198,7 +309,50 @@ bool SoundSample::Play(int numIterations)
 
 	audsrv_adpcm_set_volume_and_pan(channel_, volume_, pan_);
 #elif defined(USE_SDL3)
-	return false;
+	if (audio_ == nullptr || CurrentMixer == nullptr) return false;
+
+	// Create a track on demand if we don't have one yet.
+	if (track_ == nullptr) {
+		track_ = MIX_CreateTrack(CurrentMixer);
+		if (track_ == nullptr) {
+			LogError(LogCategory::Audio, "MIX_CreateTrack failed: {}", SDL_GetError());
+			return false;
+		}
+	}
+
+	if (!MIX_SetTrackAudio(track_, audio_)) {
+		LogError(LogCategory::Audio, "MIX_SetTrackAudio failed: {}", SDL_GetError());
+		return false;
+	}
+
+	MIX_SetTrackGain(track_, gain_ * muteGain_);
+
+	// Apply deferred stereo position if it was set before the track existed.
+	if (hasStereoGains_) {
+		MIX_StereoGains gains;
+		gains.left = leftGain_;
+		gains.right = rightGain_;
+		MIX_SetTrackStereo(track_, &gains);
+	}
+
+	// numIterations: 1 = play once, 0 = loop forever.
+	// MIX_PROP_PLAY_LOOPS_NUMBER: 0 = don't loop, -1 = loop forever, N = loop N times.
+	SDL_PropertiesID props = SDL_CreateProperties();
+	if (numIterations == 0) {
+		SDL_SetNumberProperty(props, MIX_PROP_PLAY_LOOPS_NUMBER, -1);
+	} else if (numIterations > 1) {
+		SDL_SetNumberProperty(props, MIX_PROP_PLAY_LOOPS_NUMBER, numIterations - 1);
+	}
+	// numIterations == 1 means play once with no looping, which is the default (0 loops).
+
+	bool result = MIX_PlayTrack(track_, props);
+	SDL_DestroyProperties(props);
+
+	if (!result) {
+		LogError(LogCategory::Audio, "MIX_PlayTrack failed: {}", SDL_GetError());
+		return false;
+	}
+	return true;
 #else
 	if (!stream_->play(numIterations)) {
 		LogError(LogCategory::Audio, "Aulib::Stream::play (from SoundSample::Play): {}", SDL_GetError());
@@ -206,12 +360,30 @@ bool SoundSample::Play(int numIterations)
 	}
 #endif
 	return true;
-
 }
 
 int SoundSample::SetChunkStream(std::string filePath, bool isMp3, bool logErrors)
 {
 #ifdef USE_SDL3
+	SDL_IOStream *handle = OpenAssetAsSdlRwOps(filePath.c_str(), /*threadsafe=*/true);
+	if (handle == nullptr) {
+		if (logErrors)
+			LogError(LogCategory::Audio, "OpenAsset failed (from SoundSample::SetChunkStream) for {}: {}", filePath, SDL_GetError());
+		return -1;
+	}
+
+	file_path_ = std::move(filePath);
+	isMp3_ = isMp3;
+
+	// Let SDL3_mixer stream-decode (predecode=false). It keeps the compressed data in RAM
+	// and decodes on the fly during playback, saving memory for large music files.
+	audio_ = MIX_LoadAudio_IO(CurrentMixer, handle, /*predecode=*/false, /*closeio=*/true);
+	if (audio_ == nullptr) {
+		if (logErrors)
+			LogError(LogCategory::Audio, "MIX_LoadAudio_IO failed (from SoundSample::SetChunkStream) for {}: {}", file_path_, SDL_GetError());
+		return -1;
+	}
+
 	return 0;
 #else
 	SDL_IOStream *handle = OpenAssetAsSdlRwOps(filePath.c_str(), /*threadsafe=*/true);
@@ -246,7 +418,24 @@ int SoundSample::SetChunk(ArraySharedPtr<std::uint8_t> fileData, std::size_t dwB
 	}
 	sampleId_ = stream_.get();
 #elif defined(USE_SDL3)
-	return 0;
+	isMp3_ = isMp3;
+	file_data_ = std::move(fileData);
+	file_data_size_ = dwBytes;
+
+	// Create an IOStream from the in-memory data. SDL3_mixer will keep a reference
+	// to the data, so file_data_ must remain alive for the lifetime of the audio.
+	SDL_IOStream *io = SDL_IOFromConstMem(file_data_.get(), static_cast<size_t>(dwBytes));
+	if (io == nullptr) {
+		LogError(LogCategory::Audio, "SDL_IOFromConstMem failed: {}", SDL_GetError());
+		return -1;
+	}
+
+	// For small sound effects, predecode to avoid repeated decoding overhead.
+	audio_ = MIX_LoadAudio_IO(CurrentMixer, io, /*predecode=*/true, /*closeio=*/true);
+	if (audio_ == nullptr) {
+		LogError(LogCategory::Audio, "MIX_LoadAudio_IO failed (from SoundSample::SetChunk): {}", SDL_GetError());
+		return -1;
+	}
 #else
 	isMp3_ = isMp3;
 	file_data_ = std::move(fileData);
@@ -276,7 +465,12 @@ void SoundSample::SetVolume(int logVolume, int logMin, int logMax)
 
 	audsrv_adpcm_set_volume_and_pan(channel_, volume_, pan_);
 #else
-#ifndef USE_SDL3
+#ifdef USE_SDL3
+	gain_ = VolumeLogToLinear(logVolume, logMin, logMax);
+	if (track_ != nullptr) {
+		MIX_SetTrackGain(track_, gain_ * muteGain_);
+	}
+#else
 	stream_->setVolume(VolumeLogToLinear(logVolume, logMin, logMax));
 #endif
 #endif
@@ -291,7 +485,16 @@ void SoundSample::SetStereoPosition(int logPan)
 
 	audsrv_adpcm_set_volume_and_pan(channel_, volume_, pan_);
 #else
-#ifndef USE_SDL3
+#ifdef USE_SDL3
+	PanLogToLeftRight(logPan, leftGain_, rightGain_);
+	hasStereoGains_ = true;
+	if (track_ != nullptr) {
+		MIX_StereoGains gains;
+		gains.left = leftGain_;
+		gains.right = rightGain_;
+		MIX_SetTrackStereo(track_, &gains);
+	}
+#else
 	stream_->setStereoPosition(PanLogToLinear(logPan));
 #endif
 #endif
@@ -325,7 +528,11 @@ int SoundSample::GetLength() const
 
 	return microSamples / (pitch * 375);
 #elif defined(USE_SDL3)
-	return 0;
+	if (audio_ == nullptr) return 0;
+	Sint64 frames = MIX_GetAudioDuration(audio_);
+	if (frames <= 0) return 0;
+	Sint64 ms = MIX_AudioFramesToMS(audio_, frames);
+	return static_cast<int>(ms);
 #else
 	if (!stream_)
 		return 0;

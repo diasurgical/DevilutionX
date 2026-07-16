@@ -1,6 +1,8 @@
 #include "control_chat_commands.hpp"
 #include "control.hpp"
 
+#include <fmt/format.h>
+
 #include "diablo_msg.hpp"
 #include "engine/backbuffer_state.hpp"
 #include "inv.h"
@@ -173,7 +175,7 @@ bool IsQuestEnabled(const Quest &quest)
 	}
 }
 
-std::string TextCmdLevelSeed(const std::string_view parameter)
+std::string TextCmdLevelSeed(const std::string_view /*parameter*/)
 {
 	const std::string_view levelType = setlevel ? "set level" : "dungeon level";
 

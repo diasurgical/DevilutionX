@@ -216,9 +216,9 @@ void UpdateAvailableResolutions()
 		if (mode.w < mode.h) {
 			std::swap(mode.w, mode.h);
 		}
-		sizes.emplace_back(Size {
+		sizes.emplace_back(
 		    static_cast<int>(mode.w * scaleFactor),
-		    static_cast<int>(mode.h * scaleFactor) });
+		    static_cast<int>(mode.h * scaleFactor));
 	}
 	supportsAnyResolution = *GetOptions().Graphics.upscale;
 #else
@@ -246,9 +246,9 @@ void UpdateAvailableResolutions()
 		for (const int commonHeight : commonHeights) {
 			if (commonHeight > height)
 				break;
-			sizes.emplace_back(Size { commonHeight * 4 / 3, commonHeight });
+			sizes.emplace_back(commonHeight * 4 / 3, commonHeight);
 			if (commonHeight * width % height == 0)
-				sizes.emplace_back(Size { commonHeight * width / height, commonHeight });
+				sizes.emplace_back(commonHeight * width / height, commonHeight);
 		}
 	}
 
@@ -257,10 +257,10 @@ void UpdateAvailableResolutions()
 	// Ensures that the ini specified resolution is present in resolution list even if it doesn't match a monitor resolution (for example if played in window mode)
 	sizes.push_back(configuredSize);
 	// Ensures that the platform's preferred default resolution is always present
-	sizes.emplace_back(Size { DEFAULT_WIDTH, DEFAULT_HEIGHT });
+	sizes.emplace_back(DEFAULT_WIDTH, DEFAULT_HEIGHT);
 	// Ensures that the vanilla Diablo resolution is present on systems that would support it
 	if (supportsAnyResolution)
-		sizes.emplace_back(Size { 640, 480 });
+		sizes.emplace_back(640, 480);
 
 #ifndef USE_SDL1
 	if (*graphicsOptions.fitToScreen) {
@@ -283,6 +283,11 @@ void UpdateAvailableResolutions()
 				size.width = size.height * mode.w / mode.h;
 		}
 	}
+#endif
+
+#ifndef __3DS__
+	// Only display compatible resolutions.
+	std::erase_if(sizes, [](const Size &s) { return s.width < 640 || s.height < 480; });
 #endif
 
 	// Sort by width then by height
@@ -819,7 +824,11 @@ void SetFullscreenMode()
 	// fullscreen mode so that the display mode only has to change once
 	if (*GetOptions().Graphics.fullscreen && !*GetOptions().Graphics.upscale) {
 		const Size windowSize = GetPreferredWindowSize();
+#if defined(DEVILUTIONX_DISPLAY_PIXELFORMAT)
+		const SDL_DisplayMode displayMode = GetNearestDisplayMode(windowSize, DEVILUTIONX_DISPLAY_PIXELFORMAT);
+#else
 		const SDL_DisplayMode displayMode = GetNearestDisplayMode(windowSize);
+#endif
 #ifdef USE_SDL3
 		if (!SDL_SetWindowFullscreenMode(ghMainWnd, &displayMode)) ErrSdl();
 #else
@@ -863,7 +872,11 @@ void ResizeWindow()
 	// For "true fullscreen" windows, the window resizes automatically based on the display mode
 	const bool trueFullscreen = *GetOptions().Graphics.fullscreen && !*GetOptions().Graphics.upscale;
 	if (trueFullscreen) {
+#if defined(DEVILUTIONX_DISPLAY_PIXELFORMAT)
+		const SDL_DisplayMode displayMode = GetNearestDisplayMode(windowSize, DEVILUTIONX_DISPLAY_PIXELFORMAT);
+#else
 		const SDL_DisplayMode displayMode = GetNearestDisplayMode(windowSize);
+#endif
 #ifdef USE_SDL3
 		if (!SDL_SetWindowFullscreenMode(ghMainWnd, &displayMode)) ErrSdl();
 #else

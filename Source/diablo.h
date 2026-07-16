@@ -19,7 +19,7 @@
 #endif
 
 #ifdef _DEBUG
-#include "monstdat.h"
+#include "tables/monstdat.h"
 #endif
 #include "levels/gendung.h"
 #include "utils/attributes.h"
@@ -27,11 +27,18 @@
 
 namespace devilution {
 
-constexpr uint32_t GameIdDiabloFull = LoadBE32("DRTL");
-constexpr uint32_t GameIdDiabloSpawn = LoadBE32("DSHR");
-constexpr uint32_t GameIdHellfireFull = LoadBE32("HRTL");
-constexpr uint32_t GameIdHellfireSpawn = LoadBE32("HSHR");
-#define GAME_ID (gbIsHellfire ? (gbIsSpawn ? GameIdHellfireSpawn : GameIdHellfireFull) : (gbIsSpawn ? GameIdDiabloSpawn : GameIdDiabloFull))
+// Base game branding ids.
+constexpr uint32_t GameIdDiabloFull = LoadBE32("DRTL");  // Diablo Retail (full game)
+constexpr uint32_t GameIdDiabloSpawn = LoadBE32("DSHR"); // Diablo Shareware (spawn)
+/** Generic ID for mods that do not set there own. */
+constexpr uint32_t GameIdGenericMod = LoadBE32("DXMD"); // DevilutionX + mod
+
+/**
+ * @brief The multiplayer game mode branding id.
+ *
+ * This is a cosmetic branding identifier (shown in the game browser / chat), NOT a compatibility check.
+ */
+[[nodiscard]] uint32_t GetGameId();
 
 #define NUMLEVELS 25
 
@@ -70,7 +77,7 @@ enum class PlayerActionType : uint8_t {
 
 extern uint32_t DungeonSeeds[NUMLEVELS];
 extern DVL_API_FOR_TEST std::optional<uint32_t> LevelSeeds[NUMLEVELS];
-extern Point MousePosition;
+extern DVL_API_FOR_TEST Point MousePosition;
 
 extern bool gbRunGameResult;
 extern bool ReturnToMainMenu;

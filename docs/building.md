@@ -30,7 +30,7 @@ sudo apt-get install smpq
 ### Installing dependencies on Fedora
 
 ```
-sudo dnf install cmake gcc-c++ glibc-devel libstdc++-static SDL2-devel SDL2_image-devel libsodium-devel libpng-devel bzip2-devel gmock-devel gtest-devel google-benchmark-devel libasan libubsan fmt-devel
+sudo dnf install cmake gcc-c++ glibc-devel libstdc++-static SDL2-devel SDL2_image-devel libsodium-devel libpng-devel bzip2-devel gmock-devel gtest-devel google-benchmark-devel libasan libubsan fmt-devel libpfm-devel
 ```
 
 ### Compiling
@@ -214,7 +214,7 @@ By compiling the `package` target, the build will produce the `devilutionx.zip` 
 # and enable Discord integration
 cmake -S. -Bbuild -DCMAKE_TOOLCHAIN_FILE=../CMake/platforms/mingwcc.toolchain.cmake \
     -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF -DDEVILUTIONX_SYSTEM_BZIP2=OFF \
-    -DDEVILUTIONX_STATIC_LIBSODIUM=ON -DDISCORD_INTEGRATION=ON
+    -DDEVILUTIONX_STATIC_LIBSODIUM=ON -DDISCORD_INTEGRATION=ON -DCPACK=ON
 
 # Build the "package" target which produces devilutionx.zip
 # containing all the necessary dlls to run the game
@@ -251,7 +251,7 @@ Packaging/windows/mingw-prep64.sh
 # and enable Discord integration
 cmake -S. -Bbuild -DCMAKE_TOOLCHAIN_FILE=../CMake/platforms/mingwcc64.toolchain.cmake \
     -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF -DDEVILUTIONX_SYSTEM_BZIP2=OFF \
-    -DDEVILUTIONX_STATIC_LIBSODIUM=ON -DDISCORD_INTEGRATION=ON
+    -DDEVILUTIONX_STATIC_LIBSODIUM=ON -DDISCORD_INTEGRATION=ON -DCPACK=ON
 
 # Build the "package" target which produces devilutionx.zip
 # containing all the necessary dlls to run the game
@@ -284,7 +284,7 @@ If you need additional instructions for vcpkg you can find the documentation [he
 
 ### If you want to build the devilutionX.mpq File (optional)
 
-In order to build devilutionx.mpq, install smpq from https://launchpad.net/smpq/trunk/1.6/+download/SMPQ-1.6-x86_64.exe.
+In order to build devilutionx.mpq, install smpq from https://launchpad.net/smpq/trunk/1.7/+download/SMPQ-1.7-x86_64.exe.
 The location of this tool will need to be [added to the system's PATH environment variable](https://www.architectryan.com/2018/03/17/add-to-the-path-on-windows-10/).
 
 ### Compiling
@@ -327,6 +327,28 @@ Click "Open Existing Project" and choose "android-project" folder in DevilutionX
 Wait until Gradle sync is completed.
 In Android Studio, go to "Build -> Make Project" or use the shortcut Ctrl+F9
 You can find the compiled APK in `/android-project/app/build/outputs/apk/`
+</details>
+
+<details><summary>Android Termux</summary>
+
+### Installing dependencies on Debian and Ubuntu
+
+```
+pkg i which getconf cmake gettext libsodium sdl2 sdl2-image zlib bzip2 fmt
+```
+
+### If you want to build the devilutionX.mpq File (optional)
+
+```
+NOSUDO=1 tools/build_and_install_smpq.sh
+```
+
+### Compiling
+
+```bash
+cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=Release -DDEVILUTIONX_SYSTEM_BENCHMARK=OFF
+cmake --build build -j $(nproc)
+```
 </details>
 
 <details><summary>Nintendo Switch</summary>
@@ -546,13 +568,13 @@ emrun index.html
 
 ### Dependencies
 
-* Windows 10
+* Windows 10+
 * CMake
 * Git
-* Visual Studio 2022 with the following packages installed:
-    * C++ (v143) Universal Windows Platform tools
+* Visual Studio 2026 with the following packages installed:
+    * C++ (v145) Universal Windows Platform tools
     * Windows 11 SDK (10.0.26100.0)
-    * MSVC v143 - VS 2022 C++ x64/x86 build tools
+    * MSVC v145 - VS 2026 C++ x64/x86 build tools
 
 _Note: Visual Studio Community Edition can be used._
 
@@ -625,21 +647,51 @@ sudo port select --set python3 python312
 
 <details><summary>DOS</summary>
 
-You can build for DOS from Linux using DJGPP.
+Cross-compile for DOS from Linux using DJGPP GCC 14.2.0. The build uses SDL3-dos
+(a DOS port of SDL3) with VESA video and Sound Blaster 16 audio.
 
-First, install / compile the dependencies (only needs to be done once):
+#### Installing the DJGPP toolchain (once)
 
 ~~~ bash
 Packaging/windows/dos-prep.sh
 ~~~
 
-Then, build DevilutionX:
+This builds and installs the DJGPP cross-compiler. After installation, make sure
+`i586-pc-msdosdjgpp-gcc` (or `i386-pc-msdosdjgpp-gcc`) is on your `PATH`.
+
+#### Compiling
 
 ~~~ bash
-cmake -S. -Bbuild-dos -DCMAKE_TOOLCHAIN_FILE=CMake/platforms/djcpp.toolchain.cmake -DTARGET_PLATFORM="dos" \
-  -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
+cmake -S. -Bbuild-dos \
+  -DCMAKE_TOOLCHAIN_FILE=CMake/platforms/djcpp.toolchain.cmake \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DBUILD_TESTING=OFF
 cmake --build build-dos -j $(getconf _NPROCESSORS_ONLN)
 ~~~
+
+Output: `build-dos/devx.exe` (≈ 5 MB DJGPP executable).
+
+#### Running in DOSBox
+
+1. Copy the CWSDPMI DPMI host next to the executable:
+   ~~~ bash
+   cp /path/to/CWSDPMI.EXE build-dos/
+   ~~~
+
+2. Place `spawn.mpq` (shareware) or `DIABDAT.MPQ` (full game) in `build-dos/`.
+
+3. Run:
+   ~~~ bash
+   dosbox -c "MOUNT C build-dos" -c "C:" -c "devx.exe"
+   ~~~
+
+Useful flags:
+- `devx.exe --verbose --log-to-file DEBUG.LOG` to write verbose log to a file
+
+#### Known limitations
+
+- **MP3 too slow for real-time:** dr_mp3 compiles but real-time stream-decoding
+  drops the game to ~4.5 fps. Use WAV-only MPQ files on DOS.
 
 </details>
 

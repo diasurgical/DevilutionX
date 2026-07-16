@@ -2,7 +2,7 @@
 DevilutionX is a source port of Diablo and Hellfire that strives to make it simple to run the game while providing engine improvements, bugfixes, and some optional quality of life features.
 
 # Links
-Discord: https://discord.gg/devilutionx
+Discord: https://discord.gg/devilutionx-518540764754608128
 GitHub: https://github.com/diasurgical/devilutionX
 
 Check out the manual for what features are available and how best to take advantage of them: https://github.com/diasurgical/devilutionX/wiki

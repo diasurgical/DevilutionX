@@ -20,10 +20,10 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         fetch-depth: 0
 
@@ -33,7 +33,7 @@ jobs:
         sudo apt-get install -y cmake curl g++ git libgtest-dev libgmock-dev libbenchmark-dev libfmt-dev libsodium-dev libpng-dev libbz2-dev libasound2-dev libxcursor-dev libxi-dev libxrandr-dev libxss-dev libxtst-dev libxkbcommon-dev wget
 
     - name: Cache CMake build folder
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: build
         key: ${{ github.workflow }}-v4-${{ github.sha }}

@@ -7,12 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Features
+
+#### Graphics / Audio
+- Better use of colors to differentiate players in multiplayer
+
 ### Bug Fixes
 
 #### Graphics / Audio
 
 - Music doesn't unmute when focus is lost on level transition with Auto Pause On Focus Lost disabled
 - Image ghosting visible on border of map in higher resolutions
+
+#### Stability / Performance / System
+
+- Crashes related to player graphics rendering in death state
 
 ## DevilutionX 1.5.2
 
@@ -54,7 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Move hp/mana display and item graphics to gameplay options
 - Validate properties when reloading items
 - Demomode: Improve replay stability
-- Update [Discord link](https://discord.gg/devilutionx)
+- Update [Discord link](https://discord.gg/devilutionx-518540764754608128)
 - Display save game confirmation
 - Reduce ram usage
 

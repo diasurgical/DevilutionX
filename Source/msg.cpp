@@ -48,6 +48,7 @@
 #include "pack.h"
 #include "pfile.h"
 #include "player.h"
+#include "players/validation.hpp"
 #include "plrmsg.h"
 #include "portals/validation.hpp"
 #include "quests/validation.hpp"
@@ -283,14 +284,14 @@ uint8_t sbLastCmd;
 /**
  * @brief buffer used to receive level deltas, size is the worst expected case assuming every object on a level was touched
  */
-std::byte sgRecvBuf[1U                                             /* marker byte, always 0 */
-    + sizeof(uint8_t)                                              /* level id */
-    + sizeof(DLevel::item)                                         /* items spawned during dungeon generation which have been picked up, and items dropped by a player during a game */
-    + sizeof(uint8_t)                                              /* count of object interactions which caused a state change since dungeon generation */
-    + (sizeof(WorldTilePosition) + sizeof(_cmd_id)) * MAXOBJECTS   /* location/action pairs for the object interactions */
-    + sizeof(DLevel::monster)                                      /* latest monster state */
-    + sizeof(uint16_t)                                             /* spawned monster count */
-    + (sizeof(uint16_t) + sizeof(DSpawnedMonster)) * MaxMonsters]; /* spawned monsters */
+std::byte sgRecvBuf[1U                                               /* marker byte, always 0 */
+    + sizeof(uint8_t)                                                /* level id */
+    + sizeof(DLevel::item)                                           /* items spawned during dungeon generation which have been picked up, and items dropped by a player during a game */
+    + sizeof(uint8_t)                                                /* count of object interactions which caused a state change since dungeon generation */
+    + ((sizeof(WorldTilePosition) + sizeof(_cmd_id)) * MAXOBJECTS)   /* location/action pairs for the object interactions */
+    + sizeof(DLevel::monster)                                        /* latest monster state */
+    + sizeof(uint16_t)                                               /* spawned monster count */
+    + ((sizeof(uint16_t) + sizeof(DSpawnedMonster)) * MaxMonsters)]; /* spawned monsters */
 
 _cmd_id sgbRecvCmd;
 ankerl::unordered_dense::map<uint8_t, LocalLevel> LocalLevels;
@@ -450,6 +451,13 @@ void PrePacket()
 			if (playerId >= Players.size()) {
 				Log("Missing source of network message");
 				return;
+			}
+
+			if (IsNoneOf(cmdId, CMD_SEND_PLRINFO, CMD_ACK_PLRINFO)) {
+				if (!IsNetPlayerValid(playerId)) {
+					Log("Source of network message is no longer valid");
+					return;
+				}
 			}
 
 			const size_t size = ParseCmd(playerId, reinterpret_cast<TCmd *>(data), remainingBytes);
@@ -2164,7 +2172,8 @@ size_t OnDeletePlayerItems(const TCmdDelItem &message, Player &player)
 
 size_t OnChangeInventoryItems(const TCmdChItem &message, Player &player)
 {
-	if (message.bLoc >= InventoryGridCells)
+	const uint8_t topLeft = message.bLoc;
+	if (topLeft >= InventoryGridCells)
 		return sizeof(message);
 
 	if (gbBufferMsgs == 1) {
@@ -2172,7 +2181,16 @@ size_t OnChangeInventoryItems(const TCmdChItem &message, Player &player)
 	} else if (&player != MyPlayer && IsItemAvailable(static_cast<_item_indexes>(Swap16LE(message.def.wIndx)))) {
 		Item item {};
 		RecreateItem(player, message, item);
-		CheckInvSwap(player, item, message.bLoc);
+
+		const Size itemSize = GetInventorySize(item);
+		const int invPitch = InventorySizeInSlots.width;
+		const int verticalShift = itemSize.width - 1;
+		const int horizontalShift = itemSize.height - 1;
+		const uint8_t bottomRight = static_cast<uint8_t>(topLeft + invPitch * verticalShift + horizontalShift);
+		if (bottomRight >= InventoryGridCells)
+			return sizeof(message);
+
+		CheckInvSwap(player, item, topLeft);
 	}
 
 	return sizeof(message);
@@ -2755,14 +2773,14 @@ void run_delta_info()
 void DeltaExportData(uint8_t pnum)
 {
 	for (const auto &[levelNum, deltaLevel] : DeltaLevels) {
-		const size_t bufferSize = 1U                                                            /* marker byte, always 0 */
-		    + sizeof(uint8_t)                                                                   /* level id */
-		    + sizeof(deltaLevel.item)                                                           /* items spawned during dungeon generation which have been picked up, and items dropped by a player during a game */
-		    + sizeof(uint8_t)                                                                   /* count of object interactions which caused a state change since dungeon generation */
-		    + (sizeof(WorldTilePosition) + sizeof(DObjectStr)) * deltaLevel.object.size()       /* location/action pairs for the object interactions */
-		    + sizeof(deltaLevel.monster)                                                        /* latest monster state */
-		    + sizeof(uint16_t)                                                                  /* spawned monster count */
-		    + (sizeof(uint16_t) + sizeof(DSpawnedMonster)) * deltaLevel.spawnedMonsters.size(); /* spawned monsters */
+		const size_t bufferSize = 1U                                                              /* marker byte, always 0 */
+		    + sizeof(uint8_t)                                                                     /* level id */
+		    + sizeof(deltaLevel.item)                                                             /* items spawned during dungeon generation which have been picked up, and items dropped by a player during a game */
+		    + sizeof(uint8_t)                                                                     /* count of object interactions which caused a state change since dungeon generation */
+		    + ((sizeof(WorldTilePosition) + sizeof(DObjectStr)) * deltaLevel.object.size())       /* location/action pairs for the object interactions */
+		    + sizeof(deltaLevel.monster)                                                          /* latest monster state */
+		    + sizeof(uint16_t)                                                                    /* spawned monster count */
+		    + ((sizeof(uint16_t) + sizeof(DSpawnedMonster)) * deltaLevel.spawnedMonsters.size()); /* spawned monsters */
 		const std::unique_ptr<std::byte[]> dst { new std::byte[bufferSize] };
 
 		std::byte *dstEnd = &dst.get()[1];
@@ -2882,7 +2900,7 @@ void DeltaAddItem(int ii)
 		if (item.bCmd != CMD_INVALID
 		    && static_cast<_item_indexes>(Swap16LE(item.def.wIndx)) == Items[ii].IDidx
 		    && Swap16LE(item.def.wCI) == Items[ii]._iCreateInfo
-		    && static_cast<uint32_t>(Swap32LE(item.def.dwSeed)) == Items[ii]._iSeed
+		    && Swap32LE(item.def.dwSeed) == Items[ii]._iSeed
 		    && IsAnyOf(item.bCmd, TCmdPItem::PickedUpItem, TCmdPItem::FloorItem)) {
 			return;
 		}
@@ -3228,7 +3246,7 @@ void NetSyncInvItem(const Player &player, int invListIndex)
 		return;
 
 	for (int j = 0; j < InventoryGridCells; j++) {
-		if (player.InvGrid[j] == invListIndex + 1) {
+		if (std::abs(player.InvGrid[j]) == invListIndex + 1) {
 			NetSendCmdChInvItem(false, j);
 			break;
 		}

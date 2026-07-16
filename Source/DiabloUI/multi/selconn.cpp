@@ -11,6 +11,7 @@
 #endif
 
 #include <fmt/core.h>
+#include <fmt/format.h>
 
 #include "DiabloUI/diabloui.h"
 #include "DiabloUI/ui_flags.hpp"
@@ -69,7 +70,7 @@ void SelconnLoad()
 
 	const Point uiPosition = GetUIRectangle().position;
 
-	const SDL_Rect rect1 = { (Sint16)(uiPosition.x + 24), (Sint16)(Sint16)(uiPosition.y + 161), 590, 35 };
+	const SDL_Rect rect1 = { (Sint16)(uiPosition.x + 24), ((Sint16)(uiPosition.y + 161)), 590, 35 };
 	vecSelConnDlg.push_back(std::make_unique<UiArtText>(_("Multi Player Game").data(), rect1, UiFlags::AlignCenter | UiFlags::FontSize30 | UiFlags::ColorUiSilver, 3));
 
 	const SDL_Rect rect2 = { (Sint16)(uiPosition.x + 35), (Sint16)(uiPosition.y + 218), DESCRIPTION_WIDTH, 21 };

@@ -5,7 +5,7 @@
 
 #include "engine/point.hpp"
 #include "engine/surface.hpp"
-#include "spelldat.h"
+#include "tables/spelldat.h"
 
 namespace devilution {
 

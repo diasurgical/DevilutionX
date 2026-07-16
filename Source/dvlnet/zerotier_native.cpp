@@ -140,7 +140,7 @@ std::string ToZTCompliantPath(std::string_view configPath)
 
 void Callback(void *ptr)
 {
-	zts_event_msg_t *msg = reinterpret_cast<zts_event_msg_t *>(ptr);
+	auto *msg = reinterpret_cast<zts_event_msg_t *>(ptr);
 
 	switch (msg->event_code) {
 	case ZTS_EVENT_NODE_ONLINE:

@@ -1,6 +1,7 @@
 #include "data/value_reader.hpp"
 
 #include <fmt/core.h>
+#include <fmt/format.h>
 
 #include "appfat.h"
 

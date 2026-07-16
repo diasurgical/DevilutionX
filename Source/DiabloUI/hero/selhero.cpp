@@ -17,6 +17,7 @@
 #endif
 
 #include <fmt/core.h>
+#include <fmt/format.h>
 
 #include "DiabloUI/diabloui.h"
 #include "DiabloUI/dialogs.h"
@@ -33,7 +34,7 @@
 #include "levels/gendung.h"
 #include "options.h"
 #include "pfile.h"
-#include "playerdat.hpp"
+#include "tables/playerdat.hpp"
 #include "utils/enum_traits.h"
 #include "utils/language.h"
 #include "utils/sdl_geometry.h"
@@ -175,7 +176,7 @@ void SelheroListSelect(size_t value)
 		vecSelHeroDlgItems.clear();
 		int itemH = 33;
 		for (size_t i = 0; i < GetNumPlayerClasses(); ++i) {
-			const HeroClass heroClass = static_cast<HeroClass>(i);
+			const auto heroClass = static_cast<HeroClass>(i);
 
 			if (heroClass == HeroClass::Monk && !gbIsHellfire) {
 				continue;
@@ -194,7 +195,7 @@ void SelheroListSelect(size_t value)
 		}
 		if (vecSelHeroDlgItems.size() > 4)
 			itemH = 26;
-		const int itemY = static_cast<int>(246 + (176 - std::min<size_t>(vecSelHeroDlgItems.size(), 6) * itemH) / 2);
+		const int itemY = static_cast<int>(246 + ((176 - std::min<size_t>(vecSelHeroDlgItems.size(), 6) * itemH) / 2));
 		vecSelDlgItems.push_back(std::make_unique<UiList>(vecSelHeroDlgItems, std::min<size_t>(vecSelHeroDlgItems.size(), 6), uiPosition.x + 264, (uiPosition.y + itemY), 320, itemH, UiFlags::AlignCenter | UiFlags::FontSize24 | UiFlags::ColorUiGold));
 
 		const SDL_Rect rectScrollBar = { (Sint16)(uiPosition.x + 585), (Sint16)(uiPosition.y + 244), 25, 178 };

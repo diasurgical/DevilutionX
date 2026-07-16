@@ -27,7 +27,7 @@ jobs:
   build:
     runs-on: macos-15-intel
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         fetch-depth: 0
 
@@ -35,11 +35,11 @@ jobs:
       run: brew bundle install
 
     - name: Cache CMake build folder
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: build
-        key: ${{ github.workflow }}-v3-${{ github.sha }}
-        restore-keys: ${{ github.workflow }}-v3-
+        key: ${{ github.workflow }}-v4-${{ github.sha }}
+        restore-keys: ${{ github.workflow }}-v4-
 
     - name: Clean previous DMG
       working-directory: ${{github.workspace}}
@@ -58,7 +58,7 @@ jobs:
 
     - name: Upload-Package
       if: ${{ !env.ACT }}
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: devilutionx-x86_64-macOS.dmg
         path: build/devilutionx-x86_64-macOS.dmg

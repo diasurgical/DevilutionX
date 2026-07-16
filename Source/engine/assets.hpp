@@ -8,6 +8,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #ifdef USE_SDL3
 #include <SDL3/SDL_error.h>
@@ -30,6 +31,7 @@
 #include "utils/string_or_view.hpp"
 
 #ifndef UNPACKED_MPQS
+#include "mods/mod_identity.h"
 #include "mpq/mpq_reader.hpp"
 #endif
 
@@ -118,8 +120,9 @@ struct AssetHandle {
 struct AssetRef {
 	// An MPQ file reference:
 	MpqArchive *archive = nullptr;
-	uint32_t fileNumber;
+	uint32_t hashIndex = UINT32_MAX;
 	std::string_view filename;
+	bool isOverridden = false;
 
 	// Alternatively, a direct SDL_IOStream handle:
 	SDL_IOStream *directHandle = nullptr;
@@ -128,7 +131,7 @@ struct AssetRef {
 
 	AssetRef(AssetRef &&other) noexcept
 	    : archive(other.archive)
-	    , fileNumber(other.fileNumber)
+	    , hashIndex(other.hashIndex)
 	    , filename(other.filename)
 	    , directHandle(other.directHandle)
 	{
@@ -139,7 +142,7 @@ struct AssetRef {
 	{
 		closeDirectHandle();
 		archive = other.archive;
-		fileNumber = other.fileNumber;
+		hashIndex = other.hashIndex;
 		filename = other.filename;
 		directHandle = other.directHandle;
 		other.directHandle = nullptr;
@@ -165,8 +168,9 @@ struct AssetRef {
 	[[nodiscard]] size_t size() const
 	{
 		if (archive != nullptr) {
-			int32_t error;
-			return archive->GetUnpackedFileSize(fileNumber, error);
+			if (hashIndex != UINT32_MAX)
+				return archive->GetFileSizeFromHash(hashIndex);
+			return archive->GetFileSize(filename);
 		}
 		return static_cast<size_t>(SDL_GetIOSize(directHandle));
 	}
@@ -278,6 +282,9 @@ AssetRef FindAsset(std::string_view filename);
 AssetHandle OpenAsset(AssetRef &&ref, bool threadsafe = false);
 AssetHandle OpenAsset(std::string_view filename, bool threadsafe = false);
 AssetHandle OpenAsset(std::string_view filename, size_t &fileSize, bool threadsafe = false);
+AssetHandle OpenIntegralAsset(AssetRef &&ref, bool threadsafe = false);
+AssetHandle OpenIntegralAsset(std::string_view filename, bool threadsafe = false);
+AssetHandle OpenIntegralAsset(std::string_view filename, size_t &fileSize, bool threadsafe = false);
 
 SDL_IOStream *OpenAssetAsSdlRwOps(std::string_view filename, bool threadsafe = false);
 
@@ -292,6 +299,7 @@ struct AssetData {
 };
 
 tl::expected<AssetData, std::string> LoadAsset(std::string_view path);
+tl::expected<AssetData, std::string> LoadIntegralAsset(std::string_view path);
 
 #ifdef UNPACKED_MPQS
 using MpqArchiveT = std::string;
@@ -300,11 +308,22 @@ using MpqArchiveT = MpqArchive;
 #endif
 
 extern DVL_API_FOR_TEST std::map<int, MpqArchiveT, std::greater<>> MpqArchives;
+extern DVL_API_FOR_TEST std::vector<std::string> OverridePaths;
 constexpr int MainMpqPriority = 1000;
 constexpr int DevilutionXMpqPriority = 9000;
 constexpr int LangMpqPriority = 9100;
 constexpr int FontMpqPriority = 9200;
 extern bool HasHellfireMpq;
+extern bool IsAssetIntegrityViolated;
+
+/**
+ * @brief Returns true if any loose-file override root contains loadable logic assets (*.lua, *.tsv, *.sol).
+ *
+ * Unlike `IsAssetIntegrityViolated`, which is only set once an overridden logic asset has actually
+ * been loaded, this scans the override directories directly. This catches lazily loaded assets
+ * (e.g. the towner TSVs) before entering multiplayer instead of hitting the in-game backstop.
+ */
+[[nodiscard]] bool HasLooseLogicAssets();
 
 void LoadCoreArchives();
 void LoadLanguageArchive();
@@ -312,6 +331,17 @@ void LoadGameArchives();
 void LoadHellfireArchives();
 void UnloadModArchives();
 void LoadModArchives(std::span<const std::string_view> modnames);
+
+/**
+ * @brief Reads the `manifest.ini` of a discovered (not necessarily active) mod by name.
+ *
+ * Used to surface mod metadata (name, description, ...) in the settings UI for every mod,
+ * including inactive and loose-directory ones. Returns a default-constructed manifest when
+ * the mod has no manifest or cannot be read. Bypasses the override-capable `FindAsset`
+ * pipeline: for a loose mod it reads `mods/<name>/manifest.ini` from disk; for a packed mod
+ * it reads from the mod's own archive.
+ */
+[[nodiscard]] ModManifest ReadModManifestByName(std::string_view name);
 
 #ifdef BUILD_TESTING
 [[nodiscard]] inline bool HaveMainData() { return MpqArchives.find(MainMpqPriority) != MpqArchives.end(); }

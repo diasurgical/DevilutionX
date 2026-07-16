@@ -1,3 +1,5 @@
+# Cross-compiling for Android.
+
 # General build options.
 set(BUILD_TESTING OFF)
 

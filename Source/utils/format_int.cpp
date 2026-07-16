@@ -26,7 +26,7 @@ std::string FormatInteger(int n)
 	}
 
 	const std::string_view separator = _(/* TRANSLATORS: Thousands separator */ ",");
-	out.reserve(len + separator.size() * (numLen - 1) / GroupSize);
+	out.reserve(len + (separator.size() * (numLen - 1) / GroupSize));
 	if (n < 0) {
 		out += '-';
 		++begin;
@@ -62,7 +62,7 @@ std::string FormatInteger(uint32_t n)
 	}
 
 	const std::string_view separator = _(/* TRANSLATORS: Thousands separator */ ",");
-	out.reserve(len + separator.size() * (numLen - 1) / GroupSize);
+	out.reserve(len + (separator.size() * (numLen - 1) / GroupSize));
 
 	size_t mlen = numLen % GroupSize;
 	if (mlen == 0)

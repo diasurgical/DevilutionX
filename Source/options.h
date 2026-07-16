@@ -29,6 +29,7 @@
 #include "controls/controller_buttons.h"
 #include "engine/size.hpp"
 #include "engine/sound_defs.hpp"
+#include "mods/mod_identity.h"
 #include "pack.h"
 #include "quick_messages.hpp"
 #include "utils/enum_traits.h"
@@ -89,17 +90,17 @@ enum class Resampler : uint8_t {
 #endif
 };
 
+enum class StoreUi : uint8_t {
+	/** @brief Vanilla Diablo UI. */
+	Text = 0,
+	/** @brief Show item graphics to the left of item descriptions in store menus. */
+	ListWithItemGraphics = 1,
+	/** @brief Use visual grid-based store UI instead of text-based menus. */
+	VisualGrid = 2,
+};
+
 std::string_view ResamplerToString(Resampler resampler);
 std::optional<Resampler> ResamplerFromString(std::string_view resampler);
-
-enum class FloatingNumbers : uint8_t {
-	/** @brief Show no floating numbers. */
-	Off = 0,
-	/** @brief Show floating numbers at random angles. */
-	Random = 1,
-	/** @brief Show floating numbers vertically only. */
-	Vertical = 2,
-};
 
 enum class OptionEntryType : uint8_t {
 	Boolean,
@@ -496,6 +497,8 @@ struct AudioOptions : OptionCategoryBase {
 
 	/** @brief Movie and SFX volume. */
 	OptionEntryInt<int> soundVolume;
+	/** @brief Accessibility / navigation cues volume. */
+	OptionEntryInt<int> audioCuesVolume;
 	/** @brief Music volume. */
 	OptionEntryInt<int> musicVolume;
 	/** @brief Player emits sound when walking. */
@@ -588,8 +591,6 @@ struct GameplayOptions : OptionCategoryBase {
 	OptionEntryBoolean testBarbarian;
 	/** @brief Show the current level progress. */
 	OptionEntryBoolean experienceBar;
-	/** @brief Show item graphics to the left of item descriptions in store menus. */
-	OptionEntryBoolean showItemGraphicsInStores;
 	/** @brief Display current/max health values on health globe. */
 	OptionEntryBoolean showHealthValues;
 	/** @brief Display current/max mana values on mana globe. */
@@ -608,8 +609,6 @@ struct GameplayOptions : OptionCategoryBase {
 	OptionEntryBoolean autoOilPickup;
 	/** @brief Enable or Disable auto-pickup in town */
 	OptionEntryBoolean autoPickupInTown;
-	/** @brief Recover mana when talking to Adria. */
-	OptionEntryBoolean adriaRefillsMana;
 	/** @brief Automatically attempt to equip weapon-type items when picking them up. */
 	OptionEntryBoolean autoEquipWeapons;
 	/** @brief Automatically attempt to equip armor-type items when picking them up. */
@@ -644,8 +643,8 @@ struct GameplayOptions : OptionCategoryBase {
 	OptionEntryInt<int> numRejuPotionPickup;
 	/** @brief Number of Full Rejuvenating potions to pick up automatically */
 	OptionEntryInt<int> numFullRejuPotionPickup;
-	/** @brief Enable floating numbers. */
-	OptionEntryEnum<FloatingNumbers> enableFloatingNumbers;
+	/** @brief Store user interface. */
+	OptionEntryEnum<StoreUi> storeUi;
 
 	/**
 	 * @brief If loading takes less than this value, skips displaying the loading screen.
@@ -859,8 +858,16 @@ private:
 		ModEntry(const ModEntry &) = delete;
 
 		ModEntry(std::string_view name);
+		// `name` is the mod id (MPQ filename stem / INI key). `displayName` and `description`
+		// come from the mod's `manifest.ini` (falling back to `name` and empty), and are what
+		// the settings UI shows via `enabled`.
 		std::string name;
+		std::string displayName;
+		std::string description;
 		OptionEntryBoolean enabled;
+
+	private:
+		ModEntry(std::string_view name, const ModManifest &manifest);
 	};
 
 	std::forward_list<ModEntry> &GetModEntries();

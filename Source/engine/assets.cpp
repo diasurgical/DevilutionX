@@ -1,9 +1,12 @@
 #include "engine/assets.hpp"
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <functional>
+#include <memory>
+#include <string_view>
 #include <vector>
 
 #ifdef USE_SDL3
@@ -13,12 +16,16 @@
 #include <SDL.h>
 #endif
 
+#include <fmt/format.h>
+
 #include "appfat.h"
 #include "game_mode.hpp"
+#include "mods/mod_identity.h"
 #include "utils/file_util.h"
 #include "utils/log.hpp"
 #include "utils/paths.h"
 #include "utils/sdl_compat.h"
+#include "utils/str_case.hpp"
 #include "utils/str_cat.hpp"
 #include "utils/str_split.hpp"
 
@@ -37,6 +44,7 @@ namespace devilution {
 std::vector<std::string> OverridePaths;
 std::map<int, MpqArchiveT, std::greater<>> MpqArchives;
 bool HasHellfireMpq;
+bool IsAssetIntegrityViolated = false;
 
 namespace {
 
@@ -67,17 +75,68 @@ SDL_IOStream *OpenOptionalRWops(const std::string &path)
 	return SDL_IOFromFile(path.c_str(), "rb");
 };
 
-bool FindMpqFile(std::string_view filename, MpqArchive **archive, uint32_t *fileNumber)
+bool FindMpqFile(std::string_view filename, MpqArchive **archive, uint32_t *hashIndex)
 {
-	const MpqFileHash fileHash = CalculateMpqFileHash(filename);
-
 	for (auto &[_, mpqArchive] : MpqArchives) {
-		if (mpqArchive.GetFileNumber(fileHash, *fileNumber)) {
+		uint32_t hash = mpqArchive.FindHash(filename);
+		if (hash != UINT32_MAX) {
 			*archive = &mpqArchive;
+			*hashIndex = hash;
 			return true;
 		}
 	}
 
+	return false;
+}
+
+bool HasLogicAssetExtension(std::string_view filename)
+{
+	if (filename.size() < 4)
+		return false;
+	// Case-insensitive so that overrides on case-insensitive filesystems are caught.
+	const std::string extension = AsciiStrToLower(filename.substr(filename.size() - 4));
+	return extension == ".lua" || extension == ".tsv" || extension == ".sol";
+}
+
+/**
+ * @brief Returns true if a logic-asset request could resolve to a loose file at `relativePath`.
+ */
+bool IsLoadableLogicAssetPath(std::string relativePath)
+{
+	// Asset requests use `\` as the separator.
+	std::replace(relativePath.begin(), relativePath.end(), DirectorySeparator, '\\');
+	AsciiStrToLower(relativePath);
+
+	// Lua modules are requested by module name under `lua\` (see `LoadPackageData`), including
+	// mod entry points such as `lua\mods\<name>\init.lua` that have no archive counterpart.
+	if (relativePath.starts_with("lua\\") && relativePath.ends_with(".lua"))
+		return true;
+
+	// TSV and SOL requests use fixed canonical paths.
+	MpqArchive *archive;
+	uint32_t hashIndex;
+	if (FindMpqFile(relativePath, &archive, &hashIndex))
+		return true;
+
+	std::string assetsDirPath = relativePath;
+	std::replace(assetsDirPath.begin(), assetsDirPath.end(), '\\', DirectorySeparator);
+	return FileExists((paths::AssetsPath() + assetsDirPath).c_str());
+}
+
+bool ContainsLogicAssets(const std::string &rootPath, const std::string &relativeDir, unsigned depth)
+{
+	constexpr unsigned MaxScanDepth = 16;
+	if (depth > MaxScanDepth)
+		return false;
+	const std::string dirPath = rootPath + relativeDir;
+	for (const std::string &filename : ListFiles(dirPath.c_str())) {
+		if (HasLogicAssetExtension(filename) && IsLoadableLogicAssetPath(relativeDir + filename))
+			return true;
+	}
+	for (const std::string &subdirName : ListDirectories(dirPath.c_str())) {
+		if (ContainsLogicAssets(rootPath, StrCat(relativeDir, subdirName, DIRECTORY_SEPARATOR_STR), depth + 1))
+			return true;
+	}
 	return false;
 }
 
@@ -151,13 +210,14 @@ AssetRef FindAsset(std::string_view filename)
 			result.directHandle = OpenOptionalRWops(path);
 			if (result.directHandle != nullptr) {
 				LogVerbose("Loaded MPQ file override: {}", path);
+				result.isOverridden = true;
 				return result;
 			}
 		}
 	}
 
 	// Look for the file in all the MPQ archives:
-	if (FindMpqFile(filename, &result.archive, &result.fileNumber)) {
+	if (FindMpqFile(filename, &result.archive, &result.hashIndex)) {
 		result.filename = filename;
 		return result;
 	}
@@ -167,7 +227,7 @@ AssetRef FindAsset(std::string_view filename)
 	if (result.directHandle != nullptr)
 		return result;
 
-#if defined(__ANDROID__) || defined(__APPLE__)
+#if (defined(__ANDROID__) && !defined(TERMUX)) || defined(__APPLE__)
 	// Fall back to the bundled assets on supported systems.
 	// This is handled by SDL when we pass a relative path.
 	if (!paths::AssetsPath().empty()) {
@@ -183,11 +243,11 @@ AssetRef FindAsset(std::string_view filename)
 
 AssetHandle OpenAsset(AssetRef &&ref, bool threadsafe)
 {
-#if UNPACKED_MPQS
+#ifdef UNPACKED_MPQS
 	return AssetHandle { OpenFile(ref.path, "rb") };
 #else
 	if (ref.archive != nullptr)
-		return AssetHandle { SDL_RWops_FromMpqFile(*ref.archive, ref.fileNumber, ref.filename, threadsafe) };
+		return AssetHandle { SDL_RWops_FromMpqFile(*ref.archive, ref.hashIndex, ref.filename, threadsafe) };
 	if (ref.directHandle != nullptr) {
 		// Transfer handle ownership:
 		auto *handle = ref.directHandle;
@@ -215,6 +275,32 @@ AssetHandle OpenAsset(std::string_view filename, size_t &fileSize, bool threadsa
 	return OpenAsset(std::move(ref), threadsafe);
 }
 
+AssetHandle OpenIntegralAsset(AssetRef &&ref, bool threadsafe)
+{
+#ifndef UNPACKED_MPQS
+	if (ref.isOverridden)
+		IsAssetIntegrityViolated = true;
+#endif
+	return OpenAsset(std::move(ref), threadsafe);
+}
+
+AssetHandle OpenIntegralAsset(std::string_view filename, bool threadsafe)
+{
+	AssetRef ref = FindAsset(filename);
+	if (!ref.ok())
+		return AssetHandle {};
+	return OpenIntegralAsset(std::move(ref), threadsafe);
+}
+
+AssetHandle OpenIntegralAsset(std::string_view filename, size_t &fileSize, bool threadsafe)
+{
+	AssetRef ref = FindAsset(filename);
+	if (!ref.ok())
+		return AssetHandle {};
+	fileSize = ref.size();
+	return OpenIntegralAsset(std::move(ref), threadsafe);
+}
+
 SDL_IOStream *OpenAssetAsSdlRwOps(std::string_view filename, bool threadsafe)
 {
 #ifdef UNPACKED_MPQS
@@ -238,6 +324,28 @@ tl::expected<AssetData, std::string> LoadAsset(std::string_view path)
 	std::unique_ptr<char[]> data { new char[size] };
 
 	AssetHandle handle = OpenAsset(std::move(ref));
+	if (!handle.ok()) {
+		return tl::make_unexpected(StrCat("Failed to open asset: ", path, "\n", handle.error()));
+	}
+
+	if (size > 0 && !handle.read(data.get(), size)) {
+		return tl::make_unexpected(StrCat("Read failed: ", path, "\n", handle.error()));
+	}
+
+	return AssetData { std::move(data), size };
+}
+
+tl::expected<AssetData, std::string> LoadIntegralAsset(std::string_view path)
+{
+	AssetRef ref = FindAsset(path);
+	if (!ref.ok()) {
+		return tl::make_unexpected(StrCat("Asset not found: ", path));
+	}
+
+	const size_t size = ref.size();
+	std::unique_ptr<char[]> data { new char[size] };
+
+	AssetHandle handle = OpenIntegralAsset(std::move(ref));
 	if (!handle.ok()) {
 		return tl::make_unexpected(StrCat("Failed to open asset: ", path, "\n", handle.error()));
 	}
@@ -301,27 +409,30 @@ bool FindMPQ(std::span<const std::string> paths, std::string_view mpqName)
 	return false;
 }
 
-bool LoadMPQ(std::span<const std::string> paths, std::string_view mpqName, int priority, std::string_view ext = ".mpq")
+bool LoadMPQ(std::span<const std::string> paths, std::string_view mpqName, int priority, std::string_view ext = ".mpq", std::string *loadedPath = nullptr)
 {
-	std::optional<MpqArchive> archive;
 	std::string mpqAbsPath;
-	std::int32_t error = 0;
+	bool foundButFailed = false;
 	for (const auto &path : paths) {
 		mpqAbsPath = StrCat(path, mpqName, ext);
-		archive = MpqArchive::Open(mpqAbsPath.c_str(), error);
-		if (archive.has_value()) {
-			LogVerbose("  Found: {} in {}", mpqName, path);
-			auto [it, inserted] = MpqArchives.emplace(priority, *std::move(archive));
-			if (!inserted) {
-				LogError("MPQ with priority {} is already registered, skipping {}", priority, mpqName);
-			}
-			return true;
+		if (!FileExists(mpqAbsPath))
+			continue;
+		tl::expected<MpqArchive, std::string> archive = MpqArchive::Open(mpqAbsPath.c_str());
+		if (!archive.has_value()) {
+			foundButFailed = true;
+			LogError("Error {}: {}", archive.error(), mpqAbsPath);
+			continue;
 		}
-		if (error != 0) {
-			LogError("Error {}: {}", MpqArchive::ErrorMessage(error), mpqAbsPath);
+		LogVerbose("  Found: {} in {}", mpqName, path);
+		auto [it, inserted] = MpqArchives.emplace(priority, *std::move(archive));
+		if (!inserted) {
+			LogError("MPQ with priority {} is already registered, skipping {}", priority, mpqName);
 		}
+		if (loadedPath != nullptr)
+			*loadedPath = mpqAbsPath;
+		return true;
 	}
-	if (error == 0) {
+	if (!foundButFailed) {
 		LogVerbose("Missing: {}", mpqName);
 	}
 
@@ -356,6 +467,12 @@ std::vector<std::string> GetMPQSearchPaths()
 		paths.emplace_back("/usr/local/share/diasurgical/devilutionx/");
 		paths.emplace_back("/usr/share/diasurgical/devilutionx/");
 	}
+#elif defined(TERMUX)
+#ifdef CMAKE_INSTALL_PREFIX
+	paths.emplace_back(CMAKE_INSTALL_PREFIX "/share/diasurgical/devilutionx/");
+#else
+	paths.emplace_back("/usr/share/diasurgical/devilutionx/");
+#endif
 #elif defined(NXDK)
 	paths.emplace_back("D:\\");
 #elif defined(_WIN32) && !defined(__UWP__) && !defined(DEVILUTIONX_WINDOWS_NO_WCHAR)
@@ -391,7 +508,7 @@ void LoadCoreArchives()
 {
 	auto paths = GetMPQSearchPaths();
 
-#if !defined(__ANDROID__) && !defined(__APPLE__) && !defined(__3DS__) && !defined(__SWITCH__)
+#if !(defined(__ANDROID__) && !defined(TERMUX)) && !defined(__APPLE__) && !defined(__3DS__) && !defined(__SWITCH__)
 	// Load devilutionx.mpq first to get the font file for error messages
 #ifdef __DJGPP__
 	LoadMPQ(paths, "devx", DevilutionXMpqPriority);
@@ -489,27 +606,183 @@ void UnloadModArchives()
 #endif
 }
 
+#ifndef UNPACKED_MPQS
+namespace {
+
+tl::expected<ModManifest, int32_t> ReadPackedModManifestFrom(MpqArchive &archive)
+{
+	constexpr std::string_view ManifestName = "manifest.ini";
+	if (!archive.HasFile(ManifestName))
+		return tl::make_unexpected(0);
+
+	size_t fileSize = 0;
+	int32_t error = 0;
+	std::unique_ptr<std::byte[]> data = archive.ReadFile(ManifestName, fileSize, error);
+	if (data == nullptr)
+		return tl::make_unexpected(error);
+
+	return ParseModManifest(std::string_view(reinterpret_cast<const char *>(data.get()), fileSize));
+}
+
+tl::expected<ModManifest, int32_t> ReadPackedModManifest(std::span<const std::string> paths, std::string_view modname)
+{
+	const std::string mpqName = StrCat("mods" DIRECTORY_SEPARATOR_STR, modname);
+	std::string mpqAbsPath;
+	for (const std::string &path : paths) {
+		mpqAbsPath = StrCat(path, mpqName, ".mpq");
+		if (!FileExists(mpqAbsPath))
+			continue;
+		tl::expected<MpqArchive, std::string> archive = MpqArchive::Open(mpqAbsPath.c_str());
+		if (!archive.has_value())
+			return tl::make_unexpected(0);
+		return ReadPackedModManifestFrom(*archive);
+	}
+	return tl::make_unexpected(0);
+}
+
+// Reads the mod's `manifest.ini` from its own archive (registered at `priority`) and
+// attaches the parsed metadata. Deliberately bypasses the override-capable `FindAsset`
+// pipeline so the manifest is exactly the one covered by the mod's identifying hash.
+void ReadLoadedModManifest(ModIdentifier &mod, int priority)
+{
+	auto it = MpqArchives.find(priority);
+	if (it == MpqArchives.end())
+		return;
+	MpqArchive &archive = it->second;
+	tl::expected<ModManifest, int32_t> manifest = ReadPackedModManifestFrom(archive);
+	if (manifest.has_value())
+		mod.manifest = std::move(*manifest);
+	else if (manifest.error() != 0)
+		LogError("Failed to read manifest from mod {}: error {}", mod.name, manifest.error());
+}
+
+// Reads the `requires` list from a packed mod's manifest without registering the archive, so
+// it can inform load ordering before the real load pass assigns priorities. Returns empty if
+// the mod has no packed archive, no manifest, or an unreadable one.
+std::vector<std::string> ReadPackedModRequiredMods(std::span<const std::string> paths, std::string_view modname)
+{
+	tl::expected<ModManifest, int32_t> manifest = ReadPackedModManifest(paths, modname);
+	if (!manifest.has_value())
+		return {};
+	return std::move(manifest->requiredMods);
+}
+
+} // namespace
+#endif
+
+ModManifest ReadModManifestByName(std::string_view name)
+{
+	const std::vector<std::string> searchPaths = GetMPQSearchPaths();
+	constexpr std::string_view ManifestName = "manifest.ini";
+
+	// Loose mod directory (also how UNPACKED_MPQS builds ship their mods).
+	for (const std::string &path : searchPaths) {
+		const std::string manifestPath = StrCat(path, "mods" DIRECTORY_SEPARATOR_STR, name, DIRECTORY_SEPARATOR_STR, ManifestName);
+		FILE *file = OpenFile(manifestPath.c_str(), "rb");
+		if (file == nullptr)
+			continue;
+		uintmax_t size = 0;
+		std::string contents;
+		if (GetFileSize(manifestPath.c_str(), &size) && size > 0) {
+			contents.resize(static_cast<size_t>(size));
+			if (std::fread(contents.data(), 1, contents.size(), file) != contents.size())
+				contents.clear();
+		}
+		std::fclose(file);
+		if (!contents.empty())
+			return ParseModManifest(contents);
+	}
+
+#ifndef UNPACKED_MPQS
+	// Packed mod archive.
+	tl::expected<ModManifest, int32_t> manifest = ReadPackedModManifest(searchPaths, name);
+	if (manifest.has_value())
+		return std::move(*manifest);
+#endif
+
+	return {};
+}
+
 void LoadModArchives(std::span<const std::string_view> modnames)
 {
+	ClearModIdentifiers();
+
+#ifdef UNPACKED_MPQS
+	const std::vector<std::string_view> activeMods(modnames.begin(), modnames.end());
+#else
+	// Order the active mods so every mod's declared requiredMods load first: a dependency gets a
+	// lower priority (loaded earlier, forms the base) and its dependents get higher priorities
+	// (loaded later, override it). `requires` is read from each packed mod's manifest in a
+	// pre-pass, because the real load below fixes priorities in iteration order.
+	const std::vector<std::string> searchPaths = GetMPQSearchPaths();
+	std::vector<ModDependency> deps;
+	deps.reserve(modnames.size());
+	for (const std::string_view modname : modnames)
+		deps.push_back(ModDependency { std::string(modname), ReadPackedModRequiredMods(searchPaths, modname) });
+	const std::vector<std::string> orderedNames = OrderModsByDependencies(deps);
+	const std::vector<std::string_view> activeMods(orderedNames.begin(), orderedNames.end());
+
+	// Tracks, per active mod, whether a loose override directory was found. Such mods carry no
+	// identifier (they are gated by the loose-asset integrity check) and are not built-in.
+	std::vector<bool> hasLooseOverride(activeMods.size(), false);
+#endif
+
 	std::string targetPath;
-	for (const std::string_view modname : modnames) {
+	for (size_t i = 0; i < activeMods.size(); ++i) {
+		const std::string_view modname = activeMods[i];
 		targetPath = StrCat(paths::PrefPath(), "mods" DIRECTORY_SEPARATOR_STR, modname, DIRECTORY_SEPARATOR_STR);
-		if (FileExists(targetPath)) {
+		if (DirectoryExists(targetPath)) {
 			OverridePaths.emplace_back(targetPath);
+#ifndef UNPACKED_MPQS
+			hasLooseOverride[i] = true;
+#endif
 		}
 		targetPath = StrCat(paths::BasePath(), "mods" DIRECTORY_SEPARATOR_STR, modname, DIRECTORY_SEPARATOR_STR);
-		if (FileExists(targetPath)) {
+		if (DirectoryExists(targetPath)) {
 			OverridePaths.emplace_back(targetPath);
+#ifndef UNPACKED_MPQS
+			hasLooseOverride[i] = true;
+#endif
 		}
 	}
 	OverridePaths.emplace_back(paths::PrefPath());
 
 	int priority = 10000;
 	auto paths = GetMPQSearchPaths();
-	for (const std::string_view modname : modnames) {
-		LoadMPQ(paths, StrCat("mods" DIRECTORY_SEPARATOR_STR, modname), priority);
+	for (size_t i = 0; i < activeMods.size(); ++i) {
+		const std::string_view modname = activeMods[i];
+		const std::string mpqName = StrCat("mods" DIRECTORY_SEPARATOR_STR, modname);
+#ifdef UNPACKED_MPQS
+		LoadMPQ(paths, mpqName, priority);
+#else
+		std::string loadedPath;
+		if (LoadMPQ(paths, mpqName, priority, ".mpq", &loadedPath)) {
+			// A packed mod: identify it by the hash of its MPQ bytes. A local packed mod
+			// deliberately shadows any built-in of the same name, so it is treated as external.
+			ModIdentifier &mod = RegisterPackedModIdentifier(modname, loadedPath.c_str());
+			ReadLoadedModManifest(mod, priority);
+		} else if (!hasLooseOverride[i]) {
+			// Neither a packed MPQ nor a loose override directory: this mod resolves purely
+			// from core archives (a built-in), so it is provenance-whitelisted.
+			RegisterBuiltinModIdentifier(modname);
+		}
+#endif
 		priority++;
 	}
+}
+
+bool HasLooseLogicAssets()
+{
+#ifdef UNPACKED_MPQS
+	// Unpacked builds do not consult `OverridePaths` and have no override integrity tracking.
+	return false;
+#else
+	for (const std::string &overridePath : OverridePaths) {
+		if (ContainsLogicAssets(overridePath, /*relativeDir=*/ {}, /*depth=*/0))
+			return true;
+	}
+	return false;
+#endif
 }
 
 } // namespace devilution

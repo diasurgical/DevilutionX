@@ -25,12 +25,13 @@ ${CMAKE} -DCMAKE_BUILD_TYPE=Release \
 ${MAKE} -C build-ps5 -j $(getconf _NPROCESSORS_ONLN)
 
 rm -rf build-ps5/DevilutionX
-mkdir build-ps5/DevilutionX
+mkdir -p build-ps5/DevilutionX/mods
 
 cp -r "${SCRIPTDIR}/sce_sys" build-ps5/DevilutionX/
 cp "${SCRIPTDIR}/homebrew.js" build-ps5/DevilutionX/
 cp "${SCRIPTDIR}/README.md" build-ps5/DevilutionX/
 cp build-ps5/devilutionx.mpq build-ps5/DevilutionX/
+cp build-ps5/mods/hf.mpq build-ps5/DevilutionX/mods/hf.mpq
 cp build-ps5/devilutionx build-ps5/DevilutionX/devilutionx.elf
 
 # Let github actions do this?

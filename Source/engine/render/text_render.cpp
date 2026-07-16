@@ -16,6 +16,7 @@
 
 #include <ankerl/unordered_dense.h>
 #include <fmt/core.h>
+#include <fmt/format.h>
 
 #include "DiabloUI/ui_flags.hpp"
 #include "engine/clx_sprite.hpp"
@@ -349,7 +350,7 @@ public:
 		return result;
 	}
 
-	size_t offset() const
+	[[nodiscard]] size_t offset() const
 	{
 		return next_;
 	}
@@ -363,8 +364,7 @@ private:
 
 bool ContainsSmallFontTallCodepoints(std::string_view text)
 {
-	while (!text.empty()) {
-		const char32_t next = ConsumeFirstUtf8CodePoint(&text);
+	for (char32_t next : Utf8CodePoints(text)) {
 		if (next == Utf8DecodeError)
 			break;
 		if (next == ZWSP)
@@ -430,7 +430,7 @@ void MaybeWrap(Point &characterPosition, int characterWidth, int rightMargin, in
 int GetLineStartX(UiFlags flags, const Rectangle &rect, int lineWidth)
 {
 	if (HasAnyOf(flags, UiFlags::AlignCenter)) {
-		return std::max(rect.position.x, rect.position.x + (rect.size.width - lineWidth) / 2);
+		return std::max(rect.position.x, rect.position.x + ((rect.size.width - lineWidth) / 2));
 	}
 	if (HasAnyOf(flags, UiFlags::AlignRight))
 		return rect.position.x + rect.size.width - lineWidth;
@@ -453,11 +453,7 @@ void DrawLine(
 {
 	CurrentFont currentFont;
 
-	std::string_view lineCopy = text;
-
 	size_t currentPos = 0;
-
-	size_t cpLen;
 
 	const auto maybeDrawCursor = [&]() {
 		const auto byteIndex = static_cast<int>(lineStartPos + currentPos);
@@ -478,11 +474,13 @@ void DrawLine(
 	// Start from the beginning of the line
 	characterPosition.x = GetLineStartX(flags, rect, totalWidth);
 
-	while (!lineCopy.empty()) {
-		char32_t c = DecodeFirstUtf8CodePoint(lineCopy, &cpLen);
+	for (auto it = Utf8CodePoints(text).begin(), itEnd = Utf8CodePoints(text).end();
+	     it != itEnd; ++it) {
+		char32_t c = *it;
 		if (c == Utf8DecodeError) break;
+		const auto cpLen = it.size();
 		if (c == ZWSP) {
-			lineCopy.remove_prefix(cpLen);
+			currentPos += cpLen;
 			continue;
 		}
 
@@ -513,7 +511,6 @@ void DrawLine(
 		// Move to the next position
 		characterPosition.x += charWidth + curSpacing;
 		currentPos += cpLen;
-		lineCopy.remove_prefix(cpLen);
 	}
 	assert(currentPos == text.size());
 	maybeDrawCursor();
@@ -637,9 +634,7 @@ int GetLineWidth(std::string_view text, GameFontTables size, int spacing, int *c
 	int lineWidth = 0;
 	CurrentFont currentFont;
 	uint32_t codepoints = 0;
-	char32_t next;
-	while (!text.empty()) {
-		next = ConsumeFirstUtf8CodePoint(&text);
+	for (char32_t next : Utf8CodePoints(text)) {
 		if (next == Utf8DecodeError)
 			break;
 		if (next == ZWSP)

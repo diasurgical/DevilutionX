@@ -13,6 +13,7 @@ target_link_dependencies(test_main PUBLIC libdevilutionx_so GTest::gtest GTest::
 set(tests
   animationinfo_test
   appfat_test
+  assets_test
   automap_test
   cursor_test
   dead_test
@@ -38,6 +39,14 @@ set(tests
   townerdat_test
   writehero_test
   vendor_test
+  panel_state_test
+  store_transaction_test
+  visual_store_test
+  stash_test
+  inventory_ui_test
+  spell_ui_test
+  char_panel_test
+  game_menu_test
 )
 set(standalone_tests
   codec_test
@@ -46,12 +55,14 @@ set(standalone_tests
   file_util_test
   format_int_test
   ini_test
+  mod_identity_test
   palette_blending_test
   parse_int_test
   path_test
   vision_test
   random_test
   rectangle_test
+  sheen_bidi_test
   static_vector_test
   str_cat_test
   utf8_test
@@ -103,6 +114,13 @@ add_library(language_for_testing OBJECT test/language_for_testing.cpp)
 target_sources(language_for_testing INTERFACE $<TARGET_OBJECTS:language_for_testing>)
 
 target_link_dependencies(codec_test PRIVATE libdevilutionx_codec app_fatal_for_testing)
+
+add_custom_target(clx_render_benchmark_resources
+  DEPENDS
+  "${DEVILUTIONX_ASSETS_OUTPUT_DIRECTORY}/data/resistance.clx"
+  "${DEVILUTIONX_ASSETS_OUTPUT_DIRECTORY}/ui_art/dvl_lrpopup.clx"
+)
+add_dependencies(clx_render_benchmark clx_render_benchmark_resources)
 target_link_dependencies(clx_render_benchmark
   PRIVATE
   DevilutionX::SDL
@@ -121,6 +139,8 @@ target_link_dependencies(dun_render_benchmark PRIVATE libdevilutionx_so)
 target_link_dependencies(file_util_test PRIVATE libdevilutionx_file_util app_fatal_for_testing)
 target_link_dependencies(format_int_test PRIVATE libdevilutionx_format_int language_for_testing)
 target_link_dependencies(ini_test PRIVATE libdevilutionx_ini app_fatal_for_testing)
+target_link_dependencies(mod_identity_test PRIVATE libdevilutionx_mod_identity app_fatal_for_testing)
+target_include_directories(mod_identity_test PRIVATE "${PROJECT_SOURCE_DIR}/3rdParty/PicoSHA2")
 target_link_dependencies(light_render_benchmark PRIVATE libdevilutionx_light_render DevilutionX::SDL libdevilutionx_surface libdevilutionx_paths app_fatal_for_testing)
 target_link_dependencies(palette_blending_test PRIVATE libdevilutionx_palette_blending DevilutionX::SDL libdevilutionx_strings GTest::gmock app_fatal_for_testing)
 target_link_dependencies(palette_blending_benchmark
@@ -196,6 +216,7 @@ if(DEVILUTIONX_SCREENSHOT_FORMAT STREQUAL DEVILUTIONX_SCREENSHOT_FORMAT_PNG AND 
   )
   add_dependencies(text_render_integration_test text_render_integration_test_resources)
 endif()
+target_link_dependencies(sheen_bidi_test PRIVATE libdevilutionx_sheen_bidi)
 target_link_dependencies(utf8_test PRIVATE libdevilutionx_utf8)
 
 target_include_directories(writehero_test PRIVATE 3rdParty/PicoSHA2)

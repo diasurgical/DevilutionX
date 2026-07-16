@@ -48,7 +48,7 @@
 #include "levels/gendung.h"
 #include "levels/tile_properties.hpp"
 #include "lighting.h"
-#include "lua/lua_global.hpp"
+#include "lua/lua_event.hpp"
 #include "minitext.h"
 #include "missiles.h"
 #include "nthread.h"
@@ -63,6 +63,7 @@
 #include "qol/itemlabels.h"
 #include "qol/monhealthbar.h"
 #include "qol/stash.h"
+#include "qol/visual_store.h"
 #include "qol/xpbar.h"
 #include "stores.h"
 #include "towners.h"
@@ -86,6 +87,16 @@
 #endif
 
 namespace devilution {
+
+enum OutlineColors : uint8_t {
+	OutlineColorsPlayer1 = (PAL16_ORANGE + 7),
+	OutlineColorsPlayer2 = (PAL16_YELLOW + 7),
+	OutlineColorsPlayer3 = (PAL16_RED + 7),
+	OutlineColorsPlayer4 = (PAL16_BLUE + 7),
+	OutlineColorsObject = (PAL16_YELLOW + 2),
+	OutlineColorsTowner = (PAL16_BEIGE + 6),
+	OutlineColorsMonster = (PAL16_RED + 9),
+};
 
 bool AutoMapShowItems;
 
@@ -430,6 +441,21 @@ void DrawPlayerIcons(const Surface &out, const Player &player, Point position, b
 		DrawPlayerIconHelper(out, MissileGraphicID::Reflect, position + Displacement { 0, 16 }, player, infraVision, lightTableIndex);
 }
 
+uint8_t GetPlayerOutlineColor(int id)
+{
+	static constexpr uint8_t PlayerOutlineColors[] = {
+		OutlineColorsPlayer1,
+		OutlineColorsPlayer2,
+		OutlineColorsPlayer3,
+		OutlineColorsPlayer4,
+	};
+
+	if (id < 0 || id >= static_cast<int>(SDL_arraysize(PlayerOutlineColors)))
+		return OutlineColorsPlayer1;
+
+	return PlayerOutlineColors[id];
+}
+
 /**
  * @brief Render a player sprite
  * @param out Output buffer
@@ -447,7 +473,7 @@ void DrawPlayer(const Surface &out, const Player &player, Point tilePosition, Po
 	const Point spriteBufferPosition = targetBufferPosition + player.getRenderingOffset(sprite);
 
 	if (&player == PlayerUnderCursor)
-		ClxDrawOutlineSkipColorZero(out, 165, spriteBufferPosition, sprite);
+		ClxDrawOutlineSkipColorZero(out, GetPlayerOutlineColor(player.getId()), spriteBufferPosition, sprite);
 
 	if (&player == MyPlayer && IsNoneOf(leveltype, DTYPE_NEST, DTYPE_CRYPT)) {
 		ClxDraw(out, spriteBufferPosition, sprite);
@@ -500,7 +526,7 @@ void DrawObject(const Surface &out, const Object &objectToDraw, Point tilePositi
 	const Point screenPosition = targetBufferPosition + objectToDraw.getRenderingOffset(sprite, tilePosition);
 
 	if (&objectToDraw == ObjectUnderCursor) {
-		ClxDrawOutlineSkipColorZero(out, 194, screenPosition, sprite);
+		ClxDrawOutlineSkipColorZero(out, OutlineColorsObject, screenPosition, sprite);
 	}
 	if (objectToDraw.applyLighting) {
 		ClxDrawLight(out, screenPosition, sprite, lightTableIndex);
@@ -713,7 +739,7 @@ void DrawMonsterHelper(const Surface &out, Point tilePosition, Point targetBuffe
 		const Point position = targetBufferPosition + towner.getRenderingOffset();
 		const ClxSprite sprite = towner.currentSprite();
 		if (mi == pcursmonst) {
-			ClxDrawOutlineSkipColorZero(out, 166, position, sprite);
+			ClxDrawOutlineSkipColorZero(out, OutlineColorsTowner, position, sprite);
 		}
 		ClxDraw(out, position, sprite);
 		return;
@@ -738,7 +764,7 @@ void DrawMonsterHelper(const Surface &out, Point tilePosition, Point targetBuffe
 
 	const Point monsterRenderPosition = targetBufferPosition + offset;
 	if (mi == pcursmonst) {
-		ClxDrawOutlineSkipColorZero(out, 233, monsterRenderPosition, sprite);
+		ClxDrawOutlineSkipColorZero(out, OutlineColorsMonster, monsterRenderPosition, sprite);
 	}
 	DrawMonster(out, tilePosition, monsterRenderPosition, monster, lightTableIndex);
 }
@@ -976,7 +1002,7 @@ void DrawTileContent(const Surface &out, const Lightmap &lightmap, Point tilePos
 			if (InDungeonBounds(tilePosition)) {
 				bool skipNext = false;
 #ifdef _DEBUG
-				DebugCoordsMap[tilePosition.x + tilePosition.y * MAXDUNX] = targetBufferPosition;
+				DebugCoordsMap[tilePosition.x + (tilePosition.y * MAXDUNX)] = targetBufferPosition;
 #endif
 				if (tilePosition.x + 1 < MAXDUNX && tilePosition.y - 1 >= 0 && targetBufferPosition.x + TILE_WIDTH <= gnScreenWidth) {
 					// Render objects behind walls first to prevent sprites, that are moving
@@ -1375,14 +1401,18 @@ void DrawView(const Surface &out, Point startPosition)
 
 	DrawDurIcon(out);
 
+	DrawLevelButton(out);
+
 	if (CharFlag) {
 		DrawChr(out);
 	} else if (QuestLogIsOpen) {
 		DrawQuestLog(out);
 	} else if (IsStashOpen) {
 		DrawStash(out);
+	} else if (IsVisualStoreOpen) {
+		DrawVisualStore(out);
 	}
-	DrawLevelButton(out);
+
 	if (ShowUniqueItemInfoBox) {
 		DrawUniqueInfo(out);
 	}
@@ -1677,7 +1707,7 @@ void CalcViewportGeometry()
 
 	// Location of the bottom-left corner of the bounding box around the
 	// tile from which to start rendering, relative to the viewport origin
-	tileOffset = { startPosition.x - TILE_WIDTH / 2, startPosition.y + TILE_HEIGHT / 2 - 1 };
+	tileOffset = { startPosition.x - (TILE_WIDTH / 2), startPosition.y + (TILE_HEIGHT / 2) - 1 };
 
 	// Compute the number of rows to be rendered as well as
 	// the number of columns to be rendered in the first row
@@ -1816,7 +1846,7 @@ void DrawAndBlit()
 
 	const Rectangle &mainPanel = GetMainPanel();
 
-	if (gnScreenWidth > mainPanel.size.width || IsRedrawEverything() || *GetOptions().Gameplay.enableFloatingNumbers != FloatingNumbers::Off) {
+	if (gnScreenWidth > mainPanel.size.width || IsRedrawEverything()) {
 		drawHealth = true;
 		drawMana = true;
 		drawControlButtons = true;
@@ -1873,7 +1903,7 @@ void DrawAndBlit()
 
 	DrawFPS(out);
 
-	LuaEvent("GameDrawComplete");
+	lua::GameDrawComplete();
 
 	DrawMain(hgt, drawInfoBox, drawHealth, drawMana, drawBelt, drawControlButtons);
 

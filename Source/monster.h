@@ -23,10 +23,10 @@
 #include "engine/world_tile.hpp"
 #include "game_mode.hpp"
 #include "levels/dun_tile.hpp"
-#include "misdat.h"
-#include "monstdat.h"
-#include "spelldat.h"
-#include "textdat.h"
+#include "tables/misdat.h"
+#include "tables/monstdat.h"
+#include "tables/spelldat.h"
+#include "tables/textdat.h"
 #include "utils/language.h"
 
 namespace devilution {
@@ -278,6 +278,12 @@ struct Monster { // note: missing field _mAFNum
 	uint8_t minDamageSpecial;
 	uint8_t maxDamageSpecial;
 	uint8_t armorClass;
+	uint8_t reducePlayerStrength;
+	uint8_t reducePlayerMagic;
+	uint8_t reducePlayerDexterity;
+	uint8_t reducePlayerVitality;
+	uint8_t reducePlayerMaxHP;
+	uint8_t reducePlayerMaxMana;
 	uint8_t leader;
 	LeaderRelation leaderRelation;
 	uint8_t packSize;
@@ -522,6 +528,7 @@ void LoadDeltaSpawnedMonster(size_t typeIndex, size_t monsterId, uint32_t seed, 
 void InitializeSpawnedMonster(Point position, Direction dir, size_t typeIndex, size_t monsterId, uint32_t seed, uint8_t golemOwnerPlayerId, int16_t golemSpellLevel);
 void AddDoppelganger(Monster &monster);
 void ApplyMonsterDamage(DamageType damageType, Monster &monster, int damage);
+void MonsterReducePlayerAttribute(Monster &monster, Player &player);
 bool M_Talker(const Monster &monster);
 void M_StartStand(Monster &monster, Direction md);
 void M_ClearSquares(const Monster &monster);
@@ -543,9 +550,11 @@ void RemoveEnemyReferences(const Player &player);
 void ProcessMonsters();
 void FreeMonsters();
 bool DirOK(const Monster &monster, Direction mdir);
-bool PosOkMissile(Point position);
 bool LineClearMissile(Point startPoint, Point endPoint);
-bool LineClear(tl::function_ref<bool(Point)> clear, Point startPoint, Point endPoint);
+/**
+ * @brief Checks for same missile obstructions as CheckMissileCol() for missiles that move along a path between two points
+ */
+bool LineClearMovingMissile(Point startPoint, Point endPoint);
 tl::expected<void, std::string> SyncMonsterAnim(Monster &monster);
 void M_FallenFear(Point position);
 void PrintMonstHistory(int mt);

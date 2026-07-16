@@ -46,7 +46,7 @@ void DrawButtonOnPanel(Point position, std::string_view text, int frame)
 		spacing = 1;
 		width = std::min<int>(GetLineWidth(text, GameFont12, spacing), (*PanelButton)[0].width());
 	}
-	RenderClxSprite(BottomBuffer->subregion(position.x + ((*PanelButton)[0].width() - width) / 2, position.y + 7, width, BottomBuffer->h() - 7), (*PanelButtonGrime)[frame], { 0, 0 });
+	RenderClxSprite(BottomBuffer->subregion(position.x + (((*PanelButton)[0].width() - width) / 2), position.y + 7, width, BottomBuffer->h() - 7), (*PanelButtonGrime)[frame], { 0, 0 });
 	DrawButtonText(*BottomBuffer, text, { position, { (*PanelButton)[0].width(), 0 } }, UiFlags::ColorButtonface, spacing);
 }
 
@@ -64,7 +64,7 @@ void RenderMainButton(const Surface &out, int buttonId, std::string_view text, i
 		spacing = 1;
 		width = std::min<int>(GetLineWidth(text, GameFont12, spacing), (*PanelButton)[0].width());
 	}
-	RenderClxSprite(out.subregion(position.x + ((*PanelButton)[0].width() - width) / 2, position.y + 9, width, out.h() - position.y - 9), (*PanelButtonDownGrime)[frame], { 0, 0 });
+	RenderClxSprite(out.subregion(position.x + (((*PanelButton)[0].width() - width) / 2), position.y + 9, width, out.h() - position.y - 9), (*PanelButtonDownGrime)[frame], { 0, 0 });
 	DrawButtonText(out, text, { position + Displacement { 0, 2 }, { out.w(), 0 } }, UiFlags::ColorButtonpushed, spacing);
 }
 
@@ -106,10 +106,10 @@ tl::expected<void, std::string> LoadMainPanel()
 		const std::string_view text = _("voice");
 		const int textWidth = GetLineWidth(text, GameFont12, 1);
 		for (size_t i = 0; i < NumOtherPlayers; ++i) {
-			const Point position { 176, static_cast<int>(GetMainPanel().size.height + 101 + 18 * i) };
+			const Point position { 176, static_cast<int>(GetMainPanel().size.height + 101 + (18 * i)) };
 			RenderClxSprite(*BottomBuffer, (*talkButton)[0], position);
 			const int width = std::min<int>(textWidth, (*PanelButton)[0].width());
-			RenderClxSprite(BottomBuffer->subregion(position.x + (talkButtonWidth - width) / 2, position.y + 6, width, 9), (*PanelButtonGrime)[1], { 0, 0 });
+			RenderClxSprite(BottomBuffer->subregion(position.x + ((talkButtonWidth - width) / 2), position.y + 6, width, 9), (*PanelButtonGrime)[1], { 0, 0 });
 			DrawButtonText(*BottomBuffer, text, { position, { talkButtonWidth, 0 } }, UiFlags::ColorButtonface);
 		}
 

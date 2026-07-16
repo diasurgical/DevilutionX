@@ -149,7 +149,7 @@ CostType GetHeuristicCost(PointT startPosition, PointT destinationPosition)
 	// We then still need to take the remaining steps:
 	//   max(dx, dy) - diagSteps = max(dx, dy) - min(dx, dy) = abs(dx - dy)
 	const int axisAlignedSteps = std::abs(dx - dy);
-	return diagSteps * PathDiagonalStepCost + axisAlignedSteps * PathAxisAlignedStepCost;
+	return (diagSteps * PathDiagonalStepCost) + (axisAlignedSteps * PathAxisAlignedStepCost);
 }
 
 int ReconstructPath(const ExploredNodes &explored, PointT dest, int8_t *path, size_t maxPathLength)
@@ -178,7 +178,7 @@ int ReconstructPath(const ExploredNodes &explored, PointT dest, int8_t *path, si
 int8_t GetPathDirection(Point startPosition, Point destinationPosition)
 {
 	constexpr int8_t PathDirections[9] = { 5, 1, 6, 2, 0, 3, 8, 4, 7 };
-	return PathDirections[3 * (destinationPosition.y - startPosition.y) + 4 + destinationPosition.x - startPosition.x];
+	return PathDirections[(3 * (destinationPosition.y - startPosition.y)) + 4 + destinationPosition.x - startPosition.x];
 }
 
 int FindPath(tl::function_ref<bool(Point, Point)> canStep, tl::function_ref<bool(Point)> posOk, Point startPosition, Point destinationPosition, int8_t *path, size_t maxPathLength)

@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <string_view>
 
-#ifdef __ANDROID__
+#if defined(__ANDROID__) && !defined(TERMUX)
 #include <SDL.h>
 #include <jni.h>
 #elif defined(__vita__)
@@ -61,7 +61,7 @@ std::string IetfToPosix(std::string_view langCode)
 std::vector<std::string> GetLocales()
 {
 	std::vector<std::string> locales {};
-#ifdef __ANDROID__
+#if defined(__ANDROID__) && !defined(TERMUX)
 	JNIEnv *env = (JNIEnv *)SDL_AndroidGetJNIEnv();
 	jobject activity = (jobject)SDL_AndroidGetActivity();
 	jclass clazz(env->GetObjectClass(activity));
@@ -198,7 +198,7 @@ std::vector<std::string> GetLocales()
 		do {
 			const size_t separatorPos = languages.find_first_of(":");
 			if (separatorPos != 0)
-				locales.emplace_back(std::string(languages.substr(0, separatorPos)));
+				locales.emplace_back(languages.substr(0, separatorPos));
 
 			if (separatorPos != languages.npos)
 				languages.remove_prefix(separatorPos + 1);

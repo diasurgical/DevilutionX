@@ -25,19 +25,28 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
     - name: Checkout
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
       with:
         fetch-depth: 0
 
     - name: Create Build Environment
       run: >
         sudo apt-get update &&
-        sudo apt-get install -y cmake gcc-mingw-w64-i686 g++-mingw-w64-i686 mingw-w64-tools libz-mingw-w64-dev gettext dpkg-dev wget git sudo smpq &&
-        sudo rm /usr/i686-w64-mingw32/lib/libz.dll.a &&
-        sudo Packaging/windows/mingw9x-prep.sh
+        sudo apt-get install -y cmake build-essential flex bison pkg-config patch gettext dpkg-dev curl xz-utils bzip2 git smpq
+
+    - name: Cache mingw9x toolchain
+      id: cache-mingw9x
+      uses: actions/cache@v6
+      with:
+        path: /opt/mingw9x
+        key: mingw9x-toolchain-${{ hashFiles('Packaging/windows/mingw9x-prep.sh', 'Packaging/windows/mingw-pre-vista-gcc.patch') }}
+
+    - name: Build mingw9x toolchain
+      if: steps.cache-mingw9x.outputs.cache-hit != 'true'
+      run: sudo Packaging/windows/mingw9x-prep.sh
 
     - name: Configure CMake
       shell: bash
@@ -53,7 +62,7 @@ jobs:
 
     - name: Upload-Package
       if: ${{ !env.ACT }}
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         path: devilutionx-win9x.zip
 

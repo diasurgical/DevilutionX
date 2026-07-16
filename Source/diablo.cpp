@@ -72,11 +72,12 @@
 #include "levels/trigs.h"
 #include "lighting.h"
 #include "loadsave.h"
+#include "lua/lua_event.hpp"
 #include "lua/lua_global.hpp"
 #include "menu.h"
 #include "minitext.h"
 #include "missiles.h"
-#include "monstdat.h"
+#include "mods/mod_identity.h"
 #include "movie.h"
 #include "multi.h"
 #include "nthread.h"
@@ -88,19 +89,21 @@
 #include "panels/spell_book.hpp"
 #include "panels/spell_list.hpp"
 #include "pfile.h"
-#include "playerdat.hpp"
 #include "plrmsg.h"
 #include "qol/chatlog.h"
 #include "qol/floatingnumbers.h"
 #include "qol/itemlabels.h"
 #include "qol/monhealthbar.h"
 #include "qol/stash.h"
+#include "qol/visual_store.h"
 #include "qol/xpbar.h"
 #include "quick_messages.hpp"
 #include "restrict.h"
 #include "stores.h"
 #include "storm/storm_net.hpp"
 #include "storm/storm_svid.h"
+#include "tables/monstdat.h"
+#include "tables/playerdat.hpp"
 #include "towners.h"
 #include "track.h"
 #include "utils/console.h"
@@ -252,6 +255,7 @@ void LeftMouseCmd(bool bShift)
 	if (leveltype == DTYPE_TOWN) {
 		CloseGoldWithdraw();
 		CloseStash();
+		CloseVisualStore();
 		if (pcursitem != -1 && pcurs == CURSOR_HAND)
 			NetSendCmdLocParam1(true, invflag ? CMD_GOTOGETITEM : CMD_GOTOAGETITEM, cursPosition, pcursitem);
 		if (pcursmonst != -1)
@@ -281,7 +285,7 @@ void LeftMouseCmd(bool bShift)
 				LastPlayerAction = PlayerActionType::AttackMonsterTarget;
 				NetSendCmdParam1(true, CMD_RATTACKID, pcursmonst);
 			}
-		} else if (PlayerUnderCursor != nullptr && !myPlayer.friendlyMode) {
+		} else if (PlayerUnderCursor != nullptr && !PlayerUnderCursor->hasNoLife() && !myPlayer.friendlyMode) {
 			LastPlayerAction = PlayerActionType::AttackPlayerTarget;
 			NetSendCmdParam1(true, CMD_RATTACKPID, PlayerUnderCursor->getId());
 		}
@@ -301,7 +305,7 @@ void LeftMouseCmd(bool bShift)
 		} else if (pcursmonst != -1) {
 			LastPlayerAction = PlayerActionType::AttackMonsterTarget;
 			NetSendCmdParam1(true, CMD_ATTACKID, pcursmonst);
-		} else if (PlayerUnderCursor != nullptr && !myPlayer.friendlyMode) {
+		} else if (PlayerUnderCursor != nullptr && !PlayerUnderCursor->hasNoLife() && !myPlayer.friendlyMode) {
 			LastPlayerAction = PlayerActionType::AttackPlayerTarget;
 			NetSendCmdParam1(true, CMD_ATTACKPID, PlayerUnderCursor->getId());
 		}
@@ -384,6 +388,13 @@ void LeftMouseDown(uint16_t modState)
 				if (!IsWithdrawGoldOpen)
 					CheckStashItem(MousePosition, isShiftHeld, isCtrlHeld);
 				CheckStashButtonPress(MousePosition);
+			} else if (IsVisualStoreOpen && GetLeftPanel().contains(MousePosition)) {
+				if (!MyPlayer->HoldItem.isEmpty()) {
+					CheckVisualStorePaste(MousePosition);
+				} else {
+					CheckVisualStoreItem(MousePosition, isCtrlHeld, isShiftHeld);
+				}
+				CheckVisualStoreButtonPress(MousePosition);
 			} else if (SpellbookFlag && GetRightPanel().contains(MousePosition)) {
 				CheckSBook();
 			} else if (!MyPlayer->HoldItem.isEmpty()) {
@@ -418,6 +429,7 @@ void LeftMouseUp(uint16_t modState)
 	if (MainPanelButtonDown)
 		CheckMainPanelButtonUp();
 	CheckStashButtonRelease(MousePosition);
+	CheckVisualStoreButtonRelease(MousePosition);
 	if (CharPanelButtonActive) {
 		const bool isShiftHeld = (modState & SDL_KMOD_SHIFT) != 0;
 		ReleaseChrBtns(isShiftHeld);
@@ -876,7 +888,7 @@ void RunGameLoop(interface_mode uMsg)
 	nthread_ignore_mutex(false);
 
 	discord_manager::StartGame();
-	LuaEvent("GameStart");
+	lua::GameStart();
 #ifdef GPERF_HEAP_FIRST_GAME_ITERATION
 	unsigned run_game_iteration = 0;
 #endif
@@ -890,6 +902,10 @@ void RunGameLoop(interface_mode uMsg)
 				RunInConsole(cmd);
 			}
 			DebugCmdsFromCommandLine.clear();
+		}
+#else
+		if (gbIsMultiplayer && IsAssetIntegrityViolated) {
+			app_fatal(_("Cannot play Multiplayer with overridden *.lua, *.tsv, or *.sol assets."));
 		}
 #endif
 
@@ -979,7 +995,7 @@ void PrintHelpOption(std::string_view flags, std::string_view description)
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 FILE *SdlLogFile = nullptr;
 
-extern "C" void SdlLogToFile(void *userdata, int category, SDL_LogPriority priority, const char *message)
+extern "C" void SdlLogToFile(void *userdata, int /*category*/, SDL_LogPriority priority, const char *message)
 {
 	FILE *file = reinterpret_cast<FILE *>(userdata);
 	static const char *const LogPriorityPrefixes[SDL_LOG_PRIORITY_COUNT] = {
@@ -1567,7 +1583,7 @@ void TimeoutCursor(bool bTimeout)
 			for (uint8_t i = 0; i < Players.size(); i++) {
 				bool isConnected = (player_state[i] & PS_CONNECTED) != 0;
 				bool isActive = (player_state[i] & PS_ACTIVE) != 0;
-				if (!(isConnected && !isActive)) continue;
+				if (!isConnected || isActive) continue;
 
 				DvlNetLatencies latencies = DvlNet_GetLatencies(i);
 
@@ -1647,6 +1663,7 @@ void InventoryKeyPressed()
 	SpellbookFlag = false;
 	CloseGoldWithdraw();
 	CloseStash();
+	CloseVisualStore();
 }
 
 void CharacterSheetKeyPressed()
@@ -1695,6 +1712,7 @@ void QuestLogKeyPressed()
 	CloseCharPanel();
 	CloseGoldWithdraw();
 	CloseStash();
+	CloseVisualStore();
 }
 
 void DisplaySpellsKeyPressed()
@@ -1730,6 +1748,7 @@ void SpellBookKeyPressed()
 		}
 	}
 	CloseInventory();
+	CloseVisualStore();
 }
 
 void CycleSpellHotkeys(bool next)
@@ -1777,12 +1796,9 @@ bool CanPlayerTakeAction()
 bool CanAutomapBeToggledOff()
 {
 	// check if every window is closed - if yes, automap can be toggled off
-	if (!QuestLogIsOpen && !IsWithdrawGoldOpen && !IsStashOpen && !CharFlag
+	return !QuestLogIsOpen && !IsWithdrawGoldOpen && !IsStashOpen && !IsVisualStoreOpen && !CharFlag
 	    && !SpellbookFlag && !invflag && !isGameMenuOpen && !qtextflag && !SpellSelectFlag
-	    && !ChatLogFlag && !HelpFlag)
-		return true;
-
-	return false;
+	    && !ChatLogFlag && !HelpFlag;
 }
 
 void OptionLanguageCodeChanged()
@@ -1800,6 +1816,29 @@ void OptionLanguageCodeChanged()
 const auto OptionChangeHandlerLanguage = (GetOptions().Language.code.SetValueChangedCallback(OptionLanguageCodeChanged), true);
 
 } // namespace
+
+uint32_t GetGameId()
+{
+	uint32_t declared = 0;
+	bool hasDeclared = false;
+	bool hasUnrecognisedMod = false;
+	for (const ModIdentifier &mod : ActiveModIdentifiers) {
+		const std::string &programId = mod.manifest.programId;
+		const uint32_t candidate = programId.size() == 4 ? LoadBE32(programId.data()) : 0;
+		// A mod may not brand itself as DRTL/DSHR
+		if (candidate != 0 && candidate != GameIdDiabloFull && candidate != GameIdDiabloSpawn) {
+			declared = candidate; // last active mod that declares one wins
+			hasDeclared = true;
+		} else if (!mod.whitelisted) {
+			hasUnrecognisedMod = true;
+		}
+	}
+	if (hasDeclared)
+		return declared;
+	if (hasUnrecognisedMod)
+		return GameIdGenericMod;
+	return gbIsSpawn ? GameIdDiabloSpawn : GameIdDiabloFull;
+}
 
 void InitKeymapActions()
 {
@@ -2640,6 +2679,7 @@ void FreeGameMem()
 	FreeObjectGFX();
 	FreeTownerGFX();
 	FreeStashGFX();
+	FreeVisualStoreGFX();
 #ifndef USE_SDL1
 	DeactivateVirtualGamepad();
 	FreeVirtualGamepadGFX();
@@ -2804,17 +2844,22 @@ bool TryIconCurs()
 		else if (pcursstashitem != StashStruct::EmptyCell) {
 			Item &item = Stash.stashList[pcursstashitem];
 			item._iIdentified = true;
+			Stash.dirty = true;
 		}
 		NewCursor(CURSOR_HAND);
 		return true;
 	}
 
 	if (pcurs == CURSOR_REPAIR) {
-		if (pcursinvitem != -1 && !IsInspectingPlayer())
-			DoRepair(myPlayer, pcursinvitem);
-		else if (pcursstashitem != StashStruct::EmptyCell) {
+		if (pcursinvitem != -1 && !IsInspectingPlayer()) {
+			if (IsVisualStoreOpen)
+				VisualStoreRepairItem(pcursinvitem);
+			else
+				DoRepair(myPlayer, pcursinvitem);
+		} else if (pcursstashitem != StashStruct::EmptyCell) {
 			Item &item = Stash.stashList[pcursstashitem];
 			RepairItem(item, myPlayer.getCharacterLevel());
+			Stash.dirty = true;
 		}
 		NewCursor(CURSOR_HAND);
 		return true;
@@ -2826,6 +2871,7 @@ bool TryIconCurs()
 		else if (pcursstashitem != StashStruct::EmptyCell) {
 			Item &item = Stash.stashList[pcursstashitem];
 			RechargeItem(item, myPlayer);
+			Stash.dirty = true;
 		}
 		NewCursor(CURSOR_HAND);
 		return true;
@@ -2838,6 +2884,7 @@ bool TryIconCurs()
 		else if (pcursstashitem != StashStruct::EmptyCell) {
 			Item &item = Stash.stashList[pcursstashitem];
 			changeCursor = ApplyOilToItem(item, myPlayer);
+			Stash.dirty = true;
 		}
 		if (changeCursor)
 			NewCursor(CURSOR_HAND);
@@ -2853,7 +2900,7 @@ bool TryIconCurs()
 			NetSendCmdLocParam4(true, CMD_SPELLXYD, cursPosition, static_cast<int8_t>(spellID), static_cast<uint8_t>(spellType), static_cast<uint16_t>(sd), spellFrom);
 		} else if (pcursmonst != -1 && leveltype != DTYPE_TOWN) {
 			NetSendCmdParam4(true, CMD_SPELLID, pcursmonst, static_cast<int8_t>(spellID), static_cast<uint8_t>(spellType), spellFrom);
-		} else if (PlayerUnderCursor != nullptr && !myPlayer.friendlyMode) {
+		} else if (PlayerUnderCursor != nullptr && !PlayerUnderCursor->hasNoLife() && !myPlayer.friendlyMode) {
 			NetSendCmdParam4(true, CMD_SPELLPID, PlayerUnderCursor->getId(), static_cast<int8_t>(spellID), static_cast<uint8_t>(spellType), spellFrom);
 		} else {
 			NetSendCmdLocParam3(true, CMD_SPELLXY, cursPosition, static_cast<int8_t>(spellID), static_cast<uint8_t>(spellType), spellFrom);
@@ -2994,7 +3041,7 @@ bool PressEscKey()
 	return rv;
 }
 
-void DisableInputEventHandler(const SDL_Event &event, uint16_t modState)
+void DisableInputEventHandler(const SDL_Event &event, uint16_t /*modState*/)
 {
 	switch (event.type) {
 	case SDL_EVENT_MOUSE_MOTION:
@@ -3195,6 +3242,7 @@ tl::expected<void, std::string> LoadGameLevelTown(bool firstflag, lvl_entry lvld
 
 	InitTowners();
 	InitStash();
+	InitVisualStore();
 	InitItems();
 	InitMissiles();
 

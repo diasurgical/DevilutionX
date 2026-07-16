@@ -5,7 +5,9 @@
  */
 #include "pfile.h"
 
+#include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <string_view>
 
@@ -19,16 +21,18 @@
 #include <SDL.h>
 #endif
 
+#include "appfat.h"
 #include "codec.h"
 #include "engine/load_file.hpp"
 #include "engine/render/primitive_render.hpp"
 #include "game_mode.hpp"
 #include "loadsave.h"
 #include "menu.h"
+#include "mods/mod_identity.h"
 #include "mpq/mpq_common.hpp"
 #include "pack.h"
-#include "playerdat.hpp"
 #include "qol/stash.h"
+#include "tables/playerdat.hpp"
 #include "utils/endian_read.hpp"
 #include "utils/endian_swap.hpp"
 #include "utils/file_util.h"
@@ -47,6 +51,10 @@
 #include "mpq/mpq_reader.hpp"
 #endif
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+
 namespace devilution {
 
 #define PASSWORD_SPAWN_SINGLE "adslhfb1"
@@ -61,29 +69,39 @@ namespace {
 /** List of character names for the character selection screen. */
 char hero_names[MAX_CHARACTERS][PlayerNameLength];
 
+// Effective save-file extension token (no leading dot). Defaults to "sv"; an active mod may
+// override the save namespace by declaring `saveExtension` in its manifest.
+std::string_view GetSaveExtension()
+{
+	const std::string_view modExtension = GetActiveModSaveExtension();
+	return modExtension.empty() ? std::string_view("sv") : modExtension;
+}
+
 std::string GetSavePath(uint32_t saveNum, std::string_view savePrefix = {})
 {
+	const std::string_view ext = GetSaveExtension();
 	return StrCat(paths::PrefPath(), savePrefix,
 	    gbIsSpawn
 	        ? (gbIsMultiplayer ? "share_" : "spawn_")
 	        : (gbIsMultiplayer ? "multi_" : "single_"),
 	    saveNum,
 #ifdef UNPACKED_SAVES
-	    gbIsHellfire ? "_hsv" DIRECTORY_SEPARATOR_STR : "_sv" DIRECTORY_SEPARATOR_STR
+	    "_", ext, DIRECTORY_SEPARATOR_STR
 #else
-	    gbIsHellfire ? ".hsv" : ".sv"
+	    ".", ext
 #endif
 	);
 }
 
 std::string GetStashSavePath()
 {
+	const std::string_view ext = GetSaveExtension();
 	return StrCat(paths::PrefPath(),
 	    gbIsSpawn ? "stash_spawn" : "stash",
 #ifdef UNPACKED_SAVES
-	    gbIsHellfire ? "_hsv" DIRECTORY_SEPARATOR_STR : "_sv" DIRECTORY_SEPARATOR_STR
+	    "_", ext, DIRECTORY_SEPARATOR_STR
 #else
-	    gbIsHellfire ? ".hsv" : ".sv"
+	    ".", ext
 #endif
 	);
 }
@@ -160,14 +178,14 @@ void EncodeHero(SaveWriter &saveWriter, const PlayerPack *pack)
 	saveWriter.WriteFile("hero", packed.get(), packedLen);
 }
 
-SaveWriter GetSaveWriter(uint32_t saveNum)
+SaveWriter GetSaveWriter(uint32_t saveNum, bool carryForward = true)
 {
-	return SaveWriter(GetSavePath(saveNum));
+	return SaveWriter(GetSavePath(saveNum), carryForward);
 }
 
 SaveWriter GetStashWriter()
 {
-	return SaveWriter(GetStashSavePath());
+	return SaveWriter(GetStashSavePath(), /*carryForward=*/true);
 }
 
 #ifndef DISABLE_DEMOMODE
@@ -247,8 +265,9 @@ std::optional<SaveReader> CreateSaveReader(std::string &&path)
 		return std::nullopt;
 	return SaveReader(std::move(path));
 #else
-	std::int32_t error;
-	return MpqArchive::Open(path.c_str(), error);
+	tl::expected<MpqArchive, std::string> opened = MpqArchive::Open(path.c_str());
+	if (!opened.has_value()) return std::nullopt;
+	return std::move(*opened);
 #endif
 }
 
@@ -264,7 +283,7 @@ struct CompareInfo {
 struct CompareCounter {
 	int reference;
 	int actual;
-	int max() const
+	[[nodiscard]] int max() const
 	{
 		return std::max(reference, actual);
 	}
@@ -295,7 +314,7 @@ void CreateDetailDiffs(std::string_view prefix, std::string_view memoryMapFile, 
 		return;
 	}
 
-	const size_t readBytes = static_cast<size_t>(SDL_GetIOSize(handle));
+	const auto readBytes = static_cast<size_t>(SDL_GetIOSize(handle));
 	const std::unique_ptr<std::byte[]> memoryMapFileData { new std::byte[readBytes] };
 	SDL_ReadIO(handle, memoryMapFileData.get(), readBytes);
 	SDL_CloseIO(handle);
@@ -392,7 +411,7 @@ void CreateDetailDiffs(std::string_view prefix, std::string_view memoryMapFile, 
 			const ParseIntResult<size_t> parsedBytes = ParseInt<size_t>(bitsAsString);
 			if (!parsedBytes.has_value())
 				app_fatal(StrCat("Failed to parse ", bitsAsString, " as size_t"));
-			const size_t bytes = static_cast<size_t>(parsedBytes.value() / 8);
+			const auto bytes = static_cast<size_t>(parsedBytes.value() / 8);
 
 			if (command == "LT") {
 				const int32_t valueReference = read32BitInt(compareInfoReference, false);
@@ -421,7 +440,7 @@ void CreateDetailDiffs(std::string_view prefix, std::string_view memoryMapFile, 
 			const ParseIntResult<size_t> parsedBytes = ParseInt<size_t>(bitsAsString);
 			if (!parsedBytes.has_value())
 				app_fatal(StrCat("Failed to parse ", bitsAsString, " as size_t"));
-			const size_t bytes = static_cast<size_t>(parsedBytes.value() / 8);
+			const auto bytes = static_cast<size_t>(parsedBytes.value() / 8);
 			for (int i = 0; i < count.max(); i++) {
 				count.checkIfDataExists(i, compareInfoReference, compareInfoActual);
 				if (!compareBytes(bytes)) {
@@ -625,8 +644,13 @@ const char *pfile_get_password()
 
 void pfile_write_hero(bool writeGameData)
 {
-	SaveWriter saveWriter = GetSaveWriter(gSaveNumber);
+	SaveWriter saveWriter = GetSaveWriter(gSaveNumber, /*carryForward=*/writeGameData);
 	pfile_write_hero(saveWriter, writeGameData);
+
+#ifdef __EMSCRIPTEN__
+	// Persist saves to IndexedDB for browser storage
+	emscripten_run_script("if (typeof Module !== 'undefined' && Module.saveToIndexedDB) Module.saveToIndexedDB();");
+#endif
 }
 
 #ifndef DISABLE_DEMOMODE
@@ -730,7 +754,7 @@ bool pfile_ui_save_create(_uiheroinfo *heroinfo)
 
 	giNumberOfLevels = gbIsHellfire ? 25 : 17;
 
-	SaveWriter saveWriter = GetSaveWriter(saveNum);
+	SaveWriter saveWriter = GetSaveWriter(saveNum, /*carryForward=*/false);
 	saveWriter.RemoveHashEntries(GetFileName);
 	CopyUtf8(hero_names[saveNum], heroinfo->name, sizeof(hero_names[saveNum]));
 
@@ -796,7 +820,7 @@ void pfile_remove_temp_files()
 	if (gbIsMultiplayer)
 		return;
 
-	SaveWriter saveWriter = GetSaveWriter(gSaveNumber);
+	SaveWriter saveWriter = GetSaveWriter(gSaveNumber, /*carryForward=*/true);
 	saveWriter.RemoveHashEntries(GetTempSaveNames);
 }
 

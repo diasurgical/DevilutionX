@@ -8,15 +8,15 @@
 
 #include "lua/metadoc.hpp"
 #include "msg.h"
-#include "spelldat.h"
 #include "spells.h"
+#include "tables/spelldat.h"
 #include "utils/str_cat.hpp"
 
 namespace devilution {
 namespace {
 std::string DebugCmdSetSpellsLevel(uint8_t level)
 {
-	for (uint8_t i = static_cast<uint8_t>(SpellID::Firebolt); i < SpellsData.size(); i++) {
+	for (auto i = static_cast<uint8_t>(SpellID::Firebolt); i < SpellsData.size(); i++) {
 		if (GetSpellBookLevel(static_cast<SpellID>(i)) != -1) {
 			NetSendCmdParam2(true, CMD_CHANGE_SPELL_LEVEL, i, level);
 		}
