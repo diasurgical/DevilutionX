@@ -35,6 +35,8 @@ struct Missile;
 struct Player;
 
 constexpr size_t MaxMonsters = 200;
+/** @brief Number of inactive golem placeholder slots always present in @ActiveMonsters. For vanilla compatibility, this must remain 4. */
+inline constexpr int ReservedMonsterSlotsForGolems = 4;
 constexpr size_t MaxLvlMTypes = 24;
 
 enum monster_flag : uint16_t {
@@ -493,8 +495,13 @@ extern size_t LevelMonsterTypeCount;
 extern Monster Monsters[MaxMonsters];
 extern unsigned ActiveMonsters[MaxMonsters];
 extern size_t ActiveMonsterCount;
+/** @brief High-water-mark of hostile monsters (non-golem) ever spawned on the current level. */
+extern int LevelSpawnedMonsters;
 extern int MonsterKillCounts[NUM_MAX_MTYPES];
 extern bool sgbSaveSoundOn;
+
+/** @brief Counts the number of currently-alive hostile monsters on the current level (excludes player-summoned golems). */
+int GetAliveEnemyCount();
 
 tl::expected<void, std::string> PrepareUniqueMonst(Monster &monster, UniqueMonsterType monsterType, size_t miniontype, int bosspacksize, const UniqueMonsterData &uniqueMonsterData);
 void InitLevelMonsters();
