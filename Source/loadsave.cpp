@@ -301,6 +301,11 @@ struct LevelConversionData {
 	item._iFlags = static_cast<ItemSpecialEffect>(file.NextLE<uint32_t>());
 	item._iMiscId = static_cast<item_misc_id>(file.NextLE<int32_t>());
 	item._iSpell = static_cast<SpellID>(file.NextLE<int32_t>());
+
+	if (!IsValidSpell(item._iSpell)) {
+		item._iSpell = SpellID::Null;
+	}
+
 	item._iCharges = file.NextLE<int32_t>();
 	item._iMaxCharges = file.NextLE<int32_t>();
 	item._iDurability = file.NextLE<int32_t>();
