@@ -57,6 +57,10 @@ namespace {
 SoundSample music;
 
 #ifdef PS2
+#define NOSOUND
+#endif
+
+#ifdef PS2
 std::string GetAdpPath(const char *path)
 {
 	std::string adpPath = path;
@@ -273,13 +277,6 @@ void snd_init()
 
 #ifdef PS2
 	audsrv_set_volume(MAX_VOLUME);
-
-	if (!Aulib::init(*GetOptions().Audio.sampleRate, AUDIO_S16, *GetOptions().Audio.channels, *GetOptions().Audio.bufferSize, *GetOptions().Audio.device)) {
-		LogError(LogCategory::Audio, "Failed to initialize audio (Aulib::init): {}", SDL_GetError());
-		return;
-	}
-	LogVerbose(LogCategory::Audio, "Aulib sampleRate={} channels={} frameSize={} format={:#x}",
-	    Aulib::sampleRate(), Aulib::channelCount(), Aulib::frameSize(), Aulib::sampleFormat());
 #else
 	// Initialize the SDL_audiolib library. Set the output sample rate to
 	// 22kHz, the audio format to 16-bit signed, use 2 output channels

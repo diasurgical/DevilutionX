@@ -49,7 +49,7 @@
 #endif
 
 // Emscripten: ASYNCIFY does not support unwinding across threads, so loading must happen on the main thread.
-#if defined(__EMSCRIPTEN__)
+#if defined(__EMSCRIPTEN__) || defined(__PS2__)
 #define LOAD_ON_MAIN_THREAD
 #endif
 
@@ -652,12 +652,10 @@ void ShowProgress(interface_mode uMsg)
 	ProgressEventHandlerState.skipRendering = true;
 	ProgressEventHandlerState.done = false;
 	ProgressEventHandlerState.drawnProgress = 0;
-
 #ifndef USE_SDL1
 	DeactivateVirtualGamepad();
 	FreeVirtualGamepadTextures();
 #endif
-
 	if (!HeadlessMode) {
 		assert(ghMainWnd);
 
@@ -669,7 +667,6 @@ void ShowProgress(interface_mode uMsg)
 			SetHardwareCursorVisible(false);
 
 		BlackPalette();
-
 		// Always load the background (even if we end up skipping rendering it).
 		// This is because the MPQ archive can only be read by a single thread at a time.
 		LoadCutsceneBackground(uMsg);

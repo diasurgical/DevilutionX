@@ -134,7 +134,7 @@ std::unique_ptr<Aulib::Stream> CreateStream(SDL_IOStream *handle, bool isMp3)
 	return std::make_unique<Aulib::Stream>(handle, std::move(decoder), std::move(resampler), /*closeRw=*/true);
 }
 #endif // USE_SDL3
-
+#endif
 } // namespace
 
 ///// SoundSample /////
@@ -143,7 +143,9 @@ SoundSample::SoundSample(SoundSample &&other) noexcept
     : file_data_(std::move(other.file_data_))
     , file_data_size_(other.file_data_size_)
     , file_path_(std::move(other.file_path_))
+#ifndef PS2
     , isMp3_(other.isMp3_)
+#endif
 #ifdef USE_SDL3
     , audio_(other.audio_)
     , track_(other.track_)
@@ -170,7 +172,9 @@ SoundSample &SoundSample::operator=(SoundSample &&other) noexcept
 		file_data_ = std::move(other.file_data_);
 		file_data_size_ = other.file_data_size_;
 		file_path_ = std::move(other.file_path_);
+#ifndef PS2
 		isMp3_ = other.isMp3_;
+#endif
 #ifdef USE_SDL3
 		audio_ = other.audio_;
 		track_ = other.track_;
@@ -194,7 +198,7 @@ SoundSample::~SoundSample()
 	Release();
 }
 
-#ifndef USE_SDL3
+#if !defined(USE_SDL) && !defined(PS2)
 void SoundSample::SetFinishCallback(Aulib::Stream::Callback &&callback)
 {
 	stream_->setFinishCallback(std::forward<Aulib::Stream::Callback>(callback));
@@ -214,6 +218,7 @@ void SoundSample::Stop()
 	}
 #else
 	stream_->stop();
+#endif
 #endif
 }
 

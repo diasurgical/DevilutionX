@@ -464,6 +464,7 @@ if(SUPPORTS_MPQ)
   )
 else()
   target_link_dependencies(libdevilutionx_load_cl2 PRIVATE
+    fmt::fmt
     libdevilutionx_load_clx
   )
 endif()

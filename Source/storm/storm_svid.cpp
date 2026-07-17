@@ -46,6 +46,8 @@ namespace {
 SDL_AudioStream *SVidAudioStream;
 SDL_AudioDeviceID SVidAudioDevice;
 bool SVidAutoStreamEnabled;
+#elif defined(PS2)
+bool SVidAutoStreamEnabled;
 #else
 std::optional<Aulib::Stream> SVidAudioStream;
 PushAulibDecoder *SVidAudioDecoder;
@@ -158,6 +160,8 @@ bool ShouldPushAudioData()
 {
 #ifdef USE_SDL3
 	return SVidAudioStream != nullptr && SVidAutoStreamEnabled;
+#elif defined(PS2)
+	return true;
 #else
 	return SVidAudioStream && SVidAudioStream->isPlaying();
 #endif
@@ -301,7 +305,21 @@ bool BlitFrame()
 	return true;
 }
 
-#if defined(USE_SDL3) && !defined(NOSOUND)
+#if defined(USE_SDL3) && !defined(NOSOUND) || defined(PS2)
+#ifdef PS2
+void SVidInitAudioStream(const SmackerAudioInfo &audioInfo)
+{
+	SVidAutoStreamEnabled = diablo_is_focused();
+
+    struct audsrv_fmt_t format;
+	format.bits = audioInfo.bitsPerSample;
+	format.freq = audioInfo.sampleRate;
+	format.channels = audioInfo.nChannels;
+
+	audsrv_set_format(&format);
+    audsrv_set_volume(MAX_VOLUME);
+}
+#else
 void SVidInitAudioStream(const SmackerAudioInfo &audioInfo)
 {
 	SVidAutoStreamEnabled = diablo_is_focused();
@@ -340,6 +358,7 @@ void SVidInitAudioStream(const SmackerAudioInfo &audioInfo)
 	}
 }
 #endif
+#endif
 
 } // namespace
 
@@ -377,14 +396,14 @@ bool SVidPlayBegin(const char *filename, int flags)
 		SVidAudioDepth = audioInfo.bitsPerSample;
 		SVidAudioBuffer = std::unique_ptr<int16_t[]> { new int16_t[audioInfo.idealBufferSize / 2] };
 
-#ifndef USE_SDL3
+#if !defined(USE_SDL3) && !defined(PS2)
 		auto decoder = std::make_unique<PushAulibDecoder>(audioInfo.nChannels, audioInfo.sampleRate);
 		SVidAudioDecoder = decoder.get();
 		SVidAudioStream.emplace(/*rwops=*/nullptr, std::move(decoder), CreateAulibResampler(audioInfo.sampleRate), /*closeRw=*/false);
 		SVidAudioStream->setVolume(GetVolume());
 #endif
 
-#ifdef USE_SDL3
+#if defined(USE_SDL3) || defined(PS2)
 		SVidInitAudioStream(audioInfo);
 #else
 		if (!diablo_is_focused())
@@ -495,6 +514,10 @@ bool SVidPlayContinue()
 			SDL_DestroyAudioStream(SVidAudioStream);
 			SVidAudioStream = nullptr;
 		}
+#elif defined(PS2)
+	if (len > 0) {
+    	audsrv_play_audio(reinterpret_cast<char *>(buf), len);
+	}
 #else
 		if (SVidAudioDepth == 16) {
 			SVidAudioDecoder->PushSamples(buf, len / 2);
@@ -522,8 +545,10 @@ bool SVidPlayContinue()
 
 void SVidPlayEnd()
 {
-#ifndef NOSOUND
+#if !defined(NOSOUND)
+#ifndef PS2
 	if (SVidAudioStream) {
+#endif
 #ifdef USE_SDL3
 		SDL_DestroyAudioStream(SVidAudioStream);
 		SVidAudioStream = nullptr;
@@ -531,12 +556,16 @@ void SVidPlayEnd()
 			SDL_CloseAudioDevice(SVidAudioDevice);
 			SVidAudioDevice = 0;
 		}
+#elif defined(PS2)
+		SVidAutoStreamEnabled = false;
 #else
 		SVidAudioStream = std::nullopt;
 		SVidAudioDecoder = nullptr;
 #endif
 		SVidAudioBuffer = nullptr;
+#ifndef PS2
 	}
+#endif
 #endif
 
 	if (SVidHandle.isValid)
@@ -584,7 +613,7 @@ void SVidPlayEnd()
 void SVidMute()
 {
 #ifndef NOSOUND
-#ifdef USE_SDL3
+#if defined(USE_SDL3) || defined(PS2)
 	SVidAutoStreamEnabled = false;
 #else
 	if (SVidAudioStream)
@@ -596,8 +625,10 @@ void SVidMute()
 void SVidUnmute()
 {
 #ifndef NOSOUND
-#ifdef USE_SDL3
+#if defined(USE_SDL3)
 	if (SVidAudioStream != nullptr) SVidAutoStreamEnabled = true;
+#elif defined(PS2)
+	SVidAutoStreamEnabled = true;
 #else
 	if (SVidAudioStream)
 		SVidAudioStream->unmute();

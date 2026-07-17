@@ -126,7 +126,7 @@ private:
 	int volume_ = 100;
 	audsrv_adpcm_t *sampleId_ = nullptr;
 	std::unique_ptr<audsrv_adpcm_t> stream_;
-#else
+#endif
 	// Non-streaming audio fields:
 	ArraySharedPtr<std::uint8_t> file_data_;
 	std::size_t file_data_size_ = 0;
@@ -149,6 +149,7 @@ private:
 	std::unique_ptr<Aulib::Stream> stream_;
 #endif
 #endif
+
 };
 
 } // namespace devilution
