@@ -305,7 +305,7 @@ bool BlitFrame()
 	return true;
 }
 
-#if defined(USE_SDL3) && !defined(NOSOUND) || defined(PS2)
+#if defined(USE_SDL3)  || defined(PS2) && !defined(NOSOUND)
 #ifdef PS2
 void SVidInitAudioStream(const SmackerAudioInfo &audioInfo)
 {
