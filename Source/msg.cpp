@@ -1209,8 +1209,9 @@ size_t OnWalk(const TCmdLoc &message, Player &player)
 
 	if (gbBufferMsgs != 1 && player.isOnActiveLevel() && InDungeonBounds(position)) {
 		ClrPlrPath(player);
-		MakePlrPath(player, position, true);
-		player.destAction = ACTION_NONE;
+		player.destAction = ACTION_WALK;
+		player.destParam1 = position.x;
+		player.destParam2 = position.y;
 	}
 
 	return sizeof(message);
