@@ -13,7 +13,9 @@ void OptionSharewareChanged()
 const auto OptionChangeHandlerShareware = (GetOptions().GameMode.shareware.SetValueChangedCallback(OptionSharewareChanged), true);
 } // namespace
 
+GameData sgGameInitInfo;
 bool gbRunGame;
+bool gbIsMultiplayer;
 bool gbIsSpawn;
 bool gbIsHellfire;
 bool gbVanilla;

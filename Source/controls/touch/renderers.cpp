@@ -18,6 +18,7 @@
 #include "inv.h"
 #include "levels/gendung.h"
 #include "minitext.h"
+#include "panels/quest_log.hpp"
 #include "panels/ui_panels.hpp"
 #include "qol/stash.h"
 #include "stores.h"

@@ -12,10 +12,10 @@
 #include <ankerl/unordered_dense.h>
 #include <expected.hpp>
 
-#include "cursor.h"
 #include "data/file.hpp"
 #include "data/iterators.hpp"
 #include "data/record_reader.hpp"
+#include "levels/parse_dungeon_type.hpp"
 
 namespace devilution {
 
