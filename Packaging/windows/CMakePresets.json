@@ -36,6 +36,10 @@
 				"DISABLE_LTO": {
 					"type": "BOOL",
 					"value": "ON"
+				},
+				"DAPI_SERVER": {
+					"type": "BOOL",
+					"value": "ON"
 				}
 			}
 		},

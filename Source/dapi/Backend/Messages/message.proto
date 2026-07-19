@@ -1,0 +1,26 @@
+syntax = "proto3";
+option optimize_for = LITE_RUNTIME;
+import "init.proto";
+import "game.proto";
+import "command.proto";
+
+package dapi.message;
+
+// Empty message to intidate end of queue
+message EndofQueue {
+
+}
+
+// Wrapper used to distinguish which message is which
+message Message{
+	oneof msg {
+		dapi.init.ClientBroadcast initBroadcast = 1;
+		dapi.init.ServerResponse initResponse = 2;
+		
+		dapi.game.FrameUpdate frameUpdate = 3;
+
+		dapi.commands.Command command = 4;
+
+		EndofQueue endOfQueue = 5;
+	}
+}
