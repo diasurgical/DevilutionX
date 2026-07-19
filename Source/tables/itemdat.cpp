@@ -11,9 +11,11 @@
 
 #include <fmt/format.h>
 
+#include "cursor.h"
 #include "data/file.hpp"
 #include "data/iterators.hpp"
 #include "data/record_reader.hpp"
+#include "items.h"
 #include "lua/lua_event.hpp"
 #include "tables/spelldat.h"
 #include "utils/str_cat.hpp"
@@ -611,6 +613,9 @@ namespace {
 
 void LoadItemDat()
 {
+	FreeCustomItemData();
+	FreeCustomCursorSprites();
+
 	const std::string_view filename = "txtdata\\items\\itemdat.tsv";
 	DataFile dataFile = DataFile::loadOrDie(filename);
 

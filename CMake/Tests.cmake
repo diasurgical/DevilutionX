@@ -16,6 +16,7 @@ set(tests
   assets_test
   automap_test
   cursor_test
+  custom_items_test
   dead_test
   diablo_test
   drlg_common_test

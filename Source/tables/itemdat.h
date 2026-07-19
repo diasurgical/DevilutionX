@@ -650,11 +650,11 @@ struct UniqueItem {
 };
 
 extern DVL_API_FOR_TEST std::vector<ItemData> AllItemsList;
-extern ankerl::unordered_dense::map<int32_t, int16_t> ItemMappingIdsToIndices;
+extern DVL_API_FOR_TEST ankerl::unordered_dense::map<int32_t, int16_t> ItemMappingIdsToIndices;
 extern std::vector<PLStruct> ItemPrefixes;
 extern std::vector<PLStruct> ItemSuffixes;
 extern DVL_API_FOR_TEST std::vector<UniqueItem> UniqueItems;
-extern ankerl::unordered_dense::map<int32_t, int32_t> UniqueItemMappingIdsToIndices;
+extern DVL_API_FOR_TEST ankerl::unordered_dense::map<int32_t, int32_t> UniqueItemMappingIdsToIndices;
 
 tl::expected<_item_indexes, std::string> ParseItemId(std::string_view value);
 void LoadItemDatFromFile(DataFile &dataFile, std::string_view filename, int32_t baseMappingId);

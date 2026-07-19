@@ -658,7 +658,7 @@ void CheckVisualStoreItem(Point mousePosition, bool isCtrlHeld, bool isShiftHeld
 	// Execute the purchase
 	TakePlrsMoney(price);
 	StoreAutoPlace(item, true);
-	PlaySFX(ItemInvSnds[ItemCAnimTbl[item._iCurs]]);
+	PlaySFX(GetItemInvSnd(item));
 
 	// Remove item from store (vendor-specific handling)
 	switch (VisualStore.vendor) {
