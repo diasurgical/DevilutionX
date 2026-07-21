@@ -57,10 +57,6 @@ namespace {
 SoundSample music;
 
 #ifdef PS2
-#define NOSOUND
-#endif
-
-#ifdef PS2
 std::string GetAdpPath(const char *path)
 {
 	std::string adpPath = path;
@@ -80,18 +76,23 @@ std::string GetMp3Path(const char *path)
 
 tl::expected<void, std::string> LoadAudioFile(const char *path, bool stream, SoundSample &result)
 {
-	bool isMp3 = true;
+
 #ifdef PS2
 	std::string foundPath = GetAdpPath(path);
+	bool isMp3 = false;
 #else
+	bool isMp3 = true;
 	std::string foundPath = GetMp3Path(path);
 #endif
 	AssetRef ref = FindAsset(foundPath.c_str());
+#ifndef PS2
 	if (!ref.ok()) {
 		ref = FindAsset(path);
 		foundPath = path;
 		isMp3 = false;
 	}
+#endif
+
 	if (!ref.ok()) {
 		return tl::make_unexpected(StrCat("Audio file not found\n", path, "\n", SDL_GetError(), "\n" __FILE__ ":", __LINE__));
 	}
@@ -315,8 +316,9 @@ void snd_init()
 void snd_deinit()
 {
 	if (gbSndInited) {
-#ifndef PS2
-#ifdef USE_SDL3
+#ifdef PS2
+		audsrv_quit();
+#elif defined(USE_SDL3)
 		MIX_DestroyMixer(CurrentMixer);
 		CurrentMixer = nullptr;
 		MIX_Quit();
@@ -324,7 +326,6 @@ void snd_deinit()
 		Aulib::quit();
 #endif
 		duplicateSoundsMutex = std::nullopt;
-#endif
 	}
 
 	gbSndInited = false;

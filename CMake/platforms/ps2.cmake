@@ -15,6 +15,11 @@ set(DEVILUTIONX_GAMEPAD_TYPE PlayStation)
 
 set(BUILD_ASSETS_MPQ OFF)
 set(UNPACKED_MPQS ON)
+# Must use a smaller audio buffer due to RAM constraints.
+set(DEFAULT_AUDIO_BUFFER_SIZE 768)
+
+# Use lower resampling quality for FPS.
+set(DEFAULT_AUDIO_RESAMPLING_QUALITY 2)
 
 add_compile_options(-DLUA_USE_PS2=1)
 
