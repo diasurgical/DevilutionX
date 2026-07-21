@@ -67,6 +67,10 @@ uint32_t CalculateTextSpeed(SfxID nSFX)
 
 #ifndef NOSOUND
 	uint32_t sfxFrames = GetSFXLength(nSFX);
+	// Headless/no-audio: sound length is unavailable (0) -- fall back to the
+	// same line-count estimate the NOSOUND build uses.
+	if (sfxFrames == 0)
+		sfxFrames = numLines * 3000;
 #else
 	// Sound is disabled -- estimate length from the number of lines.
 	uint32_t sfxFrames = numLines * 3000;
