@@ -3,9 +3,11 @@
 
 #include <fmt/format.h>
 
+#include "controls/control_mode.hpp"
 #include "engine/render/primitive_render.hpp"
 #include "inv.h"
 #include "levels/trigs.h"
+#include "options.h"
 #include "panels/partypanel.hpp"
 #include "qol/stash.h"
 #include "qol/visual_store.h"
@@ -343,7 +345,12 @@ void CheckPanelInfo()
 		InfoString = _("Select current spell button");
 		InfoColor = UiFlags::ColorWhite;
 		MainPanelFlag = true;
-		AddInfoBoxString(_("Hotkey: 's'"));
+		std::string_view speedbookKeyName = ControlMode == ControlTypes::Gamepad
+		    ? GetOptions().Padmapper.InputNameForAction("DisplaySpells", true)
+		    : GetOptions().Keymapper.KeyNameForAction("DisplaySpells");
+		if (!speedbookKeyName.empty()) {
+			AddInfoBoxString(fmt::format(fmt::runtime(_("Hotkey: '{:s}'")), speedbookKeyName));
+		}
 		const Player &myPlayer = *MyPlayer;
 		const SpellID spellId = myPlayer._pRSpell;
 		if (IsValidSpell(spellId)) {

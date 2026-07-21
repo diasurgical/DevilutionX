@@ -39,7 +39,7 @@ We are always looking for more people to help with [coding](docs/CONTRIBUTING.md
 
 # Mods
 
-We hope to provide a good starting point for mods. In addition to the full Devilution source code, we also provide modding tools. Check out the list of known [mods based on DevilutionX](https://github.com/diasurgical/devilutionX/wiki/Mods).
+We hope to provide a good starting point for mods. In addition to the full Devilution source code, we also provide modding tools. Check out the list of known [mods based on DevilutionX](https://github.com/diasurgical/DevilutionX/wiki/Community-Mods).
 
 # Test Builds
 
