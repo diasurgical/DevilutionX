@@ -1442,7 +1442,13 @@ void DrawAutomapText(const Surface &out)
 	}
 
 	if (gbIsMultiplayer) {
-		if (GameName != "0.0.0.0" && !IsLoopback) {
+		const bool hideSensitive = *GetOptions().Network.hideSensitiveInfo;
+
+		const bool gameNameIsCustomBindAddress = GameName == GetOptions().Network.szBindAddress && GameName != "0.0.0.0";
+
+		if (GameName != "0.0.0.0"
+		    && !IsLoopback
+		    && !(hideSensitive && gameNameIsCustomBindAddress)) {
 			std::string description = std::string(_("Game: "));
 			description.append(GameName);
 			drawStringAndAdvanceLine(description);
@@ -1453,9 +1459,11 @@ void DrawAutomapText(const Surface &out)
 			description = std::string(_("Offline Game"));
 		} else if (PublicGame) {
 			description = std::string(_("Public Game"));
-		} else {
+		} else if (!hideSensitive) {
 			description = std::string(_("Password: "));
 			description.append(GamePassword);
+		} else {
+			description = std::string(_("Private Game"));
 		}
 		drawStringAndAdvanceLine(description);
 	}
