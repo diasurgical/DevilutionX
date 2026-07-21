@@ -5,6 +5,9 @@
  */
 #pragma once
 
+#include <array>
+#include <cstddef>
+
 #include "engine/point.hpp"
 #include "levels/gendung.h"
 
@@ -38,5 +41,11 @@ void SetCurrentPortal(size_t p);
 void GetPortalLevel();
 void GetPortalLvlPos();
 bool PosOkPortal(int lvl, Point position);
+
+/** Returns the town-map position for portal slot `portalIndex`. */
+Point GetPortalTownPosition(size_t portalIndex);
+
+/** Overrides all portal positions for the current town. */
+void SetPortalTownPositions(std::array<Point, MAXPORTAL> positions);
 
 } // namespace devilution
