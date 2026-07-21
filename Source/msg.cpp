@@ -235,8 +235,10 @@ struct DSpawnedMonster {
 	int16_t golemSpellLevel;
 };
 
+constexpr int MaxDeltaItems = MAXITEMS * 2;
+
 struct DLevel {
-	TCmdPItem item[MAXITEMS];
+	TCmdPItem item[MaxDeltaItems];
 	ankerl::unordered_dense::map<WorldTilePosition, DObjectStr> object;
 	ankerl::unordered_dense::map<size_t, DSpawnedMonster> spawnedMonsters;
 	DMonsterStr monster[MaxMonsters];
@@ -540,7 +542,7 @@ int WaitForTurns()
 
 std::byte *DeltaExportItem(std::byte *dst, const TCmdPItem *src)
 {
-	for (int i = 0; i < MAXITEMS; i++, src++) {
+	for (int i = 0; i < MaxDeltaItems; i++, src++) {
 		if (src->bCmd == CMD_INVALID) {
 			*dst++ = std::byte { 0xFF };
 		} else {
@@ -555,7 +557,7 @@ std::byte *DeltaExportItem(std::byte *dst, const TCmdPItem *src)
 const std::byte *DeltaImportItem(const std::byte *src, const std::byte *end, TCmdPItem *dst)
 {
 	size_t size = 0;
-	for (int i = 0; i < MAXITEMS; i++, dst++) {
+	for (int i = 0; i < MaxDeltaItems; i++, dst++) {
 		if (&src[size] >= end)
 			return nullptr;
 		if (src[size] == std::byte { 0xFF }) {
