@@ -27,27 +27,23 @@
 #include "engine/render/clx_render.hpp"
 #include "engine/render/text_render.hpp"
 #include "engine/size.hpp"
-#include "hwcursor.hpp"
-#include "inv_iterators.hpp"
 #include "levels/tile_properties.hpp"
 #include "levels/town.h"
 #include "minitext.h"
 #include "options.h"
 #include "panels/ui_panels.hpp"
 #include "player.h"
-#include "plrmsg.h"
 #include "qol/stash.h"
 #include "qol/visual_store.h"
 #include "stores.h"
-#include "towners.h"
 #include "utils/display.h"
 #include "utils/format.hpp"
 #include "utils/format_int.hpp"
 #include "utils/is_of.hpp"
 #include "utils/language.h"
+#include "utils/sdl_compat.h"
 #include "utils/sdl_geometry.h"
 #include "utils/str_cat.hpp"
-#include "utils/utf8.hpp"
 
 namespace devilution {
 
@@ -1414,32 +1410,62 @@ bool AutoPlaceItemInInventory(Player &player, const Item &item, bool sendNetwork
 	return false;
 }
 
+namespace {
+
+// Returns a grouping key so that visually similar items sort next to each
+// other. The actual placement order within a group is still driven by item
+// size (handled by the comparator below).
+int InventoryItemGroupKey(const Item &item)
+{
+	switch (item._itype) {
+	case ItemType::Gold:
+		return 0;
+	case ItemType::Misc:
+		// Scrolls of different spells should not be merged, so include the
+		// spell id in the key. All other misc items (potions, elixirs, ...)
+		// share the same _iMiscId per kind, which is exactly what we want.
+		if (item.isScroll())
+			return 1000 + static_cast<int>(item._iSpell);
+		return 2000 + static_cast<int>(item._iMiscId);
+	default:
+		return 10000 + static_cast<int>(item._itype);
+	}
+}
+
+bool CompareInventoryItems(const Player &player, int lhsIdx, int rhsIdx)
+{
+	const Item &lhs = player.InvList[lhsIdx];
+	const Item &rhs = player.InvList[rhsIdx];
+
+	const int lhsKey = InventoryItemGroupKey(lhs);
+	const int rhsKey = InventoryItemGroupKey(rhs);
+	if (lhsKey != rhsKey)
+		return lhsKey < rhsKey;
+
+	const Size lhsSize = GetInventorySize(lhs);
+	const Size rhsSize = GetInventorySize(rhs);
+	if (lhsSize.height != rhsSize.height)
+		return lhsSize.height > rhsSize.height;
+	return lhsSize.width > rhsSize.width;
+}
+
 std::vector<int> SortItemsBySize(Player &player)
 {
-	std::vector<std::pair<Size, int>> itemSizes; // Pair of item size and its index in InvList
-	itemSizes.reserve(player._pNumInv);          // Reserves space for the number of items in the player's inventory
+	std::vector<int> sortedIndices;
+	sortedIndices.reserve(player._pNumInv);
 
 	for (int i = 0; i < player._pNumInv; i++) {
-		const Size size = GetInventorySize(player.InvList[i]);
-		itemSizes.emplace_back(size, i);
+		sortedIndices.push_back(i);
 	}
 
-	// Sort items by height first, then by width
-	std::sort(itemSizes.begin(), itemSizes.end(), [](const auto &a, const auto &b) {
-		if (a.first.height == b.first.height) return a.first.width > b.first.width;
-		return a.first.height > b.first.height;
+	std::ranges::sort(sortedIndices, [&player](int lhs, int rhs) {
+		return CompareInventoryItems(player, lhs, rhs);
 	});
-
-	// Extract sorted indices
-	std::vector<int> sortedIndices;
-	sortedIndices.reserve(itemSizes.size()); // Pre-allocate the necessary capacity
-
-	for (const auto &itemSize : itemSizes) {
-		sortedIndices.push_back(itemSize.second);
-	}
 
 	return sortedIndices;
 }
+
+} // namespace
 
 void ReorganizeInventory(Player &player)
 {
@@ -1448,16 +1474,16 @@ void ReorganizeInventory(Player &player)
 
 	// Temporary storage for items and a copy of InvGrid
 	std::vector<Item> tempStorage(player._pNumInv);
-	std::array<int8_t, 40> originalInvGrid;                                                       // Declare an array for InvGrid copy
-	std::copy(std::begin(player.InvGrid), std::end(player.InvGrid), std::begin(originalInvGrid)); // Copy InvGrid to originalInvGrid
+	std::array<int8_t, 40> originalInvGrid;                                                               // Declare an array for InvGrid copy
+	std::ranges::copy(std::begin(player.InvGrid), std::end(player.InvGrid), std::begin(originalInvGrid)); // Copy InvGrid to originalInvGrid
 
 	// Move items to temporary storage and clear inventory slots
 	for (int i = 0; i < player._pNumInv; ++i) {
 		tempStorage[i] = player.InvList[i];
 		player.InvList[i] = {};
 	}
-	player._pNumInv = 0;                                                // Reset inventory count
-	std::fill(std::begin(player.InvGrid), std::end(player.InvGrid), 0); // Clear InvGrid
+	player._pNumInv = 0;                  // Reset inventory count
+	std::ranges::fill(player.InvGrid, 0); // Clear InvGrid
 
 	// Attempt to place items back, now from the temp storage
 	bool reorganizationFailed = false;
@@ -1476,7 +1502,7 @@ void ReorganizeInventory(Player &player)
 				player.InvList[player._pNumInv++] = item;
 			}
 		}
-		std::copy(std::begin(originalInvGrid), std::end(originalInvGrid), std::begin(player.InvGrid)); // Restore InvGrid
+		std::ranges::copy(originalInvGrid, std::begin(player.InvGrid)); // Restore InvGrid
 	}
 }
 
