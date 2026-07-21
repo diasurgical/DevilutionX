@@ -5,12 +5,12 @@
  */
 #include "tables/objdat.h"
 
+#include <expected>
 #include <string>
 #include <string_view>
 #include <vector>
 
 #include <ankerl/unordered_dense.h>
-#include <expected.hpp>
 
 #include "cursor.h"
 #include "data/file.hpp"
@@ -178,7 +178,7 @@ std::vector<std::string> ObjMasterLoadList;
 
 namespace {
 
-tl::expected<theme_id, std::string> ParseTheme(std::string_view value)
+std::expected<theme_id, std::string> ParseTheme(std::string_view value)
 {
 	if (value.empty()) return THEME_NONE;
 	if (value == "THEME_BARREL") return THEME_BARREL;
@@ -198,10 +198,10 @@ tl::expected<theme_id, std::string> ParseTheme(std::string_view value)
 	if (value == "THEME_TEARFOUNTAIN") return THEME_TEARFOUNTAIN;
 	if (value == "THEME_BRNCROSS") return THEME_BRNCROSS;
 	if (value == "THEME_WEAPONRACK") return THEME_WEAPONRACK;
-	return tl::make_unexpected("Unknown enum value");
+	return std::unexpected("Unknown enum value");
 }
 
-tl::expected<quest_id, std::string> ParseQuest(std::string_view value)
+std::expected<quest_id, std::string> ParseQuest(std::string_view value)
 {
 	if (value.empty()) return Q_INVALID;
 	if (value == "Q_ROCK") return Q_ROCK;
@@ -228,10 +228,10 @@ tl::expected<quest_id, std::string> ParseQuest(std::string_view value)
 	if (value == "Q_NAKRUL") return Q_NAKRUL;
 	if (value == "Q_CORNSTN") return Q_CORNSTN;
 	if (value == "Q_JERSEY") return Q_JERSEY;
-	return tl::make_unexpected("Unknown enum value");
+	return std::unexpected("Unknown enum value");
 }
 
-tl::expected<ObjectDataFlags, std::string> ParseObjectDataFlags(std::string_view value)
+std::expected<ObjectDataFlags, std::string> ParseObjectDataFlags(std::string_view value)
 {
 	if (value.empty()) return ObjectDataFlags::None;
 	if (value == "Animated") return ObjectDataFlags::Animated;
@@ -240,16 +240,16 @@ tl::expected<ObjectDataFlags, std::string> ParseObjectDataFlags(std::string_view
 	if (value == "Light") return ObjectDataFlags::Light;
 	if (value == "Trap") return ObjectDataFlags::Trap;
 	if (value == "Breakable") return ObjectDataFlags::Breakable;
-	return tl::make_unexpected("Unknown enum value");
+	return std::unexpected("Unknown enum value");
 }
 
-tl::expected<SelectionRegion, std::string> ParseSelectionRegion(std::string_view value)
+std::expected<SelectionRegion, std::string> ParseSelectionRegion(std::string_view value)
 {
 	if (value.empty()) return SelectionRegion::None;
 	if (value == "Bottom") return SelectionRegion::Bottom;
 	if (value == "Middle") return SelectionRegion::Middle;
 	if (value == "Top") return SelectionRegion::Top;
-	return tl::make_unexpected("Unknown enum value");
+	return std::unexpected("Unknown enum value");
 }
 
 } // namespace

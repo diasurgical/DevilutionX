@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <expected>
 #include <memory>
 #include <stack>
 #include <string>
@@ -9,7 +10,6 @@
 #include <vector>
 
 #include <ankerl/unordered_dense.h>
-#include <expected.hpp>
 #include <magic_enum/magic_enum.hpp>
 
 #include "engine/clx_sprite.hpp"
@@ -439,7 +439,7 @@ void CreateDungeon(uint32_t rseed, lvl_entry entry)
 	Make_SetPC(SetPiece);
 }
 
-tl::expected<void, std::string> LoadLevelSOLData()
+std::expected<void, std::string> LoadLevelSOLData()
 {
 	switch (leveltype) {
 	case DTYPE_TOWN:
@@ -501,7 +501,7 @@ tl::expected<void, std::string> LoadLevelSOLData()
 		SOLData[142] = TileProperties::None; // Tile is incorrectly marked as being solid
 		break;
 	default:
-		return tl::make_unexpected("LoadLevelSOLData");
+		return std::unexpected("LoadLevelSOLData");
 	}
 	return {};
 }
@@ -614,7 +614,7 @@ void LoadTransparency(const uint16_t *dunData)
 	}
 }
 
-void LoadDungeonBase(const char *path, Point spawn, int floorId, int dirtId)
+std::expected<void, std::string> LoadDungeonBase(const char *path, Point spawn, int floorId, int dirtId)
 {
 	ViewPosition = spawn;
 
@@ -626,9 +626,9 @@ void LoadDungeonBase(const char *path, Point spawn, int floorId, int dirtId)
 	PlaceDunTiles(dunData.get(), { 0, 0 }, floorId);
 	LoadTransparency(dunData.get());
 
-	SetMapMonsters(dunData.get(), Point(0, 0).megaToWorld());
-	InitAllMonsterGFX();
-	SetMapObjects(dunData.get(), 0, 0);
+	RETURN_IF_ERROR(SetMapMonsters(dunData.get(), Point(0, 0).megaToWorld()));
+	RETURN_IF_ERROR(InitAllMonsterGFX());
+	return SetMapObjects(dunData.get(), 0, 0);
 }
 
 void Make_SetPC(WorldTileRectangle area)
@@ -833,7 +833,7 @@ void FloodTransparencyValues(uint8_t floorID)
 	}
 }
 
-tl::expected<dungeon_type, std::string> ParseDungeonType(std::string_view value)
+std::expected<dungeon_type, std::string> ParseDungeonType(std::string_view value)
 {
 	if (value.empty()) return DTYPE_NONE;
 	if (value == "DTYPE_TOWN") return DTYPE_TOWN;
@@ -843,16 +843,16 @@ tl::expected<dungeon_type, std::string> ParseDungeonType(std::string_view value)
 	if (value == "DTYPE_HELL") return DTYPE_HELL;
 	if (value == "DTYPE_NEST") return DTYPE_NEST;
 	if (value == "DTYPE_CRYPT") return DTYPE_CRYPT;
-	return tl::make_unexpected("Unknown enum value");
+	return std::unexpected("Unknown enum value");
 }
 
-tl::expected<_setlevels, std::string> ParseSetLevel(std::string_view value)
+std::expected<_setlevels, std::string> ParseSetLevel(std::string_view value)
 {
 	const std::optional<_setlevels> enumValueOpt = magic_enum::enum_cast<_setlevels>(value);
 	if (enumValueOpt.has_value()) {
 		return enumValueOpt.value();
 	}
-	return tl::make_unexpected("Unknown enum value");
+	return std::unexpected("Unknown enum value");
 }
 
 } // namespace devilution

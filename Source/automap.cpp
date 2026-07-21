@@ -8,8 +8,6 @@
 #include <algorithm>
 #include <cstdint>
 
-#include <fmt/format.h>
-
 #include "control/control.hpp"
 #include "engine/load_file.hpp"
 #include "engine/palette.h"
@@ -21,6 +19,7 @@
 #include "player.h"
 #include "utils/attributes.h"
 #include "utils/enum_traits.h"
+#include "utils/format.hpp"
 #include "utils/is_of.hpp"
 #include "utils/language.h"
 #include "utils/ui_fwd.h"
@@ -1467,16 +1466,16 @@ void DrawAutomapText(const Surface &out)
 		std::string description;
 		switch (leveltype) {
 		case DTYPE_NEST:
-			description = fmt::format(fmt::runtime(_("Level: Nest {:d}")), currlevel - 16);
+			description = FormatRuntime(_("Level: Nest {:d}"), currlevel - 16);
 			break;
 		case DTYPE_CRYPT:
-			description = fmt::format(fmt::runtime(_("Level: Crypt {:d}")), currlevel - 20);
+			description = FormatRuntime(_("Level: Crypt {:d}"), currlevel - 20);
 			break;
 		case DTYPE_TOWN:
 			description = std::string(_("Town"));
 			break;
 		default:
-			description = fmt::format(fmt::runtime(_("Level: {:d}")), currlevel);
+			description = FormatRuntime(_("Level: {:d}"), currlevel);
 			break;
 		}
 		drawStringAndAdvanceLine(description);
@@ -1495,7 +1494,7 @@ void DrawAutomapText(const Surface &out)
 		break;
 	}
 
-	const std::string description = fmt::format(fmt::runtime(_(/* TRANSLATORS: {:s} means: Game Difficulty. */ "Difficulty: {:s}")), difficulty);
+	const std::string description = FormatRuntime(_(/* TRANSLATORS: {:s} means: Game Difficulty. */ "Difficulty: {:s}"), difficulty);
 	drawStringAndAdvanceLine(description);
 
 #ifdef _DEBUG

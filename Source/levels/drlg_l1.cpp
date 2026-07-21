@@ -1,6 +1,7 @@
 #include "levels/drlg_l1.h"
 
 #include <cstdint>
+#include <expected>
 
 #include "engine/load_file.hpp"
 #include "engine/point.hpp"
@@ -12,6 +13,7 @@
 #include "quests.h"
 #include "utils/bitset2d.hpp"
 #include "utils/is_of.hpp"
+#include "utils/status_macros.hpp"
 
 namespace devilution {
 
@@ -1322,9 +1324,9 @@ void LoadPreL1Dungeon(const char *path)
 	memcpy(pdungeon, dungeon, sizeof(pdungeon));
 }
 
-void LoadL1Dungeon(const char *path, Point spawn)
+std::expected<void, std::string> LoadL1Dungeon(const char *path, Point spawn)
 {
-	LoadDungeonBase(path, spawn, Floor, Dirt);
+	RETURN_IF_ERROR(LoadDungeonBase(path, spawn, Floor, Dirt));
 
 	if (setlvltype == DTYPE_CATHEDRAL)
 		FillFloor();
@@ -1337,6 +1339,7 @@ void LoadL1Dungeon(const char *path, Point spawn)
 	} else {
 		AddL1Objs(0, 0, MAXDUNX, MAXDUNY);
 	}
+	return {};
 }
 
 } // namespace devilution

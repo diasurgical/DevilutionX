@@ -1,10 +1,9 @@
 #pragma once
 
 #include <charconv>
+#include <expected>
 #include <optional>
 #include <ostream>
-
-#include <expected.hpp>
 
 #include "parser.hpp"
 #include "utils/parse_int.hpp"
@@ -26,29 +25,29 @@ public:
 		InvalidValue
 	};
 
-	static tl::expected<void, Error> mapError(std::errc ec)
+	static std::expected<void, Error> mapError(std::errc ec)
 	{
 		if (ec == std::errc())
 			return {};
 		switch (ec) {
 		case std::errc::result_out_of_range:
-			return tl::unexpected { Error::OutOfRange };
+			return std::unexpected { Error::OutOfRange };
 		case std::errc::invalid_argument:
-			return tl::unexpected { Error::NotANumber };
+			return std::unexpected { Error::NotANumber };
 		default:
-			return tl::unexpected { Error::InvalidValue };
+			return std::unexpected { Error::InvalidValue };
 		}
 	}
 
-	static tl::expected<void, Error> mapError(ParseIntError ec)
+	static std::expected<void, Error> mapError(ParseIntError ec)
 	{
 		switch (ec) {
 		case ParseIntError::OutOfRange:
-			return tl::unexpected { Error::OutOfRange };
+			return std::unexpected { Error::OutOfRange };
 		case ParseIntError::ParseError:
-			return tl::unexpected { Error::NotANumber };
+			return std::unexpected { Error::NotANumber };
 		default:
-			return tl::unexpected { Error::InvalidValue };
+			return std::unexpected { Error::InvalidValue };
 		}
 	}
 
@@ -95,7 +94,7 @@ public:
 	 * @return an error code corresponding to the from_chars result if parsing failed
 	 */
 	template <typename T>
-	[[nodiscard]] tl::expected<void, Error> parseInt(T &destination)
+	[[nodiscard]] std::expected<void, Error> parseInt(T &destination)
 	{
 		std::from_chars_result result {};
 		if (state_->status == GetFieldResult::Status::ReadyToRead) {
@@ -114,7 +113,7 @@ public:
 		return mapError(result.ec);
 	}
 
-	[[nodiscard]] tl::expected<void, Error> parseBool(bool &destination)
+	[[nodiscard]] std::expected<void, Error> parseBool(bool &destination)
 	{
 		const std::string_view str = value();
 		if (str == "true") {
@@ -125,16 +124,16 @@ public:
 			destination = false;
 			return {};
 		}
-		return tl::make_unexpected(DataFileField::Error::InvalidValue);
+		return std::unexpected(DataFileField::Error::InvalidValue);
 	}
 
 	template <typename T>
-	[[nodiscard]] tl::expected<void, Error> parseIntArray(T *destination, size_t n)
+	[[nodiscard]] std::expected<void, Error> parseIntArray(T *destination, size_t n)
 	{
 		size_t i = 0;
 		for (const std::string_view part : SplitByChar(value(), ',')) {
 			if (i == n)
-				return tl::make_unexpected(Error::InvalidValue);
+				return std::unexpected(Error::InvalidValue);
 			const std::from_chars_result result
 			    = std::from_chars(part.data(), part.data() + part.size(), destination[i]);
 			if (result.ec != std::errc())
@@ -142,41 +141,41 @@ public:
 			++i;
 		}
 		if (i != n)
-			return tl::make_unexpected(Error::InvalidValue);
+			return std::unexpected(Error::InvalidValue);
 		return {};
 	}
 
 	template <typename T, size_t N>
-	[[nodiscard]] tl::expected<void, Error> parseIntArray(T (&destination)[N])
+	[[nodiscard]] std::expected<void, Error> parseIntArray(T (&destination)[N])
 	{
 		return parseIntArray<T>(destination, N);
 	}
 
 	template <typename T, size_t N>
-	[[nodiscard]] tl::expected<void, Error> parseIntArray(std::array<T, N> &destination)
+	[[nodiscard]] std::expected<void, Error> parseIntArray(std::array<T, N> &destination)
 	{
 		return parseIntArray<T>(destination.data(), N);
 	}
 
 	template <typename T, typename ParseFn>
-	[[nodiscard]] tl::expected<void, std::string> parseEnumArray(T *destination, size_t n, std::optional<T> fillMissing, ParseFn &&parseFn)
+	[[nodiscard]] std::expected<void, std::string> parseEnumArray(T *destination, size_t n, std::optional<T> fillMissing, ParseFn &&parseFn)
 	{
 		size_t i = 0;
 		const std::string_view str = value();
 		if (!str.empty()) {
 			for (const std::string_view part : SplitByChar(str, ',')) {
 				if (i == n)
-					return tl::make_unexpected(StrCat("Too many values, max: ", n));
+					return std::unexpected(StrCat("Too many values, max: ", n));
 				auto result = parseFn(part);
 				if (!result.has_value()) {
-					return tl::make_unexpected(std::move(result).error());
+					return std::unexpected(std::move(result).error());
 				}
 				destination[i++] = *result;
 			}
 		}
 		if (i != n) {
 			if (!fillMissing.has_value()) {
-				return tl::make_unexpected(StrCat("Too few values, expected ", n, " got ", i));
+				return std::unexpected(StrCat("Too few values, expected ", n, " got ", i));
 			}
 			while (i < n) {
 				destination[i++] = *fillMissing;
@@ -186,19 +185,19 @@ public:
 	}
 
 	template <typename T, size_t N, typename ParseFn>
-	[[nodiscard]] tl::expected<void, std::string> parseEnumArray(T (&destination)[N], std::optional<T> fillMissing, ParseFn &&parseFn)
+	[[nodiscard]] std::expected<void, std::string> parseEnumArray(T (&destination)[N], std::optional<T> fillMissing, ParseFn &&parseFn)
 	{
 		return parseEnumArray<T, ParseFn>(destination, N, std::move(fillMissing), std::forward<ParseFn>(parseFn));
 	}
 
 	template <typename T, size_t N, typename ParseFn>
-	[[nodiscard]] tl::expected<void, std::string> parseIntArray(std::array<T, N> &destination, std::optional<T> fillMissing, ParseFn &&parseFn)
+	[[nodiscard]] std::expected<void, std::string> parseIntArray(std::array<T, N> &destination, std::optional<T> fillMissing, ParseFn &&parseFn)
 	{
 		return parseEnumArray<T, ParseFn>(destination.data(), N, std::move(fillMissing), std::forward<ParseFn>(parseFn));
 	}
 
 	template <typename T, typename ParseFn>
-	[[nodiscard]] tl::expected<void, std::string> parseEnumList(T &destination, ParseFn &&parseFn)
+	[[nodiscard]] std::expected<void, std::string> parseEnumList(T &destination, ParseFn &&parseFn)
 	{
 		destination = {};
 		const std::string_view str = value();
@@ -207,17 +206,17 @@ public:
 		for (const std::string_view part : SplitByChar(str, ',')) {
 			auto result = parseFn(part);
 			if (!result.has_value())
-				return tl::make_unexpected(std::move(result).error());
+				return std::unexpected(std::move(result).error());
 			destination |= result.value();
 		}
 		return {};
 	}
 
 	template <typename T>
-	[[nodiscard]] tl::expected<T, Error> asInt()
+	[[nodiscard]] std::expected<T, Error> asInt()
 	{
 		T value = 0;
-		return parseInt(value).map([value]() { return value; });
+		return parseInt(value).transform([value]() { return value; });
 	}
 
 	/**
@@ -231,7 +230,7 @@ public:
 	 * @return an error code equivalent to what you'd get from from_chars if parsing failed
 	 */
 	template <typename T>
-	[[nodiscard]] tl::expected<void, Error> parseFixed6(T &destination)
+	[[nodiscard]] std::expected<void, Error> parseFixed6(T &destination)
 	{
 		ParseIntResult<T> parseResult;
 		if (state_->status == GetFieldResult::Status::ReadyToRead) {
@@ -255,10 +254,10 @@ public:
 	}
 
 	template <typename T>
-	[[nodiscard]] tl::expected<T, Error> asFixed6()
+	[[nodiscard]] std::expected<T, Error> asFixed6()
 	{
 		T value = 0;
-		return parseFixed6(value).map([value]() { return value; });
+		return parseFixed6(value).transform([value]() { return value; });
 	}
 
 	/**

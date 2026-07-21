@@ -25,9 +25,6 @@
 #include <SDL.h>
 #endif
 
-#include <fmt/core.h>
-#include <fmt/format.h>
-
 #include "DiabloUI/ui_flags.hpp"
 #include "control/control.hpp"
 #include "controls/control_mode.hpp"
@@ -81,6 +78,7 @@
 #include "tables/spelldat.h"
 #include "tables/textdat.h"
 #include "utils/enum_traits.h"
+#include "utils/format.hpp"
 #include "utils/format_int.hpp"
 #include "utils/is_of.hpp"
 #include "utils/language.h"
@@ -1108,10 +1106,10 @@ std::string GenerateStaffName(const ItemData &baseItemData, SpellID spellId, boo
 	std::string_view baseName = translate ? _(baseItemData.iName) : baseItemData.iName;
 	std::string_view spellName = translate ? pgettext("spell", GetSpellData(spellId).sNameText) : GetSpellData(spellId).sNameText;
 	const std::string_view normalFmt = translate ? pgettext("spell", /* TRANSLATORS: Constructs item names. Format: {Item} of {Spell}. Example: War Staff of Firewall */ "{0} of {1}") : "{0} of {1}";
-	std::string name = fmt::format(fmt::runtime(normalFmt), baseName, spellName);
+	std::string name = FormatRuntime(normalFmt, baseName, spellName);
 	if (!StringInPanel(name.c_str())) {
 		std::string_view shortName = translate ? _(baseItemData.iSName) : baseItemData.iSName;
-		name = fmt::format(fmt::runtime(normalFmt), shortName, spellName);
+		name = FormatRuntime(normalFmt, shortName, spellName);
 	}
 	return name;
 }
@@ -1123,10 +1121,10 @@ std::string GenerateStaffNameMagical(const ItemData &baseItemData, SpellID spell
 	std::string_view spellName = translate ? pgettext("spell", GetSpellData(spellId).sNameText) : GetSpellData(spellId).sNameText;
 	std::string_view prefixName = translate ? _(power.PLName) : power.PLName;
 
-	std::string identifiedName = fmt::format(fmt::runtime(magicFmt), prefixName, baseName, spellName);
+	std::string identifiedName = FormatRuntime(magicFmt, prefixName, baseName, spellName);
 	if (forceNameLengthCheck ? *forceNameLengthCheck : !StringInPanel(identifiedName.c_str())) {
 		std::string_view shortName = translate ? _(baseItemData.iSName) : baseItemData.iSName;
-		identifiedName = fmt::format(fmt::runtime(magicFmt), prefixName, shortName, spellName);
+		identifiedName = FormatRuntime(magicFmt, prefixName, shortName, spellName);
 	}
 	return identifiedName;
 }
@@ -1158,15 +1156,15 @@ std::string GenerateMagicItemName(const std::string_view &baseNamel, const PLStr
 {
 	if (pPrefix != nullptr && pSufix != nullptr) {
 		const std::string_view fmt = translate ? _(/* TRANSLATORS: Constructs item names. Format: {Prefix} {Item} of {Suffix}. Example: King's Long Sword of the Whale */ "{0} {1} of {2}") : "{0} {1} of {2}";
-		return fmt::format(fmt::runtime(fmt), translate ? _(pPrefix->PLName) : pPrefix->PLName, baseNamel, translate ? _(pSufix->PLName) : pSufix->PLName);
+		return FormatRuntime(fmt, translate ? _(pPrefix->PLName) : pPrefix->PLName, baseNamel, translate ? _(pSufix->PLName) : pSufix->PLName);
 	}
 	if (pPrefix != nullptr) {
 		const std::string_view fmt = translate ? _(/* TRANSLATORS: Constructs item names. Format: {Prefix} {Item}. Example: King's Long Sword */ "{0} {1}") : "{0} {1}";
-		return fmt::format(fmt::runtime(fmt), translate ? _(pPrefix->PLName) : pPrefix->PLName, baseNamel);
+		return FormatRuntime(fmt, translate ? _(pPrefix->PLName) : pPrefix->PLName, baseNamel);
 	}
 	if (pSufix != nullptr) {
 		const std::string_view fmt = translate ? _(/* TRANSLATORS: Constructs item names. Format: {Item} of {Suffix}. Example: Long Sword of the Whale */ "{0} of {1}") : "{0} of {1}";
-		return fmt::format(fmt::runtime(fmt), baseNamel, translate ? _(pSufix->PLName) : pSufix->PLName);
+		return FormatRuntime(fmt, baseNamel, translate ? _(pSufix->PLName) : pSufix->PLName);
 	}
 
 	return std::string(baseNamel);
@@ -1801,25 +1799,25 @@ void printItemMiscGamepad(const Item &item, bool isOil, bool isCastOnTarget)
 	const std::string_view castButton = GetOptions().Padmapper.InputNameForAction("SpellAction");
 
 	if (item._iMiscId == IMISC_MAPOFDOOM) {
-		AddItemInfoBoxString(fmt::format(fmt::runtime(_("{} to view")), activateButton));
+		AddItemInfoBoxString(FormatRuntime(_("{} to view"), activateButton));
 	} else if (isOil) {
 		PrintItemOil(item._iMiscId);
 		if (!invflag) {
 			AddItemInfoBoxString(_("Open inventory to use"));
 		} else {
-			AddItemInfoBoxString(fmt::format(fmt::runtime(_("{} to use")), activateButton));
+			AddItemInfoBoxString(FormatRuntime(_("{} to use"), activateButton));
 		}
 	} else if (isCastOnTarget) {
-		AddItemInfoBoxString(fmt::format(fmt::runtime(_("Select from spell book,\nthen {} to read")), castButton));
+		AddItemInfoBoxString(FormatRuntime(_("Select from spell book,\nthen {} to read"), castButton));
 	} else if (IsAnyOf(item._iMiscId, IMISC_BOOK, IMISC_NOTE, IMISC_SCROLL, IMISC_SCROLLT)) {
-		AddItemInfoBoxString(fmt::format(fmt::runtime(_("{} to read")), activateButton));
+		AddItemInfoBoxString(FormatRuntime(_("{} to read"), activateButton));
 	}
 }
 
 void PrintItemMisc(const Item &item)
 {
 	if (item._iMiscId == IMISC_EAR) {
-		AddItemInfoBoxString(fmt::format(fmt::runtime(pgettext("player", "Level: {:d}")), item._ivalue));
+		AddItemInfoBoxString(FormatRuntime(pgettext("player", "Level: {:d}"), item._ivalue));
 		return;
 	}
 	if (item._iMiscId == IMISC_AURIC) {
@@ -1858,11 +1856,11 @@ void PrintItemInfo(const Item &item)
 	if (str != 0 || mag != 0 || dex != 0) {
 		std::string text = std::string(_("Required:"));
 		if (str != 0)
-			text.append(fmt::format(fmt::runtime(_(" {:d} Str")), str));
+			text.append(FormatRuntime(_(" {:d} Str"), str));
 		if (mag != 0)
-			text.append(fmt::format(fmt::runtime(_(" {:d} Mag")), mag));
+			text.append(FormatRuntime(_(" {:d} Mag"), mag));
 		if (dex != 0)
-			text.append(fmt::format(fmt::runtime(_(" {:d} Dex")), dex));
+			text.append(FormatRuntime(_(" {:d} Dex"), dex));
 		AddItemInfoBoxString(text);
 	}
 }
@@ -2218,10 +2216,10 @@ StringOrView GetTranslatedItemName(const Item &item)
 	}
 	if (item._iMiscId == IMISC_BOOK) {
 		const std::string_view spellName = pgettext("spell", GetSpellData(item._iSpell).sNameText);
-		return fmt::format(fmt::runtime(_(/* TRANSLATORS: {:s} will be a spell name */ "Book of {:s}")), spellName);
+		return FormatRuntime(_(/* TRANSLATORS: {:s} will be a spell name */ "Book of {:s}"), spellName);
 	}
 	if (item._iMiscId == IMISC_EAR) {
-		return fmt::format(fmt::runtime(_(/* TRANSLATORS: {:s} will be a Character Name */ "Ear of {:s}")), item._iIName);
+		return FormatRuntime(_(/* TRANSLATORS: {:s} will be a Character Name */ "Ear of {:s}"), item._iIName);
 	}
 	if (item._iMiscId > IMISC_OILFIRST && item._iMiscId < IMISC_OILLAST) {
 		for (size_t i = 0; i < 10; i++) {
@@ -3575,7 +3573,7 @@ void RecreateEar(Item &item, uint16_t ic, uint32_t iseed, uint8_t bCursval, std:
 {
 	InitializeItem(item, IDI_EAR);
 
-	const std::string itemName = fmt::format(fmt::runtime("Ear of {:s}"), heroName);
+	const std::string itemName = FormatRuntime("Ear of {:s}", heroName);
 
 	CopyUtf8(item._iName, itemName, ItemNameLength);
 	CopyUtf8(item._iIName, heroName, ItemNameLength);
@@ -3827,7 +3825,7 @@ void GetItemStr(Item &item)
 		InfoColor = item.getTextColor();
 	} else {
 		const int nGold = item._ivalue;
-		InfoString = fmt::format(fmt::runtime(ngettext("{:s} gold piece", "{:s} gold pieces", nGold)), FormatInteger(nGold));
+		InfoString = FormatRuntime(ngettext("{:s} gold piece", "{:s} gold pieces", nGold), FormatInteger(nGold));
 	}
 }
 
@@ -3893,87 +3891,87 @@ bool DoOil(Player &player, int cii)
 	switch (plidx) {
 	case IPL_TOHIT:
 	case IPL_TOHIT_CURSE:
-		return fmt::format(fmt::runtime(_("chance to hit: {:+d}%")), item._iPLToHit);
+		return FormatRuntime(_("chance to hit: {:+d}%"), item._iPLToHit);
 	case IPL_DAMP:
 	case IPL_DAMP_CURSE:
-		return fmt::format(fmt::runtime(_(/*xgettext:no-c-format*/ "{:+d}% damage")), item._iPLDam);
+		return FormatRuntime(_(/*xgettext:no-c-format*/ "{:+d}% damage"), item._iPLDam);
 	case IPL_TOHIT_DAMP:
 	case IPL_TOHIT_DAMP_CURSE:
-		return fmt::format(fmt::runtime(_("to hit: {:+d}%, {:+d}% damage")), item._iPLToHit, item._iPLDam);
+		return FormatRuntime(_("to hit: {:+d}%, {:+d}% damage"), item._iPLToHit, item._iPLDam);
 	case IPL_ACP:
 	case IPL_ACP_CURSE:
-		return fmt::format(fmt::runtime(_(/*xgettext:no-c-format*/ "{:+d}% armor")), item._iPLAC);
+		return FormatRuntime(_(/*xgettext:no-c-format*/ "{:+d}% armor"), item._iPLAC);
 	case IPL_SETAC:
 	case IPL_AC_CURSE:
-		return fmt::format(fmt::runtime(_("armor class: {:d}")), item._iAC);
+		return FormatRuntime(_("armor class: {:d}"), item._iAC);
 	case IPL_FIRERES:
 	case IPL_FIRERES_CURSE:
 		if (item._iPLFR < MaxResistance)
-			return fmt::format(fmt::runtime(_("Resist Fire: {:+d}%")), item._iPLFR);
+			return FormatRuntime(_("Resist Fire: {:+d}%"), item._iPLFR);
 		else
-			return fmt::format(fmt::runtime(_("Resist Fire: {:+d}% MAX")), MaxResistance);
+			return FormatRuntime(_("Resist Fire: {:+d}% MAX"), MaxResistance);
 	case IPL_LIGHTRES:
 	case IPL_LIGHTRES_CURSE:
 		if (item._iPLLR < MaxResistance)
-			return fmt::format(fmt::runtime(_("Resist Lightning: {:+d}%")), item._iPLLR);
+			return FormatRuntime(_("Resist Lightning: {:+d}%"), item._iPLLR);
 		else
-			return fmt::format(fmt::runtime(_("Resist Lightning: {:+d}% MAX")), MaxResistance);
+			return FormatRuntime(_("Resist Lightning: {:+d}% MAX"), MaxResistance);
 	case IPL_MAGICRES:
 	case IPL_MAGICRES_CURSE:
 		if (item._iPLMR < MaxResistance)
-			return fmt::format(fmt::runtime(_("Resist Magic: {:+d}%")), item._iPLMR);
+			return FormatRuntime(_("Resist Magic: {:+d}%"), item._iPLMR);
 		else
-			return fmt::format(fmt::runtime(_("Resist Magic: {:+d}% MAX")), MaxResistance);
+			return FormatRuntime(_("Resist Magic: {:+d}% MAX"), MaxResistance);
 	case IPL_ALLRES:
 		if (item._iPLFR < MaxResistance)
-			return fmt::format(fmt::runtime(_("Resist All: {:+d}%")), item._iPLFR);
+			return FormatRuntime(_("Resist All: {:+d}%"), item._iPLFR);
 		else
-			return fmt::format(fmt::runtime(_("Resist All: {:+d}% MAX")), MaxResistance);
+			return FormatRuntime(_("Resist All: {:+d}% MAX"), MaxResistance);
 	case IPL_SPLLVLADD:
 		if (item._iSplLvlAdd > 0)
-			return fmt::format(fmt::runtime(ngettext("spells are increased {:d} level", "spells are increased {:d} levels", item._iSplLvlAdd)), item._iSplLvlAdd);
+			return FormatRuntime(ngettext("spells are increased {:d} level", "spells are increased {:d} levels", item._iSplLvlAdd), item._iSplLvlAdd);
 		else if (item._iSplLvlAdd < 0)
-			return fmt::format(fmt::runtime(ngettext("spells are decreased {:d} level", "spells are decreased {:d} levels", -item._iSplLvlAdd)), -item._iSplLvlAdd);
+			return FormatRuntime(ngettext("spells are decreased {:d} level", "spells are decreased {:d} levels", -item._iSplLvlAdd), -item._iSplLvlAdd);
 		else
 			return _("spell levels unchanged (?)");
 	case IPL_CHARGES:
 		return _("Extra charges");
 	case IPL_SPELL:
-		return fmt::format(fmt::runtime(ngettext("{:d} {:s} charge", "{:d} {:s} charges", item._iMaxCharges)), item._iMaxCharges, pgettext("spell", GetSpellData(item._iSpell).sNameText));
+		return FormatRuntime(ngettext("{:d} {:s} charge", "{:d} {:s} charges", item._iMaxCharges), item._iMaxCharges, pgettext("spell", GetSpellData(item._iSpell).sNameText));
 	case IPL_FIREDAM:
 		if (item._iFMinDam == item._iFMaxDam)
-			return fmt::format(fmt::runtime(_("Fire hit damage: {:d}")), item._iFMinDam);
+			return FormatRuntime(_("Fire hit damage: {:d}"), item._iFMinDam);
 		else
-			return fmt::format(fmt::runtime(_("Fire hit damage: {:d}-{:d}")), item._iFMinDam, item._iFMaxDam);
+			return FormatRuntime(_("Fire hit damage: {:d}-{:d}"), item._iFMinDam, item._iFMaxDam);
 	case IPL_LIGHTDAM:
 		if (item._iLMinDam == item._iLMaxDam)
-			return fmt::format(fmt::runtime(_("Lightning hit damage: {:d}")), item._iLMinDam);
+			return FormatRuntime(_("Lightning hit damage: {:d}"), item._iLMinDam);
 		else
-			return fmt::format(fmt::runtime(_("Lightning hit damage: {:d}-{:d}")), item._iLMinDam, item._iLMaxDam);
+			return FormatRuntime(_("Lightning hit damage: {:d}-{:d}"), item._iLMinDam, item._iLMaxDam);
 	case IPL_STR:
 	case IPL_STR_CURSE:
-		return fmt::format(fmt::runtime(_("{:+d} to strength")), item._iPLStr);
+		return FormatRuntime(_("{:+d} to strength"), item._iPLStr);
 	case IPL_MAG:
 	case IPL_MAG_CURSE:
-		return fmt::format(fmt::runtime(_("{:+d} to magic")), item._iPLMag);
+		return FormatRuntime(_("{:+d} to magic"), item._iPLMag);
 	case IPL_DEX:
 	case IPL_DEX_CURSE:
-		return fmt::format(fmt::runtime(_("{:+d} to dexterity")), item._iPLDex);
+		return FormatRuntime(_("{:+d} to dexterity"), item._iPLDex);
 	case IPL_VIT:
 	case IPL_VIT_CURSE:
-		return fmt::format(fmt::runtime(_("{:+d} to vitality")), item._iPLVit);
+		return FormatRuntime(_("{:+d} to vitality"), item._iPLVit);
 	case IPL_ATTRIBS:
 	case IPL_ATTRIBS_CURSE:
-		return fmt::format(fmt::runtime(_("{:+d} to all attributes")), item._iPLStr);
+		return FormatRuntime(_("{:+d} to all attributes"), item._iPLStr);
 	case IPL_GETHIT_CURSE:
 	case IPL_GETHIT:
-		return fmt::format(fmt::runtime(_("{:+d} damage from enemies")), item._iPLGetHit);
+		return FormatRuntime(_("{:+d} damage from enemies"), item._iPLGetHit);
 	case IPL_LIFE:
 	case IPL_LIFE_CURSE:
-		return fmt::format(fmt::runtime(_("Hit Points: {:+d}")), item._iPLHP >> 6);
+		return FormatRuntime(_("Hit Points: {:+d}"), item._iPLHP >> 6);
 	case IPL_MANA:
 	case IPL_MANA_CURSE:
-		return fmt::format(fmt::runtime(_("Mana: {:+d}")), item._iPLMana >> 6);
+		return FormatRuntime(_("Mana: {:+d}"), item._iPLMana >> 6);
 	case IPL_DUR:
 		return _("high durability");
 	case IPL_DUR_CURSE:
@@ -3981,26 +3979,26 @@ bool DoOil(Player &player, int cii)
 	case IPL_INDESTRUCTIBLE:
 		return _("indestructible");
 	case IPL_LIGHT:
-		return fmt::format(fmt::runtime(_(/*xgettext:no-c-format*/ "+{:d}% light radius")), 10 * item._iPLLight);
+		return FormatRuntime(_(/*xgettext:no-c-format*/ "+{:d}% light radius"), 10 * item._iPLLight);
 	case IPL_LIGHT_CURSE:
-		return fmt::format(fmt::runtime(_(/*xgettext:no-c-format*/ "-{:d}% light radius")), -10 * item._iPLLight);
+		return FormatRuntime(_(/*xgettext:no-c-format*/ "-{:d}% light radius"), -10 * item._iPLLight);
 	case IPL_MULT_ARROWS:
 		return _("multiple arrows per shot");
 	case IPL_FIRE_ARROWS:
 		if (item._iFMinDam == item._iFMaxDam)
-			return fmt::format(fmt::runtime(_("fire arrows damage: {:d}")), item._iFMinDam);
+			return FormatRuntime(_("fire arrows damage: {:d}"), item._iFMinDam);
 		else
-			return fmt::format(fmt::runtime(_("fire arrows damage: {:d}-{:d}")), item._iFMinDam, item._iFMaxDam);
+			return FormatRuntime(_("fire arrows damage: {:d}-{:d}"), item._iFMinDam, item._iFMaxDam);
 	case IPL_LIGHT_ARROWS:
 		if (item._iLMinDam == item._iLMaxDam)
-			return fmt::format(fmt::runtime(_("lightning arrows damage {:d}")), item._iLMinDam);
+			return FormatRuntime(_("lightning arrows damage {:d}"), item._iLMinDam);
 		else
-			return fmt::format(fmt::runtime(_("lightning arrows damage {:d}-{:d}")), item._iLMinDam, item._iLMaxDam);
+			return FormatRuntime(_("lightning arrows damage {:d}-{:d}"), item._iLMinDam, item._iLMaxDam);
 	case IPL_FIREBALL:
 		if (item._iFMinDam == item._iFMaxDam)
-			return fmt::format(fmt::runtime(_("fireball damage: {:d}")), item._iFMinDam);
+			return FormatRuntime(_("fireball damage: {:d}"), item._iFMinDam);
 		else
-			return fmt::format(fmt::runtime(_("fireball damage: {:d}-{:d}")), item._iFMinDam, item._iFMaxDam);
+			return FormatRuntime(_("fireball damage: {:d}-{:d}"), item._iFMinDam, item._iFMaxDam);
 	case IPL_THORNS:
 		return _("attacker takes 1-3 damage");
 	case IPL_NOMANA:
@@ -4048,7 +4046,7 @@ bool DoOil(Player &player, int cii)
 	case IPL_FASTBLOCK:
 		return _("fast block");
 	case IPL_DAMMOD:
-		return fmt::format(fmt::runtime(ngettext("adds {:d} point to damage", "adds {:d} points to damage", item._iPLDamMod)), item._iPLDamMod);
+		return FormatRuntime(ngettext("adds {:d} point to damage", "adds {:d} points to damage", item._iPLDamMod), item._iPLDamMod);
 	case IPL_RNDARROWVEL:
 		return _("fires random speed arrows");
 	case IPL_SETDAM:
@@ -4065,23 +4063,23 @@ bool DoOil(Player &player, int cii)
 		return _("no strength requirement");
 	case IPL_ADDACLIFE:
 		if (item._iFMinDam == item._iFMaxDam)
-			return fmt::format(fmt::runtime(_("lightning damage: {:d}")), item._iFMinDam);
+			return FormatRuntime(_("lightning damage: {:d}"), item._iFMinDam);
 		else
-			return fmt::format(fmt::runtime(_("lightning damage: {:d}-{:d}")), item._iFMinDam, item._iFMaxDam);
+			return FormatRuntime(_("lightning damage: {:d}-{:d}"), item._iFMinDam, item._iFMaxDam);
 	case IPL_ADDMANAAC:
 		return _("charged bolts on hits");
 	case IPL_DEVASTATION:
 		return _("occasional triple damage");
 	case IPL_DECAY:
-		return fmt::format(fmt::runtime(_(/*xgettext:no-c-format*/ "decaying {:+d}% damage")), item._iPLDam);
+		return FormatRuntime(_(/*xgettext:no-c-format*/ "decaying {:+d}% damage"), item._iPLDam);
 	case IPL_PERIL:
 		return _("2x dmg to monst, 1x to you");
 	case IPL_JESTERS:
 		return std::string(_(/*xgettext:no-c-format*/ "Random 0 - 600% damage"));
 	case IPL_CRYSTALLINE:
-		return fmt::format(fmt::runtime(_(/*xgettext:no-c-format*/ "low dur, {:+d}% damage")), item._iPLDam);
+		return FormatRuntime(_(/*xgettext:no-c-format*/ "low dur, {:+d}% damage"), item._iPLDam);
 	case IPL_DOPPELGANGER:
-		return fmt::format(fmt::runtime(_("to hit: {:+d}%, {:+d}% damage")), item._iPLToHit, item._iPLDam);
+		return FormatRuntime(_("to hit: {:+d}%, {:+d}% damage"), item._iPLToHit, item._iPLDam);
 	case IPL_ACDEMON:
 		return _("extra AC vs demons");
 	case IPL_ACUNDEAD:
@@ -4132,24 +4130,24 @@ void PrintItemDetails(const Item &item)
 	if (item._iClass == ICLASS_WEAPON) {
 		if (item._iMinDam == item._iMaxDam) {
 			if (item._iMaxDur == DUR_INDESTRUCTIBLE)
-				AddItemInfoBoxString(fmt::format(fmt::runtime(_("damage: {:d}  Indestructible")), item._iMinDam));
+				AddItemInfoBoxString(FormatRuntime(_("damage: {:d}  Indestructible"), item._iMinDam));
 			else
-				AddItemInfoBoxString(fmt::format(fmt::runtime(_(/* TRANSLATORS: Dur: is durability */ "damage: {:d}  Dur: {:d}/{:d}")), item._iMinDam, item._iDurability, item._iMaxDur));
+				AddItemInfoBoxString(FormatRuntime(_(/* TRANSLATORS: Dur: is durability */ "damage: {:d}  Dur: {:d}/{:d}"), item._iMinDam, item._iDurability, item._iMaxDur));
 		} else {
 			if (item._iMaxDur == DUR_INDESTRUCTIBLE)
-				AddItemInfoBoxString(fmt::format(fmt::runtime(_("damage: {:d}-{:d}  Indestructible")), item._iMinDam, item._iMaxDam));
+				AddItemInfoBoxString(FormatRuntime(_("damage: {:d}-{:d}  Indestructible"), item._iMinDam, item._iMaxDam));
 			else
-				AddItemInfoBoxString(fmt::format(fmt::runtime(_(/* TRANSLATORS: Dur: is durability */ "damage: {:d}-{:d}  Dur: {:d}/{:d}")), item._iMinDam, item._iMaxDam, item._iDurability, item._iMaxDur));
+				AddItemInfoBoxString(FormatRuntime(_(/* TRANSLATORS: Dur: is durability */ "damage: {:d}-{:d}  Dur: {:d}/{:d}"), item._iMinDam, item._iMaxDam, item._iDurability, item._iMaxDur));
 		}
 	}
 	if (item._iClass == ICLASS_ARMOR) {
 		if (item._iMaxDur == DUR_INDESTRUCTIBLE)
-			AddItemInfoBoxString(fmt::format(fmt::runtime(_("armor: {:d}  Indestructible")), item._iAC));
+			AddItemInfoBoxString(FormatRuntime(_("armor: {:d}  Indestructible"), item._iAC));
 		else
-			AddItemInfoBoxString(fmt::format(fmt::runtime(_(/* TRANSLATORS: Dur: is durability */ "armor: {:d}  Dur: {:d}/{:d}")), item._iAC, item._iDurability, item._iMaxDur));
+			AddItemInfoBoxString(FormatRuntime(_(/* TRANSLATORS: Dur: is durability */ "armor: {:d}  Dur: {:d}/{:d}"), item._iAC, item._iDurability, item._iMaxDur));
 	}
 	if (item._iMiscId == IMISC_STAFF && item._iMaxCharges != 0) {
-		AddItemInfoBoxString(fmt::format(fmt::runtime(_("Charges: {:d}/{:d}")), item._iCharges, item._iMaxCharges));
+		AddItemInfoBoxString(FormatRuntime(_("Charges: {:d}/{:d}"), item._iCharges, item._iMaxCharges));
 	}
 	if (item._iPrePower != -1) {
 		AddItemInfoBoxString(PrintItemPower(item._iPrePower, item));
@@ -4173,30 +4171,30 @@ void PrintItemDur(const Item &item)
 	if (item._iClass == ICLASS_WEAPON) {
 		if (item._iMinDam == item._iMaxDam) {
 			if (item._iMaxDur == DUR_INDESTRUCTIBLE)
-				AddItemInfoBoxString(fmt::format(fmt::runtime(_("damage: {:d}  Indestructible")), item._iMinDam));
+				AddItemInfoBoxString(FormatRuntime(_("damage: {:d}  Indestructible"), item._iMinDam));
 			else
-				AddItemInfoBoxString(fmt::format(fmt::runtime(_("damage: {:d}  Dur: {:d}/{:d}")), item._iMinDam, item._iDurability, item._iMaxDur));
+				AddItemInfoBoxString(FormatRuntime(_("damage: {:d}  Dur: {:d}/{:d}"), item._iMinDam, item._iDurability, item._iMaxDur));
 		} else {
 			if (item._iMaxDur == DUR_INDESTRUCTIBLE)
-				AddItemInfoBoxString(fmt::format(fmt::runtime(_("damage: {:d}-{:d}  Indestructible")), item._iMinDam, item._iMaxDam));
+				AddItemInfoBoxString(FormatRuntime(_("damage: {:d}-{:d}  Indestructible"), item._iMinDam, item._iMaxDam));
 			else
-				AddItemInfoBoxString(fmt::format(fmt::runtime(_("damage: {:d}-{:d}  Dur: {:d}/{:d}")), item._iMinDam, item._iMaxDam, item._iDurability, item._iMaxDur));
+				AddItemInfoBoxString(FormatRuntime(_("damage: {:d}-{:d}  Dur: {:d}/{:d}"), item._iMinDam, item._iMaxDam, item._iDurability, item._iMaxDur));
 		}
 		if (item._iMiscId == IMISC_STAFF && item._iMaxCharges > 0) {
-			AddItemInfoBoxString(fmt::format(fmt::runtime(_("Charges: {:d}/{:d}")), item._iCharges, item._iMaxCharges));
+			AddItemInfoBoxString(FormatRuntime(_("Charges: {:d}/{:d}"), item._iCharges, item._iMaxCharges));
 		}
 		if (item._iMagical != ITEM_QUALITY_NORMAL)
 			AddItemInfoBoxString(_("Not Identified"));
 	}
 	if (item._iClass == ICLASS_ARMOR) {
 		if (item._iMaxDur == DUR_INDESTRUCTIBLE)
-			AddItemInfoBoxString(fmt::format(fmt::runtime(_("armor: {:d}  Indestructible")), item._iAC));
+			AddItemInfoBoxString(FormatRuntime(_("armor: {:d}  Indestructible"), item._iAC));
 		else
-			AddItemInfoBoxString(fmt::format(fmt::runtime(_("armor: {:d}  Dur: {:d}/{:d}")), item._iAC, item._iDurability, item._iMaxDur));
+			AddItemInfoBoxString(FormatRuntime(_("armor: {:d}  Dur: {:d}/{:d}"), item._iAC, item._iDurability, item._iMaxDur));
 		if (item._iMagical != ITEM_QUALITY_NORMAL)
 			AddItemInfoBoxString(_("Not Identified"));
 		if (item._iMiscId == IMISC_STAFF && item._iMaxCharges > 0) {
-			AddItemInfoBoxString(fmt::format(fmt::runtime(_("Charges: {:d}/{:d}")), item._iCharges, item._iMaxCharges));
+			AddItemInfoBoxString(FormatRuntime(_("Charges: {:d}/{:d}"), item._iCharges, item._iMaxCharges));
 		}
 	}
 	if (IsAnyOf(item._itype, ItemType::Ring, ItemType::Amulet))

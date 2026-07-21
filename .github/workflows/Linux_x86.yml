@@ -40,21 +40,20 @@ jobs:
       uses: actions/cache@v6
       with:
         path: build
-        key: ${{ github.workflow }}-v7-${{ github.sha }}
-        restore-keys: ${{ github.workflow }}-v7-
+        key: ${{ github.workflow }}-v8-${{ github.sha }}
+        restore-keys: ${{ github.workflow }}-v8-
 
     - name: Build
       working-directory: ${{github.workspace}}
       shell: bash
       env:
         CMAKE_BUILD_TYPE: ${{github.event_name == 'release' && 'Release' || 'RelWithDebInfo'}}
-      # We set DEVILUTIONX_SYSTEM_LIBFMT=OFF because its soversion changes frequently.
       # We set DEVILUTIONX_SYSTEM_LIBSODIUM=OFF because its soversion changes frequently.
       # We set DEVILUTIONX_SYSTEM_BZIP2=OFF because Fedora and Debian do not agree on how to link it.
       run: |
         cmake -S. -Bbuild -DCMAKE_TOOLCHAIN_FILE=../CMake/platforms/linux_i386.toolchain.cmake \
           -DCMAKE_BUILD_TYPE=${{env.CMAKE_BUILD_TYPE}} -DCMAKE_INSTALL_PREFIX=/usr -DCPACK=ON \
-          -DBUILD_TESTING=OFF -DDEVILUTIONX_SYSTEM_LIBFMT=OFF -DDEVILUTIONX_SYSTEM_LIBSODIUM=OFF \
+          -DBUILD_TESTING=OFF -DDEVILUTIONX_SYSTEM_LIBSODIUM=OFF \
           -DDEVILUTIONX_SYSTEM_BZIP2=OFF && \
         cmake --build build -j $(getconf _NPROCESSORS_ONLN) --target package
 

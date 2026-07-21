@@ -10,8 +10,6 @@
 #include <SDL.h>
 #endif
 
-#include <fmt/format.h>
-
 #include "DiabloUI/text_input.hpp"
 #include "control/control.hpp"
 #include "controls/plrctrls.h"

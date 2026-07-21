@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <expected>
 #include <optional>
 #include <span>
 #include <string>
@@ -11,7 +12,6 @@
 #include <vector>
 
 #include <ankerl/unordered_dense.h>
-#include <expected.hpp>
 
 #include "utils/string_view_hash.hpp"
 
@@ -51,7 +51,7 @@ public:
 		friend class Ini;
 	};
 
-	static tl::expected<Ini, std::string> parse(std::string_view buffer);
+	static std::expected<Ini, std::string> parse(std::string_view buffer);
 	[[nodiscard]] std::string serialize() const;
 
 	/** @return all the keys associated with this section in the ini */

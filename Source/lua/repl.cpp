@@ -2,11 +2,11 @@
 #include "lua/repl.hpp"
 
 #include <cstddef>
+#include <expected>
 #include <optional>
 #include <string>
 #include <string_view>
 
-#include <expected.hpp>
 #include <sol/sol.hpp>
 #include <sol/utility/to_string.hpp>
 
@@ -87,14 +87,14 @@ sol::environment &GetLuaReplEnvironment()
 	return *replEnv;
 }
 
-tl::expected<std::string, std::string> RunLuaReplLine(std::string_view code)
+std::expected<std::string, std::string> RunLuaReplLine(std::string_view code)
 {
 	const sol::protected_function_result result = TryRunLuaAsExpressionThenStatement(code);
 	if (!result.valid()) {
 		if (result.get_type() == sol::type::string) {
-			return tl::make_unexpected(result.get<std::string>());
+			return std::unexpected(result.get<std::string>());
 		}
-		return tl::make_unexpected("Unknown Lua error");
+		return std::unexpected("Unknown Lua error");
 	}
 	if (result.get_type() == sol::type::none) {
 		return std::string {};

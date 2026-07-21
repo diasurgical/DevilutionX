@@ -24,7 +24,7 @@ jobs:
     - name: Create Build Environment
       run: >
         sudo apt-get update &&
-        sudo apt-get install -y cmake curl libsdl2-dev libsdl2-image-dev libfmt-dev libsodium-dev libbz2-dev libgtest-dev libgmock-dev libbenchmark-dev git smpq gettext python-is-python3
+        sudo apt-get install -y cmake curl libsdl2-dev libsdl2-image-dev libsodium-dev libbz2-dev libgtest-dev libgmock-dev libbenchmark-dev git smpq gettext python-is-python3
 
     - name: Build
       working-directory: ${{github.workspace}}
@@ -55,7 +55,7 @@ jobs:
     - name: Create Build Environment
       run: >
         sudo apt-get update &&
-        sudo apt-get install -y cmake curl libsdl2-dev libsdl2-image-dev libfmt-dev libsodium-dev libbz2-dev libgtest-dev libgmock-dev libbenchmark-dev git smpq gettext python-is-python3
+        sudo apt-get install -y cmake curl libsdl2-dev libsdl2-image-dev libsodium-dev libbz2-dev libgtest-dev libgmock-dev libbenchmark-dev git smpq gettext python-is-python3
 
     - name: Build
       working-directory: ${{github.workspace}}

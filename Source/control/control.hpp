@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <expected>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -17,8 +18,6 @@
 #include "utils/sdl2_to_1_2_backports.h"
 #endif
 #endif
-
-#include <expected.hpp>
 
 #include "DiabloUI/text_input.hpp"
 #include "DiabloUI/ui_flags.hpp"
@@ -94,7 +93,7 @@ void AddInfoBoxString(std::string &&str, bool floatingBox = false);
 void DrawPanelBox(const Surface &out, SDL_Rect srcRect, Point targetPosition);
 Point GetPanelPosition(UiPanels panel, Point offset = { 0, 0 });
 
-tl::expected<void, std::string> InitMainPanel();
+std::expected<void, std::string> InitMainPanel();
 void DrawMainPanel(const Surface &out);
 
 /**

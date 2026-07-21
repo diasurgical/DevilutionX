@@ -14,6 +14,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <expected>
 #include <iterator>
 #include <limits>
 #include <memory>
@@ -29,10 +30,6 @@
 #else
 #include <SDL.h>
 #endif
-
-#include <expected.hpp>
-#include <fmt/core.h>
-#include <fmt/format.h>
 
 #include "automap.h"
 #include "control/control.hpp"
@@ -96,6 +93,7 @@
 #include "utils/endian_swap.hpp"
 #include "utils/enum_traits.h"
 #include "utils/file_name_generator.hpp"
+#include "utils/format.hpp"
 #include "utils/is_of.hpp"
 #include "utils/language.h"
 #include "utils/log.hpp"
@@ -462,7 +460,7 @@ Point GetUniqueMonstPosition(UniqueMonsterType uniqindex)
 	return position;
 }
 
-tl::expected<void, std::string> PlaceUniqueMonst(UniqueMonsterType uniqindex, size_t minionType, int bosspacksize)
+std::expected<void, std::string> PlaceUniqueMonst(UniqueMonsterType uniqindex, size_t minionType, int bosspacksize)
 {
 	const auto &uniqueMonsterData = UniqueMonstersData[static_cast<size_t>(uniqindex)];
 	const size_t typeIndex = GetMonsterTypeIndex(uniqueMonsterData.mtype);
@@ -503,7 +501,7 @@ void ClrAllMonsters()
 	}
 }
 
-tl::expected<void, std::string> PlaceUniqueMonsters()
+std::expected<void, std::string> PlaceUniqueMonsters()
 {
 	for (size_t u = 0; u < UniqueMonstersData.size(); ++u) {
 		if (UniqueMonstersData[u].mlevel != currlevel)
@@ -530,7 +528,7 @@ tl::expected<void, std::string> PlaceUniqueMonsters()
 	return {};
 }
 
-tl::expected<void, std::string> PlaceQuestMonsters()
+std::expected<void, std::string> PlaceQuestMonsters()
 {
 	if (!setlevel) {
 		if (Quests[Q_BUTCHER].IsAvailable()) {
@@ -612,7 +610,7 @@ tl::expected<void, std::string> PlaceQuestMonsters()
 	return {};
 }
 
-tl::expected<void, std::string> LoadDiabMonsts()
+std::expected<void, std::string> LoadDiabMonsts()
 {
 	{
 		ASSIGN_OR_RETURN(auto dunData, LoadFileInMemWithStatus<uint16_t>("levels\\l4data\\diab1.dun"));
@@ -3288,7 +3286,7 @@ bool PosOkMovingMissile(Point position)
 
 } // namespace
 
-tl::expected<size_t, std::string> AddMonsterType(_monster_id type, placeflag placeflag)
+std::expected<size_t, std::string> AddMonsterType(_monster_id type, placeflag placeflag)
 {
 	const size_t typeIndex = GetMonsterTypeIndex(type);
 	CMonster &monsterType = LevelMonsterTypes[typeIndex];
@@ -3316,7 +3314,7 @@ tl::expected<size_t, std::string> AddMonsterType(_monster_id type, placeflag pla
 	return typeIndex;
 }
 
-tl::expected<void, std::string> InitTRNForUniqueMonster(Monster &monster)
+std::expected<void, std::string> InitTRNForUniqueMonster(Monster &monster)
 {
 	char filestr[64];
 	*BufCopy(filestr, R"(monsters\monsters\)", UniqueMonstersData[static_cast<size_t>(monster.uniqueType)].mTrnName, ".trn") = '\0';
@@ -3324,7 +3322,7 @@ tl::expected<void, std::string> InitTRNForUniqueMonster(Monster &monster)
 	return {};
 }
 
-tl::expected<void, std::string> PrepareUniqueMonst(Monster &monster, UniqueMonsterType monsterType, size_t minionType, int bosspacksize, const UniqueMonsterData &uniqueMonsterData)
+std::expected<void, std::string> PrepareUniqueMonst(Monster &monster, UniqueMonsterType monsterType, size_t minionType, int bosspacksize, const UniqueMonsterData &uniqueMonsterData)
 {
 	monster.uniqueType = monsterType;
 	monster.maxHitPoints = uniqueMonsterData.mmaxhp << 6;
@@ -3431,7 +3429,7 @@ void InitLevelMonsters()
 	uniquetrans = 0;
 }
 
-tl::expected<void, std::string> GetLevelMTypes()
+std::expected<void, std::string> GetLevelMTypes()
 {
 	RETURN_IF_ERROR(AddMonsterType(MT_GOLEM, PLACE_SPECIAL));
 	if (currlevel == 16) {
@@ -3517,7 +3515,7 @@ tl::expected<void, std::string> GetLevelMTypes()
 	return {};
 }
 
-tl::expected<void, std::string> InitMonsterSND(CMonster &monsterType)
+std::expected<void, std::string> InitMonsterSND(CMonster &monsterType)
 {
 	if (!gbSndInited)
 		return {};
@@ -3546,7 +3544,7 @@ tl::expected<void, std::string> InitMonsterSND(CMonster &monsterType)
 	return {};
 }
 
-tl::expected<void, std::string> InitMonsterGFX(CMonster &monsterType, MonsterSpritesData &&spritesData)
+std::expected<void, std::string> InitMonsterGFX(CMonster &monsterType, MonsterSpritesData &&spritesData)
 {
 	if (HeadlessMode)
 		return {};
@@ -3620,7 +3618,7 @@ tl::expected<void, std::string> InitMonsterGFX(CMonster &monsterType, MonsterSpr
 	return {};
 }
 
-tl::expected<void, std::string> InitAllMonsterGFX()
+std::expected<void, std::string> InitAllMonsterGFX()
 {
 	if (HeadlessMode)
 		return {};
@@ -3685,10 +3683,11 @@ void InitGolems()
 	}
 }
 
-tl::expected<void, std::string> InitMonsters()
+std::expected<void, std::string> InitMonsters()
 {
-	if (!gbIsSpawn && !setlevel && currlevel == 16)
-		LoadDiabMonsts();
+	if (!gbIsSpawn && !setlevel && currlevel == 16) {
+		RETURN_IF_ERROR(LoadDiabMonsts());
+	}
 
 	int nt = numtrigs;
 	if (currlevel == 15)
@@ -3748,7 +3747,7 @@ tl::expected<void, std::string> InitMonsters()
 	return InitAllMonsterGFX();
 }
 
-tl::expected<void, std::string> SetMapMonsters(const uint16_t *dunData, Point startPosition)
+std::expected<void, std::string> SetMapMonsters(const uint16_t *dunData, Point startPosition)
 {
 	RETURN_IF_ERROR(AddMonsterType(MT_GOLEM, PLACE_SPECIAL));
 	if (setlevel)
@@ -4392,7 +4391,7 @@ bool LineClearMovingMissile(Point startPoint, Point endPoint)
 	return LineClear(PosOkMovingMissile, startPoint, endPoint);
 }
 
-tl::expected<void, std::string> SyncMonsterAnim(Monster &monster)
+std::expected<void, std::string> SyncMonsterAnim(Monster &monster)
 {
 #ifdef _DEBUG
 	// fix for saves with debug monsters having type originally not on the level
@@ -4471,9 +4470,9 @@ void M_FallenFear(Point position)
 void PrintMonstHistory(int mt)
 {
 	if (*GetOptions().Gameplay.showMonsterType) {
-		AddInfoBoxString(fmt::format(fmt::runtime(_("Type: {:s}  Kills: {:d}")), GetMonsterTypeText(MonstersData[mt]), MonsterKillCounts[mt]));
+		AddInfoBoxString(FormatRuntime(_("Type: {:s}  Kills: {:d}"), GetMonsterTypeText(MonstersData[mt]), MonsterKillCounts[mt]));
 	} else {
-		AddInfoBoxString(fmt::format(fmt::runtime(_("Total kills: {:d}")), MonsterKillCounts[mt]));
+		AddInfoBoxString(FormatRuntime(_("Total kills: {:d}"), MonsterKillCounts[mt]));
 	}
 
 	if (MonsterKillCounts[mt] >= 30) {
@@ -4499,7 +4498,7 @@ void PrintMonstHistory(int mt)
 			minHP = 4 * minHP + hpBonusHell;
 			maxHP = 4 * maxHP + hpBonusHell;
 		}
-		AddInfoBoxString(fmt::format(fmt::runtime(_("Hit Points: {:d}-{:d}")), minHP, maxHP));
+		AddInfoBoxString(FormatRuntime(_("Hit Points: {:d}-{:d}"), minHP, maxHP));
 	}
 	if (MonsterKillCounts[mt] >= 15) {
 		const int res = (sgGameInitInfo.nDifficulty != DIFF_HELL) ? MonstersData[mt].resistance : MonstersData[mt].resistanceHell;
@@ -4534,7 +4533,7 @@ void PrintUniqueHistory()
 {
 	const Monster &monster = Monsters[pcursmonst];
 	if (*GetOptions().Gameplay.showMonsterType) {
-		AddInfoBoxString(fmt::format(fmt::runtime(_("Type: {:s}")), GetMonsterTypeText(monster.data())));
+		AddInfoBoxString(FormatRuntime(_("Type: {:s}"), GetMonsterTypeText(monster.data())));
 	}
 
 	const int res = monster.resistance & (RESIST_MAGIC | RESIST_FIRE | RESIST_LIGHTNING | IMMUNE_MAGIC | IMMUNE_FIRE | IMMUNE_LIGHTNING);

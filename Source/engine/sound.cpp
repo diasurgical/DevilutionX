@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <expected>
 #include <list>
 #include <memory>
 #include <mutex>
@@ -23,7 +24,6 @@
 #include <Aulib/Stream.h>
 #include <SDL.h>
 #endif
-#include <expected.hpp>
 
 #include "appfat.h"
 #include "engine/assets.hpp"
@@ -74,7 +74,7 @@ std::string GetMp3Path(const char *path)
 }
 #endif
 
-tl::expected<void, std::string> LoadAudioFile(const char *path, bool stream, SoundSample &result)
+std::expected<void, std::string> LoadAudioFile(const char *path, bool stream, SoundSample &result)
 {
 
 #ifdef PS2
@@ -94,7 +94,7 @@ tl::expected<void, std::string> LoadAudioFile(const char *path, bool stream, Sou
 #endif
 
 	if (!ref.ok()) {
-		return tl::make_unexpected(StrCat("Audio file not found\n", path, "\n", SDL_GetError(), "\n" __FILE__ ":", __LINE__));
+		return std::unexpected(StrCat("Audio file not found\n", path, "\n", SDL_GetError(), "\n" __FILE__ ":", __LINE__));
 	}
 
 #ifdef STREAM_ALL_AUDIO_MIN_FILE_SIZE
@@ -111,7 +111,7 @@ tl::expected<void, std::string> LoadAudioFile(const char *path, bool stream, Sou
 
 	if (stream) {
 		if (result.SetChunkStream(foundPath, isMp3, /*logErrors=*/true) != 0) {
-			return tl::make_unexpected(StrCat("Failed to load audio file\n", foundPath, "\n", SDL_GetError(), "\n" __FILE__ ":", __LINE__));
+			return std::unexpected(StrCat("Failed to load audio file\n", foundPath, "\n", SDL_GetError(), "\n" __FILE__ ":", __LINE__));
 		}
 	} else {
 #if !defined(STREAM_ALL_AUDIO_MIN_FILE_SIZE) || STREAM_ALL_AUDIO_MIN_FILE_SIZE == 0
@@ -119,15 +119,15 @@ tl::expected<void, std::string> LoadAudioFile(const char *path, bool stream, Sou
 #endif
 		AssetHandle handle = OpenAsset(std::move(ref));
 		if (!handle.ok()) {
-			return tl::make_unexpected(StrCat("Failed to load audio file\n", foundPath, "\n", SDL_GetError(), "\n" __FILE__ ":", __LINE__));
+			return std::unexpected(StrCat("Failed to load audio file\n", foundPath, "\n", SDL_GetError(), "\n" __FILE__ ":", __LINE__));
 		}
 		auto waveFile = MakeArraySharedPtr<std::uint8_t>(size);
 		if (!handle.read(waveFile.get(), size)) {
-			return tl::make_unexpected(StrCat("Failed to read file\n", foundPath, ": ", SDL_GetError(), __FILE__ ":", __LINE__));
+			return std::unexpected(StrCat("Failed to read file\n", foundPath, ": ", SDL_GetError(), __FILE__ ":", __LINE__));
 		}
 		const int error = result.SetChunk(waveFile, size, isMp3);
 		if (error != 0) {
-			return tl::make_unexpected(SDL_GetError());
+			return std::unexpected(SDL_GetError());
 		}
 	}
 	return {};
@@ -243,7 +243,7 @@ void snd_play_snd(TSnd *pSnd, int lVolume, int lPan, int userVolume)
 	pSnd->start_tc = tc;
 }
 
-tl::expected<std::unique_ptr<TSnd>, std::string> SoundFileLoadWithStatus(const char *path, bool stream)
+std::expected<std::unique_ptr<TSnd>, std::string> SoundFileLoadWithStatus(const char *path, bool stream)
 {
 	auto snd = std::make_unique<TSnd>();
 	snd->start_tc = SDL_GetTicks() - 80 - 1;
@@ -255,7 +255,7 @@ tl::expected<std::unique_ptr<TSnd>, std::string> SoundFileLoadWithStatus(const c
 
 std::unique_ptr<TSnd> sound_file_load(const char *path, bool stream)
 {
-	tl::expected<std::unique_ptr<TSnd>, std::string> result = SoundFileLoadWithStatus(path, stream);
+	std::expected<std::unique_ptr<TSnd>, std::string> result = SoundFileLoadWithStatus(path, stream);
 	if (!result.has_value()) app_fatal(result.error());
 	return std::move(result).value();
 }

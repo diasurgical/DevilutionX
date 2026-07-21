@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <expected>
 #include <functional>
 #include <map>
 #include <span>
@@ -16,10 +17,6 @@
 #else
 #include <SDL.h>
 #endif
-
-#include <expected.hpp>
-
-#include <fmt/format.h>
 
 #include "appfat.h"
 #include "game_mode.hpp"
@@ -296,8 +293,8 @@ struct AssetData {
 	}
 };
 
-tl::expected<AssetData, std::string> LoadAsset(std::string_view path);
-tl::expected<AssetData, std::string> LoadIntegralAsset(std::string_view path);
+std::expected<AssetData, std::string> LoadAsset(std::string_view path);
+std::expected<AssetData, std::string> LoadIntegralAsset(std::string_view path);
 
 #ifdef UNPACKED_MPQS
 using MpqArchiveT = std::string;

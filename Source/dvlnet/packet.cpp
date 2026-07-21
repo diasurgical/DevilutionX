@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <cstdint>
+#include <expected>
 
 #ifdef PACKET_ENCRYPTION
 #include <sodium.h>
@@ -9,8 +10,6 @@
 #include <chrono>
 #include <random>
 #endif
-
-#include <expected.hpp>
 
 #include "utils/algorithm/container.hpp"
 #include "utils/str_cat.hpp"
@@ -113,11 +112,11 @@ PacketError PacketTypeError(std::initializer_list<packet_type> expectedTypes, st
 
 namespace {
 
-tl::expected<void, PacketError> CheckPacketTypeOneOf(std::initializer_list<packet_type> expectedTypes, std::uint8_t actualType)
+std::expected<void, PacketError> CheckPacketTypeOneOf(std::initializer_list<packet_type> expectedTypes, std::uint8_t actualType)
 {
 	if (c_none_of(expectedTypes,
 	        [actualType](uint8_t type) { return type == actualType; })) {
-		return tl::make_unexpected(PacketTypeError(expectedTypes, actualType));
+		return std::unexpected(PacketTypeError(expectedTypes, actualType));
 	}
 	return {};
 }
@@ -150,60 +149,60 @@ plr_t packet::Destination() const
 	return m_dest;
 }
 
-tl::expected<const buffer_t *, PacketError> packet::Message()
+std::expected<const buffer_t *, PacketError> packet::Message()
 {
 	assert(have_decrypted);
 	return CheckPacketTypeOneOf({ PT_MESSAGE }, m_type)
 	    .transform([this]() { return &m_message; });
 }
 
-tl::expected<turn_t, PacketError> packet::Turn()
+std::expected<turn_t, PacketError> packet::Turn()
 {
 	assert(have_decrypted);
 	return CheckPacketTypeOneOf({ PT_TURN }, m_type)
 	    .transform([this]() { return m_turn; });
 }
 
-tl::expected<cookie_t, PacketError> packet::Cookie()
+std::expected<cookie_t, PacketError> packet::Cookie()
 {
 	assert(have_decrypted);
 	return CheckPacketTypeOneOf({ PT_JOIN_REQUEST, PT_JOIN_ACCEPT }, m_type)
 	    .transform([this]() { return m_cookie; });
 }
 
-tl::expected<plr_t, PacketError> packet::NewPlayer()
+std::expected<plr_t, PacketError> packet::NewPlayer()
 {
 	assert(have_decrypted);
 	return CheckPacketTypeOneOf({ PT_JOIN_ACCEPT, PT_CONNECT, PT_DISCONNECT }, m_type)
 	    .transform([this]() { return m_newplr; });
 }
 
-tl::expected<timestamp_t, PacketError> packet::Time()
+std::expected<timestamp_t, PacketError> packet::Time()
 {
 	assert(have_decrypted);
 	return CheckPacketTypeOneOf({ PT_ECHO_REQUEST, PT_ECHO_REPLY }, m_type)
 	    .transform([this]() { return m_time; });
 }
 
-tl::expected<const buffer_t *, PacketError> packet::Info()
+std::expected<const buffer_t *, PacketError> packet::Info()
 {
 	assert(have_decrypted);
 	return CheckPacketTypeOneOf({ PT_JOIN_REQUEST, PT_JOIN_ACCEPT, PT_CONNECT, PT_INFO_REPLY }, m_type)
 	    .transform([this]() { return &m_info; });
 }
 
-tl::expected<leaveinfo_t, PacketError> packet::LeaveInfo()
+std::expected<leaveinfo_t, PacketError> packet::LeaveInfo()
 {
 	assert(have_decrypted);
 	return CheckPacketTypeOneOf({ PT_DISCONNECT }, m_type)
 	    .transform([this]() { return m_leaveinfo; });
 }
 
-tl::expected<void, PacketError> packet_in::Create(buffer_t buf)
+std::expected<void, PacketError> packet_in::Create(buffer_t buf)
 {
 	assert(!have_encrypted && !have_decrypted);
 	if (buf.size() < sizeof(packet_type) + 2 * sizeof(plr_t))
-		return tl::make_unexpected(PacketError());
+		return std::unexpected(PacketError());
 
 	decrypted_buffer = std::move(buf);
 	have_decrypted = true;
@@ -217,7 +216,7 @@ tl::expected<void, PacketError> packet_in::Create(buffer_t buf)
 }
 
 #ifdef PACKET_ENCRYPTION
-tl::expected<void, PacketError> packet_in::Decrypt(buffer_t buf)
+std::expected<void, PacketError> packet_in::Decrypt(buffer_t buf)
 {
 	assert(!have_encrypted && !have_decrypted);
 	encrypted_buffer = std::move(buf);
@@ -226,7 +225,7 @@ tl::expected<void, PacketError> packet_in::Decrypt(buffer_t buf)
 	if (encrypted_buffer.size() < crypto_secretbox_NONCEBYTES
 	        + crypto_secretbox_MACBYTES
 	        + sizeof(packet_type) + 2 * sizeof(plr_t))
-		return tl::make_unexpected(PacketError());
+		return std::unexpected(PacketError());
 	auto pktlen = (encrypted_buffer.size()
 	    - crypto_secretbox_NONCEBYTES
 	    - crypto_secretbox_MACBYTES);
@@ -240,7 +239,7 @@ tl::expected<void, PacketError> packet_in::Decrypt(buffer_t buf)
 	if (status != 0) {
 		auto code = PacketError::ErrorCode::DecryptionFailed;
 		std::string_view message = "Failed to decrypt packet data";
-		return tl::make_unexpected(PacketError(code, message));
+		return std::unexpected(PacketError(code, message));
 	}
 
 	have_decrypted = true;
@@ -249,7 +248,7 @@ tl::expected<void, PacketError> packet_in::Decrypt(buffer_t buf)
 #endif
 
 #ifdef PACKET_ENCRYPTION
-tl::expected<void, PacketError> packet_out::Encrypt()
+std::expected<void, PacketError> packet_out::Encrypt()
 {
 	assert(have_decrypted);
 
@@ -271,7 +270,7 @@ tl::expected<void, PacketError> packet_out::Encrypt()
 	if (status != 0) {
 		auto code = PacketError::ErrorCode::EncryptionFailed;
 		std::string_view message = "Failed to encrypt packet data";
-		return tl::make_unexpected(PacketError(code, message));
+		return std::unexpected(PacketError(code, message));
 	}
 
 	have_encrypted = true;

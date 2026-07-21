@@ -19,8 +19,6 @@
 #endif
 #endif
 
-#include <fmt/format.h>
-
 #include <config.h>
 
 #include "DiabloUI/selstart.h"
@@ -108,6 +106,7 @@
 #include "track.h"
 #include "utils/console.h"
 #include "utils/display.h"
+#include "utils/format.hpp"
 #include "utils/is_of.hpp"
 #include "utils/language.h"
 #include "utils/parse_int.hpp"
@@ -1360,12 +1359,12 @@ void DiabloDeinit()
 		SDL_Quit();
 }
 
-tl::expected<void, std::string> LoadLvlGFX()
+std::expected<void, std::string> LoadLvlGFX()
 {
 	assert(pDungeonCels == nullptr);
 	constexpr int SpecialCelWidth = 64;
 
-	const auto loadAll = [](const char *cel, const char *til, const char *special) -> tl::expected<void, std::string> {
+	const auto loadAll = [](const char *cel, const char *til, const char *special) -> std::expected<void, std::string> {
 		ASSIGN_OR_RETURN(pDungeonCels, LoadFileInMemWithStatus(cel));
 		ASSIGN_OR_RETURN(pMegaTiles, LoadFileInMemWithStatus<MegaTile>(til));
 		ASSIGN_OR_RETURN(pSpecialCels, LoadCelWithStatus(special, SpecialCelWidth));
@@ -1420,11 +1419,11 @@ tl::expected<void, std::string> LoadLvlGFX()
 		    "nlevels\\l5data\\l5.til",
 		    "nlevels\\l5data\\l5s");
 	default:
-		return tl::make_unexpected("LoadLvlGFX");
+		return std::unexpected("LoadLvlGFX");
 	}
 }
 
-tl::expected<void, std::string> LoadAllGFX()
+std::expected<void, std::string> LoadAllGFX()
 {
 	IncProgress();
 #if !defined(USE_SDL1) && !defined(__vita__)
@@ -1587,17 +1586,17 @@ void TimeoutCursor(bool bTimeout)
 
 				DvlNetLatencies latencies = DvlNet_GetLatencies(i);
 
-				std::string ping = fmt::format(
-				    fmt::runtime(_(/* TRANSLATORS: {:s} means: Character Name */ "Player {:s} is timing out!")),
+				std::string ping = FormatRuntime(
+				    _(/* TRANSLATORS: {:s} means: Character Name */ "Player {:s} is timing out!"),
 				    Players[i].name());
 
-				StrAppend(ping, "\n  ", fmt::format(fmt::runtime(_(/* TRANSLATORS: Network connectivity statistics */ "Echo latency: {:d} ms")), latencies.echoLatency));
+				StrAppend(ping, "\n  ", FormatRuntime(_(/* TRANSLATORS: Network connectivity statistics */ "Echo latency: {:d} ms"), latencies.echoLatency));
 
 				if (latencies.providerLatency) {
 					if (latencies.isRelayed && *latencies.isRelayed) {
-						StrAppend(ping, "\n  ", fmt::format(fmt::runtime(_(/* TRANSLATORS: Network connectivity statistics */ "Provider latency: {:d} ms (Relayed)")), *latencies.providerLatency));
+						StrAppend(ping, "\n  ", FormatRuntime(_(/* TRANSLATORS: Network connectivity statistics */ "Provider latency: {:d} ms (Relayed)"), *latencies.providerLatency));
 					} else {
-						StrAppend(ping, "\n  ", fmt::format(fmt::runtime(_(/* TRANSLATORS: Network connectivity statistics */ "Provider latency: {:d} ms")), *latencies.providerLatency));
+						StrAppend(ping, "\n  ", FormatRuntime(_(/* TRANSLATORS: Network connectivity statistics */ "Provider latency: {:d} ms"), *latencies.providerLatency));
 					}
 				}
 				EventPlrMsg(ping);
@@ -2117,8 +2116,8 @@ void InitKeymapActions()
 	    N_("Displays game infos."),
 	    'V',
 	    [] {
-		    EventPlrMsg(fmt::format(
-		                    fmt::runtime(_(/* TRANSLATORS: {:s} means: Project Name, Game Version. */ "{:s} {:s}")),
+		    EventPlrMsg(FormatRuntime(
+		                    _(/* TRANSLATORS: {:s} means: Project Name, Game Version. */ "{:s} {:s}"),
 		                    PROJECT_NAME,
 		                    PROJECT_VERSION),
 		        UiFlags::ColorWhite);
@@ -2629,8 +2628,8 @@ void InitPadmapActions()
 	    N_("Displays game infos."),
 	    ControllerButton_NONE,
 	    [] {
-		    EventPlrMsg(fmt::format(
-		                    fmt::runtime(_(/* TRANSLATORS: {:s} means: Project Name, Game Version. */ "{:s} {:s}")),
+		    EventPlrMsg(FormatRuntime(
+		                    _(/* TRANSLATORS: {:s} means: Project Name, Game Version. */ "{:s} {:s}"),
 		                    PROJECT_NAME,
 		                    PROJECT_VERSION),
 		        UiFlags::ColorWhite);
@@ -3136,7 +3135,7 @@ void LoadGameLevelStash()
 	gbIsHellfireSaveGame = isHellfireSaveGame;
 }
 
-tl::expected<void, std::string> LoadGameLevelDungeon(bool firstflag, lvl_entry lvldir, const Player &myPlayer)
+std::expected<void, std::string> LoadGameLevelDungeon(bool firstflag, lvl_entry lvldir, const Player &myPlayer)
 {
 	if (firstflag || lvldir == ENTRY_LOAD || !myPlayer._pLvlVisited[currlevel] || gbIsMultiplayer) {
 		HoldThemeRooms();
@@ -3232,7 +3231,7 @@ void LoadGameLevelSetVisited()
 	}
 }
 
-tl::expected<void, std::string> LoadGameLevelTown(bool firstflag, lvl_entry lvldir, const Player &myPlayer)
+std::expected<void, std::string> LoadGameLevelTown(bool firstflag, lvl_entry lvldir, const Player &myPlayer)
 {
 	for (int i = 0; i < MAXDUNX; i++) { // NOLINT(modernize-loop-convert)
 		for (int j = 0; j < MAXDUNY; j++) {
@@ -3261,9 +3260,9 @@ tl::expected<void, std::string> LoadGameLevelTown(bool firstflag, lvl_entry lvld
 	return {};
 }
 
-tl::expected<void, std::string> LoadGameLevelSetLevel(bool firstflag, lvl_entry lvldir, const Player &myPlayer)
+std::expected<void, std::string> LoadGameLevelSetLevel(bool firstflag, lvl_entry lvldir, const Player &myPlayer)
 {
-	LoadSetMap();
+	RETURN_IF_ERROR(LoadSetMap());
 	IncProgress();
 	RETURN_IF_ERROR(GetLevelMTypes());
 	IncProgress();
@@ -3313,7 +3312,7 @@ tl::expected<void, std::string> LoadGameLevelSetLevel(bool firstflag, lvl_entry 
 	return {};
 }
 
-tl::expected<void, std::string> LoadGameLevelStandardLevel(bool firstflag, lvl_entry lvldir, const Player &myPlayer)
+std::expected<void, std::string> LoadGameLevelStandardLevel(bool firstflag, lvl_entry lvldir, const Player &myPlayer)
 {
 	CreateLevel(lvldir);
 
@@ -3362,9 +3361,9 @@ tl::expected<void, std::string> LoadGameLevelStandardLevel(bool firstflag, lvl_e
 	SetRndSeedForDungeonLevel();
 
 	if (leveltype == DTYPE_TOWN) {
-		LoadGameLevelTown(firstflag, lvldir, myPlayer);
+		RETURN_IF_ERROR(LoadGameLevelTown(firstflag, lvldir, myPlayer));
 	} else {
-		LoadGameLevelDungeon(firstflag, lvldir, myPlayer);
+		RETURN_IF_ERROR(LoadGameLevelDungeon(firstflag, lvldir, myPlayer));
 	}
 
 	PlayDungMsgs();
@@ -3396,7 +3395,7 @@ void LoadGameLevelCalculateCursor()
 	CheckCursMove();
 }
 
-tl::expected<void, std::string> LoadGameLevel(bool firstflag, lvl_entry lvldir)
+std::expected<void, std::string> LoadGameLevel(bool firstflag, lvl_entry lvldir)
 {
 	const _music_id neededTrack = GetLevelMusic(leveltype);
 

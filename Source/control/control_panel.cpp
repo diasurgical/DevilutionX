@@ -3,8 +3,6 @@
 #include "control_chat.hpp"
 #include "control_flasks.hpp"
 
-#include <fmt/format.h>
-
 #include "automap.h"
 #include "controls/control_mode.hpp"
 #include "controls/modifier_hints.h"
@@ -27,6 +25,7 @@
 #include "qol/stash.h"
 #include "qol/visual_store.h"
 #include "stores.h"
+#include "utils/format.hpp"
 #include "utils/sdl_compat.h"
 
 namespace devilution {
@@ -353,7 +352,7 @@ void DrawPanelBox(const Surface &out, SDL_Rect srcRect, Point targetPosition)
 	out.BlitFrom(*BottomBuffer, srcRect, targetPosition);
 }
 
-tl::expected<void, std::string> InitMainPanel()
+std::expected<void, std::string> InitMainPanel()
 {
 	if (!HeadlessMode) {
 		BottomBuffer.emplace(GetMainPanel().size.width, (GetMainPanel().size.height + PanelPaddingHeight) * (IsChatAvailable() ? 2 : 1));
@@ -417,7 +416,7 @@ tl::expected<void, std::string> InitMainPanel()
 	SpellbookFlag = false;
 
 	if (!HeadlessMode) {
-		InitSpellBook();
+		RETURN_IF_ERROR(InitSpellBook());
 		ASSIGN_OR_RETURN(pQLogCel, LoadCelWithStatus("data\\quest", static_cast<uint16_t>(SidePanelSize.width)));
 		ASSIGN_OR_RETURN(GoldBoxBuffer, LoadCelWithStatus("ctrlpan\\golddrop", 261));
 	}
@@ -820,12 +819,12 @@ void DrawDeathText(const Surface &out)
 
 	if (!gbIsMultiplayer) {
 		if (gbValidSaveFile)
-			text = fmt::format(fmt::runtime(_("Press {} to load last save.")), buttonText);
+			text = FormatRuntime(_("Press {} to load last save."), buttonText);
 		else
-			text = fmt::format(fmt::runtime(_("Press {} to return to Main Menu.")), buttonText);
+			text = FormatRuntime(_("Press {} to return to Main Menu."), buttonText);
 
 	} else {
-		text = fmt::format(fmt::runtime(_("Press {} to restart in town.")), buttonText);
+		text = FormatRuntime(_("Press {} to restart in town."), buttonText);
 	}
 	DrawString(out, text, linePosition, smallTextOptions);
 }

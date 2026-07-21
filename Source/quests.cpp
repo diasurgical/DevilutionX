@@ -7,8 +7,6 @@
 
 #include <cstdint>
 
-#include <fmt/format.h>
-
 #include "DiabloUI/ui_flags.hpp"
 #include "control/control.hpp"
 #include "cursor.h"
@@ -32,6 +30,7 @@
 #include "tables/townerdat.hpp"
 #include "towners.h"
 #include "utils/endian_swap.hpp"
+#include "utils/format.hpp"
 #include "utils/is_of.hpp"
 #include "utils/language.h"
 #include "utils/utf8.hpp"
@@ -354,7 +353,7 @@ bool ForceQuests()
 			const int ql = quest._qslvl - 1;
 
 			if (EntranceBoundaryContains(quest.position, cursPosition)) {
-				InfoString = fmt::format(fmt::runtime(_(/* TRANSLATORS: Used for Quest Portals. {:s} is a Map Name */ "To {:s}")), _(QuestTriggerNames[ql]));
+				InfoString = FormatRuntime(_(/* TRANSLATORS: Used for Quest Portals. {:s} is a Map Name */ "To {:s}"), _(QuestTriggerNames[ql]));
 				cursPosition = quest.position;
 				return true;
 			}

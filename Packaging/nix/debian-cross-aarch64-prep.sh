@@ -22,7 +22,7 @@ fi
 PACKAGES=(
   cmake git smpq gettext dpkg-cross libc-dev-arm64-cross
   libsdl2-dev:arm64 libsdl2-image-dev:arm64 libsodium-dev:arm64
-  libpng-dev:arm64 libbz2-dev:arm64 libfmt-dev:arm64
+  libpng-dev:arm64 libbz2-dev:arm64
   libspeechd-dev:arm64
 )
 

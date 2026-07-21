@@ -5,7 +5,6 @@ set(UBSAN OFF)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/xbox_nxdk/finders")
 
 set(DEVILUTIONX_SYSTEM_BZIP2 OFF)
-set(DEVILUTIONX_SYSTEM_LIBFMT OFF)
 
 # nxdk's zlib is built with Z_SOLO, which excludes utility functions like
 # uncompress() that mpqfs needs for zlib-compressed MPQ sectors.

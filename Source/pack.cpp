@@ -6,8 +6,7 @@
 #include "pack.h"
 
 #include <cstdint>
-
-#include <fmt/format.h>
+#include <format>
 
 #include "engine/random.hpp"
 #include "game_mode.hpp"
@@ -46,7 +45,7 @@ namespace {
 
 void EventFailedJoinAttempt(const char *playerName)
 {
-	const std::string message = fmt::format("Player '{}' sent invalid player data during attempt to join the game.", playerName);
+	const std::string message = std::format("Player '{}' sent invalid player data during attempt to join the game.", playerName);
 	EventPlrMsg(message);
 }
 

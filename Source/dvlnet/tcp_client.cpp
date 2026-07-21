@@ -1,6 +1,8 @@
 #include "dvlnet/tcp_client.h"
 
 #include <exception>
+#include <expected>
+#include <format>
 #include <functional>
 #include <memory>
 #include <stdexcept>
@@ -14,8 +16,6 @@
 #endif
 
 #include <asio/connect.hpp>
-#include <expected.hpp>
-#include <fmt/format.h>
 
 #include "options.h"
 #include "utils/language.h"
@@ -89,7 +89,7 @@ int tcp_client::join(std::string_view addrstr)
 	StartReceive();
 	{
 		cookie_self = packet_out::GenerateCookie();
-		tl::expected<std::unique_ptr<packet>, PacketError> pkt
+		std::expected<std::unique_ptr<packet>, PacketError> pkt
 		    = pktfty->make_packet<PT_JOIN_REQUEST>(
 		        PLR_BROADCAST, PLR_MASTER, cookie_self, game_init_info);
 		if (!pkt.has_value()) {
@@ -97,14 +97,14 @@ int tcp_client::join(std::string_view addrstr)
 			SDL_SetError("make_packet: %.*s", static_cast<int>(message.size()), message.data());
 			return -1;
 		}
-		tl::expected<void, PacketError> sendResult = send(**pkt);
+		std::expected<void, PacketError> sendResult = send(**pkt);
 		if (!sendResult.has_value()) {
 			const std::string_view message = sendResult.error().what();
 			SDL_SetError("send: %.*s", static_cast<int>(message.size()), message.data());
 			return -1;
 		}
 		for (auto i = 0; i < NoSleep; ++i) {
-			tl::expected<void, PacketError> pollResult = poll();
+			std::expected<void, PacketError> pollResult = poll();
 			if (!pollResult.has_value()) {
 				const std::string_view message = pollResult.error().what();
 				SDL_SetError("%.*s", static_cast<int>(message.size()), message.data());
@@ -129,17 +129,17 @@ bool tcp_client::IsGameHost()
 	return local_server != nullptr;
 }
 
-tl::expected<void, PacketError> tcp_client::poll()
+std::expected<void, PacketError> tcp_client::poll()
 {
 	while (ioc.poll_one() > 0) {
 		if (IsGameHost()) {
-			tl::expected<void, PacketError> serverResult = local_server->CheckIoHandlerError();
+			std::expected<void, PacketError> serverResult = local_server->CheckIoHandlerError();
 			if (!serverResult.has_value())
 				return serverResult;
 		}
 		if (ioHandlerResult == std::nullopt)
 			continue;
-		tl::expected<void, PacketError> packetError = tl::make_unexpected(*ioHandlerResult);
+		std::expected<void, PacketError> packetError = std::unexpected(*ioHandlerResult);
 		ioHandlerResult = std::nullopt;
 		return packetError;
 	}
@@ -162,7 +162,7 @@ void tcp_client::HandleReceive(const asio::error_code &error, size_t bytesRead)
 	recv_queue.Write(std::move(recv_buffer));
 	recv_buffer.resize(frame_queue::max_frame_size);
 	while (true) {
-		tl::expected<bool, PacketError> ready = recv_queue.PacketReady();
+		std::expected<bool, PacketError> ready = recv_queue.PacketReady();
 		if (!ready.has_value()) {
 			RaiseIoHandlerError(ready.error());
 			return;
@@ -173,7 +173,7 @@ void tcp_client::HandleReceive(const asio::error_code &error, size_t bytesRead)
 			HandleTcpErrorCode();
 			return;
 		}
-		tl::expected<void, PacketError> result
+		std::expected<void, PacketError> result
 		    = recv_queue.ReadPacket()
 		          .and_then([this](buffer_t &&pktData) { return pktfty->make_packet(pktData); })
 		          .and_then([this](std::unique_ptr<packet> &&pkt) { return RecvLocal(*pkt); });
@@ -200,7 +200,7 @@ void tcp_client::HandleSend(const asio::error_code &error, size_t /*bytesSent*/)
 
 void tcp_client::HandleTcpErrorCode()
 {
-	tl::expected<buffer_t, PacketError> packet = recv_queue.ReadPacket();
+	std::expected<buffer_t, PacketError> packet = recv_queue.ReadPacket();
 	if (!packet.has_value()) {
 		RaiseIoHandlerError(packet.error());
 		return;
@@ -216,14 +216,14 @@ void tcp_client::HandleTcpErrorCode()
 	if (code == PacketError::ErrorCode::DecryptionFailed)
 		RaiseIoHandlerError(_("Server failed to decrypt your packet. Check if you typed the password correctly."));
 	else
-		RaiseIoHandlerError(fmt::format("Unknown error code received from server: {:#04x}", pktData[0]));
+		RaiseIoHandlerError(std::format("Unknown error code received from server: {:#04x}", pktData[0]));
 }
 
-tl::expected<void, PacketError> tcp_client::send(packet &pkt)
+std::expected<void, PacketError> tcp_client::send(packet &pkt)
 {
-	tl::expected<buffer_t, PacketError> frame = frame_queue::MakeFrame(pkt.Data());
+	std::expected<buffer_t, PacketError> frame = frame_queue::MakeFrame(pkt.Data());
 	if (!frame.has_value())
-		return tl::make_unexpected(frame.error());
+		return std::unexpected(frame.error());
 	std::unique_ptr<buffer_t> framePtr = std::make_unique<buffer_t>(*frame);
 	const asio::mutable_buffer buf = asio::buffer(*framePtr);
 	asio::async_write(sock, buf, [this, frame = std::move(framePtr)](const asio::error_code &error, size_t bytesSent) {

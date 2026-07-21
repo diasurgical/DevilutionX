@@ -6,12 +6,12 @@
 #include "tables/townerdat.hpp"
 
 #include <charconv>
+#include <expected>
 #include <optional>
 #include <string_view>
 #include <unordered_map>
 #include <vector>
 
-#include <expected.hpp>
 #include <magic_enum/magic_enum.hpp>
 
 #include "data/file.hpp"
@@ -31,13 +31,13 @@ namespace {
  * @return The parsed enum value, or an error message
  */
 template <typename EnumT>
-tl::expected<EnumT, std::string> ParseEnum(std::string_view value)
+std::expected<EnumT, std::string> ParseEnum(std::string_view value)
 {
 	const auto enumValueOpt = magic_enum::enum_cast<EnumT>(value);
 	if (enumValueOpt.has_value()) {
 		return enumValueOpt.value();
 	}
-	return tl::make_unexpected("Unknown enum value");
+	return std::unexpected("Unknown enum value");
 }
 
 /**

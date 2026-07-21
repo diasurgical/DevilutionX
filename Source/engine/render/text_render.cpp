@@ -15,8 +15,6 @@
 #include <variant>
 
 #include <ankerl/unordered_dense.h>
-#include <fmt/core.h>
-#include <fmt/format.h>
 
 #include "DiabloUI/ui_flags.hpp"
 #include "engine/clx_sprite.hpp"
@@ -32,6 +30,7 @@
 #include "engine/ticks.hpp"
 #include "game_mode.hpp"
 #include "utils/algorithm/container.hpp"
+#include "utils/format.hpp"
 #include "utils/is_of.hpp"
 #include "utils/language.h"
 #include "utils/log.hpp"
@@ -343,7 +342,7 @@ public:
 		} else {
 			if (!args_[*result].HasFormatted()) {
 				const auto fmtStr = positional ? "{}" : std::string_view(rest.data(), fmtLen);
-				args_[*result].SetFormatted(fmt::format(fmt::runtime(fmtStr), std::get<int>(args_[*result].value())));
+				args_[*result].SetFormatted(FormatRuntime(fmtStr, std::get<int>(args_[*result].value())));
 			}
 			rest.remove_prefix(fmtLen);
 		}

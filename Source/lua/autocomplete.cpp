@@ -42,7 +42,7 @@ struct ValueInfo {
 
 sol::protected_function LoadLuaFunctionSignatureGetter(sol::state &lua)
 {
-	tl::expected<AssetData, std::string> src = LoadAsset("lua_internal\\get_lua_function_signature.lua");
+	std::expected<AssetData, std::string> src = LoadAsset("lua_internal\\get_lua_function_signature.lua");
 	if (!src.has_value()) {
 		app_fatal(src.error());
 	}

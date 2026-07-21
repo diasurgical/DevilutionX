@@ -8,15 +8,13 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <expected>
 #include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
 
 #include <ankerl/unordered_dense.h>
-#include <expected.hpp>
-#include <fmt/core.h>
-#include <fmt/format.h>
 #include <magic_enum/magic_enum.hpp>
 
 #include "appfat.h"
@@ -28,6 +26,7 @@
 #include "lua/lua_event.hpp"
 #include "monster.h"
 #include "tables/textdat.h"
+#include "utils/format.hpp"
 #include "utils/language.h"
 
 namespace devilution {
@@ -223,7 +222,7 @@ namespace {
 /** Contains the mapping between monster ID strings and indices, used for parsing additional monster data. */
 ankerl::unordered_dense::map<std::string, int16_t> AdditionalMonsterIdStringsToIndices;
 
-tl::expected<_monster_id, std::string> ParseMonsterId(std::string_view value)
+std::expected<_monster_id, std::string> ParseMonsterId(std::string_view value)
 {
 	const std::optional<_monster_id> enumValueOpt = magic_enum::enum_cast<_monster_id>(value);
 	if (enumValueOpt.has_value()) {
@@ -233,27 +232,27 @@ tl::expected<_monster_id, std::string> ParseMonsterId(std::string_view value)
 	if (findIt != AdditionalMonsterIdStringsToIndices.end()) {
 		return static_cast<_monster_id>(findIt->second);
 	}
-	return tl::make_unexpected("Unknown enum value");
+	return std::unexpected("Unknown enum value");
 }
 
-tl::expected<MonsterAvailability, std::string> ParseMonsterAvailability(std::string_view value)
+std::expected<MonsterAvailability, std::string> ParseMonsterAvailability(std::string_view value)
 {
 	if (value == "Always") return MonsterAvailability::Always;
 	if (value == "Never") return MonsterAvailability::Never;
 	if (value == "Retail") return MonsterAvailability::Retail;
-	return tl::make_unexpected("Expected one of: Always, Never, or Retail");
+	return std::unexpected("Expected one of: Always, Never, or Retail");
 }
 
-tl::expected<MonsterAIID, std::string> ParseAiId(std::string_view value)
+std::expected<MonsterAIID, std::string> ParseAiId(std::string_view value)
 {
 	const std::optional<MonsterAIID> enumValueOpt = magic_enum::enum_cast<MonsterAIID>(value);
 	if (enumValueOpt.has_value()) {
 		return enumValueOpt.value();
 	}
-	return tl::make_unexpected("Unknown enum value");
+	return std::unexpected("Unknown enum value");
 }
 
-tl::expected<monster_flag, std::string> ParseMonsterFlag(std::string_view value)
+std::expected<monster_flag, std::string> ParseMonsterFlag(std::string_view value)
 {
 	if (value == "HIDDEN") return MFLAG_HIDDEN;
 	if (value == "LOCK_ANIMATION") return MFLAG_LOCK_ANIMATION;
@@ -267,37 +266,37 @@ tl::expected<monster_flag, std::string> ParseMonsterFlag(std::string_view value)
 	if (value == "NO_ENEMY") return MFLAG_NO_ENEMY;
 	if (value == "BERSERK") return MFLAG_BERSERK;
 	if (value == "NOLIFESTEAL") return MFLAG_NOLIFESTEAL;
-	return tl::make_unexpected("Unknown enum value");
+	return std::unexpected("Unknown enum value");
 }
 
-tl::expected<MonsterClass, std::string> ParseMonsterClass(std::string_view value)
+std::expected<MonsterClass, std::string> ParseMonsterClass(std::string_view value)
 {
 	const std::optional<MonsterClass> enumValueOpt = magic_enum::enum_cast<MonsterClass>(value);
 	if (enumValueOpt.has_value()) {
 		return enumValueOpt.value();
 	}
-	return tl::make_unexpected("Unknown enum value");
+	return std::unexpected("Unknown enum value");
 }
 
-tl::expected<monster_resistance, std::string> ParseMonsterResistance(std::string_view value)
+std::expected<monster_resistance, std::string> ParseMonsterResistance(std::string_view value)
 {
 	const std::optional<monster_resistance> enumValueOpt = magic_enum::enum_cast<monster_resistance>(value);
 	if (enumValueOpt.has_value()) {
 		return enumValueOpt.value();
 	}
-	return tl::make_unexpected("Unknown enum value");
+	return std::unexpected("Unknown enum value");
 }
 
-tl::expected<SelectionRegion, std::string> ParseSelectionRegion(std::string_view value)
+std::expected<SelectionRegion, std::string> ParseSelectionRegion(std::string_view value)
 {
 	if (value.empty()) return SelectionRegion::None;
 	if (value == "Bottom") return SelectionRegion::Bottom;
 	if (value == "Middle") return SelectionRegion::Middle;
 	if (value == "Top") return SelectionRegion::Top;
-	return tl::make_unexpected("Unknown enum value");
+	return std::unexpected("Unknown enum value");
 }
 
-tl::expected<uint16_t, std::string> ParseMonsterTreasure(std::string_view value)
+std::expected<uint16_t, std::string> ParseMonsterTreasure(std::string_view value)
 {
 	// TODO: Replace this hack with proper parsing.
 
@@ -305,16 +304,16 @@ tl::expected<uint16_t, std::string> ParseMonsterTreasure(std::string_view value)
 	if (value == "None") return T_NODROP;
 	if (value == "Uniq(SKCROWN)") return Uniq(UITEM_SKCROWN);
 	if (value == "Uniq(CLEAVER)") return Uniq(UITEM_CLEAVER);
-	return tl::make_unexpected("Invalid value. NOTE: Parser is incomplete");
+	return std::unexpected("Invalid value. NOTE: Parser is incomplete");
 }
 
-tl::expected<UniqueMonsterPack, std::string> ParseUniqueMonsterPack(std::string_view value)
+std::expected<UniqueMonsterPack, std::string> ParseUniqueMonsterPack(std::string_view value)
 {
 	const std::optional<UniqueMonsterPack> enumValueOpt = magic_enum::enum_cast<UniqueMonsterPack>(value);
 	if (enumValueOpt.has_value()) {
 		return enumValueOpt.value();
 	}
-	return tl::make_unexpected("Unknown enum value");
+	return std::unexpected("Unknown enum value");
 }
 
 } // namespace
@@ -329,7 +328,7 @@ void LoadMonstDatFromFile(DataFile &dataFile, const std::string_view filename, b
 
 	for (DataFileRecord record : dataFile) {
 		if (MonstersData.size() >= static_cast<size_t>(NUM_MAX_MTYPES)) {
-			DisplayFatalErrorAndExit(_("Loading Monster Data Failed"), fmt::format(fmt::runtime(_("Could not add a monster, since the maximum monster type number of {} has already been reached.")), static_cast<size_t>(NUM_MAX_MTYPES)));
+			DisplayFatalErrorAndExit(_("Loading Monster Data Failed"), FormatRuntime(_("Could not add a monster, since the maximum monster type number of {} has already been reached."), static_cast<size_t>(NUM_MAX_MTYPES)));
 		}
 
 		RecordReader reader { record, filename };
@@ -342,7 +341,7 @@ void LoadMonstDatFromFile(DataFile &dataFile, const std::string_view filename, b
 			const size_t monsterIndex = MonstersData.size();
 			const auto [it, inserted] = AdditionalMonsterIdStringsToIndices.emplace(monsterId, static_cast<int16_t>(monsterIndex));
 			if (!inserted) {
-				DisplayFatalErrorAndExit(_("Loading Monster Data Failed"), fmt::format(fmt::runtime(_("A monster type already exists for ID \"{}\".")), monsterId));
+				DisplayFatalErrorAndExit(_("Loading Monster Data Failed"), FormatRuntime(_("A monster type already exists for ID \"{}\"."), monsterId));
 			}
 		}
 

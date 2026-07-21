@@ -26,7 +26,6 @@ endif()
 target_link_dependencies(libdevilutionx_ctr
   PUBLIC
   DevilutionX::SDL
-  fmt::fmt
   3ds::citro3d
   3ds::ctrulib
   PRIVATE

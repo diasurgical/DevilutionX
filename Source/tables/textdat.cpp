@@ -6,13 +6,12 @@
 #include "tables/textdat.h"
 
 #include <ankerl/unordered_dense.h>
-#include <fmt/core.h>
-#include <fmt/format.h>
 #include <magic_enum/magic_enum.hpp>
 
 #include "data/file.hpp"
 #include "data/record_reader.hpp"
 #include "effects.h"
+#include "utils/format.hpp"
 #include "utils/language.h"
 
 namespace devilution {
@@ -25,7 +24,7 @@ std::vector<Speech> Speeches;
 /** Contains the mapping between text ID strings and indices, used for parsing additional text data. */
 ankerl::unordered_dense::map<std::string, int16_t> AdditionalTextIdStringsToIndices;
 
-tl::expected<_speech_id, std::string> ParseSpeechId(std::string_view value)
+std::expected<_speech_id, std::string> ParseSpeechId(std::string_view value)
 {
 	if (value.empty()) {
 		return TEXT_NONE;
@@ -41,7 +40,7 @@ tl::expected<_speech_id, std::string> ParseSpeechId(std::string_view value)
 		return static_cast<_speech_id>(findIt->second);
 	}
 
-	return tl::make_unexpected("Invalid value.");
+	return std::unexpected("Invalid value.");
 }
 
 namespace {
@@ -70,7 +69,7 @@ void LoadTextDatFromFile(DataFile &dataFile, std::string_view filename, bool gro
 			const size_t textEntryIndex = Speeches.size();
 			const auto [it, inserted] = AdditionalTextIdStringsToIndices.emplace(txtstrid, static_cast<int16_t>(textEntryIndex));
 			if (!inserted) {
-				DisplayFatalErrorAndExit(_("Loading Text Data Failed"), fmt::format(fmt::runtime(_("A text data entry already exists for ID \"{}\".")), txtstrid));
+				DisplayFatalErrorAndExit(_("Loading Text Data Failed"), FormatRuntime(_("A text data entry already exists for ID \"{}\"."), txtstrid));
 			}
 		}
 

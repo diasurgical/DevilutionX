@@ -14,8 +14,6 @@
 #include <variant>
 #include <vector>
 
-#include <fmt/format.h>
-
 #include "DiabloUI/ui_flags.hpp"
 #include "engine/clx_sprite.hpp"
 #include "engine/palette.h"
@@ -182,7 +180,7 @@ int GetLineWidth(std::string_view text, GameFontTables size = GameFont12, int sp
 
 /**
  * @brief Calculate pixel width of first line of text, respecting kerning
- * @param fmt An fmt::format string.
+ * @param fmt A std::format string.
  * @param args Format arguments.
  * @param argsLen Number of format arguments.
  * @param argsOffset Index of the first unprocessed format argument.
@@ -252,7 +250,7 @@ inline void DrawString(const Surface &out, std::string_view text, const Point &p
  *     DrawStringWithColors(out, "Press {} to start", {{"Ⓧ", UiFlags::ColorBlue}}, {.flags = UiFlags::ColorWhite})
  *
  * @param out Output buffer to draw the text on.
- * @param fmt An fmt::format string.
+ * @param fmt A std::format string.
  * @param args Format arguments.
  * @param argsLen Number of format arguments.
  * @param rect Clipping region relative to the output buffer describing where to draw the text and when to wrap long lines.

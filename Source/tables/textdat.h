@@ -6,9 +6,9 @@
 #pragma once
 
 #include <cstdint>
+#include <expected>
 #include <string>
 
-#include <expected.hpp>
 #include <magic_enum/magic_enum.hpp>
 
 #include "sound_effect_enums.h"
@@ -435,7 +435,7 @@ struct Speech {
 
 extern std::vector<Speech> Speeches;
 
-tl::expected<_speech_id, std::string> ParseSpeechId(std::string_view value);
+std::expected<_speech_id, std::string> ParseSpeechId(std::string_view value);
 
 void LoadTextData();
 

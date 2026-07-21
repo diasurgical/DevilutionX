@@ -7,8 +7,6 @@
 
 #include <cstdint>
 
-#include <fmt/core.h>
-
 #include "engine/path.h"
 #include "engine/points_in_rectangle_range.hpp"
 #include "engine/random.hpp"

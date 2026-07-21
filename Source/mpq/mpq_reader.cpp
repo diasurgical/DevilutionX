@@ -67,22 +67,22 @@ MpqArchive::~MpqArchive()
 	mpqfs_close(archive_);
 }
 
-tl::expected<MpqArchive, std::string> MpqArchive::Open(const char *path)
+std::expected<MpqArchive, std::string> MpqArchive::Open(const char *path)
 {
 	mpqfs_archive_t *handle = nullptr;
 	const mpqfs_error_code code = mpqfs_open(path, &handle);
 	if (code != MPQFS_OK) {
-		return tl::make_unexpected(FormatMpqfsError(code));
+		return std::unexpected(FormatMpqfsError(code));
 	}
 	return MpqArchive(path, handle);
 }
 
-tl::expected<MpqArchive, std::string> MpqArchive::Clone()
+std::expected<MpqArchive, std::string> MpqArchive::Clone()
 {
 	mpqfs_archive_t *clone = nullptr;
 	const mpqfs_error_code code = mpqfs_clone(archive_, &clone);
 	if (code != MPQFS_OK) {
-		return tl::make_unexpected(FormatMpqfsError(code));
+		return std::unexpected(FormatMpqfsError(code));
 	}
 	return MpqArchive(path_, clone);
 }

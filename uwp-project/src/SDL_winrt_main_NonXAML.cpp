@@ -3,7 +3,6 @@
 */
 
 #include <SDL.h>
-#include <diablo.h>
 #include <wrl.h>
 
 /* At least one file in any SDL/WinRT app appears to require compilation
@@ -59,6 +58,13 @@ void onInitialized()
 {
 	Windows::UI::Core::SystemNavigationManager::GetForCurrentView()->BackRequested += ref new Windows::Foundation::EventHandler<Windows::UI::Core::BackRequestedEventArgs^>(OnBackRequested);
 }
+
+// We do not include the headers for the declarations below directly
+// because C++/CX is stuck on pre C++20 language support.
+namespace devilution {
+void setOnInitialized(void (*)());
+int DiabloMain(int argc, char **argv);
+}  // namespace devilution
 
 int CALLBACK WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 {

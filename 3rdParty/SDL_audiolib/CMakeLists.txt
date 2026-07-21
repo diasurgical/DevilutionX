@@ -6,9 +6,6 @@ else()
   set(BUILD_SHARED_LIBS ON)
 endif()
 
-# Will use our `fmt::fmt` target if it exists.
-set(WITH_SYSTEM_FMTLIB ON)
-
 # No need for the libsamplerate resampler:
 set(USE_RESAMP_SRC OFF)
 
@@ -36,13 +33,23 @@ set(USE_DEC_WILDMIDI OFF)
 set(USE_DEC_ADLMIDI OFF)
 set(USE_DEC_DRMP3 ON)
 
-find_package(Patch REQUIRED)
+# SDL_audiolib only uses fmt in aulib_log.h, which we replace with a
+# std::format version below. Pretend that fmt is already provided so that
+# SDL_audiolib does not require or build it (linking the empty INTERFACE
+# target is a no-op).
+set(WITH_SYSTEM_FMTLIB ON)
+if(NOT TARGET fmt::fmt)
+  add_library(devilutionx_fmt_stub INTERFACE)
+  add_library(fmt::fmt ALIAS devilutionx_fmt_stub)
+endif()
 
 include(FetchContent)
 FetchContent_Declare_ExcludeFromAll(SDL_audiolib
   URL https://github.com/realnc/SDL_audiolib/archive/cc1bb6af8d4cf5e200259072bde1edd1c8c5137e.tar.gz
   URL_HASH MD5=0e8174264ac9c6b314c6b2d9a5f72efd
-  PATCH_COMMAND "${Patch_EXECUTABLE}" -p1 -N < "${CMAKE_CURRENT_LIST_DIR}/0001-aulib_log.h-Include-missing-fmt-format.h.patch" || true
+  # A file replacement instead of a diff: unlike the `patch` tool, this is
+  # idempotent and works the same on every host platform.
+  PATCH_COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${CMAKE_CURRENT_LIST_DIR}/aulib_log.h" <SOURCE_DIR>/src/aulib_log.h
 )
 FetchContent_MakeAvailable_ExcludeFromAll(SDL_audiolib)
 

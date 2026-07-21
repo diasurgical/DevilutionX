@@ -4,9 +4,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <expected>
 #include <memory>
-
-#include <expected.hpp>
 
 #include "appfat.h"
 #include "engine/assets.hpp"
@@ -17,35 +16,35 @@
 namespace devilution {
 
 template <typename T>
-tl::expected<void, std::string> LoadFileInMemWithStatus(const char *path, T *data)
+std::expected<void, std::string> LoadFileInMemWithStatus(const char *path, T *data)
 {
 	size_t size;
 	AssetHandle handle = OpenAsset(path, size);
 	if (!handle.ok()) {
-		return tl::make_unexpected(FailedToOpenFileErrorMessage(path, handle.error()));
+		return std::unexpected(FailedToOpenFileErrorMessage(path, handle.error()));
 	}
 	if ((size % sizeof(T)) != 0) {
-		return tl::make_unexpected(StrCat("File size does not align with type\n", path));
+		return std::unexpected(StrCat("File size does not align with type\n", path));
 	}
 	if (!handle.read(data, size)) {
-		return tl::make_unexpected("handle.read failed");
+		return std::unexpected("handle.read failed");
 	}
 	return {};
 }
 
 template <typename T>
-tl::expected<void, std::string> LoadIntegralFileInMemWithStatus(const char *path, T *data)
+std::expected<void, std::string> LoadIntegralFileInMemWithStatus(const char *path, T *data)
 {
 	size_t size;
 	AssetHandle handle = OpenIntegralAsset(path, size);
 	if (!handle.ok()) {
-		return tl::make_unexpected(FailedToOpenFileErrorMessage(path, handle.error()));
+		return std::unexpected(FailedToOpenFileErrorMessage(path, handle.error()));
 	}
 	if ((size % sizeof(T)) != 0) {
-		return tl::make_unexpected(StrCat("File size does not align with type\n", path));
+		return std::unexpected(StrCat("File size does not align with type\n", path));
 	}
 	if (!handle.read(data, size)) {
-		return tl::make_unexpected("handle.read failed");
+		return std::unexpected("handle.read failed");
 	}
 	return {};
 }
@@ -53,19 +52,19 @@ tl::expected<void, std::string> LoadIntegralFileInMemWithStatus(const char *path
 template <typename T>
 void LoadFileInMem(const char *path, T *data)
 {
-	const tl::expected<void, std::string> result = LoadFileInMemWithStatus<T>(path, data);
+	const std::expected<void, std::string> result = LoadFileInMemWithStatus<T>(path, data);
 	if (!result.has_value()) app_fatal(result.error());
 }
 
 template <typename T>
-tl::expected<void, std::string> LoadFileInMemWithStatus(const char *path, T *data, std::size_t count)
+std::expected<void, std::string> LoadFileInMemWithStatus(const char *path, T *data, std::size_t count)
 {
 	AssetHandle handle = OpenAsset(path);
 	if (!handle.ok()) {
-		return tl::make_unexpected(FailedToOpenFileErrorMessage(path, handle.error()));
+		return std::unexpected(FailedToOpenFileErrorMessage(path, handle.error()));
 	}
 	if (!handle.read(data, count * sizeof(T))) {
-		return tl::make_unexpected("handle.read failed");
+		return std::unexpected("handle.read failed");
 	}
 	return {};
 }
@@ -73,7 +72,7 @@ tl::expected<void, std::string> LoadFileInMemWithStatus(const char *path, T *dat
 template <typename T>
 void LoadFileInMem(const char *path, T *data, std::size_t count)
 {
-	tl::expected<void, std::string> result = LoadFileInMemWithStatus<T>(path, data, count);
+	std::expected<void, std::string> result = LoadFileInMemWithStatus<T>(path, data, count);
 	if (!result.has_value()) app_fatal(result.error());
 }
 
@@ -85,7 +84,7 @@ bool LoadOptionalFileInMem(const char *path, T *data, std::size_t count)
 }
 
 template <typename T, std::size_t N>
-tl::expected<void, std::string> LoadFileInMemWithStatus(const char *path, std::array<T, N> &data)
+std::expected<void, std::string> LoadFileInMemWithStatus(const char *path, std::array<T, N> &data)
 {
 	return LoadFileInMemWithStatus(path, data.data(), N);
 }
@@ -97,15 +96,15 @@ void LoadFileInMem(const char *path, std::array<T, N> &data)
 }
 
 template <typename T = std::byte>
-tl::expected<std::unique_ptr<T[]>, std::string> LoadFileInMemWithStatus(const char *path, std::size_t *numRead = nullptr)
+std::expected<std::unique_ptr<T[]>, std::string> LoadFileInMemWithStatus(const char *path, std::size_t *numRead = nullptr)
 {
 	size_t size;
 	AssetHandle handle = OpenAsset(path, size);
 	if (!handle.ok()) {
-		return tl::make_unexpected(FailedToOpenFileErrorMessage(path, handle.error()));
+		return std::unexpected(FailedToOpenFileErrorMessage(path, handle.error()));
 	}
 	if ((size % sizeof(T)) != 0) {
-		return tl::make_unexpected(StrCat("File size does not align with type\n", path));
+		return std::unexpected(StrCat("File size does not align with type\n", path));
 	}
 
 	if (numRead != nullptr)
@@ -113,7 +112,7 @@ tl::expected<std::unique_ptr<T[]>, std::string> LoadFileInMemWithStatus(const ch
 
 	std::unique_ptr<T[]> buf { new T[size / sizeof(T)] };
 	if (!handle.read(buf.get(), size)) {
-		return tl::make_unexpected("handle.read failed");
+		return std::unexpected("handle.read failed");
 	}
 	return { std::move(buf) };
 }
@@ -127,7 +126,7 @@ tl::expected<std::unique_ptr<T[]>, std::string> LoadFileInMemWithStatus(const ch
 template <typename T = std::byte>
 std::unique_ptr<T[]> LoadFileInMem(const char *path, std::size_t *numRead = nullptr)
 {
-	tl::expected<std::unique_ptr<T[]>, std::string> result = LoadFileInMemWithStatus<T>(path, numRead);
+	std::expected<std::unique_ptr<T[]>, std::string> result = LoadFileInMemWithStatus<T>(path, numRead);
 	if (!result.has_value()) app_fatal(result.error());
 	return std::move(result).value();
 }

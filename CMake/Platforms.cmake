@@ -110,8 +110,5 @@ if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
   # For older macOS, we assume MacPorts because Homebrew only supports newer version
   if(DARWIN_MAJOR_VERSION VERSION_LESS 11)
     list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/platforms/macports/finders")
-
-    # On MacPorts, libfmt is in a subdirectory:
-    list(APPEND CMAKE_MODULE_PATH "/opt/local/lib/libfmt11/cmake")
   endif()
 endif()

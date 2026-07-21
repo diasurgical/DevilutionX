@@ -57,12 +57,12 @@ public:
 			return buffer_t(addr.begin(), addr.end());
 		}
 
-		tl::expected<void, PacketError> unserialize(const buffer_t &buf)
+		std::expected<void, PacketError> unserialize(const buffer_t &buf)
 		{
 			if (buf.size() != 16) {
 				std::string_view format = "Endpoint deserialization expected 16 bytes, got {}";
 				PacketError error = ProtocolError(format, buf.size());
-				return tl::make_unexpected(std::move(error));
+				return std::unexpected(std::move(error));
 			}
 			std::copy(buf.begin(), buf.end(), addr.begin());
 			return {};
@@ -83,13 +83,13 @@ public:
 	protocol_zt();
 	~protocol_zt();
 	void disconnect(const endpoint &peer);
-	tl::expected<void, PacketError> send(const endpoint &peer, const buffer_t &data);
+	std::expected<void, PacketError> send(const endpoint &peer, const buffer_t &data);
 	bool send_oob(const endpoint &peer, const buffer_t &data) const;
 	bool send_oob_mc(const buffer_t &data) const;
 	bool recv(endpoint &peer, buffer_t &data);
 	bool get_disconnected(endpoint &peer);
-	tl::expected<bool, PacketError> network_online();
-	tl::expected<bool, PacketError> peers_ready();
+	std::expected<bool, PacketError> network_online();
+	std::expected<bool, PacketError> peers_ready();
 	bool is_peer_connected(endpoint &peer);
 	std::optional<bool> is_peer_relayed(const endpoint &peer) const;
 	std::optional<int> get_latency_to(const endpoint &peer) const;
@@ -119,7 +119,7 @@ private:
 	static void set_nodelay(int fd);
 	static void set_reuseaddr(int fd);
 
-	tl::expected<bool, PacketError> send_queued_peer(const endpoint &peer);
+	std::expected<bool, PacketError> send_queued_peer(const endpoint &peer);
 	bool recv_peer(const endpoint &peer);
 	bool send_queued_all();
 	bool recv_from_peers();

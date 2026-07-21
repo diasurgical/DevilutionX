@@ -53,7 +53,7 @@ constexpr std::string_view HelpText =
     " Up/Down to fill the input from history,"
     " Shift+Up/Down to fill the input from output history,"
     " Ctrl+L to clear history, Esc to close.";
-std::optional<tl::expected<AssetData, std::string>> ConsolePrelude;
+std::optional<std::expected<AssetData, std::string>> ConsolePrelude;
 
 bool IsConsoleVisible;
 char ConsoleInputBuffer[4096];
@@ -639,7 +639,7 @@ void InitConsole()
 void RunInConsole(std::string_view code)
 {
 	AddConsoleLine(ConsoleLine { .type = ConsoleLine::Input, .text = StrCat(Prompt, code) });
-	tl::expected<std::string, std::string> result = RunLuaReplLine(code);
+	std::expected<std::string, std::string> result = RunLuaReplLine(code);
 
 	if (result.has_value()) {
 		if (!result->empty()) {

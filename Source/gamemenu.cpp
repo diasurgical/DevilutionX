@@ -309,7 +309,7 @@ void gamemenu_load_game(bool /*bActivate*/)
 	DeactivateVirtualGamepad();
 	FreeVirtualGamepadTextures();
 #endif
-	if (tl::expected<void, std::string> result = LoadGame(false); !result.has_value()) {
+	if (std::expected<void, std::string> result = LoadGame(false); !result.has_value()) {
 		app_fatal(result.error());
 	}
 #if !defined(USE_SDL1) && !defined(__vita__)
