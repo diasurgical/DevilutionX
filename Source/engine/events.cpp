@@ -30,6 +30,10 @@
 #include "controls/touch/event_handlers.h"
 #endif
 
+#ifdef PS2
+#include "controls/devices/game_controller.h"
+#endif
+
 #ifdef __vita__
 #include "diablo.h"
 #include "platform/vita/touch.h"
@@ -98,8 +102,12 @@ bool FetchMessage_Real(SDL_Event *event, uint16_t *modState)
 		SDL_ClearError();
 	}
 
+#ifndef PS2
 	if (HandleControllerAddedOrRemovedEvent(e))
 		return true;
+#else
+	GameController::Add(1);
+#endif
 
 	switch (e.type) {
 #ifdef USE_SDL3

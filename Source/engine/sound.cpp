@@ -56,15 +56,6 @@ namespace {
 
 SoundSample music;
 
-#ifdef PS2
-std::string GetAdpPath(const char *path)
-{
-	std::string adpPath = path;
-	const std::string::size_type dot = adpPath.find_last_of('.');
-	adpPath.replace(dot + 1, adpPath.size() - (dot + 1), "adp");
-	return adpPath;
-}
-#else
 std::string GetMp3Path(const char *path)
 {
 	std::string mp3Path = path;
@@ -72,27 +63,18 @@ std::string GetMp3Path(const char *path)
 	mp3Path.replace(dot + 1, mp3Path.size() - (dot + 1), "mp3");
 	return mp3Path;
 }
-#endif
 
 std::expected<void, std::string> LoadAudioFile(const char *path, bool stream, SoundSample &result)
 {
 
-#ifdef PS2
-	std::string foundPath = GetAdpPath(path);
-	bool isMp3 = false;
-#else
 	bool isMp3 = true;
 	std::string foundPath = GetMp3Path(path);
-#endif
 	AssetRef ref = FindAsset(foundPath.c_str());
-#ifndef PS2
 	if (!ref.ok()) {
 		ref = FindAsset(path);
 		foundPath = path;
 		isMp3 = false;
 	}
-#endif
-
 	if (!ref.ok()) {
 		return std::unexpected(StrCat("Audio file not found\n", path, "\n", SDL_GetError(), "\n" __FILE__ ":", __LINE__));
 	}
@@ -149,7 +131,7 @@ SoundSample *DuplicateSound(const SoundSample &sound)
 		it = duplicateSounds.end();
 		--it;
 	}
-#ifndef PS2
+#ifndef USE_SDL3
 	result->SetFinishCallback([it]([[maybe_unused]] Aulib::Stream &stream) {
 		const std::lock_guard<SdlMutex> lock(*duplicateSoundsMutex);
 		duplicateSounds.erase(it);
@@ -276,9 +258,6 @@ void snd_init()
 	GetOptions().Audio.musicVolume.SetValue(CapVolume(*GetOptions().Audio.musicVolume));
 	gbMusicOn = *GetOptions().Audio.musicVolume > VOLUME_MIN;
 
-#ifdef PS2
-	audsrv_set_volume(MAX_VOLUME);
-#else
 	// Initialize the SDL_audiolib library. Set the output sample rate to
 	// 22kHz, the audio format to 16-bit signed, use 2 output channels
 	// (stereo), and a 2KiB output buffer.
@@ -300,7 +279,11 @@ void snd_init()
 		return;
 	}
 #else
+#ifdef PS2
+	if (!Aulib::init(*GetOptions().Audio.sampleRate, AUDIO_S16SYS, *GetOptions().Audio.channels, *GetOptions().Audio.bufferSize, *GetOptions().Audio.device)) {
+#else
 	if (!Aulib::init(*GetOptions().Audio.sampleRate, AUDIO_S16, *GetOptions().Audio.channels, *GetOptions().Audio.bufferSize, *GetOptions().Audio.device)) {
+#endif
 		LogError(LogCategory::Audio, "Failed to initialize audio (Aulib::init): {}", SDL_GetError());
 		return;
 	}
@@ -309,16 +292,14 @@ void snd_init()
 #endif
 
 	duplicateSoundsMutex.emplace();
-#endif
 	gbSndInited = true;
 }
 
 void snd_deinit()
 {
 	if (gbSndInited) {
-#ifdef PS2
-		audsrv_quit();
-#elif defined(USE_SDL3)
+		ClearDuplicateSounds();
+#ifdef USE_SDL3
 		MIX_DestroyMixer(CurrentMixer);
 		CurrentMixer = nullptr;
 		MIX_Quit();

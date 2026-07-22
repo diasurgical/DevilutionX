@@ -46,8 +46,6 @@ namespace {
 SDL_AudioStream *SVidAudioStream;
 SDL_AudioDeviceID SVidAudioDevice;
 bool SVidAutoStreamEnabled;
-#elif defined(PS2)
-bool SVidAutoStreamEnabled;
 #else
 std::optional<Aulib::Stream> SVidAudioStream;
 PushAulibDecoder *SVidAudioDecoder;
@@ -160,8 +158,6 @@ bool ShouldPushAudioData()
 {
 #ifdef USE_SDL3
 	return SVidAudioStream != nullptr && SVidAutoStreamEnabled;
-#elif defined(PS2)
-	return true;
 #else
 	return SVidAudioStream && SVidAudioStream->isPlaying();
 #endif
@@ -305,21 +301,7 @@ bool BlitFrame()
 	return true;
 }
 
-#if defined(USE_SDL3)  || defined(PS2) && !defined(NOSOUND)
-#ifdef PS2
-void SVidInitAudioStream(const SmackerAudioInfo &audioInfo)
-{
-	SVidAutoStreamEnabled = diablo_is_focused();
-
-    struct audsrv_fmt_t format;
-	format.bits = audioInfo.bitsPerSample;
-	format.freq = audioInfo.sampleRate;
-	format.channels = audioInfo.nChannels;
-
-	audsrv_set_format(&format);
-    audsrv_set_volume(MAX_VOLUME);
-}
-#else
+#if defined(USE_SDL3) && !defined(NOSOUND)
 void SVidInitAudioStream(const SmackerAudioInfo &audioInfo)
 {
 	SVidAutoStreamEnabled = diablo_is_focused();
@@ -358,7 +340,6 @@ void SVidInitAudioStream(const SmackerAudioInfo &audioInfo)
 	}
 }
 #endif
-#endif
 
 } // namespace
 
@@ -396,14 +377,14 @@ bool SVidPlayBegin(const char *filename, int flags)
 		SVidAudioDepth = audioInfo.bitsPerSample;
 		SVidAudioBuffer = std::unique_ptr<int16_t[]> { new int16_t[audioInfo.idealBufferSize / 2] };
 
-#if !defined(USE_SDL3) && !defined(PS2)
+#ifndef USE_SDL3
 		auto decoder = std::make_unique<PushAulibDecoder>(audioInfo.nChannels, audioInfo.sampleRate);
 		SVidAudioDecoder = decoder.get();
 		SVidAudioStream.emplace(/*rwops=*/nullptr, std::move(decoder), CreateAulibResampler(audioInfo.sampleRate), /*closeRw=*/false);
 		SVidAudioStream->setVolume(GetVolume());
 #endif
 
-#if defined(USE_SDL3) || defined(PS2)
+#ifdef USE_SDL3
 		SVidInitAudioStream(audioInfo);
 #else
 		if (!diablo_is_focused())
@@ -443,6 +424,11 @@ bool SVidPlayBegin(const char *filename, int flags)
 		) {
 			ErrSdl();
 		}
+#ifdef PS2
+	SDL_SetTextureColorMod(texture.get(), 255, 255, 255);
+	SDL_SetTextureAlphaMod(texture.get(), 255);
+	SDL_SetTextureBlendMode(texture.get(), SDL_BLENDMODE_NONE);
+#endif
 	}
 #if defined(DEVILUTIONX_DISPLAY_PIXELFORMAT) && DEVILUTIONX_DISPLAY_PIXELFORMAT == SDL_PIXELFORMAT_INDEX8
 	else {
@@ -514,10 +500,6 @@ bool SVidPlayContinue()
 			SDL_DestroyAudioStream(SVidAudioStream);
 			SVidAudioStream = nullptr;
 		}
-#elif defined(PS2)
-	if (len > 0) {
-    	audsrv_play_audio(reinterpret_cast<char *>(buf), len);
-	}
 #else
 		if (SVidAudioDepth == 16) {
 			SVidAudioDecoder->PushSamples(buf, len / 2);
@@ -545,10 +527,8 @@ bool SVidPlayContinue()
 
 void SVidPlayEnd()
 {
-#if !defined(NOSOUND)
-#ifndef PS2
+#ifndef NOSOUND
 	if (SVidAudioStream) {
-#endif
 #ifdef USE_SDL3
 		SDL_DestroyAudioStream(SVidAudioStream);
 		SVidAudioStream = nullptr;
@@ -556,16 +536,12 @@ void SVidPlayEnd()
 			SDL_CloseAudioDevice(SVidAudioDevice);
 			SVidAudioDevice = 0;
 		}
-#elif defined(PS2)
-		SVidAutoStreamEnabled = false;
 #else
 		SVidAudioStream = std::nullopt;
 		SVidAudioDecoder = nullptr;
 #endif
 		SVidAudioBuffer = nullptr;
-#ifndef PS2
 	}
-#endif
 #endif
 
 	if (SVidHandle.isValid)
@@ -588,6 +564,11 @@ void SVidPlayEnd()
 		) {
 			ErrSdl();
 		}
+#ifdef PS2
+	SDL_SetTextureColorMod(texture.get(), 255, 255, 255);
+	SDL_SetTextureAlphaMod(texture.get(), 255);
+	SDL_SetTextureBlendMode(texture.get(), SDL_BLENDMODE_NONE);
+#endif
 	}
 #if defined(DEVILUTIONX_DISPLAY_PIXELFORMAT) && DEVILUTIONX_DISPLAY_PIXELFORMAT == SDL_PIXELFORMAT_INDEX8
 	else {
@@ -613,7 +594,7 @@ void SVidPlayEnd()
 void SVidMute()
 {
 #ifndef NOSOUND
-#if defined(USE_SDL3) || defined(PS2)
+#ifdef USE_SDL3
 	SVidAutoStreamEnabled = false;
 #else
 	if (SVidAudioStream)
@@ -625,10 +606,8 @@ void SVidMute()
 void SVidUnmute()
 {
 #ifndef NOSOUND
-#if defined(USE_SDL3)
+#ifdef USE_SDL3
 	if (SVidAudioStream != nullptr) SVidAutoStreamEnabled = true;
-#elif defined(PS2)
-	SVidAutoStreamEnabled = true;
 #else
 	if (SVidAudioStream)
 		SVidAudioStream->unmute();

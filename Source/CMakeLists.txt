@@ -460,7 +460,6 @@ if(SUPPORTS_MPQ)
   )
 else()
   target_link_dependencies(libdevilutionx_load_cl2 PRIVATE
-    fmt::fmt
     libdevilutionx_load_clx
   )
 endif()
@@ -824,7 +823,6 @@ else()
 if(PS2)
   target_link_dependencies(libdevilutionx_sound PUBLIC
     DevilutionX::SDL
-    fmt::fmt
     audsrv
     ps2snd
     magic_enum::magic_enum

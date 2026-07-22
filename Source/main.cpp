@@ -5,6 +5,10 @@
 #include <SDL_main.h>
 #endif
 
+#ifdef PS2
+#include <SDL3/SDL_main.h>
+#endif
+
 #ifdef __SWITCH__
 #include "platform/switch/network.h"
 #include "platform/switch/random.hpp"
