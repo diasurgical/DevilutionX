@@ -374,6 +374,7 @@ void Ini::set(std::string_view section, std::string_view key, bool value)
 
 void Ini::set(std::string_view section, std::string_view key, float value)
 {
+#ifndef PS2
 	constexpr size_t BufSize = 64;
 	char buf[BufSize] {};
 	const std::to_chars_result result = std::to_chars(buf, buf + BufSize, value);
@@ -381,6 +382,7 @@ void Ini::set(std::string_view section, std::string_view key, float value)
 		app_fatal("float->string failed"); // should never happen
 	}
 	set(section, key, std::string_view(buf, result.ptr - buf));
+#endif
 }
 
 namespace {

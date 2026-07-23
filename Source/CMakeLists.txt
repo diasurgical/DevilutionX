@@ -820,6 +820,19 @@ else()
       SDL_audiolib::SDL_audiolib
     )
   endif()
+if(PS2)
+  target_link_dependencies(libdevilutionx_sound PUBLIC
+    DevilutionX::SDL
+    audsrv
+    ps2snd
+    magic_enum::magic_enum
+    tl
+    unordered_dense::unordered_dense
+    libdevilutionx_options
+    libdevilutionx_random
+    libdevilutionx_sdl2_to_1_2_backports
+  )
+else()
   target_link_dependencies(libdevilutionx_sound PUBLIC
     DevilutionX::SDL
     magic_enum::magic_enum
@@ -829,6 +842,7 @@ else()
     libdevilutionx_random
     libdevilutionx_sdl2_to_1_2_backports
   )
+endif()
 endif()
 
 add_devilutionx_object_library(libdevilutionx_stores
