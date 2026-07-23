@@ -66,7 +66,6 @@ std::string GetMp3Path(const char *path)
 
 std::expected<void, std::string> LoadAudioFile(const char *path, bool stream, SoundSample &result)
 {
-
 	bool isMp3 = true;
 	std::string foundPath = GetMp3Path(path);
 	AssetRef ref = FindAsset(foundPath.c_str());
@@ -268,7 +267,7 @@ void snd_init()
 	}
 	const AudioOptions &audioOptions = GetOptions().Audio;
 	SDL_AudioSpec specHint = {};
-	specHint.format = SDL_AUDIO_S16LE;
+	specHint.format = SDL_AUDIO_S16;
 	specHint.channels = *audioOptions.channels;
 	specHint.freq = static_cast<int>(*audioOptions.sampleRate);
 	CurrentMixer = MIX_CreateMixerDevice(audioOptions.device.id(), &specHint);
