@@ -784,11 +784,7 @@ void ReinitializeRenderer()
 			ErrSdl();
 		}
 
-#ifdef PS2
-		if (SDL_RenderSetLogicalSize(renderer, 320, 200) <= -1) {
-#else
 		if (SDL_RenderSetLogicalSize(renderer, gnScreenWidth, gnScreenHeight) <= -1) {
-#endif
 			ErrSdl();
 		}
 #endif

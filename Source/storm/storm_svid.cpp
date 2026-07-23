@@ -424,11 +424,6 @@ bool SVidPlayBegin(const char *filename, int flags)
 		) {
 			ErrSdl();
 		}
-#ifdef PS2
-	SDL_SetTextureColorMod(texture.get(), 255, 255, 255);
-	SDL_SetTextureAlphaMod(texture.get(), 255);
-	SDL_SetTextureBlendMode(texture.get(), SDL_BLENDMODE_NONE);
-#endif
 	}
 #if defined(DEVILUTIONX_DISPLAY_PIXELFORMAT) && DEVILUTIONX_DISPLAY_PIXELFORMAT == SDL_PIXELFORMAT_INDEX8
 	else {
@@ -564,11 +559,6 @@ void SVidPlayEnd()
 		) {
 			ErrSdl();
 		}
-#ifdef PS2
-	SDL_SetTextureColorMod(texture.get(), 255, 255, 255);
-	SDL_SetTextureAlphaMod(texture.get(), 255);
-	SDL_SetTextureBlendMode(texture.get(), SDL_BLENDMODE_NONE);
-#endif
 	}
 #if defined(DEVILUTIONX_DISPLAY_PIXELFORMAT) && DEVILUTIONX_DISPLAY_PIXELFORMAT == SDL_PIXELFORMAT_INDEX8
 	else {

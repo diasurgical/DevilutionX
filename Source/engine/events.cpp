@@ -102,12 +102,8 @@ bool FetchMessage_Real(SDL_Event *event, uint16_t *modState)
 		SDL_ClearError();
 	}
 
-#ifndef PS2
 	if (HandleControllerAddedOrRemovedEvent(e))
 		return true;
-#else
-	GameController::Add(1);
-#endif
 
 	switch (e.type) {
 #ifdef USE_SDL3
