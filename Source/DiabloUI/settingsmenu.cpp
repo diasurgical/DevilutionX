@@ -136,9 +136,7 @@ void MaybeAddGameplaySectionHeader(OptionEntryBase *pEntry)
 	} else if (pEntry == &gameplay.experienceBar) {
 		AddSettingsSectionHeader(_("Interface"), true);
 	} else if (pEntry == &gameplay.autoRefillBelt) {
-		AddSettingsSectionHeader(_("Items & Auto Pickup"), true);
-	} else if (pEntry == &gameplay.disableCripplingShrines) {
-		AddSettingsSectionHeader(_("Safety & Focus"), true);
+		AddSettingsSectionHeader(_("Inventory Management"), true);
 	}
 }
 
