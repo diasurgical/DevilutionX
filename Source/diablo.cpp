@@ -940,6 +940,7 @@ void RunGameLoop(interface_mode uMsg)
 		}
 
 		ProcessGameMessagePackets();
+		this_sdl_thread::yield();
 		if (game_loop(gbGameLoopStartup))
 			diablo_color_cyc_logic();
 		gbGameLoopStartup = false;

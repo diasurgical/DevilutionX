@@ -73,6 +73,7 @@
 #include "utils/is_of.hpp"
 #include "utils/log.hpp"
 #include "utils/sdl_compat.h"
+#include "utils/sdl_thread.h"
 #include "utils/str_cat.hpp"
 
 #ifndef USE_SDL1
@@ -1866,6 +1867,7 @@ void DrawAndBlit()
 
 	nthread_UpdateProgressToNextGameTick();
 
+	this_sdl_thread::yield();
 	DrawView(out, ViewPosition);
 	if (drawCtrlPan) {
 		DrawMainPanel(out);
@@ -1906,6 +1908,7 @@ void DrawAndBlit()
 
 	lua::GameDrawComplete();
 
+	this_sdl_thread::yield();
 	DrawMain(hgt, drawInfoBox, drawHealth, drawMana, drawBelt, drawControlButtons);
 
 #ifdef _DEBUG
