@@ -4833,13 +4833,11 @@ msgid "Skill"
 msgstr "Δεξιότητα"
 
 #: Source/panels/spell_book.cpp:176
-#, fuzzy, c++-format
-#| msgid "Staff ({:d} charge)"
-#| msgid_plural "Staff ({:d} charges)"
+#, c++-format
 msgid "Staff ({:d} charge)"
 msgid_plural "Staff ({:d} charges)"
-msgstr[0] "Ράβδος ({:d} φορτίο}"
-msgstr[1] "Ράβδος ({:d} φορτία}"
+msgstr[0] "Ράβδος ({:d} φορτίο)"
+msgstr[1] "Ράβδος ({:d} φορτία)"
 
 #. TRANSLATORS: UI constraints, keep short please.
 #: Source/panels/spell_book.cpp:181
