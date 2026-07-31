@@ -2967,11 +2967,15 @@ void OperateShrineMurphys(DiabloGenerator &rng, Player &player)
 		return;
 
 	bool broke = false;
-	for (auto &item : player.InvBody) {
+	for (std::size_t i = 0; i < std::size(player.InvBody); i++) {
+		Item &item = player.InvBody[i];
 		if (!item.isEmpty() && rng.flipCoin(3)) {
 			if (item._iDurability != DUR_INDESTRUCTIBLE) {
 				if (item._iDurability > 0) {
 					item._iDurability /= 2;
+					if (item._iDurability == 0) {
+						RemoveEquipment(player, static_cast<inv_body_loc>(i), true);
+					}
 					broke = true;
 					break;
 				}
