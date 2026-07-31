@@ -1,4 +1,5 @@
 {
+	"$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
 	"name": "devilutionx",
 	"version-string": "1.6.0",
 	"dependencies": [
