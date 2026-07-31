@@ -7313,8 +7313,8 @@ msgstr "Δεξιότητα"
 #: Source/panels/spell_book.cpp:162
 msgid "Staff ({:d} charge)"
 msgid_plural "Staff ({:d} charges)"
-msgstr[0] "Ράβδος ({:d} φορτίο}"
-msgstr[1] "Ράβδος ({:d} φορτία}"
+msgstr[0] "Ράβδος ({:d} φορτίο)"
+msgstr[1] "Ράβδος ({:d} φορτία)"
 
 #. TRANSLATORS: UI constraints, keep short please.
 #: Source/panels/spell_book.cpp:167
