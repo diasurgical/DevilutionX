@@ -8,6 +8,12 @@
 		"magic-enum"
 	],
 	"builtin-baseline": "40f3c709db80acf154ac4b17a1f83c564ebd022e",
+	"overrides": [
+		{
+			"name": "lua",
+			"version": "5.4.6"
+		}
+	],
 	"features": {
 		"sdl1": {
 			"description": "Use SDL1.2 instead of SDL2",
