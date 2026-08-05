@@ -317,6 +317,7 @@ public:
 class OptionEntryLanguageCode : public OptionEntryListBase {
 public:
 	OptionEntryLanguageCode();
+	OptionEntryLanguageCode(std::string_view key, const char *name, const char *description);
 
 	void LoadFromIni(std::string_view category) override;
 	void SaveToIni(std::string_view category) const override;
@@ -695,6 +696,7 @@ struct LanguageOptions : OptionCategoryBase {
 	std::vector<OptionEntryBase *> GetEntries() override;
 
 	OptionEntryLanguageCode code;
+	OptionEntryLanguageCode voiceCode;
 };
 
 constexpr uint32_t KeymapperMouseButtonMask = 1 << 31;

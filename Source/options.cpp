@@ -966,6 +966,10 @@ OptionEntryLanguageCode::OptionEntryLanguageCode()
     : OptionEntryListBase("Code", OptionEntryFlags::CantChangeInGame | OptionEntryFlags::RecreateUI, N_("Language"), N_("Define what language to use in game."))
 {
 }
+OptionEntryLanguageCode::OptionEntryLanguageCode(std::string_view key, const char *name, const char *description)
+    : OptionEntryListBase(key, OptionEntryFlags::CantChangeInGame | OptionEntryFlags::RecreateUI, name, description)
+{
+}
 void OptionEntryLanguageCode::LoadFromIni(std::string_view category)
 {
 	ini->getUtf8Buf(category, key, szCode, sizeof(szCode));
@@ -1089,12 +1093,14 @@ void OptionEntryLanguageCode::SetActiveListIndex(size_t index)
 
 LanguageOptions::LanguageOptions()
     : OptionCategoryBase("Language", N_("Language"), N_("Language Settings"))
+    , voiceCode("VoiceCode", N_("Voice Language"), N_("Define what language to use for voice acting."))
 {
 }
 std::vector<OptionEntryBase *> LanguageOptions::GetEntries()
 {
 	return {
 		&code,
+		&voiceCode,
 	};
 }
 

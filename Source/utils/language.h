@@ -22,6 +22,7 @@
 extern std::string forceLocale;
 
 std::string_view GetLanguageCode();
+std::string_view GetVoiceLanguageCode();
 
 bool HasTranslation(const std::string &locale);
 void LanguageInitialize();
