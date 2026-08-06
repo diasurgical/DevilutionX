@@ -409,10 +409,6 @@ if(TARGET_PLATFORM STREQUAL "dos")
     target_link_libraries(${BIN_TARGET} PRIVATE m)
 endif()
 
-if(AMIGA)
-  target_sources(${BIN_TARGET} PRIVATE Source/platform/amiga_compat.c)
-endif()
-
 if(NOT UWP_LIB)
   target_link_dependencies(${BIN_TARGET} PRIVATE libdevilutionx)
 endif()

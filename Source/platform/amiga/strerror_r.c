@@ -1,20 +1,14 @@
-/**
- * @file amiga_compat.c
- *
- * Compatibility shims for symbols the m68k-amigaos toolchain's libstdc++
- * references but its C library does not provide.
+/*
+ * GCC 15's libstdc++ (system_error.o) calls the XSI-compliant `strerror_r`,
+ * but libnix only ships the GNU-flavoured one, so linking fails with an
+ * undefined `__xpg_strerror_r`.
  */
 #include <errno.h>
 #include <stddef.h>
 #include <string.h>
 
-/**
- * @brief XSI-compliant strerror_r.
- *
- * GCC 15's libstdc++ (system_error.o) calls this, but libnix only ships the
- * GNU-flavoured strerror_r, so linking fails with an undefined reference.
- * Returns 0 on success, or an error number on failure.
- */
+int __xpg_strerror_r(int errnum, char *buf, size_t buflen);
+
 int __xpg_strerror_r(int errnum, char *buf, size_t buflen)
 {
 	if (buf == NULL || buflen == 0)

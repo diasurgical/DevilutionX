@@ -897,6 +897,13 @@ if(AMIGA AND NOT WARPOS)
   list(APPEND libdevilutionx_SRCS platform/amiga/cmpdf2.c)
 endif()
 
+if(AMIGA)
+  # Works around a missing `__xpg_strerror_r` under GCC 15's libstdc++.
+  # Unlike cmpdf2.c above, not yet confirmed whether this is also needed
+  # under WARPOS (a different toolchain/multilib entirely).
+  list(APPEND libdevilutionx_SRCS platform/amiga/strerror_r.c)
+endif()
+
 if(NOT DISABLE_DEMOMODE)
   list(APPEND libdevilutionx_SRCS engine/demomode.cpp)
 endif()
