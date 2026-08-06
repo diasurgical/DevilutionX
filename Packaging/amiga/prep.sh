@@ -21,10 +21,10 @@ mkdir -p ${SYSROOT}/usr/include
 cd deps
 
 # SDL1.2
-wget https://github.com/AmigaPorts/libSDL12/archive/master.tar.gz -O SDL-1.2.tar.gz
+wget https://github.com/AmigaPorts/SDL-1.2/archive/AmigaOS3.tar.gz -O SDL-1.2.tar.gz
 tar -xvf SDL-1.2.tar.gz
-cd libSDL12-master
-make PREFX=${SYSROOT} PREF=${SYSROOT} -j"$PARALLELISM"
+cd SDL-1.2-AmigaOS3
+make PREFX=${SYSROOT} PREF=${SYSROOT} -j"$PARALLELISM" -f Makefile.amigaos3
 mkdir -p ${SYSROOT}/usr/lib
 mkdir -p ${SYSROOT}/usr/include
 cp -fvr libSDL.a ${SYSROOT}/usr/lib/
