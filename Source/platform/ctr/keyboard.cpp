@@ -9,14 +9,13 @@ constexpr size_t MAX_TEXT_LENGTH = 255;
 struct vkbdEvent {
 	std::string_view hintText;
 	std::string_view inText;
-	char *outText;
-	size_t maxLength;
+	void (*textInputFn)(std::string_view);
 };
 
 static vkbdEvent events[16];
 static int eventCount = 0;
 
-void ctr_vkbdInput(std::string_view hintText, std::string_view inText, char *outText, size_t maxLength)
+void ctr_vkbdInput(std::string_view hintText, std::string_view inText, void (*textInputFn)(std::string_view))
 {
 	if (eventCount >= sizeof(events))
 		return;
@@ -24,8 +23,7 @@ void ctr_vkbdInput(std::string_view hintText, std::string_view inText, char *out
 	vkbdEvent &event = events[eventCount];
 	event.hintText = hintText;
 	event.inText = inText;
-	event.outText = outText;
-	event.maxLength = maxLength;
+	event.textInputFn = textInputFn;
 	eventCount++;
 }
 
@@ -52,7 +50,7 @@ void ctr_vkbdFlush()
 		SwkbdButton button = swkbdInputText(&swkbd, mybuf, sizeof(mybuf));
 
 		if (button == SWKBD_BUTTON_CONFIRM) {
-			devilution::CopyUtf8(event.outText, mybuf, event.maxLength);
+			event.textInputFn(mybuf);
 		}
 	}
 
