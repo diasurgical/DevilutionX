@@ -24,7 +24,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: amigadev/crosstools:m68k-amigaos-gcc10@sha256:c4e68cf502b4764b810a0d2ec7a2f33adee28630aad0a37d1f3c322da36a7a03
+    container: amigadev/crosstools:m68k-amigaos-gcc10
     steps:
       - name: Checkout
         uses: actions/checkout@v7
