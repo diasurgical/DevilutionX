@@ -236,7 +236,15 @@ inline const SDL_GamepadDeviceEvent &SDLC_EventGamepadDevice(const SDL_Event &ev
 
 #define SDLC_SURFACE_BITSPERPIXEL(surface) surface->format->BitsPerPixel
 
-inline bool SDLC_PushEvent(SDL_Event *event) { return SDL_PushEvent(event) == 1; }
+inline bool SDLC_PushEvent(SDL_Event *event)
+{
+#ifdef USE_SDL1
+	constexpr int EventSuccess = 0;
+#else
+	constexpr int EventSuccess = 1;
+#endif
+	return SDL_PushEvent(event) == EventSuccess;
+}
 
 inline
 #ifdef USE_SDL1
