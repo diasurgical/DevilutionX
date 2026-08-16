@@ -489,7 +489,7 @@ bool DamageWeapon(Player &player, unsigned damageFrequency)
 		}
 
 		player.InvBody[INVLOC_HAND_RIGHT]._iDurability--;
-		if (player.InvBody[INVLOC_HAND_RIGHT]._iDurability == 0) {
+		if (player.InvBody[INVLOC_HAND_RIGHT]._iDurability <= 0) {
 			RemoveEquipment(player, INVLOC_HAND_RIGHT, true);
 			CalcPlrInv(player, true);
 			return true;
@@ -502,7 +502,7 @@ bool DamageWeapon(Player &player, unsigned damageFrequency)
 		}
 
 		player.InvBody[INVLOC_HAND_RIGHT]._iDurability--;
-		if (player.InvBody[INVLOC_HAND_RIGHT]._iDurability == 0) {
+		if (player.InvBody[INVLOC_HAND_RIGHT]._iDurability <= 0) {
 			RemoveEquipment(player, INVLOC_HAND_RIGHT, true);
 			CalcPlrInv(player, true);
 			return true;
@@ -515,7 +515,7 @@ bool DamageWeapon(Player &player, unsigned damageFrequency)
 		}
 
 		player.InvBody[INVLOC_HAND_LEFT]._iDurability--;
-		if (player.InvBody[INVLOC_HAND_LEFT]._iDurability == 0) {
+		if (player.InvBody[INVLOC_HAND_LEFT]._iDurability <= 0) {
 			RemoveEquipment(player, INVLOC_HAND_LEFT, true);
 			CalcPlrInv(player, true);
 			return true;
@@ -931,7 +931,7 @@ void DamageParryItem(Player &player)
 		}
 
 		player.InvBody[INVLOC_HAND_LEFT]._iDurability--;
-		if (player.InvBody[INVLOC_HAND_LEFT]._iDurability == 0) {
+		if (player.InvBody[INVLOC_HAND_LEFT]._iDurability <= 0) {
 			RemoveEquipment(player, INVLOC_HAND_LEFT, true);
 			CalcPlrInv(player, true);
 		}
@@ -940,7 +940,7 @@ void DamageParryItem(Player &player)
 	if (player.InvBody[INVLOC_HAND_RIGHT]._itype == ItemType::Shield) {
 		if (player.InvBody[INVLOC_HAND_RIGHT]._iDurability != DUR_INDESTRUCTIBLE) {
 			player.InvBody[INVLOC_HAND_RIGHT]._iDurability--;
-			if (player.InvBody[INVLOC_HAND_RIGHT]._iDurability == 0) {
+			if (player.InvBody[INVLOC_HAND_RIGHT]._iDurability <= 0) {
 				RemoveEquipment(player, INVLOC_HAND_RIGHT, true);
 				CalcPlrInv(player, true);
 			}
@@ -992,7 +992,7 @@ void DamageArmor(Player &player)
 	}
 
 	pi->_iDurability--;
-	if (pi->_iDurability != 0) {
+	if (pi->_iDurability > 0) {
 		return;
 	}
 
