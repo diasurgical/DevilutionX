@@ -3,6 +3,7 @@
 #include <vector>
 
 std::string_view GetLanguageCode() { return "en"; }
+std::string_view GetVoiceLanguageCode() { return "en"; }
 bool HasTranslation(const std::string &locale) { return true; }
 void LanguageInitialize() { }
 std::string_view LanguageTranslate(const char *key) { return key; }
