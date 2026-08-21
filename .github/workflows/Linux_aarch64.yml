@@ -34,14 +34,20 @@ jobs:
 
     # Installs dependencies, including arm64 libraries (runs `sudo apt-get update` as part of it)
     - name: Install dependencies
-      run: Packaging/nix/debian-cross-aarch64-prep.sh
+      run: Packaging/nix/debian-cross-aarch64-prep.sh --no-gcc
+
+    - name: Switch to GCC 14
+      run: |
+        sudo apt-get install -y gcc-14-aarch64-linux-gnu g++-14-aarch64-linux-gnu
+        sudo update-alternatives --install /usr/bin/aarch64-linux-gnu-gcc aarch64-linux-gnu-gcc /usr/bin/aarch64-linux-gnu-gcc-14 100 --slave /usr/bin/aarch64-linux-gnu-g++ aarch64-linux-gnu-g++ /usr/bin/aarch64-linux-gnu-g++-14
+        sudo update-alternatives --set aarch64-linux-gnu-gcc /usr/bin/aarch64-linux-gnu-gcc-14
 
     - name: Cache CMake build folder
       uses: actions/cache@v6
       with:
         path: build
-        key: ${{ github.workflow }}-v9-${{ github.sha }}
-        restore-keys: ${{ github.workflow }}-v9-
+        key: ${{ github.workflow }}-v10-${{ github.sha }}
+        restore-keys: ${{ github.workflow }}-v10-
 
     - name: Build
       working-directory: ${{github.workspace}}

@@ -29,14 +29,19 @@ jobs:
     - name: Create Build Environment
       run: >
         sudo apt-get update &&
-        sudo apt-get install -y cmake file g++ gettext git libsdl1.2-dev libsodium-dev libpng-dev libbz2-dev rpm smpq
+        sudo apt-get install -y cmake file g++-14 gettext git libsdl1.2-dev libsodium-dev libpng-dev libbz2-dev rpm smpq
+
+    - name: Switch to GCC 14
+      run: |
+        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100 --slave /usr/bin/g++ g++ /usr/bin/g++-14
+        sudo update-alternatives --set gcc /usr/bin/gcc-14
 
     - name: Cache CMake build folder
       uses: actions/cache@v6
       with:
         path: build
-        key: ${{ github.workflow }}-v4-${{ github.sha }}
-        restore-keys: ${{ github.workflow }}-v4-
+        key: ${{ github.workflow }}-v5-${{ github.sha }}
+        restore-keys: ${{ github.workflow }}-v5-
 
     - name: Configure CMake
       shell: bash

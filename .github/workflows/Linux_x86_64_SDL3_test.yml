@@ -30,14 +30,19 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update -y
-        sudo apt-get install -y cmake curl g++ git libgtest-dev libgmock-dev libbenchmark-dev libsodium-dev libpng-dev libbz2-dev libasound2-dev libxcursor-dev libxi-dev libxrandr-dev libxss-dev libxtst-dev libxkbcommon-dev wget
+        sudo apt-get install -y cmake curl g++-14 git libgtest-dev libgmock-dev libbenchmark-dev libsodium-dev libpng-dev libbz2-dev libasound2-dev libxcursor-dev libxi-dev libxrandr-dev libxss-dev libxtst-dev libxkbcommon-dev wget
+
+    - name: Switch to GCC 14
+      run: |
+        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100 --slave /usr/bin/g++ g++ /usr/bin/g++-14
+        sudo update-alternatives --set gcc /usr/bin/gcc-14
 
     - name: Cache CMake build folder
       uses: actions/cache@v6
       with:
         path: build
-        key: ${{ github.workflow }}-v5-${{ github.sha }}
-        restore-keys: ${{ github.workflow }}-v5-
+        key: ${{ github.workflow }}-v6-${{ github.sha }}
+        restore-keys: ${{ github.workflow }}-v6-
 
     # We specify `-DDEVILUTIONX_SYSTEM_BENCHMARK=OFF` to work around the following error:
     # lto1: fatal error: bytecode stream in file ‘/usr/lib/x86_64-linux-gnu/libbenchmark_main.a’ generated with LTO version 11.2 instead of the expected 11.3

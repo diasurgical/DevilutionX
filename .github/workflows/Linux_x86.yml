@@ -34,14 +34,20 @@ jobs:
 
     # Installs dependencies, including x86 libraries (runs `sudo apt-get update` as part of it)
     - name: Install dependencies
-      run: Packaging/nix/debian-cross-i386-prep.sh
+      run: Packaging/nix/debian-cross-i386-prep.sh --no-gcc
+
+    - name: Switch to GCC 14
+      run: |
+        sudo apt-get install -y gcc-14-multilib g++-14-multilib
+        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100 --slave /usr/bin/g++ g++ /usr/bin/g++-14
+        sudo update-alternatives --set gcc /usr/bin/gcc-14
 
     - name: Cache CMake build folder
       uses: actions/cache@v6
       with:
         path: build
-        key: ${{ github.workflow }}-v8-${{ github.sha }}
-        restore-keys: ${{ github.workflow }}-v8-
+        key: ${{ github.workflow }}-v9-${{ github.sha }}
+        restore-keys: ${{ github.workflow }}-v9-
 
     - name: Build
       working-directory: ${{github.workspace}}
