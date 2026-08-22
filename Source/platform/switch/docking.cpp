@@ -5,6 +5,7 @@
 #include <SDL.h>
 #include <switch.h>
 
+#include "engine/render/renderer.h"
 #include "utils/display.h"
 
 namespace devilution {
@@ -50,8 +51,8 @@ void HandleDocking()
 		// remove leftover-garbage on screen. Need to perform three clears to ensure all buffers get cleared, otherwise
 		//  the display flickers showing a stale frame at certain refresh rates/dock modes.
 		for (auto i = 0; i < 3; i++) {
-			SDL_RenderClear(renderer);
-			SDL_RenderPresent(renderer);
+			GetRenderer().ClearScreen();
+			GetRenderer().EndFrame();
 		}
 		SDL_SetWindowSize(ghMainWnd, display_width, display_height);
 	}

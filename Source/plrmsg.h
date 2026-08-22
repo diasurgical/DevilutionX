@@ -19,6 +19,6 @@ void DelayPlrMessages(uint32_t delayTime);
 void EventPlrMsg(std::string_view text, UiFlags style = UiFlags::ColorWhitegold);
 void SendPlrMsg(Player &player, std::string_view text);
 void InitPlrMsg();
-void DrawPlrMsg(const Surface &out);
+void DrawPlrMsg();
 
 } // namespace devilution

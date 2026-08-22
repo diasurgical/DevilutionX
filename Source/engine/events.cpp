@@ -17,6 +17,7 @@
 #include "controls/padmapper.hpp"
 #include "engine/demomode.h"
 #include "engine/render/primitive_render.hpp"
+#include "engine/render/renderer.h"
 #include "interfac.h"
 #include "movie.h"
 #include "options.h"
@@ -93,10 +94,7 @@ bool FetchMessage_Real(SDL_Event *event, uint16_t *modState)
 	}
 #endif
 
-	if (!SDLC_ConvertEventToRenderCoordinates(renderer, &e)) {
-		LogWarn(LogCategory::Application, "SDL_ConvertEventToRenderCoordinates: {}", SDL_GetError());
-		SDL_ClearError();
-	}
+	GetRenderer().ConvertEventCoordinates(e);
 
 	if (HandleControllerAddedOrRemovedEvent(e))
 		return true;

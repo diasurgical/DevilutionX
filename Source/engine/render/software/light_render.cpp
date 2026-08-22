@@ -1,4 +1,7 @@
 #include "engine/render/light_render.hpp"
+#include "engine/render/software/light_render_internal.hpp"
+
+#include "engine/render/lighting_mode.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -499,7 +502,8 @@ void BuildLightmap(Point tilePosition, Point targetBufferPosition, uint16_t view
 Lightmap::Lightmap(const uint8_t *outBuffer, uint16_t outPitch,
     std::span<const uint8_t> lightmapBuffer, uint16_t lightmapPitch,
     std::span<const std::array<uint8_t, LightTableSize>, NumLightingLevels> lightTables,
-    const uint8_t *fullyLitLightTable, const uint8_t *fullyDarkLightTable)
+    const uint8_t *fullyLitLightTable, const uint8_t *fullyDarkLightTable,
+    bool perPixel)
     : outBuffer(outBuffer)
     , outPitch(outPitch)
     , lightmapBuffer(lightmapBuffer)
@@ -507,10 +511,11 @@ Lightmap::Lightmap(const uint8_t *outBuffer, uint16_t outPitch,
     , lightTables(lightTables)
     , fullyLitLightTable_(fullyLitLightTable)
     , fullyDarkLightTable_(fullyDarkLightTable)
+    , perPixel_(perPixel)
 {
 }
 
-Lightmap Lightmap::build(bool perPixelLighting, Point tilePosition, Point targetBufferPosition,
+Lightmap LightmapBuild(LightingMode lightingMode, Point tilePosition, Point targetBufferPosition,
     int viewportWidth, int viewportHeight, int rows, int columns,
     const uint8_t *outBuffer, uint16_t outPitch,
     std::span<const std::array<uint8_t, LightTableSize>, NumLightingLevels> lightTables,
@@ -518,17 +523,18 @@ Lightmap Lightmap::build(bool perPixelLighting, Point tilePosition, Point target
     const uint8_t tileLights[MAXDUNX][MAXDUNY],
     uint_fast8_t microTileLen)
 {
-	if (perPixelLighting) {
+	if (lightingMode == LightingMode::TileSmooth) {
 		BuildLightmap(tilePosition, targetBufferPosition, viewportWidth, viewportHeight, rows, columns, tileLights, microTileLen);
 	}
-	return Lightmap(outBuffer, outPitch, LightmapBuffer, viewportWidth, lightTables, fullyLitLightTable, fullyDarkLightTable);
+	const bool perPixel = lightingMode == LightingMode::TileSmooth;
+	return Lightmap(outBuffer, outPitch, LightmapBuffer, viewportWidth, lightTables, fullyLitLightTable, fullyDarkLightTable, perPixel);
 }
 
-Lightmap Lightmap::bleedUp(bool perPixelLighting, const Lightmap &source, Point targetBufferPosition, std::span<uint8_t> lightmapBuffer)
+Lightmap LightmapBleedUp(const Lightmap &source, Point targetBufferPosition, std::span<uint8_t> lightmapBuffer)
 {
 	assert(lightmapBuffer.size() >= TILE_WIDTH * TILE_HEIGHT);
 
-	if (!perPixelLighting) return source;
+	if (!source.isPerPixel()) return source;
 
 	const int sourceHeight = static_cast<int>(source.lightmapBuffer.size() / source.lightmapPitch);
 	const int clipLeft = std::max(0, -targetBufferPosition.x);
@@ -576,7 +582,7 @@ Lightmap Lightmap::bleedUp(bool perPixelLighting, const Lightmap &source, Point 
 
 	return Lightmap(outBuffer, source.outPitch,
 	    lightmapBuffer, lightmapPitch,
-	    source.lightTables, source.fullyLitLightTable_, source.fullyDarkLightTable_);
+	    source.lightTables, source.fullyLitLightTable_, source.fullyDarkLightTable_, /*perPixel=*/true);
 }
 
 } // namespace devilution

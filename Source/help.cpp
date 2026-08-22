@@ -8,7 +8,7 @@
 #include <vector>
 
 #include "DiabloUI/ui_flags.hpp"
-#include "engine/render/clx_render.hpp"
+#include "engine/render/renderer.h"
 #include "engine/render/text_render.hpp"
 #include "game_mode.hpp"
 #include "minitext.h"
@@ -139,26 +139,26 @@ int NumVisibleLines()
 	return ((ContentsTextHeight() - 1) / LineHeight()) + 1; // Ceil
 }
 
-void DrawHelpSlider(const Surface &out)
+void DrawHelpSlider()
 {
 	const Point uiPosition = GetUIRectangle().position;
 	const int sliderXPos = ContentTextWidth + uiPosition.x + 36;
 	int sliderStart = uiPosition.y + HeaderHeight() + LineHeight() + 3;
 	const int sliderEnd = uiPosition.y + PaddingTop + PanelHeight - 12;
-	ClxDraw(out, { sliderXPos, sliderStart }, (*pSTextSlidCels)[11]);
+	GetRenderer().DrawClx({ sliderXPos, sliderStart }, (*pSTextSlidCels)[11]);
 	sliderStart += 12;
 	int sliderCurrent = sliderStart;
 	for (; sliderCurrent < sliderEnd; sliderCurrent += 12) {
-		ClxDraw(out, { sliderXPos, sliderCurrent }, (*pSTextSlidCels)[13]);
+		GetRenderer().DrawClx({ sliderXPos, sliderCurrent }, (*pSTextSlidCels)[13]);
 	}
-	ClxDraw(out, { sliderXPos, sliderCurrent }, (*pSTextSlidCels)[10]);
+	GetRenderer().DrawClx({ sliderXPos, sliderCurrent }, (*pSTextSlidCels)[10]);
 	// Subtract visible lines from the total number of lines to get the actual
 	// scroll range
 	const int scrollRange = static_cast<int>(HelpTextLines.size()) - NumVisibleLines();
 	// Subtract the size of the arrow buttons to get the length of the interior
 	// part of the slider
 	const int sliderLength = sliderCurrent - 12 - sliderStart;
-	ClxDraw(out, { sliderXPos, sliderStart + ((static_cast<int>(SkipLines) * sliderLength) / scrollRange) }, (*pSTextSlidCels)[12]);
+	GetRenderer().DrawClx({ sliderXPos, sliderStart + ((static_cast<int>(SkipLines) * sliderLength) / scrollRange) }, (*pSTextSlidCels)[12]);
 }
 
 } // namespace
@@ -187,10 +187,10 @@ void InitHelp()
 	Initialized = true;
 }
 
-void DrawHelp(const Surface &out)
+void DrawHelp()
 {
 	DrawSTextHelp();
-	DrawQTextBack(out);
+	DrawQTextBack();
 
 	const int lineHeight = LineHeight();
 	const int blankLineHeight = BlankLineHeight();
@@ -205,12 +205,12 @@ void DrawHelp(const Surface &out)
 	const int sx = uiPosition.x + PaddingLeft;
 	const int sy = uiPosition.y;
 
-	DrawString(out, title,
+	DrawString(title,
 	    { { sx, sy + PaddingTop + blankLineHeight }, { ContentTextWidth, lineHeight } },
 	    { .flags = UiFlags::ColorWhitegold | UiFlags::AlignCenter });
 
 	const int titleBottom = sy + HeaderHeight();
-	DrawSLine(out, titleBottom);
+	DrawSLine(titleBottom);
 
 	const int numLines = NumVisibleLines();
 	const int contentY = titleBottom + DividerLineMarginY() + ContentPaddingY();
@@ -227,15 +227,15 @@ void DrawHelp(const Surface &out)
 			style = UiFlags::ColorBlue;
 		}
 
-		DrawString(out, line.substr(offset), { { sx, contentY + (i * lineHeight) }, { ContentTextWidth, lineHeight } },
+		DrawString(line.substr(offset), { { sx, contentY + (i * lineHeight) }, { ContentTextWidth, lineHeight } },
 		    { .flags = style, .lineHeight = lineHeight });
 	}
 
-	DrawString(out, _("Press ESC to end or the arrow keys to scroll."),
+	DrawString(_("Press ESC to end or the arrow keys to scroll."),
 	    { { sx, contentY + ContentsTextHeight() + ContentPaddingY() + blankLineHeight }, { ContentTextWidth, lineHeight } },
 	    { .flags = UiFlags::ColorWhitegold | UiFlags::AlignCenter });
 
-	DrawHelpSlider(out);
+	DrawHelpSlider();
 }
 
 void DisplayHelp()

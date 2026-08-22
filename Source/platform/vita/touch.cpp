@@ -3,6 +3,7 @@
 #include <cmath>
 #include <cstdint>
 
+#include "engine/render/renderer.h"
 #include "options.h"
 #include "utils/display.h"
 #include "utils/ui_fwd.h"
@@ -221,8 +222,9 @@ void PreprocessFingerUp(SDL_Event *event)
 
 			// short (<MAX_TAP_TIME ms) tap is interpreted as right/left mouse click depending on # fingers already down
 			// but only if the finger hasn't moved since it was pressed down by more than MAX_TAP_MOTION_DISTANCE pixels
-			float xrel = ((event->tfinger.x * devilution::GetOutputSurface()->w) - (finger[port][i].lastDownX * devilution::GetOutputSurface()->w));
-			float yrel = ((event->tfinger.y * devilution::GetOutputSurface()->h) - (finger[port][i].lastDownY * devilution::GetOutputSurface()->h));
+			const Size outputSize = devilution::GetRenderer().GetOutputSize();
+			float xrel = ((event->tfinger.x * outputSize.width) - (finger[port][i].lastDownX * outputSize.width));
+			float yrel = ((event->tfinger.y * outputSize.height) - (finger[port][i].lastDownY * outputSize.height));
 			auto maxRSquared = static_cast<float>(MaxTapMotionDistance * MaxTapMotionDistance);
 			if ((xrel * xrel + yrel * yrel) >= maxRSquared) {
 				continue;
@@ -297,12 +299,14 @@ void PreprocessFingerMotion(SDL_Event *event)
 
 			// convert touch events to relative mouse pointer events
 			// Whenever an SDL_event involving the mouse is processed,
-			x = static_cast<int>(Mouse.x + (event->tfinger.dx * SpeedFactor * devilution::GetOutputSurface()->w));
-			y = static_cast<int>(Mouse.y + (event->tfinger.dy * SpeedFactor * devilution::GetOutputSurface()->h));
+			const Size outputSize = devilution::GetRenderer().GetOutputSize();
+			x = static_cast<int>(Mouse.x + (event->tfinger.dx * SpeedFactor * outputSize.width));
+			y = static_cast<int>(Mouse.y + (event->tfinger.dy * SpeedFactor * outputSize.height));
 		}
 
-		x = clip(x, 0, devilution::GetOutputSurface()->w);
-		y = clip(y, 0, devilution::GetOutputSurface()->h);
+		const Size clampSize = devilution::GetRenderer().GetOutputSize();
+		x = clip(x, 0, clampSize.width);
+		y = clip(y, 0, clampSize.height);
 		int xrel = x - Mouse.x;
 		int yrel = y - Mouse.y;
 

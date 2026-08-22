@@ -227,6 +227,9 @@ int GetLineHeight(std::string_view text, GameFontTables fontIndex);
  */
 uint32_t DrawString(const Surface &out, std::string_view text, const Rectangle &rect, TextRenderOptions opts = {});
 
+/** @brief On-screen overload — routes glyphs through the renderer. */
+uint32_t DrawString(std::string_view text, const Rectangle &rect, TextRenderOptions opts = {});
+
 /**
  * @brief Draws a line of text at the given position relative to the origin of the output buffer.
  *
@@ -244,6 +247,12 @@ inline void DrawString(const Surface &out, std::string_view text, const Point &p
 	DrawString(out, text, { position, { out.w() - position.x, 0 } }, opts);
 }
 
+/** @brief On-screen overload. */
+inline void DrawString(std::string_view text, const Point &position, int screenWidth, TextRenderOptions opts = {})
+{
+	DrawString(text, { position, { screenWidth - position.x, 0 } }, opts);
+}
+
 /**
  * @brief Draws a line of text with different colors for certain parts of the text.
  *
@@ -257,10 +266,16 @@ inline void DrawString(const Surface &out, std::string_view text, const Point &p
  * @param opts Rendering options.
  */
 void DrawStringWithColors(const Surface &out, std::string_view fmt, DrawStringFormatArg *args, std::size_t argsLen, const Rectangle &rect, TextRenderOptions opts = {});
+void DrawStringWithColors(std::string_view fmt, DrawStringFormatArg *args, std::size_t argsLen, const Rectangle &rect, TextRenderOptions opts = {});
 
 inline void DrawStringWithColors(const Surface &out, std::string_view fmt, std::vector<DrawStringFormatArg> args, const Rectangle &rect, TextRenderOptions opts = {})
 {
 	return DrawStringWithColors(out, fmt, args.data(), args.size(), rect, opts);
+}
+
+inline void DrawStringWithColors(std::string_view fmt, std::vector<DrawStringFormatArg> args, const Rectangle &rect, TextRenderOptions opts = {})
+{
+	return DrawStringWithColors(fmt, args.data(), args.size(), rect, opts);
 }
 
 uint8_t PentSpn2Spin();

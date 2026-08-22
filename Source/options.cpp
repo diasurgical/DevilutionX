@@ -63,8 +63,8 @@ namespace devilution {
 #ifndef DEFAULT_AUDIO_RESAMPLING_QUALITY
 #define DEFAULT_AUDIO_RESAMPLING_QUALITY 3
 #endif
-#ifndef DEFAULT_PER_PIXEL_LIGHTING
-#define DEFAULT_PER_PIXEL_LIGHTING true
+#ifndef DEFAULT_LIGHTING_MODE
+#define DEFAULT_LIGHTING_MODE LightingMode::Tile
 #endif
 
 namespace {
@@ -349,24 +349,44 @@ void OptionEntryEnumBase::AddEntry(int entryValue, std::string_view name)
 	entryValues.push_back(entryValue);
 	entryNames.push_back(name);
 }
+size_t OptionEntryEnumBase::EntryIndexFromListIndex(size_t listIndex) const
+{
+	if (!entryFilter)
+		return listIndex;
+	for (size_t i = 0; i < entryValues.size(); i++) {
+		if (!entryFilter(entryValues[i]))
+			continue;
+		if (listIndex == 0)
+			return i;
+		--listIndex;
+	}
+	return 0;
+}
 size_t OptionEntryEnumBase::GetListSize() const
 {
-	return entryValues.size();
+	if (!entryFilter)
+		return entryValues.size();
+	return std::count_if(entryValues.begin(), entryValues.end(), entryFilter);
 }
 std::string_view OptionEntryEnumBase::GetListDescription(size_t index) const
 {
-	return _(entryNames[index].data());
+	return _(entryNames[EntryIndexFromListIndex(index)].data());
 }
 size_t OptionEntryEnumBase::GetActiveListIndex() const
 {
-	auto iterator = c_find(entryValues, value);
-	if (iterator == entryValues.end())
-		return 0;
-	return std::distance(entryValues.begin(), iterator);
+	size_t listIndex = 0;
+	for (const int entryValue : entryValues) {
+		if (entryFilter && !entryFilter(entryValue))
+			continue;
+		if (entryValue == value)
+			return listIndex;
+		++listIndex;
+	}
+	return 0;
 }
 void OptionEntryEnumBase::SetActiveListIndex(size_t index)
 {
-	this->value = entryValues[index];
+	this->value = entryValues[EntryIndexFromListIndex(index)];
 	this->NotifyValueChanged();
 }
 
@@ -740,6 +760,14 @@ SDL_AudioDeviceID OptionEntryAudioDevice::id() const
 
 GraphicsOptions::GraphicsOptions()
     : OptionCategoryBase("Graphics", N_("Graphics"), N_("Graphics Settings"))
+    , renderer("Renderer", OptionEntryFlags::RecreateUI, N_("Renderer"), N_("Rendering backend to use."), RendererBackend::Auto,
+          {
+              { RendererBackend::Auto, N_("Auto") },
+#ifdef DEVILUTIONX_GL1_RENDERER
+              { RendererBackend::OpenGL1, N_("OpenGL") },
+#endif
+              { RendererBackend::Software, N_("Software") },
+          })
     , fullscreen("Fullscreen", OnlyIfSupportsWindowed | OptionEntryFlags::CantChangeInGame | OptionEntryFlags::RecreateUI, N_("Fullscreen"), N_("Display the game in windowed or fullscreen mode."),
 #ifdef __EMSCRIPTEN__
           false // Default to windowed mode for browser
@@ -795,7 +823,11 @@ GraphicsOptions::GraphicsOptions()
           })
     , brightness("Brightness Correction", OptionEntryFlags::Invisible, "Brightness Correction", "Brightness correction level.", 0)
     , zoom("Zoom", OptionEntryFlags::None, N_("Zoom"), N_("Zoom on when enabled."), false)
-    , perPixelLighting("Per-pixel Lighting", OptionEntryFlags::None, N_("Per-pixel Lighting"), N_("Subtile lighting for smoother light gradients."), DEFAULT_PER_PIXEL_LIGHTING)
+    , lightingMode("Lighting", OptionEntryFlags::None, N_("Lighting"), N_("Lighting quality mode."), DEFAULT_LIGHTING_MODE, {
+                                                                                                                                { LightingMode::Vertex, N_("Vertex") },
+                                                                                                                                { LightingMode::Tile, N_("Tile") },
+                                                                                                                                { LightingMode::TileSmooth, N_("Tile Smooth") },
+                                                                                                                            })
     , colorCycling("Color Cycling", OptionEntryFlags::None, N_("Color Cycling"), N_("Color cycling effect used for water, lava, and acid animation."), true)
     , alternateNestArt("Alternate nest art", OptionEntryFlags::OnlyHellfire | OptionEntryFlags::CantChangeInGame, N_("Alternate nest art"), N_("The game will use an alternative palette for Hellfire’s nest tileset."), false)
 #if SDL_VERSION_ATLEAST(2, 0, 0)
@@ -810,6 +842,7 @@ std::vector<OptionEntryBase *> GraphicsOptions::GetEntries()
 {
 	// clang-format off
 	return {
+		&renderer,
 		&resolution,
 #ifndef __vita__
 		&fullscreen,
@@ -826,7 +859,7 @@ std::vector<OptionEntryBase *> GraphicsOptions::GetEntries()
 		&brightness,
 		&zoom,
 		&showFPS,
-		&perPixelLighting,
+		&lightingMode,
 		&colorCycling,
 		&alternateNestArt,
 #if SDL_VERSION_ATLEAST(2, 0, 0)

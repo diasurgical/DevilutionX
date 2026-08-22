@@ -4,7 +4,6 @@
 #include <vector>
 
 #include "engine/point.hpp"
-#include "engine/surface.hpp"
 #include "tables/spelldat.h"
 
 namespace devilution {
@@ -20,8 +19,8 @@ struct SpellListItem {
  * @brief draws the current right mouse button spell.
  * @param out screen buffer representing the main UI panel
  */
-void DrawSpell(const Surface &out);
-void DrawSpellList(const Surface &out);
+void DrawSpell();
+void DrawSpellList();
 std::vector<SpellListItem> GetSpellListItems();
 void SetSpell();
 void SetSpeedSpell(size_t slot);

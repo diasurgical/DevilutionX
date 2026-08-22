@@ -6,7 +6,6 @@
 #pragma once
 
 #include "engine/point.hpp"
-#include "engine/surface.hpp"
 
 namespace devilution {
 
@@ -16,6 +15,6 @@ bool IsItemLabelHighlighted();
 void ResetItemlabelHighlighted();
 bool IsHighlightingLabelsEnabled();
 void AddItemToLabelQueue(int id, Point position);
-void DrawItemNameLabels(const Surface &out);
+void DrawItemNameLabels();
 
 } // namespace devilution

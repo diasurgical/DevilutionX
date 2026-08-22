@@ -81,7 +81,7 @@ void AddFloatingNumber(Point pos, Displacement offset, std::string text, UiFlags
 	FloatingQueue.push_back(num);
 }
 
-void DrawFloatingNumbers(const Surface &out, Point viewPosition, Displacement offset)
+void DrawFloatingNumbers(Point viewPosition, Displacement offset)
 {
 	for (auto &floatingNum : FloatingQueue) {
 		Displacement worldOffset = viewPosition - floatingNum.startPos;
@@ -99,7 +99,7 @@ void DrawFloatingNumbers(const Surface &out, Point viewPosition, Displacement of
 		const float mul = 1 - (timeLeft / 2500.0F);
 		screenPosition += floatingNum.endOffset * mul;
 
-		DrawString(out, floatingNum.text, Rectangle { screenPosition, { lineWidth, 0 } },
+		DrawString(floatingNum.text, Rectangle { screenPosition, { lineWidth, 0 } },
 		    { .flags = floatingNum.style });
 	}
 

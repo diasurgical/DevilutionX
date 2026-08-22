@@ -18,12 +18,12 @@
 #include "DiabloUI/settingsmenu.h"
 #include "engine/assets.hpp"
 #include "engine/demomode.h"
+#include "engine/render/renderer.h"
 #include "game_mode.hpp"
 #include "init.hpp"
 #include "movie.h"
 #include "options.h"
 #include "pfile.h"
-#include "storm/storm_net.hpp"
 #include "utils/language.h"
 
 namespace devilution {
@@ -151,7 +151,7 @@ bool mainmenu_select_hero_dialog(GameData *gameData)
 
 void mainmenu_wait_for_button_sound()
 {
-	SDL_FillSurfaceRect(DiabloUiSurface(), nullptr, 0);
+	GetRenderer().ClearScreen();
 	UiFadeIn();
 	SDL_Delay(350); // delay to let button pressed sound finish playing
 }

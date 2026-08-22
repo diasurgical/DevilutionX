@@ -7,11 +7,9 @@
 
 namespace devilution {
 
-struct Surface;
-
 void InitMonsterHealthBar();
 void FreeMonsterHealthBar();
 
-void DrawMonsterHealthBar(const Surface &out);
+void DrawMonsterHealthBar();
 
 } // namespace devilution

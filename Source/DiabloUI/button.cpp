@@ -17,9 +17,11 @@
 #include "engine/load_pcx.hpp"
 #include "engine/rectangle.hpp"
 #include "engine/render/clx_render.hpp"
+#include "engine/render/renderer.h"
 #include "engine/render/text_render.hpp"
 #include "engine/surface.hpp"
 #include "utils/sdl_compat.h"
+#include "utils/sdl_geometry.h"
 
 namespace devilution {
 
@@ -49,16 +51,19 @@ ClxSprite ButtonSprite(bool pressed)
 
 void RenderButton(const UiButton &button)
 {
-	const Surface &out = Surface(DiabloUiSurface()).subregion(button.m_rect.x, button.m_rect.y, button.m_rect.w, button.m_rect.h);
-	RenderClxSprite(out, ButtonSprite(button.IsPressed()), { 0, 0 });
+	GetRenderer().SetClipRegion(MakeRectangle(button.m_rect));
+	GetRenderer().RenderClx({ button.m_rect.x, button.m_rect.y }, ButtonSprite(button.IsPressed()));
+	GetRenderer().ClearClipRegion();
 
-	Rectangle textRect { { 0, 0 }, { button.m_rect.w, button.m_rect.h } };
+	Rectangle textRect = MakeRectangle(button.m_rect);
 	if (!button.IsPressed()) {
 		--textRect.position.y;
 	}
 
-	DrawString(out, button.GetText(), textRect,
+	GetRenderer().SetClipRegion(MakeRectangle(button.m_rect));
+	DrawString(button.GetText(), textRect,
 	    { .flags = UiFlags::AlignCenter | UiFlags::FontSizeDialog | UiFlags::ColorDialogWhite });
+	GetRenderer().ClearClipRegion();
 }
 
 bool HandleMouseEventButton(const SDL_Event &event, UiButton *button)

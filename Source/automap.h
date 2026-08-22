@@ -9,7 +9,6 @@
 
 #include "engine/displacement.hpp"
 #include "engine/point.hpp"
-#include "engine/surface.hpp"
 #include "levels/gendung.h"
 #include "utils/attributes.h"
 
@@ -180,7 +179,7 @@ void AutomapZoomOut();
 /**
  * @brief Renders the automap to the given buffer.
  */
-void DrawAutomap(const Surface &out);
+void DrawAutomap();
 
 /**
  * @brief Updates automap explorer at point if value is higher than existing.

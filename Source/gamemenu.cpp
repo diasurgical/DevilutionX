@@ -14,6 +14,8 @@
 #include "engine/backbuffer_state.hpp"
 #include "engine/demomode.h"
 #include "engine/events.hpp"
+#include "engine/render/renderer.h"
+#include "engine/render/scrollrt.h"
 #include "engine/sound.h"
 #include "engine/sound_defs.hpp"
 #include "game_mode.hpp"
@@ -113,7 +115,15 @@ void GamemenuNewGame(bool /*bActivate*/)
 	MyPlayerIsDead = false;
 	if (!HeadlessMode) {
 		RedrawEverything();
-		scrollrt_draw_game_screen();
+		if (GetRenderer().NeedsFullRedraw()) {
+			// GL: scrollrt_draw_game_screen doesn't draw the scene —
+			// it only blits the software backbuffer which is empty on GL.
+			// Use RedrawGameScene which does a full scene draw.
+			RedrawGameScene();
+			GetRenderer().EndFrame();
+		} else {
+			scrollrt_draw_game_screen();
+		}
 	}
 	CornerStone.activated = false;
 	gbRunGame = false;
@@ -313,12 +323,10 @@ void gamemenu_load_game(bool /*bActivate*/)
 		app_fatal(result.error());
 	}
 #if !defined(USE_SDL1) && !defined(__vita__)
-	if (renderer != nullptr) {
-		InitVirtualGamepadTextures(*renderer);
-	}
+	GetRenderer().ReinitVirtualGamepad();
 #endif
 	ClrDiabloMsg();
-	PaletteFadeOut(8, prevPalette);
+	PaletteFadeOut(8, prevPalette, RedrawGameScene);
 
 	LoadPWaterPalette();
 	NewCursor(CURSOR_HAND);
@@ -326,7 +334,7 @@ void gamemenu_load_game(bool /*bActivate*/)
 	MyPlayerIsDead = false;
 	RedrawEverything();
 	DrawAndBlit();
-	PaletteFadeIn(8);
+	PaletteFadeIn(8, logical_palette, RedrawGameScene);
 	NewCursor(CURSOR_HAND);
 	interface_msg_pump();
 	SetEventHandler(saveProc);

@@ -10,7 +10,7 @@ namespace devilution {
 
 extern OptionalOwnedClxSpriteList pChrButtons;
 
-void DrawChr(const Surface &);
+void DrawChr();
 std::expected<void, std::string> LoadCharPanel();
 void FreeCharPanel();
 

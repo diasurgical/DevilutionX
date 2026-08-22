@@ -1,8 +1,10 @@
 #include "control_flasks.hpp"
 #include "control.hpp"
 
+#include "engine/render/renderer.h"
 #include "engine/surface.hpp"
 #include "utils/str_cat.hpp"
+#include "utils/ui_fwd.h"
 
 namespace devilution {
 
@@ -22,9 +24,9 @@ Rectangle FlaskBottomRect { { 0, 16 }, { 88, 69 } };
  * @param celBuf Buffer of the flask cel.
  * @param targetPosition Target buffer coordinate.
  */
-void DrawFlaskAbovePanel(const Surface &out, const Surface &celBuf, Point targetPosition)
+void DrawFlaskAbovePanel(const Surface &celBuf, Point targetPosition)
 {
-	out.BlitFromSkipColorIndexZero(celBuf, MakeSdlRect(0, 0, celBuf.w(), celBuf.h()), targetPosition);
+	GetRenderer().BlitSurfaceSkipColorIndexZero(celBuf, MakeSdlRect(0, 0, celBuf.w(), celBuf.h()), targetPosition);
 }
 
 /**
@@ -35,20 +37,20 @@ void DrawFlaskAbovePanel(const Surface &out, const Surface &celBuf, Point target
  * @param offset X coordinate offset for where the flask should be drawn
  * @param fillPer How full the flask is (a value from 0 to 81)
  */
-void DrawFlaskUpper(const Surface &out, const Surface &sourceBuffer, int offset, int fillPer)
+void DrawFlaskUpper(const Surface &sourceBuffer, int offset, int fillPer)
 {
 	const Rectangle &rect = FlaskTopRect;
 	const int emptyRows = std::clamp(81 - fillPer, 0, rect.size.height);
 	const int filledRows = rect.size.height - emptyRows;
 
 	// Draw the empty part of the flask
-	DrawFlaskAbovePanel(out,
+	DrawFlaskAbovePanel(
 	    sourceBuffer.subregion(rect.position.x, rect.position.y, rect.size.width, rect.size.height),
 	    GetMainPanel().position + Displacement { offset, -rect.size.height });
 
 	// Draw the filled part of the flask over the empty part
 	if (filledRows > 0) {
-		DrawFlaskAbovePanel(out,
+		DrawFlaskAbovePanel(
 		    BottomBuffer->subregion(offset, rect.position.y + emptyRows, rect.size.width, filledRows),
 		    GetMainPanel().position + Displacement { offset, -rect.size.height + emptyRows });
 	}
@@ -62,9 +64,9 @@ void DrawFlaskUpper(const Surface &out, const Surface &sourceBuffer, int offset,
  * @param celBuf Buffer of the flask cel.
  * @param targetPosition Target buffer coordinate.
  */
-void DrawFlaskOnPanel(const Surface &out, const Surface &celBuf, Point targetPosition)
+void DrawFlaskOnPanel(const Surface &celBuf, Point targetPosition)
 {
-	out.BlitFrom(celBuf, MakeSdlRect(0, 0, celBuf.w(), celBuf.h()), targetPosition);
+	GetRenderer().BlitSurface(celBuf, MakeSdlRect(0, 0, celBuf.w(), celBuf.h()), targetPosition);
 }
 
 /**
@@ -76,7 +78,7 @@ void DrawFlaskOnPanel(const Surface &out, const Surface &celBuf, Point targetPos
  * @param fillPer How full the flask is (a value from 0 to 80)
  * @param drawFilledPortion Indicates whether to draw the filled portion of the flask
  */
-void DrawFlaskLower(const Surface &out, const Surface &sourceBuffer, int offset, int fillPer, bool drawFilledPortion)
+void DrawFlaskLower(const Surface &sourceBuffer, int offset, int fillPer, bool drawFilledPortion)
 {
 	const Rectangle &rect = FlaskBottomRect;
 	const int filledRows = std::clamp(fillPer, 0, rect.size.height);
@@ -84,14 +86,14 @@ void DrawFlaskLower(const Surface &out, const Surface &sourceBuffer, int offset,
 
 	// Draw the empty part of the flask
 	if (emptyRows > 0) {
-		DrawFlaskOnPanel(out,
+		DrawFlaskOnPanel(
 		    sourceBuffer.subregion(rect.position.x, rect.position.y, rect.size.width, emptyRows),
 		    GetMainPanel().position + Displacement { offset, 0 });
 	}
 
 	// Draw the filled part of the flask
 	if (drawFilledPortion && filledRows > 0) {
-		DrawFlaskOnPanel(out,
+		DrawFlaskOnPanel(
 		    BottomBuffer->subregion(offset, rect.position.y + emptyRows, rect.size.width, filledRows),
 		    GetMainPanel().position + Displacement { offset, emptyRows });
 	}
@@ -99,38 +101,38 @@ void DrawFlaskLower(const Surface &out, const Surface &sourceBuffer, int offset,
 
 } // namespace
 
-void DrawLifeFlaskUpper(const Surface &out)
+void DrawLifeFlaskUpper()
 {
 	constexpr int LifeFlaskUpperOffset = 107;
-	DrawFlaskUpper(out, *pLifeBuff, LifeFlaskUpperOffset, MyPlayer->_pHPPer);
+	DrawFlaskUpper(*pLifeBuff, LifeFlaskUpperOffset, MyPlayer->_pHPPer);
 }
 
-void DrawManaFlaskUpper(const Surface &out)
+void DrawManaFlaskUpper()
 {
 	constexpr int ManaFlaskUpperOffset = 475;
-	DrawFlaskUpper(out, *pManaBuff, ManaFlaskUpperOffset, MyPlayer->_pManaPer);
+	DrawFlaskUpper(*pManaBuff, ManaFlaskUpperOffset, MyPlayer->_pManaPer);
 }
 
-void DrawLifeFlaskLower(const Surface &out, bool drawFilledPortion)
+void DrawLifeFlaskLower(bool drawFilledPortion)
 {
 	constexpr int LifeFlaskLowerOffset = 96;
-	DrawFlaskLower(out, *pLifeBuff, LifeFlaskLowerOffset, MyPlayer->_pHPPer, drawFilledPortion);
+	DrawFlaskLower(*pLifeBuff, LifeFlaskLowerOffset, MyPlayer->_pHPPer, drawFilledPortion);
 }
 
-void DrawManaFlaskLower(const Surface &out, bool drawFilledPortion)
+void DrawManaFlaskLower(bool drawFilledPortion)
 {
 	constexpr int ManaFlaskLowerOffset = 464;
-	DrawFlaskLower(out, *pManaBuff, ManaFlaskLowerOffset, MyPlayer->_pManaPer, drawFilledPortion);
+	DrawFlaskLower(*pManaBuff, ManaFlaskLowerOffset, MyPlayer->_pManaPer, drawFilledPortion);
 }
 
-void DrawFlaskValues(const Surface &out, Point pos, int currValue, int maxValue)
+void DrawFlaskValues(Point pos, int currValue, int maxValue)
 {
 	const UiFlags color = (currValue > 0 ? (currValue == maxValue ? UiFlags::ColorGold : UiFlags::ColorWhite) : UiFlags::ColorRed);
 
-	auto drawStringWithShadow = [out, color](std::string_view text, Point pos) {
-		DrawString(out, text, pos + Displacement { -1, -1 },
+	auto drawStringWithShadow = [color](std::string_view text, Point pos) {
+		DrawString(text, { pos + Displacement { -1, -1 }, { gnScreenWidth - pos.x + 1, 0 } },
 		    { .flags = UiFlags::ColorBlack | UiFlags::KerningFitSpacing, .spacing = 0 });
-		DrawString(out, text, pos,
+		DrawString(text, { pos, { gnScreenWidth - pos.x, 0 } },
 		    { .flags = color | UiFlags::KerningFitSpacing, .spacing = 0 });
 	};
 
