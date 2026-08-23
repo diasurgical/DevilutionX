@@ -356,9 +356,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON) # for clang-tidy
 set(CMAKE_THREAD_PREFER_PTHREAD ON)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
-if(NOT TARGET_PLATFORM STREQUAL "dos")
-  find_package(Threads REQUIRED)
-endif()
+find_package(Threads REQUIRED)
 
 # Dependencies must be included after Platforms.
 include(Dependencies)

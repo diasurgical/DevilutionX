@@ -1114,9 +1114,7 @@ target_link_dependencies(libdevilutionx PUBLIC
   libdevilutionx_utf8
   libdevilutionx_utils_console
 )
-if(NOT TARGET_PLATFORM STREQUAL "dos")
-  target_link_dependencies(libdevilutionx PUBLIC Threads::Threads)
-endif()
+target_link_dependencies(libdevilutionx PUBLIC Threads::Threads)
 if(DEVILUTIONX_SCREENSHOT_FORMAT STREQUAL DEVILUTIONX_SCREENSHOT_FORMAT_PNG)
   target_link_dependencies(libdevilutionx PUBLIC libdevilutionx_surface_to_png)
 endif()
