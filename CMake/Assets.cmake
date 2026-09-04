@@ -246,6 +246,15 @@ if(APPLE)
       XCODE_EXPLICIT_FILE_TYPE compiled)
     target_sources(${BIN_TARGET} PRIVATE "${src}")
   endforeach()
+
+  if(BUILD_TESTING)
+    # Tests aren't bundled, so they need the assets copied here too.
+    copy_files(
+      FILES ${devilutionx_assets}
+      SRC_PREFIX "assets/"
+      OUTPUT_DIR "${DEVILUTIONX_ASSETS_OUTPUT_DIRECTORY}"
+      OUTPUT_VARIABLE DEVILUTIONX_OUTPUT_ASSETS_FILES)
+  endif()
 else()
   # Copy assets to the build assets subdirectory. This serves two purposes:
   # - If smpq is installed, devilutionx.mpq is built from these files.
