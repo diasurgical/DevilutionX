@@ -174,9 +174,59 @@ set(_optimize_in_debug_srcs
   utils/cl2_to_clx.cpp
   utils/pcx_to_clx.cpp)
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-  set_source_files_properties(${_optimize_in_debug_srcs} PROPERTIES COMPILE_OPTIONS "-O2;--param=max-vartrack-size=900000000")
+  set(_optimize_in_debug_flags "-O2;--param=max-vartrack-size=900000000")
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-  set_source_files_properties(${_optimize_in_debug_srcs} PROPERTIES COMPILE_OPTIONS "-O2")
+  set(_optimize_in_debug_flags "-O2")
+endif()
+if(_optimize_in_debug_flags)
+  # These sources also opt out of the precompiled header: it is built with the
+  # optimization flags of the build type, and neither GCC nor Clang accepts a
+  # precompiled header created at a different optimization level. GCC ignores
+  # it with a `-Winvalid-pch` warning, Clang fails the build outright with
+  # "__OPTIMIZE__ predefined macro was disabled in AST file".
+  set_source_files_properties(${_optimize_in_debug_srcs} PROPERTIES
+    COMPILE_OPTIONS "${_optimize_in_debug_flags}"
+    SKIP_PRECOMPILE_HEADERS ON)
+endif()
+
+# Owns the precompiled header that every other object library reuses.
+#
+# It must be defined before them, both because `REUSE_FROM` requires the target
+# to already exist and because of the `target_link_dependencies` ordering rule
+# below.
+#
+# This target intentionally links only what `pch.hpp` itself needs. Anything
+# else would add defines to it, and GCC rejects a precompiled header that was
+# built with a macro the consumer does not have (a subset is fine, which is why
+# a minimal target works for all of them). See Source/pch.hpp.
+#
+# Not built where the PCH cannot be shared (MSVC); libdevilutionx gets its own
+# below instead. See DEVILUTIONX_PCH_SHARED in the top-level CMakeLists.txt.
+if(DEVILUTIONX_PCH_SHARED)
+  add_devilutionx_object_library(libdevilutionx_pch pch.cpp)
+  target_link_libraries(libdevilutionx_pch PUBLIC
+    DevilutionX::SDL
+    magic_enum::magic_enum
+    unordered_dense::unordered_dense
+  )
+  # Everything the PCH precompiles has to resolve to the same file a consumer
+  # would have opened. GCC does not check include paths when validating a
+  # precompiled header, so a difference here is silent: the PCH bakes in one
+  # resolution and the consumer can no longer reach the other.
+  #
+  # 3DS and Switch shadow system headers with shims on asio's include path
+  # (Source/platform/*/asio/include/errno.h adds ESHUTDOWN, which their newlib
+  # only defines under __LINUX_ERRNO_EXTENSIONS__). pch.hpp reaches <errno.h>
+  # via <ostream>, so without these directories the PCH records the unshadowed
+  # header and the shim is never read. Only the include directories: linking
+  # asio would add its compile definitions to the PCH, and consumers without
+  # them would then reject it.
+  if(TARGET asio)
+    target_include_directories(libdevilutionx_pch BEFORE PRIVATE
+      $<TARGET_PROPERTY:asio,INTERFACE_INCLUDE_DIRECTORIES>)
+  endif()
+
+  target_precompile_headers(libdevilutionx_pch PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/pch.hpp)
 endif()
 
 # We need to define all the object libraries first
@@ -1052,6 +1102,13 @@ endif()
 
 add_devilutionx_object_library(libdevilutionx ${libdevilutionx_SRCS})
 target_include_directories(libdevilutionx PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+
+# Where the PCH cannot be shared, this target still gets one of its own. All of
+# its sources compile with the same flags, so there is no mismatch to worry
+# about, and at ~150 sources it accounts for most of what the PCH saves.
+if(DEVILUTIONX_PCH AND NOT DEVILUTIONX_PCH_SHARED)
+  target_precompile_headers(libdevilutionx PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/pch.hpp)
+endif()
 target_link_dependencies(libdevilutionx PUBLIC
   DevilutionX::SDL
   libsmackerdec
