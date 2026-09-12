@@ -491,11 +491,15 @@ void CheckMissileCol(Missile &missile, DamageType damageType, int minDamage, int
 	bool isMonsterHit = false;
 	int mid = dMonster[position.x][position.y];
 	if (mid != 0) {
-		Monster &monster = Monsters[std::abs(mid) - 1];
+		const int monsterId = std::abs(mid) - 1;
+		if (static_cast<size_t>(monsterId) >= MaxMonsters)
+			return;
+		Monster &monster = Monsters[monsterId];
 		if (onlyHitWalking.has_value() ? (monster.isWalking() && CheckCanHitOnlyWalking(missile, monster.position, *onlyHitWalking)) : (mid > 0 || monster.mode == MonsterMode::Petrified)) {
 			if (missile.IsTrap()
-			    || (missile._micaster == TARGET_PLAYERS && (                                     // or was fired by a monster and
-			            monster.isPlayerMinion() != Monsters[missile._misource].isPlayerMinion() //  the monsters are on opposing factions
+			    || (missile._micaster == TARGET_PLAYERS
+			        && static_cast<size_t>(missile._misource) < MaxMonsters
+			        && (monster.isPlayerMinion() != Monsters[missile._misource].isPlayerMinion() //  the monsters are on opposing factions
 			            || (Monsters[missile._misource].flags & MFLAG_BERSERK) != 0              //  or the attacker is berserked
 			            || (monster.flags & MFLAG_BERSERK) != 0                                  //  or the target is berserked
 			            ))) {
@@ -719,7 +723,7 @@ bool GuardianTryFireAt(Missile &missile, Point target)
 	if (!LineClearMovingMissile(position, target))
 		return false;
 	const int mid = dMonster[target.x][target.y] - 1;
-	if (mid < 0)
+	if (mid < 0 || static_cast<size_t>(mid) >= MaxMonsters)
 		return false;
 	const Monster &monster = Monsters[mid];
 	if (monster.isPlayerMinion())
@@ -1312,7 +1316,7 @@ void AddBerserk(Missile &missile, AddMissileParameter &parameter)
 		    }
 
 		    const int monsterId = std::abs(dMonster[target.x][target.y]) - 1;
-		    if (monsterId < 0)
+		    if (monsterId < 0 || static_cast<size_t>(monsterId) >= MaxMonsters)
 			    return false;
 
 		    const Monster &monster = Monsters[monsterId];
@@ -1334,7 +1338,10 @@ void AddBerserk(Missile &missile, AddMissileParameter &parameter)
 	    parameter.dst, 0, 5);
 
 	if (targetMonsterPosition) {
-		Monster &monster = Monsters[std::abs(dMonster[targetMonsterPosition->x][targetMonsterPosition->y]) - 1];
+		const int monsterId = std::abs(dMonster[targetMonsterPosition->x][targetMonsterPosition->y]) - 1;
+		if (monsterId < 0 || static_cast<size_t>(monsterId) >= MaxMonsters)
+			return;
+		Monster &monster = Monsters[monsterId];
 		const Player &player = *missile.sourcePlayer();
 		const int slvl = player.GetSpellLevel(SpellID::Berserk);
 		monster.flags |= MFLAG_BERSERK | MFLAG_GOLEM;
@@ -2292,7 +2299,7 @@ void AddGenericMagicMissile(Missile &missile, AddMissileParameter &parameter)
 	missile.var1 = missile.position.start.x;
 	missile.var2 = missile.position.start.y;
 	missile._mlid = AddLight(missile.position.start, 8);
-	if (missile._micaster != TARGET_MONSTERS && missile._misource > 0) {
+	if (missile._micaster != TARGET_MONSTERS && missile._misource > 0 && static_cast<size_t>(missile._misource) < MaxMonsters) {
 		const Monster &monster = Monsters[missile._misource];
 		if (monster.type().type == MT_SUCCUBUS)
 			missile.setAnimation(MissileGraphicID::BloodStar);
@@ -2356,6 +2363,10 @@ void AddAcidPuddle(Missile &missile, AddMissileParameter & /*parameter*/)
 {
 	missile._miLightFlag = true;
 	const int monst = missile._misource;
+	if (monst < 0 || static_cast<size_t>(monst) >= MaxMonsters) {
+		missile._miDelFlag = true;
+		return;
+	}
 	missile.duration = GenerateRnd(15) + 40 * (Monsters[monst].intelligence + 1);
 	missile._miPreFlag = true;
 }
@@ -2369,7 +2380,7 @@ void AddStoneCurse(Missile &missile, AddMissileParameter &parameter)
 		    }
 
 		    const int monsterId = std::abs(dMonster[target.x][target.y]) - 1;
-		    if (monsterId < 0) {
+		    if (monsterId < 0 || static_cast<size_t>(monsterId) >= MaxMonsters) {
 			    return false;
 		    }
 
@@ -2394,6 +2405,10 @@ void AddStoneCurse(Missile &missile, AddMissileParameter &parameter)
 
 	// Petrify the targeted monster
 	const int monsterId = std::abs(dMonster[targetMonsterPosition->x][targetMonsterPosition->y]) - 1;
+	if (monsterId < 0 || static_cast<size_t>(monsterId) >= MaxMonsters) {
+		missile._miDelFlag = true;
+		return;
+	}
 	Monster &monster = Monsters[monsterId];
 
 	if (monster.mode == MonsterMode::Petrified) {
@@ -3196,6 +3211,10 @@ void ProcessRune(Missile &missile)
 	const int mid = dMonster[position.x][position.y];
 	Player *player = PlayerAtPosition(position);
 	if (mid != 0 || player != nullptr) {
+		if (mid != 0 && static_cast<size_t>(std::abs(mid) - 1) >= MaxMonsters) {
+			PutMissile(missile);
+			return;
+		}
 		const Point targetPosition = mid != 0 ? Monsters[std::abs(mid) - 1].position.tile : player->position.tile;
 		const Direction dir = GetDirection(position, targetPosition);
 
@@ -3401,7 +3420,8 @@ void ProcessTownPortal(Missile &missile)
 	if (leveltype != DTYPE_TOWN && missile.getFrameGroup<PortalFrame>() != PortalFrame::Idle && missile.duration != 0) {
 		if (missile.var2 == 0)
 			missile._mlid = AddLight(missile.position.tile, 1);
-		ChangeLight(missile._mlid, missile.position.tile, expLight[missile.var2]);
+		if (missile.var2 < 17)
+			ChangeLight(missile._mlid, missile.position.tile, expLight[missile.var2]);
 		missile.var2++;
 	}
 
@@ -3611,7 +3631,7 @@ void ProcessWeaponExplosion(Missile &missile)
 	if (missile.var1 == 0) {
 		missile._mlid = AddLight(missile.position.tile, 9);
 	} else {
-		if (missile.duration != 0)
+		if (missile.duration != 0 && missile.var1 < 10)
 			ChangeLight(missile._mlid, missile.position.tile, ExpLight[missile.var1]);
 	}
 	missile.var1++;
@@ -3634,7 +3654,7 @@ void ProcessMissileExplosion(Missile &missile)
 	} else {
 		if (missile.var1 == 0)
 			missile._mlid = AddLight(missile.position.tile, 9);
-		else
+		else if (missile.var1 < 15)
 			ChangeLight(missile._mlid, missile.position.tile, ExpLight[missile.var1]);
 		missile.var1++;
 		PutMissile(missile);
@@ -3651,6 +3671,8 @@ void ProcessAcidSplate(Missile &missile)
 	if (missile.duration == 0) {
 		missile._miDelFlag = true;
 		const int monst = missile._misource;
+		if (monst < 0 || static_cast<size_t>(monst) >= MaxMonsters)
+			return;
 		const int dam = (Monsters[monst].data().level >= 2 ? 2 : 1);
 		AddMissile(missile.position.tile, { 0, 0 }, Direction::South, MissileID::AcidPuddle, TARGET_PLAYERS, monst, dam, missile._mispllvl);
 	} else {
@@ -3698,6 +3720,10 @@ void ProcessTeleport(Missile &missile)
 void ProcessStoneCurse(Missile &missile)
 {
 	missile.duration--;
+	if (missile.var2 < 0 || static_cast<size_t>(missile.var2) >= MaxMonsters) {
+		missile._miDelFlag = true;
+		return;
+	}
 	Monster &monster = Monsters[missile.var2];
 	if (monster.hitPoints == 0 && missile._miAnimType != MissileGraphicID::StoneCurseShatter) {
 		missile.setDefaultFrameGroup();
@@ -3738,6 +3764,10 @@ void ProcessApocalypseBoom(Missile &missile)
 void ProcessRhino(Missile &missile)
 {
 	const int monst = missile._misource;
+	if (monst < 0 || static_cast<size_t>(monst) >= MaxMonsters) {
+		missile._miDelFlag = true;
+		return;
+	}
 	Monster &monster = Monsters[monst];
 	if (monster.mode != MonsterMode::Charge) {
 		missile._miDelFlag = true;
@@ -3855,7 +3885,7 @@ void ProcessApocalypse(Missile &missile)
 	for (int j = missile.var2; j < missile.var3; j++) {
 		for (int k = missile.var4; k < missile.var5; k++) {
 			const int mid = dMonster[k][j] - 1;
-			if (mid < 0)
+			if (mid < 0 || static_cast<size_t>(mid) >= MaxMonsters)
 				continue;
 			if (Monsters[mid].isPlayerMinion())
 				continue;
@@ -4184,7 +4214,8 @@ void ProcessRedPortal(Missile &missile)
 	if (leveltype != DTYPE_TOWN && missile.getFrameGroup<RedPortalFrame>() != RedPortalFrame::Idle && missile.duration != 0) {
 		if (missile.var2 == 0)
 			missile._mlid = AddLight(missile.position.tile, 1);
-		ChangeLight(missile._mlid, missile.position.tile, expLight[missile.var2]);
+		if (missile.var2 < 17)
+			ChangeLight(missile._mlid, missile.position.tile, expLight[missile.var2]);
 		missile.var2++;
 	}
 	if (missile.duration == 0) {
@@ -4257,6 +4288,8 @@ void SetUpMissileAnimationData()
 			continue;
 		}
 
+		if (missile._misource < 0 || static_cast<size_t>(missile._misource) >= MaxMonsters)
+			continue;
 		const CMonster &mon = Monsters[missile._misource].type();
 
 		MonsterGraphic graphic;
