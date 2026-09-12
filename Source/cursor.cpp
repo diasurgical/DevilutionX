@@ -85,6 +85,8 @@ bool TrySelectMonster(bool flipflag, Point tile, tl::function_ref<bool(const Mon
 		if (!InDungeonBounds(posToCheck) || dMonster[posToCheck.x][posToCheck.y] == 0)
 			return;
 		const uint16_t monsterId = std::abs(dMonster[posToCheck.x][posToCheck.y]) - 1;
+		if (monsterId >= MaxMonsters)
+			return;
 		const Monster &monster = Monsters[monsterId];
 		if (IsTileLit(posToCheck) && HasAnyOf(monster.data().selectionRegion, selectionRegion) && isValidMonster(monster)) {
 			cursPosition = posToCheck;
@@ -113,6 +115,8 @@ bool TrySelectTowner(bool flipflag, Point tile)
 		if (!InDungeonBounds(posToCheck) || dMonster[posToCheck.x][posToCheck.y] == 0)
 			return;
 		const uint16_t monsterId = std::abs(dMonster[posToCheck.x][posToCheck.y]) - 1;
+		if (monsterId >= MaxMonsters)
+			return;
 		cursPosition = posToCheck;
 		pcursmonst = monsterId;
 	};
@@ -129,26 +133,32 @@ bool TrySelectPlayer(bool flipflag, const Point tile)
 {
 	if (!flipflag && tile.x + 1 < MAXDUNX && dPlayer[tile.x + 1][tile.y] != 0) {
 		const uint8_t playerId = std::abs(dPlayer[tile.x + 1][tile.y]) - 1;
-		Player &player = Players[playerId];
-		if (&player != MyPlayer && !player.hasNoLife()) {
-			cursPosition = tile + Displacement { 1, 0 };
-			PlayerUnderCursor = &player;
+		if (playerId < Players.size()) {
+			Player &player = Players[playerId];
+			if (&player != MyPlayer && !player.hasNoLife()) {
+				cursPosition = tile + Displacement { 1, 0 };
+				PlayerUnderCursor = &player;
+			}
 		}
 	}
 	if (flipflag && tile.y + 1 < MAXDUNY && dPlayer[tile.x][tile.y + 1] != 0) {
 		const uint8_t playerId = std::abs(dPlayer[tile.x][tile.y + 1]) - 1;
-		Player &player = Players[playerId];
-		if (&player != MyPlayer && !player.hasNoLife()) {
-			cursPosition = tile + Displacement { 0, 1 };
-			PlayerUnderCursor = &player;
+		if (playerId < Players.size()) {
+			Player &player = Players[playerId];
+			if (&player != MyPlayer && !player.hasNoLife()) {
+				cursPosition = tile + Displacement { 0, 1 };
+				PlayerUnderCursor = &player;
+			}
 		}
 	}
 	if (dPlayer[tile.x][tile.y] != 0) {
 		const uint8_t playerId = std::abs(dPlayer[tile.x][tile.y]) - 1;
-		Player &player = Players[playerId];
-		if (&player != MyPlayer) {
-			cursPosition = tile;
-			PlayerUnderCursor = &player;
+		if (playerId < Players.size()) {
+			Player &player = Players[playerId];
+			if (&player != MyPlayer) {
+				cursPosition = tile;
+				PlayerUnderCursor = &player;
+			}
 		}
 	}
 	if (TileContainsDeadPlayer(tile)) {
@@ -175,10 +185,12 @@ bool TrySelectPlayer(bool flipflag, const Point tile)
 	}
 	if (tile.x + 1 < MAXDUNX && tile.y + 1 < MAXDUNY && dPlayer[tile.x + 1][tile.y + 1] != 0) {
 		const uint8_t playerId = std::abs(dPlayer[tile.x + 1][tile.y + 1]) - 1;
-		const Player &player = Players[playerId];
-		if (&player != MyPlayer && !player.hasNoLife()) {
-			cursPosition = tile + Displacement { 1, 1 };
-			PlayerUnderCursor = &player;
+		if (playerId < Players.size()) {
+			const Player &player = Players[playerId];
+			if (&player != MyPlayer && !player.hasNoLife()) {
+				cursPosition = tile + Displacement { 1, 1 };
+				PlayerUnderCursor = &player;
+			}
 		}
 	}
 
@@ -301,6 +313,8 @@ bool TrySelectPixelBased(Point tile)
 		// Never select a monster if a target-player-only spell is selected
 		if (monsterId != 0 && IsNoneOf(pcurs, CURSOR_HEALOTHER, CURSOR_RESURRECT)) {
 			monsterId = std::abs(monsterId) - 1;
+			if (static_cast<size_t>(monsterId) >= MaxMonsters)
+				continue;
 			if (leveltype == DTYPE_TOWN) {
 				const Towner &towner = Towners[monsterId];
 				const ClxSprite sprite = towner.currentSprite();
@@ -327,6 +341,8 @@ bool TrySelectPixelBased(Point tile)
 		const int8_t dPlayerValue = dPlayer[adjacentTile.x][adjacentTile.y];
 		if (dPlayerValue != 0) {
 			const uint8_t playerId = std::abs(dPlayerValue) - 1;
+			if (playerId >= Players.size())
+				continue;
 			if (playerId != MyPlayerId) {
 				const Player &player = Players[playerId];
 				const ClxSprite sprite = player.currentSprite();
@@ -366,6 +382,8 @@ bool TrySelectPixelBased(Point tile)
 		uint8_t itemId = dItem[adjacentTile.x][adjacentTile.y];
 		if (itemId != 0) {
 			itemId = itemId - 1;
+			if (itemId >= MAXITEMS)
+				continue;
 			const Item &item = Items[itemId];
 			const ClxSprite sprite = item.AnimInfo.currentSprite();
 			const Displacement renderingOffset = item.getRenderingOffset(sprite);
@@ -627,7 +645,9 @@ void CheckTown()
 			if (EntranceBoundaryContains(missile.position.tile, cursPosition)) {
 				trigflag = true;
 				InfoString = _("Town Portal");
-				AddInfoBoxString(FormatRuntime(_("from {:s}"), Players[missile._misource]._pName));
+				if (missile._misource >= 0 && static_cast<size_t>(missile._misource) < Players.size()) {
+					AddInfoBoxString(FormatRuntime(_("from {:s}"), Players[missile._misource]._pName));
+				}
 				cursPosition = missile.position.tile;
 			}
 		}
