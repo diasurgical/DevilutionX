@@ -5,6 +5,7 @@
  */
 #include "engine/dx.h"
 
+#include <algorithm>
 #include <cstdint>
 
 #ifdef USE_SDL3
@@ -92,14 +93,14 @@ void LimitFrameRate()
 {
 	if (*GetOptions().Graphics.frameRateControl != FrameRateControl::CPUSleep)
 		return;
+	const uint32_t frameDelay = 1000000 / std::max(1U, static_cast<uint32_t>(*GetOptions().Graphics.fpsCap));
 	static uint32_t frameDeadline;
 	const uint32_t tc = SDL_GetTicks() * 1000;
-	uint32_t v = 0;
-	if (frameDeadline > tc) {
-		v = tc % refreshDelay;
-		SDL_Delay((v / 1000) + 1); // ceil
-	}
-	frameDeadline = tc + v + refreshDelay;
+	if (frameDeadline == 0 || frameDeadline < tc)
+		frameDeadline = tc + frameDelay;
+	if (frameDeadline > tc)
+		SDL_Delay(((frameDeadline - tc) / 1000) + 1);
+	frameDeadline += frameDelay;
 }
 
 } // namespace
