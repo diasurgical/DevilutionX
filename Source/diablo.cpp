@@ -1064,8 +1064,9 @@ void PrintFlagRequiresArgument(std::string_view flag)
 	PrintFlagMessage(flag, " requires an argument");
 }
 
-void DiabloParseFlags(int argc, char **argv)
+bool DiabloParseFlags(int argc, char **argv)
 {
+	bool printHelp = false;
 #ifdef _DEBUG
 	int argumentIndexOfLastCommandPart = -1;
 	std::string currentCommand;
@@ -1079,7 +1080,7 @@ void DiabloParseFlags(int argc, char **argv)
 	for (int i = 1; i < argc; i++) {
 		const std::string_view arg = argv[i];
 		if (arg == "-h" || arg == "--help") {
-			PrintHelpAndExit();
+			printHelp = true;
 		} else if (arg == "--version") {
 			printInConsole(PROJECT_NAME);
 			printInConsole(" v");
@@ -1189,7 +1190,7 @@ void DiabloParseFlags(int argc, char **argv)
 			printInConsole(argv[i]);
 			printInConsole("'");
 			printNewlineInConsole();
-			PrintHelpAndExit();
+			printHelp = true;
 		}
 	}
 
@@ -1204,6 +1205,8 @@ void DiabloParseFlags(int argc, char **argv)
 	if (recordNumber != -1)
 		demo::InitRecording(recordNumber, createDemoReference);
 #endif
+
+	return printHelp;
 }
 
 void DiabloInitScreen()
@@ -2759,7 +2762,7 @@ int DiabloMain(int argc, char **argv)
 	SDL_SetLogPriorities(SDL_LOG_PRIORITY_DEBUG);
 #endif
 
-	DiabloParseFlags(argc, argv);
+	const bool printHelp = DiabloParseFlags(argc, argv);
 	InitKeymapActions();
 	InitPadmapActions();
 
@@ -2773,6 +2776,12 @@ int DiabloMain(int argc, char **argv)
 
 	// Then look for a voice pack file based on the selected translation
 	LoadLanguageArchive();
+
+	if (printHelp) {
+		HeadlessMode = true;
+		LanguageInitialize();
+		PrintHelpAndExit();
+	}
 
 	ApplicationInit();
 	LuaInitialize();
