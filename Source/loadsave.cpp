@@ -488,7 +488,7 @@ void LoadPlayer(LoadHelper &file, Player &player)
 
 	file.NextBytes(player._pName, PlayerNameLength);
 	TerminateUtf8(player._pName, PlayerNameLength);
-	player._pClass = static_cast<HeroClass>(file.NextLE<int8_t>());
+	player._pClass = static_cast<HeroClass>(std::clamp<uint8_t>(file.NextLE<uint8_t>(), 0, static_cast<uint8_t>(GetNumPlayerClasses() - 1)));
 	file.Skip(3); // Alignment
 	player._pStrength = file.NextLE<int32_t>();
 	player._pBaseStr = file.NextLE<int32_t>();
