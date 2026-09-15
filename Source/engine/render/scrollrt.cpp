@@ -1514,7 +1514,7 @@ void DoBlitScreen(Rectangle area)
  */
 void DrawMain(int dwHgt, bool drawDesc, bool drawHp, bool drawMana, bool drawSbar, bool drawBtn)
 {
-	if (!gbActive || RenderDirectlyToOutputSurface) {
+	if (!gbActive) {
 		return;
 	}
 
