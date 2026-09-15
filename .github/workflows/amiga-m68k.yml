@@ -31,9 +31,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Run prep.sh script
-        run: ./Packaging/amiga/prep.sh
-
       - name: Configure CMake
         run: |
           cmake \
