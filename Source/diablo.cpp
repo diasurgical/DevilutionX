@@ -1805,6 +1805,7 @@ void OptionLanguageCodeChanged()
 	UnloadFonts();
 	LanguageInitialize();
 	LoadLanguageArchive();
+	LoadVoiceLanguageArchive();
 	effects_cleanup_sfx(false);
 	if (gbRunGame)
 		sound_init();
@@ -1813,6 +1814,18 @@ void OptionLanguageCodeChanged()
 }
 
 const auto OptionChangeHandlerLanguage = (GetOptions().Language.code.SetValueChangedCallback(OptionLanguageCodeChanged), true);
+
+void OptionVoiceLanguageCodeChanged()
+{
+	LoadVoiceLanguageArchive();
+	effects_cleanup_sfx(false);
+	if (gbRunGame)
+		sound_init();
+	else
+		ui_sound_init();
+}
+
+const auto OptionChangeHandlerVoiceLanguage = (GetOptions().Language.voiceCode.SetValueChangedCallback(OptionVoiceLanguageCodeChanged), true);
 
 } // namespace
 
@@ -2774,6 +2787,7 @@ int DiabloMain(int argc, char **argv)
 
 	// Then look for a voice pack file based on the selected translation
 	LoadLanguageArchive();
+	LoadVoiceLanguageArchive();
 
 	ApplicationInit();
 	LuaInitialize();

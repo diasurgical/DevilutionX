@@ -75,7 +75,14 @@ SDL_IOStream *OpenOptionalRWops(const std::string &path)
 
 bool FindMpqFile(std::string_view filename, MpqArchive **archive, uint32_t *hashIndex)
 {
-	for (auto &[_, mpqArchive] : MpqArchives) {
+	for (auto &[priority, mpqArchive] : MpqArchives) {
+		if (VoiceMpqSeparationActive()) {
+			const bool isSfxFile = filename.starts_with("sfx\\") || filename.starts_with("SFX\\");
+			if (isSfxFile && priority == LangMpqPriority)
+				continue;
+			if (!isSfxFile && priority == VoiceLangMpqPriority)
+				continue;
+		}
 		uint32_t hash = mpqArchive.FindHash(filename);
 		if (hash != UINT32_MAX) {
 			*archive = &mpqArchive;
@@ -524,6 +531,22 @@ void LoadLanguageArchive()
 	const std::string_view code = GetLanguageCode();
 	if (code != "en") {
 		LoadMPQ(GetMPQSearchPaths(), code, LangMpqPriority);
+	}
+}
+
+bool VoiceMpqSeparationActive()
+{
+	return GetVoiceLanguageCode() != GetLanguageCode();
+}
+
+void LoadVoiceLanguageArchive()
+{
+	MpqArchives.erase(VoiceLangMpqPriority);
+	if (!VoiceMpqSeparationActive())
+		return;
+	const std::string_view voiceCode = GetVoiceLanguageCode();
+	if (voiceCode != "en") {
+		LoadMPQ(GetMPQSearchPaths(), voiceCode, VoiceLangMpqPriority);
 	}
 }
 
