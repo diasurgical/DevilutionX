@@ -1,9 +1,6 @@
 FROM amigadev/crosstools:m68k-amigaos-gcc10
 
 RUN apt-get update && apt-get install --no-install-recommends -y smpq
-RUN mkdir /devilutionx-deps-build
-COPY Packaging/amiga/prep.sh /devilutionx-deps-build/prep.sh
-RUN cd /devilutionx-deps-build && ./prep.sh
 
 CMD cmake -S. -Bbuild-amiga -DCPACK=ON \
 		-DCMAKE_BUILD_TYPE=Release \
