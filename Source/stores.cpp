@@ -2174,18 +2174,15 @@ void SetupTownStores()
 
 	l = std::clamp(l + 2, 6, 16);
 
-	if (SmithItems.empty())
-		SpawnSmith(l);
-	if (WitchItems.empty())
-		SpawnWitch(l);
-	if (HealerItems.empty())
-		SpawnHealer(l);
+	SpawnSmith(l);
+	SpawnWitch(l);
+	SpawnHealer(l);
 	if (BoyItem.isEmpty())
 		SpawnBoy(myPlayer.getCharacterLevel());
 	if (PremiumItems.empty())
 		SpawnPremium(myPlayer);
 }
-	
+
 void FreeStoreMem()
 {
 	if (*GetOptions().Gameplay.storeUi == StoreUi::ListWithItemGraphics) {
