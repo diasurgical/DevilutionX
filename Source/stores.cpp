@@ -2185,7 +2185,7 @@ void SetupTownStores()
 	if (PremiumItems.empty())
 		SpawnPremium(myPlayer);
 }
-	
+
 void FreeStoreMem()
 {
 	if (*GetOptions().Gameplay.storeUi == StoreUi::ListWithItemGraphics) {
