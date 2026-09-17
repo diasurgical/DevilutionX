@@ -2745,13 +2745,7 @@ void OperateShrineGlimmering(Player &player)
 	if (&player != MyPlayer)
 		return;
 
-	for (Item &item : PlayerItemsRange { player }) {
-		if (item._iMagical != ITEM_QUALITY_NORMAL && !item._iIdentified) {
-			item._iIdentified = true;
-		}
-	}
-
-	CalcPlrInv(player, true);
+	IdentifyPlayerItems(player);
 	RedrawEverything();
 
 	InitDiabloMsg(EMSG_SHRINE_GLIMMERING);
