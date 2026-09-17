@@ -43,8 +43,7 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release \
             -DM68K_COMMON="-s -fbbb=- -ffast-math" \
             -DM68K_CPU=68040 \
-            -DM68K_FPU=hard \
-            -DDISABLE_LTO=ON
+            -DM68K_FPU=hard
 
       - name: Build DevilutionX
         run: cmake --build build
