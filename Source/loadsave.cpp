@@ -276,7 +276,7 @@ struct LevelConversionData {
 	item.position.y = file.NextLE<int32_t>();
 	item._iAnimFlag = file.NextBool32();
 	file.Skip(4); // Skip pointer _iAnimData
-	item.AnimInfo = {};
+	item.AnimInfo = { };
 	item.AnimInfo.numberOfFrames = file.NextLENarrow<int32_t, int8_t>();
 	item.AnimInfo.currentFrame = file.NextLENarrow<int32_t, int8_t>(-1);
 	file.Skip(8); // Skip _iAnimWidth and _iAnimWidth2
@@ -422,7 +422,7 @@ void LoadPlayer(LoadHelper &file, Player &player)
 	file.Skip(4); // Unused
 	player._pgfxnum = file.NextLENarrow<uint32_t, uint8_t>();
 	file.Skip<uint32_t>(); // Skip pointer pData
-	player.AnimInfo = {};
+	player.AnimInfo = { };
 	player.AnimInfo.ticksPerFrame = file.NextLENarrow<int32_t, int8_t>(1);
 	player.AnimInfo.tickCounterOfCurrentFrame = file.NextLENarrow<int32_t, int8_t>();
 	player.AnimInfo.numberOfFrames = file.NextLENarrow<int32_t, int8_t>();
@@ -687,7 +687,7 @@ bool gbSkipSync = false;
 	file->Skip(2); // Unused
 
 	file->Skip(4); // Skip pointer _mAnimData
-	monster.animInfo = {};
+	monster.animInfo = { };
 	monster.animInfo.ticksPerFrame = file->NextLENarrow<int32_t, int8_t>();
 	// Ensure that we can increase the tickCounterOfCurrentFrame at least once without overflow (needed for backwards compatibility for sitting gargoyles)
 	monster.animInfo.tickCounterOfCurrentFrame = file->NextLENarrow<int32_t, int8_t>(1) - 1;
@@ -793,7 +793,7 @@ void LoadMonsters(LoadHelper &file, ankerl::unordered_dense::set<unsigned> &remo
 			monsterConversionData = &levelConversionData->monsterConversionData[ActiveMonsters[i]];
 		const bool valid = LoadMonster(&file, monster, monsterConversionData);
 		if (!valid) {
-			Monsters[ActiveMonsters[i]] = {};
+			Monsters[ActiveMonsters[i]] = { };
 			removedMonsterIds.insert(ActiveMonsters[i]);
 			for (size_t j = i + 1; j < ActiveMonsterCount; j++) {
 				ActiveMonsters[j - 1] = ActiveMonsters[j];
@@ -839,7 +839,7 @@ void SyncPackSize(Monster &leader)
 
 void LoadMissile(LoadHelper *file)
 {
-	Missile missile = {};
+	Missile missile = { };
 	missile._mitype = static_cast<MissileID>(file->NextLE<int32_t>());
 	missile.position.tile.x = file->NextLE<int32_t>();
 	missile.position.tile.y = file->NextLE<int32_t>();
@@ -1098,7 +1098,7 @@ void LoadMatchingItems(LoadHelper &file, const Player &player, const int n, Item
 			// Ensure that the unpacked item was regenerated using the appropriate
 			// game's item generation logic before attempting to use it for validation
 			if ((heroItem.dwBuff & CF_HELLFIRE) != (unpackedItem.dwBuff & CF_HELLFIRE)) {
-				unpackedItem = {};
+				unpackedItem = { };
 				RecreateItem(player, unpackedItem, heroItem.IDidx, heroItem._iCreateInfo, heroItem._iSeed, heroItem._ivalue, heroItem.dwBuff);
 				unpackedItem._iIdentified = heroItem._iIdentified;
 				unpackedItem._iMaxDur = heroItem._iMaxDur;
@@ -1277,9 +1277,9 @@ void SavePlayer(SaveHelper &file, const Player &player)
 	file.WriteLE<int32_t>(player.position.last.y);
 	file.WriteLE<int32_t>(player.position.old.x);
 	file.WriteLE<int32_t>(player.position.old.y);
-	DisplacementOf<int16_t> offset = {};
-	DisplacementOf<int16_t> offset2 = {};
-	DisplacementOf<int16_t> velocity = {};
+	DisplacementOf<int16_t> offset = { };
+	DisplacementOf<int16_t> offset2 = { };
+	DisplacementOf<int16_t> velocity = { };
 	if (player.isWalking()) {
 		offset = player.position.CalculateWalkingOffset(player._pdir, player.AnimInfo);
 		offset2 = player.position.CalculateWalkingOffsetShifted8(player._pdir, player.AnimInfo);
@@ -1518,9 +1518,9 @@ void SaveMonster(SaveHelper *file, Monster &monster, MonsterConversionData *mons
 	file->WriteLE<int32_t>(monster.position.future.y);
 	file->WriteLE<int32_t>(monster.position.old.x);
 	file->WriteLE<int32_t>(monster.position.old.y);
-	DisplacementOf<int16_t> offset = {};
-	DisplacementOf<int16_t> offset2 = {};
-	DisplacementOf<int16_t> velocity = {};
+	DisplacementOf<int16_t> offset = { };
+	DisplacementOf<int16_t> offset2 = { };
+	DisplacementOf<int16_t> velocity = { };
 	if (monster.isWalking()) {
 		offset = monster.position.CalculateWalkingOffset(monster.direction, monster.animInfo);
 		offset2 = monster.position.CalculateWalkingOffsetShifted4(monster.direction, monster.animInfo);
@@ -2103,11 +2103,79 @@ std::expected<void, std::string> LoadLevel(LevelConversionData *levelConversionD
 		if (player.plractive && player.isOnActiveLevel())
 			Lights[player.lightId].hasChanged = true;
 	}
-	return {};
+	return { };
 }
 
 const int DiabloItemSaveSize = 368;
 const int HellfireItemSaveSize = 372;
+
+constexpr uint8_t VersionShopItems = 0;
+
+template <size_t N>
+void SaveShopItemList(SaveHelper &file, const StaticVector<Item, N> &items)
+{
+	file.WriteLE<uint32_t>(static_cast<uint32_t>(items.size()));
+	for (const Item &item : items)
+		SaveItem(file, item);
+}
+
+void SaveShopItems(SaveWriter &saveWriter)
+{
+	const size_t itemSize = gbIsHellfire ? HellfireItemSaveSize : DiabloItemSaveSize;
+	const size_t bufferLen = sizeof(uint8_t)
+	    + sizeof(uint32_t) + itemSize * SmithItems.size()
+	    + sizeof(uint32_t) + itemSize * WitchItems.size()
+	    + sizeof(uint32_t) + itemSize * HealerItems.size()
+	    + sizeof(uint8_t) + itemSize
+	    + sizeof(int32_t);
+
+	SaveHelper file(saveWriter, "shopitems", bufferLen);
+
+	file.WriteLE<uint8_t>(VersionShopItems);
+
+	SaveShopItemList(file, SmithItems);
+	SaveShopItemList(file, WitchItems);
+	SaveShopItemList(file, HealerItems);
+
+	file.WriteLE<uint8_t>(BoyItem.isEmpty() ? 0 : 1);
+	if (!BoyItem.isEmpty())
+		SaveItem(file, BoyItem);
+	file.WriteLE<int32_t>(BoyItemLevel);
+}
+
+template <size_t N>
+void LoadShopItemList(LoadHelper &file, StaticVector<Item, N> &items)
+{
+	items.clear();
+	const auto count = file.NextLE<uint32_t>();
+	for (uint32_t i = 0; i < count; i++) {
+		Item item;
+		LoadAndValidateItemData(file, item);
+		if (!item.isEmpty() && items.size() < N)
+			items.push_back(item);
+	}
+}
+
+void LoadShopItems()
+{
+	LoadHelper file(OpenSaveArchive(gSaveNumber), "shopitems");
+	if (!file.IsValid()) {
+		return;
+	}
+
+	if (file.NextLE<uint8_t>() > VersionShopItems) {
+		return;
+	}
+
+	LoadShopItemList(file, SmithItems);
+	LoadShopItemList(file, WitchItems);
+	LoadShopItemList(file, HealerItems);
+
+	BoyItem.clear();
+	if (file.NextLE<uint8_t>() != 0)
+		LoadAndValidateItemData(file, BoyItem);
+	BoyItemLevel = file.NextLE<int32_t>();
+}
 
 bool IsStashSizeValid(size_t stashSize, uint32_t pages, uint32_t itemCount)
 {
@@ -2176,7 +2244,7 @@ std::expected<void, std::string> ConvertLevels(SaveWriter &saveWriter)
 	setlvlnum = tmpSetlvlnum;
 	currlevel = tmpCurrlevel;
 	leveltype = tmpLeveltype;
-	return {};
+	return { };
 }
 
 void RemoveInvalidItem(Item &item)
@@ -2417,7 +2485,7 @@ void LoadStash()
 	else
 		filename = "mpstashitems";
 
-	Stash = {};
+	Stash = { };
 
 	LoadHelper file(OpenStashArchive(), filename);
 	if (!file.IsValid())
@@ -2443,7 +2511,7 @@ void LoadStash()
 
 	auto itemCount = file.NextLE<uint32_t>();
 	if (!IsStashSizeValid(file.Size(), pages, itemCount)) {
-		Stash = {};
+		Stash = { };
 		EventPlrMsg(_("Stash size invalid. If you attempt to access your stash, data will be overwritten!!"), UiFlags::ColorRed);
 		return;
 	}
@@ -2594,6 +2662,7 @@ std::expected<void, std::string> LoadGame(bool firstflag)
 	LoadDroppedItems(file, savedItemCount);
 
 	LoadAdditionalMissiles();
+	LoadShopItems();
 
 	for (bool &uniqueItemFlag : UniqueItemFlags)
 		uniqueItemFlag = file.NextBool8();
@@ -2685,7 +2754,7 @@ std::expected<void, std::string> LoadGame(bool firstflag)
 	}
 
 	gbIsHellfireSaveGame = gbIsHellfire;
-	return {};
+	return { };
 }
 
 void SaveHeroItems(SaveWriter &saveWriter, Player &player)
@@ -2925,6 +2994,7 @@ void SaveGameData(SaveWriter &saveWriter)
 
 	SaveAdditionalMissiles(saveWriter);
 	SaveLevelSeeds(saveWriter);
+	SaveShopItems(saveWriter);
 }
 
 void SaveGame()
