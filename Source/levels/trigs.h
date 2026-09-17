@@ -5,6 +5,9 @@
  */
 #pragma once
 
+#include <optional>
+#include <vector>
+
 #include "engine/point.hpp"
 #include "interfac.h"
 #include "levels/gendung.h"
@@ -24,9 +27,23 @@ extern int numtrigs;
 extern TriggerStruct trigs[MAXTRIGGERS];
 extern int TWarpFrom;
 
+/**
+ * @brief Town trigger definition: position, message, optional level, and optional warp-gate condition.
+ */
+struct TownTrigger {
+	WorldTilePosition position;
+	interface_mode msg;
+	int level = 0;
+	/** If set, the trigger is only active when IsWarpOpen(*warpGate). */
+	std::optional<dungeon_type> warpGate;
+};
+
 void InitNoTriggers();
 bool IsWarpOpen(dungeon_type type);
 void InitTownTriggers();
+
+/** Replaces the active town trigger list used by InitTownTriggers(). */
+void SetTownTriggers(std::vector<TownTrigger> triggers);
 void InitL1Triggers();
 void InitL2Triggers();
 void InitL3Triggers();
