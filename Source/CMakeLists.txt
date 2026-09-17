@@ -982,8 +982,6 @@ if(IOS)
 endif()
 
 if(AMIGA AND NOT WARPOS)
-  # Works around a missing `__cmpdf2` in the hard-float libgcc multilib.
-  list(APPEND libdevilutionx_SRCS platform/amiga/cmpdf2.c)
   # Works around a missing `__xpg_strerror_r` under GCC 15's libstdc++.
   list(APPEND libdevilutionx_SRCS platform/amiga/strerror_r.c)
 endif()
