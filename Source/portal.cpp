@@ -21,13 +21,12 @@ namespace {
 /** Current portal number (a portal array index). */
 size_t portalindex;
 
-/** Coordinate of each player's portal in town. */
-Point PortalTownPosition[MAXPORTAL] = {
+std::array<Point, MAXPORTAL> ActivePortalPositions = { {
 	{ 57, 40 },
 	{ 59, 40 },
 	{ 61, 40 },
 	{ 63, 40 },
-};
+} };
 
 } // namespace
 
@@ -67,7 +66,7 @@ void SyncPortals()
 			continue;
 		const Player &player = Players[i];
 		if (leveltype == DTYPE_TOWN)
-			AddPortalMissile(player, PortalTownPosition[i], true);
+			AddPortalMissile(player, GetPortalTownPosition(static_cast<size_t>(i)), true);
 		else {
 			int lvl = currlevel;
 			if (setlevel)
@@ -80,7 +79,7 @@ void SyncPortals()
 
 void AddPortalInTown(const Player &player)
 {
-	AddPortalMissile(player, PortalTownPosition[player.getId()], false);
+	AddPortalMissile(player, GetPortalTownPosition(player.getId()), false);
 }
 
 void ActivatePortal(const Player &player, Point position, int lvl, dungeon_type dungeonType, bool isSetLevel)
@@ -163,7 +162,7 @@ void GetPortalLevel()
 void GetPortalLvlPos()
 {
 	if (leveltype == DTYPE_TOWN) {
-		ViewPosition = PortalTownPosition[portalindex] + Displacement { 1, 1 };
+		ViewPosition = GetPortalTownPosition(portalindex) + Displacement { 1, 1 };
 	} else {
 		ViewPosition = Portals[portalindex].position;
 
@@ -184,6 +183,18 @@ bool PosOkPortal(int lvl, Point position)
 			return true;
 	}
 	return false;
+}
+
+Point GetPortalTownPosition(size_t portalIndex)
+{
+	if (portalIndex >= MAXPORTAL)
+		return ActivePortalPositions[0];
+	return ActivePortalPositions[portalIndex];
+}
+
+void SetPortalTownPositions(std::array<Point, MAXPORTAL> positions)
+{
+	ActivePortalPositions = positions;
 }
 
 } // namespace devilution
