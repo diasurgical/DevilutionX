@@ -417,7 +417,7 @@ bool SVidPlayBegin(const char *filename, int flags)
 		if (
 #ifdef USE_SDL3
 		    !SDL_SetRenderLogicalPresentation(renderer, renderWidth, renderHeight,
-		        *GetOptions().Graphics.integerScaling ? SDL_LOGICAL_PRESENTATION_INTEGER_SCALE : SDL_LOGICAL_PRESENTATION_STRETCH)
+		        *GetOptions().Graphics.integerScaling ? SDL_LOGICAL_PRESENTATION_INTEGER_SCALE : SDL_LOGICAL_PRESENTATION_LETTERBOX)
 #else
 		    SDL_RenderSetLogicalSize(renderer, renderWidth, renderHeight) <= -1
 #endif
@@ -552,7 +552,7 @@ void SVidPlayEnd()
 		if (
 #ifdef USE_SDL3
 		    !SDL_SetRenderLogicalPresentation(renderer, gnScreenWidth, gnScreenHeight,
-		        *GetOptions().Graphics.integerScaling ? SDL_LOGICAL_PRESENTATION_INTEGER_SCALE : SDL_LOGICAL_PRESENTATION_STRETCH)
+		        *GetOptions().Graphics.integerScaling ? SDL_LOGICAL_PRESENTATION_INTEGER_SCALE : SDL_LOGICAL_PRESENTATION_LETTERBOX)
 #else
 		    SDL_RenderSetLogicalSize(renderer, gnScreenWidth, gnScreenHeight) <= -1
 #endif
