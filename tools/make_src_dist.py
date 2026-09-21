@@ -121,7 +121,10 @@ def main():
 	paths.dist_dir.joinpath('mods').mkdir(exist_ok=True)
 	shutil.copy(_BUILD_DIR.joinpath('mods', 'hf.mpq'), paths.dist_dir.joinpath('mods'))
 
-	for dep in _DEPS + (_DEPS_NOT_VENDORED_BY_DEFAULT if args.fully_vendored else []):
+	deps_to_copy = _DEPS + (_DEPS_NOT_VENDORED_BY_DEFAULT if args.fully_vendored else [])
+	if args.fully_vendored:
+		deps_to_copy.append('discordsrc')
+	for dep in deps_to_copy:
 		_LOGGER.info(f'Copying {dep}...')
 		shutil.copytree(
 			src=_BUILD_DIR.joinpath('_deps', f'{dep}-src'),
