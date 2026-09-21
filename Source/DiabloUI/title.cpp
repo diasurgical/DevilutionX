@@ -20,6 +20,7 @@
 #include "engine/load_clx.hpp"
 #include "engine/load_pcx.hpp"
 #include "engine/point.hpp"
+#include "game_mode.hpp"
 #include "utils/algorithm/container.hpp"
 #include "utils/language.h"
 #include "utils/sdl_compat.h"
@@ -36,7 +37,7 @@ std::vector<std::unique_ptr<UiItemBase>> vecTitleScreen;
 void TitleLoad()
 {
 	ArtBackgroundWidescreen = LoadOptionalClx("ui_art\\hf_titlew.clx");
-	if (ArtBackgroundWidescreen.has_value()) {
+	if (gbIsHellfire && ArtBackgroundWidescreen.has_value()) {
 		LoadBackgroundArt("ui_art\\hf_logo1", 16);
 	} else {
 		LoadBackgroundArt("ui_art\\title");
@@ -59,7 +60,7 @@ void UiTitleDialog()
 {
 	TitleLoad();
 	const Point uiPosition = GetUIRectangle().position;
-	if (ArtBackgroundWidescreen.has_value()) {
+	if (gbIsHellfire && ArtBackgroundWidescreen.has_value()) {
 		const SDL_Rect rect = MakeSdlRect(0, uiPosition.y, 0, 0);
 		if (ArtBackgroundWidescreen)
 			vecTitleScreen.push_back(std::make_unique<UiImageClx>((*ArtBackgroundWidescreen)[0], rect, UiFlags::AlignCenter));
