@@ -960,6 +960,9 @@ AutomapTile GetAutomapTypeView(Point map)
 		}
 		return { AutomapTile::Types::None, AutomapTile::Flags::Dirt };
 	}
+	// This tile incorrectly has flags for both HorizontalArch and VerticalArch in the amp data
+	if (leveltype == DTYPE_CATACOMBS && dungeon[map.x][map.y] == 42)
+		return { AutomapTile::Types::Cross, AutomapTile::Flags::VerticalArch };
 
 	if (map.x < 0 || map.x >= DMAXX) {
 		return {};
