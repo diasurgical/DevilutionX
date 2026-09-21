@@ -48,10 +48,12 @@ patch -d dist/discordsrc-src -p1 < 3rdParty/discord/fixes.patch
 %build
 %cmake \
     -DCMAKE_BUILD_TYPE=Release \
+    -DDEVILUTIONX_SYSTEM_SDL2=ON \
+    -DDEVILUTIONX_SYSTEM_SDL_IMAGE=ON \
     -DFETCHCONTENT_SOURCE_DIR_DISCORDSRC="%{_builddir}/devilutionx-src-full-%{version}/dist/discordsrc-src" \
     -DDISCORD_INTEGRATION=ON \
     -DBUILD_TESTING=OFF \
-    -DSDL_PIPEWIRE=OFF \
+    -DSDL_PIPEWIRE=ON \
     -DCPACK=ON \
     -DDEBUG=OFF
 %cmake_build
@@ -78,6 +80,11 @@ fi
 %{_libdir}/discord_game_sdk.so
 
 %changelog
+* Mon Sep 21 2026 sonik.bhoom <sonik.bhoom@users.noreply.github.com> - 1.5.5-4
+- Use Fedora system SDL2 and SDL2_image packages instead of the vendored SDL2 sources.
+- Enable SDL2 PipeWire support with Fedora 43 development libraries.
+- Verify successful RPM build and working runtime audio.
+
 * Mon Sep 21 2026 sonik.bhoom <sonik.bhoom@users.noreply.github.com> - 1.5.5-3
 - Added Discord SDK source extraction and applied the bundled compatibility patch during preparation.
 - Enabled Discord integration and packaged discord_game_sdk.so for the target library directory.
