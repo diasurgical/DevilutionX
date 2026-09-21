@@ -191,7 +191,7 @@ endif()
 
 # By default, devilutionx.mpq and mods/hf.mpq are built only if smpq is installed and MPQ support is enabled.
 if(SUPPORTS_MPQ AND NOT UNPACKED_MPQS)
-  if(BUILD_ASSETS_MPQ OR (CPACK STREQUAL "ON" AND (WIN32 OR CMAKE_SYSTEM_NAME STREQUAL "Linux")))
+  if(BUILD_ASSETS_MPQ OR (CPACK STREQUAL "ON" AND (WIN32 OR CMAKE_SYSTEM_NAME STREQUAL "Linux") AND NOT SRC_DIST))
     find_program(SMPQ smpq REQUIRED)
   elseif(NOT DEFINED BUILD_ASSETS_MPQ AND NOT SRC_DIST)
     find_program(SMPQ smpq)
@@ -670,6 +670,10 @@ if(CPACK AND (APPLE OR BUILD_ASSETS_MPQ OR SRC_DIST))
     string(TOLOWER ${PROJECT_NAME} project_name)
     set(CPACK_PACKAGE_NAME ${project_name})
     set(CPACK_GENERATOR "7Z")
+    set(CPACK_COMPONENTS_GROUPING ALL_COMPONENTS_IN_ONE)
+    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+      set(CPACK_PROJECT_CONFIG_FILE "${PROJECT_SOURCE_DIR}/CPackConfig64.cmake")
+    endif()
     # Common *nix files
     set(CPACK_STRIP_FILES TRUE)
     install(TARGETS ${BIN_TARGET} DESTINATION bin)
@@ -712,7 +716,17 @@ if(CPACK AND (APPLE OR BUILD_ASSETS_MPQ OR SRC_DIST))
       RENAME "${project_name}.metainfo.xml"
     )
     if(DISCORD_SHARED_LIB)
-      install(FILES "${DISCORD_SHARED_LIB}" DESTINATION "lib")
+      install(FILES "${DISCORD_SHARED_LIB}"
+        DESTINATION "lib"
+        COMPONENT DISCORD_SHARED_LIB)
+
+      install(FILES "${DISCORD_SHARED_LIB}"
+        DESTINATION "lib64"
+        COMPONENT DISCORD_SHARED_LIB64
+        EXCLUDE_FROM_ALL)
+
+      set(CPACK_COMPONENT_DISCORD_SHARED_LIB_HIDDEN ON)
+      set(CPACK_COMPONENT_DISCORD_SHARED_LIB64_HIDDEN ON)
     endif()
 
     # -G DEB
@@ -730,6 +744,7 @@ if(CPACK AND (APPLE OR BUILD_ASSETS_MPQ OR SRC_DIST))
     find_program(RPMBUILD rpmbuild)
     if(RPMBUILD)
       list(APPEND CPACK_GENERATOR "RPM")
+      set(CPACK_RPM_COMPONENT_INSTALL ON)
     endif()
     find_program(DPKG dpkg)
     if(DPKG)

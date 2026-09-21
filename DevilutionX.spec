@@ -1,0 +1,91 @@
+%define debug_package %{nil}
+
+Name:           devilutionx
+Version:        1.5.5
+Release:        %{?_release}%{!?_release:1}%{?dist}
+Summary:        Open source implementation of the Diablo 1 game engine
+License:        Unlicense
+URL:            https://github.com/diasurgical/DevilutionX
+
+# FIXED FULLY-VENDORED RELEASE LINK:
+Source0:        https://github.com/diasurgical/DevilutionX/releases/download/%{version}/devilutionx-src-fully-vendored.tar.xz
+Source1:        https://github.com/diasurgical/devilutionx-assets/releases/latest/download/spawn.mpq
+Source2:        https://dl-game-sdk.discordapp.net/3.2.1/discord_game_sdk.zip
+
+BuildRequires:  cmake >= 3.22
+BuildRequires:  gcc-c++
+BuildRequires:  patch
+BuildRequires:  unzip
+BuildRequires:  libstdc++-static
+BuildRequires:  SDL2-devel
+BuildRequires:  SDL2_image-devel
+BuildRequires:  zlib-devel
+BuildRequires:  libsodium-devel
+BuildRequires:  bzip2-devel
+BuildRequires:  alsa-lib-devel
+BuildRequires:  pipewire-devel
+BuildRequires:  pulseaudio-libs-devel
+# Graphics extension dependencies required by the vendored SDL2 compilation block
+BuildRequires:  libXext-devel
+BuildRequires:  libX11-devel
+BuildRequires:  libXrandr-devel
+BuildRequires:  libXi-devel
+BuildRequires:  libXcursor-devel
+BuildRequires:  libXinerama-devel
+
+%description
+DevilutionX is a modern open-source engine recreation for Diablo 1 and its expansion,
+Hellfire. Note that this package only includes the engine binaries. You must provide
+your own legal copy of the original DIABDAT.MPQ asset file to play.
+
+%prep
+# Targets the root extraction folder name inside the vendored archive format
+%autosetup -n devilutionx-src-full-%{version}
+mkdir -p dist/discordsrc-src
+unzip -q %{SOURCE2} -d dist/discordsrc-src
+patch -d dist/discordsrc-src -p1 < 3rdParty/discord/fixes.patch
+
+%build
+%cmake \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DFETCHCONTENT_SOURCE_DIR_DISCORDSRC="%{_builddir}/devilutionx-src-full-%{version}/dist/discordsrc-src" \
+    -DDISCORD_INTEGRATION=ON \
+    -DBUILD_TESTING=OFF \
+    -DSDL_PIPEWIRE=OFF \
+    -DCPACK=ON \
+    -DDEBUG=OFF
+%cmake_build
+
+%install
+%cmake_install
+install -Dm0644 %{SOURCE1} %{buildroot}%{_datadir}/diasurgical/devilutionx/spawn.mpq
+if [ "%{_libdir}" != "/usr/lib" ] && [ -f %{buildroot}/usr/lib/discord_game_sdk.so ]; then
+    mkdir -p %{buildroot}%{_libdir}
+    mv %{buildroot}/usr/lib/discord_game_sdk.so %{buildroot}%{_libdir}/
+fi
+
+%files
+%license LICENSE.md
+%doc README.md
+%{_bindir}/devilutionx
+%{_datadir}/applications/*.desktop
+%{_datadir}/icons/hicolor/*/apps/*.png
+%{_datadir}/metainfo/*.xml
+# TRACK THE INSTALLED GAME ASSETS:
+%{_datadir}/diasurgical/devilutionx/README.txt
+%{_datadir}/diasurgical/devilutionx/devilutionx.mpq
+%{_datadir}/diasurgical/devilutionx/spawn.mpq
+%{_libdir}/discord_game_sdk.so
+
+%changelog
+* Mon Sep 21 2026 sonik.bhoom <sonik.bhoom@users.noreply.github.com> - 1.5.5-3
+- Added Discord SDK source extraction and applied the bundled compatibility patch during preparation.
+- Enabled Discord integration and packaged discord_game_sdk.so for the target library directory.
+- Added CPack component handling for 64-bit RPM builds.
+
+* Sun Sep 20 2026 sonik.bhoom <sonik.bhoom@users.noreply.github.com> - 1.5.5-2
+- Added Fedora audio development dependencies and disabled the incompatible SDL2 PipeWire backend.
+- Enabled Discord integration by unpacking the Discord SDK into the vendored source tree.
+- Applied the bundled Discord SDK compatibility patch during package preparation.
+- Packaged the Diablo shareware spawn.mpq asset in the system data directory.
+- Build and runtime validation completed with GitHub Copilot assistance.
