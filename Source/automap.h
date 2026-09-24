@@ -12,6 +12,7 @@
 #include "engine/surface.hpp"
 #include "levels/gendung.h"
 #include "utils/attributes.h"
+#include "utils/is_of.hpp"
 
 namespace devilution {
 
@@ -85,37 +86,32 @@ enum class AutomapType : uint8_t {
 	FIRST = Opaque,
 	Transparent,
 	Minimap,
-	LAST = Minimap
+	MinimapBorderless,
+	LAST = MinimapBorderless
 };
 
-extern DVL_API_FOR_TEST AutomapType CurrentAutomapType;
+AutomapType GetAutomapType();
 
-/**
- * @brief Sets the map type. Does not change `AutomapActive`.
- */
-inline void SetAutomapType(AutomapType type)
+inline bool IsMinimapAutomapType(AutomapType type)
 {
-	CurrentAutomapType = type;
+	return IsAnyOf(type, AutomapType::Minimap, AutomapType::MinimapBorderless);
 }
 
-/**
- * @brief Sets the map type. Does not change `AutomapActive`.
- */
-inline AutomapType GetAutomapType()
+inline bool IsMinimapAutomapType()
 {
-	return CurrentAutomapType;
+	return IsMinimapAutomapType(GetAutomapType());
 }
 
 inline Displacement AmOffset(AmWidthOffset x, AmHeightOffset y)
 {
-	int scale = (GetAutomapType() == AutomapType::Minimap) ? MinimapScale : AutoMapScale;
+	int scale = IsMinimapAutomapType() ? MinimapScale : AutoMapScale;
 
 	return { scale * static_cast<int>(x) / 100, scale * static_cast<int>(y) / 100 };
 }
 
 inline int AmLine(AmLineLength l)
 {
-	int scale = (GetAutomapType() == AutomapType::Minimap) ? MinimapScale : AutoMapScale;
+	int scale = IsMinimapAutomapType() ? MinimapScale : AutoMapScale;
 
 	return scale * static_cast<int>(l) / 100;
 }
