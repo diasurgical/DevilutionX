@@ -543,6 +543,8 @@ struct GraphicsOptions : OptionCategoryBase {
 #endif
 	/** @brief Limit frame rate either for vsync or CPU load. */
 	OptionEntryEnum<FrameRateControl> frameRateControl;
+	/** @brief Target frame rate when Frame Rate Control is set to CPU Sleep. */
+	OptionEntryInt<int> fpsCap;
 	/** @brief Brightness level. */
 	OptionEntryInt<int> brightness;
 	/** @brief Zoom on start. */
