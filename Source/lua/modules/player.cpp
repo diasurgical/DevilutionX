@@ -107,10 +107,10 @@ void InitPlayerUserType(sol::state_view &lua)
 	    });
 	LuaSetDocReadonlyProperty(playerType, "mana", "number",
 	    "Current mana (readonly)",
-	    [](Player &player) { return player._pMana >> 6; });
+	    [](Player &player) { return player._pMana.whole(); });
 	LuaSetDocReadonlyProperty(playerType, "maxMana", "number",
 	    "Maximum mana (readonly)",
-	    [](Player &player) { return player._pMaxMana >> 6; });
+	    [](Player &player) { return player._pMaxMana.whole(); });
 }
 } // namespace
 

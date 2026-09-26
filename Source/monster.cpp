@@ -206,10 +206,10 @@ void InitMonster(Monster &monster, Direction rd, size_t typeIndex, Point positio
 	monster.animInfo.currentFrame = GenerateRnd(monster.animInfo.numberOfFrames - 1);
 
 	const int maxhp = RandomIntBetween(monster.data().hitPointsMinimum, monster.data().hitPointsMaximum);
-	monster.maxHitPoints = maxhp << 6;
+	monster.maxHitPoints = Fixed26_6::fromInt(maxhp);
 
 	if (!gbIsMultiplayer)
-		monster.maxHitPoints = std::max(monster.maxHitPoints / 2, 64);
+		monster.maxHitPoints = std::max(monster.maxHitPoints / 2, Fixed26_6::fromInt(1));
 
 	monster.hitPoints = monster.maxHitPoints;
 	monster.ai = monster.data().ai;
@@ -254,9 +254,9 @@ void InitMonster(Monster &monster, Direction rd, size_t typeIndex, Point positio
 	if (sgGameInitInfo.nDifficulty == DIFF_NIGHTMARE) {
 		monster.maxHitPoints = 3 * monster.maxHitPoints;
 		if (gbIsHellfire)
-			monster.maxHitPoints += (gbIsMultiplayer ? 100 : 50) << 6;
+			monster.maxHitPoints += Fixed26_6::fromInt(gbIsMultiplayer ? 100 : 50);
 		else
-			monster.maxHitPoints += 100 << 6;
+			monster.maxHitPoints += Fixed26_6::fromInt(100);
 		monster.hitPoints = monster.maxHitPoints;
 		monster.minDamage = 2 * (monster.minDamage + 2);
 		monster.maxDamage = 2 * (monster.maxDamage + 2);
@@ -266,9 +266,9 @@ void InitMonster(Monster &monster, Direction rd, size_t typeIndex, Point positio
 	} else if (sgGameInitInfo.nDifficulty == DIFF_HELL) {
 		monster.maxHitPoints = 4 * monster.maxHitPoints;
 		if (gbIsHellfire)
-			monster.maxHitPoints += (gbIsMultiplayer ? 200 : 100) << 6;
+			monster.maxHitPoints += Fixed26_6::fromInt(gbIsMultiplayer ? 200 : 100);
 		else
-			monster.maxHitPoints += 200 << 6;
+			monster.maxHitPoints += Fixed26_6::fromInt(200);
 		monster.hitPoints = monster.maxHitPoints;
 		monster.minDamage = 4 * monster.minDamage + 6;
 		monster.maxDamage = 4 * monster.maxDamage + 6;
@@ -1054,7 +1054,7 @@ void StartHeal(Monster &monster)
 	monster.animInfo.currentFrame = monster.type().getAnimData(MonsterGraphic::Special).frames - 1;
 	monster.flags |= MFLAG_LOCK_ANIMATION;
 	monster.mode = MonsterMode::Heal;
-	monster.var1 = monster.maxHitPoints / (16 * (GenerateRnd(5) + 4));
+	monster.var1 = (monster.maxHitPoints / (16 * (GenerateRnd(5) + 4))).raw();
 }
 
 void SyncLightPosition(Monster &monster)
@@ -1121,7 +1121,7 @@ void MonsterAttackMonster(Monster &attacker, Monster &target, int hper, int mind
 		return;
 
 	const int dam = RandomIntBetween(mind, maxd) << 6;
-	ApplyMonsterDamage(DamageType::Physical, target, dam);
+	ApplyMonsterDamage(DamageType::Physical, target, Fixed26_6::fromRaw(dam));
 
 	if (attacker.isPlayerMinion()) {
 		const auto playerId = static_cast<size_t>(attacker.goalVar3);
@@ -1141,18 +1141,18 @@ void MonsterAttackMonster(Monster &attacker, Monster &target, int hper, int mind
 	}
 }
 
-int CheckReflect(Monster &monster, Player &player, int dam)
+Fixed26_6 CheckReflect(Monster &monster, Player &player, Fixed26_6 dam)
 {
 	player.wReflections--;
 	if (player.wReflections <= 0)
 		NetSendCmdParam1(true, CMD_SETREFLECT, 0);
 	// reflects 20-30% damage
-	const int mdam = dam * RandomIntBetween(20, 30, true) / 100;
+	const Fixed26_6 mdam = dam * RandomIntBetween(20, 30, true) / 100;
 	ApplyMonsterDamage(DamageType::Physical, monster, mdam);
 	if (monster.hasNoLife())
 		M_StartKill(monster, player);
 	else
-		M_StartHit(monster, player, mdam);
+		M_StartHit(monster, player, mdam.raw());
 
 	return mdam;
 }
@@ -1205,8 +1205,8 @@ void MonsterAttackPlayer(Monster &monster, Player &player, int hit, int minDam, 
 		const Direction dir = GetDirection(player.position.tile, monster.position.tile);
 		StartPlrBlock(player, dir);
 		if (&player == MyPlayer && player.wReflections > 0) {
-			int dam = GenerateRnd(((maxDam - minDam) << 6) + 1) + (minDam << 6);
-			dam = std::max(dam + (player._pIGetHit << 6), 64);
+			Fixed26_6 dam = Fixed26_6::fromRaw(GenerateRnd(((maxDam - minDam) << 6) + 1) + (minDam << 6));
+			dam = std::max(dam + Fixed26_6::fromInt(player._pIGetHit), Fixed26_6::fromInt(1));
 			CheckReflect(monster, player, dam);
 		}
 		return;
@@ -1215,20 +1215,20 @@ void MonsterAttackPlayer(Monster &monster, Player &player, int hit, int minDam, 
 	MonsterReducePlayerAttribute(monster, player);
 
 	// New method fixes a bug which caused the maximum possible damage value to be 63/64ths too low.
-	int dam = RandomIntBetween(minDam << 6, maxDam << 6);
-	dam = std::max(dam + (player._pIGetHit << 6), 64);
+	Fixed26_6 dam = Fixed26_6::fromRaw(RandomIntBetween(minDam << 6, maxDam << 6));
+	dam = std::max(dam + Fixed26_6::fromInt(player._pIGetHit), Fixed26_6::fromInt(1));
 	if (&player == MyPlayer) {
 		if (player.wReflections > 0) {
-			const int reflectedDamage = CheckReflect(monster, player, dam);
-			dam = std::max(dam - reflectedDamage, 0);
+			const Fixed26_6 reflectedDamage = CheckReflect(monster, player, dam);
+			dam = std::max(dam - reflectedDamage, Fixed26_6::fromInt(0));
 		}
-		ApplyPlrDamage(DamageType::Physical, player, 0, 0, dam);
+		ApplyPlrDamage(DamageType::Physical, player, dam);
 	}
 
 	// Reflect can also kill a monster, so make sure the monster is still alive
 	if (HasAnyOf(player._pIFlags, ItemSpecialEffect::Thorns) && monster.mode != MonsterMode::Death) {
 		const int mdam = (GenerateRnd(3) + 1) << 6;
-		ApplyMonsterDamage(DamageType::Physical, monster, mdam);
+		ApplyMonsterDamage(DamageType::Physical, monster, Fixed26_6::fromRaw(mdam));
 		if (monster.hasNoLife())
 			M_StartKill(monster, player);
 		else
@@ -1245,7 +1245,7 @@ void MonsterAttackPlayer(Monster &monster, Player &player, int hit, int minDam, 
 	StartPlrHit(player, dam, false);
 	if ((monster.flags & MFLAG_KNOCKBACK) != 0) {
 		if (player._pmode != PM_GOTHIT)
-			StartPlrHit(player, 0, true);
+			StartPlrHit(player, Fixed26_6::fromInt(0), true);
 
 		const Point newPosition = player.position.tile + monster.direction;
 		if (PosOkPlayer(player, newPosition)) {
@@ -1414,8 +1414,8 @@ void MonsterHeal(Monster &monster)
 	if (monster.animInfo.currentFrame == 0) {
 		monster.flags &= ~MFLAG_LOCK_ANIMATION;
 		monster.flags |= MFLAG_ALLOW_SPECIAL;
-		if (monster.var1 + monster.hitPoints < monster.maxHitPoints) {
-			monster.hitPoints = monster.var1 + monster.hitPoints;
+		if (Fixed26_6::fromRaw(monster.var1) + monster.hitPoints < monster.maxHitPoints) {
+			monster.hitPoints = Fixed26_6::fromRaw(monster.var1) + monster.hitPoints;
 		} else {
 			monster.hitPoints = monster.maxHitPoints;
 			monster.flags &= ~MFLAG_ALLOW_SPECIAL;
@@ -1559,7 +1559,7 @@ bool MonsterDelay(Monster &monster)
 
 void MonsterPetrified(Monster &monster)
 {
-	if (monster.hitPoints <= 0) {
+	if (monster.hitPoints <= Fixed26_6::fromInt(0)) {
 		dMonster[monster.position.tile.x][monster.position.tile.y] = 0;
 		monster.isInvalid = true;
 	}
@@ -2216,15 +2216,15 @@ void ScavengerAi(Monster &monster)
 		if (dCorpse[monster.position.tile.x][monster.position.tile.y] != 0) {
 			StartEating(monster);
 			if (gbIsHellfire) {
-				const int mMaxHP = monster.maxHitPoints;
+				const Fixed26_6 mMaxHP = monster.maxHitPoints;
 				monster.hitPoints += mMaxHP / 8;
 				monster.hitPoints = std::min(monster.hitPoints, monster.maxHitPoints);
 				if (monster.goalVar3 <= 0 || monster.hitPoints == monster.maxHitPoints)
 					dCorpse[monster.position.tile.x][monster.position.tile.y] = 0;
 			} else {
-				monster.hitPoints += 64;
+				monster.hitPoints += Fixed26_6::fromInt(1);
 			}
-			int targetHealth = monster.maxHitPoints;
+			Fixed26_6 targetHealth = monster.maxHitPoints;
 			if (!gbIsHellfire)
 				targetHealth = (monster.maxHitPoints / 2) + (monster.maxHitPoints / 4);
 			if (monster.hitPoints >= targetHealth) {
@@ -2335,8 +2335,8 @@ void FallenAi(Monster &monster)
 			return;
 		}
 		StartSpecialStand(monster, monster.direction);
-		if (monster.maxHitPoints - (2 * monster.intelligence + 2) >= monster.hitPoints)
-			monster.hitPoints += 2 * monster.intelligence + 2;
+		if (monster.maxHitPoints - Fixed26_6::fromRaw(2 * monster.intelligence + 2) >= monster.hitPoints)
+			monster.hitPoints += Fixed26_6::fromRaw(2 * monster.intelligence + 2);
 		else
 			monster.hitPoints = monster.maxHitPoints;
 		const int rad = (2 * monster.intelligence) + 4;
@@ -3265,7 +3265,7 @@ void InitGolem(devilution::Monster &monster, uint8_t golemOwnerPlayerId, int16_t
 	monster.flags |= MFLAG_GOLEM;
 	monster.goalVar3 = static_cast<int8_t>(golemOwnerPlayerId);
 	const Player &player = Players[golemOwnerPlayerId];
-	monster.maxHitPoints = 2 * (320 * golemSpellLevel + player._pMaxMana / 3);
+	monster.maxHitPoints = Fixed26_6::fromRaw(2 * (320 * golemSpellLevel + player._pMaxMana.raw() / 3));
 	monster.hitPoints = monster.maxHitPoints;
 	monster.armorClass = 25;
 	monster.golemToHit = 5 * (golemSpellLevel + 8) + 2 * player.getCharacterLevel();
@@ -3325,10 +3325,10 @@ std::expected<void, std::string> InitTRNForUniqueMonster(Monster &monster)
 std::expected<void, std::string> PrepareUniqueMonst(Monster &monster, UniqueMonsterType monsterType, size_t minionType, int bosspacksize, const UniqueMonsterData &uniqueMonsterData)
 {
 	monster.uniqueType = monsterType;
-	monster.maxHitPoints = uniqueMonsterData.mmaxhp << 6;
+	monster.maxHitPoints = Fixed26_6::fromInt(uniqueMonsterData.mmaxhp);
 
 	if (!gbIsMultiplayer)
-		monster.maxHitPoints = std::max(monster.maxHitPoints / 2, 64);
+		monster.maxHitPoints = std::max(monster.maxHitPoints / 2, Fixed26_6::fromInt(1));
 
 	monster.hitPoints = monster.maxHitPoints;
 	monster.ai = uniqueMonsterData.mAi;
@@ -3365,9 +3365,9 @@ std::expected<void, std::string> PrepareUniqueMonst(Monster &monster, UniqueMons
 	if (sgGameInitInfo.nDifficulty == DIFF_NIGHTMARE) {
 		monster.maxHitPoints = 3 * monster.maxHitPoints;
 		if (gbIsHellfire)
-			monster.maxHitPoints += (gbIsMultiplayer ? 100 : 50) << 6;
+			monster.maxHitPoints += Fixed26_6::fromInt(gbIsMultiplayer ? 100 : 50);
 		else
-			monster.maxHitPoints += 100 << 6;
+			monster.maxHitPoints += Fixed26_6::fromInt(100);
 		monster.hitPoints = monster.maxHitPoints;
 		monster.minDamage = 2 * (monster.minDamage + 2);
 		monster.maxDamage = 2 * (monster.maxDamage + 2);
@@ -3376,9 +3376,9 @@ std::expected<void, std::string> PrepareUniqueMonst(Monster &monster, UniqueMons
 	} else if (sgGameInitInfo.nDifficulty == DIFF_HELL) {
 		monster.maxHitPoints = 4 * monster.maxHitPoints;
 		if (gbIsHellfire)
-			monster.maxHitPoints += (gbIsMultiplayer ? 200 : 100) << 6;
+			monster.maxHitPoints += Fixed26_6::fromInt(gbIsMultiplayer ? 200 : 100);
 		else
-			monster.maxHitPoints += 200 << 6;
+			monster.maxHitPoints += Fixed26_6::fromInt(200);
 		monster.hitPoints = monster.maxHitPoints;
 		monster.minDamage = 4 * monster.minDamage + 6;
 		monster.maxDamage = 4 * monster.maxDamage + 6;
@@ -3669,7 +3669,7 @@ void WeakenNaKrul()
 	Monster &monster = Monsters[UberDiabloMonsterIndex];
 	PlayEffect(monster, MonsterSound::Death);
 	monster.armorClass -= 50;
-	const int hp = monster.maxHitPoints / 2;
+	const Fixed26_6 hp = monster.maxHitPoints / 2;
 	monster.resistance = 0;
 	monster.hitPoints = hp;
 	monster.maxHitPoints = hp;
@@ -3866,9 +3866,9 @@ void AddDoppelganger(Monster &monster)
 	}
 }
 
-void ApplyMonsterDamage(DamageType damageType, Monster &monster, int damage)
+void ApplyMonsterDamage(DamageType damageType, Monster &monster, Fixed26_6 damage)
 {
-	lua::OnMonsterTakeDamage(&monster, damage, static_cast<int>(damageType));
+	lua::OnMonsterTakeDamage(&monster, damage.raw(), static_cast<int>(damageType));
 
 	monster.hitPoints -= damage;
 
@@ -3879,7 +3879,7 @@ void ApplyMonsterDamage(DamageType damageType, Monster &monster, int damage)
 	}
 
 	delta_monster_hp(monster, *MyPlayer);
-	NetSendCmdMonDmg(false, static_cast<uint16_t>(monster.getId()), damage);
+	NetSendCmdMonDmg(false, static_cast<uint16_t>(monster.getId()), damage.raw());
 }
 
 void MonsterReducePlayerAttribute(Monster &monster, Player &player)
@@ -3900,8 +3900,8 @@ void MonsterReducePlayerAttribute(Monster &monster, Player &player)
 		ModifyPlrVit(player, -static_cast<int>(monster.reducePlayerVitality));
 	}
 	if (monster.reducePlayerMaxHP > 0) {
-		const int reduceAmount = std::min(player._pMaxHPBase - 64, monster.reducePlayerMaxHP * 64);
-		player._pMaxHP = std::max(64, player._pMaxHP - reduceAmount);
+		const Fixed26_6 reduceAmount = std::min(player._pMaxHPBase - Fixed26_6::fromInt(1), Fixed26_6::fromInt(monster.reducePlayerMaxHP));
+		player._pMaxHP = std::max(Fixed26_6::fromInt(1), player._pMaxHP - reduceAmount);
 		player._pHitPoints = std::min(player._pHitPoints, player._pMaxHP);
 		player._pMaxHPBase -= reduceAmount;
 		player._pHPBase = std::min(player._pHPBase, player._pMaxHPBase);
@@ -3909,8 +3909,8 @@ void MonsterReducePlayerAttribute(Monster &monster, Player &player)
 		RedrawComponent(PanelDrawComponent::Health);
 	}
 	if (monster.reducePlayerMaxMana > 0) {
-		const int reduceAmount = std::min(player._pMaxManaBase, monster.reducePlayerMaxMana * 64);
-		player._pMaxMana = std::max(0, player._pMaxMana - reduceAmount);
+		const Fixed26_6 reduceAmount = std::min(player._pMaxManaBase, Fixed26_6::fromInt(monster.reducePlayerMaxMana));
+		player._pMaxMana = std::max(Fixed26_6::fromInt(0), player._pMaxMana - reduceAmount);
 		player._pMana = std::min(player._pMana, player._pMaxMana);
 		player._pMaxManaBase -= reduceAmount;
 		player._pManaBase = std::min(player._pManaBase, player._pMaxManaBase);
@@ -3999,7 +3999,7 @@ void MonsterDeath(Monster &monster, Direction md, bool sendmsg)
 		AddPlrMonstExper(monster.level(sgGameInitInfo.nDifficulty), monster.exp(sgGameInitInfo.nDifficulty), monster.whoHit);
 
 	MonsterKillCounts[monster.type().type]++;
-	monster.hitPoints = 0;
+	monster.hitPoints = Fixed26_6::fromInt(0);
 	monster.flags &= ~MFLAG_HIDDEN;
 	SetRndSeed(monster.rndItemSeed);
 
@@ -4051,7 +4051,7 @@ void M_StartKill(Monster &monster, const Player &player)
 
 void M_SyncStartKill(Monster &monster, Point position, const Player &player)
 {
-	if (monster.hitPoints == 0 || monster.mode == MonsterMode::Death) {
+	if (monster.hitPoints == Fixed26_6::fromInt(0) || monster.mode == MonsterMode::Death) {
 		return;
 	}
 
@@ -4134,9 +4134,9 @@ void PrepDoEnding()
 		player._pInvincible = true;
 		if (gbIsMultiplayer) {
 			if (player.hasNoLife())
-				player._pHitPoints = 64;
+				player._pHitPoints = Fixed26_6::fromInt(1);
 			if (player.hasNoMana())
-				player._pMana = 64;
+				player._pMana = Fixed26_6::fromInt(1);
 		}
 	}
 }
@@ -4268,9 +4268,9 @@ void ProcessMonsters()
 		}
 		if (monster.hitPoints < monster.maxHitPoints && !monster.hasNoLife()) {
 			if (monster.level(sgGameInitInfo.nDifficulty) > 1) {
-				monster.hitPoints += monster.level(sgGameInitInfo.nDifficulty) / 2;
+				monster.hitPoints += Fixed26_6::fromRaw(monster.level(sgGameInitInfo.nDifficulty) / 2);
 			} else {
-				monster.hitPoints += monster.level(sgGameInitInfo.nDifficulty);
+				monster.hitPoints += Fixed26_6::fromRaw(monster.level(sgGameInitInfo.nDifficulty));
 			}
 			monster.hitPoints = std::min(monster.hitPoints, monster.maxHitPoints); // prevent going over max HP with part of a single regen tick
 		}
@@ -4603,7 +4603,7 @@ void MissToMonst(Missile &missile, Point position)
 			return;
 
 		if (player->_pmode != PM_GOTHIT && player->_pmode != PM_DEATH)
-			StartPlrHit(*player, 0, true);
+			StartPlrHit(*player, Fixed26_6::fromInt(0), true);
 		const Point newPosition = oldPosition + GetDirection(missile.position.start, oldPosition);
 		if (PosOkPlayer(*player, newPosition)) {
 			player->position.tile = newPosition;
@@ -4672,7 +4672,7 @@ Monster *FindGolemForPlayer(const Player &player)
 			continue;
 		if (monster.goalVar3 != player.getId())
 			continue;
-		if (monster.hitPoints == 0)
+		if (monster.hitPoints == Fixed26_6::fromInt(0))
 			continue;
 		return &monster;
 	}
@@ -4810,14 +4810,14 @@ void SpawnGolem(const Player &player, Point position, uint8_t spellLevel)
 	// 1. Prefer MonsterIndex = PlayerIndex for vanilla compatibility
 	if (player.getId() < ReservedMonsterSlotsForGolems) {
 		Monster &reservedGolem = Monsters[player.getId()];
-		if (reservedGolem.position.tile == GolemHoldingCell || reservedGolem.hitPoints == 0)
+		if (reservedGolem.position.tile == GolemHoldingCell || reservedGolem.hitPoints == Fixed26_6::fromInt(0))
 			golem = &reservedGolem;
 	}
 	// 2. Use reserved slots, so additional Monsters can spawn
 	if (golem == nullptr) {
 		for (int i = 0; i < ReservedMonsterSlotsForGolems; i++) {
 			Monster &reservedGolem = Monsters[i];
-			if (reservedGolem.position.tile == GolemHoldingCell || reservedGolem.hitPoints == 0) {
+			if (reservedGolem.position.tile == GolemHoldingCell || reservedGolem.hitPoints == Fixed26_6::fromInt(0)) {
 				golem = &reservedGolem;
 				break;
 			}

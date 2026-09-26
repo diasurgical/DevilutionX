@@ -197,7 +197,7 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 
 		// Get the players remaining life
 		// If the player is using mana shield change the color
-		const int lifeTicks = ((player._pHitPoints * PortraitFrameSize.width) + (player._pMaxHP / 2)) / player._pMaxHP;
+		const int lifeTicks = ((player._pHitPoints.raw() * PortraitFrameSize.width) + (player._pMaxHP.raw() / 2)) / player._pMaxHP.raw();
 		const uint8_t hpBarColor = (player.pManaShield) ? PAL8_YELLOW + 5 : PAL8_RED + 4;
 		// Now draw the characters remaining life
 		DrawBar(gameScreen, { pos, { lifeTicks, HealthBarHeight } }, hpBarColor);
@@ -211,7 +211,7 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 		const PartySpriteOffset offsets = GetClassSpriteOffset(player._pClass);
 		Point offset = (player.isOnLevel(0)) ? offsets.inTownOffset : offsets.inDungeonOffset;
 
-		if (player._pHitPoints <= 0 && IsPlayerUnarmed(player))
+		if (player._pHitPoints <= Fixed26_6::fromInt(0) && IsPlayerUnarmed(player))
 			offset = offsets.isDeadOffset;
 
 		// Calculate the players portait position
@@ -244,7 +244,7 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 		}
 
 		// Check to see if the player is dead and if so we draw a half transparent red rect over the portrait
-		if (player._pHitPoints <= 0) {
+		if (player._pHitPoints <= Fixed26_6::fromInt(0)) {
 			DrawHalfTransparentRectTo(
 			    frameSubregion,
 			    0, 0,
@@ -257,7 +257,7 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 		pos.y += PortraitFrameSize.height;
 
 		// Get the players remaining mana
-		const int manaTicks = ((player._pMana * PortraitFrameSize.width) + (player._pMaxMana / 2)) / player._pMaxMana;
+		const int manaTicks = ((player._pMana.raw() * PortraitFrameSize.width) + (player._pMaxMana.raw() / 2)) / player._pMaxMana.raw();
 		const uint8_t manaBarColor = PAL8_BLUE + 3;
 		// Now draw the characters remaining mana
 		DrawBar(gameScreen, { pos, { manaTicks, ManaBarHeight } }, manaBarColor);

@@ -111,9 +111,9 @@ int AddClassHealingBonus(int hp, HeroClass heroClass, SpellID spellId)
 {
 	const ClassAttributes &classAttributes = GetClassAttributes(heroClass);
 	if (spellId == SpellID::HealOther) {
-		return hp * classAttributes.healOtherRestoreLife >> 6;
+		return (Fixed26_6(classAttributes.healOtherRestoreLife) * hp).whole();
 	}
-	return hp * classAttributes.splRestoreLife >> 6;
+	return (Fixed26_6(classAttributes.splRestoreLife) * hp).whole();
 }
 
 int ScaleSpellEffect(int base, int spellLevel)
@@ -301,7 +301,7 @@ bool MonsterMHit(const Player &player, Monster &monster, int mindam, int maxdam,
 
 	int dam;
 	if (t == MissileID::BoneSpirit) {
-		dam = monster.hitPoints / 3 >> 6;
+		dam = (monster.hitPoints / 3).whole();
 	} else {
 		dam = RandomIntBetween(mindam, maxdam);
 	}
@@ -322,7 +322,7 @@ bool MonsterMHit(const Player &player, Monster &monster, int mindam, int maxdam,
 		dam >>= 2;
 
 	if (&player == MyPlayer)
-		ApplyMonsterDamage(damageType, monster, dam);
+		ApplyMonsterDamage(damageType, monster, Fixed26_6::fromRaw(dam));
 
 	if (monster.hasNoLife()) {
 		M_StartKill(monster, player);
@@ -414,7 +414,7 @@ bool Plr2PlrMHit(const Player &player, Player &target, int mindam, int maxdam, i
 
 	int dam;
 	if (mtype == MissileID::BoneSpirit) {
-		dam = target._pHitPoints / 3;
+		dam = target._pHitPoints.raw() / 3;
 	} else {
 		dam = RandomIntBetween(mindam, maxdam);
 		if (missileData.isArrow() && damageType == DamageType::Physical) {
@@ -424,12 +424,13 @@ bool Plr2PlrMHit(const Player &player, Player &target, int mindam, int maxdam, i
 		if (!shift)
 			dam <<= 6;
 	}
+	Fixed26_6 damage = Fixed26_6::fromRaw(dam);
 	if (!missileData.isArrow())
-		dam /= 2;
+		damage /= 2;
 	if (resper > 0) {
-		dam -= (dam * resper) / 100;
+		damage -= (damage * resper) / 100;
 		if (&player == MyPlayer)
-			NetSendCmdDamage(true, target, dam, damageType);
+			NetSendCmdDamage(true, target, damage.raw(), damageType);
 		target.Say(HeroSpeech::ArghClang);
 		return true;
 	}
@@ -439,8 +440,8 @@ bool Plr2PlrMHit(const Player &player, Player &target, int mindam, int maxdam, i
 		*blocked = true;
 	} else {
 		if (&player == MyPlayer)
-			NetSendCmdDamage(true, target, dam, damageType);
-		StartPlrHit(target, dam, false);
+			NetSendCmdDamage(true, target, damage.raw(), damageType);
+		StartPlrHit(target, damage, false);
 	}
 
 	return true;
@@ -1042,10 +1043,10 @@ bool MonsterTrapHit(Monster &monster, int mindam, int maxdam, int dist, MissileI
 		dam <<= 6;
 	if (resist)
 		dam /= 4;
-	ApplyMonsterDamage(damageType, monster, dam);
+	ApplyMonsterDamage(damageType, monster, Fixed26_6::fromRaw(dam));
 #ifdef _DEBUG
 	if (DebugGodMode)
-		monster.hitPoints = 0;
+		monster.hitPoints = Fixed26_6::fromInt(0);
 #endif
 	if (monster.hasNoLife()) {
 		MonsterDeath(monster, monster.direction, true);
@@ -1142,7 +1143,7 @@ bool PlayerMHit(Player &player, Monster *monster, int dist, int mind, int maxd, 
 
 	int dam;
 	if (mtype == MissileID::BoneSpirit) {
-		dam = player._pHitPoints / 3;
+		dam = player._pHitPoints.raw() / 3;
 	} else {
 		if (!shift) {
 			// New method fixes a bug which caused the maximum possible damage value to be 63/64ths too low.
@@ -1161,6 +1162,7 @@ bool PlayerMHit(Player &player, Monster *monster, int dist, int mind, int maxd, 
 
 		dam = std::max(dam, 64);
 	}
+	Fixed26_6 damage = Fixed26_6::fromRaw(dam);
 
 	if ((resper <= 0 || gbIsHellfire) && blk < blkper) {
 		Direction dir = player._pdir;
@@ -1177,9 +1179,9 @@ bool PlayerMHit(Player &player, Monster *monster, int dist, int mind, int maxd, 
 	}
 
 	if (resper > 0) {
-		dam -= dam * resper / 100;
+		damage -= damage * resper / 100;
 		if (&player == MyPlayer) {
-			ApplyPlrDamage(damageType, player, 0, 0, dam, deathReason);
+			ApplyPlrDamage(damageType, player, damage, 0, deathReason);
 		}
 
 		if (!player.hasNoLife()) {
@@ -1189,11 +1191,11 @@ bool PlayerMHit(Player &player, Monster *monster, int dist, int mind, int maxd, 
 	}
 
 	if (&player == MyPlayer) {
-		ApplyPlrDamage(damageType, player, 0, 0, dam, deathReason);
+		ApplyPlrDamage(damageType, player, damage, 0, deathReason);
 	}
 
 	if (!player.hasNoLife()) {
-		StartPlrHit(player, dam, false);
+		StartPlrHit(player, damage, false);
 	}
 
 	return true;
@@ -1221,7 +1223,7 @@ void InitMissiles()
 			if (missile._mitype == MissileID::Rage) {
 				if (missile.sourcePlayer() == MyPlayer) {
 					CalcPlrItemVals(myPlayer, true);
-					ApplyPlrDamage(DamageType::Physical, myPlayer, missile._midam, 1);
+					ApplyPlrDamage(DamageType::Physical, myPlayer, Fixed26_6::fromInt(missile._midam), 1);
 				}
 			}
 		}
@@ -1464,7 +1466,7 @@ void AddStealMana(Missile &missile, AddMissileParameter & /*parameter*/)
 	if (trappedPlayerPosition) {
 		Player &player = Players[std::abs(dPlayer[trappedPlayerPosition->x][trappedPlayerPosition->y]) - 1];
 
-		player._pMana = 0;
+		player._pMana = Fixed26_6::fromInt(0);
 		player._pManaBase = player._pMana + player._pMaxManaBase - player._pMaxMana;
 		CalcPlrInv(player, false);
 		RedrawComponent(PanelDrawComponent::Mana);
@@ -1654,15 +1656,15 @@ void AddMana(Missile &missile, AddMissileParameter & /*parameter*/)
 {
 	Player &player = Players[missile._misource];
 
-	int manaAmount = (GenerateRnd(10) + 1) << 6;
+	Fixed26_6 manaAmount = Fixed26_6::fromInt(GenerateRnd(10) + 1);
 	for (int i = 0; i < player.getCharacterLevel(); i++) {
-		manaAmount += RandomIntBetween(1, 4) << 6;
+		manaAmount += Fixed26_6::fromInt(RandomIntBetween(1, 4));
 	}
 	for (int i = 0; i < missile._mispllvl; i++) {
-		manaAmount += (GenerateRnd(6) + 1) << 6;
+		manaAmount += Fixed26_6::fromInt(GenerateRnd(6) + 1);
 	}
 	const ClassAttributes &classAttributes = GetClassAttributes(player._pClass);
-	manaAmount = manaAmount * classAttributes.splRestoreMana >> 6;
+	manaAmount = manaAmount * Fixed26_6(classAttributes.splRestoreMana);
 	player._pMana += manaAmount;
 	player._pMana = std::min(player._pMana, player._pMaxMana);
 	player._pManaBase += manaAmount;
@@ -2457,12 +2459,11 @@ void AddHealing(Missile &missile, AddMissileParameter & /*parameter*/)
 	int hp = GenerateRnd(10) + 1;
 	hp += GenerateRndSum(4, player.getCharacterLevel()) + player.getCharacterLevel();
 	hp += GenerateRndSum(6, missile._mispllvl) + missile._mispllvl;
-	hp <<= 6;
 
 	const ClassAttributes &classAttributes = GetClassAttributes(player._pClass);
-	hp = hp * classAttributes.splRestoreLife >> 6;
-	player._pHitPoints = std::min(player._pHitPoints + hp, player._pMaxHP);
-	player._pHPBase = std::min(player._pHPBase + hp, player._pMaxHPBase);
+	const Fixed26_6 hpDelta = Fixed26_6::fromInt(hp) * Fixed26_6(classAttributes.splRestoreLife);
+	player._pHitPoints = std::min(player._pHitPoints + hpDelta, player._pMaxHP);
+	player._pHPBase = std::min(player._pHPBase + hpDelta, player._pMaxHPBase);
 
 	missile._miDelFlag = true;
 	RedrawComponent(PanelDrawComponent::Health);
@@ -2576,7 +2577,7 @@ void AddRage(Missile &missile, AddMissileParameter &parameter)
 {
 	Player &player = Players[missile._misource];
 
-	if (HasAnyOf(player._pSpellFlags, SpellFlag::RageActive | SpellFlag::RageCooldown) || player._pHitPoints <= player.getCharacterLevel() << 6) {
+	if (HasAnyOf(player._pSpellFlags, SpellFlag::RageActive | SpellFlag::RageCooldown) || player._pHitPoints <= Fixed26_6::fromInt(player.getCharacterLevel())) {
 		missile._miDelFlag = true;
 		parameter.spellFizzled = true;
 		return;
@@ -3686,7 +3687,7 @@ void ProcessStoneCurse(Missile &missile)
 {
 	missile.duration--;
 	Monster &monster = Monsters[missile.var2];
-	if (monster.hitPoints == 0 && missile._miAnimType != MissileGraphicID::StoneCurseShatter) {
+	if (monster.hitPoints == Fixed26_6::fromInt(0) && missile._miAnimType != MissileGraphicID::StoneCurseShatter) {
 		missile.setDefaultFrameGroup();
 		missile._miDrawFlag = true;
 		missile.setAnimation(MissileGraphicID::StoneCurseShatter);
@@ -3699,7 +3700,7 @@ void ProcessStoneCurse(Missile &missile)
 
 	if (missile.duration == 0) {
 		missile._miDelFlag = true;
-		if (monster.hitPoints > 0) {
+		if (monster.hitPoints > Fixed26_6::fromInt(0)) {
 			monster.mode = static_cast<MonsterMode>(missile.var1);
 			monster.animInfo.isPetrified = false;
 		} else {
@@ -3915,13 +3916,13 @@ void ProcessRage(Missile &missile)
 
 	// Prevent the player from dying as a result of recalculating their current life
 	if (player.hasNoLife())
-		SetPlayerHitPoints(player, 64);
+		SetPlayerHitPoints(player, Fixed26_6::fromInt(1));
 
 	RedrawEverything();
 	player.Say(HeroSpeech::HeavyBreathing);
 
 	if (missile._miDelFlag)
-		ApplyPlrDamage(DamageType::Physical, player, missile._midam, 1); // Prevent penalty from killing the player
+		ApplyPlrDamage(DamageType::Physical, player, Fixed26_6::fromInt(missile._midam), 1); // Prevent penalty from killing the player
 }
 
 void ProcessInferno(Missile &missile)
@@ -4128,7 +4129,7 @@ void ProcessBoneSpirit(Missile &missile)
 			missile.duration = 255;
 			auto *monster = FindClosest(c, 19);
 			if (monster != nullptr) {
-				missile._midam = monster->hitPoints >> 7;
+				missile._midam = monster->hitPoints.raw() >> 7;
 				missile.setDirection(GetDirection(c, monster->position.tile));
 				UpdateMissileVelocity(missile, monster->position.tile, 16);
 			} else {

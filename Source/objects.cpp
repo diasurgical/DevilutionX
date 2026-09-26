@@ -1655,7 +1655,7 @@ void UpdateBurningCrossDamage(Object &cross)
 	if (myPlayer.position.tile != cross.position + Displacement { 0, -1 })
 		return;
 
-	ApplyPlrDamage(DamageType::Fire, myPlayer, 0, 0, damage[leveltype - 1]);
+	ApplyPlrDamage(DamageType::Fire, myPlayer, Fixed26_6::fromRaw(damage[leveltype - 1]));
 	if (!myPlayer.hasNoLife()) {
 		myPlayer.Say(HeroSpeech::Argh);
 	}
@@ -2524,15 +2524,15 @@ void OperateShrineCostOfWisdom(Player &player, SpellID spellId, diablo_message m
 		}
 	}
 
-	int maxBase = player._pMaxManaBase;
+	int maxBase = player._pMaxManaBase.raw();
 
 	if (maxBase < 0) {
 		// Fix bugged state; do not turn this into a "negative penalty" mana boost.
-		player._pMaxManaBase = 0;
+		player._pMaxManaBase = Fixed26_6::fromInt(0);
 		maxBase = 0;
 	}
 
-	const int penalty = maxBase / 10; // 10% of max base mana (>= 0)
+	const Fixed26_6 penalty = Fixed26_6::fromRaw(maxBase / 10); // 10% of max base mana (>= 0)
 
 	player._pMaxManaBase -= penalty; // will remain >= 0
 	player._pManaBase -= penalty;    // may go negative, allowed
@@ -3142,7 +3142,7 @@ void OperateBookcase(Object &bookcase, bool sendmsg, bool sendLootMsg)
 		if (zhar.mode == MonsterMode::Stand // prevents playing the "angry" message for the second time if zhar got aggroed by losing vision and talking again
 		    && zhar.uniqueType == UniqueMonsterType::Zhar
 		    && zhar.activeForTicks == UINT8_MAX
-		    && zhar.hitPoints > 0) {
+		    && zhar.hitPoints > Fixed26_6::fromInt(0)) {
 			zhar.talkMsg = TEXT_ZHAR2;
 			M_StartStand(zhar, zhar.direction); // BUGFIX: first parameter in call to M_StartStand should be MAX_PLRS, not 0. (fixed)
 			zhar.goal = MonsterGoal::Attack;
@@ -3231,8 +3231,8 @@ bool OperateFountains(Player &player, Object &fountain)
 
 		if (player._pHitPoints < player._pMaxHP) {
 			PlaySfxLoc(SfxID::OperateFountain, fountain.position);
-			player._pHitPoints += 64;
-			player._pHPBase += 64;
+			player._pHitPoints += Fixed26_6::fromInt(1);
+			player._pHPBase += Fixed26_6::fromInt(1);
 			if (player._pHitPoints > player._pMaxHP) {
 				player._pHitPoints = player._pMaxHP;
 				player._pHPBase = player._pMaxHPBase;
@@ -3248,8 +3248,8 @@ bool OperateFountains(Player &player, Object &fountain)
 		if (player._pMana < player._pMaxMana) {
 			PlaySfxLoc(SfxID::OperateFountain, fountain.position);
 
-			player._pMana += 64;
-			player._pManaBase += 64;
+			player._pMana += Fixed26_6::fromInt(1);
+			player._pManaBase += Fixed26_6::fromInt(1);
 			if (player._pMana > player._pMaxMana) {
 				player._pMana = player._pMaxMana;
 				player._pManaBase = player._pMaxManaBase;

@@ -17,6 +17,7 @@
 #include "levels/dun_tile.hpp"
 #include "monster.h"
 #include "tables/itemdat.h"
+#include "utils/fixed_point.hpp"
 #include "utils/is_of.hpp"
 #include "utils/string_or_view.hpp"
 
@@ -230,8 +231,8 @@ struct Item {
 	int16_t _iPLFR = 0;
 	int16_t _iPLLR = 0;
 	int16_t _iPLMR = 0;
-	int16_t _iPLMana = 0;
-	int16_t _iPLHP = 0;
+	Fixed10_6 _iPLMana = Fixed10_6::fromInt(0);
+	Fixed10_6 _iPLHP = Fixed10_6::fromInt(0);
 	int16_t _iPLDamMod = 0;
 	int16_t _iPLGetHit = 0;
 	int16_t _iPLLight = 0;

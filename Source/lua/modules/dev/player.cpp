@@ -60,7 +60,7 @@ std::string DebugCmdPlayerInfo(std::optional<uint8_t> id)
 	    "\nLvl: ", player.plrlevel, " Changing: ", player._pLvlChanging,
 	    "\nTile.x: ", player.position.tile.x, " Tile.y: ", player.position.tile.y, " Target.x: ", target.x, " Target.y: ", target.y,
 	    "\nMode: ", player._pmode, " destAction: ", player.destAction, " walkpath[0]: ", player.walkpath[0],
-	    "\nInvincible: ", player._pInvincible ? 1 : 0, " HitPoints: ", player._pHitPoints);
+	    "\nInvincible: ", player._pInvincible ? 1 : 0, " HitPoints: ", player._pHitPoints.raw());
 }
 
 std::string DebugSetPlayerTrn(std::string_view path)

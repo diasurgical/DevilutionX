@@ -60,9 +60,9 @@ std::string DebugCmdChangeHealth(int change)
 	if (change == 0)
 		return StrCat("Enter a value not equal to 0 to change life!");
 
-	int newHealth = myPlayer._pHitPoints + (change * 64);
+	Fixed26_6 newHealth = myPlayer._pHitPoints + Fixed26_6::fromInt(change);
 	SetPlayerHitPoints(myPlayer, newHealth);
-	if (newHealth <= 0)
+	if (newHealth <= Fixed26_6::fromInt(0))
 		SyncPlrKill(myPlayer, DeathReason::MonsterOrTrap);
 
 	return StrCat("Changed life by ", change);
@@ -74,7 +74,7 @@ std::string DebugCmdChangeMana(int change)
 	if (change == 0)
 		return StrCat("Enter a value not equal to 0 to change mana!");
 
-	int newMana = myPlayer._pMana + (change * 64);
+	Fixed26_6 newMana = myPlayer._pMana + Fixed26_6::fromInt(change);
 	myPlayer._pMana = newMana;
 	myPlayer._pManaBase = myPlayer._pMana + myPlayer._pMaxManaBase - myPlayer._pMaxMana;
 	RedrawComponent(PanelDrawComponent::Mana);

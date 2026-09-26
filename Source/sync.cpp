@@ -48,7 +48,7 @@ void SyncMonsterPos(TSyncMonster &monsterSync, int ndx)
 	monsterSync._menemy = encode_enemy(monster);
 	monsterSync._mdelta = sgnMonsterPriority[ndx] > 255 ? 255 : sgnMonsterPriority[ndx];
 	monsterSync.mWhoHit = monster.whoHit;
-	monsterSync._mhitpoints = Swap32LE(monster.hitPoints);
+	monsterSync._mhitpoints = Swap32LE(monster.hitPoints.raw());
 
 	sgnMonsterPriority[ndx] = 0xFFFF;
 	sgwLRU[ndx] = monster.activeForTicks == 0 ? 0xFFFF : 0xFFFE;
@@ -157,7 +157,7 @@ void SyncPlrInv(TSyncHeader *pHdr)
 void SyncMonster(bool isOwner, const TSyncMonster &monsterSync)
 {
 	Monster &monster = Monsters[monsterSync._mndx];
-	if (monster.hitPoints <= 0 || monster.mode == MonsterMode::Death) {
+	if (monster.hitPoints <= Fixed26_6::fromInt(0) || monster.mode == MonsterMode::Death) {
 		return;
 	}
 
