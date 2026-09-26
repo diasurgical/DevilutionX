@@ -31,6 +31,7 @@
 #include "tables/spelldat.h"
 #include "utils/attributes.h"
 #include "utils/enum_traits.h"
+#include "utils/fixed_point.hpp"
 #include "utils/is_of.hpp"
 
 namespace devilution {
@@ -232,15 +233,15 @@ struct Player {
 	int _pBaseVit;
 	int _pStatPts;
 	int _pDamageMod;
-	int _pHPBase;
-	int _pMaxHPBase;
-	int _pHitPoints;
-	int _pMaxHP;
+	Fixed26_6 _pHPBase;
+	Fixed26_6 _pMaxHPBase;
+	Fixed26_6 _pHitPoints;
+	Fixed26_6 _pMaxHP;
 	int _pHPPer;
-	int _pManaBase;
-	int _pMaxManaBase;
-	int _pMana;
-	int _pMaxMana;
+	Fixed26_6 _pManaBase;
+	Fixed26_6 _pMaxManaBase;
+	Fixed26_6 _pMana;
+	Fixed26_6 _pMaxMana;
 	int _pManaPer;
 	int _pIMinDam;
 	int _pIMaxDam;
@@ -681,13 +682,13 @@ public:
 	 */
 	int UpdateHitPointPercentage()
 	{
-		if (_pMaxHP <= 0) { // divide by zero guard
+		if (_pMaxHP <= Fixed26_6::fromInt(0)) { // divide by zero guard
 			_pHPPer = 0;
 		} else {
 			// Maximum achievable HP is approximately 1200. Diablo uses fixed point integers where the last 6 bits are
 			// fractional values. This means that we will never overflow HP values normally by doing this multiplication
 			// as the max value is representable in 17 bits and the multiplication result will be at most 23 bits
-			_pHPPer = std::clamp(_pHitPoints * 81 / _pMaxHP, 0, 81); // hp should never be greater than maxHP but just in case
+			_pHPPer = std::clamp<int>(_pHitPoints.raw() * 81 / _pMaxHP.raw(), 0, 81); // hp should never be greater than maxHP but just in case
 		}
 
 		return _pHPPer;
@@ -695,10 +696,10 @@ public:
 
 	int UpdateManaPercentage()
 	{
-		if (_pMaxMana <= 0) {
+		if (_pMaxMana <= Fixed26_6::fromInt(0)) {
 			_pManaPer = 0;
 		} else {
-			_pManaPer = std::clamp(_pMana * 81 / _pMaxMana, 0, 81);
+			_pManaPer = std::clamp<int>(_pMana.raw() * 81 / _pMaxMana.raw(), 0, 81);
 		}
 
 		return _pManaPer;
@@ -878,10 +879,10 @@ public:
 	}
 
 	/** @brief Returns a character's life based on starting life, character level, and base vitality. */
-	int32_t calculateBaseLife() const;
+	Fixed26_6 calculateBaseLife() const;
 
 	/** @brief Returns a character's mana based on starting mana, character level, and base magic. */
-	int32_t calculateBaseMana() const;
+	Fixed26_6 calculateBaseMana() const;
 
 	/**
 	 * @brief Sets a tile/dPlayer to be occupied by the player
@@ -904,12 +905,12 @@ public:
 
 	bool hasNoLife() const
 	{
-		return leveltype == DTYPE_TOWN ? false : _pHitPoints >> 6 <= 0;
+		return leveltype == DTYPE_TOWN ? false : _pHitPoints.whole() <= 0;
 	}
 
 	bool hasNoMana() const
 	{
-		return _pMana >> 6 <= 0;
+		return _pMana.whole() <= 0;
 	}
 };
 
@@ -957,7 +958,7 @@ int CalcStatDiff(Player &player);
 void NextPlrLevel(Player &player);
 #endif
 void AddPlrMonstExper(int lvl, unsigned int exp, char pmask);
-void ApplyPlrDamage(DamageType damageType, Player &player, int dam, int minHP = 0, int frac = 0, DeathReason deathReason = DeathReason::MonsterOrTrap);
+void ApplyPlrDamage(DamageType damageType, Player &player, Fixed26_6 dam, int minHP = 0, DeathReason deathReason = DeathReason::MonsterOrTrap);
 void InitPlayer(Player &player, bool FirstTime);
 void InitMultiView();
 void PlrClrTrans(Point position);
@@ -967,7 +968,7 @@ void FixPlayerLocation(Player &player, Direction bDir);
 void StartStand(Player &player, Direction dir);
 void StartPlrBlock(Player &player, Direction dir);
 void FixPlrWalkTags(const Player &player);
-void StartPlrHit(Player &player, int dam, bool forcehit);
+void StartPlrHit(Player &player, Fixed26_6 dam, bool forcehit);
 void StartPlayerKill(Player &player, DeathReason deathReason);
 /**
  * @brief Strip the top off gold piles that are larger than MaxGold
@@ -991,7 +992,7 @@ void ModifyPlrStr(Player &player, int l);
 void ModifyPlrMag(Player &player, int l);
 void ModifyPlrDex(Player &player, int l);
 void ModifyPlrVit(Player &player, int l);
-void SetPlayerHitPoints(Player &player, int val);
+void SetPlayerHitPoints(Player &player, Fixed26_6 val);
 void SetPlrStr(Player &player, int v);
 void SetPlrMag(Player &player, int v);
 void SetPlrDex(Player &player, int v);
