@@ -111,9 +111,9 @@ int AddClassHealingBonus(int hp, HeroClass heroClass, SpellID spellId)
 {
 	const ClassAttributes &classAttributes = GetClassAttributes(heroClass);
 	if (spellId == SpellID::HealOther) {
-		return (Fixed26_6(classAttributes.healOtherRestoreLife) * hp).whole();
+		return (classAttributes.healOtherRestoreLife * hp).whole();
 	}
-	return (Fixed26_6(classAttributes.splRestoreLife) * hp).whole();
+	return (classAttributes.splRestoreLife * hp).whole();
 }
 
 int ScaleSpellEffect(int base, int spellLevel)
@@ -1664,7 +1664,7 @@ void AddMana(Missile &missile, AddMissileParameter & /*parameter*/)
 		manaAmount += Fixed26_6::fromInt(GenerateRnd(6) + 1);
 	}
 	const ClassAttributes &classAttributes = GetClassAttributes(player._pClass);
-	manaAmount = manaAmount * Fixed26_6(classAttributes.splRestoreMana);
+	manaAmount = manaAmount * classAttributes.splRestoreMana;
 	player._pMana += manaAmount;
 	player._pMana = std::min(player._pMana, player._pMaxMana);
 	player._pManaBase += manaAmount;

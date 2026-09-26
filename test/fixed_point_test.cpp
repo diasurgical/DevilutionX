@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include <type_traits>
+
 #include "utils/fixed_point.hpp"
 
 namespace devilution {
@@ -98,6 +100,50 @@ TEST(FixedPointTest, WideningConversion)
 	const Fixed10_6 narrow = Fixed10_6::fromInt(5);
 	const Fixed26_6 widened { narrow };
 	EXPECT_EQ(widened, Fixed26_6::fromInt(5));
+}
+
+TEST(FixedPointTest, WideningConversionIsImplicit)
+{
+	static_assert(std::is_convertible_v<Fixed10_6, Fixed26_6>, "Widening a Fixed10_6 to a Fixed26_6 should not require an explicit cast");
+	const Fixed26_6 widened = Fixed10_6::fromInt(5); // would not compile if the conversion were explicit-only
+	EXPECT_EQ(widened, Fixed26_6::fromInt(5));
+}
+
+TEST(FixedPointTest, NarrowingConversionIsExplicitOnly)
+{
+	static_assert(!std::is_convertible_v<Fixed26_6, Fixed10_6>, "Narrowing a Fixed26_6 to a Fixed10_6 should require an explicit cast");
+	const Fixed10_6 narrowed(Fixed26_6::fromInt(5)); // fine: explicit construction
+	EXPECT_EQ(narrowed, Fixed10_6::fromInt(5));
+}
+
+TEST(FixedPointTest, SameTypeArithmeticPromotesLikeC)
+{
+	// Adding (or multiplying, etc.) two Fixed10_6 values mimics `int16_t + int16_t`,
+	// which promotes to `int`, not `int16_t`.
+	const Fixed10_6 a = Fixed10_6::fromInt(1);
+	const Fixed10_6 b = Fixed10_6::fromInt(2);
+	static_assert(std::is_same_v<decltype(a + b)::StorageType, decltype(int16_t {} + int16_t {})>);
+	static_assert(std::is_same_v<decltype(a * b)::StorageType, decltype(int16_t {} * int16_t {})>);
+	EXPECT_EQ(a + b, Fixed10_6::fromInt(3));
+}
+
+TEST(FixedPointTest, MixedWidthArithmeticPromotesToTheWiderType)
+{
+	const Fixed10_6 a = Fixed10_6::fromInt(1);
+	const Fixed26_6 b = Fixed26_6::fromInt(2);
+	static_assert(std::is_same_v<decltype(a + b)::StorageType, decltype(int16_t {} + int32_t {})>);
+	EXPECT_EQ(a + b, Fixed26_6::fromInt(3));
+	EXPECT_EQ(b + a, Fixed26_6::fromInt(3)); // commutative, regardless of argument order
+}
+
+TEST(FixedPointTest, CompoundAssignmentNarrowsBackToTheLeftHandSideType)
+{
+	// x += y behaves like `int16_t x; x += int32_t_y;`: computed in the promoted type,
+	// then narrowed back down to store into x.
+	Fixed10_6 value = Fixed10_6::fromInt(1);
+	value += Fixed26_6::fromInt(2);
+	static_assert(std::is_same_v<decltype(value)::StorageType, int16_t>);
+	EXPECT_EQ(value, Fixed10_6::fromInt(3));
 }
 
 } // namespace

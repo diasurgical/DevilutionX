@@ -1736,7 +1736,7 @@ void Player::RestorePartialLife()
 	const int wholeHitpoints = _pMaxHP.whole();
 	Fixed26_6 l = Fixed26_6::fromInt((wholeHitpoints / 8) + GenerateRnd(wholeHitpoints / 4));
 	const ClassAttributes &classAttributes = GetClassAttributes(_pClass);
-	l = l * Fixed26_6(classAttributes.itmRestoreLife);
+	l = l * classAttributes.itmRestoreLife;
 	_pHitPoints = std::min(_pHitPoints + l, _pMaxHP);
 	_pHPBase = std::min(_pHPBase + l, _pMaxHPBase);
 }
@@ -1746,7 +1746,7 @@ void Player::RestorePartialMana()
 	const int wholeManaPoints = _pMaxMana.whole();
 	Fixed26_6 l = Fixed26_6::fromInt((wholeManaPoints / 8) + GenerateRnd(wholeManaPoints / 4));
 	const ClassAttributes &classAttributes = GetClassAttributes(_pClass);
-	l = l * Fixed26_6(classAttributes.itmRestoreMana);
+	l = l * classAttributes.itmRestoreMana;
 	if (HasNoneOf(_pIFlags, ItemSpecialEffect::NoMana)) {
 		_pMana = std::min(_pMana + l, _pMaxMana);
 		_pManaBase = std::min(_pManaBase + l, _pMaxManaBase);
@@ -1990,13 +1990,13 @@ uint32_t Player::getNextExperienceThreshold() const
 Fixed26_6 Player::calculateBaseLife() const
 {
 	const ClassAttributes &attr = getClassAttributes();
-	return Fixed26_6(attr.adjLife) + Fixed26_6(attr.lvlLife) * getCharacterLevel() + Fixed26_6(attr.chrLife) * _pBaseVit;
+	return attr.adjLife + attr.lvlLife * getCharacterLevel() + attr.chrLife * _pBaseVit;
 }
 
 Fixed26_6 Player::calculateBaseMana() const
 {
 	const ClassAttributes &attr = getClassAttributes();
-	return Fixed26_6(attr.adjMana) + Fixed26_6(attr.lvlMana) * getCharacterLevel() + Fixed26_6(attr.chrMana) * _pBaseMag;
+	return attr.adjMana + attr.lvlMana * getCharacterLevel() + attr.chrMana * _pBaseMag;
 }
 
 void Player::occupyTile(Point tilePosition, bool isMoving) const
@@ -3329,7 +3329,7 @@ void ModifyPlrMag(Player &player, int l)
 	player._pMagic += l;
 	player._pBaseMag += l;
 
-	const Fixed26_6 ms = Fixed26_6(player.getClassAttributes().chrMana) * l;
+	const Fixed26_6 ms = player.getClassAttributes().chrMana * l;
 
 	player._pMaxManaBase += ms;
 	player._pMaxMana += ms;
@@ -3365,7 +3365,7 @@ void ModifyPlrVit(Player &player, int l)
 	player._pVitality += l;
 	player._pBaseVit += l;
 
-	const Fixed26_6 ms = Fixed26_6(player.getClassAttributes().chrLife) * l;
+	const Fixed26_6 ms = player.getClassAttributes().chrLife * l;
 
 	player._pHPBase += ms;
 	player._pMaxHPBase += ms;
@@ -3399,7 +3399,7 @@ void SetPlrMag(Player &player, int v)
 {
 	player._pBaseMag = v;
 
-	const Fixed26_6 m = Fixed26_6(player.getClassAttributes().chrMana) * v;
+	const Fixed26_6 m = player.getClassAttributes().chrMana * v;
 
 	player._pMaxManaBase = m;
 	player._pMaxMana = m;
@@ -3416,7 +3416,7 @@ void SetPlrVit(Player &player, int v)
 {
 	player._pBaseVit = v;
 
-	const Fixed26_6 hp = Fixed26_6(player.getClassAttributes().chrLife) * v;
+	const Fixed26_6 hp = player.getClassAttributes().chrLife * v;
 
 	player._pHPBase = hp;
 	player._pMaxHPBase = hp;

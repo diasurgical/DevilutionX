@@ -131,7 +131,7 @@ Fixed26_6 GetManaAmount(const Player &player, SpellID sn)
 	Fixed26_6 manaAmount = Fixed26_6::fromInt(std::max(ma, 0));
 
 	const ClassAttributes &classAttributes = GetClassAttributes(player._pClass);
-	manaAmount = manaAmount * Fixed26_6(classAttributes.manaCost);
+	manaAmount = manaAmount * classAttributes.manaCost;
 
 	if (GetSpellData(sn).sMinMana > manaAmount.whole()) {
 		manaAmount = Fixed26_6::fromInt(GetSpellData(sn).sMinMana);
@@ -288,7 +288,7 @@ void DoHealOther(const Player &caster, Player &target)
 		hp += Fixed26_6::fromInt(GenerateRnd(6) + 1);
 	}
 	const ClassAttributes &classAttributes = GetClassAttributes(caster._pClass);
-	hp = hp * Fixed26_6(classAttributes.healOtherRestoreLife);
+	hp = hp * classAttributes.healOtherRestoreLife;
 
 	target._pHitPoints = std::min(target._pHitPoints + hp, target._pMaxHP);
 	target._pHPBase = std::min(target._pHPBase + hp, target._pMaxHPBase);

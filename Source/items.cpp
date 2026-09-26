@@ -2635,10 +2635,10 @@ void CalcPlrResistances(Player &player, ItemSpecialEffect iflgs, int fire, int l
 void CalcPlrLifeMana(Player &player, int vitality, int magic, Fixed26_6 life, Fixed26_6 mana)
 {
 	const ClassAttributes &playerClassAttributes = player.getClassAttributes();
-	vitality = (Fixed26_6(playerClassAttributes.itmLife) * vitality).whole();
+	vitality = (playerClassAttributes.itmLife * vitality).whole();
 	life += Fixed26_6::fromInt(vitality);
 
-	magic = (Fixed26_6(playerClassAttributes.itmMana) * magic).whole();
+	magic = (playerClassAttributes.itmMana * magic).whole();
 	mana += Fixed26_6::fromInt(magic);
 
 	player._pMaxHP = std::clamp(life + player._pMaxHPBase, Fixed26_6::fromInt(1), Fixed26_6::fromInt(2000));
@@ -2856,8 +2856,8 @@ void CalcPlrItemVals(Player &player, bool loadgfx)
 				damMod += item._iPLDamMod;
 				getHit += item._iPLGetHit;
 				lightRadius += item._iPLLight;
-				life += Fixed26_6(item._iPLHP);
-				mana += Fixed26_6(item._iPLMana);
+				life += item._iPLHP;
+				mana += item._iPLMana;
 				splLvlAdd += item._iSplLvlAdd;
 				targetAc += item._iPLEnAc;
 				minFireDam += item._iFMinDam;
