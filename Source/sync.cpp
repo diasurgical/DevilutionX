@@ -157,7 +157,7 @@ void SyncPlrInv(TSyncHeader *pHdr)
 void SyncMonster(bool isOwner, const TSyncMonster &monsterSync)
 {
 	Monster &monster = Monsters[monsterSync._mndx];
-	if (monster.hitPoints <= Fixed26_6::fromInt(0) || monster.mode == MonsterMode::Death) {
+	if (monster.hitPoints <= 0 || monster.mode == MonsterMode::Death) {
 		return;
 	}
 

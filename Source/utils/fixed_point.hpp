@@ -204,6 +204,81 @@ template <typename StorageT, unsigned FractionalBits>
 	return FixedPoint<decltype(raw), FractionalBits>::fromRaw(raw);
 }
 
+/**
+ * @brief Compares against a plain `int`, treated as a whole number of units (as if by `fromInt`).
+ */
+template <typename StorageT, unsigned FractionalBits>
+[[nodiscard]] DVL_ALWAYS_INLINE constexpr bool operator==(FixedPoint<StorageT, FractionalBits> a, int whole)
+{
+	return a == FixedPoint<StorageT, FractionalBits>::fromInt(whole);
+}
+
+template <typename StorageT, unsigned FractionalBits>
+[[nodiscard]] DVL_ALWAYS_INLINE constexpr bool operator==(int whole, FixedPoint<StorageT, FractionalBits> a)
+{
+	return a == whole;
+}
+
+template <typename StorageT, unsigned FractionalBits>
+[[nodiscard]] DVL_ALWAYS_INLINE constexpr bool operator!=(FixedPoint<StorageT, FractionalBits> a, int whole)
+{
+	return !(a == whole);
+}
+
+template <typename StorageT, unsigned FractionalBits>
+[[nodiscard]] DVL_ALWAYS_INLINE constexpr bool operator!=(int whole, FixedPoint<StorageT, FractionalBits> a)
+{
+	return !(a == whole);
+}
+
+template <typename StorageT, unsigned FractionalBits>
+[[nodiscard]] DVL_ALWAYS_INLINE constexpr bool operator<(FixedPoint<StorageT, FractionalBits> a, int whole)
+{
+	return a < FixedPoint<StorageT, FractionalBits>::fromInt(whole);
+}
+
+template <typename StorageT, unsigned FractionalBits>
+[[nodiscard]] DVL_ALWAYS_INLINE constexpr bool operator<(int whole, FixedPoint<StorageT, FractionalBits> a)
+{
+	return a > whole;
+}
+
+template <typename StorageT, unsigned FractionalBits>
+[[nodiscard]] DVL_ALWAYS_INLINE constexpr bool operator<=(FixedPoint<StorageT, FractionalBits> a, int whole)
+{
+	return a <= FixedPoint<StorageT, FractionalBits>::fromInt(whole);
+}
+
+template <typename StorageT, unsigned FractionalBits>
+[[nodiscard]] DVL_ALWAYS_INLINE constexpr bool operator<=(int whole, FixedPoint<StorageT, FractionalBits> a)
+{
+	return a >= whole;
+}
+
+template <typename StorageT, unsigned FractionalBits>
+[[nodiscard]] DVL_ALWAYS_INLINE constexpr bool operator>(FixedPoint<StorageT, FractionalBits> a, int whole)
+{
+	return a > FixedPoint<StorageT, FractionalBits>::fromInt(whole);
+}
+
+template <typename StorageT, unsigned FractionalBits>
+[[nodiscard]] DVL_ALWAYS_INLINE constexpr bool operator>(int whole, FixedPoint<StorageT, FractionalBits> a)
+{
+	return a < whole;
+}
+
+template <typename StorageT, unsigned FractionalBits>
+[[nodiscard]] DVL_ALWAYS_INLINE constexpr bool operator>=(FixedPoint<StorageT, FractionalBits> a, int whole)
+{
+	return a >= FixedPoint<StorageT, FractionalBits>::fromInt(whole);
+}
+
+template <typename StorageT, unsigned FractionalBits>
+[[nodiscard]] DVL_ALWAYS_INLINE constexpr bool operator>=(int whole, FixedPoint<StorageT, FractionalBits> a)
+{
+	return a <= whole;
+}
+
 using Fixed10_6 = FixedPoint<int16_t, 6>;
 using Fixed26_6 = FixedPoint<int32_t, 6>;
 

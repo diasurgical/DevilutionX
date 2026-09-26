@@ -682,7 +682,7 @@ public:
 	 */
 	int UpdateHitPointPercentage()
 	{
-		if (_pMaxHP <= Fixed26_6::fromInt(0)) { // divide by zero guard
+		if (_pMaxHP <= 0) { // divide by zero guard
 			_pHPPer = 0;
 		} else {
 			// Maximum achievable HP is approximately 1200. Diablo uses fixed point integers where the last 6 bits are
@@ -696,7 +696,7 @@ public:
 
 	int UpdateManaPercentage()
 	{
-		if (_pMaxMana <= Fixed26_6::fromInt(0)) {
+		if (_pMaxMana <= 0) {
 			_pManaPer = 0;
 		} else {
 			_pManaPer = std::clamp<int>(_pMana.raw() * 81 / _pMaxMana.raw(), 0, 81);

@@ -146,5 +146,26 @@ TEST(FixedPointTest, CompoundAssignmentNarrowsBackToTheLeftHandSideType)
 	EXPECT_EQ(value, Fixed10_6::fromInt(3));
 }
 
+TEST(FixedPointTest, ComparisonWithIntTreatsItAsWholeUnits)
+{
+	const Fixed10_6 value = Fixed10_6::fromInt(3);
+	EXPECT_TRUE(value == 3);
+	EXPECT_TRUE(3 == value);
+	EXPECT_TRUE(value != 4);
+	EXPECT_TRUE(4 != value);
+	EXPECT_TRUE(value < 4);
+	EXPECT_TRUE(2 < value);
+	EXPECT_TRUE(value <= 3);
+	EXPECT_TRUE(3 <= value);
+	EXPECT_TRUE(value > 2);
+	EXPECT_TRUE(4 > value);
+	EXPECT_TRUE(value >= 3);
+	EXPECT_TRUE(3 >= value);
+
+	const Fixed10_6 fractional = Fixed10_6::fromRaw((3 << 6) + 1);
+	EXPECT_FALSE(fractional == 3); // has a fractional part, so it's not exactly 3
+	EXPECT_TRUE(fractional > 3);
+}
+
 } // namespace
 } // namespace devilution

@@ -62,7 +62,7 @@ std::string DebugCmdChangeHealth(int change)
 
 	Fixed26_6 newHealth = myPlayer._pHitPoints + Fixed26_6::fromInt(change);
 	SetPlayerHitPoints(myPlayer, newHealth);
-	if (newHealth <= Fixed26_6::fromInt(0))
+	if (newHealth <= 0)
 		SyncPlrKill(myPlayer, DeathReason::MonsterOrTrap);
 
 	return StrCat("Changed life by ", change);

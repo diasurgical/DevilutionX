@@ -3688,7 +3688,7 @@ void ProcessStoneCurse(Missile &missile)
 {
 	missile.duration--;
 	Monster &monster = Monsters[missile.var2];
-	if (monster.hitPoints == Fixed26_6::fromInt(0) && missile._miAnimType != MissileGraphicID::StoneCurseShatter) {
+	if (monster.hitPoints == 0 && missile._miAnimType != MissileGraphicID::StoneCurseShatter) {
 		missile.setDefaultFrameGroup();
 		missile._miDrawFlag = true;
 		missile.setAnimation(MissileGraphicID::StoneCurseShatter);
@@ -3701,7 +3701,7 @@ void ProcessStoneCurse(Missile &missile)
 
 	if (missile.duration == 0) {
 		missile._miDelFlag = true;
-		if (monster.hitPoints > Fixed26_6::fromInt(0)) {
+		if (monster.hitPoints > 0) {
 			monster.mode = static_cast<MonsterMode>(missile.var1);
 			monster.animInfo.isPetrified = false;
 		} else {

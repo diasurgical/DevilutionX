@@ -1027,7 +1027,7 @@ void DeltaLeaveSync(uint8_t bLevel)
 	for (size_t i = 0; i < ActiveMonsterCount; i++) {
 		const unsigned ma = ActiveMonsters[i];
 		Monster &monster = Monsters[ma];
-		if (monster.hitPoints == Fixed26_6::fromInt(0))
+		if (monster.hitPoints == 0)
 			continue;
 		DMonsterStr &delta = deltaLevel.monster[ma];
 		delta.position = monster.position.tile;
@@ -1930,7 +1930,7 @@ size_t OnResurrect(const TCmdParam1 &message, Player &caster)
 
 	SpawnResurrectBeam(caster, target);
 
-	if (&target == MyPlayer && target._pHitPoints <= Fixed26_6::fromInt(0)) {
+	if (&target == MyPlayer && target._pHitPoints <= 0) {
 		NetSendCmd(true, CMD_PLRALIVE);
 	}
 
@@ -2053,7 +2053,7 @@ size_t OnMonstDamage(const TCmdMonDamage &message, Player &player)
 			if (player.isOnActiveLevel() && leveltype != DTYPE_TOWN && monsterIdx < MaxMonsters) {
 				Monster &monster = Monsters[monsterIdx];
 				monster.tag(player);
-				if (monster.hitPoints > Fixed26_6::fromInt(0)) {
+				if (monster.hitPoints > 0) {
 					monster.hitPoints -= Fixed26_6::fromRaw(Swap32LE(message.dwDam));
 					if (monster.hitPoints.whole() < 1)
 						monster.hitPoints = Fixed26_6::fromInt(1);

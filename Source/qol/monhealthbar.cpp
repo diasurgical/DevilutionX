@@ -100,7 +100,7 @@ void DrawMonsterHealthBar(const Surface &out)
 	if (monster.hitPoints > monster.maxHitPoints) {
 		multiplier = monster.hitPoints.raw() / monster.maxHitPoints.raw();
 		currLife = monster.hitPoints - monster.maxHitPoints * multiplier;
-		if (currLife == Fixed26_6::fromInt(0) && multiplier > 0) {
+		if (currLife == 0 && multiplier > 0) {
 			multiplier--;
 			currLife = monster.maxHitPoints;
 		}

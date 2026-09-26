@@ -185,7 +185,7 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 			const PlayerSpriteData &spriteData = GetPlayerSpriteDataForClass(player._pClass);
 			Point offset = (player.isOnLevel(0)) ? spriteData.partyOffsetTown : spriteData.partyOffsetDungeon;
 
-			if (player._pHitPoints <= Fixed26_6::fromInt(0) && IsPlayerUnarmed(player))
+			if (player._pHitPoints <= 0 && IsPlayerUnarmed(player))
 				offset = spriteData.partyOffsetDead;
 
 			// Calculate the players portait position
@@ -218,7 +218,7 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 			}
 
 			// Check to see if the player is dead and if so we draw a half transparent red rect over the portrait
-			if (player._pHitPoints <= Fixed26_6::fromInt(0)) {
+			if (player._pHitPoints <= 0) {
 				DrawHalfTransparentRectTo(
 				    frameSubregion,
 				    0, 0,
@@ -230,7 +230,7 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 			// Add to the position before continuing to the next item
 			pos.y += PortraitFrameSize.height;
 
-			if (player._pMaxMana > Fixed26_6::fromInt(0)) {
+			if (player._pMaxMana > 0) {
 				// Get the players remaining mana
 				const int manaTicks = ((player._pMana.raw() * PortraitFrameSize.width) + (player._pMaxMana.raw() / 2)) / player._pMaxMana.raw();
 				const uint8_t manaBarColor = PAL8_BLUE + 3;

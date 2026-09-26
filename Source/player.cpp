@@ -2822,7 +2822,7 @@ void ApplyPlrDamage(DamageType damageType, Player &player, Fixed26_6 dam, int mi
 	if (&player == MyPlayer && !player.hasNoLife()) {
 		lua::OnPlayerTakeDamage(&player, totalDamage.raw(), static_cast<int>(damageType));
 	}
-	if (totalDamage > Fixed26_6::fromInt(0) && player.pManaShield && HasNoneOf(player._pIFlags, ItemSpecialEffect::NoMana)) {
+	if (totalDamage > 0 && player.pManaShield && HasNoneOf(player._pIFlags, ItemSpecialEffect::NoMana)) {
 		const uint8_t manaShieldLevel = player._pSplLvl[static_cast<int8_t>(SpellID::ManaShield)];
 		if (manaShieldLevel > 0) {
 			totalDamage += totalDamage / -player.GetManaShieldDamageReduction();
@@ -2845,7 +2845,7 @@ void ApplyPlrDamage(DamageType damageType, Player &player, Fixed26_6 dam, int mi
 		}
 	}
 
-	if (totalDamage == Fixed26_6::fromInt(0))
+	if (totalDamage == 0)
 		return;
 
 	RedrawComponent(PanelDrawComponent::Health);
@@ -3459,7 +3459,7 @@ void PlayDungMsgs()
 	} else if (!setlevel && currlevel == 16 && !myPlayer._pLvlVisited[16] && (myPlayer.pDungMsgs & DungMsgDiablo) == 0) {
 		for (auto &monster : Monsters) {
 			if (monster.type().type != MT_DIABLO) continue;
-			if (monster.hitPoints > Fixed26_6::fromInt(0)) {
+			if (monster.hitPoints > 0) {
 				sfxdelay = 40;
 				sfxdnum = SfxID::DiabloGreeting;
 				myPlayer.pDungMsgs |= DungMsgDiablo;
