@@ -267,7 +267,7 @@ void snd_init()
 	}
 	const AudioOptions &audioOptions = GetOptions().Audio;
 	SDL_AudioSpec specHint = {};
-	specHint.format = SDL_AUDIO_S16LE;
+	specHint.format = SDL_AUDIO_S16;
 	specHint.channels = *audioOptions.channels;
 	specHint.freq = static_cast<int>(*audioOptions.sampleRate);
 	CurrentMixer = MIX_CreateMixerDevice(audioOptions.device.id(), &specHint);
@@ -278,7 +278,11 @@ void snd_init()
 		return;
 	}
 #else
+#ifdef PS2
+	if (!Aulib::init(*GetOptions().Audio.sampleRate, AUDIO_S16SYS, *GetOptions().Audio.channels, *GetOptions().Audio.bufferSize, *GetOptions().Audio.device)) {
+#else
 	if (!Aulib::init(*GetOptions().Audio.sampleRate, AUDIO_S16, *GetOptions().Audio.channels, *GetOptions().Audio.bufferSize, *GetOptions().Audio.device)) {
+#endif
 		LogError(LogCategory::Audio, "Failed to initialize audio (Aulib::init): {}", SDL_GetError());
 		return;
 	}

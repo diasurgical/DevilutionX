@@ -30,6 +30,10 @@
 #include "controls/touch/event_handlers.h"
 #endif
 
+#ifdef PS2
+#include "controls/devices/game_controller.h"
+#endif
+
 #ifdef __vita__
 #include "diablo.h"
 #include "platform/vita/touch.h"
