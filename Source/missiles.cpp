@@ -109,18 +109,11 @@ namespace {
 
 int AddClassHealingBonus(int hp, HeroClass heroClass, SpellID spellId)
 {
-	switch (heroClass) {
-	case HeroClass::Warrior:
-	case HeroClass::Barbarian:
-		return hp * 2;
-	case HeroClass::Rogue:
-	case HeroClass::Bard:
-		return hp + (hp / 2);
-	case HeroClass::Monk:
-		return spellId == SpellID::HealOther ? hp * 3 : hp * 2;
-	default:
-		return hp;
+	const ClassAttributes &classAttributes = GetClassAttributes(heroClass);
+	if (spellId == SpellID::HealOther) {
+		return hp * classAttributes.healOtherRestoreLife >> 6;
 	}
+	return hp * classAttributes.splRestoreLife >> 6;
 }
 
 int ScaleSpellEffect(int base, int spellLevel)
@@ -1668,10 +1661,8 @@ void AddMana(Missile &missile, AddMissileParameter & /*parameter*/)
 	for (int i = 0; i < missile._mispllvl; i++) {
 		manaAmount += (GenerateRnd(6) + 1) << 6;
 	}
-	if (player._pClass == HeroClass::Sorcerer)
-		manaAmount *= 2;
-	if (player._pClass == HeroClass::Rogue || player._pClass == HeroClass::Bard)
-		manaAmount += manaAmount / 2;
+	const ClassAttributes &classAttributes = GetClassAttributes(player._pClass);
+	manaAmount = manaAmount * classAttributes.splRestoreMana >> 6;
 	player._pMana += manaAmount;
 	player._pMana = std::min(player._pMana, player._pMaxMana);
 	player._pManaBase += manaAmount;
@@ -2468,12 +2459,8 @@ void AddHealing(Missile &missile, AddMissileParameter & /*parameter*/)
 	hp += GenerateRndSum(6, missile._mispllvl) + missile._mispllvl;
 	hp <<= 6;
 
-	if (player._pClass == HeroClass::Warrior || player._pClass == HeroClass::Barbarian || player._pClass == HeroClass::Monk) {
-		hp *= 2;
-	} else if (player._pClass == HeroClass::Rogue || player._pClass == HeroClass::Bard) {
-		hp += hp / 2;
-	}
-
+	const ClassAttributes &classAttributes = GetClassAttributes(player._pClass);
+	hp = hp * classAttributes.splRestoreLife >> 6;
 	player._pHitPoints = std::min(player._pHitPoints + hp, player._pMaxHP);
 	player._pHPBase = std::min(player._pHPBase + hp, player._pMaxHPBase);
 

@@ -1745,10 +1745,8 @@ void Player::RestorePartialLife()
 {
 	const int wholeHitpoints = _pMaxHP >> 6;
 	int l = ((wholeHitpoints / 8) + GenerateRnd(wholeHitpoints / 4)) << 6;
-	if (IsAnyOf(_pClass, HeroClass::Warrior, HeroClass::Barbarian))
-		l *= 2;
-	if (IsAnyOf(_pClass, HeroClass::Rogue, HeroClass::Monk, HeroClass::Bard))
-		l += l / 2;
+	const ClassAttributes &classAttributes = GetClassAttributes(_pClass);
+	l = l * classAttributes.itmRestoreLife >> 6;
 	_pHitPoints = std::min(_pHitPoints + l, _pMaxHP);
 	_pHPBase = std::min(_pHPBase + l, _pMaxHPBase);
 }
@@ -1757,10 +1755,8 @@ void Player::RestorePartialMana()
 {
 	const int wholeManaPoints = _pMaxMana >> 6;
 	int l = ((wholeManaPoints / 8) + GenerateRnd(wholeManaPoints / 4)) << 6;
-	if (_pClass == HeroClass::Sorcerer)
-		l *= 2;
-	if (IsAnyOf(_pClass, HeroClass::Rogue, HeroClass::Monk, HeroClass::Bard))
-		l += l / 2;
+	const ClassAttributes &classAttributes = GetClassAttributes(_pClass);
+	l = l * classAttributes.itmRestoreMana >> 6;
 	if (HasNoneOf(_pIFlags, ItemSpecialEffect::NoMana)) {
 		_pMana = std::min(_pMana + l, _pMaxMana);
 		_pManaBase = std::min(_pManaBase + l, _pMaxManaBase);

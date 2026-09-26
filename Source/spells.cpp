@@ -131,11 +131,8 @@ int GetManaAmount(const Player &player, SpellID sn)
 	ma = std::max(ma, 0);
 	ma <<= 6;
 
-	if (gbIsHellfire && player._pClass == HeroClass::Sorcerer) {
-		ma /= 2;
-	} else if (player._pClass == HeroClass::Rogue || player._pClass == HeroClass::Monk || player._pClass == HeroClass::Bard) {
-		ma -= ma / 4;
-	}
+	const ClassAttributes &classAttributes = GetClassAttributes(player._pClass);
+	ma = ma * classAttributes.manaCost >> 6;
 
 	if (GetSpellData(sn).sMinMana > ma >> 6) {
 		ma = GetSpellData(sn).sMinMana << 6;
@@ -291,14 +288,8 @@ void DoHealOther(const Player &caster, Player &target)
 	for (int i = 0; i < caster.GetSpellLevel(SpellID::HealOther); i++) {
 		hp += (GenerateRnd(6) + 1) << 6;
 	}
-
-	if (caster._pClass == HeroClass::Warrior || caster._pClass == HeroClass::Barbarian) {
-		hp *= 2;
-	} else if (caster._pClass == HeroClass::Rogue || caster._pClass == HeroClass::Bard) {
-		hp += hp / 2;
-	} else if (caster._pClass == HeroClass::Monk) {
-		hp *= 3;
-	}
+	const ClassAttributes &classAttributes = GetClassAttributes(caster._pClass);
+	hp = hp * classAttributes.healOtherRestoreLife >> 6;
 
 	target._pHitPoints = std::min(target._pHitPoints + hp, target._pMaxHP);
 	target._pHPBase = std::min(target._pHPBase + hp, target._pMaxHPBase);
