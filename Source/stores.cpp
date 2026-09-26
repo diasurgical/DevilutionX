@@ -60,16 +60,6 @@ StaticVector<Item, NumWitchItemsHf> WitchItems;
 int BoyItemLevel;
 Item BoyItem;
 
-/** Remember currently selected text line from TextLine while displaying a dialog */
-int OldTextLine;
-/** Currently selected text line from TextLine */
-int CurrentTextLine;
-/** Remember last scroll position */
-int OldScrollPos;
-/** Scroll position */
-int ScrollPos;
-/** Remember current store while displaying a dialog */
-TalkID OldActiveStore;
 /** Temporary item used to hold the item being traded */
 Item TempItem;
 
@@ -138,51 +128,33 @@ void ClearTownerDialogOptions()
 	std::fill(std::begin(CurrentExtraOptionIndices), std::end(CurrentExtraOptionIndices), std::nullopt);
 }
 
-namespace {
+/** Text lines */
+STextStruct TextLine[NumStoreLines];
 
 /** The current towner being interacted with */
 _talker_id TownerId;
+
+/** Remember currently selected text line from TextLine while displaying a dialog */
+int OldTextLine;
+
+/** Remember current store while displaying a dialog */
+TalkID OldActiveStore;
+
+/** Remember last scroll position */
+int OldScrollPos;
+/** Scroll position */
+int ScrollPos;
+
+/** Currently selected text line from TextLine */
+int CurrentTextLine;
+
+namespace {
 
 /** Is the current dialog full size */
 bool IsTextFullSize;
 
 /** Number of text lines in the current dialog */
 int NumTextLines;
-
-struct STextStruct {
-	enum Type : uint8_t {
-		Label,
-		Divider,
-		Selectable,
-	};
-
-	std::string text;
-	int _sval;
-	int y;
-	UiFlags flags;
-	Type type;
-	uint8_t _sx;
-	uint8_t _syoff;
-	int cursId;
-	bool cursIndent;
-
-	[[nodiscard]] bool isDivider() const
-	{
-		return type == Divider;
-	}
-	[[nodiscard]] bool isSelectable() const
-	{
-		return type == Selectable;
-	}
-
-	[[nodiscard]] bool hasText() const
-	{
-		return !text.empty();
-	}
-};
-
-/** Text lines */
-STextStruct TextLine[NumStoreLines];
 
 /** Whether to render the player's gold amount in the top left */
 bool RenderGold;
@@ -454,11 +426,6 @@ void StartSmith()
 void ScrollSmithBuy(int idx)
 {
 	ScrollVendorStore(SmithItems, static_cast<int>(SmithItems.size()), idx);
-}
-
-uint32_t TotalPlayerGold()
-{
-	return MyPlayer->_pGold + Stash.gold;
 }
 
 void StartSmithBuy()
@@ -1409,20 +1376,6 @@ void SmithPremiumBuyEnter()
 
 	TempItem = PremiumItems[idx];
 	StartStore(TalkID::Confirm);
-}
-
-bool StoreGoldFit(Item &item)
-{
-	const int cost = item._iIvalue;
-
-	const Size itemSize = GetInventorySize(item);
-	const int itemRoomForGold = itemSize.width * itemSize.height * MaxGold;
-
-	if (cost <= itemRoomForGold) {
-		return true;
-	}
-
-	return cost <= itemRoomForGold + RoomForGold();
 }
 
 /**
@@ -2857,10 +2810,29 @@ bool IsPlayerInStore()
 	return ActiveStore != TalkID::None;
 }
 
+uint32_t TotalPlayerGold()
+{
+	return MyPlayer->_pGold + Stash.gold;
+}
+
 // TODO: Change `_iIvalue` to be unsigned instead of passing `int` here.
 bool PlayerCanAfford(int price)
 {
 	return TotalPlayerGold() >= static_cast<uint32_t>(price);
+}
+
+bool StoreGoldFit(Item& item)
+{
+	const int cost = item._iIvalue;
+
+	const Size itemSize = GetInventorySize(item);
+	const int itemRoomForGold = itemSize.width * itemSize.height * MaxGold;
+
+	if (cost <= itemRoomForGold) {
+		return true;
+	}
+
+	return cost <= itemRoomForGold + RoomForGold();
 }
 
 bool SmithWillBuy(const Item &item)
