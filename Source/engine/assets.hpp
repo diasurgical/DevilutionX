@@ -309,6 +309,7 @@ extern DVL_API_FOR_TEST std::vector<std::string> OverridePaths;
 constexpr int MainMpqPriority = 1000;
 constexpr int DevilutionXMpqPriority = 9000;
 constexpr int LangMpqPriority = 9100;
+constexpr int VoiceLangMpqPriority = 9150;
 constexpr int FontMpqPriority = 9200;
 extern bool HasHellfireMpq;
 extern bool IsAssetIntegrityViolated;
@@ -324,6 +325,7 @@ extern bool IsAssetIntegrityViolated;
 
 void LoadCoreArchives();
 void LoadLanguageArchive();
+void LoadVoiceLanguageArchive();
 void LoadGameArchives();
 void LoadHellfireArchives();
 void UnloadModArchives();
@@ -344,6 +346,7 @@ void LoadModArchives(std::span<const std::string_view> modnames);
 [[nodiscard]] inline bool HaveMainData() { return MpqArchives.find(MainMpqPriority) != MpqArchives.end(); }
 #endif
 [[nodiscard]] inline bool HaveExtraFonts() { return MpqArchives.find(FontMpqPriority) != MpqArchives.end(); }
+[[nodiscard]] bool VoiceMpqSeparationActive();
 [[nodiscard]] inline bool HaveHellfire() { return HasHellfireMpq; }
 [[nodiscard]] inline bool HaveIntro() { return FindAsset("gendata\\diablo1.smk").ok(); }
 [[nodiscard]] inline bool HaveFullMusic() { return FindAsset("music\\dintro.wav").ok() || FindAsset("music\\dintro.mp3").ok(); }

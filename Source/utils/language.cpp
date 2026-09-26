@@ -346,6 +346,11 @@ std::string_view GetLanguageCode()
 	return *GetOptions().Language.code;
 }
 
+std::string_view GetVoiceLanguageCode()
+{
+	return *GetOptions().Language.voiceCode;
+}
+
 void LanguageInitialize()
 {
 	translation = { {}, {} };
