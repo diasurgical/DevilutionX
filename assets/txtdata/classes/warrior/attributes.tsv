@@ -17,6 +17,12 @@ chrLife	2
 chrMana	1
 itmLife	2
 itmMana	1
+manaCost	1
+itmRestoreLife	2
+itmRestoreMana	1
+splRestoreLife	2
+splRestoreMana	1
+healOtherRestoreLife	2
 baseMagicToHit	50
 baseMeleeToHit	70
 baseRangedToHit	60

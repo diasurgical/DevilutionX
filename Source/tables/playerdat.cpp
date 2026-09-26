@@ -193,6 +193,12 @@ void LoadClassData(std::string_view classPath, ClassAttributes &attributes, Play
 	reader.readDecimal("chrMana", attributes.chrMana);
 	reader.readDecimal("itmLife", attributes.itmLife);
 	reader.readDecimal("itmMana", attributes.itmMana);
+	reader.readDecimal("manaCost", attributes.manaCost);
+	reader.readDecimal("itmRestoreLife", attributes.itmRestoreLife);
+	reader.readDecimal("itmRestoreMana", attributes.itmRestoreMana);
+	reader.readDecimal("splRestoreLife", attributes.splRestoreLife);
+	reader.readDecimal("splRestoreMana", attributes.splRestoreMana);
+	reader.readDecimal("healOtherRestoreLife", attributes.healOtherRestoreLife);
 	reader.readInt("baseMagicToHit", combat.baseMagicToHit);
 	reader.readInt("baseMeleeToHit", combat.baseMeleeToHit);
 	reader.readInt("baseRangedToHit", combat.baseRangedToHit);
