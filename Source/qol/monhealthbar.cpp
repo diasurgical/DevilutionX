@@ -95,12 +95,12 @@ void DrawMonsterHealthBar(const Surface &out)
 	const int border = 3;
 
 	int multiplier = 0;
-	int currLife = monster.hitPoints;
+	Fixed26_6 currLife = monster.hitPoints;
 	// lifestealing monsters can reach HP exceeding their max
 	if (monster.hitPoints > monster.maxHitPoints) {
-		multiplier = monster.hitPoints / monster.maxHitPoints;
+		multiplier = monster.hitPoints.raw() / monster.maxHitPoints.raw();
 		currLife = monster.hitPoints - monster.maxHitPoints * multiplier;
-		if (currLife == 0 && multiplier > 0) {
+		if (currLife == Fixed26_6::fromInt(0) && multiplier > 0) {
 			multiplier--;
 			currLife = monster.maxHitPoints;
 		}
@@ -108,7 +108,7 @@ void DrawMonsterHealthBar(const Surface &out)
 
 	RenderClxSprite(out, (*healthBox)[0], position);
 	DrawHalfTransparentRectTo(out, position.x + border, position.y + border, width - (border * 2), height - (border * 2));
-	const int barProgress = (barWidth * currLife) / monster.maxHitPoints;
+	const int barProgress = (barWidth * currLife.raw()) / monster.maxHitPoints.raw();
 	if (barProgress != 0) {
 		RenderClxSprite(
 		    out.subregion(position.x + border + 1, position.y + border + 1, barProgress, height - (border * 2) - 2),

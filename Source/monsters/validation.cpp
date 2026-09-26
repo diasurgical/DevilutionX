@@ -18,7 +18,7 @@ namespace {
 bool IsEnemyValid(size_t enemyId, bool checkMonsterTable)
 {
 	if (enemyId < MaxMonsters)
-		return !checkMonsterTable || Monsters[enemyId].hitPoints > 0;
+		return !checkMonsterTable || Monsters[enemyId].hitPoints > Fixed26_6::fromInt(0);
 	const size_t playerId = enemyId - MaxMonsters;
 	return playerId < Players.size() && Players[playerId].plractive;
 }

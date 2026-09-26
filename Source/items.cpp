@@ -824,17 +824,17 @@ int SaveItemPower(const Player &player, Item &item, ItemPower &power)
 		item._iPLGetHit -= r;
 		break;
 	case IPL_LIFE:
-		item._iPLHP += r << 6;
+		item._iPLHP += Fixed10_6::fromInt(r);
 		break;
 	case IPL_LIFE_CURSE:
-		item._iPLHP -= r << 6;
+		item._iPLHP -= Fixed10_6::fromInt(r);
 		break;
 	case IPL_MANA:
-		item._iPLMana += r << 6;
+		item._iPLMana += Fixed10_6::fromInt(r);
 		RedrawComponent(PanelDrawComponent::Mana);
 		break;
 	case IPL_MANA_CURSE:
-		item._iPLMana -= r << 6;
+		item._iPLMana -= Fixed10_6::fromInt(r);
 		RedrawComponent(PanelDrawComponent::Mana);
 		break;
 	case IPL_DUR: {
@@ -1015,12 +1015,12 @@ int SaveItemPower(const Player &player, Item &item, ItemPower &power)
 		item._iDamAcFlags |= ItemSpecialEffectHf::ACAgainstUndead;
 		break;
 	case IPL_MANATOLIFE: {
-		const int portion = ((player._pMaxManaBase >> 6) * 50 / 100) << 6;
+		const Fixed10_6 portion = Fixed10_6::fromInt(player._pMaxManaBase.whole() * 50 / 100);
 		item._iPLMana -= portion;
 		item._iPLHP += portion;
 	} break;
 	case IPL_LIFETOMANA: {
-		const int portion = ((player._pMaxHPBase >> 6) * 40 / 100) << 6;
+		const Fixed10_6 portion = Fixed10_6::fromInt(player._pMaxHPBase.whole() * 40 / 100);
 		item._iPLHP -= portion;
 		item._iPLMana += portion;
 	} break;
@@ -2632,23 +2632,23 @@ void CalcPlrResistances(Player &player, ItemSpecialEffect iflgs, int fire, int l
 	player._pLghtResist = std::clamp(lightning, 0, MaxResistance);
 }
 
-void CalcPlrLifeMana(Player &player, int vitality, int magic, int life, int mana)
+void CalcPlrLifeMana(Player &player, int vitality, int magic, Fixed26_6 life, Fixed26_6 mana)
 {
 	const ClassAttributes &playerClassAttributes = player.getClassAttributes();
-	vitality = (vitality * playerClassAttributes.itmLife) >> 6;
-	life += (vitality << 6);
+	vitality = (Fixed26_6(playerClassAttributes.itmLife) * vitality).whole();
+	life += Fixed26_6::fromInt(vitality);
 
-	magic = (magic * playerClassAttributes.itmMana) >> 6;
-	mana += (magic << 6);
+	magic = (Fixed26_6(playerClassAttributes.itmMana) * magic).whole();
+	mana += Fixed26_6::fromInt(magic);
 
-	player._pMaxHP = std::clamp(life + player._pMaxHPBase, 1 << 6, 2000 << 6);
+	player._pMaxHP = std::clamp(life + player._pMaxHPBase, Fixed26_6::fromInt(1), Fixed26_6::fromInt(2000));
 	player._pHitPoints = std::min(life + player._pHPBase, player._pMaxHP);
 
 	if (&player == MyPlayer && player.hasNoLife()) {
-		SetPlayerHitPoints(player, 0);
+		SetPlayerHitPoints(player, Fixed26_6::fromInt(0));
 	}
 
-	player._pMaxMana = std::clamp(mana + player._pMaxManaBase, 0, 2000 << 6);
+	player._pMaxMana = std::clamp(mana + player._pMaxManaBase, Fixed26_6::fromInt(0), Fixed26_6::fromInt(2000));
 	player._pMana = std::min(mana + player._pManaBase, player._pMaxMana);
 }
 
@@ -2818,8 +2818,8 @@ void CalcPlrItemVals(Player &player, bool loadgfx)
 
 	int lightRadius = 10;
 
-	int life = 0;
-	int mana = 0;
+	Fixed26_6 life = Fixed26_6::fromInt(0);
+	Fixed26_6 mana = Fixed26_6::fromInt(0);
 
 	int8_t splLvlAdd = 0;
 	int targetAc = 0;
@@ -2856,8 +2856,8 @@ void CalcPlrItemVals(Player &player, bool loadgfx)
 				damMod += item._iPLDamMod;
 				getHit += item._iPLGetHit;
 				lightRadius += item._iPLLight;
-				life += item._iPLHP;
-				mana += item._iPLMana;
+				life += Fixed26_6(item._iPLHP);
+				mana += Fixed26_6(item._iPLMana);
 				splLvlAdd += item._iSplLvlAdd;
 				targetAc += item._iPLEnAc;
 				minFireDam += item._iFMinDam;
@@ -3969,10 +3969,10 @@ bool DoOil(Player &player, int cii)
 		return FormatRuntime(_("{:+d} damage from enemies"), item._iPLGetHit);
 	case IPL_LIFE:
 	case IPL_LIFE_CURSE:
-		return FormatRuntime(_("Hit Points: {:+d}"), item._iPLHP >> 6);
+		return FormatRuntime(_("Hit Points: {:+d}"), item._iPLHP.whole());
 	case IPL_MANA:
 	case IPL_MANA_CURSE:
-		return FormatRuntime(_("Mana: {:+d}"), item._iPLMana >> 6);
+		return FormatRuntime(_("Mana: {:+d}"), item._iPLMana.whole());
 	case IPL_DUR:
 		return _("high durability");
 	case IPL_DUR_CURSE:
@@ -4295,9 +4295,9 @@ void UseItem(Player &player, item_misc_id mid, SpellID spellID, int spellFrom)
 			NetSendCmdParam2(true, CMD_CHANGE_SPELL_LEVEL, static_cast<uint16_t>(spellID), newSpellLevel);
 		}
 		if (HasNoneOf(player._pIFlags, ItemSpecialEffect::NoMana)) {
-			player._pMana += GetSpellData(spellID).sManaCost << 6;
+			player._pMana += Fixed26_6::fromInt(GetSpellData(spellID).sManaCost);
 			player._pMana = std::min(player._pMana, player._pMaxMana);
-			player._pManaBase += GetSpellData(spellID).sManaCost << 6;
+			player._pManaBase += Fixed26_6::fromInt(GetSpellData(spellID).sManaCost);
 			player._pManaBase = std::min(player._pManaBase, player._pMaxManaBase);
 		}
 		if (&player == MyPlayer) {

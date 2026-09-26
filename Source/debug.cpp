@@ -60,7 +60,7 @@ void PrintDebugMonster(const Monster &monster)
 	EventPlrMsg(StrCat(
 	                "Monster ", static_cast<int>(monster.getId()), " = ", monster.name(),
 	                "\nX = ", monster.position.tile.x, ", Y = ", monster.position.tile.y,
-	                "\nEnemy = ", monster.enemy, ", HP = ", monster.hitPoints,
+	                "\nEnemy = ", monster.enemy, ", HP = ", monster.hitPoints.raw(),
 	                "\nMode = ", static_cast<int>(monster.mode), ", Var1 = ", monster.var1),
 	    UiFlags::ColorWhite);
 

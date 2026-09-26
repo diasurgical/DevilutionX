@@ -169,10 +169,10 @@ void NetReceivePlayerData(TPkt *pkt)
 	pkt->hdr.py = myPlayer.position.tile.y;
 	pkt->hdr.targx = target.x;
 	pkt->hdr.targy = target.y;
-	pkt->hdr.php = Swap32LE(myPlayer._pHitPoints);
-	pkt->hdr.pmhp = Swap32LE(myPlayer._pMaxHP);
-	pkt->hdr.mana = Swap32LE(myPlayer._pMana);
-	pkt->hdr.maxmana = Swap32LE(myPlayer._pMaxMana);
+	pkt->hdr.php = Swap32LE(myPlayer._pHitPoints.raw());
+	pkt->hdr.pmhp = Swap32LE(myPlayer._pMaxHP.raw());
+	pkt->hdr.mana = Swap32LE(myPlayer._pMana.raw());
+	pkt->hdr.maxmana = Swap32LE(myPlayer._pMaxMana.raw());
 	pkt->hdr.bstr = myPlayer._pBaseStr;
 	pkt->hdr.bmag = myPlayer._pBaseMag;
 	pkt->hdr.bdex = myPlayer._pBaseDex;
@@ -358,10 +358,10 @@ void SyncPacketHeaderData(Player &player, const TPktHdr &pkt)
 	player.position.last = syncPosition;
 	if (&player != MyPlayer) {
 		assert(gbBufferMsgs != 2);
-		player._pHitPoints = Swap32LE(pkt.php);
-		player._pMaxHP = Swap32LE(pkt.pmhp);
-		player._pMana = Swap32LE(pkt.mana);
-		player._pMaxMana = Swap32LE(pkt.maxmana);
+		player._pHitPoints = Fixed26_6::fromRaw(Swap32LE(pkt.php));
+		player._pMaxHP = Fixed26_6::fromRaw(Swap32LE(pkt.pmhp));
+		player._pMana = Fixed26_6::fromRaw(Swap32LE(pkt.mana));
+		player._pMaxMana = Fixed26_6::fromRaw(Swap32LE(pkt.maxmana));
 		const bool cond = gbBufferMsgs == 1;
 		player._pBaseStr = pkt.bstr;
 		player._pBaseMag = pkt.bmag;
