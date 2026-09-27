@@ -130,6 +130,53 @@ public:
 		return *this;
 	}
 
+	/**
+	 * @brief Multiplies by another fixed point value like `operator*`, but without the extra wide intermediate.
+	 *
+	 * Computes entirely in `Promoted` (the type `raw() * factor.raw()` would naturally have), with
+	 * no wider scratch type. Only use this where the caller can already show that the pre-rescale
+	 * product of the two raw values fits in `Promoted` - otherwise the result is silently wrong, not
+	 * just imprecise. Prefer `operator*` unless that guarantee holds and the wider intermediate's
+	 * cost (e.g. a 64-bit multiply on a 32-bit target) actually matters here.
+	 */
+	template <typename OtherStorageT>
+	[[nodiscard]] DVL_ALWAYS_INLINE constexpr auto multiplyWithoutWidening(FixedPoint<OtherStorageT, FractionalBits> factor) const
+	{
+		using Promoted = decltype(raw_ * factor.raw());
+		const Promoted product = static_cast<Promoted>(raw_) * static_cast<Promoted>(factor.raw());
+		return FixedPoint<Promoted, FractionalBits>::fromRaw(static_cast<Promoted>(product >> FractionalBits));
+	}
+
+	/**
+	 * @brief Divides by another fixed point value, rescaling the result and narrowing it back to this type.
+	 */
+	template <typename OtherStorageT>
+	DVL_ALWAYS_INLINE constexpr FixedPoint &operator/=(FixedPoint<OtherStorageT, FractionalBits> divisor)
+	{
+		using Promoted = decltype(raw_ / divisor.raw());
+		using Wide = fixed_point_detail::DoubleWidth<Promoted>;
+		const Wide dividend = static_cast<Wide>(raw_) << FractionalBits;
+		raw_ = static_cast<StorageT>(dividend / static_cast<Wide>(divisor.raw()));
+		return *this;
+	}
+
+	/**
+	 * @brief Divides by another fixed point value like `operator/`, but without the extra wide intermediate.
+	 *
+	 * Computes entirely in `Promoted` (the type `raw() / divisor.raw()` would naturally have), with
+	 * no wider scratch type. Only use this where the caller can already show that this value's raw
+	 * value shifted left by `FractionalBits` fits in `Promoted` - otherwise the result is silently
+	 * wrong, not just imprecise. Prefer `operator/` unless that guarantee holds and the wider
+	 * intermediate's cost (e.g. a 64-bit division on a 32-bit target) actually matters here.
+	 */
+	template <typename OtherStorageT>
+	[[nodiscard]] DVL_ALWAYS_INLINE constexpr auto divideWithoutWidening(FixedPoint<OtherStorageT, FractionalBits> divisor) const
+	{
+		using Promoted = decltype(raw_ / divisor.raw());
+		const Promoted dividend = static_cast<Promoted>(raw_) << FractionalBits;
+		return FixedPoint<Promoted, FractionalBits>::fromRaw(static_cast<Promoted>(dividend / static_cast<Promoted>(divisor.raw())));
+	}
+
 	template <typename OtherStorageT>
 	[[nodiscard]] DVL_ALWAYS_INLINE constexpr bool operator==(FixedPoint<OtherStorageT, FractionalBits> other) const { return raw_ == other.raw(); }
 	template <typename OtherStorageT>
@@ -195,6 +242,22 @@ template <typename StorageT1, typename StorageT2, unsigned FractionalBits>
 	using Wide = fixed_point_detail::DoubleWidth<Promoted>;
 	const Wide product = static_cast<Wide>(a.raw()) * static_cast<Wide>(b.raw());
 	return FixedPoint<Promoted, FractionalBits>::fromRaw(static_cast<Promoted>(product >> FractionalBits));
+}
+
+/**
+ * @brief Divides two fixed point values, rescaling the result.
+ *
+ * The result is backed by whatever storage type dividing the two raw storage types would
+ * naturally promote to (see the class documentation), computed using an even wider intermediate
+ * so scaling the dividend up before dividing doesn't overflow.
+ */
+template <typename StorageT1, typename StorageT2, unsigned FractionalBits>
+[[nodiscard]] DVL_ALWAYS_INLINE constexpr auto operator/(FixedPoint<StorageT1, FractionalBits> a, FixedPoint<StorageT2, FractionalBits> b)
+{
+	using Promoted = decltype(a.raw() / b.raw());
+	using Wide = fixed_point_detail::DoubleWidth<Promoted>;
+	const Wide dividend = static_cast<Wide>(a.raw()) << FractionalBits;
+	return FixedPoint<Promoted, FractionalBits>::fromRaw(static_cast<Promoted>(dividend / static_cast<Wide>(b.raw())));
 }
 
 template <typename StorageT, unsigned FractionalBits>

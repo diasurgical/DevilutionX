@@ -95,6 +95,36 @@ TEST(FixedPointTest, MultiplyByFixedPointDoesNotOverflowWideStorage)
 	EXPECT_EQ(large * doubled, Fixed26_6::fromInt(4000));
 }
 
+TEST(FixedPointTest, MultiplyWithoutWideningMatchesOperatorStarWhenItFits)
+{
+	const Fixed10_6 half = Fixed10_6::fromRaw(32); // 0.5
+	EXPECT_EQ(Fixed10_6::fromInt(10).multiplyWithoutWidening(half), Fixed10_6::fromInt(5));
+	EXPECT_EQ(Fixed10_6::fromInt(3).multiplyWithoutWidening(Fixed10_6::fromInt(4)), Fixed10_6::fromInt(12));
+}
+
+TEST(FixedPointTest, DivideByFixedPoint)
+{
+	const Fixed10_6 half = Fixed10_6::fromRaw(32); // 0.5
+	EXPECT_EQ(Fixed10_6::fromInt(10) / half, Fixed10_6::fromInt(20));
+	EXPECT_EQ(Fixed10_6::fromInt(12) / Fixed10_6::fromInt(4), Fixed10_6::fromInt(3));
+}
+
+TEST(FixedPointTest, DivideByFixedPointDoesNotOverflowWideStorage)
+{
+	const Fixed26_6 large = Fixed26_6::fromInt(2000);
+	const Fixed26_6 tiny = Fixed26_6::fromRaw(1); // smallest positive representable value
+	// Scaling `large` up by 2^FractionalBits before dividing would overflow a narrower
+	// intermediate; this only works out to fromInt(2000 * 64) if the wide intermediate holds.
+	EXPECT_EQ(large / tiny, Fixed26_6::fromInt(2000 * 64));
+}
+
+TEST(FixedPointTest, DivideWithoutWideningMatchesOperatorSlashWhenItFits)
+{
+	const Fixed10_6 half = Fixed10_6::fromRaw(32); // 0.5
+	EXPECT_EQ(Fixed10_6::fromInt(10).divideWithoutWidening(half), Fixed10_6::fromInt(20));
+	EXPECT_EQ(Fixed10_6::fromInt(12).divideWithoutWidening(Fixed10_6::fromInt(4)), Fixed10_6::fromInt(3));
+}
+
 TEST(FixedPointTest, WideningConversion)
 {
 	const Fixed10_6 narrow = Fixed10_6::fromInt(5);
