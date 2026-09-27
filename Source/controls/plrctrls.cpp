@@ -270,10 +270,10 @@ bool CanTargetMonster(const Monster &monster)
 	return dMonster[mx][my] != 0;
 }
 
-void FindRangedTarget()
+void FindTarget()
 {
-	int rotations = 0;
-	int distance = 0;
+	int rotations = INT_MAX;
+	int distance = INT_MAX;
 	bool canTalk = false;
 
 	for (size_t i = 0; i < ActiveMonsterCount; i++) {
@@ -288,6 +288,10 @@ void FindRangedTarget()
 			continue;
 		const int newDdistance = GetDistanceRanged(monster.position.future);
 		const int newRotations = GetRotaryDistance(monster.position.future);
+		if (newRotations > 1) {
+			// do not target an enemy the player is not facing
+			continue;
+		}
 		if (pcursmonst != -1 && canTalk == newCanTalk) {
 			if (distance < newDdistance)
 				continue;
@@ -301,84 +305,9 @@ void FindRangedTarget()
 	}
 }
 
-void FindMeleeTarget()
-{
-	bool visited[MAXDUNX][MAXDUNY] = { {} };
-	int maxSteps = 25; // Max steps for FindPath is 25
-	int rotations = 0;
-	bool canTalk = false;
-
-	struct SearchNode {
-		int x, y;
-		int steps;
-	};
-	std::list<SearchNode> queue;
-
-	const Player &myPlayer = *MyPlayer;
-
-	{
-		const int startX = myPlayer.position.future.x;
-		const int startY = myPlayer.position.future.y;
-		visited[startX][startY] = true;
-		queue.push_back({ startX, startY, 0 });
-	}
-
-	while (!queue.empty()) {
-		const SearchNode node = queue.front();
-		queue.pop_front();
-
-		for (auto pathDir : PathDirs) {
-			const int dx = node.x + pathDir.deltaX;
-			const int dy = node.y + pathDir.deltaY;
-
-			if (visited[dx][dy])
-				continue; // already visisted
-
-			if (node.steps > maxSteps) {
-				visited[dx][dy] = true;
-				continue;
-			}
-
-			if (!PosOkPlayer(myPlayer, { dx, dy })) {
-				visited[dx][dy] = true;
-
-				if (dMonster[dx][dy] != 0) {
-					const int mi = std::abs(dMonster[dx][dy]) - 1;
-					const Monster &monster = Monsters[mi];
-					if (CanTargetMonster(monster)) {
-						const bool newCanTalk = CanTalkToMonst(monster);
-						if (pcursmonst != -1 && !canTalk && newCanTalk)
-							continue;
-						const int newRotations = GetRotaryDistance({ dx, dy });
-						if (pcursmonst != -1 && canTalk == newCanTalk && rotations < newRotations)
-							continue;
-						rotations = newRotations;
-						canTalk = newCanTalk;
-						pcursmonst = mi;
-						if (!canTalk)
-							maxSteps = node.steps; // Monsters found, cap search to current steps
-					}
-				}
-
-				continue;
-			}
-
-			if (CanStep({ node.x, node.y }, { dx, dy })) {
-				queue.push_back({ dx, dy, node.steps + 1 });
-				visited[dx][dy] = true;
-			}
-		}
-	}
-}
-
 void CheckMonstersNearby()
 {
-	if (MyPlayer->UsesRangedWeapon() || HasRangedSpell()) {
-		FindRangedTarget();
-		return;
-	}
-
-	FindMeleeTarget();
+	FindTarget();
 }
 
 void CheckPlayerNearby()
