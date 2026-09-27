@@ -282,7 +282,10 @@ bool TrySelectPixelBased(Point tile)
 		// Columns
 		Displacement ret = Displacement(Direction::East) * renderingPoint.x;
 		// Rows
-		ret += Displacement(Direction::South) * renderingPoint.y / 2;
+		// Simply dividing by 2 would produce the same result for both 1 and -1.
+		// Instead, pick the nearest even number that is less than y, then divide by 2.
+		const int evenY = renderingPoint.y - (renderingPoint.y & 1);
+		ret += Displacement(Direction::South) * evenY / 2;
 		if ((renderingPoint.y & 1) == 1)
 			ret.deltaY += 1;
 		return ret;
