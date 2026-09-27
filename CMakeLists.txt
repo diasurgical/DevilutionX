@@ -670,6 +670,9 @@ if(CPACK AND (APPLE OR BUILD_ASSETS_MPQ OR SRC_DIST))
     string(TOLOWER ${PROJECT_NAME} project_name)
     set(CPACK_PACKAGE_NAME ${project_name})
     set(CPACK_GENERATOR "7Z")
+    set(CPACK_COMPONENTS_GROUPING ALL_COMPONENTS_IN_ONE)
+    set(CPACK_PROJECT_CONFIG_FILE "${CMAKE_BINARY_DIR}/CPackProjectConfig.cmake")
+    configure_file("${PROJECT_SOURCE_DIR}/CMake/CPackProjectConfig.cmake.in" "${CPACK_PROJECT_CONFIG_FILE}" @ONLY)
     # Common *nix files
     set(CPACK_STRIP_FILES TRUE)
     install(TARGETS ${BIN_TARGET} DESTINATION bin)
@@ -712,7 +715,18 @@ if(CPACK AND (APPLE OR BUILD_ASSETS_MPQ OR SRC_DIST))
       RENAME "${project_name}.metainfo.xml"
     )
     if(DISCORD_SHARED_LIB)
-      install(FILES "${DISCORD_SHARED_LIB}" DESTINATION "lib")
+      include(CPackComponent)
+      cpack_add_component(DISCORD_SHARED_LIB HIDDEN)
+      cpack_add_component(DISCORD_SHARED_LIB64 HIDDEN DISABLED)
+
+      install(FILES "${DISCORD_SHARED_LIB}"
+        DESTINATION "lib"
+        COMPONENT DISCORD_SHARED_LIB)
+
+      install(FILES "${DISCORD_SHARED_LIB}"
+        DESTINATION "lib64"
+        COMPONENT DISCORD_SHARED_LIB64
+        EXCLUDE_FROM_ALL)
     endif()
 
     # -G DEB
@@ -730,6 +744,7 @@ if(CPACK AND (APPLE OR BUILD_ASSETS_MPQ OR SRC_DIST))
     find_program(RPMBUILD rpmbuild)
     if(RPMBUILD)
       list(APPEND CPACK_GENERATOR "RPM")
+      set(CPACK_RPM_COMPONENT_INSTALL ON)
     endif()
     find_program(DPKG dpkg)
     if(DPKG)

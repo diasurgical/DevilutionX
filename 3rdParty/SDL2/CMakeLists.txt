@@ -22,6 +22,11 @@ if(TARGET_PLATFORM STREQUAL "dos")
     URL https://github.com/diasurgical/SDL/archive/20b47a62a12f0c7be4052fb5b32eb21d709d6f06.tar.gz
     URL_HASH MD5=6e77a1d1a79d7f0dd6231b39515a341f
   )
+elseif(AMIGA)
+  FetchContent_Declare(SDL2
+    URL https://github.com/diasurgical/SDL/archive/11b221d7309208b8a4724b1ae2c1c53cfb4513c3.tar.gz
+    URL_HASH MD5=9aeaa9f187d6b20c6927838f26fc6baf
+  )
 else()
   FetchContent_Declare(SDL2
     URL https://github.com/libsdl-org/SDL/releases/download/release-2.32.8/SDL2-2.32.8.tar.gz
