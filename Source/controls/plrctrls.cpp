@@ -313,8 +313,8 @@ void CheckMonstersNearby()
 void CheckPlayerNearby()
 {
 	int newDdistance;
-	int rotations = 0;
-	int distance = 0;
+	int rotations = 4;
+	int distance = 25;
 
 	if (pcursmonst != -1)
 		return;
@@ -346,6 +346,10 @@ void CheckPlayerNearby()
 		if (PlayerUnderCursor != nullptr && distance < newDdistance)
 			continue;
 		const int newRotations = GetRotaryDistance(player.position.future);
+		if (newRotations > 1 && newDdistance > 1) {
+			// do not target a distant enemy the player is not facing
+			continue;
+		}
 		if (PlayerUnderCursor != nullptr && distance == newDdistance && rotations < newRotations)
 			continue;
 
@@ -368,8 +372,8 @@ void FindActor()
 
 void FindTrigger()
 {
-	int rotations = 0;
-	int distance = 0;
+	int rotations = 4;
+	int distance = 25;
 
 	if (pcursitem != -1 || ObjectUnderCursor != nullptr)
 		return; // Prefer showing items/objects over triggers (use of cursm* conflicts)
