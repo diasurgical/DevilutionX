@@ -19,6 +19,7 @@
 #include "engine/surface.hpp"
 #include "game_mode.hpp"
 #include "items.h"
+#include "towners.h"
 #include "utils/attributes.h"
 #include "utils/static_vector.hpp"
 
@@ -40,6 +41,41 @@ constexpr int NumWitchItemsHf = 24;
 constexpr int NumWitchPinnedItems = 3;
 
 constexpr int NumStoreLines = 104;
+
+struct STextStruct {
+	enum Type : uint8_t {
+		Label,
+		Divider,
+		Selectable,
+	};
+
+	std::string text;
+	int _sval;
+	int y;
+	UiFlags flags;
+	Type type;
+	uint8_t _sx;
+	uint8_t _syoff;
+	int cursId;
+	bool cursIndent;
+
+	[[nodiscard]] bool isDivider() const
+	{
+		return type == Divider;
+	}
+	[[nodiscard]] bool isSelectable() const
+	{
+		return type == Selectable;
+	}
+
+	[[nodiscard]] bool hasText() const
+	{
+		return !text.empty();
+	}
+};
+
+/** Text lines */
+extern STextStruct TextLine[NumStoreLines];
 
 enum class TalkID : uint8_t {
 	None,
@@ -156,6 +192,23 @@ void RegisterTownerDialogOption(std::string_view townerName,
  */
 void ClearTownerDialogOptions();
 
+/** The current towner being interacted with */
+extern _talker_id TownerId;
+
+/** Remember currently selected text line from TextLine while displaying a dialog */
+extern int OldTextLine;
+
+/** Remember current store while displaying a dialog */
+extern TalkID OldActiveStore;
+
+/** Remember last scroll position */
+extern int OldScrollPos;
+/** Scroll position */
+extern int ScrollPos;
+
+/** Currently selected text line from TextLine */
+extern int CurrentTextLine;
+
 void AddStoreHoldRepair(Item *itm, int8_t i);
 
 /** Clears premium items sold by Griswold and Wirt. */
@@ -182,6 +235,10 @@ void StoreEnter();
 void CheckStoreBtn();
 void ReleaseStoreBtn();
 bool IsPlayerInStore();
+uint32_t TotalPlayerGold();
+bool PlayerCanAfford(int price);
+bool StoreAutoPlace(Item &item, bool persistItem);
+bool StoreGoldFit(Item &item);
 
 /**
  * @brief Places an item in the player's inventory, belt, or equipment.
