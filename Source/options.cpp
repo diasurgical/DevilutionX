@@ -774,13 +774,13 @@ GraphicsOptions::GraphicsOptions()
 #endif
     , frameRateControl("Frame Rate Control",
           OptionEntryFlags::RecreateUI
-#if defined(NXDK) || defined(__ANDROID__)
+#if defined(NXDK) || defined(PS2) || defined(__ANDROID__)
               | OptionEntryFlags::Invisible
 #endif
           ,
           N_("Frame Rate Control"),
           N_("Manages frame rate to balance performance, reduce tearing, or save power."),
-#if defined(NXDK) || defined(USE_SDL1)
+#if defined(NXDK) || defined(PS2) || defined(USE_SDL1)
           FrameRateControl::CPUSleep
 #else
           FrameRateControl::VerticalSync

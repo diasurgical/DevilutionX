@@ -35,6 +35,8 @@
 
 #ifndef UNPACKED_MPQS
 #include "mpq/mpq_sdl_rwops.hpp"
+#else
+#include <optional>
 #endif
 
 namespace devilution {
