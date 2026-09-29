@@ -90,6 +90,20 @@ bool IsWallSpell(SpellID spl)
 	return spl == SpellID::FireWall || spl == SpellID::LightningWall;
 }
 
+bool IsPositionalSpell(SpellID spl)
+{
+	return spl == SpellID::Teleport
+	    || spl == SpellID::Phasing
+	    || spl == SpellID::Warp
+	    || spl == SpellID::Guardian
+	    || spl == SpellID::Golem
+	    || spl == SpellID::RuneOfFire
+	    || spl == SpellID::RuneOfLight
+	    || spl == SpellID::RuneOfNova
+	    || spl == SpellID::RuneOfImmolation
+	    || spl == SpellID::RuneOfStone;
+}
+
 bool TargetsMonster(SpellID id)
 {
 	return id == SpellID::Fireball
