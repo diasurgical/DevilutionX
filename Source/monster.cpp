@@ -9,7 +9,6 @@
 #include <array>
 #include <bitset>
 #include <cassert>
-#include <climits>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -37,7 +36,6 @@
 #include "cursor.h"
 #include "dead.h"
 #include "diablo.h"
-#include "dvlnet/leaveinfo.hpp"
 #include "effects.h"
 #include "engine/animationinfo.h"
 #include "engine/backbuffer_state.hpp"
@@ -113,6 +111,8 @@ size_t LevelMonsterTypeCount;
 Monster Monsters[MaxMonsters];
 unsigned ActiveMonsters[MaxMonsters];
 size_t ActiveMonsterCount;
+/** High-water-mark of hostile monsters (non-golem) ever spawned on the current level. */
+int LevelSpawnedMonsters;
 /** Tracks the total number of monsters killed per monster_id. */
 int MonsterKillCounts[NUM_MAX_MTYPES];
 bool sgbSaveSoundOn;
@@ -124,9 +124,6 @@ constexpr int HellToHitBonus = 120;
 
 constexpr int NightmareAcBonus = 50;
 constexpr int HellAcBonus = 80;
-
-/** @brief Reserved some entries in @Monster for golems. For vanilla compatibility, this must remain 4. */
-constexpr int ReservedMonsterSlotsForGolems = 4;
 
 /** Tracks which missile files are already loaded */
 size_t totalmonsters;
@@ -3423,6 +3420,7 @@ void InitLevelMonsters()
 
 	ClrAllMonsters();
 	ActiveMonsterCount = 0;
+	LevelSpawnedMonsters = 0;
 	totalmonsters = MaxMonsters;
 
 	std::iota(std::begin(ActiveMonsters), std::end(ActiveMonsters), 0U);
@@ -3744,7 +3742,29 @@ std::expected<void, std::string> InitMonsters()
 		}
 	}
 
+	LevelSpawnedMonsters = static_cast<int>(ActiveMonsterCount);
+
 	return InitAllMonsterGFX();
+}
+
+int GetAliveEnemyCount()
+{
+	int alive = 0;
+	for (size_t i = 0; i < ActiveMonsterCount; ++i) {
+		const Monster &monster = Monsters[ActiveMonsters[i]];
+		if (monster.isInvalid)
+			continue;
+		if ((monster.flags & MFLAG_GOLEM) != 0)
+			continue;
+		if (monster.mode == MonsterMode::Death)
+			continue;
+		if (monster.hasNoLife())
+			continue;
+		if (monster.position.tile == GolemHoldingCell)
+			continue;
+		++alive;
+	}
+	return alive;
 }
 
 std::expected<void, std::string> SetMapMonsters(const uint16_t *dunData, Point startPosition)
@@ -3777,15 +3797,15 @@ std::expected<void, std::string> SetMapMonsters(const uint16_t *dunData, Point s
 
 Monster *AddMonster(Point position, Direction dir, size_t typeIndex, bool inMap)
 {
-	if (ActiveMonsterCount < MaxMonsters) {
-		Monster &monster = Monsters[ActiveMonsters[ActiveMonsterCount++]];
-		if (inMap)
-			monster.occupyTile(position, false);
-		InitMonster(monster, dir, typeIndex, position);
-		return &monster;
-	}
-
-	return nullptr;
+	if (ActiveMonsterCount >= MaxMonsters)
+		return nullptr;
+	Monster &monster = Monsters[ActiveMonsters[ActiveMonsterCount++]];
+	if (inMap)
+		monster.occupyTile(position, false);
+	InitMonster(monster, dir, typeIndex, position);
+	if ((monster.flags & MFLAG_GOLEM) == 0)
+		++LevelSpawnedMonsters;
+	return &monster;
 }
 
 void SpawnMonster(Point position, Direction dir, size_t typeIndex)
@@ -3799,6 +3819,7 @@ void SpawnMonster(Point position, Direction dir, size_t typeIndex)
 
 	const size_t monsterIndex = ActiveMonsters[ActiveMonsterCount];
 	ActiveMonsterCount += 1;
+	++LevelSpawnedMonsters;
 	const uint32_t seed = GetLCGEngineState();
 	// Update local state immediately to increase ActiveMonsterCount instantly (this allows multiple monsters to be spawned in one game tick)
 	InitializeSpawnedMonster(position, dir, typeIndex, monsterIndex, seed, 0, 0);

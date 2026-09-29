@@ -6,16 +6,29 @@
 #include "engine/dx.h"
 #include "engine/render/text_render.hpp"
 #include "lua/metadoc.hpp"
-#include "utils/display.h"
+#include "utils/ui_fwd.h"
 
 namespace devilution {
 
 sol::table LuaRenderModule(sol::state_view &lua)
 {
 	sol::table table = lua.create_table();
-	LuaSetDocFn(table, "string", "(text: string, x: integer, y: integer)",
+	LuaSetDocFn(table, "string", "(text: string, x: integer, y: integer, opts: { flags?: integer, width?: integer })",
 	    "Renders a string at the given coordinates",
-	    [](std::string_view text, int x, int y) { DrawString(GlobalBackBuffer(), text, { x, y }); });
+	    [](std::string_view text, int x, int y, sol::table opts) {
+		    TextRenderOptions renderOpts {};
+		    int rectWidth = GlobalBackBuffer().w() - x;
+
+		    sol::object flagsObj = opts["flags"];
+		    if (flagsObj.is<lua_Number>() || flagsObj.is<lua_Integer>())
+			    renderOpts.flags = static_cast<UiFlags>(flagsObj.as<int>());
+
+		    sol::object widthObj = opts["width"];
+		    if (widthObj.is<lua_Number>() || widthObj.is<lua_Integer>())
+			    rectWidth = widthObj.as<int>();
+
+		    DrawString(GlobalBackBuffer(), text, { { x, y }, { rectWidth, 0 } }, renderOpts);
+	    });
 	LuaSetDocFn(table, "screen_width", "()",
 	    "Returns the screen width", []() { return gnScreenWidth; });
 	LuaSetDocFn(table, "screen_height", "()",
