@@ -159,8 +159,8 @@ DVL_ALWAYS_INLINE void ExtractFoliageTransparentSquare(uint8_t *&dst, const uint
 	for (int y = 16; y > 0; --y, src -= 2 * DunFrameWidth) {
 		unsigned transparentRun = 0;
 		unsigned solidRun = 0;
-		for (int x = 0; x < DunFrameWidth; ++x) {
-			if (*src++ != 0) {
+		for (int x = 0; x < DunFrameWidth; ++x, ++src) {
+			if (*src != 0) {
 				if (transparentRun != 0) {
 					*dst++ = static_cast<uint8_t>(-static_cast<int8_t>(transparentRun));
 					transparentRun = 0;
