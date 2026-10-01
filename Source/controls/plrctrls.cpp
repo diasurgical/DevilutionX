@@ -1862,7 +1862,25 @@ void Movement(Player &player)
 		return;
 
 	if (GetLeftStickOrDPadGameUIHandler() == nullptr) {
-		WalkInDir(player, GetMoveDirection());
+		const AxisDirection walkDir = GetMoveDirection();
+		WalkInDir(player, walkDir);
+
+		// Turn-only band: stick magnitude is below the walk threshold but above the smaller turn
+		// threshold. Rotate the player to face the stick direction without issuing a walk command,
+		// so that small aim adjustments (e.g. as the Amazon) do not move the player.
+		if (walkDir.x == AxisDirectionX_NONE && walkDir.y == AxisDirectionY_NONE
+		    && player.CanChangeAction()) {
+				const AxisDirection turnDir = GetLeftStickTurnDirection();
+				if (turnDir.x != AxisDirectionX_NONE || turnDir.y != AxisDirectionY_NONE) {
+					const Direction pdir = FaceDir[static_cast<std::size_t>(turnDir.x)][static_cast<std::size_t>(turnDir.y)];
+					if (!IsStandingGround()) {
+						StartStand(player, pdir);
+					} else {
+						player._pdir = pdir;
+						NewPlrAnim(player, player_graphic::Stand, pdir);
+					}
+				}
+		}
 	}
 }
 

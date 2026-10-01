@@ -241,6 +241,40 @@ AxisDirection GetAnalogStickDirection(float stickX, float stickY)
 	return result;
 }
 
+float GetStickTurnThreshold()
+{
+	// Derive the turn band's lower bound from the user-configured deadzone so the band scales
+	// sensibly with it: at the default 0.07 deadzone this is ~0.20, at an aggressive 0.30 it is
+	// ~0.34. The walk threshold stays fixed at StickDirectionThreshold. If the deadzone reaches or
+	// exceeds the walk threshold there is no room for a turn band, so just return the deadzone.
+	constexpr float turnBandFraction = 0.4F;
+	const float deadzone = GetOptions().Controller.fDeadzone;
+	if (deadzone >= StickDirectionThreshold)
+		return deadzone;
+	return deadzone + (StickDirectionThreshold - deadzone) * turnBandFraction;
+}
+
+AxisDirection GetLeftStickTurnDirection()
+{
+	// Inner band: stick magnitude below the walk threshold (StickDirectionThreshold = 0.4) but
+	// above the turn threshold derived from the user deadzone, so the player can rotate in place
+	// to aim without stepping. D-Pad / padmapper are excluded because they are inherently digital
+	// — they should keep walking.
+	const float turnThreshold = GetStickTurnThreshold();
+	const float magnitudeSquared = (leftStickX * leftStickX) + (leftStickY * leftStickY);
+	const float turnThresholdSquared = turnThreshold * turnThreshold;
+	const float walkThresholdSquared = StickDirectionThreshold * StickDirectionThreshold;
+	if (magnitudeSquared < turnThresholdSquared || magnitudeSquared >= walkThresholdSquared)
+		return { AxisDirectionX_NONE, AxisDirectionY_NONE };
+
+	AxisDirection result { AxisDirectionX_NONE, AxisDirectionY_NONE };
+	if (std::fabs(leftStickX) > std::fabs(leftStickY))
+		result.x = leftStickX > 0 ? AxisDirectionX_RIGHT : AxisDirectionX_LEFT;
+	else
+		result.y = leftStickY > 0 ? AxisDirectionY_UP : AxisDirectionY_DOWN;
+	return result;
+}
+
 AxisDirection GetLeftStickOrDpadDirection(bool usePadmapper)
 {
 	AxisDirection result = GetAnalogStickDirection(leftStickX, leftStickY);
