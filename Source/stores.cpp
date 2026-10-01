@@ -908,8 +908,8 @@ void StoreConfirm(Item &item)
 		AddSText(0, 9, fmt::format(fmt::runtime(_("Cost: {:s} gold")), FormatInteger(item._iIvalue)), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
 		AddSText(0, 12, _("Are you sure you want to"), UiFlags::ColorWhite | UiFlags::AlignCenter, false);
 		AddSText(0, 14, _("identify all items?"), UiFlags::ColorWhite | UiFlags::AlignCenter, false);
-		AddSText(0, 17, _("Yes"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-		AddSText(0, 19, _("No"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+		AddSText(0, 18, _("Yes"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+		AddSText(0, 20, _("No"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
 		return;
 	}
 
@@ -1825,16 +1825,15 @@ void ConfirmEnter(Item &item)
 		}
 	}
 
+	if (OldActiveStore == TalkID::StorytellerIdentifyAll) {
+		RestoreStoreFromOldState();
+		return;
+	}
+
 	StartStore(OldActiveStore);
 
 	if (CurrentTextLine == BackButtonLine())
 		return;
-
-	if (OldActiveStore == TalkID::StorytellerIdentifyAll) {
-		CurrentTextLine = 16;
-		ScrollPos = 0;
-		return;
-	}
 
 	CurrentTextLine = OldTextLine;
 	ScrollPos = std::min(OldScrollPos, NumTextLines);
