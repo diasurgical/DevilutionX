@@ -24,8 +24,8 @@ if(TARGET_PLATFORM STREQUAL "dos")
   )
 elseif(AMIGA)
   FetchContent_Declare(SDL2
-    URL https://github.com/diasurgical/SDL/archive/11b221d7309208b8a4724b1ae2c1c53cfb4513c3.tar.gz
-    URL_HASH MD5=9aeaa9f187d6b20c6927838f26fc6baf
+    URL https://github.com/diasurgical/SDL/archive/240bc700a9408171edad309590ec180e67c42aeb.tar.gz
+    URL_HASH MD5=220f9ea9e94c3e2c6a5054822c05c08f
   )
 else()
   FetchContent_Declare(SDL2
