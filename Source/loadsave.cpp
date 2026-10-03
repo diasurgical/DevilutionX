@@ -2109,6 +2109,74 @@ std::expected<void, std::string> LoadLevel(LevelConversionData *levelConversionD
 const int DiabloItemSaveSize = 368;
 const int HellfireItemSaveSize = 372;
 
+constexpr uint8_t VersionShopItems = 0;
+
+template <size_t N>
+void SaveShopItemList(SaveHelper &file, const StaticVector<Item, N> &items)
+{
+	file.WriteLE<uint32_t>(static_cast<uint32_t>(items.size()));
+	for (const Item &item : items)
+		SaveItem(file, item);
+}
+
+void SaveShopItems(SaveWriter &saveWriter)
+{
+	const size_t itemSize = gbIsHellfire ? HellfireItemSaveSize : DiabloItemSaveSize;
+	const size_t bufferLen = sizeof(uint8_t)
+	    + sizeof(uint32_t) + itemSize * SmithItems.size()
+	    + sizeof(uint32_t) + itemSize * WitchItems.size()
+	    + sizeof(uint32_t) + itemSize * HealerItems.size()
+	    + sizeof(uint8_t) + itemSize
+	    + sizeof(int32_t);
+
+	SaveHelper file(saveWriter, "shopitems", bufferLen);
+
+	file.WriteLE<uint8_t>(VersionShopItems);
+
+	SaveShopItemList(file, SmithItems);
+	SaveShopItemList(file, WitchItems);
+	SaveShopItemList(file, HealerItems);
+
+	file.WriteLE<uint8_t>(BoyItem.isEmpty() ? 0 : 1);
+	if (!BoyItem.isEmpty())
+		SaveItem(file, BoyItem);
+	file.WriteLE<int32_t>(BoyItemLevel);
+}
+
+template <size_t N>
+void LoadShopItemList(LoadHelper &file, StaticVector<Item, N> &items)
+{
+	items.clear();
+	const auto count = file.NextLE<uint32_t>();
+	for (uint32_t i = 0; i < count; i++) {
+		Item item;
+		LoadAndValidateItemData(file, item);
+		if (!item.isEmpty() && items.size() < N)
+			items.push_back(item);
+	}
+}
+
+void LoadShopItems()
+{
+	LoadHelper file(OpenSaveArchive(gSaveNumber), "shopitems");
+	if (!file.IsValid()) {
+		return;
+	}
+
+	if (file.NextLE<uint8_t>() > VersionShopItems) {
+		return;
+	}
+
+	LoadShopItemList(file, SmithItems);
+	LoadShopItemList(file, WitchItems);
+	LoadShopItemList(file, HealerItems);
+
+	BoyItem.clear();
+	if (file.NextLE<uint8_t>() != 0)
+		LoadAndValidateItemData(file, BoyItem);
+	BoyItemLevel = file.NextLE<int32_t>();
+}
+
 bool IsStashSizeValid(size_t stashSize, uint32_t pages, uint32_t itemCount)
 {
 	const size_t itemSize = (gbIsHellfire ? HellfireItemSaveSize : DiabloItemSaveSize);
@@ -2594,6 +2662,7 @@ std::expected<void, std::string> LoadGame(bool firstflag)
 	LoadDroppedItems(file, savedItemCount);
 
 	LoadAdditionalMissiles();
+	LoadShopItems();
 
 	for (bool &uniqueItemFlag : UniqueItemFlags)
 		uniqueItemFlag = file.NextBool8();
@@ -2925,6 +2994,7 @@ void SaveGameData(SaveWriter &saveWriter)
 
 	SaveAdditionalMissiles(saveWriter);
 	SaveLevelSeeds(saveWriter);
+	SaveShopItems(saveWriter);
 }
 
 void SaveGame()
