@@ -6,6 +6,7 @@
 #include "engine/assets.hpp"
 #include "init.hpp"
 #include "tables/playerdat.hpp"
+#include "utils/fixed_point.hpp"
 
 using namespace devilution;
 
@@ -21,7 +22,7 @@ int RunBlockTest(int frames, ItemSpecialEffect flags)
 	player._pIFlags = flags;
 	// StartPlrHit compares damage (a 6 bit fixed point value) to character level to determine if the player shrugs off the hit.
 	// We don't initialise player so this comparison can't be relied on, instead we use forcehit to ensure the player enters hit mode
-	StartPlrHit(player, 0, true);
+	StartPlrHit(player, Fixed26_6::fromInt(0), true);
 
 	int i = 1;
 	for (; i < 100; i++) {
@@ -127,11 +128,11 @@ static void AssertPlayer(devilution::Player &player)
 	ASSERT_EQ(player._pStatPts, 0);
 	ASSERT_EQ(player._pExperience, 0);
 	ASSERT_EQ(player._pGold, 100);
-	ASSERT_EQ(player._pMaxHPBase, 2880);
-	ASSERT_EQ(player._pHPBase, 2880);
+	ASSERT_EQ(player._pMaxHPBase.raw(), 2880);
+	ASSERT_EQ(player._pHPBase.raw(), 2880);
 	ASSERT_EQ(player.getBaseToBlock(), 20);
-	ASSERT_EQ(player._pMaxManaBase, 1440);
-	ASSERT_EQ(player._pManaBase, 1440);
+	ASSERT_EQ(player._pMaxManaBase.raw(), 1440);
+	ASSERT_EQ(player._pManaBase.raw(), 1440);
 	ASSERT_EQ(player._pMemSpells, 0);
 	ASSERT_EQ(player._pNumInv, 1);
 	ASSERT_EQ(player.wReflections, 0);
@@ -158,10 +159,10 @@ static void AssertPlayer(devilution::Player &player)
 	ASSERT_EQ(player._pBlockFlag, 0);
 	ASSERT_EQ(player._pLightRad, 10);
 	ASSERT_EQ(player._pDamageMod, 0);
-	ASSERT_EQ(player._pHitPoints, 2880);
-	ASSERT_EQ(player._pMaxHP, 2880);
-	ASSERT_EQ(player._pMana, 1440);
-	ASSERT_EQ(player._pMaxMana, 1440);
+	ASSERT_EQ(player._pHitPoints.raw(), 2880);
+	ASSERT_EQ(player._pMaxHP.raw(), 2880);
+	ASSERT_EQ(player._pMana.raw(), 1440);
+	ASSERT_EQ(player._pMaxMana.raw(), 1440);
 	ASSERT_EQ(player.getNextExperienceThreshold(), 2000);
 	ASSERT_EQ(player._pMagResist, 0);
 	ASSERT_EQ(player._pFireResist, 0);

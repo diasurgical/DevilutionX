@@ -316,8 +316,8 @@ struct LevelConversionData {
 	item._iPLFR = file.NextLE<int32_t>();
 	item._iPLLR = file.NextLE<int32_t>();
 	item._iPLMR = file.NextLE<int32_t>();
-	item._iPLMana = file.NextLE<int32_t>();
-	item._iPLHP = file.NextLE<int32_t>();
+	item._iPLMana = Fixed10_6::fromRaw(static_cast<int16_t>(file.NextLE<int32_t>()));
+	item._iPLHP = Fixed10_6::fromRaw(static_cast<int16_t>(file.NextLE<int32_t>()));
 	item._iPLDamMod = file.NextLE<int32_t>();
 	item._iPLGetHit = file.NextLE<int32_t>();
 	item._iPLLight = file.NextLE<int32_t>();
@@ -501,15 +501,15 @@ void LoadPlayer(LoadHelper &file, Player &player)
 	player._pStatPts = file.NextLE<int32_t>();
 	player._pDamageMod = file.NextLE<int32_t>();
 	file.Skip<int32_t>(); // Skip _pBaseToBlk - always a copy of PlayerData.blockBonus
-	player._pHPBase = file.NextLE<int32_t>();
-	player._pMaxHPBase = file.NextLE<int32_t>();
-	player._pHitPoints = file.NextLE<int32_t>();
-	player._pMaxHP = file.NextLE<int32_t>();
+	player._pHPBase = Fixed26_6::fromRaw(file.NextLE<int32_t>());
+	player._pMaxHPBase = Fixed26_6::fromRaw(file.NextLE<int32_t>());
+	player._pHitPoints = Fixed26_6::fromRaw(file.NextLE<int32_t>());
+	player._pMaxHP = Fixed26_6::fromRaw(file.NextLE<int32_t>());
 	file.Skip<int32_t>(); // Skip _pHPPer - always derived from hp and maxHP.
-	player._pManaBase = file.NextLE<int32_t>();
-	player._pMaxManaBase = file.NextLE<int32_t>();
-	player._pMana = file.NextLE<int32_t>();
-	player._pMaxMana = file.NextLE<int32_t>();
+	player._pManaBase = Fixed26_6::fromRaw(file.NextLE<int32_t>());
+	player._pMaxManaBase = Fixed26_6::fromRaw(file.NextLE<int32_t>());
+	player._pMana = Fixed26_6::fromRaw(file.NextLE<int32_t>());
+	player._pMaxMana = Fixed26_6::fromRaw(file.NextLE<int32_t>());
 	file.Skip<int32_t>(); // Skip _pManaPer - always derived from mana and maxMana
 	player.setCharacterLevel(file.NextLE<uint8_t>());
 	file.Skip<uint8_t>(); // Skip _pMaxLevel - unused
@@ -702,8 +702,8 @@ bool gbSkipSync = false;
 	monster.position.temp.y = file->NextLENarrow<int32_t, WorldTileCoord>();
 	file->Skip<int32_t>(2); // skip offset2;
 	file->Skip(4);          // Skip actionFrame
-	monster.maxHitPoints = file->NextLE<int32_t>();
-	monster.hitPoints = file->NextLE<int32_t>();
+	monster.maxHitPoints = Fixed26_6::fromRaw(file->NextLE<int32_t>());
+	monster.hitPoints = Fixed26_6::fromRaw(file->NextLE<int32_t>());
 
 	monster.ai = static_cast<MonsterAIID>(file->NextLE<uint8_t>());
 	monster.intelligence = file->NextLE<uint8_t>();
@@ -1217,8 +1217,8 @@ void SaveItem(SaveHelper &file, const Item &item)
 	file.WriteLE<int32_t>(item._iPLFR);
 	file.WriteLE<int32_t>(item._iPLLR);
 	file.WriteLE<int32_t>(item._iPLMR);
-	file.WriteLE<int32_t>(item._iPLMana);
-	file.WriteLE<int32_t>(item._iPLHP);
+	file.WriteLE<int32_t>(item._iPLMana.raw());
+	file.WriteLE<int32_t>(item._iPLHP.raw());
 	file.WriteLE<int32_t>(item._iPLDamMod);
 	file.WriteLE<int32_t>(item._iPLGetHit);
 	file.WriteLE<int32_t>(item._iPLLight);
@@ -1358,15 +1358,15 @@ void SavePlayer(SaveHelper &file, const Player &player)
 	file.WriteLE<int32_t>(player._pDamageMod);
 
 	file.WriteLE<int32_t>(player.getBaseToBlock()); // set _pBaseToBlk for backwards compatibility
-	file.WriteLE<int32_t>(player._pHPBase);
-	file.WriteLE<int32_t>(player._pMaxHPBase);
-	file.WriteLE<int32_t>(player._pHitPoints);
-	file.WriteLE<int32_t>(player._pMaxHP);
+	file.WriteLE<int32_t>(player._pHPBase.raw());
+	file.WriteLE<int32_t>(player._pMaxHPBase.raw());
+	file.WriteLE<int32_t>(player._pHitPoints.raw());
+	file.WriteLE<int32_t>(player._pMaxHP.raw());
 	file.Skip<int32_t>(); // Skip _pHPPer
-	file.WriteLE<int32_t>(player._pManaBase);
-	file.WriteLE<int32_t>(player._pMaxManaBase);
-	file.WriteLE<int32_t>(player._pMana);
-	file.WriteLE<int32_t>(player._pMaxMana);
+	file.WriteLE<int32_t>(player._pManaBase.raw());
+	file.WriteLE<int32_t>(player._pMaxManaBase.raw());
+	file.WriteLE<int32_t>(player._pMana.raw());
+	file.WriteLE<int32_t>(player._pMaxMana.raw());
 	file.Skip<int32_t>(); // Skip _pManaPer
 	file.WriteLE<uint8_t>(player.getCharacterLevel());
 	file.Skip<uint8_t>(); // skip _pMaxLevel, this value is uninitialised in most cases in Diablo/Hellfire so there's no point setting it.
@@ -1551,8 +1551,8 @@ void SaveMonster(SaveHelper *file, Monster &monster, MonsterConversionData *mons
 	file->WriteLE<int32_t>(offset2.deltaX);
 	file->WriteLE<int32_t>(offset2.deltaY);
 	file->Skip<int32_t>(); // Skip _mVar8
-	file->WriteLE<int32_t>(monster.maxHitPoints);
-	file->WriteLE<int32_t>(monster.hitPoints);
+	file->WriteLE<int32_t>(monster.maxHitPoints.raw());
+	file->WriteLE<int32_t>(monster.hitPoints.raw());
 
 	file->WriteLE<uint8_t>(static_cast<int8_t>(monster.ai));
 	file->WriteLE<uint8_t>(monster.intelligence);
