@@ -111,12 +111,15 @@ bool UiMainMenuDialog(const char *name, _mainmenu_selections *pdwResult, int att
 	while (MainMenuResult == MAINMENU_NONE) {
 		mainmenu_attract_time_out = attractTimeOut;
 		MainmenuLoad(name);
+
 		mainmenu_restart_repintro(); // for automatic starts
+
 		while (MainMenuResult == MAINMENU_NONE) {
 			UiClearScreen();
 			UiPollAndRender();
-			if (SDL_GetTicks() >= dwAttractTicks && (HaveIntro() || gbIsHellfire))
+			if (SDL_GetTicks() >= dwAttractTicks && (HaveIntro() || gbIsHellfire)) {
 				MainMenuResult = MAINMENU_ATTRACT_MODE;
+			}
 		}
 
 		MainmenuFree();

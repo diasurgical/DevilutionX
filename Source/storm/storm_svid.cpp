@@ -289,9 +289,8 @@ bool BlitFrame()
 			Log("{}", SDL_GetError());
 			return false;
 		}
-		}
-	else
-#endif
+	} else
+#endif // PSP
 #endif
 	{
 		SDL_Surface *outputSurface = GetOutputSurface();

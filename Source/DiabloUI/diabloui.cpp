@@ -855,25 +855,20 @@ void UiPollAndRender(std::optional<tl::function_ref<bool(SDL_Event &)>> eventHan
 	while (PollEvent(&event)) {
 		if (eventHandler && (*eventHandler)(event))
 			continue;
-
 		if (!SDLC_ConvertEventToRenderCoordinates(renderer, &event)) {
 			LogWarn(LogCategory::Application, "SDL_ConvertEventToRenderCoordinates: {}", SDL_GetError());
 			SDL_ClearError();
 		}
-
 		UiFocusNavigation(&event);
-
 		UiHandleEvents(&event);
 	}
-
 	HandleMenuAction(GetMenuHeldUpDownAction());
-
 	UiRenderListItems();
-
 	DrawMouse();
-
 	UiFadeIn();
 
+	// Must happen after at least one call to `UiFadeIn` with non-zero fadeValue.
+	// `UiFadeIn` reinitializes the hardware cursor only for fadeValue > 0.
 	if (IsHardwareCursor() && fadeValue != 0)
 		SetHardwareCursorVisible(ControlDevice == ControlTypes::KeyboardAndMouse);
 
