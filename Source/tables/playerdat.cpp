@@ -234,6 +234,12 @@ void LoadClassSpriteData(std::string_view classPath, PlayerSpriteData &spriteDat
 	reader.readString("classPath", spriteData.classPath);
 	reader.readChar("classChar", spriteData.classChar);
 	reader.readString("trn", spriteData.trn);
+	reader.readInt("partyOffsetTownX", spriteData.partyOffsetTownX);
+	reader.readInt("partyOffsetTownY", spriteData.partyOffsetTownY);
+	reader.readInt("partyOffsetDungeonX", spriteData.partyOffsetDungeonX);
+	reader.readInt("partyOffsetDungeonY", spriteData.partyOffsetDungeonY);
+	reader.readInt("partyOffsetDeadX", spriteData.partyOffsetDeadX);
+	reader.readInt("partyOffsetDeadY", spriteData.partyOffsetDeadY);
 	reader.readInt("stand", spriteData.stand);
 	reader.readInt("walk", spriteData.walk);
 	reader.readInt("attack", spriteData.attack);

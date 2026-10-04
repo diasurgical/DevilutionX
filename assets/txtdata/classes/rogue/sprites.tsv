@@ -2,6 +2,12 @@ Variable	Value
 classPath	rogue
 classChar	r
 trn	rogue
+partyOffsetTownX	-2
+partyOffsetTownY	-18
+partyOffsetDungeonX	1
+partyOffsetDungeonY	-20
+partyOffsetDeadX	-8
+partyOffsetDeadY	-35
 stand	96
 walk	96
 attack	128

@@ -28,19 +28,6 @@ namespace devilution {
 
 namespace {
 
-struct PartySpriteOffset {
-	Point inTownOffset;
-	Point inDungeonOffset;
-	Point isDeadOffset;
-};
-
-const PartySpriteOffset ClassSpriteOffsets[] = {
-	{ { -4, -18 }, { 6, -21 }, { -6, -50 } },
-	{ { -2, -18 }, { 1, -20 }, { -8, -35 } },
-	{ { -2, -16 }, { 3, -20 }, { 0, -50 } },
-	{ { -2, -19 }, { 1, -19 }, { 28, -60 } }
-};
-
 OptionalOwnedClxSpriteList PartyMemberFrame;
 OptionalOwnedClxSpriteList PlayerTags;
 
@@ -111,22 +98,6 @@ void HandleRightClickPortait()
 		RedrawEverything();
 		RightClickedPortraitIndex = -1;
 	}
-}
-
-PartySpriteOffset GetClassSpriteOffset(HeroClass hClass)
-{
-	switch (hClass) {
-	case HeroClass::Bard:
-		hClass = HeroClass::Rogue;
-		break;
-	case HeroClass::Barbarian:
-		hClass = HeroClass::Warrior;
-		break;
-	default:
-		break;
-	}
-
-	return ClassSpriteOffsets[static_cast<size_t>(hClass)];
 }
 
 } // namespace
@@ -208,14 +179,22 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 		// Get the players current portrait sprite
 		const ClxSprite playerPortraitSprite = GetPlayerPortraitSprite(player);
 		// Get the offset of the sprite based on the players class so it get's rendered in the correct position
-		const PartySpriteOffset offsets = GetClassSpriteOffset(player._pClass);
-		Point offset = (player.isOnLevel(0)) ? offsets.inTownOffset : offsets.inDungeonOffset;
-
-		if (player._pHitPoints <= 0 && IsPlayerUnarmed(player))
-			offset = offsets.isDeadOffset;
+		const PlayerSpriteData &spriteData = GetPlayerSpriteDataForClass(player._pClass);
+		int8_t offsetX;
+		int8_t offsetY;
+		if (player._pHitPoints <= 0 && IsPlayerUnarmed(player)) {
+			offsetX = spriteData.partyOffsetDeadX;
+			offsetY = spriteData.partyOffsetDeadY;
+		} else if (player.isOnLevel(0)) {
+			offsetX = spriteData.partyOffsetTownX;
+			offsetY = spriteData.partyOffsetTownY;
+		} else {
+			offsetX = spriteData.partyOffsetDungeonX;
+			offsetY = spriteData.partyOffsetDungeonY;
+		}
 
 		// Calculate the players portait position
-		const Point portraitPos = { ((-(playerPortraitSprite.width() / 2)) + (PortraitFrameSize.width / 2)) + offset.x, offset.y };
+		const Point portraitPos = { ((-(playerPortraitSprite.width() / 2)) + (PortraitFrameSize.width / 2)) + offsetX, offsetY };
 		// Get a subregion of the surface so the portrait doesn't get drawn over the frame
 		const Surface frameSubregion = gameScreen.subregion(
 		    pos.x + FrameBorderSize,
@@ -256,11 +235,13 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 		// Add to the position before continuing to the next item
 		pos.y += PortraitFrameSize.height;
 
-		// Get the players remaining mana
-		const int manaTicks = ((player._pMana * PortraitFrameSize.width) + (player._pMaxMana / 2)) / player._pMaxMana;
-		const uint8_t manaBarColor = PAL8_BLUE + 3;
-		// Now draw the characters remaining mana
-		DrawBar(gameScreen, { pos, { manaTicks, ManaBarHeight } }, manaBarColor);
+		if (player._pMaxMana > 0) {
+			// Get the players remaining mana
+			const int manaTicks = ((player._pMana * PortraitFrameSize.width) + (player._pMaxMana / 2)) / player._pMaxMana;
+			const uint8_t manaBarColor = PAL8_BLUE + 3;
+			// Now draw the characters remaining mana
+			DrawBar(gameScreen, { pos, { manaTicks, ManaBarHeight } }, manaBarColor);
+		}
 
 		// Add to the position before continuing to the next item
 		pos.y += ManaBarHeight;
