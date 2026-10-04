@@ -230,9 +230,6 @@ void LoadClassSpriteData(std::string_view classPath, PlayerSpriteData &spriteDat
 	dataFile.skipHeaderOrDie(filename);
 
 	ValueReader reader { dataFile, filename };
-	spriteData.partyOffsetTown = Point();
-	spriteData.partyOffsetDungeon = Point();
-	spriteData.partyOffsetDead = Point();
 	reader.readString("classPath", spriteData.classPath);
 	reader.readChar("classChar", spriteData.classChar);
 	reader.readString("trn", spriteData.trn);
