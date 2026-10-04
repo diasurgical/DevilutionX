@@ -97,7 +97,7 @@ const Rectangle &GetUIRectangle()
 
 namespace {
 
-#ifndef USE_SDL1
+#if !defined(USE_SDL1) && !defined(PSP)
 void CalculatePreferredWindowSize(int &width, int &height)
 {
 	SDL_DisplayMode mode;
@@ -148,25 +148,19 @@ Size GetPreferredWindowSize()
 	Size windowSize = forceResolution.width != 0 ? forceResolution : *GetOptions().Graphics.resolution;
 
 #ifdef PSP
-	// Keep the physical SDL window at the PSP resolution. The selected
-	// logical viewport determines whether the image has side bars or fills it.
-	const Size logicalSize = windowSize == PspWidescreenLogicalSize ? PspWidescreenLogicalSize : PspStandardLogicalSize;
-	windowSize = { 480, 272 };
+	// The window always matches the PSP screen.
+	// The selected resolution is the logical size that is scaled to fit it.
+	AdjustToScreenGeometry(windowSize == PspWidescreenLogicalSize ? PspWidescreenLogicalSize : PspStandardLogicalSize);
+	return { PspScreenWidth, PspScreenHeight };
 #else
 #ifndef USE_SDL1
 	if (*GetOptions().Graphics.upscale && *GetOptions().Graphics.fitToScreen) {
 		CalculatePreferredWindowSize(windowSize.width, windowSize.height);
 	}
 #endif
-#endif
-
-#ifdef PSP
-	AdjustToScreenGeometry(logicalSize);
-#else
 	AdjustToScreenGeometry(windowSize);
-#endif
-
 	return windowSize;
+#endif
 }
 
 const auto OptionChangeHandlerResolution = (GetOptions().Graphics.resolution.SetValueChangedCallback(ResizeWindow), true);
@@ -743,10 +737,11 @@ void ReinitializeTexture()
 	auto quality = StrCat(static_cast<int>(*GetOptions().Graphics.scaleQuality));
 	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, quality.c_str());
 #ifdef PSP
+	// The PSP GPU cannot use textures wider than 512 pixels, so wider screens use two textures.
 	const int firstTextureWidth = std::min<int>(gnScreenWidth, PspFirstTextureWidth);
-	texture = SDLWrap::CreateTexture(renderer, SDL_PIXELFORMAT_ABGR1555, SDL_TEXTUREACCESS_STREAMING, firstTextureWidth, gnScreenHeight);
+	texture = SDLWrap::CreateTexture(renderer, DEVILUTIONX_DISPLAY_TEXTURE_FORMAT, SDL_TEXTUREACCESS_STREAMING, firstTextureWidth, gnScreenHeight);
 	if (gnScreenWidth > PspFirstTextureWidth)
-		PspRightTexture = SDLWrap::CreateTexture(renderer, SDL_PIXELFORMAT_ABGR1555, SDL_TEXTUREACCESS_STREAMING, gnScreenWidth - PspFirstTextureWidth, gnScreenHeight);
+		PspRightTexture = SDLWrap::CreateTexture(renderer, DEVILUTIONX_DISPLAY_TEXTURE_FORMAT, SDL_TEXTUREACCESS_STREAMING, gnScreenWidth - PspFirstTextureWidth, gnScreenHeight);
 #else
 	texture = SDLWrap::CreateTexture(renderer, DEVILUTIONX_DISPLAY_TEXTURE_FORMAT, SDL_TEXTUREACCESS_STREAMING, gnScreenWidth, gnScreenHeight);
 #endif

@@ -1,10 +1,13 @@
 #include "storm/storm_svid.h"
 
-#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <optional>
+
+#ifdef PSP
+#include <algorithm>
+#endif
 
 #ifdef USE_SDL3
 #include <SDL3/SDL_error.h>
@@ -237,18 +240,17 @@ bool BlitFrame()
 
 		const auto *pixels = static_cast<const uint8_t *>(outputSurface->pixels);
 		const int leftWidth = std::min<int>(SVidWidth, PspFirstTextureWidth);
+		const int rightWidth = static_cast<int>(SVidWidth) - leftWidth;
 		const SDL_Rect leftSource = { 0, 0, leftWidth, static_cast<int>(SVidHeight) };
+		const SDL_Rect rightSource = { 0, 0, rightWidth, static_cast<int>(SVidHeight) };
 		if (SDL_UpdateTexture(texture.get(), &leftSource, pixels, outputSurface->pitch) < 0)
 			ErrSdl();
-		if (SVidWidth > PspFirstTextureWidth) {
-			const SDL_Rect rightSource = { 0, 0, static_cast<int>(SVidWidth) - PspFirstTextureWidth, static_cast<int>(SVidHeight) };
-			const auto *rightPixels = pixels + PspFirstTextureWidth * outputSurface->format->BytesPerPixel;
+		if (rightWidth > 0) {
+			const auto *rightPixels = pixels + leftWidth * outputSurface->format->BytesPerPixel;
 			if (SDL_UpdateTexture(PspRightTexture.get(), &rightSource, rightPixels, outputSurface->pitch) < 0)
 				ErrSdl();
 		}
 
-		constexpr int PspScreenWidth = 480;
-		constexpr int PspScreenHeight = 272;
 		SDL_Rect destination;
 		if (IsLandscapeFit(SVidWidth, SVidHeight, PspScreenWidth, PspScreenHeight)) {
 			destination.w = PspScreenWidth;
@@ -266,8 +268,7 @@ bool BlitFrame()
 		const SDL_Rect leftDestination = { destination.x, destination.y, leftDestinationWidth, destination.h };
 		if (SDL_RenderCopy(renderer, texture.get(), &leftSource, &leftDestination) < 0)
 			ErrSdl();
-		if (SVidWidth > PspFirstTextureWidth) {
-			const SDL_Rect rightSource = { 0, 0, static_cast<int>(SVidWidth) - PspFirstTextureWidth, static_cast<int>(SVidHeight) };
+		if (rightWidth > 0) {
 			const SDL_Rect rightDestination = { destination.x + leftDestinationWidth, destination.y, destination.w - leftDestinationWidth, destination.h };
 			if (SDL_RenderCopy(renderer, PspRightTexture.get(), &rightSource, &rightDestination) < 0)
 				ErrSdl();
@@ -470,7 +471,7 @@ bool SVidPlayBegin(const char *filename, int flags)
 	SVidPspRenderer = renderer != nullptr && SVidWidth <= static_cast<uint32_t>(gnScreenWidth)
 	    && SVidHeight <= static_cast<uint32_t>(gnScreenHeight)
 	    && (SVidWidth <= PspFirstTextureWidth || PspRightTexture != nullptr);
-	if (SVidPspRenderer && SDL_RenderSetLogicalSize(renderer, 480, 272) < 0)
+	if (SVidPspRenderer && SDL_RenderSetLogicalSize(renderer, PspScreenWidth, PspScreenHeight) < 0)
 		ErrSdl();
 #endif
 

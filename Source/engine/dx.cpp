@@ -7,6 +7,10 @@
 
 #include <cstdint>
 
+#ifdef PSP
+#include <algorithm>
+#endif
+
 #ifdef USE_SDL3
 #include <SDL3/SDL_rect.h>
 #include <SDL3/SDL_render.h>

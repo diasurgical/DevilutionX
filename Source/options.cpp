@@ -579,7 +579,7 @@ void OptionEntryResolution::LoadFromIni(std::string_view category)
 {
 	size_ = { ini->getInt(category, "Width", DEFAULT_WIDTH), ini->getInt(category, "Height", DEFAULT_HEIGHT) };
 #ifdef PSP
-	// Accept only the two PSP viewports, including settings from older builds.
+	// Only the two PSP resolutions are supported.
 	if (size_ != PspWidescreenLogicalSize)
 		size_ = PspStandardLogicalSize;
 #endif

@@ -31,6 +31,8 @@ extern SDL_Renderer *renderer;
 #ifndef USE_SDL1
 extern SDLTextureUniquePtr texture;
 #ifdef PSP
+constexpr int PspScreenWidth = 480;
+constexpr int PspScreenHeight = 272;
 constexpr int PspFirstTextureWidth = 512;
 extern SDLTextureUniquePtr PspRightTexture;
 #endif
