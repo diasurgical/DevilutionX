@@ -98,16 +98,7 @@ OptionalOwnedClxSpriteList PcxToClx(AssetHandle &handle, size_t fileSize, int nu
 	WriteLE32(cl2Data.data(), numFrames);
 
 	// We process the PCX a whole frame at a time because the lines are reversed in CEL.
-	// The shareware menu PCX compresses to a few dozen KiB, but its decoded
-	// 640x480 frame would occupy another 300 KiB on the PSP heap.
-#ifdef PSP
-	const bool useRowEncoding = !transparentColor && numFrames == 1 && width == 640 && frameHeight == 480 && pixelDataSize < 128 * 1024;
-#else
-	constexpr bool useRowEncoding = false;
-#endif
-	std::unique_ptr<uint8_t[]> frameBuffer;
-	if (!useRowEncoding)
-		frameBuffer = std::make_unique<uint8_t[]>(static_cast<size_t>(frameHeight) * width);
+	auto frameBuffer = std::unique_ptr<uint8_t[]>(new uint8_t[static_cast<size_t>(frameHeight) * width]);
 
 	const unsigned srcSkip = width % 2;
 	uint8_t *dataPtr = fileBuffer.get();
@@ -121,42 +112,6 @@ OptionalOwnedClxSpriteList PcxToClx(AssetHandle &handle, size_t fileSize, int nu
 		WriteLE16(&cl2Data[frameHeaderPos], ClxFrameHeaderSize);
 		WriteLE16(&cl2Data[frameHeaderPos + 2], static_cast<uint16_t>(width));
 		WriteLE16(&cl2Data[frameHeaderPos + 4], static_cast<uint16_t>(frameHeight));
-
-		if (useRowEncoding) {
-			// PCX rows arrive top-down; CLX stores them bottom-up. Encode each
-			// row separately, then append the compact encoded rows in reverse.
-			std::vector<uint8_t> encodedRows;
-			std::vector<size_t> rowOffsets;
-			rowOffsets.reserve(frameHeight + 1);
-			std::vector<uint8_t> row(width);
-			const uint8_t *const pixelDataEnd = fileBuffer.get() + pixelDataSize;
-			uint8_t runValue = 0;
-			unsigned runRemaining = 0;
-			for (unsigned j = 0; j < frameHeight; ++j) {
-				rowOffsets.push_back(encodedRows.size());
-				for (unsigned x = 0; x < static_cast<unsigned>(width) + srcSkip; ++x) {
-					if (runRemaining == 0) {
-						if (dataPtr >= pixelDataEnd) return std::nullopt;
-						const uint8_t next = *dataPtr++;
-						if (next <= 0xBF) {
-							runValue = next;
-							runRemaining = 1;
-						} else {
-							runRemaining = next & 0x3F;
-							if (dataPtr >= pixelDataEnd) return std::nullopt;
-							runValue = *dataPtr++;
-						}
-					}
-					if (x < static_cast<unsigned>(width)) row[x] = runValue;
-					--runRemaining;
-				}
-				AppendClxPixelsOrFillRun(row.data(), width, encodedRows);
-			}
-			rowOffsets.push_back(encodedRows.size());
-			for (unsigned j = frameHeight; j != 0; --j)
-				cl2Data.insert(cl2Data.end(), encodedRows.begin() + rowOffsets[j - 1], encodedRows.begin() + rowOffsets[j]);
-			continue;
-		}
 
 		for (unsigned j = 0; j < frameHeight; ++j) {
 			uint8_t *buffer = &frameBuffer[static_cast<size_t>(j) * width];
