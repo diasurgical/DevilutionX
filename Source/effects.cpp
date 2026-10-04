@@ -164,14 +164,6 @@ void PrivSoundInit(uint8_t bLoadMask)
 
 	if (sgSFX.empty()) LoadEffectsData();
 
-#ifdef PSP
-	// Do not preload the non-streamed gameplay sounds for shareware and Hellfire:
-	// keeping all of them in memory exhausts the PSP's RAM. `PlaySfxPriv` loads
-	// each one the first time it is played instead.
-	if ((gbIsSpawn || gbIsHellfire) && (bLoadMask & sfx_UI) == 0)
-		return;
-#endif
-
 	for (auto &sfx : sgSFX) {
 		if (sfx.bFlags == 0 || sfx.pSnd != nullptr) {
 			continue;
