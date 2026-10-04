@@ -35,11 +35,12 @@ For more detailed instructions: [Installation Instructions](./docs/installing.md
 
 ## PlayStation Portable
 
-The PSP build artifact contains `EBOOT.PBP`, `assets/`, and `mods/hf/`. Place
+The PSP build artifact and the `devilutionx-psp.zip` attached to published
+releases contain `EBOOT.PBP`, `assets/`, and `mods/hf/`. Place
 them under `PSP/GAME/DevilutionX/` on the Memory Stick, then add your own game
 MPQs beside `EBOOT.PBP`. For Diablo, use `DIABDAT.MPQ`; for Hellfire, also add
 `hellfire.mpq`, `hfmonk.mpq`, `hfmusic.mpq`, and `hfvoice.mpq`. Game MPQs are not
-included in the build artifact.
+included in either download.
 
 For shareware on the tested PSP-3000, use the original WAV-audio `spawn.mpq`
 extracted from Blizzard's [`diablosw.exe`](http://ftp.blizzard.com/pub/demos/diablosw.exe)

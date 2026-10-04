@@ -12,6 +12,8 @@ on:
     paths-ignore:
       - '*.md'
       - 'docs/**'
+  release:
+    types: [published]
   workflow_dispatch:
 
 concurrency:
@@ -79,3 +81,20 @@ jobs:
         with:
           name: devilutionx-psp-debug
           path: debug-artifacts/
+
+      - name: Package PSP release
+        working-directory: build
+        shell: bash
+        run: |
+          test -f EBOOT.PBP
+          test -d assets
+          test -d mods
+          cmake -E tar cf ../devilutionx-psp.zip --format=zip EBOOT.PBP assets mods
+
+      - name: Update Release
+        if: ${{ github.event_name == 'release' && !env.ACT }}
+        uses: svenstaro/upload-release-action@v2
+        with:
+          asset_name: devilutionx-psp.zip
+          file: devilutionx-psp.zip
+          overwrite: true
