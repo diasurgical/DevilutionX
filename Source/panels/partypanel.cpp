@@ -180,21 +180,11 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 		const ClxSprite playerPortraitSprite = GetPlayerPortraitSprite(player);
 		// Get the offset of the sprite based on the players class so it get's rendered in the correct position
 		const PlayerSpriteData &spriteData = GetPlayerSpriteDataForClass(player._pClass);
-		int8_t offsetX;
-		int8_t offsetY;
-		if (player._pHitPoints <= 0 && IsPlayerUnarmed(player)) {
-			offsetX = spriteData.partyOffsetDeadX;
-			offsetY = spriteData.partyOffsetDeadY;
-		} else if (player.isOnLevel(0)) {
-			offsetX = spriteData.partyOffsetTownX;
-			offsetY = spriteData.partyOffsetTownY;
-		} else {
-			offsetX = spriteData.partyOffsetDungeonX;
-			offsetY = spriteData.partyOffsetDungeonY;
-		}
-
+		Point offset = (player.isOnLevel(0)) ? spriteData.partyOffsetTown : spriteData.partyOffsetDungeon;
+		if (player._pHitPoints <= 0 && IsPlayerUnarmed(player))
+			offset = spriteData.partyOffsetDead;
 		// Calculate the players portait position
-		const Point portraitPos = { ((-(playerPortraitSprite.width() / 2)) + (PortraitFrameSize.width / 2)) + offsetX, offsetY };
+		const Point portraitPos = { ((-(playerPortraitSprite.width() / 2)) + (PortraitFrameSize.width / 2)) + offset.x, offset.y };
 		// Get a subregion of the surface so the portrait doesn't get drawn over the frame
 		const Surface frameSubregion = gameScreen.subregion(
 		    pos.x + FrameBorderSize,
