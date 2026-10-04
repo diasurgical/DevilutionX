@@ -1,6 +1,7 @@
-name: PSP
+---
+name: Sony PlayStation Portable
 
-on:
+on:  # yamllint disable-line rule:truthy
   push:
     branches:
       - master
@@ -22,10 +23,8 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-24.04
-    container:
-      image: ghcr.io/pspdev/pspdev:latest
-
+    runs-on: ubuntu-latest
+    container: ghcr.io/pspdev/pspdev:latest
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -33,63 +32,39 @@ jobs:
           fetch-depth: 0
 
       - name: Configure CMake
-        shell: bash
-        run: >
-          cmake -S. -Bbuild
-          -DCMAKE_TOOLCHAIN_FILE=${PSPDEV}/psp/share/pspdev.cmake
-          -DCMAKE_BUILD_TYPE=RelWithDebInfo
-
-      - name: Build
-        shell: bash
-        run: cmake --build build -j $(getconf _NPROCESSORS_ONLN)
-
-      - name: Preserve PSP debug executable
-        shell: bash
         run: |
-          echo "=== PSP build executables ==="
-          find build -type f \( -name "devilutionx" -o -name "*.elf" -o -name "*.map" \) -print
+          cmake \
+            -S . \
+            -B build \
+            -D CMAKE_BUILD_TYPE=RelWithDebInfo \
+            -D CMAKE_TOOLCHAIN_FILE=${PSPDEV}/psp/share/pspdev.cmake
 
-          DEBUG_ELF="build/devilutionx-debug.elf"
+      - name: Build DevilutionX
+        run: cmake --build build -j$(nproc)
 
-          if [ ! -f "$DEBUG_ELF" ]; then
-            echo "ERROR: Could not find the PSP debug ELF."
-            exit 1
-          fi
-
-          mkdir -p debug-artifacts
-          cp "$DEBUG_ELF" debug-artifacts/devilutionx-debug.elf
-
-          echo "=== Debug ELF information ==="
-          ls -lh debug-artifacts/devilutionx-debug.elf
-
-          echo "=== Symbol sections ==="
-          psp-readelf -S debug-artifacts/devilutionx-debug.elf | grep -E '\.symtab|\.debug_' || true
-
-      - name: Upload PSP Build
+      - name: Upload Package
         if: ${{ !env.ACT }}
         uses: actions/upload-artifact@v7
         with:
           name: devilutionx-psp
+          if-no-files-found: error
           path: |
             build/EBOOT.PBP
             build/assets/
             build/mods/
 
-      - name: Upload PSP Debug ELF
+      - name: Upload Debug Executable
         if: ${{ !env.ACT }}
         uses: actions/upload-artifact@v7
         with:
           name: devilutionx-psp-debug
-          path: debug-artifacts/
+          if-no-files-found: error
+          path: build/devilutionx-debug.elf
 
-      - name: Package PSP release
+      - name: Package Release
+        if: ${{ github.event_name == 'release' && !env.ACT }}
         working-directory: build
-        shell: bash
-        run: |
-          test -f EBOOT.PBP
-          test -d assets
-          test -d mods
-          cmake -E tar cf ../devilutionx-psp.zip --format=zip EBOOT.PBP assets mods
+        run: cmake -E tar cf ../devilutionx-psp.zip --format=zip EBOOT.PBP assets mods
 
       - name: Update Release
         if: ${{ github.event_name == 'release' && !env.ACT }}
