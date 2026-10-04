@@ -69,6 +69,15 @@ namespace devilution {
 
 namespace {
 
+#ifdef PSP
+// The PSP file system may report the packaged `hf` directory in uppercase.
+// Both spellings represent the same built-in Hellfire mod.
+bool IsHellfireModName(std::string_view name)
+{
+	return name.size() == 2 && (name[0] == 'h' || name[0] == 'H') && (name[1] == 'f' || name[1] == 'F');
+}
+#endif
+
 void DiscoverMods()
 {
 	// Add mods available by default:
@@ -88,7 +97,11 @@ void DiscoverMods()
 			if (!FileExists(modScriptPath.c_str()))
 				continue;
 
+#ifdef PSP
+			modNames.insert(IsHellfireModName(modFolder) ? "hf" : modFolder);
+#else
 			modNames.insert(modFolder);
+#endif
 		}
 
 		// Find packed mods
@@ -96,7 +109,12 @@ void DiscoverMods()
 			if (!modMpq.ends_with(".mpq"))
 				continue;
 
-			modNames.insert(modMpq.substr(0, modMpq.size() - 4));
+			const std::string modName = modMpq.substr(0, modMpq.size() - 4);
+#ifdef PSP
+			modNames.insert(IsHellfireModName(modName) ? "hf" : modName);
+#else
+			modNames.insert(modName);
+#endif
 		}
 	}
 
@@ -221,6 +239,25 @@ bool HardwareCursorSupported()
 void LoadOptions()
 {
 	LoadIni();
+
+#ifdef PSP
+	// Merge legacy case variants without losing an enabled Hellfire setting.
+	const std::vector<std::string> modKeys = ini->getKeys("Mods");
+	bool hellfireEnabled = ini->getBool("Mods", "hf", false);
+	bool hasAlias = false;
+	for (const std::string &modKey : modKeys) {
+		if (modKey == "hf" || !IsHellfireModName(modKey))
+			continue;
+		hellfireEnabled |= ini->getBool("Mods", modKey, false);
+		ini->set("Mods", modKey, Ini::Values {});
+		hasAlias = true;
+	}
+	if (hasAlias) {
+		ini->set("Mods", "hf", hellfireEnabled);
+		SaveIni();
+	}
+#endif
+
 	DiscoverMods();
 	Options &options = GetOptions();
 	for (OptionCategoryBase *pCategory : options.GetCategories()) {
@@ -432,7 +469,8 @@ std::string_view OptionCategoryBase::GetDescription() const
 
 GameModeOptions::GameModeOptions()
     : OptionCategoryBase("GameMode", N_("Game Mode"), N_("Game Mode Settings"))
-    , gameMode("Game", OptionEntryFlags::Invisible, N_("Game Mode"), N_("Play Diablo or Hellfire."), StartUpGameMode::Ask,
+    , gameMode("Game", OptionEntryFlags::Invisible,
+          N_("Game Mode"), N_("Play Diablo or Hellfire."), StartUpGameMode::Ask,
           {
               { StartUpGameMode::Diablo, N_("Diablo") },
               // Ask is missing, because we want to hide it from UI-Settings.
@@ -452,19 +490,34 @@ std::vector<OptionEntryBase *> GameModeOptions::GetEntries()
 
 StartUpOptions::StartUpOptions()
     : OptionCategoryBase("StartUp", N_("Start Up"), N_("Start Up Settings"))
-    , diabloIntro("Diablo Intro", OptionEntryFlags::OnlyDiablo, N_("Intro"), N_("Shown Intro cinematic."), StartUpIntro::Once,
+    , diabloIntro("Diablo Intro", OptionEntryFlags::OnlyDiablo, N_("Intro"), N_("Shown Intro cinematic."),
+#ifdef PSP
+          StartUpIntro::Off,
+#else
+          StartUpIntro::Once,
+#endif
           {
               { StartUpIntro::Off, N_("OFF") },
               // Once is missing, because we want to hide it from UI-Settings.
               { StartUpIntro::On, N_("ON") },
           })
-    , hellfireIntro("Hellfire Intro", OptionEntryFlags::OnlyHellfire, N_("Intro"), N_("Shown Intro cinematic."), StartUpIntro::Once,
+    , hellfireIntro("Hellfire Intro", OptionEntryFlags::OnlyHellfire, N_("Intro"), N_("Shown Intro cinematic."),
+#ifdef PSP
+          StartUpIntro::Off,
+#else
+          StartUpIntro::Once,
+#endif
           {
               { StartUpIntro::Off, N_("OFF") },
               // Once is missing, because we want to hide it from UI-Settings.
               { StartUpIntro::On, N_("ON") },
           })
-    , splash("Splash", OptionEntryFlags::None, N_("Splash"), N_("Shown splash screen."), StartUpSplash::LogoAndTitleDialog,
+    , splash("Splash", OptionEntryFlags::None, N_("Splash"), N_("Shown splash screen."),
+#ifdef PSP
+          StartUpSplash::TitleDialog,
+#else
+          StartUpSplash::LogoAndTitleDialog,
+#endif
           {
               { StartUpSplash::LogoAndTitleDialog, N_("Logo and Title Screen") },
               { StartUpSplash::TitleDialog, N_("Title Screen") },
@@ -552,6 +605,11 @@ OptionEntryResolution::OptionEntryResolution()
 void OptionEntryResolution::LoadFromIni(std::string_view category)
 {
 	size_ = { ini->getInt(category, "Width", DEFAULT_WIDTH), ini->getInt(category, "Height", DEFAULT_HEIGHT) };
+#ifdef PSP
+	// Accept only the two PSP viewports, including settings from older builds.
+	if (size_ != PspWidescreenLogicalSize)
+		size_ = PspStandardLogicalSize;
+#endif
 }
 void OptionEntryResolution::SaveToIni(std::string_view category) const
 {
@@ -764,7 +822,12 @@ GraphicsOptions::GraphicsOptions()
           true
 #endif
           )
-    , scaleQuality("Scaling Quality", OptionEntryFlags::None, N_("Scaling Quality"), N_("Enables optional filters to the output image when upscaling."), ScalingQuality::AnisotropicFiltering,
+    , scaleQuality("Scaling Quality", OptionEntryFlags::None, N_("Scaling Quality"), N_("Enables optional filters to the output image when upscaling."),
+#ifdef PSP
+          ScalingQuality::BilinearFiltering,
+#else
+          ScalingQuality::AnisotropicFiltering,
+#endif
           {
               { ScalingQuality::NearestPixel, N_("Nearest Pixel") },
               { ScalingQuality::BilinearFiltering, N_("Bilinear") },
@@ -794,7 +857,13 @@ GraphicsOptions::GraphicsOptions()
               { FrameRateControl::CPUSleep, N_("Limit FPS") },
           })
     , brightness("Brightness Correction", OptionEntryFlags::Invisible, "Brightness Correction", "Brightness correction level.", 0)
-    , zoom("Zoom", OptionEntryFlags::None, N_("Zoom"), N_("Zoom on when enabled."), false)
+    , zoom("Zoom", OptionEntryFlags::None, N_("Zoom"), N_("Zoom on when enabled."),
+#ifdef PSP
+          true
+#else
+          false
+#endif
+          )
     , perPixelLighting("Per-pixel Lighting", OptionEntryFlags::None, N_("Per-pixel Lighting"), N_("Subtile lighting for smoother light gradients."), DEFAULT_PER_PIXEL_LIGHTING)
     , colorCycling("Color Cycling", OptionEntryFlags::None, N_("Color Cycling"), N_("Color cycling effect used for water, lava, and acid animation."), true)
     , alternateNestArt("Alternate nest art", OptionEntryFlags::OnlyHellfire | OptionEntryFlags::CantChangeInGame, N_("Alternate nest art"), N_("The game will use an alternative palette for Hellfire’s nest tileset."), false)

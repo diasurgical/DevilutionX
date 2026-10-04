@@ -33,6 +33,28 @@ Download the latest [DevilutionX release](https://github.com/diasurgical/devilut
 
 For more detailed instructions: [Installation Instructions](./docs/installing.md).
 
+## PlayStation Portable
+
+The PSP build artifact contains `EBOOT.PBP`, `assets/`, and `mods/hf/`. Place
+them under `PSP/GAME/DevilutionX/` on the Memory Stick, then add your own game
+MPQs beside `EBOOT.PBP`. For Diablo, use `DIABDAT.MPQ`; for Hellfire, also add
+`hellfire.mpq`, `hfmonk.mpq`, `hfmusic.mpq`, and `hfvoice.mpq`. Game MPQs are not
+included in the build artifact.
+
+For shareware on the tested PSP-3000, use the original WAV-audio `spawn.mpq`
+extracted from Blizzard's [`diablosw.exe`](http://ftp.blizzard.com/pub/demos/diablosw.exe)
+(50,274,091 bytes; SHA-256
+`ea7de65bd1f12f1d04561c62a68f80eb36341e224974e1d93931fe82dc814e75`).
+The smaller `spawn.mpq` from the [DevilutionX assets download](https://github.com/diasurgical/devilutionx-assets/releases/latest/download/spawn.mpq)
+contains MP3 audio and currently powers off the PSP-3000 with this port. A
+controlled PSP test ran with a WAV-audio archive and failed with the
+corresponding MP3-audio archive. This points to a **PSP-port MP3 compatibility
+issue**, not a damaged official download.
+
+The PSP graphics menu provides 640×480 (4:3) and 848×480 (Widescreen) logical
+resolutions. Widescreen shows more of the game world without stretching the
+4:3 frame; the PSP displays either mode on its 480×272 screen.
+
 # Contributing
 
 We are always looking for more people to help with [coding](docs/CONTRIBUTING.md), [documentation](https://github.com/diasurgical/devilutionX/wiki), [testing the latest builds](#test-builds), spreading the word, or simply just hanging out on our [Discord server](https://discord.gg/devilutionx-518540764754608128).

@@ -774,7 +774,17 @@ void LoadBackgroundArt(const char *pszFile, int frames)
 		return;
 
 	UpdateSystemPalette(logical_palette);
-	UiOnBackgroundChange();
+
+#ifdef PSP
+// The PSP renderer presents the 640x480 logical framebuffer through
+// hardware-scaled split textures. Avoid presenting a partially
+// initialized UI while a new background is being installed.
+// The normal UI render loop presents the completed menu immediately
+// after MainmenuLoad() returns.
+StartUiFadeIn();
+#else
+UiOnBackgroundChange();
+#endif
 }
 
 void UiAddBackground(std::vector<std::unique_ptr<UiItemBase>> *vecDialog)
@@ -845,20 +855,25 @@ void UiPollAndRender(std::optional<tl::function_ref<bool(SDL_Event &)>> eventHan
 	while (PollEvent(&event)) {
 		if (eventHandler && (*eventHandler)(event))
 			continue;
+
 		if (!SDLC_ConvertEventToRenderCoordinates(renderer, &event)) {
 			LogWarn(LogCategory::Application, "SDL_ConvertEventToRenderCoordinates: {}", SDL_GetError());
 			SDL_ClearError();
 		}
+
 		UiFocusNavigation(&event);
+
 		UiHandleEvents(&event);
 	}
+
 	HandleMenuAction(GetMenuHeldUpDownAction());
+
 	UiRenderListItems();
+
 	DrawMouse();
+
 	UiFadeIn();
 
-	// Must happen after at least one call to `UiFadeIn` with non-zero fadeValue.
-	// `UiFadeIn` reinitializes the hardware cursor only for fadeValue > 0.
 	if (IsHardwareCursor() && fadeValue != 0)
 		SetHardwareCursorVisible(ControlDevice == ControlTypes::KeyboardAndMouse);
 

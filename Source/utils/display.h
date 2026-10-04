@@ -30,6 +30,10 @@ extern SDL_Window *ghMainWnd;
 extern SDL_Renderer *renderer;
 #ifndef USE_SDL1
 extern SDLTextureUniquePtr texture;
+#ifdef PSP
+constexpr int PspFirstTextureWidth = 512;
+extern SDLTextureUniquePtr PspRightTexture;
+#endif
 #endif
 
 extern SDLPaletteUniquePtr Palette;

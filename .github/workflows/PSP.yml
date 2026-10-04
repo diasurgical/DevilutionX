@@ -1,0 +1,81 @@
+name: PSP
+
+on:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
+  pull_request:
+    types: [opened, synchronize]
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    container:
+      image: ghcr.io/pspdev/pspdev:latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Configure CMake
+        shell: bash
+        run: >
+          cmake -S. -Bbuild
+          -DCMAKE_TOOLCHAIN_FILE=${PSPDEV}/psp/share/pspdev.cmake
+          -DCMAKE_BUILD_TYPE=RelWithDebInfo
+
+      - name: Build
+        shell: bash
+        run: cmake --build build -j $(getconf _NPROCESSORS_ONLN)
+
+      - name: Preserve PSP debug executable
+        shell: bash
+        run: |
+          echo "=== PSP build executables ==="
+          find build -type f \( -name "devilutionx" -o -name "*.elf" -o -name "*.map" \) -print
+
+          DEBUG_ELF="build/devilutionx-debug.elf"
+
+          if [ ! -f "$DEBUG_ELF" ]; then
+            echo "ERROR: Could not find the PSP debug ELF."
+            exit 1
+          fi
+
+          mkdir -p debug-artifacts
+          cp "$DEBUG_ELF" debug-artifacts/devilutionx-debug.elf
+
+          echo "=== Debug ELF information ==="
+          ls -lh debug-artifacts/devilutionx-debug.elf
+
+          echo "=== Symbol sections ==="
+          psp-readelf -S debug-artifacts/devilutionx-debug.elf | grep -E '\.symtab|\.debug_' || true
+
+      - name: Upload PSP Build
+        if: ${{ !env.ACT }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: devilutionx-psp
+          path: |
+            build/EBOOT.PBP
+            build/assets/
+            build/mods/
+
+      - name: Upload PSP Debug ELF
+        if: ${{ !env.ACT }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: devilutionx-psp-debug
+          path: debug-artifacts/

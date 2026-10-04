@@ -1,5 +1,6 @@
 #include "storm/storm_svid.h"
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -75,6 +76,9 @@ SmackerHandle SVidHandle;
 std::unique_ptr<uint8_t[]> SVidFrameBuffer;
 SDLPaletteUniquePtr SVidPalette;
 SDLSurfaceUniquePtr SVidSurface;
+#if defined(PSP) && !defined(USE_SDL1)
+bool SVidPspRenderer = false;
+#endif
 
 // The end of the current frame (time in SMK time units from the start of the program).
 uint64_t SVidFrameEnd;
@@ -222,7 +226,58 @@ void UpdatePalette()
 
 bool BlitFrame()
 {
+#if defined(PSP) && !defined(USE_SDL1)
+	if (SVidPspRenderer) {
+		// Convert only the source pixels into the existing 16-bit output surface.
+		// The PSP renderer scales the movie while the gameplay textures are idle.
+		SDL_Surface *outputSurface = GetOutputSurface();
+		SDL_Rect sourcePosition = { 0, 0, static_cast<int>(SVidWidth), static_cast<int>(SVidHeight) };
+		if (SDL_BlitSurface(SVidSurface.get(), nullptr, outputSurface, &sourcePosition) < 0)
+			ErrSdl();
+
+		const auto *pixels = static_cast<const uint8_t *>(outputSurface->pixels);
+		const int leftWidth = std::min<int>(SVidWidth, PspFirstTextureWidth);
+		const SDL_Rect leftSource = { 0, 0, leftWidth, static_cast<int>(SVidHeight) };
+		if (SDL_UpdateTexture(texture.get(), &leftSource, pixels, outputSurface->pitch) < 0)
+			ErrSdl();
+		if (SVidWidth > PspFirstTextureWidth) {
+			const SDL_Rect rightSource = { 0, 0, static_cast<int>(SVidWidth) - PspFirstTextureWidth, static_cast<int>(SVidHeight) };
+			const auto *rightPixels = pixels + PspFirstTextureWidth * outputSurface->format->BytesPerPixel;
+			if (SDL_UpdateTexture(PspRightTexture.get(), &rightSource, rightPixels, outputSurface->pitch) < 0)
+				ErrSdl();
+		}
+
+		constexpr int PspScreenWidth = 480;
+		constexpr int PspScreenHeight = 272;
+		SDL_Rect destination;
+		if (IsLandscapeFit(SVidWidth, SVidHeight, PspScreenWidth, PspScreenHeight)) {
+			destination.w = PspScreenWidth;
+			destination.h = SVidHeight * PspScreenWidth / SVidWidth;
+		} else {
+			destination.w = SVidWidth * PspScreenHeight / SVidHeight;
+			destination.h = PspScreenHeight;
+		}
+		destination.x = (PspScreenWidth - destination.w) / 2;
+		destination.y = (PspScreenHeight - destination.h) / 2;
+
+		if (SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255) < 0 || SDL_RenderClear(renderer) < 0)
+			ErrSdl();
+		const int leftDestinationWidth = destination.w * leftWidth / SVidWidth;
+		const SDL_Rect leftDestination = { destination.x, destination.y, leftDestinationWidth, destination.h };
+		if (SDL_RenderCopy(renderer, texture.get(), &leftSource, &leftDestination) < 0)
+			ErrSdl();
+		if (SVidWidth > PspFirstTextureWidth) {
+			const SDL_Rect rightSource = { 0, 0, static_cast<int>(SVidWidth) - PspFirstTextureWidth, static_cast<int>(SVidHeight) };
+			const SDL_Rect rightDestination = { destination.x + leftDestinationWidth, destination.y, destination.w - leftDestinationWidth, destination.h };
+			if (SDL_RenderCopy(renderer, PspRightTexture.get(), &rightSource, &rightDestination) < 0)
+				ErrSdl();
+		}
+		SDL_RenderPresent(renderer);
+		return true;
+	}
+#endif
 #ifndef USE_SDL1
+#ifndef PSP
 	if (renderer != nullptr) {
 		if (
 #ifdef USE_SDL3
@@ -234,7 +289,9 @@ bool BlitFrame()
 			Log("{}", SDL_GetError());
 			return false;
 		}
-	} else
+		}
+	else
+#endif
 #endif
 	{
 		SDL_Surface *outputSurface = GetOutputSurface();
@@ -394,7 +451,7 @@ bool SVidPlayBegin(const char *filename, int flags)
 			SVidAudioStream = std::nullopt;
 			SVidAudioDecoder = nullptr;
 		}
-		if (!SVidAudioStream->play()) {
+		if (SVidAudioStream && !SVidAudioStream->play()) {
 			LogError(LogCategory::Audio, "Aulib::Stream::play (from SVidPlayBegin): {}", SDL_GetError());
 			SVidAudioStream = std::nullopt;
 			SVidAudioDecoder = nullptr;
@@ -409,7 +466,17 @@ bool SVidPlayBegin(const char *filename, int flags)
 	SVidFrameLength = 100000 / static_cast<uint32_t>(Smacker_GetFrameRate(SVidHandle));
 	Smacker_GetFrameSize(SVidHandle, SVidWidth, SVidHeight);
 
+#if defined(PSP) && !defined(USE_SDL1)
+	// Reuse the split gameplay textures, which fit the PSP's 512-pixel limit.
+	SVidPspRenderer = renderer != nullptr && SVidWidth <= static_cast<uint32_t>(gnScreenWidth)
+	    && SVidHeight <= static_cast<uint32_t>(gnScreenHeight)
+	    && (SVidWidth <= PspFirstTextureWidth || PspRightTexture != nullptr);
+	if (SVidPspRenderer && SDL_RenderSetLogicalSize(renderer, 480, 272) < 0)
+		ErrSdl();
+#endif
+
 #ifndef USE_SDL1
+#ifndef PSP
 	if (renderer != nullptr) {
 		const int renderWidth = static_cast<int>(SVidWidth);
 		const int renderHeight = static_cast<int>(SVidHeight);
@@ -438,6 +505,7 @@ bool SVidPlayBegin(const char *filename, int flags)
 		}
 	}
 #endif
+#endif // PSP
 #else
 	TrySetVideoModeToSVidForSDL1();
 #endif
@@ -546,7 +614,16 @@ void SVidPlayEnd()
 	SVidSurface = nullptr;
 	SVidFrameBuffer = nullptr;
 
+#if defined(PSP) && !defined(USE_SDL1)
+	if (SVidPspRenderer) {
+		SVidPspRenderer = false;
+		if (SDL_RenderSetLogicalSize(renderer, gnScreenWidth, gnScreenHeight) < 0)
+			ErrSdl();
+	}
+#endif
+
 #ifndef USE_SDL1
+#ifndef PSP
 	if (renderer != nullptr) {
 		texture = SDLWrap::CreateTexture(renderer, DEVILUTIONX_DISPLAY_TEXTURE_FORMAT, SDL_TEXTUREACCESS_STREAMING, gnScreenWidth, gnScreenHeight);
 		if (
@@ -573,6 +650,7 @@ void SVidPlayEnd()
 		}
 	}
 #endif
+#endif // PSP
 #else
 	if (IsSVidVideoMode) {
 		SetVideoModeToPrimary(IsFullScreen(), gnScreenWidth, gnScreenHeight);
