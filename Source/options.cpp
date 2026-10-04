@@ -49,6 +49,10 @@
 #include "utils/str_split.hpp"
 #include "utils/utf8.hpp"
 
+#ifdef PSP
+#include "utils/str_case.hpp"
+#endif
+
 namespace devilution {
 
 #ifndef DEFAULT_AUDIO_SAMPLE_RATE
@@ -68,15 +72,6 @@ namespace devilution {
 #endif
 
 namespace {
-
-#ifdef PSP
-// The PSP file system may report the packaged `hf` directory in uppercase.
-// Both spellings represent the same built-in Hellfire mod.
-bool IsHellfireModName(std::string_view name)
-{
-	return name.size() == 2 && (name[0] == 'h' || name[0] == 'H') && (name[1] == 'f' || name[1] == 'F');
-}
-#endif
 
 void DiscoverMods()
 {
@@ -98,10 +93,13 @@ void DiscoverMods()
 				continue;
 
 #ifdef PSP
-			modNames.insert(IsHellfireModName(modFolder) ? "hf" : modFolder);
-#else
-			modNames.insert(modFolder);
+			// The PSP may list the `hf` mod directory as `HF`.
+			if (AsciiStrToLower(modFolder) == "hf") {
+				modNames.insert("hf");
+				continue;
+			}
 #endif
+			modNames.insert(modFolder);
 		}
 
 		// Find packed mods
@@ -109,12 +107,7 @@ void DiscoverMods()
 			if (!modMpq.ends_with(".mpq"))
 				continue;
 
-			const std::string modName = modMpq.substr(0, modMpq.size() - 4);
-#ifdef PSP
-			modNames.insert(IsHellfireModName(modName) ? "hf" : modName);
-#else
-			modNames.insert(modName);
-#endif
+			modNames.insert(modMpq.substr(0, modMpq.size() - 4));
 		}
 	}
 
@@ -239,25 +232,6 @@ bool HardwareCursorSupported()
 void LoadOptions()
 {
 	LoadIni();
-
-#ifdef PSP
-	// Merge legacy case variants without losing an enabled Hellfire setting.
-	const std::vector<std::string> modKeys = ini->getKeys("Mods");
-	bool hellfireEnabled = ini->getBool("Mods", "hf", false);
-	bool hasAlias = false;
-	for (const std::string &modKey : modKeys) {
-		if (modKey == "hf" || !IsHellfireModName(modKey))
-			continue;
-		hellfireEnabled |= ini->getBool("Mods", modKey, false);
-		ini->set("Mods", modKey, Ini::Values {});
-		hasAlias = true;
-	}
-	if (hasAlias) {
-		ini->set("Mods", "hf", hellfireEnabled);
-		SaveIni();
-	}
-#endif
-
 	DiscoverMods();
 	Options &options = GetOptions();
 	for (OptionCategoryBase *pCategory : options.GetCategories()) {
