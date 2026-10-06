@@ -18,8 +18,6 @@
 #include <SDL.h>
 #endif
 
-#include <fmt/format.h>
-
 #include "DiabloUI/diabloui.h"
 #include "control/control.hpp"
 #include "controls/control_mode.hpp"
@@ -40,9 +38,11 @@
 #include "options.h"
 #include "qol/itemlabels.h"
 #include "qol/stash.h"
+#include "qol/visual_store.h"
 #include "towners.h"
 #include "track.h"
 #include "utils/attributes.h"
+#include "utils/format.hpp"
 #include "utils/is_of.hpp"
 #include "utils/language.h"
 #include "utils/palette_blending.hpp"
@@ -282,7 +282,10 @@ bool TrySelectPixelBased(Point tile)
 		// Columns
 		Displacement ret = Displacement(Direction::East) * renderingPoint.x;
 		// Rows
-		ret += Displacement(Direction::South) * renderingPoint.y / 2;
+		// Simply dividing by 2 would produce the same result for both 1 and -1.
+		// Instead, pick the nearest even number that is less than y, then divide by 2.
+		const int evenY = renderingPoint.y - (renderingPoint.y & 1);
+		ret += Displacement(Direction::South) * evenY / 2;
 		if ((renderingPoint.y & 1) == 1)
 			ret.deltaY += 1;
 		return ret;
@@ -627,7 +630,7 @@ void CheckTown()
 			if (EntranceBoundaryContains(missile.position.tile, cursPosition)) {
 				trigflag = true;
 				InfoString = _("Town Portal");
-				AddInfoBoxString(fmt::format(fmt::runtime(_("from {:s}")), Players[missile._misource]._pName));
+				AddInfoBoxString(FormatRuntime(_("from {:s}"), Players[missile._misource]._pName));
 				cursPosition = missile.position.tile;
 			}
 		}
@@ -802,6 +805,8 @@ void ResetCursorInfo()
 	}
 	pcursinvitem = -1;
 	pcursstashitem = StashStruct::EmptyCell;
+	pcursstoreitem = -1;
+	pcursstorebtn = -1;
 	PlayerUnderCursor = nullptr;
 	ShowUniqueItemInfoBox = false;
 	MainPanelFlag = false;
@@ -835,6 +840,9 @@ bool CheckPanelsAndFlags(Rectangle mainPanel)
 	}
 	if (IsStashOpen && GetLeftPanel().contains(MousePosition)) {
 		pcursstashitem = CheckStashHLight(MousePosition);
+	}
+	if (IsVisualStoreOpen && GetLeftPanel().contains(MousePosition)) {
+		pcursstoreitem = CheckVisualStoreHLight(MousePosition);
 	}
 	if (SpellbookFlag && GetRightPanel().contains(MousePosition)) {
 		return true;

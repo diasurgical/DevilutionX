@@ -43,7 +43,7 @@ bool IsMonsterValid(const Monster &monster)
 {
 	const CMonster &monsterType = LevelMonsterTypes[monster.levelType];
 	const _monster_id monsterId = monsterType.type;
-	const size_t monsterIndex = static_cast<size_t>(monsterId);
+	const auto monsterIndex = static_cast<size_t>(monsterId);
 
 	if (monsterIndex >= MonstersData.size()) {
 		return false;
@@ -60,7 +60,7 @@ bool IsUniqueMonsterValid(const Monster &monster)
 {
 	assert(monster.isUnique());
 
-	const size_t uniqueMonsterIndex = static_cast<size_t>(monster.uniqueType);
+	const auto uniqueMonsterIndex = static_cast<size_t>(monster.uniqueType);
 	if (uniqueMonsterIndex >= UniqueMonstersData.size()) {
 		return false;
 	}
@@ -68,11 +68,7 @@ bool IsUniqueMonsterValid(const Monster &monster)
 	const CMonster &monsterType = LevelMonsterTypes[monster.levelType];
 	const _monster_id monsterId = monsterType.type;
 	const UniqueMonsterData &uniqueMonsterData = UniqueMonstersData.at(uniqueMonsterIndex);
-	if (monsterId != uniqueMonsterData.mtype) {
-		return false;
-	}
-
-	return true;
+	return monsterId == uniqueMonsterData.mtype;
 }
 
 } // namespace devilution

@@ -2,8 +2,6 @@
 
 #include <cstdint>
 
-#include <fmt/format.h>
-
 #include "control/control.hpp"
 #include "controls/control_mode.hpp"
 #include "controls/plrctrls.h"
@@ -17,6 +15,7 @@
 #include "player.h"
 #include "spells.h"
 #include "utils/algorithm/container.hpp"
+#include "utils/format.hpp"
 #include "utils/language.h"
 #include "utils/str_cat.hpp"
 #include "utils/utf8.hpp"
@@ -32,7 +31,7 @@ void PrintSBookSpellType(const Surface &out, Point position, std::string_view te
 	DrawLargeSpellIconBorder(out, position, rectColorIndex);
 
 	// Align the spell type text with bottom of spell icon
-	position += Displacement { SPLICONLENGTH / 2 - GetLineWidth(text) / 2, (IsSmallFontTall() ? -19 : -15) };
+	position += Displacement { (SPLICONLENGTH / 2) - (GetLineWidth(text) / 2), (IsSmallFontTall() ? -19 : -15) };
 
 	// Then draw the text over the top
 	DrawString(out, text, position, { .flags = UiFlags::ColorWhite | UiFlags::Outlined });
@@ -150,48 +149,48 @@ void DrawSpellList(const Surface &out)
 		case SpellType::Skill:
 			spellColor = PAL16_YELLOW - 46;
 			PrintSBookSpellType(out, spellListItem.location, _("Skill"), spellColor);
-			InfoString = fmt::format(fmt::runtime(_("{:s} Skill")), pgettext("spell", spellDataItem.sNameText));
+			InfoString = FormatRuntime(_("{:s} Skill"), pgettext("spell", spellDataItem.sNameText));
 			break;
 		case SpellType::Spell:
 			if (!myPlayer.isOnLevel(0)) {
 				spellColor = PAL16_BLUE + 5;
 			}
 			PrintSBookSpellType(out, spellListItem.location, _("Spell"), spellColor);
-			InfoString = fmt::format(fmt::runtime(_("{:s} Spell")), pgettext("spell", spellDataItem.sNameText));
+			InfoString = FormatRuntime(_("{:s} Spell"), pgettext("spell", spellDataItem.sNameText));
 			if (spellId == SpellID::HolyBolt) {
 				AddInfoBoxString(_("Damages undead only"));
 			}
 			if (spellLevel == 0)
 				AddInfoBoxString(_("Spell Level 0 - Unusable"));
 			else
-				AddInfoBoxString(fmt::format(fmt::runtime(_("Spell Level {:d}")), spellLevel));
+				AddInfoBoxString(FormatRuntime(_("Spell Level {:d}"), spellLevel));
 			break;
 		case SpellType::Scroll: {
 			if (!myPlayer.isOnLevel(0)) {
 				spellColor = PAL16_RED - 59;
 			}
 			PrintSBookSpellType(out, spellListItem.location, _("Scroll"), spellColor);
-			InfoString = fmt::format(fmt::runtime(_("Scroll of {:s}")), pgettext("spell", spellDataItem.sNameText));
+			InfoString = FormatRuntime(_("Scroll of {:s}"), pgettext("spell", spellDataItem.sNameText));
 			const int scrollCount = c_count_if(InventoryAndBeltPlayerItemsRange { myPlayer }, [spellId](const Item &item) {
 				return item.isScrollOf(spellId);
 			});
-			AddInfoBoxString(fmt::format(fmt::runtime(ngettext("{:d} Scroll", "{:d} Scrolls", scrollCount)), scrollCount));
+			AddInfoBoxString(FormatRuntime(ngettext("{:d} Scroll", "{:d} Scrolls", scrollCount), scrollCount));
 		} break;
 		case SpellType::Charges: {
 			if (!myPlayer.isOnLevel(0)) {
 				spellColor = PAL16_ORANGE + 5;
 			}
 			PrintSBookSpellType(out, spellListItem.location, _("Staff"), spellColor);
-			InfoString = fmt::format(fmt::runtime(_("Staff of {:s}")), pgettext("spell", spellDataItem.sNameText));
+			InfoString = FormatRuntime(_("Staff of {:s}"), pgettext("spell", spellDataItem.sNameText));
 			int charges = myPlayer.InvBody[INVLOC_HAND_LEFT]._iCharges;
-			AddInfoBoxString(fmt::format(fmt::runtime(ngettext("{:d} Charge", "{:d} Charges", charges)), charges));
+			AddInfoBoxString(FormatRuntime(ngettext("{:d} Charge", "{:d} Charges", charges), charges));
 		} break;
 		case SpellType::Invalid:
 			break;
 		}
 		std::optional<std::string_view> fullHotkeyName = GetHotkeyName(spellId, spellListItem.type);
 		if (fullHotkeyName) {
-			AddInfoBoxString(fmt::format(fmt::runtime(_("Spell Hotkey {:s}")), *fullHotkeyName));
+			AddInfoBoxString(FormatRuntime(_("Spell Hotkey {:s}"), *fullHotkeyName));
 		}
 	}
 }
@@ -203,7 +202,7 @@ std::vector<SpellListItem> GetSpellListItems()
 	uint64_t mask;
 	const Point mainPanelPosition = GetMainPanel().position;
 
-	int x = mainPanelPosition.x + 12 + SPLICONLENGTH * SPLROWICONLS;
+	int x = mainPanelPosition.x + 12 + (SPLICONLENGTH * SPLROWICONLS);
 	int y = mainPanelPosition.y - 17;
 
 	for (auto i : enum_values<SpellType>()) {
@@ -224,7 +223,7 @@ std::vector<SpellListItem> GetSpellListItems()
 		default:
 			continue;
 		}
-		int8_t j = static_cast<int8_t>(SpellID::Firebolt);
+		auto j = static_cast<int8_t>(SpellID::Firebolt);
 		for (uint64_t spl = 1; static_cast<size_t>(j) < SpellsData.size(); spl <<= 1, j++) {
 			if ((mask & spl) == 0)
 				continue;
@@ -335,10 +334,10 @@ void DoSpeedBook()
 {
 	SpellSelectFlag = true;
 	const Point mainPanelPosition = GetMainPanel().position;
-	int xo = mainPanelPosition.x + 12 + SPLICONLENGTH * 10;
+	int xo = mainPanelPosition.x + 12 + (SPLICONLENGTH * 10);
 	int yo = mainPanelPosition.y - 17;
-	int x = xo + SPLICONLENGTH / 2;
-	int y = yo - SPLICONLENGTH / 2;
+	int x = xo + (SPLICONLENGTH / 2);
+	int y = yo - (SPLICONLENGTH / 2);
 
 	const Player &myPlayer = *MyPlayer;
 

@@ -36,7 +36,7 @@ int8_t AnimationInfo::getFrameToUseForRendering() const
 	// we don't use the processed game ticks alone but also the fraction of the next game tick (if a rendering happens between game ticks). This helps to smooth the animations.
 	const int32_t totalTicksForCurrentAnimationSequence = getProgressToNextGameTick() + ticksSinceSequenceStarted;
 
-	int8_t absoluteAnimationFrame = static_cast<int8_t>(totalTicksForCurrentAnimationSequence * tickModifier_ / baseValueFraction / baseValueFraction);
+	auto absoluteAnimationFrame = static_cast<int8_t>(totalTicksForCurrentAnimationSequence * tickModifier_ / baseValueFraction / baseValueFraction);
 	if (skippedFramesFromPreviousAnimation_ > 0) {
 		// absoluteAnimationFrames contains also the Frames from the previous Animation, so if we want to get the current Frame we have to remove them
 		absoluteAnimationFrame -= skippedFramesFromPreviousAnimation_;

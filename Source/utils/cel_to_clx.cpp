@@ -48,7 +48,7 @@ OwnedClxSpriteListOrSheet CelToClx(const uint8_t *data, size_t size, PointerOrVa
 	cl2Data.reserve(size + 4445);
 
 	// If it is a number of frames, then the last frame offset will be equal to the size of the file.
-	if (LoadLE32(&data[maybeNumFrames * 4 + 4]) != size) {
+	if (LoadLE32(&data[(maybeNumFrames * 4) + 4]) != size) {
 		// maybeNumFrames is the address of the first group, right after
 		// the list of group offsets.
 		numGroups = maybeNumFrames / 4;
@@ -68,14 +68,14 @@ OwnedClxSpriteListOrSheet CelToClx(const uint8_t *data, size_t size, PointerOrVa
 
 		// CL2 header: frame count, frame offset for each frame, file size
 		const size_t cl2DataOffset = cl2Data.size();
-		cl2Data.resize(cl2Data.size() + 4 * (2 + static_cast<size_t>(numFrames)));
+		cl2Data.resize(cl2Data.size() + (4 * (2 + static_cast<size_t>(numFrames))));
 		WriteLE32(&cl2Data[cl2DataOffset], numFrames);
 
 		const uint8_t *srcEnd = &data[LoadLE32(&data[4])];
 		for (size_t frame = 1; frame <= numFrames; ++frame) {
 			const uint8_t *src = srcEnd;
 			srcEnd = &data[LoadLE32(&data[4 * (frame + 1)])];
-			WriteLE32(&cl2Data[cl2DataOffset + 4 * frame], static_cast<uint32_t>(cl2Data.size() - cl2DataOffset));
+			WriteLE32(&cl2Data[cl2DataOffset + (4 * frame)], static_cast<uint32_t>(cl2Data.size() - cl2DataOffset));
 
 			// Skip CEL frame header if there is one.
 			constexpr size_t CelFrameHeaderSize = 10;
@@ -114,7 +114,7 @@ OwnedClxSpriteListOrSheet CelToClx(const uint8_t *data, size_t size, PointerOrVa
 			AppendClxTransparentRun(transparentRunWidth, cl2Data);
 		}
 
-		WriteLE32(&cl2Data[cl2DataOffset + 4 * (1 + static_cast<size_t>(numFrames))], static_cast<uint32_t>(cl2Data.size() - cl2DataOffset));
+		WriteLE32(&cl2Data[cl2DataOffset + (4 * (1 + static_cast<size_t>(numFrames)))], static_cast<uint32_t>(cl2Data.size() - cl2DataOffset));
 		data = srcEnd;
 	}
 

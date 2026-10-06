@@ -2,14 +2,13 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <expected>
 #include <memory>
 #include <string>
 
 #ifdef DEBUG_CEL_TO_CL2_SIZE
 #include <iostream>
 #endif
-
-#include <expected.hpp>
 
 #include "appfat.h"
 #include "mpq/mpq_common.hpp"
@@ -25,7 +24,7 @@
 
 namespace devilution {
 
-tl::expected<OwnedClxSpriteListOrSheet, std::string> LoadCelListOrSheetWithStatus(const char *pszName, PointerOrValue<uint16_t> widthOrWidths)
+std::expected<OwnedClxSpriteListOrSheet, std::string> LoadCelListOrSheetWithStatus(const char *pszName, PointerOrValue<uint16_t> widthOrWidths)
 {
 	char path[MaxMpqPathSize];
 	*BufCopy(path, pszName, DEVILUTIONX_CEL_EXT) = '\0';
@@ -43,7 +42,7 @@ tl::expected<OwnedClxSpriteListOrSheet, std::string> LoadCelListOrSheetWithStatu
 
 OwnedClxSpriteListOrSheet LoadCelListOrSheet(const char *pszName, PointerOrValue<uint16_t> widthOrWidths)
 {
-	tl::expected<OwnedClxSpriteListOrSheet, std::string> result = LoadCelListOrSheetWithStatus(pszName, widthOrWidths);
+	std::expected<OwnedClxSpriteListOrSheet, std::string> result = LoadCelListOrSheetWithStatus(pszName, widthOrWidths);
 	if (DVL_PREDICT_FALSE(!result.has_value())) app_fatal(result.error());
 	return std::move(result).value();
 }

@@ -66,6 +66,10 @@ function(add_devilutionx_library NAME)
 
   target_compile_definitions(${NAME} PUBLIC ${DEVILUTIONX_DEFINITIONS})
 
+  # Ensure all libraries and the shared PCH compile with a consistent threading
+  # model (e.g. -pthread / _REENTRANT) and transitively provide threading flags.
+  target_link_libraries(${NAME} PUBLIC Threads::Threads)
+
   set_relative_file_macro(${NAME})
 endfunction()
 

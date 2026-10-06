@@ -8,6 +8,7 @@
 #include <cstdio>
 #include <cstring>
 #include <ctime>
+#include <expected>
 
 #ifdef USE_SDL3
 #include <SDL3/SDL_error.h>
@@ -18,8 +19,6 @@
 
 #include "utils/sdl_compat.h"
 #endif
-
-#include <expected.hpp>
 
 #define DEVILUTIONX_SCREENSHOT_FORMAT_PCX 0
 #define DEVILUTIONX_SCREENSHOT_FORMAT_PNG 1
@@ -102,7 +101,7 @@ void CaptureScreen()
 	system_palette = origSystemPalette;
 	SystemPaletteUpdated();
 
-	const tl::expected<void, std::string> result =
+	const std::expected<void, std::string> result =
 #if DEVILUTIONX_SCREENSHOT_FORMAT == DEVILUTIONX_SCREENSHOT_FORMAT_PCX
 	    WriteSurfaceToFilePcx(GlobalBackBuffer(), outStream);
 #elif DEVILUTIONX_SCREENSHOT_FORMAT == DEVILUTIONX_SCREENSHOT_FORMAT_PNG

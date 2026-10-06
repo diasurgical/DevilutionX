@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <expected>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -17,8 +18,6 @@
 #include "utils/sdl2_to_1_2_backports.h"
 #endif
 #endif
-
-#include <expected.hpp>
 
 #include "DiabloUI/text_input.hpp"
 #include "DiabloUI/ui_flags.hpp"
@@ -40,8 +39,8 @@ constexpr Size SidePanelSize { 320, 352 };
 
 constexpr Rectangle InfoBoxRect = { { 177, 46 }, { 288, 64 } };
 
-extern bool CharPanelButton[4];
-extern bool CharPanelButtonActive;
+extern DVL_API_FOR_TEST bool CharPanelButton[4];
+extern DVL_API_FOR_TEST bool CharPanelButtonActive;
 
 extern int SpellbookTab;
 
@@ -51,7 +50,7 @@ extern StringOrView InfoString;
 extern StringOrView FloatingInfoString;
 
 extern Rectangle MainPanelButtonRect[8];
-extern Rectangle CharPanelButtonRect[4];
+extern DVL_API_FOR_TEST Rectangle CharPanelButtonRect[4];
 
 extern bool MainPanelButtonDown;
 extern bool LevelButtonDown;
@@ -61,9 +60,9 @@ extern OptionalOwnedClxSpriteList GoldBoxBuffer;
 
 extern bool MainPanelFlag;
 extern bool ChatFlag;
-extern bool SpellbookFlag;
-extern bool CharFlag;
-extern bool SpellSelectFlag;
+extern DVL_API_FOR_TEST bool SpellbookFlag;
+extern DVL_API_FOR_TEST bool CharFlag;
+extern DVL_API_FOR_TEST bool SpellSelectFlag;
 
 [[nodiscard]] const Rectangle &GetMainPanel();
 [[nodiscard]] const Rectangle &GetLeftPanel();
@@ -94,7 +93,7 @@ void AddInfoBoxString(std::string &&str, bool floatingBox = false);
 void DrawPanelBox(const Surface &out, SDL_Rect srcRect, Point targetPosition);
 Point GetPanelPosition(UiPanels panel, Point offset = { 0, 0 });
 
-tl::expected<void, std::string> InitMainPanel();
+std::expected<void, std::string> InitMainPanel();
 void DrawMainPanel(const Surface &out);
 
 /**
@@ -145,7 +144,7 @@ void RedBack(const Surface &out);
 void DrawDeathText(const Surface &out);
 void DrawSpellBook(const Surface &out);
 
-extern Rectangle CharPanelButtonRect[4];
+extern DVL_API_FOR_TEST Rectangle CharPanelButtonRect[4];
 
 bool CheckKeypress(SDL_Keycode vkey);
 void DiabloHotkeyMsg(uint32_t dwMsg);

@@ -25,6 +25,12 @@ inline bool FileExists(const std::string &str)
 }
 
 bool DirectoryExists(const char *path);
+
+inline bool DirectoryExists(const std::string &str)
+{
+	return DirectoryExists(str.c_str());
+}
+
 std::string_view Dirname(std::string_view path);
 bool FileExistsAndIsWriteable(const char *path);
 bool GetFileSize(const char *path, std::uintmax_t *size);

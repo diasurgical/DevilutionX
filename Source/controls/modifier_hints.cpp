@@ -73,12 +73,12 @@ struct CircleMenuHint {
  */
 void DrawCircleMenuHint(const Surface &out, const CircleMenuHint &hint, const Point &origin)
 {
-	const Displacement backgroundDisplacement = { (HintBoxSize - IconSize) / 2 + 1, (HintBoxSize - IconSize) / 2 - 1 };
+	const Displacement backgroundDisplacement = { ((HintBoxSize - IconSize) / 2) + 1, ((HintBoxSize - IconSize) / 2) - 1 };
 	const Point hintBoxPositions[4] = {
 		origin + Displacement { 0, LineHeight - HintBoxSize },
-		origin + Displacement { HintBoxSize + HintBoxMargin, LineHeight - HintBoxSize * 2 - HintBoxMargin },
+		origin + Displacement { HintBoxSize + HintBoxMargin, LineHeight - (HintBoxSize * 2) - HintBoxMargin },
 		origin + Displacement { HintBoxSize + HintBoxMargin, LineHeight + HintBoxMargin },
-		origin + Displacement { HintBoxSize * 2 + HintBoxMargin * 2, LineHeight - HintBoxSize }
+		origin + Displacement { (HintBoxSize * 2) + (HintBoxMargin * 2), LineHeight - HintBoxSize }
 	};
 	const Point iconPositions[4] = {
 		hintBoxPositions[0] + backgroundDisplacement,
@@ -106,12 +106,12 @@ void DrawCircleMenuHint(const Surface &out, const CircleMenuHint &hint, const Po
 void DrawSpellsCircleMenuHint(const Surface &out, const Point &origin)
 {
 	const Player &myPlayer = *MyPlayer;
-	const Displacement spellIconDisplacement = { (HintBoxSize - IconSize) / 2 + 1, HintBoxSize - (HintBoxSize - IconSize) / 2 - 1 };
+	const Displacement spellIconDisplacement = { ((HintBoxSize - IconSize) / 2) + 1, HintBoxSize - ((HintBoxSize - IconSize) / 2) - 1 };
 	const Point hintBoxPositions[4] = {
 		origin + Displacement { 0, LineHeight - HintBoxSize },
-		origin + Displacement { HintBoxSize + HintBoxMargin, LineHeight - HintBoxSize * 2 - HintBoxMargin },
+		origin + Displacement { HintBoxSize + HintBoxMargin, LineHeight - (HintBoxSize * 2) - HintBoxMargin },
 		origin + Displacement { HintBoxSize + HintBoxMargin, LineHeight + HintBoxMargin },
-		origin + Displacement { HintBoxSize * 2 + HintBoxMargin * 2, LineHeight - HintBoxSize }
+		origin + Displacement { (HintBoxSize * 2) + (HintBoxMargin * 2), LineHeight - HintBoxSize }
 	};
 	const Point spellIconPositions[4] = {
 		hintBoxPositions[0] + spellIconDisplacement,
@@ -147,7 +147,7 @@ void DrawGamepadMenuNavigator(const Surface &out)
 	static const CircleMenuHint Buttons(/*top=*/HintIcon::IconNull, /*right=*/HintIcon::IconNull, /*bottom=*/HintIcon::IconSpells, /*left=*/HintIcon::IconQuests);
 	const Rectangle &mainPanel = GetMainPanel();
 	DrawCircleMenuHint(out, DPad, { mainPanel.position.x + CircleMarginX, mainPanel.position.y - CircleTop });
-	DrawCircleMenuHint(out, Buttons, { mainPanel.position.x + mainPanel.size.width - HintBoxSize * 3 - CircleMarginX - HintBoxMargin * 2, mainPanel.position.y - CircleTop });
+	DrawCircleMenuHint(out, Buttons, { mainPanel.position.x + mainPanel.size.width - (HintBoxSize * 3) - CircleMarginX - (HintBoxMargin * 2), mainPanel.position.y - CircleTop });
 }
 
 void DrawGamepadHotspellMenu(const Surface &out)
@@ -156,7 +156,7 @@ void DrawGamepadHotspellMenu(const Surface &out)
 		return;
 
 	const Rectangle &mainPanel = GetMainPanel();
-	DrawSpellsCircleMenuHint(out, { mainPanel.position.x + mainPanel.size.width - HintBoxSize * 3 - CircleMarginX - HintBoxMargin * 2, mainPanel.position.y - CircleTop });
+	DrawSpellsCircleMenuHint(out, { mainPanel.position.x + mainPanel.size.width - (HintBoxSize * 3) - CircleMarginX - (HintBoxMargin * 2), mainPanel.position.y - CircleTop });
 }
 
 } // namespace

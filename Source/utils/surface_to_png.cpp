@@ -1,5 +1,6 @@
 #include "utils/surface_to_png.hpp"
 
+#include <expected>
 #include <string>
 
 #ifdef USE_SDL3
@@ -12,8 +13,6 @@
 #include "utils/sdl_compat.h"
 #endif
 
-#include <expected.hpp>
-
 #include "engine/surface.hpp"
 
 namespace devilution {
@@ -22,7 +21,7 @@ namespace devilution {
 extern "C" int IMG_SavePNG_RW(SDL_Surface *surface, SDL_RWops *dst, int freedst);
 #endif
 
-tl::expected<void, std::string>
+std::expected<void, std::string>
 WriteSurfaceToFilePng(const Surface &buf, SDL_IOStream *dst)
 {
 #ifdef USE_SDL3
@@ -31,7 +30,7 @@ WriteSurfaceToFilePng(const Surface &buf, SDL_IOStream *dst)
 	const bool ok = IMG_SavePNG_RW(buf.surface, dst, /*freedst=*/1) == 0;
 #endif
 	if (!ok) {
-		tl::expected<void, std::string> result = tl::make_unexpected(std::string(SDL_GetError()));
+		std::expected<void, std::string> result = std::unexpected(std::string(SDL_GetError()));
 		SDL_ClearError();
 		return result;
 	}

@@ -1,8 +1,8 @@
 #include "utils/str_cat.hpp"
 
+#include <charconv>
 #include <cstdint>
-
-#include <fmt/format.h>
+#include <cstring>
 
 namespace devilution {
 
@@ -15,15 +15,17 @@ namespace {
 
 char *BufCopy(char *out, long long value)
 {
-	const fmt::format_int formatted { value };
-	std::memcpy(out, formatted.data(), formatted.size());
-	return out + formatted.size();
+	char buf[MaxNumDigits<long long>];
+	char *end = std::to_chars(buf, buf + sizeof(buf), value).ptr;
+	std::memcpy(out, buf, end - buf);
+	return out + (end - buf);
 }
 char *BufCopy(char *out, unsigned long long value)
 {
-	const fmt::format_int formatted { value };
-	std::memcpy(out, formatted.data(), formatted.size());
-	return out + formatted.size();
+	char buf[MaxNumDigits<unsigned long long>];
+	char *end = std::to_chars(buf, buf + sizeof(buf), value).ptr;
+	std::memcpy(out, buf, end - buf);
+	return out + (end - buf);
 }
 char *BufCopy(char *out, AsHexU8Pad2 value)
 {
@@ -50,13 +52,15 @@ char *BufCopy(char *out, AsHexU16Pad2 value)
 
 void StrAppend(std::string &out, long long value)
 {
-	const fmt::format_int formatted { value };
-	out.append(formatted.data(), formatted.size());
+	char buf[MaxNumDigits<long long>];
+	char *end = std::to_chars(buf, buf + sizeof(buf), value).ptr;
+	out.append(buf, end);
 }
 void StrAppend(std::string &out, unsigned long long value)
 {
-	const fmt::format_int formatted { value };
-	out.append(formatted.data(), formatted.size());
+	char buf[MaxNumDigits<unsigned long long>];
+	char *end = std::to_chars(buf, buf + sizeof(buf), value).ptr;
+	out.append(buf, end);
 }
 void StrAppend(std::string &out, AsHexU8Pad2 value)
 {

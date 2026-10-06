@@ -29,6 +29,7 @@
 #include "controls/controller_buttons.h"
 #include "engine/size.hpp"
 #include "engine/sound_defs.hpp"
+#include "mods/mod_identity.h"
 #include "pack.h"
 #include "quick_messages.hpp"
 #include "utils/enum_traits.h"
@@ -87,6 +88,15 @@ enum class Resampler : uint8_t {
 #ifdef DVL_AULIB_SUPPORTS_SDL_RESAMPLER
 	SDL,
 #endif
+};
+
+enum class StoreUi : uint8_t {
+	/** @brief Vanilla Diablo UI. */
+	Text = 0,
+	/** @brief Show item graphics to the left of item descriptions in store menus. */
+	ListWithItemGraphics = 1,
+	/** @brief Use visual grid-based store UI instead of text-based menus. */
+	VisualGrid = 2,
 };
 
 std::string_view ResamplerToString(Resampler resampler);
@@ -581,8 +591,6 @@ struct GameplayOptions : OptionCategoryBase {
 	OptionEntryBoolean testBarbarian;
 	/** @brief Show the current level progress. */
 	OptionEntryBoolean experienceBar;
-	/** @brief Show item graphics to the left of item descriptions in store menus. */
-	OptionEntryBoolean showItemGraphicsInStores;
 	/** @brief Display current/max health values on health globe. */
 	OptionEntryBoolean showHealthValues;
 	/** @brief Display current/max mana values on mana globe. */
@@ -635,6 +643,8 @@ struct GameplayOptions : OptionCategoryBase {
 	OptionEntryInt<int> numRejuPotionPickup;
 	/** @brief Number of Full Rejuvenating potions to pick up automatically */
 	OptionEntryInt<int> numFullRejuPotionPickup;
+	/** @brief Store user interface. */
+	OptionEntryEnum<StoreUi> storeUi;
 
 	/**
 	 * @brief If loading takes less than this value, skips displaying the loading screen.
@@ -848,8 +858,16 @@ private:
 		ModEntry(const ModEntry &) = delete;
 
 		ModEntry(std::string_view name);
+		// `name` is the mod id (MPQ filename stem / INI key). `displayName` and `description`
+		// come from the mod's `manifest.ini` (falling back to `name` and empty), and are what
+		// the settings UI shows via `enabled`.
 		std::string name;
+		std::string displayName;
+		std::string description;
 		OptionEntryBoolean enabled;
+
+	private:
+		ModEntry(std::string_view name, const ModManifest &manifest);
 	};
 
 	std::forward_list<ModEntry> &GetModEntries();

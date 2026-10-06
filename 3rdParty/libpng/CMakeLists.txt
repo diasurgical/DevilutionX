@@ -19,7 +19,7 @@ else()
   set(PNG_SHARED ON)
 endif()
 set(PNG_TESTS OFF)
-set(PNG_EXECUTABLES OFF)
+set(PNG_TOOLS OFF)
 set(SKIP_INSTALL_ALL ON)
 
 if(APPLE AND "${CMAKE_OSX_ARCHITECTURES}" STREQUAL "arm64")
@@ -28,8 +28,8 @@ endif()
 
 include(FetchContent)
 FetchContent_Declare_ExcludeFromAll(libpng
-  URL https://github.com/glennrp/libpng/archive/0a158f3506502dfa23edfc42790dfaed82efba17.tar.gz
-  URL_HASH MD5=6d705417242732e8e081bff752c98c18
+  URL https://github.com/pnggroup/libpng/archive/3061454d980de7d53608f594194cfac722721d2a.tar.gz
+  URL_HASH MD5=2007281c431730eca37a71878efcc858
 )
 FetchContent_MakeAvailable_ExcludeFromAll(libpng)
 

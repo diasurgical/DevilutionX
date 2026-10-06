@@ -272,7 +272,10 @@ private:
 	{
 		seed(timeSeed());
 
-#if !(defined(WINVER) && WINVER <= 0x0500 && (!defined(_WIN32_WINNT) || _WIN32_WINNT == 0))
+// AmigaOS has no entropy source backing std::random_device; constructing it
+// aborts, and this runs during static initialization, so the process dies
+// before main().
+#if !(defined(WINVER) && WINVER <= 0x0500 && (!defined(_WIN32_WINNT) || _WIN32_WINNT == 0)) && !defined(__amigaos__)
 		static std::random_device rd;
 		std::uniform_int_distribution<uint32_t> dist;
 		for (uint32_t &cell : s)

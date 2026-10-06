@@ -59,7 +59,22 @@ protocol_zt::protocol_zt()
 
 void protocol_zt::set_nonblock(int fd)
 {
+#ifndef __ANDROID__
+	// This assert guards against O_NONBLOCK silently resolving to the host's real value
+	// instead of lwip's internal compat value of 1 (see the `#ifndef` guard around its
+	// definition in lwip/sockets.h), which would corrupt the flags passed to lwip_fcntl().
+	//
+	// It's skipped on Android because it doesn't hold there, yet the code is still correct.
+	// lwip/arch.h unconditionally includes <stdio.h>, which on bionic transitively includes
+	// the real <fcntl.h> before lwip/sockets.h's own guard is reached - in every translation
+	// unit that includes lwip headers, including lwip's own sockets.c. So on Android,
+	// O_NONBLOCK consistently resolves to bionic's real value on both sides of the
+	// lwip_fcntl() call below, rather than mismatching. That's also why it's harmless that
+	// this differs from lwip's usual compat value of 1: lwip's netconn_set_nonblocking()
+	// (lwip/api.h) only branches on whether the flag is nonzero and then stores a fixed,
+	// unrelated bit, so it doesn't matter which nonzero value O_NONBLOCK actually is.
 	static_assert(O_NONBLOCK == 1, "O_NONBLOCK == 1 not satisfied");
+#endif
 	auto mode = lwip_fcntl(fd, F_GETFL, 0);
 	mode |= O_NONBLOCK;
 	lwip_fcntl(fd, F_SETFL, mode);
@@ -77,7 +92,7 @@ void protocol_zt::set_reuseaddr(int fd)
 	lwip_setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (void *)&yes, sizeof(yes));
 }
 
-tl::expected<bool, PacketError> protocol_zt::network_online()
+std::expected<bool, PacketError> protocol_zt::network_online()
 {
 	if (!zerotier_network_ready())
 		return false;
@@ -95,7 +110,7 @@ tl::expected<bool, PacketError> protocol_zt::network_online()
 		if (ret < 0) {
 			std::string_view format = "Error binding to ZeroTier UDP socket: {}";
 			PacketError error = ProtocolError(format, strerror(errno));
-			return tl::make_unexpected(std::move(error));
+			return std::unexpected(std::move(error));
 		}
 		set_nonblock(fd_udp);
 	}
@@ -106,13 +121,13 @@ tl::expected<bool, PacketError> protocol_zt::network_online()
 		if (r1 < 0) {
 			std::string_view format = "Error binding to ZeroTier TCP socket: {}";
 			PacketError error = ProtocolError(format, strerror(errno));
-			return tl::make_unexpected(std::move(error));
+			return std::unexpected(std::move(error));
 		}
 		auto r2 = lwip_listen(fd_tcp, 10);
 		if (r2 < 0) {
 			std::string_view format = "Error listening on ZeroTier TCP socket: {}";
 			PacketError error = ProtocolError(format, strerror(errno));
-			return tl::make_unexpected(std::move(error));
+			return std::unexpected(std::move(error));
 		}
 		set_nonblock(fd_tcp);
 		set_nodelay(fd_tcp);
@@ -120,17 +135,17 @@ tl::expected<bool, PacketError> protocol_zt::network_online()
 	return true;
 }
 
-tl::expected<bool, PacketError> protocol_zt::peers_ready()
+std::expected<bool, PacketError> protocol_zt::peers_ready()
 {
 	return network_online()
-	    .map([&](bool isOnline) { return isOnline && zerotier_peers_ready(); });
+	    .transform([&](bool isOnline) { return isOnline && zerotier_peers_ready(); });
 }
 
-tl::expected<void, PacketError> protocol_zt::send(const endpoint &peer, const buffer_t &data)
+std::expected<void, PacketError> protocol_zt::send(const endpoint &peer, const buffer_t &data)
 {
-	tl::expected<buffer_t, PacketError> frame = frame_queue::MakeFrame(data);
+	std::expected<buffer_t, PacketError> frame = frame_queue::MakeFrame(data);
 	if (!frame.has_value())
-		return tl::make_unexpected(frame.error());
+		return std::unexpected(frame.error());
 	peer_list[peer].send_queue.push_back(*frame);
 	return {};
 }
@@ -153,7 +168,7 @@ bool protocol_zt::send_oob_mc(const buffer_t &data) const
 	return send_oob(mc, data);
 }
 
-tl::expected<bool, PacketError> protocol_zt::send_queued_peer(const endpoint &peer)
+std::expected<bool, PacketError> protocol_zt::send_queued_peer(const endpoint &peer)
 {
 	peer_state &state = peer_list[peer];
 	if (state.fd == -1) {
@@ -185,7 +200,7 @@ tl::expected<bool, PacketError> protocol_zt::send_queued_peer(const endpoint &pe
 		} else {
 			std::string_view format = "Impossible number of bytes sent: {} available, {} sent";
 			PacketError error = ProtocolError(format, len, decltype(len)(r));
-			return tl::make_unexpected(std::move(error));
+			return std::unexpected(std::move(error));
 		}
 	}
 	return true;
@@ -208,7 +223,7 @@ bool protocol_zt::recv_peer(const endpoint &peer)
 bool protocol_zt::send_queued_all()
 {
 	for (const auto &[endpoint, _] : peer_list) {
-		tl::expected<bool, PacketError> result = send_queued_peer(endpoint);
+		std::expected<bool, PacketError> result = send_queued_peer(endpoint);
 		if (!result.has_value()) {
 			LogError("send_queued_peer: {}", result.error().what());
 			continue;
@@ -287,14 +302,14 @@ bool protocol_zt::recv(endpoint &peer, buffer_t &data)
 	}
 
 	for (auto &p : peer_list) {
-		tl::expected<bool, PacketError> ready = p.second.recv_queue.PacketReady();
+		std::expected<bool, PacketError> ready = p.second.recv_queue.PacketReady();
 		if (!ready.has_value()) {
 			LogError("PacketReady: {}", ready.error().what());
 			continue;
 		}
 		if (!*ready)
 			continue;
-		tl::expected<buffer_t, PacketError> packet = p.second.recv_queue.ReadPacket();
+		std::expected<buffer_t, PacketError> packet = p.second.recv_queue.ReadPacket();
 		if (!packet.has_value()) {
 			LogError("Failed reading packet data from peer: {}", packet.error().what());
 			continue;

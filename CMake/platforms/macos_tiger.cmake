@@ -8,11 +8,6 @@ set(USE_SDL1 ON)
 # ZeroTier is yet to be tested.
 set(DISABLE_ZERO_TIER ON)
 
-# Use vendored libfmt until this issue is resolved:
-# https://trac.macports.org/ticket/71503
-set(DEVILUTIONX_SYSTEM_LIBFMT OFF)
-set(DEVILUTIONX_STATIC_LIBFMT ON)
-
 # https://trac.macports.org/ticket/71511
 set(DEVILUTIONX_SYSTEM_GOOGLETEST OFF)
 set(DEVILUTIONX_STATIC_GOOGLETEST OFF)

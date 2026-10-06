@@ -44,18 +44,18 @@ namespace {
 constexpr int SliderItemWidth = 490;
 
 // Horizontal dimensions of the slider value
-constexpr int SliderValueBoxLeft = 16 + SliderItemWidth / 2;
+constexpr int SliderValueBoxLeft = 16 + (SliderItemWidth / 2);
 constexpr int SliderValueBoxWidth = 287;
 
 constexpr int SliderValueBorderWidth = 2;
 constexpr int SliderValueLeft = SliderValueBoxLeft + SliderValueBorderWidth;
-constexpr int SliderValueWidth = SliderValueBoxWidth - 2 * SliderValueBorderWidth;
+constexpr int SliderValueWidth = SliderValueBoxWidth - (2 * SliderValueBorderWidth);
 constexpr int SliderValueHeight = 29;
 constexpr int SliderValuePaddingTop = 10;
 constexpr int SliderMarkerWidth = 27;
 
 constexpr int SliderFillMin = SliderMarkerWidth / 2;
-constexpr int SliderFillMax = SliderValueWidth - SliderMarkerWidth / 2 - 1;
+constexpr int SliderFillMax = SliderValueWidth - (SliderMarkerWidth / 2) - 1;
 
 constexpr int GMenuTop = 117;
 constexpr int GMenuItemHeight = 45;
@@ -134,10 +134,10 @@ void GmenuDrawMenuItem(const Surface &out, TMenuItem *pItem, int y)
 		ClxDraw(out, { SliderValueBoxLeft + uiPositionX, y + 40 }, (*optbar_cel)[0]);
 		const uint16_t step = pItem->dwFlags & 0xFFF;
 		const uint16_t steps = std::max<uint16_t>(pItem->sliderSteps(), 2);
-		const uint16_t pos = SliderFillMin + step * (SliderFillMax - SliderFillMin) / steps;
+		const uint16_t pos = SliderFillMin + (step * (SliderFillMax - SliderFillMin) / steps);
 		SDL_Rect rect = MakeSdlRect(SliderValueLeft + uiPositionX, y + SliderValuePaddingTop, pos, SliderValueHeight);
 		SDL_FillSurfaceRect(out.surface, &rect, 205);
-		ClxDraw(out, { SliderValueLeft + pos - SliderMarkerWidth / 2 + uiPositionX, y + SliderValuePaddingTop + SliderValueHeight - 1 }, (*option_cel)[0]);
+		ClxDraw(out, { SliderValueLeft + pos - (SliderMarkerWidth / 2) + uiPositionX, y + SliderValuePaddingTop + SliderValueHeight - 1 }, (*option_cel)[0]);
 	}
 
 	const int x = (gnScreenWidth - w) / 2;
@@ -383,7 +383,7 @@ int gmenu_slider_get(TMenuItem *pItem, int min, int max)
 {
 	const uint16_t step = pItem->sliderStep();
 	const uint16_t steps = std::max<uint16_t>(pItem->sliderSteps(), 2);
-	return min + (step * (max - min) + (steps - 1) / 2) / steps;
+	return min + ((step * (max - min) + (steps - 1) / 2) / steps);
 }
 
 void gmenu_slider_steps(TMenuItem *pItem, int steps)

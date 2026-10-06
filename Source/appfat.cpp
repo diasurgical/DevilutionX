@@ -18,12 +18,11 @@
 #include "utils/sdl_compat.h"
 #endif
 
-#include <fmt/format.h>
-
 #include "diablo.h"
 #include "dvlnet/leaveinfo.hpp"
 #include "multi.h"
 #include "storm/storm_net.hpp"
+#include "utils/format.hpp"
 #include "utils/language.h"
 #include "utils/sdl_thread.h"
 #include "utils/str_cat.hpp"
@@ -83,16 +82,16 @@ void ErrDlg(const char *title, std::string_view error, std::string_view logFileP
 {
 	DisplayFatalErrorAndExit(
 	    title,
-	    fmt::format(fmt::runtime(_(/* TRANSLATORS: Error message that displays relevant information for bug report */ "{:s}\n\nThe error occurred at: {:s} line {:d}")),
+	    FormatRuntime(_(/* TRANSLATORS: Error message that displays relevant information for bug report */ "{:s}\n\nThe error occurred at: {:s} line {:d}"),
 	        error, logFilePath, logLineNr));
 }
 
 void InsertCDDlg(std::string_view archiveName)
 {
 	DisplayFatalErrorAndExit(_("Data File Error"),
-	    fmt::format(fmt::runtime(_("Unable to open main data archive ({:s}).\n"
-	                               "\n"
-	                               "Make sure that it is in the game folder.")),
+	    FormatRuntime(_("Unable to open main data archive ({:s}).\n"
+	                    "\n"
+	                    "Make sure that it is in the game folder."),
 	        archiveName));
 }
 
@@ -100,7 +99,7 @@ void DirErrorDlg(std::string_view error)
 {
 	DisplayFatalErrorAndExit(
 	    _("Read-Only Directory Error"),
-	    fmt::format(fmt::runtime(_(/* TRANSLATORS: Error when Program is not allowed to write data */ "Unable to write to location:\n{:s}")),
+	    FormatRuntime(_(/* TRANSLATORS: Error when Program is not allowed to write data */ "Unable to write to location:\n{:s}"),
 	        error));
 }
 

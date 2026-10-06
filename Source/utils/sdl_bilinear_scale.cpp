@@ -70,7 +70,7 @@ uint8_t MixColorsWithAlpha(uint8_t first, uint8_t firstAlpha,
 	// so we do the rounding-up integer division for each term (instead of a truncating one):
 	//
 	//    (a + (b - 1)) / b
-	return ToInt((secondWithAlpha - firstWithAlpha) * ((ratio + (mixedAlpha - 1)) / mixedAlpha)) + (firstWithAlpha + (mixedAlpha - 1)) / mixedAlpha;
+	return ToInt((secondWithAlpha - firstWithAlpha) * ((ratio + (mixedAlpha - 1)) / mixedAlpha)) + ((firstWithAlpha + (mixedAlpha - 1)) / mixedAlpha);
 }
 
 } // namespace
@@ -80,7 +80,7 @@ void BilinearScale32(SDL_Surface *src, SDL_Surface *dst)
 	const std::unique_ptr<int[]> mixXs = CreateMixFactors(src->w, dst->w);
 	const std::unique_ptr<int[]> mixYs = CreateMixFactors(src->h, dst->h);
 
-	const unsigned dgap = dst->pitch - dst->w * 4;
+	const unsigned dgap = dst->pitch - (dst->w * 4);
 
 	auto *srcPixels = static_cast<uint8_t *>(src->pixels);
 	auto *dstPixels = static_cast<uint8_t *>(dst->pixels);

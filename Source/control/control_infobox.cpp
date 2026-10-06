@@ -1,14 +1,17 @@
 #include "control.hpp"
 #include "control_panel.hpp"
-
+#include "controls/control_mode.hpp"
 #include "engine/render/primitive_render.hpp"
 #include "inv.h"
 #include "levels/trigs.h"
+#include "options.h"
 #include "panels/partypanel.hpp"
 #include "qol/stash.h"
+#include "qol/visual_store.h"
 #include "qol/xpbar.h"
 #include "towners.h"
 #include "utils/algorithm/container.hpp"
+#include "utils/format.hpp"
 #include "utils/format_int.hpp"
 #include "utils/log.hpp"
 #include "utils/screen_reader.hpp"
@@ -174,6 +177,29 @@ Rectangle GetFloatingInfoRect(const int lineHeight, const int textSpacing)
 		}
 	}
 
+	// 5) Visual Store (Rect position)
+	if (pcursstoreitem != -1) {
+		const VisualStorePage &page = VisualStore.pages[VisualStore.currentPage];
+		std::span<Item> allItems = GetVisualStoreItems();
+		for (const auto &vsItem : page.items) {
+			if (vsItem.index != pcursstoreitem)
+				continue;
+
+			const Item &item = allItems[vsItem.index];
+			Point itemPosition = GetVisualStoreSlotCoord(vsItem.position);
+			const Size itemGridSize = GetInventorySize(item);
+
+			itemPosition.y += itemGridSize.height * (VisualStoreGridHeight + 1) - 1; // Align position to bottom left of the item graphic
+			itemPosition.x += itemGridSize.width * VisualStoreGridWidth / 2;         // Align position to center of the item graphic
+			itemPosition.x -= maxW / 2;                                              // Align position to the center of the floating item info box
+
+			return { { itemPosition.x, itemPosition.y }, { maxW, totalH } };
+		}
+	}
+	if (pcursstorebtn != -1) {
+		return { GetVisualBtnCoord(pcursstorebtn).position, { maxW, totalH } };
+	}
+
 	return { { 0, 0 }, { 0, 0 } };
 }
 
@@ -187,19 +213,24 @@ int GetHoverSpriteHeight()
 	    && pcursinvitem < INVITEM_INV_FIRST + InventoryGridCells) {
 		const int idx = pcursinvitem - INVITEM_INV_FIRST;
 		auto &it = (*InspectPlayer).InvList[idx];
-		return GetInventorySize(it).height * (InventorySlotSizeInPixels.height + 1)
+		return (GetInventorySize(it).height * (InventorySlotSizeInPixels.height + 1))
 		    - InventorySlotSizeInPixels.height;
 	}
 	if (pcursinvitem >= INVITEM_BELT_FIRST
 	    && pcursinvitem < INVITEM_BELT_FIRST + MaxBeltItems) {
 		const int idx = pcursinvitem - INVITEM_BELT_FIRST;
 		auto &it = (*InspectPlayer).SpdList[idx];
-		return GetInventorySize(it).height * (InventorySlotSizeInPixels.height + 1)
+		return (GetInventorySize(it).height * (InventorySlotSizeInPixels.height + 1))
 		    - InventorySlotSizeInPixels.height - 1;
 	}
 	if (pcursstashitem != StashStruct::EmptyCell) {
 		auto &it = Stash.stashList[pcursstashitem];
 		return GetInventorySize(it).height * (InventorySlotSizeInPixels.height + 1);
+	}
+	if (pcursstoreitem != -1) {
+		std::span<Item> allItems = GetVisualStoreItems();
+		auto &it = allItems[pcursstoreitem];
+		return GetInventorySize(it).height * (INV_SLOT_SIZE_PX + 1);
 	}
 	return InventorySlotSizeInPixels.height;
 }
@@ -207,7 +238,7 @@ int GetHoverSpriteHeight()
 int ClampAboveOrBelow(int anchorY, int spriteH, int boxH, int pad, int linePad)
 {
 	const int yAbove = anchorY - spriteH - boxH - pad;
-	const int yBelow = anchorY + linePad / 2 + pad;
+	const int yBelow = anchorY + (linePad / 2) + pad;
 	return (yAbove >= 0) ? yAbove : yBelow;
 }
 
@@ -238,7 +269,7 @@ void PrintFloatingInfo(const Surface &out)
 	SpeakText(FloatingInfoString);
 
 	for (int i = 0; i < 3; i++)
-		DrawHalfTransparentRectTo(out, floatingInfoBox.position.x - hPadding, floatingInfoBox.position.y - vPadding, floatingInfoBox.size.width + hPadding * 2, floatingInfoBox.size.height + vPadding * 2);
+		DrawHalfTransparentRectTo(out, floatingInfoBox.position.x - hPadding, floatingInfoBox.position.y - vPadding, floatingInfoBox.size.width + (hPadding * 2), floatingInfoBox.size.height + (vPadding * 2));
 	DrawHalfTransparentVerticalLine(out, { floatingInfoBox.position.x - hPadding - 1, floatingInfoBox.position.y - vPadding - 1 }, floatingInfoBox.size.height + (vPadding * 2) + 2, PAL16_GRAY + 10);
 	DrawHalfTransparentVerticalLine(out, { floatingInfoBox.position.x + hPadding + floatingInfoBox.size.width, floatingInfoBox.position.y - vPadding - 1 }, floatingInfoBox.size.height + (vPadding * 2) + 2, PAL16_GRAY + 10);
 	DrawHalfTransparentHorizontalLine(out, { floatingInfoBox.position.x - hPadding, floatingInfoBox.position.y - vPadding - 1 }, floatingInfoBox.size.width + (hPadding * 2), PAL16_GRAY + 10);
@@ -297,7 +328,7 @@ void CheckPanelInfo()
 					InfoString = _("Player attack");
 			}
 			if (PanBtnHotKey[i] != nullptr) {
-				AddInfoBoxString(fmt::format(fmt::runtime(_("Hotkey: {:s}")), _(PanBtnHotKey[i])));
+				AddInfoBoxString(FormatRuntime(_("Hotkey: {:s}"), _(PanBtnHotKey[i])));
 			}
 			InfoColor = UiFlags::ColorWhite;
 			MainPanelFlag = true;
@@ -312,29 +343,34 @@ void CheckPanelInfo()
 		InfoString = _("Select current spell button");
 		InfoColor = UiFlags::ColorWhite;
 		MainPanelFlag = true;
-		AddInfoBoxString(_("Hotkey: 's'"));
+		std::string_view speedbookKeyName = ControlMode == ControlTypes::Gamepad
+		    ? GetOptions().Padmapper.InputNameForAction("DisplaySpells", true)
+		    : GetOptions().Keymapper.KeyNameForAction("DisplaySpells");
+		if (!speedbookKeyName.empty()) {
+			AddInfoBoxString(FormatRuntime(_("Hotkey: '{:s}'"), speedbookKeyName));
+		}
 		const Player &myPlayer = *MyPlayer;
 		const SpellID spellId = myPlayer._pRSpell;
 		if (IsValidSpell(spellId)) {
 			switch (myPlayer._pRSplType) {
 			case SpellType::Skill:
-				AddInfoBoxString(fmt::format(fmt::runtime(_("{:s} Skill")), pgettext("spell", GetSpellData(spellId).sNameText)));
+				AddInfoBoxString(FormatRuntime(_("{:s} Skill"), pgettext("spell", GetSpellData(spellId).sNameText)));
 				break;
 			case SpellType::Spell: {
-				AddInfoBoxString(fmt::format(fmt::runtime(_("{:s} Spell")), pgettext("spell", GetSpellData(spellId).sNameText)));
+				AddInfoBoxString(FormatRuntime(_("{:s} Spell"), pgettext("spell", GetSpellData(spellId).sNameText)));
 				const int spellLevel = myPlayer.GetSpellLevel(spellId);
-				AddInfoBoxString(spellLevel == 0 ? _("Spell Level 0 - Unusable") : fmt::format(fmt::runtime(_("Spell Level {:d}")), spellLevel));
+				AddInfoBoxString(spellLevel == 0 ? _("Spell Level 0 - Unusable") : FormatRuntime(_("Spell Level {:d}"), spellLevel));
 			} break;
 			case SpellType::Scroll: {
-				AddInfoBoxString(fmt::format(fmt::runtime(_("Scroll of {:s}")), pgettext("spell", GetSpellData(spellId).sNameText)));
+				AddInfoBoxString(FormatRuntime(_("Scroll of {:s}"), pgettext("spell", GetSpellData(spellId).sNameText)));
 				const int scrollCount = c_count_if(InventoryAndBeltPlayerItemsRange { myPlayer }, [spellId](const Item &item) {
 					return item.isScrollOf(spellId);
 				});
-				AddInfoBoxString(fmt::format(fmt::runtime(ngettext("{:d} Scroll", "{:d} Scrolls", scrollCount)), scrollCount));
+				AddInfoBoxString(FormatRuntime(ngettext("{:d} Scroll", "{:d} Scrolls", scrollCount), scrollCount));
 			} break;
 			case SpellType::Charges:
-				AddInfoBoxString(fmt::format(fmt::runtime(_("Staff of {:s}")), pgettext("spell", GetSpellData(spellId).sNameText)));
-				AddInfoBoxString(fmt::format(fmt::runtime(ngettext("{:d} Charge", "{:d} Charges", myPlayer.InvBody[INVLOC_HAND_LEFT]._iCharges)), myPlayer.InvBody[INVLOC_HAND_LEFT]._iCharges));
+				AddInfoBoxString(FormatRuntime(_("Staff of {:s}"), pgettext("spell", GetSpellData(spellId).sNameText)));
+				AddInfoBoxString(FormatRuntime(ngettext("{:d} Charge", "{:d} Charges", myPlayer.InvBody[INVLOC_HAND_LEFT]._iCharges), myPlayer.InvBody[INVLOC_HAND_LEFT]._iCharges));
 				break;
 			case SpellType::Invalid:
 				break;
@@ -356,7 +392,7 @@ void CheckPanelInfo()
 void DrawInfoBox(const Surface &out)
 {
 	DrawPanelBox(out, MakeSdlRect(InfoBoxRect.position.x, InfoBoxRect.position.y + PanelPaddingHeight, InfoBoxRect.size.width, InfoBoxRect.size.height), GetMainPanel().position + Displacement { InfoBoxRect.position.x, InfoBoxRect.position.y });
-	if (!MainPanelFlag && !trigflag && pcursinvitem == -1 && pcursstashitem == StashStruct::EmptyCell && !SpellSelectFlag && pcurs != CURSOR_HOURGLASS) {
+	if (!MainPanelFlag && !trigflag && pcursinvitem == -1 && pcursstashitem == StashStruct::EmptyCell && pcursstoreitem == -1 && pcursstorebtn == -1 && !SpellSelectFlag && pcurs != CURSOR_HOURGLASS) {
 		InfoString = StringOrView {};
 		InfoColor = UiFlags::ColorWhite;
 	}
@@ -366,7 +402,7 @@ void DrawInfoBox(const Surface &out)
 	} else if (!myPlayer.HoldItem.isEmpty()) {
 		if (myPlayer.HoldItem._itype == ItemType::Gold) {
 			const int nGold = myPlayer.HoldItem._ivalue;
-			InfoString = fmt::format(fmt::runtime(ngettext("{:s} gold piece", "{:s} gold pieces", nGold)), FormatInteger(nGold));
+			InfoString = FormatRuntime(ngettext("{:s} gold piece", "{:s} gold pieces", nGold), FormatInteger(nGold));
 		} else if (!myPlayer.CanUseItem(myPlayer.HoldItem)) {
 			InfoString = _("Requirements not met");
 		} else {
@@ -397,8 +433,8 @@ void DrawInfoBox(const Surface &out)
 			InfoColor = UiFlags::ColorWhitegold;
 			const auto &target = *PlayerUnderCursor;
 			InfoString = std::string_view(target._pName);
-			AddInfoBoxString(fmt::format(fmt::runtime(_("{:s}, Level: {:d}")), target.getClassName(), target.getCharacterLevel()));
-			AddInfoBoxString(fmt::format(fmt::runtime(_("Hit Points {:d} of {:d}")), target._pHitPoints >> 6, target._pMaxHP >> 6));
+			AddInfoBoxString(FormatRuntime(_("{:s}, Level: {:d}"), target.getClassName(), target.getCharacterLevel()));
+			AddInfoBoxString(FormatRuntime(_("Hit Points {:d} of {:d}"), target._pHitPoints >> 6, target._pMaxHP >> 6));
 		}
 		if (PortraitIdUnderCursor != -1) {
 			InfoColor = UiFlags::ColorWhitegold;
@@ -413,7 +449,7 @@ void DrawInfoBox(const Surface &out)
 
 void DrawFloatingInfoBox(const Surface &out)
 {
-	if (pcursinvitem == -1 && pcursstashitem == StashStruct::EmptyCell) {
+	if (pcursinvitem == -1 && pcursstashitem == StashStruct::EmptyCell && pcursstoreitem == -1 && pcursstorebtn == -1) {
 		FloatingInfoString = StringOrView {};
 		InfoColor = UiFlags::ColorWhite;
 	}

@@ -7,8 +7,6 @@
 #include <string_view>
 #include <vector>
 
-#include <fmt/format.h>
-
 #include "control/control.hpp"
 #include "cursor.h"
 #include "engine/point.hpp"
@@ -20,6 +18,7 @@
 #include "qol/stash.h"
 #include "stores.h"
 #include "utils/algorithm/container.hpp"
+#include "utils/format.hpp"
 #include "utils/format_int.hpp"
 #include "utils/language.h"
 
@@ -110,7 +109,7 @@ void AddItemToLabelQueue(int id, Point position)
 
 	StringOrView textOnGround;
 	if (item._itype == ItemType::Gold) {
-		textOnGround = fmt::format(fmt::runtime(_("{:s} gold")), FormatInteger(item._ivalue));
+		textOnGround = FormatRuntime(_("{:s} gold"), FormatInteger(item._ivalue));
 	} else {
 		textOnGround = item.getName();
 	}
@@ -165,8 +164,8 @@ void DrawItemNameLabels(const Surface &out)
 				ItemLabel &a = labelQueue[i];
 				const ItemLabel &b = labelQueue[j];
 				if (std::abs(b.pos.y - a.pos.y) < labelHeight + BorderY) {
-					const int widthA = a.width + BorderX + MarginX * 2;
-					const int widthB = b.width + BorderX + MarginX * 2;
+					const int widthA = a.width + BorderX + (MarginX * 2);
+					const int widthB = b.width + BorderX + (MarginX * 2);
 					int newpos = b.pos.x;
 					if (b.pos.x >= a.pos.x && b.pos.x - a.pos.x < widthA) {
 						newpos -= widthA;

@@ -6,12 +6,11 @@
 #pragma once
 
 #include <cstdint>
+#include <expected>
 #include <string>
 #include <string_view>
 #include <type_traits>
 #include <vector>
-
-#include <expected.hpp>
 
 #include "sound_effect_enums.h"
 #include "utils/enum_traits.h"
@@ -88,7 +87,7 @@ enum class SpellID : int8_t {
 	Invalid = -1,
 };
 
-tl::expected<SpellID, std::string> ParseSpellId(std::string_view value);
+std::expected<SpellID, std::string> ParseSpellId(std::string_view value);
 
 enum class MagicType : uint8_t {
 	Fire,

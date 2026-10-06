@@ -7,11 +7,12 @@
 
 #include "engine/surface.hpp"
 #include "tables/textdat.h"
+#include "utils/attributes.h"
 
 namespace devilution {
 
 /** Specify if the quest dialog window is being shown */
-extern bool qtextflag;
+extern DVL_API_FOR_TEST bool qtextflag;
 
 /**
  * @brief Free the resources used by the quest dialog window

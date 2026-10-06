@@ -25,7 +25,7 @@ jobs:
       run: sudo apt-get update && sudo apt-get install -y gettext
 
     - name: Checkout
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
       with:
         fetch-depth: 0
 
@@ -41,11 +41,11 @@ jobs:
         $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "cmake;3.31.0"
 
     - name: Cache CMake build folder
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: android-project/app/.cxx
-        key: ${{ github.workflow }}-v5-${{ github.sha }}
-        restore-keys: ${{ github.workflow }}-v5-
+        key: ${{ github.workflow }}-v6-${{ github.sha }}
+        restore-keys: ${{ github.workflow }}-v6-
 
     - name: Build
       working-directory: ${{github.workspace}}

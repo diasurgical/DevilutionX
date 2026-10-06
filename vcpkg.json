@@ -1,38 +1,57 @@
 {
+	"$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
 	"name": "devilutionx",
 	"version-string": "1.6.0",
 	"dependencies": [
-		"fmt",
 		"bzip2",
 		"lua",
 		"magic-enum"
 	],
-	"builtin-baseline": "a62ce77d56ee07513b4b67de1ec2daeaebfae51a",
+	"builtin-baseline": "40f3c709db80acf154ac4b17a1f83c564ebd022e",
+	"overrides": [
+		{
+			"name": "lua",
+			"version": "5.4.6"
+		}
+	],
 	"features": {
 		"sdl1": {
 			"description": "Use SDL1.2 instead of SDL2",
-			"dependencies": [ "sdl1", "libpng" ]
+			"dependencies": [
+				"sdl1",
+				"libpng"
+			]
 		},
 		"sdl2": {
 			"description": "Use SDL2",
-			"dependencies": [ "sdl2", "sdl2-image" ]
+			"dependencies": [
+				"sdl2",
+				"sdl2-image"
+			]
 		},
 		"encryption": {
 			"description": "Build libsodium for packet encryption",
-			"dependencies": [ "libsodium" ]
+			"dependencies": [
+				"libsodium"
+			]
 		},
 		"translations": {
 			"description": "Build translation files",
 			"dependencies": [
 				{
 					"name": "gettext",
-					"features": [ "tools" ]
+					"features": [
+						"tools"
+					]
 				}
 			]
 		},
 		"tests": {
 			"description": "Build tests",
-			"dependencies": [ "gtest", "benchmark" ]
+			"dependencies": [
+				"gtest",
+				"benchmark"
+			]
 		}
 	}
 }

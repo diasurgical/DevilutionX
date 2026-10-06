@@ -177,6 +177,13 @@ void UiUpdateFadePalette()
 	if (IsHardwareCursor()) ReinitializeHardwareCursor();
 }
 
+#ifdef __3DS__
+void HandleCtrTextInput(std::string_view textInput)
+{
+	UiTextInputState->assign(textInput);
+}
+#endif
+
 } // namespace
 
 bool IsTextInputActive()
@@ -216,7 +223,7 @@ void UiInitList(void (*fnFocus)(size_t value), void (*fnSelect)(size_t value), v
 #elif defined(__vita__)
 			vita_start_text_input(pItemUIEdit->m_hint, pItemUIEdit->m_value, pItemUIEdit->m_max_length);
 #elif defined(__3DS__)
-			ctr_vkbdInput(pItemUIEdit->m_hint, pItemUIEdit->m_value, pItemUIEdit->m_value, pItemUIEdit->m_max_length);
+			ctr_vkbdInput(pItemUIEdit->m_hint, pItemUIEdit->m_value, &HandleCtrTextInput);
 #else
 			SDLC_StartTextInput(ghMainWnd);
 #endif
@@ -357,12 +364,12 @@ void UiFocusPageUp()
 
 void UiFocusPageDown()
 {
-	if (listOffset + ListViewportSize > static_cast<std::size_t>(SelectedItemMax)) {
+	if (listOffset + ListViewportSize > SelectedItemMax) {
 		UiFocus(SelectedItemMax, false, true);
 	} else {
 		const std::size_t relpos = SelectedItem - listOffset;
 		std::size_t nextPageEnd = SelectedItem + (ListViewportSize - relpos - 1);
-		if (nextPageEnd + ListViewportSize <= static_cast<std::size_t>(SelectedItemMax))
+		if (nextPageEnd + ListViewportSize <= SelectedItemMax)
 			nextPageEnd += ListViewportSize;
 		else
 			nextPageEnd = SelectedItemMax;

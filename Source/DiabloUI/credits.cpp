@@ -131,7 +131,7 @@ void CreditsRenderer::Render()
 	ScaleOutputRect(&viewport);
 
 	// We use unscaled coordinates for calculation throughout.
-	Sint16 destY = static_cast<Sint16>(uiPosition.y + VIEWPORT.y - (offsetY - linesBegin * LINE_H));
+	auto destY = static_cast<Sint16>(uiPosition.y + VIEWPORT.y - (offsetY - linesBegin * LINE_H));
 	for (std::size_t i = linesBegin; i < linesEnd; ++i, destY += LINE_H) {
 		const Sint16 destX = uiPosition.x + VIEWPORT.x + 31;
 

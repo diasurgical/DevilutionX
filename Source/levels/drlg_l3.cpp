@@ -2,19 +2,20 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <expected>
 
 #include "engine/load_file.hpp"
+#include "engine/point.hpp"
 #include "engine/points_in_rectangle_range.hpp"
 #include "engine/random.hpp"
+#include "levels/dun_tile_data.hpp"
 #include "levels/gendung.h"
-#include "levels/setmaps.h"
+#include "levels/gendung_defs.hpp"
 #include "lighting.h"
-#include "monster.h"
 #include "objects.h"
-#include "player.h"
-#include "quests.h"
-#include "tables/objdat.h"
+#include "tables/questdat.hpp"
 #include "utils/is_of.hpp"
+#include "utils/status_macros.hpp"
 
 namespace devilution {
 
@@ -851,7 +852,7 @@ void FillDiagonals()
 {
 	for (int j = 0; j < DMAXY - 1; j++) {
 		for (int i = 0; i < DMAXX - 1; i++) {
-			const int v = dungeon[i + 1][j + 1] + 2 * dungeon[i][j + 1] + 4 * dungeon[i + 1][j] + 8 * dungeon[i][j];
+			const int v = dungeon[i + 1][j + 1] + (2 * dungeon[i][j + 1]) + (4 * dungeon[i + 1][j]) + (8 * dungeon[i][j]);
 			if (v == 6) {
 				if (FlipCoin()) {
 					dungeon[i][j] = 1;
@@ -994,7 +995,7 @@ void MakeMegas()
 {
 	for (int j = 0; j < DMAXY - 1; j++) {
 		for (int i = 0; i < DMAXX - 1; i++) {
-			int v = dungeon[i + 1][j + 1] + 2 * dungeon[i][j + 1] + 4 * dungeon[i + 1][j] + 8 * dungeon[i][j];
+			int v = dungeon[i + 1][j + 1] + (2 * dungeon[i][j + 1]) + (4 * dungeon[i + 1][j]) + (8 * dungeon[i][j]);
 			if (v == 6) {
 				v = PickRandomlyAmong({ 12, 5 });
 			}
@@ -1376,14 +1377,10 @@ bool CanReplaceTile(uint8_t replace, Point tile)
 		    && (p2.x >= 0 && p2.x < DMAXX && p2.y >= 0 && p2.y < DMAXY)
 		    && (dungeon[p1.x][p1.y] >= 84 && dungeon[p2.x][p2.y] <= 100);
 	};
-	if (ComparisonWithBoundsCheck(tile + Direction::NorthWest, tile + Direction::NorthWest)
+	return !(ComparisonWithBoundsCheck(tile + Direction::NorthWest, tile + Direction::NorthWest)
 	    || ComparisonWithBoundsCheck(tile + Direction::SouthEast, tile + Direction::NorthWest)
 	    || ComparisonWithBoundsCheck(tile + Direction::SouthWest, tile + Direction::NorthWest)
-	    || ComparisonWithBoundsCheck(tile + Direction::NorthEast, tile + Direction::NorthWest)) {
-		return false;
-	}
-
-	return true;
+	    || ComparisonWithBoundsCheck(tile + Direction::NorthEast, tile + Direction::NorthWest));
 }
 
 /**
@@ -2205,15 +2202,16 @@ void LoadPreL3Dungeon(const char *path)
 	memcpy(pdungeon, dungeon, sizeof(pdungeon));
 }
 
-void LoadL3Dungeon(const char *path, Point spawn)
+std::expected<void, std::string> LoadL3Dungeon(const char *path, Point spawn)
 {
-	LoadDungeonBase(path, spawn, 7, 8);
+	RETURN_IF_ERROR(LoadDungeonBase(path, spawn, 7, 8));
 
 	Pass3();
 	PlaceLights();
 
 	if (leveltype == DTYPE_CAVES)
 		AddL3Objs(0, 0, MAXDUNX, MAXDUNY);
+	return {};
 }
 
 } // namespace devilution

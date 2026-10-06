@@ -42,7 +42,7 @@ struct ValueInfo {
 
 sol::protected_function LoadLuaFunctionSignatureGetter(sol::state &lua)
 {
-	tl::expected<AssetData, std::string> src = LoadAsset("lua_internal\\get_lua_function_signature.lua");
+	std::expected<AssetData, std::string> src = LoadAsset("lua_internal\\get_lua_function_signature.lua");
 	if (!src.has_value()) {
 		app_fatal(src.error());
 	}
@@ -274,7 +274,7 @@ void GetLuaAutocompleteSuggestions(std::string_view text, size_t cursorPos, cons
 		for (const std::string_view partDot : SplitByChar(token, '.')) {
 			for (const std::string_view part : SplitByChar(partDot, ':')) {
 				obj = obj->as<sol::table>().get<std::optional<sol::object>>(part);
-				if (!obj.has_value() || !(obj->get_type() == sol::type::table || obj->get_type() == sol::type::userdata)) {
+				if (!obj.has_value() || (obj->get_type() != sol::type::table && obj->get_type() != sol::type::userdata)) {
 					return;
 				}
 			}

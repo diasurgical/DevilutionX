@@ -7,16 +7,15 @@
 #include <cmath>
 #include <cstdint>
 #include <ctime>
+#include <expected>
 #include <string>
 
 #include <algorithm>
 
-#include <expected.hpp>
-#include <fmt/core.h>
-
 #include "DiabloUI/ui_flags.hpp"
 #include "automap.h"
 #include "cursor.h"
+#include "cursor_defs.hpp"
 #ifdef _DEBUG
 #include "debug.h"
 #endif
@@ -46,6 +45,7 @@
 #include "track.h"
 #include "utils/algorithm/container.hpp"
 #include "utils/endian_swap.hpp"
+#include "utils/format.hpp"
 #include "utils/is_of.hpp"
 #include "utils/language.h"
 #include "utils/log.hpp"
@@ -298,7 +298,7 @@ void InitRndLocBigObj(int min, int max, _object_id objtype)
 bool CanPlaceRandomObject(Point position, Displacement standoff)
 {
 	return IsAreaOk(Rectangle { position - standoff,
-	    Size { standoff.deltaX * 2 + 1, standoff.deltaY * 2 + 1 } });
+	    Size { (standoff.deltaX * 2) + 1, (standoff.deltaY * 2) + 1 } });
 }
 
 std::optional<Point> GetRandomObjectPosition(Displacement standoff)
@@ -564,16 +564,16 @@ void LoadMapObjects(const char *path, Point start, WorldTileRectangle mapRange =
 
 	WorldTileSize size = GetDunSize(dunData.get());
 
-	const int layer2Offset = 2 + size.width * size.height;
+	const int layer2Offset = 2 + (size.width * size.height);
 
 	// The rest of the layers are at dPiece scale
 	size *= static_cast<WorldTileCoord>(2);
 
-	const uint16_t *objectLayer = &dunData[layer2Offset + size.width * size.height * 2];
+	const uint16_t *objectLayer = &dunData[layer2Offset + (size.width * size.height * 2)];
 
 	for (WorldTileCoord j = 0; j < size.height; j++) {
 		for (WorldTileCoord i = 0; i < size.width; i++) {
-			auto objectId = static_cast<uint8_t>(Swap16LE(objectLayer[j * size.width + i]));
+			auto objectId = static_cast<uint8_t>(Swap16LE(objectLayer[(j * size.width) + i]));
 			if (objectId != 0) {
 				const Point mapPos = start + Displacement { i, j };
 				Object *mapObject = AddObject(ObjTypeConv[objectId], mapPos);
@@ -824,9 +824,9 @@ void AddStoryBooks()
 void AddHookedBodies(int freq)
 {
 	for (WorldTileCoord j = 0; j < DMAXY; j++) {
-		const WorldTileCoord jj = 16 + j * 2;
+		const WorldTileCoord jj = 16 + (j * 2);
 		for (WorldTileCoord i = 0; i < DMAXX; i++) {
-			const WorldTileCoord ii = 16 + i * 2;
+			const WorldTileCoord ii = 16 + (i * 2);
 			if (dungeon[i][j] != 1 && dungeon[i][j] != 2)
 				continue;
 			if (!FlipCoin(freq))
@@ -1232,7 +1232,7 @@ void AddTrap(Object &trap)
 	else if (leveltype == DTYPE_CRYPT)
 		effectiveLevel -= 8;
 
-	const int missileType = GenerateRnd(effectiveLevel / 3 + 1);
+	const int missileType = GenerateRnd((effectiveLevel / 3) + 1);
 	if (missileType == 0)
 		trap._oVar3 = static_cast<int8_t>(MissileID::Arrow);
 	if (missileType == 1)
@@ -2456,9 +2456,9 @@ void OperateShrineEnchanted(DiabloGenerator &rng, Player &player)
 		} while ((player._pMemSpells & GetSpellBitmask(static_cast<SpellID>(spellToReduce))) == 0);
 
 		spell = 1;
-		for (uint8_t j = static_cast<uint8_t>(SpellID::Firebolt); j < SpellsData.size(); j++) {
+		for (auto j = static_cast<uint8_t>(SpellID::Firebolt); j < SpellsData.size(); j++) {
 			if ((player._pMemSpells & spell) != 0 && player._pSplLvl[j] < MaxSpellLevel && j != spellToReduce) {
-				const uint8_t newSpellLevel = static_cast<uint8_t>(player._pSplLvl[j] + 1);
+				const auto newSpellLevel = static_cast<uint8_t>(player._pSplLvl[j] + 1);
 				player._pSplLvl[j] = newSpellLevel;
 				NetSendCmdParam2(true, CMD_CHANGE_SPELL_LEVEL, j, newSpellLevel);
 			}
@@ -2466,7 +2466,7 @@ void OperateShrineEnchanted(DiabloGenerator &rng, Player &player)
 		}
 
 		if (player._pSplLvl[spellToReduce] > 0) {
-			const uint8_t newSpellLevel = static_cast<uint8_t>(player._pSplLvl[spellToReduce] - 1);
+			const auto newSpellLevel = static_cast<uint8_t>(player._pSplLvl[spellToReduce] - 1);
 			player._pSplLvl[spellToReduce] = newSpellLevel;
 			NetSendCmdParam2(true, CMD_CHANGE_SPELL_LEVEL, spellToReduce, newSpellLevel);
 		}
@@ -2659,7 +2659,7 @@ void OperateShrineSpiritual(DiabloGenerator &rng, Player &player)
 	for (int8_t &itemIndex : player.InvGrid) {
 		if (itemIndex == 0) {
 			Item &goldItem = player.InvList[player._pNumInv];
-			MakeGoldStack(goldItem, 5 * leveltype + rng.generateRnd(10 * leveltype));
+			MakeGoldStack(goldItem, (5 * leveltype) + rng.generateRnd(10 * leveltype));
 			player._pNumInv++;
 			itemIndex = player._pNumInv;
 
@@ -2832,7 +2832,7 @@ void OperateShrineOily(Player &player, Point spawnPosition)
 	    MissileID::FireWall,
 	    TARGET_PLAYERS,
 	    -1,
-	    2 * currlevel + 2,
+	    (2 * currlevel) + 2,
 	    0);
 
 	InitDiabloMsg(EMSG_SHRINE_OILY);
@@ -2891,7 +2891,7 @@ void OperateShrineSparkling(Player &player, Point spawnPosition)
 	    MissileID::FlashBottom,
 	    TARGET_PLAYERS,
 	    -1,
-	    3 * currlevel + 2,
+	    (3 * currlevel) + 2,
 	    0);
 
 	RedrawEverything();
@@ -3680,7 +3680,7 @@ bool IsItemBlockingObjectAtPosition(Point position)
 	return false;
 }
 
-tl::expected<void, std::string> LoadLevelObjects(uint16_t filesWidths[65])
+std::expected<void, std::string> LoadLevelObjects(uint16_t filesWidths[65])
 {
 	if (HeadlessMode)
 		return {};
@@ -3705,7 +3705,7 @@ tl::expected<void, std::string> LoadLevelObjects(uint16_t filesWidths[65])
 	return {};
 }
 
-tl::expected<void, std::string> InitObjectGFX()
+std::expected<void, std::string> InitObjectGFX()
 {
 	uint16_t filesWidths[65] = {};
 
@@ -3968,7 +3968,7 @@ void InitObjects()
 	}
 }
 
-void SetMapObjects(const uint16_t *dunData, int startx, int starty)
+std::expected<void, std::string> SetMapObjects(const uint16_t *dunData, int startx, int starty)
 {
 	uint16_t filesWidths[65] = {};
 
@@ -3976,16 +3976,16 @@ void SetMapObjects(const uint16_t *dunData, int startx, int starty)
 
 	WorldTileSize size = GetDunSize(dunData);
 
-	const int layer2Offset = 2 + size.width * size.height;
+	const int layer2Offset = 2 + (size.width * size.height);
 
 	// The rest of the layers are at dPiece scale
 	size *= static_cast<WorldTileCoord>(2);
 
-	const uint16_t *objectLayer = &dunData[layer2Offset + size.width * size.height * 2];
+	const uint16_t *objectLayer = &dunData[layer2Offset + (size.width * size.height * 2)];
 
 	for (WorldTileCoord j = 0; j < size.height; j++) {
 		for (WorldTileCoord i = 0; i < size.width; i++) {
-			auto objectId = static_cast<uint8_t>(Swap16LE(objectLayer[j * size.width + i]));
+			auto objectId = static_cast<uint8_t>(Swap16LE(objectLayer[(j * size.width) + i]));
 			if (objectId != 0) {
 				const ObjectData &objectData = AllObjects[ObjTypeConv[objectId]];
 				filesWidths[objectData.ofindex] = objectData.animWidth;
@@ -3993,16 +3993,17 @@ void SetMapObjects(const uint16_t *dunData, int startx, int starty)
 		}
 	}
 
-	LoadLevelObjects(filesWidths);
+	RETURN_IF_ERROR(LoadLevelObjects(filesWidths));
 
 	for (WorldTileCoord j = 0; j < size.height; j++) {
 		for (WorldTileCoord i = 0; i < size.width; i++) {
-			auto objectId = static_cast<uint8_t>(Swap16LE(objectLayer[j * size.width + i]));
+			auto objectId = static_cast<uint8_t>(Swap16LE(objectLayer[(j * size.width) + i]));
 			if (objectId != 0) {
 				AddObject(ObjTypeConv[objectId], { startx + 16 + i, starty + 16 + j });
 			}
 		}
 	}
+	return {};
 }
 
 Object *AddObject(_object_id objType, Point objPos)
@@ -4686,7 +4687,7 @@ void SyncOpObject(Player &player, int cmd, Object &object)
 	}
 }
 
-void BreakObjectMissile(const Player *player, Object &object)
+void BreakObjectMissile(Object &object)
 {
 	if (object.IsCrux())
 		BreakCrux(object, true);
@@ -4851,7 +4852,7 @@ StringOrView Object::name() const
 		return _("Urn");
 	case OBJ_SHRINEL:
 	case OBJ_SHRINER:
-		return fmt::format(fmt::runtime(_(/* TRANSLATORS: {:s} will be a name from the Shrine block above */ "{:s} Shrine")), _(ShrineNames[_oVar1]));
+		return FormatRuntime(_(/* TRANSLATORS: {:s} will be a name from the Shrine block above */ "{:s} Shrine"), _(ShrineNames[_oVar1]));
 	case OBJ_SKELBOOK:
 		return _("Skeleton Tome");
 	case OBJ_BOOKSTAND:
@@ -4906,12 +4907,12 @@ void GetObjectStr(const Object &object)
 	const ClassAttributes &classAttributes = GetClassAttributes(MyPlayer->_pClass);
 	if (HasAnyOf(classAttributes.classFlags, PlayerClassFlag::TrapSense)) {
 		if (object._oTrapFlag) {
-			InfoString = fmt::format(fmt::runtime(_(/* TRANSLATORS: {:s} will either be a chest or a door */ "Trapped {:s}")), InfoString.str());
+			InfoString = FormatRuntime(_(/* TRANSLATORS: {:s} will either be a chest or a door */ "Trapped {:s}"), InfoString.str());
 			InfoColor = UiFlags::ColorRed;
 		}
 	}
 	if (object.IsDisabled()) {
-		InfoString = fmt::format(fmt::runtime(_(/* TRANSLATORS: If user enabled diablo.ini setting "Disable Crippling Shrines" is set to 1; also used for Na-Kruls lever */ "{:s} (disabled)")), InfoString.str());
+		InfoString = FormatRuntime(_(/* TRANSLATORS: If user enabled diablo.ini setting "Disable Crippling Shrines" is set to 1; also used for Na-Kruls lever */ "{:s} (disabled)"), InfoString.str());
 		InfoColor = UiFlags::ColorRed;
 	}
 }

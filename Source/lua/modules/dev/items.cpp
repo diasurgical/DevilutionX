@@ -95,7 +95,7 @@ std::string DebugSpawnItem(std::string itemName)
 		if (i > max_iter)
 			return StrCat("Item not found in ", max_iter, " tries!");
 
-		const int8_t monsterLevel = dist(BetterRng) % CF_LEVEL + 1;
+		const int8_t monsterLevel = (dist(BetterRng) % CF_LEVEL) + 1;
 		_item_indexes idx = RndItemForMonsterLevel(monsterLevel);
 		if (IsAnyOf(idx, IDI_NONE, IDI_GOLD))
 			continue;

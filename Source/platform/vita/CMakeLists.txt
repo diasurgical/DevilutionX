@@ -23,4 +23,5 @@ target_link_libraries(libdevilutionx_vita PUBLIC
   SceNet_stub
   SceNetCtl_stub
   libdevilutionx_options
+  libdevilutionx_text_input
 )

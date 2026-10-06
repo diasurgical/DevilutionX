@@ -16,8 +16,6 @@
 #include <SDL.h>
 #endif
 
-#include <fmt/core.h>
-
 #include "DiabloUI/diabloui.h"
 #include "DiabloUI/dialogs.h"
 #include "DiabloUI/multi/selgame.h"
@@ -35,6 +33,7 @@
 #include "pfile.h"
 #include "tables/playerdat.hpp"
 #include "utils/enum_traits.h"
+#include "utils/format.hpp"
 #include "utils/language.h"
 #include "utils/sdl_geometry.h"
 #include "utils/str_cat.hpp"
@@ -175,7 +174,7 @@ void SelheroListSelect(size_t value)
 		vecSelHeroDlgItems.clear();
 		int itemH = 33;
 		for (size_t i = 0; i < GetNumPlayerClasses(); ++i) {
-			const HeroClass heroClass = static_cast<HeroClass>(i);
+			const auto heroClass = static_cast<HeroClass>(i);
 
 			if (heroClass == HeroClass::Monk && !gbIsHellfire) {
 				continue;
@@ -194,7 +193,7 @@ void SelheroListSelect(size_t value)
 		}
 		if (vecSelHeroDlgItems.size() > 4)
 			itemH = 26;
-		const int itemY = static_cast<int>(246 + (176 - std::min<size_t>(vecSelHeroDlgItems.size(), 6) * itemH) / 2);
+		const int itemY = static_cast<int>(246 + ((176 - std::min<size_t>(vecSelHeroDlgItems.size(), 6) * itemH) / 2));
 		vecSelDlgItems.push_back(std::make_unique<UiList>(vecSelHeroDlgItems, std::min<size_t>(vecSelHeroDlgItems.size(), 6), uiPosition.x + 264, (uiPosition.y + itemY), 320, itemH, UiFlags::AlignCenter | UiFlags::FontSize24 | UiFlags::ColorUiGold));
 
 		const SDL_Rect rectScrollBar = { (Sint16)(uiPosition.x + 585), (Sint16)(uiPosition.y + 244), 25, 178 };
@@ -619,7 +618,7 @@ static void UiSelHeroDialog(
 			} else {
 				CopyUtf8(dialogTitle, _("Delete Single Player Hero"), sizeof(dialogTitle));
 			}
-			strcpy(dialogText, fmt::format(fmt::runtime(_("Are you sure you want to delete the character \"{:s}\"?")), selhero_heroInfo.name).c_str());
+			strcpy(dialogText, FormatRuntime(_("Are you sure you want to delete the character \"{:s}\"?"), selhero_heroInfo.name).c_str());
 
 			if (UiSelHeroYesNoDialog(dialogTitle, dialogText))
 				fnremove(&selhero_heroInfo);

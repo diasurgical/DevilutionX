@@ -5,6 +5,7 @@
  */
 
 #include <cstdint>
+#include <expected>
 #include <optional>
 #include <string>
 #include <utility>
@@ -19,8 +20,6 @@
 #else
 #include <SDL.h>
 #endif
-
-#include <expected.hpp>
 
 #include "control/control.hpp"
 #include "controls/input.h"
@@ -48,7 +47,8 @@
 #include "controls/touch/renderers.h"
 #endif
 
-#ifdef __DJGPP__
+// Emscripten: ASYNCIFY does not support unwinding across threads, so loading must happen on the main thread.
+#if defined(__EMSCRIPTEN__)
 #define LOAD_ON_MAIN_THREAD
 #endif
 
@@ -229,7 +229,7 @@ void DrawCutsceneBackground()
 	SDL_FillSurfaceRect(out.surface, nullptr, 0);
 	if (ArtCutsceneWidescreen) {
 		const ClxSprite sprite = (*ArtCutsceneWidescreen)[0];
-		RenderClxSprite(out, sprite, { uiRectangle.position.x - (sprite.width() - uiRectangle.size.width) / 2, uiRectangle.position.y });
+		RenderClxSprite(out, sprite, { uiRectangle.position.x - ((sprite.width() - uiRectangle.size.width) / 2), uiRectangle.position.y });
 	}
 	ClxDraw(out, { uiRectangle.position.x, 480 - 1 + uiRectangle.position.y }, (*sgpBackCel)[0]);
 }
@@ -316,7 +316,7 @@ void DoLoad(interface_mode uMsg)
 	IncProgress();
 
 	Player &myPlayer = *MyPlayer;
-	tl::expected<void, std::string> loadResult;
+	std::expected<void, std::string> loadResult;
 	switch (uMsg) {
 	case WM_DIABLOADGAME:
 		IncProgress(2);
@@ -463,7 +463,7 @@ void DoLoad(interface_mode uMsg)
 		if (loadResult.has_value()) IncProgress();
 		break;
 	default:
-		loadResult = tl::make_unexpected<std::string>("Unknown progress mode");
+		loadResult = std::unexpected<std::string>("Unknown progress mode");
 		break;
 	}
 
@@ -619,6 +619,11 @@ void IncProgress(uint32_t steps)
 			LogError("Failed to send WM_PROGRESS {}", SDL_GetError());
 			SDL_ClearError();
 		}
+#ifdef __DJGPP__
+		// On DOS, threading is cooperative, normally the event loop yeilds
+		// but we need to do so manually during loading.
+		SDL_Delay(15);
+#endif
 #ifdef LOAD_ON_MAIN_THREAD
 		HandleProgressBarUpdate();
 #endif

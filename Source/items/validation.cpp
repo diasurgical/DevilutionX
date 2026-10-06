@@ -72,13 +72,10 @@ bool IsShopPriceValid(const Item &item)
 
 	const uint16_t smithOrWitch = CF_SMITH | CF_WITCH;
 	const int smithAndWitchPriceLimit = gbIsHellfire ? MaxVendorValueHf : MaxVendorValue;
-	if ((item._iCreateInfo & smithOrWitch) != 0 && item._iIvalue > smithAndWitchPriceLimit)
-		return false;
-
-	return true;
+	return !((item._iCreateInfo & smithOrWitch) != 0 && item._iIvalue > smithAndWitchPriceLimit);
 }
 
-bool IsUniqueMonsterItemValid(uint16_t iCreateInfo, uint32_t dwBuff)
+bool IsUniqueMonsterItemValid(uint16_t iCreateInfo, uint32_t /*dwBuff*/)
 {
 	const uint8_t level = iCreateInfo & CF_LEVEL;
 
@@ -185,7 +182,7 @@ bool IsItemDeltaValid(const TCmdPItem &itemDelta)
 		return false;
 	if (!InDungeonBounds({ itemDelta.x, itemDelta.y }))
 		return false;
-	const _item_indexes idx = static_cast<_item_indexes>(Swap16LE(itemDelta.def.wIndx));
+	const auto idx = static_cast<_item_indexes>(Swap16LE(itemDelta.def.wIndx));
 	if (idx == IDI_EAR)
 		return true;
 	if (!IsItemAvailable(idx))

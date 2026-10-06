@@ -19,11 +19,11 @@ base_paths = {
 }
 
 hf_paths = {
-    "monstdat": root.joinpath("mods/Hellfire/txtdata/monsters/monstdat.tsv"),
-    "unique_itemdat": root.joinpath("mods/Hellfire/txtdata/items/unique_itemdat.tsv"),
-    "item_prefixes": root.joinpath("mods/Hellfire/txtdata/items/item_prefixes.tsv"),
-    "item_suffixes": root.joinpath("mods/Hellfire/txtdata/items/item_suffixes.tsv"),
-    "spelldat": root.joinpath("mods/Hellfire/txtdata/spells/spelldat.tsv"),
+    "monstdat": root.joinpath("mods/hf/txtdata/monsters/monstdat.tsv"),
+    "unique_itemdat": root.joinpath("mods/hf/txtdata/items/unique_itemdat.tsv"),
+    "item_prefixes": root.joinpath("mods/hf/txtdata/items/item_prefixes.tsv"),
+    "item_suffixes": root.joinpath("mods/hf/txtdata/items/item_suffixes.tsv"),
+    "spelldat": root.joinpath("mods/hf/txtdata/spells/spelldat.tsv"),
 }
 
 seen_pairs = set()

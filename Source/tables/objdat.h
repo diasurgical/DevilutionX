@@ -6,11 +6,12 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
 #include <vector>
 
-#include "cursor.h"
-#include "levels/gendung.h"
-#include "utils/enum_traits.h"
+#include "cursor_defs.hpp"
+#include "levels/gendung_defs.hpp"
+#include "tables/questdat.hpp"
 
 namespace devilution {
 
@@ -151,34 +152,6 @@ enum _object_id : int8_t {
 
 	OBJ_LAST = OBJ_L5SARC,
 	OBJ_NULL = -1,
-};
-
-enum quest_id : int8_t {
-	Q_ROCK,
-	Q_MUSHROOM,
-	Q_GARBUD,
-	Q_ZHAR,
-	Q_VEIL,
-	Q_DIABLO,
-	Q_BUTCHER,
-	Q_LTBANNER,
-	Q_BLIND,
-	Q_BLOOD,
-	Q_ANVIL,
-	Q_WARLORD,
-	Q_SKELKING,
-	Q_PWATER,
-	Q_SCHAMB,
-	Q_BETRAYER,
-	Q_GRAVE,
-	Q_FARMER,
-	Q_GIRL,
-	Q_TRADER,
-	Q_DEFILER,
-	Q_NAKRUL,
-	Q_CORNSTN,
-	Q_JERSEY,
-	Q_INVALID = -1,
 };
 
 enum class ObjectDataFlags : uint8_t {

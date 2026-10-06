@@ -9,10 +9,9 @@
  * @see ctr_vkdbFlush()
  * @param title Label for the input
  * @param inText Optional text to prefil the input field
- * @param outText Pointer to a buffer to receive user input
- * @param maxLength Size of the buffer
+ * @param textInputFn Callback to handle text input
  */
-void ctr_vkbdInput(std::string_view title, std::string_view inText, char *outText, size_t maxLength);
+void ctr_vkbdInput(std::string_view title, std::string_view inText, void (*textInputFn)(std::string_view));
 
 /**
  * @brief Processes pending requests for user input

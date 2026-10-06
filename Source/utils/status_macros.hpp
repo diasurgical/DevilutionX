@@ -4,7 +4,7 @@
 
 #define RETURN_IF_ERROR(expr)                                         \
 	if (auto result = expr; DVL_PREDICT_FALSE(!result.has_value())) { \
-		return tl::make_unexpected(std::move(result).error());        \
+		return std::unexpected(std::move(result).error());            \
 	}
 
 #define STATUS_MACROS_CONCAT_NAME_INNER(x, y) x##y
@@ -13,7 +13,7 @@
 #define ASSIGN_OR_RETURN_IMPL(result, lhs, rhs)                                                        \
 	auto result = rhs;                            /* NOLINT(bugprone-macro-parentheses): assignment */ \
 	if (DVL_PREDICT_FALSE(!result.has_value())) { /* NOLINT(bugprone-macro-parentheses): assignment */ \
-		return tl::make_unexpected(std::move(result).error());                                         \
+		return std::unexpected(std::move(result).error());                                             \
 	}                                                                                                  \
 	lhs = std::move(result).value(); /* NOLINT(bugprone-macro-parentheses): assignment */
 

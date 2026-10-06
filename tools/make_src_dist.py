@@ -37,7 +37,7 @@ import sys
 # 2. Require devilutionx forks (all others).
 _DEPS = [
     "asio",
-    "libmpq",
+    "mpqfs",
     "libsmackerdec",
     "libzt",
     "magic_enum",
@@ -45,12 +45,12 @@ _DEPS = [
     "sheenbidi",
     "unordered_dense",
 ]
-_ALWAYS_VENDORED_DEPS = ['asio', 'libmpq', 'libsmackerdec', 'libzt']
+_ALWAYS_VENDORED_DEPS = ['asio', 'mpqfs', 'libsmackerdec', 'libzt']
 
 # These dependencies are not vendored by default.
 # Run with `--fully_vendored` to include them.
 _DEPS_NOT_VENDORED_BY_DEFAULT = ['googletest', 'benchmark', 'sdl2', 'sdl_image',
-                                 'libpng', 'libfmt', 'bzip2', 'libsodium']
+                                 'libpng', 'bzip2', 'libsodium']
 
 _ROOT_DIR = pathlib.Path(__file__).resolve().parent.parent
 _BUILD_DIR = _ROOT_DIR.joinpath('build-src-dist')
@@ -117,9 +117,9 @@ def main():
 	_LOGGER.info(f'Copying devilutionx.mpq...')
 	paths.dist_dir.mkdir(parents=True)
 	shutil.copy(_BUILD_DIR.joinpath('devilutionx.mpq'), paths.dist_dir)
-	_LOGGER.info(f'Copying Hellfire.mpq...')
+	_LOGGER.info(f'Copying hf.mpq...')
 	paths.dist_dir.joinpath('mods').mkdir(exist_ok=True)
-	shutil.copy(_BUILD_DIR.joinpath('mods', 'Hellfire.mpq'), paths.dist_dir.joinpath('mods'))
+	shutil.copy(_BUILD_DIR.joinpath('mods', 'hf.mpq'), paths.dist_dir.joinpath('mods'))
 
 	for dep in _DEPS + (_DEPS_NOT_VENDORED_BY_DEFAULT if args.fully_vendored else []):
 		_LOGGER.info(f'Copying {dep}...')
@@ -187,9 +187,9 @@ def write_dist_cmakelists(paths: Paths, version: Version, fully_vendored: bool):
 			f.write(b'set(GIT_COMMIT_HASH "%s" PARENT_SCOPE)\n' % version.commit_sha.encode('utf-8'))
 
 		f.write(b'''
-# Pre-generated `devilutionx.mpq` and `mods/Hellfire.mpq` are provided so that distributions do not have to depend on smpq.
+# Pre-generated `devilutionx.mpq` and `mods/hf.mpq` are provided so that distributions do not have to depend on smpq.
 set(DEVILUTIONX_MPQ "${CMAKE_CURRENT_SOURCE_DIR}/devilutionx.mpq" PARENT_SCOPE)
-set(HELLFIRE_MPQ "${CMAKE_CURRENT_SOURCE_DIR}/mods/Hellfire.mpq" PARENT_SCOPE)
+set(HELLFIRE_MPQ "${CMAKE_CURRENT_SOURCE_DIR}/mods/hf.mpq" PARENT_SCOPE)
 
 # This would ensure that CMake does not attempt to connect to network.
 # We do not set this to allow for builds for Windows and Android, which do fetch some

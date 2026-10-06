@@ -15,8 +15,6 @@
 #include <SDL.h>
 #endif
 
-#include <fmt/format.h>
-
 #include "control/control.hpp"
 #include "engine/render/primitive_render.hpp"
 #include "engine/render/text_render.hpp"
@@ -24,6 +22,7 @@
 #include "qol/chatlog.h"
 #include "qol/stash.h"
 #include "utils/algorithm/container.hpp"
+#include "utils/format.hpp"
 #include "utils/language.h"
 #include "utils/utf8.hpp"
 
@@ -82,7 +81,7 @@ void SendPlrMsg(Player &player, std::string_view text)
 {
 	PlayerMessage &message = GetNextMessage();
 
-	const std::string from = fmt::format(fmt::runtime(_("{:s} (lvl {:d}): ")), player._pName, player.getCharacterLevel());
+	const std::string from = FormatRuntime(_("{:s} (lvl {:d}): "), player._pName, player.getCharacterLevel());
 
 	message.style = UiFlags::ColorWhite;
 	message.time = SDL_GetTicks();

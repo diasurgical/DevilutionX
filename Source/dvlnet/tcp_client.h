@@ -3,15 +3,6 @@
 #include <memory>
 #include <string>
 
-// This header must be included before any 3DS code
-// because 3DS SDK defines a macro with the same name
-// as an fmt template parameter in some versions of fmt.
-// See https://github.com/fmtlib/fmt/issues/3632
-//
-// 3DS uses some custom ASIO code that transitively includes
-// the 3DS SDK.
-#include <fmt/core.h>
-
 #include <asio/ts/buffer.hpp>
 #include <asio/ts/internet.hpp>
 #include <asio/ts/io_context.hpp>
@@ -30,8 +21,8 @@ public:
 	int create(std::string_view addrstr) override;
 	int join(std::string_view addrstr) override;
 
-	tl::expected<void, PacketError> poll() override;
-	tl::expected<void, PacketError> send(packet &pkt) override;
+	std::expected<void, PacketError> poll() override;
+	std::expected<void, PacketError> send(packet &pkt) override;
 	void DisconnectNet(plr_t plr) override;
 
 	bool SNetLeaveGame(net::leaveinfo_t type) override;

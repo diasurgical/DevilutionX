@@ -8,10 +8,10 @@
 #include <SDL.h>
 #endif
 
-#include <fmt/core.h>
-#include <fmt/format.h>
-#include <fmt/ranges.h>
+#include <format>
+#include <string>
 
+#include "utils/attributes.h"
 #include "utils/str_cat.hpp"
 
 #ifdef USE_SDL1
@@ -51,25 +51,18 @@ namespace detail {
 template <typename... Args>
 std::string format(std::string_view fmt, Args &&...args)
 {
-	FMT_TRY
-	{
-		return fmt::format(fmt::runtime(fmt), std::forward<Args>(args)...);
+#if DVL_EXCEPTIONS
+	try {
+		return std::vformat(fmt, std::make_format_args(args...));
+	} catch (const std::format_error &e) {
+		const std::string fullError = StrCat("Format error, fmt: ", fmt, " error: ", e.what());
+		SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "%.*s", static_cast<int>(fullError.size()), fullError.c_str());
+		app_fatal(fullError);
 	}
-#if FMT_EXCEPTIONS
-	FMT_CATCH(const fmt::format_error &e)
-	{
-		// e.what() is undefined if exceptions are disabled, so we wrap it
-		// with an `FMT_EXCEPTIONS` check.
-		std::string error = e.what();
 #else
-	FMT_CATCH(const fmt::format_error &)
-	{
-		std::string error = "unknown (FMT_EXCEPTIONS disabled)";
+	// `std::vformat` terminates the program on error when exceptions are disabled.
+	return std::vformat(fmt, std::make_format_args(args...));
 #endif
-		std::string fullError = StrCat("Format error, fmt: ", fmt, " error: ", error);
-		SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "%s", error.c_str());
-		app_fatal(error);
-	}
 }
 
 } // namespace detail
@@ -83,7 +76,7 @@ template <typename... Args>
 void Log(std::string_view fmt, Args &&...args)
 {
 	auto str = detail::format(fmt, std::forward<Args>(args)...);
-	SDL_Log("%s", str.c_str());
+	SDL_Log("%.*s", static_cast<int>(str.size()), str.c_str());
 }
 
 inline void LogVerbose(LogCategory category, std::string_view str)
@@ -105,7 +98,7 @@ void LogVerbose(LogCategory category, std::string_view fmt, Args &&...args)
 {
 	if (!IsLogLevel(category, SDL_LOG_PRIORITY_VERBOSE)) return;
 	auto str = detail::format(fmt, std::forward<Args>(args)...);
-	SDL_LogVerbose(static_cast<int>(category), "%s", str.c_str());
+	SDL_LogVerbose(static_cast<int>(category), "%.*s", static_cast<int>(str.size()), str.c_str());
 }
 
 template <typename... Args>
@@ -124,7 +117,7 @@ void LogDebug(LogCategory category, std::string_view fmt, Args &&...args)
 {
 	if (!IsLogLevel(category, SDL_LOG_PRIORITY_DEBUG)) return;
 	auto str = detail::format(fmt, std::forward<Args>(args)...);
-	SDL_LogDebug(static_cast<int>(category), "%s", str.c_str());
+	SDL_LogDebug(static_cast<int>(category), "%.*s", static_cast<int>(str.size()), str.c_str());
 }
 
 template <typename... Args>
@@ -142,7 +135,7 @@ template <typename... Args>
 void LogInfo(LogCategory category, std::string_view fmt, Args &&...args)
 {
 	auto str = detail::format(fmt, std::forward<Args>(args)...);
-	SDL_LogInfo(static_cast<int>(category), "%s", str.c_str());
+	SDL_LogInfo(static_cast<int>(category), "%.*s", static_cast<int>(str.size()), str.c_str());
 }
 
 template <typename... Args>
@@ -160,7 +153,7 @@ template <typename... Args>
 void LogWarn(LogCategory category, std::string_view fmt, Args &&...args)
 {
 	auto str = detail::format(fmt, std::forward<Args>(args)...);
-	SDL_LogWarn(static_cast<int>(category), "%s", str.c_str());
+	SDL_LogWarn(static_cast<int>(category), "%.*s", static_cast<int>(str.size()), str.c_str());
 }
 
 template <typename... Args>
@@ -178,7 +171,7 @@ template <typename... Args>
 void LogError(LogCategory category, std::string_view fmt, Args &&...args)
 {
 	auto str = detail::format(fmt, std::forward<Args>(args)...);
-	SDL_LogError(static_cast<int>(category), "%s", str.c_str());
+	SDL_LogError(static_cast<int>(category), "%.*s", static_cast<int>(str.size()), str.c_str());
 }
 
 template <typename... Args>
@@ -196,7 +189,7 @@ template <typename... Args>
 void LogCritical(LogCategory category, std::string_view fmt, Args &&...args)
 {
 	auto str = detail::format(fmt, std::forward<Args>(args)...);
-	SDL_LogCritical(static_cast<int>(category), "%s", str.c_str());
+	SDL_LogCritical(static_cast<int>(category), "%.*s", static_cast<int>(str.size()), str.c_str());
 }
 
 template <typename... Args>
@@ -215,7 +208,8 @@ template <typename... Args>
 void LogMessageV(LogCategory category, LogPriority priority, std::string_view fmt, Args &&...args)
 {
 	auto str = detail::format(fmt, std::forward<Args>(args)...);
-	SDL_LogMessageV(static_cast<int>(category), static_cast<SDL_LogPriority>(priority), "%s", str.c_str());
+	SDL_LogMessageV(static_cast<int>(category), static_cast<SDL_LogPriority>(priority),
+	    "%.*s", static_cast<int>(str.size()), str.c_str());
 }
 
 template <typename... Args>

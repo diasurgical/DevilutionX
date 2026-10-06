@@ -87,45 +87,6 @@ std::string_view Dirname(std::string_view path)
 	return std::string_view { path.data(), sep };
 }
 
-bool FileExists(const char *path)
-{
-#ifdef _WIN32
-#ifdef DEVILUTIONX_WINDOWS_NO_WCHAR
-	const bool exists = ::GetFileAttributesA(path) != INVALID_FILE_ATTRIBUTES;
-#else
-	const auto pathUtf16 = ToWideChar(path);
-	if (pathUtf16 == nullptr) {
-		LogError("UTF-8 -> UTF-16 conversion error code {}", ::GetLastError());
-		return false;
-	}
-	const bool exists = ::PathFileExistsW(&pathUtf16[0]);
-#endif
-	if (!exists) {
-		if (::GetLastError() == ERROR_FILE_NOT_FOUND || ::GetLastError() == ERROR_PATH_NOT_FOUND) {
-			::SetLastError(ERROR_SUCCESS);
-		} else {
-#ifdef DEVILUTIONX_WINDOWS_NO_WCHAR
-			LogError("GetFileAttributesA({}): error code {}", path, ::GetLastError());
-#else
-			LogError("PathFileExistsW({}): error code {}", path, ::GetLastError());
-#endif
-		}
-		return false;
-	}
-	return true;
-#elif defined(DVL_HAS_POSIX_2001) && !defined(__ANDROID__)
-	return ::access(path, F_OK) == 0;
-#elif defined(DVL_HAS_FILESYSTEM)
-	std::error_code ec;
-	return std::filesystem::exists(reinterpret_cast<const char8_t *>(path), ec);
-#else
-	SDL_IOStream *file = SDL_IOFromFile(path, "rb");
-	if (file == nullptr) return false;
-	SDL_CloseIO(file);
-	return true;
-#endif
-}
-
 #ifdef _WIN32
 namespace {
 DWORD WindowsGetFileAttributes(const char *path)
@@ -153,9 +114,73 @@ DWORD WindowsGetFileAttributes(const char *path)
 	}
 	return attr;
 }
-} // namespace
 
+#ifdef DEVILUTIONX_WINDOWS_NO_WCHAR
+bool WindowsFindFile(const char *path)
+#else
+bool WindowsFindFile(const wchar_t *path)
 #endif
+{
+#ifdef DEVILUTIONX_WINDOWS_NO_WCHAR
+	WIN32_FIND_DATAA findFileData;
+	HANDLE hFind = FindFirstFileA(path, &findFileData);
+#else
+	WIN32_FIND_DATAW findFileData;
+	HANDLE hFind = FindFirstFileW(path, &findFileData);
+#endif
+	if (hFind == INVALID_HANDLE_VALUE) {
+		return false;
+	}
+	FindClose(hFind);
+	return true;
+}
+
+bool WindowsFileExists(const char *path)
+{
+#ifdef DEVILUTIONX_WINDOWS_NO_WCHAR
+	const bool exists = ::GetFileAttributesA(path) != INVALID_FILE_ATTRIBUTES;
+#else
+	const auto pathUtf16 = ToWideChar(path);
+	if (pathUtf16 == nullptr) {
+		LogError("UTF-8 -> UTF-16 conversion error code {}", ::GetLastError());
+		return false;
+	}
+	const bool exists = ::PathFileExistsW(&pathUtf16[0]);
+#endif
+	if (exists) {
+		return true;
+	}
+	if (::GetLastError() == ERROR_FILE_NOT_FOUND || ::GetLastError() == ERROR_PATH_NOT_FOUND) {
+		::SetLastError(ERROR_SUCCESS);
+		return false;
+	}
+#ifdef DEVILUTIONX_WINDOWS_NO_WCHAR
+	LogError("GetFileAttributesA({}): error code {}", path, ::GetLastError());
+	return WindowsFindFile(path);
+#else
+	LogError("PathFileExistsW({}): error code {}", path, ::GetLastError());
+	return WindowsFindFile(pathUtf16.get());
+#endif
+}
+} // namespace
+#endif
+
+bool FileExists(const char *path)
+{
+#ifdef _WIN32
+	return WindowsFileExists(path);
+#elif defined(DVL_HAS_POSIX_2001) && !defined(__ANDROID__) && !defined(_WIN32)
+	return ::access(path, F_OK) == 0;
+#elif defined(DVL_HAS_FILESYSTEM) && !defined(_WIN32)
+	std::error_code ec;
+	return std::filesystem::exists(reinterpret_cast<const char8_t *>(path), ec);
+#else
+	SDL_IOStream *file = SDL_IOFromFile(path, "rb");
+	if (file == nullptr) return false;
+	SDL_CloseIO(file);
+	return true;
+#endif
+}
 
 bool DirectoryExists(const char *path)
 {

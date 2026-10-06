@@ -66,7 +66,7 @@ void TestInitGame(bool fullQuests = true, bool originalCathedral = true, bool he
 
 	UnloadModArchives();
 	if (hellfire) {
-		LoadModArchives({ { "Hellfire" } });
+		LoadModArchives({ { "hf" } });
 	} else {
 		LoadModArchives({});
 	}

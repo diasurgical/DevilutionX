@@ -38,7 +38,7 @@ void GenerateAllUniques(bool hellfire, const size_t expectedUniques)
 	gbIsHellfire = hellfire;
 	UnloadModArchives();
 	if (hellfire) {
-		LoadModArchives({ { "Hellfire" } });
+		LoadModArchives({ { "hf" } });
 	}
 	LoadItemData();
 

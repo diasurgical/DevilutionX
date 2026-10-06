@@ -11,10 +11,9 @@
 #include <bitset>
 #include <charconv>
 #include <cstdint>
+#include <expected>
 #include <vector>
 
-#include <expected.hpp>
-#include <fmt/format.h>
 #include <magic_enum/magic_enum_utility.hpp>
 
 #include "data/file.hpp"
@@ -22,7 +21,9 @@
 #include "data/value_reader.hpp"
 #include "items.h"
 #include "player.h"
+#include "sound_effect_enums.h"
 #include "tables/textdat.h"
+#include "utils/format.hpp"
 #include "utils/language.h"
 #include "utils/static_vector.hpp"
 #include "utils/str_cat.hpp"
@@ -36,7 +37,7 @@ class ExperienceData {
 	std::vector<uint32_t> levelThresholds;
 
 public:
-	uint8_t getMaxLevel() const
+	[[nodiscard]] uint8_t getMaxLevel() const
 	{
 		return static_cast<uint8_t>(std::min<size_t>(levelThresholds.size(), std::numeric_limits<uint8_t>::max()));
 	}
@@ -74,7 +75,7 @@ enum class ExperienceColumn {
 	LAST = Experience
 };
 
-tl::expected<ExperienceColumn, ColumnDefinition::Error> mapExperienceColumnFromName(std::string_view name)
+std::expected<ExperienceColumn, ColumnDefinition::Error> mapExperienceColumnFromName(std::string_view name)
 {
 	if (name == "Level") {
 		return ExperienceColumn::Level;
@@ -82,7 +83,7 @@ tl::expected<ExperienceColumn, ColumnDefinition::Error> mapExperienceColumnFromN
 	if (name == "Experience") {
 		return ExperienceColumn::Experience;
 	}
-	return tl::unexpected { ColumnDefinition::Error::UnknownColumn };
+	return std::unexpected { ColumnDefinition::Error::UnknownColumn };
 }
 
 void ReloadExperienceData()
@@ -156,19 +157,19 @@ void ReloadExperienceData()
 	}
 }
 
-tl::expected<PlayerClassFlag, std::string> ParsePlayerClassFlag(std::string_view value)
+std::expected<PlayerClassFlag, std::string> ParsePlayerClassFlag(std::string_view value)
 {
 	const std::optional<PlayerClassFlag> enumValueOpt = magic_enum::enum_cast<PlayerClassFlag>(value);
 	if (enumValueOpt.has_value()) {
 		return enumValueOpt.value();
 	}
-	return tl::make_unexpected("Unknown enum value");
+	return std::unexpected("Unknown enum value");
 }
 
 void LoadClassData(std::string_view classPath, ClassAttributes &attributes, PlayerCombatData &combat)
 {
 	const std::string filename = StrCat("txtdata\\classes\\", classPath, "\\attributes.tsv");
-	tl::expected<DataFile, DataFile::Error> dataFileResult = DataFile::loadOrDie(filename);
+	std::expected<DataFile, DataFile::Error> dataFileResult = DataFile::loadOrDie(filename);
 	DataFile &dataFile = dataFileResult.value();
 	dataFile.skipHeaderOrDie(filename);
 
@@ -192,6 +193,12 @@ void LoadClassData(std::string_view classPath, ClassAttributes &attributes, Play
 	reader.readDecimal("chrMana", attributes.chrMana);
 	reader.readDecimal("itmLife", attributes.itmLife);
 	reader.readDecimal("itmMana", attributes.itmMana);
+	reader.readDecimal("manaCost", attributes.manaCost);
+	reader.readDecimal("itmRestoreLife", attributes.itmRestoreLife);
+	reader.readDecimal("itmRestoreMana", attributes.itmRestoreMana);
+	reader.readDecimal("splRestoreLife", attributes.splRestoreLife);
+	reader.readDecimal("splRestoreMana", attributes.splRestoreMana);
+	reader.readDecimal("healOtherRestoreLife", attributes.healOtherRestoreLife);
 	reader.readInt("baseMagicToHit", combat.baseMagicToHit);
 	reader.readInt("baseMeleeToHit", combat.baseMeleeToHit);
 	reader.readInt("baseRangedToHit", combat.baseRangedToHit);
@@ -200,7 +207,7 @@ void LoadClassData(std::string_view classPath, ClassAttributes &attributes, Play
 void LoadClassStartingLoadoutData(std::string_view classPath, PlayerStartingLoadoutData &startingLoadoutData)
 {
 	const std::string filename = StrCat("txtdata\\classes\\", classPath, "\\starting_loadout.tsv");
-	tl::expected<DataFile, DataFile::Error> dataFileResult = DataFile::loadOrDie(filename);
+	std::expected<DataFile, DataFile::Error> dataFileResult = DataFile::loadOrDie(filename);
 	DataFile &dataFile = dataFileResult.value();
 	dataFile.skipHeaderOrDie(filename);
 
@@ -218,7 +225,7 @@ void LoadClassStartingLoadoutData(std::string_view classPath, PlayerStartingLoad
 void LoadClassSpriteData(std::string_view classPath, PlayerSpriteData &spriteData)
 {
 	const std::string filename = StrCat("txtdata\\classes\\", classPath, "\\sprites.tsv");
-	tl::expected<DataFile, DataFile::Error> dataFileResult = DataFile::loadOrDie(filename);
+	std::expected<DataFile, DataFile::Error> dataFileResult = DataFile::loadOrDie(filename);
 	DataFile &dataFile = dataFileResult.value();
 	dataFile.skipHeaderOrDie(filename);
 
@@ -242,7 +249,7 @@ void LoadClassSpriteData(std::string_view classPath, PlayerSpriteData &spriteDat
 void LoadClassAnimData(std::string_view classPath, PlayerAnimData &animData)
 {
 	const std::string filename = StrCat("txtdata\\classes\\", classPath, "\\animations.tsv");
-	tl::expected<DataFile, DataFile::Error> dataFileResult = DataFile::loadOrDie(filename);
+	std::expected<DataFile, DataFile::Error> dataFileResult = DataFile::loadOrDie(filename);
 	DataFile &dataFile = dataFileResult.value();
 	dataFile.skipHeaderOrDie(filename);
 
@@ -280,7 +287,7 @@ void LoadClassAnimData(std::string_view classPath, PlayerAnimData &animData)
 void LoadClassSounds(std::string_view classPath, ankerl::unordered_dense::map<HeroSpeech, SfxID> &sounds)
 {
 	const std::string filename = StrCat("txtdata\\classes\\", classPath, "\\sounds.tsv");
-	tl::expected<DataFile, DataFile::Error> dataFileResult = DataFile::loadOrDie(filename);
+	std::expected<DataFile, DataFile::Error> dataFileResult = DataFile::loadOrDie(filename);
 	DataFile &dataFile = dataFileResult.value();
 	dataFile.skipHeaderOrDie(filename);
 
@@ -317,7 +324,7 @@ void LoadClassDatFromFile(DataFile &dataFile, const std::string_view filename)
 
 	for (DataFileRecord record : dataFile) {
 		if (PlayersData.size() >= static_cast<size_t>(HeroClass::NUM_MAX_CLASSES)) {
-			DisplayFatalErrorAndExit(_("Loading Class Data Failed"), fmt::format(fmt::runtime(_("Could not add a class, since the maximum class number of {} has already been reached.")), static_cast<size_t>(HeroClass::NUM_MAX_CLASSES)));
+			DisplayFatalErrorAndExit(_("Loading Class Data Failed"), FormatRuntime(_("Could not add a class, since the maximum class number of {} has already been reached."), static_cast<size_t>(HeroClass::NUM_MAX_CLASSES)));
 		}
 
 		RecordReader reader { record, filename };
@@ -383,7 +390,7 @@ void LoadPlayerDataFiles()
 
 SfxID GetHeroSound(HeroClass clazz, HeroSpeech speech)
 {
-	const size_t playerClassIndex = static_cast<size_t>(clazz);
+	const auto playerClassIndex = static_cast<size_t>(clazz);
 	assert(playerClassIndex < herosounds.size());
 	const auto findIt = herosounds[playerClassIndex].find(speech);
 	if (findIt != herosounds[playerClassIndex].end()) {
@@ -410,35 +417,35 @@ size_t GetNumPlayerClasses()
 
 const PlayerData &GetPlayerDataForClass(HeroClass playerClass)
 {
-	const size_t playerClassIndex = static_cast<size_t>(playerClass);
+	const auto playerClassIndex = static_cast<size_t>(playerClass);
 	assert(playerClassIndex < PlayersData.size());
 	return PlayersData[playerClassIndex];
 }
 
 const PlayerCombatData &GetPlayerCombatDataForClass(HeroClass pClass)
 {
-	const size_t playerClassIndex = static_cast<size_t>(pClass);
+	const auto playerClassIndex = static_cast<size_t>(pClass);
 	assert(playerClassIndex < PlayersCombatData.size());
 	return PlayersCombatData[playerClassIndex];
 }
 
 const PlayerStartingLoadoutData &GetPlayerStartingLoadoutForClass(HeroClass pClass)
 {
-	const size_t playerClassIndex = static_cast<size_t>(pClass);
+	const auto playerClassIndex = static_cast<size_t>(pClass);
 	assert(playerClassIndex < PlayersStartingLoadoutData.size());
 	return PlayersStartingLoadoutData[playerClassIndex];
 }
 
 const PlayerSpriteData &GetPlayerSpriteDataForClass(HeroClass pClass)
 {
-	const size_t playerClassIndex = static_cast<size_t>(pClass);
+	const auto playerClassIndex = static_cast<size_t>(pClass);
 	assert(playerClassIndex < PlayersSpriteData.size());
 	return PlayersSpriteData[playerClassIndex];
 }
 
 const PlayerAnimData &GetPlayerAnimDataForClass(HeroClass pClass)
 {
-	const size_t playerClassIndex = static_cast<size_t>(pClass);
+	const auto playerClassIndex = static_cast<size_t>(pClass);
 	assert(playerClassIndex < PlayersAnimData.size());
 	return PlayersAnimData[playerClassIndex];
 }

@@ -3,6 +3,7 @@
 #include <cstdint>
 
 #include "controls/controller_buttons.h"
+#include "utils/attributes.h"
 
 namespace devilution {
 
@@ -13,7 +14,7 @@ enum class ControlTypes : uint8_t {
 	VirtualGamepad,
 };
 
-extern ControlTypes ControlMode;
+extern DVL_API_FOR_TEST ControlTypes ControlMode;
 
 /**
  * @brief Controlling device type.

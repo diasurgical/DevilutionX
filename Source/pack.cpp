@@ -6,6 +6,7 @@
 #include "pack.h"
 
 #include <cstdint>
+#include <format>
 
 #include "engine/random.hpp"
 #include "game_mode.hpp"
@@ -44,7 +45,7 @@ namespace {
 
 void EventFailedJoinAttempt(const char *playerName)
 {
-	const std::string message = fmt::format("Player '{}' sent invalid player data during attempt to join the game.", playerName);
+	const std::string message = std::format("Player '{}' sent invalid player data during attempt to join the game.", playerName);
 	EventPlrMsg(message);
 }
 
@@ -366,7 +367,7 @@ void UnPackPlayer(const PlayerPack &packed, Player &player)
 	ClrPlrPath(player);
 	player.destAction = ACTION_NONE;
 
-	CopyUtf8(player._pName, packed.pName, sizeof(player._pName));
+	CopyUtf8(player._pName, std::string_view(packed.pName, PlayerNameLength), sizeof(player._pName));
 
 	InitPlayer(player, true);
 
@@ -437,7 +438,7 @@ void UnPackPlayer(const PlayerPack &packed, Player &player)
 bool UnPackNetItem(const Player &player, const ItemNetPack &packedItem, Item &item)
 {
 	item = {};
-	const _item_indexes idx = static_cast<_item_indexes>(Swap16LE(packedItem.def.wIndx));
+	const auto idx = static_cast<_item_indexes>(Swap16LE(packedItem.def.wIndx));
 	if (idx < 0 || idx >= static_cast<_item_indexes>(AllItemsList.size()))
 		return true;
 	if (idx == IDI_EAR) {
@@ -464,7 +465,7 @@ bool UnPackNetItem(const Player &player, const ItemNetPack &packedItem, Item &it
 
 bool UnPackNetPlayer(const PlayerNetPack &packed, Player &player)
 {
-	CopyUtf8(player._pName, packed.pName, sizeof(player._pName));
+	CopyUtf8(player._pName, std::string_view(packed.pName, PlayerNameLength), sizeof(player._pName));
 
 	ValidateField(packed.pClass, packed.pClass < GetNumPlayerClasses());
 	player._pClass = static_cast<HeroClass>(packed.pClass);
@@ -572,7 +573,7 @@ bool UnPackNetPlayer(const PlayerNetPack &packed, Player &player)
 		if (item.isEmpty())
 			continue;
 		const Size beltItemSize = GetInventorySize(item);
-		const int8_t beltItemType = static_cast<int8_t>(item._itype);
+		const auto beltItemType = static_cast<int8_t>(item._itype);
 		const bool beltItemUsable = item.isUsable();
 		ValidateFields(beltItemSize.width, beltItemSize.height, (beltItemSize == Size { 1, 1 }));
 		ValidateField(beltItemType, item._itype != ItemType::Gold);

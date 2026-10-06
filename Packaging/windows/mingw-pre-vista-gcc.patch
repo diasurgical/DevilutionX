@@ -1,0 +1,118 @@
+--- a/libgcc/config/i386/gthr-win32.c
++++ b/libgcc/config/i386/gthr-win32.c
+@@ -43,6 +43,43 @@
+ #define __gthread_mutex_unlock __gthr_win32_mutex_unlock
+ #define __gthread_recursive_mutex_trylock __gthr_win32_recursive_mutex_trylock
+ 
++/* Windows 9x compatibility: TryEnterCriticalSection and GetThreadId do not
++   exist there.  Resolve them dynamically so that they do not end up in the
++   static import table (the Windows 9x loader rejects binaries importing
++   them) and degrade gracefully when they are unavailable.  */
++#define WIN32_LEAN_AND_MEAN
++#include <windows.h>
++
++static inline FARPROC
++__gthr_win32_get_kernel32_proc (const char *__name)
++{
++  return GetProcAddress (GetModuleHandleA ("KERNEL32.DLL"), __name);
++}
++
++static inline BOOL WINAPI
++__gthr_win32_TryEnterCriticalSection (LPCRITICAL_SECTION __cs)
++{
++  typedef BOOL (WINAPI *__fn_t) (LPCRITICAL_SECTION);
++  static __fn_t __fn = (__fn_t) -1;
++  if (__fn == (__fn_t) -1)
++    __fn = (__fn_t) __gthr_win32_get_kernel32_proc ("TryEnterCriticalSection");
++  return __fn != 0 ? __fn (__cs) : FALSE;
++}
++
++#define TryEnterCriticalSection __gthr_win32_TryEnterCriticalSection
++
++static inline DWORD WINAPI
++__gthr_win32_GetThreadId (HANDLE __thr)
++{
++  typedef DWORD (WINAPI *__fn_t) (HANDLE);
++  static __fn_t __fn = (__fn_t) -1;
++  if (__fn == (__fn_t) -1)
++    __fn = (__fn_t) __gthr_win32_get_kernel32_proc ("GetThreadId");
++  return __fn != 0 ? __fn (__thr) : 0;
++}
++
++#define GetThreadId __gthr_win32_GetThreadId
++
+ #include "gthr-win32.h"
+ 
+ /* Check the sizes of the local version of the Win32 types.  */
+--- a/libgcc/config/i386/gthr-win32-thread.c
++++ b/libgcc/config/i386/gthr-win32-thread.c
+@@ -41,6 +41,31 @@
+    in the case where distinct Win32 HANDLEs have been created for the same
+    thread by multiple instances of libgcc included in the link.  */
+ 
++/* Windows 9x compatibility: TryEnterCriticalSection and GetThreadId do not
++   exist there.  Resolve them dynamically so that they do not end up in the
++   static import table (the Windows 9x loader rejects binaries importing
++   them) and degrade gracefully when they are unavailable.  */
++#define WIN32_LEAN_AND_MEAN
++#include <windows.h>
++
++static inline FARPROC
++__gthr_win32_get_kernel32_proc (const char *__name)
++{
++  return GetProcAddress (GetModuleHandleA ("KERNEL32.DLL"), __name);
++}
++
++static inline DWORD WINAPI
++__gthr_win32_GetThreadId (HANDLE __thr)
++{
++  typedef DWORD (WINAPI *__fn_t) (HANDLE);
++  static __fn_t __fn = (__fn_t) -1;
++  if (__fn == (__fn_t) -1)
++    __fn = (__fn_t) __gthr_win32_get_kernel32_proc ("GetThreadId");
++  return __fn != 0 ? __fn (__thr) : 0;
++}
++
++#define GetThreadId __gthr_win32_GetThreadId
++
+ #include "gthr-win32.h"
+ 
+ /* The thread descriptor keyed from TLS memory.  */
+--- a/libstdc++-v3/src/c++20/tzdb.cc
++++ b/libstdc++-v3/src/c++20/tzdb.cc
+@@ -48,7 +48,7 @@
+ # include <cstdlib>   // getenv
+ #endif
+ 
+-#if _GLIBCXX_HAVE_WINDOWS_H
++#if _GLIBCXX_HAVE_WINDOWS_H && _WIN32_WINNT >= 0x0600
+ # define WIN32_LEAN_AND_MEAN
+ # include <windows.h>
+ # include <psapi.h>
+@@ -1164,7 +1164,7 @@
+       else
+ 	path = _GLIBCXX_ZONEINFO_DIR;
+ #endif
+-#ifdef _GLIBCXX_HAVE_WINDOWS_H
++#if defined(_GLIBCXX_HAVE_WINDOWS_H) && _WIN32_WINNT >= 0x0600
+       if (path.empty())
+ 	{
+ 	  HMODULE dll_module;
+@@ -1782,7 +1782,7 @@
+       return nullptr; // not found
+     }
+ 
+-#ifdef _GLIBCXX_HAVE_WINDOWS_H
++#if defined(_GLIBCXX_HAVE_WINDOWS_H) && _WIN32_WINNT >= 0x0600
+     string_view
+     detect_windows_zone() noexcept
+     {
+@@ -2016,7 +2016,7 @@
+     // zone files in /usr/share/zoneinfo so we need to compare its contents
+     // to each one until we find a match.
+ 
+-#elif defined(_GLIBCXX_HAVE_WINDOWS_H)
++#elif defined(_GLIBCXX_HAVE_WINDOWS_H) && _WIN32_WINNT >= 0x0600
+     if (auto tz
+ 	= do_locate_zone(this->zones, this->links, detect_windows_zone()))
+       return tz;

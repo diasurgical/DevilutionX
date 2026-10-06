@@ -159,8 +159,8 @@ DVL_ALWAYS_INLINE void ExtractFoliageTransparentSquare(uint8_t *&dst, const uint
 	for (int y = 16; y > 0; --y, src -= 2 * DunFrameWidth) {
 		unsigned transparentRun = 0;
 		unsigned solidRun = 0;
-		for (int x = 0; x < DunFrameWidth; ++x) {
-			if (*src++ != 0) {
+		for (int x = 0; x < DunFrameWidth; ++x, ++src) {
+			if (*src != 0) {
 				if (transparentRun != 0) {
 					*dst++ = static_cast<uint8_t>(-static_cast<int8_t>(transparentRun));
 					transparentRun = 0;
@@ -254,7 +254,7 @@ void ReencodeDungeonCels(std::unique_ptr<std::byte[]> &dungeonCels, std::span<st
 	auto *const resultPtr = reinterpret_cast<uint8_t *>(result.get());
 	WriteLE32(resultPtr, static_cast<uint32_t>(frames.size()));
 	uint8_t *lookup = resultPtr + 4;
-	uint8_t *out = resultPtr + (2 + frames.size()) * 4; // number of frames, frame offsets, file size
+	uint8_t *out = resultPtr + ((2 + frames.size()) * 4); // number of frames, frame offsets, file size
 	for (const auto &[frame, info] : frames) {
 		WriteLE32(lookup, static_cast<uint32_t>(out - resultPtr));
 		lookup += 4;

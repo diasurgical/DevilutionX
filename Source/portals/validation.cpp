@@ -38,7 +38,7 @@ bool IsPortalDeltaValid(WorldTilePosition location, uint8_t level, uint8_t ltype
 {
 	if (!InDungeonBounds(location))
 		return false;
-	const dungeon_type levelType = static_cast<dungeon_type>(ltype);
+	const auto levelType = static_cast<dungeon_type>(ltype);
 	if (levelType == DTYPE_NONE)
 		return false;
 	if (isOnSetLevel)

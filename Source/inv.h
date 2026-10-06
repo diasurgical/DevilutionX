@@ -13,6 +13,7 @@
 #include "items.h"
 #include "player.h"
 #include "utils/algorithm/container.hpp"
+#include "utils/attributes.h"
 
 namespace devilution {
 
@@ -87,7 +88,7 @@ enum class InventoryInsertSemantics {
 	InternalRebuild,
 };
 
-extern bool invflag;
+extern DVL_API_FOR_TEST bool invflag;
 extern const Rectangle InvRect[NUM_XY_SLOTS];
 
 void InvDrawSlotBack(const Surface &out, Point targetPosition, Size size, item_quality itemQuality);

@@ -15,15 +15,15 @@ concurrency:
 
 jobs:
   big-endian-qemu:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         fetch-depth: 0
 
     - name: Cache .ccache
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: .ccache
         key: ${{ github.workflow }}-v1-${{ github.sha }}
@@ -36,7 +36,7 @@ jobs:
       run: >
         docker run --platform linux/s390x --rm --interactive --mount type=bind,source=$(pwd),target=/host s390x/alpine sh -c
         "
-        apk add --update-cache g++ ninja cmake ccache sdl2-dev sdl2_image-dev fmt-dev libpng-dev jpeg-dev bzip2-dev gtest-dev wget &&
+        apk add --update-cache g++ ninja cmake ccache sdl2-dev sdl2_image-dev libpng-dev jpeg-dev bzip2-dev gtest-dev wget &&
         cd /host &&
         export CCACHE_DIR=/host/.ccache &&
         cmake -S. -Bbuild -G Ninja -DNONET=ON -DNOSOUND=ON &&

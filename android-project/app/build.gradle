@@ -7,7 +7,7 @@ if (buildAsApplication) {
 }
 
 android {
-	ndkVersion '28.0.13004108'
+	ndkVersion '29.0.14206865'
 	compileSdk 35
 	defaultConfig {
 		if (buildAsApplication) {

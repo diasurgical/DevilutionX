@@ -1,17 +1,20 @@
 #include "levels/drlg_l1.h"
 
 #include <cstdint>
+#include <expected>
 
 #include "engine/load_file.hpp"
 #include "engine/point.hpp"
 #include "engine/random.hpp"
 #include "engine/rectangle.hpp"
+#include "gendung_defs.hpp"
 #include "levels/crypt.h"
+#include "levels/drlg_quests.hpp"
 #include "levels/gendung.h"
 #include "player.h"
-#include "quests.h"
 #include "utils/bitset2d.hpp"
 #include "utils/is_of.hpp"
+#include "utils/status_macros.hpp"
 
 namespace devilution {
 
@@ -356,14 +359,10 @@ bool CanReplaceTile(uint8_t replace, Point tile)
 		    && (p2.x >= 0 && p2.x < DMAXX && p2.y >= 0 && p2.y < DMAXY)
 		    && (dungeon[p1.x][p1.y] >= VWallEnd2 && dungeon[p2.x][p2.y] <= VWall8);
 	};
-	if (ComparisonWithBoundsCheck(tile + Direction::NorthWest, tile + Direction::NorthWest)
+	return !(ComparisonWithBoundsCheck(tile + Direction::NorthWest, tile + Direction::NorthWest)
 	    || ComparisonWithBoundsCheck(tile + Direction::SouthEast, tile + Direction::NorthWest)
 	    || ComparisonWithBoundsCheck(tile + Direction::SouthWest, tile + Direction::NorthWest)
-	    || ComparisonWithBoundsCheck(tile + Direction::NorthEast, tile + Direction::NorthWest)) {
-		return false;
-	}
-
-	return true;
+	    || ComparisonWithBoundsCheck(tile + Direction::NorthEast, tile + Direction::NorthWest));
 }
 
 void FillFloor()
@@ -471,10 +470,10 @@ void GenerateRoom(Rectangle area, bool verticalLayout)
 		room1.size = { randomWidth, randomHeight };
 		room1.position = area.position;
 		if (verticalLayout) {
-			room1.position += Displacement { -room1.size.width, area.size.height / 2 - room1.size.height / 2 };
+			room1.position += Displacement { -room1.size.width, (area.size.height / 2) - (room1.size.height / 2) };
 			placeRoom1 = CheckRoom({ room1.position + Displacement { -1, -1 }, { room1.size.height + 2, room1.size.width + 1 } }); /// BUGFIX: swap height and width ({ room1.size.width + 1, room1.size.height + 2 }) (workaround applied below)
 		} else {
-			room1.position += Displacement { area.size.width / 2 - room1.size.width / 2, -room1.size.height };
+			room1.position += Displacement { (area.size.width / 2) - (room1.size.width / 2), -room1.size.height };
 			placeRoom1 = CheckRoom({ room1.position + Displacement { -1, -1 }, { room1.size.width + 2, room1.size.height + 1 } });
 		}
 		if (placeRoom1)
@@ -1202,8 +1201,8 @@ void GenerateLevel(lvl_entry entry)
 	for (int j = 0; j < DMAXY; j++) {
 		for (int i = 0; i < DMAXX; i++) {
 			if (dungeon[i][j] == EntranceStairs) {
-				const int xx = 2 * i + 16; /* todo: fix loop */
-				const int yy = 2 * j + 16;
+				const int xx = (2 * i) + 16; /* todo: fix loop */
+				const int yy = (2 * j) + 16;
 				DRLG_CopyTrans(xx, yy + 1, xx, yy);
 				DRLG_CopyTrans(xx + 1, yy + 1, xx + 1, yy);
 			}
@@ -1326,9 +1325,9 @@ void LoadPreL1Dungeon(const char *path)
 	memcpy(pdungeon, dungeon, sizeof(pdungeon));
 }
 
-void LoadL1Dungeon(const char *path, Point spawn)
+std::expected<void, std::string> LoadL1Dungeon(const char *path, Point spawn)
 {
-	LoadDungeonBase(path, spawn, Floor, Dirt);
+	RETURN_IF_ERROR(LoadDungeonBase(path, spawn, Floor, Dirt));
 
 	if (setlvltype == DTYPE_CATHEDRAL)
 		FillFloor();
@@ -1341,6 +1340,7 @@ void LoadL1Dungeon(const char *path, Point spawn)
 	} else {
 		AddL1Objs(0, 0, MAXDUNX, MAXDUNY);
 	}
+	return {};
 }
 
 } // namespace devilution

@@ -4,6 +4,7 @@
 
 #ifdef USE_SDL3
 #include <SDL3/SDL_thread.h>
+#include <SDL3/SDL_timer.h>
 #else
 #include <SDL.h>
 
@@ -24,15 +25,25 @@ inline SDL_ThreadID get_id()
 inline SDL_threadID get_id()
 #endif
 {
-#if defined(__DJGPP__)
+#if defined(__EMSCRIPTEN__)
 	return 1;
 #else
 	return SDL_GetThreadID(nullptr);
 #endif
 }
+
+// No-op except where threading is cooperative. There the audio thread runs only
+// when something yields, and mixes a single buffer each time, so any unyielded
+// stretch longer than one buffer starves the device into playing silence.
+inline void yield()
+{
+#ifdef __DJGPP__ // DOS is currently the only cooperative platform
+	SDL_Delay(0);
+#endif
+}
 } // namespace this_sdl_thread
 
-#if defined(__DJGPP__)
+#if defined(__EMSCRIPTEN__)
 class SdlThread final {
 public:
 	SdlThread(int(SDLCALL *handler)(void *), void *data)

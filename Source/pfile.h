@@ -6,9 +6,8 @@
 #pragma once
 
 #include <cstdint>
+#include <expected>
 #include <string>
-
-#include <expected.hpp>
 
 #include "DiabloUI/diabloui.h"
 #include "player.h"
@@ -125,7 +124,7 @@ bool pfile_ui_save_create(_uiheroinfo *heroinfo);
 bool pfile_delete_save(_uiheroinfo *heroInfo);
 void pfile_read_player_from_save(uint32_t saveNum, Player &player);
 void pfile_save_level();
-tl::expected<void, std::string> pfile_convert_levels();
+std::expected<void, std::string> pfile_convert_levels();
 void pfile_remove_temp_files();
 std::unique_ptr<std::byte[]> pfile_read(const char *pszName, size_t *pdwLen);
 void pfile_update(bool forceSave);

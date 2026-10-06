@@ -52,7 +52,7 @@ void ScaleJoystickAxes(float *x, float *y, float deadzone)
 	float analogY = *y;
 	const float deadZone = deadzone * maximum;
 
-	const float magnitude = std::sqrt(analogX * analogX + analogY * analogY);
+	const float magnitude = std::sqrt((analogX * analogX) + (analogY * analogY));
 	if (magnitude >= deadZone) {
 		// find scaled axis values with magnitudes between zero and maximum
 		const float scalingFactor = 1.F / magnitude * (magnitude - deadZone) / (maximum - deadZone);
@@ -210,7 +210,7 @@ void ProcessControllerMotion(const SDL_Event &event)
 AxisDirection GetAnalogStickDirection(float stickX, float stickY)
 {
 	// avoid sqrt() by comparing squared magnitudes
-	const float magnitudeSquared = stickX * stickX + stickY * stickY;
+	const float magnitudeSquared = (stickX * stickX) + (stickY * stickY);
 	const float thresholdSquared = StickDirectionThreshold * StickDirectionThreshold;
 	if (magnitudeSquared < thresholdSquared)
 		return { AxisDirectionX_NONE, AxisDirectionY_NONE };

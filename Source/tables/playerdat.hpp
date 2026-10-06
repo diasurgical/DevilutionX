@@ -8,7 +8,9 @@
 #include <array>
 #include <cstdint>
 
-#include "effects.h"
+#include <magic_enum/magic_enum.hpp>
+
+#include "sound_effect_enums.h"
 #include "tables/itemdat.h"
 #include "tables/spelldat.h"
 
@@ -87,6 +89,18 @@ struct ClassAttributes {
 	int16_t itmLife;
 	/* Mana from item bonus Magic */
 	int16_t itmMana;
+	/* Mana cost multipler */
+	int16_t manaCost;
+	/* Life restore item multipler */
+	int16_t itmRestoreLife;
+	/* Mana restore item multipler */
+	int16_t itmRestoreMana;
+	/* Life restore spell multipler */
+	int16_t splRestoreLife;
+	/* Mana restore spell multipler */
+	int16_t splRestoreMana;
+	/* Life restore heal other multipler */
+	int16_t healOtherRestoreLife;
 };
 
 const ClassAttributes &GetClassAttributes(HeroClass playerClass);

@@ -7,10 +7,9 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <expected>
 #include <string>
 #include <type_traits>
-
-#include <expected.hpp>
 
 #include "effects.h"
 #include "engine/clx_sprite.hpp"
@@ -220,7 +219,7 @@ struct MissileFileData {
 	[[nodiscard]] uint8_t animDelay(uint8_t dir) const;
 	[[nodiscard]] uint8_t animLen(uint8_t dir) const;
 
-	tl::expected<void, std::string> LoadGFX();
+	std::expected<void, std::string> LoadGFX();
 
 	void FreeGFX()
 	{
@@ -246,7 +245,7 @@ MissileFileData &GetMissileSpriteData(MissileGraphicID graphicId);
 
 void LoadMissileData();
 
-tl::expected<void, std::string> InitMissileGFX();
+std::expected<void, std::string> InitMissileGFX();
 void FreeMissileGFX();
 
 } // namespace devilution

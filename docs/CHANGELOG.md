@@ -23,6 +23,165 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Crashes related to player graphics rendering in death state
 
+## DevilutionX 1.5.5
+
+### Features
+
+#### Multiplayer
+
+- Adjust multiplayer game speeds
+- Validate character names
+
+#### Controls
+
+- Enable CTRL + mouse scroll wheel for map zoom
+
+#### Platforms
+
+- Android: Check if a file browser is installed when importing data
+- Android: Show "Import Data" on the setup screen
+- iOS: Add support for multiplayer via ZeroTier
+- Linux: Align icon with Android
+
+#### Translations
+
+- Update Polish translation
+- Update Russian translation
+
+#### Stability / Performance / System
+
+- Fix crash when a TCP connection times out
+- Guard against stash corruption
+- Improve text input handling
+
+### Bug Fixes
+
+#### Platforms
+
+- Android: Prevent demo and translation files from being cleared each week
+- Tiger: Fix icon
+
+#### Controls
+
+- Correct scroll descriptions when using a gamepad
+
+#### Gameplay
+
+- Add Murphy to Crippling Shrines
+- Make Auto Refill Belt work properly
+- Make ears usable
+- Prevent attacking dead monsters
+
+#### Stability / Performance / System
+
+- Fix incorrect CLX rendering
+
+## DevilutionX 1.5.4
+
+### Features
+
+#### Multiplayer
+
+- Make invalid items unusable
+
+#### Controls
+
+- Better support for various gamepads
+- Gamepad: Improve navigation of the stash
+- Improve keymapper options
+
+#### Platforms
+
+- Added support for macOS 10.4 PowerPC
+- Added support for Windows XP
+- Android: Avoid game lagging on devices that can switch refresh rates
+- Correct networking support on big-endian systems
+- iOS: High refresh rate support
+- Xbox One/Series: Include translations
+
+#### Translations
+
+- Improve rendering of Turkish texts
+- Update Italian translation
+- Update Russian translation
+- Update Ukrainian translation
+
+#### Stability / Performance / System
+
+- Fix crashes on device hot-plugging
+- Fix game crash
+- Hide Upscale option in the Settings menu to avoid stability issues
+- Looser validation in Single Player games
+- Make file sync services less likely to corrupt saves
+- Make it clearer how to switch between Hellfire and Diablo
+- Use available screen space in the Settings menu
+
+### Bug Fixes
+
+#### Gameplay
+
+- Fix being able to repair equipped items for free
+- Fix game freezing when loading Lazarus lair from a save game
+- Unique drops now reset on a new game
+- Wake up the whole pack of Gargoyles when disturbed
+
+#### Platforms
+
+- Android: Fix performance and audio issues on recent versions
+- Android: Fix full immersive mode in Android 9 and higher
+- Incorrect menu graphics on DirectFB devices
+- PS4/Switch/Vita/Xbox One/Series: Correct controller mapping
+
+#### Multiplayer
+
+- Correct some item validation
+- Fix items being lost when held in the cursor during lag spikes
+
+### Bugfixes for original Diablo bugs
+
+#### Gameplay
+
+- Fix non-solid fences in the caves
+
+### Bugfixes for original Hellfire bugs
+
+#### Gameplay
+
+- Fix incorrectly solid tile next to crypt stairs down
+
+#### Multiplayer
+
+- Fix runes not being seen as a player spell in PvP
+
+## DevilutionX 1.5.3
+
+### Bug Fixes
+
+#### Multiplayer
+
+- Resolved validation multiplayer errors.
+
+#### Translations
+
+- Added Hungarian translation.
+- Added Turkish translation.
+
+#### Stability / Performance / System
+
+- Fixed issue where a line is repeated in the info panel.
+- Fixed errors when converting Hellfire saved games.
+- Miyoo Mini: Update integration.
+- Android: Update integration (now requires Android 5.0).
+- Android: Improved the data import dialog.
+- Android: Game now runs full screen on devices with a notch.
+- Windows: Fix non-English TCP error messages.
+
+### Bugfixes for original Diablo bugs
+
+#### Gameplay
+
+- Fixed item repairs with multiple gold piles.
+
 ## DevilutionX 1.5.2
 
 ### Bug Fixes
@@ -63,7 +222,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Move hp/mana display and item graphics to gameplay options
 - Validate properties when reloading items
 - Demomode: Improve replay stability
-- Update [Discord link](https://discord.gg/devilutionx)
+- Update [Discord link](https://discord.gg/devilutionx-518540764754608128)
 - Display save game confirmation
 - Reduce ram usage
 

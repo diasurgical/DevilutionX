@@ -24,20 +24,15 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: vitasdk/vitasdk:latest
+    container: vitasdk/vitasdk@sha256:2e92c60b69cb06d3f20814f6c882e943d8efd80fc96e643e043803bc702fc4ac
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       - name: Install dependencies
-        run: |
-          apk add \
-            gettext \
-            git \
-            samurai \
-            patch
+        run: apt-get update && apt-get install -y gettext
 
       - name: Configure CMake
         run: |

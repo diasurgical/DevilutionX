@@ -6,6 +6,7 @@
 #pragma once
 
 #include <cstdint>
+#include <expected>
 
 #include "engine/world_tile.hpp"
 #include "levels/gendung.h"
@@ -19,6 +20,6 @@ extern WorldTilePosition DiabloQuad4;
 
 void CreateL4Dungeon(uint32_t rseed, lvl_entry entry);
 void LoadPreL4Dungeon(const char *path);
-void LoadL4Dungeon(const char *path, Point spawn);
+std::expected<void, std::string> LoadL4Dungeon(const char *path, Point spawn);
 
 } // namespace devilution

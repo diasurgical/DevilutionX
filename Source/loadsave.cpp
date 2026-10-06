@@ -9,16 +9,17 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <expected>
 #include <numeric>
 #include <string>
 
 #include <ankerl/unordered_dense.h>
-#include <expected.hpp>
 
 #include "automap.h"
 #include "codec.h"
 #include "control/control.hpp"
 #include "cursor.h"
+#include "cursor_defs.hpp"
 #include "dead.h"
 #include "doom.h"
 #include "engine/point.hpp"
@@ -129,7 +130,7 @@ public:
 		    && m_size_ >= (m_cur_ + size);
 	}
 
-	size_t Size() const
+	[[nodiscard]] size_t Size() const
 	{
 		return m_size_;
 	}
@@ -324,7 +325,7 @@ struct LevelConversionData {
 	item._iRequest = file.NextBool8();
 	file.Skip(2); // Alignment
 
-	const int32_t uniqueMappingId = file.NextLE<int32_t>();
+	const auto uniqueMappingId = file.NextLE<int32_t>();
 	if (item._iMagical == ITEM_QUALITY_UNIQUE) {
 		const auto findIt = UniqueItemMappingIdsToIndices.find(uniqueMappingId);
 		if (findIt == UniqueItemMappingIdsToIndices.end()) {
@@ -355,7 +356,7 @@ struct LevelConversionData {
 	file.Skip(1); // Alignment
 	item._iStatFlag = file.NextBool32();
 
-	int32_t itemMappingId = file.NextLE<int32_t>();
+	auto itemMappingId = file.NextLE<int32_t>();
 	if (gbIsSpawn && itemMappingId < IDI_NUM_DEFAULT_ITEMS) {
 		itemMappingId = RemapItemIdxFromSpawn(static_cast<_item_indexes>(itemMappingId));
 	}
@@ -366,7 +367,7 @@ struct LevelConversionData {
 	if (findIt == ItemMappingIdsToIndices.end()) {
 		return false;
 	}
-	const _item_indexes itemIndex = static_cast<_item_indexes>(findIt->second);
+	const auto itemIndex = static_cast<_item_indexes>(findIt->second);
 	item.IDidx = itemIndex;
 
 	item.dwBuff = file.NextLE<uint32_t>();
@@ -523,8 +524,8 @@ void LoadPlayer(LoadHelper &file, Player &player)
 	player._pGold = file.NextLE<int32_t>();
 	player._pInfraFlag = file.NextBool32();
 
-	int32_t tempPositionX = file.NextLE<int32_t>();
-	int32_t tempPositionY = file.NextLE<int32_t>();
+	auto tempPositionX = file.NextLE<int32_t>();
+	auto tempPositionY = file.NextLE<int32_t>();
 	if (player._pmode == PM_WALK_NORTHWARDS) {
 		// These values are saved as offsets to remain consistent with old savefiles
 		tempPositionX += player.position.tile.x;
@@ -2004,7 +2005,7 @@ void SaveLevel(SaveWriter &saveWriter, LevelConversionData *levelConversionData)
 		myPlayer._pSLvlVisited[setlvlnum] = true;
 }
 
-tl::expected<void, std::string> LoadLevel(LevelConversionData *levelConversionData)
+std::expected<void, std::string> LoadLevel(LevelConversionData *levelConversionData)
 {
 	char szName[MaxMpqPathSize];
 	std::optional<SaveReader> archive = OpenSaveArchive(gSaveNumber);
@@ -2013,7 +2014,7 @@ tl::expected<void, std::string> LoadLevel(LevelConversionData *levelConversionDa
 		GetPermLevelNames(szName);
 	LoadHelper file(std::move(archive), szName);
 	if (!file.IsValid())
-		return tl::make_unexpected(std::string(_("Unable to open save file archive")));
+		return std::unexpected(std::string(_("Unable to open save file archive")));
 
 	if (leveltype != DTYPE_TOWN) {
 		for (int j = 0; j < MAXDUNY; j++) {
@@ -2115,9 +2116,9 @@ bool IsStashSizeValid(size_t stashSize, uint32_t pages, uint32_t itemCount)
 	const size_t expectedSize = sizeof(uint8_t)
 	    + sizeof(uint32_t)
 	    + sizeof(uint32_t)
-	    + (sizeof(uint32_t) + 10 * 10 * sizeof(uint16_t)) * pages
+	    + ((sizeof(uint32_t) + 10 * 10 * sizeof(uint16_t)) * pages)
 	    + sizeof(uint32_t)
-	    + itemSize * itemCount
+	    + (itemSize * itemCount)
 	    + sizeof(uint32_t);
 
 	return stashSize == expectedSize;
@@ -2125,7 +2126,7 @@ bool IsStashSizeValid(size_t stashSize, uint32_t pages, uint32_t itemCount)
 
 } // namespace
 
-tl::expected<void, std::string> ConvertLevels(SaveWriter &saveWriter)
+std::expected<void, std::string> ConvertLevels(SaveWriter &saveWriter)
 {
 	// Backup current level state
 	const bool tmpSetlevel = setlevel;
@@ -2464,17 +2465,17 @@ void RemoveEmptyInventory(Player &player)
 	}
 }
 
-tl::expected<void, std::string> LoadGame(bool firstflag)
+std::expected<void, std::string> LoadGame(bool firstflag)
 {
 	FreeGameMem();
 
 	LoadHelper file(OpenSaveArchive(gSaveNumber), "game");
 	if (!file.IsValid()) {
-		return tl::make_unexpected(std::string(_("Unable to open save file archive")));
+		return std::unexpected(std::string(_("Unable to open save file archive")));
 	}
 
 	if (!IsHeaderValid(file.NextLE<uint32_t>())) {
-		return tl::make_unexpected(std::string(_("Invalid save file")));
+		return std::unexpected(std::string(_("Invalid save file")));
 	}
 
 	if (gbIsHellfireSaveGame) {
@@ -2506,7 +2507,7 @@ tl::expected<void, std::string> LoadGame(bool firstflag)
 	const int tmpNobjects = file.NextBE<int32_t>();
 
 	if (!gbIsHellfire && IsAnyOf(leveltype, DTYPE_NEST, DTYPE_CRYPT)) {
-		return tl::make_unexpected(std::string(_("Player is on a Hellfire only level")));
+		return std::unexpected(std::string(_("Player is on a Hellfire only level")));
 	}
 
 	for (uint8_t i = 0; i < giNumberOfLevels; i++) {
@@ -2690,7 +2691,7 @@ tl::expected<void, std::string> LoadGame(bool firstflag)
 void SaveHeroItems(SaveWriter &saveWriter, Player &player)
 {
 	const size_t itemCount = static_cast<size_t>(NUM_INVLOC) + InventoryGridCells + MaxBeltItems;
-	SaveHelper file(saveWriter, "heroitems", itemCount * (gbIsHellfire ? HellfireItemSaveSize : DiabloItemSaveSize) + sizeof(uint8_t));
+	SaveHelper file(saveWriter, "heroitems", (itemCount * (gbIsHellfire ? HellfireItemSaveSize : DiabloItemSaveSize)) + sizeof(uint8_t));
 
 	file.WriteLE<uint8_t>(gbIsHellfire ? 1 : 0);
 
@@ -2718,9 +2719,9 @@ void SaveStash(SaveWriter &stashWriter)
 	    sizeof(uint8_t)
 	        + sizeof(uint32_t)
 	        + sizeof(uint32_t)
-	        + (sizeof(uint32_t) + 10 * 10 * sizeof(uint16_t)) * Stash.stashGrids.size()
+	        + ((sizeof(uint32_t) + 10 * 10 * sizeof(uint16_t)) * Stash.stashGrids.size())
 	        + sizeof(uint32_t)
-	        + itemSize * Stash.stashList.size()
+	        + (itemSize * Stash.stashList.size())
 	        + sizeof(uint32_t));
 
 	file.WriteLE<uint8_t>(StashVersion);
@@ -2938,7 +2939,7 @@ void SaveLevel(SaveWriter &saveWriter)
 	SaveLevel(saveWriter, nullptr);
 }
 
-tl::expected<void, std::string> LoadLevel()
+std::expected<void, std::string> LoadLevel()
 {
 	return LoadLevel(nullptr);
 }

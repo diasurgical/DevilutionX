@@ -1,18 +1,18 @@
 #include "engine/render/light_render.hpp"
 
 #include <algorithm>
-#include <cassert>
 #include <cstddef>
 #include <cstdint>
-#include <cstring>
 #include <span>
 #include <vector>
 
 #include "engine/displacement.hpp"
 #include "engine/lighting_defs.hpp"
 #include "engine/point.hpp"
+#include "engine/render/overlapped_memset.hpp"
 #include "levels/dun_tile.hpp"
 #include "levels/gendung_defs.hpp"
+#include "utils/attributes.h"
 
 namespace devilution {
 
@@ -22,21 +22,21 @@ std::vector<uint8_t> LightmapBuffer;
 
 void RenderFullTile(Point position, uint8_t lightLevel, uint8_t *lightmap, uint16_t pitch)
 {
-	uint8_t *top = lightmap + (position.y + 1) * pitch + position.x - TILE_WIDTH / 2;
-	uint8_t *bottom = top + (TILE_HEIGHT - 2) * pitch;
+	uint8_t *top = lightmap + ((position.y + 1) * pitch) + position.x - (TILE_WIDTH / 2);
+	uint8_t *bottom = top + ((TILE_HEIGHT - 2) * pitch);
 	for (int y = 0, w = 4; y < TILE_HEIGHT / 2 - 1; y++, w += 4) {
 		const int x = (TILE_WIDTH - w) / 2;
-		memset(top + x, lightLevel, w);
-		memset(bottom + x, lightLevel, w);
+		FillBytesUpTo64(top + x, w, lightLevel);
+		FillBytesUpTo64(bottom + x, w, lightLevel);
 		top += pitch;
 		bottom -= pitch;
 	}
-	memset(top, lightLevel, TILE_WIDTH);
+	FillBytesUpTo64(top, TILE_WIDTH, lightLevel);
 }
 
 int DecrementTowardZero(int num)
 {
-	return num > 0 ? num - 1 : num + 1;
+	return num - ((num >> 31) | 1);
 }
 
 // Half-space method for drawing triangles
@@ -121,7 +121,7 @@ void RenderTriangle(Point p1, Point p2, Point p3, uint8_t lightLevel, uint8_t *l
 		                 });
 
 		if (startx < endx)
-			memset(&dst[startx], lightLevel, endx - startx);
+			FillBytesUpTo64(&dst[startx], endx - startx, lightLevel);
 
 		cy1 += fdx12;
 		cy2 += fdx23;
@@ -138,13 +138,20 @@ uint8_t GetLightLevel(const uint8_t tileLights[MAXDUNX][MAXDUNY], Point tile)
 	return tileLights[x][y];
 }
 
+// InterpTable[n][d] = ((n << 4) + 8) / d
+// n = lightLevel - q1, d = q2 - q1, both in [0, 15].
+// Constraint n < d is always guaranteed by the caller (q1 <= lightLevel < q2).
+constexpr auto InterpTable = []() constexpr {
+	std::array<std::array<uint8_t, 16>, 15> t = {};
+	for (int n = 0; n < 15; ++n)
+		for (int d = 1; d < 16; ++d)
+			t[n][d] = static_cast<uint8_t>((n * 16 + 8) / d);
+	return t;
+}();
+
 uint8_t Interpolate(int q1, int q2, int lightLevel)
 {
-	// Result will be 28.4 fixed-point
-	const int numerator = (lightLevel - q1) << 4;
-	const int result = (numerator + 0x8) / (q2 - q1);
-	assert(result >= 0);
-	return static_cast<uint8_t>(result);
+	return InterpTable[lightLevel - q1][q2 - q1];
 }
 
 void RenderCell(uint8_t quad[4], Point position, uint8_t lightLevel, uint8_t *lightmap, uint16_t pitch, uint16_t scanLines)
@@ -155,10 +162,11 @@ void RenderCell(uint8_t quad[4], Point position, uint8_t lightLevel, uint8_t *li
 	const Point center3 = position + Displacement { -TILE_WIDTH / 2, TILE_HEIGHT / 2 };
 
 	// 28.4 fixed-point coordinates
-	const Point fpCenter0 = center0 * (1 << 4);
-	const Point fpCenter1 = center1 * (1 << 4);
-	const Point fpCenter2 = center2 * (1 << 4);
-	const Point fpCenter3 = center3 * (1 << 4);
+	constexpr int fpOne = 1 << 4;
+	const Point fpCenter0 = center0 * fpOne;
+	const Point fpCenter1 = center1 * fpOne;
+	const Point fpCenter2 = center2 * fpOne;
+	const Point fpCenter3 = center3 * fpOne;
 
 	// Marching squares
 	// https://en.wikipedia.org/wiki/Marching_squares
@@ -235,8 +243,8 @@ void RenderCell(uint8_t quad[4], Point position, uint8_t lightLevel, uint8_t *li
 		const Point p6 = fpCenter3 + (center0 - center3) * leftFactor;
 
 		if (cell <= lightLevel) {
-			const uint8_t midFactor0 = Interpolate(quad[0], cell, lightLevel);
-			const uint8_t midFactor2 = Interpolate(quad[2], cell, lightLevel);
+			const uint8_t midFactor0 = static_cast<uint8_t>(fpOne - Interpolate(cell, quad[0], lightLevel));
+			const uint8_t midFactor2 = static_cast<uint8_t>(fpOne - Interpolate(cell, quad[2], lightLevel));
 			const Point p7 = fpCenter0 + (center2 - center0) / 2 * midFactor0;
 			const Point p8 = fpCenter2 + (center0 - center2) / 2 * midFactor2;
 			RenderTriangle(p1, p7, p2, lightLevel, lightmap, pitch, scanLines);
@@ -326,8 +334,8 @@ void RenderCell(uint8_t quad[4], Point position, uint8_t lightLevel, uint8_t *li
 		const Point p6 = fpCenter0 + (center3 - center0) * leftFactor;
 
 		if (cell <= lightLevel) {
-			const uint8_t midFactor1 = Interpolate(quad[1], cell, lightLevel);
-			const uint8_t midFactor3 = Interpolate(quad[3], cell, lightLevel);
+			const uint8_t midFactor1 = static_cast<uint8_t>(fpOne - Interpolate(cell, quad[1], lightLevel));
+			const uint8_t midFactor3 = static_cast<uint8_t>(fpOne - Interpolate(cell, quad[3], lightLevel));
 			const Point p7 = fpCenter1 + (center3 - center1) / 2 * midFactor1;
 			const Point p8 = fpCenter3 + (center1 - center3) / 2 * midFactor3;
 			RenderTriangle(p1, p7, p2, lightLevel, lightmap, pitch, scanLines);
@@ -425,7 +433,7 @@ void BuildLightmap(Point tilePosition, Point targetBufferPosition, uint16_t view
 {
 	// Since light may need to bleed up to the top of wall tiles,
 	// expand the buffer space to include the full base diamond of the tallest tile graphics
-	const uint16_t bufferHeight = viewportHeight + TILE_HEIGHT * (microTileLen / 2 + 1);
+	const uint16_t bufferHeight = viewportHeight + (TILE_HEIGHT * (microTileLen / 2 + 1));
 	rows += microTileLen + 2;
 
 	const size_t totalPixels = static_cast<size_t>(viewportWidth) * bufferHeight;
@@ -441,32 +449,31 @@ void BuildLightmap(Point tilePosition, Point targetBufferPosition, uint16_t view
 	uint8_t *lightmap = LightmapBuffer.data();
 	memset(lightmap, LightsMax, totalPixels);
 	for (int i = 0; i < rows; i++) {
+		// Seed q3 for the first cell; subsequent cells reuse the previous q1 as q3.
+		// (Moving East by {+1,-1} shifts the quad: only the old NE corner (q1) is shared as the new SW corner (q3).)
+		uint8_t q3 = GetLightLevel(tileLights, tilePosition + Displacement { 0, 1 });
 		for (int j = 0; j < columns; j++, tilePosition += Direction::East, targetBufferPosition.x += TILE_WIDTH) {
 			const Point center0 = targetBufferPosition + Displacement { TILE_WIDTH / 2, -TILE_HEIGHT / 2 };
 
-			const Point tile0 = tilePosition;
-			const Point tile1 = tilePosition + Displacement { 1, 0 };
-			const Point tile2 = tilePosition + Displacement { 1, 1 };
-			const Point tile3 = tilePosition + Displacement { 0, 1 };
-
-			uint8_t quad[] = {
-				GetLightLevel(tileLights, tile0),
-				GetLightLevel(tileLights, tile1),
-				GetLightLevel(tileLights, tile2),
-				GetLightLevel(tileLights, tile3)
-			};
+			const uint8_t q0 = GetLightLevel(tileLights, tilePosition);
+			const uint8_t q1 = GetLightLevel(tileLights, tilePosition + Displacement { 1, 0 });
+			const uint8_t q2 = GetLightLevel(tileLights, tilePosition + Displacement { 1, 1 });
+			uint8_t quad[] = { q0, q1, q2, q3 };
 
 			const uint8_t maxLight = std::max({ quad[0], quad[1], quad[2], quad[3] });
 			const uint8_t minLight = std::min({ quad[0], quad[1], quad[2], quad[3] });
 
-			for (uint8_t i = 0; i < LightsMax; i++) {
-				const uint8_t lightLevel = LightsMax - i - 1;
-				if (lightLevel > maxLight)
-					continue;
-				if (lightLevel < minLight)
-					break;
-				RenderCell(quad, center0, lightLevel, lightmap, viewportWidth, bufferHeight);
+			// The buffer is pre-filled with LightsMax, so skip cells that are entirely at max darkness.
+			// Also cap startLevel to LightsMax-1 to avoid writing a value equal to the initial fill.
+			if (minLight < static_cast<uint8_t>(LightsMax)) {
+				const uint8_t startLevel = std::min(maxLight, static_cast<uint8_t>(LightsMax - 1));
+				for (uint8_t lightLevel = startLevel;; --lightLevel) {
+					RenderCell(quad, center0, lightLevel, lightmap, viewportWidth, bufferHeight);
+					if (lightLevel == minLight) break;
+				}
 			}
+
+			q3 = q1;
 		}
 
 		// Return to start of row
@@ -539,13 +546,13 @@ Lightmap Lightmap::bleedUp(bool perPixelLighting, const Lightmap &source, Point 
 	const uint16_t lightmapHeight = TILE_HEIGHT - clipTop - clipBottom;
 
 	// Find the left edge of the last row in the tile
-	const int outOffset = std::max(0, (targetBufferPosition.y - clipBottom) * source.outPitch + targetBufferPosition.x + clipLeft);
+	const int outOffset = std::max(0, ((targetBufferPosition.y - clipBottom) * source.outPitch) + targetBufferPosition.x + clipLeft);
 	const uint8_t *outLoc = source.outBuffer + outOffset;
-	const uint8_t *outBuffer = outLoc - (lightmapHeight - 1) * source.outPitch;
+	const uint8_t *outBuffer = outLoc - ((lightmapHeight - 1) * source.outPitch);
 
 	// Start copying bytes from the bottom row of the tile
 	const uint8_t *src = source.getLightingAt(outLoc);
-	uint8_t *dst = lightmapBuffer.data() + (lightmapHeight - 1) * lightmapPitch;
+	uint8_t *dst = lightmapBuffer.data() + ((lightmapHeight - 1) * lightmapPitch);
 
 	int rowCount = clipBottom;
 	while (src >= source.lightmapBuffer.data() && dst >= lightmapBuffer.data()) {

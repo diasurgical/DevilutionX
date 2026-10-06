@@ -18,14 +18,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
       with:
         fetch-depth: 0
 
     - name: Install dependencies
       run: |
         sudo apt-get update -y
-        sudo apt-get install -y cmake curl g++ git libgtest-dev libgmock-dev libbenchmark-dev libfmt-dev libsdl2-dev libsodium-dev libpng-dev libbz2-dev wget
+        sudo apt-get install -y cmake curl g++ git libgtest-dev libgmock-dev libbenchmark-dev libsdl2-dev libsodium-dev libpng-dev libbz2-dev wget
 
     - name: CMake Configure
       run: cmake -S. -Bbuild

@@ -8,8 +8,6 @@
 #include <array>
 #include <cstdint>
 
-#include <fmt/core.h>
-
 #include "control/control.hpp"
 #include "engine/clx_sprite.hpp"
 #include "engine/load_clx.hpp"
@@ -19,6 +17,7 @@
 #include "game_mode.hpp"
 #include "options.h"
 #include "tables/playerdat.hpp"
+#include "utils/format.hpp"
 #include "utils/format_int.hpp"
 #include "utils/language.h"
 
@@ -39,9 +38,9 @@ OptionalOwnedClxSpriteList xpbarArt;
 
 void DrawBar(const Surface &out, Point screenPosition, int width, const ColorGradient &gradient)
 {
-	UnsafeDrawHorizontalLine(out, screenPosition + Displacement { 0, 1 }, width, gradient[gradient.size() * 3 / 4 - 1]);
+	UnsafeDrawHorizontalLine(out, screenPosition + Displacement { 0, 1 }, width, gradient[(gradient.size() * 3 / 4) - 1]);
 	UnsafeDrawHorizontalLine(out, screenPosition + Displacement { 0, 2 }, width, gradient[gradient.size() - 1]);
-	UnsafeDrawHorizontalLine(out, screenPosition + Displacement { 0, 3 }, width, gradient[gradient.size() / 2 - 1]);
+	UnsafeDrawHorizontalLine(out, screenPosition + Displacement { 0, 3 }, width, gradient[(gradient.size() / 2) - 1]);
 }
 
 void DrawEndCap(const Surface &out, Point point, int idx, const ColorGradient &gradient)
@@ -85,7 +84,7 @@ void DrawXPBar(const Surface &out)
 	const Player &player = *MyPlayer;
 	const Rectangle &mainPanel = GetMainPanel();
 
-	const Point back = { mainPanel.position.x + mainPanel.size.width / 2 - 155, mainPanel.position.y + mainPanel.size.height - 11 };
+	const Point back = { mainPanel.position.x + (mainPanel.size.width / 2) - 155, mainPanel.position.y + mainPanel.size.height - 11 };
 	const Point position = back + Displacement { 3, 2 };
 
 	RenderClxSprite(out, (*xpbarArt)[0], back);
@@ -108,7 +107,7 @@ void DrawXPBar(const Surface &out)
 	const uint64_t fullBar = BarWidth * prevXpDelta1 / prevXpDelta;
 
 	// Figure out how much to fill the last pixel of the XP bar, to make it gradually appear with gained XP
-	const uint64_t onePx = prevXpDelta / BarWidth + 1;
+	const uint64_t onePx = (prevXpDelta / BarWidth) + 1;
 	const uint64_t lastFullPx = fullBar * prevXpDelta / BarWidth;
 
 	const uint64_t fade = (prevXpDelta1 - lastFullPx) * (SilverGradient.size() - 1) / onePx;
@@ -126,7 +125,7 @@ bool CheckXPBarInfo()
 		return false;
 	const Rectangle &mainPanel = GetMainPanel();
 
-	const int backX = mainPanel.position.x + mainPanel.size.width / 2 - 155;
+	const int backX = mainPanel.position.x + (mainPanel.size.width / 2) - 155;
 	const int backY = mainPanel.position.y + mainPanel.size.height - 11;
 
 	if (MousePosition.x < backX || MousePosition.x >= backX + BackWidth || MousePosition.y < backY || MousePosition.y >= backY + BackHeight)
@@ -136,13 +135,13 @@ bool CheckXPBarInfo()
 
 	const uint8_t charLevel = player.getCharacterLevel();
 
-	AddInfoBoxString(fmt::format(fmt::runtime(_("Level {:d}")), charLevel));
+	AddInfoBoxString(FormatRuntime(_("Level {:d}"), charLevel));
 
 	if (player.isMaxCharacterLevel()) {
 		// Show a maximum level indicator for max level players.
 		InfoColor = UiFlags::ColorWhitegold;
 
-		AddInfoBoxString(fmt::format(fmt::runtime(_("Experience: {:s}")), FormatInteger(player._pExperience)));
+		AddInfoBoxString(FormatRuntime(_("Experience: {:s}"), FormatInteger(player._pExperience)));
 		AddInfoBoxString(_("Maximum Level"));
 
 		return true;
@@ -150,10 +149,10 @@ bool CheckXPBarInfo()
 
 	InfoColor = UiFlags::ColorWhite;
 
-	AddInfoBoxString(fmt::format(fmt::runtime(_("Experience: {:s}")), FormatInteger(player._pExperience)));
+	AddInfoBoxString(FormatRuntime(_("Experience: {:s}"), FormatInteger(player._pExperience)));
 	const uint32_t nextExperienceThreshold = player.getNextExperienceThreshold();
-	AddInfoBoxString(fmt::format(fmt::runtime(_("Next Level: {:s}")), FormatInteger(nextExperienceThreshold)));
-	AddInfoBoxString(fmt::format(fmt::runtime(_("{:s} to Level {:d}")), FormatInteger(nextExperienceThreshold - player._pExperience), charLevel + 1));
+	AddInfoBoxString(FormatRuntime(_("Next Level: {:s}"), FormatInteger(nextExperienceThreshold)));
+	AddInfoBoxString(FormatRuntime(_("{:s} to Level {:d}"), FormatInteger(nextExperienceThreshold - player._pExperience), charLevel + 1));
 
 	return true;
 }

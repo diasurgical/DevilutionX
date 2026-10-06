@@ -6,11 +6,11 @@
 #pragma once
 
 #include <cstdint>
+#include <expected>
 #include <string_view>
 #include <vector>
 
 #include <ankerl/unordered_dense.h>
-#include <expected.hpp>
 #include <magic_enum/magic_enum.hpp>
 
 #include "tables/objdat.h"
@@ -656,7 +656,7 @@ extern std::vector<PLStruct> ItemSuffixes;
 extern DVL_API_FOR_TEST std::vector<UniqueItem> UniqueItems;
 extern ankerl::unordered_dense::map<int32_t, int32_t> UniqueItemMappingIdsToIndices;
 
-tl::expected<_item_indexes, std::string> ParseItemId(std::string_view value);
+std::expected<_item_indexes, std::string> ParseItemId(std::string_view value);
 void LoadItemDatFromFile(DataFile &dataFile, std::string_view filename, int32_t baseMappingId);
 void LoadUniqueItemDatFromFile(DataFile &dataFile, std::string_view filename, int32_t baseMappingId);
 void LoadItemData();

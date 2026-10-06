@@ -1,6 +1,6 @@
 #include "data/value_reader.hpp"
 
-#include <fmt/core.h>
+#include <format>
 
 #include "appfat.h"
 
@@ -16,7 +16,7 @@ ValueReader::ValueReader(DataFile &dataFile, std::string_view filename)
 DataFileField ValueReader::getValueField(std::string_view expectedKey)
 {
 	if (it_ == end_) {
-		app_fatal(fmt::format("Missing field {} in {}", expectedKey, filename_));
+		app_fatal(std::format("Missing field {} in {}", expectedKey, filename_));
 	}
 	DataFileRecord record = *it_;
 	FieldIterator fieldIt = record.begin();
@@ -24,7 +24,7 @@ DataFileField ValueReader::getValueField(std::string_view expectedKey)
 
 	const std::string_view key = (*fieldIt).value();
 	if (key != expectedKey) {
-		app_fatal(fmt::format("Unexpected field in {}: got {}, expected {}", filename_, key, expectedKey));
+		app_fatal(std::format("Unexpected field in {}: got {}, expected {}", filename_, key, expectedKey));
 	}
 
 	++fieldIt;

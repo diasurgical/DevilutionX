@@ -1,10 +1,9 @@
 #include "engine/load_cl2.hpp"
 
 #include <cstdint>
+#include <expected>
 #include <memory>
 #include <utility>
-
-#include <expected.hpp>
 
 #include "mpq/mpq_common.hpp"
 #include "utils/status_macros.hpp"
@@ -19,7 +18,7 @@
 
 namespace devilution {
 
-tl::expected<OwnedClxSpriteListOrSheet, std::string> LoadCl2ListOrSheetWithStatus(const char *pszName, PointerOrValue<uint16_t> widthOrWidths)
+std::expected<OwnedClxSpriteListOrSheet, std::string> LoadCl2ListOrSheetWithStatus(const char *pszName, PointerOrValue<uint16_t> widthOrWidths)
 {
 	char path[MaxMpqPathSize];
 	*BufCopy(path, pszName, DEVILUTIONX_CL2_EXT) = '\0';
@@ -34,7 +33,7 @@ tl::expected<OwnedClxSpriteListOrSheet, std::string> LoadCl2ListOrSheetWithStatu
 
 OwnedClxSpriteListOrSheet LoadCl2ListOrSheet(const char *pszName, PointerOrValue<uint16_t> widthOrWidths)
 {
-	tl::expected<OwnedClxSpriteListOrSheet, std::string> result = LoadCl2ListOrSheetWithStatus(pszName, widthOrWidths);
+	std::expected<OwnedClxSpriteListOrSheet, std::string> result = LoadCl2ListOrSheetWithStatus(pszName, widthOrWidths);
 	if (!result.has_value()) app_fatal(result.error());
 	return std::move(result).value();
 }

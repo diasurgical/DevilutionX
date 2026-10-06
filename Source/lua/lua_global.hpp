@@ -1,8 +1,8 @@
 #pragma once
 
+#include <expected>
 #include <string_view>
 
-#include <expected.hpp>
 #include <function_ref.hpp>
 #include <sol/forward.hpp>
 

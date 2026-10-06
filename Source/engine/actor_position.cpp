@@ -22,7 +22,7 @@ struct RoundedWalkVelocity {
 	int16_t half;
 	int16_t full;
 
-	int16_t getVelocity(VelocityToUse velocityToUse) const
+	[[nodiscard]] int16_t getVelocity(VelocityToUse velocityToUse) const
 	{
 		switch (velocityToUse) {
 		case VelocityToUse::Quarter:
@@ -77,7 +77,7 @@ constexpr RoundedWalkVelocity WalkVelocityForFrames[24] = {
 struct WalkParameter {
 	VelocityToUse VelocityX;
 	VelocityToUse VelocityY;
-	DisplacementOf<int16_t> getVelocity(int8_t numberOfFrames) const
+	[[nodiscard]] DisplacementOf<int16_t> getVelocity(int8_t numberOfFrames) const
 	{
 		const RoundedWalkVelocity &walkVelocity = WalkVelocityForFrames[numberOfFrames - 1];
 		auto velocity = DisplacementOf<int16_t> {

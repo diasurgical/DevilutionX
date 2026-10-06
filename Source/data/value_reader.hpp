@@ -1,10 +1,10 @@
 #pragma once
 
 #include <array>
+#include <expected>
 #include <string_view>
 #include <type_traits>
 
-#include <expected.hpp>
 #include <function_ref.hpp>
 
 #include "data/file.hpp"
@@ -25,7 +25,7 @@ public:
 	void readValue(std::string_view expectedKey, T &outValue, F &&readFn)
 	{
 		DataFileField valueField = getValueField(expectedKey);
-		if (const tl::expected<void, devilution::DataFileField::Error> result = readFn(valueField, outValue);
+		if (const std::expected<void, devilution::DataFileField::Error> result = readFn(valueField, outValue);
 		    !result.has_value()) {
 			DataFile::reportFatalFieldError(result.error(), filename_, "Value", valueField);
 		}
@@ -35,10 +35,10 @@ public:
 	template <typename T, typename F>
 	void read(std::string_view expectedKey, T &outValue, F &&parseFn)
 	{
-		readValue(expectedKey, outValue, [&parseFn](DataFileField &valueField, T &outValue) -> tl::expected<void, devilution::DataFileField::Error> {
+		readValue(expectedKey, outValue, [&parseFn](DataFileField &valueField, T &outValue) -> std::expected<void, devilution::DataFileField::Error> {
 			const auto result = parseFn(valueField.value());
 			if (!result.has_value()) {
-				return tl::make_unexpected(devilution::DataFileField::Error::InvalidValue);
+				return std::unexpected(devilution::DataFileField::Error::InvalidValue);
 			}
 
 			outValue = result.value();
@@ -49,10 +49,10 @@ public:
 	template <typename T, typename F>
 	void readEnumList(std::string_view expectedKey, T &outValue, F &&parseFn)
 	{
-		readValue(expectedKey, outValue, [&parseFn](DataFileField &valueField, T &outValue) -> tl::expected<void, devilution::DataFileField::Error> {
+		readValue(expectedKey, outValue, [&parseFn](DataFileField &valueField, T &outValue) -> std::expected<void, devilution::DataFileField::Error> {
 			const auto result = valueField.parseEnumList(outValue, std::forward<F>(parseFn));
 			if (!result.has_value()) {
-				return tl::make_unexpected(devilution::DataFileField::Error::InvalidValue);
+				return std::unexpected(devilution::DataFileField::Error::InvalidValue);
 			}
 
 			return {};
@@ -81,15 +81,15 @@ public:
 	{
 		readValue(expectedKey, outValue, [](DataFileField &valueField, std::string &outValue) {
 			outValue = valueField.value();
-			return tl::expected<void, devilution::DataFileField::Error> {};
+			return std::expected<void, devilution::DataFileField::Error> {};
 		});
 	}
 
 	void readChar(std::string_view expectedKey, char &outValue)
 	{
-		readValue(expectedKey, outValue, [](DataFileField &valueField, char &outValue) -> tl::expected<void, devilution::DataFileField::Error> {
+		readValue(expectedKey, outValue, [](DataFileField &valueField, char &outValue) -> std::expected<void, devilution::DataFileField::Error> {
 			if (valueField.value().size() != 1) {
-				return tl::make_unexpected(devilution::DataFileField::Error::InvalidValue);
+				return std::unexpected(devilution::DataFileField::Error::InvalidValue);
 			}
 
 			outValue = valueField.value().at(0);

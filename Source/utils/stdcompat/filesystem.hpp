@@ -6,7 +6,11 @@
     || (defined(__IPHONE_OS_VERSION_MIN_REQUIRED) && __IPHONE_OS_VERSION_MIN_REQUIRED < 130000)
 #define DVL_NO_FILESYSTEM
 #endif
-#elif defined(NXDK) || (defined(_MSVC_LANG) && _MSVC_LANG < 201703L) \
+// AmigaOS paths are not POSIX paths: volumes and assigns such as `PROGDIR:` or
+// `Work:games` use a colon that std::filesystem treats as an ordinary character,
+// so it fails to create or resolve them. The non-filesystem fallbacks below
+// handle these paths correctly.
+#elif defined(NXDK) || defined(__amigaos__) || (defined(_MSVC_LANG) && _MSVC_LANG < 201703L) \
     || (defined(WINVER) && WINVER <= 0x0500 && (!defined(_WIN32_WINNT) || _WIN32_WINNT == 0))
 #define DVL_NO_FILESYSTEM
 #endif

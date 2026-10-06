@@ -1,8 +1,7 @@
 #pragma once
 
+#include <expected>
 #include <string>
-
-#include <expected.hpp>
 
 #include "engine/clx_sprite.hpp"
 #include "engine/surface.hpp"
@@ -13,7 +12,7 @@ extern bool PartySidePanelOpen;
 extern bool InspectingFromPartyPanel;
 extern int PortraitIdUnderCursor;
 
-tl::expected<void, std::string> LoadPartyPanel();
+std::expected<void, std::string> LoadPartyPanel();
 void FreePartyPanel();
 void DrawPartyMemberInfoPanel(const Surface &out);
 bool DidRightClickPartyPortrait();

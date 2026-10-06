@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <expected>
 #include <iostream>
 #include <string>
 #include <string_view>
@@ -15,7 +16,6 @@
 #include <SDL.h>
 #endif
 
-#include <expected.hpp>
 #include <function_ref.hpp>
 
 #include "engine/load_file.hpp"
@@ -397,7 +397,7 @@ TEST_P(TextRenderIntegrationTest, RenderAndCompareTest)
 	SDL_IOStream *actual = SDL_IOFromFile(actualPath.c_str(), "wb");
 	ASSERT_NE(actual, nullptr) << SDL_GetError();
 
-	const tl::expected<void, std::string> result = WriteSurfaceToFilePng(out, actual);
+	const std::expected<void, std::string> result = WriteSurfaceToFilePng(out, actual);
 	ASSERT_TRUE(result.has_value()) << result.error();
 
 	// We compare pixels rather than PNG file contents because different

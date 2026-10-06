@@ -10,8 +10,6 @@
 #include <SDL.h>
 #endif
 
-#include <fmt/core.h>
-
 #include "DiabloUI/diabloui.h"
 #include "DiabloUI/ui_flags.hpp"
 #include "DiabloUI/ui_item.h"
@@ -19,6 +17,7 @@
 #include "engine/render/text_render.hpp"
 #include "multi.h"
 #include "storm/storm_net.hpp"
+#include "utils/format.hpp"
 #include "utils/language.h"
 #include "utils/ui_fwd.h"
 #include "utils/utf8.hpp"
@@ -69,7 +68,7 @@ void SelconnLoad()
 
 	const Point uiPosition = GetUIRectangle().position;
 
-	const SDL_Rect rect1 = { (Sint16)(uiPosition.x + 24), (Sint16)(Sint16)(uiPosition.y + 161), 590, 35 };
+	const SDL_Rect rect1 = { (Sint16)(uiPosition.x + 24), ((Sint16)(uiPosition.y + 161)), 590, 35 };
 	vecSelConnDlg.push_back(std::make_unique<UiArtText>(_("Multi Player Game").data(), rect1, UiFlags::AlignCenter | UiFlags::FontSize30 | UiFlags::ColorUiSilver, 3));
 
 	const SDL_Rect rect2 = { (Sint16)(uiPosition.x + 35), (Sint16)(uiPosition.y + 218), DESCRIPTION_WIDTH, 21 };
@@ -137,7 +136,7 @@ void SelconnFocus(size_t value)
 		break;
 	}
 
-	CopyUtf8(selconn_MaxPlayers, fmt::format(fmt::runtime(_("Players Supported: {:d}")), players), sizeof(selconn_MaxPlayers));
+	CopyUtf8(selconn_MaxPlayers, FormatRuntime(_("Players Supported: {:d}"), players), sizeof(selconn_MaxPlayers));
 	CopyUtf8(selconn_Description, WordWrapString(selconn_Description, DESCRIPTION_WIDTH), sizeof(selconn_Description));
 }
 

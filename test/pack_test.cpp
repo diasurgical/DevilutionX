@@ -61,7 +61,7 @@ void SetHellfireState(bool enable)
 	gbIsHellfire = enable;
 	UnloadModArchives();
 	if (enable) {
-		LoadModArchives({ { "Hellfire" } });
+		LoadModArchives({ { "hf" } });
 	}
 	LoadItemData();
 	LoadSpellData();

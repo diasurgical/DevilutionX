@@ -6,6 +6,7 @@ import os
 import sys
 import pathlib
 import shlex
+import shutil
 import platform
 
 _PROFILE = "/tmp/out.profile"
@@ -53,8 +54,16 @@ def run_benchmark(dir: str, target: str, benchmark_args: list[str], gperf: bool)
     run(*args, f"{dir}/{target}", *benchmark_args, env=env)
 
 
-def run_pprof(dir: str, target: str, port: int):
-    run("pprof", f"--http=localhost:{port}", f"{dir}/{target}", _PROFILE)
+def find_pprof() -> list[str]:
+    if shutil.which("pprof"):
+        return ["pprof"]
+    if shutil.which("go"):
+        return ["go", "tool", "pprof"]
+    raise FileNotFoundError("pprof not found; install gperftools or Go")
+
+
+def run_pprof(dir: str, target: str, pprof_args: list[str]):
+    run(*find_pprof(), *pprof_args, f"{dir}/{target}", _PROFILE)
 
 
 def main():
@@ -64,7 +73,13 @@ def main():
     parser.add_argument(
         "--gperf", action=argparse.BooleanOptionalAction, help="profile with gperftools"
     )
-    parser.add_argument("--port", type=int, default=1337, help="pprof server port")
+    parser.add_argument("--port", type=int, default=1337, help="pprof server port (default http mode)")
+    parser.add_argument(
+        "--pprof-args",
+        nargs="+",
+        metavar="ARG",
+        help="arguments passed to pprof (default: --http=localhost:PORT)",
+    )
     parser.add_argument("target", help="benchmark target")
     parser.add_argument(
         "benchmark_args",
@@ -79,13 +94,14 @@ def main():
     configure_args = []
     if args.gperf:
         configure_args.append("-DGPERF=ON")
+    pprof_args = args.pprof_args if args.pprof_args else [f"--http=localhost:{args.port}"]
     try:
         maybe_create_build_dir(build, configure_args)
         build_target(build, args.target)
         if args.run:
             run_benchmark(build, args.target, args.benchmark_args, args.gperf)
             if args.gperf:
-                run_pprof(build, args.target, args.port)
+                run_pprof(build, args.target, pprof_args)
     except subprocess.CalledProcessError as e:
         print("Error:", e.cmd[0], "failed", file=sys.stderr)
         return e.returncode

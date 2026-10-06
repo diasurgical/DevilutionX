@@ -7,69 +7,40 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 #include <string_view>
 
-#include "mpq/mpq_common.hpp"
-#include "utils/logged_fstream.hpp"
+// Forward-declare so that we can avoid exposing mpqfs.h to all consumers.
+struct mpqfs_writer;
+typedef struct mpqfs_writer mpqfs_writer_t;
 
 namespace devilution {
+
+constexpr uint32_t MpqWriterHashTableSize = 2048;
+
 class MpqWriter {
 public:
-	explicit MpqWriter(const char *path);
-	explicit MpqWriter(const std::string &path)
-	    : MpqWriter(path.c_str())
+	explicit MpqWriter(const char *path, bool carryForward = true);
+	explicit MpqWriter(const std::string &path, bool carryForward = true)
+	    : MpqWriter(path.c_str(), carryForward)
 	{
 	}
-	MpqWriter(MpqWriter &&other) = default;
-	MpqWriter &operator=(MpqWriter &&other) = default;
+	MpqWriter(MpqWriter &&other) noexcept;
+	MpqWriter &operator=(MpqWriter &&other) noexcept;
 	~MpqWriter();
 
-	bool HasFile(std::string_view name) const;
+	MpqWriter(const MpqWriter &) = delete;
+	MpqWriter &operator=(const MpqWriter &) = delete;
 
+	bool HasFile(std::string_view name) const;
 	void RemoveHashEntry(std::string_view filename);
 	void RemoveHashEntries(bool (*fnGetName)(uint8_t, char *));
 	bool WriteFile(std::string_view filename, const std::byte *data, size_t size);
 	void RenameFile(std::string_view name, std::string_view newName);
 
 private:
-	bool IsValidMpqHeader(MpqFileHeader *hdr) const;
-	uint32_t GetHashIndex(MpqFileHash fileHash) const;
-	uint32_t FetchHandle(std::string_view filename) const;
-
-	bool ReadMPQHeader(MpqFileHeader *hdr);
-	MpqBlockEntry *AddFile(std::string_view filename, MpqBlockEntry *block, uint32_t blockIndex);
-	bool WriteFileContents(const std::byte *fileData, uint32_t fileSize, MpqBlockEntry *block);
-
-	// Returns an unused entry in the block entry table.
-	MpqBlockEntry *NewBlock(uint32_t *blockIndex = nullptr);
-
-	// Marks space at `blockOffset` of size `blockSize` as free (unused) space.
-	void AllocBlock(uint32_t blockOffset, uint32_t blockSize);
-
-	// Returns the file offset that is followed by empty space of at least the given size.
-	uint32_t FindFreeBlock(uint32_t size);
-
-	bool WriteHeaderAndTables();
-	bool WriteHeader();
-	bool WriteBlockTable();
-	bool WriteHashTable();
-	void InitDefaultMpqHeader(MpqFileHeader *hdr);
-
-	LoggedFStream stream_;
-	std::string name_;
-	uint32_t size_ {};
-	std::unique_ptr<MpqHashEntry[]> hashTable_;
-	std::unique_ptr<MpqBlockEntry[]> blockTable_;
-
-// Amiga cannot Seekp beyond EOF.
-// See https://github.com/bebbo/libnix/issues/30
-#ifndef __AMIGA__
-#define CAN_SEEKP_BEYOND_EOF
-#endif
-
-#ifndef CAN_SEEKP_BEYOND_EOF
-	long streamBegin_;
-#endif
+	std::string path_;
+	mpqfs_writer_t *writer_ = nullptr;
 };
 
 } // namespace devilution

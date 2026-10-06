@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <initializer_list>
 #include <memory>
+#include <new>
 #include <utility>
 
 #include "appfat.h"

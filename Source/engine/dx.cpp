@@ -17,6 +17,10 @@
 #include <SDL.h>
 #endif
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+
 #include "controls/control_mode.hpp"
 #include "controls/plrctrls.h"
 #include "engine/render/primitive_render.hpp"
@@ -26,6 +30,7 @@
 #include "utils/display.h"
 #include "utils/log.hpp"
 #include "utils/sdl_wrap.h"
+#include "utils/static_vector.hpp"
 
 #ifndef USE_SDL1
 #include "controls/touch/renderers.h"
@@ -53,6 +58,13 @@ SDLSurfaceUniquePtr RendererTextureSurface;
 SDL_Surface *PalSurface;
 namespace {
 SDLSurfaceUniquePtr PinnedPalSurface;
+
+#ifndef USE_SDL1
+constexpr size_t MaxDirtyRects = 16;
+StaticVector<SDL_Rect, MaxDirtyRects> DirtyRects;
+bool ForceFullUpdate;
+const void *LastPresentedPixels;
+#endif
 } // namespace
 
 /** Whether we render directly to the screen surface, i.e. `PalSurface == GetOutputSurface()` */
@@ -93,7 +105,7 @@ void LimitFrameRate()
 	uint32_t v = 0;
 	if (frameDeadline > tc) {
 		v = tc % refreshDelay;
-		SDL_Delay(v / 1000 + 1); // ceil
+		SDL_Delay((v / 1000) + 1); // ceil
 	}
 	frameDeadline = tc + v + refreshDelay;
 }
@@ -168,8 +180,16 @@ void CreateBackBuffer()
 
 void BltFast(SDL_Rect *srcRect, SDL_Rect *dstRect)
 {
-	if (RenderDirectlyToOutputSurface)
+	if (RenderDirectlyToOutputSurface) {
+#ifndef USE_SDL1
+		// A null rect means the caller changed the entire surface.
+		if (dstRect == nullptr || DirtyRects.size() == MaxDirtyRects)
+			ForceFullUpdate = true;
+		else
+			DirtyRects.push_back(*dstRect);
+#endif
 		return;
+	}
 	Blit(PalSurface, srcRect, dstRect);
 }
 
@@ -228,6 +248,42 @@ void Blit(SDL_Surface *src, SDL_Rect *srcRect, SDL_Rect *dstRect)
 #endif
 }
 
+#ifndef USE_SDL1
+namespace {
+
+void UpdateOutputSurface()
+{
+
+	// Only do partial blitting if the output buffer is the same as last frame.
+	const SDL_Surface *outputSurface = GetOutputSurface();
+	const void *pixels = outputSurface != nullptr ? outputSurface->pixels : nullptr;
+	const void *lastPixels = LastPresentedPixels;
+	LastPresentedPixels = pixels;
+
+	if (!ForceFullUpdate && !DirtyRects.empty() && pixels == lastPixels) {
+		const int numRects = static_cast<int>(DirtyRects.size());
+#ifdef USE_SDL3
+		const bool updated = SDL_UpdateWindowSurfaceRects(ghMainWnd, DirtyRects.data(), numRects);
+#else
+		const bool updated = SDL_UpdateWindowSurfaceRects(ghMainWnd, DirtyRects.data(), numRects) >= 0;
+#endif
+		DirtyRects.clear();
+		if (!updated) ErrSdl();
+		return;
+	}
+	DirtyRects.clear();
+	ForceFullUpdate = false;
+
+#ifdef USE_SDL3
+	if (!SDL_UpdateWindowSurface(ghMainWnd)) ErrSdl();
+#else
+	if (SDL_UpdateWindowSurface(ghMainWnd) <= -1) ErrSdl();
+#endif
+}
+
+} // namespace
+#endif
+
 void RenderPresent()
 {
 	if (HeadlessMode)
@@ -236,7 +292,12 @@ void RenderPresent()
 	SDL_Surface *surface = GetOutputSurface();
 
 	if (!gbActive) {
+#ifdef __EMSCRIPTEN__
+		// Just yield to browser when inactive instead of blocking
+		emscripten_sleep(1);
+#else
 		LimitFrameRate();
+#endif
 		return;
 	}
 
@@ -259,6 +320,12 @@ void RenderPresent()
 		}
 		SDL_RenderPresent(renderer);
 
+#ifdef __EMSCRIPTEN__
+		// TODO: Refactor to use emscripten_set_main_loop or requestAnimationFrame instead.
+		// For now, yield to browser to allow rendering via ASYNCIFY sleep.
+		emscripten_sleep(1);
+#endif
+
 		if (*GetOptions().Graphics.frameRateControl != FrameRateControl::VerticalSync) {
 			LimitFrameRate();
 		}
@@ -267,11 +334,7 @@ void RenderPresent()
 			RenderVirtualGamepad(surface);
 		}
 
-#ifdef USE_SDL3
-		if (!SDL_UpdateWindowSurface(ghMainWnd)) ErrSdl();
-#else
-		if (SDL_UpdateWindowSurface(ghMainWnd) <= -1) ErrSdl();
-#endif
+		UpdateOutputSurface();
 
 		if (RenderDirectlyToOutputSurface)
 			PalSurface = GetOutputSurface();

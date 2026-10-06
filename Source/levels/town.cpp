@@ -38,7 +38,7 @@ void FillSector(const char *path, int xi, int yy)
 			int v3 = 218;
 			int v4 = 218;
 
-			const int tileId = Swap16LE(tileLayer[j * size.width + i]) - 1;
+			const int tileId = Swap16LE(tileLayer[(j * size.width) + i]) - 1;
 			if (tileId >= 0) {
 				const MegaTile mega = pMegaTiles[tileId];
 				v1 = Swap16LE(mega.micro1);

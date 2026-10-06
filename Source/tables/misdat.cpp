@@ -9,13 +9,12 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <expected>
 #include <string>
 #include <string_view>
 #include <type_traits>
 #include <utility>
 #include <vector>
-
-#include <expected.hpp>
 
 #include "data/file.hpp"
 #include "data/iterators.hpp"
@@ -57,15 +56,15 @@ size_t ToIndex(std::vector<std::array<uint8_t, 16>> &all, const std::array<uint8
 	return all.size() - 1;
 }
 
-tl::expected<MissileGraphicsFlags, std::string> ParseMissileGraphicsFlag(std::string_view value)
+std::expected<MissileGraphicsFlags, std::string> ParseMissileGraphicsFlag(std::string_view value)
 {
 	if (value.empty()) return MissileGraphicsFlags::None;
 	if (value == "MonsterOwned") return MissileGraphicsFlags::MonsterOwned;
 	if (value == "NotAnimated") return MissileGraphicsFlags::NotAnimated;
-	return tl::make_unexpected("Unknown enum value");
+	return std::unexpected("Unknown enum value");
 }
 
-tl::expected<MissileGraphicID, std::string> ParseMissileGraphicID(std::string_view value)
+std::expected<MissileGraphicID, std::string> ParseMissileGraphicID(std::string_view value)
 {
 	if (value.empty()) return MissileGraphicID::None;
 	if (value == "Arrow") return MissileGraphicID::Arrow;
@@ -127,7 +126,7 @@ tl::expected<MissileGraphicID, std::string> ParseMissileGraphicID(std::string_vi
 	if (value == "BlueFlare2") return MissileGraphicID::BlueFlare2;
 	if (value == "OrangeFlareExplosion") return MissileGraphicID::OrangeFlareExplosion;
 	if (value == "BlueFlareExplosion2") return MissileGraphicID::BlueFlareExplosion2;
-	return tl::make_unexpected("Unknown enum value");
+	return std::unexpected("Unknown enum value");
 }
 
 void LoadMissileSpriteData()
@@ -166,7 +165,7 @@ void LoadMissileSpriteData()
 	MissileAnimLengths.shrink_to_fit();
 }
 
-tl::expected<MissileDataFlags, std::string> ParseMissileDataFlag(std::string_view value)
+std::expected<MissileDataFlags, std::string> ParseMissileDataFlag(std::string_view value)
 {
 	if (value == "Physical") return MissileDataFlags::Physical;
 	if (value == "Fire") return MissileDataFlags::Fire;
@@ -175,11 +174,11 @@ tl::expected<MissileDataFlags, std::string> ParseMissileDataFlag(std::string_vie
 	if (value == "Acid") return MissileDataFlags::Acid;
 	if (value == "Arrow") return MissileDataFlags::Arrow;
 	if (value == "Invisible") return MissileDataFlags::Invisible;
-	return tl::make_unexpected("Unknown enum value");
+	return std::unexpected("Unknown enum value");
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-tl::expected<MissileData::AddFn, std::string> ParseMissileAddFn(std::string_view value)
+std::expected<MissileData::AddFn, std::string> ParseMissileAddFn(std::string_view value)
 {
 	if (value.empty()) return nullptr;
 	if (value == "AddOpenNest") return AddOpenNest;
@@ -255,11 +254,11 @@ tl::expected<MissileData::AddFn, std::string> ParseMissileAddFn(std::string_view
 	if (value == "AddBoneSpirit") return AddBoneSpirit;
 	if (value == "AddRedPortal") return AddRedPortal;
 	if (value == "AddDiabloApocalypse") return AddDiabloApocalypse;
-	return tl::make_unexpected("Unknown MissileData::AddFn name");
+	return std::unexpected("Unknown MissileData::AddFn name");
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-tl::expected<MissileData::ProcessFn, std::string> ParseMissileProcessFn(std::string_view value)
+std::expected<MissileData::ProcessFn, std::string> ParseMissileProcessFn(std::string_view value)
 {
 	if (value.empty()) return nullptr;
 	if (value == "ProcessElementalArrow") return ProcessElementalArrow;
@@ -307,12 +306,12 @@ tl::expected<MissileData::ProcessFn, std::string> ParseMissileProcessFn(std::str
 	if (value == "ProcessBoneSpirit") return ProcessBoneSpirit;
 	if (value == "ProcessResurrectBeam") return ProcessResurrectBeam;
 	if (value == "ProcessRedPortal") return ProcessRedPortal;
-	return tl::make_unexpected("Unknown MissileData::ProcessFn name");
+	return std::unexpected("Unknown MissileData::ProcessFn name");
 }
 
 // A temporary solution for parsing SfxID until we have a more general one.
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-tl::expected<SfxID, std::string> ParseCastSound(std::string_view value)
+std::expected<SfxID, std::string> ParseCastSound(std::string_view value)
 {
 	if (value.empty()) return SfxID::None;
 	if (value == "BigExplosion") return SfxID::BigExplosion;
@@ -345,11 +344,11 @@ tl::expected<SfxID, std::string> ParseCastSound(std::string_view value)
 	if (value == "SpellStoneCurse") return SfxID::SpellStoneCurse;
 	if (value == "SpellTeleport") return SfxID::SpellTeleport;
 	if (value == "SpellTrapDisarm") return SfxID::SpellTrapDisarm;
-	return tl::make_unexpected("Unknown enum value (only a few are supported for now)");
+	return std::unexpected("Unknown enum value (only a few are supported for now)");
 }
 
 // A temporary solution for parsing SfxID until we have a more general one.
-tl::expected<SfxID, std::string> ParseHitSound(std::string_view value)
+std::expected<SfxID, std::string> ParseHitSound(std::string_view value)
 {
 	if (value.empty()) return SfxID::None;
 	if (value == "BigExplosion") return SfxID::BigExplosion;
@@ -358,15 +357,15 @@ tl::expected<SfxID, std::string> ParseHitSound(std::string_view value)
 	if (value == "SpellFireHit") return SfxID::SpellFireHit;
 	if (value == "SpellLightningHit") return SfxID::SpellLightningHit;
 	if (value == "SpellResurrect") return SfxID::SpellResurrect;
-	return tl::make_unexpected("Unknown enum value (only a few are supported for now)");
+	return std::unexpected("Unknown enum value (only a few are supported for now)");
 }
 
-tl::expected<MissileMovementDistribution, std::string> ParseMissileMovementDistribution(std::string_view value)
+std::expected<MissileMovementDistribution, std::string> ParseMissileMovementDistribution(std::string_view value)
 {
 	if (value.empty()) return MissileMovementDistribution::Disabled;
 	if (value == "Blockable") return MissileMovementDistribution::Blockable;
 	if (value == "Unblockable") return MissileMovementDistribution::Unblockable;
-	return tl::make_unexpected("Unknown enum value");
+	return std::unexpected("Unknown enum value");
 }
 
 void LoadMisdat()
@@ -408,7 +407,7 @@ uint8_t MissileFileData::animLen(uint8_t dir) const
 	return MissileAnimLengths[animLenIdx][dir];
 }
 
-tl::expected<void, std::string> MissileFileData::LoadGFX()
+std::expected<void, std::string> MissileFileData::LoadGFX()
 {
 	if (sprites)
 		return {};
@@ -451,7 +450,7 @@ const MissileData &GetMissileData(MissileID missileId)
 	return MissilesData[static_cast<std::underlying_type_t<MissileID>>(missileId)];
 }
 
-tl::expected<void, std::string> InitMissileGFX()
+std::expected<void, std::string> InitMissileGFX()
 {
 	if (HeadlessMode)
 		return {};

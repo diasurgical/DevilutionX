@@ -7,11 +7,11 @@
 
 #include <cmath>
 #include <cstdint>
+#include <expected>
 #include <string>
 
-#include <expected.hpp>
-
 #include "cursor.h"
+#include "cursor_defs.hpp"
 #include "engine/clx_sprite.hpp"
 #include "engine/point.hpp"
 #include "engine/rectangle.hpp"
@@ -329,14 +329,14 @@ inline Object &ObjectAtPosition(Point position)
  */
 bool IsItemBlockingObjectAtPosition(Point position);
 
-tl::expected<void, std::string> InitObjectGFX();
+std::expected<void, std::string> InitObjectGFX();
 void FreeObjectGFX();
 void AddL1Objs(int x1, int y1, int x2, int y2);
 void AddL2Objs(int x1, int y1, int x2, int y2);
 void AddL3Objs(int x1, int y1, int x2, int y2);
 void AddCryptObjects(int x1, int y1, int x2, int y2);
 void InitObjects();
-void SetMapObjects(const uint16_t *dunData, int startx, int starty);
+std::expected<void, std::string> SetMapObjects(const uint16_t *dunData, int startx, int starty);
 /**
  * @brief Spawns an object of the given type at the map coordinates provided
  * @param objType Type specifier
@@ -353,7 +353,7 @@ void ObjChangeMapResync(int x1, int y1, int x2, int y2);
 _item_indexes ItemMiscIdIdx(item_misc_id imiscid);
 void OperateObject(Player &player, Object &object);
 void SyncOpObject(Player &player, int cmd, Object &object);
-void BreakObjectMissile(const Player *player, Object &object);
+void BreakObjectMissile(Object &object);
 void BreakObject(const Player &player, Object &object);
 void DeltaSyncOpObject(Object &object);
 void DeltaSyncCloseObj(Object &object);

@@ -4,11 +4,17 @@
 #
 # Useful when developing on systems that do not have an SMPQ package.
 # Compatible with Linux, *BSD, and macOS.
-# Requires: cmake curl sed sudo zlib bzip2
+# Requires: cmake curl sed zlib bzip2
+#
+# Uses `sudo` by default but can be disabled by setting the environment variable `NOSUDO=1`.
+# Installs to the default system prefix unless the environment variable `PREFIX` is set to a different path.
 
 set -ex
-
-PARALLELISM="$(getconf _NPROCESSORS_ONLN)"
+if [ -f "${PREFIX}/bin/nproc" ]; then
+	PARALLELISM="$("${PREFIX}/bin/nproc")"
+else
+	PARALLELISM="$(getconf _NPROCESSORS_ONLN)"
+fi
 if [ "$PARALLELISM" = "undefined" ] && [ -f /usr/sbin/sysctl ]; then
 	# On older OSX, such as 10.4, _NPROCESSOR_ONLN is not defined.
 	if [ -z "$CC" ]; then
@@ -18,23 +24,24 @@ if [ "$PARALLELISM" = "undefined" ] && [ -f /usr/sbin/sysctl ]; then
 	PARALLELISM="$(/usr/sbin/sysctl -n hw.ncpu)"
 fi
 
+TMP_DIR="$(mktemp -d)"
 STORMLIB_VERSION=e01d93cc8ae743cfe2da5450854c5d2e3a939265
-STORMLIB_SRC="/tmp/StormLib-$STORMLIB_VERSION"
+STORMLIB_SRC="${TMP_DIR}/StormLib-$STORMLIB_VERSION"
 SMPQ_VERSION=1.7
-SMPQ_SRC="/tmp/smpq-$SMPQ_VERSION"
+SMPQ_SRC="${TMP_DIR}/smpq-$SMPQ_VERSION"
 
 # Download, build, and install the static version of StormLib, an SMPQ dependency, to the staging prefix.
 if ! [ -d "$STORMLIB_SRC" ]; then
-	curl -L -s "https://github.com/ladislav-zezula/StormLib/archive/${STORMLIB_VERSION}.tar.gz" | tar -C /tmp -xvzf -
+	curl -L -s "https://github.com/ladislav-zezula/StormLib/archive/${STORMLIB_VERSION}.tar.gz" | tar -C "$TMP_DIR" -xvzf -
 fi
 
-cmake -S"$STORMLIB_SRC" -B"$STORMLIB_SRC"/build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/tmp/smpq-staging -DBUILD_SHARED_LIBS=OFF \
+cmake -S"$STORMLIB_SRC" -B"$STORMLIB_SRC"/build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="${TMP_DIR}/smpq-staging" -DBUILD_SHARED_LIBS=OFF \
 	-DWITH_STATIC=ON -DSTORM_BUILD_TESTS=OFF -DWITH_LIBTOMCRYPT=OFF
 cmake --build "$STORMLIB_SRC"/build --config Release --target install -j"$PARALLELISM"
 
 # Download, build, and install SMPQ.
 if ! [ -d "$SMPQ_SRC" ]; then
-	curl -L -s "https://launchpad.net/smpq/trunk/${SMPQ_VERSION}/+download/smpq_${SMPQ_VERSION}.orig.tar.gz" | tar -C /tmp -xvzf -
+	curl -L -s "https://launchpad.net/smpq/trunk/${SMPQ_VERSION}/+download/smpq_${SMPQ_VERSION}.orig.tar.gz" | tar -C "$TMP_DIR" -xvzf -
 
 	# StormLib.a is C++ and must be linked with a C++ linker (e.g. via g++ instead of gcc).
 	sed -i.bak -e '/^project/a\
@@ -57,6 +64,19 @@ SET_SOURCE_FILES_PROPERTIES(${CFILES} PROPERTIES LANGUAGE CXX)' "$SMPQ_SRC"/CMak
 fi
 
 # The StormLib version check in SMPQ CMake is broken. We bypass it by passing the paths to StormLib explicitly.
-cmake -S"$SMPQ_SRC" -B"$SMPQ_SRC"/build -DCMAKE_BUILD_TYPE=Release -DWITH_KDE=OFF -DCMAKE_PREFIX_PATH=/tmp/smpq-staging \
-	-DSTORMLIB_INCLUDE_DIR=/tmp/smpq-staging/include -DSTORMLIB_LIBRARY=/tmp/smpq-staging/lib/libstorm.a
-sudo cmake --build "$SMPQ_SRC"/build --config Release --target install -j"$PARALLELISM"
+cmake_configure_args=""
+if ! [ -z "$PREFIX" ]; then
+	cmake_configure_args="${cmake_args} -DCMAKE_INSTALL_PREFIX='${PREFIX}'"
+fi
+cmake -S"$SMPQ_SRC" -B"$SMPQ_SRC"/build -DCMAKE_BUILD_TYPE=Release -DWITH_KDE=OFF -DCMAKE_PREFIX_PATH="${TMP_DIR}/smpq-staging" \
+	-DSTORMLIB_INCLUDE_DIR="${TMP_DIR}/smpq-staging/include" -DSTORMLIB_LIBRARY="${TMP_DIR}/smpq-staging/lib/libstorm.a" \
+	${cmake_configure_args}
+
+if [ NOSUDO ]; then
+	SUDO=
+else
+	SUDO=sudo
+fi
+$SUDO cmake --build "$SMPQ_SRC"/build --config Release --target install -j"$PARALLELISM"
+
+rm -rf "$TMP_DIR"

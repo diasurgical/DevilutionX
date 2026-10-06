@@ -29,7 +29,7 @@ jobs:
     runs-on: windows-latest
     steps:
     - name: Checkout
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
       with:
         fetch-depth: 0
 
@@ -40,9 +40,9 @@ jobs:
       uses: lukka/get-cmake@latest
 
     - name: Restore or setup vcpkg
-      uses: lukka/run-vcpkg@v11.5
+      uses: lukka/run-vcpkg@v11.6
       with:
-        vcpkgGitCommitId: 'a62ce77d56ee07513b4b67de1ec2daeaebfae51a'
+        vcpkgGitCommitId: '40f3c709db80acf154ac4b17a1f83c564ebd022e'
 
     - name: Fetch test data
       run: |
@@ -67,7 +67,6 @@ jobs:
         path: |
             build-ninja-vcpkg-relwithdebinfo/devilutionx.exe
             build-ninja-vcpkg-relwithdebinfo/bz2.dll
-            build-ninja-vcpkg-relwithdebinfo/fmt.dll
             build-ninja-vcpkg-relwithdebinfo/libpng16.dll
             build-ninja-vcpkg-relwithdebinfo/libsodium.dll
             build-ninja-vcpkg-relwithdebinfo/SDL2.dll

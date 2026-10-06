@@ -4,6 +4,7 @@
  * Implementation of player inventory.
  */
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdint>
 #include <optional>
@@ -16,12 +17,11 @@
 #include <SDL.h>
 #endif
 
-#include <fmt/format.h>
-
 #include "DiabloUI/ui_flags.hpp"
 #include "controls/control_mode.hpp"
 #include "controls/plrctrls.h"
 #include "cursor.h"
+#include "cursor_defs.hpp"
 #include "engine/backbuffer_state.hpp"
 #include "engine/clx_sprite.hpp"
 #include "engine/load_cel.hpp"
@@ -39,9 +39,11 @@
 #include "player.h"
 #include "plrmsg.h"
 #include "qol/stash.h"
+#include "qol/visual_store.h"
 #include "stores.h"
 #include "towners.h"
 #include "utils/display.h"
+#include "utils/format.hpp"
 #include "utils/format_int.hpp"
 #include "utils/is_of.hpp"
 #include "utils/language.h"
@@ -140,18 +142,6 @@ namespace {
 
 OptionalOwnedClxSpriteList pInvCels;
 
-bool IsTornNaKrulNote(_item_indexes id)
-{
-	return IsAnyOf(id, IDI_NOTE1, IDI_NOTE2, IDI_NOTE3);
-}
-
-bool HasAllTornNaKrulNotes(const Player &player)
-{
-	return HasInventoryItemWithId(player, IDI_NOTE1)
-	    && HasInventoryItemWithId(player, IDI_NOTE2)
-	    && HasInventoryItemWithId(player, IDI_NOTE3);
-}
-
 void ConvertToFullNaKrulNote(Item &item)
 {
 	item = {};
@@ -159,62 +149,45 @@ void ConvertToFullNaKrulNote(Item &item)
 	SetupItem(item);
 }
 
-std::array<_item_indexes, 2> GetOtherTornNaKrulNotes(_item_indexes preservedNoteId)
+std::optional<int> TryRemoveOtherTornNaKrulNotes(Player &player, _item_indexes noteId, int preservedInvIndex = -1)
 {
-	assert(IsTornNaKrulNote(preservedNoteId));
+	if (IsNoneOf(noteId, IDI_NOTE1, IDI_NOTE2, IDI_NOTE3))
+		return std::nullopt;
 
-	switch (preservedNoteId) {
-	case IDI_NOTE1:
-		return { IDI_NOTE2, IDI_NOTE3 };
-	case IDI_NOTE2:
-		return { IDI_NOTE1, IDI_NOTE3 };
-	case IDI_NOTE3:
-		return { IDI_NOTE1, IDI_NOTE2 };
-	default:
-		app_fatal("Unexpected Na-Krul note id");
+	std::array<int, 2> removedNoteIndices {};
+	size_t removeCount = 0;
+	for (const _item_indexes otherNoteId : { IDI_NOTE1, IDI_NOTE2, IDI_NOTE3 }) {
+		if (otherNoteId == noteId)
+			continue;
+		const auto *otherNote = std::find_if(player.InvList, player.InvList + player._pNumInv, [otherNoteId](const Item &item) {
+			return item.IDidx == otherNoteId;
+		});
+		if (otherNote == player.InvList + player._pNumInv)
+			return std::nullopt;
+		removedNoteIndices[removeCount++] = static_cast<int>(otherNote - player.InvList);
 	}
+
+	player.Say(HeroSpeech::JustWhatIWasLookingFor, 10);
+	if (removedNoteIndices[0] < removedNoteIndices[1])
+		std::swap(removedNoteIndices[0], removedNoteIndices[1]);
+	for (const int removedNoteIndex : removedNoteIndices) {
+		player.RemoveInvItem(removedNoteIndex, false);
+		if (removedNoteIndex < preservedInvIndex)
+			preservedInvIndex--;
+	}
+	return preservedInvIndex;
 }
 
 int TryCombineNaKrulNoteAfterInventoryInsert(Player &player, int insertedInvIndex)
 {
-	if (insertedInvIndex < 0 || insertedInvIndex >= player._pNumInv) {
+	const auto combinedInvIndex = TryRemoveOtherTornNaKrulNotes(player, player.InvList[insertedInvIndex].IDidx, insertedInvIndex);
+	if (!combinedInvIndex.has_value())
 		return insertedInvIndex;
-	}
 
-	const _item_indexes insertedId = player.InvList[insertedInvIndex].IDidx;
-	if (!IsTornNaKrulNote(insertedId) || !HasAllTornNaKrulNotes(player)) {
-		return insertedInvIndex;
-	}
-
-	player.Say(HeroSpeech::JustWhatIWasLookingFor, 10);
-
-	std::array<int, 2> removedNoteIndices {};
-	size_t removeCount = 0;
-	for (const _item_indexes note : GetOtherTornNaKrulNotes(insertedId)) {
-		for (int i = 0; i < player._pNumInv; i++) {
-			if (player.InvList[i].IDidx == note) {
-				removedNoteIndices[removeCount++] = i;
-				break;
-			}
-		}
-	}
-
-	if (removeCount != removedNoteIndices.size()) {
-		return insertedInvIndex;
-	}
-
-	std::sort(removedNoteIndices.begin(), removedNoteIndices.end(), std::greater<int>());
-	for (const int removedNoteIndex : removedNoteIndices) {
-		player.RemoveInvItem(removedNoteIndex, false);
-		if (removedNoteIndex < insertedInvIndex) {
-			insertedInvIndex--;
-		}
-	}
-
-	Item &combinedNote = player.InvList[insertedInvIndex];
+	Item &combinedNote = player.InvList[*combinedInvIndex];
 	ConvertToFullNaKrulNote(combinedNote);
 	combinedNote.updateRequiredStatsCacheForPlayer(player);
-	return insertedInvIndex;
+	return *combinedInvIndex;
 }
 
 /**
@@ -228,7 +201,7 @@ void AddItemToInvGrid(Player &player, int invGridIndex, int invListIndex, Size i
 {
 	const int pitch = 10;
 	for (int y = 0; y < itemSize.height; y++) {
-		const int rowGridIndex = invGridIndex + pitch * y;
+		const int rowGridIndex = invGridIndex + (pitch * y);
 		for (int x = 0; x < itemSize.width; x++) {
 			if (x == 0 && y == itemSize.height - 1)
 				player.InvGrid[rowGridIndex + x] = invListIndex;
@@ -404,7 +377,7 @@ int FindTargetSlotUnderItemCursor(Point cursorPosition, Size itemSize)
 			const int hotPixelCell = r - SLOTXY_INV_FIRST;
 			const int targetRow = std::clamp((hotPixelCell / InventorySizeInSlots.width) - hotPixelCellOffset.deltaY, 0, InventorySizeInSlots.height - itemSize.height);
 			const int targetColumn = std::clamp((hotPixelCell % InventorySizeInSlots.width) - hotPixelCellOffset.deltaX, 0, InventorySizeInSlots.width - itemSize.width);
-			return SLOTXY_INV_FIRST + targetRow * InventorySizeInSlots.width + targetColumn;
+			return SLOTXY_INV_FIRST + (targetRow * InventorySizeInSlots.width) + targetColumn;
 		}
 	}
 
@@ -497,7 +470,7 @@ void ChangeTwoHandItem(Player &player)
 int8_t CheckOverlappingItems(int slot, const Player &player, Size itemSize)
 {
 	// check that the item we're pasting only overlaps one other item (or is going into empty space)
-	const unsigned originCell = static_cast<unsigned>(slot - SLOTXY_INV_FIRST);
+	const auto originCell = static_cast<unsigned>(slot - SLOTXY_INV_FIRST);
 
 	int8_t overlappingId = 0;
 	for (unsigned rowOffset = 0; rowOffset < static_cast<unsigned>(itemSize.height * InventorySizeInSlots.width); rowOffset += InventorySizeInSlots.width) {
@@ -617,7 +590,7 @@ void ChangeBeltItem(Player &player, int slot)
 	RedrawComponent(PanelDrawComponent::Belt);
 }
 
-item_equip_type GetItemEquipType(const Player &player, int slot, item_equip_type desiredLocation)
+item_equip_type GetItemEquipType(int slot, item_equip_type desiredLocation)
 {
 	if (slot == SLOTXY_HEAD)
 		return ILOC_HELM;
@@ -647,7 +620,7 @@ void CheckInvPaste(Player &player, Point cursorPosition)
 		return;
 
 	const item_equip_type desiredLocation = player.GetItemLocation(player.HoldItem);
-	const item_equip_type location = GetItemEquipType(player, slot, desiredLocation);
+	const item_equip_type location = GetItemEquipType(slot, desiredLocation);
 
 	if (location == ILOC_BELT) {
 		if (!CanBePlacedOnBelt(player, player.HoldItem)) return;
@@ -709,7 +682,7 @@ inv_body_loc MapSlotToInvBodyLoc(inv_xy_slot slot)
 std::optional<inv_xy_slot> FindSlotUnderCursor(Point cursorPosition)
 {
 
-	Point testPosition = static_cast<Point>(cursorPosition - GetRightPanel().position);
+	auto testPosition = static_cast<Point>(cursorPosition - GetRightPanel().position);
 	for (std::underlying_type_t<inv_xy_slot> r = SLOTXY_EQUIPPED_FIRST; r != SLOTXY_BELT_FIRST; r++) {
 		// check which body/inventory rectangle the mouse is in, if any
 		if (InvRect[r].contains(testPosition)) {
@@ -746,7 +719,7 @@ bool CheckItemFitsInInventorySlot(const Player &player, int slotIndex, const Siz
 		}
 		int xx = (slotIndex > 0) ? (slotIndex % 10) : 0;
 		for (int i = 0; i < itemSize.width; i++) {
-			if (xx >= 10 || !(player.InvGrid[xx + yy] == 0 || std::abs(player.InvGrid[xx + yy]) - 1 == itemIndexToIgnore)) {
+			if (xx >= 10 || (player.InvGrid[xx + yy] != 0 && std::abs(player.InvGrid[xx + yy]) - 1 != itemIndexToIgnore)) {
 				// The item is too wide to fit in the specified column, or one of the cells is occupied (and not by the item we're planning on removing)
 				return false;
 			}
@@ -773,8 +746,8 @@ std::optional<int> FindSlotForItem(const Player &player, const Size &itemSize, i
 		}
 		for (int x = 9; x >= 0; x--) {
 			for (int y = 2; y >= 0; y--) {
-				if (CheckItemFitsInInventorySlot(player, 10 * y + x, itemSize, itemIndexToIgnore))
-					return 10 * y + x;
+				if (CheckItemFitsInInventorySlot(player, (10 * y) + x, itemSize, itemIndexToIgnore))
+					return (10 * y) + x;
 			}
 		}
 		return {};
@@ -783,8 +756,8 @@ std::optional<int> FindSlotForItem(const Player &player, const Size &itemSize, i
 	if (itemSize.height == 2) {
 		for (int x = 10 - itemSize.width; x >= 0; x--) {
 			for (int y = 0; y < 3; y++) {
-				if (CheckItemFitsInInventorySlot(player, 10 * y + x, itemSize, itemIndexToIgnore))
-					return 10 * y + x;
+				if (CheckItemFitsInInventorySlot(player, (10 * y) + x, itemSize, itemIndexToIgnore))
+					return (10 * y) + x;
 			}
 		}
 		return {};
@@ -980,6 +953,10 @@ void CheckInvCut(Player &player, Point cursorPosition, bool automaticMove, bool 
 						player.InvBody[invloc] = holdItem.pop();
 					}
 				}
+			} else if (IsVisualStoreOpen && CanSellToCurrentVendor(player.InvList[iv]) && dropItem) {
+				// If visual store is open, ctrl-click sells the item
+				SellItemToVisualStore(iv);
+				automaticallyMoved = true;
 			} else {
 				holdItem = player.InvList[iv];
 				player.RemoveInvItem(iv, false);
@@ -1037,16 +1014,8 @@ void CheckInvCut(Player &player, Point cursorPosition, bool automaticMove, bool 
 
 void TryCombineNaKrulNotes(Player &player, Item &noteItem)
 {
-	const _item_indexes noteId = noteItem.IDidx;
-	if (!IsTornNaKrulNote(noteId) || !HasAllTornNaKrulNotes(player)) {
-		return; // the player doesn't have all notes
-	}
-
-	MyPlayer->Say(HeroSpeech::JustWhatIWasLookingFor, 10);
-
-	for (const _item_indexes note : GetOtherTornNaKrulNotes(noteId)) {
-		RemoveInventoryItemById(player, note);
-	}
+	if (!TryRemoveOtherTornNaKrulNotes(player, noteItem.IDidx).has_value())
+		return;
 
 	const Point position = noteItem.position; // copy the position to restore it after re-initialising the item
 	ConvertToFullNaKrulNote(noteItem);
@@ -1600,7 +1569,7 @@ int AddGoldToInventory(Player &player, int value)
 	// Remaining inventory in columns, bottom to top, right to left
 	for (int x = 9; x >= 0 && value > 0; x--) {
 		for (int y = 2; y >= 0 && value > 0; y--) {
-			value = CreateGoldItemInInventorySlot(player, 10 * y + x, value);
+			value = CreateGoldItemInInventorySlot(player, (10 * y) + x, value);
 		}
 	}
 
@@ -1644,7 +1613,7 @@ void CheckInvSwap(Player &player, const Item &item, int invGridIndex)
 	const int pitch = 10;
 	const int invListIndex = [&]() -> int {
 		for (int y = 0; y < itemSize.height; y++) {
-			const int rowGridIndex = invGridIndex + pitch * y;
+			const int rowGridIndex = invGridIndex + (pitch * y);
 			for (int x = 0; x < itemSize.width; x++) {
 				const int gridIndex = rowGridIndex + x;
 				if (player.InvGrid[gridIndex] != 0)
@@ -1667,7 +1636,7 @@ void CheckInvSwap(Player &player, const Item &item, int invGridIndex)
 	player.InvList[invListIndex - 1] = item;
 
 	for (int y = 0; y < itemSize.height; y++) {
-		const int rowGridIndex = invGridIndex + pitch * y;
+		const int rowGridIndex = invGridIndex + (pitch * y);
 		for (int x = 0; x < itemSize.width; x++) {
 			if (x == 0 && y == itemSize.height - 1)
 				player.InvGrid[rowGridIndex + x] = invListIndex;
@@ -1695,7 +1664,7 @@ void TransferItemToStash(Player &player, int location)
 	}
 
 	const Item &item = GetInventoryItem(player, location);
-	if (!AutoPlaceItemInStash(player, item, true)) {
+	if (!AutoPlaceItemInStash(item, true)) {
 		player.SaySpecific(HeroSpeech::WhereWouldIPutThis);
 		return;
 	}
@@ -2053,10 +2022,24 @@ int8_t CheckInvHLight()
 	if (pi->isEmpty())
 		return -1;
 
-	if (pi->_itype == ItemType::Gold) {
+	if (IsVisualStoreOpen && pcurs == CURSOR_REPAIR) {
+		InfoColor = pi->getTextColor();
+		InfoString = pi->getName();
+		FloatingInfoString = pi->getName();
+		if (pi->_iIdentified) {
+			PrintItemDetails(*pi);
+		} else {
+			PrintItemDur(*pi);
+		}
+		int cost = GetRepairCost(*pi);
+		if (cost > 0)
+			AddInfoBoxString(StrCat(FormatInteger(cost), " Gold"));
+		else
+			AddInfoBoxString(_("Fully Repaired"));
+	} else if (pi->_itype == ItemType::Gold) {
 		const int nGold = pi->_ivalue;
-		InfoString = fmt::format(fmt::runtime(ngettext("{:s} gold piece", "{:s} gold pieces", nGold)), FormatInteger(nGold));
-		FloatingInfoString = fmt::format(fmt::runtime(ngettext("{:s} gold piece", "{:s} gold pieces", nGold)), FormatInteger(nGold));
+		InfoString = FormatRuntime(ngettext("{:s} gold piece", "{:s} gold pieces", nGold), FormatInteger(nGold));
+		FloatingInfoString = FormatRuntime(ngettext("{:s} gold piece", "{:s} gold pieces", nGold), FormatInteger(nGold));
 	} else {
 		InfoColor = pi->getTextColor();
 		InfoString = pi->getName();
@@ -2285,6 +2268,7 @@ void CloseInventory()
 {
 	CloseGoldWithdraw();
 	CloseStash();
+	CloseVisualStore();
 	invflag = false;
 }
 
@@ -2301,7 +2285,7 @@ void CloseStash()
 		} else {
 			if (!AutoPlaceItemInBelt(myPlayer, myPlayer.HoldItem, true, true)
 			    && !AutoPlaceItemInInventory(myPlayer, myPlayer.HoldItem, true)
-			    && !AutoPlaceItemInStash(myPlayer, myPlayer.HoldItem, true)) {
+			    && !AutoPlaceItemInStash(myPlayer.HoldItem, true)) {
 				// This can fail for max gold, arena potions and a stash that has been arranged
 				// to not have room for the item all 3 cases are extremely unlikely
 				app_fatal(_("No room for item"));

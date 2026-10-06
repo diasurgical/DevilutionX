@@ -88,7 +88,7 @@ uint32_t GenerateRandomNumber()
 
 int32_t AdvanceRndSeed()
 {
-	const int32_t seed = static_cast<int32_t>(GenerateRandomNumber());
+	const auto seed = static_cast<int32_t>(GenerateRandomNumber());
 	// since abs(INT_MIN) is undefined behavior, handle this value specially
 	return seed == std::numeric_limits<int32_t>::min() ? std::numeric_limits<int32_t>::min() : std::abs(seed);
 }
