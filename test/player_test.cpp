@@ -198,6 +198,7 @@ TEST(Player, CreatePlayer)
 		GTEST_SKIP() << "MPQ assets (spawn.mpq or DIABDAT.MPQ) not found - skipping test";
 	}
 
+	LoadSpellData();
 	LoadPlayerDataFiles();
 	LoadMonsterData();
 	LoadItemData();
@@ -222,8 +223,14 @@ TEST(Player, IsPlayerSpellSelectionValidChecksSpellSources)
 	EXPECT_FALSE(IsPlayerSpellSelectionValid(player, spell, SpellType::Spell));
 	player._pMemSpells = mask;
 	EXPECT_FALSE(IsPlayerSpellSelectionValid(player, spell, SpellType::Spell));
+	player._pISplLvlAdd = 1;
+	EXPECT_FALSE(IsPlayerSpellSelectionValid(player, spell, SpellType::Spell));
+	player._pISplLvlAdd = 0;
 	player._pSplLvl[static_cast<size_t>(spell)] = 1;
 	EXPECT_TRUE(IsPlayerSpellSelectionValid(player, spell, SpellType::Spell));
+	player._pISplLvlAdd = -1;
+	EXPECT_FALSE(IsPlayerSpellSelectionValid(player, spell, SpellType::Spell));
+	player._pISplLvlAdd = 0;
 
 	EXPECT_FALSE(IsPlayerSpellSelectionValid(player, spell, SpellType::Scroll));
 	player._pScrlSpells = mask;

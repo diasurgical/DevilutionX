@@ -85,7 +85,9 @@ bool IsPlayerSpellSelectionValid(const Player &player, SpellID spellId, SpellTyp
 	case SpellType::Skill:
 		return (player._pAblSpells & GetSpellBitmask(spellId)) != 0;
 	case SpellType::Spell:
-		return (player._pMemSpells & GetSpellBitmask(spellId)) != 0 && player.GetSpellLevel(spellId) > 0;
+		return (player._pMemSpells & GetSpellBitmask(spellId)) != 0
+		    && player._pSplLvl[static_cast<size_t>(spellId)] > 0
+		    && player.GetSpellLevel(spellId) > 0;
 	case SpellType::Scroll:
 		return (player._pScrlSpells & GetSpellBitmask(spellId)) != 0;
 	case SpellType::Charges:
@@ -97,7 +99,7 @@ bool IsPlayerSpellSelectionValid(const Player &player, SpellID spellId, SpellTyp
 
 void SanitizePlayerSpellSelections(Player &player)
 {
-	for (size_t i = 0; i < NumHotkeys; ++i) {
+	for (size_t i = 0; i < NumHotkeys; i++) {
 		if (!IsPlayerSpellSelectionValid(player, player._pSplHotKey[i], player._pSplTHotKey[i])) {
 			player._pSplHotKey[i] = SpellID::Invalid;
 			player._pSplTHotKey[i] = SpellType::Invalid;

@@ -725,6 +725,16 @@ TEST(Writehero, LoadHotkeysLegacyFormatPreservesValidScrollSelection)
 	EXPECT_EQ(player.queuedSpell.spellId, SpellID::Healing);
 	EXPECT_EQ(player.queuedSpell.spellType, SpellType::Scroll);
 	EXPECT_EQ(player.queuedSpell.spellFrom, 0);
+
+	player.plrlevel = 1; // Avoid loading graphics for the active town level.
+	InitPlayer(player, true);
+	EXPECT_EQ(player._pRSpell, SpellID::Healing);
+	EXPECT_EQ(player._pRSplType, SpellType::Scroll);
+	EXPECT_EQ(player.queuedSpell.spellId, SpellID::Healing);
+	EXPECT_EQ(player.queuedSpell.spellType, SpellType::Scroll);
+	EXPECT_EQ(player.executedSpell.spellId, SpellID::Healing);
+	EXPECT_EQ(player.executedSpell.spellType, SpellType::Scroll);
+
 	leveltype = DTYPE_CATHEDRAL;
 	EXPECT_TRUE(CanUseScroll(player, SpellID::Healing));
 
