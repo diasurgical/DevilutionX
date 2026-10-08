@@ -147,6 +147,12 @@ struct PlayerSpriteData {
 	char classChar;
 	/* Class TRN file */
 	std::string trn;
+	/* Portrait sprite offsets in town */
+	Point partyOffsetTown;
+	/* Portrait sprite offsets in dungeon */
+	Point partyOffsetDungeon;
+	/* Portrait sprite offsets dead */
+	Point partyOffsetDead;
 	/* Sprite width: Stand */
 	uint8_t stand;
 	/* Sprite width: Walk */

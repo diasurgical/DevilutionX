@@ -2084,6 +2084,12 @@ ClxSprite GetPlayerPortraitSprite(Player &player)
 		// And now load the new sprite and store it
 		const uint16_t animationWidth = GetPlayerSpriteWidth(cls, graphic, animWeaponId);
 		player.PartyInfoSprites[inDungeon] = LoadCl2Sheet(pszName, animationWidth);
+
+		// Apply class TRN to the stored portrait sprite
+		std::optional<std::array<uint8_t, 256>> classTRN = GetClassTRN(player);
+		if (classTRN) {
+			ClxApplyTrans(*player.PartyInfoSprites[inDungeon], classTRN->data());
+		}
 	}
 
 	const ClxSpriteList spriteList = (*player.PartyInfoSprites[inDungeon])[static_cast<size_t>(Direction::South)];

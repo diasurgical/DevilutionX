@@ -2,6 +2,12 @@ Variable	Value
 classPath	monk
 classChar	m
 trn	monk
+partyOffsetTownX	-2
+partyOffsetTownY	-19
+partyOffsetDungeonX	1
+partyOffsetDungeonY	-19
+partyOffsetDeadX	28
+partyOffsetDeadY	-60
 stand	112
 walk	112
 attack	130

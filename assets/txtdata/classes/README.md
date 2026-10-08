@@ -32,3 +32,28 @@ There is one folder per class.
  `baseMagicToHit`       | Starting chance to hit with spells/scrolls, %
  `baseMeleeToHit`       | Starting chance to hit with melee weapons/fists, %
  `baseRangedToHit`      | Starting chance to hit with ranged weapons, %
+ 
+ ### sprites.tsv
+
+ Attribute         | Description
+------------------:|--------------------------------------
+ `classPath`           | Path inside the "plrgfx" folder where this player class graphics are stored, string
+ `classChar`           | Prefix character used int the name of the stance subfolder and the player graphics .cl2 files, char
+ `trn`                 | Path of the palette translation file to apply for this player class graphics, string
+ `partyOffsetTownX`    | Offset X for the player portrait in town level, int8_t
+ `partyOffsetTownY`    | Offset Y for the player portrait in town level, int8_t
+ `partyOffsetDungeonX` | Offset X for the player portrait in dungeon level, int8_t
+ `partyOffsetDungeonY` | Offset Y for the player portrait in dungeon level, int8_t
+ `partyOffsetDeadX`    | Offset X for the player portrait when dead, int8_t
+ `partyOffsetDeadY`    | Offset Y for the player portrait when dead, int8_t
+ `stand`               | Width of the stand stance sprites, uint8_t
+ `walk`                | Width of the walk stance sprites, uint8_t
+ `attack`              | Width of the melee attack stance sprites, uint8_t
+ `bow`                 | Width of the bow attack sprites, uint8_t
+ `swHit`               | Width of the hit recovery stance sprites, uint8_t
+ `block`               | Width of the block stance sprites, uint8_t
+ `lightning`           | Width of the cast lightning spell stance sprites, uint8_t
+ `fire`                | Width of the cast fire spell stance sprites, uint8_t
+ `magic`               | Width of the cast magic spell stance sprites, uint8_t
+ `death`               | Width of the death stance sprites, uint8_t
+ 
