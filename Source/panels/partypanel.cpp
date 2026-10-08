@@ -181,8 +181,10 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 		// Get the offset of the sprite based on the players class so it get's rendered in the correct position
 		const PlayerSpriteData &spriteData = GetPlayerSpriteDataForClass(player._pClass);
 		Point offset = (player.isOnLevel(0)) ? spriteData.partyOffsetTown : spriteData.partyOffsetDungeon;
+
 		if (player._pHitPoints <= 0 && IsPlayerUnarmed(player))
 			offset = spriteData.partyOffsetDead;
+
 		// Calculate the players portait position
 		const Point portraitPos = { ((-(playerPortraitSprite.width() / 2)) + (PortraitFrameSize.width / 2)) + offset.x, offset.y };
 		// Get a subregion of the surface so the portrait doesn't get drawn over the frame
