@@ -6,6 +6,7 @@
 #include <ostream>
 
 #include "parser.hpp"
+#include "utils/fixed_point.hpp"
 #include "utils/parse_int.hpp"
 #include "utils/str_cat.hpp"
 #include "utils/str_split.hpp"
@@ -225,11 +226,11 @@ public:
 	 * You can freely interleave this method with calls to operator*. If this is the first value
 	 * access since the last advance this will scan the current field and store it for later
 	 * use with operator* or repeated calls to parseInt/Fixed6 (even with different types).
-	 * @tparam T an Integral type supported by std::from_chars
+	 * @tparam T a FixedPoint type with 6 fractional bits, e.g. Fixed10_6
 	 * @param destination value to store the result of successful parsing
 	 * @return an error code equivalent to what you'd get from from_chars if parsing failed
 	 */
-	template <typename T>
+	template <Fixed6Type T>
 	[[nodiscard]] std::expected<void, Error> parseFixed6(T &destination)
 	{
 		ParseIntResult<T> parseResult;
@@ -253,10 +254,10 @@ public:
 		}
 	}
 
-	template <typename T>
+	template <Fixed6Type T>
 	[[nodiscard]] std::expected<T, Error> asFixed6()
 	{
-		T value = 0;
+		T value {};
 		return parseFixed6(value).transform([value]() { return value; });
 	}
 

@@ -54,6 +54,7 @@ set(standalone_tests
   crawl_test
   data_file_test
   file_util_test
+  fixed_point_test
   format_int_test
   ini_test
   mod_identity_test

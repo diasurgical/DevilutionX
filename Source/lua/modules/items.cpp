@@ -61,8 +61,8 @@ void InitItemUserType(sol::state_view &lua)
 	LuaSetDocProperty(itemType, "PLFR", "number", "Fire resistance bonus", &Item::_iPLFR);
 	LuaSetDocProperty(itemType, "PLLR", "number", "Lightning resistance bonus", &Item::_iPLLR);
 	LuaSetDocProperty(itemType, "PLMR", "number", "Magic resistance bonus", &Item::_iPLMR);
-	LuaSetDocProperty(itemType, "PLMana", "number", "Mana bonus", &Item::_iPLMana);
-	LuaSetDocProperty(itemType, "PLHP", "number", "Life bonus", &Item::_iPLHP);
+	LuaSetDocProperty(itemType, "PLMana", "number", "Mana bonus", [](const Item &i) { return i._iPLMana.raw(); }, [](Item &i, int16_t val) { i._iPLMana = Fixed10_6::fromRaw(val); });
+	LuaSetDocProperty(itemType, "PLHP", "number", "Life bonus", [](const Item &i) { return i._iPLHP.raw(); }, [](Item &i, int16_t val) { i._iPLHP = Fixed10_6::fromRaw(val); });
 	LuaSetDocProperty(itemType, "PLDamMod", "number", "Damage modifier bonus", &Item::_iPLDamMod);
 	LuaSetDocProperty(itemType, "PLGetHit", "number", "Damage from enemies bonus", &Item::_iPLGetHit);
 	LuaSetDocProperty(itemType, "PLLight", "number", "Light bonus", &Item::_iPLLight);

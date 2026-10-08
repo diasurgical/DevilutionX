@@ -9,6 +9,7 @@
 #include <type_traits>
 
 #include "engine/clx_sprite.hpp"
+#include "utils/fixed_point.hpp"
 
 namespace devilution {
 
@@ -109,15 +110,28 @@ public:
 	void processAnimation(bool reverseAnimation = false);
 
 	/**
-	 * @brief Fractions in AnimationInfo are stored as fixed point (baseValueFraction/128 correspondents to 1/100%).
+	 * @brief The scale of the raw fixed point fractions still used at some boundaries (see
+	 * getAnimationProgress() and previewShownGameTickFragments); baseValueFraction/128
+	 * corresponds to 1/100%. Internally, AnimationInfo uses FixedPoint<..., 7> instead, which is
+	 * the same scale expressed as a type rather than a raw value.
 	 */
 	constexpr static uint8_t baseValueFraction = 128;
 
 private:
 	/**
-	 * @brief returns the progress as a fraction in time to the next game tick or no progress if the animation is frozen (see baseValueFraction)
+	 * @brief A fixed point count of game ticks, signed because ProcessAnimationPending
+	 * distribution deliberately starts it out negative.
 	 */
-	[[nodiscard]] uint8_t getProgressToNextGameTick() const;
+	using TicksFixed = FixedPoint<int16_t, 7>;
+	/**
+	 * @brief A fixed point rate of animation-fractions advanced per game tick.
+	 */
+	using RateFixed = FixedPoint<uint16_t, 7>;
+
+	/**
+	 * @brief returns the progress as a fraction in time to the next game tick or no progress if the animation is frozen
+	 */
+	[[nodiscard]] FixedPoint<uint8_t, 7> getProgressToNextGameTick() const;
 
 	/**
 	 * @brief Animation Frames that will be adjusted for the skipped Frames/game ticks
@@ -128,13 +142,13 @@ private:
 	 */
 	int8_t skippedFramesFromPreviousAnimation_;
 	/**
-	 * @brief Specifies how many animations-fractions (see baseValueFraction) are displayed between two game ticks. this can be more than one frame, if animations are skipped or less than one frame if the same animation is shown in multiple times (delay specified).
+	 * @brief Specifies how many animation-fractions are displayed between two game ticks. this can be more than one frame, if animations are skipped or less than one frame if the same animation is shown in multiple times (delay specified).
 	 */
-	uint16_t tickModifier_;
+	RateFixed tickModifier_;
 	/**
 	 * @brief Number of game ticks after the current animation sequence started
 	 */
-	int16_t ticksSinceSequenceStarted_;
+	TicksFixed ticksSinceSequenceStarted_;
 };
 
 } // namespace devilution
