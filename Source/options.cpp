@@ -1042,6 +1042,7 @@ void OptionEntryLanguageCode::CheckLanguagesAreInitialized() const
 	languages.emplace_back("fi", "Suomi");
 	languages.emplace_back("sv", "Svenska");
 	languages.emplace_back("tr", "Türkçe");
+	languages.emplace_back("tt", "Татарча");
 	languages.emplace_back("cs", "Čeština");
 	languages.emplace_back("el", "Ελληνικά");
 	languages.emplace_back("be", "беларуская");
