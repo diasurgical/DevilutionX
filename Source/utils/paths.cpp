@@ -152,7 +152,7 @@ const std::string &AssetsPath()
 		assetsPath.emplace("D:\\assets\\");
 #elif defined(__3DS__) || defined(__SWITCH__)
 		assetsPath.emplace("romfs:/");
-#elif defined(__APPLE__) && defined(USE_SDL1)
+#elif defined(__APPLE__) && (defined(USE_SDL1) || defined(USE_SDL3))
 		// In `Info.plist` we have
 		//
 		//    <key>SDL_FILESYSTEM_BASE_DIR_TYPE</key>

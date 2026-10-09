@@ -193,6 +193,12 @@ void LoadClassData(std::string_view classPath, ClassAttributes &attributes, Play
 	reader.readDecimal("chrMana", attributes.chrMana);
 	reader.readDecimal("itmLife", attributes.itmLife);
 	reader.readDecimal("itmMana", attributes.itmMana);
+	reader.readDecimal("manaCost", attributes.manaCost);
+	reader.readDecimal("itmRestoreLife", attributes.itmRestoreLife);
+	reader.readDecimal("itmRestoreMana", attributes.itmRestoreMana);
+	reader.readDecimal("splRestoreLife", attributes.splRestoreLife);
+	reader.readDecimal("splRestoreMana", attributes.splRestoreMana);
+	reader.readDecimal("healOtherRestoreLife", attributes.healOtherRestoreLife);
 	reader.readInt("baseMagicToHit", combat.baseMagicToHit);
 	reader.readInt("baseMeleeToHit", combat.baseMeleeToHit);
 	reader.readInt("baseRangedToHit", combat.baseRangedToHit);
@@ -228,6 +234,12 @@ void LoadClassSpriteData(std::string_view classPath, PlayerSpriteData &spriteDat
 	reader.readString("classPath", spriteData.classPath);
 	reader.readChar("classChar", spriteData.classChar);
 	reader.readString("trn", spriteData.trn);
+	reader.readInt("partyOffsetTownX", spriteData.partyOffsetTown.x);
+	reader.readInt("partyOffsetTownY", spriteData.partyOffsetTown.y);
+	reader.readInt("partyOffsetDungeonX", spriteData.partyOffsetDungeon.x);
+	reader.readInt("partyOffsetDungeonY", spriteData.partyOffsetDungeon.y);
+	reader.readInt("partyOffsetDeadX", spriteData.partyOffsetDead.x);
+	reader.readInt("partyOffsetDeadY", spriteData.partyOffsetDead.y);
 	reader.readInt("stand", spriteData.stand);
 	reader.readInt("walk", spriteData.walk);
 	reader.readInt("attack", spriteData.attack);

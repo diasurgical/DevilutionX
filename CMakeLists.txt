@@ -191,7 +191,7 @@ endif()
 
 # By default, devilutionx.mpq and mods/hf.mpq are built only if smpq is installed and MPQ support is enabled.
 if(SUPPORTS_MPQ AND NOT UNPACKED_MPQS)
-  if(BUILD_ASSETS_MPQ OR (CPACK STREQUAL "ON" AND (WIN32 OR CMAKE_SYSTEM_NAME STREQUAL "Linux")))
+  if(BUILD_ASSETS_MPQ OR (CPACK STREQUAL "ON" AND (WIN32 OR CMAKE_SYSTEM_NAME STREQUAL "Linux") AND NOT SRC_DIST))
     find_program(SMPQ smpq REQUIRED)
   elseif(NOT DEFINED BUILD_ASSETS_MPQ AND NOT SRC_DIST)
     find_program(SMPQ smpq)
@@ -484,6 +484,8 @@ if(APPLE)
       install(CODE "
         include(BundleUtilities)
         fixup_bundle(${CMAKE_BINARY_DIR}/${MACOSX_BUNDLE_BUNDLE_NAME}.app \"\" \"\")
+        # fixup_bundle invalidates any existing code signature, so re-sign.
+        execute_process(COMMAND codesign --force --deep --sign - ${CMAKE_BINARY_DIR}/${MACOSX_BUNDLE_BUNDLE_NAME}.app)
         "
         COMPONENT Runtime)
   endif()
@@ -667,7 +669,13 @@ if(CPACK AND (APPLE OR BUILD_ASSETS_MPQ OR SRC_DIST))
   elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     string(TOLOWER ${PROJECT_NAME} project_name)
     set(CPACK_PACKAGE_NAME ${project_name})
+    set(CPACK_PACKAGE_VENDOR "DevilutionX contributors")
+    set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Open-source Diablo and Hellfire engine")
+    set(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/diasurgical/DevilutionX")
     set(CPACK_GENERATOR "7Z")
+    set(CPACK_COMPONENTS_GROUPING ALL_COMPONENTS_IN_ONE)
+    set(CPACK_PROJECT_CONFIG_FILE "${CMAKE_BINARY_DIR}/CPackProjectConfig.cmake")
+    configure_file("${PROJECT_SOURCE_DIR}/CMake/CPackProjectConfig.cmake.in" "${CPACK_PROJECT_CONFIG_FILE}" @ONLY)
     # Common *nix files
     set(CPACK_STRIP_FILES TRUE)
     install(TARGETS ${BIN_TARGET} DESTINATION bin)
@@ -710,7 +718,18 @@ if(CPACK AND (APPLE OR BUILD_ASSETS_MPQ OR SRC_DIST))
       RENAME "${project_name}.metainfo.xml"
     )
     if(DISCORD_SHARED_LIB)
-      install(FILES "${DISCORD_SHARED_LIB}" DESTINATION "lib")
+      include(CPackComponent)
+      cpack_add_component(DISCORD_SHARED_LIB HIDDEN)
+      cpack_add_component(DISCORD_SHARED_LIB64 HIDDEN DISABLED)
+
+      install(FILES "${DISCORD_SHARED_LIB}"
+        DESTINATION "lib"
+        COMPONENT DISCORD_SHARED_LIB)
+
+      install(FILES "${DISCORD_SHARED_LIB}"
+        DESTINATION "lib64"
+        COMPONENT DISCORD_SHARED_LIB64
+        EXCLUDE_FROM_ALL)
     endif()
 
     # -G DEB
@@ -724,10 +743,26 @@ if(CPACK AND (APPLE OR BUILD_ASSETS_MPQ OR SRC_DIST))
 
     # -G RPM
     set(CPACK_RPM_FILE_NAME RPM-DEFAULT)
+    set(CPACK_RPM_PACKAGE_SUMMARY "Open-source implementation of the Diablo and Hellfire game engine")
+    if(DISCORD_INTEGRATION)
+      set(CPACK_RPM_PACKAGE_LICENSE "LicenseRef-Sustainable-Use AND LicenseRef-Discord-Game-SDK")
+      set(_rpm_package_discord_notice " Discord Game SDK terms also apply.")
+    else()
+      set(CPACK_RPM_PACKAGE_LICENSE "LicenseRef-Sustainable-Use")
+      set(_rpm_package_discord_notice "")
+    endif()
+    set(CPACK_RPM_PACKAGE_DESCRIPTION
+      "DevilutionX is an open-source implementation of the Diablo and Hellfire game engine. The project is licensed under the Sustainable Use License, which restricts use and distribution to non-commercial purposes.${_rpm_package_discord_notice} Original commercial game data is not included."
+    )
+    set(CPACK_RPM_PACKAGE_GROUP "Amusements/Games")
+    set(CPACK_RPM_PACKAGE_URL "https://github.com/diasurgical/DevilutionX")
+    set(CPACK_RPM_PACKAGE_RELEASE 1)
+    set(CPACK_RPM_PACKAGE_RELEASE_DIST ON)
 
     find_program(RPMBUILD rpmbuild)
     if(RPMBUILD)
       list(APPEND CPACK_GENERATOR "RPM")
+      set(CPACK_RPM_COMPONENT_INSTALL ON)
     endif()
     find_program(DPKG dpkg)
     if(DPKG)

@@ -32,6 +32,7 @@ set(tests
   pack_test
   player_test
   quests_test
+  reencode_dun_cels_test
   scrollrt_test
   stores_test
   tile_properties_test

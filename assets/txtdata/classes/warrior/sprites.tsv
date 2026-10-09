@@ -2,6 +2,12 @@ Variable	Value
 classPath	warrior
 classChar	w
 trn	warrior
+partyOffsetTownX	-4
+partyOffsetTownY	-18
+partyOffsetDungeonX	6
+partyOffsetDungeonY	-21
+partyOffsetDeadX	-6
+partyOffsetDeadY	-50
 stand	96
 walk	96
 attack	128

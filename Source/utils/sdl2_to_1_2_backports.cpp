@@ -702,7 +702,7 @@ extern "C" char *SDL_GetPrefPath(const char *org, const char *app)
 #elif !defined(__APPLE__)
 
 namespace {
-#if !defined(__QNXNTO__) && !defined(__amigaos__) && !(defined(WINVER) && WINVER <= 0x0500 && (!defined(_WIN32_WINNT) || _WIN32_WINNT == 0))
+#if !defined(__QNXNTO__) && !(defined(WINVER) && WINVER <= 0x0500 && (!defined(_WIN32_WINNT) || _WIN32_WINNT == 0))
 char *readSymLink(const char *path)
 {
 	// From sdl2-2.0.9/src/filesystem/unix/SDL_sysfilesystem.c

@@ -71,13 +71,15 @@ int tcp_client::join(std::string_view addrstr)
 	asio::error_code errorCode;
 	const asio::ip::basic_resolver_results<asio::ip::tcp> range = resolver.resolve(host, port, errorCode);
 	if (errorCode) {
-		SDL_SetError("%s", errorCode.message().c_str());
+		const std::string message = errorCode.message();
+		SDL_SetError("%.*s", static_cast<int>(message.size()), message.c_str());
 		return -1;
 	}
 
 	asio::connect(sock, range, errorCode);
 	if (errorCode) {
-		SDL_SetError("%s", errorCode.message().c_str());
+		const std::string message = errorCode.message();
+		SDL_SetError("%.*s", static_cast<int>(message.size()), message.c_str());
 		return -1;
 	}
 

@@ -418,7 +418,7 @@ TEST(Writehero, pfile_write_hero)
 	// only the binary representation differs.
 	// To regenerate: run this test, let it fail, and update the hash below.
 	EXPECT_EQ(picosha2::bytes_to_hex_string(s.begin(), s.end()),
-	    "b52885393aedc22c856c7c315975c9be89a034b64a2067e22d5387a51998a51b");
+	    "e206d9233785e12fa222fe1550489ec2de19eaba99d6b5fee173c91f55af494b");
 }
 
 } // namespace

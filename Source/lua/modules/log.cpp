@@ -137,10 +137,11 @@ void LuaLogMessage(LogPriority priority, std::string_view fmt, sol::variadic_arg
 	const std::expected<std::string, std::string> formatted = FormatLuaMessage(fmt, formatArgs);
 	if (!formatted.has_value()) {
 		const std::string fullError = StrCat("Format error, fmt: ", fmt, " error: ", formatted.error());
-		SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "%s", fullError.c_str());
+		SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "%.*s", static_cast<int>(fullError.size()), fullError.c_str());
 		return;
 	}
-	SDL_LogMessage(SDL_LOG_CATEGORY_APPLICATION, static_cast<SDL_LogPriority>(priority), "%s", formatted->c_str());
+	SDL_LogMessage(SDL_LOG_CATEGORY_APPLICATION, static_cast<SDL_LogPriority>(priority),
+	    "%.*s", static_cast<int>(formatted->size()), formatted->c_str());
 }
 
 void LuaLogInfo(std::string_view fmt, sol::variadic_args args)

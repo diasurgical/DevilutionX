@@ -17,7 +17,7 @@ chrLife	1
 chrMana	2
 itmLife	1
 itmMana	2
-manaCost	1
+manaCost	0.5
 itmRestoreLife	1
 itmRestoreMana	2
 splRestoreLife	1

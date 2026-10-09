@@ -940,6 +940,7 @@ void RunGameLoop(interface_mode uMsg)
 		}
 
 		ProcessGameMessagePackets();
+		this_sdl_thread::yield();
 		if (game_loop(gbGameLoopStartup))
 			diablo_color_cyc_logic();
 		gbGameLoopStartup = false;
@@ -1308,8 +1309,6 @@ void DiabloInit()
 
 	// Always available.
 	LoadSmallSelectionSpinner();
-
-	CheckArchivesUpToDate();
 }
 
 void DiabloSplash()
@@ -2775,6 +2774,12 @@ int DiabloMain(int argc, char **argv)
 	LoadLanguageArchive();
 
 	ApplicationInit();
+
+	// Ensure the core archives are up to date before loading any assets from them,
+	// e.g. `lua\inspect.lua` is loaded during `LuaInitialize()` and would otherwise
+	// abort with a confusing "Asset not found" error on an out-of-date archive.
+	CheckArchivesUpToDate();
+
 	LuaInitialize();
 	if (!demo::IsRunning()) SaveOptions();
 
