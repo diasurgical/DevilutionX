@@ -853,7 +853,13 @@ GameplayOptions::GameplayOptions()
     , experienceBar("Experience Bar", OptionEntryFlags::None, N_("Experience Bar"), N_("Experience Bar is added to the UI at the bottom of the screen."), false)
     , showHealthValues("Show health values", OptionEntryFlags::None, N_("Show health values"), N_("Displays current / max health value on health globe."), false)
     , showManaValues("Show mana values", OptionEntryFlags::None, N_("Show mana values"), N_("Displays current / max mana value on mana globe."), false)
-    , showMultiplayerPartyInfo("Show Multiplayer Party Information", OptionEntryFlags::CantChangeInMultiPlayer, N_("Show Party Information"), N_("Displays the health and mana of all connected multiplayer party members."), false)
+    , showMultiplayerPartyInfo("Show Multiplayer Party Information", OptionEntryFlags::CantChangeInMultiPlayer, N_("Show Party Information"), N_("Displays the health and mana of all connected multiplayer party members."), PartyPortraits::Disabled,
+          {
+              { PartyPortraits::Disabled, N_("Disabled") },
+              { PartyPortraits::Players, N_("Players") },
+              { PartyPortraits::Summons, N_("Summons") },
+              { PartyPortraits::PlayersAndSummons, N_("Players and summons") },
+          })
     , enemyHealthBar("Enemy Health Bar", OptionEntryFlags::None, N_("Enemy Health Bar"), N_("Enemy Health Bar is displayed at the top of the screen."), false)
     , floatingInfoBox("Floating Item Info Box", OptionEntryFlags::None, N_("Floating Item Info Box"), N_("Displays item info in a floating box when hovering over an item."), false)
     , autoGoldPickup("Auto Gold Pickup", OptionEntryFlags::None, N_("Auto Gold Pickup"), N_("Gold is automatically collected when in close proximity to the player."), false)

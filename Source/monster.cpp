@@ -186,7 +186,7 @@ void InitMonsterTRN(CMonster &monst)
 		AnimStruct &anim = monst.anims[i];
 		if (anim.sprites->isSheet()) {
 			ClxApplyTrans(ClxSpriteSheet { anim.sprites->sheet() }, colorTranslations.data());
-		} else {
+		} else if (anim.sprites.has_value()) {
 			ClxApplyTrans(ClxSpriteList { anim.sprites->list() }, colorTranslations.data());
 		}
 	}

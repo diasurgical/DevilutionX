@@ -99,6 +99,17 @@ enum class StoreUi : uint8_t {
 	VisualGrid = 2,
 };
 
+enum class PartyPortraits : uint8_t {
+	/** @brief No party portraits. */
+	Disabled = 0,
+	/** @brief All other players. */
+	Players = 1,
+	/** @brief Summons. */
+	Summons = 2,
+	/** @brief All other players and summons. */
+	PlayersAndSummons = 3,
+};
+
 std::string_view ResamplerToString(Resampler resampler);
 std::optional<Resampler> ResamplerFromString(std::string_view resampler);
 
@@ -596,7 +607,7 @@ struct GameplayOptions : OptionCategoryBase {
 	/** @brief Display current/max mana values on mana globe. */
 	OptionEntryBoolean showManaValues;
 	/** @brief Enable the multiplayer party information display */
-	OptionEntryBoolean showMultiplayerPartyInfo;
+	OptionEntryEnum<PartyPortraits> showMultiplayerPartyInfo;
 	/** @brief Show enemy health at the top of the screen. */
 	OptionEntryBoolean enemyHealthBar;
 	/** @brief Displays item info in a floating box when hovering over an ite. */

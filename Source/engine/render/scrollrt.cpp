@@ -1899,7 +1899,7 @@ void DrawAndBlit()
 	if (*GetOptions().Gameplay.floatingInfoBox)
 		DrawFloatingInfoBox(out);
 
-	if (*GetOptions().Gameplay.showMultiplayerPartyInfo && PartySidePanelOpen)
+	if ((*GetOptions().Gameplay.showMultiplayerPartyInfo != PartyPortraits::Disabled) && PartySidePanelOpen)
 		DrawPartyMemberInfoPanel(out);
 
 	DrawCursor(out);
