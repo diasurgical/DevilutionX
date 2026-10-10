@@ -97,7 +97,7 @@ const Rectangle &GetUIRectangle()
 
 namespace {
 
-#ifndef USE_SDL1
+#if !defined(USE_SDL1) && !defined(PSP)
 void CalculatePreferredWindowSize(int &width, int &height)
 {
 	SDL_DisplayMode mode;
@@ -147,6 +147,12 @@ Size GetPreferredWindowSize()
 {
 	Size windowSize = forceResolution.width != 0 ? forceResolution : *GetOptions().Graphics.resolution;
 
+#ifdef PSP
+	// The window always matches the PSP screen.
+	// The selected resolution is the logical size that is scaled to fit it.
+	AdjustToScreenGeometry(windowSize == PspWidescreenLogicalSize ? PspWidescreenLogicalSize : PspStandardLogicalSize);
+	return { PspScreenWidth, PspScreenHeight };
+#else
 #ifndef USE_SDL1
 	if (*GetOptions().Graphics.upscale && *GetOptions().Graphics.fitToScreen) {
 		CalculatePreferredWindowSize(windowSize.width, windowSize.height);
@@ -154,6 +160,7 @@ Size GetPreferredWindowSize()
 #endif
 	AdjustToScreenGeometry(windowSize);
 	return windowSize;
+#endif
 }
 
 const auto OptionChangeHandlerResolution = (GetOptions().Graphics.resolution.SetValueChangedCallback(ResizeWindow), true);
@@ -184,6 +191,16 @@ void UpdateAvailableResolutions()
 	}
 #endif
 	GraphicsOptions &graphicsOptions = GetOptions().Graphics;
+
+#ifdef PSP
+	// The PSP's physical resolution never changes. Only expose the two
+	// supported logical viewports in the Resolution setting.
+	graphicsOptions.resolution.setAvailableResolutions({
+	    { PspStandardLogicalSize, "640x480 (4:3)" },
+	    { PspWidescreenLogicalSize, "848x480 (Widescreen)" },
+	});
+	return;
+#endif
 
 	std::vector<Size> sizes;
 	const float scaleFactor = GetDpiScalingFactor();
@@ -699,6 +716,10 @@ void ReinitializeTexture()
 {
 	if (texture)
 		texture.reset();
+#ifdef PSP
+	if (PspRightTexture)
+		PspRightTexture.reset();
+#endif
 
 	if (renderer == nullptr)
 		return;
@@ -715,7 +736,15 @@ void ReinitializeTexture()
 #else
 	auto quality = StrCat(static_cast<int>(*GetOptions().Graphics.scaleQuality));
 	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, quality.c_str());
+#ifdef PSP
+	// The PSP GPU cannot use textures wider than 512 pixels, so wider screens use two textures.
+	const int firstTextureWidth = std::min<int>(gnScreenWidth, PspFirstTextureWidth);
+	texture = SDLWrap::CreateTexture(renderer, DEVILUTIONX_DISPLAY_TEXTURE_FORMAT, SDL_TEXTUREACCESS_STREAMING, firstTextureWidth, gnScreenHeight);
+	if (gnScreenWidth > PspFirstTextureWidth)
+		PspRightTexture = SDLWrap::CreateTexture(renderer, DEVILUTIONX_DISPLAY_TEXTURE_FORMAT, SDL_TEXTUREACCESS_STREAMING, gnScreenWidth - PspFirstTextureWidth, gnScreenHeight);
+#else
 	texture = SDLWrap::CreateTexture(renderer, DEVILUTIONX_DISPLAY_TEXTURE_FORMAT, SDL_TEXTUREACCESS_STREAMING, gnScreenWidth, gnScreenHeight);
+#endif
 #endif
 }
 
@@ -762,7 +791,11 @@ void ReinitializeRenderer()
 #ifdef USE_SDL3
 			renderer = SDL_CreateRenderer(ghMainWnd, nullptr);
 #else
+#ifdef PSP
+			renderer = SDL_CreateRenderer(ghMainWnd, -1, SDL_RENDERER_ACCELERATED);
+#else
 			renderer = SDL_CreateRenderer(ghMainWnd, -1, 0);
+#endif
 #endif
 			if (renderer == nullptr) {
 				ErrSdl();
@@ -792,6 +825,10 @@ void ReinitializeRenderer()
 		}
 #endif
 
+#ifdef PSP
+		// Do not keep both viewport sizes in memory during a menu change.
+		RendererTextureSurface = nullptr;
+#endif
 		ReinitializeTexture();
 
 #ifdef USE_SDL3
