@@ -27,6 +27,8 @@ namespace devilution {
 
 bool qtextflag;
 
+std::vector<std::string> TextLines;
+
 namespace {
 
 /** Vertical speed of the scrolling text in ms/px */
@@ -38,8 +40,6 @@ OptionalOwnedClxSpriteList pTextBoxCels;
 
 /** Pixels for a line of text and the empty space under it. */
 const int LineHeight = 38;
-
-std::vector<std::string> TextLines;
 
 void LoadText(std::string_view text)
 {
