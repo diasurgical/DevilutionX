@@ -150,7 +150,7 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 	bool portraitUnderCursor = false;
 
 	auto partyOption = *GetOptions().Gameplay.showMultiplayerPartyInfo;
-	if (partyOption == PartyPortraits::Players || partyOption == PartyPortraits::PlayersAndSummoned)  {
+	if (partyOption == PartyPortraits::Players || partyOption == PartyPortraits::PlayersAndSummoned) {
 
 		for (Player &player : Players) {
 
@@ -192,10 +192,10 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 			const Point portraitPos = { ((-(playerPortraitSprite.width() / 2)) + (PortraitFrameSize.width / 2)) + offset.x, offset.y };
 			// Get a subregion of the surface so the portrait doesn't get drawn over the frame
 			const Surface frameSubregion = gameScreen.subregion(
-				pos.x + FrameBorderSize,
-				pos.y + FrameBorderSize,
-				PortraitFrameSize.width - (FrameBorderSize * 2),
-				PortraitFrameSize.height - (FrameBorderSize * 2));
+			    pos.x + FrameBorderSize,
+			    pos.y + FrameBorderSize,
+			    PortraitFrameSize.width - (FrameBorderSize * 2),
+			    PortraitFrameSize.height - (FrameBorderSize * 2));
 
 			PortraitFrameRects[player.getId()] = {
 				{ frameSubregion.region.x, frameSubregion.region.y },
@@ -204,27 +204,27 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 
 			// Draw the portrait sprite
 			RenderClxSprite(
-				frameSubregion,
-				playerPortraitSprite,
-				portraitPos);
+			    frameSubregion,
+			    playerPortraitSprite,
+			    portraitPos);
 
 			if ((player.getId() + 1U) < (*PlayerTags).numSprites()) {
 				// Draw the player tag
 				const int tagWidth = (*PlayerTags)[player.getId() + 1].width();
 				RenderClxSprite(
-					frameSubregion,
-					(*PlayerTags)[player.getId() + 1],
-					{ PortraitFrameSize.width - (tagWidth + (tagWidth / 2)), 0 });
+				    frameSubregion,
+				    (*PlayerTags)[player.getId() + 1],
+				    { PortraitFrameSize.width - (tagWidth + (tagWidth / 2)), 0 });
 			}
 
 			// Check to see if the player is dead and if so we draw a half transparent red rect over the portrait
 			if (player._pHitPoints <= 0) {
 				DrawHalfTransparentRectTo(
-					frameSubregion,
-					0, 0,
-					PortraitFrameSize.width,
-					PortraitFrameSize.height,
-					PAL8_RED + 4);
+				    frameSubregion,
+				    0, 0,
+				    PortraitFrameSize.width,
+				    PortraitFrameSize.height,
+				    PAL8_RED + 4);
 			}
 
 			// Add to the position before continuing to the next item
@@ -243,10 +243,10 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 
 			// Draw the players name under the frame
 			DrawString(
-				gameScreen,
-				player._pName,
-				pos,
-				{ .flags = UiFlags::ColorGold | UiFlags::Outlined | UiFlags::FontSize12 });
+			    gameScreen,
+			    player._pName,
+			    pos,
+			    { .flags = UiFlags::ColorGold | UiFlags::Outlined | UiFlags::FontSize12 });
 
 			// Add to the position before continuing onto the next player
 			pos.y += FrameGap + 5;
@@ -277,7 +277,7 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 		}
 	}
 
-	if (partyOption == PartyPortraits::Summoned || partyOption == PartyPortraits::PlayersAndSummoned)  {
+	if (partyOption == PartyPortraits::Summoned || partyOption == PartyPortraits::PlayersAndSummoned) {
 
 		Monster *summoned = FindGolemForPlayer(*MyPlayer);
 		if (summoned != nullptr) {
@@ -304,19 +304,19 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 				// Get the monsters current portrait sprite
 				const ClxSprite monsterPortraitSprite = (*monsterOptionalPortraitSpriteList)[0];
 				// Calculate the monsters portait position
-				const Point portraitPos = { ((-(monsterPortraitSprite.width() * 17 / 32)) + (PortraitFrameSize.width / 2)), -(monsterPortraitSprite.height() / 4)};
+				const Point portraitPos = { ((-(monsterPortraitSprite.width() * 17 / 32)) + (PortraitFrameSize.width / 2)), -(monsterPortraitSprite.height() / 4) };
 				// Get a subregion of the surface so the portrait doesn't get drawn over the frame
 				const Surface frameSubregion = gameScreen.subregion(
-					pos.x + FrameBorderSize,
-					pos.y + FrameBorderSize,
-					PortraitFrameSize.width - (FrameBorderSize * 2),
-					PortraitFrameSize.height - (FrameBorderSize * 2));
+				    pos.x + FrameBorderSize,
+				    pos.y + FrameBorderSize,
+				    PortraitFrameSize.width - (FrameBorderSize * 2),
+				    PortraitFrameSize.height - (FrameBorderSize * 2));
 
 				// Draw the portrait sprite
 				RenderClxSprite(
-					frameSubregion,
-					monsterPortraitSprite,
-					portraitPos);
+				    frameSubregion,
+				    monsterPortraitSprite,
+				    portraitPos);
 
 				// Add to the position before continuing to the next item
 				pos.y += PortraitFrameSize.height;
@@ -326,10 +326,10 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 
 				// Draw the monsters name under the frame
 				DrawString(
-					gameScreen,
-					summoned->name(),
-					pos,
-					{ .flags = UiFlags::ColorGold | UiFlags::Outlined | UiFlags::FontSize12 });
+				    gameScreen,
+				    summoned->name(),
+				    pos,
+				    { .flags = UiFlags::ColorGold | UiFlags::Outlined | UiFlags::FontSize12 });
 
 				// Add to the position before continuing onto the next monster
 				pos.y += FrameGap + 5;
