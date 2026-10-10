@@ -857,8 +857,8 @@ GameplayOptions::GameplayOptions()
           {
               { PartyPortraits::Disabled, N_("Disabled") },
               { PartyPortraits::Players, N_("Players") },
-              { PartyPortraits::Summoned, N_("Summoned monsters") },
-              { PartyPortraits::PlayersAndSummoned, N_("Players and summoned monsters") },
+              { PartyPortraits::Summons, N_("Summons") },
+              { PartyPortraits::PlayersAndSummons, N_("Players and summons") },
           })
     , enemyHealthBar("Enemy Health Bar", OptionEntryFlags::None, N_("Enemy Health Bar"), N_("Enemy Health Bar is displayed at the top of the screen."), false)
     , floatingInfoBox("Floating Item Info Box", OptionEntryFlags::None, N_("Floating Item Info Box"), N_("Displays item info in a floating box when hovering over an item."), false)

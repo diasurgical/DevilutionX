@@ -104,10 +104,10 @@ enum class PartyPortraits : uint8_t {
 	Disabled = 0,
 	/** @brief All other players. */
 	Players = 1,
-	/** @brief Summoned monsters. */
-	Summoned = 2,
-	/** @brief All other players and summoned monsters. */
-	PlayersAndSummoned = 3,
+	/** @brief Summons. */
+	Summons = 2,
+	/** @brief All other players and summons. */
+	PlayersAndSummons = 3,
 };
 
 std::string_view ResamplerToString(Resampler resampler);

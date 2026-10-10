@@ -150,7 +150,7 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 	bool portraitUnderCursor = false;
 
 	auto partyOption = *GetOptions().Gameplay.showMultiplayerPartyInfo;
-	if (partyOption == PartyPortraits::Players || partyOption == PartyPortraits::PlayersAndSummoned) {
+	if (partyOption == PartyPortraits::Players || partyOption == PartyPortraits::PlayersAndSummons) {
 
 		for (Player &player : Players) {
 
@@ -277,7 +277,7 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 		}
 	}
 
-	if (partyOption == PartyPortraits::Summoned || partyOption == PartyPortraits::PlayersAndSummoned) {
+	if (partyOption == PartyPortraits::Summons || partyOption == PartyPortraits::PlayersAndSummons) {
 
 		Monster *summoned = FindGolemForPlayer(*MyPlayer);
 		if (summoned != nullptr) {
