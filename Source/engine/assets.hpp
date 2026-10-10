@@ -27,10 +27,8 @@
 #include "utils/str_cat.hpp"
 #include "utils/string_or_view.hpp"
 
-#ifndef UNPACKED_MPQS
 #include "mods/mod_identity.h"
 #include "mpq/mpq_reader.hpp"
-#endif
 
 #ifdef USE_SDL1
 #include "utils/sdl2_to_1_2_backports.h"
