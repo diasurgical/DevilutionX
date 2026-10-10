@@ -74,6 +74,31 @@ function(add_devilutionx_library NAME)
 endfunction()
 
 # Same as add_devilutionx_library(${NAME} OBJECT).
+#
+# Object libraries additionally share the precompiled header owned by
+# `libdevilutionx_pch` (see Source/pch.hpp). They all compile with the same
+# code generation model and with a superset of that target's defines, which is
+# what makes a single shared PCH valid for every one of them. Executables are
+# excluded: they build with a different PIC/PIE model, which GCC treats as
+# invalidating the PCH.
+#
+# `DEVILUTIONX_PCH_SHARED` is off for compilers that reject a PCH built with
+# anything other than the consumer's exact flags; there libdevilutionx gets its
+# own PCH instead of everyone sharing one.
 function(add_devilutionx_object_library NAME)
   add_devilutionx_library(${NAME} OBJECT ${ARGN})
+  if(DEVILUTIONX_PCH)
+    # pch.hpp is C++, and so is the precompiled header built from it. Some
+    # platforms add sources in other languages (C on Amiga, Objective-C on
+    # iOS); without this CMake looks for a C precompiled header that no target
+    # ever builds and fails to generate.
+    foreach(_src ${ARGN})
+      if(NOT _src MATCHES "\\.(cpp|cxx|cc)$")
+        set_source_files_properties(${_src} PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
+      endif()
+    endforeach()
+  endif()
+  if(DEVILUTIONX_PCH_SHARED AND NOT NAME STREQUAL "libdevilutionx_pch")
+    target_precompile_headers(${NAME} REUSE_FROM libdevilutionx_pch)
+  endif()
 endfunction()
