@@ -5,6 +5,7 @@
 #include "cursor.h"
 #include "engine/assets.hpp"
 #include "init.hpp"
+#include "spells.h"
 #include "tables/playerdat.hpp"
 
 using namespace devilution;
@@ -197,10 +198,66 @@ TEST(Player, CreatePlayer)
 		GTEST_SKIP() << "MPQ assets (spawn.mpq or DIABDAT.MPQ) not found - skipping test";
 	}
 
+	LoadSpellData();
 	LoadPlayerDataFiles();
 	LoadMonsterData();
 	LoadItemData();
 	Players.resize(1);
 	CreatePlayer(Players[0], HeroClass::Rogue);
 	AssertPlayer(Players[0]);
+}
+
+TEST(Player, IsPlayerSpellSelectionValidChecksSpellSources)
+{
+	LoadCoreArchives();
+	LoadGameArchives();
+	if (!HaveMainData()) {
+		GTEST_SKIP() << "MPQ assets (spawn.mpq or DIABDAT.MPQ) not found - skipping test";
+	}
+	LoadSpellData();
+
+	const SpellID spell = SpellID::Healing;
+	const uint64_t mask = GetSpellBitmask(spell);
+	Player player {};
+
+	EXPECT_FALSE(IsPlayerSpellSelectionValid(player, spell, SpellType::Spell));
+	player._pMemSpells = mask;
+	EXPECT_FALSE(IsPlayerSpellSelectionValid(player, spell, SpellType::Spell));
+	player._pISplLvlAdd = 1;
+	EXPECT_FALSE(IsPlayerSpellSelectionValid(player, spell, SpellType::Spell));
+	player._pISplLvlAdd = 0;
+	player._pSplLvl[static_cast<size_t>(spell)] = 1;
+	EXPECT_TRUE(IsPlayerSpellSelectionValid(player, spell, SpellType::Spell));
+	player._pISplLvlAdd = -1;
+	EXPECT_FALSE(IsPlayerSpellSelectionValid(player, spell, SpellType::Spell));
+	player._pISplLvlAdd = 0;
+
+	EXPECT_FALSE(IsPlayerSpellSelectionValid(player, spell, SpellType::Scroll));
+	player._pScrlSpells = mask;
+	EXPECT_TRUE(IsPlayerSpellSelectionValid(player, spell, SpellType::Scroll));
+
+	EXPECT_FALSE(IsPlayerSpellSelectionValid(player, spell, SpellType::Charges));
+	player._pISpells = mask;
+	EXPECT_TRUE(IsPlayerSpellSelectionValid(player, spell, SpellType::Charges));
+
+	EXPECT_FALSE(IsPlayerSpellSelectionValid(player, spell, SpellType::Skill));
+	player._pAblSpells = mask;
+	EXPECT_TRUE(IsPlayerSpellSelectionValid(player, spell, SpellType::Skill));
+}
+
+TEST(Player, IsPlayerSpellSelectionValidRejectsInvalidSelections)
+{
+	LoadCoreArchives();
+	LoadGameArchives();
+	if (!HaveMainData()) {
+		GTEST_SKIP() << "MPQ assets (spawn.mpq or DIABDAT.MPQ) not found - skipping test";
+	}
+	LoadSpellData();
+
+	Player player {};
+
+	EXPECT_TRUE(IsPlayerSpellSelectionValid(player, SpellID::Invalid, SpellType::Invalid));
+	EXPECT_FALSE(IsPlayerSpellSelectionValid(player, SpellID::Healing, SpellType::Invalid));
+	EXPECT_FALSE(IsPlayerSpellSelectionValid(player, SpellID::Invalid, SpellType::Spell));
+	EXPECT_FALSE(IsPlayerSpellSelectionValid(player, SpellID::Null, SpellType::Spell));
 }
