@@ -977,6 +977,7 @@ void Teleport(Monster &monster)
 
 	M_ClearSquares(monster);
 	dMonster[monster.position.tile.x][monster.position.tile.y] = 0;
+	MarkWalkabilityChanged();
 	monster.occupyTile(*position, false);
 	monster.position.old = *position;
 	monster.direction = GetMonsterDirection(monster);
@@ -1089,6 +1090,7 @@ bool MonsterWalk(Monster &monster)
 	const bool isAnimationEnd = monster.animInfo.isLastFrame();
 	if (isAnimationEnd) {
 		dMonster[monster.position.tile.x][monster.position.tile.y] = 0;
+		MarkWalkabilityChanged();
 		monster.position.tile.x += monster.var1;
 		monster.position.tile.y += monster.var2;
 		// dMonster is set here for backwards compatibility; without it, the monster would be invisible if loaded from a vanilla save.
@@ -1520,6 +1522,7 @@ void MonsterDeath(Monster &monster)
 			AddCorpse(monster.position.tile, monster.type().corpseId, monster.direction);
 
 		dMonster[monster.position.tile.x][monster.position.tile.y] = 0;
+		MarkWalkabilityChanged();
 		monster.isInvalid = true;
 
 		M_UpdateRelations(monster);
@@ -1561,6 +1564,7 @@ void MonsterPetrified(Monster &monster)
 {
 	if (monster.hitPoints <= 0) {
 		dMonster[monster.position.tile.x][monster.position.tile.y] = 0;
+		MarkWalkabilityChanged();
 		monster.isInvalid = true;
 	}
 }
@@ -3873,6 +3877,8 @@ void ApplyMonsterDamage(DamageType damageType, Monster &monster, int damage)
 	monster.hitPoints -= damage;
 
 	if (monster.hasNoLife()) {
+		// A monster without life no longer blocks the tile it stands on.
+		MarkWalkabilityChanged();
 		delta_kill_monster(monster, monster.position.tile, *MyPlayer);
 		NetSendCmdLocParam1(false, CMD_MONSTDEATH, monster.position.tile, static_cast<uint16_t>(monster.getId()));
 		return;
@@ -3945,6 +3951,7 @@ void M_ClearSquares(const Monster &monster)
 		if (FindMonsterAtPosition(searchTile) == &monster)
 			dMonster[searchTile.x][searchTile.y] = 0;
 	}
+	MarkWalkabilityChanged();
 }
 
 void M_GetKnockback(Monster &monster, WorldTilePosition attackerStartPos)
@@ -4000,6 +4007,8 @@ void MonsterDeath(Monster &monster, Direction md, bool sendmsg)
 
 	MonsterKillCounts[monster.type().type]++;
 	monster.hitPoints = 0;
+	// A monster without life no longer blocks the tile it stands on.
+	MarkWalkabilityChanged();
 	monster.flags &= ~MFLAG_HIDDEN;
 	SetRndSeed(monster.rndItemSeed);
 
@@ -4629,6 +4638,7 @@ void MissToMonst(Missile &missile, Point position)
 	if (IsTileAvailable(*target, newPosition)) {
 		monster.occupyTile(newPosition, false);
 		dMonster[oldPosition.x][oldPosition.y] = 0;
+		MarkWalkabilityChanged();
 		monster.position.tile = newPosition;
 		monster.position.future = newPosition;
 	}
@@ -5036,6 +5046,7 @@ void Monster::occupyTile(Point tile, bool isMoving) const
 {
 	const auto id = static_cast<int16_t>(this->getId() + 1);
 	dMonster[tile.x][tile.y] = isMoving ? -id : id;
+	MarkWalkabilityChanged();
 }
 
 } // namespace devilution

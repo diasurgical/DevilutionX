@@ -2648,6 +2648,7 @@ std::expected<void, std::string> LoadGame(bool firstflag)
 	} else {
 		memset(dLight, 0, sizeof(dLight));
 	}
+	MarkWalkabilityChanged();
 
 	PremiumItemCount = file.NextBE<int32_t>();
 	PremiumItemLevel = file.NextBE<int32_t>();

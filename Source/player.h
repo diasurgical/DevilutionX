@@ -981,6 +981,10 @@ void StartWarpLvl(Player &player, size_t pidx);
 void ProcessPlayers();
 void ClrPlrPath(Player &player);
 bool PosOkPlayer(const Player &player, Point position);
+/**
+ * @brief Checks if the player is close enough to the object to operate it without walking.
+ */
+bool IsPlayerAdjacentToObject(const Player &player, const Object &object);
 void MakePlrPath(Player &player, Point targetPosition, bool endspace);
 void CheckPlrSpell(bool isShiftHeld, SpellID spellID = MyPlayer->_pRSpell, SpellType spellType = MyPlayer->_pRSplType);
 void SyncPlrAnim(Player &player);

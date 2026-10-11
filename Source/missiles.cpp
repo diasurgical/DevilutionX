@@ -3666,6 +3666,7 @@ void ProcessTeleport(Missile &missile)
 		return;
 
 	dPlayer[player.position.tile.x][player.position.tile.y] = 0;
+	MarkWalkabilityChanged();
 	PlrClrTrans(player.position.tile);
 	player.position.tile = *teleportDestination;
 	player.position.future = player.position.tile;
@@ -3734,6 +3735,7 @@ void ProcessRhino(Missile &missile)
 	const Point prevPos = missile.position.tile;
 	Point newPosSnake;
 	dMonster[prevPos.x][prevPos.y] = 0;
+	MarkWalkabilityChanged();
 	if (monster.ai == MonsterAIID::Snake) {
 		missile.position.traveled += missile.position.velocity * 2;
 		UpdateMissilePos(missile);

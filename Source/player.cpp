@@ -418,6 +418,7 @@ bool DoWalk(Player &player)
 
 	// We reached the new tile -> update the player's tile position
 	dPlayer[player.position.tile.x][player.position.tile.y] = 0;
+	MarkWalkabilityChanged();
 	player.position.tile = player.position.temp;
 	// dPlayer is set here for backwards compatibility; without it, the player would be invisible if loaded from a vanilla save.
 	player.occupyTile(player.position.tile, false);
@@ -1055,17 +1056,6 @@ bool DoDeath(Player &player)
 	}
 
 	return false;
-}
-
-bool IsPlayerAdjacentToObject(Player &player, Object &object)
-{
-	const int x = std::abs(player.position.tile.x - object.position.x);
-	int y = std::abs(player.position.tile.y - object.position.y);
-	if (y > 1 && object.position.y >= 1 && FindObjectAtPosition(object.position + Direction::NorthEast) == &object) {
-		// special case for activating a large object from the north-east side
-		y = std::abs(player.position.tile.y - object.position.y + 1);
-	}
-	return x <= 1 && y <= 1;
 }
 
 void TryDisarm(const Player &player, Object &object)
@@ -2014,6 +2004,7 @@ void Player::occupyTile(Point tilePosition, bool isMoving) const
 	int16_t id = this->getId();
 	id += 1;
 	dPlayer[tilePosition.x][tilePosition.y] = isMoving ? -id : id;
+	MarkWalkabilityChanged();
 }
 
 bool Player::isLevelOwnedByLocalClient() const
@@ -2636,6 +2627,7 @@ void FixPlrWalkTags(const Player &player)
 				dPlayer[x][y] = 0;
 		}
 	}
+	MarkWalkabilityChanged();
 }
 
 void StartPlrHit(Player &player, int dam, bool forcehit)
@@ -3073,6 +3065,17 @@ void ProcessPlayers()
 				player.AnimInfo.processAnimation();
 		}
 	}
+}
+
+bool IsPlayerAdjacentToObject(const Player &player, const Object &object)
+{
+	const int x = std::abs(player.position.tile.x - object.position.x);
+	int y = std::abs(player.position.tile.y - object.position.y);
+	if (y > 1 && object.position.y >= 1 && FindObjectAtPosition(object.position + Direction::NorthEast) == &object) {
+		// special case for activating a large object from the north-east side
+		y = std::abs(player.position.tile.y - object.position.y + 1);
+	}
+	return x <= 1 && y <= 1;
 }
 
 void ClrPlrPath(Player &player)

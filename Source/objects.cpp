@@ -732,6 +732,7 @@ void AddCryptBook(_object_id ot, int v2, Point position)
 	AvailableObjects[0] = AvailableObjects[MAXOBJECTS - 1 - ActiveObjectCount];
 	ActiveObjects[ActiveObjectCount] = oi;
 	dObject[position.x][position.y] = oi + 1;
+	MarkWalkabilityChanged();
 	Object &object = Objects[oi];
 	SetupObject(object, position, ot);
 	AddCryptObject(object, v2);
@@ -904,6 +905,7 @@ void DeleteObject(int oi, int i)
 	const Object &object = Objects[oi];
 	const Point position = object.position;
 	dObject[position.x][position.y] = 0;
+	MarkWalkabilityChanged();
 	AvailableObjects[-ActiveObjectCount + MAXOBJECTS] = oi;
 	ActiveObjectCount--;
 	if (ObjectUnderCursor == &object) // Unselect object if this was highlighted by player
@@ -951,6 +953,7 @@ void AddChest(Object &chest)
 void ObjSetMicro(Point position, int pn)
 {
 	dPiece[position.x][position.y] = pn;
+	MarkWalkabilityChanged();
 }
 
 void DoorSet(Point position, bool isLeftDoor)
@@ -3444,6 +3447,7 @@ void BreakCrux(Object &crux, bool sendmsg)
 	crux._oAnimFrame = 1;
 	crux._oAnimDelay = 1;
 	crux._oSolidFlag = true;
+	MarkWalkabilityChanged();
 	crux._oMissFlag = true;
 	crux._oBreak = -1;
 	crux.selectionRegion = SelectionRegion::None;
@@ -3470,6 +3474,7 @@ void BreakBarrel(const Player &player, Object &barrel, bool forcebreak, bool sen
 	barrel._oAnimFrame = 1;
 	barrel._oAnimDelay = 1;
 	barrel._oSolidFlag = false;
+	MarkWalkabilityChanged();
 	barrel._oMissFlag = true;
 	barrel._oBreak = -1;
 	barrel.selectionRegion = SelectionRegion::None;
@@ -4015,6 +4020,7 @@ Object *AddObject(_object_id objType, Point objPos)
 	AvailableObjects[0] = AvailableObjects[MAXOBJECTS - 1 - ActiveObjectCount];
 	ActiveObjects[ActiveObjectCount] = oi;
 	dObject[objPos.x][objPos.y] = oi + 1;
+	MarkWalkabilityChanged();
 	Object &object = Objects[oi];
 	SetupObject(object, objPos, objType);
 	switch (object._otype) {
@@ -4715,6 +4721,7 @@ void DeltaSyncBreakObj(Object &object)
 
 	if (object.IsBarrel()) {
 		object._oSolidFlag = false;
+		MarkWalkabilityChanged();
 	} else if (object.IsCrux() && AreAllCruxesOfTypeBroken(object._oVar8)) {
 		ObjChangeMap(object._oVar1, object._oVar2, object._oVar3, object._oVar4);
 	}
@@ -4923,6 +4930,7 @@ void SyncNakrulRoom()
 	dPiece[UberRow][UberCol - 1] = 300;
 	dPiece[UberRow][UberCol - 2] = 299;
 	dPiece[UberRow][UberCol + 1] = 298;
+	MarkWalkabilityChanged();
 }
 
 } // namespace devilution

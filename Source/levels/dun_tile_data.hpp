@@ -129,6 +129,21 @@ extern DVL_API_FOR_TEST int8_t dCorpse[MAXDUNX][MAXDUNY];
  */
 extern DVL_API_FOR_TEST int8_t dObject[MAXDUNX][MAXDUNY];
 /**
+ * Incremented whenever something changes that can affect which tiles can be walked on
+ * (tile solidity, objects, and the tiles occupied by monsters and players).
+ *
+ * This is local bookkeeping only, it is not part of the synced game state.
+ */
+extern DVL_API_FOR_TEST uint32_t WalkabilityGeneration;
+
+/**
+ * @brief Must be called after any change that can affect the result of path finding.
+ */
+inline void MarkWalkabilityChanged()
+{
+	WalkabilityGeneration++;
+}
+/**
  * Contains the arch frame numbers of the map from the special tileset
  * (e.g. "levels/l1data/l1s"). Note, the special tileset of Tristram (i.e.
  * "levels/towndata/towns") contains trees rather than arches.
