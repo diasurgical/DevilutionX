@@ -1,0 +1,84 @@
+name: devilutionx
+base: core18
+adopt-info: devilutionx
+summary: DevilutionX - Diablo build for modern operating systems
+description: |
+    DevilutionX is a reimplementation of Blizzard's Diablo 1,
+    developed by careful and deep analysis of the original game files.
+    
+    This allows you to play Diablo 1 on a wide variety of operating systems,
+    including GNU/Linux.
+
+    Even though DevilutionX is an open source project, the Diablo 1 game files
+    are not free and protected by Blizzard's copyright.
+    
+    Therefore, you need to provide your own legitimate copy of the game.
+confinement: strict
+grade: stable
+
+apps:
+  devilutionx:
+    command: desktop-launch $SNAP/usr/bin/devilutionx --data-dir $SNAP_USER_COMMON
+    plugs:
+      - x11
+      - wayland
+      - unity7
+      - opengl
+      - audio-playback
+      - joystick
+      - network
+      - network-bind
+
+    environment:
+      XDG_DATA_HOME: $SNAP_USER_COMMON/
+      DBUS_FATAL_WARNINGS: 0
+
+layout:
+  /usr/share/fonts/truetype:
+    bind: $SNAP/usr/share/fonts/truetype
+
+parts:
+  devilutionx:   
+    plugin: cmake
+    after: [patches,desktop-glib-only]
+    source: https://github.com/diasurgical/devilutionx.git
+    source-type: git
+    configflags:
+      - '-DCMAKE_INSTALL_PREFIX=/usr'
+      - '-DBINARY_RELEASE=ON'
+    override-build: |
+      patch -l --binary -d$SNAPCRAFT_PART_SRC -p0 -i $SNAPCRAFT_STAGE/patches/001-missing-diabdat-notice.patch
+      snapcraftctl set-version "$(git -C $SNAPCRAFT_PART_SRC describe --tags)"
+      snapcraftctl build
+
+    build-packages:
+      - cmake
+      - g++
+      - libsdl2-dev
+      - libsdl2-mixer-dev
+      - libsdl2-ttf-dev
+      - libsodium-dev
+
+    stage-packages:
+      - libstdc++6
+      - libgl1-mesa-dri
+      - libgl1-mesa-glx
+      - libglu1-mesa
+      - libwayland-egl1-mesa
+      - libsdl2-2.0-0
+      - libsdl2-mixer-2.0-0
+      - libsdl2-ttf-2.0-0
+
+  patches:
+    source: snap/local/
+    plugin: dump
+
+  desktop-glib-only:
+    source: https://github.com/ubuntu/snapcraft-desktop-helpers.git
+    source-subdir: glib-only
+    plugin: make
+    build-packages:
+      - libglib2.0-dev
+    stage-packages:
+      - libglib2.0-bin
+
