@@ -79,6 +79,18 @@ void OnMonsterTakeDamage(const Monster *monster, int damage, int damageType)
 	CallLuaEvent("OnMonsterTakeDamage", monster, damage, damageType);
 }
 
+bool OnPlayerDeathDropEar(const Player *player)
+{
+	return CallLuaEventReturn<bool>(true, "OnPlayerDeathDropEar", player);
+}
+bool OnPlayerDeathDropGold(const Player *player)
+{
+	return CallLuaEventReturn<bool>(true, "OnPlayerDeathDropGold", player);
+}
+bool OnPlayerDeathDropItem(const Player *player)
+{
+	return CallLuaEventReturn<bool>(true, "OnPlayerDeathDropItem", player);
+}
 void OnPlayerGainExperience(const Player *player, uint32_t exp)
 {
 	CallLuaEvent("OnPlayerGainExperience", player, exp);

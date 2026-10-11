@@ -19,6 +19,9 @@ void StoreOpened(std::string_view name);
 
 void OnMonsterTakeDamage(const Monster *monster, int damage, int damageType);
 
+bool OnPlayerDeathDropEar(const Player *player);
+bool OnPlayerDeathDropGold(const Player *player);
+bool OnPlayerDeathDropItem(const Player *player);
 void OnPlayerGainExperience(const Player *player, uint32_t exp);
 void OnPlayerTakeDamage(const Player *player, int damage, int damageType);
 
