@@ -93,6 +93,14 @@ uint16_t Cl2ToClx(const uint8_t *data, size_t size,
 					}
 				}
 
+				// In CLX, only transparent runs can continue on the next line, so end the opaque run here.
+				// Otherwise, a line that ends with opaque pixels would be joined with the opaque pixels
+				// that begin the next line, and the renderer would draw those past the end of this line.
+				if (!pixels.empty()) {
+					AppendClxPixelsOrFillRun(pixels.data(), pixels.size(), clxData);
+					pixels.clear();
+				}
+
 				const auto skipSize = GetSkipSize(remainingWidth, static_cast<int_fast16_t>(frameWidth));
 				xOffset = skipSize.xOffset;
 				frameHeight += skipSize.wholeLines;
