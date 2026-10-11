@@ -92,6 +92,12 @@ bool gLoggedFailure = false;
 // Set when the scaler hits an unrecoverable error. Session-sticky: the game
 // reverts to the regular renderer instead of retrying a broken GPU path.
 bool gFailed = false;
+// The last window successfully claimed by the GPU device. Deliberately kept
+// after Shutdown(): on Windows the HWND keeps its DXGI flip-model swapchain
+// history, so display code must recreate the window before handing it back
+// to the regular SDL_Renderer. Only ever compared by pointer, never
+// dereferenced (the window may already be destroyed).
+SDL_Window *gLastClaimedWindow = nullptr;
 // Format the current blit pipeline was built for (swapchain format can change).
 SDL_GPUTextureFormat gBlitPipelineFormat = SDL_GPU_TEXTUREFORMAT_INVALID;
 
@@ -727,6 +733,43 @@ bool HasFailed()
         return gFailed;
 }
 
+bool WindowHasSwapchainHistory(SDL_Window *window)
+{
+        return window != nullptr && gLastClaimedWindow == window;
+}
+
+// Creates the GPU device and selects the shader format for its backend.
+// `name` forces a specific backend (e.g. "vulkan") or auto-selects when null.
+static bool CreateDevice(const char *name)
+{
+        gDevice = SDL_CreateGPUDevice(
+            SDL_GPU_SHADERFORMAT_SPIRV | SDL_GPU_SHADERFORMAT_DXBC | SDL_GPU_SHADERFORMAT_MSL,
+            /*debug=*/false, /*name=*/name);
+        if (gDevice == nullptr)
+                return false;
+        const char *driver = SDL_GetGPUDeviceDriver(gDevice);
+        if (driver != nullptr && std::strcmp(driver, "vulkan") == 0) {
+                gShaderFormat = SDL_GPU_SHADERFORMAT_SPIRV;
+        } else if (driver != nullptr && std::strcmp(driver, "direct3d12") == 0) {
+#ifdef _WIN32
+                gShaderFormat = SDL_GPU_SHADERFORMAT_DXBC;
+#else
+                LogFailHard("D3D12 backend only supported on Windows");
+                Shutdown();
+                return false;
+#endif
+        } else if (driver != nullptr && std::strcmp(driver, "metal") == 0) {
+                gShaderFormat = SDL_GPU_SHADERFORMAT_MSL;
+        } else {
+                LogFailHard(StrCat("unsupported GPU driver: ", driver != nullptr ? driver : "unknown"));
+                Shutdown();
+                return false;
+        }
+        Log("GPU scaler: using the {} backend", driver);
+        LogFileLine(StrCat("device created, backend=", driver != nullptr ? driver : "unknown"));
+        return true;
+}
+
 bool Reinit(SDL_Window *window)
 {
         if (gFailed) {
@@ -742,46 +785,40 @@ bool Reinit(SDL_Window *window)
         LogFileLine(StrCat("Reinit: filter=", static_cast<int>(gFilter), " (0=Off, 1-3=HQ2x/3x/4x, 4-6=ScaleFX 2x/3x/4x)"));
 
         if (gDevice == nullptr) {
-                gDevice = SDL_CreateGPUDevice(
-                    SDL_GPU_SHADERFORMAT_SPIRV | SDL_GPU_SHADERFORMAT_DXBC | SDL_GPU_SHADERFORMAT_MSL,
-                    /*debug=*/false, /*name=*/nullptr);
-                if (gDevice == nullptr) {
+                if (!CreateDevice(/*name=*/nullptr)) {
                         LogFailHard("SDL_CreateGPUDevice failed");
                         gFilter = ShaderFilter::None;
                         return false;
                 }
-                const char *driver = SDL_GetGPUDeviceDriver(gDevice);
-                if (driver != nullptr && std::strcmp(driver, "vulkan") == 0) {
-                        gShaderFormat = SDL_GPU_SHADERFORMAT_SPIRV;
-                } else if (driver != nullptr && std::strcmp(driver, "direct3d12") == 0) {
-#ifdef _WIN32
-                        gShaderFormat = SDL_GPU_SHADERFORMAT_DXBC;
-#else
-                        LogFailHard("D3D12 backend only supported on Windows");
-                        Shutdown();
-                        return false;
-#endif
-                } else if (driver != nullptr && std::strcmp(driver, "metal") == 0) {
-                        gShaderFormat = SDL_GPU_SHADERFORMAT_MSL;
-                } else {
-                        LogFailHard(StrCat("unsupported GPU driver: ", driver != nullptr ? driver : "unknown"));
-                        Shutdown();
-                        return false;
-                }
-                Log("GPU scaler: using the {} backend", driver);
-                LogFileLine(StrCat("device created, backend=", driver != nullptr ? driver : "unknown"));
         }
 
         if (gWindow != window) {
                 if (gWindow != nullptr)
                         SDL_ReleaseWindowFromGPUDevice(gDevice, gWindow);
                 gWindow = window;
-                if (!SDL_ClaimWindowForGPUDevice(gDevice, gWindow)) {
+                bool claimed = SDL_ClaimWindowForGPUDevice(gDevice, gWindow);
+#ifdef _WIN32
+                if (!claimed && gShaderFormat == SDL_GPU_SHADERFORMAT_DXBC) {
+                        // DXGI can refuse the D3D12 swapchain creation even on a
+                        // freshly recreated window (driver quirk / flip-model
+                        // ownership rules). Retry once with the Vulkan backend
+                        // before giving up; the shaders ship with prebuilt
+                        // SPIR-V blobs, so no recompilation is needed.
+                        LogFileLine("claim failed on direct3d12, retrying with the vulkan backend");
+                        Shutdown();
+                        gWindow = window;
+                        gFilter = *GetOptions().Graphics.shaderFilter;
+                        if (CreateDevice(/*name=*/"vulkan"))
+                                claimed = SDL_ClaimWindowForGPUDevice(gDevice, gWindow);
+                }
+#endif
+                if (!claimed) {
                         LogFailHard("SDL_ClaimWindowForGPUDevice failed");
                         gWindow = nullptr;
                         Shutdown();
                         return false;
                 }
+                gLastClaimedWindow = gWindow;
                 const bool vsync = *GetOptions().Graphics.frameRateControl == FrameRateControl::VerticalSync;
                 if (!SDL_SetGPUSwapchainParameters(gDevice, gWindow, SDL_GPU_SWAPCHAINCOMPOSITION_SDR,
                         vsync ? SDL_GPU_PRESENTMODE_VSYNC : SDL_GPU_PRESENTMODE_IMMEDIATE)) {
@@ -830,7 +867,10 @@ void Shutdown()
         SDL_DestroyGPUDevice(gDevice);
         gDevice = nullptr;
         gShaderFormat = SDL_GPU_SHADERFORMAT_INVALID;
+        gBlitPipelineFormat = SDL_GPU_TEXTUREFORMAT_INVALID;
         gFilter = ShaderFilter::None;
+        // gLastClaimedWindow is intentionally NOT cleared: the (possibly still
+        // alive) window keeps its DXGI swapchain history on Windows.
 }
 
 void PresentFrame(const SDL_Surface &frame)

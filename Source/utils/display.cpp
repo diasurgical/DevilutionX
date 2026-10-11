@@ -635,6 +635,16 @@ bool SpawnWindow(const char *lpWindowName)
 
 #ifdef USE_SDL3
         if (*GetOptions().Graphics.upscale) {
+#ifdef USE_GPU_SCALER
+                if (gpu_scaler::ScalerWanted()) {
+                        // Create the window WITHOUT an SDL_Renderer: the GPU
+                        // scaler claims the window directly, and a window that
+                        // has been presented to by the D3D11 SDL_Renderer cannot
+                        // be claimed by a D3D12 SDL_GPU device (DXGI refuses to
+                        // create a second flip-model swapchain for the HWND).
+                        ghMainWnd = SDL_CreateWindow(lpWindowName, windowSize.width, windowSize.height, flags);
+                } else
+#endif
                 if (!SDL_CreateWindowAndRenderer(lpWindowName, windowSize.width, windowSize.height, flags, &ghMainWnd, &renderer)) ErrSdl();
         } else {
                 ghMainWnd = SDL_CreateWindow(lpWindowName, windowSize.width, windowSize.height, flags);
@@ -749,6 +759,55 @@ void ReinitializeIntegerScale()
 }
 #endif
 
+#ifdef USE_GPU_SCALER
+namespace {
+
+// DXGI on Windows permits only one flip-model swapchain per HWND and refuses
+// to create a new one from a different device/factory even after the previous
+// owner released its swapchain: a window that was ever presented to by the
+// D3D11 SDL_Renderer cannot be claimed by the D3D12 SDL_GPU device, and vice
+// versa, failing with "Access is denied" (0x80070005). Destroying and
+// recreating the window hands the new presentation path a clean HWND.
+bool RecreateMainRenderWindow()
+{
+        const std::string title = SDL_GetWindowTitle(ghMainWnd);
+        int width = 0;
+        int height = 0;
+        SDL_GetWindowSize(ghMainWnd, &width, &height);
+        int posX = 0;
+        int posY = 0;
+        SDL_GetWindowPosition(ghMainWnd, &posX, &posY);
+        const Uint32 oldFlags = SDL_GetWindowFlags(ghMainWnd);
+        const bool fullscreen = (oldFlags & SDL_WINDOW_FULLSCREEN) != 0;
+        const bool maximized = (oldFlags & SDL_WINDOW_MAXIMIZED) != 0;
+        const bool resizable = (oldFlags & SDL_WINDOW_RESIZABLE) != 0;
+        const bool grabbed = (oldFlags & SDL_WINDOW_MOUSE_GRABBED) != 0;
+        Log("Recreating the main window for the presentation path switch");
+
+        SDL_DestroyWindow(ghMainWnd);
+        SDL_WindowFlags flags = SDL_WINDOW_HIGH_PIXEL_DENSITY;
+        if (fullscreen)
+                flags |= SDL_WINDOW_FULLSCREEN;
+        if (resizable)
+                flags |= SDL_WINDOW_RESIZABLE;
+        if (maximized)
+                flags |= SDL_WINDOW_MAXIMIZED;
+        ghMainWnd = SDL_CreateWindow(title.c_str(), width, height, flags);
+        if (ghMainWnd == nullptr) {
+                ErrSdl();
+                return false;
+        }
+        if (!fullscreen && !maximized)
+                SDL_SetWindowPosition(ghMainWnd, posX, posY);
+        if (grabbed)
+                SDL_SetWindowMouseGrab(ghMainWnd, true);
+        SDL_RaiseWindow(ghMainWnd);
+        return true;
+}
+
+} // namespace
+#endif
+
 void ReinitializeRenderer()
 {
         if (ghMainWnd == nullptr)
@@ -762,33 +821,53 @@ void ReinitializeRenderer()
         AdjustToScreenGeometry(Size(surface->w, surface->h));
 #else
 
+#ifdef USE_GPU_SCALER
+        const bool scalerWanted = *GetOptions().Graphics.upscale
+            && gpu_scaler::ScalerWanted() && !gpu_scaler::HasFailed();
+        if (!scalerWanted && gpu_scaler::IsActive()) {
+                // Presentation is handed back to the regular renderer (or the
+                // palettized non-upscale path below); shut the scaler down.
+                gpu_scaler::Shutdown();
+        }
+        if (scalerWanted) {
+                // The GPU scaler replaces the SDL_Renderer presentation path.
+                if (renderer != nullptr) {
+                        SDL_DestroyRenderer(renderer);
+                        renderer = nullptr;
+                        // The window has been presented to by the SDL_Renderer's
+                        // D3D11 device: DXGI refuses a D3D12 flip-model swapchain
+                        // on it even after the renderer is gone. Recreate the
+                        // window so the scaler can claim a clean one.
+                        if (!RecreateMainRenderWindow())
+                                return;
+                }
+                if (RendererTextureSurface == nullptr
+                    || RendererTextureSurface->w != static_cast<int>(gnScreenWidth)
+                    || RendererTextureSurface->h != static_cast<int>(gnScreenHeight)) {
+#ifdef USE_SDL3
+                        RendererTextureSurface = SDLSurfaceUniquePtr { SDL_CreateSurface(gnScreenWidth, gnScreenHeight, DEVILUTIONX_DISPLAY_TEXTURE_FORMAT) };
+#else
+                        RendererTextureSurface = SDLSurfaceUniquePtr { SDL_CreateRGBSurfaceWithFormat(0, gnScreenWidth, gnScreenHeight, SDL_BITSPERPIXEL(DEVILUTIONX_DISPLAY_TEXTURE_FORMAT), DEVILUTIONX_DISPLAY_TEXTURE_FORMAT) };
+#endif
+                        if (RendererTextureSurface == nullptr)
+                                ErrSdl();
+                }
+                if (gpu_scaler::Reinit(ghMainWnd)) {
+                        // The GPU scaler owns presentation for this window.
+                        return;
+                }
+                Log("GPU scaler unavailable, using the regular renderer instead");
+        }
+#endif
         if (*GetOptions().Graphics.upscale) {
 #ifdef USE_GPU_SCALER
-        if (gpu_scaler::ScalerWanted()) {
-            // The GPU scaler replaces the SDL_Renderer presentation path.
-            if (renderer != nullptr) {
-                SDL_DestroyRenderer(renderer);
-                renderer = nullptr;
-            }
-            if (RendererTextureSurface == nullptr
-                || RendererTextureSurface->w != static_cast<int>(gnScreenWidth)
-                || RendererTextureSurface->h != static_cast<int>(gnScreenHeight)) {
-#ifdef USE_SDL3
-                RendererTextureSurface = SDLSurfaceUniquePtr { SDL_CreateSurface(gnScreenWidth, gnScreenHeight, DEVILUTIONX_DISPLAY_TEXTURE_FORMAT) };
-#else
-                RendererTextureSurface = SDLSurfaceUniquePtr { SDL_CreateRGBSurfaceWithFormat(0, gnScreenWidth, gnScreenHeight, SDL_BITSPERPIXEL(DEVILUTIONX_DISPLAY_TEXTURE_FORMAT), DEVILUTIONX_DISPLAY_TEXTURE_FORMAT) };
-#endif
-                if (RendererTextureSurface == nullptr)
-                    ErrSdl();
-            }
-            if (gpu_scaler::Reinit(ghMainWnd)) {
-                // The GPU scaler owns presentation for this window.
-                return;
-            }
-            Log("GPU scaler unavailable, using the regular renderer instead");
-        } else if (gpu_scaler::IsActive()) {
-            gpu_scaler::Shutdown();
-        }
+                // Handing the window to the SDL_Renderer: if the GPU device ever
+                // claimed it, the window's DXGI flip-swapchain history can get
+                // the renderer's own swapchain creation denied in turn.
+                if (renderer == nullptr && gpu_scaler::WindowHasSwapchainHistory(ghMainWnd)
+                    && !RecreateMainRenderWindow()) {
+                        return;
+                }
 #endif
             // We don't recreate the renderer, because this can result in a freezing (not refreshing) rendering
                 if (renderer == nullptr) {

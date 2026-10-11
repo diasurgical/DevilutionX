@@ -44,6 +44,16 @@ bool IsActive();
 bool HasFailed();
 
 /**
+ * @brief Returns true when the GPU device successfully claimed the given
+ * window at some point this session (even if the scaler has since been shut
+ * down). On Windows the underlying HWND keeps its DXGI flip-model swapchain
+ * history, which prevents other presentation APIs from creating their own
+ * swapchain on it; recreate the window before handing it back to the
+ * regular SDL_Renderer (see RecreateMainRenderWindow in display.cpp).
+ */
+bool WindowHasSwapchainHistory(SDL_Window *window);
+
+/**
  * @brief (Re)initializes the GPU scaler for the given window.
  * @return true on success; on failure the caller must fall back to the
  * regular SDL_Renderer path.
