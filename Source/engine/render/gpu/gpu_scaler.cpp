@@ -5,6 +5,8 @@
 
 #include <SDL3/SDL_filesystem.h>
 #include <SDL3/SDL_gpu.h>
+#include <SDL3/SDL_log.h>
+#include <SDL3/SDL_properties.h>
 #include <SDL3/SDL_timer.h>
 #include <SDL3/SDL_video.h>
 
@@ -104,6 +106,9 @@ SDL_GPUTextureFormat gBlitPipelineFormat = SDL_GPU_TEXTUREFORMAT_INVALID;
 // SDL_Log output is invisible for a GUI-subsystem application on Windows, so
 // GPU scaler diagnostics are also appended to gpu-scaler.log next to the
 // executable. The file opens lazily on first use.
+FILE *LogFile();
+void InstallSdlLogCapture();
+
 FILE *LogFile()
 {
         static FILE *file = nullptr;
@@ -115,8 +120,10 @@ FILE *LogFile()
                         // SDL3 owns the returned string; it must not be freed.
                         const std::string path = std::string(basePath) + "gpu-scaler.log";
                         file = std::fopen(path.c_str(), "a");
-                        if (file != nullptr)
+                        if (file != nullptr) {
                                 std::fprintf(file, "\n=== GPU scaler session (build %s %s) ===\n", __DATE__, __TIME__);
+                                InstallSdlLogCapture();
+                        }
                 }
         }
         return file;
@@ -128,6 +135,11 @@ void LogFileLine(std::string_view line)
                 std::fprintf(file, "[%10u ms] %.*s\n", static_cast<unsigned>(SDL_GetTicks()), static_cast<int>(line.size()), line.data());
                 std::fflush(file);
         }
+}
+
+void LogOk(std::string_view what)
+{
+        LogFileLine(StrCat("ok: ", what));
 }
 
 void LogFail(std::string_view what)
@@ -147,6 +159,84 @@ void LogFailHard(std::string_view what)
         LogFail(what);
         LogFileLine("GPU scaler disabled for this session (hard failure)");
 }
+
+// SDL's own log output (adapter info, validation errors, device removal,
+// backend initialization) is invisible for a GUI-subsystem application on
+// Windows. Chain it into the diagnostic file as well.
+SDL_LogOutputFunction gPrevSdlLogFunction = nullptr;
+void *gPrevSdlLogUserdata = nullptr;
+
+void SDLCALL SdlLogCapture(void *userdata, int category, SDL_LogPriority priority, const char *message)
+{
+        if (gPrevSdlLogFunction != nullptr)
+                gPrevSdlLogFunction(gPrevSdlLogUserdata, category, priority, message);
+        if (FILE *file = LogFile(); file != nullptr) {
+                std::fprintf(file, "[       SDL] %s\n", message != nullptr ? message : "");
+                std::fflush(file);
+        }
+}
+
+void InstallSdlLogCapture()
+{
+        if (gPrevSdlLogFunction != nullptr)
+                return;
+        SDL_GetLogOutputFunction(&gPrevSdlLogFunction, &gPrevSdlLogUserdata);
+        SDL_SetLogOutputFunction(SdlLogCapture, nullptr);
+}
+
+#ifdef _WIN32
+// Writes fatal native exceptions (access violations and friends) to the
+// diagnostic file before the process dies. Purely diagnostic: the exception
+// is always re-raised (EXCEPTION_CONTINUE_SEARCH) so debuggers and WER keep
+// working. Guarded exceptions raised internally by drivers or the compiler
+// runtime also pass through here; they are counted so a later truly fatal
+// crash can still be distinguished.
+long NTAPI ScalerCrashHandler(EXCEPTION_POINTERS *info)
+{
+        static int logged = 0;
+        if (info != nullptr && info->ExceptionRecord != nullptr && logged < 8) {
+                const DWORD code = info->ExceptionRecord->ExceptionCode;
+                const char *what = nullptr;
+                switch (code) {
+                case 0xC0000005: what = "access violation"; break;
+                case 0xC000001D: what = "illegal instruction"; break;
+                case 0xC0000094: what = "integer divide by zero"; break;
+                case 0xC00000FD: what = "stack overflow"; break;
+                case 0xC0000374: what = "heap corruption"; break;
+                case 0xC0000409: what = "stack buffer overrun"; break;
+                default: break;
+                }
+                if (what != nullptr) {
+                        logged += 1;
+                        char buf[192];
+                        if (code == 0xC0000005 && info->ExceptionRecord->NumberParameters >= 2) {
+                                std::snprintf(buf, sizeof(buf),
+                                    "CRASH #%d: %s (code=0x%08lX, %s address 0x%p, thread %lu)",
+                                    logged, what, static_cast<unsigned long>(code),
+                                    info->ExceptionRecord->ExceptionInformation[0] == 1 ? "write to" : "read from",
+                                    reinterpret_cast<void *>(info->ExceptionRecord->ExceptionInformation[1]),
+                                    static_cast<unsigned long>(GetCurrentThreadId()));
+                        } else {
+                                std::snprintf(buf, sizeof(buf),
+                                    "CRASH #%d: %s (code=0x%08lX, thread %lu)",
+                                    logged, what, static_cast<unsigned long>(code),
+                                    static_cast<unsigned long>(GetCurrentThreadId()));
+                        }
+                        LogFileLine(buf);
+                }
+        }
+        return EXCEPTION_CONTINUE_SEARCH;
+}
+
+void InstallCrashHandler()
+{
+        static bool installed = false;
+        if (!installed) {
+                installed = true;
+                AddVectoredExceptionHandler(/*First=*/1, &ScalerCrashHandler);
+        }
+}
+#endif // _WIN32
 
 #ifdef _WIN32
 
@@ -192,13 +282,20 @@ std::vector<uint8_t> CompileHLSL(const char *source, const char *target)
         const long hr = d3dCompile(source, std::strlen(source), nullptr, nullptr, nullptr,
             "main", target, 0, 0, &code, &errors);
         if (hr < 0 || code == nullptr) {
+                std::string msg;
                 if (errors != nullptr) {
-                        LogError("GPU scaler: HLSL compilation failed ({}): {}", target,
-                            std::string_view(static_cast<const char *>(errors->GetBufferPointer()), errors->GetBufferSize()));
+                        msg.assign(static_cast<const char *>(errors->GetBufferPointer()),
+                            std::min<size_t>(errors->GetBufferSize(), 400));
                         errors->Release();
-                } else {
-                        LogError("GPU scaler: HLSL compilation failed ({})", target);
                 }
+                for (char &c : msg) {
+                        if (c == '\n' || c == '\r')
+                                c = ' ';
+                }
+                LogError("GPU scaler: HLSL compilation failed ({}): {}", target, msg);
+                // Also record it in the diagnostic file: SDL_Log is invisible
+                // for GUI applications on Windows.
+                LogFileLine(StrCat("ERROR: HLSL compilation failed (", target, "): ", msg));
                 return blob;
         }
         const auto *bytes = static_cast<const uint8_t *>(code->GetBufferPointer());
@@ -284,6 +381,22 @@ int SamplersFor(Program program)
         return 0;
 }
 
+const char *NameFor(Program program)
+{
+        switch (program) {
+        case Program::Vertex: return "vertex";
+        case Program::HqxIndex: return "hqx-index";
+        case Program::HqxBlend: return "hqx-blend";
+        case Program::SfxPass0: return "sfx-pass0";
+        case Program::SfxPass1: return "sfx-pass1";
+        case Program::SfxPass2: return "sfx-pass2";
+        case Program::SfxPass3: return "sfx-pass3";
+        case Program::SfxPass4: return "sfx-pass4";
+        case Program::Blit: return "blit";
+        }
+        return "unknown";
+}
+
 const char *MslEntryFor(Program program)
 {
         switch (program) {
@@ -327,12 +440,15 @@ bool CreateShader(Program program, SDL_GPUShaderStage stage, SDL_GPUShader **out
         case SDL_GPU_SHADERFORMAT_DXBC: {
 #ifdef _WIN32
                 const char *source = HlslFor(program);
-                dxbcBlob = CompileHLSL(source, stage == SDL_GPU_SHADERSTAGE_VERTEX ? "vs_5_1" : "ps_5_1");
+                // Shader Model 5.0 first: supported by every d3dcompiler and the
+                // least exotic input for GPU drivers. 5.1 only as a fallback.
+                dxbcBlob = CompileHLSL(source, stage == SDL_GPU_SHADERSTAGE_VERTEX ? "vs_5_0" : "ps_5_0");
                 if (dxbcBlob.empty()) {
-                        // Older d3dcompilers may not know the 5_1 targets.
-                        dxbcBlob = CompileHLSL(source, stage == SDL_GPU_SHADERSTAGE_VERTEX ? "vs_5_0" : "ps_5_0");
-                        if (dxbcBlob.empty())
+                        dxbcBlob = CompileHLSL(source, stage == SDL_GPU_SHADERSTAGE_VERTEX ? "vs_5_1" : "ps_5_1");
+                        if (dxbcBlob.empty()) {
+                                LogFileLine(StrCat("ERROR: all shader targets failed for '", NameFor(program), "'"));
                                 return false;
+                        }
                 }
                 info.code = dxbcBlob.data();
                 info.code_size = dxbcBlob.size();
@@ -348,9 +464,10 @@ bool CreateShader(Program program, SDL_GPUShaderStage stage, SDL_GPUShader **out
 
         *out = SDL_CreateGPUShader(gDevice, &info);
         if (*out == nullptr) {
-                LogFail("shader creation failed");
+                LogFail(StrCat("shader creation failed ('", NameFor(program), "')"));
                 return false;
         }
+        LogOk(StrCat("shader '", NameFor(program), "' created"));
         return true;
 }
 
@@ -371,7 +488,7 @@ SDL_GPUTexture *CreateTexture(SDL_GPUTextureFormat format, Uint32 width, Uint32 
         return texture;
 }
 
-SDL_GPUTexture *CreateHqxLut(const gpu::luts::LutData &lut)
+SDL_GPUTexture *CreateHqxLut(const gpu::luts::LutData &lut, const char *label)
 {
         std::vector<uint8_t> rgba8(static_cast<size_t>(lut.width) * lut.height * 4);
         for (int i = 0; i < lut.width * lut.height; ++i) {
@@ -421,6 +538,7 @@ SDL_GPUTexture *CreateHqxLut(const gpu::luts::LutData &lut)
         SDL_EndGPUCopyPass(copyPass);
         SDL_SubmitGPUCommandBuffer(cmd);
         SDL_ReleaseGPUTransferBuffer(gDevice, transfer);
+        LogOk(StrCat("hqx LUT '", label, "' queued for upload"));
         return texture;
 }
 
@@ -469,7 +587,9 @@ SDL_GPUGraphicsPipeline *CreatePipeline(Program fragmentProgram, SDL_GPUTextureF
 
         SDL_GPUGraphicsPipeline *pipeline = SDL_CreateGPUGraphicsPipeline(gDevice, &info);
         if (pipeline == nullptr)
-                LogFail("pipeline creation failed");
+                LogFail(StrCat("pipeline creation failed ('", NameFor(fragmentProgram), "')"));
+        else
+                LogOk(StrCat("pipeline '", NameFor(fragmentProgram), "' created"));
         return pipeline;
 }
 
@@ -581,6 +701,7 @@ bool EnsureFilterResources(ShaderFilter filter)
 {
         if (!EnsureSamplers() || !EnsureShaders())
                 return false;
+        LogOk("samplers and shaders ready");
 
         const bool isHqx = filter == ShaderFilter::HQ2x || filter == ShaderFilter::HQ3x || filter == ShaderFilter::HQ4x;
         const bool isSfx = IsScaleFX(filter);
@@ -596,10 +717,11 @@ bool EnsureFilterResources(ShaderFilter filter)
                         return false;
                 for (int i = 0; i < 3; ++i) {
                         const gpu::luts::LutData *lutData = i == 0 ? &gpu::luts::HQ2x : i == 1 ? &gpu::luts::HQ3x : &gpu::luts::HQ4x;
-                        gHqxLuts[i] = CreateHqxLut(*lutData);
+                        gHqxLuts[i] = CreateHqxLut(*lutData, i == 0 ? "hq2x" : i == 1 ? "hq3x" : "hq4x");
                         if (gHqxLuts[i] == nullptr)
                                 return false;
                 }
+                LogOk("hqx pipelines and LUTs ready");
         }
         if (isSfx && gSfxPipelines[0] == nullptr) {
                 static constexpr std::pair<Program, SDL_GPUTextureFormat> kSfxPipelinesSpec[5] = {
@@ -614,6 +736,7 @@ bool EnsureFilterResources(ShaderFilter filter)
                         if (gSfxPipelines[i] == nullptr)
                                 return false;
                 }
+                LogOk("scalefx pipelines ready");
         }
         if (gBlitPipeline == nullptr) {
                 const SDL_GPUTextureFormat swapchainFormat = SDL_GetGPUSwapchainTextureFormat(gDevice, gWindow);
@@ -740,11 +863,29 @@ bool WindowHasSwapchainHistory(SDL_Window *window)
 
 // Creates the GPU device and selects the shader format for its backend.
 // `name` forces a specific backend (e.g. "vulkan") or auto-selects when null.
+// The DEVILUTIONX_GPU_BACKEND environment variable overrides both, which is
+// useful for troubleshooting a broken D3D12 or Vulkan driver.
 static bool CreateDevice(const char *name)
 {
-        gDevice = SDL_CreateGPUDevice(
-            SDL_GPU_SHADERFORMAT_SPIRV | SDL_GPU_SHADERFORMAT_DXBC | SDL_GPU_SHADERFORMAT_MSL,
-            /*debug=*/false, /*name=*/name);
+        const char *backendOverride = SDL_getenv("DEVILUTIONX_GPU_BACKEND");
+        if (backendOverride != nullptr && *backendOverride == '\0')
+                backendOverride = nullptr;
+        if (backendOverride != nullptr)
+                LogFileLine(StrCat("backend override from DEVILUTIONX_GPU_BACKEND: ", backendOverride));
+
+        SDL_PropertiesID props = SDL_CreateProperties();
+        SDL_SetBooleanProperty(props, SDL_PROP_GPU_DEVICE_CREATE_DEBUGMODE_BOOLEAN, false);
+        SDL_SetBooleanProperty(props, SDL_PROP_GPU_DEVICE_CREATE_SHADERS_SPIRV_BOOLEAN, true);
+        SDL_SetBooleanProperty(props, SDL_PROP_GPU_DEVICE_CREATE_SHADERS_DXBC_BOOLEAN, true);
+        SDL_SetBooleanProperty(props, SDL_PROP_GPU_DEVICE_CREATE_SHADERS_MSL_BOOLEAN, true);
+        // Ask SDL to log the adapter name and driver version; the log capture
+        // installed below redirects these messages into the diagnostic file.
+        SDL_SetBooleanProperty(props, SDL_PROP_GPU_DEVICE_CREATE_VERBOSE_BOOLEAN, true);
+        if (backendOverride != nullptr || name != nullptr)
+                SDL_SetStringProperty(props, SDL_PROP_GPU_DEVICE_CREATE_NAME_STRING,
+                    backendOverride != nullptr ? backendOverride : name);
+        gDevice = SDL_CreateGPUDeviceWithProperties(props);
+        SDL_DestroyProperties(props);
         if (gDevice == nullptr)
                 return false;
         const char *driver = SDL_GetGPUDeviceDriver(gDevice);
@@ -772,6 +913,9 @@ static bool CreateDevice(const char *name)
 
 bool Reinit(SDL_Window *window)
 {
+#ifdef _WIN32
+        InstallCrashHandler();
+#endif
         if (gFailed) {
                 LogFileLine("Reinit skipped: the scaler failed earlier this session");
                 gFilter = ShaderFilter::None;
@@ -877,6 +1021,12 @@ void PresentFrame(const SDL_Surface &frame)
 {
         if (!IsActive())
                 return;
+
+        static bool loggedFirstPresentStart = false;
+        if (!loggedFirstPresentStart) {
+                loggedFirstPresentStart = true;
+                LogFileLine("present: first frame, acquiring command buffer and swapchain");
+        }
 
         const ShaderFilter filter = gFilter;
         const int baseScale = FilterScale(filter);
@@ -1050,6 +1200,11 @@ void PresentFrame(const SDL_Surface &frame)
         // Blit the scaled image into the swapchain with letterboxing.
         const int destWidth = static_cast<int>(std::lround(gameWidth * destScale));
         const int destHeight = static_cast<int>(std::lround(gameHeight * destScale));
+        if (destWidth <= 0 || destHeight <= 0) {
+                // Window smaller than the scaled image can occupy; skip.
+                SDL_CancelGPUCommandBuffer(cmd);
+                return;
+        }
         SDL_GPUViewport viewport {};
         viewport.x = (swapchainWidth - destWidth) / 2.0F;
         viewport.y = (swapchainHeight - destHeight) / 2.0F;
