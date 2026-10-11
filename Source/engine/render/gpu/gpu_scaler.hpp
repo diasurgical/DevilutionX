@@ -37,6 +37,13 @@ bool ScalerWanted();
 bool IsActive();
 
 /**
+ * @brief Returns true when the GPU scaler hit an unrecoverable error this
+ * session. The caller should tear it down and revert to the regular
+ * renderer; Reinit() will keep refusing until the process restarts.
+ */
+bool HasFailed();
+
+/**
  * @brief (Re)initializes the GPU scaler for the given window.
  * @return true on success; on failure the caller must fall back to the
  * regular SDL_Renderer path.

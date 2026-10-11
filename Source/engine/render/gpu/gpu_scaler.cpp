@@ -3,11 +3,14 @@
 #ifdef USE_GPU_SCALER
 #ifndef USE_SDL1
 
+#include <SDL3/SDL_filesystem.h>
 #include <SDL3/SDL_gpu.h>
+#include <SDL3/SDL_timer.h>
 #include <SDL3/SDL_video.h>
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <cstring>
 #include <memory>
 #include <string>
@@ -23,6 +26,7 @@
 #include "engine/render/gpu/gpu_shaders_hlsl.hpp"
 #include "engine/render/gpu/gpu_shaders_msl.hpp"
 #include "utils/log.hpp"
+#include "utils/str_cat.hpp"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -85,12 +89,57 @@ SDL_GPUTexture *gHqxLuts[3] = {}; // HQ2x, HQ3x, HQ4x
 
 bool gLoggedFailure = false;
 
+// Set when the scaler hits an unrecoverable error. Session-sticky: the game
+// reverts to the regular renderer instead of retrying a broken GPU path.
+bool gFailed = false;
+// Format the current blit pipeline was built for (swapchain format can change).
+SDL_GPUTextureFormat gBlitPipelineFormat = SDL_GPU_TEXTUREFORMAT_INVALID;
+
+// SDL_Log output is invisible for a GUI-subsystem application on Windows, so
+// GPU scaler diagnostics are also appended to gpu-scaler.log next to the
+// executable. The file opens lazily on first use.
+FILE *LogFile()
+{
+        static FILE *file = nullptr;
+        static bool initialized = false;
+        if (!initialized) {
+                initialized = true;
+                const char *basePath = SDL_GetBasePath();
+                if (basePath != nullptr) {
+                        // SDL3 owns the returned string; it must not be freed.
+                        const std::string path = std::string(basePath) + "gpu-scaler.log";
+                        file = std::fopen(path.c_str(), "a");
+                        if (file != nullptr)
+                                std::fprintf(file, "\n=== GPU scaler session (build %s %s) ===\n", __DATE__, __TIME__);
+                }
+        }
+        return file;
+}
+
+void LogFileLine(std::string_view line)
+{
+        if (FILE *file = LogFile(); file != nullptr) {
+                std::fprintf(file, "[%10u ms] %.*s\n", static_cast<unsigned>(SDL_GetTicks()), static_cast<int>(line.size()), line.data());
+                std::fflush(file);
+        }
+}
+
 void LogFail(std::string_view what)
 {
-        if (gLoggedFailure)
-                return;
-        gLoggedFailure = true;
-        LogError("GPU scaler: {}: {} (further GPU scaler errors will be suppressed)", what, SDL_GetError());
+        if (!gLoggedFailure) {
+                gLoggedFailure = true;
+                LogError("GPU scaler: {}: {} (further GPU scaler errors will be suppressed)", what, SDL_GetError());
+        }
+        LogFileLine(StrCat("ERROR: ", what, " | SDL_GetError: ", SDL_GetError()));
+}
+
+// A failure that cannot be recovered from within the GPU path: the scaler is
+// torn down and the game falls back to the regular renderer for this session.
+void LogFailHard(std::string_view what)
+{
+        gFailed = true;
+        LogFail(what);
+        LogFileLine("GPU scaler disabled for this session (hard failure)");
 }
 
 #ifdef _WIN32
@@ -388,6 +437,8 @@ SDL_GPUGraphicsPipeline *CreatePipeline(Program fragmentProgram, SDL_GPUTextureF
         SDL_GPUShader *fragmentShader = gFragmentShaders[static_cast<int>(fragmentProgram)];
         if (fragmentShader == nullptr)
                 return nullptr;
+        if (targetFormat == SDL_GPU_TEXTUREFORMAT_INVALID)
+                return nullptr;
 
         SDL_GPUColorTargetDescription targetDesc {};
         targetDesc.format = targetFormat;
@@ -445,8 +496,28 @@ bool EnsureSamplers()
         return true;
 }
 
+bool EnsureBlitPipeline(SDL_GPUTextureFormat format)
+{
+        if (gBlitPipeline != nullptr && gBlitPipelineFormat == format)
+                return true;
+        if (gBlitPipeline != nullptr) {
+                SDL_ReleaseGPUGraphicsPipeline(gDevice, gBlitPipeline);
+                gBlitPipeline = nullptr;
+                gBlitPipelineFormat = SDL_GPU_TEXTUREFORMAT_INVALID;
+        }
+        gBlitPipeline = CreatePipeline(Program::Blit, format);
+        if (gBlitPipeline == nullptr) {
+                LogFail("blit pipeline creation failed");
+                return false;
+        }
+        gBlitPipelineFormat = format;
+        LogFileLine(StrCat("blit pipeline ready, swapchain format=", static_cast<int>(format)));
+        return true;
+}
+
 void ReleaseFilterResources()
 {
+        gBlitPipelineFormat = SDL_GPU_TEXTUREFORMAT_INVALID;
         if (gVertexShader != nullptr) {
                 SDL_ReleaseGPUShader(gDevice, gVertexShader);
                 gVertexShader = nullptr;
@@ -540,8 +611,14 @@ bool EnsureFilterResources(ShaderFilter filter)
         }
         if (gBlitPipeline == nullptr) {
                 const SDL_GPUTextureFormat swapchainFormat = SDL_GetGPUSwapchainTextureFormat(gDevice, gWindow);
-                gBlitPipeline = CreatePipeline(Program::Blit, swapchainFormat);
-                if (gBlitPipeline == nullptr)
+                if (swapchainFormat == SDL_GPU_TEXTUREFORMAT_INVALID) {
+                        // The swapchain is not ready yet (claimed but never
+                        // presented to). Build the blit pipeline lazily on the
+                        // first present instead of guessing the format here.
+                        LogFileLine("swapchain format unavailable at init; deferring blit pipeline creation");
+                        return true;
+                }
+                if (!EnsureBlitPipeline(swapchainFormat))
                         return false;
         }
         return true;
@@ -600,14 +677,14 @@ bool EnsureFrameResources(int gameWidth, int gameHeight, int passScale)
 
         if (gGameTex == nullptr || gIndexTex == nullptr || gMetricTex == nullptr || gStrengthTex == nullptr
             || gFlagsTex == nullptr || gSubpixTex == nullptr || gScaledTex == nullptr || gTransferBuffer == nullptr) {
-                LogFail("frame resource creation failed");
+                LogFailHard("frame resource creation failed");
                 ReleaseFrameResources();
                 return false;
         }
         return true;
 }
 
-void RenderPass(SDL_GPUCommandBuffer *cmd, SDL_GPUTexture *target, Uint32 targetWidth, Uint32 targetHeight,
+bool RenderPass(SDL_GPUCommandBuffer *cmd, SDL_GPUTexture *target, Uint32 targetWidth, Uint32 targetHeight,
     SDL_GPUGraphicsPipeline *pipeline, const FragUniforms &uniforms,
     const SDL_GPUTextureSamplerBinding *bindings, Uint32 numBindings,
     const SDL_GPUViewport *viewport)
@@ -619,8 +696,8 @@ void RenderPass(SDL_GPUCommandBuffer *cmd, SDL_GPUTexture *target, Uint32 target
         colorInfo.store_op = SDL_GPU_STOREOP_STORE;
         SDL_GPURenderPass *renderPass = SDL_BeginGPURenderPass(cmd, &colorInfo, 1, nullptr);
         if (renderPass == nullptr) {
-                LogFail("render pass creation failed");
-                return;
+                LogFailHard("render pass creation failed");
+                return false;
         }
         SDL_BindGPUGraphicsPipeline(renderPass, pipeline);
         if (numBindings > 0)
@@ -630,6 +707,7 @@ void RenderPass(SDL_GPUCommandBuffer *cmd, SDL_GPUTexture *target, Uint32 target
                 SDL_SetGPUViewport(renderPass, viewport);
         SDL_DrawGPUPrimitives(renderPass, 3, 1, 0, 0);
         SDL_EndGPURenderPass(renderPass);
+        return true;
 }
 
 } // namespace
@@ -644,20 +722,31 @@ bool IsActive()
         return gDevice != nullptr && gWindow != nullptr && gFilter != ShaderFilter::None;
 }
 
+bool HasFailed()
+{
+        return gFailed;
+}
+
 bool Reinit(SDL_Window *window)
 {
+        if (gFailed) {
+                LogFileLine("Reinit skipped: the scaler failed earlier this session");
+                gFilter = ShaderFilter::None;
+                return false;
+        }
         gFilter = *GetOptions().Graphics.shaderFilter;
         if (gFilter == ShaderFilter::None) {
                 Shutdown();
                 return false;
         }
+        LogFileLine(StrCat("Reinit: filter=", static_cast<int>(gFilter), " (0=Off, 1-3=HQ2x/3x/4x, 4-6=ScaleFX 2x/3x/4x)"));
 
         if (gDevice == nullptr) {
                 gDevice = SDL_CreateGPUDevice(
                     SDL_GPU_SHADERFORMAT_SPIRV | SDL_GPU_SHADERFORMAT_DXBC | SDL_GPU_SHADERFORMAT_MSL,
                     /*debug=*/false, /*name=*/nullptr);
                 if (gDevice == nullptr) {
-                        LogFail("SDL_CreateGPUDevice failed");
+                        LogFailHard("SDL_CreateGPUDevice failed");
                         gFilter = ShaderFilter::None;
                         return false;
                 }
@@ -668,18 +757,19 @@ bool Reinit(SDL_Window *window)
 #ifdef _WIN32
                         gShaderFormat = SDL_GPU_SHADERFORMAT_DXBC;
 #else
-                        LogError("GPU scaler: D3D12 backend only supported on Windows");
+                        LogFailHard("D3D12 backend only supported on Windows");
                         Shutdown();
                         return false;
 #endif
                 } else if (driver != nullptr && std::strcmp(driver, "metal") == 0) {
                         gShaderFormat = SDL_GPU_SHADERFORMAT_MSL;
                 } else {
-                        LogError("GPU scaler: unsupported GPU driver: {}", driver != nullptr ? driver : "unknown");
+                        LogFailHard(StrCat("unsupported GPU driver: ", driver != nullptr ? driver : "unknown"));
                         Shutdown();
                         return false;
                 }
                 Log("GPU scaler: using the {} backend", driver);
+                LogFileLine(StrCat("device created, backend=", driver != nullptr ? driver : "unknown"));
         }
 
         if (gWindow != window) {
@@ -687,7 +777,7 @@ bool Reinit(SDL_Window *window)
                         SDL_ReleaseWindowFromGPUDevice(gDevice, gWindow);
                 gWindow = window;
                 if (!SDL_ClaimWindowForGPUDevice(gDevice, gWindow)) {
-                        LogFail("SDL_ClaimWindowForGPUDevice failed");
+                        LogFailHard("SDL_ClaimWindowForGPUDevice failed");
                         gWindow = nullptr;
                         Shutdown();
                         return false;
@@ -697,14 +787,18 @@ bool Reinit(SDL_Window *window)
                         vsync ? SDL_GPU_PRESENTMODE_VSYNC : SDL_GPU_PRESENTMODE_IMMEDIATE)) {
                         LogFail("SDL_SetGPUSwapchainParameters failed");
                 }
+                LogFileLine(StrCat("window claimed, swapchain format=", static_cast<int>(SDL_GetGPUSwapchainTextureFormat(gDevice, gWindow)),
+                    " vsync=", vsync ? "1" : "0"));
                 // The swapchain format may have changed with the new window.
                 if (gBlitPipeline != nullptr) {
                         SDL_ReleaseGPUGraphicsPipeline(gDevice, gBlitPipeline);
                         gBlitPipeline = nullptr;
+                        gBlitPipelineFormat = SDL_GPU_TEXTUREFORMAT_INVALID;
                 }
         }
 
         if (!EnsureFilterResources(gFilter)) {
+                LogFailHard("filter resource initialization failed");
                 Shutdown();
                 return false;
         }
@@ -713,6 +807,7 @@ bool Reinit(SDL_Window *window)
 
 void Shutdown()
 {
+        LogFileLine("Shutdown");
         if (gDevice == nullptr) {
                 gWindow = nullptr;
                 gFilter = ShaderFilter::None;
@@ -748,14 +843,18 @@ void PresentFrame(const SDL_Surface &frame)
 
         SDL_GPUCommandBuffer *cmd = SDL_AcquireGPUCommandBuffer(gDevice);
         if (cmd == nullptr) {
-                LogFail("SDL_AcquireGPUCommandBuffer failed");
+                LogFailHard("SDL_AcquireGPUCommandBuffer failed");
                 return;
         }
 
         SDL_GPUTexture *swapchainTexture = nullptr;
         Uint32 swapchainWidth = 0;
         Uint32 swapchainHeight = 0;
-        if (!SDL_WaitAndAcquireGPUSwapchainTexture(cmd, gWindow, &swapchainTexture, &swapchainWidth, &swapchainHeight)
+        // Non-blocking on purpose: the blocking acquire variant can stall the
+        // main thread indefinitely (minimized window, resize, driver quirk),
+        // which looks like a frozen UI while audio keeps playing. Skipping a
+        // frame costs nothing; the next frame retries.
+        if (!SDL_AcquireGPUSwapchainTexture(cmd, gWindow, &swapchainTexture, &swapchainWidth, &swapchainHeight)
             || swapchainTexture == nullptr) {
                 // Window minimized or no swapchain image available this frame.
                 SDL_CancelGPUCommandBuffer(cmd);
@@ -764,6 +863,20 @@ void PresentFrame(const SDL_Surface &frame)
 
         const int gameWidth = frame.w;
         const int gameHeight = frame.h;
+
+        static bool loggedFirstPresent = false;
+        if (!loggedFirstPresent) {
+                loggedFirstPresent = true;
+                LogFileLine(StrCat("first present: game=", gameWidth, "x", gameHeight,
+                    " swapchain=", swapchainWidth, "x", swapchainHeight));
+        }
+
+        // The swapchain format can change (window resize, fullscreen switch).
+        // Rebuild the blit pipeline for the current format when needed.
+        if (!EnsureBlitPipeline(SDL_GetGPUSwapchainTextureFormat(gDevice, gWindow))) {
+                SDL_CancelGPUCommandBuffer(cmd);
+                return;
+        }
 
         // Fit the game frame into the window, honoring the Integer Scaling option.
         float fitScale = std::min(static_cast<float>(swapchainWidth) / gameWidth,
@@ -798,7 +911,6 @@ void PresentFrame(const SDL_Surface &frame)
                 SDL_CancelGPUCommandBuffer(cmd);
                 return;
         }
-        // Upload the game frame.
         {
                 const int bytesPerRow = gameWidth * 4;
                 auto *dst = static_cast<uint8_t *>(SDL_MapGPUTransferBuffer(gDevice, gTransferBuffer, false));
@@ -835,49 +947,64 @@ void PresentFrame(const SDL_Surface &frame)
         if (filter == ShaderFilter::HQ2x || filter == ShaderFilter::HQ3x || filter == ShaderFilter::HQ4x) {
                 // Pass 1: edge indices.
                 SDL_GPUTextureSamplerBinding indexBindings[1] = { { gGameTex, gNearestSampler } };
-                RenderPass(cmd, gIndexTex, gameWidth, gameHeight, gHqxIndexPipeline, uniforms, indexBindings, 1, nullptr);
+                bool passFailed = !RenderPass(cmd, gIndexTex, gameWidth, gameHeight, gHqxIndexPipeline, uniforms, indexBindings, 1, nullptr);
 
                 // Pass 2: LUT blend into the scaled target.
-                const int lutIndex = baseScale == 2 ? 0 : baseScale == 3 ? 1 : 2;
-                SDL_GPUTextureSamplerBinding blendBindings[3] = {
-                        { gIndexTex, gNearestSampler },
-                        { gHqxLuts[lutIndex], gNearestSampler },
-                        { gGameTex, gNearestSampler },
-                };
-                uniforms.params[0] = static_cast<float>(baseScale);
-                RenderPass(cmd, gScaledTex, gameWidth * passScale, gameHeight * passScale, gHqxBlendPipeline, uniforms, blendBindings, 3, nullptr);
+                if (!passFailed) {
+                        const int lutIndex = baseScale == 2 ? 0 : baseScale == 3 ? 1 : 2;
+                        SDL_GPUTextureSamplerBinding blendBindings[3] = {
+                                { gIndexTex, gNearestSampler },
+                                { gHqxLuts[lutIndex], gNearestSampler },
+                                { gGameTex, gNearestSampler },
+                        };
+                        uniforms.params[0] = static_cast<float>(baseScale);
+                        passFailed = !RenderPass(cmd, gScaledTex, gameWidth * passScale, gameHeight * passScale, gHqxBlendPipeline, uniforms, blendBindings, 3, nullptr);
+                }
+                if (passFailed) {
+                        SDL_CancelGPUCommandBuffer(cmd);
+                        return;
+                }
         } else {
                 // ScaleFX pass 0: metrics.
                 SDL_GPUTextureSamplerBinding p0Bindings[1] = { { gGameTex, gNearestSampler } };
-                RenderPass(cmd, gMetricTex, gameWidth, gameHeight, gSfxPipelines[0], uniforms, p0Bindings, 1, nullptr);
+                bool passFailed = !RenderPass(cmd, gMetricTex, gameWidth, gameHeight, gSfxPipelines[0], uniforms, p0Bindings, 1, nullptr);
 
                 // ScaleFX pass 1: corner strength.
-                SDL_GPUTextureSamplerBinding p1Bindings[1] = { { gMetricTex, gNearestSampler } };
-                uniforms.params[0] = kSfxClr;
-                uniforms.params[1] = kSfxSaa;
-                RenderPass(cmd, gStrengthTex, gameWidth, gameHeight, gSfxPipelines[1], uniforms, p1Bindings, 1, nullptr);
-
+                if (!passFailed) {
+                        SDL_GPUTextureSamplerBinding p1Bindings[1] = { { gMetricTex, gNearestSampler } };
+                        uniforms.params[0] = kSfxClr;
+                        uniforms.params[1] = kSfxSaa;
+                        passFailed = !RenderPass(cmd, gStrengthTex, gameWidth, gameHeight, gSfxPipelines[1], uniforms, p1Bindings, 1, nullptr);
+                }
                 // ScaleFX pass 2: edge flags.
-                SDL_GPUTextureSamplerBinding p2Bindings[2] = {
-                        { gStrengthTex, gNearestSampler },
-                        { gMetricTex, gNearestSampler },
-                };
-                uniforms.params[0] = 0.0F;
-                uniforms.params[1] = 0.0F;
-                RenderPass(cmd, gFlagsTex, gameWidth, gameHeight, gSfxPipelines[2], uniforms, p2Bindings, 2, nullptr);
-
+                if (!passFailed) {
+                        SDL_GPUTextureSamplerBinding p2Bindings[2] = {
+                                { gStrengthTex, gNearestSampler },
+                                { gMetricTex, gNearestSampler },
+                        };
+                        uniforms.params[0] = 0.0F;
+                        uniforms.params[1] = 0.0F;
+                        passFailed = !RenderPass(cmd, gFlagsTex, gameWidth, gameHeight, gSfxPipelines[2], uniforms, p2Bindings, 2, nullptr);
+                }
                 // ScaleFX pass 3: subpixel map.
-                SDL_GPUTextureSamplerBinding p3Bindings[1] = { { gFlagsTex, gNearestSampler } };
-                uniforms.params[0] = kSfxScn;
-                RenderPass(cmd, gSubpixTex, gameWidth, gameHeight, gSfxPipelines[3], uniforms, p3Bindings, 1, nullptr);
-
+                if (!passFailed) {
+                        SDL_GPUTextureSamplerBinding p3Bindings[1] = { { gFlagsTex, gNearestSampler } };
+                        uniforms.params[0] = kSfxScn;
+                        passFailed = !RenderPass(cmd, gSubpixTex, gameWidth, gameHeight, gSfxPipelines[3], uniforms, p3Bindings, 1, nullptr);
+                }
                 // ScaleFX pass 4: render at the effective scale.
-                SDL_GPUTextureSamplerBinding p4Bindings[2] = {
-                        { gSubpixTex, gNearestSampler },
-                        { gGameTex, gNearestSampler },
-                };
-                uniforms.params[0] = static_cast<float>(passScale);
-                RenderPass(cmd, gScaledTex, gameWidth * passScale, gameHeight * passScale, gSfxPipelines[4], uniforms, p4Bindings, 2, nullptr);
+                if (!passFailed) {
+                        SDL_GPUTextureSamplerBinding p4Bindings[2] = {
+                                { gSubpixTex, gNearestSampler },
+                                { gGameTex, gNearestSampler },
+                        };
+                        uniforms.params[0] = static_cast<float>(passScale);
+                        passFailed = !RenderPass(cmd, gScaledTex, gameWidth * passScale, gameHeight * passScale, gSfxPipelines[4], uniforms, p4Bindings, 2, nullptr);
+                }
+                if (passFailed) {
+                        SDL_CancelGPUCommandBuffer(cmd);
+                        return;
+                }
         }
 
         // Blit the scaled image into the swapchain with letterboxing.
@@ -892,10 +1019,13 @@ void PresentFrame(const SDL_Surface &frame)
         viewport.max_depth = 1.0F;
         SDL_GPUTextureSamplerBinding blitBindings[1] = { { gScaledTex, gLinearSampler } };
         uniforms.params[0] = 0.0F;
-        RenderPass(cmd, swapchainTexture, swapchainWidth, swapchainHeight, gBlitPipeline, uniforms, blitBindings, 1, &viewport);
+        if (!RenderPass(cmd, swapchainTexture, swapchainWidth, swapchainHeight, gBlitPipeline, uniforms, blitBindings, 1, &viewport)) {
+                SDL_CancelGPUCommandBuffer(cmd);
+                return;
+        }
 
         if (!SDL_SubmitGPUCommandBuffer(cmd))
-                LogFail("SDL_SubmitGPUCommandBuffer failed");
+                LogFailHard("SDL_SubmitGPUCommandBuffer failed");
 }
 
 } // namespace gpu_scaler
