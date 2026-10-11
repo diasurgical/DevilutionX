@@ -1,8 +1,10 @@
 #include "utils/soundsample.h"
 
+#include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <cstdint>
+#include <cstdio>
 #include <utility>
 
 #ifdef USE_SDL3
@@ -379,7 +381,18 @@ int SoundSample::SetChunk(ArraySharedPtr<std::uint8_t> fileData, std::size_t dwB
 	// For small sound effects, predecode to avoid repeated decoding overhead.
 	audio_ = MIX_LoadAudio_IO(CurrentMixer, io, /*predecode=*/true, /*closeio=*/true);
 	if (audio_ == nullptr) {
-		LogError(LogCategory::Audio, "MIX_LoadAudio_IO failed (from SoundSample::SetChunk): {}", SDL_GetError());
+		// Include a hex dump of the first bytes: an "unknown format" error
+		// usually means the asset bytes are not what we think they are.
+		const size_t headLen = std::min<std::size_t>(file_data_size_, 16);
+		std::string head;
+		char byte[4];
+		for (size_t i = 0; i < headLen; ++i) {
+			std::snprintf(byte, sizeof(byte), "%02X", file_data_[i]);
+			head += byte;
+			if (i % 4 == 3 && i + 1 < headLen)
+				head += "  ";
+		}
+		LogError(LogCategory::Audio, "MIX_LoadAudio_IO failed (from SoundSample::SetChunk): {} | size={} head=[{}]", SDL_GetError(), file_data_size_, head);
 		return -1;
 	}
 

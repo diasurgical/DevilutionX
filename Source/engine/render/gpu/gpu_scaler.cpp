@@ -12,6 +12,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <memory>
@@ -83,7 +84,6 @@ SDL_GPUTexture *gStrengthTex = nullptr; // ScaleFX pass 1 (fp16)
 SDL_GPUTexture *gFlagsTex = nullptr;    // ScaleFX pass 2
 SDL_GPUTexture *gSubpixTex = nullptr;   // ScaleFX pass 3
 SDL_GPUTexture *gScaledTex = nullptr;
-SDL_GPUTransferBuffer *gTransferBuffer = nullptr;
 
 SDL_GPUSampler *gNearestSampler = nullptr;
 SDL_GPUSampler *gLinearSampler = nullptr;
@@ -191,6 +191,45 @@ void InstallSdlLogCapture()
 // working. Guarded exceptions raised internally by drivers or the compiler
 // runtime also pass through here; they are counted so a later truly fatal
 // crash can still be distinguished.
+//
+// The handler also records the faulting instruction pointer and a raw stack
+// backtrace as offsets from the executable's image base. The executable is
+// built with `-g2` (file/line debug info), so these offsets can be resolved
+// offline with `addr2line -e devilutionx.exe <offset>` against the exact
+// binary that produced the log.
+extern "C" USHORT NTAPI RtlCaptureStackBackTrace(
+    ULONG FramesToSkip, ULONG FramesToCapture, void **BackTrace, ULONG *BackTraceHash);
+
+std::string HexU64(uint64_t value)
+{
+        char buf[32];
+        std::snprintf(buf, sizeof(buf), "%llX", static_cast<unsigned long long>(value));
+        return buf;
+}
+
+std::string HexU32(uint32_t value)
+{
+        return HexU64(value);
+}
+
+std::string CrashThreadName()
+{
+        using GetThreadDescriptionFn = HRESULT(WINAPI *)(HANDLE, PWSTR *);
+        static GetThreadDescriptionFn fn = reinterpret_cast<GetThreadDescriptionFn>(
+            reinterpret_cast<void *>(GetProcAddress(GetModuleHandleW(L"kernel32.dll"), "GetThreadDescription")));
+        if (fn != nullptr) {
+                PWSTR name = nullptr;
+                if (fn(GetCurrentThread(), &name) == S_OK && name != nullptr) {
+                        std::string result;
+                        for (const wchar_t *p = name; *p != L'\0' && result.size() < 32; ++p)
+                                result.push_back(static_cast<char>(*p >= L' ' && *p < L'\x7F' ? *p : L'?'));
+                        LocalFree(name);
+                        return result;
+                }
+        }
+        return "";
+}
+
 long NTAPI ScalerCrashHandler(EXCEPTION_POINTERS *info)
 {
         static int logged = 0;
@@ -208,21 +247,50 @@ long NTAPI ScalerCrashHandler(EXCEPTION_POINTERS *info)
                 }
                 if (what != nullptr) {
                         logged += 1;
-                        char buf[192];
+                        const std::string threadName = CrashThreadName();
+                        std::string crashLine = StrCat(
+                            "CRASH #", logged, ": ", what,
+                            " (code=0x", HexU32(static_cast<uint32_t>(code)), ", ");
                         if (code == 0xC0000005 && info->ExceptionRecord->NumberParameters >= 2) {
-                                std::snprintf(buf, sizeof(buf),
-                                    "CRASH #%d: %s (code=0x%08lX, %s address 0x%p, thread %lu)",
-                                    logged, what, static_cast<unsigned long>(code),
+                                crashLine += StrCat(
                                     info->ExceptionRecord->ExceptionInformation[0] == 1 ? "write to" : "read from",
-                                    reinterpret_cast<void *>(info->ExceptionRecord->ExceptionInformation[1]),
-                                    static_cast<unsigned long>(GetCurrentThreadId()));
-                        } else {
-                                std::snprintf(buf, sizeof(buf),
-                                    "CRASH #%d: %s (code=0x%08lX, thread %lu)",
-                                    logged, what, static_cast<unsigned long>(code),
-                                    static_cast<unsigned long>(GetCurrentThreadId()));
+                                    " address 0x", HexU64(static_cast<uint64_t>(info->ExceptionRecord->ExceptionInformation[1])), ", ");
                         }
-                        LogFileLine(buf);
+                        crashLine += StrCat("thread ", GetCurrentThreadId());
+                        if (!threadName.empty())
+                                crashLine += StrCat(" \"", threadName, "\"");
+                        crashLine += ')';
+                        LogFileLine(crashLine);
+
+                        // Module-relative offsets for the faulting IP and the raw
+                        // call stack. The build is fully static, so nearly all
+                        // frames live in the exe itself.
+                        const HMODULE exeModule = GetModuleHandleW(nullptr);
+                        const uintptr_t exeBase = reinterpret_cast<uintptr_t>(exeModule);
+                        uintptr_t exeEnd = exeBase;
+                        if (exeModule != nullptr) {
+                                const auto *dosHeader = reinterpret_cast<const IMAGE_DOS_HEADER *>(exeModule);
+                                if (dosHeader->e_magic == IMAGE_DOS_SIGNATURE) {
+                                        const auto *ntHeaders = reinterpret_cast<const IMAGE_NT_HEADERS *>(exeBase + dosHeader->e_lfanew);
+                                        exeEnd = exeBase + ntHeaders->OptionalHeader.SizeOfImage;
+                                }
+                        }
+                        auto describeAddress = [exeBase, exeEnd](uintptr_t address) {
+                                if (address >= exeBase && address < exeEnd)
+                                        return StrCat("devilutionx.exe+0x", HexU64(static_cast<uint64_t>(address - exeBase)));
+                                return StrCat("0x", HexU64(static_cast<uint64_t>(address)));
+                        };
+                        if (info->ContextRecord != nullptr) {
+                                LogFileLine(StrCat("  faulting ip: ", describeAddress(reinterpret_cast<uintptr_t>(info->ContextRecord->Rip))));
+                        }
+                        void *frames[24] = {};
+                        const USHORT numFrames = RtlCaptureStackBackTrace(0, 24, frames, nullptr);
+                        std::string stack = "  stack:";
+                        for (USHORT i = 0; i < numFrames; ++i) {
+                                stack += ' ';
+                                stack += describeAddress(reinterpret_cast<uintptr_t>(frames[i]));
+                        }
+                        LogFileLine(stack);
                 }
         }
         return EXCEPTION_CONTINUE_SEARCH;
@@ -442,7 +510,9 @@ bool CreateShader(Program program, SDL_GPUShaderStage stage, SDL_GPUShader **out
                 const char *source = HlslFor(program);
                 // Shader Model 5.0 first: supported by every d3dcompiler and the
                 // least exotic input for GPU drivers. 5.1 only as a fallback.
-                dxbcBlob = CompileHLSL(source, stage == SDL_GPU_SHADERSTAGE_VERTEX ? "vs_5_0" : "ps_5_0");
+                const char *target = stage == SDL_GPU_SHADERSTAGE_VERTEX ? "vs_5_0" : "ps_5_0";
+                LogFileLine(StrCat("compiling shader '", NameFor(program), "' (", target, ") via d3dcompiler"));
+                dxbcBlob = CompileHLSL(source, target);
                 if (dxbcBlob.empty()) {
                         dxbcBlob = CompileHLSL(source, stage == SDL_GPU_SHADERSTAGE_VERTEX ? "vs_5_1" : "ps_5_1");
                         if (dxbcBlob.empty()) {
@@ -450,6 +520,7 @@ bool CreateShader(Program program, SDL_GPUShaderStage stage, SDL_GPUShader **out
                                 return false;
                         }
                 }
+                LogFileLine(StrCat("compiled shader '", NameFor(program), "', bytes=", dxbcBlob.size()));
                 info.code = dxbcBlob.data();
                 info.code_size = dxbcBlob.size();
                 info.format = SDL_GPU_SHADERFORMAT_DXBC;
@@ -761,10 +832,6 @@ void ReleaseFrameResources()
                         *texture = nullptr;
                 }
         }
-        if (gTransferBuffer != nullptr) {
-                SDL_ReleaseGPUTransferBuffer(gDevice, gTransferBuffer);
-                gTransferBuffer = nullptr;
-        }
         gGameWidth = 0;
         gGameHeight = 0;
         gPassScale = 0;
@@ -799,13 +866,8 @@ bool EnsureFrameResources(int gameWidth, int gameHeight, int passScale)
         gScaledTex = CreateTexture(SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM, scaledWidth, scaledHeight,
             SDL_GPU_TEXTUREUSAGE_SAMPLER | SDL_GPU_TEXTUREUSAGE_COLOR_TARGET);
 
-        SDL_GPUTransferBufferCreateInfo transferInfo {};
-        transferInfo.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
-        transferInfo.size = gameWidth * gameHeight * 4;
-        gTransferBuffer = SDL_CreateGPUTransferBuffer(gDevice, &transferInfo);
-
         if (gGameTex == nullptr || gIndexTex == nullptr || gMetricTex == nullptr || gStrengthTex == nullptr
-            || gFlagsTex == nullptr || gSubpixTex == nullptr || gScaledTex == nullptr || gTransferBuffer == nullptr) {
+            || gFlagsTex == nullptr || gSubpixTex == nullptr || gScaledTex == nullptr) {
                 LogFailHard("frame resource creation failed");
                 ReleaseFrameResources();
                 return false;
@@ -840,6 +902,11 @@ bool RenderPass(SDL_GPUCommandBuffer *cmd, SDL_GPUTexture *target, Uint32 target
 }
 
 } // namespace
+
+void LogPhase(std::string_view line)
+{
+        LogFileLine(line);
+}
 
 bool ScalerWanted()
 {
@@ -1022,6 +1089,29 @@ void PresentFrame(const SDL_Surface &frame)
         if (!IsActive())
                 return;
 
+        // Heartbeat: lets a remote log show whether the present loop is alive
+        // (UI responsive) or stalled (main thread stuck elsewhere), and counts
+        // frames skipped due to an unavailable swapchain image.
+        static Uint32 sLastHeartbeat = 0;
+        static unsigned long sHeartbeatFrames = 0;
+        static unsigned long sSkippedFrames = 0;
+        static unsigned long sTotalFrames = 0;
+        ++sHeartbeatFrames;
+        ++sTotalFrames;
+        {
+                const Uint32 now = SDL_GetTicks();
+                if (sLastHeartbeat == 0)
+                        sLastHeartbeat = now;
+                if (now - sLastHeartbeat >= 5000) {
+                        LogFileLine(StrCat("heartbeat: ", sHeartbeatFrames, " frames (", sSkippedFrames,
+                                        " skipped, ", sTotalFrames, " total, filter=",
+                                        static_cast<int>(gFilter), ")"));
+                        sLastHeartbeat = now;
+                        sHeartbeatFrames = 0;
+                        sSkippedFrames = 0;
+                }
+        }
+
         static bool loggedFirstPresentStart = false;
         if (!loggedFirstPresentStart) {
                 loggedFirstPresentStart = true;
@@ -1047,6 +1137,7 @@ void PresentFrame(const SDL_Surface &frame)
         if (!SDL_AcquireGPUSwapchainTexture(cmd, gWindow, &swapchainTexture, &swapchainWidth, &swapchainHeight)
             || swapchainTexture == nullptr) {
                 // Window minimized or no swapchain image available this frame.
+                ++sSkippedFrames;
                 SDL_CancelGPUCommandBuffer(cmd);
                 return;
         }
@@ -1101,9 +1192,32 @@ void PresentFrame(const SDL_Surface &frame)
                 SDL_CancelGPUCommandBuffer(cmd);
                 return;
         }
+        // Upload the frame through a fresh transfer buffer created per frame.
+        // The buffer is released when this function returns (RAII below); SDL
+        // defers the actual destruction until the GPU is done with it. This
+        // avoids overwriting a long-lived buffer that the GPU may still be
+        // reading from on the previous frame's copy pass.
+        SDL_GPUTransferBufferCreateInfo transferInfo {};
+        transferInfo.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
+        transferInfo.size = static_cast<Uint32>(gameWidth) * gameHeight * 4;
+        SDL_GPUTransferBuffer *transfer = SDL_CreateGPUTransferBuffer(gDevice, &transferInfo);
+        if (transfer == nullptr) {
+                LogFailHard("frame transfer buffer creation failed");
+                SDL_CancelGPUCommandBuffer(cmd);
+                return;
+        }
+        struct TransferBufferReleaser {
+                SDL_GPUDevice *device;
+                SDL_GPUTransferBuffer *buffer;
+                ~TransferBufferReleaser()
+                {
+                        SDL_ReleaseGPUTransferBuffer(device, buffer);
+                }
+        } transferReleaser { gDevice, transfer };
+
         {
                 const int bytesPerRow = gameWidth * 4;
-                auto *dst = static_cast<uint8_t *>(SDL_MapGPUTransferBuffer(gDevice, gTransferBuffer, false));
+                auto *dst = static_cast<uint8_t *>(SDL_MapGPUTransferBuffer(gDevice, transfer, false));
                 const auto *src = static_cast<const uint8_t *>(frame.pixels);
                 if (frame.pitch == bytesPerRow) {
                         std::memcpy(dst, src, static_cast<size_t>(bytesPerRow) * gameHeight);
@@ -1111,11 +1225,11 @@ void PresentFrame(const SDL_Surface &frame)
                         for (int y = 0; y < gameHeight; ++y)
                                 std::memcpy(dst + static_cast<size_t>(y) * bytesPerRow, src + static_cast<size_t>(y) * frame.pitch, bytesPerRow);
                 }
-                SDL_UnmapGPUTransferBuffer(gDevice, gTransferBuffer);
+                SDL_UnmapGPUTransferBuffer(gDevice, transfer);
 
                 SDL_GPUCopyPass *copyPass = SDL_BeginGPUCopyPass(cmd);
                 SDL_GPUTextureTransferInfo transferSrc {};
-                transferSrc.transfer_buffer = gTransferBuffer;
+                transferSrc.transfer_buffer = transfer;
                 transferSrc.offset = 0;
                 transferSrc.pixels_per_row = gameWidth;
                 transferSrc.rows_per_layer = gameHeight;
@@ -1198,8 +1312,14 @@ void PresentFrame(const SDL_Surface &frame)
         }
 
         // Blit the scaled image into the swapchain with letterboxing.
-        const int destWidth = static_cast<int>(std::lround(gameWidth * destScale));
-        const int destHeight = static_cast<int>(std::lround(gameHeight * destScale));
+        int destWidth = static_cast<int>(std::lround(gameWidth * destScale));
+        int destHeight = static_cast<int>(std::lround(gameHeight * destScale));
+        // Rounding can overshoot the swapchain by a pixel; clamp so the
+        // viewport never exceeds the render target.
+        if (destWidth > static_cast<int>(swapchainWidth))
+                destWidth = static_cast<int>(swapchainWidth);
+        if (destHeight > static_cast<int>(swapchainHeight))
+                destHeight = static_cast<int>(swapchainHeight);
         if (destWidth <= 0 || destHeight <= 0) {
                 // Window smaller than the scaled image can occupy; skip.
                 SDL_CancelGPUCommandBuffer(cmd);

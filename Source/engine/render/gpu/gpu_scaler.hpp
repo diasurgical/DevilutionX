@@ -5,6 +5,7 @@
 #ifndef USE_SDL1
 
 #include <cstdint>
+#include <string_view>
 
 struct SDL_Surface;
 struct SDL_Window;
@@ -68,6 +69,13 @@ void Shutdown();
  * shader filter. Blocks for vsync when configured.
  */
 void PresentFrame(const SDL_Surface &frame);
+
+/**
+ * @brief Appends a timestamped line to the GPU scaler diagnostic log
+ * (gpu-scaler.log next to the executable). Used by load/present phase
+ * instrumentation to diagnose remote hangs and crashes.
+ */
+void LogPhase(std::string_view line);
 
 } // namespace gpu_scaler
 
