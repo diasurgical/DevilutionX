@@ -22,6 +22,7 @@ enum class SpellCheckResult : uint8_t {
 bool IsValidSpell(SpellID spl);
 bool IsValidSpellFrom(int spellFrom);
 bool IsWallSpell(SpellID spl);
+bool IsPositionalSpell(SpellID spl);
 bool TargetsMonster(SpellID id);
 int GetManaAmount(const Player &player, SpellID sn);
 void ConsumeSpell(Player &player, SpellID sn);
