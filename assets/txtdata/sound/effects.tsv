@@ -6,6 +6,7 @@ Swing	Misc	sfx\misc\swing.wav
 Swing2	Misc	sfx\misc\swing2.wav
 WarriorDeath	Misc	sfx\misc\dead.wav
 QuestDone	Stream	sfx\misc\questdon.wav
+BrokeArmor	Misc	sfx\items\armrfkd.wav
 BarrelExpload	Misc	sfx\items\barlfire.wav
 BarrelBreak	Misc	sfx\items\barrel.wav
 ChestOpen	Misc	sfx\items\chest.wav
@@ -30,6 +31,7 @@ ItemSignFlip	Misc	sfx\items\flipsign.wav
 ItemStaffFlip	Misc	sfx\items\flipstaf.wav
 ItemSwordFlip	Misc	sfx\items\flipswor.wav
 ItemGold	Misc	sfx\items\gold.wav
+BrokeHelmet	Misc	sfx\items\hlmtfkd.wav
 ItemAnvil	Misc	sfx\items\invanvl.wav
 ItemAxe	Misc	sfx\items\invaxe.wav
 ItemBloodStone	Misc	sfx\items\invblst.wav
@@ -54,6 +56,8 @@ OperateShrine	Misc	sfx\items\magic.wav
 OperateShrine1	Misc	sfx\items\magic1.wav
 ReadBook	Misc	sfx\items\readbook.wav
 Sarcophagus	Misc	sfx\items\sarc.wav
+BrokeShield	Misc	sfx\items\shielfkd.wav
+BrokeWeapon	Misc	sfx\items\Swrdfkd.wav
 MenuMove	Ui	sfx\items\titlemov.wav
 MenuSelect	Ui	sfx\items\titlslct.wav
 TriggerTrap	Misc	sfx\items\trap.wav
