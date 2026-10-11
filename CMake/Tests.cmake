@@ -50,6 +50,7 @@ set(tests
   game_menu_test
 )
 set(standalone_tests
+  cl2_to_clx_test
   codec_test
   crawl_test
   data_file_test
@@ -114,6 +115,16 @@ target_sources(app_fatal_for_testing INTERFACE $<TARGET_OBJECTS:app_fatal_for_te
 add_library(language_for_testing OBJECT test/language_for_testing.cpp)
 target_sources(language_for_testing INTERFACE $<TARGET_OBJECTS:language_for_testing>)
 
+target_link_dependencies(cl2_to_clx_test
+  PRIVATE
+  DevilutionX::SDL
+  app_fatal_for_testing
+  language_for_testing
+  libdevilutionx_cl2_to_clx
+  libdevilutionx_clx_render
+  libdevilutionx_log
+  libdevilutionx_surface
+)
 target_link_dependencies(codec_test PRIVATE libdevilutionx_codec app_fatal_for_testing)
 
 add_custom_target(clx_render_benchmark_resources
