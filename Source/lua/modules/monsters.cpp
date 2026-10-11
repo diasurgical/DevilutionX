@@ -9,8 +9,6 @@
 #include "lua/metadoc.hpp"
 #include "monster.h"
 #include "tables/monstdat.h"
-#include "utils/language.h"
-#include "utils/str_split.hpp"
 
 namespace devilution {
 
@@ -43,6 +41,16 @@ void InitMonsterUserType(sol::state_view &lua)
 	    });
 }
 
+int AliveEnemyCount()
+{
+	return GetAliveEnemyCount();
+}
+
+int TotalSpawnedEnemies()
+{
+	return LevelSpawnedMonsters - ReservedMonsterSlotsForGolems;
+}
+
 } // namespace
 
 sol::table LuaMonstersModule(sol::state_view &lua)
@@ -51,6 +59,12 @@ sol::table LuaMonstersModule(sol::state_view &lua)
 	sol::table table = lua.create_table();
 	LuaSetDocFn(table, "addMonsterDataFromTsv", "(path: string)", AddMonsterDataFromTsv);
 	LuaSetDocFn(table, "addUniqueMonsterDataFromTsv", "(path: string)", AddUniqueMonsterDataFromTsv);
+	LuaSetDocFn(table, "aliveEnemyCount", "() -> integer",
+	    "Returns the number of hostile monsters currently alive on the active level (excludes player-summoned golems).",
+	    AliveEnemyCount);
+	LuaSetDocFn(table, "totalSpawnedEnemies", "() -> integer",
+	    "Returns the high-water-mark of hostile monsters ever spawned on the active level (excludes the 4 reserved golem slots). Returns <= 0 when no enemies have spawned this level.",
+	    TotalSpawnedEnemies);
 	return table;
 }
 
