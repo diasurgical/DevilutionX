@@ -73,6 +73,43 @@ enum class ScalingQuality : uint8_t {
 	AnisotropicFiltering,
 };
 
+#ifndef USE_SDL1
+enum class ShaderFilter : uint8_t {
+	/** @brief No shader filter, use the regular SDL_Renderer scaling. */
+	None = 0,
+	HQ2x = 1,
+	HQ3x = 2,
+	HQ4x = 3,
+	ScaleFX2x = 4,
+	ScaleFX3x = 5,
+	ScaleFX4x = 6,
+};
+
+/** @brief Whether the given filter is a ScaleFX variant (arbitrary integer scale). */
+constexpr bool IsScaleFX(ShaderFilter filter)
+{
+	return filter == ShaderFilter::ScaleFX2x || filter == ShaderFilter::ScaleFX3x || filter == ShaderFilter::ScaleFX4x;
+}
+
+/** @brief The integer upscale factor of the given shader filter (0 for None). */
+constexpr int FilterScale(ShaderFilter filter)
+{
+	switch (filter) {
+	case ShaderFilter::HQ2x:
+	case ShaderFilter::ScaleFX2x:
+		return 2;
+	case ShaderFilter::HQ3x:
+	case ShaderFilter::ScaleFX3x:
+		return 3;
+	case ShaderFilter::HQ4x:
+	case ShaderFilter::ScaleFX4x:
+		return 4;
+	default:
+		return 0;
+	}
+}
+#endif
+
 enum class FrameRateControl : uint8_t {
 	None = 0,
 #ifndef USE_SDL1
@@ -551,6 +588,10 @@ struct GraphicsOptions : OptionCategoryBase {
 	OptionEntryEnum<ScalingQuality> scaleQuality;
 	/** @brief Only scale by values divisible by the width and height. */
 	OptionEntryBoolean integerScaling;
+#ifdef USE_GPU_SCALER
+	/** @brief GPU shader-based upscaling filter (SDL_GPU). */
+	OptionEntryEnum<ShaderFilter> shaderFilter;
+#endif
 #endif
 	/** @brief Limit frame rate either for vsync or CPU load. */
 	OptionEntryEnum<FrameRateControl> frameRateControl;

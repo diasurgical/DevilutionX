@@ -526,22 +526,22 @@ AudioOptions::AudioOptions()
 std::vector<OptionEntryBase *> AudioOptions::GetEntries()
 {
 	// clang-format off
-	return {
-		&soundVolume,
-		&audioCuesVolume,
-		&musicVolume,
-		&walkingSound,
-		&autoEquipSound,
-		&itemPickupSound,
-		&sampleRate,
-		&channels,
-		&bufferSize,
-		&resampler,
-		&resamplingQuality,
+        return {
+                &soundVolume,
+                &audioCuesVolume,
+                &musicVolume,
+                &walkingSound,
+                &autoEquipSound,
+                &itemPickupSound,
+                &sampleRate,
+                &channels,
+                &bufferSize,
+                &resampler,
+                &resamplingQuality,
 #if SDL_VERSION_ATLEAST(2, 0, 0)
-		&device,
+                &device,
 #endif
-	};
+        };
 	// clang-format on
 }
 
@@ -771,6 +771,18 @@ GraphicsOptions::GraphicsOptions()
               { ScalingQuality::AnisotropicFiltering, N_("Anisotropic") },
           })
     , integerScaling("Integer Scaling", OptionEntryFlags::CantChangeInGame | OptionEntryFlags::RecreateUI, N_("Integer Scaling"), N_("Scales the image using whole number pixel ratio."), false)
+#ifdef USE_GPU_SCALER
+    , shaderFilter("Shader Filter", OptionEntryFlags::CantChangeInGame | OptionEntryFlags::RecreateUI, N_("Shader Filter"), N_("GPU shader-based upscaling filter. Requires Upscale and a GPU with Vulkan, Direct3D 12 or Metal support."), ShaderFilter::None,
+          {
+              { ShaderFilter::None, N_("Off") },
+              { ShaderFilter::HQ2x, N_("HQ2x") },
+              { ShaderFilter::HQ3x, N_("HQ3x") },
+              { ShaderFilter::HQ4x, N_("HQ4x") },
+              { ShaderFilter::ScaleFX2x, N_("ScaleFX 2x") },
+              { ShaderFilter::ScaleFX3x, N_("ScaleFX 3x") },
+              { ShaderFilter::ScaleFX4x, N_("ScaleFX 4x") },
+          })
+#endif
 #endif
     , frameRateControl("Frame Rate Control",
           OptionEntryFlags::RecreateUI
@@ -809,32 +821,35 @@ GraphicsOptions::GraphicsOptions()
 std::vector<OptionEntryBase *> GraphicsOptions::GetEntries()
 {
 	// clang-format off
-	return {
-		&resolution,
+        return {
+                &resolution,
 #ifndef __vita__
-		&fullscreen,
+                &fullscreen,
 #endif
 #if !defined(USE_SDL1) || defined(__3DS__)
-		&fitToScreen,
+                &fitToScreen,
 #endif
 #ifndef USE_SDL1
-		&upscale,
-		&scaleQuality,
-		&integerScaling,
+                &upscale,
+                &scaleQuality,
+                &integerScaling,
+#ifdef USE_GPU_SCALER
+                &shaderFilter,
 #endif
-		&frameRateControl,
-		&brightness,
-		&zoom,
-		&showFPS,
-		&perPixelLighting,
-		&colorCycling,
-		&alternateNestArt,
+#endif
+                &frameRateControl,
+                &brightness,
+                &zoom,
+                &showFPS,
+                &perPixelLighting,
+                &colorCycling,
+                &alternateNestArt,
 #if SDL_VERSION_ATLEAST(2, 0, 0)
-		&hardwareCursor,
-		&hardwareCursorForItems,
-		&hardwareCursorMaxSize,
+                &hardwareCursor,
+                &hardwareCursorForItems,
+                &hardwareCursorMaxSize,
 #endif
-	};
+        };
 	// clang-format on
 }
 

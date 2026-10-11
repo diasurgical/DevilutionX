@@ -1030,6 +1030,12 @@ if(DEVILUTIONX_SCREENSHOT_FORMAT STREQUAL DEVILUTIONX_SCREENSHOT_FORMAT_PCX)
   )
 endif()
 
+if(USE_GPU_SCALER)
+  list(APPEND libdevilutionx_SRCS
+    engine/render/gpu/gpu_scaler.cpp
+  )
+endif()
+
 if(DEVILUTIONX_SCREENSHOT_FORMAT STREQUAL DEVILUTIONX_SCREENSHOT_FORMAT_PNG)
   add_devilutionx_object_library(libdevilutionx_surface_to_png
     utils/surface_to_png.cpp
@@ -1050,6 +1056,12 @@ endif()
 
 add_devilutionx_object_library(libdevilutionx ${libdevilutionx_SRCS})
 target_include_directories(libdevilutionx PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+if(USE_GPU_SCALER)
+  if(GPU_SCALER_SPV_GENERATED)
+    target_compile_definitions(libdevilutionx PRIVATE GPU_SCALER_SPV_GENERATED)
+    add_dependencies(libdevilutionx gpu_scaler_spv)
+  endif()
+endif()
 target_link_dependencies(libdevilutionx PUBLIC
   DevilutionX::SDL
   libsmackerdec

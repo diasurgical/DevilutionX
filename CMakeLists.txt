@@ -129,6 +129,38 @@ endif()
   mark_as_advanced(DEVILUTIONX_DISPLAY_TEXTURE_FORMAT)
 endif()
 
+# SDL_GPU shader scaler (ScaleFX / HQx)
+cmake_dependent_option(USE_GPU_SCALER "Enable the SDL_GPU shader scaler (ScaleFX/HQx upscaling filters)" ON "USE_SDL3;NOT USE_SDL1" OFF)
+if(USE_GPU_SCALER)
+  find_program(GLSLANG_VALIDATOR glslangValidator HINTS "$ENV{GLSLANG_DIR}/bin")
+  if(GLSLANG_VALIDATOR)
+    set(GPU_SCALER_SHADER_DIR "${PROJECT_SOURCE_DIR}/Source/engine/render/gpu/shaders/vulkan")
+    set(GPU_SCALER_SPV_HEADER "${CMAKE_BINARY_DIR}/Source/engine/render/gpu/gpu_shader_spv.hpp")
+    add_custom_target(gpu_scaler_spv
+      COMMAND ${CMAKE_COMMAND}
+          -DGLSLANG=${GLSLANG_VALIDATOR}
+          -DSRC_DIR=${GPU_SCALER_SHADER_DIR}
+          -DOUTPUT=${GPU_SCALER_SPV_HEADER}
+          -P ${PROJECT_SOURCE_DIR}/CMake/gen_spv_header.cmake
+      DEPENDS ${GPU_SCALER_SHADER_DIR}/fullscreen.vert
+              ${GPU_SCALER_SHADER_DIR}/hqx_index.frag
+              ${GPU_SCALER_SHADER_DIR}/hqx_blend.frag
+              ${GPU_SCALER_SHADER_DIR}/scalefx_pass0.frag
+              ${GPU_SCALER_SHADER_DIR}/scalefx_pass1.frag
+              ${GPU_SCALER_SHADER_DIR}/scalefx_pass2.frag
+              ${GPU_SCALER_SHADER_DIR}/scalefx_pass3.frag
+              ${GPU_SCALER_SHADER_DIR}/scalefx_pass4.frag
+              ${GPU_SCALER_SHADER_DIR}/blit.frag
+              ${PROJECT_SOURCE_DIR}/CMake/gen_spv_header.cmake
+      COMMENT "Compiling GPU scaler shaders to SPIR-V"
+      VERBATIM)
+    set(GPU_SCALER_SPV_GENERATED ON)
+    list(APPEND DEVILUTIONX_PLATFORM_COMPILE_DEFINITIONS USE_GPU_SCALER)
+  else()
+    message(STATUS "glslangValidator not found - using the prebuilt GPU scaler SPIR-V shaders (install glslang-tools or set GLSLANG_DIR to regenerate)")
+  endif()
+endif()
+
 if(USE_SDL1)
   # SDL_image in SDL1 does not support PNG, making PCX the only option.
   set(DEVILUTIONX_SCREENSHOT_FORMAT "DEVILUTIONX_SCREENSHOT_FORMAT_PCX")

@@ -1,0 +1,904 @@
+#include "engine/render/gpu/gpu_scaler.hpp"
+
+#ifdef USE_GPU_SCALER
+#ifndef USE_SDL1
+
+#include <SDL3/SDL_gpu.h>
+#include <SDL3/SDL_video.h>
+
+#include <algorithm>
+#include <cmath>
+#include <cstring>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+
+#include "engine/render/gpu/gpu_luts.hpp"
+#ifdef GPU_SCALER_SPV_GENERATED
+#include "engine/render/gpu/gpu_shader_spv.hpp"
+#else
+#include "engine/render/gpu/gpu_shader_spv_prebuilt.hpp"
+#endif
+#include "engine/render/gpu/gpu_shaders_hlsl.hpp"
+#include "engine/render/gpu/gpu_shaders_msl.hpp"
+#include "utils/log.hpp"
+
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
+namespace devilution {
+namespace gpu_scaler {
+namespace {
+
+constexpr float kSfxClr = 0.5F; // ScaleFX "Threshold" parameter
+constexpr float kSfxSaa = 1.0F; // ScaleFX "Filter AA" parameter
+constexpr float kSfxScn = 1.0F; // ScaleFX "Filter Corners" parameter
+
+struct alignas(16) FragUniforms {
+        float sourceSize[4]; // (w, h, 1/w, 1/h)
+        float params[4];
+};
+
+enum class Program {
+        Vertex,
+        HqxIndex,
+        HqxBlend,
+        SfxPass0,
+        SfxPass1,
+        SfxPass2,
+        SfxPass3,
+        SfxPass4,
+        Blit,
+};
+
+SDL_GPUDevice *gDevice = nullptr;
+SDL_Window *gWindow = nullptr;
+SDL_GPUShaderFormat gShaderFormat = SDL_GPU_SHADERFORMAT_INVALID;
+ShaderFilter gFilter = ShaderFilter::None;
+
+int gGameWidth = 0;
+int gGameHeight = 0;
+int gPassScale = 0; // scale of the scaledTex target
+
+SDL_GPUShader *gVertexShader = nullptr;
+SDL_GPUShader *gFragmentShaders[9] = {};
+
+SDL_GPUGraphicsPipeline *gHqxIndexPipeline = nullptr;
+SDL_GPUGraphicsPipeline *gHqxBlendPipeline = nullptr;
+SDL_GPUGraphicsPipeline *gSfxPipelines[5] = {};
+SDL_GPUGraphicsPipeline *gBlitPipeline = nullptr;
+
+SDL_GPUTexture *gGameTex = nullptr;
+SDL_GPUTexture *gIndexTex = nullptr;
+SDL_GPUTexture *gMetricTex = nullptr;   // ScaleFX pass 0 (fp16)
+SDL_GPUTexture *gStrengthTex = nullptr; // ScaleFX pass 1 (fp16)
+SDL_GPUTexture *gFlagsTex = nullptr;    // ScaleFX pass 2
+SDL_GPUTexture *gSubpixTex = nullptr;   // ScaleFX pass 3
+SDL_GPUTexture *gScaledTex = nullptr;
+SDL_GPUTransferBuffer *gTransferBuffer = nullptr;
+
+SDL_GPUSampler *gNearestSampler = nullptr;
+SDL_GPUSampler *gLinearSampler = nullptr;
+SDL_GPUTexture *gHqxLuts[3] = {}; // HQ2x, HQ3x, HQ4x
+
+bool gLoggedFailure = false;
+
+void LogFail(std::string_view what)
+{
+        if (gLoggedFailure)
+                return;
+        gLoggedFailure = true;
+        LogError("GPU scaler: {}: {} (further GPU scaler errors will be suppressed)", what, SDL_GetError());
+}
+
+#ifdef _WIN32
+
+// Minimal COM-ish interface matching the ID3DBlob vtable layout.
+struct FakeD3DBlob {
+        virtual long STDMETHODCALLTYPE QueryInterface(void *, void **) = 0;
+        virtual unsigned long STDMETHODCALLTYPE AddRef() = 0;
+        virtual unsigned long STDMETHODCALLTYPE Release() = 0;
+        virtual void *STDMETHODCALLTYPE GetBufferPointer() = 0;
+        virtual size_t STDMETHODCALLTYPE GetBufferSize() = 0;
+};
+
+using D3DCompileFn = long(STDMETHODCALLTYPE *)(
+    const void *, size_t, const char *, const void *, void *, const char *,
+    const char *, unsigned, unsigned, FakeD3DBlob **, FakeD3DBlob **);
+
+D3DCompileFn LoadD3DCompile()
+{
+        static D3DCompileFn fn = nullptr;
+        if (fn != nullptr)
+                return fn;
+        HMODULE mod = LoadLibraryW(L"d3dcompiler_47.dll");
+        if (mod == nullptr)
+                mod = LoadLibraryW(L"d3dcompiler_43.dll");
+        if (mod == nullptr)
+                return nullptr;
+        fn = reinterpret_cast<D3DCompileFn>(reinterpret_cast<void *>(GetProcAddress(mod, "D3DCompile")));
+        if (fn == nullptr)
+                LogError("GPU scaler: found d3dcompiler dll but no D3DCompile export");
+        return fn;
+}
+
+std::vector<uint8_t> CompileHLSL(const char *source, const char *target)
+{
+        std::vector<uint8_t> blob;
+        D3DCompileFn d3dCompile = LoadD3DCompile();
+        if (d3dCompile == nullptr) {
+                LogError("GPU scaler: d3dcompiler not found, cannot compile shaders for D3D12");
+                return blob;
+        }
+        FakeD3DBlob *code = nullptr;
+        FakeD3DBlob *errors = nullptr;
+        const long hr = d3dCompile(source, std::strlen(source), nullptr, nullptr, nullptr,
+            "main", target, 0, 0, &code, &errors);
+        if (hr < 0 || code == nullptr) {
+                if (errors != nullptr) {
+                        LogError("GPU scaler: HLSL compilation failed ({}): {}", target,
+                            std::string_view(static_cast<const char *>(errors->GetBufferPointer()), errors->GetBufferSize()));
+                        errors->Release();
+                } else {
+                        LogError("GPU scaler: HLSL compilation failed ({})", target);
+                }
+                return blob;
+        }
+        const auto *bytes = static_cast<const uint8_t *>(code->GetBufferPointer());
+        blob.assign(bytes, bytes + code->GetBufferSize());
+        code->Release();
+        return blob;
+}
+
+#endif // _WIN32
+
+struct ShaderCode {
+        const uint8_t *data = nullptr;
+        size_t size = 0;
+};
+
+ShaderCode SpvFor(Program program)
+{
+        switch (program) {
+        case Program::Vertex: return { gpu::spv::kVertex, sizeof(gpu::spv::kVertex) };
+        case Program::HqxIndex: return { gpu::spv::kHqxIndex, sizeof(gpu::spv::kHqxIndex) };
+        case Program::HqxBlend: return { gpu::spv::kHqxBlend, sizeof(gpu::spv::kHqxBlend) };
+        case Program::SfxPass0: return { gpu::spv::kSfxPass0, sizeof(gpu::spv::kSfxPass0) };
+        case Program::SfxPass1: return { gpu::spv::kSfxPass1, sizeof(gpu::spv::kSfxPass1) };
+        case Program::SfxPass2: return { gpu::spv::kSfxPass2, sizeof(gpu::spv::kSfxPass2) };
+        case Program::SfxPass3: return { gpu::spv::kSfxPass3, sizeof(gpu::spv::kSfxPass3) };
+        case Program::SfxPass4: return { gpu::spv::kSfxPass4, sizeof(gpu::spv::kSfxPass4) };
+        case Program::Blit: return { gpu::spv::kBlit, sizeof(gpu::spv::kBlit) };
+        }
+        return { nullptr, 0 };
+}
+
+[[maybe_unused]] const char *HlslFor(Program program)
+{
+#ifndef _WIN32
+        // Only used by the D3D12 backend.
+        (void)program;
+        return nullptr;
+#else
+        switch (program) {
+        case Program::Vertex: return gpu::hlsl::kVertex;
+        case Program::HqxIndex: return gpu::hlsl::kHqxIndex;
+        case Program::HqxBlend: return gpu::hlsl::kHqxBlend;
+        case Program::SfxPass0: return gpu::hlsl::kSfxPass0;
+        case Program::SfxPass1: return gpu::hlsl::kSfxPass1;
+        case Program::SfxPass2: return gpu::hlsl::kSfxPass2;
+        case Program::SfxPass3: return gpu::hlsl::kSfxPass3;
+        case Program::SfxPass4: return gpu::hlsl::kSfxPass4;
+        case Program::Blit: return gpu::hlsl::kBlit;
+        }
+        return nullptr;
+#endif
+}
+
+const char *MslFor(Program program)
+{
+        switch (program) {
+        case Program::Vertex: return gpu::msl::kVertex;
+        case Program::HqxIndex: return gpu::msl::kHqxIndex;
+        case Program::HqxBlend: return gpu::msl::kHqxBlend;
+        case Program::SfxPass0: return gpu::msl::kSfxPass0;
+        case Program::SfxPass1: return gpu::msl::kSfxPass1;
+        case Program::SfxPass2: return gpu::msl::kSfxPass2;
+        case Program::SfxPass3: return gpu::msl::kSfxPass3;
+        case Program::SfxPass4: return gpu::msl::kSfxPass4;
+        case Program::Blit: return gpu::msl::kBlit;
+        }
+        return nullptr;
+}
+
+int SamplersFor(Program program)
+{
+        switch (program) {
+        case Program::Vertex: return 0;
+        case Program::HqxIndex: return 1;
+        case Program::HqxBlend: return 3;
+        case Program::SfxPass0: return 1;
+        case Program::SfxPass1: return 1;
+        case Program::SfxPass2: return 2;
+        case Program::SfxPass3: return 1;
+        case Program::SfxPass4: return 2;
+        case Program::Blit: return 1;
+        }
+        return 0;
+}
+
+const char *MslEntryFor(Program program)
+{
+        switch (program) {
+        case Program::Vertex: return "fullscreenVS";
+        case Program::HqxIndex: return "hqxIndexPS";
+        case Program::HqxBlend: return "hqxBlendPS";
+        case Program::SfxPass0: return "sfxPass0PS";
+        case Program::SfxPass1: return "sfxPass1PS";
+        case Program::SfxPass2: return "sfxPass2PS";
+        case Program::SfxPass3: return "sfxPass3PS";
+        case Program::SfxPass4: return "sfxPass4PS";
+        case Program::Blit: return "blitPS";
+        }
+        return "main";
+}
+
+bool CreateShader(Program program, SDL_GPUShaderStage stage, SDL_GPUShader **out)
+{
+        SDL_GPUShaderCreateInfo info {};
+        info.stage = stage;
+        info.entrypoint = (gShaderFormat == SDL_GPU_SHADERFORMAT_MSL) ? MslEntryFor(program) : "main";
+        info.num_samplers = (stage == SDL_GPU_SHADERSTAGE_FRAGMENT) ? SamplersFor(program) : 0;
+        info.num_uniform_buffers = (stage == SDL_GPU_SHADERSTAGE_FRAGMENT) ? 1 : 0;
+
+        // Must outlive the SDL_CreateGPUShader call below.
+        std::vector<uint8_t> dxbcBlob;
+
+        switch (gShaderFormat) {
+        case SDL_GPU_SHADERFORMAT_SPIRV: {
+                const ShaderCode code = SpvFor(program);
+                info.code = code.data;
+                info.code_size = code.size;
+                info.format = SDL_GPU_SHADERFORMAT_SPIRV;
+        } break;
+        case SDL_GPU_SHADERFORMAT_MSL: {
+                const char *source = MslFor(program);
+                info.code = reinterpret_cast<const uint8_t *>(source);
+                info.code_size = std::strlen(source);
+                info.format = SDL_GPU_SHADERFORMAT_MSL;
+        } break;
+        case SDL_GPU_SHADERFORMAT_DXBC: {
+#ifdef _WIN32
+                const char *source = HlslFor(program);
+                dxbcBlob = CompileHLSL(source, stage == SDL_GPU_SHADERSTAGE_VERTEX ? "vs_5_1" : "ps_5_1");
+                if (dxbcBlob.empty()) {
+                        // Older d3dcompilers may not know the 5_1 targets.
+                        dxbcBlob = CompileHLSL(source, stage == SDL_GPU_SHADERSTAGE_VERTEX ? "vs_5_0" : "ps_5_0");
+                        if (dxbcBlob.empty())
+                                return false;
+                }
+                info.code = dxbcBlob.data();
+                info.code_size = dxbcBlob.size();
+                info.format = SDL_GPU_SHADERFORMAT_DXBC;
+                break;
+#else
+                return false;
+#endif
+        }
+        default:
+                return false;
+        }
+
+        *out = SDL_CreateGPUShader(gDevice, &info);
+        if (*out == nullptr) {
+                LogFail("shader creation failed");
+                return false;
+        }
+        return true;
+}
+
+SDL_GPUTexture *CreateTexture(SDL_GPUTextureFormat format, Uint32 width, Uint32 height, SDL_GPUTextureUsageFlags usage)
+{
+        SDL_GPUTextureCreateInfo info {};
+        info.type = SDL_GPU_TEXTURETYPE_2D;
+        info.format = format;
+        info.usage = usage;
+        info.width = width;
+        info.height = height;
+        info.layer_count_or_depth = 1;
+        info.num_levels = 1;
+        info.sample_count = SDL_GPU_SAMPLECOUNT_1;
+        SDL_GPUTexture *texture = SDL_CreateGPUTexture(gDevice, &info);
+        if (texture == nullptr)
+                LogFail("texture creation failed");
+        return texture;
+}
+
+SDL_GPUTexture *CreateHqxLut(const gpu::luts::LutData &lut)
+{
+        std::vector<uint8_t> rgba8(static_cast<size_t>(lut.width) * lut.height * 4);
+        for (int i = 0; i < lut.width * lut.height; ++i) {
+                const uint8_t idx = lut.indices[i];
+                rgba8[4 * i + 0] = lut.palette[idx][0];
+                rgba8[4 * i + 1] = lut.palette[idx][1];
+                rgba8[4 * i + 2] = lut.palette[idx][2];
+                rgba8[4 * i + 3] = lut.palette[idx][3];
+        }
+        SDL_GPUTexture *texture = CreateTexture(SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM, lut.width, lut.height,
+            SDL_GPU_TEXTUREUSAGE_SAMPLER);
+        if (texture == nullptr)
+                return nullptr;
+
+        SDL_GPUCommandBuffer *cmd = SDL_AcquireGPUCommandBuffer(gDevice);
+        if (cmd == nullptr) {
+                LogFail("command buffer acquisition failed");
+                SDL_ReleaseGPUTexture(gDevice, texture);
+                return nullptr;
+        }
+        SDL_GPUTransferBufferCreateInfo transferInfo {};
+        transferInfo.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
+        transferInfo.size = static_cast<Uint32>(rgba8.size());
+        SDL_GPUTransferBuffer *transfer = SDL_CreateGPUTransferBuffer(gDevice, &transferInfo);
+        if (transfer == nullptr) {
+                LogFail("transfer buffer creation failed");
+                SDL_ReleaseGPUTexture(gDevice, texture);
+                return nullptr;
+        }
+        auto *data = static_cast<uint8_t *>(SDL_MapGPUTransferBuffer(gDevice, transfer, false));
+        std::memcpy(data, rgba8.data(), rgba8.size());
+        SDL_UnmapGPUTransferBuffer(gDevice, transfer);
+
+        SDL_GPUCopyPass *copyPass = SDL_BeginGPUCopyPass(cmd);
+        SDL_GPUTextureTransferInfo src {};
+        src.transfer_buffer = transfer;
+        src.offset = 0;
+        // texels are tightly packed in the transfer buffer
+        src.pixels_per_row = lut.width;
+        src.rows_per_layer = lut.height;
+        SDL_GPUTextureRegion dst {};
+        dst.texture = texture;
+        dst.w = lut.width;
+        dst.h = lut.height;
+        dst.d = 1;
+        SDL_UploadToGPUTexture(copyPass, &src, &dst, false);
+        SDL_EndGPUCopyPass(copyPass);
+        SDL_SubmitGPUCommandBuffer(cmd);
+        SDL_ReleaseGPUTransferBuffer(gDevice, transfer);
+        return texture;
+}
+
+SDL_GPUTextureFormat GameTextureFormat()
+{
+        switch (DEVILUTIONX_DISPLAY_TEXTURE_FORMAT) {
+        case SDL_PIXELFORMAT_ABGR8888:
+                return SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
+        case SDL_PIXELFORMAT_ARGB8888:
+        case SDL_PIXELFORMAT_XRGB8888:
+        default:
+                return SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM;
+        }
+}
+
+SDL_GPUGraphicsPipeline *CreatePipeline(Program fragmentProgram, SDL_GPUTextureFormat targetFormat)
+{
+        if (gVertexShader == nullptr)
+                return nullptr;
+        SDL_GPUShader *fragmentShader = gFragmentShaders[static_cast<int>(fragmentProgram)];
+        if (fragmentShader == nullptr)
+                return nullptr;
+
+        SDL_GPUColorTargetDescription targetDesc {};
+        targetDesc.format = targetFormat;
+
+        SDL_GPUGraphicsPipelineCreateInfo info {};
+        info.vertex_shader = gVertexShader;
+        info.fragment_shader = fragmentShader;
+        info.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
+        info.rasterizer_state.fill_mode = SDL_GPU_FILLMODE_FILL;
+        info.rasterizer_state.cull_mode = SDL_GPU_CULLMODE_NONE;
+        info.rasterizer_state.front_face = SDL_GPU_FRONTFACE_COUNTER_CLOCKWISE;
+        info.multisample_state.sample_count = SDL_GPU_SAMPLECOUNT_1;
+        info.multisample_state.sample_mask = 0xFFFFFFFF;
+        info.depth_stencil_state.compare_op = SDL_GPU_COMPAREOP_ALWAYS;
+        info.depth_stencil_state.front_stencil_state.fail_op = SDL_GPU_STENCILOP_KEEP;
+        info.depth_stencil_state.front_stencil_state.pass_op = SDL_GPU_STENCILOP_KEEP;
+        info.depth_stencil_state.front_stencil_state.depth_fail_op = SDL_GPU_STENCILOP_KEEP;
+        info.depth_stencil_state.front_stencil_state.compare_op = SDL_GPU_COMPAREOP_ALWAYS;
+        info.depth_stencil_state.back_stencil_state = info.depth_stencil_state.front_stencil_state;
+        info.target_info.color_target_descriptions = &targetDesc;
+        info.target_info.num_color_targets = 1;
+
+        SDL_GPUGraphicsPipeline *pipeline = SDL_CreateGPUGraphicsPipeline(gDevice, &info);
+        if (pipeline == nullptr)
+                LogFail("pipeline creation failed");
+        return pipeline;
+}
+
+bool EnsureSamplers()
+{
+        if (gNearestSampler != nullptr)
+                return true;
+
+        SDL_GPUSamplerCreateInfo samplerInfo {};
+        samplerInfo.min_filter = SDL_GPU_FILTER_NEAREST;
+        samplerInfo.mag_filter = SDL_GPU_FILTER_NEAREST;
+        samplerInfo.mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_NEAREST;
+        samplerInfo.address_mode_u = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
+        samplerInfo.address_mode_v = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
+        samplerInfo.address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
+        samplerInfo.max_anisotropy = 1.0F;
+        samplerInfo.min_lod = 0.0F;
+        samplerInfo.max_lod = 1000.0F;
+        gNearestSampler = SDL_CreateGPUSampler(gDevice, &samplerInfo);
+
+        SDL_GPUSamplerCreateInfo linearInfo = samplerInfo;
+        linearInfo.min_filter = SDL_GPU_FILTER_LINEAR;
+        linearInfo.mag_filter = SDL_GPU_FILTER_LINEAR;
+        gLinearSampler = SDL_CreateGPUSampler(gDevice, &linearInfo);
+
+        if (gNearestSampler == nullptr || gLinearSampler == nullptr) {
+                LogFail("sampler creation failed");
+                return false;
+        }
+        return true;
+}
+
+void ReleaseFilterResources()
+{
+        if (gVertexShader != nullptr) {
+                SDL_ReleaseGPUShader(gDevice, gVertexShader);
+                gVertexShader = nullptr;
+        }
+        for (auto *&shader : gFragmentShaders) {
+                if (shader != nullptr) {
+                        SDL_ReleaseGPUShader(gDevice, shader);
+                        shader = nullptr;
+                }
+        }
+        if (gHqxIndexPipeline != nullptr) {
+                SDL_ReleaseGPUGraphicsPipeline(gDevice, gHqxIndexPipeline);
+                gHqxIndexPipeline = nullptr;
+        }
+        if (gHqxBlendPipeline != nullptr) {
+                SDL_ReleaseGPUGraphicsPipeline(gDevice, gHqxBlendPipeline);
+                gHqxBlendPipeline = nullptr;
+        }
+        for (auto *&pipeline : gSfxPipelines) {
+                if (pipeline != nullptr) {
+                        SDL_ReleaseGPUGraphicsPipeline(gDevice, pipeline);
+                        pipeline = nullptr;
+                }
+        }
+        if (gBlitPipeline != nullptr) {
+                SDL_ReleaseGPUGraphicsPipeline(gDevice, gBlitPipeline);
+                gBlitPipeline = nullptr;
+        }
+        for (auto *&lut : gHqxLuts) {
+                if (lut != nullptr) {
+                        SDL_ReleaseGPUTexture(gDevice, lut);
+                        lut = nullptr;
+                }
+        }
+}
+
+bool EnsureShaders()
+{
+        if (gVertexShader != nullptr)
+                return true;
+        if (!CreateShader(Program::Vertex, SDL_GPU_SHADERSTAGE_VERTEX, &gVertexShader))
+                return false;
+        static constexpr Program kFragmentPrograms[] = {
+                Program::HqxIndex, Program::HqxBlend, Program::SfxPass0, Program::SfxPass1,
+                Program::SfxPass2, Program::SfxPass3, Program::SfxPass4, Program::Blit
+        };
+        for (const Program program : kFragmentPrograms) {
+                if (!CreateShader(program, SDL_GPU_SHADERSTAGE_FRAGMENT, &gFragmentShaders[static_cast<int>(program)]))
+                        return false;
+        }
+        return true;
+}
+
+bool EnsureFilterResources(ShaderFilter filter)
+{
+        if (!EnsureSamplers() || !EnsureShaders())
+                return false;
+
+        const bool isHqx = filter == ShaderFilter::HQ2x || filter == ShaderFilter::HQ3x || filter == ShaderFilter::HQ4x;
+        const bool isSfx = IsScaleFX(filter);
+
+        if (isHqx && gHqxIndexPipeline == nullptr) {
+                gHqxIndexPipeline = CreatePipeline(Program::HqxIndex, SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM);
+                if (gHqxIndexPipeline == nullptr)
+                        return false;
+        }
+        if (isHqx && gHqxBlendPipeline == nullptr) {
+                gHqxBlendPipeline = CreatePipeline(Program::HqxBlend, SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM);
+                if (gHqxBlendPipeline == nullptr)
+                        return false;
+                for (int i = 0; i < 3; ++i) {
+                        const gpu::luts::LutData *lutData = i == 0 ? &gpu::luts::HQ2x : i == 1 ? &gpu::luts::HQ3x : &gpu::luts::HQ4x;
+                        gHqxLuts[i] = CreateHqxLut(*lutData);
+                        if (gHqxLuts[i] == nullptr)
+                                return false;
+                }
+        }
+        if (isSfx && gSfxPipelines[0] == nullptr) {
+                static constexpr std::pair<Program, SDL_GPUTextureFormat> kSfxPipelinesSpec[5] = {
+                        { Program::SfxPass0, SDL_GPU_TEXTUREFORMAT_R16G16B16A16_FLOAT },
+                        { Program::SfxPass1, SDL_GPU_TEXTUREFORMAT_R16G16B16A16_FLOAT },
+                        { Program::SfxPass2, SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM },
+                        { Program::SfxPass3, SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM },
+                        { Program::SfxPass4, SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM },
+                };
+                for (int i = 0; i < 5; ++i) {
+                        gSfxPipelines[i] = CreatePipeline(kSfxPipelinesSpec[i].first, kSfxPipelinesSpec[i].second);
+                        if (gSfxPipelines[i] == nullptr)
+                                return false;
+                }
+        }
+        if (gBlitPipeline == nullptr) {
+                const SDL_GPUTextureFormat swapchainFormat = SDL_GetGPUSwapchainTextureFormat(gDevice, gWindow);
+                gBlitPipeline = CreatePipeline(Program::Blit, swapchainFormat);
+                if (gBlitPipeline == nullptr)
+                        return false;
+        }
+        return true;
+}
+
+void ReleaseFrameResources()
+{
+        for (SDL_GPUTexture **texture : { &gGameTex, &gIndexTex, &gMetricTex, &gStrengthTex, &gFlagsTex, &gSubpixTex, &gScaledTex }) {
+                if (*texture != nullptr) {
+                        SDL_ReleaseGPUTexture(gDevice, *texture);
+                        *texture = nullptr;
+                }
+        }
+        if (gTransferBuffer != nullptr) {
+                SDL_ReleaseGPUTransferBuffer(gDevice, gTransferBuffer);
+                gTransferBuffer = nullptr;
+        }
+        gGameWidth = 0;
+        gGameHeight = 0;
+        gPassScale = 0;
+}
+
+bool EnsureFrameResources(int gameWidth, int gameHeight, int passScale)
+{
+        if (gGameTex != nullptr && gGameWidth == gameWidth && gGameHeight == gameHeight
+            && (gScaledTex == nullptr || gPassScale == passScale)) {
+                return true;
+        }
+        ReleaseFrameResources();
+        gGameWidth = gameWidth;
+        gGameHeight = gameHeight;
+        gPassScale = passScale;
+
+        const SDL_GPUTextureFormat gameFormat = GameTextureFormat();
+        gGameTex = CreateTexture(gameFormat, gameWidth, gameHeight,
+            SDL_GPU_TEXTUREUSAGE_SAMPLER | SDL_GPU_TEXTUREUSAGE_COLOR_TARGET);
+        gIndexTex = CreateTexture(SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM, gameWidth, gameHeight,
+            SDL_GPU_TEXTUREUSAGE_SAMPLER | SDL_GPU_TEXTUREUSAGE_COLOR_TARGET);
+        gMetricTex = CreateTexture(SDL_GPU_TEXTUREFORMAT_R16G16B16A16_FLOAT, gameWidth, gameHeight,
+            SDL_GPU_TEXTUREUSAGE_SAMPLER | SDL_GPU_TEXTUREUSAGE_COLOR_TARGET);
+        gStrengthTex = CreateTexture(SDL_GPU_TEXTUREFORMAT_R16G16B16A16_FLOAT, gameWidth, gameHeight,
+            SDL_GPU_TEXTUREUSAGE_SAMPLER | SDL_GPU_TEXTUREUSAGE_COLOR_TARGET);
+        gFlagsTex = CreateTexture(SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM, gameWidth, gameHeight,
+            SDL_GPU_TEXTUREUSAGE_SAMPLER | SDL_GPU_TEXTUREUSAGE_COLOR_TARGET);
+        gSubpixTex = CreateTexture(SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM, gameWidth, gameHeight,
+            SDL_GPU_TEXTUREUSAGE_SAMPLER | SDL_GPU_TEXTUREUSAGE_COLOR_TARGET);
+        const int scaledWidth = gameWidth * passScale;
+        const int scaledHeight = gameHeight * passScale;
+        gScaledTex = CreateTexture(SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM, scaledWidth, scaledHeight,
+            SDL_GPU_TEXTUREUSAGE_SAMPLER | SDL_GPU_TEXTUREUSAGE_COLOR_TARGET);
+
+        SDL_GPUTransferBufferCreateInfo transferInfo {};
+        transferInfo.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
+        transferInfo.size = gameWidth * gameHeight * 4;
+        gTransferBuffer = SDL_CreateGPUTransferBuffer(gDevice, &transferInfo);
+
+        if (gGameTex == nullptr || gIndexTex == nullptr || gMetricTex == nullptr || gStrengthTex == nullptr
+            || gFlagsTex == nullptr || gSubpixTex == nullptr || gScaledTex == nullptr || gTransferBuffer == nullptr) {
+                LogFail("frame resource creation failed");
+                ReleaseFrameResources();
+                return false;
+        }
+        return true;
+}
+
+void RenderPass(SDL_GPUCommandBuffer *cmd, SDL_GPUTexture *target, Uint32 targetWidth, Uint32 targetHeight,
+    SDL_GPUGraphicsPipeline *pipeline, const FragUniforms &uniforms,
+    const SDL_GPUTextureSamplerBinding *bindings, Uint32 numBindings,
+    const SDL_GPUViewport *viewport)
+{
+        SDL_GPUColorTargetInfo colorInfo {};
+        colorInfo.texture = target;
+        colorInfo.clear_color = { 0.0F, 0.0F, 0.0F, 1.0F };
+        colorInfo.load_op = SDL_GPU_LOADOP_CLEAR;
+        colorInfo.store_op = SDL_GPU_STOREOP_STORE;
+        SDL_GPURenderPass *renderPass = SDL_BeginGPURenderPass(cmd, &colorInfo, 1, nullptr);
+        if (renderPass == nullptr) {
+                LogFail("render pass creation failed");
+                return;
+        }
+        SDL_BindGPUGraphicsPipeline(renderPass, pipeline);
+        if (numBindings > 0)
+                SDL_BindGPUFragmentSamplers(renderPass, 0, bindings, numBindings);
+        SDL_PushGPUFragmentUniformData(cmd, 0, &uniforms, sizeof(uniforms));
+        if (viewport != nullptr)
+                SDL_SetGPUViewport(renderPass, viewport);
+        SDL_DrawGPUPrimitives(renderPass, 3, 1, 0, 0);
+        SDL_EndGPURenderPass(renderPass);
+}
+
+} // namespace
+
+bool ScalerWanted()
+{
+        return *GetOptions().Graphics.shaderFilter != ShaderFilter::None;
+}
+
+bool IsActive()
+{
+        return gDevice != nullptr && gWindow != nullptr && gFilter != ShaderFilter::None;
+}
+
+bool Reinit(SDL_Window *window)
+{
+        gFilter = *GetOptions().Graphics.shaderFilter;
+        if (gFilter == ShaderFilter::None) {
+                Shutdown();
+                return false;
+        }
+
+        if (gDevice == nullptr) {
+                gDevice = SDL_CreateGPUDevice(
+                    SDL_GPU_SHADERFORMAT_SPIRV | SDL_GPU_SHADERFORMAT_DXBC | SDL_GPU_SHADERFORMAT_MSL,
+                    /*debug=*/false, /*name=*/nullptr);
+                if (gDevice == nullptr) {
+                        LogFail("SDL_CreateGPUDevice failed");
+                        gFilter = ShaderFilter::None;
+                        return false;
+                }
+                const char *driver = SDL_GetGPUDeviceDriver(gDevice);
+                if (driver != nullptr && std::strcmp(driver, "vulkan") == 0) {
+                        gShaderFormat = SDL_GPU_SHADERFORMAT_SPIRV;
+                } else if (driver != nullptr && std::strcmp(driver, "direct3d12") == 0) {
+#ifdef _WIN32
+                        gShaderFormat = SDL_GPU_SHADERFORMAT_DXBC;
+#else
+                        LogError("GPU scaler: D3D12 backend only supported on Windows");
+                        Shutdown();
+                        return false;
+#endif
+                } else if (driver != nullptr && std::strcmp(driver, "metal") == 0) {
+                        gShaderFormat = SDL_GPU_SHADERFORMAT_MSL;
+                } else {
+                        LogError("GPU scaler: unsupported GPU driver: {}", driver != nullptr ? driver : "unknown");
+                        Shutdown();
+                        return false;
+                }
+                Log("GPU scaler: using the {} backend", driver);
+        }
+
+        if (gWindow != window) {
+                if (gWindow != nullptr)
+                        SDL_ReleaseWindowFromGPUDevice(gDevice, gWindow);
+                gWindow = window;
+                if (!SDL_ClaimWindowForGPUDevice(gDevice, gWindow)) {
+                        LogFail("SDL_ClaimWindowForGPUDevice failed");
+                        gWindow = nullptr;
+                        Shutdown();
+                        return false;
+                }
+                const bool vsync = *GetOptions().Graphics.frameRateControl == FrameRateControl::VerticalSync;
+                if (!SDL_SetGPUSwapchainParameters(gDevice, gWindow, SDL_GPU_SWAPCHAINCOMPOSITION_SDR,
+                        vsync ? SDL_GPU_PRESENTMODE_VSYNC : SDL_GPU_PRESENTMODE_IMMEDIATE)) {
+                        LogFail("SDL_SetGPUSwapchainParameters failed");
+                }
+                // The swapchain format may have changed with the new window.
+                if (gBlitPipeline != nullptr) {
+                        SDL_ReleaseGPUGraphicsPipeline(gDevice, gBlitPipeline);
+                        gBlitPipeline = nullptr;
+                }
+        }
+
+        if (!EnsureFilterResources(gFilter)) {
+                Shutdown();
+                return false;
+        }
+        return true;
+}
+
+void Shutdown()
+{
+        if (gDevice == nullptr) {
+                gWindow = nullptr;
+                gFilter = ShaderFilter::None;
+                return;
+        }
+        ReleaseFrameResources();
+        ReleaseFilterResources();
+        if (gNearestSampler != nullptr) {
+                SDL_ReleaseGPUSampler(gDevice, gNearestSampler);
+                gNearestSampler = nullptr;
+        }
+        if (gLinearSampler != nullptr) {
+                SDL_ReleaseGPUSampler(gDevice, gLinearSampler);
+                gLinearSampler = nullptr;
+        }
+        if (gWindow != nullptr) {
+                SDL_ReleaseWindowFromGPUDevice(gDevice, gWindow);
+                gWindow = nullptr;
+        }
+        SDL_DestroyGPUDevice(gDevice);
+        gDevice = nullptr;
+        gShaderFormat = SDL_GPU_SHADERFORMAT_INVALID;
+        gFilter = ShaderFilter::None;
+}
+
+void PresentFrame(const SDL_Surface &frame)
+{
+        if (!IsActive())
+                return;
+
+        const ShaderFilter filter = gFilter;
+        const int baseScale = FilterScale(filter);
+
+        SDL_GPUCommandBuffer *cmd = SDL_AcquireGPUCommandBuffer(gDevice);
+        if (cmd == nullptr) {
+                LogFail("SDL_AcquireGPUCommandBuffer failed");
+                return;
+        }
+
+        SDL_GPUTexture *swapchainTexture = nullptr;
+        Uint32 swapchainWidth = 0;
+        Uint32 swapchainHeight = 0;
+        if (!SDL_WaitAndAcquireGPUSwapchainTexture(cmd, gWindow, &swapchainTexture, &swapchainWidth, &swapchainHeight)
+            || swapchainTexture == nullptr) {
+                // Window minimized or no swapchain image available this frame.
+                SDL_CancelGPUCommandBuffer(cmd);
+                return;
+        }
+
+        const int gameWidth = frame.w;
+        const int gameHeight = frame.h;
+
+        // Fit the game frame into the window, honoring the Integer Scaling option.
+        float fitScale = std::min(static_cast<float>(swapchainWidth) / gameWidth,
+            static_cast<float>(swapchainHeight) / gameHeight);
+        if (*GetOptions().Graphics.integerScaling)
+                fitScale = std::floor(fitScale);
+
+        int passScale;
+        float destScale;
+        if (fitScale >= baseScale) {
+                passScale = baseScale;
+                destScale = baseScale;
+        } else if (fitScale >= 1.0F) {
+                if (IsScaleFX(filter)) {
+                        // ScaleFX supports arbitrary integer scales via a uniform.
+                        passScale = std::max(1, static_cast<int>(fitScale));
+                        destScale = passScale;
+                } else {
+                        // hqx is tied to its native LUT scale; render at native scale
+                        // and let the blit pass downscale.
+                        passScale = baseScale;
+                        destScale = std::floor(fitScale);
+                }
+        } else {
+                // Window is smaller than the game resolution; render at the native
+                // scale and downscale in the blit pass.
+                passScale = baseScale;
+                destScale = fitScale;
+        }
+
+        if (!EnsureFrameResources(gameWidth, gameHeight, passScale)) {
+                SDL_CancelGPUCommandBuffer(cmd);
+                return;
+        }
+        // Upload the game frame.
+        {
+                const int bytesPerRow = gameWidth * 4;
+                auto *dst = static_cast<uint8_t *>(SDL_MapGPUTransferBuffer(gDevice, gTransferBuffer, false));
+                const auto *src = static_cast<const uint8_t *>(frame.pixels);
+                if (frame.pitch == bytesPerRow) {
+                        std::memcpy(dst, src, static_cast<size_t>(bytesPerRow) * gameHeight);
+                } else {
+                        for (int y = 0; y < gameHeight; ++y)
+                                std::memcpy(dst + static_cast<size_t>(y) * bytesPerRow, src + static_cast<size_t>(y) * frame.pitch, bytesPerRow);
+                }
+                SDL_UnmapGPUTransferBuffer(gDevice, gTransferBuffer);
+
+                SDL_GPUCopyPass *copyPass = SDL_BeginGPUCopyPass(cmd);
+                SDL_GPUTextureTransferInfo transferSrc {};
+                transferSrc.transfer_buffer = gTransferBuffer;
+                transferSrc.offset = 0;
+                transferSrc.pixels_per_row = gameWidth;
+                transferSrc.rows_per_layer = gameHeight;
+                SDL_GPUTextureRegion region {};
+                region.texture = gGameTex;
+                region.w = gameWidth;
+                region.h = gameHeight;
+                region.d = 1;
+                SDL_UploadToGPUTexture(copyPass, &transferSrc, &region, false);
+                SDL_EndGPUCopyPass(copyPass);
+        }
+
+        FragUniforms uniforms {};
+        uniforms.sourceSize[0] = static_cast<float>(gameWidth);
+        uniforms.sourceSize[1] = static_cast<float>(gameHeight);
+        uniforms.sourceSize[2] = 1.0F / gameWidth;
+        uniforms.sourceSize[3] = 1.0F / gameHeight;
+
+        if (filter == ShaderFilter::HQ2x || filter == ShaderFilter::HQ3x || filter == ShaderFilter::HQ4x) {
+                // Pass 1: edge indices.
+                SDL_GPUTextureSamplerBinding indexBindings[1] = { { gGameTex, gNearestSampler } };
+                RenderPass(cmd, gIndexTex, gameWidth, gameHeight, gHqxIndexPipeline, uniforms, indexBindings, 1, nullptr);
+
+                // Pass 2: LUT blend into the scaled target.
+                const int lutIndex = baseScale == 2 ? 0 : baseScale == 3 ? 1 : 2;
+                SDL_GPUTextureSamplerBinding blendBindings[3] = {
+                        { gIndexTex, gNearestSampler },
+                        { gHqxLuts[lutIndex], gNearestSampler },
+                        { gGameTex, gNearestSampler },
+                };
+                uniforms.params[0] = static_cast<float>(baseScale);
+                RenderPass(cmd, gScaledTex, gameWidth * passScale, gameHeight * passScale, gHqxBlendPipeline, uniforms, blendBindings, 3, nullptr);
+        } else {
+                // ScaleFX pass 0: metrics.
+                SDL_GPUTextureSamplerBinding p0Bindings[1] = { { gGameTex, gNearestSampler } };
+                RenderPass(cmd, gMetricTex, gameWidth, gameHeight, gSfxPipelines[0], uniforms, p0Bindings, 1, nullptr);
+
+                // ScaleFX pass 1: corner strength.
+                SDL_GPUTextureSamplerBinding p1Bindings[1] = { { gMetricTex, gNearestSampler } };
+                uniforms.params[0] = kSfxClr;
+                uniforms.params[1] = kSfxSaa;
+                RenderPass(cmd, gStrengthTex, gameWidth, gameHeight, gSfxPipelines[1], uniforms, p1Bindings, 1, nullptr);
+
+                // ScaleFX pass 2: edge flags.
+                SDL_GPUTextureSamplerBinding p2Bindings[2] = {
+                        { gStrengthTex, gNearestSampler },
+                        { gMetricTex, gNearestSampler },
+                };
+                uniforms.params[0] = 0.0F;
+                uniforms.params[1] = 0.0F;
+                RenderPass(cmd, gFlagsTex, gameWidth, gameHeight, gSfxPipelines[2], uniforms, p2Bindings, 2, nullptr);
+
+                // ScaleFX pass 3: subpixel map.
+                SDL_GPUTextureSamplerBinding p3Bindings[1] = { { gFlagsTex, gNearestSampler } };
+                uniforms.params[0] = kSfxScn;
+                RenderPass(cmd, gSubpixTex, gameWidth, gameHeight, gSfxPipelines[3], uniforms, p3Bindings, 1, nullptr);
+
+                // ScaleFX pass 4: render at the effective scale.
+                SDL_GPUTextureSamplerBinding p4Bindings[2] = {
+                        { gSubpixTex, gNearestSampler },
+                        { gGameTex, gNearestSampler },
+                };
+                uniforms.params[0] = static_cast<float>(passScale);
+                RenderPass(cmd, gScaledTex, gameWidth * passScale, gameHeight * passScale, gSfxPipelines[4], uniforms, p4Bindings, 2, nullptr);
+        }
+
+        // Blit the scaled image into the swapchain with letterboxing.
+        const int destWidth = static_cast<int>(std::lround(gameWidth * destScale));
+        const int destHeight = static_cast<int>(std::lround(gameHeight * destScale));
+        SDL_GPUViewport viewport {};
+        viewport.x = (swapchainWidth - destWidth) / 2.0F;
+        viewport.y = (swapchainHeight - destHeight) / 2.0F;
+        viewport.w = destWidth;
+        viewport.h = destHeight;
+        viewport.min_depth = 0.0F;
+        viewport.max_depth = 1.0F;
+        SDL_GPUTextureSamplerBinding blitBindings[1] = { { gScaledTex, gLinearSampler } };
+        uniforms.params[0] = 0.0F;
+        RenderPass(cmd, swapchainTexture, swapchainWidth, swapchainHeight, gBlitPipeline, uniforms, blitBindings, 1, &viewport);
+
+        if (!SDL_SubmitGPUCommandBuffer(cmd))
+                LogFail("SDL_SubmitGPUCommandBuffer failed");
+}
+
+} // namespace gpu_scaler
+} // namespace devilution
+#endif // !USE_SDL1
+#endif // USE_GPU_SCALER
