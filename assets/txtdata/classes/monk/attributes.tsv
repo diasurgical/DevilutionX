@@ -1,5 +1,5 @@
 Attribute	Value
-classFlags	StaffCleave,MartialArts,StaffBlock,OneHandBlock
+classFlags
 classAvailabilityFlags	Hellfire
 baseStr	25
 baseMag	15
@@ -24,14 +24,11 @@ itmRestoreMana	1.5
 splRestoreLife	2
 splRestoreMana	2
 healOtherRestoreLife	3
+attackFlags	StaffCleave,MartialArts
+defenseFlags	StaffBlock,OneHandBlock
 meleeArmorPiercingBonus	0
 bowDamageMod	0.5
 arrowVelocityBonus	0
-armorClassBonus	0
-magicResistanceBonus	0
-fireResistanceBonus	0
-lightningResistanceBonus	0
-stunThreshold	1
 normalLightArmorAC	2
 magicLightArmorAC	2
 uniqueLightArmorAC	2
