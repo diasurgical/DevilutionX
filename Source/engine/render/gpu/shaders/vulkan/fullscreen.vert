@@ -9,7 +9,11 @@ layout(location = 0) out vec2 vUV;
 
 void main()
 {
-	vec2 pos = vec2(float((gl_VertexIndex & 1) << 2) - 1.0, float(gl_VertexIndex & 2) - 1.0);
-	vUV = (pos + 1.0) * 0.5;
-	gl_Position = vec4(pos, 0.0, 1.0);
+        // Fullscreen triangle covering the whole target:
+        //   idx 0 -> (-1,-1)  idx 1 -> (3,-1)  idx 2 -> (-1,3)
+        // Both axes must overscan to 3; a coordinate that stops at +1
+        // leaves the far half of the target uncovered (wedge artifact).
+        vec2 pos = vec2(float((gl_VertexIndex & 1) << 2) - 1.0, float((gl_VertexIndex & 2) << 1) - 1.0);
+        vUV = (pos + 1.0) * 0.5;
+        gl_Position = vec4(pos, 0.0, 1.0);
 }

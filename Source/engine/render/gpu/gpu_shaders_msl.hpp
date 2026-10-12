@@ -27,7 +27,8 @@ struct VSOut {
 
 vertex VSOut fullscreenVS(uint vid [[vertex_id]])
 {
-    float2 pos = float2(float((vid & 1u) << 2) - 1.0, float(vid & 2u) - 1.0);
+    // Fullscreen triangle: (-1,-1), (3,-1), (-1,3) - both axes overscan to 3.
+    float2 pos = float2(float((vid & 1u) << 2) - 1.0, float((vid & 2u) << 1) - 1.0);
     VSOut o;
     o.uv = (pos + 1.0) * 0.5;
     o.pos = float4(pos, 0.0, 1.0);
