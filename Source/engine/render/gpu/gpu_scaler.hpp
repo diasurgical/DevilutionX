@@ -100,9 +100,9 @@ std::string_view FilterOsdText();
 
 /**
  * @brief Draws the persistent filter OSD label (if any) into the 8-bit
- * game frame, right-aligned in the bottom-right corner, so it flows
- * through the scaler (or the regular renderer) like the rest of the
- * image. A no-op before the first ShowFilterOsd call.
+ * game frame, right-aligned in the bottom-right corner, in dialog-size
+ * white, so it flows through the scaler (or the regular renderer) like
+ * the rest of the image. A no-op before the first ShowFilterOsd call.
  */
 void DrawFilterOsd(const Surface &out);
 
