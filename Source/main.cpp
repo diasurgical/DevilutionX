@@ -26,6 +26,8 @@
 
 #include "diablo.h"
 
+#include "engine/render/gpu/gpu_scaler.hpp"
+
 #if !defined(__APPLE__)
 extern "C" const char *__asan_default_options() // NOLINT(bugprone-reserved-identifier, readability-identifier-naming)
 {
@@ -57,6 +59,8 @@ extern "C" int main(int argc, char **argv)
 #ifdef GPERF_HEAP_MAIN
 	HeapProfilerStart("main");
 #endif
+	devilution::gpu_scaler::PreloadD3DCompiler();
+
 	const int result = devilution::DiabloMain(argc, argv);
 #ifdef GPERF_HEAP_MAIN
 	HeapProfilerStop();

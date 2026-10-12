@@ -29,6 +29,15 @@ class Surface;
 namespace gpu_scaler {
 
 /**
+ * @brief Preloads the system Direct3D shader compiler at process start
+ * (Windows only; a no-op elsewhere). Must run before any renderer or GPU
+ * device is created so that every later bare-name load of
+ * d3dcompiler_47.dll resolves to the genuine system copy instead of a
+ * stale DLL shipped next to the game.
+ */
+void PreloadD3DCompiler();
+
+/**
  * @brief Returns true when a shader filter is selected in the options,
  * regardless of whether the scaler initialized successfully. Callers use
  * this to keep the backbuffer setup (upscale-style) consistent.

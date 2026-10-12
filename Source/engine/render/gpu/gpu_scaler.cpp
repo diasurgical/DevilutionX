@@ -346,6 +346,36 @@ using D3DCompileFn = long(STDMETHODCALLTYPE *)(
     const void *, size_t, const char *, const void *, void *, const char *,
     const char *, unsigned, unsigned, FakeD3DBlob **, FakeD3DBlob **);
 
+// Lossy ASCII rendering of a Windows path, for the diagnostic log only.
+std::string NarrowPath(const wchar_t *wide)
+{
+	std::string narrow;
+	for (const wchar_t *c = wide; *c != L'\0'; ++c)
+		narrow.push_back(*c >= 32 && *c < 127 ? static_cast<char>(*c) : '?');
+	return narrow;
+}
+
+// Runs at process start, before SDL creates any renderer or GPU device. Loads
+// the system d3dcompiler by full path and keeps it loaded for the whole
+// process, so that every later bare-name LoadLibrary("d3dcompiler_47.dll") --
+// ours or SDL's -- resolves to the genuine system copy instead of a stale DLL
+// shipped next to the game: the default search order prefers the application
+// directory, and Windows reuses an already-loaded module matched by base file
+// name even if a different full path is requested later.
+void PreloadD3DCompiler()
+{
+	wchar_t sysDir[MAX_PATH];
+	const UINT sysLen = GetSystemDirectoryW(sysDir, MAX_PATH);
+	if (sysLen == 0 || sysLen >= MAX_PATH - 32)
+		return;
+	for (const wchar_t *name : { L"\\d3dcompiler_47.dll", L"\\d3dcompiler_43.dll" }) {
+		std::wstring path(sysDir);
+		path += name;
+		if (LoadLibraryW(path.c_str()) != nullptr)
+			return; // Keep it loaded for the whole process.
+	}
+}
+
 D3DCompileFn LoadD3DCompile()
 {
 	static D3DCompileFn fn = nullptr;
@@ -371,6 +401,20 @@ D3DCompileFn LoadD3DCompile()
 	}
 	if (mod == nullptr)
 		return nullptr;
+	// Log exactly which d3dcompiler DLL ended up in the process: Windows
+	// matches LoadLibrary by base file name, so if any component loaded a
+	// same-named DLL from the game folder earlier, the full system path above
+	// still resolves to that (possibly broken) module.
+	wchar_t modPath[MAX_PATH] = {};
+	GetModuleFileNameW(mod, modPath, MAX_PATH);
+	const std::string loaded = NarrowPath(modPath);
+	const std::string systemDir = NarrowPath(sysDir);
+	if (loaded.rfind(systemDir, 0) == 0) {
+		LogFileLine(StrCat("d3dcompiler: ", loaded));
+	} else {
+		LogFileLine(StrCat("WARNING: d3dcompiler loaded from outside the system directory: ", loaded,
+		    " (a same-named DLL next to the game was loaded earlier by name; delete the local copy)"));
+	}
 	fn = reinterpret_cast<D3DCompileFn>(reinterpret_cast<void *>(GetProcAddress(mod, "D3DCompile")));
 	if (fn == nullptr)
 		LogError("GPU scaler: found d3dcompiler dll but no D3DCompile export");
@@ -396,6 +440,46 @@ long InvokeD3DCompile(D3DCompileFn d3dCompile, const char *source, const char *t
 	return hr;
 }
 
+// The same containment for the returned blob objects as for the D3DCompile
+// call itself: a broken d3dcompiler can hand back a blob whose vtable is
+// garbage, and the wild jumps observed in the wild happened on these virtual
+// calls right after D3DCompile returned, not inside it.
+const void *GuardedBlobPointer(FakeD3DBlob *blob)
+{
+	volatile const void *result = nullptr;
+	if (setjmp(tCompileJmpBuf) != 0)
+		return nullptr;
+	tCompileGuardArmed = true;
+	tCompileGuardThread = GetCurrentThreadId();
+	result = blob->GetBufferPointer();
+	tCompileGuardArmed = false;
+	return result;
+}
+
+size_t GuardedBlobSize(FakeD3DBlob *blob)
+{
+	volatile size_t result = 0;
+	if (setjmp(tCompileJmpBuf) != 0)
+		return 0;
+	tCompileGuardArmed = true;
+	tCompileGuardThread = GetCurrentThreadId();
+	result = blob->GetBufferSize();
+	tCompileGuardArmed = false;
+	return result;
+}
+
+void GuardedBlobRelease(FakeD3DBlob *blob)
+{
+	if (blob == nullptr)
+		return;
+	if (setjmp(tCompileJmpBuf) != 0)
+		return;
+	tCompileGuardArmed = true;
+	tCompileGuardThread = GetCurrentThreadId();
+	blob->Release();
+	tCompileGuardArmed = false;
+}
+
 std::vector<uint8_t> CompileHLSL(const char *source, const char *target)
 {
 	std::vector<uint8_t> blob;
@@ -416,9 +500,11 @@ std::vector<uint8_t> CompileHLSL(const char *source, const char *target)
 	if (hr < 0 || code == nullptr) {
 		std::string msg;
 		if (errors != nullptr) {
-			msg.assign(static_cast<const char *>(errors->GetBufferPointer()),
-			    std::min<size_t>(errors->GetBufferSize(), 400));
-			errors->Release();
+			const char *errorBytes = static_cast<const char *>(GuardedBlobPointer(errors));
+			const size_t errorSize = GuardedBlobSize(errors);
+			GuardedBlobRelease(errors);
+			if (errorBytes != nullptr && errorSize > 0)
+				msg.assign(errorBytes, std::min<size_t>(errorSize, 400));
 		}
 		for (char &c : msg) {
 			if (c == '\n' || c == '\r')
@@ -430,10 +516,21 @@ std::vector<uint8_t> CompileHLSL(const char *source, const char *target)
 		LogFileLine(StrCat("ERROR: HLSL compilation failed (", target, "): ", msg));
 		return blob;
 	}
-	const auto *bytes = static_cast<const uint8_t *>(code->GetBufferPointer());
-	blob.assign(bytes, bytes + code->GetBufferSize());
-	code->Release();
+	const auto *bytes = static_cast<const uint8_t *>(GuardedBlobPointer(code));
+	const size_t size = GuardedBlobSize(code);
+	GuardedBlobRelease(code);
+	if (bytes == nullptr || size == 0) {
+		LogFileLine(StrCat("ERROR: d3dcompiler returned an unusable shader blob for '", target, "'"));
+		return blob;
+	}
+	blob.assign(bytes, bytes + size);
 	return blob;
+}
+
+#else // _WIN32
+
+void PreloadD3DCompiler()
+{
 }
 
 #endif // _WIN32
