@@ -237,7 +237,16 @@ std::expected<std::unique_ptr<TSnd>, std::string> SoundFileLoadWithStatus(const 
 std::unique_ptr<TSnd> sound_file_load(const char *path, bool stream)
 {
 	std::expected<std::unique_ptr<TSnd>, std::string> result = SoundFileLoadWithStatus(path, stream);
-	if (!result.has_value()) app_fatal(result.error());
+	if (!result.has_value()) {
+		// Do not app_fatal() here: a missing or undecodable sound effect must
+		// not take the game down (the fatal error dialog used to freeze the UI
+		// when SDL3_mixer rejected a WAV). Return an empty sample instead; all
+		// playback paths skip samples that report IsLoaded() == false.
+		LogError(LogCategory::Audio, "sound_file_load: {}", result.error());
+		auto snd = std::make_unique<TSnd>();
+		snd->start_tc = SDL_GetTicks() - 80 - 1;
+		return snd;
+	}
 	return std::move(result).value();
 }
 

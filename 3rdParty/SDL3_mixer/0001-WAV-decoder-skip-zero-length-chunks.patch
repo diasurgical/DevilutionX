@@ -1,0 +1,32 @@
+--- a/src/decoder_wav.c
++++ b/src/decoder_wav.c
+@@ -1282,13 +1282,18 @@
+             return false;
+         }
+ 
+-        if (chunk_length == 0) {
+-            break;
+-        } else if (((chunk_start_position + (Sint64)chunk_length) - (Sint64)(sizeof(Uint32) * 2)) > flen) {
++        if (chunk_length != 0 &&
++            (((chunk_start_position + (Sint64)chunk_length) - (Sint64)(sizeof(Uint32) * 2)) > flen)) {
+             return SDL_SetError("Corrupt WAV file (chunk goes past EOF)");
+         }
+ 
+         bool chunk_okay = true;
++        // DevilutionX patch: a zero-length chunk is not the end of the file.
++        // Some WAV writers (including 1996-era tools) emit empty metadata chunks
++        // (LIST, cue, JUNK, ...) before the data chunk; upstream 3.2.0 breaks
++        // out of the chunk walk here and then fails with "no DATA chunk".
++        // Skip zero-length chunks instead (nothing to parse) and keep walking.
++        if (chunk_length > 0) {
+         switch (chunk_type) {
+         case FMT:
+             found_FMT = true;
+@@ -1316,6 +1321,7 @@
+         if (!chunk_okay) {
+             return false;
+         }
++        }
+ 
+         // move to start of next chunk.
+         Sint64 next_chunk = chunk_start_position + chunk_length;
