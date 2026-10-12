@@ -871,7 +871,7 @@ void DeltaLoadMonsters(const DLevel &deltaLevel)
 				ChangeLightXY(monster.lightId, position);
 		}
 
-		monster.hitPoints = Swap32LE(deltaMonster.hitPoints);
+		monster.hitPoints = Fixed26_6::fromRaw(Swap32LE(deltaMonster.hitPoints));
 		monster.whoHit = deltaMonster.mWhoHit;
 		if (deltaMonster.hitPoints != 0)
 			continue;
@@ -1032,7 +1032,7 @@ void DeltaLeaveSync(uint8_t bLevel)
 		DMonsterStr &delta = deltaLevel.monster[ma];
 		delta.position = monster.position.tile;
 		delta.menemy = encode_enemy(monster);
-		delta.hitPoints = monster.hitPoints;
+		delta.hitPoints = monster.hitPoints.raw();
 		delta.mactive = monster.activeForTicks;
 		delta.mWhoHit = monster.whoHit;
 	}
@@ -2054,9 +2054,9 @@ size_t OnMonstDamage(const TCmdMonDamage &message, Player &player)
 				Monster &monster = Monsters[monsterIdx];
 				monster.tag(player);
 				if (monster.hitPoints > 0) {
-					monster.hitPoints -= Swap32LE(message.dwDam);
-					if ((monster.hitPoints >> 6) < 1)
-						monster.hitPoints = 1 << 6;
+					monster.hitPoints -= Fixed26_6::fromRaw(Swap32LE(message.dwDam));
+					if (monster.hitPoints.whole() < 1)
+						monster.hitPoints = Fixed26_6::fromInt(1);
 					delta_monster_hp(monster, player);
 				}
 			}
@@ -2091,7 +2091,7 @@ size_t OnPlayerDamage(const TCmdDamage &message, Player &player)
 	Player &target = Players[message.bPlr];
 	if (&target == MyPlayer && leveltype != DTYPE_TOWN && gbBufferMsgs != 1) {
 		if (player.isOnActiveLevel() && damage <= 192000 && !target.hasNoLife()) {
-			ApplyPlrDamage(message.damageType, target, 0, 0, static_cast<int>(damage), DeathReason::Player);
+			ApplyPlrDamage(message.damageType, target, Fixed26_6::fromRaw(static_cast<int>(damage)), 0, DeathReason::Player);
 		}
 	}
 
@@ -2834,8 +2834,8 @@ void delta_monster_hp(const Monster &monster, const Player &player)
 		return;
 
 	DMonsterStr *pD = &GetDeltaLevel(player).monster[monster.getId()];
-	if (SwapSigned32LE(pD->hitPoints) > monster.hitPoints)
-		pD->hitPoints = SwapSigned32LE(monster.hitPoints);
+	if (SwapSigned32LE(pD->hitPoints) > monster.hitPoints.raw())
+		pD->hitPoints = SwapSigned32LE(monster.hitPoints.raw());
 }
 
 void delta_sync_monster(const TSyncMonster &monsterSync, uint8_t level)

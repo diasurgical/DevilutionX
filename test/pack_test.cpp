@@ -206,8 +206,8 @@ static void CompareItems(const Item &item1, const TestItemStruct &item2)
 	EXPECT_EQ(item1._iPLFR, item2._iPLFR);
 	EXPECT_EQ(item1._iPLLR, item2._iPLLR);
 	EXPECT_EQ(item1._iPLMR, item2._iPLMR);
-	EXPECT_EQ(item1._iPLMana, item2._iPLMana);
-	EXPECT_EQ(item1._iPLHP, item2._iPLHP);
+	EXPECT_EQ(item1._iPLMana.raw(), item2._iPLMana);
+	EXPECT_EQ(item1._iPLHP.raw(), item2._iPLHP);
 	EXPECT_EQ(item1._iPLDamMod, item2._iPLDamMod);
 	EXPECT_EQ(item1._iPLGetHit, item2._iPLGetHit);
 	EXPECT_EQ(item1._iPLLight, item2._iPLLight);
@@ -447,8 +447,8 @@ TEST_F(PackTest, UnPackItem_diablo)
 	gbIsMultiplayer = false;
 	gbIsSpawn = false;
 
-	MyPlayer->_pMaxManaBase = 125 << 6;
-	MyPlayer->_pMaxHPBase = 125 << 6;
+	MyPlayer->_pMaxManaBase = Fixed26_6::fromInt(125);
+	MyPlayer->_pMaxHPBase = Fixed26_6::fromInt(125);
 
 	for (size_t i = 0; i < sizeof(PackedDiabloItems) / sizeof(*PackedDiabloItems); i++) {
 		const ItemPack packed = SwappedLE(PackedDiabloItems[i]);
@@ -485,7 +485,7 @@ TEST_F(PackTest, UnPackItem_diablo_unique_bug)
 	ASSERT_EQ(id._iPLFR, 50);
 	ASSERT_EQ(id._iPLLR, 50);
 	ASSERT_EQ(id._iPLMR, 50);
-	ASSERT_EQ(id._iPLMana, -1920);
+	ASSERT_EQ(id._iPLMana.raw(), -1920);
 	ASSERT_EQ(id._iPLLight, -2);
 	ASSERT_EQ(id._iUid, 6);
 	ASSERT_EQ(id.IDidx, IDI_STEELVEIL);
@@ -520,8 +520,8 @@ TEST_F(PackTest, UnPackItem_spawn)
 	gbIsMultiplayer = false;
 	gbIsSpawn = true;
 
-	MyPlayer->_pMaxManaBase = 125 << 6;
-	MyPlayer->_pMaxHPBase = 125 << 6;
+	MyPlayer->_pMaxManaBase = Fixed26_6::fromInt(125);
+	MyPlayer->_pMaxHPBase = Fixed26_6::fromInt(125);
 
 	for (size_t i = 0; i < sizeof(PackedSpawnItems) / sizeof(*PackedSpawnItems); i++) {
 		const ItemPack packed = SwappedLE(PackedSpawnItems[i]);
@@ -565,8 +565,8 @@ TEST_F(PackTest, UnPackItem_diablo_multiplayer)
 	gbIsMultiplayer = true;
 	gbIsSpawn = false;
 
-	MyPlayer->_pMaxManaBase = 125 << 6;
-	MyPlayer->_pMaxHPBase = 125 << 6;
+	MyPlayer->_pMaxManaBase = Fixed26_6::fromInt(125);
+	MyPlayer->_pMaxHPBase = Fixed26_6::fromInt(125);
 
 	for (size_t i = 0; i < sizeof(PackedDiabloMPItems) / sizeof(*PackedDiabloMPItems); i++) {
 		const ItemPack packed = SwappedLE(PackedDiabloMPItems[i]);
@@ -785,8 +785,8 @@ TEST_F(PackTest, UnPackItem_hellfire)
 	gbIsMultiplayer = false;
 	gbIsSpawn = false;
 
-	MyPlayer->_pMaxManaBase = 125 << 6;
-	MyPlayer->_pMaxHPBase = 125 << 6;
+	MyPlayer->_pMaxManaBase = Fixed26_6::fromInt(125);
+	MyPlayer->_pMaxHPBase = Fixed26_6::fromInt(125);
 
 	for (size_t i = 0; i < sizeof(PackedHellfireItems) / sizeof(*PackedHellfireItems); i++) {
 		const ItemPack packed = SwappedLE(PackedHellfireItems[i]);
@@ -1041,16 +1041,16 @@ TEST_F(NetPackTest, UnPackNetPlayer_invalid_plrlevel)
 
 TEST_F(NetPackTest, UnPackNetPlayer_invalid_hpBase)
 {
-	MyPlayer->_pHPBase = -64;
+	MyPlayer->_pHPBase = Fixed26_6::fromInt(-1);
 	ASSERT_FALSE(TestNetPackValidation());
 
-	MyPlayer->_pHPBase = MyPlayer->_pMaxHPBase + 64;
+	MyPlayer->_pHPBase = MyPlayer->_pMaxHPBase + Fixed26_6::fromInt(1);
 	ASSERT_FALSE(TestNetPackValidation());
 }
 
 TEST_F(NetPackTest, UnPackNetPlayer_invalid_manaBase)
 {
-	MyPlayer->_pManaBase = MyPlayer->_pMaxManaBase + 64;
+	MyPlayer->_pManaBase = MyPlayer->_pMaxManaBase + Fixed26_6::fromInt(1);
 	ASSERT_FALSE(TestNetPackValidation());
 }
 
@@ -1110,25 +1110,25 @@ TEST_F(NetPackTest, UnPackNetPlayer_invalid_vitality)
 
 TEST_F(NetPackTest, UnPackNetPlayer_invalid_hitPoints)
 {
-	MyPlayer->_pHitPoints++;
+	MyPlayer->_pHitPoints += Fixed26_6::fromRaw(1);
 	ASSERT_FALSE(TestNetPackValidation());
 }
 
 TEST_F(NetPackTest, UnPackNetPlayer_invalid_maxHP)
 {
-	MyPlayer->_pMaxHP++;
+	MyPlayer->_pMaxHP += Fixed26_6::fromRaw(1);
 	ASSERT_FALSE(TestNetPackValidation());
 }
 
 TEST_F(NetPackTest, UnPackNetPlayer_invalid_mana)
 {
-	MyPlayer->_pMana++;
+	MyPlayer->_pMana += Fixed26_6::fromRaw(1);
 	ASSERT_FALSE(TestNetPackValidation());
 }
 
 TEST_F(NetPackTest, UnPackNetPlayer_invalid_maxMana)
 {
-	MyPlayer->_pMaxMana++;
+	MyPlayer->_pMaxMana += Fixed26_6::fromRaw(1);
 	ASSERT_FALSE(TestNetPackValidation());
 }
 
@@ -1317,13 +1317,13 @@ TEST_F(NetPackTest, UnPackNetPlayer_invalid_iLMaxDam)
 
 TEST_F(NetPackTest, UnPackNetPlayer_invalid_maxHPBase)
 {
-	MyPlayer->_pMaxHPBase++;
+	MyPlayer->_pMaxHPBase += Fixed26_6::fromRaw(1);
 	ASSERT_FALSE(TestNetPackValidation());
 }
 
 TEST_F(NetPackTest, UnPackNetPlayer_invalid_maxManaBase)
 {
-	MyPlayer->_pMaxManaBase++;
+	MyPlayer->_pMaxManaBase += Fixed26_6::fromRaw(1);
 	ASSERT_FALSE(TestNetPackValidation());
 }
 

@@ -732,6 +732,7 @@ void AddCryptBook(_object_id ot, int v2, Point position)
 	AvailableObjects[0] = AvailableObjects[MAXOBJECTS - 1 - ActiveObjectCount];
 	ActiveObjects[ActiveObjectCount] = oi;
 	dObject[position.x][position.y] = oi + 1;
+	MarkWalkabilityChanged();
 	Object &object = Objects[oi];
 	SetupObject(object, position, ot);
 	AddCryptObject(object, v2);
@@ -904,6 +905,7 @@ void DeleteObject(int oi, int i)
 	const Object &object = Objects[oi];
 	const Point position = object.position;
 	dObject[position.x][position.y] = 0;
+	MarkWalkabilityChanged();
 	AvailableObjects[-ActiveObjectCount + MAXOBJECTS] = oi;
 	ActiveObjectCount--;
 	if (ObjectUnderCursor == &object) // Unselect object if this was highlighted by player
@@ -951,6 +953,7 @@ void AddChest(Object &chest)
 void ObjSetMicro(Point position, int pn)
 {
 	dPiece[position.x][position.y] = pn;
+	MarkWalkabilityChanged();
 }
 
 void DoorSet(Point position, bool isLeftDoor)
@@ -1655,7 +1658,7 @@ void UpdateBurningCrossDamage(Object &cross)
 	if (myPlayer.position.tile != cross.position + Displacement { 0, -1 })
 		return;
 
-	ApplyPlrDamage(DamageType::Fire, myPlayer, 0, 0, damage[leveltype - 1]);
+	ApplyPlrDamage(DamageType::Fire, myPlayer, Fixed26_6::fromRaw(damage[leveltype - 1]));
 	if (!myPlayer.hasNoLife()) {
 		myPlayer.Say(HeroSpeech::Argh);
 	}
@@ -2524,15 +2527,15 @@ void OperateShrineCostOfWisdom(Player &player, SpellID spellId, diablo_message m
 		}
 	}
 
-	int maxBase = player._pMaxManaBase;
+	int maxBase = player._pMaxManaBase.raw();
 
 	if (maxBase < 0) {
 		// Fix bugged state; do not turn this into a "negative penalty" mana boost.
-		player._pMaxManaBase = 0;
+		player._pMaxManaBase = Fixed26_6::fromInt(0);
 		maxBase = 0;
 	}
 
-	const int penalty = maxBase / 10; // 10% of max base mana (>= 0)
+	const Fixed26_6 penalty = Fixed26_6::fromRaw(maxBase / 10); // 10% of max base mana (>= 0)
 
 	player._pMaxManaBase -= penalty; // will remain >= 0
 	player._pManaBase -= penalty;    // may go negative, allowed
@@ -3231,8 +3234,8 @@ bool OperateFountains(Player &player, Object &fountain)
 
 		if (player._pHitPoints < player._pMaxHP) {
 			PlaySfxLoc(SfxID::OperateFountain, fountain.position);
-			player._pHitPoints += 64;
-			player._pHPBase += 64;
+			player._pHitPoints += Fixed26_6::fromInt(1);
+			player._pHPBase += Fixed26_6::fromInt(1);
 			if (player._pHitPoints > player._pMaxHP) {
 				player._pHitPoints = player._pMaxHP;
 				player._pHPBase = player._pMaxHPBase;
@@ -3248,8 +3251,8 @@ bool OperateFountains(Player &player, Object &fountain)
 		if (player._pMana < player._pMaxMana) {
 			PlaySfxLoc(SfxID::OperateFountain, fountain.position);
 
-			player._pMana += 64;
-			player._pManaBase += 64;
+			player._pMana += Fixed26_6::fromInt(1);
+			player._pManaBase += Fixed26_6::fromInt(1);
 			if (player._pMana > player._pMaxMana) {
 				player._pMana = player._pMaxMana;
 				player._pManaBase = player._pMaxManaBase;
@@ -3444,6 +3447,7 @@ void BreakCrux(Object &crux, bool sendmsg)
 	crux._oAnimFrame = 1;
 	crux._oAnimDelay = 1;
 	crux._oSolidFlag = true;
+	MarkWalkabilityChanged();
 	crux._oMissFlag = true;
 	crux._oBreak = -1;
 	crux.selectionRegion = SelectionRegion::None;
@@ -3470,6 +3474,7 @@ void BreakBarrel(const Player &player, Object &barrel, bool forcebreak, bool sen
 	barrel._oAnimFrame = 1;
 	barrel._oAnimDelay = 1;
 	barrel._oSolidFlag = false;
+	MarkWalkabilityChanged();
 	barrel._oMissFlag = true;
 	barrel._oBreak = -1;
 	barrel.selectionRegion = SelectionRegion::None;
@@ -4015,6 +4020,7 @@ Object *AddObject(_object_id objType, Point objPos)
 	AvailableObjects[0] = AvailableObjects[MAXOBJECTS - 1 - ActiveObjectCount];
 	ActiveObjects[ActiveObjectCount] = oi;
 	dObject[objPos.x][objPos.y] = oi + 1;
+	MarkWalkabilityChanged();
 	Object &object = Objects[oi];
 	SetupObject(object, objPos, objType);
 	switch (object._otype) {
@@ -4715,6 +4721,7 @@ void DeltaSyncBreakObj(Object &object)
 
 	if (object.IsBarrel()) {
 		object._oSolidFlag = false;
+		MarkWalkabilityChanged();
 	} else if (object.IsCrux() && AreAllCruxesOfTypeBroken(object._oVar8)) {
 		ObjChangeMap(object._oVar1, object._oVar2, object._oVar3, object._oVar4);
 	}
@@ -4923,6 +4930,7 @@ void SyncNakrulRoom()
 	dPiece[UberRow][UberCol - 1] = 300;
 	dPiece[UberRow][UberCol - 2] = 299;
 	dPiece[UberRow][UberCol + 1] = 298;
+	MarkWalkabilityChanged();
 }
 
 } // namespace devilution
