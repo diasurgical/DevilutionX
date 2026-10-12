@@ -1348,10 +1348,6 @@ void PresentFrame(const SDL_Surface &frame)
 namespace {
 
 std::string gOsdText;
-std::uint64_t gOsdDeadline = 0;
-int gOsdLastShownFilter = -1; // -1 = nothing shown yet this process
-
-constexpr std::uint64_t OsdDurationMs = 4000;
 
 const char *FilterDisplayName(ShaderFilter filter)
 {
@@ -1390,42 +1386,36 @@ std::string PrettyBackendName(std::string_view driver)
 void ShowFilterOsd()
 {
         const int value = static_cast<int>(*GetOptions().Graphics.shaderFilter);
-        const bool firstCall = gOsdLastShownFilter < 0;
-        if (!firstCall && value == gOsdLastShownFilter)
-                return;
-        gOsdLastShownFilter = value;
-        if (firstCall && value == static_cast<int>(ShaderFilter::None))
-                return; // boot with no filter selected; nothing to confirm
+        std::string text;
         if (value == static_cast<int>(ShaderFilter::None)) {
-                gOsdText = "Shader Filter: Off";
+                text = "Shader Filter: Off";
         } else if (!IsActive()) {
-                gOsdText = StrCat("Shader Filter: ", FilterDisplayName(static_cast<ShaderFilter>(value)), " (unavailable)");
+                text = StrCat("Shader Filter: ", FilterDisplayName(static_cast<ShaderFilter>(value)), " (unavailable)");
         } else {
-                gOsdText = StrCat("Shader Filter: ", FilterDisplayName(static_cast<ShaderFilter>(value)),
+                text = StrCat("Shader Filter: ", FilterDisplayName(static_cast<ShaderFilter>(value)),
                     " (", PrettyBackendName(SDL_GetGPUDeviceDriver(gDevice)), ")");
         }
-        gOsdDeadline = SDL_GetTicks() + OsdDurationMs;
-        LogFileLine(StrCat("osd: ", gOsdText));
+        if (text != gOsdText) {
+                gOsdText = std::move(text);
+                LogFileLine(StrCat("osd: ", gOsdText));
+        }
 }
 
 std::string_view FilterOsdText()
 {
-        if (gOsdText.empty())
-                return {};
-        if (SDL_GetTicks() >= gOsdDeadline) {
-                gOsdText.clear();
-                LogFileLine("osd: expired");
-                return {};
-        }
         return gOsdText;
 }
 
-void DrawFilterOsd(const Surface &out, Point position)
+void DrawFilterOsd(const Surface &out)
 {
         const std::string_view text = FilterOsdText();
         if (text.empty())
                 return;
-        DrawString(out, text, position, { .flags = UiFlags::ColorWhite | UiFlags::FontSize24 });
+        constexpr int Margin = 8;
+        const int textWidth = GetLineWidth(text);
+        const int textHeight = GetLineHeight(text, GameFont12);
+        const Point position { out.w() - Margin - textWidth, out.h() - Margin - textHeight };
+        DrawString(out, text, position, { .flags = UiFlags::ColorWhite });
 }
 
 } // namespace gpu_scaler

@@ -1908,7 +1908,7 @@ void DrawAndBlit()
 	DrawFPS(out);
 
 #ifdef USE_GPU_SCALER
-	gpu_scaler::DrawFilterOsd(out, { 8, frameflag ? 24 : 8 });
+	gpu_scaler::DrawFilterOsd(out);
 #endif
 
 	lua::GameDrawComplete();
