@@ -132,10 +132,10 @@ endif()
 # SDL_GPU shader scaler (ScaleFX / HQx)
 cmake_dependent_option(USE_GPU_SCALER "Enable the SDL_GPU shader scaler (ScaleFX/HQx upscaling filters)" ON "USE_SDL3;NOT USE_SDL1" OFF)
 if(USE_GPU_SCALER)
+  set(GPU_SCALER_SHADER_DIR "${PROJECT_SOURCE_DIR}/Source/engine/render/gpu/shaders/vulkan")
+  set(GPU_SCALER_SPV_HEADER "${CMAKE_BINARY_DIR}/Source/engine/render/gpu/gpu_shader_spv.hpp")
   find_program(GLSLANG_VALIDATOR glslangValidator HINTS "$ENV{GLSLANG_DIR}/bin")
   if(GLSLANG_VALIDATOR)
-    set(GPU_SCALER_SHADER_DIR "${PROJECT_SOURCE_DIR}/Source/engine/render/gpu/shaders/vulkan")
-    set(GPU_SCALER_SPV_HEADER "${CMAKE_BINARY_DIR}/Source/engine/render/gpu/gpu_shader_spv.hpp")
     add_custom_target(gpu_scaler_spv
       COMMAND ${CMAKE_COMMAND}
           -DGLSLANG=${GLSLANG_VALIDATOR}
@@ -155,10 +155,19 @@ if(USE_GPU_SCALER)
       COMMENT "Compiling GPU scaler shaders to SPIR-V"
       VERBATIM)
     set(GPU_SCALER_SPV_GENERATED ON)
-    list(APPEND DEVILUTIONX_PLATFORM_COMPILE_DEFINITIONS USE_GPU_SCALER)
+    message(STATUS "GPU scaler: shaders will be compiled to SPIR-V at build time (glslangValidator found)")
   else()
-    message(STATUS "glslangValidator not found - using the prebuilt GPU scaler SPIR-V shaders (install glslang-tools or set GLSLANG_DIR to regenerate)")
+    # No glslangValidator: fall back to the COMMITTED prebuilt SPIR-V header
+    # (Source/engine/render/gpu/gpu_shader_spv_prebuilt.hpp, selected by
+    # gpu_scaler.cpp when GPU_SCALER_SPV_GENERATED is undefined). The scaler
+    # stays fully functional; shaders are only regenerated when glslang exists.
+    message(STATUS "glslangValidator not found - using the committed prebuilt GPU scaler SPIR-V header")
   endif()
+  # NOTE: this define gates BOTH the scaler code and the "Shader Filter" entry
+  # in the settings menu. It MUST be appended in BOTH paths above; adding it
+  # only when glslangValidator exists silently compiles the whole feature out
+  # of the binary (build stays green, the exe just loses the menu).
+  list(APPEND DEVILUTIONX_PLATFORM_COMPILE_DEFINITIONS USE_GPU_SCALER)
 endif()
 
 if(USE_SDL1)
