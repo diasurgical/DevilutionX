@@ -1573,7 +1573,8 @@ void ShowFilterOsd()
 	const int value = static_cast<int>(*GetOptions().Graphics.shaderFilter);
 	std::string text;
 	if (value == static_cast<int>(ShaderFilter::None)) {
-		text = "Shader Filter: Off";
+		// No filter active: show no label at all.
+		text.clear();
 	} else if (!IsActive()) {
 		text = StrCat("Shader Filter: ", FilterDisplayName(static_cast<ShaderFilter>(value)), " (unavailable)");
 	} else {
@@ -1582,7 +1583,7 @@ void ShowFilterOsd()
 	}
 	if (text != gOsdText) {
 		gOsdText = std::move(text);
-		LogFileLine(StrCat("osd: ", gOsdText));
+		LogFileLine(StrCat("osd: ", gOsdText.empty() ? "(hidden)" : gOsdText.c_str()));
 	}
 }
 

@@ -93,9 +93,10 @@ void LogPhase(std::string_view line);
 /**
  * @brief Refreshes the persistent filter OSD label confirming which shader
  * filter the presentation path is actually running (e.g. "Shader Filter:
- * HQ2x (Vulkan)", "Shader Filter: Off"). Call after the renderer
- * (re)initialization has settled. The label is permanently visible in the
- * bottom-right corner of the game frame; this call only updates its text,
+ * HQ2x (Vulkan)"). Call after the renderer (re)initialization has settled.
+ * The label is visible in the bottom-right corner of the game frame only
+ * while a filter is selected; with the filter Off no label is shown. This
+ * call only updates its text,
  * which changes when the selected filter, its availability, or the active
  * GPU backend changes. Every text change is also logged to gpu-scaler.log.
  */
