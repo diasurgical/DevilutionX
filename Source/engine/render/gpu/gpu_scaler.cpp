@@ -12,6 +12,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <csetjmp>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
@@ -187,6 +188,21 @@ void InstallSdlLogCapture()
 }
 
 #ifdef _WIN32
+
+// --- Guarded D3DCompile ------------------------------------------------------
+// A fault inside d3dcompiler (a wild jump into a non-executable page has been
+// observed in the wild on D3D12, killing the process before the fallback could
+// run) must not take the game down: while the guard is armed on this thread,
+// the vectored exception handler below converts the fault into a "compile
+// failed" result via longjmp, and the presentation path either retries on the
+// Vulkan backend or reverts to the regular renderer for the session. The
+// guarded span contains no C++ objects with destructors, so skipping
+// unwinding is safe; x64 exception dispatch is table-based, so abandoning the
+// faulting frames leaves no stale registration behind.
+thread_local bool tCompileGuardArmed = false;
+thread_local DWORD tCompileGuardThread = 0;
+static jmp_buf tCompileJmpBuf;
+
 // Writes fatal native exceptions (access violations and friends) to the
 // diagnostic file before the process dies. Purely diagnostic: the exception
 // is always re-raised (EXCEPTION_CONTINUE_SEARCH) so debuggers and WER keep
@@ -235,6 +251,13 @@ std::string CrashThreadName()
 long NTAPI ScalerCrashHandler(EXCEPTION_POINTERS *info)
 {
 	static int logged = 0;
+	if (tCompileGuardArmed && info != nullptr && info->ExceptionRecord != nullptr
+	    && info->ExceptionRecord->ExceptionCode == EXCEPTION_ACCESS_VIOLATION
+	    && GetCurrentThreadId() == tCompileGuardThread) {
+		tCompileGuardArmed = false;
+		LogFileLine("ERROR: fault inside D3DCompile; recovered by the compile guard");
+		longjmp(tCompileJmpBuf, 1);
+	}
 	if (info != nullptr && info->ExceptionRecord != nullptr && logged < 8) {
 		const DWORD code = info->ExceptionRecord->ExceptionCode;
 		const char *what = nullptr;
@@ -328,15 +351,49 @@ D3DCompileFn LoadD3DCompile()
 	static D3DCompileFn fn = nullptr;
 	if (fn != nullptr)
 		return fn;
-	HMODULE mod = LoadLibraryW(L"d3dcompiler_47.dll");
-	if (mod == nullptr)
-		mod = LoadLibraryW(L"d3dcompiler_43.dll");
+	// Load by explicit path from the system directory. The default search
+	// order would pick up a same-named d3dcompiler DLL sitting in the game
+	// folder first, and stale copies shipped by old games are the leading
+	// suspect for wild jumps inside D3DCompile.
+	wchar_t sysDir[MAX_PATH];
+	const UINT sysLen = GetSystemDirectoryW(sysDir, MAX_PATH);
+	if (sysLen == 0 || sysLen >= MAX_PATH - 32) {
+		LogError("GPU scaler: could not resolve the system directory");
+		return nullptr;
+	}
+	HMODULE mod = nullptr;
+	for (const wchar_t *name : { L"\\d3dcompiler_47.dll", L"\\d3dcompiler_43.dll" }) {
+		std::wstring path(sysDir);
+		path += name;
+		mod = LoadLibraryW(path.c_str());
+		if (mod != nullptr)
+			break;
+	}
 	if (mod == nullptr)
 		return nullptr;
 	fn = reinterpret_cast<D3DCompileFn>(reinterpret_cast<void *>(GetProcAddress(mod, "D3DCompile")));
 	if (fn == nullptr)
 		LogError("GPU scaler: found d3dcompiler dll but no D3DCompile export");
 	return fn;
+}
+
+// Bare invocation wrapper for D3DCompile: must not contain C++ objects with
+// destructors, because a fault mid-call resumes here via longjmp from the
+// vectored exception handler.
+long InvokeD3DCompile(D3DCompileFn d3dCompile, const char *source, const char *target,
+    FakeD3DBlob **code, FakeD3DBlob **errors)
+{
+	volatile long hr = static_cast<long>(0x8000FFFFu); // E_UNEXPECTED
+	if (setjmp(tCompileJmpBuf) != 0) {
+		// Faulted inside d3dcompiler; the handler has disarmed the guard.
+		return hr;
+	}
+	tCompileGuardArmed = true;
+	tCompileGuardThread = GetCurrentThreadId();
+	hr = d3dCompile(source, std::strlen(source), nullptr, nullptr, nullptr,
+	    "main", target, 0, 0, code, errors);
+	tCompileGuardArmed = false;
+	return hr;
 }
 
 std::vector<uint8_t> CompileHLSL(const char *source, const char *target)
@@ -349,8 +406,13 @@ std::vector<uint8_t> CompileHLSL(const char *source, const char *target)
 	}
 	FakeD3DBlob *code = nullptr;
 	FakeD3DBlob *errors = nullptr;
-	const long hr = d3dCompile(source, std::strlen(source), nullptr, nullptr, nullptr,
-	    "main", target, 0, 0, &code, &errors);
+	const long hr = InvokeD3DCompile(d3dCompile, source, target, &code, &errors);
+	if (hr == static_cast<long>(0x8000FFFFu)) {
+		// The compile guard caught a fault inside d3dcompiler.
+		LogError("GPU scaler: D3DCompile faulted and was contained; treating '{}' as a compile failure", target);
+		LogFileLine(StrCat("ERROR: D3DCompile faulted (", target, "); contained by the compile guard"));
+		return blob;
+	}
 	if (hr < 0 || code == nullptr) {
 		std::string msg;
 		if (errors != nullptr) {
@@ -1050,6 +1112,29 @@ bool Reinit(SDL_Window *window)
 	}
 
 	if (!EnsureFilterResources(gFilter)) {
+		// A shader compile or pipeline creation failure is often
+		// backend-specific (e.g. a broken d3dcompiler). Retry once on
+		// the Vulkan backend before giving up on the GPU path.
+		const char *driver = gDevice != nullptr ? SDL_GetGPUDeviceDriver(gDevice) : nullptr;
+		if (driver != nullptr && std::strcmp(driver, "vulkan") != 0) {
+			LogFileLine(StrCat("filter resource initialization failed on ", driver,
+			    "; retrying once with the vulkan backend"));
+			Shutdown();
+			gFilter = *GetOptions().Graphics.shaderFilter;
+			if (CreateDevice(/*name=*/"vulkan")) {
+				gWindow = window;
+				if (SDL_ClaimWindowForGPUDevice(gDevice, gWindow)) {
+					gLastClaimedWindow = gWindow;
+					const bool vsync = *GetOptions().Graphics.frameRateControl == FrameRateControl::VerticalSync;
+					if (!SDL_SetGPUSwapchainParameters(gDevice, gWindow, SDL_GPU_SWAPCHAINCOMPOSITION_SDR,
+					        vsync ? SDL_GPU_PRESENTMODE_VSYNC : SDL_GPU_PRESENTMODE_IMMEDIATE)) {
+						LogFail("SDL_SetGPUSwapchainParameters failed");
+					}
+					if (EnsureFilterResources(gFilter))
+						return true;
+				}
+			}
+		}
 		LogFailHard("filter resource initialization failed");
 		Shutdown();
 		return false;
