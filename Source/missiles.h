@@ -374,7 +374,9 @@ void AddAcidPuddle(Missile &missile, AddMissileParameter &parameter);
  * var2: mnum of the monster
  */
 void AddStoneCurse(Missile &missile, AddMissileParameter &parameter);
+void AddPet(Missile &missile, AddMissileParameter &parameter, const _monster_id monsterType);
 void AddGolem(Missile &missile, AddMissileParameter &parameter);
+void AddSummonedSkeleton(Missile &missile, AddMissileParameter &parameter);
 void AddApocalypseBoom(Missile &missile, AddMissileParameter &parameter);
 void AddHealing(Missile &missile, AddMissileParameter &parameter);
 void AddHealOther(Missile &missile, AddMissileParameter &parameter);

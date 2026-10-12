@@ -166,6 +166,34 @@ std::expected<PlayerClassFlag, std::string> ParsePlayerClassFlag(std::string_vie
 	return std::unexpected("Unknown enum value");
 }
 
+std::expected<PlayerClassAvailabilityFlag, std::string> ParsePlayerClassAvailabilityFlag(std::string_view value)
+{
+	const std::optional<PlayerClassAvailabilityFlag> enumValueOpt = magic_enum::enum_cast<PlayerClassAvailabilityFlag>(value);
+	if (enumValueOpt.has_value()) {
+		return enumValueOpt.value();
+	}
+	return std::unexpected("Unknown enum value");
+}
+
+std::expected<PlayerAttackFlag, std::string> ParsePlayerAttackFlag(std::string_view value)
+{
+	const std::optional<PlayerAttackFlag> enumValueOpt = magic_enum::enum_cast<PlayerAttackFlag>(value);
+	if (enumValueOpt.has_value()) {
+		return enumValueOpt.value();
+	}
+	return std::unexpected("Unknown enum value");
+}
+
+std::expected<PlayerDefenseFlag, std::string> ParsePlayerDefenseFlag(std::string_view value)
+{
+	const std::optional<PlayerDefenseFlag> enumValueOpt = magic_enum::enum_cast<PlayerDefenseFlag>(value);
+	if (enumValueOpt.has_value()) {
+		return enumValueOpt.value();
+	}
+	return std::unexpected("Unknown enum value");
+}
+
+
 void LoadClassData(std::string_view classPath, ClassAttributes &attributes, PlayerCombatData &combat)
 {
 	const std::string filename = StrCat("txtdata\\classes\\", classPath, "\\attributes.tsv");
@@ -176,6 +204,7 @@ void LoadClassData(std::string_view classPath, ClassAttributes &attributes, Play
 	ValueReader reader { dataFile, filename };
 
 	reader.readEnumList("classFlags", attributes.classFlags, ParsePlayerClassFlag);
+	reader.readEnumList("classAvailabilityFlags", attributes.classAvailabilityFlags, ParsePlayerClassAvailabilityFlag);
 	reader.readInt("baseStr", attributes.baseStr);
 	reader.readInt("baseMag", attributes.baseMag);
 	reader.readInt("baseDex", attributes.baseDex);
@@ -199,6 +228,20 @@ void LoadClassData(std::string_view classPath, ClassAttributes &attributes, Play
 	reader.readDecimal("splRestoreLife", attributes.splRestoreLife);
 	reader.readDecimal("splRestoreMana", attributes.splRestoreMana);
 	reader.readDecimal("healOtherRestoreLife", attributes.healOtherRestoreLife);
+	reader.readEnumList("attackFlags", combat.attackFlags, ParsePlayerAttackFlag);
+	reader.readEnumList("defenseFlags", combat.defenseFlags, ParsePlayerDefenseFlag);
+	reader.readDecimal("meleeArmorPiercingBonus", combat.meleeArmorPiercingBonus);
+	reader.readDecimal("bowDamageMod", combat.bowDamageMod);
+	reader.readDecimal("arrowVelocityBonus", combat.arrowVelocityBonus);
+	reader.readDecimal("normalLightArmorAC", combat.normalLightArmorAC);
+	reader.readDecimal("magicLightArmorAC", combat.magicLightArmorAC);
+	reader.readDecimal("uniqueLightArmorAC", combat.uniqueLightArmorAC);
+	reader.readDecimal("normalMediumArmorAC", combat.normalMediumArmorAC);
+	reader.readDecimal("magicMediumArmorAC", combat.magicMediumArmorAC);
+	reader.readDecimal("uniqueMediumArmorAC", combat.uniqueMediumArmorAC);
+	reader.readDecimal("normalHeavyArmorAC", combat.normalHeavyArmorAC);
+	reader.readDecimal("magicHeavyArmorAC", combat.magicHeavyArmorAC);
+	reader.readDecimal("uniqueHeavyArmorAC", combat.uniqueHeavyArmorAC);
 	reader.readInt("baseMagicToHit", combat.baseMagicToHit);
 	reader.readInt("baseMeleeToHit", combat.baseMeleeToHit);
 	reader.readInt("baseRangedToHit", combat.baseRangedToHit);

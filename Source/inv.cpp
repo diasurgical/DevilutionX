@@ -1370,7 +1370,8 @@ bool AutoEquipEnabled(const Player &player, const Item &item)
 	if (item.isWeapon()) {
 		// Monk can use unarmed attack as an encouraged option, thus we do not automatically equip weapons on him so as to not
 		// annoy players who prefer that playstyle.
-		return player._pClass != HeroClass::Monk && *GetOptions().Gameplay.autoEquipWeapons;
+		const PlayerCombatData &playerCombatData = GetPlayerCombatDataForClass(player._pClass);
+		return !HasAnyOf(playerCombatData.attackFlags, PlayerAttackFlag::MartialArts) && *GetOptions().Gameplay.autoEquipWeapons;
 	}
 
 	if (item.isArmor()) {

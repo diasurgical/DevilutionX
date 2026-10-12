@@ -186,8 +186,12 @@ void InitMonsterTRN(CMonster &monst)
 		AnimStruct &anim = monst.anims[i];
 		if (anim.sprites->isSheet()) {
 			ClxApplyTrans(ClxSpriteSheet { anim.sprites->sheet() }, colorTranslations.data());
+			LogInfo("InitMonsterTRN()| AnimStruct sprites sheet for {} in animation {}/{}", monst.data().name, i + 1, numAnims);
 		} else if (anim.sprites.has_value()) {
+			LogInfo("InitMonsterTRN()| AnimStruct sprites list for {} in animation {}/{}", monst.data().name, i + 1, numAnims);
 			ClxApplyTrans(ClxSpriteList { anim.sprites->list() }, colorTranslations.data());
+		} else {
+			LogInfo("InitMonsterTRN()| AnimStruct sprites null for {} in animation {}/{}", monst.data().name, i + 1, numAnims);
 		}
 	}
 }
@@ -660,7 +664,7 @@ void NewMonsterAnim(Monster &monster, MonsterGraphic graphic, Direction md, Anim
 
 void StartMonsterGotHit(Monster &monster)
 {
-	if (monster.type().type != MT_GOLEM) {
+	if ((monster.flags & MFLAG_GOLEM) == 0) {
 		auto animationFlags = gGameLogicStep < GameLogicStep::ProcessMonsters ? AnimationDistributionFlags::ProcessAnimationPending : AnimationDistributionFlags::None;
 		NewMonsterAnim(monster, MonsterGraphic::GotHit, monster.direction, animationFlags);
 		monster.mode = MonsterMode::HitRecovery;
@@ -1069,7 +1073,8 @@ void SyncLightPosition(Monster &monster)
 
 void MonsterIdle(Monster &monster)
 {
-	if (monster.type().type == MT_GOLEM)
+	if ((monster.flags & MFLAG_GOLEM) != 0)
+//	if (!monster.type().getAnimData(MonsterGraphic::Stand).spritesForDirection(monster.direction).has_value())
 		monster.changeAnimationData(MonsterGraphic::Walk);
 	else
 		monster.changeAnimationData(MonsterGraphic::Stand);
@@ -1863,7 +1868,7 @@ bool RoundWalk(Monster &monster, Direction direction, int8_t *dir)
 
 bool AiPlanPath(Monster &monster)
 {
-	if (monster.type().type != MT_GOLEM) {
+	if ((monster.flags & MFLAG_GOLEM) == 0) {
 		if (monster.activeForTicks == 0)
 			return false;
 		if (monster.mode != MonsterMode::Stand)
@@ -1888,7 +1893,7 @@ bool AiPlanPath(Monster &monster)
 			return true;
 	}
 
-	if (monster.type().type != MT_GOLEM)
+	if ((monster.flags & MFLAG_GOLEM) == 0)
 		monster.pathCount = 0;
 
 	return false;
@@ -3269,12 +3274,13 @@ void InitGolem(devilution::Monster &monster, uint8_t golemOwnerPlayerId, int16_t
 	monster.flags |= MFLAG_GOLEM;
 	monster.goalVar3 = static_cast<int8_t>(golemOwnerPlayerId);
 	const Player &player = Players[golemOwnerPlayerId];
-	monster.maxHitPoints = Fixed26_6::fromRaw(2 * (320 * golemSpellLevel + player._pMaxMana.raw() / 3));
+	const int multiplier = (monster.type().type == MT_GOLEM) ? 2 : 1;
+	monster.maxHitPoints = Fixed26_6::fromRaw(multiplier * (320 * golemSpellLevel + player._pMaxMana.raw() / 3));
 	monster.hitPoints = monster.maxHitPoints;
 	monster.armorClass = 25;
-	monster.golemToHit = 5 * (golemSpellLevel + 8) + 2 * player.getCharacterLevel();
-	monster.minDamage = 2 * (golemSpellLevel + 4);
-	monster.maxDamage = 2 * (golemSpellLevel + 8);
+	monster.golemToHit = 5 * (golemSpellLevel + 8) + multiplier * player.getCharacterLevel();
+	monster.minDamage = multiplier * (golemSpellLevel + 4);
+	monster.maxDamage = multiplier * (golemSpellLevel + 8);
 	UpdateEnemy(monster);
 }
 
@@ -3436,6 +3442,7 @@ void InitLevelMonsters()
 std::expected<void, std::string> GetLevelMTypes()
 {
 	RETURN_IF_ERROR(AddMonsterType(MT_GOLEM, PLACE_SPECIAL));
+	RETURN_IF_ERROR(AddMonsterType(MT_GOLEM2, PLACE_SPECIAL));
 	if (currlevel == 16) {
 		RETURN_IF_ERROR(AddMonsterType(MT_ADVOCATE, PLACE_SCATTER));
 		RETURN_IF_ERROR(AddMonsterType(MT_RBLACK, PLACE_SCATTER));
@@ -3754,6 +3761,7 @@ std::expected<void, std::string> InitMonsters()
 std::expected<void, std::string> SetMapMonsters(const uint16_t *dunData, Point startPosition)
 {
 	RETURN_IF_ERROR(AddMonsterType(MT_GOLEM, PLACE_SPECIAL));
+	RETURN_IF_ERROR(AddMonsterType(MT_GOLEM2, PLACE_SPECIAL));
 	if (setlevel)
 		for (int i = 0; i < ReservedMonsterSlotsForGolems; i++)
 			AddMonster(GolemHoldingCell, Direction::South, 0, false);
@@ -3817,7 +3825,7 @@ void LoadDeltaSpawnedMonster(size_t typeIndex, size_t monsterId, uint32_t seed, 
 	Monster &monster = Monsters[monsterId];
 	M_ClearSquares(monster);
 	InitMonster(monster, Direction::South, typeIndex, position);
-	if (monster.type().type == MT_GOLEM) {
+	if ((monster.flags & MFLAG_GOLEM) != 0) {
 		InitGolem(monster, golemOwnerPlayerId, golemSpellLevel);
 	}
 }
@@ -3841,13 +3849,15 @@ void InitializeSpawnedMonster(Point position, Direction dir, size_t typeIndex, s
 	assert(freePosition);
 	assert(!MyPlayer->isLevelOwnedByLocalClient() || (freePosition && position == *freePosition));
 	position = freePosition.value_or(position);
+	LogInfo("PET InitializeSpawnedMonster()| Position found ({},{}) , #MID_{}", position.x, position.y, monsterId);
 
 	monster.occupyTile(position, false);
 	InitMonster(monster, dir, typeIndex, position);
 
-	if (monster.type().type == MT_GOLEM) {
+	if ((monster.flags & MFLAG_GOLEM) != 0) {
 		InitGolem(monster, golemOwnerPlayerId, golemSpellLevel);
 		StartSpecialStand(monster, dir);
+		LogInfo("PET InitializeSpawnedMonster()| #MID_{}", monster.getId());
 	} else if (IsSkel(monster.type().type)) {
 		StartSpecialStand(monster, dir);
 	} else {
@@ -3933,7 +3943,8 @@ bool M_Talker(const Monster &monster)
 void M_StartStand(Monster &monster, Direction md)
 {
 	ClearMVars(monster);
-	if (monster.type().type == MT_GOLEM)
+	if ((monster.flags & MFLAG_GOLEM) != 0)
+//	if (!monster.type().getAnimData(MonsterGraphic::Stand).spritesForDirection(md).has_value())
 		NewMonsterAnim(monster, MonsterGraphic::Walk, md);
 	else
 		NewMonsterAnim(monster, MonsterGraphic::Stand, md);
@@ -4004,6 +4015,8 @@ void MonsterDeath(Monster &monster, Direction md, bool sendmsg)
 {
 	if (!monster.isPlayerMinion())
 		AddPlrMonstExper(monster.level(sgGameInitInfo.nDifficulty), monster.exp(sgGameInitInfo.nDifficulty), monster.whoHit);
+	else
+		LogInfo("PET MonsterDeath()| #MID_{} , hitmask {}", monster.getId(), monster.whoHit);
 
 	MonsterKillCounts[monster.type().type]++;
 	monster.hitPoints = Fixed26_6::fromInt(0);
@@ -4020,7 +4033,7 @@ void MonsterDeath(Monster &monster, Direction md, bool sendmsg)
 		PlayEffect(monster, MonsterSound::Death);
 
 	if (monster.mode != MonsterMode::Petrified) {
-		if (monster.type().type == MT_GOLEM)
+		if ((monster.flags & MFLAG_GOLEM) != 0)
 			md = Direction::South;
 		NewMonsterAnim(monster, MonsterGraphic::Death, md, gGameLogicStep < GameLogicStep::ProcessMonsters ? AnimationDistributionFlags::ProcessAnimationPending : AnimationDistributionFlags::None);
 		monster.mode = MonsterMode::Death;
@@ -4041,16 +4054,18 @@ void MonsterDeath(Monster &monster, Direction md, bool sendmsg)
 
 void StartMonsterDeath(Monster &monster, const Player &player, bool sendmsg)
 {
+	LogInfo("PET StartMonsterDeath()| #MID_{} , player {} , sendmsg {}", monster.getId(), player.getId(), sendmsg);
 	monster.tag(player);
 	const Direction md = GetDirection(monster.position.tile, player.position.tile);
 	MonsterDeath(monster, md, sendmsg);
 }
 
-void KillGolem(Monster &golem)
+void KillPet(Monster &pet)
 {
-	delta_kill_monster(golem, golem.position.tile, *MyPlayer);
-	NetSendCmdLocParam1(false, CMD_MONSTDEATH, golem.position.tile, static_cast<uint16_t>(golem.getId()));
-	M_StartKill(golem, *MyPlayer);
+	LogInfo("PET KillPet()| Killing pet #MID_{}", pet.getId());
+	delta_kill_monster(pet, pet.position.tile, *MyPlayer);
+	NetSendCmdLocParam1(false, CMD_MONSTDEATH, pet.position.tile, static_cast<uint16_t>(pet.getId()));
+	M_StartKill(pet, *MyPlayer);
 }
 
 void M_StartKill(Monster &monster, const Player &player)
@@ -4671,22 +4686,100 @@ Monster *FindUniqueMonster(UniqueMonsterType monsterType)
 	return nullptr;
 }
 
-Monster *FindGolemForPlayer(const Player &player)
+int FindPetIndex(int skip)
+{
+	for (size_t i = skip; i < MaxMonsters; i++) {
+		Monster &monster = Monsters[i];
+		if ((monster.flags & MFLAG_GOLEM) == 0)
+			continue;
+		if (monster.position.tile == GolemHoldingCell)
+			continue;
+		if (monster.hitPoints == 0)
+			continue;
+		return i;
+	}
+	return -1;
+}
+
+int FindPetIndex(int skip, const _monster_id monsterType)
+{
+	for (size_t i = skip; i < MaxMonsters; i++) {
+		Monster &monster = Monsters[i];
+		if (monster.type().type != monsterType)
+			continue;
+		if (monster.position.tile == GolemHoldingCell)
+			continue;
+		if (monster.hitPoints == 0)
+			continue;
+		return i;
+	}
+	return -1;
+}
+
+Monster *FindPetForPlayer(const Player &player, int skip)
 {
 	for (size_t i = 0; i < ActiveMonsterCount; i++) {
 		const int monsterId = ActiveMonsters[i];
 		Monster &monster = Monsters[monsterId];
-		if (monster.type().type != MT_GOLEM)
-			continue;
-		if (monster.position.tile == GolemHoldingCell)
+		if ((monster.flags & MFLAG_GOLEM) == 0)
 			continue;
 		if (monster.goalVar3 != player.getId())
 			continue;
+		if (monster.position.tile == GolemHoldingCell)
+			continue;
 		if (monster.hitPoints == 0)
 			continue;
-		return &monster;
+		if (skip <= 0)
+			return &monster;
+		skip--;
 	}
 	return nullptr;
+}
+
+Monster *FindPetForPlayer(const Player &player, int skip, const _monster_id monsterType)
+{
+	for (size_t i = 0; i < ActiveMonsterCount; i++) {
+		const int monsterId = ActiveMonsters[i];
+		Monster &monster = Monsters[monsterId];
+		if (monster.type().type != monsterType)
+			continue;
+		if (monster.goalVar3 != player.getId())
+			continue;
+		if (monster.position.tile == GolemHoldingCell)
+			continue;
+		if (monster.hitPoints == 0)
+			continue;
+		if (skip <= 0)
+			return &monster;
+		skip--;
+	}
+	return nullptr;
+}
+
+int CountPetsForPlayer(const Player &player, const _monster_id monsterType)
+{
+	int sameType = 0;
+	int notAtHoldingCell = 0;
+	int samePlayer = 0;
+	int count = 0;
+	for (size_t i = 0; i < ActiveMonsterCount; i++) {
+		const int monsterId = ActiveMonsters[i];
+		Monster &monster = Monsters[monsterId];
+		if (monster.type().type != monsterType)
+			continue;
+		sameType++;
+		if (monster.goalVar3 != player.getId())
+			continue;
+		samePlayer++;
+		if (monster.position.tile == GolemHoldingCell)
+			continue;
+		notAtHoldingCell++;
+		if (monster.hitPoints == 0)
+			continue;
+		count++;
+	}
+	LogInfo("PET CountPetsForPlayer()| Found sameType {}, samePlayer {}, notAtHoldingCell {}, alive {}", sameType, samePlayer, notAtHoldingCell, count);
+	return count;
 }
 
 bool IsTileAvailable(const Monster &monster, Point position)
@@ -4813,44 +4906,72 @@ void TalktoMonster(Player &player, Monster &monster)
 	}
 }
 
-void SpawnGolem(const Player &player, Point position, uint8_t spellLevel)
+void SpawnPet(const Player &player, Point position, uint8_t spellLevel, const _monster_id monsterType)
 {
-	// Search monster index to use for the new golem
-	Monster *golem = nullptr;
-	// 1. Prefer MonsterIndex = PlayerIndex for vanilla compatibility
-	if (player.getId() < ReservedMonsterSlotsForGolems) {
-		Monster &reservedGolem = Monsters[player.getId()];
-		if (reservedGolem.position.tile == GolemHoldingCell || reservedGolem.hitPoints == 0)
-			golem = &reservedGolem;
-	}
-	// 2. Use reserved slots, so additional Monsters can spawn
-	if (golem == nullptr) {
-		for (int i = 0; i < ReservedMonsterSlotsForGolems; i++) {
-			Monster &reservedGolem = Monsters[i];
-			if (reservedGolem.position.tile == GolemHoldingCell || reservedGolem.hitPoints == 0) {
-				golem = &reservedGolem;
-				break;
-			}
-		}
-	}
-	// 3. Use normal monster slot
-	if (golem == nullptr) {
-		if (ActiveMonsterCount >= MaxMonsters)
+
+	int numPets = CountPetsForPlayer(player, monsterType);
+	const int maxPets = (monsterType == MT_GOLEM) ? 1 :  (9 + player.getCharacterLevel()) / 10;
+	if (numPets >= maxPets) {
+		const int replaced = RandomIntLessThan(numPets);
+		Monster *pet = FindPetForPlayer(player, replaced, monsterType);
+		// Pet should still be alive
+		if (pet == nullptr) {
+			LogInfo("PET SpawnPet()| Not found pet num {} of total {}", replaced + 1, numPets);
 			return;
+		}
+		LogInfo("PET SpawnPet()| Too many, killing pet num {} #MID_{} of total {}", replaced + 1, pet->getId(), numPets);
+		KillPet(*pet);
+	}
+	LogInfo("PET SpawnPet()| Creating pet num {}", numPets);
+
+
+	// Search monster index to use for the new pet
+	Monster *pet = nullptr;
+//	// 1. Prefer MonsterIndex = PlayerIndex for vanilla compatibility
+//	if (player.getId() < ReservedMonsterSlotsForGolems) {
+//		Monster &reservedGolem = Monsters[player.getId()];
+//		if (reservedGolem.position.tile == GolemHoldingCell || reservedGolem.hitPoints == 0) {
+//			pet = &reservedGolem;
+////			LogInfo("PET SpawnPet()| Pet Index strategy: Prefer MonsterIndex #MID_{}", pet->getId());
+//		}
+//	}
+//	// 2. Use reserved slots, so additional Monsters can spawn
+//	if (pet == nullptr) {
+//		for (int i = 0; i < ReservedMonsterSlotsForGolems; i++) {
+//			Monster &reservedGolem = Monsters[i];
+//			if (reservedGolem.position.tile == GolemHoldingCell || reservedGolem.hitPoints == 0) {
+//				pet = &reservedGolem;
+////				LogInfo("PET SpawnPet()| Pet Index strategy: Use reserved slots #MID_{}", pet->getId());
+//				break;
+//			}
+//		}
+//	}
+	// 3. Use normal monster slot
+	if (pet == nullptr) {
+		if (ActiveMonsterCount >= MaxMonsters) {
+			LogInfo("PET SpawnPet()| ActiveMonsterCount >= MaxMonsters, exit");
+			return;
+		}
 		const size_t monsterIndex = ActiveMonsters[ActiveMonsterCount];
 		ActiveMonsterCount += 1;
-		golem = &Monsters[monsterIndex];
+		pet = &Monsters[monsterIndex];
+//		LogInfo("PET SpawnPet()| Pet Index strategy: Use normal monster slot #MID_{}", pet->getId());
 	}
 
-	if (golem == nullptr)
+	if (pet == nullptr) {
+		LogInfo("PET SpawnPet()| Can't place pet, exit");
 		return;
-
-	const size_t monsterIndex = golem->getId();
+	}
+	const size_t monsterTypeIndex = GetMonsterTypeIndex(monsterType);
+	const size_t monsterIndex = pet->getId();
 	const uint32_t seed = GetLCGEngineState();
+	LogInfo("PET SpawnPet()| Spawning pet #MID_{} from local", monsterIndex);
 
 	// Update local state immediately to increase ActiveMonsterCount instantly (this allows multiple monsters to be spawned in one game tick)
-	InitializeSpawnedMonster(position, Direction::South, 0, monsterIndex, seed, player.getId(), spellLevel);
-	NetSendCmdSpawnMonster(position, Direction::South, 0, static_cast<uint16_t>(monsterIndex), seed, player.getId(), spellLevel);
+	InitializeSpawnedMonster(position, Direction::South, monsterTypeIndex, monsterIndex, seed, player.getId(), spellLevel);
+	LogInfo("PET SpawnPet()| Calling NetSendCmdSpawnMonster(CMD_SPAWNMONSTER)");
+	NetSendCmdSpawnMonster(position, Direction::South, monsterTypeIndex, static_cast<uint16_t>(monsterIndex), seed, player.getId(), spellLevel);
+
 }
 
 bool CanTalkToMonst(const Monster &monster)

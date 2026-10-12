@@ -406,20 +406,10 @@ public:
 
 	bool CanCleave()
 	{
-		switch (_pClass) {
-		case HeroClass::Warrior:
-		case HeroClass::Rogue:
-		case HeroClass::Sorcerer:
-			return false;
-		case HeroClass::Monk:
-			return isEquipped(ItemType::Staff);
-		case HeroClass::Bard:
-			return InvBody[INVLOC_HAND_LEFT]._itype == ItemType::Sword && InvBody[INVLOC_HAND_RIGHT]._itype == ItemType::Sword;
-		case HeroClass::Barbarian:
-			return isEquipped(ItemType::Axe) || (!isEquipped(ItemType::Shield) && (isEquipped(ItemType::Mace, true) || isEquipped(ItemType::Sword, true)));
-		default:
-			return false;
-		}
+		const PlayerCombatData &playerCombatData = getPlayerCombatData();
+		return (HasAnyOf(playerCombatData.attackFlags, PlayerAttackFlag::StaffCleave) && isEquipped(ItemType::Staff))
+			|| (HasAnyOf(playerCombatData.attackFlags, PlayerAttackFlag::DualSwordCleave) && InvBody[INVLOC_HAND_LEFT]._itype == ItemType::Sword && InvBody[INVLOC_HAND_RIGHT]._itype == ItemType::Sword)
+			|| (HasAnyOf(playerCombatData.attackFlags, PlayerAttackFlag::TwoHandedAxeMaceSwordCleave) && (isEquipped(ItemType::Axe) || (!isEquipped(ItemType::Shield) && (isEquipped(ItemType::Mace, true) || isEquipped(ItemType::Sword, true)))));	
 	}
 
 	bool isEquipped(ItemType itemType, bool isTwoHanded = false)
@@ -556,8 +546,12 @@ public:
 	 */
 	item_equip_type GetItemLocation(const Item &item) const
 	{
-		if (_pClass == HeroClass::Barbarian && item._iLoc == ILOC_TWOHAND && IsAnyOf(item._itype, ItemType::Sword, ItemType::Mace))
-			return ILOC_ONEHAND;
+		if (item._iLoc == ILOC_TWOHAND && IsAnyOf(item._itype, ItemType::Sword, ItemType::Mace)) {
+			const ClassAttributes &classAttributes = GetClassAttributes(_pClass);
+			if (HasAnyOf(classAttributes.classFlags, PlayerClassFlag::WieldTwoHandedSwordMaceShield)) {
+				return ILOC_ONEHAND;
+			}
+		}
 		return item._iLoc;
 	}
 
@@ -663,8 +657,9 @@ public:
 				else
 					tmac -= tmac / 4;
 			}
-			if (isMelee && _pClass == HeroClass::Barbarian) {
-				tmac -= monsterArmor / 8;
+			if (isMelee) {
+				const PlayerCombatData &playerCombatData = getPlayerCombatData();
+				tmac -= (monsterArmor * playerCombatData.meleeArmorPiercingBonus).whole();
 			}
 		}
 		if (tmac < 0)

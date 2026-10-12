@@ -845,7 +845,7 @@ void DeltaLoadEnemies(const DLevel &deltaLevel)
 			decode_enemy(monster, deltaMonster.menemy);
 		if (monster.position.tile != Point { 0, 0 } && monster.position.tile != GolemHoldingCell)
 			monster.occupyTile(monster.position.tile, false);
-		if (monster.type().type == MT_GOLEM) {
+		if ((monster.flags & MFLAG_GOLEM) != 0) {
 			GolumAi(monster);
 			monster.flags |= (MFLAG_TARGETS_MONSTER | MFLAG_GOLEM);
 		} else {
@@ -2016,14 +2016,20 @@ size_t OnWarp(const TCmdParam1 &message, Player &player)
 
 size_t OnMonstDeath(const TCmdLocParam1 &message, Player &player)
 {
+
 	const Point position { message.x, message.y };
 	const uint16_t monsterIdx = Swap16LE(message.wParam1);
 
 	if (gbBufferMsgs != 1) {
+		LogInfo("PET OnMonstDeath()| Process #MID_{} ", monsterIdx);
 		if (&player != MyPlayer && player.plrlevel > 0 && InDungeonBounds(position) && monsterIdx < MaxMonsters) {
+			LogInfo("PET OnMonstDeath()| Valid data #MID_{} , player {}", monsterIdx, player.getId());
+
 			Monster &monster = Monsters[monsterIdx];
-			if (player.isOnActiveLevel())
+			if (player.isOnActiveLevel()) {
+				LogInfo("PET OnMonstDeath()| SyncKill #MID_{} , player {}", monsterIdx, player.getId());
 				M_SyncStartKill(monster, position, player);
+			}
 			delta_kill_monster(monster, position, player);
 		}
 	} else {
@@ -2033,16 +2039,21 @@ size_t OnMonstDeath(const TCmdLocParam1 &message, Player &player)
 	return sizeof(message);
 }
 
-size_t OnRequestSpawnGolem(const TCmdLocParam1 &message, const Player &player)
+size_t OnRequestSpawnGolem(const TCmdLocParam2 &message, const Player &player)
 {
+	LogInfo("PET OnRequestSpawnGolem()| Init");
+
 	if (gbBufferMsgs == 1)
 		return sizeof(message);
 
 	const WorldTilePosition position { message.x, message.y };
 
-	if (player.plrlevel > 0 && player.isLevelOwnedByLocalClient() && InDungeonBounds(position))
-		SpawnGolem(player, position, static_cast<uint8_t>(message.wParam1));
-
+	if (player.plrlevel > 0 && player.isLevelOwnedByLocalClient() && InDungeonBounds(position)){
+		const uint16_t spellLevel = Swap16LE(message.wParam1);
+		const uint16_t monsterType = Swap16LE(message.wParam2);
+		LogInfo("PET OnRequestSpawnGolem()| Calling SpawnPet() player {} , position ({},{}) , spellLevel {} , monsterType {}", player.getId(), position.x, position.y, spellLevel, monsterType);
+		SpawnPet(player, position, static_cast<uint8_t>(spellLevel), static_cast<_monster_id>(monsterType));
+	}
 	return sizeof(message);
 }
 
@@ -2615,8 +2626,10 @@ size_t OnSpawnMonster(const TCmdSpawnMonster &message, const Player &player)
 
 	auto typeIndex = static_cast<size_t>(Swap16LE(message.typeIndex));
 	auto monsterId = static_cast<size_t>(Swap16LE(message.monsterId));
+	LogInfo("PET OnSpawnMonster()| Init for #MID_{} ", monsterId);
 	const uint8_t golemOwnerPlayerId = message.golemOwnerPlayerId;
 	if (golemOwnerPlayerId >= Players.size()) {
+		LogInfo("PET OnSpawnMonster()| Player unknown, exit");
 		return sizeof(message);
 	}
 	const uint8_t golemSpellLevel = std::min(message.golemSpellLevel, static_cast<uint8_t>(MaxSpellLevel + Players[golemOwnerPlayerId]._pISplLvlAdd));
@@ -2631,8 +2644,12 @@ size_t OnSpawnMonster(const TCmdSpawnMonster &message, const Player &player)
 	deltaMonster.menemy = 0;
 	deltaMonster.mactive = 0;
 
-	if (player.isOnActiveLevel() && &player != MyPlayer)
+	if (player.isOnActiveLevel() && &player != MyPlayer) {
+		LogInfo("PET OnSpawnMonster()| Player {} is not actual {} and active in level, initializing pet #MID_{} from remote", player.getId(), MyPlayer->getId(), monsterId);
 		InitializeSpawnedMonster(position, message.dir, typeIndex, monsterId, message.seed, golemOwnerPlayerId, golemSpellLevel);
+	} else {
+		LogInfo("PET OnSpawnMonster()| Player {} is actual {} or not active in level, skipping pet #MID_{} from remote", player.getId(), MyPlayer->getId(), monsterId);
+	}
 	return sizeof(message);
 }
 

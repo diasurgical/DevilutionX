@@ -150,9 +150,12 @@ bool CheckXPBarInfo()
 	InfoColor = UiFlags::ColorWhite;
 
 	AddInfoBoxString(FormatRuntime(_("Experience: {:s}"), FormatInteger(player._pExperience)));
-	const uint32_t nextExperienceThreshold = player.getNextExperienceThreshold();
+	const int pLevel = player.getCharacterLevel();
+	const uint32_t nextExperienceThreshold = GetNextExperienceThresholdForLevel(pLevel);
+	const uint32_t actualLevelExperienceBase = GetNextExperienceThresholdForLevel(pLevel - 1);
+	const float expPercent = (player._pExperience - actualLevelExperienceBase) * 100.0 /  (nextExperienceThreshold - actualLevelExperienceBase);
 	AddInfoBoxString(FormatRuntime(_("Next Level: {:s}"), FormatInteger(nextExperienceThreshold)));
-	AddInfoBoxString(FormatRuntime(_("{:s} to Level {:d}"), FormatInteger(nextExperienceThreshold - player._pExperience), charLevel + 1));
+	AddInfoBoxString(FormatRuntime(_("{:s} to Level {:d} ({:.1f}%)"), FormatInteger(nextExperienceThreshold - player._pExperience), charLevel + 1, expPercent));
 
 	return true;
 }
