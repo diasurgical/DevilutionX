@@ -33,6 +33,7 @@
 #include "engine/point.hpp"
 #include "engine/render/clx_render.hpp"
 #include "engine/render/dun_render.hpp"
+#include "engine/render/gpu/gpu_scaler.hpp"
 #include "engine/render/light_render.hpp"
 #include "engine/render/text_render.hpp"
 #include "engine/trn.hpp"
@@ -1905,6 +1906,10 @@ void DrawAndBlit()
 	DrawCursor(out);
 
 	DrawFPS(out);
+
+#ifdef USE_GPU_SCALER
+	gpu_scaler::DrawFilterOsd(out, { 8, frameflag ? 24 : 8 });
+#endif
 
 	lua::GameDrawComplete();
 

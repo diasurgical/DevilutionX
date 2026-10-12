@@ -2,6 +2,8 @@
 
 #include "options.h"
 
+#include "engine/point.hpp"
+
 #ifndef USE_SDL1
 
 #include <cstdint>
@@ -11,6 +13,8 @@ struct SDL_Surface;
 struct SDL_Window;
 
 namespace devilution {
+
+class Surface;
 
 /**
  * @brief GPU-based shader scaler built on the SDL_GPU API.
@@ -76,6 +80,31 @@ void PresentFrame(const SDL_Surface &frame);
  * instrumentation to diagnose remote hangs and crashes.
  */
 void LogPhase(std::string_view line);
+
+/**
+ * @brief Arms the filter OSD: a short on-screen label confirming which
+ * shader filter the presentation path is actually running (e.g.
+ * "Shader Filter: HQ2x (Vulkan)", "Shader Filter: Off"). Call after the
+ * renderer (re)initialization has settled. The label re-arms only when the
+ * selected filter value changes since the last call, so unrelated renderer
+ * reinitializations (vsync, fullscreen) do not re-show it. The first call
+ * in a process also arms when a filter is restored at boot, but stays
+ * quiet when the filter is Off.
+ */
+void ShowFilterOsd();
+
+/**
+ * @brief The current OSD label, or an empty view when none is due.
+ * Consumed by DrawFilterOsd.
+ */
+std::string_view FilterOsdText();
+
+/**
+ * @brief Draws the active filter OSD label (if any) into the 8-bit game
+ * frame so it flows through the scaler (or the regular renderer) like the
+ * rest of the image. A no-op when the OSD is not armed.
+ */
+void DrawFilterOsd(const Surface &out, Point position = Point { 8, 8 });
 
 } // namespace gpu_scaler
 

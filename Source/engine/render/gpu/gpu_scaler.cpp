@@ -28,6 +28,8 @@
 #endif
 #include "engine/render/gpu/gpu_shaders_hlsl.hpp"
 #include "engine/render/gpu/gpu_shaders_msl.hpp"
+#include "engine/render/text_render.hpp"
+#include "engine/surface.hpp"
 #include "utils/log.hpp"
 #include "utils/str_cat.hpp"
 
@@ -1341,6 +1343,89 @@ void PresentFrame(const SDL_Surface &frame)
 
         if (!SDL_SubmitGPUCommandBuffer(cmd))
                 LogFailHard("SDL_SubmitGPUCommandBuffer failed");
+}
+
+namespace {
+
+std::string gOsdText;
+std::uint64_t gOsdDeadline = 0;
+int gOsdLastShownFilter = -1; // -1 = nothing shown yet this process
+
+constexpr std::uint64_t OsdDurationMs = 4000;
+
+const char *FilterDisplayName(ShaderFilter filter)
+{
+        switch (filter) {
+        case ShaderFilter::HQ2x:
+                return "HQ2x";
+        case ShaderFilter::HQ3x:
+                return "HQ3x";
+        case ShaderFilter::HQ4x:
+                return "HQ4x";
+        case ShaderFilter::ScaleFX2x:
+                return "ScaleFX 2x";
+        case ShaderFilter::ScaleFX3x:
+                return "ScaleFX 3x";
+        case ShaderFilter::ScaleFX4x:
+                return "ScaleFX 4x";
+        case ShaderFilter::None:
+                break;
+        }
+        return "Off";
+}
+
+std::string PrettyBackendName(std::string_view driver)
+{
+        if (driver == "vulkan")
+                return "Vulkan";
+        if (driver == "direct3d12")
+                return "Direct3D 12";
+        if (driver == "metal")
+                return "Metal";
+        return std::string(driver);
+}
+
+} // namespace
+
+void ShowFilterOsd()
+{
+        const int value = static_cast<int>(*GetOptions().Graphics.shaderFilter);
+        const bool firstCall = gOsdLastShownFilter < 0;
+        if (!firstCall && value == gOsdLastShownFilter)
+                return;
+        gOsdLastShownFilter = value;
+        if (firstCall && value == static_cast<int>(ShaderFilter::None))
+                return; // boot with no filter selected; nothing to confirm
+        if (value == static_cast<int>(ShaderFilter::None)) {
+                gOsdText = "Shader Filter: Off";
+        } else if (!IsActive()) {
+                gOsdText = StrCat("Shader Filter: ", FilterDisplayName(static_cast<ShaderFilter>(value)), " (unavailable)");
+        } else {
+                gOsdText = StrCat("Shader Filter: ", FilterDisplayName(static_cast<ShaderFilter>(value)),
+                    " (", PrettyBackendName(SDL_GetGPUDeviceDriver(gDevice)), ")");
+        }
+        gOsdDeadline = SDL_GetTicks() + OsdDurationMs;
+        LogFileLine(StrCat("osd: ", gOsdText));
+}
+
+std::string_view FilterOsdText()
+{
+        if (gOsdText.empty())
+                return {};
+        if (SDL_GetTicks() >= gOsdDeadline) {
+                gOsdText.clear();
+                LogFileLine("osd: expired");
+                return {};
+        }
+        return gOsdText;
+}
+
+void DrawFilterOsd(const Surface &out, Point position)
+{
+        const std::string_view text = FilterOsdText();
+        if (text.empty())
+                return;
+        DrawString(out, text, position, { .flags = UiFlags::ColorWhite | UiFlags::FontSize24 });
 }
 
 } // namespace gpu_scaler
