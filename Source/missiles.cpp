@@ -66,6 +66,7 @@
 #include "lighting.h"
 #include "monster.h"
 #include "utils/is_of.hpp"
+#include "utils/log.hpp"
 #include "utils/str_cat.hpp"
 
 namespace devilution {
@@ -308,10 +309,8 @@ bool MonsterMHit(const Player &player, Monster &monster, int mindam, int maxdam,
 
 	if (missileData.isArrow() && damageType == DamageType::Physical) {
 		dam = player._pIBonusDamMod + dam * player._pIBonusDam / 100 + dam;
-		if (player._pClass == HeroClass::Rogue)
-			dam += player._pDamageMod;
-		else
-			dam += player._pDamageMod / 2;
+		const PlayerCombatData &playerCombatData = GetPlayerCombatDataForClass(player._pClass);
+		dam += (player._pDamageMod * playerCombatData.bowDamageMod).whole();
 		if (monster.data().monsterClass == MonsterClass::Demon && HasAnyOf(player._pIFlags, ItemSpecialEffect::TripleDemonDamage))
 			dam *= 3;
 	}
@@ -332,7 +331,7 @@ bool MonsterMHit(const Player &player, Monster &monster, int mindam, int maxdam,
 	} else {
 		if (monster.mode != MonsterMode::Petrified && missileData.isArrow() && HasAnyOf(player._pIFlags, ItemSpecialEffect::Knockback))
 			M_GetKnockback(monster, startPos);
-		if (monster.type().type != MT_GOLEM)
+		if ((monster.flags & MFLAG_GOLEM) == 0)
 			M_StartHit(monster, player, dam);
 	}
 
@@ -418,7 +417,8 @@ bool Plr2PlrMHit(const Player &player, Player &target, int mindam, int maxdam, i
 	} else {
 		dam = RandomIntBetween(mindam, maxdam);
 		if (missileData.isArrow() && damageType == DamageType::Physical) {
-			const int damMod = IsAnyOf(player._pClass, HeroClass::Rogue) ? player._pDamageMod : player._pDamageMod / 2;
+			const PlayerCombatData &playerCombatData = GetPlayerCombatDataForClass(player._pClass);
+			const int damMod = (player._pDamageMod * playerCombatData.bowDamageMod).whole();
 			dam += player._pIBonusDamMod + damMod + dam * player._pIBonusDam / 100;
 		}
 		if (!shift)
@@ -1052,7 +1052,7 @@ bool MonsterTrapHit(Monster &monster, int mindam, int maxdam, int dist, MissileI
 		MonsterDeath(monster, monster.direction, true);
 	} else if (resist) {
 		PlayEffect(monster, MonsterSound::Hit);
-	} else if (monster.type().type != MT_GOLEM) {
+	} else if ((monster.flags & MFLAG_GOLEM) == 0) {
 		M_StartHit(monster, dam);
 	}
 	return true;
@@ -1483,10 +1483,8 @@ void AddSpectralArrow(Missile &missile, AddMissileParameter &parameter)
 	if (missile.sourceType() == MissileSource::Player) {
 		const Player &player = *missile.sourcePlayer();
 
-		if (player._pClass == HeroClass::Rogue)
-			av += (player.getCharacterLevel() - 1) / 4;
-		else if (player._pClass == HeroClass::Warrior || player._pClass == HeroClass::Bard)
-			av += (player.getCharacterLevel() - 1) / 8;
+		const PlayerCombatData &playerCombatData = GetPlayerCombatDataForClass(player._pClass);
+		av += ((player.getCharacterLevel() - 1) * playerCombatData.arrowVelocityBonus).whole();
 
 		if (HasAnyOf(player._pIFlags, ItemSpecialEffect::QuickAttack))
 			av++;
@@ -1741,10 +1739,8 @@ void AddElementalArrow(Missile &missile, AddMissileParameter &parameter)
 	int av = 32;
 	if (missile._micaster == TARGET_MONSTERS) {
 		const Player &player = Players[missile._misource];
-		if (player._pClass == HeroClass::Rogue)
-			av += (player.getCharacterLevel()) / 4;
-		else if (IsAnyOf(player._pClass, HeroClass::Warrior, HeroClass::Bard))
-			av += (player.getCharacterLevel()) / 8;
+		const PlayerCombatData &playerCombatData = GetPlayerCombatDataForClass(player._pClass);
+		av += ((player.getCharacterLevel() - 1) * playerCombatData.arrowVelocityBonus).whole();
 
 		if (gbIsHellfire) {
 			if (HasAnyOf(player._pIFlags, ItemSpecialEffect::QuickAttack))
@@ -1782,10 +1778,8 @@ void AddArrow(Missile &missile, AddMissileParameter &parameter)
 		if (HasAnyOf(player._pIFlags, ItemSpecialEffect::RandomArrowVelocity)) {
 			av = RandomIntBetween(16, 47);
 		}
-		if (player._pClass == HeroClass::Rogue)
-			av += (player.getCharacterLevel() - 1) / 4;
-		else if (player._pClass == HeroClass::Warrior || player._pClass == HeroClass::Bard)
-			av += (player.getCharacterLevel() - 1) / 8;
+		const PlayerCombatData &playerCombatData = GetPlayerCombatDataForClass(player._pClass);
+		av += ((player.getCharacterLevel() - 1) * playerCombatData.arrowVelocityBonus).whole();
 
 		if (gbIsHellfire) {
 			if (HasAnyOf(player._pIFlags, ItemSpecialEffect::QuickAttack))
@@ -2368,7 +2362,7 @@ void AddStoneCurse(Missile &missile, AddMissileParameter &parameter)
 
 		    const Monster &monster = Monsters[monsterId];
 
-		    if (IsAnyOf(monster.type().type, MT_GOLEM, MT_DIABLO, MT_NAKRUL)) {
+		    if ((monster.flags & MFLAG_GOLEM) != 0 || IsAnyOf(monster.type().type, MT_DIABLO, MT_NAKRUL)) {
 			    return false;
 		    }
 		    if (IsAnyOf(monster.mode, MonsterMode::FadeIn, MonsterMode::FadeOut, MonsterMode::Charge)) {
@@ -2408,19 +2402,25 @@ void AddStoneCurse(Missile &missile, AddMissileParameter &parameter)
 	missile.duration <<= 4;
 }
 
-void AddGolem(Missile &missile, AddMissileParameter &parameter)
+void AddPet(Missile &missile, AddMissileParameter &parameter, const _monster_id monsterType)
 {
 	missile._miDelFlag = true;
 
 	const int playerId = missile._misource;
 	Player &player = Players[playerId];
-	Monster *golem = FindGolemForPlayer(player);
 
-	// Is Golem alive?
-	if (golem != nullptr) {
-		KillGolem(*golem);
+	if (&player != MyPlayer) {
+		LogInfo("PET AddPet()| Different player, exit");
 		return;
 	}
+
+//	Monster *pet = FindPetForPlayer(player);
+
+	// Is Pet alive?
+//	if (pet != nullptr) {
+//		KillPet(*pet);
+//		return;
+//	}
 
 	std::optional<Point> spawnPosition = FindClosestValidPosition(
 	    [start = missile.position.start](Point target) {
@@ -2428,21 +2428,32 @@ void AddGolem(Missile &missile, AddMissileParameter &parameter)
 	    },
 	    parameter.dst, 0, 5);
 
-	if (!spawnPosition)
+	if (!spawnPosition) {
+		LogInfo("PET AddPet()| No spawn position");
 		return;
-
-	if (&player != MyPlayer)
-		return;
+	}
 
 	const auto spellLevel = static_cast<uint8_t>(missile._mispllvl);
 
 	// The command is only executed for the level owner, to prevent desyncs in multiplayer.
 	if (!MyPlayer->isLevelOwnedByLocalClient()) {
-		// If we are not the level owner, request the level owner to spawn the golem for us
-		NetSendCmdLocParam1(true, CMD_REQUESTSPAWNGOLEM, *spawnPosition, spellLevel);
+		LogInfo("PET AddPet()| Calling NetSendCmdLocParam2(CMD_REQUESTSPAWNGOLEM)");
+		// If we are not the level owner, request the level owner to spawn the pet for us
+		NetSendCmdLocParam2(true, CMD_REQUESTSPAWNGOLEM, *spawnPosition, spellLevel, static_cast<uint16_t>(monsterType));
 		return;
 	}
-	SpawnGolem(player, *spawnPosition, spellLevel);
+	LogInfo("PET AddPet()| Calling SpawnPet()");
+	SpawnPet(player, *spawnPosition, spellLevel, monsterType);
+}
+
+void AddGolem(Missile &missile, AddMissileParameter &parameter) {
+	LogInfo("PET AddGolem()| Golem spell");
+	AddPet(missile, parameter, MT_GOLEM);
+}
+
+void AddSummonedSkeleton(Missile &missile, AddMissileParameter &parameter) {
+	LogInfo("PET AddSummonedSkeleton()| Skeleton spell");
+	AddPet(missile, parameter, MT_GOLEM2);
 }
 
 void AddApocalypseBoom(Missile &missile, AddMissileParameter &parameter)

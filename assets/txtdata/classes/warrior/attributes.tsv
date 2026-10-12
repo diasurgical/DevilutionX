@@ -1,5 +1,6 @@
 Attribute	Value
-classFlags	CriticalStrike
+classFlags	
+classAvailabilityFlags	Spawn
 baseStr	30
 baseMag	10
 baseDex	20
@@ -23,6 +24,20 @@ itmRestoreMana	1
 splRestoreLife	2
 splRestoreMana	1
 healOtherRestoreLife	2
+attackFlags	CriticalStrike
+defenseFlags	
+meleeArmorPiercingBonus	0
+bowDamageMod	0.5
+arrowVelocityBonus	0.125
+normalLightArmorAC	0
+magicLightArmorAC	0
+uniqueLightArmorAC	0
+normalMediumArmorAC	0
+magicMediumArmorAC	0
+uniqueMediumArmorAC	0
+normalHeavyArmorAC	0
+magicHeavyArmorAC	0
+uniqueHeavyArmorAC	0
 baseMagicToHit	50
 baseMeleeToHit	70
 baseRangedToHit	60

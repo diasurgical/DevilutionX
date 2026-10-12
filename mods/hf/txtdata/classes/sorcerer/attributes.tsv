@@ -1,5 +1,6 @@
 Attribute	Value
 classFlags	
+classAvailabilityFlags	Retail
 baseStr	15
 baseMag	35
 baseDex	15
@@ -23,6 +24,20 @@ itmRestoreMana	2
 splRestoreLife	1
 splRestoreMana	2
 healOtherRestoreLife	1
+attackFlags	
+defenseFlags	
+meleeArmorPiercingBonus	0
+bowDamageMod	0.5
+arrowVelocityBonus	0
+normalLightArmorAC	0
+magicLightArmorAC	0
+uniqueLightArmorAC	0
+normalMediumArmorAC	0
+magicMediumArmorAC	0
+uniqueMediumArmorAC	0
+normalHeavyArmorAC	0
+magicHeavyArmorAC	0
+uniqueHeavyArmorAC	0
 baseMagicToHit	70
 baseMeleeToHit	50
 baseRangedToHit	50

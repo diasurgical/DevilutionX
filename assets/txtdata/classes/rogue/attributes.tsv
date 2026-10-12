@@ -1,5 +1,6 @@
 Attribute	Value
 classFlags	TrapSense
+classAvailabilityFlags	Retail
 baseStr	20
 baseMag	15
 baseDex	30
@@ -23,6 +24,20 @@ itmRestoreMana	1.5
 splRestoreLife	1.5
 splRestoreMana	1.5
 healOtherRestoreLife	1.5
+attackFlags	
+defenseFlags	
+meleeArmorPiercingBonus	0
+bowDamageMod	1
+arrowVelocityBonus	0.25
+normalLightArmorAC	0
+magicLightArmorAC	0
+uniqueLightArmorAC	0
+normalMediumArmorAC	0
+magicMediumArmorAC	0
+uniqueMediumArmorAC	0
+normalHeavyArmorAC	0
+magicHeavyArmorAC	0
+uniqueHeavyArmorAC	0
 baseMagicToHit	50
 baseMeleeToHit	50
 baseRangedToHit	70

@@ -571,8 +571,8 @@ bool PlrHitMonst(Player &player, Monster &monster, bool adjacentDamage = false)
 	int dam2 = dam << 6;
 	dam += player._pDamageMod;
 
-	const ClassAttributes &classAttributes = GetClassAttributes(player._pClass);
-	if (HasAnyOf(classAttributes.classFlags, PlayerClassFlag::CriticalStrike)) {
+	const PlayerCombatData &playerCombatData = GetPlayerCombatDataForClass(player._pClass);
+	if (HasAnyOf(playerCombatData.attackFlags, PlayerAttackFlag::CriticalStrike)) {
 		if (GenerateRnd(100) < player.getCharacterLevel()) {
 			dam *= 2;
 		}
@@ -739,8 +739,8 @@ bool PlrHitPlr(Player &attacker, Player &target)
 	dam += (dam * attacker._pIBonusDam) / 100;
 	dam += attacker._pIBonusDamMod + attacker._pDamageMod;
 
-	const ClassAttributes &classAttributes = GetClassAttributes(attacker._pClass);
-	if (HasAnyOf(classAttributes.classFlags, PlayerClassFlag::CriticalStrike)) {
+	const PlayerCombatData &playerCombatData = GetPlayerCombatDataForClass(attacker._pClass);
+	if (HasAnyOf(playerCombatData.attackFlags, PlayerAttackFlag::CriticalStrike)) {
 		if (GenerateRnd(100) < attacker.getCharacterLevel()) {
 			dam *= 2;
 		}
@@ -1461,9 +1461,11 @@ void ValidatePlayer()
 
 HeroClass GetPlayerSpriteClass(HeroClass cls)
 {
-	if (cls == HeroClass::Bard && !HaveBardAssets())
+	const ClassAttributes &classAttributes = GetClassAttributes(cls);
+
+	if (HasAnyOf(classAttributes.classAvailabilityFlags, PlayerClassAvailabilityFlag::BardTest) && !HaveBardAssets())
 		return HeroClass::Rogue;
-	if (cls == HeroClass::Barbarian && !HaveBarbarianAssets())
+	if (HasAnyOf(classAttributes.classAvailabilityFlags, PlayerClassAvailabilityFlag::BarbarianTest) && !HaveBarbarianAssets())
 		return HeroClass::Warrior;
 	return cls;
 }
@@ -2640,7 +2642,8 @@ void StartPlrHit(Player &player, Fixed26_6 dam, bool forcehit)
 	player.Say(HeroSpeech::ArghClang);
 
 	RedrawComponent(PanelDrawComponent::Health);
-	if (player._pClass == HeroClass::Barbarian) {
+	const PlayerCombatData &playerCombatData = GetPlayerCombatDataForClass(player._pClass);
+	if (HasAnyOf(playerCombatData.defenseFlags, PlayerDefenseFlag::IronSkin)) {
 		if (dam.whole() < player.getCharacterLevel() + player.getCharacterLevel() / 4 && !forcehit) {
 			return;
 		}
@@ -2873,9 +2876,9 @@ void SyncPlrKill(Player &player, DeathReason deathReason)
 void RemovePlrMissiles(const Player &player)
 {
 	if (leveltype != DTYPE_TOWN) {
-		Monster *golem;
-		while ((golem = FindGolemForPlayer(player)) != nullptr) {
-			KillGolem(*golem);
+		Monster *pet;
+		while ((pet = FindPetForPlayer(player, 0)) != nullptr) {
+			KillPet(*pet);
 		}
 	}
 

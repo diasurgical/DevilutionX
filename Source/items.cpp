@@ -2502,7 +2502,8 @@ void CalcPlrDamage(Player &player, int minDamage, int maxDamage)
 			maxDamage = 3;
 		}
 
-		if (player._pClass == HeroClass::Monk) {
+		const PlayerCombatData &playerCombatData = GetPlayerCombatDataForClass(player._pClass);
+		if (HasAnyOf(playerCombatData.attackFlags, PlayerAttackFlag::MartialArts)) {
 			minDamage = std::max(minDamage, playerLevel / 2);
 			maxDamage = std::max<int>(maxDamage, playerLevel);
 		}
@@ -2596,8 +2597,8 @@ void CalcPlrDamageMod(Player &player)
 		break;
 	}
 
-	const ClassAttributes &classAttributes = GetClassAttributes(player._pClass);
-	if (HasAnyOf(classAttributes.classFlags, PlayerClassFlag::IronSkin)) {
+	const PlayerCombatData &playerCombatData = GetPlayerCombatDataForClass(player._pClass);
+	if (HasAnyOf(playerCombatData.defenseFlags, PlayerDefenseFlag::IronSkin)) {
 		player._pIAC += playerLevel / 4;
 	}
 }
@@ -2606,9 +2607,8 @@ void CalcPlrResistances(Player &player, ItemSpecialEffect iflgs, int fire, int l
 {
 	const uint8_t playerLevel = player.getCharacterLevel();
 
-	const ClassAttributes &classAttributes = GetClassAttributes(player._pClass);
-
-	if (HasAnyOf(classAttributes.classFlags, PlayerClassFlag::NaturalResistance)) {
+	const PlayerCombatData &playerCombatData = GetPlayerCombatDataForClass(player._pClass);
+	if (HasAnyOf(playerCombatData.defenseFlags, PlayerDefenseFlag::NaturalResistance)) {
 		magic += playerLevel;
 		fire += playerLevel;
 		lightning += playerLevel;
@@ -2658,14 +2658,13 @@ void CalcPlrBlockFlag(Player &player)
 	const auto &rightHandItem = player.InvBody[INVLOC_HAND_RIGHT];
 
 	player._pBlockFlag = false;
-
-	if (player._pClass == HeroClass::Monk) {
-		if (player.isHoldingItem(ItemType::Staff)) {
-			player._pBlockFlag = true;
-			player._pIFlags |= ItemSpecialEffect::FastBlock;
-		} else if ((leftHandItem.isEmpty() && rightHandItem.isEmpty()) || (leftHandItem._iClass == ICLASS_WEAPON && leftHandItem._iLoc != ILOC_TWOHAND && rightHandItem.isEmpty()) || (rightHandItem._iClass == ICLASS_WEAPON && rightHandItem._iLoc != ILOC_TWOHAND && leftHandItem.isEmpty())) {
-			player._pBlockFlag = true;
-		}
+	
+	const PlayerCombatData &playerCombatData = GetPlayerCombatDataForClass(player._pClass);
+	if (HasAnyOf(playerCombatData.defenseFlags, PlayerDefenseFlag::StaffBlock) && player.isHoldingItem(ItemType::Staff)) {
+		player._pBlockFlag = true;
+		player._pIFlags |= ItemSpecialEffect::FastBlock;
+	} else if (HasAnyOf(playerCombatData.defenseFlags, PlayerDefenseFlag::OneHandBlock) && ((leftHandItem.isEmpty() && rightHandItem.isEmpty()) || (leftHandItem._iClass == ICLASS_WEAPON && leftHandItem._iLoc != ILOC_TWOHAND && rightHandItem.isEmpty()) || (rightHandItem._iClass == ICLASS_WEAPON && rightHandItem._iLoc != ILOC_TWOHAND && leftHandItem.isEmpty()))) {
+		player._pBlockFlag = true;
 	}
 
 	player._pBlockFlag = player._pBlockFlag || player.isHoldingItem(ItemType::Shield);
@@ -2709,26 +2708,48 @@ PlayerArmorGraphic GetPlrAnimArmorId(Player &player)
 	const Item &chestItem = player.InvBody[INVLOC_CHEST];
 	const bool chestUsable = player.CanUseItem(chestItem);
 	const uint8_t playerLevel = player.getCharacterLevel();
+	const PlayerCombatData &playerCombatData = GetPlayerCombatDataForClass(player._pClass);
 
 	if (chestUsable) {
 		switch (chestItem._itype) {
 		case ItemType::HeavyArmor:
-			if (player._pClass == HeroClass::Monk) {
-				if (chestItem._iMagical == ITEM_QUALITY_UNIQUE)
-					player._pIAC += playerLevel / 2;
+			switch (chestItem._iMagical) {
+			case ITEM_QUALITY_UNIQUE:
+				player._pIAC += (playerCombatData.uniqueHeavyArmorAC * playerLevel).whole();
+				break;
+			case ITEM_QUALITY_MAGIC:
+				player._pIAC += (playerCombatData.magicHeavyArmorAC * playerLevel).whole();
+				break;
+			default:
+				player._pIAC += (playerCombatData.normalHeavyArmorAC * playerLevel).whole();
+				break;
 			}
 			return PlayerArmorGraphic::Heavy;
 		case ItemType::MediumArmor:
-			if (player._pClass == HeroClass::Monk) {
-				if (chestItem._iMagical == ITEM_QUALITY_UNIQUE)
-					player._pIAC += playerLevel * 2;
-				else
-					player._pIAC += playerLevel / 2;
+			switch (chestItem._iMagical) {
+			case ITEM_QUALITY_UNIQUE:
+				player._pIAC += (playerCombatData.uniqueMediumArmorAC * playerLevel).whole();
+				break;
+			case ITEM_QUALITY_MAGIC:
+				player._pIAC += (playerCombatData.magicMediumArmorAC * playerLevel).whole();
+				break;
+			default:
+				player._pIAC += (playerCombatData.normalMediumArmorAC * playerLevel).whole();
+				break;
 			}
 			return PlayerArmorGraphic::Medium;
 		default:
-			if (player._pClass == HeroClass::Monk)
-				player._pIAC += playerLevel * 2;
+			switch (chestItem._iMagical) {
+			case ITEM_QUALITY_UNIQUE:
+				player._pIAC += (playerCombatData.uniqueLightArmorAC * playerLevel).whole();
+				break;
+			case ITEM_QUALITY_MAGIC:
+				player._pIAC += (playerCombatData.magicLightArmorAC * playerLevel).whole();
+				break;
+			default:
+				player._pIAC += (playerCombatData.normalLightArmorAC * playerLevel).whole();
+				break;
+			}
 			return PlayerArmorGraphic::Light;
 		}
 	}
