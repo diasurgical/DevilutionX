@@ -355,27 +355,6 @@ std::string NarrowPath(const wchar_t *wide)
 	return narrow;
 }
 
-// Runs at process start, before SDL creates any renderer or GPU device. Loads
-// the system d3dcompiler by full path and keeps it loaded for the whole
-// process, so that every later bare-name LoadLibrary("d3dcompiler_47.dll") --
-// ours or SDL's -- resolves to the genuine system copy instead of a stale DLL
-// shipped next to the game: the default search order prefers the application
-// directory, and Windows reuses an already-loaded module matched by base file
-// name even if a different full path is requested later.
-void PreloadD3DCompiler()
-{
-	wchar_t sysDir[MAX_PATH];
-	const UINT sysLen = GetSystemDirectoryW(sysDir, MAX_PATH);
-	if (sysLen == 0 || sysLen >= MAX_PATH - 32)
-		return;
-	for (const wchar_t *name : { L"\\d3dcompiler_47.dll", L"\\d3dcompiler_43.dll" }) {
-		std::wstring path(sysDir);
-		path += name;
-		if (LoadLibraryW(path.c_str()) != nullptr)
-			return; // Keep it loaded for the whole process.
-	}
-}
-
 D3DCompileFn LoadD3DCompile()
 {
 	static D3DCompileFn fn = nullptr;
@@ -446,14 +425,14 @@ long InvokeD3DCompile(D3DCompileFn d3dCompile, const char *source, const char *t
 // calls right after D3DCompile returned, not inside it.
 const void *GuardedBlobPointer(FakeD3DBlob *blob)
 {
-	volatile const void *result = nullptr;
+	const volatile void *result = nullptr;
 	if (setjmp(tCompileJmpBuf) != 0)
 		return nullptr;
 	tCompileGuardArmed = true;
 	tCompileGuardThread = GetCurrentThreadId();
 	result = blob->GetBufferPointer();
 	tCompileGuardArmed = false;
-	return result;
+	return const_cast<const void *>(result);
 }
 
 size_t GuardedBlobSize(FakeD3DBlob *blob)
@@ -525,12 +504,6 @@ std::vector<uint8_t> CompileHLSL(const char *source, const char *target)
 	}
 	blob.assign(bytes, bytes + size);
 	return blob;
-}
-
-#else // _WIN32
-
-void PreloadD3DCompiler()
-{
 }
 
 #endif // _WIN32
@@ -1065,6 +1038,37 @@ bool RenderPass(SDL_GPUCommandBuffer *cmd, SDL_GPUTexture *target, Uint32 target
 }
 
 } // namespace
+
+#ifdef _WIN32
+
+// Runs at process start, before SDL creates any renderer or GPU device. Loads
+// the system d3dcompiler by full path and keeps it loaded for the whole
+// process, so that every later bare-name LoadLibrary("d3dcompiler_47.dll") --
+// ours or SDL's -- resolves to the genuine system copy instead of a stale DLL
+// shipped next to the game: the default search order prefers the application
+// directory, and Windows reuses an already-loaded module matched by base file
+// name even if a different full path is requested later.
+void PreloadD3DCompiler()
+{
+	wchar_t sysDir[MAX_PATH];
+	const UINT sysLen = GetSystemDirectoryW(sysDir, MAX_PATH);
+	if (sysLen == 0 || sysLen >= MAX_PATH - 32)
+		return;
+	for (const wchar_t *name : { L"\\d3dcompiler_47.dll", L"\\d3dcompiler_43.dll" }) {
+		std::wstring path(sysDir);
+		path += name;
+		if (LoadLibraryW(path.c_str()) != nullptr)
+			return; // Keep it loaded for the whole process.
+	}
+}
+
+#else // _WIN32
+
+void PreloadD3DCompiler()
+{
+}
+
+#endif // _WIN32
 
 void LogPhase(std::string_view line)
 {
