@@ -169,6 +169,9 @@ void ConsumeSpell(Player &player, SpellID sn)
 	if (sn == SpellID::BoneSpirit) {
 		ApplyPlrDamage(DamageType::Physical, player, Fixed26_6::fromInt(6));
 	}
+	if (sn == SpellID::DoomSerpents) {
+		ApplyPlrDamage(DamageType::Physical, player, Fixed26_6::fromInt(15));
+	}
 }
 
 void EnsureValidReadiedSpell(Player &player)

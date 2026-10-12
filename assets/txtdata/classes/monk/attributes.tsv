@@ -1,5 +1,6 @@
 Attribute	Value
 classFlags	
+classAvailabilityFlags	Hellfire
 baseStr	25
 baseMag	15
 baseDex	25
@@ -23,6 +24,20 @@ itmRestoreMana	1.5
 splRestoreLife	2
 splRestoreMana	2
 healOtherRestoreLife	3
+attackFlags	StaffCleave,MartialArts
+defenseFlags	StaffBlock,OneHandBlock
+meleeArmorPiercingBonus	0
+bowDamageMod	0.5
+arrowVelocityBonus	0
+normalLightArmorAC	2
+magicLightArmorAC	2
+uniqueLightArmorAC	2
+normalMediumArmorAC	0.5
+magicMediumArmorAC	0.5
+uniqueMediumArmorAC	2
+normalHeavyArmorAC	0.5
+magicHeavyArmorAC	0.5
+uniqueHeavyArmorAC	0.5
 baseMagicToHit	50
 baseMeleeToHit	50
 baseRangedToHit	50

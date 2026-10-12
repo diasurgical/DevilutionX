@@ -36,8 +36,8 @@ namespace devilution {
 struct Missile;
 struct Player;
 
-constexpr size_t MaxMonsters = 200;
-constexpr size_t MaxLvlMTypes = 24;
+constexpr size_t MaxMonsters = 250;
+constexpr size_t MaxLvlMTypes = 25;
 
 enum monster_flag : uint16_t {
 	// clang-format off
@@ -539,7 +539,7 @@ void M_StartHit(Monster &monster, int dam);
 void M_StartHit(Monster &monster, const Player &player, int dam);
 void StartMonsterDeath(Monster &monster, const Player &player, bool sendmsg);
 void MonsterDeath(Monster &monster, Direction md, bool sendmsg);
-void KillGolem(Monster &golem);
+void KillPet(Monster &pet);
 void M_StartKill(Monster &monster, const Player &player);
 void M_SyncStartKill(Monster &monster, Point position, const Player &player);
 void M_UpdateRelations(const Monster &monster);
@@ -566,7 +566,12 @@ void MissToMonst(Missile &missile, Point position);
 
 Monster *FindMonsterAtPosition(Point position, bool ignoreMovingMonsters = false);
 Monster *FindUniqueMonster(UniqueMonsterType monsterType);
-Monster *FindGolemForPlayer(const Player &player);
+int FindPetIndex(int skip);
+int FindPetIndex(int skip, const _monster_id monsterType);
+Monster *FindPetForPlayer(const Player &player, int skip);
+Monster *FindPetForPlayer(const Player &player, int skip, const _monster_id monsterType);
+int CountPetsForPlayer(const Player &player, const _monster_id monsterType);
+
 
 /**
  * @brief Check that the given tile is available to the monster
@@ -582,7 +587,7 @@ bool IsGoat(_monster_id mt);
 void ActivateSkeleton(Monster &monster, Point position);
 Monster *PreSpawnSkeleton();
 void TalktoMonster(Player &player, Monster &monster);
-void SpawnGolem(const Player &player, Point position, uint8_t spellLevel);
+void SpawnPet(const Player &player, Point position, uint8_t spellLevel, const _monster_id monsterType);
 bool CanTalkToMonst(const Monster &monster);
 uint8_t encode_enemy(Monster &monster);
 void decode_enemy(Monster &monster, uint8_t enemyId);

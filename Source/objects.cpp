@@ -596,73 +596,15 @@ void AddDiabObjs()
 void AddCryptObject(Object &object, int a2)
 {
 	if (a2 > 5) {
-		const Player &myPlayer = *MyPlayer;
 		switch (a2) {
 		case 6:
-			switch (myPlayer._pClass) {
-			case HeroClass::Warrior:
-			case HeroClass::Barbarian:
-				object._oVar2 = TEXT_BOOKA;
-				break;
-			case HeroClass::Rogue:
-				object._oVar2 = TEXT_RBOOKA;
-				break;
-			case HeroClass::Sorcerer:
-				object._oVar2 = TEXT_MBOOKA;
-				break;
-			case HeroClass::Monk:
-				object._oVar2 = TEXT_OBOOKA;
-				break;
-			case HeroClass::Bard:
-				object._oVar2 = TEXT_BBOOKA;
-				break;
-			default:
-				break;
-			}
+			object._oVar2 = TEXT_BOOKA;
 			break;
 		case 7:
-			switch (myPlayer._pClass) {
-			case HeroClass::Warrior:
-			case HeroClass::Barbarian:
-				object._oVar2 = TEXT_BOOKB;
-				break;
-			case HeroClass::Rogue:
-				object._oVar2 = TEXT_RBOOKB;
-				break;
-			case HeroClass::Sorcerer:
-				object._oVar2 = TEXT_MBOOKB;
-				break;
-			case HeroClass::Monk:
-				object._oVar2 = TEXT_OBOOKB;
-				break;
-			case HeroClass::Bard:
-				object._oVar2 = TEXT_BBOOKB;
-				break;
-			default:
-				break;
-			}
+			object._oVar2 = TEXT_BOOKB;
 			break;
 		case 8:
-			switch (myPlayer._pClass) {
-			case HeroClass::Warrior:
-			case HeroClass::Barbarian:
-				object._oVar2 = TEXT_BOOKC;
-				break;
-			case HeroClass::Rogue:
-				object._oVar2 = TEXT_RBOOKC;
-				break;
-			case HeroClass::Sorcerer:
-				object._oVar2 = TEXT_MBOOKC;
-				break;
-			case HeroClass::Monk:
-				object._oVar2 = TEXT_OBOOKC;
-				break;
-			case HeroClass::Bard:
-				object._oVar2 = TEXT_BBOOKC;
-				break;
-			default:
-				break;
-			}
+			object._oVar2 = TEXT_BOOKC;
 			break;
 		}
 		object._oVar3 = 15;
@@ -1987,29 +1929,7 @@ void OperateChamberOfBoneBook(Object &questBook, bool sendmsg)
 		Quests[Q_SCHAMB]._qlog = true;
 	}
 
-	_speech_id textdef;
-	switch (MyPlayer->_pClass) {
-	case HeroClass::Warrior:
-		textdef = TEXT_BONER;
-		break;
-	case HeroClass::Rogue:
-		textdef = TEXT_RBONER;
-		break;
-	case HeroClass::Sorcerer:
-		textdef = TEXT_MBONER;
-		break;
-	case HeroClass::Monk:
-		textdef = TEXT_HBONER;
-		break;
-	case HeroClass::Bard:
-		textdef = TEXT_RBONER;
-		break;
-	case HeroClass::Barbarian:
-		textdef = TEXT_BONER;
-		break;
-	default:
-		break;
-	}
+	_speech_id textdef = TEXT_BONER;
 	if (sendmsg) {
 		Quests[Q_SCHAMB]._qmsg = textdef;
 		NetSendCmdQuest(true, Quests[Q_SCHAMB]);
@@ -2541,20 +2461,9 @@ void OperateShrineCostOfWisdom(Player &player, SpellID spellId, diablo_message m
 		}
 	}
 
-	int maxBase = player._pMaxManaBase.raw();
-
-	if (maxBase < 0) {
-		// Fix bugged state; do not turn this into a "negative penalty" mana boost.
-		player._pMaxManaBase = Fixed26_6::fromInt(0);
-		maxBase = 0;
-	}
-
-	const Fixed26_6 penalty = Fixed26_6::fromRaw(maxBase / 10); // 10% of max base mana (>= 0)
-
-	player._pMaxManaBase -= penalty; // will remain >= 0
-	player._pManaBase -= penalty;    // may go negative, allowed
-	player._pMaxMana -= penalty;     // may go negative, allowed
-	player._pMana -= penalty;        // may go negative, allowed
+	ModifyPlrMag(player, -5);
+	CheckStats(player);
+	CalcPlrInv(player, true);
 
 	RedrawEverything();
 	InitDiabloMsg(message);
@@ -3874,57 +3783,13 @@ void InitObjects()
 			AddL2Objs(0, 0, MAXDUNX, MAXDUNY);
 			AddL2Torches();
 			if (Quests[Q_BLIND].IsAvailable()) {
-				_speech_id spId;
-				switch (MyPlayer->_pClass) {
-				case HeroClass::Warrior:
-					spId = TEXT_BLINDING;
-					break;
-				case HeroClass::Rogue:
-					spId = TEXT_RBLINDING;
-					break;
-				case HeroClass::Sorcerer:
-					spId = TEXT_MBLINDING;
-					break;
-				case HeroClass::Monk:
-					spId = TEXT_HBLINDING;
-					break;
-				case HeroClass::Bard:
-					spId = TEXT_RBLINDING;
-					break;
-				case HeroClass::Barbarian:
-					spId = TEXT_BLINDING;
-					break;
-				default:
-					break;
-				}
+				_speech_id spId = TEXT_BLINDING;
 				Quests[Q_BLIND]._qmsg = spId;
 				AddBookLever(OBJ_BLINDBOOK, { SetPiece.position, SetPiece.size + 1 }, spId);
 				LoadMapObjects("levels\\l2data\\blind2.dun", SetPiece.position.megaToWorld());
 			}
 			if (Quests[Q_BLOOD].IsAvailable()) {
-				_speech_id spId;
-				switch (MyPlayer->_pClass) {
-				case HeroClass::Warrior:
-					spId = TEXT_BLOODY;
-					break;
-				case HeroClass::Rogue:
-					spId = TEXT_RBLOODY;
-					break;
-				case HeroClass::Sorcerer:
-					spId = TEXT_MBLOODY;
-					break;
-				case HeroClass::Monk:
-					spId = TEXT_HBLOODY;
-					break;
-				case HeroClass::Bard:
-					spId = TEXT_RBLOODY;
-					break;
-				case HeroClass::Barbarian:
-					spId = TEXT_BLOODY;
-					break;
-				default:
-					break;
-				}
+				_speech_id spId = TEXT_BLOODY;
 				Quests[Q_BLOOD]._qmsg = spId;
 				AddBookLever(OBJ_BLOODBOOK, { SetPiece.position + Displacement { 0, 3 }, { 2, 4 } }, spId);
 				AddObject(OBJ_PEDESTAL, SetPiece.position.megaToWorld() + Displacement { 9, 16 });
@@ -3937,29 +3802,7 @@ void InitObjects()
 		}
 		if (leveltype == DTYPE_HELL) {
 			if (Quests[Q_WARLORD].IsAvailable()) {
-				_speech_id spId;
-				switch (MyPlayer->_pClass) {
-				case HeroClass::Warrior:
-					spId = TEXT_BLOODWAR;
-					break;
-				case HeroClass::Rogue:
-					spId = TEXT_RBLOODWAR;
-					break;
-				case HeroClass::Sorcerer:
-					spId = TEXT_MBLOODWAR;
-					break;
-				case HeroClass::Monk:
-					spId = TEXT_HBLOODWAR;
-					break;
-				case HeroClass::Bard:
-					spId = TEXT_RBLOODWAR;
-					break;
-				case HeroClass::Barbarian:
-					spId = TEXT_BLOODWAR;
-					break;
-				default:
-					break;
-				}
+				_speech_id spId = TEXT_BLOODWAR;
 				Quests[Q_WARLORD]._qmsg = spId;
 				AddBookLever(OBJ_STEELTOME, SetPiece, spId);
 				LoadMapObjects("levels\\l4data\\warlord.dun", SetPiece.position.megaToWorld());

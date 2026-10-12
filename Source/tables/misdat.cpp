@@ -230,6 +230,7 @@ std::expected<MissileData::AddFn, std::string> ParseMissileAddFn(std::string_vie
 	if (value == "AddAcidPuddle") return AddAcidPuddle;
 	if (value == "AddStoneCurse") return AddStoneCurse;
 	if (value == "AddGolem") return AddGolem;
+	if (value == "AddSummonedSkeleton") return AddSummonedSkeleton;
 	if (value == "AddApocalypseBoom") return AddApocalypseBoom;
 	if (value == "AddHealing") return AddHealing;
 	if (value == "AddHealOther") return AddHealOther;

@@ -43,7 +43,7 @@ const SpellIcon SpellITbl[] = {
 /* SpellID::Guardian         */ SpellIcon::DoomSerpents,
 /* SpellID::ChainLightning   */ SpellIcon::ChainLightning,
 /* SpellID::FlameWave        */ SpellIcon::FlameWave,
-/* SpellID::DoomSerpents     */ SpellIcon::DoomSerpents,
+/* SpellID::DoomSerpents     */ SpellIcon::RedSkull,
 /* SpellID::BloodRitual      */ SpellIcon::BloodRitual,
 /* SpellID::Nova             */ SpellIcon::Nova,
 /* SpellID::Invisibility     */ SpellIcon::Invisibility,

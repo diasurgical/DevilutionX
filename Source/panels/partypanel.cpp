@@ -204,27 +204,27 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 
 			// Draw the portrait sprite
 			RenderClxSprite(
-			    frameSubregion,
-			    playerPortraitSprite,
-			    portraitPos);
+				frameSubregion,
+				playerPortraitSprite,
+				portraitPos);
 
 			if ((player.getId() + 1U) < (*PlayerTags).numSprites()) {
 				// Draw the player tag
 				const int tagWidth = (*PlayerTags)[player.getId() + 1].width();
 				RenderClxSprite(
-				    frameSubregion,
-				    (*PlayerTags)[player.getId() + 1],
-				    { PortraitFrameSize.width - (tagWidth + (tagWidth / 2)), 0 });
+					frameSubregion,
+					(*PlayerTags)[player.getId() + 1],
+					{ PortraitFrameSize.width - (tagWidth + (tagWidth / 2)), 0 });
 			}
 
 			// Check to see if the player is dead and if so we draw a half transparent red rect over the portrait
 			if (player._pHitPoints <= 0) {
 				DrawHalfTransparentRectTo(
-				    frameSubregion,
-				    0, 0,
-				    PortraitFrameSize.width,
-				    PortraitFrameSize.height,
-				    PAL8_RED + 4);
+					frameSubregion,
+					0, 0,
+					PortraitFrameSize.width,
+					PortraitFrameSize.height,
+					PAL8_RED + 4);
 			}
 
 			// Add to the position before continuing to the next item
@@ -243,10 +243,10 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 
 			// Draw the players name under the frame
 			DrawString(
-			    gameScreen,
-			    player._pName,
-			    pos,
-			    { .flags = UiFlags::ColorGold | UiFlags::Outlined | UiFlags::FontSize12 });
+				gameScreen,
+				player._pName,
+				pos,
+				{ .flags = UiFlags::ColorGold | UiFlags::Outlined | UiFlags::FontSize12 });
 
 			// Add to the position before continuing onto the next player
 			pos.y += FrameGap + 5;
@@ -276,82 +276,85 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 			}
 		}
 	}
-
 	if (partyOption == PartyPortraits::Summons || partyOption == PartyPortraits::PlayersAndSummons) {
 
-		Monster *summoned = FindGolemForPlayer(*MyPlayer);
-		if (summoned != nullptr) {
+		int monsterId = FindPetIndex(0);
+		while (monsterId >= 0) {
+			Monster &monster = Monsters[monsterId];
 			const Surface gameScreen = out.subregionY(0, gnViewportHeight);
 
-			// Draw the monster frame
+			// Draw the characters frame
 			RenderClxSprite(gameScreen, (*PartyMemberFrame)[0], pos);
 
 			// Get the monsters remaining life
-			const int lifeTicks = ((summoned->hitPoints.raw() * PortraitFrameSize.width) + (summoned->maxHitPoints.raw() / 2)) / summoned->maxHitPoints.raw();
+			const int lifeTicks = ((monster.hitPoints.raw() * PortraitFrameSize.width) + (monster.maxHitPoints.raw() / 2)) / monster.maxHitPoints.raw();
 			// Now draw the characters remaining life
 			DrawBar(gameScreen, { pos, { lifeTicks, HealthBarHeight } }, PAL8_RED + 4);
 
 			// Add to the position before continuing to the next item
 			pos.y += HealthBarHeight;
 
-			// Get the monster current portrait sprite
-			OptionalClxSpriteList monsterOptionalPortraitSpriteList = summoned->type().getAnimData(MonsterGraphic::Stand).spritesForDirection(Direction::South);
+	//		const ClxSpriteList monsterPortraitSpriteList = (*player.PartyInfoSprites[inDungeon])[static_cast<size_t>(Direction::South)];
+			OptionalClxSpriteList monsterOptionalPortraitSpriteList = monster.type().getAnimData(MonsterGraphic::Stand).spritesForDirection(Direction::South);
+	//
 			if (!monsterOptionalPortraitSpriteList.has_value()) {
-				monsterOptionalPortraitSpriteList = summoned->type().getAnimData(MonsterGraphic::Walk).spritesForDirection(Direction::South);
+				monsterOptionalPortraitSpriteList = monster.type().getAnimData(MonsterGraphic::Walk).spritesForDirection(Direction::South);
 			}
-			if (monsterOptionalPortraitSpriteList.has_value()) {
-
-				// Get the monsters current portrait sprite
-				const ClxSprite monsterPortraitSprite = (*monsterOptionalPortraitSpriteList)[0];
-				// Calculate the monsters portait position
-				const Point portraitPos = { ((-(monsterPortraitSprite.width() * 17 / 32)) + (PortraitFrameSize.width / 2)), -(monsterPortraitSprite.height() / 4) };
-				// Get a subregion of the surface so the portrait doesn't get drawn over the frame
-				const Surface frameSubregion = gameScreen.subregion(
-				    pos.x + FrameBorderSize,
-				    pos.y + FrameBorderSize,
-				    PortraitFrameSize.width - (FrameBorderSize * 2),
-				    PortraitFrameSize.height - (FrameBorderSize * 2));
-
-				// Draw the portrait sprite
-				RenderClxSprite(
-				    frameSubregion,
-				    monsterPortraitSprite,
-				    portraitPos);
-
-				// Add to the position before continuing to the next item
-				pos.y += PortraitFrameSize.height;
-
-				// Add to the position before continuing to the next item
-				pos.y += ManaBarHeight;
-
-				// Draw the monsters name under the frame
-				DrawString(
-				    gameScreen,
-				    summoned->name(),
-				    pos,
-				    { .flags = UiFlags::ColorGold | UiFlags::Outlined | UiFlags::FontSize12 });
-
-				// Add to the position before continuing onto the next monster
-				pos.y += FrameGap + 5;
-
-				// Get the current monsters name width
-				const int width = GetLineWidth(summoned->name());
-				// Now check to see if it's the current longest name
-				if (width >= currentLongestNameWidth)
-					currentLongestNameWidth = width;
-
-				// Check to see if the Y position is more then the main panel position
-				if (pos.y >= GetMainPanel().position.y - PortraitFrameSize.height - 10) {
-					// If so we need to draw the next set of portraits back at the top and to the right of the original position
-					pos.y = PartyPanelPos.y;
-					if (AutomapActive)
-						pos.y += (FrameGap * 4);
-					if (*GetOptions().Graphics.showFPS)
-						pos.y += FrameGap;
-					// Add the current longest name width to the X position
-					pos.x += currentLongestNameWidth + (FrameGap / 2);
-				}
+			if (!monsterOptionalPortraitSpriteList.has_value()) {
+				continue;
 			}
+
+			// Get the monsters current portrait sprite
+			const ClxSprite monsterPortraitSprite = (*monsterOptionalPortraitSpriteList)[0];
+			// Calculate the monsters portait position
+			const Point portraitPos = { ((-(monsterPortraitSprite.width() * 17 / 32)) + (PortraitFrameSize.width / 2)), -(monsterPortraitSprite.height() / 4)};
+			// Get a subregion of the surface so the portrait doesn't get drawn over the frame
+			const Surface frameSubregion = gameScreen.subregion(
+				pos.x + FrameBorderSize,
+				pos.y + FrameBorderSize,
+				PortraitFrameSize.width - (FrameBorderSize * 2),
+				PortraitFrameSize.height - (FrameBorderSize * 2));
+
+			// Draw the portrait sprite
+			RenderClxSprite(
+				frameSubregion,
+				monsterPortraitSprite,
+				portraitPos);
+
+			// Add to the position before continuing to the next item
+			pos.y += PortraitFrameSize.height;
+
+			// Add to the position before continuing to the next item
+			pos.y += ManaBarHeight;
+
+			// Draw the monsters name under the frame
+			DrawString(
+				gameScreen,
+				monster.name(),
+				pos,
+				{ .flags = UiFlags::ColorGold | UiFlags::Outlined | UiFlags::FontSize12 });
+
+			// Add to the position before continuing onto the next monster
+			pos.y += FrameGap + 5;
+
+			// Get the current monsters name width
+			const int width = GetLineWidth(monster.name());
+			// Now check to see if it's the current longest name
+			if (width >= currentLongestNameWidth)
+				currentLongestNameWidth = width;
+
+			// Check to see if the Y position is more then the main panel position
+			if (pos.y >= GetMainPanel().position.y - PortraitFrameSize.height - 10) {
+				// If so we need to draw the next set of portraits back at the top and to the right of the original position
+				pos.y = PartyPanelPos.y;
+				if (AutomapActive)
+					pos.y += (FrameGap * 4);
+				if (*GetOptions().Graphics.showFPS)
+					pos.y += FrameGap;
+				// Add the current longest name width to the X position
+				pos.x += currentLongestNameWidth + (FrameGap / 2);
+			}
+			monsterId = FindPetIndex(monsterId + 1);
 		}
 	}
 
