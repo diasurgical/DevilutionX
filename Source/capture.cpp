@@ -109,7 +109,7 @@ void CaptureScreen()
 #endif
 
 	if (!result.has_value()) {
-		LogError("Failed to save screenshot at {}: ", fileName, result.error());
+		LogError("Failed to save screenshot at {}: {}", fileName, result.error());
 		RemoveFile(fileName.c_str());
 	} else {
 		Log("Screenshot saved at {}", fileName);

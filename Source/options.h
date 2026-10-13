@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <deque>
 #include <forward_list>
 #include <functional>
 #include <initializer_list>
@@ -34,6 +35,10 @@
 #include "quick_messages.hpp"
 #include "utils/enum_traits.h"
 #include "utils/string_view_hash.hpp"
+
+#ifdef USE_GPU_SCALER
+#include "engine/render/gpu/preset/preset_types.hpp"
+#endif
 
 namespace devilution {
 
@@ -74,40 +79,22 @@ enum class ScalingQuality : uint8_t {
 };
 
 #ifndef USE_SDL1
-enum class ShaderFilter : uint8_t {
+enum class ShaderFilter : uint16_t {
 	/** @brief No shader filter, use the regular SDL_Renderer scaling. */
 	None = 0,
-	HQ2x = 1,
-	HQ3x = 2,
-	HQ4x = 3,
-	ScaleFX2x = 4,
-	ScaleFX3x = 5,
-	ScaleFX4x = 6,
 };
 
-/** @brief Whether the given filter is a ScaleFX variant (arbitrary integer scale). */
-constexpr bool IsScaleFX(ShaderFilter filter)
+/** @brief First enum value of the runtime-loaded custom preset range.
+ *  Custom preset N in the settings list maps to value CustomBase + N;
+ *  the actual preset file is identified by Graphics.shaderFilterPreset. */
+constexpr uint16_t kShaderFilterCustomBase = 100;
+
+/** @brief Whether the given filter is a runtime-loaded folder preset. */
+constexpr bool IsCustomFilter(ShaderFilter filter)
 {
-	return filter == ShaderFilter::ScaleFX2x || filter == ShaderFilter::ScaleFX3x || filter == ShaderFilter::ScaleFX4x;
+	return static_cast<uint16_t>(filter) >= kShaderFilterCustomBase;
 }
 
-/** @brief The integer upscale factor of the given shader filter (0 for None). */
-constexpr int FilterScale(ShaderFilter filter)
-{
-	switch (filter) {
-	case ShaderFilter::HQ2x:
-	case ShaderFilter::ScaleFX2x:
-		return 2;
-	case ShaderFilter::HQ3x:
-	case ShaderFilter::ScaleFX3x:
-		return 3;
-	case ShaderFilter::HQ4x:
-	case ShaderFilter::ScaleFX4x:
-		return 4;
-	default:
-		return 0;
-	}
-}
 #endif
 
 enum class FrameRateControl : uint8_t {
@@ -242,6 +229,14 @@ public:
 	[[nodiscard]] virtual size_t GetActiveListIndex() const = 0;
 	virtual void SetActiveListIndex(size_t index) = 0;
 
+	/** @brief Whether selecting this list entry navigates (drills into/out of
+	 *  a folder) instead of changing the value; the settings list view is
+	 *  rebuilt in place for such entries. */
+	[[nodiscard]] virtual bool IsListNavigationEntry(size_t index) const
+	{
+		return false;
+	}
+
 	[[nodiscard]] OptionEntryType GetType() const override;
 	[[nodiscard]] std::string_view GetValueDescription() const override;
 
@@ -278,7 +273,7 @@ protected:
 
 	void AddEntry(int value, std::string_view name);
 
-private:
+protected:
 	int defaultValue;
 	int value;
 	std::vector<std::string_view> entryNames;
@@ -304,6 +299,63 @@ public:
 		SetValueInternal(static_cast<int>(value));
 	}
 };
+
+#ifdef USE_GPU_SCALER
+/** @brief Relative path (inside the runtime shaders folder) of the selected
+ *  custom preset. Hidden from the menus; serialized alongside
+ *  Graphics.shaderFilter so preset list changes cannot break saves. */
+class OptionEntryShaderFilterPreset : public OptionEntryBase {
+public:
+	OptionEntryShaderFilterPreset();
+
+	[[nodiscard]] OptionEntryType GetType() const override;
+	[[nodiscard]] std::string_view GetValueDescription() const override;
+	void LoadFromIni(std::string_view category) override;
+	void SaveToIni(std::string_view category) const override;
+
+	std::string value;
+};
+
+/** @brief The GPU shader filter entry: the fixed built-in filters plus a
+ *  folder browser for the .slangp presets found in the runtime shaders
+ *  folder (subfolders are entered instead of listing everything flat). */
+class OptionEntryShaderFilter : public OptionEntryEnumBase {
+public:
+	OptionEntryShaderFilter();
+
+	void LoadFromIni(std::string_view category) override;
+
+	/** @brief Re-scans the runtime shaders folder, rebuilds the entry list
+	 *  for the browsed folder and syncs the active value with the persisted
+	 *  preset path. Safe to call repeatedly (settings menu opens). */
+	void RescanCustomEntries();
+
+	void SetActiveListIndex(size_t index) override;
+	[[nodiscard]] bool IsListNavigationEntry(size_t index) const override;
+	[[nodiscard]] size_t GetActiveListIndex() const override;
+
+	[[nodiscard]] ShaderFilter operator*() const
+	{
+		return static_cast<ShaderFilter>(GetValueInternal());
+	}
+
+private:
+	/** @brief Rebuilds entryValues/entryNames below the fixed built-ins for
+	 *  the folder currently being browsed. */
+	void RebuildListEntries();
+
+	/** @brief Number of fixed built-in entries (browser entries follow). */
+	size_t builtinCount_ = 0;
+	/** @brief Folder currently browsed, relative to the shader root ("" = root). */
+	std::string currentDir_;
+	/** @brief Subdirectories of the browsed folder (navigation entries). */
+	std::vector<std::string> subdirs_;
+	/** @brief Presets directly inside the browsed folder (selection entries). */
+	std::vector<gpu_scaler::preset::PresetEntry> presets_;
+	/** @brief Entry index to focus after the next list rebuild (one-shot). */
+	mutable size_t pendingFocusIndex_ = static_cast<size_t>(-1);
+};
+#endif
 
 class OptionEntryIntBase : public OptionEntryListBase {
 public:
@@ -590,7 +642,9 @@ struct GraphicsOptions : OptionCategoryBase {
 	OptionEntryBoolean integerScaling;
 #ifdef USE_GPU_SCALER
 	/** @brief GPU shader-based upscaling filter (SDL_GPU). */
-	OptionEntryEnum<ShaderFilter> shaderFilter;
+	OptionEntryShaderFilter shaderFilter;
+	/** @brief Relative path of the selected custom preset (see shaderFilter). */
+	OptionEntryShaderFilterPreset shaderFilterPreset;
 #endif
 #endif
 	/** @brief Limit frame rate either for vsync or CPU load. */

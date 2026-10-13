@@ -21,14 +21,16 @@
 #include <utility>
 #include <vector>
 
-#include "engine/render/gpu/gpu_luts.hpp"
 #ifdef GPU_SCALER_SPV_GENERATED
 #include "engine/render/gpu/gpu_shader_spv.hpp"
 #else
 #include "engine/render/gpu/gpu_shader_spv_prebuilt.hpp"
 #endif
+#include "engine/render/gpu/gpu_d3dcompile.hpp"
 #include "engine/render/gpu/gpu_shaders_hlsl.hpp"
 #include "engine/render/gpu/gpu_shaders_msl.hpp"
+#include "engine/render/gpu/preset/preset_parser.hpp"
+#include "engine/render/gpu/preset/preset_runner.hpp"
 #include "engine/render/text_render.hpp"
 #include "engine/surface.hpp"
 #include "utils/log.hpp"
@@ -42,10 +44,6 @@ namespace devilution {
 namespace gpu_scaler {
 namespace {
 
-constexpr float kSfxClr = 0.5F; // ScaleFX "Threshold" parameter
-constexpr float kSfxSaa = 1.0F; // ScaleFX "Filter AA" parameter
-constexpr float kSfxScn = 1.0F; // ScaleFX "Filter Corners" parameter
-
 struct alignas(16) FragUniforms {
 	float sourceSize[4]; // (w, h, 1/w, 1/h)
 	float params[4];
@@ -53,13 +51,6 @@ struct alignas(16) FragUniforms {
 
 enum class Program {
 	Vertex,
-	HqxIndex,
-	HqxBlend,
-	SfxPass0,
-	SfxPass1,
-	SfxPass2,
-	SfxPass3,
-	SfxPass4,
 	Blit,
 };
 
@@ -70,27 +61,22 @@ ShaderFilter gFilter = ShaderFilter::None;
 
 int gGameWidth = 0;
 int gGameHeight = 0;
-int gPassScale = 0; // scale of the scaledTex target
 
 SDL_GPUShader *gVertexShader = nullptr;
 SDL_GPUShader *gFragmentShaders[9] = {};
 
-SDL_GPUGraphicsPipeline *gHqxIndexPipeline = nullptr;
-SDL_GPUGraphicsPipeline *gHqxBlendPipeline = nullptr;
-SDL_GPUGraphicsPipeline *gSfxPipelines[5] = {};
 SDL_GPUGraphicsPipeline *gBlitPipeline = nullptr;
 
 SDL_GPUTexture *gGameTex = nullptr;
-SDL_GPUTexture *gIndexTex = nullptr;
-SDL_GPUTexture *gMetricTex = nullptr;   // ScaleFX pass 0 (fp16)
-SDL_GPUTexture *gStrengthTex = nullptr; // ScaleFX pass 1 (fp16)
-SDL_GPUTexture *gFlagsTex = nullptr;    // ScaleFX pass 2
-SDL_GPUTexture *gSubpixTex = nullptr;   // ScaleFX pass 3
-SDL_GPUTexture *gScaledTex = nullptr;
+
+// Runtime libretro slang preset chain (custom shader filters).
+preset::Runner gPresetRunner;
+std::string gPresetDisplayName;
+// The preset file the running chain was built from (resolved path).
+std::string gLoadedPresetPath;
 
 SDL_GPUSampler *gNearestSampler = nullptr;
 SDL_GPUSampler *gLinearSampler = nullptr;
-SDL_GPUTexture *gHqxLuts[3] = {}; // HQ2x, HQ3x, HQ4x
 
 bool gLoggedFailure = false;
 
@@ -108,33 +94,125 @@ SDL_GPUTextureFormat gBlitPipelineFormat = SDL_GPU_TEXTUREFORMAT_INVALID;
 
 // SDL_Log output is invisible for a GUI-subsystem application on Windows, so
 // GPU scaler diagnostics are also appended to gpu-scaler.log next to the
-// executable. The file opens lazily on first use.
-FILE *LogFile();
+// executable. The file opens lazily on first use and is size-capped: when a
+// write would push it past kMaxLogBytes, the current log is rotated to
+// gpu-scaler.log.old (one generation kept) and a fresh file starts.
+constexpr long kMaxLogBytes = 200 * 1024;
+
+FILE *gLogFile = nullptr;
+// Bytes currently in the log file, kept in step with the writes below so
+// that the cap check does not have to stat the file on every line.
+long gLogBytes = 0;
+
 void InstallSdlLogCapture();
 
-FILE *LogFile()
+std::string LogFilePath()
 {
-	static FILE *file = nullptr;
-	static bool initialized = false;
-	if (!initialized) {
-		initialized = true;
-		const char *basePath = SDL_GetBasePath();
-		if (basePath != nullptr) {
-			// SDL3 owns the returned string; it must not be freed.
-			const std::string path = std::string(basePath) + "gpu-scaler.log";
-			file = std::fopen(path.c_str(), "a");
-			if (file != nullptr) {
-				std::fprintf(file, "\n=== GPU scaler session (build %s %s) ===\n", __DATE__, __TIME__);
-				InstallSdlLogCapture();
-			}
-		}
+	const char *basePath = SDL_GetBasePath();
+	// SDL3 owns the returned string; it must not be freed.
+	return basePath != nullptr ? std::string(basePath) + "gpu-scaler.log" : std::string("gpu-scaler.log");
+}
+
+long LogFileSize(const std::string &path)
+{
+	FILE *file = std::fopen(path.c_str(), "rb");
+	if (file == nullptr)
+		return 0;
+	long size = 0;
+	if (std::fseek(file, 0, SEEK_END) == 0)
+		size = std::ftell(file);
+	std::fclose(file);
+	return size > 0 ? size : 0;
+}
+
+// Moves path aside as path.old (one generation kept). When the rename is
+// refused (e.g. a viewer holding the .old file on Windows), the current
+// file is removed instead so the cap holds either way.
+void RotateLogFile(const std::string &path)
+{
+	const std::string oldPath = path + ".old";
+	std::remove(oldPath.c_str());
+	if (std::rename(path.c_str(), oldPath.c_str()) != 0)
+		std::remove(path.c_str());
+}
+
+void LogClose()
+{
+	if (gLogFile != nullptr) {
+		std::fclose(gLogFile);
+		gLogFile = nullptr;
+	}
+}
+
+FILE *LogOpenAppended()
+{
+	const std::string path = LogFilePath();
+	// A leftover log from previous sessions must not push this session's
+	// file past the cap: rotate oversized leftovers once at open.
+	if (LogFileSize(path) > kMaxLogBytes)
+		RotateLogFile(path);
+	FILE *file = std::fopen(path.c_str(), "a");
+	if (file != nullptr && std::fseek(file, 0, SEEK_END) == 0) {
+		const long size = std::ftell(file);
+		gLogBytes = size > 0 ? size : 0;
+	} else {
+		gLogBytes = 0;
 	}
 	return file;
 }
 
+// Starts a fresh log mid-session, keeping the current one as
+// gpu-scaler.log.old.
+void RotateLog()
+{
+	LogClose();
+	RotateLogFile(LogFilePath());
+	gLogBytes = 0;
+	gLogFile = std::fopen(LogFilePath().c_str(), "a");
+	if (gLogFile != nullptr) {
+		const std::string marker = StrCat("=== gpu-scaler.log rotated (", kMaxLogBytes / 1024, " KB cap) ===\n");
+		std::fwrite(marker.data(), 1, marker.size(), gLogFile);
+		gLogBytes += static_cast<long>(marker.size());
+		std::fflush(gLogFile);
+	}
+}
+
+FILE *LogFile()
+{
+	static bool initialized = false;
+	if (!initialized) {
+		initialized = true;
+		gLogFile = LogOpenAppended();
+		if (gLogFile != nullptr) {
+			if (gLogBytes + 64 > kMaxLogBytes)
+				RotateLog(); // keep even the session header within the cap
+			if (gLogFile != nullptr) {
+				const std::string header = StrCat("\n=== GPU scaler session (build ", __DATE__, " ", __TIME__, ") ===\n");
+				std::fwrite(header.data(), 1, header.size(), gLogFile);
+				gLogBytes += static_cast<long>(header.size());
+				std::fflush(gLogFile);
+			}
+			InstallSdlLogCapture();
+		}
+	}
+	return gLogFile;
+}
+
+// Returns the log file for a write of `incomingBytes` more bytes, rotating
+// it first when that write would push the file past the size cap. Returns
+// nullptr when the log is unavailable.
+FILE *LogFileForWrite(size_t incomingBytes)
+{
+	if (LogFile() == nullptr)
+		return nullptr;
+	if (gLogBytes + static_cast<long>(incomingBytes) > kMaxLogBytes)
+		RotateLog();
+	return gLogFile;
+}
+
 void LogFileLine(std::string_view line)
 {
-	if (FILE *file = LogFile(); file != nullptr) {
+	if (FILE *file = LogFileForWrite(line.size() + 16); file != nullptr) {
 		std::fprintf(file, "[%10u ms] %.*s\n", static_cast<unsigned>(SDL_GetTicks()), static_cast<int>(line.size()), line.data());
 		std::fflush(file);
 	}
@@ -173,7 +251,8 @@ void SDLCALL SdlLogCapture(void *userdata, int category, SDL_LogPriority priorit
 {
 	if (gPrevSdlLogFunction != nullptr)
 		gPrevSdlLogFunction(gPrevSdlLogUserdata, category, priority, message);
-	if (FILE *file = LogFile(); file != nullptr) {
+	const size_t messageLen = message != nullptr ? std::strlen(message) : 0;
+	if (FILE *file = LogFileForWrite(messageLen + 16); file != nullptr) {
 		std::fprintf(file, "[       SDL] %s\n", message != nullptr ? message : "");
 		std::fflush(file);
 	}
@@ -187,327 +266,6 @@ void InstallSdlLogCapture()
 	SDL_SetLogOutputFunction(SdlLogCapture, nullptr);
 }
 
-#ifdef _WIN32
-
-// --- Guarded D3DCompile ------------------------------------------------------
-// A fault inside d3dcompiler (a wild jump into a non-executable page has been
-// observed in the wild on D3D12, killing the process before the fallback could
-// run) must not take the game down: while the guard is armed on this thread,
-// the vectored exception handler below converts the fault into a "compile
-// failed" result via longjmp, and the presentation path either retries on the
-// Vulkan backend or reverts to the regular renderer for the session. The
-// guarded span contains no C++ objects with destructors, so skipping
-// unwinding is safe; x64 exception dispatch is table-based, so abandoning the
-// faulting frames leaves no stale registration behind.
-thread_local bool tCompileGuardArmed = false;
-thread_local DWORD tCompileGuardThread = 0;
-static jmp_buf tCompileJmpBuf;
-
-// Writes fatal native exceptions (access violations and friends) to the
-// diagnostic file before the process dies. Purely diagnostic: the exception
-// is always re-raised (EXCEPTION_CONTINUE_SEARCH) so debuggers and WER keep
-// working. Guarded exceptions raised internally by drivers or the compiler
-// runtime also pass through here; they are counted so a later truly fatal
-// crash can still be distinguished.
-//
-// The handler also records the faulting instruction pointer and a raw stack
-// backtrace as offsets from the executable's image base. The executable is
-// built with `-g2` (file/line debug info), so these offsets can be resolved
-// offline with `addr2line -e devilutionx.exe <offset>` against the exact
-// binary that produced the log.
-extern "C" USHORT NTAPI RtlCaptureStackBackTrace(
-    ULONG FramesToSkip, ULONG FramesToCapture, void **BackTrace, ULONG *BackTraceHash);
-
-std::string HexU64(uint64_t value)
-{
-	char buf[32];
-	std::snprintf(buf, sizeof(buf), "%llX", static_cast<unsigned long long>(value));
-	return buf;
-}
-
-std::string HexU32(uint32_t value)
-{
-	return HexU64(value);
-}
-
-std::string CrashThreadName()
-{
-	using GetThreadDescriptionFn = HRESULT(WINAPI *)(HANDLE, PWSTR *);
-	static GetThreadDescriptionFn fn = reinterpret_cast<GetThreadDescriptionFn>(
-	    reinterpret_cast<void *>(GetProcAddress(GetModuleHandleW(L"kernel32.dll"), "GetThreadDescription")));
-	if (fn != nullptr) {
-		PWSTR name = nullptr;
-		if (fn(GetCurrentThread(), &name) == S_OK && name != nullptr) {
-			std::string result;
-			for (const wchar_t *p = name; *p != L'\0' && result.size() < 32; ++p)
-				result.push_back(static_cast<char>(*p >= L' ' && *p < L'\x7F' ? *p : L'?'));
-			LocalFree(name);
-			return result;
-		}
-	}
-	return "";
-}
-
-long NTAPI ScalerCrashHandler(EXCEPTION_POINTERS *info)
-{
-	static int logged = 0;
-	if (tCompileGuardArmed && info != nullptr && info->ExceptionRecord != nullptr
-	    && info->ExceptionRecord->ExceptionCode == EXCEPTION_ACCESS_VIOLATION
-	    && GetCurrentThreadId() == tCompileGuardThread) {
-		tCompileGuardArmed = false;
-		LogFileLine("ERROR: fault inside D3DCompile; recovered by the compile guard");
-		longjmp(tCompileJmpBuf, 1);
-	}
-	if (info != nullptr && info->ExceptionRecord != nullptr && logged < 8) {
-		const DWORD code = info->ExceptionRecord->ExceptionCode;
-		const char *what = nullptr;
-		switch (code) {
-		case 0xC0000005: what = "access violation"; break;
-		case 0xC000001D: what = "illegal instruction"; break;
-		case 0xC0000094: what = "integer divide by zero"; break;
-		case 0xC00000FD: what = "stack overflow"; break;
-		case 0xC0000374: what = "heap corruption"; break;
-		case 0xC0000409: what = "stack buffer overrun"; break;
-		default: break;
-		}
-		if (what != nullptr) {
-			logged += 1;
-			const std::string threadName = CrashThreadName();
-			std::string crashLine = StrCat(
-			    "CRASH #", logged, ": ", what,
-			    " (code=0x", HexU32(static_cast<uint32_t>(code)), ", ");
-			if (code == 0xC0000005 && info->ExceptionRecord->NumberParameters >= 2) {
-				crashLine += StrCat(
-				    info->ExceptionRecord->ExceptionInformation[0] == 1 ? "write to" : "read from",
-				    " address 0x", HexU64(static_cast<uint64_t>(info->ExceptionRecord->ExceptionInformation[1])), ", ");
-			}
-			crashLine += StrCat("thread ", GetCurrentThreadId());
-			if (!threadName.empty())
-				crashLine += StrCat(" \"", threadName, "\"");
-			crashLine += ')';
-			LogFileLine(crashLine);
-
-			// Module-relative offsets for the faulting IP and the raw
-			// call stack. The build is fully static, so nearly all
-			// frames live in the exe itself.
-			const HMODULE exeModule = GetModuleHandleW(nullptr);
-			const uintptr_t exeBase = reinterpret_cast<uintptr_t>(exeModule);
-			uintptr_t exeEnd = exeBase;
-			if (exeModule != nullptr) {
-				const auto *dosHeader = reinterpret_cast<const IMAGE_DOS_HEADER *>(exeModule);
-				if (dosHeader->e_magic == IMAGE_DOS_SIGNATURE) {
-					const auto *ntHeaders = reinterpret_cast<const IMAGE_NT_HEADERS *>(exeBase + dosHeader->e_lfanew);
-					exeEnd = exeBase + ntHeaders->OptionalHeader.SizeOfImage;
-				}
-			}
-			auto describeAddress = [exeBase, exeEnd](uintptr_t address) {
-				if (address >= exeBase && address < exeEnd)
-					return StrCat("devilutionx.exe+0x", HexU64(static_cast<uint64_t>(address - exeBase)));
-				return StrCat("0x", HexU64(static_cast<uint64_t>(address)));
-			};
-			if (info->ContextRecord != nullptr) {
-				LogFileLine(StrCat("  faulting ip: ", describeAddress(reinterpret_cast<uintptr_t>(info->ContextRecord->Rip))));
-			}
-			void *frames[24] = {};
-			const USHORT numFrames = RtlCaptureStackBackTrace(0, 24, frames, nullptr);
-			std::string stack = "  stack:";
-			for (USHORT i = 0; i < numFrames; ++i) {
-				stack += ' ';
-				stack += describeAddress(reinterpret_cast<uintptr_t>(frames[i]));
-			}
-			LogFileLine(stack);
-		}
-	}
-	return EXCEPTION_CONTINUE_SEARCH;
-}
-
-void InstallCrashHandler()
-{
-	static bool installed = false;
-	if (!installed) {
-		installed = true;
-		AddVectoredExceptionHandler(/*First=*/1, &ScalerCrashHandler);
-	}
-}
-#endif // _WIN32
-
-#ifdef _WIN32
-
-// Minimal COM-ish interface matching the ID3DBlob vtable layout.
-struct FakeD3DBlob {
-	virtual long STDMETHODCALLTYPE QueryInterface(void *, void **) = 0;
-	virtual unsigned long STDMETHODCALLTYPE AddRef() = 0;
-	virtual unsigned long STDMETHODCALLTYPE Release() = 0;
-	virtual void *STDMETHODCALLTYPE GetBufferPointer() = 0;
-	virtual size_t STDMETHODCALLTYPE GetBufferSize() = 0;
-};
-
-using D3DCompileFn = long(STDMETHODCALLTYPE *)(
-    const void *, size_t, const char *, const void *, void *, const char *,
-    const char *, unsigned, unsigned, FakeD3DBlob **, FakeD3DBlob **);
-
-// Lossy ASCII rendering of a Windows path, for the diagnostic log only.
-std::string NarrowPath(const wchar_t *wide)
-{
-	std::string narrow;
-	for (const wchar_t *c = wide; *c != L'\0'; ++c)
-		narrow.push_back(*c >= 32 && *c < 127 ? static_cast<char>(*c) : '?');
-	return narrow;
-}
-
-D3DCompileFn LoadD3DCompile()
-{
-	static D3DCompileFn fn = nullptr;
-	if (fn != nullptr)
-		return fn;
-	// Load by explicit path from the system directory. The default search
-	// order would pick up a same-named d3dcompiler DLL sitting in the game
-	// folder first, and stale copies shipped by old games are the leading
-	// suspect for wild jumps inside D3DCompile.
-	wchar_t sysDir[MAX_PATH];
-	const UINT sysLen = GetSystemDirectoryW(sysDir, MAX_PATH);
-	if (sysLen == 0 || sysLen >= MAX_PATH - 32) {
-		LogError("GPU scaler: could not resolve the system directory");
-		return nullptr;
-	}
-	HMODULE mod = nullptr;
-	for (const wchar_t *name : { L"\\d3dcompiler_47.dll", L"\\d3dcompiler_43.dll" }) {
-		std::wstring path(sysDir);
-		path += name;
-		mod = LoadLibraryW(path.c_str());
-		if (mod != nullptr)
-			break;
-	}
-	if (mod == nullptr)
-		return nullptr;
-	// Log exactly which d3dcompiler DLL ended up in the process: Windows
-	// matches LoadLibrary by base file name, so if any component loaded a
-	// same-named DLL from the game folder earlier, the full system path above
-	// still resolves to that (possibly broken) module.
-	wchar_t modPath[MAX_PATH] = {};
-	GetModuleFileNameW(mod, modPath, MAX_PATH);
-	const std::string loaded = NarrowPath(modPath);
-	const std::string systemDir = NarrowPath(sysDir);
-	if (loaded.rfind(systemDir, 0) == 0) {
-		LogFileLine(StrCat("d3dcompiler: ", loaded));
-	} else {
-		LogFileLine(StrCat("WARNING: d3dcompiler loaded from outside the system directory: ", loaded,
-		    " (a same-named DLL next to the game was loaded earlier by name; delete the local copy)"));
-	}
-	fn = reinterpret_cast<D3DCompileFn>(reinterpret_cast<void *>(GetProcAddress(mod, "D3DCompile")));
-	if (fn == nullptr)
-		LogError("GPU scaler: found d3dcompiler dll but no D3DCompile export");
-	return fn;
-}
-
-// Bare invocation wrapper for D3DCompile: must not contain C++ objects with
-// destructors, because a fault mid-call resumes here via longjmp from the
-// vectored exception handler.
-long InvokeD3DCompile(D3DCompileFn d3dCompile, const char *source, const char *target,
-    FakeD3DBlob **code, FakeD3DBlob **errors)
-{
-	volatile long hr = static_cast<long>(0x8000FFFFu); // E_UNEXPECTED
-	if (setjmp(tCompileJmpBuf) != 0) {
-		// Faulted inside d3dcompiler; the handler has disarmed the guard.
-		return hr;
-	}
-	tCompileGuardArmed = true;
-	tCompileGuardThread = GetCurrentThreadId();
-	hr = d3dCompile(source, std::strlen(source), nullptr, nullptr, nullptr,
-	    "main", target, 0, 0, code, errors);
-	tCompileGuardArmed = false;
-	return hr;
-}
-
-// The same containment for the returned blob objects as for the D3DCompile
-// call itself: a broken d3dcompiler can hand back a blob whose vtable is
-// garbage, and the wild jumps observed in the wild happened on these virtual
-// calls right after D3DCompile returned, not inside it.
-const void *GuardedBlobPointer(FakeD3DBlob *blob)
-{
-	const volatile void *result = nullptr;
-	if (setjmp(tCompileJmpBuf) != 0)
-		return nullptr;
-	tCompileGuardArmed = true;
-	tCompileGuardThread = GetCurrentThreadId();
-	result = blob->GetBufferPointer();
-	tCompileGuardArmed = false;
-	return const_cast<const void *>(result);
-}
-
-size_t GuardedBlobSize(FakeD3DBlob *blob)
-{
-	volatile size_t result = 0;
-	if (setjmp(tCompileJmpBuf) != 0)
-		return 0;
-	tCompileGuardArmed = true;
-	tCompileGuardThread = GetCurrentThreadId();
-	result = blob->GetBufferSize();
-	tCompileGuardArmed = false;
-	return result;
-}
-
-void GuardedBlobRelease(FakeD3DBlob *blob)
-{
-	if (blob == nullptr)
-		return;
-	if (setjmp(tCompileJmpBuf) != 0)
-		return;
-	tCompileGuardArmed = true;
-	tCompileGuardThread = GetCurrentThreadId();
-	blob->Release();
-	tCompileGuardArmed = false;
-}
-
-std::vector<uint8_t> CompileHLSL(const char *source, const char *target)
-{
-	std::vector<uint8_t> blob;
-	D3DCompileFn d3dCompile = LoadD3DCompile();
-	if (d3dCompile == nullptr) {
-		LogError("GPU scaler: d3dcompiler not found, cannot compile shaders for D3D12");
-		return blob;
-	}
-	FakeD3DBlob *code = nullptr;
-	FakeD3DBlob *errors = nullptr;
-	const long hr = InvokeD3DCompile(d3dCompile, source, target, &code, &errors);
-	if (hr == static_cast<long>(0x8000FFFFu)) {
-		// The compile guard caught a fault inside d3dcompiler.
-		LogError("GPU scaler: D3DCompile faulted and was contained; treating '{}' as a compile failure", target);
-		LogFileLine(StrCat("ERROR: D3DCompile faulted (", target, "); contained by the compile guard"));
-		return blob;
-	}
-	if (hr < 0 || code == nullptr) {
-		std::string msg;
-		if (errors != nullptr) {
-			const char *errorBytes = static_cast<const char *>(GuardedBlobPointer(errors));
-			const size_t errorSize = GuardedBlobSize(errors);
-			GuardedBlobRelease(errors);
-			if (errorBytes != nullptr && errorSize > 0)
-				msg.assign(errorBytes, std::min<size_t>(errorSize, 400));
-		}
-		for (char &c : msg) {
-			if (c == '\n' || c == '\r')
-				c = ' ';
-		}
-		LogError("GPU scaler: HLSL compilation failed ({}): {}", target, msg);
-		// Also record it in the diagnostic file: SDL_Log is invisible
-		// for GUI applications on Windows.
-		LogFileLine(StrCat("ERROR: HLSL compilation failed (", target, "): ", msg));
-		return blob;
-	}
-	const auto *bytes = static_cast<const uint8_t *>(GuardedBlobPointer(code));
-	const size_t size = GuardedBlobSize(code);
-	GuardedBlobRelease(code);
-	if (bytes == nullptr || size == 0) {
-		LogFileLine(StrCat("ERROR: d3dcompiler returned an unusable shader blob for '", target, "'"));
-		return blob;
-	}
-	blob.assign(bytes, bytes + size);
-	return blob;
-}
-
-#endif // _WIN32
-
 struct ShaderCode {
 	const uint8_t *data = nullptr;
 	size_t size = 0;
@@ -517,13 +275,6 @@ ShaderCode SpvFor(Program program)
 {
 	switch (program) {
 	case Program::Vertex: return { gpu::spv::kVertex, sizeof(gpu::spv::kVertex) };
-	case Program::HqxIndex: return { gpu::spv::kHqxIndex, sizeof(gpu::spv::kHqxIndex) };
-	case Program::HqxBlend: return { gpu::spv::kHqxBlend, sizeof(gpu::spv::kHqxBlend) };
-	case Program::SfxPass0: return { gpu::spv::kSfxPass0, sizeof(gpu::spv::kSfxPass0) };
-	case Program::SfxPass1: return { gpu::spv::kSfxPass1, sizeof(gpu::spv::kSfxPass1) };
-	case Program::SfxPass2: return { gpu::spv::kSfxPass2, sizeof(gpu::spv::kSfxPass2) };
-	case Program::SfxPass3: return { gpu::spv::kSfxPass3, sizeof(gpu::spv::kSfxPass3) };
-	case Program::SfxPass4: return { gpu::spv::kSfxPass4, sizeof(gpu::spv::kSfxPass4) };
 	case Program::Blit: return { gpu::spv::kBlit, sizeof(gpu::spv::kBlit) };
 	}
 	return { nullptr, 0 };
@@ -538,13 +289,6 @@ ShaderCode SpvFor(Program program)
 #else
 	switch (program) {
 	case Program::Vertex: return gpu::hlsl::kVertex;
-	case Program::HqxIndex: return gpu::hlsl::kHqxIndex;
-	case Program::HqxBlend: return gpu::hlsl::kHqxBlend;
-	case Program::SfxPass0: return gpu::hlsl::kSfxPass0;
-	case Program::SfxPass1: return gpu::hlsl::kSfxPass1;
-	case Program::SfxPass2: return gpu::hlsl::kSfxPass2;
-	case Program::SfxPass3: return gpu::hlsl::kSfxPass3;
-	case Program::SfxPass4: return gpu::hlsl::kSfxPass4;
 	case Program::Blit: return gpu::hlsl::kBlit;
 	}
 	return nullptr;
@@ -555,13 +299,6 @@ const char *MslFor(Program program)
 {
 	switch (program) {
 	case Program::Vertex: return gpu::msl::kVertex;
-	case Program::HqxIndex: return gpu::msl::kHqxIndex;
-	case Program::HqxBlend: return gpu::msl::kHqxBlend;
-	case Program::SfxPass0: return gpu::msl::kSfxPass0;
-	case Program::SfxPass1: return gpu::msl::kSfxPass1;
-	case Program::SfxPass2: return gpu::msl::kSfxPass2;
-	case Program::SfxPass3: return gpu::msl::kSfxPass3;
-	case Program::SfxPass4: return gpu::msl::kSfxPass4;
 	case Program::Blit: return gpu::msl::kBlit;
 	}
 	return nullptr;
@@ -571,13 +308,6 @@ int SamplersFor(Program program)
 {
 	switch (program) {
 	case Program::Vertex: return 0;
-	case Program::HqxIndex: return 1;
-	case Program::HqxBlend: return 3;
-	case Program::SfxPass0: return 1;
-	case Program::SfxPass1: return 1;
-	case Program::SfxPass2: return 2;
-	case Program::SfxPass3: return 1;
-	case Program::SfxPass4: return 2;
 	case Program::Blit: return 1;
 	}
 	return 0;
@@ -587,13 +317,6 @@ const char *NameFor(Program program)
 {
 	switch (program) {
 	case Program::Vertex: return "vertex";
-	case Program::HqxIndex: return "hqx-index";
-	case Program::HqxBlend: return "hqx-blend";
-	case Program::SfxPass0: return "sfx-pass0";
-	case Program::SfxPass1: return "sfx-pass1";
-	case Program::SfxPass2: return "sfx-pass2";
-	case Program::SfxPass3: return "sfx-pass3";
-	case Program::SfxPass4: return "sfx-pass4";
 	case Program::Blit: return "blit";
 	}
 	return "unknown";
@@ -603,13 +326,6 @@ const char *MslEntryFor(Program program)
 {
 	switch (program) {
 	case Program::Vertex: return "fullscreenVS";
-	case Program::HqxIndex: return "hqxIndexPS";
-	case Program::HqxBlend: return "hqxBlendPS";
-	case Program::SfxPass0: return "sfxPass0PS";
-	case Program::SfxPass1: return "sfxPass1PS";
-	case Program::SfxPass2: return "sfxPass2PS";
-	case Program::SfxPass3: return "sfxPass3PS";
-	case Program::SfxPass4: return "sfxPass4PS";
 	case Program::Blit: return "blitPS";
 	}
 	return "main";
@@ -646,9 +362,9 @@ bool CreateShader(Program program, SDL_GPUShaderStage stage, SDL_GPUShader **out
 		// least exotic input for GPU drivers. 5.1 only as a fallback.
 		const char *target = stage == SDL_GPU_SHADERSTAGE_VERTEX ? "vs_5_0" : "ps_5_0";
 		LogFileLine(StrCat("compiling shader '", NameFor(program), "' (", target, ") via d3dcompiler"));
-		dxbcBlob = CompileHLSL(source, target);
+		dxbcBlob = gpu_d3dcompile::Compile(source, target);
 		if (dxbcBlob.empty()) {
-			dxbcBlob = CompileHLSL(source, stage == SDL_GPU_SHADERSTAGE_VERTEX ? "vs_5_1" : "ps_5_1");
+			dxbcBlob = gpu_d3dcompile::Compile(source, stage == SDL_GPU_SHADERSTAGE_VERTEX ? "vs_5_1" : "ps_5_1");
 			if (dxbcBlob.empty()) {
 				LogFileLine(StrCat("ERROR: all shader targets failed for '", NameFor(program), "'"));
 				return false;
@@ -690,60 +406,6 @@ SDL_GPUTexture *CreateTexture(SDL_GPUTextureFormat format, Uint32 width, Uint32 
 	SDL_GPUTexture *texture = SDL_CreateGPUTexture(gDevice, &info);
 	if (texture == nullptr)
 		LogFail("texture creation failed");
-	return texture;
-}
-
-SDL_GPUTexture *CreateHqxLut(const gpu::luts::LutData &lut, const char *label)
-{
-	std::vector<uint8_t> rgba8(static_cast<size_t>(lut.width) * lut.height * 4);
-	for (int i = 0; i < lut.width * lut.height; ++i) {
-		const uint8_t idx = lut.indices[i];
-		rgba8[4 * i + 0] = lut.palette[idx][0];
-		rgba8[4 * i + 1] = lut.palette[idx][1];
-		rgba8[4 * i + 2] = lut.palette[idx][2];
-		rgba8[4 * i + 3] = lut.palette[idx][3];
-	}
-	SDL_GPUTexture *texture = CreateTexture(SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM, lut.width, lut.height,
-	    SDL_GPU_TEXTUREUSAGE_SAMPLER);
-	if (texture == nullptr)
-		return nullptr;
-
-	SDL_GPUCommandBuffer *cmd = SDL_AcquireGPUCommandBuffer(gDevice);
-	if (cmd == nullptr) {
-		LogFail("command buffer acquisition failed");
-		SDL_ReleaseGPUTexture(gDevice, texture);
-		return nullptr;
-	}
-	SDL_GPUTransferBufferCreateInfo transferInfo {};
-	transferInfo.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
-	transferInfo.size = static_cast<Uint32>(rgba8.size());
-	SDL_GPUTransferBuffer *transfer = SDL_CreateGPUTransferBuffer(gDevice, &transferInfo);
-	if (transfer == nullptr) {
-		LogFail("transfer buffer creation failed");
-		SDL_ReleaseGPUTexture(gDevice, texture);
-		return nullptr;
-	}
-	auto *data = static_cast<uint8_t *>(SDL_MapGPUTransferBuffer(gDevice, transfer, false));
-	std::memcpy(data, rgba8.data(), rgba8.size());
-	SDL_UnmapGPUTransferBuffer(gDevice, transfer);
-
-	SDL_GPUCopyPass *copyPass = SDL_BeginGPUCopyPass(cmd);
-	SDL_GPUTextureTransferInfo src {};
-	src.transfer_buffer = transfer;
-	src.offset = 0;
-	// texels are tightly packed in the transfer buffer
-	src.pixels_per_row = lut.width;
-	src.rows_per_layer = lut.height;
-	SDL_GPUTextureRegion dst {};
-	dst.texture = texture;
-	dst.w = lut.width;
-	dst.h = lut.height;
-	dst.d = 1;
-	SDL_UploadToGPUTexture(copyPass, &src, &dst, false);
-	SDL_EndGPUCopyPass(copyPass);
-	SDL_SubmitGPUCommandBuffer(cmd);
-	SDL_ReleaseGPUTransferBuffer(gDevice, transfer);
-	LogOk(StrCat("hqx LUT '", label, "' queued for upload"));
 	return texture;
 }
 
@@ -859,29 +521,9 @@ void ReleaseFilterResources()
 			shader = nullptr;
 		}
 	}
-	if (gHqxIndexPipeline != nullptr) {
-		SDL_ReleaseGPUGraphicsPipeline(gDevice, gHqxIndexPipeline);
-		gHqxIndexPipeline = nullptr;
-	}
-	if (gHqxBlendPipeline != nullptr) {
-		SDL_ReleaseGPUGraphicsPipeline(gDevice, gHqxBlendPipeline);
-		gHqxBlendPipeline = nullptr;
-	}
-	for (auto *&pipeline : gSfxPipelines) {
-		if (pipeline != nullptr) {
-			SDL_ReleaseGPUGraphicsPipeline(gDevice, pipeline);
-			pipeline = nullptr;
-		}
-	}
 	if (gBlitPipeline != nullptr) {
 		SDL_ReleaseGPUGraphicsPipeline(gDevice, gBlitPipeline);
 		gBlitPipeline = nullptr;
-	}
-	for (auto *&lut : gHqxLuts) {
-		if (lut != nullptr) {
-			SDL_ReleaseGPUTexture(gDevice, lut);
-			lut = nullptr;
-		}
 	}
 }
 
@@ -892,13 +534,64 @@ bool EnsureShaders()
 	if (!CreateShader(Program::Vertex, SDL_GPU_SHADERSTAGE_VERTEX, &gVertexShader))
 		return false;
 	static constexpr Program kFragmentPrograms[] = {
-		Program::HqxIndex, Program::HqxBlend, Program::SfxPass0, Program::SfxPass1,
-		Program::SfxPass2, Program::SfxPass3, Program::SfxPass4, Program::Blit
+		Program::Blit
 	};
 	for (const Program program : kFragmentPrograms) {
 		if (!CreateShader(program, SDL_GPU_SHADERSTAGE_FRAGMENT, &gFragmentShaders[static_cast<int>(program)]))
 			return false;
 	}
+	return true;
+}
+
+// Parses, translates, compiles and uploads the runtime preset selected in the
+// options. The preset chain is fully independent of the baked-in filter
+// pipelines; a failure here is a soft failure (the session falls back per the
+// regular contract).
+bool EnsurePresetRunner()
+{
+	// The selected preset file: the path stored alongside the filter value
+	// is the single source of truth. The filter value itself is only an
+	// index into the browser's CURRENT folder listing, so it must never be
+	// resolved against a full-tree scan -- that loaded unrelated presets
+	// from other folders.
+	std::string path;
+	const std::string &storedPath = GetOptions().Graphics.shaderFilterPreset.value;
+	if (!storedPath.empty())
+		path = preset::ResolvePresetPath(storedPath);
+	if (path.empty()) {
+		if (storedPath.empty())
+			LogFileLine("preset load failed: no preset path is stored for the selected custom filter");
+		else
+			LogFileLine(StrCat("preset load failed: preset file not found in the shaders folder: ", storedPath));
+		return false;
+	}
+	if (gPresetRunner.IsLoaded()) {
+		if (gLoadedPresetPath == path)
+			return true;
+		// The selection moved to a different preset: rebuild the chain from
+		// scratch instead of presenting the previously loaded one.
+		LogFileLine(StrCat("preset changed: ", gLoadedPresetPath, " -> ", path));
+		gPresetRunner.Unload();
+		gLoadedPresetPath.clear();
+	}
+
+	preset::Preset preset;
+	std::string error;
+	if (!preset::ParsePreset(path, preset, error)) {
+		LogFileLine(StrCat("preset parse failed: ", error));
+		return false;
+	}
+	gPresetDisplayName = preset.displayName;
+
+	const char *driver = SDL_GetGPUDeviceDriver(gDevice);
+	if (!gPresetRunner.Load(gDevice, driver != nullptr ? driver : "", preset, error)) {
+		LogFileLine(StrCat("preset load failed (", preset.displayName, "): ", error));
+		gPresetRunner.Unload();
+		gLoadedPresetPath.clear();
+		return false;
+	}
+	gLoadedPresetPath = path;
+	LogOk(StrCat("preset '", preset.displayName, "' loaded (", preset.passes.size(), " passes)"));
 	return true;
 }
 
@@ -908,43 +601,11 @@ bool EnsureFilterResources(ShaderFilter filter)
 		return false;
 	LogOk("samplers and shaders ready");
 
-	const bool isHqx = filter == ShaderFilter::HQ2x || filter == ShaderFilter::HQ3x || filter == ShaderFilter::HQ4x;
-	const bool isSfx = IsScaleFX(filter);
+	if (IsCustomFilter(filter)) {
+		if (!EnsurePresetRunner())
+			return false;
+	}
 
-	if (isHqx && gHqxIndexPipeline == nullptr) {
-		gHqxIndexPipeline = CreatePipeline(Program::HqxIndex, SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM);
-		if (gHqxIndexPipeline == nullptr)
-			return false;
-	}
-	if (isHqx && gHqxBlendPipeline == nullptr) {
-		gHqxBlendPipeline = CreatePipeline(Program::HqxBlend, SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM);
-		if (gHqxBlendPipeline == nullptr)
-			return false;
-		for (int i = 0; i < 3; ++i) {
-			const gpu::luts::LutData *lutData = i == 0 ? &gpu::luts::HQ2x : i == 1 ? &gpu::luts::HQ3x
-			                                                                       : &gpu::luts::HQ4x;
-			gHqxLuts[i] = CreateHqxLut(*lutData, i == 0 ? "hq2x" : i == 1 ? "hq3x"
-			                                                              : "hq4x");
-			if (gHqxLuts[i] == nullptr)
-				return false;
-		}
-		LogOk("hqx pipelines and LUTs ready");
-	}
-	if (isSfx && gSfxPipelines[0] == nullptr) {
-		static constexpr std::pair<Program, SDL_GPUTextureFormat> kSfxPipelinesSpec[5] = {
-			{ Program::SfxPass0, SDL_GPU_TEXTUREFORMAT_R16G16B16A16_FLOAT },
-			{ Program::SfxPass1, SDL_GPU_TEXTUREFORMAT_R16G16B16A16_FLOAT },
-			{ Program::SfxPass2, SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM },
-			{ Program::SfxPass3, SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM },
-			{ Program::SfxPass4, SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM },
-		};
-		for (int i = 0; i < 5; ++i) {
-			gSfxPipelines[i] = CreatePipeline(kSfxPipelinesSpec[i].first, kSfxPipelinesSpec[i].second);
-			if (gSfxPipelines[i] == nullptr)
-				return false;
-		}
-		LogOk("scalefx pipelines ready");
-	}
 	if (gBlitPipeline == nullptr) {
 		const SDL_GPUTextureFormat swapchainFormat = SDL_GetGPUSwapchainTextureFormat(gDevice, gWindow);
 		if (swapchainFormat == SDL_GPU_TEXTUREFORMAT_INVALID) {
@@ -962,7 +623,7 @@ bool EnsureFilterResources(ShaderFilter filter)
 
 void ReleaseFrameResources()
 {
-	for (SDL_GPUTexture **texture : { &gGameTex, &gIndexTex, &gMetricTex, &gStrengthTex, &gFlagsTex, &gSubpixTex, &gScaledTex }) {
+	for (SDL_GPUTexture **texture : { &gGameTex }) {
 		if (*texture != nullptr) {
 			SDL_ReleaseGPUTexture(gDevice, *texture);
 			*texture = nullptr;
@@ -970,40 +631,20 @@ void ReleaseFrameResources()
 	}
 	gGameWidth = 0;
 	gGameHeight = 0;
-	gPassScale = 0;
 }
 
-bool EnsureFrameResources(int gameWidth, int gameHeight, int passScale)
+bool EnsureFrameResources(int gameWidth, int gameHeight)
 {
-	if (gGameTex != nullptr && gGameWidth == gameWidth && gGameHeight == gameHeight
-	    && (gScaledTex == nullptr || gPassScale == passScale)) {
+	if (gGameTex != nullptr && gGameWidth == gameWidth && gGameHeight == gameHeight)
 		return true;
-	}
 	ReleaseFrameResources();
 	gGameWidth = gameWidth;
 	gGameHeight = gameHeight;
-	gPassScale = passScale;
 
 	const SDL_GPUTextureFormat gameFormat = GameTextureFormat();
 	gGameTex = CreateTexture(gameFormat, gameWidth, gameHeight,
 	    SDL_GPU_TEXTUREUSAGE_SAMPLER | SDL_GPU_TEXTUREUSAGE_COLOR_TARGET);
-	gIndexTex = CreateTexture(SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM, gameWidth, gameHeight,
-	    SDL_GPU_TEXTUREUSAGE_SAMPLER | SDL_GPU_TEXTUREUSAGE_COLOR_TARGET);
-	gMetricTex = CreateTexture(SDL_GPU_TEXTUREFORMAT_R16G16B16A16_FLOAT, gameWidth, gameHeight,
-	    SDL_GPU_TEXTUREUSAGE_SAMPLER | SDL_GPU_TEXTUREUSAGE_COLOR_TARGET);
-	gStrengthTex = CreateTexture(SDL_GPU_TEXTUREFORMAT_R16G16B16A16_FLOAT, gameWidth, gameHeight,
-	    SDL_GPU_TEXTUREUSAGE_SAMPLER | SDL_GPU_TEXTUREUSAGE_COLOR_TARGET);
-	gFlagsTex = CreateTexture(SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM, gameWidth, gameHeight,
-	    SDL_GPU_TEXTUREUSAGE_SAMPLER | SDL_GPU_TEXTUREUSAGE_COLOR_TARGET);
-	gSubpixTex = CreateTexture(SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM, gameWidth, gameHeight,
-	    SDL_GPU_TEXTUREUSAGE_SAMPLER | SDL_GPU_TEXTUREUSAGE_COLOR_TARGET);
-	const int scaledWidth = gameWidth * passScale;
-	const int scaledHeight = gameHeight * passScale;
-	gScaledTex = CreateTexture(SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM, scaledWidth, scaledHeight,
-	    SDL_GPU_TEXTUREUSAGE_SAMPLER | SDL_GPU_TEXTUREUSAGE_COLOR_TARGET);
-
-	if (gGameTex == nullptr || gIndexTex == nullptr || gMetricTex == nullptr || gStrengthTex == nullptr
-	    || gFlagsTex == nullptr || gSubpixTex == nullptr || gScaledTex == nullptr) {
+	if (gGameTex == nullptr) {
 		LogFailHard("frame resource creation failed");
 		ReleaseFrameResources();
 		return false;
@@ -1039,36 +680,10 @@ bool RenderPass(SDL_GPUCommandBuffer *cmd, SDL_GPUTexture *target, Uint32 target
 
 } // namespace
 
-#ifdef _WIN32
-
-// Runs at process start, before SDL creates any renderer or GPU device. Loads
-// the system d3dcompiler by full path and keeps it loaded for the whole
-// process, so that every later bare-name LoadLibrary("d3dcompiler_47.dll") --
-// ours or SDL's -- resolves to the genuine system copy instead of a stale DLL
-// shipped next to the game: the default search order prefers the application
-// directory, and Windows reuses an already-loaded module matched by base file
-// name even if a different full path is requested later.
 void PreloadD3DCompiler()
 {
-	wchar_t sysDir[MAX_PATH];
-	const UINT sysLen = GetSystemDirectoryW(sysDir, MAX_PATH);
-	if (sysLen == 0 || sysLen >= MAX_PATH - 32)
-		return;
-	for (const wchar_t *name : { L"\\d3dcompiler_47.dll", L"\\d3dcompiler_43.dll" }) {
-		std::wstring path(sysDir);
-		path += name;
-		if (LoadLibraryW(path.c_str()) != nullptr)
-			return; // Keep it loaded for the whole process.
-	}
+	gpu_d3dcompile::PreloadSystemCompiler();
 }
-
-#else // _WIN32
-
-void PreloadD3DCompiler()
-{
-}
-
-#endif // _WIN32
 
 void LogPhase(std::string_view line)
 {
@@ -1148,7 +763,7 @@ static bool CreateDevice(const char *name)
 bool Reinit(SDL_Window *window)
 {
 #ifdef _WIN32
-	InstallCrashHandler();
+	gpu_d3dcompile::InstallCrashGuard();
 #endif
 	if (gFailed) {
 		LogFileLine("Reinit skipped: the scaler failed earlier this session");
@@ -1160,7 +775,8 @@ bool Reinit(SDL_Window *window)
 		Shutdown();
 		return false;
 	}
-	LogFileLine(StrCat("Reinit: filter=", static_cast<int>(gFilter), " (0=Off, 1-3=HQ2x/3x/4x, 4-6=ScaleFX 2x/3x/4x)"));
+	LogFileLine(StrCat("Reinit: filter=", static_cast<int>(gFilter),
+	    " (0=Off, >=100=custom preset)"));
 
 	if (gDevice == nullptr) {
 		if (!CreateDevice(/*name=*/nullptr)) {
@@ -1213,6 +829,16 @@ bool Reinit(SDL_Window *window)
 	}
 
 	if (!EnsureFilterResources(gFilter)) {
+		if (IsCustomFilter(gFilter)) {
+			// A runtime preset that fails on every backend must not take the
+			// GPU scaler (and the game) down: turn the filter off for this
+			// session instead. Picking another preset in Settings retries the
+			// load from scratch.
+			LogFileLine("custom preset failed to load; Shader Filter is off for this session");
+			gFilter = ShaderFilter::None;
+			Shutdown();
+			return false;
+		}
 		// A shader compile or pipeline creation failure is often
 		// backend-specific (e.g. a broken d3dcompiler). Retry once on
 		// the Vulkan backend before giving up on the GPU path.
@@ -1253,6 +879,9 @@ void Shutdown()
 	}
 	ReleaseFrameResources();
 	ReleaseFilterResources();
+	gPresetRunner.Unload();
+	gLoadedPresetPath.clear();
+	gPresetDisplayName.clear();
 	if (gNearestSampler != nullptr) {
 		SDL_ReleaseGPUSampler(gDevice, gNearestSampler);
 		gNearestSampler = nullptr;
@@ -1309,7 +938,15 @@ void PresentFrame(const SDL_Surface &frame)
 	}
 
 	const ShaderFilter filter = gFilter;
-	const int baseScale = FilterScale(filter);
+	const bool isCustom = IsCustomFilter(filter);
+
+	// Frame duration for FrameTime, measured around the whole present.
+	static Uint32 sLastFrameTick = 0;
+	const Uint32 nowTick = SDL_GetTicks();
+	Uint64 frameDeltaUs = 0;
+	if (sLastFrameTick != 0)
+		frameDeltaUs = static_cast<Uint64>(nowTick - sLastFrameTick) * 1000U;
+	sLastFrameTick = nowTick;
 
 	SDL_GPUCommandBuffer *cmd = SDL_AcquireGPUCommandBuffer(gDevice);
 	if (cmd == nullptr) {
@@ -1355,30 +992,20 @@ void PresentFrame(const SDL_Surface &frame)
 	if (*GetOptions().Graphics.integerScaling)
 		fitScale = std::floor(fitScale);
 
-	int passScale;
 	float destScale;
-	if (fitScale >= baseScale) {
-		passScale = baseScale;
-		destScale = baseScale;
-	} else if (fitScale >= 1.0F) {
-		if (IsScaleFX(filter)) {
-			// ScaleFX supports arbitrary integer scales via a uniform.
-			passScale = std::max(1, static_cast<int>(fitScale));
-			destScale = passScale;
-		} else {
-			// hqx is tied to its native LUT scale; render at native scale
-			// and let the blit pass downscale.
-			passScale = baseScale;
-			destScale = std::floor(fitScale);
-		}
+	if (isCustom) {
+		// Preset chains size their own outputs via the libretro scale
+		// rules; the final fit is computed after the chain has run,
+		// from the actual output dimensions.
+		destScale = 1.0F;
 	} else {
-		// Window is smaller than the game resolution; render at the native
-		// scale and downscale in the blit pass.
-		passScale = baseScale;
-		destScale = fitScale;
+		// Builtin HQ2x/ScaleFX filters were removed; only runtime
+		// presets render here.
+		SDL_CancelGPUCommandBuffer(cmd);
+		return;
 	}
 
-	if (!EnsureFrameResources(gameWidth, gameHeight, passScale)) {
+	if (!EnsureFrameResources(gameWidth, gameHeight)) {
 		SDL_CancelGPUCommandBuffer(cmd);
 		return;
 	}
@@ -1438,73 +1065,37 @@ void PresentFrame(const SDL_Surface &frame)
 	uniforms.sourceSize[2] = 1.0F / gameWidth;
 	uniforms.sourceSize[3] = 1.0F / gameHeight;
 
-	if (filter == ShaderFilter::HQ2x || filter == ShaderFilter::HQ3x || filter == ShaderFilter::HQ4x) {
-		// Pass 1: edge indices.
-		SDL_GPUTextureSamplerBinding indexBindings[1] = { { gGameTex, gNearestSampler } };
-		bool passFailed = !RenderPass(cmd, gIndexTex, gameWidth, gameHeight, gHqxIndexPipeline, uniforms, indexBindings, 1, nullptr);
+	// Texture presented by the filter chain: runtime presets produce
+	// their own final texture.
+	SDL_GPUTexture *presentTex = nullptr;
+	Uint32 presentWidth = 0;
+	Uint32 presentHeight = 0;
 
-		// Pass 2: LUT blend into the scaled target.
-		if (!passFailed) {
-			const int lutIndex = baseScale == 2 ? 0 : baseScale == 3 ? 1
-			                                                         : 2;
-			SDL_GPUTextureSamplerBinding blendBindings[3] = {
-				{ gIndexTex, gNearestSampler },
-				{ gHqxLuts[lutIndex], gNearestSampler },
-				{ gGameTex, gNearestSampler },
-			};
-			uniforms.params[0] = static_cast<float>(baseScale);
-			passFailed = !RenderPass(cmd, gScaledTex, gameWidth * passScale, gameHeight * passScale, gHqxBlendPipeline, uniforms, blendBindings, 3, nullptr);
-		}
-		if (passFailed) {
+	if (isCustom) {
+		SDL_GPUTexture *outTex = nullptr;
+		Uint32 outWidth = 0;
+		Uint32 outHeight = 0;
+		if (!gPresetRunner.Run(cmd, gGameTex, gameWidth, gameHeight, swapchainWidth, swapchainHeight,
+		        frameDeltaUs, &outTex, &outWidth, &outHeight)) {
 			SDL_CancelGPUCommandBuffer(cmd);
 			return;
 		}
-	} else {
-		// ScaleFX pass 0: metrics.
-		SDL_GPUTextureSamplerBinding p0Bindings[1] = { { gGameTex, gNearestSampler } };
-		bool passFailed = !RenderPass(cmd, gMetricTex, gameWidth, gameHeight, gSfxPipelines[0], uniforms, p0Bindings, 1, nullptr);
-
-		// ScaleFX pass 1: corner strength.
-		if (!passFailed) {
-			SDL_GPUTextureSamplerBinding p1Bindings[1] = { { gMetricTex, gNearestSampler } };
-			uniforms.params[0] = kSfxClr;
-			uniforms.params[1] = kSfxSaa;
-			passFailed = !RenderPass(cmd, gStrengthTex, gameWidth, gameHeight, gSfxPipelines[1], uniforms, p1Bindings, 1, nullptr);
-		}
-		// ScaleFX pass 2: edge flags.
-		if (!passFailed) {
-			SDL_GPUTextureSamplerBinding p2Bindings[2] = {
-				{ gStrengthTex, gNearestSampler },
-				{ gMetricTex, gNearestSampler },
-			};
-			uniforms.params[0] = 0.0F;
-			uniforms.params[1] = 0.0F;
-			passFailed = !RenderPass(cmd, gFlagsTex, gameWidth, gameHeight, gSfxPipelines[2], uniforms, p2Bindings, 2, nullptr);
-		}
-		// ScaleFX pass 3: subpixel map.
-		if (!passFailed) {
-			SDL_GPUTextureSamplerBinding p3Bindings[1] = { { gFlagsTex, gNearestSampler } };
-			uniforms.params[0] = kSfxScn;
-			passFailed = !RenderPass(cmd, gSubpixTex, gameWidth, gameHeight, gSfxPipelines[3], uniforms, p3Bindings, 1, nullptr);
-		}
-		// ScaleFX pass 4: render at the effective scale.
-		if (!passFailed) {
-			SDL_GPUTextureSamplerBinding p4Bindings[2] = {
-				{ gSubpixTex, gNearestSampler },
-				{ gGameTex, gNearestSampler },
-			};
-			uniforms.params[0] = static_cast<float>(passScale);
-			passFailed = !RenderPass(cmd, gScaledTex, gameWidth * passScale, gameHeight * passScale, gSfxPipelines[4], uniforms, p4Bindings, 2, nullptr);
-		}
-		if (passFailed) {
-			SDL_CancelGPUCommandBuffer(cmd);
-			return;
-		}
+		// Fit the chain output into the window, honoring Integer Scaling.
+		float outFit = std::min(static_cast<float>(swapchainWidth) / static_cast<float>(outWidth),
+		    static_cast<float>(swapchainHeight) / static_cast<float>(outHeight));
+		if (*GetOptions().Graphics.integerScaling)
+			outFit = std::floor(outFit);
+		destScale = outFit;
+		presentTex = outTex;
+		presentWidth = outWidth;
+		presentHeight = outHeight;
 	}
 
 	// Blit the scaled image into the swapchain with letterboxing.
-	int destWidth = static_cast<int>(std::lround(gameWidth * destScale));
-	int destHeight = static_cast<int>(std::lround(gameHeight * destScale));
+	int destWidth;
+	int destHeight;
+	destWidth = static_cast<int>(std::lround(static_cast<float>(presentWidth) * destScale));
+	destHeight = static_cast<int>(std::lround(static_cast<float>(presentHeight) * destScale));
 	// Rounding can overshoot the swapchain by a pixel; clamp so the
 	// viewport never exceeds the render target.
 	if (destWidth > static_cast<int>(swapchainWidth))
@@ -1523,7 +1114,7 @@ void PresentFrame(const SDL_Surface &frame)
 	viewport.h = destHeight;
 	viewport.min_depth = 0.0F;
 	viewport.max_depth = 1.0F;
-	SDL_GPUTextureSamplerBinding blitBindings[1] = { { gScaledTex, gLinearSampler } };
+	SDL_GPUTextureSamplerBinding blitBindings[1] = { { presentTex, gLinearSampler } };
 	uniforms.params[0] = 0.0F;
 	if (!RenderPass(cmd, swapchainTexture, swapchainWidth, swapchainHeight, gBlitPipeline, uniforms, blitBindings, 1, &viewport)) {
 		SDL_CancelGPUCommandBuffer(cmd);
@@ -1541,21 +1132,11 @@ std::string gOsdText;
 const char *FilterDisplayName(ShaderFilter filter)
 {
 	switch (filter) {
-	case ShaderFilter::HQ2x:
-		return "HQ2x";
-	case ShaderFilter::HQ3x:
-		return "HQ3x";
-	case ShaderFilter::HQ4x:
-		return "HQ4x";
-	case ShaderFilter::ScaleFX2x:
-		return "ScaleFX 2x";
-	case ShaderFilter::ScaleFX3x:
-		return "ScaleFX 3x";
-	case ShaderFilter::ScaleFX4x:
-		return "ScaleFX 4x";
 	case ShaderFilter::None:
 		break;
 	}
+	if (IsCustomFilter(filter))
+		return gPresetDisplayName.empty() ? "Custom" : gPresetDisplayName.c_str();
 	return "Off";
 }
 

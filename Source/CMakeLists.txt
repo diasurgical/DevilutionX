@@ -1033,6 +1033,11 @@ endif()
 if(USE_GPU_SCALER)
   list(APPEND libdevilutionx_SRCS
     engine/render/gpu/gpu_scaler.cpp
+    engine/render/gpu/gpu_d3dcompile.cpp
+    engine/render/gpu/preset/preset_parser.cpp
+    engine/render/gpu/preset/slang_translate.cpp
+    engine/render/gpu/preset/slang_compile.cpp
+    engine/render/gpu/preset/preset_runner.cpp
   )
 endif()
 
@@ -1061,6 +1066,22 @@ if(USE_GPU_SCALER)
     target_compile_definitions(libdevilutionx PRIVATE GPU_SCALER_SPV_GENERATED)
     add_dependencies(libdevilutionx gpu_scaler_spv)
   endif()
+  # Offline validation harness for the runtime preset loader (headless:
+  # parse + translate + glslang compile, no GPU device).
+  add_executable(preset_smoke EXCLUDE_FROM_ALL engine/render/gpu/preset/preset_smoke.cpp)
+  target_compile_definitions(preset_smoke PRIVATE USE_GPU_SCALER)
+  target_link_dependencies(preset_smoke PRIVATE libdevilutionx)
+  # Runtime libretro slang presets: in-process glslang + SPIRV-Cross.
+  target_include_directories(libdevilutionx SYSTEM PRIVATE ${PROJECT_SOURCE_DIR}/3rdParty/PicoSHA2)
+  target_link_dependencies(libdevilutionx PUBLIC
+    glslang::glslang
+    glslang::SPIRV
+    glslang::glslang-default-resource-limits
+    spirv-cross-core
+    spirv-cross-glsl
+    spirv-cross-hlsl
+    SDL3_image::SDL3_image # LUT texture loading for runtime presets
+  )
 endif()
 target_link_dependencies(libdevilutionx PUBLIC
   DevilutionX::SDL

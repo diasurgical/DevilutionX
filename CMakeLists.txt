@@ -168,6 +168,38 @@ if(USE_GPU_SCALER)
   # only when glslangValidator exists silently compiles the whole feature out
   # of the binary (build stays green, the exe just loses the menu).
   list(APPEND DEVILUTIONX_PLATFORM_COMPILE_DEFINITIONS USE_GPU_SCALER)
+
+  # Runtime libretro slang preset support ("shaders folder"): glslang
+  # compiles .slang sources to SPIR-V in-process on first load (with a disk
+  # cache), SPIRV-Cross transpiles SPIR-V to HLSL for the D3D12 backend.
+  # The build-time glslangValidator block above only affects the BAKED-IN
+  # ScaleFX/HQx shaders and is independent of this.
+  option(DEVILUTIONX_SYSTEM_GLSLANG "Use system-provided glslang" ON)
+  if(DEVILUTIONX_SYSTEM_GLSLANG)
+    find_package(glslang QUIET CONFIG)
+    if(glslang_FOUND)
+      message(STATUS "GPU scaler runtime shaders: using system glslang")
+    else()
+      set(DEVILUTIONX_SYSTEM_GLSLANG OFF)
+    endif()
+  endif()
+  if(NOT DEVILUTIONX_SYSTEM_GLSLANG)
+    message(STATUS "GPU scaler runtime shaders: using glslang from source")
+    add_subdirectory(3rdParty/glslang glslang)
+  endif()
+  option(DEVILUTIONX_SYSTEM_SPIRV_CROSS "Use system-provided SPIRV-Cross" ON)
+  if(DEVILUTIONX_SYSTEM_SPIRV_CROSS)
+    find_package(spirv_cross_core QUIET CONFIG)
+    if(spirv_cross_core_FOUND)
+      message(STATUS "GPU scaler runtime shaders: using system SPIRV-Cross")
+    else()
+      set(DEVILUTIONX_SYSTEM_SPIRV_CROSS OFF)
+    endif()
+  endif()
+  if(NOT DEVILUTIONX_SYSTEM_SPIRV_CROSS)
+    message(STATUS "GPU scaler runtime shaders: using SPIRV-Cross from source")
+    add_subdirectory(3rdParty/SPIRV-Cross SPIRV-Cross)
+  endif()
 endif()
 
 if(USE_SDL1)
