@@ -1,0 +1,137 @@
+# Fork CI: builds ONLY this fork's GPU shader scaler binaries (Windows x64 + Linux x64).
+#
+# The Windows job reproduces the verified local cross-build (see GPU_SHADERS.md):
+#   - MinGW-w64 cross toolchain (CMake/platforms/mingwcc64.toolchain.cmake), all deps vendored
+#   - GCC14+ diag relaxation for vendored ZeroTier/miniupnpc C sources
+#   - FULLY STATIC linking (-static -static-libgcc -static-libstdc++) so the exe runs on a
+#     clean Windows install with NO MinGW runtime DLLs (libstdc++-6.dll, libgcc_s_seh-1.dll,
+#     libwinpthread-1.dll). Without these flags the exe does not launch ("DLL errors").
+#     The Package step FAILS the job if a MinGW runtime DLL ever sneaks back in.
+# Do NOT remove the CMAKE_C_FLAGS / CMAKE_EXE_LINKER_FLAGS lines below.
+name: GPU Shader Scalers (Windows + Linux)
+
+on:
+  push:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  linux:
+    name: Linux x86_64 (SDL3 + GPU shader scaler)
+    runs-on: ubuntu-24.04
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        # The lib*-dev stack is required by the VENDORED SDL3's X11/Wayland/audio
+        # backends. Without it, configure aborts with:
+        #   "Couldn't find dependency package for XCURSOR"
+        # (the runner image has libx11/libxext but not the rest; upstream devilutionx
+        # CI gets the same stack transitively via libsdl2-dev).
+        sudo apt-get install -y ninja-build glslang-tools gettext smpq zip patch \
+          libasound2-dev libpulse-dev \
+          libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxfixes-dev libxi-dev libxss-dev \
+          libxtst-dev \
+          libwayland-dev libxkbcommon-dev libegl1-mesa-dev libgl1-mesa-dev \
+          libudev-dev libdbus-1-dev \
+          libbz2-dev libpng-dev
+
+    - name: Configure
+      run: >
+        cmake -S. -Bbuild -G Ninja -DCMAKE_BUILD_TYPE=Release
+        -DUSE_SDL3=ON
+        -DUSE_GPU_SCALER=ON
+        -DDEVILUTIONX_SYSTEM_SDL3=OFF
+        -DDEVILUTIONX_SYSTEM_LIBSODIUM=OFF
+        -DBUILD_TESTING=OFF
+
+    - name: Build
+      run: cmake --build build -j $(getconf _NPROCESSORS_ONLN)
+
+    - name: Package
+      run: |
+        mkdir -p pkg
+        cp build/devilutionx pkg/
+        if [ -f build/devilutionx.mpq ]; then cp build/devilutionx.mpq pkg/; fi
+        cp Packaging/resources/COPYING.legend.txt pkg/ 2>/dev/null || true
+        cd pkg && zip -r ../devilutionx-gpu-shaders-linux-x64.zip . && cd ..
+        # sanity: recompile the GLSL shader sources and confirm the toolchain accepts them
+        # (the shipped binaries embed the committed SPIR-V blobs from gpu_shader_spv_prebuilt.hpp)
+        mkdir -p spv && find Source/engine/render/gpu/shaders/vulkan -name '*.frag' -o -name '*.vert' | while read f; do
+          glslangValidator -V "$f" -o "spv/$(basename "$f").spv" || exit 1
+        done
+        zip -r devilutionx-gpu-shaders-spirv-blobs.zip spv
+
+    - name: Upload Linux package
+      uses: actions/upload-artifact@v4
+      with:
+        name: devilutionx-gpu-shaders-linux-x64
+        path: devilutionx-gpu-shaders-linux-x64.zip
+
+    - name: Upload SPIR-V blobs
+      uses: actions/upload-artifact@v4
+      with:
+        name: devilutionx-gpu-shaders-spirv-blobs
+        path: devilutionx-gpu-shaders-spirv-blobs.zip
+
+  windows:
+    name: Windows x64 (MinGW cross, SDL3, fully static — launches without extra DLLs)
+    runs-on: ubuntu-24.04
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ninja-build gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 binutils-mingw-w64-x86-64 gettext smpq zip patch glslang-tools
+
+    - name: Configure (exact flags of the verified local build)
+      run: >
+        cmake -S. -Bbuild -G Ninja -DCMAKE_BUILD_TYPE=Release
+        -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/CMake/platforms/mingwcc64.toolchain.cmake
+        -DCROSS_PREFIX=/usr
+        -DUSE_SDL3=ON
+        -DUSE_GPU_SCALER=ON
+        -DDEVILUTIONX_SYSTEM_SDL3=OFF
+        -DDEVILUTIONX_SYSTEM_LIBSODIUM=OFF
+        -DDEVILUTIONX_SYSTEM_ZLIB=OFF
+        -DDEVILUTIONX_SYSTEM_BZIP2=OFF
+        -DDEVILUTIONX_SYSTEM_LIBPNG=OFF
+        -DBUILD_TESTING=OFF
+        -DCMAKE_C_FLAGS='-Wno-error=incompatible-pointer-types -Wno-error=implicit-function-declaration -Wno-error=int-conversion'
+        -DCMAKE_EXE_LINKER_FLAGS='-static -static-libgcc -static-libstdc++'
+
+    - name: Build
+      run: cmake --build build -j $(getconf _NPROCESSORS_ONLN)
+
+    - name: Package
+      run: |
+        mkdir -p pkg
+        cp build/devilutionx.exe pkg/
+        if [ -f build/devilutionx.mpq ]; then cp build/devilutionx.mpq pkg/; fi
+        # gate: the exe must stay fully static — Windows system DLLs ONLY.
+        x86_64-w64-mingw32-objdump -p build/devilutionx.exe | grep 'DLL Name' | sort -u | tee dlls.txt
+        if grep -qiE 'DLL Name:.*(libstdc|libgcc|libwinpthread|libssp|zlib1|liblzma|libpng|libjpeg|freetype|SDL)' dlls.txt; then
+          echo '::error::devilutionx.exe links non-system DLLs — the -static linker flags were lost. This build would not launch on a clean Windows install.'
+          exit 1
+        fi
+        cd pkg && zip -r ../devilutionx-gpu-shaders-windows-x64.zip . && cd ..
+
+    - name: Upload Windows package
+      uses: actions/upload-artifact@v4
+      with:
+        name: devilutionx-gpu-shaders-windows-x64
+        path: devilutionx-gpu-shaders-windows-x64.zip
