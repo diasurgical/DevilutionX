@@ -348,6 +348,7 @@ void AddFlameWave(Missile &missile, AddMissileParameter &parameter);
  * var3: Light strength
  */
 void AddGuardian(Missile &missile, AddMissileParameter &parameter);
+void AddSentinel(Missile &missile, AddMissileParameter &parameter);
 
 /**
  * var1: X coordinate of the destination
@@ -465,6 +466,7 @@ void ProcessFlashBottom(Missile &missile);
 void ProcessFlashTop(Missile &missile);
 void ProcessFlameWave(Missile &missile);
 void ProcessGuardian(Missile &missile);
+void ProcessSentinel(Missile &missile);
 void ProcessChainLightning(Missile &missile);
 void ProcessWeaponExplosion(Missile &missile);
 void ProcessMissileExplosion(Missile &missile);
