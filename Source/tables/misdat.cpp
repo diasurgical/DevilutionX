@@ -20,6 +20,7 @@
 #include "data/iterators.hpp"
 #include "data/record_reader.hpp"
 #include "engine/clx_sprite.hpp"
+#include "engine/render/clx_render.hpp"
 #include "headless_mode.hpp"
 #include "missiles.h"
 #include "mpq/mpq_common.hpp"
@@ -149,6 +150,7 @@ void LoadMissileSpriteData()
 		reader.readInt("width", item.animWidth);
 		reader.readInt("width2", item.animWidth2);
 		reader.readString("name", item.name);
+		reader.readString("trnFile", item.trnFile);
 		reader.readInt("numFrames", item.animFAmt);
 		reader.read("flags", item.flags, ParseMissileGraphicsFlag);
 
@@ -223,6 +225,7 @@ std::expected<MissileData::AddFn, std::string> ParseMissileAddFn(std::string_vie
 	if (value == "AddManaShield") return AddManaShield;
 	if (value == "AddFlameWave") return AddFlameWave;
 	if (value == "AddGuardian") return AddGuardian;
+	if (value == "AddSentinel") return AddSentinel;
 	if (value == "AddChainLightning") return AddChainLightning;
 	if (value == "AddRhino") return AddRhino;
 	if (value == "AddGenericMagicMissile") return AddGenericMagicMissile;
@@ -285,6 +288,7 @@ std::expected<MissileData::ProcessFn, std::string> ParseMissileProcessFn(std::st
 	if (value == "ProcessFlashTop") return ProcessFlashTop;
 	if (value == "ProcessFlameWave") return ProcessFlameWave;
 	if (value == "ProcessGuardian") return ProcessGuardian;
+	if (value == "ProcessSentinel") return ProcessSentinel;
 	if (value == "ProcessChainLightning") return ProcessChainLightning;
 	if (value == "ProcessWeaponExplosion") return ProcessWeaponExplosion;
 	if (value == "ProcessMissileExplosion") return ProcessMissileExplosion;
@@ -432,6 +436,19 @@ std::expected<void, std::string> MissileFileData::LoadGFX()
 		sprites.emplace(OwnedClxSpriteListOrSheet { std::move(spriteSheet) });
 	}
 #endif
+
+	if (!trnFile.empty()) {
+		char trnPath[64];
+		*BufCopy(trnPath, "missiles\\", trnFile, ".trn") = '\0';
+		std::array<uint8_t, 256> colorTranslations;
+		LoadFileInMem(trnPath, colorTranslations);
+		std::replace(colorTranslations.begin(), colorTranslations.end(), 255, 0);
+		if (sprites->isSheet()) {
+			ClxApplyTrans(ClxSpriteSheet { sprites->sheet() }, colorTranslations.data());
+		} else if (sprites.has_value()) {
+			ClxApplyTrans(ClxSpriteList { sprites->list() }, colorTranslations.data());
+		}
+	}
 	return {};
 }
 
