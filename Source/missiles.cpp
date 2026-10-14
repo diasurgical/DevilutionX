@@ -733,6 +733,29 @@ bool GuardianTryFireAt(Missile &missile, Point target)
 	return true;
 }
 
+bool SentinelTryFireAt(Missile &missile, Point target)
+{
+	const Point position = missile.position.tile;
+
+	if (!LineClearMovingMissile(position, target))
+		return false;
+	const int mid = dMonster[target.x][target.y] - 1;
+	if (mid < 0)
+		return false;
+	const Monster &monster = Monsters[mid];
+	if (monster.isPlayerMinion())
+		return false;
+	if (monster.hasNoLife())
+		return false;
+
+	const Direction dir = GetDirection(position, target);
+	AddMissile(position, target, dir, MissileID::LightningControl, TARGET_MONSTERS, missile._misource, 1, missile.sourcePlayer()->GetSpellLevel(SpellID::Etherealize), &missile);
+	missile.setFrameGroup<GuardianFrame>(GuardianFrame::Attack);
+	missile.var2 = 3;
+
+	return true;
+}
+
 bool CanPlaceWall(Point position)
 {
 	if (!InDungeonBounds(position))
@@ -2220,6 +2243,54 @@ void AddGuardian(Missile &missile, AddMissileParameter &parameter)
 	missile.var3 = 1;
 }
 
+void AddSentinel(Missile &missile, AddMissileParameter &parameter)
+{
+	const Player &player = Players[missile._misource];
+
+	std::optional<Point> spawnPosition = FindClosestValidPosition(
+	    [start = missile.position.start](Point target) {
+		    if (!InDungeonBounds(target)) {
+			    return false;
+		    }
+		    if (dMonster[target.x][target.y] != 0) {
+			    return false;
+		    }
+		    if (IsObjectAtPosition(target)) {
+			    return false;
+		    }
+		    if (TileContainsMissile(target)) {
+			    return false;
+		    }
+
+		    if (TileHasAny(target, TileProperties::Solid | TileProperties::BlockMissile)) {
+			    return false;
+		    }
+
+		    return LineClearMissile(start, target);
+	    },
+	    parameter.dst, 0, 5);
+
+	if (!spawnPosition) {
+		missile._miDelFlag = true;
+		parameter.spellFizzled = true;
+		return;
+	}
+
+	missile._miDelFlag = false;
+	missile.position.tile = *spawnPosition;
+	missile.position.start = *spawnPosition;
+
+	missile._mlid = AddLight(missile.position.tile, 1);
+	missile.duration = missile._mispllvl + (player.getCharacterLevel() / 2);
+
+	missile.duration = std::min(missile.duration, 30);
+	missile.duration <<= 4;
+	missile.duration = std::max(missile.duration, 30);
+
+	missile.var1 = missile.duration - missile._miAnimLen;
+	missile.var3 = 1;
+}
+
 void AddChainLightning(Missile &missile, AddMissileParameter &parameter)
 {
 	missile.var1 = parameter.dst.x;
@@ -3555,6 +3626,77 @@ void ProcessGuardian(Missile &missile)
 			    || GuardianTryFireAt(missile, position + offset.flipXY())
 			    || GuardianTryFireAt(missile, position + offset.flipY())
 			    || GuardianTryFireAt(missile, position + offset.flipX()))
+				break;
+		}
+	}
+
+	if (missile.duration == 14) {
+		missile.setFrameGroup<GuardianFrame>(GuardianFrame::Start);
+		missile._miAnimFrame = 15;
+		missile._miAnimAdd = -1;
+	}
+
+	missile.var3 += missile._miAnimAdd;
+
+	if (missile.var3 > 15) {
+		missile.var3 = 15;
+	} else if (missile.var3 > 0) {
+		ChangeLight(missile._mlid, position, missile.var3);
+	}
+
+	if (missile.duration == 0) {
+		missile._miDelFlag = true;
+		AddUnLight(missile._mlid);
+	}
+
+	PutMissile(missile);
+}
+
+void ProcessSentinel(Missile &missile)
+{
+	missile.duration--;
+
+	if (missile.var2 > 0) {
+		missile.var2--;
+	}
+	if (missile.duration == missile.var1 || (missile.getFrameGroup<GuardianFrame>() == GuardianFrame::Attack && missile.var2 == 0)) {
+		missile.setFrameGroup<GuardianFrame>(GuardianFrame::Idle);
+	}
+
+	const Point position = missile.position.tile;
+
+	if ((missile.duration % 16) == 0) {
+		// Guardians pick a target by working backwards along lines originally based on VisionCrawlTable.
+		// Because of their rather unique behaviour the points checked have been unrolled here
+		constexpr std::array<WorldTileDisplacement, 48> guardianArc {
+			{
+			    // clang-format off
+			    { 6, 0 }, { 5, 0 }, { 4, 0 }, { 3, 0 }, { 2, 0 }, { 1, 0 },
+			    { 6, 1 }, { 5, 1 }, { 4, 1 }, { 3, 1 },
+			    { 6, 2 }, { 2, 1 },
+			    { 5, 2 },
+			    { 6, 3 }, { 4, 2 },
+			    { 5, 3 }, { 3, 2 }, { 1, 1 },
+			    { 6, 4 },
+			    { 6, 5 }, { 5, 4 }, { 4, 3 }, { 2, 2 },
+			    { 5, 5 }, { 4, 4 }, { 3, 3 },
+			    { 6, 6 }, { 5, 6 }, { 4, 5 }, { 3, 4 }, { 2, 3 },
+			    { 4, 6 }, { 3, 5 }, { 2, 4 }, { 1, 2 },
+			    { 3, 6 }, { 2, 5 }, { 1, 3 }, { 0, 1 },
+			    { 2, 6 }, { 1, 4 },
+			    { 1, 5 },
+			    { 1, 6 },
+			    { 0, 2 },
+			    { 0, 3 },
+			    { 0, 6 }, { 0, 5 }, { 0, 4 },
+			    // clang-format on
+			}
+		};
+		for (const WorldTileDisplacement offset : guardianArc) {
+			if (SentinelTryFireAt(missile, position + offset)
+			    || SentinelTryFireAt(missile, position + offset.flipXY())
+			    || SentinelTryFireAt(missile, position + offset.flipY())
+			    || SentinelTryFireAt(missile, position + offset.flipX()))
 				break;
 		}
 	}

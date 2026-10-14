@@ -211,6 +211,7 @@ struct MissileFileData {
 	uint16_t animWidth;
 	int8_t animWidth2;
 	std::string name;
+	std::string trnFile;
 	uint8_t animFAmt;
 	MissileGraphicsFlags flags;
 	uint8_t animDelayIdx;

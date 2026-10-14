@@ -2827,19 +2827,21 @@ void ApplyPlrDamage(DamageType damageType, Player &player, Fixed26_6 dam, int mi
 	}
 	if (totalDamage > 0 && player.pManaShield && HasNoneOf(player._pIFlags, ItemSpecialEffect::NoMana)) {
 		const uint8_t manaShieldLevel = player._pSplLvl[static_cast<int8_t>(SpellID::ManaShield)];
+		Fixed26_6 manaDamage = totalDamage * std::min(500 + 33 * manaShieldLevel, 995) / 1000;
+		totalDamage -= manaDamage;
 		if (manaShieldLevel > 0) {
-			totalDamage += totalDamage / -player.GetManaShieldDamageReduction();
+			manaDamage += manaDamage / -player.GetManaShieldDamageReduction();
 		}
 		if (&player == MyPlayer)
 			RedrawComponent(PanelDrawComponent::Mana);
-		if (player._pMana >= totalDamage) {
-			player._pMana -= totalDamage;
-			player._pManaBase -= totalDamage;
-			totalDamage = Fixed26_6::fromInt(0);
+		if (player._pMana >= manaDamage) {
+			player._pMana -= manaDamage;
+			player._pManaBase -= manaDamage;
 		} else {
-			totalDamage -= player._pMana;
+			manaDamage -= player._pMana;
 			if (manaShieldLevel > 0) {
-				totalDamage += totalDamage / (player.GetManaShieldDamageReduction() - 1);
+				const auto manaShieldDamageReduction = player.GetManaShieldDamageReduction();
+				totalDamage += (manaDamage * manaShieldDamageReduction) / (manaShieldDamageReduction - 1);
 			}
 			player._pMana = Fixed26_6::fromInt(0);
 			player._pManaBase = player._pMaxManaBase - player._pMaxMana;
@@ -2848,7 +2850,7 @@ void ApplyPlrDamage(DamageType damageType, Player &player, Fixed26_6 dam, int mi
 		}
 	}
 
-	if (totalDamage == 0)
+	if (totalDamage <= 0)
 		return;
 
 	RedrawComponent(PanelDrawComponent::Health);

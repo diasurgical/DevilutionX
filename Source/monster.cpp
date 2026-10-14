@@ -1073,8 +1073,7 @@ void SyncLightPosition(Monster &monster)
 
 void MonsterIdle(Monster &monster)
 {
-	if ((monster.flags & MFLAG_GOLEM) != 0)
-//	if (!monster.type().getAnimData(MonsterGraphic::Stand).spritesForDirection(monster.direction).has_value())
+	if (!monster.type().getAnimData(MonsterGraphic::Stand).spritesForDirection(monster.direction).has_value())
 		monster.changeAnimationData(MonsterGraphic::Walk);
 	else
 		monster.changeAnimationData(MonsterGraphic::Stand);
@@ -3943,8 +3942,7 @@ bool M_Talker(const Monster &monster)
 void M_StartStand(Monster &monster, Direction md)
 {
 	ClearMVars(monster);
-	if ((monster.flags & MFLAG_GOLEM) != 0)
-//	if (!monster.type().getAnimData(MonsterGraphic::Stand).spritesForDirection(md).has_value())
+	if (!monster.type().getAnimData(MonsterGraphic::Stand).spritesForDirection(md).has_value())
 		NewMonsterAnim(monster, MonsterGraphic::Walk, md);
 	else
 		NewMonsterAnim(monster, MonsterGraphic::Stand, md);
