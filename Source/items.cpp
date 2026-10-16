@@ -1616,7 +1616,12 @@ void ItemDoppel()
 
 	for (int idoppelx = 16; idoppelx < 96; idoppelx++) {
 		if (dItem[idoppelx][idoppely] != 0) {
-			Item *i = &Items[dItem[idoppelx][idoppely] - 1];
+			const int itemId = dItem[idoppelx][idoppely] - 1;
+			if (itemId < 0 || itemId > MAXITEMS) {
+				dItem[idoppelx][idoppely] = 0;
+				continue;
+			}
+			Item *i = &Items[itemId];
 			if (i->position.x != idoppelx || i->position.y != idoppely)
 				dItem[idoppelx][idoppely] = 0;
 		}
@@ -3207,9 +3212,11 @@ Item *SpawnUnique(_unique_items uid, Point position, std::optional<int> level /*
 	}
 	int curlv = ItemsGetCurrlevel();
 
-	std::underlying_type_t<_item_indexes> idx = 0;
-	while (AllItemsList[idx].iItemId != UniqueItems[uid].UIItemId)
+	size_t idx = 0;
+	while (idx < AllItemsList.size() && AllItemsList[idx].iItemId != UniqueItems[uid].UIItemId)
 		idx++;
+	if (idx >= AllItemsList.size())
+		return nullptr;
 
 	if (sgGameInitInfo.nDifficulty == DIFF_NORMAL) {
 		GetItemAttrs(item, static_cast<_item_indexes>(idx), curlv);
@@ -3614,13 +3621,17 @@ void CornerstoneLoad(Point position)
 	CornerStone.activated = true;
 	if (dItem[position.x][position.y] != 0) {
 		const int ii = dItem[position.x][position.y] - 1;
-		for (int i = 0; i < ActiveItemCount; i++) {
-			if (ActiveItems[i] == ii) {
-				DeleteItem(i);
-				break;
+		if (ii < 0 || ii >= MAXITEMS) {
+			dItem[position.x][position.y] = 0;
+		} else {
+			for (int i = 0; i < ActiveItemCount; i++) {
+				if (ActiveItems[i] == ii) {
+					DeleteItem(i);
+					break;
+				}
 			}
+			dItem[position.x][position.y] = 0;
 		}
-		dItem[position.x][position.y] = 0;
 	}
 
 	if (strlen(GetOptions().Hellfire.szItem) < sizeof(ItemPack) * 2)
@@ -3733,6 +3744,8 @@ void SpawnTheodore(Point position, bool sendmsg)
 
 void RespawnItem(Item &item, bool flipFlag)
 {
+	if (item._iCurs >= std::size(ItemCAnimTbl))
+		return;
 	const int it = ItemCAnimTbl[item._iCurs];
 	item.setNewAnimation(flipFlag);
 	item._iRequest = false; // Item isn't being picked up by a player
@@ -3792,7 +3805,8 @@ void ProcessItems()
 			if (item.selectionRegion == SelectionRegion::Middle && item.AnimInfo.currentFrame == 19) // Reached end of elevated frames, cycle back
 				item.AnimInfo.currentFrame = 10;                                                     // Beginning of elevated frames
 		} else {
-			if (item.AnimInfo.currentFrame == (item.AnimInfo.numberOfFrames - 1) / 2)
+			if (item.AnimInfo.currentFrame == (item.AnimInfo.numberOfFrames - 1) / 2
+			    && item._iCurs < std::size(ItemCAnimTbl))
 				PlaySfxLoc(ItemDropSnds[ItemCAnimTbl[item._iCurs]], item.position);
 
 			if (item.AnimInfo.isLastFrame()) {
@@ -3814,6 +3828,8 @@ void FreeItemGFX()
 
 void GetItemFrm(Item &item)
 {
+	if (item._iCurs >= std::size(ItemCAnimTbl))
+		return;
 	const int it = ItemCAnimTbl[item._iCurs];
 	if (itemanims[it])
 		item.AnimInfo.sprites.emplace(*itemanims[it]);
@@ -3834,10 +3850,15 @@ void CheckIdentify(Player &player, int cii)
 {
 	Item *pi;
 
-	if (cii >= NUM_INVLOC)
+	if (cii >= NUM_INVLOC) {
+		if (cii - NUM_INVLOC >= player._pNumInv)
+			return;
 		pi = &player.InvList[cii - NUM_INVLOC];
-	else
+	} else {
+		if (cii < 0)
+			return;
 		pi = &player.InvBody[cii];
+	}
 
 	pi->_iIdentified = true;
 	CalcPlrInv(player, true);
@@ -3850,8 +3871,12 @@ void DoRepair(Player &player, int cii)
 	PlaySfxLoc(SfxID::SpellRepair, player.position.tile);
 
 	if (cii >= NUM_INVLOC) {
+		if (cii - NUM_INVLOC >= player._pNumInv)
+			return;
 		pi = &player.InvList[cii - NUM_INVLOC];
 	} else {
+		if (cii < 0)
+			return;
 		pi = &player.InvBody[cii];
 	}
 
@@ -3864,8 +3889,12 @@ void DoRecharge(Player &player, int cii)
 	Item *pi;
 
 	if (cii >= NUM_INVLOC) {
+		if (cii - NUM_INVLOC >= player._pNumInv)
+			return;
 		pi = &player.InvList[cii - NUM_INVLOC];
 	} else {
+		if (cii < 0)
+			return;
 		pi = &player.InvBody[cii];
 	}
 
@@ -3877,8 +3906,12 @@ bool DoOil(Player &player, int cii)
 {
 	Item *pi;
 	if (cii >= NUM_INVLOC) {
+		if (cii - NUM_INVLOC >= player._pNumInv)
+			return false;
 		pi = &player.InvList[cii - NUM_INVLOC];
 	} else {
+		if (cii < 0)
+			return false;
 		pi = &player.InvBody[cii];
 	}
 	if (!ApplyOilToItem(*pi, player))
@@ -4096,6 +4129,9 @@ bool DoOil(Player &player, int cii)
 
 void DrawUniqueInfo(const Surface &out)
 {
+	if (curruitem._iUid < 0 || static_cast<size_t>(curruitem._iUid) >= UniqueItems.size())
+		return;
+
 	const Point position = DrawUniqueInfoWindow(out);
 
 	Rectangle rect { position + Displacement { 32, 56 }, { 257, 0 } };
@@ -4687,6 +4723,8 @@ void MakeGoldStack(Item &goldItem, int value)
 
 int ItemNoFlippy()
 {
+	if (ActiveItemCount == 0)
+		return -1;
 	const int r = ActiveItems[ActiveItemCount - 1];
 	Items[r].AnimInfo.currentFrame = Items[r].AnimInfo.numberOfFrames - 1;
 	Items[r]._iAnimFlag = false;
@@ -4806,6 +4844,8 @@ bool Item::isUsable() const
 
 void Item::setNewAnimation(bool showAnimation)
 {
+	if (_iCurs >= std::size(ItemCAnimTbl))
+		return;
 	const int8_t it = ItemCAnimTbl[_iCurs];
 	const int8_t numberOfFrames = ItemAnimLs[it];
 	const OptionalClxSpriteList sprite = itemanims[it] ? OptionalClxSpriteList { *itemanims[static_cast<size_t>(it)] } : std::nullopt;
@@ -4850,7 +4890,8 @@ StringOrView Item::getName() const
 	if (!_iIdentified || _iCreateInfo == 0 || _iMagical == ITEM_QUALITY_NORMAL) {
 		return GetTranslatedItemName(*this);
 	}
-	if (_iMagical == ITEM_QUALITY_UNIQUE) {
+	if (_iMagical == ITEM_QUALITY_UNIQUE
+	    && _iUid >= 0 && static_cast<size_t>(_iUid) < UniqueItems.size()) {
 		return _(UniqueItems[_iUid].UIName);
 	}
 	return GetTranslatedItemNameMagical(*this, dwBuff & CF_HELLFIRE, true, std::nullopt);
