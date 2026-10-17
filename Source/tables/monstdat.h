@@ -13,7 +13,9 @@
 #include <magic_enum/magic_enum.hpp>
 
 #include "cursor_defs.hpp"
+#include "engine/shadow_rule.hpp"
 #include "tables/textdat.h"
+#include "utils/attributes.h"
 
 namespace devilution {
 
@@ -143,6 +145,8 @@ struct MonsterData {
 	/** Using monster_treasure */
 	uint16_t treasure = 0;
 	uint16_t exp = 0;
+	/** How the shadow baked into each animation's sprites was generated, indexed like `frames`. */
+	ShadowRule shadowRules[6] {};
 
 	[[nodiscard]] const char *spritePath() const;
 
@@ -347,7 +351,7 @@ struct UniqueMonsterData {
 	_speech_id mtalkmsg;
 };
 
-extern std::vector<MonsterData> MonstersData;
+extern DVL_API_FOR_TEST std::vector<MonsterData> MonstersData;
 extern const _monster_id MonstConvTbl[];
 extern std::vector<UniqueMonsterData> UniqueMonstersData;
 

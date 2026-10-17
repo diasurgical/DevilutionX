@@ -10,6 +10,7 @@
 
 #include <magic_enum/magic_enum.hpp>
 
+#include "engine/shadow_rule.hpp"
 #include "sound_effect_enums.h"
 #include "tables/itemdat.h"
 #include "tables/spelldat.h"
@@ -174,6 +175,8 @@ struct PlayerSpriteData {
 	uint8_t magic;
 	/* Sprite width: Death */
 	uint8_t death;
+	/* How the shadow baked into the class sprites was generated */
+	ShadowRule shadowRule;
 };
 
 struct PlayerAnimData {

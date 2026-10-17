@@ -312,7 +312,8 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 				    PortraitFrameSize.width - (FrameBorderSize * 2),
 				    PortraitFrameSize.height - (FrameBorderSize * 2));
 
-				// Draw the portrait sprite
+				// Draw the portrait sprite, with its shadow
+				ClxDrawShadow(frameSubregion, { portraitPos.x, portraitPos.y + static_cast<int>(monsterPortraitSprite.height()) - 1 }, monsterPortraitSprite);
 				RenderClxSprite(
 				    frameSubregion,
 				    monsterPortraitSprite,

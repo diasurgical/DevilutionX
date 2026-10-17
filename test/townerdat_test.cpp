@@ -83,6 +83,12 @@ TEST(TownerDat, LoadTownerData)
 	ASSERT_GE(smith->animOrder.size(), 4u);
 	EXPECT_EQ(smith->animOrder[0], 4);
 	EXPECT_EQ(smith->animOrder[3], 7);
+	EXPECT_EQ(smith->shadowRule, (ShadowRule { ShadowRuleType::FirstFrame, 0 }));
+
+	// Wirt's shadow has a few pixels that the rule does not account for.
+	const TownerDataEntry *pegBoy = FindTownerDataByType(TOWN_PEGBOY);
+	ASSERT_NE(pegBoy, nullptr) << "Should find TOWN_PEGBOY data";
+	EXPECT_EQ(pegBoy->shadowRule, (ShadowRule { ShadowRuleType::FirstFrame, 0, ShadowRuleFlags::Stray }));
 
 	// Check Pepin (TOWN_HEALER)
 	const TownerDataEntry *healer = FindTownerDataByType(TOWN_HEALER);

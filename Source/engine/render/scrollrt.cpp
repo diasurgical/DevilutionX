@@ -244,13 +244,36 @@ bool ShouldShowCursor()
 }
 
 /**
- * @brief Blit CL2 sprite, and apply lighting, to the given buffer at the given coordinates
+ * @brief Draws the shadow of a sprite whose shadow is stored separately (see `shadow_mask.hpp`).
+ *
+ * Must be called right before drawing the sprite itself, after its outline:
+ * a shadow that is baked into a sprite covers the outline, and so must this one.
+ * Does nothing for sprites without a separate shadow.
+ */
+inline void DrawShadow(const Surface &out, Point position, ClxSprite clx)
+{
+	static const bool skipDraw = getenv("SHADOW_NO_DRAW") != nullptr;
+	if (skipDraw) return;
+#ifdef _DEBUG
+	if (DebugHideShadows)
+		return;
+#endif
+	if (*GetOptions().Graphics.transparentShadows) {
+		ClxDrawShadowBlended(out, position, clx);
+	} else {
+		ClxDrawShadow(out, position, clx);
+	}
+}
+
+/**
+ * @brief Blit CL2 sprite and its shadow, and apply lighting, to the given buffer at the given coordinates
  * @param out Output buffer
  * @param position Target buffer coordinate
  * @param clx CLX frame
  */
 inline void ClxDrawLight(const Surface &out, Point position, ClxSprite clx, int lightTableIndex)
 {
+	DrawShadow(out, position, clx);
 	if (lightTableIndex != 0) {
 		ClxDrawTRN(out, position, clx, LightTables[lightTableIndex].data());
 	} else {
@@ -344,10 +367,12 @@ void DrawMissilePrivate(const Surface &out, const Missile &missile, Point target
 	const Point missileRenderPosition { targetBufferPosition + missile.position.offsetForRendering - Displacement { missile._miAnimWidth2, 0 } };
 	const ClxSprite sprite = (*missile._miAnimData)[missile._miAnimFrame - 1];
 	if (missile._miUniqTrans != 0) {
+		DrawShadow(out, missileRenderPosition, sprite);
 		ClxDrawTRN(out, missileRenderPosition, sprite, Monsters[missile._misource].uniqueMonsterTRN.get());
 	} else if (missile._miLightFlag) {
 		ClxDrawLight(out, missileRenderPosition, sprite, lightTableIndex);
 	} else {
+		DrawShadow(out, missileRenderPosition, sprite);
 		ClxDraw(out, missileRenderPosition, sprite);
 	}
 }
@@ -385,6 +410,7 @@ void DrawMonster(const Surface &out, Point tilePosition, Point targetBufferPosit
 	const ClxSprite sprite = monster.animInfo.currentSprite();
 
 	if (!IsTileLit(tilePosition)) {
+		DrawShadow(out, targetBufferPosition, sprite);
 		ClxDrawTRN(out, targetBufferPosition, sprite, GetInfravisionTRN());
 		return;
 	}
@@ -395,10 +421,12 @@ void DrawMonster(const Surface &out, Point tilePosition, Point targetBufferPosit
 		trn = GetStoneTRN();
 	if (MyPlayer->_pInfraFlag && lightTableIndex > 8)
 		trn = GetInfravisionTRN();
-	if (trn != nullptr)
+	if (trn != nullptr) {
+		DrawShadow(out, targetBufferPosition, sprite);
 		ClxDrawTRN(out, targetBufferPosition, sprite, trn);
-	else
+	} else {
 		ClxDrawLight(out, targetBufferPosition, sprite, lightTableIndex);
+	}
 }
 
 /**
@@ -478,12 +506,14 @@ void DrawPlayer(const Surface &out, const Player &player, Point tilePosition, Po
 		ClxDrawOutlineSkipColorZero(out, GetPlayerOutlineColor(player.getId()), spriteBufferPosition, sprite);
 
 	if (&player == MyPlayer && IsNoneOf(leveltype, DTYPE_NEST, DTYPE_CRYPT)) {
+		DrawShadow(out, spriteBufferPosition, sprite);
 		ClxDraw(out, spriteBufferPosition, sprite);
 		DrawPlayerIcons(out, player, targetBufferPosition, /*infraVision=*/false, lightTableIndex);
 		return;
 	}
 
 	if (!IsTileLit(tilePosition) || ((MyPlayer->_pInfraFlag || MyPlayer->isOnArenaLevel()) && lightTableIndex > 8)) {
+		DrawShadow(out, spriteBufferPosition, sprite);
 		ClxDrawTRN(out, spriteBufferPosition, sprite, GetInfravisionTRN());
 		DrawPlayerIcons(out, player, targetBufferPosition, /*infraVision=*/true, lightTableIndex);
 		return;
@@ -533,6 +563,7 @@ void DrawObject(const Surface &out, const Object &objectToDraw, Point tilePositi
 	if (objectToDraw.applyLighting) {
 		ClxDrawLight(out, screenPosition, sprite, lightTableIndex);
 	} else {
+		DrawShadow(out, screenPosition, sprite);
 		ClxDraw(out, screenPosition, sprite);
 	}
 }
@@ -743,6 +774,7 @@ void DrawMonsterHelper(const Surface &out, Point tilePosition, Point targetBuffe
 		if (mi == pcursmonst) {
 			ClxDrawOutlineSkipColorZero(out, OutlineColorsTowner, position, sprite);
 		}
+		DrawShadow(out, position, sprite);
 		ClxDraw(out, position, sprite);
 		return;
 	}
@@ -804,6 +836,7 @@ void DrawDungeon(const Surface &out, const Lightmap &lightmap, Point tilePositio
 		const ClxSprite sprite = corpse.spritesForDirection(static_cast<Direction>((bDead >> 5) & 7))[corpse.frame];
 		if (corpse.translationPaletteIndex != 0) {
 			const uint8_t *trn = Monsters[corpse.translationPaletteIndex - 1].uniqueMonsterTRN.get();
+			DrawShadow(out, position, sprite);
 			ClxDrawTRN(out, position, sprite, trn);
 		} else {
 			ClxDrawLight(out, position, sprite, lightTableIndex);

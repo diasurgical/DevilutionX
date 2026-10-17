@@ -25,6 +25,8 @@ extern bool DebugInvisible;
 extern bool DebugVision;
 extern bool DebugPath;
 extern bool DebugGrid;
+/** Hides the shadows that are drawn separately from their sprites (see `shadow_mask.hpp`). */
+extern bool DebugHideShadows;
 extern ankerl::unordered_dense::map<int, Point> DebugCoordsMap;
 extern bool DebugScrollViewEnabled;
 extern std::string debugTRN;

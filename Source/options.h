@@ -562,6 +562,8 @@ struct GraphicsOptions : OptionCategoryBase {
 	OptionEntryBoolean perPixelLighting;
 	/** @brief Enable color cycling animations. */
 	OptionEntryBoolean colorCycling;
+	/** @brief Draw the shadows of sprites by darkening what is underneath instead of covering it. */
+	OptionEntryBoolean transparentShadows;
 	/** @brief Use alternate nest palette. */
 	OptionEntryBoolean alternateNestArt;
 #if SDL_VERSION_ATLEAST(2, 0, 0)

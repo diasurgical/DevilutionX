@@ -5,6 +5,8 @@
 #include "cursor.h"
 #include "engine/assets.hpp"
 #include "init.hpp"
+#include "tables/monstdat.h"
+#include "tables/objdat.h"
 #include "tables/playerdat.hpp"
 #include "utils/fixed_point.hpp"
 
@@ -186,6 +188,42 @@ static void AssertPlayer(devilution::Player &player)
 	ASSERT_EQ(player._pIFMaxDam, 0);
 	ASSERT_EQ(player._pILMinDam, 0);
 	ASSERT_EQ(player._pILMaxDam, 0);
+}
+
+TEST(Player, ShadowRulesAreLoaded)
+{
+	LoadCoreArchives();
+	LoadPlayerDataFiles();
+	LoadMonsterData();
+	LoadObjectData();
+
+	// One of the warrior's sprite files does not reproduce exactly, which the tags record.
+	EXPECT_EQ(GetPlayerSpriteDataForClass(HeroClass::Warrior).shadowRule, (ShadowRule { ShadowRuleType::FirstFrame, 0, ShadowRuleFlags::Unexplained | ShadowRuleFlags::Stray }));
+	EXPECT_EQ(GetPlayerSpriteDataForClass(HeroClass::Rogue).shadowRule, (ShadowRule { ShadowRuleType::FirstFrame, 0 }));
+	EXPECT_EQ(GetPlayerSpriteDataForClass(HeroClass::Monk).shadowRule, (ShadowRule { ShadowRuleType::EachFrame, 0 }));
+	// Sprites that were never analysed have an empty value.
+	EXPECT_EQ(GetPlayerSpriteDataForClass(HeroClass::Bard).shadowRule, (ShadowRule { ShadowRuleType::Unknown, 0 }));
+
+	// One rule per animation: stand, walk, attack, hit, death, special.
+	const MonsterData &zombie = MonstersData[MT_NZOMBIE];
+	EXPECT_EQ(zombie.shadowRules[0], (ShadowRule { ShadowRuleType::FirstFrame, 0 }));
+	EXPECT_EQ(zombie.shadowRules[5], (ShadowRule { ShadowRuleType::None, 0 }));
+	// Flying monsters have their baseline below the sprite, except when they fall to the ground.
+	const MonsterData &fiend = MonstersData[MT_FIEND];
+	EXPECT_EQ(fiend.shadowRules[0], (ShadowRule { ShadowRuleType::FirstFrame, 15 }));
+	EXPECT_EQ(fiend.shadowRules[4], (ShadowRule { ShadowRuleType::FirstFrame, 0 }));
+	const MonsterData &golem = MonstersData[MT_GOLEM];
+	EXPECT_EQ(golem.shadowRules[1], (ShadowRule { ShadowRuleType::EachFrame, 0 }));
+	// Monsters whose sprites are missing from the game data have an empty value.
+	EXPECT_EQ(MonstersData[MT_WYRM].shadowRules[0], (ShadowRule { ShadowRuleType::Unknown, 0 }));
+
+	EXPECT_EQ(AllObjects[OBJ_BARREL].shadowRule, (ShadowRule { ShadowRuleType::FirstFrame, 0 }));
+	EXPECT_EQ(AllObjects[OBJ_CHEST1].shadowRule, (ShadowRule { ShadowRuleType::EachFrame, 0 }));
+	// The cauldron's shadow cannot be told apart from its black side.
+	EXPECT_EQ(AllObjects[OBJ_CAULDRON].shadowRule, (ShadowRule { ShadowRuleType::Baked, 0 }));
+	EXPECT_EQ(AllObjects[OBJ_L1LIGHT].shadowRule, (ShadowRule { ShadowRuleType::None, 0 }));
+	// Doors have black pixels but no cast shadow.
+	EXPECT_EQ(AllObjects[OBJ_L1LDOOR].shadowRule, (ShadowRule { ShadowRuleType::None, 0 }));
 }
 
 TEST(Player, CreatePlayer)
