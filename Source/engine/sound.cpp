@@ -27,6 +27,7 @@
 
 #include "appfat.h"
 #include "engine/assets.hpp"
+#include "engine/fbbsanitizer.hpp"
 #include "game_mode.hpp"
 #include "options.h"
 #include "utils/log.hpp"
@@ -93,6 +94,18 @@ std::expected<void, std::string> LoadAudioFile(const char *path, bool stream, So
 	if (stream) {
 		if (result.SetChunkStream(foundPath, isMp3, /*logErrors=*/true) != 0) {
 			return std::unexpected(StrCat("Failed to load audio file\n", foundPath, "\n", SDL_GetError(), "\n" __FILE__ ":", __LINE__));
+		}
+	} else if (IsFbbAsset(path) && FbbAssetNeedsSanitizer()) {
+#if !defined(STREAM_ALL_AUDIO_MIN_FILE_SIZE) || STREAM_ALL_AUDIO_MIN_FILE_SIZE == 0
+		size_t size;
+#endif
+		ArraySharedPtr<std::uint8_t> waveFile = LoadSanitizedFbbAsset(size);
+		if (waveFile == nullptr) {
+			return std::unexpected(StrCat("Failed to load sanitized audio file\n", foundPath, ": ", SDL_GetError(), __FILE__ ":", __LINE__));
+		}
+		const int error = result.SetChunk(waveFile, size, isMp3);
+		if (error != 0) {
+			return std::unexpected(SDL_GetError());
 		}
 	} else {
 #if !defined(STREAM_ALL_AUDIO_MIN_FILE_SIZE) || STREAM_ALL_AUDIO_MIN_FILE_SIZE == 0

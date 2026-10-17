@@ -24,6 +24,7 @@
 #endif
 
 #include "engine/assets.hpp"
+#include "engine/fbbsanitizer.hpp"
 #ifdef USE_SDL3
 #include "engine/sound.h" // for CurrentMixer
 #endif
@@ -320,8 +321,12 @@ bool SoundSample::Play(int numIterations)
 
 int SoundSample::SetChunkStream(std::string filePath, bool isMp3, bool logErrors)
 {
-#ifdef USE_SDL3
-	SDL_IOStream *handle = OpenAssetAsSdlRwOps(filePath.c_str(), /*threadsafe=*/true);
+	bool needsSanitizer = IsFbbAsset(filePath) && FbbAssetNeedsSanitizer();
+
+	SDL_IOStream *handle = needsSanitizer
+	    ? OpenSanitizedFbbAsSdlRwOps(/*threadsafe=*/true)
+	    : OpenAssetAsSdlRwOps(filePath.c_str(), /*threadsafe=*/true);
+
 	if (handle == nullptr) {
 		if (logErrors)
 			LogError(LogCategory::Audio, "OpenAsset failed (from SoundSample::SetChunkStream) for {}: {}", filePath, SDL_GetError());
@@ -331,6 +336,7 @@ int SoundSample::SetChunkStream(std::string filePath, bool isMp3, bool logErrors
 	file_path_ = std::move(filePath);
 	isMp3_ = isMp3;
 
+#ifdef USE_SDL3
 	// Let SDL3_mixer stream-decode (predecode=false). It keeps the compressed data in RAM
 	// and decodes on the fly during playback, saving memory for large music files.
 	audio_ = MIX_LoadAudio_IO(CurrentMixer, handle, /*predecode=*/false, /*closeio=*/true);
@@ -339,17 +345,7 @@ int SoundSample::SetChunkStream(std::string filePath, bool isMp3, bool logErrors
 			LogError(LogCategory::Audio, "MIX_LoadAudio_IO failed (from SoundSample::SetChunkStream) for {}: {}", file_path_, SDL_GetError());
 		return -1;
 	}
-
-	return 0;
 #else
-	SDL_IOStream *handle = OpenAssetAsSdlRwOps(filePath.c_str(), /*threadsafe=*/true);
-	if (handle == nullptr) {
-		if (logErrors)
-			LogError(LogCategory::Audio, "OpenAsset failed (from SoundSample::SetChunkStream) for {}: {}", filePath, SDL_GetError());
-		return -1;
-	}
-	file_path_ = std::move(filePath);
-	isMp3_ = isMp3;
 	stream_ = CreateStream(handle, isMp3);
 	if (!stream_->open()) {
 		stream_ = nullptr;
@@ -357,8 +353,9 @@ int SoundSample::SetChunkStream(std::string filePath, bool isMp3, bool logErrors
 			LogError(LogCategory::Audio, "Aulib::Stream::open (from SoundSample::SetChunkStream) for {}: {}", file_path_, SDL_GetError());
 		return -1;
 	}
-	return 0;
 #endif
+
+	return 0;
 }
 
 int SoundSample::SetChunk(ArraySharedPtr<std::uint8_t> fileData, std::size_t dwBytes, bool isMp3)
