@@ -35,6 +35,7 @@ bool DebugInvisible = false;
 bool DebugVision = false;
 bool DebugPath = false;
 bool DebugGrid = false;
+bool DebugHideShadows = false;
 ankerl::unordered_dense::map<int, Point> DebugCoordsMap;
 bool DebugScrollViewEnabled = false;
 std::string debugTRN;

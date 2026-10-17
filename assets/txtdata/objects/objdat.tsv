@@ -1,110 +1,110 @@
-id	file	minLevel	maxLevel	levelType	theme	quest	flags	animDelay	animLen	animWidth	selectionRegion
-OBJ_L1LIGHT	l1braz	0	0	DTYPE_CATHEDRAL			Animated,Solid,MissilesPassThrough	1	26	64	
-OBJ_L1LDOOR	l1doors	0	0	DTYPE_CATHEDRAL			Light,Trap	1	0	64	Bottom,Middle
-OBJ_L1RDOOR	l1doors	0	0	DTYPE_CATHEDRAL			Light,Trap	2	0	64	Bottom,Middle
-OBJ_SKFIRE	skulfire	0	0		THEME_SKELROOM		Animated,Solid,MissilesPassThrough	2	11	96	
-OBJ_LEVER	lever	0	0				Solid,MissilesPassThrough,Light,Trap	1	1	96	Bottom
-OBJ_CHEST1	chest1	1	24				Solid,MissilesPassThrough,Light,Trap	1	0	96	Bottom
-OBJ_CHEST2	chest2	1	24				Solid,MissilesPassThrough,Light,Trap	1	0	96	Bottom
-OBJ_CHEST3	chest3	1	24				Solid,MissilesPassThrough,Light,Trap	1	0	96	Bottom
-OBJ_CANDLE1	l1braz	0	0					0	0	0	
-OBJ_CANDLE2	candle2	0	0		THEME_SHRINE	Q_PWATER	Animated,Solid,MissilesPassThrough,Light	2	4	96	
-OBJ_CANDLEO	l1braz	0	0					0	0	0	
-OBJ_BANNERL	banner	0	0		THEME_SKELROOM		Solid,MissilesPassThrough,Light	2	0	96	
-OBJ_BANNERM	banner	0	0		THEME_SKELROOM		Solid,MissilesPassThrough,Light	1	0	96	
-OBJ_BANNERR	banner	0	0		THEME_SKELROOM		Solid,MissilesPassThrough,Light	3	0	96	
-OBJ_SKPILE	skulpile	0	0				Solid,MissilesPassThrough,Light	1	1	96	
-OBJ_SKSTICK1	l1braz	0	0					0	0	0	
-OBJ_SKSTICK2	l1braz	0	0					0	0	0	
-OBJ_SKSTICK3	l1braz	0	0					0	0	0	
-OBJ_SKSTICK4	l1braz	0	0					0	0	0	
-OBJ_SKSTICK5	l1braz	0	0					0	0	0	
-OBJ_CRUX1	cruxsk1	0	0				Solid,Light,Breakable	1	15	96	Bottom,Middle
-OBJ_CRUX2	cruxsk2	0	0				Solid,Light,Breakable	1	15	96	Bottom,Middle
-OBJ_CRUX3	cruxsk3	0	0				Solid,Light,Breakable	1	15	96	Bottom,Middle
-OBJ_STAND	rockstan	5	5				Solid,MissilesPassThrough,Light	1	0	96	
-OBJ_ANGEL	angel	0	0				Solid,Light	1	0	96	
-OBJ_BOOK2L	book2	0	0				Solid,MissilesPassThrough,Light	1	0	96	Bottom,Middle
-OBJ_BCROSS	burncros	0	0				Animated,Solid	0	10	160	
-OBJ_NUDEW2R	nude2	0	0				Animated,Solid,Light	3	6	128	
-OBJ_SWITCHSKL	switch4	16	16				Solid,MissilesPassThrough,Light,Trap	1	0	96	Bottom
-OBJ_TNUDEM1	tnudem	13	15			Q_BUTCHER	Solid,Light	1	0	128	
-OBJ_TNUDEM2	tnudem	13	15		THEME_TORTURE	Q_BUTCHER	Solid,Light	2	0	128	
-OBJ_TNUDEM3	tnudem	13	15		THEME_TORTURE	Q_BUTCHER	Solid,Light	3	0	128	
-OBJ_TNUDEM4	tnudem	13	15		THEME_TORTURE	Q_BUTCHER	Solid,Light	4	0	128	
-OBJ_TNUDEW1	tnudew	13	15		THEME_TORTURE	Q_BUTCHER	Solid,Light	1	0	128	
-OBJ_TNUDEW2	tnudew	13	15		THEME_TORTURE	Q_BUTCHER	Solid,Light	2	0	128	
-OBJ_TNUDEW3	tnudew	13	15		THEME_TORTURE	Q_BUTCHER	Solid,Light	3	0	128	
-OBJ_TORTURE1	tsoul	13	15			Q_BUTCHER	MissilesPassThrough,Light	1	0	128	
-OBJ_TORTURE2	tsoul	13	15			Q_BUTCHER	MissilesPassThrough,Light	2	0	128	
-OBJ_TORTURE3	tsoul	13	15			Q_BUTCHER	MissilesPassThrough,Light	3	0	128	
-OBJ_TORTURE4	tsoul	13	15			Q_BUTCHER	MissilesPassThrough,Light	4	0	128	
-OBJ_TORTURE5	tsoul	13	15			Q_BUTCHER	MissilesPassThrough,Light	5	0	128	
-OBJ_BOOK2R	book2	6	6				Solid,MissilesPassThrough,Light	4	0	96	Bottom,Middle
-OBJ_L2LDOOR	l2doors	0	0	DTYPE_CATACOMBS			Light,Trap	1	0	64	Bottom,Middle
-OBJ_L2RDOOR	l2doors	0	0	DTYPE_CATACOMBS			Light,Trap	2	0	64	Bottom,Middle
-OBJ_TORCHL	wtorch4	5	8				Animated,MissilesPassThrough	1	9	96	
-OBJ_TORCHR	wtorch3	5	8				Animated,MissilesPassThrough	1	9	96	
-OBJ_TORCHL2	wtorch1	5	8				Animated,MissilesPassThrough	1	9	96	
-OBJ_TORCHR2	wtorch2	5	8				Animated,MissilesPassThrough	1	9	96	
-OBJ_SARC	sarc	1	4				Solid,MissilesPassThrough,Light,Trap	1	5	128	Bottom,Middle
-OBJ_FLAMEHOLE	flame1	0	0				MissilesPassThrough,Light	1	20	96	
-OBJ_FLAMELVR	lever	0	0				Solid,MissilesPassThrough,Light,Trap	1	2	96	Bottom
-OBJ_WATER	miniwatr	0	0				Animated,Solid,Light	1	10	64	
-OBJ_BOOKLVR	book1	0	0				Solid,MissilesPassThrough,Light	1	0	96	Bottom,Middle
-OBJ_TRAPL	traphole	1	24				MissilesPassThrough,Light	1	0	64	
-OBJ_TRAPR	traphole	1	24				MissilesPassThrough,Light	2	0	64	
-OBJ_BOOKSHELF	bcase	0	0				Solid,Light	1	0	96	
-OBJ_WEAPRACK	weapstnd	0	0				Solid,Light	1	0	96	
-OBJ_BARREL	barrel	1	15				Solid,MissilesPassThrough,Light,Breakable	1	9	96	Bottom,Middle
-OBJ_BARRELEX	barrelex	1	15				Solid,MissilesPassThrough,Light,Breakable	1	10	96	Bottom,Middle
-OBJ_SHRINEL	lshrineg	0	0		THEME_SHRINE		Light	1	11	128	Bottom,Middle
-OBJ_SHRINER	rshrineg	0	0		THEME_SHRINE		Light	1	11	128	Bottom,Middle
-OBJ_SKELBOOK	book2	0	0		THEME_SKELROOM		Solid,MissilesPassThrough,Light	4	0	96	Bottom,Middle
-OBJ_BOOKCASEL	bcase	0	0		THEME_LIBRARY		Solid,Light	3	0	96	Bottom,Middle
-OBJ_BOOKCASER	bcase	0	0		THEME_LIBRARY		Solid,Light	4	0	96	Bottom,Middle
-OBJ_BOOKSTAND	book2	0	0		THEME_LIBRARY		Solid,MissilesPassThrough,Light	1	0	96	Bottom,Middle
-OBJ_BOOKCANDLE	candle2	0	0		THEME_LIBRARY		Animated,Solid,MissilesPassThrough,Light	2	4	96	
-OBJ_BLOODFTN	bloodfnt	0	0		THEME_BLOODFOUNTAIN		Animated,Solid,MissilesPassThrough,Light	2	10	96	Bottom,Middle
-OBJ_DECAP	decap	13	15		THEME_DECAPITATED		Solid,MissilesPassThrough,Light	1	0	96	Bottom
-OBJ_TCHEST1	chest1	1	24				Solid,MissilesPassThrough,Light,Trap	1	0	96	Bottom
-OBJ_TCHEST2	chest2	1	24				Solid,MissilesPassThrough,Light,Trap	1	0	96	Bottom
-OBJ_TCHEST3	chest3	1	24				Solid,MissilesPassThrough,Light,Trap	1	0	96	Bottom
-OBJ_BLINDBOOK	book1	0	0			Q_BLIND	Solid,MissilesPassThrough,Light	1	0	96	Bottom,Middle
-OBJ_BLOODBOOK	book1	0	0			Q_BLOOD	Solid,MissilesPassThrough,Light	4	0	96	Bottom,Middle
-OBJ_PEDESTAL	pedistl	0	0			Q_BLOOD	Solid,MissilesPassThrough,Light	1	0	96	Bottom,Middle
-OBJ_L3LDOOR	l3doors	0	0	DTYPE_CAVES			Light,Trap	1	0	64	Bottom,Middle
-OBJ_L3RDOOR	l3doors	0	0	DTYPE_CAVES			Light,Trap	2	0	64	Bottom,Middle
-OBJ_PURIFYINGFTN	pfountn	0	0		THEME_PURIFYINGFOUNTAIN		Animated,Solid,MissilesPassThrough,Light	2	10	128	Bottom,Middle
-OBJ_ARMORSTAND	armstand	0	0		THEME_ARMORSTAND		Solid,Light	1	0	96	Bottom,Middle
-OBJ_ARMORSTANDN	armstand	0	0		THEME_ARMORSTAND		Solid,Light	2	0	96	
-OBJ_GOATSHRINE	goatshrn	0	0		THEME_GOATSHRINE		Animated,Solid,MissilesPassThrough,Light	2	10	96	Bottom,Middle
-OBJ_CAULDRON	cauldren	13	15				Solid,Light	1	0	96	Bottom,Middle
-OBJ_MURKYFTN	mfountn	0	0		THEME_MURKYFOUNTAIN		Animated,Solid,MissilesPassThrough,Light	2	10	128	Bottom,Middle
-OBJ_TEARFTN	tfountn	0	0		THEME_TEARFOUNTAIN		Animated,Solid,MissilesPassThrough,Light	2	4	128	Bottom,Middle
-OBJ_ALTBOY	altboy	0	0			Q_BETRAYER	Solid,MissilesPassThrough,Light	1	0	128	
-OBJ_MCIRCLE1	mcirl	0	0			Q_BETRAYER	MissilesPassThrough,Light	1	0	96	
-OBJ_MCIRCLE2	mcirl	0	0			Q_BETRAYER	MissilesPassThrough,Light	1	0	96	
-OBJ_STORYBOOK	bkslbrnt	0	0				Solid,MissilesPassThrough,Light	1	0	96	Bottom,Middle
-OBJ_STORYCANDLE	candle2	0	0			Q_BETRAYER	Animated,Solid,MissilesPassThrough,Light	2	4	96	
-OBJ_STEELTOME	book1	0	0			Q_WARLORD	Solid,MissilesPassThrough,Light	4	0	96	Bottom,Middle
-OBJ_WARARMOR	armstand	0	0			Q_WARLORD	Solid,Light	1	0	96	Bottom,Middle
-OBJ_WARWEAP	weapstnd	0	0			Q_WARLORD	Solid,Light	1	0	96	Bottom,Middle
-OBJ_TBCROSS	burncros	0	0		THEME_BRNCROSS		Animated,Solid	0	10	160	
-OBJ_WEAPONRACK	weapstnd	0	0		THEME_WEAPONRACK		Solid,Light	1	0	96	Bottom,Middle
-OBJ_WEAPONRACKN	weapstnd	0	0		THEME_WEAPONRACK		Solid,Light	2	0	96	
-OBJ_MUSHPATCH	mushptch	0	0			Q_MUSHROOM	Solid,MissilesPassThrough,Light,Trap	1	0	96	Bottom,Middle
-OBJ_LAZSTAND	lzstand	0	0			Q_BETRAYER	Solid,Light	1	0	128	Bottom,Middle
-OBJ_SLAINHERO	decap	9	9				Solid,MissilesPassThrough,Light	2	0	96	Bottom
-OBJ_SIGNCHEST	chest3	0	0				Solid,MissilesPassThrough,Light	1	0	96	Bottom
-OBJ_BOOKSHELFR	bcase	0	0				Solid,Light	2	0	96	
-OBJ_POD	l6pod1	17	20				Solid,MissilesPassThrough,Light,Breakable	1	9	96	Bottom,Middle
-OBJ_PODEX	l6pod2	17	20				Solid,MissilesPassThrough,Light,Breakable	1	10	96	Bottom,Middle
-OBJ_URN	urn	21	24				Solid,MissilesPassThrough,Light,Breakable	1	9	96	Bottom,Middle
-OBJ_URNEX	urnexpld	21	24				Solid,MissilesPassThrough,Light,Breakable	1	10	96	Bottom,Middle
-OBJ_L5BOOKS	l5books	21	24				Solid,MissilesPassThrough,Light	1	0	96	Bottom,Middle
-OBJ_L5CANDLE	l5light	21	23				Animated,Solid,MissilesPassThrough,Light	2	4	96	
-OBJ_L5LDOOR	l5door	0	0	DTYPE_CRYPT			Light,Trap	1	0	64	Bottom,Middle
-OBJ_L5RDOOR	l5door	0	0	DTYPE_CRYPT			Light,Trap	2	0	64	Bottom,Middle
-OBJ_L5LEVER	l5lever	24	24				Solid,MissilesPassThrough,Light,Trap	1	1	96	Bottom
-OBJ_L5SARC	l5sarco	21	24				Solid,MissilesPassThrough,Light,Trap	1	5	128	Bottom,Middle
+id	file	minLevel	maxLevel	levelType	theme	quest	flags	animDelay	animLen	animWidth	selectionRegion	shadowRule
+OBJ_L1LIGHT	l1braz	0	0	DTYPE_CATHEDRAL			Animated,Solid,MissilesPassThrough	1	26	64		None
+OBJ_L1LDOOR	l1doors	0	0	DTYPE_CATHEDRAL			Light,Trap	1	0	64	Bottom,Middle	None
+OBJ_L1RDOOR	l1doors	0	0	DTYPE_CATHEDRAL			Light,Trap	2	0	64	Bottom,Middle	None
+OBJ_SKFIRE	skulfire	0	0		THEME_SKELROOM		Animated,Solid,MissilesPassThrough	2	11	96		FirstFrame
+OBJ_LEVER	lever	0	0				Solid,MissilesPassThrough,Light,Trap	1	1	96	Bottom	FirstFrame
+OBJ_CHEST1	chest1	1	24				Solid,MissilesPassThrough,Light,Trap	1	0	96	Bottom	EachFrame
+OBJ_CHEST2	chest2	1	24				Solid,MissilesPassThrough,Light,Trap	1	0	96	Bottom	EachFrame
+OBJ_CHEST3	chest3	1	24				Solid,MissilesPassThrough,Light,Trap	1	0	96	Bottom	EachFrame
+OBJ_CANDLE1	l1braz	0	0					0	0	0		None
+OBJ_CANDLE2	candle2	0	0		THEME_SHRINE	Q_PWATER	Animated,Solid,MissilesPassThrough,Light	2	4	96		FirstFrame
+OBJ_CANDLEO	l1braz	0	0					0	0	0		None
+OBJ_BANNERL	banner	0	0		THEME_SKELROOM		Solid,MissilesPassThrough,Light	2	0	96		EachFrame
+OBJ_BANNERM	banner	0	0		THEME_SKELROOM		Solid,MissilesPassThrough,Light	1	0	96		EachFrame
+OBJ_BANNERR	banner	0	0		THEME_SKELROOM		Solid,MissilesPassThrough,Light	3	0	96		EachFrame
+OBJ_SKPILE	skulpile	0	0				Solid,MissilesPassThrough,Light	1	1	96		FirstFrame
+OBJ_SKSTICK1	l1braz	0	0					0	0	0		None
+OBJ_SKSTICK2	l1braz	0	0					0	0	0		None
+OBJ_SKSTICK3	l1braz	0	0					0	0	0		None
+OBJ_SKSTICK4	l1braz	0	0					0	0	0		None
+OBJ_SKSTICK5	l1braz	0	0					0	0	0		None
+OBJ_CRUX1	cruxsk1	0	0				Solid,Light,Breakable	1	15	96	Bottom,Middle	EachFrame
+OBJ_CRUX2	cruxsk2	0	0				Solid,Light,Breakable	1	15	96	Bottom,Middle	EachFrame
+OBJ_CRUX3	cruxsk3	0	0				Solid,Light,Breakable	1	15	96	Bottom,Middle	EachFrame
+OBJ_STAND	rockstan	5	5				Solid,MissilesPassThrough,Light	1	0	96		None
+OBJ_ANGEL	angel	0	0				Solid,Light	1	0	96		EachFrame
+OBJ_BOOK2L	book2	0	0				Solid,MissilesPassThrough,Light	1	0	96	Bottom,Middle	EachFrame
+OBJ_BCROSS	burncros	0	0				Animated,Solid	0	10	160		None
+OBJ_NUDEW2R	nude2	0	0				Animated,Solid,Light	3	6	128		None
+OBJ_SWITCHSKL	switch4	16	16				Solid,MissilesPassThrough,Light,Trap	1	0	96	Bottom	FirstFrame
+OBJ_TNUDEM1	tnudem	13	15			Q_BUTCHER	Solid,Light	1	0	128		EachFrame
+OBJ_TNUDEM2	tnudem	13	15		THEME_TORTURE	Q_BUTCHER	Solid,Light	2	0	128		EachFrame
+OBJ_TNUDEM3	tnudem	13	15		THEME_TORTURE	Q_BUTCHER	Solid,Light	3	0	128		EachFrame
+OBJ_TNUDEM4	tnudem	13	15		THEME_TORTURE	Q_BUTCHER	Solid,Light	4	0	128		EachFrame
+OBJ_TNUDEW1	tnudew	13	15		THEME_TORTURE	Q_BUTCHER	Solid,Light	1	0	128		EachFrame
+OBJ_TNUDEW2	tnudew	13	15		THEME_TORTURE	Q_BUTCHER	Solid,Light	2	0	128		EachFrame
+OBJ_TNUDEW3	tnudew	13	15		THEME_TORTURE	Q_BUTCHER	Solid,Light	3	0	128		EachFrame
+OBJ_TORTURE1	tsoul	13	15			Q_BUTCHER	MissilesPassThrough,Light	1	0	128		None
+OBJ_TORTURE2	tsoul	13	15			Q_BUTCHER	MissilesPassThrough,Light	2	0	128		None
+OBJ_TORTURE3	tsoul	13	15			Q_BUTCHER	MissilesPassThrough,Light	3	0	128		None
+OBJ_TORTURE4	tsoul	13	15			Q_BUTCHER	MissilesPassThrough,Light	4	0	128		None
+OBJ_TORTURE5	tsoul	13	15			Q_BUTCHER	MissilesPassThrough,Light	5	0	128		None
+OBJ_BOOK2R	book2	6	6				Solid,MissilesPassThrough,Light	4	0	96	Bottom,Middle	EachFrame
+OBJ_L2LDOOR	l2doors	0	0	DTYPE_CATACOMBS			Light,Trap	1	0	64	Bottom,Middle	None
+OBJ_L2RDOOR	l2doors	0	0	DTYPE_CATACOMBS			Light,Trap	2	0	64	Bottom,Middle	None
+OBJ_TORCHL	wtorch4	5	8				Animated,MissilesPassThrough	1	9	96		None
+OBJ_TORCHR	wtorch3	5	8				Animated,MissilesPassThrough	1	9	96		None
+OBJ_TORCHL2	wtorch1	5	8				Animated,MissilesPassThrough	1	9	96		None
+OBJ_TORCHR2	wtorch2	5	8				Animated,MissilesPassThrough	1	9	96		None
+OBJ_SARC	sarc	1	4				Solid,MissilesPassThrough,Light,Trap	1	5	128	Bottom,Middle	FirstFrame
+OBJ_FLAMEHOLE	flame1	0	0				MissilesPassThrough,Light	1	20	96		None
+OBJ_FLAMELVR	lever	0	0				Solid,MissilesPassThrough,Light,Trap	1	2	96	Bottom	FirstFrame
+OBJ_WATER	miniwatr	0	0				Animated,Solid,Light	1	10	64		None
+OBJ_BOOKLVR	book1	0	0				Solid,MissilesPassThrough,Light	1	0	96	Bottom,Middle	EachFrame
+OBJ_TRAPL	traphole	1	24				MissilesPassThrough,Light	1	0	64		None
+OBJ_TRAPR	traphole	1	24				MissilesPassThrough,Light	2	0	64		None
+OBJ_BOOKSHELF	bcase	0	0				Solid,Light	1	0	96		None
+OBJ_WEAPRACK	weapstnd	0	0				Solid,Light	1	0	96		EachFrame
+OBJ_BARREL	barrel	1	15				Solid,MissilesPassThrough,Light,Breakable	1	9	96	Bottom,Middle	FirstFrame
+OBJ_BARRELEX	barrelex	1	15				Solid,MissilesPassThrough,Light,Breakable	1	10	96	Bottom,Middle	FirstFrame
+OBJ_SHRINEL	lshrineg	0	0		THEME_SHRINE		Light	1	11	128	Bottom,Middle	None
+OBJ_SHRINER	rshrineg	0	0		THEME_SHRINE		Light	1	11	128	Bottom,Middle	None
+OBJ_SKELBOOK	book2	0	0		THEME_SKELROOM		Solid,MissilesPassThrough,Light	4	0	96	Bottom,Middle	EachFrame
+OBJ_BOOKCASEL	bcase	0	0		THEME_LIBRARY		Solid,Light	3	0	96	Bottom,Middle	None
+OBJ_BOOKCASER	bcase	0	0		THEME_LIBRARY		Solid,Light	4	0	96	Bottom,Middle	None
+OBJ_BOOKSTAND	book2	0	0		THEME_LIBRARY		Solid,MissilesPassThrough,Light	1	0	96	Bottom,Middle	EachFrame
+OBJ_BOOKCANDLE	candle2	0	0		THEME_LIBRARY		Animated,Solid,MissilesPassThrough,Light	2	4	96		FirstFrame
+OBJ_BLOODFTN	bloodfnt	0	0		THEME_BLOODFOUNTAIN		Animated,Solid,MissilesPassThrough,Light	2	10	96	Bottom,Middle	None
+OBJ_DECAP	decap	13	15		THEME_DECAPITATED		Solid,MissilesPassThrough,Light	1	0	96	Bottom	FirstFrame
+OBJ_TCHEST1	chest1	1	24				Solid,MissilesPassThrough,Light,Trap	1	0	96	Bottom	EachFrame
+OBJ_TCHEST2	chest2	1	24				Solid,MissilesPassThrough,Light,Trap	1	0	96	Bottom	EachFrame
+OBJ_TCHEST3	chest3	1	24				Solid,MissilesPassThrough,Light,Trap	1	0	96	Bottom	EachFrame
+OBJ_BLINDBOOK	book1	0	0			Q_BLIND	Solid,MissilesPassThrough,Light	1	0	96	Bottom,Middle	EachFrame
+OBJ_BLOODBOOK	book1	0	0			Q_BLOOD	Solid,MissilesPassThrough,Light	4	0	96	Bottom,Middle	EachFrame
+OBJ_PEDESTAL	pedistl	0	0			Q_BLOOD	Solid,MissilesPassThrough,Light	1	0	96	Bottom,Middle	FirstFrame
+OBJ_L3LDOOR	l3doors	0	0	DTYPE_CAVES			Light,Trap	1	0	64	Bottom,Middle	None
+OBJ_L3RDOOR	l3doors	0	0	DTYPE_CAVES			Light,Trap	2	0	64	Bottom,Middle	None
+OBJ_PURIFYINGFTN	pfountn	0	0		THEME_PURIFYINGFOUNTAIN		Animated,Solid,MissilesPassThrough,Light	2	10	128	Bottom,Middle	None
+OBJ_ARMORSTAND	armstand	0	0		THEME_ARMORSTAND		Solid,Light	1	0	96	Bottom,Middle	FirstFrame
+OBJ_ARMORSTANDN	armstand	0	0		THEME_ARMORSTAND		Solid,Light	2	0	96		FirstFrame
+OBJ_GOATSHRINE	goatshrn	0	0		THEME_GOATSHRINE		Animated,Solid,MissilesPassThrough,Light	2	10	96	Bottom,Middle	None
+OBJ_CAULDRON	cauldren	13	15				Solid,Light	1	0	96	Bottom,Middle	Baked
+OBJ_MURKYFTN	mfountn	0	0		THEME_MURKYFOUNTAIN		Animated,Solid,MissilesPassThrough,Light	2	10	128	Bottom,Middle	None
+OBJ_TEARFTN	tfountn	0	0		THEME_TEARFOUNTAIN		Animated,Solid,MissilesPassThrough,Light	2	4	128	Bottom,Middle	None
+OBJ_ALTBOY	altboy	0	0			Q_BETRAYER	Solid,MissilesPassThrough,Light	1	0	128		FirstFrame
+OBJ_MCIRCLE1	mcirl	0	0			Q_BETRAYER	MissilesPassThrough,Light	1	0	96		None
+OBJ_MCIRCLE2	mcirl	0	0			Q_BETRAYER	MissilesPassThrough,Light	1	0	96		None
+OBJ_STORYBOOK	bkslbrnt	0	0				Solid,MissilesPassThrough,Light	1	0	96	Bottom,Middle	FirstFrame
+OBJ_STORYCANDLE	candle2	0	0			Q_BETRAYER	Animated,Solid,MissilesPassThrough,Light	2	4	96		FirstFrame
+OBJ_STEELTOME	book1	0	0			Q_WARLORD	Solid,MissilesPassThrough,Light	4	0	96	Bottom,Middle	EachFrame
+OBJ_WARARMOR	armstand	0	0			Q_WARLORD	Solid,Light	1	0	96	Bottom,Middle	FirstFrame
+OBJ_WARWEAP	weapstnd	0	0			Q_WARLORD	Solid,Light	1	0	96	Bottom,Middle	EachFrame
+OBJ_TBCROSS	burncros	0	0		THEME_BRNCROSS		Animated,Solid	0	10	160		None
+OBJ_WEAPONRACK	weapstnd	0	0		THEME_WEAPONRACK		Solid,Light	1	0	96	Bottom,Middle	EachFrame
+OBJ_WEAPONRACKN	weapstnd	0	0		THEME_WEAPONRACK		Solid,Light	2	0	96		EachFrame
+OBJ_MUSHPATCH	mushptch	0	0			Q_MUSHROOM	Solid,MissilesPassThrough,Light,Trap	1	0	96	Bottom,Middle	None
+OBJ_LAZSTAND	lzstand	0	0			Q_BETRAYER	Solid,Light	1	0	128	Bottom,Middle	FirstFrame
+OBJ_SLAINHERO	decap	9	9				Solid,MissilesPassThrough,Light	2	0	96	Bottom	FirstFrame
+OBJ_SIGNCHEST	chest3	0	0				Solid,MissilesPassThrough,Light	1	0	96	Bottom	EachFrame
+OBJ_BOOKSHELFR	bcase	0	0				Solid,Light	2	0	96		None
+OBJ_POD	l6pod1	17	20				Solid,MissilesPassThrough,Light,Breakable	1	9	96	Bottom,Middle	None
+OBJ_PODEX	l6pod2	17	20				Solid,MissilesPassThrough,Light,Breakable	1	10	96	Bottom,Middle	None
+OBJ_URN	urn	21	24				Solid,MissilesPassThrough,Light,Breakable	1	9	96	Bottom,Middle	EachFrame
+OBJ_URNEX	urnexpld	21	24				Solid,MissilesPassThrough,Light,Breakable	1	10	96	Bottom,Middle	EachFrame
+OBJ_L5BOOKS	l5books	21	24				Solid,MissilesPassThrough,Light	1	0	96	Bottom,Middle	None
+OBJ_L5CANDLE	l5light	21	23				Animated,Solid,MissilesPassThrough,Light	2	4	96		FirstFrame
+OBJ_L5LDOOR	l5door	0	0	DTYPE_CRYPT			Light,Trap	1	0	64	Bottom,Middle	None
+OBJ_L5RDOOR	l5door	0	0	DTYPE_CRYPT			Light,Trap	2	0	64	Bottom,Middle	None
+OBJ_L5LEVER	l5lever	24	24				Solid,MissilesPassThrough,Light,Trap	1	1	96	Bottom	None
+OBJ_L5SARC	l5sarco	21	24				Solid,MissilesPassThrough,Light,Trap	1	5	128	Bottom,Middle	None

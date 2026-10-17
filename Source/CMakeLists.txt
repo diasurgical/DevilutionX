@@ -228,6 +228,16 @@ target_link_dependencies(libdevilutionx_cl2_to_clx
   libdevilutionx_endian_write
 )
 
+add_devilutionx_object_library(libdevilutionx_clx_shadow
+  utils/clx_shadow.cpp
+)
+target_link_dependencies(libdevilutionx_clx_shadow
+  PUBLIC
+  libdevilutionx_strings
+  PRIVATE
+  libdevilutionx_endian_write
+)
+
 add_devilutionx_object_library(libdevilutionx_clx_render
   engine/render/clx_render.cpp
 )
@@ -1060,6 +1070,7 @@ target_link_dependencies(libdevilutionx PUBLIC
   unordered_dense::unordered_dense
   libdevilutionx_assets
   libdevilutionx_clx_render
+  libdevilutionx_clx_shadow
   libdevilutionx_codec
   libdevilutionx_config
   libdevilutionx_control

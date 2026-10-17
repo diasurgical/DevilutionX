@@ -5,6 +5,8 @@
 #include <vector>
 
 #include "engine/assets.hpp"
+#include "engine/load_shadow_fixes.hpp"
+#include "engine/shadow_fix.hpp"
 #include "utils/file_util.h"
 #include "utils/paths.h"
 
@@ -132,5 +134,23 @@ TEST_F(HasLooseLogicAssetsTest, InactiveLooseModsAreInert)
 	EXPECT_FALSE(HasLooseLogicAssets());
 }
 #endif // !UNPACKED_MPQS
+
+TEST(LoadShadowFixesTest, LoadsTheCorrectionsStoredNextToASpriteFile)
+{
+	// The cauldron is the one object whose shadow cannot be separated by a rule.
+	const ShadowFixData fixes = LoadShadowFixes("objects\\cauldren");
+	ASSERT_GT(fixes.size, ShadowFixHeaderSize);
+	ShadowFixReader reader { fixes, 1 };
+	ASSERT_TRUE(reader.ok());
+	EXPECT_TRUE(reader.beginList(3));
+	for (int i = 0; i < 3; ++i)
+		EXPECT_FALSE(reader.nextFrame(96, 96).empty());
+	EXPECT_TRUE(reader.ok());
+}
+
+TEST(LoadShadowFixesTest, SpriteFileWithoutCorrections)
+{
+	EXPECT_EQ(LoadShadowFixes("objects\\no_such_object").size, 0U);
+}
 
 } // namespace

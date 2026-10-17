@@ -250,6 +250,7 @@ void LoadClassSpriteData(std::string_view classPath, PlayerSpriteData &spriteDat
 	reader.readInt("fire", spriteData.fire);
 	reader.readInt("magic", spriteData.magic);
 	reader.readInt("death", spriteData.death);
+	reader.read("shadowRule", spriteData.shadowRule, ParseShadowRule);
 }
 
 void LoadClassAnimData(std::string_view classPath, PlayerAnimData &animData)

@@ -223,6 +223,14 @@ set(devilutionx_assets
   ui_art/dvl_lrpopup.clx
   ui_art/mainmenuw.clx)
 
+# Shadow corrections are stored next to the sprite files that they belong to
+# (see `Source/engine/shadow_fix.hpp`). There is one for most sprite files,
+# so they are found rather than listed.
+file(GLOB_RECURSE devilutionx_shadow_fixes
+  RELATIVE "${PROJECT_SOURCE_DIR}/assets"
+  CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/assets/*.shadowfix")
+list(APPEND devilutionx_assets ${devilutionx_shadow_fixes})
+
 if(NOT UNPACKED_MPQS)
   list(APPEND devilutionx_assets
     data/inv/objcurs-widths.txt)

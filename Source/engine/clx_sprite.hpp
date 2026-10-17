@@ -12,13 +12,15 @@
  * 1. CLX frame header stores frame width and height.
  * 2. CLX frame header does not store 32-pixel block offsets.
  *
- * CLX frame header is 6 bytes:
+ * CLX frame header is at least 6 bytes:
  *
  *  Bytes |   Type   | Value
  * :-----:|:--------:|-------------
  *  0..2  | uint16_t | header size
  *  2..4  | uint16_t | width
  *  4..6  | uint16_t | height
+ *
+ * A header larger than 6 bytes holds the shadow mask of the sprite, see `shadow_mask.hpp`.
  *
  * CL2 reference: https://github.com/savagesteel/d1-file-formats/blob/master/PC-Mac/CL2.md#2-file-structure
  */
@@ -42,6 +44,9 @@ class OptionalClxSprite;
  */
 class ClxSprite {
 public:
+	/** The size of a frame header without an extension. */
+	static constexpr uint16_t BaseHeaderSize = 6;
+
 	explicit constexpr ClxSprite(const uint8_t *data, uint32_t dataSize)
 	    : data_(data)
 	    , pixel_data_size_(dataSize - LoadLE16(data))
@@ -57,6 +62,18 @@ public:
 	[[nodiscard]] constexpr uint16_t height() const
 	{
 		return LoadLE16(&data_[4]);
+	}
+
+	/** @brief The size of the frame header, including anything that follows the height. */
+	[[nodiscard]] constexpr uint16_t headerSize() const
+	{
+		return LoadLE16(data_);
+	}
+
+	/** @brief The part of the frame header that follows the height. Empty for most sprites. */
+	[[nodiscard]] constexpr const uint8_t *headerExtension() const
+	{
+		return &data_[BaseHeaderSize];
 	}
 
 	/**

@@ -25,6 +25,7 @@
 #include "engine/backbuffer_state.hpp"
 #include "engine/load_cl2.hpp"
 #include "engine/load_file.hpp"
+#include "engine/load_shadow_fixes.hpp"
 #include "engine/points_in_rectangle_range.hpp"
 #include "engine/random.hpp"
 #include "engine/render/clx_render.hpp"
@@ -52,6 +53,7 @@
 #include "spells.h"
 #include "stores.h"
 #include "towners.h"
+#include "utils/clx_shadow.hpp"
 #include "utils/format.hpp"
 #include "utils/is_of.hpp"
 #include "utils/language.h"
@@ -2160,6 +2162,7 @@ void LoadPlrGFX(Player &player, player_graphic graphic)
 	GetPlayerGraphicsPath(path, std::string_view(prefixBuf, 3), szCel, pszName);
 	const uint16_t animationWidth = GetPlayerSpriteWidth(cls, graphic, animWeaponId);
 	animationData.sprites = LoadCl2Sheet(pszName, animationWidth);
+	ExtractClxShadowsInPlace(*animationData.sprites, spriteData.shadowRule, LoadShadowFixes(pszName));
 	std::optional<std::array<uint8_t, 256>> graphicTRN = GetPlayerGraphicTRN(pszName);
 	if (graphicTRN) {
 		ClxApplyTrans(*animationData.sprites, graphicTRN->data());
