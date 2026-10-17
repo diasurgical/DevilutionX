@@ -11,7 +11,7 @@ if dpkg-vendor --derives-from Ubuntu; then
 	sudo tee /etc/apt/sources.list.d/i386.sources <<LIST
 Types: deb deb-src
 URIs: http://archive.ubuntu.com/ubuntu/
-Suites: ${FLAVOR} ${FLAVOR}-updates ${FLAVOR}-backports
+Suites: ${FLAVOR} ${FLAVOR}-updates ${FLAVOR}-backports ${FLAVOR}-security
 Architectures: i386
 Components: main restricted universe multiverse
 Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
