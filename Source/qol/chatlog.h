@@ -11,7 +11,19 @@
 
 namespace devilution {
 
+struct ColoredText {
+	std::string text;
+	UiFlags color;
+};
+
+struct MultiColoredText {
+	std::string text;
+	std::vector<ColoredText> colors;
+};
+
 extern bool ChatLogFlag;
+extern std::vector<MultiColoredText> ChatLogLines;
+extern unsigned int MessageCounter;
 
 void ToggleChatLog();
 void AddMessageToChatLog(std::string_view message, Player *player = nullptr, UiFlags flags = UiFlags::ColorWhite);
