@@ -278,7 +278,7 @@ endif()
 # referenced (magic_enum's per-enum name tables are the visible casualty: the
 # string_views survive with correct lengths but point at collected storage, so
 # every enum name reads as garbage). Excluded here for the same reason as PS4.
-if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang" AND NOT PS4 AND NOT AMIGA)
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang" AND NOT PS4 AND NOT AMIGA AND NOT PSP)
   add_compile_options("$<$<NOT:$<CONFIG:Debug>>:-ffunction-sections;-fdata-sections>")
   if(APPLE)
     add_link_options("$<$<NOT:$<CONFIG:Debug>>:LINKER:-dead_strip>")
@@ -498,6 +498,30 @@ if(APPLE)
 
   set(MACOSX_BUNDLE_LONG_VERSION_STRING "Version ${PROJECT_VERSION}")
   set(CPACK On)
+endif()
+
+if(PSP)
+  if(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+    if(NOT CMAKE_STRIP)
+      message(FATAL_ERROR "PSP RelWithDebInfo packaging requires a target strip tool")
+    endif()
+    # Keep an unstripped ELF for symbolication, but do not embed its debug
+    # sections in the EBOOT used on a memory-constrained PSP.
+    add_custom_command(
+      TARGET ${BIN_TARGET} POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy
+        $<TARGET_FILE:${BIN_TARGET}>
+        "${CMAKE_CURRENT_BINARY_DIR}/devilutionx-debug.elf"
+      COMMAND ${CMAKE_STRIP} --strip-debug $<TARGET_FILE:${BIN_TARGET}>
+      VERBATIM)
+  endif()
+  create_pbp_file(
+    TARGET ${BIN_TARGET}
+    ICON_PATH "${PROJECT_SOURCE_DIR}/Packaging/psp/icon.png"
+    BACKGROUND_PATH "${PROJECT_SOURCE_DIR}/Packaging/psp/background.png"
+    PREVIEW_PATH NULL
+    TITLE ${PROJECT_NAME}
+  )
 endif()
 
 if(NINTENDO_SWITCH)

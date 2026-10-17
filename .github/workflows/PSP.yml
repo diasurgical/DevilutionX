@@ -1,0 +1,75 @@
+---
+name: Sony PlayStation Portable
+
+on:  # yamllint disable-line rule:truthy
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
+  pull_request:
+    types: [opened, synchronize]
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
+  release:
+    types: [published]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: ghcr.io/pspdev/pspdev:latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Configure CMake
+        run: |
+          cmake \
+            -S . \
+            -B build \
+            -D CMAKE_BUILD_TYPE=RelWithDebInfo \
+            -D CMAKE_TOOLCHAIN_FILE=${PSPDEV}/psp/share/pspdev.cmake
+
+      - name: Build DevilutionX
+        run: cmake --build build -j$(nproc)
+
+      - name: Upload Package
+        if: ${{ !env.ACT }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: devilutionx-psp
+          if-no-files-found: error
+          path: |
+            build/EBOOT.PBP
+            build/assets/
+            build/mods/
+
+      - name: Upload Debug Executable
+        if: ${{ !env.ACT }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: devilutionx-psp-debug
+          if-no-files-found: error
+          path: build/devilutionx-debug.elf
+
+      - name: Package Release
+        if: ${{ github.event_name == 'release' && !env.ACT }}
+        working-directory: build
+        run: cmake -E tar cf ../devilutionx-psp.zip --format=zip EBOOT.PBP assets mods
+
+      - name: Update Release
+        if: ${{ github.event_name == 'release' && !env.ACT }}
+        uses: svenstaro/upload-release-action@v2
+        with:
+          asset_name: devilutionx-psp.zip
+          file: devilutionx-psp.zip
+          overwrite: true

@@ -431,6 +431,24 @@ cmake --build build
 [PlayStation Vita manual](/docs/manual/platforms/vita.md)
 </details>
 
+<details><summary>PlayStation Portable</summary>
+
+### Installing dependencies
+
+Install the [PSPDEV](https://pspdev.github.io/) toolchain.
+
+### Compiling
+
+```bash
+cmake -S. -Bbuild -DCMAKE_TOOLCHAIN_FILE=${PSPDEV}/psp/share/pspdev.cmake -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j $(getconf _NPROCESSORS_ONLN)
+```
+
+The output files will be generated in the build folder.
+
+[PlayStation Portable manual](/docs/manual/platforms/psp.md)
+</details>
+
 
 <details><summary>Haiku</summary>
 

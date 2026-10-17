@@ -351,6 +351,12 @@ int SoundSample::SetChunkStream(std::string filePath, bool isMp3, bool logErrors
 	file_path_ = std::move(filePath);
 	isMp3_ = isMp3;
 	stream_ = CreateStream(handle, isMp3);
+	if (stream_ == nullptr) {
+		if (logErrors)
+			LogError(LogCategory::Audio, "CreateStream failed (from SoundSample::SetChunkStream) for {}: {}", file_path_, SDL_GetError());
+		return -1;
+	}
+
 	if (!stream_->open()) {
 		stream_ = nullptr;
 		if (logErrors)
@@ -394,6 +400,12 @@ int SoundSample::SetChunk(ArraySharedPtr<std::uint8_t> fileData, std::size_t dwB
 	}
 
 	stream_ = CreateStream(buf, isMp3_);
+	if (stream_ == nullptr) {
+		file_data_ = nullptr;
+		LogError(LogCategory::Audio, "CreateStream failed (from SoundSample::SetChunk): {}", SDL_GetError());
+		return -1;
+	}
+
 	if (!stream_->open()) {
 		stream_ = nullptr;
 		file_data_ = nullptr;

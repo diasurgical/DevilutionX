@@ -108,6 +108,8 @@ const std::string &PrefPath()
 		prefPath = std::string();
 #elif defined(__IPHONEOS__)
 		prefPath = FromSDL(IOSGetPrefPath());
+#elif defined(PSP)
+		prefPath = BasePath();
 #elif defined(NXDK)
 		prefPath = NxdkGetPrefPath();
 #else
@@ -129,6 +131,8 @@ const std::string &ConfigPath()
 		configPath = std::string();
 #elif defined(__IPHONEOS__)
 		configPath = FromSDL(IOSGetPrefPath());
+#elif defined(PSP)
+		configPath = BasePath();
 #elif defined(NXDK)
 		configPath = NxdkGetPrefPath();
 #else

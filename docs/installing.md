@@ -175,6 +175,15 @@ If you'd like to use this option, scan the QR code below.
 
 </details>
 
+<details><summary>PlayStation Portable</summary>
+
+- Copy `EBOOT.PBP` and the `assets` and `mods` folders from `devilutionx-psp.zip` to `PSP/GAME/DevilutionX/` on the Memory Stick
+- Copy the MPQ files to `PSP/GAME/DevilutionX/`
+
+[PlayStation Portable manual](/docs/manual/platforms/psp.md)
+
+</details>
+
 <details><summary>ClockworkPi GameShell</summary>
 
 - Copy the `__init__.py` to a newly created folder under /home/cpi/apps/Menu and run it from the menu. The folder then symbolizes the devilutionX icon.
