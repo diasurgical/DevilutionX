@@ -377,7 +377,7 @@ int SoundSample::SetChunk(ArraySharedPtr<std::uint8_t> fileData, std::size_t dwB
 	}
 
 	// For small sound effects, predecode to avoid repeated decoding overhead.
-	audio_ = MIX_LoadAudio_IO(CurrentMixer, io, /*predecode=*/true, /*closeio=*/true);
+	audio_ = MIX_LoadAudio_IO(CurrentMixer, io, /*predecode=*/false, /*closeio=*/true);
 	if (audio_ == nullptr) {
 		LogError(LogCategory::Audio, "MIX_LoadAudio_IO failed (from SoundSample::SetChunk): {}", SDL_GetError());
 		return -1;
