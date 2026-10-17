@@ -148,6 +148,14 @@ TEST(LoadShadowFixesTest, LoadsTheCorrectionsStoredNextToASpriteFile)
 	EXPECT_TRUE(reader.ok());
 }
 
+TEST(LoadShadowFixesTest, HellfireSpritesHaveTheirCorrectionsInTheHellfireMod)
+{
+	EXPECT_EQ(LoadShadowFixes("plrgfx\\monk\\mha\\mhaat").size, 0U);
+	LoadModArchives({ { "hf" } });
+	EXPECT_GT(LoadShadowFixes("plrgfx\\monk\\mha\\mhaat").size, ShadowFixHeaderSize);
+	UnloadModArchives();
+}
+
 TEST(LoadShadowFixesTest, SpriteFileWithoutCorrections)
 {
 	EXPECT_EQ(LoadShadowFixes("objects\\no_such_object").size, 0U);
