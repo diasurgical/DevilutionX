@@ -92,8 +92,11 @@ foreach(test_target ${tests} ${standalone_tests} ${benchmarks})
   endif()
 endforeach()
 
+# Discover the tests when they are run, not right after each one is linked: on
+# Windows, running a test while others are linking and having their DLLs copied
+# next to them can fail the build with a sharing violation.
 foreach(test_target ${tests} ${standalone_tests})
-  gtest_discover_tests(${test_target})
+  gtest_discover_tests(${test_target} DISCOVERY_MODE PRE_TEST)
 endforeach()
 
 foreach(test_target ${tests})
