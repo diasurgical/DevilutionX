@@ -155,6 +155,20 @@ set_property(CACHE DEVILUTIONX_DEFAULT_RESAMPLER PROPERTY STRINGS ${_resamplers}
 # Optimization / link options
 option(DISABLE_LTO "Disable link-time optimization (by default enabled in release mode)" OFF)
 option(PIE "Generate position-independent code" OFF)
+option(DEVILUTIONX_PCH "Use a shared precompiled header for the devilutionX object libraries" ON)
+
+# Whether one precompiled header can be shared between all the object libraries.
+#
+# They do not all compile with the same defines: linking asio, sol2 or mpqfs
+# adds one, so the set varies per library. GCC and Clang accept a precompiled
+# header whose macro state is a subset of the consumer's, which lets a single
+# minimal PCH serve all of them. MSVC instead requires the options to match and
+# reports a mismatch as an error rather than falling back to parsing the header,
+# so there we give libdevilutionx its own PCH: it is a single target with one
+# flag set, and it is where most of the win is anyway.
+if(DEVILUTIONX_PCH AND NOT MSVC)
+  set(DEVILUTIONX_PCH_SHARED ON)
+endif()
 cmake_dependent_option(DEVILUTIONX_DISABLE_RTTI "Disable RTTI" ON "NONET" OFF)
 cmake_dependent_option(DEVILUTIONX_DISABLE_EXCEPTIONS "Disable exceptions" ON "DISABLE_ZERO_TIER" OFF)
 RELEASE_OPTION(DEVILUTIONX_STATIC_CXX_STDLIB "Link C++ standard library statically (if available)")
@@ -251,6 +265,23 @@ find_program(CCACHE_PROGRAM ccache)
 if(CCACHE_PROGRAM)
   set(CMAKE_C_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
   set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
+
+  if(DEVILUTIONX_PCH)
+    # ccache treats the .gch as an opaque blob, so it cannot tell whether a
+    # difference in `-D` flags or in __TIME__/__DATE__ actually changed the
+    # precompiled output. Left to itself it takes the safe route and misses on
+    # every PCH-using compile, which costs far more than the PCH gains.
+    # The sloppiness has to reach ccache at *build* time, so it goes on the
+    # launcher rather than into the configure-time environment.
+    set(CMAKE_CXX_COMPILER_LAUNCHER
+        "${CMAKE_COMMAND}" -E env CCACHE_SLOPPINESS=pch_defines,time_macros "${CCACHE_PROGRAM}")
+
+    # Emits the `#pragma GCC pch_preprocess` marker that lets ccache hash the
+    # PCH's preprocessed text instead of bailing out. No-op without a PCH.
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+      add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-fpch-preprocess>)
+    endif()
+  endif()
 endif()
 
 if(DEVILUTIONX_DISABLE_RTTI)
