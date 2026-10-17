@@ -2173,11 +2173,14 @@ void SetupTownStores()
 	}
 
 	l = std::clamp(l + 2, 6, 16);
+
 	SpawnSmith(l);
 	SpawnWitch(l);
 	SpawnHealer(l);
-	SpawnBoy(myPlayer.getCharacterLevel());
-	SpawnPremium(myPlayer);
+	if (BoyItem.isEmpty())
+		SpawnBoy(myPlayer.getCharacterLevel());
+	if (PremiumItems.empty())
+		SpawnPremium(myPlayer);
 }
 
 void FreeStoreMem()
