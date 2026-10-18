@@ -14,6 +14,8 @@ namespace devilution {
 /** Specify if the quest dialog window is being shown */
 extern DVL_API_FOR_TEST bool qtextflag;
 
+extern std::vector<std::string> TextLines;
+
 /**
  * @brief Free the resources used by the quest dialog window
  */
