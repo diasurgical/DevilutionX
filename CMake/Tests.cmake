@@ -11,6 +11,7 @@ add_library(test_main OBJECT test/main.cpp)
 target_link_dependencies(test_main PUBLIC libdevilutionx_so GTest::gtest GTest::gmock)
 
 set(tests
+  abysmal_test
   animationinfo_test
   appfat_test
   assets_test
