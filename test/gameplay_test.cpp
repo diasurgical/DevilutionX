@@ -8,6 +8,7 @@
 #include "monster.h"
 #include "panels/spell_icons.hpp"
 #include "player.h"
+#include "storm/storm_net.hpp"
 #include "tables/gameplay.h"
 
 namespace devilution {
@@ -25,10 +26,12 @@ protected:
 		MyPlayerId = 0;
 		MyPlayer = &Players[0];
 		*MyPlayer = {};
+		SNetInitializeProvider(SELCONN_LOOPBACK, nullptr);
 	}
 
 	void TearDown() override
 	{
+		SNetDestroy();
 		Gameplay = savedRules;
 		MaxGold = savedMaxGold;
 	}
