@@ -903,6 +903,11 @@ public:
 		return (type == leftHandItem._itype && leftHandItem._iStatFlag) || (type == rightHandItem._itype && rightHandItem._iStatFlag);
 	}
 
+	bool hasInfravision() const
+	{
+		return _pInfraFlag || HasAnyOf(_pIFlags, ItemSpecialEffect::Infravision);
+	}
+
 	bool hasNoLife() const
 	{
 		return leveltype == DTYPE_TOWN ? false : _pHitPoints.whole() <= 0;

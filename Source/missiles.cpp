@@ -299,6 +299,9 @@ bool MonsterMHit(const Player &player, Monster &monster, int mindam, int maxdam,
 			return false;
 	}
 
+	if (missileData.isArrow() && HasAnyOf(player._pIFlags, ItemSpecialEffect::PreventMonsterHealing))
+		monster.flags |= MFLAG_NOHEAL;
+
 	int dam;
 	if (t == MissileID::BoneSpirit) {
 		dam = (monster.hitPoints / 3).whole();

@@ -144,6 +144,50 @@ TEST_F(ItemsTest, ForcedUniqueOnNormalBaseSurvivesRecreation)
 	UniqueItems.swap(originalUniques);
 }
 
+TEST_F(ItemsTest, UniqueVisionAndHealingPreventionPowers)
+{
+	UniqueItem unique {};
+	unique.UIName = "Test hunter weapon";
+	unique.UICurs = static_cast<item_cursor_graphic>(84);
+	unique.UIItemId = AllItemsList[IDI_WARRIOR].iItemId;
+	unique.UIMinLvl = 1;
+	unique.UINumPL = 2;
+	unique.powers[0] = { IPL_INFRAVISION, 0, 0 };
+	unique.powers[1] = { IPL_NOHEALMON, 0, 0 };
+
+	std::vector<UniqueItem> originalUniques;
+	originalUniques.swap(UniqueItems);
+	UniqueItems.push_back(unique);
+
+	Item item {};
+	SetupAllItems(*MyPlayer, item, IDI_WARRIOR, 12345, 10, 100, true, false);
+	EXPECT_EQ(item._iMagical, ITEM_QUALITY_UNIQUE);
+	EXPECT_TRUE(HasAnyOf(item._iFlags, ItemSpecialEffect::Infravision));
+	EXPECT_TRUE(HasAnyOf(item._iFlags, ItemSpecialEffect::PreventMonsterHealing));
+	EXPECT_EQ(item._iCurs, 84);
+
+	UniqueItems.swap(originalUniques);
+}
+
+TEST_F(ItemsTest, ItemInfravisionDoesNotChangeSpellDuration)
+{
+	Player &player = *MyPlayer;
+	player._pInfraFlag = false;
+	player._pIFlags = ItemSpecialEffect::None;
+	EXPECT_FALSE(player.hasInfravision());
+
+	player._pIFlags = ItemSpecialEffect::Infravision;
+	EXPECT_TRUE(player.hasInfravision());
+	EXPECT_FALSE(player._pInfraFlag);
+
+	player._pInfraFlag = true;
+	player._pIFlags = ItemSpecialEffect::None;
+	EXPECT_TRUE(player.hasInfravision());
+
+	player._pInfraFlag = false;
+	EXPECT_FALSE(player.hasInfravision());
+}
+
 TEST_F(ItemsTest, AllDiabloUniquesCanDrop)
 {
 	GenerateAllUniques(false, 79);

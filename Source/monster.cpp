@@ -1413,6 +1413,11 @@ bool MonsterFadeout(Monster &monster)
  */
 void MonsterHeal(Monster &monster)
 {
+	if (!monster.canHeal()) {
+		monster.flags &= ~(MFLAG_LOCK_ANIMATION | MFLAG_ALLOW_SPECIAL);
+		monster.mode = MonsterMode::SpecialMeleeAttack;
+		return;
+	}
 	if (monster.animInfo.currentFrame == 0) {
 		monster.flags &= ~MFLAG_LOCK_ANIMATION;
 		monster.flags |= MFLAG_ALLOW_SPECIAL;
@@ -2207,7 +2212,9 @@ void ScavengerAi(Monster &monster)
 {
 	if (monster.mode != MonsterMode::Stand)
 		return;
-	if (monster.hitPoints < (monster.maxHitPoints / 2) && monster.goal != MonsterGoal::Healing) {
+	if (!monster.canHeal() && monster.goal == MonsterGoal::Healing)
+		monster.goal = MonsterGoal::Normal;
+	if (monster.canHeal() && monster.hitPoints < (monster.maxHitPoints / 2) && monster.goal != MonsterGoal::Healing) {
 		if (monster.leaderRelation != LeaderRelation::None) {
 			ShrinkLeaderPacksize(monster);
 			monster.leaderRelation = LeaderRelation::None;
@@ -2339,10 +2346,12 @@ void FallenAi(Monster &monster)
 			return;
 		}
 		StartSpecialStand(monster, monster.direction);
-		if (monster.maxHitPoints - Fixed26_6::fromRaw(2 * monster.intelligence + 2) >= monster.hitPoints)
-			monster.hitPoints += Fixed26_6::fromRaw(2 * monster.intelligence + 2);
-		else
-			monster.hitPoints = monster.maxHitPoints;
+		if (monster.canHeal()) {
+			if (monster.maxHitPoints - Fixed26_6::fromRaw(2 * monster.intelligence + 2) >= monster.hitPoints)
+				monster.hitPoints += Fixed26_6::fromRaw(2 * monster.intelligence + 2);
+			else
+				monster.hitPoints = monster.maxHitPoints;
+		}
 		const int rad = (2 * monster.intelligence) + 4;
 		for (int y = -rad; y <= rad; y++) {
 			for (int x = -rad; x <= rad; x++) {
@@ -2497,7 +2506,7 @@ void GargoyleAi(Monster &monster)
 		return;
 	}
 
-	if (monster.hitPoints < (monster.maxHitPoints / 2))
+	if (monster.canHeal() && monster.hitPoints < (monster.maxHitPoints / 2))
 		monster.goal = MonsterGoal::Retreat;
 	if (monster.goal == MonsterGoal::Retreat) {
 		if (distanceToEnemy >= monster.intelligence + 2U) {
@@ -4275,7 +4284,7 @@ void ProcessMonsters()
 			SetRndSeed(monster.aiSeed);
 			monster.aiSeed = AdvanceRndSeed();
 		}
-		if (monster.hitPoints < monster.maxHitPoints && !monster.hasNoLife()) {
+		if (monster.canHeal() && monster.hitPoints < monster.maxHitPoints && !monster.hasNoLife()) {
 			if (monster.level(sgGameInitInfo.nDifficulty) > 1) {
 				monster.hitPoints += Fixed26_6::fromRaw(monster.level(sgGameInitInfo.nDifficulty) / 2);
 			} else {

@@ -966,6 +966,12 @@ int SaveItemPower(const Player &player, Item &item, ItemPower &power)
 	case IPL_DRAINLIFE:
 		item._iFlags |= ItemSpecialEffect::DrainLife;
 		break;
+	case IPL_INFRAVISION:
+		item._iFlags |= ItemSpecialEffect::Infravision;
+		break;
+	case IPL_NOHEALMON:
+		item._iFlags |= ItemSpecialEffect::PreventMonsterHealing;
+		break;
 	case IPL_RNDSTEALLIFE:
 		item._iFlags |= ItemSpecialEffect::RandomStealLife;
 		break;
@@ -4083,6 +4089,10 @@ bool DoOil(Player &player, int cii)
 		return _("one handed sword");
 	case IPL_DRAINLIFE:
 		return _("constantly lose hit points");
+	case IPL_INFRAVISION:
+		return _("infravision");
+	case IPL_NOHEALMON:
+		return _("prevents monsters from healing");
 	case IPL_RNDSTEALLIFE:
 		return _("life stealing");
 	case IPL_NOMINSTR:

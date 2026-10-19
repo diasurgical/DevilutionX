@@ -17,6 +17,7 @@
 #include "data/iterators.hpp"
 #include "data/record_reader.hpp"
 #include "lua/lua_event.hpp"
+#include "tables/monstdat.h"
 #include "tables/spelldat.h"
 #include "utils/str_cat.hpp"
 
@@ -379,6 +380,8 @@ std::expected<unique_base_item, std::string> ParseOrAddUniqueBaseItem(std::strin
 
 std::expected<ItemSpecialEffect, std::string> ParseItemSpecialEffect(std::string_view value)
 {
+	if (value == "Infravision") return ItemSpecialEffect::Infravision;
+	if (value == "PreventMonsterHealing") return ItemSpecialEffect::PreventMonsterHealing;
 	if (value == "RandomStealLife") return ItemSpecialEffect::RandomStealLife;
 	if (value == "RandomArrowVelocity") return ItemSpecialEffect::RandomArrowVelocity;
 	if (value == "FireArrows") return ItemSpecialEffect::FireArrows;
@@ -522,6 +525,8 @@ std::expected<item_effect_type, std::string> ParseItemEffectType(std::string_vie
 	if (value == "3XDAMVDEM") return IPL_3XDAMVDEM;
 	if (value == "ALLRESZERO") return IPL_ALLRESZERO;
 	if (value == "DRAINLIFE") return IPL_DRAINLIFE;
+	if (value == "NOHEALMON") return IPL_NOHEALMON;
+	if (value == "INFRAVISION") return IPL_INFRAVISION;
 	if (value == "RNDSTEALLIFE") return IPL_RNDSTEALLIFE;
 	if (value == "SETAC") return IPL_SETAC;
 	if (value == "ADDACLIFE") return IPL_ADDACLIFE;
@@ -713,6 +718,14 @@ void LoadItemData()
 	LoadUniqueItemDat();
 	LoadItemAffixesDat("txtdata\\items\\item_prefixes.tsv", ItemPrefixes);
 	LoadItemAffixesDat("txtdata\\items\\item_suffixes.tsv", ItemSuffixes);
+
+	for (const MonsterData &monster : MonstersData) {
+		if ((monster.treasure & T_UNIQ) != 0
+		    && (monster.treasure & T_MASK) >= UniqueItems.size()) {
+			DisplayFatalErrorAndExit("Invalid monster treasure",
+			    std::format("Unique item index {} is not defined.", monster.treasure & T_MASK));
+		}
+	}
 }
 
 std::string_view ItemTypeToString(ItemType itemType)

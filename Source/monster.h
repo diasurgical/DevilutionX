@@ -44,6 +44,7 @@ enum monster_flag : uint16_t {
 	MFLAG_HIDDEN          = 1 << 0,
 	MFLAG_LOCK_ANIMATION  = 1 << 1,
 	MFLAG_ALLOW_SPECIAL   = 1 << 2,
+	MFLAG_NOHEAL          = 1 << 3,
 	MFLAG_TARGETS_MONSTER = 1 << 4,
 	MFLAG_GOLEM           = 1 << 5,
 	MFLAG_QUEST_COMPLETE  = 1 << 6,
@@ -484,6 +485,11 @@ struct Monster { // note: missing field _mAFNum
 	 * @param isMoving specifies whether the monster is moving or not (true/moving results in a negative index in dMonster)
 	 */
 	void occupyTile(Point tile, bool isMoving) const;
+
+	bool canHeal() const
+	{
+		return (flags & MFLAG_NOHEAL) == 0;
+	}
 
 	bool hasNoLife() const
 	{
