@@ -643,6 +643,9 @@ bool PlrHitMonst(Player &player, Monster &monster, bool adjacentDamage = false)
 		ApplyMonsterDamage(DamageType::Physical, monster, Fixed26_6::fromRaw(dam));
 	}
 
+	if (HasAnyOf(player._pIFlags, ItemSpecialEffect::PreventMonsterHealing))
+		monster.flags |= MFLAG_NOHEAL;
+
 	int skdam = 0;
 	if (HasAnyOf(player._pIFlags, ItemSpecialEffect::RandomStealLife)) {
 		skdam = GenerateRnd(dam / 8);

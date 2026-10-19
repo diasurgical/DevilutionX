@@ -66,7 +66,7 @@ struct ModManifest {
 struct ModIdentifier {
 	/** Mod name as listed in the active mod list (the MPQ filename id; for error messages and lookup). */
 	std::string name;
-	/** SHA-256 of the raw mod MPQ bytes, or all-zero for provenance-whitelisted built-ins. */
+	/** SHA-256 of the raw mod MPQ bytes, or all-zero for built-in and loose mods. */
 	std::array<uint8_t, 32> hash;
 	/** True if this mod is exempt from compatibility checks (provenance or hash whitelist). */
 	bool whitelisted;
@@ -75,10 +75,10 @@ struct ModIdentifier {
 };
 
 /**
- * @brief Active packed/built-in mod identifiers, in mod load order.
+ * @brief Active mod metadata and identifiers, in mod load order.
  *
- * Loose-dir-only mods are intentionally absentthey, they are instead
- * gated by the loose-asset integrity check.
+ * Loose mods have no content hash and remain subject to the loose-asset
+ * integrity check. Their manifests still select save and game namespaces.
  */
 extern DVL_API_FOR_TEST std::vector<ModIdentifier> ActiveModIdentifiers;
 
@@ -132,6 +132,9 @@ bool HexToModHash(std::string_view hex, std::array<uint8_t, 32> &out);
  * provenance-whitelisted, with a zero hash.
  */
 void RegisterBuiltinModIdentifier(std::string_view name);
+
+/** @brief Records loose mod metadata without granting a content identity or whitelist. */
+void RegisterLooseModIdentifier(std::string_view name, ModManifest manifest);
 
 /** @brief Returns the lowercase hex string of a 32-byte hash. */
 [[nodiscard]] std::string ModHashToHex(std::span<const uint8_t, 32> hash);

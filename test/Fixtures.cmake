@@ -93,6 +93,8 @@ set(devilutionx_fixtures
   txtdata/lf.tsv
   txtdata/lf_no_trail.tsv
   txtdata/sample.tsv
+  txtdata/unique_monster_stats.tsv
+  txtdata/monster_treasure.tsv
   txtdata/utf8_bom.tsv
 )
 

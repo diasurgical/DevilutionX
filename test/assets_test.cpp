@@ -5,6 +5,8 @@
 #include <vector>
 
 #include "engine/assets.hpp"
+#include "diablo.h"
+#include "mods/mod_identity.h"
 #include "utils/file_util.h"
 #include "utils/paths.h"
 
@@ -78,6 +80,89 @@ TEST_F(HasLooseLogicAssetsTest, OnlyNonLogicFiles)
 }
 
 #ifndef UNPACKED_MPQS
+class LooseModIdentityTest : public ::testing::Test {
+protected:
+	void SetUp() override
+	{
+		savedPrefPath_ = paths::PrefPath();
+		savedBasePath_ = paths::BasePath();
+		savedOverrides_ = OverridePaths;
+		savedIdentifiers_ = ActiveModIdentifiers;
+		const auto *info = ::testing::UnitTest::GetInstance()->current_test_info();
+		root_ = std::string("Test_LooseModIdentity_") + info->name() + DIRECTORY_SEPARATOR_STR;
+		paths::SetPrefPath(root_);
+		paths::SetBasePath(root_ + "base");
+		OverridePaths.clear();
+	}
+
+	void TearDown() override
+	{
+		for (const std::string &file : files_)
+			RemoveFile(file.c_str());
+		paths::SetPrefPath(savedPrefPath_);
+		paths::SetBasePath(savedBasePath_);
+		OverridePaths = std::move(savedOverrides_);
+		ActiveModIdentifiers = std::move(savedIdentifiers_);
+	}
+
+	void Write(const std::string &relative, std::string_view content)
+	{
+		const std::string path = root_ + relative;
+		const std::string dir { Dirname(path) };
+		RecursivelyCreateDir(dir.c_str());
+		FILE *file = OpenFile(path.c_str(), "wb");
+		ASSERT_NE(file, nullptr);
+		EXPECT_EQ(std::fwrite(content.data(), 1, content.size(), file), content.size());
+		std::fclose(file);
+		files_.push_back(path);
+	}
+
+private:
+	std::string root_;
+	std::string savedPrefPath_;
+	std::string savedBasePath_;
+	std::vector<std::string> files_;
+	std::vector<std::string> savedOverrides_;
+	std::vector<ModIdentifier> savedIdentifiers_;
+};
+
+TEST_F(LooseModIdentityTest, ManifestIsolatesSavesWithoutWhitelistingLooseLogic)
+{
+	Write("mods/loose_identity_test/manifest.ini", "[mod]\nsaveExtension=asv\nprogramId=ABYS\n");
+	Write("mods/loose_identity_test/lua/mods/loose_identity_test/init.lua", "return {}\n");
+	LoadModArchives({ { "loose_identity_test" } });
+
+	ASSERT_EQ(ActiveModIdentifiers.size(), 1u);
+	EXPECT_EQ(GetActiveModSaveExtension(), "asv");
+	EXPECT_EQ(GetGameId(), 0x41425953U);
+	EXPECT_FALSE(ActiveModIdentifiers[0].whitelisted);
+	EXPECT_TRUE(HasLooseLogicAssets());
+	EXPECT_FALSE(SatisfiesRequiredIdentifier(ActiveModIdentifiers[0], ActiveModIdentifiers[0].hash));
+
+	LoadModArchives({});
+	EXPECT_TRUE(GetActiveModSaveExtension().empty());
+	EXPECT_TRUE(ActiveModIdentifiers.empty());
+}
+
+TEST_F(LooseModIdentityTest, PreferenceManifestMatchesLooseAssetPrecedence)
+{
+	Write("mods/loose_identity_test/manifest.ini", "[mod]\nsaveExtension=asv\nprogramId=ABYS\n");
+	Write("base/mods/loose_identity_test/manifest.ini", "[mod]\nsaveExtension=bsv\nprogramId=BASE\n");
+	LoadModArchives({ { "loose_identity_test" } });
+	ASSERT_EQ(ActiveModIdentifiers.size(), 1u);
+	EXPECT_EQ(GetActiveModSaveExtension(), "asv");
+	EXPECT_EQ(GetGameId(), 0x41425953U);
+}
+
+TEST_F(LooseModIdentityTest, MissingManifestStillUsesModSaveNamespace)
+{
+	Write("mods/loose_identity_test/lua/mods/loose_identity_test/init.lua", "return {}\n");
+	LoadModArchives({ { "loose_identity_test" } });
+	ASSERT_EQ(ActiveModIdentifiers.size(), 1u);
+	EXPECT_EQ(GetActiveModSaveExtension(), "msv");
+	EXPECT_FALSE(ActiveModIdentifiers[0].whitelisted);
+}
+
 TEST_F(HasLooseLogicAssetsTest, LuaModEntryPoint)
 {
 	CreateFile("lua" DIRECTORY_SEPARATOR_STR "mods" DIRECTORY_SEPARATOR_STR "cheat" DIRECTORY_SEPARATOR_STR "init.lua");

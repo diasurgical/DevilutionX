@@ -227,12 +227,14 @@ struct SpellData {
 	SfxID sSFX;
 	uint16_t bookCost10;
 	uint8_t staffCost10;
+	uint8_t staffValueMultiplier = 1;
+	int16_t iconFrame = -1;
 	uint8_t sManaCost;
 	SpellDataFlags flags;
 	int8_t sBookLvl;
 	int8_t sStaffLvl;
 	uint8_t minInt;
-	MissileID sMissiles[2];
+	MissileID sMissiles[3];
 	uint8_t sManaAdj;
 	uint8_t sMinMana;
 	uint8_t sStaffMin;
@@ -251,6 +253,11 @@ struct SpellData {
 	[[nodiscard]] uint16_t staffCost() const
 	{
 		return staffCost10 * 10;
+	}
+
+	[[nodiscard]] int staffValue(int charges) const
+	{
+		return charges * staffCost() * staffValueMultiplier / 5;
 	}
 
 	[[nodiscard]] bool isTargeted() const

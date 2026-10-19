@@ -37,9 +37,13 @@
 #include "lua/modules/render.hpp"
 #include "lua/modules/system.hpp"
 #include "lua/modules/towners.hpp"
+#include "objects.h"
 #include "options.h"
+#include "panels/spell_book.hpp"
 #include "plrmsg.h"
 #include "stores.h"
+#include "tables/gameplay.h"
+#include "tables/presentation.hpp"
 #include "utils/console.h"
 #include "utils/log.hpp"
 #include "utils/str_cat.hpp"
@@ -269,12 +273,16 @@ void LuaReloadActiveMods()
 
 	// Reload game data (this can probably be done later in the process to avoid having to reload it)
 	LoadTextData();
+	LoadGameplayRules();
+	LoadPresentationRules();
 	LoadPlayerDataFiles();
 	LoadSpellData();
+	LoadSpellBookLayout();
 	LoadMissileData();
 	LoadMonsterData();
 	LoadItemData();
 	LoadObjectData();
+	LoadShrineRules();
 	LoadQuestData();
 
 	lua::LoadModsComplete();

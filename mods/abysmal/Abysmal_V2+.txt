@@ -1,0 +1,303 @@
+Abysmal Diablo Modification V2+
+
+
+Please do not distribute Abysmal Diablo without including
+non-modified version of this file with the package!
+
+
+
+
+This version released 6th November 1999
+
+
+
+Notes about this version:
+
+· One new unique item, Thalan's Warp, a qlvl 32 Ancient Staff. I had to remove Civerb's Cudgel to get the room for it, so if you had it on your character(s), it'll morph (probaply even to the Lightforge heheh). I figured that since there are Exterminating weapons and better unique weapons with +200% Damage Vs. Demons, Civerb's Cudgel was a bit useless since it didn't have any new powers like the rest of the 'old' Unique Items from regular Diablo either.
+· Made Alor's Prayer (unique qlvl 32 Amulet) a bit more powerful. This change doesn't cause morphing.
+· Max resistance of characters is only 70% now. Due to this, range of Diamond/Ruby/Sapphire-prefixes has been changed and unique items with 75 % MAX resistance have 70% resistance now. Some of the other uniques has been changed a bit too, but these changes does not cause morphing at all.
+· Renamed the prefix 'Exterminating' to 'Angelic' which sounds a lot better. This change doesn't cause morphing.
+· Increased the price of single stat elixirs by 50%.
+· Most of the high-end base monsters now have more hitpoints on all difficulties, since I was able to remove the 255 life limit. Not much though, but a bit so that the games difficulty would be balanced trough the whole game. Earlier most of the Hell monsters were easier than the ones found from Caves/Cats area when related to character levels. A lvl 15 character had a lot more trouble in Caves than lvl 20 in Hell for instance. Now the overall difficulty is more in balance.
+· Increased the monster level of Emerald Lords to 32 and also activated a unique boss for them at dlvl 14. You do NOT want to see him :)
+· One new monster, Profane Lurker. Profane Lurkers dwell on levels 13-15 and belong to the same unholy species with Reality Weavers, but have special dimensional warping powers from their cousins. They also have a boss queen at level 14.
+· Fixed Fleshdancers odd color, finally.
+· Two new spells, Matter Trap and Lightning Bolt. Matter Trap casts a trap to the map square where your character stands which will activate at once a monsters steps on to it causing medium-level physical damage according to your character level. There's a minor bug involved though as sometimes the trap doesn't set properly, but launches to a random direction, I'm going to try to fix this on future updates. Lightning Bolt then casts a single fast-traveling electrical bolt which deals high-level lightning damage to the opponent which it hits. Both Matter Trap and Lightning Bolt are learnable spells and do not occur on staves to prevent morphing.
+· Made Staff Recharge available on spellbooks and disabled Item Repair books, to equalize the skill changes.
+· Disabled Books of Etherealize. I know, I know, this pisses your high level Sorceror off, but lets face the fact now... Etherealize was simply too powerful on very high spell levels and unbalances the game a lot, no matter how rare the book was or how much mana it needed to cast. It wasn't fun after all, wasn't it?
+Scrolls and staves of Etherealize still exist though, although Scrolls of Etherealize are much rarer and cost a lot more than earlier and Staves have only 1-2 charges now.
+· Changed the spell icons of Doom Serpents, Resurrect and Flameball. The two new spells also have new spell icons.
+· Increased the amount of charges in Apocalypse staves.
+· Sorcerors now have +15 additional max Dexterity. This is because of the 15 strength they lost few updates ago, which I didn't compensate in any way then.
+· Also, a important notification to avoid confusion which doesn't matter this update at all,  is that starting from now, the mods dates will be presented in dd/mm/yy format, which is the standard used in US. This simply because of the fact that seems that most of the Abysmal Players are indeed from US and often people really didn't know how to read the date right :)
+Also included to the .ZIP files now on is a file called Abysmal Players.txt which is the latest Co-Operative Abysmal Diablo Players List. To learn more about the list, visit the 'Players List'-section at Abysmal Diablo Homepages.
+
+
+
+
+
+
+
+ATTENTION ABYSMAL DIABLO V1 PLAYERS:
+
+
+IF YOU'RE UPDATING FROM V1, SELL EVERY SINGLE ITEM FROM YOUR CHARACTER BEFORE STARTING V2!!!
+I've NOT changed the character save filenames from V1 to V2 and because of the HUGE changes between V1 and V2, your items WILL morph to completely useless stuff while changing the version, and can even cause the game to CRASH, while entering the character selection screen! Sorry about the inconvenience, but V2 simply just AIN'T compatible with V1. I didn't change the filenames so that you wouldn't need to start a completely new character, but you still need to get rid of your old stuff before moving to V2. And I mean EVERY SINGLE item in your inventory, not just what you're equipping! Books, elixirs, scrolls... Sell them all. And yes, this is ABSOLUTELY necessary. If the game crashes in the character selection screen, it's because you didn't sell your items before starting V2. Sell the stuff and all is fine again.
+But don't worry... you can buy a whole new bunch of stuff with the money you get and it doesn't take THAT long to find replacements for your old stuff.
+
+
+Note: Additional data about the mod is available in the textfile, dataabys.txt, provided with the zip-file.
+
+Also, V2 mod seems to work in Singe Player games as well. Some of the quest item rewards might be different, but I didn't notice any bugs after going the game trough 2 times. All quest items morph between new games though =(
+You need to FIND them to prevent morphing. Nevertheless, Single Player is still fully playable as who uses those lame quest items anyway? :)
+
+ 
+
+
+Monster Changes:
+
+· Around 90 totally new monsters. Either they are variants of the earlier monster classes (like a Fallen One type of monsters called Hell Imps what appear on levels 11-13) or they are based on completely new monsters types, as explained above:
+· Activated previously inactivated monstertypes (Lord Sayters, Invisible Lords, Devil Kin Brutes and Bone Demons). Why not Incinerators you ask? Because they look ugly and they doesn't even work properly. That's why :)
+· Changes in data of all previous monsters. Every single one has boosted stats and maybe even faster walking/swing/hit recovery speed. BEWARE! They DEFINITELY ain't as easy as in regular Diablo. You're lucky if you can manage solo - normal/hell with a lvl 30 character. Hell/Hell is a place where you should go only when you've lots of powerful friends with ya... And while being powerful yourself too.
+· None of the monsters found in the mod decrease your life permanently as Black Deaths do in regular Diablo, so don't worry.
+· Unique monsters with invalid dungeon level setting has been corrected, making them active (Fleshdancer, Doomlock etc...) Also, there is a quite a horde of new unique monsters.
+· Diablo will always drop a magical item or book. Game also doesn't end at the moment you kill him, as you're able to move or cast a Town Portal until his dead animation ends. You can still get your dot(s) however, just by waiting that Diablo's dead animation ends.
+With the .DAT version of the mod, there's an additional 'Disable Ending Movie .DAT provided, done by SAINT moe EverGreen. If you activate it, Diablo dies just like a regular monster and skips his dead animation, so if you have your dots already or don't want them, use the additional .DAT for easier gameplay.
+· Increased the + % to hit, +% to AC and HP-multiplier bonuses monsters get at Nightmare and Hell difficulty. Their bonus to hit is now +25% higher in Nightmare and +50% in Hell and their armor class bonus is now +25 higher in Nightmare and +50 higher in Hell difficulty than in regular Diablo. And, yes, that means that you need 50 % more to hit in Hell difficulty in order to hit them as you did previously and 50 more AC do avoid their attacks the way you did previously. In addition, monsters in Hell difficulty also get +400 points bonus to their maximum hitpoints.
+· Some monsters, like most of the bats do, have increased auto-to-hit values so beware.
+
+
+
+    
+ 
+Base item changes:
+
+· Maul is a one handed weapon.
+· All two handed swords have build-in 'of Haste'.
+· Damage of axes has been increased to make them more attractive.
+· 22 new base items (Ancient Swords, Mage Robes, Crossbows, Naginata's, etc...). The following base items have special build-in powers:
+
+
+	ITEM:			POWERS: 
+	Runic Sword		'+200% Damage vs. Demons', 'All resistances equals 0%'
+	Mage Robe		'of Thieves', 'of Bat', 'of Stability' 
+	Naginata		'of Haste', +20 to armor class 
+	Berserk Helm		'of the Bear', 'of the Leech', 1-15 damage 
+	Assault Helm		'of the Leech', Infravision 
+	Defender Ring		+10 to armor class 
+	Ancient Crossbow	'of Swiftness' 
+	Swift Knife		'of Swiftness' 
+	Swift Sword		'of Swiftness' 
+	Crossbow		'of Swiftness' 
+	Fury Necklace 		+10 to damage 
+
+    Check the screenshots section found in Abysmal Diablo homepages at
+    http://come.to/abysmal for further details about all the new base items.
+
+· Requirements of most base items has been changed (e.g. upped).
+· Attributes of some base items has been changed (i.e. some items have higher AC and Damage range as in regular Diablo) Also fixed oddness' in range of some items.
+· Staves give Armor Class as I think that you should be able to defend yourself too while wearing a one (from Short Staves +2 to War Staves +10 and up to Ancient Staves +15).
+· Spectral Elixirs (+3 to all attributes) can be found (qlvl 32).
+· Vitality Elixirs can be bought from Adria. All of the single stat elixirs cost 7500 gold.
+· Changed the appearance of the Strength Elixirs so that they wouldn't get confused with Mana Potions while in ground.
+· Adjusted the prices of Healing/Mana potions (75/200) and Resurrect scrolls (400).
+· Also changed the way how magical items are named so that you can see the base items of most of the magical items as well. Some of the really long names ,like Awesome Great Helm of The Mammoth for instance, doesn't fit the name displaying screen, but guess you can figure what it really is, at least I can :)
+ 
+
+
+Item prefix/suffix changes:
+
+· New possible prefix/suffix combinations (Godly/Titans and Holy/Sorcery for instance. Not Godly/Sorcery though).
+· Changes in prefix/suffix item occurrences... Angel's Shields of Sorcery, King's Bows of The Zodiac and Emerald Rings of The Whale are possible items for instance.
+· Effects of Armor penetrating suffixes (Bashing and Puncturing) has been increased. Puncturing lowers the AC of target by 6-18, and Bashing by 12-36. Battleshield's (a unique Ancient Shield) Damage/Penetrate targets armor effect is 15-30 and Judgmental Bow's (a unique Ancient Bow) is 15-45.
+· Increased the qlvl of 'Blocking' suffix so that it could exist with higher qlvl prefixes. Awesome Shield of Blocking is now a possible item for instance. 'of The Bear's qlvl has also been increased and set to 16 now.
+· All prefixes/suffixes can be found from the dungeons, with the exception of some of those described below:
+
+16 new suffixes: 
+
+	'the gods'
+	+21 - +25 to all attributes
+	Appears only in jewels and only potential droppers are Diablo along with very few unique monsters. qlvl 35. Can only be found.
+
+	'everyone'
+	No strength requirement
+	Appears in helms, armors and shields. qlvl 28, can be found and bought from Wirt and Griswold.
+
+	'melee'
+	All resistances equals 0%
+	Cursed suffix. Appears in armors and shields. qlvl 27, can only be found.
+
+	'mayhem'
+	steals 0% - 12,5% life.
+	Appears in weapons only. qlvl 35, can be found and also bought from Wirt.
+
+	'randomness'
+	Random arrow speed
+	Appears only in bows. qlvl 13, can be found and bought from Wirt and Griswold.
+
+	'plague'
+	Constant lose life
+	Cursed suffix. Appears in Jewerly, Armor and Shields. qlvl 20, can only be found.
+
+	'demons'
+	+1 to All Spell Levels
+	Appears in Jewerly, Staves and in Armor. Qlvl 30, can be found and bought from Wirt, Griswold and Adria.
+
+
+The following suffixes can only be gained by buying them from Wirt and with EXTREMELY high prices:
+
+	'butchery'
+	+21 - +25 to damage
+	Appears in Weapons only.
+
+	'opacity'
+	-13 - -15 damage taken
+	Appears in Armor only.
+
+	'the athaki'
+	+31 - +40 to strength
+	Appears in Weapons and Jewels.
+
+	'hunters'
+	+31 - +40 to dexterity
+	Appears in Bows and Jewels.
+
+	'magery'
+	+31 - +40 to magic
+	Appears in Staves, Jewels and Armor.
+
+	'prosperity'
+	+31 - +40 to vitality
+	Appears in Armors, Shields and Jewels.
+
+	'the phoenix'
+	+101 - +125 to life
+	Appears in Armors and Jewels.
+
+	'immolation'
+	1 - 30 + fire arrows damage
+	Appears in Bows only.
+
+	'thunderstorm'
+	1 - 30 + lightning arrows damage
+	Appears in Bows only.
+
+· 6 new prefixes:
+
+	'Angelic'
+	+200% damage vs. demons
+	Appears in Weapons and Staves. Qlvl 10, can be found and bought from Griswold and Wirt.
+
+The following prefixes can only be gained by buying them from Wirt and with EXTREMELY high prices:
+
+	'Spectacular'
+	+151% - +200% to hit
+	Appears in Bows and Weapons.
+
+	'Devastating'
+	+201% - +250% to damage
+	Appears in Bows and Weapons.
+
+	'Sifu's'
+	+176% - +200% to hit / to damage
+	Appears in Bows, Staves and Weapons.
+
+	'Divine'
+	+201% - +250% to armor class
+	Appears in Shields and Armor.
+
+	'Opaque'
+	+51% - +60% resist all
+	Appears in Shields, Bows, Weapons, Jewels and Staves.
+
+
+
+
+Spell Changes:
+
+· Nova, Apocalypse, Identify, Resurrect and even Trap Disarm and Staff Recharge are learnable spells. Notice that Book of Apocalypse is extremely rare.
+· Sorcerors have Identify and Rogues Infravision as a starting skill.
+· Damage of Fireballs has been halved. They now do only half of the damage what they do in regular Diablo, but have additional about +20 to damage for each spell level though... It might not sound much, but it's still a additional +400 points damage on spell level 22 mind you.
+· Detection range of Chain Lightning has been halved. Causes the gaps with higher spell levels from not appearing.
+· Six new spells: Flameball, Escape,Doom Serpent, Matter Trap, Lightning Bolt and Etherealize. Flameball is a triple-powered and really devastating Fireball what appears only in staves.
+Escape then can be learned and appears in scrolls and staves too, it casts a townportal where you immediately teleport into. A great way to get out from a tight situation.
+Doom Serpent is and works like Bone Spirit in all other ways (it actually replaces it) but has different graphics and sounds, which are quite awesome as well.
+Matter Trap casts a trap to the map square where your character stands which will activate at once a monsters steps on to it causing medium-level physical damage according to your character level. There's a minor bug involved though, as sometimes the trap doesn't set properly, but launches to a random direction, I'm going to try to fix this on future updates.
+Lightning Bolt then casts a single fast-traveling electrical bolt which deals high-level lightning damage according to the slvl and clvl to the opponent which it hits. Both Matter Trap and Lightning Bolt are learnable spells.
+Etherealize grants you immunity to all melee-attacks for a short amount of time and is available only in Staves and in Scrolls.
+· Disabled all the "useless" scrolls like Lightning, Phasing, etc...
+· Teleport is a townspell
+· Flash is bit more effective than it was previously. Also, try to remember that Magic based attacks play an important role in Abysmal Diablo, as there are many monsters what are immune to Fire and Lightning, but not to Magic. (HINT HINT: Displacer Bats :)
+Doom Serpents are a real life saver against non-magic immune bosses too.
+· Changed Golem to Flesh Golem. He (it?) has faster attack and walking speed, but is more vulnerable to attacks so you might need to baby-sit him a bit.
+· Bug: Some of the new spells like Identify and Escape doesn't appear in the spell book (They wouldn't even fit it LOL). Use your SPEEDbook to use them.
+· Bug: Flameball staves use triple the amount of charges when used. Don't worry though, the maximum charges amount has been tripled as well. 
+· Bug: Etherealize needs twice the amount of mana to cast what is stated in spellbook.
+
+ 
+
+Unique Item changes:
+
+· Total of 64 new unique items (phew :). Some of the "old ones" like The Grandfather and Demonspike Coat have increased/new abilities and even worth the find too now.
+· Quest items from single player games are also findable in Multiplayer, including the infamous Lightforge. In V2, Veil of Steel and Harlequin Crest are in as well. This actually makes 73 new unique items in MP =)
+· Arch weapons: One truly superior unique weapon for each character class. Only Diablo is capable to drop them in Hell difficulty (Base items: Ancient Sword, Ancient Bow and Ancient Staff)
+
+
+Shrine changes:
+
+· Made Gloomy (+2 AC to all armor, -1 max damage to all weapons' max damage), Weird (+1 max damage to all weapons') and Thaumaturgic (refills all chests in the level) shrines available in Multiplayer games. And yes, Thaumaturgic shrines DO work properly in MP.
+· Disabled the "mana raping" Fascinating, Ornate and Sacred shrines. This makes Cauldrons and Goat Shrines finally safe to use. Tainted shrines are still enabled though, so watch what you do while co-op'ing. :)
+
+
+ 
+Quest changes:
+
+· Moved The Butcher to dlvl 3 and King Leoric to dlvl 4. They are quite harder than in regular Diablo, so beginners can now collect more powerful equipment and get some level ups before meeting those two :)
+
+
+ 
+Other changes and miscellaneous information:
+
+· Character save game filenames has been changed: Your old characters from regular Diablo ain't available, but you're able to create 10 new Abysmal Diablo characters. There are NO new character classes though, but read below:
+· Starting and maximum stats of all 3 character classes has been changed. (Warrior more like the Barbarian in Hellfire, Sorceror is more like the mage in AD&D and well... Rogue is somewhere between these two)
+· Max resistance of characters is only 70% now.
+· Piles of up to 65 000 gold. Griswold and Adria however ignores these larger piles of gold while selling stuff due to bug what else would occur, and gives you only piles of 5000 gold. You need to manually arrange them to larger gold piles. They also re-arrange your already existing gold piles larger than 5000 gold to piles of 5000 gold so it is advised to drop them to ground before selling.
+· Price cap in town has been set to 2 340 000 gold, woah. I'm still not sure are you able to buy a Divine Full Plate of The Phoenix though... AC 1 Rags of The Phoenix costs about 250 k's so there you go :)
+Wirt's price cap has been set to awesome three million, but that's just to tease as you even can't carry that much gold with ya :)
+· Adria's and Wirt's locations in town has been changed. Adria now stands next to the house near the town portal area and Wirt stands next to a tree near the same area.
+· F1-F4 can be used as spell hotkeys just like F5-F8. There's a bug involved though, the selected key doesn't appear in the spells icon, but otherways they work exactly the same as F5-F8. Thanks to Subspace for the original .dat!
+· Changed graphics and sounds of various items and happenings... Check the bookshelves out for instance :)
+· Changed the ending movie to something new :)
+Also changed the color palette of the startup-screen... Tristam covered in blood? Now you know what to expect :)
+
+
+
+ATTENTION: Because of the way how Diablo displays items having negative or positive effect to spell levels, smaller than -1 to all spell levels and larger than +2 to all spell levels doesn't appear in the items description correctly. Although I was aware of this "bug", I still made a unique item called 'The Shaman' which has +4 to spell levels. Because of the bug, the +4 to spell levels doesn't appear in items description correctly, although it exists. So trust me, it's there :)
+
+
+
+
+
+ 
+I would like to say thank you to the following people:
+
+· Charlie for making his workshop-instructions, EZ Diablomod Maker and for his help at AGD. With my broken hand and all, it would have taken AGES to complete this version of the mod without the mod maker helping on editing. And also thanks for your GREAT mod! :)
+· Varayan & Khan for their workshop-instructions, great mods and from starting this Diablo mod fashion in the first place :)
+· Jarulf for his e·x·c·e·l·l·e·n·t guide. Without it, this mod would have simply been impossible to been made. Also thanks for his help at AGD.
+· Willy Nyland, AKA Soul-Toucher, for his datmaker program what without the .DAT version of the mod wouldn't have been possible.
+· Subscape for his spell hotkey .dat.
+· Dr.Zed for some of the neat code changes I implented to the mod.
+· All the great people at AGD. Your ideas and suggestions made this mod possible, although I didn't straightly asked for them... Heck, I didn't even told that I was making my own mod to any of you heheh. I just lured those suggestions out from there :)
+· To the people in our guild, The Order of Protectors. Especially to Aragorn for his help in beta-testing of V1.
+· All the rest of you who I should say thank you... You know who you are, hopefully =)
+
+
+
+Tommi Helminen
+
+--------------------------
+tommi.helminen@kolumbus.fi
+
+ICQ# 8108487 
+
+Visit Abysmal homepage at http://come.to/abysmal

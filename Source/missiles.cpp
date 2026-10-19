@@ -299,6 +299,9 @@ bool MonsterMHit(const Player &player, Monster &monster, int mindam, int maxdam,
 			return false;
 	}
 
+	if (missileData.isArrow() && HasAnyOf(player._pIFlags, ItemSpecialEffect::PreventMonsterHealing))
+		monster.flags |= MFLAG_NOHEAL;
+
 	int dam;
 	if (t == MissileID::BoneSpirit) {
 		dam = (monster.hitPoints / 3).whole();
@@ -878,6 +881,23 @@ DamageRange GetDamageAmt(SpellID spell, int spellLevel)
 	const Player &myPlayer = *MyPlayer;
 
 	switch (spell) {
+	case SpellID::DoomSerpents:
+		if (GetSpellData(spell).sMissiles[0] == MissileID::BloodRitual
+		    && GetMissileData(MissileID::BloodRitual).addFn == AddMatterTrap)
+			return { myPlayer.getCharacterLevel(), 6 * myPlayer.getCharacterLevel() };
+		return { -1, -1 };
+	case SpellID::Invisibility:
+		if (GetSpellData(spell).sMissiles[0] != MissileID::Null
+		    && GetMissileData(GetSpellData(spell).sMissiles[0]).addFn == AddFireball)
+			return GetDamageAmt(SpellID::Fireball, spellLevel);
+		return { -1, -1 };
+	case SpellID::Rage: {
+		const auto &missiles = GetSpellData(spell).sMissiles;
+		if (missiles[0] != MissileID::Fireball || missiles[1] != MissileID::Fireball || missiles[2] != MissileID::Fireball)
+			return { -1, -1 };
+		const DamageRange damage = GetDamageAmt(SpellID::Fireball, spellLevel);
+		return { 3 * damage.min, 3 * damage.max };
+	}
 	case SpellID::Firebolt: {
 		const int min = (myPlayer._pMagic / 8) + spellLevel + 1;
 		return { min, min + 9 };
@@ -903,10 +923,7 @@ DamageRange GetDamageAmt(SpellID spell, int spellLevel)
 	case SpellID::Infravision:
 	case SpellID::Phasing:
 	case SpellID::ManaShield:
-	case SpellID::DoomSerpents:
 	case SpellID::BloodRitual:
-	case SpellID::Invisibility:
-	case SpellID::Rage:
 	case SpellID::Teleport:
 	case SpellID::Etherealize:
 	case SpellID::ItemRepair:
@@ -929,10 +946,11 @@ DamageRange GetDamageAmt(SpellID spell, int spellLevel)
 	}
 	case SpellID::Fireball:
 	case SpellID::RuneOfFire: {
-		const int base = (2 * myPlayer.getCharacterLevel()) + 4;
+		const int base = Gameplay.fireballDamageMultiplier * myPlayer.getCharacterLevel()
+		    + Gameplay.fireballDamageBonus;
 		return {
 			ScaleSpellEffect(base, spellLevel),
-			ScaleSpellEffect(base + 36, spellLevel)
+			ScaleSpellEffect(base + 18 * Gameplay.fireballDamageMultiplier, spellLevel)
 		};
 	} break;
 	case SpellID::Guardian: {
@@ -1978,7 +1996,9 @@ void AddFireball(Missile &missile, AddMissileParameter &parameter)
 		sp += std::min(missile._mispllvl * 2, 34);
 		const Player &player = Players[missile._misource];
 
-		const int dmg = (2 * (player.getCharacterLevel() + GenerateRndSum(10, 2))) + 4;
+		const int dmg = Gameplay.fireballDamageMultiplier
+		    * (player.getCharacterLevel() + GenerateRndSum(10, 2))
+		    + Gameplay.fireballDamageBonus;
 		missile._midam = ScaleSpellEffect(dmg, missile._mispllvl);
 	}
 	UpdateMissileVelocity(missile, dst, sp);
@@ -2226,6 +2246,39 @@ void AddGuardian(Missile &missile, AddMissileParameter &parameter)
 	missile.var3 = 1;
 }
 
+void AddMatterTrap(Missile &missile, AddMissileParameter & /*parameter*/)
+{
+	const int level = Players[missile._misource].getCharacterLevel();
+	missile.position.tile = missile.position.start;
+	missile.position.StopMissile();
+	missile._midam = GenerateRndSum(6, level) + level;
+	missile.duration = 255;
+}
+
+void AddEscape(Missile &missile, AddMissileParameter &parameter)
+{
+	Missile *portal = AddMissile(missile.position.start, missile.position.start,
+	    parameter.midir, MissileID::TownPortal, TARGET_MONSTERS,
+	    missile._misource, 0, missile._mispllvl);
+	if (portal == nullptr || portal->_miDelFlag) {
+		parameter.spellFizzled = true;
+		missile._miDelFlag = true;
+		return;
+	}
+	missile.duration = 255;
+}
+
+void AddEtherealize(Missile &missile, AddMissileParameter & /*parameter*/)
+{
+	Player &player = Players[missile._misource];
+	missile.duration = ScaleSpellEffect(8 * player.getCharacterLevel(), missile._mispllvl);
+	for (Missile &other : Missiles) {
+		if (&other != &missile && other._mitype == missile._mitype && missile.isSameSource(other))
+			other._miDelFlag = true;
+	}
+	player._pSpellFlags |= SpellFlag::Etherealize;
+}
+
 void AddChainLightning(Missile &missile, AddMissileParameter &parameter)
 {
 	missile.var1 = parameter.dst.x;
@@ -2253,6 +2306,23 @@ void InitMissileAnimationFromMonster(Missile &mis, Direction midir, const Monste
 	mis.duration = 256;
 }
 } // namespace
+
+void AddFireMan(Missile &missile, AddMissileParameter &parameter)
+{
+	Monster &monster = Monsters[missile._misource];
+	UpdateMissileVelocity(missile, parameter.dst, 16);
+	InitMissileAnimationFromMonster(missile, parameter.midir, monster, MonsterGraphic::Walk);
+	dMonster[monster.position.tile.x][monster.position.tile.y] = 0;
+	MarkWalkabilityChanged();
+	PutMissile(missile);
+}
+
+void AddKrull(Missile &missile, AddMissileParameter &parameter)
+{
+	UpdateMissileVelocity(missile, parameter.dst, 16);
+	missile.duration = 256;
+	PutMissile(missile);
+}
 
 void AddRhino(Missile &missile, AddMissileParameter &parameter)
 {
@@ -3570,6 +3640,55 @@ void ProcessGuardian(Missile &missile)
 	PutMissile(missile);
 }
 
+void ProcessMatterTrap(Missile &missile)
+{
+	const Point position = missile.position.tile;
+	if (--missile.duration <= 0 || !InDungeonBounds(position)) {
+		missile._miDelFlag = true;
+		return;
+	}
+	const int target = dMonster[position.x][position.y] - 1;
+	if (target >= 0 && !Monsters[target].isPlayerMinion()) {
+		CheckMissileCol(missile, DamageType::Physical, missile._midam,
+		    missile._midam, false, position, false);
+		missile._miDelFlag = true;
+		return;
+	}
+	PutMissile(missile);
+}
+
+void ProcessEscape(Missile &missile)
+{
+	if (missile._miDelFlag)
+		return;
+	Player &player = Players[missile._misource];
+	if (--missile.duration <= 0 || player.hasNoLife() || !player.isOnActiveLevel() || player._pLvlChanging) {
+		missile._miDelFlag = true;
+		return;
+	}
+	if (player._pmode != PM_STAND)
+		return;
+	if (&player == MyPlayer) {
+		ClrPlrPath(player);
+		NetSendCmdParam1(true, CMD_WARP, missile._misource);
+		player._pmode = PM_NEWLVL;
+	}
+	missile._miDelFlag = true;
+}
+
+void ProcessEtherealize(Missile &missile)
+{
+	Player &player = Players[missile._misource];
+	missile.position.tile = player.position.tile;
+	missile.position.offset = player.isWalking() ? GetOffsetForWalking(player.AnimInfo, player._pdir) : Displacement {};
+	if (--missile.duration <= 0 || player.hasNoLife()) {
+		missile._miDelFlag = true;
+		player._pSpellFlags &= ~SpellFlag::Etherealize;
+		return;
+	}
+	PutMissile(missile);
+}
+
 void ProcessChainLightning(Missile &missile)
 {
 	int id = missile._misource;
@@ -3577,7 +3696,7 @@ void ProcessChainLightning(Missile &missile)
 	const Point dst { missile.var1, missile.var2 };
 	Direction dir = GetDirection(position, dst);
 	AddMissile(position, dst, dir, MissileID::LightningControl, TARGET_MONSTERS, id, 1, missile._mispllvl);
-	const int rad = std::min<int>(missile._mispllvl + 3, MaxCrawlRadius);
+	const int rad = std::min<int>(missile._mispllvl / Gameplay.chainLightningLevelDivisor + 3, MaxCrawlRadius);
 	Crawl(1, rad, [&](Displacement displacement) {
 		const Point target = position + displacement;
 		if (InDungeonBounds(target) && dMonster[target.x][target.y] > 0) {
@@ -3721,6 +3840,55 @@ void ProcessApocalypseBoom(Missile &missile)
 		missile.var1 = 1;
 	if (missile.duration == 0)
 		missile._miDelFlag = true;
+	PutMissile(missile);
+}
+
+void ProcessKrull(Missile &missile)
+{
+	missile.duration--;
+	MoveMissileAndCheckMissileCol(missile, GetMissileData(missile._mitype).damageType(),
+	    missile._midam, missile._midam, false, false);
+	if (missile.duration <= 0)
+		missile._miDelFlag = true;
+	PutMissile(missile);
+}
+
+void ProcessFireMan(Missile &missile)
+{
+	Monster &monster = Monsters[missile._misource];
+	if (monster.mode != MonsterMode::Charge) {
+		missile._miDelFlag = true;
+		return;
+	}
+	const Point previous = missile.position.tile;
+	missile.position.traveled += missile.position.velocity;
+	UpdateMissilePos(missile);
+	const Point next = missile.position.tile;
+	const bool farFromEnemy = previous.WalkingDistance(monster.enemyPosition) >= 4;
+	if ((--missile.duration <= 0 || (next != previous && ((missile.var1 != 0 && farFromEnemy) || missile.var2 > 1)))
+	    && IsTileAvailable(monster, previous)) {
+		MissToMonst(missile, previous);
+		missile._miDelFlag = true;
+		return;
+	}
+	const bool blocked = !InDungeonBounds(next) || IsMissileBlockedByTile(next);
+	const bool enemy = !blocked && ((monster.flags & MFLAG_TARGETS_MONSTER) != 0
+	        ? dMonster[next.x][next.y] > 0
+	        : dPlayer[next.x][next.y] > 0);
+	if (blocked || (enemy && missile.var1 == 0)) {
+		missile.position.traveled -= missile.position.velocity;
+		missile.position.velocity = -missile.position.velocity;
+		UpdateMissilePos(missile);
+		const Direction direction = Opposite(missile.getDirection());
+		const int remaining = missile.duration;
+		const int contactedEnemy = missile.var1;
+		const int bounces = missile.var2;
+		InitMissileAnimationFromMonster(missile, direction, monster, MonsterGraphic::Walk);
+		missile.duration = remaining;
+		missile.var1 = enemy ? 1 : contactedEnemy;
+		missile.var2 = bounces + 1;
+	}
+	MoveMissilePos(missile);
 	PutMissile(missile);
 }
 
@@ -4239,18 +4407,18 @@ void ProcessMissiles()
 void SetUpMissileAnimationData()
 {
 	for (auto &missile : Missiles) {
-		if (missile._miAnimType == MissileGraphicID::None)
-			continue;
-
-		if (missile._mitype != MissileID::Rhino) {
-			missile._miAnimData = GetMissileSpriteData(missile._miAnimType).spritesForDirection(missile.getDirection16());
+		if (!IsAnyOf(missile._mitype, MissileID::Rhino, MissileID::FireMan)) {
+			if (missile._miAnimType != MissileGraphicID::None)
+				missile._miAnimData = GetMissileSpriteData(missile._miAnimType).spritesForDirection(missile.getDirection16());
 			continue;
 		}
 
 		const CMonster &mon = Monsters[missile._misource].type();
 
 		MonsterGraphic graphic;
-		if (IsAnyOf(mon.type, MT_HORNED, MT_MUDRUN, MT_FROSTC, MT_OBLORD)) {
+		if (missile._mitype == MissileID::FireMan) {
+			graphic = MonsterGraphic::Walk;
+		} else if (IsAnyOf(mon.type, MT_HORNED, MT_MUDRUN, MT_FROSTC, MT_OBLORD)) {
 			graphic = MonsterGraphic::Special;
 		} else if (IsAnyOf(mon.type, MT_NSNAKE, MT_RSNAKE, MT_BSNAKE, MT_GSNAKE)) {
 			graphic = MonsterGraphic::Attack;

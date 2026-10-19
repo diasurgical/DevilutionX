@@ -78,14 +78,17 @@ void DiscoverMods()
 		modNames.insert("hf");
 	}
 
-	// Check if the mods directory exists.
-	const std::string modsPath = StrCat(paths::PrefPath(), "mods");
-	if (DirectoryExists(modsPath.c_str())) {
+	// Loose mods are loaded from the preference and executable directories.
+	for (const std::string &path : { paths::PrefPath(), paths::BasePath() }) {
+		const std::string modsPath = StrCat(path, "mods");
+		if (!DirectoryExists(modsPath.c_str()))
+			continue;
 		// Find unpacked mods
 		for (const std::string &modFolder : ListDirectories(modsPath.c_str())) {
-			// Only consider this folder if the init.lua file exists.
+			// Data-only mods have a manifest; older Lua mods may only have an entry point.
 			const std::string modScriptPath = modsPath + DIRECTORY_SEPARATOR_STR + modFolder + DIRECTORY_SEPARATOR_STR + "lua" + DIRECTORY_SEPARATOR_STR + "mods" + DIRECTORY_SEPARATOR_STR + modFolder + DIRECTORY_SEPARATOR_STR + "init.lua";
-			if (!FileExists(modScriptPath.c_str()))
+			const std::string manifestPath = StrCat(modsPath, DIRECTORY_SEPARATOR_STR, modFolder, DIRECTORY_SEPARATOR_STR "manifest.ini");
+			if (!FileExists(manifestPath.c_str()) && !FileExists(modScriptPath.c_str()))
 				continue;
 
 			modNames.insert(modFolder);

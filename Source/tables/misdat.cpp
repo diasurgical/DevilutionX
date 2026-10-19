@@ -181,6 +181,11 @@ std::expected<MissileDataFlags, std::string> ParseMissileDataFlag(std::string_vi
 std::expected<MissileData::AddFn, std::string> ParseMissileAddFn(std::string_view value)
 {
 	if (value.empty()) return nullptr;
+	if (value == "AddMatterTrap") return AddMatterTrap;
+	if (value == "AddEscape") return AddEscape;
+	if (value == "AddEtherealize") return AddEtherealize;
+	if (value == "AddFireMan") return AddFireMan;
+	if (value == "AddKrull") return AddKrull;
 	if (value == "AddOpenNest") return AddOpenNest;
 	if (value == "AddRuneOfFire") return AddRuneOfFire;
 	if (value == "AddRuneOfLight") return AddRuneOfLight;
@@ -269,6 +274,11 @@ std::expected<MissileData::ProcessFn, std::string> ParseMissileProcessFn(std::st
 	if (value == "ProcessFireWall") return ProcessFireWall;
 	if (value == "ProcessFireball") return ProcessFireball;
 	if (value == "ProcessHorkSpawn") return ProcessHorkSpawn;
+	if (value == "ProcessMatterTrap") return ProcessMatterTrap;
+	if (value == "ProcessEscape") return ProcessEscape;
+	if (value == "ProcessEtherealize") return ProcessEtherealize;
+	if (value == "ProcessFireMan") return ProcessFireMan;
+	if (value == "ProcessKrull") return ProcessKrull;
 	if (value == "ProcessRune") return ProcessRune;
 	if (value == "ProcessLightningWall") return ProcessLightningWall;
 	if (value == "ProcessBigExplosion") return ProcessBigExplosion;

@@ -344,11 +344,13 @@ struct UniqueMonsterData {
 	UniqueMonsterPack monsterPack;
 	uint8_t customToHit;
 	uint8_t customArmorClass;
+	int16_t finalToHit = -1;
+	int16_t finalArmorClass = -1;
 	_speech_id mtalkmsg;
 };
 
 extern std::vector<MonsterData> MonstersData;
-extern const _monster_id MonstConvTbl[];
+extern std::vector<_monster_id> MonstConvTbl;
 extern std::vector<UniqueMonsterData> UniqueMonstersData;
 
 void LoadMonstDatFromFile(DataFile &dataFile, std::string_view filename, bool grow);

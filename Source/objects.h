@@ -335,6 +335,7 @@ void AddL1Objs(int x1, int y1, int x2, int y2);
 void AddL2Objs(int x1, int y1, int x2, int y2);
 void AddL3Objs(int x1, int y1, int x2, int y2);
 void AddCryptObjects(int x1, int y1, int x2, int y2);
+void LoadShrineRules();
 void InitObjects();
 std::expected<void, std::string> SetMapObjects(const uint16_t *dunData, int startx, int starty);
 /**

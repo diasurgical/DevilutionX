@@ -112,6 +112,82 @@ void GenerateAllUniques(bool hellfire, const size_t expectedUniques)
 	EXPECT_EQ(foundUniques.size(), expectedUniques) << StrCat("test run seed ", testRunSeed);
 }
 
+TEST_F(ItemsTest, ForcedUniqueOnNormalBaseSurvivesRecreation)
+{
+	UniqueItem unique {};
+	unique.UIName = "First reward";
+	unique.UICurs = static_cast<item_cursor_graphic>(84);
+	unique.UIItemId = AllItemsList[IDI_WARRIOR].iItemId;
+	unique.UIMinLvl = 1;
+	unique.UINumPL = 1;
+	unique.powers[0] = { IPL_STR, 7, 11 };
+	std::vector<UniqueItem> originalUniques;
+	originalUniques.swap(UniqueItems);
+	UniqueItems.push_back(unique);
+	unique.UIName = "Second reward";
+	UniqueItems.push_back(unique);
+
+	Item item {};
+	SetupForcedUniqueItem(*MyPlayer, item, IDI_WARRIOR, static_cast<_unique_items>(0));
+	EXPECT_EQ(item._iMagical, ITEM_QUALITY_UNIQUE);
+	EXPECT_EQ(item._iUid, 0);
+	EXPECT_NE(item.dwBuff & CF_UIDOFFSET, 0u);
+
+	Item recreated {};
+	RecreateItem(*MyPlayer, recreated, item.IDidx, item._iCreateInfo,
+	    item._iSeed, item._ivalue, item.dwBuff);
+	EXPECT_EQ(recreated._iMagical, item._iMagical);
+	EXPECT_EQ(recreated._iUid, item._iUid);
+	EXPECT_EQ(recreated._iPLStr, item._iPLStr);
+	EXPECT_EQ(recreated._iCurs, item._iCurs);
+	EXPECT_STREQ(recreated._iIName, item._iIName);
+	UniqueItems.swap(originalUniques);
+}
+
+TEST_F(ItemsTest, UniqueVisionAndHealingPreventionPowers)
+{
+	UniqueItem unique {};
+	unique.UIName = "Test hunter weapon";
+	unique.UICurs = static_cast<item_cursor_graphic>(84);
+	unique.UIItemId = AllItemsList[IDI_WARRIOR].iItemId;
+	unique.UIMinLvl = 1;
+	unique.UINumPL = 2;
+	unique.powers[0] = { IPL_INFRAVISION, 0, 0 };
+	unique.powers[1] = { IPL_NOHEALMON, 0, 0 };
+
+	std::vector<UniqueItem> originalUniques;
+	originalUniques.swap(UniqueItems);
+	UniqueItems.push_back(unique);
+
+	Item item {};
+	SetupAllItems(*MyPlayer, item, IDI_WARRIOR, 12345, 10, 100, true, false);
+	EXPECT_EQ(item._iMagical, ITEM_QUALITY_UNIQUE);
+	EXPECT_TRUE(HasAnyOf(item._iFlags, ItemSpecialEffect::Infravision));
+	EXPECT_TRUE(HasAnyOf(item._iFlags, ItemSpecialEffect::PreventMonsterHealing));
+	EXPECT_EQ(item._iCurs, 84);
+
+	UniqueItems.swap(originalUniques);
+}
+
+TEST_F(ItemsTest, ItemInfravisionDoesNotChangeSpellDuration)
+{
+	Player &player = *MyPlayer;
+	player._pInfraFlag = false;
+	player._pIFlags = ItemSpecialEffect::None;
+	EXPECT_FALSE(player.hasInfravision());
+
+	player._pIFlags = ItemSpecialEffect::Infravision;
+	EXPECT_TRUE(player.hasInfravision());
+	EXPECT_FALSE(player._pInfraFlag);
+
+	player._pInfraFlag = true;
+	player._pIFlags = ItemSpecialEffect::None;
+	EXPECT_TRUE(player.hasInfravision());
+
+	player._pInfraFlag = false;
+	EXPECT_FALSE(player.hasInfravision());
+}
+
 TEST_F(ItemsTest, AllDiabloUniquesCanDrop)
 {
 	GenerateAllUniques(false, 79);

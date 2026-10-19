@@ -38,7 +38,7 @@ namespace devilution {
 
 constexpr int InventoryGridCells = 40;
 constexpr int MaxBeltItems = 8;
-constexpr int MaxResistance = 75;
+inline const int &MaxResistance = Gameplay.maxResistance;
 constexpr uint8_t MaxSpellLevel = 15;
 constexpr int PlayerNameLength = 32;
 
@@ -901,6 +901,11 @@ public:
 		const Item &rightHandItem = InvBody[INVLOC_HAND_RIGHT];
 
 		return (type == leftHandItem._itype && leftHandItem._iStatFlag) || (type == rightHandItem._itype && rightHandItem._iStatFlag);
+	}
+
+	bool hasInfravision() const
+	{
+		return _pInfraFlag || HasAnyOf(_pIFlags, ItemSpecialEffect::Infravision);
 	}
 
 	bool hasNoLife() const

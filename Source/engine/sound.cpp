@@ -29,6 +29,7 @@
 #include "engine/assets.hpp"
 #include "game_mode.hpp"
 #include "options.h"
+#include "tables/presentation.hpp"
 #include "utils/log.hpp"
 #include "utils/math.h"
 #include "utils/sdl_mutex.h"
@@ -347,6 +348,8 @@ void music_start(_music_id nTrack)
 		trackPath = MusicTracks[nTrack];
 	else
 		trackPath = SpawnMusicTracks[nTrack];
+	if (nTrack == TMUSIC_TOWN && !Presentation.townMusic.empty())
+		trackPath = Presentation.townMusic.c_str();
 
 #ifdef DISABLE_STREAMING_MUSIC
 	const bool stream = false;

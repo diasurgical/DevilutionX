@@ -6,6 +6,7 @@
 #include "tables/monstdat.h"
 
 #include <algorithm>
+#include <charconv>
 #include <cstddef>
 #include <cstdint>
 #include <expected>
@@ -57,7 +58,7 @@ std::vector<UniqueMonsterData> UniqueMonstersData;
 /**
  * Map between .DUN file value and monster type enum
  */
-const _monster_id MonstConvTbl[] = {
+constexpr _monster_id DefaultMonstConvTbl[] = {
 	MT_NZOMBIE,
 	MT_BZOMBIE,
 	MT_GZOMBIE,
@@ -217,6 +218,9 @@ const _monster_id MonstConvTbl[] = {
 	MT_LRDSAYTR,
 };
 
+std::vector<_monster_id> MonstConvTbl(
+    std::begin(DefaultMonstConvTbl), std::end(DefaultMonstConvTbl));
+
 namespace {
 
 /** Contains the mapping between monster ID strings and indices, used for parsing additional monster data. */
@@ -298,13 +302,36 @@ std::expected<SelectionRegion, std::string> ParseSelectionRegion(std::string_vie
 
 std::expected<uint16_t, std::string> ParseMonsterTreasure(std::string_view value)
 {
-	// TODO: Replace this hack with proper parsing.
-
 	if (value.empty()) return 0;
 	if (value == "None") return T_NODROP;
 	if (value == "Uniq(SKCROWN)") return Uniq(UITEM_SKCROWN);
 	if (value == "Uniq(CLEAVER)") return Uniq(UITEM_CLEAVER);
-	return std::unexpected("Invalid value. NOTE: Parser is incomplete");
+	if (value.starts_with("Uniq(") && value.ends_with(")")) {
+		value = value.substr(5, value.size() - 6);
+		unsigned int index;
+		const auto result = std::from_chars(value.data(), value.data() + value.size(), index);
+		if (result.ec == std::errc {}
+		    && result.ptr == value.data() + value.size() && index <= T_MASK) {
+			return static_cast<uint16_t>(T_UNIQ | index);
+		}
+	}
+	return std::unexpected("Expected None or Uniq(unique item index)");
+}
+
+// Values above 255 encode an explicit final stat, including zero.
+std::expected<uint16_t, std::string> ParseUniqueMonsterStat(std::string_view value)
+{
+	const bool final = value.starts_with("Final(") && value.ends_with(")");
+	if (final) {
+		value = value.substr(6, value.size() - 7);
+	}
+	unsigned int stat;
+	const auto result = std::from_chars(value.data(), value.data() + value.size(), stat);
+	if (result.ec != std::errc {}
+	    || result.ptr != value.data() + value.size() || stat > 255) {
+		return std::unexpected("Expected 0..255 or Final(0..255)");
+	}
+	return static_cast<uint16_t>(stat + (final ? 256 : 0));
 }
 
 std::expected<UniqueMonsterPack, std::string> ParseUniqueMonsterPack(std::string_view value)
@@ -446,13 +473,56 @@ void LoadUniqueMonstDatFromFile(DataFile &dataFile, std::string_view filename)
 		reader.readInt("reducePlayerMaxMana", monster.reducePlayerMaxMana);
 		reader.readEnumList("resistance", monster.mMagicRes, ParseMonsterResistance);
 		reader.read("monsterPack", monster.monsterPack, ParseUniqueMonsterPack);
-		reader.readInt("customToHit", monster.customToHit);
-		reader.readInt("customArmorClass", monster.customArmorClass);
+		uint16_t toHit;
+		uint16_t armorClass;
+		reader.read("customToHit", toHit, ParseUniqueMonsterStat);
+		reader.read("customArmorClass", armorClass, ParseUniqueMonsterStat);
+		if (toHit >= 256) {
+			monster.finalToHit = static_cast<int16_t>(toHit - 256);
+		} else {
+			monster.customToHit = static_cast<uint8_t>(toHit);
+		}
+		if (armorClass >= 256) {
+			monster.finalArmorClass = static_cast<int16_t>(armorClass - 256);
+		} else {
+			monster.customArmorClass = static_cast<uint8_t>(armorClass);
+		}
 		reader.read("talkMessage", monster.mtalkmsg, ParseSpeechId);
 	}
 }
 
 namespace {
+
+void LoadMonsterConversion()
+{
+	MonstConvTbl.assign(std::begin(DefaultMonstConvTbl), std::end(DefaultMonstConvTbl));
+	constexpr std::string_view Filename = "txtdata\\monsters\\conversion.tsv";
+	auto result = DataFile::load(Filename);
+	if (!result.has_value()) {
+		if (result.error() != DataFile::Error::NotFound) {
+			DataFile::reportFatalError(result.error(), Filename);
+		}
+		return;
+	}
+	DataFile &dataFile = *result;
+	dataFile.skipHeaderOrDie(Filename);
+	for (DataFileRecord record : dataFile) {
+		RecordReader reader { record, Filename };
+		size_t index;
+		reader.read("dungeonMonsterId", index,
+		    [](std::string_view value) -> std::expected<size_t, std::string> {
+			size_t id;
+			const auto parsed = std::from_chars(value.data(), value.data() + value.size(), id);
+			if (parsed.ec != std::errc {}
+			    || parsed.ptr != value.data() + value.size()
+			    || id == 0 || id > MonstConvTbl.size()) {
+				return std::unexpected("Dungeon monster ID is outside the conversion table");
+			}
+			return id - 1;
+		});
+		reader.read("type", MonstConvTbl[index], ParseMonsterId);
+	}
+}
 
 void LoadUniqueMonstDat()
 {
@@ -472,6 +542,7 @@ void LoadUniqueMonstDat()
 void LoadMonsterData()
 {
 	LoadMonstDat();
+	LoadMonsterConversion();
 	LoadUniqueMonstDat();
 }
 

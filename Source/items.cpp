@@ -12,6 +12,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <limits>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -966,6 +967,12 @@ int SaveItemPower(const Player &player, Item &item, ItemPower &power)
 	case IPL_DRAINLIFE:
 		item._iFlags |= ItemSpecialEffect::DrainLife;
 		break;
+	case IPL_INFRAVISION:
+		item._iFlags |= ItemSpecialEffect::Infravision;
+		break;
+	case IPL_NOHEALMON:
+		item._iFlags |= ItemSpecialEffect::PreventMonsterHealing;
+		break;
 	case IPL_RNDSTEALLIFE:
 		item._iFlags |= ItemSpecialEffect::RandomStealLife;
 		break;
@@ -1273,7 +1280,7 @@ void GetStaffSpell(const Player &player, Item &item, int lvl, bool onlygood)
 	item._iMaxCharges = item._iCharges;
 
 	item._iMinMag = GetSpellData(bs).minInt;
-	const int v = item._iCharges * GetSpellData(bs).staffCost() / 5;
+	const int v = GetSpellData(bs).staffValue(item._iCharges);
 	item._ivalue += v;
 	item._iIvalue += v;
 	GetStaffPower(player, item, lvl, onlygood);
@@ -2784,7 +2791,7 @@ void CalcPlrAuricBonus(Player &player)
 			if (half != MaxGold)
 				StripTopGold(player);
 		} else {
-			MaxGold = GOLD_MAX_LIMIT * 2;
+			MaxGold = std::min(GOLD_MAX_LIMIT * 2, static_cast<int>(std::numeric_limits<uint16_t>::max()));
 		}
 	}
 }
@@ -3192,6 +3199,27 @@ void SetupItem(Item &item)
 	item._iIdentified = false;
 }
 
+void SetupForcedUniqueItem(const Player &player, Item &item, _item_indexes idx, _unique_items uid)
+{
+	const int level = std::max<int>(1, UniqueItems[uid].UIMinLvl - 4);
+	const auto validUniques = GetValidUniques(level + 4, AllItemsList[idx].iItemId);
+	const auto found = std::find(validUniques.rbegin(), validUniques.rend(), uid);
+	const int offset = static_cast<int>(std::distance(validUniques.rbegin(), found));
+	if (found == validUniques.rend() || level > CF_LEVEL || offset > (CF_UIDOFFSET >> 1)) {
+		DisplayFatalErrorAndExit("Unable to generate unique item",
+		    "The unique item's level or base-item selection cannot be represented in saved items.");
+	}
+
+	const Point position = item.position;
+	DiabloGenerator generator(AdvanceRndSeed());
+	do {
+		item = {};
+		item.position = position;
+		SetupAllItems(player, item, idx, generator.advanceRndSeed(), level, 15, true, false, offset);
+	} while (item._iMagical != ITEM_QUALITY_UNIQUE || item._iUid != uid);
+	item.dwBuff |= (offset << 1) & CF_UIDOFFSET;
+}
+
 Item *SpawnUnique(_unique_items uid, Point position, std::optional<int> level /*= std::nullopt*/, bool sendmsg /*= true*/, bool exactPosition /*= false*/)
 {
 	if (ActiveItemCount >= MAXITEMS)
@@ -3212,8 +3240,12 @@ Item *SpawnUnique(_unique_items uid, Point position, std::optional<int> level /*
 		idx++;
 
 	if (sgGameInitInfo.nDifficulty == DIFF_NORMAL) {
-		GetItemAttrs(item, static_cast<_item_indexes>(idx), curlv);
-		GetUniqueItem(*MyPlayer, item, uid);
+		if (AllItemsList[idx].iMiscId == IMISC_UNIQUE) {
+			GetItemAttrs(item, static_cast<_item_indexes>(idx), curlv);
+			GetUniqueItem(*MyPlayer, item, uid);
+		} else {
+			SetupForcedUniqueItem(*MyPlayer, item, static_cast<_item_indexes>(idx), uid);
+		}
 		SetupItem(item);
 	} else {
 		if (level)
@@ -4058,6 +4090,10 @@ bool DoOil(Player &player, int cii)
 		return _("one handed sword");
 	case IPL_DRAINLIFE:
 		return _("constantly lose hit points");
+	case IPL_INFRAVISION:
+		return _("infravision");
+	case IPL_NOHEALMON:
+		return _("prevents monsters from healing");
 	case IPL_RNDSTEALLIFE:
 		return _("life stealing");
 	case IPL_NOMINSTR:

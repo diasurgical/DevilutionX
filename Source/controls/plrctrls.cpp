@@ -43,6 +43,7 @@
 #include "minitext.h"
 #include "missiles.h"
 #include "panels/quest_log.hpp"
+#include "panels/spell_book.hpp"
 #include "panels/spell_icons.hpp"
 #include "panels/spell_list.hpp"
 #include "panels/ui_panels.hpp"
@@ -1709,7 +1710,7 @@ void SpellBookMove(AxisDirection dir)
 		if (SpellbookTab > 0)
 			SpellbookTab--;
 	} else if (dir.x == AxisDirectionX_RIGHT) {
-		if ((gbIsHellfire && SpellbookTab < 4) || (!gbIsHellfire && SpellbookTab < 3))
+		if (SpellbookTab + 1 < static_cast<int>(GetSpellBookPageCount()))
 			SpellbookTab++;
 	}
 }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <expected>
 #include <string>
 
@@ -10,6 +11,8 @@ namespace devilution {
 
 std::expected<void, std::string> InitSpellBook();
 void FreeSpellBook();
+size_t GetSpellBookPageCount();
+void LoadSpellBookLayout();
 void CheckSBook();
 void DrawSpellBook(const Surface &out);
 

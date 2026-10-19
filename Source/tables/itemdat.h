@@ -386,6 +386,7 @@ enum unique_base_item : int8_t {
 enum class ItemSpecialEffect : uint32_t {
 	// clang-format off
 	None                   = 0,
+	Infravision            = 1 << 0,
 	RandomStealLife        = 1 << 1,
 	RandomArrowVelocity    = 1 << 2,
 	FireArrows             = 1 << 3,
@@ -394,6 +395,7 @@ enum class ItemSpecialEffect : uint32_t {
 	DrainLife              = 1 << 6,
 	MultipleArrows         = 1 << 9,
 	Knockback              = 1 << 11,
+	PreventMonsterHealing  = 1 << 12,
 	StealMana3             = 1 << 13,
 	StealMana5             = 1 << 14,
 	StealLife3             = 1 << 15,
@@ -562,6 +564,7 @@ enum item_effect_type : int8_t {
 	IPL_FIREBALL = 50, /* only used in hellfire */
 	IPL_ABSHALFTRAP = 52,
 	IPL_KNOCKBACK,
+	IPL_NOHEALMON,
 	IPL_STEALMANA = 55,
 	IPL_STEALLIFE,
 	IPL_TARGAC,
@@ -579,6 +582,7 @@ enum item_effect_type : int8_t {
 	IPL_ALLRESZERO,
 	IPL_DRAINLIFE = 72,
 	IPL_RNDSTEALLIFE,
+	IPL_INFRAVISION,
 	IPL_SETAC = 75,
 	IPL_ADDACLIFE,
 	IPL_ADDMANAAC,

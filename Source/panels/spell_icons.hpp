@@ -67,6 +67,9 @@ enum class SpellIcon : uint8_t {
 	Mana,
 };
 
+/** Returns the configured icon frame, falling back to the standard spell icon. */
+uint8_t GetSpellIconFrame(SpellID spell);
+
 /**
  * Draw a large (56x56) spell icon onto the given buffer.
  *
