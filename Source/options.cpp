@@ -37,6 +37,7 @@
 #include "platform/locale.hpp"
 #include "quick_messages.hpp"
 #include "utils/algorithm/container.hpp"
+#include "utils/display.h"
 #include "utils/file_util.h"
 #include "utils/format.hpp"
 #include "utils/ini.hpp"
@@ -576,8 +577,23 @@ size_t OptionEntryResolution::GetActiveListIndex() const
 }
 void OptionEntryResolution::SetActiveListIndex(size_t index)
 {
-	size_ = resolutions_[index].first;
+	// An above-native selection with Integer Scaling would crash the
+	// fit-to-screen window sizing (integer division by zero). Above-native
+	// sizes are filtered from the list while Integer Scaling is on, so this
+	// silently falls back as a backstop (e.g. for stale ini values).
+	size_ = ClampResolutionForIntegerScaling(resolutions_[index].first);
 	NotifyValueChanged();
+}
+
+bool OptionEntryIntegerScaling::IsDisabled() const
+{
+	// The resolution list filters above-native sizes while Integer Scaling
+	// is enabled, but the game can still run above the native desktop
+	// resolution with Integer Scaling off (hand-edited devilutionx.ini or
+	// a GPU driver VSR mode). Enabling Integer Scaling in that state would
+	// crash the fit-to-screen window sizing, so the toggle stays greyed
+	// out until a within-native resolution is selected.
+	return !**this && IsResolutionAboveNative();
 }
 
 OptionEntryResampler::OptionEntryResampler()
