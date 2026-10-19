@@ -45,6 +45,8 @@ bool IsFullScreen();
 
 // Native (desktop) resolution of the current display, in pixels.
 // Returns false when unavailable (e.g. before video initialization).
+// Defined in options.cpp: standalone test/benchmark executables link
+// libdevilutionx_options without the display translation unit.
 bool GetNativeDesktopResolution(Size &size);
 
 // True when the current game resolution exceeds the native desktop

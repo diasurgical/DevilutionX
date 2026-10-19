@@ -546,6 +546,71 @@ std::vector<OptionEntryBase *> AudioOptions::GetEntries()
 	// clang-format on
 }
 
+// The resolution helpers declared in utils/display.h are defined here rather
+// than in utils/display.cpp: libdevilutionx_options is an object library that
+// standalone test/benchmark executables link without the display translation
+// unit, and OptionEntryResolution / OptionEntryIntegerScaling below call into
+// these. ClampResolutionForIntegerScaling() intentionally drops the ghMainWnd
+// guard it had in display.cpp: its only caller is the settings UI (a window
+// always exists there), calls before video init see GetNativeDesktopResolution()
+// return false, and the CalculatePreferredWindowSize() backstop covers the rest.
+bool GetNativeDesktopResolution(Size &size)
+{
+#ifdef USE_SDL1
+	return false;
+#else
+	SDL_DisplayMode mode;
+#ifdef USE_SDL3
+	int numDisplays = 0;
+	SDL_DisplayID *displays = SDL_GetDisplays(&numDisplays);
+	if (numDisplays <= 0 || displays == nullptr)
+		return false;
+	const SDL_DisplayMode *modePtr = SDL_GetDesktopDisplayMode(displays[0]);
+	SDL_free(displays);
+	if (modePtr == nullptr)
+		return false;
+	mode = *modePtr;
+#else
+	if (SDL_GetDesktopDisplayMode(0, &mode) != 0)
+		return false;
+#endif
+	if (mode.w < mode.h) {
+		const int w = mode.w;
+		mode.w = mode.h;
+		mode.h = w;
+	}
+	size = { mode.w, mode.h };
+	return true;
+#endif
+}
+
+Size ClampResolutionForIntegerScaling(Size requested)
+{
+#ifdef USE_SDL1
+	(void)requested;
+	return requested;
+#else
+	if (!*GetOptions().Graphics.integerScaling || !*GetOptions().Graphics.fitToScreen || !*GetOptions().Graphics.upscale)
+		return requested; // the crash path requires fit-to-screen integer scaling
+	Size native;
+	if (!GetNativeDesktopResolution(native))
+		return requested;
+	if (requested.width <= native.width && requested.height <= native.height)
+		return requested;
+	LogWarn(LogCategory::System, "Selected resolution {}x{} exceeds the native desktop resolution {}x{}; falling back to native (Integer Scaling)", requested.width, requested.height, native.width, native.height);
+	return native;
+#endif
+}
+
+bool IsResolutionAboveNative()
+{
+	Size native;
+	if (!GetNativeDesktopResolution(native))
+		return false;
+	const Size current = *GetOptions().Graphics.resolution;
+	return current.width > native.width || current.height > native.height;
+}
+
 OptionEntryResolution::OptionEntryResolution()
     : OptionEntryListBase("", OptionEntryFlags::CantChangeInGame | OptionEntryFlags::RecreateUI, N_("Resolution"), N_("Affect the game's internal resolution and determine your view area. Note: This can differ from screen resolution, when Upscaling, Integer Scaling or Fit to Screen is used."))
 {
