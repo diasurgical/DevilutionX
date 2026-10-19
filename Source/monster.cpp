@@ -85,6 +85,7 @@
 #include "tables/monstdat.h"
 #include "tables/objdat.h"
 #include "tables/playerdat.hpp"
+#include "tables/presentation.hpp"
 #include "tables/spelldat.h"
 #include "tables/textdat.h"
 #include "utils/algorithm/container.hpp"
@@ -4197,18 +4198,22 @@ void DoEnding()
 	if (gbIsSpawn)
 		return;
 
-	switch (MyPlayer->_pClass) {
-	case HeroClass::Sorcerer:
-	case HeroClass::Monk:
-		play_movie("gendata\\diabvic1.smk", false);
-		break;
-	case HeroClass::Warrior:
-	case HeroClass::Barbarian:
-		play_movie("gendata\\diabvic2.smk", false);
-		break;
-	default:
-		play_movie("gendata\\diabvic3.smk", false);
-		break;
+	if (!Presentation.victoryMovie.empty()) {
+		play_movie(Presentation.victoryMovie.c_str(), false);
+	} else {
+		switch (MyPlayer->_pClass) {
+		case HeroClass::Sorcerer:
+		case HeroClass::Monk:
+			play_movie("gendata\\diabvic1.smk", false);
+			break;
+		case HeroClass::Warrior:
+		case HeroClass::Barbarian:
+			play_movie("gendata\\diabvic2.smk", false);
+			break;
+		default:
+			play_movie("gendata\\diabvic3.smk", false);
+			break;
+		}
 	}
 	play_movie("gendata\\diabend.smk", false);
 

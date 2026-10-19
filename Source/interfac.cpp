@@ -38,6 +38,7 @@
 #include "multi.h"
 #include "pfile.h"
 #include "plrmsg.h"
+#include "tables/presentation.hpp"
 #include "utils/log.hpp"
 #include "utils/sdl_compat.h"
 #include "utils/sdl_geometry.h"
@@ -143,7 +144,7 @@ void LoadCutsceneBackground(interface_mode uMsg)
 	case CutStart:
 		ArtCutsceneWidescreen = LoadOptionalClx("gendata\\cutstartw.clx");
 		celPath = "gendata\\cutstart";
-		palPath = "gendata\\cutstart.pal";
+		palPath = Presentation.loadingPalette.c_str();
 		progress_id = 1;
 		break;
 	case CutTown:

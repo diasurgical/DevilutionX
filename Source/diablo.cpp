@@ -103,6 +103,7 @@
 #include "storm/storm_svid.h"
 #include "tables/gameplay.h"
 #include "tables/monstdat.h"
+#include "tables/presentation.hpp"
 #include "tables/playerdat.hpp"
 #include "towners.h"
 #include "track.h"
@@ -1318,7 +1319,7 @@ void DiabloSplash()
 		return;
 
 	if (*GetOptions().StartUp.splash == StartUpSplash::LogoAndTitleDialog)
-		play_movie("gendata\\logo.smk", true);
+		play_movie(Presentation.startupLogo.c_str(), true);
 
 	auto &intro = gbIsHellfire ? GetOptions().StartUp.hellfireIntro : GetOptions().StartUp.diabloIntro;
 
@@ -2791,6 +2792,7 @@ int DiabloMain(int argc, char **argv)
 
 	// Load dynamic data before we go into the menu as we need to initialise player characters in memory pretty early.
 	LoadGameplayRules();
+	LoadPresentationRules();
 	LoadPlayerDataFiles();
 
 	// TODO: We can probably load this much later (when the game is starting).

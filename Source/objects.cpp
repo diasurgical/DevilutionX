@@ -44,6 +44,7 @@
 #include "qol/stash.h"
 #include "stores.h"
 #include "tables/objdat.h"
+#include "tables/presentation.hpp"
 #include "towners.h"
 #include "track.h"
 #include "utils/algorithm/container.hpp"
@@ -4878,7 +4879,7 @@ StringOrView Object::name() const
 		}
 		break;
 	case OBJ_SWITCHSKL:
-		return _("Skull Lever");
+		return Presentation.skullLeverName.empty() ? _("Skull Lever") : _(Presentation.skullLeverName.c_str());
 	case OBJ_BOOK2R:
 		return _("Mythical Book");
 	case OBJ_CHEST1:
@@ -4898,7 +4899,7 @@ StringOrView Object::name() const
 		return _("Bookshelf");
 	case OBJ_BOOKCASEL:
 	case OBJ_BOOKCASER:
-		return _("Bookcase");
+		return Presentation.bookcaseName.empty() ? _("Bookcase") : _(Presentation.bookcaseName.c_str());
 	case OBJ_BARREL:
 	case OBJ_BARRELEX:
 		return _("Barrel");

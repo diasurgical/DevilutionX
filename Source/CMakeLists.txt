@@ -153,6 +153,7 @@ set(libdevilutionx_SRCS
   storm/storm_svid.cpp
 
   tables/gameplay.cpp
+  tables/presentation.cpp
   tables/misdat.cpp
   tables/townerdat.cpp
 
