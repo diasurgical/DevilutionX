@@ -184,7 +184,7 @@ TEST_F(GameplayTest, MonsterChargeAnimationIsRestoredAfterLoading)
 {
 	const uint8_t spriteList[] = { 1, 0, 0, 0 };
 	CMonster &type = LevelMonsterTypes[0];
-	type.type = MT_ZOMBIE;
+	type.type = MT_NZOMBIE;
 	AnimStruct &walk = type.anims[static_cast<int>(MonsterGraphic::Walk)];
 	const auto savedSprites = walk.sprites;
 	walk.sprites = ClxSpriteListOrSheet { spriteList, 0 };
@@ -217,7 +217,7 @@ TEST_F(GameplayTest, MatterTrapTriggersOnceWhenAMonsterEnters)
 	LoadMonsterData();
 	LoadPlayerDataFiles();
 	const Point position { 30, 30 };
-	LevelMonsterTypes[0].type = MT_ZOMBIE;
+	LevelMonsterTypes[0].type = MT_NZOMBIE;
 	Monster &monster = Monsters[4];
 	monster = {};
 	monster.levelType = 0;
