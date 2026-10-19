@@ -1399,7 +1399,8 @@ bool MonsterFadeout(Monster &monster)
 	}
 
 	monster.flags &= ~MFLAG_LOCK_ANIMATION;
-	monster.flags |= MFLAG_HIDDEN;
+	if (monster.ai != MonsterAIID::FireMan)
+		monster.flags |= MFLAG_HIDDEN;
 
 	M_StartStand(monster, monster.direction);
 
@@ -2684,6 +2685,54 @@ void SnotSpilAi(Monster &monster)
 	monster.checkStandAnimationIsLoaded(md);
 }
 
+void FireManAi(Monster &monster)
+{
+	if (monster.mode != MonsterMode::Stand || monster.activeForTicks == 0)
+		return;
+
+	const Direction direction = GetMonsterDirection(monster);
+	if (monster.goal == MonsterGoal::Normal) {
+		if (IsLineNotSolid(monster.position.tile, monster.enemyPosition)
+		    && AddMissile(monster.position.tile, monster.enemyPosition, direction,
+		           MissileID::FireMan, TARGET_PLAYERS, monster, 0, 0) != nullptr) {
+			monster.mode = MonsterMode::Charge;
+			monster.goal = MonsterGoal::Attack;
+			monster.goalVar1 = 0;
+		}
+	} else if (monster.goal == MonsterGoal::Attack) {
+		if (monster.goalVar1 == 3) {
+			monster.goal = MonsterGoal::Normal;
+			StartFadeout(monster, direction, true);
+		} else if (IsLineNotSolid(monster.position.tile, monster.enemyPosition)) {
+			StartRangedAttack(monster, MissileID::Krull, 4);
+			monster.goalVar1++;
+		} else {
+			AiDelay(monster, GenerateRnd(10) + 5);
+			monster.goalVar1++;
+		}
+	} else if (monster.goal == MonsterGoal::Retreat) {
+		StartFadein(monster, direction, false);
+		monster.goal = MonsterGoal::Attack;
+	}
+	monster.direction = direction;
+	if (monster.mode != MonsterMode::Stand)
+		return;
+
+	if (monster.distanceToEnemy() < 2 && monster.goal == MonsterGoal::Normal) {
+		MonsterAttackEnemy(monster, monster.toHit(sgGameInitInfo.nDifficulty),
+		    monster.minDamage, monster.maxDamage);
+		monster.goal = MonsterGoal::Retreat;
+		if (!RandomWalk(monster, Opposite(direction))) {
+			StartFadein(monster, direction, false);
+			monster.goal = MonsterGoal::Attack;
+		}
+	} else if (!RandomWalk(monster, direction)
+	    && IsAnyOf(monster.goal, MonsterGoal::Normal, MonsterGoal::Retreat)) {
+		StartFadein(monster, direction, false);
+		monster.goal = MonsterGoal::Attack;
+	}
+}
+
 void SnakeAi(Monster &monster)
 {
 	const int8_t pattern[6] = { 1, 1, 0, -1, -1, 0 };
@@ -3123,7 +3172,7 @@ void (*AiProc[])(Monster &monster) = {
 	/*MonsterAIID::Succubus       */ &AiRanged,
 	/*MonsterAIID::Sneak          */ &SneakAi,
 	/*MonsterAIID::Storm          */ &AiRangedAvoidance,
-	/*MonsterAIID::FireMan        */ nullptr,
+	/*MonsterAIID::FireMan        */ &FireManAi,
 	/*MonsterAIID::Gharbad        */ &GharbadAi,
 	/*MonsterAIID::Acid           */ &AiRangedAvoidance,
 	/*MonsterAIID::AcidUnique     */ &AiRanged,
@@ -3564,6 +3613,37 @@ std::expected<void, std::string> InitMonsterSND(CMonster &monsterType)
 	return {};
 }
 
+namespace {
+
+std::expected<void, std::string> LoadMonsterAiMissileGraphics(MonsterAIID ai)
+{
+	switch (ai) {
+	case MonsterAIID::Magma:
+		RETURN_IF_ERROR(GetMissileSpriteData(MissileGraphicID::MagmaBall).LoadGFX());
+		break;
+	case MonsterAIID::Storm:
+		RETURN_IF_ERROR(GetMissileSpriteData(MissileGraphicID::ThinLightning).LoadGFX());
+		break;
+	case MonsterAIID::Acid:
+	case MonsterAIID::AcidUnique:
+		RETURN_IF_ERROR(GetMissileSpriteData(MissileGraphicID::Acid).LoadGFX());
+		RETURN_IF_ERROR(GetMissileSpriteData(MissileGraphicID::AcidSplat).LoadGFX());
+		RETURN_IF_ERROR(GetMissileSpriteData(MissileGraphicID::AcidPuddle).LoadGFX());
+		break;
+	case MonsterAIID::FireMan:
+		RETURN_IF_ERROR(GetMissileSpriteData(MissileGraphicID::Krull).LoadGFX());
+		break;
+	case MonsterAIID::Diablo:
+		RETURN_IF_ERROR(GetMissileSpriteData(MissileGraphicID::DiabloApocalypseBoom).LoadGFX());
+		break;
+	default:
+		break;
+	}
+	return {};
+}
+
+} // namespace
+
 std::expected<void, std::string> InitMonsterGFX(CMonster &monsterType, MonsterSpritesData &&spritesData)
 {
 	if (HeadlessMode)
@@ -3571,6 +3651,11 @@ std::expected<void, std::string> InitMonsterGFX(CMonster &monsterType, MonsterSp
 
 	const _monster_id mtype = monsterType.type;
 	const MonsterData &monsterData = MonstersData[mtype];
+	RETURN_IF_ERROR(LoadMonsterAiMissileGraphics(monsterData.ai));
+	for (const UniqueMonsterData &unique : UniqueMonstersData) {
+		if (unique.mtype == mtype)
+			RETURN_IF_ERROR(LoadMonsterAiMissileGraphics(unique.mAi));
+	}
 	if (spritesData.data == nullptr)
 		spritesData = LoadMonsterSpritesData(monsterData);
 	monsterType.animData = std::move(spritesData.data);
