@@ -37,6 +37,7 @@
 #include "lua/modules/render.hpp"
 #include "lua/modules/system.hpp"
 #include "lua/modules/towners.hpp"
+#include "objects.h"
 #include "options.h"
 #include "plrmsg.h"
 #include "stores.h"
@@ -277,6 +278,7 @@ void LuaReloadActiveMods()
 	LoadMonsterData();
 	LoadItemData();
 	LoadObjectData();
+	LoadShrineRules();
 	LoadQuestData();
 
 	lua::LoadModsComplete();

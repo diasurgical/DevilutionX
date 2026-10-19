@@ -11,11 +11,14 @@
 #include <string>
 
 #include <algorithm>
+#include <array>
 
 #include "DiabloUI/ui_flags.hpp"
 #include "automap.h"
 #include "cursor.h"
 #include "cursor_defs.hpp"
+#include "data/file.hpp"
+#include "data/record_reader.hpp"
 #ifdef _DEBUG
 #include "debug.h"
 #endif
@@ -170,9 +173,10 @@ enum shrine_gametype : uint8_t {
 	ShrineTypeAny,
 	ShrineTypeSingle,
 	ShrineTypeMulti,
+	ShrineTypeDisabled,
 };
 
-shrine_gametype shrineavail[] = {
+constexpr shrine_gametype DefaultShrineAvailability[] = {
 	ShrineTypeAny,    // Mysterious
 	ShrineTypeAny,    // Hidden
 	ShrineTypeSingle, // Gloomy
@@ -208,6 +212,19 @@ shrine_gametype shrineavail[] = {
 	ShrineTypeSingle, // Solar,
 	ShrineTypeAny,    // Murphy's
 };
+auto shrineavail = [] {
+	std::array<shrine_gametype, NumberOfShrineTypes> result;
+	std::copy(std::begin(DefaultShrineAvailability), std::end(DefaultShrineAvailability), result.begin());
+	return result;
+}();
+
+bool IsShrineAvailable(int shrine)
+{
+	if (shrineavail[shrine] == ShrineTypeDisabled)
+		return false;
+	return shrineavail[shrine] != (gbIsMultiplayer ? ShrineTypeSingle : ShrineTypeMulti);
+}
+
 /** Maps from book_id to book name. */
 const char *const StoryBookName[] = {
 	N_(/* TRANSLATORS: Book Title */ "The Great Conflict"),
@@ -1306,13 +1323,7 @@ void AddShrine(Object &shrine)
 	bool slist[NumberOfShrineTypes] = {};
 
 	for (int i = 0; i < shrineCount; i++) {
-		bool isShrineAvailable = true;
-
-		if (gbIsMultiplayer) {
-			isShrineAvailable = (shrineavail[i] != ShrineTypeSingle);
-		} else {
-			isShrineAvailable = (shrineavail[i] != ShrineTypeMulti);
-		}
+		const bool isShrineAvailable = IsShrineAvailable(i);
 
 		const bool isEnchantedShrine = (i == ShrineEnchanted);
 		const bool isCorrectLevelType = IsAnyOf(leveltype, DTYPE_CATHEDRAL, DTYPE_CATACOMBS);
@@ -3197,9 +3208,7 @@ int FindValidShrine()
 		const int rv = GenerateRnd(gbIsHellfire ? NumberOfShrineTypes : 26);
 		if ((rv == ShrineEnchanted && !IsAnyOf(leveltype, DTYPE_CATHEDRAL, DTYPE_CATACOMBS)) || rv == ShrineThaumaturgic)
 			continue;
-		if (gbIsMultiplayer && shrineavail[rv] == ShrineTypeSingle)
-			continue;
-		if (!gbIsMultiplayer && shrineavail[rv] == ShrineTypeMulti)
+		if (!IsShrineAvailable(rv))
 			continue;
 		return rv;
 	}
@@ -3708,6 +3717,48 @@ std::expected<void, std::string> LoadLevelObjects(uint16_t filesWidths[65])
 		numobjfiles++;
 	}
 	return {};
+}
+
+void LoadShrineRules()
+{
+	std::copy(std::begin(DefaultShrineAvailability), std::end(DefaultShrineAvailability), std::begin(shrineavail));
+	constexpr std::string_view Filename = "txtdata\\objects\\shrines.tsv";
+	auto result = DataFile::load(Filename);
+	if (!result.has_value()) {
+		if (result.error() != DataFile::Error::NotFound)
+			DataFile::reportFatalError(result.error(), Filename);
+		return;
+	}
+	DataFile &dataFile = result.value();
+	dataFile.skipHeaderOrDie(Filename);
+	for (DataFileRecord record : dataFile) {
+		RecordReader reader { record, Filename };
+		int shrine;
+		reader.read("name", shrine, [](std::string_view name) -> std::expected<int, std::string> {
+			for (int i = 0; i < NumberOfShrineTypes; i++) {
+				if (name == ShrineNames[i])
+					return i;
+			}
+			return std::unexpected("Unknown shrine name");
+		});
+		reader.read("availability", shrineavail[shrine], [](std::string_view value) -> std::expected<shrine_gametype, std::string> {
+			if (value == "Any") return ShrineTypeAny;
+			if (value == "Single") return ShrineTypeSingle;
+			if (value == "Multi") return ShrineTypeMulti;
+			if (value == "Disabled") return ShrineTypeDisabled;
+			return std::unexpected("Unknown shrine availability");
+		});
+	}
+	bool singleAvailable = false;
+	bool multiAvailable = false;
+	for (int i = 0; i < 26; i++) {
+		if (i == ShrineEnchanted || i == ShrineThaumaturgic || shrineavail[i] == ShrineTypeDisabled)
+			continue;
+		singleAvailable |= shrineavail[i] != ShrineTypeMulti;
+		multiAvailable |= shrineavail[i] != ShrineTypeSingle;
+	}
+	if (!singleAvailable || !multiAvailable)
+		DataFile::reportFatalError(DataFile::Error::NoContent, Filename);
 }
 
 std::expected<void, std::string> InitObjectGFX()

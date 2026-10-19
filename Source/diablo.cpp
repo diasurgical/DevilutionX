@@ -2799,6 +2799,7 @@ int DiabloMain(int argc, char **argv)
 	LoadMonsterData();
 	LoadItemData();
 	LoadObjectData();
+	LoadShrineRules();
 	LoadQuestData();
 
 	DiabloInit();
