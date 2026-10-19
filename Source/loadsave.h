@@ -6,6 +6,11 @@
 #pragma once
 
 #include <cstdint>
+#ifdef BUILD_TESTING
+#include <cstddef>
+#include <span>
+#include <vector>
+#endif
 #include <expected>
 
 #include "pfile.h"
@@ -13,6 +18,12 @@
 #include "utils/attributes.h"
 
 namespace devilution {
+
+#ifdef BUILD_TESTING
+struct Monster;
+DVL_API_FOR_TEST std::vector<std::byte> SaveMonsterForTest(SaveWriter &writer, Monster &monster);
+DVL_API_FOR_TEST bool LoadMonsterForTest(std::span<const std::byte> bytes, Monster &monster, size_t &consumed);
+#endif
 
 extern DVL_API_FOR_TEST bool gbIsHellfireSaveGame;
 extern DVL_API_FOR_TEST uint8_t giNumberOfLevels;

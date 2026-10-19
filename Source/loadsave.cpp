@@ -31,6 +31,7 @@
 #include "menu.h"
 #include "missiles.h"
 #include "monster.h"
+#include "monsters/save_stats.hpp"
 #include "monsters/validation.hpp"
 #include "mpq/mpq_common.hpp"
 #include "pfile.h"
@@ -116,6 +117,20 @@ class LoadHelper {
 	}
 
 public:
+#ifdef BUILD_TESTING
+	explicit LoadHelper(std::span<const std::byte> bytes)
+	    : m_buffer_(std::make_unique<std::byte[]>(bytes.size()))
+	    , m_size_(bytes.size())
+	{
+		memcpy(m_buffer_.get(), bytes.data(), bytes.size());
+	}
+
+	size_t positionForTest() const
+	{
+		return m_cur_;
+	}
+#endif
+
 	LoadHelper(std::optional<SaveReader> archive, const char *szFileName)
 	{
 		if (archive)
@@ -245,6 +260,13 @@ public:
 		value = SwapBE(value);
 		WriteBytes(&value, sizeof(value));
 	}
+
+#ifdef BUILD_TESTING
+	std::vector<std::byte> bytesForTest() const
+	{
+		return { m_buffer_.get(), m_buffer_.get() + m_cur_ };
+	}
+#endif
 
 	~SaveHelper()
 	{
@@ -663,6 +685,7 @@ bool gbSkipSync = false;
 
 [[nodiscard]] bool LoadMonster(LoadHelper *file, Monster &monster, MonsterConversionData *monsterConversionData = nullptr)
 {
+	MonsterStatSaveExtension stats;
 	monster.levelType = file->NextLE<int32_t>();
 	monster.mode = static_cast<MonsterMode>(file->NextLE<int32_t>());
 	monster.goal = static_cast<MonsterGoal>(file->NextLE<uint8_t>());
@@ -670,7 +693,7 @@ bool gbSkipSync = false;
 	monster.goalVar1 = file->NextLENarrow<int32_t, int16_t>();
 	monster.goalVar2 = file->NextLENarrow<int32_t, int8_t>();
 	monster.goalVar3 = file->NextLENarrow<int32_t, int8_t>();
-	file->Skip(4); // Unused
+	stats.magic = file->NextLE<uint32_t>();
 	monster.pathCount = file->NextLE<uint8_t>();
 	file->Skip(3); // Alignment
 	monster.position.tile.x = file->NextLE<int32_t>();
@@ -711,12 +734,14 @@ bool gbSkipSync = false;
 	monster.flags = file->NextLE<uint32_t>();
 	monster.activeForTicks = file->NextLE<uint8_t>();
 	file->Skip(3); // Alignment
-	file->Skip(4); // Unused
+	stats.minDamage = file->NextLE<uint16_t>();
+	stats.maxDamage = file->NextLE<uint16_t>();
 	monster.position.last.x = file->NextLE<int32_t>();
 	monster.position.last.y = file->NextLE<int32_t>();
 	monster.rndItemSeed = file->NextLE<uint32_t>();
 	monster.aiSeed = file->NextLE<uint32_t>();
-	file->Skip(4); // Unused
+	stats.minDamageSpecial = file->NextLE<uint16_t>();
+	stats.maxDamageSpecial = file->NextLE<uint16_t>();
 
 	monster.uniqueType = static_cast<UniqueMonsterType>(file->NextLE<uint8_t>() - 1);
 	monster.uniqTrans = file->NextLE<uint8_t>();
@@ -750,7 +775,8 @@ bool gbSkipSync = false;
 	monster.armorClass = file->NextLE<uint8_t>();
 	file->Skip(1); // Alignment
 	monster.resistance = file->NextLE<uint16_t>();
-	file->Skip(2); // Alignment
+	stats.armorClass = file->NextLE<uint16_t>();
+	stats.applyTo(monster);
 
 	monster.talkMsg = static_cast<_speech_id>(file->NextLE<int32_t>());
 	if (monster.talkMsg == TEXT_KING1) // Fix original bad mapping of NONE for monsters
@@ -1502,6 +1528,7 @@ void SavePlayer(SaveHelper &file, const Player &player)
 
 void SaveMonster(SaveHelper *file, Monster &monster, MonsterConversionData *monsterConversionData = nullptr)
 {
+	const auto stats = MonsterStatSaveExtension::fromMonster(monster);
 	file->WriteLE<int32_t>(monster.levelType);
 	file->WriteLE<int32_t>(static_cast<int>(monster.mode));
 	file->WriteLE<uint8_t>(static_cast<uint8_t>(monster.goal));
@@ -1509,7 +1536,7 @@ void SaveMonster(SaveHelper *file, Monster &monster, MonsterConversionData *mons
 	file->WriteLE<int32_t>(monster.goalVar1);
 	file->WriteLE<int32_t>(monster.goalVar2);
 	file->WriteLE<int32_t>(monster.goalVar3);
-	file->Skip(4); // Unused
+	file->WriteLE<uint32_t>(stats.magic);
 	file->WriteLE<uint8_t>(monster.pathCount);
 	file->Skip(3); // Alignment
 	file->WriteLE<int32_t>(monster.position.tile.x);
@@ -1560,12 +1587,14 @@ void SaveMonster(SaveHelper *file, Monster &monster, MonsterConversionData *mons
 	file->WriteLE<uint32_t>(monster.flags);
 	file->WriteLE<uint8_t>(monster.activeForTicks);
 	file->Skip(3); // Alignment
-	file->Skip(4); // Unused
+	file->WriteLE<uint16_t>(stats.minDamage);
+	file->WriteLE<uint16_t>(stats.maxDamage);
 	file->WriteLE<int32_t>(monster.position.last.x);
 	file->WriteLE<int32_t>(monster.position.last.y);
 	file->WriteLE<uint32_t>(monster.rndItemSeed);
 	file->WriteLE<uint32_t>(monster.aiSeed);
-	file->Skip(4); // Unused
+	file->WriteLE<uint16_t>(stats.minDamageSpecial);
+	file->WriteLE<uint16_t>(stats.maxDamageSpecial);
 
 	file->WriteLE<uint8_t>(static_cast<uint8_t>(monster.uniqueType) + 1);
 	file->WriteLE<uint8_t>(monster.uniqTrans);
@@ -1586,18 +1615,18 @@ void SaveMonster(SaveHelper *file, Monster &monster, MonsterConversionData *mons
 		file->WriteLE<uint8_t>(monsterConversionData->toHit);
 	else
 		file->WriteLE<uint8_t>(static_cast<uint8_t>(std::min<uint16_t>(monster.toHit(sgGameInitInfo.nDifficulty), std::numeric_limits<uint8_t>::max()))); // For backwards compatibility
-	file->WriteLE<uint8_t>(monster.minDamage);
-	file->WriteLE<uint8_t>(monster.maxDamage);
+	file->WriteLE<uint8_t>(static_cast<uint8_t>(std::min<uint16_t>(monster.minDamage, 255)));
+	file->WriteLE<uint8_t>(static_cast<uint8_t>(std::min<uint16_t>(monster.maxDamage, 255)));
 	if (monsterConversionData != nullptr)
 		file->WriteLE<uint8_t>(monsterConversionData->toHitSpecial);
 	else
 		file->WriteLE<uint8_t>(static_cast<uint8_t>(std::min<uint16_t>(monster.toHitSpecial(sgGameInitInfo.nDifficulty), std::numeric_limits<uint8_t>::max()))); // For backwards compatibility
-	file->WriteLE<uint8_t>(monster.minDamageSpecial);
-	file->WriteLE<uint8_t>(monster.maxDamageSpecial);
-	file->WriteLE<uint8_t>(monster.armorClass);
+	file->WriteLE<uint8_t>(static_cast<uint8_t>(std::min<uint16_t>(monster.minDamageSpecial, 255)));
+	file->WriteLE<uint8_t>(static_cast<uint8_t>(std::min<uint16_t>(monster.maxDamageSpecial, 255)));
+	file->WriteLE<uint8_t>(static_cast<uint8_t>(std::min<uint16_t>(monster.armorClass, 255)));
 	file->Skip(1); // Alignment
 	file->WriteLE<uint16_t>(monster.resistance);
-	file->Skip(2); // Alignment
+	file->WriteLE<uint16_t>(stats.armorClass);
 
 	file->WriteLE<int32_t>(monster.talkMsg == TEXT_NONE ? 0 : monster.talkMsg);       // Replicate original bad mapping of none for monsters
 	file->WriteLE<uint8_t>(monster.leader == Monster::NoLeader ? 0 : monster.leader); // Vanilla uses 0 as the default leader which corresponds to player 0s golem
@@ -2125,6 +2154,23 @@ bool IsStashSizeValid(size_t stashSize, uint32_t pages, uint32_t itemCount)
 }
 
 } // namespace
+
+#ifdef BUILD_TESTING
+std::vector<std::byte> SaveMonsterForTest(SaveWriter &writer, Monster &monster)
+{
+	SaveHelper file { writer, "monster-test", 216 };
+	SaveMonster(&file, monster);
+	return file.bytesForTest();
+}
+
+bool LoadMonsterForTest(std::span<const std::byte> bytes, Monster &monster, size_t &consumed)
+{
+	LoadHelper file { bytes };
+	const bool valid = LoadMonster(&file, monster);
+	consumed = file.positionForTest();
+	return valid;
+}
+#endif
 
 std::expected<void, std::string> ConvertLevels(SaveWriter &saveWriter)
 {

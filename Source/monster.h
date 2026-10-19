@@ -276,11 +276,11 @@ struct Monster { // note: missing field _mAFNum
 	uint8_t uniqTrans;
 	int8_t corpseId;
 	int8_t whoHit;
-	uint8_t minDamage;
-	uint8_t maxDamage;
-	uint8_t minDamageSpecial;
-	uint8_t maxDamageSpecial;
-	uint8_t armorClass;
+	uint16_t minDamage;
+	uint16_t maxDamage;
+	uint16_t minDamageSpecial;
+	uint16_t maxDamageSpecial;
+	uint16_t armorClass;
 	uint8_t reducePlayerStrength;
 	uint8_t reducePlayerMagic;
 	uint8_t reducePlayerDexterity;
