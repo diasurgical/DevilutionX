@@ -129,6 +129,9 @@ ModManifest ParseModManifest(std::string_view manifestIni)
 
 bool SatisfiesRequiredIdentifier(const ModIdentifier &mod, std::span<const uint8_t, 32> required)
 {
+	// An absent content hash cannot establish compatibility.
+	if (std::all_of(mod.hash.begin(), mod.hash.end(), [](uint8_t value) { return value == 0; }))
+		return false;
 	if (std::equal(mod.hash.begin(), mod.hash.end(), required.begin()))
 		return true;
 	for (const std::array<uint8_t, 32> &compatible : mod.manifest.compatibleWith) {
@@ -144,6 +147,16 @@ void RegisterBuiltinModIdentifier(std::string_view name)
 	identifier.name = std::string(name);
 	identifier.hash = {};
 	identifier.whitelisted = true; // provenance: resolves purely from core archives
+	ActiveModIdentifiers.push_back(std::move(identifier));
+}
+
+void RegisterLooseModIdentifier(std::string_view name, ModManifest manifest)
+{
+	ModIdentifier identifier;
+	identifier.name = std::string(name);
+	identifier.hash = {};
+	identifier.whitelisted = false;
+	identifier.manifest = std::move(manifest);
 	ActiveModIdentifiers.push_back(std::move(identifier));
 }
 

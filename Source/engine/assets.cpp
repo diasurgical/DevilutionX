@@ -673,8 +673,13 @@ ModManifest ReadModManifestByName(std::string_view name)
 	const std::vector<std::string> searchPaths = GetMPQSearchPaths();
 	constexpr std::string_view ManifestName = "manifest.ini";
 
-	// Loose mod directory (also how UNPACKED_MPQS builds ship their mods).
-	for (const std::string &path : searchPaths) {
+	// Match the lookup order used for loose assets. Unpacked builds use MPQ search paths.
+#ifdef UNPACKED_MPQS
+	const auto &loosePaths = searchPaths;
+#else
+	const std::vector<std::string> loosePaths { paths::PrefPath(), paths::BasePath() };
+#endif
+	for (const std::string &path : loosePaths) {
 		const std::string manifestPath = StrCat(path, "mods" DIRECTORY_SEPARATOR_STR, name, DIRECTORY_SEPARATOR_STR, ManifestName);
 		FILE *file = OpenFile(manifestPath.c_str(), "rb");
 		if (file == nullptr)
@@ -720,8 +725,7 @@ void LoadModArchives(std::span<const std::string_view> modnames)
 	const std::vector<std::string> orderedNames = OrderModsByDependencies(deps);
 	const std::vector<std::string_view> activeMods(orderedNames.begin(), orderedNames.end());
 
-	// Tracks, per active mod, whether a loose override directory was found. Such mods carry no
-	// identifier (they are gated by the loose-asset integrity check) and are not built-in.
+	// Loose overrides retain manifest metadata but have no trustworthy content hash.
 	std::vector<bool> hasLooseOverride(activeMods.size(), false);
 #endif
 
@@ -751,15 +755,19 @@ void LoadModArchives(std::span<const std::string_view> modnames)
 		const std::string_view modname = activeMods[i];
 		const std::string mpqName = StrCat("mods" DIRECTORY_SEPARATOR_STR, modname);
 #ifdef UNPACKED_MPQS
-		LoadMPQ(paths, mpqName, priority);
+		if (LoadMPQ(paths, mpqName, priority))
+			RegisterLooseModIdentifier(modname, ReadModManifestByName(modname));
 #else
 		std::string loadedPath;
-		if (LoadMPQ(paths, mpqName, priority, ".mpq", &loadedPath)) {
+		const bool loadedPackedMod = LoadMPQ(paths, mpqName, priority, ".mpq", &loadedPath);
+		if (hasLooseOverride[i]) {
+			RegisterLooseModIdentifier(modname, ReadModManifestByName(modname));
+		} else if (loadedPackedMod) {
 			// A packed mod: identify it by the hash of its MPQ bytes. A local packed mod
 			// deliberately shadows any built-in of the same name, so it is treated as external.
 			ModIdentifier &mod = RegisterPackedModIdentifier(modname, loadedPath.c_str());
 			ReadLoadedModManifest(mod, priority);
-		} else if (!hasLooseOverride[i]) {
+		} else {
 			// Neither a packed MPQ nor a loose override directory: this mod resolves purely
 			// from core archives (a built-in), so it is provenance-whitelisted.
 			RegisterBuiltinModIdentifier(modname);
