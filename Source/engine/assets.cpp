@@ -471,6 +471,8 @@ std::vector<std::string> GetMPQSearchPaths()
 #else
 	paths.emplace_back("/usr/share/diasurgical/devilutionx/");
 #endif
+#elif defined(__3DS__) || defined(__SWITCH__)
+	paths.emplace_back("romfs:/");
 #elif defined(NXDK)
 	paths.emplace_back("D:\\");
 #elif defined(_WIN32) && !defined(__UWP__) && !defined(DEVILUTIONX_WINDOWS_NO_WCHAR)
@@ -670,11 +672,16 @@ std::vector<std::string> ReadPackedModRequiredMods(std::span<const std::string> 
 
 ModManifest ReadModManifestByName(std::string_view name)
 {
-	const std::vector<std::string> searchPaths = GetMPQSearchPaths();
 	constexpr std::string_view ManifestName = "manifest.ini";
 
+	// Matches the OverridePaths registered per mod by LoadModArchives()
+	const std::array<std::string, 2> unpackedSearchPaths {
+		paths::PrefPath(),
+		paths::BasePath(),
+	};
+
 	// Loose mod directory (also how UNPACKED_MPQS builds ship their mods).
-	for (const std::string &path : searchPaths) {
+	for (const std::string &path : unpackedSearchPaths) {
 		const std::string manifestPath = StrCat(path, "mods" DIRECTORY_SEPARATOR_STR, name, DIRECTORY_SEPARATOR_STR, ManifestName);
 		FILE *file = OpenFile(manifestPath.c_str(), "rb");
 		if (file == nullptr)
@@ -693,7 +700,8 @@ ModManifest ReadModManifestByName(std::string_view name)
 
 #ifndef UNPACKED_MPQS
 	// Packed mod archive.
-	std::expected<ModManifest, int32_t> manifest = ReadPackedModManifest(searchPaths, name);
+	const std::vector<std::string> packedSearchPaths = GetMPQSearchPaths();
+	std::expected<ModManifest, int32_t> manifest = ReadPackedModManifest(packedSearchPaths, name);
 	if (manifest.has_value())
 		return std::move(*manifest);
 #endif
