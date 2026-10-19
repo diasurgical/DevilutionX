@@ -101,50 +101,53 @@ TEST(ParseIntTest, ParseFixed6Fraction)
 
 TEST(ParseInt, ParseFixed6)
 {
-	ParseIntResult<int> result = ParseFixed6<int>("");
+	using SignedFixed = FixedPoint<int, 6>;
+	using UnsignedFixed = FixedPoint<unsigned, 6>;
+
+	ParseIntResult<SignedFixed> result = ParseFixed6<SignedFixed>("");
 	ASSERT_FALSE(result.has_value()) << "Empty strings are not valid fixed point values.";
 	EXPECT_EQ(result.error(), ParseIntError::ParseError) << "ParseFixed6 should give a ParseError code when parsing an empty string.";
 
-	result = ParseFixed6<int>("abcd");
+	result = ParseFixed6<SignedFixed>("abcd");
 	ASSERT_FALSE(result.has_value()) << "Non-numeric strings should not be parsed as a fixed-point value.";
 	EXPECT_EQ(result.error(), ParseIntError::ParseError) << "ParseFixed6 should give a ParseError code when parsing a non-numeric string.";
 
-	result = ParseFixed6<int>(".");
+	result = ParseFixed6<SignedFixed>(".");
 	ASSERT_FALSE(result.has_value()) << "To match std::from_chars ParseFixed6 should fail to parse a decimal string with no digits.";
 	EXPECT_EQ(result.error(), ParseIntError::ParseError) << "Decimal strings with no digits are reported as ParseError codes.";
 
-	result = ParseFixed6<int>("1.");
+	result = ParseFixed6<SignedFixed>("1.");
 	ASSERT_TRUE(result.has_value()) << "A trailing decimal point is permitted for fixed point values";
-	EXPECT_EQ(result.value(), 1 << 6);
+	EXPECT_EQ(result.value().raw(), 1 << 6);
 
-	result = ParseFixed6<int>(".5");
+	result = ParseFixed6<SignedFixed>(".5");
 	ASSERT_TRUE(result.has_value()) << "A fixed point value with no integer part is accepted";
-	EXPECT_EQ(result.value(), 32);
+	EXPECT_EQ(result.value().raw(), 32);
 
 	const std::string_view badString { "-." };
 	const char *endOfParse = nullptr;
-	result = ParseFixed6<int>(badString, &endOfParse);
+	result = ParseFixed6<SignedFixed>(badString, &endOfParse);
 	ASSERT_FALSE(result.has_value()) << "To match std::from_chars ParseFixed6 should fail to parse a decimal string with no digits, even if it starts with a minus sign.";
 	EXPECT_EQ(result.error(), ParseIntError::ParseError) << "Decimal strings with no digits are reported as ParseError codes.";
 	EXPECT_EQ(endOfParse, badString.data()) << "Failed fixed point parsing should set the end pointer to match the start of the string even though it read multiple characters";
 
-	result = ParseFixed6<int>("-1.");
+	result = ParseFixed6<SignedFixed>("-1.");
 	ASSERT_TRUE(result.has_value()) << "negative fixed point values are handled when reading into signed types";
-	EXPECT_EQ(result.value(), -1 << 6);
+	EXPECT_EQ(result.value().raw(), -1 << 6);
 
-	result = ParseFixed6<int>("-1.25");
+	result = ParseFixed6<SignedFixed>("-1.25");
 	ASSERT_TRUE(result.has_value()) << "negative fixed point values are handled when reading into signed types";
-	EXPECT_EQ(result.value(), -((1 << 6) + 16)) << "and the fraction part is combined with the integer part respecting the sign";
+	EXPECT_EQ(result.value().raw(), -((1 << 6) + 16)) << "and the fraction part is combined with the integer part respecting the sign";
 
-	result = ParseFixed6<int>("-.25");
+	result = ParseFixed6<SignedFixed>("-.25");
 	ASSERT_TRUE(result.has_value()) << "negative fixed point values with no integer digits are handled when reading into signed types";
-	EXPECT_EQ(result.value(), -16) << "and the fraction part is used respecting the sign";
+	EXPECT_EQ(result.value().raw(), -16) << "and the fraction part is used respecting the sign";
 
-	result = ParseFixed6<int>("-0.25");
+	result = ParseFixed6<SignedFixed>("-0.25");
 	ASSERT_TRUE(result.has_value()) << "negative fixed point values with an explicit -0 integer part are handled when reading into signed types";
-	EXPECT_EQ(result.value(), -16) << "and the fraction part is used respecting the sign";
+	EXPECT_EQ(result.value().raw(), -16) << "and the fraction part is used respecting the sign";
 
-	ParseIntResult<unsigned> unsignedResult = ParseFixed6<unsigned>("-1.");
+	ParseIntResult<UnsignedFixed> unsignedResult = ParseFixed6<UnsignedFixed>("-1.");
 	ASSERT_FALSE(unsignedResult.has_value()) << "negative fixed point values are not permitted when reading into unsigned types";
 	EXPECT_EQ(unsignedResult.error(), ParseIntError::ParseError) << "Attempting to parse a negative value into an unsigned type is a ParseError, not an OutOfRange value";
 }

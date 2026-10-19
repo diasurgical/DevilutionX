@@ -9,6 +9,7 @@
 
 #include "data/file.hpp"
 #include "data/iterators.hpp"
+#include "utils/fixed_point.hpp"
 
 namespace devilution {
 
@@ -68,9 +69,8 @@ public:
 		});
 	}
 
-	template <typename T>
-	typename std::enable_if_t<std::is_integral_v<T>, void>
-	readDecimal(std::string_view expectedKey, T &outValue)
+	template <Fixed6Type T>
+	void readDecimal(std::string_view expectedKey, T &outValue)
 	{
 		readValue(expectedKey, outValue, [](DataFileField &valueField, T &outValue) {
 			return valueField.parseFixed6(outValue);

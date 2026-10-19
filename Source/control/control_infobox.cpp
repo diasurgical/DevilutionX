@@ -434,7 +434,7 @@ void DrawInfoBox(const Surface &out)
 			const auto &target = *PlayerUnderCursor;
 			InfoString = std::string_view(target._pName);
 			AddInfoBoxString(FormatRuntime(_("{:s}, Level: {:d}"), target.getClassName(), target.getCharacterLevel()));
-			AddInfoBoxString(FormatRuntime(_("Hit Points {:d} of {:d}"), target._pHitPoints >> 6, target._pMaxHP >> 6));
+			AddInfoBoxString(FormatRuntime(_("Hit Points {:d} of {:d}"), target._pHitPoints.whole(), target._pMaxHP.whole()));
 		}
 		if (PortraitIdUnderCursor != -1) {
 			InfoColor = UiFlags::ColorWhitegold;

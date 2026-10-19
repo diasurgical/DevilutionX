@@ -5,11 +5,14 @@
 #include <cstdio>
 #include <cstring>
 #include <expected>
+#include <memory>
 #include <string>
 
 #ifdef USE_SDL3
 #include <SDL3/SDL_error.h>
 #include <SDL3/SDL_iostream.h>
+#include <SDL3/SDL_pixels.h>
+#include <SDL3/SDL_surface.h>
 #else
 #include <SDL.h>
 #endif
@@ -36,6 +39,14 @@ std::expected<void, std::string> CheckedFWrite(const void *ptr, size_t size, SDL
 }
 
 /**
+ * @brief The PCX specification requires the number of bytes per scanline to be even.
+ */
+uint16_t PcxBytesPerLine(int16_t width)
+{
+	return static_cast<uint16_t>(width + (width % 2));
+}
+
+/**
  * @brief Write the PCX-file header
  * @param width Image width
  * @param height Image height
@@ -56,26 +67,26 @@ std::expected<void, std::string> WritePcxHeader(int16_t width, int16_t height, S
 	buffer.HDpi = Swap16LE(width);
 	buffer.VDpi = Swap16LE(height);
 	buffer.NPlanes = 1;
-	buffer.BytesPerLine = Swap16LE(width);
+	buffer.BytesPerLine = Swap16LE(PcxBytesPerLine(width));
 
 	return CheckedFWrite(&buffer, sizeof(buffer), out);
 }
 
 /**
  * @brief Write the current in-game palette to the PCX file
- * @param palette Current palette
+ * @param palette Current palette. Missing colors (if it has fewer than 256) are written as black.
  * @param out File stream for the PCX file.
  * @return True if successful, else false
  */
-std::expected<void, std::string> WritePcxPalette(SDL_Color *palette, SDL_IOStream *out)
+std::expected<void, std::string> WritePcxPalette(const SDL_Palette &palette, SDL_IOStream *out)
 {
-	uint8_t pcxPalette[1 + 256 * 3];
+	uint8_t pcxPalette[1 + 256 * 3] = {};
 
 	pcxPalette[0] = 12;
-	for (int i = 0; i < 256; i++) {
-		pcxPalette[1 + 3 * i + 0] = palette[i].r;
-		pcxPalette[1 + 3 * i + 1] = palette[i].g;
-		pcxPalette[1 + 3 * i + 2] = palette[i].b;
+	for (int i = 0; i < 256 && i < palette.ncolors; i++) {
+		pcxPalette[1 + 3 * i + 0] = palette.colors[i].r;
+		pcxPalette[1 + 3 * i + 1] = palette.colors[i].g;
+		pcxPalette[1 + 3 * i + 2] = palette.colors[i].b;
 	}
 
 	return CheckedFWrite(pcxPalette, sizeof(pcxPalette), out);
@@ -89,7 +100,7 @@ std::expected<void, std::string> WritePcxPalette(SDL_Color *palette, SDL_IOStrea
 
  * @return Output buffer
  */
-uint8_t *WritePcxLine(uint8_t *src, uint8_t *dst, int width)
+uint8_t *WritePcxLine(const uint8_t *src, uint8_t *dst, int width)
 {
 	int rleLength;
 
@@ -100,11 +111,7 @@ uint8_t *WritePcxLine(uint8_t *src, uint8_t *dst, int width)
 
 		width--;
 
-		while (rlePixel == *src) {
-			if (rleLength >= 63)
-				break;
-			if (width == 0)
-				break;
+		while (width > 0 && rleLength < 63 && rlePixel == *src) {
 			rleLength++;
 
 			width--;
@@ -133,10 +140,14 @@ uint8_t *WritePcxLine(uint8_t *src, uint8_t *dst, int width)
 std::expected<void, std::string> WritePcxPixels(const Surface &buf, SDL_IOStream *out)
 {
 	const int width = buf.w();
-	const std::unique_ptr<uint8_t[]> pBuffer { new uint8_t[static_cast<size_t>(2 * width)] };
+	const int bytesPerLine = PcxBytesPerLine(width);
+	const std::unique_ptr<uint8_t[]> lineBuffer { new uint8_t[static_cast<size_t>(bytesPerLine)] };
+	std::memset(lineBuffer.get(), 0, bytesPerLine);
+	const std::unique_ptr<uint8_t[]> pBuffer { new uint8_t[static_cast<size_t>(2 * bytesPerLine)] };
 	uint8_t *pixels = buf.begin();
 	for (int height = buf.h(); height > 0; height--) {
-		const uint8_t *pBufferEnd = WritePcxLine(pixels, pBuffer.get(), width);
+		std::memcpy(lineBuffer.get(), pixels, width);
+		const uint8_t *pBufferEnd = WritePcxLine(lineBuffer.get(), pBuffer.get(), bytesPerLine);
 		pixels += buf.pitch();
 		std::expected<void, std::string> result = CheckedFWrite(pBuffer.get(), pBufferEnd - pBuffer.get(), out);
 		if (!result.has_value()) return result;
@@ -149,11 +160,20 @@ std::expected<void, std::string> WritePcxPixels(const Surface &buf, SDL_IOStream
 std::expected<void, std::string>
 WriteSurfaceToFilePcx(const Surface &buf, SDL_IOStream *outStream)
 {
+#ifdef USE_SDL3
+	const SDL_Palette *palette = SDL_GetSurfacePalette(buf.surface);
+#else
+	const SDL_Palette *palette = buf.surface->format->palette;
+#endif
+	if (palette == nullptr) {
+		return std::unexpected("surface has no palette");
+	}
+
 	std::expected<void, std::string> result = WritePcxHeader(buf.w(), buf.h(), outStream);
 	if (!result.has_value()) return result;
 	result = WritePcxPixels(buf, outStream);
 	if (!result.has_value()) return result;
-	result = WritePcxPalette(buf.surface->format->palette->colors, outStream);
+	result = WritePcxPalette(*palette, outStream);
 	if (!result.has_value()) return result;
 	SDL_CloseIO(outStream);
 	return {};

@@ -58,6 +58,7 @@ int8_t dPlayer[MAXDUNX][MAXDUNY];
 int16_t dMonster[MAXDUNX][MAXDUNY];
 int8_t dCorpse[MAXDUNX][MAXDUNY];
 int8_t dObject[MAXDUNX][MAXDUNY];
+uint32_t WalkabilityGeneration;
 int8_t dSpecial[MAXDUNX][MAXDUNY];
 int themeCount;
 THEME_LOC themeLoc[MAXTHEMES];

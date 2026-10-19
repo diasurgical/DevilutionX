@@ -330,6 +330,7 @@ void TownOpenHive()
 	dPiece[85][64] = 15;
 	dPiece[86][60] = 16;
 	dPiece[86][61] = 17;
+	MarkWalkabilityChanged();
 }
 
 void TownOpenGrave()
@@ -347,6 +348,7 @@ void TownOpenGrave()
 	dPiece[37][24] = 0x539;
 	dPiece[35][21] = 0x53a;
 	dPiece[34][21] = 0x53b;
+	MarkWalkabilityChanged();
 }
 
 void CleanTownFountain()
