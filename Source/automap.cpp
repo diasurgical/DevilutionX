@@ -1555,7 +1555,7 @@ Rectangle MinimapRect {};
 
 void InitAutomapOnce()
 {
-	AutomapActive = false;
+	AutomapActive = Gameplay.automapStartsActive != 0;
 	AutoMapScale = 50;
 
 	// Set the dimensions and screen position of the minimap relative to the screen dimensions

@@ -932,10 +932,11 @@ DamageRange GetDamageAmt(SpellID spell, int spellLevel)
 	}
 	case SpellID::Fireball:
 	case SpellID::RuneOfFire: {
-		const int base = (2 * myPlayer.getCharacterLevel()) + 4;
+		const int base = Gameplay.fireballDamageMultiplier * myPlayer.getCharacterLevel()
+		    + Gameplay.fireballDamageBonus;
 		return {
 			ScaleSpellEffect(base, spellLevel),
-			ScaleSpellEffect(base + 36, spellLevel)
+			ScaleSpellEffect(base + 18 * Gameplay.fireballDamageMultiplier, spellLevel)
 		};
 	} break;
 	case SpellID::Guardian: {
@@ -1981,7 +1982,9 @@ void AddFireball(Missile &missile, AddMissileParameter &parameter)
 		sp += std::min(missile._mispllvl * 2, 34);
 		const Player &player = Players[missile._misource];
 
-		const int dmg = (2 * (player.getCharacterLevel() + GenerateRndSum(10, 2))) + 4;
+		const int dmg = Gameplay.fireballDamageMultiplier
+		    * (player.getCharacterLevel() + GenerateRndSum(10, 2))
+		    + Gameplay.fireballDamageBonus;
 		missile._midam = ScaleSpellEffect(dmg, missile._mispllvl);
 	}
 	UpdateMissileVelocity(missile, dst, sp);
@@ -3580,7 +3583,7 @@ void ProcessChainLightning(Missile &missile)
 	const Point dst { missile.var1, missile.var2 };
 	Direction dir = GetDirection(position, dst);
 	AddMissile(position, dst, dir, MissileID::LightningControl, TARGET_MONSTERS, id, 1, missile._mispllvl);
-	const int rad = std::min<int>(missile._mispllvl + 3, MaxCrawlRadius);
+	const int rad = std::min<int>(missile._mispllvl / Gameplay.chainLightningLevelDivisor + 3, MaxCrawlRadius);
 	Crawl(1, rad, [&](Displacement displacement) {
 		const Point target = position + displacement;
 		if (InDungeonBounds(target) && dMonster[target.x][target.y] > 0) {

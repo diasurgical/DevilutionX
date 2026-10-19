@@ -101,6 +101,7 @@
 #include "stores.h"
 #include "storm/storm_net.hpp"
 #include "storm/storm_svid.h"
+#include "tables/gameplay.h"
 #include "tables/monstdat.h"
 #include "tables/playerdat.hpp"
 #include "towners.h"
@@ -2789,6 +2790,7 @@ int DiabloMain(int argc, char **argv)
 	LoadTextData();
 
 	// Load dynamic data before we go into the menu as we need to initialise player characters in memory pretty early.
+	LoadGameplayRules();
 	LoadPlayerDataFiles();
 
 	// TODO: We can probably load this much later (when the game is starting).

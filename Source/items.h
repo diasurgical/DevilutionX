@@ -16,6 +16,7 @@
 #include "engine/surface.hpp"
 #include "levels/dun_tile.hpp"
 #include "monster.h"
+#include "tables/gameplay.h"
 #include "tables/itemdat.h"
 #include "utils/fixed_point.hpp"
 #include "utils/is_of.hpp"
@@ -28,15 +29,15 @@ namespace devilution {
 
 #define GOLD_SMALL_LIMIT 1000
 #define GOLD_MEDIUM_LIMIT 2500
-#define GOLD_MAX_LIMIT 5000
+#define GOLD_MAX_LIMIT (Gameplay.goldStackLimit)
 
 // Item indestructible durability
 #define DUR_INDESTRUCTIBLE 255
 
 constexpr int ItemNameLength = 64;
-constexpr int MaxVendorValue = 140000;
+inline const int &MaxVendorValue = Gameplay.vendorValueLimit;
 constexpr int MaxVendorValueHf = 200000;
-constexpr int MaxBoyValue = 90000;
+inline const int &MaxBoyValue = Gameplay.boyValueLimit;
 constexpr int MaxBoyValueHf = 200000;
 
 enum item_quality : uint8_t {

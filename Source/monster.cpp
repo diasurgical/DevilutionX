@@ -119,11 +119,11 @@ bool sgbSaveSoundOn;
 
 namespace {
 
-constexpr int NightmareToHitBonus = 85;
-constexpr int HellToHitBonus = 120;
+const int &NightmareToHitBonus = Gameplay.nightmareToHitBonus;
+const int &HellToHitBonus = Gameplay.hellToHitBonus;
 
-constexpr int NightmareAcBonus = 50;
-constexpr int HellAcBonus = 80;
+const int &NightmareAcBonus = Gameplay.nightmareAcBonus;
+const int &HellAcBonus = Gameplay.hellAcBonus;
 
 /** @brief Reserved some entries in @Monster for golems. For vanilla compatibility, this must remain 4. */
 constexpr int ReservedMonsterSlotsForGolems = 4;
@@ -268,7 +268,7 @@ void InitMonster(Monster &monster, Direction rd, size_t typeIndex, Point positio
 		if (gbIsHellfire)
 			monster.maxHitPoints += Fixed26_6::fromInt(gbIsMultiplayer ? 200 : 100);
 		else
-			monster.maxHitPoints += Fixed26_6::fromInt(200);
+			monster.maxHitPoints += Fixed26_6::fromInt(Gameplay.hellHitPointBonus);
 		monster.hitPoints = monster.maxHitPoints;
 		monster.minDamage = 4 * monster.minDamage + 6;
 		monster.maxDamage = 4 * monster.maxDamage + 6;
@@ -880,6 +880,9 @@ void DiabloDeath(Monster &diablo, bool sendmsg)
 	if (sendmsg)
 		NetSendCmdQuest(true, quest);
 	sgbSaveSoundOn = gbSoundOn;
+	if (Gameplay.allowMovementDuringDiabloDeath != 0) {
+		return;
+	}
 	gbProcessPlayers = false;
 	for (size_t i = 0; i < ActiveMonsterCount; i++) {
 		const int monsterId = ActiveMonsters[i];
@@ -1506,16 +1509,18 @@ void MonsterDeath(Monster &monster)
 {
 	monster.var1++;
 	if (monster.type().type == MT_DIABLO) {
-		if (monster.position.tile.x < ViewPosition.x) {
-			ViewPosition.x--;
-		} else if (monster.position.tile.x > ViewPosition.x) {
-			ViewPosition.x++;
-		}
+		if (Gameplay.allowMovementDuringDiabloDeath == 0) {
+			if (monster.position.tile.x < ViewPosition.x) {
+				ViewPosition.x--;
+			} else if (monster.position.tile.x > ViewPosition.x) {
+				ViewPosition.x++;
+			}
 
-		if (monster.position.tile.y < ViewPosition.y) {
-			ViewPosition.y--;
-		} else if (monster.position.tile.y > ViewPosition.y) {
-			ViewPosition.y++;
+			if (monster.position.tile.y < ViewPosition.y) {
+				ViewPosition.y--;
+			} else if (monster.position.tile.y > ViewPosition.y) {
+				ViewPosition.y++;
+			}
 		}
 
 		if (monster.var1 == 140)

@@ -12,6 +12,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <limits>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -2790,7 +2791,7 @@ void CalcPlrAuricBonus(Player &player)
 			if (half != MaxGold)
 				StripTopGold(player);
 		} else {
-			MaxGold = GOLD_MAX_LIMIT * 2;
+			MaxGold = std::min(GOLD_MAX_LIMIT * 2, static_cast<int>(std::numeric_limits<uint16_t>::max()));
 		}
 	}
 }
