@@ -39,6 +39,7 @@
 #include "lua/modules/towners.hpp"
 #include "objects.h"
 #include "options.h"
+#include "panels/spell_book.hpp"
 #include "plrmsg.h"
 #include "stores.h"
 #include "tables/gameplay.h"
@@ -274,6 +275,7 @@ void LuaReloadActiveMods()
 	LoadGameplayRules();
 	LoadPlayerDataFiles();
 	LoadSpellData();
+	LoadSpellBookLayout();
 	LoadMissileData();
 	LoadMonsterData();
 	LoadItemData();

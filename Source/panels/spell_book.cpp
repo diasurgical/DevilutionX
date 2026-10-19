@@ -1,17 +1,22 @@
 #include "panels/spell_book.hpp"
 
+#include <array>
 #include <cstdint>
 #include <expected>
 #include <optional>
 #include <string>
+#include <vector>
 
 #include "control/control.hpp"
+#include "data/file.hpp"
+#include "data/record_reader.hpp"
 #include "engine/backbuffer_state.hpp"
 #include "engine/clx_sprite.hpp"
 #include "engine/load_cel.hpp"
 #include "engine/load_clx.hpp"
 #include "engine/rectangle.hpp"
 #include "engine/render/clx_render.hpp"
+#include "engine/render/primitive_render.hpp"
 #include "engine/render/text_render.hpp"
 #include "game_mode.hpp"
 #include "missiles.h"
@@ -33,6 +38,8 @@ OptionalOwnedClxSpriteList spellBookBackground;
 const size_t SpellBookPages = 6;
 const size_t SpellBookPageEntries = 7;
 
+std::vector<std::array<SpellID, SpellBookPageEntries>> customSpellPages;
+
 constexpr uint16_t SpellBookButtonWidthDiablo = 76;
 constexpr uint16_t SpellBookButtonWidthHellfire = 61;
 
@@ -51,11 +58,37 @@ const SpellID SpellPages[SpellBookPages][SpellBookPageEntries] = {
 	{ SpellID::Invalid, SpellID::Invalid, SpellID::Invalid, SpellID::Invalid, SpellID::Invalid, SpellID::Invalid, SpellID::Invalid }
 };
 
+void LoadCustomSpellPages()
+{
+	customSpellPages.clear();
+	SpellbookTab = 0;
+	constexpr std::string_view Filename = "txtdata\\spells\\spellbook.tsv";
+	auto result = DataFile::load(Filename);
+	if (!result.has_value()) {
+		if (result.error() != DataFile::Error::NotFound)
+			DataFile::reportFatalError(result.error(), Filename);
+		return;
+	}
+	DataFile &dataFile = result.value();
+	dataFile.skipHeaderOrDie(Filename);
+	for (DataFileRecord record : dataFile) {
+		RecordReader reader { record, Filename };
+		auto &page = customSpellPages.emplace_back();
+		for (SpellID &spell : page)
+			reader.read("spell", spell, ParseSpellId);
+	}
+	if (customSpellPages.empty() || customSpellPages.size() > SpellBookPages)
+		DataFile::reportFatalError(DataFile::Error::NotEnoughColumns, Filename);
+	SpellbookTab = 0;
+}
+
 SpellID GetSpellFromSpellPage(size_t page, size_t entry)
 {
-	assert(page <= SpellBookPages && entry <= SpellBookPageEntries);
+	assert(page < GetSpellBookPageCount() && entry < SpellBookPageEntries);
 	if (page == 0 && entry == 0)
 		return GetPlayerStartingLoadoutForClass(InspectPlayer->_pClass).skill;
+	if (!customSpellPages.empty())
+		return customSpellPages[page][entry];
 	return SpellPages[page][entry];
 }
 
@@ -118,6 +151,16 @@ StringOrView GetSpellPowerText(SpellID spell, int spellLevel)
 
 } // namespace
 
+void LoadSpellBookLayout()
+{
+	LoadCustomSpellPages();
+}
+
+size_t GetSpellBookPageCount()
+{
+	return customSpellPages.empty() ? (gbIsHellfire ? 5 : 4) : customSpellPages.size();
+}
+
 std::expected<void, std::string> InitSpellBook()
 {
 	ASSIGN_OR_RETURN(spellBookBackground, LoadCelWithStatus("data\\spellbk", static_cast<uint16_t>(SidePanelSize.width)));
@@ -143,7 +186,19 @@ void DrawSpellBook(const Surface &out)
 	        // BUGFIX: rendering of page 3 and page 4 buttons are both off-by-one pixel (fixed).
 	        + (SpellbookTab == 2 || SpellbookTab == 3 ? 1 : 0);
 
-	ClxDraw(out, GetPanelPosition(UiPanels::Spell, { SpellBookButtonX + buttonX, SpellBookButtonY }), (*spellBookButtons)[SpellbookTab]);
+	if (customSpellPages.empty()) {
+		ClxDraw(out, GetPanelPosition(UiPanels::Spell, { SpellBookButtonX + buttonX, SpellBookButtonY }), (*spellBookButtons)[SpellbookTab]);
+	} else {
+		const Point origin = GetPanelPosition(UiPanels::Spell, { 7, 320 });
+		FillRect(out, origin.x, origin.y, 305, 29, 0);
+		for (size_t page = 0; page < customSpellPages.size(); page++) {
+			const int left = static_cast<int>(page * 305 / customSpellPages.size());
+			const int right = static_cast<int>((page + 1) * 305 / customSpellPages.size());
+			const Rectangle bounds { origin + Displacement { left, 0 }, Size { right - left, 29 } };
+			const UiFlags color = page == SpellbookTab ? UiFlags::ColorGold : UiFlags::ColorWhite;
+			DrawString(out, std::to_string(page + 1), bounds, { .flags = color | UiFlags::AlignCenter | UiFlags::VerticalCenter });
+		}
+	}
 	const Player &player = *InspectPlayer;
 	const uint64_t spl = player._pMemSpells | player._pISpells | player._pAblSpells;
 
@@ -223,6 +278,10 @@ void CheckSBook()
 	const Rectangle tabArea = { GetPanelPosition(UiPanels::Spell, { 7, 320 }), Size { 305, 29 } };
 	if (tabArea.contains(MousePosition)) {
 		int hitColumn = MousePosition.x - tabArea.position.x;
+		if (!customSpellPages.empty()) {
+			SpellbookTab = hitColumn * customSpellPages.size() / 305;
+			return;
+		}
 		// Clicking on the gutter currently activates tab 3. Could make it do nothing by checking for == here and return early.
 		if (!gbIsHellfire && hitColumn > buttonWidth * 2) {
 			// Subtract 1 pixel to account for the gutter between buttons 2/3

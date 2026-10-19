@@ -5,6 +5,7 @@
  */
 #include "tables/spelldat.h"
 
+#include <charconv>
 #include <expected>
 #include <optional>
 #include <string_view>
@@ -25,7 +26,7 @@ void AddNullSpell()
 	null.flags = SpellDataFlags::Fire;
 	null.sBookLvl = null.sStaffLvl = 0;
 	null.minInt = 0;
-	null.sMissiles[0] = null.sMissiles[1] = MissileID::Null;
+	null.sMissiles[0] = null.sMissiles[1] = null.sMissiles[2] = MissileID::Null;
 	null.sManaAdj = null.sMinMana = 0;
 	null.sStaffMin = 40;
 	null.sStaffMax = 80;
@@ -226,6 +227,50 @@ std::expected<SpellID, std::string> ParseSpellId(std::string_view value)
 	return std::unexpected("Unknown enum value");
 }
 
+namespace {
+
+void LoadSpellOverrides()
+{
+	constexpr std::string_view Filename = "txtdata\\spells\\spell_overrides.tsv";
+	auto result = DataFile::load(Filename);
+	if (!result.has_value()) {
+		if (result.error() != DataFile::Error::NotFound)
+			DataFile::reportFatalError(result.error(), Filename);
+		return;
+	}
+	DataFile &dataFile = result.value();
+	dataFile.skipHeaderOrDie(Filename);
+	for (DataFileRecord record : dataFile) {
+		RecordReader reader { record, Filename };
+		SpellID spell;
+		reader.read("id", spell, [](std::string_view value) -> std::expected<SpellID, std::string> {
+			auto parsed = ParseSpellId(value);
+			if (!parsed.has_value() || *parsed == SpellID::Null
+			    || static_cast<size_t>(*parsed) >= SpellsData.size())
+				return std::unexpected("Expected a loaded spell ID");
+			return parsed;
+		});
+		reader.read("iconFrame", SpellsData[static_cast<size_t>(spell)].iconFrame,
+		    [](std::string_view value) -> std::expected<int16_t, std::string> {
+			    int frame;
+			    const auto [end, error] = std::from_chars(value.data(), value.data() + value.size(), frame);
+			    if (error != std::errc {} || end != value.data() + value.size() || frame < -1 || frame > 50)
+				    return std::unexpected("Expected an icon frame between -1 and 50");
+			    return static_cast<int16_t>(frame);
+		    });
+		reader.read("staffValueMultiplier", SpellsData[static_cast<size_t>(spell)].staffValueMultiplier,
+		    [](std::string_view value) -> std::expected<uint8_t, std::string> {
+			    unsigned multiplier;
+			    const auto [end, error] = std::from_chars(value.data(), value.data() + value.size(), multiplier);
+			    if (error != std::errc {} || end != value.data() + value.size() || multiplier < 1 || multiplier > 16)
+				    return std::unexpected("Expected a multiplier between 1 and 16");
+			    return static_cast<uint8_t>(multiplier);
+		    });
+	}
+}
+
+} // namespace
+
 void LoadSpellData()
 {
 	SpellsData.clear();
@@ -253,6 +298,7 @@ void LoadSpellData()
 		reader.readInt("staffMin", item.sStaffMin);
 		reader.readInt("staffMax", item.sStaffMax);
 	}
+	LoadSpellOverrides();
 	SpellsData.shrink_to_fit();
 }
 

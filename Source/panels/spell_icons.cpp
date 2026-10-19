@@ -132,6 +132,9 @@ void FreeSmallSpellIcons()
 
 uint8_t GetSpellIconFrame(SpellID spell)
 {
+	const size_t index = static_cast<size_t>(spell);
+	if (index < SpellsData.size() && SpellsData[index].iconFrame >= 0)
+		return static_cast<uint8_t>(SpellsData[index].iconFrame);
 	return static_cast<uint8_t>(SpellITbl[static_cast<int8_t>(spell)]);
 }
 
@@ -140,7 +143,10 @@ void DrawLargeSpellIcon(const Surface &out, Point position, SpellID spell)
 #ifdef UNPACKED_MPQS
 	ClxDrawTRN(out, position, (*LargeSpellIconsBackground)[0], SplTransTbl);
 #endif
-	ClxDrawTRN(out, position, (*LargeSpellIcons)[GetSpellIconFrame(spell)], SplTransTbl);
+	uint8_t frame = GetSpellIconFrame(spell);
+	if (frame >= LargeSpellIcons->numSprites())
+		frame = static_cast<uint8_t>(SpellIcon::Empty);
+	ClxDrawTRN(out, position, (*LargeSpellIcons)[frame], SplTransTbl);
 }
 
 void DrawSmallSpellIcon(const Surface &out, Point position, SpellID spell)
@@ -148,7 +154,10 @@ void DrawSmallSpellIcon(const Surface &out, Point position, SpellID spell)
 #ifdef UNPACKED_MPQS
 	ClxDrawTRN(out, position, (*SmallSpellIconsBackground)[0], SplTransTbl);
 #endif
-	ClxDrawTRN(out, position, (*SmallSpellIcons)[GetSpellIconFrame(spell)], SplTransTbl);
+	uint8_t frame = GetSpellIconFrame(spell);
+	if (frame >= SmallSpellIcons->numSprites())
+		frame = static_cast<uint8_t>(SpellIcon::Empty);
+	ClxDrawTRN(out, position, (*SmallSpellIcons)[frame], SplTransTbl);
 }
 
 void DrawLargeSpellIconBorder(const Surface &out, Point position, uint8_t color)

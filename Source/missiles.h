@@ -353,6 +353,21 @@ void AddGuardian(Missile &missile, AddMissileParameter &parameter);
  * var1: X coordinate of the destination
  * var2: Y coordinate of the destination
  */
+void AddMatterTrap(Missile &missile, AddMissileParameter &parameter);
+void ProcessMatterTrap(Missile &missile);
+
+void AddEscape(Missile &missile, AddMissileParameter &parameter);
+void ProcessEscape(Missile &missile);
+
+void AddEtherealize(Missile &missile, AddMissileParameter &parameter);
+void ProcessEtherealize(Missile &missile);
+
+void AddFireMan(Missile &missile, AddMissileParameter &parameter);
+void ProcessFireMan(Missile &missile);
+
+void AddKrull(Missile &missile, AddMissileParameter &parameter);
+void ProcessKrull(Missile &missile);
+
 void AddChainLightning(Missile &missile, AddMissileParameter &parameter);
 void AddRhino(Missile &missile, AddMissileParameter &parameter);
 

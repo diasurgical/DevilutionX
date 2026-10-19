@@ -1280,7 +1280,7 @@ void GetStaffSpell(const Player &player, Item &item, int lvl, bool onlygood)
 	item._iMaxCharges = item._iCharges;
 
 	item._iMinMag = GetSpellData(bs).minInt;
-	const int v = item._iCharges * GetSpellData(bs).staffCost() / 5;
+	const int v = GetSpellData(bs).staffValue(item._iCharges);
 	item._ivalue += v;
 	item._iIvalue += v;
 	GetStaffPower(player, item, lvl, onlygood);
