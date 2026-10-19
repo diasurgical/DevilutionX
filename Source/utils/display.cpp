@@ -327,13 +327,16 @@ void UpdateAvailableResolutions()
 	// Integer Scaling cannot scale an image beyond the native desktop
 	// resolution: the fit-to-screen factor would floor to zero and divide
 	// by zero (field crash). Above-native sizes (e.g. GPU driver VSR
-	// modes) are not offered while Integer Scaling is enabled; toggling
-	// it refreshes this list.
-	Size nativeResolution;
-	if (GetNativeDesktopResolution(nativeResolution)) {
-		std::erase_if(sizes, [nativeResolution](const Size &s) {
-			return s.width > nativeResolution.width || s.height > nativeResolution.height;
-		});
+	// modes) are therefore not offered while Integer Scaling is enabled;
+	// with it off they stay selectable (the selection clamp ignores them
+	// as well), and toggling Integer Scaling refreshes this list.
+	if (*GetOptions().Graphics.integerScaling) {
+		Size nativeResolution;
+		if (GetNativeDesktopResolution(nativeResolution)) {
+			std::erase_if(sizes, [nativeResolution](const Size &s) {
+				return s.width > nativeResolution.width || s.height > nativeResolution.height;
+			});
+		}
 	}
 
 	// Sort by width then by height
