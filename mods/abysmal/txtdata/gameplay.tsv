@@ -1,0 +1,15 @@
+key	value
+maxResistance	70
+goldStackLimit	65000
+vendorValueLimit	2340000
+boyValueLimit	2000000
+nightmareToHitBonus	110
+hellToHitBonus	170
+nightmareAcBonus	80
+hellAcBonus	130
+hellHitPointBonus	400
+fireballDamageMultiplier	1
+fireballDamageBonus	25
+chainLightningLevelDivisor	2
+allowMovementDuringDiabloDeath	1
+automapStartsActive	1
