@@ -17,8 +17,10 @@ on macOS). For an existing installation, copy the
 whole `abysmal` directory into its `mods` directory, either beside the executable
 or in DevilutionX's preference directory.
 
-With the game closed, add these entries to the `[Mods]` section of
-`diablo.ini`, then start the game in Diablo mode:
+Start the game in Diablo mode and enable **Abysmal Diablo V2+** in the Mods
+settings. The installed mod is discovered automatically from its manifest.
+Alternatively, with the game closed, add these entries to the `[Mods]` section
+of `diablo.ini`:
 
 ```ini
 [Mods]
@@ -26,7 +28,6 @@ abysmal=1
 hf=0
 ```
 
-Once registered in the configuration, Abysmal appears in the Mods settings.
 Do not combine this rebalance with Hellfire or other gameplay mods. Create a
 new character. The manifest selects `.asv` character/stash files and the `ABYS`
 game identifier; ordinary Diablo `.sv` files remain separate. Original Abysmal

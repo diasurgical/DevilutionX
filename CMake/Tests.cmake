@@ -33,6 +33,7 @@ set(tests
   monstdat_test
   monster_save_stats_test
   multi_logging_test
+  options_test
   pack_test
   player_test
   quests_test
