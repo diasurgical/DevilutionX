@@ -195,7 +195,7 @@ void DrawSpellBook(const Surface &out)
 			const int left = static_cast<int>(page * 305 / customSpellPages.size());
 			const int right = static_cast<int>((page + 1) * 305 / customSpellPages.size());
 			const Rectangle bounds { origin + Displacement { left, 0 }, Size { right - left, 29 } };
-			const UiFlags color = page == SpellbookTab ? UiFlags::ColorGold : UiFlags::ColorWhite;
+			const UiFlags color = static_cast<int>(page) == SpellbookTab ? UiFlags::ColorGold : UiFlags::ColorWhite;
 			DrawString(out, std::to_string(page + 1), bounds, { .flags = color | UiFlags::AlignCenter | UiFlags::VerticalCenter });
 		}
 	}
