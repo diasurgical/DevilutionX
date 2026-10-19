@@ -1,0 +1,4 @@
+type	name	trn	level	maxHp	ai	intelligence	minDamage	maxDamage	reducePlayerStrength	reducePlayerMagic	reducePlayerDexterity	reducePlayerVitality	reducePlayerMaxHP	reducePlayerMaxMana	resistance	monsterPack	customToHit	customArmorClass	talkMessage
+MT_NZOMBIE	Gharbad the Weak	bsdb	4	120	Gharbad	3	8	16	0	0	0	0	0	0	IMMUNE_LIGHTNING	None	Final(0)	Final(0)	TEXT_GARBUD1
+MT_NZOMBIE	Gharbad the Weak	bsdb	4	120	Gharbad	3	8	16	0	0	0	0	0	0	IMMUNE_LIGHTNING	None	Final(100)	Final(45)	TEXT_GARBUD1
+MT_NZOMBIE	Gharbad the Weak	bsdb	4	120	Gharbad	3	8	16	0	0	0	0	0	0	IMMUNE_LIGHTNING	None	100	45	TEXT_GARBUD1

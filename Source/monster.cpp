@@ -3402,7 +3402,9 @@ std::expected<void, std::string> PrepareUniqueMonst(Monster &monster, UniqueMons
 	RETURN_IF_ERROR(InitTRNForUniqueMonster(monster));
 	monster.uniqTrans = uniquetrans++;
 
-	if (uniqueMonsterData.customArmorClass != 0) {
+	if (uniqueMonsterData.finalArmorClass >= 0) {
+		monster.armorClass = uniqueMonsterData.finalArmorClass;
+	} else if (uniqueMonsterData.customArmorClass != 0) {
 		monster.armorClass = uniqueMonsterData.customArmorClass;
 
 		if (sgGameInitInfo.nDifficulty == DIFF_NIGHTMARE) {
@@ -5021,6 +5023,10 @@ unsigned int Monster::toHit(_difficulty difficulty) const
 	if (isPlayerMinion())
 		return golemToHit;
 
+	if (isUnique() && UniqueMonstersData[static_cast<size_t>(uniqueType)].finalToHit >= 0) {
+		return UniqueMonstersData[static_cast<size_t>(uniqueType)].finalToHit;
+	}
+
 	unsigned int baseToHit = data().toHit;
 	if (isUnique() && UniqueMonstersData[static_cast<size_t>(uniqueType)].customToHit != 0) {
 		baseToHit = UniqueMonstersData[static_cast<size_t>(uniqueType)].customToHit;
@@ -5037,6 +5043,10 @@ unsigned int Monster::toHit(_difficulty difficulty) const
 
 unsigned int Monster::toHitSpecial(_difficulty difficulty) const
 {
+	if (isUnique() && UniqueMonstersData[static_cast<size_t>(uniqueType)].finalToHit >= 0) {
+		return UniqueMonstersData[static_cast<size_t>(uniqueType)].finalToHit;
+	}
+
 	unsigned int baseToHitSpecial = data().toHitSpecial;
 	if (isUnique() && UniqueMonstersData[static_cast<size_t>(uniqueType)].customToHit != 0) {
 		baseToHitSpecial = UniqueMonstersData[static_cast<size_t>(uniqueType)].customToHit;
