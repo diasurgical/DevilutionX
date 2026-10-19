@@ -3192,6 +3192,27 @@ void SetupItem(Item &item)
 	item._iIdentified = false;
 }
 
+void SetupForcedUniqueItem(const Player &player, Item &item, _item_indexes idx, _unique_items uid)
+{
+	const int level = std::max<int>(1, UniqueItems[uid].UIMinLvl - 4);
+	const auto validUniques = GetValidUniques(level + 4, AllItemsList[idx].iItemId);
+	const auto found = std::find(validUniques.rbegin(), validUniques.rend(), uid);
+	const int offset = static_cast<int>(std::distance(validUniques.rbegin(), found));
+	if (found == validUniques.rend() || level > CF_LEVEL || offset > (CF_UIDOFFSET >> 1)) {
+		DisplayFatalErrorAndExit("Unable to generate unique item",
+		    "The unique item's level or base-item selection cannot be represented in saved items.");
+	}
+
+	const Point position = item.position;
+	DiabloGenerator generator(AdvanceRndSeed());
+	do {
+		item = {};
+		item.position = position;
+		SetupAllItems(player, item, idx, generator.advanceRndSeed(), level, 15, true, false, offset);
+	} while (item._iMagical != ITEM_QUALITY_UNIQUE || item._iUid != uid);
+	item.dwBuff |= (offset << 1) & CF_UIDOFFSET;
+}
+
 Item *SpawnUnique(_unique_items uid, Point position, std::optional<int> level /*= std::nullopt*/, bool sendmsg /*= true*/, bool exactPosition /*= false*/)
 {
 	if (ActiveItemCount >= MAXITEMS)
@@ -3212,8 +3233,12 @@ Item *SpawnUnique(_unique_items uid, Point position, std::optional<int> level /*
 		idx++;
 
 	if (sgGameInitInfo.nDifficulty == DIFF_NORMAL) {
-		GetItemAttrs(item, static_cast<_item_indexes>(idx), curlv);
-		GetUniqueItem(*MyPlayer, item, uid);
+		if (AllItemsList[idx].iMiscId == IMISC_UNIQUE) {
+			GetItemAttrs(item, static_cast<_item_indexes>(idx), curlv);
+			GetUniqueItem(*MyPlayer, item, uid);
+		} else {
+			SetupForcedUniqueItem(*MyPlayer, item, static_cast<_item_indexes>(idx), uid);
+		}
 		SetupItem(item);
 	} else {
 		if (level)
