@@ -74,3 +74,52 @@ else()
     add_dependencies(libdevilutionx hellfire_copied_assets)
   endif()
 endif()
+
+set(abysmal_mod
+  Abysmal_V2+.txt
+  README.md
+  manifest.ini
+  txtdata/classes/rogue/attributes.tsv
+  txtdata/classes/rogue/starting_loadout.tsv
+  txtdata/classes/sorcerer/attributes.tsv
+  txtdata/classes/sorcerer/starting_loadout.tsv
+  txtdata/classes/warrior/attributes.tsv
+  txtdata/gameplay.tsv
+  txtdata/items/item_prefixes.tsv
+  txtdata/items/item_suffixes.tsv
+  txtdata/items/itemdat.tsv
+  txtdata/items/unique_itemdat.tsv
+  txtdata/missiles/misdat.tsv
+  txtdata/missiles/missile_sprites.tsv
+  txtdata/monsters/conversion.tsv
+  txtdata/monsters/monstdat.tsv
+  txtdata/monsters/unique_monstdat.tsv
+  txtdata/objects/objdat.tsv
+  txtdata/objects/shrines.tsv
+  txtdata/presentation.tsv
+  txtdata/quests/questdat.tsv
+  txtdata/sound/effects.tsv
+  txtdata/spells/spell_overrides.tsv
+  txtdata/spells/spellbook.tsv
+  txtdata/spells/spelldat.tsv
+  txtdata/towners/towners.tsv)
+
+if(APPLE)
+  foreach(asset_file ${abysmal_mod})
+    set(src "${CMAKE_CURRENT_SOURCE_DIR}/mods/abysmal/${asset_file}")
+    get_filename_component(_asset_dir "${asset_file}" DIRECTORY)
+    set_source_files_properties("${src}" PROPERTIES
+      MACOSX_PACKAGE_LOCATION "Resources/mods/abysmal/${_asset_dir}"
+      XCODE_EXPLICIT_FILE_TYPE compiled)
+    target_sources(${BIN_TARGET} PRIVATE "${src}")
+  endforeach()
+endif()
+
+# Standalone test executables also need the loose files outside the app bundle.
+copy_files(
+  FILES ${abysmal_mod}
+  SRC_PREFIX "mods/abysmal/"
+  OUTPUT_DIR "${DEVILUTIONX_MODS_OUTPUT_DIRECTORY}/abysmal"
+  OUTPUT_VARIABLE ABYSMAL_OUTPUT_FILES)
+add_custom_target(abysmal_copied_assets DEPENDS ${ABYSMAL_OUTPUT_FILES})
+add_dependencies(libdevilutionx abysmal_copied_assets)
