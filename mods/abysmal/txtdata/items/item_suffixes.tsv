@@ -1,0 +1,96 @@
+name	power	power.value1	power.value2	minLevel	itemTypes	alignment	chance	useful	minVal	maxVal	multVal
+quality	DAMMOD	1	2	2	Bow,Weapon	Any	1	true	100	200	2
+maiming	DAMMOD	3	5	7	Bow,Weapon	Any	1	true	1300	1500	3
+slaying	DAMMOD	6	8	15	Bow,Weapon	Any	1	true	2600	3000	5
+gore	DAMMOD	9	12	25	Bow,Weapon	Any	1	true	4100	5000	8
+carnage	DAMMOD	13	16	31	Bow,Weapon	Any	1	true	5100	10000	10
+slaughter	DAMMOD	17	20	35	Bow,Weapon	Any	1	true	10100	15000	13
+butchery	DAMMOD	21	25	60	Weapon	Evil	1	true	60000	90000	15
+health	GETHIT	1	2	2	Misc,Shield,Armor	Evil	1	true	200	200	2
+protection	GETHIT	3	4	6	Misc,Shield,Armor	Good	1	true	400	800	4
+absorption	GETHIT	5	6	12	Misc,Shield,Armor	Good	1	true	1001	2500	10
+deflection	GETHIT	7	8	20	Shield,Armor	Good	1	true	2500	6500	15
+osmosis	GETHIT	9	12	31	Shield,Armor	Good	1	true	7500	10000	20
+opacity	GETHIT	13	15	60	Armor	Good	1	true	40000	80000	25
+demons	SPLLVLADD	1	1	30	Misc,Staff,Armor	Evil	1	true	75000	75000	4
+strength	STR	1	5	1	Misc,Bow,Staff,Weapon,Shield,Armor	Evil	1	true	200	1000	2
+might	STR	6	10	5	Misc,Bow,Staff,Weapon,Shield,Armor	Any	1	true	1200	2000	3
+power	STR	11	15	11	Misc,Bow,Staff,Weapon,Shield,Armor	Any	1	true	2200	3000	4
+giants	STR	16	20	17	Misc,Bow,Staff,Weapon,Shield,Armor	Any	1	true	3200	5000	7
+titans	STR	21	30	23	Misc,Weapon	Any	1	true	5200	10000	10
+the athaki	STR	31	40	60	Misc,Weapon	Any	1	true	40000	80000	15
+paralysis	DEX_CURSE	6	10	3	Misc,Bow,Weapon,Shield,Armor	Evil	1	false	0	0	-3
+dexterity	DEX	1	5	1	Misc,Bow,Weapon,Shield,Armor	Evil	1	true	200	1000	2
+skill	DEX	6	10	5	Misc,Bow,Weapon,Shield,Armor	Any	1	true	1200	2000	3
+accuracy	DEX	11	15	11	Misc,Bow,Weapon,Shield,Armor	Any	1	true	2200	3000	4
+precision	DEX	16	20	17	Misc,Bow,Weapon,Shield,Armor	Any	1	true	3200	5000	7
+perfection	DEX	21	30	23	Misc,Bow	Any	1	true	5200	10000	10
+hunters	DEX	31	40	60	Misc,Bow	Any	1	true	40000	80000	15
+the fool	MAG_CURSE	6	10	3	Misc,Bow,Staff,Weapon,Shield,Armor	Evil	1	false	0	0	-3
+magic	MAG	1	5	1	Misc,Bow,Staff,Weapon,Shield,Armor	Evil	1	true	200	1000	2
+the mind	MAG	6	10	5	Misc,Bow,Staff,Weapon,Shield,Armor	Any	1	true	1200	2000	3
+brilliance	MAG	11	15	11	Misc,Bow,Staff,Weapon,Shield,Armor	Any	1	true	2200	3000	4
+sorcery	MAG	16	20	17	Misc,Bow,Staff,Weapon,Shield,Armor	Any	1	true	3200	5000	7
+wizardry	MAG	21	30	23	Misc,Staff,Armor	Any	1	true	5200	10000	10
+magery	MAG	31	40	60	Misc,Staff,Armor	Any	1	true	40000	80000	15
+the plague	DRAINLIFE	3	6	20	Misc,Shield,Armor	Evil	1	false	1	1	-18
+vitality	VIT	1	5	1	Misc,Bow,Weapon,Shield,Armor	Evil	1	true	200	1000	2
+zest	VIT	6	10	5	Misc,Bow,Weapon,Shield,Armor	Good	1	true	1200	2000	3
+vim	VIT	11	15	11	Misc,Bow,Weapon,Shield,Armor	Good	1	true	2200	3000	4
+vigor	VIT	16	20	17	Misc,Bow,Weapon,Shield,Armor	Good	1	true	3200	5000	7
+life	VIT	21	30	23	Misc,Shield,Armor	Good	1	true	5200	10000	10
+prosperity	VIT	31	40	60	Misc,Shield,Armor	Good	1	true	40000	80000	15
+trouble	ATTRIBS_CURSE	6	10	12	Misc,Bow,Staff,Weapon,Shield,Armor	Evil	1	false	0	0	-10
+the pit	ATTRIBS_CURSE	1	5	5	Misc,Bow,Staff,Weapon,Shield,Armor	Evil	1	false	0	0	-5
+the sky	ATTRIBS	1	3	5	Misc,Bow,Staff,Weapon,Shield,Armor	Any	1	true	800	4000	5
+the moon	ATTRIBS	4	7	11	Misc,Bow,Staff,Weapon,Shield,Armor	Any	1	true	4800	8000	10
+the stars	ATTRIBS	8	11	17	Misc,Bow,Staff,Weapon,Shield,Armor	Any	1	true	8800	12000	15
+the heavens	ATTRIBS	12	15	25	Misc,Bow,Staff,Weapon,Shield	Any	1	true	12800	20000	20
+the zodiac	ATTRIBS	16	20	31	Misc,Bow	Any	1	true	20800	40000	30
+the gods	ATTRIBS	21	25	35	Misc	Evil	1	true	40800	80000	40
+the vulture	LIFE_CURSE	11	25	4	Misc,Shield,Armor	Evil	1	false	0	0	-4
+the fox	LIFE	10	15	1	Misc,Shield,Armor	Any	1	true	100	1000	2
+the jaguar	LIFE	16	20	5	Misc,Shield,Armor	Any	1	true	1100	2000	3
+the eagle	LIFE	21	30	9	Misc,Shield,Armor	Any	1	true	2100	4000	5
+the wolf	LIFE	30	40	15	Misc,Shield,Armor	Any	1	true	4100	6000	7
+the tiger	LIFE	41	50	21	Misc,Shield,Armor	Any	1	true	6100	10000	9
+the lion	LIFE	51	60	27	Misc,Shield,Armor	Any	1	true	10100	15000	11
+the mammoth	LIFE	61	80	31	Misc,Armor	Any	1	true	15100	19000	12
+the whale	LIFE	81	100	35	Misc,Armor	Any	1	true	19100	30000	13
+the phoenix	LIFE	101	125	60	Misc,Armor	Evil	1	true	120000	200000	20
+everyone	NOMINSTR	0	0	28	Shield,Armor	Evil	1	true	8000	8000	10
+craftsmanship	DUR	51	100	6	Weapon,Shield,Armor	Any	1	true	200	200	2
+structure	DUR	101	200	12	Weapon,Shield,Armor	Any	1	true	300	300	2
+the ages	INDESTRUCTIBLE	0	0	25	Bow,Weapon,Shield,Armor	Any	1	true	600	600	5
+the dark	LIGHT_CURSE	4	4	6	Misc,Weapon,Armor	Any	1	false	0	0	-3
+light	LIGHT	2	2	4	Misc,Weapon,Armor	Evil	1	true	750	750	2
+radiance	LIGHT	4	4	8	Misc,Weapon,Armor	Evil	1	true	1500	1500	3
+flame	FIRE_ARROWS	1	3	1	Bow	Good	1	true	2000	2000	2
+fire	FIRE_ARROWS	1	6	11	Bow	Good	1	true	4000	4000	4
+burning	FIRE_ARROWS	1	16	31	Bow	Any	1	true	6000	6000	6
+immolation	FIRE_ARROWS	1	30	60	Bow	Any	1	true	24000	24000	8
+shock	LIGHT_ARROWS	1	6	13	Bow	Any	1	true	6000	6000	2
+lightning	LIGHT_ARROWS	1	10	21	Bow	Any	1	true	8000	8000	4
+thunder	LIGHT_ARROWS	1	20	35	Bow	Any	1	true	12000	12000	6
+thunderstorm	LIGHT_ARROWS	1	30	60	Bow	Any	1	true	48000	48000	8
+mayhem	RNDSTEALLIFE	0	0	35	Weapon	Any	1	true	30000	30000	5
+melee	ALLRESZERO	0	0	27	Shield,Armor	Any	1	false	1	1	-25
+thorns	THORNS	1	5	1	Misc,Shield,Armor	Any	1	true	500	500	2
+corruption	NOMANA	0	0	5	Misc,Bow,Staff,Weapon,Shield,Armor	Evil	1	false	-1000	-1000	2
+thieves	ABSHALFTRAP	0	0	11	Misc,Shield,Armor	Any	1	true	1500	1500	2
+the bear	KNOCKBACK	0	0	16	Bow,Staff,Weapon	Evil	1	true	4000	4000	3
+the bat	STEALMANA	3	3	8	Staff,Weapon	Any	1	true	7500	7500	3
+vampires	STEALMANA	5	5	19	Staff,Weapon	Any	1	true	15000	15000	3
+the leech	STEALLIFE	3	3	8	Weapon	Any	1	true	7500	7500	3
+blood	STEALLIFE	5	5	19	Weapon	Any	1	true	15000	15000	3
+randomness	RNDARROWVEL	0	0	13	Bow	Any	1	true	6000	6000	12
+puncturing	TARGAC	6	18	9	Misc,Bow,Weapon	Any	1	true	2000	2000	6
+bashing	TARGAC	12	36	17	Bow,Weapon	Any	1	true	4000	4000	12
+readiness	FASTATTACK	1	1	1	Bow,Staff,Weapon	Any	1	true	2000	2000	2
+swiftness	FASTATTACK	2	2	10	Bow,Staff,Weapon	Any	1	true	4000	4000	4
+speed	FASTATTACK	3	3	19	Staff,Weapon	Any	1	true	8000	8000	8
+haste	FASTATTACK	4	4	27	Staff,Weapon	Any	1	true	16000	16000	16
+balance	FASTRECOVER	1	1	1	Misc,Armor	Any	1	true	2000	2000	2
+stability	FASTRECOVER	2	2	10	Misc,Armor	Any	1	true	4000	4000	4
+harmony	FASTRECOVER	3	3	20	Misc,Armor	Any	1	true	8000	8000	8
+blocking	FASTBLOCK	1	1	14	Shield	Any	1	true	4000	4000	4
