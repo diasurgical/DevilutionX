@@ -111,10 +111,12 @@ TEST_F(AbysmalTest, DataLoadsInStartupOrderAndVanillaReloadRestoresDefaults)
 	EXPECT_EQ(QuestsData[Q_SKELKING]._qdlvl, 4);
 	EXPECT_EQ(QuestsData[Q_SKELKING]._qdmultlvl, 4);
 	for (const TownerDataEntry &towner : TownersDataEntries) {
-		if (towner.type == TOWN_WITCH)
+		if (towner.type == TOWN_WITCH) {
 			EXPECT_EQ(towner.position, Point(55, 44));
-		if (towner.type == TOWN_PEGBOY)
+		}
+		if (towner.type == TOWN_PEGBOY) {
 			EXPECT_EQ(towner.position, Point(67, 38));
+		}
 	}
 
 	UnloadModArchives();
