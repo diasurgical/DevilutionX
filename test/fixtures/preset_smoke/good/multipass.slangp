@@ -1,0 +1,8 @@
+shaders = 3
+shader0 = shaders/blend.slang
+scale_type_x0 = viewport
+scale_x0 = 1.0
+shader1 = shaders/passthrough.slang
+alias1 = blur
+filter_linear1 = true
+shader2 = shaders/alias_final.slang
