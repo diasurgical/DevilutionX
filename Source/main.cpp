@@ -1,5 +1,10 @@
 #ifdef USE_SDL3
 #include <SDL3/SDL.h>
+// SDL3: SDL.h no longer includes SDL_main.h. Including it here renames main()
+// to SDL_main() and emits the WinMain()/main() entry points that call into
+// SDL_RunApp(); without it, WIN32 GUI-subsystem executables fail to link
+// (LNK2019 unresolved external symbol WinMain).
+#include <SDL3/SDL_main.h>
 #else
 #include <SDL.h>
 #include <SDL_main.h>
