@@ -667,6 +667,7 @@ if(SUPPORTS_MPQ)
   add_devilutionx_object_library(libdevilutionx_mpq
     mpq/mpq_common.cpp
     mpq/mpq_reader.cpp
+    mpq/mpq_sdl_ds.cpp
     mpq/mpq_sdl_rwops.cpp
     mpq/mpq_writer.cpp
   )

@@ -38,43 +38,38 @@ if(NOT UNPACKED_MPQS)
     data/inv/objcurs2-widths.txt)
 endif()
 
-if(APPLE)
-  foreach(asset_file ${hellfire_mod})
-    set(src "${CMAKE_CURRENT_SOURCE_DIR}/mods/hf/${asset_file}")
-    get_filename_component(_asset_dir "${asset_file}" DIRECTORY)
-    set_source_files_properties("${src}" PROPERTIES
-      MACOSX_PACKAGE_LOCATION "Resources/mods/hf/${_asset_dir}"
-      XCODE_EXPLICIT_FILE_TYPE compiled)
-    target_sources(${BIN_TARGET} PRIVATE "${src}")
-  endforeach()
-else()
-  copy_files(
-    FILES ${hellfire_mod}
-    SRC_PREFIX "mods/hf/"
-    OUTPUT_DIR "${DEVILUTIONX_MODS_OUTPUT_DIRECTORY}/hf"
-    OUTPUT_VARIABLE HELLFIRE_OUTPUT_FILES)
-  set(HELLFIRE_MPQ_FILES ${hellfire_mod})
-  add_trim_target(hellfire_trim_assets
-    ROOT_FOLDER "${DEVILUTIONX_MODS_OUTPUT_DIRECTORY}/hf"
-    CURRENT_FILES ${HELLFIRE_MPQ_FILES})
+copy_files(
+  FILES ${hellfire_mod}
+  SRC_PREFIX "mods/hf/"
+  OUTPUT_DIR "${DEVILUTIONX_MODS_OUTPUT_DIRECTORY}/hf"
+  OUTPUT_VARIABLE HELLFIRE_OUTPUT_FILES)
+set(HELLFIRE_MPQ_FILES ${hellfire_mod})
+add_trim_target(hellfire_trim_assets
+  ROOT_FOLDER "${DEVILUTIONX_MODS_OUTPUT_DIRECTORY}/hf"
+  CURRENT_FILES ${HELLFIRE_MPQ_FILES})
 
-  if(BUILD_MOD_MPQS)
-    set(HELLFIRE_MPQ "${DEVILUTIONX_MODS_MPQ_DIRECTORY}/hf.mpq")
-    add_custom_command(
-      COMMENT "Building hf.mpq"
-      OUTPUT "${HELLFIRE_MPQ}"
-      COMMAND ${CMAKE_COMMAND} -E remove -f "${HELLFIRE_MPQ}"
-      COMMAND ${CMAKE_COMMAND} -E make_directory "${DEVILUTIONX_MODS_MPQ_DIRECTORY}"
-      COMMAND ${SMPQ} -A -M 1 -C BZIP2 -c "${HELLFIRE_MPQ}" ${HELLFIRE_MPQ_FILES}
-      WORKING_DIRECTORY "${DEVILUTIONX_MODS_OUTPUT_DIRECTORY}/hf"
-      DEPENDS ${TRIM_COMMAND_BYPRODUCT} ${HELLFIRE_OUTPUT_FILES}
-      VERBATIM)
-    add_custom_target(hellfire_mpq DEPENDS "${HELLFIRE_MPQ}")
-    add_dependencies(hellfire_mpq hellfire_trim_assets)
-    add_dependencies(libdevilutionx hellfire_mpq)
-  else()
-    add_custom_target(hellfire_copied_assets DEPENDS ${HELLFIRE_OUTPUT_FILES})
-    add_dependencies(hellfire_copied_assets hellfire_trim_assets)
-    add_dependencies(libdevilutionx hellfire_copied_assets)
+if(BUILD_MOD_MPQS)
+  set(HELLFIRE_MPQ "${DEVILUTIONX_MODS_MPQ_DIRECTORY}/hf.mpq")
+  add_custom_command(
+    COMMENT "Building hf.mpq"
+    OUTPUT "${HELLFIRE_MPQ}"
+    COMMAND ${CMAKE_COMMAND} -E remove -f "${HELLFIRE_MPQ}"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${DEVILUTIONX_MODS_MPQ_DIRECTORY}"
+    COMMAND ${SMPQ} -A -M 1 -C BZIP2 -c "${HELLFIRE_MPQ}" ${HELLFIRE_MPQ_FILES}
+    WORKING_DIRECTORY "${DEVILUTIONX_MODS_OUTPUT_DIRECTORY}/hf"
+    DEPENDS ${TRIM_COMMAND_BYPRODUCT} ${HELLFIRE_OUTPUT_FILES}
+    VERBATIM)
+  add_custom_target(hellfire_mpq DEPENDS "${HELLFIRE_MPQ}")
+  add_dependencies(hellfire_mpq hellfire_trim_assets)
+  add_dependencies(libdevilutionx hellfire_mpq)
+  if(APPLE)
+    set_source_files_properties("${HELLFIRE_MPQ}" PROPERTIES
+      MACOSX_PACKAGE_LOCATION "Resources/mods"
+      XCODE_EXPLICIT_FILE_TYPE compiled)
+    target_sources(${BIN_TARGET} PRIVATE "${HELLFIRE_MPQ}")
   endif()
+else()
+  add_custom_target(hellfire_copied_assets DEPENDS ${HELLFIRE_OUTPUT_FILES})
+  add_dependencies(hellfire_copied_assets hellfire_trim_assets)
+  add_dependencies(libdevilutionx hellfire_copied_assets)
 endif()
