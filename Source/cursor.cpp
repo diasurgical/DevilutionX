@@ -475,14 +475,6 @@ ClxSprite GetInvItemSprite(int cursId)
 
 Size GetInvItemSize(int cursId)
 {
-	// ROB-27: pCursCels is loaded by InitCursor() when a game session starts
-	// and freed by FreeCursor() back in the menu. Outside a game session it is
-	// empty, and reading it dereferenced a null CLX data pointer: the field CTD
-	// was Shaders -> Off re-creating the renderer in the main menu while the
-	// virtual gamepad's potion art asked for item cursor sizes. Report a zero
-	// size instead; callers treat that as "no item cursor art" and skip.
-	if (!pCursCels.has_value())
-		return { 0, 0 };
 	const ClxSprite sprite = GetInvItemSprite(cursId);
 	return { sprite.width(), sprite.height() };
 }
