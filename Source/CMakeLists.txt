@@ -198,6 +198,7 @@ target_link_dependencies(libdevilutionx_mod_identity PUBLIC
 
 add_devilutionx_object_library(libdevilutionx_assets
   engine/assets.cpp
+  engine/fbbsanitizer.cpp
 )
 target_link_dependencies(libdevilutionx_assets PUBLIC
   DevilutionX::SDL

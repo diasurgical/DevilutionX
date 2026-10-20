@@ -31,8 +31,9 @@ set(DEFAULT_WIDTH 800)
 set(DEFAULT_HEIGHT 480)
 set(DEFAULT_PER_PIXEL_LIGHTING false)
 
-#Deploy assets to romfs
-set(DEVILUTIONX_ASSETS_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/romfs")
+# Deploy assets to romfs
+set(DEVILUTIONX_ASSETS_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/romfs/assets")
+set(DEVILUTIONX_MODS_MPQ_DIRECTORY "${CMAKE_BINARY_DIR}/romfs/mods")
 
 #SDL Joystick axis mapping (circle-pad/C-stick)
 set(JOY_AXIS_LEFTX 0)
