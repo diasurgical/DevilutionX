@@ -1,12 +1,21 @@
 # Clean upstream proof build for pr/upstream-resolution-dpi (diasurgical#8746).
 #
-# Builds THIS branch exactly like diasurgical:master CI would: SDL3, no GPU
-# scaler, no libslang-vk, no fork payload. The two jobs mirror upstream's own
-# Linux_x86_64_SDL3_test.yml and Windows_MSVC_x64.yml 1:1 - same runners,
-# dependencies, GCC 14, vcpkg commit, CMakePresets and test data; only the
-# triggers differ (this branch instead of master) and the checkout is pinned
-# to this ref, so even a stray manual dispatch from another branch still
-# builds this tree and nothing else.
+# Builds THIS branch exactly like diasurgical:master CI would: no GPU scaler,
+# no libslang-vk, no fork payload. The two jobs mirror upstream's own CI 1:1 -
+# same runners, dependencies, GCC 14, vcpkg commit, CMakePresets and test
+# data; only the triggers differ (this branch instead of master) and the
+# checkout is pinned to this ref, so even a stray manual dispatch from another
+# branch still builds this tree and nothing else.
+#
+# SDL coverage note: the Linux job is the SDL3 proof build (upstream's
+# Linux_x86_64_SDL3_test.yml - vendored static SDL3). The Windows job is
+# upstream's Windows_MSVC_x64.yml, which is an SDL2 build: upstream has no
+# Windows SDL3 CI, and upstream's own VcPkgManifestFeatures.cmake maps
+# USE_SDL3 to a "sdl3" vcpkg feature that vcpkg.json does not declare, so
+# USE_SDL3 + vcpkg manifest mode cannot even configure. (The fork's
+# pr/1-sdl3-build-fixes declares that feature; it intentionally does not ride
+# this clean PR.) This mirrors exactly the job pair diasurgical's CI runs on
+# the PR itself.
 #
 # Fork-side only: runs on push to pr/upstream-resolution-dpi (manual dispatch
 # also allowed). Fork-only CI file: drop this commit before the PR merges.
@@ -72,8 +81,9 @@ jobs:
         name: devilutionx-linux-x64-sdl3
         path: build/devilutionx
 
+  # Upstream's own Windows job - SDL2 (see SDL coverage note above).
   windows-msvc-x64:
-    name: Windows MSVC x64 (upstream recipe)
+    name: Windows MSVC x64 (upstream recipe, SDL2)
     runs-on: windows-latest
 
     permissions:
@@ -116,16 +126,18 @@ jobs:
         buildPreset: 'ninja-vcpkg-relwithdebinfo'
         testPreset: 'ninja-vcpkg-relwithdebinfo'
 
+    # Prove the deployed DLL set actually runs before shipping the artifact
+    # (upstream never executes this exe in CI, so its hand-written DLL upload
+    # list has rotted; wildcard + smoke test fixes that).
+    - name: Binary smoke test
+      run: ./build-ninja-vcpkg-relwithdebinfo/devilutionx.exe --version
+
     - name: Upload-Package
       if: ${{ !env.ACT }}
       uses: actions/upload-artifact@v7
       with:
-        name: devilutionx.exe
+        name: devilutionx-windows-x64
         path: |
             build-ninja-vcpkg-relwithdebinfo/devilutionx.exe
-            build-ninja-vcpkg-relwithdebinfo/bz2.dll
-            build-ninja-vcpkg-relwithdebinfo/libpng16.dll
-            build-ninja-vcpkg-relwithdebinfo/libsodium.dll
-            build-ninja-vcpkg-relwithdebinfo/SDL2.dll
-            build-ninja-vcpkg-relwithdebinfo/SDL2_image.dll
-            build-ninja-vcpkg-relwithdebinfo/zlib1.dll
+            build-ninja-vcpkg-relwithdebinfo/devilutionx.pdb
+            build-ninja-vcpkg-relwithdebinfo/*.dll
