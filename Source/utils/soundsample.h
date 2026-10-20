@@ -5,6 +5,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <string_view>
 
 #include "engine/sound_defs.hpp"
 #include "utils/stdcompat/shared_ptr_array.hpp"
@@ -54,9 +55,12 @@ public:
 	 * @param fileData Buffer containing the data
 	 * @param dwBytes Length of buffer
 	 * @param isMp3 Whether the data is an MP3
+	 * @param assetPath Asset path for load-failure diagnostics (may be empty)
+	 * @param archivePath Archive the asset was loaded from, for diagnostics (may be empty)
 	 * @return 0 on success, -1 otherwise
 	 */
-	int SetChunk(ArraySharedPtr<std::uint8_t> fileData, std::size_t dwBytes, bool isMp3);
+	int SetChunk(ArraySharedPtr<std::uint8_t> fileData, std::size_t dwBytes, bool isMp3,
+	    std::string_view assetPath = {}, std::string_view archivePath = {});
 
 	[[nodiscard]] bool IsStreaming() const
 	{

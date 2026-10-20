@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Bug Fixes
 
 #### Graphics / Audio
+- Recover 1990s-era WAV sound effects that SDL3_mixer 3.2.0 cannot parse (zero-length RIFF chunks): skip empty chunks in the vendored decoder and add an SDL_LoadWAV_IO-based fallback (DEVILUTIONX_WAV_FALLBACK, default ON); undecodable sounds now log an error instead of aborting the game
 
 - Music doesn't unmute when focus is lost on level transition with Auto Pause On Focus Lost disabled
 - Image ghosting visible on border of map in higher resolutions

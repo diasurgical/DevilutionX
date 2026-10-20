@@ -171,6 +171,7 @@ option(DISABLE_STREAMING_MUSIC "Disable streaming music (to work around broken p
 mark_as_advanced(DISABLE_STREAMING_MUSIC)
 option(DISABLE_STREAMING_SOUNDS "Disable streaming sounds (to work around broken platform implementations)" OFF)
 mark_as_advanced(DISABLE_STREAMING_SOUNDS)
+option(DEVILUTIONX_WAV_FALLBACK "Recover WAVs that SDL3_mixer cannot parse (e.g. zero-length RIFF chunks in 1990s-era assets) by decoding with SDL_LoadWAV_IO and retrying with a canonical RIFF/WAVE header. Set OFF to exercise the raw SDL3_mixer path (zero-length RIFF diagnosis)" ON)
 set(STREAM_ALL_AUDIO_MIN_FILE_SIZE "" CACHE STRING "If set, stream all the audio files larger than this size")
 mark_as_advanced(STREAM_ALL_AUDIO_MIN_FILE_SIZE)
 option(DEVILUTIONX_PALETTE_TRANSPARENCY_BLACK_16_LUT "Whether to use a lookup table for transparency blending with black. This improves performance of blending transparent black overlays, such as quest dialog background, at the cost of 128 KiB of RAM." ON)

@@ -78,6 +78,14 @@ std::expected<void, std::string> LoadAudioFile(const char *path, bool stream, So
 		return std::unexpected(StrCat("Audio file not found\n", path, "\n", SDL_GetError(), "\n" __FILE__ ":", __LINE__));
 	}
 
+	// Asset context for load-failure diagnostics: SoundSample::SetChunk's
+	// failure log must be able to name the file and the archive it came from.
+#ifndef UNPACKED_MPQS
+	const std::string_view archivePath = ref.archive != nullptr ? ref.archive->path() : std::string_view {};
+#else
+	const std::string_view archivePath {};
+#endif
+
 #ifdef STREAM_ALL_AUDIO_MIN_FILE_SIZE
 #if STREAM_ALL_AUDIO_MIN_FILE_SIZE == 0
 	stream = true;
@@ -106,9 +114,13 @@ std::expected<void, std::string> LoadAudioFile(const char *path, bool stream, So
 		if (!handle.read(waveFile.get(), size)) {
 			return std::unexpected(StrCat("Failed to read file\n", foundPath, ": ", SDL_GetError(), __FILE__ ":", __LINE__));
 		}
-		const int error = result.SetChunk(waveFile, size, isMp3);
+		const int error = result.SetChunk(waveFile, size, isMp3, foundPath, archivePath);
 		if (error != 0) {
-			return std::unexpected(SDL_GetError());
+			std::string archiveInfo;
+			if (!archivePath.empty()) {
+				archiveInfo = StrCat(" (", archivePath, ")");
+			}
+			return std::unexpected(StrCat("Failed to decode audio file\n", foundPath, archiveInfo, "\n", SDL_GetError(), "\n" __FILE__ ":", __LINE__));
 		}
 	}
 	return {};
@@ -237,7 +249,16 @@ std::expected<std::unique_ptr<TSnd>, std::string> SoundFileLoadWithStatus(const 
 std::unique_ptr<TSnd> sound_file_load(const char *path, bool stream)
 {
 	std::expected<std::unique_ptr<TSnd>, std::string> result = SoundFileLoadWithStatus(path, stream);
-	if (!result.has_value()) app_fatal(result.error());
+	if (!result.has_value()) {
+		// Do not app_fatal() here: a missing or undecodable sound effect must
+		// not take the game down (the fatal error dialog used to freeze the UI
+		// when SDL3_mixer rejected a WAV). Return an empty sample instead; all
+		// playback paths skip samples that report IsLoaded() == false.
+		LogError(LogCategory::Audio, "sound_file_load: {}", result.error());
+		auto snd = std::make_unique<TSnd>();
+		snd->start_tc = SDL_GetTicks() - 80 - 1;
+		return snd;
+	}
 	return std::move(result).value();
 }
 

@@ -40,6 +40,8 @@ public:
 
 	mpqfs_archive_t *handle() const { return archive_; }
 
+	const std::string &path() const { return path_; }
+
 private:
 	MpqArchive(std::string path, mpqfs_archive_t *archive);
 
