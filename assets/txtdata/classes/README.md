@@ -38,7 +38,7 @@ There is one folder per class.
  Player class flag   | Description
 --------------------:|--------------------------------------
  `CriticalStrike`    | Chance to do double damage on melee hits, percent equals to player level
- `DualWield`         | Able to equip two hand weapons 
+ `DualWield`         | Able to equip two one-handed weapons 
  `IronSkin`          | Defense bonus, player level / 4 
  `NaturalResistance` | Magic, Fire and Lightning resistances bonus, percent equals to player level
  `TrapSense`         | Detect trapped level objects
