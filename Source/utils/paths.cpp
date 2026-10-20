@@ -151,7 +151,7 @@ const std::string &AssetsPath()
 #elif defined(NXDK)
 		assetsPath.emplace("D:\\assets\\");
 #elif defined(__3DS__) || defined(__SWITCH__)
-		assetsPath.emplace("romfs:/");
+		assetsPath.emplace("romfs:/assets/");
 #elif defined(__APPLE__) && (defined(USE_SDL1) || defined(USE_SDL3))
 		// In `Info.plist` we have
 		//

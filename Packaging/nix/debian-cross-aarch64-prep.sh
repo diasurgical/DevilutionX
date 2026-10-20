@@ -11,7 +11,7 @@ if dpkg-vendor --derives-from Ubuntu; then
 	sudo tee /etc/apt/sources.list.d/arm64.sources <<LIST
 Types: deb deb-src
 URIs: http://ports.ubuntu.com/
-Suites: ${FLAVOR} ${FLAVOR}-updates ${FLAVOR}-backports
+Suites: ${FLAVOR} ${FLAVOR}-updates ${FLAVOR}-backports ${FLAVOR}-security
 Architectures: arm64
 Components: main restricted universe multiverse
 Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg

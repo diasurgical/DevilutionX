@@ -3,7 +3,9 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <expected>
 #include <memory>
+#include <string>
 #include <utility>
 
 #ifdef DEBUG_PCX_TO_CL2_SIZE
@@ -72,10 +74,12 @@ OptionalOwnedClxSpriteList LoadPcxSpriteList(const char *filename, int numFrames
 #ifdef DEBUG_PCX_TO_CL2_SIZE
 	std::cout << filename;
 #endif
-	OptionalOwnedClxSpriteList result = PcxToClx(handle, fileSize, numFramesOrFrameHeight, transparentColor, outPalette);
-	if (!result)
+	std::expected<OwnedClxSpriteList, std::string> result = PcxToClx(handle, fileSize, numFramesOrFrameHeight, transparentColor, outPalette);
+	if (!result.has_value()) {
+		LogError("Failed to load {}: {}", path, result.error());
 		return std::nullopt;
-	return result;
+	}
+	return std::move(result).value();
 #endif
 }
 

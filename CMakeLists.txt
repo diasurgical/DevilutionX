@@ -191,9 +191,9 @@ endif()
 
 # By default, devilutionx.mpq and mods/hf.mpq are built only if smpq is installed and MPQ support is enabled.
 if(SUPPORTS_MPQ AND NOT UNPACKED_MPQS)
-  if(BUILD_ASSETS_MPQ OR (CPACK STREQUAL "ON" AND (WIN32 OR CMAKE_SYSTEM_NAME STREQUAL "Linux") AND NOT SRC_DIST))
+  if(BUILD_ASSETS_MPQ OR BUILD_MOD_MPQS OR (CPACK STREQUAL "ON" AND (WIN32 OR CMAKE_SYSTEM_NAME STREQUAL "Linux") AND NOT SRC_DIST))
     find_program(SMPQ smpq REQUIRED)
-  elseif(NOT DEFINED BUILD_ASSETS_MPQ AND NOT SRC_DIST)
+  elseif((NOT DEFINED BUILD_ASSETS_MPQ OR NOT DEFINED BUILD_MOD_MPQS) AND NOT SRC_DIST)
     find_program(SMPQ smpq)
   endif()
   if(SMPQ)
@@ -201,9 +201,11 @@ if(SUPPORTS_MPQ AND NOT UNPACKED_MPQS)
   else()
     set(_has_smpq OFF)
   endif()
-  option(BUILD_ASSETS_MPQ "If true, assets are packaged into devilutionx.mpq and mods/hf to hf.mpq." ${_has_smpq})
+  option(BUILD_ASSETS_MPQ "If true, assets are packaged into devilutionx.mpq." ${_has_smpq})
+  option(BUILD_MOD_MPQS "If true, mods/hf assets are packaged into to hf.mpq." ${_has_smpq})
 else()
-  set(BUILD_ASSETS_MPQS OFF)
+  set(BUILD_ASSETS_MPQ OFF)
+  set(BUILD_MOD_MPQS OFF)
 endif()
 
 # === Option overrides ===
@@ -507,11 +509,12 @@ if(NINTENDO_SWITCH)
     VERSION "${PROJECT_VERSION}"
   )
 
-  file(MAKE_DIRECTORY "${DEVILUTIONX_ASSETS_OUTPUT_DIRECTORY}")
+  set(SWITCH_ROMFS_DIRECTORY "${CMAKE_BINARY_DIR}/romfs")
+  file(MAKE_DIRECTORY "${SWITCH_ROMFS_DIRECTORY}")
   nx_create_nro(${BIN_TARGET}
     NACP  ${BIN_TARGET}.nacp
     ICON  "${PROJECT_SOURCE_DIR}/Packaging/switch/icon.jpg"
-    ROMFS ${DEVILUTIONX_ASSETS_OUTPUT_DIRECTORY}
+    ROMFS ${SWITCH_ROMFS_DIRECTORY}
   )
 endif()
 

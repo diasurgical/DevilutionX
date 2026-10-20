@@ -73,6 +73,9 @@ set(standalone_tests
 if(NOT USE_SDL1)
   list(APPEND standalone_tests text_render_integration_test)
 endif()
+if(NOT UNPACKED_MPQS)
+  list(APPEND standalone_tests pcx_to_clx_test)
+endif()
 set(benchmarks
   clx_render_benchmark
   crawl_benchmark
@@ -92,8 +95,11 @@ foreach(test_target ${tests} ${standalone_tests} ${benchmarks})
   endif()
 endforeach()
 
+# Discover the tests when they are run, not right after each one is linked: on
+# Windows, running a test while others are linking and having their DLLs copied
+# next to them can fail the build with a sharing violation.
 foreach(test_target ${tests} ${standalone_tests})
-  gtest_discover_tests(${test_target})
+  gtest_discover_tests(${test_target} DISCOVERY_MODE PRE_TEST)
 endforeach()
 
 foreach(test_target ${tests})
@@ -127,6 +133,19 @@ target_link_dependencies(cl2_to_clx_test
   libdevilutionx_surface
 )
 target_link_dependencies(codec_test PRIVATE libdevilutionx_codec app_fatal_for_testing)
+if(NOT UNPACKED_MPQS)
+  target_link_dependencies(pcx_to_clx_test
+    PRIVATE
+    DevilutionX::SDL
+    app_fatal_for_testing
+    language_for_testing
+    libdevilutionx_clx_render
+    libdevilutionx_log
+    libdevilutionx_pcx_to_clx
+    libdevilutionx_surface
+    libdevilutionx_surface_to_pcx
+  )
+endif()
 
 add_custom_target(clx_render_benchmark_resources
   DEPENDS

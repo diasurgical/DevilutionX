@@ -34,7 +34,7 @@ jobs:
       - name: Install dependencies
         run: |
           apt-get update && apt-get install -y --no-install-recommends --no-install-suggests \
-            ffmpeg
+            ffmpeg smpq
 
       - name: Get external dependencies
         run: |
