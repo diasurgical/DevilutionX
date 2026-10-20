@@ -126,6 +126,14 @@ void LoadPotionArt(ButtonTexture *potionArt)
 	const int potionFrame = static_cast<int>(CURSOR_FIRSTITEM) + static_cast<int>(ICURS_POTION_OF_HEALING);
 	const Size potionSize = GetInvItemSize(potionFrame);
 
+	// ROB-27: outside a game session the item-cursor art is not loaded and
+	// GetInvItemSize reports a zero size. The potion strip is only rendered
+	// during gameplay, and the game-load path (LoadAllGFX) re-initializes the
+	// gamepad art there, so skip building the strip instead of failing the
+	// session on a zero-sized surface.
+	if (potionSize.width <= 0 || potionSize.height <= 0)
+		return;
+
 	auto surface = SDLWrap::CreateRGBSurfaceWithFormat(
 	    /*flags=*/0,
 	    /*width=*/potionSize.width,
