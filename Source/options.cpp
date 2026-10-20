@@ -37,6 +37,7 @@
 #include "platform/locale.hpp"
 #include "quick_messages.hpp"
 #include "utils/algorithm/container.hpp"
+#include "utils/display.h"
 #include "utils/file_util.h"
 #include "utils/format.hpp"
 #include "utils/ini.hpp"
@@ -545,6 +546,71 @@ std::vector<OptionEntryBase *> AudioOptions::GetEntries()
 	// clang-format on
 }
 
+// The resolution helpers declared in utils/display.h are defined here rather
+// than in utils/display.cpp: libdevilutionx_options is an object library that
+// standalone test/benchmark executables link without the display translation
+// unit, and OptionEntryResolution / OptionEntryIntegerScaling below call into
+// these. ClampResolutionForIntegerScaling() intentionally drops the ghMainWnd
+// guard it had in display.cpp: its only caller is the settings UI (a window
+// always exists there), calls before video init see GetNativeDesktopResolution()
+// return false, and the CalculatePreferredWindowSize() backstop covers the rest.
+bool GetNativeDesktopResolution(Size &size)
+{
+#ifdef USE_SDL1
+	return false;
+#else
+	SDL_DisplayMode mode;
+#ifdef USE_SDL3
+	int numDisplays = 0;
+	SDL_DisplayID *displays = SDL_GetDisplays(&numDisplays);
+	if (numDisplays <= 0 || displays == nullptr)
+		return false;
+	const SDL_DisplayMode *modePtr = SDL_GetDesktopDisplayMode(displays[0]);
+	SDL_free(displays);
+	if (modePtr == nullptr)
+		return false;
+	mode = *modePtr;
+#else
+	if (SDL_GetDesktopDisplayMode(0, &mode) != 0)
+		return false;
+#endif
+	if (mode.w < mode.h) {
+		const int w = mode.w;
+		mode.w = mode.h;
+		mode.h = w;
+	}
+	size = { mode.w, mode.h };
+	return true;
+#endif
+}
+
+Size ClampResolutionForIntegerScaling(Size requested)
+{
+#ifdef USE_SDL1
+	(void)requested;
+	return requested;
+#else
+	if (!*GetOptions().Graphics.integerScaling || !*GetOptions().Graphics.fitToScreen || !*GetOptions().Graphics.upscale)
+		return requested; // the crash path requires fit-to-screen integer scaling
+	Size native;
+	if (!GetNativeDesktopResolution(native))
+		return requested;
+	if (requested.width <= native.width && requested.height <= native.height)
+		return requested;
+	LogWarn(LogCategory::System, "Selected resolution {}x{} exceeds the native desktop resolution {}x{}; falling back to native (Integer Scaling)", requested.width, requested.height, native.width, native.height);
+	return native;
+#endif
+}
+
+bool IsResolutionAboveNative()
+{
+	Size native;
+	if (!GetNativeDesktopResolution(native))
+		return false;
+	const Size current = *GetOptions().Graphics.resolution;
+	return current.width > native.width || current.height > native.height;
+}
+
 OptionEntryResolution::OptionEntryResolution()
     : OptionEntryListBase("", OptionEntryFlags::CantChangeInGame | OptionEntryFlags::RecreateUI, N_("Resolution"), N_("Affect the game's internal resolution and determine your view area. Note: This can differ from screen resolution, when Upscaling, Integer Scaling or Fit to Screen is used."))
 {
@@ -576,8 +642,23 @@ size_t OptionEntryResolution::GetActiveListIndex() const
 }
 void OptionEntryResolution::SetActiveListIndex(size_t index)
 {
-	size_ = resolutions_[index].first;
+	// An above-native selection with Integer Scaling would crash the
+	// fit-to-screen window sizing (integer division by zero). Above-native
+	// sizes are filtered from the list while Integer Scaling is on, so this
+	// silently falls back as a backstop (e.g. for stale ini values).
+	size_ = ClampResolutionForIntegerScaling(resolutions_[index].first);
 	NotifyValueChanged();
+}
+
+bool OptionEntryIntegerScaling::IsDisabled() const
+{
+	// The resolution list filters above-native sizes while Integer Scaling
+	// is enabled, but the game can still run above the native desktop
+	// resolution with Integer Scaling off (hand-edited devilutionx.ini or
+	// a GPU driver VSR mode). Enabling Integer Scaling in that state would
+	// crash the fit-to-screen window sizing, so the toggle stays greyed
+	// out until a within-native resolution is selected.
+	return !**this && IsResolutionAboveNative();
 }
 
 OptionEntryResampler::OptionEntryResampler()
