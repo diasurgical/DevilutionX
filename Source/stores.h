@@ -60,6 +60,7 @@ enum class TalkID : uint8_t {
 	Storyteller,
 	HealerBuy,
 	StorytellerIdentify,
+	StorytellerIdentifyAll,
 	SmithPremiumBuy,
 	Gossip,
 	StorytellerIdentifyShow,
