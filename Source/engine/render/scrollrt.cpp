@@ -671,6 +671,27 @@ void DrawCell(const Surface &out, const Lightmap lightmap, Point tilePosition, P
 }
 
 /**
+ * @brief Redraws deferred tiles anchored to the given tile (DrawCell skips floor),
+ * so they cover anything behind them, such as the player.
+ * @param out Target buffer
+ * @param lightmap Per-pixel light buffer
+ * @param anchorPosition dPiece coordinates of the anchor tile
+ * @param targetBufferPosition Target buffer coordinates of the anchor tile
+ */
+void DrawDeferredRedrawTiles(const Surface &out, const Lightmap &lightmap, Point anchorPosition, Point targetBufferPosition)
+{
+	for (const AnchoredPoint &deferredRedrawTile : dDeferredRedrawTiles) {
+		const Point tilePosition = deferredRedrawTile.position();
+		if (deferredRedrawTile.anchorPosition != anchorPosition || !InDungeonBounds(tilePosition))
+			continue;
+		// World tile offset to screen offset (x + 1 → right-down, y + 1 → left-down)
+		const Displacement offset = deferredRedrawTile.offset;
+		const Displacement screenOffset { (offset.deltaX - offset.deltaY) * TILE_WIDTH / 2, (offset.deltaX + offset.deltaY) * TILE_HEIGHT / 2 };
+		DrawCell(out, lightmap, tilePosition, targetBufferPosition + screenOffset, dLight[tilePosition.x][tilePosition.y]);
+	}
+}
+
+/**
  * @brief Render a floor tile.
  * @param out Target buffer
  * @param lightmap Per-pixel light buffer
@@ -932,6 +953,9 @@ void DrawDungeon(const Surface &out, const Lightmap &lightmap, Point tilePositio
 			}
 		}
 	} else {
+		// Render deferred tiles to cover the player for example when entering the cathedral entrance.
+		DrawDeferredRedrawTiles(out, lightmap, tilePosition, targetBufferPosition);
+
 		// Tree leaves should always cover player when entering or leaving the tile,
 		// So delay the rendering until after the next row is being drawn.
 		// This could probably have been better solved by sprites in screen space.
