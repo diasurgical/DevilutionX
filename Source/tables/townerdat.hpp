@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "engine/direction.hpp"
+#include "engine/shadow_rule.hpp"
 #include "levels/gendung.h"
 #include "tables/objdat.h"
 #include "tables/textdat.h"
@@ -33,6 +34,8 @@ struct TownerDataEntry {
 	int16_t animDelay;
 	std::vector<_speech_id> gossipTexts;
 	std::vector<uint8_t> animOrder;
+	/** How the shadow baked into the towner's sprite was generated. */
+	ShadowRule shadowRule;
 };
 
 /** Contains the data for all towners loaded from TSV. */

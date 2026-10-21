@@ -38,6 +38,13 @@ if(NOT UNPACKED_MPQS)
     data/inv/objcurs2-widths.txt)
 endif()
 
+# Shadow corrections of Hellfire's sprites, stored next to the sprite files
+# that they belong to (see `CMake/Assets.cmake`).
+file(GLOB_RECURSE hellfire_shadow_fixes
+  RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}/mods/hf"
+  CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/mods/hf/*.shadowfix")
+list(APPEND hellfire_mod ${hellfire_shadow_fixes})
+
 if(APPLE)
   foreach(asset_file ${hellfire_mod})
     set(src "${CMAKE_CURRENT_SOURCE_DIR}/mods/hf/${asset_file}")

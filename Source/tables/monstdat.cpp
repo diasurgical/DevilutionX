@@ -399,6 +399,7 @@ void LoadMonstDatFromFile(DataFile &dataFile, const std::string_view filename, b
 		reader.read("treasure", monster.treasure, ParseMonsterTreasure);
 
 		reader.readInt("exp", monster.exp);
+		reader.readEnumArray("shadowRule", std::optional<ShadowRule> { ShadowRule {} }, monster.shadowRules, ParseShadowRule);
 	}
 }
 

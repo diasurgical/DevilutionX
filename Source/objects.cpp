@@ -23,6 +23,7 @@
 #include "engine/backbuffer_state.hpp"
 #include "engine/load_cel.hpp"
 #include "engine/load_file.hpp"
+#include "engine/load_shadow_fixes.hpp"
 #include "engine/points_in_rectangle_range.hpp"
 #include "engine/random.hpp"
 #include "headless_mode.hpp"
@@ -44,6 +45,7 @@
 #include "towners.h"
 #include "track.h"
 #include "utils/algorithm/container.hpp"
+#include "utils/clx_shadow.hpp"
 #include "utils/endian_swap.hpp"
 #include "utils/format.hpp"
 #include "utils/is_of.hpp"
@@ -3705,6 +3707,10 @@ std::expected<void, std::string> LoadLevelObjects(uint16_t filesWidths[65])
 		char filestr[32];
 		*BufCopy(filestr, "objects\\", ObjMasterLoadList[i]) = '\0';
 		ASSIGN_OR_RETURN(pObjCels[numobjfiles], LoadCelWithStatus(filestr, filesWidths[i]));
+		// Objects that share a sprite file share its shadow rule.
+		const auto objectDataIt = std::find_if(AllObjects.begin(), AllObjects.end(), [i](const ObjectData &objectData) { return objectData.ofindex == i; });
+		if (objectDataIt != AllObjects.end())
+			ExtractClxShadowsInPlace(*pObjCels[numobjfiles], objectDataIt->shadowRule, LoadShadowFixes(filestr));
 		numobjfiles++;
 	}
 	return {};

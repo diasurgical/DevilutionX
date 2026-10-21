@@ -47,4 +47,10 @@ pcx2clx --transparent-color 1 --output-dir "${OUTPUT_DIR}/data" data/stash.pcx
 pcx2clx --transparent-color 1 --num-sprites 5 --output-dir "${OUTPUT_DIR}/data" data/stashnavbtns.pcx
 pcx2clx --num-sprites 6 --output-dir "${OUTPUT_DIR}/data" data/panel8bucp.pcx
 pcx2clx --transparent-color 1 --output-dir "${OUTPUT_DIR}/data" data/xpbar.pcx
+
+# Shadow corrections are stored next to the sprite files that they belong to,
+# those of Hellfire's sprites in the Hellfire mod.
+COMPILE_SHADOW_FIXES="${OLDPWD}/tools/compile_shadow_fixes.py"
+find . -path ./mods -prune -o -name '*.shadowfix.txt' -print0 | xargs -0 -r "${COMPILE_SHADOW_FIXES}" --output-dir "${OUTPUT_DIR}"
+(cd mods/hf && find . -name '*.shadowfix.txt' -print0 | xargs -0 -r "${COMPILE_SHADOW_FIXES}" --output-dir "${OUTPUT_DIR}/../mods/hf")
 cd -

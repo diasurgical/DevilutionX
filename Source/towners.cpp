@@ -9,13 +9,16 @@
 #include "engine/clx_sprite.hpp"
 #include "engine/load_cel.hpp"
 #include "engine/load_file.hpp"
+#include "engine/load_shadow_fixes.hpp"
 #include "engine/random.hpp"
+#include "engine/shadow_rule.hpp"
 #include "game_mode.hpp"
 #include "inv.h"
 #include "minitext.h"
 #include "stores.h"
 #include "tables/textdat.h"
 #include "tables/townerdat.hpp"
+#include "utils/clx_shadow.hpp"
 #include "utils/is_of.hpp"
 #include "utils/language.h"
 #include "utils/str_case.hpp"
@@ -104,10 +107,11 @@ void InitTownerInfo(Towner &towner, const TownerData &townerData, const TownerDa
 	}
 }
 
-void LoadTownerAnimations(Towner &towner, const char *path, int frames, int delay)
+void LoadTownerAnimations(Towner &towner, const char *path, int frames, int delay, ShadowRule shadowRule)
 {
 	towner.ownedAnim = std::nullopt;
 	towner.ownedAnim = LoadCel(path, towner._tAnimWidth);
+	ExtractClxShadowsInPlace(*towner.ownedAnim, shadowRule, LoadShadowFixes(path));
 	NewTownerAnim(towner, *towner.ownedAnim, frames, delay);
 }
 
@@ -127,7 +131,7 @@ void InitTownerFromData(Towner &towner, const TownerDataEntry &entry)
 	}
 
 	if (!entry.animPath.empty()) {
-		LoadTownerAnimations(towner, entry.animPath.c_str(), entry.animFrames, entry.animDelay);
+		LoadTownerAnimations(towner, entry.animPath.c_str(), entry.animFrames, entry.animDelay, entry.shadowRule);
 	}
 
 	// Set gossip from TSV data
@@ -182,10 +186,13 @@ void InitCowFarmer(Towner &towner, const TownerDataEntry &entry)
 
 	// CowFarmer has special logic for quest state
 	const char *celPath = "towners\\farmer\\cfrmrn2";
+	// The data file only describes the shadow of the first sprite.
+	ShadowRule shadowRule = entry.shadowRule;
 	if (Quests[Q_JERSEY]._qactive == QUEST_DONE) {
 		celPath = "towners\\farmer\\mfrmrn2";
+		shadowRule = {};
 	}
-	LoadTownerAnimations(towner, celPath, 15, 3);
+	LoadTownerAnimations(towner, celPath, 15, 3, shadowRule);
 }
 
 void TownDead(Towner &towner)
@@ -858,7 +865,7 @@ void UpdateGirlAnimAfterQuestComplete()
 	if (girl == nullptr || !girl->ownedAnim)
 		return; // Girl is not spawned in town yet
 	auto curFrame = girl->_tAnimFrame;
-	LoadTownerAnimations(*girl, "towners\\girl\\girls1", 20, 6);
+	LoadTownerAnimations(*girl, "towners\\girl\\girls1", 20, 6, /*shadowRule=*/ {});
 	girl->_tAnimFrame = std::min<uint8_t>(curFrame, girl->_tAnimLen - 1);
 }
 
@@ -866,7 +873,7 @@ void UpdateCowFarmerAnimAfterQuestComplete()
 {
 	Towner *cowFarmer = GetTowner(TOWN_COWFARM);
 	auto curFrame = cowFarmer->_tAnimFrame;
-	LoadTownerAnimations(*cowFarmer, "towners\\farmer\\mfrmrn2", 15, 3);
+	LoadTownerAnimations(*cowFarmer, "towners\\farmer\\mfrmrn2", 15, 3, /*shadowRule=*/ {});
 	cowFarmer->_tAnimFrame = std::min<uint8_t>(curFrame, cowFarmer->_tAnimLen - 1);
 }
 

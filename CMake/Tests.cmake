@@ -51,6 +51,7 @@ set(tests
 )
 set(standalone_tests
   cl2_to_clx_test
+  clx_shadow_test
   codec_test
   crawl_test
   data_file_test
@@ -65,6 +66,7 @@ set(standalone_tests
   vision_test
   random_test
   rectangle_test
+  shadow_rule_test
   sheen_bidi_test
   static_vector_test
   str_cat_test
@@ -132,6 +134,17 @@ target_link_dependencies(cl2_to_clx_test
   libdevilutionx_log
   libdevilutionx_surface
 )
+target_link_dependencies(clx_shadow_test
+  PRIVATE
+  DevilutionX::SDL
+  app_fatal_for_testing
+  language_for_testing
+  libdevilutionx_clx_render
+  libdevilutionx_clx_shadow
+  libdevilutionx_endian_write
+  libdevilutionx_log
+  libdevilutionx_surface
+)
 target_link_dependencies(codec_test PRIVATE libdevilutionx_codec app_fatal_for_testing)
 if(NOT UNPACKED_MPQS)
   target_link_dependencies(pcx_to_clx_test
@@ -194,6 +207,7 @@ target_link_dependencies(palette_blending_benchmark
   app_fatal_for_testing
 )
 target_link_dependencies(parse_int_test PRIVATE libdevilutionx_parse_int)
+target_link_dependencies(shadow_rule_test PRIVATE libdevilutionx_strings)
 target_link_dependencies(path_test PRIVATE libdevilutionx_pathfinding libdevilutionx_direction app_fatal_for_testing)
 target_link_dependencies(vision_test PRIVATE libdevilutionx_vision)
 target_link_dependencies(path_benchmark PRIVATE libdevilutionx_pathfinding app_fatal_for_testing)

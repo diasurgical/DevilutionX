@@ -89,6 +89,23 @@ void ClxDrawBlendedTRN(const Surface &out, Point position, ClxSprite clx, const 
 void ClxDrawBlended(const Surface &out, Point position, ClxSprite clx);
 
 /**
+ * @brief Draws the shadow of the sprite in black.
+ *
+ * Does nothing if the sprite has no shadow mask (see `shadow_mask.hpp`).
+ * Drawing the shadow and then the sprite itself gives the sprite as it was before its shadow was extracted.
+ *
+ * @param out Output buffer
+ * @param position Target buffer coordinate, the same as for drawing the sprite
+ * @param clx CLX frame
+ */
+void ClxDrawShadow(const Surface &out, Point position, ClxSprite clx);
+
+/**
+ * @brief Same as `ClxDrawShadow` but darkens what is underneath instead of covering it with black.
+ */
+void ClxDrawShadowBlended(const Surface &out, Point position, ClxSprite clx);
+
+/**
  * @brief Blit CL2 sprite, and apply lighting, to the given buffer at the given coordinates
  * @param out Output buffer
  * @param position Target buffer coordinate

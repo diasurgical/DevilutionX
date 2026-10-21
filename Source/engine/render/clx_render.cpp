@@ -7,10 +7,12 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <cstring>
 #include <format>
 
 #include "engine/point.hpp"
 #include "engine/render/blit_impl.hpp"
+#include "engine/shadow_mask.hpp"
 #include "engine/surface.hpp"
 #include "utils/attributes.h"
 #include "utils/clx_decode.hpp"
@@ -602,6 +604,66 @@ void ClxDrawWithLightmap(const Surface &out, Point position, ClxSprite clx, cons
 void ClxDrawBlended(const Surface &out, Point position, ClxSprite clx)
 {
 	DoRenderBackwards(out, position, clx.pixelData(), clx.pixelDataSize(), clx.width(), clx.height(), BlitBlended {});
+}
+
+namespace {
+
+/**
+ * @brief Calls `spanFn(dst, width)` for every span of the shadow mask, clipped to the output buffer.
+ */
+template <typename SpanFn>
+DVL_ALWAYS_INLINE void DoRenderShadow(const Surface &out, Point position, ShadowMask mask, SpanFn &&spanFn)
+{
+	const int outWidth = out.w();
+	const int outHeight = out.h();
+	mask.forEachSpan([&](uint16_t rowFromBottom, ShadowSpan span) {
+		const int y = position.y - rowFromBottom;
+		if (y < 0 || y >= outHeight) return;
+		int x = position.x + span.x;
+		int width = span.width;
+		if (x < 0) {
+			width += x;
+			x = 0;
+		}
+		if (x + width > outWidth) width = outWidth - x;
+		if (width <= 0) return;
+		spanFn(out.at(x, y), static_cast<unsigned>(width));
+	});
+}
+
+/** Blends `width` pixels with black. */
+DVL_ALWAYS_INLINE DVL_ATTRIBUTE_HOT void BlendWithBlack(uint8_t *dst, unsigned width)
+{
+#if DEVILUTIONX_PALETTE_TRANSPARENCY_BLACK_16_LUT
+	// Two pixels per lookup. Unlike the rectangle blend in `primitive_render.cpp`, this does
+	// not need the pixels to be aligned, which matters because shadow spans are short.
+	for (; width >= 2; width -= 2, dst += 2) {
+		const uint16_t blended = paletteTransparencyLookupBlack16[dst[0] | (dst[1] << 8U)];
+		dst[0] = static_cast<uint8_t>(blended);
+		dst[1] = static_cast<uint8_t>(blended >> 8U);
+	}
+	if (width != 0) *dst = paletteTransparencyLookup[0][*dst];
+#else
+	const uint8_t *const lookupTable = paletteTransparencyLookup[0];
+	for (; width != 0; --width, ++dst)
+		*dst = lookupTable[*dst];
+#endif
+}
+
+} // namespace
+
+void ClxDrawShadow(const Surface &out, Point position, ClxSprite clx)
+{
+	if (!HasShadowMask(clx)) return;
+	DoRenderShadow(out, position, GetShadowMask(clx), [](uint8_t *dst, unsigned width) {
+		std::memset(dst, 0, width);
+	});
+}
+
+void ClxDrawShadowBlended(const Surface &out, Point position, ClxSprite clx)
+{
+	if (!HasShadowMask(clx)) return;
+	DoRenderShadow(out, position, GetShadowMask(clx), BlendWithBlack);
 }
 
 void ClxDrawBlendedTRN(const Surface &out, Point position, ClxSprite clx, const uint8_t *trn)

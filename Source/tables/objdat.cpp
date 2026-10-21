@@ -292,6 +292,7 @@ void LoadObjectData()
 		reader.readInt("animLen", item.animLen);
 		reader.readInt("animWidth", item.animWidth);
 		reader.readEnumList("selectionRegion", item.selectionRegion, ParseSelectionRegion);
+		reader.read("shadowRule", item.shadowRule, ParseShadowRule);
 	}
 
 	// Sanity check because we do not actually parse the IDs yet.

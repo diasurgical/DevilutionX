@@ -125,6 +125,8 @@ void LoadTownersFromFile()
 		std::string animOrderStr;
 		reader.readString("animOrder", animOrderStr);
 		ParseAnimOrder(animOrderStr, entry.animOrder);
+
+		reader.read("shadowRule", entry.shadowRule, ParseShadowRule);
 	}
 
 	TownersDataEntries.shrink_to_fit();

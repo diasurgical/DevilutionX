@@ -10,8 +10,10 @@
 #include <vector>
 
 #include "cursor_defs.hpp"
+#include "engine/shadow_rule.hpp"
 #include "levels/gendung_defs.hpp"
 #include "tables/questdat.hpp"
+#include "utils/attributes.h"
 
 namespace devilution {
 
@@ -177,6 +179,8 @@ struct ObjectData {
 	uint8_t animLen;   // Number of frames in current animation
 	uint8_t animWidth;
 	SelectionRegion selectionRegion;
+	/** How the shadow baked into the object's sprite was generated. */
+	ShadowRule shadowRule;
 
 	[[nodiscard]] bool isAnimated() const
 	{
@@ -210,7 +214,7 @@ struct ObjectData {
 };
 
 extern const _object_id ObjTypeConv[];
-extern std::vector<ObjectData> AllObjects;
+extern DVL_API_FOR_TEST std::vector<ObjectData> AllObjects;
 extern std::vector<std::string> ObjMasterLoadList;
 
 void LoadObjectData();

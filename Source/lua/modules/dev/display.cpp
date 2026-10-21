@@ -34,6 +34,12 @@ std::string DebugCmdPath(std::optional<bool> on)
 	return StrCat("Path highlighting: ", DebugPath ? "On" : "Off");
 }
 
+std::string DebugCmdShadows(std::optional<bool> on)
+{
+	DebugHideShadows = !on.value_or(DebugHideShadows);
+	return StrCat("Sprite shadows: ", DebugHideShadows ? "Off" : "On");
+}
+
 std::string DebugCmdFullbright(std::optional<bool> on)
 {
 	ToggleLighting();
@@ -126,6 +132,7 @@ sol::table LuaDevDisplayModule(sol::state_view &lua)
 	LuaSetDocFn(table, "grid", "(on: boolean = nil)", "Toggle showing the grid.", &DebugCmdShowGrid);
 	LuaSetDocFn(table, "path", "(on: boolean = nil)", "Toggle path debug rendering.", &DebugCmdPath);
 	LuaSetDocFn(table, "scrollView", "(on: boolean = nil)", "Toggle view scrolling via Shift+Mouse.", &DebugCmdScrollView);
+	LuaSetDocFn(table, "shadows", "(on: boolean = nil)", "Toggle drawing the shadows of sprites. Shadows that are still part of their sprite stay visible.", &DebugCmdShadows);
 	LuaSetDocFn(table, "tileData", "(name: string = nil)", "Toggle showing tile data.", &DebugCmdShowTileData);
 	LuaSetDocFn(table, "vision", "(on: boolean = nil)", "Toggle vision debug rendering.", &DebugCmdVision);
 	return table;
