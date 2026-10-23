@@ -43,47 +43,24 @@ enum class PlayerClassAvailabilityFlag : uint8_t {
 };
 use_enum_as_flags(PlayerClassAvailabilityFlag);
 
-enum class PlayerClassFlag : uint8_t {
-	// clang-format off
-	None = 0,
-	DualWield = 1 << 0,
-	TrapSense = 1 << 1,
-	WieldTwoHandedSwordMaceShield = 1 << 2,
-	
-	Last = WieldTwoHandedSwordMaceShield
-	// clang-format on
-};
-use_enum_as_flags(PlayerClassFlag);
-
-enum class PlayerAttackFlag : uint8_t {
+enum class PlayerClassFlag : uint16_t {
 	// clang-format off
 	None = 0,
 	CriticalStrike = 1 << 0,
-	StaffCleave = 1 << 1,
-	DualSwordCleave = 1 << 2,
-	TwoHandedAxeMaceSwordCleave = 1 << 3,
-	ExtraMeleeArmorPiercing = 1 << 4,
-	ExtraArrowPhysicalDamage = 1 << 5,
-	MartialArts = 1 << 6,
+	DualWield = 1 << 1,
+	TrapSense = 1 << 2,
+	WieldTwoHandedSwordMaceShield = 1 << 3,
+	StaffCleave = 1 << 4,
+	DualSwordCleave = 1 << 5,
+	TwoHandedAxeMaceSwordCleave = 1 << 6,
+	MartialArts = 1 << 7,
+	StaffBlock = 1 << 8,
+	OneHandBlock = 1 << 9,
 	
-	Last = MartialArts
+	Last = OneHandBlock
 	// clang-format on
 };
-use_enum_as_flags(PlayerAttackFlag);
-
-enum class PlayerDefenseFlag : uint8_t {
-	// clang-format off
-	None = 0,
-	IronSkin = 1 << 1,
-	NaturalResistance = 1 << 2,
-	StaffBlock = 1 << 3,
-	OneHandBlock = 1 << 4,
-	LightArmorExpert = 1 << 5,
-	
-	Last = LightArmorExpert
-	// clang-format on
-};
-use_enum_as_flags(PlayerDefenseFlag);
+use_enum_as_flags(PlayerClassFlag);
 
 struct PlayerData {
 	/* Class Name */
@@ -150,16 +127,22 @@ struct ClassAttributes {
 const ClassAttributes &GetClassAttributes(HeroClass playerClass);
 
 struct PlayerCombatData {
-	/* Combat Special Attack Flags */
-	PlayerAttackFlag attackFlags;
-	/* Combat Special Defense Flags */
-	PlayerDefenseFlag defenseFlags;
 	/* Melee bonus armor piercing */
 	Fixed10_6 meleeArmorPiercingBonus;
 	/* Bow damage to monsters bonus multiplier */
 	Fixed10_6 bowDamageMod;
 	/* Arrow velocity bonus by level multiplier */
 	Fixed10_6 arrowVelocityBonus;
+	/* Armor Class bonus by level */
+	Fixed10_6 armorClassBonus;
+	/* Magic Resistance bonus by level */
+	Fixed10_6 magicResistanceBonus;
+	/* Fire Resistance bonus by level */
+	Fixed10_6 fireResistanceBonus;
+	/* Lightning Resistance bonus by level */
+	Fixed10_6 lightningResistanceBonus;
+	/* Stun Threshold by level multiplier */
+	Fixed10_6 stunThreshold;
 	/* Normal Light Armor AC bonus by level multiplier */
 	Fixed10_6 normalLightArmorAC;
 	/* Magic Light Armor AC bonus by level multiplier */
@@ -324,24 +307,12 @@ const PlayerAnimData &GetPlayerAnimDataForClass(HeroClass clazz);
 
 template <>
 struct magic_enum::customize::enum_range<devilution::PlayerClassFlag> {
-	static constexpr uint8_t min = static_cast<uint64_t>(devilution::PlayerClassFlag::None);
-	static constexpr uint8_t max = static_cast<uint64_t>(devilution::PlayerClassFlag::Last);
+	static constexpr uint16_t min = static_cast<uint64_t>(devilution::PlayerClassFlag::None);
+	static constexpr uint16_t max = static_cast<uint64_t>(devilution::PlayerClassFlag::Last);
 };
 
 template <>
 struct magic_enum::customize::enum_range<devilution::PlayerClassAvailabilityFlag> {
 	static constexpr uint8_t min = static_cast<uint64_t>(devilution::PlayerClassAvailabilityFlag::Spawn);
 	static constexpr uint8_t max = static_cast<uint64_t>(devilution::PlayerClassAvailabilityFlag::Last);
-};
-
-template <>
-struct magic_enum::customize::enum_range<devilution::PlayerAttackFlag> {
-	static constexpr uint8_t min = static_cast<uint64_t>(devilution::PlayerAttackFlag::None);
-	static constexpr uint8_t max = static_cast<uint64_t>(devilution::PlayerAttackFlag::Last);
-};
-
-template <>
-struct magic_enum::customize::enum_range<devilution::PlayerDefenseFlag> {
-	static constexpr uint8_t min = static_cast<uint64_t>(devilution::PlayerDefenseFlag::None);
-	static constexpr uint8_t max = static_cast<uint64_t>(devilution::PlayerDefenseFlag::Last);
 };

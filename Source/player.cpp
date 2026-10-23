@@ -571,8 +571,8 @@ bool PlrHitMonst(Player &player, Monster &monster, bool adjacentDamage = false)
 	int dam2 = dam << 6;
 	dam += player._pDamageMod;
 
-	const PlayerCombatData &playerCombatData = GetPlayerCombatDataForClass(player._pClass);
-	if (HasAnyOf(playerCombatData.attackFlags, PlayerAttackFlag::CriticalStrike)) {
+	const ClassAttributes &classAttributes = GetClassAttributes(player._pClass);
+	if (HasAnyOf(classAttributes.classFlags, PlayerClassFlag::CriticalStrike)) {
 		if (GenerateRnd(100) < player.getCharacterLevel()) {
 			dam *= 2;
 		}
@@ -739,8 +739,8 @@ bool PlrHitPlr(Player &attacker, Player &target)
 	dam += (dam * attacker._pIBonusDam) / 100;
 	dam += attacker._pIBonusDamMod + attacker._pDamageMod;
 
-	const PlayerCombatData &playerCombatData = GetPlayerCombatDataForClass(attacker._pClass);
-	if (HasAnyOf(playerCombatData.attackFlags, PlayerAttackFlag::CriticalStrike)) {
+	const ClassAttributes &classAttributes = GetClassAttributes(attacker._pClass);
+	if (HasAnyOf(classAttributes.classFlags, PlayerClassFlag::CriticalStrike)) {
 		if (GenerateRnd(100) < attacker.getCharacterLevel()) {
 			dam *= 2;
 		}
@@ -2629,13 +2629,10 @@ void StartPlrHit(Player &player, Fixed26_6 dam, bool forcehit)
 
 	RedrawComponent(PanelDrawComponent::Health);
 	const PlayerCombatData &playerCombatData = GetPlayerCombatDataForClass(player._pClass);
-	if (HasAnyOf(playerCombatData.defenseFlags, PlayerDefenseFlag::IronSkin)) {
-		if (dam.whole() < player.getCharacterLevel() + player.getCharacterLevel() / 4 && !forcehit) {
-			return;
-		}
-	} else if (dam.whole() < player.getCharacterLevel() && !forcehit) {
+	if (dam.whole() < (player.getCharacterLevel() * playerCombatData.stunThreshold).whole() && !forcehit) {
 		return;
 	}
+
 
 	const Direction pd = player._pdir;
 
