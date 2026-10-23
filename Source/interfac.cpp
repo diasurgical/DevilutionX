@@ -48,7 +48,7 @@
 #endif
 
 // Emscripten: ASYNCIFY does not support unwinding across threads, so loading must happen on the main thread.
-#if defined(__EMSCRIPTEN__)
+#if defined(__EMSCRIPTEN__) || defined(PS2)
 #define LOAD_ON_MAIN_THREAD
 #endif
 
@@ -311,9 +311,11 @@ bool HandleProgressBarUpdate()
 
 void DoLoad(interface_mode uMsg)
 {
+#ifndef PS2
 	IncProgress();
 	sound_init();
 	IncProgress();
+#endif
 
 	Player &myPlayer = *MyPlayer;
 	std::expected<void, std::string> loadResult;
