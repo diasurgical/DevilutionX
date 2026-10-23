@@ -2502,8 +2502,8 @@ void CalcPlrDamage(Player &player, int minDamage, int maxDamage)
 			maxDamage = 3;
 		}
 
-		const PlayerCombatData &playerCombatData = GetPlayerCombatDataForClass(player._pClass);
-		if (HasAnyOf(playerCombatData.attackFlags, PlayerAttackFlag::MartialArts)) {
+		const ClassAttributes &classAttributes = GetClassAttributes(player._pClass);
+		if (HasAnyOf(classAttributes.classFlags, PlayerClassFlag::MartialArts)) {
 			minDamage = std::max(minDamage, playerLevel / 2);
 			maxDamage = std::max<int>(maxDamage, playerLevel);
 		}
@@ -2598,33 +2598,23 @@ void CalcPlrDamageMod(Player &player)
 	}
 
 	const PlayerCombatData &playerCombatData = GetPlayerCombatDataForClass(player._pClass);
-	if (HasAnyOf(playerCombatData.defenseFlags, PlayerDefenseFlag::IronSkin)) {
-		player._pIAC += playerLevel / 4;
-	}
+	player._pIAC += (playerLevel * playerCombatData.armorClassBonus).whole();
 }
 
 void CalcPlrResistances(Player &player, ItemSpecialEffect iflgs, int fire, int lightning, int magic)
 {
 	const uint8_t playerLevel = player.getCharacterLevel();
 
-	const PlayerCombatData &playerCombatData = GetPlayerCombatDataForClass(player._pClass);
-	if (HasAnyOf(playerCombatData.defenseFlags, PlayerDefenseFlag::NaturalResistance)) {
-		magic += playerLevel;
-		fire += playerLevel;
-		lightning += playerLevel;
-	}
-
-	if (HasAnyOf(player._pSpellFlags, SpellFlag::RageCooldown)) {
-		magic -= playerLevel;
-		fire -= playerLevel;
-		lightning -= playerLevel;
-	}
-
 	if (HasAnyOf(iflgs, ItemSpecialEffect::ZeroResistance)) {
 		// reset resistances to zero if the respective special effect is active
 		magic = 0;
 		fire = 0;
 		lightning = 0;
+	} else if (!HasAnyOf(player._pSpellFlags, SpellFlag::RageCooldown)) {
+		const PlayerCombatData &playerCombatData = GetPlayerCombatDataForClass(player._pClass);
+		magic += (playerLevel * playerCombatData.magicResistanceBonus).whole();
+		fire += (playerLevel * playerCombatData.fireResistanceBonus).whole();;
+		lightning += (playerLevel * playerCombatData.lightningResistanceBonus).whole();
 	}
 
 	player._pMagResist = std::clamp(magic, 0, MaxResistance);
@@ -2659,11 +2649,11 @@ void CalcPlrBlockFlag(Player &player)
 
 	player._pBlockFlag = false;
 	
-	const PlayerCombatData &playerCombatData = GetPlayerCombatDataForClass(player._pClass);
-	if (HasAnyOf(playerCombatData.defenseFlags, PlayerDefenseFlag::StaffBlock) && player.isHoldingItem(ItemType::Staff)) {
+	const ClassAttributes &classAttributes = GetClassAttributes(player._pClass);
+	if (HasAnyOf(classAttributes.classFlags, PlayerClassFlag::StaffBlock) && player.isHoldingItem(ItemType::Staff)) {
 		player._pBlockFlag = true;
 		player._pIFlags |= ItemSpecialEffect::FastBlock;
-	} else if (HasAnyOf(playerCombatData.defenseFlags, PlayerDefenseFlag::OneHandBlock) && ((leftHandItem.isEmpty() && rightHandItem.isEmpty()) || (leftHandItem._iClass == ICLASS_WEAPON && leftHandItem._iLoc != ILOC_TWOHAND && rightHandItem.isEmpty()) || (rightHandItem._iClass == ICLASS_WEAPON && rightHandItem._iLoc != ILOC_TWOHAND && leftHandItem.isEmpty()))) {
+	} else if (HasAnyOf(classAttributes.classFlags, PlayerClassFlag::OneHandBlock) && ((leftHandItem.isEmpty() && rightHandItem.isEmpty()) || (leftHandItem._iClass == ICLASS_WEAPON && leftHandItem._iLoc != ILOC_TWOHAND && rightHandItem.isEmpty()) || (rightHandItem._iClass == ICLASS_WEAPON && rightHandItem._iLoc != ILOC_TWOHAND && leftHandItem.isEmpty()))) {
 		player._pBlockFlag = true;
 	}
 

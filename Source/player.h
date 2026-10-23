@@ -406,10 +406,10 @@ public:
 
 	bool CanCleave()
 	{
-		const PlayerCombatData &playerCombatData = getPlayerCombatData();
-		return (HasAnyOf(playerCombatData.attackFlags, PlayerAttackFlag::StaffCleave) && isEquipped(ItemType::Staff))
-			|| (HasAnyOf(playerCombatData.attackFlags, PlayerAttackFlag::DualSwordCleave) && InvBody[INVLOC_HAND_LEFT]._itype == ItemType::Sword && InvBody[INVLOC_HAND_RIGHT]._itype == ItemType::Sword)
-			|| (HasAnyOf(playerCombatData.attackFlags, PlayerAttackFlag::TwoHandedAxeMaceSwordCleave) && (isEquipped(ItemType::Axe) || (!isEquipped(ItemType::Shield) && (isEquipped(ItemType::Mace, true) || isEquipped(ItemType::Sword, true)))));	
+		const ClassAttributes &classAttributes = GetClassAttributes(_pClass);
+		return (HasAnyOf(classAttributes.classFlags, PlayerClassFlag::StaffCleave) && isEquipped(ItemType::Staff))
+			|| (HasAnyOf(classAttributes.classFlags, PlayerClassFlag::DualSwordCleave) && InvBody[INVLOC_HAND_LEFT]._itype == ItemType::Sword && InvBody[INVLOC_HAND_RIGHT]._itype == ItemType::Sword)
+			|| (HasAnyOf(classAttributes.classFlags, PlayerClassFlag::TwoHandedAxeMaceSwordCleave) && (isEquipped(ItemType::Axe) || (!isEquipped(ItemType::Shield) && (isEquipped(ItemType::Mace, true) || isEquipped(ItemType::Sword, true)))));
 	}
 
 	bool isEquipped(ItemType itemType, bool isTwoHanded = false)
