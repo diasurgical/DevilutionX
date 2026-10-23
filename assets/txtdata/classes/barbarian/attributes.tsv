@@ -1,5 +1,5 @@
 Attribute	Value
-classFlags	WieldTwoHandedSwordMaceShield
+classFlags	CriticalStrike,TwoHandedAxeMaceSwordCleave,WieldTwoHandedSwordMaceShield
 classAvailabilityFlags	BarbarianTest
 baseStr	40
 baseMag	0
@@ -24,11 +24,14 @@ itmRestoreMana	1
 splRestoreLife	2
 splRestoreMana	1
 healOtherRestoreLife	2
-attackFlags	CriticalStrike,TwoHandedAxeMaceSwordCleave
-defenseFlags	IronSkin,NaturalResistance
 meleeArmorPiercingBonus	0.125
 bowDamageMod	0.5
 arrowVelocityBonus	0
+armorClassBonus	0.125
+magicResistanceBonus	1
+fireResistanceBonus	1
+lightningResistanceBonus	1
+stunThreshold	1.125
 normalLightArmorAC	0
 magicLightArmorAC	0
 uniqueLightArmorAC	0

@@ -175,25 +175,6 @@ std::expected<PlayerClassAvailabilityFlag, std::string> ParsePlayerClassAvailabi
 	return std::unexpected("Unknown enum value");
 }
 
-std::expected<PlayerAttackFlag, std::string> ParsePlayerAttackFlag(std::string_view value)
-{
-	const std::optional<PlayerAttackFlag> enumValueOpt = magic_enum::enum_cast<PlayerAttackFlag>(value);
-	if (enumValueOpt.has_value()) {
-		return enumValueOpt.value();
-	}
-	return std::unexpected("Unknown enum value");
-}
-
-std::expected<PlayerDefenseFlag, std::string> ParsePlayerDefenseFlag(std::string_view value)
-{
-	const std::optional<PlayerDefenseFlag> enumValueOpt = magic_enum::enum_cast<PlayerDefenseFlag>(value);
-	if (enumValueOpt.has_value()) {
-		return enumValueOpt.value();
-	}
-	return std::unexpected("Unknown enum value");
-}
-
-
 void LoadClassData(std::string_view classPath, ClassAttributes &attributes, PlayerCombatData &combat)
 {
 	const std::string filename = StrCat("txtdata\\classes\\", classPath, "\\attributes.tsv");
@@ -228,11 +209,14 @@ void LoadClassData(std::string_view classPath, ClassAttributes &attributes, Play
 	reader.readDecimal("splRestoreLife", attributes.splRestoreLife);
 	reader.readDecimal("splRestoreMana", attributes.splRestoreMana);
 	reader.readDecimal("healOtherRestoreLife", attributes.healOtherRestoreLife);
-	reader.readEnumList("attackFlags", combat.attackFlags, ParsePlayerAttackFlag);
-	reader.readEnumList("defenseFlags", combat.defenseFlags, ParsePlayerDefenseFlag);
 	reader.readDecimal("meleeArmorPiercingBonus", combat.meleeArmorPiercingBonus);
 	reader.readDecimal("bowDamageMod", combat.bowDamageMod);
 	reader.readDecimal("arrowVelocityBonus", combat.arrowVelocityBonus);
+	reader.readDecimal("armorClassBonus", combat.armorClassBonus);
+	reader.readDecimal("magicResistanceBonus", combat.magicResistanceBonus);
+	reader.readDecimal("fireResistanceBonus", combat.fireResistanceBonus);
+	reader.readDecimal("lightningResistanceBonus", combat.lightningResistanceBonus);
+	reader.readDecimal("stunThreshold", combat.stunThreshold);
 	reader.readDecimal("normalLightArmorAC", combat.normalLightArmorAC);
 	reader.readDecimal("magicLightArmorAC", combat.magicLightArmorAC);
 	reader.readDecimal("uniqueLightArmorAC", combat.uniqueLightArmorAC);
