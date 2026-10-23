@@ -1763,7 +1763,7 @@ void AddElementalArrow(Missile &missile, AddMissileParameter &parameter)
 	if (missile._micaster == TARGET_MONSTERS) {
 		const Player &player = Players[missile._misource];
 		const PlayerCombatData &playerCombatData = GetPlayerCombatDataForClass(player._pClass);
-		av += ((player.getCharacterLevel() - 1) * playerCombatData.arrowVelocityBonus).whole();
+		av += (player.getCharacterLevel() * playerCombatData.arrowVelocityBonus).whole();
 
 		if (gbIsHellfire) {
 			if (HasAnyOf(player._pIFlags, ItemSpecialEffect::QuickAttack))
@@ -1775,7 +1775,7 @@ void AddElementalArrow(Missile &missile, AddMissileParameter &parameter)
 			if (HasAnyOf(player._pIFlags, ItemSpecialEffect::FastestAttack))
 				av += 8;
 		} else {
-			if (IsAnyOf(player._pClass, HeroClass::Rogue, HeroClass::Warrior, HeroClass::Bard))
+			if (playerCombatData.arrowVelocityBonus > 0)
 				av -= 1;
 		}
 	}
