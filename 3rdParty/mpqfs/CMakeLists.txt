@@ -3,8 +3,8 @@ include(functions/FetchContent_ExcludeFromAll_backport)
 include(FetchContent)
 
 FetchContent_Declare_ExcludeFromAll(mpqfs
-    URL https://github.com/diasurgical/mpqfs/archive/de99526f869cf647fde8a2229131c880eab442e9.tar.gz
-    URL_HASH MD5=f8c67245857a1d532d7a8884e176556f
+    URL https://github.com/diasurgical/mpqfs/archive/1dc2407a9cd97eb7aaf8a0c184c70436871b7e5a.tar.gz
+    URL_HASH MD5=df58160d1bed8a6f41bb5f1d58520611
 )
 FetchContent_MakeAvailable_ExcludeFromAll(mpqfs)
 
