@@ -24,11 +24,14 @@ itmRestoreMana	2
 splRestoreLife	1
 splRestoreMana	2
 healOtherRestoreLife	1
-attackFlags
-defenseFlags
 meleeArmorPiercingBonus	0
 bowDamageMod	0.5
 arrowVelocityBonus	0
+armorClassBonus	0
+magicResistanceBonus	0
+fireResistanceBonus	0
+lightningResistanceBonus	0
+stunThreshold	1
 normalLightArmorAC	0
 magicLightArmorAC	0
 uniqueLightArmorAC	0
