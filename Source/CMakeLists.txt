@@ -942,7 +942,6 @@ else()
   )
   endif()
 endif()
-endif()
 
 add_devilutionx_object_library(libdevilutionx_stores
   stores.cpp

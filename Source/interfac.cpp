@@ -311,9 +311,11 @@ bool HandleProgressBarUpdate()
 
 void DoLoad(interface_mode uMsg)
 {
+#ifndef PS2
 	IncProgress();
 	sound_init();
 	IncProgress();
+#endif
 
 	Player &myPlayer = *MyPlayer;
 	std::expected<void, std::string> loadResult;
