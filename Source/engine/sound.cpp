@@ -27,6 +27,7 @@
 
 #include "appfat.h"
 #include "engine/assets.hpp"
+#include "engine/fbbsanitizer.hpp"
 #include "game_mode.hpp"
 #include "options.h"
 #include "utils/log.hpp"
@@ -70,6 +71,8 @@ std::expected<void, std::string> LoadAudioFile(const char *path, bool stream, So
 	std::string foundPath = GetMp3Path(path);
 	AssetRef ref = FindAsset(foundPath.c_str());
 	if (!ref.ok()) {
+		if (IsFbbAsset(path))
+			SanitizeFbbAsset();
 		ref = FindAsset(path);
 		foundPath = path;
 		isMp3 = false;

@@ -31,6 +31,11 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install dependencies
+        run: |
+          apt-get update && apt-get install -y --no-install-recommends --no-install-suggests \
+            smpq
+
       - name: Configure CMake
         run: |
           cmake \
