@@ -1,12 +1,14 @@
 #include "engine/assets.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <expected>
 #include <functional>
 #include <memory>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -20,6 +22,8 @@
 #include "appfat.h"
 #include "game_mode.hpp"
 #include "mods/mod_identity.h"
+#include "utils/endian_read.hpp"
+#include "utils/endian_write.hpp"
 #include "utils/file_util.h"
 #include "utils/format.hpp"
 #include "utils/log.hpp"
@@ -229,7 +233,8 @@ AssetRef FindAsset(std::string_view filename)
 	// Fall back to the bundled assets on supported systems.
 	// This is handled by SDL when we pass a relative path.
 	if (!paths::AssetsPath().empty()) {
-		result.directHandle = SDL_IOFromFile(relativePath.c_str(), "rb");
+		std::string assetPath = "assets/" + relativePath;
+		result.directHandle = SDL_IOFromFile(assetPath.c_str(), "rb");
 		if (result.directHandle != nullptr)
 			return result;
 	}
@@ -407,8 +412,167 @@ bool FindMPQ(std::span<const std::string> paths, std::string_view mpqName)
 	return false;
 }
 
+#if (defined(__ANDROID__) && !defined(TERMUX)) || defined(__APPLE__)
+struct BundleInfo {
+	bool exists;
+	size_t size;
+	uint32_t hash;
+};
+
+uint32_t ComputeHash(SDL_IOStream *stream)
+{
+	// FNV-1a
+	constexpr uint32_t Prime = 16777619U;
+	uint32_t hash = 2166136261U;
+	std::vector<uint8_t> buffer(32768);
+
+	while (true) {
+		size_t read = SDL_ReadIO(stream, buffer.data(), buffer.size());
+		if (read == 0) break;
+
+		std::span<uint8_t> span { buffer.data(), read };
+		for (const uint8_t index : span)
+			hash = (hash ^ index) * Prime;
+	}
+
+	return hash;
+}
+
+void ComputeBundleInfo(const std::string &path, BundleInfo &info)
+{
+	SDL_IOStream *stream = SDL_IOFromFile(path.c_str(), "rb");
+	info.exists = stream != nullptr;
+	info.size = info.exists ? SDL_GetIOSize(stream) : 0;
+	info.hash = info.exists ? ComputeHash(stream) : 0;
+	if (info.exists) SDL_CloseIO(stream);
+}
+
+void LoadBundleInfo(const std::string &path, BundleInfo &info)
+{
+	SDL_IOStream *stream = SDL_IOFromFile(path.c_str(), "rb");
+	info.exists = stream != nullptr;
+
+	if (info.exists) {
+		std::array<uint8_t, 8> buffer;
+		size_t read = SDL_ReadIO(stream, buffer.data(), buffer.size());
+		SDL_CloseIO(stream);
+		if (read == 8) {
+			info.size = LoadLE32(&buffer[0]);
+			info.hash = LoadLE32(&buffer[4]);
+			return;
+		}
+	}
+
+	info.size = 0;
+	info.hash = 0;
+}
+
+void SaveBundleInfo(const std::string &path, const BundleInfo &info)
+{
+	if (!info.exists)
+		return;
+
+	SDL_IOStream *stream = SDL_IOFromFile(path.c_str(), "wb");
+	if (stream == nullptr)
+		return;
+
+	std::array<uint8_t, 8> buffer;
+	WriteLE32(&buffer[0], static_cast<uint32_t>(info.size));
+	WriteLE32(&buffer[4], info.hash);
+
+	size_t write = SDL_WriteIO(stream, buffer.data(), buffer.size());
+	SDL_CloseIO(stream);
+	if (write != buffer.size())
+		RemoveFile(path.c_str());
+}
+
+void DumpBundledAsset(const std::string &from, const std::string &to, size_t size)
+{
+	SDL_IOStream *fromStream = SDL_IOFromFile(from.c_str(), "rb");
+	if (fromStream == nullptr)
+		return;
+
+	SDL_IOStream *toStream = SDL_IOFromFile(to.c_str(), "wb");
+	if (toStream == nullptr) {
+		SDL_CloseIO(fromStream);
+		return;
+	}
+
+	std::vector<uint8_t> buffer(32768);
+	size_t total = 0;
+	while (true) {
+		size_t read = SDL_ReadIO(fromStream, buffer.data(), buffer.size());
+		if (read == 0) break;
+		size_t write = SDL_WriteIO(toStream, buffer.data(), read);
+		if (read != write) break;
+		total += write;
+	}
+	SDL_CloseIO(fromStream);
+	SDL_CloseIO(toStream);
+	if (total != size)
+		RemoveFile(to.c_str());
+}
+
+void DumpBundledModMPQ(std::string_view mpqName, std::string_view ext)
+{
+	if (paths::AssetsPath().empty())
+		return;
+	if (!mpqName.starts_with("mods/"))
+		return;
+
+	// We can't load the MPQ directly from bundled assets
+	// so if we find it we need to copy it to pref path.
+	BundleInfo bundledMpqInfo;
+	BundleInfo prefMpqInfo;
+	BundleInfo bndlInfo;
+
+	// Search for the mod MPQ in bundled assets
+	// by passing a relative path to SDL.
+	std::string relativePath = StrCat(mpqName, ext);
+	ComputeBundleInfo(relativePath, bundledMpqInfo);
+	if (!bundledMpqInfo.exists) return;
+
+	// Load bundle info from pref path to determine if we need to overwrite it.
+	std::string prefPath = StrCat(paths::PrefPath(), mpqName, ext);
+	std::string bndlPath = StrCat(prefPath, ".bndl");
+	ComputeBundleInfo(prefPath, prefMpqInfo);
+	LoadBundleInfo(bndlPath, bndlInfo);
+
+	if (prefMpqInfo.exists) {
+		bool bundledMpqMatches = prefMpqInfo.size == bundledMpqInfo.size
+		    && prefMpqInfo.hash == bundledMpqInfo.hash;
+
+		bool bndlMatches = bndlInfo.exists
+		    && prefMpqInfo.size == bndlInfo.size
+		    && prefMpqInfo.hash == bndlInfo.hash;
+
+		// If the bundled MPQ matches the MPQ in pref path,
+		// we don't need to overwrite it.
+		if (bundledMpqMatches) {
+			if (!bndlMatches)
+				SaveBundleInfo(bndlPath, bundledMpqInfo);
+			return;
+		}
+
+		// If the MPQ in pref path doesn't match the captured bundle info,
+		// assume the user has replaced the MPQ and doesn't want us to overwrite it.
+		if (!bndlMatches)
+			return;
+	}
+
+	std::string modFolderPath = StrCat(paths::PrefPath(), "mods");
+	RecursivelyCreateDir(modFolderPath.c_str());
+	DumpBundledAsset(relativePath, prefPath, bundledMpqInfo.size);
+	SaveBundleInfo(bndlPath, bundledMpqInfo);
+}
+#endif
+
 bool LoadMPQ(std::span<const std::string> paths, std::string_view mpqName, int priority, std::string_view ext = ".mpq", std::string *loadedPath = nullptr)
 {
+#if (defined(__ANDROID__) && !defined(TERMUX)) || defined(__APPLE__)
+	DumpBundledModMPQ(mpqName, ext);
+#endif
+
 	std::string mpqAbsPath;
 	bool foundButFailed = false;
 	for (const auto &path : paths) {
@@ -699,6 +863,10 @@ ModManifest ReadModManifestByName(std::string_view name)
 	}
 
 #ifndef UNPACKED_MPQS
+#if (defined(__ANDROID__) && !defined(TERMUX)) || defined(__APPLE__)
+	std::string mpqName = StrCat("mods" DIRECTORY_SEPARATOR_STR, name);
+	DumpBundledModMPQ(mpqName, ".mpq");
+#endif
 	// Packed mod archive.
 	const std::vector<std::string> packedSearchPaths = GetMPQSearchPaths();
 	std::expected<ModManifest, int32_t> manifest = ReadPackedModManifest(packedSearchPaths, name);
