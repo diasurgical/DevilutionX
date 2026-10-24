@@ -2260,6 +2260,7 @@ void SetPlrAnims(Player &player)
 		case PlayerWeaponGraphic::Bow:
 			player._pAFrames = plrAtkAnimData.bowFrames;
 			player._pAFNum = plrAtkAnimData.bowActionFrame;
+			player._pNFrames = plrAtkAnimData.bowIdleFrames;
 			break;
 		case PlayerWeaponGraphic::Axe:
 			player._pAFrames = plrAtkAnimData.axeFrames;
@@ -2280,16 +2281,10 @@ void SetPlrAnims(Player &player)
 		}
 	}
 
-	player._pDFrames = plrAtkAnimData.deathFrames;
+	const int armorGraphicIndex = player._pgfxnum & ~0xFU;
+	player._pDFrames = (armorGraphicIndex > 0) ? plrAtkAnimData.deathArmoredFrames : plrAtkAnimData.deathFrames;
 	player._pSFrames = plrAtkAnimData.castingFrames;
 	player._pSFNum = plrAtkAnimData.castingActionFrame;
-	const int armorGraphicIndex = player._pgfxnum & ~0xFU;
-	if (IsAnyOf(pc, HeroClass::Warrior, HeroClass::Barbarian)) {
-		if (gn == PlayerWeaponGraphic::Bow && leveltype != DTYPE_TOWN)
-			player._pNFrames = 8;
-		if (armorGraphicIndex > 0)
-			player._pDFrames = 15;
-	}
 }
 
 /**

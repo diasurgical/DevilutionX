@@ -298,6 +298,7 @@ void LoadClassAnimData(std::string_view classPath, PlayerAnimData &animData)
 	reader.readInt("swordShieldActionFrame", animData.swordShieldActionFrame);
 	reader.readInt("bowFrames", animData.bowFrames);
 	reader.readInt("bowActionFrame", animData.bowActionFrame);
+	reader.readInt("bowIdleFrames", animData.bowIdleFrames);
 	reader.readInt("axeFrames", animData.axeFrames);
 	reader.readInt("axeActionFrame", animData.axeActionFrame);
 	reader.readInt("maceFrames", animData.maceFrames);
@@ -310,6 +311,7 @@ void LoadClassAnimData(std::string_view classPath, PlayerAnimData &animData)
 	reader.readInt("walkingFrames", animData.walkingFrames);
 	reader.readInt("blockingFrames", animData.blockingFrames);
 	reader.readInt("deathFrames", animData.deathFrames);
+	reader.readInt("deathArmoredFrames", animData.deathArmoredFrames);
 	reader.readInt("castingFrames", animData.castingFrames);
 	reader.readInt("recoveryFrames", animData.recoveryFrames);
 	reader.readInt("townIdleFrames", animData.townIdleFrames);
