@@ -251,6 +251,8 @@ struct PlayerAnimData {
 	int8_t bowFrames;
 	/* Bow action frame number */
 	int8_t bowActionFrame;
+	/* Bow idle frame number */
+	int8_t bowIdleFrames;
 	/* Axe frame count */
 	int8_t axeFrames;
 	/* Axe action frame number */
@@ -273,8 +275,10 @@ struct PlayerAnimData {
 	int8_t walkingFrames;
 	/* Blocking frame count */
 	int8_t blockingFrames;
-	/* Death frame count */
+	/* Death with light armor frame count */
 	int8_t deathFrames;
+	/* Death with medium or heavy armor frame count */
+	int8_t deathArmoredFrames;
 	/* Spellcasting frame count */
 	int8_t castingFrames;
 	/* Hit Recovery frame count */

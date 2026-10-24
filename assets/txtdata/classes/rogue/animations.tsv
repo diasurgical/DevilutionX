@@ -9,6 +9,7 @@ swordShieldFrames	18
 swordShieldActionFrame	10
 bowFrames	12
 bowActionFrame	7
+bowIdleFrames	8
 axeFrames	22
 axeActionFrame	13
 maceFrames	18
@@ -21,6 +22,7 @@ idleFrames	8
 walkingFrames	8
 blockingFrames	4
 deathFrames	20
+deathArmoredFrames	20
 castingFrames	16
 recoveryFrames	7
 townIdleFrames	20
