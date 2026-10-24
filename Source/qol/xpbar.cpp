@@ -8,7 +8,7 @@
 #include <array>
 #include <cstdint>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 
 #include "control.h"
 #include "engine/clx_sprite.hpp"
