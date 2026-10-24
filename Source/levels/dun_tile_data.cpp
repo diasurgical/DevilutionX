@@ -60,6 +60,7 @@ int8_t dCorpse[MAXDUNX][MAXDUNY];
 int8_t dObject[MAXDUNX][MAXDUNY];
 uint32_t WalkabilityGeneration;
 int8_t dSpecial[MAXDUNX][MAXDUNY];
+StaticVector<AnchoredPoint, MAXDEFERRED_REDRAW_TILES> dDeferredRedrawTiles;
 int themeCount;
 THEME_LOC themeLoc[MAXTHEMES];
 uint32_t DungeonSeeds[NUMLEVELS];
