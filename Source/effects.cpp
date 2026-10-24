@@ -322,10 +322,19 @@ void effects_play_sound(SfxID id)
 
 int GetSFXLength(SfxID nSFX)
 {
+	// Headless/no-audio: the SFX table is never loaded -- indexing the empty
+	// vector is UB and crashed on the Butcher's greeting (InitQTextMsg, L2).
+	if (sgSFX.empty())
+		return 0;
 	TSFX &sfx = sgSFX[static_cast<int16_t>(nSFX)];
 	if (sfx.pSnd == nullptr)
 		sfx.pSnd = sound_file_load(sfx.pszName.c_str(),
 		    /*stream=*/AllowStreaming && (sfx.bFlags & sfx_STREAM) != 0);
+	// Headless/no-audio: sound_file_load may legitimately return nullptr;
+	// quest text (InitQTextMsg) then times itself from text length instead
+	// of crashing here (e.g. the Butcher's greeting on L2).
+	if (sfx.pSnd == nullptr)
+		return 0;
 	return sfx.pSnd->DSB.GetLength();
 }
 
