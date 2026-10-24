@@ -1,0 +1,4 @@
+shaders = 2
+shader0 = shaders/passthrough.slang
+shader1 = shaders/feedback.slang
+alias1 = accum

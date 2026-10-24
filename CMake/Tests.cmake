@@ -29,6 +29,7 @@ set(tests
   math_test
   missiles_test
   multi_logging_test
+  options_test
   pack_test
   player_test
   quests_test
@@ -108,6 +109,14 @@ endforeach()
 
 foreach(test_target ${standalone_tests})
   target_link_libraries(${test_target} PRIVATE GTest::gtest_main)
+  # These standalone tests include <gmock/gmock.h> but only linked gtest_main,
+  # which carries no gmock include dirs - they only ever built where system
+  # gtest headers sat on the default include path. Link GTest::gmock when the
+  # dependency tree provides it (vendored googletest always does; system
+  # FindGTest defines it when libgmock was found) so the suite builds anywhere.
+  if(TARGET GTest::gmock)
+    target_link_libraries(${test_target} PRIVATE GTest::gmock)
+  endif()
   target_include_directories(${test_target} PRIVATE "${PROJECT_SOURCE_DIR}/Source")
 endforeach()
 
@@ -184,6 +193,22 @@ target_link_dependencies(format_int_test PRIVATE libdevilutionx_format_int langu
 target_link_dependencies(ini_test PRIVATE libdevilutionx_ini app_fatal_for_testing)
 target_link_dependencies(mod_identity_test PRIVATE libdevilutionx_mod_identity app_fatal_for_testing)
 target_include_directories(mod_identity_test PRIVATE "${PROJECT_SOURCE_DIR}/3rdParty/PicoSHA2")
+# Shader-filter option layer tests (stale-value self-heal, custom-index
+# mapping, ini round-trip) and the corrupt-ini recovery (preserve-and-
+# restart), headless. The options machinery links standalone via
+# libdevilutionx_options; SDL is needed only for SDL_SetBasePath/SDL_Init
+# (no GPU, no window).
+target_link_dependencies(options_test
+  PRIVATE
+  DevilutionX::SDL
+  libdevilutionx_options
+  libdevilutionx_paths
+  libdevilutionx_assets
+  tl
+  unordered_dense::unordered_dense
+  app_fatal_for_testing
+  language_for_testing
+)
 target_link_dependencies(light_render_benchmark PRIVATE libdevilutionx_light_render DevilutionX::SDL libdevilutionx_surface libdevilutionx_paths app_fatal_for_testing)
 target_link_dependencies(palette_blending_test PRIVATE libdevilutionx_palette_blending DevilutionX::SDL libdevilutionx_strings GTest::gmock app_fatal_for_testing)
 target_link_dependencies(palette_blending_benchmark

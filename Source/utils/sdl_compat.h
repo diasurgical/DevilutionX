@@ -398,6 +398,15 @@ inline const Uint8 *SDLC_GetKeyState()
 #endif
 }
 
+#ifdef USE_GPU_SCALER
+namespace devilution::gpu_scaler {
+// Implemented in engine/render/gpu/gpu_scaler.cpp. Forward-declared here
+// (instead of including gpu_scaler.hpp) to keep this compatibility header,
+// which is included nearly everywhere, lightweight.
+bool MapWindowToGame(float *x, float *y);
+} // namespace devilution::gpu_scaler
+#endif
+
 // Convert events to renderer coordinates.
 // This is done automatically in SDL2 but not in SDL3 and SDL1.2.
 inline bool SDLC_ConvertEventToRenderCoordinates(
@@ -412,6 +421,17 @@ inline bool SDLC_ConvertEventToRenderCoordinates(
 	if (renderer != nullptr) {
 		return SDL_ConvertEventToRenderCoordinates(renderer, event);
 	}
+#if defined(USE_GPU_SCALER)
+	// The GPU scaler owns the window: there is no SDL_Renderer and no
+	// logical-presentation state for SDL to convert with. Map window
+	// coordinates to game backbuffer coordinates through the scaler's last
+	// present rect instead (a no-op until the first frame is presented).
+	if (event->type == SDL_EVENT_MOUSE_MOTION) {
+		devilution::gpu_scaler::MapWindowToGame(&event->motion.x, &event->motion.y);
+	} else if (event->type == SDL_EVENT_MOUSE_BUTTON_DOWN || event->type == SDL_EVENT_MOUSE_BUTTON_UP) {
+		devilution::gpu_scaler::MapWindowToGame(&event->button.x, &event->button.y);
+	}
+#endif
 #elif !defined(USE_SDL1)
 	// No-op in SDL2.
 #else

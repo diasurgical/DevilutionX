@@ -698,6 +698,10 @@ target_link_dependencies(libdevilutionx_multiplayer
 add_devilutionx_object_library(libdevilutionx_options
   options.cpp
 )
+# options.h forward-declares slv::preset::PresetEntry and options.cpp uses
+# the libslang-vk preset scan/parse API: the slangvk headers must be visible
+# to every consumer of this object library (the library only exists when the
+# scaler is enabled; options.cpp guards its slangvk includes the same way).
 target_link_dependencies(libdevilutionx_options PUBLIC
   DevilutionX::SDL
   magic_enum::magic_enum
@@ -711,6 +715,10 @@ target_link_dependencies(libdevilutionx_options PUBLIC
   libdevilutionx_strings
   libdevilutionx_ini
 )
+
+if(USE_GPU_SCALER)
+  target_link_dependencies(libdevilutionx_options PUBLIC ${SLANGVK_LINK_TARGET})
+endif()
 
 add_devilutionx_object_library(libdevilutionx_pathfinding
   engine/path.cpp
@@ -1036,6 +1044,14 @@ if(DEVILUTIONX_SCREENSHOT_FORMAT STREQUAL DEVILUTIONX_SCREENSHOT_FORMAT_PCX OR B
   )
 endif()
 
+if(USE_GPU_SCALER)
+  # The scaler adapter only: preset parsing, translation, compilation and
+  # the Vulkan pass runner come from the libslang-vk library.
+  list(APPEND libdevilutionx_SRCS
+    engine/render/gpu/gpu_scaler.cpp
+  )
+endif()
+
 if(DEVILUTIONX_SCREENSHOT_FORMAT STREQUAL DEVILUTIONX_SCREENSHOT_FORMAT_PNG)
   add_devilutionx_object_library(libdevilutionx_surface_to_png
     utils/surface_to_png.cpp
@@ -1056,6 +1072,20 @@ endif()
 
 add_devilutionx_object_library(libdevilutionx ${libdevilutionx_SRCS})
 target_include_directories(libdevilutionx PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+if(USE_GPU_SCALER)
+  # libslang-vk provides the preset parser/translator/compiler and the
+  # Vulkan runner (static embed, or libslangvk.dll/.so when GPU_SCALER_SHARED
+  # is on -- SLANGVK_LINK_TARGET carries whichever variant was configured).
+  # slv-volk is the library's static volk loader target (VK_NO_PROTOTYPES):
+  # linking it propagates the Vulkan and volk headers the scaler adapter
+  # includes and gives the exe its own volk table for its WSI calls
+  # (repopulated in gpu_scaler.cpp after Device::create), with no link-time
+  # Vulkan dependency.
+  target_link_dependencies(libdevilutionx PUBLIC
+    ${SLANGVK_LINK_TARGET}
+    slv-volk
+  )
+endif()
 target_link_dependencies(libdevilutionx PUBLIC
   DevilutionX::SDL
   libsmackerdec
