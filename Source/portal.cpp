@@ -27,6 +27,10 @@ Point PortalTownPosition[MAXPORTAL] = {
 	{ 59, 40 },
 	{ 61, 40 },
 	{ 63, 40 },
+	{ 58, 43 },
+	{ 60, 43 },
+	{ 62, 43 },
+	{ 64, 43 },
 };
 
 } // namespace

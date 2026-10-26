@@ -13,7 +13,7 @@ namespace devilution {
 // Defined in player.h, forward declared here to allow for functions which operate in the context of a player.
 struct Player;
 
-#define MAXPORTAL 4
+#define MAXPORTAL 8
 
 struct Portal {
 	bool open;

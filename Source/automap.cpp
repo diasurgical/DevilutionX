@@ -1327,12 +1327,10 @@ uint8_t GetPlayerMapColor(int id)
 		MapColorsPlayer2,
 		MapColorsPlayer3,
 		MapColorsPlayer4,
+
 	};
 
-	if (id < 0 || id >= static_cast<int>(SDL_arraysize(PlayerMapColors)))
-		return MapColorsPlayer1;
-
-	return PlayerMapColors[id];
+	return PlayerMapColors[id % SDL_arraysize(PlayerMapColors)];
 }
 
 /**
