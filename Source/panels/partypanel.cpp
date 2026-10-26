@@ -208,14 +208,13 @@ void DrawPartyMemberInfoPanel(const Surface &out)
 				playerPortraitSprite,
 				portraitPos);
 
-			if ((player.getId() + 1U) < (*PlayerTags).numSprites()) {
 				// Draw the player tag
-				const int tagWidth = (*PlayerTags)[player.getId() + 1].width();
-				RenderClxSprite(
-					frameSubregion,
-					(*PlayerTags)[player.getId() + 1],
-					{ PortraitFrameSize.width - (tagWidth + (tagWidth / 2)), 0 });
-			}
+			const uint8_t playerTagId = (player.getId() % ((*PlayerTags).numSprites() - 1U)) + 1U;
+			const int tagWidth = (*PlayerTags)[playerTagId].width();
+			RenderClxSprite(
+				frameSubregion,
+				(*PlayerTags)[playerTagId],
+				{ PortraitFrameSize.width - (tagWidth + (tagWidth / 2)), 0 });
 
 			// Check to see if the player is dead and if so we draw a half transparent red rect over the portrait
 			if (player._pHitPoints <= 0) {

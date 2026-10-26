@@ -3237,7 +3237,7 @@ void SyncInitPlrPos(Player &player)
 	if (!player.isOnActiveLevel())
 		return;
 
-	const WorldTileDisplacement offset[9] = { { 0, 0 }, { 1, 0 }, { 0, 1 }, { 1, 1 }, { 2, 0 }, { 0, 2 }, { 1, 2 }, { 2, 1 }, { 2, 2 } };
+	const WorldTileDisplacement offset[16] = { { 0, 0 }, { 1, 0 }, { 0, 1 }, { 1, 1 }, { 2, 0 }, { 0, 2 }, { 1, 2 }, { 2, 1 }, { 3, 0 }, { 0, 3 }, { 2, 2 }, { 1, 3 }, { 3, 1 }, { 2, 3 }, { 3, 2 }, { 3, 3 } };
 
 	const Point position = [&]() {
 		for (int i = 0; i < 8; i++) {
