@@ -167,23 +167,24 @@ void DrawChatBox(const Surface &out)
 			DrawString(out, player._pName, { { x, y + 60 + (talkBtn * 18) }, { 204, 0 } }, { .flags = color });
 			lastActivePlayerId = i;
 		}
-
+		
 		talkBtn++;
 	}
 	if (lastActivePlayerId >= 4) {
-		// If the last player is in at least 5th position, we need to scroll in order to see it so we render the scroll buttons
+		// If the last player is in at least 5th position, we need to draw the scroll bar
 		if (scrollTalkButtonDown == 1) {
-			ClxDraw(out, mainPanelPosition + Displacement { 456, 81 + (18 * 0)}, (*pSTextSlidCels)[11]);
+			ClxDraw(out, mainPanelPosition + Displacement { 456, 81}, (*pSTextSlidCels)[11]);
 		} else {
-			ClxDraw(out, mainPanelPosition + Displacement { 456, 81 + (18 * 0)}, (*pSTextSlidCels)[9]);
+			ClxDraw(out, mainPanelPosition + Displacement { 456, 81}, (*pSTextSlidCels)[9]);
 		}
+		ClxDraw(out, mainPanelPosition + Displacement { 456, 93}, (*pSTextSlidCels)[13]);
+		ClxDraw(out, mainPanelPosition + Displacement { 456, 105}, (*pSTextSlidCels)[13]);
+		ClxDraw(out, mainPanelPosition + Displacement { 456, 93 + static_cast<int>((sgbPlrTalkMuteScroll * 12) / (lastActivePlayerId - 3U))}, (*pSTextSlidCels)[12]);
 		if (scrollTalkButtonDown == 2) {
-			ClxDraw(out, mainPanelPosition + Displacement { 456, 81 + (18 * 2)}, (*pSTextSlidCels)[10]);
+			ClxDraw(out, mainPanelPosition + Displacement { 456, 117}, (*pSTextSlidCels)[10]);
 		} else {
-			ClxDraw(out, mainPanelPosition + Displacement { 456, 81 + (18 * 2)}, (*pSTextSlidCels)[8]);
+			ClxDraw(out, mainPanelPosition + Displacement { 456, 117}, (*pSTextSlidCels)[8]);
 		}
-//	} else {
-//		sgbPlrTalkMuteScroll = 0;
 	}
 }
 
@@ -214,11 +215,9 @@ bool CheckChatButtons()
 
 		return true;
 	} else 	if (scrollUpButton.contains(MousePosition)) {
-	
 		scrollTalkButtonDown = 1;
 		return true;
 	} else 	if (scrollDnButton.contains(MousePosition)) {
-	
 		scrollTalkButtonDown = 2;
 		return true;
 	}
