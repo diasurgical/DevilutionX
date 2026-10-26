@@ -1,6 +1,16 @@
 include(GoogleTest)
 include(functions/copy_files)
 
+# With vcpkg on Windows, every executable and DLL gets a post-link step that
+# copies its DLL dependencies next to it. All the test binaries share the build
+# directory, so rather than running one such step after each of them is linked,
+# deploy the DLLs for all of them in a single step at the end (see below).
+set(_deploy_test_dlls OFF)
+if(WIN32 AND VCPKG_APPLOCAL_DEPS AND Z_VCPKG_EXECUTABLE)
+  set(_deploy_test_dlls ON)
+  set(VCPKG_APPLOCAL_DEPS OFF)
+endif()
+
 add_library(libdevilutionx_so SHARED)
 set_target_properties(libdevilutionx_so PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
@@ -95,9 +105,28 @@ foreach(test_target ${tests} ${standalone_tests} ${benchmarks})
   endif()
 endforeach()
 
-# Discover the tests when they are run, not right after each one is linked: on
-# Windows, running a test while others are linking and having their DLLs copied
-# next to them can fail the build with a sharing violation.
+if(_deploy_test_dlls)
+  unset(VCPKG_APPLOCAL_DEPS)
+  set(_deploy_test_dlls_commands)
+  foreach(target libdevilutionx_so ${tests} ${standalone_tests} ${benchmarks})
+    list(APPEND _deploy_test_dlls_commands
+      COMMAND "${Z_VCPKG_EXECUTABLE}" z-applocal
+        "--target-binary=$<TARGET_FILE:${target}>"
+        "--installed-bin-dir=${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}$<$<CONFIG:Debug>:/debug>/bin"
+    )
+  endforeach()
+  add_custom_command(
+    OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/test_dlls.stamp"
+    ${_deploy_test_dlls_commands}
+    COMMAND "${CMAKE_COMMAND}" -E touch "${CMAKE_CURRENT_BINARY_DIR}/test_dlls.stamp"
+    DEPENDS libdevilutionx_so ${tests} ${standalone_tests} ${benchmarks}
+    VERBATIM
+  )
+  add_custom_target(test_dlls ALL DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/test_dlls.stamp")
+endif()
+
+# Discover the tests when they are run, not right after each one is linked:
+# a test cannot run before its DLLs are deployed.
 foreach(test_target ${tests} ${standalone_tests})
   gtest_discover_tests(${test_target} DISCOVERY_MODE PRE_TEST)
 endforeach()
