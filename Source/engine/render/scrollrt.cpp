@@ -452,10 +452,7 @@ uint8_t GetPlayerOutlineColor(int id)
 		OutlineColorsPlayer4,
 	};
 
-	if (id < 0 || id >= static_cast<int>(SDL_arraysize(PlayerOutlineColors)))
-		return OutlineColorsPlayer1;
-
-	return PlayerOutlineColors[id];
+	return PlayerOutlineColors[id % SDL_arraysize(PlayerOutlineColors)];
 }
 
 /**
