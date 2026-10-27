@@ -29,6 +29,8 @@ extern char TalkMessage[MAX_SEND_STR_LEN];
 extern bool TalkButtonsDown[3];
 extern int sgbPlrTalkTbl;
 extern bool WhisperList[MAX_PLRS];
+extern uint8_t scrollTalkButtonDown;
+extern uint8_t sgbPlrTalkMuteScroll;
 
 bool CheckChatCommand(std::string_view text);
 

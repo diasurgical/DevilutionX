@@ -7,6 +7,7 @@
 #include "engine/render/clx_render.hpp"
 #include "options.h"
 #include "panels/console.hpp"
+#include "panels/info_box.hpp"
 #include "panels/mainpanel.hpp"
 #include "quick_messages.hpp"
 #include "utils/display.h"
@@ -21,6 +22,8 @@ bool TalkButtonsDown[3];
 int sgbPlrTalkTbl;
 bool WhisperList[MAX_PLRS];
 OptionalOwnedClxSpriteList talkButtons;
+uint8_t scrollTalkButtonDown;
+uint8_t sgbPlrTalkMuteScroll;
 
 namespace {
 
@@ -32,6 +35,8 @@ TextInputCursorState ChatCursor;
 int MuteButtons = 3;
 int MuteButtonPadding = 2;
 Rectangle MuteButtonRect { { 172, 69 }, { 61, 16 } };
+Rectangle ScrollUpMuteRect { { 456, 69 }, { 12, 12 } };
+Rectangle ScrollDnMuteRect { { 456, 105 }, { 12, 12 } };
 
 void ResetChatMessage()
 {
@@ -121,11 +126,21 @@ void DrawChatBox(const Surface &out)
 
 	x += 46;
 	int talkBtn = 0;
-	for (size_t i = 0; i < Players.size(); i++) {
+	size_t lastActivePlayerId = 0;
+	const size_t offsetStart = static_cast<size_t>(MyPlayer->getId() < sgbPlrTalkMuteScroll ? sgbPlrTalkMuteScroll + 1 : sgbPlrTalkMuteScroll);
+	for (size_t i = offsetStart; i < Players.size(); i++) {
 		Player &player = Players[i];
-		if (&player == MyPlayer)
+		if (&player == MyPlayer) {
+			lastActivePlayerId = i;
 			continue;
+		}
 
+		if (talkBtn >= 3) {
+			if (player.plractive) {
+				lastActivePlayerId = i;
+			}
+			continue;
+		}
 		const UiFlags color = player.friendlyMode ? UiFlags::ColorWhitegold : UiFlags::ColorRed;
 		const Point talkPanPosition = mainPanelPosition + Displacement { 172, 84 + (18 * talkBtn) };
 		if (WhisperList[i]) {
@@ -150,38 +165,67 @@ void DrawChatBox(const Surface &out)
 		}
 		if (player.plractive) {
 			DrawString(out, player._pName, { { x, y + 60 + (talkBtn * 18) }, { 204, 0 } }, { .flags = color });
+			lastActivePlayerId = i;
 		}
 
 		talkBtn++;
 	}
+	if (lastActivePlayerId >= 4) {
+		// If the last player is in at least 5th position, we need to draw the scroll bar
+		if (scrollTalkButtonDown == 1) {
+			ClxDraw(out, mainPanelPosition + Displacement { 456, 81}, (*pSTextSlidCels)[11]);
+		} else {
+			ClxDraw(out, mainPanelPosition + Displacement { 456, 81}, (*pSTextSlidCels)[9]);
+		}
+		ClxDraw(out, mainPanelPosition + Displacement { 456, 93}, (*pSTextSlidCels)[13]);
+		ClxDraw(out, mainPanelPosition + Displacement { 456, 105}, (*pSTextSlidCels)[13]);
+		ClxDraw(out, mainPanelPosition + Displacement { 456, 93 + static_cast<int>((sgbPlrTalkMuteScroll * 12) / (lastActivePlayerId - 3U))}, (*pSTextSlidCels)[12]);
+		if (scrollTalkButtonDown == 2) {
+			ClxDraw(out, mainPanelPosition + Displacement { 456, 117}, (*pSTextSlidCels)[10]);
+		} else {
+			ClxDraw(out, mainPanelPosition + Displacement { 456, 117}, (*pSTextSlidCels)[8]);
+		}
+	}
 }
 
-bool CheckMuteButton()
+bool CheckChatButtons()
 {
 	if (!ChatFlag)
 		return false;
 
-	Rectangle buttons = MuteButtonRect;
+	Rectangle muteButtons = MuteButtonRect;
+	Rectangle scrollUpButton = ScrollUpMuteRect;
+	Rectangle scrollDnButton = ScrollDnMuteRect;
 
-	SetPanelObjectPosition(UiPanels::Main, buttons);
+	SetPanelObjectPosition(UiPanels::Main, muteButtons);
+	SetPanelObjectPosition(UiPanels::Main, scrollUpButton);
+	SetPanelObjectPosition(UiPanels::Main, scrollDnButton);
 
-	buttons.size.height = (MuteButtons * buttons.size.height) + ((MuteButtons - 1) * MuteButtonPadding);
+	muteButtons.size.height = (MuteButtons * muteButtons.size.height) + ((MuteButtons - 1) * MuteButtonPadding);
 
-	if (!buttons.contains(MousePosition))
-		return false;
+	if (muteButtons.contains(MousePosition)) {
 
-	for (bool &talkButtonDown : TalkButtonsDown) {
-		talkButtonDown = false;
+		for (bool &talkButtonDown : TalkButtonsDown) {
+			talkButtonDown = false;
+		}
+
+		const Point mainPanelPosition = GetMainPanel().position;
+
+		TalkButtonsDown[(MousePosition.y - (69 + mainPanelPosition.y)) / 18] = true;
+
+		return true;
+	} else 	if (scrollUpButton.contains(MousePosition)) {
+		scrollTalkButtonDown = 1;
+		return true;
+	} else 	if (scrollDnButton.contains(MousePosition)) {
+		scrollTalkButtonDown = 2;
+		return true;
 	}
 
-	const Point mainPanelPosition = GetMainPanel().position;
-
-	TalkButtonsDown[(MousePosition.y - (69 + mainPanelPosition.y)) / 18] = true;
-
-	return true;
+	return false;
 }
 
-void CheckMuteButtonUp()
+void CheckChatButtonsUp()
 {
 	if (!ChatFlag)
 		return;
@@ -189,24 +233,48 @@ void CheckMuteButtonUp()
 	for (bool &talkButtonDown : TalkButtonsDown)
 		talkButtonDown = false;
 
-	Rectangle buttons = MuteButtonRect;
+	scrollTalkButtonDown = 0;
 
-	SetPanelObjectPosition(UiPanels::Main, buttons);
+	Rectangle muteButtons = MuteButtonRect;
+	Rectangle scrollUpButton = ScrollUpMuteRect;
+	Rectangle scrollDnButton = ScrollDnMuteRect;
 
-	buttons.size.height = (MuteButtons * buttons.size.height) + ((MuteButtons - 1) * MuteButtonPadding);
+	SetPanelObjectPosition(UiPanels::Main, muteButtons);
+	SetPanelObjectPosition(UiPanels::Main, scrollUpButton);
+	SetPanelObjectPosition(UiPanels::Main, scrollDnButton);
 
-	if (!buttons.contains(MousePosition))
-		return;
+	muteButtons.size.height = (MuteButtons * muteButtons.size.height) + ((MuteButtons - 1) * MuteButtonPadding);
 
-	int off = (MousePosition.y - buttons.position.y) / (MuteButtonRect.size.height + MuteButtonPadding);
+	if (muteButtons.contains(MousePosition)) {
 
-	size_t playerId = 0;
-	for (; playerId < Players.size() && off != -1; ++playerId) {
-		if (playerId != MyPlayerId)
-			off--;
+		const int off = (MousePosition.y - muteButtons.position.y) / (MuteButtonRect.size.height + MuteButtonPadding);
+		if (off < 0 || off > 2) {
+			return;
+		}
+		size_t playerId = off + sgbPlrTalkMuteScroll;
+		playerId += (playerId < MyPlayer->getId() ? 0 : 1);
+		if (playerId < Players.size())
+			WhisperList[playerId] = !WhisperList[playerId];
+
+	} else if (scrollUpButton.contains(MousePosition)) {
+		if (sgbPlrTalkMuteScroll > 0) {
+			sgbPlrTalkMuteScroll--;
+		}
+	} else if (scrollDnButton.contains(MousePosition)) {
+
+		size_t lastActivePlayerId = 0;
+		const size_t offsetStart = static_cast<size_t>(MyPlayer->getId() < sgbPlrTalkMuteScroll ? sgbPlrTalkMuteScroll + 1 : sgbPlrTalkMuteScroll);
+		for (size_t i = offsetStart; i < Players.size(); i++) {
+			Player &player = Players[i];
+			if (player.plractive) {
+				lastActivePlayerId = i;
+			}
+		}
+
+		if (sgbPlrTalkMuteScroll + 3U < lastActivePlayerId) {
+			sgbPlrTalkMuteScroll++;
+		}
 	}
-	if (playerId > 0 && playerId <= Players.size())
-		WhisperList[playerId - 1] = !WhisperList[playerId - 1];
 }
 
 void TypeChatMessage()
@@ -239,6 +307,7 @@ void ResetChat()
 	ChatCursor = {};
 	ChatInputState = std::nullopt;
 	sgbPlrTalkTbl = 0;
+	sgbPlrTalkMuteScroll = 0;
 	RedrawEverything();
 }
 
