@@ -106,6 +106,7 @@ void CalculatePreferredWindowSize(int &width, int &height)
 	SDL_DisplayID *displays = SDL_GetDisplays(&numDisplays);
 	if (numDisplays <= 0 || displays == nullptr) ErrSdl();
 	const SDL_DisplayMode *modePtr = SDL_GetDesktopDisplayMode(displays[0]);
+	SDL_free(displays);
 	if (modePtr == nullptr) ErrSdl();
 	mode = *modePtr;
 #else
