@@ -1,0 +1,74 @@
+Hellfire Plus 0.1
+
+Player changes
+	- Barbarian class
+		* Increased baseMeleeToHit from 50 to 70 so it had a hit bonus like all classes, the same one as the warrior.
+		* Added palette translation to make it a bit different from warrior.
+	- Bard class
+		* Changed name to Assassin.
+		* Changed initial weapons to two Katars and added a fire rune.
+		* Changed ability from Identify to Infravision.
+		* Added palette translation to make it a bit different from rogue.
+	- Rogue class
+		* Increased max Magic from 70 to 75, in order to the rogue to have the same maximum total sum of atributes of 460 like the rest of classes instead of the actual 455. 
+	- Necromancer class (new, testing)
+		* Right now just a copy of the sorcerer, with the Diablo 1 sorcerer starting equipment, less max Magic, more max Strength and Vitality, more mana gained per Magic and Skeleton as starting skill.
+	
+Item changes
+	- Normal items:
+		* Added weapons "Katar" and "Flanged Mace"
+		* Added new scrolls for the spells "Lightning Wall", "Reflect", "Warp", "Berserk" and "Immolation"
+		* Added 2nd tier armor and weapons. They use the old items graphics, but with better stats similar to Diablo 2 Exceptional items.
+		* Added extra entries to rings for level 20 and amulets for level 24.
+		* Changed scroll graphics to blue for healing ones and brown for offensive ones. Scrolls with neutral spells keep the classic colors.
+	- Unique items:
+		* Added resist all to "Acolyte's Amulet" and "Gladiator's Ring"
+		* Changed item to level 5 the following rings: "Bramble", "Ring of Regha" and "The Bleeder"
+		* Changed item to level 11 the following rings: "Ring of Magma", "Ring of the Mystics" and "Ring of Thunder"
+		* Changed item to level 21 the following rings: "Giant's Knuckle", "Mercurial Ring" and "Karik's Ring"
+		* Changed item to level 31 the following rings: "Constricting Ring", "Ring of Engagement" and "Xorine's Ring"
+	- Affix changes:
+		* New affixes for TOHIT, DAMP, ACP, FIRERES, LIGHTRES, MAGICRES, ALLRES, MANA, SPLLVLADD, CHARGES, FIREDAM, LIGHTDAM, CRYSTALLINE, DAMMOD, GETHIT, STR, DEX, MAG, VIT, ATTRIBS, LIFE, LIGHT, DUR, FIRE_ARROWS, LIGHT_ARROWS, STEALMANA, STEALLIFE, MULT_ARROWS and FIREBALL.
+		* Reduced minLevel for affixes "Weird", "Strange", "Ruthless", "Merciless", "slaughter" and "the whale" in order to give space for the new affixes
+		* Increased minLevel for "King's" and reduced minLevel for "Champion's" to better balance and make the former appear in items dropped by monsters.
+		* "Sharp" is no longer marked as not useful, so it should be able to find it in town purchasable items.
+
+Spell changes
+	- Apocalypse:
+		* Max mana cost/min mana cost/level cost reduction changed from 150/90/6 to 180/60/5 so upgrading to level 10 or more is not wasted.
+	- Mana shield:
+		* Mana shield doesn't block all the damage. Starts at 50% at spell level 0 up to 99.5% at spell level 15.		
+	- New spell, Skeleton:
+		* Summons a skeleton. Similar to Golem but with half starting life, half damage and less to hit. It is faster than golem and costs life instead of mana.
+	- New spell, Sentinel:
+		* Summons a electric hydra. Similar to Guardian but shoots lightning instead of firebolts.
+
+Monster changes
+	- Zombie
+		* Black Death hits Hits no longer decrease max health, now decreases vitality.	
+	- Fiend
+		* Familiar changed from Demon to Animal, like the rest of bat monsters.
+	- Lord Satyr
+		* Changed from Animal to Demon, AI to GoatMelee and can open doors like the rest of melee goat monsters.
+		* "Blightstone the Weak" unique version moved to level 8so it can spawn.
+	- Hidden
+		* "Hazeshifter" unique version moved to level 8 so it can spawn.
+	- Red Storm
+		* "Glasskull the Jagged" unique version moved to level 11 so it can spawn.
+		* "Stormbane" unique version moved to level 12 so it can spawn.
+		* "Storm Lord" unique version moved to level 13 so it can spawn.
+	- Magma Demon
+		* "Bronzefist Firestone" unique version moved to level 9.
+	- Cave Viper
+		* "Lord of the Pit" unique version moved to level 15 so it can spawn.
+	- Horned Demon
+		* "Grimspike" unique version moved to level 10 so it can spawn.
+	- Counselor
+		* "Blacktongue" unique version moved to level 13 so it can spawn.
+	- The Shredded
+		* "Soulslash" unique version moved to level 17 so it can spawn.
+		* "Pain Master" unique version moved to level 19 so it can spawn.
+		* "Zamphir" unique version moved to level 20 so it can spawn.
+
+Town
+	- Moved Wirt to a closer location in the rocks gap behind Farnham.
