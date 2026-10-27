@@ -1,0 +1,248 @@
+id	dropRate	class	equipType	cursorGraphic	itemType	uniqueBaseItem	name	shortName	minMonsterLevel	durability	minDamage	maxDamage	minArmor	maxArmor	minStrength	minMagic	minDexterity	specialEffects	miscId	spell	usable	value
+IDI_GOLD	1	Gold	Unequippable	GOLD_SMALL	Gold	NONE	Gold		1	0	0	0	0	0	0	0	0		NONE	Null	true	0
+IDI_WARRIOR	0	Weapon	One-handed	SHORT_SWORD	Sword	NONE	Short Sword		2	24	2	6	0	0	18	0	0		NONE	Null	false	120
+IDI_WARRSHLD	0	Armor	One-handed	BUCKLER	Shield	NONE	Buckler		2	16	0	0	3	3	0	0	0		NONE	Null	false	30
+IDI_WARRCLUB	0	Weapon	One-handed	CLUB	Mace	SPIKCLUB	Club		1	20	1	6	0	0	0	0	0		NONE	Null	false	20
+IDI_ROGUE	0	Weapon	Two-handed	SHORT_BOW	Bow	NONE	Short Bow		1	30	1	4	0	0	0	0	0		NONE	Null	false	100
+IDI_SORCERER	0	Weapon	Two-handed	SHORT_STAFF	Staff	NONE	Short Staff of Mana		1	25	2	4	0	0	0	17	0		STAFF	Mana	false	210
+IDI_CLEAVER	0	Weapon	Two-handed	CLEAVER	Axe	CLEAVER	Cleaver		10	10	4	24	0	0	0	0	0		UNIQUE	Null	false	2000
+IDI_SKCROWN	0	Armor	Helm	THE_UNDEAD_CROWN	Helm	SKCROWN	The Undead Crown		0	50	0	0	15	15	0	0	0	RandomStealLife	UNIQUE	Null	false	10000
+IDI_INFRARING	0	Misc	Ring	EMPYREAN_BAND	Ring	INFRARING	Empyrean Band		0	0	0	0	0	0	0	0	0		UNIQUE	Null	false	8000
+IDI_ROCK	0	Quest	Unequippable	MAGIC_ROCK	Misc	NONE	Magic Rock		0	0	0	0	0	0	0	0	0		NONE	Null	false	0
+IDI_OPTAMULET	0	Misc	Amulet	OPTIC_AMULET	Amulet	OPTAMULET	Optic Amulet		0	0	0	0	0	0	0	0	0		UNIQUE	Null	false	5000
+IDI_TRING	0	Misc	Ring	RING_OF_TRUTH	Ring	TRING	Ring of Truth		0	0	0	0	0	0	0	0	0		UNIQUE	Null	false	1000
+IDI_BANNER	0	Quest	Unequippable	TAVERN_SIGN	Misc	NONE	Tavern Sign		0	0	0	0	0	0	0	0	0		NONE	Null	false	0
+IDI_HARCREST	0	Armor	Helm	HARLEQUIN_CREST	Helm	HARCREST	Harlequin Crest		0	15	0	0	0	0	0	0	0		UNIQUE	Null	false	15
+IDI_STEELVEIL	0	Armor	Helm	VEIL_OF_STEEL	Helm	STEELVEIL	Veil of Steel		0	60	0	0	18	18	0	0	0		UNIQUE	Null	false	0
+IDI_GLDNELIX	0	Misc	Unequippable	GOLDEN_ELIXIR	Misc	ELIXIR	Golden Elixir		15	0	0	0	0	0	0	0	0		NONE	Null	false	0
+IDI_ANVIL	0	Quest	Unequippable	ANVIL_OF_FURY	Misc	NONE	Anvil of Fury		0	0	0	0	0	0	0	0	0		NONE	Null	false	0
+IDI_MUSHROOM	0	Quest	Unequippable	BLACK_MUSHROOM	Misc	NONE	Black Mushroom		0	0	0	0	0	0	0	0	0		NONE	Null	false	0
+IDI_BRAIN	0	Quest	Unequippable	BRAIN	Misc	NONE	Brain		0	0	0	0	0	0	0	0	0		NONE	Null	false	0
+IDI_FUNGALTM	0	Quest	Unequippable	FUNGAL_TOME	Misc	NONE	Fungal Tome		0	0	0	0	0	0	0	0	0		NONE	Null	false	0
+IDI_SPECELIX	0	Misc	Unequippable	SPECTRAL_ELIXIR	Misc	ELIXIR	Spectral Elixir		15	0	0	0	0	0	0	0	0		SPECELIX	Null	true	0
+IDI_BLDSTONE	0	Quest	Unequippable	BLOOD_STONE	Misc	NONE	Blood Stone		0	0	0	0	0	0	0	0	0		NONE	Null	false	0
+IDI_MAPOFDOOM	0	Quest	Unequippable	MAP_OF_THE_STARS	Misc	MAPOFDOOM	Cathedral Map		0	0	0	0	0	0	0	0	0		MAPOFDOOM	Null	true	0
+IDI_EAR	0	Misc	Unequippable		Misc	NONE	Ear		0	0	0	0	0	0	0	0	0		EAR	Null	false	0
+IDI_HEAL	0	Misc	Unequippable	POTION_OF_HEALING	Misc	NONE	Potion of Healing		0	0	0	0	0	0	0	0	0		HEAL	Null	true	50
+IDI_MANA	0	Misc	Unequippable	POTION_OF_MANA	Misc	NONE	Potion of Mana		0	0	0	0	0	0	0	0	0		MANA	Null	true	50
+IDI_IDENTIFY	0	Misc	Unequippable	SCROLL_OF	Misc	NONE	Scroll of Identify		1	0	0	0	0	0	0	0	0		SCROLL	Identify	true	200
+IDI_PORTAL	0	Misc	Unequippable	SCROLL_OF	Misc	NONE	Scroll of Town Portal		4	0	0	0	0	0	0	0	0		SCROLL	TownPortal	true	200
+IDI_ARMOFVAL	0	Armor	Armor	ARKAINES_VALOR	MediumArmor	ARMOFVAL	Arkaine's Valor		0	40	0	0	0	0	0	0	0		UNIQUE	Null	false	0
+IDI_FULLHEAL	0	Misc	Unequippable	POTION_OF_FULL_HEALING	Misc	NONE	Potion of Full Healing		1	0	0	0	0	0	0	0	0		FULLHEAL	Null	true	150
+IDI_FULLMANA	0	Misc	Unequippable	POTION_OF_FULL_MANA	Misc	NONE	Potion of Full Mana		1	0	0	0	0	0	0	0	0		FULLMANA	Null	true	150
+IDI_GRISWOLD	0	Weapon	One-handed	BROAD_SWORD	Sword	GRISWOLD	Griswold's Edge		8	50	4	12	0	0	40	0	0		UNIQUE	Null	false	750
+IDI_LGTFORGE	0	Armor	Armor	BOVINE	HeavyArmor	BOVINE	Bovine Plate		0	40	0	0	0	0	50	0	0		UNIQUE	Null	false	0
+IDI_LAZSTAFF	0	Misc	Unequippable	STAFF_OF_LAZARUS	Misc	LAZSTAFF	Staff of Lazarus		0	0	0	0	0	0	0	0	0		NONE	Null	false	0
+IDI_RESURRECT	1	Misc	Unequippable	3	Misc	NONE	Scroll of Resurrect		1	0	0	0	0	0	0	0	0		SCROLLT	Resurrect	true	250
+IDI_OIL	0	Misc	Unequippable	OIL	Misc	NONE	Blacksmith Oil		1	0	0	0	0	0	0	0	0		OILBSMTH	Null	true	100
+IDI_SHORTSTAFF	0	Weapon	Two-handed	SHORT_STAFF	Staff	NONE	Short Staff		1	25	2	4	0	0	0	0	0		NONE	Null	false	20
+IDI_BARDSWORD	0	Weapon	One-handed	55	Sword	NONE	Katar		1	16	2	5	0	0	18	0	0		NONE	Null	false	20
+IDI_BARDDAGGER	0	Misc	Unequippable	RUNE_OF_FIRE	Misc	NONE	Rune of Fire	Rune	1	0	0	0	0	0	0	0	0		RUNEF	Null	true	20
+IDI_RUNEBOMB	0	Quest	Unequippable	RUNE_BOMB	Misc	NONE	Rune Bomb		0	0	0	0	0	0	0	0	0		NONE	Null	false	0
+IDI_THEODORE	0	Quest	Unequippable	THEODORE	Misc	NONE	Theodore		0	0	0	0	0	0	0	0	0		NONE	Null	false	0
+IDI_AURIC	0	Misc	Amulet	AURIC_AMULET	Misc	NONE	Auric Amulet		0	0	0	0	0	0	0	0	0		AURIC	Null	false	100
+IDI_NOTE1	0	Quest	Unequippable	TORN_NOTE_1	Misc	NONE	Torn Note 1		0	0	0	0	0	0	0	0	0		NONE	Null	false	0
+IDI_NOTE2	0	Quest	Unequippable	TORN_NOTE_2	Misc	NONE	Torn Note 2		0	0	0	0	0	0	0	0	0		NONE	Null	false	0
+IDI_NOTE3	0	Quest	Unequippable	TORN_NOTE_3	Misc	NONE	Torn Note 3		0	0	0	0	0	0	0	0	0		NONE	Null	false	0
+IDI_FULLNOTE	0	Quest	Unequippable	RECONSTRUCTED_NOTE	Misc	NONE	Reconstructed Note		0	0	0	0	0	0	0	0	0		NOTE	Null	true	0
+IDI_BROWNSUIT	0	Quest	Unequippable	BROWN_SUIT	Misc	NONE	Brown Suit		0	0	0	0	0	0	0	0	0		NONE	Null	false	0
+IDI_GREYSUIT	0	Quest	Unequippable	GREY_SUIT	Misc	NONE	Grey Suit		0	0	0	0	0	0	0	0	0		NONE	Null	false	0
+	1	Armor	Helm	CAP	Helm	NONE	Cap	Cap	1	15	0	0	1	3	0	0	0		NONE	Null	false	15
+	1	Armor	Helm	SKULL_CAP	Helm	SKULLCAP	Skull Cap	Cap	4	20	0	0	2	4	0	0	0		NONE	Null	false	25
+	1	Armor	Helm	HELM	Helm	HELM	Helm	Helm	8	30	0	0	4	6	25	0	0		NONE	Null	false	40
+	1	Armor	Helm	FULL_HELM	Helm	NONE	Full Helm	Helm	12	35	0	0	6	8	35	0	0		NONE	Null	false	90
+	1	Armor	Helm	CROWN	Helm	CROWN	Crown	Crown	16	40	0	0	8	12	0	0	0		NONE	Null	false	200
+	1	Armor	Helm	GREAT_HELM	Helm	GREATHELM	Great Helm	Helm	20	60	0	0	10	15	50	0	0		NONE	Null	false	400
+	1	Armor	Armor	CAPE	LightArmor	CAPE	Cape	Cape	1	12	0	0	1	5	0	0	0		NONE	Null	false	10
+	1	Armor	Armor	RAGS	LightArmor	RAGS	Rags	Rags	1	6	0	0	2	6	0	0	0		NONE	Null	false	5
+	1	Armor	Armor	CLOAK	LightArmor	CLOAK	Cloak	Cloak	2	18	0	0	3	7	0	0	0		NONE	Null	false	40
+	1	Armor	Armor	ROBE	LightArmor	ROBE	Robe	Robe	3	24	0	0	4	7	0	0	0		NONE	Null	false	75
+	1	Armor	Armor	QUILTED_ARMOR	LightArmor	NONE	Quilted Armor	Armor	4	30	0	0	7	10	0	0	0		NONE	Null	false	200
+	1	Armor	Armor	LEATHER_ARMOR	LightArmor	LEATHARMOR	Leather Armor	Armor	6	35	0	0	10	13	0	0	0		NONE	Null	false	300
+	1	Armor	Armor	HARD_LEATHER_ARMOR	LightArmor	NONE	Hard Leather Armor	Armor	7	40	0	0	11	14	0	0	0		NONE	Null	false	450
+	1	Armor	Armor	STUDDED_LEATHER_ARMOR	LightArmor	STUDARMOR	Studded Leather Armor	Armor	9	45	0	0	15	17	20	0	0		NONE	Null	false	700
+	1	Armor	Armor	RING_MAIL	MediumArmor	NONE	Ring Mail	Mail	11	50	0	0	17	20	25	0	0		NONE	Null	false	900
+	1	Armor	Armor	CHAIN_MAIL	MediumArmor	CHAINMAIL	Chain Mail	Mail	13	55	0	0	18	22	30	0	0		NONE	Null	false	1250
+	1	Armor	Armor	SCALE_MAIL	MediumArmor	NONE	Scale Mail	Mail	15	60	0	0	23	28	35	0	0		NONE	Null	false	2300
+	1	Armor	Armor	BREAST_PLATE	HeavyArmor	BREASTPLATE	Breast Plate	Plate	16	80	0	0	20	24	40	0	0		NONE	Null	false	2800
+	1	Armor	Armor	SPLINT_MAIL	MediumArmor	NONE	Splint Mail	Mail	17	65	0	0	30	35	40	0	0		NONE	Null	false	3250
+	1	Armor	Armor	FIELD_PLATE	HeavyArmor	PLATEMAIL	Plate Mail	Plate	19	75	0	0	42	50	60	0	0		NONE	Null	false	4600
+	1	Armor	Armor	FIELD_PLATE	HeavyArmor	NONE	Field Plate	Plate	21	80	0	0	40	45	65	0	0		NONE	Null	false	5800
+	1	Armor	Armor	GOTHIC_PLATE	HeavyArmor	NONE	Gothic Plate	Plate	23	100	0	0	50	60	80	0	0		NONE	Null	false	8000
+	1	Armor	Armor	FULL_PLATE_MAIL	HeavyArmor	FULLPLATE	Full Plate Mail	Plate	25	90	0	0	60	75	90	0	0		NONE	Null	false	6500
+	1	Armor	One-handed	BUCKLER	Shield	BUCKLER	Buckler	Shield	1	16	0	0	1	5	0	0	0		NONE	Null	false	30
+	1	Armor	One-handed	SMALL_SHIELD	Shield	SMALLSHIELD	Small Shield	Shield	5	24	0	0	3	8	25	0	0		NONE	Null	false	90
+	1	Armor	One-handed	LARGE_SHIELD	Shield	LARGESHIELD	Large Shield	Shield	9	32	0	0	5	10	40	0	0		NONE	Null	false	200
+	1	Armor	One-handed	KITE_SHIELD	Shield	KITESHIELD	Kite Shield	Shield	14	40	0	0	8	15	50	0	0		NONE	Null	false	400
+	1	Armor	One-handed	TOWER_SHIELD	Shield	GOTHSHIELD	Tower Shield	Shield	20	50	0	0	12	20	60	0	0		NONE	Null	false	850
+	1	Armor	One-handed	GOTHIC_SHIELD	Shield	GOTHSHIELD	Gothic Shield	Shield	23	60	0	0	14	18	80	0	0		NONE	Null	false	2300
+	1	Misc	Unequippable	POTION_OF_HEALING	Misc	NONE	Potion of Healing		1	0	0	0	0	0	0	0	0		HEAL	Null	true	50
+	1	Misc	Unequippable	POTION_OF_FULL_HEALING	Misc	NONE	Potion of Full Healing		1	0	0	0	0	0	0	0	0		FULLHEAL	Null	true	150
+	1	Misc	Unequippable	POTION_OF_MANA	Misc	NONE	Potion of Mana		1	0	0	0	0	0	0	0	0		MANA	Null	true	50
+	1	Misc	Unequippable	POTION_OF_FULL_MANA	Misc	NONE	Potion of Full Mana		1	0	0	0	0	0	0	0	0		FULLMANA	Null	true	150
+	1	Misc	Unequippable	POTION_OF_REJUVENATION	Misc	NONE	Potion of Rejuvenation		3	0	0	0	0	0	0	0	0		REJUV	Null	true	120
+	1	Misc	Unequippable	POTION_OF_FULL_REJUVENATION	Misc	NONE	Potion of Full Rejuvenation		7	0	0	0	0	0	0	0	0		FULLREJUV	Null	true	600
+	1	Misc	Unequippable	OIL	Misc	NONE	Blacksmith Oil		1	0	0	0	0	0	0	0	0		OILBSMTH	Null	true	100
+	1	Misc	Unequippable	OIL	Misc	NONE	Oil of Accuracy		1	0	0	0	0	0	0	0	0		OILACC	Null	true	500
+	1	Misc	Unequippable	OIL	Misc	NONE	Oil of Sharpness		1	0	0	0	0	0	0	0	0		OILSHARP	Null	true	500
+	1	Misc	Unequippable	OIL	Misc	NONE	Oil		10	0	0	0	0	0	0	0	0		OILOF	Null	true	0
+	1	Misc	Unequippable	ELIXIR_OF_STRENGTH	Misc	NONE	Elixir of Strength		15	0	0	0	0	0	0	0	0		ELIXSTR	Null	true	5000
+	1	Misc	Unequippable	ELIXIR_OF_MAGIC	Misc	NONE	Elixir of Magic		15	0	0	0	0	0	0	0	0		ELIXMAG	Null	true	5000
+	1	Misc	Unequippable	ELIXIR_OF_DEXTERITY	Misc	NONE	Elixir of Dexterity		15	0	0	0	0	0	0	0	0		ELIXDEX	Null	true	5000
+	1	Misc	Unequippable	ELIXIR_OF_VITALITY	Misc	NONE	Elixir of Vitality		20	0	0	0	0	0	0	0	0		ELIXVIT	Null	true	5000
+	1	Misc	Unequippable	3	Misc	NONE	Scroll of Healing		1	0	0	0	0	0	0	0	0		SCROLL	Healing	true	50
+	1	Misc	Unequippable	SCROLL_OF	Misc	NONE	Scroll of Search		1	0	0	0	0	0	0	0	0		SCROLL	Search	true	50
+	1	Misc	Unequippable	2	Misc	NONE	Scroll of Lightning		4	0	0	0	0	0	0	0	0		SCROLLT	Lightning	true	150
+	1	Misc	Unequippable	SCROLL_OF	Misc	NONE	Scroll of Identify		1	0	0	0	0	0	0	0	0		SCROLL	Identify	true	100
+	1	Misc	Unequippable	2	Misc	NONE	Scroll of Ring of Fire		4	0	0	0	0	0	0	17	0		SCROLLT	RingOfFire	true	400
+	1	Misc	Unequippable	2	Misc	NONE	Scroll of Fire Wall		4	0	0	0	0	0	0	17	0		SCROLLT	FireWall	true	400
+	1	Misc	Unequippable	2	Misc	NONE	Scroll of Inferno		1	0	0	0	0	0	0	19	0		SCROLLT	Inferno	true	100
+	1	Misc	Unequippable	SCROLL_OF	Misc	NONE	Scroll of Town Portal		4	0	0	0	0	0	0	0	0		SCROLL	TownPortal	true	200
+	1	Misc	Unequippable	2	Misc	NONE	Scroll of Flash		6	0	0	0	0	0	0	21	0		SCROLLT	Flash	true	500
+	1	Misc	Unequippable	SCROLL_OF	Misc	NONE	Scroll of Infravision		8	0	0	0	0	0	0	23	0		SCROLL	Infravision	true	600
+	1	Misc	Unequippable	SCROLL_OF	Misc	NONE	Scroll of Phasing		6	0	0	0	0	0	0	25	0		SCROLL	Phasing	true	200
+	1	Misc	Unequippable	3	Misc	NONE	Scroll of Mana Shield		8	0	0	0	0	0	0	0	0		SCROLL	ManaShield	true	1200
+	1	Misc	Unequippable	2	Misc	NONE	Scroll of Flame Wave		10	0	0	0	0	0	0	29	0		SCROLLT	FlameWave	true	650
+	1	Misc	Unequippable	2	Misc	NONE	Scroll of Fireball		8	0	0	0	0	0	0	31	0		SCROLLT	Fireball	true	300
+	1	Misc	Unequippable	2	Misc	NONE	Scroll of Stone Curse		6	0	0	0	0	0	0	33	0		SCROLLT	StoneCurse	true	800
+	1	Misc	Unequippable	2	Misc	NONE	Scroll of Chain Lightning		10	0	0	0	0	0	0	35	0		SCROLLT	ChainLightning	true	750
+	1	Misc	Unequippable	2	Misc	NONE	Scroll of Guardian		12	0	0	0	0	0	0	47	0		SCROLLT	Etherealize	true	950
+	1	Misc	Unequippable	2	Misc	NONE	Scroll of Lightning Wall		6	0	0	0	0	0	0	19	0		SCROLLT	LightningWall	true	400
+	1	Misc	Unequippable	2	Misc	NONE	Scroll of Nova		14	0	0	0	0	0	0	57	0		SCROLL	Nova	true	1300
+	1	Misc	Unequippable	SCROLL_OF	Misc	NONE	Scroll of Golem		10	0	0	0	0	0	0	51	0		SCROLLT	Golem	true	1100
+	1	Misc	Unequippable	3	Misc	NONE	Scroll of Reflect		10	0	0	0	0	0	0	0	0		SCROLL	Reflect	true	1500
+	1	Misc	Unequippable	SCROLL_OF	Misc	NONE	Scroll of Teleport		14	0	0	0	0	0	0	81	0		SCROLL	Teleport	true	3000
+	1	Misc	Unequippable	2	Misc	NONE	Scroll of Apocalypse		22	0	0	0	0	0	0	117	0		SCROLL	Apocalypse	true	2000
+	1	Misc	Unequippable	BOOK_BLUE	Misc	NONE	Book of 		2	0	0	0	0	0	0	0	0		BOOK	Null	true	0
+	1	Misc	Unequippable	BOOK_BLUE	Misc	NONE	Book of 		8	0	0	0	0	0	0	0	0		BOOK	Null	true	0
+	1	Misc	Unequippable	BOOK_BLUE	Misc	NONE	Book of 		14	0	0	0	0	0	0	0	0		BOOK	Null	true	0
+	1	Misc	Unequippable	BOOK_BLUE	Misc	NONE	Book of 		20	0	0	0	0	0	0	0	0		BOOK	Null	true	0
+	1	Weapon	One-handed	DAGGER	Sword	DAGGER	Dagger	Dagger	1	16	1	4	0	0	0	0	0		NONE	Null	false	60
+	1	Weapon	One-handed	SHORT_SWORD	Sword	NONE	Short Sword	Sword	1	24	2	6	0	0	18	0	0		NONE	Null	false	120
+	1	Weapon	One-handed	FALCHION	Sword	FALCHION	Falchion	Sword	2	20	4	8	0	0	30	0	0		NONE	Null	false	250
+	1	Weapon	One-handed	SCIMITAR	Sword	SCIMITAR	Scimitar	Sword	4	28	3	7	0	0	23	0	23		NONE	Null	false	200
+	1	Weapon	One-handed	CLAYMORE	Sword	CLAYMORE	Claymore	Sword	5	36	1	12	0	0	35	0	0		NONE	Null	false	450
+	1	Weapon	One-handed	BLADE	Sword	NONE	Blade	Blade	4	30	3	8	0	0	25	0	30		NONE	Null	false	280
+	1	Weapon	One-handed	SABRE	Sword	SABRE	Sabre	Sabre	1	45	1	8	0	0	17	0	0		NONE	Null	false	170
+	1	Weapon	One-handed	LONG_SWORD	Sword	LONGSWR	Long Sword	Sword	6	40	2	10	0	0	30	0	30		NONE	Null	false	350
+	1	Weapon	One-handed	BROAD_SWORD	Sword	BROADSWR	Broad Sword	Sword	8	50	4	12	0	0	40	0	0		NONE	Null	false	750
+	1	Weapon	One-handed	BASTARD_SWORD	Sword	BASTARDSWR	Bastard Sword	Sword	10	60	6	15	0	0	50	0	0		NONE	Null	false	1000
+	1	Weapon	Two-handed	TWO_HANDED_SWORD	Sword	TWOHANDSWR	Two-Handed Sword	Sword	14	75	8	16	0	0	65	0	0		NONE	Null	false	1800
+	1	Weapon	Two-handed	GREAT_SWORD	Sword	GREATSWR	Great Sword	Sword	17	100	10	20	0	0	75	0	0		NONE	Null	false	3000
+	1	Weapon	Two-handed	SMALL_AXE	Axe	SMALLAXE	Small Axe	Axe	2	24	2	10	0	0	0	0	0		NONE	Null	false	150
+	1	Weapon	Two-handed	AXE	Axe	NONE	Axe	Axe	4	32	4	12	0	0	22	0	0		NONE	Null	false	450
+	1	Weapon	Two-handed	LARGE_AXE	Axe	LARGEAXE	Large Axe	Axe	6	40	6	16	0	0	30	0	0		NONE	Null	false	750
+	1	Weapon	Two-handed	BROAD_AXE	Axe	BROADAXE	Broad Axe	Axe	8	50	8	20	0	0	50	0	0		NONE	Null	false	1000
+	1	Weapon	Two-handed	BATTLE_AXE	Axe	BATTLEAXE	Battle Axe	Axe	10	60	10	25	0	0	65	0	0		NONE	Null	false	1500
+	1	Weapon	Two-handed	GREAT_AXE	Axe	GREATAXE	Great Axe	Axe	12	75	12	30	0	0	80	0	0		NONE	Null	false	2500
+	1	Weapon	One-handed	MACE	Mace	MACE	Mace	Mace	2	32	1	8	0	0	16	0	0		NONE	Null	false	200
+	1	Weapon	One-handed	MORNING_STAR	Mace	MORNSTAR	Morning Star	Mace	3	40	1	10	0	0	26	0	0		NONE	Null	false	300
+	1	Weapon	One-handed	WAR_HAMMER	Mace	WARHAMMER	War Hammer	Hammer	5	50	5	9	0	0	40	0	0		NONE	Null	false	600
+IDI_BARBARIAN	1	Weapon	One-handed	SPIKED_CLUB	Mace	SPIKCLUB	Spiked Club	Club	4	20	3	6	0	0	18	0	0		NONE	Null	false	225
+	1	Weapon	One-handed	CLUB	Mace	SPIKCLUB	Club	Club	1	20	1	6	0	0	0	0	0		NONE	Null	false	20
+	1	Weapon	One-handed	FLAIL	Mace	FLAIL	Flail	Flail	7	36	2	12	0	0	30	0	0		NONE	Null	false	500
+	1	Weapon	Two-handed	MAUL	Mace	MAUL	Maul	Maul	10	50	6	20	0	0	55	0	0		NONE	Null	false	900
+	2	Weapon	Two-handed	SHORT_BOW	Bow	SHORTBOW	Short Bow	Bow	1	30	1	4	0	0	0	0	0		NONE	Null	false	100
+	2	Weapon	Two-handed	HUNTERS_BOW	Bow	HUNTBOW	Hunter's Bow	Bow	3	40	2	5	0	0	20	0	35		NONE	Null	false	350
+	2	Weapon	Two-handed	HUNTERS_BOW	Bow	LONGBOW	Long Bow	Bow	5	35	1	6	0	0	25	0	30		NONE	Null	false	250
+	2	Weapon	Two-handed	COMPOSITE_BOW	Bow	COMPBOW	Composite Bow	Bow	7	45	3	6	0	0	25	0	40		NONE	Null	false	600
+IDI_SHORT_BATTLE_BOW	2	Weapon	Two-handed	SHORT_BATTLE_BOW	Bow	NONE	Short Battle Bow	Bow	9	45	3	7	0	0	30	0	50		NONE	Null	false	750
+	2	Weapon	Two-handed	LONG_BATTLE_BOW	Bow	BATTLEBOW	Long Battle Bow	Bow	11	50	1	10	0	0	30	0	60		NONE	Null	false	1000
+	2	Weapon	Two-handed	SHORT_WAR_BOW	Bow	NONE	Short War Bow	Bow	15	55	4	8	0	0	35	0	70		NONE	Null	false	1500
+	2	Weapon	Two-handed	LONG_WAR_BOW	Bow	WARBOW	Long War Bow	Bow	19	60	1	14	0	0	45	0	80		NONE	Null	false	2000
+	1	Weapon	Two-handed	SHORT_STAFF	Staff	SHORTSTAFF	Short Staff	Staff	1	25	2	4	0	0	0	0	0		STAFF	Null	false	30
+	1	Weapon	Two-handed	LONG_STAFF	Staff	LONGSTAFF	Long Staff	Staff	4	35	4	8	0	0	0	0	0		STAFF	Null	false	100
+	1	Weapon	Two-handed	COMPOSITE_STAFF	Staff	COMPSTAFF	Composite Staff	Staff	6	45	5	10	0	0	0	0	0		STAFF	Null	false	500
+	1	Weapon	Two-handed	SHORT_STAFF	Staff	QUARSTAFF	Quarter Staff	Staff	9	55	6	12	0	0	20	0	0		STAFF	Null	false	1000
+	1	Weapon	Two-handed	WAR_STAFF	Staff	WARSTAFF	War Staff	Staff	12	75	8	16	0	0	30	0	0		STAFF	Null	false	1500
+	1	Misc	Ring	RING	Ring	RING	Ring	Ring	5	0	0	0	0	0	0	0	0		RING	Null	false	1000
+	1	Misc	Ring	RING	Ring	RING	Ring	Ring	10	0	0	0	0	0	0	0	0		RING	Null	false	1000
+	1	Misc	Ring	RING	Ring	RING	Ring	Ring	15	0	0	0	0	0	0	0	0		RING	Null	false	1000
+	1	Misc	Amulet	AMULET	Amulet	AMULET	Amulet	Amulet	8	0	0	0	0	0	0	0	0		AMULET	Null	false	1200
+	1	Misc	Amulet	AMULET	Amulet	AMULET	Amulet	Amulet	16	0	0	0	0	0	0	0	0		AMULET	Null	false	1200
+	1	Misc	Unequippable	RUNE_OF_FIRE	Misc	NONE	Rune of Fire	Rune	1	0	0	0	0	0	0	0	0		RUNEF	Null	true	100
+	1	Misc	Unequippable	RUNE_OF_LIGHTNING	Misc	NONE	Rune of Lightning	Rune	3	0	0	0	0	0	0	13	0		RUNEL	Null	true	200
+	1	Misc	Unequippable	GREATER_RUNE_OF_FIRE	Misc	NONE	Greater Rune of Fire	Rune	7	0	0	0	0	0	0	42	0		GR_RUNEF	Null	true	400
+	1	Misc	Unequippable	GREATER_RUNE_OF_LIGHTNING	Misc	NONE	Greater Rune of Lightning	Rune	7	0	0	0	0	0	0	42	0		GR_RUNEL	Null	true	500
+	1	Misc	Unequippable	RUNE_OF_STONE	Misc	NONE	Rune of Stone	Rune	7	0	0	0	0	0	0	25	0		RUNES	Null	true	300
+IDI_BOOK1	0	Weapon	Two-handed	SHORT_STAFF	Staff	NONE	Short Staff of Charged Bolt		1	25	2	4	0	0	0	25	0		STAFF	ChargedBolt	false	470
+IDI_ARENAPOT	0	Misc	Unequippable	ARENA_POTION	Misc	NONE	Arena Potion		7	0	0	0	0	0	0	0	0		ARENAPOT	Null	true	0
+	1	Armor	Helm	CAP	Helm	NONE	Improved Cap	Impr. Cap	16	18	0	0	4	8	30	0	0		NONE	Null	false	60
+	1	Armor	Helm	SKULL_CAP	Helm	SKULLCAP	Improved Skull Cap	Impr. Cap	19	24	0	0	5	9	25	0	0		NONE	Null	false	70
+	1	Armor	Helm	HELM	Helm	HELM	Improved Helm	Impr. Helm	23	36	0	0	7	11	45	0	0		NONE	Null	false	90
+	1	Armor	Helm	FULL_HELM	Helm	NONE	Improved Full Helm	Impr. Helm	27	42	0	0	9	13	50	0	0		NONE	Null	false	170
+	1	Armor	Helm	CROWN	Helm	CROWN	Improved Crown	Impr. Crown	31	48	0	0	11	17	50	0	0		NONE	Null	false	340
+	1	Armor	Helm	GREAT_HELM	Helm	GREATHELM	Improved Great Helm	Impr. Helm	35	72	0	0	13	20	65	0	0		NONE	Null	false	640
+	1	Armor	Armor	CAPE	LightArmor	CAPE	Improved Cape	Impr. Cape	16	15	0	0	16	30	35	0	0		NONE	Null	false	100
+	1	Armor	Armor	RAGS	LightArmor	RAGS	Improved Rags	Impr. Rags	16	8	0	0	17	31	40	0	0		NONE	Null	false	40
+	1	Armor	Armor	CLOAK	LightArmor	CLOAK	Improved Cloak	Impr. Cloak	17	22	0	0	18	32	45	0	0		NONE	Null	false	240
+	1	Armor	Armor	ROBE	LightArmor	ROBE	Improved Robe	Impr. Robe	18	29	0	0	19	32	50	0	0		NONE	Null	false	420
+	1	Armor	Armor	QUILTED_ARMOR	LightArmor	NONE	Improved Quilted Armor	Impr. Armor	19	36	0	0	22	35	60	0	0		NONE	Null	false	810
+	1	Armor	Armor	LEATHER_ARMOR	LightArmor	LEATHARMOR	Improved Leather Armor	Impr. Armor	21	42	0	0	25	38	65	0	0		NONE	Null	false	990
+	1	Armor	Armor	HARD_LEATHER_ARMOR	LightArmor	NONE	Improved Hard Leather Armor	Impr. Armor	22	48	0	0	26	39	70	0	0		NONE	Null	false	1410
+	1	Armor	Armor	STUDDED_LEATHER_ARMOR	LightArmor	STUDARMOR	Improved Studded Leather Armor	Impr. Armor	24	54	0	0	30	42	75	0	0		NONE	Null	false	1890
+	1	Armor	Armor	RING_MAIL	MediumArmor	NONE	Improved Ring Mail	Impr. Mail	26	60	0	0	32	45	80	0	0		NONE	Null	false	2250
+	1	Armor	Armor	CHAIN_MAIL	MediumArmor	CHAINMAIL	Improved Chain Mail	Impr. Mail	28	66	0	0	33	47	85	0	0		NONE	Null	false	3000
+	1	Armor	Armor	SCALE_MAIL	MediumArmor	NONE	Improved Scale Mail	Impr. Mail	30	72	0	0	38	53	90	0	0		NONE	Null	false	4930
+	1	Armor	Armor	BREAST_PLATE	HeavyArmor	BREASTPLATE	Improved Breast Plate	Impr. Plate	31	96	0	0	35	49	95	0	0		NONE	Null	false	6420
+	1	Armor	Armor	SPLINT_MAIL	MediumArmor	NONE	Improved Splint Mail	Impr. Mail	32	78	0	0	45	60	100	0	0		NONE	Null	false	6300
+	1	Armor	Armor	FIELD_PLATE	HeavyArmor	PLATEMAIL	Improved Plate Mail	Impr. Plate	34	90	0	0	57	75	105	0	0		NONE	Null	false	7920
+	1	Armor	Armor	FIELD_PLATE	HeavyArmor	NONE	Improved Field Plate	Impr. Plate	36	96	0	0	55	70	110	0	0		NONE	Null	false	10240
+	1	Armor	Armor	GOTHIC_PLATE	HeavyArmor	NONE	Improved Gothic Plate	Impr. Plate	38	120	0	0	65	85	115	0	0		NONE	Null	false	13100
+	1	Armor	Armor	FULL_PLATE_MAIL	HeavyArmor	FULLPLATE	Improved Full Plate Mail	Impr. Plate	40	108	0	0	75	100	120	0	0		NONE	Null	false	10120
+	1	Armor	One-handed	BUCKLER	Shield	BUCKLER	Improved Buckler	Impr. Shield	16	20	0	0	5	12	45	0	0		NONE	Null	false	110
+	1	Armor	One-handed	SMALL_SHIELD	Shield	SMALLSHIELD	Improved Small Shield	Impr. Shield	20	29	0	0	7	15	55	0	0		NONE	Null	false	220
+	1	Armor	One-handed	LARGE_SHIELD	Shield	LARGESHIELD	Improved Large Shield	Impr. Shield	24	39	0	0	9	17	65	0	0		NONE	Null	false	420
+	1	Armor	One-handed	KITE_SHIELD	Shield	KITESHIELD	Improved Kite Shield	Impr. Shield	29	48	0	0	12	22	75	0	0		NONE	Null	false	710
+	1	Armor	One-handed	TOWER_SHIELD	Shield	GOTHSHIELD	Improved Tower Shield	Impr. Shield	35	60	0	0	16	27	85	0	0		NONE	Null	false	1380
+	1	Armor	One-handed	GOTHIC_SHIELD	Shield	GOTHSHIELD	Improved Gothic Shield	Impr. Shield	38	72	0	0	18	25	100	0	0		NONE	Null	false	3710
+	1	Weapon	One-handed	DAGGER	Sword	DAGGER	Improved Dagger	Impr. Dagger	13	20	4	10	0	0	35	0	0		NONE	Null	false	210
+	1	Weapon	One-handed	SHORT_SWORD	Sword	NONE	Improved Short Sword	Impr. Sword	13	29	5	12	0	0	40	0	0		NONE	Null	false	310
+	1	Weapon	One-handed	FALCHION	Sword	FALCHION	Improved Falchion	Impr. Sword	14	24	7	14	0	0	45	0	0		NONE	Null	false	530
+	1	Weapon	One-handed	SCIMITAR	Sword	SCIMITAR	Improved Scimitar	Impr. Sword	16	34	6	13	0	0	50	0	31		NONE	Null	false	460
+	1	Weapon	One-handed	CLAYMORE	Sword	CLAYMORE	Improved Claymore	Impr. Sword	17	44	4	18	0	0	55	0	0		NONE	Null	false	920
+	1	Weapon	One-handed	BLADE	Sword	NONE	Improved Blade	Impr. Blade	16	36	6	14	0	0	60	0	40		NONE	Null	false	620
+	1	Weapon	One-handed	SABRE	Sword	SABRE	Improved Sabre	Impr. Sabre	13	54	4	14	0	0	65	0	0		NONE	Null	false	410
+	1	Weapon	One-handed	LONG_SWORD	Sword	LONGSWR	Improved Long Sword	Impr. Sword	18	48	5	16	0	0	70	0	40		NONE	Null	false	740
+	1	Weapon	One-handed	BROAD_SWORD	Sword	BROADSWR	Improved Broad Sword	Impr. Sword	20	60	7	18	0	0	75	0	0		NONE	Null	false	1410
+	1	Weapon	One-handed	BASTARD_SWORD	Sword	BASTARDSWR	Improved Bastard Sword	Impr. Sword	22	72	9	21	0	0	80	0	0		NONE	Null	false	1720
+	1	Weapon	Two-handed	TWO_HANDED_SWORD	Sword	TWOHANDSWR	Improved Two-Handed Sword	Impr. Sword	26	90	13	24	0	0	90	0	0		NONE	Null	false	3330
+	1	Weapon	Two-handed	GREAT_SWORD	Sword	GREATSWR	Improved Great Sword	Impr. Sword	29	120	15	28	0	0	100	0	0		NONE	Null	false	5160
+	1	Weapon	Two-handed	SMALL_AXE	Axe	SMALLAXE	Improved Small Axe	Impr. Axe	14	29	8	22	0	0	50	0	0		NONE	Null	false	450
+	1	Weapon	Two-handed	AXE	Axe	NONE	Improved Axe	Impr. Axe	16	39	10	24	0	0	70	0	0		NONE	Null	false	1150
+	1	Weapon	Two-handed	LARGE_AXE	Axe	LARGEAXE	Improved Large Axe	Impr. Axe	18	48	12	28	0	0	80	0	0		NONE	Null	false	1640
+	1	Weapon	Two-handed	BROAD_AXE	Axe	BROADAXE	Improved Broad Axe	Impr. Axe	20	60	14	32	0	0	90	0	0		NONE	Null	false	1980
+	1	Weapon	Two-handed	BATTLE_AXE	Axe	BATTLEAXE	Improved Battle Axe	Impr. Axe	22	72	16	37	0	0	100	0	0		NONE	Null	false	2730
+	1	Weapon	Two-handed	GREAT_AXE	Axe	GREATAXE	Improved Great Axe	Impr. Axe	24	90	18	42	0	0	110	0	0		NONE	Null	false	4290
+	1	Weapon	One-handed	MACE	Mace	MACE	Improved Mace	Impr. Mace	14	39	4	13	0	0	45	0	0		NONE	Null	false	460
+	1	Weapon	One-handed	MORNING_STAR	Mace	MORNSTAR	Improved Morning Star	Impr. Mace	15	48	4	15	0	0	55	0	0		NONE	Null	false	630
+	1	Weapon	One-handed	WAR_HAMMER	Mace	WARHAMMER	Improved War Hammer	Impr. Hammer	17	60	8	14	0	0	65	0	0		NONE	Null	false	1140
+	1	Weapon	One-handed	SPIKED_CLUB	Mace	SPIKCLUB	Improved Spiked Club	Impr. Club	16	24	6	11	0	0	50	0	0		NONE	Null	false	510
+	1	Weapon	One-handed	CLUB	Mace	SPIKCLUB	Improved Club	Impr. Club	13	24	4	11	0	0	35	0	0		NONE	Null	false	60
+	1	Weapon	One-handed	FLAIL	Mace	FLAIL	Improved Flail	Impr. Flail	19	44	5	17	0	0	40	0	0		NONE	Null	false	950
+	1	Weapon	Two-handed	MAUL	Mace	MAUL	Improved Maul	Impr. Maul	22	60	9	29	0	0	80	0	0		NONE	Null	false	1580
+	2	Weapon	Two-handed	SHORT_BOW	Bow	SHORTBOW	Improved Short Bow	Impr. Bow	13	36	1	12	0	0	30	0	65		NONE	Null	false	320
+	2	Weapon	Two-handed	HUNTERS_BOW	Bow	HUNTBOW	Improved Hunter's Bow	Impr. Bow	15	48	4	8	0	0	35	0	70		NONE	Null	false	720
+	2	Weapon	Two-handed	HUNTERS_BOW	Bow	LONGBOW	Improved Long Bow	Impr. Bow	17	42	1	14	0	0	45	0	80		NONE	Null	false	650
+	2	Weapon	Two-handed	COMPOSITE_BOW	Bow	COMPBOW	Improved Composite Bow	Impr. Bow	19	54	5	9	0	0	40	0	80		NONE	Null	false	1120
+	2	Weapon	Two-handed	SHORT_BATTLE_BOW	Bow	NONE	Improved Short Battle Bow	Impr. Bow	21	54	5	10	0	0	40	0	85		NONE	Null	false	1350
+	2	Weapon	Two-handed	LONG_BATTLE_BOW	Bow	BATTLEBOW	Improved Long Battle Bow	Impr. Bow	23	60	1	18	0	0	40	0	85		NONE	Null	false	2080
+	2	Weapon	Two-handed	SHORT_WAR_BOW	Bow	NONE	Improved Short War Bow	Impr. Bow	27	66	4	16	0	0	35	0	90		NONE	Null	false	3000
+	2	Weapon	Two-handed	LONG_WAR_BOW	Bow	WARBOW	Improved Long War Bow	Impr. Bow	31	72	3	17	0	0	45	0	90		NONE	Null	false	3200
+	1	Weapon	Two-handed	SHORT_STAFF	Staff	SHORTSTAFF	Improved Short Staff	Impr. Staff	13	30	6	10	0	0	20	0	0		STAFF	Null	false	100
+	1	Weapon	Two-handed	LONG_STAFF	Staff	LONGSTAFF	Improved Long Staff	Impr. Staff	16	42	8	14	0	0	25	0	0		STAFF	Null	false	220
+	1	Weapon	Two-handed	COMPOSITE_STAFF	Staff	COMPSTAFF	Improved Composite Staff	Impr. Staff	18	54	9	16	0	0	30	0	0		STAFF	Null	false	1000
+	1	Weapon	Two-handed	SHORT_STAFF	Staff	QUARSTAFF	Improved Quarter Staff	Impr. Staff	21	66	10	18	0	0	35	0	0		STAFF	Null	false	1870
+	1	Weapon	Two-handed	WAR_STAFF	Staff	WARSTAFF	Improved War Staff	Impr. Staff	24	90	12	22	0	0	40	0	0		STAFF	Null	false	2550
+	1	Misc	Ring	RING	Ring	RING	Ring	Ring	20	0	0	0	0	0	0	0	0		RING	Null	false	1000
+	1	Misc	Amulet	AMULET	Amulet	AMULET	Amulet	Amulet	24	0	0	0	0	0	0	0	0		AMULET	Null	false	1200
+	1	Misc	Unequippable	SCROLL_OF	Misc	NONE	Scroll of Warp		4	0	0	0	0	0	0	0	0		SCROLL	Warp	true	250
+	1	Misc	Unequippable	2	Misc	NONE	Scroll of Berserk		7	0	0	0	0	0	0	35	0		SCROLLT	Berserk	true	900
+	1	Misc	Unequippable	2	Misc	NONE	Scroll of Immolation		14	0	0	0	0	0	0	57	0		SCROLL	Immolation	true	1300
+	1	Weapon	Two-handed	220	Mace	MAUL	Flanged Mace	Mace	6	40	5	16	0	0	30	0	0		NONE	Null	false	700
+	1	Weapon	Two-handed	220	Mace	MAUL	Improved Flanged Mace	Impr. Mace	18	48	10	28	0	0	80	0	0		NONE	Null	false	1470
+	1	Weapon	One-handed	55	Sword	NONE	Katar		1	16	2	5	0	0	18	0	0		NONE	Null	false	90
+	1	Weapon	One-handed	55	Sword	NONE	Katar		13	29	5	11	0	0	35	0	0		NONE	Null	false	360
+	1	Misc	Unequippable	24	Misc	NONE	Piramid criptex		30	0	0	0	0	0	0	0	0		NONE	Null	false	15000
+	1	Misc	Unequippable	23	Misc	NONE	Cube criptex		35	0	0	0	0	0	0	0	0		NONE	Null	false	25000
+	1	Misc	Unequippable	22	Misc	NONE	Sphere criptex		40	0	0	0	0	0	0	0	0		NONE	Null	false	40000

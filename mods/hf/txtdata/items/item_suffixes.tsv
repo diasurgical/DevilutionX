@@ -4,7 +4,7 @@ maiming	DAMMOD	3	5	7	Weapon,Staff,Bow	Any	1	true	1300	1500	3
 slaying	DAMMOD	6	8	15	Weapon	Any	1	true	2600	3000	5
 gore	DAMMOD	9	12	25	Weapon	Any	1	true	4100	5000	8
 carnage	DAMMOD	13	16	35	Weapon	Any	1	true	5100	10000	10
-slaughter	DAMMOD	17	20	60	Weapon	Any	1	true	10100	15000	13
+slaughter	DAMMOD	17	20	45	Weapon	Any	1	true	10100	15000	13
 pain	GETHIT_CURSE	2	4	4	Armor,Shield,Misc	Evil	1	false	0	0	-4
 tears	GETHIT_CURSE	1	1	2	Armor,Shield,Misc	Evil	1	false	0	0	-2
 health	GETHIT	1	1	2	Armor,Shield,Misc	Good	1	true	200	200	2
@@ -56,7 +56,7 @@ the wolf	LIFE	30	40	15	Armor,Shield,Misc	Any	1	true	4100	6000	7
 the tiger	LIFE	41	50	21	Armor,Shield,Misc	Any	1	true	6100	10000	9
 the lion	LIFE	51	60	27	Armor,Misc	Any	1	true	10100	15000	11
 the mammoth	LIFE	61	80	35	Armor	Any	1	true	15100	19000	12
-the whale	LIFE	81	100	60	Armor	Any	1	true	19100	30000	13
+the whale	LIFE	81	100	45	Armor	Any	1	true	19100	30000	13
 fragility	DUR_CURSE	100	100	3	Armor,Shield,Weapon	Evil	1	false	0	0	-4
 brittleness	DUR_CURSE	26	75	1	Armor,Shield,Weapon	Evil	1	false	0	0	-2
 sturdiness	DUR	26	75	1	Armor,Shield,Weapon,Staff	Any	1	true	100	100	2
@@ -97,3 +97,20 @@ blocking	FASTBLOCK	1	1	5	Shield	Any	1	true	4000	4000	4
 devastation	DEVASTATION	1	1	1	Weapon,Staff,Bow	Any	1	true	1200	1200	3
 decay	DECAY	150	250	1	Weapon,Staff,Bow	Any	1	true	200	200	2
 peril	PERIL	1	1	5	Weapon,Staff,Bow	Any	1	true	500	500	1
+massacre	DAMMOD	21	24	60	Weapon	Any	1	true	12500	18000	16
+deflection	GETHIT	7	8	50	Armor	Good	1	true	10500	13500	25
+colossus	STR	31	40	30	Weapon,Misc	Any	1	true	7700	13400	14
+flawlessness	DEX	31	40	30	Bow,Misc	Any	1	true	7700	13400	14
+incantation	MAG	31	40	30	Staff,Misc	Any	1	true	7700	13400	14
+stamina	VIT	31	40	30	Misc	Good	1	true	7700	13400	14
+the galaxy	ATTRIBS	21	25	40	Misc	Any	1	true	27500	50500	40
+the leviathan	LIFE	101	120	60	Armor	Any	1	true	23900	36000	13
+splendor	LIGHT	5	5	8	Armor,Weapon,Misc	Good	1	true	2000	2000	5
+stability	DUR	201	300	20	Armor,Shield,Weapon,Staff	Any	1	true	590	600	3
+blazing	FIRE_ARROWS	1	22	50	Bow	Any	1	true	6000	8000	6
+electrocution	LIGHT_ARROWS	1	30	60	Bow	Any	1	true	18000	18000	6
+excess	DUR	300	300	15	Bow	Any	1	true	2500	2500	4
+the devourer	RNDSTEALLIFE	3	3	25	Misc	Any	1	true	30000	30000	5
+the parasite	DRAINLIFE	3	3	25	Misc	Evil	1	false	0	0	-4
+rupture	MULT_ARROWS	1	30	45	Bow	Any	1	true	18000	18000	6
+firestorm	FIREBALL	10	30	45	Bow	Any	1	true	24000	24000	6

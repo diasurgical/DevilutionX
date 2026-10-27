@@ -9,8 +9,8 @@ Gold	TOHIT	21	30	12	Weapon,Bow,Misc	Good	2	true	2100	3000	9
 Platinum	TOHIT	31	40	16	Weapon,Bow	Good	2	true	3100	4000	11
 Mithril	TOHIT	41	60	20	Weapon,Bow	Good	2	true	4100	6000	13
 Meteoric	TOHIT	61	80	23	Weapon,Bow	Any	2	true	6100	10000	15
-Weird	TOHIT	81	100	35	Weapon,Bow	Any	2	true	10100	14000	17
-Strange	TOHIT	101	150	60	Weapon,Bow	Any	2	true	14100	20000	20
+Weird	TOHIT	81	100	28	Weapon,Bow	Any	2	true	10100	14000	17
+Strange	TOHIT	101	150	34	Weapon,Bow	Any	2	true	14100	20000	20
 Useless	DAMP_CURSE	100	100	5	Weapon,Staff,Bow	Any	2	false	0	0	-8
 Bent	DAMP_CURSE	50	75	3	Weapon,Staff,Bow	Any	2	false	0	0	-4
 Weak	DAMP_CURSE	25	45	1	Weapon,Staff,Bow	Any	2	false	0	0	-3
@@ -21,8 +21,8 @@ Vicious	DAMP	66	80	12	Weapon,Staff,Bow	Evil	2	true	1000	1450	8
 Brutal	DAMP	81	95	16	Weapon,Staff,Bow	Any	2	true	1500	1950	10
 Massive	DAMP	96	110	20	Weapon,Staff,Bow	Any	2	true	2000	2450	13
 Savage	DAMP	111	125	23	Weapon,Bow	Any	2	true	2500	3000	15
-Ruthless	DAMP	126	150	35	Weapon,Bow	Any	2	true	10100	15000	17
-Merciless	DAMP	151	175	60	Weapon,Bow	Any	2	true	15000	20000	20
+Ruthless	DAMP	126	150	28	Weapon,Bow	Any	2	true	10100	15000	17
+Merciless	DAMP	151	175	34	Weapon,Bow	Any	2	true	15000	20000	20
 Clumsy	TOHIT_DAMP_CURSE	50	75	5	Weapon,Staff,Bow	Any	2	false	0	0	-7
 Dull	TOHIT_DAMP_CURSE	25	45	1	Weapon,Staff,Bow	Any	2	false	0	0	-5
 Sharp	TOHIT_DAMP	20	35	1	Weapon,Staff,Bow	Any	2	false	350	950	5
@@ -32,8 +32,8 @@ Soldier's	TOHIT_DAMP	66	80	15	Weapon,Staff	Any	2	true	2600	3950	17
 Lord's	TOHIT_DAMP	81	95	19	Weapon,Staff	Any	2	true	4100	5950	21
 Knight's	TOHIT_DAMP	96	110	23	Weapon,Staff	Any	2	true	6100	8450	26
 Master's	TOHIT_DAMP	111	125	28	Weapon,Staff	Any	2	true	8600	13000	30
-Champion's	TOHIT_DAMP	126	150	40	Weapon,Staff	Any	2	true	15200	24000	33
-King's	TOHIT_DAMP	151	175	28	Weapon,Staff	Any	2	true	24100	35000	38
+Champion's	TOHIT_DAMP	126	150	34	Weapon,Staff	Any	2	true	15200	24000	33
+King's	TOHIT_DAMP	151	175	40	Weapon,Staff	Any	2	true	24100	35000	38
 Vulnerable	ACP_CURSE	51	100	3	Armor,Shield	Any	2	false	0	0	-3
 Rusted	ACP_CURSE	25	50	1	Armor,Shield	Any	2	false	0	0	-2
 Fine	ACP	20	30	1	Armor,Shield	Any	2	true	20	100	2
@@ -45,7 +45,7 @@ Blessed	ACP	91	110	19	Armor,Shield	Good	2	true	620	800	11
 Saintly	ACP	111	130	24	Armor,Shield	Good	2	true	820	1200	13
 Awesome	ACP	131	150	28	Armor,Shield	Good	2	true	1220	2000	15
 Holy	ACP	151	170	35	Armor,Shield	Good	2	true	5200	6000	17
-Godly	ACP	171	200	60	Armor,Shield	Good	2	true	6200	7000	20
+Godly	ACP	171	200	55	Armor,Shield	Good	2	true	6200	7000	20
 Red	FIRERES	10	20	4	Armor,Shield,Weapon,Staff,Bow,Misc	Any	1	true	500	1500	2
 Crimson	FIRERES	21	30	10	Armor,Shield,Weapon,Staff,Bow,Misc	Any	1	true	2100	3000	2
 Crimson	FIRERES	31	40	16	Armor,Shield,Weapon,Staff,Bow,Misc	Any	1	true	3100	4000	2
@@ -75,7 +75,7 @@ Serpent's	MANA	30	40	15	Staff,Misc	Any	1	true	4100	6000	7
 Drake's	MANA	41	50	21	Staff,Misc	Any	1	true	6100	10000	9
 Dragon's	MANA	51	60	27	Staff,Misc	Any	1	true	10100	15000	11
 Wyrm's	MANA	61	80	35	Staff	Any	1	true	15100	19000	12
-Hydra's	MANA	81	100	60	Staff	Any	1	true	19100	30000	13
+Hydra's	MANA	81	100	50	Staff	Any	1	true	19100	30000	13
 Angel's	SPLLVLADD	1	1	15	Staff	Good	1	true	25000	25000	2
 Arch-Angel's	SPLLVLADD	2	2	25	Staff	Good	1	true	50000	50000	3
 Plentiful	CHARGES	2	2	4	Staff	Any	1	true	2000	2000	2
@@ -85,3 +85,16 @@ Lightning	LIGHTDAM	2	20	18	Weapon,Staff	Any	1	true	10000	10000	2
 Jester's	JESTERS	1	1	7	Weapon	Any	1	true	1200	1200	3
 Crystalline	CRYSTALLINE	30	70	5	Weapon	Any	1	true	1000	3000	3
 Doppelganger's	DOPPELGANGER	81	95	11	Weapon,Staff	Any	1	true	2000	2400	10
+Aberrant	TOHIT	151	175	40	Weapon,Bow	Any	2	true	21080	24000	23
+Cruel	DAMP	176	200	40	Weapon,Bow	Any	2	true	17500	22900	23
+Heavenly	ACP	201	220	65	Armor,Shield	Good	2	true	7250	7700	20
+Carmine	FIRERES	61	70	32	Armor,Shield,Weapon,Staff,Bow,Misc	Any	1	true	20450	23400	7
+Cerulean	LIGHTRES	61	70	32	Armor,Shield,Weapon,Staff,Bow,Misc	Any	1	true	20450	23400	5
+Brilliant	MAGICRES	61	70	32	Armor,Shield,Weapon,Staff,Bow,Misc	Any	1	true	20450	23400	5
+Lime	ALLRES	51	60	40	Shield,Weapon,Staff,Bow	Any	1	true	75900	90000	9
+Basilisk	MANA	101	121	60	Staff	Any	1	true	23400	36000	15
+God's	SPLLVLADD	3	3	40	Staff	Good	1	true	75000	75000	4
+Prolific	CHARGES	4	4	15	Staff	Any	1	true	4000	4000	4
+Burning	FIREDAM	11	15	15	Weapon,Staff	Any	1	true	10000	10000	3
+Sparking	LIGHTDAM	1	12	8	Weapon,Staff	Any	1	true	6000	6000	2
+Glassy	CRYSTALLINE	71	90	25	Weapon	Any	1	true	3050	4000	5
