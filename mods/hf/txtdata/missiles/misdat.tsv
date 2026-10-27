@@ -27,13 +27,13 @@ BloodStar	AddGenericMagicMissile	ProcessGenericProjectile			BloodStar	Magic	Bloc
 BloodStarExplosion	AddMissileExplosion	ProcessMissileExplosion			BloodStarExplosion	Magic	
 Teleport	AddTeleport	ProcessTeleport	SpellElemental			Physical,Invisible	
 FireArrow	AddElementalArrow	ProcessElementalArrow			FireArrow	Fire,Arrow	Blockable
-DoomSerpents			SpellDoomSerpents		DoomSerpents	Magic,Invisible	
+DoomSerpents	AddSummonedSkeleton		SpellGolem			Physical,Invisible	
 FireOnly					FireWall	Fire	
 StoneCurse	AddStoneCurse	ProcessStoneCurse	SpellStoneCurse			Magic,Invisible	
 BloodRitual						Physical	
 Invisibility			SpellInvisibility			Physical,Invisible	
 Golem	AddGolem		SpellGolem			Physical,Invisible	
-Etherealize			SpellEtherealize		Etherealize	Physical	
+Etherealize	AddSentinel	ProcessSentinel	SpellGuardian		Etherealize	Physical	
 Spurt					Spurt	Physical	
 ApocalypseBoom	AddApocalypseBoom	ProcessApocalypseBoom			ApocalypseBoom	Physical	
 Healing	AddHealing					Physical,Invisible	

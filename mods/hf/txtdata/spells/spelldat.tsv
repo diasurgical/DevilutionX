@@ -14,7 +14,7 @@ Fireball	Fireball	CastFire	800	30	16	Fire,Targeted	8	7	48	Fireball	1	10	40	80
 Guardian	Guardian	CastFire	1400	95	50	Fire,Targeted	9	8	61	Guardian	2	30	16	32
 ChainLightning	Chain Lightning	CastFire	1100	75	30	Lightning	8	7	54	ChainLightning	1	18	20	60
 FlameWave	Flame Wave	CastFire	1000	65	35	Fire,Targeted	9	8	54	FlameWaveControl	3	20	20	40
-DoomSerpents	Doom Serpents	CastFire	0	0	0	Lightning	-1	-1	0		0	0	40	80
+DoomSerpents	Skeleton	CastFire	0	0	0	Lightning	-1	-1	0	DoomSerpents	6	60	16	32
 BloodRitual	Blood Ritual	CastFire	0	0	0	Magic	-1	-1	0		0	0	40	80
 Nova	Nova	CastLightning	2100	130	60	Magic	14	10	87	Nova	3	35	16	32
 Invisibility	Invisibility	CastFire	0	0	0	Magic	-1	-1	0		0	0	40	80
@@ -22,8 +22,8 @@ Inferno	Inferno	CastFire	200	10	11	Fire,Targeted	3	2	20	InfernoControl	1	6	20	40
 Golem	Golem	CastFire	1800	110	100	Fire,Targeted	11	9	81	Golem	6	60	16	32
 Rage	Rage	CastHealing	0	0	15	Magic	-1	-1	0	Rage	1	1	0	0
 Teleport	Teleport	CastSkill	2000	125	35	Magic,Targeted	14	12	105	Teleport	3	15	16	32
-Apocalypse	Apocalypse	CastFire	3000	200	150	Fire	19	15	149	Apocalypse	6	90	8	12
-Etherealize	Etherealize	CastFire	2600	160	100	Magic	-1	-1	93	Etherealize	0	100	2	6
+Apocalypse	Apocalypse	CastFire	3000	200	180	Fire	19	15	149	Apocalypse	5	60	8	12
+Etherealize	Sentinel	CastLightning	2100	140	75	Lightning,Targeted	11	9	70	Etherealize	2	35	16	32
 ItemRepair	Item Repair	CastSkill	0	0	0	Magic,AllowedInTown	-1	-1	255	ItemRepair	0	0	40	80
 StaffRecharge	Staff Recharge	CastSkill	0	0	0	Magic,AllowedInTown	-1	-1	255	StaffRecharge	0	0	40	80
 TrapDisarm	Trap Disarm	CastSkill	0	0	0	Magic	-1	-1	255	TrapDisarm	0	0	40	80
