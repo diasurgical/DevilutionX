@@ -23,7 +23,7 @@ using net::leaveinfo_t;
 struct Player;
 
 // must be unsigned to generate unsigned comparisons with pnum
-#define MAX_PLRS 4
+#define MAX_PLRS 8
 
 /* @brief Contains info of running public game (for game list browsing) */
 struct GameInfo {
