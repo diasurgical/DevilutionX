@@ -2240,9 +2240,7 @@ void InitMissileAnimationFromMonster(Missile &mis, Direction midir, const Monste
 	const AnimStruct &anim = mon.type().getAnimData(graphic);
 	mis.setDirection(midir);
 	mis._miAnimFlags = MissileGraphicsFlags::None;
-	// In HeadlessMode monster sprites are not loaded and spritesForDirection()
-	// returns nullopt; dereferencing it unconditionally crashes (e.g. bat swoop
-	// via AddRhino). Skip only the graphic fields; missile logic stays intact.
+	// Monster sprites are not loaded in HeadlessMode
 	const OptionalClxSpriteList spritesOpt = anim.spritesForDirection(midir);
 	if (spritesOpt) {
 		const ClxSpriteList sprites = *spritesOpt;
