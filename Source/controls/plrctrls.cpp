@@ -566,27 +566,6 @@ bool InteractPlayer()
 	return false;
 }
 
-bool InteractApproach()
-{
-	Player &myPlayer = *MyPlayer;
-	Point position;
-	if (pcursmissile != nullptr) {
-		position = pcursmissile->position.tile;
-	} else if (pcurstrig != -1) {
-		position = trigs[pcurstrig].position;
-	} else if (pcursquest != Q_INVALID) {
-		position = Quests[pcursquest].position;
-	}
-
-	if (GetMinDistance(position) < 2) {
-		MakePlrPath(myPlayer, position, true);
-		myPlayer.destAction = ACTION_WALK;
-		return true;
-	}
-
-	return false;
-}
-
 void Interact()
 {
 	if (leveltype == DTYPE_TOWN && pcursmonst != -1) {
@@ -609,18 +588,6 @@ void Interact()
 		NetSendCmdLoc(MyPlayerId, true, CMD_OPOBJXY, cursPosition);
 		LastPlayerAction = PlayerActionType::OperateObject;
 		return;
-	}
-
-	// pickup item
-	if (pcursitem != -1) {
-		NetSendCmdLocParam1(true, CMD_GOTOAGETITEM, cursPosition, pcursitem);
-		return;
-	}
-
-	// walk towards the cursor/context object if no target is found
-	if (pcursmissile != nullptr || pcurstrig != -1 || pcursquest != Q_INVALID) {
-		if (InteractApproach())
-			return;
 	}
 
 	// lastly make a fake attack
