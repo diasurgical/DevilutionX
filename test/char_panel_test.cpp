@@ -39,11 +39,8 @@ protected:
 	void SetUp() override
 	{
 		UITest::SetUp();
-		if (UITest::MissingAssets()) {
-			// Base SetUp() skipped (MPQ fixtures absent): engine data is
-			// not loaded, so the derived setup below must not run.
+		if (IsSkipped())
 			return;
-		}
 
 		// Reset stat allocation state.
 		CharPanelButtonActive = false;

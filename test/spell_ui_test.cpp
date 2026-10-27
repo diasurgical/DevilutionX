@@ -42,11 +42,8 @@ protected:
 	void SetUp() override
 	{
 		UITest::SetUp();
-		if (UITest::MissingAssets()) {
-			// Base SetUp() skipped (MPQ fixtures absent): engine data is
-			// not loaded, so the derived setup below must not run.
+		if (IsSkipped())
 			return;
-		}
 
 		// Ensure all hotkey slots start invalid so tests are deterministic.
 		for (size_t i = 0; i < NumHotkeys; ++i) {

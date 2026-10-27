@@ -33,11 +33,8 @@ protected:
 	void SetUp() override
 	{
 		UITest::SetUp();
-		if (UITest::MissingAssets()) {
-			// Base SetUp() skipped (MPQ fixtures absent): engine data is
-			// not loaded, so the derived setup below must not run.
+		if (IsSkipped())
 			return;
-		}
 
 		// Start each test with a completely clean stash.
 		Stash = {};
