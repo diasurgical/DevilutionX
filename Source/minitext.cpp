@@ -68,6 +68,8 @@ uint32_t CalculateTextSpeed(SfxID nSFX)
 
 #ifndef NOSOUND
 	uint32_t sfxFrames = GetSFXLength(nSFX);
+	if (sfxFrames == 0)
+		sfxFrames = numLines * 3000;
 #else
 	// Sound is disabled -- estimate length from the number of lines.
 	uint32_t sfxFrames = numLines * 3000;

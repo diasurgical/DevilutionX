@@ -302,6 +302,11 @@ struct LevelConversionData {
 	item._iFlags = static_cast<ItemSpecialEffect>(file.NextLE<uint32_t>());
 	item._iMiscId = static_cast<item_misc_id>(file.NextLE<int32_t>());
 	item._iSpell = static_cast<SpellID>(file.NextLE<int32_t>());
+
+	if (!IsValidSpell(item._iSpell)) {
+		item._iSpell = SpellID::Null;
+	}
+
 	item._iCharges = file.NextLE<int32_t>();
 	item._iMaxCharges = file.NextLE<int32_t>();
 	item._iDurability = file.NextLE<int32_t>();
@@ -488,7 +493,7 @@ void LoadPlayer(LoadHelper &file, Player &player)
 
 	file.NextBytes(player._pName, PlayerNameLength);
 	TerminateUtf8(player._pName, PlayerNameLength);
-	player._pClass = static_cast<HeroClass>(file.NextLE<int8_t>());
+	player._pClass = static_cast<HeroClass>(std::clamp<uint8_t>(file.NextLE<uint8_t>(), 0, static_cast<uint8_t>(GetNumPlayerClasses() - 1)));
 	file.Skip(3); // Alignment
 	player._pStrength = file.NextLE<int32_t>();
 	player._pBaseStr = file.NextLE<int32_t>();

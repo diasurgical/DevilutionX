@@ -2250,6 +2250,11 @@ void OperatePedestal(Player &player, Object &pedestal, bool sendmsg)
 	}
 }
 
+int ClampU8(int v)
+{
+	return std::clamp(v, 0, 255);
+}
+
 void OperateShrineMysterious(DiabloGenerator &rng, Player &player)
 {
 	if (&player != MyPlayer)
@@ -2334,24 +2339,24 @@ void OperateShrineGloomy(Player &player)
 	if (&player != MyPlayer)
 		return;
 
-	// Increment armor class by 2 and decrements max damage by 1.
 	for (Item &item : PlayerItemsRange(player)) {
 		switch (item._itype) {
 		case ItemType::Sword:
 		case ItemType::Axe:
 		case ItemType::Bow:
 		case ItemType::Mace:
-		case ItemType::Staff:
-			item._iMaxDam--;
-			if (item._iMaxDam < item._iMinDam)
-				item._iMaxDam = item._iMinDam;
-			break;
+		case ItemType::Staff: {
+			const int minDam = static_cast<int>(item._iMinDam);
+			const int maxDam = static_cast<int>(item._iMaxDam);
+			const int newMax = std::max(maxDam - 1, minDam);
+			item._iMaxDam = static_cast<uint8_t>(ClampU8(newMax));
+		} break;
 		case ItemType::Shield:
 		case ItemType::Helm:
 		case ItemType::LightArmor:
 		case ItemType::MediumArmor:
 		case ItemType::HeavyArmor:
-			item._iAC += 2;
+			item._iAC = ClampU8(item._iAC + 2);
 			break;
 		default:
 			break;
@@ -2359,7 +2364,6 @@ void OperateShrineGloomy(Player &player)
 	}
 
 	CalcPlrInv(player, true);
-
 	InitDiabloMsg(EMSG_SHRINE_GLOOMY);
 }
 
@@ -2368,27 +2372,37 @@ void OperateShrineWeird(Player &player)
 	if (&player != MyPlayer)
 		return;
 
-	if (!player.InvBody[INVLOC_HAND_LEFT].isEmpty() && player.InvBody[INVLOC_HAND_LEFT]._itype != ItemType::Shield)
-		player.InvBody[INVLOC_HAND_LEFT]._iMaxDam++;
-	if (!player.InvBody[INVLOC_HAND_RIGHT].isEmpty() && player.InvBody[INVLOC_HAND_RIGHT]._itype != ItemType::Shield)
-		player.InvBody[INVLOC_HAND_RIGHT]._iMaxDam++;
-
-	for (Item &item : InventoryPlayerItemsRange { player }) {
+	auto isWeapon = [](const Item &item) {
 		switch (item._itype) {
 		case ItemType::Sword:
 		case ItemType::Axe:
 		case ItemType::Bow:
 		case ItemType::Mace:
 		case ItemType::Staff:
-			item._iMaxDam++;
-			break;
+			return true;
 		default:
-			break;
+			return false;
 		}
+	};
+
+	auto bumpMaxDam = [&](Item &item) {
+		item._iMaxDam = ClampU8(item._iMaxDam + 1);
+	};
+
+	Item &left = player.InvBody[INVLOC_HAND_LEFT];
+	if (!left.isEmpty() && left._itype != ItemType::Shield)
+		bumpMaxDam(left);
+
+	Item &right = player.InvBody[INVLOC_HAND_RIGHT];
+	if (!right.isEmpty() && right._itype != ItemType::Shield)
+		bumpMaxDam(right);
+
+	for (Item &item : InventoryPlayerItemsRange { player }) {
+		if (isWeapon(item))
+			bumpMaxDam(item);
 	}
 
 	CalcPlrInv(player, true);
-
 	InitDiabloMsg(EMSG_SHRINE_WEIRD);
 }
 

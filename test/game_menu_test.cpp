@@ -34,6 +34,8 @@ protected:
 	void SetUp() override
 	{
 		UITest::SetUp();
+		if (IsSkipped())
+			return;
 
 		// Ensure the menu starts closed without calling gamemenu_off()
 		// (which would trigger SaveOptions → crash on uninitialised Ini).

@@ -126,6 +126,8 @@ protected:
 	void SetUp() override
 	{
 		UITest::SetUp();
+		if (IsSkipped())
+			return;
 
 		// Seed the RNG for deterministic item generation.
 		SetRndSeed(42);

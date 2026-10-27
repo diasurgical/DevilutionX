@@ -33,6 +33,8 @@ protected:
 	void SetUp() override
 	{
 		UITest::SetUp();
+		if (IsSkipped())
+			return;
 
 		// Start each test with a completely clean stash.
 		Stash = {};
