@@ -27,6 +27,7 @@
 #include "game_mode.hpp"
 #include "inv.h"
 #include "levels/dun_tile.hpp"
+#include "levels/town_data.h"
 #include "lighting.h"
 #include "menu.h"
 #include "missiles.h"
@@ -2473,6 +2474,11 @@ void RemoveEmptyInventory(Player &player)
 std::expected<void, std::string> LoadGame(bool firstflag)
 {
 	FreeGameMem();
+
+	// Ensure Tristram is always registered before any level asset loading.
+	// For new games this is done by InitLevels() before RunGameLoop, but the
+	// load-game path skips that block, so we must initialize here.
+	InitializeTristram();
 
 	LoadHelper file(OpenSaveArchive(gSaveNumber), "game");
 	if (!file.IsValid()) {
