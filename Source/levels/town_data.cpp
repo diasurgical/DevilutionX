@@ -13,6 +13,8 @@ constexpr Point DefaultTownEntryPoint = { 75, 68 };
 
 } // namespace
 
+std::string DestinationTownID;
+
 TownRegistry &GetTownRegistry()
 {
 	return g_townRegistry;
@@ -123,6 +125,7 @@ void InitializeTristram()
 		{ "levels\\towndata\\sector3s.dun", 0, 46 },
 		{ "levels\\towndata\\sector4s.dun", 0, 0 },
 	};
+	// Spawn positions (view): one tile stepped from matching town triggers / stairs.
 	tristram.entries = {
 		{ ENTRY_MAIN, { 75, 68 }, -1 },
 		{ ENTRY_PREV, { 25, 31 }, -1 },
@@ -131,9 +134,12 @@ void InitializeTristram()
 		{ ENTRY_TWARPUP, { 41, 81 }, 13 },
 		{ ENTRY_TWARPUP, { 36, 25 }, 21 },
 		{ ENTRY_TWARPUP, { 79, 62 }, 17 },
+		{ ENTRY_TOWNSWITCH, { 75, 68 }, -1 },
 	};
 	tristram.triggers = {
+		// Cathedral stairs (down to dungeon level 1)
 		{ { 25, 29 }, WM_DIABNEXTLVL, 0, std::nullopt },
+		// Town warp portals (active only when the respective warp is open)
 		{ { 49, 21 }, WM_DIABTOWNWARP, 5, DTYPE_CATACOMBS },
 		{ { 17, 69 }, WM_DIABTOWNWARP, 9, DTYPE_CAVES },
 		{ { 41, 80 }, WM_DIABTOWNWARP, 13, DTYPE_HELL },

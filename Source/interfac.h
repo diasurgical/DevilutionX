@@ -30,6 +30,7 @@ enum interface_mode : uint8_t {
 	WM_DIABTOWNWARP,
 	WM_DIABTWARPUP,
 	WM_DIABRETOWN,
+	WM_DIABTOWNSWITCH,
 	WM_DIABNEWGAME,
 	WM_DIABLOADGAME,
 
@@ -69,6 +70,9 @@ enum Cutscenes : uint8_t {
 	CutPortalRed,
 	CutGate,
 };
+
+/** @brief Queues WM_DIABTOWNSWITCH for the local player (invincible until load completes). */
+void QueueTownSwitch();
 
 void interface_msg_pump();
 void IncProgress(uint32_t steps = 1);

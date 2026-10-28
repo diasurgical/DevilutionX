@@ -187,6 +187,13 @@ const TownConfig *GetCurrentTownConfig();
  */
 const TownConfig &GetActiveTownConfigForTileLoad();
 
+/**
+ * @brief Town ID to switch to, set before queuing WM_DIABTOWNSWITCH.
+ * Written by: towns Lua module, OnTownTravel (network), NetSendCmdTownTravel.
+ * Read by: WM_DIABTOWNSWITCH handler in interfac.cpp.
+ */
+extern std::string DestinationTownID;
+
 void InitializeTristram();
 
 } // namespace devilution
