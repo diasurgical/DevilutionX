@@ -12,6 +12,8 @@
 #include "levels/gendung_defs.hpp"
 #include "levels/town_data.h"
 #include "lua/metadoc.hpp"
+#include "msg.h"
+#include "player.h"
 #include "towners.h"
 #include "utils/log.hpp"
 
@@ -194,6 +196,25 @@ std::string LuaRegisterTown(std::string_view townId, const sol::table &config)
 	return townIdStr;
 }
 
+void LuaTravelToTown(std::string_view townId)
+{
+	std::string townIdStr(townId);
+
+	if (!GetTownRegistry().HasTown(townIdStr)) {
+		LogError("Town '{}' not registered", townId);
+		return;
+	}
+
+	DestinationTownID = townIdStr;
+
+	if (gbIsMultiplayer) {
+		NetSendCmdTownTravel(0xFFFFFFFF, townIdStr.c_str());
+		return;
+	}
+
+	QueueTownSwitch();
+}
+
 std::string LuaGetCurrentTown()
 {
 	return GetTownRegistry().GetCurrentTown();
@@ -224,6 +245,10 @@ sol::table LuaTownsModule(sol::state_view &lua)
 	    "  Omitted fields fall back to Tristram's data for that role. gossip is a list of speech ids such as \"TEXT_PEPIN2\".\n"
 	    "  A renamed NPC is addressed by its name in menus (\"Talk to ...\"). Without npcs, the default Tristram NPCs are used.",
 	    LuaRegisterTown);
+
+	LuaSetDocFn(table, "travel", "(townId: string)",
+	    "Travels to the specified town.",
+	    LuaTravelToTown);
 
 	LuaSetDocFn(table, "current", "() -> string",
 	    "Returns the current town ID.",

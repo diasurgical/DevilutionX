@@ -24,7 +24,7 @@ using namespace devilution;
 namespace {
 
 constexpr size_t TristramTriggerCount = 6;
-constexpr size_t TristramEntryPointCount = 7;
+constexpr size_t TristramEntryPointCount = 8;
 
 constexpr Point TristramCathedralTrigPosition = { 25, 29 };
 
