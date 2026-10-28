@@ -2,10 +2,32 @@
 # and whether to link them statically.
 include(functions/dependency_options)
 include(functions/emscripten_system_library)
+# BUILD_SHARED_LIBS pin (2026-10-18): SDL_image/SDL_mixer's CMake declares
+# BUILD_SHARED_LIBS via cmake_dependent_option, and current CMake's
+# CMakeDependentOption module FORCE-writes that value into the GLOBAL cache
+# using the per-glue directory value of 3rdParty/SDL3[_image|_mixer]. Every
+# dependency configured afterwards (libsodium, magic_enum, asio, libzt,
+# googletest, benchmark, ...) then sees BUILD_SHARED_LIBS=ON and builds its
+# typeless add_library() targets as shared libraries: in the nonstatic CI
+# jobs libzt's natpmp_pic/zto_pic became DLLs and failed to link (undefined
+# __imp_socket/ws2_32/iphlpapi on MinGW; the same leak broke the Linux job).
+# Pin the build's own intent (static) at the root scope: each SDL glue still
+# overrides BUILD_SHARED_LIBS inside its own directory scope, while every
+# other add_subdirectory below inherits this OFF exactly like it always has.
+set(BUILD_SHARED_LIBS OFF)
 
 if(EMSCRIPTEN)
   emscripten_system_library("zlib" ZLIB::ZLIB USE_ZLIB=1)
-else()
+elseif(NOT USE_SDL3)
+  # For SDL3 builds, zlib is provided after 3rdParty/SDL3_image instead: when
+  # SDL3_image is built from source it vendors its own zlib + libpng
+  # (SDLIMAGE_VENDORED), and fetching zlib here as well aborts the configure
+  # step with 'add_library cannot create target "zlib" because another target
+  # with the same name already exists' (CMP0002). See the zlib provisioning in
+  # the USE_SDL3 branch of the SDL_image section below. Every other
+  # configuration provides zlib up front: the SDL2 SDL_image path vendors
+  # devilutionx's own libpng, which needs zlib at configure time, and the
+  # dos/uwp/amiga platforms force DEVILUTIONX_SYSTEM_ZLIB=OFF.
   dependency_options("zlib" DEVILUTIONX_SYSTEM_ZLIB ON DEVILUTIONX_STATIC_ZLIB)
   if(NOT DEVILUTIONX_SYSTEM_ZLIB)
     add_subdirectory(3rdParty/zlib)
@@ -156,6 +178,43 @@ elseif(USE_SDL3)
     # https://github.com/libsdl-org/SDL_image/blob/11154afb7855293159588b245b446a4ef09e574f/CMakeLists.txt#L225-L233
     set(DEVILUTIONX_STATIC_SDL_IMAGE ${DEVILUTIONX_STATIC_SDL3})
     add_subdirectory(3rdParty/SDL3_image)
+  endif()
+
+  if(TARGET zlibstatic OR TARGET zlib)
+    # SDL_image's vendored build provided zlib (SDLIMAGE_VENDORED in
+    # 3rdParty/SDL3_image). Reuse it for the rest of the build instead of
+    # fetching zlib a second time: the second FetchContent aborts the
+    # configure step with 'add_library cannot create target "zlib" because
+    # another target with the same name already exists' (CMP0002).
+    # Note: DEVILUTIONX_SYSTEM_ZLIB is deliberately ignored here. SDL_image's
+    # vendored libpng already links the vendored zlib, so the rest of the
+    # build must use the same library to avoid duplicate zlib copies in the
+    # final statically linked binary.
+    if(TARGET zlibstatic)
+      set(ZLIB_LIBRARY zlibstatic)
+    else()
+      set(ZLIB_LIBRARY zlib)
+    endif()
+    if(NOT TARGET ZLIB::ZLIB)
+      add_library(ZLIB::ZLIB ALIAS ${ZLIB_LIBRARY})
+    endif()
+    # The include directories that 3rdParty/zlib would have exported.
+    target_include_directories(${ZLIB_LIBRARY} INTERFACE
+      $<BUILD_INTERFACE:${sdl_image_SOURCE_DIR}/external/zlib>
+      $<BUILD_INTERFACE:${sdl_image_BINARY_DIR}/external/zlib>)
+    # The variables that are usually set by FindZLIB.cmake, plus the no-op
+    # FindZLIB module stub, exactly like 3rdParty/zlib/CMakeLists.txt does.
+    set(ZLIB_FOUND ON)
+    set(ZLIB_LIBRARY ZLIB::ZLIB)
+    set(ZLIB_LIBRARIES ZLIB::ZLIB)
+    set(ZLIB_INCLUDE_DIR ${sdl_image_SOURCE_DIR}/external/zlib ${sdl_image_BINARY_DIR}/external/zlib)
+    set(ZLIB_INCLUDE_DIRS ${ZLIB_INCLUDE_DIR})
+    list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/3rdParty/zlib/CMake")
+  else()
+    dependency_options("zlib" DEVILUTIONX_SYSTEM_ZLIB ON DEVILUTIONX_STATIC_ZLIB)
+    if(NOT DEVILUTIONX_SYSTEM_ZLIB)
+      add_subdirectory(3rdParty/zlib)
+    endif()
   endif()
 else()
   if(EMSCRIPTEN)

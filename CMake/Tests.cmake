@@ -137,6 +137,14 @@ endforeach()
 
 foreach(test_target ${standalone_tests})
   target_link_libraries(${test_target} PRIVATE GTest::gtest_main)
+  # These standalone tests include <gmock/gmock.h> but only linked gtest_main,
+  # which carries no gmock include dirs - they only ever built where system
+  # gtest headers sat on the default include path. Link GTest::gmock when the
+  # dependency tree provides it (vendored googletest always does; system
+  # FindGTest defines it when libgmock was found) so the suite builds anywhere.
+  if(TARGET GTest::gmock)
+    target_link_libraries(${test_target} PRIVATE GTest::gmock)
+  endif()
   target_include_directories(${test_target} PRIVATE "${PROJECT_SOURCE_DIR}/Source")
 endforeach()
 
