@@ -6,9 +6,18 @@
 
 #include <gtest/gtest.h>
 
+#include <optional>
 #include <stdexcept>
+#include <string>
+#include <string_view>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 
 #include "levels/town_data.h"
+#include "tables/textdat.h"
+#include "tables/townerdat.hpp"
+#include "towners.h"
 
 using namespace devilution;
 
@@ -233,6 +242,196 @@ TEST(InitializeTristram, PreservesValidCurrentTownOnRepeatCall)
 
 	EXPECT_EQ(reg.GetCurrentTown(), "modtown");
 	reg.SetCurrentTown(TristramTownId);
+}
+
+class TownNpcTest : public ::testing::Test {
+protected:
+	void SetUp() override
+	{
+		saved_ = TownersDataEntries;
+		TownersDataEntries.clear();
+
+		TownerDataEntry healer;
+		healer.type = TOWN_HEALER;
+		healer.name = "Pepin the Healer";
+		healer.shortName = "Pepin";
+		healer.position = { 55, 79 };
+		healer.direction = Direction::SouthEast;
+		healer.animWidth = 96;
+		healer.animPath = "towners\\healer\\healer";
+		healer.animFrames = 20;
+		healer.animDelay = 6;
+		healer.gossipTexts = { TEXT_PEPIN2 };
+		TownersDataEntries.push_back(healer);
+	}
+
+	void TearDown() override { TownersDataEntries = saved_; }
+
+private:
+	std::vector<TownerDataEntry> saved_;
+};
+
+TEST_F(TownNpcTest, NoNpcs_UsesDefaultEntries)
+{
+	TownConfig cfg;
+	const std::vector<TownerDataEntry> entries = ResolveTownerEntries(&cfg);
+	ASSERT_EQ(entries.size(), TownersDataEntries.size());
+	EXPECT_EQ(entries[0].position, TownersDataEntries[0].position);
+	EXPECT_EQ(ResolveTownerEntries(nullptr).size(), TownersDataEntries.size());
+}
+
+TEST_F(TownNpcTest, PositionOnly_KeepsTristramData)
+{
+	TownConfig cfg;
+	TownNpc npc;
+	npc.role = "healer";
+	npc.position = { 40, 52 };
+	cfg.npcs.push_back(npc);
+
+	const std::vector<TownerDataEntry> entries = ResolveTownerEntries(&cfg);
+	ASSERT_EQ(entries.size(), 1U);
+	EXPECT_EQ(entries[0].type, TOWN_HEALER);
+	EXPECT_EQ(entries[0].position, (Point { 40, 52 }));
+	EXPECT_EQ(entries[0].animPath, TownersDataEntries[0].animPath);
+	EXPECT_EQ(entries[0].gossipTexts, TownersDataEntries[0].gossipTexts);
+	EXPECT_EQ(entries[0].shortName, "Pepin");
+}
+
+TEST_F(TownNpcTest, CustomFields_AreApplied)
+{
+	TownConfig cfg;
+	TownNpc npc;
+	npc.role = "healer";
+	npc.position = { 10, 11 };
+	npc.name = "Tremain the Priest";
+	npc.animPath = "towners\\priest\\priest8";
+	npc.gossip = std::vector<std::string> { "TEXT_PEPIN3" };
+	cfg.npcs.push_back(npc);
+
+	const std::vector<TownerDataEntry> entries = ResolveTownerEntries(&cfg);
+	ASSERT_EQ(entries.size(), 1U);
+	EXPECT_EQ(entries[0].name, "Tremain the Priest");
+	EXPECT_TRUE(entries[0].shortName.empty());
+	EXPECT_EQ(entries[0].animPath, "towners\\priest\\priest8");
+	ASSERT_EQ(entries[0].gossipTexts.size(), 1U);
+	EXPECT_EQ(entries[0].gossipTexts[0], TEXT_PEPIN3);
+}
+
+TEST_F(TownNpcTest, UnknownRoleAndGossip_AreSkipped)
+{
+	TownConfig cfg;
+	TownNpc badRole;
+	badRole.role = "jester";
+	cfg.npcs.push_back(badRole);
+	TownNpc badGossip;
+	badGossip.role = "healer";
+	badGossip.gossip = std::vector<std::string> { "NOT_A_SPEECH", "TEXT_PEPIN3" };
+	cfg.npcs.push_back(badGossip);
+
+	const std::vector<TownerDataEntry> entries = ResolveTownerEntries(&cfg);
+	ASSERT_EQ(entries.size(), 1U);
+	ASSERT_EQ(entries[0].gossipTexts.size(), 1U);
+	EXPECT_EQ(entries[0].gossipTexts[0], TEXT_PEPIN3);
+}
+
+TEST(TownerNames, ParseRole)
+{
+	EXPECT_EQ(ParseTownerRole("healer"), std::optional<_talker_id> { TOWN_HEALER });
+	EXPECT_EQ(ParseTownerRole("storyteller"), std::optional<_talker_id> { TOWN_STORY });
+	EXPECT_FALSE(ParseTownerRole("jester").has_value());
+}
+
+class TownerNameLookupTest : public ::testing::Test {
+protected:
+	void SetUp() override
+	{
+		savedTowners_ = std::move(Towners);
+		savedEntries_ = TownersDataEntries;
+		savedLongNames_ = TownerLongNames;
+		Towners.clear();
+		TownersDataEntries.clear();
+		TownerDataEntry smith;
+		smith.type = TOWN_SMITH;
+		smith.name = "Griswold the Blacksmith";
+		smith.shortName = "Griswold";
+		TownersDataEntries.push_back(smith);
+		TownerLongNames.clear();
+		TownerLongNames[TOWN_HEALER] = "Pepin the Healer";
+		SetTalkingTowner(std::nullopt);
+	}
+
+	void TearDown() override
+	{
+		SetTalkingTowner(std::nullopt);
+		Towners = std::move(savedTowners_);
+		TownersDataEntries = savedEntries_;
+		TownerLongNames = savedLongNames_;
+	}
+
+	/** Mirrors InitTownerInfo: an empty short name falls back to the full name. */
+	static void AddTowner(_talker_id type, std::string_view name, std::string_view shortName = {})
+	{
+		Towner &towner = Towners.emplace_back();
+		towner._ttype = type;
+		towner.name = name;
+		towner.shortName = shortName.empty() ? name : shortName;
+	}
+
+private:
+	std::vector<Towner> savedTowners_;
+	std::vector<TownerDataEntry> savedEntries_;
+	std::unordered_map<_talker_id, std::string> savedLongNames_;
+};
+
+TEST_F(TownerNameLookupTest, DefaultHealer_UsesTristramNames)
+{
+	AddTowner(TOWN_HEALER, "Pepin the Healer", "Pepin");
+	EXPECT_EQ(GetTownerShortName(TOWN_HEALER), "Pepin");
+	EXPECT_EQ(GetTownerFullName(TOWN_HEALER), "Pepin the Healer");
+}
+
+TEST_F(TownerNameLookupTest, RenamedHealer_UsesCustomName)
+{
+	AddTowner(TOWN_HEALER, "Tremain the Priest");
+	EXPECT_EQ(GetTownerShortName(TOWN_HEALER), "Tremain the Priest");
+	EXPECT_EQ(GetTownerFullName(TOWN_HEALER), "Tremain the Priest");
+}
+
+TEST_F(TownerNameLookupTest, DuplicateHealers_UseTheOneTalkedTo)
+{
+	AddTowner(TOWN_HEALER, "Akara the Healer");
+	AddTowner(TOWN_HEALER, "Tremain the Priest");
+
+	SetTalkingTowner(1);
+	EXPECT_EQ(GetTownerShortName(TOWN_HEALER), "Tremain the Priest");
+	SetTalkingTowner(0);
+	EXPECT_EQ(GetTownerShortName(TOWN_HEALER), "Akara the Healer");
+	SetTalkingTowner(std::nullopt);
+	EXPECT_EQ(GetTownerShortName(TOWN_HEALER), "Akara the Healer");
+	EXPECT_EQ(GetTalkingTowner(TOWN_HEALER), &Towners[0]);
+}
+
+TEST_F(TownerNameLookupTest, TalkingToOtherRole_DoesNotAffectLookup)
+{
+	AddTowner(TOWN_SMITH, "Griswold the Blacksmith", "Griswold");
+	AddTowner(TOWN_HEALER, "Pepin the Healer", "Pepin");
+	SetTalkingTowner(0);
+	EXPECT_EQ(GetTownerFullName(TOWN_HEALER), "Pepin the Healer");
+	EXPECT_EQ(GetTalkingTowner(TOWN_HEALER), &Towners[1]);
+}
+
+TEST_F(TownerNameLookupTest, StaleTalkingIndex_IsIgnored)
+{
+	AddTowner(TOWN_HEALER, "Pepin the Healer");
+	SetTalkingTowner(5);
+	EXPECT_EQ(GetTalkingTowner(TOWN_HEALER), &Towners[0]);
+}
+
+TEST_F(TownerNameLookupTest, UnspawnedRole_FallsBackToDefaults)
+{
+	EXPECT_EQ(GetTownerShortName(TOWN_SMITH), "Griswold");
+	EXPECT_EQ(GetTownerFullName(TOWN_HEALER), "Pepin the Healer");
+	EXPECT_EQ(GetTalkingTowner(TOWN_SMITH), nullptr);
 }
 
 } // namespace

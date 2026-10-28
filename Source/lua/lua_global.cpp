@@ -37,6 +37,7 @@
 #include "lua/modules/render.hpp"
 #include "lua/modules/system.hpp"
 #include "lua/modules/towners.hpp"
+#include "lua/modules/towns.hpp"
 #include "options.h"
 #include "plrmsg.h"
 #include "stores.h"
@@ -312,6 +313,7 @@ void LuaInitialize()
 	    "devilutionx.player", LuaPlayerModule(lua),
 	    "devilutionx.render", LuaRenderModule(lua),
 	    "devilutionx.towners", LuaTownersModule(lua),
+	    "devilutionx.towns", LuaTownsModule(lua),
 	    "devilutionx.hellfire", LuaHellfireModule(lua),
 	    "devilutionx.system", LuaSystemModule(lua),
 	    "devilutionx.floatingnumbers", LuaFloatingNumbersModule(lua),

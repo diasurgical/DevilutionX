@@ -89,6 +89,7 @@ TEST(TownerDat, LoadTownerData)
 	ASSERT_NE(healer, nullptr) << "Should find TOWN_HEALER data";
 	EXPECT_EQ(healer->type, TOWN_HEALER);
 	EXPECT_EQ(healer->name, "Pepin the Healer");
+	EXPECT_EQ(healer->shortName, "Pepin");
 	EXPECT_EQ(healer->position.x, 55);
 	EXPECT_EQ(healer->position.y, 79);
 	EXPECT_EQ(healer->direction, Direction::SouthEast);
