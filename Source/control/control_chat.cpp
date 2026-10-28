@@ -167,7 +167,7 @@ void DrawChatBox(const Surface &out)
 			DrawString(out, player._pName, { { x, y + 60 + (talkBtn * 18) }, { 204, 0 } }, { .flags = color });
 			lastActivePlayerId = i;
 		}
-		
+
 		talkBtn++;
 	}
 	if (lastActivePlayerId >= 4) {
@@ -221,7 +221,7 @@ bool CheckChatButtons()
 		scrollTalkButtonDown = 2;
 		return true;
 	}
-	
+
 	return false;
 }
 

@@ -21,6 +21,7 @@
 #include "levels/drlg_l3.h"
 #include "levels/drlg_l4.h"
 #include "levels/town.h"
+#include "levels/town_data.h"
 #include "lighting.h"
 #include "monster.h"
 #include "objects.h"
@@ -625,6 +626,12 @@ bool IsNearThemeRoom(WorldTilePosition testPosition)
 
 void InitLevels()
 {
+	// Note: InitializeTristram overwrites any existing "tristram" registration.
+	// Lua mods that called towns.register("tristram", ...) before InitLevels will
+	// have their config replaced. There is intentionally no registry Reset() here;
+	// mod-registered towns persist across new games and are re-populated by the
+	// Lua runtime at mod load time.
+	InitializeTristram();
 	currlevel = 0;
 	leveltype = DTYPE_TOWN;
 	setlevel = false;
