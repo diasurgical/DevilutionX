@@ -34,6 +34,7 @@
 #include "game_mode.hpp"
 #include "headless_mode.hpp"
 #include "hwcursor.hpp"
+#include "levels/town_data.h"
 #include "loadsave.h"
 #include "multi.h"
 #include "pfile.h"
@@ -103,6 +104,7 @@ Cutscenes PickCutscene(interface_mode uMsg)
 	case WM_DIABNEWGAME:
 		return CutStart;
 	case WM_DIABRETOWN:
+	case WM_DIABTOWNSWITCH:
 		return CutTown;
 	case WM_DIABNEXTLVL:
 	case WM_DIABPREVLVL:
@@ -462,6 +464,35 @@ void DoLoad(interface_mode uMsg)
 		loadResult = LoadGameLevel(false, ENTRY_MAIN);
 		if (loadResult.has_value()) IncProgress();
 		break;
+	case WM_DIABTOWNSWITCH:
+		IncProgress();
+		if (!gbIsMultiplayer) {
+			pfile_save_level();
+		} else {
+			DeltaSaveLevel();
+		}
+		IncProgress();
+		FreeGameMem();
+		if (!GetTownRegistry().HasTown(DestinationTownID)) {
+			LogError("WM_DIABTOWNSWITCH: unknown town '{}'", DestinationTownID);
+			loadResult = tl::make_unexpected<std::string>("Unknown destination town");
+			break;
+		}
+		GetTownRegistry().SetCurrentTown(DestinationTownID);
+
+		if (MyPlayer != nullptr) {
+			const TownConfig &destTown = GetTownRegistry().GetTown(DestinationTownID);
+			MyPlayer->_pCurrentTownId = destTown.saveId;
+		}
+
+		setlevel = false;
+		currlevel = 0;
+		leveltype = DTYPE_TOWN;
+		IncProgress();
+		loadResult = LoadGameLevel(false, ENTRY_TOWNSWITCH);
+		if (loadResult.has_value()) IncProgress();
+
+		break;
 	default:
 		loadResult = std::unexpected<std::string>("Unknown progress mode");
 		break;
@@ -569,6 +600,19 @@ void ProgressEventHandler(const SDL_Event &event, uint16_t modState)
 }
 
 } // namespace
+
+void QueueTownSwitch()
+{
+	if (MyPlayer != nullptr) {
+		MyPlayer->_pInvincible = true;
+		SDL_Event event;
+		CustomEventToSdlEvent(event, WM_DIABTOWNSWITCH);
+		if (!SDLC_PushEvent(&event)) {
+			LogError("QueueTownSwitch: {}", SDL_GetError());
+			SDL_ClearError();
+		}
+	}
+}
 
 void RegisterCustomEvents()
 {
