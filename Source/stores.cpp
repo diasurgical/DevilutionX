@@ -198,19 +198,6 @@ int8_t CountdownScrollUp;
 /** Countdown for the push state of the scroll down button */
 int8_t CountdownScrollDown;
 
-/** Maps from towner IDs to NPC names. */
-const char *const TownerNames[] = {
-	N_("Griswold"),
-	N_("Pepin"),
-	"",
-	N_("Ogden"),
-	N_("Cain"),
-	N_("Farnham"),
-	N_("Adria"),
-	N_("Gillian"),
-	N_("Wirt"),
-};
-
 constexpr int PaddingTop = 32;
 
 // For most languages, line height is always 12.
@@ -474,7 +461,7 @@ void StartSmith()
 	AddSText(0, 1, _("Welcome to the"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
 	AddSText(0, 3, _("Blacksmith's shop"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
 	AddSText(0, 7, _("Would you like to:"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-	AddTalkMenuEntry(10, _("Talk to Griswold"));
+	AddTalkMenuEntry(10, FormatRuntime(_("Talk to {:s}"), GetTownerShortName(TOWN_SMITH)));
 	if (*GetOptions().Gameplay.storeUi == StoreUi::VisualGrid) {
 		AddMenuEntry(12, _("Trade / Repair"));
 		AddMenuEntry(14, _("Leave the shop"));
@@ -731,7 +718,7 @@ void StartWitch()
 	HasScrollbar = false;
 	AddSText(0, 2, _("Witch's shack"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
 	AddSText(0, 9, _("Would you like to:"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-	AddTalkMenuEntry(12, _("Talk to Adria"));
+	AddTalkMenuEntry(12, FormatRuntime(_("Talk to {:s}"), GetTownerShortName(TOWN_WITCH)));
 	if (*GetOptions().Gameplay.storeUi == StoreUi::VisualGrid) {
 		AddMenuEntry(14, _("Buy / Sell"));
 		AddMenuEntry(16, _("Recharge staves"));
@@ -1010,17 +997,17 @@ void StartBoy()
 {
 	IsTextFullSize = false;
 	HasScrollbar = false;
-	AddSText(0, 2, _("Wirt the Peg-legged boy"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
+	AddSText(0, 2, GetTownerFullName(TOWN_PEGBOY), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
 	AddSLine(5);
 	if (!BoyItem.isEmpty()) {
-		AddTalkMenuEntry(8, _("Talk to Wirt"));
+		AddTalkMenuEntry(8, FormatRuntime(_("Talk to {:s}"), GetTownerShortName(TOWN_PEGBOY)));
 		AddMenuLabel(12, _("I have something for sale,"));
 		AddMenuLabel(14, _("but it will cost 50 gold"));
 		AddMenuLabel(16, _("just to take a look. "));
 		AddMenuEntry(18, _("What have you got?"));
 		AddMenuEntry(20, _("Say goodbye"));
 	} else {
-		AddTalkMenuEntry(12, _("Talk to Wirt"));
+		AddTalkMenuEntry(12, FormatRuntime(_("Talk to {:s}"), GetTownerShortName(TOWN_PEGBOY)));
 		AddMenuEntry(18, _("Say goodbye"));
 	}
 }
@@ -1073,7 +1060,7 @@ void StartHealer()
 	AddSText(0, 1, _("Welcome to the"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
 	AddSText(0, 3, _("Healer's home"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
 	AddSText(0, 9, _("Would you like to:"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-	AddTalkMenuEntry(12, _("Talk to Pepin"));
+	AddTalkMenuEntry(12, FormatRuntime(_("Talk to {:s}"), GetTownerShortName(TOWN_HEALER)));
 	AddMenuEntry(14, _("Buy items"));
 	AddMenuEntry(18, _("Leave Healer's home"));
 	AddSLine(5);
@@ -1113,7 +1100,7 @@ void StartStoryteller()
 	HasScrollbar = false;
 	AddSText(0, 2, _("The Town Elder"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
 	AddSText(0, 9, _("Would you like to:"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-	AddTalkMenuEntry(12, _("Talk to Cain"));
+	AddTalkMenuEntry(12, FormatRuntime(_("Talk to {:s}"), GetTownerShortName(TOWN_STORY)));
 	AddMenuEntry(14, _("Identify an item"));
 	AddMenuEntry(18, _("Say goodbye"));
 	AddSLine(5);
@@ -1245,10 +1232,10 @@ void StartTalk()
 
 	IsTextFullSize = false;
 	HasScrollbar = false;
-	AddSText(0, 2, FormatRuntime(_("Talk to {:s}"), _(TownerNames[TownerId])), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
+	AddSText(0, 2, FormatRuntime(_("Talk to {:s}"), GetTownerShortName(TownerId)), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
 	AddSLine(5);
 	if (gbIsSpawn) {
-		AddSText(0, 10, FormatRuntime(_("Talking to {:s}"), _(TownerNames[TownerId])), UiFlags::ColorWhite | UiFlags::AlignCenter, false);
+		AddSText(0, 10, FormatRuntime(_("Talking to {:s}"), GetTownerShortName(TownerId)), UiFlags::ColorWhite | UiFlags::AlignCenter, false);
 		AddSText(0, 12, _("is not available"), UiFlags::ColorWhite | UiFlags::AlignCenter, false);
 		AddSText(0, 14, _("in the shareware"), UiFlags::ColorWhite | UiFlags::AlignCenter, false);
 		AddSText(0, 16, _("version"), UiFlags::ColorWhite | UiFlags::AlignCenter, false);
@@ -1289,7 +1276,7 @@ void StartTavern()
 	AddSText(0, 1, _("Welcome to the"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
 	AddSText(0, 3, _("Rising Sun"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
 	AddSText(0, 9, _("Would you like to:"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-	AddTalkMenuEntry(12, _("Talk to Ogden"));
+	AddTalkMenuEntry(12, FormatRuntime(_("Talk to {:s}"), GetTownerShortName(TOWN_TAVERN)));
 	AddMenuEntry(18, _("Leave the tavern"));
 	AddSLine(5);
 	CurrentItemIndex = 20;
@@ -1299,9 +1286,9 @@ void StartBarmaid()
 {
 	IsTextFullSize = false;
 	HasScrollbar = false;
-	AddSText(0, 2, _("Gillian"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
+	AddSText(0, 2, GetTownerShortName(TOWN_BMAID), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
 	AddSText(0, 9, _("Would you like to:"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-	AddTalkMenuEntry(12, _("Talk to Gillian"));
+	AddTalkMenuEntry(12, FormatRuntime(_("Talk to {:s}"), GetTownerShortName(TOWN_BMAID)));
 	AddMenuEntry(14, _("Access Storage"));
 	AddMenuEntry(18, _("Say goodbye"));
 	AddSLine(5);
@@ -1312,9 +1299,9 @@ void StartDrunk()
 {
 	IsTextFullSize = false;
 	HasScrollbar = false;
-	AddSText(0, 2, _("Farnham the Drunk"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
+	AddSText(0, 2, GetTownerFullName(TOWN_DRUNK), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
 	AddSText(0, 9, _("Would you like to:"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-	AddTalkMenuEntry(12, _("Talk to Farnham"));
+	AddTalkMenuEntry(12, FormatRuntime(_("Talk to {:s}"), GetTownerShortName(TOWN_DRUNK)));
 	AddMenuEntry(18, _("Say Goodbye"));
 	AddSLine(5);
 	CurrentItemIndex = 20;
@@ -2025,7 +2012,7 @@ void TalkEnter()
 	}
 
 	if (CurrentTextLine == sn - 2) {
-		Towner *target = GetTowner(TownerId);
+		Towner *target = GetTalkingTowner(TownerId);
 		assert(target != nullptr);
 		InitQTextMsg(target->gossip);
 		return;

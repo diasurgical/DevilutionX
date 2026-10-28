@@ -49,6 +49,23 @@ struct TownEntryPoint {
 };
 
 /**
+ * @brief An NPC placed in a town.
+ *
+ * `role` selects the built-in behavior (see ParseTownerRole in towners.h). Optional fields that are
+ * left unset fall back to the Tristram towners.tsv row for that role.
+ */
+struct TownNpc {
+	std::string role; // e.g. "healer", "smith", "storyteller"
+	Point position;
+	std::optional<std::string> name;
+	std::optional<std::string> animPath;
+	std::optional<uint8_t> animFrames;
+	std::optional<int16_t> animDelay;
+	/** Speech ids by enum name, e.g. "TEXT_PEPIN2". */
+	std::optional<std::vector<std::string>> gossip;
+};
+
+/**
  * @brief Dungeon entrance / town warp trigger (see InitTownTriggers)
  */
 struct TownTrigger {
@@ -127,6 +144,8 @@ struct TownConfig {
 	std::vector<TownSector> sectors;
 	std::vector<TownEntryPoint> entries;
 	std::vector<TownTrigger> triggers;
+	/** When empty, the default towners.tsv NPCs are used. */
+	std::vector<TownNpc> npcs;
 	std::array<Point, NumTownPortalSlots> portalPositions = DefaultTristramPortalPositions;
 
 	/**
