@@ -170,7 +170,7 @@ void DrawChatBox(const Surface &out)
 
 		talkBtn++;
 	}
-	if (lastActivePlayerId >= 4) {
+	if (lastActivePlayerId >= 4 || sgbPlrTalkMuteScroll > 0) {
 		// If the last player is in at least 5th position, we need to draw the scroll bar
 		if (scrollTalkButtonDown == 1) {
 			ClxDraw(out, mainPanelPosition + Displacement { 456, 81}, (*pSTextSlidCels)[11]);
@@ -179,7 +179,9 @@ void DrawChatBox(const Surface &out)
 		}
 		ClxDraw(out, mainPanelPosition + Displacement { 456, 93}, (*pSTextSlidCels)[13]);
 		ClxDraw(out, mainPanelPosition + Displacement { 456, 105}, (*pSTextSlidCels)[13]);
-		ClxDraw(out, mainPanelPosition + Displacement { 456, 93 + static_cast<int>((sgbPlrTalkMuteScroll * 12) / (lastActivePlayerId - 3U))}, (*pSTextSlidCels)[12]);
+		// If we are rendering the buttons because it was previously displaced, prevent zero div
+		const size_t scrollbarUnits = lastActivePlayerId < 4 ? sgbPlrTalkMuteScroll : lastActivePlayerId - 3U;//std::max(static_cast<size_t>(sgbPlrTalkMuteScroll), lastActivePlayerId - 3U);
+		ClxDraw(out, mainPanelPosition + Displacement { 456, 93 + static_cast<int>((sgbPlrTalkMuteScroll * 12) / scrollbarUnits)}, (*pSTextSlidCels)[12]);
 		if (scrollTalkButtonDown == 2) {
 			ClxDraw(out, mainPanelPosition + Displacement { 456, 117}, (*pSTextSlidCels)[10]);
 		} else {
@@ -257,8 +259,24 @@ void CheckChatButtonsUp()
 			WhisperList[playerId] = !WhisperList[playerId];
 
 	} else if (scrollUpButton.contains(MousePosition)) {
+
 		if (sgbPlrTalkMuteScroll > 0) {
-			sgbPlrTalkMuteScroll--;
+
+			size_t lastActivePlayerId = 0;
+			const size_t offsetStart = static_cast<size_t>(MyPlayer->getId() < sgbPlrTalkMuteScroll ? sgbPlrTalkMuteScroll + 1 : sgbPlrTalkMuteScroll);
+			for (size_t i = offsetStart; i < Players.size(); i++) {
+				Player &player = Players[i];
+				if (player.plractive) {
+					lastActivePlayerId = i;
+				}
+			}
+
+			if (lastActivePlayerId < 4) {
+				sgbPlrTalkMuteScroll = 0;
+			} else {
+				sgbPlrTalkMuteScroll--;
+			}
+
 		}
 	} else if (scrollDnButton.contains(MousePosition)) {
 
