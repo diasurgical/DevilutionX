@@ -95,6 +95,10 @@ enum OutlineColors : uint8_t {
 	OutlineColorsPlayer2 = (PAL16_YELLOW + 7),
 	OutlineColorsPlayer3 = (PAL16_RED + 7),
 	OutlineColorsPlayer4 = (PAL16_BLUE + 7),
+	OutlineColorsPlayer5 = (PAL16_ORANGE + 5),
+	OutlineColorsPlayer6 = (PAL16_BEIGE + 5),
+	OutlineColorsPlayer7 = (PAL16_RED + 5),
+	OutlineColorsPlayer8 = (PAL16_BLUE + 5),
 	OutlineColorsObject = (PAL16_YELLOW + 2),
 	OutlineColorsTowner = (PAL16_BEIGE + 6),
 	OutlineColorsMonster = (PAL16_RED + 9),
@@ -443,13 +447,17 @@ void DrawPlayerIcons(const Surface &out, const Player &player, Point position, b
 		DrawPlayerIconHelper(out, MissileGraphicID::Reflect, position + Displacement { 0, 16 }, player, infraVision, lightTableIndex);
 }
 
-uint8_t GetPlayerOutlineColor(int id)
+uint8_t GetPlayerOutlineColor(uint8_t id)
 {
 	static constexpr uint8_t PlayerOutlineColors[] = {
 		OutlineColorsPlayer1,
 		OutlineColorsPlayer2,
 		OutlineColorsPlayer3,
 		OutlineColorsPlayer4,
+		OutlineColorsPlayer5,
+		OutlineColorsPlayer6,
+		OutlineColorsPlayer7,
+		OutlineColorsPlayer8,
 	};
 
 	return PlayerOutlineColors[id % SDL_arraysize(PlayerOutlineColors)];
