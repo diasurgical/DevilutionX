@@ -88,7 +88,6 @@ set(libdevilutionx_SRCS
   levels/themes.cpp
   levels/tile_properties.cpp
   levels/town.cpp
-  levels/town_data.cpp
   levels/trigs.cpp
 
   lua/autocomplete.cpp
@@ -398,6 +397,13 @@ target_link_dependencies(libdevilutionx_game_mode PRIVATE
   libdevilutionx_options
 )
 
+add_devilutionx_object_library(libdevilutionx_town_data
+  levels/town_data.cpp
+)
+target_link_dependencies(libdevilutionx_town_data PUBLIC
+  libdevilutionx_log
+)
+
 add_devilutionx_object_library(libdevilutionx_dun_tile_data
   levels/dun_tile_data.cpp
   levels/reencode_dun_cels.cpp
@@ -406,6 +412,7 @@ target_link_dependencies(libdevilutionx_dun_tile_data PUBLIC
   tl
   unordered_dense::unordered_dense
   libdevilutionx_assets
+  libdevilutionx_town_data
   PRIVATE
   libdevilutionx_format_int
   libdevilutionx_sdl2_to_1_2_backports
