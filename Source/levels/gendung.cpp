@@ -300,6 +300,7 @@ void InitGlobals()
 	memset(dItem, 0, sizeof(dItem));
 	memset(dObject, 0, sizeof(dObject));
 	memset(dSpecial, 0, sizeof(dSpecial));
+	dDeferredRedrawTiles.clear();
 	uint8_t defaultLight = leveltype == DTYPE_TOWN ? 0 : 15;
 #ifdef _DEBUG
 	if (DisableLighting)

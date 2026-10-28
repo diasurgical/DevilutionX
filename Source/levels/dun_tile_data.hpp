@@ -22,11 +22,13 @@
 #include "utils/attributes.h"
 #include "utils/bitset2d.hpp"
 #include "utils/enum_traits.h"
+#include "utils/static_vector.hpp"
 
 namespace devilution {
 
 #define MAXTHEMES 50
 #define MAXTILES 1379
+#define MAXDEFERRED_REDRAW_TILES 2
 
 extern DVL_API_FOR_TEST uint8_t currlevel;
 extern bool setlevel;
@@ -58,6 +60,13 @@ struct MegaTile {
 	uint16_t micro2;
 	uint16_t micro3;
 	uint16_t micro4;
+};
+
+struct AnchoredPoint {
+	Point anchorPosition;
+	Displacement offset;
+
+	[[nodiscard]] Point position() const { return anchorPosition + offset; }
 };
 
 /** Reprecents what tiles are being utilized in the generated map. */
@@ -149,6 +158,12 @@ inline void MarkWalkabilityChanged()
  * "levels/towndata/towns") contains trees rather than arches.
  */
 extern int8_t dSpecial[MAXDUNX][MAXDUNY];
+/**
+ * Positions of tiles to be redrawn when their anchor tile is rendered,
+ * ensuring they cover anything behind them.
+ * For example used to prevent the player from covering the cathedral entrance arches in Tristram.
+ */
+extern StaticVector<AnchoredPoint, MAXDEFERRED_REDRAW_TILES> dDeferredRedrawTiles;
 extern int themeCount;
 extern THEME_LOC themeLoc[MAXTHEMES];
 
