@@ -1324,20 +1324,19 @@ void SearchAutomapItem(const Surface &out, const Displacement &myPlayerOffset, i
 	}
 }
 
-uint8_t GetPlayerMapColor(uint8_t id)
+uint8_t GetPlayerMapColor(int id)
 {
 	static constexpr uint8_t PlayerMapColors[] = {
 		MapColorsPlayer1,
 		MapColorsPlayer2,
 		MapColorsPlayer3,
 		MapColorsPlayer4,
-		MapColorsPlayer5,
-		MapColorsPlayer6,
-		MapColorsPlayer7,
-		MapColorsPlayer8,
 	};
 
-	return PlayerMapColors[id % SDL_arraysize(PlayerMapColors)];
+	if (id < 0 || id >= static_cast<int>(SDL_arraysize(PlayerMapColors)))
+		return MapColorsPlayer1;
+
+	return PlayerMapColors[id];
 }
 
 /**

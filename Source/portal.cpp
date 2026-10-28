@@ -30,7 +30,7 @@ std::array<Point, MAXPORTAL> ActivePortalPositions = { {
 	{ 60, 43 },
 	{ 62, 43 },
 	{ 64, 43 },
-} };
+};
 
 } // namespace
 

@@ -215,19 +215,10 @@ bool CheckChatButtons()
 
 		TalkButtonsDown[(MousePosition.y - (69 + mainPanelPosition.y)) / 18] = true;
 
-		return true;
-	} else 	if (scrollUpButton.contains(MousePosition)) {
-		scrollTalkButtonDown = 1;
-		return true;
-	} else 	if (scrollDnButton.contains(MousePosition)) {
-		scrollTalkButtonDown = 2;
-		return true;
-	}
-
-	return false;
+	return true;
 }
 
-void CheckChatButtonsUp()
+void CheckMuteButtonUp()
 {
 	if (!ChatFlag)
 		return;
@@ -247,51 +238,15 @@ void CheckChatButtonsUp()
 
 	muteButtons.size.height = (MuteButtons * muteButtons.size.height) + ((MuteButtons - 1) * MuteButtonPadding);
 
-	if (muteButtons.contains(MousePosition)) {
+	if (!buttons.contains(MousePosition))
+		return;
 
-		const int off = (MousePosition.y - muteButtons.position.y) / (MuteButtonRect.size.height + MuteButtonPadding);
-		if (off < 0 || off > 2) {
-			return;
-		}
-		size_t playerId = off + sgbPlrTalkMuteScroll;
-		playerId += (playerId < MyPlayer->getId() ? 0 : 1);
-		if (playerId < Players.size())
-			WhisperList[playerId] = !WhisperList[playerId];
+	int off = (MousePosition.y - buttons.position.y) / (MuteButtonRect.size.height + MuteButtonPadding);
 
-	} else if (scrollUpButton.contains(MousePosition)) {
-
-		if (sgbPlrTalkMuteScroll > 0) {
-
-			size_t lastActivePlayerId = 0;
-			const size_t offsetStart = static_cast<size_t>(MyPlayer->getId() < sgbPlrTalkMuteScroll ? sgbPlrTalkMuteScroll + 1 : sgbPlrTalkMuteScroll);
-			for (size_t i = offsetStart; i < Players.size(); i++) {
-				Player &player = Players[i];
-				if (player.plractive) {
-					lastActivePlayerId = i;
-				}
-			}
-
-			if (lastActivePlayerId < 4) {
-				sgbPlrTalkMuteScroll = 0;
-			} else {
-				sgbPlrTalkMuteScroll--;
-			}
-
-		}
-	} else if (scrollDnButton.contains(MousePosition)) {
-
-		size_t lastActivePlayerId = 0;
-		const size_t offsetStart = static_cast<size_t>(MyPlayer->getId() < sgbPlrTalkMuteScroll ? sgbPlrTalkMuteScroll + 1 : sgbPlrTalkMuteScroll);
-		for (size_t i = offsetStart; i < Players.size(); i++) {
-			Player &player = Players[i];
-			if (player.plractive) {
-				lastActivePlayerId = i;
-			}
-		}
-
-		if (sgbPlrTalkMuteScroll + 3U < lastActivePlayerId) {
-			sgbPlrTalkMuteScroll++;
-		}
+	size_t playerId = 0;
+	for (; playerId < Players.size() && off != -1; ++playerId) {
+		if (playerId != MyPlayerId)
+			off--;
 	}
 }
 

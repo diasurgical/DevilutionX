@@ -386,6 +386,7 @@ std::expected<void, std::string> InitMainPanel()
 			talkButtons = LoadCel("ctrlpan\\talkbutt", 61);
 		}
 		sgbPlrTalkTbl = 0;
+		sgbPlrTalkMuteScroll = 0;
 		TalkMessage[0] = '\0';
 		for (bool &whisper : WhisperList)
 			whisper = true;
