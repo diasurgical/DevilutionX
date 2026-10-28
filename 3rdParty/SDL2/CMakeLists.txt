@@ -23,6 +23,9 @@ if(TARGET_PLATFORM STREQUAL "dos")
     URL_HASH MD5=6e77a1d1a79d7f0dd6231b39515a341f
   )
 elseif(AMIGA)
+  # We link SDL2 statically, so the sdl2.library wrapper is not needed.
+  # It also fails to link with LTO enabled.
+  set(SDL_AMIGAOS3_LIBRARY OFF)
   FetchContent_Declare(SDL2
     URL https://github.com/diasurgical/SDL/archive/240bc700a9408171edad309590ec180e67c42aeb.tar.gz
     URL_HASH MD5=220f9ea9e94c3e2c6a5054822c05c08f
