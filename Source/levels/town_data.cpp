@@ -72,6 +72,16 @@ std::string TownRegistry::GetTownBySaveId(uint8_t saveId) const
 	return { TristramTownId };
 }
 
+Point GetPortalTownPosition(size_t portalIndex)
+{
+	if (portalIndex >= NumTownPortalSlots)
+		return DefaultTristramPortalPositions[0];
+	const TownConfig *config = GetCurrentTownConfig();
+	if (config != nullptr)
+		return config->portalPositions[portalIndex];
+	return DefaultTristramPortalPositions[portalIndex];
+}
+
 Point TownConfig::GetEntryPoint(lvl_entry entry, int warpFrom) const
 {
 	// For ENTRY_TWARPUP, match both entry type and warpFromLevel
@@ -113,6 +123,14 @@ void InitializeTristram()
 		{ ENTRY_TWARPUP, { 41, 81 }, 13 },
 		{ ENTRY_TWARPUP, { 36, 25 }, 21 },
 		{ ENTRY_TWARPUP, { 79, 62 }, 17 },
+	};
+	tristram.triggers = {
+		{ { 25, 29 }, WM_DIABNEXTLVL, 0, std::nullopt },
+		{ { 49, 21 }, WM_DIABTOWNWARP, 5, DTYPE_CATACOMBS },
+		{ { 17, 69 }, WM_DIABTOWNWARP, 9, DTYPE_CAVES },
+		{ { 41, 80 }, WM_DIABTOWNWARP, 13, DTYPE_HELL },
+		{ { 80, 62 }, WM_DIABTOWNWARP, 17, DTYPE_NEST },
+		{ { 36, 24 }, WM_DIABTOWNWARP, 21, DTYPE_CRYPT },
 	};
 	TownRegistry &registry = GetTownRegistry();
 	registry.RegisterTown(TristramTownId, tristram);
