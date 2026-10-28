@@ -166,6 +166,15 @@ std::expected<PlayerClassFlag, std::string> ParsePlayerClassFlag(std::string_vie
 	return std::unexpected("Unknown enum value");
 }
 
+std::expected<PlayerClassAvailabilityFlag, std::string> ParsePlayerClassAvailabilityFlag(std::string_view value)
+{
+	const std::optional<PlayerClassAvailabilityFlag> enumValueOpt = magic_enum::enum_cast<PlayerClassAvailabilityFlag>(value);
+	if (enumValueOpt.has_value()) {
+		return enumValueOpt.value();
+	}
+	return std::unexpected("Unknown enum value");
+}
+
 void LoadClassData(std::string_view classPath, ClassAttributes &attributes, PlayerCombatData &combat)
 {
 	const std::string filename = StrCat("txtdata\\classes\\", classPath, "\\attributes.tsv");
@@ -176,6 +185,7 @@ void LoadClassData(std::string_view classPath, ClassAttributes &attributes, Play
 	ValueReader reader { dataFile, filename };
 
 	reader.readEnumList("classFlags", attributes.classFlags, ParsePlayerClassFlag);
+	reader.readEnumList("classAvailabilityFlags", attributes.classAvailabilityFlags, ParsePlayerClassAvailabilityFlag);
 	reader.readInt("baseStr", attributes.baseStr);
 	reader.readInt("baseMag", attributes.baseMag);
 	reader.readInt("baseDex", attributes.baseDex);
