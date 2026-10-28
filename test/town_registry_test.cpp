@@ -14,7 +14,10 @@ using namespace devilution;
 
 namespace {
 
+constexpr size_t TristramTriggerCount = 6;
 constexpr size_t TristramEntryPointCount = 7;
+
+constexpr Point TristramCathedralTrigPosition = { 25, 29 };
 
 constexpr Point TownEntryDefaultFallback = { 75, 68 };
 
@@ -144,10 +147,54 @@ TEST_F(InitializeTristramTest, GetTownBySaveIdZeroReturnsTristram)
 	EXPECT_EQ(GetTownRegistry().GetTownBySaveId(0), TristramTownId);
 }
 
+TEST_F(InitializeTristramTest, TristramTriggerCount)
+{
+	const TownConfig &tristram = GetTownRegistry().GetTown(TristramTownId);
+	EXPECT_EQ(tristram.triggers.size(), TristramTriggerCount);
+}
+
+TEST_F(InitializeTristramTest, TristramFirstTriggerIsCathedralStairs)
+{
+	const TownConfig &tristram = GetTownRegistry().GetTown(TristramTownId);
+	ASSERT_FALSE(tristram.triggers.empty());
+	const TownTrigger &first = tristram.triggers.front();
+	EXPECT_EQ(first.position, TristramCathedralTrigPosition);
+	EXPECT_EQ(first.msg, WM_DIABNEXTLVL);
+}
+
 TEST_F(InitializeTristramTest, TristramEntryPointCount)
 {
 	const TownConfig &tristram = GetTownRegistry().GetTown(TristramTownId);
 	EXPECT_EQ(tristram.entries.size(), TristramEntryPointCount);
+}
+
+TEST_F(InitializeTristramTest, TristramPortalPositionsMatchLegacy)
+{
+	const TownConfig &tristram = GetTownRegistry().GetTown(TristramTownId);
+	for (size_t i = 0; i < NumTownPortalSlots; ++i) {
+		EXPECT_EQ(tristram.portalPositions[i], DefaultTristramPortalPositions[i]);
+	}
+}
+
+TEST_F(InitializeTristramTest, GetPortalTownPositionMatchesTristramWhenCurrent)
+{
+	for (size_t i = 0; i < NumTownPortalSlots; ++i) {
+		EXPECT_EQ(GetPortalTownPosition(i), DefaultTristramPortalPositions[i]);
+	}
+}
+
+TEST_F(InitializeTristramTest, GetPortalTownPositionUsesTownOverrides)
+{
+	TownConfig c;
+	c.name = "PortTest";
+	c.saveId = 7;
+	c.portalPositions = DefaultTristramPortalPositions;
+	c.portalPositions[0] = { 99, 88 };
+	GetTownRegistry().RegisterTown("porttest", c);
+	GetTownRegistry().SetCurrentTown("porttest");
+	EXPECT_EQ(GetPortalTownPosition(0), Point(99, 88));
+	EXPECT_EQ(GetPortalTownPosition(1), DefaultTristramPortalPositions[1]);
+	GetTownRegistry().SetCurrentTown(TristramTownId);
 }
 
 TEST_F(InitializeTristramTest, TristramSectorCount)

@@ -1,16 +1,35 @@
 #pragma once
 
+#include <array>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
 #include "engine/point.hpp"
+#include "interfac.h"
 #include "levels/gendung_defs.hpp"
 
 namespace devilution {
 
 /** @brief Canonical town registry id for vanilla Tristram (lowercase). */
 inline constexpr char TristramTownId[] = "tristram";
+
+/** @brief Town portal spell anchor slots; must match MAXPORTAL in portal.h. */
+inline constexpr size_t NumTownPortalSlots = 4;
+
+/** @brief Legacy positions for town portal missiles (one per player slot). */
+inline constexpr std::array<Point, NumTownPortalSlots> DefaultTristramPortalPositions = { {
+	Point { 57, 40 },
+	Point { 59, 40 },
+	Point { 61, 40 },
+	Point { 63, 40 },
+} };
+
+/**
+ * @brief World position for the town portal missile / portal entry for player slot `portalIndex`.
+ */
+Point GetPortalTownPosition(size_t portalIndex);
 
 /**
  * @brief Represents a town sector (map piece)
@@ -30,6 +49,18 @@ struct TownEntryPoint {
 };
 
 /**
+ * @brief Dungeon entrance / town warp trigger (see InitTownTriggers)
+ */
+struct TownTrigger {
+	Point position;
+	interface_mode msg;
+	/** For WM_DIABTOWNWARP; unused for other message types */
+	int level = 0;
+	/** If set, trigger is only active when IsWarpOpen(*warpGate) */
+	std::optional<dungeon_type> warpGate;
+};
+
+/**
  * @brief Complete configuration for a town
  */
 struct TownConfig {
@@ -39,6 +70,8 @@ struct TownConfig {
 	Point dmaxPosition = { 84, 84 };
 	std::vector<TownSector> sectors;
 	std::vector<TownEntryPoint> entries;
+	std::vector<TownTrigger> triggers;
+	std::array<Point, NumTownPortalSlots> portalPositions = DefaultTristramPortalPositions;
 
 	/**
 	 * @brief Gets the spawn point for a given entry type and warp source
