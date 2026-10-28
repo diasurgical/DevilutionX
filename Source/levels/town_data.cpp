@@ -27,6 +27,14 @@ const TownConfig *GetCurrentTownConfig()
 	return nullptr;
 }
 
+const TownConfig &GetActiveTownConfigForTileLoad()
+{
+	const TownConfig *config = GetCurrentTownConfig();
+	if (config != nullptr)
+		return *config;
+	return GetTownRegistry().GetTown(TristramTownId);
+}
+
 void TownRegistry::RegisterTown(const std::string &id, const TownConfig &config)
 {
 	if (HasTown(id))

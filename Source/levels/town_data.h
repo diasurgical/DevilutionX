@@ -61,6 +61,61 @@ struct TownTrigger {
 };
 
 /**
+ * @brief Paths for town tile graphics: dungeon CEL, mega TIL, special CELs, SOL, and palette.
+ *
+ * Defaults match Tristram (Hellfire `nlevels\\` where applicable). On load failure, the engine
+ * retries Tristram’s defaults, then the retail (vanilla Diablo) fallbacks via
+ * LoadTownAssetWithFallback. Lua `assets` only sets the instance fields; the retail
+ * chain is not configurable.
+ */
+struct TownAssets {
+	std::string dungeonCelPath = R"(nlevels\towndata\town.cel)";
+	std::string megaTilePath = R"(nlevels\towndata\town.til)";
+	/** @brief Piece/min data for SetDungeonMicros (mega-tile → micro CEL frames). */
+	std::string pieceMinPath = R"(nlevels\towndata\town.min)";
+	std::string specialCelsPath = R"(levels\towndata\towns)";
+	std::string solPath = R"(nlevels\towndata\town.sol)";
+	std::string palettePath = R"(levels\towndata\town.pal)";
+	/**
+	 * @brief Sub-tile count per mega-tile for SetDungeonMicros.
+	 * Must match the CEL and MIN format: 16 for town.cel/min, 10 for L1/l2/l3/l6, 12 for L4.
+	 */
+	uint_fast8_t microTileLen = 16;
+
+	/** @brief Retail (DIABDAT.MPQ) fallback paths for vanilla Diablo (no Hellfire nlevels). */
+	static constexpr char RetailDungeonCel[] = R"(levels\towndata\town.cel)";
+	static constexpr char RetailMegaTile[] = R"(levels\towndata\town.til)";
+	static constexpr char RetailPieceMin[] = R"(levels\towndata\town.min)";
+	static constexpr char RetailSol[] = R"(levels\towndata\town.sol)";
+};
+
+/**
+ * @brief Loads a town asset with a 3-tier fallback: activePath → hellfireFallback → retailFallback.
+ *
+ * Skips hellfireFallback if it matches activePath. Skips retailFallback if nullptr.
+ * The `load` callable must accept `const char*` and return a type with `.has_value()`.
+ */
+template <typename LoadFn>
+auto LoadTownAssetWithFallback(
+    const std::string &activePath,
+    const char *hellfireFallback,
+    const char *retailFallback,
+    LoadFn &&load) -> decltype(load(static_cast<const char *>(nullptr)))
+{
+	auto result = load(activePath.c_str());
+	if (result.has_value())
+		return result;
+	if (activePath != hellfireFallback) {
+		result = load(hellfireFallback);
+		if (result.has_value())
+			return result;
+	}
+	if (retailFallback != nullptr)
+		return load(retailFallback);
+	return result;
+}
+
+/**
  * @brief Complete configuration for a town
  */
 struct TownConfig {
@@ -68,6 +123,7 @@ struct TownConfig {
 	uint8_t saveId = 0;
 	Point dminPosition = { 10, 10 };
 	Point dmaxPosition = { 84, 84 };
+	TownAssets assets;
 	std::vector<TownSector> sectors;
 	std::vector<TownEntryPoint> entries;
 	std::vector<TownTrigger> triggers;
@@ -106,6 +162,11 @@ TownRegistry &GetTownRegistry();
  * @brief Returns the current town config, or nullptr if no town is set / registered.
  */
 const TownConfig *GetCurrentTownConfig();
+
+/**
+ * @brief Town used for DTYPE_TOWN tile loading (CEL/TIL/SOL/palette): current town if registered, else Tristram.
+ */
+const TownConfig &GetActiveTownConfigForTileLoad();
 
 void InitializeTristram();
 
