@@ -21,7 +21,6 @@ namespace {
 /** Current portal number (a portal array index). */
 size_t portalindex;
 
-/** Coordinate of each player's portal in town. */
 std::array<Point, MAXPORTAL> ActivePortalPositions = { {
 	{ 57, 40 },
 	{ 59, 40 },
@@ -31,7 +30,7 @@ std::array<Point, MAXPORTAL> ActivePortalPositions = { {
 	{ 60, 43 },
 	{ 62, 43 },
 	{ 64, 43 },
-};
+													   } };
 
 } // namespace
 
