@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Graphics / Audio
 - Better use of colors to differentiate players in multiplayer
+- Optional Vulkan GPU scaler: render through libretro slang shader presets via the MIT-licensed libslang-vk library (new USE_GPU_SCALER CMake option, on by default for SDL3 builds, graceful fallback to stock rendering)
 
 ### Bug Fixes
 

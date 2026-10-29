@@ -41,6 +41,7 @@
 #include "engine/load_pcx.hpp"
 #include "engine/palette.h"
 #include "engine/render/clx_render.hpp"
+#include "engine/render/gpu/gpu_scaler.hpp"
 #include "engine/render/text_render.hpp"
 #include "engine/sound.h"
 #include "engine/surface.hpp"
@@ -798,6 +799,9 @@ void UiFadeIn()
 {
 	if (HeadlessMode) return;
 	UiUpdateFadePalette();
+#ifdef USE_GPU_SCALER
+	gpu_scaler::DrawFilterOsd(Surface(DiabloUiSurface()));
+#endif
 	if (DiabloUiSurface() == PalSurface) {
 		BltFast(nullptr, nullptr);
 	}

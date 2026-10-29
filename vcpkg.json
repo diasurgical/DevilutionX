@@ -29,6 +29,13 @@
 				"sdl2-image"
 			]
 		},
+		"sdl3": {
+			"description": "Use SDL3",
+			"dependencies": [
+				"sdl3",
+				"sdl3-image"
+			]
+		},
 		"encryption": {
 			"description": "Build libsodium for packet encryption",
 			"dependencies": [
