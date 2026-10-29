@@ -59,6 +59,8 @@ void ScaleOutputRect(SDL_Rect *rect);
 // If the output requires software scaling, replaces the given surface with a scaled one.
 SDLSurfaceUniquePtr ScaleSurfaceToOutput(SDLSurfaceUniquePtr surface);
 
+void SetWindowPosition(int x, int y);
+
 // Convert from output coordinates to logical (resolution-independent) coordinates.
 template <
     typename T,

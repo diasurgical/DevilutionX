@@ -95,6 +95,17 @@ const Rectangle &GetUIRectangle()
 	return UIRectangle;
 }
 
+int windowPosX = SDL_WINDOWPOS_UNDEFINED;
+int windowPosY = SDL_WINDOWPOS_UNDEFINED;
+bool hasWindowPos = false;
+
+void SetWindowPosition(int x, int y)
+{
+	hasWindowPos = true;
+	windowPosX = x;
+	windowPosY = y;
+}
+
 namespace {
 
 #ifndef USE_SDL1
@@ -636,6 +647,12 @@ bool SpawnWindow(const char *lpWindowName)
 	}
 #else
 	ghMainWnd = SDL_CreateWindow(lpWindowName, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, windowSize.width, windowSize.height, flags);
+#endif
+
+#if !defined(USE_SDL1)
+	if (hasWindowPos) {
+		SDL_SetWindowPosition(ghMainWnd, windowPosX, windowPosY);
+	}
 #endif
 
 #if defined(DEVILUTIONX_DISPLAY_PIXELFORMAT)

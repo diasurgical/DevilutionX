@@ -1020,6 +1020,7 @@ extern "C" void SdlLogToFile(void *userdata, int /*category*/, SDL_LogPriority p
 	PrintHelpOption("--data-dir", _(/* TRANSLATORS: Commandline Option */ "Specify the folder of diabdat.mpq"));
 	PrintHelpOption("--save-dir", _(/* TRANSLATORS: Commandline Option */ "Specify the folder of save files"));
 	PrintHelpOption("--config-dir", _(/* TRANSLATORS: Commandline Option */ "Specify the location of diablo.ini"));
+	PrintHelpOption("--window-pos <x,y>", _(/* TRANSLATORS: Commandline Option */ "Set the initial window position in pixels"));
 	PrintHelpOption("--lang", _(/* TRANSLATORS: Commandline Option */ "Specify the language code (e.g. en or pt_BR)"));
 	PrintHelpOption("-n", _(/* TRANSLATORS: Commandline Option */ "Skip startup videos"));
 	PrintHelpOption("-f", _(/* TRANSLATORS: Commandline Option */ "Display frames per second"));
@@ -1111,6 +1112,20 @@ void DiabloParseFlags(int argc, char **argv)
 				diablo_quit(64);
 			}
 			forceLocale = argv[++i];
+		} else if (arg == "--window-pos") {
+			if (i + 1 == argc) {
+				PrintFlagRequiresArgument("--window-pos");
+				diablo_quit(64);
+			}
+			const std::string value = argv[++i];
+			const auto comma = value.find(',');
+			if (comma == std::string::npos) {
+				PrintFlagMessage("--window-pos", " must be in the format x,y");
+				diablo_quit(64);
+			}
+			const int x = std::stoi(value.substr(0, comma));
+			const int y = std::stoi(value.substr(comma + 1));
+			devilution::SetWindowPosition(x, y);
 #ifndef DISABLE_DEMOMODE
 		} else if (arg == "--demo") {
 			if (i + 1 == argc) {
