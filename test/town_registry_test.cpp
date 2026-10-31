@@ -203,6 +203,22 @@ TEST_F(InitializeTristramTest, TristramSectorCount)
 	EXPECT_EQ(tristram.sectors.size(), 4U);
 }
 
+TEST_F(InitializeTristramTest, TristramAssetsMatchVanillaPaths)
+{
+	const TownAssets &assets = GetTownRegistry().GetTown(TristramTownId).assets;
+	EXPECT_EQ(assets.dungeonCelPath, R"(nlevels\towndata\town.cel)");
+	EXPECT_EQ(assets.megaTilePath, R"(nlevels\towndata\town.til)");
+	EXPECT_EQ(assets.pieceMinPath, R"(nlevels\towndata\town.min)");
+	EXPECT_EQ(assets.specialCelsPath, R"(levels\towndata\towns)");
+	EXPECT_EQ(assets.solPath, R"(nlevels\towndata\town.sol)");
+	EXPECT_EQ(assets.palettePath, R"(levels\towndata\town.pal)");
+	EXPECT_EQ(assets.microTileLen, static_cast<uint_fast8_t>(16));
+	EXPECT_STREQ(TownAssets::RetailDungeonCel, R"(levels\towndata\town.cel)");
+	EXPECT_STREQ(TownAssets::RetailMegaTile, R"(levels\towndata\town.til)");
+	EXPECT_STREQ(TownAssets::RetailPieceMin, R"(levels\towndata\town.min)");
+	EXPECT_STREQ(TownAssets::RetailSol, R"(levels\towndata\town.sol)");
+}
+
 TEST(InitializeTristram, PreservesValidCurrentTownOnRepeatCall)
 {
 	InitializeTristram();
