@@ -510,6 +510,62 @@ bool IsStandingGround()
 	return false;
 }
 
+bool InteractMonster()
+{
+	const Player &myPlayer = *MyPlayer;
+	Point position = Monsters[pcursmonst].position.future;
+	bool isClose = GetMinDistance(position) < 2;
+
+	// talk
+	if (CanTalkToMonst(Monsters[pcursmonst])) {
+		if (!isClose) {
+			return false;
+		}
+		NetSendCmdParam1(true, CMD_ATTACKID, pcursmonst);
+		LastPlayerAction = PlayerActionType::AttackMonsterTarget;
+		return true;
+	}
+
+	// shoot
+	if (myPlayer.UsesRangedWeapon()) {
+		NetSendCmdParam1(true, CMD_RATTACKID, pcursmonst);
+		LastPlayerAction = PlayerActionType::AttackMonsterTarget;
+		return true;
+	}
+
+	// attack
+	if (isClose) {
+		NetSendCmdParam1(true, CMD_ATTACKID, pcursmonst);
+		LastPlayerAction = PlayerActionType::AttackMonsterTarget;
+		return true;
+	}
+
+	return false;
+}
+
+bool InteractPlayer()
+{
+	Player &myPlayer = *MyPlayer;
+	Point position = PlayerUnderCursor->position.future;
+	myPlayer._pdir = GetDirection(myPlayer.position.future, position);
+
+	// shoot
+	if (myPlayer.UsesRangedWeapon()) {
+		NetSendCmdParam1(true, CMD_RATTACKPID, PlayerUnderCursor->getId());
+		LastPlayerAction = PlayerActionType::AttackPlayerTarget;
+		return true;
+	}
+
+	// attack
+	if (GetMinDistance(position) < 2) {
+		NetSendCmdParam1(true, CMD_ATTACKPID, PlayerUnderCursor->getId());
+		LastPlayerAction = PlayerActionType::AttackPlayerTarget;
+		return true;
+	}
+
+	return false;
+}
+
 void Interact()
 {
 	if (leveltype == DTYPE_TOWN && pcursmonst != -1) {
@@ -517,45 +573,28 @@ void Interact()
 		return;
 	}
 
-	const Player &myPlayer = *MyPlayer;
-
-	if (leveltype != DTYPE_TOWN && IsStandingGround()) {
-		Direction pdir = myPlayer._pdir;
-		const AxisDirection moveDir = GetMoveDirection();
-		const bool motion = moveDir.x != AxisDirectionX_NONE || moveDir.y != AxisDirectionY_NONE;
-		if (motion) {
-			pdir = FaceDir[static_cast<std::size_t>(moveDir.x)][static_cast<std::size_t>(moveDir.y)];
-		}
-
-		Point position = myPlayer.position.tile + pdir;
-		if (pcursmonst != -1 && !motion) {
-			position = Monsters[pcursmonst].position.tile;
-		}
-
-		NetSendCmdLoc(MyPlayerId, true, myPlayer.UsesRangedWeapon() ? CMD_RATTACKXY : CMD_SATTACKXY, position);
-		LastPlayerAction = PlayerActionType::Attack;
-		return;
-	}
-
 	if (pcursmonst != -1) {
-		if (!myPlayer.UsesRangedWeapon() || CanTalkToMonst(Monsters[pcursmonst])) {
-			NetSendCmdParam1(true, CMD_ATTACKID, pcursmonst);
-		} else {
-			NetSendCmdParam1(true, CMD_RATTACKID, pcursmonst);
-		}
-		LastPlayerAction = PlayerActionType::AttackMonsterTarget;
-		return;
+		if (InteractMonster())
+			return;
 	}
 
+	Player &myPlayer = *MyPlayer;
 	if (leveltype != DTYPE_TOWN && PlayerUnderCursor != nullptr && !PlayerUnderCursor->hasNoLife() && !myPlayer.friendlyMode) {
-		NetSendCmdParam1(true, myPlayer.UsesRangedWeapon() ? CMD_RATTACKPID : CMD_ATTACKPID, PlayerUnderCursor->getId());
-		LastPlayerAction = PlayerActionType::AttackPlayerTarget;
-		return;
+		if (InteractPlayer())
+			return;
 	}
 
 	if (ObjectUnderCursor != nullptr) {
 		NetSendCmdLoc(MyPlayerId, true, CMD_OPOBJXY, cursPosition);
 		LastPlayerAction = PlayerActionType::OperateObject;
+		return;
+	}
+
+	// lastly make a fake attack
+	if (leveltype != DTYPE_TOWN && !myPlayer.isWalking() && myPlayer.CanChangeAction()) {
+		const Point position = myPlayer.position.tile + myPlayer._pdir;
+		NetSendCmdLoc(MyPlayerId, true, myPlayer.UsesRangedWeapon() ? CMD_RATTACKXY : CMD_SATTACKXY, position);
+		LastPlayerAction = PlayerActionType::Attack;
 		return;
 	}
 }
