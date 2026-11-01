@@ -1,0 +1,27 @@
+id	name	operateFn	powerParam1	powerParam2	gameType	minLevelType	maxLevelType	availableRandomEffectShrine	cripplingEffect	message	message2	message3	message4
+ShrineMysterious	Mysterious	OperateShrineMysterious	5	-1	Any	DTYPE_TOWN	DTYPE_CRYPT	true	false	Some are weakened as one grows strong			
+ShrineHidden	Hidden	OperateShrineHidden	-10	10	Any	DTYPE_TOWN	DTYPE_CRYPT	true	false	New strength is forged through destruction			
+ShrineGloomy	Gloomy	OperateShrineGloomy	2	-1	Single	DTYPE_TOWN	DTYPE_CRYPT	true	false	Those who defend seldom attack			
+ShrineWeird	Weird	OperateShrineWeird	1	0	Single	DTYPE_TOWN	DTYPE_CRYPT	true	false	The sword of justice is swift and sharp			
+ShrineMagical	Magical	OperateShrineMagical	2	0	Any	DTYPE_TOWN	DTYPE_CRYPT	true	false	While the spirit is vigilant the body thrives			
+ShrineStone	Stone	OperateShrineStone	0	0	Any	DTYPE_TOWN	DTYPE_CRYPT	true	false	The powers of mana refocused renews			
+ShrineReligious	Religious	OperateShrineReligious	0	0	Any	DTYPE_TOWN	DTYPE_CRYPT	true	false	Time cannot diminish the power of steel			
+ShrineEnchanted	Enchanted	OperateShrineEnchanted	1	-1	Any	DTYPE_CATHEDRAL	DTYPE_CATACOMBS	true	false	Magic is not always what it seems to be			
+ShrineThaumaturgic	Thaumaturgic	OperateShrineThaumaturgic	0	0	Single	DTYPE_TOWN	DTYPE_CRYPT	false	false	What once was opened now is closed			
+ShrineFascinating	Fascinating	OperateShrineFascinating	2	10	Any	DTYPE_TOWN	DTYPE_CRYPT	true	true	Intensity comes at the cost of wisdom			
+ShrineCryptic	Cryptic	OperateShrineCryptic	2	0	Any	DTYPE_TOWN	DTYPE_CRYPT	true	false	Arcane power brings destruction			
+ShrineMagicaL2	Magical	OperateShrineMagical	2	0	Any	DTYPE_TOWN	DTYPE_CRYPT	true	false	While the spirit is vigilant the body thrives			
+ShrineEldritch	Eldritch	OperateShrineEldritch	0	0	Any	DTYPE_TOWN	DTYPE_CRYPT	true	false	Crimson and Azure become as the sun			
+ShrineEerie	Eerie	OperateShrineEerie	2	0	Any	DTYPE_TOWN	DTYPE_CRYPT	true	false	Knowledge and wisdom at the cost of self			
+ShrineDivine	Divine	OperateShrineDivine	4	2	Any	DTYPE_TOWN	DTYPE_CRYPT	true	false	Drink and be refreshed			
+ShrineHoly	Holy	OperateShrineHoly	2	0	Any	DTYPE_TOWN	DTYPE_CRYPT	true	false	Wherever you go, there you are			
+ShrineSacred	Sacred	OperateShrineSacred	2	10	Any	DTYPE_TOWN	DTYPE_CRYPT	true	true	Energy comes at the cost of wisdom			
+ShrineSpiritual	Spiritual	OperateShrineSpiritual	5	10	Any	DTYPE_TOWN	DTYPE_CRYPT	true	false	Riches abound when least expected			
+ShrineSpooky	Spooky	OperateShrineSpooky	0	0	Multi	DTYPE_TOWN	DTYPE_CRYPT	true	false	Where avarice fails, patience gains reward	Blessed by a benevolent companion!		
+ShrineAbandoned	Abandoned	OperateShrineAbandoned	2	0	Any	DTYPE_TOWN	DTYPE_CRYPT	true	false	The hands of men may be guided by fate			
+ShrineCreepy	Creepy	OperateShrineCreepy	2	0	Any	DTYPE_TOWN	DTYPE_CRYPT	true	false	Strength is bolstered by heavenly faith			
+ShrineQuiet	Quiet	OperateShrineQuiet	2	0	Any	DTYPE_TOWN	DTYPE_CRYPT	true	false	The essence of life flows from within			
+ShrineSecluded	Secluded	OperateShrineSecluded	0	0	Any	DTYPE_TOWN	DTYPE_CRYPT	true	false	The way is made clear when viewed from above			
+ShrineOrnate	Ornate	OperateShrineOrnate	2	10	Any	DTYPE_TOWN	DTYPE_CRYPT	true	true	Salvation comes at the cost of wisdom			
+ShrineGlimmering	Glimmering	OperateShrineGlimmering	0	0	Any	DTYPE_TOWN	DTYPE_CRYPT	true	false	Mysteries are revealed in the light of reason			
+ShrineTainted	Tainted	OperateShrineTainted	1	-1	Multi	DTYPE_TOWN	DTYPE_CRYPT	true	false	Those who are last may yet be first	Generosity brings its own rewards		
