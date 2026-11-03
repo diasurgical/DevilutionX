@@ -38,25 +38,15 @@ enum class PlayerClassFlag : uint16_t {
 	IronSkin = 1 << 2,
 	NaturalResistance = 1 << 3,
 	TrapSense = 1 << 4,
-	/** Can block with a staff (fast block), one-handed weapon or bare hands, without a shield. */
 	ShieldlessBlock = 1 << 5,
-	/** Melee attacks ignore an extra 1/8 of the monster's armor. */
 	ArmorPierce = 1 << 6,
-	/** Hit-recovery threshold is raised by a quarter of the character level. */
 	StaggerResistance = 1 << 7,
-	/** Unarmed damage is at least level / 2 to level. */
 	UnarmedMastery = 1 << 8,
-	/** Light armor grants AC per level; medium and heavy armor grant less. */
 	LightArmorMastery = 1 << 9,
-	/** Full damage modifier on arrows and arrow velocity + level / 4. */
 	BowMastery = 1 << 10,
-	/** Arrow velocity + level / 8. */
 	BowTraining = 1 << 11,
-	/** Cleave with a staff. */
 	StaffCleave = 1 << 12,
-	/** Cleave with an axe, or a two-handed mace or sword without a shield. */
 	HeavyCleave = 1 << 13,
-	/** Cleave while holding a sword in each hand. */
 	DualSwordCleave = 1 << 14,
 	// clang-format on
 };
