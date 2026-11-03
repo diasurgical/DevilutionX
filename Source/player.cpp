@@ -571,8 +571,7 @@ bool PlrHitMonst(Player &player, Monster &monster, bool adjacentDamage = false)
 	int dam2 = dam << 6;
 	dam += player._pDamageMod;
 
-	const ClassAttributes &classAttributes = GetClassAttributes(player._pClass);
-	if (HasAnyOf(classAttributes.classFlags, PlayerClassFlag::CriticalStrike)) {
+	if (HasAnyOf(player.getClassFlags(), PlayerClassFlag::CriticalStrike)) {
 		if (GenerateRnd(100) < player.getCharacterLevel()) {
 			dam *= 2;
 		}
@@ -739,8 +738,7 @@ bool PlrHitPlr(Player &attacker, Player &target)
 	dam += (dam * attacker._pIBonusDam) / 100;
 	dam += attacker._pIBonusDamMod + attacker._pDamageMod;
 
-	const ClassAttributes &classAttributes = GetClassAttributes(attacker._pClass);
-	if (HasAnyOf(classAttributes.classFlags, PlayerClassFlag::CriticalStrike)) {
+	if (HasAnyOf(attacker.getClassFlags(), PlayerClassFlag::CriticalStrike)) {
 		if (GenerateRnd(100) < attacker.getCharacterLevel()) {
 			dam *= 2;
 		}
@@ -2626,7 +2624,7 @@ void StartPlrHit(Player &player, Fixed26_6 dam, bool forcehit)
 	player.Say(HeroSpeech::ArghClang);
 
 	RedrawComponent(PanelDrawComponent::Health);
-	if (player._pClass == HeroClass::Barbarian) {
+	if (HasAnyOf(player.getClassFlags(), PlayerClassFlag::StaggerResistance)) {
 		if (dam.whole() < player.getCharacterLevel() + player.getCharacterLevel() / 4 && !forcehit) {
 			return;
 		}
