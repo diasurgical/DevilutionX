@@ -49,6 +49,10 @@ local events = {
   UniqueItemDataLoaded = CreateEvent(),
   __doc_UniqueItemDataLoaded = "Called after the unique item data TSV file has been loaded.",
 
+  ---Called after the class data TSV file has been loaded, before each class's own data folder is read. Use player.addClassDataFromTsv() in this handler to add classes.
+  PlayerDataLoaded = CreateEvent(),
+  __doc_PlayerDataLoaded = "Called after the class data TSV file has been loaded, before each class's own data folder is read. Use player.addClassDataFromTsv() in this handler to add classes.",
+
   ---Called after the monster data TSV file has been loaded.
   MonsterDataLoaded = CreateEvent(),
   __doc_MonsterDataLoaded = "Called after the monster data TSV file has been loaded.",
