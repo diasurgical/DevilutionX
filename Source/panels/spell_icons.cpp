@@ -2,6 +2,8 @@
 
 #include <cstdint>
 #include <optional>
+#include <string_view>
+#include <unordered_map>
 
 #include "engine/load_cel.hpp"
 #include "engine/load_clx.hpp"
@@ -23,6 +25,8 @@ OptionalOwnedClxSpriteList SmallSpellIcons;
 OptionalOwnedClxSpriteList LargeSpellIcons;
 
 uint8_t SplTransTbl[256];
+
+std::unordered_map<int, uint8_t> LuaDynamicSpellIconFrames; // Lua mod support
 
 /** Maps from SpellID to spelicon.cel frame number. */
 const SpellIcon SpellITbl[] = {
@@ -84,6 +88,67 @@ const SpellIcon SpellITbl[] = {
 
 } // namespace
 
+// Lua mod support
+uint8_t LuaParseSpellIconName(std::string_view name)
+{
+	if (name == "Firebolt") return static_cast<uint8_t>(SpellIcon::Firebolt);
+	if (name == "Healing") return static_cast<uint8_t>(SpellIcon::Healing);
+	if (name == "Lightning") return static_cast<uint8_t>(SpellIcon::Lightning);
+	if (name == "Flash") return static_cast<uint8_t>(SpellIcon::Flash);
+	if (name == "Identify") return static_cast<uint8_t>(SpellIcon::Identify);
+	if (name == "FireWall") return static_cast<uint8_t>(SpellIcon::FireWall);
+	if (name == "TownPortal") return static_cast<uint8_t>(SpellIcon::TownPortal);
+	if (name == "StoneCurse") return static_cast<uint8_t>(SpellIcon::StoneCurse);
+	if (name == "Infravision") return static_cast<uint8_t>(SpellIcon::Infravision);
+	if (name == "HealOther") return static_cast<uint8_t>(SpellIcon::HealOther);
+	if (name == "Nova") return static_cast<uint8_t>(SpellIcon::Nova);
+	if (name == "Fireball") return static_cast<uint8_t>(SpellIcon::Fireball);
+	if (name == "ManaShield") return static_cast<uint8_t>(SpellIcon::ManaShield);
+	if (name == "FlameWave") return static_cast<uint8_t>(SpellIcon::FlameWave);
+	if (name == "Inferno") return static_cast<uint8_t>(SpellIcon::Inferno);
+	if (name == "ChainLightning") return static_cast<uint8_t>(SpellIcon::ChainLightning);
+	if (name == "DoomSerpents") return static_cast<uint8_t>(SpellIcon::DoomSerpents);
+	if (name == "Golem") return static_cast<uint8_t>(SpellIcon::Golem);
+	if (name == "Etherealize") return static_cast<uint8_t>(SpellIcon::Etherealize);
+	if (name == "BloodBoil") return static_cast<uint8_t>(SpellIcon::BloodBoil);
+	if (name == "Teleport") return static_cast<uint8_t>(SpellIcon::Teleport);
+	if (name == "Apocalypse") return static_cast<uint8_t>(SpellIcon::Apocalypse);
+	if (name == "ItemRepair") return static_cast<uint8_t>(SpellIcon::ItemRepair);
+	if (name == "Phasing") return static_cast<uint8_t>(SpellIcon::Phasing);
+	if (name == "StaffRecharge") return static_cast<uint8_t>(SpellIcon::StaffRecharge);
+	if (name == "BoneSpirit") return static_cast<uint8_t>(SpellIcon::BoneSpirit);
+	if (name == "BloodStar") return static_cast<uint8_t>(SpellIcon::BloodStar);
+	if (name == "TrapDisarm") return static_cast<uint8_t>(SpellIcon::TrapDisarm);
+	if (name == "Elemental") return static_cast<uint8_t>(SpellIcon::Elemental);
+	if (name == "ChargedBolt") return static_cast<uint8_t>(SpellIcon::ChargedBolt);
+	if (name == "Telekinesis") return static_cast<uint8_t>(SpellIcon::Telekinesis);
+	if (name == "Resurrect") return static_cast<uint8_t>(SpellIcon::Resurrect);
+	if (name == "HolyBolt") return static_cast<uint8_t>(SpellIcon::HolyBolt);
+	if (name == "Warp") return static_cast<uint8_t>(SpellIcon::Warp);
+	if (name == "Search") return static_cast<uint8_t>(SpellIcon::Search);
+	if (name == "Reflect") return static_cast<uint8_t>(SpellIcon::Reflect);
+	if (name == "LightningWall") return static_cast<uint8_t>(SpellIcon::LightningWall);
+	if (name == "Immolation") return static_cast<uint8_t>(SpellIcon::Immolation);
+	if (name == "Berserk") return static_cast<uint8_t>(SpellIcon::Berserk);
+	if (name == "RingOfFire") return static_cast<uint8_t>(SpellIcon::RingOfFire);
+	if (name == "Jester") return static_cast<uint8_t>(SpellIcon::Jester);
+	if (name == "Mana") return static_cast<uint8_t>(SpellIcon::Mana);
+	if (name == "PentaStar") return static_cast<uint8_t>(SpellIcon::PentaStar);
+	return static_cast<uint8_t>(SpellIcon::Empty);
+}
+
+// Lua mod support
+void LuaRegisterDynamicSpellIcon(int spellId, uint8_t iconFrame)
+{
+	LuaDynamicSpellIconFrames[spellId] = iconFrame;
+}
+
+// Lua mod support
+void LuaClearDynamicSpellIcons()
+{
+	LuaDynamicSpellIconFrames.clear();
+}
+
 std::expected<void, std::string> LoadLargeSpellIcons()
 {
 #ifdef UNPACKED_MPQS
@@ -132,7 +197,13 @@ void FreeSmallSpellIcons()
 
 uint8_t GetSpellIconFrame(SpellID spell)
 {
-	return static_cast<uint8_t>(SpellITbl[static_cast<int8_t>(spell)]);
+	const auto idx = static_cast<int>(static_cast<int8_t>(spell));
+	const auto it = LuaDynamicSpellIconFrames.find(idx); // Lua mod support: dynamic spell icons registered by mods
+	if (it != LuaDynamicSpellIconFrames.end())
+		return it->second;
+	if (static_cast<size_t>(idx) < std::size(SpellITbl))
+		return static_cast<uint8_t>(SpellITbl[static_cast<size_t>(idx)]);
+	return static_cast<uint8_t>(SpellIcon::Empty);
 }
 
 void DrawLargeSpellIcon(const Surface &out, Point position, SpellID spell)
