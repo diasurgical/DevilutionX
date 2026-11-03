@@ -7,6 +7,7 @@ namespace devilution {
 
 struct Player;
 struct Monster;
+struct Item;
 
 namespace lua {
 
@@ -25,6 +26,9 @@ void OnPlayerTakeDamage(const Player *player, int damage, int damageType);
 void LoadModsComplete();
 void GameDrawComplete();
 void GameStart();
+
+/** @brief Query: whether an item may be placed in the open stash. Returns defaultValue unless a mod overrides it. */
+bool OnItemAllowedInStash(const Item *item, bool defaultValue);
 
 } // namespace lua
 

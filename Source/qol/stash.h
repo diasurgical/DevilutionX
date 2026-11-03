@@ -6,6 +6,7 @@
 #pragma once
 
 #include <cstdint>
+#include <string_view>
 #include <vector>
 
 #include <ankerl/unordered_dense.h>
@@ -16,6 +17,9 @@
 #include "utils/attributes.h"
 
 namespace devilution {
+
+/** Number of pages in the player stash. */
+inline constexpr unsigned DefaultStashPageCount = 100;
 
 class StashStruct {
 public:
@@ -28,6 +32,10 @@ public:
 	std::vector<Item> stashList;
 	int gold;
 	bool dirty = false;
+	/** Number of pages this stash holds. */
+	unsigned pageCount = DefaultStashPageCount;
+	/** Whether this stash accepts and displays gold. */
+	bool allowsGold = true;
 
 	unsigned GetPage() const
 	{
@@ -71,6 +79,25 @@ constexpr Point InvalidStashPoint { -1, -1 };
 
 extern DVL_API_FOR_TEST bool IsStashOpen;
 extern DVL_API_FOR_TEST StashStruct Stash;
+
+/** @brief The stash the stash window operates on: the player stash unless a mod stash is open. */
+StashStruct &GetActiveStash();
+
+/** @brief Opens the stash window on the active stash. */
+void OpenStash();
+
+// Lua mod support: stashes registered by mods. Each is saved to its own `<name>` save file and is
+// shown in the stash window while open; the player stash is unaffected.
+bool LuaRegisterModStash(std::string_view name, unsigned pageCount, bool allowsGold);
+bool LuaOpenModStash(std::string_view name);
+/** @brief Name of the open mod stash, or empty when the player stash (or nothing) is active. */
+std::string_view LuaActiveModStashName();
+/** @brief Called when the stash window closes; makes the player stash active again. */
+void LuaCloseModStash();
+/** @brief Writes every loaded mod stash with unsaved changes. */
+void LuaWriteModStashes();
+/** @brief Discards loaded mod stash contents so they are re-read from disk when next opened. */
+void LuaUnloadModStashes();
 
 extern bool IsWithdrawGoldOpen;
 extern int WithdrawGoldValue;

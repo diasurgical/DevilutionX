@@ -630,7 +630,7 @@ void PressKey(SDL_Keycode vkey, uint16_t modState)
 		} else if (AutomapActive) {
 			AutomapUp();
 		} else if (IsStashOpen) {
-			Stash.PreviousPage();
+			GetActiveStash().PreviousPage();
 		}
 		return;
 	case SDLK_DOWN:
@@ -645,7 +645,7 @@ void PressKey(SDL_Keycode vkey, uint16_t modState)
 		} else if (AutomapActive) {
 			AutomapDown();
 		} else if (IsStashOpen) {
-			Stash.NextPage();
+			GetActiveStash().NextPage();
 		}
 		return;
 	case SDLK_PAGEUP:
@@ -811,7 +811,7 @@ void GameEventHandler(const SDL_Event &event, uint16_t modState)
 			} else if (ChatLogFlag) {
 				ChatLogScrollUp();
 			} else if (IsStashOpen) {
-				Stash.PreviousPage();
+				GetActiveStash().PreviousPage();
 			} else if (SDL_GetModState() & SDL_KMOD_CTRL) {
 				if (AutomapActive) {
 					AutomapZoomIn();
@@ -829,7 +829,7 @@ void GameEventHandler(const SDL_Event &event, uint16_t modState)
 			} else if (ChatLogFlag) {
 				ChatLogScrollDown();
 			} else if (IsStashOpen) {
-				Stash.NextPage();
+				GetActiveStash().NextPage();
 			} else if (SDL_GetModState() & SDL_KMOD_CTRL) {
 				if (AutomapActive) {
 					AutomapZoomOut();
@@ -2845,9 +2845,9 @@ bool TryIconCurs()
 		if (pcursinvitem != -1 && !IsInspectingPlayer())
 			CheckIdentify(myPlayer, pcursinvitem);
 		else if (pcursstashitem != StashStruct::EmptyCell) {
-			Item &item = Stash.stashList[pcursstashitem];
+			Item &item = GetActiveStash().stashList[pcursstashitem];
 			item._iIdentified = true;
-			Stash.dirty = true;
+			GetActiveStash().dirty = true;
 		}
 		NewCursor(CURSOR_HAND);
 		return true;
@@ -2860,9 +2860,9 @@ bool TryIconCurs()
 			else
 				DoRepair(myPlayer, pcursinvitem);
 		} else if (pcursstashitem != StashStruct::EmptyCell) {
-			Item &item = Stash.stashList[pcursstashitem];
+			Item &item = GetActiveStash().stashList[pcursstashitem];
 			RepairItem(item, myPlayer.getCharacterLevel());
-			Stash.dirty = true;
+			GetActiveStash().dirty = true;
 		}
 		NewCursor(CURSOR_HAND);
 		return true;
@@ -2872,9 +2872,9 @@ bool TryIconCurs()
 		if (pcursinvitem != -1 && !IsInspectingPlayer())
 			DoRecharge(myPlayer, pcursinvitem);
 		else if (pcursstashitem != StashStruct::EmptyCell) {
-			Item &item = Stash.stashList[pcursstashitem];
+			Item &item = GetActiveStash().stashList[pcursstashitem];
 			RechargeItem(item, myPlayer);
-			Stash.dirty = true;
+			GetActiveStash().dirty = true;
 		}
 		NewCursor(CURSOR_HAND);
 		return true;
@@ -2885,9 +2885,9 @@ bool TryIconCurs()
 		if (pcursinvitem != -1 && !IsInspectingPlayer())
 			changeCursor = DoOil(myPlayer, pcursinvitem);
 		else if (pcursstashitem != StashStruct::EmptyCell) {
-			Item &item = Stash.stashList[pcursstashitem];
+			Item &item = GetActiveStash().stashList[pcursstashitem];
 			changeCursor = ApplyOilToItem(item, myPlayer);
-			Stash.dirty = true;
+			GetActiveStash().dirty = true;
 		}
 		if (changeCursor)
 			NewCursor(CURSOR_HAND);

@@ -34,6 +34,7 @@
 #include "lua/modules/log.hpp"
 #include "lua/modules/monsters.hpp"
 #include "lua/modules/player.hpp"
+#include "lua/modules/stash.hpp"
 #include "lua/modules/render.hpp"
 #include "lua/modules/system.hpp"
 #include "lua/modules/towners.hpp"
@@ -310,6 +311,7 @@ void LuaInitialize()
 	    "devilutionx.audio", LuaAudioModule(lua),
 	    "devilutionx.monsters", LuaMonstersModule(lua),
 	    "devilutionx.player", LuaPlayerModule(lua),
+	    "devilutionx.stash", LuaStashModule(lua),
 	    "devilutionx.render", LuaRenderModule(lua),
 	    "devilutionx.towners", LuaTownersModule(lua),
 	    "devilutionx.hellfire", LuaHellfireModule(lua),

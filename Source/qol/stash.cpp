@@ -2,6 +2,9 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <functional>
+#include <map>
+#include <string>
 #include <utility>
 
 #ifdef USE_SDL3
@@ -12,6 +15,7 @@
 
 #include "DiabloUI/text_input.hpp"
 #include "control/control.hpp"
+#include "controls/control_mode.hpp"
 #include "controls/plrctrls.h"
 #include "cursor.h"
 #include "engine/clx_sprite.hpp"
@@ -23,12 +27,16 @@
 #include "headless_mode.hpp"
 #include "hwcursor.hpp"
 #include "inv.h"
+#include "loadsave.h"
+#include "lua/lua_event.hpp"
 #include "minitext.h"
+#include "pfile.h"
 #include "stores.h"
 #include "utils/display.h"
 #include "utils/format_int.hpp"
 #include "utils/language.h"
 #include "utils/sdl_compat.h"
+#include "utils/str_case.hpp"
 #include "utils/str_cat.hpp"
 #include "utils/utf8.hpp"
 
@@ -40,8 +48,18 @@ bool IsWithdrawGoldOpen;
 
 namespace {
 
-constexpr unsigned CountStashPages = 100;
-constexpr unsigned LastStashPage = CountStashPages - 1;
+// Lua mod support: a mod-registered stash and the settings it was registered with.
+struct LuaModStash {
+	StashStruct stash;
+	unsigned pageCount;
+	bool allowsGold;
+	bool loaded = false;
+};
+
+// std::map keeps entries at stable addresses, so ActiveLuaModStash stays valid across registrations.
+std::map<std::string, LuaModStash, std::less<>> LuaModStashes;
+LuaModStash *ActiveLuaModStash = nullptr;
+std::string ActiveLuaModStashName;
 
 char GoldWithdrawText[21];
 TextInputCursorState GoldWithdrawCursor;
@@ -71,7 +89,7 @@ OptionalOwnedClxSpriteList StashNavButtonArt;
 void AddItemToStashGrid(unsigned page, Point position, uint16_t stashListIndex, Size itemSize)
 {
 	for (const Point point : PointsInRectangle(Rectangle { position, itemSize })) {
-		Stash.stashGrids[page][point.x][point.y] = stashListIndex + 1;
+		GetActiveStash().stashGrids[page][point.x][point.y] = stashListIndex + 1;
 	}
 }
 
@@ -112,23 +130,26 @@ std::optional<Point> FindTargetSlotUnderItemCursor(Point cursorPosition, Size it
 
 bool IsItemAllowedInStash(const Item &item)
 {
-	return item._iMiscId != IMISC_ARENAPOT;
+	return lua::OnItemAllowedInStash(&item, item._iMiscId != IMISC_ARENAPOT); // Lua mod support
 }
 
 void CheckStashPaste(Point cursorPosition)
 {
 	Player &player = *MyPlayer;
+	StashStruct &stash = GetActiveStash();
 
 	if (!IsItemAllowedInStash(player.HoldItem))
 		return;
 
 	if (player.HoldItem._itype == ItemType::Gold) {
-		if (Stash.gold > std::numeric_limits<int>::max() - player.HoldItem._ivalue)
+		if (!stash.allowsGold)
 			return;
-		Stash.gold += player.HoldItem._ivalue;
+		if (stash.gold > std::numeric_limits<int>::max() - player.HoldItem._ivalue)
+			return;
+		stash.gold += player.HoldItem._ivalue;
 		player.HoldItem.clear();
 		PlaySFX(SfxID::ItemGold);
-		Stash.dirty = true;
+		stash.dirty = true;
 		NewCursor(CURSOR_HAND);
 		return;
 	}
@@ -144,7 +165,7 @@ void CheckStashPaste(Point cursorPosition)
 	// Check that no more than 1 item is replaced by the move
 	StashStruct::StashCell stashIndex = StashStruct::EmptyCell;
 	for (const Point point : PointsInRectangle(Rectangle { firstSlot, itemSize })) {
-		const StashStruct::StashCell iv = Stash.GetItemIdAtPosition(point);
+		const StashStruct::StashCell iv = stash.GetItemIdAtPosition(point);
 		if (iv == StashStruct::EmptyCell || stashIndex == iv)
 			continue;
 		if (stashIndex == StashStruct::EmptyCell) {
@@ -160,14 +181,14 @@ void CheckStashPaste(Point cursorPosition)
 	player.HoldItem.position = firstSlot + Displacement { 0, itemSize.height - 1 };
 
 	if (stashIndex == StashStruct::EmptyCell) {
-		Stash.stashList.emplace_back(player.HoldItem.pop());
+		stash.stashList.emplace_back(player.HoldItem.pop());
 		// stashList will have at most 10 000 items, up to 65 535 are supported with uint16_t indexes
-		stashIndex = static_cast<uint16_t>(Stash.stashList.size() - 1);
+		stashIndex = static_cast<uint16_t>(stash.stashList.size() - 1);
 	} else {
 		// swap the held item and whatever was in the stash at this position
-		std::swap(Stash.stashList[stashIndex], player.HoldItem);
+		std::swap(stash.stashList[stashIndex], player.HoldItem);
 		// then clear the space occupied by the old item
-		for (auto &row : Stash.GetCurrentGrid()) {
+		for (auto &row : stash.GetCurrentGrid()) {
 			for (auto &itemId : row) {
 				if (itemId - 1 == stashIndex)
 					itemId = 0;
@@ -176,9 +197,9 @@ void CheckStashPaste(Point cursorPosition)
 	}
 
 	// Finally mark the area now occupied by the pasted item in the current page/grid.
-	AddItemToStashGrid(Stash.GetPage(), firstSlot, stashIndex, itemSize);
+	AddItemToStashGrid(stash.GetPage(), firstSlot, stashIndex, itemSize);
 
-	Stash.dirty = true;
+	stash.dirty = true;
 
 	NewCursor(player.HoldItem);
 }
@@ -214,9 +235,10 @@ void CheckStashCut(Point cursorPosition, bool automaticMove)
 	bool automaticallyMoved = false;
 	const bool automaticallyEquipped = false;
 
-	const StashStruct::StashCell iv = Stash.GetItemIdAtPosition(slot);
+	StashStruct &stash = GetActiveStash();
+	const StashStruct::StashCell iv = stash.GetItemIdAtPosition(slot);
 	if (iv != StashStruct::EmptyCell) {
-		holdItem = Stash.stashList[iv];
+		holdItem = stash.stashList[iv];
 		if (automaticMove) {
 			if (CanBePlacedOnBelt(player, holdItem)) {
 				automaticallyMoved = AutoPlaceItemInBelt(player, holdItem, true, true);
@@ -226,7 +248,7 @@ void CheckStashCut(Point cursorPosition, bool automaticMove)
 		}
 
 		if (!automaticMove || automaticallyMoved) {
-			Stash.RemoveStashItem(iv);
+			stash.RemoveStashItem(iv);
 		}
 	}
 
@@ -258,11 +280,111 @@ void CheckStashCut(Point cursorPosition, bool automaticMove)
 void WithdrawGold(Player &player, int amount)
 {
 	AddGoldToInventory(player, amount);
-	Stash.gold -= amount;
-	Stash.dirty = true;
+	StashStruct &stash = GetActiveStash();
+	stash.gold -= amount;
+	stash.dirty = true;
 }
 
 } // namespace
+
+StashStruct &GetActiveStash()
+{
+	return ActiveLuaModStash != nullptr ? ActiveLuaModStash->stash : Stash;
+}
+
+void OpenStash()
+{
+	IsStashOpen = true;
+	GetActiveStash().RefreshItemStatFlags();
+	invflag = true;
+	if (ControlMode != ControlTypes::KeyboardAndMouse) {
+		if (pcurs == CURSOR_DISARM)
+			NewCursor(CURSOR_HAND);
+		FocusOnInventory();
+	}
+}
+
+bool LuaRegisterModStash(std::string_view name, unsigned pageCount, bool allowsGold) // Lua mod support
+{
+	// The name becomes a save file name next to the hero saves, so only allow a plain identifier and
+	// refuse names the engine's own save files use.
+	if (name.empty() || name.size() > 32)
+		return false;
+	for (const char c : name) {
+		const bool valid = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' || c == '-';
+		if (!valid)
+			return false;
+	}
+	const std::string lower = AsciiStrToLower(name);
+	if (lower.starts_with("stash") || lower.starts_with("single_") || lower.starts_with("multi_")
+	    || lower.starts_with("spawn_") || lower.starts_with("share_") || lower.starts_with("demo_"))
+		return false;
+	if (pageCount == 0 || pageCount > DefaultStashPageCount)
+		return false;
+
+	LuaModStash &entry = LuaModStashes[std::string(name)];
+	entry.pageCount = pageCount;
+	entry.allowsGold = allowsGold;
+	if (entry.loaded) {
+		entry.stash.pageCount = pageCount;
+		entry.stash.allowsGold = allowsGold;
+	}
+	return true;
+}
+
+bool LuaOpenModStash(std::string_view name) // Lua mod support
+{
+	const auto it = LuaModStashes.find(name);
+	if (it == LuaModStashes.end())
+		return false;
+
+	CloseStash();
+
+	LuaModStash &entry = it->second;
+	if (!entry.loaded) {
+		LuaLoadModStash(entry.stash, it->first);
+		entry.stash.pageCount = entry.pageCount;
+		entry.stash.allowsGold = entry.allowsGold;
+		entry.stash.SetPage(entry.stash.GetPage());
+		entry.stash.dirty = false;
+		entry.loaded = true;
+	}
+
+	ActiveLuaModStash = &entry;
+	ActiveLuaModStashName = it->first;
+	OpenStash();
+	return true;
+}
+
+std::string_view LuaActiveModStashName() // Lua mod support
+{
+	return ActiveLuaModStash != nullptr ? std::string_view(ActiveLuaModStashName) : std::string_view();
+}
+
+void LuaCloseModStash() // Lua mod support
+{
+	ActiveLuaModStash = nullptr;
+	ActiveLuaModStashName.clear();
+}
+
+void LuaWriteModStashes() // Lua mod support
+{
+	for (auto &[name, entry] : LuaModStashes) {
+		if (!entry.loaded || !entry.stash.dirty)
+			continue;
+		LuaSaveModStash(entry.stash, name);
+		entry.stash.dirty = false;
+	}
+}
+
+void LuaUnloadModStashes() // Lua mod support
+{
+	LuaCloseModStash();
+	for (auto &[name, entry] : LuaModStashes) {
+		entry.stash = {};
+		entry.loaded = false;
+	}
+}
 
 Point GetStashSlotCoord(Point slot)
 {
@@ -291,7 +413,8 @@ void TransferItemToInventory(Player &player, uint16_t itemId)
 		return;
 	}
 
-	const Item &item = Stash.stashList[itemId];
+	StashStruct &stash = GetActiveStash();
+	const Item &item = stash.stashList[itemId];
 	if (item.isEmpty()) {
 		return;
 	}
@@ -303,7 +426,7 @@ void TransferItemToInventory(Player &player, uint16_t itemId)
 
 	PlaySFX(ItemInvSnds[ItemCAnimTbl[item._iCurs]]);
 
-	Stash.RemoveStashItem(itemId);
+	stash.RemoveStashItem(itemId);
 }
 
 int StashButtonPressed = -1;
@@ -318,19 +441,19 @@ void CheckStashButtonRelease(Point mousePosition)
 	if (stashButton.contains(mousePosition)) {
 		switch (StashButtonPressed) {
 		case 0:
-			Stash.PreviousPage(10);
+			GetActiveStash().PreviousPage(10);
 			break;
 		case 1:
-			Stash.PreviousPage();
+			GetActiveStash().PreviousPage();
 			break;
 		case 2:
 			StartGoldWithdraw();
 			break;
 		case 3:
-			Stash.NextPage();
+			GetActiveStash().NextPage();
 			break;
 		case 4:
-			Stash.NextPage(10);
+			GetActiveStash().NextPage(10);
 			break;
 		}
 	}
@@ -364,23 +487,24 @@ void DrawStash(const Surface &out)
 	}
 
 	constexpr Displacement offset { 0, INV_SLOT_SIZE_PX - 1 };
+	StashStruct &stash = GetActiveStash();
 
 	for (auto slot : StashGridRange) {
-		const StashStruct::StashCell itemId = Stash.GetItemIdAtPosition(slot);
+		const StashStruct::StashCell itemId = stash.GetItemIdAtPosition(slot);
 		if (itemId == StashStruct::EmptyCell) {
 			continue; // No item in the given slot
 		}
-		const Item &item = Stash.stashList[itemId];
+		const Item &item = stash.stashList[itemId];
 		InvDrawSlotBack(out, GetStashSlotCoord(slot) + offset, InventorySlotSizeInPixels, item._iMagical);
 	}
 
 	for (auto slot : StashGridRange) {
-		const StashStruct::StashCell itemId = Stash.GetItemIdAtPosition(slot);
+		const StashStruct::StashCell itemId = stash.GetItemIdAtPosition(slot);
 		if (itemId == StashStruct::EmptyCell) {
 			continue; // No item in the given slot
 		}
 
-		const Item &item = Stash.stashList[itemId];
+		const Item &item = stash.stashList[itemId];
 		if (item.position != slot) {
 			continue; // Not the first slot of the item
 		}
@@ -402,10 +526,12 @@ void DrawStash(const Surface &out)
 	const UiFlags style = UiFlags::VerticalCenter | UiFlags::ColorWhite;
 	const int textboxHeight = 13;
 
-	DrawString(out, StrCat(Stash.GetPage() + 1), { position + Displacement { 132, 0 }, { 57, textboxHeight } },
+	DrawString(out, StrCat(stash.GetPage() + 1), { position + Displacement { 132, 0 }, { 57, textboxHeight } },
 	    { .flags = UiFlags::AlignCenter | style });
-	DrawString(out, FormatInteger(Stash.gold), { position + Displacement { 122, 19 }, { 107, textboxHeight } },
-	    { .flags = UiFlags::AlignRight | style });
+	if (stash.allowsGold) {
+		DrawString(out, FormatInteger(stash.gold), { position + Displacement { 122, 19 }, { 107, textboxHeight } },
+		    { .flags = UiFlags::AlignRight | style });
+	}
 }
 
 void CheckStashItem(Point mousePosition, bool isShiftHeld, bool isCtrlHeld)
@@ -439,12 +565,13 @@ uint16_t CheckStashHLight(Point mousePosition)
 
 	InfoColor = UiFlags::ColorWhite;
 
-	const StashStruct::StashCell itemId = Stash.GetItemIdAtPosition(slot);
+	StashStruct &stash = GetActiveStash();
+	const StashStruct::StashCell itemId = stash.GetItemIdAtPosition(slot);
 	if (itemId == StashStruct::EmptyCell) {
 		return -1;
 	}
 
-	const Item &item = Stash.stashList[itemId];
+	const Item &item = stash.stashList[itemId];
 	if (item.isEmpty()) {
 		return -1;
 	}
@@ -470,7 +597,8 @@ bool UseStashItem(uint16_t c)
 	if (IsPlayerInStore())
 		return true;
 
-	Item *item = &Stash.stashList[c];
+	StashStruct &stash = GetActiveStash();
+	Item *item = &stash.stashList[c];
 
 	constexpr int SpeechDelay = 10;
 	if (item->IDidx == IDI_MUSHROOM) {
@@ -508,14 +636,14 @@ bool UseStashItem(uint16_t c)
 
 	UseItem(*MyPlayer, item->_iMiscId, item->_iSpell, -1);
 
-	if (Stash.stashList[c]._iMiscId == IMISC_MAPOFDOOM)
+	if (stash.stashList[c]._iMiscId == IMISC_MAPOFDOOM)
 		return true;
-	if (Stash.stashList[c]._iMiscId == IMISC_NOTE) {
+	if (stash.stashList[c]._iMiscId == IMISC_NOTE) {
 		InitQTextMsg(TEXT_BOOK9);
 		CloseInventory();
 		return true;
 	}
-	Stash.RemoveStashItem(c);
+	stash.RemoveStashItem(c);
 
 	return true;
 }
@@ -523,7 +651,7 @@ bool UseStashItem(uint16_t c)
 void StashStruct::RemoveStashItem(StashStruct::StashCell iv)
 {
 	// Iterate through stashGrid and remove every reference to item
-	for (auto &row : Stash.GetCurrentGrid()) {
+	for (auto &row : GetCurrentGrid()) {
 		for (StashStruct::StashCell &itemId : row) {
 			if (itemId - 1 == iv) {
 				itemId = 0;
@@ -540,7 +668,7 @@ void StashStruct::RemoveStashItem(StashStruct::StashCell iv)
 	if (lastItemIndex != iv) {
 		stashList[iv] = stashList[lastItemIndex];
 
-		for (auto &[_, grid] : Stash.stashGrids) {
+		for (auto &[_, grid] : stashGrids) {
 			for (auto &row : grid) {
 				for (StashStruct::StashCell &itemId : row) {
 					if (itemId == lastItemIndex + 1) {
@@ -551,44 +679,50 @@ void StashStruct::RemoveStashItem(StashStruct::StashCell iv)
 		}
 	}
 	stashList.pop_back();
-	Stash.dirty = true;
+	dirty = true;
 }
 
 void StashStruct::SetPage(unsigned newPage)
 {
-	page = std::min(newPage, LastStashPage);
+	const unsigned lastPage = pageCount - 1;
+	page = std::min(newPage, lastPage);
 	dirty = true;
 }
 
 void StashStruct::NextPage(unsigned offset)
 {
-	if (page <= LastStashPage) {
-		page += std::min(offset, LastStashPage - page);
+	const unsigned lastPage = pageCount - 1;
+	if (page <= lastPage) {
+		page += std::min(offset, lastPage - page);
 	} else {
-		page = LastStashPage;
+		page = lastPage;
 	}
 	dirty = true;
 }
 
 void StashStruct::PreviousPage(unsigned offset)
 {
-	if (page <= LastStashPage) {
+	const unsigned lastPage = pageCount - 1;
+	if (page <= lastPage) {
 		page -= std::min(offset, page);
 	} else {
-		page = LastStashPage;
+		page = lastPage;
 	}
 	dirty = true;
 }
 
 void StashStruct::RefreshItemStatFlags()
 {
-	for (auto &item : Stash.stashList) {
+	for (auto &item : stashList) {
 		item.updateRequiredStatsCacheForPlayer(*MyPlayer);
 	}
 }
 
 void StartGoldWithdraw()
 {
+	if (!GetActiveStash().allowsGold)
+		return;
+
 	CloseGoldDrop();
 
 	if (ChatFlag)
@@ -607,7 +741,7 @@ void StartGoldWithdraw()
 	        .maxLength = sizeof(GoldWithdrawText) - 1,
 	    },
 	    .min = 0,
-	    .max = std::min(RoomForGold(), Stash.gold),
+	    .max = std::min(RoomForGold(), GetActiveStash().gold),
 	});
 	SDLC_StartTextInput(ghMainWnd);
 }
@@ -689,12 +823,16 @@ bool AutoPlaceItemInStash(const Item &item, bool persistItem)
 	if (!IsItemAllowedInStash(item))
 		return false;
 
+	StashStruct &stash = GetActiveStash();
+
 	if (item._itype == ItemType::Gold) {
-		if (Stash.gold > std::numeric_limits<int>::max() - item._ivalue)
+		if (!stash.allowsGold)
+			return false;
+		if (stash.gold > std::numeric_limits<int>::max() - item._ivalue)
 			return false;
 		if (persistItem) {
-			Stash.gold += item._ivalue;
-			Stash.dirty = true;
+			stash.gold += item._ivalue;
+			stash.dirty = true;
 		}
 		return true;
 	}
@@ -702,17 +840,17 @@ bool AutoPlaceItemInStash(const Item &item, bool persistItem)
 	const Size itemSize = GetInventorySize(item);
 
 	// Try to add the item to the current active page and if it's not possible move forward
-	for (unsigned pageCounter = 0; pageCounter < CountStashPages; pageCounter++) {
-		unsigned pageIndex = Stash.GetPage() + pageCounter;
+	for (unsigned pageCounter = 0; pageCounter < stash.pageCount; pageCounter++) {
+		unsigned pageIndex = stash.GetPage() + pageCounter;
 		// Wrap around if needed
-		if (pageIndex >= CountStashPages)
-			pageIndex -= CountStashPages;
+		if (pageIndex >= stash.pageCount)
+			pageIndex -= stash.pageCount;
 		// Search all possible position in stash grid
 		for (auto stashPosition : PointsInRectangle(Rectangle { { 0, 0 }, Size { 10 - (itemSize.width - 1), 10 - (itemSize.height - 1) } })) {
 			// Check that all needed slots are free
 			bool isSpaceFree = true;
 			for (auto itemPoint : PointsInRectangle(Rectangle { stashPosition, itemSize })) {
-				const uint16_t iv = Stash.stashGrids[pageIndex][itemPoint.x][itemPoint.y];
+				const uint16_t iv = stash.stashGrids[pageIndex][itemPoint.x][itemPoint.y];
 				if (iv != 0) {
 					isSpaceFree = false;
 					break;
@@ -721,11 +859,11 @@ bool AutoPlaceItemInStash(const Item &item, bool persistItem)
 			if (!isSpaceFree)
 				continue;
 			if (persistItem) {
-				Stash.stashList.push_back(item);
-				const auto stashIndex = static_cast<uint16_t>(Stash.stashList.size() - 1);
-				Stash.stashList[stashIndex].position = stashPosition + Displacement { 0, itemSize.height - 1 };
+				stash.stashList.push_back(item);
+				const auto stashIndex = static_cast<uint16_t>(stash.stashList.size() - 1);
+				stash.stashList[stashIndex].position = stashPosition + Displacement { 0, itemSize.height - 1 };
 				AddItemToStashGrid(pageIndex, stashPosition, stashIndex, itemSize);
-				Stash.dirty = true;
+				stash.dirty = true;
 			}
 			return true;
 		}

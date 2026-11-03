@@ -244,10 +244,10 @@ void PressControllerButton(ControllerButton button)
 			StartGoldWithdraw();
 			return;
 		case ControllerButton_BUTTON_LEFTSHOULDER:
-			Stash.PreviousPage();
+			GetActiveStash().PreviousPage();
 			return;
 		case ControllerButton_BUTTON_RIGHTSHOULDER:
-			Stash.NextPage();
+			GetActiveStash().NextPage();
 			return;
 		default:
 			break;

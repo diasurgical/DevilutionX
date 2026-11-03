@@ -101,6 +101,11 @@ void GameStart()
 	CallLuaEvent("GameStart");
 }
 
+bool OnItemAllowedInStash(const Item *item, bool defaultValue)
+{
+	return CallLuaEventReturn<bool>(defaultValue, "OnItemAllowedInStash", item);
+}
+
 } // namespace lua
 
 } // namespace devilution
