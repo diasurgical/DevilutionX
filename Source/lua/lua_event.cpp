@@ -91,6 +91,18 @@ void OnPlayerTakeDamage(const Player *player, int damage, int damageType)
 {
 	CallLuaEvent("OnPlayerTakeDamage", player, damage, damageType);
 }
+void OnCalcPlayerResistances(const Player *player, int fire, int lightning, int magic)
+{
+	CallLuaEvent("OnCalcPlayerResistances", player, fire, lightning, magic);
+}
+void OnNewCharacter(const Player &player)
+{
+	CallLuaEvent("OnNewCharacter", &player);
+}
+void OnCreatePlrItems(Player &player)
+{
+	CallLuaEvent("OnCreatePlrItems", &player);
+}
 
 void LoadModsComplete()
 {
