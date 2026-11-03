@@ -753,7 +753,7 @@ void DrawMonsterHelper(const Surface &out, Point tilePosition, Point targetBuffe
 		return;
 	}
 
-	if (static_cast<size_t>(mi) >= MaxMonsters) {
+	if (static_cast<size_t>(mi) >= GetMaxMonsters()) { // Lua mod support
 		Log("Draw Monster: tried to draw illegal monster {}", mi);
 		return;
 	}
@@ -866,7 +866,7 @@ void DrawDungeon(const Surface &out, const Lightmap &lightmap, Point tilePositio
 	Monster *monster = FindMonsterAtPosition(tilePosition);
 	if (monster != nullptr) {
 		auto mid = monster->getId();
-		assert(mid < MaxMonsters);
+		assert(mid < GetMaxMonsters()); // Lua mod support
 		int monsterId = static_cast<int>(mid) + 1;
 		// If sprite is moving southwards or east, we want to draw it offset from the tile it's moving to, so we need negative ID
 		// This respests the order that tiles are drawn. By using the negative id, we ensure that the sprite is drawn with priority

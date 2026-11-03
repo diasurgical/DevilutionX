@@ -103,7 +103,7 @@ void GetDebugMonster()
 void NextDebugMonster()
 {
 	DebugMonsterId++;
-	if (DebugMonsterId == MaxMonsters)
+	if (DebugMonsterId == GetMaxMonsters()) // Lua mod support
 		DebugMonsterId = 0;
 
 	EventPlrMsg(StrCat("Current debug monster = ", DebugMonsterId), UiFlags::ColorWhite);
