@@ -57,6 +57,7 @@
 #include "levels/tile_properties.hpp"
 #include "levels/town.h"
 #include "lighting.h"
+#include "lua/lua_event.hpp"
 #include "minitext.h"
 #include "monster.h"
 #include "msg.h"
@@ -2212,6 +2213,14 @@ StringOrView GetTranslatedItemName(const Item &item)
 {
 	const auto &baseItemData = AllItemsList[static_cast<size_t>(item.IDidx)];
 
+	// Lua mod support: a mod-registered item (index past the base range) whose _iName was overridden
+	// from its definition uses that name directly. Gated to mod items so base items keep vanilla's
+	// translated/composed names (e.g. staves, which compose _iName with the spell at creation).
+	if (item.IDidx >= IDI_NUM_DEFAULT_ITEMS
+	    && std::string_view(item._iName) != std::string_view(baseItemData.iName)) {
+		return std::string(item._iName);
+	}
+
 	if (item._iCreateInfo == 0) {
 		return _(baseItemData.iName);
 	}
@@ -3534,6 +3543,10 @@ void RecreateItem(const Player &player, Item &item, _item_indexes idx, uint16_t 
 	if (icreateinfo == 0) {
 		InitializeItem(item, idx);
 		item._iSeed = iseed;
+		if (idx >= IDI_NUM_DEFAULT_ITEMS) { // Lua mod support: mod-registered item
+			item.dwBuff = dwBuff;           // restore after InitializeItem reset the item
+			lua::OnCustomItemRecreated(item);
+		}
 		gbIsHellfire = tmpIsHellfire;
 		return;
 	}
@@ -4365,6 +4378,8 @@ void UseItem(Player &player, item_misc_id mid, SpellID spellID, int spellFrom)
 	default:
 		break;
 	}
+
+	lua::OnItemUsed(player, static_cast<int>(mid), static_cast<int>(spellID)); // Lua mod support
 
 	if (prepareSpellID) {
 		assert(IsValidSpellFrom(spellFrom));

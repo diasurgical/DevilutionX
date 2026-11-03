@@ -1,5 +1,6 @@
 #include "lua/modules/items.hpp"
 
+#include <string>
 #include <string_view>
 
 #include <sol/sol.hpp>
@@ -7,7 +8,9 @@
 #include "data/file.hpp"
 #include "items.h"
 #include "lua/metadoc.hpp"
+#include "msg.h"
 #include "player.h"
+#include "stores.h"
 #include "tables/itemdat.h"
 #include "utils/utf8.hpp"
 
@@ -464,6 +467,87 @@ void AddUniqueItemDataFromTsv(const std::string_view path, const int32_t baseMap
 	LoadUniqueItemDatFromFile(dataFile, path, baseMappingId);
 }
 
+void SpawnItemAt(int x, int y, int32_t mappingId, uint32_t seed, sol::optional<std::string> nameOverride, sol::optional<uint32_t> buffOverride)
+{
+	if (ActiveItemCount >= MAXITEMS)
+		return;
+
+	const auto it = ItemMappingIdsToIndices.find(mappingId);
+	if (it == ItemMappingIdsToIndices.end())
+		return;
+
+	const auto itemIndex = static_cast<_item_indexes>(it->second);
+	const Point pos { x, y };
+	// Try the exact tile first; GetSuperItemLoc starts at radius 1 and would miss it.
+	const Point dropPos = ItemSpaceOk(pos) ? pos : GetSuperItemLoc(pos);
+	if (dropPos == Point { 0, 0 } && pos != Point { 0, 0 })
+		return; // no free tile
+
+	Item item {};
+	GetItemAttrs(item, itemIndex, 1);
+	SetupItem(item);
+	item._iSeed = seed;
+	item._iCreateInfo = 0;
+	item._iIdentified = true;
+	if (buffOverride.has_value())
+		item.dwBuff = *buffOverride;
+	if (nameOverride.has_value()) {
+		CopyUtf8(item._iName, *nameOverride, sizeof(item._iName));
+		CopyUtf8(item._iIName, *nameOverride, sizeof(item._iIName));
+	}
+
+	const uint8_t ii = PlaceItemInWorld(std::move(item), dropPos);
+	// Announce like any dynamically spawned item (cf. SpawnRewardItem): same-level peers spawn a live
+	// copy and every client, the sender included via loopback, records it in the level delta.
+	NetSendCmdPItem(true, CMD_SPAWNITEM, Items[ii].position, Items[ii]);
+}
+
+void AddToHealerStock(int32_t mappingId, int ivalue, sol::optional<uint32_t> seedOpt, sol::optional<std::string> nameOverride, sol::optional<uint32_t> buffOverride, sol::optional<int> magicalOverride)
+{
+	const auto it = ItemMappingIdsToIndices.find(mappingId);
+	if (it == ItemMappingIdsToIndices.end())
+		return;
+	const auto itemIndex = static_cast<_item_indexes>(it->second);
+
+	const uint32_t seed = seedOpt.value_or(0);
+
+	// Idempotent: without a seed any same-mapping entry counts as already stocked; with a seed only a
+	// matching seed does, so several seeded items sharing one mapping can coexist.
+	for (const Item &existing : HealerItems) {
+		if (existing.IDidx != itemIndex) continue;
+		if (!seedOpt.has_value() || existing._iSeed == seed) return;
+	}
+
+	// At capacity, replace the last (lowest-priority) entry.
+	if (HealerItems.size() >= NumHealerItemsHf) {
+		HealerItems.erase(HealerItems.end() - 1);
+	}
+
+	Item item = {};
+	GetItemAttrs(item, itemIndex, 1);
+	if (seedOpt.has_value()) {
+		// Set up like a dropped item so seed, name and dwBuff carry over when bought
+		// (createInfo 0 keeps RecreateItem from regenerating it).
+		SetupItem(item);
+		item._iSeed = seed;
+		item._iCreateInfo = 0;
+	}
+	item._iIdentified = true;
+	item._iIvalue = ivalue;
+	item._ivalue = ivalue;
+	item._iStatFlag = true;
+	if (buffOverride.has_value())
+		item.dwBuff = *buffOverride;
+	// A purchase copies the stock item as-is, so its quality must already be right here.
+	if (magicalOverride.has_value())
+		item._iMagical = static_cast<item_quality>(*magicalOverride);
+	if (nameOverride.has_value()) {
+		CopyUtf8(item._iName, *nameOverride, sizeof(item._iName));
+		CopyUtf8(item._iIName, *nameOverride, sizeof(item._iIName));
+	}
+	HealerItems.push_back(std::move(item));
+}
+
 } // namespace
 
 sol::table LuaItemModule(sol::state_view &lua)
@@ -483,6 +567,18 @@ sol::table LuaItemModule(sol::state_view &lua)
 
 	LuaSetDocFn(table, "addItemDataFromTsv", "(path: string, baseMappingId: number)", AddItemDataFromTsv);
 	LuaSetDocFn(table, "addUniqueItemDataFromTsv", "(path: string, baseMappingId: number)", AddUniqueItemDataFromTsv);
+	LuaSetDocFn(table, "spawnAt", "(x: integer, y: integer, mappingId: integer, seed: integer, name?: string, dwBuff?: integer)",
+	    "Drop a mod-registered item with the given seed at the nearest free tile to (x, y). It is announced like any dynamically "
+	    "spawned item (CMD_SPAWNITEM), so same-level peers get a live copy and it persists in the level delta. Optional name sets "
+	    "this item's display name (peers' copies are recreated from the wire; restore it in OnCustomItemRecreated). Optional dwBuff "
+	    "sets item.buff.",
+	    SpawnItemAt);
+	LuaSetDocFn(table, "addToHealerStock", "(mappingId: integer, ivalue: integer, seed?: integer, name?: string, dwBuff?: integer, magical?: integer)",
+	    "Add a mod-registered item to the healer's stock at the given price. Optional seed/name/dwBuff stock a specific seeded "
+	    "instance that keeps them when bought; without a seed a single plain item is stocked. Optional magical sets the item "
+	    "quality (0 = normal, 2 = unique), which a purchase keeps. Idempotent: without a seed any entry of the same mapping is "
+	    "a no-op, with a seed only the same seed is. At capacity the last entry is replaced. Call from StoreOpened.",
+	    AddToHealerStock);
 
 	// Expose enums through the module table
 	table["ItemIndex"] = lua["ItemIndex"];
