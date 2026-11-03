@@ -26,6 +26,10 @@ void LoadModsComplete();
 void GameDrawComplete();
 void GameStart();
 
+// Generic mod net pipe: fired on receipt of a CMD_LUAMSG packet. `senderId` is the player id the
+// message came from; `payload` is the opaque bytes the sender passed to system.netSend (binary-safe).
+void NetMessage(int senderId, std::string_view payload);
+
 } // namespace lua
 
 } // namespace devilution

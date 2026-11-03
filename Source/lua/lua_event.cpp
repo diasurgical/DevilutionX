@@ -1,6 +1,7 @@
 #include "lua/lua_event.hpp"
 
 #include <optional>
+#include <string>
 #include <string_view>
 #include <utility>
 
@@ -99,6 +100,12 @@ void GameDrawComplete()
 void GameStart()
 {
 	CallLuaEvent("GameStart");
+}
+
+void NetMessage(int senderId, std::string_view payload)
+{
+	// Pass the payload as a length-counted std::string so embedded zeros survive into Lua.
+	CallLuaEvent("NetMessage", senderId, std::string(payload));
 }
 
 } // namespace lua

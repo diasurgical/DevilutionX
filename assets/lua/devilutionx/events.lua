@@ -80,6 +80,13 @@ local events = {
   ---Called when Player gains experience.
   OnPlayerGainExperience = CreateEvent(),
   __doc_OnPlayerGainExperience = "Called when Player gains experience.",
+
+  ---Called when a generic mod net message (system.netSend) is received from another client.
+  ---Args: senderId (integer player id the message came from), payload (string — the opaque bytes
+  ---the sender passed to system.netSend; binary-safe, may contain embedded zeros).
+  ---The engine does not interpret the payload; encode/decode it however the mod likes.
+  NetMessage = CreateEvent(),
+  __doc_NetMessage = "Called when a system.netSend message is received from another client. Args: senderId (int), payload (string). Payload is opaque mod-defined bytes.",
 }
 
 ---Registers a custom event type with the given name.
