@@ -902,8 +902,11 @@ std::vector<OptionEntryBase *> GameplayOptions::GetEntries()
 		&randomizeQuests,
 		&theoQuest,
 		&cowQuest,
+		&disableCripplingShrines,
 		&runInTown,
 		&quickCast,
+		&grabInput,
+		&pauseOnFocusLoss,
 		&testBard,
 		&testBarbarian,
 		&experienceBar,
@@ -931,9 +934,6 @@ std::vector<OptionEntryBase *> GameplayOptions::GetEntries()
 		&numRejuPotionPickup,
 		&numFullRejuPotionPickup,
 		&autoPickupInTown,
-		&disableCripplingShrines,
-		&grabInput,
-		&pauseOnFocusLoss,
 		&skipLoadingScreenThresholdMs,
 	};
 }
