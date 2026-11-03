@@ -21,6 +21,7 @@
 
 #include "DiabloUI/ui_flags.hpp"
 #include "automap.h"
+#include "control/control_text_prompt.hpp"
 #include "controls/control_mode.hpp"
 #include "controls/plrctrls.h"
 #include "cursor.h"
@@ -1433,6 +1434,7 @@ void DrawView(const Surface &out, Point startPosition)
 		DrawGoldSplit(out);
 	}
 	DrawGoldWithdraw(out);
+	DrawTextPrompt(out); // Lua mod support
 	if (HelpFlag) {
 		DrawHelp(out);
 	}
