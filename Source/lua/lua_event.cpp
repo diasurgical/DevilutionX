@@ -68,6 +68,14 @@ void UniqueItemDataLoaded()
 {
 	CallLuaEvent("UniqueItemDataLoaded");
 }
+void SpellDataLoaded()
+{
+	CallLuaEvent("SpellDataLoaded");
+}
+void SpellsAssigned()
+{
+	CallLuaEvent("SpellsAssigned");
+}
 
 void StoreOpened(std::string_view name)
 {

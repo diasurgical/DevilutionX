@@ -1697,7 +1697,9 @@ bool InitNewSpell(Player &player, uint16_t wParamSpellID, uint16_t wParamSpellTy
 	wParamSpellType = Swap16LE(wParamSpellType);
 	wParamSpellFrom = Swap16LE(wParamSpellFrom);
 
-	if (wParamSpellID > static_cast<int8_t>(SpellID::LAST))
+	// Bound against the loaded spell table rather than the static SpellID::LAST, so
+	// spells added by mods (which extend past LAST) are accepted. // Lua mod support
+	if (wParamSpellID >= SpellsData.size())
 		return false;
 	auto spellID = static_cast<SpellID>(wParamSpellID);
 	if (!IsValidSpell(spellID)) {

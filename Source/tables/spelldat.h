@@ -12,6 +12,7 @@
 #include <type_traits>
 #include <vector>
 
+#include "data/file.hpp"
 #include "sound_effect_enums.h"
 #include "utils/enum_traits.h"
 
@@ -271,6 +272,10 @@ inline const SpellData &GetSpellData(SpellID spellId)
 	return SpellsData[static_cast<std::underlying_type<SpellID>::type>(spellId)];
 }
 
+// Lua mod support: add the spells in a spelldat-format file. Call during the SpellDataLoaded event; the
+// spells are assigned IDs after every mod has added its own — sorted by their `id` column from a fixed
+// base (SpellID::LAST + 1) so a given id resolves to the same SpellID regardless of game mode or load order.
+void LuaAddSpellDatFromFile(DataFile &dataFile, std::string_view filename);
 void LoadSpellData();
 
 } // namespace devilution

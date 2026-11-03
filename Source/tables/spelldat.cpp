@@ -5,13 +5,22 @@
  */
 #include "tables/spelldat.h"
 
+#include <algorithm>
 #include <expected>
 #include <optional>
+#include <string>
 #include <string_view>
+#include <unordered_map>
+#include <vector>
 
+#include "appfat.h"
 #include "data/file.hpp"
 #include "data/iterators.hpp"
 #include "data/record_reader.hpp"
+#include "lua/lua_event.hpp"
+#include "panels/spell_icons.hpp"
+#include "utils/format.hpp"
+#include "utils/language.h"
 
 namespace devilution {
 
@@ -169,6 +178,10 @@ std::expected<MissileID, std::string> ParseMissileId(std::string_view value)
 /** Data related to each spell ID. */
 std::vector<SpellData> SpellsData;
 
+namespace {
+std::unordered_map<std::string, SpellID> LuaDynamicSpellIds; // Lua mod support: mod spell ids, resolved by ParseSpellId
+} // namespace
+
 std::expected<SpellID, std::string> ParseSpellId(std::string_view value)
 {
 	if (value == "Null") return SpellID::Null;
@@ -223,36 +236,133 @@ std::expected<SpellID, std::string> ParseSpellId(std::string_view value)
 	if (value == "RuneOfNova") return SpellID::RuneOfNova;
 	if (value == "RuneOfImmolation") return SpellID::RuneOfImmolation;
 	if (value == "RuneOfStone") return SpellID::RuneOfStone;
+	const auto it = LuaDynamicSpellIds.find(std::string(value)); // Lua mod support: dynamic spell names registered by mods
+	if (it != LuaDynamicSpellIds.end()) return it->second;
 	return std::unexpected("Unknown enum value");
+}
+
+namespace {
+
+// Reads the fields after `id` of one spell record into `item`. Shared by the base-table loader and
+// mod spell data so both parse identically. // Lua mod support
+void ReadSpellRecord(RecordReader &reader, SpellData &item)
+{
+	reader.readString("name", item.sNameText);
+	reader.read("soundId", item.sSFX, ParseSpellSoundId);
+	reader.readInt("bookCost10", item.bookCost10);
+	reader.readInt("staffCost10", item.staffCost10);
+	reader.readInt("manaCost", item.sManaCost);
+	reader.readEnumList("flags", item.flags, ParseSpellDataFlag);
+	reader.readInt("bookLevel", item.sBookLvl);
+	reader.readInt("staffLevel", item.sStaffLvl);
+	reader.readInt("minIntelligence", item.minInt);
+	reader.readEnumArray("missiles", /*fillMissing=*/std::make_optional(MissileID::Null), item.sMissiles, ParseMissileId);
+	reader.readInt("manaMultiplier", item.sManaAdj);
+	reader.readInt("minMana", item.sMinMana);
+	reader.readInt("staffMin", item.sStaffMin);
+	reader.readInt("staffMax", item.sStaffMax);
+}
+
+// A non-learnable placeholder used to pad gaps when a dynamic spell is assigned an ID beyond the
+// loaded base table (the base table is shorter in Diablo than in Hellfire). bookLevel/staffLevel = -1
+// keep GetSpellBookLevel/GetSpellStaffLevel returning -1 for the gap exactly as the engine's
+// out-of-bounds path does, so the save layout is unchanged. // Lua mod support
+void MakeInertSpell(SpellData &s)
+{
+	s.sNameText.clear();
+	s.sSFX = SfxID::None;
+	s.bookCost10 = s.staffCost10 = s.sManaCost = 0;
+	s.flags = SpellDataFlags::Fire;
+	s.sBookLvl = s.sStaffLvl = -1;
+	s.minInt = 0;
+	s.sMissiles[0] = s.sMissiles[1] = MissileID::Null;
+	s.sManaAdj = s.sMinMana = 0;
+	s.sStaffMin = 40;
+	s.sStaffMax = 80;
+}
+
+// Lua mod support: spell records added by mods during SpellDataLoaded, assigned IDs in LuaFinalizeDynamicSpells.
+struct PendingDynamicSpell {
+	std::string id;
+	SpellData data;
+};
+std::vector<PendingDynamicSpell> PendingDynamicSpells;
+
+// The per-player spell sets are 64-bit (GetSpellBitmask shifts by id-1), so spell IDs must stay below 64.
+constexpr int MaxSpellId = 63;
+
+void LoadSpellDatFromFile(DataFile &dataFile, std::string_view filename)
+{
+	dataFile.skipHeaderOrDie(filename);
+	SpellsData.reserve(SpellsData.size() + dataFile.numRecords());
+	for (DataFileRecord record : dataFile) {
+		RecordReader reader { record, filename };
+		reader.advance(); // skip id
+		ReadSpellRecord(reader, SpellsData.emplace_back());
+	}
+}
+
+void LuaClearPendingDynamicSpells()
+{
+	PendingDynamicSpells.clear();
+}
+
+void LuaFinalizeDynamicSpells()
+{
+	if (PendingDynamicSpells.empty())
+		return;
+	// Deterministic, mode-independent IDs: sort the added spells by id and assign from a fixed base
+	// (just past the static SpellID range) so a given spell id resolves to the same SpellID in every game
+	// mode and regardless of mod load order. Every client running the same mod set derives the same map.
+	std::sort(PendingDynamicSpells.begin(), PendingDynamicSpells.end(),
+	    [](const PendingDynamicSpell &a, const PendingDynamicSpell &b) { return a.id < b.id; });
+	const int firstId = static_cast<int>(SpellID::LAST) + 1;
+	if (firstId + static_cast<int>(PendingDynamicSpells.size()) - 1 > MaxSpellId) {
+		DisplayFatalErrorAndExit(_("Loading Spell Data Failed"), FormatRuntime(_("Could not add {} spells, since the maximum spell id of {} would be exceeded."), PendingDynamicSpells.size(), MaxSpellId));
+	}
+	int nextId = firstId;
+	for (PendingDynamicSpell &pending : PendingDynamicSpells) {
+		if (ParseSpellId(pending.id).has_value()) {
+			DisplayFatalErrorAndExit(_("Loading Spell Data Failed"), FormatRuntime(_("Spell id {} is already in use."), pending.id));
+		}
+		// Pad up to nextId with inert placeholders so direct indexing stays valid even when the loaded
+		// base table is shorter than the dynamic ID region (e.g. Diablo vs Hellfire).
+		while (static_cast<int>(SpellsData.size()) <= nextId)
+			MakeInertSpell(SpellsData.emplace_back());
+		SpellsData[nextId] = std::move(pending.data);
+		LuaDynamicSpellIds.emplace(pending.id, static_cast<SpellID>(nextId));
+		++nextId;
+	}
+	PendingDynamicSpells.clear();
+}
+
+} // namespace
+
+void LuaAddSpellDatFromFile(DataFile &dataFile, std::string_view filename)
+{
+	dataFile.skipHeaderOrDie(filename);
+	for (DataFileRecord record : dataFile) {
+		RecordReader reader { record, filename };
+		PendingDynamicSpell &pending = PendingDynamicSpells.emplace_back();
+		reader.readString("id", pending.id);
+		ReadSpellRecord(reader, pending.data);
+	}
 }
 
 void LoadSpellData()
 {
+	LuaDynamicSpellIds.clear();
+	LuaClearDynamicSpellIcons();
+	LuaClearPendingDynamicSpells();
 	SpellsData.clear();
 	const std::string_view filename = "txtdata\\spells\\spelldat.tsv";
 	DataFile dataFile = DataFile::loadOrDie(filename);
 	SpellsData.reserve(dataFile.numRecords() + 1);
 	AddNullSpell();
-	dataFile.skipHeaderOrDie(filename);
-	for (DataFileRecord record : dataFile) {
-		RecordReader reader { record, filename };
-		SpellData &item = SpellsData.emplace_back();
-		reader.advance(); // skip id
-		reader.readString("name", item.sNameText);
-		reader.read("soundId", item.sSFX, ParseSpellSoundId);
-		reader.readInt("bookCost10", item.bookCost10);
-		reader.readInt("staffCost10", item.staffCost10);
-		reader.readInt("manaCost", item.sManaCost);
-		reader.readEnumList("flags", item.flags, ParseSpellDataFlag);
-		reader.readInt("bookLevel", item.sBookLvl);
-		reader.readInt("staffLevel", item.sStaffLvl);
-		reader.readInt("minIntelligence", item.minInt);
-		reader.readEnumArray("missiles", /*fillMissing=*/std::make_optional(MissileID::Null), item.sMissiles, ParseMissileId);
-		reader.readInt("manaMultiplier", item.sManaAdj);
-		reader.readInt("minMana", item.sMinMana);
-		reader.readInt("staffMin", item.sStaffMin);
-		reader.readInt("staffMax", item.sStaffMax);
-	}
+	LoadSpellDatFromFile(dataFile, filename);
+	lua::SpellDataLoaded();
+	LuaFinalizeDynamicSpells();
+	lua::SpellsAssigned();
 	SpellsData.shrink_to_fit();
 }
 

@@ -49,6 +49,16 @@ local events = {
   UniqueItemDataLoaded = CreateEvent(),
   __doc_UniqueItemDataLoaded = "Called after the unique item data TSV file has been loaded.",
 
+  ---Called after the spell data TSV file has been loaded. Use spells.addSpellDataFromTsv() in this handler to add spells.
+  SpellDataLoaded = CreateEvent(),
+  __doc_SpellDataLoaded = "Called after the spell data TSV file has been loaded. Use spells.addSpellDataFromTsv() in this handler to add spells.",
+
+  ---Called after spells added in SpellDataLoaded have been assigned their SpellIDs
+  ---(deterministically, sorted by id from a fixed base). Read an assigned ID with spells.getSpellId(id)
+  ---here. Fires before class and item data load, so the IDs are valid there.
+  SpellsAssigned = CreateEvent(),
+  __doc_SpellsAssigned = "Called after spells added in SpellDataLoaded are assigned SpellIDs. Use spells.getSpellId(id) here. Fires before class and item data load.",
+
   ---Called after the monster data TSV file has been loaded.
   MonsterDataLoaded = CreateEvent(),
   __doc_MonsterDataLoaded = "Called after the monster data TSV file has been loaded.",

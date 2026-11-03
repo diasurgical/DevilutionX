@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <expected>
 #include <string>
+#include <string_view>
 
 #include "engine/clx_sprite.hpp"
 #include "engine/point.hpp"
@@ -113,5 +114,14 @@ void FreeLargeSpellIcons();
 
 std::expected<void, std::string> LoadSmallSpellIcons();
 void FreeSmallSpellIcons();
+
+/** Lua mod support: parse a SpellIcon name string to its frame index. Returns Empty on unknown names. */
+uint8_t LuaParseSpellIconName(std::string_view name);
+
+/** Lua mod support: register a custom icon frame for a dynamic spell ID. */
+void LuaRegisterDynamicSpellIcon(int spellId, uint8_t iconFrame);
+
+/** Lua mod support: clear all dynamic spell icon registrations. Call at the start of each data reload. */
+void LuaClearDynamicSpellIcons();
 
 } // namespace devilution
