@@ -118,7 +118,23 @@ void CalculatePreferredWindowSize(int &width, int &height)
 	}
 
 	if (*GetOptions().Graphics.integerScaling) {
-		const int factor = std::min(mode.w / width, mode.h / height);
+		// A requested size above the native desktop resolution would floor the
+		// factor below to zero and divide by zero (field crash: selecting a
+		// 1920p-class entry on a 1080p desktop with Integer Scaling enabled).
+		// Clamp the factor to at least 1: the window falls back to the native
+		// desktop size, the largest integer scale that still fits. Interactive
+		// selections are filtered out of the resolution list while Integer
+		// Scaling is on, and ClampResolutionForIntegerScaling() silently falls
+		// back; this backstop also covers stale devilutionx.ini values carried
+		// over from other displays.
+		const int factor = std::max(1, std::min(mode.w / width, mode.h / height));
+		if (width > mode.w || height > mode.h) {
+			static Size lastWarned { 0, 0 };
+			if (lastWarned.width != width || lastWarned.height != height) {
+				lastWarned = { width, height };
+				LogWarn(LogCategory::System, "Requested resolution {}x{} exceeds the native desktop resolution {}x{}; falling back to native (Integer Scaling)", width, height, mode.w, mode.h);
+			}
+		}
 		width = mode.w / factor;
 		height = mode.h / factor;
 		return;
@@ -187,7 +203,24 @@ void UpdateAvailableResolutions()
 	GraphicsOptions &graphicsOptions = GetOptions().Graphics;
 
 	std::vector<Size> sizes;
+#if defined(USE_SDL3) && (defined(__IOS__) || defined(__TVOS__) || defined(__VISIONOS__) || defined(__MACOS__))
+	// SDL3 Apple backends (UIKit, Cocoa) report display modes in points;
+	// the window display scale converts them to true pixel sizes.
 	const float scaleFactor = GetDpiScalingFactor();
+#elif defined(USE_SDL3)
+	// Windows, Linux and Android SDL3 backends report display modes in
+	// physical pixels, but SDL_GetWindowDisplayScale() is the OS UI scale
+	// (DPI/96 on Windows, compositor scale on Wayland), not pixel density:
+	// at 125% Windows scaling every mode got multiplied into phantom sizes
+	// (1920x1080 became 2400x1350, listed as "1350p"), hiding the native
+	// mode and offering above-panel resolutions that crash Integer Scaling.
+	// Physical pixel modes need no scaling.
+	constexpr float scaleFactor = 1.0F;
+#else
+	// SDL2: renderer output size vs window size (1.0 on Windows, 2.0 on
+	// Retina) - a true pixel-density ratio.
+	const float scaleFactor = GetDpiScalingFactor();
+#endif
 
 	// Add resolutions
 	bool supportsAnyResolution = false;
@@ -291,6 +324,21 @@ void UpdateAvailableResolutions()
 	std::erase_if(sizes, [](const Size &s) { return s.width < 640 || s.height < 480; });
 #endif
 
+	// Integer Scaling cannot scale an image beyond the native desktop
+	// resolution: the fit-to-screen factor would floor to zero and divide
+	// by zero (field crash). Above-native sizes (e.g. GPU driver VSR
+	// modes) are therefore not offered while Integer Scaling is enabled;
+	// with it off they stay selectable (the selection clamp ignores them
+	// as well), and toggling Integer Scaling refreshes this list.
+	if (*GetOptions().Graphics.integerScaling) {
+		Size nativeResolution;
+		if (GetNativeDesktopResolution(nativeResolution)) {
+			std::erase_if(sizes, [nativeResolution](const Size &s) {
+				return s.width > nativeResolution.width || s.height > nativeResolution.height;
+			});
+		}
+	}
+
 	// Sort by width then by height
 	c_sort(sizes, [](const Size &x, const Size &y) -> bool {
 		if (x.width == y.width)
@@ -326,7 +374,16 @@ const auto OptionChangeHandlerFitToScreen = (GetOptions().Graphics.fitToScreen.S
 
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 const auto OptionChangeHandlerScaleQuality = (GetOptions().Graphics.scaleQuality.SetValueChangedCallback(ReinitializeTexture), true);
-const auto OptionChangeHandlerIntegerScaling = (GetOptions().Graphics.integerScaling.SetValueChangedCallback(ReinitializeIntegerScale), true);
+/** @brief Options have a single change-callback slot (SetValueChangedCallback):
+ * Integer Scaling needs both the stock renderer reinitialization and a
+ * refresh of the resolution list (above-native sizes are filtered while
+ * it is enabled), so dispatch both from one wrapper. */
+void OnIntegerScalingOptionChanged()
+{
+	ReinitializeIntegerScale();
+	ResizeWindowAndUpdateResolutionOptions();
+}
+const auto OptionChangeHandlerIntegerScaling = (GetOptions().Graphics.integerScaling.SetValueChangedCallback(OnIntegerScalingOptionChanged), true);
 const auto OptionChangeHandlerVSync = (GetOptions().Graphics.frameRateControl.SetValueChangedCallback(ReinitializeRenderer), true);
 
 struct DisplayModeComparator {

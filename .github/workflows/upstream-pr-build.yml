@@ -1,0 +1,143 @@
+# Clean upstream proof build for pr/upstream-resolution-dpi (diasurgical#8746).
+#
+# Builds THIS branch exactly like diasurgical:master CI would: no GPU scaler,
+# no libslang-vk, no fork payload. The two jobs mirror upstream's own CI 1:1 -
+# same runners, dependencies, GCC 14, vcpkg commit, CMakePresets and test
+# data; only the triggers differ (this branch instead of master) and the
+# checkout is pinned to this ref, so even a stray manual dispatch from another
+# branch still builds this tree and nothing else.
+#
+# SDL coverage note: the Linux job is the SDL3 proof build (upstream's
+# Linux_x86_64_SDL3_test.yml - vendored static SDL3). The Windows job is
+# upstream's Windows_MSVC_x64.yml, which is an SDL2 build: upstream has no
+# Windows SDL3 CI, and upstream's own VcPkgManifestFeatures.cmake maps
+# USE_SDL3 to a "sdl3" vcpkg feature that vcpkg.json does not declare, so
+# USE_SDL3 + vcpkg manifest mode cannot even configure. (The fork's
+# pr/1-sdl3-build-fixes declares that feature; it intentionally does not ride
+# this clean PR.) This mirrors exactly the job pair diasurgical's CI runs on
+# the PR itself.
+#
+# Fork-side only: runs on push to pr/upstream-resolution-dpi (manual dispatch
+# also allowed). Fork-only CI file: drop this commit before the PR merges.
+
+name: Clean upstream build (no scaler)
+
+on:
+  push:
+    branches:
+      - pr/upstream-resolution-dpi
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  linux-x64-sdl3:
+    name: Linux x64 SDL3 (upstream recipe)
+    runs-on: ubuntu-24.04
+
+    steps:
+    - uses: actions/checkout@v7
+      with:
+        ref: pr/upstream-resolution-dpi
+        fetch-depth: 0
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update -y
+        sudo apt-get install -y cmake curl g++-14 git libgtest-dev libgmock-dev libbenchmark-dev libsodium-dev libpng-dev libbz2-dev libasound2-dev libxcursor-dev libxi-dev libxrandr-dev libxss-dev libxtst-dev libxkbcommon-dev wget
+
+    - name: Switch to GCC 14
+      run: |
+        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100 --slave /usr/bin/g++ g++ /usr/bin/g++-14
+        sudo update-alternatives --set gcc /usr/bin/gcc-14
+
+    - name: Cache CMake build folder
+      uses: actions/cache@v6
+      with:
+        path: build
+        key: ${{ github.workflow }}-v6-${{ github.sha }}
+        restore-keys: ${{ github.workflow }}-v6-
+
+    # We specify -DDEVILUTIONX_SYSTEM_BENCHMARK=OFF to work around the following error:
+    # lto1: fatal error: bytecode stream in file '/usr/lib/x86_64-linux-gnu/libbenchmark_main.a' generated with LTO version 11.2 instead of the expected 11.3
+    - name: Build tests
+      run: |
+        cmake -S. -Bbuild -G Ninja -DUSE_SDL3=ON -DDEVILUTIONX_SYSTEM_SDL3=OFF -DDEVILUTIONX_STATIC_SDL3=ON -DDEVILUTIONX_SYSTEM_SDL_IMAGE=OFF -DDEVILUTIONX_SYSTEM_BENCHMARK=OFF
+        wget -qnc https://github.com/diasurgical/devilutionx-assets/releases/download/v2/spawn.mpq -P build
+        cmake --build build -j $(nproc)
+
+    - name: Run tests
+      run: cd build && ctest --output-on-failure
+
+    - name: Upload binary
+      if: always()
+      uses: actions/upload-artifact@v7
+      with:
+        name: devilutionx-linux-x64-sdl3
+        path: build/devilutionx
+
+  # Upstream's own Windows job - SDL2 (see SDL coverage note above).
+  windows-msvc-x64:
+    name: Windows MSVC x64 (upstream recipe, SDL2)
+    runs-on: windows-latest
+
+    permissions:
+      contents: write
+
+    env:
+      VCPKG_FEATURE_FLAGS: dependencygraph
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v7
+      with:
+        ref: pr/upstream-resolution-dpi
+        fetch-depth: 0
+
+    - name: ccache
+      uses: hendrikmuhs/ccache-action@v1.2
+
+    - name: Install latest CMake
+      uses: lukka/get-cmake@latest
+
+    - name: Restore or setup vcpkg
+      uses: lukka/run-vcpkg@v11.6
+      with:
+        vcpkgGitCommitId: '40f3c709db80acf154ac4b17a1f83c564ebd022e'
+
+    - name: Fetch test data
+      run: |
+          mkdir build-ninja-vcpkg-relwithdebinfo
+          Invoke-WebRequest -Uri "https://github.com/diasurgical/devilutionx-assets/releases/download/v2/spawn.mpq" -OutFile "build-ninja-vcpkg-relwithdebinfo/spawn.mpq" -Resume
+
+    - name: Get CMakePresets.json
+      run: cp Packaging/windows/CMakePresets.json .
+
+    - name: Run CMake consuming CMakePresets.json and vcpkg.json by mean of vcpkg.
+      uses: lukka/run-cmake@v10
+      with:
+        configurePreset: 'ninja-vcpkg-relwithdebinfo'
+        buildPreset: 'ninja-vcpkg-relwithdebinfo'
+        testPreset: 'ninja-vcpkg-relwithdebinfo'
+
+    # Prove the deployed DLL set actually runs before shipping the artifact
+    # (upstream never executes this exe in CI, so its hand-written DLL upload
+    # list has rotted; wildcard + smoke test fixes that).
+    - name: Binary smoke test
+      run: ./build-ninja-vcpkg-relwithdebinfo/devilutionx.exe --version
+
+    - name: Upload-Package
+      if: ${{ !env.ACT }}
+      uses: actions/upload-artifact@v7
+      with:
+        name: devilutionx-windows-x64
+        path: |
+            build-ninja-vcpkg-relwithdebinfo/devilutionx.exe
+            build-ninja-vcpkg-relwithdebinfo/devilutionx.pdb
+            build-ninja-vcpkg-relwithdebinfo/*.dll

@@ -95,9 +95,11 @@ bool IsValidEntry(OptionEntryBase *pOptionEntry)
 
 std::vector<DrawStringFormatArg> CreateDrawStringFormatArgForEntry(OptionEntryBase *pEntry)
 {
+	// Disabled options are drawn greyed out.
+	const bool disabled = pEntry->IsDisabled();
 	return std::vector<DrawStringFormatArg> {
-		{ pEntry->GetName(), UiFlags::ColorUiGold },
-		{ pEntry->GetValueDescription(), UiFlags::ColorUiSilver }
+		{ pEntry->GetName(), disabled ? UiFlags::ColorUiSilverDark : UiFlags::ColorUiGold },
+		{ pEntry->GetValueDescription(), disabled ? UiFlags::ColorUiSilverDark : UiFlags::ColorUiSilver }
 	};
 }
 
@@ -281,6 +283,8 @@ void ItemSelected(size_t value)
 	} break;
 	case ShownMenuType::Settings: {
 		auto *pOption = vecOptions[vecItemValue];
+		if (pOption->IsDisabled())
+			break; // greyed out: not interactive
 		bool updateValueDescription = false;
 		if (pOption->GetType() == OptionEntryType::List) {
 			auto *pOptionList = static_cast<OptionEntryListBase *>(pOption);
@@ -426,11 +430,14 @@ void UiSettingsMenu()
 					itemToSelect = vecDialogItems.size();
 				auto formatArgs = CreateDrawStringFormatArgForEntry(pEntry);
 				const int optionId = static_cast<int>(vecOptions.size());
+				UiFlags itemFlags = UiFlags::ColorUiGold;
+				if (pEntry->IsDisabled())
+					itemFlags |= UiFlags::ElementDisabled; // greyed out: skipped in navigation
 				if (NeedsTwoLinesToDisplayOption(formatArgs)) {
-					vecDialogItems.push_back(std::make_unique<UiListItem>(std::string_view("{}:"), formatArgs, optionId, UiFlags::ColorUiGold | UiFlags::NeedsNextElement));
+					vecDialogItems.push_back(std::make_unique<UiListItem>(std::string_view("{}:"), formatArgs, optionId, itemFlags | UiFlags::NeedsNextElement));
 					vecDialogItems.push_back(std::make_unique<UiListItem>(std::string(pEntry->GetValueDescription()), optionId, UiFlags::ColorUiSilver | UiFlags::ElementDisabled));
 				} else {
-					vecDialogItems.push_back(std::make_unique<UiListItem>(std::string_view("{}: {}"), formatArgs, optionId, UiFlags::ColorUiGold));
+					vecDialogItems.push_back(std::make_unique<UiListItem>(std::string_view("{}: {}"), formatArgs, optionId, itemFlags));
 				}
 				vecOptions.push_back(pEntry);
 			}
