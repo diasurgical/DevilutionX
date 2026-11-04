@@ -178,7 +178,7 @@ void nthread_start(bool setTurnUpperBit)
 	}
 	if (gdwNormalMsgSize > largestMsgSize)
 		gdwNormalMsgSize = largestMsgSize;
-	if (gbIsMultiplayer) {
+	if (gbIsMultiplayer && SdlThread::IsConcurrent) {
 		sgbThreadIsRunning = false;
 		MemCrit.lock();
 		nthread_should_run = true;

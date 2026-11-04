@@ -46,6 +46,13 @@ inline void yield()
 #if defined(__EMSCRIPTEN__)
 class SdlThread final {
 public:
+	/**
+	 * @brief Whether the handler runs concurrently with the creating thread.
+	 *
+	 * Emscripten has no real threads: the handler runs to completion inline in the constructor.
+	 */
+	static constexpr bool IsConcurrent = false;
+
 	SdlThread(int(SDLCALL *handler)(void *), void *data)
 	{
 		if (handler != nullptr) handler(data);
@@ -81,6 +88,9 @@ class SdlThread final {
 	std::unique_ptr<SDL_Thread, void (*)(SDL_Thread *)> thread { nullptr, ThreadDeleter };
 
 public:
+	/** @brief Whether the handler runs concurrently with the creating thread. */
+	static constexpr bool IsConcurrent = true;
+
 	SdlThread(int(SDLCALL *handler)(void *), void *data)
 #ifdef USE_SDL1
 	    : thread(SDL_CreateThread(handler, data), ThreadDeleter)
