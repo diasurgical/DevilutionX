@@ -5,6 +5,7 @@
 
 namespace devilution {
 
+struct Item;
 struct Player;
 struct Monster;
 
@@ -22,6 +23,9 @@ void OnMonsterTakeDamage(const Monster *monster, int damage, int damageType);
 
 void OnPlayerGainExperience(const Player *player, uint32_t exp);
 void OnPlayerTakeDamage(const Player *player, int damage, int damageType);
+
+void OnCustomItemRecreated(Item &item);
+void OnItemUsed(const Player &player, int mid, int spellID);
 
 void LoadModsComplete();
 void GameDrawComplete();

@@ -92,6 +92,15 @@ void OnPlayerTakeDamage(const Player *player, int damage, int damageType)
 	CallLuaEvent("OnPlayerTakeDamage", player, damage, damageType);
 }
 
+void OnCustomItemRecreated(Item &item)
+{
+	CallLuaEvent("OnCustomItemRecreated", &item);
+}
+void OnItemUsed(const Player &player, int mid, int spellID)
+{
+	CallLuaEvent("OnItemUsed", &player, mid, spellID);
+}
+
 void LoadModsComplete()
 {
 	CallLuaEvent("LoadModsComplete");
