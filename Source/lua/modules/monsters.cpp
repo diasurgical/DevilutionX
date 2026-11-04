@@ -51,6 +51,21 @@ sol::table LuaMonstersModule(sol::state_view &lua)
 	sol::table table = lua.create_table();
 	LuaSetDocFn(table, "addMonsterDataFromTsv", "(path: string)", AddMonsterDataFromTsv);
 	LuaSetDocFn(table, "addUniqueMonsterDataFromTsv", "(path: string)", AddUniqueMonsterDataFromTsv);
+	LuaSetDocFn(table, "requestExtraTypes", "(count: integer)",
+	    "Reserve additional per-level monster-type slots (on top of the base cap of 24). Call at mod-load time, before any "
+	    "level is generated. Cumulative across mods.",
+	    [](int count) {
+		    if (count > 0)
+			    RequestExtraLevelMonsterTypes(static_cast<size_t>(count));
+	    });
+	LuaSetDocFn(table, "requestExtraMonsters", "(count: integer)",
+	    "Reserve additional live-monster slots (on top of the base cap of 200). Call at mod-load time, before any level is "
+	    "generated. Cumulative across mods; the total is clamped to 252, the limit of the one-byte enemy encoding. Every "
+	    "client in a multiplayer game must request the same amount (i.e. run the same mods).",
+	    [](int count) {
+		    if (count > 0)
+			    RequestExtraMonsters(static_cast<size_t>(count));
+	    });
 	return table;
 }
 

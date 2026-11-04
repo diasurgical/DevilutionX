@@ -241,7 +241,7 @@ struct DLevel {
 	TCmdPItem item[MaxDeltaItems];
 	ankerl::unordered_dense::map<WorldTilePosition, DObjectStr> object;
 	ankerl::unordered_dense::map<size_t, DSpawnedMonster> spawnedMonsters;
-	DMonsterStr monster[MaxMonsters];
+	DMonsterStr monster[AbsoluteMaxMonsters]; // Lua mod support: ceiling-sized; serialized count is GetMaxMonsters()
 };
 
 #pragma pack(push, 1)
@@ -287,14 +287,14 @@ uint8_t sbLastCmd;
 /**
  * @brief buffer used to receive level deltas, size is the worst expected case assuming every object on a level was touched
  */
-std::byte sgRecvBuf[1U                                               /* marker byte, always 0 */
-    + sizeof(uint8_t)                                                /* level id */
-    + sizeof(DLevel::item)                                           /* items spawned during dungeon generation which have been picked up, and items dropped by a player during a game */
-    + sizeof(uint8_t)                                                /* count of object interactions which caused a state change since dungeon generation */
-    + ((sizeof(WorldTilePosition) + sizeof(_cmd_id)) * MAXOBJECTS)   /* location/action pairs for the object interactions */
-    + sizeof(DLevel::monster)                                        /* latest monster state */
-    + sizeof(uint16_t)                                               /* spawned monster count */
-    + ((sizeof(uint16_t) + sizeof(DSpawnedMonster)) * MaxMonsters)]; /* spawned monsters */
+std::byte sgRecvBuf[1U                                                       /* marker byte, always 0 */
+    + sizeof(uint8_t)                                                        /* level id */
+    + sizeof(DLevel::item)                                                   /* items spawned during dungeon generation which have been picked up, and items dropped by a player during a game */
+    + sizeof(uint8_t)                                                        /* count of object interactions which caused a state change since dungeon generation */
+    + ((sizeof(WorldTilePosition) + sizeof(_cmd_id)) * MAXOBJECTS)           /* location/action pairs for the object interactions */
+    + sizeof(DLevel::monster)                                                /* latest monster state */
+    + sizeof(uint16_t)                                                       /* spawned monster count */
+    + ((sizeof(uint16_t) + sizeof(DSpawnedMonster)) * AbsoluteMaxMonsters)]; /* spawned monsters // Lua mod support */
 
 _cmd_id sgbRecvCmd;
 ankerl::unordered_dense::map<uint8_t, LocalLevel> LocalLevels;
@@ -616,7 +616,7 @@ const std::byte *DeltaImportObjects(const std::byte *src, const std::byte *end, 
 
 std::byte *DeltaExportMonster(std::byte *dst, const DMonsterStr *src)
 {
-	for (size_t i = 0; i < MaxMonsters; i++, src++) {
+	for (size_t i = 0; i < GetMaxMonsters(); i++, src++) { // Lua mod support
 		if (src->position.x == 0xFF) {
 			*dst++ = std::byte { 0xFF };
 		} else {
@@ -634,7 +634,7 @@ const std::byte *DeltaImportMonster(const std::byte *src, const std::byte *end, 
 		return nullptr;
 
 	size_t size = 0;
-	for (size_t i = 0; i < MaxMonsters; i++, dst++) {
+	for (size_t i = 0; i < GetMaxMonsters(); i++, dst++) { // Lua mod support
 		if (&src[size] >= end)
 			return nullptr;
 		if (src[size] == std::byte { 0xFF }) {
@@ -678,7 +678,7 @@ const std::byte *DeltaImportSpawnedMonsters(const std::byte *src, const std::byt
 	memcpy(&size, src, sizeof(uint16_t));
 	size = Swap16LE(size);
 	src += sizeof(uint16_t);
-	if (size > MaxMonsters)
+	if (size > GetMaxMonsters()) // Lua mod support
 		return nullptr;
 
 	const size_t requiredBytes = (sizeof(uint16_t) + sizeof(DSpawnedMonster)) * size;
@@ -834,7 +834,9 @@ void DeltaLoadSpawnedMonsters(const DLevel &deltaLevel)
 
 void DeltaLoadEnemies(const DLevel &deltaLevel)
 {
-	for (size_t i = 0; i < MaxMonsters; i++) {
+	for (size_t i = 0; i < GetMaxMonsters(); i++) { // Lua mod support
+		if (i >= MaxMonsters && !deltaLevel.spawnedMonsters.contains(i))
+			continue; // Lua mod support: extended-region slot with no spawn record — no monster exists here to apply it to
 		const DMonsterStr &deltaMonster = deltaLevel.monster[i];
 		if (!IsMonsterDeltaValid(deltaMonster))
 			continue;
@@ -857,7 +859,9 @@ void DeltaLoadEnemies(const DLevel &deltaLevel)
 
 void DeltaLoadMonsters(const DLevel &deltaLevel)
 {
-	for (size_t i = 0; i < MaxMonsters; i++) {
+	for (size_t i = 0; i < GetMaxMonsters(); i++) { // Lua mod support
+		if (i >= MaxMonsters && !deltaLevel.spawnedMonsters.contains(i))
+			continue; // Lua mod support: extended-region slot with no spawn record — no monster exists here to apply it to
 		const DMonsterStr &deltaMonster = deltaLevel.monster[i];
 		if (!IsMonsterDeltaValid(deltaMonster))
 			continue;
@@ -1809,7 +1813,7 @@ size_t OnAttackMonster(const TCmdParam1 &message, Player &player)
 {
 	const uint16_t monsterIdx = Swap16LE(message.wParam1);
 
-	if (gbBufferMsgs != 1 && player.isOnActiveLevel() && leveltype != DTYPE_TOWN && monsterIdx < MaxMonsters) {
+	if (gbBufferMsgs != 1 && player.isOnActiveLevel() && leveltype != DTYPE_TOWN && monsterIdx < GetMaxMonsters()) { // Lua mod support
 		const Point position = Monsters[monsterIdx].position.future;
 		if (player.position.tile.WalkingDistance(position) > 1)
 			MakePlrPath(player, position, false);
@@ -1837,7 +1841,7 @@ size_t OnRangedAttackMonster(const TCmdParam1 &message, Player &player)
 {
 	const uint16_t monsterIdx = Swap16LE(message.wParam1);
 
-	if (gbBufferMsgs != 1 && player.isOnActiveLevel() && leveltype != DTYPE_TOWN && monsterIdx < MaxMonsters) {
+	if (gbBufferMsgs != 1 && player.isOnActiveLevel() && leveltype != DTYPE_TOWN && monsterIdx < GetMaxMonsters()) { // Lua mod support
 		ClrPlrPath(player);
 		player.destAction = ACTION_RATTACKMON;
 		player.destParam1 = monsterIdx;
@@ -1868,7 +1872,7 @@ size_t OnSpellMonster(const TCmdParam4 &message, Player &player)
 	if (leveltype == DTYPE_TOWN)
 		return sizeof(message);
 	const uint16_t monsterIdx = Swap16LE(message.wParam1);
-	if (monsterIdx >= MaxMonsters)
+	if (monsterIdx >= GetMaxMonsters()) // Lua mod support
 		return sizeof(message);
 
 	if (!InitNewSpell(player, message.wParam2, message.wParam3, message.wParam4))
@@ -1907,7 +1911,7 @@ size_t OnKnockback(const TCmdParam1 &message, Player &player)
 {
 	const uint16_t monsterIdx = Swap16LE(message.wParam1);
 
-	if (gbBufferMsgs != 1 && player.isOnActiveLevel() && leveltype != DTYPE_TOWN && monsterIdx < MaxMonsters) {
+	if (gbBufferMsgs != 1 && player.isOnActiveLevel() && leveltype != DTYPE_TOWN && monsterIdx < GetMaxMonsters()) { // Lua mod support
 		Monster &monster = Monsters[monsterIdx];
 		M_GetKnockback(monster, player.position.tile);
 		M_StartHit(monster, player, 0);
@@ -2020,7 +2024,7 @@ size_t OnMonstDeath(const TCmdLocParam1 &message, Player &player)
 	const uint16_t monsterIdx = Swap16LE(message.wParam1);
 
 	if (gbBufferMsgs != 1) {
-		if (&player != MyPlayer && player.plrlevel > 0 && InDungeonBounds(position) && monsterIdx < MaxMonsters) {
+		if (&player != MyPlayer && player.plrlevel > 0 && InDungeonBounds(position) && monsterIdx < GetMaxMonsters()) { // Lua mod support
 			Monster &monster = Monsters[monsterIdx];
 			if (player.isOnActiveLevel())
 				M_SyncStartKill(monster, position, player);
@@ -2052,7 +2056,7 @@ size_t OnMonstDamage(const TCmdMonDamage &message, Player &player)
 
 	if (gbBufferMsgs != 1) {
 		if (&player != MyPlayer) {
-			if (player.isOnActiveLevel() && leveltype != DTYPE_TOWN && monsterIdx < MaxMonsters) {
+			if (player.isOnActiveLevel() && leveltype != DTYPE_TOWN && monsterIdx < GetMaxMonsters()) { // Lua mod support
 				Monster &monster = Monsters[monsterIdx];
 				monster.tag(player);
 				if (monster.hitPoints > 0) {

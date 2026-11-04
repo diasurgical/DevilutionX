@@ -45,7 +45,7 @@ std::string DebugCmdSpawnUniqueMonster(std::string name, std::optional<unsigned>
 
 	if (mtype == -1) return "Monster not found";
 
-	size_t id = MaxLvlMTypes - 1;
+	size_t id = GetMaxLvlMTypes() - 1; // Lua mod support: effective cap may include a mod extension
 	bool found = false;
 
 	for (size_t i = 0; i < LevelMonsterTypeCount; i++) {
@@ -57,7 +57,7 @@ std::string DebugCmdSpawnUniqueMonster(std::string name, std::optional<unsigned>
 	}
 
 	if (!found) {
-		if (LevelMonsterTypeCount == MaxLvlMTypes)
+		if (LevelMonsterTypeCount == GetMaxLvlMTypes())
 			LevelMonsterTypeCount--; // we are running out of monster types, so override last used monster type
 		std::expected<size_t, std::string> idResult = AddMonsterType(uniqueIndex, PLACE_SCATTER);
 		if (!idResult.has_value()) return std::move(idResult).error();
@@ -120,7 +120,7 @@ std::string DebugCmdSpawnMonster(std::string name, std::optional<unsigned> count
 	if (mtype == -1) return "Monster not found";
 	if (!MyPlayer->isLevelOwnedByLocalClient()) return "You are not the level owner.";
 
-	size_t id = MaxLvlMTypes - 1;
+	size_t id = GetMaxLvlMTypes() - 1; // Lua mod support: effective cap may include a mod extension
 	bool found = false;
 
 	for (size_t i = 0; i < LevelMonsterTypeCount; i++) {
@@ -132,7 +132,7 @@ std::string DebugCmdSpawnMonster(std::string name, std::optional<unsigned> count
 	}
 
 	if (!found) {
-		if (LevelMonsterTypeCount == MaxLvlMTypes)
+		if (LevelMonsterTypeCount == GetMaxLvlMTypes())
 			LevelMonsterTypeCount--; // we are running out of monster types, so override last used monster type
 		std::expected<size_t, std::string> idResult = AddMonsterType(static_cast<_monster_id>(mtype), PLACE_SCATTER);
 		if (!idResult.has_value()) return std::move(idResult).error();
@@ -144,7 +144,7 @@ std::string DebugCmdSpawnMonster(std::string name, std::optional<unsigned> count
 
 	Player &myPlayer = *MyPlayer;
 
-	size_t monstersToSpawn = std::min<size_t>(MaxMonsters - ActiveMonsterCount, count);
+	size_t monstersToSpawn = std::min<size_t>(GetMaxMonsters() - ActiveMonsterCount, count); // Lua mod support
 	if (monstersToSpawn == 0)
 		return "Can't spawn any monsters";
 
