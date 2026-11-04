@@ -1,0 +1,4 @@
+shader0 = shaders/lut_mix.slang
+textures = "lut"
+lut = "textures/lut.png"
+lut_linear = true

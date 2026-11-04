@@ -8,6 +8,7 @@
 #ifdef USE_SDL3
 #include <SDL3/SDL_hints.h>
 #include <SDL3/SDL_init.h>
+#include <SDL3/SDL_messagebox.h>
 #include <SDL3/SDL_rect.h>
 #include <SDL3/SDL_render.h>
 #include <SDL3/SDL_surface.h>
@@ -44,10 +45,17 @@
 #include "controls/devices/kbcontroller.h"
 #include "controls/game_controls.h"
 #include "controls/touch/gamepad.h"
+#ifndef USE_SDL1
+#include "controls/touch/renderers.h"
+#endif
 #include "engine/backbuffer_state.hpp"
 #include "engine/dx.h"
+#include "game_mode.hpp"
 #include "headless_mode.hpp"
 #include "options.h"
+#ifdef USE_GPU_SCALER
+#include "engine/render/gpu/gpu_scaler.hpp"
+#endif
 #include "utils/log.hpp"
 #include "utils/sdl_compat.h"
 #include "utils/sdl_geometry.h"
@@ -118,7 +126,23 @@ void CalculatePreferredWindowSize(int &width, int &height)
 	}
 
 	if (*GetOptions().Graphics.integerScaling) {
-		const int factor = std::min(mode.w / width, mode.h / height);
+		// A requested size above the native desktop resolution would floor the
+		// factor below to zero and divide by zero (field crash: selecting a
+		// 1920p-class entry on a 1080p desktop with Integer Scaling enabled).
+		// Clamp the factor to at least 1: the window falls back to the native
+		// desktop size, the largest integer scale that still fits. Interactive
+		// selections are filtered out of the resolution list while Integer
+		// Scaling is on, and ClampResolutionForIntegerScaling() silently falls
+		// back; this backstop also covers stale devilutionx.ini values carried
+		// over from other displays.
+		const int factor = std::max(1, std::min(mode.w / width, mode.h / height));
+		if (width > mode.w || height > mode.h) {
+			static Size lastWarned { 0, 0 };
+			if (lastWarned.width != width || lastWarned.height != height) {
+				lastWarned = { width, height };
+				LogWarn(LogCategory::System, "Requested resolution {}x{} exceeds the native desktop resolution {}x{}; falling back to native (Integer Scaling)", width, height, mode.w, mode.h);
+			}
+		}
 		width = mode.w / factor;
 		height = mode.h / factor;
 		return;
@@ -159,6 +183,10 @@ Size GetPreferredWindowSize()
 
 const auto OptionChangeHandlerResolution = (GetOptions().Graphics.resolution.SetValueChangedCallback(ResizeWindow), true);
 const auto OptionChangeHandlerFullscreen = (GetOptions().Graphics.fullscreen.SetValueChangedCallback(SetFullscreenMode), true);
+#ifdef USE_GPU_SCALER
+const auto OptionChangeHandlerShaderFilter = (GetOptions().Graphics.shaderFilter.SetValueChangedCallback(ResizeWindow), true);
+const auto OptionChangeHandlerShaderBaseResolution = (GetOptions().Graphics.shaderBaseResolution.SetValueChangedCallback(ResizeWindow), true);
+#endif
 
 void OptionGrabInputChanged()
 {
@@ -187,7 +215,24 @@ void UpdateAvailableResolutions()
 	GraphicsOptions &graphicsOptions = GetOptions().Graphics;
 
 	std::vector<Size> sizes;
+#if defined(USE_SDL3) && (defined(__IOS__) || defined(__TVOS__) || defined(__VISIONOS__) || defined(__MACOS__))
+	// SDL3 Apple backends (UIKit, Cocoa) report display modes in points;
+	// the window display scale converts them to true pixel sizes.
 	const float scaleFactor = GetDpiScalingFactor();
+#elif defined(USE_SDL3)
+	// Windows, Linux and Android SDL3 backends report display modes in
+	// physical pixels, but SDL_GetWindowDisplayScale() is the OS UI scale
+	// (DPI/96 on Windows, compositor scale on Wayland), not pixel density:
+	// at 125% Windows scaling every mode got multiplied into phantom sizes
+	// (1920x1080 became 2400x1350, listed as "1350p"), hiding the native
+	// mode and offering above-panel resolutions that crash Integer Scaling.
+	// Physical pixel modes need no scaling.
+	constexpr float scaleFactor = 1.0F;
+#else
+	// SDL2: renderer output size vs window size (1.0 on Windows, 2.0 on
+	// Retina) - a true pixel-density ratio.
+	const float scaleFactor = GetDpiScalingFactor();
+#endif
 
 	// Add resolutions
 	bool supportsAnyResolution = false;
@@ -291,6 +336,21 @@ void UpdateAvailableResolutions()
 	std::erase_if(sizes, [](const Size &s) { return s.width < 640 || s.height < 480; });
 #endif
 
+	// Integer Scaling cannot scale an image beyond the native desktop
+	// resolution: the fit-to-screen factor would floor to zero and divide
+	// by zero (field crash). Above-native sizes (e.g. GPU driver VSR
+	// modes) are therefore not offered while Integer Scaling is enabled;
+	// with it off they stay selectable (the selection clamp ignores them
+	// as well), and toggling Integer Scaling refreshes this list.
+	if (*GetOptions().Graphics.integerScaling) {
+		Size nativeResolution;
+		if (GetNativeDesktopResolution(nativeResolution)) {
+			std::erase_if(sizes, [nativeResolution](const Size &s) {
+				return s.width > nativeResolution.width || s.height > nativeResolution.height;
+			});
+		}
+	}
+
 	// Sort by width then by height
 	c_sort(sizes, [](const Size &x, const Size &y) -> bool {
 		if (x.width == y.width)
@@ -326,8 +386,36 @@ const auto OptionChangeHandlerFitToScreen = (GetOptions().Graphics.fitToScreen.S
 
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 const auto OptionChangeHandlerScaleQuality = (GetOptions().Graphics.scaleQuality.SetValueChangedCallback(ReinitializeTexture), true);
-const auto OptionChangeHandlerIntegerScaling = (GetOptions().Graphics.integerScaling.SetValueChangedCallback(ReinitializeIntegerScale), true);
-const auto OptionChangeHandlerVSync = (GetOptions().Graphics.frameRateControl.SetValueChangedCallback(ReinitializeRenderer), true);
+/** @brief Options have a single change-callback slot (SetValueChangedCallback):
+ * Integer Scaling needs both the stock renderer reinitialization and a
+ * refresh of the resolution list (above-native sizes are filtered while
+ * it is enabled), so dispatch both from one wrapper. */
+void OnIntegerScalingOptionChanged()
+{
+	ReinitializeIntegerScale();
+	ResizeWindowAndUpdateResolutionOptions();
+}
+const auto OptionChangeHandlerIntegerScaling = (GetOptions().Graphics.integerScaling.SetValueChangedCallback(OnIntegerScalingOptionChanged), true);
+/** @brief ROB-31: the FrameRateControl option has a single change-callback
+ * slot, and a later registration silently overwrites an earlier one, so the
+ * round-13 scaler registration was dead on arrival: the stock recreate
+ * handler below always won the slot. A vsync toggle with the GPU scaler
+ * active therefore changed nothing while the frame loop stopped limiting
+ * (the option now reads VerticalSync) - an unthrottled IMMEDIATE present
+ * flood that field-crashed. Dispatch explicitly: while the scaler owns the
+ * window the option re-applies the present mode in place; the stock
+ * renderer keeps the upstream recreate path. */
+void OptionFrameRateControlChanged()
+{
+#ifdef USE_GPU_SCALER
+	if (gpu_scaler::IsActive()) {
+		gpu_scaler::ApplyFrameRateControl();
+		return;
+	}
+#endif
+	ReinitializeRenderer();
+}
+const auto OptionChangeHandlerVSync = (GetOptions().Graphics.frameRateControl.SetValueChangedCallback(OptionFrameRateControlChanged), true);
 
 struct DisplayModeComparator {
 	Size size;
@@ -430,8 +518,34 @@ SDL_DisplayMode GetNearestDisplayMode(Size preferredSize,
 
 void AdjustToScreenGeometry(Size windowSize)
 {
-	gnScreenWidth = windowSize.width;
-	gnScreenHeight = windowSize.height;
+	Size canvas = windowSize;
+#ifdef USE_GPU_SCALER
+	if (*GetOptions().Graphics.upscale && gpu_scaler::ScalerWanted() && !gpu_scaler::HasFailed()) {
+		// Shader filter active: render the game into the configured 16:9
+		// base canvas and hand exactly that image to the slang chain, while
+		// the window and the swapchain keep the selected Resolution (the
+		// base must never leak into the window size). The chain maps mouse
+		// coordinates through the present rect, so a canvas smaller than
+		// the window is fully supported, and a window smaller than the
+		// base keeps its own size. libslang-vk derives every pass FBO from
+		// the input size, so this base smaller than the swapchain is what
+		// gives upscaler presets (ScaleFX, HQx) the headroom they need to
+		// visibly rework the game art. CRT-style overlays (scanlines,
+		// masks, grids) are output-space effects and keep working at any
+		// input size. Configure under Graphics > Shader Base Resolution
+		// (Auto = window size).
+		const int baseHeight = *GetOptions().Graphics.shaderBaseResolution;
+		if (baseHeight > 0) {
+			const int baseWidth = baseHeight * 16 / 9;
+			if (windowSize.width >= baseWidth && windowSize.height >= baseHeight) {
+				canvas.width = baseWidth;
+				canvas.height = baseHeight;
+			}
+		}
+	}
+#endif
+	gnScreenWidth = canvas.width;
+	gnScreenHeight = canvas.height;
 	CalculateUIRectangle();
 	CalculatePanelAreas();
 }
@@ -630,7 +744,22 @@ bool SpawnWindow(const char *lpWindowName)
 
 #ifdef USE_SDL3
 	if (*GetOptions().Graphics.upscale) {
-		if (!SDL_CreateWindowAndRenderer(lpWindowName, windowSize.width, windowSize.height, flags, &ghMainWnd, &renderer)) ErrSdl();
+#ifdef USE_GPU_SCALER
+		if (gpu_scaler::ScalerWanted()) {
+			// Create the window WITHOUT an SDL_Renderer: the GPU
+			// scaler claims the window directly, and a window that
+			// has been presented to by the D3D11 SDL_Renderer cannot
+			// be claimed by a D3D12 SDL_GPU device (DXGI refuses to
+			// create a second flip-model swapchain for the HWND).
+			// The scaler presents through its own Vulkan swapchain:
+			// the window must be created Vulkan-capable
+			// (SDL_Vulkan_CreateSurface requires the flag).
+			flags |= SDL_WINDOW_VULKAN;
+			ghMainWnd = SDL_CreateWindow(lpWindowName, windowSize.width, windowSize.height, flags);
+		} else
+#endif
+		    if (!SDL_CreateWindowAndRenderer(lpWindowName, windowSize.width, windowSize.height, flags, &ghMainWnd, &renderer))
+			ErrSdl();
 	} else {
 		ghMainWnd = SDL_CreateWindow(lpWindowName, windowSize.width, windowSize.height, flags);
 	}
@@ -744,6 +873,79 @@ void ReinitializeIntegerScale()
 }
 #endif
 
+#ifdef USE_GPU_SCALER
+namespace {
+
+// DXGI on Windows permits only one flip-model swapchain per HWND and refuses
+// to create a new one from a different device/factory even after the previous
+// owner released its swapchain: a window that was ever presented to by the
+// D3D11 SDL_Renderer cannot be claimed by the D3D12 SDL_GPU device, and vice
+// versa, failing with "Access is denied" (0x80070005). Destroying and
+// recreating the window hands the new presentation path a clean HWND.
+bool RecreateMainRenderWindow()
+{
+	const std::string title = SDL_GetWindowTitle(ghMainWnd);
+	int width = 0;
+	int height = 0;
+	SDL_GetWindowSize(ghMainWnd, &width, &height);
+	int posX = 0;
+	int posY = 0;
+	SDL_GetWindowPosition(ghMainWnd, &posX, &posY);
+	const Uint32 oldFlags = SDL_GetWindowFlags(ghMainWnd);
+	const bool fullscreen = (oldFlags & SDL_WINDOW_FULLSCREEN) != 0;
+	const bool maximized = (oldFlags & SDL_WINDOW_MAXIMIZED) != 0;
+	const bool resizable = (oldFlags & SDL_WINDOW_RESIZABLE) != 0;
+	const bool grabbed = (oldFlags & SDL_WINDOW_MOUSE_GRABBED) != 0;
+	Log("Recreating the main window for the presentation path switch");
+
+	SDL_WindowFlags flags = SDL_WINDOW_HIGH_PIXEL_DENSITY;
+	if (fullscreen)
+		flags |= SDL_WINDOW_FULLSCREEN;
+	if (resizable)
+		flags |= SDL_WINDOW_RESIZABLE;
+	if (maximized)
+		flags |= SDL_WINDOW_MAXIMIZED;
+#ifdef USE_GPU_SCALER
+	if (gpu_scaler::ScalerWanted() && !gpu_scaler::HasFailed())
+		flags |= SDL_WINDOW_VULKAN; // the scaler re-claims the window with its own Vulkan surface
+#endif
+	// ROB-19: create the replacement window BEFORE destroying the old one.
+	// A failed create used to be fatal here (ErrSdl) on the fallback-of-the-
+	// fallback path - the exact path that exists to save the session - so a
+	// transient SDL_CreateWindow failure aborted the game instead of
+	// degrading. Keeping the old window alive on failure lets both callers
+	// continue on the stock renderer path instead; the game only dies when
+	// it is left with no window at all.
+	// Field regression (Shaders -> Off CTD, b2eabc618): the replacement was created
+	// VISIBLE while the old window still owned the display, focus and mouse grab -
+	// a two-visible-windows moment the original destroy-then-create order never
+	// had. On Windows exclusive-fullscreen (and several WMs) that churns the
+	// display mode mid-switch and the process died at the presentation-path
+	// hand-off. Create the replacement HIDDEN, destroy the old, then show: one
+	// visible transition (the battle-tested old order) while keeping the
+	// no-window-loss guarantee above.
+	SDL_Window *newWindow = SDL_CreateWindow(title.c_str(), width, height, flags | SDL_WINDOW_HIDDEN);
+	if (newWindow == nullptr) {
+		Log("SDL_CreateWindow failed: {}; keeping the existing window", SDL_GetError());
+		SDL_ClearError();
+		return false;
+	}
+	SDL_DestroyWindow(ghMainWnd);
+	ghMainWnd = newWindow;
+	if (!fullscreen && !maximized)
+		SDL_SetWindowPosition(ghMainWnd, posX, posY);
+	if (grabbed)
+		SDL_SetWindowMouseGrab(ghMainWnd, true);
+	// One visible transition: the replacement only enters the screen after
+	// the old window (and its swapchain history) is gone.
+	SDL_ShowWindow(ghMainWnd);
+	SDL_RaiseWindow(ghMainWnd);
+	return true;
+}
+
+} // namespace
+#endif
+
 void ReinitializeRenderer()
 {
 	if (ghMainWnd == nullptr)
@@ -757,7 +959,71 @@ void ReinitializeRenderer()
 	AdjustToScreenGeometry(Size(surface->w, surface->h));
 #else
 
+#ifdef USE_GPU_SCALER
+	const bool scalerWanted = *GetOptions().Graphics.upscale
+	    && gpu_scaler::ScalerWanted() && !gpu_scaler::HasFailed();
+	if (!scalerWanted && gpu_scaler::IsActive()) {
+		// Presentation is handed back to the regular renderer (or the
+		// palettized non-upscale path below). ROB-26: hand the window
+		// back WITHOUT destroying the GPU device on this stack - the
+		// synchronous Vulkan teardown here (right before the window is
+		// recreated and reclaimed by the D3D11 renderer) is the
+		// field-crashing sequence on Windows. The device is parked and
+		// destroyed at a quiescent point (quit / next Shutdown).
+		gpu_scaler::HandbackWindow(ghMainWnd);
+	}
+	if (scalerWanted) {
+		// The GPU scaler replaces the SDL_Renderer presentation path.
+		if (renderer != nullptr) {
+			// ROB-14: SDL_DestroyRenderer destroys every texture created from the
+			// renderer. Drop our handle to the display texture first (mirroring
+			// dx_cleanup) - otherwise the next ReinitializeTexture() destroys an
+			// already-freed texture through this stale unique_ptr.
+			texture = nullptr;
+			// ROB-22: the virtual gamepad's textures were created from this
+			// renderer too; free them before it dies (mirroring dx_cleanup) or the
+			// next FreeVirtualGamepadTextures()/RenderVirtualGamepad() runs on freed
+			// memory. The re-initialization half lives where the replacement
+			// renderer is created, further down in this function.
+			FreeVirtualGamepadTextures();
+			SDL_DestroyRenderer(renderer);
+			renderer = nullptr;
+			// The window has been presented to by the SDL_Renderer's
+			// D3D11 device: DXGI refuses a D3D12 flip-model swapchain
+			// on it even after the renderer is gone. Recreate the
+			// window so the scaler can claim a clean one.
+			if (!RecreateMainRenderWindow())
+				return;
+		}
+		if (RendererTextureSurface == nullptr
+		    || RendererTextureSurface->w != static_cast<int>(gnScreenWidth)
+		    || RendererTextureSurface->h != static_cast<int>(gnScreenHeight)) {
+#ifdef USE_SDL3
+			RendererTextureSurface = SDLSurfaceUniquePtr { SDL_CreateSurface(gnScreenWidth, gnScreenHeight, DEVILUTIONX_DISPLAY_TEXTURE_FORMAT) };
+#else
+			RendererTextureSurface = SDLSurfaceUniquePtr { SDL_CreateRGBSurfaceWithFormat(0, gnScreenWidth, gnScreenHeight, SDL_BITSPERPIXEL(DEVILUTIONX_DISPLAY_TEXTURE_FORMAT), DEVILUTIONX_DISPLAY_TEXTURE_FORMAT) };
+#endif
+			if (RendererTextureSurface == nullptr)
+				ErrSdl();
+		}
+		if (gpu_scaler::Reinit(ghMainWnd)) {
+			gpu_scaler::ShowFilterOsd();
+			// The GPU scaler owns presentation for this window.
+			return;
+		}
+		Log("GPU scaler unavailable, using the regular renderer instead");
+	}
+#endif
 	if (*GetOptions().Graphics.upscale) {
+#ifdef USE_GPU_SCALER
+		// Handing the window to the SDL_Renderer: if the GPU device ever
+		// claimed it, the window's DXGI flip-swapchain history can get
+		// the renderer's own swapchain creation denied in turn.
+		if (renderer == nullptr && gpu_scaler::WindowHasSwapchainHistory(ghMainWnd)
+		    && !RecreateMainRenderWindow()) {
+			return;
+		}
+#endif
 		// We don't recreate the renderer, because this can result in a freezing (not refreshing) rendering
 		if (renderer == nullptr) {
 #ifdef USE_SDL3
@@ -767,6 +1033,21 @@ void ReinitializeRenderer()
 #endif
 			if (renderer == nullptr) {
 				ErrSdl();
+			}
+			// ROB-22: recreate the virtual gamepad textures against the new
+			// renderer: whichever path destroyed the previous one (the scaler
+			// hand-off above, or the GPU-failure fallback in dx.cpp) destroyed
+			// them with it. Reload the art first because its source surfaces
+			// were already consumed by an earlier createTextures pass in-game.
+			// ROB-27: only inside a game session. The gameplay art set includes
+			// the potion strip, which derives its size from item-cursor art via
+			// GetInvItemSize() - art that only exists once a level has loaded.
+			// The virtual gamepad is never drawn outside a session either
+			// (RenderVirtualGamepad early-outs on !gbRunGame), and the level
+			// load path re-initializes the art when a session begins.
+			if (gbRunGame) {
+				InitVirtualGamepadGFX();
+				InitVirtualGamepadTextures(*renderer);
 			}
 		}
 
@@ -808,6 +1089,9 @@ void ReinitializeRenderer()
 		SDL_GetWindowSize(ghMainWnd, &windowSize.width, &windowSize.height);
 		AdjustToScreenGeometry(windowSize);
 	}
+#ifdef USE_GPU_SCALER
+	gpu_scaler::ShowFilterOsd();
+#endif
 #endif
 }
 
@@ -909,9 +1193,19 @@ void ResizeWindow()
 
 #ifndef USE_SDL1
 #ifdef USE_SDL3
-	SDL_SetWindowResizable(ghMainWnd, renderer != nullptr);
+	const bool resizable = renderer != nullptr
+#ifdef USE_GPU_SCALER
+	    || gpu_scaler::IsActive()
+#endif
+	    ;
+	SDL_SetWindowResizable(ghMainWnd, resizable);
 #else
-	SDL_SetWindowResizable(ghMainWnd, renderer != nullptr ? SDL_TRUE : SDL_FALSE);
+	const bool resizable = renderer != nullptr
+#ifdef USE_GPU_SCALER
+	    || gpu_scaler::IsActive()
+#endif
+	    ;
+	SDL_SetWindowResizable(ghMainWnd, resizable ? SDL_TRUE : SDL_FALSE);
 #endif
 	InitializeVirtualGamepad();
 #endif
@@ -928,8 +1222,14 @@ SDL_Surface *GetOutputSurface()
 		ErrSdl();
 	return ret;
 #else
-	if (renderer != nullptr)
-		return RendererTextureSurface.get();
+	if (renderer != nullptr
+#ifdef USE_GPU_SCALER
+	    || gpu_scaler::IsActive()
+#endif
+	) {
+		if (RendererTextureSurface != nullptr)
+			return RendererTextureSurface.get();
+	}
 	SDL_Surface *ret = SDL_GetWindowSurface(ghMainWnd);
 	if (ret == nullptr)
 		ErrSdl();
