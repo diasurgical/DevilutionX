@@ -104,7 +104,9 @@ void LogVerbose(LogCategory category, std::string_view fmt, Args &&...args)
 template <typename... Args>
 void LogVerbose(std::string_view fmt, Args &&...args)
 {
+#ifndef PS2
 	LogVerbose(defaultCategory, fmt, std::forward<Args>(args)...);
+#endif
 }
 
 inline void LogDebug(LogCategory category, std::string_view str)
