@@ -16,6 +16,7 @@ base_paths = {
     "questdat": root.joinpath("assets/txtdata/quests/questdat.tsv"),
     "spelldat": root.joinpath("assets/txtdata/spells/spelldat.tsv"),
     "textdat": root.joinpath("assets/txtdata/text/textdat.tsv"),
+    "towners": root.joinpath("assets/txtdata/towners/towners.tsv"),
 }
 
 hf_paths = {
@@ -24,6 +25,7 @@ hf_paths = {
     "item_prefixes": root.joinpath("mods/hf/txtdata/items/item_prefixes.tsv"),
     "item_suffixes": root.joinpath("mods/hf/txtdata/items/item_suffixes.tsv"),
     "spelldat": root.joinpath("mods/hf/txtdata/spells/spelldat.tsv"),
+    "towners": root.joinpath("mods/hf/txtdata/towners/towners.tsv"),
 }
 
 seen_pairs = set()
@@ -119,6 +121,14 @@ def process_files(paths, temp_source):
         for i, row in enumerate(reader):
             var_name = create_identifier(row['name'], 'SPELL_', '_NAME')
             write_entry(temp_source, var_name, "spell", row['name'], True)
+
+    # Towners
+    if "towners" in paths:
+        with open(paths["towners"], 'r') as tsv:
+            reader = csv.DictReader(tsv, delimiter='\t')
+            for row in reader:
+                write_entry(temp_source, create_identifier(row['type'], '', '_NAME'), "default", row['name'], False)
+                write_entry(temp_source, create_identifier(row['type'], '', '_SHORT_NAME'), "default", row['shortName'], False)
 
     # Text/Speeches
     if "textdat" in paths:
