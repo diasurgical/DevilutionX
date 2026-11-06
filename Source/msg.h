@@ -21,6 +21,11 @@ using net::leaveinfo_t;
 
 #define MAX_SEND_STR_LEN 80
 
+// Buffer size for the generic Lua mod net payload. Decoupled from the chat-message size above:
+// the length field is a uint8_t, so 255 is the largest a single payload can describe, and it fits
+// comfortably inside a packet body.
+#define LUA_MSG_MAX_LEN 255
+
 enum _cmd_id : uint8_t {
 	// Player mode standing.
 	//
@@ -416,6 +421,11 @@ enum _cmd_id : uint8_t {
 	//
 	// body (TCmdSpawnMonster)
 	CMD_SPAWNMONSTER,
+	// Generic variable-length message carrying an opaque payload. The engine does not interpret
+	// the body; on receipt it is forwarded to a Lua dispatch hook.
+	//
+	// body (TCmdLuaMsg)
+	CMD_LUAMSG,
 	// Fake command; set current player for succeeding mega pkt buffer messages.
 	//
 	// body (TFakeCmdPlr)
@@ -646,6 +656,14 @@ struct TCmdString {
 	char str[MAX_SEND_STR_LEN];
 };
 
+// Generic variable-length opaque payload for Lua mod net messages. `len` is the number of valid
+// bytes in `data` (binary-safe, may contain embedded zeros).
+struct TCmdLuaMsg {
+	_cmd_id bCmd;
+	uint8_t len;
+	char data[LUA_MSG_MAX_LEN];
+};
+
 struct TFakeCmdPlr {
 	_cmd_id bCmd;
 	uint8_t bPlr;
@@ -759,6 +777,7 @@ void NetSendCmdChBeltItem(bool bHiPri, int beltIndex);
 void NetSendCmdDamage(bool bHiPri, const Player &player, uint32_t dwDam, DamageType damageType);
 void NetSendCmdMonDmg(bool bHiPri, uint16_t wMon, uint32_t dwDam);
 void NetSendCmdString(uint32_t pmask, const char *pszStr);
+void NetSendCmdLuaMessage(uint32_t pmask, const char *data, size_t len);
 void delta_close_portal(const Player &player);
 bool ValidateCmdSize(size_t requiredCmdSize, size_t maxCmdSize, size_t playerId);
 size_t ParseCmd(uint8_t pnum, const TCmd *pCmd, size_t maxCmdSize);
