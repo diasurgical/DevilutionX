@@ -160,10 +160,21 @@ void ReloadExperienceData()
 
 std::expected<PlayerClassFlag, std::string> ParsePlayerClassFlag(std::string_view value)
 {
-	const std::optional<PlayerClassFlag> enumValueOpt = magic_enum::enum_cast<PlayerClassFlag>(value);
-	if (enumValueOpt.has_value()) {
-		return enumValueOpt.value();
-	}
+	if (value == "CriticalStrike") return PlayerClassFlag::CriticalStrike;
+	if (value == "DualWield") return PlayerClassFlag::DualWield;
+	if (value == "IronSkin") return PlayerClassFlag::IronSkin;
+	if (value == "NaturalResistance") return PlayerClassFlag::NaturalResistance;
+	if (value == "TrapSense") return PlayerClassFlag::TrapSense;
+	if (value == "ShieldlessBlock") return PlayerClassFlag::ShieldlessBlock;
+	if (value == "ArmorPierce") return PlayerClassFlag::ArmorPierce;
+	if (value == "StaggerResistance") return PlayerClassFlag::StaggerResistance;
+	if (value == "UnarmedMastery") return PlayerClassFlag::UnarmedMastery;
+	if (value == "LightArmorMastery") return PlayerClassFlag::LightArmorMastery;
+	if (value == "BowMastery") return PlayerClassFlag::BowMastery;
+	if (value == "BowTraining") return PlayerClassFlag::BowTraining;
+	if (value == "StaffCleave") return PlayerClassFlag::StaffCleave;
+	if (value == "HeavyCleave") return PlayerClassFlag::HeavyCleave;
+	if (value == "DualSwordCleave") return PlayerClassFlag::DualSwordCleave;
 	return std::unexpected("Unknown enum value");
 }
 
