@@ -2347,6 +2347,7 @@ void CreatePlayer(Player &player, HeroClass c)
 
 	InitDungMsgs(player);
 	CreatePlrItems(player);
+	lua::OnNewCharacter(player); // Lua mod support
 	SetRndSeed(0);
 }
 
