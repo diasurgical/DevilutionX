@@ -256,6 +256,7 @@ add_devilutionx_object_library(libdevilutionx_control
   control/control_gold.cpp
   control/control_infobox.cpp
   control/control_panel.cpp
+  control/control_text_prompt.cpp
 )
 target_link_dependencies(libdevilutionx_control
   PUBLIC
