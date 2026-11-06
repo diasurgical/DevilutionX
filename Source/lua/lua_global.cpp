@@ -40,6 +40,7 @@
 #include "options.h"
 #include "plrmsg.h"
 #include "stores.h"
+#include "tables/shrinedat.hpp"
 #include "utils/console.h"
 #include "utils/log.hpp"
 #include "utils/str_cat.hpp"
@@ -275,6 +276,7 @@ void LuaReloadActiveMods()
 	LoadMonsterData();
 	LoadItemData();
 	LoadObjectData();
+	LoadShrineData();
 	LoadQuestData();
 
 	lua::LoadModsComplete();

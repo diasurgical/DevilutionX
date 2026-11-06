@@ -617,6 +617,7 @@ target_sources(libdevilutionx_log INTERFACE $<TARGET_OBJECTS:libdevilutionx_stri
 
 add_devilutionx_object_library(libdevilutionx_level_objects
   tables/objdat.cpp
+  tables/shrinedat.cpp
   objects.cpp
 )
 target_link_dependencies(libdevilutionx_level_objects PUBLIC
