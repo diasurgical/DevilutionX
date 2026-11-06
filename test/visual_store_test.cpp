@@ -42,6 +42,8 @@ namespace {
 
 class VisualStoreTest : public UITest {
 protected:
+	static constexpr uint32_t MultiPageSeed = 47;
+
 	void SetUp() override
 	{
 		UITest::SetUp();
@@ -64,9 +66,9 @@ protected:
 	/**
 	 * @brief Populate all town vendors with items appropriate for a level-25 player.
 	 */
-	void PopulateVendors()
+	void PopulateVendors(uint32_t seed = 42)
 	{
-		SetRndSeed(42);
+		SetRndSeed(seed);
 		int l = 16;
 		SpawnSmith(l);
 		SpawnWitch(l);
@@ -275,7 +277,7 @@ TEST_F(VisualStoreTest, TabSwitch_ResetsHighlight)
 
 TEST_F(VisualStoreTest, Pagination_NextAndPrevious)
 {
-	PopulateVendors();
+	PopulateVendors(MultiPageSeed);
 	OpenVisualStore(VisualStoreVendor::Smith);
 
 	const int totalPages = GetVisualStorePageCount();
@@ -322,7 +324,7 @@ TEST_F(VisualStoreTest, Pagination_DoesNotExceedMax)
 
 TEST_F(VisualStoreTest, Pagination_ResetsHighlight)
 {
-	PopulateVendors();
+	PopulateVendors(MultiPageSeed);
 	OpenVisualStore(VisualStoreVendor::Smith);
 
 	if (GetVisualStorePageCount() <= 1) {
