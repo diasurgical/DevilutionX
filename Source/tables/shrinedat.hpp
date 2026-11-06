@@ -6,10 +6,10 @@
 #pragma once
 
 #include <cstdint>
-#include <string>
-#include <vector>
 #include <engine/random.hpp>
 #include <player.h>
+#include <string>
+#include <vector>
 
 namespace devilution {
 
@@ -43,4 +43,3 @@ void LoadShrineData();
 const ShrineData &GetShrineData(uint8_t type);
 
 } // namespace devilution
-

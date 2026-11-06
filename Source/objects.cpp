@@ -2257,7 +2257,7 @@ int OperateShrineHidden(DiabloGenerator &rng, Player &player, Point spawnPositio
 			if (player.InvBody[r].isEmpty() || player.InvBody[r]._iMaxDur == DUR_INDESTRUCTIBLE || player.InvBody[r]._iMaxDur == 0)
 				continue;
 
-			player.InvBody[r]._iDurability +=(powerParam1 - powerParam2);
+			player.InvBody[r]._iDurability += (powerParam1 - powerParam2);
 			player.InvBody[r]._iMaxDur += (powerParam1 + powerParam2);
 			if (player.InvBody[r]._iDurability > player.InvBody[r]._iMaxDur)
 				player.InvBody[r]._iDurability = player.InvBody[r]._iMaxDur;
@@ -2385,7 +2385,7 @@ int OperateShrineMagical(DiabloGenerator &rng, Player &player, Point spawnPositi
 	    TARGET_MONSTERS,
 	    player,
 	    0,
-		powerParam1 * leveltype + powerParam2);
+	    powerParam1 * leveltype + powerParam2);
 	return (&player == MyPlayer) ? 1 : 0;
 }
 
@@ -2601,7 +2601,7 @@ int OperateShrineCryptic(DiabloGenerator &rng, Player &player, Point spawnPositi
 	    TARGET_MONSTERS,
 	    player,
 	    0,
-		powerParam1 * leveltype + powerParam2);
+	    powerParam1 * leveltype + powerParam2);
 
 	if (&player != MyPlayer)
 		return 0;
@@ -2653,7 +2653,6 @@ int OperateShrineEldritch(DiabloGenerator &rng, Player &player, Point spawnPosit
 	RedrawEverything();
 	return 1;
 }
-
 
 /**
  * @brief Increases the magic attribute
@@ -3044,7 +3043,7 @@ int OperateShrineMendicant(DiabloGenerator &rng, Player &player, Point spawnPosi
 	if (&player != MyPlayer)
 		return 0;
 
-	const int gold = player._pGold  * powerParam1 / 100;
+	const int gold = player._pGold * powerParam1 / 100;
 	player.addExperience(gold * powerParam2);
 	TakePlrsMoney(gold);
 
@@ -3145,7 +3144,7 @@ int OperateShrineSolar(DiabloGenerator &rng, Player &player, Point spawnPosition
 
 	const time_t timeResult = time(nullptr);
 	const std::tm *localtimeResult = localtime(&timeResult);
-	const int hour =  localtimeResult != nullptr ? localtimeResult->tm_hour : 20;
+	const int hour = localtimeResult != nullptr ? localtimeResult->tm_hour : 20;
 	int messageIndex;
 	if (hour >= 20 || hour < 4) {
 		messageIndex = 4;
@@ -3223,27 +3222,26 @@ void OperateShrine(Player &player, Object &shrine, SfxID sType)
 	}
 	std::string message;
 	switch (messageIndex) {
-		case 4:
-			message = shrineData.message4;
-			break;
-		case 3:
-			message = shrineData.message3;
-			break;
-		case 2:
-			message = shrineData.message2;
-			break;
-		case 1:
-			message = shrineData.message;
-			break;
-		default:
-			message = "";
-			break;
+	case 4:
+		message = shrineData.message4;
+		break;
+	case 3:
+		message = shrineData.message3;
+		break;
+	case 2:
+		message = shrineData.message2;
+		break;
+	case 1:
+		message = shrineData.message;
+		break;
+	default:
+		message = "";
+		break;
 	}
 
 	if (!message.empty()) {
 		InitDiabloMsg(LanguageTranslate(message));
 	}
-
 }
 
 void OperateBookStand(Object &bookStand, bool sendmsg, bool sendLootMsg)
@@ -4981,7 +4979,7 @@ StringOrView Object::name() const
 		return _("Urn");
 	case OBJ_SHRINEL:
 	case OBJ_SHRINER:
-		return FormatRuntime( _(/* TRANSLATORS: {:s} will be a shrine name */ "{:s} Shrine"), _(GetShrineData(static_cast<uint8_t>(_oVar1)).name.c_str()));
+		return FormatRuntime(_(/* TRANSLATORS: {:s} will be a shrine name */ "{:s} Shrine"), _(GetShrineData(static_cast<uint8_t>(_oVar1)).name.c_str()));
 	case OBJ_SKELBOOK:
 		return _("Skeleton Tome");
 	case OBJ_BOOKSTAND:
