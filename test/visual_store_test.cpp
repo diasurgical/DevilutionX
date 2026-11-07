@@ -42,7 +42,7 @@ namespace {
 
 class VisualStoreTest : public UITest {
 protected:
-	static constexpr uint32_t MultiPageSeed = 47;
+	static constexpr uint32_t MultiPageSeed = 44;
 
 	void SetUp() override
 	{
@@ -68,6 +68,9 @@ protected:
 	 */
 	void PopulateVendors(uint32_t seed = 42)
 	{
+		// Generate the same items with or without full game data
+		gbIsSpawn = true;
+
 		SetRndSeed(seed);
 		int l = 16;
 		SpawnSmith(l);
