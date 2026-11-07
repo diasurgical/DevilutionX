@@ -147,6 +147,10 @@ void StartWalkAnimation(Player &player, Direction dir, bool pmWillBeCalled)
 		skippedFrames = 2;
 	if (pmWillBeCalled)
 		skippedFrames += 1;
+	// Warrior: walking speed scales with Strength.
+	// 1 extra skipped frame per 50 points above base 30, capped at 2 (max +25% speed).
+	if (player._pClass == HeroClass::Warrior)
+		skippedFrames += std::clamp<int>((player._pStrength - 30) / 50, 0, 2);
 	NewPlrAnim(player, player_graphic::Walk, dir, AnimationDistributionFlags::ProcessAnimationPending, skippedFrames);
 }
 
