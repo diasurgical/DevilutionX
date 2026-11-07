@@ -198,6 +198,11 @@ void StartAttack(Player &player, Direction d, bool includesFirstFrame)
 		skippedAnimationFrames = includesFirstFrame ? 1 : 0;
 	}
 
+	// Warrior Zeal: double melee attack speed (skip half the animation frames).
+	if (player._pClass == HeroClass::Warrior)
+		skippedAnimationFrames += player._pAFrames / 2;
+	player._pZealSwing = 0;
+
 	auto animationFlags = AnimationDistributionFlags::ProcessAnimationPending;
 	if (player._pmode == PM_ATTACK)
 		animationFlags = static_cast<AnimationDistributionFlags>(animationFlags | AnimationDistributionFlags::RepeatedAction);
@@ -849,6 +854,30 @@ bool DoAttack(Player &player)
 	}
 
 	if (player.AnimInfo.isLastFrame()) {
+		// Warrior Zeal: the default melee attack chains a second, free swing at the
+		// same target if it is still alive, otherwise at the nearest adjacent target.
+		if (player._pClass == HeroClass::Warrior && player._pZealSwing == 0) {
+			Direction zealDir = player._pdir;
+			Monster *zealTarget = FindMonsterAtPosition(player.position.tile + zealDir);
+			if (zealTarget == nullptr || zealTarget->hasNoLife() || CanTalkToMonst(*zealTarget)) {
+				zealTarget = nullptr;
+				for (int i = 0; i < 8; i++) {
+					const Direction candidate = static_cast<Direction>(i);
+					Monster *monster = FindMonsterAtPosition(player.position.tile + candidate);
+					if (monster != nullptr && !monster->hasNoLife() && !CanTalkToMonst(*monster)) {
+						zealDir = candidate;
+						zealTarget = monster;
+						break;
+					}
+				}
+			}
+			if (zealTarget != nullptr) {
+				StartAttack(player, zealDir, true);
+				player._pZealSwing = 1;
+				return false;
+			}
+		}
+		player._pZealSwing = 0;
 		StartStand(player, player._pdir);
 		ClearStateVariables(player);
 		return true;

@@ -290,6 +290,7 @@ struct Player {
 	int8_t _pNFrames;
 	int8_t _pWFrames;
 	int8_t _pAFrames;
+	int8_t _pZealSwing = 0; // Warrior Zeal: 0 = first swing, 1 = chained second swing
 	int8_t _pAFNum;
 	int8_t _pSFrames;
 	int8_t _pSFNum;
