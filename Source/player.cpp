@@ -198,10 +198,15 @@ void StartAttack(Player &player, Direction d, bool includesFirstFrame)
 		skippedAnimationFrames = includesFirstFrame ? 1 : 0;
 	}
 
-	// Warrior Zeal: double melee attack speed (skip half the animation frames).
-	if (player._pClass == HeroClass::Warrior)
+	// Warrior Zeal: faster melee attack. The skipped-frame count must stay at or
+	// below _pAFNum - 2, because setNewAnimation starts the animation at
+	// currentFrame = numSkippedFrames and one frame is consumed in the same
+	// tick; starting on the action frame would skip the hit window
+	// (currentFrame == _pAFNum - 1) and deal no damage.
+	if (player._pClass == HeroClass::Warrior) {
 		skippedAnimationFrames += player._pAFrames / 2;
-	player._pZealSwing = 0;
+		skippedAnimationFrames = std::min<int8_t>(skippedAnimationFrames, std::max<int8_t>(0, static_cast<int8_t>(player._pAFNum - 2)));
+	}
 
 	auto animationFlags = AnimationDistributionFlags::ProcessAnimationPending;
 	if (player._pmode == PM_ATTACK)
@@ -854,8 +859,14 @@ bool DoAttack(Player &player)
 	}
 
 	if (player.AnimInfo.isLastFrame()) {
-		// Warrior Zeal: the default melee attack chains a second, free swing at the
-		// same target if it is still alive, otherwise at the nearest adjacent target.
+		// Warrior Zeal: after the first swing, queue a second free swing at the
+		// same target if it is still alive, otherwise at the nearest adjacent
+		// monster. Queued via destAction so CheckNewPath executes it exactly like
+		// a player-issued attack (StartAttack must never be called from inside
+		// DoAttack, that breaks the pending-animation processing and freezes the
+		// player mid-swing). If the queued target dies, CheckNewPath drops the
+		// action cleanly; if it moved, the player walks to it first.
+		bool zealQueued = false;
 		if (player._pClass == HeroClass::Warrior && player._pZealSwing == 0) {
 			Direction zealDir = player._pdir;
 			Monster *zealTarget = FindMonsterAtPosition(player.position.tile + zealDir);
@@ -872,14 +883,15 @@ bool DoAttack(Player &player)
 				}
 			}
 			if (zealTarget != nullptr) {
-				StartAttack(player, zealDir, true);
-				player._pZealSwing = 1;
-				return false;
+				player.destAction = ACTION_ATTACKMON;
+				player.destParam1 = static_cast<int>(zealTarget->getId());
+				zealQueued = true;
 			}
 		}
-		player._pZealSwing = 0;
 		StartStand(player, player._pdir);
 		ClearStateVariables(player);
+		if (zealQueued)
+			player._pZealSwing = 1;
 		return true;
 	}
 
@@ -2608,6 +2620,7 @@ void StartStand(Player &player, Direction dir)
 
 	NewPlrAnim(player, player_graphic::Stand, dir);
 	player._pmode = PM_STAND;
+	player._pZealSwing = 0;
 	FixPlayerLocation(player, dir);
 	FixPlrWalkTags(player);
 	player.occupyTile(player.position.tile, false);
