@@ -884,6 +884,15 @@ bool DoAttack(Player &player)
 				player._pZealSwing = 1;
 			}
 		}
+
+		// Warrior Zeal: the second swing ends the pair, so trim its recovery
+		// once its hit has resolved. The pair then fits about one vanilla
+		// swing period and only the normal inter-swing delay remains before
+		// the next pair (swing swing - - swing swing - -).
+		if (player._pClass == HeroClass::Warrior && player._pZealSwing == 1) {
+			const int8_t trimmedFrames = std::min<int8_t>(player._pAFrames, static_cast<int8_t>(player.AnimInfo.currentFrame + 3));
+			player.AnimInfo.changeAnimationData(player.AnimInfo.sprites, trimmedFrames, player.AnimInfo.ticksPerFrame);
+		}
 	}
 
 	if (player.AnimInfo.isLastFrame()) {
