@@ -800,7 +800,9 @@ void StartZealLockout(Player &player)
 {
 	// One full vanilla swing period (frames * ticks per frame), counted from
 	// the moment the last hit of the swing/pair resolved.
-	player._pZealLock = static_cast<int16_t>(player._pAFrames) * player.AnimInfo.ticksPerFrame;
+	// 1.5x the regular swing period: the zeal pair is faster than a normal
+	// swing cycle, so the wait after it is slightly longer to compensate.
+	player._pZealLock = (static_cast<int16_t>(player._pAFrames) * player.AnimInfo.ticksPerFrame * 3) / 2;
 }
 
 bool DoAttack(Player &player)
