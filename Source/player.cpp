@@ -856,17 +856,13 @@ bool DoAttack(Player &player)
 			ClearStateVariables(player);
 			return true;
 		}
-	}
 
-	if (player.AnimInfo.isLastFrame()) {
-		// Warrior Zeal: after the first swing, queue a second free swing at the
-		// same target if it is still alive, otherwise at the nearest adjacent
-		// monster. Queued via destAction so CheckNewPath executes it exactly like
-		// a player-issued attack (StartAttack must never be called from inside
-		// DoAttack, that breaks the pending-animation processing and freezes the
-		// player mid-swing). If the queued target dies, CheckNewPath drops the
-		// action cleanly; if it moved, the player walks to it first.
-		bool zealQueued = false;
+		// Warrior Zeal: queue the second free swing at the action frame, right
+		// after the first hit lands or whiffs. CheckNewPath executes the queued
+		// attack in the same tick and replaces the rest of this animation, so
+		// the pair flows like one motion and the normal inter-swing delay
+		// happens after the pair, not between the two swings. This mirrors how
+		// the vanilla hold-repeat starts its next swing mid-animation.
 		if (player._pClass == HeroClass::Warrior && player._pZealSwing == 0) {
 			Direction zealDir = player._pdir;
 			Monster *zealTarget = FindMonsterAtPosition(player.position.tile + zealDir);
@@ -885,13 +881,14 @@ bool DoAttack(Player &player)
 			if (zealTarget != nullptr) {
 				player.destAction = ACTION_ATTACKMON;
 				player.destParam1 = static_cast<int>(zealTarget->getId());
-				zealQueued = true;
+				player._pZealSwing = 1;
 			}
 		}
+	}
+
+	if (player.AnimInfo.isLastFrame()) {
 		StartStand(player, player._pdir);
 		ClearStateVariables(player);
-		if (zealQueued)
-			player._pZealSwing = 1;
 		return true;
 	}
 
