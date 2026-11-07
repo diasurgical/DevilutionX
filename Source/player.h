@@ -291,6 +291,7 @@ struct Player {
 	int8_t _pWFrames;
 	int8_t _pAFrames;
 	int8_t _pZealSwing = 0; // Warrior Zeal: 0 = first swing, 1 = chained second swing
+	int16_t _pZealLock = 0; // Warrior Zeal: melee lockout ticks remaining before the next swing can start
 	int8_t _pAFNum;
 	int8_t _pSFrames;
 	int8_t _pSFNum;

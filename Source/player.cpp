@@ -182,6 +182,12 @@ void StartAttack(Player &player, Direction d, bool includesFirstFrame)
 		return;
 	}
 
+	// Warrior Zeal: after a swing (or swing pair) resolves, a lockout runs
+	// before the next melee swing can start. This keeps the vanilla
+	// swing-to-swing cadence: two quick hits, then the full normal wait.
+	if (player._pClass == HeroClass::Warrior && player._pZealLock > 0)
+		return;
+
 	int8_t skippedAnimationFrames = 0;
 	const auto flags = player._pIFlags;
 
@@ -790,6 +796,13 @@ bool PlrHitObj(const Player &player, Object &targetObject)
 	return false;
 }
 
+void StartZealLockout(Player &player)
+{
+	// One full vanilla swing period (frames * ticks per frame), counted from
+	// the moment the last hit of the swing/pair resolved.
+	player._pZealLock = static_cast<int16_t>(player._pAFrames) * player.AnimInfo.ticksPerFrame;
+}
+
 bool DoAttack(Player &player)
 {
 	if (player.AnimInfo.currentFrame == player._pAFNum - 2) {
@@ -882,17 +895,19 @@ bool DoAttack(Player &player)
 				player.destAction = ACTION_ATTACKMON;
 				player.destParam1 = static_cast<int>(zealTarget->getId());
 				player._pZealSwing = 1;
+			} else {
+				// No second target: the pair ends here, start the lockout.
+				StartZealLockout(player);
 			}
 		}
 
-		// Warrior Zeal: the second swing ends the pair, so trim its recovery
-		// once its hit has resolved. The pair then fits about one vanilla
-		// swing period and only the normal inter-swing delay remains before
-		// the next pair (swing swing - - swing swing - -).
-		if (player._pClass == HeroClass::Warrior && player._pZealSwing == 1) {
-			const int8_t trimmedFrames = std::min<int8_t>(player._pAFrames, static_cast<int8_t>(player.AnimInfo.currentFrame + 3));
-			player.AnimInfo.changeAnimationData(player.AnimInfo.sprites, trimmedFrames, player.AnimInfo.ticksPerFrame);
-		}
+		// Warrior Zeal: the second swing ends the pair. Start the lockout so
+		// the next pair waits one full vanilla swing period (the same time
+		// that passes between two normal swings) instead of chaining
+		// non-stop. The lockout counts down while the second swing's
+		// recovery animation plays and while standing afterwards.
+		if (player._pClass == HeroClass::Warrior && player._pZealSwing == 1)
+			StartZealLockout(player);
 	}
 
 	if (player.AnimInfo.isLastFrame()) {
@@ -3071,6 +3086,10 @@ void ProcessPlayers()
 				}
 			}
 
+			// Warrior Zeal: tick the lockout down once per game tick.
+			if (player._pZealLock > 0)
+				player._pZealLock--;
+
 			bool tplayer = false;
 			do {
 				switch (player._pmode) {
@@ -3543,3 +3562,4 @@ bool TestPlayerDoGotHit(Player &player)
 #endif
 
 } // namespace devilution
+
