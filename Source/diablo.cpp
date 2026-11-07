@@ -104,6 +104,7 @@
 #include "storm/storm_svid.h"
 #include "tables/monstdat.h"
 #include "tables/playerdat.hpp"
+#include "tables/shrinedat.hpp"
 #include "towners.h"
 #include "track.h"
 #include "utils/console.h"
@@ -2797,6 +2798,7 @@ int DiabloMain(int argc, char **argv)
 	LoadMonsterData();
 	LoadItemData();
 	LoadObjectData();
+	LoadShrineData();
 	LoadQuestData();
 
 	DiabloInit();

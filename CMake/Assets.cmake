@@ -210,6 +210,7 @@ set(devilutionx_assets
   txtdata/missiles/missile_sprites.tsv
   txtdata/monsters/monstdat.tsv
   txtdata/monsters/unique_monstdat.tsv
+  txtdata/shrines/shrines.tsv
   txtdata/objects/objdat.tsv
   txtdata/quests/questdat.tsv
   txtdata/sound/effects.tsv
