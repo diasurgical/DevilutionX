@@ -125,7 +125,7 @@ extern DVL_API_FOR_TEST std::vector<std::pair<std::string, std::vector<TownerDia
  * Only maps top-level store entries (Smith, Witch, Boy, Healer, Storyteller, Tavern, Drunk, Barmaid).
  * Sub-pages (SmithBuy, WitchSell, etc.) return nullptr.
  */
-DVL_API_FOR_TEST const char *TownerNameForTalkID(TalkID s);
+const char *TownerNameForTalkID(TalkID s);
 
 /**
  * @brief Registers a dynamic dialog option for a towner's talk menu.

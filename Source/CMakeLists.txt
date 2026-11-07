@@ -118,6 +118,7 @@ set(libdevilutionx_SRCS
   lua/modules/render.cpp
   lua/modules/system.cpp
   lua/modules/towners.cpp
+  lua/modules/towns.cpp
   lua/repl.cpp
 
   monsters/validation.cpp

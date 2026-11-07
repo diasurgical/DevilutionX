@@ -110,6 +110,7 @@ void LoadTownersFromFile()
 
 		reader.read("type", entry.type, ParseEnum<_talker_id>);
 		reader.readString("name", entry.name);
+		reader.readString("shortName", entry.shortName);
 		reader.readInt("position_x", entry.position.x);
 		reader.readInt("position_y", entry.position.y);
 		reader.read("direction", entry.direction, ParseEnum<Direction>);

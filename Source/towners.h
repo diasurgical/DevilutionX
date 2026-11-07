@@ -8,6 +8,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -45,6 +46,39 @@ enum _talker_id : uint8_t {
 extern DVL_API_FOR_TEST std::unordered_map<_talker_id, std::string> TownerLongNames; // Maps towner type enum to display name
 extern const std::unordered_map<_talker_id, const char *> TownerShortNames;          // Maps towner type enum to Lua/mod short name
 
+struct TownConfig;
+struct TownerDataEntry;
+
+/**
+ * @brief Parses a role name ("healer", "smith", "storyteller", ...) used by town NPC definitions.
+ * @return The matching towner type, or nullopt for an unknown role.
+ */
+std::optional<_talker_id> ParseTownerRole(std::string_view role);
+
+/**
+ * @brief Builds the list of towner entries to spawn for a town.
+ *
+ * Returns the default towners.tsv entries when `config` is null or defines no NPCs. Otherwise returns one
+ * entry per NPC definition, based on the first TSV entry of the NPC's role with the provided fields applied.
+ * Unknown roles and unknown gossip ids are logged and skipped.
+ */
+std::vector<TownerDataEntry> ResolveTownerEntries(const TownConfig *config);
+
+/**
+ * @brief Translated menu name ("Talk to ...") of the towner with this role, or the towners.tsv default if not spawned.
+ */
+std::string_view GetTownerShortName(_talker_id type);
+
+/**
+ * @brief Translated full name of the spawned towner with this role, or the role's default long name if not spawned.
+ */
+std::string_view GetTownerFullName(_talker_id type);
+
+/**
+ * @brief Remembers which towner (index into Towners) the player is talking to, or clears it.
+ */
+void SetTalkingTowner(std::optional<size_t> index);
+
 struct Towner {
 	OptionalOwnedClxSpriteList ownedAnim;
 	OptionalClxSpriteList anim;
@@ -53,6 +87,8 @@ struct Towner {
 	void (*talk)(Player &player, Towner &towner);
 
 	std::string_view name;
+	/** Name used in menus such as "Talk to ..."; same as `name` when the data has no short name. */
+	std::string_view shortName;
 
 	/** Tile position of NPC */
 	Point position;
@@ -80,7 +116,7 @@ struct Towner {
 	}
 };
 
-extern std::vector<Towner> Towners;
+extern DVL_API_FOR_TEST std::vector<Towner> Towners;
 
 /**
  * @brief Returns the number of unique towner types found in TSV data.
@@ -101,6 +137,11 @@ bool IsTownerPresent(_talker_id npc);
  * @return Pointer to the Towner or nullptr if they are not available
  */
 Towner *GetTowner(_talker_id type);
+
+/**
+ * @brief Like GetTowner, but prefers the towner the player is currently talking to when it has this role.
+ */
+Towner *GetTalkingTowner(_talker_id type);
 
 void InitTowners();
 void FreeTownerGFX();

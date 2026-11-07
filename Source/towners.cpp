@@ -2,7 +2,9 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <string_view>
 #include <unordered_map>
+#include <utility>
 
 #include "cursor.h"
 #include "cursor_defs.hpp"
@@ -12,12 +14,14 @@
 #include "engine/random.hpp"
 #include "game_mode.hpp"
 #include "inv.h"
+#include "levels/town_data.h"
 #include "minitext.h"
 #include "stores.h"
 #include "tables/textdat.h"
 #include "tables/townerdat.hpp"
 #include "utils/is_of.hpp"
 #include "utils/language.h"
+#include "utils/log.hpp"
 #include "utils/str_case.hpp"
 
 namespace devilution {
@@ -29,6 +33,9 @@ int CowClicks;
 
 /** Specifies the active sound effect ID for interacting with cows. */
 SfxID CowPlaying = SfxID::None;
+
+/** Towner entries for the currently loaded town (kept alive for string_view/span users). */
+std::vector<TownerDataEntry> ActiveTownerEntries;
 
 /** Storage for animation order data loaded from TSV (needs stable addresses for span). */
 std::vector<std::vector<uint8_t>> TownerAnimOrderStorage;
@@ -92,8 +99,8 @@ void NewTownerAnim(Towner &towner, ClxSpriteList sprites, uint8_t numFrames, int
 void InitTownerInfo(Towner &towner, const TownerData &townerData, const TownerDataEntry &entry)
 {
 	towner._ttype = townerData.type;
-	auto nameIt = TownerLongNames.find(townerData.type);
-	towner.name = nameIt != TownerLongNames.end() ? _(nameIt->second.c_str()) : std::string_view(entry.name);
+	towner.name = _(entry.name.c_str());
+	towner.shortName = entry.shortName.empty() ? towner.name : _(entry.shortName.c_str());
 	towner.position = entry.position;
 	towner.talk = townerData.talk;
 
@@ -748,6 +755,129 @@ bool IsTownerPresent(_talker_id npc)
 	}
 }
 
+namespace {
+
+constexpr std::pair<std::string_view, _talker_id> TownerRoles[] = {
+	{ "smith", TOWN_SMITH },
+	{ "healer", TOWN_HEALER },
+	{ "deadguy", TOWN_DEADGUY },
+	{ "tavern", TOWN_TAVERN },
+	{ "storyteller", TOWN_STORY },
+	{ "drunk", TOWN_DRUNK },
+	{ "witch", TOWN_WITCH },
+	{ "barmaid", TOWN_BMAID },
+	{ "boy", TOWN_PEGBOY },
+	{ "cow", TOWN_COW },
+	{ "farmer", TOWN_FARMER },
+	{ "girl", TOWN_GIRL },
+	{ "cowfarmer", TOWN_COWFARM },
+};
+
+} // namespace
+
+std::optional<_talker_id> ParseTownerRole(std::string_view role)
+{
+	for (const auto &[name, type] : TownerRoles) {
+		if (name == role)
+			return type;
+	}
+	return std::nullopt;
+}
+
+namespace {
+
+std::string_view GetTownerFullNameDefault(_talker_id type)
+{
+	const auto nameIt = TownerLongNames.find(type);
+	return nameIt != TownerLongNames.end() ? _(nameIt->second.c_str()) : std::string_view {};
+}
+
+} // namespace
+
+static std::optional<size_t> TalkingTownerIndex;
+
+void SetTalkingTowner(std::optional<size_t> index)
+{
+	TalkingTownerIndex = index;
+}
+
+Towner *GetTalkingTowner(_talker_id type)
+{
+	if (TalkingTownerIndex.has_value() && *TalkingTownerIndex < Towners.size() && Towners[*TalkingTownerIndex]._ttype == type)
+		return &Towners[*TalkingTownerIndex];
+	return GetTowner(type);
+}
+
+std::string_view GetTownerShortName(_talker_id type)
+{
+	if (const Towner *towner = GetTalkingTowner(type); towner != nullptr)
+		return towner->shortName;
+	for (const TownerDataEntry &entry : TownersDataEntries) {
+		if (entry.type == type && !entry.shortName.empty())
+			return _(entry.shortName.c_str());
+	}
+	return GetTownerFullNameDefault(type);
+}
+
+std::string_view GetTownerFullName(_talker_id type)
+{
+	if (const Towner *towner = GetTalkingTowner(type); towner != nullptr && !towner->name.empty())
+		return towner->name;
+	return GetTownerFullNameDefault(type);
+}
+
+std::vector<TownerDataEntry> ResolveTownerEntries(const TownConfig *config)
+{
+	if (config == nullptr || config->npcs.empty())
+		return TownersDataEntries;
+
+	std::vector<TownerDataEntry> result;
+	result.reserve(config->npcs.size());
+	for (const TownNpc &npc : config->npcs) {
+		const std::optional<_talker_id> type = ParseTownerRole(npc.role);
+		if (!type.has_value()) {
+			LogError("Town NPC: unknown role '{}', skipping", npc.role);
+			continue;
+		}
+		const auto baseIt = std::find_if(TownersDataEntries.begin(), TownersDataEntries.end(),
+		    [&](const TownerDataEntry &e) { return e.type == *type; });
+		if (baseIt == TownersDataEntries.end()) {
+			LogError("Town NPC: no base data for role '{}', skipping", npc.role);
+			continue;
+		}
+
+		TownerDataEntry entry = *baseIt;
+		entry.position = npc.position;
+		if (npc.name.has_value()) {
+			entry.name = *npc.name;
+			// The base entry's short name belongs to the original NPC.
+			entry.shortName.clear();
+		}
+		if (npc.animPath.has_value()) {
+			entry.animPath = *npc.animPath;
+			// The base entry's frame order belongs to its own sprite.
+			entry.animOrder.clear();
+		}
+		if (npc.animFrames.has_value())
+			entry.animFrames = *npc.animFrames;
+		if (npc.animDelay.has_value())
+			entry.animDelay = *npc.animDelay;
+		if (npc.gossip.has_value()) {
+			entry.gossipTexts.clear();
+			for (const std::string &speechName : *npc.gossip) {
+				const auto speech = ParseSpeechId(speechName);
+				if (!speech.has_value()) {
+					LogError("Town NPC: unknown gossip id '{}', skipping", speechName);
+					continue;
+				}
+				entry.gossipTexts.push_back(*speech);
+			}
+		}
+		result.push_back(std::move(entry));
+	}
+	return result;
+}
+
 Towner *GetTowner(_talker_id type)
 {
 	for (Towner &towner : Towners) {
@@ -779,10 +909,14 @@ void InitTowners()
 
 	CowSprites.emplace(LoadCelSheet("towners\\animals\\cow", 128));
 
+	// Entries must outlive the towners: Towner::name may point into them.
+	ActiveTownerEntries = ResolveTownerEntries(GetCurrentTownConfig());
+
+	SetTalkingTowner(std::nullopt);
 	Towners.clear();
-	Towners.reserve(TownersDataEntries.size());
+	Towners.reserve(ActiveTownerEntries.size());
 	int16_t i = 0;
-	for (const auto &entry : TownersDataEntries) {
+	for (const auto &entry : ActiveTownerEntries) {
 		if (!IsTownerPresent(entry.type))
 			continue;
 
@@ -849,6 +983,7 @@ void TalkToTowner(Player &player, int t)
 		return;
 	}
 
+	SetTalkingTowner(static_cast<size_t>(t));
 	towner.talk(player, towner);
 }
 
@@ -865,6 +1000,8 @@ void UpdateGirlAnimAfterQuestComplete()
 void UpdateCowFarmerAnimAfterQuestComplete()
 {
 	Towner *cowFarmer = GetTowner(TOWN_COWFARM);
+	if (cowFarmer == nullptr)
+		return;
 	auto curFrame = cowFarmer->_tAnimFrame;
 	LoadTownerAnimations(*cowFarmer, "towners\\farmer\\mfrmrn2", 15, 3);
 	cowFarmer->_tAnimFrame = std::min<uint8_t>(curFrame, cowFarmer->_tAnimLen - 1);
@@ -887,6 +1024,7 @@ bool DebugTalkToTowner(_talker_id type)
 	if (entry == nullptr)
 		return false;
 
+	SetTalkingTowner(std::nullopt);
 	SetupTownStores();
 	Player &myPlayer = *MyPlayer;
 	Towner fakeTowner;
