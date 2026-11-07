@@ -53,7 +53,7 @@ struct TownerDataEntry;
  * @brief Parses a role name ("healer", "smith", "storyteller", ...) used by town NPC definitions.
  * @return The matching towner type, or nullopt for an unknown role.
  */
-DVL_API_FOR_TEST std::optional<_talker_id> ParseTownerRole(std::string_view role);
+std::optional<_talker_id> ParseTownerRole(std::string_view role);
 
 /**
  * @brief Builds the list of towner entries to spawn for a town.
@@ -62,7 +62,7 @@ DVL_API_FOR_TEST std::optional<_talker_id> ParseTownerRole(std::string_view role
  * entry per NPC definition, based on the first TSV entry of the NPC's role with the provided fields applied.
  * Unknown roles and unknown gossip ids are logged and skipped.
  */
-DVL_API_FOR_TEST std::vector<TownerDataEntry> ResolveTownerEntries(const TownConfig *config);
+std::vector<TownerDataEntry> ResolveTownerEntries(const TownConfig *config);
 
 /**
  * @brief Translated menu name ("Talk to ...") of the towner with this role, or the towners.tsv default if not spawned.
@@ -77,7 +77,7 @@ std::string_view GetTownerFullName(_talker_id type);
 /**
  * @brief Remembers which towner (index into Towners) the player is talking to, or clears it.
  */
-DVL_API_FOR_TEST void SetTalkingTowner(std::optional<size_t> index);
+void SetTalkingTowner(std::optional<size_t> index);
 
 struct Towner {
 	OptionalOwnedClxSpriteList ownedAnim;

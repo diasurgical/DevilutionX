@@ -574,7 +574,7 @@ bool InitMulti(GameData *gameData)
 
 } // namespace
 
-DVL_API_FOR_TEST std::string DescribeLeaveReason(leaveinfo_t leaveReason)
+std::string DescribeLeaveReason(leaveinfo_t leaveReason)
 {
 	switch (leaveReason) {
 	case leaveinfo_t::LEAVE_EXIT:

@@ -13,8 +13,6 @@
 #include "dvlnet/leaveinfo.hpp"
 #include "game_mode.hpp"
 #include "msg.h"
-#include "utils/attributes.h"
-
 namespace devilution {
 
 using net::leaveinfo_t;
@@ -47,7 +45,7 @@ extern uint32_t player_state[MAX_PLRS];
 extern bool IsLoopback;
 
 void SwapGameDataLE(GameData &gameData);
-DVL_API_FOR_TEST std::string DescribeLeaveReason(leaveinfo_t leaveReason);
+std::string DescribeLeaveReason(leaveinfo_t leaveReason);
 std::string FormatGameSeed(const uint32_t gameSeed[4]);
 
 void InitGameInfo();
