@@ -2261,6 +2261,7 @@ void CloseStash()
 	}
 
 	IsStashOpen = false;
+	LuaCloseModStash(); // Lua mod support
 }
 
 void DoTelekinesis()

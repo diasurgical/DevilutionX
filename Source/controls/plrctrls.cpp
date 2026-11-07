@@ -710,9 +710,9 @@ Size GetItemSizeOnSlot(int slot)
 Size GetItemSizeOnSlot(Point slot)
 {
 	if (Rectangle { { 0, 0 }, { 10, 10 } }.contains(slot)) {
-		const StashStruct::StashCell ii = Stash.GetItemIdAtPosition(slot);
+		const StashStruct::StashCell ii = GetActiveStash().GetItemIdAtPosition(slot);
 		if (ii != StashStruct::EmptyCell) {
-			const Item &item = Stash.stashList[ii];
+			const Item &item = GetActiveStash().stashList[ii];
 			if (!item.isEmpty()) {
 				return GetInventorySize(item);
 			}
@@ -742,7 +742,7 @@ Point FindFirstStashSlotOnItem(StashStruct::StashCell itemInvId)
 		return InvalidStashPoint;
 
 	for (WorldTilePosition point : PointsInRectangle(WorldTileRectangle { { 0, 0 }, { 10, 10 } })) {
-		if (Stash.GetItemIdAtPosition(point) == itemInvId)
+		if (GetActiveStash().GetItemIdAtPosition(point) == itemInvId)
 			return point;
 	}
 
@@ -894,7 +894,7 @@ void LiftStashItem()
 		for (const Point slotUnderCursor : PointsInRectangle(Rectangle { stashSlot, cursorSizeInCells })) {
 			if (slotUnderCursor.x >= 10 || slotUnderCursor.y >= 10)
 				continue;
-			const StashStruct::StashCell itemId = Stash.GetItemIdAtPosition(slotUnderCursor);
+			const StashStruct::StashCell itemId = GetActiveStash().GetItemIdAtPosition(slotUnderCursor);
 			if (itemId != StashStruct::EmptyCell)
 				return itemId;
 		}
@@ -1573,14 +1573,14 @@ void StashMove(AxisDirection dir)
 	Size movingItemSize = isHoldingItem ? GetInventorySize(holdItem) : Size { 1, 1 };
 
 	if (!isHoldingItem && ActiveStashSlot != InvalidStashPoint) {
-		const StashStruct::StashCell itemIdAtActiveStashSlot = Stash.GetItemIdAtPosition(ActiveStashSlot);
+		const StashStruct::StashCell itemIdAtActiveStashSlot = GetActiveStash().GetItemIdAtPosition(ActiveStashSlot);
 		if (itemIdAtActiveStashSlot != StashStruct::EmptyCell) {
-			movingItemSize = GetInventorySize(Stash.stashList[itemIdAtActiveStashSlot]);
+			movingItemSize = GetInventorySize(GetActiveStash().stashList[itemIdAtActiveStashSlot]);
 		}
 	}
 
 	auto getCellId = [&](Point p) -> int {
-		return Stash.GetItemIdAtPosition(p);
+		return GetActiveStash().GetItemIdAtPosition(p);
 	};
 
 	if (dir.x == AxisDirectionX_LEFT) {
@@ -1626,9 +1626,9 @@ void StashMove(AxisDirection dir)
 		// At this point itemSize is the size of the item we're currently holding.
 		// We need to offset the mouse position to account for items (we're holding or hovering over) with a dimension larger than a single cell.
 		if (holdItem.isEmpty()) {
-			const StashStruct::StashCell itemIdAtActiveStashSlot = Stash.GetItemIdAtPosition(ActiveStashSlot);
+			const StashStruct::StashCell itemIdAtActiveStashSlot = GetActiveStash().GetItemIdAtPosition(ActiveStashSlot);
 			if (itemIdAtActiveStashSlot != StashStruct::EmptyCell) {
-				const Item stashItem = Stash.stashList[itemIdAtActiveStashSlot];
+				const Item stashItem = GetActiveStash().stashList[itemIdAtActiveStashSlot];
 				const Point firstSlotOnItem = FindFirstStashSlotOnItem(itemIdAtActiveStashSlot);
 				itemSize = GetInventorySize(stashItem);
 				mousePos = GetStashSlotCoord(firstSlotOnItem);
@@ -2508,7 +2508,7 @@ void CtrlUseStashItem()
 		return;
 	}
 
-	const Item &item = Stash.stashList[pcursstashitem];
+	const Item &item = GetActiveStash().stashList[pcursstashitem];
 	if (item.isScroll()) {
 		if (TargetsMonster(item._iSpell)) {
 			return;

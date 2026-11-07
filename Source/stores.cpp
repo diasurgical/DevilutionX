@@ -2029,14 +2029,8 @@ void BarmaidEnter()
 		break;
 	case 14:
 		ActiveStore = TalkID::None;
-		IsStashOpen = true;
-		Stash.RefreshItemStatFlags();
-		invflag = true;
-		if (ControlMode != ControlTypes::KeyboardAndMouse) {
-			if (pcurs == CURSOR_DISARM)
-				NewCursor(CURSOR_HAND);
-			FocusOnInventory();
-		}
+		LuaCloseModStash(); // Lua mod support
+		OpenStash();
 		break;
 	case 18:
 		ActiveStore = TalkID::None;
@@ -2399,16 +2393,28 @@ void StartStore(TalkID s)
 				}
 			}
 
-			// Insert extra options into empty even-numbered lines before the leave option.
-			size_t optIdx = 0;
-			for (int line = 10; line < lastSelectableLine && optIdx < extraOpts->size(); line += 2) {
-				if (TextLine[line].hasText()) continue;
-				std::string label = (*extraOpts)[optIdx].getLabel();
-				if (!label.empty()) {
-					AddSText(0, line, label, UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-					CurrentExtraOptionIndices[line] = optIdx;
+			// Lua mod support: insert extra options into empty even-numbered lines before the leave option,
+			// preferring lines after the towner's first option (not directly under the "Would you like to:"
+			// header), then falling back to line 10 onward when those are full.
+			int firstSelectableLine = -1;
+			for (int i = 0; i < NumStoreLines; ++i) {
+				if (TextLine[i].isSelectable()) {
+					firstSelectableLine = i;
+					break;
 				}
-				++optIdx;
+			}
+			const int preferredFirstLine = firstSelectableLine >= 0 ? firstSelectableLine + 2 : 10;
+			size_t optIdx = 0;
+			for (const int startLine : { preferredFirstLine, 10 }) {
+				for (int line = startLine; line < lastSelectableLine && optIdx < extraOpts->size(); line += 2) {
+					if (TextLine[line].hasText()) continue;
+					std::string label = (*extraOpts)[optIdx].getLabel();
+					if (!label.empty()) {
+						AddSText(0, line, label, UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+						CurrentExtraOptionIndices[line] = optIdx;
+					}
+					++optIdx;
+				}
 			}
 			if (optIdx < extraOpts->size()) {
 				LogWarn("Towner \"{}\" dialog: {} extra option(s) could not be placed (no empty lines)",
