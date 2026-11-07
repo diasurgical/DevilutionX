@@ -39,6 +39,7 @@
 #include "levels/town.h"
 #include "levels/trigs.h"
 #include "lighting.h"
+#include "lua/lua_event.hpp"
 #include "missiles.h"
 #include "monster.h"
 #include "monsters/validation.hpp"
@@ -195,6 +196,7 @@ std::string_view CmdIdString(_cmd_id cmd)
 	case CMD_OPENHIVE: return "CMD_OPENHIVE";
 	case CMD_OPENGRAVE: return "CMD_OPENGRAVE";
 	case CMD_SPAWNMONSTER: return "CMD_SPAWNMONSTER";
+	case CMD_LUAMSG: return "CMD_LUAMSG";
 	case FAKE_CMD_SETID: return "FAKE_CMD_SETID";
 	case FAKE_CMD_DROPID: return "FAKE_CMD_DROPID";
 	case CMD_INVALID: return "CMD_INVALID";
@@ -2489,6 +2491,21 @@ size_t OnString(const TCmd &cmd, size_t maxCmdSize, Player &player)
 	return headerSize + playerMessage.size() + nullSize;
 }
 
+// Lua mod support: forward an opaque variable-length payload to the Lua dispatch hook. The engine
+// does not interpret the body. `len` is read from the network (untrusted) so it is clamped to the
+// bytes actually present in the packet before use.
+size_t OnLuaMessage(const TCmd &cmd, size_t maxCmdSize, const Player &player)
+{
+	const auto &message = reinterpret_cast<const TCmdLuaMsg &>(cmd);
+	const size_t headerSize = sizeof(message) - sizeof(message.data);
+	if (maxCmdSize < headerSize)
+		return maxCmdSize;
+	const size_t available = std::min<size_t>(LUA_MSG_MAX_LEN, maxCmdSize - headerSize);
+	const size_t len = std::min<size_t>(message.len, available);
+	lua::NetMessage(static_cast<int>(player.getId()), std::string_view(message.data, len));
+	return headerSize + len;
+}
+
 size_t OnFriendlyMode(const TCmd &cmd, Player &player) // NOLINT(misc-unused-parameters)
 {
 	player.friendlyMode = !player.friendlyMode;
@@ -3325,6 +3342,17 @@ void NetSendCmdString(uint32_t pmask, const char *pszStr)
 	multi_send_msg_packet(pmask, reinterpret_cast<std::byte *>(&cmd), strlen(cmd.str) + 2);
 }
 
+void NetSendCmdLuaMessage(uint32_t pmask, const char *data, size_t len) // Lua mod support
+{
+	TCmdLuaMsg cmd;
+	cmd.bCmd = CMD_LUAMSG;
+	const size_t clamped = std::min<size_t>(len, LUA_MSG_MAX_LEN);
+	cmd.len = static_cast<uint8_t>(clamped);
+	memcpy(cmd.data, data, clamped);
+	const size_t headerSize = sizeof(cmd) - sizeof(cmd.data);
+	multi_send_msg_packet(pmask, reinterpret_cast<std::byte *>(&cmd), headerSize + clamped);
+}
+
 void delta_close_portal(const Player &player)
 {
 	memset(&sgJunk.portal[player.getId()], 0xFF, sizeof(sgJunk.portal[player.getId()]));
@@ -3478,6 +3506,8 @@ size_t ParseCmd(uint8_t pnum, const TCmd *pCmd, size_t maxCmdSize)
 		return HandleCmd(OnSetVitality, player, pCmd, maxCmdSize);
 	case CMD_STRING:
 		return OnString(*pCmd, maxCmdSize, player);
+	case CMD_LUAMSG:
+		return OnLuaMessage(*pCmd, maxCmdSize, player);
 	case CMD_FRIENDLYMODE:
 		return OnFriendlyMode(*pCmd, player);
 	case CMD_SYNCQUEST:
