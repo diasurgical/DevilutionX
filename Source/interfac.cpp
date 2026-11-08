@@ -311,7 +311,7 @@ bool HandleProgressBarUpdate()
 	return true;
 }
 
-void DoLoad(interface_mode uMsg)
+void DoLoad(interface_mode uMsg, uint8_t destinationTownId)
 {
 	IncProgress();
 	sound_init();
@@ -464,7 +464,7 @@ void DoLoad(interface_mode uMsg)
 		loadResult = LoadGameLevel(false, ENTRY_MAIN);
 		if (loadResult.has_value()) IncProgress();
 		break;
-	case WM_DIABTOWNSWITCH:
+	case WM_DIABTOWNSWITCH: {
 		IncProgress();
 		if (!gbIsMultiplayer) {
 			pfile_save_level();
@@ -473,17 +473,15 @@ void DoLoad(interface_mode uMsg)
 		}
 		IncProgress();
 		FreeGameMem();
-		if (!GetTownRegistry().HasTown(DestinationTownID)) {
-			LogError("WM_DIABTOWNSWITCH: unknown town '{}'", DestinationTownID);
+		if (!GetTownRegistry().HasTown(destinationTownId)) {
+			LogError("WM_DIABTOWNSWITCH: unknown town id {}", destinationTownId);
 			loadResult = std::unexpected<std::string>("Unknown destination town");
 			break;
 		}
-		GetTownRegistry().SetCurrentTown(DestinationTownID);
+		GetTownRegistry().SetCurrentTown(destinationTownId);
 
-		if (MyPlayer != nullptr) {
-			const TownConfig &destTown = GetTownRegistry().GetTown(DestinationTownID);
-			MyPlayer->_pCurrentTownId = destTown.saveId;
-		}
+		if (MyPlayer != nullptr)
+			MyPlayer->_pCurrentTownId = destinationTownId;
 
 		setlevel = false;
 		currlevel = 0;
@@ -493,6 +491,7 @@ void DoLoad(interface_mode uMsg)
 		if (loadResult.has_value()) IncProgress();
 
 		break;
+	}
 	default:
 		loadResult = std::unexpected<std::string>("Unknown progress mode");
 		break;
@@ -601,16 +600,18 @@ void ProgressEventHandler(const SDL_Event &event, uint16_t modState)
 
 } // namespace
 
-void QueueTownSwitch()
+void QueueTownSwitch(uint8_t townId)
 {
-	if (MyPlayer != nullptr) {
-		MyPlayer->_pInvincible = true;
-		SDL_Event event;
-		CustomEventToSdlEvent(event, WM_DIABTOWNSWITCH);
-		if (!SDLC_PushEvent(&event)) {
-			LogError("QueueTownSwitch: {}", SDL_GetError());
-			SDL_ClearError();
-		}
+	if (MyPlayer == nullptr)
+		return;
+
+	MyPlayer->_pInvincible = true;
+	SDL_Event event;
+	CustomEventToSdlEvent(event, WM_DIABTOWNSWITCH);
+	event.user.data1 = reinterpret_cast<void *>(static_cast<uintptr_t>(townId));
+	if (!SDLC_PushEvent(&event)) {
+		LogError("QueueTownSwitch: {}", SDL_GetError());
+		SDL_ClearError();
 	}
 }
 
@@ -633,6 +634,7 @@ interface_mode GetCustomEvent(const SDL_Event &event)
 
 void CustomEventToSdlEvent(SDL_Event &event, interface_mode eventType)
 {
+	event = {};
 	event.type = CustomEventType;
 	event.user.code = static_cast<int>(eventType);
 }
@@ -685,7 +687,7 @@ void CompleteProgress()
 	}
 }
 
-void ShowProgress(interface_mode uMsg)
+void ShowProgress(interface_mode uMsg, uint8_t destinationTownId)
 {
 	IsProgress = true;
 	gbSomebodyWonGameKludge = false;
@@ -724,14 +726,18 @@ void ShowProgress(interface_mode uMsg)
 	// Begin loading
 #ifdef LOAD_ON_MAIN_THREAD
 	const uint32_t start = SDL_GetTicks();
-	DoLoad(uMsg);
+	DoLoad(uMsg, destinationTownId);
 	LogVerbose("Loading finished in {}ms", SDL_GetTicks() - start);
 #else
-	static interface_mode loadTarget;
-	loadTarget = uMsg;
+	struct LoadTarget {
+		interface_mode mode;
+		uint8_t destinationTownId;
+	};
+	static LoadTarget loadTarget;
+	loadTarget = { uMsg, destinationTownId };
 	SdlThread loadThread = SdlThread([]() {
 		const uint32_t start = SDL_GetTicks();
-		DoLoad(loadTarget);
+		DoLoad(loadTarget.mode, loadTarget.destinationTownId);
 		LogVerbose("Load thread finished in {}ms", SDL_GetTicks() - start);
 	});
 	while (HandleProgressBarUpdate()) { }

@@ -2538,12 +2538,13 @@ std::expected<void, std::string> LoadGame(bool firstflag)
 	LoadPlayer(file, myPlayer);
 
 	// Restore current town from player save data
-	std::string townId = GetTownRegistry().GetTownBySaveId(myPlayer._pCurrentTownId);
-	if (GetTownRegistry().HasTown(townId)) {
-		GetTownRegistry().SetCurrentTown(townId);
+	if (GetTownRegistry().HasTown(myPlayer._pCurrentTownId)) {
+		GetTownRegistry().SetCurrentTown(myPlayer._pCurrentTownId);
 	} else {
+		if (myPlayer._pCurrentTownId != TristramTownId)
+			LogWarn("LoadGame: unknown town id {}, defaulting to Tristram", myPlayer._pCurrentTownId);
 		GetTownRegistry().SetCurrentTown(TristramTownId);
-		myPlayer._pCurrentTownId = 0;
+		myPlayer._pCurrentTownId = TristramTownId;
 	}
 
 	if (sgGameInitInfo.nDifficulty < DIFF_NORMAL || sgGameInitInfo.nDifficulty > DIFF_HELL)

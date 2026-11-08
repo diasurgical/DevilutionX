@@ -71,12 +71,14 @@ enum Cutscenes : uint8_t {
 	CutGate,
 };
 
-/** @brief Queues WM_DIABTOWNSWITCH for the local player (invincible until load completes). */
-void QueueTownSwitch();
+/** @brief Queues WM_DIABTOWNSWITCH for the local player. The town id is carried in event.user.data1. */
+void QueueTownSwitch(uint8_t townId);
 
 void interface_msg_pump();
 void IncProgress(uint32_t steps = 1);
 void CompleteProgress();
-void ShowProgress(interface_mode uMsg);
+
+/** @param destinationTownId Town id for WM_DIABTOWNSWITCH. Other modes ignore it. */
+void ShowProgress(interface_mode uMsg, uint8_t destinationTownId = 0);
 
 } // namespace devilution

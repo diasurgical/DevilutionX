@@ -626,9 +626,8 @@ bool IsNearThemeRoom(WorldTilePosition testPosition)
 
 void InitLevels()
 {
-	// Note: InitializeTristram overwrites any existing "tristram" registration.
-	// Lua mods that called towns.register("tristram", ...) before InitLevels will
-	// have their config replaced. There is intentionally no registry Reset() here;
+	// Note: InitializeTristram overwrites town id 0 (Tristram).
+	// Lua cannot register that id. There is intentionally no registry Reset() here;
 	// mod-registered towns persist across new games and are re-populated by the
 	// Lua runtime at mod load time.
 	InitializeTristram();

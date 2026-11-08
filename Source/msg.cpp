@@ -2475,32 +2475,27 @@ size_t OnSetVitality(const TCmdParam1 &message, Player &player)
 	return sizeof(message);
 }
 
-size_t OnTownTravel(const TCmd &cmd, size_t maxCmdSize, Player & /*player*/)
+size_t OnTownTravel(const TCmdParam1 &message, Player & /*player*/)
 {
-	const auto &message = reinterpret_cast<const TCmdString &>(cmd);
-	const size_t headerSize = sizeof(message) - sizeof(message.str);
-	const size_t maxLength = std::min<size_t>(MAX_SEND_STR_LEN, maxCmdSize - headerSize);
-	const std::string_view str { message.str, maxLength };
-	const auto tokens = SplitByChar(str, '\0');
-	const std::string_view townId = *tokens.begin();
+	const uint16_t townIdParam = Swap16LE(message.wParam1);
+	if (townIdParam > MaxTownId) {
+		LogError("Network: town id {} is out of range", townIdParam);
+		return sizeof(message);
+	}
+	const auto townId = static_cast<uint8_t>(townIdParam);
 
 	// gbBufferMsgs != 0 means we are buffering a game-state replay; skip the SDL
 	// event so we do not queue a second town switch while one is already in flight.
 	if (gbBufferMsgs == 0) {
-		// Process town travel on all clients
-		std::string townIdStr(townId);
-		if (GetTownRegistry().HasTown(townIdStr)) {
-			DestinationTownID = townIdStr;
-			LogInfo("Network: Received town travel to '{}'", townId);
-
-			QueueTownSwitch();
+		if (GetTownRegistry().HasTown(townId)) {
+			LogInfo("Network: Received town travel to {}", townId);
+			QueueTownSwitch(townId);
 		} else {
-			LogError("Network: Unknown town ID '{}'", townId);
+			LogError("Network: Unknown town id {}", townId);
 		}
 	}
 
-	const size_t nullSize = str.size() != townId.size() ? 1 : 0;
-	return headerSize + townId.size() + nullSize;
+	return sizeof(message);
 }
 
 size_t OnString(const TCmd &cmd, size_t maxCmdSize, Player &player)
@@ -3355,13 +3350,13 @@ void NetSendCmdString(uint32_t pmask, const char *pszStr)
 	multi_send_msg_packet(pmask, reinterpret_cast<std::byte *>(&cmd), strlen(cmd.str) + 2);
 }
 
-void NetSendCmdTownTravel(uint32_t pmask, const char *townId)
+void NetSendCmdTownTravel(uint32_t pmask, uint8_t townId)
 {
-	TCmdString cmd;
+	TCmdParam1 cmd;
 
 	cmd.bCmd = CMD_TOWNTRAVEL;
-	CopyUtf8(cmd.str, townId, sizeof(cmd.str));
-	multi_send_msg_packet(pmask, reinterpret_cast<std::byte *>(&cmd), strlen(cmd.str) + 2);
+	cmd.wParam1 = Swap16LE(static_cast<uint16_t>(townId));
+	multi_send_msg_packet(pmask, reinterpret_cast<std::byte *>(&cmd), sizeof(cmd));
 }
 
 void delta_close_portal(const Player &player)
@@ -3508,7 +3503,7 @@ size_t ParseCmd(uint8_t pnum, const TCmd *pCmd, size_t maxCmdSize)
 	case CMD_RETOWN:
 		return OnRestartTown(*pCmd, player);
 	case CMD_TOWNTRAVEL:
-		return OnTownTravel(*pCmd, maxCmdSize, player);
+		return HandleCmd(OnTownTravel, player, pCmd, maxCmdSize);
 	case CMD_SETSTR:
 		return HandleCmd(OnSetStrength, player, pCmd, maxCmdSize);
 	case CMD_SETMAG:
