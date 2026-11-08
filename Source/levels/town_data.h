@@ -12,8 +12,12 @@
 
 namespace devilution {
 
-/** @brief Canonical town registry id for vanilla Tristram (lowercase). */
-inline constexpr char TristramTownId[] = "tristram";
+/** @brief Town id reserved for Tristram. */
+inline constexpr uint8_t TristramTownId = 0;
+
+/** @brief Inclusive range of town ids mods may register. */
+inline constexpr int MinModTownId = 1;
+inline constexpr int MaxTownId = 255;
 
 /** @brief Town portal spell anchor slots; must match MAXPORTAL in portal.h. */
 inline constexpr size_t NumTownPortalSlots = 4;
@@ -137,7 +141,8 @@ auto LoadTownAssetWithFallback(
  */
 struct TownConfig {
 	std::string name;
-	uint8_t saveId = 0;
+	/** @brief Stable town id. Each value maps to one town. 0 is Tristram. */
+	uint8_t townId = TristramTownId;
 	Point dminPosition = { 10, 10 };
 	Point dmaxPosition = { 84, 84 };
 	TownAssets assets;
@@ -159,20 +164,17 @@ struct TownConfig {
  */
 class TownRegistry {
 private:
-	std::unordered_map<std::string, TownConfig> towns;
-	std::string currentTownID;
+	std::unordered_map<uint8_t, TownConfig> towns;
+	std::optional<uint8_t> currentTownId;
 
 public:
-	void RegisterTown(const std::string &id, const TownConfig &config);
-	const TownConfig &GetTown(const std::string &id) const;
-	TownConfig &GetTown(const std::string &id);
-	bool HasTown(const std::string &id) const;
-	void SetCurrentTown(const std::string &id);
-	const std::string &GetCurrentTown() const;
-	const std::unordered_map<std::string, TownConfig> &GetTowns() const { return towns; }
-
-	/** @brief Finds town string ID by its saveId. Returns TristramTownId if not found. */
-	std::string GetTownBySaveId(uint8_t saveId) const;
+	/** @brief Registers or replaces the town stored at config.townId. */
+	void RegisterTown(const TownConfig &config);
+	const TownConfig &GetTown(uint8_t townId) const;
+	TownConfig &GetTown(uint8_t townId);
+	bool HasTown(uint8_t townId) const;
+	void SetCurrentTown(uint8_t townId);
+	const std::optional<uint8_t> &GetCurrentTown() const;
 };
 
 TownRegistry &GetTownRegistry();
@@ -186,13 +188,6 @@ const TownConfig *GetCurrentTownConfig();
  * @brief Town used for DTYPE_TOWN tile loading (CEL/TIL/SOL/palette): current town if registered, else Tristram.
  */
 const TownConfig &GetActiveTownConfigForTileLoad();
-
-/**
- * @brief Town ID to switch to, set before queuing WM_DIABTOWNSWITCH.
- * Written by: towns Lua module, OnTownTravel (network), NetSendCmdTownTravel.
- * Read by: WM_DIABTOWNSWITCH handler in interfac.cpp.
- */
-extern std::string DestinationTownID;
 
 void InitializeTristram();
 

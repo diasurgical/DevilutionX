@@ -30,16 +30,18 @@ constexpr Point TristramCathedralTrigPosition = { 25, 29 };
 
 constexpr Point TownEntryDefaultFallback = { 75, 68 };
 
-constexpr uint8_t TestTownAlphaSaveId = 7;
-constexpr uint8_t TestTownBetaSaveId = 11;
-constexpr uint8_t UnknownSaveId = 99;
+constexpr uint8_t TestTownAlphaId = 7;
+constexpr uint8_t TestTownBetaId = 11;
+constexpr uint8_t TestTownModId = 3;
+constexpr uint8_t TestTownPortalId = 4;
+constexpr uint8_t UnknownTownId = 99;
 
 constexpr int NonMatchingWarpFromLevel = 999;
 
 TEST(TownRegistry, HasTown_ReturnsFalseForUnregistered)
 {
 	TownRegistry registry;
-	EXPECT_FALSE(registry.HasTown("nowhere"));
+	EXPECT_FALSE(registry.HasTown(UnknownTownId));
 }
 
 TEST(TownRegistry, RegisterTown_HasTown_GetTown_RoundTrip)
@@ -47,54 +49,74 @@ TEST(TownRegistry, RegisterTown_HasTown_GetTown_RoundTrip)
 	TownRegistry registry;
 	TownConfig cfg;
 	cfg.name = "Testburg";
-	registry.RegisterTown("testburg", cfg);
-	EXPECT_TRUE(registry.HasTown("testburg"));
-	EXPECT_EQ(registry.GetTown("testburg").name, "Testburg");
+	cfg.townId = TestTownAlphaId;
+	registry.RegisterTown(cfg);
+	EXPECT_TRUE(registry.HasTown(TestTownAlphaId));
+	EXPECT_EQ(registry.GetTown(TestTownAlphaId).name, "Testburg");
 }
 
 TEST(TownRegistry, GetTown_ThrowsForUnregistered)
 {
 	TownRegistry registry;
-	EXPECT_THROW(static_cast<void>(registry.GetTown("missing")), std::out_of_range);
+	EXPECT_THROW(static_cast<void>(registry.GetTown(UnknownTownId)), std::out_of_range);
 }
 
 TEST(TownRegistry, SetCurrentTown_GetCurrentTown_RoundTrip)
 {
 	TownRegistry registry;
 	TownConfig cfg;
-	registry.RegisterTown("a", cfg);
-	registry.SetCurrentTown("a");
-	EXPECT_EQ(registry.GetCurrentTown(), "a");
+	cfg.townId = TestTownAlphaId;
+	registry.RegisterTown(cfg);
+	registry.SetCurrentTown(TestTownAlphaId);
+	EXPECT_EQ(registry.GetCurrentTown(), std::optional<uint8_t> { TestTownAlphaId });
 }
 
-TEST(TownRegistry, GetTownBySaveId_FindsBySaveId)
+TEST(TownRegistry, GetTown_IndependentOfRegistrationOrder)
 {
-	TownRegistry registry;
 	TownConfig alpha;
 	alpha.name = "Alpha";
-	alpha.saveId = TestTownAlphaSaveId;
+	alpha.townId = TestTownAlphaId;
 	TownConfig beta;
 	beta.name = "Beta";
-	beta.saveId = TestTownBetaSaveId;
-	registry.RegisterTown("alpha", alpha);
-	registry.RegisterTown("beta", beta);
-	EXPECT_EQ(registry.GetTownBySaveId(TestTownAlphaSaveId), "alpha");
-	EXPECT_EQ(registry.GetTownBySaveId(TestTownBetaSaveId), "beta");
+	beta.townId = TestTownBetaId;
+
+	TownRegistry forward;
+	forward.RegisterTown(alpha);
+	forward.RegisterTown(beta);
+
+	TownRegistry reverse;
+	reverse.RegisterTown(beta);
+	reverse.RegisterTown(alpha);
+
+	EXPECT_EQ(forward.GetTown(TestTownAlphaId).name, "Alpha");
+	EXPECT_EQ(reverse.GetTown(TestTownAlphaId).name, "Alpha");
+	EXPECT_EQ(forward.GetTown(TestTownBetaId).name, "Beta");
+	EXPECT_EQ(reverse.GetTown(TestTownBetaId).name, "Beta");
 }
 
-TEST(TownRegistry, GetTownBySaveId_ReturnsTristramForUnknownNonZeroSaveId)
+TEST(TownRegistry, RegisterTown_OverwriteSameTownId)
 {
 	TownRegistry registry;
-	EXPECT_EQ(registry.GetTownBySaveId(UnknownSaveId), TristramTownId);
+	TownConfig first;
+	first.name = "First";
+	first.townId = TestTownAlphaId;
+	TownConfig second;
+	second.name = "Second";
+	second.townId = TestTownAlphaId;
+
+	registry.RegisterTown(first);
+	registry.RegisterTown(second);
+	EXPECT_EQ(registry.GetTown(TestTownAlphaId).name, "Second");
+	EXPECT_FALSE(registry.HasTown(TestTownBetaId));
 }
 
-TEST(TownRegistry, GetTownBySaveId_ReturnsTristramWhenZeroNotRegistered)
+TEST(TownRegistry, HasTown_FalseWhenTristramNotRegistered)
 {
 	TownRegistry registry;
 	TownConfig cfg;
-	cfg.saveId = TestTownAlphaSaveId;
-	registry.RegisterTown("only_alpha", cfg);
-	EXPECT_EQ(registry.GetTownBySaveId(0), TristramTownId);
+	cfg.townId = TestTownAlphaId;
+	registry.RegisterTown(cfg);
+	EXPECT_FALSE(registry.HasTown(TristramTownId));
 }
 
 TEST(TownConfig, GetEntryPoint_ENTRY_MAIN)
@@ -132,6 +154,15 @@ TEST(TownConfig, GetEntryPoint_EmptyEntriesUsesDefault)
 	EXPECT_EQ(cfg.GetEntryPoint(ENTRY_MAIN), TownEntryDefaultFallback);
 }
 
+TEST(TownConfig, GetEntryPoint_ENTRY_TOWNSWITCH)
+{
+	TownConfig cfg;
+	cfg.entries = {
+		{ ENTRY_TOWNSWITCH, { 28, 28 }, -1 },
+	};
+	EXPECT_EQ(cfg.GetEntryPoint(ENTRY_TOWNSWITCH), Point(28, 28));
+}
+
 TEST(RoleNameForShortName, MapsLegacyModNames)
 {
 	const std::optional<std::string_view> drunk = RoleNameForShortName("farnham");
@@ -155,16 +186,17 @@ TEST_F(InitializeTristramTest, RegistryHasTristram)
 {
 	TownRegistry &registry = GetTownRegistry();
 	EXPECT_TRUE(registry.HasTown(TristramTownId));
+	EXPECT_EQ(registry.GetTown(TristramTownId).name, "Tristram");
 }
 
 TEST_F(InitializeTristramTest, CurrentTownIsTristram)
 {
-	EXPECT_EQ(GetTownRegistry().GetCurrentTown(), TristramTownId);
+	EXPECT_EQ(GetTownRegistry().GetCurrentTown(), std::optional<uint8_t> { TristramTownId });
 }
 
-TEST_F(InitializeTristramTest, GetTownBySaveIdZeroReturnsTristram)
+TEST_F(InitializeTristramTest, GetTownZeroReturnsTristram)
 {
-	EXPECT_EQ(GetTownRegistry().GetTownBySaveId(0), TristramTownId);
+	EXPECT_EQ(GetTownRegistry().GetTown(TristramTownId).townId, TristramTownId);
 }
 
 TEST_F(InitializeTristramTest, TristramTriggerCount)
@@ -207,11 +239,11 @@ TEST_F(InitializeTristramTest, GetPortalTownPositionUsesTownOverrides)
 {
 	TownConfig c;
 	c.name = "PortTest";
-	c.saveId = 7;
+	c.townId = TestTownPortalId;
 	c.portalPositions = DefaultTristramPortalPositions;
 	c.portalPositions[0] = { 99, 88 };
-	GetTownRegistry().RegisterTown("porttest", c);
-	GetTownRegistry().SetCurrentTown("porttest");
+	GetTownRegistry().RegisterTown(c);
+	GetTownRegistry().SetCurrentTown(TestTownPortalId);
 	EXPECT_EQ(GetPortalTownPosition(0), Point(99, 88));
 	EXPECT_EQ(GetPortalTownPosition(1), DefaultTristramPortalPositions[1]);
 	GetTownRegistry().SetCurrentTown(TristramTownId);
@@ -244,14 +276,14 @@ TEST(InitializeTristram, PreservesValidCurrentTownOnRepeatCall)
 	InitializeTristram();
 	TownConfig modTown;
 	modTown.name = "Mod";
-	modTown.saveId = 3;
+	modTown.townId = TestTownModId;
 	TownRegistry &reg = GetTownRegistry();
-	reg.RegisterTown("modtown", modTown);
-	reg.SetCurrentTown("modtown");
+	reg.RegisterTown(modTown);
+	reg.SetCurrentTown(TestTownModId);
 
 	InitializeTristram();
 
-	EXPECT_EQ(reg.GetCurrentTown(), "modtown");
+	EXPECT_EQ(reg.GetCurrentTown(), std::optional<uint8_t> { TestTownModId });
 	reg.SetCurrentTown(TristramTownId);
 }
 

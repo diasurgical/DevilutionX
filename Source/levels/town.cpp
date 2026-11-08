@@ -210,7 +210,8 @@ void DrlgTPass3()
 		FillSector(sector.filePath.c_str(), sector.x, sector.y);
 	}
 
-	if (GetTownRegistry().GetCurrentTown() == TristramTownId) {
+	const std::optional<uint8_t> currentTown = GetTownRegistry().GetCurrentTown();
+	if (currentTown.has_value() && *currentTown == TristramTownId) {
 		auto dunData = LoadFileInMem<uint16_t>("levels\\towndata\\automap.dun");
 		PlaceDunTiles(dunData.get(), { 0, 0 });
 

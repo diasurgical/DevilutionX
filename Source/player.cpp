@@ -2347,7 +2347,7 @@ void CreatePlayer(Player &player, HeroClass c)
 	player.wReflections = 0;
 
 	if (const TownConfig *townCfg = GetCurrentTownConfig())
-		player._pCurrentTownId = townCfg->saveId;
+		player._pCurrentTownId = townCfg->townId;
 	else
 		player._pCurrentTownId = 0;
 
