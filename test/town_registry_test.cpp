@@ -132,6 +132,17 @@ TEST(TownConfig, GetEntryPoint_EmptyEntriesUsesDefault)
 	EXPECT_EQ(cfg.GetEntryPoint(ENTRY_MAIN), TownEntryDefaultFallback);
 }
 
+TEST(RoleNameForShortName, MapsLegacyModNames)
+{
+	const std::optional<std::string_view> drunk = RoleNameForShortName("farnham");
+	ASSERT_TRUE(drunk.has_value());
+	EXPECT_EQ(*drunk, "drunk");
+	const std::optional<std::string_view> smith = RoleNameForShortName("griswold");
+	ASSERT_TRUE(smith.has_value());
+	EXPECT_EQ(*smith, "smith");
+	EXPECT_FALSE(RoleNameForShortName("not_an_npc").has_value());
+}
+
 class InitializeTristramTest : public ::testing::Test {
 protected:
 	static void SetUpTestSuite()

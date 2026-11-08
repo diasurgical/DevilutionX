@@ -56,6 +56,11 @@ struct TownerDataEntry;
 std::optional<_talker_id> ParseTownerRole(std::string_view role);
 
 /**
+ * @brief Maps a mod/Lua short name (e.g. "farnham") to the role string used in town NPC definitions (e.g. "drunk").
+ */
+std::optional<std::string_view> RoleNameForShortName(std::string_view shortName);
+
+/**
  * @brief Builds the list of towner entries to spawn for a town.
  *
  * Returns the default towners.tsv entries when `config` is null or defines no NPCs. Otherwise returns one
