@@ -784,6 +784,24 @@ std::optional<_talker_id> ParseTownerRole(std::string_view role)
 	return std::nullopt;
 }
 
+std::optional<std::string_view> RoleNameForShortName(std::string_view shortName)
+{
+	std::optional<_talker_id> type;
+	for (const auto &[id, name] : TownerShortNames) {
+		if (shortName == name) {
+			type = id;
+			break;
+		}
+	}
+	if (!type.has_value())
+		return std::nullopt;
+	for (const auto &[role, id] : TownerRoles) {
+		if (id == *type)
+			return role;
+	}
+	return std::nullopt;
+}
+
 namespace {
 
 std::string_view GetTownerFullNameDefault(_talker_id type)
