@@ -23,6 +23,7 @@
 #include <config.h>
 
 #include "appfat.h"
+#include "control/control_text_prompt.hpp"
 #include "effects.h"
 #include "engine/assets.hpp"
 #include "lua/lua_event.hpp"
@@ -246,6 +247,7 @@ void LuaReloadActiveMods()
 	CurrentLuaState->commonPackages["devilutionx.events"] = CurrentLuaState->events;
 
 	ClearTownerDialogOptions();
+	DiscardTextPrompt();
 
 	gbIsHellfire = false;
 	UnloadModArchives();
@@ -341,6 +343,7 @@ void LuaShutdown()
 	// Must clear before destroying the Lua state: registered callbacks
 	// capture sol::function handles that reference CurrentLuaState.
 	ClearTownerDialogOptions();
+	DiscardTextPrompt();
 	CurrentLuaState = std::nullopt;
 }
 
