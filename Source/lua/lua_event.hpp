@@ -22,6 +22,9 @@ void OnMonsterTakeDamage(const Monster *monster, int damage, int damageType);
 
 void OnPlayerGainExperience(const Player *player, uint32_t exp);
 void OnPlayerTakeDamage(const Player *player, int damage, int damageType);
+void OnCalcPlayerResistances(const Player *player, int fire, int lightning, int magic);
+void OnNewCharacter(const Player &player);
+void OnCreatePlrItems(Player &player);
 
 void LoadModsComplete();
 void GameDrawComplete();

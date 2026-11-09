@@ -1,8 +1,11 @@
 #include "lua/modules/render.hpp"
 
+#include <tuple>
+
 #include <sol/sol.hpp>
 
 #include "DiabloUI/ui_flags.hpp"
+#include "diablo.h"
 #include "engine/dx.h"
 #include "engine/render/text_render.hpp"
 #include "lua/metadoc.hpp"
@@ -13,9 +16,20 @@ namespace devilution {
 sol::table LuaRenderModule(sol::state_view &lua)
 {
 	sol::table table = lua.create_table();
-	LuaSetDocFn(table, "string", "(text: string, x: integer, y: integer)",
-	    "Renders a string at the given coordinates",
-	    [](std::string_view text, int x, int y) { DrawString(GlobalBackBuffer(), text, { x, y }); });
+	LuaSetDocFn(table, "string", "(text: string, x: integer, y: integer, flags: integer = nil)",
+	    "Renders a string at the given coordinates. Optional flags is a render.UiFlags bitmask (colour, font, alignment, outline).",
+	    [](std::string_view text, int x, int y, sol::optional<uint32_t> flags) {
+		    TextRenderOptions opts;
+		    if (flags)
+			    opts.flags = static_cast<UiFlags>(*flags);
+		    DrawString(GlobalBackBuffer(), text, { x, y }, opts);
+	    });
+	LuaSetDocFn(table, "string_width", "(text: string) -> integer",
+	    "Returns the pixel width of the text in the default font",
+	    [](std::string_view text) { return GetLineWidth(text); });
+	LuaSetDocFn(table, "mouse_position", "() -> integer, integer",
+	    "Returns the mouse position in screen pixels",
+	    []() { return std::make_tuple(MousePosition.x, MousePosition.y); });
 	LuaSetDocFn(table, "screen_width", "()",
 	    "Returns the screen width", []() { return gnScreenWidth; });
 	LuaSetDocFn(table, "screen_height", "()",

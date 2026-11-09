@@ -57,6 +57,7 @@
 #include "levels/tile_properties.hpp"
 #include "levels/town.h"
 #include "lighting.h"
+#include "lua/lua_event.hpp"
 #include "minitext.h"
 #include "monster.h"
 #include "msg.h"
@@ -2627,6 +2628,8 @@ void CalcPlrResistances(Player &player, ItemSpecialEffect iflgs, int fire, int l
 		lightning = 0;
 	}
 
+	lua::OnCalcPlayerResistances(&player, fire, lightning, magic); // Lua mod support
+
 	player._pMagResist = std::clamp(magic, 0, MaxResistance);
 	player._pFireResist = std::clamp(fire, 0, MaxResistance);
 	player._pLghtResist = std::clamp(lightning, 0, MaxResistance);
@@ -3043,7 +3046,6 @@ void CreatePlrItems(Player &player)
 		if (itemData != _item_indexes::IDI_NONE)
 			CreateStartingItem(player, itemData);
 	}
-	FreeCursor();
 
 	if (loadout.gold > 0) {
 		Item &goldItem = player.InvList[player._pNumInv];
@@ -3054,6 +3056,9 @@ void CreatePlrItems(Player &player)
 
 		player._pGold = goldItem._ivalue;
 	}
+
+	lua::OnCreatePlrItems(player); // Lua mod support: fires while item sprites are still loaded
+	FreeCursor();
 
 	CalcPlrItemVals(player, false);
 }
