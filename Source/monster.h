@@ -12,6 +12,7 @@
 #include <array>
 #include <functional>
 #include <string>
+#include <vector>
 
 #include <function_ref.hpp>
 
@@ -36,7 +37,41 @@ namespace devilution {
 struct Missile;
 struct Player;
 
+/** @brief Base/default live-monster cap. Unmodded play uses exactly this many slots. */
 constexpr size_t MaxMonsters = 200;
+/**
+ * @brief Absolute hard ceiling on live monsters, imposed by the engine's enemy encoding.
+ *
+ * A monster's enemy reference (Monster.enemy, DMonsterStr.menemy, TSyncMonster._menemy) is a
+ * uint8_t that packs monster targets into [0, GetMaxMonsters()) and player targets into
+ * [GetMaxMonsters(), GetMaxMonsters() + MAX_PLRS). For that to fit in a byte, the live cap can
+ * never exceed 256 - MAX_PLRS = 252. This is NOT an arbitrary cap: raising it past 252 would
+ * require widening those fields to uint16_t, which changes the wire/save byte layout and breaks
+ * vanilla compatibility. Backing arrays are sized to this ceiling; GetMaxMonsters() is the
+ * dynamic runtime cap. (MAX_PLRS == 4.) // Lua mod support
+ */
+constexpr size_t AbsoluteMaxMonsters = 252;
+/**
+ * @brief Effective live-monster cap: MaxMonsters plus any mod-requested extension, clamped to
+ * AbsoluteMaxMonsters. Mods raise it at load time via RequestExtraMonsters(); unmodded play
+ * returns MaxMonsters, so save/wire formats and behaviour are unchanged. // Lua mod support
+ */
+size_t GetMaxMonsters();
+/**
+ * @brief Reserve additional live-monster slots for this session (on top of MaxMonsters).
+ *
+ * Call at mod-load time, before any level is generated. Cumulative across mods; the effective
+ * cap is clamped to AbsoluteMaxMonsters. Generic, modder-facing. // Lua mod support
+ */
+void RequestExtraMonsters(size_t count);
+/**
+ * @brief Base per-level monster-type cap. Unmodded play uses exactly this many slots.
+ *
+ * The effective cap is GetMaxLvlMTypes() = MaxLvlMTypes + any mod-requested extension.
+ * Mods raise it at load time via RequestExtraLevelMonsterTypes(). LevelMonsterTypes is
+ * rebuilt per level and is never serialised to saves or the network, so extending it has
+ * zero effect on the base game's save/wire formats. // Lua mod support
+ */
 constexpr size_t MaxLvlMTypes = 24;
 
 enum monster_flag : uint16_t {
@@ -209,7 +244,18 @@ struct CMonster {
 	}
 };
 
-extern CMonster LevelMonsterTypes[MaxLvlMTypes];
+// Lua mod support: sized to GetMaxLvlMTypes() at level init (was a fixed CMonster[MaxLvlMTypes]).
+extern std::vector<CMonster> LevelMonsterTypes;
+
+/** @brief Effective per-level monster-type cap: MaxLvlMTypes plus any mod-requested extension. */
+size_t GetMaxLvlMTypes();
+/**
+ * @brief Reserve additional level monster-type slots for the current binary session.
+ *
+ * Must be called at mod-load time, before any level is generated. Cumulative across mods.
+ * Generic, modder-facing: nothing here is mod-specific. // Lua mod support
+ */
+void RequestExtraLevelMonsterTypes(size_t count);
 
 struct Monster { // note: missing field _mAFNum
 	std::unique_ptr<uint8_t[]> uniqueMonsterTRN;
@@ -492,8 +538,9 @@ struct Monster { // note: missing field _mAFNum
 };
 
 extern size_t LevelMonsterTypeCount;
-extern Monster Monsters[MaxMonsters];
-extern unsigned ActiveMonsters[MaxMonsters];
+// Lua mod support: sized to the AbsoluteMaxMonsters ceiling; logical cap is GetMaxMonsters().
+extern Monster Monsters[AbsoluteMaxMonsters];
+extern unsigned ActiveMonsters[AbsoluteMaxMonsters];
 extern size_t ActiveMonsterCount;
 extern int MonsterKillCounts[NUM_MAX_MTYPES];
 extern bool sgbSaveSoundOn;

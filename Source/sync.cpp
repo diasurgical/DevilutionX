@@ -19,9 +19,9 @@ namespace devilution {
 
 namespace {
 
-uint16_t sgnMonsterPriority[MaxMonsters];
+uint16_t sgnMonsterPriority[AbsoluteMaxMonsters]; // Lua mod support: ceiling-sized
 size_t sgnMonsters;
-uint16_t sgwLRU[MaxMonsters];
+uint16_t sgwLRU[AbsoluteMaxMonsters]; // Lua mod support
 int sgnSyncItem;
 int sgnSyncPInv;
 
@@ -211,7 +211,7 @@ bool IsTSyncMonsterValid(const TSyncMonster &monsterSync)
 {
 	const size_t monsterId = monsterSync._mndx;
 
-	if (monsterId >= MaxMonsters)
+	if (monsterId >= GetMaxMonsters()) // Lua mod support
 		return false;
 
 	if (!InDungeonBounds({ monsterSync._mx, monsterSync._my }))
