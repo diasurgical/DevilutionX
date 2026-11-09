@@ -14,7 +14,7 @@
 #include "data/file.hpp"
 #include "data/record_reader.hpp"
 #include "levels/parse_dungeon_type.hpp"
-#include "objects.h"
+#include "shrines.hpp"
 
 namespace devilution {
 
@@ -31,32 +31,29 @@ ParseShrineOperateFn(std::string_view value)
 	if (value == "OperateShrineHidden") return OperateShrineHidden;
 	if (value == "OperateShrineGloomy") return OperateShrineGloomy;
 	if (value == "OperateShrineWeird") return OperateShrineWeird;
-	if (value == "OperateShrineMagical") return OperateShrineMagical;
+	if (value == "OperateShrineCastSpellPlayerPosition") return OperateShrineCastSpellPlayerPosition;
 	if (value == "OperateShrineStone") return OperateShrineStone;
 	if (value == "OperateShrineReligious") return OperateShrineReligious;
 	if (value == "OperateShrineEnchanted") return OperateShrineEnchanted;
 	if (value == "OperateShrineThaumaturgic") return OperateShrineThaumaturgic;
-	if (value == "OperateShrineFascinating") return OperateShrineFascinating;
-	if (value == "OperateShrineCryptic") return OperateShrineCryptic;
+	if (value == "OperateShrineCostOfWisdom") return OperateShrineCostOfWisdom;
 	if (value == "OperateShrineEldritch") return OperateShrineEldritch;
 	if (value == "OperateShrineEerie") return OperateShrineEerie;
 	if (value == "OperateShrineDivine") return OperateShrineDivine;
-	if (value == "OperateShrineHoly") return OperateShrineHoly;
-	if (value == "OperateShrineSacred") return OperateShrineSacred;
+	if (value == "OperateShrineCastSpellDestinyZero") return OperateShrineCastSpellDestinyZero;
 	if (value == "OperateShrineSpiritual") return OperateShrineSpiritual;
 	if (value == "OperateShrineSpooky") return OperateShrineSpooky;
 	if (value == "OperateShrineAbandoned") return OperateShrineAbandoned;
 	if (value == "OperateShrineCreepy") return OperateShrineCreepy;
 	if (value == "OperateShrineQuiet") return OperateShrineQuiet;
 	if (value == "OperateShrineSecluded") return OperateShrineSecluded;
-	if (value == "OperateShrineOrnate") return OperateShrineOrnate;
 	if (value == "OperateShrineGlimmering") return OperateShrineGlimmering;
 	if (value == "OperateShrineTainted") return OperateShrineTainted;
 	if (value == "OperateShrineOily") return OperateShrineOily;
 	if (value == "OperateShrineGlowing") return OperateShrineGlowing;
 	if (value == "OperateShrineMendicant") return OperateShrineMendicant;
 	if (value == "OperateShrineSparkling") return OperateShrineSparkling;
-	if (value == "OperateShrineTown") return OperateShrineTown;
+	if (value == "OperateShrineCastSpellShrinePosition") return OperateShrineCastSpellShrinePosition;
 	if (value == "OperateShrineShimmering") return OperateShrineShimmering;
 	if (value == "OperateShrineSolar") return OperateShrineSolar;
 	if (value == "OperateShrineMurphys") return OperateShrineMurphys;
@@ -69,6 +66,15 @@ std::expected<ShrineGametype, std::string> ParseShrineGameType(std::string_view 
 	if (value == "Single") return ShrineGametype::ShrineTypeSingle;
 	if (value == "Multi") return ShrineGametype::ShrineTypeMulti;
 	return std::unexpected("Unknown shrine game type");
+}
+
+std::expected<ShrineOperateFlag, std::string> ParseShrineOperateFlag(std::string_view value)
+{
+	const std::optional<ShrineOperateFlag> enumValueOpt = magic_enum::enum_cast<ShrineOperateFlag>(value);
+	if (enumValueOpt.has_value()) {
+		return enumValueOpt.value();
+	}
+	return std::unexpected("Unknown enum value");
 }
 
 } // namespace
@@ -91,11 +97,11 @@ void LoadShrineData()
 		reader.read("operateFn", entry.operateFn, ParseShrineOperateFn);
 		reader.readInt("powerParam1", entry.powerParam1);
 		reader.readInt("powerParam2", entry.powerParam2);
+		reader.read("spell", entry.spell, ParseSpellId);
 		reader.read("gameType", entry.gameType, ParseShrineGameType);
 		reader.read("minLevelType", entry.minLevelType, ParseDungeonType);
 		reader.read("maxLevelType", entry.maxLevelType, ParseDungeonType);
-		reader.readBool("availableRandomEffectShrine", entry.availableRandomEffectShrine);
-		reader.readBool("cripplingEffect", entry.cripplingEffect);
+		reader.readEnumList("shrineOperateFlags", entry.shrineOperateFlags, ParseShrineOperateFlag);
 		reader.readString("message", entry.message);
 		reader.readString("message2", entry.message2);
 		reader.readString("message3", entry.message3);
