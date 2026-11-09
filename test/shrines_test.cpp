@@ -12,8 +12,8 @@
 
 #include "engine/random.hpp"
 #include "items.h"
-#include "objects.h"
 #include "player.h"
+#include "shrines.hpp"
 #include "tables/shrinedat.hpp"
 #include "tables/spelldat.h"
 #include "ui_test.hpp"

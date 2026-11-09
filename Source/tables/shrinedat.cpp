@@ -14,7 +14,7 @@
 #include "data/file.hpp"
 #include "data/record_reader.hpp"
 #include "levels/parse_dungeon_type.hpp"
-#include "objects.h"
+#include "shrines.hpp"
 
 namespace devilution {
 
