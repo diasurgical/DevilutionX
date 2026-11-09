@@ -36,6 +36,34 @@ local function CreateEvent()
   }
 end
 
+---Like CreateEvent, but trigger returns the last non-nil handler result, so a handler returning nil
+---never overrides another handler's answer.
+local function CreateQueryEvent()
+  local functions = {}
+  return {
+    add = function(func)
+      table.insert(functions, func)
+    end,
+    remove = function(func)
+      for i, f in ipairs(functions) do
+        if f == func then
+          table.remove(functions, i)
+          break
+        end
+      end
+    end,
+    trigger = function(...)
+      local result
+      for _, func in ipairs(functions) do
+        local r = func(...)
+        if r ~= nil then result = r end
+      end
+      return result
+    end,
+    __sig_trigger = "(...)",
+  }
+end
+
 local events = {
   ---Called after all mods have been loaded.
   LoadModsComplete = CreateEvent(),
@@ -84,6 +112,12 @@ local events = {
   ---Called when Player gains experience.
   OnPlayerGainExperience = CreateEvent(),
   __doc_OnPlayerGainExperience = "Called when Player gains experience.",
+
+  ---Query event fired when deciding whether an item may be placed in the stash (manual drop and auto-place).
+  ---Applies to whichever stash is open; stash.activeName() tells a handler which (nil = the player stash).
+  ---Args: item. Return false to forbid the item from the stash; return nil or true to allow (default: engine value).
+  OnItemAllowedInStash = CreateQueryEvent(),
+  __doc_OnItemAllowedInStash = "Query: return false to stop an item being placed in the open stash (manual and auto-place); stash.activeName() identifies a mod stash (nil = player stash). Args: item. Return nil or true to allow (default: engine value).",
 }
 
 ---Registers a custom event type with the given name.

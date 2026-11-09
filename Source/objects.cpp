@@ -1806,7 +1806,7 @@ void OperateBook(Player &player, Object &book, bool sendmsg)
 					item.updateRequiredStatsCacheForPlayer(player);
 				}
 				if (IsStashOpen) {
-					Stash.RefreshItemStatFlags();
+					GetActiveStash().RefreshItemStatFlags();
 				}
 			}
 
@@ -2483,7 +2483,7 @@ int OperateShrineEnchanted(DiabloGenerator &rng, Player &player, Point spawnPosi
 				item.updateRequiredStatsCacheForPlayer(player);
 			}
 			if (IsStashOpen) {
-				Stash.RefreshItemStatFlags();
+				GetActiveStash().RefreshItemStatFlags();
 			}
 		}
 	}
@@ -2541,7 +2541,7 @@ int OperateShrineCostOfWisdom(Player &player, SpellID spellId, int powerParam1, 
 			item.updateRequiredStatsCacheForPlayer(player);
 		}
 		if (IsStashOpen) {
-			Stash.RefreshItemStatFlags();
+			GetActiveStash().RefreshItemStatFlags();
 		}
 	}
 

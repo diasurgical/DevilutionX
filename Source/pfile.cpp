@@ -106,6 +106,19 @@ std::string GetStashSavePath()
 	);
 }
 
+std::string LuaGetModStashSavePath(std::string_view name) // Lua mod support
+{
+	const std::string_view ext = GetSaveExtension();
+	return StrCat(paths::PrefPath(),
+	    name, gbIsSpawn ? "_spawn" : "",
+#ifdef UNPACKED_SAVES
+	    "_", ext, DIRECTORY_SEPARATOR_STR
+#else
+	    ".", ext
+#endif
+	);
+}
+
 bool GetSaveNames(uint8_t index, std::string_view prefix, char *out)
 {
 	char suf;
@@ -616,6 +629,16 @@ std::optional<SaveReader> OpenStashArchive()
 	return CreateSaveReader(GetStashSavePath());
 }
 
+std::optional<SaveReader> LuaOpenModStashArchive(std::string_view name) // Lua mod support
+{
+	return CreateSaveReader(LuaGetModStashSavePath(name));
+}
+
+SaveWriter LuaGetModStashWriter(std::string_view name) // Lua mod support
+{
+	return SaveWriter(LuaGetModStashSavePath(name), /*carryForward=*/true);
+}
+
 std::unique_ptr<std::byte[]> ReadArchive(SaveReader &archive, const char *pszName, size_t *pdwLen)
 {
 	int32_t error;
@@ -682,6 +705,8 @@ HeroCompareResult pfile_compare_hero_demo(int demo, bool logDetails)
 
 void sfile_write_stash()
 {
+	LuaWriteModStashes(); // Lua mod support
+
 	if (!Stash.dirty)
 		return;
 

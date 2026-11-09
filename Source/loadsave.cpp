@@ -2420,17 +2420,13 @@ void LoadHeroItems(Player &player)
 
 constexpr uint8_t StashVersion = 0;
 
-void LoadStash()
+namespace {
+
+void LoadStashData(StashStruct &stash, std::optional<SaveReader> archive, const char *filename)
 {
-	const char *filename;
-	if (!gbIsMultiplayer)
-		filename = "spstashitems";
-	else
-		filename = "mpstashitems";
+	stash = {};
 
-	Stash = {};
-
-	LoadHelper file(OpenStashArchive(), filename);
+	LoadHelper file(std::move(archive), filename);
 	if (!file.IsValid())
 		return;
 
@@ -2440,12 +2436,12 @@ void LoadStash()
 		return;
 	}
 
-	Stash.gold = file.NextLE<uint32_t>();
+	stash.gold = file.NextLE<uint32_t>();
 
 	auto pages = file.NextLE<uint32_t>();
 	for (unsigned i = 0; i < pages; i++) {
 		auto page = file.NextLE<uint32_t>();
-		for (auto &row : Stash.stashGrids[page]) {
+		for (auto &row : stash.stashGrids[page]) {
 			for (uint16_t &cell : row) {
 				cell = file.NextLE<uint16_t>();
 			}
@@ -2454,16 +2450,30 @@ void LoadStash()
 
 	auto itemCount = file.NextLE<uint32_t>();
 	if (!IsStashSizeValid(file.Size(), pages, itemCount)) {
-		Stash = {};
+		stash = {};
 		EventPlrMsg(_("Stash size invalid. If you attempt to access your stash, data will be overwritten!!"), UiFlags::ColorRed);
 		return;
 	}
-	Stash.stashList.resize(itemCount);
+	stash.stashList.resize(itemCount);
 	for (unsigned i = 0; i < itemCount; i++) {
-		LoadAndValidateItemData(file, Stash.stashList[i]);
+		LoadAndValidateItemData(file, stash.stashList[i]);
 	}
 
-	Stash.SetPage(file.NextLE<uint32_t>());
+	stash.SetPage(file.NextLE<uint32_t>());
+}
+
+} // namespace
+
+void LoadStash()
+{
+	const char *filename;
+	if (!gbIsMultiplayer)
+		filename = "spstashitems";
+	else
+		filename = "mpstashitems";
+
+	LoadStashData(Stash, OpenStashArchive(), filename);
+	LuaUnloadModStashes(); // Lua mod support
 }
 
 void RemoveEmptyInventory(Player &player)
@@ -2730,14 +2740,10 @@ void SaveHeroItems(SaveWriter &saveWriter, Player &player)
 		SaveItem(file, item);
 }
 
-void SaveStash(SaveWriter &stashWriter)
-{
-	const char *filename;
-	if (!gbIsMultiplayer)
-		filename = "spstashitems";
-	else
-		filename = "mpstashitems";
+namespace {
 
+void SaveStashData(StashStruct &stash, SaveWriter &stashWriter, const char *filename)
+{
 	const int itemSize = (gbIsHellfire ? HellfireItemSaveSize : DiabloItemSaveSize);
 
 	SaveHelper file(
@@ -2746,17 +2752,17 @@ void SaveStash(SaveWriter &stashWriter)
 	    sizeof(uint8_t)
 	        + sizeof(uint32_t)
 	        + sizeof(uint32_t)
-	        + ((sizeof(uint32_t) + 10 * 10 * sizeof(uint16_t)) * Stash.stashGrids.size())
+	        + ((sizeof(uint32_t) + 10 * 10 * sizeof(uint16_t)) * stash.stashGrids.size())
 	        + sizeof(uint32_t)
-	        + (itemSize * Stash.stashList.size())
+	        + (itemSize * stash.stashList.size())
 	        + sizeof(uint32_t));
 
 	file.WriteLE<uint8_t>(StashVersion);
 
-	file.WriteLE<uint32_t>(Stash.gold);
+	file.WriteLE<uint32_t>(stash.gold);
 
 	std::vector<unsigned> pagesToSave;
-	for (const auto &[page, grid] : Stash.stashGrids) {
+	for (const auto &[page, grid] : stash.stashGrids) {
 		if (c_any_of(grid, [](const auto &row) {
 			    return c_any_of(row, [](StashStruct::StashCell cell) {
 				    return cell > 0;
@@ -2771,7 +2777,7 @@ void SaveStash(SaveWriter &stashWriter)
 	file.WriteLE<uint32_t>(static_cast<uint32_t>(pagesToSave.size()));
 	for (const auto &page : pagesToSave) {
 		file.WriteLE<uint32_t>(page);
-		for (const auto &row : Stash.stashGrids[page]) {
+		for (const auto &row : stash.stashGrids[page]) {
 			for (const uint16_t cell : row) {
 				file.WriteLE<uint16_t>(cell);
 			}
@@ -2779,12 +2785,40 @@ void SaveStash(SaveWriter &stashWriter)
 	}
 
 	// 100 pages of 100 items is still only 10 000, as with the page count will definitely fit in 32 bits even in the worst case.
-	file.WriteLE<uint32_t>(static_cast<uint32_t>(Stash.stashList.size()));
-	for (const Item &item : Stash.stashList) {
+	file.WriteLE<uint32_t>(static_cast<uint32_t>(stash.stashList.size()));
+	for (const Item &item : stash.stashList) {
 		SaveItem(file, item);
 	}
 
-	file.WriteLE<uint32_t>(static_cast<uint32_t>(Stash.GetPage()));
+	file.WriteLE<uint32_t>(static_cast<uint32_t>(stash.GetPage()));
+}
+
+} // namespace
+
+void SaveStash(SaveWriter &stashWriter)
+{
+	const char *filename;
+	if (!gbIsMultiplayer)
+		filename = "spstashitems";
+	else
+		filename = "mpstashitems";
+
+	SaveStashData(Stash, stashWriter, filename);
+}
+
+void LuaLoadModStash(StashStruct &stash, std::string_view name) // Lua mod support
+{
+	// Item data is decoded per the current game mode, as LoadGameLevelStash does for the player stash.
+	const bool isHellfireSaveGame = gbIsHellfireSaveGame;
+	gbIsHellfireSaveGame = gbIsHellfire;
+	LoadStashData(stash, LuaOpenModStashArchive(name), gbIsMultiplayer ? "mpstashitems" : "spstashitems");
+	gbIsHellfireSaveGame = isHellfireSaveGame;
+}
+
+void LuaSaveModStash(StashStruct &stash, std::string_view name) // Lua mod support
+{
+	SaveWriter stashWriter = LuaGetModStashWriter(name);
+	SaveStashData(stash, stashWriter, gbIsMultiplayer ? "mpstashitems" : "spstashitems");
 }
 
 void SaveGameData(SaveWriter &saveWriter)

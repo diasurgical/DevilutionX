@@ -7,9 +7,11 @@
 
 #include <cstdint>
 #include <expected>
+#include <string_view>
 
 #include "pfile.h"
 #include "player.h"
+#include "qol/stash.h"
 #include "utils/attributes.h"
 
 namespace devilution {
@@ -45,5 +47,9 @@ std::expected<void, std::string> LoadLevel();
 std::expected<void, std::string> ConvertLevels(SaveWriter &saveWriter);
 void LoadStash();
 void SaveStash(SaveWriter &stashWriter);
+// Lua mod support: load / save a mod-registered stash from / to its own `<name>` save file, in the
+// player stash format.
+void LuaLoadModStash(StashStruct &stash, std::string_view name);
+void LuaSaveModStash(StashStruct &stash, std::string_view name);
 
 } // namespace devilution

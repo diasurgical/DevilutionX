@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <expected>
 #include <string>
+#include <string_view>
 
 #include "DiabloUI/diabloui.h"
 #include "player.h"
@@ -97,6 +98,9 @@ struct HeroCompareResult {
 
 std::optional<SaveReader> OpenSaveArchive(uint32_t saveNum);
 std::optional<SaveReader> OpenStashArchive();
+// Lua mod support: reader / writer for a mod-registered stash's own `<name>` save file.
+std::optional<SaveReader> LuaOpenModStashArchive(std::string_view name);
+SaveWriter LuaGetModStashWriter(std::string_view name);
 const char *pfile_get_password();
 std::unique_ptr<std::byte[]> ReadArchive(SaveReader &archive, const char *pszName, size_t *pdwLen = nullptr);
 void pfile_write_hero(bool writeGameData = false);

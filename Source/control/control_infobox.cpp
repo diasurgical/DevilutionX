@@ -159,13 +159,13 @@ Rectangle GetFloatingInfoRect(const int lineHeight, const int textSpacing)
 	// 4) Stash (Rect position)
 	if (pcursstashitem != StashStruct::EmptyCell) {
 		for (auto slot : StashGridRange) {
-			auto itemId = Stash.GetItemIdAtPosition(slot);
+			auto itemId = GetActiveStash().GetItemIdAtPosition(slot);
 			if (itemId == StashStruct::EmptyCell)
 				continue;
 			if (itemId != pcursstashitem)
 				continue;
 
-			const Item &item = Stash.stashList[itemId];
+			const Item &item = GetActiveStash().stashList[itemId];
 			Point itemPosition = GetStashSlotCoord(slot);
 			const Size itemGridSize = GetInventorySize(item);
 
@@ -224,7 +224,7 @@ int GetHoverSpriteHeight()
 		    - InventorySlotSizeInPixels.height - 1;
 	}
 	if (pcursstashitem != StashStruct::EmptyCell) {
-		auto &it = Stash.stashList[pcursstashitem];
+		auto &it = GetActiveStash().stashList[pcursstashitem];
 		return GetInventorySize(it).height * (InventorySlotSizeInPixels.height + 1);
 	}
 	if (pcursstoreitem != -1) {
