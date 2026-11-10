@@ -44,6 +44,19 @@ enum class PlayerClassFlag : uint8_t {
 };
 use_enum_as_flags(PlayerClassFlag);
 
+enum class PlayerClassAvailabilityFlag : uint8_t {
+	// clang-format off
+	Spawn = 0,
+	Retail = 1 << 0,
+	Hellfire = 1 << 1,
+	BardTest = 1 << 2,
+	BarbarianTest = 1 << 3,
+
+	Last = BarbarianTest
+	// clang-format on
+};
+use_enum_as_flags(PlayerClassAvailabilityFlag);
+
 struct PlayerData {
 	/* Class Name */
 	std::string className;
@@ -58,6 +71,8 @@ struct PlayerData {
 struct ClassAttributes {
 	/* Class Flags */
 	PlayerClassFlag classFlags;
+	/* Class Availability Flags */
+	PlayerClassAvailabilityFlag classAvailabilityFlags;
 	/* Class Starting Strength Stat */
 	uint8_t baseStr;
 	/* Class Starting Magic Stat */
@@ -255,4 +270,10 @@ template <>
 struct magic_enum::customize::enum_range<devilution::PlayerClassFlag> {
 	static constexpr uint8_t min = static_cast<uint64_t>(devilution::PlayerClassFlag::None);
 	static constexpr uint8_t max = static_cast<uint64_t>(devilution::PlayerClassFlag::Last);
+};
+
+template <>
+struct magic_enum::customize::enum_range<devilution::PlayerClassAvailabilityFlag> {
+	static constexpr uint8_t min = static_cast<uint64_t>(devilution::PlayerClassAvailabilityFlag::Spawn);
+	static constexpr uint8_t max = static_cast<uint64_t>(devilution::PlayerClassAvailabilityFlag::Last);
 };

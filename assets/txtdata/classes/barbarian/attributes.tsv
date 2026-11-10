@@ -1,5 +1,6 @@
 Attribute	Value
 classFlags	CriticalStrike,IronSkin,NaturalResistance
+classAvailabilityFlags	BarbarianTest
 baseStr	40
 baseMag	0
 baseDex	20
