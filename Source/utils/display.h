@@ -43,6 +43,21 @@ void SetVideoModeToPrimary(bool fullscreen, int width, int height);
 
 bool IsFullScreen();
 
+// Native (desktop) resolution of the current display, in pixels.
+// Returns false when unavailable (e.g. before video initialization).
+// Defined in options.cpp: standalone test/benchmark executables link
+// libdevilutionx_options without the display translation unit.
+bool GetNativeDesktopResolution(Size &size);
+
+// True when the current game resolution exceeds the native desktop
+// resolution (e.g. a hand-edited devilutionx.ini or a GPU driver VSR mode).
+bool IsResolutionAboveNative();
+
+// If Integer Scaling is active and the requested resolution exceeds the
+// native desktop resolution, logs a warning and silently returns the
+// native resolution instead; otherwise returns the request unchanged.
+Size ClampResolutionForIntegerScaling(Size requested);
+
 // Returns:
 // SDL1: Video surface.
 // SDL2, no upscale: Window surface.
@@ -59,6 +74,14 @@ void ScaleOutputRect(SDL_Rect *rect);
 // If the output requires software scaling, replaces the given surface with a scaled one.
 SDLSurfaceUniquePtr ScaleSurfaceToOutput(SDLSurfaceUniquePtr surface);
 
+#ifdef USE_GPU_SCALER
+namespace gpu_scaler {
+// Implemented in engine/render/gpu/gpu_scaler.cpp (see gpu_scaler.hpp).
+bool MapWindowToGame(float *x, float *y);
+bool MapGameToWindow(float *x, float *y);
+} // namespace gpu_scaler
+#endif
+
 // Convert from output coordinates to logical (resolution-independent) coordinates.
 template <
     typename T,
@@ -66,7 +89,19 @@ template <
 void OutputToLogical(T *x, T *y)
 {
 #ifdef USE_SDL3
-	if (renderer == nullptr) return;
+	if (renderer == nullptr) {
+#ifdef USE_GPU_SCALER
+		// The GPU scaler owns the window (no SDL_Renderer): map window
+		// coordinates to game coordinates through its last present rect.
+		float mappedX = static_cast<float>(*x);
+		float mappedY = static_cast<float>(*y);
+		if (gpu_scaler::MapWindowToGame(&mappedX, &mappedY)) {
+			*x = static_cast<T>(mappedX);
+			*y = static_cast<T>(mappedY);
+		}
+#endif
+		return;
+	}
 	float outX, outY;
 	if (!SDL_RenderCoordinatesFromWindow(renderer, *x, *y, &outX, &outY)) {
 		LogError("SDL_RenderCoordinatesFromWindow: {}", SDL_GetError());
@@ -103,7 +138,20 @@ template <
 void LogicalToOutput(T *x, T *y)
 {
 #ifdef USE_SDL3
-	if (renderer == nullptr) return;
+	if (renderer == nullptr) {
+#ifdef USE_GPU_SCALER
+		// The GPU scaler owns the window (no SDL_Renderer): map game
+		// coordinates to window coordinates (points) through its last
+		// present rect, mirroring SDL_RenderCoordinatesToWindow.
+		float mappedX = static_cast<float>(*x);
+		float mappedY = static_cast<float>(*y);
+		if (gpu_scaler::MapGameToWindow(&mappedX, &mappedY)) {
+			*x = static_cast<T>(mappedX);
+			*y = static_cast<T>(mappedY);
+		}
+#endif
+		return;
+	}
 	float outX, outY;
 	if (!SDL_RenderCoordinatesToWindow(renderer, *x, *y, &outX, &outY)) {
 		LogError("SDL_RenderCoordinatesFromWindow: {}", SDL_GetError());

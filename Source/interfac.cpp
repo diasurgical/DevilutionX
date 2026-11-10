@@ -48,6 +48,13 @@
 #include "controls/touch/renderers.h"
 #endif
 
+#ifdef USE_GPU_SCALER
+#include "engine/render/gpu/gpu_scaler.hpp"
+#define GPU_SCALER_LOG_PHASE(line) gpu_scaler::LogPhase(line)
+#else
+#define GPU_SCALER_LOG_PHASE(line) ((void)0)
+#endif
+
 // Emscripten: ASYNCIFY does not support unwinding across threads, so loading must happen on the main thread.
 #if defined(__EMSCRIPTEN__)
 #define LOAD_ON_MAIN_THREAD
@@ -689,6 +696,7 @@ void CompleteProgress()
 
 void ShowProgress(interface_mode uMsg, uint8_t destinationTownId)
 {
+	GPU_SCALER_LOG_PHASE("ShowProgress: begin");
 	IsProgress = true;
 	gbSomebodyWonGameKludge = false;
 
@@ -718,6 +726,7 @@ void ShowProgress(interface_mode uMsg, uint8_t destinationTownId)
 		// Always load the background (even if we end up skipping rendering it).
 		// This is because the MPQ archive can only be read by a single thread at a time.
 		LoadCutsceneBackground(uMsg);
+		GPU_SCALER_LOG_PHASE("ShowProgress: cutscene background loaded, starting load");
 
 		// Save the palette at this point because the loading process may replace it.
 		ProgressEventHandlerState.palette = logical_palette;
@@ -742,6 +751,7 @@ void ShowProgress(interface_mode uMsg, uint8_t destinationTownId)
 	});
 	while (HandleProgressBarUpdate()) { }
 	loadThread.join();
+	GPU_SCALER_LOG_PHASE("ShowProgress: load thread finished");
 #endif
 }
 

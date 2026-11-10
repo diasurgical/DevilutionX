@@ -129,6 +129,85 @@ endif()
   mark_as_advanced(DEVILUTIONX_DISPLAY_TEXTURE_FORMAT)
 endif()
 
+# Slang preset scaler (libretro slang shader upscaling through libslang-vk)
+cmake_dependent_option(USE_GPU_SCALER "Enable the slang shader scaler (libretro slang presets through libslang-vk)" ON "USE_SDL3;NOT USE_SDL1" OFF)
+if(USE_GPU_SCALER)
+  # NOTE: this define gates BOTH the scaler code and the "Shader Filter" entry
+  # in the settings menu.
+  list(APPEND DEVILUTIONX_PLATFORM_COMPILE_DEFINITIONS USE_GPU_SCALER)
+
+  # All slang machinery lives in the MIT-licensed libslang-vk library:
+  # .slangp preset parsing, .slang -> GLSL translation, glslang SPIR-V
+  # compilation (the library fetches its own glslang), and the Vulkan preset
+  # chain (history rings, feedback, LUT textures, mipmap inputs,
+  # fit-and-center swapchain presentation). The library loads the Vulkan
+  # loader at runtime through volk, so no Vulkan SDK is needed at build or
+  # link time.
+  # Link mode: the default embeds libslang-vk statically into the exe.
+  # GPU_SCALER_SHARED=ON links the slangvk::shared variant instead, so the
+  # slang machinery ships as libslangvk.dll (or libslangvk.so) beside the
+  # exe. The library's headers pick dllexport/dllimport via SLANGVK_SHARED
+  # (propagated by the shared target to every consumer), and the fork side
+  # needs no other changes: the WSI volk table is repopulated per copy in
+  # gpu_scaler.cpp (volkLoadInstance after Device::create), so the exe keeps
+  # calling Vulkan through its own statically linked volk either way.
+  option(GPU_SCALER_SHARED "Link the slang scaler against the shared libslang-vk variant (libslangvk.dll/libslangvk.so beside the exe) instead of embedding it statically" OFF)
+  set(SLANGVK_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+  set(SLANGVK_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+  if(GPU_SCALER_SHARED)
+    set(SLANGVK_BUILD_SHARED ON CACHE BOOL "" FORCE)
+    set(SLANGVK_LINK_TARGET slangvk::shared)
+    if(UNIX AND NOT APPLE)
+      # Linux nonstatic packaging: devilutionx and libslangvk.so are zipped
+      # FLAT beside each other, together with the build image's libstdc++.so.6
+      # and libgcc_s.so.1 (Debian 12's stock copies are too old for this C++23
+      # tree). Linux does not search the executable's own folder for shared
+      # objects (Windows does), and DT_RUNPATH is not inherited transitively,
+      # so BOTH the exe and libslangvk.so need $ORIGIN in their build RUNPATH:
+      # the exe resolves libslangvk.so/libstdc++/libgcc, the .so resolves its
+      # own libstdc++/libgcc. CMake also keeps the automatic _deps build-tree
+      # RPATH entries, so running from build/ still works (CI smoke test).
+      set(CMAKE_BUILD_RPATH "$ORIGIN")
+    endif()
+  else()
+    set(SLANGVK_BUILD_SHARED OFF CACHE BOOL "" FORCE)
+    set(SLANGVK_LINK_TARGET slangvk::slangvk)
+  endif()
+  include(FetchContent)
+  FetchContent_Declare(libslang-vk
+    GIT_REPOSITORY https://github.com/VTSTech/libslang-vk.git
+    GIT_TAG c3567b037441e8610ccd70523484e4d6a0776909 # M4.05
+    )
+  FetchContent_MakeAvailable(libslang-vk)
+
+  # Windows/MSVC: libslang-vk always builds the static "slangvk" target, and
+  # with SLANGVK_BUILD_SHARED=ON (GPU_SCALER_SHARED=ON) the shared
+  # "slangvk-shared" variant reuses the same OUTPUT_NAME "slangvk". On DLL
+  # platforms the shared variant's IMPORT library then collides with the
+  # static archive - both targets generate
+  # _deps/libslang-vk-build/slangvk.lib, and Ninja refuses the build graph
+  # with "multiple rules generate slangvk.lib" (Linux never sees this:
+  # libslangvk.a vs libslangvk.so). Fixed here, from the consumer side, so
+  # the libslang-vk pin can stay at M4.05: on WIN32 the shared variant gets
+  # the documented libslangvk artifact name (libslangvk.dll - the name the
+  # packaging comments and the local build script's DLL collection expect)
+  # and its import library (the ARCHIVE output) moves into its own folder,
+  # out of the static lib's way. Distinct PDB names keep the static lib's
+  # compile PDB (slangvk.pdb) and the DLL's link PDB from racing on the same
+  # path when the two targets build in parallel. Linux/macOS are untouched
+  # (libslangvk.so keeps its name), and slangvk::shared consumers link
+  # through the target, so the relocated import library resolves
+  # automatically.
+  if(WIN32 AND TARGET slangvk-shared)
+    set_target_properties(slangvk-shared PROPERTIES
+      OUTPUT_NAME libslangvk
+      ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/slangvk-shared-implib"
+      PDB_NAME libslangvk
+      COMPILE_PDB_NAME libslangvk
+      )
+  endif()
+endif()
+
 if(USE_SDL1)
   # SDL_image in SDL1 does not support PNG, making PCX the only option.
   set(DEVILUTIONX_SCREENSHOT_FORMAT "DEVILUTIONX_SCREENSHOT_FORMAT_PCX")
