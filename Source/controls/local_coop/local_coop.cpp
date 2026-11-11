@@ -482,14 +482,14 @@ void LoadHeroInfosForLocalCoop(std::vector<_uiheroinfo> &heroList, const std::ve
 	uint32_t savedExperience = Players[0]._pExperience;
 	uint8_t savedLevel = Players[0].getCharacterLevel();
 	int savedStatPts = Players[0]._pStatPts;
-	int savedHitPoints = Players[0]._pHitPoints;
-	int savedMaxHP = Players[0]._pMaxHP;
-	int savedHPBase = Players[0]._pHPBase;
-	int savedMaxHPBase = Players[0]._pMaxHPBase;
-	int savedMana = Players[0]._pMana;
-	int savedMaxMana = Players[0]._pMaxMana;
-	int savedManaBase = Players[0]._pManaBase;
-	int savedMaxManaBase = Players[0]._pMaxManaBase;
+	Fixed26_6 savedHitPoints = Players[0]._pHitPoints;
+	Fixed26_6 savedMaxHP = Players[0]._pMaxHP;
+	Fixed26_6 savedHPBase = Players[0]._pHPBase;
+	Fixed26_6 savedMaxHPBase = Players[0]._pMaxHPBase;
+	Fixed26_6 savedMana = Players[0]._pMana;
+	Fixed26_6 savedMaxMana = Players[0]._pMaxMana;
+	Fixed26_6 savedManaBase = Players[0]._pManaBase;
+	Fixed26_6 savedMaxManaBase = Players[0]._pMaxManaBase;
 
 	PLR_MODE savedPmode = Players[0]._pmode;
 	Direction savedTempDirection = Players[0].tempDirection;
@@ -3285,10 +3285,10 @@ void DrawPlayerHUDTopRow(const Surface &out, const Player &player, size_t player
 void DrawPlayerHUDBars(const Surface &out, const Player &player, const PlayerHUDLayout &layout, int barX, int barY, bool experienceBarEnabled)
 {
 	using namespace LocalCoopLayout;
-	int currentHP = player._pHitPoints >> 6;
-	int maxHP = player._pMaxHP >> 6;
-	int currentMana = player._pMana >> 6;
-	int maxMana = player._pMaxMana >> 6;
+	int currentHP = player._pHitPoints.whole();
+	int maxHP = player._pMaxHP.whole();
+	int currentMana = player._pMana.whole();
+	int maxMana = player._pMaxMana.whole();
 	bool hasManaShield = player.pManaShield;
 
 	// Health bar
