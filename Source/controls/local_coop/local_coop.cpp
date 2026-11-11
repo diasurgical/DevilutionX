@@ -53,6 +53,7 @@
 #include "options.h"
 #include "pack.h"
 #include "panels/charpanel.hpp"
+#include "panels/quest_log.hpp"
 #include "panels/spell_icons.hpp"
 #include "panels/spell_list.hpp"
 #include "pfile.h"
