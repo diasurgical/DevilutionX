@@ -123,6 +123,9 @@ protected:
 
 	void TearDown() override
 	{
+		// TearDown() still runs after GTEST_SKIP() in SetUp().
+		if (missingAssets_)
+			return;
 		CloseAllPanels();
 		ActiveStore = TalkID::None;
 		FreeCursor();

@@ -18,6 +18,7 @@ permissions:
 
 env:
   VCPKG_FEATURE_FLAGS: dependencygraph
+  VCPKG_BINARY_SOURCES: "clear;files,${{ github.workspace }}/vcpkg_cache,readwrite"
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 concurrency:
@@ -36,6 +37,14 @@ jobs:
     - name: ccache
       uses: hendrikmuhs/ccache-action@v1.2
 
+    - name: cache vcpkg binary cache
+      uses: actions/cache@v6
+      with:
+        path: ${{ github.workspace }}/vcpkg_cache
+        key: ${{ runner.os }}-vcpkg-msvc-x64-${{ hashFiles('vcpkg.json', 'CMakePresets.json', '**/CMakeLists.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-vcpkg-msvc-x64-
+
     - name: Install latest CMake
       uses: lukka/get-cmake@latest
 
@@ -46,18 +55,15 @@ jobs:
 
     - name: Fetch test data
       run: |
-          mkdir build-ninja-vcpkg-relwithdebinfo
-          Invoke-WebRequest -Uri "https://github.com/diasurgical/devilutionx-assets/releases/download/v2/spawn.mpq" -OutFile "build-ninja-vcpkg-relwithdebinfo/spawn.mpq" -Resume
-
-    - name: Get CMakePresets.json
-      run: cp Packaging/windows/CMakePresets.json .
+          New-Item -ItemType Directory -Force -Path "build/msvc-x64-RelWithDebInfo"
+          Invoke-WebRequest -Uri "https://github.com/diasurgical/devilutionx-assets/releases/download/v2/spawn.mpq" -OutFile "build/msvc-x64-RelWithDebInfo/spawn.mpq" -Resume
 
     - name: Run CMake consuming CMakePresets.json and vcpkg.json by mean of vcpkg.
       uses: lukka/run-cmake@v10
       with:
-        configurePreset: 'ninja-vcpkg-relwithdebinfo'
-        buildPreset: 'ninja-vcpkg-relwithdebinfo'
-        testPreset: 'ninja-vcpkg-relwithdebinfo'
+        configurePreset: 'msvc-x64-RelWithDebInfo'
+        buildPreset: 'msvc-x64-RelWithDebInfo'
+        testPreset: 'msvc-x64-RelWithDebInfo'
 
     - name: Upload-Package
       if: ${{ !env.ACT }}
@@ -65,10 +71,12 @@ jobs:
       with:
         name: devilutionx.exe
         path: |
-            build-ninja-vcpkg-relwithdebinfo/devilutionx.exe
-            build-ninja-vcpkg-relwithdebinfo/bz2.dll
-            build-ninja-vcpkg-relwithdebinfo/libpng16.dll
-            build-ninja-vcpkg-relwithdebinfo/libsodium.dll
-            build-ninja-vcpkg-relwithdebinfo/SDL2.dll
-            build-ninja-vcpkg-relwithdebinfo/SDL2_image.dll
-            build-ninja-vcpkg-relwithdebinfo/zlib1.dll
+            build/msvc-x64-RelWithDebInfo/devilutionx.exe
+            build/msvc-x64-RelWithDebInfo/bz2.dll
+            build/msvc-x64-RelWithDebInfo/discord_game_sdk.dll
+            build/msvc-x64-RelWithDebInfo/libpng16.dll
+            build/msvc-x64-RelWithDebInfo/libsodium.dll
+            build/msvc-x64-RelWithDebInfo/lua.dll
+            build/msvc-x64-RelWithDebInfo/SDL2.dll
+            build/msvc-x64-RelWithDebInfo/SDL2_image.dll
+            build/msvc-x64-RelWithDebInfo/z.dll

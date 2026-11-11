@@ -268,18 +268,23 @@ cmake --build build -j $(getconf _NPROCESSORS_ONLN) --target package
 Make sure to install the workload `Desktop development with C++` and the individual components `C++ CMake tools for Windows` and `Windows SDK` for Visual Studio.
 *Note: `Windows SDK` component should match your Windows build version.*
 
-Install [Git for Windows](https://gitforwindows.org/)
+Install [Git for Windows](https://gitforwindows.org/).
 
-Run the following commands in Command Prompt or Powershell
+Run the following commands in Powershell
 
-~~~ bat
+~~~ powershell
 git clone https://github.com/microsoft/vcpkg
 cd vcpkg
-bootstrap-vcpkg.bat
-vcpkg integrate install
+.\bootstrap-vcpkg.bat
+[Environment]::SetEnvironmentVariable("VCPKG_ROOT", $PWD.Path, "User")
+$env:VCPKG_ROOT = $PWD.Path
 ~~~
 
-If you need additional instructions for vcpkg you can find the documentation [here](https://github.com/microsoft/vcpkg#quick-start-windows).
+If you need additional instructions for vcpkg you can find the documentation [here](https://learn.microsoft.com/vcpkg/get_started/get-started).
+
+### If you want to build via clang (optional)
+
+In the Visual Studio installer, install the individual component `C++ Clang Compiler for Windows`.
 
 ### If you want to build the devilutionX.mpq File (optional)
 
@@ -291,13 +296,13 @@ The location of this tool will need to be [added to the system's PATH environmen
 * **Through Open->CMake in Visual Studio**
 
 1. Go to `File -> Open -> CMake`, select `CMakeLists.txt` from the project root.
-2. Select the `x64-Release` configuration (or `x86` for 32 bit builds, `-Debug` for debug builds).
+2. Select the `msvc-x64-Release` configuration (or `x86` for 32 bit builds, `-Debug` for debug builds).
 3. Select `Build devilution.exe` from the `Build` menu.
 
 * **Through GCC/WSL in Visual Studio**
 
 1. Ensure the WSL environment has the build pre-requisites for both devilutionX (see "Installing Dependencies on Debian and Ubuntu" under the "Linux" section above) and [WSL remote development](https://docs.microsoft.com/en-us/cpp/linux/connect-to-your-remote-linux-computer?view=msvc-160#connect-to-wsl).
-2. Select the `WSL-GCC-x64-Debug` configuration.
+2. Select the `gcc-x64-Debug` configuration.
 3. Select `Build devilution` from the `Build` menu.
 
 * **Through cmake-gui**

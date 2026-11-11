@@ -17,6 +17,7 @@
 #include "levels/dun_tile_data.hpp"
 #include "levels/gendung.h"
 #include "levels/town.h"
+#include "levels/town_data.h"
 #include "levels/trigs.h"
 #include "missiles.h"
 #include "monster.h"
@@ -318,8 +319,14 @@ Point GetMapReturnPosition()
 		return Quests[Q_PWATER].position + Direction::SouthWest;
 	case SL_VILEBETRAYER:
 		return Quests[Q_BETRAYER].position + Direction::South;
-	default:
-		return GetTowner(TOWN_DRUNK)->position + Direction::SouthEast;
+	default: {
+		if (const Towner *drunk = GetTowner(TOWN_DRUNK); drunk != nullptr)
+			return drunk->position + Direction::SouthEast;
+		// Custom towns may not have a drunk; use the town's main entry point instead.
+		if (const TownConfig *town = GetCurrentTownConfig(); town != nullptr)
+			return town->GetEntryPoint(ENTRY_MAIN);
+		return ViewPosition;
+	}
 	}
 }
 

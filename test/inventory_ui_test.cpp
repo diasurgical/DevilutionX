@@ -29,6 +29,8 @@ protected:
 	void SetUp() override
 	{
 		UITest::SetUp();
+		if (IsSkipped())
+			return;
 
 		// Each test starts with a completely stripped player and clean stash.
 		StripPlayer();

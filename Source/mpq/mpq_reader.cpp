@@ -9,6 +9,7 @@
 
 #include <mpqfs/mpqfs.h>
 
+#include "mpq/mpq_sdl_ds.hpp"
 #include "utils/str_cat.hpp"
 
 namespace devilution {
@@ -71,6 +72,22 @@ std::expected<MpqArchive, std::string> MpqArchive::Open(const char *path)
 {
 	mpqfs_archive_t *handle = nullptr;
 	const mpqfs_error_code code = mpqfs_open(path, &handle);
+	if (code != MPQFS_OK) {
+		return std::unexpected(FormatMpqfsError(code));
+	}
+	return MpqArchive(path, handle);
+}
+
+std::expected<MpqArchive, std::string> MpqArchive::OpenWithSDL(const char *path)
+{
+	mpqfs_io_t io;
+	void *dataSource = OpenAsMpqfsDataSource(path, "rb", io);
+	if (dataSource == nullptr) {
+		return std::unexpected(StrCat("Failed to open MPQ file ", path));
+	}
+
+	mpqfs_archive_t *handle = nullptr;
+	const mpqfs_error_code code = mpqfs_open_io(&io, dataSource, &handle);
 	if (code != MPQFS_OK) {
 		return std::unexpected(FormatMpqfsError(code));
 	}

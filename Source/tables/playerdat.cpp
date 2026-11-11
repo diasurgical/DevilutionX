@@ -20,6 +20,7 @@
 #include "data/record_reader.hpp"
 #include "data/value_reader.hpp"
 #include "items.h"
+#include "lua/lua_event.hpp"
 #include "player.h"
 #include "sound_effect_enums.h"
 #include "tables/textdat.h"
@@ -391,6 +392,7 @@ void LoadPlayerDataFiles()
 {
 	ReloadExperienceData();
 	LoadClassDat();
+	lua::PlayerDataLoaded();
 	LoadClassesAttributes();
 }
 

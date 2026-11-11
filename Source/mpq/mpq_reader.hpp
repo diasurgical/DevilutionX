@@ -16,6 +16,7 @@ namespace devilution {
 class MpqArchive {
 public:
 	static std::expected<MpqArchive, std::string> Open(const char *path);
+	static std::expected<MpqArchive, std::string> OpenWithSDL(const char *path);
 	std::expected<MpqArchive, std::string> Clone();
 
 	MpqArchive(MpqArchive &&other) noexcept;

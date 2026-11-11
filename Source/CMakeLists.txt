@@ -118,6 +118,7 @@ set(libdevilutionx_SRCS
   lua/modules/render.cpp
   lua/modules/system.cpp
   lua/modules/towners.cpp
+  lua/modules/towns.cpp
   lua/repl.cpp
 
   monsters/validation.cpp
@@ -397,6 +398,13 @@ target_link_dependencies(libdevilutionx_game_mode PRIVATE
   libdevilutionx_options
 )
 
+add_devilutionx_object_library(libdevilutionx_town_data
+  levels/town_data.cpp
+)
+target_link_dependencies(libdevilutionx_town_data PUBLIC
+  libdevilutionx_log
+)
+
 add_devilutionx_object_library(libdevilutionx_dun_tile_data
   levels/dun_tile_data.cpp
   levels/reencode_dun_cels.cpp
@@ -405,6 +413,7 @@ target_link_dependencies(libdevilutionx_dun_tile_data PUBLIC
   tl
   unordered_dense::unordered_dense
   libdevilutionx_assets
+  libdevilutionx_town_data
   PRIVATE
   libdevilutionx_format_int
   libdevilutionx_sdl2_to_1_2_backports
@@ -609,6 +618,7 @@ target_sources(libdevilutionx_log INTERFACE $<TARGET_OBJECTS:libdevilutionx_stri
 
 add_devilutionx_object_library(libdevilutionx_level_objects
   tables/objdat.cpp
+  tables/shrinedat.cpp
   objects.cpp
 )
 target_link_dependencies(libdevilutionx_level_objects PUBLIC
@@ -667,6 +677,7 @@ if(SUPPORTS_MPQ)
   add_devilutionx_object_library(libdevilutionx_mpq
     mpq/mpq_common.cpp
     mpq/mpq_reader.cpp
+    mpq/mpq_sdl_ds.cpp
     mpq/mpq_sdl_rwops.cpp
     mpq/mpq_writer.cpp
   )

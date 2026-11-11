@@ -39,6 +39,8 @@ protected:
 	void SetUp() override
 	{
 		UITest::SetUp();
+		if (IsSkipped())
+			return;
 
 		// Reset stat allocation state.
 		CharPanelButtonActive = false;

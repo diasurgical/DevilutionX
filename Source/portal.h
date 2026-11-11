@@ -5,6 +5,8 @@
  */
 #pragma once
 
+#include <cstddef>
+
 #include "engine/point.hpp"
 #include "levels/gendung.h"
 

@@ -1,9 +1,11 @@
 #include "lua/modules/player.hpp"
 
 #include <optional>
+#include <string_view>
 
 #include <sol/sol.hpp>
 
+#include "data/file.hpp"
 #include "effects.h"
 #include "engine/backbuffer_state.hpp"
 #include "engine/point.hpp"
@@ -12,6 +14,7 @@
 #include "items.h"
 #include "lua/metadoc.hpp"
 #include "player.h"
+#include "tables/playerdat.hpp"
 
 namespace devilution {
 namespace {
@@ -112,6 +115,12 @@ void InitPlayerUserType(sol::state_view &lua)
 	    "Maximum mana (readonly)",
 	    [](Player &player) { return player._pMaxMana.whole(); });
 }
+
+void AddClassDataFromTsv(const std::string_view path)
+{
+	DataFile dataFile = DataFile::loadOrDie(path);
+	LoadClassDatFromFile(dataFile, path);
+}
 } // namespace
 
 sol::table LuaPlayerModule(sol::state_view &lua)
@@ -128,6 +137,10 @@ sol::table LuaPlayerModule(sol::state_view &lua)
 	    [](int x, int y) {
 		    NetSendCmdLoc(MyPlayerId, true, CMD_WALKXY, Point { x, y });
 	    });
+	LuaSetDocFn(table, "addClassDataFromTsv", "(path: string)",
+	    "Add the classes in a classdat-format TSV file. Call inside a PlayerDataLoaded handler. Each class's data is read "
+	    "from its folderName folder, like the base classes.",
+	    AddClassDataFromTsv);
 
 	return table;
 }

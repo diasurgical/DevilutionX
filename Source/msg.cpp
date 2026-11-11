@@ -34,9 +34,11 @@
 #include "engine/random.hpp"
 #include "engine/world_tile.hpp"
 #include "gamemenu.h"
+#include "interfac.h"
 #include "items/validation.h"
 #include "levels/crypt.h"
 #include "levels/town.h"
+#include "levels/town_data.h"
 #include "levels/trigs.h"
 #include "lighting.h"
 #include "missiles.h"
@@ -235,8 +237,10 @@ struct DSpawnedMonster {
 	int16_t golemSpellLevel;
 };
 
+constexpr int MaxDeltaItems = MAXITEMS * 2;
+
 struct DLevel {
-	TCmdPItem item[MAXITEMS];
+	TCmdPItem item[MaxDeltaItems];
 	ankerl::unordered_dense::map<WorldTilePosition, DObjectStr> object;
 	ankerl::unordered_dense::map<size_t, DSpawnedMonster> spawnedMonsters;
 	DMonsterStr monster[MaxMonsters];
@@ -540,7 +544,7 @@ int WaitForTurns()
 
 std::byte *DeltaExportItem(std::byte *dst, const TCmdPItem *src)
 {
-	for (int i = 0; i < MAXITEMS; i++, src++) {
+	for (int i = 0; i < MaxDeltaItems; i++, src++) {
 		if (src->bCmd == CMD_INVALID) {
 			*dst++ = std::byte { 0xFF };
 		} else {
@@ -555,7 +559,7 @@ std::byte *DeltaExportItem(std::byte *dst, const TCmdPItem *src)
 const std::byte *DeltaImportItem(const std::byte *src, const std::byte *end, TCmdPItem *dst)
 {
 	size_t size = 0;
-	for (int i = 0; i < MAXITEMS; i++, dst++) {
+	for (int i = 0; i < MaxDeltaItems; i++, dst++) {
 		if (&src[size] >= end)
 			return nullptr;
 		if (src[size] == std::byte { 0xFF }) {
@@ -1923,7 +1927,7 @@ size_t OnResurrect(const TCmdParam1 &message, Player &caster)
 		return sizeof(message);
 	}
 
-	if (playerIdx >= Players.size())
+	if (playerIdx >= Players.size() || !caster.isOnActiveLevel())
 		return sizeof(message);
 
 	Player &target = Players[playerIdx];
@@ -2466,6 +2470,29 @@ size_t OnSetVitality(const TCmdParam1 &message, Player &player)
 			SetPlrVit(player, value);
 	} else {
 		BufferMessage(player, &message, sizeof(message));
+	}
+
+	return sizeof(message);
+}
+
+size_t OnTownTravel(const TCmdParam1 &message, Player & /*player*/)
+{
+	const uint16_t townIdParam = Swap16LE(message.wParam1);
+	if (townIdParam > MaxTownId) {
+		LogError("Network: town id {} is out of range", townIdParam);
+		return sizeof(message);
+	}
+	const auto townId = static_cast<uint8_t>(townIdParam);
+
+	// gbBufferMsgs != 0 means we are buffering a game-state replay; skip the SDL
+	// event so we do not queue a second town switch while one is already in flight.
+	if (gbBufferMsgs == 0) {
+		if (GetTownRegistry().HasTown(townId)) {
+			LogInfo("Network: Received town travel to {}", townId);
+			QueueTownSwitch(townId);
+		} else {
+			LogError("Network: Unknown town id {}", townId);
+		}
 	}
 
 	return sizeof(message);
@@ -3323,6 +3350,15 @@ void NetSendCmdString(uint32_t pmask, const char *pszStr)
 	multi_send_msg_packet(pmask, reinterpret_cast<std::byte *>(&cmd), strlen(cmd.str) + 2);
 }
 
+void NetSendCmdTownTravel(uint32_t pmask, uint8_t townId)
+{
+	TCmdParam1 cmd;
+
+	cmd.bCmd = CMD_TOWNTRAVEL;
+	cmd.wParam1 = Swap16LE(static_cast<uint16_t>(townId));
+	multi_send_msg_packet(pmask, reinterpret_cast<std::byte *>(&cmd), sizeof(cmd));
+}
+
 void delta_close_portal(const Player &player)
 {
 	memset(&sgJunk.portal[player.getId()], 0xFF, sizeof(sgJunk.portal[player.getId()]));
@@ -3466,6 +3502,8 @@ size_t ParseCmd(uint8_t pnum, const TCmd *pCmd, size_t maxCmdSize)
 		return OnDeactivatePortal(*pCmd, player);
 	case CMD_RETOWN:
 		return OnRestartTown(*pCmd, player);
+	case CMD_TOWNTRAVEL:
+		return HandleCmd(OnTownTravel, player, pCmd, maxCmdSize);
 	case CMD_SETSTR:
 		return HandleCmd(OnSetStrength, player, pCmd, maxCmdSize);
 	case CMD_SETMAG:

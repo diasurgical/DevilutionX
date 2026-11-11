@@ -109,6 +109,8 @@ protected:
 	void SetUp() override
 	{
 		UITest::SetUp();
+		if (IsSkipped())
+			return;
 
 		// Initialise quests so StartQuestlog() doesn't crash.
 		InitQuests();

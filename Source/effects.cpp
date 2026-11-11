@@ -322,10 +322,15 @@ void effects_play_sound(SfxID id)
 
 int GetSFXLength(SfxID nSFX)
 {
+	// The SFX table is not loaded without audio
+	if (sgSFX.empty())
+		return 0;
 	TSFX &sfx = sgSFX[static_cast<int16_t>(nSFX)];
 	if (sfx.pSnd == nullptr)
 		sfx.pSnd = sound_file_load(sfx.pszName.c_str(),
 		    /*stream=*/AllowStreaming && (sfx.bFlags & sfx_STREAM) != 0);
+	if (sfx.pSnd == nullptr)
+		return 0;
 	return sfx.pSnd->DSB.GetLength();
 }
 

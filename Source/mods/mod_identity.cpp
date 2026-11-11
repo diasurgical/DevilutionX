@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
-#include <cstdio>
 #include <expected>
 #include <span>
 #include <string>
@@ -16,6 +15,17 @@
 #include "utils/file_util.h"
 #include "utils/ini.hpp"
 #include "utils/log.hpp"
+
+#ifdef USE_SDL3
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_iostream.h>
+#else
+#include <SDL.h>
+#ifndef USE_SDL1
+#include <SDL_rwops.h>
+#endif
+#include "utils/sdl_compat.h"
+#endif
 
 namespace devilution {
 
@@ -37,18 +47,21 @@ void ClearModIdentifiers()
 
 bool ComputeFileSha256(const char *path, std::array<uint8_t, 32> &hashOut)
 {
-	FILE *file = OpenFile(path, "rb");
-	if (file == nullptr)
+	SDL_IOStream *stream = SDL_IOFromFile(path, "rb");
+	if (stream == nullptr)
 		return false;
 
 	picosha2::hash256_one_by_one hasher;
 	std::vector<uint8_t> buffer(32768);
 	size_t bytesRead;
-	while ((bytesRead = std::fread(buffer.data(), 1, buffer.size(), file)) > 0) {
+	size_t target = SDL_GetIOSize(stream);
+	size_t total = 0;
+	while ((bytesRead = SDL_ReadIO(stream, buffer.data(), buffer.size())) > 0) {
 		hasher.process(buffer.begin(), buffer.begin() + bytesRead);
+		total += bytesRead;
 	}
-	const bool readError = std::ferror(file) != 0;
-	std::fclose(file);
+	const bool readError = total != target;
+	SDL_CloseIO(stream);
 	if (readError)
 		return false;
 

@@ -25,6 +25,8 @@ namespace devilution {
 struct TownerDataEntry {
 	_talker_id type; // Parsed from TSV using magic_enum
 	std::string name;
+	/** Name used in menus such as "Talk to ..."; empty means use `name`. */
+	std::string shortName;
 	Point position;
 	Direction direction;
 	uint16_t animWidth;

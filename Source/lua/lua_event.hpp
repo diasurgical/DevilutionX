@@ -14,6 +14,7 @@ void MonsterDataLoaded();
 void UniqueMonsterDataLoaded();
 void ItemDataLoaded();
 void UniqueItemDataLoaded();
+void PlayerDataLoaded();
 
 void StoreOpened(std::string_view name);
 

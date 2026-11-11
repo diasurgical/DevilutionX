@@ -198,19 +198,6 @@ int8_t CountdownScrollUp;
 /** Countdown for the push state of the scroll down button */
 int8_t CountdownScrollDown;
 
-/** Maps from towner IDs to NPC names. */
-const char *const TownerNames[] = {
-	N_("Griswold"),
-	N_("Pepin"),
-	"",
-	N_("Ogden"),
-	N_("Cain"),
-	N_("Farnham"),
-	N_("Adria"),
-	N_("Gillian"),
-	N_("Wirt"),
-};
-
 constexpr int PaddingTop = 32;
 
 // For most languages, line height is always 12.
@@ -331,6 +318,44 @@ void AddSText(uint8_t x, size_t y, std::string_view text, UiFlags flags, bool se
 	TextLine[y].cursIndent = cursIndent;
 }
 
+/** A row of a top-level towner menu. */
+struct TownerMenuEntry {
+	int line;
+	std::string text;
+	UiFlags flags;
+	bool selectable;
+};
+
+/** Entries of the top-level towner menu being built. StartStore draws them with DrawTownerMenu. */
+std::vector<TownerMenuEntry> TownerMenuEntries;
+
+/** Adds a selectable option to the towner menu being built. */
+void AddMenuEntry(int line, std::string_view text)
+{
+	TownerMenuEntries.push_back({ line, std::string(text), UiFlags::ColorWhite | UiFlags::AlignCenter, true });
+}
+
+/** Adds the selectable "Talk to <towner>" option to the towner menu being built. */
+void AddTalkMenuEntry(int line, std::string_view text)
+{
+	TownerMenuEntries.push_back({ line, std::string(text), UiFlags::ColorBlue | UiFlags::AlignCenter, true });
+}
+
+/** Adds a plain, non-selectable text row to the towner menu being built. */
+void AddMenuLabel(int line, std::string_view text)
+{
+	TownerMenuEntries.push_back({ line, std::string(text), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false });
+}
+
+/** Draws the towner menu being built into TextLine. */
+void DrawTownerMenu()
+{
+	for (const TownerMenuEntry &entry : TownerMenuEntries) {
+		AddSText(0, entry.line, entry.text, entry.flags, entry.selectable);
+	}
+	TownerMenuEntries.clear();
+}
+
 void AddOptionsBackButton()
 {
 	const int line = BackButtonLine();
@@ -436,16 +461,16 @@ void StartSmith()
 	AddSText(0, 1, _("Welcome to the"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
 	AddSText(0, 3, _("Blacksmith's shop"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
 	AddSText(0, 7, _("Would you like to:"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-	AddSText(0, 10, _("Talk to Griswold"), UiFlags::ColorBlue | UiFlags::AlignCenter, true);
+	AddTalkMenuEntry(10, FormatRuntime(_("Talk to {:s}"), GetTownerShortName(TOWN_SMITH)));
 	if (*GetOptions().Gameplay.storeUi == StoreUi::VisualGrid) {
-		AddSText(0, 12, _("Trade / Repair"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-		AddSText(0, 14, _("Leave the shop"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+		AddMenuEntry(12, _("Trade / Repair"));
+		AddMenuEntry(14, _("Leave the shop"));
 	} else {
-		AddSText(0, 12, _("Buy basic items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-		AddSText(0, 14, _("Buy premium items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-		AddSText(0, 16, _("Sell items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-		AddSText(0, 18, _("Repair items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-		AddSText(0, 20, _("Leave the shop"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+		AddMenuEntry(12, _("Buy basic items"));
+		AddMenuEntry(14, _("Buy premium items"));
+		AddMenuEntry(16, _("Sell items"));
+		AddMenuEntry(18, _("Repair items"));
+		AddMenuEntry(20, _("Leave the shop"));
 	}
 	AddSLine(5);
 	CurrentItemIndex = 20;
@@ -693,17 +718,17 @@ void StartWitch()
 	HasScrollbar = false;
 	AddSText(0, 2, _("Witch's shack"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
 	AddSText(0, 9, _("Would you like to:"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-	AddSText(0, 12, _("Talk to Adria"), UiFlags::ColorBlue | UiFlags::AlignCenter, true);
+	AddTalkMenuEntry(12, FormatRuntime(_("Talk to {:s}"), GetTownerShortName(TOWN_WITCH)));
 	if (*GetOptions().Gameplay.storeUi == StoreUi::VisualGrid) {
-		AddSText(0, 14, _("Buy / Sell"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-		AddSText(0, 16, _("Recharge staves"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-		AddSText(0, 18, _("Leave the shack"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+		AddMenuEntry(14, _("Buy / Sell"));
+		AddMenuEntry(16, _("Recharge staves"));
+		AddMenuEntry(18, _("Leave the shack"));
 		AddSLine(4);
 	} else {
-		AddSText(0, 14, _("Buy items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-		AddSText(0, 16, _("Sell items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-		AddSText(0, 18, _("Recharge staves"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-		AddSText(0, 20, _("Leave the shack"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+		AddMenuEntry(14, _("Buy items"));
+		AddMenuEntry(16, _("Sell items"));
+		AddMenuEntry(18, _("Recharge staves"));
+		AddMenuEntry(20, _("Leave the shack"));
 		AddSLine(5);
 	}
 
@@ -972,18 +997,18 @@ void StartBoy()
 {
 	IsTextFullSize = false;
 	HasScrollbar = false;
-	AddSText(0, 2, _("Wirt the Peg-legged boy"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
+	AddSText(0, 2, GetTownerFullName(TOWN_PEGBOY), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
 	AddSLine(5);
 	if (!BoyItem.isEmpty()) {
-		AddSText(0, 8, _("Talk to Wirt"), UiFlags::ColorBlue | UiFlags::AlignCenter, true);
-		AddSText(0, 12, _("I have something for sale,"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-		AddSText(0, 14, _("but it will cost 50 gold"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-		AddSText(0, 16, _("just to take a look. "), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-		AddSText(0, 18, _("What have you got?"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-		AddSText(0, 20, _("Say goodbye"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+		AddTalkMenuEntry(8, FormatRuntime(_("Talk to {:s}"), GetTownerShortName(TOWN_PEGBOY)));
+		AddMenuLabel(12, _("I have something for sale,"));
+		AddMenuLabel(14, _("but it will cost 50 gold"));
+		AddMenuLabel(16, _("just to take a look. "));
+		AddMenuEntry(18, _("What have you got?"));
+		AddMenuEntry(20, _("Say goodbye"));
 	} else {
-		AddSText(0, 12, _("Talk to Wirt"), UiFlags::ColorBlue | UiFlags::AlignCenter, true);
-		AddSText(0, 18, _("Say goodbye"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+		AddTalkMenuEntry(12, FormatRuntime(_("Talk to {:s}"), GetTownerShortName(TOWN_PEGBOY)));
+		AddMenuEntry(18, _("Say goodbye"));
 	}
 }
 
@@ -1035,9 +1060,9 @@ void StartHealer()
 	AddSText(0, 1, _("Welcome to the"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
 	AddSText(0, 3, _("Healer's home"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
 	AddSText(0, 9, _("Would you like to:"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-	AddSText(0, 12, _("Talk to Pepin"), UiFlags::ColorBlue | UiFlags::AlignCenter, true);
-	AddSText(0, 14, _("Buy items"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSText(0, 18, _("Leave Healer's home"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+	AddTalkMenuEntry(12, FormatRuntime(_("Talk to {:s}"), GetTownerShortName(TOWN_HEALER)));
+	AddMenuEntry(14, _("Buy items"));
+	AddMenuEntry(18, _("Leave Healer's home"));
 	AddSLine(5);
 	CurrentItemIndex = 20;
 }
@@ -1075,9 +1100,9 @@ void StartStoryteller()
 	HasScrollbar = false;
 	AddSText(0, 2, _("The Town Elder"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
 	AddSText(0, 9, _("Would you like to:"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-	AddSText(0, 12, _("Talk to Cain"), UiFlags::ColorBlue | UiFlags::AlignCenter, true);
-	AddSText(0, 14, _("Identify an item"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSText(0, 18, _("Say goodbye"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+	AddTalkMenuEntry(12, FormatRuntime(_("Talk to {:s}"), GetTownerShortName(TOWN_STORY)));
+	AddMenuEntry(14, _("Identify an item"));
+	AddMenuEntry(18, _("Say goodbye"));
 	AddSLine(5);
 }
 
@@ -1207,10 +1232,10 @@ void StartTalk()
 
 	IsTextFullSize = false;
 	HasScrollbar = false;
-	AddSText(0, 2, FormatRuntime(_("Talk to {:s}"), _(TownerNames[TownerId])), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
+	AddSText(0, 2, FormatRuntime(_("Talk to {:s}"), GetTownerShortName(TownerId)), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
 	AddSLine(5);
 	if (gbIsSpawn) {
-		AddSText(0, 10, FormatRuntime(_("Talking to {:s}"), _(TownerNames[TownerId])), UiFlags::ColorWhite | UiFlags::AlignCenter, false);
+		AddSText(0, 10, FormatRuntime(_("Talking to {:s}"), GetTownerShortName(TownerId)), UiFlags::ColorWhite | UiFlags::AlignCenter, false);
 		AddSText(0, 12, _("is not available"), UiFlags::ColorWhite | UiFlags::AlignCenter, false);
 		AddSText(0, 14, _("in the shareware"), UiFlags::ColorWhite | UiFlags::AlignCenter, false);
 		AddSText(0, 16, _("version"), UiFlags::ColorWhite | UiFlags::AlignCenter, false);
@@ -1251,8 +1276,8 @@ void StartTavern()
 	AddSText(0, 1, _("Welcome to the"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
 	AddSText(0, 3, _("Rising Sun"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
 	AddSText(0, 9, _("Would you like to:"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-	AddSText(0, 12, _("Talk to Ogden"), UiFlags::ColorBlue | UiFlags::AlignCenter, true);
-	AddSText(0, 18, _("Leave the tavern"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+	AddTalkMenuEntry(12, FormatRuntime(_("Talk to {:s}"), GetTownerShortName(TOWN_TAVERN)));
+	AddMenuEntry(18, _("Leave the tavern"));
 	AddSLine(5);
 	CurrentItemIndex = 20;
 }
@@ -1261,11 +1286,11 @@ void StartBarmaid()
 {
 	IsTextFullSize = false;
 	HasScrollbar = false;
-	AddSText(0, 2, _("Gillian"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
+	AddSText(0, 2, GetTownerShortName(TOWN_BMAID), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
 	AddSText(0, 9, _("Would you like to:"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-	AddSText(0, 12, _("Talk to Gillian"), UiFlags::ColorBlue | UiFlags::AlignCenter, true);
-	AddSText(0, 14, _("Access Storage"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
-	AddSText(0, 18, _("Say goodbye"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+	AddTalkMenuEntry(12, FormatRuntime(_("Talk to {:s}"), GetTownerShortName(TOWN_BMAID)));
+	AddMenuEntry(14, _("Access Storage"));
+	AddMenuEntry(18, _("Say goodbye"));
 	AddSLine(5);
 	CurrentItemIndex = 20;
 }
@@ -1274,10 +1299,10 @@ void StartDrunk()
 {
 	IsTextFullSize = false;
 	HasScrollbar = false;
-	AddSText(0, 2, _("Farnham the Drunk"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
+	AddSText(0, 2, GetTownerFullName(TOWN_DRUNK), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
 	AddSText(0, 9, _("Would you like to:"), UiFlags::ColorWhitegold | UiFlags::AlignCenter, false);
-	AddSText(0, 12, _("Talk to Farnham"), UiFlags::ColorBlue | UiFlags::AlignCenter, true);
-	AddSText(0, 18, _("Say Goodbye"), UiFlags::ColorWhite | UiFlags::AlignCenter, true);
+	AddTalkMenuEntry(12, FormatRuntime(_("Talk to {:s}"), GetTownerShortName(TOWN_DRUNK)));
+	AddMenuEntry(18, _("Say Goodbye"));
 	AddSLine(5);
 	CurrentItemIndex = 20;
 }
@@ -1987,7 +2012,7 @@ void TalkEnter()
 	}
 
 	if (CurrentTextLine == sn - 2) {
-		Towner *target = GetTowner(TownerId);
+		Towner *target = GetTalkingTowner(TownerId);
 		assert(target != nullptr);
 		InitQTextMsg(target->gossip);
 		return;
@@ -2296,6 +2321,7 @@ void StartStore(TalkID s)
 	QuestLogIsOpen = false;
 	CloseGoldDrop();
 	ClearSText(0, NumStoreLines);
+	TownerMenuEntries.clear();
 	ReleaseStoreBtn();
 
 	// Fire StoreOpened Lua event for main store entries
@@ -2386,6 +2412,9 @@ void StartStore(TalkID s)
 	case TalkID::None:
 		break;
 	}
+
+	// Top-level towner menus are built by the Start* functions above.
+	DrawTownerMenu();
 
 	std::fill(std::begin(CurrentExtraOptionIndices), std::end(CurrentExtraOptionIndices), std::nullopt);
 	if (const char *extraTownerName = TownerNameForTalkID(s); extraTownerName != nullptr) {

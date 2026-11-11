@@ -67,6 +67,7 @@
 #include "levels/setmaps.h"
 #include "levels/themes.h"
 #include "levels/town.h"
+#include "levels/town_data.h"
 #include "levels/trigs.h"
 #include "lighting.h"
 #include "loadsave.h"
@@ -103,6 +104,7 @@
 #include "storm/storm_svid.h"
 #include "tables/monstdat.h"
 #include "tables/playerdat.hpp"
+#include "tables/shrinedat.hpp"
 #include "towners.h"
 #include "track.h"
 #include "utils/console.h"
@@ -110,6 +112,7 @@
 #include "utils/format.hpp"
 #include "utils/is_of.hpp"
 #include "utils/language.h"
+#include "utils/log.hpp"
 #include "utils/parse_int.hpp"
 #include "utils/paths.h"
 #include "utils/screen_reader.hpp"
@@ -844,12 +847,16 @@ void GameEventHandler(const SDL_Event &event, uint16_t modState)
 #endif
 	default:
 		if (IsCustomEvent(event.type)) {
+			const interface_mode mode = GetCustomEvent(event);
+			uint8_t destinationTownId = TristramTownId;
+			if (mode == WM_DIABTOWNSWITCH)
+				destinationTownId = static_cast<uint8_t>(reinterpret_cast<uintptr_t>(event.user.data1));
 			if (gbIsMultiplayer)
 				pfile_write_hero();
 			nthread_ignore_mutex(true);
 			PaletteFadeOut(8);
 			sound_stop();
-			ShowProgress(GetCustomEvent(event));
+			ShowProgress(mode, destinationTownId);
 
 			PrepareForFadeIn();
 			LoadPWaterPalette();
@@ -1371,19 +1378,17 @@ std::expected<void, std::string> LoadLvlGFX()
 
 	switch (leveltype) {
 	case DTYPE_TOWN: {
-		auto cel = LoadFileInMemWithStatus("nlevels\\towndata\\town.cel");
-		if (!cel.has_value()) {
-			ASSIGN_OR_RETURN(pDungeonCels, LoadFileInMemWithStatus("levels\\towndata\\town.cel"));
-		} else {
-			pDungeonCels = std::move(*cel);
-		}
-		auto til = LoadFileInMemWithStatus<MegaTile>("nlevels\\towndata\\town.til");
-		if (!til.has_value()) {
-			ASSIGN_OR_RETURN(pMegaTiles, LoadFileInMemWithStatus<MegaTile>("levels\\towndata\\town.til"));
-		} else {
-			pMegaTiles = std::move(*til);
-		}
-		ASSIGN_OR_RETURN(pSpecialCels, LoadCelWithStatus("levels\\towndata\\towns", SpecialCelWidth));
+		const TownAssets &active = GetActiveTownConfigForTileLoad().assets;
+		const TownAssets &tristram = GetTownRegistry().GetTown(TristramTownId).assets;
+		LogVerbose("LoadLvlGFX (town): cel {} | til {} | special {} | pal {}",
+		    active.dungeonCelPath, active.megaTilePath, active.specialCelsPath, active.palettePath);
+
+		ASSIGN_OR_RETURN(pDungeonCels, LoadTownAssetWithFallback(active.dungeonCelPath, tristram.dungeonCelPath.c_str(), TownAssets::RetailDungeonCel, [](const char *p) { return LoadFileInMemWithStatus(p); }));
+
+		ASSIGN_OR_RETURN(pMegaTiles, LoadTownAssetWithFallback(active.megaTilePath, tristram.megaTilePath.c_str(), TownAssets::RetailMegaTile, [](const char *p) { return LoadFileInMemWithStatus<MegaTile>(p); }));
+
+		ASSIGN_OR_RETURN(pSpecialCels, LoadTownAssetWithFallback(active.specialCelsPath, tristram.specialCelsPath.c_str(), nullptr, [](const char *p) { return LoadCelWithStatus(p, SpecialCelWidth); }));
+
 		return {};
 	}
 	case DTYPE_CATHEDRAL:
@@ -2797,6 +2802,7 @@ int DiabloMain(int argc, char **argv)
 	LoadMonsterData();
 	LoadItemData();
 	LoadObjectData();
+	LoadShrineData();
 	LoadQuestData();
 
 	DiabloInit();

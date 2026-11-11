@@ -1,0 +1,270 @@
+{
+	"version": 5,
+
+	"configurePresets": [
+		{
+			"name": "base",
+			"hidden": true,
+			"generator": "Ninja",
+			"binaryDir": "${sourceDir}/build/${presetName}",
+			"cacheVariables": {
+				"CMAKE_TOOLCHAIN_FILE": {
+					"type": "FILEPATH",
+					"value": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+				},
+				"DISCORD_INTEGRATION": {
+					"type": "BOOL",
+					"value": "ON"
+				}
+			}
+		},
+
+		{
+			"name": "msvc-x64-base",
+			"hidden": true,
+			"inherits": "base",
+			"architecture": {
+				"value": "x64",
+				"strategy": "external"
+			}
+		},
+
+		{
+			"name": "msvc-x86-base",
+			"hidden": true,
+			"inherits": "base",
+			"architecture": {
+				"value": "Win32",
+				"strategy": "external"
+			}
+		},
+
+		{
+			"name": "clang-x64-base",
+			"hidden": true,
+			"inherits": "base",
+			"cacheVariables": {
+				"CMAKE_C_COMPILER": "clang",
+				"CMAKE_CXX_COMPILER": "clang++",
+				"NONET": {
+					"type": "BOOL",
+					"value": "ON"
+				}
+			}
+		},
+
+		{
+			"name": "gcc-base",
+			"hidden": true,
+			"inherits": "base",
+			"cacheVariables": {
+				"CMAKE_C_COMPILER": "gcc",
+				"CMAKE_CXX_COMPILER": "g++"
+			}
+		},
+
+		{
+			"name": "msvc-x64-Debug",
+			"inherits": "msvc-x64-base",
+			"displayName": "MSVC x64 Debug (SDL2)",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Debug"
+			}
+		},
+
+		{
+			"name": "msvc-x64-Debug-Translations",
+			"inherits": "msvc-x64-base",
+			"displayName": "MSVC x64 Debug (SDL2) + Translations",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Debug",
+				"USE_GETTEXT_FROM_VCPKG": {
+					"type": "BOOL",
+					"value": "ON"
+				}
+			}
+		},
+
+		{
+			"name": "msvc-x64-Debug-SDL1",
+			"inherits": "msvc-x64-base",
+			"displayName": "MSVC x64 Debug (SDL1)",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Debug",
+				"USE_SDL1": {
+					"type": "BOOL",
+					"value": "ON"
+				}
+			}
+		},
+
+		{
+			"name": "msvc-x64-Release",
+			"inherits": "msvc-x64-base",
+			"displayName": "MSVC x64 Release (SDL2)",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Release",
+				"CPACK": {
+					"type": "BOOL",
+					"value": "OFF"
+				}
+			}
+		},
+
+		{
+			"name": "msvc-x64-RelWithDebInfo",
+			"inherits": "msvc-x64-base",
+			"displayName": "MSVC x64 RelWithDebInfo (SDL2)",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "RelWithDebInfo",
+				"CPACK": {
+					"type": "BOOL",
+					"value": "OFF"
+				}
+			}
+		},
+
+		{
+			"name": "msvc-x86-Debug",
+			"inherits": "msvc-x86-base",
+			"displayName": "MSVC x86 Debug (SDL2)",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Debug"
+			}
+		},
+
+		{
+			"name": "msvc-x86-Release",
+			"inherits": "msvc-x86-base",
+			"displayName": "MSVC x86 Release (SDL2)",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Release",
+				"CPACK": {
+					"type": "BOOL",
+					"value": "OFF"
+				}
+			}
+		},
+
+		{
+			"name": "clang-x64-Debug",
+			"inherits": "clang-x64-base",
+			"displayName": "Clang x64 Debug (SDL2)",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Debug"
+			}
+		},
+
+		{
+			"name": "clang-x64-Release",
+			"inherits": "clang-x64-base",
+			"displayName": "Clang x64 Release (SDL2)",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Release"
+			}
+		},
+
+		{
+			"name": "clang-x64-RelWithDebInfo",
+			"inherits": "clang-x64-base",
+			"displayName": "Clang x64 RelWithDebInfo (SDL2)",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "RelWithDebInfo"
+			}
+		},
+
+		{
+			"name": "gcc-x64-Debug",
+			"inherits": "gcc-base",
+			"displayName": "Linux x64 Debug (GCC)",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Debug"
+			}
+		}
+	],
+
+	"buildPresets": [
+		{
+			"name": "msvc-x64-Debug",
+			"configurePreset": "msvc-x64-Debug"
+		},
+		{
+			"name": "msvc-x64-Debug-Translations",
+			"configurePreset": "msvc-x64-Debug-Translations"
+		},
+		{
+			"name": "msvc-x64-Debug-SDL1",
+			"configurePreset": "msvc-x64-Debug-SDL1"
+		},
+		{
+			"name": "msvc-x64-Release",
+			"configurePreset": "msvc-x64-Release"
+		},
+		{
+			"name": "msvc-x64-RelWithDebInfo",
+			"configurePreset": "msvc-x64-RelWithDebInfo"
+		},
+		{
+			"name": "msvc-x86-Debug",
+			"configurePreset": "msvc-x86-Debug"
+		},
+		{
+			"name": "msvc-x86-Release",
+			"configurePreset": "msvc-x86-Release"
+		},
+		{
+			"name": "clang-x64-Debug",
+			"configurePreset": "clang-x64-Debug"
+		},
+		{
+			"name": "clang-x64-Release",
+			"configurePreset": "clang-x64-Release"
+		},
+		{
+			"name": "clang-x64-RelWithDebInfo",
+			"configurePreset": "clang-x64-RelWithDebInfo"
+		},
+		{
+			"name": "gcc-x64-Debug",
+			"configurePreset": "gcc-x64-Debug"
+		}
+	],
+
+	"testPresets": [
+		{
+			"name": "msvc-x64-Debug",
+			"configurePreset": "msvc-x64-Debug",
+			"output": {
+				"outputOnFailure": true
+			}
+		},
+		{
+			"name": "msvc-x64-RelWithDebInfo",
+			"configurePreset": "msvc-x64-RelWithDebInfo",
+			"output": {
+				"outputOnFailure": true
+			}
+		},
+		{
+			"name": "clang-x64-Debug",
+			"configurePreset": "clang-x64-Debug",
+			"output": {
+				"outputOnFailure": true
+			}
+		},
+		{
+			"name": "clang-x64-RelWithDebInfo",
+			"configurePreset": "clang-x64-RelWithDebInfo",
+			"output": {
+				"outputOnFailure": true
+			}
+		},
+		{
+			"name": "gcc-x64-Debug",
+			"configurePreset": "gcc-x64-Debug",
+			"output": {
+				"outputOnFailure": true
+			}
+		}
+	]
+}

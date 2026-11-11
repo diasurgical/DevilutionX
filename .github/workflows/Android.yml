@@ -21,8 +21,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - name: Install gettext
-      run: sudo apt-get update && sudo apt-get install -y gettext
+    - name: Install dependencies
+      run: sudo apt-get update && sudo apt-get install -y gettext smpq
 
     - name: Checkout
       uses: actions/checkout@v7
