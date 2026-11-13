@@ -6,10 +6,12 @@
 #pragma once
 
 #include <cstdint>
-#include <engine/random.hpp>
-#include <player.h>
 #include <string>
 #include <vector>
+
+#include "engine/random.hpp"
+#include "player.h"
+#include "utils/attributes.h"
 
 namespace devilution {
 
@@ -37,7 +39,7 @@ struct ShrineData {
 	bool cripplingEffect;
 };
 
-extern std::vector<ShrineData> ShrinesData;
+extern DVL_API_FOR_TEST std::vector<ShrineData> ShrinesData;
 
 void LoadShrineData();
 const ShrineData &GetShrineData(uint8_t type);

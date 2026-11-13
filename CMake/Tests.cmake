@@ -44,6 +44,7 @@ set(tests
   quests_test
   reencode_dun_cels_test
   scrollrt_test
+  shrines_test
   stores_test
   tile_properties_test
   timedemo_test

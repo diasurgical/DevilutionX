@@ -2258,7 +2258,7 @@ int OperateShrineHidden(DiabloGenerator &rng, Player &player, Point spawnPositio
 				continue;
 
 			player.InvBody[r]._iDurability += (powerParam1 - powerParam2);
-			player.InvBody[r]._iMaxDur += (powerParam1 + powerParam2);
+			player.InvBody[r]._iMaxDur += (powerParam1 - powerParam2);
 			if (player.InvBody[r]._iDurability > player.InvBody[r]._iMaxDur)
 				player.InvBody[r]._iDurability = player.InvBody[r]._iMaxDur;
 			if (player.InvBody[r]._iDurability <= 0)
@@ -2465,7 +2465,7 @@ int OperateShrineEnchanted(DiabloGenerator &rng, Player &player, Point spawnPosi
 		spell = 1;
 		for (auto j = static_cast<uint8_t>(SpellID::Firebolt); j < SpellsData.size(); j++) {
 			if ((player._pMemSpells & spell) != 0 && player._pSplLvl[j] < MaxSpellLevel && j != spellToReduce) {
-				const auto newSpellLevel = static_cast<uint8_t>(std::clamp(0, player._pSplLvl[j] + powerParam1, static_cast<int>(MaxSpellLevel)));
+				const auto newSpellLevel = static_cast<uint8_t>(std::clamp(player._pSplLvl[j] + powerParam1, 0, static_cast<int>(MaxSpellLevel)));
 				player._pSplLvl[j] = newSpellLevel;
 				NetSendCmdParam2(true, CMD_CHANGE_SPELL_LEVEL, j, newSpellLevel);
 			}
@@ -2473,7 +2473,7 @@ int OperateShrineEnchanted(DiabloGenerator &rng, Player &player, Point spawnPosi
 		}
 
 		if (player._pSplLvl[spellToReduce] > 0) {
-			const auto newSpellLevel = static_cast<uint8_t>(std::clamp(0, player._pSplLvl[spellToReduce] + powerParam2, static_cast<int>(MaxSpellLevel)));
+			const auto newSpellLevel = static_cast<uint8_t>(std::clamp(player._pSplLvl[spellToReduce] + powerParam2, 0, static_cast<int>(MaxSpellLevel)));
 			player._pSplLvl[spellToReduce] = newSpellLevel;
 			NetSendCmdParam2(true, CMD_CHANGE_SPELL_LEVEL, spellToReduce, newSpellLevel);
 		}
