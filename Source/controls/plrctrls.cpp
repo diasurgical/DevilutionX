@@ -25,6 +25,7 @@
 #endif
 #include "controls/control_mode.hpp"
 #include "controls/game_controls.h"
+#include "controls/local_coop/local_coop.hpp"
 #include "controls/touch/gamepad.h"
 #include "cursor.h"
 #include "cursor_defs.hpp"
@@ -668,6 +669,14 @@ Point InvGetEquipSlotCoordFromInvSlot(const inv_xy_slot slot)
 Point GetSlotCoord(int slot)
 {
 	if (slot >= SLOTXY_BELT_FIRST && slot <= SLOTXY_BELT_LAST) {
+		// In local co-op mode, use the local co-op belt position
+		if (IsLocalCoopEnabled()) {
+			Player *panelOwner = GetLocalCoopPanelOwnerPlayer();
+			const uint8_t targetPlayerId = panelOwner != nullptr ? panelOwner->getId() : MyPlayerId;
+			std::optional<Point> localCoopBeltPos = GetLocalCoopBeltSlotPosition(targetPlayerId, slot);
+			if (localCoopBeltPos.has_value())
+				return localCoopBeltPos.value();
+		}
 		return GetPanelPosition(UiPanels::Main, InvRect[slot].Center());
 	}
 
@@ -749,6 +758,8 @@ Point FindFirstStashSlotOnItem(StashStruct::StashCell itemInvId)
 	return InvalidStashPoint;
 }
 
+} // namespace
+
 /**
  * Reset cursor position based on the current slot.
  */
@@ -780,6 +791,8 @@ void ResetInvCursorPosition()
 
 	SetCursorPos(mousePos);
 }
+
+namespace {
 
 int FindClosestInventorySlot(
     Point mousePos, const Item &heldItem,
@@ -842,11 +855,15 @@ Point FindClosestStashSlot(Point mousePos)
 
 void LiftInventoryItem()
 {
-	const int inventorySlot = (Slot >= 0) ? Slot : FindClosestInventorySlot(MousePosition, MyPlayer->HoldItem);
+	// In local co-op, use the panel owner player's HoldItem instead of MyPlayer's
+	Player *panelOwner = GetLocalCoopPanelOwnerPlayer();
+	Player &player = panelOwner != nullptr ? *panelOwner : *MyPlayer;
+
+	const int inventorySlot = (Slot >= 0) ? Slot : FindClosestInventorySlot(MousePosition, player.HoldItem);
 
 	int jumpSlot = inventorySlot; // If the cursor is over an inventory slot we may need to adjust it due to pasting items of different sizes over each other
 	if (inventorySlot >= SLOTXY_INV_FIRST && inventorySlot <= SLOTXY_INV_LAST) {
-		const Size cursorSizeInCells = MyPlayer->HoldItem.isEmpty() ? Size { 1, 1 } : GetInventorySize(MyPlayer->HoldItem);
+		const Size cursorSizeInCells = player.HoldItem.isEmpty() ? Size { 1, 1 } : GetInventorySize(player.HoldItem);
 
 		// Find any item occupying a slot that is currently under the cursor
 		const int8_t itemUnderCursor = [](int inventorySlot, Size cursorSizeInCells) {
@@ -874,7 +891,7 @@ void LiftInventoryItem()
 	if (inventorySlot >= SLOTXY_INV_FIRST && inventorySlot <= SLOTXY_INV_LAST) {
 		Point mousePos = GetSlotCoord(jumpSlot);
 		Slot = jumpSlot;
-		const Size newCursorSizeInCells = MyPlayer->HoldItem.isEmpty() ? GetItemSizeOnSlot(jumpSlot) : GetInventorySize(MyPlayer->HoldItem);
+		const Size newCursorSizeInCells = player.HoldItem.isEmpty() ? GetItemSizeOnSlot(jumpSlot) : GetInventorySize(player.HoldItem);
 		mousePos.x += ((newCursorSizeInCells.width - 1) * InventorySlotSizeInPixels.width) / 2;
 		mousePos.y += ((newCursorSizeInCells.height - 1) * InventorySlotSizeInPixels.height) / 2;
 		SetCursorPos(mousePos);
@@ -1643,6 +1660,8 @@ void StashMove(AxisDirection dir)
 	FocusOnInventory();
 }
 
+} // namespace
+
 void HotSpellMove(AxisDirection dir)
 {
 	static AxisDirectionRepeater repeater;
@@ -1699,6 +1718,8 @@ void HotSpellMove(AxisDirection dir)
 		SetCursorPos(position);
 	}
 }
+
+namespace {
 
 void SpellBookMove(AxisDirection dir)
 {
@@ -1758,6 +1779,13 @@ void WalkInDir(Player &player, AxisDirection dir)
 		if (player._pmode == PM_STAND)
 			StartStand(player, pdir);
 		return;
+	}
+
+	// Check if target position would be off-screen in local co-op mode
+	if (!IsLocalCoopPositionOnScreen(delta)) {
+		if (player._pmode == PM_STAND)
+			StartStand(player, pdir);
+		return; // Don't allow walking off-screen in local co-op
 	}
 
 	if (PosOkPlayer(player, delta) && IsPathBlocked(player.position.future, pdir)) {
@@ -2034,6 +2062,14 @@ void LogGamepadChange(GamepadLayout newGamepad)
 
 } // namespace
 
+void ProcessGamePanelNavigation(AxisDirection dir)
+{
+	// Used by local co-op players to navigate whichever panel is open with their stick/D-pad.
+	HandleLeftStickOrDPadFn handler = GetLeftStickOrDPadGameUIHandler();
+	if (handler != nullptr)
+		handler(dir);
+}
+
 void FocusOnVisualStore()
 {
 	InvalidateInventorySlot();        // Clear inventory focus
@@ -2160,6 +2196,10 @@ void ProcessGameAction(const GameAction &action)
 			SpellbookFlag = false;
 			SpellSelectFlag = false;
 			invflag = true;
+			// In local coop mode, reload inventory image when opening inventory
+			if (IsLocalCoopEnabled()) {
+				InitInv();
+			}
 			if (pcurs == CURSOR_DISARM)
 				NewCursor(CURSOR_HAND);
 			FocusOnInventory();
@@ -2291,6 +2331,15 @@ void plrctrls_every_frame()
 void plrctrls_after_game_logic()
 {
 	Movement(*MyPlayer);
+
+	// Update local co-op player movement
+	UpdateLocalCoopMovement();
+
+	// Update local co-op skill button holds (for quick spell menu)
+	UpdateLocalCoopSkillButtons();
+
+	// Update camera to follow all local co-op players
+	UpdateLocalCoopCamera();
 }
 
 void UseBeltItem(BeltItemType type)
@@ -2544,6 +2593,36 @@ void PerformSecondaryAction()
 				CheckVisualStorePaste(MousePosition);
 			} else if (pcursinvitem >= INVITEM_INV_FIRST && pcursinvitem <= INVITEM_INV_LAST) {
 				SellItemToVisualStore(pcursinvitem - INVITEM_INV_FIRST);
+			}
+		} else if (GetLocalCoopPanelOwnerPlayer() != nullptr) {
+			// Local co-op players 2-4 grab/place items with the cursor instead of using them
+			if (!myPlayer.HoldItem.isEmpty()) {
+				CheckInvItem(true, false);
+			} else if (pcursinvitem != -1) {
+				Item &item = GetInventoryItem(myPlayer, pcursinvitem);
+				if (!item.isEmpty() && myPlayer._pmode <= PM_WALK_SIDEWAYS) {
+					CloseGoldDrop();
+					const int8_t itemLocation = pcursinvitem;
+					myPlayer.HoldItem = item;
+					myPlayer.HoldItem._iStatFlag = myPlayer.CanUseItem(myPlayer.HoldItem);
+					if (itemLocation < INVITEM_INV_FIRST) {
+						RemoveEquipment(myPlayer, static_cast<inv_body_loc>(itemLocation), false);
+						CalcPlrInv(myPlayer, true);
+					} else if (itemLocation <= INVITEM_INV_LAST) {
+						myPlayer.RemoveInvItem(itemLocation - INVITEM_INV_FIRST, false);
+					} else {
+						myPlayer.RemoveSpdBarItem(itemLocation - INVITEM_BELT_FIRST);
+					}
+					if (myPlayer.HoldItem._itype == ItemType::Gold)
+						myPlayer._pGold = CalculateGold(myPlayer);
+					NewCursor(myPlayer.HoldItem);
+					PlaySFX(SfxID::GrabItem);
+					pcursinvitem = -1;
+				} else {
+					CtrlUseInvItem();
+				}
+			} else {
+				CtrlUseInvItem();
 			}
 		} else {
 			CtrlUseInvItem();

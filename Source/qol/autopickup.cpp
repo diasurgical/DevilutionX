@@ -7,6 +7,7 @@
 
 #include <algorithm>
 
+#include "controls/local_coop/local_coop.hpp"
 #include "inv_iterators.hpp"
 #include "options.h"
 #include "player.h"
@@ -92,7 +93,8 @@ bool DoPickup(Item item)
 
 void AutoPickup(const Player &player)
 {
-	if (&player != MyPlayer)
+	// Only local players (MyPlayer and local coop players) can auto-pickup
+	if (!IsLocalPlayer(player))
 		return;
 	if (leveltype == DTYPE_TOWN && !*GetOptions().Gameplay.autoPickupInTown)
 		return;
