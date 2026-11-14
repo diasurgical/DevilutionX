@@ -94,10 +94,12 @@ std::expected<std::string, std::string> FormatLuaMessage(std::string_view fmt, s
 #if DVL_EXCEPTIONS
 		try {
 #endif
+#ifndef PS2
 			std::visit([&](const auto &value) {
 				result += std::vformat(fieldFmt, std::make_format_args(value));
 			},
 			    args[argIndex]);
+#endif
 #if DVL_EXCEPTIONS
 		} catch (const std::format_error &e) {
 			return std::unexpected(e.what());
