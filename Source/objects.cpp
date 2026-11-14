@@ -3953,8 +3953,7 @@ StringOrView Object::name() const
 void GetObjectStr(const Object &object)
 {
 	InfoString = object.name();
-	const ClassAttributes &classAttributes = GetClassAttributes(MyPlayer->_pClass);
-	if (HasAnyOf(classAttributes.classFlags, PlayerClassFlag::TrapSense)) {
+	if (HasAnyOf(MyPlayer->getClassFlags(), PlayerClassFlag::TrapSense)) {
 		if (object._oTrapFlag) {
 			InfoString = FormatRuntime(_(/* TRANSLATORS: {:s} will either be a chest or a door */ "Trapped {:s}"), InfoString.str());
 			InfoColor = UiFlags::ColorRed;

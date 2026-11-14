@@ -379,6 +379,14 @@ public:
 		return GetClassAttributes(_pClass);
 	}
 
+	/**
+	 * @brief The class flags in effect for this player
+	 */
+	[[nodiscard]] PlayerClassFlag getClassFlags() const
+	{
+		return getClassAttributes().classFlags;
+	}
+
 	[[nodiscard]] const PlayerCombatData &getPlayerCombatData() const
 	{
 		return GetPlayerCombatDataForClass(_pClass);
@@ -408,20 +416,13 @@ public:
 
 	bool CanCleave()
 	{
-		switch (_pClass) {
-		case HeroClass::Warrior:
-		case HeroClass::Rogue:
-		case HeroClass::Sorcerer:
-			return false;
-		case HeroClass::Monk:
-			return isEquipped(ItemType::Staff);
-		case HeroClass::Bard:
-			return InvBody[INVLOC_HAND_LEFT]._itype == ItemType::Sword && InvBody[INVLOC_HAND_RIGHT]._itype == ItemType::Sword;
-		case HeroClass::Barbarian:
-			return isEquipped(ItemType::Axe) || (!isEquipped(ItemType::Shield) && (isEquipped(ItemType::Mace, true) || isEquipped(ItemType::Sword, true)));
-		default:
-			return false;
-		}
+		const PlayerClassFlag classFlags = getClassFlags();
+		if (HasAnyOf(classFlags, PlayerClassFlag::StaffCleave) && isEquipped(ItemType::Staff))
+			return true;
+		if (HasAnyOf(classFlags, PlayerClassFlag::DualSwordCleave) && InvBody[INVLOC_HAND_LEFT]._itype == ItemType::Sword && InvBody[INVLOC_HAND_RIGHT]._itype == ItemType::Sword)
+			return true;
+		return HasAnyOf(classFlags, PlayerClassFlag::HeavyCleave)
+		    && (isEquipped(ItemType::Axe) || (!isEquipped(ItemType::Shield) && (isEquipped(ItemType::Mace, true) || isEquipped(ItemType::Sword, true))));
 	}
 
 	bool isEquipped(ItemType itemType, bool isTwoHanded = false)
@@ -665,7 +666,7 @@ public:
 				else
 					tmac -= tmac / 4;
 			}
-			if (isMelee && _pClass == HeroClass::Barbarian) {
+			if (isMelee && HasAnyOf(getClassFlags(), PlayerClassFlag::ArmorPierce)) {
 				tmac -= monsterArmor / 8;
 			}
 		}
