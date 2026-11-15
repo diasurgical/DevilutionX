@@ -20,7 +20,7 @@ TEST(SkipsMovieTest, ClosableMoviesAreSkippedByFaceAndMenuButtons)
 {
 	for (const ControllerButton button : { ControllerButton_BUTTON_A, ControllerButton_BUTTON_B, ControllerButton_BUTTON_START, ControllerButton_BUTTON_BACK }) {
 		EXPECT_TRUE(SkipsMovie(Press(button), true));
-		EXPECT_TRUE(SkipsMovie(Release(button), true));
+		EXPECT_FALSE(SkipsMovie(Release(button), true));
 	}
 	EXPECT_FALSE(SkipsMovie(Press(ControllerButton_BUTTON_X), true));
 	EXPECT_FALSE(SkipsMovie(Press(ControllerButton_NONE), true));
