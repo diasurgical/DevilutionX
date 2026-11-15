@@ -180,12 +180,20 @@ void EncodeHero(SaveWriter &saveWriter, const PlayerPack *pack)
 
 SaveWriter GetSaveWriter(uint32_t saveNum, bool carryForward = true)
 {
+#ifdef UNPACKED_SAVES
+	return SaveWriter(GetSavePath(saveNum));
+#else
 	return SaveWriter(GetSavePath(saveNum), carryForward);
+#endif
 }
 
 SaveWriter GetStashWriter()
 {
+#ifdef UNPACKED_SAVES
+	return SaveWriter(GetStashSavePath());
+#else
 	return SaveWriter(GetStashSavePath(), /*carryForward=*/true);
+#endif
 }
 
 #ifndef DISABLE_DEMOMODE

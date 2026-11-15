@@ -1,0 +1,34 @@
+set(NONET ON)
+set(PACKET_ENCRYPTION OFF)
+set(DEFAULT_PER_PIXEL_LIGHTING false)
+set(DISABLE_DEMOMODE ON)
+set(ASAN OFF)
+set(UBSAN OFF)
+set(BUILD_TESTING OFF)
+set(DISABLE_LTO ON)
+set(DEFAULT_WIDTH 640)
+set(DEFAULT_HEIGHT 448)
+
+set(DEVILUTIONX_SYSTEM_BZIP2 OFF)
+
+set(PREFILL_PLAYER_NAME ON)
+set(NOEXIT ON)
+set(DEVILUTIONX_DISPLAY_TEXTURE_FORMAT SDL_PIXELFORMAT_ABGR1555)
+set(DEVILUTIONX_GAMEPAD_TYPE PlayStation)
+
+set(BUILD_ASSETS_MPQ OFF)
+set(UNPACKED_MPQS ON)
+
+set(DEFAULT_AUDIO_SAMPLE_RATE 22050)
+set(DEFAULT_AUDIO_CHANNELS 2)
+# Must use a smaller audio buffer due to RAM constraints.
+set(DEFAULT_AUDIO_BUFFER_SIZE 768)
+
+# Use lower resampling quality for FPS.
+set(DEFAULT_AUDIO_RESAMPLING_QUALITY 2)
+add_compile_options(-DLUA_USE_PS2=1)
+
+# -fmerge-all-constants saves ~4 KiB
+set(_extra_flags "-fmerge-all-constants -fipa-pta")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${_extra_flags}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${_extra_flags}")
