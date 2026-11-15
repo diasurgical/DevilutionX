@@ -59,7 +59,7 @@ struct GameAction {
 
 ControllerButton TranslateTo(GamepadLayout layout, ControllerButton button);
 
-bool SkipsMovie(ControllerButtonEvent ctrlEvent);
+bool SkipsMovie(ControllerButtonEvent ctrlEvent, bool userCanClose);
 
 bool IsSimulatedMouseClickBinding(ControllerButtonEvent ctrlEvent);
 

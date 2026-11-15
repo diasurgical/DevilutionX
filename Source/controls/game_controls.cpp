@@ -347,8 +347,15 @@ ControllerButton TranslateTo(GamepadLayout layout, ControllerButton button)
 	}
 }
 
-bool SkipsMovie(ControllerButtonEvent ctrlEvent)
+bool SkipsMovie(ControllerButtonEvent ctrlEvent, bool userCanClose)
 {
+	if (ctrlEvent.up)
+		return false;
+	// Movies that can't be closed with any input can still be skipped with Escape
+	// on a keyboard, so allow the gamepad buttons that open the game menu as well.
+	if (!userCanClose)
+		return IsAnyOf(ctrlEvent.button, ControllerButton_BUTTON_START, ControllerButton_BUTTON_BACK);
+
 	return IsAnyOf(ctrlEvent.button,
 	    ControllerButton_BUTTON_A,
 	    ControllerButton_BUTTON_B,
