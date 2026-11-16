@@ -2459,6 +2459,28 @@ void DrawGoldenBorder(const Surface &out, Rectangle rect)
 	const int width = rect.size.width;
 	const int height = rect.size.height;
 
+	// Boxes taller than two sprites (e.g. the spell slot): top half of the sprite, bottom half of the
+	// sprite, and the sprite's middle row repeated in between so the side edges stay continuous.
+	if (height > spriteHeight * 2) {
+		const int fillX = rect.position.x + left.width();
+		const int fillWidth = width - left.width() - right.width();
+		const int rightX = rect.position.x + width - right.width();
+		const auto drawSpriteRows = [&](int y, int rowCount, int spriteRow) {
+			RenderClxSprite(out.subregion(rect.position.x, y, left.width(), rowCount), left, { 0, -spriteRow });
+			if (fillWidth > 0)
+				RenderClxSprite(out.subregion(fillX, y, fillWidth, rowCount), middle, { 0, -spriteRow });
+			RenderClxSprite(out.subregion(rightX, y, right.width(), rowCount), right, { 0, -spriteRow });
+		};
+
+		const int topRows = spriteHeight / 2;
+		const int bottomRows = spriteHeight - topRows;
+		drawSpriteRows(rect.position.y, topRows, 0);
+		for (int y = rect.position.y + topRows; y < rect.position.y + height - bottomRows; ++y)
+			drawSpriteRows(y, 1, topRows);
+		drawSpriteRows(rect.position.y + height - bottomRows, bottomRows, topRows);
+		return;
+	}
+
 	// Calculate bottom border height: split region roughly in half if height > 20px
 	// Otherwise use a smaller bottom border
 	int bottomBorderHeight;
