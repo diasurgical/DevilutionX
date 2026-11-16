@@ -656,8 +656,7 @@ void IncProgress(uint32_t steps)
 		return;
 	const uint32_t prevProgress = sgdwProgress;
 	sgdwProgress += ProgressStepSize * steps;
-	if (sgdwProgress > MaxProgress)
-		sgdwProgress = MaxProgress;
+	sgdwProgress = std::min(sgdwProgress, MaxProgress);
 	if (!HeadlessMode && sgdwProgress != prevProgress) {
 		SDL_Event event;
 		CustomEventToSdlEvent(event, WM_PROGRESS);
