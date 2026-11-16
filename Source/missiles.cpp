@@ -1320,8 +1320,10 @@ void AddReflect(Missile &missile, AddMissileParameter & /*parameter*/)
 	if (player.wReflections + add >= std::numeric_limits<uint16_t>::max())
 		add = 0;
 	player.wReflections += add;
-	if (IsLocalPlayer(player))
+	if (IsLocalPlayer(player)) {
+		const LocalCoopPlayerContext context(player.getId());
 		NetSendCmdParam1(true, CMD_SETREFLECT, player.wReflections);
+	}
 }
 
 void AddBerserk(Missile &missile, AddMissileParameter &parameter)
@@ -2195,8 +2197,10 @@ void AddManaShield(Missile &missile, AddMissileParameter &parameter)
 	}
 
 	player.pManaShield = true;
-	if (IsLocalPlayer(player))
+	if (IsLocalPlayer(player)) {
+		const LocalCoopPlayerContext context(player.getId());
 		NetSendCmd(true, CMD_SETSHIELD);
+	}
 }
 
 void AddFlameWave(Missile &missile, AddMissileParameter &parameter)
@@ -4258,9 +4262,11 @@ static void DeleteMissiles()
 
 void ProcessManaShield()
 {
-	Player &myPlayer = *MyPlayer;
-	if (myPlayer.pManaShield && myPlayer.hasNoMana()) {
-		myPlayer.pManaShield = false;
+	for (Player &player : Players) {
+		if (!IsLocalPlayer(player) || !player.pManaShield || !player.hasNoMana())
+			continue;
+		player.pManaShield = false;
+		const LocalCoopPlayerContext context(player.getId());
 		NetSendCmd(true, CMD_REMSHIELD);
 	}
 }

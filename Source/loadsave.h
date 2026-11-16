@@ -24,6 +24,8 @@ _item_indexes RemapItemIdxFromSpawn(_item_indexes i);
 _item_indexes RemapItemIdxToSpawn(_item_indexes i);
 bool IsHeaderValid(uint32_t magicNumber);
 void LoadHotkeys();
+/** @brief Load spell hotkeys and the selected spell of a player from a save slot. */
+void LoadHotkeys(uint32_t saveNumber, Player &player);
 void LoadHeroItems(Player &player);
 /**
  * @brief Remove invalid inventory items from the inventory grid

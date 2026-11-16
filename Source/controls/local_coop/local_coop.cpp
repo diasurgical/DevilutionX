@@ -2348,6 +2348,8 @@ void ConfirmLocalCoopCharacter(uint8_t playerId)
 	SyncInitPlr(player);
 	// InitPlayer sets up player state and vision
 	InitPlayer(player, true);
+	// Restore this player's own spell hotkeys and selected spell (InitPlayer only does so for Player 1)
+	LoadHotkeys(coopPlayer->saveNumber, player);
 
 	// In local co-op, each player needs their own light source (unlike multiplayer where
 	// other players are remote and don't need local lights). InitPlayer sets lightId to
@@ -4471,14 +4473,12 @@ void SaveLocalCoopPlayers(bool /*writeGameData*/)
 	if (!g_LocalCoop.enabled)
 		return;
 
-	for (size_t i = 0; i < g_LocalCoop.players.size(); ++i) {
+	// Player 1 (index 0) is saved by the regular save code
+	for (size_t i = 1; i < g_LocalCoop.players.size(); ++i) {
 		const LocalCoopPlayer &coopPlayer = g_LocalCoop.players[i];
 
 		if (!coopPlayer.active || !coopPlayer.initialized)
 			continue;
-
-		if (coopPlayer.saveNumber == 0)
-			continue; // No valid save number assigned
 
 		if (i >= Players.size())
 			continue;

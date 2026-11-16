@@ -78,12 +78,9 @@ StaticVector<ControllerButtonEvent, 4> ToControllerButtonEvents(const SDL_Event 
 bool IsControllerButtonPressed(ControllerButton button)
 {
 #ifndef USE_SDL1
-	SDL_JoystickID which;
-	if (GameController::IsPressedOnAnyController(button, &which)) {
-		// When local co-op is enabled, only exclude controllers assigned to coop players (players 2-4)
-		// Player 1's controller should still work normally
-		// IsLocalCoopControllerId returns true only for coop player controllers, not Player 1's
-		if (!IsLocalCoopControllerId(which))
+	// Controllers of local co-op players 2-4 are handled by the local co-op input code
+	for (const GameController &controller : GameController::All()) {
+		if (controller.IsPressed(button) && !IsLocalCoopControllerId(controller.GetInstanceId()))
 			return true;
 	}
 #endif
@@ -91,17 +88,15 @@ bool IsControllerButtonPressed(ControllerButton button)
 	if (!demo::IsRunning() && IsKbCtrlButtonPressed(button))
 		return true;
 #endif
-	SDL_JoystickID joystickWhich;
-	if (Joystick::IsPressedOnAnyJoystick(button, &joystickWhich)) {
 #ifndef USE_SDL1
-		// When local co-op is enabled, only exclude controllers assigned to coop players
-		if (!IsLocalCoopControllerId(joystickWhich))
+	for (const Joystick &joystick : Joystick::All()) {
+		if (joystick.IsPressed(button) && !IsLocalCoopControllerId(joystick.instance_id()))
 			return true;
-#else
-		return true;
-#endif
 	}
 	return false;
+#else
+	return Joystick::IsPressedOnAnyJoystick(button);
+#endif
 }
 
 bool IsControllerButtonComboPressed(ControllerButtonCombo combo)

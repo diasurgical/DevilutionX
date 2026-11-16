@@ -5,6 +5,7 @@
  */
 #include "msg.h"
 
+#include <array>
 #include <climits>
 #include <cmath>
 #include <cstdint>
@@ -305,8 +306,8 @@ uint8_t sgbDeltaChunks;
 std::list<TMegaPkt> MegaPktList;
 Item ItemLimbo;
 
-/** @brief Last sent player command for the local player. */
-TCmdLocParam5 lastSentPlayerCmd;
+/** @brief Last sent player command for each local player (Player 1 and local co-op players). */
+std::array<TCmdLocParam5, MAX_PLRS> lastSentPlayerCmds;
 
 void RecreateItem(const Player &player, const TCmdPItem &message, Item &item);
 
@@ -405,6 +406,7 @@ bool WasPlayerCmdAlreadyRequested(_cmd_id bCmd, Point position = {}, uint16_t wP
 	const TCmdLocParam5 newSendParam = { bCmd, static_cast<uint8_t>(position.x), static_cast<uint8_t>(position.y),
 		Swap16LE(wParam1), Swap16LE(wParam2), Swap16LE(wParam3), Swap16LE(wParam4), Swap16LE(wParam5) };
 
+	TCmdLocParam5 &lastSentPlayerCmd = lastSentPlayerCmds[MyPlayerId];
 	if (lastSentPlayerCmd.bCmd == newSendParam.bCmd && lastSentPlayerCmd.x == newSendParam.x && lastSentPlayerCmd.y == newSendParam.y
 	    && lastSentPlayerCmd.wParam1 == newSendParam.wParam1 && lastSentPlayerCmd.wParam2 == newSendParam.wParam2
 	    && lastSentPlayerCmd.wParam3 == newSendParam.wParam3 && lastSentPlayerCmd.wParam4 == newSendParam.wParam4
@@ -2751,7 +2753,7 @@ void RecreateItem(const Player &player, const TItem &messageItem, Item &item)
 
 void ClearLastSentPlayerCmd()
 {
-	lastSentPlayerCmd = {};
+	lastSentPlayerCmds = {};
 }
 
 void msg_send_drop_pkt(uint8_t pnum, leaveinfo_t reason)
@@ -3044,9 +3046,7 @@ void NetSendCmdSpawnMonster(Point position, Direction dir, uint16_t typeIndex, u
 
 void NetSendCmdLoc(uint8_t playerId, bool bHiPri, _cmd_id bCmd, Point position)
 {
-	// Check if command was already requested for this specific player
-	// This is important for local coop where playerId != MyPlayerId
-	if (WasPlayerCmdAlreadyRequested(bCmd, position))
+	if (playerId == MyPlayerId && WasPlayerCmdAlreadyRequested(bCmd, position))
 		return;
 
 	TCmdLoc cmd;

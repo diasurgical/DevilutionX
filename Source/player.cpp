@@ -2476,7 +2476,7 @@ void InitPlayer(Player &player, bool firstTime)
 	if (firstTime) {
 		player._pRSplType = SpellType::Invalid;
 		player._pRSpell = SpellID::Invalid;
-		if (IsLocalPlayer(player))
+		if (&player == MyPlayer)
 			LoadHotkeys();
 		player._pSBkSpell = SpellID::Invalid;
 		player.queuedSpell.spellId = player._pRSpell;
@@ -2507,11 +2507,9 @@ void InitPlayer(Player &player, bool firstTime)
 
 		player._pdir = Direction::South;
 
-		if ((!firstTime || leveltype != DTYPE_TOWN)) {
-			// Set spawn position for local players (MyPlayer and local coop players)
-			if (IsLocalPlayer(player)) {
-				player.position.tile = ViewPosition;
-			}
+		// Local co-op players are placed next to Player 1 by the local co-op code
+		if (&player == MyPlayer && (!firstTime || leveltype != DTYPE_TOWN)) {
+			player.position.tile = ViewPosition;
 		}
 
 		SetPlayerOld(player);
@@ -2864,8 +2862,10 @@ void ApplyPlrDamage(DamageType damageType, Player &player, Fixed26_6 dam, int mi
 			}
 			player._pMana = Fixed26_6::fromInt(0);
 			player._pManaBase = player._pMaxManaBase - player._pMaxMana;
-			if (IsLocalPlayer(player))
+			if (IsLocalPlayer(player)) {
+				const LocalCoopPlayerContext context(player.getId());
 				NetSendCmd(true, CMD_REMSHIELD);
+			}
 		}
 	}
 
@@ -3055,6 +3055,7 @@ void ProcessPlayers()
 					ApplyPlrDamage(DamageType::Physical, player, Fixed26_6::fromRaw(4));
 				}
 				if (player.pManaShield && HasAnyOf(player._pIFlags, ItemSpecialEffect::NoMana)) {
+					const LocalCoopPlayerContext context(player.getId());
 					NetSendCmd(true, CMD_REMSHIELD);
 				}
 			}
