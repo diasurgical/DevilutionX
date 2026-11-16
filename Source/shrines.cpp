@@ -147,8 +147,7 @@ int OperateShrineHidden(DiabloGenerator &rng, Player &player, Point spawnPositio
 			    && item._iMaxDur != 0) {
 				item._iDurability += powerParam2;
 				item._iMaxDur += powerParam2;
-				if (item._iDurability > item._iMaxDur)
-					item._iDurability = item._iMaxDur;
+				item._iDurability = std::min(item._iDurability, item._iMaxDur);
 				if (item._iDurability <= 0)
 					item._iDurability = 1;
 				if (item._iMaxDur <= 0)
@@ -171,8 +170,7 @@ int OperateShrineHidden(DiabloGenerator &rng, Player &player, Point spawnPositio
 
 			player.InvBody[r]._iDurability += (powerParam1 - powerParam2);
 			player.InvBody[r]._iMaxDur += (powerParam1 - powerParam2);
-			if (player.InvBody[r]._iDurability > player.InvBody[r]._iMaxDur)
-				player.InvBody[r]._iDurability = player.InvBody[r]._iMaxDur;
+			player.InvBody[r]._iDurability = std::min(player.InvBody[r]._iDurability, player.InvBody[r]._iMaxDur);
 			if (player.InvBody[r]._iDurability <= 0)
 				player.InvBody[r]._iDurability = 1;
 			if (player.InvBody[r]._iMaxDur <= 0)
