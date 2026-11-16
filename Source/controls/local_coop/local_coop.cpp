@@ -5,7 +5,6 @@
  */
 #include "controls/local_coop/local_coop.hpp"
 #include "controls/local_coop/local_coop_assets.hpp"
-#include "controls/local_coop/local_coop_button_mapper.hpp"
 #include "controls/local_coop/local_coop_constants.hpp"
 
 #ifndef USE_SDL1
@@ -102,8 +101,6 @@ struct PlayerHUDLayout {
 	int barHeight;
 	int barsHeight;
 	int barsWidth;
-	int skillSlotSize;
-	int skillGridWidth;
 	int nameFieldHeight;
 	int playerNumWidth;
 	int playerNumSpacing;
@@ -173,17 +170,17 @@ LocalCoopPlayerContext::~LocalCoopPlayerContext()
 namespace {
 
 // Forward declarations
-void CastLocalCoopHotkeySpell(uint8_t playerId, int slotIndex);
+void CastLocalCoopSpell(uint8_t playerId, SpellID spellID, SpellType spellType);
 bool IsStartButtonHeldForPlayer(uint8_t playerId);
+bool IsBackButtonHeldForPlayer(uint8_t playerId);
+bool DoesPlayerOwnSpellMenu(uint8_t playerId);
+void ReleaseLocalCoopSpellMenu();
 
-// Button input handlers (Phase 2: broken down from ProcessLocalCoopButtonInput)
+// Button input handlers
 void HandleCharacterSelectInput(uint8_t playerId, LocalCoopPlayer &coopPlayer, uint8_t button);
 void HandleStoreInput(uint8_t playerId, uint8_t button);
-void HandleSpellMenuAssignment(uint8_t playerId, LocalCoopPlayer &coopPlayer, uint8_t button);
-void HandleGameplayButtonDown(uint8_t playerId, LocalCoopPlayer &coopPlayer, Player &player, uint8_t button, uint32_t now);
+void HandleGameplayButtonDown(uint8_t playerId, LocalCoopPlayer &coopPlayer, Player &player, uint8_t button);
 void HandleGameplayButtonUp(uint8_t playerId, LocalCoopPlayer &coopPlayer, uint8_t button);
-
-// SkillButtonHoldTime moved to LocalCoopInput namespace in local_coop_constants.hpp
 
 /**
  * @brief Get a valid LocalCoopPlayer pointer for the given player ID.
@@ -225,10 +222,6 @@ const Direction FaceDir[3][3] = {
 	{ Direction::North, Direction::NorthWest, Direction::NorthEast }, // AxisDirectionY_UP
 	{ Direction::South, Direction::SouthWest, Direction::SouthEast }, // AxisDirectionY_DOWN
 };
-
-// ButtonToBeltOffset moved to LocalCoopInput namespace in local_coop_constants.hpp
-
-// Button mapping functions moved to LocalCoopButtonMapper class
 
 /**
  * @brief Panel position structure for local coop HUD.
@@ -285,6 +278,27 @@ PanelPosition GetPlayerPanelPosition(uint8_t playerId, int screenWidth, int scre
 }
 
 /**
+ * @brief Whether the active spell slot is on the left side of a player's panel.
+ *
+ * The spell slot faces the screen center: right side for P1/P3 (left screen edge),
+ * left side for P2/P4 (right screen edge).
+ */
+bool IsSpellSlotOnLeft(uint8_t playerId)
+{
+	return playerId == 1 || playerId == 3;
+}
+
+/**
+ * @brief Get the X position of the bars/belt section inside a player's panel.
+ * @param playerId Game player ID (0-3)
+ * @param panelX Panel X position (from GetPlayerPanelPosition)
+ */
+int GetPanelBaseSectionX(uint8_t playerId, int panelX)
+{
+	return IsSpellSlotOnLeft(playerId) ? panelX + LocalCoopLayout::SpellSlot::SectionWidth : panelX;
+}
+
+/**
  * @brief Belt position structure for local coop HUD.
  */
 struct BeltPosition {
@@ -323,34 +337,6 @@ BeltPosition CalculateBeltPosition(int panelX, int panelY, int panelWidth, int b
 	pos.slotSpacing = Belt::SlotSpacingPx;
 
 	return pos;
-}
-
-// GetBeltSlotFromButton moved to LocalCoopButtonMapper class
-
-/**
- * @brief Try to use a belt item for the given player based on button press.
- *
- * @param playerId Game player ID
- * @param buttonIndex 0=South/A, 1=East/B, 2=West/X, 3=North/Y
- * @param leftShoulderHeld True if left shoulder is held
- * @param rightShoulderHeld True if right shoulder is held
- * @return true if a belt item was used, false otherwise
- */
-bool TryUseBeltItem(uint8_t playerId, int buttonIndex, bool leftShoulderHeld, bool rightShoulderHeld)
-{
-	const int beltSlot = LocalCoopButtonMapper::GetBeltSlot(buttonIndex, leftShoulderHeld, rightShoulderHeld);
-	if (beltSlot < 0 || beltSlot >= MaxBeltItems)
-		return false;
-
-	if (playerId >= Players.size())
-		return false;
-
-	if (Players[playerId].SpdList[beltSlot].isEmpty())
-		return false;
-
-	LocalCoopPlayerContext context(playerId);
-	UseInvItem(INVITEM_BELT_FIRST + beltSlot);
-	return true;
 }
 
 /**
@@ -653,20 +639,6 @@ void LoadHeroInfosForLocalCoop(std::vector<_uiheroinfo> &heroList, const std::ve
 }
 
 /**
- * @brief Check if player 1 has a valid target for primary action (attack/talk/operate).
- */
-bool HasPlayer1PrimaryTarget()
-{
-	if (pcursmonst != -1)
-		return true;
-
-	if (ObjectUnderCursor != nullptr)
-		return true;
-
-	return false;
-}
-
-/**
  * @brief Check if there's a valid target for primary action (attack/talk/operate).
  */
 bool HasLocalCoopPrimaryTarget(uint8_t playerId)
@@ -756,7 +728,7 @@ void ProcessLocalCoopDpadInput(uint8_t playerId, const SDL_Event &event)
 	if (IsStartButtonHeldForPlayer(playerId))
 		return;
 
-	if (SpellSelectFlag && coopPlayer->skillMenuOpenedByHold) {
+	if (DoesPlayerOwnSpellMenu(playerId)) {
 		if (event.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN) {
 			const auto button = SDLC_EventGamepadButton(event).button;
 			AxisDirection dir = DpadGamepadButtonToAxisDirection(button);
@@ -881,9 +853,12 @@ void HandleStoreInput(uint8_t playerId, uint8_t button)
 {
 	switch (button) {
 	case SDL_GAMEPAD_BUTTON_SOUTH:
+	case SDL_GAMEPAD_BUTTON_NORTH:
 		StoreEnter();
 		break;
 	case SDL_GAMEPAD_BUTTON_EAST:
+	case SDL_GAMEPAD_BUTTON_BACK:
+	case SDL_GAMEPAD_BUTTON_START:
 		StoreESC();
 		break;
 	case SDL_GAMEPAD_BUTTON_DPAD_UP:
@@ -898,23 +873,9 @@ void HandleStoreInput(uint8_t playerId, uint8_t button)
 }
 
 /**
- * @brief Handle spell menu assignment when quick spell menu is open.
+ * @brief Check if a button is held on a local coop player's controller.
  */
-void HandleSpellMenuAssignment(uint8_t playerId, LocalCoopPlayer &coopPlayer, uint8_t button)
-{
-	const int assignSlot = LocalCoopButtonMapper::GetSkillSlot(button);
-	if (assignSlot >= 0) {
-		AssignLocalCoopSpellToSlot(playerId, assignSlot);
-		coopPlayer.skillButtonHeld = -1;
-		coopPlayer.skillButtonPressTime = 0;
-		coopPlayer.skillMenuOpenedByHold = false;
-	}
-}
-
-/**
- * @brief Check if Start button is held on a local coop player's controller.
- */
-bool IsStartButtonHeldForPlayer(uint8_t playerId)
+bool IsButtonHeldForPlayer(uint8_t playerId, ControllerButton button)
 {
 	LocalCoopPlayer *coopPlayer = g_LocalCoop.GetPlayer(playerId);
 	if (coopPlayer == nullptr || !coopPlayer->active)
@@ -928,205 +889,293 @@ bool IsStartButtonHeldForPlayer(uint8_t playerId)
 	if (controller == nullptr)
 		return false;
 
-	return controller->IsPressed(ControllerButton_BUTTON_START);
+	return controller->IsPressed(button);
 #else
 	return false;
 #endif
 }
 
 /**
- * @brief Handle gameplay button press (button down events).
+ * @brief Check if Start button is held on a local coop player's controller.
  */
-void HandleGameplayButtonDown(uint8_t playerId, LocalCoopPlayer &coopPlayer, Player &player, uint8_t button, uint32_t now)
+bool IsStartButtonHeldForPlayer(uint8_t playerId)
 {
-	// When this player owns panels and panels are open, B or Back can close them (same as Player 1).
-	// But B (EAST) in inventory should grab/place items when cursor is over item or holding item -
-	// only close when B would not perform an inventory action.
-	if (g_LocalCoop.DoesPlayerOwnPanels(playerId) && (invflag || CharFlag || QuestLogIsOpen || SpellbookFlag)) {
-		if (button == SDL_GAMEPAD_BUTTON_BACK) {
-			// Back always closes panels
-			if (invflag)
-				ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_INVENTORY);
-			if (CharFlag)
-				ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_CHARACTER_INFO);
-			if (QuestLogIsOpen)
-				ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_QUEST_LOG);
-			if (SpellbookFlag)
-				ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_SPELL_BOOK);
-			if (SpellSelectFlag) {
-				LocalCoopPlayerContext context(playerId);
-				ProcessGameAction(GameAction { GameActionType_TOGGLE_QUICK_SPELL_MENU });
-			}
-			return;
+	return IsButtonHeldForPlayer(playerId, ControllerButton_BUTTON_START);
+}
+
+/**
+ * @brief Check if Back/Select button is held on a local coop player's controller.
+ */
+bool IsBackButtonHeldForPlayer(uint8_t playerId)
+{
+	return IsButtonHeldForPlayer(playerId, ControllerButton_BUTTON_BACK);
+}
+
+/**
+ * @brief Check if this player has the quick spell menu (speedbook) open.
+ */
+bool DoesPlayerOwnSpellMenu(uint8_t playerId)
+{
+	return SpellSelectFlag && g_LocalCoop.spellMenuOwnerPlayerId == static_cast<int>(playerId);
+}
+
+/**
+ * @brief Restore Player 1's context after a local co-op player's spell menu closes.
+ */
+void ReleaseLocalCoopSpellMenu()
+{
+	if (g_LocalCoop.spellMenuOwnerPlayerId < 0)
+		return;
+
+	g_LocalCoop.spellMenuOwnerPlayerId = -1;
+
+	// Keep panel owner context if a coop player still owns panels, otherwise restore Player 1
+	const uint8_t contextPlayerId = g_LocalCoop.HasPanelOwner() ? g_LocalCoop.GetPanelOwnerPlayerId() : 0;
+	MyPlayer = &Players[contextPlayerId];
+	MyPlayerId = contextPlayerId;
+	InspectPlayer = &Players[contextPlayerId];
+}
+
+/**
+ * @brief Toggle the quick spell menu (speedbook) for a local co-op player.
+ *
+ * Same as Player 1's "Speedbook" action: the player picks the active spell
+ * from the menu, which is then cast with the spell action button.
+ */
+void ToggleLocalCoopSpellMenu(uint8_t playerId)
+{
+	if (SpellSelectFlag) {
+		// Only the player who opened the menu can close it with this button
+		if (DoesPlayerOwnSpellMenu(playerId)) {
+			SpellSelectFlag = false;
+			ReleaseLocalCoopSpellMenu();
 		}
-		if (button == SDL_GAMEPAD_BUTTON_EAST) {
-			// B (EAST) in inventory: only close if we're NOT doing a grab/place action
-			if (invflag) {
-				bool isOverBeltSlot = false;
-				if (IsLocalCoopEnabled()) {
-					uint8_t beltOwnerPlayerId = 0;
-					std::optional<inv_xy_slot> beltSlot = FindLocalCoopBeltSlotUnderCursor(MousePosition, beltOwnerPlayerId);
-					if (beltSlot.has_value() && beltOwnerPlayerId == playerId) {
-						isOverBeltSlot = true;
-					}
-				}
-				if (pcursinvitem != -1 || isOverBeltSlot || !player.HoldItem.isEmpty()) {
-					// B means grab/place - let the switch handle it below, don't close
-				} else {
-					// Nothing to interact with - B closes inventory
-					ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_INVENTORY);
-					if (CharFlag)
-						ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_CHARACTER_INFO);
-					if (QuestLogIsOpen)
-						ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_QUEST_LOG);
-					if (SpellbookFlag)
-						ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_SPELL_BOOK);
-					if (SpellSelectFlag) {
-						LocalCoopPlayerContext context(playerId);
-						ProcessGameAction(GameAction { GameActionType_TOGGLE_QUICK_SPELL_MENU });
-					}
-					return;
-				}
-			} else {
-				// Not in inventory - B closes other panels
-				if (CharFlag)
-					ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_CHARACTER_INFO);
-				if (QuestLogIsOpen)
-					ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_QUEST_LOG);
-				if (SpellbookFlag)
-					ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_SPELL_BOOK);
-				if (SpellSelectFlag) {
-					LocalCoopPlayerContext context(playerId);
-					ProcessGameAction(GameAction { GameActionType_TOGGLE_QUICK_SPELL_MENU });
-				}
-				return;
-			}
-		}
+		return;
 	}
 
-	// Check if Start button is held for menu shortcuts (hold Start + press D-pad/button)
-	// These shortcuts toggle panels (open when closed, close when open)
-	const bool startHeld = IsStartButtonHeldForPlayer(playerId);
+	// Don't steal the UI from another player who has panels open
+	if ((IsLeftPanelOpen() || IsRightPanelOpen()) && !g_LocalCoop.DoesPlayerOwnPanels(playerId))
+		return;
 
-	// Handle Start + D-pad/button combinations for panel toggle (works both to open and close)
-	if (startHeld) {
-		switch (button) {
-		case SDL_GAMEPAD_BUTTON_DPAD_UP:
+	// The spell menu owner keeps MyPlayer/InspectPlayer until the menu closes,
+	// so the menu shows (and selects) this player's spells.
+	g_LocalCoop.spellMenuOwnerPlayerId = static_cast<int>(playerId);
+	MyPlayer = &Players[playerId];
+	MyPlayerId = playerId;
+	InspectPlayer = &Players[playerId];
+
+	ProcessGameAction(GameAction { GameActionType_TOGGLE_QUICK_SPELL_MENU });
+
+	if (!SpellSelectFlag)
+		ReleaseLocalCoopSpellMenu();
+}
+
+/**
+ * @brief Select the highlighted spell in the speedbook as the player's active spell.
+ */
+void SelectLocalCoopSpellFromMenu()
+{
+	// MyPlayer is already the spell menu owner
+	SetSpell();
+	ReleaseLocalCoopSpellMenu();
+}
+
+/**
+ * @brief Close the panels owned by this player, one at a time, like Player 1's cancel action.
+ * @return true if a panel was closed
+ */
+bool CloseLocalCoopPanel(uint8_t playerId)
+{
+	if (!g_LocalCoop.DoesPlayerOwnPanels(playerId))
+		return false;
+
+	if (invflag) {
+		ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_INVENTORY);
+		return true;
+	}
+	if (SpellbookFlag) {
+		ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_SPELL_BOOK);
+		return true;
+	}
+	if (QuestLogIsOpen) {
+		ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_QUEST_LOG);
+		return true;
+	}
+	if (CharFlag) {
+		ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_CHARACTER_INFO);
+		return true;
+	}
+	return false;
+}
+
+/**
+ * @brief Check if this player owns open panels (inventory, character, quest log or spellbook).
+ */
+bool DoesPlayerHaveOpenPanels(uint8_t playerId)
+{
+	return g_LocalCoop.DoesPlayerOwnPanels(playerId) && (invflag || CharFlag || QuestLogIsOpen || SpellbookFlag);
+}
+
+/**
+ * @brief Handle the Start button modifier (gamepad menu navigator), same as Player 1.
+ * @return true if the button was consumed
+ */
+bool HandleMenuNavigatorButton(uint8_t playerId, uint8_t button)
+{
+	switch (button) {
+	case SDL_GAMEPAD_BUTTON_DPAD_UP:
+		PressEscKey();
+		LastPlayerAction = PlayerActionType::None;
+		PadHotspellMenuActive = false;
+		gamemenu_on();
+		return true;
+	case SDL_GAMEPAD_BUTTON_DPAD_DOWN:
+		CycleAutomapType();
+		return true;
+	case SDL_GAMEPAD_BUTTON_DPAD_LEFT:
+		ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_CHARACTER_INFO);
+		return true;
+	case SDL_GAMEPAD_BUTTON_DPAD_RIGHT:
+		ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_INVENTORY);
+		return true;
+	case SDL_GAMEPAD_BUTTON_SOUTH:
+		ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_SPELL_BOOK);
+		return true;
+	case SDL_GAMEPAD_BUTTON_WEST:
+		ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_QUEST_LOG);
+		return true;
+	case SDL_GAMEPAD_BUTTON_EAST:
+		return true;
+	case SDL_GAMEPAD_BUTTON_NORTH:
+#ifdef __3DS__
+		GetOptions().Graphics.zoom.SetValue(!*GetOptions().Graphics.zoom);
+		CalcViewportGeometry();
+#endif
+		return true;
+	case SDL_GAMEPAD_BUTTON_BACK:
+		// Start + Back: toggle game menu
+		{
+			const bool inMenu = gmenu_is_active();
 			PressEscKey();
 			LastPlayerAction = PlayerActionType::None;
 			PadHotspellMenuActive = false;
-			gamemenu_on();
-			return;
-		case SDL_GAMEPAD_BUTTON_DPAD_DOWN:
-			CycleAutomapType();
-			return;
-		case SDL_GAMEPAD_BUTTON_DPAD_LEFT:
-			ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_CHARACTER_INFO);
-			return;
-		case SDL_GAMEPAD_BUTTON_DPAD_RIGHT:
-			ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_INVENTORY);
-			return;
-		case SDL_GAMEPAD_BUTTON_SOUTH:
-			ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_SPELL_BOOK);
-			return;
-		case SDL_GAMEPAD_BUTTON_WEST:
-			ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_QUEST_LOG);
-			return;
-		case SDL_GAMEPAD_BUTTON_NORTH:
-#ifdef __3DS__
-			GetOptions().Graphics.zoom.SetValue(!*GetOptions().Graphics.zoom);
-			CalcViewportGeometry();
-#endif
-			return;
-		default:
-			break;
+			if (!inMenu)
+				gamemenu_on();
 		}
+		return true;
+	default:
+		return false;
+	}
+}
+
+/**
+ * @brief Handle gameplay button press (button down events).
+ *
+ * Uses the same default mapping as Player 1's gamepad:
+ * - B (East): Primary action (attack, talk, lift/place inventory items, select speedbook spell)
+ * - Y (North): Secondary action (pick up items, open chests/doors, use inventory items)
+ * - X (West): Cast the active spell (select speedbook spell, drop/move inventory items)
+ * - A (South): Open speedbook to choose the active spell, or close open menus
+ * - LB / RB: Use health / mana potion
+ * - LT / RT: Character / Inventory (Back + LT / RT: Quest log / Spellbook)
+ * - Start + D-pad / face buttons: Menu navigator, Start + Back: Game menu
+ * - Left stick click: Toggle automap
+ */
+void HandleGameplayButtonDown(uint8_t playerId, LocalCoopPlayer &coopPlayer, Player &player, uint8_t button)
+{
+	if (IsStartButtonHeldForPlayer(playerId) && HandleMenuNavigatorButton(playerId, button))
+		return;
+
+	// Back is a modifier (Back + LT / RT); Back + Start opens the game menu
+	if (button == SDL_GAMEPAD_BUTTON_START && IsBackButtonHeldForPlayer(playerId)) {
+		HandleMenuNavigatorButton(playerId, SDL_GAMEPAD_BUTTON_BACK);
+		return;
 	}
 
+	const bool ownsSpellMenu = DoesPlayerOwnSpellMenu(playerId);
+	const bool hasOpenPanels = DoesPlayerHaveOpenPanels(playerId);
+
 	switch (button) {
+	case SDL_GAMEPAD_BUTTON_EAST: // B: Primary action
+		if (ownsSpellMenu) {
+			SelectLocalCoopSpellFromMenu();
+			return;
+		}
+		if (hasOpenPanels && QuestLogIsOpen) {
+			ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_QUEST_LOG);
+			return;
+		}
+		if (hasOpenPanels && (invflag || CharFlag)) {
+			// Lift/place inventory items or press character panel buttons
+			coopPlayer.actionHeld = GameActionType_PRIMARY_ACTION;
+			ProcessLocalCoopGameAction(playerId, GameActionType_PRIMARY_ACTION);
+		} else if (HasLocalCoopPrimaryTarget(playerId) && player.CanChangeAction() && player.destAction == ACTION_NONE) {
+			coopPlayer.actionHeld = GameActionType_PRIMARY_ACTION;
+			ProcessLocalCoopGameAction(playerId, GameActionType_PRIMARY_ACTION);
+		}
+		break;
+
+	case SDL_GAMEPAD_BUTTON_NORTH: // Y: Secondary action
+		if (ownsSpellMenu)
+			return;
+		if (hasOpenPanels && QuestLogIsOpen) {
+			LocalCoopPlayerContext context(playerId);
+			QuestlogEnter();
+			return;
+		}
+		if (hasOpenPanels && invflag) {
+			// Use/equip the highlighted inventory item, same as Player 1
+			LocalCoopPlayerContext context(playerId);
+			PerformSecondaryAction();
+		} else if (HasLocalCoopSecondaryTarget(playerId) && player.CanChangeAction() && player.destAction == ACTION_NONE) {
+			coopPlayer.actionHeld = GameActionType_SECONDARY_ACTION;
+			ProcessLocalCoopGameAction(playerId, GameActionType_SECONDARY_ACTION);
+		}
+		break;
+
+	case SDL_GAMEPAD_BUTTON_WEST: // X: Spell action
+		if (ownsSpellMenu) {
+			SelectLocalCoopSpellFromMenu();
+			return;
+		}
+		if (hasOpenPanels && QuestLogIsOpen)
+			return;
+		if (hasOpenPanels && invflag) {
+			// Drop held item / move highlighted item, same as Player 1
+			LocalCoopPlayerContext context(playerId);
+			PerformSpellAction();
+			return;
+		}
+		coopPlayer.actionHeld = GameActionType_CAST_SPELL;
+		ProcessLocalCoopGameAction(playerId, GameActionType_CAST_SPELL);
+		break;
+
+	case SDL_GAMEPAD_BUTTON_SOUTH: // A: Speedbook / cancel
+		if (DoomFlag) {
+			doom_close();
+			return;
+		}
+		if (hasOpenPanels && QuestLogIsOpen) {
+			LocalCoopPlayerContext context(playerId);
+			QuestlogEnter();
+			return;
+		}
+		if (ownsSpellMenu || !CloseLocalCoopPanel(playerId))
+			ToggleLocalCoopSpellMenu(playerId);
+		break;
+
 	case SDL_GAMEPAD_BUTTON_LEFT_SHOULDER:
-		coopPlayer.leftShoulderHeld = true;
-		coopPlayer.rightShoulderHeld = false;
+		if (!ownsSpellMenu)
+			ProcessLocalCoopGameAction(playerId, GameActionType_USE_HEALTH_POTION);
 		break;
 
 	case SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER:
-		coopPlayer.rightShoulderHeld = true;
-		coopPlayer.leftShoulderHeld = false;
+		if (!ownsSpellMenu)
+			ProcessLocalCoopGameAction(playerId, GameActionType_USE_MANA_POTION);
 		break;
 
-	case SDL_GAMEPAD_BUTTON_SOUTH:
-		if (TryUseBeltItem(playerId, 0, coopPlayer.leftShoulderHeld, coopPlayer.rightShoulderHeld))
-			return;
-		if (g_LocalCoop.DoesPlayerOwnPanels(playerId) && (invflag || CharFlag || QuestLogIsOpen || SpellbookFlag)) {
-			coopPlayer.actionHeld = GameActionType_PRIMARY_ACTION;
-			ProcessLocalCoopGameAction(playerId, GameActionType_PRIMARY_ACTION);
-		} else if (HasLocalCoopPrimaryTarget(playerId)) {
-			if (player.CanChangeAction() && player.destAction == ACTION_NONE) {
-				coopPlayer.actionHeld = GameActionType_PRIMARY_ACTION;
-				ProcessLocalCoopGameAction(playerId, GameActionType_PRIMARY_ACTION);
-			}
-		} else {
-			coopPlayer.skillButtonHeld = LocalCoopButtonMapper::GetSkillSlot(button);
-			coopPlayer.skillButtonPressTime = now;
-			coopPlayer.skillMenuOpenedByHold = false;
-		}
-		break;
-
-	case SDL_GAMEPAD_BUTTON_EAST:
-		if (TryUseBeltItem(playerId, 1, coopPlayer.leftShoulderHeld, coopPlayer.rightShoulderHeld))
-			return;
-		if (g_LocalCoop.DoesPlayerOwnPanels(playerId) && invflag) {
-			bool isOverBeltSlot = false;
-			if (IsLocalCoopEnabled()) {
-				uint8_t beltOwnerPlayerId = 0;
-				std::optional<inv_xy_slot> beltSlot = FindLocalCoopBeltSlotUnderCursor(MousePosition, beltOwnerPlayerId);
-				if (beltSlot.has_value() && beltOwnerPlayerId == playerId) {
-					isOverBeltSlot = true;
-				}
-			}
-			if (pcursinvitem != -1 || isOverBeltSlot || !player.HoldItem.isEmpty()) {
-				coopPlayer.actionHeld = GameActionType_SECONDARY_ACTION;
-				ProcessLocalCoopGameAction(playerId, GameActionType_SECONDARY_ACTION);
-				return;
-			}
-		} else if (HasLocalCoopSecondaryTarget(playerId)) {
-			if (player.CanChangeAction() && player.destAction == ACTION_NONE) {
-				coopPlayer.actionHeld = GameActionType_SECONDARY_ACTION;
-				ProcessLocalCoopGameAction(playerId, GameActionType_SECONDARY_ACTION);
-			}
-		} else {
-			coopPlayer.skillButtonHeld = LocalCoopButtonMapper::GetSkillSlot(button);
-			coopPlayer.skillButtonPressTime = now;
-			coopPlayer.skillMenuOpenedByHold = false;
-		}
-		break;
-
-	case SDL_GAMEPAD_BUTTON_WEST:
-		if (TryUseBeltItem(playerId, 2, coopPlayer.leftShoulderHeld, coopPlayer.rightShoulderHeld))
-			return;
-		if (player.CanChangeAction() && player.destAction == ACTION_NONE) {
-			coopPlayer.skillButtonHeld = LocalCoopButtonMapper::GetSkillSlot(button);
-			coopPlayer.skillButtonPressTime = now;
-			coopPlayer.skillMenuOpenedByHold = false;
-		}
-		break;
-
-	case SDL_GAMEPAD_BUTTON_NORTH:
-		if (TryUseBeltItem(playerId, 3, coopPlayer.leftShoulderHeld, coopPlayer.rightShoulderHeld))
-			return;
-		if (player.CanChangeAction() && player.destAction == ACTION_NONE) {
-			coopPlayer.skillButtonHeld = LocalCoopButtonMapper::GetSkillSlot(button);
-			coopPlayer.skillButtonPressTime = now;
-			coopPlayer.skillMenuOpenedByHold = false;
-		}
-		break;
-
-	case SDL_GAMEPAD_BUTTON_BACK:
-		ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_QUICK_SPELL_MENU);
-		break;
-
-	case SDL_GAMEPAD_BUTTON_START:
-		// Start button is used as a modifier - no action on press
+	case SDL_GAMEPAD_BUTTON_LEFT_STICK:
+		DoAutoMap();
 		break;
 
 	default:
@@ -1139,48 +1188,25 @@ void HandleGameplayButtonDown(uint8_t playerId, LocalCoopPlayer &coopPlayer, Pla
  */
 void HandleGameplayButtonUp(uint8_t playerId, LocalCoopPlayer &coopPlayer, uint8_t button)
 {
-	const int releasedSlot = LocalCoopButtonMapper::GetSkillSlot(button);
-
-	if (releasedSlot >= 0) {
-		switch (releasedSlot) {
-		case 2:
-			if (coopPlayer.actionHeld == GameActionType_PRIMARY_ACTION) {
-				if (g_LocalCoop.DoesPlayerOwnPanels(playerId) && CharFlag && CharPanelButtonActive) {
-					LocalCoopPlayerContext context(playerId);
-					if (pChrButtons.has_value()) {
-						ReleaseChrBtns(false);
-					}
-				}
-				coopPlayer.actionHeld = GameActionType_NONE;
-			}
-			break;
-		case 3:
-			if (coopPlayer.actionHeld == GameActionType_SECONDARY_ACTION)
-				coopPlayer.actionHeld = GameActionType_NONE;
-			break;
-		case 0:
-			if (coopPlayer.actionHeld == GameActionType_CAST_SPELL)
-				coopPlayer.actionHeld = GameActionType_NONE;
-			break;
-		}
-	}
-
-	if (releasedSlot >= 0 && coopPlayer.skillButtonHeld == releasedSlot) {
-		if (!(g_LocalCoop.DoesPlayerOwnPanels(playerId) && CharFlag && CharPanelButtonActive)) {
-			if (!coopPlayer.skillMenuOpenedByHold) {
-				CastLocalCoopHotkeySpell(playerId, releasedSlot);
-			}
-		}
-		coopPlayer.skillButtonHeld = -1;
-		coopPlayer.skillButtonPressTime = 0;
-	}
-
 	switch (button) {
-	case SDL_GAMEPAD_BUTTON_LEFT_SHOULDER:
-		coopPlayer.leftShoulderHeld = false;
+	case SDL_GAMEPAD_BUTTON_EAST:
+		if (coopPlayer.actionHeld == GameActionType_PRIMARY_ACTION) {
+			if (g_LocalCoop.DoesPlayerOwnPanels(playerId) && CharFlag && CharPanelButtonActive) {
+				LocalCoopPlayerContext context(playerId);
+				if (pChrButtons.has_value()) {
+					ReleaseChrBtns(false);
+				}
+			}
+			coopPlayer.actionHeld = GameActionType_NONE;
+		}
 		break;
-	case SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER:
-		coopPlayer.rightShoulderHeld = false;
+	case SDL_GAMEPAD_BUTTON_NORTH:
+		if (coopPlayer.actionHeld == GameActionType_SECONDARY_ACTION)
+			coopPlayer.actionHeld = GameActionType_NONE;
+		break;
+	case SDL_GAMEPAD_BUTTON_WEST:
+		if (coopPlayer.actionHeld == GameActionType_CAST_SPELL)
+			coopPlayer.actionHeld = GameActionType_NONE;
 		break;
 	default:
 		break;
@@ -1190,16 +1216,8 @@ void HandleGameplayButtonUp(uint8_t playerId, LocalCoopPlayer &coopPlayer, uint8
 /**
  * @brief Process button input for a local co-op player.
  *
- * Button mapping:
- * - A (South): Primary action if target exists, otherwise cast skill slot A
- * - B (East): Secondary action if target exists, otherwise cast skill slot B
- * - X (West): Cast skill slot X
- * - Y (North): Cast skill slot Y
- * - LB: Use health potion
- * - RB: Use mana potion
- * - Select: Toggle character info
- * - Start: Toggle inventory
- * - D-pad: Movement
+ * Players 2-4 use the same default gamepad mapping as Player 1
+ * (see HandleGameplayButtonDown). D-pad and left stick move the player.
  */
 void ProcessLocalCoopButtonInput(uint8_t playerId, const SDL_Event &event)
 {
@@ -1240,10 +1258,8 @@ void ProcessLocalCoopButtonInput(uint8_t playerId, const SDL_Event &event)
 	}
 
 	if (isButtonDown) {
-		uint32_t now = SDL_GetTicks();
-
-		// Handle quick text dismissal
-		if (qtextflag && button == SDL_GAMEPAD_BUTTON_EAST) {
+		// Handle quick text dismissal (any face button or Back/Start, like Player 1's menu keys)
+		if (qtextflag && IsAnyOf(button, SDL_GAMEPAD_BUTTON_SOUTH, SDL_GAMEPAD_BUTTON_EAST, SDL_GAMEPAD_BUTTON_NORTH, SDL_GAMEPAD_BUTTON_BACK, SDL_GAMEPAD_BUTTON_START)) {
 			qtextflag = false;
 			if (leveltype == DTYPE_TOWN)
 				stream_stop();
@@ -1253,16 +1269,8 @@ void ProcessLocalCoopButtonInput(uint8_t playerId, const SDL_Event &event)
 			return;
 		}
 
-		// Handle spell menu assignment
-		if (SpellSelectFlag && coopPlayer.skillMenuOpenedByHold) {
-			HandleSpellMenuAssignment(playerId, coopPlayer, button);
-			return;
-		}
-
-		// Handle gameplay buttons
-		HandleGameplayButtonDown(playerId, coopPlayer, player, button, now);
+		HandleGameplayButtonDown(playerId, coopPlayer, player, button);
 	} else if (isButtonUp) {
-		// Handle button release
 		HandleGameplayButtonUp(playerId, coopPlayer, button);
 	}
 }
@@ -1318,8 +1326,9 @@ void ProcessLocalCoopAxisMotion(uint8_t playerId, const SDL_Event &event)
 	case SDL_GAMEPAD_AXIS_LEFT_TRIGGER: {
 		// Left trigger = Character screen (like player 1)
 		bool nowPressed = axis.value > TriggerThreshold;
-		if (nowPressed && !coopPlayer->leftTriggerPressed) {
-			ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_CHARACTER_INFO);
+		if (nowPressed && !coopPlayer->leftTriggerPressed && !IsStartButtonHeldForPlayer(playerId)) {
+			// Back + Left trigger = Quest log (like player 1)
+			ProcessLocalCoopGameAction(playerId, IsBackButtonHeldForPlayer(playerId) ? GameActionType_TOGGLE_QUEST_LOG : GameActionType_TOGGLE_CHARACTER_INFO);
 		}
 		coopPlayer->leftTriggerPressed = nowPressed;
 		return;
@@ -1327,8 +1336,9 @@ void ProcessLocalCoopAxisMotion(uint8_t playerId, const SDL_Event &event)
 	case SDL_GAMEPAD_AXIS_RIGHT_TRIGGER: {
 		// Right trigger = Inventory (like player 1)
 		bool nowPressed = axis.value > TriggerThreshold;
-		if (nowPressed && !coopPlayer->rightTriggerPressed) {
-			ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_INVENTORY);
+		if (nowPressed && !coopPlayer->rightTriggerPressed && !IsStartButtonHeldForPlayer(playerId)) {
+			// Back + Right trigger = Spellbook (like player 1)
+			ProcessLocalCoopGameAction(playerId, IsBackButtonHeldForPlayer(playerId) ? GameActionType_TOGGLE_SPELL_BOOK : GameActionType_TOGGLE_INVENTORY);
 		}
 		coopPlayer->rightTriggerPressed = nowPressed;
 		return;
@@ -1354,8 +1364,8 @@ void UpdateLocalCoopPlayerMovement(uint8_t playerId)
 	LocalCoopPlayer *coopPlayer = validated.coop;
 	Player &player = *validated.player;
 
-	// Don't move when this player owns a panel or store
-	if (g_LocalCoop.DoesPlayerOwnPanels(playerId) || g_LocalCoop.storeOwnerPlayerId == static_cast<int>(playerId))
+	// Don't move when this player owns a panel, store or the speedbook
+	if (g_LocalCoop.DoesPlayerOwnPanels(playerId) || g_LocalCoop.storeOwnerPlayerId == static_cast<int>(playerId) || DoesPlayerOwnSpellMenu(playerId))
 		return;
 
 	// Skip if player is not on the same level as player 1
@@ -1440,13 +1450,8 @@ void LocalCoopPlayer::Reset()
 	actionHeld = 0;
 	g_LocalCoop.UpdateAnyCoopPlayerInitializedCache();
 	saveNumber = 0;
-	skillButtonHeld = -1;
-	skillButtonPressTime = 0;
-	skillMenuOpenedByHold = false;
 	leftTriggerPressed = false;
 	rightTriggerPressed = false;
-	leftShoulderHeld = false;
-	rightShoulderHeld = false;
 }
 
 AxisDirection LocalCoopPlayer::GetMoveDirection() const
@@ -1838,58 +1843,6 @@ bool IsAnyLocalPlayerWalking(Direction &outDirection)
 	return false;
 }
 
-void SetPlayerShoulderHeld(uint8_t playerId, bool isLeft, bool held)
-{
-	LocalCoopPlayer *player = g_LocalCoop.GetPlayer(playerId);
-	if (player != nullptr) {
-		if (isLeft) {
-			player->leftShoulderHeld = held;
-			// Clear right shoulder when left is pressed
-			if (held) {
-				player->rightShoulderHeld = false;
-			}
-		} else {
-			player->rightShoulderHeld = held;
-			// Clear left shoulder when right is pressed
-			if (held) {
-				player->leftShoulderHeld = false;
-			}
-		}
-	}
-}
-
-bool IsPlayerShoulderHeld(uint8_t playerId, bool isLeft)
-{
-	const LocalCoopPlayer *player = g_LocalCoop.GetPlayer(playerId);
-	if (player != nullptr) {
-		return isLeft ? player->leftShoulderHeld : player->rightShoulderHeld;
-	}
-	return false;
-}
-
-int GetPlayerBeltSlotFromButton(uint8_t playerId, ControllerButton button)
-{
-	bool leftHeld = IsPlayerShoulderHeld(playerId, true);
-	bool rightHeld = IsPlayerShoulderHeld(playerId, false);
-
-	if (!leftHeld && !rightHeld)
-		return -1;
-
-	const int baseOffset = leftHeld ? 0 : 4;
-	switch (button) {
-	case ControllerButton_BUTTON_A:
-		return baseOffset + 0;
-	case ControllerButton_BUTTON_B:
-		return baseOffset + 1;
-	case ControllerButton_BUTTON_X:
-		return baseOffset + 2;
-	case ControllerButton_BUTTON_Y:
-		return baseOffset + 3;
-	default:
-		return -1;
-	}
-}
-
 bool IsLocalCoopPlayer(const Player &player)
 {
 	if (!g_LocalCoop.enabled)
@@ -2179,7 +2132,8 @@ void ProcessLocalCoopLeftStickPanelNavigation()
 	// Same as player 1's ProcessLeftStickOrDPadGameUI() but using each coop player's left stick
 	for (size_t i = 1; i < g_LocalCoop.players.size(); ++i) {
 		const uint8_t playerId = static_cast<uint8_t>(i);
-		if (!g_LocalCoop.DoesPlayerOwnPanels(playerId))
+		const bool ownsSpellMenu = DoesPlayerOwnSpellMenu(playerId);
+		if (!ownsSpellMenu && !g_LocalCoop.DoesPlayerOwnPanels(playerId))
 			continue;
 
 		LocalCoopPlayer *coopPlayer = g_LocalCoop.GetPlayer(playerId);
@@ -2189,6 +2143,12 @@ void ProcessLocalCoopLeftStickPanelNavigation()
 		AxisDirection dir = coopPlayer->GetMoveDirection();
 		if (dir.x == AxisDirectionX_NONE && dir.y == AxisDirectionY_NONE)
 			continue;
+
+		if (ownsSpellMenu) {
+			// Navigate the speedbook with the left stick, like player 1
+			HotSpellMove(dir);
+			continue;
+		}
 
 		LocalCoopPlayerContext context(playerId);
 		ProcessGamePanelNavigation(dir);
@@ -2664,202 +2624,40 @@ void DrawCoopSmallBar(const Surface &out, Point position, int width, int height,
 }
 
 /**
- * @brief Scale and draw a CLX sprite to a target size using nearest-neighbor scaling
+ * @brief Draw the player's active spell slot (the spell cast with the spell action button).
+ *
+ * Players choose their active spell from the speedbook, like Player 1 on the main panel.
+ * The large spell icon is drawn at its native size with a golden border, like the belt.
+ *
+ * @param iconPosition Top-left corner of the spell icon
  */
-void DrawScaledClxSprite(const Surface &out, ClxSprite sprite, Point position, int targetWidth, int targetHeight)
-{
-	const int srcWidth = sprite.width();
-	const int srcHeight = sprite.height();
-
-	// Create temporary surfaces for scaling
-	OwnedSurface srcSurface(srcWidth, srcHeight);
-	OwnedSurface dstSurface(targetWidth, targetHeight);
-
-	// Fill source surface with transparent color (0)
-	FillRect(srcSurface, 0, 0, srcWidth, srcHeight, 0);
-
-	// Draw sprite to source surface (bottom-left positioning for ClxDraw)
-	ClxDraw(srcSurface, { 0, srcHeight - 1 }, sprite);
-
-	// Scale using nearest-neighbor sampling
-	const float scaleX = static_cast<float>(srcWidth) / targetWidth;
-	const float scaleY = static_cast<float>(srcHeight) / targetHeight;
-
-	// Fill destination with transparent
-	FillRect(dstSurface, 0, 0, targetWidth, targetHeight, 0);
-
-	for (int y = 0; y < targetHeight; y++) {
-		for (int x = 0; x < targetWidth; x++) {
-			// Use proper scaling to ensure we sample all source pixels including the last column
-			// Map target pixel to source: use center of target pixel
-			float srcXFloat = (x + 0.5f) * scaleX;
-			float srcYFloat = (y + 0.5f) * scaleY;
-			int srcX = static_cast<int>(srcXFloat);
-			int srcY = static_cast<int>(srcYFloat);
-			// Clamp to source bounds to avoid out-of-bounds access
-			srcX = std::min(srcX, srcWidth - 1);
-			srcY = std::min(srcY, srcHeight - 1);
-			if (srcX >= 0 && srcY >= 0) {
-				uint8_t pixel = *srcSurface.at(srcX, srcY);
-				if (pixel != 0) { // Skip transparent pixels
-					*dstSurface.at(x, y) = pixel;
-				}
-			}
-		}
-	}
-
-	// Draw scaled surface to output
-	SDL_Rect srcRect = { 0, 0, targetWidth, targetHeight };
-	out.BlitFromSkipColorIndexZero(dstSurface, srcRect, position);
-}
-
-/**
- * @brief Draw a single skill slot with configurable size
- */
-void DrawPlayerSkillSlotSmall(const Surface &out, const Player &player, int slotIndex, Point position, int slotSize, bool hideLabel = false)
-{
-	// Get spell from hotkey slot
-	SpellID spell = player._pSplHotKey[slotIndex];
-	SpellType spellType = player._pSplTHotKey[slotIndex];
-
-	// Button labels - hide if hideLabel is true (when left shoulder is held)
-	const std::string_view labelView = (!hideLabel && slotIndex < 4) ? LocalCoopButtonMapper::GetSkillSlotLabel(slotIndex) : "";
-	const char *label = labelView.data();
-
-	// Original sprite sizes
-	constexpr int OriginalHintBoxSize = SkillSlot::OriginalHintBoxSize;
-	constexpr int OriginalIconSize = SkillSlot::OriginalIconSize;
-	constexpr int OriginalIconHeight = SkillSlot::OriginalIconHeight;
-
-	constexpr int IconBorderPadding = SkillSlot::IconBorderPadding;
-	// Scale everything to fit within slotSize (30px)
-	const int scaledHintBoxWidth = slotSize + 2;                                            // Reduced by 1px (was slotSize + 3)
-	const int scaledHintBoxHeight = slotSize;                                               // Reduced by 1px (was slotSize + 1)
-	const int scaledIconSize = (OriginalIconSize * slotSize) / OriginalHintBoxSize + 4;     // Increased by 2px
-	const int scaledIconHeight = (OriginalIconHeight * slotSize) / OriginalHintBoxSize + 4; // Increased by 2px more (was +2, now +4)
-	const int scaledPadding = (IconBorderPadding * slotSize) / OriginalHintBoxSize;         // ~1-2px
-
-	// Position calculations for spell icon (bottom-left based)
-	// Icon should be centered within the scaled hintBox
-	int iconX = position.x + scaledPadding;
-	int iconY = position.y + slotSize - scaledPadding; // Bottom-aligned
-	Point iconPos = { iconX, iconY };
-
-	// Scale and draw spell icon
-	const uint64_t spells = player._pAblSpells | player._pMemSpells | player._pScrlSpells | player._pISpells;
-
-	// Create temporary surfaces for icon scaling
-	OwnedSurface iconSrcSurface(OriginalIconSize, OriginalIconHeight);
-	FillRect(iconSrcSurface, 0, 0, OriginalIconSize, OriginalIconHeight, 0);
-
-	// Draw spell icon to source surface
-	if (spell == SpellID::Invalid || spellType == SpellType::Invalid || (spells & GetSpellBitmask(spell)) == 0) {
-		SetSpellTrans(SpellType::Invalid);
-		DrawSmallSpellIcon(iconSrcSurface, { 0, OriginalIconHeight - 1 }, SpellID::Null);
-	} else {
-		SpellType transType = spellType;
-		if (leveltype == DTYPE_TOWN && !GetSpellData(spell).isAllowedInTown()) {
-			transType = SpellType::Invalid;
-		}
-		if (spellType == SpellType::Spell) {
-			int spellLevel = player.GetSpellLevel(spell);
-			if (spellLevel == 0)
-				transType = SpellType::Invalid;
-		}
-		SetSpellTrans(transType);
-		DrawSmallSpellIcon(iconSrcSurface, { 0, OriginalIconHeight - 1 }, spell);
-	}
-
-	// Scale icon using nearest-neighbor
-	OwnedSurface iconDstSurface(scaledIconSize, scaledIconHeight);
-	FillRect(iconDstSurface, 0, 0, scaledIconSize, scaledIconHeight, 0);
-
-	const float iconScaleX = static_cast<float>(OriginalIconSize) / scaledIconSize;
-	const float iconScaleY = static_cast<float>(OriginalIconHeight) / scaledIconHeight;
-	for (int y = 0; y < scaledIconHeight; y++) {
-		for (int x = 0; x < scaledIconSize; x++) {
-			int srcX = static_cast<int>(x * iconScaleX);
-			int srcY = static_cast<int>(y * iconScaleY);
-			if (srcX < OriginalIconSize && srcY < OriginalIconHeight) {
-				uint8_t pixel = *iconSrcSurface.at(srcX, srcY);
-				if (pixel != 0) { // Skip transparent pixels
-					*iconDstSurface.at(x, y) = pixel;
-				}
-			}
-		}
-	}
-
-	// Draw scaled icon to output (bottom-left positioning)
-	SDL_Rect iconSrcRect = { 0, 0, scaledIconSize, scaledIconHeight };          // Fixed: use full source surface to avoid glitch
-	Point iconDstPos = { iconPos.x - 2, iconPos.y - scaledIconHeight + 1 + 2 }; // Moved 2px left and 2px down
-	out.BlitFromSkipColorIndexZero(iconDstSurface, iconSrcRect, iconDstPos);
-
-	// Draw scaled border sprite AFTER icon so it appears on top
-	// Position it 1px to the left and so the full width is visible (not clipped)
-	Point hintBoxPosition = { position.x - 1, position.y }; // Move 1px to the left
-	if (GetHintBoxSprite()) {
-		DrawScaledClxSprite(out, (*GetHintBoxSprite())[0], hintBoxPosition, scaledHintBoxWidth, scaledHintBoxHeight);
-	}
-
-	// Draw button label AFTER icon (bottom-right inside slot, scaled down)
-	// Match original positioning: 14px offset from bottom-right in 39px slot
-	// For scaled slots, use proportional offset: 14/39 ≈ 0.359 of slotSize
-	constexpr int OriginalLabelOffset = SkillSlot::OriginalLabelOffset;
-	constexpr int OriginalLabelWidth = SkillSlot::OriginalLabelWidth;
-	int labelOffset = (OriginalLabelOffset * slotSize + OriginalHintBoxSize / 2) / OriginalHintBoxSize;             // Round properly
-	int labelWidth = std::max(12, (OriginalLabelWidth * slotSize + OriginalHintBoxSize / 2) / OriginalHintBoxSize); // Increased minimum to 12px
-	// Position label at bottom-right of the slot (using actual slot position and size)
-	// The hintBox is drawn 1px to the left, but we position relative to the slot itself
-	int labelX = position.x + slotSize - labelOffset;
-	int labelY = position.y + slotSize - labelOffset;
-	// Only draw if label is not empty
-	if (label != nullptr && *label != '\0') {
-		// Use 0 for height to auto-size like the original
-		DrawString(out, label, { { labelX, labelY }, { labelWidth, 0 } },
-		    { .flags = UiFlags::ColorWhite | UiFlags::Outlined | UiFlags::FontSize12, .spacing = 0 });
-	}
-}
-
-/**
- * @brief Draw 2x2 grid of skill slots with configurable size
- */
-void DrawPlayerSkillSlots2x2Small(const Surface &out, const Player &player, Point basePosition, int slotSize, bool hideLabels = false)
+void DrawPlayerActiveSpellSlot(const Surface &out, const Player &player, Point iconPosition)
 {
 	using namespace LocalCoopLayout;
-	constexpr int spacingX = SkillSlot::GridSpacingX; // Horizontal spacing between slots (width spacing)
-	constexpr int spacingY = SkillSlot::GridSpacingY; // Vertical spacing between slots
-	// Grid layout: A B / X Y  ->  indices 2,3 / 0,1
-	static constexpr int SlotGrid[2][2] = {
-		{ 2, 3 }, // Top row: A, B
-		{ 0, 1 }  // Bottom row: X, Y
-	};
 
-	for (int row = 0; row < 2; row++) {
-		for (int col = 0; col < 2; col++) {
-			int slotX = basePosition.x + col * (slotSize + spacingX);
-			int slotY = basePosition.y + row * (slotSize + spacingY);
-			DrawPlayerSkillSlotSmall(out, player, SlotGrid[row][col], { slotX, slotY }, slotSize, hideLabels);
-		}
+	SpellID spell = player._pRSpell;
+	SpellType spellType = player._pRSplType;
+
+	// Same availability coloring as the main panel spell button (DrawSpell)
+	if (!IsValidSpell(spell)) {
+		spellType = SpellType::Invalid;
+		spell = SpellID::Null;
 	}
-}
-
-/**
- * @brief Draw 4 skill slots in a vertical column (1x4 layout)
- * Order from top to bottom: A, B, X, Y (indices 2, 3, 0, 1)
- */
-[[maybe_unused]] void DrawPlayerSkillSlotsVertical(const Surface &out, const Player &player, Point basePosition, int slotSize, int totalHeight, bool hideLabels = false)
-{
-	// 4 slots stacked vertically with fixed 2px spacing
-	constexpr int spacing = 2;   // Fixed 2px spacing between slots
-	constexpr int topOffset = 1; // Slots start at the top (moved 1px up from previous 1px offset)
-
-	// Order: A, B, X, Y (indices 2, 3, 0, 1)
-	static constexpr int SlotOrder[] = { 2, 3, 0, 1 };
-
-	for (int i = 0; i < 4; i++) {
-		int slotY = basePosition.y + topOffset + i * (slotSize + spacing);
-		DrawPlayerSkillSlotSmall(out, player, SlotOrder[i], { basePosition.x, slotY }, slotSize, hideLabels);
+	if (spellType == SpellType::Spell) {
+		if (CheckSpell(player, spell, spellType, true) != SpellCheckResult::Success || player.GetSpellLevel(spell) <= 0)
+			spellType = SpellType::Invalid;
 	}
+	if (leveltype == DTYPE_TOWN && spellType != SpellType::Invalid && !GetSpellData(spell).isAllowedInTown())
+		spellType = SpellType::Invalid;
+
+	// Border first; the icon covers its inner area
+	DrawGoldenBorder(out, Rectangle {
+	                          iconPosition - Displacement { SpellSlot::BorderOverhang, SpellSlot::BorderOverhang },
+	                          Size { SpellSlot::IconSize + SpellSlot::BorderExtraWidth, SpellSlot::IconSize + SpellSlot::BorderExtraHeight } });
+
+	// DrawLargeSpellIcon takes the bottom-left corner
+	SetSpellTrans(spellType);
+	DrawLargeSpellIcon(out, iconPosition + Displacement { 0, SpellSlot::IconSize - 1 }, spell);
 }
 
 /**
@@ -2927,82 +2725,105 @@ void DrawCoopPanelBackground(const Surface &out, Rectangle rect)
 }
 
 /**
- * @brief Cast a spell from a specific hotkey slot for a local coop player.
+ * @brief Cast a spell for a local coop player.
+ *
+ * Mirrors Player 1's spell action (CheckPlrSpell), using this player's own targeting state.
  *
  * @param playerId The game player ID (0 = player 1, 1-3 = coop players)
- * @param slotIndex The hotkey slot index (0-3 corresponding to D-pad Up/Down/Left/Right)
+ * @param spellID The spell to cast
+ * @param spellType The spell source (skill, spell, scroll, staff charges)
  */
-void CastLocalCoopHotkeySpell(uint8_t playerId, int slotIndex)
+void CastLocalCoopSpell(uint8_t playerId, SpellID spellID, SpellType spellType)
 {
 	auto validated = GetValidatedPlayer(playerId);
 	if (!validated.isValid)
 		return;
 
-	LocalCoopPlayer *coopPlayer = validated.coop;
-	Player *player = validated.player;
+	const LocalCoopCursorState &cursor = validated.coop->cursor;
+	Player &player = *validated.player;
 
 	// Check if player is already performing an action - prevent duplicate casts
-	if (!player->CanChangeAction() || player->destAction != ACTION_NONE)
+	if (!player.CanChangeAction() || player.destAction != ACTION_NONE)
 		return;
 
-	// Get spell from hotkey slot
-	SpellID spell = player->_pSplHotKey[slotIndex];
-	SpellType spellType = player->_pSplTHotKey[slotIndex];
+	// NetSendCmd* uses MyPlayerId internally
+	LocalCoopPlayerContext context(playerId);
 
-	// If no spell assigned, perform a regular attack instead
-	if (spell == SpellID::Invalid || spellType == SpellType::Invalid) {
-		// Perform primary action (attack) just like pressing A button
-		PerformLocalCoopPrimaryAction(playerId);
+	if (!IsValidSpell(spellID)) {
+		player.Say(HeroSpeech::IDontHaveASpellReady);
 		return;
 	}
 
-	// Check if spell can be cast in town
-	if (leveltype == DTYPE_TOWN && !GetSpellData(spell).isAllowedInTown())
+	if (leveltype == DTYPE_TOWN && !GetSpellData(spellID).isAllowedInTown()) {
+		player.Say(HeroSpeech::ICantCastThatHere);
 		return;
+	}
 
-	// Check if player has the spell available
-	uint64_t spells = 0;
+	const Player *targetPlayer = cursor.playerUnderCursor != &player ? cursor.playerUnderCursor : nullptr;
+	if ((targetPlayer == nullptr && IsAnyOf(spellID, SpellID::Resurrect, SpellID::HealOther))
+	    || (cursor.objectUnderCursor == nullptr && spellID == SpellID::TrapDisarm)) {
+		player.Say(HeroSpeech::ICantCastThatHere);
+		return;
+	}
+
+	bool canCast = false;
+	SpellCheckResult spellcheck = SpellCheckResult::Success;
 	switch (spellType) {
 	case SpellType::Skill:
-		spells = player->_pAblSpells;
-		break;
 	case SpellType::Spell:
-		spells = player->_pMemSpells;
+		spellcheck = CheckSpell(player, spellID, spellType, false);
+		canCast = spellcheck == SpellCheckResult::Success;
 		break;
 	case SpellType::Scroll:
-		spells = player->_pScrlSpells;
+		canCast = CanUseScroll(player, spellID);
 		break;
 	case SpellType::Charges:
-		spells = player->_pISpells;
+		canCast = CanUseStaff(player, spellID);
 		break;
-	default:
+	case SpellType::Invalid:
 		return;
 	}
 
-	if ((spells & GetSpellBitmask(spell)) == 0)
+	if (!canCast) {
+		if (spellType == SpellType::Spell) {
+			switch (spellcheck) {
+			case SpellCheckResult::Fail_NoMana:
+				player.Say(HeroSpeech::NotEnoughMana);
+				break;
+			case SpellCheckResult::Fail_Level0:
+				player.Say(HeroSpeech::ICantCastThatYet);
+				break;
+			default:
+				player.Say(HeroSpeech::ICantDoThat);
+				break;
+			}
+		}
 		return;
-
-	// For spell type, check spell level
-	if (spellType == SpellType::Spell && player->GetSpellLevel(spell) == 0)
-		return;
-
-	// Calculate target position for the spell
-	LocalCoopCursorState &cursor = coopPlayer->cursor;
-	Point spellTarget = player->position.future + Displacement(player->_pdir);
-
-	if (cursor.pcursmonst != -1) {
-		spellTarget = Monsters[cursor.pcursmonst].position.tile;
-	} else if (cursor.playerUnderCursor != nullptr && cursor.playerUnderCursor != player) {
-		spellTarget = cursor.playerUnderCursor->position.future;
 	}
 
-	// Cast the spell - need to use LocalCoopPlayerContext so MyPlayerId is set correctly
-	// NetSendCmdLocParam3 uses MyPlayerId internally
-	// Last parameter is spellFrom (0 = regular cast, not from item)
-	LocalCoopPlayerContext context(playerId);
-	NetSendCmdLocParam3(true, CMD_SPELLXY, spellTarget,
-	    static_cast<int16_t>(spell),
-	    static_cast<int8_t>(spellType), 0);
+	// Town Portal and Teleport never target actors (same as Player 1)
+	const bool canTargetActor = spellID != SpellID::TownPortal && spellID != SpellID::Teleport;
+	const int8_t spell = static_cast<int8_t>(spellID);
+	const uint8_t type = static_cast<uint8_t>(spellType);
+	constexpr int spellFrom = 0;
+
+	Point target = player.position.future + Displacement(player._pdir) * (spellID == SpellID::Teleport ? 4 : 1);
+	if (canTargetActor && cursor.pcursmonst != -1) {
+		target = Monsters[cursor.pcursmonst].position.tile;
+	} else if (canTargetActor && targetPlayer != nullptr) {
+		target = targetPlayer->position.future;
+	}
+
+	if (IsWallSpell(spellID)) {
+		const Direction sd = GetDirection(player.position.tile, target);
+		NetSendCmdLocParam4(true, CMD_SPELLXYD, target, spell, type, static_cast<uint16_t>(sd), spellFrom);
+	} else if (canTargetActor && cursor.pcursmonst != -1) {
+		NetSendCmdParam4(true, CMD_SPELLID, cursor.pcursmonst, spell, type, spellFrom);
+	} else if (canTargetActor && targetPlayer != nullptr && !player.friendlyMode) {
+		NetSendCmdParam4(true, CMD_SPELLPID, targetPlayer->getId(), spell, type, spellFrom);
+	} else {
+		NetSendCmdLocParam3(true, CMD_SPELLXY, target, spell, type, spellFrom);
+	}
 }
 
 [[maybe_unused]] void DrawPlayerBeltSlot(const Surface &out, const Player &player, int slotIndex, Point position)
@@ -3032,7 +2853,7 @@ void CastLocalCoopHotkeySpell(uint8_t playerId, int slotIndex)
 	DrawItem(item, out, itemPos, sprite);
 }
 
-void DrawPlayerBelt(const Surface &out, const Player &player, uint8_t playerId, Point basePosition, bool alignRight, bool leftShoulderHeld = false, bool rightShoulderHeld = false)
+void DrawPlayerBelt(const Surface &out, const Player &player, uint8_t playerId, Point basePosition)
 {
 	// Draw golden border around the belt (same style as health/mana bars)
 	// Belt region increased by 4 pixels (right and bottom), width reduced by 1px
@@ -3073,127 +2894,10 @@ void DrawPlayerBelt(const Surface &out, const Player &player, uint8_t playerId, 
 
 		// Draw the item
 		DrawItem(player.SpdList[i], out, position, sprite);
-
-		// Draw button label if shoulder button is held
-		// Left shoulder: slots 0-3 (A, B, X, Y)
-		// Right shoulder: slots 4-7 (A, B, X, Y)
-		// If both are held, prioritize right shoulder
-		std::string_view labelView;
-		if (rightShoulderHeld && i >= 4 && i < 8) {
-			// Right shoulder takes priority if both are held
-			labelView = LocalCoopButtonMapper::GetBeltButtonLabel(i - 4);
-		} else if (leftShoulderHeld && i < 4) {
-			// Left shoulder only if right is not held
-			labelView = LocalCoopButtonMapper::GetBeltButtonLabel(i);
-		}
-		const char *label = labelView.empty() ? nullptr : labelView.data();
-
-		if (label != nullptr) {
-			// Draw label above the belt slot (similar to main inventory belt labels)
-			DrawString(out, label, { position - Displacement { 0, 12 }, InventorySlotSizeInPixels },
-			    { .flags = UiFlags::ColorWhite | UiFlags::Outlined | UiFlags::AlignRight | UiFlags::FontSize12, .spacing = 0 });
-		}
 	}
 }
 
 } // namespace
-
-void DrawPlayerSkillSlot(const Surface &out, const Player &player, int slotIndex, Point position)
-{
-	using namespace LocalCoopLayout;
-	// Get spell from hotkey slot
-	SpellID spell = player._pSplHotKey[slotIndex];
-	SpellType spellType = player._pSplTHotKey[slotIndex];
-
-	// Button labels for each slot
-	// Slots are mapped as: A=2, B=3, X=0, Y=1 (to match gamepad buttons)
-	const std::string_view labelView = (slotIndex < 4) ? LocalCoopButtonMapper::GetSkillSlotLabel(slotIndex) : "";
-	const char *label = labelView.data();
-
-	// HintBox sprite is 39x39, spell icon is 37x38
-	// RenderClxSprite uses TOP-LEFT position
-	// DrawSmallSpellIcon uses BOTTOM-LEFT position
-	// spellIconDisplacement converts from top-left border pos to bottom-left icon pos
-	constexpr int HintBoxSize = SkillSlot::OriginalHintBoxSize;
-	constexpr int IconSize = SkillSlot::OriginalIconSize;
-
-	// Position is the TOP-LEFT of where we want the slot to appear
-	// borderPos is TOP-LEFT for RenderClxSprite (hintBox)
-	// iconPos is BOTTOM-LEFT for DrawSmallSpellIcon
-	// From DrawSpellsCircleMenuHint: spellIconDisplacement = { (39-37)/2 + 1, 39 - (39-37)/2 - 1 } = { 2, 37 }
-	const Displacement spellIconDisplacement = { (HintBoxSize - IconSize) / 2 + 1, HintBoxSize - (HintBoxSize - IconSize) / 2 - 1 };
-	Point borderPos = position;                       // TOP-LEFT for RenderClxSprite
-	Point iconPos = position + spellIconDisplacement; // BOTTOM-LEFT for DrawSmallSpellIcon
-
-	// Check if player has this spell available
-	const uint64_t spells = player._pAblSpells | player._pMemSpells | player._pScrlSpells | player._pISpells;
-
-	// If no spell assigned or spell not available, draw empty gray slot
-	if (spell == SpellID::Invalid || spellType == SpellType::Invalid || (spells & GetSpellBitmask(spell)) == 0) {
-		// Draw border sprite FIRST (top-left position) so icon renders on top
-		if (GetHintBoxSprite()) {
-			RenderClxSprite(out, (*GetHintBoxSprite())[0], borderPos);
-		}
-		// Draw empty icon with gray coloring (matches DrawSpellsCircleMenuHint behavior)
-		SetSpellTrans(SpellType::Invalid);
-		DrawSmallSpellIcon(out, iconPos, SpellID::Null);
-		// Draw button label in bottom-right corner of slot
-		constexpr int LabelOffset = SkillSlot::OriginalLabelOffset;
-		constexpr int LabelWidth = SkillSlot::OriginalLabelWidth;
-		DrawString(out, label, { { position.x + HintBoxSize - LabelOffset, position.y + HintBoxSize - LabelOffset }, { LabelWidth, 0 } },
-		    { .flags = UiFlags::ColorWhite | UiFlags::Outlined | UiFlags::FontSize12, .spacing = 0 });
-		return;
-	}
-
-	// Determine spell validity for coloring
-	SpellType transType = spellType;
-	if (leveltype == DTYPE_TOWN && !GetSpellData(spell).isAllowedInTown()) {
-		transType = SpellType::Invalid;
-	}
-	if (spellType == SpellType::Spell) {
-		int spellLevel = player.GetSpellLevel(spell);
-		if (spellLevel == 0)
-			transType = SpellType::Invalid;
-	}
-
-	// Draw golden border sprite FIRST so spell icon renders on top
-	if (GetHintBoxSprite()) {
-		RenderClxSprite(out, (*GetHintBoxSprite())[0], borderPos);
-	}
-
-	// Draw the spell icon (37x38) - bottom-left position
-	SetSpellTrans(transType);
-	DrawSmallSpellIcon(out, iconPos, spell);
-
-	// Draw button label in bottom-right corner (over the icon)
-	constexpr int LabelOffset = SkillSlot::OriginalLabelOffset;
-	constexpr int LabelWidth = SkillSlot::OriginalLabelWidth;
-	DrawString(out, label, { { position.x + HintBoxSize - LabelOffset, position.y + HintBoxSize - LabelOffset }, { LabelWidth, 0 } },
-	    { .flags = UiFlags::ColorWhite | UiFlags::Outlined | UiFlags::FontSize12, .spacing = 0 });
-}
-
-void DrawPlayerSkillSlots2x2(const Surface &out, const Player &player, Point basePosition)
-{
-	// HintBox (border) is 39x39, use this for layout spacing
-	constexpr int HintBoxSize = 39;
-	constexpr int SlotSpacing = 2;
-
-	// Skills are displayed as 2x2 grid:
-	// Top row: A (index 2), B (index 3)
-	// Bottom row: X (index 0), Y (index 1)
-	static constexpr int SlotGrid[2][2] = {
-		{ 2, 3 }, // Top row: A, B
-		{ 0, 1 }  // Bottom row: X, Y
-	};
-
-	for (int row = 0; row < 2; row++) {
-		for (int col = 0; col < 2; col++) {
-			int slotX = basePosition.x + col * (HintBoxSize + SlotSpacing);
-			int slotY = basePosition.y + row * (HintBoxSize + SlotSpacing);
-			DrawPlayerSkillSlot(out, player, SlotGrid[row][col], { slotX, slotY });
-		}
-	}
-}
 
 bool LocalCoopHUDOpen = true;
 
@@ -3204,11 +2908,8 @@ bool LocalCoopHUDOpen = true;
 int GetLocalCoopPanelWidth()
 {
 	using namespace LocalCoopLayout;
-	// Dynamic panel width - can be adjusted here or made configurable
-	// For now, using base width but can be increased for wider panels
-	int targetPanelWidth = PanelWidth::BaseWidth; // Change this value to adjust panel width
-
-	return targetPanelWidth;
+	// Bars/belt section plus the active spell slot
+	return PanelWidth::BaseWidth + SpellSlot::SectionWidth;
 }
 
 // HUD drawing helper functions (defined outside anonymous namespace to avoid ambiguity)
@@ -3241,11 +2942,6 @@ PlayerHUDLayout CalculatePlayerHUDLayout(bool experienceBarEnabled, int panelWid
 
 	// Bar width = space between P# and Level
 	layout.barsWidth = layout.panelContentWidth - layout.playerNumWidth - layout.playerNumSpacing - layout.playerNumWidth + 1;
-
-	// Skill slot size: 2 slots height = panel height
-	constexpr int skillSlotSpacing = SkillSlot::GridSpacingY;
-	layout.skillSlotSize = (Panel::Height - skillSlotSpacing) / 2;
-	layout.skillGridWidth = layout.skillSlotSize * 2 + skillSlotSpacing;
 
 	// Durability icon dimensions
 	layout.durabilityIconHeight = DurabilityIcon::Height;
@@ -3349,21 +3045,29 @@ void DrawPlayerHUDBars(const Surface &out, const Player &player, const PlayerHUD
 }
 
 /**
- * @brief Draw skill slots for a player.
+ * @brief Draw the active spell slot inside a player's panel, next to the bars/belt section.
+ * @param baseSectionX X position of the bars/belt section
+ * @param spellOnLeft true if the spell slot is on the left side of the panel
  */
-void DrawPlayerHUDSkills(const Surface &out, const Player &player, const LocalCoopPlayer &coopPlayer, int panelX, int panelY, int panelWidth, const PlayerHUDLayout &layout, bool skillsOnLeft)
+void DrawPlayerHUDSpell(const Surface &out, const Player &player, int panelX, int panelY, int baseSectionX, const PlayerHUDLayout &layout, bool spellOnLeft)
 {
 	using namespace LocalCoopLayout;
-	constexpr int skillColumnSpacing = 0;
-	int skillX;
-	if (skillsOnLeft) {
-		skillX = panelX - skillColumnSpacing - layout.skillGridWidth - 2;
+
+	int borderX;
+	if (spellOnLeft) {
+		// Same padding from the panel edge as the bars/belt section
+		borderX = panelX + Panel::LeftBorderPadding;
 	} else {
-		skillX = panelX + panelWidth + skillColumnSpacing;
+		// Right of the belt border
+		const BeltPosition beltPos = CalculateBeltPosition(baseSectionX, panelY, PanelWidth::BaseWidth, layout.barsHeight);
+		borderX = beltPos.baseX + Belt::BorderWidth + SpellSlot::BorderGap;
 	}
-	int skillY = panelY;
-	bool hideSkillLabels = coopPlayer.leftShoulderHeld || coopPlayer.rightShoulderHeld;
-	DrawPlayerSkillSlots2x2Small(out, player, { skillX, skillY }, layout.skillSlotSize, hideSkillLabels);
+
+	const Point iconPosition {
+		borderX + SpellSlot::BorderOverhang,
+		panelY + (Panel::Height - SpellSlot::IconSize) / 2 // Vertically centered
+	};
+	DrawPlayerActiveSpellSlot(out, player, iconPosition);
 }
 
 void DrawLocalCoopPlayerHUD(const Surface &out)
@@ -3382,9 +3086,9 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 	// Check if experience bar is enabled
 	const bool experienceBarEnabled = *GetOptions().Gameplay.experienceBar;
 
-	// Calculate layout dimensions
+	// Calculate layout dimensions (bars/belt section; the spell slot adds to the full panel width)
 	const int panelWidth = GetLocalCoopPanelWidth();
-	PlayerHUDLayout layout = CalculatePlayerHUDLayout(experienceBarEnabled, panelWidth);
+	PlayerHUDLayout layout = CalculatePlayerHUDLayout(experienceBarEnabled, PanelWidth::BaseWidth);
 
 	// Panel layout constants
 	using namespace LocalCoopLayout;
@@ -3423,9 +3127,6 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 		if (!shouldDrawHUD)
 			continue;
 
-		// At this point, we have a valid player to draw
-		const LocalCoopPlayer *coopPlayerPtr = &coopPlayer;
-
 		// Determine panel position based on player ID - with 1px edge padding
 		PanelPosition panelPos = GetPlayerPanelPosition(static_cast<uint8_t>(playerId), out.w(), out.h(), panelWidth);
 		if (!panelPos.isValid)
@@ -3434,13 +3135,14 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 		int panelX = panelPos.panelX;
 		int panelY = panelPos.panelY;
 		bool atBottom = (playerId == 0 || playerId == 1);
-		bool skillsOnLeft = (playerId == 1 || playerId == 3); // For P2/P4, skills go on left side
+		const bool spellOnLeft = IsSpellSlotOnLeft(static_cast<uint8_t>(playerId));
+		const int baseSectionX = GetPanelBaseSectionX(static_cast<uint8_t>(playerId), panelX);
 
 		// Draw panel background (charbg has built-in 5px golden border)
-		DrawCoopPanelBackground(out, { { panelX, panelY }, { layout.panelWidth, panelHeight } });
+		DrawCoopPanelBackground(out, { { panelX, panelY }, { panelWidth, panelHeight } });
 
 		// Content area starts after the border padding + nameTopOffset
-		int contentX = panelX + leftBorderPadding;
+		int contentX = baseSectionX + leftBorderPadding;
 		int currentY = panelY + topBorderPadding + nameTopOffset + 4; // Top row moved 3px down
 
 		// Draw top row (player number, level, attribute icon)
@@ -3459,15 +3161,13 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 		// Move currentY down to account for the tallest element in the top row (bars)
 		currentY += layout.barsHeight + elementSpacing;
 
-		// Draw skill slots
-		DrawPlayerHUDSkills(out, player, coopPlayer, panelX, panelY, layout.panelWidth, layout, skillsOnLeft);
+		// Draw active spell slot inside the panel
+		DrawPlayerHUDSpell(out, player, panelX, panelY, baseSectionX, layout, spellOnLeft);
 
-		// === BELT: Centered horizontally within the panel ===
+		// === BELT: Centered horizontally within the bars/belt section ===
 		// Use CalculateBeltPosition helper to get belt position (handles centering and Y calculation)
-		BeltPosition beltPos = CalculateBeltPosition(panelX, panelY, layout.panelWidth, layout.barsHeight);
-		bool leftShoulderHeld = (coopPlayerPtr != nullptr && coopPlayerPtr->leftShoulderHeld);
-		bool rightShoulderHeld = (coopPlayerPtr != nullptr && coopPlayerPtr->rightShoulderHeld);
-		DrawPlayerBelt(out, player, static_cast<uint8_t>(playerId), { beltPos.baseX, beltPos.baseY }, false, leftShoulderHeld, rightShoulderHeld);
+		BeltPosition beltPos = CalculateBeltPosition(baseSectionX, panelY, layout.panelWidth, layout.barsHeight);
+		DrawPlayerBelt(out, player, static_cast<uint8_t>(playerId), { beltPos.baseX, beltPos.baseY });
 
 		// Draw durability icons - above panel for bottom players, below panel for top players
 		int durabilityY;
@@ -3479,6 +3179,7 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 			durabilityY = panelY + panelHeight + layout.durabilityIconSpacing;
 		}
 		DrawPlayerDurabilityIcons(out, player, { panelX + leftBorderPadding, durabilityY }, false);
+
 	}
 }
 
@@ -4170,224 +3871,15 @@ void UpdateLocalCoopTargetSelection(uint8_t playerId)
 	FindLocalCoopTriggers(playerId);
 }
 
-/**
- * @brief Open quick spell menu for a local co-op player to assign a skill slot.
- */
-void OpenLocalCoopQuickSpellMenu(uint8_t playerId, int slotIndex)
-{
-	auto validated = GetValidatedPlayer(playerId);
-	if (!validated.isValid)
-		return;
-
-	LocalCoopPlayer *coopPlayer = validated.coop;
-
-	// Set spell menu owner - this player will own the menu until it closes
-	// We switch MyPlayer/InspectPlayer to this player and keep it that way
-	g_LocalCoop.spellMenuOwnerPlayerId = static_cast<int>(playerId);
-
-	// Switch to this player's context for the spell menu
-	// Note: We use manual assignment here because the context needs to persist
-	// until the menu is closed, not just for the duration of this function
-	MyPlayer = &Players[playerId];
-	MyPlayerId = playerId;
-	InspectPlayer = &Players[playerId];
-
-	// Open the quick spell menu
-	DoSpeedBook();
-
-	// Mark that we opened the menu via hold
-	coopPlayer->skillMenuOpenedByHold = true;
-}
-
-void UpdateLocalCoopSkillButtons()
+void UpdateLocalCoopSpellMenuOwner()
 {
 	if (!g_LocalCoop.enabled)
 		return;
 
-	uint32_t now = SDL_GetTicks();
-
-	// Check if spell menu was closed while a local coop player owned it
-	// If so, restore MyPlayer/InspectPlayer back to Player 1
-	if (g_LocalCoop.spellMenuOwnerPlayerId >= 0 && !SpellSelectFlag) {
-		// Menu was closed, restore context
-		MyPlayer = &Players[0];
-		MyPlayerId = 0;
-		InspectPlayer = &Players[0];
-
-		// Clear ownership
-		int ownerPlayerId = g_LocalCoop.spellMenuOwnerPlayerId;
-		g_LocalCoop.spellMenuOwnerPlayerId = -1;
-
-		// Clear the hold state for the owner
-		LocalCoopPlayer *owner = g_LocalCoop.GetPlayer(static_cast<uint8_t>(ownerPlayerId));
-		if (owner != nullptr) {
-			owner->skillMenuOpenedByHold = false;
-		}
-	}
-
-	// Check all players' skill button hold states
-	for (size_t i = 0; i < g_LocalCoop.players.size(); ++i) {
-		LocalCoopPlayer &player = g_LocalCoop.players[i];
-
-		if (!player.active)
-			continue;
-
-		// Player 1 (index 0) is always initialized
-		// Other players must be initialized and not in character select
-		if (i > 0 && (!player.initialized || player.characterSelectActive))
-			continue;
-
-		// Check if a skill button is being held
-		using namespace LocalCoopInput;
-		if (player.skillButtonHeld >= 0 && !player.skillMenuOpenedByHold) {
-			uint32_t holdDuration = now - player.skillButtonPressTime;
-			if (holdDuration >= SkillButtonHoldTime) {
-				// Held long enough - open quick spell menu
-				if (i == 0) {
-					// Player 1
-					g_LocalCoop.spellMenuOwnerPlayerId = 0;
-					DoSpeedBook();
-					player.skillMenuOpenedByHold = true;
-				} else {
-					// Coop player
-					OpenLocalCoopQuickSpellMenu(static_cast<uint8_t>(i), player.skillButtonHeld);
-				}
-			}
-		}
-	}
-}
-
-bool HandlePlayerSkillButtonDown(uint8_t playerId, int slotIndex)
-{
-	if (!g_LocalCoop.enabled)
-		return false;
-
-	using namespace LocalCoopLayout;
-	if (slotIndex < 0 || slotIndex >= SkillSlot::Count)
-		return false;
-
-	LocalCoopPlayer *player = g_LocalCoop.GetPlayer(playerId);
-	if (player == nullptr || !player->active)
-		return false;
-
-	// For coop players (not player 1), check if initialized
-	if (playerId > 0 && !player->initialized)
-		return false;
-
-	// If quick spell menu is open and this player opened it, assign the spell
-	if (SpellSelectFlag && g_LocalCoop.spellMenuOwnerPlayerId == playerId && player->skillMenuOpenedByHold) {
-		AssignPlayerSpellToSlot(playerId, slotIndex);
-		return true;
-	}
-
-	// Start tracking hold for skill slot assignment
-	player->skillButtonHeld = slotIndex;
-	player->skillButtonPressTime = SDL_GetTicks();
-	player->skillMenuOpenedByHold = false;
-
-	return false; // Don't consume - let normal processing happen if not held long enough
-}
-
-bool HandlePlayerSkillButtonUp(uint8_t playerId, int slotIndex)
-{
-	if (!g_LocalCoop.enabled)
-		return false;
-
-	using namespace LocalCoopLayout;
-	if (slotIndex < 0 || slotIndex >= SkillSlot::Count)
-		return false;
-
-	LocalCoopPlayer *player = g_LocalCoop.GetPlayer(playerId);
-	if (player == nullptr)
-		return true;
-
-	if (player->skillButtonHeld == slotIndex) {
-		bool wasLongPress = player->skillMenuOpenedByHold;
-
-		// Reset hold tracking
-		player->skillButtonHeld = -1;
-		player->skillButtonPressTime = 0;
-
-		// If it was a long press that opened the menu, don't cast
-		if (wasLongPress) {
-			return true;
-		}
-
-		// Short press - cast the spell (return false to let normal processing handle it)
-		return false;
-	}
-
-	// Tracking wasn't started for this slot
-	return true;
-}
-
-void AssignPlayerSpellToSlot(uint8_t playerId, int slotIndex)
-{
-	using namespace LocalCoopLayout;
-	if (slotIndex < 0 || slotIndex >= SkillSlot::Count)
-		return;
-
-	LocalCoopPlayer *player = g_LocalCoop.GetPlayer(playerId);
-	if (player == nullptr)
-		return;
-
-	if (playerId == 0) {
-		// Player 1 - use the standard SetSpeedSpell function
-		SetSpeedSpell(static_cast<size_t>(slotIndex));
-
-		// Close the spell menu
-		SpellSelectFlag = false;
-
-		// Clear spell menu ownership
-		g_LocalCoop.spellMenuOwnerPlayerId = -1;
-
-		// Reset hold state
-		player->skillButtonHeld = -1;
-		player->skillButtonPressTime = 0;
-		player->skillMenuOpenedByHold = false;
-	} else {
-		// Coop player - delegate to AssignLocalCoopSpellToSlot
-		AssignLocalCoopSpellToSlot(playerId, slotIndex);
-	}
-}
-
-void DrawPlayer1SkillSlots(const Surface &out)
-{
-	if (!g_LocalCoop.enabled)
-		return;
-
-	// Player 1 skill slots are only drawn on the corner HUD when local coop is active.
-	// When no coop player has joined yet, don't draw skill slots on the main panel.
-	// The skill slots will be drawn by DrawLocalCoopHUD() for all players including P1
-	// once a coop player has spawned.
-	// This function is essentially a no-op now - all drawing happens in the corner HUD.
-	return;
-}
-
-void AssignLocalCoopSpellToSlot(uint8_t playerId, int slotIndex)
-{
-	auto validated = GetValidatedPlayer(playerId);
-	if (!validated.isValid)
-		return;
-
-	LocalCoopPlayer *coopPlayer = validated.coop;
-
-	// MyPlayer should already be set to the spell menu owner by OpenLocalCoopQuickSpellMenu
-	// Use the standard SetSpeedSpell function
-	SetSpeedSpell(static_cast<size_t>(slotIndex));
-
-	// Close the spell menu and restore context
-	SpellSelectFlag = false;
-
-	// Restore MyPlayer/InspectPlayer back to Player 1
-	// Note: We use manual assignment here to restore context after menu closes
-	MyPlayer = &Players[0];
-	MyPlayerId = 0;
-	InspectPlayer = &Players[0];
-
-	// Clear spell menu ownership
-	g_LocalCoop.spellMenuOwnerPlayerId = -1;
-	coopPlayer->skillMenuOpenedByHold = false;
+	// If the speedbook was closed while a local coop player owned it (e.g. by selecting a spell
+	// or by another input path), restore MyPlayer/InspectPlayer.
+	if (g_LocalCoop.spellMenuOwnerPlayerId >= 0 && !SpellSelectFlag)
+		ReleaseLocalCoopSpellMenu();
 }
 
 void PerformLocalCoopPrimaryAction(uint8_t playerId)
@@ -4612,11 +4104,8 @@ void ProcessLocalCoopGameAction(uint8_t playerId, uint8_t actionType)
 	if (!g_LocalCoop.enabled)
 		return;
 
-	auto validated = GetValidatedPlayer(playerId);
-	if (!validated.isValid)
+	if (!local_coop::IsPlayerValid(playerId))
 		return;
-
-	LocalCoopPlayer *coopPlayer = validated.coop;
 
 	switch (actionType) {
 	case GameActionType_NONE:
@@ -4630,39 +4119,17 @@ void ProcessLocalCoopGameAction(uint8_t playerId, uint8_t actionType)
 		PerformLocalCoopSecondaryAction(playerId);
 		break;
 
-	case GameActionType_USE_HEALTH_POTION:
-		// Use health potion from belt
-		{
-			LocalCoopPlayerContext context(playerId);
-			for (int i = 0; i < MaxBeltItems; i++) {
-				Item &item = Players[playerId].SpdList[i];
-				if (item.isEmpty())
-					continue;
-				const bool isHealing = IsAnyOf(item._iMiscId, IMISC_HEAL, IMISC_FULLHEAL, IMISC_REJUV, IMISC_FULLREJUV);
-				if (isHealing) {
-					UseInvItem(INVITEM_BELT_FIRST + i);
-					break;
-				}
-			}
-		}
+	case GameActionType_USE_HEALTH_POTION: {
+		LocalCoopPlayerContext context(playerId);
+		UseBeltItem(BeltItemType::Healing);
 		break;
+	}
 
-	case GameActionType_USE_MANA_POTION:
-		// Use mana potion from belt
-		{
-			LocalCoopPlayerContext context(playerId);
-			for (int i = 0; i < MaxBeltItems; i++) {
-				Item &item = Players[playerId].SpdList[i];
-				if (item.isEmpty())
-					continue;
-				const bool isMana = IsAnyOf(item._iMiscId, IMISC_MANA, IMISC_FULLMANA, IMISC_REJUV, IMISC_FULLREJUV);
-				if (isMana) {
-					UseInvItem(INVITEM_BELT_FIRST + i);
-					break;
-				}
-			}
-		}
+	case GameActionType_USE_MANA_POTION: {
+		LocalCoopPlayerContext context(playerId);
+		UseBeltItem(BeltItemType::Mana);
 		break;
+	}
 
 	case GameActionType_TOGGLE_CHARACTER_INFO:
 	case GameActionType_TOGGLE_INVENTORY:
@@ -4731,25 +4198,7 @@ void ProcessLocalCoopGameAction(uint8_t playerId, uint8_t actionType)
 		break;
 
 	case GameActionType_CAST_SPELL:
-		// Cast currently selected spell
-		{
-			LocalCoopPlayerContext context(playerId);
-			Player &player = Players[playerId];
-			if (player._pRSpell != SpellID::Invalid) {
-				// Update target position for the spell
-				LocalCoopCursorState &cursor = coopPlayer->cursor;
-				Point spellTarget = player.position.future + Displacement(player._pdir);
-
-				if (cursor.pcursmonst != -1) {
-					spellTarget = Monsters[cursor.pcursmonst].position.tile;
-				}
-
-				// Cast spell at target (last param is spellFrom, 0 = regular cast)
-				NetSendCmdLocParam3(true, CMD_SPELLXY, spellTarget,
-				    static_cast<int16_t>(player._pRSpell),
-				    static_cast<int8_t>(player._pRSplType), 0);
-			}
-		}
+		CastLocalCoopSpell(playerId, Players[playerId]._pRSpell, Players[playerId]._pRSplType);
 		break;
 
 	default:
@@ -4819,7 +4268,7 @@ std::optional<Point> GetLocalCoopBeltSlotPosition(uint8_t playerId, int beltSlot
 		return std::nullopt;
 
 	// Calculate belt position (same as DrawPlayerBelt call in DrawLocalCoopPlayerHUD)
-	BeltPosition beltPos = CalculateBeltPosition(panelPos.panelX, panelPos.panelY, panelWidth);
+	BeltPosition beltPos = CalculateBeltPosition(GetPanelBaseSectionX(playerId, panelPos.panelX), panelPos.panelY, LocalCoopLayout::PanelWidth::BaseWidth);
 	const int beltBaseX = beltPos.baseX;
 	const int beltBaseY = beltPos.baseY;
 
@@ -4872,8 +4321,8 @@ std::optional<inv_xy_slot> FindLocalCoopBeltSlotUnderCursor(Point cursorPosition
 		if (!panelPos.isValid)
 			continue;
 
-		// Calculate belt position
-		BeltPosition beltPos = CalculateBeltPosition(panelPos.panelX, panelPos.panelY, panelWidth);
+		// Calculate belt position (same as DrawPlayerBelt call in DrawLocalCoopPlayerHUD)
+		BeltPosition beltPos = CalculateBeltPosition(GetPanelBaseSectionX(static_cast<uint8_t>(playerId), panelPos.panelX), panelPos.panelY, LocalCoopLayout::PanelWidth::BaseWidth);
 		const int beltBaseX = beltPos.baseX;
 		const int beltBaseY = beltPos.baseY;
 
@@ -5017,249 +4466,6 @@ uint8_t GetLocalCoopStoreOwnerPlayerId()
 	return static_cast<uint8_t>(g_LocalCoop.storeOwnerPlayerId);
 }
 
-bool HandleLocalCoopButtonPress(uint8_t playerId, ControllerButton button)
-{
-	if (!g_LocalCoop.enabled)
-		return false;
-
-	LocalCoopPlayer *player = g_LocalCoop.GetPlayer(playerId);
-	if (player == nullptr || !player->active)
-		return false;
-
-	// For coop players (not player 1), check if initialized
-	if (playerId > 0 && !player->initialized)
-		return false;
-
-	// Handle shoulder buttons for belt item access
-	if (button == ControllerButton_BUTTON_LEFTSHOULDER) {
-		SetPlayerShoulderHeld(playerId, true, true);
-		return true;
-	}
-	if (button == ControllerButton_BUTTON_RIGHTSHOULDER) {
-		SetPlayerShoulderHeld(playerId, false, true);
-		return true;
-	}
-
-	// Check if shoulder buttons are held - if so, A/B/X/Y should use belt items
-	const int beltSlot = GetPlayerBeltSlotFromButton(playerId, button);
-	if (beltSlot >= 0 && beltSlot < MaxBeltItems) {
-		// Use belt item at this slot
-		if (playerId < Players.size() && !Players[playerId].SpdList[beltSlot].isEmpty()) {
-			LocalCoopPlayerContext context(playerId);
-			UseInvItem(INVITEM_BELT_FIRST + beltSlot);
-		}
-		return true;
-	}
-
-	// Map button to skill slot: A=2, B=3, X=0, Y=1
-	const int slotIndex = LocalCoopButtonMapper::GetSkillSlot(button);
-
-	if (slotIndex >= 0) {
-		// For player 1, check if A button is pressed with a target under cursor
-		// If so, perform primary action instead of using skill slot
-		if (playerId == 0 && button == ControllerButton_BUTTON_A) {
-			// If character panel is open, check if cursor is over a character button
-			if (CharFlag && MyPlayer->_pStatPts > 0) {
-				// Check if cursor is over a character button
-				CheckChrBtns();
-				if (CharPanelButtonActive) {
-					// Track that we're performing primary action for character panel
-					LocalCoopPlayer *coopPlayer = g_LocalCoop.GetPlayer(playerId);
-					if (coopPlayer != nullptr) {
-						coopPlayer->actionHeld = GameActionType_PRIMARY_ACTION;
-					}
-					return true;
-				}
-			}
-			// If inventory is open, check if cursor is over a valid inventory/belt area
-			if (invflag) {
-				// Check if cursor is over an inventory item (pcursinvitem != -1)
-				// OR if cursor is over a belt slot (for local coop)
-				// OR if player is holding an item (can place it anywhere valid)
-				bool isOverBeltSlot = false;
-				if (IsLocalCoopEnabled()) {
-					uint8_t beltOwnerPlayerId = 0;
-					std::optional<inv_xy_slot> beltSlot = FindLocalCoopBeltSlotUnderCursor(MousePosition, beltOwnerPlayerId);
-					if (beltSlot.has_value() && beltOwnerPlayerId == MyPlayerId) {
-						isOverBeltSlot = true;
-					}
-				}
-				if (pcursinvitem != -1 || isOverBeltSlot || !MyPlayer->HoldItem.isEmpty()) {
-					CheckInvItem(true, false);
-					return true;
-				}
-			}
-			// Otherwise, check if there's a primary target (monster/object)
-			if (HasPlayer1PrimaryTarget()) {
-				// Track that we're performing primary action
-				if (playerId < Players.size()) {
-					Player &targetPlayer = Players[playerId];
-					if (targetPlayer.CanChangeAction() && targetPlayer.destAction == ACTION_NONE) {
-						LocalCoopPlayer *coopPlayer = g_LocalCoop.GetPlayer(playerId);
-						if (coopPlayer != nullptr) {
-							coopPlayer->actionHeld = GameActionType_PRIMARY_ACTION;
-						}
-						PerformPrimaryAction();
-					}
-				}
-				return true;
-			}
-		}
-		// For player 1, check if B button is pressed with inventory open and highlighted item
-		// If so, perform secondary action to grab the item or place it if holding one
-		if (playerId == 0 && button == ControllerButton_BUTTON_B) {
-			// If inventory is open, check if cursor is over a valid inventory/belt area
-			if (invflag) {
-				// Check if cursor is over an inventory item (pcursinvitem != -1)
-				// OR if cursor is over a belt slot (for local coop)
-				// OR if player is holding an item (can place it anywhere valid)
-				bool isOverBeltSlot = false;
-				if (IsLocalCoopEnabled()) {
-					uint8_t beltOwnerPlayerId = 0;
-					std::optional<inv_xy_slot> beltSlot = FindLocalCoopBeltSlotUnderCursor(MousePosition, beltOwnerPlayerId);
-					if (beltSlot.has_value() && beltOwnerPlayerId == MyPlayerId) {
-						isOverBeltSlot = true;
-					}
-				}
-				if (pcursinvitem != -1 || isOverBeltSlot || !MyPlayer->HoldItem.isEmpty()) {
-					ProcessGameAction(GameAction { GameActionType_SECONDARY_ACTION });
-					return true;
-				}
-			}
-			// Otherwise, check if there's a secondary target (item on ground/object)
-			// PerformSecondaryAction will handle portals/triggers internally
-			if (pcursitem != -1 || ObjectUnderCursor != nullptr) {
-				ProcessGameAction(GameAction { GameActionType_SECONDARY_ACTION });
-				return true;
-			}
-			// If no target, fall through to skill button handling
-		}
-
-		// Handle skill button press - tracks hold state for long press
-		// Returns true if we should not process further (e.g., when assigning a spell)
-		if (HandlePlayerSkillButtonDown(playerId, slotIndex))
-			return true;
-		// Otherwise, we start tracking for long press
-		// The actual spell cast happens on button release
-		return true;
-	}
-
-	// When local coop is active with other players joined, all players use Start/Select
-	// for inventory/character panels. However, Start button is now handled in ProcessLocalCoopButtonInput
-	// to support PadMenuNavigator (hold for menu navigator, quick press for inventory).
-	// So we only handle Back button here.
-	if (IsAnyLocalCoopPlayerInitialized()) {
-		if (button == ControllerButton_BUTTON_BACK) {
-			// Select/Back = Toggle quick spell menu (skill assignment)
-			ProcessGameAction(GameAction { GameActionType_TOGGLE_QUICK_SPELL_MENU });
-			return true;
-		}
-	}
-
-	return false;
-}
-
-bool HandleLocalCoopButtonRelease(uint8_t playerId, ControllerButton button)
-{
-	if (!g_LocalCoop.enabled)
-		return false;
-
-	LocalCoopPlayer *player = g_LocalCoop.GetPlayer(playerId);
-	if (player == nullptr)
-		return false;
-
-	// Don't process if player is in a store or game menu
-	if (IsPlayerInStore() || InGameMenu())
-		return false;
-
-	// Handle shoulder button release
-	if (button == ControllerButton_BUTTON_LEFTSHOULDER) {
-		SetPlayerShoulderHeld(playerId, true, false);
-		return true;
-	}
-	if (button == ControllerButton_BUTTON_RIGHTSHOULDER) {
-		SetPlayerShoulderHeld(playerId, false, false);
-		return true;
-	}
-
-	// Map button to skill slot: A=2, B=3, X=0, Y=1
-	const int slotIndex = LocalCoopButtonMapper::GetSkillSlot(button);
-
-	if (slotIndex >= 0) {
-		// Check if this was a primary action (e.g., attacking a target)
-		// If so, check if it was a character panel button press first
-		LocalCoopPlayer *coopPlayer = g_LocalCoop.GetPlayer(playerId);
-		if (coopPlayer != nullptr && coopPlayer->actionHeld == GameActionType_PRIMARY_ACTION) {
-			// Check if character panel is open and a character button was active
-			// If so, release the character button to allocate the attribute
-			if (g_LocalCoop.DoesPlayerOwnPanels(playerId) && CharFlag && CharPanelButtonActive) {
-				// Set player context so ReleaseChrBtns uses the correct player
-				LocalCoopPlayerContext context(playerId);
-				// Make sure pChrButtons is loaded before releasing buttons (prevents crash)
-				if (pChrButtons.has_value()) {
-					ReleaseChrBtns(false);
-				}
-			}
-			coopPlayer->actionHeld = GameActionType_NONE;
-			return true;
-		}
-
-		// HandlePlayerSkillButtonUp returns true if it was a long press (opened menu)
-		// Returns false if it was a short press - we should cast the spell
-		if (!HandlePlayerSkillButtonUp(playerId, slotIndex)) {
-			// Short press - cast the spell from the slot
-			if (playerId < Players.size()) {
-				Player &targetPlayer = Players[playerId];
-				SpellID spell = targetPlayer._pSplHotKey[slotIndex];
-				SpellType spellType = targetPlayer._pSplTHotKey[slotIndex];
-
-				if (spell != SpellID::Invalid && spellType != SpellType::Invalid) {
-					// Cast the spell
-					if (playerId == 0) {
-						// Player 1 - use standard spell action with global cursor state
-						LocalCoopPlayerContext context(playerId);
-						targetPlayer._pRSpell = spell;
-						targetPlayer._pRSplType = spellType;
-						PerformSpellAction();
-					} else {
-						// Local coop player - use their own cursor state
-						LocalCoopPlayer *coopPlayer = g_LocalCoop.GetPlayer(playerId);
-						if (coopPlayer != nullptr && coopPlayer->active && coopPlayer->initialized) {
-							// Calculate target position using this player's cursor state
-							LocalCoopCursorState &cursor = coopPlayer->cursor;
-							Point spellTarget = targetPlayer.position.future + Displacement(targetPlayer._pdir);
-
-							if (cursor.pcursmonst != -1) {
-								spellTarget = Monsters[cursor.pcursmonst].position.tile;
-							} else if (cursor.playerUnderCursor != nullptr && cursor.playerUnderCursor != &targetPlayer) {
-								spellTarget = cursor.playerUnderCursor->position.future;
-							}
-
-							// Cast the spell - need to use LocalCoopPlayerContext so MyPlayerId is set correctly
-							// NetSendCmdLocParam3 uses MyPlayerId internally
-							// Last parameter is spellFrom (0 = regular cast, not from item)
-							LocalCoopPlayerContext context(playerId);
-							NetSendCmdLocParam3(true, CMD_SPELLXY, spellTarget,
-							    static_cast<int16_t>(spell),
-							    static_cast<int8_t>(spellType), 0);
-						}
-					}
-				} else {
-					// No spell assigned - perform primary action (attack)
-					if (playerId == 0) {
-						PerformPrimaryAction();
-					} else {
-						PerformLocalCoopPrimaryAction(playerId);
-					}
-				}
-			}
-		}
-		return true;
-	}
-
-	return false;
-}
-
 } // namespace devilution
 
 #else // USE_SDL1
@@ -5283,17 +4489,7 @@ bool IsLocalPlayer(const Player &player) { return &player == MyPlayer; }
 void UpdateLocalCoopMovement() { }
 void ProcessLocalCoopRightStickCursor() { }
 void ProcessLocalCoopLeftStickPanelNavigation() { }
-void UpdateLocalCoopSkillButtons() { }
-bool HandlePlayerSkillButtonDown(uint8_t /*playerId*/, int /*slotIndex*/) { return false; }
-bool HandlePlayerSkillButtonUp(uint8_t /*playerId*/, int /*slotIndex*/) { return false; }
-void AssignPlayerSpellToSlot(uint8_t /*playerId*/, int /*slotIndex*/) { }
-void DrawPlayer1SkillSlots(const Surface & /*out*/) { }
-void AssignLocalCoopSpellToSlot(uint8_t /*playerId*/, int /*slotIndex*/) { }
-void SetPlayerShoulderHeld(uint8_t /*playerId*/, bool /*isLeft*/, bool /*held*/) { }
-bool IsPlayerShoulderHeld(uint8_t /*playerId*/, bool /*isLeft*/) { return false; }
-int GetPlayerBeltSlotFromButton(uint8_t /*playerId*/, ControllerButton /*button*/) { return -1; }
-bool HandleLocalCoopButtonPress(uint8_t /*playerId*/, ControllerButton /*button*/) { return false; }
-bool HandleLocalCoopButtonRelease(uint8_t /*playerId*/, ControllerButton /*button*/) { return false; }
+void UpdateLocalCoopSpellMenuOwner() { }
 void LoadAvailableHeroesForCoopSlot(uint8_t /*playerIdx*/) { }
 void ConfirmLocalCoopCharacter(uint8_t /*playerId*/) { }
 void DrawLocalCoopCharacterSelect(const Surface & /*out*/) { }

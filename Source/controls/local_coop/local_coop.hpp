@@ -92,19 +92,9 @@ struct LocalCoopPlayer {
 	// Save slot number for this player (used for saving progress)
 	uint32_t saveNumber = 0;
 
-	// Skill button hold state for long-press quick spell assignment
-	// -1 = no button held, 0-3 = skill slot being held
-	int skillButtonHeld = -1;
-	uint32_t skillButtonPressTime = 0;
-	bool skillMenuOpenedByHold = false; // Track if we opened the menu via long press
-
 	// Trigger state for inventory/character screen (like player 1)
 	bool leftTriggerPressed = false;  // Character screen
 	bool rightTriggerPressed = false; // Inventory screen
-
-	// Shoulder button hold state for belt item access
-	bool leftShoulderHeld = false;  // When held, shows A/B/X/Y labels on belt slots 1-4
-	bool rightShoulderHeld = false; // When held, shows A/B/X/Y labels on belt slots 5-8
 
 	/// Reset player state
 	void Reset();
@@ -333,30 +323,6 @@ Player *FindLocalCoopPlayerOnTrigger(int &outTriggerIndex);
  */
 bool IsAnyLocalPlayerWalking(Direction &outDirection);
 
-/**
- * @brief Set a player's shoulder button held state.
- * @param playerId Game player ID (0 = player 1, 1-3 = coop players)
- * @param isLeft true for left shoulder, false for right shoulder
- * @param held Whether the button is held
- */
-void SetPlayerShoulderHeld(uint8_t playerId, bool isLeft, bool held);
-
-/**
- * @brief Check if a player's shoulder button is held.
- * @param playerId Game player ID (0 = player 1, 1-3 = coop players)
- * @param isLeft true for left shoulder, false for right shoulder
- * @return true if the shoulder button is held
- */
-bool IsPlayerShoulderHeld(uint8_t playerId, bool isLeft);
-
-/**
- * @brief Get belt slot from button when shoulder is held for a player.
- * @param playerId Game player ID (0 = player 1, 1-3 = coop players)
- * @param button The face button (A/B/X/Y)
- * @return Belt slot 0-7 if shoulder is held and valid button, or -1 if not applicable
- */
-int GetPlayerBeltSlotFromButton(uint8_t playerId, ControllerButton button);
-
 #ifndef USE_SDL1
 /**
  * @brief Get the controller ID from an SDL event.
@@ -431,84 +397,12 @@ void ProcessLocalCoopRightStickCursor();
 void ProcessLocalCoopLeftStickPanelNavigation();
 
 /**
- * @brief Update skill button hold states for quick spell menu.
+ * @brief Restore player context when a local co-op player's speedbook closes.
  *
- * Checks if any skill button has been held long enough to open quick spell menu.
- * Should be called in the game loop. Handles both player 1 and local coop players.
+ * While a local co-op player has the quick spell menu (speedbook) open, MyPlayer and
+ * InspectPlayer point to that player. Should be called in the game loop.
  */
-void UpdateLocalCoopSkillButtons();
-
-/**
- * @brief Handle skill button press for any player when local coop is enabled.
- *
- * Tracks button hold state for long-press to open quick spell menu.
- * @param playerId Game player ID (0 = player 1, 1-3 = coop players)
- * @param slotIndex Skill slot index (0=X, 1=Y, 2=A, 3=B)
- * @return true if the press was handled (should not be processed further)
- */
-bool HandlePlayerSkillButtonDown(uint8_t playerId, int slotIndex);
-
-/**
- * @brief Handle skill button release for any player when local coop is enabled.
- *
- * If short press, casts the spell. If long press was used to open menu, does nothing.
- * @param playerId Game player ID (0 = player 1, 1-3 = coop players)
- * @param slotIndex Skill slot index (0=X, 1=Y, 2=A, 3=B)
- * @return true if the release was handled
- */
-bool HandlePlayerSkillButtonUp(uint8_t playerId, int slotIndex);
-
-/**
- * @brief Unified button press handler for any player in local coop mode.
- *
- * Handles all button presses (face buttons, shoulders, triggers) for any player
- * including Player 1. This consolidates the logic that was previously split
- * between game_controls.cpp and local_coop.cpp.
- *
- * @param playerId Game player ID (0 = player 1, 1-3 = coop players)
- * @param button The button that was pressed
- * @return true if the button was handled and should not be processed further
- */
-bool HandleLocalCoopButtonPress(uint8_t playerId, ControllerButton button);
-
-/**
- * @brief Unified button release handler for any player in local coop mode.
- *
- * Handles all button releases for any player including Player 1.
- *
- * @param playerId Game player ID (0 = player 1, 1-3 = coop players)
- * @param button The button that was released
- * @return true if the button was handled and should not be processed further
- */
-bool HandleLocalCoopButtonRelease(uint8_t playerId, ControllerButton button);
-
-/**
- * @brief Assign spell to a player's skill slot from quick spell menu.
- *
- * Called when a player selects a spell while the quick spell menu is open.
- * @param playerId Game player ID (0 = player 1, 1-3 = coop players)
- * @param slotIndex Skill slot to assign (0-3)
- */
-void AssignPlayerSpellToSlot(uint8_t playerId, int slotIndex);
-
-/**
- * @brief Draw skill slots for player 1 on the main panel.
- *
- * Displays skill slots similar to local coop players, next to the belt.
- * @param out Output surface to draw to
- */
-void DrawPlayer1SkillSlots(const Surface &out);
-
-/**
- * @brief Handle spell selection for local co-op when quick spell menu is open.
- *
- * Called when a spell is selected from the quick spell menu while a local coop
- * player is assigning skills.
- * @param playerId Game player ID (0 = player 1, 1-3 = coop players)
- * @param slotIndex Skill slot to assign (0-3)
- * @deprecated Use AssignPlayerSpellToSlot with playerId instead
- */
-void AssignLocalCoopSpellToSlot(uint8_t playerId, int slotIndex);
+void UpdateLocalCoopSpellMenuOwner();
 
 /**
  * @brief Load available heroes for local co-op player selection.

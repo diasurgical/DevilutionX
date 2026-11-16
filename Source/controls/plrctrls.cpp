@@ -2335,8 +2335,8 @@ void plrctrls_after_game_logic()
 	// Update local co-op player movement
 	UpdateLocalCoopMovement();
 
-	// Update local co-op skill button holds (for quick spell menu)
-	UpdateLocalCoopSkillButtons();
+	// Restore player context when a local co-op player's speedbook closes
+	UpdateLocalCoopSpellMenuOwner();
 
 	// Update camera to follow all local co-op players
 	UpdateLocalCoopCamera();
@@ -2593,36 +2593,6 @@ void PerformSecondaryAction()
 				CheckVisualStorePaste(MousePosition);
 			} else if (pcursinvitem >= INVITEM_INV_FIRST && pcursinvitem <= INVITEM_INV_LAST) {
 				SellItemToVisualStore(pcursinvitem - INVITEM_INV_FIRST);
-			}
-		} else if (GetLocalCoopPanelOwnerPlayer() != nullptr) {
-			// Local co-op players 2-4 grab/place items with the cursor instead of using them
-			if (!myPlayer.HoldItem.isEmpty()) {
-				CheckInvItem(true, false);
-			} else if (pcursinvitem != -1) {
-				Item &item = GetInventoryItem(myPlayer, pcursinvitem);
-				if (!item.isEmpty() && myPlayer._pmode <= PM_WALK_SIDEWAYS) {
-					CloseGoldDrop();
-					const int8_t itemLocation = pcursinvitem;
-					myPlayer.HoldItem = item;
-					myPlayer.HoldItem._iStatFlag = myPlayer.CanUseItem(myPlayer.HoldItem);
-					if (itemLocation < INVITEM_INV_FIRST) {
-						RemoveEquipment(myPlayer, static_cast<inv_body_loc>(itemLocation), false);
-						CalcPlrInv(myPlayer, true);
-					} else if (itemLocation <= INVITEM_INV_LAST) {
-						myPlayer.RemoveInvItem(itemLocation - INVITEM_INV_FIRST, false);
-					} else {
-						myPlayer.RemoveSpdBarItem(itemLocation - INVITEM_BELT_FIRST);
-					}
-					if (myPlayer.HoldItem._itype == ItemType::Gold)
-						myPlayer._pGold = CalculateGold(myPlayer);
-					NewCursor(myPlayer.HoldItem);
-					PlaySFX(SfxID::GrabItem);
-					pcursinvitem = -1;
-				} else {
-					CtrlUseInvItem();
-				}
-			} else {
-				CtrlUseInvItem();
 			}
 		} else {
 			CtrlUseInvItem();

@@ -6,7 +6,6 @@
  */
 #pragma once
 
-#include <array>
 #include <cstdint>
 
 namespace devilution {
@@ -63,20 +62,15 @@ constexpr int PanelY = 21;
 constexpr int SlotSpacingPx = 29; // Spacing between belt slots in pixels
 } // namespace Belt
 
-/// Skill slot dimensions
-namespace SkillSlot {
-constexpr int Count = 4; // Display first 4 hotkey slots
-constexpr int OriginalHintBoxSize = 39;
-constexpr int OriginalIconSize = 37;
-constexpr int OriginalIconHeight = 38;
-constexpr int IconBorderPadding = 2;
-constexpr int OriginalLabelOffset = 14;
-constexpr int OriginalLabelWidth = 12;
-constexpr int GridSpacingX = 2;
-constexpr int GridSpacingY = 1;
-constexpr int VerticalSpacing = 2;
-constexpr int VerticalTopOffset = 1;
-} // namespace SkillSlot
+/// Active spell slot, drawn inside the panel next to the bars/belt section
+namespace SpellSlot {
+constexpr int IconSize = 56;         // Large spell icon, drawn unscaled (same as the main panel spell button)
+constexpr int BorderOverhang = 3;    // Golden border extends 3px left/top of the icon (same as the belt)
+constexpr int BorderExtraWidth = 5;  // Golden border is 5px wider than the icon (same as the belt)
+constexpr int BorderExtraHeight = 6; // Golden border is 6px taller than the icon (same as the belt)
+constexpr int BorderGap = 2;         // Gap between the belt border and the spell border
+constexpr int SectionWidth = 63;     // Extra panel width taken by the spell slot
+} // namespace SpellSlot
 
 /// Character selection UI
 namespace CharacterSelect {
@@ -114,22 +108,6 @@ constexpr uint8_t ExcludeNoPlayer = 255;
 } // namespace LocalCoopLayout
 
 namespace LocalCoopInput {
-
-/// Button to skill slot mapping
-/// Maps controller buttons to skill slot indices: A=2, B=3, X=0, Y=1
-constexpr std::array<int, 4> ButtonToSkillSlot = {
-	2, // A (South) -> slot 2
-	3, // B (East) -> slot 3
-	0, // X (West) -> slot 0
-	1  // Y (North) -> slot 1
-};
-
-/// Button to belt slot offset mapping (when shoulder held)
-/// A=0, B=1, X=2, Y=3
-constexpr std::array<int, 4> ButtonToBeltOffset = { 0, 1, 2, 3 };
-
-/// Skill button hold duration in milliseconds
-constexpr uint32_t SkillButtonHoldTime = 500;
 
 /// D-pad repeat delay in milliseconds
 constexpr uint32_t DpadRepeatDelay = 300;
