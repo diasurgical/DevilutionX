@@ -2708,9 +2708,9 @@ void DrawPlayerActiveSpellSlot(const Surface &out, const Player &player, Point i
 		spellType = SpellType::Invalid;
 
 	// Border first; the icon covers its inner area
-	DrawGoldenBorder(out, Rectangle {
-	                          iconPosition - Displacement { SpellSlot::BorderOverhang, SpellSlot::BorderOverhang },
-	                          Size { SpellSlot::IconSize + SpellSlot::BorderExtraWidth, SpellSlot::IconSize + SpellSlot::BorderExtraHeight } });
+	const Point borderPosition = iconPosition - Displacement { SpellSlot::BorderOverhang, SpellSlot::BorderOverhang };
+	const Size borderSize { SpellSlot::IconSize + SpellSlot::BorderExtraWidth, SpellSlot::IconSize + SpellSlot::BorderExtraHeight };
+	DrawGoldenBorder(out, Rectangle { borderPosition, borderSize });
 
 	// DrawLargeSpellIcon takes the bottom-left corner
 	SetSpellTrans(spellType);
