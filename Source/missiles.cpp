@@ -346,9 +346,37 @@ bool MonsterMHit(const Player &player, Monster &monster, int mindam, int maxdam,
 	return true;
 }
 
+/**
+ * @brief Whether the friendly fire setting prevents a player from damaging another player.
+ *
+ * With friendly fire disabled, players in friendly mode can't hurt other players with arrows or spells.
+ */
+bool IsBlockedByFriendlyFire(const Player &attacker, const Player &target)
+{
+	return &attacker != &target && sgGameInitInfo.bFriendlyFire == 0 && attacker.friendlyMode;
+}
+
+/**
+ * @brief Whether the friendly fire setting prevents a wall/rune missile (which hits everyone) from damaging a player.
+ *
+ * Only applies between local co-op players: they share one game instance, so walls and runes cast
+ * next to a partner follow the friendly fire setting like other spells do.
+ */
+bool IsBlockedByFriendlyFire(Missile &missile, const Player &target)
+{
+	if (missile.sourceType() != MissileSource::Player)
+		return false;
+
+	const Player &attacker = *missile.sourcePlayer();
+	if (!IsLocalPlayer(attacker) || !IsLocalPlayer(target))
+		return false;
+
+	return IsBlockedByFriendlyFire(attacker, target);
+}
+
 bool Plr2PlrMHit(const Player &player, Player &target, int mindam, int maxdam, int dist, MissileID mtype, DamageType damageType, bool shift, bool *blocked)
 {
-	if (sgGameInitInfo.bFriendlyFire == 0 && player.friendlyMode)
+	if (IsBlockedByFriendlyFire(player, target))
 		return false;
 
 	*blocked = false;
@@ -521,7 +549,7 @@ void CheckMissileCol(Missile &missile, DamageType damageType, int minDamage, int
 				Monster &monster = Monsters[missile._misource];
 				isPlayerHit = PlayerMHit(*player, &monster, missile._midist, minDamage, maxDamage, missile._mitype, damageType, isDamageShifted, DeathReason::MonsterOrTrap, &blocked);
 			}
-		} else {
+		} else if (!IsBlockedByFriendlyFire(missile, *player)) {
 			const DeathReason deathReason = missile.sourceType() == MissileSource::Player ? DeathReason::Player : DeathReason::MonsterOrTrap;
 			isPlayerHit = PlayerMHit(*player, nullptr, missile._midist, minDamage, maxDamage, missile._mitype, damageType, isDamageShifted, deathReason, &blocked);
 		}

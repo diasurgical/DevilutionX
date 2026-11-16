@@ -2105,7 +2105,8 @@ size_t OnPlayerDamage(const TCmdDamage &message, Player &player)
 	const uint32_t damage = Swap32LE(message.dwDam);
 
 	Player &target = Players[message.bPlr];
-	if (&target == MyPlayer && leveltype != DTYPE_TOWN && gbBufferMsgs != 1) {
+	// Apply damage to any player controlled on this machine (Player 1 and local co-op players)
+	if (IsLocalPlayer(target) && leveltype != DTYPE_TOWN && gbBufferMsgs != 1) {
 		if (player.isOnActiveLevel() && damage <= 192000 && !target.hasNoLife()) {
 			ApplyPlrDamage(message.damageType, target, Fixed26_6::fromRaw(static_cast<int>(damage)), 0, DeathReason::Player);
 		}
