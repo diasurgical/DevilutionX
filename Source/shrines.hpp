@@ -6,44 +6,40 @@
 #pragma once
 
 #include "engine/point.hpp"
+#include <tables/shrinedat.hpp>
 
 namespace devilution {
 
-class DiabloGenerator;
-struct Player;
-
-int OperateShrineMysterious(DiabloGenerator &rng, Player &player, Point spawnPosition, int powerParam1, int powerParam2);
-int OperateShrineHidden(DiabloGenerator &rng, Player &player, Point spawnPosition, int powerParam1, int powerParam2);
-int OperateShrineGloomy(DiabloGenerator &rng, Player &player, Point spawnPosition, int powerParam1, int powerParam2);
-int OperateShrineWeird(DiabloGenerator &rng, Player &player, Point spawnPosition, int powerParam1, int powerParam2);
-int OperateShrineMagical(DiabloGenerator &rng, Player &player, Point spawnPosition, int powerParam1, int powerParam2);
-int OperateShrineStone(DiabloGenerator &rng, Player &player, Point spawnPosition, int powerParam1, int powerParam2);
-int OperateShrineReligious(DiabloGenerator &rng, Player &player, Point spawnPosition, int powerParam1, int powerParam2);
-int OperateShrineEnchanted(DiabloGenerator &rng, Player &player, Point spawnPosition, int powerParam1, int powerParam2);
-int OperateShrineThaumaturgic(DiabloGenerator &rng, Player &player, Point spawnPosition, int powerParam1, int powerParam2);
-int OperateShrineFascinating(DiabloGenerator &rng, Player &player, Point spawnPosition, int powerParam1, int powerParam2);
-int OperateShrineCryptic(DiabloGenerator &rng, Player &player, Point spawnPosition, int powerParam1, int powerParam2);
-int OperateShrineEldritch(DiabloGenerator &rng, Player &player, Point spawnPosition, int powerParam1, int powerParam2);
-int OperateShrineEerie(DiabloGenerator &rng, Player &player, Point spawnPosition, int powerParam1, int powerParam2);
-int OperateShrineDivine(DiabloGenerator &rng, Player &player, Point spawnPosition, int powerParam1, int powerParam2);
-int OperateShrineHoly(DiabloGenerator &rng, Player &player, Point spawnPosition, int powerParam1, int powerParam2);
-int OperateShrineSacred(DiabloGenerator &rng, Player &player, Point spawnPosition, int powerParam1, int powerParam2);
-int OperateShrineSpiritual(DiabloGenerator &rng, Player &player, Point spawnPosition, int powerParam1, int powerParam2);
-int OperateShrineSpooky(DiabloGenerator &rng, Player &player, Point spawnPosition, int powerParam1, int powerParam2);
-int OperateShrineAbandoned(DiabloGenerator &rng, Player &player, Point spawnPosition, int powerParam1, int powerParam2);
-int OperateShrineCreepy(DiabloGenerator &rng, Player &player, Point spawnPosition, int powerParam1, int powerParam2);
-int OperateShrineQuiet(DiabloGenerator &rng, Player &player, Point spawnPosition, int powerParam1, int powerParam2);
-int OperateShrineSecluded(DiabloGenerator &rng, Player &player, Point spawnPosition, int powerParam1, int powerParam2);
-int OperateShrineOrnate(DiabloGenerator &rng, Player &player, Point spawnPosition, int powerParam1, int powerParam2);
-int OperateShrineGlimmering(DiabloGenerator &rng, Player &player, Point spawnPosition, int powerParam1, int powerParam2);
-int OperateShrineTainted(DiabloGenerator &rng, Player &player, Point spawnPosition, int powerParam1, int powerParam2);
-int OperateShrineOily(DiabloGenerator &rng, Player &player, Point spawnPosition, int powerParam1, int powerParam2);
-int OperateShrineGlowing(DiabloGenerator &rng, Player &player, Point spawnPosition, int powerParam1, int powerParam2);
-int OperateShrineMendicant(DiabloGenerator &rng, Player &player, Point spawnPosition, int powerParam1, int powerParam2);
-int OperateShrineSparkling(DiabloGenerator &rng, Player &player, Point spawnPosition, int powerParam1, int powerParam2);
-int OperateShrineTown(DiabloGenerator &rng, Player &player, Point spawnPosition, int powerParam1, int powerParam2);
-int OperateShrineShimmering(DiabloGenerator &rng, Player &player, Point spawnPosition, int powerParam1, int powerParam2);
-int OperateShrineSolar(DiabloGenerator &rng, Player &player, Point spawnPosition, int powerParam1, int powerParam2);
-int OperateShrineMurphys(DiabloGenerator &rng, Player &player, Point spawnPosition, int powerParam1, int powerParam2);
+ShrineMessage ShrineEffectRandomAttributeChange(DiabloGenerator &rng, Player &player, const Point spawnPosition, const ShrineEffect &shrineEffect);
+ShrineMessage ShrineEffectRandomItemDurabilityChange(DiabloGenerator &rng, Player &player, const Point spawnPosition, const ShrineEffect &shrineEffect);
+ShrineMessage ShrineEffectArmorClassMaxDamageChange(DiabloGenerator &rng, Player &player, const Point spawnPosition, const ShrineEffect &shrineEffect);
+ShrineMessage ShrineEffectMinMaxDamageChange(DiabloGenerator &rng, Player &player, const Point spawnPosition, const ShrineEffect &shrineEffect);
+ShrineMessage ShrineEffectPlayerCastSpellVariantA(DiabloGenerator &rng, Player &player, const Point spawnPosition, const ShrineEffect &shrineEffect);
+ShrineMessage ShrineEffectRechargesStaves(DiabloGenerator &rng, Player &player, const Point spawnPosition, const ShrineEffect &shrineEffect);
+ShrineMessage ShrineEffectRepairsItems(DiabloGenerator &rng, Player &player, const Point spawnPosition, const ShrineEffect &shrineEffect);
+ShrineMessage ShrineEffectRandomSpellLevelChange(DiabloGenerator &rng, Player &player, const Point spawnPosition, const ShrineEffect &shrineEffect);
+ShrineMessage ShrineEffectRefillsChests(DiabloGenerator &rng, Player &player, const Point spawnPosition, const ShrineEffect &shrineEffect);
+ShrineMessage ShrineEffectChangeSpellLevel(DiabloGenerator &rng, Player &player, const Point spawnPosition, const ShrineEffect &shrineEffect);
+ShrineMessage ShrineEffectCostOfWisdom(DiabloGenerator &rng, Player &player, const Point spawnPosition, const ShrineEffect &shrineEffect);
+ShrineMessage ShrineEffectRestoreLifeAndMana(DiabloGenerator &rng, Player &player, const Point spawnPosition, const ShrineEffect &shrineEffect);
+ShrineMessage ShrineEffectPointsTransformRejuvenation(DiabloGenerator &rng, Player &player, const Point spawnPosition, const ShrineEffect &shrineEffect);
+ShrineMessage ShrineEffectMagicAttributeChange(DiabloGenerator &rng, Player &player, const Point spawnPosition, const ShrineEffect &shrineEffect);
+ShrineMessage ShrineEffectCreatePotions(DiabloGenerator &rng, Player &player, const Point spawnPosition, const ShrineEffect &shrineEffect);
+ShrineMessage ShrineEffectPlayerCastSpellVariantB(DiabloGenerator &rng, Player &player, const Point spawnPosition, const ShrineEffect &shrineEffect);
+ShrineMessage ShrineEffectFillEmptySlotsGold(DiabloGenerator &rng, Player &player, const Point spawnPosition, const ShrineEffect &shrineEffect);
+ShrineMessage ShrineEffectDexterityAttributeChange(DiabloGenerator &rng, Player &player, const Point spawnPosition, const ShrineEffect &shrineEffect);
+ShrineMessage ShrineEffectStrengthAttributeChange(DiabloGenerator &rng, Player &player, const Point spawnPosition, const ShrineEffect &shrineEffect);
+ShrineMessage ShrineEffectVitalityAttributeChange(DiabloGenerator &rng, Player &player, const Point spawnPosition, const ShrineEffect &shrineEffect);
+ShrineMessage ShrineEffectRevealMap(DiabloGenerator &rng, Player &player, const Point spawnPosition, const ShrineEffect &shrineEffect);
+ShrineMessage ShrineEffectIdentifyItems(DiabloGenerator &rng, Player &player, const Point spawnPosition, const ShrineEffect &shrineEffect);
+ShrineMessage ShrineEffectPreferredAttributeChange(DiabloGenerator &rng, Player &player, const Point spawnPosition, const ShrineEffect &shrineEffect);
+ShrineMessage ShrineEffectCastFirewallTrap(DiabloGenerator &rng, Player &player, const Point spawnPosition, const ShrineEffect &shrineEffect);
+ShrineMessage ShrineEffectExperienceToMagicAttribute(DiabloGenerator &rng, Player &player, const Point spawnPosition, const ShrineEffect &shrineEffect);
+ShrineMessage ShrineEffectGoldToExperience(DiabloGenerator &rng, Player &player, const Point spawnPosition, const ShrineEffect &shrineEffect);
+ShrineMessage ShrineEffectExperiencePerDungeonLevel(DiabloGenerator &rng, Player &player, const Point spawnPosition, const ShrineEffect &shrineEffect);
+ShrineMessage ShrineEffectCastFlashBottomTrap(DiabloGenerator &rng, Player &player, const Point spawnPosition, const ShrineEffect &shrineEffect);
+ShrineMessage ShrineEffectPlayerCastSpellVariantC(DiabloGenerator &rng, Player &player, const Point spawnPosition, const ShrineEffect &shrineEffect);
+ShrineMessage ShrineEffectLocalHourAttributeChange(DiabloGenerator &rng, Player &player, const Point spawnPosition, const ShrineEffect &shrineEffect);
+ShrineMessage ShrineEffectBreakItemOrTakeGold(DiabloGenerator &rng, Player &player, const Point spawnPosition, const ShrineEffect &shrineEffect);
 
 } // namespace devilution

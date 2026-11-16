@@ -1177,7 +1177,7 @@ int FindValidShrine(bool forRandomEffectShrine)
 	for (;;) {
 		const int rv = GenerateRnd(ShrinesData.size());
 		const ShrineData &shrineData = GetShrineData(static_cast<uint8_t>(rv));
-		if (forRandomEffectShrine && !shrineData.availableRandomEffectShrine) {
+		if (forRandomEffectShrine && HasAnyOf(shrineData.shrineOperateFlags, ShrineOperateFlag::UnavailableRandom)) {
 			continue;
 		}
 		if (leveltype < shrineData.minLevelType || leveltype > shrineData.maxLevelType) {
@@ -2137,23 +2137,52 @@ void OperateShrine(Player &player, Object &shrine, SfxID sType)
 	shrine._oAnimDelay = 1;
 
 	const ShrineData &shrineData = GetShrineData(static_cast<uint8_t>(shrine._oVar1));
-	int messageIndex = shrineData.operateFn(rng, player, shrine.position, shrineData.powerParam1, shrineData.powerParam2);
+	ShrineMessage shrineMessage = ShrineMessage::ShrineMessageDefault;
+	for (size_t i = 0; i < MAX_SHRINE_EFFECTS; ++i) {
+		ShrineEffect shrineEffect = shrineData.shrineEffect[i];
+		if (shrineEffect.typeFn == nullptr) {
+			continue;
+		}
+		if (&player == MyPlayer) {
+			if (shrineEffect.affectsPlayer == ShrineAffectsPlayer::Others) {
+				continue;
+			}
+		} else {
+			if (shrineEffect.affectsPlayer == ShrineAffectsPlayer::Activator) {
+				continue;
+			}
+		}
+		const ShrineMessage lastShrineMessage = shrineEffect.typeFn(rng, player, shrine.position, shrineEffect);
+		if (lastShrineMessage != ShrineMessage::ShrineMessageDefault) {
+			shrineMessage = lastShrineMessage;
+		}
+	}
+	CheckStats(player);
+	CalcPlrInv(player, true);
+	RedrawEverything();
 
 	if (&player == MyPlayer) {
 		NetSendCmdLoc(MyPlayerId, false, CMD_OPERATEOBJ, shrine.position);
 	}
+
 	std::string message;
-	switch (messageIndex) {
-	case 4:
+	if (shrineMessage == ShrineMessage::ShrineMessageDefault) {
+		shrineMessage = (&player == MyPlayer) ? ShrineMessage::ShrineMessage1 : ShrineMessage::ShrineMessage5;
+	}
+	switch (shrineMessage) {
+	case ShrineMessage::ShrineMessage5:
+		message = shrineData.message5;
+		break;
+	case ShrineMessage::ShrineMessage4:
 		message = shrineData.message4;
 		break;
-	case 3:
+	case ShrineMessage::ShrineMessage3:
 		message = shrineData.message3;
 		break;
-	case 2:
+	case ShrineMessage::ShrineMessage2:
 		message = shrineData.message2;
 		break;
-	case 1:
+	case ShrineMessage::ShrineMessage1:
 		message = shrineData.message;
 		break;
 	default:
@@ -2682,7 +2711,7 @@ bool Object::IsDisabled() const
 	if (!IsShrine()) {
 		return false;
 	}
-	return GetShrineData(static_cast<uint8_t>(_oVar1)).cripplingEffect;
+	return HasAnyOf(GetShrineData(static_cast<uint8_t>(_oVar1)).shrineOperateFlags, ShrineOperateFlag::Crippling);
 }
 
 Object *FindObjectAtPosition(Point position, bool considerLargeObjects)
