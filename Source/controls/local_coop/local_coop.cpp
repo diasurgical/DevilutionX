@@ -3122,7 +3122,7 @@ void DrawPlayerHUDSpell(const Surface &out, const Player &player, int panelX, in
 
 	const Point iconPosition {
 		borderX + SpellSlot::BorderOverhang,
-		panelY + (Panel::Height - SpellSlot::IconSize) / 2 // Vertically centered
+		panelY + (Panel::Height - SpellSlot::IconSize) / 2 + SpellSlot::VerticalOffset
 	};
 	DrawPlayerActiveSpellSlot(out, player, iconPosition);
 }

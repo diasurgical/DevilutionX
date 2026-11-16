@@ -68,8 +68,9 @@ constexpr int IconSize = 56;         // Large spell icon, drawn unscaled (same a
 constexpr int BorderOverhang = 3;    // Golden border extends 3px left/top of the icon (same as the belt)
 constexpr int BorderExtraWidth = 5;  // Golden border is 5px wider than the icon (same as the belt)
 constexpr int BorderExtraHeight = 6; // Golden border is 6px taller than the icon (same as the belt)
-constexpr int BorderGap = 2;         // Gap between the belt border and the spell border
-constexpr int SectionWidth = 63;     // Extra panel width taken by the spell slot
+constexpr int BorderGap = 1;         // Gap between the belt border and the spell border
+constexpr int SectionWidth = 62;     // Extra panel width taken by the spell slot
+constexpr int VerticalOffset = 1;    // Offset from vertically centered in the panel
 } // namespace SpellSlot
 
 /// Character selection UI
