@@ -1,6 +1,5 @@
 #pragma once
 
-#include "engine/clx_sprite.hpp"
 #include "engine/point.hpp"
 #include "engine/size.hpp"
 #include "engine/surface.hpp"
@@ -21,11 +20,5 @@ Size GetSpellHotkeysHintSize();
  * @param topLeft Top-left corner of the hint.
  */
 void DrawSpellHotkeysHint(const Surface &out, const Player &player, Point topLeft);
-
-/** Get the hint box (golden border) sprite for skill/belt slots. Size is 39x39. */
-OptionalOwnedClxSpriteList &GetHintBoxSprite();
-
-/** Get the hint box background sprite. Size is 37x38. */
-OptionalOwnedClxSpriteList &GetHintBoxBackgroundSprite();
 
 } // namespace devilution

@@ -225,14 +225,4 @@ void DrawSpellHotkeysHint(const Surface &out, const Player &player, Point topLef
 	DrawSpellsCircleMenuHint(out, player, topLeft + Displacement { 0, (HintBoxSize * 2) + HintBoxMargin - LineHeight });
 }
 
-OptionalOwnedClxSpriteList &GetHintBoxSprite()
-{
-	return hintBox;
-}
-
-OptionalOwnedClxSpriteList &GetHintBoxBackgroundSprite()
-{
-	return hintBoxBackground;
-}
-
 } // namespace devilution

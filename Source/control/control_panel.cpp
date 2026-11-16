@@ -16,7 +16,6 @@
 #include "engine/trn.hpp"
 #include "gamemenu.h"
 #include "headless_mode.hpp"
-#include "items.h"
 #include "minitext.h"
 #include "options.h"
 #include "panels/charpanel.hpp"
@@ -126,10 +125,9 @@ const char *const PanBtnHotKey[8] = { "'c'", "'q'", N_("Tab"), N_("Esc"), "'i'",
 int TotalSpMainPanelButtons = 6;
 int TotalMpMainPanelButtons = 8;
 
-OptionalOwnedClxSpriteList pDurIcons;
-
 namespace {
 
+OptionalOwnedClxSpriteList pDurIcons;
 OptionalOwnedClxSpriteList multiButtons;
 OptionalOwnedClxSpriteList pMainPanelButtons;
 
@@ -168,7 +166,12 @@ int CapStatPointsToAdd(int remainingStatPoints, const Player &player, CharacterA
 	return std::min(remainingStatPoints, pointsToReachCap);
 }
 
-int DrawDurIcon4Item(const Surface &out, Item &pItem, int x, int c)
+/**
+ * @brief Draw a durability warning icon for an item if it is low on durability.
+ * @param y Bottom of the icon.
+ * @return The x position for the next icon (to the left).
+ */
+int DrawDurIcon4Item(const Surface &out, const Item &pItem, int x, int y, int c)
 {
 	const int durabilityThresholdGold = 5;
 	const int durabilityThresholdRed = 2;
@@ -210,7 +213,6 @@ int DrawDurIcon4Item(const Surface &out, Item &pItem, int x, int c)
 	}
 
 	// Draw icon
-	const int y = -17 + GetMainPanel().position.y;
 	if (partition > 0) {
 		const Surface stenciledBuffer = out.subregionY(y - partition, partition);
 		ClxDraw(stenciledBuffer, { x, partition }, (*pDurIcons)[c + 8]); // Gold icon
@@ -794,11 +796,12 @@ void DrawDurIcon(const Surface &out)
 			x -= MainPanel.position.x + MainPanel.size.width - RightPanel.position.x;
 	}
 
+	const int y = -17 + GetMainPanel().position.y;
 	Player &myPlayer = *MyPlayer;
-	x = DrawDurIcon4Item(out, myPlayer.InvBody[INVLOC_HEAD], x, 3);
-	x = DrawDurIcon4Item(out, myPlayer.InvBody[INVLOC_CHEST], x, 2);
-	x = DrawDurIcon4Item(out, myPlayer.InvBody[INVLOC_HAND_LEFT], x, 0);
-	DrawDurIcon4Item(out, myPlayer.InvBody[INVLOC_HAND_RIGHT], x, 0);
+	x = DrawDurIcon4Item(out, myPlayer.InvBody[INVLOC_HEAD], x, y, 3);
+	x = DrawDurIcon4Item(out, myPlayer.InvBody[INVLOC_CHEST], x, y, 2);
+	x = DrawDurIcon4Item(out, myPlayer.InvBody[INVLOC_HAND_LEFT], x, y, 0);
+	DrawDurIcon4Item(out, myPlayer.InvBody[INVLOC_HAND_RIGHT], x, y, 0);
 }
 
 void RedBack(const Surface &out)
@@ -865,127 +868,28 @@ void SetPanelObjectPosition(UiPanels panel, Rectangle &button)
 	button.position = GetPanelPosition(panel, button.position);
 }
 
-namespace {
-
-constexpr int DurabilityIconSize = 32;
-constexpr int DurabilityIconSpacing = 8;
-constexpr int DurabilityThresholdGold = 5;
-constexpr int DurabilityThresholdRed = 2;
-
-/**
- * @brief Internal helper to draw a single durability icon for an item at a specific position.
- *
- * @param out The surface to draw on.
- * @param pItem The item to check durability for.
- * @param x The x position to draw at.
- * @param y The y position (bottom of icon).
- * @param c The icon type (0=shield/weapon, 2=chest, 3=head, etc).
- * @return The x position for the next icon (with spacing).
- */
-int DrawDurIcon4ItemAtPosition(const Surface &out, Item &pItem, int x, int y, int c)
+void DrawPlayerDurabilityIcons(const Surface &out, const Player &player, Point position)
 {
-	if (pItem.isEmpty())
-		return x;
-	if (pItem._iDurability > DurabilityThresholdGold)
-		return x;
-	if (c == 0) {
-		switch (pItem._itype) {
-		case ItemType::Sword:
-			c = 1;
-			break;
-		case ItemType::Axe:
-			c = 5;
-			break;
-		case ItemType::Bow:
-			c = 6;
-			break;
-		case ItemType::Mace:
-			c = 4;
-			break;
-		case ItemType::Staff:
-			c = 7;
-			break;
-		case ItemType::Shield:
-		default:
-			c = 0;
-			break;
-		}
-	}
+	constexpr int IconSize = 32;
+	constexpr int IconSpacing = 8;
+	constexpr int DurabilityThresholdGold = 5;
 
-	// Calculate how much of the icon should be gold and red
-	const int height = (*pDurIcons)[c].height(); // Height of durability icon CEL
-	int partition = 0;
-	if (pItem._iDurability > DurabilityThresholdRed) {
-		const int current = pItem._iDurability - DurabilityThresholdRed;
-		partition = (height * current) / (DurabilityThresholdGold - DurabilityThresholdRed);
-	}
+	const Item *items[] = { &player.InvBody[INVLOC_HEAD], &player.InvBody[INVLOC_CHEST], &player.InvBody[INVLOC_HAND_LEFT], &player.InvBody[INVLOC_HAND_RIGHT] };
+	constexpr int iconTypes[] = { 3, 2, 0, 0 };
 
-	// Draw icon at the specified y position
-	if (partition > 0) {
-		const Surface stenciledBuffer = out.subregionY(y - partition, partition);
-		ClxDraw(stenciledBuffer, { x, partition }, (*pDurIcons)[c + 8]); // Gold icon
-	}
-	if (partition != height) {
-		const Surface stenciledBuffer = out.subregionY(y - height, height - partition);
-		ClxDraw(stenciledBuffer, { x, height }, (*pDurIcons)[c]); // Red icon
-	}
-
-	return x + (*pDurIcons)[c].width() + DurabilityIconSpacing; // Add spacing for the next durability icon (going left to right)
-}
-
-} // namespace
-
-void DrawPlayerDurabilityIcons(const Surface &out, const Player &player, Point position, bool alignRight)
-{
-	if (!pDurIcons)
-		return;
-
-	// Count how many items need durability icons
 	int iconCount = 0;
-	Item items[4];
-	constexpr int iconTypes[4] = { 3, 2, 0, 0 }; // head, chest, left hand, right hand
-
-	// Copy items to check (we need non-const access for the draw function)
-	items[0] = player.InvBody[INVLOC_HEAD];
-	items[1] = player.InvBody[INVLOC_CHEST];
-	items[2] = player.InvBody[INVLOC_HAND_LEFT];
-	items[3] = player.InvBody[INVLOC_HAND_RIGHT];
-
-	// Count items that need durability warning
-	for (int i = 0; i < 4; i++) {
-		if (!items[i].isEmpty() && items[i]._iDurability <= DurabilityThresholdGold) {
+	for (const Item *item : items) {
+		if (!item->isEmpty() && item->_iDurability <= DurabilityThresholdGold)
 			iconCount++;
-		}
 	}
-
 	if (iconCount == 0)
 		return;
 
-	// Calculate total width needed
-	const int totalWidth = iconCount * DurabilityIconSize + (iconCount - 1) * DurabilityIconSpacing;
-
-	// Determine starting x position based on alignment
-	int x;
-	if (alignRight) {
-		// Start from the right, draw icons from right to left
-		x = position.x + totalWidth - DurabilityIconSize;
-	} else {
-		// Start from the left, draw icons from left to right
-		x = position.x;
-	}
-
-	// Y position is the bottom of the icons
-	const int y = position.y + DurabilityIconSize;
-
-	// Draw icons for items with low durability
-	for (int i = 0; i < 4; i++) {
-		if (!items[i].isEmpty() && items[i]._iDurability <= DurabilityThresholdGold) {
-			x = DrawDurIcon4ItemAtPosition(out, items[i], x, y, iconTypes[i]);
-			if (alignRight) {
-				x -= 2 * DurabilityIconSpacing; // Compensate for the spacing added in DrawDurIcon4ItemAtPosition
-			}
-		}
-	}
+	// DrawDurIcon4Item lays icons out right to left (same order as the main panel), starting from the rightmost icon
+	int x = position.x + (iconCount - 1) * (IconSize + IconSpacing);
+	const int y = position.y + IconSize;
+	for (size_t i = 0; i < std::size(items); i++)
+		x = DrawDurIcon4Item(out, *items[i], x, y, iconTypes[i]);
 }
 
 } // namespace devilution

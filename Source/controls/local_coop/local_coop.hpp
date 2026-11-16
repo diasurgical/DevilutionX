@@ -498,16 +498,6 @@ void SetViewPositionForPlayer(const Player &player, Point position);
 Displacement GetLocalCoopCameraOffset();
 
 /**
- * @brief Check if the camera has a non-zero offset (for render area expansion).
- *
- * Used by rendering code to determine if extra tiles need to be rendered
- * to prevent gaps during smooth camera movement.
- *
- * @return true if camera has offset, false otherwise
- */
-bool HasCameraOffset();
-
-/**
  * @brief Check if a tile position is within the visible screen boundaries.
  *
  * Used to prevent local co-op players from moving off-screen.
@@ -575,18 +565,6 @@ void UpdateLocalCoopTargetSelection(uint8_t playerId);
 void ProcessLocalCoopGameAction(uint8_t playerId, uint8_t actionType);
 
 /**
- * @brief Handle panel toggle actions for any player when local coop is enabled.
- *
- * Routes panel actions through the panel ownership system so all players
- * are treated the same way.
- *
- * @param playerId Game player ID (0 = player 1, 1-3 = coop players)
- * @param actionType The panel action type (TOGGLE_CHARACTER_INFO, TOGGLE_INVENTORY, etc.)
- * @return true if the action was handled (panel opened or ownership blocked), false if default processing should continue
- */
-bool HandleLocalCoopPanelAction(uint8_t playerId, uint8_t actionType);
-
-/**
  * @brief Perform primary action for a local co-op player.
  *
  * Attack monsters, talk to NPCs, interact with the world.
@@ -606,9 +584,12 @@ void PerformLocalCoopPrimaryAction(uint8_t playerId);
 void PerformLocalCoopSecondaryAction(uint8_t playerId);
 
 /**
- * @brief Check if panels are currently open and owned by anyone.
+ * @brief Give the UI panels to a player who is about to use the inventory (Identify, Repair, Recharge).
+ *
+ * In local co-op this claims panel ownership for the player and switches MyPlayer/InspectPlayer to them
+ * while the panels are open, like opening a panel with their controller. Does nothing otherwise.
  */
-bool AreLocalCoopPanelsOpen();
+void ClaimLocalCoopPanelsForPlayer(const Player &player);
 
 /**
  * @brief Get the player who currently owns the UI panels.
@@ -659,7 +640,7 @@ bool IsLocalCoopTargetItem(int8_t itemIndex);
  *
  * This ensures that when panels are drawn, they show the correct player's data.
  * Should be called before drawing inventory/character panels.
- * @deprecated Use DrawPanelWithContext instead
+ * Used by WithPanelOwnerContext.
  */
 void RestorePanelOwnerContext();
 
@@ -684,7 +665,7 @@ void WithPanelOwnerContext(Func func)
  * CRITICAL: This must be called BEFORE pfile_write_hero to ensure that
  * Player 1's save file gets Player 1's data, not a local coop player's data.
  * If a local coop player has panels open, MyPlayer might point to them.
- * @deprecated Use WithPlayer1Context instead
+ * Used by WithPlayer1Context.
  */
 void RestorePlayer1ContextForSave();
 

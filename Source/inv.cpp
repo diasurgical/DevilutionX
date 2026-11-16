@@ -7,6 +7,7 @@
 #include <cmath>
 #include <cstdint>
 #include <optional>
+#include <string>
 #include <utility>
 
 #ifdef USE_SDL3
@@ -141,6 +142,8 @@ const Rectangle InvRect[] = {
 namespace {
 
 OptionalOwnedClxSpriteList pInvCels;
+/** @brief Name of the inventory panel art in pInvCels (it depends on the player's class). */
+std::string LoadedInvName;
 
 /**
  * @brief Adds an item to a player's InvGrid array
@@ -1228,7 +1231,11 @@ void InitInv()
 	if (gbIsSpawn && (playerClassData.inv == "inv_rog" || playerClassData.inv == "inv_sor")) {
 		invName = "inv";
 	}
+	// Local co-op calls this whenever a player opens the inventory, so only reload when the art changes
+	if (pInvCels && LoadedInvName == invName)
+		return;
 	pInvCels = LoadCel(StrCat("data\\inv\\", invName).c_str(), static_cast<uint16_t>(SidePanelSize.width));
+	LoadedInvName = invName;
 }
 
 void DrawInv(const Surface &out)

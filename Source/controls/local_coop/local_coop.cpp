@@ -3237,7 +3237,7 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 			// For top players, draw icons BELOW the panel
 			durabilityY = panelY + panelHeight + layout.durabilityIconSpacing;
 		}
-		DrawPlayerDurabilityIcons(out, player, { panelX + leftBorderPadding, durabilityY }, false);
+		DrawPlayerDurabilityIcons(out, player, { panelX + leftBorderPadding, durabilityY });
 
 		// Quick spell hint while holding Back (Player 1 uses the gamepad hotspell menu)
 		const bool showQuickSpells = playerId == 0
@@ -3586,12 +3586,6 @@ Displacement GetLocalCoopCameraOffset()
 	if (!g_LocalCoop.anyCoopPlayerInitializedCache)
 		return {};
 	return { g_LocalCoop.cameraOffsetX, g_LocalCoop.cameraOffsetY };
-}
-
-bool HasCameraOffset()
-{
-	Displacement offset = GetLocalCoopCameraOffset();
-	return offset.deltaX != 0 || offset.deltaY != 0;
 }
 
 bool IsLocalCoopPositionOnScreen(Point tilePos)
@@ -4235,12 +4229,6 @@ void ProcessLocalCoopGameAction(uint8_t playerId, uint8_t actionType)
 				}
 			}
 
-			// If opening inventory, reload inventory image for this player's class
-			// This ensures the inventory background matches the coop player's class
-			if (actionType == GameActionType_TOGGLE_INVENTORY && !invflag) {
-				InitInv();
-			}
-
 			ProcessGameAction(GameAction { static_cast<GameActionType>(actionType) });
 
 			// CRITICAL: Restore context after ProcessGameAction
@@ -4283,30 +4271,21 @@ void ProcessLocalCoopGameAction(uint8_t playerId, uint8_t actionType)
 	}
 }
 
-bool HandleLocalCoopPanelAction(uint8_t playerId, uint8_t actionType)
+void ClaimLocalCoopPanelsForPlayer(const Player &player)
 {
-	if (!g_LocalCoop.enabled)
-		return false;
+	if (!IsLocalCoopEnabled())
+		return;
 
-	// Only handle panel toggle actions
-	if (actionType != GameActionType_TOGGLE_CHARACTER_INFO && actionType != GameActionType_TOGGLE_INVENTORY && actionType != GameActionType_TOGGLE_SPELL_BOOK && actionType != GameActionType_TOGGLE_QUEST_LOG) {
-		return false;
-	}
+	const uint8_t playerId = player.getId();
+	if (!g_LocalCoop.TryClaimPanelOwnership(playerId))
+		return;
 
-	// If another player owns panels, block this player from interfering
-	if (g_LocalCoop.panelOwnerPlayerId >= 0 && g_LocalCoop.panelOwnerPlayerId != static_cast<int>(playerId)) {
-		// Another player owns the panels, this player can't toggle
-		return true; // Consume the action, do nothing
-	}
-
-	// This player can toggle panels - let the normal handler do it
-	// Return false so ProcessGameAction continues with normal processing
-	return false;
-}
-
-bool AreLocalCoopPanelsOpen()
-{
-	return IsLeftPanelOpen() || IsRightPanelOpen();
+	// Panel owner context persists while the panels are open
+	MyPlayer = &Players[playerId];
+	MyPlayerId = playerId;
+	InspectPlayer = MyPlayer;
+	// The inventory panel art depends on the player's class
+	InitInv();
 }
 
 Player *GetLocalCoopPanelOwnerPlayer()
@@ -4580,14 +4559,13 @@ void SetViewPositionForPlayer(const Player &player, Point position)
 	if (&player == MyPlayer) ViewPosition = position;
 }
 Displacement GetLocalCoopCameraOffset() { return {}; }
-bool HasCameraOffset() { return false; }
 bool IsLocalCoopPositionOnScreen(Point /*tilePos*/) { return true; }
 bool TryJoinLocalCoopMidGame(SDL_JoystickID /*controllerId*/) { return false; }
 void UpdateLocalCoopTargetSelection(uint8_t /*playerId*/) { }
 void ProcessLocalCoopGameAction(uint8_t /*playerId*/, uint8_t /*actionType*/) { }
 void PerformLocalCoopPrimaryAction(uint8_t /*playerId*/) { }
 void PerformLocalCoopSecondaryAction(uint8_t /*playerId*/) { }
-bool AreLocalCoopPanelsOpen() { return false; }
+void ClaimLocalCoopPanelsForPlayer(const Player & /*player*/) { }
 Player *GetLocalCoopPanelOwnerPlayer() { return nullptr; }
 std::optional<Point> GetLocalCoopBeltSlotPosition(uint8_t /*playerId*/, int /*beltSlot*/) { return std::nullopt; }
 std::optional<inv_xy_slot> FindLocalCoopBeltSlotUnderCursor(Point /*cursorPosition*/, uint8_t & /*outPlayerId*/) { return std::nullopt; }
@@ -4604,7 +4582,6 @@ void CloseLocalCoopStore()
 }
 bool IsLocalCoopStoreActive() { return false; }
 uint8_t GetLocalCoopStoreOwnerPlayerId() { return 0; }
-bool HandleLocalCoopPanelAction(uint8_t /*playerId*/, uint8_t /*actionType*/) { return false; }
 
 size_t GetLocalCoopTotalPlayerCount() { return 1; }
 bool IsLocalCoopTargetObject(const Object * /*object*/) { return false; }
