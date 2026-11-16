@@ -1463,6 +1463,8 @@ void DrawView(const Surface &out, Point startPosition)
 		WithPanelOwnerContext([&out]() { DrawQuestLog(out); });
 	} else if (IsStashOpen) {
 		WithPanelOwnerContext([&out]() { DrawStash(out); });
+	} else if (IsVisualStoreOpen) {
+		WithPanelOwnerContext([&out]() { DrawVisualStore(out); });
 	}
 	DrawLevelButton(out);
 	if (ShowUniqueItemInfoBox) {

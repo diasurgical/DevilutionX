@@ -291,7 +291,7 @@ void SetSpeedSpell(size_t slot)
 
 bool IsValidSpeedSpell(size_t slot)
 {
-	uint64_t spells = 0;
+	uint64_t spells;
 
 	const Player &myPlayer = *MyPlayer;
 

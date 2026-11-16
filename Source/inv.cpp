@@ -39,6 +39,7 @@
 #include "player.h"
 #include "plrmsg.h"
 #include "qol/stash.h"
+#include "qol/visual_store.h"
 #include "stores.h"
 #include "towners.h"
 #include "utils/display.h"
@@ -152,7 +153,7 @@ void AddItemToInvGrid(Player &player, int invGridIndex, int invListIndex, Size i
 {
 	const int pitch = 10;
 	for (int y = 0; y < itemSize.height; y++) {
-		const int rowGridIndex = invGridIndex + pitch * y;
+		const int rowGridIndex = invGridIndex + (pitch * y);
 		for (int x = 0; x < itemSize.width; x++) {
 			if (x == 0 && y == itemSize.height - 1)
 				player.InvGrid[rowGridIndex + x] = invListIndex;
@@ -445,7 +446,7 @@ void ChangeTwoHandItem(Player &player)
 int8_t CheckOverlappingItems(int slot, const Player &player, Size itemSize)
 {
 	// check that the item we're pasting only overlaps one other item (or is going into empty space)
-	const unsigned originCell = static_cast<unsigned>(slot - SLOTXY_INV_FIRST);
+	const auto originCell = static_cast<unsigned>(slot - SLOTXY_INV_FIRST);
 
 	int8_t overlappingId = 0;
 	for (unsigned rowOffset = 0; rowOffset < static_cast<unsigned>(itemSize.height * InventorySizeInSlots.width); rowOffset += InventorySizeInSlots.width) {
@@ -654,7 +655,7 @@ inv_body_loc MapSlotToInvBodyLoc(inv_xy_slot slot)
 std::optional<inv_xy_slot> FindSlotUnderCursor(Point cursorPosition)
 {
 
-	Point testPosition = static_cast<Point>(cursorPosition - GetRightPanel().position);
+	auto testPosition = static_cast<Point>(cursorPosition - GetRightPanel().position);
 	for (std::underlying_type_t<inv_xy_slot> r = SLOTXY_EQUIPPED_FIRST; r != SLOTXY_BELT_FIRST; r++) {
 		// check which body/inventory rectangle the mouse is in, if any
 		if (InvRect[r].contains(testPosition)) {
@@ -716,7 +717,7 @@ bool CheckItemFitsInInventorySlot(const Player &player, int slotIndex, const Siz
 		}
 		int xx = (slotIndex > 0) ? (slotIndex % 10) : 0;
 		for (int i = 0; i < itemSize.width; i++) {
-			if (xx >= 10 || !(player.InvGrid[xx + yy] == 0 || std::abs(player.InvGrid[xx + yy]) - 1 == itemIndexToIgnore)) {
+			if (xx >= 10 || (player.InvGrid[xx + yy] != 0 && std::abs(player.InvGrid[xx + yy]) - 1 != itemIndexToIgnore)) {
 				// The item is too wide to fit in the specified column, or one of the cells is occupied (and not by the item we're planning on removing)
 				return false;
 			}
@@ -743,8 +744,8 @@ std::optional<int> FindSlotForItem(const Player &player, const Size &itemSize, i
 		}
 		for (int x = 9; x >= 0; x--) {
 			for (int y = 2; y >= 0; y--) {
-				if (CheckItemFitsInInventorySlot(player, 10 * y + x, itemSize, itemIndexToIgnore))
-					return 10 * y + x;
+				if (CheckItemFitsInInventorySlot(player, (10 * y) + x, itemSize, itemIndexToIgnore))
+					return (10 * y) + x;
 			}
 		}
 		return {};
@@ -753,8 +754,8 @@ std::optional<int> FindSlotForItem(const Player &player, const Size &itemSize, i
 	if (itemSize.height == 2) {
 		for (int x = 10 - itemSize.width; x >= 0; x--) {
 			for (int y = 0; y < 3; y++) {
-				if (CheckItemFitsInInventorySlot(player, 10 * y + x, itemSize, itemIndexToIgnore))
-					return 10 * y + x;
+				if (CheckItemFitsInInventorySlot(player, (10 * y) + x, itemSize, itemIndexToIgnore))
+					return (10 * y) + x;
 			}
 		}
 		return {};
@@ -950,6 +951,10 @@ void CheckInvCut(Player &player, Point cursorPosition, bool automaticMove, bool 
 						player.InvBody[invloc] = holdItem.pop();
 					}
 				}
+			} else if (IsVisualStoreOpen && CanSellToCurrentVendor(player.InvList[iv]) && dropItem) {
+				// If visual store is open, ctrl-click sells the item
+				SellItemToVisualStore(iv);
+				automaticallyMoved = true;
 			} else {
 				holdItem = player.InvList[iv];
 				player.RemoveInvItem(iv, false);
@@ -1578,7 +1583,7 @@ int AddGoldToInventory(Player &player, int value)
 	// Remaining inventory in columns, bottom to top, right to left
 	for (int x = 9; x >= 0 && value > 0; x--) {
 		for (int y = 2; y >= 0 && value > 0; y--) {
-			value = CreateGoldItemInInventorySlot(player, 10 * y + x, value);
+			value = CreateGoldItemInInventorySlot(player, (10 * y) + x, value);
 		}
 	}
 
@@ -1622,7 +1627,7 @@ void CheckInvSwap(Player &player, const Item &item, int invGridIndex)
 	const int pitch = 10;
 	const int invListIndex = [&]() -> int {
 		for (int y = 0; y < itemSize.height; y++) {
-			const int rowGridIndex = invGridIndex + pitch * y;
+			const int rowGridIndex = invGridIndex + (pitch * y);
 			for (int x = 0; x < itemSize.width; x++) {
 				const int gridIndex = rowGridIndex + x;
 				if (player.InvGrid[gridIndex] != 0)
@@ -1645,7 +1650,7 @@ void CheckInvSwap(Player &player, const Item &item, int invGridIndex)
 	player.InvList[invListIndex - 1] = item;
 
 	for (int y = 0; y < itemSize.height; y++) {
-		const int rowGridIndex = invGridIndex + pitch * y;
+		const int rowGridIndex = invGridIndex + (pitch * y);
 		for (int x = 0; x < itemSize.width; x++) {
 			if (x == 0 && y == itemSize.height - 1)
 				player.InvGrid[rowGridIndex + x] = invListIndex;
@@ -2108,7 +2113,21 @@ int8_t CheckInvHLight()
 	if (pi->isEmpty())
 		return -1;
 
-	if (pi->_itype == ItemType::Gold) {
+	if (IsVisualStoreOpen && pcurs == CURSOR_REPAIR) {
+		InfoColor = pi->getTextColor();
+		InfoString = pi->getName();
+		FloatingInfoString = pi->getName();
+		if (pi->_iIdentified) {
+			PrintItemDetails(*pi);
+		} else {
+			PrintItemDur(*pi);
+		}
+		int cost = GetRepairCost(*pi);
+		if (cost > 0)
+			AddInfoBoxString(StrCat(FormatInteger(cost), " Gold"));
+		else
+			AddInfoBoxString(_("Fully Repaired"));
+	} else if (pi->_itype == ItemType::Gold) {
 		const int nGold = pi->_ivalue;
 		InfoString = FormatRuntime(ngettext("{:s} gold piece", "{:s} gold pieces", nGold), FormatInteger(nGold));
 		FloatingInfoString = FormatRuntime(ngettext("{:s} gold piece", "{:s} gold pieces", nGold), FormatInteger(nGold));
@@ -2343,6 +2362,7 @@ void CloseInventory()
 {
 	CloseGoldWithdraw();
 	CloseStash();
+	CloseVisualStore();
 	invflag = false;
 }
 

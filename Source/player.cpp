@@ -42,7 +42,6 @@
 #include "lighting.h"
 #include "loadsave.h"
 #include "lua/lua_event.hpp"
-#include "lua/lua_global.hpp"
 #include "minitext.h"
 #include "missiles.h"
 #include "monster.h"
@@ -644,7 +643,7 @@ bool PlrHitMonst(Player &player, Monster &monster, bool adjacentDamage = false)
 		}
 		RedrawComponent(PanelDrawComponent::Health);
 	}
-	if (monster.hitPoints.whole() <= 0) {
+	if (monster.hasNoLife()) {
 		M_StartKill(monster, player);
 	} else {
 		if (monster.mode != MonsterMode::Petrified && HasAnyOf(player._pIFlags, ItemSpecialEffect::Knockback))
@@ -1005,7 +1004,7 @@ void TryDisarm(const Player &player, Object &object)
 	if (!object._oTrapFlag) {
 		return;
 	}
-	const int trapdisper = 2 * player._pDexterity - 5 * currlevel;
+	const int trapdisper = (2 * player._pDexterity) - (5 * currlevel);
 	if (GenerateRnd(100) > trapdisper) {
 		return;
 	}
@@ -1391,7 +1390,7 @@ void ValidatePlayer()
 	}
 
 	uint64_t msk = 0;
-	for (size_t b = static_cast<size_t>(SpellID::Firebolt); b < SpellsData.size(); b++) {
+	for (auto b = static_cast<size_t>(SpellID::Firebolt); b < SpellsData.size(); b++) {
 		if (GetSpellBookLevel((SpellID)b) != -1) {
 			msk |= GetSpellBitmask(static_cast<SpellID>(b));
 			if (myPlayer._pSplLvl[b] > MaxSpellLevel)
@@ -1722,7 +1721,7 @@ bool Player::isWalking() const
 int Player::GetManaShieldDamageReduction()
 {
 	constexpr uint8_t Max = 7;
-	return 24 - std::min(_pSplLvl[static_cast<int8_t>(SpellID::ManaShield)], Max) * 3;
+	return 24 - (std::min(_pSplLvl[static_cast<int8_t>(SpellID::ManaShield)], Max) * 3);
 }
 
 void Player::RestorePartialLife()
@@ -2097,7 +2096,7 @@ void LoadPlrGFX(Player &player, player_graphic graphic)
 		return;
 
 	const HeroClass cls = GetPlayerSpriteClass(player._pClass);
-	const PlayerWeaponGraphic animWeaponId = GetPlayerWeaponGraphic(graphic, static_cast<PlayerWeaponGraphic>(player._pgfxnum & 0xF));
+	PlayerWeaponGraphic animWeaponId = GetPlayerWeaponGraphic(graphic, static_cast<PlayerWeaponGraphic>(player._pgfxnum & 0xF));
 
 	const PlayerSpriteData &spriteData = GetPlayerSpriteDataForClass(cls);
 	const char *path = spriteData.classPath.c_str();
@@ -2134,8 +2133,8 @@ void LoadPlrGFX(Player &player, player_graphic graphic)
 		szCel = "qm";
 		break;
 	case player_graphic::Death:
-		if (animWeaponId != PlayerWeaponGraphic::Unarmed)
-			return;
+		// Only one Death animation exists, for unarmed characters
+		animWeaponId = PlayerWeaponGraphic::Unarmed;
 		szCel = "dt";
 		break;
 	case player_graphic::Block:
@@ -2419,7 +2418,7 @@ void NextPlrLevel(Player &player)
 
 void Player::_addExperience(uint32_t experience, int levelDelta)
 {
-	if (this != MyPlayer || this->hasNoLife())
+	if (this != MyPlayer || hasNoLife())
 		return;
 
 	if (isMaxCharacterLevel()) {
@@ -2435,6 +2434,8 @@ void Player::_addExperience(uint32_t experience, int levelDelta)
 		// for high level characters experience gain is capped to 200 * current level - this is a smaller value than 1/20 of the exp needed for the next level after level 5.
 		clampedExp = std::min<uint32_t>({ clampedExp, /* level 1-5: */ getNextExperienceThreshold() / 20U, /* level 6-50: */ 200U * getCharacterLevel() });
 	}
+
+	lua::OnPlayerGainExperience(this, clampedExp);
 
 	const uint32_t maxExperience = GetNextExperienceThresholdForLevel(getMaxCharacterLevel());
 
@@ -2484,13 +2485,15 @@ void InitPlayer(Player &player, bool firstTime)
 		player.wReflections = 0;
 	}
 
+	player.lightId = NO_LIGHT;
+
 	if (player.isOnActiveLevel()) {
 
 		SetPlrAnims(player);
 
 		ClearStateVariables(player);
 
-		if (player._pHitPoints.whole() > 0) {
+		if (!player.hasNoLife()) {
 			player._pmode = PM_STAND;
 			NewPlrAnim(player, player_graphic::Stand, Direction::South);
 			player.AnimInfo.currentFrame = GenerateRnd(player._pNFrames - 1);
@@ -2840,7 +2843,7 @@ void StripTopGold(Player &player)
 void ApplyPlrDamage(DamageType damageType, Player &player, Fixed26_6 dam, int minHP /*= 0*/, DeathReason deathReason /*= DeathReason::MonsterOrTrap*/)
 {
 	Fixed26_6 totalDamage = dam;
-	if (IsLocalPlayer(player) && player._pHitPoints > 0) {
+	if (IsLocalPlayer(player) && !player.hasNoLife()) {
 		lua::OnPlayerTakeDamage(&player, totalDamage.raw(), static_cast<int>(damageType));
 	}
 	if (totalDamage > 0 && player.pManaShield && HasNoneOf(player._pIFlags, ItemSpecialEffect::NoMana)) {
@@ -3043,7 +3046,7 @@ void ProcessPlayers()
 	for (size_t pnum = 0; pnum < Players.size(); pnum++) {
 		Player &player = Players[pnum];
 		if (player.plractive && player.isOnActiveLevel() && (IsLocalPlayer(player) || !player._pLvlChanging)) {
-			if (!PlrDeathModeOK(player) && player._pHitPoints.whole() <= 0) {
+			if (!PlrDeathModeOK(player) && player.hasNoLife()) {
 				SyncPlrKill(player, DeathReason::Unknown);
 			}
 
@@ -3130,7 +3133,7 @@ bool PosOkPlayer(const Player &player, Point position)
 	if (!IsTileWalkable(position))
 		return false;
 	Player *otherPlayer = PlayerAtPosition(position);
-	if (otherPlayer != nullptr && otherPlayer != &player && otherPlayer->_pHitPoints != 0)
+	if (otherPlayer != nullptr && otherPlayer != &player && !otherPlayer->hasNoLife())
 		return false;
 
 	if (dMonster[position.x][position.y] != 0) {
@@ -3140,7 +3143,7 @@ bool PosOkPlayer(const Player &player, Point position)
 		if (dMonster[position.x][position.y] <= 0) {
 			return false;
 		}
-		if (Monsters[dMonster[position.x][position.y] - 1].hitPoints.whole() > 0) {
+		if (!Monsters[dMonster[position.x][position.y] - 1].hasNoLife()) {
 			return false;
 		}
 	}
@@ -3246,7 +3249,7 @@ void CheckPlrSpell(bool isShiftHeld, SpellID spellID, SpellType spellType)
 	} else if (pcursmonst != -1 && !isShiftHeld) {
 		LastPlayerAction = PlayerActionType::SpellMonsterTarget;
 		NetSendCmdParam4(true, CMD_SPELLID, pcursmonst, static_cast<int8_t>(spellID), static_cast<uint8_t>(spellType), spellFrom);
-	} else if (PlayerUnderCursor != nullptr && !isShiftHeld && !myPlayer.friendlyMode) {
+	} else if (PlayerUnderCursor != nullptr && !PlayerUnderCursor->hasNoLife() && !isShiftHeld && !myPlayer.friendlyMode) {
 		LastPlayerAction = PlayerActionType::SpellPlayerTarget;
 		NetSendCmdParam4(true, CMD_SPELLPID, PlayerUnderCursor->getId(), static_cast<int8_t>(spellID), static_cast<uint8_t>(spellType), spellFrom);
 	} else {

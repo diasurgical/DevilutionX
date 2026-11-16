@@ -17,7 +17,6 @@
 #include "game_mode.hpp"
 #include "gmenu.h"
 #include "inv.h"
-#include "options.h"
 #include "panels/spell_book.hpp"
 #include "panels/spell_list.hpp"
 #include "qol/stash.h"
