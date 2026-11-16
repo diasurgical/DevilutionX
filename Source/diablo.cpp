@@ -376,7 +376,8 @@ void LeftMouseDown(uint16_t modState)
 	const bool isShiftHeld = (modState & SDL_KMOD_SHIFT) != 0;
 	const bool isCtrlHeld = (modState & SDL_KMOD_CTRL) != 0;
 
-	const bool skipMainPanelForLocalCoop = *GetOptions().Gameplay.enableLocalCoop;
+	// The main panel isn't drawn in local co-op (corner HUDs replace it)
+	const bool skipMainPanelForLocalCoop = ShouldHideMainPanelForLocalCoop();
 
 	if (!GetMainPanel().contains(MousePosition) || skipMainPanelForLocalCoop) {
 		if (!gmenu_is_active() && !TryIconCurs()) {

@@ -1460,10 +1460,8 @@ size_t OnRequestGetItem(const TCmdGItem &message, Player &player)
 
 	if (ii != -1) {
 		NetSendCmdGItem2(false, CMD_GETITEM, MyPlayerId, message.bPnum, message);
-		// Check if the item is for a local player (Player 1 or local coop players 2-4)
-		// Use the player's ID from the message, not MyPlayerId which is always 0
-		if (message.bPnum < Players.size() && Players[message.bPnum].plractive
-		    && Players[message.bPnum].getId() == message.bPnum) {
+		// Give the item directly to players controlled on this machine (Player 1 and local co-op players)
+		if (message.bPnum < Players.size() && IsLocalPlayer(Players[message.bPnum])) {
 			// Item is for a local player, give it to them directly
 			InvGetItem(Players[message.bPnum], ii);
 		} else {
@@ -1542,10 +1540,8 @@ size_t OnRequestAutoGetItem(const TCmdGItem &message, Player &player)
 		if (GetItemRecord(dwSeed, wCI, wIndx)) {
 			if (FindGetItem(dwSeed, wIndx, wCI) != -1) {
 				NetSendCmdGItem2(false, CMD_AGETITEM, MyPlayerId, message.bPnum, message);
-				// Check if the item is for a local player (Player 1 or local coop players 2-4)
-				// Use the player's ID from the message, not MyPlayerId which is always 0
-				if (message.bPnum < Players.size() && Players[message.bPnum].plractive
-				    && Players[message.bPnum].getId() == message.bPnum) {
+				// Give the item directly to players controlled on this machine (Player 1 and local co-op players)
+				if (message.bPnum < Players.size() && IsLocalPlayer(Players[message.bPnum])) {
 					// Item is for a local player, auto-place it in their inventory
 					AutoGetItem(Players[message.bPnum], &Items[message.bCursitem], message.bCursitem);
 				} else {

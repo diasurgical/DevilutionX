@@ -549,14 +549,7 @@ bool InitSingle(GameData *gameData)
 
 bool InitMulti(GameData *gameData)
 {
-	// Check if local co-op is available (multiple controllers)
-	if (IsLocalCoopAvailable()) {
-		InitLocalCoop();
-		// Resize players array to accommodate all local players
-		Players.resize(GetLocalCoopTotalPlayerCount());
-	} else {
-		Players.resize(MAX_PLRS);
-	}
+	Players.resize(MAX_PLRS);
 
 	int playerId;
 
@@ -579,6 +572,10 @@ bool InitMulti(GameData *gameData)
 	MyPlayer = &Players[MyPlayerId];
 	InspectPlayer = MyPlayer;
 	gbIsMultiplayer = true;
+
+	// Local co-op players share this game instance, so it is only available for local (loopback) games
+	if (provider == SELCONN_LOOPBACK && IsLocalCoopAvailable())
+		InitLocalCoop();
 
 	pfile_read_player_from_save(gSaveNumber, *MyPlayer);
 
