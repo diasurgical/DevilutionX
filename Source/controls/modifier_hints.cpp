@@ -105,11 +105,11 @@ void DrawCircleMenuHint(const Surface &out, const CircleMenuHint &hint, const Po
 /**
  * @brief Draws hint text for a four button layout with the top/left edge of the bounding box at the position given by origin plus the icon for the spell mapped to that entry.
  * @param out The output buffer to draw on.
+ * @param myPlayer The player whose spell hotkeys are shown.
  * @param origin Top left corner of the layout (relative to the output buffer).
  */
-void DrawSpellsCircleMenuHint(const Surface &out, const Point &origin)
+void DrawSpellsCircleMenuHint(const Surface &out, const Player &myPlayer, const Point &origin)
 {
-	const Player &myPlayer = *MyPlayer;
 	const Displacement spellIconDisplacement = { ((HintBoxSize - IconSize) / 2) + 1, HintBoxSize - ((HintBoxSize - IconSize) / 2) - 1 };
 	const Point hintBoxPositions[4] = {
 		origin + Displacement { 0, LineHeight - HintBoxSize },
@@ -159,8 +159,12 @@ void DrawGamepadHotspellMenu(const Surface &out)
 	if (!PadHotspellMenuActive || SimulatingMouseWithPadmapper)
 		return;
 
+	// The local co-op HUD draws each player's hint next to their own corner panel
+	if (IsLocalCoopHUDVisible())
+		return;
+
 	const Rectangle &mainPanel = GetMainPanel();
-	DrawSpellsCircleMenuHint(out, { mainPanel.position.x + mainPanel.size.width - (HintBoxSize * 3) - CircleMarginX - (HintBoxMargin * 2), mainPanel.position.y - CircleTop });
+	DrawSpellsCircleMenuHint(out, *MyPlayer, { mainPanel.position.x + mainPanel.size.width - (HintBoxSize * 3) - CircleMarginX - (HintBoxMargin * 2), mainPanel.position.y - CircleTop });
 }
 
 } // namespace
@@ -207,6 +211,18 @@ void DrawControllerModifierHints(const Surface &out)
 	if (PadHotspellMenuActive) {
 		DrawGamepadHotspellMenu(out);
 	}
+}
+
+Size GetSpellHotkeysHintSize()
+{
+	constexpr int Extent = (HintBoxSize * 3) + (HintBoxMargin * 2);
+	return { Extent, Extent };
+}
+
+void DrawSpellHotkeysHint(const Surface &out, const Player &player, Point topLeft)
+{
+	// DrawSpellsCircleMenuHint's origin is offset so the left/right boxes sit on the text line
+	DrawSpellsCircleMenuHint(out, player, topLeft + Displacement { 0, (HintBoxSize * 2) + HintBoxMargin - LineHeight });
 }
 
 OptionalOwnedClxSpriteList &GetHintBoxSprite()

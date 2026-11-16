@@ -1069,6 +1069,54 @@ bool HandleMenuNavigatorButton(uint8_t playerId, uint8_t button)
 }
 
 /**
+ * @brief Handle Back + face button quick spells, same as Player 1's gamepad hotspell menu.
+ *
+ * Face buttons map to quick spell slots: X = 1, Y = 2, A = 3, B = 4.
+ * - Speedbook open: assign the highlighted spell to the slot.
+ * - Otherwise: switch the active spell to the slot's spell, or cast it right away
+ *   when the "Quick Cast" option is enabled.
+ *
+ * @return true if the button was consumed
+ */
+bool HandleQuickSpellButton(uint8_t playerId, uint8_t button)
+{
+	size_t slot;
+	switch (button) {
+	case SDL_GAMEPAD_BUTTON_WEST:
+		slot = 0;
+		break;
+	case SDL_GAMEPAD_BUTTON_NORTH:
+		slot = 1;
+		break;
+	case SDL_GAMEPAD_BUTTON_SOUTH:
+		slot = 2;
+		break;
+	case SDL_GAMEPAD_BUTTON_EAST:
+		slot = 3;
+		break;
+	default:
+		return false;
+	}
+
+	if (SpellSelectFlag) {
+		// MyPlayer is already the speedbook owner
+		if (DoesPlayerOwnSpellMenu(playerId))
+			SetSpeedSpell(slot);
+		return true;
+	}
+
+	if (!*GetOptions().Gameplay.quickCast) {
+		LocalCoopPlayerContext context(playerId);
+		ToggleSpell(slot);
+		return true;
+	}
+
+	const Player &player = Players[playerId];
+	CastLocalCoopSpell(playerId, player._pSplHotKey[slot], player._pSplTHotKey[slot]);
+	return true;
+}
+
+/**
  * @brief Handle gameplay button press (button down events).
  *
  * Uses the same default mapping as Player 1's gamepad:
@@ -1076,6 +1124,7 @@ bool HandleMenuNavigatorButton(uint8_t playerId, uint8_t button)
  * - Y (North): Secondary action (pick up items, open chests/doors, use inventory items)
  * - X (West): Cast the active spell (select speedbook spell, drop/move inventory items)
  * - A (South): Open speedbook to choose the active spell, or close open menus
+ * - Back + X / Y / A / B: Quick spells 1-4
  * - LB / RB: Use health / mana potion
  * - LT / RT: Character / Inventory (Back + LT / RT: Quest log / Spellbook)
  * - Start + D-pad / face buttons: Menu navigator, Start + Back: Game menu
@@ -1094,6 +1143,10 @@ void HandleGameplayButtonDown(uint8_t playerId, LocalCoopPlayer &coopPlayer, Pla
 
 	const bool ownsSpellMenu = DoesPlayerOwnSpellMenu(playerId);
 	const bool hasOpenPanels = DoesPlayerHaveOpenPanels(playerId);
+
+	// Back + face button: quick spells (gamepad hotspell menu), same as Player 1
+	if (IsBackButtonHeldForPlayer(playerId) && HandleQuickSpellButton(playerId, button))
+		return;
 
 	switch (button) {
 	case SDL_GAMEPAD_BUTTON_EAST: // B: Primary action
@@ -1366,6 +1419,10 @@ void UpdateLocalCoopPlayerMovement(uint8_t playerId)
 
 	// Don't move when this player owns a panel, store or the speedbook
 	if (g_LocalCoop.DoesPlayerOwnPanels(playerId) || g_LocalCoop.storeOwnerPlayerId == static_cast<int>(playerId) || DoesPlayerOwnSpellMenu(playerId))
+		return;
+
+	// Holding Back opens the quick spell modifier; don't walk (same as Player 1)
+	if (IsBackButtonHeldForPlayer(playerId))
 		return;
 
 	// Skip if player is not on the same level as player 1
@@ -2725,7 +2782,7 @@ void DrawCoopPanelBackground(const Surface &out, Rectangle rect)
 }
 
 /**
- * @brief Cast a spell for a local coop player.
+ * @brief Cast a spell for a local coop player (active spell or quick spell).
  *
  * Mirrors Player 1's spell action (CheckPlrSpell), using this player's own targeting state.
  *
@@ -3180,7 +3237,25 @@ void DrawLocalCoopPlayerHUD(const Surface &out)
 		}
 		DrawPlayerDurabilityIcons(out, player, { panelX + leftBorderPadding, durabilityY }, false);
 
+		// Quick spell hint while holding Back (Player 1 uses the gamepad hotspell menu)
+		const bool showQuickSpells = playerId == 0
+		    ? PadHotspellMenuActive && !SimulatingMouseWithPadmapper
+		    : IsBackButtonHeldForPlayer(static_cast<uint8_t>(playerId));
+		if (showQuickSpells) {
+			const Size hintSize = GetSpellHotkeysHintSize();
+			const bool alignRight = (playerId == 1 || playerId == 3);
+			const int hintX = alignRight ? panelX + panelWidth - hintSize.width : panelX + leftBorderPadding;
+			const int hintY = atBottom
+			    ? durabilityY - layout.durabilityIconSpacing - hintSize.height
+			    : durabilityY + layout.durabilityIconHeight + layout.durabilityIconSpacing;
+			DrawSpellHotkeysHint(out, player, { hintX, hintY });
+		}
 	}
+}
+
+bool IsLocalCoopHUDVisible()
+{
+	return gbIsMultiplayer && IsLocalCoopEnabled() && LocalCoopHUDOpen;
 }
 
 void HandleLocalCoopControllerDisconnect(SDL_JoystickID controllerId)
@@ -4490,6 +4565,7 @@ void UpdateLocalCoopMovement() { }
 void ProcessLocalCoopRightStickCursor() { }
 void ProcessLocalCoopLeftStickPanelNavigation() { }
 void UpdateLocalCoopSpellMenuOwner() { }
+bool IsLocalCoopHUDVisible() { return false; }
 void LoadAvailableHeroesForCoopSlot(uint8_t /*playerIdx*/) { }
 void ConfirmLocalCoopCharacter(uint8_t /*playerId*/) { }
 void DrawLocalCoopCharacterSelect(const Surface & /*out*/) { }

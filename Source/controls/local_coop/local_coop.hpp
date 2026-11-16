@@ -535,6 +535,11 @@ bool TryJoinLocalCoopMidGame(SDL_JoystickID controllerId);
 extern bool LocalCoopHUDOpen;
 
 /**
+ * @brief Check if the local co-op corner HUDs are drawn instead of the main panel.
+ */
+bool IsLocalCoopHUDVisible();
+
+/**
  * @brief Draw HUD for all local co-op players.
  *
  * Shows player name with level, and HP/Mana bars in each corner:
