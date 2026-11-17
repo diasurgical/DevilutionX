@@ -1770,7 +1770,9 @@ void DrawAutomap(const Surface &out)
 
 	const Player &myPlayer = *MyPlayer;
 	Displacement myPlayerOffset = {};
-	if (myPlayer.isWalking())
+	if (IsAnyLocalCoopPlayerInitialized())
+		myPlayerOffset = GetLocalCoopCameraOffset(); // The camera follows all local co-op players
+	else if (myPlayer.isWalking())
 		myPlayerOffset = GetOffsetForWalking(myPlayer.AnimInfo, myPlayer._pdir, true);
 
 	const int scale = (GetAutomapType() == AutomapType::Minimap) ? MinimapScale : AutoMapScale;

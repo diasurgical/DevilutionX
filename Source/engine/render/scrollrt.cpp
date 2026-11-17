@@ -1930,6 +1930,10 @@ void DrawAndBlit()
 	nthread_UpdateProgressToNextGameTick();
 
 	this_sdl_thread::yield();
+
+	// The local co-op camera follows the players' interpolated positions, so it has to be
+	// updated every rendered frame rather than every game tick
+	UpdateLocalCoopCamera();
 	DrawView(out, ViewPosition);
 
 	// When local co-op is enabled AND at least one other player has spawned,

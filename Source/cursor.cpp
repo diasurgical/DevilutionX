@@ -708,6 +708,16 @@ void AlterMousePositionViaPlayer(Point &screenPosition, const Player &myPlayer)
 	screenPosition.x += xo;
 	screenPosition.y += yo;
 
+#ifndef USE_SDL1
+	// In local co-op the camera follows all players, not just this one
+	if (IsAnyLocalCoopPlayerInitialized()) {
+		const Displacement offset = GetLocalCoopCameraOffset();
+		screenPosition.x -= offset.deltaX;
+		screenPosition.y -= offset.deltaY;
+		return;
+	}
+#endif
+
 	// Adjust for player walking
 	if (myPlayer.isWalking()) {
 		const Displacement offset = GetOffsetForWalking(myPlayer.AnimInfo, myPlayer._pdir, true);

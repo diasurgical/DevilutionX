@@ -3235,8 +3235,18 @@ void LoadGameLevelSyncPlayerEntry(lvl_entry lvldir)
 			} else {
 				dFlags[player.position.tile.x][player.position.tile.y] |= DungeonFlag::DeadPlayer;
 			}
+
+			// InitPlayer() created this player's light and vision before they were moved next to Player 1
+			if (IsLocalCoopPlayer(player) && lvldir != ENTRY_LOAD) {
+				ChangeLightXY(player.lightId, player.position.tile);
+				ChangeVisionXY(player.getId(), player.position.tile);
+			}
 		}
 	}
+
+	// The camera was centered before the local co-op players were placed, so center it again
+	if (IsAnyLocalCoopPlayerInitialized())
+		InitMultiView();
 }
 
 void LoadGameLevelLightVision()

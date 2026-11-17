@@ -370,9 +370,18 @@ bool IsTilePositionOnScreen(Point tilePos, uint8_t excludePlayerId = LocalCoopLa
 		};
 	};
 
-	Point newScreenPos = tileToScreen(tilePos);
+	auto ellipseDistance = [&](Point a, Point b) -> int64_t {
+		const Point screenA = tileToScreen(a);
+		const Point screenB = tileToScreen(b);
+		const int64_t normalizedX = (static_cast<int64_t>(std::abs(screenA.x - screenB.x)) * NormalizationScale) / maxScreenDistanceX;
+		const int64_t normalizedY = (static_cast<int64_t>(std::abs(screenA.y - screenB.y)) * NormalizationScale) / maxScreenDistanceY;
+		return normalizedX * normalizedX + normalizedY * normalizedY;
+	};
 
-	int otherPlayersChecked = 0;
+	// Where the moving player is now, so that a player who is already too far away
+	// (spawn placement, knockback, teleport) can still walk back towards the others
+	const Player *mover = excludePlayerId < Players.size() ? &Players[excludePlayerId] : nullptr;
+
 	size_t totalPlayers = g_LocalCoop.GetTotalPlayerCount();
 	for (size_t i = 0; i < totalPlayers && i < Players.size(); ++i) {
 		if (static_cast<uint8_t>(i) == excludePlayerId)
@@ -384,23 +393,13 @@ bool IsTilePositionOnScreen(Point tilePos, uint8_t excludePlayerId = LocalCoopLa
 		if (otherPlayer.plrlevel != Players[0].plrlevel)
 			continue;
 
-		otherPlayersChecked++;
-		Point otherScreenPos = tileToScreen(otherPlayer.position.future);
+		const int64_t newDistance = ellipseDistance(tilePos, otherPlayer.position.future);
+		if (newDistance <= EllipseOutsideThresholdSq)
+			continue;
 
-		int distX = std::abs(newScreenPos.x - otherScreenPos.x);
-		int distY = std::abs(newScreenPos.y - otherScreenPos.y);
-
-		int64_t normalizedX = (static_cast<int64_t>(distX) * NormalizationScale) / maxScreenDistanceX;
-		int64_t normalizedY = (static_cast<int64_t>(distY) * NormalizationScale) / maxScreenDistanceY;
-		int64_t ellipseCheck = normalizedX * normalizedX + normalizedY * normalizedY;
-
-		if (ellipseCheck > EllipseOutsideThresholdSq) {
+		// Outside the allowed area: only allow the step if it doesn't take this player further away
+		if (mover == nullptr || newDistance > ellipseDistance(mover->position.future, otherPlayer.position.future))
 			return false;
-		}
-	}
-
-	if (otherPlayersChecked == 0) {
-		return true;
 	}
 
 	return true;
@@ -1840,6 +1839,30 @@ void SyncLocalCoopPlayersToLevel(interface_mode fom, int lvl)
 
 	// Reset camera initialization so it re-centers on all players
 	// at the new level's spawn point
+	g_LocalCoop.cameraInitialized = false;
+}
+
+void SyncLocalCoopPlayersToWarp(const Player &leader)
+{
+	if (!IsLocalCoopEnabled())
+		return;
+
+	for (size_t playerId = 0; playerId < g_LocalCoop.players.size() && playerId < Players.size(); ++playerId) {
+		const LocalCoopPlayer &coopPlayer = g_LocalCoop.players[playerId];
+		if (!coopPlayer.active || !coopPlayer.initialized)
+			continue;
+
+		Player &player = Players[playerId];
+		if (&player == &leader || &player == MyPlayer)
+			continue; // The leader is already warping and GetPortalLevel() moves MyPlayer
+
+		InitLevelChange(player);
+		player._pmode = PM_NEWLVL;
+		player._pInvincible = true;
+		player.plrlevel = leader.plrlevel;
+		player.plrIsOnSetLevel = leader.plrIsOnSetLevel;
+	}
+
 	g_LocalCoop.cameraInitialized = false;
 }
 
@@ -3358,7 +3381,7 @@ Point CalculateLocalCoopViewPosition()
 		const Player &player = Players[i];
 		// Check both that the Player is active AND that the LocalCoopPlayer state is initialized
 		// This ensures we only include players who have actually chosen a character
-		if (!player.plractive || player.hasNoLife())
+		if (!player.plractive || player.hasNoLife() || !player.isOnActiveLevel())
 			continue;
 		if (i >= g_LocalCoop.players.size() || !g_LocalCoop.players[i].initialized)
 			continue;
@@ -3376,37 +3399,6 @@ Point CalculateLocalCoopViewPosition()
 	return { totalX / activeCount, totalY / activeCount };
 }
 
-/**
- * @brief Calculate pixel-precise camera position for smooth local co-op scrolling.
- *
- * For smooth camera movement with multiple players, we need to work in pixel space
- * rather than tile space. Each player's position is converted to screen pixels
- * (including their walking offset if they're moving), then we average all positions
- * and convert back to tile + offset for the camera.
- *
- * A dead zone is applied around the camera target to prevent constant small
- * adjustments when players are close together. The camera only moves when the
- * average player position exceeds the dead zone threshold.
- *
- * This ensures the camera moves smoothly even when:
- * - Some players are walking and others are standing
- * - Players are walking in different directions
- * - Players finish walking at different times
- *
- * The key insight is that screen coordinates are derived from world coordinates
- * using an isometric transformation: screenX = (tileY - tileX) * 32
- *                                     screenY = (tileY + tileX) * -16
- *
- * By working in screen space, we can average player positions with sub-tile
- * precision and convert back to a tile position + pixel offset.
- */
-void SetViewPosition(Point position)
-{
-	if (IsAnyLocalCoopPlayerInitialized())
-		return;
-	ViewPosition = position;
-}
-
 void SetViewPositionForPlayer(const Player &player, Point position)
 {
 	if (!IsLocalPlayer(player))
@@ -3416,167 +3408,133 @@ void SetViewPositionForPlayer(const Player &player, Point position)
 	ViewPosition = position;
 }
 
+namespace {
+
+/// Division that rounds towards negative infinity, so that pixel offsets don't jitter around zero
+int64_t FloorDiv(int64_t value, int64_t divisor)
+{
+	int64_t quotient = value / divisor;
+	if ((value % divisor != 0) && ((value < 0) != (divisor < 0)))
+		--quotient;
+	return quotient;
+}
+
+/// Converts a tile position to negated screen space (scaled by 256):
+/// screenX = (tileY - tileX) * 32, screenY = (tileY + tileX) * -16
+void TileToCameraScreen(Point tile, int64_t &screenX, int64_t &screenY)
+{
+	screenX = static_cast<int64_t>(tile.y - tile.x) * 32 * LocalCoopCamera::FixedPointScale;
+	screenY = static_cast<int64_t>(tile.y + tile.x) * -16 * LocalCoopCamera::FixedPointScale;
+}
+
+} // namespace
+
 void UpdateLocalCoopCamera()
 {
+	using namespace LocalCoopCamera;
+
 	if (!g_LocalCoop.enabled || !IsLocalCoopEnabled())
 		return;
 
 	if (!g_LocalCoop.anyCoopPlayerInitializedCache)
 		return;
 
-	// Calculate pixel-precise positions for all active players in screen space
-	// Screen coordinates: screenX = (tileY - tileX) * 32, screenY = (tileY + tileX) * -16
-	// We scale by 256 for precision before division
+	// Average the on-screen position of every player the camera follows.
+	// This runs every rendered frame (not every game tick) so that the camera moves exactly
+	// as smoothly as the players, who are drawn with interpolated walking offsets.
 	int activeCount = 0;
-	int walkingCount = 0;
-	Direction firstWalkDir = Direction::South;
-	bool allWalkingSameDirection = true;
+	uint32_t trackedPlayers = 0;
 	int64_t totalScreenX = 0;
 	int64_t totalScreenY = 0;
 
-	// Iterate through all possible player slots (not just GetTotalPlayerCount)
-	// This ensures we include all initialized players regardless of gaps
-	// e.g., if player 2 hasn't chosen yet, we still include players 1 and 3
 	for (size_t i = 0; i < MaxLocalPlayers && i < Players.size(); ++i) {
 		const Player &player = Players[i];
-		// Check both that the Player is active AND that the LocalCoopPlayer state is initialized
-		// This double-check is necessary because:
-		// - player.plractive is false until character selection is confirmed
-		// - g_LocalCoop.players[i].initialized tracks whether they've chosen a character
-		// We need BOTH to be true to include a player in camera calculations
-		if (!player.plractive || player.hasNoLife())
+		// plractive is false until character selection is confirmed, and initialized tracks
+		// whether the local co-op slot has chosen a character, so we need both
+		if (!player.plractive || player.hasNoLife() || !player.isOnActiveLevel())
 			continue;
 		if (i >= g_LocalCoop.players.size() || !g_LocalCoop.players[i].initialized)
 			continue;
 
+		int64_t screenX;
+		int64_t screenY;
+		TileToCameraScreen(player.position.tile, screenX, screenY);
+
+		// While walking, position.tile is the tile the player is leaving, so add the walking offset.
+		// Camera mode negates the offset, matching the negated screen space used here.
 		if (player.isWalking()) {
-			walkingCount++;
-			if (walkingCount == 1) {
-				firstWalkDir = player._pdir;
-			} else if (player._pdir != firstWalkDir) {
-				allWalkingSameDirection = false;
-			}
-		}
-
-		// Start with the current tile position
-		// Convert tile position to screen space (scaled by 256)
-		// worldToScreen: screenX = (tileY - tileX) * 32, screenY = (tileY + tileX) * -16
-		int tileX = player.position.tile.x;
-		int tileY = player.position.tile.y;
-		int64_t screenX = static_cast<int64_t>(tileY - tileX) * 32 * 256;
-		int64_t screenY = static_cast<int64_t>(tileY + tileX) * -16 * 256;
-
-		// If player is walking add their walking offset (already in screen pixels)
-		if (!player.hasNoLife() && player.isWalking()) {
-			Displacement screenOffset = GetOffsetForWalking(player.AnimInfo, player._pdir, true);
-			screenX += static_cast<int64_t>(screenOffset.deltaX) * 256;
-			screenY += static_cast<int64_t>(screenOffset.deltaY) * 256;
+			const Displacement walkOffset = GetOffsetForWalking(player.AnimInfo, player._pdir, true);
+			screenX += static_cast<int64_t>(walkOffset.deltaX) * FixedPointScale;
+			screenY += static_cast<int64_t>(walkOffset.deltaY) * FixedPointScale;
 		}
 
 		totalScreenX += screenX;
 		totalScreenY += screenY;
+		trackedPlayers |= 1U << i;
 		activeCount++;
 	}
 
-	// Need at least 1 active player
 	if (activeCount == 0)
 		return;
 
-	// Calculate average screen position (still scaled by 256)
-	int64_t avgScreenX256 = totalScreenX / activeCount;
-	int64_t avgScreenY256 = totalScreenY / activeCount;
-
-	// Update camera target to follow average player position
-	// No dead zone - always track the average position for smoothest movement
-	// The smoothing layer (below) handles gradual camera movement
-	using namespace LocalCoopCamera;
+	const int64_t targetX = FloorDiv(totalScreenX, activeCount);
+	const int64_t targetY = FloorDiv(totalScreenY, activeCount);
+	const uint32_t now = SDL_GetTicks();
 
 	if (!g_LocalCoop.cameraInitialized) {
-		// First time - initialize camera to current average position
-		g_LocalCoop.cameraTargetScreenX = avgScreenX256;
-		g_LocalCoop.cameraTargetScreenY = avgScreenY256;
-		g_LocalCoop.cameraSmoothScreenX = avgScreenX256;
-		g_LocalCoop.cameraSmoothScreenY = avgScreenY256;
+		// New level or first frame: snap to the players
 		g_LocalCoop.cameraInitialized = true;
+		g_LocalCoop.cameraTransitionX = 0;
+		g_LocalCoop.cameraTransitionY = 0;
 	} else {
-		// Always update target to exactly match average position
-		g_LocalCoop.cameraTargetScreenX = avgScreenX256;
-		g_LocalCoop.cameraTargetScreenY = avgScreenY256;
-	}
-
-	// When all players walk in the same direction, bypass smoothing so the camera moves in lockstep (no jitter/lag).
-	const bool allWalkingSameDir = (activeCount >= 1 && walkingCount == activeCount && allWalkingSameDirection);
-	if (allWalkingSameDir) {
-		g_LocalCoop.cameraSmoothScreenX = avgScreenX256;
-		g_LocalCoop.cameraSmoothScreenY = avgScreenY256;
-	} else {
-		// Apply smoothing: interpolate smoothed camera position towards target
-		constexpr int64_t smoothFactor256 = static_cast<int64_t>(SmoothFactor * FixedPointScale);
-		int64_t smoothDeltaX = g_LocalCoop.cameraTargetScreenX - g_LocalCoop.cameraSmoothScreenX;
-		int64_t smoothDeltaY = g_LocalCoop.cameraTargetScreenY - g_LocalCoop.cameraSmoothScreenY;
-		int64_t moveX = (smoothDeltaX * smoothFactor256) / 256;
-		int64_t moveY = (smoothDeltaY * smoothFactor256) / 256;
-
-		if (MaxCameraVelocity > 0) {
-			int64_t moveDistSq = moveX * moveX + moveY * moveY;
-			constexpr int64_t maxVelSq = MaxCameraVelocity * MaxCameraVelocity;
-			if (moveDistSq > maxVelSq) {
-				int64_t absMoveX = moveX >= 0 ? moveX : -moveX;
-				int64_t absMoveY = moveY >= 0 ? moveY : -moveY;
-				int64_t approxMoveDist = (absMoveX > absMoveY)
-				    ? absMoveX + absMoveY / 2
-				    : absMoveY + absMoveX / 2;
-				if (approxMoveDist > 0) {
-					moveX = (moveX * MaxCameraVelocity) / approxMoveDist;
-					moveY = (moveY * MaxCameraVelocity) / approxMoveDist;
-				}
-			}
+		const int64_t jumpX = std::abs(targetX - g_LocalCoop.cameraTargetScreenX);
+		const int64_t jumpY = std::abs(targetY - g_LocalCoop.cameraTargetScreenY);
+		const bool targetJumped = jumpX > JumpThreshold * FixedPointScale || jumpY > JumpThreshold * FixedPointScale;
+		if (trackedPlayers != g_LocalCoop.cameraTrackedPlayers || targetJumped) {
+			// Start from where the camera is now and ease to the new target
+			g_LocalCoop.cameraTransitionX = g_LocalCoop.cameraScreenX - targetX;
+			g_LocalCoop.cameraTransitionY = g_LocalCoop.cameraScreenY - targetY;
+			g_LocalCoop.cameraTransitionStart = now;
 		}
-		if (MinCameraMovement > 0) {
-			int64_t absMoveX = moveX >= 0 ? moveX : -moveX;
-			int64_t absMoveY = moveY >= 0 ? moveY : -moveY;
-			if (absMoveX < MinCameraMovement && absMoveY < MinCameraMovement) {
-				moveX = 0;
-				moveY = 0;
-			}
+	}
+	g_LocalCoop.cameraTrackedPlayers = trackedPlayers;
+	g_LocalCoop.cameraTargetScreenX = targetX;
+	g_LocalCoop.cameraTargetScreenY = targetY;
+
+	// Remaining fraction of the transition (256 = all of it), eased out quadratically
+	int64_t remaining256 = 0;
+	if (g_LocalCoop.cameraTransitionX != 0 || g_LocalCoop.cameraTransitionY != 0) {
+		const uint32_t elapsed = now - g_LocalCoop.cameraTransitionStart;
+		if (elapsed < TransitionDurationMs) {
+			const int64_t left = static_cast<int64_t>(TransitionDurationMs - elapsed) * FixedPointScale / TransitionDurationMs;
+			remaining256 = left * left / FixedPointScale;
+		} else {
+			g_LocalCoop.cameraTransitionX = 0;
+			g_LocalCoop.cameraTransitionY = 0;
 		}
-		g_LocalCoop.cameraSmoothScreenX += moveX;
-		g_LocalCoop.cameraSmoothScreenY += moveY;
 	}
 
-	// Use smoothed camera position for rendering
-	int64_t cameraScreenX256 = g_LocalCoop.cameraSmoothScreenX;
-	int64_t cameraScreenY256 = g_LocalCoop.cameraSmoothScreenY;
+	const int64_t cameraX = targetX + FloorDiv(g_LocalCoop.cameraTransitionX * remaining256, FixedPointScale);
+	const int64_t cameraY = targetY + FloorDiv(g_LocalCoop.cameraTransitionY * remaining256, FixedPointScale);
+	g_LocalCoop.cameraScreenX = cameraX;
+	g_LocalCoop.cameraScreenY = cameraY;
 
-	// Convert back to world coordinates
-	// screenToWorld: tileX = (2*screenY + screenX) / -64, tileY = (2*screenY - screenX) / -64
-	// Since our values are scaled by 256, we need: tileX = (2*screenY256 + screenX256) / (-64 * 256)
-	int64_t worldX256 = (2 * cameraScreenY256 + cameraScreenX256) / -64;
-	int64_t worldY256 = (2 * cameraScreenY256 - cameraScreenX256) / -64;
+	// Convert back to world coordinates (still scaled by 256):
+	// tileX = (2 * screenY + screenX) / -64, tileY = (2 * screenY - screenX) / -64
+	// Rounding down picks the tile whose top corner is at or above the camera.
+	const Point viewTile {
+		static_cast<int>(FloorDiv(FloorDiv(2 * cameraY + cameraX, -64), FixedPointScale)),
+		static_cast<int>(FloorDiv(FloorDiv(2 * cameraY - cameraX, -64), FixedPointScale)),
+	};
+	ViewPosition = viewTile;
 
-	// Extract integer tile position and fractional part
-	int tileX = static_cast<int>(worldX256 / 256);
-	int tileY = static_cast<int>(worldY256 / 256);
-	int fracX = static_cast<int>(worldX256 % 256);
-	int fracY = static_cast<int>(worldY256 % 256);
-
-	// Handle negative remainders
-	if (fracX < 0) {
-		fracX += 256;
-		tileX--;
-	}
-	if (fracY < 0) {
-		fracY += 256;
-		tileY--;
-	}
-
-	// Set ViewPosition to the integer tile position
-	ViewPosition = { tileX, tileY };
-
-	// Convert the fractional world position back to screen offset
-	// worldToScreen: screenX = (fracY - fracX) * 32 / 256, screenY = (fracY + fracX) * -16 / 256
-	g_LocalCoop.cameraOffsetX = ((fracY - fracX) * 32) / 256;
-	g_LocalCoop.cameraOffsetY = ((fracY + fracX) * -16) / 256;
+	// The offset is the exact pixel distance between the camera and that tile, so that
+	// rounding happens once and the picture doesn't wobble by a pixel
+	int64_t viewTileX;
+	int64_t viewTileY;
+	TileToCameraScreen(viewTile, viewTileX, viewTileY);
+	g_LocalCoop.cameraOffsetX = static_cast<int>(FloorDiv(cameraX - viewTileX, FixedPointScale));
+	g_LocalCoop.cameraOffsetY = static_cast<int>(FloorDiv(cameraY - viewTileY, FixedPointScale));
 }
 
 Displacement GetLocalCoopCameraOffset()
@@ -4553,7 +4511,6 @@ void HandleLocalCoopControllerDisconnect(SDL_JoystickID /*controllerId*/) { }
 void HandleLocalCoopControllerConnect(SDL_JoystickID /*controllerId*/) { }
 Point CalculateLocalCoopViewPosition() { return {}; }
 void UpdateLocalCoopCamera() { }
-void SetViewPosition(Point position) { ViewPosition = position; }
 void SetViewPositionForPlayer(const Player &player, Point position)
 {
 	if (&player == MyPlayer) ViewPosition = position;
@@ -4588,6 +4545,7 @@ bool IsLocalCoopTargetObject(const Object * /*object*/) { return false; }
 void LoadAvailableHeroesForAllLocalCoopPlayers() { }
 void SyncLocalCoopPlayersToLevel(interface_mode /*fom*/, int /*lvl*/) { }
 void ResetLocalCoopCamera() { }
+void SyncLocalCoopPlayersToWarp(const Player & /*leader*/) { }
 Player *FindLocalCoopPlayerOnTrigger(int & /*outTriggerIndex*/) { return nullptr; }
 
 void LocalCoopCursorState::Reset() { }

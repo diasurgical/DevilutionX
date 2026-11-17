@@ -131,20 +131,29 @@ struct LocalCoopState {
 	Player *savedMyPlayer = nullptr;
 
 	/// Camera offset for smooth scrolling (calculated by UpdateLocalCoopCamera)
-	/// These store the averaged walking offset of all players in screen pixels
+	/// Pixel offset of the camera from ViewPosition, in the same convention as
+	/// GetOffsetForWalking(..., cameraMode = true)
 	int cameraOffsetX = 0;
 	int cameraOffsetY = 0;
 
-	/// Camera target position in screen space (scaled by 256 for precision)
-	/// Used for dead zone calculations - camera only moves when target exceeds dead zone
-	int64_t cameraTargetScreenX = 0;
-	int64_t cameraTargetScreenY = 0;
 	bool cameraInitialized = false;
 
-	/// Smoothed camera position (what's actually rendered) in screen space (scaled by 256)
-	/// The camera smoothly interpolates from current position to target position
-	int64_t cameraSmoothScreenX = 0;
-	int64_t cameraSmoothScreenY = 0;
+	/// Camera position last rendered, in negated screen space (scaled by 256)
+	int64_t cameraScreenX = 0;
+	int64_t cameraScreenY = 0;
+
+	/// Average player position last frame, used to detect teleports
+	int64_t cameraTargetScreenX = 0;
+	int64_t cameraTargetScreenY = 0;
+
+	/// Bitmask of the players the camera followed last frame
+	uint32_t cameraTrackedPlayers = 0;
+
+	/// When the camera has to jump (a player joined, died or teleported), it starts this far
+	/// from the target and eases to it over LocalCoopCamera::TransitionDurationMs
+	int64_t cameraTransitionX = 0;
+	int64_t cameraTransitionY = 0;
+	uint32_t cameraTransitionStart = 0;
 
 	/// Check if a local coop player owns the panels (not player 1)
 	[[nodiscard]] bool HasPanelOwner() const { return panelOwnerPlayerId > 0; }
@@ -304,6 +313,13 @@ void LoadAvailableHeroesForAllLocalCoopPlayers();
 void SyncLocalCoopPlayersToLevel(interface_mode fom, int lvl);
 
 /**
+ * @brief Move all local coop players to the level a portal leads to.
+ * Called when a local player walks into a town portal or a red portal.
+ * @param leader The player who entered the portal (their level is already set)
+ */
+void SyncLocalCoopPlayersToWarp(const Player &leader);
+
+/**
  * @brief Reset local coop camera state.
  * Should be called when entering a new level to re-center camera.
  */
@@ -454,24 +470,10 @@ Point CalculateLocalCoopViewPosition();
 /**
  * @brief Update the view position to follow all local co-op players.
  *
- * Should be called during gameplay to keep the camera centered on all players.
- * Uses smooth interpolation to avoid jarring camera movements.
+ * Called every rendered frame (before drawing) to keep the camera centered on all players.
+ * Follows the players exactly and only eases when the target jumps (a player joined, died or teleported).
  */
 void UpdateLocalCoopCamera();
-
-/**
- * @brief Set the view position, handling both single player and local co-op modes.
- *
- * In single player mode, directly sets ViewPosition.
- * In local co-op mode with initialized players, the camera is managed by
- * UpdateLocalCoopCamera instead, so this does nothing.
- *
- * Use this instead of directly setting ViewPosition to ensure proper behavior
- * in both modes.
- *
- * @param position The desired view position
- */
-void SetViewPosition(Point position);
 
 /**
  * @brief Set the view position for a specific player.

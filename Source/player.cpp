@@ -3004,6 +3004,10 @@ void StartWarpLvl(Player &player, size_t pidx)
 		SetCurrentPortal(pidx);
 		player._pmode = PM_NEWLVL;
 		player._pInvincible = true;
+
+		// Local coop players share the screen, so they go through the portal together
+		SyncLocalCoopPlayersToWarp(player);
+
 		SDL_Event event;
 		CustomEventToSdlEvent(event, WM_DIABWARPLVL);
 		SDL_PushEvent(&event);

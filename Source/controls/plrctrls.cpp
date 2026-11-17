@@ -2337,9 +2337,6 @@ void plrctrls_after_game_logic()
 
 	// Restore player context when a local co-op player's speedbook closes
 	UpdateLocalCoopSpellMenuOwner();
-
-	// Update camera to follow all local co-op players
-	UpdateLocalCoopCamera();
 }
 
 void UseBeltItem(BeltItemType type)
