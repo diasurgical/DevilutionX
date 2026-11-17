@@ -175,16 +175,17 @@ void SelheroListSelect(size_t value)
 		int itemH = 33;
 		for (size_t i = 0; i < GetNumPlayerClasses(); ++i) {
 			const auto heroClass = static_cast<HeroClass>(i);
+			const ClassAttributes &classAttributes = GetClassAttributes(heroClass);
 
-			if (heroClass == HeroClass::Monk && !gbIsHellfire) {
+			if (HasAnyOf(classAttributes.classAvailabilityFlags, PlayerClassAvailabilityFlag::Hellfire) && !gbIsHellfire) {
 				continue;
 			}
 
-			if (heroClass == HeroClass::Bard && !HaveBardAssets() && !(*GetOptions().Gameplay.testBard)) {
+			if (HasAnyOf(classAttributes.classAvailabilityFlags, PlayerClassAvailabilityFlag::BardTest) && !HaveBardAssets() && !(*GetOptions().Gameplay.testBard)) {
 				continue;
 			}
 
-			if (heroClass == HeroClass::Barbarian && !HaveBarbarianAssets() && !(*GetOptions().Gameplay.testBarbarian)) {
+			if (HasAnyOf(classAttributes.classAvailabilityFlags, PlayerClassAvailabilityFlag::BarbarianTest) && !HaveBarbarianAssets() && !(*GetOptions().Gameplay.testBarbarian)) {
 				continue;
 			}
 
@@ -289,7 +290,8 @@ void AddSelHeroBackground()
 void SelheroClassSelectorSelect(size_t value)
 {
 	auto hClass = static_cast<HeroClass>(vecSelHeroDlgItems[value]->m_value);
-	if (gbIsSpawn && (hClass == HeroClass::Rogue || hClass == HeroClass::Sorcerer || (hClass == HeroClass::Bard && !HaveBardAssets()))) {
+	const ClassAttributes &classAttributes = GetClassAttributes(hClass);
+	if (gbIsSpawn && (HasAnyOf(classAttributes.classAvailabilityFlags, PlayerClassAvailabilityFlag::Retail) || (HasAnyOf(classAttributes.classAvailabilityFlags, PlayerClassAvailabilityFlag::BardTest) && !HaveBardAssets()))) {
 		RemoveSelHeroBackground();
 		UiSelOkDialog(nullptr, _("The Rogue and Sorcerer are only available in the full retail version of Diablo. Visit https://www.gog.com/game/diablo to purchase.").data(), false);
 		AddSelHeroBackground();
