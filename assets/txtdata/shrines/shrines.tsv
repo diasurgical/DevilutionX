@@ -11,7 +11,7 @@ ShrineThaumaturgic	Thaumaturgic	RefillsChests	0	0	Null	All											Single	DTYP
 ShrineFascinating	Fascinating	ChangeSpellLevel	2	0	Firebolt	Activator	ManaBaseReduction	10	0	Null	Activator						Single	DTYPE_TOWN	DTYPE_CRYPT	Crippling	Intensity comes at the cost of wisdom				
 ShrineCryptic	Cryptic	PlayerCastSpellVariantA	2	0	Nova	All	RestoreLifeAndMana	0	1	Null	Activator						Single	DTYPE_TOWN	DTYPE_CRYPT		Arcane power brings destruction				
 ShrineMagicaL2	Magical	PlayerCastSpellVariantA	2	0	ManaShield	Activator											Single	DTYPE_TOWN	DTYPE_CRYPT		While the spirit is vigilant the body thrives				
-ShrineEldritch	Eldritch	TransformPotionsToRejuvenation	0	0	Null	Activator											Single	DTYPE_TOWN	DTYPE_CRYPT		Crimson and Azure become as the sun
+ShrineEldritch	Eldritch	TransformPotionsToRejuvenation	0	0	Null	Activator											Single	DTYPE_TOWN	DTYPE_CRYPT		Crimson and Azure become as the sun				
 ShrineEerie	Eerie	MagicAttributeChange	2	2	Null	Activator											Single	DTYPE_TOWN	DTYPE_CRYPT		Knowledge and wisdom at the cost of self				
 ShrineDivine	Divine	CreateManaOrRejuvPotions	4	1	Null	Activator	CreateLifeOrRejuvPotions	4	1	Null	Activator	RestoreLifeAndMana	1	1	Null	Activator	Single	DTYPE_TOWN	DTYPE_CRYPT		Drink and be refreshed				
 ShrineHoly	Holy	PlayerCastSpellVariantB	2	0	Phasing	All											Single	DTYPE_TOWN	DTYPE_CRYPT		Wherever you go, there you are				
