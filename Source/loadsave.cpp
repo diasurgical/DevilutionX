@@ -18,6 +18,7 @@
 #include "automap.h"
 #include "codec.h"
 #include "control/control.hpp"
+#include "controls/local_coop/local_coop.hpp"
 #include "cursor.h"
 #include "cursor_defs.hpp"
 #include "dead.h"
@@ -2341,18 +2342,17 @@ size_t HotkeysSize(size_t nHotkeys = NumHotkeys)
 	return sizeof(uint8_t) + (nHotkeys * sizeof(int32_t)) + (nHotkeys * sizeof(uint8_t)) + sizeof(int32_t) + sizeof(uint8_t);
 }
 
-void LoadHotkeys()
+void LoadHotkeys(uint32_t saveNumber, Player &player)
 {
-	LoadHelper file(OpenSaveArchive(gSaveNumber), "hotkeys");
+	LoadHelper file(OpenSaveArchive(saveNumber), "hotkeys");
 	if (!file.IsValid())
 		return;
 
-	Player &myPlayer = *MyPlayer;
 	size_t nHotkeys = 4; // Defaults to old save format number
 
 	// Refill the spell arrays with no selection
-	std::fill(myPlayer._pSplHotKey, myPlayer._pSplHotKey + NumHotkeys, SpellID::Invalid);
-	std::fill(myPlayer._pSplTHotKey, myPlayer._pSplTHotKey + NumHotkeys, SpellType::Invalid);
+	std::fill(player._pSplHotKey, player._pSplHotKey + NumHotkeys, SpellID::Invalid);
+	std::fill(player._pSplTHotKey, player._pSplTHotKey + NumHotkeys, SpellType::Invalid);
 
 	// Checking if the save file has the old format with only 4 hotkeys and no header
 	if (file.IsValid(HotkeysSize(nHotkeys))) {
@@ -2364,7 +2364,7 @@ void LoadHotkeys()
 	for (size_t i = 0; i < nHotkeys; i++) {
 		// Do not load hotkeys past the size of the spell types array, discard the rest
 		if (i < NumHotkeys) {
-			myPlayer._pSplHotKey[i] = static_cast<SpellID>(file.NextLE<int32_t>());
+			player._pSplHotKey[i] = static_cast<SpellID>(file.NextLE<int32_t>());
 		} else {
 			file.Skip<int32_t>();
 		}
@@ -2372,15 +2372,20 @@ void LoadHotkeys()
 	for (size_t i = 0; i < nHotkeys; i++) {
 		// Do not load hotkeys past the size of the spells array, discard the rest
 		if (i < NumHotkeys) {
-			myPlayer._pSplTHotKey[i] = static_cast<SpellType>(file.NextLE<uint8_t>());
+			player._pSplTHotKey[i] = static_cast<SpellType>(file.NextLE<uint8_t>());
 		} else {
 			file.Skip<uint8_t>();
 		}
 	}
 
 	// Load the selected spell last
-	myPlayer._pRSpell = static_cast<SpellID>(file.NextLE<int32_t>());
-	myPlayer._pRSplType = static_cast<SpellType>(file.NextLE<uint8_t>());
+	player._pRSpell = static_cast<SpellID>(file.NextLE<int32_t>());
+	player._pRSplType = static_cast<SpellType>(file.NextLE<uint8_t>());
+}
+
+void LoadHotkeys()
+{
+	LoadHotkeys(gSaveNumber, *MyPlayer);
 }
 
 void SaveHotkeys(SaveWriter &saveWriter, const Player &player)
@@ -2957,8 +2962,21 @@ void SaveGameData(SaveWriter &saveWriter)
 void SaveGame()
 {
 	gbValidSaveFile = true;
-	pfile_write_hero(/*writeGameData=*/true);
-	sfile_write_stash();
+#ifndef USE_SDL1
+	// Save with Player 1 context automatically restored
+	if (IsLocalCoopEnabled()) {
+		WithPlayer1Context([]() {
+			pfile_write_hero(/*writeGameData=*/true);
+		});
+		sfile_write_stash();
+		// Also save local co-op players to their respective save slots
+		SaveLocalCoopPlayers(/*writeGameData=*/false);
+	} else
+#endif
+	{
+		pfile_write_hero(/*writeGameData=*/true);
+		sfile_write_stash();
+	}
 }
 
 void SaveLevel(SaveWriter &saveWriter)
