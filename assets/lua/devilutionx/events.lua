@@ -84,6 +84,20 @@ local events = {
   ---Called when Player gains experience.
   OnPlayerGainExperience = CreateEvent(),
   __doc_OnPlayerGainExperience = "Called when Player gains experience.",
+
+  ---Called when a player's resistances are recalculated. Args: player, fire, lightning, magic — the
+  ---totals before they are clamped to the displayed maximum.
+  OnCalcPlayerResistances = CreateEvent(),
+  __doc_OnCalcPlayerResistances = "Called when a player's resistances are recalculated. Args: player, fire, lightning, magic (before clamping).",
+
+  ---Called once when a new character is created, after the starting loadout is placed.
+  OnNewCharacter = CreateEvent(),
+  __doc_OnNewCharacter = "Called once when a new character is created, after the starting loadout is placed.",
+
+  ---Called while a new character's starting items are created, after the class loadout is placed.
+  ---Items added here are placed like the loadout (e.g. player:addItem).
+  OnCreatePlrItems = CreateEvent(),
+  __doc_OnCreatePlrItems = "Called while a new character's starting items are created, after the class loadout. Add extra starting items here.",
 }
 
 ---Registers a custom event type with the given name.
