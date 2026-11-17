@@ -108,10 +108,10 @@
 
 namespace devilution {
 
-CMonster LevelMonsterTypes[MaxLvlMTypes];
+std::vector<CMonster> LevelMonsterTypes; // Lua mod support: sized to GetMaxLvlMTypes() in InitLevelMonsters
 size_t LevelMonsterTypeCount;
-Monster Monsters[MaxMonsters];
-unsigned ActiveMonsters[MaxMonsters];
+Monster Monsters[AbsoluteMaxMonsters];        // Lua mod support: ceiling-sized; logical cap GetMaxMonsters()
+unsigned ActiveMonsters[AbsoluteMaxMonsters]; // Lua mod support
 size_t ActiveMonsterCount;
 /** Tracks the total number of monsters killed per monster_id. */
 int MonsterKillCounts[NUM_MAX_MTYPES];
@@ -3251,8 +3251,8 @@ MonsterSpritesData LoadMonsterSpritesData(const MonsterData &monsterData)
 
 void EnsureMonsterIndexIsActive(size_t monsterId)
 {
-	assert(monsterId < MaxMonsters);
-	for (size_t index = 0; index < MaxMonsters; index++) {
+	assert(monsterId < GetMaxMonsters()); // Lua mod support
+	for (size_t index = 0; index < GetMaxMonsters(); index++) {
 		if (ActiveMonsters[index] != monsterId)
 			continue;
 		if (index < ActiveMonsterCount)
@@ -3416,8 +3416,40 @@ std::expected<void, std::string> PrepareUniqueMonst(Monster &monster, UniqueMons
 	return {};
 }
 
+// Lua mod support: extra level monster-type slots requested by mods at load time.
+static size_t LevelMonsterTypeExtension = 0;
+
+size_t GetMaxLvlMTypes()
+{
+	return MaxLvlMTypes + LevelMonsterTypeExtension;
+}
+
+void RequestExtraLevelMonsterTypes(size_t count)
+{
+	LevelMonsterTypeExtension += count;
+}
+
+// Lua mod support: extra live-monster slots requested by mods at load time.
+static size_t MonsterCountExtension = 0;
+
+size_t GetMaxMonsters()
+{
+	return std::min(MaxMonsters + MonsterCountExtension, AbsoluteMaxMonsters);
+}
+
+void RequestExtraMonsters(size_t count)
+{
+	MonsterCountExtension += count;
+}
+
 void InitLevelMonsters()
 {
+	// Lua mod support: size the type table to the base cap plus any mod-requested extension.
+	// The extension is fixed at mod-load, so this grows the (initially empty) vector exactly
+	// once and is a no-op on every later level — existing elements are never moved/reallocated.
+	if (LevelMonsterTypes.size() < GetMaxLvlMTypes())
+		LevelMonsterTypes.resize(GetMaxLvlMTypes());
+
 	LevelMonsterTypeCount = 0;
 	monstimgtot = 0;
 
@@ -3495,7 +3527,7 @@ std::expected<void, std::string> GetLevelMTypes()
 			typelist[nt++] = (_monster_id)i;
 		}
 
-		while (nt > 0 && LevelMonsterTypeCount < MaxLvlMTypes && monstimgtot < 4000) {
+		while (nt > 0 && LevelMonsterTypeCount < GetMaxLvlMTypes() && monstimgtot < 4000) {
 			for (int i = 0; i < nt;) {
 				if (MonstersData[typelist[i]].image > 4000 - monstimgtot) {
 					typelist[i] = typelist[--nt];
@@ -4267,7 +4299,7 @@ void ProcessMonsters()
 {
 	DeleteMonsterList();
 
-	assert(ActiveMonsterCount <= MaxMonsters);
+	assert(ActiveMonsterCount <= GetMaxMonsters()); // Lua mod support
 	for (size_t i = 0; i < ActiveMonsterCount; i++) {
 		Monster &monster = Monsters[ActiveMonsters[i]];
 		FollowTheLeader(monster);
@@ -4306,7 +4338,7 @@ void ProcessMonsters()
 
 		if ((monster.flags & MFLAG_NO_ENEMY) == 0) {
 			if ((monster.flags & MFLAG_TARGETS_MONSTER) != 0) {
-				assert(monster.enemy >= 0 && monster.enemy < MaxMonsters);
+				assert(monster.enemy >= 0 && monster.enemy < GetMaxMonsters()); // Lua mod support
 				monster.position.last = Monsters[monster.enemy].position.future;
 				monster.enemyPosition = monster.position.last;
 			} else {
@@ -4588,7 +4620,7 @@ void PlayEffect(Monster &monster, MonsterSound mode)
 
 void MissToMonst(Missile &missile, Point position)
 {
-	assert(static_cast<size_t>(missile._misource) < MaxMonsters);
+	assert(static_cast<size_t>(missile._misource) < GetMaxMonsters()); // Lua mod support
 	Monster &monster = Monsters[missile._misource];
 
 	const Point oldPosition = missile.position.tile;
@@ -4835,7 +4867,7 @@ void SpawnGolem(const Player &player, Point position, uint8_t spellLevel)
 	}
 	// 3. Use normal monster slot
 	if (golem == nullptr) {
-		if (ActiveMonsterCount >= MaxMonsters)
+		if (ActiveMonsterCount >= GetMaxMonsters()) // Lua mod support: golems may use the extended slots
 			return;
 		const size_t monsterIndex = ActiveMonsters[ActiveMonsterCount];
 		ActiveMonsterCount += 1;
@@ -4863,13 +4895,13 @@ uint8_t encode_enemy(Monster &monster)
 	if ((monster.flags & MFLAG_TARGETS_MONSTER) != 0)
 		return monster.enemy;
 
-	return monster.enemy + MaxMonsters;
+	return monster.enemy + GetMaxMonsters(); // Lua mod support: offset must exceed max monster id
 }
 
 void decode_enemy(Monster &monster, uint8_t enemyId)
 {
-	if (enemyId >= MaxMonsters) {
-		enemyId -= MaxMonsters;
+	if (enemyId >= GetMaxMonsters()) { // Lua mod support
+		enemyId -= GetMaxMonsters();
 		monster.flags &= ~MFLAG_TARGETS_MONSTER;
 		monster.enemy = enemyId;
 		monster.enemyPosition = Players[enemyId].position.future;
