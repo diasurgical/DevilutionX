@@ -2962,22 +2962,45 @@ StartNewLvl(Player &player, interface_mode fom, int lvl)
 	}
 }
 
-void RestartTownLvl(Player &player)
+namespace {
+
+void SendPlayerToTownAfterDeath(Player &player)
 {
 	InitLevelChange(player);
 
 	player.setLevel(0);
 	player._pInvincible = false;
 
-	SetPlayerHitPoints(player, Fixed26_6::fromInt(1));
+	// In local co-op the whole party goes back to town, so only revive the players who are dead
+	if (!IsLocalCoopEnabled() || player.hasNoLife()) {
+		SetPlayerHitPoints(player, Fixed26_6::fromInt(1));
 
-	player._pMana = Fixed26_6::fromInt(0);
-	player._pManaBase = player._pMana - (player._pMaxMana - player._pMaxManaBase);
+		player._pMana = Fixed26_6::fromInt(0);
+		player._pManaBase = player._pMana - (player._pMaxMana - player._pMaxManaBase);
+	}
 
 	CalcPlrInv(player, false);
 	player._pmode = PM_NEWLVL;
+}
+
+} // namespace
+
+void RestartTownLvl(Player &player)
+{
+	SendPlayerToTownAfterDeath(player);
 
 	if (IsLocalPlayer(player)) {
+		// Local co-op players share the screen, so they all go back to town together.
+		// This includes Player 1, whose level decides which level WM_DIABRETOWN loads.
+		if (IsLocalCoopEnabled()) {
+			for (Player &other : Players) {
+				if (&other == &player || !other.plractive || !IsLocalPlayer(other))
+					continue;
+				SendPlayerToTownAfterDeath(other);
+				other._pInvincible = true;
+			}
+		}
+
 		player._pInvincible = true;
 		SDL_Event event;
 		CustomEventToSdlEvent(event, WM_DIABRETOWN);
