@@ -176,8 +176,7 @@ void nthread_start(bool setTurnUpperBit)
 		gdwNormalMsgSize *= 2;
 		sgbNetUpdateRate *= 2;
 	}
-	if (gdwNormalMsgSize > largestMsgSize)
-		gdwNormalMsgSize = largestMsgSize;
+	gdwNormalMsgSize = std::min(gdwNormalMsgSize, largestMsgSize);
 	if (gbIsMultiplayer) {
 		sgbThreadIsRunning = false;
 		MemCrit.lock();
