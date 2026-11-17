@@ -1,5 +1,5 @@
 Attribute	Value
-classFlags	DualWield
+classFlags	DualWield,BowTraining,DualSwordCleave
 baseStr	20
 baseMag	20
 baseDex	25
