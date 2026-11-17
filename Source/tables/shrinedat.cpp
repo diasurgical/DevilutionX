@@ -37,11 +37,12 @@ ParseShrineEffectType(std::string_view value)
 	if (value == "RandomSpellLevelChange") return ShrineEffectRandomSpellLevelChange;
 	if (value == "RefillsChests") return ShrineEffectRefillsChests;
 	if (value == "ChangeSpellLevel") return ShrineEffectChangeSpellLevel;
-	if (value == "CostOfWisdom") return ShrineEffectCostOfWisdom;
+	if (value == "ManaBaseReduction") return ShrineEffectManaBaseReduction;
 	if (value == "RestoreLifeAndMana") return ShrineEffectRestoreLifeAndMana;
-	if (value == "PointsTransformRejuvenation") return ShrineEffectPointsTransformRejuvenation;
+	if (value == "TransformPotionsToRejuvenation") return ShrineEffectTransformPotionsToRejuvenation;
 	if (value == "MagicAttributeChange") return ShrineEffectMagicAttributeChange;
-	if (value == "CreatePotions") return ShrineEffectCreatePotions;
+	if (value == "CreateManaOrRejuvPotions") return ShrineEffectCreateManaOrRejuvPotions;
+	if (value == "CreateLifeOrRejuvPotions") return ShrineEffectCreateLifeOrRejuvPotions;
 	if (value == "PlayerCastSpellVariantB") return ShrineEffectPlayerCastSpellVariantB;
 	if (value == "FillEmptySlotsGold") return ShrineEffectFillEmptySlotsGold;
 	if (value == "DexterityAttributeChange") return ShrineEffectDexterityAttributeChange;
@@ -55,6 +56,7 @@ ParseShrineEffectType(std::string_view value)
 	if (value == "GoldToExperience") return ShrineEffectGoldToExperience;
 	if (value == "ExperiencePerDungeonLevel") return ShrineEffectExperiencePerDungeonLevel;
 	if (value == "CastFlashBottomTrap") return ShrineEffectCastFlashBottomTrap;
+	if (value == "CastSpellTrap") return ShrineEffectCastSpellTrap;
 	if (value == "PlayerCastSpellVariantC") return ShrineEffectPlayerCastSpellVariantC;
 	if (value == "LocalHourAttributeChange") return ShrineEffectLocalHourAttributeChange;
 	if (value == "BreakItemOrTakeGold") return ShrineEffectBreakItemOrTakeGold;
