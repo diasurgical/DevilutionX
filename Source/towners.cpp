@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <utility>
 
+#include "controls/local_coop/local_coop.hpp"
 #include "cursor.h"
 #include "cursor_defs.hpp"
 #include "engine/clx_sprite.hpp"
@@ -999,6 +1000,20 @@ void TalkToTowner(Player &player, int t)
 
 	if (!player.HoldItem.isEmpty()) {
 		return;
+	}
+
+	// Handle store ownership for local co-op
+	// Player 0 is the main player (MyPlayer), players 1+ are local co-op players
+	if (IsLocalCoopEnabled()) {
+		uint8_t playerId = player.getId();
+		if (playerId > 0) {
+			// This is a coop player - set them as store owner
+			SetLocalCoopStoreOwner(static_cast<int>(playerId));
+		} else if (IsLocalCoopStoreActive()) {
+			// Player 1 trying to talk while a coop player owns the store - don't allow
+			return;
+		}
+		// Player 1 talking when no coop player owns store - that's fine, no action needed
 	}
 
 	SetTalkingTowner(static_cast<size_t>(t));

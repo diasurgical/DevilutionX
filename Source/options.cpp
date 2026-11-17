@@ -889,6 +889,7 @@ GameplayOptions::GameplayOptions()
               { StoreUi::ListWithItemGraphics, N_("List with item graphics") },
               { StoreUi::VisualGrid, N_("Visual grid") },
           })
+    , enableLocalCoop("Enable Local Co-op", OptionEntryFlags::CantChangeInGame, N_("Enable Local Co-op"), N_("Enable local co-op mode with multiple controllers. Each controller controls a different player on the same screen."), false)
     , skipLoadingScreenThresholdMs("Skip loading screen threshold, ms", OptionEntryFlags::Invisible, "", "", 0)
 {
 }
@@ -934,6 +935,7 @@ std::vector<OptionEntryBase *> GameplayOptions::GetEntries()
 		&disableCripplingShrines,
 		&grabInput,
 		&pauseOnFocusLoss,
+		&enableLocalCoop,
 		&skipLoadingScreenThresholdMs,
 	};
 }

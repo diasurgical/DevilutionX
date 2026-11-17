@@ -5,6 +5,7 @@
  */
 #include "msg.h"
 
+#include <array>
 #include <climits>
 #include <cmath>
 #include <cstdint>
@@ -305,8 +306,8 @@ uint8_t sgbDeltaChunks;
 std::list<TMegaPkt> MegaPktList;
 Item ItemLimbo;
 
-/** @brief Last sent player command for the local player. */
-TCmdLocParam5 lastSentPlayerCmd;
+/** @brief Last sent player command for each local player (Player 1 and local co-op players). */
+std::array<TCmdLocParam5, MAX_PLRS> lastSentPlayerCmds;
 
 void RecreateItem(const Player &player, const TCmdPItem &message, Item &item);
 
@@ -405,6 +406,7 @@ bool WasPlayerCmdAlreadyRequested(_cmd_id bCmd, Point position = {}, uint16_t wP
 	const TCmdLocParam5 newSendParam = { bCmd, static_cast<uint8_t>(position.x), static_cast<uint8_t>(position.y),
 		Swap16LE(wParam1), Swap16LE(wParam2), Swap16LE(wParam3), Swap16LE(wParam4), Swap16LE(wParam5) };
 
+	TCmdLocParam5 &lastSentPlayerCmd = lastSentPlayerCmds[MyPlayerId];
 	if (lastSentPlayerCmd.bCmd == newSendParam.bCmd && lastSentPlayerCmd.x == newSendParam.x && lastSentPlayerCmd.y == newSendParam.y
 	    && lastSentPlayerCmd.wParam1 == newSendParam.wParam1 && lastSentPlayerCmd.wParam2 == newSendParam.wParam2
 	    && lastSentPlayerCmd.wParam3 == newSendParam.wParam3 && lastSentPlayerCmd.wParam4 == newSendParam.wParam4
@@ -1460,10 +1462,14 @@ size_t OnRequestGetItem(const TCmdGItem &message, Player &player)
 
 	if (ii != -1) {
 		NetSendCmdGItem2(false, CMD_GETITEM, MyPlayerId, message.bPnum, message);
-		if (message.bPnum != MyPlayerId)
+		// Give the item directly to players controlled on this machine (Player 1 and local co-op players)
+		if (message.bPnum < Players.size() && IsLocalPlayer(Players[message.bPnum])) {
+			// Item is for a local player, give it to them directly
+			InvGetItem(Players[message.bPnum], ii);
+		} else {
+			// Item is for a remote player, sync it
 			SyncGetItem(position, dwSeed, wIndx, wCI);
-		else
-			InvGetItem(*MyPlayer, ii);
+		}
 		SetItemRecord(dwSeed, wCI, wIndx);
 	} else if (!NetSendCmdReq2(CMD_REQUESTGITEM, *MyPlayer, message.bPnum, message)) {
 		NetSendCmdExtra(message);
@@ -1536,10 +1542,14 @@ size_t OnRequestAutoGetItem(const TCmdGItem &message, Player &player)
 		if (GetItemRecord(dwSeed, wCI, wIndx)) {
 			if (FindGetItem(dwSeed, wIndx, wCI) != -1) {
 				NetSendCmdGItem2(false, CMD_AGETITEM, MyPlayerId, message.bPnum, message);
-				if (message.bPnum != MyPlayerId)
+				// Give the item directly to players controlled on this machine (Player 1 and local co-op players)
+				if (message.bPnum < Players.size() && IsLocalPlayer(Players[message.bPnum])) {
+					// Item is for a local player, auto-place it in their inventory
+					AutoGetItem(Players[message.bPnum], &Items[message.bCursitem], message.bCursitem);
+				} else {
+					// Item is for a remote player, sync it
 					SyncGetItem(position, dwSeed, wIndx, wCI);
-				else
-					AutoGetItem(*MyPlayer, &Items[message.bCursitem], message.bCursitem);
+				}
 				SetItemRecord(dwSeed, wCI, wIndx);
 			} else if (!NetSendCmdReq2(CMD_REQUESTAGITEM, *MyPlayer, message.bPnum, message)) {
 				NetSendCmdExtra(message);
@@ -2093,7 +2103,8 @@ size_t OnPlayerDamage(const TCmdDamage &message, Player &player)
 	const uint32_t damage = Swap32LE(message.dwDam);
 
 	Player &target = Players[message.bPlr];
-	if (&target == MyPlayer && leveltype != DTYPE_TOWN && gbBufferMsgs != 1) {
+	// Apply damage to any player controlled on this machine (Player 1 and local co-op players)
+	if (IsLocalPlayer(target) && leveltype != DTYPE_TOWN && gbBufferMsgs != 1) {
 		if (player.isOnActiveLevel() && damage <= 192000 && !target.hasNoLife()) {
 			ApplyPlrDamage(message.damageType, target, Fixed26_6::fromRaw(static_cast<int>(damage)), 0, DeathReason::Player);
 		}
@@ -2742,7 +2753,7 @@ void RecreateItem(const Player &player, const TItem &messageItem, Item &item)
 
 void ClearLastSentPlayerCmd()
 {
-	lastSentPlayerCmd = {};
+	lastSentPlayerCmds = {};
 }
 
 void msg_send_drop_pkt(uint8_t pnum, leaveinfo_t reason)
