@@ -49,8 +49,7 @@ void StreamPlay(TSFX *pSFX, int lVolume, int lPan)
 	stream_stop();
 
 	if (lVolume >= VOLUME_MIN) {
-		if (lVolume > VOLUME_MAX)
-			lVolume = VOLUME_MAX;
+		lVolume = std::min(lVolume, VOLUME_MAX);
 		if (pSFX->pSnd == nullptr)
 			pSFX->pSnd = sound_file_load(pSFX->pszName.c_str(), AllowStreaming);
 		if (pSFX->pSnd->DSB.IsLoaded())
