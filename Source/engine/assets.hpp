@@ -21,6 +21,7 @@
 #include "appfat.h"
 #include "game_mode.hpp"
 #include "headless_mode.hpp"
+#include "mods/mod_identity.h"
 #include "utils/file_util.h"
 #include "utils/language.h"
 #include "utils/sdl_compat.h"
@@ -28,7 +29,6 @@
 #include "utils/string_or_view.hpp"
 
 #ifndef UNPACKED_MPQS
-#include "mods/mod_identity.h"
 #include "mpq/mpq_reader.hpp"
 #endif
 
