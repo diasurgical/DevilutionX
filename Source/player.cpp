@@ -151,20 +151,6 @@ void StartWalkAnimation(Player &player, Direction dir, bool pmWillBeCalled)
 	NewPlrAnim(player, player_graphic::Walk, dir, AnimationDistributionFlags::ProcessAnimationPending, skippedFrames);
 }
 
-/**
- * @brief Start moving a player to a new tile
- */
-void StartWalk(Player &player, Direction dir, bool pmWillBeCalled)
-{
-	if (player._pInvincible && player.hasNoLife() && &player == MyPlayer) {
-		SyncPlrKill(player, DeathReason::Unknown);
-		return;
-	}
-
-	StartWalkAnimation(player, dir, pmWillBeCalled);
-	HandleWalkMode(player, dir);
-}
-
 void ClearStateVariables(Player &player)
 {
 	player.position.temp = { 0, 0 };
@@ -360,42 +346,6 @@ void DropHalfPlayersGold(Player &player)
 	}
 
 	player._pGold /= 2;
-}
-
-void InitLevelChange(Player &player)
-{
-	const Player &myPlayer = *MyPlayer;
-
-	RemoveEnemyReferences(player);
-	RemovePlrMissiles(player);
-	player.pManaShield = false;
-	player.wReflections = 0;
-	if (&player != MyPlayer) {
-		// share info about your manashield when another player joins the level
-		if (myPlayer.pManaShield)
-			NetSendCmd(true, CMD_SETSHIELD);
-		// share info about your reflect charges when another player joins the level
-		NetSendCmdParam1(true, CMD_SETREFLECT, myPlayer.wReflections);
-	} else if (qtextflag) {
-		qtextflag = false;
-		stream_stop();
-	}
-
-	FixPlrWalkTags(player);
-	SetPlayerOld(player);
-	if (&player == MyPlayer) {
-		player.occupyTile(player.position.tile, false);
-	} else {
-		player._pLvlVisited[player.plrlevel] = true;
-	}
-
-	ClrPlrPath(player);
-	player.destAction = ACTION_NONE;
-	player._pLvlChanging = true;
-
-	if (&player == MyPlayer) {
-		player.pLvlLoad = 10;
-	}
 }
 
 /**
@@ -1508,6 +1458,56 @@ void GetPlayerGraphicsPath(std::string_view path, std::string_view prefix, std::
 }
 
 } // namespace
+
+/**
+ * @brief Start moving a player to a new tile
+ */
+void StartWalk(Player &player, Direction dir, bool pmWillBeCalled)
+{
+	if (player._pInvincible && player.hasNoLife() && &player == MyPlayer) {
+		SyncPlrKill(player, DeathReason::Unknown);
+		return;
+	}
+
+	StartWalkAnimation(player, dir, pmWillBeCalled);
+	HandleWalkMode(player, dir);
+}
+
+void InitLevelChange(Player &player)
+{
+	const Player &myPlayer = *MyPlayer;
+
+	RemoveEnemyReferences(player);
+	RemovePlrMissiles(player);
+	player.pManaShield = false;
+	player.wReflections = 0;
+	if (&player != MyPlayer) {
+		// share info about your manashield when another player joins the level
+		if (myPlayer.pManaShield)
+			NetSendCmd(true, CMD_SETSHIELD);
+		// share info about your reflect charges when another player joins the level
+		NetSendCmdParam1(true, CMD_SETREFLECT, myPlayer.wReflections);
+	} else if (qtextflag) {
+		qtextflag = false;
+		stream_stop();
+	}
+
+	FixPlrWalkTags(player);
+	SetPlayerOld(player);
+	if (&player == MyPlayer) {
+		player.occupyTile(player.position.tile, false);
+	} else {
+		player._pLvlVisited[player.plrlevel] = true;
+	}
+
+	ClrPlrPath(player);
+	player.destAction = ACTION_NONE;
+	player._pLvlChanging = true;
+
+	if (&player == MyPlayer) {
+		player.pLvlLoad = 10;
+	}
+}
 
 void Player::CalcScrolls()
 {

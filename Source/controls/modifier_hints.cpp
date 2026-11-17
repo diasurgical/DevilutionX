@@ -6,7 +6,11 @@
 #include "DiabloUI/ui_flags.hpp"
 #include "control/control.hpp"
 #include "controls/controller_motion.h"
+#ifndef USE_SDL1
+#include "controls/devices/game_controller.h"
+#endif
 #include "controls/game_controls.h"
+#include "controls/local_coop/local_coop.hpp"
 #include "controls/plrctrls.h"
 #include "engine/clx_sprite.hpp"
 #include "engine/load_clx.hpp"
@@ -101,11 +105,11 @@ void DrawCircleMenuHint(const Surface &out, const CircleMenuHint &hint, const Po
 /**
  * @brief Draws hint text for a four button layout with the top/left edge of the bounding box at the position given by origin plus the icon for the spell mapped to that entry.
  * @param out The output buffer to draw on.
+ * @param myPlayer The player whose spell hotkeys are shown.
  * @param origin Top left corner of the layout (relative to the output buffer).
  */
-void DrawSpellsCircleMenuHint(const Surface &out, const Point &origin)
+void DrawSpellsCircleMenuHint(const Surface &out, const Player &myPlayer, const Point &origin)
 {
-	const Player &myPlayer = *MyPlayer;
 	const Displacement spellIconDisplacement = { ((HintBoxSize - IconSize) / 2) + 1, HintBoxSize - ((HintBoxSize - IconSize) / 2) - 1 };
 	const Point hintBoxPositions[4] = {
 		origin + Displacement { 0, LineHeight - HintBoxSize },
@@ -139,9 +143,9 @@ void DrawSpellsCircleMenuHint(const Surface &out, const Point &origin)
 	}
 }
 
-void DrawGamepadMenuNavigator(const Surface &out)
+void DrawGamepadMenuNavigator(const Surface &out, bool forceDraw)
 {
-	if (!PadMenuNavigatorActive || SimulatingMouseWithPadmapper)
+	if ((!PadMenuNavigatorActive && !forceDraw) || SimulatingMouseWithPadmapper)
 		return;
 	static const CircleMenuHint DPad(/*top=*/HintIcon::IconMenu, /*right=*/HintIcon::IconInv, /*bottom=*/HintIcon::IconMap, /*left=*/HintIcon::IconChar);
 	static const CircleMenuHint Buttons(/*top=*/HintIcon::IconNull, /*right=*/HintIcon::IconNull, /*bottom=*/HintIcon::IconSpells, /*left=*/HintIcon::IconQuests);
@@ -155,8 +159,12 @@ void DrawGamepadHotspellMenu(const Surface &out)
 	if (!PadHotspellMenuActive || SimulatingMouseWithPadmapper)
 		return;
 
+	// The local co-op HUD draws each player's hint next to their own corner panel
+	if (IsLocalCoopHUDVisible())
+		return;
+
 	const Rectangle &mainPanel = GetMainPanel();
-	DrawSpellsCircleMenuHint(out, { mainPanel.position.x + mainPanel.size.width - (HintBoxSize * 3) - CircleMarginX - (HintBoxMargin * 2), mainPanel.position.y - CircleTop });
+	DrawSpellsCircleMenuHint(out, *MyPlayer, { mainPanel.position.x + mainPanel.size.width - (HintBoxSize * 3) - CircleMarginX - (HintBoxMargin * 2), mainPanel.position.y - CircleTop });
 }
 
 } // namespace
@@ -177,8 +185,44 @@ void FreeModifierHints()
 
 void DrawControllerModifierHints(const Surface &out)
 {
-	DrawGamepadMenuNavigator(out);
-	DrawGamepadHotspellMenu(out);
+	// Check if any local coop player has Start button held
+	bool anyPlayerHasStartHeld = false;
+	if (IsLocalCoopEnabled()) {
+#ifndef USE_SDL1
+		for (size_t i = 0; i < MaxLocalPlayers; ++i) {
+			const LocalCoopPlayer *player = g_LocalCoop.GetPlayer(static_cast<uint8_t>(i));
+			if (player != nullptr && player->active && player->controllerId != -1) {
+				GameController *controller = GameController::Get(player->controllerId);
+				if (controller != nullptr && controller->IsPressed(ControllerButton_BUTTON_START)) {
+					anyPlayerHasStartHeld = true;
+					break;
+				}
+			}
+		}
+#endif
+	}
+
+	// Draw menu navigator if Start is held (either global or any local coop player)
+	if (PadMenuNavigatorActive || anyPlayerHasStartHeld) {
+		DrawGamepadMenuNavigator(out, anyPlayerHasStartHeld);
+	}
+
+	// Draw hotspell menu if active (only global, not per-player)
+	if (PadHotspellMenuActive) {
+		DrawGamepadHotspellMenu(out);
+	}
+}
+
+Size GetSpellHotkeysHintSize()
+{
+	constexpr int Extent = (HintBoxSize * 3) + (HintBoxMargin * 2);
+	return { Extent, Extent };
+}
+
+void DrawSpellHotkeysHint(const Surface &out, const Player &player, Point topLeft)
+{
+	// DrawSpellsCircleMenuHint's origin is offset so the left/right boxes sit on the text line
+	DrawSpellsCircleMenuHint(out, player, topLeft + Displacement { 0, (HintBoxSize * 2) + HintBoxMargin - LineHeight });
 }
 
 } // namespace devilution
