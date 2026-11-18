@@ -38,9 +38,9 @@
 #include "monster.h"
 #include "options.h"
 #include "qol/stash.h"
+#include "shrines.hpp"
 #include "stores.h"
 #include "tables/objdat.h"
-#include "tables/shrinedat.hpp"
 #include "towners.h"
 #include "track.h"
 #include "utils/algorithm/container.hpp"
@@ -2137,26 +2137,7 @@ void OperateShrine(Player &player, Object &shrine, SfxID sType)
 	shrine._oAnimDelay = 1;
 
 	const ShrineData &shrineData = GetShrineData(static_cast<uint8_t>(shrine._oVar1));
-	ShrineMessage shrineMessage = ShrineMessage::ShrineMessageDefault;
-	for (size_t i = 0; i < MAX_SHRINE_EFFECTS; ++i) {
-		ShrineEffect shrineEffect = shrineData.shrineEffect[i];
-		if (shrineEffect.typeFn == nullptr) {
-			continue;
-		}
-		if (&player == MyPlayer) {
-			if (shrineEffect.affectsPlayer == ShrineAffectsPlayer::Others) {
-				continue;
-			}
-		} else {
-			if (shrineEffect.affectsPlayer == ShrineAffectsPlayer::Activator) {
-				continue;
-			}
-		}
-		const ShrineMessage lastShrineMessage = shrineEffect.typeFn(rng, player, shrine.position, shrineEffect);
-		if (lastShrineMessage != ShrineMessage::ShrineMessageDefault) {
-			shrineMessage = lastShrineMessage;
-		}
-	}
+	const ShrineMessage shrineMessage = OperateShrine(rng, player, shrine.position, shrineData);
 	CheckStats(player);
 	CalcPlrInv(player, true);
 	RedrawEverything();
@@ -2166,9 +2147,6 @@ void OperateShrine(Player &player, Object &shrine, SfxID sType)
 	}
 
 	std::string message;
-	if (shrineMessage == ShrineMessage::ShrineMessageDefault) {
-		shrineMessage = (&player == MyPlayer) ? ShrineMessage::ShrineMessage1 : ShrineMessage::ShrineMessage5;
-	}
 	switch (shrineMessage) {
 	case ShrineMessage::ShrineMessage5:
 		message = shrineData.message5;

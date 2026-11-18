@@ -242,7 +242,7 @@ ShrineMessage ShrineEffectArmorClassMaxDamageChange(DiabloGenerator &rng, Player
 }
 
 /**
- * @brief For all items in the player's inventory, modifies the max damage of all weapons
+ * @brief For all items in the player's inventory, modifies the min and max damage of all weapons
  * @warning Probably doesn't work in multiplayer
  * @param rng Unused
  * @param player The player that activated the shrine
@@ -296,7 +296,7 @@ ShrineMessage ShrineEffectMinMaxDamageChange(DiabloGenerator &rng, Player &opera
 }
 
 /**
- * @brief Player casts a spell at his position
+ * @brief Player operating shrine casts a spell at his position
  * @param rng Unused
  * @param player The player that activated the shrine
  * @param spawnPosition The position of the shrine to use as the source position of the spell
@@ -305,7 +305,7 @@ ShrineMessage ShrineEffectMinMaxDamageChange(DiabloGenerator &rng, Player &opera
  * @param shrineEffect.param2 Damage add per dungeon level
  * @return ShrineMessage::ShrineMessageDefault
  */
-ShrineMessage ShrineEffectPlayerCastSpellVariantA(DiabloGenerator &rng, Player &operatePlayer, const Point spawnPosition, const ShrineEffect &shrineEffect)
+ShrineMessage ShrineEffectPlayerCastSpellFromPlayer(DiabloGenerator &rng, Player &operatePlayer, const Point spawnPosition, const ShrineEffect &shrineEffect)
 {
 	const SpellID spellId = shrineEffect.spellId;
 
@@ -409,14 +409,11 @@ ShrineMessage ShrineEffectRandomSpellLevelChange(DiabloGenerator &rng, Player &o
 			NetSendCmdParam2(true, CMD_CHANGE_SPELL_LEVEL, spellToReduce, newSpellLevel);
 		}
 
-		// TODO: Always true, the function returns early for other players. Drop the check (see #8799).
-		if (&player == MyPlayer) {
-			for (Item &item : InventoryPlayerItemsRange { player }) {
-				item.updateRequiredStatsCacheForPlayer(player);
-			}
-			if (IsStashOpen) {
-				Stash.RefreshItemStatFlags();
-			}
+        for (Item &item : InventoryPlayerItemsRange { player }) {
+            item.updateRequiredStatsCacheForPlayer(player);
+        }
+        if (IsStashOpen) {
+            Stash.RefreshItemStatFlags();
 		}
 	}
 	return ShrineMessage::ShrineMessageDefault;
@@ -445,15 +442,16 @@ ShrineMessage ShrineEffectRefillsChests(DiabloGenerator &rng, Player &operatePla
 }
 
 /**
- * @brief Increases a specific spell level
+ * @brief Changes a specific spell level
  * @param player The player that activated the shrine
- * @param shrineEffect.param1 Amount of levels to increase the spell
+ * @param shrineEffect.param1 Min amount of levels to increase the spell
+ * @param shrineEffect.param2 Max amount of levels to increase the spell
  * @param shrineEffect.spellId Spell to increase level
  * @return ShrineMessage::ShrineMessageDefault
  */
 ShrineMessage ShrineEffectChangeSpellLevel(DiabloGenerator &rng, Player &operatePlayer, const Point spawnPosition, const ShrineEffect &shrineEffect)
 {
-	const int spellLevelChange = shrineEffect.param1;
+	const int spellLevelChange = ValueFromInterval(rng, shrineEffect);
 	const SpellID spellId = shrineEffect.spellId;
 
 	Player &player = *MyPlayer;
@@ -565,7 +563,7 @@ ShrineMessage ShrineEffectTransformPotionsToRejuvenation(DiabloGenerator &rng, P
 }
 
 /**
- * @brief Increases the magic attribute
+ * @brief Changes the magic attribute
  * @param rng Unused
  * @param player The player that activated the shrine
  * @param spawnPosition Unused
@@ -635,7 +633,7 @@ ShrineMessage ShrineEffectCreateLifeOrRejuvPotions(DiabloGenerator &rng, Player 
 }
 
 /**
- * @brief Player casts a spell at his position with 0,0 coordinates as destiny
+ * @brief Player operating shrine casts a spell at his position with 0,0 coordinates as destiny
  * @param rng Unused
  * @param player The player that activated the shrine
  * @param spawnPosition The position of the shrine to use as the source position of the spell
@@ -644,7 +642,7 @@ ShrineMessage ShrineEffectCreateLifeOrRejuvPotions(DiabloGenerator &rng, Player 
  * @param shrineEffect.param2 Damage add per dungeon level
  * @return ShrineMessage::ShrineMessageDefault
  */
-ShrineMessage ShrineEffectPlayerCastSpellVariantB(DiabloGenerator &rng, Player &operatePlayer, const Point spawnPosition, const ShrineEffect &shrineEffect)
+ShrineMessage ShrineEffectPlayerCastSpellFromPlayerTowardZero(DiabloGenerator &rng, Player &operatePlayer, const Point spawnPosition, const ShrineEffect &shrineEffect)
 {
 	const SpellID spellId = shrineEffect.spellId;
 
@@ -698,7 +696,7 @@ ShrineMessage ShrineEffectFillEmptySlotsGold(DiabloGenerator &rng, Player &opera
 }
 
 /**
- * @brief Increases the dexterity attribute
+ * @brief Changes the dexterity attribute
  * @param rng Unused
  * @param player The player that activated the shrine
  * @param spawnPosition Unused
@@ -714,7 +712,7 @@ ShrineMessage ShrineEffectDexterityAttributeChange(DiabloGenerator &rng, Player 
 }
 
 /**
- * @brief Increases the strength attribute
+ * @brief Changes the strength attribute
  * @param rng Unused
  * @param player The player that activated the shrine
  * @param spawnPosition Unused
@@ -730,7 +728,7 @@ ShrineMessage ShrineEffectStrengthAttributeChange(DiabloGenerator &rng, Player &
 }
 
 /**
- * @brief Increases the vitality attribute
+ * @brief Changes the vitality attribute
  * @param rng Unused
  * @param player The player that activated the shrine
  * @param spawnPosition Unused
@@ -975,7 +973,7 @@ ShrineMessage ShrineEffectCastSpellTrap(DiabloGenerator &rng, Player &operatePla
 }
 
 /**
- * @brief Player casts a spell at the shrine position
+ * @brief Player operating shrine casts a spell at the shrine position
  * @param rng Unused
  * @param player The player that activated the shrine
  * @param spawnPosition The position of the shrine to use as the source position of the spell
@@ -984,7 +982,7 @@ ShrineMessage ShrineEffectCastSpellTrap(DiabloGenerator &rng, Player &operatePla
  * @param shrineEffect.param2 Damage add per dungeon level
  * @return ShrineMessage::ShrineMessageDefault
  */
-ShrineMessage ShrineEffectPlayerCastSpellVariantC(DiabloGenerator &rng, Player &operatePlayer, const Point spawnPosition, const ShrineEffect &shrineEffect)
+ShrineMessage ShrineEffectPlayerCastSpellFromShrine(DiabloGenerator &rng, Player &operatePlayer, const Point spawnPosition, const ShrineEffect &shrineEffect)
 {
 	const SpellID spellId = shrineEffect.spellId;
 
@@ -1010,7 +1008,7 @@ ShrineMessage ShrineEffectPlayerCastSpellVariantC(DiabloGenerator &rng, Player &
 }
 
 /**
- * @brief Increases an attribute based on the current hour
+ * @brief Changes an attribute based on the current hour
  * @param rng Unused
  * @param player The player that activated the shrine
  * @param spawnPosition The position of the shrine
@@ -1076,6 +1074,34 @@ ShrineMessage ShrineEffectBreakItemOrTakeGold(DiabloGenerator &rng, Player &oper
 		}
 	}
 	return ShrineMessage::ShrineMessageDefault;
+}
+
+ShrineMessage OperateShrine(DiabloGenerator &rng, Player &operatePlayer, const Point shrinePosition, const ShrineData &shrineData)
+{
+	ShrineMessage shrineMessage = ShrineMessage::ShrineMessageDefault;
+	for (size_t i = 0; i < MAX_SHRINE_EFFECTS; ++i) {
+		ShrineEffect shrineEffect = shrineData.shrineEffect[i];
+		if (shrineEffect.typeFn == nullptr) {
+			continue;
+		}
+		if (&operatePlayer == MyPlayer) {
+			if (shrineEffect.affectsPlayer == ShrineAffectsPlayer::Others) {
+				continue;
+			}
+		} else {
+			if (shrineEffect.affectsPlayer == ShrineAffectsPlayer::Activator) {
+				continue;
+			}
+		}
+		const ShrineMessage lastShrineMessage = shrineEffect.typeFn(rng, operatePlayer, shrinePosition, shrineEffect);
+		if (lastShrineMessage != ShrineMessage::ShrineMessageDefault) {
+			shrineMessage = lastShrineMessage;
+		}
+	}
+	if (shrineMessage != ShrineMessage::ShrineMessageDefault) {
+		return shrineMessage;
+	}
+	return (&operatePlayer == MyPlayer) ? ShrineMessage::ShrineMessage1 : ShrineMessage::ShrineMessage5;
 }
 
 } // namespace devilution

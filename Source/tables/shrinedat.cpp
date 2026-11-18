@@ -31,7 +31,7 @@ ParseShrineEffectType(std::string_view value)
 	if (value == "RandomItemDurabilityChange") return ShrineEffectRandomItemDurabilityChange;
 	if (value == "ArmorClassMaxDamageChange") return ShrineEffectArmorClassMaxDamageChange;
 	if (value == "MinMaxDamageChange") return ShrineEffectMinMaxDamageChange;
-	if (value == "PlayerCastSpellVariantA") return ShrineEffectPlayerCastSpellVariantA;
+	if (value == "PlayerCastSpellFromPlayer") return ShrineEffectPlayerCastSpellFromPlayer;
 	if (value == "RechargesStaves") return ShrineEffectRechargesStaves;
 	if (value == "RepairsItems") return ShrineEffectRepairsItems;
 	if (value == "RandomSpellLevelChange") return ShrineEffectRandomSpellLevelChange;
@@ -43,7 +43,7 @@ ParseShrineEffectType(std::string_view value)
 	if (value == "MagicAttributeChange") return ShrineEffectMagicAttributeChange;
 	if (value == "CreateManaOrRejuvPotions") return ShrineEffectCreateManaOrRejuvPotions;
 	if (value == "CreateLifeOrRejuvPotions") return ShrineEffectCreateLifeOrRejuvPotions;
-	if (value == "PlayerCastSpellVariantB") return ShrineEffectPlayerCastSpellVariantB;
+	if (value == "PlayerCastSpellFromPlayerTowardZero") return ShrineEffectPlayerCastSpellFromPlayerTowardZero;
 	if (value == "FillEmptySlotsGold") return ShrineEffectFillEmptySlotsGold;
 	if (value == "DexterityAttributeChange") return ShrineEffectDexterityAttributeChange;
 	if (value == "StrengthAttributeChange") return ShrineEffectStrengthAttributeChange;
@@ -57,7 +57,7 @@ ParseShrineEffectType(std::string_view value)
 	if (value == "ExperiencePerDungeonLevel") return ShrineEffectExperiencePerDungeonLevel;
 	if (value == "CastFlashBottomTrap") return ShrineEffectCastFlashBottomTrap;
 	if (value == "CastSpellTrap") return ShrineEffectCastSpellTrap;
-	if (value == "PlayerCastSpellVariantC") return ShrineEffectPlayerCastSpellVariantC;
+	if (value == "PlayerCastSpellFromShrine") return ShrineEffectPlayerCastSpellFromShrine;
 	if (value == "LocalHourAttributeChange") return ShrineEffectLocalHourAttributeChange;
 	if (value == "BreakItemOrTakeGold") return ShrineEffectBreakItemOrTakeGold;
 	return std::unexpected("Unknown ShrineData::OperateFn name");

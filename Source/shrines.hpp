@@ -14,7 +14,7 @@ ShrineMessage ShrineEffectRandomAttributeChange(DiabloGenerator &rng, Player &op
 ShrineMessage ShrineEffectRandomItemDurabilityChange(DiabloGenerator &rng, Player &operatePlayer, const Point spawnPosition, const ShrineEffect &shrineEffect);
 ShrineMessage ShrineEffectArmorClassMaxDamageChange(DiabloGenerator &rng, Player &operatePlayer, const Point spawnPosition, const ShrineEffect &shrineEffect);
 ShrineMessage ShrineEffectMinMaxDamageChange(DiabloGenerator &rng, Player &operatePlayer, const Point spawnPosition, const ShrineEffect &shrineEffect);
-ShrineMessage ShrineEffectPlayerCastSpellVariantA(DiabloGenerator &rng, Player &operatePlayer, const Point spawnPosition, const ShrineEffect &shrineEffect);
+ShrineMessage ShrineEffectPlayerCastSpellFromPlayer(DiabloGenerator &rng, Player &operatePlayer, const Point spawnPosition, const ShrineEffect &shrineEffect);
 ShrineMessage ShrineEffectRechargesStaves(DiabloGenerator &rng, Player &operatePlayer, const Point spawnPosition, const ShrineEffect &shrineEffect);
 ShrineMessage ShrineEffectRepairsItems(DiabloGenerator &rng, Player &operatePlayer, const Point spawnPosition, const ShrineEffect &shrineEffect);
 ShrineMessage ShrineEffectRandomSpellLevelChange(DiabloGenerator &rng, Player &operatePlayer, const Point spawnPosition, const ShrineEffect &shrineEffect);
@@ -26,7 +26,7 @@ ShrineMessage ShrineEffectTransformPotionsToRejuvenation(DiabloGenerator &rng, P
 ShrineMessage ShrineEffectMagicAttributeChange(DiabloGenerator &rng, Player &operatePlayer, const Point spawnPosition, const ShrineEffect &shrineEffect);
 ShrineMessage ShrineEffectCreateManaOrRejuvPotions(DiabloGenerator &rng, Player &operatePlayer, const Point spawnPosition, const ShrineEffect &shrineEffect);
 ShrineMessage ShrineEffectCreateLifeOrRejuvPotions(DiabloGenerator &rng, Player &operatePlayer, const Point spawnPosition, const ShrineEffect &shrineEffect);
-ShrineMessage ShrineEffectPlayerCastSpellVariantB(DiabloGenerator &rng, Player &operatePlayer, const Point spawnPosition, const ShrineEffect &shrineEffect);
+ShrineMessage ShrineEffectPlayerCastSpellFromPlayerTowardZero(DiabloGenerator &rng, Player &operatePlayer, const Point spawnPosition, const ShrineEffect &shrineEffect);
 ShrineMessage ShrineEffectFillEmptySlotsGold(DiabloGenerator &rng, Player &operatePlayer, const Point spawnPosition, const ShrineEffect &shrineEffect);
 ShrineMessage ShrineEffectDexterityAttributeChange(DiabloGenerator &rng, Player &operatePlayer, const Point spawnPosition, const ShrineEffect &shrineEffect);
 ShrineMessage ShrineEffectStrengthAttributeChange(DiabloGenerator &rng, Player &operatePlayer, const Point spawnPosition, const ShrineEffect &shrineEffect);
@@ -40,8 +40,10 @@ ShrineMessage ShrineEffectGoldToExperience(DiabloGenerator &rng, Player &operate
 ShrineMessage ShrineEffectExperiencePerDungeonLevel(DiabloGenerator &rng, Player &operatePlayer, const Point spawnPosition, const ShrineEffect &shrineEffect);
 ShrineMessage ShrineEffectCastFlashBottomTrap(DiabloGenerator &rng, Player &operatePlayer, const Point spawnPosition, const ShrineEffect &shrineEffect);
 ShrineMessage ShrineEffectCastSpellTrap(DiabloGenerator &rng, Player &operatePlayer, const Point spawnPosition, const ShrineEffect &shrineEffect);
-ShrineMessage ShrineEffectPlayerCastSpellVariantC(DiabloGenerator &rng, Player &operatePlayer, const Point spawnPosition, const ShrineEffect &shrineEffect);
+ShrineMessage ShrineEffectPlayerCastSpellFromShrine(DiabloGenerator &rng, Player &operatePlayer, const Point spawnPosition, const ShrineEffect &shrineEffect);
 ShrineMessage ShrineEffectLocalHourAttributeChange(DiabloGenerator &rng, Player &operatePlayer, const Point spawnPosition, const ShrineEffect &shrineEffect);
 ShrineMessage ShrineEffectBreakItemOrTakeGold(DiabloGenerator &rng, Player &operatePlayer, const Point spawnPosition, const ShrineEffect &shrineEffect);
+
+ShrineMessage OperateShrine(DiabloGenerator &rng, Player &operatePlayer, const Point shrinePosition, const ShrineData &shrineData);
 
 } // namespace devilution
