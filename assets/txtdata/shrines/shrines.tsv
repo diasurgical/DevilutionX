@@ -2,7 +2,7 @@ id	name	effect1	effect1.value1	effect1.value2	effect1.spell	effect1.affectsPlaye
 ShrineMysterious	Mysterious	RandomAttributeChange	5	-1	Null	Activator											Single	DTYPE_TOWN	DTYPE_CRYPT		Some are weakened as one grows strong				
 ShrineHidden	Hidden	RandomItemDurabilityChange	-10	10	Null	Activator											Single	DTYPE_TOWN	DTYPE_CRYPT		New strength is forged through destruction				
 ShrineGloomy	Gloomy	ArmorClassMaxDamageChange	2	-1	Null	Activator											Single	DTYPE_TOWN	DTYPE_CRYPT		Those who defend seldom attack				
-ShrineWeird	Weird	MinMaxDamageChange	1	0	Null	Activator											Single	DTYPE_TOWN	DTYPE_CRYPT		The sword of justice is swift and sharp				
+ShrineWeird	Weird	MinMaxDamageChange	0	1	Null	Activator											Single	DTYPE_TOWN	DTYPE_CRYPT		The sword of justice is swift and sharp				
 ShrineMagical	Magical	PlayerCastSpellVariantA	2	0	ManaShield	Activator											Single	DTYPE_TOWN	DTYPE_CRYPT		While the spirit is vigilant the body thrives				
 ShrineStone	Stone	RechargesStaves	0	0	Null	Activator											Single	DTYPE_TOWN	DTYPE_CRYPT		The powers of mana refocused renews				
 ShrineReligious	Religious	RepairsItems	0	0	Null	Activator											Single	DTYPE_TOWN	DTYPE_CRYPT		Time cannot diminish the power of steel				
@@ -24,4 +24,4 @@ ShrineQuiet	Quiet	VitalityAttributeChange	2	2	Null	Activator											Single	DT
 ShrineSecluded	Secluded	RevealMap	0	0	Null	Activator											Single	DTYPE_TOWN	DTYPE_CRYPT		The way is made clear when viewed from above				
 ShrineOrnate	Ornate	ChangeSpellLevel	2	0	HolyBolt	Activator	ManaBaseReduction	10	0	Null	Activator						Single	DTYPE_TOWN	DTYPE_CRYPT	Crippling	Salvation comes at the cost of wisdom				
 ShrineGlimmering	Glimmering	IdentifyItems	0	0	Null	Activator											Single	DTYPE_TOWN	DTYPE_CRYPT		Mysteries are revealed in the light of reason				
-ShrineTainted	Tainted	RandomAttributeChange	-1	1	Null	Others											Single	DTYPE_TOWN	DTYPE_CRYPT		Those who are last may yet be first				Generosity brings its own rewards
+ShrineTainted	Tainted	RandomAttributeChange	1	-1	Null	Others											Single	DTYPE_TOWN	DTYPE_CRYPT		Those who are last may yet be first				Generosity brings its own rewards
