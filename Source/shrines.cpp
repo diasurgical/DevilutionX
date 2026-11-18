@@ -409,11 +409,11 @@ ShrineMessage ShrineEffectRandomSpellLevelChange(DiabloGenerator &rng, Player &o
 			NetSendCmdParam2(true, CMD_CHANGE_SPELL_LEVEL, spellToReduce, newSpellLevel);
 		}
 
-        for (Item &item : InventoryPlayerItemsRange { player }) {
-            item.updateRequiredStatsCacheForPlayer(player);
-        }
-        if (IsStashOpen) {
-            Stash.RefreshItemStatFlags();
+		for (Item &item : InventoryPlayerItemsRange { player }) {
+			item.updateRequiredStatsCacheForPlayer(player);
+		}
+		if (IsStashOpen) {
+			Stash.RefreshItemStatFlags();
 		}
 	}
 	return ShrineMessage::ShrineMessageDefault;
