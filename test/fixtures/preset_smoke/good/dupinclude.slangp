@@ -1,0 +1,9 @@
+// ROB-21 corpus: the shader re-includes a stage-guarded header once in the
+// shared region and again in the fragment region (the koko-aio pattern). The
+// fragment translation unit therefore contains the header's sampler
+// declaration twice; the translator must dedupe it to one dense binding
+// (first binding wins) instead of emitting a glslang "redefinition" failure
+// and double-counting num_samplers.
+shader0 = shaders/dupinclude.slang
+textures = "dup"
+dup = "textures/lut.png"

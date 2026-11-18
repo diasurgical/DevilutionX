@@ -10,6 +10,8 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <ctime>
+#include <deque>
 #include <expected>
 #include <functional>
 #include <iterator>
@@ -34,9 +36,15 @@
 #include "controls/controller_buttons.h"
 #include "engine/assets.hpp"
 #include "engine/sound_defs.hpp"
+#ifdef USE_GPU_SCALER
+#include <slangvk/core/preset_parser.hpp>
+
+#include <filesystem>
+#endif
 #include "platform/locale.hpp"
 #include "quick_messages.hpp"
 #include "utils/algorithm/container.hpp"
+#include "utils/display.h"
 #include "utils/file_util.h"
 #include "utils/format.hpp"
 #include "utils/ini.hpp"
@@ -139,6 +147,22 @@ std::string GetIniPath()
 	return path;
 }
 
+/** @brief ROB-09: timestamp suffix for a preserved corrupt ini file,
+ * e.g. "20261016-124530" - several corrupt generations can coexist. */
+std::string CorruptIniStamp()
+{
+	const std::time_t now = std::time(nullptr);
+	std::tm tmBuf {};
+#if defined(_WIN32)
+	localtime_s(&tmBuf, &now);
+#else
+	localtime_r(&now, &tmBuf);
+#endif
+	char stamp[32] {};
+	std::strftime(stamp, sizeof(stamp), "%Y%m%d-%H%M%S", &tmBuf);
+	return stamp;
+}
+
 void LoadIni()
 {
 	std::vector<char> buffer;
@@ -158,7 +182,29 @@ void LoadIni()
 		std::fclose(file);
 	}
 	std::expected<Ini, std::string> result = Ini::parse(std::string_view(buffer.data(), buffer.size()));
-	if (!result.has_value()) app_fatal(result.error());
+	if (!result.has_value()) {
+		// ROB-09: a corrupt ini (crash mid-write, disk issue, bad editor) used to
+		// app_fatal here - a modal dialog and exit for a config file, while the
+		// mod's own philosophy elsewhere is self-healing (stale shader-filter
+		// values sanitize to Off, GPU-path failures degrade to the stock
+		// renderer). Preserve the corrupt file for debugging, start with
+		// defaults, and let the next SaveIni write a clean file. Only a failed
+		// preservation (the corrupt copy could not be renamed aside) keeps the
+		// fatal path: overwriting the only copy of the user's config would lose
+		// data.
+		const std::string corruptPath = path + ".corrupt-" + CorruptIniStamp();
+		if (std::rename(path.c_str(), corruptPath.c_str()) != 0) {
+			app_fatal(StrCat("Failed to parse the config file and failed to preserve it: ", result.error()));
+		}
+		LogError(LogCategory::System,
+		    "Failed to parse {}: \"{}\". The corrupt file was preserved as {}; continuing with default settings.",
+		    path, result.error(), corruptPath);
+		// A fresh install (no file at all) already parses an empty buffer into a
+		// valid default Ini - reuse that for the recovery path.
+		result = Ini::parse(std::string_view());
+		if (!result.has_value())
+			app_fatal(result.error());
+	}
 	ini.emplace(std::move(result).value());
 }
 
@@ -370,6 +416,318 @@ void OptionEntryEnumBase::SetActiveListIndex(size_t index)
 	this->NotifyValueChanged();
 }
 
+#ifdef USE_GPU_SCALER
+using slv::preset::ListPresetDir;
+using slv::preset::PresetDirListing;
+using slv::preset::PresetEntry;
+using slv::preset::ScanPresets;
+using slv::preset::ShaderRootDir;
+
+// Stable storage for custom preset entry names: string_views handed to the
+// OptionEntryEnumBase point into these strings, so the deque must never
+// invalidate them (append-only, and cleared only together with the entries).
+static std::deque<std::string> &CustomPresetNameStorage()
+{
+	static std::deque<std::string> storage;
+	return storage;
+}
+
+OptionEntryShaderFilterPreset::OptionEntryShaderFilterPreset()
+    : OptionEntryBase("Shader Filter Preset", OptionEntryFlags::Invisible, N_("Shader preset path"),
+          N_("Relative path of the selected custom shader preset inside the shaders folder."))
+{
+}
+
+OptionEntryType OptionEntryShaderFilterPreset::GetType() const
+{
+	return OptionEntryType::List;
+}
+
+std::string_view OptionEntryShaderFilterPreset::GetValueDescription() const
+{
+	return value;
+}
+
+void OptionEntryShaderFilterPreset::LoadFromIni(std::string_view category)
+{
+	value = std::string(ini->getString(category, key));
+}
+
+void OptionEntryShaderFilterPreset::SaveToIni(std::string_view category) const
+{
+	ini->set(category, key, value);
+}
+
+OptionEntryShaderFilter::OptionEntryShaderFilter()
+    : OptionEntryEnumBase("Shader Filter", OptionEntryFlags::CantChangeInGame | OptionEntryFlags::RecreateUI,
+          N_("Shader Filter"),
+          N_("GPU shader-based upscaling filter. Requires Upscale and a GPU with Vulkan, or Metal support."),
+          static_cast<int>(ShaderFilter::None))
+{
+	AddEntry(static_cast<int>(ShaderFilter::None), N_("Off"));
+	builtinCount_ = entryValues.size();
+}
+
+void OptionEntryShaderFilter::LoadFromIni(std::string_view category)
+{
+	OptionEntryEnumBase::LoadFromIni(category);
+	// Builtin HQ2x/ScaleFX filters were removed; stale ini values from
+	// that range fall back to "Off".
+	if (const int v = GetValueInternal(); v > 0 && v < kShaderFilterCustomBase)
+		SetValueInternal(0);
+	// Deferred from the constructor on purpose: the ctor runs while the
+	// lazy `static Options options` inside GetOptions() is still being
+	// constructed, and RescanCustomEntries() reads GetOptions() --
+	// re-entering that uninitialized magic static deadlocks the process
+	// at startup (no window, no output, no crash). LoadFromIni runs
+	// after Options is fully constructed, so scanning here is safe.
+	RescanCustomEntries();
+}
+
+namespace {
+
+// Reserved negative entry values of the preset folder browser: selecting
+// them navigates the browser instead of changing the shader filter value.
+constexpr int kShaderFilterNavUp = -1;      // Go up one folder ("..").
+constexpr int kShaderFilterNavDirBase = -2; // Enter subdirectory N (base - N).
+
+// Persistent action entry below the built-ins in every browsed folder:
+// activating it cycles the shader base resolution without leaving the
+// browser (negative value, so the settings list view treats it as
+// navigation and rebuilds the list in place).
+constexpr int kShaderFilterBaseResolutionEntry = -1000000;
+
+/** @brief Joins a browsed folder with a subdirectory name. */
+std::string JoinShaderDir(const std::string &parent, const std::string &name)
+{
+	return parent.empty() ? name : parent + "/" + name;
+}
+
+/** @brief The parent folder of a browsed folder ("" for the root and root-level folders). */
+std::string ParentShaderDir(const std::string &dir)
+{
+	const size_t slash = dir.find_last_of('/');
+	if (slash == std::string::npos)
+		return {};
+	return dir.substr(0, slash);
+}
+
+/** @brief The last path component of a relative path. */
+std::string BaseShaderName(std::string_view path)
+{
+	const size_t slash = path.find_last_of('/');
+	if (slash == std::string::npos)
+		return std::string(path);
+	return std::string(path.substr(slash + 1));
+}
+
+/** @brief Points the libslang-vk shader-root sandbox at the runtime shaders
+ * folder next to the executable, for the settings browser (mirrors
+ * gpu_scaler::InitShaderRootDir, which lives here instead of calling the
+ * scaler: options.cpp must stay linkable standalone - options_test and the
+ * other UI tests link libdevilutionx_options without gpu_scaler.cpp, which
+ * only exists when the scaler target is built). The library's sandbox is
+ * just a string, so this and the scaler's own init converge on the same
+ * root; whichever runs first wins identically. */
+void InitBrowserShaderRoot()
+{
+	slv::preset::SetShaderRootDir(
+	    (std::filesystem::path(paths::BasePath()) / "shaders").generic_string());
+}
+
+} // namespace
+
+void OptionEntryShaderFilter::RebuildListEntries()
+{
+	// Drop the previous browser entries (their name string_views die with the
+	// storage strings below); the fixed built-in entries are kept untouched.
+	entryValues.erase(entryValues.begin() + static_cast<ptrdiff_t>(builtinCount_), entryValues.end());
+	entryNames.erase(entryNames.begin() + static_cast<ptrdiff_t>(builtinCount_), entryNames.end());
+
+	auto &storage = CustomPresetNameStorage();
+	storage.clear();
+
+	InitBrowserShaderRoot();
+	const PresetDirListing listing = ListPresetDir(ShaderRootDir(), currentDir_);
+	subdirs_ = listing.subdirs;
+	presets_ = listing.presets;
+
+	// Persistent entry right below the built-ins ("Off"), in every browsed
+	// folder: shows the current shader base resolution; activating it
+	// cycles to the next value without leaving the browser.
+	{
+		auto &baseRes = GetOptions().Graphics.shaderBaseResolution;
+		const size_t activeIndex = baseRes.GetActiveListIndex();
+		storage.emplace_back(std::string(baseRes.GetName()) + ": " + std::string(baseRes.GetListDescription(activeIndex)));
+		entryValues.push_back(kShaderFilterBaseResolutionEntry);
+		entryNames.emplace_back(storage.back());
+	}
+
+	if (!currentDir_.empty()) {
+		entryValues.push_back(kShaderFilterNavUp);
+		entryNames.emplace_back("..");
+	}
+	size_t subdirNumber = 0;
+	for (const std::string &subdir : subdirs_) {
+		entryValues.push_back(kShaderFilterNavDirBase - static_cast<int>(subdirNumber));
+		storage.push_back(subdir + "/");
+		entryNames.emplace_back(storage.back());
+		subdirNumber++;
+	}
+	size_t presetNumber = 0;
+	for (const PresetEntry &entry : presets_) {
+		entryValues.push_back(kShaderFilterCustomBase + static_cast<int>(presetNumber));
+		storage.push_back(entry.displayName);
+		entryNames.emplace_back(storage.back());
+		presetNumber++;
+	}
+}
+
+void OptionEntryShaderFilter::RescanCustomEntries()
+{
+	pendingFocusIndex_ = static_cast<size_t>(-1);
+
+	// Seed the browsed folder from the persisted preset path so the browser
+	// reopens where the current preset lives, and keep the active value in
+	// sync with that path: the value alone is an index into a per-folder
+	// listing, which goes stale whenever the folder contents change.
+	const std::string &storedPath = GetOptions().Graphics.shaderFilterPreset.value;
+	std::string foundPath;
+	if (!storedPath.empty()) {
+		InitBrowserShaderRoot();
+		const std::vector<PresetEntry> all = ScanPresets(ShaderRootDir());
+		const auto it = std::find_if(all.begin(), all.end(), [&storedPath](const PresetEntry &entry) {
+			return entry.relativePath == storedPath;
+		});
+		if (it != all.end()) {
+			foundPath = it->relativePath;
+			currentDir_ = ParentShaderDir(foundPath);
+		}
+	}
+	if (foundPath.empty()) {
+		currentDir_.clear();
+		if (GetValueInternal() >= kShaderFilterCustomBase) {
+			// The persisted preset no longer exists; self-heal to "Off" so
+			// the stale value cannot point at an unrelated preset.
+			LogWarn("Shader preset '{}' not found in the shaders folder; resetting Shader Filter", storedPath);
+			SetValueInternal(static_cast<int>(ShaderFilter::None));
+			GetOptions().Graphics.shaderFilterPreset.value.clear();
+		}
+	}
+
+	RebuildListEntries();
+
+	if (!foundPath.empty()) {
+		for (size_t i = 0; i < presets_.size(); i++) {
+			if (presets_[i].relativePath == foundPath) {
+				// Only notify when the value actually changes: listeners
+				// reinitialize the renderer synchronously, and the scaler
+				// resolves the preset from the path (unchanged here), so a
+				// reinit would be a no-op at best.
+				const int targetValue = kShaderFilterCustomBase + static_cast<int>(i);
+				if (GetValueInternal() != targetValue)
+					SetValueInternal(targetValue);
+				break;
+			}
+		}
+	}
+}
+
+bool OptionEntryShaderFilter::IsListNavigationEntry(size_t index) const
+{
+	return index < entryValues.size() && entryValues[index] < 0;
+}
+
+OptionEntryListBase *OptionEntryShaderFilter::GetNavigationSubList(size_t index) const
+{
+	if (index < entryValues.size() && entryValues[index] == kShaderFilterBaseResolutionEntry)
+		return &GetOptions().Graphics.shaderBaseResolution;
+	return nullptr;
+}
+
+size_t OptionEntryShaderFilter::GetActiveListIndex() const
+{
+	if (pendingFocusIndex_ != static_cast<size_t>(-1)) {
+		const size_t index = pendingFocusIndex_;
+		pendingFocusIndex_ = static_cast<size_t>(-1);
+		return index < entryValues.size() ? index : 0;
+	}
+	return OptionEntryEnumBase::GetActiveListIndex();
+}
+
+void OptionEntryShaderFilter::SetActiveListIndex(size_t index)
+{
+	if (index >= entryValues.size())
+		return;
+	const int entryValue = entryValues[index];
+
+	if (entryValue == kShaderFilterBaseResolutionEntry) {
+		// The settings menu opens the base resolution sub-list for this
+		// entry (GetNavigationSubList) and commits values from there;
+		// the filter value itself is untouched.
+		return;
+	}
+
+	if (entryValue == kShaderFilterNavUp) {
+		// Go up one folder; focus the entry of the folder we came from.
+		const std::string childName = BaseShaderName(currentDir_);
+		currentDir_ = ParentShaderDir(currentDir_);
+		RebuildListEntries();
+		pendingFocusIndex_ = builtinCount_ + 1 + (currentDir_.empty() ? 0 : 1);
+		for (size_t i = 0; i < subdirs_.size(); i++) {
+			if (subdirs_[i] == childName) {
+				pendingFocusIndex_ += i;
+				break;
+			}
+		}
+		return;
+	}
+
+	if (entryValue <= kShaderFilterNavDirBase) {
+		// Enter the selected subfolder; focus its first preset (or ".." when empty).
+		const size_t subdirIndex = static_cast<size_t>(kShaderFilterNavDirBase - entryValue);
+		if (subdirIndex >= subdirs_.size())
+			return;
+		currentDir_ = JoinShaderDir(currentDir_, subdirs_[subdirIndex]);
+		RebuildListEntries();
+		const size_t firstPresetIndex = builtinCount_ + 1 + (currentDir_.empty() ? 0 : 1) + subdirs_.size();
+		pendingFocusIndex_ = !presets_.empty() ? firstPresetIndex : (currentDir_.empty() ? 0 : builtinCount_ + 1);
+		return;
+	}
+
+	// Builtin filter or preset selection: regular value change.
+	pendingFocusIndex_ = static_cast<size_t>(-1);
+	// Commit the companion preset path BEFORE changing the value: listeners
+	// are notified synchronously (ResizeWindow -> ReinitializeRenderer ->
+	// gpu_scaler::Reinit) and resolve the preset from this path, so the
+	// restart must already see the new selection here. Assigning it after
+	// the value change made the restart run with the previous path (or
+	// none), and the scaler then resolved an unrelated preset from a
+	// different folder.
+	GetOptions().Graphics.shaderFilterPreset.value.clear();
+	if (entryValue >= kShaderFilterCustomBase) {
+		const size_t presetIndex = static_cast<size_t>(entryValue - kShaderFilterCustomBase);
+		if (presetIndex < presets_.size())
+			GetOptions().Graphics.shaderFilterPreset.value = presets_[presetIndex].relativePath;
+	}
+	OptionEntryEnumBase::SetActiveListIndex(index);
+}
+
+OptionEntryShaderBaseResolution::OptionEntryShaderBaseResolution()
+    : OptionEntryEnumBase("Shader Base Resolution", OptionEntryFlags::Invisible | OptionEntryFlags::CantChangeInGame,
+          N_("Shader Base Resolution"),
+          N_("Resolution of the canvas handed to the shader filter. Smaller bases give the shader more room to upscale for a bigger, chunkier look. Auto keeps the window resolution. Non-16:9 windows letterbox."),
+          540)
+{
+	AddEntry(0, N_("Auto (window size)"));
+	AddEntry(360, N_("640 x 360"));
+	AddEntry(540, N_("960 x 540"));
+	AddEntry(720, N_("1280 x 720"));
+	AddEntry(900, N_("1600 x 900"));
+	AddEntry(1080, N_("1920 x 1080"));
+}
+#endif
+
 void OptionEntryIntBase::LoadFromIni(std::string_view category)
 {
 	value = ini->getInt(category, key, defaultValue);
@@ -526,23 +884,88 @@ AudioOptions::AudioOptions()
 std::vector<OptionEntryBase *> AudioOptions::GetEntries()
 {
 	// clang-format off
-	return {
-		&soundVolume,
-		&audioCuesVolume,
-		&musicVolume,
-		&walkingSound,
-		&autoEquipSound,
-		&itemPickupSound,
-		&sampleRate,
-		&channels,
-		&bufferSize,
-		&resampler,
-		&resamplingQuality,
+        return {
+                &soundVolume,
+                &audioCuesVolume,
+                &musicVolume,
+                &walkingSound,
+                &autoEquipSound,
+                &itemPickupSound,
+                &sampleRate,
+                &channels,
+                &bufferSize,
+                &resampler,
+                &resamplingQuality,
 #if SDL_VERSION_ATLEAST(2, 0, 0)
-		&device,
+                &device,
 #endif
-	};
+        };
 	// clang-format on
+}
+
+// The resolution helpers declared in utils/display.h are defined here rather
+// than in utils/display.cpp: libdevilutionx_options is an object library that
+// standalone test/benchmark executables link without the display translation
+// unit, and OptionEntryResolution / OptionEntryIntegerScaling below call into
+// these. ClampResolutionForIntegerScaling() intentionally drops the ghMainWnd
+// guard it had in display.cpp: its only caller is the settings UI (a window
+// always exists there), calls before video init see GetNativeDesktopResolution()
+// return false, and the CalculatePreferredWindowSize() backstop covers the rest.
+bool GetNativeDesktopResolution(Size &size)
+{
+#ifdef USE_SDL1
+	return false;
+#else
+	SDL_DisplayMode mode;
+#ifdef USE_SDL3
+	int numDisplays = 0;
+	SDL_DisplayID *displays = SDL_GetDisplays(&numDisplays);
+	if (numDisplays <= 0 || displays == nullptr)
+		return false;
+	const SDL_DisplayMode *modePtr = SDL_GetDesktopDisplayMode(displays[0]);
+	SDL_free(displays);
+	if (modePtr == nullptr)
+		return false;
+	mode = *modePtr;
+#else
+	if (SDL_GetDesktopDisplayMode(0, &mode) != 0)
+		return false;
+#endif
+	if (mode.w < mode.h) {
+		const int w = mode.w;
+		mode.w = mode.h;
+		mode.h = w;
+	}
+	size = { mode.w, mode.h };
+	return true;
+#endif
+}
+
+Size ClampResolutionForIntegerScaling(Size requested)
+{
+#ifdef USE_SDL1
+	(void)requested;
+	return requested;
+#else
+	if (!*GetOptions().Graphics.integerScaling || !*GetOptions().Graphics.fitToScreen || !*GetOptions().Graphics.upscale)
+		return requested; // the crash path requires fit-to-screen integer scaling
+	Size native;
+	if (!GetNativeDesktopResolution(native))
+		return requested;
+	if (requested.width <= native.width && requested.height <= native.height)
+		return requested;
+	LogWarn(LogCategory::System, "Selected resolution {}x{} exceeds the native desktop resolution {}x{}; falling back to native (Integer Scaling)", requested.width, requested.height, native.width, native.height);
+	return native;
+#endif
+}
+
+bool IsResolutionAboveNative()
+{
+	Size native;
+	if (!GetNativeDesktopResolution(native))
+		return false;
+	const Size current = *GetOptions().Graphics.resolution;
+	return current.width > native.width || current.height > native.height;
 }
 
 OptionEntryResolution::OptionEntryResolution()
@@ -576,8 +999,23 @@ size_t OptionEntryResolution::GetActiveListIndex() const
 }
 void OptionEntryResolution::SetActiveListIndex(size_t index)
 {
-	size_ = resolutions_[index].first;
+	// An above-native selection with Integer Scaling would crash the
+	// fit-to-screen window sizing (integer division by zero). Above-native
+	// sizes are filtered from the list while Integer Scaling is on, so this
+	// silently falls back as a backstop (e.g. for stale ini values).
+	size_ = ClampResolutionForIntegerScaling(resolutions_[index].first);
 	NotifyValueChanged();
+}
+
+bool OptionEntryIntegerScaling::IsDisabled() const
+{
+	// The resolution list filters above-native sizes while Integer Scaling
+	// is enabled, but the game can still run above the native desktop
+	// resolution with Integer Scaling off (hand-edited devilutionx.ini or
+	// a GPU driver VSR mode). Enabling Integer Scaling in that state would
+	// crash the fit-to-screen window sizing, so the toggle stays greyed
+	// out until a within-native resolution is selected.
+	return !**this && IsResolutionAboveNative();
 }
 
 OptionEntryResampler::OptionEntryResampler()
@@ -771,6 +1209,11 @@ GraphicsOptions::GraphicsOptions()
               { ScalingQuality::AnisotropicFiltering, N_("Anisotropic") },
           })
     , integerScaling("Integer Scaling", OptionEntryFlags::CantChangeInGame | OptionEntryFlags::RecreateUI, N_("Integer Scaling"), N_("Scales the image using whole number pixel ratio."), false)
+#ifdef USE_GPU_SCALER
+    , shaderFilter()
+    , shaderFilterPreset()
+    , shaderBaseResolution()
+#endif
 #endif
     , frameRateControl("Frame Rate Control",
           OptionEntryFlags::RecreateUI
@@ -809,32 +1252,44 @@ GraphicsOptions::GraphicsOptions()
 std::vector<OptionEntryBase *> GraphicsOptions::GetEntries()
 {
 	// clang-format off
-	return {
-		&resolution,
+        return {
+                &resolution,
 #ifndef __vita__
-		&fullscreen,
+                &fullscreen,
 #endif
 #if !defined(USE_SDL1) || defined(__3DS__)
-		&fitToScreen,
+                &fitToScreen,
 #endif
 #ifndef USE_SDL1
-		&upscale,
-		&scaleQuality,
-		&integerScaling,
+                &upscale,
+                &scaleQuality,
+                &integerScaling,
+#ifdef USE_GPU_SCALER
+                // The preset path entry must load BEFORE the filter value:
+                // OptionEntryShaderFilter::LoadFromIni resolves the active
+                // preset (RescanCustomEntries) from this path. With the old
+                // order the path was still empty at that point, so a saved
+                // custom preset was silently reset to Off on every start and
+                // only re-activated when the user opened the Graphics menu.
+                &shaderFilterPreset,
+                &shaderFilter,
+                // Invisible; edited through the Shader Filter browser sub-list.
+                &shaderBaseResolution,
 #endif
-		&frameRateControl,
-		&brightness,
-		&zoom,
-		&showFPS,
-		&perPixelLighting,
-		&colorCycling,
-		&alternateNestArt,
+#endif
+                &frameRateControl,
+                &brightness,
+                &zoom,
+                &showFPS,
+                &perPixelLighting,
+                &colorCycling,
+                &alternateNestArt,
 #if SDL_VERSION_ATLEAST(2, 0, 0)
-		&hardwareCursor,
-		&hardwareCursorForItems,
-		&hardwareCursorMaxSize,
+                &hardwareCursor,
+                &hardwareCursorForItems,
+                &hardwareCursorMaxSize,
 #endif
-	};
+        };
 	// clang-format on
 }
 
