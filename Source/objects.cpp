@@ -2138,8 +2138,8 @@ void OperateShrine(Player &player, Object &shrine, SfxID sType)
 
 	const ShrineData &shrineData = GetShrineData(static_cast<uint8_t>(shrine._oVar1));
 	const ShrineMessage shrineMessage = OperateShrine(rng, player, shrine.position, shrineData);
-	CheckStats(player);
-	CalcPlrInv(player, true);
+	CheckStats(*MyPlayer);
+	CalcPlrInv(*MyPlayer, true);
 	RedrawEverything();
 
 	if (&player == MyPlayer) {

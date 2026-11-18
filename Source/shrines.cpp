@@ -493,7 +493,7 @@ ShrineMessage ShrineEffectManaBaseReduction(DiabloGenerator &rng, Player &operat
 	}
 
 	const int manaReduction = shrineEffect.param1;
-	if (manaReduction != 0 && manaReduction < 100) {
+	if (manaReduction != 0 && manaReduction <= 100) {
 		const Fixed26_6 penalty = Fixed26_6::fromRaw(FractionOrPercentReduction(maxBase, manaReduction)); // manaReduction % of max base mana (>= 0)
 
 		player._pMaxManaBase -= penalty; // will remain >= 0
@@ -1055,7 +1055,7 @@ ShrineMessage ShrineEffectBreakItemOrTakeGold(DiabloGenerator &rng, Player &oper
 	const int goldDecrease = shrineEffect.param2;
 
 	bool broke = false;
-	if (durabilityPercentDecrease != 0 && durabilityPercentDecrease < 100) {
+	if (durabilityPercentDecrease != 0 && durabilityPercentDecrease <= 100) {
 		for (auto &item : player.InvBody) {
 			if (!item.isEmpty() && rng.flipCoin(3)) {
 				if (item._iDurability != DUR_INDESTRUCTIBLE) {
@@ -1069,7 +1069,7 @@ ShrineMessage ShrineEffectBreakItemOrTakeGold(DiabloGenerator &rng, Player &oper
 		}
 	}
 	if (!broke) {
-		if (goldDecrease != 0 && goldDecrease < 100) {
+		if (goldDecrease != 0 && goldDecrease <= 100) {
 			TakePlrsMoney(FractionOrPercentReduction(player._pGold, goldDecrease));
 		}
 	}
