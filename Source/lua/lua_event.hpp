@@ -5,6 +5,7 @@
 
 namespace devilution {
 
+struct Item;
 struct Player;
 struct Monster;
 
@@ -22,6 +23,12 @@ void OnMonsterTakeDamage(const Monster *monster, int damage, int damageType);
 
 void OnPlayerGainExperience(const Player *player, uint32_t exp);
 void OnPlayerTakeDamage(const Player *player, int damage, int damageType);
+
+/**
+ * @brief Called when the local player uses an item.
+ * @return true if a handler cancelled the default use behaviour.
+ */
+bool OnItemUse(const Player *player, const Item *item);
 
 void LoadModsComplete();
 void GameDrawComplete();
