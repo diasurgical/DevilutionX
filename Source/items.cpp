@@ -3166,7 +3166,7 @@ void GetItemAttrs(Item &item, _item_indexes itemData, int lvl)
 	if (item._itype != ItemType::Gold)
 		return;
 
-	int rndv;
+	int rndv = 0;
 	const int itemlevel = ItemsGetCurrlevel();
 	switch (sgGameInitInfo.nDifficulty) {
 	case DIFF_NORMAL:
