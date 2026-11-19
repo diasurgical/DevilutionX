@@ -6,11 +6,16 @@
 #include <sol/sol.hpp>
 
 #include "appfat.h"
+#include "cursor.h"
 #include "data/file.hpp"
+#include "effects.h"
+#include "engine/load_cel.hpp"
 #include "items.h"
 #include "lua/metadoc.hpp"
 #include "player.h"
+#include "sound_effect_enums.h"
 #include "tables/itemdat.h"
+#include "utils/log.hpp"
 #include "utils/utf8.hpp"
 
 namespace devilution {
@@ -558,7 +563,57 @@ void AddUniqueItemData(sol::table itemData, const int32_t baseMappingId)
 	}
 }
 
+int LuaRegisterCursorGraphic(const std::string &path, int width)
+{
+	OwnedClxSpriteList sprite = LoadCel(path.c_str(), static_cast<uint16_t>(width));
+	return RegisterCustomCursorGraphic(std::move(sprite));
+}
+
+[[nodiscard]] SfxID LuaItemSoundArgToSfxId(sol::optional<int> raw)
+{
+	if (!raw.has_value() || *raw == static_cast<int>(SfxID::None))
+		return SfxID::None;
+	if (*raw < 0 || *raw > static_cast<int>(SfxID::LAST)) {
+		LogError("items.registerItemSounds: invalid sound ID {}", *raw);
+		return SfxID::None;
+	}
+	return static_cast<SfxID>(*raw);
+}
+
+void LuaRegisterItemSounds(int iCurs, sol::optional<int> invSound, sol::optional<int> dropSound)
+{
+	SetCustomItemSounds(iCurs, LuaItemSoundArgToSfxId(invSound), LuaItemSoundArgToSfxId(dropSound));
+}
+
+void LuaRegisterDropGraphic(int iCurs, const std::string &path, int numFrames)
+{
+	OwnedClxSpriteList sprites = LoadCel(path.c_str(), ItemAnimWidth);
+	const int dropAnimId = RegisterCustomDropAnim(std::move(sprites), numFrames);
+	SetCustomDropAnim(iCurs, dropAnimId);
+}
+
 } // namespace
+
+int8_t DefaultDropAnimForItemType(ItemType type)
+{
+	switch (type) {
+	case ItemType::Axe: return 1;         // axe
+	case ItemType::Bow: return 3;         // bow
+	case ItemType::Mace: return 6;        // mace
+	case ItemType::Sword: return 8;       // swrdflip
+	case ItemType::Shield: return 7;      // shield
+	case ItemType::LightArmor: return 14; // larmor
+	case ItemType::Helm: return 5;        // helmut
+	case ItemType::MediumArmor: return 0; // armor2
+	case ItemType::HeavyArmor: return 17; // fplatear
+	case ItemType::Staff: return 11;      // staff
+	case ItemType::Gold: return 4;        // goldflip
+	case ItemType::Ring: return 12;       // ring
+	case ItemType::Amulet: return 12;     // ring
+	case ItemType::Misc: return 2;        // fbttle
+	default: return 2;
+	}
+}
 
 sol::table LuaItemModule(sol::state_view &lua)
 {
@@ -579,6 +634,9 @@ sol::table LuaItemModule(sol::state_view &lua)
 	LuaSetDocFn(table, "addUniqueItemDataFromTsv", "(path: string, baseMappingId: number)", AddUniqueItemDataFromTsv);
 	LuaSetDocFn(table, "addItemData", "(itemData: ItemData[], baseMappingId: number)", "Add item definitions from a list of item data tables. Mapping IDs are assigned sequentially starting from baseMappingId. Each entry requires: name. Optional fields: dropRate, class, equipType, cursorGraphic, type, uniqueBaseItem, shortName, minMonsterLevel, durability, minDam, maxDam, minAC, maxAC, minStr, minMag, minDex, flags, miscId, spell, usable, value.", AddItemData);
 	LuaSetDocFn(table, "addUniqueItemData", "(itemData: UniqueItemData[], baseMappingId: number)", "Add unique item definitions from a list of unique item data tables. Mapping IDs are assigned sequentially starting from baseMappingId. Each entry requires: name. Optional fields: cursorGraphic, uniqueBaseItem, minLevel, value, powers (array of {type, param1, param2}).", AddUniqueItemData);
+	LuaSetDocFn(table, "registerCursorGraphic", "(path: string, width: number) -> number", "Load a sprite for inventory/cursor display and return its cursorGraphic ID.", LuaRegisterCursorGraphic);
+	LuaSetDocFn(table, "registerDropGraphic", "(cursorGraphic: number, path: string, numFrames: number)", "Load a floor drop animation sprite for a custom cursor graphic. If not called, uses the default for the item type.", LuaRegisterDropGraphic);
+	LuaSetDocFn(table, "registerItemSounds", "(cursorGraphic: number, invSound: number|nil, dropSound: number|nil)", "Register custom inventory and drop sounds for a cursor graphic. Use SfxID values from the audio module (e.g. SfxID.ItemRingFlip). For each slot, pass nil or SfxID.None (-1) to keep the default.", LuaRegisterItemSounds);
 
 	// Expose enums through the module table
 	table["ItemIndex"] = lua["ItemIndex"];
