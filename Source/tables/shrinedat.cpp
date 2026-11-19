@@ -29,11 +29,12 @@ ParseShrineEffectType(std::string_view value)
 	if (value.empty()) return nullptr;
 	if (value == "RandomAttributeChange") return ShrineEffectRandomAttributeChange;
 	if (value == "RandomItemDurabilityChange") return ShrineEffectRandomItemDurabilityChange;
-	if (value == "ArmorClassMaxDamageChange") return ShrineEffectArmorClassMaxDamageChange;
-	if (value == "MinMaxDamageChange") return ShrineEffectMinMaxDamageChange;
+	if (value == "ArmorClassChange") return ShrineEffectArmorClassChange;
+	if (value == "MinDamageChange") return ShrineEffectMinDamageChange;
+	if (value == "MaxDamageChange") return ShrineEffectMaxDamageChange;
 	if (value == "PlayerCastSpellFromPlayer") return ShrineEffectPlayerCastSpellFromPlayer;
-	if (value == "RechargesStaves") return ShrineEffectRechargesStaves;
-	if (value == "RepairsItems") return ShrineEffectRepairsItems;
+	if (value == "StavesChargesChange") return ShrineEffectStavesChargesChange;
+	if (value == "ItemsDurabilityChange") return ShrineEffectItemsDurabilityChange;
 	if (value == "RandomSpellLevelChange") return ShrineEffectRandomSpellLevelChange;
 	if (value == "RefillsChests") return ShrineEffectRefillsChests;
 	if (value == "ChangeSpellLevel") return ShrineEffectChangeSpellLevel;
