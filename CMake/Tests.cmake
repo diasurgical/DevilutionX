@@ -36,6 +36,7 @@ set(tests
   effects_test
   inv_test
   items_test
+  lua_events_test
   math_test
   missiles_test
   multi_logging_test
