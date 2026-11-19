@@ -43,6 +43,100 @@ private:
 	static inline bool savedGbIsMultiplayer = false;
 };
 
+TEST_F(CustomItemsTest, DefaultDropAnimForItemType)
+{
+	// Verify the mapping returns valid animation indices
+	EXPECT_GE(DefaultDropAnimForItemType(ItemType::Sword), 0);
+	EXPECT_LT(DefaultDropAnimForItemType(ItemType::Sword), ITEMTYPES);
+	EXPECT_GE(DefaultDropAnimForItemType(ItemType::Axe), 0);
+	EXPECT_LT(DefaultDropAnimForItemType(ItemType::Axe), ITEMTYPES);
+	EXPECT_GE(DefaultDropAnimForItemType(ItemType::Misc), 0);
+	EXPECT_LT(DefaultDropAnimForItemType(ItemType::Misc), ITEMTYPES);
+	EXPECT_GE(DefaultDropAnimForItemType(ItemType::None), 0);
+	EXPECT_LT(DefaultDropAnimForItemType(ItemType::None), ITEMTYPES);
+}
+
+TEST_F(CustomItemsTest, GetItemAnimTypeBuiltinItems)
+{
+	// Built-in items should return the same value as direct table lookup
+	Item item = {};
+	item._iCurs = ICURS_SHORT_SWORD;
+	item._itype = ItemType::Sword;
+	EXPECT_EQ(GetItemAnimType(item), ItemCAnimTbl[ICURS_SHORT_SWORD]);
+
+	item._iCurs = ICURS_RING;
+	item._itype = ItemType::Ring;
+	EXPECT_EQ(GetItemAnimType(item), ItemCAnimTbl[ICURS_RING]);
+}
+
+TEST_F(CustomItemsTest, GetItemAnimTypeOutOfBounds)
+{
+	// Cursor IDs beyond ItemCAnimTbl should fall back to item type default.
+	// Derive from ItemCAnimTblSize so growth does not make the cursor in-bounds again; _iCurs is uint8_t.
+	const uint8_t oobCurs = static_cast<uint8_t>(
+	    (ItemCAnimTblSize < 255) ? (ItemCAnimTblSize + 1) : 255);
+	ASSERT_GE(static_cast<int>(oobCurs), ItemCAnimTblSize);
+	Item item = {};
+	item._iCurs = oobCurs;
+	item._itype = ItemType::Sword;
+	EXPECT_EQ(GetItemAnimType(item), DefaultDropAnimForItemType(ItemType::Sword));
+
+	item._itype = ItemType::Bow;
+	EXPECT_EQ(GetItemAnimType(item), DefaultDropAnimForItemType(ItemType::Bow));
+}
+
+TEST_F(CustomItemsTest, GetItemSndBuiltinItems)
+{
+	Item item = {};
+	item._iCurs = ICURS_SHORT_SWORD;
+	item._itype = ItemType::Sword;
+
+	SfxID invSnd = GetItemInvSnd(item);
+	SfxID dropSnd = GetItemDropSnd(item);
+
+	// Should return a valid (non-None) sound
+	EXPECT_NE(invSnd, SfxID::None);
+	EXPECT_NE(dropSnd, SfxID::None);
+}
+
+TEST_F(CustomItemsTest, SetCustomItemSounds)
+{
+	const int testCurs = ItemCAnimTblSize;
+
+	// Register custom sounds
+	SetCustomItemSounds(testCurs, SfxID::ItemAxe, SfxID::ItemAxeFlip);
+
+	Item item = {};
+	item._iCurs = static_cast<uint8_t>(testCurs);
+	item._itype = ItemType::Sword; // Intentionally different from axe
+
+	// Should return the custom sounds, not the sword default
+	EXPECT_EQ(GetItemInvSnd(item), SfxID::ItemAxe);
+	EXPECT_EQ(GetItemDropSnd(item), SfxID::ItemAxeFlip);
+
+	// Clean up
+	FreeCustomItemData();
+}
+
+TEST_F(CustomItemsTest, LuaRegisterItemSoundsIgnoresInvalidSoundIds)
+{
+	Item item = {};
+	item._iCurs = static_cast<uint8_t>(ItemCAnimTblSize);
+	item._itype = ItemType::Sword;
+	const SfxID defaultInvSnd = GetItemInvSnd(item);
+
+	sol::state lua;
+	sol::table itemModule = LuaItemModule(lua);
+	sol::function registerItemSounds = itemModule["registerItemSounds"];
+	registerItemSounds(ItemCAnimTblSize, 99999, static_cast<int>(SfxID::ItemAxeFlip));
+
+	// The invalid inventory sound is ignored, the valid drop sound is registered.
+	EXPECT_EQ(GetItemInvSnd(item), defaultInvSnd);
+	EXPECT_EQ(GetItemDropSnd(item), SfxID::ItemAxeFlip);
+
+	FreeCustomItemData();
+}
+
 TEST_F(CustomItemsTest, LuaAddItemDataAssignsMappingRangeFromCollectionBase)
 {
 	const size_t sizeBefore = AllItemsList.size();
