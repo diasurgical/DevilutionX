@@ -3,6 +3,7 @@
 #include <optional>
 #include <string_view>
 
+#include <magic_enum/magic_enum.hpp>
 #include <sol/sol.hpp>
 
 #include "data/file.hpp"
@@ -14,6 +15,7 @@
 #include "items.h"
 #include "lua/metadoc.hpp"
 #include "player.h"
+#include "sound_effect_enums.h"
 #include "tables/playerdat.hpp"
 
 namespace devilution {
@@ -114,6 +116,28 @@ void InitPlayerUserType(sol::state_view &lua)
 	LuaSetDocReadonlyProperty(playerType, "maxMana", "number",
 	    "Maximum mana (readonly)",
 	    [](Player &player) { return player._pMaxMana.whole(); });
+	LuaSetDocFn(playerType, "isOnLevel", "(level: integer) -> boolean",
+	    "Whether the player is on the given dungeon level (0 is the town). Always false in quest levels.",
+	    [](const Player &player, int level) {
+		    return level >= 0 && level <= UINT8_MAX && player.isOnLevel(static_cast<uint8_t>(level));
+	    });
+	LuaSetDocFn(playerType, "say", "(speech: HeroSpeech)",
+	    "Makes the player say the given line",
+	    [](const Player &player, int speech) {
+		    if (speech >= 0 && speech <= static_cast<int>(HeroSpeech::LAST))
+			    player.Say(static_cast<HeroSpeech>(speech));
+	    });
+}
+
+void RegisterHeroSpeechEnum(sol::state_view &lua)
+{
+	sol::table enumTable = lua.create_table();
+	for (const HeroSpeech speech : magic_enum::enum_values<HeroSpeech>()) {
+		const std::string_view name = magic_enum::enum_name(speech);
+		if (!name.empty() && name != "LAST")
+			enumTable[name] = static_cast<int>(speech);
+	}
+	lua["HeroSpeech"] = enumTable;
 }
 
 void AddClassDataFromTsv(const std::string_view path)
@@ -126,7 +150,9 @@ void AddClassDataFromTsv(const std::string_view path)
 sol::table LuaPlayerModule(sol::state_view &lua)
 {
 	InitPlayerUserType(lua);
+	RegisterHeroSpeechEnum(lua);
 	sol::table table = lua.create_table();
+	table["HeroSpeech"] = lua["HeroSpeech"];
 	LuaSetDocFn(table, "self", "()",
 	    "The current player",
 	    []() {

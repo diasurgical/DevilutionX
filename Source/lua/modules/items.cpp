@@ -1,14 +1,18 @@
 #include "lua/modules/items.hpp"
 
+#include <optional>
 #include <string_view>
 
 #include <sol/sol.hpp>
 
 #include "data/file.hpp"
+#include "engine/path.h"
+#include "engine/point.hpp"
 #include "items.h"
 #include "lua/metadoc.hpp"
 #include "player.h"
 #include "tables/itemdat.h"
+#include "utils/log.hpp"
 #include "utils/utf8.hpp"
 
 namespace devilution {
@@ -464,6 +468,29 @@ void AddUniqueItemDataFromTsv(const std::string_view path, const int32_t baseMap
 	LoadUniqueItemDatFromFile(dataFile, path, baseMappingId);
 }
 
+std::optional<int> LuaGetItemIndex(int32_t mappingId)
+{
+	const auto it = ItemMappingIdsToIndices.find(mappingId);
+	if (it == ItemMappingIdsToIndices.end())
+		return std::nullopt;
+	return static_cast<int>(it->second);
+}
+
+bool LuaSpawnQuestItem(int itemIndex, Point position, std::optional<bool> sendmsg)
+{
+	if (itemIndex < 0 || static_cast<size_t>(itemIndex) >= AllItemsList.size()) {
+		LogError("items.spawnQuestItem: invalid item index {}", itemIndex);
+		return false;
+	}
+	if (ActiveItemCount >= MAXITEMS)
+		return false;
+	const std::optional<Point> freePosition = FindClosestValidPosition(ItemSpaceOk, position, 0, 50);
+	if (!freePosition.has_value())
+		return false;
+	SpawnQuestItem(static_cast<_item_indexes>(itemIndex), *freePosition, 0, SelectionRegion::Bottom, sendmsg.value_or(true));
+	return true;
+}
+
 } // namespace
 
 sol::table LuaItemModule(sol::state_view &lua)
@@ -483,6 +510,8 @@ sol::table LuaItemModule(sol::state_view &lua)
 
 	LuaSetDocFn(table, "addItemDataFromTsv", "(path: string, baseMappingId: number)", AddItemDataFromTsv);
 	LuaSetDocFn(table, "addUniqueItemDataFromTsv", "(path: string, baseMappingId: number)", AddUniqueItemDataFromTsv);
+	LuaSetDocFn(table, "getItemIndex", "(mappingId: number) -> ItemIndex|nil", "Returns the item index of the item with the given mapping ID, or nil if there is none.", LuaGetItemIndex);
+	LuaSetDocFn(table, "spawnQuestItem", "(itemIndex: ItemIndex, position: Point, sendmsg: boolean = true) -> boolean", "Drops a new item of the given index on the floor of the current level, at the free tile closest to position. With sendmsg the item is synced to other players, so in multiplayer only one client should spawn it. Returns false if there is no room.", LuaSpawnQuestItem);
 
 	// Expose enums through the module table
 	table["ItemIndex"] = lua["ItemIndex"];
