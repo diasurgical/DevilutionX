@@ -32,6 +32,7 @@
 #include "inv_iterators.hpp"
 #include "levels/tile_properties.hpp"
 #include "levels/town.h"
+#include "lua/lua_event.hpp"
 #include "minitext.h"
 #include "options.h"
 #include "panels/ui_panels.hpp"
@@ -2174,6 +2175,10 @@ bool UseInvItem(int cii)
 
 	if (!player.CanUseItem(*item)) {
 		player.Say(HeroSpeech::ICantUseThisYet);
+		return true;
+	}
+
+	if (lua::OnItemUse(&player, item)) {
 		return true;
 	}
 
