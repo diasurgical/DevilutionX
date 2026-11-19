@@ -1,10 +1,12 @@
 #include "lua/modules/items.hpp"
 
+#include <format>
 #include <optional>
 #include <string_view>
 
 #include <sol/sol.hpp>
 
+#include "appfat.h"
 #include "data/file.hpp"
 #include "engine/path.h"
 #include "engine/point.hpp"
@@ -456,6 +458,58 @@ void RegisterItemSpecialEffectHfEnum(sol::state_view &lua)
 	    });
 }
 
+ItemData ParseItemDataTable(sol::table t)
+{
+	ItemData item;
+	item.dropRate = static_cast<uint8_t>(t.get_or("dropRate", 1));
+	item.iClass = t.get_or("class", ICLASS_NONE);
+	item.iLoc = t.get_or("equipType", ILOC_NONE);
+	item.iCurs = static_cast<item_cursor_graphic>(t.get_or("cursorGraphic", 0));
+	item.itype = t.get_or("type", ItemType::None);
+	item.iItemId = static_cast<unique_base_item>(t.get_or("uniqueBaseItem", UITYPE_NONE));
+	item.iName = t.get<std::string>("name");
+	item.iSName = t.get_or("shortName", item.iName);
+	item.iMinMLvl = static_cast<uint8_t>(t.get_or("minMonsterLevel", 0));
+	item.iDurability = static_cast<uint8_t>(t.get_or("durability", 0));
+	item.iMinDam = static_cast<uint8_t>(t.get_or("minDam", 0));
+	item.iMaxDam = static_cast<uint8_t>(t.get_or("maxDam", 0));
+	item.iMinAC = static_cast<uint8_t>(t.get_or("minAC", 0));
+	item.iMaxAC = static_cast<uint8_t>(t.get_or("maxAC", 0));
+	item.iMinStr = static_cast<uint8_t>(t.get_or("minStr", 0));
+	item.iMinMag = static_cast<uint8_t>(t.get_or("minMag", 0));
+	item.iMinDex = static_cast<uint8_t>(t.get_or("minDex", 0));
+	item.iFlags = t.get_or("flags", ItemSpecialEffect::None);
+	item.iMiscId = t.get_or("miscId", IMISC_NONE);
+	item.iSpell = t.get_or("spell", SpellID::Null);
+	item.iUsable = t.get_or("usable", false);
+	item.iValue = static_cast<uint16_t>(t.get_or("value", 0));
+	return item;
+}
+
+UniqueItem ParseUniqueItemDataTable(sol::table t)
+{
+	UniqueItem item;
+	item.UIName = t.get<std::string>("name");
+	item.UICurs = static_cast<item_cursor_graphic>(t.get_or("cursorGraphic", 0));
+	item.UIItemId = static_cast<unique_base_item>(t.get_or("uniqueBaseItem", UITYPE_NONE));
+	item.UIMinLvl = static_cast<int8_t>(t.get_or("minLevel", 0));
+	item.UIValue = t.get_or("value", 0);
+
+	item.UINumPL = 0;
+	sol::optional<sol::table> powers = t["powers"];
+	if (powers) {
+		for (size_t i = 1; i <= std::size(item.powers); ++i) {
+			sol::optional<sol::table> power = (*powers)[i];
+			if (!power) break;
+			item.powers[item.UINumPL].type = power->get_or("type", IPL_INVALID);
+			item.powers[item.UINumPL].param1 = power->get_or("param1", 0);
+			item.powers[item.UINumPL].param2 = power->get_or("param2", 0);
+			item.UINumPL++;
+		}
+	}
+	return item;
+}
+
 void AddItemDataFromTsv(const std::string_view path, const int32_t baseMappingId)
 {
 	DataFile dataFile = DataFile::loadOrDie(path);
@@ -491,6 +545,46 @@ bool LuaSpawnQuestItem(int itemIndex, Point position, std::optional<bool> sendms
 	return true;
 }
 
+void AddItemData(sol::table itemData, const int32_t baseMappingId)
+{
+	const size_t numItems = itemData.size();
+	AllItemsList.reserve(AllItemsList.size() + numItems);
+	for (size_t i = 1; i <= numItems; ++i) {
+		sol::optional<sol::table> itemTable = itemData[i];
+		if (!itemTable) {
+			app_fatal(std::format("Expected item data table at index {}.", i));
+		}
+		const int32_t mappingId = baseMappingId + static_cast<int32_t>(i - 1);
+		ItemData item = ParseItemDataTable(*itemTable);
+		item.iMappingId = mappingId;
+		AllItemsList.push_back(std::move(item));
+		const auto [it, inserted] = ItemMappingIdsToIndices.emplace(mappingId, static_cast<int16_t>(AllItemsList.size()) - 1);
+		if (!inserted) {
+			app_fatal(std::format("An item already exists for mapping ID {}.", mappingId));
+		}
+	}
+}
+
+void AddUniqueItemData(sol::table itemData, const int32_t baseMappingId)
+{
+	const size_t numItems = itemData.size();
+	UniqueItems.reserve(UniqueItems.size() + numItems);
+	for (size_t i = 1; i <= numItems; ++i) {
+		sol::optional<sol::table> itemTable = itemData[i];
+		if (!itemTable) {
+			app_fatal(std::format("Expected unique item data table at index {}.", i));
+		}
+		const int32_t mappingId = baseMappingId + static_cast<int32_t>(i - 1);
+		UniqueItem item = ParseUniqueItemDataTable(*itemTable);
+		item.mappingId = mappingId;
+		UniqueItems.push_back(std::move(item));
+		const auto [it, inserted] = UniqueItemMappingIdsToIndices.emplace(mappingId, static_cast<int32_t>(UniqueItems.size()) - 1);
+		if (!inserted) {
+			app_fatal(std::format("A unique item already exists for mapping ID {}.", mappingId));
+		}
+	}
+}
+
 } // namespace
 
 sol::table LuaItemModule(sol::state_view &lua)
@@ -512,6 +606,8 @@ sol::table LuaItemModule(sol::state_view &lua)
 	LuaSetDocFn(table, "addUniqueItemDataFromTsv", "(path: string, baseMappingId: number)", AddUniqueItemDataFromTsv);
 	LuaSetDocFn(table, "getItemIndex", "(mappingId: number) -> ItemIndex|nil", "Returns the item index of the item with the given mapping ID, or nil if there is none.", LuaGetItemIndex);
 	LuaSetDocFn(table, "spawnQuestItem", "(itemIndex: ItemIndex, position: Point, sendmsg: boolean = true) -> boolean", "Drops a new item of the given index on the floor of the current level, at the free tile closest to position. With sendmsg the item is synced to other players, so in multiplayer only one client should spawn it. Returns false if there is no room.", LuaSpawnQuestItem);
+	LuaSetDocFn(table, "addItemData", "(itemData: ItemData[], baseMappingId: number)", "Add item definitions from a list of item data tables. Mapping IDs are assigned sequentially starting from baseMappingId. Each entry requires: name. Optional fields: dropRate, class, equipType, cursorGraphic, type, uniqueBaseItem, shortName, minMonsterLevel, durability, minDam, maxDam, minAC, maxAC, minStr, minMag, minDex, flags, miscId, spell, usable, value.", AddItemData);
+	LuaSetDocFn(table, "addUniqueItemData", "(itemData: UniqueItemData[], baseMappingId: number)", "Add unique item definitions from a list of unique item data tables. Mapping IDs are assigned sequentially starting from baseMappingId. Each entry requires: name. Optional fields: cursorGraphic, uniqueBaseItem, minLevel, value, powers (array of {type, param1, param2}).", AddUniqueItemData);
 
 	// Expose enums through the module table
 	table["ItemIndex"] = lua["ItemIndex"];
