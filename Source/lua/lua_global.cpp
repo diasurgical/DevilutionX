@@ -28,6 +28,7 @@
 #include "lua/lua_event.hpp"
 #include "lua/modules/audio.hpp"
 #include "lua/modules/floatingnumbers.hpp"
+#include "lua/modules/game.hpp"
 #include "lua/modules/hellfire.hpp"
 #include "lua/modules/i18n.hpp"
 #include "lua/modules/items.hpp"
@@ -307,6 +308,7 @@ void LuaInitialize()
 	    "devilutionx.dev", LuaDevModule(lua),
 #endif
 	    "devilutionx.version", PROJECT_VERSION,
+	    "devilutionx.game", LuaGameModule(lua),
 	    "devilutionx.i18n", LuaI18nModule(lua),
 	    "devilutionx.items", LuaItemModule(lua),
 	    "devilutionx.log", LuaLogModule(lua),
