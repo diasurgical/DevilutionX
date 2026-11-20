@@ -102,20 +102,20 @@ int ValueFromInterval(DiabloGenerator &rng, const ShrineEffect &shrineEffect)
 	return rng.generateRnd(1 + max - min) + min;
 }
 
-void PlayerCastsSpell(Player &player, const Point src, const Point dst, Direction midir, const SpellData &spellData, const int spellLevel)
+void PlayerCastsSpell(const Player &player, const Point src, const Point dst, Direction midir, const SpellData &spellData, const int spellLevel)
 {
 	for (size_t i = 0; i < sizeof(spellData.sMissiles) / sizeof(spellData.sMissiles[0]) && spellData.sMissiles[i] != MissileID::Null; i++) {
 		AddMissile(src, dst, midir, spellData.sMissiles[i], TARGET_MONSTERS, player, 0, spellLevel);
 	}
 }
 
-void PlayerCastsSpell(Player &player, const SpellData &spellData, const int spellLevel)
+void PlayerCastsSpell(const Player &player, const SpellData &spellData, const int spellLevel)
 {
 	const WorldTilePosition position = player.position.tile;
 	PlayerCastsSpell(player, position, position, player._pdir, spellData, spellLevel);
 }
 
-void PlayerCastsSpell(Player &player, const Point src, const SpellData &spellData, const int spellLevel)
+void PlayerCastsSpell(const Player &player, const Point src, const SpellData &spellData, const int spellLevel)
 {
 	PlayerCastsSpell(player, src, player.position.tile, player._pdir, spellData, spellLevel);
 }
@@ -172,7 +172,7 @@ ShrineMessage ShrineEffectRandomAttributeChange(DiabloGenerator &rng, Player &op
 }
 
 /**
- * @brief Modifies the durability of a random item using first value and the rest of items with the second value
+ * @brief Modifies the max durability of a random item using first value and the rest of items with the second value
  * @param rng random number generator
  * @param operatePlayer The player that activated the shrine
  * @param spawnPosition Unused
@@ -180,7 +180,7 @@ ShrineMessage ShrineEffectRandomAttributeChange(DiabloGenerator &rng, Player &op
  * @param shrineEffect.param2 Durability change for the rest of the items
  * @return ShrineMessage::ShrineMessageDefault
  */
-ShrineMessage ShrineEffectRandomItemDurabilityChange(DiabloGenerator &rng, Player &operatePlayer, const Point spawnPosition, const ShrineEffect &shrineEffect)
+ShrineMessage ShrineEffectRandomItemMaxDurabilityChange(DiabloGenerator &rng, Player &operatePlayer, const Point spawnPosition, const ShrineEffect &shrineEffect)
 {
 	const int otherItemsDurabilityChange = shrineEffect.param2;
 	const int randomItemDurabilityChange = shrineEffect.param1 - otherItemsDurabilityChange;
@@ -409,7 +409,6 @@ ShrineMessage ShrineEffectOtherPlayersCastSpellFromPlayer(DiabloGenerator &rng, 
 			if (&operatePlayer == &player || !player.plractive || player._pLvlChanging || !player.isOnActiveLevel() || player._pHitPoints <= 0) {
 				continue;
 			}
-			const WorldTilePosition position = player.position.tile;
 			PlayerCastsSpell(player, spellData, spellLevel);
 		}
 	}
@@ -439,7 +438,6 @@ ShrineMessage ShrineEffectAllPlayersCastSpellFromPlayer(DiabloGenerator &rng, Pl
 			if (!player.plractive || player._pLvlChanging || !player.isOnActiveLevel() || player._pHitPoints <= 0) {
 				continue;
 			}
-			const WorldTilePosition position = player.position.tile;
 			PlayerCastsSpell(player, spellData, spellLevel);
 		}
 	}
@@ -453,7 +451,6 @@ ShrineMessage ShrineEffectAllPlayersCastSpellFromPlayer(DiabloGenerator &rng, Pl
  * @param spawnPosition Unused
  * @param shrineEffect.param1 % (positive values) or fraction (negative values) of charges to add
  * @param shrineEffect.param2 % (positive values) or fraction (negative values) of charges to substract
-
  * @return ShrineMessage::ShrineMessageDefault
  */
 ShrineMessage ShrineEffectStavesChargesChange(DiabloGenerator &rng, Player &operatePlayer, const Point spawnPosition, const ShrineEffect &shrineEffect)
@@ -779,10 +776,7 @@ ShrineMessage ShrineEffectOperatePlayerCastSpellFromPlayerTowardZero(DiabloGener
 
 	if (spellId != SpellID::Null) {
 
-		const int spellMultiplier = shrineEffect.param1;
-		const int spellAdd = shrineEffect.param2;
 		const SpellData &spellData = GetSpellData(spellId);
-
 		const int spellLevel = (shrineEffect.param1 * leveltype) + shrineEffect.param2;
 		PlayerCastsSpell(operatePlayer, operatePlayer.position.tile, { 0, 0 }, Direction::South, spellData, spellLevel);
 	}
@@ -805,14 +799,13 @@ ShrineMessage ShrineEffectOtherPlayersCastSpellFromPlayerTowardZero(DiabloGenera
 
 	if (spellId != SpellID::Null) {
 
-		const int spellMultiplier = shrineEffect.param1;
-		const int spellAdd = shrineEffect.param2;
 		const SpellData &spellData = GetSpellData(spellId);
+		const int spellLevel = (shrineEffect.param1 * leveltype) + shrineEffect.param2;
+
 		for (Player &player : Players) {
 			if (&operatePlayer == &player || !player.plractive || player._pLvlChanging || !player.isOnActiveLevel() || player._pHitPoints <= 0) {
 				continue;
 			}
-			const int spellLevel = (shrineEffect.param1 * leveltype) + shrineEffect.param2;
 			PlayerCastsSpell(player, player.position.tile, { 0, 0 }, Direction::South, spellData, spellLevel);
 		}
 	}
@@ -835,14 +828,13 @@ ShrineMessage ShrineEffectAllPlayersCastSpellFromPlayerTowardZero(DiabloGenerato
 
 	if (spellId != SpellID::Null) {
 
-		const int spellMultiplier = shrineEffect.param1;
-		const int spellAdd = shrineEffect.param2;
 		const SpellData &spellData = GetSpellData(spellId);
+		const int spellLevel = (shrineEffect.param1 * leveltype) + shrineEffect.param2;
+
 		for (Player &player : Players) {
 			if (!player.plractive || player._pLvlChanging || !player.isOnActiveLevel() || player._pHitPoints <= 0) {
 				continue;
 			}
-			const int spellLevel = (shrineEffect.param1 * leveltype) + shrineEffect.param2;
 			PlayerCastsSpell(player, player.position.tile, { 0, 0 }, Direction::South, spellData, spellLevel);
 		}
 	}
@@ -1277,7 +1269,7 @@ ShrineMessage ShrineEffectLocalHourAttributeChange(DiabloGenerator &rng, Player 
 }
 
 /**
- * @brief Decreses an item durability or if none selected, takes away a fraction of gold
+ * @brief Decreases a random item durability or if no one is chosen, takes away a fraction of gold
  * @param rng random number generator
  * @param operatePlayer The player that activated the shrine
  * @param spawnPosition The position of the shrine
@@ -1317,7 +1309,7 @@ ShrineMessage OperateShrine(DiabloGenerator &rng, Player &operatePlayer, const P
 {
 	ShrineMessage shrineMessage = ShrineMessage::ShrineMessageDefault;
 	for (size_t i = 0; i < MAX_SHRINE_EFFECTS; ++i) {
-		ShrineEffect shrineEffect = shrineData.shrineEffect[i];
+		const ShrineEffect shrineEffect = shrineData.shrineEffect[i];
 		if (shrineEffect.typeFn == nullptr) {
 			continue;
 		}

@@ -28,7 +28,7 @@ ParseShrineEffectType(std::string_view value)
 {
 	if (value.empty()) return nullptr;
 	if (value == "RandomAttributeChange") return ShrineEffectRandomAttributeChange;
-	if (value == "RandomItemDurabilityChange") return ShrineEffectRandomItemDurabilityChange;
+	if (value == "RandomItemMaxDurabilityChange") return ShrineEffectRandomItemMaxDurabilityChange;
 	if (value == "ArmorClassChange") return ShrineEffectArmorClassChange;
 	if (value == "MinDamageChange") return ShrineEffectMinDamageChange;
 	if (value == "MaxDamageChange") return ShrineEffectMaxDamageChange;
