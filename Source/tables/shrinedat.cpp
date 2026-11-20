@@ -32,7 +32,9 @@ ParseShrineEffectType(std::string_view value)
 	if (value == "ArmorClassChange") return ShrineEffectArmorClassChange;
 	if (value == "MinDamageChange") return ShrineEffectMinDamageChange;
 	if (value == "MaxDamageChange") return ShrineEffectMaxDamageChange;
-	if (value == "PlayerCastSpellFromPlayer") return ShrineEffectPlayerCastSpellFromPlayer;
+	if (value == "OperatePlayerCastSpellFromPlayer") return ShrineEffectOperatePlayerCastSpellFromPlayer;
+	if (value == "OtherPlayersCastSpellFromPlayer") return ShrineEffectOtherPlayersCastSpellFromPlayer;
+	if (value == "AllPlayersCastSpellFromPlayer") return ShrineEffectAllPlayersCastSpellFromPlayer;
 	if (value == "StavesChargesChange") return ShrineEffectStavesChargesChange;
 	if (value == "ItemsDurabilityChange") return ShrineEffectItemsDurabilityChange;
 	if (value == "RandomSpellLevelChange") return ShrineEffectRandomSpellLevelChange;
@@ -44,7 +46,9 @@ ParseShrineEffectType(std::string_view value)
 	if (value == "MagicAttributeChange") return ShrineEffectMagicAttributeChange;
 	if (value == "CreateManaOrRejuvPotions") return ShrineEffectCreateManaOrRejuvPotions;
 	if (value == "CreateLifeOrRejuvPotions") return ShrineEffectCreateLifeOrRejuvPotions;
-	if (value == "PlayerCastSpellFromPlayerTowardZero") return ShrineEffectPlayerCastSpellFromPlayerTowardZero;
+	if (value == "OperatePlayerCastSpellFromPlayerTowardZero") return ShrineEffectOperatePlayerCastSpellFromPlayerTowardZero;
+	if (value == "OtherPlayersCastSpellFromPlayerTowardZero") return ShrineEffectOtherPlayersCastSpellFromPlayerTowardZero;
+	if (value == "AllPlayersCastSpellFromPlayerTowardZero") return ShrineEffectAllPlayersCastSpellFromPlayerTowardZero;
 	if (value == "FillEmptySlotsGold") return ShrineEffectFillEmptySlotsGold;
 	if (value == "DexterityAttributeChange") return ShrineEffectDexterityAttributeChange;
 	if (value == "StrengthAttributeChange") return ShrineEffectStrengthAttributeChange;
@@ -58,7 +62,9 @@ ParseShrineEffectType(std::string_view value)
 	if (value == "ExperiencePerDungeonLevel") return ShrineEffectExperiencePerDungeonLevel;
 	if (value == "CastFlashBottomTrap") return ShrineEffectCastFlashBottomTrap;
 	if (value == "CastSpellTrap") return ShrineEffectCastSpellTrap;
-	if (value == "PlayerCastSpellFromShrine") return ShrineEffectPlayerCastSpellFromShrine;
+	if (value == "OperatePlayerCastSpellFromShrine") return ShrineEffectOperatePlayerCastSpellFromShrine;
+	if (value == "OtherPlayersCastSpellFromShrine") return ShrineEffectOtherPlayersCastSpellFromShrine;
+	if (value == "AllPlayersCastSpellFromShrine") return ShrineEffectAllPlayersCastSpellFromShrine;
 	if (value == "LocalHourAttributeChange") return ShrineEffectLocalHourAttributeChange;
 	if (value == "BreakItemOrTakeGold") return ShrineEffectBreakItemOrTakeGold;
 	return std::unexpected("Unknown ShrineData::OperateFn name");

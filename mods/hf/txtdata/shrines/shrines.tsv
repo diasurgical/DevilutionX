@@ -3,18 +3,18 @@ ShrineMysterious	Mysterious	RandomAttributeChange	5	-1	Null	Activator											
 ShrineHidden	Hidden	RandomItemDurabilityChange	-10	10	Null	Activator											Any	DTYPE_TOWN	DTYPE_CRYPT		New strength is forged through destruction				
 ShrineGloomy	Gloomy	ArmorClassChange	2	2	Null	Activator	MaxDamageChange	-1	-1	Null	Activator						Single	DTYPE_TOWN	DTYPE_CRYPT		Those who defend seldom attack				
 ShrineWeird	Weird	MaxDamageChange	1	1	Null	Activator											Single	DTYPE_TOWN	DTYPE_CRYPT		The sword of justice is swift and sharp				
-ShrineMagical	Magical	PlayerCastSpellFromPlayer	2	0	ManaShield	Activator											Any	DTYPE_TOWN	DTYPE_CRYPT		While the spirit is vigilant the body thrives				
+ShrineMagical	Magical	OperatePlayerCastSpellFromPlayer	2	0	ManaShield	Activator											Any	DTYPE_TOWN	DTYPE_CRYPT		While the spirit is vigilant the body thrives				
 ShrineStone	Stone	StavesChargesChange	100	0	Null	Activator											Any	DTYPE_TOWN	DTYPE_CRYPT		The powers of mana refocused renews				
 ShrineReligious	Religious	ItemsDurabilityChange	100	0	Null	Activator											Any	DTYPE_TOWN	DTYPE_CRYPT		Time cannot diminish the power of steel				
 ShrineEnchanted	Enchanted	RandomSpellLevelChange	1	-1	Null	Activator											Any	DTYPE_CATHEDRAL	DTYPE_CATACOMBS		Magic is not always what it seems to be				
 ShrineThaumaturgic	Thaumaturgic	RefillsChests	0	0	Null	All											Single	DTYPE_TOWN	DTYPE_CRYPT	UnavailableRandom	What once was opened now is closed				
 ShrineFascinating	Fascinating	ChangeSpellLevel	2	2	Firebolt	Activator	ManaBaseReduction	10	0	Null	Activator						Any	DTYPE_TOWN	DTYPE_CRYPT	Crippling	Intensity comes at the cost of wisdom				
-ShrineCryptic	Cryptic	PlayerCastSpellFromPlayer	2	0	Nova	All	RestoreLifeAndMana	0	100	Null	Activator						Any	DTYPE_TOWN	DTYPE_CRYPT		Arcane power brings destruction				
-ShrineMagicaL2	Magical	PlayerCastSpellFromPlayer	2	0	ManaShield	Activator											Any	DTYPE_TOWN	DTYPE_CRYPT		While the spirit is vigilant the body thrives				
+ShrineCryptic	Cryptic	OperatePlayerCastSpellFromPlayer	2	0	Nova	All	RestoreLifeAndMana	0	100	Null	Activator						Any	DTYPE_TOWN	DTYPE_CRYPT		Arcane power brings destruction				
+ShrineMagicaL2	Magical	OperatePlayerCastSpellFromPlayer	2	0	ManaShield	Activator											Any	DTYPE_TOWN	DTYPE_CRYPT		While the spirit is vigilant the body thrives				
 ShrineEldritch	Eldritch	TransformPotionsToRejuvenation	0	0	Null	Activator											Any	DTYPE_TOWN	DTYPE_CRYPT		Crimson and Azure become as the sun				
 ShrineEerie	Eerie	MagicAttributeChange	2	2	Null	Activator											Any	DTYPE_TOWN	DTYPE_CRYPT		Knowledge and wisdom at the cost of self				
 ShrineDivine	Divine	CreateManaOrRejuvPotions	4	1	Null	Activator	CreateLifeOrRejuvPotions	4	1	Null	Activator	RestoreLifeAndMana	100	100	Null	Activator	Any	DTYPE_TOWN	DTYPE_CRYPT		Drink and be refreshed				
-ShrineHoly	Holy	PlayerCastSpellFromPlayerTowardZero	2	0	Phasing	All											Any	DTYPE_TOWN	DTYPE_CRYPT		Wherever you go, there you are				
+ShrineHoly	Holy	OperatePlayerCastSpellFromPlayerTowardZero	2	0	Phasing	All											Any	DTYPE_TOWN	DTYPE_CRYPT		Wherever you go, there you are				
 ShrineSacred	Sacred	ChangeSpellLevel	2	2	ChargedBolt	Activator	ManaBaseReduction	10	0	Null	Activator						Any	DTYPE_TOWN	DTYPE_CRYPT	Crippling	Energy comes at the cost of wisdom				
 ShrineSpiritual	Spiritual	FillEmptySlotsGold	5	10	Null	Activator											Any	DTYPE_TOWN	DTYPE_CRYPT		Riches abound when least expected				
 ShrineSpooky	Spooky	RestoreLifeAndMana	100	100	Null	Others											Multi	DTYPE_TOWN	DTYPE_CRYPT		Where avarice fails, patience gains reward				Blessed by a benevolent companion!
@@ -29,7 +29,7 @@ ShrineOily	Oily	PreferredAttributeChange	2	1	Null	Activator	CastFirewallTrap	2	2
 ShrineGlowing	Glowing	ExperienceToMagicAttribute	5	1000	Null	Activator											Any	DTYPE_TOWN	DTYPE_CRYPT		Knowledge is power.				
 ShrineMendicant	Mendicant	GoldToExperience	50	1	Null	Activator											Any	DTYPE_TOWN	DTYPE_CRYPT		Give and you shall receive.				
 ShrineSparkling	Sparkling	ExperiencePerDungeonLevel	1000	1000	Null	Activator	CastFlashBottomTrap	3	2	Null	All						Any	DTYPE_TOWN	DTYPE_CRYPT		Some experience is gained by touch.				
-ShrineTown	Town	PlayerCastSpellFromShrine	0	0	TownPortal	Activator											Any	DTYPE_TOWN	DTYPE_CRYPT		There's no place like home.				
+ShrineTown	Town	OperatePlayerCastSpellFromShrine	0	0	TownPortal	Activator											Any	DTYPE_TOWN	DTYPE_CRYPT		There's no place like home.				
 ShrineShimmering	Shimmering	RestoreLifeAndMana	0	100	Null	Activator											Any	DTYPE_TOWN	DTYPE_CRYPT		Spiritual energy is restored.				
 ShrineSolar	Solar	LocalHourAttributeChange	2	2	Null	Activator											Single	DTYPE_TOWN	DTYPE_CRYPT		You feel more agile.	You feel stronger.	You feel wiser.	You feel refreshed.	
 ShrineMurphys	Murphy's	BreakItemOrTakeGold	-2	-3	Null	Activator											Any	DTYPE_TOWN	DTYPE_CRYPT	Crippling	That which can break will.				

@@ -102,6 +102,37 @@ int ValueFromInterval(DiabloGenerator &rng, const ShrineEffect &shrineEffect)
 	return rng.generateRnd(1 + max - min) + min;
 }
 
+void PlayerCastsSpell(Player &player, const Point src, const Point dst, Direction midir, const SpellData &spellData, const int spellLevel)
+{
+	for (size_t i = 0; i < sizeof(spellData.sMissiles) / sizeof(spellData.sMissiles[0]) && spellData.sMissiles[i] != MissileID::Null; i++) {
+		AddMissile(src, dst, midir, spellData.sMissiles[i], TARGET_MONSTERS, player, 0, spellLevel);
+	}
+}
+
+void PlayerCastsSpell(Player &player, const SpellData &spellData, const int spellLevel)
+{
+	const WorldTilePosition position = player.position.tile;
+	PlayerCastsSpell(player, position, position, player._pdir, spellData, spellLevel);
+}
+
+void PlayerCastsSpell(Player &player, const Point src, const SpellData &spellData, const int spellLevel)
+{
+	PlayerCastsSpell(player, src, player.position.tile, player._pdir, spellData, spellLevel);
+}
+
+void CreatePotions(const Point spawnPosition, const int rejuvenationMinDungeonLevel, const int numPotions, const bool fullPotions, const item_misc_id fullPotion, const item_misc_id normalPotion)
+{
+	item_misc_id potionMiscId;
+	if (currlevel < rejuvenationMinDungeonLevel) {
+		potionMiscId = fullPotions ? fullPotion : normalPotion;
+	} else {
+		potionMiscId = fullPotions ? IMISC_FULLREJUV : IMISC_REJUV;
+	}
+	for (int i = 0; i < numPotions; i++) {
+		CreateTypeItem(spawnPosition, false, ItemType::Misc, potionMiscId, false, false, true);
+	}
+}
+
 } // namespace
 
 /**
@@ -342,26 +373,74 @@ ShrineMessage ShrineEffectMaxDamageChange(DiabloGenerator &rng, Player &operateP
  * @param shrineEffect.param2 Damage add per dungeon level
  * @return ShrineMessage::ShrineMessageDefault
  */
-ShrineMessage ShrineEffectPlayerCastSpellFromPlayer(DiabloGenerator &rng, Player &operatePlayer, const Point spawnPosition, const ShrineEffect &shrineEffect)
+ShrineMessage ShrineEffectOperatePlayerCastSpellFromPlayer(DiabloGenerator &rng, Player &operatePlayer, const Point spawnPosition, const ShrineEffect &shrineEffect)
 {
 	const SpellID spellId = shrineEffect.spellId;
 
 	if (spellId != SpellID::Null) {
 
-		const int spellMultiplier = shrineEffect.param1;
-		const int spellAdd = shrineEffect.param2;
 		const SpellData &spellData = GetSpellData(spellId);
+		const int spellLevel = (shrineEffect.param1 * leveltype) + shrineEffect.param2;
+		PlayerCastsSpell(operatePlayer, spellData, spellLevel);
+	}
+	return ShrineMessage::ShrineMessageDefault;
+}
 
-		for (size_t i = 0; i < sizeof(spellData.sMissiles) / sizeof(spellData.sMissiles[0]) && spellData.sMissiles[i] != MissileID::Null; i++) {
-			AddMissile(
-			    operatePlayer.position.tile,
-			    operatePlayer.position.tile,
-			    operatePlayer._pdir,
-			    spellData.sMissiles[i],
-			    TARGET_MONSTERS,
-			    operatePlayer,
-			    0,
-			    (spellMultiplier * leveltype) + spellAdd);
+/**
+ * @brief Other players rather than the one operating shrine cast a spell at their position
+ * @param rng Unused
+ * @param operatePlayer The player that activated the shrine
+ * @param spawnPosition Unused
+ * @param shrineEffect.spellId Spell that the player will cast
+ * @param shrineEffect.param1 Damage multiplier per dungeon level
+ * @param shrineEffect.param2 Damage add per dungeon level
+ * @return ShrineMessage::ShrineMessageDefault
+ */
+ShrineMessage ShrineEffectOtherPlayersCastSpellFromPlayer(DiabloGenerator &rng, Player &operatePlayer, const Point spawnPosition, const ShrineEffect &shrineEffect)
+{
+	const SpellID spellId = shrineEffect.spellId;
+
+	if (spellId != SpellID::Null) {
+
+		const SpellData &spellData = GetSpellData(spellId);
+		const int spellLevel = (shrineEffect.param1 * leveltype) + shrineEffect.param2;
+
+		for (Player &player : Players) {
+			if (&operatePlayer == &player || !player.plractive || player._pLvlChanging || !player.isOnActiveLevel() || player._pHitPoints <= 0) {
+				continue;
+			}
+			const WorldTilePosition position = player.position.tile;
+			PlayerCastsSpell(player, spellData, spellLevel);
+		}
+	}
+	return ShrineMessage::ShrineMessageDefault;
+}
+
+/**
+ * @brief All players cast a spell at their position
+ * @param rng Unused
+ * @param operatePlayer The player that activated the shrine
+ * @param spawnPosition Unused
+ * @param shrineEffect.spellId Spell that the player will cast
+ * @param shrineEffect.param1 Damage multiplier per dungeon level
+ * @param shrineEffect.param2 Damage add per dungeon level
+ * @return ShrineMessage::ShrineMessageDefault
+ */
+ShrineMessage ShrineEffectAllPlayersCastSpellFromPlayer(DiabloGenerator &rng, Player &operatePlayer, const Point spawnPosition, const ShrineEffect &shrineEffect)
+{
+	const SpellID spellId = shrineEffect.spellId;
+
+	if (spellId != SpellID::Null) {
+
+		const SpellData &spellData = GetSpellData(spellId);
+		const int spellLevel = (shrineEffect.param1 * leveltype) + shrineEffect.param2;
+
+		for (Player &player : Players) {
+			if (!player.plractive || player._pLvlChanging || !player.isOnActiveLevel() || player._pHitPoints <= 0) {
+				continue;
+			}
+			const WorldTilePosition position = player.position.tile;
+			PlayerCastsSpell(player, spellData, spellLevel);
 		}
 	}
 	return ShrineMessage::ShrineMessageDefault;
@@ -662,16 +741,7 @@ ShrineMessage ShrineEffectCreateManaOrRejuvPotions(DiabloGenerator &rng, Player 
 	const int rejuvenationMinDungeonLevel = shrineEffect.param1;
 	const int numPotions = std::abs(shrineEffect.param2);
 	const bool fullPotions = shrineEffect.param2 > 0;
-
-	item_misc_id potionMiscId;
-	if (currlevel < rejuvenationMinDungeonLevel) {
-		potionMiscId = fullPotions ? IMISC_FULLMANA : IMISC_MANA;
-	} else {
-		potionMiscId = fullPotions ? IMISC_FULLREJUV : IMISC_REJUV;
-	}
-	for (int i = 0; i < numPotions; i++) {
-		CreateTypeItem(spawnPosition, false, ItemType::Misc, potionMiscId, false, false, true);
-	}
+	CreatePotions(spawnPosition, rejuvenationMinDungeonLevel, numPotions, fullPotions, IMISC_FULLMANA, IMISC_MANA);
 	return ShrineMessage::ShrineMessageDefault;
 }
 
@@ -689,16 +759,7 @@ ShrineMessage ShrineEffectCreateLifeOrRejuvPotions(DiabloGenerator &rng, Player 
 	const int rejuvenationMinDungeonLevel = shrineEffect.param1;
 	const int numPotions = std::abs(shrineEffect.param2);
 	const bool fullPotions = shrineEffect.param2 > 0;
-
-	item_misc_id potionMiscId;
-	if (currlevel < rejuvenationMinDungeonLevel) {
-		potionMiscId = fullPotions ? IMISC_FULLHEAL : IMISC_HEAL;
-	} else {
-		potionMiscId = fullPotions ? IMISC_FULLREJUV : IMISC_REJUV;
-	}
-	for (int i = 0; i < numPotions; i++) {
-		CreateTypeItem(spawnPosition, false, ItemType::Misc, potionMiscId, false, false, true);
-	}
+	CreatePotions(spawnPosition, rejuvenationMinDungeonLevel, numPotions, fullPotions, IMISC_FULLHEAL, IMISC_HEAL);
 	return ShrineMessage::ShrineMessageDefault;
 }
 
@@ -712,7 +773,7 @@ ShrineMessage ShrineEffectCreateLifeOrRejuvPotions(DiabloGenerator &rng, Player 
  * @param shrineEffect.param2 Damage add per dungeon level
  * @return ShrineMessage::ShrineMessageDefault
  */
-ShrineMessage ShrineEffectPlayerCastSpellFromPlayerTowardZero(DiabloGenerator &rng, Player &operatePlayer, const Point spawnPosition, const ShrineEffect &shrineEffect)
+ShrineMessage ShrineEffectOperatePlayerCastSpellFromPlayerTowardZero(DiabloGenerator &rng, Player &operatePlayer, const Point spawnPosition, const ShrineEffect &shrineEffect)
 {
 	const SpellID spellId = shrineEffect.spellId;
 
@@ -722,16 +783,67 @@ ShrineMessage ShrineEffectPlayerCastSpellFromPlayerTowardZero(DiabloGenerator &r
 		const int spellAdd = shrineEffect.param2;
 		const SpellData &spellData = GetSpellData(spellId);
 
-		for (size_t i = 0; i < sizeof(spellData.sMissiles) / sizeof(spellData.sMissiles[0]) && spellData.sMissiles[i] != MissileID::Null; i++) {
-			AddMissile(
-			    operatePlayer.position.tile,
-			    { 0, 0 },
-			    Direction::South,
-			    spellData.sMissiles[i],
-			    TARGET_MONSTERS,
-			    operatePlayer,
-			    0,
-			    (spellMultiplier * leveltype) + spellAdd);
+		const int spellLevel = (shrineEffect.param1 * leveltype) + shrineEffect.param2;
+		PlayerCastsSpell(operatePlayer, operatePlayer.position.tile, { 0, 0 }, Direction::South, spellData, spellLevel);
+	}
+	return ShrineMessage::ShrineMessageDefault;
+}
+
+/**
+ * @brief Other players rather than the one operating shrine cast a spell at his position with 0,0 coordinates as destiny
+ * @param rng Unused
+ * @param operatePlayer The player that activated the shrine
+ * @param spawnPosition Unused
+ * @param shrineEffect.spellId Spell that the player will cast
+ * @param shrineEffect.param1 Damage multiplier per dungeon level
+ * @param shrineEffect.param2 Damage add per dungeon level
+ * @return ShrineMessage::ShrineMessageDefault
+ */
+ShrineMessage ShrineEffectOtherPlayersCastSpellFromPlayerTowardZero(DiabloGenerator &rng, Player &operatePlayer, const Point spawnPosition, const ShrineEffect &shrineEffect)
+{
+	const SpellID spellId = shrineEffect.spellId;
+
+	if (spellId != SpellID::Null) {
+
+		const int spellMultiplier = shrineEffect.param1;
+		const int spellAdd = shrineEffect.param2;
+		const SpellData &spellData = GetSpellData(spellId);
+		for (Player &player : Players) {
+			if (&operatePlayer == &player || !player.plractive || player._pLvlChanging || !player.isOnActiveLevel() || player._pHitPoints <= 0) {
+				continue;
+			}
+			const int spellLevel = (shrineEffect.param1 * leveltype) + shrineEffect.param2;
+			PlayerCastsSpell(player, player.position.tile, { 0, 0 }, Direction::South, spellData, spellLevel);
+		}
+	}
+	return ShrineMessage::ShrineMessageDefault;
+}
+
+/**
+ * @brief All players cast a spell at their position with 0,0 coordinates as destiny
+ * @param rng Unused
+ * @param operatePlayer The player that activated the shrine
+ * @param spawnPosition Unused
+ * @param shrineEffect.spellId Spell that the player will cast
+ * @param shrineEffect.param1 Damage multiplier per dungeon level
+ * @param shrineEffect.param2 Damage add per dungeon level
+ * @return ShrineMessage::ShrineMessageDefault
+ */
+ShrineMessage ShrineEffectAllPlayersCastSpellFromPlayerTowardZero(DiabloGenerator &rng, Player &operatePlayer, const Point spawnPosition, const ShrineEffect &shrineEffect)
+{
+	const SpellID spellId = shrineEffect.spellId;
+
+	if (spellId != SpellID::Null) {
+
+		const int spellMultiplier = shrineEffect.param1;
+		const int spellAdd = shrineEffect.param2;
+		const SpellData &spellData = GetSpellData(spellId);
+		for (Player &player : Players) {
+			if (!player.plractive || player._pLvlChanging || !player.isOnActiveLevel() || player._pHitPoints <= 0) {
+				continue;
+			}
+			const int spellLevel = (shrineEffect.param1 * leveltype) + shrineEffect.param2;
+			PlayerCastsSpell(player, player.position.tile, { 0, 0 }, Direction::South, spellData, spellLevel);
 		}
 	}
 	return ShrineMessage::ShrineMessageDefault;
@@ -1064,26 +1176,72 @@ ShrineMessage ShrineEffectCastSpellTrap(DiabloGenerator &rng, Player &operatePla
  * @param shrineEffect.param2 Damage add per dungeon level
  * @return ShrineMessage::ShrineMessageDefault
  */
-ShrineMessage ShrineEffectPlayerCastSpellFromShrine(DiabloGenerator &rng, Player &operatePlayer, const Point spawnPosition, const ShrineEffect &shrineEffect)
+ShrineMessage ShrineEffectOperatePlayerCastSpellFromShrine(DiabloGenerator &rng, Player &operatePlayer, const Point spawnPosition, const ShrineEffect &shrineEffect)
 {
 	const SpellID spellId = shrineEffect.spellId;
 
 	if (spellId != SpellID::Null) {
 
-		const int spellMultiplier = shrineEffect.param1;
-		const int spellAdd = shrineEffect.param2;
 		const SpellData &spellData = GetSpellData(spellId);
+		const int spellLevel = (shrineEffect.param1 * leveltype) + shrineEffect.param2;
+		PlayerCastsSpell(operatePlayer, spawnPosition, spellData, spellLevel);
+	}
+	return ShrineMessage::ShrineMessageDefault;
+}
 
-		for (size_t i = 0; i < sizeof(spellData.sMissiles) / sizeof(spellData.sMissiles[0]) && spellData.sMissiles[i] != MissileID::Null; i++) {
-			AddMissile(
-			    spawnPosition,
-			    operatePlayer.position.tile,
-			    operatePlayer._pdir,
-			    spellData.sMissiles[i],
-			    TARGET_MONSTERS,
-			    operatePlayer,
-			    0,
-			    (spellMultiplier * leveltype) + spellAdd);
+/**
+ * @brief Other players rather than the one operating shrine cast a spell at the shrine position
+ * @param rng Unused
+ * @param operatePlayer The player that activated the shrine
+ * @param spawnPosition The position of the shrine to use as the source position of the spell
+ * @param shrineEffect.spellId Spell that the player will cast
+ * @param shrineEffect.param1 Damage multiplier per dungeon level
+ * @param shrineEffect.param2 Damage add per dungeon level
+ * @return ShrineMessage::ShrineMessageDefault
+ */
+ShrineMessage ShrineEffectOtherPlayersCastSpellFromShrine(DiabloGenerator &rng, Player &operatePlayer, const Point spawnPosition, const ShrineEffect &shrineEffect)
+{
+	const SpellID spellId = shrineEffect.spellId;
+
+	if (spellId != SpellID::Null) {
+
+		const SpellData &spellData = GetSpellData(spellId);
+		const int spellLevel = (shrineEffect.param1 * leveltype) + shrineEffect.param2;
+
+		for (Player &player : Players) {
+			if (&operatePlayer == &player || !player.plractive || player._pLvlChanging || !player.isOnActiveLevel() || player._pHitPoints <= 0) {
+				continue;
+			}
+			PlayerCastsSpell(player, spawnPosition, spellData, spellLevel);
+		}
+	}
+	return ShrineMessage::ShrineMessageDefault;
+}
+
+/**
+ * @brief All players cast a spell at the shrine position
+ * @param rng Unused
+ * @param operatePlayer The player that activated the shrine
+ * @param spawnPosition The position of the shrine to use as the source position of the spell
+ * @param shrineEffect.spellId Spell that the player will cast
+ * @param shrineEffect.param1 Damage multiplier per dungeon level
+ * @param shrineEffect.param2 Damage add per dungeon level
+ * @return ShrineMessage::ShrineMessageDefault
+ */
+ShrineMessage ShrineEffectAllPlayersCastSpellFromShrine(DiabloGenerator &rng, Player &operatePlayer, const Point spawnPosition, const ShrineEffect &shrineEffect)
+{
+	const SpellID spellId = shrineEffect.spellId;
+
+	if (spellId != SpellID::Null) {
+
+		const SpellData &spellData = GetSpellData(spellId);
+		const int spellLevel = (shrineEffect.param1 * leveltype) + shrineEffect.param2;
+
+		for (Player &player : Players) {
+			if (!player.plractive || player._pLvlChanging || !player.isOnActiveLevel() || player._pHitPoints <= 0) {
+				continue;
+			}
+			PlayerCastsSpell(player, spawnPosition, spellData, spellLevel);
 		}
 	}
 	return ShrineMessage::ShrineMessageDefault;
