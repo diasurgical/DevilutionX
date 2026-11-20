@@ -1,6 +1,6 @@
 id	name	effect1	effect1.value1	effect1.value2	effect1.spell	effect1.affectsPlayer	effect2	effect2.value1	effect2.value2	effect2.spell	effect2.affectsPlayer	effect3	effect3.value1	effect3.value2	effect3.spell	effect3.affectsPlayer	gameType	minLevelType	maxLevelType	shrineOperateFlags	message	message2	message3	message4	message5
 ShrineMysterious	Mysterious	RandomAttributeChange	5	-1	Null	Activator											Any	DTYPE_TOWN	DTYPE_CRYPT		Some are weakened as one grows strong				
-ShrineHidden	Hidden	RandomItemMaxDurabilityChange	-10	10	Null	Activator											Any	DTYPE_TOWN	DTYPE_CRYPT		New strength is forged through destruction
+ShrineHidden	Hidden	RandomItemMaxDurabilityChange	-10	10	Null	Activator											Any	DTYPE_TOWN	DTYPE_CRYPT		New strength is forged through destruction				
 ShrineGloomy	Gloomy	ArmorClassChange	2	2	Null	Activator	MaxDamageChange	-1	-1	Null	Activator						Single	DTYPE_TOWN	DTYPE_CRYPT		Those who defend seldom attack				
 ShrineWeird	Weird	MaxDamageChange	1	1	Null	Activator											Single	DTYPE_TOWN	DTYPE_CRYPT		The sword of justice is swift and sharp				
 ShrineMagical	Magical	OperatePlayerCastSpellFromPlayer	2	0	ManaShield	Activator											Any	DTYPE_TOWN	DTYPE_CRYPT		While the spirit is vigilant the body thrives				
