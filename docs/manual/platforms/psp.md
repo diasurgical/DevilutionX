@@ -9,6 +9,12 @@
 
 The settings file (`diablo.ini`) and save games are stored in the same folder.
 
+### ARK-5
+
+On ARK-5, set **Extra RAM** (high memory) to **Force Max** in the ARK-5 settings before playing.
+With extra RAM off, the game runs out of memory and crashes on the loading screen after you pick a character.
+Force 16 may also be enough. Leave it off for retail games that use cheat plugins.
+
 ## Usage
 
 Launch DevilutionX from the Game menu of the PSP.
