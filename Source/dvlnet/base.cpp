@@ -117,6 +117,8 @@ std::expected<void, PacketError> base::HandleConnect(packet &pkt)
 
 std::expected<void, PacketError> base::HandleTurn(packet &pkt)
 {
+	if (pkt.Source() >= MAX_PLRS)
+		return {};
 	const plr_t src = pkt.Source();
 	PlayerState &playerState = playerStateTable_[src];
 	std::deque<turn_t> &turnQueue = playerState.turnQueue;
@@ -190,6 +192,8 @@ void base::ClearMsg(plr_t plr)
 
 std::expected<void, PacketError> base::Connect(plr_t player)
 {
+	if (player >= MAX_PLRS)
+		return {};
 	PlayerState &playerState = playerStateTable_[player];
 	const bool wasConnected = playerState.isConnected;
 	playerState.isConnected = true;
@@ -201,6 +205,8 @@ std::expected<void, PacketError> base::Connect(plr_t player)
 
 bool base::IsConnected(plr_t player) const
 {
+	if (player >= MAX_PLRS)
+		return false;
 	const PlayerState &playerState = playerStateTable_[player];
 	return playerState.isConnected;
 }
