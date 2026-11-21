@@ -151,8 +151,8 @@ void CreatePotions(const Point spawnPosition, const int rejuvenationMinDungeonLe
 ShrineMessage ShrineEffectRandomAttributeChange(DiabloGenerator &rng, Player &operatePlayer, const Point spawnPosition, const ShrineEffect &shrineEffect)
 {
 	const int randomAttributeChange = shrineEffect.param1;
-    const int otherAttributesChange = shrineEffect.param2;
-    Player &player = *MyPlayer;
+	const int otherAttributesChange = shrineEffect.param2;
+	Player &player = *MyPlayer;
 
 	const int r = rng.generateRnd((randomAttributeChange != otherAttributesChange) ? 4 : -1);
 	const int v1 = r == 0 ? randomAttributeChange : otherAttributesChange;
@@ -567,17 +567,20 @@ ShrineMessage ShrineEffectRandomSpellLevelChange(DiabloGenerator &rng, Player &o
  * @param rng random number generator
  * @param operatePlayer The player that activated the shrine
  * @param spawnPosition Unused
- * @param shrineEffect Unused
+ * @param shrineEffect.param1 % (positive values) or fraction (negative values) of probability to fill chest
  * @return ShrineMessage::ShrineMessageDefault
  */
 ShrineMessage ShrineEffectRefillsChests(DiabloGenerator &rng, Player &operatePlayer, const Point spawnPosition, const ShrineEffect &shrineEffect)
 {
+	const int refillChance = shrineEffect.param1;
 	for (int j = 0; j < ActiveObjectCount; j++) {
 		Object &object = Objects[ActiveObjects[j]];
 		if (object.IsChest() && !object.canInteractWith()) {
-			object._oRndSeed = rng.advanceRndSeed();
-			object.selectionRegion = SelectionRegion::Bottom;
-			object._oAnimFrame -= 2;
+			if (refillChance >= 100 || (refillChance < 0 && rng.flipCoin(-refillChance)) || (refillChance > 0 && rng.generateRnd(100) < refillChance)) {
+				object._oRndSeed = rng.advanceRndSeed();
+				object.selectionRegion = SelectionRegion::Bottom;
+				object._oAnimFrame -= 2;
+			}
 		}
 	}
 	return ShrineMessage::ShrineMessageDefault;
@@ -687,31 +690,36 @@ ShrineMessage ShrineEffectRestoreLifeAndMana(DiabloGenerator &rng, Player &opera
  * @param rng Unused
  * @param operatePlayer The player that activated the shrine
  * @param spawnPosition Unused
- * @param shrineEffect Unused
+ * @param shrineEffect.param1 % (positive values) or fraction (negative values) of probability to transform potion
  * @return ShrineMessage::ShrineMessageDefault
  */
 ShrineMessage ShrineEffectTransformPotionsToRejuvenation(DiabloGenerator &rng, Player &operatePlayer, const Point spawnPosition, const ShrineEffect &shrineEffect)
 {
+	const int transformChance = shrineEffect.param1;
 	for (Item &item : InventoryAndBeltPlayerItemsRange { *MyPlayer }) {
 		if (item._itype != ItemType::Misc) {
 			continue;
 		}
 		if (IsAnyOf(item._iMiscId, IMISC_HEAL, IMISC_MANA)) {
-			// Reinitializing the item zeroes out the seed, we save and restore here to avoid triggering false
-			// positives on duplicated item checks (e.g. when picking up the item).
-			auto seed = item._iSeed;
-			InitializeItem(item, ItemMiscIdIdx(IMISC_REJUV));
-			item._iSeed = seed;
-			item._iStatFlag = true;
-			continue;
+			if (transformChance >= 100 || (transformChance < 0 && rng.flipCoin(-transformChance)) || (transformChance > 0 && rng.generateRnd(100) < transformChance)) {
+				// Reinitializing the item zeroes out the seed, we save and restore here to avoid triggering false
+				// positives on duplicated item checks (e.g. when picking up the item).
+				auto seed = item._iSeed;
+				InitializeItem(item, ItemMiscIdIdx(IMISC_REJUV));
+				item._iSeed = seed;
+				item._iStatFlag = true;
+				continue;
+			}
 		}
 		if (IsAnyOf(item._iMiscId, IMISC_FULLHEAL, IMISC_FULLMANA)) {
-			// As above.
-			auto seed = item._iSeed;
-			InitializeItem(item, ItemMiscIdIdx(IMISC_FULLREJUV));
-			item._iSeed = seed;
-			item._iStatFlag = true;
-			continue;
+			if (transformChance >= 100 || (transformChance < 0 && rng.flipCoin(-transformChance)) || (transformChance > 0 && rng.generateRnd(100) < transformChance)) {
+				// As above.
+				auto seed = item._iSeed;
+				InitializeItem(item, ItemMiscIdIdx(IMISC_FULLREJUV));
+				item._iSeed = seed;
+				item._iStatFlag = true;
+				continue;
+			}
 		}
 	}
 	return ShrineMessage::ShrineMessageDefault;
@@ -1025,7 +1033,7 @@ ShrineMessage ShrineEffectPreferredAttributeChange(DiabloGenerator &rng, Player 
 
 ShrineMessage ShrineEffectCastFirewallTrap(DiabloGenerator &rng, Player &operatePlayer, const Point spawnPosition, const ShrineEffect &shrineEffect)
 {
-	TrapCastsSpell(operatePlayer, spawnPosition, MissileID::FireWall, (shrineEffect.param1 * leveltype) + shrineEffect.param2);
+	TrapCastsSpell(operatePlayer, spawnPosition, MissileID::FireWall, (shrineEffect.param1 * currlevel) + shrineEffect.param2);
 	return ShrineMessage::ShrineMessageDefault;
 }
 
@@ -1106,7 +1114,7 @@ ShrineMessage ShrineEffectExperiencePerDungeonLevel(DiabloGenerator &rng, Player
  */
 ShrineMessage ShrineEffectCastFlashBottomTrap(DiabloGenerator &rng, Player &operatePlayer, const Point spawnPosition, const ShrineEffect &shrineEffect)
 {
-	TrapCastsSpell(operatePlayer, spawnPosition, MissileID::FlashBottom, (shrineEffect.param1 * leveltype) + shrineEffect.param2);
+	TrapCastsSpell(operatePlayer, spawnPosition, MissileID::FlashBottom, (shrineEffect.param1 * currlevel) + shrineEffect.param2);
 	return ShrineMessage::ShrineMessageDefault;
 }
 
@@ -1127,7 +1135,7 @@ ShrineMessage ShrineEffectCastSpellTrap(DiabloGenerator &rng, Player &operatePla
 	if (spellId != SpellID::Null) {
 
 		const SpellData &spellData = GetSpellData(spellId);
-		const int spellDamage = (shrineEffect.param1 * leveltype) + shrineEffect.param2;
+		const int spellDamage = (shrineEffect.param1 * currlevel) + shrineEffect.param2;
 
 		for (size_t i = 0; i < sizeof(spellData.sMissiles) / sizeof(spellData.sMissiles[0]) && spellData.sMissiles[i] != MissileID::Null; i++) {
 			TrapCastsSpell(operatePlayer, spawnPosition, spellData.sMissiles[i], spellDamage);
