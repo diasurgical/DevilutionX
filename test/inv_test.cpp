@@ -1,10 +1,17 @@
+#include <algorithm>
+#include <utility>
+
 #include <gtest/gtest.h>
 
+#include "control/control.hpp"
 #include "cursor.h"
+#include "diablo.h"
 #include "engine/assets.hpp"
 #include "inv.h"
 #include "player.h"
+#include "qol/stash.h"
 #include "storm/storm_net.hpp"
+#include "tables/playerdat.hpp"
 
 namespace devilution {
 namespace {
@@ -37,11 +44,62 @@ public:
 		LoadItemData();
 	}
 
+	static void TearDownTestSuite()
+	{
+		FreeCursor();
+	}
+
 private:
 	static bool missingMpqAssets_;
 };
 
 bool InvTest::missingMpqAssets_ = false;
+
+class NaKrulNotesTest : public ::testing::Test {
+public:
+	static void SetUpTestSuite()
+	{
+		if (!HaveMainData()) {
+			LoadCoreArchives();
+			LoadGameArchives();
+		}
+		missingAssets_ = !HaveMainData() || !HaveHellfire();
+		if (missingAssets_)
+			return;
+
+		gbIsHellfire = true;
+		LoadModArchives({ { "hf" } });
+		LoadHellfireArchives();
+		InitCursor();
+		LoadSpellData();
+		LoadItemData();
+		LoadPlayerDataFiles();
+	}
+
+	static void TearDownTestSuite()
+	{
+		FreeCursor();
+		UnloadModArchives();
+		gbIsHellfire = false;
+	}
+
+	void SetUp() override
+	{
+		if (missingAssets_)
+			GTEST_SKIP() << "Diablo and Hellfire MPQ assets are required for note inventory tests";
+
+		Players.clear();
+		Players.resize(1);
+		MyPlayerId = 0;
+		MyPlayer = &Players[0];
+		MyPlayer->_pClass = HeroClass::Warrior;
+		Stash = {};
+		SNetInitializeProvider(SELCONN_LOOPBACK, nullptr);
+	}
+
+private:
+	static inline bool missingAssets_ = false;
+};
 
 /* Set up a given item as a spell scroll, allowing for its usage. */
 void set_up_scroll(Item &item, SpellID spell)
@@ -62,6 +120,39 @@ void clear_inventory()
 		MyPlayer->InvGrid[i] = 0;
 	}
 	MyPlayer->_pNumInv = 0;
+}
+
+void PlaceInventoryItem(int invIndex, int gridIndex, _item_indexes itemId)
+{
+	Item &item = MyPlayer->InvList[invIndex];
+	InitializeItem(item, itemId);
+	item.updateRequiredStatsCacheForPlayer(*MyPlayer);
+	MyPlayer->InvGrid[gridIndex] = invIndex + 1;
+	MyPlayer->_pNumInv = std::max(MyPlayer->_pNumInv, invIndex + 1);
+}
+
+int CountInventoryItemsWithId(_item_indexes itemId)
+{
+	int count = 0;
+	for (int i = 0; i < MyPlayer->_pNumInv; i++) {
+		if (MyPlayer->InvList[i].IDidx == itemId) {
+			count++;
+		}
+	}
+
+	return count;
+}
+
+int CountPositiveInvGridSlots()
+{
+	int count = 0;
+	for (const int8_t cell : MyPlayer->InvGrid) {
+		if (cell > 0) {
+			count++;
+		}
+	}
+
+	return count;
 }
 
 // Test that the scroll is used in the inventory in correct conditions
@@ -383,6 +474,179 @@ TEST_F(InvTest, ItemSizeLastDiabloItem)
 	Item testItem {};
 	InitializeItem(testItem, IDI_SHORT_BATTLE_BOW);
 	EXPECT_EQ(GetInventorySize(testItem), Size(2, 3));
+}
+
+TEST_F(NaKrulNotesTest, AutoPlaceItemInInventoryCombinesInsertedNaKrulNote)
+{
+	clear_inventory();
+	PlaceInventoryItem(0, 0, IDI_NOTE2);
+	PlaceInventoryItem(1, 1, IDI_NOTE3);
+
+	Item insertedNote {};
+	InitializeItem(insertedNote, IDI_NOTE1);
+	insertedNote.updateRequiredStatsCacheForPlayer(*MyPlayer);
+
+	ASSERT_TRUE(AutoPlaceItemInInventory(*MyPlayer, insertedNote));
+	EXPECT_EQ(MyPlayer->_pNumInv, 1);
+	EXPECT_EQ(CountInventoryItemsWithId(IDI_FULLNOTE), 1);
+	EXPECT_EQ(CountInventoryItemsWithId(IDI_NOTE1), 0);
+	EXPECT_EQ(CountInventoryItemsWithId(IDI_NOTE2), 0);
+	EXPECT_EQ(CountInventoryItemsWithId(IDI_NOTE3), 0);
+	EXPECT_EQ(MyPlayer->InvGrid[0], 0);
+	EXPECT_EQ(MyPlayer->InvGrid[1], 0);
+	EXPECT_EQ(MyPlayer->InvGrid[30], 1);
+}
+
+TEST_F(NaKrulNotesTest, AutoPlaceItemInInventoryCombinesInsertedDuplicateNaKrulNote)
+{
+	clear_inventory();
+	PlaceInventoryItem(0, 0, IDI_NOTE1);
+	PlaceInventoryItem(1, 1, IDI_NOTE2);
+	PlaceInventoryItem(2, 2, IDI_NOTE3);
+
+	Item insertedNote {};
+	InitializeItem(insertedNote, IDI_NOTE1);
+	insertedNote.updateRequiredStatsCacheForPlayer(*MyPlayer);
+
+	ASSERT_TRUE(AutoPlaceItemInInventory(*MyPlayer, insertedNote));
+	EXPECT_EQ(MyPlayer->_pNumInv, 2);
+	EXPECT_EQ(CountInventoryItemsWithId(IDI_FULLNOTE), 1);
+	EXPECT_EQ(CountInventoryItemsWithId(IDI_NOTE1), 1);
+	EXPECT_EQ(CountInventoryItemsWithId(IDI_NOTE2), 0);
+	EXPECT_EQ(CountInventoryItemsWithId(IDI_NOTE3), 0);
+	EXPECT_EQ(CountPositiveInvGridSlots(), 2);
+	EXPECT_EQ(MyPlayer->InvGrid[0], 1);
+	EXPECT_EQ(MyPlayer->InvGrid[30], 2);
+	EXPECT_EQ(MyPlayer->InvList[0].IDidx, IDI_NOTE1);
+	EXPECT_EQ(MyPlayer->InvList[1].IDidx, IDI_FULLNOTE);
+}
+
+TEST_F(NaKrulNotesTest, ReorganizeInventoryDoesNotCombineNaKrulNotes)
+{
+	clear_inventory();
+	PlaceInventoryItem(0, 0, IDI_NOTE1);
+	PlaceInventoryItem(1, 1, IDI_NOTE2);
+	PlaceInventoryItem(2, 2, IDI_NOTE3);
+
+	ReorganizeInventory(*MyPlayer);
+
+	EXPECT_EQ(MyPlayer->_pNumInv, 3);
+	EXPECT_EQ(CountInventoryItemsWithId(IDI_FULLNOTE), 0);
+	EXPECT_EQ(CountInventoryItemsWithId(IDI_NOTE1), 1);
+	EXPECT_EQ(CountInventoryItemsWithId(IDI_NOTE2), 1);
+	EXPECT_EQ(CountInventoryItemsWithId(IDI_NOTE3), 1);
+	EXPECT_EQ(CountPositiveInvGridSlots(), 3);
+}
+
+TEST_F(NaKrulNotesTest, InvGetItemCombinesGroundNote)
+{
+	InitItems();
+	for (const _item_indexes noteId : { IDI_NOTE1, IDI_NOTE2, IDI_NOTE3 }) {
+		clear_inventory();
+		MyPlayer->HoldItem = {};
+		for (const _item_indexes otherNoteId : { IDI_NOTE1, IDI_NOTE2, IDI_NOTE3 }) {
+			if (otherNoteId != noteId)
+				PlaceInventoryItem(MyPlayer->_pNumInv, MyPlayer->_pNumInv, otherNoteId);
+		}
+		Item groundNote {};
+		InitializeItem(groundNote, noteId);
+		const uint8_t itemIndex = PlaceItemInWorld(std::move(groundNote), { 42, 43 });
+		InvGetItem(*MyPlayer, itemIndex);
+
+		EXPECT_EQ(MyPlayer->HoldItem.IDidx, IDI_FULLNOTE);
+		EXPECT_EQ(MyPlayer->HoldItem.position, Point(42, 43));
+		EXPECT_EQ(MyPlayer->_pNumInv, 0);
+		EXPECT_EQ(CountPositiveInvGridSlots(), 0);
+	}
+}
+
+TEST_F(NaKrulNotesTest, InvGetItemPreservesIncompleteSet)
+{
+	InitItems();
+	PlaceInventoryItem(0, 0, IDI_NOTE1);
+	Item groundNote {};
+	InitializeItem(groundNote, IDI_NOTE3);
+
+	const uint8_t itemIndex = PlaceItemInWorld(std::move(groundNote), { 42, 43 });
+	InvGetItem(*MyPlayer, itemIndex);
+
+	EXPECT_EQ(MyPlayer->HoldItem.IDidx, IDI_NOTE3);
+	EXPECT_EQ(MyPlayer->_pNumInv, 1);
+	EXPECT_EQ(MyPlayer->InvList[0].IDidx, IDI_NOTE1);
+	EXPECT_EQ(MyPlayer->InvGrid[0], 1);
+}
+
+TEST_F(NaKrulNotesTest, AutoPlaceItemInInventoryPreservesUnrelatedItems)
+{
+	PlaceInventoryItem(0, 0, IDI_NOTE1);
+	PlaceInventoryItem(1, 1, IDI_HEAL);
+	PlaceInventoryItem(2, 2, IDI_NOTE2);
+	Item insertedNote {};
+	InitializeItem(insertedNote, IDI_NOTE3);
+
+	ASSERT_TRUE(AutoPlaceItemInInventory(*MyPlayer, insertedNote));
+
+	ASSERT_EQ(MyPlayer->_pNumInv, 2);
+	EXPECT_EQ(MyPlayer->InvList[0].IDidx, IDI_HEAL);
+	EXPECT_EQ(MyPlayer->InvList[1].IDidx, IDI_FULLNOTE);
+	EXPECT_EQ(MyPlayer->InvGrid[1], 1);
+	EXPECT_EQ(MyPlayer->InvGrid[30], 2);
+}
+
+TEST_F(NaKrulNotesTest, CheckInvItemCombinesNotesWhenSwappingItems)
+{
+	CloseCharPanel();
+	for (int displacedIndex = 0; displacedIndex < 3; displacedIndex++) {
+		clear_inventory();
+		_item_indexes noteId = IDI_NOTE1;
+		for (int invIndex = 0; invIndex < 3; invIndex++) {
+			if (invIndex == displacedIndex) {
+				PlaceInventoryItem(invIndex, invIndex, IDI_HEAL);
+			} else {
+				PlaceInventoryItem(invIndex, invIndex, noteId);
+				noteId = IDI_NOTE2;
+			}
+		}
+		InitializeItem(MyPlayer->HoldItem, IDI_NOTE3);
+		MousePosition = GetRightPanel().position + Displacement { 31 + 29 * displacedIndex, 236 };
+
+		CheckInvItem();
+
+		ASSERT_EQ(MyPlayer->_pNumInv, 1);
+		EXPECT_EQ(MyPlayer->InvList[0].IDidx, IDI_FULLNOTE);
+		EXPECT_EQ(MyPlayer->HoldItem.IDidx, IDI_HEAL);
+		EXPECT_EQ(MyPlayer->InvGrid[displacedIndex], 1);
+		EXPECT_EQ(CountPositiveInvGridSlots(), 1);
+	}
+}
+
+TEST_F(NaKrulNotesTest, StashTransferToInventoryCombinesNotes)
+{
+	PlaceInventoryItem(0, 0, IDI_NOTE1);
+	PlaceInventoryItem(1, 1, IDI_NOTE2);
+	Item stashNote {};
+	InitializeItem(stashNote, IDI_NOTE3);
+	ASSERT_TRUE(AutoPlaceItemInStash(stashNote, true));
+
+	TransferItemToInventory(*MyPlayer, 0);
+
+	EXPECT_TRUE(Stash.stashList.empty());
+	EXPECT_EQ(MyPlayer->_pNumInv, 1);
+	EXPECT_EQ(CountInventoryItemsWithId(IDI_FULLNOTE), 1);
+}
+
+TEST_F(NaKrulNotesTest, StashKeepsSeparateNoteFragments)
+{
+	for (const _item_indexes noteId : { IDI_NOTE1, IDI_NOTE2, IDI_NOTE3 }) {
+		Item note {};
+		InitializeItem(note, noteId);
+		ASSERT_TRUE(AutoPlaceItemInStash(note, true));
+	}
+
+	ASSERT_EQ(Stash.stashList.size(), 3);
+	EXPECT_EQ(Stash.stashList[0].IDidx, IDI_NOTE1);
+	EXPECT_EQ(Stash.stashList[1].IDidx, IDI_NOTE2);
+	EXPECT_EQ(Stash.stashList[2].IDidx, IDI_NOTE3);
 }
 
 } // namespace
