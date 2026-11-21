@@ -524,20 +524,27 @@ ShrineMessage ShrineEffectRandomSpellLevelChange(DiabloGenerator &rng, Player &o
 			randomSpell = rng.generateRnd(static_cast<int32_t>(SpellsData.size())) + 1;
 		} while ((player._pMemSpells & GetSpellBitmask(static_cast<SpellID>(randomSpell))) == 0);
 
-		spell = 1;
-		for (auto j = static_cast<uint8_t>(SpellID::Firebolt); j < SpellsData.size(); j++) {
-			if ((player._pMemSpells & spell) != 0 && player._pSplLvl[j] < MaxSpellLevel && j != randomSpell) {
-				const uint8_t newSpellLevel = ClampMaxSpellLevel(player._pSplLvl[j] + randomSpellLevelChange);
-				player._pSplLvl[j] = newSpellLevel;
-				NetSendCmdParam2(true, CMD_CHANGE_SPELL_LEVEL, j, newSpellLevel);
+		if (otherSpellsLevelChange != 0) {
+			spell = 1;
+			for (auto j = static_cast<uint8_t>(SpellID::Firebolt); j < SpellsData.size(); j++) {
+				if ((player._pMemSpells & spell) != 0 && j != randomSpell) {
+					const uint8_t currentSpellLevel = player._pSplLvl[j];
+					const uint8_t newSpellLevel = ClampMaxSpellLevel(currentSpellLevel + otherSpellsLevelChange);
+					if (currentSpellLevel != newSpellLevel) {
+						player._pSplLvl[j] = newSpellLevel;
+						NetSendCmdParam2(true, CMD_CHANGE_SPELL_LEVEL, j, newSpellLevel);
+					}
+				}
+				spell *= 2;
 			}
-			spell *= 2;
 		}
-
-		if (player._pSplLvl[randomSpell] > 0) {
-			const uint8_t newSpellLevel = ClampMaxSpellLevel(player._pSplLvl[randomSpell] + otherSpellsLevelChange);
-			player._pSplLvl[randomSpell] = newSpellLevel;
-			NetSendCmdParam2(true, CMD_CHANGE_SPELL_LEVEL, randomSpell, newSpellLevel);
+		if (randomSpellLevelChange != 0) {
+			const uint8_t currentSpellLevel = player._pSplLvl[randomSpell];
+			const uint8_t newSpellLevel = ClampMaxSpellLevel(currentSpellLevel + randomSpellLevelChange);
+			if (currentSpellLevel != newSpellLevel) {
+				player._pSplLvl[randomSpell] = newSpellLevel;
+				NetSendCmdParam2(true, CMD_CHANGE_SPELL_LEVEL, randomSpell, newSpellLevel);
+			}
 		}
 
 		for (Item &item : InventoryPlayerItemsRange { player }) {

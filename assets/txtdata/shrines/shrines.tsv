@@ -6,7 +6,7 @@ ShrineWeird	Weird	MaxDamageChange	1	1	Null	Activator											Single	DTYPE_TOWN
 ShrineMagical	Magical	OperatePlayerCastSpellFromPlayer	2	0	ManaShield	Activator											Any	DTYPE_TOWN	DTYPE_CRYPT		While the spirit is vigilant the body thrives				
 ShrineStone	Stone	StavesChargesChange	100	0	Null	Activator											Any	DTYPE_TOWN	DTYPE_CRYPT		The powers of mana refocused renews				
 ShrineReligious	Religious	ItemsDurabilityChange	100	0	Null	Activator											Any	DTYPE_TOWN	DTYPE_CRYPT		Time cannot diminish the power of steel				
-ShrineEnchanted	Enchanted	RandomSpellLevelChange	1	-1	Null	Activator											Any	DTYPE_CATHEDRAL	DTYPE_CATACOMBS		Magic is not always what it seems to be				
+ShrineEnchanted	Enchanted	RandomSpellLevelChange	-1	1	Null	Activator											Any	DTYPE_CATHEDRAL	DTYPE_CATACOMBS		Magic is not always what it seems to be				
 ShrineThaumaturgic	Thaumaturgic	RefillsChests	0	0	Null	All											Single	DTYPE_TOWN	DTYPE_CRYPT	UnavailableRandom	What once was opened now is closed				
 ShrineFascinating	Fascinating	ChangeSpellLevel	2	2	Firebolt	Activator	ManaBaseReduction	10	0	Null	Activator						Any	DTYPE_TOWN	DTYPE_CRYPT	Crippling	Intensity comes at the cost of wisdom				
 ShrineCryptic	Cryptic	OperatePlayerCastSpellFromPlayer	2	0	Nova	All	RestoreLifeAndMana	0	100	Null	Activator						Any	DTYPE_TOWN	DTYPE_CRYPT		Arcane power brings destruction				
