@@ -1389,6 +1389,8 @@ bool PlrDeathModeOK(Player &player)
 	return false;
 }
 
+} // namespace
+
 void ValidatePlayer()
 {
 	assert(MyPlayer != nullptr);
@@ -1445,6 +1447,8 @@ void ValidatePlayer()
 	myPlayer._pMemSpells &= msk;
 	myPlayer._pInfraFlag = false;
 }
+
+namespace {
 
 HeroClass GetPlayerSpriteClass(HeroClass cls)
 {
