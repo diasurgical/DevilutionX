@@ -11,7 +11,6 @@
 #include <tables/shrinedat.hpp>
 
 #include "automap.h"
-#include "engine/backbuffer_state.hpp"
 #include "engine/random.hpp"
 #include "inv_iterators.hpp"
 #include "items.h"
@@ -120,6 +119,11 @@ void PlayerCastsSpell(const Player &player, const Point src, const SpellData &sp
 	PlayerCastsSpell(player, src, player.position.tile, player._pdir, spellData, spellLevel);
 }
 
+void TrapCastsSpell(const Player &player, const Point src, const MissileID missileId, const int spellDamage)
+{
+	AddMissile(src, player.position.tile, player._pdir, missileId, TARGET_PLAYERS, -1, spellDamage, 0);
+}
+
 void CreatePotions(const Point spawnPosition, const int rejuvenationMinDungeonLevel, const int numPotions, const bool fullPotions, const item_misc_id fullPotion, const item_misc_id normalPotion)
 {
 	item_misc_id potionMiscId;
@@ -147,8 +151,8 @@ void CreatePotions(const Point spawnPosition, const int rejuvenationMinDungeonLe
 ShrineMessage ShrineEffectRandomAttributeChange(DiabloGenerator &rng, Player &operatePlayer, const Point spawnPosition, const ShrineEffect &shrineEffect)
 {
 	const int randomAttributeChange = shrineEffect.param1;
-	const int otherAttributesChange = shrineEffect.param2;
-	Player &player = *MyPlayer;
+    const int otherAttributesChange = shrineEffect.param2;
+    Player &player = *MyPlayer;
 
 	const int r = rng.generateRnd((randomAttributeChange != otherAttributesChange) ? 4 : -1);
 	const int v1 = r == 0 ? randomAttributeChange : otherAttributesChange;
@@ -1021,18 +1025,7 @@ ShrineMessage ShrineEffectPreferredAttributeChange(DiabloGenerator &rng, Player 
 
 ShrineMessage ShrineEffectCastFirewallTrap(DiabloGenerator &rng, Player &operatePlayer, const Point spawnPosition, const ShrineEffect &shrineEffect)
 {
-	const int spellMultiplier = shrineEffect.param1;
-	const int spellAdd = shrineEffect.param2;
-
-	AddMissile(
-	    spawnPosition,
-	    operatePlayer.position.tile,
-	    operatePlayer._pdir,
-	    MissileID::FireWall,
-	    TARGET_PLAYERS,
-	    -1,
-	    (spellMultiplier * currlevel) + spellAdd,
-	    0);
+	TrapCastsSpell(operatePlayer, spawnPosition, MissileID::FireWall, (shrineEffect.param1 * leveltype) + shrineEffect.param2);
 	return ShrineMessage::ShrineMessageDefault;
 }
 
@@ -1113,19 +1106,7 @@ ShrineMessage ShrineEffectExperiencePerDungeonLevel(DiabloGenerator &rng, Player
  */
 ShrineMessage ShrineEffectCastFlashBottomTrap(DiabloGenerator &rng, Player &operatePlayer, const Point spawnPosition, const ShrineEffect &shrineEffect)
 {
-	const int spellMultiplier = shrineEffect.param1;
-	const int spellAdd = shrineEffect.param2;
-
-	AddMissile(
-	    spawnPosition,
-	    operatePlayer.position.tile,
-	    operatePlayer._pdir,
-	    MissileID::FlashBottom,
-	    TARGET_PLAYERS,
-	    -1,
-	    (spellMultiplier * currlevel) + spellAdd,
-	    0);
-
+	TrapCastsSpell(operatePlayer, spawnPosition, MissileID::FlashBottom, (shrineEffect.param1 * leveltype) + shrineEffect.param2);
 	return ShrineMessage::ShrineMessageDefault;
 }
 
@@ -1145,21 +1126,11 @@ ShrineMessage ShrineEffectCastSpellTrap(DiabloGenerator &rng, Player &operatePla
 
 	if (spellId != SpellID::Null) {
 
-		const int spellMultiplier = shrineEffect.param1;
-		const int spellAdd = shrineEffect.param2;
 		const SpellData &spellData = GetSpellData(spellId);
+		const int spellDamage = (shrineEffect.param1 * leveltype) + shrineEffect.param2;
 
 		for (size_t i = 0; i < sizeof(spellData.sMissiles) / sizeof(spellData.sMissiles[0]) && spellData.sMissiles[i] != MissileID::Null; i++) {
-
-			AddMissile(
-			    spawnPosition,
-			    operatePlayer.position.tile,
-			    operatePlayer._pdir,
-			    MissileID::FlashBottom,
-			    TARGET_PLAYERS,
-			    -1,
-			    (spellMultiplier * currlevel) + spellAdd,
-			    0);
+			TrapCastsSpell(operatePlayer, spawnPosition, spellData.sMissiles[i], spellDamage);
 		}
 	}
 	return ShrineMessage::ShrineMessageDefault;
