@@ -32,18 +32,38 @@ protected:
 		StripPlayer();
 	}
 
-	static const ShrineData &FindShrine(ShrineData::OperateFn operateFn)
+	static const ShrineData &FindShrine(std::string name)
 	{
 		const auto it = std::find_if(ShrinesData.begin(), ShrinesData.end(),
-		    [operateFn](const ShrineData &data) { return data.operateFn == operateFn; });
+		    [name](const ShrineData &data) { return data.name == name; });
 		EXPECT_NE(it, ShrinesData.end());
 		return *it;
 	}
 
-	static int Operate(const ShrineData &shrine, uint32_t seed)
+	static ShrineMessage Operate(Player &player, const ShrineData &shrine, uint32_t seed)
 	{
 		DiabloGenerator rng(seed);
-		return shrine.operateFn(rng, *MyPlayer, MyPlayer->position.tile, shrine.powerParam1, shrine.powerParam2);
+		ShrineMessage shrineMessage = ShrineMessage::ShrineMessageDefault;
+		for (size_t i = 0; i < MAX_SHRINE_EFFECTS; ++i) {
+			ShrineEffect shrineEffect = shrine.shrineEffect[i];
+			if (shrineEffect.typeFn == nullptr) {
+				continue;
+			}
+			if (&player == MyPlayer) {
+				if (shrineEffect.affectsPlayer == ShrineAffectsPlayer::Others) {
+					continue;
+				}
+			} else {
+				if (shrineEffect.affectsPlayer == ShrineAffectsPlayer::Activator) {
+					continue;
+				}
+			}
+			const ShrineMessage lastShrineMessage = shrineEffect.typeFn(rng, player, player.position.tile, shrineEffect);
+			if (lastShrineMessage != ShrineMessage::ShrineMessageDefault) {
+				shrineMessage = lastShrineMessage;
+			}
+		}
+		return shrineMessage;
 	}
 
 	static void Equip(inv_body_loc loc, int durability, int maxDurability)
@@ -58,34 +78,34 @@ protected:
 
 TEST_F(ShrinesTest, HiddenSingleItemLosesTenDurability)
 {
-	const ShrineData &hidden = FindShrine(OperateShrineHidden);
+	const ShrineData &hidden = FindShrine("Hidden");
 
 	// Vanilla: +10 to every item, then -20 to one random item, so a lone item nets -10.
 	Equip(INVLOC_CHEST, 30, 30);
-	EXPECT_EQ(Operate(hidden, 42), 1);
+	EXPECT_EQ(Operate(*MyPlayer, hidden, 42), ShrineMessage::ShrineMessageDefault);
 	EXPECT_EQ(MyPlayer->InvBody[INVLOC_CHEST]._iDurability, 20);
 	EXPECT_EQ(MyPlayer->InvBody[INVLOC_CHEST]._iMaxDur, 20);
 }
 
 TEST_F(ShrinesTest, HiddenClampsDurabilityToOne)
 {
-	const ShrineData &hidden = FindShrine(OperateShrineHidden);
+	const ShrineData &hidden = FindShrine("Hidden");
 
 	// 5/30 -> 15/40 -> -5/20, and vanilla clamps durability to 1.
 	Equip(INVLOC_CHEST, 5, 30);
-	Operate(hidden, 42);
+	Operate(*MyPlayer, hidden, 42);
 	EXPECT_EQ(MyPlayer->InvBody[INVLOC_CHEST]._iDurability, 1);
 	EXPECT_EQ(MyPlayer->InvBody[INVLOC_CHEST]._iMaxDur, 20);
 }
 
 TEST_F(ShrinesTest, HiddenOneItemLosesTheOthersGain)
 {
-	const ShrineData &hidden = FindShrine(OperateShrineHidden);
+	const ShrineData &hidden = FindShrine("Hidden");
 
 	for (uint32_t seed = 0; seed < 16; seed++) {
 		Equip(INVLOC_CHEST, 30, 30);
 		Equip(INVLOC_HEAD, 40, 50);
-		Operate(hidden, seed);
+		Operate(*MyPlayer, hidden, seed);
 
 		const Item &chest = MyPlayer->InvBody[INVLOC_CHEST];
 		const Item &head = MyPlayer->InvBody[INVLOC_HEAD];
@@ -105,7 +125,7 @@ TEST_F(ShrinesTest, HiddenOneItemLosesTheOthersGain)
 
 TEST_F(ShrinesTest, EnchantedRaisesAllSpellsButOne)
 {
-	const ShrineData &enchanted = FindShrine(OperateShrineEnchanted);
+	const ShrineData &enchanted = FindShrine("Enchanted");
 
 	constexpr std::array<SpellID, 3> Spells { SpellID::Firebolt, SpellID::Healing, SpellID::ChargedBolt };
 	constexpr std::array<uint8_t, 3> Levels { 5, 0, MaxSpellLevel };
@@ -117,7 +137,7 @@ TEST_F(ShrinesTest, EnchantedRaisesAllSpellsButOne)
 			MyPlayer->_pSplLvl[static_cast<int8_t>(Spells[i])] = Levels[i];
 		}
 
-		EXPECT_EQ(Operate(enchanted, seed), 1);
+		EXPECT_EQ(Operate(*MyPlayer, enchanted, seed), ShrineMessage::ShrineMessageDefault);
 
 		// Vanilla: one known spell loses a level (not below 0), every other known spell gains one (not above max).
 		int reducedCount = 0;

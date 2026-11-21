@@ -38,9 +38,9 @@
 #include "monster.h"
 #include "options.h"
 #include "qol/stash.h"
+#include "shrines.hpp"
 #include "stores.h"
 #include "tables/objdat.h"
-#include "tables/shrinedat.hpp"
 #include "towners.h"
 #include "track.h"
 #include "utils/algorithm/container.hpp"
@@ -1177,7 +1177,7 @@ int FindValidShrine(bool forRandomEffectShrine)
 	for (;;) {
 		const int rv = GenerateRnd(ShrinesData.size());
 		const ShrineData &shrineData = GetShrineData(static_cast<uint8_t>(rv));
-		if (forRandomEffectShrine && !shrineData.availableRandomEffectShrine) {
+		if (forRandomEffectShrine && HasAnyOf(shrineData.shrineOperateFlags, ShrineOperateFlag::UnavailableRandom)) {
 			continue;
 		}
 		if (leveltype < shrineData.minLevelType || leveltype > shrineData.maxLevelType) {
@@ -2137,23 +2137,30 @@ void OperateShrine(Player &player, Object &shrine, SfxID sType)
 	shrine._oAnimDelay = 1;
 
 	const ShrineData &shrineData = GetShrineData(static_cast<uint8_t>(shrine._oVar1));
-	int messageIndex = shrineData.operateFn(rng, player, shrine.position, shrineData.powerParam1, shrineData.powerParam2);
+	const ShrineMessage shrineMessage = OperateShrine(rng, player, shrine.position, shrineData);
+	CheckStats(*MyPlayer);
+	CalcPlrInv(*MyPlayer, true);
+	RedrawEverything();
 
 	if (&player == MyPlayer) {
 		NetSendCmdLoc(MyPlayerId, false, CMD_OPERATEOBJ, shrine.position);
 	}
+
 	std::string message;
-	switch (messageIndex) {
-	case 4:
+	switch (shrineMessage) {
+	case ShrineMessage::ShrineMessage5:
+		message = shrineData.message5;
+		break;
+	case ShrineMessage::ShrineMessage4:
 		message = shrineData.message4;
 		break;
-	case 3:
+	case ShrineMessage::ShrineMessage3:
 		message = shrineData.message3;
 		break;
-	case 2:
+	case ShrineMessage::ShrineMessage2:
 		message = shrineData.message2;
 		break;
-	case 1:
+	case ShrineMessage::ShrineMessage1:
 		message = shrineData.message;
 		break;
 	default:
@@ -2682,7 +2689,7 @@ bool Object::IsDisabled() const
 	if (!IsShrine()) {
 		return false;
 	}
-	return GetShrineData(static_cast<uint8_t>(_oVar1)).cripplingEffect;
+	return HasAnyOf(GetShrineData(static_cast<uint8_t>(_oVar1)).shrineOperateFlags, ShrineOperateFlag::Crippling);
 }
 
 Object *FindObjectAtPosition(Point position, bool considerLargeObjects)
