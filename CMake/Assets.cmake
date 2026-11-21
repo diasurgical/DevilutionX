@@ -164,6 +164,7 @@ set(devilutionx_assets
   lua/inspect.lua
   lua/mods/adria_refills_mana/init.lua
   lua/mods/clock/init.lua
+  lua/mods/enemies_remaining/init.lua
   "lua/mods/Floating Numbers - Damage/init.lua"
   "lua/mods/Floating Numbers - XP/init.lua"
   lua/repl_prelude.lua

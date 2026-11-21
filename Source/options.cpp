@@ -44,7 +44,6 @@
 #include "utils/log.hpp"
 #include "utils/logged_fstream.hpp"
 #include "utils/paths.h"
-#include "utils/sdl_ptrs.h"
 #include "utils/str_cat.hpp"
 #include "utils/str_split.hpp"
 #include "utils/utf8.hpp"
@@ -72,7 +71,7 @@ namespace {
 void DiscoverMods()
 {
 	// Add mods available by default:
-	std::unordered_set<std::string> modNames = { "clock", "adria_refills_mana", "Floating Numbers - Damage", "Floating Numbers - XP" };
+	std::unordered_set<std::string> modNames = { "clock", "adria_refills_mana", "enemies_remaining", "Floating Numbers - Damage", "Floating Numbers - XP" };
 
 	if (HaveHellfire()) {
 		modNames.insert("hf");
