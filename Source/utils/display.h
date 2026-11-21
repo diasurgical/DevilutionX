@@ -43,6 +43,21 @@ void SetVideoModeToPrimary(bool fullscreen, int width, int height);
 
 bool IsFullScreen();
 
+// Native (desktop) resolution of the current display, in pixels.
+// Returns false when unavailable (e.g. before video initialization).
+// Defined in options.cpp: standalone test/benchmark executables link
+// libdevilutionx_options without the display translation unit.
+bool GetNativeDesktopResolution(Size &size);
+
+// True when the current game resolution exceeds the native desktop
+// resolution (e.g. a hand-edited devilutionx.ini or a GPU driver VSR mode).
+bool IsResolutionAboveNative();
+
+// If Integer Scaling is active and the requested resolution exceeds the
+// native desktop resolution, logs a warning and silently returns the
+// native resolution instead; otherwise returns the request unchanged.
+Size ClampResolutionForIntegerScaling(Size requested);
+
 // Returns:
 // SDL1: Video surface.
 // SDL2, no upscale: Window surface.

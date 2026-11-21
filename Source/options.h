@@ -153,6 +153,9 @@ public:
 	[[nodiscard]] std::string_view GetDescription() const;
 	[[nodiscard]] virtual OptionEntryType GetType() const = 0;
 	[[nodiscard]] OptionEntryFlags GetFlags() const;
+	/** @brief Whether the option is currently disabled (drawn greyed out
+	 * and non-interactive in the settings UI). */
+	[[nodiscard]] virtual bool IsDisabled() const { return false; }
 
 	void SetValueChangedCallback(tl::function_ref<void()> callback);
 
@@ -196,6 +199,16 @@ public:
 private:
 	bool defaultValue;
 	bool value;
+};
+
+class OptionEntryIntegerScaling : public OptionEntryBoolean {
+public:
+	using OptionEntryBoolean::OptionEntryBoolean;
+
+	/** @brief Greyed out while the game runs above the native desktop
+	 * resolution with Integer Scaling off: enabling it in that state would
+	 * crash the fit-to-screen window sizing (see IsResolutionAboveNative). */
+	[[nodiscard]] bool IsDisabled() const override;
 };
 
 class OptionEntryListBase : public OptionEntryBase {
@@ -550,7 +563,7 @@ struct GraphicsOptions : OptionCategoryBase {
 	/** @brief See SDL_HINT_RENDER_SCALE_QUALITY. */
 	OptionEntryEnum<ScalingQuality> scaleQuality;
 	/** @brief Only scale by values divisible by the width and height. */
-	OptionEntryBoolean integerScaling;
+	OptionEntryIntegerScaling integerScaling;
 #endif
 	/** @brief Limit frame rate either for vsync or CPU load. */
 	OptionEntryEnum<FrameRateControl> frameRateControl;
