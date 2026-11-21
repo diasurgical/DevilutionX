@@ -23,6 +23,17 @@ foreach(
   UNPACKED_SAVES
   DEVILUTIONX_WINDOWS_NO_WCHAR
   TERMUX
+
+  # Defined for every target rather than only for the ones that link SDL, even
+  # though only they can use it. The shared precompiled header is built with it
+  # (see Source/pch.hpp), and GCC refuses a precompiled header that was created
+  # with a macro the consumer does not have: as a usage requirement of
+  # DevilutionX::SDL it would cost the libraries that do not link SDL their
+  # precompiled header, which measures worse than not giving them one at all.
+  # DevilutionX::SDL keeps defining it as well, for the targets that are not
+  # built through add_devilutionx_library(), such as the tests.
+  USE_SDL1
+  USE_SDL3
 )
   if(${def_name})
     list(APPEND DEVILUTIONX_DEFINITIONS ${def_name})
