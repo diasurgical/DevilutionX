@@ -491,7 +491,7 @@ bool DamageWeapon(Player &player, unsigned damageFrequency)
 		}
 
 		player.InvBody[INVLOC_HAND_RIGHT]._iDurability--;
-		if (player.InvBody[INVLOC_HAND_RIGHT]._iDurability == 0) {
+		if (player.InvBody[INVLOC_HAND_RIGHT]._iDurability <= 0) {
 			RemoveEquipment(player, INVLOC_HAND_RIGHT, true);
 			CalcPlrInv(player, true);
 			return true;
@@ -504,7 +504,7 @@ bool DamageWeapon(Player &player, unsigned damageFrequency)
 		}
 
 		player.InvBody[INVLOC_HAND_RIGHT]._iDurability--;
-		if (player.InvBody[INVLOC_HAND_RIGHT]._iDurability == 0) {
+		if (player.InvBody[INVLOC_HAND_RIGHT]._iDurability <= 0) {
 			RemoveEquipment(player, INVLOC_HAND_RIGHT, true);
 			CalcPlrInv(player, true);
 			return true;
@@ -517,7 +517,7 @@ bool DamageWeapon(Player &player, unsigned damageFrequency)
 		}
 
 		player.InvBody[INVLOC_HAND_LEFT]._iDurability--;
-		if (player.InvBody[INVLOC_HAND_LEFT]._iDurability == 0) {
+		if (player.InvBody[INVLOC_HAND_LEFT]._iDurability <= 0) {
 			RemoveEquipment(player, INVLOC_HAND_LEFT, true);
 			CalcPlrInv(player, true);
 			return true;
