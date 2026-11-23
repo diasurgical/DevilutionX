@@ -2428,20 +2428,26 @@ void StartStore(TalkID s)
 				}
 			}
 
-			// Insert extra options into empty even-numbered lines before the leave option.
-			size_t optIdx = 0;
-			for (int line = 10; line < lastSelectableLine && optIdx < extraOpts->size(); line += 2) {
-				if (TextLine[line].hasText()) continue;
+			// Use the last available lines before the leave option, so mod options
+			// follow the built-in choices instead of appearing between the title
+			// and the first built-in choice.
+			std::vector<int> emptyLines;
+			for (int line = 10; line < lastSelectableLine; line += 2) {
+				if (!TextLine[line].hasText())
+					emptyLines.push_back(line);
+			}
+			const size_t numOptions = std::min(extraOpts->size(), emptyLines.size());
+			for (size_t optIdx = 0; optIdx < numOptions; ++optIdx) {
+				const int line = emptyLines[emptyLines.size() - numOptions + optIdx];
 				std::string label = (*extraOpts)[optIdx].getLabel();
 				if (!label.empty()) {
 					AddSText(0, line, label, UiFlags::ColorWhite | UiFlags::AlignCenter, true);
 					CurrentExtraOptionIndices[line] = optIdx;
 				}
-				++optIdx;
 			}
-			if (optIdx < extraOpts->size()) {
+			if (numOptions < extraOpts->size()) {
 				LogWarn("Towner \"{}\" dialog: {} extra option(s) could not be placed (no empty lines)",
-				    extraTownerName, extraOpts->size() - optIdx);
+				    extraTownerName, extraOpts->size() - numOptions);
 			}
 		}
 	}
