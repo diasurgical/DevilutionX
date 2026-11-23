@@ -81,6 +81,16 @@ local events = {
   OnPlayerTakeDamage = CreateEvent(),
   __doc_OnPlayerTakeDamage = "Called when Player takes damage.",
 
+  ---Called after a mod-registered item is recreated from save, network or level data. item.seed and
+  ---item.buff are valid; use it to restore per-instance fields the recreation resets (e.g. the name).
+  OnCustomItemRecreated = CreateEvent(),
+  __doc_OnCustomItemRecreated = "Called after a mod-registered item is recreated from save, network or level data. item.seed and item.buff are valid; use it to restore per-instance fields such as the name.",
+
+  ---Called after a player uses an item and its effect is applied. Args: player, miscId (items.ItemMiscID),
+  ---spellId (0 for items with no spell).
+  OnItemUsed = CreateEvent(),
+  __doc_OnItemUsed = "Called after a player uses an item and its effect is applied. Args: player, miscId (int), spellId (int).",
+
   ---Called when Player gains experience.
   OnPlayerGainExperience = CreateEvent(),
   __doc_OnPlayerGainExperience = "Called when Player gains experience.",
