@@ -49,6 +49,7 @@ set(devilutionx_fixtures
   hellfire/22-1191662129.dun
   hellfire/23-97055268.dun
   hellfire/24-1324803725.dun
+  keybindings/diablo.ini
   levels/l1data/banner1.dun
   levels/l1data/banner2.dun
   levels/l1data/rnd6.dun
