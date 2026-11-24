@@ -5,11 +5,14 @@
  */
 #include "gamemenu.h"
 
+#include <algorithm>
+
 #ifdef USE_SDL3
 #include <SDL3/SDL_timer.h>
 #endif
 
 #include "cursor.h"
+#include "diablo.h"
 #include "diablo_msg.hpp"
 #include "engine/backbuffer_state.hpp"
 #include "engine/demomode.h"
@@ -174,7 +177,8 @@ void GamemenuGetSpeed()
 
 	sgOptionsMenu[3].pszStr = _("Speed").data();
 	gmenu_slider_steps(&sgOptionsMenu[3], 46);
-	gmenu_slider_set(&sgOptionsMenu[3], 20, 50, sgGameInitInfo.nTickRate);
+	const int speed = std::clamp<int>(sgGameInitInfo.nTickRate, MinGameSpeed, MaxGameSpeed);
+	gmenu_slider_set(&sgOptionsMenu[3], MinGameSpeed, MaxGameSpeed, speed);
 }
 
 int GamemenuSliderBrightness()
@@ -264,17 +268,11 @@ void GamemenuBrightness(bool bActivate)
 void GamemenuSpeed(bool bActivate)
 {
 	if (bActivate) {
-		if (sgGameInitInfo.nTickRate != 20)
-			sgGameInitInfo.nTickRate = 20;
-		else
-			sgGameInitInfo.nTickRate = 50;
-		gmenu_slider_set(&sgOptionsMenu[3], 20, 50, sgGameInitInfo.nTickRate);
+		SetGameSpeed(sgGameInitInfo.nTickRate == MinGameSpeed ? MaxGameSpeed : MinGameSpeed);
+		gmenu_slider_set(&sgOptionsMenu[3], MinGameSpeed, MaxGameSpeed, sgGameInitInfo.nTickRate);
 	} else {
-		sgGameInitInfo.nTickRate = gmenu_slider_get(&sgOptionsMenu[3], 20, 50);
+		SetGameSpeed(gmenu_slider_get(&sgOptionsMenu[3], MinGameSpeed, MaxGameSpeed));
 	}
-
-	GetOptions().Gameplay.tickRate.SetValue(sgGameInitInfo.nTickRate);
-	gnTickDelay = 1000 / sgGameInitInfo.nTickRate;
 }
 
 } // namespace

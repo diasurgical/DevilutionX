@@ -3,16 +3,21 @@
  *
  * Implementation of the main game initialization functions.
  */
+#include <algorithm>
 #include <array>
 #include <cstdint>
+#include <optional>
 #include <string_view>
+#include <utility>
 
 #ifdef USE_SDL3
 #include <SDL3/SDL_events.h>
 #include <SDL3/SDL_init.h>
 #include <SDL3/SDL_keycode.h>
+#include <SDL3/SDL_timer.h>
 #else
 #include <SDL.h>
+#include <SDL_timer.h>
 
 #ifdef USE_SDL1
 #include "utils/sdl2_to_1_2_backports.h"
@@ -168,6 +173,9 @@ namespace {
 
 char gszVersionNumber[64] = "internal version unknown";
 
+constexpr int GameSpeedStep = 5;
+std::optional<decltype(SDL_GetTicks())> GameSpeedChangedAt;
+
 bool gbGameLoopStartup;
 bool forceSpawn;
 bool forceDiablo;
@@ -181,6 +189,7 @@ bool was_ui_init = false;
 
 void StartGame(interface_mode uMsg)
 {
+	GameSpeedChangedAt.reset();
 	CalcViewportGeometry();
 	cineflag = false;
 	InitCursor();
@@ -1795,6 +1804,32 @@ bool CanPlayerTakeAction()
 	return !IsPlayerDead() && IsGameRunning();
 }
 
+bool CanAdjustGameSpeed()
+{
+	return !gbIsMultiplayer && !demo::IsRunning() && !demo::IsRecording()
+	    && !InGameMenu() && PauseMode == 0 && !DropGoldFlag && !IsWithdrawGoldOpen
+	    && !IsPlayerDead();
+}
+
+void SetGameSpeedWithIndicator(int speed)
+{
+	if (std::cmp_equal(speed, sgGameInitInfo.nTickRate))
+		return;
+
+	SetGameSpeed(speed);
+	GameSpeedChangedAt = SDL_GetTicks();
+}
+
+void AdjustGameSpeed(int delta)
+{
+	const int speed = sgGameInitInfo.nTickRate;
+	// A custom config can put the speed outside the slider range. Never step in the opposite direction.
+	if ((delta > 0 && speed >= MaxGameSpeed) || (delta < 0 && speed <= MinGameSpeed))
+		return;
+
+	SetGameSpeedWithIndicator(std::clamp(speed + delta, MinGameSpeed, MaxGameSpeed));
+}
+
 bool CanAutomapBeToggledOff()
 {
 	// check if every window is closed - if yes, automap can be toggled off
@@ -1818,6 +1853,21 @@ void OptionLanguageCodeChanged()
 const auto OptionChangeHandlerLanguage = (GetOptions().Language.code.SetValueChangedCallback(OptionLanguageCodeChanged), true);
 
 } // namespace
+
+void SetGameSpeed(int speed)
+{
+	assert(speed >= MinGameSpeed && speed <= MaxGameSpeed);
+	sgGameInitInfo.nTickRate = static_cast<uint8_t>(speed);
+	GetOptions().Gameplay.tickRate.SetValue(speed);
+	gnTickDelay = 1000 / speed;
+}
+
+bool IsGameSpeedIndicatorVisible()
+{
+	if (GameSpeedChangedAt && SDL_GetTicks() - *GameSpeedChangedAt >= 1000)
+		GameSpeedChangedAt.reset();
+	return GameSpeedChangedAt.has_value();
+}
 
 uint32_t GetGameId()
 {
@@ -2082,6 +2132,30 @@ void InitKeymapActions()
 	    N_("Pauses the game."),
 	    SDLK_PAUSE,
 	    diablo_pause_game);
+	options.Keymapper.AddAction(
+	    "IncreaseGameSpeed",
+	    N_("Increase game speed"),
+	    N_("Increases the game speed in single player."),
+	    SDLK_UNKNOWN,
+	    [] { AdjustGameSpeed(GameSpeedStep); },
+	    nullptr,
+	    CanAdjustGameSpeed);
+	options.Keymapper.AddAction(
+	    "DecreaseGameSpeed",
+	    N_("Decrease game speed"),
+	    N_("Decreases the game speed in single player."),
+	    SDLK_UNKNOWN,
+	    [] { AdjustGameSpeed(-GameSpeedStep); },
+	    nullptr,
+	    CanAdjustGameSpeed);
+	options.Keymapper.AddAction(
+	    "ResetGameSpeed",
+	    N_("Reset game speed"),
+	    N_("Resets the game speed to its minimum in single player."),
+	    SDLK_UNKNOWN,
+	    [] { SetGameSpeedWithIndicator(MinGameSpeed); },
+	    nullptr,
+	    CanAdjustGameSpeed);
 	options.Keymapper.AddAction(
 	    "DecreaseBrightness",
 	    N_("Decrease Brightness"),
