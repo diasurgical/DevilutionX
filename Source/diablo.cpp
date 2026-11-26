@@ -1845,7 +1845,7 @@ uint32_t GetGameId()
 void InitKeymapActions()
 {
 	Options &options = GetOptions();
-	for (uint32_t i = 0; i < 8; ++i) {
+	for (uint32_t i = 0; i < MaxBeltItems; ++i) {
 		options.Keymapper.AddAction(
 		    "BeltItem{}",
 		    N_("Belt item {}"),
@@ -2165,7 +2165,7 @@ void InitKeymapActions()
 void InitPadmapActions()
 {
 	Options &options = GetOptions();
-	for (int i = 0; i < 8; ++i) {
+	for (int i = 0; i < MaxBeltItems; ++i) {
 		options.Padmapper.AddAction(
 		    "BeltItem{}",
 		    N_("Belt item {}"),
