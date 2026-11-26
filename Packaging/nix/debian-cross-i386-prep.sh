@@ -8,11 +8,13 @@ if dpkg-vendor --derives-from Ubuntu; then
 	if ! grep -q '^Architectures:' /etc/apt/sources.list.d/ubuntu.sources; then
 		sudo sed -i '/^Suites:/a Architectures: amd64' /etc/apt/sources.list.d/ubuntu.sources
 	fi
+	# amd64 is listed here too: Multi-Arch: same packages (e.g. libxi6) must have the same version for
+	# amd64 and i386, and the runner's mirror can lag behind archive.ubuntu.com on security updates.
 	sudo tee /etc/apt/sources.list.d/i386.sources <<LIST
 Types: deb deb-src
 URIs: http://archive.ubuntu.com/ubuntu/
 Suites: ${FLAVOR} ${FLAVOR}-updates ${FLAVOR}-backports ${FLAVOR}-security
-Architectures: i386
+Architectures: amd64 i386
 Components: main restricted universe multiverse
 Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
 LIST
