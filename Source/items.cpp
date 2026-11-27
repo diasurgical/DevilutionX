@@ -12,6 +12,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <format>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -129,6 +130,7 @@ int8_t ItemCAnimTbl[] = {
 	3, 1, 6, 6, 6, 1, 8, 6, 11, 3,
 	6, 8, 1, 6, 6, 17, 40, 0, 0
 };
+const int ItemCAnimTblSize = static_cast<int>(sizeof(ItemCAnimTbl) / sizeof(ItemCAnimTbl[0]));
 
 /** Maps of drop sounds effect of placing the item in the inventory. */
 SfxID ItemInvSnds[] = {
@@ -180,6 +182,31 @@ SfxID ItemInvSnds[] = {
 namespace {
 
 OptionalOwnedClxSpriteList itemanims[ITEMTYPES];
+
+struct CustomDropAnimData {
+	OwnedClxSpriteList sprites;
+	int8_t numFrames;
+};
+
+struct CustomItemSounds {
+	SfxID inventory = SfxID::None;
+	SfxID drop = SfxID::None;
+};
+
+std::vector<CustomDropAnimData> customDropAnims;
+ankerl::unordered_dense::map<int, int> customCursToDropAnim;
+ankerl::unordered_dense::map<int, CustomItemSounds> customItemSounds;
+
+const CustomDropAnimData *GetCustomDropAnimData(int iCurs)
+{
+	const auto dropIt = customCursToDropAnim.find(iCurs);
+	if (dropIt == customCursToDropAnim.end() || dropIt->second < 0)
+		return nullptr;
+	const size_t dropAnimIndex = static_cast<size_t>(dropIt->second);
+	if (dropAnimIndex >= customDropAnims.size())
+		return nullptr;
+	return &customDropAnims[dropAnimIndex];
+}
 
 enum class PlayerArmorGraphic : uint8_t {
 	// clang-format off
@@ -3166,7 +3193,7 @@ void GetItemAttrs(Item &item, _item_indexes itemData, int lvl)
 	if (item._itype != ItemType::Gold)
 		return;
 
-	int rndv;
+	int rndv = 0;
 	const int itemlevel = ItemsGetCurrlevel();
 	switch (sgGameInitInfo.nDifficulty) {
 	case DIFF_NORMAL:
@@ -3733,7 +3760,6 @@ void SpawnTheodore(Point position, bool sendmsg)
 
 void RespawnItem(Item &item, bool flipFlag)
 {
-	const int it = ItemCAnimTbl[item._iCurs];
 	item.setNewAnimation(flipFlag);
 	item._iRequest = false; // Item isn't being picked up by a player
 
@@ -3757,7 +3783,7 @@ void RespawnItem(Item &item, bool flipFlag)
 		} else {
 			item.selectionRegion = SelectionRegion::Bottom; // Item is selectable at floor level and renders at floor level
 		}
-		PlaySfxLoc(ItemDropSnds[it], item.position); // Play the drop sound (this item is perpetually in a dropping state, but can always be picked up)
+		PlaySfxLoc(GetItemDropSnd(item), item.position); // Play the drop sound (this item is perpetually in a dropping state, but can always be picked up)
 		break;
 	}
 }
@@ -3793,7 +3819,7 @@ void ProcessItems()
 				item.AnimInfo.currentFrame = 10;                                                     // Beginning of elevated frames
 		} else {
 			if (item.AnimInfo.currentFrame == (item.AnimInfo.numberOfFrames - 1) / 2)
-				PlaySfxLoc(ItemDropSnds[ItemCAnimTbl[item._iCurs]], item.position);
+				PlaySfxLoc(GetItemDropSnd(item), item.position);
 
 			if (item.AnimInfo.isLastFrame()) {
 				item.AnimInfo.currentFrame = item.AnimInfo.numberOfFrames - 1;
@@ -3812,11 +3838,105 @@ void FreeItemGFX()
 	}
 }
 
+int RegisterCustomDropAnim(OwnedClxSpriteList sprites, int numFrames)
+{
+	const uint32_t numSprites = sprites.numSprites();
+	if (numSprites == 0) {
+		app_fatal("Cannot register custom drop animation: sprite has no frames.");
+	}
+	if (numFrames < 1 || numFrames > INT8_MAX) {
+		app_fatal(std::format(
+		    "Cannot register custom drop animation: numFrames {} is out of range (1..{}, AnimationInfo uses int8_t).",
+		    numFrames, INT8_MAX));
+	}
+	if (static_cast<uint32_t>(numFrames) > numSprites) {
+		app_fatal(std::format(
+		    "Cannot register custom drop animation: numFrames {} exceeds loaded sprite frame count {}.",
+		    numFrames, numSprites));
+	}
+	const int id = static_cast<int>(customDropAnims.size());
+	customDropAnims.push_back({ std::move(sprites), static_cast<int8_t>(numFrames) });
+	return id;
+}
+
+void SetCustomDropAnim(int iCurs, int dropAnimId)
+{
+	customCursToDropAnim[iCurs] = dropAnimId;
+}
+
+void FreeCustomItemData()
+{
+	customDropAnims.clear();
+	customCursToDropAnim.clear();
+	customItemSounds.clear();
+}
+
+void SetCustomItemSounds(int iCurs, SfxID invSound, SfxID dropSound)
+{
+	if (invSound == SfxID::None && dropSound == SfxID::None)
+		return;
+	CustomItemSounds &sounds = customItemSounds[iCurs];
+	if (invSound != SfxID::None)
+		sounds.inventory = invSound;
+	if (dropSound != SfxID::None)
+		sounds.drop = dropSound;
+}
+
+int8_t GetItemAnimType(const Item &item)
+{
+	if (item._iCurs >= ItemCAnimTblSize)
+		return DefaultDropAnimForItemType(item._itype);
+	return ItemCAnimTbl[item._iCurs];
+}
+
+namespace {
+
+SfxID GetCustomOrDefaultSound(const Item &item, SfxID CustomItemSounds::*which, const SfxID *defaults)
+{
+	const auto it = customItemSounds.find(item._iCurs);
+	if (it != customItemSounds.end()) {
+		const SfxID custom = it->second.*which;
+		if (custom != SfxID::None)
+			return custom;
+	}
+	return defaults[GetItemAnimType(item)];
+}
+
+struct ItemDropAnimation {
+	OptionalClxSpriteList sprites;
+	int8_t numberOfFrames;
+};
+
+ItemDropAnimation GetItemDropAnimation(const Item &item)
+{
+	const CustomDropAnimData *customDropAnim = GetCustomDropAnimData(item._iCurs);
+	if (customDropAnim != nullptr)
+		return { OptionalClxSpriteList { customDropAnim->sprites }, customDropAnim->numFrames };
+
+	const int8_t animType = GetItemAnimType(item);
+	const OptionalClxSpriteList sprites = itemanims[animType]
+	    ? OptionalClxSpriteList { *itemanims[static_cast<size_t>(animType)] }
+	    : std::nullopt;
+	return { sprites, ItemAnimLs[animType] };
+}
+
+} // namespace
+
+SfxID GetItemInvSnd(const Item &item)
+{
+	return GetCustomOrDefaultSound(item, &CustomItemSounds::inventory, ItemInvSnds);
+}
+
+SfxID GetItemDropSnd(const Item &item)
+{
+	return GetCustomOrDefaultSound(item, &CustomItemSounds::drop, ItemDropSnds);
+}
+
 void GetItemFrm(Item &item)
 {
-	const int it = ItemCAnimTbl[item._iCurs];
-	if (itemanims[it])
-		item.AnimInfo.sprites.emplace(*itemanims[it]);
+	const OptionalClxSpriteList sprites = GetItemDropAnimation(item).sprites;
+	if (sprites)
+		item.AnimInfo.sprites.emplace(*sprites);
 }
 
 void GetItemStr(Item &item)
@@ -4812,9 +4932,10 @@ bool Item::isUsable() const
 
 void Item::setNewAnimation(bool showAnimation)
 {
-	const int8_t it = ItemCAnimTbl[_iCurs];
-	const int8_t numberOfFrames = ItemAnimLs[it];
-	const OptionalClxSpriteList sprite = itemanims[it] ? OptionalClxSpriteList { *itemanims[static_cast<size_t>(it)] } : std::nullopt;
+	const ItemDropAnimation dropAnimation = GetItemDropAnimation(*this);
+	const int8_t numberOfFrames = dropAnimation.numberOfFrames;
+	const OptionalClxSpriteList sprite = dropAnimation.sprites;
+
 	if (_iCurs != ICURS_MAGIC_ROCK)
 		AnimInfo.setNewAnimation(sprite, numberOfFrames, 1, AnimationDistributionFlags::ProcessAnimationPending, 0, numberOfFrames);
 	else

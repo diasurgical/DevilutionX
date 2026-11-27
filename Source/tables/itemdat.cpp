@@ -7,15 +7,19 @@
 #include "tables/itemdat.h"
 
 #include <format>
+#include <iterator>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 #include <magic_enum/magic_enum.hpp>
 
 #include "appfat.h"
+#include "cursor.h"
 #include "data/file.hpp"
 #include "data/iterators.hpp"
 #include "data/record_reader.hpp"
+#include "items.h"
 #include "lua/lua_event.hpp"
 #include "tables/spelldat.h"
 #include "utils/str_cat.hpp"
@@ -565,6 +569,26 @@ std::expected<goodorevil, std::string> ParseAffixAlignment(std::string_view valu
 
 } // namespace
 
+void AppendItemData(ItemData &&item, int32_t mappingId)
+{
+	item.iMappingId = mappingId;
+	AllItemsList.push_back(std::move(item));
+	const bool inserted = ItemMappingIdsToIndices.emplace(mappingId, static_cast<int16_t>(AllItemsList.size()) - 1).second;
+	if (!inserted) {
+		DisplayFatalErrorAndExit("Adding Item Failed", std::format("An item already exists for mapping ID {}.", mappingId));
+	}
+}
+
+void AppendUniqueItemData(UniqueItem &&item, int32_t mappingId)
+{
+	item.mappingId = mappingId;
+	UniqueItems.push_back(std::move(item));
+	const bool inserted = UniqueItemMappingIdsToIndices.emplace(mappingId, static_cast<int32_t>(UniqueItems.size()) - 1).second;
+	if (!inserted) {
+		DisplayFatalErrorAndExit("Adding Unique Item Failed", std::format("A unique item already exists for mapping ID {}.", mappingId));
+	}
+}
+
 void LoadItemDatFromFile(DataFile &dataFile, std::string_view filename, int32_t baseMappingId)
 {
 	dataFile.skipHeaderOrDie(filename);
@@ -573,7 +597,7 @@ void LoadItemDatFromFile(DataFile &dataFile, std::string_view filename, int32_t 
 	AllItemsList.reserve(AllItemsList.size() + dataFile.numRecords());
 	for (DataFileRecord record : dataFile) {
 		RecordReader reader { record, filename };
-		ItemData &item = AllItemsList.emplace_back();
+		ItemData item;
 		reader.advance(); // Skip the first column (item ID).
 		reader.readInt("dropRate", item.dropRate);
 		reader.read("class", item.iClass, ParseItemClass);
@@ -597,13 +621,7 @@ void LoadItemDatFromFile(DataFile &dataFile, std::string_view filename, int32_t 
 		reader.read("spell", item.iSpell, ParseSpellId);
 		reader.readBool("usable", item.iUsable);
 		reader.readInt("value", item.iValue);
-
-		item.iMappingId = currentMappingId;
-		const auto [it, inserted] = ItemMappingIdsToIndices.emplace(item.iMappingId, static_cast<int16_t>(AllItemsList.size()) - 1);
-		if (!inserted) {
-			DisplayFatalErrorAndExit("Adding Item Failed", std::format("An item already exists for mapping ID {}.", item.iMappingId));
-		}
-
+		AppendItemData(std::move(item), currentMappingId);
 		++currentMappingId;
 	}
 	AllItemsList.shrink_to_fit();
@@ -613,6 +631,9 @@ namespace {
 
 void LoadItemDat()
 {
+	FreeCustomItemData();
+	FreeCustomCursorSprites();
+
 	const std::string_view filename = "txtdata\\items\\itemdat.tsv";
 	DataFile dataFile = DataFile::loadOrDie(filename);
 
@@ -641,27 +662,21 @@ void LoadUniqueItemDatFromFile(DataFile &dataFile, std::string_view filename, in
 	UniqueItems.reserve(UniqueItems.size() + dataFile.numRecords());
 	for (DataFileRecord record : dataFile) {
 		RecordReader reader { record, filename };
-		UniqueItem &item = UniqueItems.emplace_back();
+		UniqueItem item;
 		reader.readString("name", item.UIName);
 		reader.read("cursorGraphic", item.UICurs, ParseItemCursorGraphic);
 		reader.read("uniqueBaseItem", item.UIItemId, ParseUniqueBaseItem);
 		reader.readInt("minLevel", item.UIMinLvl);
 		reader.readInt("value", item.UIValue);
 
-		// powers (up to 6)
 		item.UINumPL = 0;
-		for (size_t i = 0; i < 6; ++i) {
+		for (size_t i = 0; i < std::size(item.powers); ++i) {
 			if (reader.value().empty())
 				break;
 			ReadItemPower(reader, StrCat("power", i), item.powers[item.UINumPL++]);
 		}
 
-		item.mappingId = currentMappingId;
-		const auto [it, inserted] = UniqueItemMappingIdsToIndices.emplace(item.mappingId, static_cast<int32_t>(UniqueItems.size()) - 1);
-		if (!inserted) {
-			DisplayFatalErrorAndExit("Adding Unique Item Failed", std::format("A unique item already exists for mapping ID {}.", item.mappingId));
-		}
-
+		AppendUniqueItemData(std::move(item), currentMappingId);
 		++currentMappingId;
 	}
 	UniqueItems.shrink_to_fit();
