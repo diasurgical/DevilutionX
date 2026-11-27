@@ -23,44 +23,79 @@ std::vector<ShrineData> ShrinesData;
 namespace {
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-std::expected<ShrineData::OperateFn, std::string>
-ParseShrineOperateFn(std::string_view value)
+std::expected<ShrineEffect::TypeFn, std::string>
+ParseShrineEffectType(std::string_view value)
 {
-	if (value.empty()) return std::unexpected("Empty ShrineData::OperateFn name");
-	if (value == "OperateShrineMysterious") return OperateShrineMysterious;
-	if (value == "OperateShrineHidden") return OperateShrineHidden;
-	if (value == "OperateShrineGloomy") return OperateShrineGloomy;
-	if (value == "OperateShrineWeird") return OperateShrineWeird;
-	if (value == "OperateShrineMagical") return OperateShrineMagical;
-	if (value == "OperateShrineStone") return OperateShrineStone;
-	if (value == "OperateShrineReligious") return OperateShrineReligious;
-	if (value == "OperateShrineEnchanted") return OperateShrineEnchanted;
-	if (value == "OperateShrineThaumaturgic") return OperateShrineThaumaturgic;
-	if (value == "OperateShrineFascinating") return OperateShrineFascinating;
-	if (value == "OperateShrineCryptic") return OperateShrineCryptic;
-	if (value == "OperateShrineEldritch") return OperateShrineEldritch;
-	if (value == "OperateShrineEerie") return OperateShrineEerie;
-	if (value == "OperateShrineDivine") return OperateShrineDivine;
-	if (value == "OperateShrineHoly") return OperateShrineHoly;
-	if (value == "OperateShrineSacred") return OperateShrineSacred;
-	if (value == "OperateShrineSpiritual") return OperateShrineSpiritual;
-	if (value == "OperateShrineSpooky") return OperateShrineSpooky;
-	if (value == "OperateShrineAbandoned") return OperateShrineAbandoned;
-	if (value == "OperateShrineCreepy") return OperateShrineCreepy;
-	if (value == "OperateShrineQuiet") return OperateShrineQuiet;
-	if (value == "OperateShrineSecluded") return OperateShrineSecluded;
-	if (value == "OperateShrineOrnate") return OperateShrineOrnate;
-	if (value == "OperateShrineGlimmering") return OperateShrineGlimmering;
-	if (value == "OperateShrineTainted") return OperateShrineTainted;
-	if (value == "OperateShrineOily") return OperateShrineOily;
-	if (value == "OperateShrineGlowing") return OperateShrineGlowing;
-	if (value == "OperateShrineMendicant") return OperateShrineMendicant;
-	if (value == "OperateShrineSparkling") return OperateShrineSparkling;
-	if (value == "OperateShrineTown") return OperateShrineTown;
-	if (value == "OperateShrineShimmering") return OperateShrineShimmering;
-	if (value == "OperateShrineSolar") return OperateShrineSolar;
-	if (value == "OperateShrineMurphys") return OperateShrineMurphys;
+	if (value.empty()) return nullptr;
+	if (value == "RandomAttributeChange") return ShrineEffectRandomAttributeChange;
+	if (value == "RandomItemMaxDurabilityChange") return ShrineEffectRandomItemMaxDurabilityChange;
+	if (value == "ArmorClassChange") return ShrineEffectArmorClassChange;
+	if (value == "MinDamageChange") return ShrineEffectMinDamageChange;
+	if (value == "MaxDamageChange") return ShrineEffectMaxDamageChange;
+	if (value == "OperatePlayerCastSpellFromPlayer") return ShrineEffectOperatePlayerCastSpellFromPlayer;
+	if (value == "OtherPlayersCastSpellFromPlayer") return ShrineEffectOtherPlayersCastSpellFromPlayer;
+	if (value == "AllPlayersCastSpellFromPlayer") return ShrineEffectAllPlayersCastSpellFromPlayer;
+	if (value == "StavesChargesChange") return ShrineEffectStavesChargesChange;
+	if (value == "ItemsDurabilityChange") return ShrineEffectItemsDurabilityChange;
+	if (value == "RandomSpellLevelChange") return ShrineEffectRandomSpellLevelChange;
+	if (value == "RefillsChests") return ShrineEffectRefillsChests;
+	if (value == "ChangeSpellLevel") return ShrineEffectChangeSpellLevel;
+	if (value == "ManaBaseReduction") return ShrineEffectManaBaseReduction;
+	if (value == "RestoreLifeAndMana") return ShrineEffectRestoreLifeAndMana;
+	if (value == "TransformPotionsToRejuvenation") return ShrineEffectTransformPotionsToRejuvenation;
+	if (value == "MagicAttributeChange") return ShrineEffectMagicAttributeChange;
+	if (value == "CreateManaOrRejuvPotions") return ShrineEffectCreateManaOrRejuvPotions;
+	if (value == "CreateLifeOrRejuvPotions") return ShrineEffectCreateLifeOrRejuvPotions;
+	if (value == "OperatePlayerCastSpellFromPlayerTowardZero") return ShrineEffectOperatePlayerCastSpellFromPlayerTowardZero;
+	if (value == "OtherPlayersCastSpellFromPlayerTowardZero") return ShrineEffectOtherPlayersCastSpellFromPlayerTowardZero;
+	if (value == "AllPlayersCastSpellFromPlayerTowardZero") return ShrineEffectAllPlayersCastSpellFromPlayerTowardZero;
+	if (value == "FillEmptySlotsGold") return ShrineEffectFillEmptySlotsGold;
+	if (value == "DexterityAttributeChange") return ShrineEffectDexterityAttributeChange;
+	if (value == "StrengthAttributeChange") return ShrineEffectStrengthAttributeChange;
+	if (value == "VitalityAttributeChange") return ShrineEffectVitalityAttributeChange;
+	if (value == "RevealMap") return ShrineEffectRevealMap;
+	if (value == "IdentifyItems") return ShrineEffectIdentifyItems;
+	if (value == "PreferredAttributeChange") return ShrineEffectPreferredAttributeChange;
+	if (value == "CastFirewallTrap") return ShrineEffectCastFirewallTrap;
+	if (value == "ExperienceToMagicAttribute") return ShrineEffectExperienceToMagicAttribute;
+	if (value == "GoldToExperience") return ShrineEffectGoldToExperience;
+	if (value == "ExperiencePerDungeonLevel") return ShrineEffectExperiencePerDungeonLevel;
+	if (value == "CastFlashBottomTrap") return ShrineEffectCastFlashBottomTrap;
+	if (value == "CastSpellTrap") return ShrineEffectCastSpellTrap;
+	if (value == "OperatePlayerCastSpellFromShrine") return ShrineEffectOperatePlayerCastSpellFromShrine;
+	if (value == "OtherPlayersCastSpellFromShrine") return ShrineEffectOtherPlayersCastSpellFromShrine;
+	if (value == "AllPlayersCastSpellFromShrine") return ShrineEffectAllPlayersCastSpellFromShrine;
+	if (value == "LocalHourAttributeChange") return ShrineEffectLocalHourAttributeChange;
+	if (value == "BreakItemOrTakeGold") return ShrineEffectBreakItemOrTakeGold;
 	return std::unexpected("Unknown ShrineData::OperateFn name");
+}
+
+std::expected<ShrineAffectsPlayer, std::string> ParseShrineAffectsPlayer(std::string_view value)
+{
+	if (value == "Activator") return ShrineAffectsPlayer::Activator;
+	if (value == "Others") return ShrineAffectsPlayer::Others;
+	if (value == "All") return ShrineAffectsPlayer::All;
+	return std::unexpected("Unknown shrine game type");
+}
+
+void ReadShrineEffect(RecordReader &reader, std::string_view fieldName, ShrineEffect &effect)
+{
+	reader.read(fieldName, effect.typeFn, ParseShrineEffectType);
+	if (effect.typeFn != nullptr) {
+		reader.readInt(StrCat(fieldName, ".value1"), effect.param1);
+		reader.readInt(StrCat(fieldName, ".value2"), effect.param2);
+		reader.read(StrCat(fieldName, ".spell"), effect.spellId, ParseSpellId);
+		reader.read(StrCat(fieldName, ".affectsPlayer"), effect.affectsPlayer, ParseShrineAffectsPlayer);
+	} else {
+		reader.advance();
+		effect.param1 = 0;
+		reader.advance();
+		effect.param2 = 0;
+		reader.advance();
+		effect.spellId = SpellID::Null;
+		reader.advance();
+		effect.affectsPlayer = ShrineAffectsPlayer::All;
+	}
 }
 
 std::expected<ShrineGametype, std::string> ParseShrineGameType(std::string_view value)
@@ -69,6 +104,15 @@ std::expected<ShrineGametype, std::string> ParseShrineGameType(std::string_view 
 	if (value == "Single") return ShrineGametype::ShrineTypeSingle;
 	if (value == "Multi") return ShrineGametype::ShrineTypeMulti;
 	return std::unexpected("Unknown shrine game type");
+}
+
+std::expected<ShrineOperateFlag, std::string> ParseShrineOperateFlag(std::string_view value)
+{
+	const std::optional<ShrineOperateFlag> enumValueOpt = magic_enum::enum_cast<ShrineOperateFlag>(value);
+	if (enumValueOpt.has_value()) {
+		return enumValueOpt.value();
+	}
+	return std::unexpected("Unknown enum value");
 }
 
 } // namespace
@@ -88,18 +132,18 @@ void LoadShrineData()
 
 		reader.advance(); // Skip the first column (shrine ID).
 		reader.readString("name", entry.name);
-		reader.read("operateFn", entry.operateFn, ParseShrineOperateFn);
-		reader.readInt("powerParam1", entry.powerParam1);
-		reader.readInt("powerParam2", entry.powerParam2);
+		for (size_t i = 0; i < MAX_SHRINE_EFFECTS; ++i) {
+			ReadShrineEffect(reader, StrCat("effect", i), entry.shrineEffect[i]);
+		}
 		reader.read("gameType", entry.gameType, ParseShrineGameType);
 		reader.read("minLevelType", entry.minLevelType, ParseDungeonType);
 		reader.read("maxLevelType", entry.maxLevelType, ParseDungeonType);
-		reader.readBool("availableRandomEffectShrine", entry.availableRandomEffectShrine);
-		reader.readBool("cripplingEffect", entry.cripplingEffect);
+		reader.readEnumList("shrineOperateFlags", entry.shrineOperateFlags, ParseShrineOperateFlag);
 		reader.readString("message", entry.message);
 		reader.readString("message2", entry.message2);
 		reader.readString("message3", entry.message3);
 		reader.readString("message4", entry.message4);
+		reader.readString("message5", entry.message5);
 	}
 
 	ShrinesData.shrink_to_fit();
