@@ -2360,11 +2360,18 @@ void PerformPrimaryActionRelease()
 	}
 }
 
-bool SpellHasActorTarget()
+// not _pRSpell, hotkeys and scrolls may cast different spell
+bool SpellHasActorTarget(SpellID spl)
 {
-	const SpellID spl = MyPlayer->_pRSpell;
-	if (spl == SpellID::TownPortal || spl == SpellID::Teleport)
+	if (spl == SpellID::TownPortal)
 		return false;
+
+	if (spl == SpellID::Teleport) {
+		if (IsStandingGround())
+			return false;
+		PlayerUnderCursor = nullptr; // never autoteleport onto other player
+		return pcursmonst != -1;
+	}
 
 	if (IsWallSpell(spl) && pcursmonst != -1) {
 		cursPosition = Monsters[pcursmonst].position.tile;
@@ -2375,7 +2382,7 @@ bool SpellHasActorTarget()
 
 void UpdateSpellTarget(SpellID spell)
 {
-	if (SpellHasActorTarget())
+	if (SpellHasActorTarget(spell))
 		return;
 
 	PlayerUnderCursor = nullptr;
