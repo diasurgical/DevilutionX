@@ -13,6 +13,7 @@
 #include <string>
 
 #include "automap.h"
+#include "controls/local_coop/local_coop.hpp"
 #include "engine/displacement.hpp"
 #include "engine/lighting_defs.hpp"
 #include "engine/load_file.hpp"
@@ -446,7 +447,8 @@ void ProcessVisionList()
 		if (!VisionActive[id])
 			continue;
 		Light &vision = VisionList[id];
-		if (!player.plractive || !player.isOnActiveLevel() || (player._pLvlChanging && &player != MyPlayer)) {
+		// Keep vision active for local players (MyPlayer and local coop players) even when changing levels
+		if (!player.plractive || !player.isOnActiveLevel() || (player._pLvlChanging && !IsLocalPlayer(player))) {
 			DoUnVision(vision.position.tile, vision.radius);
 			VisionActive[id] = false;
 			continue;
@@ -461,14 +463,16 @@ void ProcessVisionList()
 		if (!VisionActive[id])
 			continue;
 		const Light &vision = VisionList[id];
+		// Local players (MyPlayer and local coop players) explore the map for themselves
+		// Other friendly players explore for "others" category
 		MapExplorationType doautomap = MAP_EXP_SELF;
-		if (&player != MyPlayer)
+		if (!IsLocalPlayer(player))
 			doautomap = player.friendlyMode ? MAP_EXP_OTHERS : MAP_EXP_NONE;
 		DoVision(
 		    vision.position.tile,
 		    vision.radius,
 		    doautomap,
-		    &player == MyPlayer);
+		    IsLocalPlayer(player));
 	}
 
 	UpdateVision = false;

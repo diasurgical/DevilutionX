@@ -21,6 +21,7 @@
 #include "appfat.h"
 #include "control/control.hpp"
 #include "controls/control_mode.hpp"
+#include "controls/local_coop/local_coop.hpp"
 #include "controls/plrctrls.h"
 #include "crawl.hpp"
 #include "cursor.h"
@@ -321,7 +322,8 @@ bool MonsterMHit(const Player &player, Monster &monster, int mindam, int maxdam,
 	if (resist)
 		dam >>= 2;
 
-	if (&player == MyPlayer)
+	// Local players (MyPlayer and local coop players) apply damage locally
+	if (IsLocalPlayer(player))
 		ApplyMonsterDamage(damageType, monster, Fixed26_6::fromRaw(dam));
 
 	if (monster.hasNoLife()) {
@@ -344,9 +346,37 @@ bool MonsterMHit(const Player &player, Monster &monster, int mindam, int maxdam,
 	return true;
 }
 
+/**
+ * @brief Whether the friendly fire setting prevents a player from damaging another player.
+ *
+ * With friendly fire disabled, players in friendly mode can't hurt other players with arrows or spells.
+ */
+bool IsBlockedByFriendlyFire(const Player &attacker, const Player &target)
+{
+	return &attacker != &target && sgGameInitInfo.bFriendlyFire == 0 && attacker.friendlyMode;
+}
+
+/**
+ * @brief Whether the friendly fire setting prevents a wall/rune missile (which hits everyone) from damaging a player.
+ *
+ * Only applies between local co-op players: they share one game instance, so walls and runes cast
+ * next to a partner follow the friendly fire setting like other spells do.
+ */
+bool IsBlockedByFriendlyFire(Missile &missile, const Player &target)
+{
+	if (missile.sourceType() != MissileSource::Player)
+		return false;
+
+	const Player &attacker = *missile.sourcePlayer();
+	if (!IsLocalPlayer(attacker) || !IsLocalPlayer(target))
+		return false;
+
+	return IsBlockedByFriendlyFire(attacker, target);
+}
+
 bool Plr2PlrMHit(const Player &player, Player &target, int mindam, int maxdam, int dist, MissileID mtype, DamageType damageType, bool shift, bool *blocked)
 {
-	if (sgGameInitInfo.bFriendlyFire == 0 && player.friendlyMode)
+	if (IsBlockedByFriendlyFire(player, target))
 		return false;
 
 	*blocked = false;
@@ -429,7 +459,7 @@ bool Plr2PlrMHit(const Player &player, Player &target, int mindam, int maxdam, i
 		damage /= 2;
 	if (resper > 0) {
 		damage -= (damage * resper) / 100;
-		if (&player == MyPlayer)
+		if (IsLocalPlayer(player))
 			NetSendCmdDamage(true, target, damage.raw(), damageType);
 		target.Say(HeroSpeech::ArghClang);
 		return true;
@@ -439,7 +469,7 @@ bool Plr2PlrMHit(const Player &player, Player &target, int mindam, int maxdam, i
 		StartPlrBlock(target, GetDirection(target.position.tile, player.position.tile));
 		*blocked = true;
 	} else {
-		if (&player == MyPlayer)
+		if (IsLocalPlayer(player))
 			NetSendCmdDamage(true, target, damage.raw(), damageType);
 		StartPlrHit(target, damage, false);
 	}
@@ -519,7 +549,7 @@ void CheckMissileCol(Missile &missile, DamageType damageType, int minDamage, int
 				Monster &monster = Monsters[missile._misource];
 				isPlayerHit = PlayerMHit(*player, &monster, missile._midist, minDamage, maxDamage, missile._mitype, damageType, isDamageShifted, DeathReason::MonsterOrTrap, &blocked);
 			}
-		} else {
+		} else if (!IsBlockedByFriendlyFire(missile, *player)) {
 			const DeathReason deathReason = missile.sourceType() == MissileSource::Player ? DeathReason::Player : DeathReason::MonsterOrTrap;
 			isPlayerHit = PlayerMHit(*player, nullptr, missile._midist, minDamage, maxDamage, missile._mitype, damageType, isDamageShifted, deathReason, &blocked);
 		}
@@ -1180,7 +1210,8 @@ bool PlayerMHit(Player &player, Monster *monster, int dist, int mind, int maxd, 
 
 	if (resper > 0) {
 		damage -= damage * resper / 100;
-		if (&player == MyPlayer) {
+		// Local players (MyPlayer and local coop players) apply damage locally
+		if (IsLocalPlayer(player)) {
 			ApplyPlrDamage(damageType, player, damage, 0, deathReason);
 		}
 
@@ -1190,7 +1221,8 @@ bool PlayerMHit(Player &player, Monster *monster, int dist, int mind, int maxd, 
 		return true;
 	}
 
-	if (&player == MyPlayer) {
+	// Local players (MyPlayer and local coop players) apply damage locally
+	if (IsLocalPlayer(player)) {
 		ApplyPlrDamage(damageType, player, damage, 0, deathReason);
 	}
 
@@ -1288,8 +1320,10 @@ void AddReflect(Missile &missile, AddMissileParameter & /*parameter*/)
 	if (player.wReflections + add >= std::numeric_limits<uint16_t>::max())
 		add = 0;
 	player.wReflections += add;
-	if (&player == MyPlayer)
+	if (IsLocalPlayer(player)) {
+		const LocalCoopPlayerContext context(player.getId());
 		NetSendCmdParam1(true, CMD_SETREFLECT, player.wReflections);
+	}
 }
 
 void AddBerserk(Missile &missile, AddMissileParameter &parameter)
@@ -1694,7 +1728,7 @@ void AddSearch(Missile &missile, AddMissileParameter & /*parameter*/)
 {
 	Player &player = Players[missile._misource];
 
-	if (&player == MyPlayer)
+	if (IsLocalPlayer(player))
 		AutoMapShowItems = true;
 	int lvl = 2;
 	if (missile._misource >= 0)
@@ -2163,8 +2197,10 @@ void AddManaShield(Missile &missile, AddMissileParameter &parameter)
 	}
 
 	player.pManaShield = true;
-	if (&player == MyPlayer)
+	if (IsLocalPlayer(player)) {
+		const LocalCoopPlayerContext context(player.getId());
 		NetSendCmd(true, CMD_SETSHIELD);
+	}
 }
 
 void AddFlameWave(Missile &missile, AddMissileParameter &parameter)
@@ -2481,7 +2517,7 @@ void AddHealOther(Missile &missile, AddMissileParameter & /*parameter*/)
 	Player &player = Players[missile._misource];
 
 	missile._miDelFlag = true;
-	if (&player == MyPlayer) {
+	if (IsLocalPlayer(player)) {
 		NewCursor(CURSOR_HEALOTHER);
 		if (ControlMode != ControlTypes::KeyboardAndMouse)
 			TryIconCurs();
@@ -2515,10 +2551,11 @@ void AddIdentify(Missile &missile, AddMissileParameter & /*parameter*/)
 	Player &player = Players[missile._misource];
 
 	missile._miDelFlag = true;
-	if (&player == MyPlayer) {
+	if (IsLocalPlayer(player)) {
 		if (SpellbookFlag)
 			SpellbookFlag = false;
 		if (!invflag) {
+			ClaimLocalCoopPanelsForPlayer(player);
 			invflag = true;
 			if (ControlMode != ControlTypes::KeyboardAndMouse)
 				FocusOnInventory();
@@ -2604,10 +2641,11 @@ void AddItemRepair(Missile &missile, AddMissileParameter & /*parameter*/)
 	Player &player = Players[missile._misource];
 
 	missile._miDelFlag = true;
-	if (&player == MyPlayer) {
+	if (IsLocalPlayer(player)) {
 		if (SpellbookFlag)
 			SpellbookFlag = false;
 		if (!invflag) {
+			ClaimLocalCoopPanelsForPlayer(player);
 			invflag = true;
 			if (ControlMode != ControlTypes::KeyboardAndMouse)
 				FocusOnInventory();
@@ -2621,10 +2659,11 @@ void AddStaffRecharge(Missile &missile, AddMissileParameter & /*parameter*/)
 	Player &player = Players[missile._misource];
 
 	missile._miDelFlag = true;
-	if (&player == MyPlayer) {
+	if (IsLocalPlayer(player)) {
 		if (SpellbookFlag)
 			SpellbookFlag = false;
 		if (!invflag) {
+			ClaimLocalCoopPanelsForPlayer(player);
 			invflag = true;
 			if (ControlMode != ControlTypes::KeyboardAndMouse)
 				FocusOnInventory();
@@ -2638,7 +2677,7 @@ void AddTrapDisarm(Missile &missile, AddMissileParameter & /*parameter*/)
 	Player &player = Players[missile._misource];
 
 	missile._miDelFlag = true;
-	if (&player == MyPlayer) {
+	if (IsLocalPlayer(player)) {
 		NewCursor(CURSOR_DISARM);
 		if (ControlMode != ControlTypes::KeyboardAndMouse) {
 			if (ObjectUnderCursor != nullptr)
@@ -2738,7 +2777,7 @@ void AddResurrect(Missile &missile, AddMissileParameter & /*parameter*/)
 {
 	Player &player = Players[missile._misource];
 
-	if (&player == MyPlayer) {
+	if (IsLocalPlayer(player)) {
 		NewCursor(CURSOR_RESURRECT);
 		if (ControlMode != ControlTypes::KeyboardAndMouse)
 			TryIconCurs();
@@ -2758,7 +2797,7 @@ void AddTelekinesis(Missile &missile, AddMissileParameter & /*parameter*/)
 	Player &player = Players[missile._misource];
 
 	missile._miDelFlag = true;
-	if (&player == MyPlayer)
+	if (IsLocalPlayer(player))
 		NewCursor(CURSOR_TELEKINESIS);
 }
 
@@ -3273,7 +3312,7 @@ void ProcessSearch(Missile &missile)
 
 	missile._miDelFlag = true;
 	PlaySfxLoc(SfxID::SpellEnd, player.position.tile);
-	if (&player == MyPlayer)
+	if (IsLocalPlayer(player))
 		AutoMapShowItems = false;
 }
 
@@ -3403,7 +3442,7 @@ void ProcessTownPortal(Missile &missile)
 	for (Player &player : Players) {
 		if (player.plractive && player.isOnActiveLevel() && !player._pLvlChanging && player._pmode == PM_STAND && player.position.tile == missile.position.tile) {
 			ClrPlrPath(player);
-			if (&player == MyPlayer) {
+			if (IsLocalPlayer(player)) {
 				NetSendCmdParam1(true, CMD_WARP, missile._misource);
 				player._pmode = PM_NEWLVL;
 			}
@@ -3686,9 +3725,7 @@ void ProcessTeleport(Missile &missile)
 		ChangeLightXY(player.lightId, player.position.tile);
 		ChangeVisionXY(player.getId(), player.position.tile);
 	}
-	if (&player == MyPlayer) {
-		ViewPosition = player.position.tile;
-	}
+	SetViewPositionForPlayer(player, player.position.tile);
 }
 
 void ProcessStoneCurse(Missile &missile)
@@ -4198,9 +4235,11 @@ static void DeleteMissiles()
 
 void ProcessManaShield()
 {
-	Player &myPlayer = *MyPlayer;
-	if (myPlayer.pManaShield && myPlayer.hasNoMana()) {
-		myPlayer.pManaShield = false;
+	for (Player &player : Players) {
+		if (!IsLocalPlayer(player) || !player.pManaShield || !player.hasNoMana())
+			continue;
+		player.pManaShield = false;
+		const LocalCoopPlayerContext context(player.getId());
 		NetSendCmd(true, CMD_REMSHIELD);
 	}
 }

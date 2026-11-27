@@ -9,6 +9,7 @@
 #include <cstdint>
 
 #include "control/control.hpp"
+#include "controls/local_coop/local_coop.hpp"
 #include "engine/load_file.hpp"
 #include "engine/palette.h"
 #include "engine/render/automap_render.hpp"
@@ -1769,7 +1770,9 @@ void DrawAutomap(const Surface &out)
 
 	const Player &myPlayer = *MyPlayer;
 	Displacement myPlayerOffset = {};
-	if (myPlayer.isWalking())
+	if (IsAnyLocalCoopPlayerInitialized())
+		myPlayerOffset = GetLocalCoopCameraOffset(); // The camera follows all local co-op players
+	else if (myPlayer.isWalking())
 		myPlayerOffset = GetOffsetForWalking(myPlayer.AnimInfo, myPlayer._pdir, true);
 
 	const int scale = (GetAutomapType() == AutomapType::Minimap) ? MinimapScale : AutoMapScale;
@@ -1859,7 +1862,7 @@ void DrawAutomap(const Surface &out)
 	}
 
 	for (const Player &player : Players) {
-		if (player.isOnActiveLevel() && player.plractive && !player._pLvlChanging && (&player == MyPlayer || player.friendlyMode)) {
+		if (player.isOnActiveLevel() && player.plractive && !player._pLvlChanging && (IsLocalPlayer(player) || player.friendlyMode)) {
 			DrawAutomapPlr(out, myPlayerOffset, player);
 		}
 	}

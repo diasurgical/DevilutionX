@@ -5,6 +5,9 @@
 
 #include "automap.h"
 #include "controls/control_mode.hpp"
+#ifndef USE_SDL1
+#include "controls/local_coop/local_coop.hpp"
+#endif
 #include "controls/modifier_hints.h"
 #include "diablo_msg.hpp"
 #include "engine/backbuffer_state.hpp"
@@ -163,7 +166,12 @@ int CapStatPointsToAdd(int remainingStatPoints, const Player &player, CharacterA
 	return std::min(remainingStatPoints, pointsToReachCap);
 }
 
-int DrawDurIcon4Item(const Surface &out, Item &pItem, int x, int c)
+/**
+ * @brief Draw a durability warning icon for an item if it is low on durability.
+ * @param y Bottom of the icon.
+ * @return The x position for the next icon (to the left).
+ */
+int DrawDurIcon4Item(const Surface &out, const Item &pItem, int x, int y, int c)
 {
 	const int durabilityThresholdGold = 5;
 	const int durabilityThresholdRed = 2;
@@ -205,7 +213,6 @@ int DrawDurIcon4Item(const Surface &out, Item &pItem, int x, int c)
 	}
 
 	// Draw icon
-	const int y = -17 + GetMainPanel().position.y;
 	if (partition > 0) {
 		const Surface stenciledBuffer = out.subregionY(y - partition, partition);
 		ClxDraw(stenciledBuffer, { x, partition }, (*pDurIcons)[c + 8]); // Gold icon
@@ -262,7 +269,17 @@ void CalculatePanelAreas()
 			LeftPanel.position.x = (gnScreenWidth - LeftPanel.size.width - RightPanel.size.width - MainPanel.size.width) / 2;
 		}
 	}
-	LeftPanel.position.y = (gnScreenHeight - LeftPanel.size.height - MainPanel.size.height) / 2;
+
+#ifndef USE_SDL1
+	constexpr size_t MinPlayersForVerticalPanelAlignment = 3;
+	// In local coop with 3+ players, the main panel is hidden, so center panels vertically without accounting for it
+	if (IsLocalCoopEnabled() && GetLocalCoopTotalPlayerCount() >= MinPlayersForVerticalPanelAlignment) {
+		LeftPanel.position.y = (gnScreenHeight - LeftPanel.size.height) / 2;
+	} else
+#endif
+	{
+		LeftPanel.position.y = (gnScreenHeight - LeftPanel.size.height - MainPanel.size.height) / 2;
+	}
 
 	if (ControlMode == ControlTypes::VirtualGamepad) {
 		RightPanel.position.x = gnScreenWidth / 2;
@@ -285,17 +302,27 @@ void FocusOnCharInfo()
 	if (invflag || myPlayer._pStatPts <= 0)
 		return;
 
-	// Find the first incrementable stat.
+	// Always start at Strength (first button) if it's incrementable, otherwise find first incrementable stat
 	int stat = -1;
-	for (auto attribute : enum_values<CharacterAttribute>()) {
-		if (myPlayer.GetBaseAttributeValue(attribute) >= myPlayer.GetMaximumAttributeValue(attribute))
-			continue;
-		stat = static_cast<int>(attribute);
+	// First check if Strength is incrementable
+	if (myPlayer.GetBaseAttributeValue(CharacterAttribute::Strength) < myPlayer.GetMaximumAttributeValue(CharacterAttribute::Strength)) {
+		stat = static_cast<int>(CharacterAttribute::Strength);
+	} else {
+		// Find the first incrementable stat
+		for (auto attribute : enum_values<CharacterAttribute>()) {
+			if (myPlayer.GetBaseAttributeValue(attribute) >= myPlayer.GetMaximumAttributeValue(attribute))
+				continue;
+			stat = static_cast<int>(attribute);
+			break; // Stop at first incrementable stat
+		}
 	}
 	if (stat == -1)
 		return;
 
-	SetCursorPos(CharPanelButtonRect[stat].Center());
+	// Adjust button position for actual panel position (important in local coop mode where panel is centered)
+	Rectangle button = CharPanelButtonRect[stat];
+	button.position = GetPanelPosition(UiPanels::Character, button.position);
+	SetCursorPos(button.Center());
 }
 
 void OpenCharPanel()
@@ -674,6 +701,11 @@ void CheckLevelButtonUp()
 
 void DrawLevelButton(const Surface &out)
 {
+#ifndef USE_SDL1
+	// Hide level up button in local coop mode (attribute indicator is shown in local coop panel instead)
+	if (IsLocalCoopEnabled())
+		return;
+#endif
 	if (IsLevelUpButtonVisible()) {
 		const int nCel = LevelButtonDown ? 2 : 1;
 		DrawString(out, _("Level Up"), { GetMainPanel().position + Displacement { 0, LevelButtonRect.position.y - 23 }, { 120, 0 } },
@@ -764,11 +796,12 @@ void DrawDurIcon(const Surface &out)
 			x -= MainPanel.position.x + MainPanel.size.width - RightPanel.position.x;
 	}
 
+	const int y = -17 + GetMainPanel().position.y;
 	Player &myPlayer = *MyPlayer;
-	x = DrawDurIcon4Item(out, myPlayer.InvBody[INVLOC_HEAD], x, 3);
-	x = DrawDurIcon4Item(out, myPlayer.InvBody[INVLOC_CHEST], x, 2);
-	x = DrawDurIcon4Item(out, myPlayer.InvBody[INVLOC_HAND_LEFT], x, 0);
-	DrawDurIcon4Item(out, myPlayer.InvBody[INVLOC_HAND_RIGHT], x, 0);
+	x = DrawDurIcon4Item(out, myPlayer.InvBody[INVLOC_HEAD], x, y, 3);
+	x = DrawDurIcon4Item(out, myPlayer.InvBody[INVLOC_CHEST], x, y, 2);
+	x = DrawDurIcon4Item(out, myPlayer.InvBody[INVLOC_HAND_LEFT], x, y, 0);
+	DrawDurIcon4Item(out, myPlayer.InvBody[INVLOC_HAND_RIGHT], x, y, 0);
 }
 
 void RedBack(const Surface &out)
@@ -833,6 +866,30 @@ void DrawDeathText(const Surface &out)
 void SetPanelObjectPosition(UiPanels panel, Rectangle &button)
 {
 	button.position = GetPanelPosition(panel, button.position);
+}
+
+void DrawPlayerDurabilityIcons(const Surface &out, const Player &player, Point position)
+{
+	constexpr int IconSize = 32;
+	constexpr int IconSpacing = 8;
+	constexpr int DurabilityThresholdGold = 5;
+
+	const Item *items[] = { &player.InvBody[INVLOC_HEAD], &player.InvBody[INVLOC_CHEST], &player.InvBody[INVLOC_HAND_LEFT], &player.InvBody[INVLOC_HAND_RIGHT] };
+	constexpr int iconTypes[] = { 3, 2, 0, 0 };
+
+	int iconCount = 0;
+	for (const Item *item : items) {
+		if (!item->isEmpty() && item->_iDurability <= DurabilityThresholdGold)
+			iconCount++;
+	}
+	if (iconCount == 0)
+		return;
+
+	// DrawDurIcon4Item lays icons out right to left (same order as the main panel), starting from the rightmost icon
+	int x = position.x + (iconCount - 1) * (IconSize + IconSpacing);
+	const int y = position.y + IconSize;
+	for (size_t i = 0; i < std::size(items); i++)
+		x = DrawDurIcon4Item(out, *items[i], x, y, iconTypes[i]);
 }
 
 } // namespace devilution
