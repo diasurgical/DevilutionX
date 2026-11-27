@@ -2502,7 +2502,7 @@ void CalcPlrDamage(Player &player, int minDamage, int maxDamage)
 			maxDamage = 3;
 		}
 
-		if (player._pClass == HeroClass::Monk) {
+		if (HasAnyOf(player.getClassFlags(), PlayerClassFlag::UnarmedMastery)) {
 			minDamage = std::max(minDamage, playerLevel / 2);
 			maxDamage = std::max<int>(maxDamage, playerLevel);
 		}
@@ -2596,8 +2596,7 @@ void CalcPlrDamageMod(Player &player)
 		break;
 	}
 
-	const ClassAttributes &classAttributes = GetClassAttributes(player._pClass);
-	if (HasAnyOf(classAttributes.classFlags, PlayerClassFlag::IronSkin)) {
+	if (HasAnyOf(player.getClassFlags(), PlayerClassFlag::IronSkin)) {
 		player._pIAC += playerLevel / 4;
 	}
 }
@@ -2606,9 +2605,7 @@ void CalcPlrResistances(Player &player, ItemSpecialEffect iflgs, int fire, int l
 {
 	const uint8_t playerLevel = player.getCharacterLevel();
 
-	const ClassAttributes &classAttributes = GetClassAttributes(player._pClass);
-
-	if (HasAnyOf(classAttributes.classFlags, PlayerClassFlag::NaturalResistance)) {
+	if (HasAnyOf(player.getClassFlags(), PlayerClassFlag::NaturalResistance)) {
 		magic += playerLevel;
 		fire += playerLevel;
 		lightning += playerLevel;
@@ -2659,7 +2656,7 @@ void CalcPlrBlockFlag(Player &player)
 
 	player._pBlockFlag = false;
 
-	if (player._pClass == HeroClass::Monk) {
+	if (HasAnyOf(player.getClassFlags(), PlayerClassFlag::ShieldlessBlock)) {
 		if (player.isHoldingItem(ItemType::Staff)) {
 			player._pBlockFlag = true;
 			player._pIFlags |= ItemSpecialEffect::FastBlock;
@@ -2713,13 +2710,13 @@ PlayerArmorGraphic GetPlrAnimArmorId(Player &player)
 	if (chestUsable) {
 		switch (chestItem._itype) {
 		case ItemType::HeavyArmor:
-			if (player._pClass == HeroClass::Monk) {
+			if (HasAnyOf(player.getClassFlags(), PlayerClassFlag::LightArmorMastery)) {
 				if (chestItem._iMagical == ITEM_QUALITY_UNIQUE)
 					player._pIAC += playerLevel / 2;
 			}
 			return PlayerArmorGraphic::Heavy;
 		case ItemType::MediumArmor:
-			if (player._pClass == HeroClass::Monk) {
+			if (HasAnyOf(player.getClassFlags(), PlayerClassFlag::LightArmorMastery)) {
 				if (chestItem._iMagical == ITEM_QUALITY_UNIQUE)
 					player._pIAC += playerLevel * 2;
 				else
@@ -2727,7 +2724,7 @@ PlayerArmorGraphic GetPlrAnimArmorId(Player &player)
 			}
 			return PlayerArmorGraphic::Medium;
 		default:
-			if (player._pClass == HeroClass::Monk)
+			if (HasAnyOf(player.getClassFlags(), PlayerClassFlag::LightArmorMastery))
 				player._pIAC += playerLevel * 2;
 			return PlayerArmorGraphic::Light;
 		}

@@ -1,5 +1,5 @@
 Attribute	Value
-classFlags	TrapSense
+classFlags	TrapSense,BowMastery
 baseStr	20
 baseMag	15
 baseDex	30
