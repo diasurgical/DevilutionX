@@ -594,6 +594,18 @@ if(PS4)
     "DVLX00001" "DevilutionX" "${PROJECT_VERSION}")
 endif()
 
+if(NINTENDO_WII)
+	target_link_libraries(${BIN_TARGET} PUBLIC aesnd wiikeyboard fat)
+	ogc_create_dol(${BIN_TARGET})
+	string(TIMESTAMP WII_DATE "%Y%m%d000000")
+	configure_file(Packaging/wii/meta.xml.in Packaging/wii/meta.xml @ONLY)
+	install(FILES ${CMAKE_CURRENT_BINARY_DIR}/devilutionx.dol
+		RENAME boot.dol
+		DESTINATION devilutionx COMPONENT wii)
+	install(FILES Packaging/wii/icon.png
+		DESTINATION devilutionx COMPONENT wii)
+endif()
+
 if(NINTENDO_3DS)
   set(APP_TITLE       "DevilutionX")
   set(APP_DESCRIPTION "DevilutionX port for 3DS")

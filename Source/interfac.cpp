@@ -49,7 +49,7 @@
 #endif
 
 // Emscripten: ASYNCIFY does not support unwinding across threads, so loading must happen on the main thread.
-#if defined(__EMSCRIPTEN__)
+#if defined(__EMSCRIPTEN__) || defined(__wii__)
 #define LOAD_ON_MAIN_THREAD
 #endif
 

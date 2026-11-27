@@ -47,6 +47,10 @@ if(AMIGA)
   include(platforms/amiga)
 endif()
 
+if(NINTENDO_WII)
+  include(platforms/wii)
+endif()
+
 if(NINTENDO_3DS)
   include(platforms/n3ds)
 endif()
