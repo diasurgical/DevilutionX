@@ -6,6 +6,7 @@
 
 #include <sol/sol.hpp>
 
+#include "items.h"
 #include "lua/lua_global.hpp"
 #include "monster.h"
 #include "player.h"
@@ -90,6 +91,11 @@ void OnPlayerGainExperience(const Player *player, uint32_t exp)
 void OnPlayerTakeDamage(const Player *player, int damage, int damageType)
 {
 	CallLuaEvent("OnPlayerTakeDamage", player, damage, damageType);
+}
+
+bool OnItemUse(const Player *player, const Item *item)
+{
+	return CallLuaEventReturn(false, "OnItemUse", player, item);
 }
 
 void LoadModsComplete()

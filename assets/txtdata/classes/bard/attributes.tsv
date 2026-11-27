@@ -1,5 +1,6 @@
 Attribute	Value
 classFlags	DualWield
+classAvailabilityFlags	BardTest
 baseStr	20
 baseMag	20
 baseDex	25

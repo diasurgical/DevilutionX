@@ -491,7 +491,7 @@ bool DamageWeapon(Player &player, unsigned damageFrequency)
 		}
 
 		player.InvBody[INVLOC_HAND_RIGHT]._iDurability--;
-		if (player.InvBody[INVLOC_HAND_RIGHT]._iDurability == 0) {
+		if (player.InvBody[INVLOC_HAND_RIGHT]._iDurability <= 0) {
 			RemoveEquipment(player, INVLOC_HAND_RIGHT, true);
 			CalcPlrInv(player, true);
 			return true;
@@ -504,7 +504,7 @@ bool DamageWeapon(Player &player, unsigned damageFrequency)
 		}
 
 		player.InvBody[INVLOC_HAND_RIGHT]._iDurability--;
-		if (player.InvBody[INVLOC_HAND_RIGHT]._iDurability == 0) {
+		if (player.InvBody[INVLOC_HAND_RIGHT]._iDurability <= 0) {
 			RemoveEquipment(player, INVLOC_HAND_RIGHT, true);
 			CalcPlrInv(player, true);
 			return true;
@@ -517,7 +517,7 @@ bool DamageWeapon(Player &player, unsigned damageFrequency)
 		}
 
 		player.InvBody[INVLOC_HAND_LEFT]._iDurability--;
-		if (player.InvBody[INVLOC_HAND_LEFT]._iDurability == 0) {
+		if (player.InvBody[INVLOC_HAND_LEFT]._iDurability <= 0) {
 			RemoveEquipment(player, INVLOC_HAND_LEFT, true);
 			CalcPlrInv(player, true);
 			return true;
@@ -648,13 +648,9 @@ bool PlrHitMonst(Player &player, Monster &monster, bool adjacentDamage = false)
 	if (HasAnyOf(player._pIFlags, ItemSpecialEffect::RandomStealLife)) {
 		skdam = GenerateRnd(dam / 8);
 		player._pHitPoints += Fixed26_6::fromRaw(skdam);
-		if (player._pHitPoints > player._pMaxHP) {
-			player._pHitPoints = player._pMaxHP;
-		}
+		player._pHitPoints = std::min(player._pHitPoints, player._pMaxHP);
 		player._pHPBase += Fixed26_6::fromRaw(skdam);
-		if (player._pHPBase > player._pMaxHPBase) {
-			player._pHPBase = player._pMaxHPBase;
-		}
+		player._pHPBase = std::min(player._pHPBase, player._pMaxHPBase);
 		RedrawComponent(PanelDrawComponent::Health);
 	}
 	if (HasAnyOf(player._pIFlags, ItemSpecialEffect::StealMana3 | ItemSpecialEffect::StealMana5) && HasNoneOf(player._pIFlags, ItemSpecialEffect::NoMana)) {
@@ -665,13 +661,9 @@ bool PlrHitMonst(Player &player, Monster &monster, bool adjacentDamage = false)
 			skdam = 5 * dam / 100;
 		}
 		player._pMana += Fixed26_6::fromRaw(skdam);
-		if (player._pMana > player._pMaxMana) {
-			player._pMana = player._pMaxMana;
-		}
+		player._pMana = std::min(player._pMana, player._pMaxMana);
 		player._pManaBase += Fixed26_6::fromRaw(skdam);
-		if (player._pManaBase > player._pMaxManaBase) {
-			player._pManaBase = player._pMaxManaBase;
-		}
+		player._pManaBase = std::min(player._pManaBase, player._pMaxManaBase);
 		RedrawComponent(PanelDrawComponent::Mana);
 	}
 	if (HasAnyOf(player._pIFlags, ItemSpecialEffect::StealLife3 | ItemSpecialEffect::StealLife5)) {
@@ -682,13 +674,9 @@ bool PlrHitMonst(Player &player, Monster &monster, bool adjacentDamage = false)
 			skdam = 5 * dam / 100;
 		}
 		player._pHitPoints += Fixed26_6::fromRaw(skdam);
-		if (player._pHitPoints > player._pMaxHP) {
-			player._pHitPoints = player._pMaxHP;
-		}
+		player._pHitPoints = std::min(player._pHitPoints, player._pMaxHP);
 		player._pHPBase += Fixed26_6::fromRaw(skdam);
-		if (player._pHPBase > player._pMaxHPBase) {
-			player._pHPBase = player._pMaxHPBase;
-		}
+		player._pHPBase = std::min(player._pHPBase, player._pMaxHPBase);
 		RedrawComponent(PanelDrawComponent::Health);
 	}
 	if (monster.hasNoLife()) {
@@ -750,13 +738,9 @@ bool PlrHitPlr(Player &attacker, Player &target)
 	if (HasAnyOf(attacker._pIFlags, ItemSpecialEffect::RandomStealLife)) {
 		const int tac = GenerateRnd((skdam / 8).raw());
 		attacker._pHitPoints += Fixed26_6::fromRaw(tac);
-		if (attacker._pHitPoints > attacker._pMaxHP) {
-			attacker._pHitPoints = attacker._pMaxHP;
-		}
+		attacker._pHitPoints = std::min(attacker._pHitPoints, attacker._pMaxHP);
 		attacker._pHPBase += Fixed26_6::fromRaw(tac);
-		if (attacker._pHPBase > attacker._pMaxHPBase) {
-			attacker._pHPBase = attacker._pMaxHPBase;
-		}
+		attacker._pHPBase = std::min(attacker._pHPBase, attacker._pMaxHPBase);
 		RedrawComponent(PanelDrawComponent::Health);
 	}
 	if (&attacker == MyPlayer) {
@@ -1411,34 +1395,23 @@ void ValidatePlayer()
 			if (gbIsHellfire) {
 				maxGold *= 2;
 			}
-			if (myPlayer.InvList[i]._ivalue > maxGold) {
-				myPlayer.InvList[i]._ivalue = maxGold;
-			}
+			myPlayer.InvList[i]._ivalue = std::min(myPlayer.InvList[i]._ivalue, maxGold);
 			gt += myPlayer.InvList[i]._ivalue;
 		}
 	}
 	if (gt != myPlayer._pGold)
 		myPlayer._pGold = gt;
 
-	if (myPlayer._pBaseStr > myPlayer.GetMaximumAttributeValue(CharacterAttribute::Strength)) {
-		myPlayer._pBaseStr = myPlayer.GetMaximumAttributeValue(CharacterAttribute::Strength);
-	}
-	if (myPlayer._pBaseMag > myPlayer.GetMaximumAttributeValue(CharacterAttribute::Magic)) {
-		myPlayer._pBaseMag = myPlayer.GetMaximumAttributeValue(CharacterAttribute::Magic);
-	}
-	if (myPlayer._pBaseDex > myPlayer.GetMaximumAttributeValue(CharacterAttribute::Dexterity)) {
-		myPlayer._pBaseDex = myPlayer.GetMaximumAttributeValue(CharacterAttribute::Dexterity);
-	}
-	if (myPlayer._pBaseVit > myPlayer.GetMaximumAttributeValue(CharacterAttribute::Vitality)) {
-		myPlayer._pBaseVit = myPlayer.GetMaximumAttributeValue(CharacterAttribute::Vitality);
-	}
+	myPlayer._pBaseStr = std::min(myPlayer._pBaseStr, myPlayer.GetMaximumAttributeValue(CharacterAttribute::Strength));
+	myPlayer._pBaseMag = std::min(myPlayer._pBaseMag, myPlayer.GetMaximumAttributeValue(CharacterAttribute::Magic));
+	myPlayer._pBaseDex = std::min(myPlayer._pBaseDex, myPlayer.GetMaximumAttributeValue(CharacterAttribute::Dexterity));
+	myPlayer._pBaseVit = std::min(myPlayer._pBaseVit, myPlayer.GetMaximumAttributeValue(CharacterAttribute::Vitality));
 
 	uint64_t msk = 0;
 	for (auto b = static_cast<size_t>(SpellID::Firebolt); b < SpellsData.size(); b++) {
 		if (GetSpellBookLevel((SpellID)b) != -1) {
 			msk |= GetSpellBitmask(static_cast<SpellID>(b));
-			if (myPlayer._pSplLvl[b] > MaxSpellLevel)
-				myPlayer._pSplLvl[b] = MaxSpellLevel;
+			myPlayer._pSplLvl[b] = std::min(myPlayer._pSplLvl[b], MaxSpellLevel);
 		}
 	}
 

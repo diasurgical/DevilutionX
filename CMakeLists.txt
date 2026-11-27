@@ -280,7 +280,7 @@ endif()
 # referenced (magic_enum's per-enum name tables are the visible casualty: the
 # string_views survive with correct lengths but point at collected storage, so
 # every enum name reads as garbage). Excluded here for the same reason as PS4.
-if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang" AND NOT PS4 AND NOT AMIGA)
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang" AND NOT PS4 AND NOT AMIGA AND NOT PSP)
   add_compile_options("$<$<NOT:$<CONFIG:Debug>>:-ffunction-sections;-fdata-sections>")
   if(APPLE)
     add_link_options("$<$<NOT:$<CONFIG:Debug>>:LINKER:-dead_strip>")
@@ -483,9 +483,21 @@ if(APPLE)
   install (TARGETS ${BIN_TARGET} DESTINATION ./)
 
   if(MACOSX_STANDALONE_APP_BUNDLE)
+      # sdl2-compat (what Homebrew now installs as "sdl2") loads SDL3 with dlopen() at runtime,
+      # so fixup_bundle can't see it. Put SDL3 next to SDL2 in the bundle, which is the first
+      # place sdl2-compat looks for it. sdl2-compat versions start at 2.32.50.
+      if(NOT USE_SDL1 AND NOT USE_SDL3 AND SDL2_VERSION VERSION_GREATER_EQUAL 2.32.50)
+        find_package(SDL3 REQUIRED CONFIG COMPONENTS SDL3-shared)
+        set(_bundle_sdl3 "${CMAKE_BINARY_DIR}/${MACOSX_BUNDLE_BUNDLE_NAME}.app/Contents/Frameworks/libSDL3.dylib")
+        install(CODE "
+          file(MAKE_DIRECTORY \"${CMAKE_BINARY_DIR}/${MACOSX_BUNDLE_BUNDLE_NAME}.app/Contents/Frameworks\")
+          file(COPY_FILE \"$<TARGET_FILE:SDL3::SDL3-shared>\" \"${_bundle_sdl3}\")
+          "
+          COMPONENT Runtime)
+      endif()
       install(CODE "
         include(BundleUtilities)
-        fixup_bundle(${CMAKE_BINARY_DIR}/${MACOSX_BUNDLE_BUNDLE_NAME}.app \"\" \"\")
+        fixup_bundle(${CMAKE_BINARY_DIR}/${MACOSX_BUNDLE_BUNDLE_NAME}.app \"${_bundle_sdl3}\" \"\")
         # fixup_bundle invalidates any existing code signature, so re-sign.
         execute_process(COMMAND codesign --force --deep --sign - ${CMAKE_BINARY_DIR}/${MACOSX_BUNDLE_BUNDLE_NAME}.app)
         "
@@ -500,6 +512,30 @@ if(APPLE)
 
   set(MACOSX_BUNDLE_LONG_VERSION_STRING "Version ${PROJECT_VERSION}")
   set(CPACK On)
+endif()
+
+if(PSP)
+  if(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+    if(NOT CMAKE_STRIP)
+      message(FATAL_ERROR "PSP RelWithDebInfo packaging requires a target strip tool")
+    endif()
+    # Keep an unstripped ELF for symbolication, but do not embed its debug
+    # sections in the EBOOT used on a memory-constrained PSP.
+    add_custom_command(
+      TARGET ${BIN_TARGET} POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy
+        $<TARGET_FILE:${BIN_TARGET}>
+        "${CMAKE_CURRENT_BINARY_DIR}/devilutionx-debug.elf"
+      COMMAND ${CMAKE_STRIP} --strip-debug $<TARGET_FILE:${BIN_TARGET}>
+      VERBATIM)
+  endif()
+  create_pbp_file(
+    TARGET ${BIN_TARGET}
+    ICON_PATH "${PROJECT_SOURCE_DIR}/Packaging/psp/icon.png"
+    BACKGROUND_PATH "${PROJECT_SOURCE_DIR}/Packaging/psp/background.png"
+    PREVIEW_PATH NULL
+    TITLE ${PROJECT_NAME}
+  )
 endif()
 
 if(NINTENDO_SWITCH)

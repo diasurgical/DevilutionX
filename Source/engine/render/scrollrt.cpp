@@ -21,10 +21,12 @@
 
 #include "DiabloUI/ui_flags.hpp"
 #include "automap.h"
+#include "control/control_text_prompt.hpp"
 #include "controls/control_mode.hpp"
 #include "controls/plrctrls.h"
 #include "cursor.h"
 #include "dead.h"
+#include "diablo.h"
 #include "diablo_msg.hpp"
 #include "doom.h"
 #include "engine/backbuffer_state.hpp"
@@ -70,7 +72,9 @@
 #include "towners.h"
 #include "utils/attributes.h"
 #include "utils/display.h"
+#include "utils/format.hpp"
 #include "utils/is_of.hpp"
+#include "utils/language.h"
 #include "utils/log.hpp"
 #include "utils/sdl_compat.h"
 #include "utils/sdl_thread.h"
@@ -1430,6 +1434,7 @@ void DrawView(const Surface &out, Point startPosition)
 		DrawGoldSplit(out);
 	}
 	DrawGoldWithdraw(out);
+	DrawTextPrompt(out); // Lua mod support
 	if (HelpFlag) {
 		DrawHelp(out);
 	}
@@ -1454,6 +1459,17 @@ void DrawView(const Surface &out, Point startPosition)
 	UpdateLifeManaPercent(); // Update life/mana totals before rendering any portion of the flask.
 	DrawLifeFlaskUpper(out);
 	DrawManaFlaskUpper(out);
+}
+
+void DrawGameSpeedIndicator(const Surface &out)
+{
+	if (!IsGameSpeedIndicatorVisible())
+		return;
+
+	const Rectangle &panel = GetMainPanel();
+	const Rectangle label { { panel.position.x, panel.position.y - 24 }, { panel.size.width, 16 } };
+	DrawString(out, FormatRuntime(_("Target speed: {:d} ticks/s"), sgGameInitInfo.nTickRate), label,
+	    { .flags = UiFlags::AlignCenter | UiFlags::ColorWhitegold });
 }
 
 /**
@@ -1904,6 +1920,7 @@ void DrawAndBlit()
 	if ((*GetOptions().Gameplay.showMultiplayerPartyInfo != PartyPortraits::Disabled) && PartySidePanelOpen)
 		DrawPartyMemberInfoPanel(out);
 
+	DrawGameSpeedIndicator(out);
 	DrawCursor(out);
 
 	DrawFPS(out);

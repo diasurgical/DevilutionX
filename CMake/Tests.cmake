@@ -37,6 +37,7 @@ set(tests
   game_controls_test
   inv_test
   items_test
+  lua_events_test
   math_test
   missiles_test
   multi_logging_test
@@ -61,6 +62,7 @@ set(tests
   spell_ui_test
   char_panel_test
   game_menu_test
+  lua_game_api_test
 )
 set(standalone_tests
   cl2_to_clx_test

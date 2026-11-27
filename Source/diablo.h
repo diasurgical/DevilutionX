@@ -89,6 +89,12 @@ extern char gszProductName[64];
 
 extern PlayerActionType LastPlayerAction;
 
+constexpr int MinGameSpeed = 20;
+constexpr int MaxGameSpeed = 50;
+
+void SetGameSpeed(int speed);
+bool IsGameSpeedIndicatorVisible();
+
 void InitKeymapActions();
 void SetCursorPos(Point position);
 void FreeGameMem();

@@ -110,6 +110,7 @@ set(libdevilutionx_SRCS
   lua/modules/dev/search.cpp
   lua/modules/dev/towners.cpp
   lua/modules/floatingnumbers.cpp
+  lua/modules/game.cpp
   lua/modules/i18n.cpp
   lua/modules/items.cpp
   lua/modules/log.cpp
@@ -257,6 +258,7 @@ add_devilutionx_object_library(libdevilutionx_control
   control/control_gold.cpp
   control/control_infobox.cpp
   control/control_panel.cpp
+  control/control_text_prompt.cpp
 )
 target_link_dependencies(libdevilutionx_control
   PUBLIC

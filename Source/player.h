@@ -669,8 +669,7 @@ public:
 				tmac -= monsterArmor / 8;
 			}
 		}
-		if (tmac < 0)
-			tmac = 0;
+		tmac = std::max(tmac, 0);
 
 		return tmac;
 	}

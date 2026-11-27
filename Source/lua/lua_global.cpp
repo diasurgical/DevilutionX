@@ -23,11 +23,13 @@
 #include <config.h>
 
 #include "appfat.h"
+#include "control/control_text_prompt.hpp"
 #include "effects.h"
 #include "engine/assets.hpp"
 #include "lua/lua_event.hpp"
 #include "lua/modules/audio.hpp"
 #include "lua/modules/floatingnumbers.hpp"
+#include "lua/modules/game.hpp"
 #include "lua/modules/hellfire.hpp"
 #include "lua/modules/i18n.hpp"
 #include "lua/modules/items.hpp"
@@ -246,6 +248,7 @@ void LuaReloadActiveMods()
 	CurrentLuaState->commonPackages["devilutionx.events"] = CurrentLuaState->events;
 
 	ClearTownerDialogOptions();
+	DiscardTextPrompt();
 
 	gbIsHellfire = false;
 	UnloadModArchives();
@@ -307,6 +310,7 @@ void LuaInitialize()
 	    "devilutionx.dev", LuaDevModule(lua),
 #endif
 	    "devilutionx.version", PROJECT_VERSION,
+	    "devilutionx.game", LuaGameModule(lua),
 	    "devilutionx.i18n", LuaI18nModule(lua),
 	    "devilutionx.items", LuaItemModule(lua),
 	    "devilutionx.log", LuaLogModule(lua),
@@ -341,6 +345,7 @@ void LuaShutdown()
 	// Must clear before destroying the Lua state: registered callbacks
 	// capture sol::function handles that reference CurrentLuaState.
 	ClearTownerDialogOptions();
+	DiscardTextPrompt();
 	CurrentLuaState = std::nullopt;
 }
 

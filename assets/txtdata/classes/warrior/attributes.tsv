@@ -1,5 +1,6 @@
 Attribute	Value
 classFlags	CriticalStrike
+classAvailabilityFlags	Spawn
 baseStr	30
 baseMag	10
 baseDex	20
