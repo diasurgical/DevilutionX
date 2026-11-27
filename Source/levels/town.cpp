@@ -152,7 +152,12 @@ void InitTownPieces()
 {
 	for (int y = 0; y < MAXDUNY; y++) {
 		for (int x = 0; x < MAXDUNX; x++) {
-			if (dPiece[x][y] == 359) {
+			if (dPiece[x][y] == 717) {
+				// Cathedral arch tiles, redrawn when the entrance tile is rendered to ensure
+				// the arch tiles covers the player
+				dDeferredRedrawTiles.push_back(AnchoredPoint { { x, y }, { 0, -1 } });
+				dDeferredRedrawTiles.push_back(AnchoredPoint { { x, y }, { 1, -2 } });
+			} else if (dPiece[x][y] == 359) {
 				dSpecial[x][y] = 1;
 			} else if (dPiece[x][y] == 357) {
 				dSpecial[x][y] = 2;
