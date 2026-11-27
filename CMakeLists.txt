@@ -483,9 +483,21 @@ if(APPLE)
   install (TARGETS ${BIN_TARGET} DESTINATION ./)
 
   if(MACOSX_STANDALONE_APP_BUNDLE)
+      # sdl2-compat (what Homebrew now installs as "sdl2") loads SDL3 with dlopen() at runtime,
+      # so fixup_bundle can't see it. Put SDL3 next to SDL2 in the bundle, which is the first
+      # place sdl2-compat looks for it. sdl2-compat versions start at 2.32.50.
+      if(NOT USE_SDL1 AND NOT USE_SDL3 AND SDL2_VERSION VERSION_GREATER_EQUAL 2.32.50)
+        find_package(SDL3 REQUIRED CONFIG COMPONENTS SDL3-shared)
+        set(_bundle_sdl3 "${CMAKE_BINARY_DIR}/${MACOSX_BUNDLE_BUNDLE_NAME}.app/Contents/Frameworks/libSDL3.dylib")
+        install(CODE "
+          file(MAKE_DIRECTORY \"${CMAKE_BINARY_DIR}/${MACOSX_BUNDLE_BUNDLE_NAME}.app/Contents/Frameworks\")
+          file(COPY_FILE \"$<TARGET_FILE:SDL3::SDL3-shared>\" \"${_bundle_sdl3}\")
+          "
+          COMPONENT Runtime)
+      endif()
       install(CODE "
         include(BundleUtilities)
-        fixup_bundle(${CMAKE_BINARY_DIR}/${MACOSX_BUNDLE_BUNDLE_NAME}.app \"\" \"\")
+        fixup_bundle(${CMAKE_BINARY_DIR}/${MACOSX_BUNDLE_BUNDLE_NAME}.app \"${_bundle_sdl3}\" \"\")
         # fixup_bundle invalidates any existing code signature, so re-sign.
         execute_process(COMMAND codesign --force --deep --sign - ${CMAKE_BINARY_DIR}/${MACOSX_BUNDLE_BUNDLE_NAME}.app)
         "
