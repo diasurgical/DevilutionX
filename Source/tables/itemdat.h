@@ -657,6 +657,8 @@ extern DVL_API_FOR_TEST std::vector<UniqueItem> UniqueItems;
 extern DVL_API_FOR_TEST ankerl::unordered_dense::map<int32_t, int32_t> UniqueItemMappingIdsToIndices;
 
 std::expected<_item_indexes, std::string> ParseItemId(std::string_view value);
+void AppendItemData(ItemData &&item, int32_t mappingId);
+void AppendUniqueItemData(UniqueItem &&item, int32_t mappingId);
 void LoadItemDatFromFile(DataFile &dataFile, std::string_view filename, int32_t baseMappingId);
 void LoadUniqueItemDatFromFile(DataFile &dataFile, std::string_view filename, int32_t baseMappingId);
 void LoadItemData();

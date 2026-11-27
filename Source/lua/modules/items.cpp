@@ -9,7 +9,6 @@
 #include "appfat.h"
 #include "cursor.h"
 #include "data/file.hpp"
-#include "effects.h"
 #include "engine/load_cel.hpp"
 #include "engine/path.h"
 #include "engine/point.hpp"
@@ -469,20 +468,20 @@ ItemData ParseItemDataTable(sol::table t)
 	item.iClass = t.get_or("class", ICLASS_NONE);
 	item.iLoc = t.get_or("equipType", ILOC_NONE);
 	item.iCurs = static_cast<item_cursor_graphic>(t.get_or("cursorGraphic", 0));
-	item.itype = t.get_or("type", ItemType::None);
+	item.itype = t.get_or("itemType", ItemType::None);
 	item.iItemId = static_cast<unique_base_item>(t.get_or("uniqueBaseItem", UITYPE_NONE));
 	item.iName = t.get<std::string>("name");
 	item.iSName = t.get_or("shortName", item.iName);
 	item.iMinMLvl = static_cast<uint8_t>(t.get_or("minMonsterLevel", 0));
 	item.iDurability = static_cast<uint8_t>(t.get_or("durability", 0));
-	item.iMinDam = static_cast<uint8_t>(t.get_or("minDam", 0));
-	item.iMaxDam = static_cast<uint8_t>(t.get_or("maxDam", 0));
-	item.iMinAC = static_cast<uint8_t>(t.get_or("minAC", 0));
-	item.iMaxAC = static_cast<uint8_t>(t.get_or("maxAC", 0));
-	item.iMinStr = static_cast<uint8_t>(t.get_or("minStr", 0));
-	item.iMinMag = static_cast<uint8_t>(t.get_or("minMag", 0));
-	item.iMinDex = static_cast<uint8_t>(t.get_or("minDex", 0));
-	item.iFlags = t.get_or("flags", ItemSpecialEffect::None);
+	item.iMinDam = static_cast<uint8_t>(t.get_or("minDamage", 0));
+	item.iMaxDam = static_cast<uint8_t>(t.get_or("maxDamage", 0));
+	item.iMinAC = static_cast<uint8_t>(t.get_or("minArmor", 0));
+	item.iMaxAC = static_cast<uint8_t>(t.get_or("maxArmor", 0));
+	item.iMinStr = static_cast<uint8_t>(t.get_or("minStrength", 0));
+	item.iMinMag = static_cast<uint8_t>(t.get_or("minMagic", 0));
+	item.iMinDex = static_cast<uint8_t>(t.get_or("minDexterity", 0));
+	item.iFlags = t.get_or("specialEffects", ItemSpecialEffect::None);
 	item.iMiscId = t.get_or("miscId", IMISC_NONE);
 	item.iSpell = t.get_or("spell", SpellID::Null);
 	item.iUsable = t.get_or("usable", false);
@@ -506,8 +505,8 @@ UniqueItem ParseUniqueItemDataTable(sol::table t)
 			sol::optional<sol::table> power = (*powers)[i];
 			if (!power) break;
 			item.powers[item.UINumPL].type = power->get_or("type", IPL_INVALID);
-			item.powers[item.UINumPL].param1 = power->get_or("param1", 0);
-			item.powers[item.UINumPL].param2 = power->get_or("param2", 0);
+			item.powers[item.UINumPL].param1 = power->get_or("value1", 0);
+			item.powers[item.UINumPL].param2 = power->get_or("value2", 0);
 			item.UINumPL++;
 		}
 	}
@@ -559,13 +558,7 @@ void AddItemData(sol::table itemData, const int32_t baseMappingId)
 			app_fatal(std::format("Expected item data table at index {}.", i));
 		}
 		const int32_t mappingId = baseMappingId + static_cast<int32_t>(i - 1);
-		ItemData item = ParseItemDataTable(*itemTable);
-		item.iMappingId = mappingId;
-		AllItemsList.push_back(std::move(item));
-		const auto [it, inserted] = ItemMappingIdsToIndices.emplace(mappingId, static_cast<int16_t>(AllItemsList.size()) - 1);
-		if (!inserted) {
-			app_fatal(std::format("An item already exists for mapping ID {}.", mappingId));
-		}
+		AppendItemData(ParseItemDataTable(*itemTable), mappingId);
 	}
 }
 
@@ -579,13 +572,7 @@ void AddUniqueItemData(sol::table itemData, const int32_t baseMappingId)
 			app_fatal(std::format("Expected unique item data table at index {}.", i));
 		}
 		const int32_t mappingId = baseMappingId + static_cast<int32_t>(i - 1);
-		UniqueItem item = ParseUniqueItemDataTable(*itemTable);
-		item.mappingId = mappingId;
-		UniqueItems.push_back(std::move(item));
-		const auto [it, inserted] = UniqueItemMappingIdsToIndices.emplace(mappingId, static_cast<int32_t>(UniqueItems.size()) - 1);
-		if (!inserted) {
-			app_fatal(std::format("A unique item already exists for mapping ID {}.", mappingId));
-		}
+		AppendUniqueItemData(ParseUniqueItemDataTable(*itemTable), mappingId);
 	}
 }
 
@@ -660,8 +647,8 @@ sol::table LuaItemModule(sol::state_view &lua)
 	LuaSetDocFn(table, "addUniqueItemDataFromTsv", "(path: string, baseMappingId: number)", AddUniqueItemDataFromTsv);
 	LuaSetDocFn(table, "getItemIndex", "(mappingId: number) -> ItemIndex|nil", "Returns the item index of the item with the given mapping ID, or nil if there is none.", LuaGetItemIndex);
 	LuaSetDocFn(table, "spawnQuestItem", "(itemIndex: ItemIndex, position: Point, sendmsg: boolean = true) -> boolean", "Drops a new item of the given index on the floor of the current level, at the free tile closest to position. With sendmsg the item is synced to other players, so in multiplayer only one client should spawn it. Returns false if there is no room.", LuaSpawnQuestItem);
-	LuaSetDocFn(table, "addItemData", "(itemData: ItemData[], baseMappingId: number)", "Add item definitions from a list of item data tables. Mapping IDs are assigned sequentially starting from baseMappingId. Each entry requires: name. Optional fields: dropRate, class, equipType, cursorGraphic, type, uniqueBaseItem, shortName, minMonsterLevel, durability, minDam, maxDam, minAC, maxAC, minStr, minMag, minDex, flags, miscId, spell, usable, value.", AddItemData);
-	LuaSetDocFn(table, "addUniqueItemData", "(itemData: UniqueItemData[], baseMappingId: number)", "Add unique item definitions from a list of unique item data tables. Mapping IDs are assigned sequentially starting from baseMappingId. Each entry requires: name. Optional fields: cursorGraphic, uniqueBaseItem, minLevel, value, powers (array of {type, param1, param2}).", AddUniqueItemData);
+	LuaSetDocFn(table, "addItemData", "(itemData: ItemData[], baseMappingId: number)", "Add item definitions from a list of item data tables. Mapping IDs are assigned sequentially starting from baseMappingId. Each entry requires: name. Optional fields match itemdat.tsv: dropRate, class, equipType, cursorGraphic, itemType, uniqueBaseItem, shortName, minMonsterLevel, durability, minDamage, maxDamage, minArmor, maxArmor, minStrength, minMagic, minDexterity, specialEffects, miscId, spell, usable, value.", AddItemData);
+	LuaSetDocFn(table, "addUniqueItemData", "(itemData: UniqueItemData[], baseMappingId: number)", "Add unique item definitions from a list of unique item data tables. Mapping IDs are assigned sequentially starting from baseMappingId. Each entry requires: name. Optional fields match unique_itemdat.tsv: cursorGraphic, uniqueBaseItem, minLevel, value, powers (array of {type, value1, value2}).", AddUniqueItemData);
 	LuaSetDocFn(table, "registerCursorGraphic", "(path: string, width: number) -> number", "Load a sprite for inventory/cursor display and return its cursorGraphic ID.", LuaRegisterCursorGraphic);
 	LuaSetDocFn(table, "registerDropGraphic", "(cursorGraphic: number, path: string, numFrames: number)", "Load a floor drop animation sprite for a custom cursor graphic. If not called, uses the default for the item type.", LuaRegisterDropGraphic);
 	LuaSetDocFn(table, "registerItemSounds", "(cursorGraphic: number, invSound: number|nil, dropSound: number|nil)", "Register custom inventory and drop sounds for a cursor graphic. Use SfxID values from the audio module (e.g. SfxID.ItemRingFlip). For each slot, pass nil or SfxID.None (-1) to keep the default.", LuaRegisterItemSounds);

@@ -144,13 +144,21 @@ TEST_F(CustomItemsTest, LuaAddItemDataAssignsMappingRangeFromCollectionBase)
 	sol::state lua;
 	sol::table itemModule = LuaItemModule(lua);
 	sol::table itemData = lua.create_table();
-	itemData[1] = lua.create_table_with("name", "Range Test Item One");
+	sol::table first = lua.create_table();
+	first["name"] = "Range Test Item One";
+	first["itemType"] = ItemType::Sword;
+	first["minDamage"] = 7;
+	first["maxArmor"] = 9;
+	itemData[1] = first;
 	itemData[2] = lua.create_table_with("name", "Range Test Item Two");
 	sol::function addItemData = itemModule["addItemData"];
 	addItemData(itemData, baseMappingId);
 
 	EXPECT_EQ(AllItemsList.size(), sizeBefore + 2);
 	EXPECT_EQ(AllItemsList[sizeBefore].iMappingId, baseMappingId);
+	EXPECT_EQ(AllItemsList[sizeBefore].itype, ItemType::Sword);
+	EXPECT_EQ(AllItemsList[sizeBefore].iMinDam, 7);
+	EXPECT_EQ(AllItemsList[sizeBefore].iMaxAC, 9);
 	EXPECT_EQ(AllItemsList[sizeBefore + 1].iMappingId, baseMappingId + 1);
 	EXPECT_EQ(ItemMappingIdsToIndices.count(baseMappingId), 1u);
 	EXPECT_EQ(ItemMappingIdsToIndices.count(baseMappingId + 1), 1u);
@@ -168,12 +176,23 @@ TEST_F(CustomItemsTest, LuaAddUniqueItemDataAssignsMappingRangeFromCollectionBas
 	sol::state lua;
 	sol::table itemModule = LuaItemModule(lua);
 	sol::table itemData = lua.create_table();
-	itemData[1] = lua.create_table_with("name", "Range Test Unique");
+	sol::table power = lua.create_table();
+	power["type"] = IPL_STR;
+	power["value1"] = 10;
+	sol::table powers = lua.create_table();
+	powers[1] = power;
+	sol::table unique = lua.create_table();
+	unique["name"] = "Range Test Unique";
+	unique["powers"] = powers;
+	itemData[1] = unique;
 	sol::function addUniqueItemData = itemModule["addUniqueItemData"];
 	addUniqueItemData(itemData, baseMappingId);
 
 	EXPECT_EQ(UniqueItems.size(), sizeBefore + 1);
 	EXPECT_EQ(UniqueItems[sizeBefore].mappingId, baseMappingId);
+	EXPECT_EQ(UniqueItems[sizeBefore].UINumPL, 1);
+	EXPECT_EQ(UniqueItems[sizeBefore].powers[0].type, IPL_STR);
+	EXPECT_EQ(UniqueItems[sizeBefore].powers[0].param1, 10);
 	EXPECT_EQ(UniqueItemMappingIdsToIndices.count(baseMappingId), 1u);
 
 	UniqueItems.pop_back();
