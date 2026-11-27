@@ -27,6 +27,7 @@
 
 #include "controls/control_mode.hpp"
 #include "controls/plrctrls.h"
+#include "engine/render/gpu/gpu_scaler.hpp"
 #include "engine/render/primitive_render.hpp"
 #include "headless_mode.hpp"
 #include "init.hpp"
@@ -92,6 +93,9 @@ bool CanRenderDirectlyToOutputSurface()
 #endif
 #else // !USE_SDL1
 	if (renderer != nullptr) return false;
+#ifdef USE_GPU_SCALER
+	if (gpu_scaler::ScalerWanted()) return false;
+#endif
 	SDL_Surface *outputSurface = GetOutputSurface();
 	// Assumes double-buffering is available.
 	return outputSurface->w == static_cast<int>(gnScreenWidth)
@@ -153,6 +157,9 @@ void dx_cleanup()
 	PspRightTexture = nullptr;
 #endif
 	FreeVirtualGamepadTextures();
+#ifdef USE_GPU_SCALER
+	gpu_scaler::Shutdown();
+#endif
 	if (*GetOptions().Graphics.upscale)
 		SDL_DestroyRenderer(renderer);
 #endif
@@ -318,6 +325,21 @@ void RenderPresent()
 	}
 
 #ifndef USE_SDL1
+#ifdef USE_GPU_SCALER
+	if (gpu_scaler::IsActive()) {
+		gpu_scaler::PresentFrame(*GetOutputSurface());
+		if (gpu_scaler::HasFailed()) {
+			// The GPU path hit an unrecoverable error; revert to the regular
+			// renderer for the rest of the session instead of failing frames.
+			gpu_scaler::Shutdown();
+			ReinitializeRenderer();
+			Log("GPU scaler failed; reverted to the regular renderer for this session");
+		}
+		if (*GetOptions().Graphics.frameRateControl != FrameRateControl::VerticalSync)
+			LimitFrameRate();
+		return;
+	}
+#endif
 	if (renderer != nullptr) {
 #ifdef USE_SDL3
 		if (!SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255)) ErrSdl();

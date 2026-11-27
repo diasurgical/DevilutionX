@@ -57,6 +57,9 @@ std::vector<std::unique_ptr<UiItemBase>> vecDialog;
 std::vector<OptionEntryBase *> vecOptions;
 OptionCategoryBase *selectedCategory = nullptr;
 OptionEntryBase *selectedOption = nullptr;
+// Nested list browsing (e.g. the shader base resolution sub-list of the
+// shader preset browser): the parent lists left behind, innermost last.
+std::vector<OptionEntryBase *> listOptionStack;
 
 enum class ShownMenuType : uint8_t {
 	Categories,
@@ -95,9 +98,11 @@ bool IsValidEntry(OptionEntryBase *pOptionEntry)
 
 std::vector<DrawStringFormatArg> CreateDrawStringFormatArgForEntry(OptionEntryBase *pEntry)
 {
+	// Disabled options are drawn greyed out.
+	const bool disabled = pEntry->IsDisabled();
 	return std::vector<DrawStringFormatArg> {
-		{ pEntry->GetName(), UiFlags::ColorUiGold },
-		{ pEntry->GetValueDescription(), UiFlags::ColorUiSilver }
+		{ pEntry->GetName(), disabled ? UiFlags::ColorUiSilverDark : UiFlags::ColorUiGold },
+		{ pEntry->GetValueDescription(), disabled ? UiFlags::ColorUiSilverDark : UiFlags::ColorUiSilver }
 	};
 }
 
@@ -131,7 +136,18 @@ void GoBackOneMenuLevel()
 		shownMenu = ShownMenuType::Categories;
 		break;
 	default:
-		shownMenu = ShownMenuType::Settings;
+		if (shownMenu == ShownMenuType::ListOption && !listOptionStack.empty()) {
+			// Leaving a nested list (shader base resolution): resume the
+			// parent browser, refreshing its dynamic entries (labels).
+			selectedOption = listOptionStack.back();
+			listOptionStack.pop_back();
+#ifdef USE_GPU_SCALER
+			GetOptions().Graphics.shaderFilter.RescanCustomEntries();
+#endif
+			shownMenu = ShownMenuType::ListOption;
+		} else {
+			shownMenu = ShownMenuType::Settings;
+		}
 		break;
 	}
 }
@@ -281,6 +297,8 @@ void ItemSelected(size_t value)
 	} break;
 	case ShownMenuType::Settings: {
 		auto *pOption = vecOptions[vecItemValue];
+		if (pOption->IsDisabled())
+			break; // greyed out: not interactive
 		bool updateValueDescription = false;
 		if (pOption->GetType() == OptionEntryType::List) {
 			auto *pOptionList = static_cast<OptionEntryListBase *>(pOption);
@@ -323,8 +341,23 @@ void ItemSelected(size_t value)
 		}
 	} break;
 	case ShownMenuType::ListOption: {
-		ChangeOptionValue(selectedOption, vecItemValue);
-		GoBackOneMenuLevel();
+		auto *pOptionList = static_cast<OptionEntryListBase *>(selectedOption);
+		if (pOptionList->IsListNavigationEntry(vecItemValue)) {
+			// Folder navigation inside the list (shader preset browser):
+			// rebuild this list view in place instead of closing it.
+			pOptionList->SetActiveListIndex(vecItemValue);
+			if (auto *subList = pOptionList->GetNavigationSubList(vecItemValue)) {
+				// Drill into a nested list (shader base resolution): the
+				// same view browses it, and GoBackOneMenuLevel resumes
+				// this list when the sub-list is left.
+				listOptionStack.push_back(pOptionList);
+				selectedOption = subList;
+			}
+			endMenu = true;
+		} else {
+			ChangeOptionValue(selectedOption, vecItemValue);
+			GoBackOneMenuLevel();
+		}
 	} break;
 	case ShownMenuType::KeyInput:
 	case ShownMenuType::PadInput:
@@ -361,10 +394,15 @@ void FullscreenChanged()
 
 void UiSettingsMenu()
 {
+#ifdef USE_GPU_SCALER
+	// Refresh the custom shader preset list from the shaders folder.
+	GetOptions().Graphics.shaderFilter.RescanCustomEntries();
+#endif
 	backToMain = false;
 	shownMenu = ShownMenuType::Categories;
 	selectedCategory = nullptr;
 	selectedOption = nullptr;
+	listOptionStack.clear();
 
 	do {
 		endMenu = false;
@@ -426,11 +464,14 @@ void UiSettingsMenu()
 					itemToSelect = vecDialogItems.size();
 				auto formatArgs = CreateDrawStringFormatArgForEntry(pEntry);
 				const int optionId = static_cast<int>(vecOptions.size());
+				UiFlags itemFlags = UiFlags::ColorUiGold;
+				if (pEntry->IsDisabled())
+					itemFlags |= UiFlags::ElementDisabled; // greyed out: skipped in navigation
 				if (NeedsTwoLinesToDisplayOption(formatArgs)) {
-					vecDialogItems.push_back(std::make_unique<UiListItem>(std::string_view("{}:"), formatArgs, optionId, UiFlags::ColorUiGold | UiFlags::NeedsNextElement));
+					vecDialogItems.push_back(std::make_unique<UiListItem>(std::string_view("{}:"), formatArgs, optionId, itemFlags | UiFlags::NeedsNextElement));
 					vecDialogItems.push_back(std::make_unique<UiListItem>(std::string(pEntry->GetValueDescription()), optionId, UiFlags::ColorUiSilver | UiFlags::ElementDisabled));
 				} else {
-					vecDialogItems.push_back(std::make_unique<UiListItem>(std::string_view("{}: {}"), formatArgs, optionId, UiFlags::ColorUiGold));
+					vecDialogItems.push_back(std::make_unique<UiListItem>(std::string_view("{}: {}"), formatArgs, optionId, itemFlags));
 				}
 				vecOptions.push_back(pEntry);
 			}
