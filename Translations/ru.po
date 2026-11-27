@@ -528,14 +528,13 @@ msgid "Players Supported: {:d}"
 msgstr "Количество игроков: {:d}"
 
 #: Source/DiabloUI/multi/selgame.cpp:104
-#, fuzzy
-#| msgid "The host is running a different game than you."
 msgid "The host is running the shareware edition."
-msgstr "Хост запустил игру, отличную от вашей."
+msgstr "Хост запустил shareware версию игры."
 
 #: Source/DiabloUI/multi/selgame.cpp:106
 msgid "You need to full version of the game to join this game."
 msgstr ""
+"У вас должна быть полная версия игры, чтобы присоединиться к этой сессии."
 
 #. TRANSLATORS: Error message when somebody tries to join a game running another version.
 #: Source/DiabloUI/multi/selgame.cpp:108
@@ -1294,10 +1293,9 @@ msgid "Show latency statistics for another player."
 msgstr "Показывает статистику задержек другого игрока."
 
 #: Source/control/control_infobox.cpp:350
-#, fuzzy, c++-format
-#| msgid "Hotkey: {:s}"
+#, c++-format
 msgid "Hotkey: '{:s}'"
-msgstr "Горячая клавиша: {:s}"
+msgstr "Горячая клавиша: '{:s}'"
 
 #: Source/cursor.cpp:632
 msgid "Town Portal"
@@ -1363,6 +1361,8 @@ msgstr "Недопустимое значение {0} для {1} в {2} в ст�
 #: Source/diablo.cpp:930 Source/menu.cpp:86
 msgid "Cannot play Multiplayer with overridden *.lua, *.tsv, or *.sol assets."
 msgstr ""
+"Невозможно запустить сетевую игру с изменёнными файлами *.lua, *.tsv или *."
+"sol."
 
 #. TRANSLATORS: Commandline Option
 #: Source/diablo.cpp:1042
@@ -1698,34 +1698,28 @@ msgid "Pause Game (Alternate)"
 msgstr "Пауза (Альтернатива)"
 
 #: Source/diablo.cpp:2145
-#, fuzzy
-#| msgid "Increase Gamma"
 msgid "Increase game speed"
-msgstr "Увеличить гамму"
+msgstr "Увеличить скорость игры"
 
 #: Source/diablo.cpp:2146
 msgid "Increases the game speed in single player."
-msgstr ""
+msgstr "Увеличивает скорость игры в одиночной игре."
 
 #: Source/diablo.cpp:2153
-#, fuzzy
-#| msgid "Decrease Gamma"
 msgid "Decrease game speed"
-msgstr "Уменьшить гамму"
+msgstr "Уменьшить скорость игры"
 
 #: Source/diablo.cpp:2154
 msgid "Decreases the game speed in single player."
-msgstr ""
+msgstr "Уменьшает скорость игры в одиночной игре."
 
 #: Source/diablo.cpp:2161
-#, fuzzy
-#| msgid "Select Game Speed"
 msgid "Reset game speed"
-msgstr "Скорость игры"
+msgstr "Сбросить скорость игры"
 
 #: Source/diablo.cpp:2162
 msgid "Resets the game speed to its minimum in single player."
-msgstr ""
+msgstr "Сбрасывает скорость игры до минимального значения в одиночной игре."
 
 #: Source/diablo.cpp:2169 Source/diablo.cpp:2681
 msgid "Decrease Brightness"
@@ -2429,7 +2423,7 @@ msgstr "Подбор Зелий Полного Омоложения"
 #: Source/engine/render/scrollrt.cpp:1471
 #, c++-format
 msgid "Target speed: {:d} ticks/s"
-msgstr ""
+msgstr "Скорость цели: {:d} тиков в секунду"
 
 #: Source/gamemenu.cpp:55 Source/gamemenu.cpp:67
 msgid "Options"
@@ -3302,20 +3296,16 @@ msgid "penetrates target's armor"
 msgstr "пробивает броню цели"
 
 #: Source/items.cpp:4032
-#, fuzzy
-#| msgid "fires random speed arrows"
 msgid "fires quick arrows"
-msgstr "выпускает случайные быстрые стрелы"
+msgstr "выпускает быстрые стрелы"
 
 #: Source/items.cpp:4033
 msgid "quick attack"
 msgstr "быстрая атака"
 
 #: Source/items.cpp:4037
-#, fuzzy
-#| msgid "fires random speed arrows"
 msgid "fires fast arrows"
-msgstr "выпускает случайные быстрые стрелы"
+msgstr "выпускает быстрейшие стрелы"
 
 #: Source/items.cpp:4038
 msgid "fast attack"
@@ -4458,24 +4448,20 @@ msgstr ""
 "Отображает уровень здоровья и маны всех участников группы сетевой игры."
 
 #: Source/options.cpp:900
-#, fuzzy
-#| msgid "Music Disabled"
 msgid "Disabled"
-msgstr "Музыка выключена"
+msgstr "Выключено"
 
 #: Source/options.cpp:901
-#, fuzzy
-#| msgid "Players: "
 msgid "Players"
-msgstr "Игроки: "
+msgstr "Игроки"
 
 #: Source/options.cpp:902
 msgid "Summons"
-msgstr ""
+msgstr "Призванные сущности"
 
 #: Source/options.cpp:903
 msgid "Players and summons"
-msgstr ""
+msgstr "Игроки и призванные сущности"
 
 #: Source/options.cpp:905
 msgid "Enemy Health Bar"
@@ -4621,28 +4607,25 @@ msgstr ""
 "Количество Зелий Полного Омоложения, которое нужно подобрать автоматически."
 
 #: Source/options.cpp:928
-#, fuzzy
 #| msgid "Visual Store UI"
 msgid "Store UI"
-msgstr "Визуальный интерфейс магазина"
+msgstr "Интерфейс магазина"
 
 #: Source/options.cpp:928
 msgid "User interface for stores"
-msgstr ""
+msgstr "Пользовательский интерфейс для магазинов"
 
 #: Source/options.cpp:930
 msgid "Text-only list"
-msgstr ""
+msgstr "Текстовый список"
 
 #: Source/options.cpp:931
 msgid "List with item graphics"
-msgstr ""
+msgstr "Графический список"
 
 #: Source/options.cpp:932
-#, fuzzy
-#| msgid "Visual Store UI"
 msgid "Visual grid"
-msgstr "Визуальный интерфейс магазина"
+msgstr "Визуальная сетка"
 
 #: Source/options.cpp:984
 msgid "Controller"
@@ -4705,22 +4688,19 @@ msgid "Mod Settings"
 msgstr "Настройки модов"
 
 #: Source/options.cpp:1702
-#, fuzzy, c++-format
-#| msgid "version {:s}"
+#, c++-format
 msgid "Version {:s} by {:s}"
-msgstr "версия {:s}"
+msgstr "Версия {:s} от {:s}"
 
 #: Source/options.cpp:1704
-#, fuzzy, c++-format
-#| msgid "version {:s}"
+#, c++-format
 msgid "Version {:s}"
-msgstr "версия {:s}"
+msgstr "Версия {:s}"
 
 #: Source/options.cpp:1706
-#, fuzzy, c++-format
-#| msgid "To {:s}"
+#, c++-format
 msgid "By {:s}"
-msgstr "К {:s}"
+msgstr "От {:s}"
 
 #: Source/panels/charpanel.cpp:132
 msgid "Level"
@@ -12224,16 +12204,12 @@ msgid "Complete Nut"
 msgstr "Полный псих"
 
 #: Source/translation_dummy.cpp:1063
-#, fuzzy
-#| msgid "Lester the farmer"
 msgid "Lester the Farmer"
 msgstr "Фермер Лестер"
 
 #: Source/translation_dummy.cpp:1064
-#, fuzzy
-#| msgid "Testers"
 msgid "Lester"
-msgstr "Тестировщики"
+msgstr "Лестер"
 
 #: Source/translation_dummy.cpp:1065
 msgid "Celia"
