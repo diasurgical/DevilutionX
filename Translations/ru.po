@@ -12397,3 +12397,19 @@ msgstr ","
 #~ "мы получили два новых подвида летающего ужаса; хороший рабочий день. Надо "
 #~ "не забыть заказать у Адрии ещё немного гуано летучих мышей и чёрных "
 #~ "свечей; у меня уже на исходе."
+
+# Mods translation. Missing from devilutionx.pot. Added at the translator's sole discretion.
+msgid "clock"
+msgstr "Часы"
+
+msgid "adria_refills_mana"
+msgstr "Адрия восстанавливает ману"
+
+msgid "Floating Numbers - Damage"
+msgstr "Летающие числа урона"
+
+msgid "Floating Numbers - XP"
+msgstr "Летающие числа опыта"
+
+msgid "Enables the Diablo: Hellfire expansion (new dungeons, quests, monsters, items, and the Monk class)."
+msgstr "Включает дополнение Diablo: Hellfire (новые подземелья, задания, монстры, предметы, и класс Монах)."
