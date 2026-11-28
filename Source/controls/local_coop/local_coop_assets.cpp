@@ -91,7 +91,9 @@ void Init()
 		ClxApplyTrans(*BarSpriteYellow, yellowTrn.data());
 	}
 
-	AssetsLoaded = true;
+	AssetsLoaded = HealthBox.has_value() || Health.has_value()
+	    || BoxLeft.has_value() || BoxMiddle.has_value() || BoxRight.has_value()
+	    || CharBg.has_value() || BarSprite.has_value();
 }
 
 void Free()

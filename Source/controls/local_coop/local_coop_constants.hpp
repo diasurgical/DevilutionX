@@ -39,7 +39,7 @@ constexpr int BoxWidth = 234;
 constexpr int BoxHeight = 12;
 constexpr int Border = 3;
 constexpr int Width = BoxWidth - (Border * 2) - 2;
-constexpr int Height = BoxHeight - (Border * 2) - 2;
+constexpr int Height = 14;
 constexpr int HeightXpEnabled = 11; // Reduced height when XP bar is enabled
 constexpr int Spacing = 1;
 } // namespace HealthBar
@@ -88,8 +88,8 @@ constexpr int Spacing = 4;
 
 /// Panel width calculation
 namespace PanelWidth {
-constexpr int LeftBorderPadding = 7;
-constexpr int RightBorderPadding = 7;
+constexpr int LeftBorderPadding = Panel::LeftBorderPadding;
+constexpr int RightBorderPadding = Panel::RightBorderPadding;
 constexpr int MinBeltWidth = 245;
 constexpr int BaseContentWidth = MinBeltWidth - 7;
 constexpr int BaseWidth = LeftBorderPadding + BaseContentWidth + RightBorderPadding;
@@ -119,8 +119,10 @@ constexpr float JoystickDeadzone = 0.25f;
 /// Movement stick threshold
 constexpr float MovementStickThreshold = 0.5f;
 
-/// Trigger threshold for button press detection
-constexpr int16_t TriggerThreshold = 8192;
+/// Trigger thresholds for button press/release hysteresis (matches GameController)
+constexpr int16_t TriggerPressThreshold = 16384;
+constexpr int16_t TriggerReleaseThreshold = 8192;
+constexpr int16_t TriggerThreshold = TriggerReleaseThreshold;
 
 } // namespace LocalCoopInput
 

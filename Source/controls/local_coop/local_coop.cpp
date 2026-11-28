@@ -53,6 +53,7 @@
 #include "pack.h"
 #include "panels/charpanel.hpp"
 #include "panels/quest_log.hpp"
+#include "panels/spell_book.hpp"
 #include "panels/spell_icons.hpp"
 #include "panels/spell_list.hpp"
 #include "pfile.h"
@@ -362,6 +363,9 @@ bool IsTilePositionOnScreen(Point tilePos, uint8_t excludePlayerId = LocalCoopLa
 
 	const int maxScreenDistanceX = screenWidth - MaxDistanceFromRightEdge;
 	const int maxScreenDistanceY = (viewportHeight / 2) - MaxDistanceFromViewportHalfHeight;
+	if (maxScreenDistanceX <= 0 || maxScreenDistanceY <= 0 || Players.empty()) {
+		return true;
+	}
 	auto tileToScreen = [](Point tile) -> Point {
 		using namespace LocalCoopLayout::SharedScreen;
 		return {
@@ -373,8 +377,7 @@ bool IsTilePositionOnScreen(Point tilePos, uint8_t excludePlayerId = LocalCoopLa
 	Point newScreenPos = tileToScreen(tilePos);
 
 	int otherPlayersChecked = 0;
-	size_t totalPlayers = g_LocalCoop.GetTotalPlayerCount();
-	for (size_t i = 0; i < totalPlayers && i < Players.size(); ++i) {
+	for (size_t i = 0; i < MaxLocalPlayers && i < Players.size(); ++i) {
 		if (static_cast<uint8_t>(i) == excludePlayerId)
 			continue;
 
@@ -447,194 +450,20 @@ void ScaleJoystickAxes(float *x, float *y, float deadzone)
 /**
  * @brief Load hero info from save files for local co-op character selection.
  *
- * pfile_ui_set_hero_infos unpacks each hero into Players[0] (InitPlayer needs a real
- * Players[] slot for getId()/vision). We snapshot Player 1 before and restore after.
+ * Reads save headers only and does not modify Players[].
  */
 void LoadHeroInfosForLocalCoop(std::vector<_uiheroinfo> &heroList, const std::vector<uint32_t> &excludeSaves)
 {
 	heroList.clear();
 
-	uint32_t savedSaveNumber = gSaveNumber;
+	for (uint32_t saveNum = 0; saveNum < MAX_CHARACTERS; ++saveNum) {
+		if (std::find(excludeSaves.begin(), excludeSaves.end(), saveNum) != excludeSaves.end())
+			continue;
 
-	bool savedPlrActive = Players[0].plractive;
-	Point savedPositionTile = Players[0].position.tile;
-	Point savedPositionFuture = Players[0].position.future;
-	Point savedPositionLast = Players[0].position.last;
-	Point savedPositionOld = Players[0].position.old;
-	Point savedPositionTemp = Players[0].position.temp;
-	int savedPlrLevel = Players[0].plrlevel;
-	bool savedPlrIsOnSetLevel = Players[0].plrIsOnSetLevel;
-	bool savedIsWalking = Players[0].isWalking();
-
-	uint32_t savedExperience = Players[0]._pExperience;
-	uint8_t savedLevel = Players[0].getCharacterLevel();
-	int savedStatPts = Players[0]._pStatPts;
-	Fixed26_6 savedHitPoints = Players[0]._pHitPoints;
-	Fixed26_6 savedMaxHP = Players[0]._pMaxHP;
-	Fixed26_6 savedHPBase = Players[0]._pHPBase;
-	Fixed26_6 savedMaxHPBase = Players[0]._pMaxHPBase;
-	Fixed26_6 savedMana = Players[0]._pMana;
-	Fixed26_6 savedMaxMana = Players[0]._pMaxMana;
-	Fixed26_6 savedManaBase = Players[0]._pManaBase;
-	Fixed26_6 savedMaxManaBase = Players[0]._pMaxManaBase;
-
-	PLR_MODE savedPmode = Players[0]._pmode;
-	Direction savedTempDirection = Players[0].tempDirection;
-	action_id savedDestAction = Players[0].destAction;
-	int savedDestParam1 = Players[0].destParam1;
-	int savedDestParam2 = Players[0].destParam2;
-	int savedDestParam3 = Players[0].destParam3;
-	int savedDestParam4 = Players[0].destParam4;
-	int savedLightId = Players[0].lightId;
-	AnimationInfo savedAnimInfo = Players[0].AnimInfo;
-	int8_t savedWalkpath[MaxPathLengthPlayer];
-	for (size_t i = 0; i < MaxPathLengthPlayer; ++i) {
-		savedWalkpath[i] = Players[0].walkpath[i];
-	}
-
-	pfile_ui_set_hero_infos([&heroList, &excludeSaves](_uiheroinfo *info) -> bool {
-		for (uint32_t excludeSave : excludeSaves) {
-			if (info->saveNumber == excludeSave)
-				return true;
-		}
-		heroList.push_back(*info);
-		return true;
-	});
-
-	if (savedSaveNumber < MAX_CHARACTERS) {
-		pfile_read_player_from_save(savedSaveNumber, Players[0]);
-		CalcPlrInv(Players[0], true);
-
-		Players[0].plractive = savedPlrActive;
-		Players[0].plrlevel = savedPlrLevel;
-		Players[0].plrIsOnSetLevel = savedPlrIsOnSetLevel;
-
-		Point validTile = savedPositionTile;
-		if (!InDungeonBounds(validTile) || !PosOkPlayer(Players[0], validTile)) {
-			validTile = Players[0].position.tile;
-			if (!InDungeonBounds(validTile) || !PosOkPlayer(Players[0], validTile)) {
-				if (InDungeonBounds(savedPositionTile)) {
-					const WorldTileDisplacement offset[9] = { { 0, 0 }, { 1, 0 }, { 0, 1 }, { 1, 1 }, { 2, 0 }, { 0, 2 }, { 1, 2 }, { 2, 1 }, { 2, 2 } };
-					bool found = false;
-					for (int i = 0; i < 9; i++) {
-						Point testPos = savedPositionTile + offset[i];
-						if (InDungeonBounds(testPos) && PosOkPlayer(Players[0], testPos)) {
-							validTile = testPos;
-							found = true;
-							break;
-						}
-					}
-					if (!found) {
-						validTile = InDungeonBounds(ViewPosition) ? ViewPosition : Point { 0, 0 };
-					}
-				} else {
-					validTile = InDungeonBounds(ViewPosition) ? ViewPosition : Point { 0, 0 };
-				}
-			}
-		}
-
-		Point validFuture = savedPositionFuture;
-		bool needToStopWalking = false;
-		if (!InDungeonBounds(validFuture) || (savedIsWalking && !PosOkPlayer(Players[0], validFuture))) {
-			validFuture = validTile;
-			needToStopWalking = true;
-		}
-
-		Point validLast = savedPositionLast;
-		if (!InDungeonBounds(validLast)) {
-			validLast = validTile;
-		}
-
-		Point validOld = savedPositionOld;
-		if (!InDungeonBounds(validOld)) {
-			validOld = validTile;
-		}
-
-		Point validTemp = savedPositionTemp;
-		if (!InDungeonBounds(validTemp)) {
-			validTemp = validTile;
-		}
-
-		if (Players[0].isOnActiveLevel()) {
-			FixPlrWalkTags(Players[0]);
-		}
-
-		Players[0].position.tile = validTile;
-		Players[0].position.future = validFuture;
-		Players[0].position.last = validLast;
-		Players[0].position.old = validOld;
-		Players[0].position.temp = validTemp;
-
-		if (needToStopWalking && savedIsWalking) {
-			Players[0].walkpath[0] = WALK_NONE;
-			Players[0].destAction = ACTION_NONE;
-			if (Players[0]._pmode == PM_WALK_NORTHWARDS || Players[0]._pmode == PM_WALK_SOUTHWARDS || Players[0]._pmode == PM_WALK_SIDEWAYS) {
-				Players[0]._pmode = PM_STAND;
-			}
-		}
-
-		if (Players[0].isOnActiveLevel() && Players[0].plractive) {
-			Players[0].occupyTile(validTile, false);
-		}
-
-		Players[0]._pExperience = savedExperience;
-		Players[0].setCharacterLevel(savedLevel);
-		Players[0]._pStatPts = savedStatPts;
-		Players[0]._pHitPoints = savedHitPoints;
-		Players[0]._pMaxHP = savedMaxHP;
-		Players[0]._pHPBase = savedHPBase;
-		Players[0]._pMaxHPBase = savedMaxHPBase;
-		Players[0]._pMana = savedMana;
-		Players[0]._pMaxMana = savedMaxMana;
-		Players[0]._pManaBase = savedManaBase;
-		Players[0]._pMaxManaBase = savedMaxManaBase;
-
-		if (savedPmode <= PM_QUIT) {
-			Players[0]._pmode = savedPmode;
-		} else {
-			Players[0]._pmode = PM_STAND;
-		}
-		if (savedTempDirection <= Direction::SouthWest) {
-			Players[0].tempDirection = savedTempDirection;
-		} else {
-			Players[0].tempDirection = Direction::South;
-		}
-		Players[0].destAction = savedDestAction;
-		Players[0].destParam1 = savedDestParam1;
-		Players[0].destParam2 = savedDestParam2;
-		Players[0].destParam3 = savedDestParam3;
-		Players[0].destParam4 = savedDestParam4;
-		if (savedLightId >= 0) {
-			Players[0].lightId = savedLightId;
-		}
-		Players[0].AnimInfo = savedAnimInfo;
-		Players[0].AnimInfo.sprites = std::nullopt;
-		for (size_t i = 0; i < MaxPathLengthPlayer; ++i) {
-			Players[0].walkpath[i] = savedWalkpath[i];
-		}
-
-		SetPlrAnims(Players[0]);
-
-		if (Players[0].isOnActiveLevel()) {
-			ResetPlayerGFX(Players[0]);
-
-			if (!Players[0].hasNoLife()) {
-				for (size_t i = 0; i < enum_size<player_graphic>::value; i++) {
-					auto graphic = static_cast<player_graphic>(i);
-					if (graphic != player_graphic::Death) {
-						LoadPlrGFX(Players[0], graphic);
-					}
-				}
-			} else {
-				Players[0]._pgfxnum &= ~0xFU;
-				LoadPlrGFX(Players[0], player_graphic::Death);
-			}
-
-			player_graphic currentGraphic = Players[0].getGraphic();
-			if (!HeadlessMode) {
-				Players[0].AnimInfo.sprites = Players[0].AnimationData[static_cast<size_t>(currentGraphic)].spritesForDirection(Players[0]._pdir);
-			}
-		}
+		_uiheroinfo heroInfo;
+		if (!pfile_read_ui_hero_info(saveNum, heroInfo))
+			continue;
+		heroList.push_back(heroInfo);
 	}
 }
 
@@ -734,6 +563,7 @@ void ProcessLocalCoopDpadInput(uint8_t playerId, const SDL_Event &event)
 			AxisDirection dir = DpadGamepadButtonToAxisDirection(button);
 
 			if (dir.x != AxisDirectionX_NONE || dir.y != AxisDirectionY_NONE) {
+				LocalCoopPlayerContext context(playerId);
 				HotSpellMove(dir);
 			}
 		}
@@ -851,6 +681,8 @@ void HandleCharacterSelectInput(uint8_t playerId, LocalCoopPlayer &coopPlayer, u
  */
 void HandleStoreInput(uint8_t playerId, uint8_t button)
 {
+	LocalCoopPlayerContext context(playerId);
+
 	switch (button) {
 	case SDL_GAMEPAD_BUTTON_SOUTH:
 	case SDL_GAMEPAD_BUTTON_NORTH:
@@ -931,9 +763,11 @@ void ReleaseLocalCoopSpellMenu()
 
 	// Keep panel owner context if a coop player still owns panels, otherwise restore Player 1
 	const uint8_t contextPlayerId = g_LocalCoop.HasPanelOwner() ? g_LocalCoop.GetPanelOwnerPlayerId() : 0;
-	MyPlayer = &Players[contextPlayerId];
-	MyPlayerId = contextPlayerId;
-	InspectPlayer = &Players[contextPlayerId];
+	if (contextPlayerId < Players.size()) {
+		MyPlayer = &Players[contextPlayerId];
+		MyPlayerId = contextPlayerId;
+		InspectPlayer = &Players[contextPlayerId];
+	}
 }
 
 /**
@@ -952,6 +786,9 @@ void ToggleLocalCoopSpellMenu(uint8_t playerId)
 		}
 		return;
 	}
+
+	if (playerId >= Players.size())
+		return;
 
 	// Don't steal the UI from another player who has panels open
 	if ((IsLeftPanelOpen() || IsRightPanelOpen()) && !g_LocalCoop.DoesPlayerOwnPanels(playerId))
@@ -975,8 +812,10 @@ void ToggleLocalCoopSpellMenu(uint8_t playerId)
  */
 void SelectLocalCoopSpellFromMenu()
 {
-	// MyPlayer is already the spell menu owner
-	SetSpell();
+	if (g_LocalCoop.spellMenuOwnerPlayerId >= 0) {
+		LocalCoopPlayerContext context(static_cast<uint8_t>(g_LocalCoop.spellMenuOwnerPlayerId));
+		SetSpell();
+	}
 	ReleaseLocalCoopSpellMenu();
 }
 
@@ -1099,9 +938,10 @@ bool HandleQuickSpellButton(uint8_t playerId, uint8_t button)
 	}
 
 	if (SpellSelectFlag) {
-		// MyPlayer is already the speedbook owner
-		if (DoesPlayerOwnSpellMenu(playerId))
+		if (DoesPlayerOwnSpellMenu(playerId)) {
+			LocalCoopPlayerContext context(playerId);
 			SetSpeedSpell(slot);
+		}
 		return true;
 	}
 
@@ -1158,6 +998,11 @@ void HandleGameplayButtonDown(uint8_t playerId, LocalCoopPlayer &coopPlayer, Pla
 			ProcessLocalCoopGameAction(playerId, GameActionType_TOGGLE_QUEST_LOG);
 			return;
 		}
+		if (hasOpenPanels && SpellbookFlag) {
+			LocalCoopPlayerContext context(playerId);
+			CheckSBook();
+			return;
+		}
 		if (hasOpenPanels && (invflag || CharFlag)) {
 			// Lift/place inventory items or press character panel buttons
 			coopPlayer.actionHeld = GameActionType_PRIMARY_ACTION;
@@ -1176,6 +1021,8 @@ void HandleGameplayButtonDown(uint8_t playerId, LocalCoopPlayer &coopPlayer, Pla
 			QuestlogEnter();
 			return;
 		}
+		if (hasOpenPanels && SpellbookFlag)
+			return;
 		if (hasOpenPanels && invflag) {
 			// Use/equip the highlighted inventory item, same as Player 1
 			LocalCoopPlayerContext context(playerId);
@@ -1191,7 +1038,7 @@ void HandleGameplayButtonDown(uint8_t playerId, LocalCoopPlayer &coopPlayer, Pla
 			SelectLocalCoopSpellFromMenu();
 			return;
 		}
-		if (hasOpenPanels && QuestLogIsOpen)
+		if (hasOpenPanels && (QuestLogIsOpen || SpellbookFlag))
 			return;
 		if (hasOpenPanels && invflag) {
 			// Drop held item / move highlighted item, same as Player 1
@@ -1377,23 +1224,29 @@ void ProcessLocalCoopAxisMotion(uint8_t playerId, const SDL_Event &event)
 		ScaleJoystickAxes(&coopPlayer->rightStickX, &coopPlayer->rightStickY, JoystickDeadzone);
 		break;
 	case SDL_GAMEPAD_AXIS_LEFT_TRIGGER: {
-		// Left trigger = Character screen (like player 1)
-		bool nowPressed = axis.value > TriggerThreshold;
-		if (nowPressed && !coopPlayer->leftTriggerPressed && !IsStartButtonHeldForPlayer(playerId)) {
-			// Back + Left trigger = Quest log (like player 1)
-			ProcessLocalCoopGameAction(playerId, IsBackButtonHeldForPlayer(playerId) ? GameActionType_TOGGLE_QUEST_LOG : GameActionType_TOGGLE_CHARACTER_INFO);
+		// Left trigger = Character screen (matches GameController press/release hysteresis)
+		if (axis.value < TriggerReleaseThreshold && coopPlayer->leftTriggerPressed) {
+			coopPlayer->leftTriggerPressed = false;
+		} else if (axis.value > TriggerPressThreshold && !coopPlayer->leftTriggerPressed) {
+			coopPlayer->leftTriggerPressed = true;
+			if (!IsStartButtonHeldForPlayer(playerId)) {
+				// Back + Left trigger = Quest log (like player 1)
+				ProcessLocalCoopGameAction(playerId, IsBackButtonHeldForPlayer(playerId) ? GameActionType_TOGGLE_QUEST_LOG : GameActionType_TOGGLE_CHARACTER_INFO);
+			}
 		}
-		coopPlayer->leftTriggerPressed = nowPressed;
 		return;
 	}
 	case SDL_GAMEPAD_AXIS_RIGHT_TRIGGER: {
-		// Right trigger = Inventory (like player 1)
-		bool nowPressed = axis.value > TriggerThreshold;
-		if (nowPressed && !coopPlayer->rightTriggerPressed && !IsStartButtonHeldForPlayer(playerId)) {
-			// Back + Right trigger = Spellbook (like player 1)
-			ProcessLocalCoopGameAction(playerId, IsBackButtonHeldForPlayer(playerId) ? GameActionType_TOGGLE_SPELL_BOOK : GameActionType_TOGGLE_INVENTORY);
+		// Right trigger = Inventory (matches GameController press/release hysteresis)
+		if (axis.value < TriggerReleaseThreshold && coopPlayer->rightTriggerPressed) {
+			coopPlayer->rightTriggerPressed = false;
+		} else if (axis.value > TriggerPressThreshold && !coopPlayer->rightTriggerPressed) {
+			coopPlayer->rightTriggerPressed = true;
+			if (!IsStartButtonHeldForPlayer(playerId)) {
+				// Back + Right trigger = Spellbook (like player 1)
+				ProcessLocalCoopGameAction(playerId, IsBackButtonHeldForPlayer(playerId) ? GameActionType_TOGGLE_SPELL_BOOK : GameActionType_TOGGLE_INVENTORY);
+			}
 		}
-		coopPlayer->rightTriggerPressed = nowPressed;
 		return;
 	}
 	default:
@@ -1506,7 +1359,7 @@ void LocalCoopPlayer::Reset()
 	cursor.Reset();
 	actionHeld = 0;
 	g_LocalCoop.UpdateAnyCoopPlayerInitializedCache();
-	saveNumber = 0;
+	saveNumber = std::nullopt;
 	leftTriggerPressed = false;
 	rightTriggerPressed = false;
 }
@@ -1639,11 +1492,14 @@ void LocalCoopState::ReleasePanelOwnership()
 	// Only release if no panels are open
 	if (!IsLeftPanelOpen() && !IsRightPanelOpen()) {
 		panelOwnerPlayerId = -1;
-		// Restore MyPlayer and InspectPlayer to Player 1
-		if (Players.size() > 0) {
-			MyPlayer = &Players[0];
-			MyPlayerId = 0;
-			InspectPlayer = &Players[0];
+		// Preserve speedbook owner context if a coop player still has the speedbook open
+		const uint8_t contextPlayerId = (SpellSelectFlag && spellMenuOwnerPlayerId >= 0)
+		    ? static_cast<uint8_t>(spellMenuOwnerPlayerId)
+		    : 0;
+		if (contextPlayerId < Players.size()) {
+			MyPlayer = &Players[contextPlayerId];
+			MyPlayerId = contextPlayerId;
+			InspectPlayer = &Players[contextPlayerId];
 		}
 	}
 }
@@ -1666,11 +1522,13 @@ void RestorePanelOwnerContext()
 		MyPlayerId = ownerId;
 		InspectPlayer = &Players[ownerId];
 	} else if (g_LocalCoop.panelOwnerPlayerId < 0) {
-		// No explicit owner, ensure Player 1's context is set
-		if (Players.size() > 0) {
-			MyPlayer = &Players[0];
-			MyPlayerId = 0;
-			InspectPlayer = &Players[0];
+		const uint8_t contextPlayerId = (SpellSelectFlag && g_LocalCoop.spellMenuOwnerPlayerId >= 0)
+		    ? static_cast<uint8_t>(g_LocalCoop.spellMenuOwnerPlayerId)
+		    : 0;
+		if (contextPlayerId < Players.size()) {
+			MyPlayer = &Players[contextPlayerId];
+			MyPlayerId = contextPlayerId;
+			InspectPlayer = &Players[contextPlayerId];
 		}
 	}
 }
@@ -1881,8 +1739,7 @@ bool IsAnyLocalPlayerWalking(Direction &outDirection)
 {
 	if (IsAnyLocalCoopPlayerInitialized()) {
 		// Check all players for walking
-		size_t totalPlayers = g_LocalCoop.GetTotalPlayerCount();
-		for (size_t i = 0; i < totalPlayers && i < Players.size(); ++i) {
+		for (size_t i = 0; i < MaxLocalPlayers && i < Players.size(); ++i) {
 			const Player &player = Players[i];
 			if (player.plractive && !player.hasNoLife() && player.isWalking()) {
 				outDirection = player._pdir;
@@ -2203,6 +2060,7 @@ void ProcessLocalCoopLeftStickPanelNavigation()
 
 		if (ownsSpellMenu) {
 			// Navigate the speedbook with the left stick, like player 1
+			LocalCoopPlayerContext context(playerId);
 			HotSpellMove(dir);
 			continue;
 		}
@@ -2225,7 +2083,7 @@ void LoadAvailableHeroesForCoopSlot(uint8_t playerIdx)
 	LocalCoopPlayer *coopPlayer = validated.coop;
 
 	// Save the currently selected hero's save number to try to preserve selection
-	uint32_t previouslySelectedSave = 0;
+	std::optional<uint32_t> previouslySelectedSave;
 	if (!coopPlayer->availableHeroes.empty() && coopPlayer->selectedHeroIndex >= 0 && coopPlayer->selectedHeroIndex < static_cast<int>(coopPlayer->availableHeroes.size())) {
 		previouslySelectedSave = coopPlayer->availableHeroes[coopPlayer->selectedHeroIndex].saveNumber;
 	}
@@ -2239,8 +2097,8 @@ void LoadAvailableHeroesForCoopSlot(uint8_t playerIdx)
 	// Exclude player 1's currently selected hero
 	excludeSaves.push_back(gSaveNumber);
 
-	// Exclude heroes already selected by other local co-op players
-	for (size_t i = 0; i < g_LocalCoop.players.size(); ++i) {
+	// Exclude heroes already selected by other local co-op players (skip index 0, Player 1 is already excluded above)
+	for (size_t i = 1; i < g_LocalCoop.players.size(); ++i) {
 		// Skip the current player
 		if (i == playerIdx)
 			continue;
@@ -2252,8 +2110,8 @@ void LoadAvailableHeroesForCoopSlot(uint8_t playerIdx)
 			}
 			// Also exclude confirmed heroes using saveNumber (for players who have already confirmed)
 			// This handles the case where availableHeroes might have been cleared after confirmation
-			if (!other.characterSelectActive && other.saveNumber != 0) {
-				excludeSaves.push_back(other.saveNumber);
+			if (!other.characterSelectActive && other.saveNumber.has_value()) {
+				excludeSaves.push_back(*other.saveNumber);
 			}
 		}
 	}
@@ -2262,9 +2120,9 @@ void LoadAvailableHeroesForCoopSlot(uint8_t playerIdx)
 	LoadHeroInfosForLocalCoop(coopPlayer->availableHeroes, excludeSaves);
 
 	// Try to preserve the previously selected hero if it's still available
-	if (previouslySelectedSave != 0 && !coopPlayer->availableHeroes.empty()) {
+	if (previouslySelectedSave.has_value() && !coopPlayer->availableHeroes.empty()) {
 		for (size_t i = 0; i < coopPlayer->availableHeroes.size(); ++i) {
-			if (coopPlayer->availableHeroes[i].saveNumber == previouslySelectedSave) {
+			if (coopPlayer->availableHeroes[i].saveNumber == *previouslySelectedSave) {
 				coopPlayer->selectedHeroIndex = static_cast<int>(i);
 				break;
 			}
@@ -2349,7 +2207,7 @@ void ConfirmLocalCoopCharacter(uint8_t playerId)
 	// InitPlayer sets up player state and vision
 	InitPlayer(player, true);
 	// Restore this player's own spell hotkeys and selected spell (InitPlayer only does so for Player 1)
-	LoadHotkeys(coopPlayer->saveNumber, player);
+	LoadHotkeys(*coopPlayer->saveNumber, player);
 
 	// In local co-op, each player needs their own light source (unlike multiplayer where
 	// other players are remote and don't need local lights). InitPlayer sets lightId to
@@ -2423,7 +2281,7 @@ void DrawLocalCoopCharacterSelect(const Surface &out)
 			    { .flags = UiFlags::ColorRed | UiFlags::AlignCenter | UiFlags::FontSize12, .spacing = 1 });
 			DrawString(out, _("Create another save first"), { { x, y + 30 }, { boxWidth, 0 } },
 			    { .flags = UiFlags::ColorWhite | UiFlags::AlignCenter | UiFlags::FontSize12, .spacing = 1 });
-		} else {
+		} else if (coopPlayer.selectedHeroIndex >= 0 && coopPlayer.selectedHeroIndex < static_cast<int>(coopPlayer.availableHeroes.size())) {
 			const _uiheroinfo &hero = coopPlayer.availableHeroes[coopPlayer.selectedHeroIndex];
 
 			// Show hero name (use the name from the hero info, which matches what will be loaded)
@@ -2862,12 +2720,14 @@ void CastLocalCoopSpell(uint8_t playerId, SpellID spellID, SpellType spellType)
 
 	// Town Portal and Teleport never target actors (same as Player 1)
 	const bool canTargetActor = spellID != SpellID::TownPortal && spellID != SpellID::Teleport;
+	// In town, cursor.pcursmonst holds a Towners[] index rather than a Monsters[] index
+	const bool hasMonsterTarget = canTargetActor && leveltype != DTYPE_TOWN && cursor.pcursmonst != -1;
 	const int8_t spell = static_cast<int8_t>(spellID);
 	const uint8_t type = static_cast<uint8_t>(spellType);
 	constexpr int spellFrom = 0;
 
 	Point target = player.position.future + Displacement(player._pdir) * (spellID == SpellID::Teleport ? 4 : 1);
-	if (canTargetActor && cursor.pcursmonst != -1) {
+	if (hasMonsterTarget) {
 		target = Monsters[cursor.pcursmonst].position.tile;
 	} else if (canTargetActor && targetPlayer != nullptr) {
 		target = targetPlayer->position.future;
@@ -2876,7 +2736,7 @@ void CastLocalCoopSpell(uint8_t playerId, SpellID spellID, SpellType spellType)
 	if (IsWallSpell(spellID)) {
 		const Direction sd = GetDirection(player.position.tile, target);
 		NetSendCmdLocParam4(true, CMD_SPELLXYD, target, spell, type, static_cast<uint16_t>(sd), spellFrom);
-	} else if (canTargetActor && cursor.pcursmonst != -1) {
+	} else if (hasMonsterTarget) {
 		NetSendCmdParam4(true, CMD_SPELLID, cursor.pcursmonst, spell, type, spellFrom);
 	} else if (canTargetActor && targetPlayer != nullptr && !player.friendlyMode) {
 		NetSendCmdParam4(true, CMD_SPELLPID, targetPlayer->getId(), spell, type, spellFrom);
@@ -3265,13 +3125,26 @@ void HandleLocalCoopControllerDisconnect(SDL_JoystickID controllerId)
 	if (!g_LocalCoop.enabled)
 		return;
 
-	for (size_t i = 0; i < g_LocalCoop.players.size(); ++i) {
+	for (size_t i = 1; i < g_LocalCoop.players.size(); ++i) {
 		LocalCoopPlayer &coopPlayer = g_LocalCoop.players[i];
 		if (coopPlayer.active && coopPlayer.controllerId == controllerId) {
 			coopPlayer.leftStickX = 0;
 			coopPlayer.leftStickY = 0;
 			coopPlayer.leftStickXUnscaled = 0;
 			coopPlayer.leftStickYUnscaled = 0;
+			coopPlayer.rightStickX = 0;
+			coopPlayer.rightStickY = 0;
+			coopPlayer.rightStickXUnscaled = 0;
+			coopPlayer.rightStickYUnscaled = 0;
+			coopPlayer.dpadX = 0;
+			coopPlayer.dpadY = 0;
+			coopPlayer.actionHeld = GameActionType_NONE;
+			coopPlayer.controllerId = -1;
+
+			if (!coopPlayer.initialized) {
+				coopPlayer.Reset();
+				ReloadHeroesForOtherPlayers(static_cast<uint8_t>(i));
+			}
 			break;
 		}
 	}
@@ -3320,22 +3193,30 @@ void HandleLocalCoopControllerConnect(SDL_JoystickID controllerId)
 		}
 	}
 
+	// Re-attach to an already-joined co-op player whose controller disconnected
+	for (size_t i = 1; i < g_LocalCoop.players.size(); ++i) {
+		LocalCoopPlayer &coopPlayer = g_LocalCoop.players[i];
+		if (coopPlayer.active && coopPlayer.initialized && coopPlayer.controllerId == -1) {
+			coopPlayer.controllerId = controllerId;
+			return;
+		}
+	}
+
 	// If game is running, try mid-game join
 	if (gbRunGame) {
 		TryJoinLocalCoopMidGame(controllerId);
 		return;
 	}
 
-	// Try to assign to an empty slot (pre-game)
-	for (size_t i = 0; i < g_LocalCoop.players.size(); ++i) {
+	// Try to assign to an empty slot (pre-game, skip index 0 which is Player 1)
+	for (size_t i = 1; i < g_LocalCoop.players.size(); ++i) {
 		LocalCoopPlayer &coopPlayer = g_LocalCoop.players[i];
 		if (!coopPlayer.active) {
 			coopPlayer.Reset();
 			coopPlayer.active = true;
 			coopPlayer.controllerId = controllerId;
 
-			size_t totalPlayers = g_LocalCoop.GetTotalPlayerCount();
-			ResizePlayersArray(totalPlayers);
+			ResizePlayersArray(i + 1);
 
 			LoadAvailableHeroesForCoopSlot(static_cast<uint8_t>(i));
 			break;
@@ -3608,9 +3489,8 @@ bool TryJoinLocalCoopMidGame(SDL_JoystickID controllerId)
 	if (!g_LocalCoop.enabled || !IsLocalCoopEnabled())
 		return false;
 
-	// Check if we're in gameplay (not in menus)
-	if (gbIsMultiplayer && !gbIsSpawn)
-		return false; // Don't allow mid-game join in network multiplayer
+	if (!gbRunGame)
+		return false;
 
 	// Check if this controller is already assigned
 	for (size_t i = 0; i < g_LocalCoop.players.size(); ++i) {
@@ -3619,9 +3499,9 @@ bool TryJoinLocalCoopMidGame(SDL_JoystickID controllerId)
 		}
 	}
 
-	// Find an empty slot
+	// Find an empty slot (skip index 0 which is Player 1)
 	int emptySlot = -1;
-	for (size_t i = 0; i < g_LocalCoop.players.size(); ++i) {
+	for (size_t i = 1; i < g_LocalCoop.players.size(); ++i) {
 		if (!g_LocalCoop.players[i].active) {
 			emptySlot = static_cast<int>(i);
 			break;
@@ -3717,74 +3597,115 @@ void FindLocalCoopActors(uint8_t playerId)
 
 	LocalCoopCursorState &cursor = coopPlayer->cursor;
 
-	// Check for towners in town
+	// Check for towners in town, otherwise monsters in dungeon
 	if (leveltype == DTYPE_TOWN) {
 		for (size_t i = 0; i < GetNumTowners(); i++) {
-			const int distance = GetLocalCoopDistance(*player, Towners[i].position, 2);
+			const int distance = GetLocalCoopDistance(*player, Towners[i].position, LocalCoopTargeting::MaxTriggerDistance);
 			if (distance == 0)
 				continue;
 			if (!IsTownerPresent(Towners[i]._ttype))
 				continue;
 			cursor.pcursmonst = static_cast<int>(i);
 		}
-		return;
+	} else {
+		// Check for monsters
+		int rotations = 0;
+		bool canTalk = false;
+
+		// Use ranged check if player has ranged weapon
+		if (player->UsesRangedWeapon()) {
+			int distance = 0;
+			for (size_t i = 0; i < ActiveMonsterCount; i++) {
+				const int mi = ActiveMonsters[i];
+				const Monster &monster = Monsters[mi];
+
+				if (!CanLocalCoopTargetMonster(monster))
+					continue;
+
+				const bool newCanTalk = CanTalkToMonst(monster);
+				if (cursor.pcursmonst != -1 && !canTalk && newCanTalk)
+					continue;
+				const int newDistance = player->position.future.ExactDistance(monster.position.future);
+				const int newRotations = GetLocalCoopRotaryDistance(*player, monster.position.future);
+				if (cursor.pcursmonst != -1 && canTalk == newCanTalk) {
+					if (distance < newDistance)
+						continue;
+					if (distance == newDistance && rotations < newRotations)
+						continue;
+				}
+				distance = newDistance;
+				rotations = newRotations;
+				canTalk = newCanTalk;
+				cursor.pcursmonst = mi;
+			}
+		} else {
+			// Melee targeting - find closest monster
+			int maxSteps = LocalCoopTargeting::MaxMeleeDistance;
+			for (size_t i = 0; i < ActiveMonsterCount; i++) {
+				const int mi = ActiveMonsters[i];
+				const Monster &monster = Monsters[mi];
+
+				if (!CanLocalCoopTargetMonster(monster))
+					continue;
+
+				const int distance = GetLocalCoopDistance(*player, monster.position.tile, maxSteps);
+				if (distance == 0)
+					continue;
+
+				const bool newCanTalk = CanTalkToMonst(monster);
+				if (cursor.pcursmonst != -1 && !canTalk && newCanTalk)
+					continue;
+				const int newRotations = GetLocalCoopRotaryDistance(*player, monster.position.tile);
+				if (cursor.pcursmonst != -1 && canTalk == newCanTalk && rotations < newRotations)
+					continue;
+				rotations = newRotations;
+				canTalk = newCanTalk;
+				cursor.pcursmonst = mi;
+				if (!canTalk)
+					maxSteps = distance;
+			}
+		}
 	}
 
-	// Check for monsters
-	int rotations = 0;
-	bool canTalk = false;
+	// Check for nearby players (for Heal Other, Resurrect, or PvP spells, mirroring CheckPlayerNearby)
+	if (gbIsMultiplayer && cursor.pcursmonst == -1) {
+		const SpellID spl = player->_pRSpell;
+		if (!player->friendlyMode || spl == SpellID::Resurrect || spl == SpellID::HealOther) {
+			constexpr int MaxRotarySteps = 4;
+			int rotations = MaxRotarySteps;
+			int distance = LocalCoopTargeting::MaxMeleeDistance;
+			const bool useRangedDistance = player->UsesRangedWeapon() || spl == SpellID::HealOther;
 
-	// Use ranged check if player has ranged weapon
-	if (player->UsesRangedWeapon()) {
-		int distance = 0;
-		for (size_t i = 0; i < ActiveMonsterCount; i++) {
-			const int mi = ActiveMonsters[i];
-			const Monster &monster = Monsters[mi];
-
-			if (!CanLocalCoopTargetMonster(monster))
-				continue;
-
-			const bool newCanTalk = CanTalkToMonst(monster);
-			if (cursor.pcursmonst != -1 && !canTalk && newCanTalk)
-				continue;
-			const int newDistance = player->position.future.ExactDistance(monster.position.future);
-			const int newRotations = GetLocalCoopRotaryDistance(*player, monster.position.future);
-			if (cursor.pcursmonst != -1 && canTalk == newCanTalk) {
-				if (distance < newDistance)
+			for (const Player &other : Players) {
+				if (&other == player || !other.plractive || !other.isOnActiveLevel())
 					continue;
-				if (distance == newDistance && rotations < newRotations)
+				const int mx = other.position.future.x;
+				const int my = other.position.future.y;
+				if (!InDungeonBounds(other.position.future)
+				    || dPlayer[mx][my] == 0
+				    || !IsTileLit(other.position.future)
+				    || (other.hasNoLife() && spl != SpellID::Resurrect))
 					continue;
+
+				int newDistance = 0;
+				if (useRangedDistance) {
+					newDistance = player->position.future.ExactDistance(other.position.future);
+				} else {
+					newDistance = GetLocalCoopDistance(*player, other.position.future, distance);
+					if (newDistance == 0)
+						continue;
+				}
+
+				if (cursor.playerUnderCursor != nullptr && distance < newDistance)
+					continue;
+				const int newRotations = GetLocalCoopRotaryDistance(*player, other.position.future);
+				if (cursor.playerUnderCursor != nullptr && distance == newDistance && rotations < newRotations)
+					continue;
+
+				distance = newDistance;
+				rotations = newRotations;
+				cursor.playerUnderCursor = &other;
 			}
-			distance = newDistance;
-			rotations = newRotations;
-			canTalk = newCanTalk;
-			cursor.pcursmonst = mi;
-		}
-	} else {
-		// Melee targeting - find closest monster
-		int maxSteps = 25;
-		for (size_t i = 0; i < ActiveMonsterCount; i++) {
-			const int mi = ActiveMonsters[i];
-			const Monster &monster = Monsters[mi];
-
-			if (!CanLocalCoopTargetMonster(monster))
-				continue;
-
-			const int distance = GetLocalCoopDistance(*player, monster.position.tile, maxSteps);
-			if (distance == 0)
-				continue;
-
-			const bool newCanTalk = CanTalkToMonst(monster);
-			if (cursor.pcursmonst != -1 && !canTalk && newCanTalk)
-				continue;
-			const int newRotations = GetLocalCoopRotaryDistance(*player, monster.position.tile);
-			if (cursor.pcursmonst != -1 && canTalk == newCanTalk && rotations < newRotations)
-				continue;
-			rotations = newRotations;
-			canTalk = newCanTalk;
-			cursor.pcursmonst = mi;
-			if (!canTalk)
-				maxSteps = distance;
 		}
 	}
 }
@@ -3925,9 +3846,18 @@ void UpdateLocalCoopTargetSelection(uint8_t playerId)
 	if (coopPlayer->actionHeld != GameActionType_NONE) {
 		// Invalidate targets that are no longer valid
 		if (coopPlayer->cursor.pcursmonst != -1) {
-			const Monster &monster = Monsters[coopPlayer->cursor.pcursmonst];
-			if (!CanLocalCoopTargetMonster(monster)) {
-				coopPlayer->cursor.pcursmonst = -1;
+			if (leveltype == DTYPE_TOWN) {
+				const size_t townerIdx = static_cast<size_t>(coopPlayer->cursor.pcursmonst);
+				if (townerIdx >= GetNumTowners()
+				    || !IsTownerPresent(Towners[townerIdx]._ttype)
+				    || GetLocalCoopDistance(*player, Towners[townerIdx].position, LocalCoopTargeting::MaxTriggerDistance) == 0) {
+					coopPlayer->cursor.pcursmonst = -1;
+				}
+			} else {
+				const Monster &monster = Monsters[coopPlayer->cursor.pcursmonst];
+				if (!CanLocalCoopTargetMonster(monster)) {
+					coopPlayer->cursor.pcursmonst = -1;
+				}
 			}
 		}
 		return;
@@ -4144,6 +4074,7 @@ void PerformLocalCoopSecondaryAction(uint8_t playerId)
 				}
 			}
 		}
+		return;
 	}
 
 	// Pick up item
@@ -4324,7 +4255,8 @@ std::optional<Point> GetLocalCoopBeltSlotPosition(uint8_t playerId, int beltSlot
 		return std::nullopt;
 
 	// Calculate belt position (same as DrawPlayerBelt call in DrawLocalCoopPlayerHUD)
-	BeltPosition beltPos = CalculateBeltPosition(GetPanelBaseSectionX(playerId, panelPos.panelX), panelPos.panelY, LocalCoopLayout::PanelWidth::BaseWidth);
+	const PlayerHUDLayout layout = CalculatePlayerHUDLayout(*GetOptions().Gameplay.experienceBar, LocalCoopLayout::PanelWidth::BaseWidth);
+	BeltPosition beltPos = CalculateBeltPosition(GetPanelBaseSectionX(playerId, panelPos.panelX), panelPos.panelY, layout.panelWidth, layout.barsHeight);
 	const int beltBaseX = beltPos.baseX;
 	const int beltBaseY = beltPos.baseY;
 
@@ -4378,7 +4310,8 @@ std::optional<inv_xy_slot> FindLocalCoopBeltSlotUnderCursor(Point cursorPosition
 			continue;
 
 		// Calculate belt position (same as DrawPlayerBelt call in DrawLocalCoopPlayerHUD)
-		BeltPosition beltPos = CalculateBeltPosition(GetPanelBaseSectionX(static_cast<uint8_t>(playerId), panelPos.panelX), panelPos.panelY, LocalCoopLayout::PanelWidth::BaseWidth);
+		const PlayerHUDLayout layout = CalculatePlayerHUDLayout(*GetOptions().Gameplay.experienceBar, LocalCoopLayout::PanelWidth::BaseWidth);
+		BeltPosition beltPos = CalculateBeltPosition(GetPanelBaseSectionX(static_cast<uint8_t>(playerId), panelPos.panelX), panelPos.panelY, layout.panelWidth, layout.barsHeight);
 		const int beltBaseX = beltPos.baseX;
 		const int beltBaseY = beltPos.baseY;
 
@@ -4433,13 +4366,14 @@ void RestorePlayer1ContextForSave()
 	if (!g_LocalCoop.enabled)
 		return;
 
-	// CRITICAL: Before saving, ensure MyPlayer points to Player 1
-	// If a local coop player has the panel open, MyPlayer might point to them,
-	// which would cause their data (including HoldItem) to be saved to Player 1's save file!
-	// Force release panel ownership to restore MyPlayer to Player 1
-	if (g_LocalCoop.panelOwnerPlayerId > 0) {
+	// CRITICAL: Before saving, ensure MyPlayer points to Player 1.
+	// If a local coop player owns panels, the speedbook, or a store, MyPlayer might point
+	// to them, which would cause their data to be saved to Player 1's save file.
+	if (g_LocalCoop.panelOwnerPlayerId > 0 || g_LocalCoop.spellMenuOwnerPlayerId > 0 || g_LocalCoop.storeOwnerPlayerId > 0 || MyPlayerId != 0) {
 		g_LocalCoop.panelOwnerPlayerId = -1;
-		if (Players.size() > 0) {
+		g_LocalCoop.spellMenuOwnerPlayerId = -1;
+		g_LocalCoop.storeOwnerPlayerId = -1;
+		if (!Players.empty()) {
 			MyPlayer = &Players[0];
 			MyPlayerId = 0;
 			InspectPlayer = &Players[0];
@@ -4462,10 +4396,13 @@ void SaveLocalCoopPlayers(bool /*writeGameData*/)
 		if (i >= Players.size())
 			continue;
 
+		if (!coopPlayer.saveNumber.has_value())
+			continue;
+
 		Player &player = Players[i];
 
 		// Use the pfile function to save this player to their save slot
-		pfile_write_player_to_save(coopPlayer.saveNumber, player);
+		pfile_write_player_to_save(*coopPlayer.saveNumber, player);
 	}
 }
 
@@ -4474,7 +4411,12 @@ void SetLocalCoopStoreOwner(int playerId)
 	if (!g_LocalCoop.enabled)
 		return;
 
-	if (playerId < 0 || playerId >= static_cast<int>(g_LocalCoop.players.size()))
+	if (playerId < 0) {
+		ClearLocalCoopStoreOwner();
+		return;
+	}
+
+	if (playerId >= static_cast<int>(g_LocalCoop.players.size()) || playerId >= static_cast<int>(Players.size()))
 		return;
 
 	const LocalCoopPlayer &coopPlayer = g_LocalCoop.players[playerId];
@@ -4482,6 +4424,9 @@ void SetLocalCoopStoreOwner(int playerId)
 		return;
 
 	g_LocalCoop.storeOwnerPlayerId = playerId;
+	MyPlayer = &Players[playerId];
+	MyPlayerId = static_cast<uint8_t>(playerId);
+	InspectPlayer = &Players[playerId];
 }
 
 void ClearLocalCoopStoreOwner()
@@ -4498,6 +4443,18 @@ void ClearLocalCoopStoreOwner()
 	}
 
 	g_LocalCoop.storeOwnerPlayerId = -1;
+
+	uint8_t contextPlayerId = 0;
+	if (g_LocalCoop.HasPanelOwner()) {
+		contextPlayerId = g_LocalCoop.GetPanelOwnerPlayerId();
+	} else if (SpellSelectFlag && g_LocalCoop.spellMenuOwnerPlayerId >= 0) {
+		contextPlayerId = static_cast<uint8_t>(g_LocalCoop.spellMenuOwnerPlayerId);
+	}
+	if (contextPlayerId < Players.size()) {
+		MyPlayer = &Players[contextPlayerId];
+		MyPlayerId = contextPlayerId;
+		InspectPlayer = &Players[contextPlayerId];
+	}
 }
 
 void CloseLocalCoopStore()
@@ -4534,6 +4491,8 @@ bool LocalCoopHUDOpen = false;
 
 void InitLocalCoop() { }
 void ShutdownLocalCoop() { }
+void InitLocalCoopHUDAssets() { }
+void FreeLocalCoopHUDAssets() { }
 bool IsLocalCoopAvailable() { return false; }
 bool IsLocalCoopEnabled() { return false; }
 bool IsAnyLocalCoopPlayerInitialized() { return false; }

@@ -421,5 +421,65 @@ TEST(Writehero, pfile_write_hero)
 	    "e206d9233785e12fa222fe1550489ec2de19eaba99d6b5fee173c91f55af494b");
 }
 
+TEST(Writehero, pfile_read_ui_hero_info_leaves_player_unchanged)
+{
+	LoadCoreArchives();
+	LoadGameArchives();
+
+	if (!HaveMainData()) {
+		GTEST_SKIP() << "MPQ assets (spawn.mpq or DIABDAT.MPQ) not found - skipping test";
+	}
+
+	constexpr uint32_t HeroInfoSaveNumber = 1;
+	constexpr char HeroInfoName[] = "CoopHero";
+	constexpr int SentinelGold = 424242;
+	constexpr int SentinelBaseStrength = 3;
+	constexpr uint8_t NewHeroLevel = 1;
+
+	const std::string savePath = paths::BasePath() + "multi_1.sv";
+	paths::SetPrefPath(paths::BasePath());
+	RemoveFile(savePath.c_str());
+
+	gbVanilla = true;
+	gbIsHellfire = false;
+	gbIsSpawn = false;
+	gbIsMultiplayer = true;
+	gbIsHellfireSaveGame = false;
+	leveltype = DTYPE_TOWN;
+	giNumberOfLevels = 17;
+
+	Players.resize(1);
+	MyPlayerId = 0;
+	MyPlayer = &Players[MyPlayerId];
+
+	LoadSpellData();
+	LoadPlayerDataFiles();
+	LoadMonsterData();
+	LoadItemData();
+
+	_uiheroinfo info {};
+	info.saveNumber = HeroInfoSaveNumber;
+	info.heroclass = HeroClass::Rogue;
+	strcpy(info.name, HeroInfoName);
+	ASSERT_TRUE(pfile_ui_save_create(&info));
+
+	const int savedBaseStrength = Players[0]._pBaseStr;
+	Players[0]._pGold = SentinelGold;
+	Players[0]._pBaseStr = SentinelBaseStrength;
+
+	_uiheroinfo readBack {};
+	ASSERT_TRUE(pfile_read_ui_hero_info(HeroInfoSaveNumber, readBack));
+
+	EXPECT_EQ(Players[0]._pGold, SentinelGold);
+	EXPECT_EQ(Players[0]._pBaseStr, SentinelBaseStrength);
+	EXPECT_STREQ(readBack.name, HeroInfoName);
+	EXPECT_EQ(readBack.heroclass, HeroClass::Rogue);
+	EXPECT_EQ(readBack.level, NewHeroLevel);
+	EXPECT_EQ(readBack.strength, savedBaseStrength);
+	EXPECT_EQ(readBack.saveNumber, HeroInfoSaveNumber);
+
+	RemoveFile(savePath.c_str());
+}
+
 } // namespace
 } // namespace devilution

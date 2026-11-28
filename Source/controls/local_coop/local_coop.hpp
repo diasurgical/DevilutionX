@@ -90,7 +90,7 @@ struct LocalCoopPlayer {
 	uint8_t actionHeld = 0; // GameActionType
 
 	// Save slot number for this player (used for saving progress)
-	uint32_t saveNumber = 0;
+	std::optional<uint32_t> saveNumber;
 
 	// Trigger state for inventory/character screen (like player 1)
 	bool leftTriggerPressed = false;  // Character screen
@@ -680,8 +680,12 @@ void RestorePlayer1ContextForSave();
 template <typename Func>
 void WithPlayer1Context(Func func)
 {
-	RestorePlayer1ContextForSave();
-	func();
+	if (IsLocalCoopEnabled()) {
+		LocalCoopPlayerContext context(0);
+		func();
+	} else {
+		func();
+	}
 }
 
 /**

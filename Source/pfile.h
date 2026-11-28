@@ -120,6 +120,11 @@ HeroCompareResult pfile_compare_hero_demo(int demo, bool logDetails);
 void sfile_write_stash();
 bool pfile_ui_set_hero_infos(bool (*uiAddHeroInfo)(_uiheroinfo *));
 bool pfile_ui_set_hero_infos(std::function<bool(_uiheroinfo *)> uiAddHeroInfo);
+/**
+ * @brief Fill UI hero metadata from a save slot without unpacking into Players[].
+ * Base attributes do not include equipment bonuses.
+ */
+bool pfile_read_ui_hero_info(uint32_t saveNum, _uiheroinfo &heroInfo);
 void pfile_ui_set_class_stats(HeroClass playerClass, _uidefaultstats *classStats);
 uint32_t pfile_ui_get_first_unused_save_num();
 bool pfile_ui_save_create(_uiheroinfo *heroinfo);

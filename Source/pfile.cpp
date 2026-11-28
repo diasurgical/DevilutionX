@@ -5,6 +5,7 @@
  */
 #include "pfile.h"
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <expected>
@@ -24,6 +25,7 @@
 
 #include "appfat.h"
 #include "codec.h"
+#include "controls/local_coop/local_coop.hpp"
 #include "engine/load_file.hpp"
 #include "engine/render/primitive_render.hpp"
 #include "game_mode.hpp"
@@ -747,6 +749,35 @@ bool pfile_ui_set_hero_infos(std::function<bool(_uiheroinfo *)> uiAddHeroInfo)
 	return pfile_ui_set_hero_infos_impl(std::move(uiAddHeroInfo));
 }
 
+bool pfile_read_ui_hero_info(uint32_t saveNum, _uiheroinfo &heroInfo)
+{
+	if (saveNum >= MAX_CHARACTERS)
+		return false;
+
+	std::optional<SaveReader> archive = OpenSaveArchive(saveNum);
+	if (!archive)
+		return false;
+
+	PlayerPack pkplr;
+	if (!ReadHero(*archive, &pkplr))
+		return false;
+
+	heroInfo = {};
+	heroInfo.saveNumber = saveNum;
+	CopyUtf8(heroInfo.name, std::string_view(pkplr.pName, PlayerNameLength), sizeof(heroInfo.name));
+	heroInfo.level = pkplr.pLevel;
+	const uint8_t maxClass = static_cast<uint8_t>(GetNumPlayerClasses() - 1);
+	heroInfo.heroclass = static_cast<HeroClass>(std::clamp<uint8_t>(pkplr.pClass, 0, maxClass));
+	heroInfo.strength = pkplr.pBaseStr;
+	heroInfo.magic = pkplr.pBaseMag;
+	heroInfo.dexterity = pkplr.pBaseDex;
+	heroInfo.vitality = pkplr.pBaseVit;
+	heroInfo.herorank = static_cast<uint8_t>(Swap32LE(pkplr.pDiabloKillLevel));
+	heroInfo.hassaved = ArchiveContainsGame(*archive);
+	heroInfo.spawned = gbIsSpawn;
+	return true;
+}
+
 void pfile_ui_set_class_stats(HeroClass playerClass, _uidefaultstats *classStats)
 {
 	const ClassAttributes &classAttributes = GetClassAttributes(playerClass);
@@ -880,8 +911,19 @@ void pfile_update(bool forceSave)
 		return;
 
 	prevTick = tick;
-	pfile_write_hero();
-	sfile_write_stash();
+#ifndef USE_SDL1
+	if (IsLocalCoopEnabled()) {
+		WithPlayer1Context([]() {
+			pfile_write_hero();
+		});
+		sfile_write_stash();
+		SaveLocalCoopPlayers(/*writeGameData=*/false);
+	} else
+#endif
+	{
+		pfile_write_hero();
+		sfile_write_stash();
+	}
 }
 
 } // namespace devilution
