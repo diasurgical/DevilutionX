@@ -5,9 +5,11 @@
  */
 #include "pfile.h"
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <expected>
+#include <functional>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -23,6 +25,7 @@
 
 #include "appfat.h"
 #include "codec.h"
+#include "controls/local_coop/local_coop.hpp"
 #include "engine/load_file.hpp"
 #include "engine/render/primitive_render.hpp"
 #include "game_mode.hpp"
@@ -692,35 +695,86 @@ void sfile_write_stash()
 	Stash.dirty = false;
 }
 
-bool pfile_ui_set_hero_infos(bool (*uiAddHeroInfo)(_uiheroinfo *))
+namespace {
+
+template <typename Fn>
+bool pfile_ui_set_hero_infos_impl(Fn &&fn)
 {
 	memset(hero_names, 0, sizeof(hero_names));
 
+	uint32_t originalSaveNumber = gSaveNumber;
 	for (uint32_t i = 0; i < MAX_CHARACTERS; i++) {
 		std::optional<SaveReader> archive = OpenSaveArchive(i);
-		if (archive) {
-			PlayerPack pkplr;
-			if (ReadHero(*archive, &pkplr)) {
-				_uiheroinfo uihero;
-				uihero.saveNumber = i;
-				CopyUtf8(hero_names[i], std::string_view(pkplr.pName, PlayerNameLength), sizeof(hero_names[i]));
-				const bool hasSaveGame = ArchiveContainsGame(*archive);
-				if (hasSaveGame)
-					pkplr.bIsHellfire = gbIsHellfireSaveGame ? 1 : 0;
+		if (!archive)
+			continue;
+		PlayerPack pkplr;
+		if (!ReadHero(*archive, &pkplr))
+			continue;
+		_uiheroinfo uihero;
+		uihero.saveNumber = i;
+		CopyUtf8(hero_names[i], std::string_view(pkplr.pName, PlayerNameLength), sizeof(hero_names[i]));
+		const bool hasSaveGame = ArchiveContainsGame(*archive);
+		if (hasSaveGame)
+			pkplr.bIsHellfire = gbIsHellfireSaveGame ? 1 : 0;
 
-				Player &player = Players[0];
+		// Must unpack into Players[0]: InitPlayer/UnPackPlayer use Player::getId() (distance
+		// from &Players[0]) for vision/lighting; a stack Player yields an invalid index.
+		Player &player = Players[0];
 
-				UnPackPlayer(pkplr, player);
-				LoadHeroItems(player);
-				RemoveAllInvalidItems(player);
-				CalcPlrInv(player, false);
+		UnPackPlayer(pkplr, player);
+		// Temporarily set gSaveNumber to the save we're reading from
+		// so that LoadHeroItems reads items from the correct save file
+		gSaveNumber = i;
+		LoadHeroItems(player);
+		RemoveAllInvalidItems(player);
+		CalcPlrInv(player, false);
 
-				Game2UiPlayer(player, &uihero, hasSaveGame);
-				uiAddHeroInfo(&uihero);
-			}
-		}
+		Game2UiPlayer(player, &uihero, hasSaveGame);
+		fn(&uihero);
 	}
+	gSaveNumber = originalSaveNumber;
 
+	return true;
+}
+
+} // namespace
+
+bool pfile_ui_set_hero_infos(bool (*uiAddHeroInfo)(_uiheroinfo *))
+{
+	return pfile_ui_set_hero_infos_impl([uiAddHeroInfo](_uiheroinfo *h) { return uiAddHeroInfo(h); });
+}
+
+bool pfile_ui_set_hero_infos(std::function<bool(_uiheroinfo *)> uiAddHeroInfo)
+{
+	return pfile_ui_set_hero_infos_impl(std::move(uiAddHeroInfo));
+}
+
+bool pfile_read_ui_hero_info(uint32_t saveNum, _uiheroinfo &heroInfo)
+{
+	if (saveNum >= MAX_CHARACTERS)
+		return false;
+
+	std::optional<SaveReader> archive = OpenSaveArchive(saveNum);
+	if (!archive)
+		return false;
+
+	PlayerPack pkplr;
+	if (!ReadHero(*archive, &pkplr))
+		return false;
+
+	heroInfo = {};
+	heroInfo.saveNumber = saveNum;
+	CopyUtf8(heroInfo.name, std::string_view(pkplr.pName, PlayerNameLength), sizeof(heroInfo.name));
+	heroInfo.level = pkplr.pLevel;
+	const uint8_t maxClass = static_cast<uint8_t>(GetNumPlayerClasses() - 1);
+	heroInfo.heroclass = static_cast<HeroClass>(std::clamp<uint8_t>(pkplr.pClass, 0, maxClass));
+	heroInfo.strength = pkplr.pBaseStr;
+	heroInfo.magic = pkplr.pBaseMag;
+	heroInfo.dexterity = pkplr.pBaseDex;
+	heroInfo.vitality = pkplr.pBaseVit;
+	heroInfo.herorank = static_cast<uint8_t>(Swap32LE(pkplr.pDiabloKillLevel));
+	heroInfo.hassaved = ArchiveContainsGame(*archive);
+	heroInfo.spawned = gbIsSpawn;
 	return true;
 }
 
@@ -798,9 +852,30 @@ void pfile_read_player_from_save(uint32_t saveNum, Player &player)
 	}
 
 	UnPackPlayer(pkplr, player);
+
+	// Temporarily set gSaveNumber to the save we're reading from
+	// so that LoadHeroItems reads items from the correct save file
+	uint32_t originalSaveNumber = gSaveNumber;
+	gSaveNumber = saveNum;
 	LoadHeroItems(player);
+	gSaveNumber = originalSaveNumber;
+
 	RemoveAllInvalidItems(player);
 	CalcPlrInv(player, false);
+}
+
+void pfile_write_player_to_save(uint32_t saveNum, Player &player)
+{
+	SaveWriter saveWriter = GetSaveWriter(saveNum);
+
+	PlayerPack pkplr;
+	PackPlayer(pkplr, player);
+	EncodeHero(saveWriter, &pkplr);
+
+	if (!gbVanilla) {
+		SaveHotkeys(saveWriter, player);
+		SaveHeroItems(saveWriter, player);
+	}
 }
 
 void pfile_save_level()
@@ -836,8 +911,19 @@ void pfile_update(bool forceSave)
 		return;
 
 	prevTick = tick;
-	pfile_write_hero();
-	sfile_write_stash();
+#ifndef USE_SDL1
+	if (IsLocalCoopEnabled()) {
+		WithPlayer1Context([]() {
+			pfile_write_hero();
+		});
+		sfile_write_stash();
+		SaveLocalCoopPlayers(/*writeGameData=*/false);
+	} else
+#endif
+	{
+		pfile_write_hero();
+		sfile_write_stash();
+	}
 }
 
 } // namespace devilution
