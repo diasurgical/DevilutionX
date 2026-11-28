@@ -829,6 +829,12 @@ GraphicsOptions::GraphicsOptions()
 #endif
               { FrameRateControl::CPUSleep, N_("Limit FPS") },
           })
+    , fpsCap("FPS Cap",
+          OptionEntryFlags::CantChangeInGame,
+          N_("FPS Cap"),
+          N_("Target frame rate used when Frame Rate Control is set to Limit FPS."),
+          60,
+          { 30, 60, 75, 120, 144, 165, 240, 360 })
     , brightness("Brightness Correction", OptionEntryFlags::Invisible, "Brightness Correction", "Brightness correction level.", 0)
     , zoom("Zoom", OptionEntryFlags::None, N_("Zoom"), N_("Zoom on when enabled."),
 #ifdef PSP
@@ -865,6 +871,7 @@ std::vector<OptionEntryBase *> GraphicsOptions::GetEntries()
 		&integerScaling,
 #endif
 		&frameRateControl,
+		&fpsCap,
 		&brightness,
 		&zoom,
 		&showFPS,
