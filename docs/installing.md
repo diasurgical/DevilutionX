@@ -184,6 +184,18 @@ If you'd like to use this option, scan the QR code below.
 
 </details>
 
+<details><summary>Nintendo Wii</summary>
+
+- Copy `devilution.dol`, the `assets` and `mods` folders from `devilutionx-wii.zip` to `apps/devilutionx/` on your SD card
+- Rename `devilution.dol` to `boot.dol`
+- Copy the MPQ files to `deviltuionx` folder and unpack them using
+using `unpack_and_minify` from https://github.com/diasurgical/devilutionx-mpq-tools/.
+
+[Nintendo Wii manual](/docs/manual/platforms/wii.md)
+
+</details>
+
+
 <details><summary>ClockworkPi GameShell</summary>
 
 - Copy the `__init__.py` to a newly created folder under /home/cpi/apps/Menu and run it from the menu. The folder then symbolizes the devilutionX icon.
